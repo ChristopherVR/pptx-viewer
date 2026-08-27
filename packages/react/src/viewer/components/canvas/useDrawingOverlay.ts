@@ -4,6 +4,7 @@ import type {
 	ShapePptxElement,
 	CustomGeometrySegment,
 } from 'pptx-viewer-core';
+import { findEraserHitElementId } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo, useState } from 'react';
 
 import type { DrawingTool } from '../../types-ui';
@@ -89,26 +90,18 @@ export function useDrawingOverlay({
 			if (activeTool === 'select') {
 				return;
 			}
-			// Eraser: find and remove ink elements near click point
+			// Eraser: find and remove the top-most ink/contentPart element near
+			// the click point. `contentPart` is included because ink saved via
+			// the Draw tab reloads in that shape (a passed-through InkML part),
+			// so it must stay erasable after a save/reload round-trip.
 			if (activeTool === 'eraser' && activeSlide) {
 				const pt = pointerToCanvasCoords(e);
 				if (!pt) {
 					return;
 				}
-				const HIT_RADIUS = 15;
-				for (const el of [...activeSlide.elements].reverse()) {
-					if (el.type !== 'ink') {
-						continue;
-					}
-					if (
-						pt.x >= el.x - HIT_RADIUS &&
-						pt.x <= el.x + el.width + HIT_RADIUS &&
-						pt.y >= el.y - HIT_RADIUS &&
-						pt.y <= el.y + el.height + HIT_RADIUS
-					) {
-						onEraseInkElement?.(el.id);
-						break;
-					}
+				const hitId = findEraserHitElementId(activeSlide.elements, pt);
+				if (hitId) {
+					onEraseInkElement?.(hitId);
 				}
 				return;
 			}

@@ -37,6 +37,49 @@ function strokeListsEqual(
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	private readonly newContentPartFallbackByXml = new Map<XmlObject, XmlObject>();
 
+	/**
+	 * Convert a Draw-tab pen/highlighter element (no `rawXml`) into the
+	 * standard PresentationML content-part representation PowerPoint's own
+	 * pen writes: a `p:contentPart` referencing a related InkML part, wrapped
+	 * in `mc:AlternateContent` with a `custGeom` fallback shape. Routes into
+	 * the same `createOrUpdateContentPartInkXml` path used for ink parsed back
+	 * off disk, so authored strokes round-trip as editable ink rather than
+	 * downgrading to a static freeform shape on reload.
+	 */
+	protected createContentPartInkFromInkElement(
+		el: InkPptxElement,
+		ctx: SaveSlideContext,
+	): XmlObject | undefined {
+		const strokes = el.inkPaths.flatMap((path, index) => {
+			if (!path.trim()) {
+				return [];
+			}
+			const width = el.inkWidths?.[index] ?? 2;
+			const opacity = el.inkOpacities?.[index] ?? 1;
+			return [
+				{
+					path,
+					color: el.inkColors?.[index] ?? '#000000',
+					width: Number.isFinite(width) && width > 0 ? width : 2,
+					opacity: Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1,
+					...(el.inkPointPressures?.[index]?.length
+						? { pressures: el.inkPointPressures[index] }
+						: {}),
+				},
+			];
+		});
+		if (strokes.length === 0) {
+			return undefined;
+		}
+		const contentPart: ContentPartPptxElement = {
+			...el,
+			type: 'contentPart',
+			inkStrokes: strokes,
+			rawXml: undefined,
+		};
+		return this.createOrUpdateContentPartInkXml(contentPart, undefined, ctx);
+	}
+
 	/** Author or update a p:contentPart and its related InkML package part. */
 	protected createOrUpdateContentPartInkXml(
 		el: ContentPartPptxElement,

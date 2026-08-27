@@ -2,7 +2,7 @@ import type { XmlObject, ZoomPptxElement } from '../../types';
 import { generateFontGuid } from '../../utils/font-deobfuscation';
 import { ensureXmlChildOrCreate } from '../../utils/xml-access';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveInk';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveOleEmbedding';
 
 const SLIDE_ZOOM_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/slidezoom';
 const SECTION_ZOOM_NAMESPACE = 'http://schemas.microsoft.com/office/powerpoint/2016/sectionzoom';

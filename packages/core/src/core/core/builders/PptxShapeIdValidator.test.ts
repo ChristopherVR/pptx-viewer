@@ -82,6 +82,45 @@ describe('pptxShapeIdValidator', () => {
 		expect(result).toBe(1);
 	});
 
+	it('deduplicates content-part and fallback ids inside AlternateContent', () => {
+		const spTree: XmlObject = {
+			'p:sp': {
+				'p:nvSpPr': { 'p:cNvPr': { '@_id': '2', '@_name': 'Existing shape' } },
+			},
+			'mc:AlternateContent': {
+				'mc:Choice': {
+					'p:contentPart': {
+						'p:nvContentPartPr': {
+							'p:cNvPr': { '@_id': '2', '@_name': 'Ink content' },
+						},
+					},
+				},
+				'mc:Fallback': {
+					'p:sp': {
+						'p:nvSpPr': { 'p:cNvPr': { '@_id': '0', '@_name': 'Ink fallback' } },
+					},
+				},
+			},
+		};
+		const result = validator.validateAndDeduplicateIds(spTree, ensureArray);
+		expect(result).toBe(2);
+
+		const alternate = spTree['mc:AlternateContent'] as XmlObject;
+		const choice = alternate['mc:Choice'] as XmlObject;
+		const contentPart = choice['p:contentPart'] as XmlObject;
+		const contentNv = contentPart['p:nvContentPartPr'] as XmlObject;
+		const fallback = alternate['mc:Fallback'] as XmlObject;
+		const fallbackShape = fallback['p:sp'] as XmlObject;
+		const fallbackNv = fallbackShape['p:nvSpPr'] as XmlObject;
+		const ids = [
+			'2',
+			String((contentNv['p:cNvPr'] as XmlObject)['@_id']),
+			String((fallbackNv['p:cNvPr'] as XmlObject)['@_id']),
+		];
+		expect(new Set(ids).size).toBe(3);
+		expect(ids).not.toContain('0');
+	});
+
 	it('should return 0 for empty spTree', () => {
 		const spTree: XmlObject = {};
 		const result = validator.validateAndDeduplicateIds(spTree, ensureArray);

@@ -3,7 +3,8 @@ import { describe, it, expect } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
 import { PptxHandler } from '../../core/PptxHandler';
-import type { InkPptxElement } from '../../core/types/elements';
+import type { ContentPartPptxElement, InkPptxElement } from '../../core/types/elements';
+import { validatePptx } from '../../core/utils/pptx-validator';
 
 /**
  * Phase 3 Stream A — CH-H2 / CH-H3 regression test.
@@ -15,15 +16,16 @@ import type { InkPptxElement } from '../../core/types/elements';
  * re-encoded (which lost pressure data and the `mc:AlternateContent` envelope).
  */
 describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
-	// This test used to assert the OPPOSITE: that authored ink goes out as a
-	// `p:graphicFrame` holding an `<aink:ink>` Choice with a `custGeom` Fallback.
-	// PowerPoint refuses to open a deck containing that frame ("The file or
-	// directory is corrupted and unreadable", 0x80070570), so every deck a user
-	// drew on was unopenable. Bisected through COM one variant at a time: the
-	// `custGeom` shape alone opens, the frame fails with OR without the
-	// `mc:AlternateContent` wrapper, so the `.../2010/ink` graphic-data payload
-	// is what PowerPoint rejects. See `PptxHandlerRuntimeSaveInk`.
-	it('authors ink as a custGeom stroke shape, never an aink graphicFrame', async () => {
+	// Draw-tab ink used to go out as a plain `custGeom` freeform shape (a
+	// downgrade from PowerPoint's own `p:contentPart` + InkML representation,
+	// because an EARLIER fix had to stop authoring it as a `p:graphicFrame`
+	// holding `<aink:ink>`: PowerPoint refuses to open a deck containing that
+	// frame, "The file or directory is corrupted and unreadable", 0x80070570).
+	// It now routes through the same `p:contentPart` + InkML writer that
+	// already handles ink parsed back off disk, so authored strokes survive
+	// as editable ink instead of a static shape. See
+	// `PptxHandlerRuntimeSaveContentPartInk`.
+	it('authors Draw-tab ink as a content part with InkML and reloads its strokes', async () => {
 		const { handler, data, createSlide } = await PresentationBuilder.create();
 		const ink: InkPptxElement = {
 			id: 'authored-ink',
@@ -41,28 +43,48 @@ describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
 		const saved = await handler.save(data.slides);
 		const zip = await JSZip.loadAsync(saved);
 		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
-		expect(slideXml).not.toContain('aink');
-		expect(slideXml).not.toContain('drawing/2010/ink');
-		expect(slideXml).toContain('<a:custGeom>');
-		// Both strokes reach the geometry. A comma-separated `M0,0 L50,25` used
-		// to match nothing and emit two EMPTY `a:path` elements, so the ink
-		// vanished from the shape it was downgraded to.
-		expect(slideXml.match(/<a:lnTo>/gu) ?? []).toHaveLength(3);
-		expect(slideXml.match(/<a:moveTo>/gu) ?? []).toHaveLength(2);
-		// One `a:ln` covers every path, so a multi-colour drawing collapses onto
-		// the first stroke's colour and width. Documented in the limitations page.
-		expect(slideXml).toContain('112233');
+		const relsXml = await zip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string');
+		const contentTypesXml = await zip.file('[Content_Types].xml')!.async('string');
+		const inkPath = Object.keys(zip.files).find((path) => /^ppt\/ink\/ink\d+\.xml$/u.test(path));
+		expect(inkPath).toBeTruthy();
+		const inkXml = await zip.file(inkPath!)!.async('string');
 
-		// The stroke geometry survives, but as a freeform shape: PowerPoint's own
-		// ink is a `p:contentPart` + InkML part, so authored strokes do not come
-		// back as `type: 'ink'`. Documented in docs/guide/limitations.md.
+		expect(slideXml).toContain('<mc:Choice Requires="a14"');
+		expect(slideXml).toContain('<p:contentPart r:id="');
+		expect(slideXml).toContain('<mc:Fallback>');
+		expect(slideXml).not.toContain('drawing/2010/ink');
+		expect(relsXml).toContain(
+			'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml"',
+		);
+		expect(contentTypesXml).toContain(`PartName="/${inkPath}" ContentType="application/inkml+xml"`);
+		expect(inkXml).toContain('<ink:trace');
+		expect(inkXml).toContain('value="#112233"');
+		expect(inkXml).toContain('value="#AABBCC"');
+		const validation = await validatePptx(saved.buffer as ArrayBuffer);
+		if (!validation.valid) {
+			throw new Error(validation.issues.map((issue) => issue.message).join('\n'));
+		}
+
 		const reloader = new PptxHandler();
 		const reloaded = await reloader.load(saved.buffer as ArrayBuffer);
-		expect(
-			reloaded.slides[0].elements.some(
-				(element) => element.type === 'shape' && element.shapeType === 'custom',
-			),
-		).toBeTruthy();
+		const reloadedInk = reloaded.slides[0].elements.find(
+			(element): element is ContentPartPptxElement => element.type === 'contentPart',
+		);
+		expect(reloadedInk?.inkStrokes?.map((stroke) => stroke.path)).toStrictEqual([
+			'M0,0 L50,25 L100,10',
+			'M10,90 L80,40',
+		]);
+		expect(reloadedInk?.inkStrokes?.map((stroke) => stroke.color)).toStrictEqual(ink.inkColors);
+		expect(reloadedInk?.inkStrokes?.map((stroke) => stroke.width)).toStrictEqual(ink.inkWidths);
+
+		// A second editor save must remain healthy: relationship and fallback
+		// reconstruction bugs often surface only after the first reload.
+		reloaded.slides[0].isDirty = true;
+		const secondSaved = await reloader.save(reloaded.slides);
+		const secondValidation = await validatePptx(secondSaved.buffer as ArrayBuffer);
+		if (!secondValidation.valid) {
+			throw new Error(secondValidation.issues.map((issue) => issue.message).join('\n'));
+		}
 	});
 
 	it('ink element loaded from rawXml survives a dirty round-trip via passthrough', async () => {

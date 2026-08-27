@@ -16,6 +16,7 @@
 import { Injectable, signal } from '@angular/core';
 import type { InkPptxElement, PptxElement } from 'pptx-viewer-core';
 
+import { findEraserHitElementId } from '../internal/shared';
 import { pointsToSvgPathD, strokeToInkElement } from './ink-drawing-helpers';
 import type { InkPoint } from './ink-drawing-helpers';
 
@@ -33,9 +34,6 @@ interface InkDrawingHost {
 	readonly emitInkStrokeComplete: (ink: InkPptxElement) => void;
 	readonly emitEraserHit: (id: string) => void;
 }
-
-/** Bounding-box hit-test radius (px, stage coords) for the eraser tool. */
-const ERASER_HIT_RADIUS = 15;
 
 @Injectable()
 export class InkDrawingService {
@@ -84,23 +82,13 @@ export class InkDrawingService {
 		};
 
 		if (host.drawTool() === 'eraser') {
-			// Find ink elements whose bounding box (+ hit radius) contains the
-			// pointer. Iterate in reverse so the topmost element wins.
-			const allElements = host.elements();
-			for (let i = allElements.length - 1; i >= 0; i--) {
-				const el = allElements[i];
-				if (el.type !== 'ink') {
-					continue;
-				}
-				if (
-					pt.x >= el.x - ERASER_HIT_RADIUS &&
-					pt.x <= el.x + el.width + ERASER_HIT_RADIUS &&
-					pt.y >= el.y - ERASER_HIT_RADIUS &&
-					pt.y <= el.y + el.height + ERASER_HIT_RADIUS
-				) {
-					host.emitEraserHit(el.id);
-					break;
-				}
+			// Find the top-most ink/contentPart element under the pointer (+ hit
+			// radius). `contentPart` is included because ink saved via the Draw
+			// tab reloads in that shape, so it must stay erasable after a
+			// save/reload round-trip.
+			const hitId = findEraserHitElementId(host.elements(), pt);
+			if (hitId) {
+				host.emitEraserHit(hitId);
 			}
 			return;
 		}

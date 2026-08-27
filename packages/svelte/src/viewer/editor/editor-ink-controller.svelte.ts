@@ -1,5 +1,5 @@
 import type { InkPoint } from 'pptx-viewer-shared';
-import { pointsToSvgPathD, strokeToInkElement } from 'pptx-viewer-shared';
+import { findEraserHitElementId, pointsToSvgPathD, strokeToInkElement } from 'pptx-viewer-shared';
 
 import { strokeToFreeformShape } from './editor-freeform';
 import { removeElement } from './editor-mutations';
@@ -18,9 +18,6 @@ export type InkDrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freefor
 
 const DEFAULT_INK_COLOR = '#000000';
 const DEFAULT_INK_WIDTH = 3;
-
-/** Bounding-box hit-test radius (element px) for the eraser tool; mirrors the React/Angular drawing overlays. */
-const ERASER_HIT_RADIUS = 15;
 
 /**
  * EditorInkController: the ribbon Draw tab's tool/colour/width state plus the
@@ -113,26 +110,18 @@ export class EditorInkController {
 	}
 
 	/**
-	 * Hit-test `ink` elements on the current slide at `point` (topmost first)
-	 * and delete the first match, with history. No-op when nothing is hit.
+	 * Hit-test `ink`/`contentPart` elements on the current slide at `point`
+	 * (topmost first) and delete the first match, with history. `contentPart`
+	 * is included because ink saved via the Draw tab reloads in that shape, so
+	 * it must stay erasable after a save/reload round-trip. No-op when nothing
+	 * is hit.
 	 */
 	eraseElementAt(point: InkPoint): void {
 		const current = this.#editor.currentSlideIndex;
 		const elements = this.#editor.slides[current]?.elements ?? [];
-		for (let i = elements.length - 1; i >= 0; i--) {
-			const el = elements[i];
-			if (el.type !== 'ink') {
-				continue;
-			}
-			if (
-				point.x >= el.x - ERASER_HIT_RADIUS &&
-				point.x <= el.x + el.width + ERASER_HIT_RADIUS &&
-				point.y >= el.y - ERASER_HIT_RADIUS &&
-				point.y <= el.y + el.height + ERASER_HIT_RADIUS
-			) {
-				this.#editor.commitSlides(removeElement(this.#editor.slides, current, el.id));
-				return;
-			}
+		const hitId = findEraserHitElementId(elements, point);
+		if (hitId) {
+			this.#editor.commitSlides(removeElement(this.#editor.slides, current, hitId));
 		}
 	}
 }

@@ -979,6 +979,11 @@ export * from './ink-rendering';
 // all five bindings (it used to be a Svelte-local module, while Vue and Angular
 // had no contentPart renderer at all and painted the unsupported placeholder).
 export * from './content-part-strokes';
+// Draw-tab eraser hit-testing: which `ink`/`contentPart` element (top-most,
+// tolerance radius) a point falls on. One decision function for all five
+// bindings, which each duplicated the box+radius loop (and disagreed on the
+// radius, and on whether a reloaded `contentPart` stroke was erasable at all).
+export * from './ink-eraser-hit-test';
 // Mobile chrome sheet state machine + bottom-bar action descriptors.
 export * from './mobile-chrome';
 // Gradient-picker editor model: read `GradientState` off an element + build

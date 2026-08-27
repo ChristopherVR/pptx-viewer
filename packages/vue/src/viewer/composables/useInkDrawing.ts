@@ -1,5 +1,6 @@
 import { createEditorId } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { findEraserHitElementId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -77,24 +78,20 @@ export function useInkDrawing(input: UseInkDrawingInput): UseInkDrawingResult {
 		ops.addElement(el);
 		selectedElementIds.value = [];
 	}
-	/** Eraser: remove the top-most ink element whose box contains the point. */
+	/**
+	 * Eraser: remove the top-most ink/contentPart element whose box (+
+	 * tolerance radius) contains the point. `contentPart` is included because
+	 * ink saved via the Draw tab reloads in that shape, so it must stay
+	 * erasable after a save/reload round-trip.
+	 */
 	function eraseInkAt(point: { x: number; y: number }): void {
 		const slide = activeSlide.value;
 		if (!slide) {
 			return;
 		}
-		for (let i = slide.elements.length - 1; i >= 0; i--) {
-			const el = slide.elements[i];
-			if (
-				el.type === 'ink' &&
-				point.x >= el.x &&
-				point.x <= el.x + el.width &&
-				point.y >= el.y &&
-				point.y <= el.y + el.height
-			) {
-				ops.removeElement(el.id);
-				return;
-			}
+		const hitId = findEraserHitElementId(slide.elements, point);
+		if (hitId) {
+			ops.removeElement(hitId);
 		}
 	}
 
