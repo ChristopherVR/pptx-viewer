@@ -79,6 +79,29 @@ const APPROXIMATION_ALLOWLIST: ReadonlySet<string> = new Set([
 	// `shrinkOut` approximation (both read as "collapse to nothing") even
 	// though authoring/catalog now correctly agree on `circleOut`/"Circle".
 	'exit.6',
+	// entr.18 = Strips, confirmed via a fresh COM pass (see the note on
+	// `PRESET_ID_TO_EFFECT.entr[18]` in `animation-presets.ts`). There is no
+	// dedicated diagonal-strip keyframe, so playback reuses the `wipeIn` mask
+	// (the same approximation the Strips filter family already uses in
+	// `animation-filter-effects.ts`), even though authoring/catalog agree on
+	// "Strips".
+	'entr.18',
+	// entr.47 = Descend, confirmed via a fresh COM pass (see the note on
+	// `PRESET_ID_TO_EFFECT.entr[47]` in `animation-presets.ts`). There is no
+	// dedicated "falls from above" keyframe, so playback reuses `flyInTop`,
+	// even though authoring/catalog agree on "Descend".
+	'entr.47',
+	// exit.18 = Strips, confirmed via a fresh COM pass (`msoAnimEffectStrips`
+	// with `Effect.Exit = True` serializes as presetID 18, the SAME id as its
+	// entrance form). This CONTRADICTS `animation-write-mappings.ts`'s
+	// existing (unverified) `collapseOut: { presetClass: 'exit', presetId: 18
+	// }` entry, which is almost certainly wrong (a pre-existing guess never
+	// COM-checked); correcting the authoring table is a separate, larger fix
+	// out of this pass's scope, so playback keeps its COM-verified `wipeOut`
+	// approximation (matching the entrance side's Strips treatment) and this
+	// id is allowlisted rather than silently made to agree with an unverified
+	// label.
+	'exit.18',
 ]);
 
 function checkClassAgreement(presetClass: PresetClass): void {
@@ -284,13 +307,16 @@ describe('animation preset table cross-consistency', () => {
 
 		// entr.18/19 (Strips/Swivel) were double-booked: authoring/catalog had
 		// entr.19 as Strips and a separate name (`swivel`) pointing at entr.47.
-		// entr.18 (Strips) still has no dedicated keyframe; entr.19 (Swivel)
-		// is now ALSO covered by playback (see "a further COM verification
-		// pass resolves more ids" below), so only entr.18 is checked here.
+		// entr.19 (Swivel) is ALSO covered by playback (see "a further COM
+		// verification pass resolves more ids" below). entr.18 (Strips) is now
+		// ALSO covered by playback (a further, later COM pass; see the note on
+		// `PRESET_ID_TO_EFFECT.entr[18]`), via the same `wipeIn` approximation
+		// the Strips filter family already used - hence its
+		// APPROXIMATION_ALLOWLIST entry rather than a plain identity match.
 		it.each([{ presetId: 18, effect: 'strips' }])(
-			'entr.$presetId -> $effect (authoring, catalog; not covered by playback)',
+			'entr.$presetId -> $effect (authoring, catalog agree; playback uses the documented wipeIn approximation)',
 			({ presetId, effect }) => {
-				expect(PRESET_ID_TO_EFFECT.entr[presetId]).toBeUndefined();
+				expect(PRESET_ID_TO_EFFECT.entr[presetId]).toBe('wipeIn');
 
 				const fromAuthoring = ooxmlToPresetName({ presetClass: 'entr', presetId });
 				expect(fromAuthoring, `entr.${presetId} should be covered by authoring`).toBeDefined();
@@ -420,6 +446,80 @@ describe('animation preset table cross-consistency', () => {
 
 			const fromAuthoring = ooxmlToPresetName({ presetClass: 'emph', presetId: 14 });
 			expect(fromAuthoring).toBeUndefined();
+		});
+	});
+
+	// A further, independent COM verification pass (AddEffect, `Effect.Exit =
+	// True` where noted, raw OOXML inspection) covering the Box/Checkerboard/
+	// Blinds/Wheel/Random-Bars/Diamond/Plus/Wedge/Strips shape family: (1)
+	// entr.8/13/20 (Diamond/Plus/Wedge) and entr.18 (Strips) already had
+	// dedicated (or, for Strips, approximated) keyframes but were never wired
+	// up in playback, even though authoring and the catalog already agreed on
+	// their identity; (2) their exit forms (exit.3/4/5/8/13/14/18/20/21) reuse
+	// the SAME numeric presetID as the entrance form, mirroring the
+	// Bounce/Rise Up/Circle pattern, and are now covered by new dedicated
+	// exit keyframes; (3) entr.47 (Descend) is now covered via the `flyInTop`
+	// approximation; (4) this pass also found emph.26 is really Flash Bulb,
+	// not Pulse/Bounce as the tables currently assume - see the comment on
+	// `PRESET_ID_TO_EFFECT.emph[26]` in `animation-presets.ts` for the
+	// evidence; left uncorrected here because fixing it needs coordinated
+	// changes across all three tables.
+	describe('a shape-family COM verification pass resolves more ids', () => {
+		it.each([
+			{ presetClass: 'entr' as const, presetId: 8, effect: 'diamond' },
+			{ presetClass: 'entr' as const, presetId: 13, effect: 'plus' },
+			{ presetClass: 'entr' as const, presetId: 20, effect: 'wedge' },
+		])(
+			'$presetClass.$presetId -> $effect (playback, authoring, catalog agree)',
+			({ presetClass, presetId, effect }) => {
+				const fromPlayback = PRESET_ID_TO_EFFECT[presetClass][presetId];
+				expect(
+					fromPlayback,
+					`${presetClass}.${presetId} should be covered by playback`,
+				).toBeDefined();
+				expect(identitiesAgree(canonicalIdentity(fromPlayback!), effect)).toBeTruthy();
+
+				const fromAuthoring = ooxmlToPresetName({ presetClass, presetId });
+				expect(
+					fromAuthoring,
+					`${presetClass}.${presetId} should be covered by authoring`,
+				).toBeDefined();
+				expect(identitiesAgree(canonicalIdentity(fromAuthoring!), effect)).toBeTruthy();
+
+				const fromCatalog = getNativeAnimationPresetMetadata({ presetClass, presetId });
+				expect(
+					fromCatalog,
+					`${presetClass}.${presetId} should be covered by the catalog`,
+				).toBeDefined();
+				expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), effect)).toBeTruthy();
+			},
+		);
+
+		it.each([
+			{ presetId: 3, effect: 'blindsOut' },
+			{ presetId: 4, effect: 'boxOut' },
+			{ presetId: 5, effect: 'checkerboardOut' },
+			{ presetId: 8, effect: 'diamondOut' },
+			{ presetId: 13, effect: 'plusOut' },
+			{ presetId: 14, effect: 'randomBarsOut' },
+			{ presetId: 20, effect: 'wedgeOut' },
+			{ presetId: 21, effect: 'wheelOut' },
+		])(
+			'exit.$presetId -> $effect (dedicated exit keyframe, same id as the entrance form)',
+			({ presetId, effect }) => {
+				expect(PRESET_ID_TO_EFFECT.exit[presetId]).toBe(effect);
+			},
+		);
+
+		it('exit.18 (Strips) reuses the wipeOut approximation, matching the entrance side', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('wipeOut');
+		});
+
+		it('entr.47 (Descend) is now covered by playback via the flyInTop approximation', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[47]).toBe('flyInTop');
+
+			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'entr', presetId: 47 });
+			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'descend')).toBeTruthy();
 		});
 	});
 });

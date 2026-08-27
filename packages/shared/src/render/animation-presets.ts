@@ -76,6 +76,34 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		19: 'swivel',
 		49: 'spinnerIn',
 		53: 'growTurnIn',
+		// entr.8/13/20 (Diamond/Plus/Wedge) confirmed via a fresh COM pass
+		// (AddEffect + raw OOXML inspection): each serializes as
+		// presetClass="entr" with exactly the presetID this table already
+		// assumed in `animation-write-mappings.ts`'s `diamondIn`/`plusIn`/
+		// `wedgeIn` entries. Their dedicated mask-reveal keyframes already
+		// existed (used by the `p:animEffect/@filter` fallback path in
+		// `animation-filter-effects.ts`) but were never wired up here, so a
+		// deck whose `p:cTn` carries the presetId without an accompanying
+		// filter attribute fell through to the generic fade safety net.
+		8: 'diamondIn',
+		13: 'plusIn',
+		20: 'wedgeIn',
+		// entr.18 (Strips) confirmed via the same COM pass: presetID 18,
+		// matching the already-COM-verified catalog label ("Strips"). There is
+		// no dedicated diagonal-strip keyframe, so this reuses the `wipeIn`
+		// mask (the same approximation already used by the Strips filter
+		// family in `animation-filter-effects.ts`); see the
+		// APPROXIMATION_ALLOWLIST entry in
+		// `animation-preset-tables-consistency.test.ts`.
+		18: 'wipeIn',
+		// entr.47 (Descend) confirmed via the same COM pass: presetID 47,
+		// matching the already-COM-verified catalog label ("Descend"; see
+		// `animation-preset-catalog.ts`). No dedicated "falls from above"
+		// keyframe exists, so this reuses `flyInTop` (falls from the top edge
+		// into place), the closest existing motion; see the
+		// APPROXIMATION_ALLOWLIST entry in
+		// `animation-preset-tables-consistency.test.ts`.
+		47: 'flyInTop',
 	},
 	exit: {
 		1: 'disappear',
@@ -105,6 +133,34 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		// form ("Sink Down" in the gallery) gets its own `sinkDown` keyframe.
 		26: 'bounceOut',
 		37: 'sinkDown',
+		// exit.3/4/5/8/13/14/20/21 (Blinds/Box/Checkerboard/Diamond/Plus/Random
+		// Bars/Wedge/Wheel) confirmed via a fresh COM pass (AddEffect +
+		// `Effect.Exit = True` + raw OOXML inspection): each reuses the SAME
+		// numeric presetID as its entrance form, mirroring the
+		// already-documented Bounce/Rise Up/Circle pattern above. Each gets a
+		// dedicated exit keyframe in `animation-keyframes-exit-shapes.ts` that
+		// reuses its entrance counterpart's mask/transform technique played in
+		// reverse (shown -> hidden), rather than falling back to the generic
+		// fade.
+		3: 'blindsOut',
+		4: 'boxOut',
+		5: 'checkerboardOut',
+		8: 'diamondOut',
+		13: 'plusOut',
+		14: 'randomBarsOut',
+		20: 'wedgeOut',
+		21: 'wheelOut',
+		// exit.18 (Strips) confirmed via the same COM pass: presetID 18 (the
+		// SAME id as its entrance form, entr.18). This CONTRADICTS
+		// `animation-write-mappings.ts`'s existing (unverified) `collapseOut`
+		// entry at exit.18; that entry is almost certainly a pre-existing
+		// guess that was never COM-checked, and correcting it is a separate,
+		// larger fix out of this pass's scope (see the APPROXIMATION_ALLOWLIST
+		// entry in `animation-preset-tables-consistency.test.ts`). No
+		// dedicated diagonal-strip exit keyframe exists, so this reuses
+		// `wipeOut`, matching the approximation `animation-filter-effects.ts`
+		// already uses for the Strips filter family's exit form.
+		18: 'wipeOut',
 	},
 	emph: {
 		// emph.1 used to be mislabelled 'boldFlash', but emph.1 is really
@@ -135,6 +191,19 @@ export const PRESET_ID_TO_EFFECT: PresetIdMap = {
 		// emph.32; the two were swapped in this table (the real Blast has no
 		// dedicated keyframe, so 14 is correctly left unmapped below).
 		32: 'teeter',
+		// CONFIRMED, UNRESOLVED: a fresh COM pass for THIS fix (AddEffect with
+		// no Exit flag, raw OOXML inspection) shows `msoAnimEffectFlashBulb`
+		// serializes as presetClass="emph" presetID="26", i.e. emph.26 is
+		// really Flash Bulb, not Pulse/Bounce as this table (and
+		// `animation-write-mappings.ts`'s `pulse`/`bounce` aliases, and the UI
+		// catalog's "Pulse" label) currently assume. This directly confirms
+		// the suspicion already flagged as an out-of-scope, unresolved finding
+		// next to `PRESET_TO_OOXML.flashBulbOut` in `animation-write-mappings.ts`.
+		// Correcting it requires coordinated changes across three tables
+		// (this one, the authoring reverse lookup, and the UI catalog) plus
+		// their own test suites, which is a separate, larger fix; left as
+		// `pulse` here rather than half-corrected. See this fix's report for
+		// the full COM evidence.
 		26: 'pulse',
 		// emph.20/34 verified via COM: `msoAnimEffectColorWave` serializes as
 		// emph.20 and `msoAnimEffectWave` as emph.34 (already documented, and
