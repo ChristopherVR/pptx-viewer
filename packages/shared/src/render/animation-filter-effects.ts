@@ -20,16 +20,37 @@
  *    (`checkerboardIn`, `blindsIn`, `boxIn`, `circleIn`, `wheelIn`,
  *    `dissolveIn`/`Out`, `fadeIn`/`Out`, `zoomIn`/`Out`, `randomBarsIn`) built
  *    for the SAME preset families in `animation-keyframes`.
- *  - `slide` maps directly onto the existing per-edge Fly keyframes
- *    (`flyInLeft`/`flyOutRight`/etc.) - PowerPoint's `slide(fromLeft)` filter
- *    IS a fly-style translation, just spelled differently.
+ *  - `slide` / `cover` / `uncover` / `push` / `pull` all map onto the same
+ *    per-edge Fly keyframes (`flyInLeft`/`flyOutRight`/etc.): each is a
+ *    directional translate-and-displace transition in the SMIL sense, and
+ *    this single-element playback engine has no separate "the OTHER element
+ *    also moves" concept, so all five collapse onto the one Fly mapping (see
+ *    {@link resolveSlideEffect}). `cover`/`uncover` additionally carry
+ *    diagonal subtype tokens (`fromTopLeft`, etc.) that
+ *    {@link SLIDE_TOKEN_TO_SUFFIX} does not enumerate; those fall through to
+ *    the same default bottom edge as an unrecognised `slide` subtype.
  *  - `strips` (diagonal corner reveal) has no dedicated element-level mask
  *    shape; it is approximated by reusing the Wipe engine off the nearest
  *    cardinal edge (documented on {@link STRIPS_TOKEN_TO_WIPE_TOKEN}).
+ *  - `diamond` / `plus` / `wedge` reuse the box/circle mask-SIZE technique
+ *    (`diamondOut` / `plusOut` / `wedgeOut` in `animation-mask-reveal`): a
+ *    fixed mask shape whose `mask-size` animates 0 -> full, so `diamond`
+ *    grows a rotated square from centre, `plus` unions a horizontal and a
+ *    vertical bar growing from centre into a cross, and `wedge` grows a
+ *    convex hexagon standing in for PowerPoint's two-wedge bowtie sweep
+ *    (an animated sweep ANGLE is not expressible with this position/size-only
+ *    technique, see `animation-mask-reveal`'s module doc).
+ *  - `comb` reuses `randomBarsIn`: both are an alternating-strip reveal of
+ *    the same shape family as `randombar`/`checkerboard`, and PowerPoint's
+ *    only structural difference (ordered teeth vs. random bars) is not worth
+ *    a second bespoke keyframe.
+ *  - `cut` is a new, genuinely distinct pair of keyframes (`cutIn`/`cutOut`)
+ *    that jump the element to its end state almost immediately rather than
+ *    animating gradually over the effect's duration, matching a SMIL `cut`
+ *    filter's "instant swap" semantics.
  *
- * Families with NO cheap CSS equivalent (`diamond`, `plus`, `wedge`, `image`,
- * `stretch`, `pixelate`, `random`, `comb`, `newsflash`, `cover`, `uncover`,
- * `push`, `pull`, `cut`) are intentionally left out of
+ * Families with NO cheap CSS equivalent (`image`, `stretch`, `pixelate`,
+ * `random`, `newsflash`) are intentionally left out of
  * {@link FILTER_FAMILY_EFFECT}: `resolveEffect` returning `undefined` for them
  * lets the timeline builder's existing unmapped-preset safety net
  * (`fallbackEffectForClass`) substitute the neutral `fadeIn`/`fadeOut`, so the
@@ -78,6 +99,14 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	// Strips is a diagonal corner reveal; approximated via the Wipe mask
 	// engine off the nearest cardinal edge (see STRIPS_TOKEN_TO_WIPE_TOKEN).
 	strips: { entr: 'wipeIn', exit: 'wipeOut' },
+	// Comb is an ordered alternating-strip reveal; close enough to the
+	// randombar shape family that it reuses the same keyframe rather than a
+	// bespoke ordered-strip mask.
+	comb: { entr: 'randomBarsIn', exit: 'fadeOut' },
+	diamond: { entr: 'diamondIn', exit: 'fadeOut' },
+	plus: { entr: 'plusIn', exit: 'fadeOut' },
+	wedge: { entr: 'wedgeIn', exit: 'fadeOut' },
+	cut: { entr: 'cutIn', exit: 'cutOut' },
 };
 
 /**
@@ -89,25 +118,31 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
  * "known but approximated as fade".
  */
 export const GENERIC_FALLBACK_FILTER_FAMILIES: readonly string[] = [
-	'diamond',
-	'plus',
-	'wedge',
 	'image',
 	'stretch',
 	'pixelate',
 	'random',
-	'comb',
 	'newsflash',
+];
+
+// ==========================================================================
+// Slide / cover / uncover / push / pull (direct Fly mapping)
+// ==========================================================================
+
+/**
+ * Families whose subtype is a `fromLeft`/`fromRight`/`fromTop`/`fromBottom`
+ * direction token that maps directly onto a Fly keyframe. `cover` and
+ * `uncover` also allow four diagonal tokens (`fromTopLeft`, etc.) that this
+ * table does not enumerate; those fall through to the same default bottom
+ * edge as an unrecognised `slide` subtype (see {@link resolveSlideEffect}).
+ */
+const DIRECTIONAL_SLIDE_FAMILIES: ReadonlySet<string> = new Set([
+	'slide',
 	'cover',
 	'uncover',
 	'push',
 	'pull',
-	'cut',
-];
-
-// ==========================================================================
-// Slide (direct Fly mapping)
-// ==========================================================================
+]);
 
 const SLIDE_TOKEN_TO_SUFFIX: Readonly<Record<string, 'Left' | 'Right' | 'Top' | 'Bottom'>> = {
 	fromLeft: 'Left',
@@ -153,7 +188,7 @@ export function resolveFilterEffect(anim: PptxNativeAnimation): EffectName | und
 		return undefined;
 	}
 	const isExit = anim.presetClass === 'exit';
-	if (filter.family === 'slide') {
+	if (DIRECTIONAL_SLIDE_FAMILIES.has(filter.family)) {
 		return resolveSlideEffect(filter.subtype, isExit);
 	}
 	const mapping = FILTER_FAMILY_EFFECT[filter.family];
