@@ -66,4 +66,33 @@ describe('contentPart renderer (angular)', () => {
 			buildContentPartStrokes({ ...inked(), inkStrokes: undefined } as ContentPartPptxElement),
 		).toHaveLength(0);
 	});
+
+	it('projects calligraphic nib marks (not circles) for a stroke with tilt data', () => {
+		const withTilt: ContentPartPptxElement = {
+			...inked(),
+			inkStrokes: [
+				{
+					path: 'M 0 0 L 10 0 L 20 0',
+					color: '#000000',
+					width: 2,
+					opacity: 1,
+					tiltAngles: [0, Math.PI / 4, Math.PI / 2],
+					tiltMagnitudes: [0.2, 0.6, 0.9],
+				},
+			],
+		};
+		const [strokeView] = buildContentPartStrokes(withTilt);
+		expect(strokeView.circles).toBeNull();
+		expect(strokeView.nibMarks).not.toBeNull();
+		expect(strokeView.nibMarks?.length).toBeGreaterThan(0);
+	});
+
+	it('wires the nib-mark ellipse branch into the template', () => {
+		const renderer = readFileSync(
+			path.join(__dirname, 'content-part-renderer.component.ts'),
+			'utf8',
+		);
+		expect(renderer).toContain('stroke.nibMarks');
+		expect(renderer).toContain('<ellipse');
+	});
 });

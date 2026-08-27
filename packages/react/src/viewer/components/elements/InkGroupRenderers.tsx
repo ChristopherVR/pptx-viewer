@@ -34,6 +34,7 @@ import {
 import {
 	extractPathPoints,
 	generatePressureCircles,
+	generateNibMarks,
 	hasPressureVariation,
 	pressuresToWidths,
 	getInkReplayStyles,
@@ -88,6 +89,45 @@ function renderPressureStroke(
 		<g opacity={opacity}>
 			{circles.map((c, j) => (
 				<circle key={`${keyPrefix}-pc-${j}`} cx={c.cx} cy={c.cy} r={c.r} fill={color} />
+			))}
+		</g>
+	);
+}
+
+/**
+ * Render calligraphic nib marks for a single ink stroke: an ellipse per point,
+ * widened perpendicular to the pen's tilt-lean direction (a chisel-tip look).
+ * The tilt counterpart of {@link renderPressureStroke}.
+ */
+function renderNibMarkStroke(
+	pathD: string,
+	widths: number[],
+	tiltAngles: number[],
+	tiltMagnitudes: number[],
+	baseWidth: number,
+	color: string,
+	opacity: number,
+	keyPrefix: string,
+) {
+	const points = extractPathPoints(pathD);
+	const marks = generateNibMarks(points, widths, tiltAngles, tiltMagnitudes, {
+		baseWidth,
+		minRadius: 0.5,
+		maxRadius: baseWidth * 1.5,
+	});
+
+	return (
+		<g opacity={opacity}>
+			{marks.map((m, j) => (
+				<ellipse
+					key={`${keyPrefix}-nib-${j}`}
+					cx={m.cx}
+					cy={m.cy}
+					rx={m.rPerp}
+					ry={m.rTilt}
+					transform={`rotate(${m.rotationDeg} ${m.cx} ${m.cy})`}
+					fill={color}
+				/>
 			))}
 		</g>
 	);
@@ -290,6 +330,34 @@ export function renderContentPart(el: ContentPartPptxElement, options?: InkRende
 			>
 				{replay && <style>{INK_REPLAY_KEYFRAMES}</style>}
 				{el.inkStrokes.map((stroke, i) => {
+					// Tilt-driven calligraphic nib rendering takes priority when the
+					// source declared tilt channels; it degrades to plain circles
+					// wherever tilt magnitude is 0, so this is safe even for a
+					// stroke whose tilt barely varies.
+					if (stroke.tiltAngles && stroke.tiltAngles.length > 0) {
+						const magnitudes = stroke.tiltMagnitudes ?? stroke.tiltAngles.map(() => 0.5);
+						const widths =
+							stroke.pressures &&
+							stroke.pressures.length > 1 &&
+							hasPressureVariation(stroke.pressures)
+								? pressuresToWidths(stroke.pressures, stroke.width)
+								: [stroke.width];
+						return (
+							<g key={`${el.id}-cp-ink-${i}`}>
+								{renderNibMarkStroke(
+									stroke.path,
+									widths,
+									stroke.tiltAngles,
+									magnitudes,
+									stroke.width,
+									stroke.color,
+									stroke.opacity,
+									`${el.id}-cp-ink-${i}`,
+								)}
+							</g>
+						);
+					}
+
 					// Pressure-sensitive rendering for content part strokes
 					if (
 						pressureSensitive &&

@@ -10,6 +10,7 @@ export {
 	extractPathPoints,
 	interpolateWidth,
 	generatePressureCircles,
+	generateNibMarks,
 	hasPressureVariation,
 	pressuresToWidths,
 	estimatePathLength,
@@ -27,6 +28,8 @@ export type {
 	PathPoint,
 	PressureConfig,
 	PressureCircle,
+	NibMarkConfig,
+	NibMark,
 	InkReplayConfig,
 	InkStrokeAnimationStyle,
 } from 'pptx-viewer-shared';

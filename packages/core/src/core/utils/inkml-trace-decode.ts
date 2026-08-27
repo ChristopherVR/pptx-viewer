@@ -178,6 +178,109 @@ export function pointsToPressures(points: number[][], channelOrder: ChannelOrder
 	return pressures;
 }
 
+/** Decoded per-point pen-tilt lean, derived from whichever tilt channels a trace declared. */
+export interface TiltChannels {
+	/** Lean direction at each point, in radians (page-plane angle). */
+	angles: number[];
+	/** Lean strength at each point, 0 (upright) to 1 (maximally leaned). */
+	magnitudes: number[];
+}
+
+/**
+ * Extract pen-tilt lean (direction + strength) from whichever tilt channels a
+ * trace declares, or `undefined` when none of the recognised names are
+ * present. Two encodings are recognised, in priority order:
+ *
+ * - A vector pair (`OTx`/`OTy`, the InkML-conventional tilt-offset names, or
+ *   the `tiltX`/`tiltY` alias some digitizers use): the angle is the vector's
+ *   direction, and the magnitude is its length, normalised against the
+ *   largest magnitude seen anywhere in the trace (these are arbitrary device
+ *   units with no fixed scale).
+ * - `AZIMUTH` (degrees, the compass direction the pen leans toward), paired
+ *   with an optional `ALTITUDE` (degrees from the writing surface: 90 is
+ *   upright, 0 is flat). When altitude is absent, a fixed mid-range magnitude
+ *   is used since azimuth alone gives a direction but not a lean strength.
+ *
+ * Every other declared channel (timing, or anything unrecognised) is still
+ * decoded positionally by {@link decodeTracePoints} but has no consumer here,
+ * matching the documented behaviour in `docs/guide/limitations.md`.
+ */
+export function pointsToTilt(
+	points: number[][],
+	channelOrder: ChannelOrder,
+): TiltChannels | undefined {
+	const otxIndex = firstIndexOf(channelOrder, ['OTX', 'TILTX']);
+	const otyIndex = firstIndexOf(channelOrder, ['OTY', 'TILTY']);
+	if (otxIndex >= 0 && otyIndex >= 0) {
+		return tiltFromVector(points, otxIndex, otyIndex);
+	}
+	const azimuthIndex = channelOrder.indexOf('AZIMUTH');
+	if (azimuthIndex >= 0) {
+		return tiltFromAzimuthAltitude(points, azimuthIndex, channelOrder.indexOf('ALTITUDE'));
+	}
+	return undefined;
+}
+
+function firstIndexOf(channelOrder: ChannelOrder, names: string[]): number {
+	for (const name of names) {
+		const index = channelOrder.indexOf(name);
+		if (index >= 0) {
+			return index;
+		}
+	}
+	return -1;
+}
+
+/** Derive angle + normalised magnitude from a per-point tilt-offset vector. */
+function tiltFromVector(
+	points: number[][],
+	xIndex: number,
+	yIndex: number,
+): TiltChannels | undefined {
+	const angles: number[] = [];
+	const rawMagnitudes: number[] = [];
+	for (const point of points) {
+		const ox = point[xIndex];
+		const oy = point[yIndex];
+		if (!Number.isFinite(ox) || !Number.isFinite(oy)) {
+			continue;
+		}
+		angles.push(Math.atan2(oy, ox));
+		rawMagnitudes.push(Math.hypot(ox, oy));
+	}
+	if (angles.length === 0) {
+		return undefined;
+	}
+	const max = Math.max(0, ...rawMagnitudes);
+	const magnitudes = rawMagnitudes.map((m) => (max > 0 ? Math.min(1, m / max) : 0));
+	return { angles, magnitudes };
+}
+
+/** Derive angle + magnitude from AZIMUTH (required) and ALTITUDE (optional), both in degrees. */
+function tiltFromAzimuthAltitude(
+	points: number[][],
+	azimuthIndex: number,
+	altitudeIndex: number,
+): TiltChannels | undefined {
+	const angles: number[] = [];
+	const magnitudes: number[] = [];
+	for (const point of points) {
+		const azimuth = point[azimuthIndex];
+		if (!Number.isFinite(azimuth)) {
+			continue;
+		}
+		angles.push((azimuth * Math.PI) / 180);
+		const altitude = altitudeIndex >= 0 ? point[altitudeIndex] : undefined;
+		magnitudes.push(
+			Number.isFinite(altitude) ? Math.max(0, Math.min(1, 1 - (altitude as number) / 90)) : 0.5,
+		);
+	}
+	if (angles.length === 0) {
+		return undefined;
+	}
+	return { angles, magnitudes };
+}
+
 /** Read a child value by local element name, ignoring any XML namespace prefix. */
 export function nsGet(obj: XmlObject, localName: string): unknown {
 	if (localName in obj) {

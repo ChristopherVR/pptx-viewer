@@ -21,9 +21,9 @@ import { useSafeTranslate } from '../composables/useSafeTranslate';
  * behaviour. Real PowerPoint ink now reaches the decoder, so the placeholder
  * would have been what a user actually saw on any inked slide.
  *
- * The per-stroke view model (path vs pressure circles, colour, width, opacity)
- * is the shared `buildContentPartStrokes` decision function, identical in all
- * five bindings.
+ * The per-stroke view model (path vs pressure circles vs tilt-driven nib
+ * marks, colour, width, opacity) is the shared `buildContentPartStrokes`
+ * decision function, identical in all five bindings.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -92,7 +92,19 @@ function replayStyle(index: number): CSSProperties | undefined {
 			preserveAspectRatio="none"
 		>
 			<template v-for="(s, i) in strokes" :key="s.key">
-				<g v-if="s.circles" :opacity="s.opacity">
+				<g v-if="s.nibMarks" :opacity="s.opacity">
+					<ellipse
+						v-for="(m, j) in s.nibMarks"
+						:key="`${s.key}-nib-${j}`"
+						:cx="m.cx"
+						:cy="m.cy"
+						:rx="m.rPerp"
+						:ry="m.rTilt"
+						:transform="`rotate(${m.rotationDeg} ${m.cx} ${m.cy})`"
+						:fill="s.color"
+					/>
+				</g>
+				<g v-else-if="s.circles" :opacity="s.opacity">
 					<circle
 						v-for="(c, j) in s.circles"
 						:key="`${s.key}-pc-${j}`"

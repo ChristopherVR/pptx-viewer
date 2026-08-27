@@ -428,6 +428,21 @@ export interface ContentPartInkStroke {
 	 * variable-width strokes that reflect stylus/pen pressure.
 	 */
 	pressures?: number[];
+	/**
+	 * Per-point pen-tilt lean direction (radians), decoded from the source
+	 * InkML's `OTx`/`OTy` tilt-offset channels or its `AZIMUTH` channel.
+	 *
+	 * When present (paired with {@link tiltMagnitudes}), the renderer widens
+	 * each point perpendicular to the lean direction, approximating a
+	 * calligraphic (chisel-tip) nib. Absent when the source declared no tilt
+	 * channel, in which case rendering is unaffected.
+	 */
+	tiltAngles?: number[];
+	/**
+	 * Per-point pen-tilt strength (0 upright, 1 maximally leaned), paired with
+	 * {@link tiltAngles}.
+	 */
+	tiltMagnitudes?: number[];
 }
 
 /**
