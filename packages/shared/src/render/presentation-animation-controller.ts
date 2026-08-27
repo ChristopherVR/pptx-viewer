@@ -164,9 +164,13 @@ export class PresentationAnimationController {
 		return this.engine.hasMoreSteps();
 	}
 
-	/** Advance to the next click-group; `null` when none remain. */
-	public advance(): TimelineClickGroup | null {
-		return this.engine.advance();
+	/**
+	 * Advance to the next click-group; `null` when none remain, or when the
+	 * active group's `@concurrent`/`@nextAc` (ECMA-376 S19.5.60) swallow this
+	 * request instead. `nowMs` defaults to `Date.now()`.
+	 */
+	public advance(nowMs?: number): TimelineClickGroup | null {
+		return this.engine.advance(nowMs);
 	}
 
 	/** Peek at the next click-group without advancing. */
@@ -207,9 +211,12 @@ export class PresentationAnimationController {
 		return this.engine.hasInteractiveSequence(shapeId);
 	}
 
-	/** Advance the interactive sequence for `shapeId`; `null` when exhausted. */
-	public advanceInteractive(shapeId: string): TimelineClickGroup | null {
-		return this.engine.advanceInteractive(shapeId);
+	/**
+	 * Advance the interactive sequence for `shapeId`; `null` when exhausted or
+	 * swallowed by `@concurrent`/`@nextAc` (see {@link advance}).
+	 */
+	public advanceInteractive(shapeId: string, nowMs?: number): TimelineClickGroup | null {
+		return this.engine.advanceInteractive(shapeId, nowMs);
 	}
 
 	/** True when `shapeId` triggers a hover sequence. */
@@ -217,14 +224,22 @@ export class PresentationAnimationController {
 		return this.engine.hasHoverSequence(shapeId);
 	}
 
-	/** Advance the hover sequence for `shapeId`; `null` when exhausted. */
-	public advanceHover(shapeId: string): TimelineClickGroup | null {
-		return this.engine.advanceHover(shapeId);
+	/**
+	 * Advance the hover sequence for `shapeId`; `null` when exhausted or
+	 * swallowed by `@concurrent`/`@nextAc` (see {@link advance}).
+	 */
+	public advanceHover(shapeId: string, nowMs?: number): TimelineClickGroup | null {
+		return this.engine.advanceHover(shapeId, nowMs);
 	}
 
-	/** Reset the hover sequence for `shapeId` so the next hover replays it. */
-	public resetHover(shapeId: string): void {
-		this.engine.resetHover(shapeId);
+	/**
+	 * Reset the hover sequence for `shapeId` so the next hover replays it,
+	 * unless its `@prevAc` says to defer the reset while still active (see
+	 * `shouldBlockReset` in `animation-sequence-gating`). `nowMs` defaults to
+	 * `Date.now()`.
+	 */
+	public resetHover(shapeId: string, nowMs?: number): void {
+		this.engine.resetHover(shapeId, nowMs);
 	}
 
 	// -----------------------------------------------------------------------

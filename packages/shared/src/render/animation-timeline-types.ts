@@ -222,6 +222,26 @@ export interface TimelineStep {
 	 * left on the original step afterward purely as informational metadata.
 	 */
 	pendingHideOnNextClick?: boolean;
+	/**
+	 * Restart behaviour from `p:cTn/@restart` (ST_TLTimeNodeRestartType,
+	 * ECMA-376 S19.5.27), forwarded from the source `PptxNativeAnimation`.
+	 * `TimelineEngine` reads this to decide whether a re-trigger of this same
+	 * step (an interactive/hover sequence replayed, or a slide reset) is
+	 * allowed while the step's previous run is still active, or at all.
+	 * Absent means the OOXML default (`always`: no restriction).
+	 */
+	restart?: 'always' | 'whenNotActive' | 'never';
+	/**
+	 * `p:seq/@concurrent` of the innermost enclosing sequence, if any (ECMA-376
+	 * S19.5.60), forwarded from the source `PptxNativeAnimation`. Rolled up
+	 * onto the owning {@link TimelineClickGroup} by `finalizeClickGroup`; see
+	 * that type's own field for the playback meaning.
+	 */
+	seqConcurrent?: boolean;
+	/** `p:seq/@nextAc` of the innermost enclosing sequence, if any. */
+	seqNextAction?: 'none' | 'seek';
+	/** `p:seq/@prevAc` of the innermost enclosing sequence, if any. */
+	seqPrevAction?: 'none' | 'skipTimeNode';
 }
 
 /** A group of animation steps that play on a single click/advance action. */
@@ -244,6 +264,27 @@ export interface TimelineClickGroup {
 	 * the end of the preceding group). Only meaningful when `autoAdvance` is true.
 	 */
 	autoAdvanceDelayMs?: number;
+	/**
+	 * `p:seq/@concurrent` of the innermost enclosing sequence (ECMA-376
+	 * S19.5.60), when this group's steps are governed by one. `true` lets this
+	 * group's effects play alongside the surrounding timeline instead of
+	 * blocking a "next" advance / hover-reset request while still active.
+	 * Absent means no enclosing `p:seq` set it (the OOXML default is `false`,
+	 * i.e. non-concurrent).
+	 */
+	seqConcurrent?: boolean;
+	/**
+	 * `p:seq/@nextAc` of the innermost enclosing sequence (ST_TLNextActionType,
+	 * ECMA-376 S19.5.60). See {@link import('./animation-sequence-gating').shouldBlockNextAdvance}
+	 * for how this is honoured.
+	 */
+	seqNextAction?: 'none' | 'seek';
+	/**
+	 * `p:seq/@prevAc` of the innermost enclosing sequence (ST_TLPreviousActionType,
+	 * ECMA-376 S19.5.60). See {@link import('./animation-sequence-gating').shouldBlockReset}
+	 * for how this is honoured.
+	 */
+	seqPrevAction?: 'none' | 'skipTimeNode';
 }
 
 /** The full animation timeline for a slide. */

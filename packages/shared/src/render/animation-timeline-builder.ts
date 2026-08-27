@@ -376,6 +376,10 @@ export function buildTimeline(
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
+				restart: singleAnim.restart,
+				seqConcurrent: singleAnim.seqConcurrent,
+				seqNextAction: singleAnim.seqNextAction,
+				seqPrevAction: singleAnim.seqPrevAction,
 			});
 		}
 	}
@@ -600,6 +604,10 @@ function buildSequenceGroups(
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
+				restart: anim.restart,
+				seqConcurrent: anim.seqConcurrent,
+				seqNextAction: anim.seqNextAction,
+				seqPrevAction: anim.seqPrevAction,
 			});
 		}
 
