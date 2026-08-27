@@ -93,6 +93,14 @@ export class TimelineEngine {
 	 * without needing a synthetic id on the step itself.
 	 */
 	private stepRestartState: WeakMap<TimelineStep, StepRestartState>;
+	/**
+	 * Tracks which element currently "holds" each `p:excl` group (exclGroupId
+	 * -> elementId). When a new exclusive step starts, any other element
+	 * holding the SAME group has its running animation stopped: ECMA-376
+	 * S19.5.24 CT_TLExclusiveTimeNode allows at most one child of an
+	 * exclusive container to play at a time.
+	 */
+	private readonly exclusiveHolders: Map<number, string>;
 
 	public constructor(timeline: AnimationTimeline) {
 		this.timeline = timeline;
@@ -106,6 +114,7 @@ export class TimelineEngine {
 		this.interactiveGroupStartedAtMs = new Map();
 		this.hoverGroupStartedAtMs = new Map();
 		this.stepRestartState = new WeakMap();
+		this.exclusiveHolders = new Map();
 	}
 
 	/** Build a TimelineEngine from a slide's native animations. */
@@ -439,6 +448,7 @@ export class TimelineEngine {
 		// WeakMap has no `.clear()`; a slide reset means nothing has played, so
 		// every step's `@restart` state (active-window / played-once) starts over.
 		this.stepRestartState = new WeakMap();
+		this.exclusiveHolders.clear();
 	}
 
 	/**
@@ -470,6 +480,19 @@ export class TimelineEngine {
 			if (!applied) {
 				appliedSteps ??= group.steps.slice(0, i);
 				continue;
+			}
+			if (step.exclGroupId !== undefined) {
+				const holder = this.exclusiveHolders.get(step.exclGroupId);
+				// Starting this effect stops any OTHER element's currently-running
+				// effect from the same `p:excl` container (CT_TLExclusiveTimeNode
+				// allows only one active child at a time). The held element's
+				// visibility/build bookkeeping is untouched: an emphasis stopping
+				// mid-loop just leaves the element in its resting appearance, it
+				// does not re-hide an entrance or undo a completed exit.
+				if (holder !== undefined && holder !== step.elementId) {
+					this.activeAnimations.delete(holder);
+				}
+				this.exclusiveHolders.set(step.exclGroupId, step.elementId);
 			}
 			appliedSteps?.push(step);
 		}

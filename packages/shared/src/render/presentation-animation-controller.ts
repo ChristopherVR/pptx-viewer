@@ -47,6 +47,7 @@ import {
 	TEXT_BUILD_ID_SEP,
 } from './animation-timeline-text-build';
 import type { TextBuildSegmentCounts } from './animation-timeline-text-build';
+import { expandTextRangeAnimations } from './animation-timeline-text-range';
 import type { ElementAnimationState, TimelineClickGroup } from './animation-timeline-types';
 import { motionPathNativeAnimations } from './motion-path-authoring';
 
@@ -60,9 +61,11 @@ export type PresentationStatesOptions = ElementStatesOptions;
 
 /**
  * Build the per-target text-build segment counts for a slide: for every
- * animation carrying a non-`allAtOnce` `buildType`, count the paragraphs / words
- * / chars of its target element's text so {@link expandTextBuildAnimations} can
- * stagger the reveal. Elements without text (or with an empty body) are skipped.
+ * animation carrying a non-`allAtOnce` `buildType` OR a `p:txEl` text-level
+ * target (`textTarget`), count the paragraphs / words / chars of its target
+ * element's text so {@link expandTextBuildAnimations} /
+ * {@link expandTextRangeAnimations} can split the reveal. Elements without
+ * text (or with an empty body) are skipped.
  */
 function buildSegmentCounts(
 	slide: PptxSlide,
@@ -70,7 +73,7 @@ function buildSegmentCounts(
 ): Map<string, TextBuildSegmentCounts> {
 	const segmentCounts = new Map<string, TextBuildSegmentCounts>();
 	for (const anim of nativeAnims) {
-		if (effectiveTextBuildType(anim) && anim.targetId) {
+		if ((effectiveTextBuildType(anim) || anim.textTarget) && anim.targetId) {
 			const el = slide.elements.find((e) => e.id === anim.targetId);
 			if (el && hasTextProperties(el) && el.textSegments && el.textSegments.length > 0) {
 				segmentCounts.set(anim.targetId, countTextSegments(el.textSegments));
@@ -120,8 +123,15 @@ export class PresentationAnimationController {
 		// single `p:cTn` attribute of its own to carry this.
 		const nativeAnims = applyAfterAnimationFromEditorList(rawNativeAnims, slide.animations);
 		const segmentCounts = buildSegmentCounts(slide, nativeAnims);
+		// Scope `p:txEl` (paragraph/character range) targets to their named
+		// sub-elements FIRST, then expand any remaining staged build: the two
+		// features are independent OOXML concepts and rarely combine, but running
+		// range-scoping first means a `p:bldP` build on a DIFFERENT (whole-shape)
+		// animation for the same slide is unaffected either way.
+		const rangedAnims =
+			segmentCounts.size > 0 ? expandTextRangeAnimations(nativeAnims, segmentCounts) : nativeAnims;
 		const expandedAnims =
-			segmentCounts.size > 0 ? expandTextBuildAnimations(nativeAnims, segmentCounts) : nativeAnims;
+			segmentCounts.size > 0 ? expandTextBuildAnimations(rangedAnims, segmentCounts) : rangedAnims;
 
 		const engine = TimelineEngine.fromAnimations(expandedAnims);
 

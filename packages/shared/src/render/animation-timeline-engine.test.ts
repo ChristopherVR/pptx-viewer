@@ -639,3 +639,73 @@ describe('completeAll', () => {
 		expect(engine.hasMoreSteps()).toBeTruthy();
 	});
 });
+
+describe('p:excl exclusivity (exclGroupId)', () => {
+	it('stops the previous holder of the same exclGroupId when a new one starts', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([makeStep({ elementId: 'a', presetClass: 'emph', exclGroupId: 1 })]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'emph', exclGroupId: 1 })]),
+				],
+			}),
+		);
+
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBeDefined();
+
+		engine.advance();
+		// `b` starting in the SAME exclusive group stops `a`'s running effect.
+		expect(engine.getElementAnimation('a')).toBeUndefined();
+		expect(engine.getElementAnimation('b')).toBeDefined();
+	});
+
+	it('does not stop an element in a DIFFERENT exclGroupId', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([makeStep({ elementId: 'a', presetClass: 'emph', exclGroupId: 1 })]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'emph', exclGroupId: 2 })]),
+				],
+			}),
+		);
+
+		engine.advance();
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBeDefined();
+		expect(engine.getElementAnimation('b')).toBeDefined();
+	});
+
+	it('does not affect an entrance-revealed element: stopping the effect leaves it visible', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([makeStep({ elementId: 'a', presetClass: 'entr', exclGroupId: 1 })]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'emph', exclGroupId: 1 })]),
+				],
+				entranceElementIds: new Set(['a']),
+			}),
+		);
+
+		engine.advance();
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBeUndefined();
+		expect(engine.isElementVisible('a')).toBeTruthy();
+	});
+
+	it('leaves non-exclusive steps (no exclGroupId) unaffected by each other', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([makeStep({ elementId: 'a', presetClass: 'emph' })]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'emph' })]),
+				],
+			}),
+		);
+
+		engine.advance();
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBeDefined();
+		expect(engine.getElementAnimation('b')).toBeDefined();
+	});
+});

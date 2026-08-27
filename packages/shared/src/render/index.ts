@@ -287,6 +287,11 @@ export * from './animation-build';
 export * from './chart-build';
 export * from './diagram-build';
 export * from './animation-timeline-helpers';
+// Absolute `p:animRot`/`p:animScale` `from`/`to` keyframes and a `p:tavLst`
+// opacity ramp for emphasis effects, consumed by `animation-timeline-helpers`
+// / `animation-timeline-builder` as the sibling of their relative-`@by` and
+// canned-static keyframe paths respectively.
+export * from './animation-timeline-absolute';
 // `@fill` / `@repeatDur` / `@spd` timing decisions consumed by the timeline
 // builder and (for `holdEndState`) by each binding's cleanup-timer step.
 export * from './animation-fill-repeat';
@@ -294,6 +299,12 @@ export * from './animation-fill-repeat';
 // p:endCondLst OR-sets), consumed by the sequencer + timeline builder.
 export * from './animation-advanced-triggers';
 export * from './animation-timeline-text-build';
+// `p:bldP/@bldLvl` paragraph grouping for a by-paragraph text build, consumed
+// by `animation-timeline-text-build`.
+export * from './animation-timeline-build-level';
+// `p:txEl` (pRg/charRg) text-level target scoping, consumed by
+// `presentation-animation-controller`.
+export * from './animation-timeline-text-range';
 export * from './animation-effects';
 export * from './animation-sequencer';
 export * from './animation-timeline-builder';

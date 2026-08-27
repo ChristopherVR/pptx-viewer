@@ -23,6 +23,26 @@ function textElement(id: string, text: string): PptxElement {
 	} as unknown as PptxElement;
 }
 
+function multiParaTextElement(id: string, paragraphs: string[]): PptxElement {
+	const segments: Array<{ text: string }> = [];
+	paragraphs.forEach((p, i) => {
+		if (i > 0) {
+			segments.push({ text: '\n' });
+		}
+		segments.push({ text: p });
+	});
+	return {
+		type: 'text',
+		id,
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 100,
+		text: paragraphs.join('\n'),
+		textSegments: segments,
+	} as unknown as PptxElement;
+}
+
 function shapeElement(id: string): PptxElement {
 	return {
 		type: 'shape',
@@ -123,6 +143,30 @@ describe('presentationAnimationController.fromSlide', () => {
 		// Base id plus at least one text-build sub-element id (separator "::").
 		expect(controller.elementIds).toContain('t');
 		expect(controller.elementIds.some((id) => id.includes('::'))).toBeTruthy();
+	});
+
+	it('scopes a p:txEl/pRg entrance to only the named paragraphs, not the whole text box', () => {
+		const slide = slideWith(
+			[multiParaTextElement('t', ['first', 'second', 'third'])],
+			[
+				{
+					targetId: 't',
+					presetClass: 'entr',
+					trigger: 'onClick',
+					textTarget: { type: 'pRg', start: 1, end: 2 },
+				} as unknown as PptxNativeAnimation,
+			],
+		);
+		const controller = PresentationAnimationController.fromSlide(slide);
+
+		// The scoped sub-element is tracked; the whole shape stays visible
+		// throughout (only paragraph 1 has an entrance to hide/reveal).
+		expect(controller.elementIds).toContain('t::p1');
+		expect(controller.computeStates().get('t')?.visible).toBeTruthy();
+		expect(controller.computeStates().get('t::p1')?.visible).toBeFalsy();
+
+		controller.advance();
+		expect(controller.computeStates().get('t::p1')?.visible).toBeTruthy();
 	});
 
 	it('reset returns the timeline to the initial (nothing played) state', () => {

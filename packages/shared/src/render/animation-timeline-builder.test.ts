@@ -323,6 +323,77 @@ describe('buildTimeline', () => {
 		expect(result.keyframesCss).toContain('rotate(360deg)');
 	});
 
+	it('generates dynamic keyframes for an absolute p:animRot (from/to, no @by)', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: undefined,
+				presetId: undefined,
+				rotationFrom: 0,
+				rotationTo: 180,
+			} as PptxNativeAnimation),
+		]);
+		expect(result.keyframesCss).toContain('@keyframes pptx-tl-rotateAbs-');
+		expect(result.keyframesCss).toContain('rotate(0deg)');
+		expect(result.keyframesCss).toContain('rotate(180deg)');
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain('pptx-tl-rotateAbs-');
+	});
+
+	it('generates dynamic keyframes for an absolute p:animScale (from/to, no @by)', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: undefined,
+				presetId: undefined,
+				scaleFromX: 0.5,
+				scaleFromY: 0.5,
+				scaleToX: 2,
+				scaleToY: 2,
+			} as PptxNativeAnimation),
+		]);
+		expect(result.keyframesCss).toContain('@keyframes pptx-tl-scaleAbs-');
+		expect(result.keyframesCss).toContain('scale(0.5, 0.5)');
+		expect(result.keyframesCss).toContain('scale(2, 2)');
+	});
+
+	it('honours a real p:tavLst opacity ramp on a Transparency emphasis instead of the canned 2-stop default', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: 'emph',
+				presetId: 9, // Transparency
+				keyframes: [
+					{ tm: 0, value: 1, valueType: 'flt' },
+					{ tm: 30000, value: 0.1, valueType: 'flt' },
+					{ tm: 100000, value: 1, valueType: 'flt' },
+				],
+			} as PptxNativeAnimation),
+		]);
+		expect(result.keyframesCss).toContain('@keyframes pptx-tl-tav-');
+		expect(result.keyframesCss).toContain('30% { opacity: 0.1; }');
+		expect(result.keyframesCss).not.toContain('pptx-transparency');
+	});
+
+	it('falls back to the canned Transparency keyframes when there is no p:tavLst', () => {
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', trigger: 'onClick', presetClass: 'emph', presetId: 9 }),
+		]);
+		expect(result.keyframesCss).toContain('@keyframes pptx-transparency');
+	});
+
+	// -------------------------------------------------------------------
+	// p:excl exclusivity (exclGroupId) reaches the timeline step
+	// -------------------------------------------------------------------
+	it('carries exclGroupId from the native animation onto its timeline step', () => {
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', trigger: 'onClick', exclusive: true, exclGroupId: 7 }),
+		]);
+		expect(result.clickGroups[0].steps[0].exclGroupId).toBe(7);
+	});
+
 	// -------------------------------------------------------------------
 	// onHover trigger goes to hover sequences (not click-groups)
 	// -------------------------------------------------------------------
