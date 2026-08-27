@@ -32,13 +32,17 @@ describe('svelte: native animation @filter fallback', () => {
 	});
 
 	it('falls back to the generic fade for a genuinely unmapped filter family', () => {
+		// `wedge` used to be this test's example but graduated to a real
+		// dedicated keyframe; `pixelate` is a raster/canvas-only effect this
+		// engine's CSS-keyframe architecture cannot express, so it stays
+		// unmapped (see the `p:animEffect/@filter` row in limitations.md).
 		const timeline = buildTimeline([
 			{
 				targetId: 'shape2',
 				presetClass: 'exit',
 				trigger: 'onClick',
 				durationMs: 300,
-				effectFilter: { family: 'wedge', transition: 'out', raw: 'wedge' },
+				effectFilter: { family: 'pixelate', transition: 'out', raw: 'pixelate' },
 			} as PptxNativeAnimation,
 		]);
 		const step = timeline.clickGroups[0].steps[0];

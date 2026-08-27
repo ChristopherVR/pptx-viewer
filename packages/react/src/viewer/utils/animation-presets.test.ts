@@ -186,8 +186,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatIn');
 		});
 
-		it('should leave preset ID 47 unmapped (real Swivel is entr.19, not 47)', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[47]).toBeUndefined();
+		it('should map preset ID 47 to "flyInTop" (Descend), not Swivel (real Swivel is entr.19)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[47]).toBe('flyInTop');
 		});
 
 		it('should map preset ID 49 to "spinnerIn"', () => {

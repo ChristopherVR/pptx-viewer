@@ -7,9 +7,9 @@
  * @module render/animation-keyframes
  */
 
-import { SCALE_SPIN_KEYFRAME_DEFINITIONS } from './animation-keyframes-scale-spin';
 import { EXIT_SHAPE_KEYFRAME_DEFINITIONS } from './animation-keyframes-exit-shapes';
 import type { ExitShapeEffectName } from './animation-keyframes-exit-shapes';
+import { SCALE_SPIN_KEYFRAME_DEFINITIONS } from './animation-keyframes-scale-spin';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
 import type { EffectName } from './animation-timeline-types';
 
