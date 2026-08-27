@@ -219,11 +219,28 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatIn');
 		});
 
-		it('should leave preset ID 47 unmapped (real Swivel is entr.19, not 47)', () => {
+		it('should map preset ID 47 to "flyInTop" (Descend, verified via COM; real Swivel is entr.19, not 47)', () => {
 			// entr.47 is really "Descend" per COM, not Swivel (real Swivel is
-			// entr.19); no dedicated keyframe covers Descend, so it correctly
-			// falls back to the neutral entrance animation.
-			expect(PRESET_ID_TO_EFFECT.entr[47]).toBeUndefined();
+			// entr.19). No dedicated "falls from above" keyframe exists, so
+			// this reuses `flyInTop` (falls from the top edge into place) as a
+			// documented approximation.
+			expect(PRESET_ID_TO_EFFECT.entr[47]).toBe('flyInTop');
+		});
+
+		it('should map preset ID 8 to "diamondIn" (Diamond, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[8]).toBe('diamondIn');
+		});
+
+		it('should map preset ID 13 to "plusIn" (Plus, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[13]).toBe('plusIn');
+		});
+
+		it('should map preset ID 20 to "wedgeIn" (Wedge, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[20]).toBe('wedgeIn');
+		});
+
+		it('should map preset ID 18 to "wipeIn" (Strips, verified via COM; approximation)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[18]).toBe('wipeIn');
 		});
 
 		it('should map preset ID 49 to "spinnerIn"', () => {
@@ -246,6 +263,42 @@ describe('pRESET_ID_TO_EFFECT', () => {
 
 		it('should map preset ID 22 to "wipeOut"', () => {
 			expect(PRESET_ID_TO_EFFECT.exit[22]).toBe('wipeOut');
+		});
+
+		it('should map preset ID 3 to "blindsOut" (Blinds exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[3]).toBe('blindsOut');
+		});
+
+		it('should map preset ID 4 to "boxOut" (Box exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[4]).toBe('boxOut');
+		});
+
+		it('should map preset ID 5 to "checkerboardOut" (Checkerboard exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[5]).toBe('checkerboardOut');
+		});
+
+		it('should map preset ID 8 to "diamondOut" (Diamond exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[8]).toBe('diamondOut');
+		});
+
+		it('should map preset ID 13 to "plusOut" (Plus exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[13]).toBe('plusOut');
+		});
+
+		it('should map preset ID 14 to "randomBarsOut" (Random Bars exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[14]).toBe('randomBarsOut');
+		});
+
+		it('should map preset ID 20 to "wedgeOut" (Wedge exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[20]).toBe('wedgeOut');
+		});
+
+		it('should map preset ID 21 to "wheelOut" (Wheel exit, verified via COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[21]).toBe('wheelOut');
+		});
+
+		it('should map preset ID 18 to "wipeOut" (Strips exit, verified via COM; approximation)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('wipeOut');
 		});
 	});
 

@@ -7,6 +7,8 @@
  * @module render/animation-keyframes
  */
 
+import { EXIT_SHAPE_KEYFRAME_DEFINITIONS } from './animation-keyframes-exit-shapes';
+import type { ExitShapeEffectName } from './animation-keyframes-exit-shapes';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
 import type { EffectName } from './animation-timeline-types';
 
@@ -20,7 +22,10 @@ import type { EffectName } from './animation-timeline-types';
 // a thin shape wiped in as its full bounding box (a filled rectangle "blob").
 // A mask composites with the geometry clip instead. See `animation-mask-reveal`.
 
-const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
+// Box/Checkerboard/Blinds/Wheel/RandomBars/Diamond/Plus/Wedge EXIT keyframes
+// live in `animation-keyframes-exit-shapes` (split out to stay under the
+// repo's file-size cap) and are merged in below.
+const BASE_KEYFRAME_DEFINITIONS: Record<Exclude<EffectName, ExitShapeEffectName>, string> = {
 	// ---- Entrance effects ----
 	appear: `@keyframes pptx-appear {
 	from { opacity: 0; }
@@ -276,6 +281,11 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	75% { opacity: 0; }
 	100% { opacity: 1; }
 }`,
+};
+
+const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
+	...BASE_KEYFRAME_DEFINITIONS,
+	...EXIT_SHAPE_KEYFRAME_DEFINITIONS,
 };
 
 // ==========================================================================
