@@ -155,7 +155,14 @@ export const PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	fadeOut: { presetClass: 'exit', presetId: 10, defaultSubtype: 0 },
 	wipeOut: { presetClass: 'exit', presetId: 22, defaultSubtype: 0 },
 	zoomOut: { presetClass: 'exit', presetId: 23, defaultSubtype: 0 },
-	bounceOut: { presetClass: 'exit', presetId: 37, defaultSubtype: 0 },
+	// exit.26/37 verified via a fresh COM pass (AddEffect + `Effect.Exit =
+	// True` + raw OOXML inspection): `msoAnimEffectBounce` re-emits presetID
+	// 26 under `Effect.Exit = True` (the SAME id as its entrance form, see
+	// `bounceIn` above), and `msoAnimEffectRiseUp` re-emits presetID 37 (again
+	// the same id as its entrance form, see `riseUp` above). `bounceOut` and
+	// `sinkDown` (Rise Up's exit-gallery name) were previously swapped here,
+	// mirroring the entr.26/37 mix-up already fixed on the entrance side.
+	bounceOut: { presetClass: 'exit', presetId: 26, defaultSubtype: 0 },
 
 	// ---- Exit effects (extended catalog) ----
 	blindsOut: { presetClass: 'exit', presetId: 3, defaultSubtype: 0 },
@@ -188,7 +195,9 @@ export const PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	wheelOut: { presetClass: 'exit', presetId: 21, defaultSubtype: 1 },
 	randomEffectsOut: { presetClass: 'exit', presetId: 24, defaultSubtype: 0 },
 	boomerangOut: { presetClass: 'exit', presetId: 25, defaultSubtype: 0 },
-	sinkDown: { presetClass: 'exit', presetId: 26, defaultSubtype: 0 },
+	// sinkDown is Rise Up's exit-gallery name; see the `bounceOut` note above
+	// for the fresh COM pass that swapped 26/37 back to their real ids.
+	sinkDown: { presetClass: 'exit', presetId: 37, defaultSubtype: 0 },
 	creditsOut: { presetClass: 'exit', presetId: 27, defaultSubtype: 0 },
 	floatDown: { presetClass: 'exit', presetId: 28, defaultSubtype: 0 },
 	pinwheelOut: { presetClass: 'exit', presetId: 29, defaultSubtype: 0 },
@@ -249,7 +258,12 @@ export const PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	growShrink: { presetClass: 'emph', presetId: 6, defaultSubtype: 0 },
 	spin: { presetClass: 'emph', presetId: 8, defaultSubtype: 0 },
 	transparency: { presetClass: 'emph', presetId: 9, defaultSubtype: 0 },
-	teeter: { presetClass: 'emph', presetId: 14, defaultSubtype: 0 },
+	// emph.14/32 verified via a fresh COM pass: `msoAnimEffectBlast` serializes
+	// as emph.14 and `msoAnimEffectTeeter` as emph.32; `teeter` previously
+	// pointed at 14 (really Blast, which has no typed name of its own here).
+	// This also displaces the unverified `pulseOnce` entry below from 32; its
+	// real id is unknown and it is not referenced outside this file.
+	teeter: { presetClass: 'emph', presetId: 32, defaultSubtype: 0 },
 	pulse: { presetClass: 'emph', presetId: 26, defaultSubtype: 0 },
 	bounce: { presetClass: 'emph', presetId: 26, defaultSubtype: 0 },
 	flash: { presetClass: 'emph', presetId: 10, defaultSubtype: 0 },
@@ -431,7 +445,14 @@ const EXIT_CANONICAL: ReadonlyArray<[number, string]> = [
 	[11, 'flashOnceOut'],
 	[22, 'wipeOut'],
 	[23, 'zoomOut'],
-	[37, 'bounceOut'],
+	// exit.26/37 verified via a fresh COM pass: `msoAnimEffectBounce` with
+	// `Effect.Exit = True` re-emits presetID 26 (matching its entrance form,
+	// see `bounceIn` above) and `msoAnimEffectRiseUp` with `Effect.Exit =
+	// True` re-emits presetID 37 (matching its entrance form, see `riseUp`
+	// above). The two were previously swapped in this table (26 had no
+	// override and fell through to `sinkDown`; 37 pointed at `bounceOut`).
+	[26, 'bounceOut'],
+	[37, 'sinkDown'],
 ];
 
 const EMPH_CANONICAL: ReadonlyArray<[number, string]> = [
@@ -456,8 +477,15 @@ const EMPH_CANONICAL: ReadonlyArray<[number, string]> = [
 	[8, 'spin'],
 	[9, 'transparency'],
 	[10, 'boldFlash'], // alias of flash; `boldFlash` is canonical
-	[14, 'teeter'],
 	[16, 'brushOnColor'],
+	// emph.20/34 verified via COM (already documented on `PRESET_TO_OOXML`
+	// above): Color Wave is emph.20 and Wave is emph.34.
+	[20, 'colorWave'],
+	[34, 'wave'],
+	// emph.14/32 verified via a fresh COM pass: `msoAnimEffectBlast`
+	// serializes as emph.14 (no typed name here) and `msoAnimEffectTeeter` as
+	// emph.32, not the other way around as this table previously had it.
+	[32, 'teeter'],
 	[26, 'pulse'], // alias of bounce; `pulse` is canonical
 ];
 
