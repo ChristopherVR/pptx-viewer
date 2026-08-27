@@ -42,6 +42,11 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'randomBarsIn',
 	'spinnerIn',
 	'growTurnIn',
+	'stretchInLeft',
+	'stretchInRight',
+	'stretchInTop',
+	'stretchInBottom',
+	'newsflashIn',
 ]);
 
 /**
@@ -95,6 +100,16 @@ export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 			return maskEdgeInitialStyle('bottom');
 		case 'randomBarsIn':
 			return maskEdgeInitialStyle('left');
+		case 'stretchInLeft':
+			return { opacity: 0, transform: 'scaleX(0.02)', transformOrigin: 'left center' };
+		case 'stretchInRight':
+			return { opacity: 0, transform: 'scaleX(0.02)', transformOrigin: 'right center' };
+		case 'stretchInTop':
+			return { opacity: 0, transform: 'scaleY(0.02)', transformOrigin: 'center top' };
+		case 'stretchInBottom':
+			return { opacity: 0, transform: 'scaleY(0.02)', transformOrigin: 'center bottom' };
+		case 'newsflashIn':
+			return { opacity: 0, transform: 'rotate(-180deg) scale(0.05)' };
 		case 'appear':
 		case 'fadeIn':
 		case 'checkerboardIn':

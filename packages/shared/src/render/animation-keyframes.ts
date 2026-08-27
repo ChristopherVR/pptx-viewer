@@ -7,6 +7,7 @@
  * @module render/animation-keyframes
  */
 
+import { SCALE_SPIN_KEYFRAME_DEFINITIONS } from './animation-keyframes-scale-spin';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
 import type { EffectName } from './animation-timeline-types';
 
@@ -150,6 +151,10 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	1% { opacity: 1; }
 	100% { opacity: 1; }
 }`,
+	// `stretch`In*/Out* and `newsflash`In/Out (SMIL/ECMA-376 transition
+	// filters) are defined in `animation-keyframes-scale-spin` and spread in
+	// below; see that module's doc for why.
+	...SCALE_SPIN_KEYFRAME_DEFINITIONS,
 
 	// ---- Exit effects ----
 	disappear: `@keyframes pptx-disappear {

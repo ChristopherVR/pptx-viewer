@@ -48,19 +48,42 @@
  *    that jump the element to its end state almost immediately rather than
  *    animating gradually over the effect's duration, matching a SMIL `cut`
  *    filter's "instant swap" semantics.
+ *  - `stretch` carries the same `fromLeft`/`fromRight`/`fromTop`/`fromBottom`
+ *    direction tokens as `slide` (SMIL 2.0 Transition Effects), so it reuses
+ *    {@link SLIDE_TOKEN_TO_SUFFIX} for the edge lookup (see
+ *    {@link resolveStretchEffect}), but resolves to a NEW pair of static
+ *    keyframes (`stretchIn*`/`stretchOut*`) rather than Fly's translate: a
+ *    directional non-uniform `scaleX`/`scaleY` pinned to the named edge via
+ *    `transform-origin`, standing in for SMIL's "elastic bar" stretch.
+ *  - `newsflash` has no subtype and is a new, genuinely distinct pair of
+ *    keyframes (`newsflashIn`/`newsflashOut`): a spin-and-zoom from/to a
+ *    near-zero point, approximating PowerPoint's own Newsflash effect.
+ *  - `random` per SMIL 2.0 literally means "pick one of the other known
+ *    transition types"; {@link resolveRandomEffect} (in the sibling
+ *    `animation-filter-random` module, split out to keep this file under the
+ *    repo's file-size guideline) does exactly that, deterministically, from
+ *    the animation's `targetId` rather than `Math.random()`.
  *
- * Families with NO cheap CSS equivalent (`image`, `stretch`, `pixelate`,
- * `random`, `newsflash`) are intentionally left out of
- * {@link FILTER_FAMILY_EFFECT}: `resolveEffect` returning `undefined` for them
- * lets the timeline builder's existing unmapped-preset safety net
+ * Families with NO cheap CSS equivalent given this engine's one-element
+ * mask/keyframe architecture (`image`, `pixelate`) are intentionally left out
+ * of {@link FILTER_FAMILY_EFFECT}: `resolveEffect` returning `undefined` for
+ * them lets the timeline builder's existing unmapped-preset safety net
  * (`fallbackEffectForClass`) substitute the neutral `fadeIn`/`fadeOut`, so the
- * effect is never silently dropped. See {@link GENERIC_FALLBACK_FILTER_FAMILIES}.
+ * effect is never silently dropped. See {@link GENERIC_FALLBACK_FILTER_FAMILIES}
+ * for why: `image` substitutes a second AUTHORED image mid-transition that the
+ * OOXML `p:animEffect` filter payload never carries, so there is nothing to
+ * substitute; `pixelate`'s blocky mosaic needs to rasterise the element's
+ * actual painted content at progressively coarser resolution, which is a
+ * canvas/WebGL operation, not a `mask-image`/`clip-path`/`transform` one, so
+ * it does not fit this architecture's "one CSS `@keyframes` block per effect"
+ * shape the way every other family above does.
  *
  * @module render/animation-filter-effects
  */
 
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
+import { resolveRandomEffect } from './animation-filter-random';
 import { BARN_FILTER_TOKEN_TO_SUBTYPE, WIPE_FILTER_TOKEN_TO_SUBTYPE } from './animation-presets';
 import type { EffectName } from './animation-timeline-types';
 
@@ -107,6 +130,7 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	plus: { entr: 'plusIn', exit: 'fadeOut' },
 	wedge: { entr: 'wedgeIn', exit: 'fadeOut' },
 	cut: { entr: 'cutIn', exit: 'cutOut' },
+	newsflash: { entr: 'newsflashIn', exit: 'newsflashOut' },
 };
 
 /**
@@ -115,15 +139,10 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
  * builder's generic entrance/exit fade safety net rather than being dropped.
  * Exported so the shared test suite can assert every one of them actually
  * reaches that fallback, and so this list is the single place documenting
- * "known but approximated as fade".
+ * "known but approximated as fade". See the module doc for why each of these
+ * two specifically has no cheap CSS equivalent in this architecture.
  */
-export const GENERIC_FALLBACK_FILTER_FAMILIES: readonly string[] = [
-	'image',
-	'stretch',
-	'pixelate',
-	'random',
-	'newsflash',
-];
+export const GENERIC_FALLBACK_FILTER_FAMILIES: readonly string[] = ['image', 'pixelate'];
 
 // ==========================================================================
 // Slide / cover / uncover / push / pull (direct Fly mapping)
@@ -154,6 +173,23 @@ const SLIDE_TOKEN_TO_SUFFIX: Readonly<Record<string, 'Left' | 'Right' | 'Top' | 
 function resolveSlideEffect(subtype: string | undefined, isExit: boolean): EffectName {
 	const suffix = subtype ? (SLIDE_TOKEN_TO_SUFFIX[subtype] ?? 'Bottom') : 'Bottom';
 	return isExit ? (`flyOut${suffix}` as EffectName) : (`flyIn${suffix}` as EffectName);
+}
+
+// ==========================================================================
+// Stretch (directional scale, reuses the slide direction tokens)
+// ==========================================================================
+
+/**
+ * `stretch` carries the same `fromLeft`/`fromRight`/`fromTop`/`fromBottom`
+ * direction tokens as `slide` (SMIL 2.0 Transition Effects), so this reuses
+ * {@link SLIDE_TOKEN_TO_SUFFIX} for the edge lookup, defaulting to the same
+ * bottom edge as an unrecognised/absent `slide` subtype. Resolves to the
+ * `stretchIn*`/`stretchOut*` keyframes (directional scale pinned to the named
+ * edge via `transform-origin`), never to Fly.
+ */
+function resolveStretchEffect(subtype: string | undefined, isExit: boolean): EffectName {
+	const suffix = subtype ? (SLIDE_TOKEN_TO_SUFFIX[subtype] ?? 'Bottom') : 'Bottom';
+	return isExit ? (`stretchOut${suffix}` as EffectName) : (`stretchIn${suffix}` as EffectName);
 }
 
 // ==========================================================================
@@ -188,6 +224,12 @@ export function resolveFilterEffect(anim: PptxNativeAnimation): EffectName | und
 		return undefined;
 	}
 	const isExit = anim.presetClass === 'exit';
+	if (filter.family === 'random') {
+		return resolveRandomEffect(anim, isExit);
+	}
+	if (filter.family === 'stretch') {
+		return resolveStretchEffect(filter.subtype, isExit);
+	}
 	if (DIRECTIONAL_SLIDE_FAMILIES.has(filter.family)) {
 		return resolveSlideEffect(filter.subtype, isExit);
 	}
