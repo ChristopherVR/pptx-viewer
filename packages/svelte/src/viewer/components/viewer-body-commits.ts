@@ -37,11 +37,12 @@ export interface EditCommitHandlers {
 
 export function createEditCommits(editor: EditorState): EditCommitHandlers {
 	return {
-		commitTableCell(id, rowIndex, cellIndex, text) {
+		commitTableCell(id, rowIndex, cellIndex, rawText) {
 			const table = editor.activeElements.find((element) => element.id === id);
 			if (table?.type !== 'table') {
 				return;
 			}
+			const text = editor.transformCommittedText(rawText);
 			const updated = setCellText(table, rowIndex, cellIndex, text);
 			editor.applyElementPatch(id, { tableData: updated.tableData });
 		},

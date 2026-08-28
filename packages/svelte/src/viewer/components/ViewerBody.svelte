@@ -44,6 +44,7 @@
 		presentationTransition,
 		onTransitionDone,
 		onAdvance,
+		onPresentationContextMenu,
 		editingActive,
 		blackout = 'none',
 		controller,
@@ -138,6 +139,7 @@
 				{presentationTransition}
 				{onTransitionDone}
 				{onAdvance}
+				{onPresentationContextMenu}
 				{editingActive}
 				{blackout}
 				{onstageholder}

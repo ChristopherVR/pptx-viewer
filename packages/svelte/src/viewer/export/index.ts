@@ -21,7 +21,6 @@ export {
 } from './export-svg';
 export type { ExportVideoOptions, RecorderLike, VideoCaptureDeps } from './export-video';
 export { exportSlidesToWebmBlob } from './export-video';
-export { buildSharingPackage } from './package-sharing';
 export type { ExportingApi } from './exporting-api';
 export { createExportingApi } from './exporting-api';
 export type { RasterizeSlideController, RasterizeSlideDeps } from './rasterize-slide';

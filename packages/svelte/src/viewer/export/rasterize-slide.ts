@@ -50,6 +50,14 @@ export interface RasterizeSlideDeps {
 	 */
 	pieChart3D: boolean;
 	/**
+	 * Options > Advanced > "Default resolution" / "Do not compress images"
+	 * raster-scale multiplier (see `resolveImageResolutionScale` in
+	 * `pptx-viewer-shared`), applied on top of the baseline capture scale so
+	 * the option has real effect without changing the default (highFidelity)
+	 * export quality.
+	 */
+	getImageResolutionScale(): number;
+	/**
 	 * Deck-level OOXML field-substitution context. The capture stage is mounted
 	 * outside the viewer tree, so without this an exported PNG/PDF would print
 	 * the authored "Slide #" placeholder while the screen shows "Slide 1".
@@ -65,8 +73,15 @@ export interface RasterizeSlideDeps {
 }
 
 export interface RasterizeSlideController {
-	/** Render slide `index` off-screen at scale 1 and capture it with html2canvas-pro. */
-	rasterizeSlide(index: number): Promise<HTMLCanvasElement>;
+	/**
+	 * Render slide `index` off-screen at scale 1 and capture it with
+	 * html2canvas-pro. `scaleMultiplier` (default 1) is an extra factor on top
+	 * of the baseline 2x * Options > Advanced > Image Size/Quality scale; the
+	 * Print dialog's notes/handouts raster path passes a higher value when
+	 * Options > Advanced > "High quality" is on, without changing plain
+	 * PNG/PDF export.
+	 */
+	rasterizeSlide(index: number, scaleMultiplier?: number): Promise<HTMLCanvasElement>;
 	/** Remove the off-screen capture stage from the DOM. */
 	destroy(): void;
 }
@@ -133,7 +148,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 		host.replaceChildren();
 	}
 
-	async function rasterizeSlide(index: number): Promise<HTMLCanvasElement> {
+	async function rasterizeSlide(index: number, scaleMultiplier = 1): Promise<HTMLCanvasElement> {
 		const slide: PptxSlide | undefined = deps.getSlides()[index];
 		if (!slide) {
 			throw new Error(`Export failed: no slide at index ${index}`);
@@ -167,7 +182,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 		}
 		return renderToCanvas(stageEl, {
 			backgroundColor: '#ffffff',
-			scale: 2,
+			scale: 2 * deps.getImageResolutionScale() * scaleMultiplier,
 			width: canvasSize.width,
 			height: canvasSize.height,
 			logging: false,

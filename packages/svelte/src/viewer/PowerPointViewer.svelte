@@ -115,7 +115,6 @@
 	export const save = vm.editingApi.save;
 	export const downloadAs = vm.editingApi.downloadAs;
 	export const downloadPptx = vm.editingApi.downloadPptx;
-	export const packageForSharing = vm.editingApi.packageForSharing;
 	export const getContent = vm.editingApi.save;
 	export const exportSlidePng = vm.exportingApi.exportSlidePng;
 	export const copySlideAsImage = vm.exportingApi.copySlideAsImage;
@@ -171,7 +170,7 @@
 		},
 	}}
 	bind:this={rootEl}
-	class={`pptx-svelte-viewer ${className}`}
+	class={`pptx-svelte-viewer ${className} ${vm.optionsState.rootClasses.join(' ')}`}
 	class:pptx-svelte-fullscreen={viewer.isFullscreen}
 	class:pptx-svelte-show-grid={parityUi.preferences.showGrid}
 	class:pptx-svelte-show-rulers={parityUi.preferences.showRulers}
@@ -212,7 +211,7 @@
 	/>
 	{#if vm.versionHistoryOpen}<VersionHistoryPanel filePath={props.filePath} onclose={() => (vm.versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
 	{#if vm.signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={vm.closeSignatureWarning} />{/if}
-	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={vm.displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={themeLocale.effectiveLocale} themeKey={themeLocale.themeKey} themeCatalog={themeLocale.catalog} onsetthemekey={(key) => themeLocale.setThemeKey(key)} availableLocales={props.availableLocales} onsetlocale={(code) => themeLocale.setLocale(code)} onselectslide={(index) => viewer.goTo(index)} onmoveslide={vm.deck.moveSlide} optionsState={vm.optionsState} autosaveRecovery={vm.autosaveRecovery} aiEnabled={Boolean(props.ai)} />
+	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={vm.displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={themeLocale.effectiveLocale} themeKey={themeLocale.themeKey} themeCatalog={themeLocale.catalog} onsetthemekey={(key) => themeLocale.setThemeKey(key)} availableLocales={props.availableLocales} onsetlocale={(code) => themeLocale.setLocale(code)} onselectslide={(index) => viewer.goTo(index)} onmoveslide={vm.deck.moveSlide} optionsState={vm.optionsState} autosaveRecovery={vm.autosaveRecovery} aiEnabled={Boolean(props.ai)} collabActive={vm.collab.active} />
 	<ViewerMain
 		{vm}
 		{t}

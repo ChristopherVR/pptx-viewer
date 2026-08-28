@@ -128,11 +128,12 @@ export class EditorElementController {
 		this.#editor.commitChange();
 	}
 
-	commitInlineText(id: string, text: string): void {
+	commitInlineText(id: string, rawText: string): void {
 		const target = this.#editor.activeElements.find((element) => element.id === id);
 		if (!target) {
 			return;
 		}
+		const text = this.#editor.transformCommittedText(rawText);
 		this.#editor.pushHistory();
 		// `a:spAutoFit`: grow/shrink the shape to the text's natural content
 		// height, the way PowerPoint does. See `resolveInlineTextAutoFitHeight`

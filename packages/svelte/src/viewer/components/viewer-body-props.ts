@@ -71,6 +71,13 @@ export interface ViewerBodyProps {
 	 * falling back to click-to-advance.
 	 */
 	onAdvance: (event: MouseEvent) => void;
+	/**
+	 * A right-click on the running show's stage. Options > Advanced > "Show
+	 * menu on right mouse click" decides whether this actually opens a menu;
+	 * the handler is always wired so the browser's own context menu is
+	 * suppressed either way, matching React/Vue/Angular.
+	 */
+	onPresentationContextMenu: (event: MouseEvent) => void;
 	editingActive: boolean;
 	/**
 	 * Presenter blackout state, mirrored from the presenter session's snapshot.
@@ -147,6 +154,7 @@ export type ViewerStageProps = Pick<
 	| 'presentationTransition'
 	| 'onTransitionDone'
 	| 'onAdvance'
+	| 'onPresentationContextMenu'
 	| 'editingActive'
 	| 'blackout'
 	| 'onstageholder'

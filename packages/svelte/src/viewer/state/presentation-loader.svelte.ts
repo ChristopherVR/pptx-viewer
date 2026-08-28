@@ -6,6 +6,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
+	PptxHandlerLoadOptions,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxCustomShow,
@@ -116,6 +117,18 @@ export class PresentationLoader {
 	 */
 	loadOrigin: CollabLoadOrigin = $state('user');
 
+	/**
+	 * Options-derived load flags for `PptxHandler.load` (currently just Trust
+	 * Center > "Allow external content", which core reads as
+	 * `allowExternalImages`). The composition root overwrites this once
+	 * `ViewerOptionsState` exists, so every load call site (open file, restore
+	 * version, collaboration bootstrap, ...) picks up the live Trust Center
+	 * value without threading options through each of them individually. Left
+	 * as its safe default (external images blocked) for callers that never set
+	 * it, e.g. this class used stand-alone in a test.
+	 */
+	getLoadOptions: () => Pick<PptxHandlerLoadOptions, 'allowExternalImages'> = () => ({});
+
 	/** Parse a `.pptx` buffer into reactive viewer state. */
 	async load(raw: Uint8Array | ArrayBuffer, origin: CollabLoadOrigin = 'user'): Promise<void> {
 		this.loadOrigin = origin;
@@ -137,7 +150,7 @@ export class PresentationLoader {
 			const previousHandler = this.handler;
 
 			const newHandler = new PptxHandler();
-			const parsed = await newHandler.load(buffer as ArrayBuffer);
+			const parsed = await newHandler.load(buffer as ArrayBuffer, this.getLoadOptions());
 			if (token !== this.#renderToken) {
 				newHandler.dispose();
 				return;

@@ -26,6 +26,12 @@ export interface ExportWiringDeps {
 	getAreaChart3D(): boolean;
 	getPieChart3D(): boolean;
 	/**
+	 * Options > Advanced > "Default resolution" / "Do not compress images"
+	 * raster-scale multiplier (see `resolveImageResolutionScale` in
+	 * `pptx-viewer-shared`).
+	 */
+	getImageResolutionScale(): number;
+	/**
 	 * Deck-level field-substitution context, so an exported slide resolves its
 	 * slide-number / date / footer runs exactly like the on-screen stage does.
 	 * Optional: a host wiring exports without a viewer root simply exports the
@@ -36,6 +42,10 @@ export interface ExportWiringDeps {
 	getDeckData?(): PptxData | undefined;
 	/** Source file name for the deck-JSON download (`deck.pptx` -> `deck.json`). */
 	getFileName?(): string | undefined;
+	/** Options > Advanced > "Print hidden slides". Defaults to `false` (excluded). */
+	getIncludeHiddenSlides?(): boolean;
+	/** Options > Advanced > "High quality" raster scale for the print fallback path. */
+	getPrintHighQuality?(): boolean;
 }
 
 export interface ExportWiring {
@@ -71,6 +81,7 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 				lineChart3D: deps.getLineChart3D(),
 				areaChart3D: deps.getAreaChart3D(),
 				pieChart3D: deps.getPieChart3D(),
+				getImageResolutionScale: deps.getImageResolutionScale,
 				getFieldContext: () => deps.getFieldContext?.(),
 			});
 		}
@@ -85,6 +96,8 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 		rasterizeSlide: (index) => getRasterizer().rasterizeSlide(index),
 		getDeckData: () => deps.getDeckData?.(),
 		getFileName: () => deps.getFileName?.(),
+		getIncludeHiddenSlides: () => deps.getIncludeHiddenSlides?.() ?? false,
+		getPrintHighQuality: () => deps.getPrintHighQuality?.() ?? false,
 	});
 
 	return {

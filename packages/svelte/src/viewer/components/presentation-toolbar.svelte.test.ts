@@ -256,4 +256,38 @@ describe('presentationToolbar', () => {
 			vi.useRealTimers();
 		}
 	});
+
+	it('never auto-reveals on mousemove when popupToolbarEnabled is false', () => {
+		vi.useFakeTimers();
+		try {
+			const target = document.createElement('div');
+			document.body.appendChild(target);
+			const annotations = new PresentationAnnotations();
+			const instance = mount(PresentationToolbar, {
+				target,
+				props: {
+					annotations,
+					current: 1,
+					total: 3,
+					presenterMode: false,
+					onmove: vi.fn(),
+					onpresenterview: vi.fn(),
+					onexit: vi.fn(),
+					popupToolbarEnabled: false,
+				},
+			});
+			flushSync();
+			const wrapper = target.querySelector('.pptx-svelte-present-wrapper');
+			expect(wrapper?.classList.contains('hidden')).toBeTruthy();
+
+			document.dispatchEvent(new MouseEvent('mousemove', { clientX: 10, clientY: 10 }));
+			flushSync();
+			expect(wrapper?.classList.contains('hidden')).toBeTruthy();
+
+			unmount(instance);
+			target.remove();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
 });

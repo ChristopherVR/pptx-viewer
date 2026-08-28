@@ -45,6 +45,34 @@
 		transition-duration: 0.01ms !important;
 	}
 
+	/* ── Display optimization (Options > General > "Optimize for compatibility")
+	 * Drops shadow/blur/blend-mode effects across the viewer, mirroring
+	 * PowerPoint's own degraded-effects mode for older/weaker hardware. See
+	 * `resolveOptionRootClasses` in pptx-viewer-shared.
+	 */
+	:global(.pptx-svelte-viewer.pptx-svelte-compat-display *),
+	:global(.pptx-svelte-viewer.pptx-svelte-compat-display *::before),
+	:global(.pptx-svelte-viewer.pptx-svelte-compat-display *::after) {
+		box-shadow: none !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+		mix-blend-mode: normal !important;
+	}
+
+	/* ── Hardware acceleration (Options > Advanced > "Disable hardware
+	 * graphics acceleration"). Strips the GPU-compositing hints (will-change,
+	 * backface-visibility, perspective) transitions/3D effects rely on, for
+	 * users on underpowered/unstable graphics drivers. See
+	 * `resolveOptionRootClasses` in pptx-viewer-shared.
+	 */
+	:global(.pptx-svelte-viewer.pptx-svelte-no-hw-accel *),
+	:global(.pptx-svelte-viewer.pptx-svelte-no-hw-accel *::before),
+	:global(.pptx-svelte-viewer.pptx-svelte-no-hw-accel *::after) {
+		will-change: auto !important;
+		backface-visibility: visible !important;
+		perspective: none !important;
+	}
+
 	:global(.pptx-svelte-show-grid .pptx-svelte-stage-holder)::after {
 		position: absolute;
 		inset: 0;

@@ -77,6 +77,12 @@ export interface EditorStateDeps {
 }
 
 export class EditorState {
+	/**
+	 * Options > Proofing > AutoCorrect, applied to committed inline-edit text.
+	 * Identity until `useViewerOptionsWiring` installs the real transform (the
+	 * options store is constructed after `EditorState`).
+	 */
+	transformCommittedText: (text: string) => string = (text) => text;
 	slides = $state.raw<PptxSlide[]>([]);
 	templateElementsBySlideId = $state.raw<TemplateElementMap>({});
 	slideMasters = $state.raw<PptxSlideMaster[]>([]);

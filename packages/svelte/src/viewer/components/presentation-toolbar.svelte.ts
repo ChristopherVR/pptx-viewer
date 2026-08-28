@@ -26,6 +26,12 @@ export interface PresentToolbarChromeTargets {
 	getContainer: () => HTMLElement | null;
 	/** The bar itself, so a mousedown outside it can close an open palette. */
 	getToolbar: () => HTMLElement | null;
+	/**
+	 * File > Options > Advanced > "Show popup toolbar" (default true). When it
+	 * returns `false`, `mousemove` never auto-reveals the bar; `toggleVisible`
+	 * (PowerPoint's Ctrl+H) still works. Read fresh on every `mousemove`.
+	 */
+	popupToolbarEnabled?: () => boolean;
 }
 
 export class PresentToolbarChrome {
@@ -55,6 +61,9 @@ export class PresentToolbarChrome {
 		this.elapsedMs = 0;
 
 		const onMouseMove = (event: MouseEvent): void => {
+			if (targets.popupToolbarEnabled?.() === false) {
+				return;
+			}
 			const container = targets.getContainer();
 			if (container) {
 				const rect = container.getBoundingClientRect();

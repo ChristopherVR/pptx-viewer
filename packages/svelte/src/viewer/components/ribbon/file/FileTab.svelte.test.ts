@@ -26,7 +26,6 @@ describe('fileTab', () => {
 				ondownload: noop,
 				ondownloadppsx: noop,
 				ondownloadpptm: noop,
-				onpackage: noop,
 				hasMacros: false,
 			},
 		});
@@ -54,7 +53,6 @@ describe('fileTab', () => {
 				ondownload: noop,
 				ondownloadppsx: noop,
 				ondownloadpptm: noop,
-				onpackage: noop,
 				hasMacros: false,
 				exportUi: { runJson } as unknown as ExportUiState,
 			},

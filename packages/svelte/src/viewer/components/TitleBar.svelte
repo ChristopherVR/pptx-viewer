@@ -83,12 +83,16 @@
 	const metricVars = titleBarStyleAttr();
 	// The strip beyond Save/Undo/Redo comes from File > Options; hardcoding three
 	// buttons is what left this binding a command short of the shared default.
+	// Position `'below'` renders the same extras in `QuickAccessToolbar.svelte`
+	// (directly under the ribbon) instead, so they are skipped here to avoid
+	// showing every configured command twice.
 	const optionsState = useViewerOptions();
 	const extraQuickCommands = $derived(
-		optionsState.options.quickAccess.visible
+		optionsState.options.quickAccess.visible && optionsState.options.quickAccess.position !== 'below'
 			? extraQuickAccessCommands(optionsState.options.quickAccess.commandIds)
 			: [],
 	);
+	const showCommandLabels = $derived(optionsState.options.quickAccess.showCommandLabels);
 	let query = $state('');
 	let focused = $state(false);
 	const results = $derived(filterCommands(query, t));
@@ -138,7 +142,7 @@
 			<!-- Everything else File > Options > Quick Access Toolbar asks for. -->
 			{#each extraQuickCommands as command (command.id)}
 				{@const Icon = QUICK_ACCESS_ICONS[command.icon] ?? Play}
-				<button type="button" aria-label={t(command.labelKey)} title={t(command.labelKey)} onclick={() => onquickcommand?.(command.id)}><Icon size={14} aria-hidden="true" /></button>
+				<button type="button" aria-label={t(command.labelKey)} title={t(command.labelKey)} onclick={() => onquickcommand?.(command.id)}><Icon size={14} aria-hidden="true" />{#if showCommandLabels}<small>{t(command.labelKey)}</small>{/if}</button>
 			{/each}
 		</div>
 		<span class="pptx-svelte-titlebar-separator"></span>
@@ -176,9 +180,10 @@
 	/* Travel, not the "on" offset: the knob already sits at --pptx-tb-knob-off. */
 	.pptx-svelte-titlebar-autosave button[aria-checked='true'] span { transform:translateX(var(--pptx-tb-knob-travel)); }
 	.pptx-svelte-titlebar-separator { width:1px; height:var(--pptx-tb-separator-h); background:var(--pptx-border,#33334d); }
-	.pptx-svelte-titlebar-actions button { display:grid; place-items:center; width:24px; height:24px; border:0; border-radius:3px; background:transparent; color:inherit; cursor:pointer; }
+	.pptx-svelte-titlebar-actions button { display:flex; align-items:center; justify-content:center; gap:4px; min-width:24px; height:24px; padding:0 4px; border:0; border-radius:3px; background:transparent; color:inherit; cursor:pointer; }
 	.pptx-svelte-titlebar-actions button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); }
 	.pptx-svelte-titlebar-actions button:disabled { opacity:.4; cursor:default; }
+	.pptx-svelte-titlebar-actions button small { font-size:10px; white-space:nowrap; }
 	.pptx-svelte-titlebar-actions svg,.pptx-svelte-titlebar-searchbox svg { width:15px; height:15px; }
 	.pptx-svelte-titlebar-file { min-width:0; color:var(--pptx-muted-foreground,#a5a5b5); overflow:hidden; }
 	.pptx-svelte-titlebar-file strong { max-width:200px; overflow:hidden; color:inherit; font-size:var(--pptx-tb-file-size); font-weight:var(--pptx-tb-file-weight); text-overflow:ellipsis; }

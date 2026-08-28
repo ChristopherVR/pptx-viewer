@@ -11,7 +11,10 @@
 	 */
 	import { presenterConsoleStyleAttr } from 'pptx-viewer-shared';
 
+	import type { PresentationContextMenuActionId } from 'pptx-viewer-shared';
+
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
+	import PresentationContextMenu from './PresentationContextMenu.svelte';
 	import PresentationEndScreen from './PresentationEndScreen.svelte';
 	import PresentationToolbar from './PresentationToolbar.svelte';
 	import PresentationTouchControls from './PresentationTouchControls.svelte';
@@ -22,7 +25,7 @@
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
-	const { loader, viewer, editor, presentation, presenterSession, parityUi } = vm;
+	const { loader, viewer, editor, presentation, presenterSession, parityUi, optionsState } = vm;
 
 	/**
 	 * Step the show. Forward runs the click-stepped animation build first and
@@ -47,6 +50,54 @@
 		}
 	}
 	const pointer = $derived(presenterSession.snapshot.pointer);
+
+	/** Route a chosen right-click-menu action onto this overlay's own handlers. */
+	function onContextMenuAction(id: PresentationContextMenuActionId): void {
+		switch (id) {
+			case 'next':
+				move(1);
+				break;
+			case 'previous':
+				move(-1);
+				break;
+			case 'seeAllSlides':
+				parityUi.allSlidesOpen = true;
+				break;
+			case 'presenterView':
+				vm.presenterMode = !vm.presenterMode;
+				break;
+			case 'pointerArrow':
+				parityUi.annotations.tool = 'none';
+				break;
+			case 'pointerPen':
+				parityUi.annotations.tool = 'pen';
+				break;
+			case 'pointerHighlighter':
+				parityUi.annotations.tool = 'highlighter';
+				break;
+			case 'pointerLaser':
+				parityUi.annotations.tool = 'laser';
+				break;
+			case 'eraseInk':
+				parityUi.annotations.clear();
+				break;
+			case 'blankBlack':
+				setBlankScreen('black');
+				break;
+			case 'blankWhite':
+				setBlankScreen('white');
+				break;
+			case 'endShow':
+				vm.onFullscreenToggle();
+				break;
+		}
+	}
+
+	/** Set (or clear) the whole-screen blank, mirroring the keyboard B/W shortcuts. */
+	function setBlankScreen(value: 'black' | 'white'): void {
+		const current = presenterSession.snapshot.blackout;
+		presenterSession.updateSnapshot({ blackout: current === value ? 'none' : value });
+	}
 </script>
 
 {#if viewer.isFullscreen}
@@ -68,6 +119,7 @@
 		onmove={move}
 		onpresenterview={() => (vm.presenterMode = !vm.presenterMode)}
 		onexit={vm.onFullscreenToggle}
+		popupToolbarEnabled={optionsState.options.advanced.slideShowShowPopupToolbar}
 	/>
 {/if}
 <!-- Black "End of slide show" screen: the show has run past its last slide.
@@ -97,6 +149,22 @@
 {/if}
 {#if viewer.isFullscreen && presentation.endOfShowVisible}
 	<PresentationEndScreen onexit={() => presentation.advance()} />
+{/if}
+{#if viewer.isFullscreen && parityUi.presentationContextMenu}
+	<PresentationContextMenu
+		x={parityUi.presentationContextMenu.x}
+		y={parityUi.presentationContextMenu.y}
+		capabilities={{
+			seeAllSlides: true,
+			presenterView: true,
+			pointerTools: true,
+			eraseInk: true,
+			blankBlack: true,
+			blankWhite: true,
+		}}
+		onaction={onContextMenuAction}
+		onclose={() => (parityUi.presentationContextMenu = null)}
+	/>
 {/if}
 {#if presenterSession.snapshot.blackout !== 'none'}
 	<div class="presenter-blackout" data-pptx-blackout style={`background:${presenterSession.snapshot.blackout}`}></div>

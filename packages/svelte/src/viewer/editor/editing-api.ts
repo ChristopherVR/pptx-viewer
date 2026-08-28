@@ -1,7 +1,6 @@
 import type { PptxSaveFormat } from 'pptx-viewer-core';
-import { downloadBlob, presentationBaseName, savedPresentationFileName } from 'pptx-viewer-shared';
+import { downloadBlob, savedPresentationFileName } from 'pptx-viewer-shared';
 
-import { buildSharingPackage } from '../export/package-sharing';
 import type { EditorState } from './editor-state.svelte';
 
 const PRESENTATION_MIME: Record<PptxSaveFormat, string> = {
@@ -21,7 +20,6 @@ export interface EditingApi {
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
 	downloadPptx(fileName?: string): Promise<void>;
-	packageForSharing(fileName?: string): Promise<void>;
 }
 
 /**
@@ -55,11 +53,6 @@ export function createEditingApi(editor: EditorState): EditingApi {
 				new Blob([bytes as unknown as BlobPart], { type: PRESENTATION_MIME.pptx }),
 				savedPresentationFileName(fileName),
 			);
-		},
-		packageForSharing: async (fileName) => {
-			const bytes = await editor.save('pptx');
-			const blob = await buildSharingPackage(bytes, savedPresentationFileName(fileName));
-			downloadBlob(blob, `${presentationBaseName(fileName)}-package.zip`);
 		},
 	};
 }

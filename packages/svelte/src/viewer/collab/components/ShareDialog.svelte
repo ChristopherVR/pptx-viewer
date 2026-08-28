@@ -9,6 +9,7 @@
 	import { buildActiveSessionUsers, buildCollaborationShareUrl, resolveTransportForServerUrl } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
+	import { useViewerOptions } from '../../state/viewer-options-context';
 	import ModalDialog from './ModalDialog.svelte';
 	import type { ShareDialogProps } from './props';
 	import {
@@ -34,6 +35,7 @@
 	}: ShareDialogProps = $props();
 
 	const t = useTranslator();
+	const optionsState = useViewerOptions();
 
 	let roomId = $state('');
 	let userName = $state('');
@@ -91,6 +93,7 @@
 		activeCollaboration
 			? buildActiveSessionUsers({
 					localUserName: activeCollaboration.userName,
+					localUserInitials: optionsState.options.general.userInitials,
 					localUserColor: activeCollaboration.userColor,
 					remoteUsers: remotePresences,
 				})

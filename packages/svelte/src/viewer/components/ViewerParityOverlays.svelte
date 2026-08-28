@@ -45,6 +45,7 @@
 		optionsState,
 		autosaveRecovery,
 		aiEnabled = false,
+		collabActive = false,
 	}: {
 		ui: ViewerParityUiState;
 		editor: EditorState;
@@ -69,6 +70,8 @@
 		onmoveslide: (from: number, to: number) => void;
 		/** When true, the Options dialog shows an AI section (chat-log export). */
 		aiEnabled?: boolean;
+		/** Live collaboration session state, for the Options > Add-ins status column. */
+		collabActive?: boolean;
 	} = $props();
 
 	/**
@@ -90,10 +93,10 @@
 
 {#if ui.setupSlideShowOpen}<SetUpSlideShowDialog properties={editor.presentationProperties} customShows={editor.customShows} slideCount={slides.length} onclose={() => (ui.setupSlideShowOpen = false)} onsave={(next) => { editor.presentationMetadata.updatePresentationProperties(next); ui.activeCustomShowId = resolveAuthoredCustomShowId(next, editor.customShows) ?? null; }} />{/if}
 {#if ui.headerFooterOpen}<HeaderFooterPanel value={editor.headerFooter} onclose={() => (ui.headerFooterOpen = false)} onapply={(next) => editor.presentationMetadata.updateHeaderFooter(next)} />{/if}
-{#if ui.settingsOpen}<SettingsDialog {optionsState} onclose={() => (ui.settingsOpen = false)} {themeKey} {themeCatalog} {onsetthemekey} {locale} {availableLocales} {onsetlocale} {aiEnabled} customFontFamilies={editor.customFontFamilies} oncustomfont={(family) => (editor.customFontFamilies = editor.customFontFamilies.includes(family) ? editor.customFontFamilies : [...editor.customFontFamilies, family])} />{/if}
+{#if ui.settingsOpen}<SettingsDialog {optionsState} onclose={() => (ui.settingsOpen = false)} {themeKey} {themeCatalog} {onsetthemekey} {locale} {availableLocales} {onsetlocale} {aiEnabled} {collabActive} customFontFamilies={editor.customFontFamilies} oncustomfont={(family) => (editor.customFontFamilies = editor.customFontFamilies.includes(family) ? editor.customFontFamilies : [...editor.customFontFamilies, family])} />{/if}
 {#if ui.shortcutsOpen}<ShortcutPanel onclose={() => (ui.shortcutsOpen = false)} />{/if}
 {#if ui.compare.open}<ComparePanel compare={ui.compare} onclose={() => (ui.compare.open = false)} />{/if}
-{#if ui.printSettingsOpen}<PrintDialog slideCount={slides.length} {current} onclose={() => (ui.printSettingsOpen = false)} onprint={(options) => exportUi.runPrint(options)} />{/if}
+{#if ui.printSettingsOpen}<PrintDialog slideCount={slides.length} {current} onclose={() => (ui.printSettingsOpen = false)} onprint={(options) => exportUi.runPrint(options)} defaultSettings={optionsState.printDefaults} />{/if}
 <RehearseTimings rehearse={ui.rehearse} onsave={() => ui.rehearse.save(editor)} ondiscard={() => ui.rehearse.discard()} />
 {#if ui.customShowsOpen}<CustomShowsDialog shows={editor.customShows} slides={editor.slides} activeShowId={ui.activeCustomShowId} onclose={() => (ui.customShowsOpen = false)} onsave={(shows) => editor.presentationMetadata.updateCustomShows(shows)} onsetactive={(id) => (ui.activeCustomShowId = id)} />{/if}
 {#if ui.selectionPaneOpen}<SelectionPane {editor} onclose={() => (ui.selectionPaneOpen = false)} />{/if}

@@ -36,3 +36,25 @@ describe('presentation overlays blackout', () => {
 		expect(rule?.groups?.['body']).toMatch(/pointer-events:\s*none/u);
 	});
 });
+
+describe('presentation right-click menu wiring', () => {
+	it('renders the menu gated by parityUi.presentationContextMenu', () => {
+		expect(overlaySource).toContain('parityUi.presentationContextMenu');
+		expect(overlaySource).toContain('<PresentationContextMenu');
+	});
+
+	it('requests every capability this binding actually supports', () => {
+		expect(overlaySource).toContain('seeAllSlides: true');
+		expect(overlaySource).toContain('presenterView: true');
+		expect(overlaySource).toContain('pointerTools: true');
+		expect(overlaySource).toContain('eraseInk: true');
+		expect(overlaySource).toContain('blankBlack: true');
+		expect(overlaySource).toContain('blankWhite: true');
+	});
+
+	it('threads Options > Advanced > "Show popup toolbar" into the show toolbar', () => {
+		expect(overlaySource).toContain(
+			'popupToolbarEnabled={optionsState.options.advanced.slideShowShowPopupToolbar}',
+		);
+	});
+});

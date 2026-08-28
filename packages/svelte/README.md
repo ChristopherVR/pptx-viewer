@@ -152,7 +152,7 @@ editing and export methods (the `PowerPointViewerApi` type):
 ```
 
 - **Serialisation**: `getContent()`, `save(format?)`, `downloadPptx(fileName?)`,
-  `downloadAs(format, fileName?)`, `packageForSharing(fileName?)`.
+  `downloadAs(format, fileName?)`.
 - **Navigation / zoom / mode**: `goTo(index)`, `goPrev()`, `goNext()`,
   `getZoom()`, `setZoom(level)`, `zoomIn()`, `zoomOut()`, `zoomReset()`,
   `getMode()`, `setMode(mode)`, `getActiveSlideIndex()`,

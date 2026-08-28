@@ -1,5 +1,6 @@
 import { mayLeaveSlideShow } from 'pptx-viewer-shared';
 
+import type { Translator } from '../../i18n/translator';
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
 import { PresentationController, usePresentationEffects } from '../presentation';
@@ -20,8 +21,10 @@ export interface PresentationClusterDeps {
 	controller: EditorController;
 	/** The audience-display link, driven by the B/W blackout and Ctrl+M ink keys. */
 	presenterSession: PresenterSession;
-	/** File > Options, read for Advanced > "End with black slide". */
+	/** File > Options, read for Advanced > "End with black slide" and the Trust Center hyperlink gate. */
 	optionsState: ViewerOptionsState;
+	/** For the Trust Center hyperlink-confirm dialog's message. */
+	t: Translator;
 	getEditingActive(): boolean;
 	getStageHolderEl(): HTMLDivElement | undefined;
 	getRootEl(): HTMLDivElement | undefined;
@@ -40,7 +43,7 @@ export interface PresentationCluster extends ViewportHandlers {
  * not just constructed objects.
  */
 export function usePresentationCluster(deps: PresentationClusterDeps): PresentationCluster {
-	const { editor, viewer, loader, parityUi, controller, presenterSession, optionsState } = deps;
+	const { editor, viewer, loader, parityUi, controller, presenterSession, optionsState, t } = deps;
 
 	const presentation = new PresentationController({
 		getSlides: () => editor.renderedSlides,
@@ -66,6 +69,11 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			parityUi.activeCustomShowId
 				? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
 				: null,
+		// Trust Center > "Confirm before opening external hyperlinks": gates an
+		// on-slide Action Setting's `openUrl` intent the same way a text-run
+		// hyperlink click already is (`TextRunBase.svelte`).
+		confirmUrl: (url: string) =>
+			optionsState.confirmHyperlink(url, t('pptx.options.trust.confirmHyperlinks')),
 		// Resolve a native-animation `p:stSnd` action sound's archive path to
 		// its pre-resolved Blob/data URL and play it. Without this,
 		// `onPlayActionSound` was never passed at all and every animation
@@ -103,7 +111,14 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 	$effect(() => {
 		const presenting = viewer.isFullscreen;
 		if (wasPresenting && !presenting && parityUi.annotations.count > 0) {
-			parityUi.keepAnnotationsOpen = true;
+			// File > Options > Advanced > "Prompt to keep ink annotations when
+			// exiting": off discards the ink silently, no dialog (matches
+			// Vue/Angular; PowerPoint parity).
+			if (optionsState.options.advanced.slideShowPromptKeepInkAnnotations) {
+				parityUi.keepAnnotationsOpen = true;
+			} else {
+				parityUi.annotations.clear();
+			}
 		}
 		wasPresenting = presenting;
 		if (!presenting && parityUi.rehearse.active) {

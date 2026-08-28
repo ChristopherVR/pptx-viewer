@@ -1,4 +1,5 @@
 import type { ViewerPreferences } from 'pptx-viewer-shared';
+import { applyAutoCorrect } from 'pptx-viewer-shared';
 import { untrack } from 'svelte';
 
 import type { EditorState } from '../editor/editor-state.svelte';
@@ -13,9 +14,6 @@ export interface ViewerOptionsWiringDeps {
 	setAutosaveEnabled(enabled: boolean): void;
 	/** Host `onautosavetoggle` callback (skipped for the mount-time hydration). */
 	onAutosaveToggle?(enabled: boolean): void;
-	getLoadCount(): number;
-	/** Protected View: force the viewer read-only after a load. */
-	setEditable(editable: boolean): void;
 }
 
 function preferencesEqual(a: ViewerPreferences, b: ViewerPreferences): boolean {
@@ -33,10 +31,18 @@ function preferencesEqual(a: ViewerPreferences, b: ViewerPreferences): boolean {
  *
  * Both directions only write when a value actually differs, so the pair
  * converges instead of looping. Also threads the undo depth into the editor
- * history and applies Trust Center's Protected View on each load. Must be
+ * history. Trust Center's Protected View is NOT wired here: it is a
+ * continuous gate on `getEditable` itself (built by the composition root),
+ * not a load-triggered effect, so unchecking the option in File > Options
+ * re-enables editing immediately instead of only on the next load. Must be
  * called during component initialization (registers effects).
  */
 export function useViewerOptionsWiring(deps: ViewerOptionsWiringDeps): void {
+	// Options > Proofing > AutoCorrect: reads `deps.optionsState.options` fresh
+	// on every call, so this stays in sync without its own effect.
+	deps.editor.transformCommittedText = (text) =>
+		applyAutoCorrect(text, deps.optionsState.options.proofing);
+
 	// Options -> scattered legacy state (dialog edits, persisted values).
 	let hydrated = false;
 	$effect(() => {
@@ -69,17 +75,5 @@ export function useViewerOptionsWiring(deps: ViewerOptionsWiringDeps): void {
 	$effect(() => {
 		const depth = deps.optionsState.historyDepth;
 		untrack(() => deps.editor.setHistoryDepth(depth));
-	});
-
-	// Trust Center > Protected View: each load starts read-only when enabled.
-	let lastLoadCount = 0;
-	$effect(() => {
-		const count = deps.getLoadCount();
-		if (count > 0 && count !== lastLoadCount) {
-			lastLoadCount = count;
-			if (untrack(() => deps.optionsState.options.trust.openInProtectedView)) {
-				untrack(() => deps.setEditable(false));
-			}
-		}
 	});
 }

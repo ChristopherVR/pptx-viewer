@@ -18,6 +18,7 @@
 	import Ribbon from './ribbon/Ribbon.svelte';
 	import TitleBar from './TitleBar.svelte';
 	import MobileChrome from './MobileChrome.svelte';
+	import QuickAccessToolbar from './QuickAccessToolbar.svelte';
 	import ViewerToolbar from './ViewerToolbar.svelte';
 
 	interface ViewerChromeProps {
@@ -52,6 +53,16 @@
 	// svelte-ignore state_referenced_locally
 	const { loader, viewer, editor, parityUi, chromeUi, findReplace, collab, dialogs, autosaveCtl, exportUi, ai } = vm;
 
+	// Options > Customize Ribbon hides tabs on top of whatever the host already
+	// hid via `hiddenActions`: both feed the same `ToolbarActionId` gate every
+	// tab-bearing surface below already reads, so a checkbox toggled in the
+	// Options dialog reaches the ribbon, the mobile command bar, and the
+	// read-only toolbar in one place instead of three.
+	const effectiveHiddenActions = $derived([
+		...(hiddenActions ?? []),
+		...vm.optionsState.hiddenRibbonTabIds,
+	]);
+
 	const notesAvailable = $derived(showNotes && loader.slides.length > 0);
 	const autosaveStatus = $derived(vm.autosaveActive ? autosaveCtl.status : undefined);
 	// React parity: the full ribbon renders for read-only decks too (with a
@@ -73,7 +84,7 @@
 	onshare={() => dialogs.openShare()}
 	onai={toggleAi}
 	aiActive={ai.panelOpen}
-	{hiddenActions}
+	hiddenActions={effectiveHiddenActions}
 />
 <TitleBar
 	{fileName}
@@ -112,7 +123,6 @@
 		ondownload={() => void vm.downloadPptx()}
 		ondownloadppsx={() => void vm.downloadAs('ppsx')}
 		ondownloadpptm={() => void vm.downloadAs('pptm')}
-		onpackage={() => void vm.editingApi.packageForSharing()}
 		onversionhistory={() => (vm.versionHistoryOpen = true)}
 		hasMacros={loader.hasMacros}
 		embeddedFontNames={loader.embeddedFonts.map((font) => font.name)}
@@ -220,7 +230,7 @@
 		{onsettheme}
 		{accountAuth}
 		onentermasterview={() => editor.masterOps.enter()}
-		{hiddenActions}
+		hiddenActions={effectiveHiddenActions}
 	/>
 {:else}
 	<ViewerToolbar
@@ -241,6 +251,7 @@
 		onshare={() => dialogs.openShare()}
 		onbroadcast={() => dialogs.openBroadcast()}
 		collabActive={collab.active}
-		{hiddenActions}
+		hiddenActions={effectiveHiddenActions}
 	/>
 {/if}
+{#if vm.showRibbon}<QuickAccessToolbar onexec={vm.runQuickAccessCommand} />{/if}

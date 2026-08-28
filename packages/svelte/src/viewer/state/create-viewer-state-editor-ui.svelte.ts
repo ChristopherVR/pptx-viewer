@@ -24,10 +24,8 @@ export interface EditorUiClusterDeps {
 	options: CreateViewerStateOptions;
 	/** Effective canvas scale (main stage), or master-view scale when applicable. */
 	getScale(): number;
-	/** The live editable flag (not the raw host prop). */
+	/** The live editable flag (not the raw host prop; already ANDs Trust Center's Protected View). */
 	getEditable(): boolean;
-	/** Flip the live editable flag (Trust Center's Protected View on load). */
-	setEditable(editable: boolean): void;
 	/** Autosave flag + toggle, owned by the collaboration cluster built before this one. */
 	getAutosaveEnabled(): boolean;
 	setAutosaveEnabled(enabled: boolean): void;
@@ -114,10 +112,11 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		},
 	});
 
-	// Guarded bidirectional sync (options <-> the six legacy toggles), undo
-	// depth, and Trust Center's Protected View on load. Registered before
-	// `useViewerEffects` so a load's Protected View verdict is applied in the
-	// same order the inline wiring used to run in.
+	// Guarded bidirectional sync (options <-> the six legacy toggles) and undo
+	// depth. Trust Center's Protected View is not load-triggered wiring here:
+	// `getEditable` (built by the composition root) already ANDs it in
+	// continuously, so unchecking the option re-enables editing immediately
+	// instead of only taking effect on the next load.
 	useViewerOptionsWiring({
 		optionsState,
 		parityUi,
@@ -125,8 +124,6 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getAutosaveEnabled: deps.getAutosaveEnabled,
 		setAutosaveEnabled: deps.setAutosaveEnabled,
 		onAutosaveToggle: (enabled) => options.onautosavetoggle?.(enabled),
-		getLoadCount: () => loader.loadCount,
-		setEditable: deps.setEditable,
 	});
 
 	useViewerEffects({

@@ -42,6 +42,7 @@ describe('createRasterizeSlide', () => {
 			lineChart3D: false,
 			areaChart3D: false,
 			pieChart3D: false,
+			getImageResolutionScale: () => 1,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -71,6 +72,7 @@ describe('createRasterizeSlide', () => {
 			lineChart3D: false,
 			areaChart3D: false,
 			pieChart3D: false,
+			getImageResolutionScale: () => 1,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -108,6 +110,7 @@ describe('createRasterizeSlide', () => {
 			lineChart3D: false,
 			areaChart3D: false,
 			pieChart3D: false,
+			getImageResolutionScale: () => 1,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -134,6 +137,7 @@ describe('createRasterizeSlide', () => {
 			lineChart3D: false,
 			areaChart3D: false,
 			pieChart3D: false,
+			getImageResolutionScale: () => 1,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -162,6 +166,7 @@ describe('createRasterizeSlide', () => {
 			lineChart3D: false,
 			areaChart3D: false,
 			pieChart3D: false,
+			getImageResolutionScale: () => 1,
 			waitForFrame: () => Promise.resolve(),
 		});
 

@@ -7,6 +7,7 @@
 	import { filterVisibleTabs, isActionHidden } from 'pptx-viewer-shared';
 	import type { ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
+	import { useViewerOptions } from '../../state/viewer-options-context';
 	import { RIBBON_TABS } from './ribbon-tabs';
 	import type { RibbonTabId } from './ribbon-tabs';
 
@@ -27,6 +28,7 @@
 	} = $props();
 
 	const t = useTranslator();
+	const optionsState = useViewerOptions();
 	const visibleTabs = $derived(filterVisibleTabs(RIBBON_TABS, hiddenActions));
 </script>
 
@@ -39,6 +41,7 @@
 				class:pptx-svelte-ribbon-tab-active={active === tab.id}
 				role="tab"
 				aria-selected={active === tab.id}
+				title={optionsState.screenTip(t(tab.labelKey))}
 				onclick={() => onselect(tab.id)}
 			>
 				{t(tab.labelKey)}

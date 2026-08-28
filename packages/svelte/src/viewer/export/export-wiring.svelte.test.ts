@@ -44,6 +44,7 @@ describe('createExportWiring', () => {
 			getLineChart3D: () => false,
 			getAreaChart3D: () => false,
 			getPieChart3D: () => false,
+			getImageResolutionScale: () => 1,
 		});
 
 		await wiring.controller.exportSlidePng(0);
@@ -68,6 +69,7 @@ describe('createExportWiring', () => {
 			getLineChart3D: () => false,
 			getAreaChart3D: () => false,
 			getPieChart3D: () => false,
+			getImageResolutionScale: () => 1,
 		});
 		const api = createExportingApi(wiring.controller);
 

@@ -70,6 +70,13 @@ export interface PresentationControllerDeps {
 	 * whole deck. Restricts and reorders the show; hiding still wins over it.
 	 */
 	getActiveCustomShow?(): { slideRIds: string[] } | null | undefined;
+	/**
+	 * Trust Center gate for an on-slide Action Setting that opens an external
+	 * URL (Options > Trust Center > "Confirm before opening external
+	 * hyperlinks"). Forwarded to `PresentationActionRunner.confirmUrl`;
+	 * omitted opens unconditionally.
+	 */
+	confirmUrl?(url: string): boolean;
 }
 
 export class PresentationController {
@@ -183,6 +190,7 @@ export class PresentationController {
 				},
 				endShow: () => this.#deps.exit?.(),
 				playSound: this.#deps.onPlayActionSound,
+				confirmUrl: this.#deps.confirmUrl,
 			},
 		);
 		if (outcome === 'advance') {

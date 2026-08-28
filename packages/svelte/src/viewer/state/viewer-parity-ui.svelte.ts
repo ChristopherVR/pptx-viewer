@@ -21,6 +21,12 @@ export class ViewerParityUiState {
 	readonly showChrome = new PresentToolbarChrome();
 	/** PowerPoint's Ctrl+S "See All Slides" grid, over the running show. */
 	allSlidesOpen = $state(false);
+	/**
+	 * Slide-show right-click menu position, or null when closed. Shown while
+	 * presenting when Options > Advanced > "Show menu on right mouse click" is
+	 * on.
+	 */
+	presentationContextMenu = $state<{ x: number; y: number } | null>(null);
 	readonly rehearse = new RehearseState();
 	setupSlideShowOpen = $state(false);
 	headerFooterOpen = $state(false);

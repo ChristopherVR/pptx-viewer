@@ -50,7 +50,22 @@
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
-	const { loader, viewer, editor, controller, chromeUi, parityUi, collab, presenterSession } = vm;
+	const { loader, viewer, editor, controller, chromeUi, parityUi, collab, presenterSession, optionsState } =
+		vm;
+
+	/**
+	 * Options > Advanced > "Show menu on right mouse click": right-click opens
+	 * a minimal Next/Previous/End Show menu (plus pointer tools, See All
+	 * Slides, presenter view and the black/white blank screen); off swallows
+	 * the click entirely (no browser menu either), matching React/Vue/Angular.
+	 */
+	function onPresentationContextMenu(event: MouseEvent): void {
+		event.preventDefault();
+		if (!optionsState.options.advanced.slideShowShowMenuOnRightClick) {
+			return;
+		}
+		parityUi.presentationContextMenu = { x: event.clientX, y: event.clientY };
+	}
 
 	function applyTheme(next: NonNullable<typeof loader.presentationTheme>): void {
 		loader.presentationTheme = next;
@@ -101,6 +116,7 @@
 		presentationTransition={vm.presentation.transition}
 		onTransitionDone={() => vm.presentation.endTransition()}
 		onAdvance={(event) => vm.presentation.handleStageClick(event.target)}
+		{onPresentationContextMenu}
 		editingActive={vm.editingActive}
 		{controller}
 		annotations={parityUi.annotations}

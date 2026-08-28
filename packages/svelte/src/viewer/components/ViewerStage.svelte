@@ -38,6 +38,7 @@
 		presentationTransition,
 		onTransitionDone,
 		onAdvance,
+		onPresentationContextMenu,
 		editingActive,
 		blackout = 'none',
 		onstageholder,
@@ -133,7 +134,7 @@
 			onstagepointerdown={controller.onStagePointerDown}
 			onstagepointermove={controller.onStagePointerMove}
 			onstagedblclick={controller.onStageDblClick}
-			onstagecontextmenu={controller.onStageContextMenu}
+			onstagecontextmenu={presenting ? onPresentationContextMenu : controller.onStageContextMenu}
 			onstageclick={presenting ? onAdvance : undefined}
 			{aiPickMode}
 			{aiActive}

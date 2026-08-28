@@ -13,6 +13,7 @@
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
+	import { useViewerOptions } from '../../../state/viewer-options-context';
 	import CommentBody from '../../CommentBody.svelte';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 
@@ -29,6 +30,9 @@
 		embedded?: boolean;
 	} = $props();
 	const t = useTranslator();
+	const optionsState = useViewerOptions();
+	/** Options > General > "User name" wins over the generic default author label. */
+	const authorName = $derived(optionsState.options.general.userName || t('pptx.comments.defaultAuthorName'));
 	let draft = $state('');
 	// Which comment has its reply composer open (one at a time) + its draft.
 	let replyingTo = $state<string | null>(null);
@@ -46,7 +50,7 @@
 	}
 
 	function addComment(): void {
-		const next = addCommentToList(comments, draft, t('pptx.comments.defaultAuthorName'));
+		const next = addCommentToList(comments, draft, authorName);
 		if (!next) {
 			return;
 		}
@@ -79,12 +83,7 @@
 	}
 
 	function submitReply(id: string): void {
-		const next = replyToCommentInList(
-			comments,
-			id,
-			replyDraft,
-			t('pptx.comments.defaultAuthorName'),
-		);
+		const next = replyToCommentInList(comments, id, replyDraft, authorName);
 		if (!next) {
 			return;
 		}

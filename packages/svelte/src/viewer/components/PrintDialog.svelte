@@ -9,15 +9,24 @@
 		current,
 		onclose,
 		onprint,
+		defaultSettings,
 	}: {
 		slideCount: number;
 		current: number;
 		onclose: () => void;
 		onprint: (options: PrintOptions) => void;
+		/**
+		 * File > Options > Advanced > Print seed (`viewerOptions.printDefaults`).
+		 * `undefined` (Options > "Use the most recently used print settings")
+		 * leaves `printWhat`/`colorMode`/`frameSlides` at their hardcoded defaults.
+		 */
+		defaultSettings?: PrintOptions;
 	} = $props();
 	const t = useTranslator();
 	// eslint-disable-next-line prefer-const
-	let printWhat = $state<'slides' | 'handouts' | 'notes' | 'outline'>('slides');
+	let printWhat = $state<'slides' | 'handouts' | 'notes' | 'outline'>(
+		defaultSettings?.printWhat ?? 'slides',
+	);
 	// eslint-disable-next-line prefer-const
 	let slideRange = $state<'all' | 'current' | 'custom'>('all');
 	// eslint-disable-next-line prefer-const
@@ -25,9 +34,11 @@
 	// eslint-disable-next-line prefer-const
 	let orientation = $state<'portrait' | 'landscape'>('landscape');
 	// eslint-disable-next-line prefer-const
-	let colorMode = $state<'color' | 'grayscale' | 'blackAndWhite'>('color');
+	let colorMode = $state<'color' | 'grayscale' | 'blackAndWhite'>(
+		defaultSettings?.colorMode ?? 'color',
+	);
 	// eslint-disable-next-line prefer-const
-	let frameSlides = $state(false);
+	let frameSlides = $state(defaultSettings?.frameSlides ?? false);
 	// eslint-disable-next-line prefer-const
 	let customRangeFrom = $state(1);
 	let customRangeTo = $state(1);
@@ -46,6 +57,9 @@
 			frameSlides,
 			customRangeFrom: slideRange === 'current' ? current + 1 : customRangeFrom,
 			customRangeTo: slideRange === 'current' ? current + 1 : customRangeTo,
+			// Options > Advanced > "Print scale to fit"; no dialog control of its
+			// own (PowerPoint keeps this an Options default, not a per-job choice).
+			scaleToFit: defaultSettings?.scaleToFit ?? true,
 		});
 		onclose();
 	}

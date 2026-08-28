@@ -58,6 +58,7 @@
 		onmove,
 		onpresenterview,
 		onexit,
+		popupToolbarEnabled = true,
 	}: {
 		annotations: PresentationAnnotations;
 		/**
@@ -78,6 +79,8 @@
 		onmove: (direction: 1 | -1) => void;
 		onpresenterview: () => void;
 		onexit: () => void;
+		/** File > Options > Advanced > "Show popup toolbar" (default true). */
+		popupToolbarEnabled?: boolean;
 	} = $props();
 
 	const t = useTranslator();
@@ -96,6 +99,7 @@
 			// placed against, so the trigger zone needs no prop drilling.
 			getContainer: () => (wrapperEl?.offsetParent as HTMLElement | null) ?? null,
 			getToolbar: () => toolbarEl ?? null,
+			popupToolbarEnabled: () => popupToolbarEnabled,
 		}),
 	);
 

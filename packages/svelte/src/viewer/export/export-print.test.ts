@@ -96,7 +96,7 @@ describe('printSlides', () => {
 	it('prints only the active slide for the current range', async () => {
 		const harness = make();
 		await printSlides(harness.deps, { printWhat: 'notes', slideRange: 'current' });
-		expect(harness.rasterizeSlide).toHaveBeenCalledExactlyOnceWith(1);
+		expect(harness.rasterizeSlide).toHaveBeenCalledExactlyOnceWith(1, 1);
 	});
 
 	it('clamps a custom range to the slide count', async () => {

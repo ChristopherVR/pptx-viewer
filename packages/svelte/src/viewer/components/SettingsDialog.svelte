@@ -2,10 +2,13 @@
 	import Settings from '@lucide/svelte/icons/settings';
 	import X from '@lucide/svelte/icons/x';
 	import { untrack } from 'svelte';
-	import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+	import {
+		DEFAULT_QUICK_ACCESS_COMMAND_IDS,
+		VIEWER_OPTIONS_TABS,
+		resolveViewerAddinStatus,
+	} from 'pptx-viewer-shared';
 	import type {
 		ThemeCatalogEntry,
-		ViewerAddinStatus,
 		ViewerOptions,
 		ViewerOptionsSection,
 		ViewerOptionsTabId,
@@ -31,8 +34,8 @@
 		locale,
 		availableLocales,
 		onsetlocale,
-		addinStatus,
 		aiEnabled = false,
+		collabActive = false,
 		customFontFamilies = [],
 		oncustomfont = () => {},
 	}: {
@@ -45,9 +48,10 @@
 		locale: string;
 		availableLocales?: readonly LocaleCatalogEntry[];
 		onsetlocale: (code: string) => void;
-		addinStatus?: ViewerAddinStatus;
 		/** When true, an "AI" section is shown for exporting detailed chat logs. */
 		aiEnabled?: boolean;
+		/** Live collaboration session state, for the Add-ins pane's status column. */
+		collabActive?: boolean;
 		/** Families registered this session via the Fonts section. */
 		customFontFamilies?: readonly string[];
 		/** A font file was registered; the ribbon adds the family to its list. */
@@ -63,6 +67,14 @@
 		VIEWER_OPTIONS_TABS.find((entry) => entry.id === activeTabId) ?? VIEWER_OPTIONS_TABS[0],
 	);
 	const options = $derived<ViewerOptions>(optionsState.options);
+	// Real runtime signals for the Add-ins pane's active/inactive split: the two
+	// three.js-backed renderers follow Advanced > "Disable 3D rendering", and
+	// the collaboration module follows the live session. The rest of the
+	// catalog (EMF/MTX converters, locales) has no on/off switch, so it keeps
+	// `resolveViewerAddinRows`'s `active: true` fallback.
+	const addinStatus = $derived(
+		resolveViewerAddinStatus(options.advanced.disable3DRendering, collabActive),
+	);
 
 	// Snapshot taken when the dialog mounts; Cancel restores it wholesale.
 	// Deliberately the value at open time, so read outside reactive tracking.

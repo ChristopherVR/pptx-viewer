@@ -1,4 +1,13 @@
-import { buildFieldSubstitutionContext, resolveSlideSizeSelection } from 'pptx-viewer-shared';
+import type { PptxSaveFormat } from 'pptx-viewer-core';
+import {
+	buildFieldSubstitutionContext,
+	deleteAutosaveSnapshot,
+	listAutosaveSnapshots,
+	resolve3DRenderingFlags,
+	resolveExpiredAutosaveSnapshots,
+	resolveImageResolutionScale,
+	resolveSlideSizeSelection,
+} from 'pptx-viewer-shared';
 import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
 
 import { provideTranslator } from '../../i18n/context';
@@ -59,24 +68,27 @@ import { ViewerState } from './viewer-state.svelte';
  */
 export function createViewerState(options: CreateViewerStateOptions): ViewerStateBag {
 	provideTranslator(options.t);
-	provideSmartArt3D(options.getSmartArt3D);
-	provideSurfaceChart3D(options.getSurfaceChart3D);
-	provideBarChart3D(options.getBarChart3D);
-	provideLineChart3D(options.getLineChart3D);
-	provideAreaChart3D(options.getAreaChart3D);
-	providePieChart3D(options.getPieChart3D);
 
 	// The live editable flag. Seeded from the host prop, but writable, because
-	// an AI edit, `deck.setMode()` and Trust Center's Protected View all have to
-	// flip editing without waiting for the host to re-render.
+	// an AI edit and `deck.setMode()` both have to flip editing without waiting
+	// for the host to re-render.
 	let editable = $state(false);
 	$effect(() => {
 		editable = options.getEditable();
 	});
-	const getEditable = (): boolean => editable;
 	const setEditable = (next: boolean): void => {
 		editable = next;
 	};
+	// Trust Center > "Open presentations in Protected View" ANDs onto the raw
+	// flag continuously (a live gate, not a one-shot "block on load"): the only
+	// way back to editing a protected deck is unchecking the option in File >
+	// Options, so the gate has to keep listening for that instead of forcing
+	// `editable` false once and leaving no way to reverse it. `editorUi` is a
+	// forward reference (assigned a few lines below, like `getOptionsIntervalSeconds`
+	// elsewhere in this file); safe because this closure is only ever CALLED
+	// later, once construction below has completed.
+	const getEditable = (): boolean =>
+		editable && !editorUi.optionsState.options.trust.openInProtectedView;
 
 	const loader = new PresentationLoader();
 	provideRenderContext({
@@ -138,13 +150,45 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		options,
 		getScale: () => derived.scale,
 		getEditable,
-		setEditable,
 		// The RAW preference, not the host-gated effective value: the options store
 		// persists what the user chose, and a host shipping `autosave={false}`
 		// must not rewrite that choice for every other host.
 		getAutosaveEnabled: () => collabCluster.autosavePreference,
 		setAutosaveEnabled: collabCluster.setAutosaveFlag,
 	});
+
+	// Trust Center > "Allow external content": read live on every load, not
+	// snapshotted once, so a user who flips the option keeps it in effect for
+	// the very next file they open.
+	loader.getLoadOptions = () => ({
+		allowExternalImages: editorUi.optionsState.options.trust.allowExternalContent,
+	});
+
+	// Each 3D opt-in flag ANDs the host's own prop with Options > Advanced >
+	// "Disable 3D rendering" (see `resolve3DRenderingFlags`), so a viewer user
+	// can force flat 2D even in a deck the host enabled 3D for. Getter closures
+	// (not snapshots), like every other field here, so `editorUi.optionsState`
+	// -- built just above, hence the 3D provides live below it rather than at
+	// the top with the rest -- stays live for consumers.
+	const getEffective3D = () =>
+		resolve3DRenderingFlags(
+			{
+				smartArt3D: options.getSmartArt3D(),
+				surfaceChart3D: options.getSurfaceChart3D(),
+				barChart3D: options.getBarChart3D(),
+				lineChart3D: options.getLineChart3D(),
+				areaChart3D: options.getAreaChart3D(),
+				pieChart3D: options.getPieChart3D(),
+			},
+			editorUi.optionsState.options,
+		);
+	provideSmartArt3D(() => getEffective3D().smartArt3D);
+	provideSurfaceChart3D(() => getEffective3D().surfaceChart3D);
+	provideBarChart3D(() => getEffective3D().barChart3D);
+	provideLineChart3D(() => getEffective3D().lineChart3D);
+	provideAreaChart3D(() => getEffective3D().areaChart3D);
+	providePieChart3D(() => getEffective3D().pieChart3D);
+
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
 	const ai = useAiCluster({
 		loader,
@@ -190,6 +234,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		controller: editorUi.controller,
 		presenterSession: presenter.presenterSession,
 		optionsState: editorUi.optionsState,
+		t: options.t,
 		getEditingActive: () => derived.editingActive,
 		getStageHolderEl: options.getStageHolderEl,
 		getRootEl: options.getRootEl,
@@ -206,6 +251,9 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getLineChart3D: options.getLineChart3D,
 		getAreaChart3D: options.getAreaChart3D,
 		getPieChart3D: options.getPieChart3D,
+		getImageResolutionScale: () => resolveImageResolutionScale(editorUi.optionsState.options),
+		getIncludeHiddenSlides: () => editorUi.optionsState.options.advanced.printHiddenSlides,
+		getPrintHighQuality: () => editorUi.optionsState.options.advanced.printHighQuality,
 		getRootEl: options.getRootEl,
 		getEditable,
 		getFieldContext: fieldContext,
@@ -213,7 +261,35 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		onnotesupdate: options.onnotesupdate,
 	});
 
-	const editingApi = createEditingApi(editor);
+	const rawEditingApi = createEditingApi(editor);
+	// Options > Accessibility > "feedback with sound", and Options > Save >
+	// "keep the last AutoRecover version": once a `.pptx` Save/Save-As download
+	// actually lands, play the completion cue and, unless the user asked to
+	// keep it, discard the crash-recovery snapshot for this file (the real
+	// file on disk already has the work).
+	const afterSuccessfulSave = (format: PptxSaveFormat): void => {
+		editorUi.optionsState.playFeedback();
+		const filePath = options.getFilePath();
+		if (format === 'pptx' && filePath && editorUi.optionsState.shouldDiscardAutosaveOnSave) {
+			void deleteAutosaveSnapshot(filePath);
+		}
+	};
+	const editingApi = {
+		...rawEditingApi,
+		save: async (format?: PptxSaveFormat) => {
+			const bytes = await rawEditingApi.save(format);
+			afterSuccessfulSave(format ?? 'pptx');
+			return bytes;
+		},
+		downloadAs: async (format: PptxSaveFormat, fileName?: string) => {
+			await rawEditingApi.downloadAs(format, fileName);
+			afterSuccessfulSave(format);
+		},
+		downloadPptx: async (fileName?: string) => {
+			await rawEditingApi.downloadPptx(fileName);
+			afterSuccessfulSave('pptx');
+		},
+	};
 	const exportingApi = createExportingApi(exportNotes.exportWiring.controller);
 	const deck = createDeckApi({
 		editor,
@@ -224,7 +300,34 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		setEditable,
 	});
 
+	// File > Options > Save > "cache retention": a one-time sweep per mount is
+	// enough, since a fresh snapshot only ever lands with a fresh timestamp.
+	void (async () => {
+		try {
+			const snapshots = await listAutosaveSnapshots();
+			const expired = resolveExpiredAutosaveSnapshots(snapshots, editorUi.optionsState.options);
+			await Promise.all(expired.map((key) => deleteAutosaveSnapshot(key)));
+		} catch {
+			// Best-effort background maintenance; a blocked IndexedDB skips it.
+		}
+	})();
+
+	// File > Options > Save > "clear cache on close": wipe recovery snapshots
+	// when the tab closes/navigates away, and when this viewer is destroyed.
+	function clearCacheOnUnload(): void {
+		if (editorUi.optionsState.shouldClearCacheOnClose) {
+			void editorUi.optionsState.clearCache();
+		}
+	}
+	if (typeof window !== 'undefined') {
+		window.addEventListener('beforeunload', clearCacheOnUnload);
+	}
+
 	function destroy(): void {
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('beforeunload', clearCacheOnUnload);
+		}
+		clearCacheOnUnload();
 		editorUi.controller.destroy();
 		collabCluster.collab.stop();
 		exportNotes.exportWiring.destroy();

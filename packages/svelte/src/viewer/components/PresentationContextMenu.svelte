@@ -1,40 +1,54 @@
 <script lang="ts">
 	/**
 	 * The slide-show right-click menu, shown while presenting when Options >
-	 * Advanced > "Show menu on right mouse click" is on: Previous / Next /
-	 * End Show, PowerPoint style.
+	 * Advanced > "Show menu on right mouse click" is on.
+	 *
+	 * Item order/grouping/i18n keys come from the shared
+	 * `getPresentationContextMenuSections` (`pptx-viewer-shared`), the same
+	 * source React's `PresentationContextMenu` and Vue's `PresentationMode`
+	 * render from, so this menu cannot drift from theirs. The caller passes
+	 * which capabilities are available (this binding has all of them) and a
+	 * single `onaction` dispatch; it decides what each id does.
 	 */
+	import { getPresentationContextMenuSections } from 'pptx-viewer-shared';
+	import type {
+		PresentationContextMenuActionId,
+		PresentationContextMenuCapabilities,
+	} from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../i18n/context';
 
 	const {
 		x,
 		y,
-		onprev,
-		onnext,
-		onend,
+		capabilities,
+		onaction,
 		onclose,
 	}: {
 		x: number;
 		y: number;
-		onprev: () => void;
-		onnext: () => void;
-		onend: () => void;
+		capabilities: PresentationContextMenuCapabilities;
+		onaction: (id: PresentationContextMenuActionId) => void;
 		onclose: () => void;
 	} = $props();
 	const t = useTranslator();
 
-	function run(action: () => void): void {
-		action();
+	const sections = $derived(getPresentationContextMenuSections(capabilities));
+
+	function run(id: PresentationContextMenuActionId): void {
+		onaction(id);
 		onclose();
 	}
 </script>
 
 <button class="scrim" type="button" aria-label={t('pptx.settings.close')} onclick={onclose} oncontextmenu={(event) => { event.preventDefault(); onclose(); }}></button>
-<div class="menu" role="menu" style={`left:${x}px;top:${y}px`}>
-	<button type="button" role="menuitem" onclick={() => run(onprev)}>{t('pptx.presenter.previousSlide')}</button>
-	<button type="button" role="menuitem" onclick={() => run(onnext)}>{t('pptx.presenter.nextSlide')}</button>
-	<hr />
-	<button type="button" role="menuitem" onclick={() => run(onend)}>{t('pptx.presenter.endPresentation')}</button>
+<div class="menu" role="menu" tabindex="-1" data-pptx-presentation-menu style={`left:${x}px;top:${y}px`} oncontextmenu={(event) => event.preventDefault()}>
+	{#each sections as section, sectionIndex (section.id)}
+		{#if sectionIndex > 0}<hr />{/if}
+		{#each section.items as item (item.id)}
+			<button type="button" role="menuitem" data-item-id={item.id} onclick={() => run(item.id)}>{t(item.labelKey)}</button>
+		{/each}
+	{/each}
 </div>
 
 <style>

@@ -97,7 +97,7 @@
 	onpointerdown={pickActive ? swallow : editingActive ? onstagepointerdown : undefined}
 	onpointermove={editingActive && !pickActive ? onstagepointermove : undefined}
 	ondblclick={editingActive && !pickActive ? onstagedblclick : undefined}
-	oncontextmenu={editingActive && !pickActive ? onstagecontextmenu : undefined}
+	oncontextmenu={(editingActive && !pickActive) || presenting ? onstagecontextmenu : undefined}
 	onclick={pickActive ? pickFromEvent : onstageclick}
 >
 	<SlideStage

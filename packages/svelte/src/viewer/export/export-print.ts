@@ -8,6 +8,7 @@ import {
 	buildPrintHtmlDocument,
 	computeColorFilter,
 	computeSlideIndices,
+	filterHiddenSlideIndices,
 	validatePrintSettings,
 } from 'pptx-viewer-shared';
 
@@ -57,6 +58,10 @@ export interface PrintDeps {
 	rasterizeSlide: RasterizeSlide;
 	/** Print-surface opener override (test seam / host popup handling). */
 	openPrintWindow?: OpenPrintWindow;
+	/** Options > Advanced > "Print hidden slides". Defaults to `false` (excluded), matching PowerPoint. */
+	getIncludeHiddenSlides?(): boolean;
+	/** Options > Advanced > "High quality" raster scale for the print fallback path. */
+	getPrintHighQuality?(): boolean;
 }
 
 /** How long the hidden print iframe survives if `afterprint` never fires. */
@@ -123,12 +128,16 @@ export async function printSlides(deps: PrintDeps, options: PrintOptions = {}): 
 	const settings = validatePrintSettings(options, slides.length);
 	const openWindow = deps.openPrintWindow ?? defaultOpenPrintWindow;
 	const colorFilter = computeColorFilter(settings.colorMode);
-	const slideIndices = computeSlideIndices(
-		settings.slideRange,
-		deps.getCurrent(),
-		slides.length,
-		settings.customRangeFrom,
-		settings.customRangeTo,
+	const slideIndices = filterHiddenSlideIndices(
+		computeSlideIndices(
+			settings.slideRange,
+			deps.getCurrent(),
+			slides.length,
+			settings.customRangeFrom,
+			settings.customRangeTo,
+		),
+		slides,
+		deps.getIncludeHiddenSlides?.() ?? false,
 	);
 	if (slideIndices.length === 0) {
 		return false;
@@ -141,6 +150,7 @@ export async function printSlides(deps: PrintDeps, options: PrintOptions = {}): 
 			orientation: portraitOnly ? 'portrait' : settings.orientation,
 			colorFilter,
 			frameSlides: settings.frameSlides,
+			scaleToFit: settings.scaleToFit,
 		});
 
 	// Outline is text-only: no rasterisation needed.
@@ -161,13 +171,18 @@ export async function printSlides(deps: PrintDeps, options: PrintOptions = {}): 
 				title: printTitle(settings),
 				orientation: settings.orientation,
 				colorFilter,
+				scaleToFit: settings.scaleToFit,
 			}),
 		);
 	}
 
+	// Options > Advanced > "High quality" raster scale for this notes/handouts
+	// fallback path, composed on top of the host's own baseline (2x * Options >
+	// Advanced > Image Size/Quality) scale.
+	const printScaleMultiplier = deps.getPrintHighQuality?.() ? 2 : 1;
 	const images: string[] = [];
 	for (const index of slideIndices) {
-		const canvas = await deps.rasterizeSlide(index);
+		const canvas = await deps.rasterizeSlide(index, printScaleMultiplier);
 		images.push(canvas.toDataURL('image/png'));
 	}
 

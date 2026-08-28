@@ -25,6 +25,13 @@
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
+	import { useViewerOptions } from '../../state/viewer-options-context';
+
+	const optionsState = useViewerOptions();
+	// File > Options > Advanced > "Properties follow chart data point for
+	// current workbook": whether per-point manual formatting re-indexes with
+	// the underlying data (default) or stays pinned to its old position.
+	const followDataPoint = $derived(optionsState.options.advanced.chartPropertiesFollowDataPoint);
 
 	const {
 		data,
@@ -122,7 +129,7 @@
 										class="pptx-svelte-chart-grid-remove"
 										title={t('pptx.chart.removeCategory')}
 										aria-label={t('pptx.chart.removeCategory')}
-										onclick={() => apply(removeChartCategory(data, categoryIndex))}
+										onclick={() => apply(removeChartCategory(data, categoryIndex, followDataPoint))}
 									>
 										&times;
 									</button>

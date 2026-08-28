@@ -17,7 +17,10 @@ import { exportSlidesToWebmBlob } from './export-video';
 
 /** Rasterise the slide at `index` to an `HTMLCanvasElement`. Injected so the
  * controller stays DOM-capture-free and unit-testable. */
-export type RasterizeSlide = (index: number) => Promise<HTMLCanvasElement>;
+export type RasterizeSlide = (
+	index: number,
+	scaleMultiplier?: number,
+) => Promise<HTMLCanvasElement>;
 
 /** Per-slide progress callback: `(currentSlideIndex, totalSlides)`. */
 export type ExportProgress = (current: number, total: number) => void;
@@ -48,6 +51,10 @@ export interface ExportControllerDeps {
 	getDeckData?(): PptxData | undefined;
 	/** Source file name for the deck-JSON download (`deck.pptx` -> `deck.json`). */
 	getFileName?(): string | undefined;
+	/** Options > Advanced > "Print hidden slides". Defaults to `false` (excluded). */
+	getIncludeHiddenSlides?(): boolean;
+	/** Options > Advanced > "High quality" raster scale for the print fallback path. */
+	getPrintHighQuality?(): boolean;
 }
 
 /**
@@ -228,8 +235,11 @@ export class ExportController {
 					getSlides: () => this.#deps.getSlides(),
 					getCurrent: () => this.#deps.getCurrent(),
 					getCanvasSize: () => this.#deps.getCanvasSize(),
-					rasterizeSlide: (index) => this.#deps.rasterizeSlide(index),
+					rasterizeSlide: (index, scaleMultiplier) =>
+						this.#deps.rasterizeSlide(index, scaleMultiplier),
 					openPrintWindow: this.#deps.openPrintWindow,
+					getIncludeHiddenSlides: this.#deps.getIncludeHiddenSlides,
+					getPrintHighQuality: this.#deps.getPrintHighQuality,
 				},
 				options,
 			);
