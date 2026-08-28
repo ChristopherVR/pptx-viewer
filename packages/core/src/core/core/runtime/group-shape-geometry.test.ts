@@ -207,10 +207,10 @@ describe('transformGroupChild', () => {
 		expect(el.height).toBe(50);
 	});
 
-	it('scales the stroke width by the average scale', () => {
+	it('keeps absolute stroke widths out of the child-coordinate scale', () => {
 		const el = shape({ shapeStyle: { strokeWidth: 4 } });
-		transformGroupChild(el, t({ scaleX: 2, scaleY: 4 }));
-		expect(el.shapeStyle?.strokeWidth).toBe(12);
+		transformGroupChild(el, t({ scaleX: 635, scaleY: 635 }));
+		expect(el.shapeStyle?.strokeWidth).toBe(4);
 	});
 
 	it('does NOT scale font size (PowerPoint keeps the authored point size)', () => {
@@ -255,12 +255,19 @@ describe('scaleElementSubtree', () => {
 	});
 
 	it('recurses into nested group children', () => {
-		const leaf = shape({ x: 4, y: 4, width: 8, height: 8 });
+		const leaf = shape({
+			x: 4,
+			y: 4,
+			width: 8,
+			height: 8,
+			shapeStyle: { strokeWidth: 2 },
+		});
 		const nested = group([leaf], { x: 2, y: 2, width: 16, height: 16 });
 		scaleElementSubtree(nested, 0.5, 0.5);
 		expect(nested.x).toBe(1);
 		expect(leaf.x).toBe(2);
 		expect(leaf.width).toBe(4);
+		expect(leaf.shapeStyle?.strokeWidth).toBe(2);
 	});
 });
 
