@@ -163,6 +163,7 @@ export function buildTimeline(
 			entranceElementIds: new Set(),
 			keyframesCss: '',
 			interactiveSequences: new Map(),
+			restartableInteractiveSequences: new Set(),
 			hoverSequences: new Map(),
 		};
 	}
@@ -170,13 +171,20 @@ export function buildTimeline(
 	// Separate interactive (onShapeClick), hover (onHover), and regular animations
 	const regularAnims: PptxNativeAnimation[] = [];
 	const interactiveAnims = new Map<string, PptxNativeAnimation[]>();
+	const restartableInteractiveSequences = new Set<string>();
 	const hoverAnims: PptxNativeAnimation[] = [];
 
 	for (const anim of nativeAnimations) {
-		if (anim.trigger === 'onShapeClick' && anim.triggerShapeId) {
+		if (
+			(anim.interactiveSequence === true || anim.trigger === 'onShapeClick') &&
+			anim.triggerShapeId
+		) {
 			const existing = interactiveAnims.get(anim.triggerShapeId) ?? [];
 			existing.push(anim);
 			interactiveAnims.set(anim.triggerShapeId, existing);
+			if (anim.interactiveRestart === true) {
+				restartableInteractiveSequences.add(anim.triggerShapeId);
+			}
 		} else if (anim.trigger === 'onHover' && anim.targetId) {
 			hoverAnims.push(anim);
 		} else {
@@ -499,6 +507,7 @@ export function buildTimeline(
 		entranceElementIds: entranceIds,
 		keyframesCss: keyframeBlocks.join('\n\n'),
 		interactiveSequences,
+		restartableInteractiveSequences,
 		hoverSequences,
 	};
 }

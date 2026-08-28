@@ -1193,6 +1193,11 @@ describe('pptxNativeAnimationService', () => {
 													},
 												},
 											},
+											'p:endSync': {
+												'@_evt': 'end',
+												'@_delay': '0',
+												'p:rtn': { '@_val': 'all' },
+											},
 											'p:childTnLst': {
 												'p:par': {
 													'p:cTn': {
@@ -1231,6 +1236,8 @@ describe('pptxNativeAnimationService', () => {
 			expect(interactiveAnim).toBeDefined();
 			expect(interactiveAnim!.triggerShapeId).toBe('triggerButton');
 			expect(interactiveAnim!.targetId).toBe('hiddenShape');
+			expect(interactiveAnim!.interactiveSequence).toBeTruthy();
+			expect(interactiveAnim!.interactiveRestart).toBeTruthy();
 
 			// The interactive effect must appear EXACTLY ONCE. The generic timing
 			// walk used to descend into the interactive `p:seq` as well, emitting a

@@ -337,6 +337,28 @@ describe('buildTimeline', () => {
 		expect(totalSteps).toBe(2);
 	});
 
+	it('preserves within-sequence timing and marks endSync replay', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onShapeClick',
+				triggerShapeId: 'btn1',
+				interactiveSequence: true,
+				interactiveRestart: true,
+			}),
+			makeAnim({
+				targetId: 'el2',
+				trigger: 'withPrevious',
+				triggerShapeId: 'btn1',
+				interactiveSequence: true,
+			}),
+		]);
+		const groups = result.interactiveSequences.get('btn1');
+		expect(groups).toHaveLength(1);
+		expect(groups?.[0].steps.map((step) => step.elementId)).toStrictEqual(['el1', 'el2']);
+		expect(result.restartableInteractiveSequences).toStrictEqual(new Set(['btn1']));
+	});
+
 	// -------------------------------------------------------------------
 	// Dynamic keyframes (motion path)
 	// -------------------------------------------------------------------

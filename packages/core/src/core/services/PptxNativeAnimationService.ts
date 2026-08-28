@@ -634,6 +634,9 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			if (!triggerShapeId) {
 				continue;
 			}
+			const endSync = seqCTn?.['p:endSync'] as XmlObject | undefined;
+			const runtimeTrigger = endSync?.['p:rtn'] as XmlObject | undefined;
+			const restartable = String(runtimeTrigger?.['@_val'] ?? '') === 'all';
 
 			// Walk this interactive sequence children and tag them.
 			// `@concurrent`/`@nextAc`/`@prevAc` are attributes of `<p:seq>` itself
@@ -647,7 +650,13 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 
 			for (const anim of interactiveAnims) {
 				anim.triggerShapeId = triggerShapeId;
-				anim.trigger = 'onShapeClick';
+				anim.interactiveSequence = true;
+				anim.interactiveRestart = restartable;
+				// Preserve within-sequence with/after timing. Keep the historical
+				// public `onShapeClick` token for click effects themselves.
+				if (anim.trigger === 'onClick') {
+					anim.trigger = 'onShapeClick';
+				}
 				animations.push(anim);
 			}
 		}

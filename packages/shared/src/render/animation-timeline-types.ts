@@ -332,6 +332,8 @@ export interface AnimationTimeline {
 	 * When a shape is clicked, its click-groups play independently of the main timeline.
 	 */
 	interactiveSequences: ReadonlyMap<string, TimelineClickGroup[]>;
+	/** Interactive sequences whose `p:endSync/p:rtn val="all"` permits replay. */
+	restartableInteractiveSequences?: ReadonlySet<string>;
 	/**
 	 * Hover sequences keyed by trigger shape ID.
 	 * When a shape is hovered over, its click-groups play.

@@ -334,14 +334,20 @@ export class TimelineEngine {
 	): TimelineClickGroup | null {
 		const groups = this.timeline.interactiveSequences.get(triggerShapeId);
 		const currentIdx = this.interactiveGroupIndexes.get(triggerShapeId) ?? -1;
-		const result = this.advanceSequenceGroup(
+		let result = this.advanceSequenceGroup(
 			groups,
 			currentIdx,
 			this.interactiveGroupStartedAtMs.get(triggerShapeId),
 			nowMs,
 		);
 		if (result === 'exhausted') {
-			return null;
+			if (!this.timeline.restartableInteractiveSequences?.has(triggerShapeId)) {
+				return null;
+			}
+			result = this.advanceSequenceGroup(groups, -1, undefined, nowMs);
+			if (result === 'exhausted') {
+				return null;
+			}
 		}
 		if (result === 'blocked') {
 			return EMPTY_CLICK_GROUP;

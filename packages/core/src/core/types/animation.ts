@@ -177,6 +177,10 @@ export interface PptxNativeAnimation {
 	trigger?: PptxAnimationTrigger;
 	/** Shape ID that triggers this animation when clicked (interactive sequence). */
 	triggerShapeId?: string;
+	/** Whether this effect belongs to an OOXML `interactiveSeq`. */
+	interactiveSequence?: boolean;
+	/** Whether `p:endSync/p:rtn[@val="all"]` makes that sequence replayable. */
+	interactiveRestart?: boolean;
 	/** Effect preset class (entr, exit, emph, path). */
 	presetClass?: 'entr' | 'exit' | 'emph' | 'path';
 	/** Effect preset sub-type identifier. */
