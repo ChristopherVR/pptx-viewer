@@ -6,6 +6,7 @@ import { computed, ref } from 'vue';
 
 import { useSurfaceChart3dScene } from '../composables/useSurfaceChart3dScene';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
+import Chart3DLoading from './Chart3DLoading.vue';
 
 /**
  * SurfaceChart3DRenderer - Vue interactive 3D surface-chart view.
@@ -39,19 +40,22 @@ const options = computed(() =>
 
 const sceneContainer = ref<HTMLElement | null>(null);
 
-const { mounted } = useSurfaceChart3dScene({
+const { mounted, loading } = useSurfaceChart3dScene({
 	container: sceneContainer,
 	options,
 });
 
-/** Show the SVG fallback whenever an interactive scene is not mounted. */
-const showFallback = computed(() => !mounted.value);
+/** Show the SVG fallback once loading has settled without a mounted scene. */
+const showFallback = computed(() => !mounted.value && !loading.value);
+/** Show the spinner while a mount attempt is still in flight. */
+const showLoading = computed(() => !mounted.value && loading.value);
 </script>
 
 <template>
 	<!--
 		Always present so the scene can mount into it (v-show, not v-if, keeps
-		the ref attached). Hidden while the SVG fallback is showing.
+		the ref attached). Hidden while the loading spinner or SVG fallback is
+		showing.
 	-->
 	<div
 		v-show="mounted"
@@ -59,8 +63,9 @@ const showFallback = computed(() => !mounted.value);
 		class="pptx-vue-surface-chart-3d-scene"
 		:style="{ width: `${element.width}px`, height: `${element.height}px` }"
 	/>
+	<Chart3DLoading v-if="showLoading" :width="element.width" :height="element.height" />
 	<ChartViewModelSvg
-		v-if="showFallback"
+		v-else-if="showFallback"
 		:element-id="element.id"
 		:vm="viewModel"
 		:preserve-aspect-ratio="preserveAspectRatio"

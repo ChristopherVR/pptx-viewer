@@ -758,6 +758,29 @@ const CHROME_CSS = `
 .pptxv-error-message { color: var(--pptx-destructive); padding: 0 24px; text-align: center; }
 .pptxv-empty { color: var(--pptx-muted-foreground); }
 
+/* ── In-content loading (e.g. a 3D chart scene probing/mounting three.js) ── */
+.pptxv-chart3d-loading {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	color: var(--pptx-muted-foreground);
+	font-size: 12px;
+}
+.pptxv-spinner {
+	width: 1.25rem;
+	height: 1.25rem;
+	border: 3px solid var(--pptx-border);
+	border-top-color: var(--pptx-primary);
+	border-radius: 50%;
+	animation: pptxv-spin 0.8s linear infinite;
+}
+@keyframes pptxv-spin {
+	to { transform: rotate(360deg); }
+}
+
 /* ── Presentation (fullscreen) mode ──────────────────────────────────── */
 .pptxv.pptxv-presenting .pptxv-ribbon,
 .pptxv.pptxv-presenting .pptxv-thumbs,

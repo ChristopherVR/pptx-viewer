@@ -20,6 +20,7 @@ import { buildAreaChart3DDataForElement } from 'pptx-viewer-shared';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
+import { LoadingState } from '../LoadingState';
 
 /** Stub rendered when the dynamic scene import fails. */
 function FailedToLoad(): null {
@@ -96,12 +97,12 @@ export function Area3DChartRenderer({ element }: Area3DChartRendererProps): Reac
 		return svgFallback;
 	}
 	if (threeAvailable === null) {
-		return svgFallback;
+		return <LoadingState />;
 	}
 
 	return (
 		<SceneErrorBoundary fallback={svgFallback}>
-			<Suspense fallback={svgFallback}>
+			<Suspense fallback={<LoadingState />}>
 				<LazyArea3DChartScene options={options} />
 			</Suspense>
 		</SceneErrorBoundary>

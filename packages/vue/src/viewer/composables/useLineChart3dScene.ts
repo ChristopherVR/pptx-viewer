@@ -11,6 +11,9 @@
  * - expose whether the scene actually mounted (`mounted`) so the SFC can fall
  *   back to the SVG renderer when three.js is absent or the chart has no
  *   plottable grid;
+ * - expose whether a mount attempt is in flight (`loading`) so the SFC can
+ *   show a lightweight spinner instead of flashing the SVG fallback while
+ *   three.js is still loading;
  * - dispose the live handle on teardown or whenever `options` changes identity
  *   (including a resize: `buildLineChart3DDataForElement` is a pure function
  *   that returns a fresh object on every call, so a size-only change is
@@ -37,6 +40,8 @@ export interface UseLineChart3dSceneOptions {
 export interface UseLineChart3dSceneResult {
 	/** True once an interactive scene has actually mounted (three available). */
 	mounted: Ref<boolean>;
+	/** True while a mount attempt (three.js probe + scene setup) is in flight. */
+	loading: Ref<boolean>;
 }
 
 /**
@@ -45,6 +50,7 @@ export interface UseLineChart3dSceneResult {
 export function useLineChart3dScene(opts: UseLineChart3dSceneOptions): UseLineChart3dSceneResult {
 	const { container, options } = opts;
 	const mounted = ref(false);
+	const loading = ref(false);
 
 	let handle: LineChart3DHandle | null = null;
 	// Monotonic token so a slow mount() that resolves after teardown / newer
@@ -65,9 +71,11 @@ export function useLineChart3dScene(opts: UseLineChart3dSceneOptions): UseLineCh
 		const series = options.value;
 		const host = container.value;
 		if (!series || !host) {
+			loading.value = false;
 			return;
 		}
 
+		loading.value = true;
 		void mountLineChart3D(host, series).then((next) => {
 			// Stale resolution: a newer remount (or teardown) ran meanwhile.
 			if (token !== mountToken) {
@@ -76,6 +84,7 @@ export function useLineChart3dScene(opts: UseLineChart3dSceneOptions): UseLineCh
 			}
 			handle = next;
 			mounted.value = next.ok;
+			loading.value = false;
 			return undefined;
 		});
 	}
@@ -88,5 +97,5 @@ export function useLineChart3dScene(opts: UseLineChart3dSceneOptions): UseLineCh
 		disposeHandle();
 	});
 
-	return { mounted };
+	return { mounted, loading };
 }

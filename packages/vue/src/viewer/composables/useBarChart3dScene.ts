@@ -11,6 +11,9 @@
  * - expose whether the scene actually mounted (`mounted`) so the SFC can fall
  *   back to the SVG renderer when three.js is absent or the chart has no
  *   plottable grid;
+ * - expose whether a mount attempt is in flight (`loading`) so the SFC can
+ *   show a lightweight spinner instead of flashing the SVG fallback while
+ *   three.js is still loading;
  * - dispose the live handle on teardown or whenever `options` changes identity
  *   (including a resize: `buildBarChart3DDataForElement` is a pure function
  *   that returns a fresh object on every call, so a size-only change is
@@ -38,6 +41,8 @@ export interface UseBarChart3dSceneOptions {
 export interface UseBarChart3dSceneResult {
 	/** True once an interactive scene has actually mounted (three available). */
 	mounted: Ref<boolean>;
+	/** True while a mount attempt (three.js probe + scene setup) is in flight. */
+	loading: Ref<boolean>;
 }
 
 /**
@@ -46,6 +51,7 @@ export interface UseBarChart3dSceneResult {
 export function useBarChart3dScene(opts: UseBarChart3dSceneOptions): UseBarChart3dSceneResult {
 	const { container, options } = opts;
 	const mounted = ref(false);
+	const loading = ref(false);
 
 	let handle: BarChart3DHandle | null = null;
 	// Monotonic token so a slow mount() that resolves after teardown / newer
@@ -66,9 +72,11 @@ export function useBarChart3dScene(opts: UseBarChart3dSceneOptions): UseBarChart
 		const boxes = options.value;
 		const host = container.value;
 		if (!boxes || !host) {
+			loading.value = false;
 			return;
 		}
 
+		loading.value = true;
 		void mountBarChart3D(host, boxes).then((next) => {
 			// Stale resolution: a newer remount (or teardown) ran meanwhile.
 			if (token !== mountToken) {
@@ -77,6 +85,7 @@ export function useBarChart3dScene(opts: UseBarChart3dSceneOptions): UseBarChart
 			}
 			handle = next;
 			mounted.value = next.ok;
+			loading.value = false;
 			return undefined;
 		});
 	}
@@ -89,5 +98,5 @@ export function useBarChart3dScene(opts: UseBarChart3dSceneOptions): UseBarChart
 		disposeHandle();
 	});
 
-	return { mounted };
+	return { mounted, loading };
 }

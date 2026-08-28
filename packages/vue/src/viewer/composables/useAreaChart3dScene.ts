@@ -26,6 +26,8 @@ export interface UseAreaChart3dSceneOptions {
 export interface UseAreaChart3dSceneResult {
 	/** True once an interactive scene has actually mounted (three available). */
 	mounted: Ref<boolean>;
+	/** True while a mount attempt (three.js probe + scene setup) is in flight. */
+	loading: Ref<boolean>;
 }
 
 /**
@@ -34,6 +36,7 @@ export interface UseAreaChart3dSceneResult {
 export function useAreaChart3dScene(opts: UseAreaChart3dSceneOptions): UseAreaChart3dSceneResult {
 	const { container, options } = opts;
 	const mounted = ref(false);
+	const loading = ref(false);
 
 	let handle: AreaChart3DHandle | null = null;
 	let mountToken = 0;
@@ -51,9 +54,11 @@ export function useAreaChart3dScene(opts: UseAreaChart3dSceneOptions): UseAreaCh
 		const series = options.value;
 		const host = container.value;
 		if (!series || !host) {
+			loading.value = false;
 			return;
 		}
 
+		loading.value = true;
 		void mountAreaChart3D(host, series).then((next) => {
 			if (token !== mountToken) {
 				next.dispose();
@@ -61,6 +66,7 @@ export function useAreaChart3dScene(opts: UseAreaChart3dSceneOptions): UseAreaCh
 			}
 			handle = next;
 			mounted.value = next.ok;
+			loading.value = false;
 			return undefined;
 		});
 	}
@@ -72,5 +78,5 @@ export function useAreaChart3dScene(opts: UseAreaChart3dSceneOptions): UseAreaCh
 		disposeHandle();
 	});
 
-	return { mounted };
+	return { mounted, loading };
 }

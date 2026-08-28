@@ -38,6 +38,8 @@ export interface UsePieChart3dSceneOptions {
 export interface UsePieChart3dSceneResult {
 	/** True once an interactive scene has actually mounted (three available). */
 	mounted: Ref<boolean>;
+	/** True while a mount attempt (three.js probe + scene setup) is in flight. */
+	loading: Ref<boolean>;
 }
 
 /**
@@ -46,6 +48,7 @@ export interface UsePieChart3dSceneResult {
 export function usePieChart3dScene(opts: UsePieChart3dSceneOptions): UsePieChart3dSceneResult {
 	const { container, options } = opts;
 	const mounted = ref(false);
+	const loading = ref(false);
 
 	let handle: PieChart3DHandle | null = null;
 	// Monotonic token so a slow mount() that resolves after teardown / newer
@@ -66,9 +69,11 @@ export function usePieChart3dScene(opts: UsePieChart3dSceneOptions): UsePieChart
 		const wedges = options.value;
 		const host = container.value;
 		if (!wedges || !host) {
+			loading.value = false;
 			return;
 		}
 
+		loading.value = true;
 		void mountPieChart3D(host, wedges).then((next) => {
 			// Stale resolution: a newer remount (or teardown) ran meanwhile.
 			if (token !== mountToken) {
@@ -77,6 +82,7 @@ export function usePieChart3dScene(opts: UsePieChart3dSceneOptions): UsePieChart
 			}
 			handle = next;
 			mounted.value = next.ok;
+			loading.value = false;
 			return undefined;
 		});
 	}
@@ -89,5 +95,5 @@ export function usePieChart3dScene(opts: UsePieChart3dSceneOptions): UsePieChart
 		disposeHandle();
 	});
 
-	return { mounted };
+	return { mounted, loading };
 }

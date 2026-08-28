@@ -19,6 +19,7 @@ import { buildSurfaceChart3DDataForElement } from 'pptx-viewer-shared';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
+import { LoadingState } from '../LoadingState';
 
 /** Stub rendered when the dynamic scene import fails. */
 function FailedToLoad(): null {
@@ -98,14 +99,15 @@ export function SurfaceChart3DRenderer({
 	if (!options || threeAvailable === false) {
 		return svgFallback;
 	}
-	// Still probing for three -> show SVG until we know (avoids a flash of empty).
+	// Still probing for three -> a lightweight spinner, not the 2D chart (which
+	// would otherwise flash on screen right before the 3D scene replaces it).
 	if (threeAvailable === null) {
-		return svgFallback;
+		return <LoadingState />;
 	}
 
 	return (
 		<SceneErrorBoundary fallback={svgFallback}>
-			<Suspense fallback={svgFallback}>
+			<Suspense fallback={<LoadingState />}>
 				<LazySurfaceChart3DScene options={options} />
 			</Suspense>
 		</SceneErrorBoundary>

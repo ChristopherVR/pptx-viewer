@@ -4,6 +4,7 @@ import { buildPieChart3DDataForElement, mountPieChart3D } from 'pptx-viewer-shar
 import { createEl } from '../dom';
 import type { ElementRenderContext, ElementRenderer } from '../types';
 import { renderChartSvgElement } from './chart';
+import { createChart3DLoadingPlaceholder } from './chart-3d-loading';
 
 /**
  * Opt-in interactive Three.js pie3D-chart renderer, vanilla port of Vue's
@@ -14,12 +15,12 @@ import { renderChartSvgElement } from './chart';
  * `bar-chart-3d.ts` exactly.
  *
  * Builds the pure wedge-mesh scene from the shared adapter (no `three`
- * import), renders the existing SVG output synchronously as an immediate
- * placeholder, then dynamically imports the OPTIONAL `three` peer dependency
- * (inside `mountPieChart3D`) and swaps it for a mounted scene once the mount
- * resolves. `three` unavailable, no plottable series, or a mount failure all
- * leave the SVG in place, mirroring `smartart-3d.ts`'s
- * paint-then-upgrade-in-place pattern.
+ * import), renders the existing SVG output synchronously but immediately
+ * swaps its content for a lightweight spinner (so the flat 2D chart never
+ * flashes on screen), then dynamically imports the OPTIONAL `three` peer
+ * dependency (inside `mountPieChart3D`) and swaps the spinner for a mounted
+ * scene once the mount resolves. `three` unavailable, no plottable series, or
+ * a mount failure all restore the original SVG content instead.
  */
 export const renderPieChart3DElement: ElementRenderer = (element, zIndex, context) => {
 	const fallback = renderChartSvgElement(element, zIndex, context);
@@ -34,21 +35,25 @@ export const renderPieChart3DElement: ElementRenderer = (element, zIndex, contex
 		return fallback;
 	}
 
-	void mountScene(context, fallback, options);
+	const svgContent = Array.from(fallback.childNodes);
+	fallback.replaceChildren(createChart3DLoadingPlaceholder(context));
+
+	void mountScene(context, fallback, options, svgContent);
 	return fallback;
 };
 
 /**
  * Mount the shared scene into a fresh host, swapping it in for `fallback`'s
- * contents on success. `fallback` is already attached to the stage by the
- * caller (`renderElement` returns synchronously before this promise
- * settles), so mutating it in place upgrades the element without a full
- * slide re-render.
+ * contents on success, or restoring the original SVG content on failure.
+ * `fallback` is already attached to the stage by the caller (`renderElement`
+ * returns synchronously before this promise settles), so mutating it in
+ * place upgrades the element without a full slide re-render.
  */
 async function mountScene(
 	context: ElementRenderContext,
 	fallback: HTMLElement | SVGElement,
 	options: PieChart3DSceneOptions,
+	svgContent: ChildNode[],
 ): Promise<void> {
 	const host = createEl(context.document, 'div', 'pptxv-pie-chart-3d-scene', {
 		width: '100%',
@@ -57,9 +62,10 @@ async function mountScene(
 	});
 	const handle = await mountPieChart3D(host, options);
 	if (!handle.ok) {
-		// `three` unavailable or the mount failed: the SVG fallback already
-		// painted synchronously is untouched, so there is nothing to restore.
+		// `three` unavailable or the mount failed: restore the SVG rendered up
+		// front, in place of the loading spinner.
 		handle.dispose();
+		fallback.replaceChildren(...svgContent);
 		return;
 	}
 	fallback.replaceChildren(host);

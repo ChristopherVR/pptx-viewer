@@ -38,6 +38,8 @@ export interface UseSurfaceChart3dSceneOptions {
 export interface UseSurfaceChart3dSceneResult {
 	/** True once an interactive scene has actually mounted (three available). */
 	mounted: Ref<boolean>;
+	/** True while a mount attempt (three.js probe + scene setup) is in flight. */
+	loading: Ref<boolean>;
 }
 
 /**
@@ -48,6 +50,7 @@ export function useSurfaceChart3dScene(
 ): UseSurfaceChart3dSceneResult {
 	const { container, options } = opts;
 	const mounted = ref(false);
+	const loading = ref(false);
 
 	let handle: SurfaceChart3DHandle | null = null;
 	// Monotonic token so a slow mount() that resolves after teardown / newer
@@ -68,9 +71,11 @@ export function useSurfaceChart3dScene(
 		const grid = options.value;
 		const host = container.value;
 		if (!grid || !host) {
+			loading.value = false;
 			return;
 		}
 
+		loading.value = true;
 		void mountSurfaceChart3D(host, grid).then((next) => {
 			// Stale resolution: a newer remount (or teardown) ran meanwhile.
 			if (token !== mountToken) {
@@ -79,6 +84,7 @@ export function useSurfaceChart3dScene(
 			}
 			handle = next;
 			mounted.value = next.ok;
+			loading.value = false;
 			return undefined;
 		});
 	}
@@ -91,5 +97,5 @@ export function useSurfaceChart3dScene(
 		disposeHandle();
 	});
 
-	return { mounted };
+	return { mounted, loading };
 }

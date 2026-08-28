@@ -121,14 +121,16 @@ describe('renderChartElement - lineChart3D opt-in', () => {
 		expect(container.querySelector('svg')).toBeTruthy();
 	});
 
-	it('paints the SVG synchronously, then upgrades to the WebGL scene once the mount resolves', async () => {
+	it('paints a loading spinner synchronously, then upgrades to the WebGL scene once the mount resolves', async () => {
 		const container = renderChartElement(
 			buildChartElement(LINE3D_DATA),
 			0,
 			buildContext(true),
 		) as HTMLElement;
-		// Synchronous return: the SVG fallback is already painted.
-		expect(container.querySelector('svg')).toBeTruthy();
+		// Synchronous return: a lightweight spinner stands in, not the SVG chart
+		// (which would otherwise flash on screen before the WebGL scene mounts).
+		expect(container.querySelector('.pptxv-chart3d-loading')).toBeTruthy();
+		expect(container.querySelector('svg')).toBeNull();
 
 		await flushMount();
 
