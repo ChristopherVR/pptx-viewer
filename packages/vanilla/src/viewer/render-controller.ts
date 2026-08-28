@@ -42,6 +42,11 @@ export interface RenderControllerDeps {
 	 * `PptxViewerOptions.barChart3D`.
 	 */
 	barChart3D: boolean;
+	/**
+	 * Opt-in interactive WebGL pie3D-chart renderer flag; see
+	 * `PptxViewerOptions.pieChart3D`.
+	 */
+	pieChart3D: boolean;
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
@@ -156,6 +161,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			smartArt3D: deps.smartArt3D,
 			surfaceChart3D: deps.surfaceChart3D,
 			barChart3D: deps.barChart3D,
+			pieChart3D: deps.pieChart3D,
 			presenting,
 			slides: state.slides,
 			currentSlideIndex: state.currentSlide,

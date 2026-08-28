@@ -1,0 +1,75 @@
+<script setup lang="ts">
+import type { PptxElement } from 'pptx-viewer-core';
+import type { ChartViewModel } from 'pptx-viewer-shared';
+import { buildPieChart3DDataForElement } from 'pptx-viewer-shared';
+import { computed, ref } from 'vue';
+
+import { usePieChart3dScene } from '../composables/usePieChart3dScene';
+import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
+
+/**
+ * PieChart3DRenderer - Vue interactive 3D pie-chart view.
+ *
+ * When the chart resolves to a plottable wedge-mesh layout (see
+ * `buildPieChart3DDataForElement`) and the optional `three` peer dependency
+ * is installed, this mounts the shared, framework-agnostic vanilla-three
+ * controller (`mountPieChart3D` from `pptx-viewer-shared`) into a container
+ * div for a camera-orbitable set of real 3D wedge meshes (OrbitControls: drag
+ * to rotate, scroll to zoom). The mount lifecycle lives in
+ * {@link usePieChart3dScene}; this SFC stays thin presentation. Mirrors
+ * `Bar3DChartRenderer.vue` exactly.
+ *
+ * Falls back to the plain SVG `ChartViewModelSvg` (rendered with the same
+ * `viewModel`/`preserveAspectRatio` the parent `ChartRenderer` already built,
+ * i.e. the flat oblique-projection pie3D illusion) when there is no
+ * plottable series, `three` is not installed, or the scene fails to mount.
+ */
+const props = defineProps<{
+	element: PptxElement;
+	/** The parent's already-built SVG view-model, used as the fallback render. */
+	viewModel: ChartViewModel;
+	preserveAspectRatio?: 'none' | 'xMidYMid meet';
+}>();
+
+const options = computed(() =>
+	buildPieChart3DDataForElement(props.element, {
+		width: props.element.width,
+		height: props.element.height,
+	}),
+);
+
+const sceneContainer = ref<HTMLElement | null>(null);
+
+const { mounted } = usePieChart3dScene({
+	container: sceneContainer,
+	options,
+});
+
+/** Show the SVG fallback whenever an interactive scene is not mounted. */
+const showFallback = computed(() => !mounted.value);
+</script>
+
+<template>
+	<!--
+		Always present so the scene can mount into it (v-show, not v-if, keeps
+		the ref attached). Hidden while the SVG fallback is showing.
+	-->
+	<div
+		v-show="mounted"
+		ref="sceneContainer"
+		class="pptx-vue-pie-chart-3d-scene"
+		:style="{ width: `${element.width}px`, height: `${element.height}px` }"
+	/>
+	<ChartViewModelSvg
+		v-if="showFallback"
+		:element-id="element.id"
+		:vm="viewModel"
+		:preserve-aspect-ratio="preserveAspectRatio"
+	/>
+</template>
+
+<style scoped>
+.pptx-vue-pie-chart-3d-scene {
+	will-change: transform;
+}
+</style>

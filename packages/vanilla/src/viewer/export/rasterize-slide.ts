@@ -27,6 +27,11 @@ export interface RasterizeSlideDeps {
 	 */
 	barChart3D: boolean;
 	/**
+	 * Opt-in interactive WebGL pie3D-chart renderer flag; see
+	 * `PptxViewerOptions.pieChart3D`.
+	 */
+	pieChart3D: boolean;
+	/**
 	 * Overridable frame-wait before capture (test seam: the real
 	 * `requestAnimationFrame` double-wait is not worth driving through fake
 	 * timers). Defaults to {@link nextFrame}.
@@ -98,6 +103,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			smartArt3D: deps.smartArt3D,
 			surfaceChart3D: deps.surfaceChart3D,
 			barChart3D: deps.barChart3D,
+			pieChart3D: deps.pieChart3D,
 			presenting: false,
 		});
 		host.appendChild(stage);

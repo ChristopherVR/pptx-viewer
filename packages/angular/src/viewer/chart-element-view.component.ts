@@ -46,6 +46,8 @@ import { ChartPartSelectionService } from './chart-part-selection.service';
 import { buildChartViewModel, formatAxisValue, resolveChartKind } from './chart-renderer-helpers';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { EditorStateService } from './editor-state.service';
+import { PieChart3DRendererComponent } from './pie-chart-3d-renderer.component';
+import { PieChart3DService } from './pie-chart-3d.service';
 import { SLIDE_CONTEXT } from './slide-context';
 import { SurfaceChart3DRendererComponent } from './surface-chart-3d-renderer.component';
 import { SurfaceChart3DService } from './surface-chart-3d.service';
@@ -54,7 +56,12 @@ import { SurfaceChart3DService } from './surface-chart-3d.service';
 	selector: 'pptx-chart-element-view',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ChartRendererComponent, SurfaceChart3DRendererComponent, BarChart3DRendererComponent],
+	imports: [
+		ChartRendererComponent,
+		SurfaceChart3DRendererComponent,
+		BarChart3DRendererComponent,
+		PieChart3DRendererComponent,
+	],
 	template: `
 		<div
 			#wrapper
@@ -69,6 +76,8 @@ import { SurfaceChart3DService } from './surface-chart-3d.service';
 				<pptx-surface-chart-3d-renderer [element]="renderedElement()" />
 			} @else if (use3DBar() && isBar3DKind()) {
 				<pptx-bar-chart-3d-renderer [element]="renderedElement()" />
+			} @else if (use3DPie() && isPie3DKind()) {
+				<pptx-pie-chart-3d-renderer [element]="renderedElement()" />
 			} @else {
 				<pptx-chart-renderer [element]="renderedElement()" />
 			}
@@ -123,6 +132,8 @@ export class ChartElementViewComponent {
 	private readonly surfaceChart3DSvc = inject(SurfaceChart3DService, { optional: true });
 	/** Viewer-scoped opt-in flag for the interactive 3D bar3D-chart renderer. */
 	private readonly barChart3DSvc = inject(BarChart3DService, { optional: true });
+	/** Viewer-scoped opt-in flag for the interactive 3D pie3D-chart renderer. */
+	private readonly pieChart3DSvc = inject(PieChart3DService, { optional: true });
 	private readonly injector = inject(Injector);
 
 	private readonly wrapper = viewChild<ElementRef<HTMLElement>>('wrapper');
@@ -161,6 +172,17 @@ export class ChartElementViewComponent {
 	 */
 	protected readonly use3DBar = computed(() => this.barChart3DSvc?.enabled() ?? false);
 	protected readonly isBar3DKind = computed(() => this.chartData()?.chartType === 'bar3D');
+
+	/**
+	 * Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
+	 * OrbitControls). Same "marks are not selectable/draggable" caveat as the
+	 * bar scene above. `chartType` is checked directly (NOT via
+	 * `resolveChartKind`, which folds `pie`/`pie3D`/`doughnut` onto the same
+	 * 'pie' kind), so a plain 2-D pie or doughnut chart never mounts the 3D
+	 * scene.
+	 */
+	protected readonly use3DPie = computed(() => this.pieChart3DSvc?.enabled() ?? false);
+	protected readonly isPie3DKind = computed(() => this.chartData()?.chartType === 'pie3D');
 
 	/** Whether this chart element is currently selected in the editor. */
 	private readonly isSelected = computed(

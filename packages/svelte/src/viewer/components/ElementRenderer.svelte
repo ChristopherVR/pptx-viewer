@@ -13,6 +13,7 @@
 	import { getFieldContextGetter } from '../state/field-context';
 	import { getSlideElementsGetter } from '../state/slide-elements';
 	import { useBarChart3D } from '../state/bar-chart-3d-context';
+	import { usePieChart3D } from '../state/pie-chart-3d-context';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
 	import { useSurfaceChart3D } from '../state/surface-chart-3d-context';
 	import {
@@ -36,6 +37,7 @@
 	import OleView from './OleView.svelte';
 	import PlaceholderElement from './PlaceholderElement.svelte';
 	import Bar3DChartView from './Bar3DChartView.svelte';
+	import PieChart3DView from './PieChart3DView.svelte';
 	import SmartArt3DView from './SmartArt3DView.svelte';
 	import SmartArtView from './SmartArtView.svelte';
 	import SurfaceChart3DView from './SurfaceChart3DView.svelte';
@@ -117,6 +119,8 @@
 	const surfaceChart3D = useSurfaceChart3D();
 	/** Host opt-in to the interactive Three.js bar3D-chart renderer (provided by PowerPointViewer). */
 	const barChart3D = useBarChart3D();
+	/** Host opt-in to the interactive Three.js pie3D-chart renderer (provided by PowerPointViewer). */
+	const pieChart3D = usePieChart3D();
 	/**
 	 * Marks are not selectable/draggable in 3D mode: a mesh facet has no 2D
 	 * screen geometry to hit-test against, so value-drag editing stays SVG-only.
@@ -132,6 +136,15 @@
 	 */
 	const isBarChart3D = $derived(
 		element.type === 'chart' && element.chartData?.chartType === 'bar3D',
+	);
+	/**
+	 * `resolveChartKind` folds `pie`/`doughnut`/`pie3D` onto the same 'pie'
+	 * kind, so the gate reads `chartData.chartType` directly: a plain 'pie' or
+	 * 'doughnut' chart must never get the interactive 3D scene, only an
+	 * authored `pie3D` chart.
+	 */
+	const isPieChart3D = $derived(
+		element.type === 'chart' && element.chartData?.chartType === 'pie3D',
 	);
 
 	const isShapeLike = $derived(element.type === 'text' || element.type === 'shape');
@@ -219,6 +232,8 @@
 	<SurfaceChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'chart' && barChart3D && isBarChart3D}
 	<Bar3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+{:else if element.type === 'chart' && pieChart3D && isPieChart3D}
+	<PieChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'chart'}
 	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'smartArt' && smartArt3D}

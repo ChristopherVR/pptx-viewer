@@ -44,6 +44,12 @@
 	// Opt in to the experimental Three.js interactive surface-chart renderer
 	// (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
 	const surfaceChart3D = params.get('surfaceChart3D') === '1';
+	// Opt in to the experimental Three.js interactive bar3D-chart renderer via
+	// `?barChart3D=1`.
+	const barChart3D = params.get('barChart3D') === '1';
+	// Opt in to the experimental Three.js interactive pie3D-chart renderer via
+	// `?pieChart3D=1`.
+	const pieChart3D = params.get('pieChart3D') === '1';
 	const audienceSession = parsePresentationSessionId(window.location.hash);
 	if (audienceSession) {
 		void loadPresentationDeck(audienceSession).then((content) => {
@@ -299,6 +305,8 @@
 			locale={language.current}
 			{smartArt3D}
 			{surfaceChart3D}
+			{barChart3D}
+			{pieChart3D}
 			editable
 			autosave
 			autosaveIntervalMs={2000}

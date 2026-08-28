@@ -20,6 +20,8 @@ import { buildReactChartViewModel } from '../../utils/chart-view-model-render';
 import { useChartPartSelection } from '../chart-part-selection';
 import { BarChart3DContext } from './bar-chart-3d-context';
 import { Bar3DChartRenderer } from './Bar3DChartRenderer';
+import { PieChart3DContext } from './pie-chart-3d-context';
+import { PieChart3DRenderer } from './PieChart3DRenderer';
 import { SurfaceChart3DContext } from './surface-chart-3d-context';
 import { SurfaceChart3DRenderer } from './SurfaceChart3DRenderer';
 
@@ -70,6 +72,12 @@ export function ChartElementView({
 	// surface scene above: a mesh box has no 2D screen geometry to hit-test.
 	const use3DBar = useContext(BarChart3DContext);
 	const isBar3DKind = element.chartData?.chartType === 'bar3D';
+
+	// Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
+	// OrbitControls). Same "marks are not selectable/draggable" caveat as the
+	// surface/bar3D scenes above.
+	const use3DPie = useContext(PieChart3DContext);
+	const isPie3DKind = element.chartData?.chartType === 'pie3D';
 
 	// The drag context comes from the committed data, captured at drag start, so
 	// axis ranges do not rescale under the pointer mid-drag.
@@ -237,6 +245,8 @@ export function ChartElementView({
 				<SurfaceChart3DRenderer element={renderedElement} />
 			) : use3DBar && isBar3DKind ? (
 				<Bar3DChartRenderer element={renderedElement} />
+			) : use3DPie && isPie3DKind ? (
+				<PieChart3DRenderer element={renderedElement} />
 			) : (
 				renderChartElement(renderedElement)
 			)}

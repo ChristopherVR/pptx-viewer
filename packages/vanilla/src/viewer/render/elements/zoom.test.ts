@@ -21,6 +21,7 @@ function makeContext(overrides: Partial<ElementRenderContext> = {}): ElementRend
 		smartArt3D: false,
 		surfaceChart3D: false,
 		barChart3D: false,
+		pieChart3D: false,
 		presenting: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),

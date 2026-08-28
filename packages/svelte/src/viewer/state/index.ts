@@ -30,6 +30,7 @@ export { ViewerState } from './viewer-state.svelte';
 export { provideSmartArt3D, useSmartArt3D } from './smart-art-3d-context';
 export { provideSurfaceChart3D, useSurfaceChart3D } from './surface-chart-3d-context';
 export { provideBarChart3D, useBarChart3D } from './bar-chart-3d-context';
+export { providePieChart3D, usePieChart3D } from './pie-chart-3d-context';
 export { getFieldContextGetter, provideFieldContext } from './field-context';
 export type { FieldContextGetter } from './field-context';
 export { getSlideElementsGetter, provideSlideElements } from './slide-elements';

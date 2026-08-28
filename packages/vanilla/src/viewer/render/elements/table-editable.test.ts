@@ -47,6 +47,7 @@ function mountResizableTable() {
 		smartArt3D: false,
 		surfaceChart3D: false,
 		barChart3D: false,
+		pieChart3D: false,
 		presenting: false,
 		interactive: true,
 		onTableResizeColumns,
@@ -105,6 +106,7 @@ describe('enableTableResize', () => {
 			smartArt3D: false,
 			surfaceChart3D: false,
 			barChart3D: false,
+			pieChart3D: false,
 			presenting: false,
 			registry,
 			renderElement(element, zIndex) {

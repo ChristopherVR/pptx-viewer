@@ -112,30 +112,36 @@ export interface CartesianCameraPlacement {
 }
 
 /**
- * Camera placement that frames the whole cartesian grid.
+ * Camera placement that frames a scene of world-space bounding radius
+ * `maxExtent`, looking at `[0, targetY, 0]`.
  *
- * The camera sits on a sphere around the plot's centre at the elevation/
- * azimuth given by `rotX`/`rotY` (PowerPoint-like defaults when either is
- * absent, matching the flat oblique-projection engine's own defaults so an
- * untagged 3D chart looks consistent across presentations), at a distance
- * derived from the resolved FOV so the grid's bounding sphere stays framed
+ * The camera sits on a sphere around that target at the elevation/azimuth
+ * given by `rotX`/`rotY` (PowerPoint-like defaults when either is absent,
+ * matching the flat oblique-projection engine's own defaults so an untagged
+ * 3D chart looks consistent across presentations), at a distance derived
+ * from the resolved FOV so the scene's bounding sphere stays framed
  * regardless of how narrow (near-orthographic) or wide the perspective is.
  *
  * `rotX` is clamped to `(-90, 90)` exclusive: exactly on the vertical axis is
  * a degenerate `lookAt`/OrbitControls case (an ill-defined up vector).
+ *
+ * Pure sphere-placement math, extracted out of
+ * {@link computeCartesianCameraPlacement} so a non-cartesian 3D chart scene
+ * (no category/series grid to speak of) can reuse the identical
+ * camera-placement approach instead of duplicating it. `pie3D`
+ * ({@link ../pie-chart-3d-geom.ts}, `computePieChart3DCameraPlacement`) is
+ * the first such consumer.
  */
-export function computeCartesianCameraPlacement(
-	cols: number,
-	rows: number,
+export function computeSphericalCameraPlacement(
+	maxExtent: number,
+	targetY: number,
 	view3D?: CartesianCameraView3D,
 ): CartesianCameraPlacement {
-	const { gridWidth, gridDepth } = computeCartesianGridExtent(cols, rows, view3D?.depthPercent);
-	const maxExtent = Math.max(gridWidth, gridDepth, MAX_VALUE_HEIGHT);
 	const fov = resolveCartesianCameraFov(view3D);
 	const halfFovRad = (fov * Math.PI) / 360;
-	// Distance for the grid's bounding radius to just fit the vertical FOV, plus margin.
-	const radius = (maxExtent / Math.tan(halfFovRad)) * 0.75;
-	const target: readonly [number, number, number] = [0, MAX_VALUE_HEIGHT * 0.2, 0];
+	// Distance for the scene's bounding radius to just fit the vertical FOV, plus margin.
+	const radius = (Math.max(maxExtent, 0.01) / Math.tan(halfFovRad)) * 0.75;
+	const target: readonly [number, number, number] = [0, targetY, 0];
 
 	const elevationDeg = clamp(view3D?.rotX ?? DEFAULT_ELEVATION_DEG, -89, 89);
 	const azimuthDeg = normalizeAzimuth(view3D?.rotY ?? DEFAULT_AZIMUTH_DEG);
@@ -154,6 +160,21 @@ export function computeCartesianCameraPlacement(
 		target,
 		fov,
 	};
+}
+
+/**
+ * Camera placement that frames the whole cartesian grid. Thin wrapper around
+ * {@link computeSphericalCameraPlacement} with the cartesian grid's own
+ * extent + look-at height.
+ */
+export function computeCartesianCameraPlacement(
+	cols: number,
+	rows: number,
+	view3D?: CartesianCameraView3D,
+): CartesianCameraPlacement {
+	const { gridWidth, gridDepth } = computeCartesianGridExtent(cols, rows, view3D?.depthPercent);
+	const maxExtent = Math.max(gridWidth, gridDepth, MAX_VALUE_HEIGHT);
+	return computeSphericalCameraPlacement(maxExtent, MAX_VALUE_HEIGHT * 0.2, view3D);
 }
 
 /**

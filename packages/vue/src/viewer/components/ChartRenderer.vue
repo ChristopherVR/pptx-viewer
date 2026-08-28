@@ -14,11 +14,13 @@ import { useI18n } from 'vue-i18n';
 import { useBarChart3D } from '../composables/bar-chart-3d';
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { getContainerStyle } from '../composables/element-style';
+import { usePieChart3D } from '../composables/pie-chart-3d';
 import { useSurfaceChart3D } from '../composables/surface-chart-3d';
 import Bar3DChartRenderer from './Bar3DChartRenderer.vue';
 import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartEditOverlays from './chart/ChartEditOverlays.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
+import PieChart3DRenderer from './PieChart3DRenderer.vue';
 import SurfaceChart3DRenderer from './SurfaceChart3DRenderer.vue';
 
 /**
@@ -147,6 +149,16 @@ const isSurfaceKind = computed(() => chartKind.value === 'surface');
 const use3DBar = useBarChart3D();
 const isBar3DKind = computed(() => chartType.value === 'bar3D');
 
+/**
+ * Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
+ * OrbitControls). Same "marks are not selectable/draggable" caveat as the
+ * surface/bar3D scenes above. Gated on the RAW chart type, not `chartKind`,
+ * mirroring `isBar3DKind`: `resolveChartKind` folds `pie`/`doughnut`/`pie3D`
+ * onto the same kind, so a plain 2D pie chart must never pick up the 3D scene.
+ */
+const use3DPie = usePieChart3D();
+const isPie3DKind = computed(() => chartType.value === 'pie3D');
+
 const placeholderLabel = computed(() =>
 	chartPlaceholderLabel(chartType.value, (key, params) => t(key, params ?? {})),
 );
@@ -196,6 +208,14 @@ const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 		<!-- Opt-in interactive 3D bar scene, falling back to the SVG below -->
 		<Bar3DChartRenderer
 			v-else-if="use3DBar && isBar3DKind && viewModel"
+			:element="revealedElement"
+			:view-model="viewModel"
+			:preserve-aspect-ratio="aspectRatio"
+		/>
+
+		<!-- Opt-in interactive 3D pie scene, falling back to the SVG below -->
+		<PieChart3DRenderer
+			v-else-if="use3DPie && isPie3DKind && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"

@@ -25,6 +25,7 @@ export interface ExportLifecycleDeps {
 	smartArt3D: boolean;
 	surfaceChart3D: boolean;
 	barChart3D: boolean;
+	pieChart3D: boolean;
 	/** Source file name (title-bar name); drives export download names. */
 	fileName?: string;
 }

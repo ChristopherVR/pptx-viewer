@@ -67,6 +67,11 @@ export interface SlideStageOptions {
 	 * `PptxViewerOptions.barChart3D`.
 	 */
 	barChart3D?: boolean;
+	/**
+	 * Opt-in interactive WebGL pie3D-chart renderer flag; see
+	 * `PptxViewerOptions.pieChart3D`.
+	 */
+	pieChart3D?: boolean;
 	/** True only for the live presentation stage; see `ElementRenderContext.presenting`. */
 	presenting?: boolean;
 	/** Full deck and active index used by presentation Zoom elements. */
@@ -167,6 +172,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		smartArt3D: options.smartArt3D ?? false,
 		surfaceChart3D: options.surfaceChart3D ?? false,
 		barChart3D: options.barChart3D ?? false,
+		pieChart3D: options.pieChart3D ?? false,
 		presenting: options.presenting ?? false,
 		interactive,
 		onSmartArtNodeTextChange: options.onSmartArtNodeTextChange,

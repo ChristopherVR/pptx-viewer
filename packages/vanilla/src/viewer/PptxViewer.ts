@@ -214,6 +214,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			smartArt3D: options.smartArt3D ?? false,
 			surfaceChart3D: options.surfaceChart3D ?? false,
 			barChart3D: options.barChart3D ?? false,
+			pieChart3D: options.pieChart3D ?? false,
 			onHandoutSlidesPerPageChange: (count) => this.editor?.setHandoutSlidesPerPage(count),
 			onMasterBackgroundColorChange: (color) =>
 				this.editor?.getEditActions().setSlideBackgroundColor(color),
@@ -354,6 +355,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			smartArt3D: options.smartArt3D ?? false,
 			surfaceChart3D: options.surfaceChart3D ?? false,
 			barChart3D: options.barChart3D ?? false,
+			pieChart3D: options.pieChart3D ?? false,
 			fileName: options.fileName,
 		});
 		// File > Options controller: owns the persisted options store and turns

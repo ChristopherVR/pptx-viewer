@@ -68,6 +68,7 @@ import {
 	FollowModeBar,
 } from './components/collaboration';
 import { BarChart3DContext } from './components/elements/bar-chart-3d-context';
+import { PieChart3DContext } from './components/elements/pie-chart-3d-context';
 import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { SurfaceChart3DContext } from './components/elements/surface-chart-3d-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
@@ -155,6 +156,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			smartArt3D = false,
 			surfaceChart3D = false,
 			barChart3D = false,
+			pieChart3D = false,
 			hiddenActions,
 			ai,
 		} = props;
@@ -1171,30 +1173,32 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				<SmartArt3DContext.Provider value={smartArt3D}>
 					<SurfaceChart3DContext.Provider value={surfaceChart3D}>
 						<BarChart3DContext.Provider value={barChart3D}>
-							<ViewerThemeProvider theme={effectiveTheme}>
-								<CollaborationProvider
-									config={collaboration}
-									canvasWidth={canvasSize.width}
-									canvasHeight={canvasSize.height}
-								>
-									<CollaborationDocumentSync
-										slides={slides}
-										templateElementsBySlideId={templateElementsBySlideId}
-										setSlides={state.setSlides}
+							<PieChart3DContext.Provider value={pieChart3D}>
+								<ViewerThemeProvider theme={effectiveTheme}>
+									<CollaborationProvider
 										config={collaboration}
-										content={content}
-										loadVersion={loadVersion}
-										loadOrigin={loadOrigin}
-										livePatcher={state.livePatcher}
-									/>
-									<CollaborationFollowLayer
-										activeSlideIndex={activeSlideIndex}
-										setActiveSlideIndex={state.setActiveSlideIndex}
-										slideCount={slides.length}
-									/>
-									{viewerContent}
-								</CollaborationProvider>
-							</ViewerThemeProvider>
+										canvasWidth={canvasSize.width}
+										canvasHeight={canvasSize.height}
+									>
+										<CollaborationDocumentSync
+											slides={slides}
+											templateElementsBySlideId={templateElementsBySlideId}
+											setSlides={state.setSlides}
+											config={collaboration}
+											content={content}
+											loadVersion={loadVersion}
+											loadOrigin={loadOrigin}
+											livePatcher={state.livePatcher}
+										/>
+										<CollaborationFollowLayer
+											activeSlideIndex={activeSlideIndex}
+											setActiveSlideIndex={state.setActiveSlideIndex}
+											slideCount={slides.length}
+										/>
+										{viewerContent}
+									</CollaborationProvider>
+								</ViewerThemeProvider>
+							</PieChart3DContext.Provider>
 						</BarChart3DContext.Provider>
 					</SurfaceChart3DContext.Provider>
 				</SmartArt3DContext.Provider>

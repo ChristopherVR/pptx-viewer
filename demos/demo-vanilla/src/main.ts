@@ -53,6 +53,12 @@ const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D')
 // Opt in to the experimental Three.js interactive surface-chart renderer
 // (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
 const surfaceChart3D = new URLSearchParams(window.location.search).get('surfaceChart3D') === '1';
+// Opt in to the experimental Three.js interactive bar3D-chart renderer
+// (camera orbit/zoom, real box meshes) via `?barChart3D=1`.
+const barChart3D = new URLSearchParams(window.location.search).get('barChart3D') === '1';
+// Opt in to the experimental Three.js interactive pie3D-chart renderer
+// (camera orbit/zoom, real wedge meshes) via `?pieChart3D=1`.
+const pieChart3D = new URLSearchParams(window.location.search).get('pieChart3D') === '1';
 
 /** Apply theme vars to :root so the dropzone chrome tracks the theme. */
 function applyRootVars(): void {
@@ -155,6 +161,8 @@ function openViewer(
 		collaboration,
 		smartArt3D,
 		surfaceChart3D,
+		barChart3D,
+		pieChart3D,
 		ai: buildViewerAiConfig(),
 		shareDefaults: { userName },
 		onError: (message, error) => {

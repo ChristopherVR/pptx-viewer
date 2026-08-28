@@ -14,18 +14,24 @@ import type { ElementRenderer } from '../types';
 import { renderBarChart3DElement } from './bar-chart-3d';
 import { attachChartEditing } from './chart-editable';
 import { renderChartViewModelSvg } from './chart-svg';
+import { renderPieChart3DElement } from './pie-chart-3d';
 import { renderSurfaceChart3DElement } from './surface-chart-3d';
 
 /**
  * Renderer for `chart` elements. Dispatches to the opt-in interactive
  * Three.js surface-chart scene (`surface-chart-3d.ts`) when
  * `context.surfaceChart3D` is set (see `PptxViewerOptions.surfaceChart3D`)
- * and the chart resolves to the `surface` kind, or to the opt-in interactive
+ * and the chart resolves to the `surface` kind, to the opt-in interactive
  * Three.js bar3D-chart scene (`bar-chart-3d.ts`) when `context.barChart3D`
  * is set (see `PptxViewerOptions.barChart3D`) and the chart's raw
  * `chartType` is `bar3D` (checked directly, NOT via `resolveChartKind`,
- * which folds plain `bar` and `bar3D` together), otherwise renders the flat
- * SVG below. Mirrors `smartart.ts`'s `renderSmartArtElement` dispatch.
+ * which folds plain `bar` and `bar3D` together), or to the opt-in interactive
+ * Three.js pie3D-chart scene (`pie-chart-3d.ts`) when `context.pieChart3D`
+ * is set (see `PptxViewerOptions.pieChart3D`) and the chart's raw
+ * `chartType` is `pie3D` (checked directly, NOT via `resolveChartKind`,
+ * which folds plain `pie`/`doughnut` and `pie3D` together), otherwise
+ * renders the flat SVG below. Mirrors `smartart.ts`'s `renderSmartArtElement`
+ * dispatch.
  */
 export const renderChartElement: ElementRenderer = (element, zIndex, context) => {
 	if (
@@ -38,6 +44,9 @@ export const renderChartElement: ElementRenderer = (element, zIndex, context) =>
 	}
 	if (element.type === 'chart' && context.barChart3D && element.chartData?.chartType === 'bar3D') {
 		return renderBarChart3DElement(element, zIndex, context);
+	}
+	if (element.type === 'chart' && context.pieChart3D && element.chartData?.chartType === 'pie3D') {
+		return renderPieChart3DElement(element, zIndex, context);
 	}
 	return renderChartSvgElement(element, zIndex, context);
 };

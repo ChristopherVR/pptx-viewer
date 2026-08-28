@@ -783,6 +783,28 @@ export * from './bar-chart-3d-layout';
 // `mountBarChart3D` needs, sharing colour/value-range resolution with the
 // flat SVG oblique-projection engine so both presentations agree.
 export * from './bar-chart-3d-data';
+// Pure geometry for an interactive 3D `pie3D` chart scene: fixed disc radius,
+// `c:view3D/@hPercent`-driven wedge thickness, and per-slice wedge angles
+// (mirroring the flat engine's `computePieSlices` bookkeeping). Reuses
+// `cartesian-chart-3d-geom`'s sphere camera placement rather than its
+// grid-specific framing, since a pie has no category/series grid.
+export * from './pie-chart-3d-geom';
+// Vanilla three.js 3D pie-chart scene controller: one real
+// `THREE.CylinderGeometry` wedge mesh per data point (a partial-arc cylinder,
+// giving a flat top/bottom + curved rim + flat radial "cut" faces for free), a
+// `c:view3D`-driven perspective camera, OrbitControls, and a RAF loop. Like
+// `bar-chart-3d-scene`, `three` is dynamically imported and optional,
+// resolving to a no-op sentinel so the chart falls back to the flat 2D
+// oblique-projection pie3D renderer when it is missing.
+export * from './pie-chart-3d-scene';
+// Pure raycast-hit (point index, value) -> hover-tooltip text mapping the
+// pie3D scene uses to give each wedge mesh the same native hover tooltip
+// every other chart kind's SVG mark gets via `buildMarkTooltip`.
+export * from './pie-chart-3d-hit-test';
+// Adapts a `pie3D` chart element's `PptxChartData` into the wedge-mesh layout
+// `mountPieChart3D` needs, sharing colour/explosion resolution with the flat
+// SVG oblique-projection engine so both presentations agree.
+export * from './pie-chart-3d-data';
 // SmartArt pre-computed drawing-shapes projection (the `smartArtData.
 // drawingShapes` path the core engine extracts from `ppt/diagrams/drawing*.xml`,
 // preferred over the SVG-fallback layout engine when present): palette
