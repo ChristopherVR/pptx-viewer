@@ -9,6 +9,7 @@ import {
 	filterHiddenSlideIndices,
 	finishPrintWindow as finishPendingPrintWindow,
 	openPendingPrintWindow,
+	openPrintWindow as sharedOpenPrintWindow,
 } from 'pptx-viewer-shared';
 import { inject, ref } from 'vue';
 import type { Ref } from 'vue';
@@ -77,20 +78,18 @@ export interface UsePrintResult {
 	print: (settings: PrintSettings) => Promise<void>;
 }
 
-/** Default print-window opener: writes a full HTML doc and calls `print()`. */
+/**
+ * Default print-window opener: writes a full HTML doc and calls `print()`.
+ * Delegates to the shared `openPrintWindow` (this composable used to carry
+ * its own copy that passed `noopener` to `window.open`, which made Chrome
+ * return `null` from the call even though the tab genuinely opened, so this
+ * always read as "popup blocked" and left a stray blank tab with nothing
+ * ever written into it - see `pptx-viewer-shared`'s `print-window.ts` for
+ * why `noopener` doesn't belong on a same-origin window the app fills
+ * itself).
+ */
 function defaultOpenPrintWindow(htmlDocument: string): boolean {
-	const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-	if (!printWindow) {
-		return false;
-	}
-	printWindow.document.open();
-	printWindow.document.write(htmlDocument);
-	printWindow.document.close();
-	printWindow.focus();
-	setTimeout(() => {
-		printWindow.print();
-	}, 300);
-	return true;
+	return sharedOpenPrintWindow(htmlDocument);
 }
 
 /**

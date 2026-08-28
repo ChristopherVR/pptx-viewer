@@ -16,6 +16,17 @@
  * then write the real document into that same window once it's ready. These
  * two functions are the whole fix; every binding's print handler just calls
  * them at the right points instead of re-implementing this dance itself.
+ *
+ * `window.open` is called WITHOUT `noopener`: with it, Chrome returns `null`
+ * from `window.open` itself even though the tab genuinely opens (confirmed
+ * live), so every caller here reads that as "popup blocked", bails out
+ * having already left a stray blank tab behind, and never writes the print
+ * document into it - the exact "print opens a blank tab and does nothing"
+ * report this file exists to prevent. `noopener` protects against a page
+ * reaching back into ITS OPENER via `window.opener` (reverse tabnabbing),
+ * which only matters for a window opened to a third-party URL; this window
+ * is opened blank (`''`) and filled entirely with the app's own
+ * document.write() output, so there is no opener relationship worth cutting.
  */
 import { escapeHtml } from './print-document';
 
@@ -30,7 +41,7 @@ import { escapeHtml } from './print-document';
  *   in the placeholder while the real document is assembled.
  */
 export function openPendingPrintWindow(preparingLabel: string): Window | null {
-	const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+	const printWindow = window.open('', '_blank');
 	if (!printWindow) {
 		return null;
 	}
@@ -66,7 +77,7 @@ export function finishPrintWindow(printWindow: Window, htmlDocument: string): vo
  * and after its `await`s respectively.
  */
 export function openPrintWindow(htmlDocument: string): boolean {
-	const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+	const printWindow = window.open('', '_blank');
 	if (!printWindow) {
 		return false;
 	}
