@@ -12,7 +12,12 @@
  * @module utils/chart-data-utils
  */
 
-import type { PptxChartData, PptxChartSeries, PptxChartType } from '../types/chart';
+import type {
+	PptxChartData,
+	PptxChartDataPoint,
+	PptxChartSeries,
+	PptxChartType,
+} from '../types/chart';
 
 // ---------------------------------------------------------------------------
 // Chart type compatibility mapping
@@ -258,6 +263,14 @@ export function chartDataAddCategory(
  *
  * @param chartData - The current chart data.
  * @param categoryIndex - Zero-based index of the category to remove.
+ * @param followDataPoint - File > Options > Advanced > "Properties follow
+ *   chart data point for current workbook". When `true` (PowerPoint's
+ *   default), each series' per-point manual formatting (`c:dPt`, keyed by
+ *   `idx`) is re-indexed along with the removed column: the override for the
+ *   removed point is dropped, and every override past it shifts down by one
+ *   so it stays attached to the same logical point. When `false`, overrides
+ *   stay pinned to their original numeric position instead of following the
+ *   point they were authored for.
  * @returns A new `PptxChartData` without the specified category.
  * @throws {RangeError} If `categoryIndex` is out of bounds.
  *
@@ -269,6 +282,7 @@ export function chartDataAddCategory(
 export function chartDataRemoveCategory(
 	chartData: PptxChartData,
 	categoryIndex: number,
+	followDataPoint = true,
 ): PptxChartData {
 	if (categoryIndex < 0 || categoryIndex >= chartData.categories.length) {
 		throw new RangeError(
@@ -282,6 +296,24 @@ export function chartDataRemoveCategory(
 		series: chartData.series.map((s) => ({
 			...s,
 			values: s.values.filter((_, i) => i !== categoryIndex),
+			...(s.dataPoints && followDataPoint
+				? { dataPoints: reindexDataPoints(s.dataPoints, categoryIndex) }
+				: {}),
 		})),
 	};
+}
+
+/**
+ * Re-index per-point formatting overrides (`c:dPt`) after a category at
+ * `removedIndex` is deleted: drop the override that pointed at the removed
+ * column, and shift every later override's `idx` down by one so it keeps
+ * following the same logical data point.
+ */
+function reindexDataPoints(
+	dataPoints: PptxChartDataPoint[],
+	removedIndex: number,
+): PptxChartDataPoint[] {
+	return dataPoints
+		.filter((dp) => dp.idx !== removedIndex)
+		.map((dp) => (dp.idx > removedIndex ? { ...dp, idx: dp.idx - 1 } : dp));
 }
