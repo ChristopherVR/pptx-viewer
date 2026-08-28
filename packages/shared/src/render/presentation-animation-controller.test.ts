@@ -113,6 +113,21 @@ describe('presentationAnimationController.fromSlide', () => {
 		expect(states.get('b')?.visible).toBeTruthy();
 	});
 
+	it('keeps text visible while a background-only entrance is pending', () => {
+		const animation = {
+			...entranceAnim('a'),
+			target: { type: 'shape', shapeId: 'a', backgroundOnly: true },
+		} as PptxNativeAnimation;
+		const controller = PresentationAnimationController.fromSlide(
+			slideWith([shapeElement('a')], [animation]),
+		);
+
+		expect(controller.elementIds).toContain('a::pptx-bg');
+		const states = controller.computeStates();
+		expect(states.get('a')?.visible).toBeTruthy();
+		expect(states.get('a::pptx-bg')?.visible).toBeFalsy();
+	});
+
 	it('reveals a pending entrance after advancing its click-group', () => {
 		const slide = slideWith([shapeElement('a')], [entranceAnim('a')]);
 		const controller = PresentationAnimationController.fromSlide(slide);

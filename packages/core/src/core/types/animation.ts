@@ -90,7 +90,13 @@ export type PptxNativeAnimationKind = 'media';
 
 /** A target selected by `p:tgtEl` in the PresentationML timing model. */
 export type PptxAnimationTarget =
-	| { type: 'shape'; shapeId: string; rawXml?: XmlObject }
+	| {
+			type: 'shape';
+			shapeId: string;
+			/** Whether `p:spTgt/p:bg` limits the effect to the shape background. */
+			backgroundOnly?: boolean;
+			rawXml?: XmlObject;
+	  }
 	| { type: 'slide'; rawXml?: XmlObject }
 	| { type: 'sound'; relationshipId: string; name?: string; rawXml?: XmlObject }
 	| { type: 'ink'; shapeId: string; rawXml?: XmlObject }

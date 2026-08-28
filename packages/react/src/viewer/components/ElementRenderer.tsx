@@ -105,6 +105,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		// One shared verdict on what `a:spLocks` still allows, rather than five
 		// bindings each reading a different subset of the flags off the element.
 		const allow = resolveElementInteractivity(el);
+		const backgroundAnimationState = presentationElementStates?.get(`${el.id}::pptx-bg`);
+		const visualAnimationState = backgroundAnimationState ?? animationState;
 		const isTxt = isEditableTextElement(el) && allow.textEditable;
 		const txtSE = hasTextProperties(el) ? el.textStyle : undefined;
 		const ss = getShapeVisualStyle(
@@ -113,8 +115,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			fc,
 			sw,
 			sc,
-			animationState?.animatesFill,
-			animationState?.animatesStroke,
+			visualAnimationState?.animatesFill,
+			visualAnimationState?.animatesStroke,
 		);
 		const ts = getTextStyleForElement(el, DEFAULT_TEXT_COLOR);
 		const vs = renderVectorShape(
@@ -123,8 +125,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			fc,
 			sw,
 			sc,
-			animationState?.animatesFill,
-			animationState?.animatesStroke,
+			visualAnimationState?.animatesFill,
+			visualAnimationState?.animatesStroke,
 		);
 		const isImg = el.type === 'picture' || el.type === 'image';
 		const isModel3D = el.type === 'model3d';
@@ -284,19 +286,44 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					zIndex,
 					opacity,
 					animationState,
-					shapeVisualStyle: ss,
+					shapeVisualStyle: backgroundAnimationState ? {} : ss,
 					has3DExtrusion: extrusionData.hasExtrusion,
 					templateEditing,
 				})}
 				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}
-				<ShapeEffectOverlay
-					element={el}
-					animatesFill={animationState?.animatesFill}
-					animatesStroke={animationState?.animatesStroke}
-				/>
-				{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
+				{backgroundAnimationState ? (
+					<div
+						data-pptx-animation-layer='background'
+						style={{
+							...ss,
+							position: 'absolute',
+							inset: 0,
+							transformOrigin: 'center',
+							visibility: backgroundAnimationState.visible === false ? 'hidden' : 'visible',
+							animation: backgroundAnimationState.cssAnimation,
+							pointerEvents: 'none',
+						}}
+					>
+						<ShapeEffectOverlay
+							element={el}
+							animatesFill={visualAnimationState?.animatesFill}
+							animatesStroke={visualAnimationState?.animatesStroke}
+						/>
+						{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
+						{vs}
+					</div>
+				) : (
+					<>
+						<ShapeEffectOverlay
+							element={el}
+							animatesFill={visualAnimationState?.animatesFill}
+							animatesStroke={visualAnimationState?.animatesStroke}
+						/>
+						{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
+					</>
+				)}
 				{renderBody({
 					el,
 					isImg,
@@ -305,7 +332,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					spellCheck: spellCheckEnabled,
 					txtSE,
 					txtS: ts,
-					vecShape: vs,
+					vecShape: backgroundAnimationState ? null : vs,
 					imgStyle: getImageRenderStyle(el),
 					imgFilter: getImageEffectsFilter(el),
 					imgOpacity: getImageEffectsOpacity(el),

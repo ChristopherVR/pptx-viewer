@@ -20,6 +20,7 @@ import { resolveEffectTiming } from './animation-fill-repeat';
 import { resolveFilterPresetSubtype } from './animation-filter-effects';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
+import { resolveAnimationTargetId } from './animation-target-id';
 import { buildColorTavKeyframe, buildOpacityTavKeyframe } from './animation-timeline-absolute';
 import {
 	resolveEffect,
@@ -292,7 +293,7 @@ export function buildTimeline(
 			// Command steps carry no element visibility semantics: an empty
 			// elementId keeps them from hiding/revealing a real element; the media
 			// target is routed via the command payload instead.
-			const elementId = isCommand ? '' : (singleAnim.targetId ?? '');
+			const elementId = isCommand ? '' : resolveAnimationTargetId(singleAnim);
 			// Honour the FULL start-condition OR-set (compound / simultaneous
 			// triggers) rather than the collapsed single trigger. The effective
 			// condition drives grouping and supplies the governing start delay.
@@ -611,7 +612,7 @@ function buildSequenceGroups(
 			}
 
 			// Command steps carry no element visibility semantics; see the main loop.
-			const elementId = isCommand ? '' : (anim.targetId ?? '');
+			const elementId = isCommand ? '' : resolveAnimationTargetId(anim);
 			const seqTrigger: PptxAnimationTrigger = anim.trigger ?? 'onShapeClick';
 			const baseDuration = isCommand ? 0 : (anim.durationMs ?? defaultDuration(anim.presetClass));
 			// Same single-quantity rule as the main sequence: never sum the two.

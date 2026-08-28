@@ -77,6 +77,17 @@ describe('buildTimeline', () => {
 		expect(result.entranceElementIds.has('el1')).toBeTruthy();
 	});
 
+	it('routes a p:bg animation to an independent background target', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				target: { type: 'shape', shapeId: 'el1', backgroundOnly: true },
+			}),
+		]);
+		expect(result.clickGroups[0].steps[0].elementId).toBe('el1::pptx-bg');
+		expect(result.entranceElementIds).toStrictEqual(new Set(['el1::pptx-bg']));
+	});
+
 	it('does not track exit elements as entrance', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'exit', presetId: 10 })]);
 		expect(result.entranceElementIds.has('el1')).toBeFalsy();
