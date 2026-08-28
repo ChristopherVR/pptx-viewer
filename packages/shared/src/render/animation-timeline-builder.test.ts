@@ -733,6 +733,40 @@ describe('buildTimeline', () => {
 	});
 
 	describe('effect-wrapper (p:par) siblings', () => {
+		it('preserves authored absolute starts across sibling wrappers', () => {
+			const starts = [0, 1250, 3100, 4200];
+			const result = buildTimeline(
+				starts.map((parGroupDelayMs, index) =>
+					makeAnim({
+						targetId: `shape-${index}`,
+						trigger: index === 0 ? 'onClick' : 'afterPrevious',
+						delayMs: 0,
+						parGroupIndex: index,
+						parGroupDelayMs,
+					}),
+				),
+			);
+			expect(result.clickGroups[0].steps.map((step) => step.delayMs)).toStrictEqual(starts);
+		});
+
+		it('preserves authored wrapper starts in interactive sequences', () => {
+			const starts = [0, 1250, 3100, 4200];
+			const result = buildTimeline(
+				starts.map((parGroupDelayMs, index) =>
+					makeAnim({
+						targetId: `shape-${index}`,
+						trigger: 'onShapeClick',
+						triggerShapeId: 'button',
+						delayMs: 0,
+						parGroupIndex: index,
+						parGroupDelayMs,
+					}),
+				),
+			);
+			const steps = result.interactiveSequences.get('button')?.[0].steps;
+			expect(steps?.map((step) => step.delayMs)).toStrictEqual(starts);
+		});
+
 		it('measures each sibling delay from the wrapper, not the effect before it', () => {
 			const result = buildTimeline([
 				makeAnim({ targetId: 'title', trigger: 'afterDelay', delayMs: 1000, parGroupIndex: 0 }),

@@ -342,6 +342,14 @@ export interface PptxNativeAnimation {
 	 * simultaneous effects at their true offsets instead of accumulating delays.
 	 */
 	parGroupIndex?: number;
+	/**
+	 * Absolute start offset of the enclosing effect-wrapper from its click group.
+	 *
+	 * Structural `p:par` wrappers can carry their own start conditions. Keeping
+	 * this offset separate from the effect's delay prevents playback from
+	 * replacing an authored absolute start with a duration-based approximation.
+	 */
+	parGroupDelayMs?: number;
 	/** Structured start conditions parsed from `p:stCondLst`. */
 	startConditions?: AnimationCondition[];
 	/** Structured end conditions parsed from `p:endCondLst`. */

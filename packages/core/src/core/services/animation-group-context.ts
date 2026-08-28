@@ -20,6 +20,7 @@
  */
 
 import type { XmlObject } from '../types';
+import { readTimingAttr } from './native-animation-extended-helpers';
 import { ensureArray } from './native-animation-helpers';
 
 /** Timing-condition events that chain a node off another time node. */
@@ -34,6 +35,8 @@ export interface AnimationGroupContext {
 	groupAutoStart?: boolean;
 	/** Index of the enclosing effect-wrapper `p:par`. */
 	parGroupIndex?: number;
+	/** Absolute start offset of the enclosing wrapper from its click group. */
+	parGroupDelayMs?: number;
 	/** Shared monotonic counter used to mint wrapper indexes. */
 	parCounter: { next: number };
 	/** `p:seq/@concurrent` of the innermost enclosing sequence, if any. */
@@ -116,6 +119,39 @@ export function isEffectNode(cTn: XmlObject | undefined): boolean {
 	return cTn !== undefined && cTn['@_presetClass'] !== undefined;
 }
 
+/**
+ * Read the authored start offset of a structural `p:par` wrapper.
+ *
+ * PowerPoint commonly places the delay in `p:stCondLst/p:cond/@delay`, but
+ * producers may write it directly on `p:cTn`. Start conditions are an OR-set,
+ * so the earliest finite, non-negative delay is the wrapper's start. The
+ * `indefinite` token is an interaction gate, not a millisecond value.
+ */
+export function extractWrapperStartDelayMs(cTn: XmlObject | undefined): number | undefined {
+	if (!cTn) {
+		return undefined;
+	}
+
+	const directDelay = readTimingAttr(cTn['@_delay']);
+	if (directDelay !== undefined && directDelay >= 0) {
+		return directDelay;
+	}
+
+	const stCondLst = cTn['p:stCondLst'] as XmlObject | undefined;
+	if (!stCondLst) {
+		return undefined;
+	}
+
+	let smallest: number | undefined;
+	for (const condition of ensureArray(stCondLst['p:cond'])) {
+		const delay = readTimingAttr(condition['@_delay']);
+		if (delay !== undefined && delay >= 0 && (smallest === undefined || delay < smallest)) {
+			smallest = delay;
+		}
+	}
+	return smallest;
+}
+
 /** Derive the child context for descending into a `p:par`/`p:seq` node. */
 export function childGroupContext(
 	parent: AnimationGroupContext,
@@ -129,6 +165,7 @@ export function childGroupContext(
 		return {
 			groupAutoStart: conditionsStartAutomatically(cTn, options.mainSequence),
 			parGroupIndex: parent.parGroupIndex,
+			parGroupDelayMs: parent.parGroupDelayMs,
 			parCounter: parent.parCounter,
 			// The innermost enclosing `p:seq`'s attrs are unrelated to click-level
 			// grouping; carry them through rather than dropping them here.
@@ -140,9 +177,14 @@ export function childGroupContext(
 	if (isEffectNode(cTn)) {
 		return parent;
 	}
+	const localDelayMs = extractWrapperStartDelayMs(cTn);
 	return {
 		groupAutoStart: parent.groupAutoStart,
 		parGroupIndex: parent.parCounter.next++,
+		parGroupDelayMs:
+			localDelayMs === undefined
+				? parent.parGroupDelayMs
+				: (parent.parGroupDelayMs ?? 0) + localDelayMs,
 		parCounter: parent.parCounter,
 		seqConcurrent: parent.seqConcurrent,
 		seqNextAction: parent.seqNextAction,

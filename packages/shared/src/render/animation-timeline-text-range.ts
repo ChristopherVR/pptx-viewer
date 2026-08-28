@@ -27,13 +27,14 @@ import type { TextBuildSegmentCounts } from './animation-timeline-text-build';
  */
 function joinPreviousFields(): Pick<
 	PptxNativeAnimation,
-	'trigger' | 'triggerDelayMs' | 'startConditions' | 'parGroupIndex'
+	'trigger' | 'triggerDelayMs' | 'startConditions' | 'parGroupIndex' | 'parGroupDelayMs'
 > {
 	return {
 		trigger: 'withPrevious',
 		triggerDelayMs: undefined,
 		startConditions: undefined,
 		parGroupIndex: undefined,
+		parGroupDelayMs: undefined,
 	};
 }
 

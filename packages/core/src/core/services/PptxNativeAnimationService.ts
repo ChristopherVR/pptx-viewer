@@ -385,6 +385,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					afterEffect: afterEffectFlag,
 					groupAutoStart: group.groupAutoStart,
 					parGroupIndex: group.parGroupIndex,
+					parGroupDelayMs: group.parGroupDelayMs,
 					effectFilter,
 				});
 			}

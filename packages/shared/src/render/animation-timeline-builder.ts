@@ -363,19 +363,25 @@ export function buildTimeline(
 				currentGroupAutoStart =
 					singleAnim.groupAutoStart === true && !effective.requiresInteraction;
 				subGroupIndex = singleAnim.parGroupIndex;
-				subGroupStartMs = 0;
+				subGroupStartMs = singleAnim.parGroupDelayMs ?? 0;
 			}
 
 			// Compute delay relative to start of this click-group
 			const prevStep = currentGroup.length > 0 ? currentGroup[currentGroup.length - 1] : undefined;
 			let delayMs: number;
-			if (singleAnim.parGroupIndex !== undefined && prevStep) {
+			if (singleAnim.parGroupIndex !== undefined) {
 				if (singleAnim.parGroupIndex !== subGroupIndex) {
-					// New effect wrapper: it starts with (withPrevious) or after
-					// (afterPrevious / afterDelay) the step that came before it.
+					// Prefer the wrapper's authored absolute offset. Older or
+					// programmatically-created entries may not carry one, so retain
+					// the duration-based chaining fallback for those entries.
 					subGroupIndex = singleAnim.parGroupIndex;
 					subGroupStartMs =
-						trigger === 'withPrevious' ? prevStep.delayMs : prevStep.delayMs + prevStep.durationMs;
+						singleAnim.parGroupDelayMs ??
+						(prevStep
+							? trigger === 'withPrevious'
+								? prevStep.delayMs
+								: prevStep.delayMs + prevStep.durationMs
+							: 0);
 				}
 				// Siblings of one wrapper are simultaneous in OOXML: each `@delay` is
 				// an offset from the wrapper, never a chain off the previous effect.
@@ -549,6 +555,8 @@ function buildSequenceGroups(
 	for (const [shapeId, anims] of animsByKey) {
 		const seqGroups: TimelineClickGroup[] = [];
 		let seqGroup: TimelineStep[] = [];
+		let subGroupIndex: number | undefined;
+		let subGroupStartMs = 0;
 
 		for (const anim of anims) {
 			let dynamic = hasAuthoredTransform(anim)
@@ -628,16 +636,24 @@ function buildSequenceGroups(
 				seqGroup = [];
 			}
 
+			const prevStep = seqGroup.length > 0 ? seqGroup[seqGroup.length - 1] : undefined;
 			let delayMs: number;
-			if (seqTrigger === 'withPrevious' && seqGroup.length > 0) {
-				const prev = seqGroup[seqGroup.length - 1];
-				delayMs = prev.delayMs + animDelay + triggerDelay;
-			} else if (
-				(seqTrigger === 'afterPrevious' || seqTrigger === 'afterDelay') &&
-				seqGroup.length > 0
-			) {
-				const prev = seqGroup[seqGroup.length - 1];
-				delayMs = prev.delayMs + prev.durationMs + animDelay + triggerDelay;
+			if (anim.parGroupIndex !== undefined) {
+				if (anim.parGroupIndex !== subGroupIndex) {
+					subGroupIndex = anim.parGroupIndex;
+					subGroupStartMs =
+						anim.parGroupDelayMs ??
+						(prevStep
+							? seqTrigger === 'withPrevious'
+								? prevStep.delayMs
+								: prevStep.delayMs + prevStep.durationMs
+							: 0);
+				}
+				delayMs = subGroupStartMs + animDelay + triggerDelay;
+			} else if (seqTrigger === 'withPrevious' && prevStep) {
+				delayMs = prevStep.delayMs + animDelay + triggerDelay;
+			} else if ((seqTrigger === 'afterPrevious' || seqTrigger === 'afterDelay') && prevStep) {
+				delayMs = prevStep.delayMs + prevStep.durationMs + animDelay + triggerDelay;
 			} else {
 				delayMs = animDelay + triggerDelay;
 			}
