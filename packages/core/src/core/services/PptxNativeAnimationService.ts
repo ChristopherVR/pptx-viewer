@@ -399,12 +399,20 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const sequences = ensureArray(childTnList['p:seq']);
 				const exclusives = ensureArray(childTnList['p:excl']);
 				for (const parallel of parallels) {
+					const mainSequenceId = cTn['@_id'];
 					this.walkTimingTree(
 						parallel,
 						animations,
 						trigger,
 						childGroupContext(group, parallel['p:cTn'] as XmlObject | undefined, {
 							isClickLevelGroup: isClickLevel,
+							mainSequence:
+								isClickLevel && mainSequenceId !== undefined
+									? {
+											autoStart: group.seqConcurrent === true && group.seqNextAction === 'seek',
+											id: String(mainSequenceId),
+										}
+									: undefined,
 						}),
 					);
 				}

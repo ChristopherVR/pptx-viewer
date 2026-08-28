@@ -43,6 +43,19 @@ describe('conditionsStartAutomatically', () => {
 		).toBeTruthy();
 	});
 
+	it('does not treat a non-concurrent main sequence self-reference as automatic', () => {
+		const cTn: XmlObject = {
+			'p:stCondLst': {
+				'p:cond': [
+					{ '@_delay': 'indefinite' },
+					{ '@_evt': 'onBegin', '@_delay': '0', 'p:tn': { '@_val': '2' } },
+				],
+			},
+		};
+		expect(conditionsStartAutomatically(cTn, { autoStart: false, id: '2' })).toBeFalsy();
+		expect(conditionsStartAutomatically(cTn, { autoStart: true, id: '2' })).toBeTruthy();
+	});
+
 	it('auto-starts on a finite delay with no event', () => {
 		expect(
 			conditionsStartAutomatically({
@@ -89,7 +102,10 @@ describe('node classification', () => {
  * an `onBegin` tie to the mainSeq, and both effects live in ONE wrapper `p:par`
  * with their own delays.
  */
-function buildAutoStartTiming(clickStepConditions: XmlObject): XmlObject {
+function buildAutoStartTiming(
+	clickStepConditions: XmlObject,
+	sequenceAttrs: XmlObject = { '@_concurrent': '1', '@_nextAc': 'seek' },
+): XmlObject {
 	const effect = (id: string, spid: string, delay: string): XmlObject => ({
 		'p:cTn': {
 			'@_id': id,
@@ -120,6 +136,7 @@ function buildAutoStartTiming(clickStepConditions: XmlObject): XmlObject {
 							'@_nodeType': 'tmRoot',
 							'p:childTnLst': {
 								'p:seq': {
+									...sequenceAttrs,
 									'p:cTn': {
 										'@_id': '2',
 										'@_nodeType': 'mainSeq',
@@ -175,6 +192,15 @@ describe('click-step grouping metadata', () => {
 		const result = service.parseNativeAnimations(
 			buildAutoStartTiming({ 'p:cond': { '@_delay': 'indefinite' } }),
 		);
+		const effects = result!.filter((a) => a.presetClass === 'entr');
+		expect(effects).toHaveLength(2);
+		for (const anim of effects) {
+			expect(anim.groupAutoStart).toBeFalsy();
+		}
+	});
+
+	it('keeps a self-referenced step gated when mainSeq lacks auto-start attributes', () => {
+		const result = service.parseNativeAnimations(buildAutoStartTiming(autoConditions, {}));
 		const effects = result!.filter((a) => a.presetClass === 'entr');
 		expect(effects).toHaveLength(2);
 		for (const anim of effects) {

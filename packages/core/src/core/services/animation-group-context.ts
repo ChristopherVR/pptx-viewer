@@ -57,7 +57,10 @@ export function createGroupContext(): AnimationGroupContext {
  * gate) is the only common form that is NOT auto-satisfiable. A node with no
  * `stCondLst` at all is ungated and therefore automatic.
  */
-export function conditionsStartAutomatically(cTn: XmlObject | undefined): boolean {
+export function conditionsStartAutomatically(
+	cTn: XmlObject | undefined,
+	mainSequence?: { autoStart: boolean; id: string },
+): boolean {
 	if (!cTn) {
 		return true;
 	}
@@ -73,6 +76,18 @@ export function conditionsStartAutomatically(cTn: XmlObject | undefined): boolea
 		const event = condition['@_evt'] === undefined ? undefined : String(condition['@_evt']);
 		const hasTimeNode = condition['p:tn'] !== undefined || condition['@_tn'] !== undefined;
 		if (event !== undefined && TIME_NODE_EVENTS.has(event) && hasTimeNode) {
+			const timeNode = condition['p:tn'] as XmlObject | undefined;
+			const targetTimeNodeId = timeNode?.['@_val'] ?? condition['@_tn'];
+			if (
+				mainSequence !== undefined &&
+				targetTimeNodeId !== undefined &&
+				String(targetTimeNodeId) === mainSequence.id
+			) {
+				if (mainSequence.autoStart) {
+					return true;
+				}
+				continue;
+			}
 			return true;
 		}
 		if (event !== undefined) {
@@ -105,11 +120,14 @@ export function isEffectNode(cTn: XmlObject | undefined): boolean {
 export function childGroupContext(
 	parent: AnimationGroupContext,
 	cTn: XmlObject | undefined,
-	options: { isClickLevelGroup: boolean },
+	options: {
+		isClickLevelGroup: boolean;
+		mainSequence?: { autoStart: boolean; id: string };
+	},
 ): AnimationGroupContext {
 	if (options.isClickLevelGroup) {
 		return {
-			groupAutoStart: conditionsStartAutomatically(cTn),
+			groupAutoStart: conditionsStartAutomatically(cTn, options.mainSequence),
 			parGroupIndex: parent.parGroupIndex,
 			parCounter: parent.parCounter,
 			// The innermost enclosing `p:seq`'s attrs are unrelated to click-level
