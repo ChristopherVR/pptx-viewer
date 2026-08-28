@@ -71,8 +71,12 @@ const wrapperStyle = computed<CSSProperties>(() => ({
 	width: `${props.canvasSize.width * scale.value}px`,
 	height: `${props.canvasSize.height * scale.value}px`,
 	position: 'relative',
-	// Reserve room above for the horizontal ruler when it's shown.
-	margin: props.showRulers ? `${RULER_THICKNESS + 8}px auto 1rem` : '1rem auto',
+	flex: 'none',
+	// Reserve room above for the horizontal ruler when it's shown; the
+	// remaining space centers both horizontally and vertically since the
+	// viewport is a flex container (`margin: auto` on a flex item consumes
+	// all free space on both axes, matching the Svelte binding).
+	margin: props.showRulers ? `${RULER_THICKNESS + 8}px auto auto` : 'auto',
 	boxShadow: '0 10px 40px rgba(0, 0, 0, 0.35)',
 	// Paint the resolved slide background on the labelled slide region so a
 	// master/layout-inherited background is exposed on the aria-roledescription

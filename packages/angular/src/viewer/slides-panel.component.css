@@ -148,8 +148,8 @@
 }
 
 /* ── Clip box: fixed width, aspect-correct height set via [ngStyle].
-       ::ng-deep removes the 1rem auto margin that SlideCanvas adds to its
-       wrapper, so the stage sits flush inside the box (same technique as
+       ::ng-deep removes the auto-centering margin that SlideCanvas adds to
+       its wrapper, so the stage sits flush inside the box (same technique as
        the sorter overlay). ── */
 
 .pptx-ng-spanel-clip {

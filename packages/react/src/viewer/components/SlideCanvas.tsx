@@ -218,13 +218,13 @@ export function SlideCanvas({
 		<div
 			ref={zoom.canvasViewportRef}
 			data-pptx-viewport
-			className='flex-1 overflow-auto relative'
+			className='flex-1 flex overflow-auto relative'
 			style={{ touchAction: 'pan-x pan-y' }}
 			onMouseDown={handleViewportMouseDown}
 		>
 			<div
 				ref={zoom.editWrapperRef}
-				className='relative mx-auto my-4'
+				className='relative m-auto'
 				style={{
 					width: canvasSize.width * zoom.editorScale + rulerOffset,
 					height: canvasSize.height * zoom.editorScale + rulerOffset,

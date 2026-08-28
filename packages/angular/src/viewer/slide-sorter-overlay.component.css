@@ -118,8 +118,8 @@
 	/* Width/height set via [ngStyle] to match computed thumbnail size. */
 }
 
-/* Remove the 1rem auto margin that SlideCanvasComponent adds to its wrapper
-   so the stage sits flush inside the clipping box. */
+/* Remove the auto-centering margin that SlideCanvasComponent adds to its
+   wrapper so the stage sits flush inside the clipping box. */
 .pptx-ng-sorter-thumb-clip ::ng-deep .pptx-ng-canvas-wrapper {
 	margin: 0 !important;
 }

@@ -153,7 +153,7 @@ const THUMB_W = 160;
 			}
 
 			/* ── Clipping box: fixed width, aspect-correct height via [ngStyle].
-			       ::ng-deep removes the 1rem auto margin from SlideCanvas so the
+			       ::ng-deep removes the auto-centering margin from SlideCanvas so the
 			       stage sits flush (same technique as SlideSorterOverlayComponent). ── */
 
 			.pptx-ng-mslides-clip {

@@ -1390,7 +1390,11 @@ export class SlideCanvasComponent implements SlideContext {
 			'padding-left': rulerOffset > 0 ? `${rulerOffset}px` : '0',
 			position: 'relative',
 			'box-sizing': 'content-box',
-			margin: '1rem auto',
+			flex: 'none',
+			// `margin: auto` on a flex item consumes all free space on both axes,
+			// centering the slide horizontally and vertically (matching Svelte),
+			// rather than only horizontally with a fixed top/bottom gap.
+			margin: 'auto',
 		};
 	});
 
