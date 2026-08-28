@@ -65,6 +65,9 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 	motionPathRotateAuto?: boolean;
 	motionPathEditMode?: string;
 	motionPtsTypes?: string;
+	motionPathRotationAngle?: number;
+	motionPathRotationCenterX?: number;
+	motionPathRotationCenterY?: number;
 	rotationBy?: number;
 	rotationFrom?: number;
 	rotationTo?: number;
@@ -82,6 +85,9 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 	const motionPathRotateAuto: boolean | undefined = undefined;
 	let motionPathEditMode: string | undefined;
 	let motionPtsTypes: string | undefined;
+	let motionPathRotationAngle: number | undefined;
+	let motionPathRotationCenterX: number | undefined;
+	let motionPathRotationCenterY: number | undefined;
 	let rotationBy: number | undefined;
 	let rotationFrom: number | undefined;
 	let rotationTo: number | undefined;
@@ -100,6 +106,9 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 			motionPathRotateAuto,
 			motionPathEditMode,
 			motionPtsTypes,
+			motionPathRotationAngle,
+			motionPathRotationCenterX,
+			motionPathRotationCenterY,
 			rotationBy,
 			rotationFrom,
 			rotationTo,
@@ -130,6 +139,25 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 			}
 			if (motionNode['@_ptsTypes'] !== undefined) {
 				motionPtsTypes = String(motionNode['@_ptsTypes']);
+			}
+			if (motionNode['@_rAng'] !== undefined) {
+				const parsed = Number.parseInt(String(motionNode['@_rAng']), 10);
+				if (Number.isFinite(parsed)) {
+					motionPathRotationAngle = parsed / 60000;
+				}
+			}
+			const rotationCenter = motionNode['p:rCtr'] as XmlObject | undefined;
+			if (rotationCenter?.['@_x'] !== undefined) {
+				const parsed = Number.parseInt(String(rotationCenter['@_x']), 10);
+				if (Number.isFinite(parsed)) {
+					motionPathRotationCenterX = parsed / 1000;
+				}
+			}
+			if (rotationCenter?.['@_y'] !== undefined) {
+				const parsed = Number.parseInt(String(rotationCenter['@_y']), 10);
+				if (Number.isFinite(parsed)) {
+					motionPathRotationCenterY = parsed / 1000;
+				}
 			}
 		}
 	}
@@ -191,6 +219,9 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 		motionPathRotateAuto,
 		motionPathEditMode,
 		motionPtsTypes,
+		motionPathRotationAngle,
+		motionPathRotationCenterX,
+		motionPathRotationCenterY,
 		rotationBy,
 		rotationFrom,
 		rotationTo,

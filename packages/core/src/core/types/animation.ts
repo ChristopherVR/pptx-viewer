@@ -226,6 +226,12 @@ export interface PptxNativeAnimation {
 	motionPathEditMode?: string;
 	/** Comma-separated point-types string from `p:animMotion/@ptsTypes`. */
 	motionPtsTypes?: string;
+	/** Authored path rotation in degrees from `p:animMotion/@rAng`. */
+	motionPathRotationAngle?: number;
+	/** Motion-path rotation centre X in slide percentage units (`p:rCtr/@x`). */
+	motionPathRotationCenterX?: number;
+	/** Motion-path rotation centre Y in slide percentage units (`p:rCtr/@y`). */
+	motionPathRotationCenterY?: number;
 	/** Rotation angle in degrees for `p:animRot/@by` (converted from 60000ths). */
 	rotationBy?: number;
 	/** Starting rotation angle in degrees for `p:animRot/@from` (converted from 60000ths). */
@@ -728,6 +734,12 @@ export interface PptxElementAnimation {
 	motionPathEditMode?: string;
 	/** Comma-separated point-types string for `p:animMotion/@ptsTypes`. */
 	motionPtsTypes?: string;
+	/** Authored path rotation in degrees from `p:animMotion/@rAng`. */
+	motionPathRotationAngle?: number;
+	/** Motion-path rotation centre X in slide percentage units (`p:rCtr/@x`). */
+	motionPathRotationCenterX?: number;
+	/** Motion-path rotation centre Y in slide percentage units (`p:rCtr/@y`). */
+	motionPathRotationCenterY?: number;
 	/** Sound relationship ID to play when animation triggers (`p:stSnd`). */
 	soundRId?: string;
 	/** Resolved sound file path from relationship. */

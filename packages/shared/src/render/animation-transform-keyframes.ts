@@ -91,6 +91,29 @@ function tangentAngle(points: ReadonlyArray<{ x: number; y: number }>, index: nu
 	return Math.atan2(dy, dx) * (180 / Math.PI);
 }
 
+function rotateMotionPathPoints(
+	points: ReadonlyArray<{ x: number; y: number }>,
+	anim: PptxNativeAnimation,
+): Array<{ x: number; y: number }> {
+	const angle = anim.motionPathRotationAngle ?? 0;
+	if (!Number.isFinite(angle) || angle === 0) {
+		return [...points];
+	}
+	const radians = (angle * Math.PI) / 180;
+	const cosine = Math.cos(radians);
+	const sine = Math.sin(radians);
+	const centerX = anim.motionPathRotationCenterX ?? 0;
+	const centerY = anim.motionPathRotationCenterY ?? 0;
+	return points.map((point) => {
+		const x = point.x - centerX;
+		const y = point.y - centerY;
+		return {
+			x: centerX + x * cosine - y * sine,
+			y: centerY + x * sine + y * cosine,
+		};
+	});
+}
+
 function pointAt(
 	points: ReadonlyArray<{ x: number; y: number }>,
 	progress: number,
@@ -143,7 +166,9 @@ export function buildTransformKeyframes(
 	const rotation = hasRotation(anim);
 	const scale = hasScale(anim);
 	const attributeModel = createAttributeTransformModel(anim);
-	const parsedPoints = anim.motionPath ? parseMotionPathPoints(anim.motionPath) : [];
+	const parsedPoints = anim.motionPath
+		? rotateMotionPathPoints(parseMotionPathPoints(anim.motionPath), anim)
+		: [];
 	const points = parsedPoints.length >= 2 ? parsedPoints : [];
 	if (points.length === 0 && !rotation && !scale && !attributeModel) {
 		return undefined;
