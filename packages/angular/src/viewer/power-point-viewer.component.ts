@@ -265,6 +265,26 @@ import { ZoomTargetService } from './zoom-target.service';
 					<pre class="pptx-ng-error-detail">{{ loader.error() }}</pre>
 				</div>
 			} @else {
+				@if (protectedViewActive() && chromeVisible()) {
+					<div
+						class="pptx-ng-protected-view-banner flex items-center gap-3 border-b border-amber-700/30 bg-amber-900/20 px-4 py-2"
+						role="status"
+					>
+						<span class="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true">&#128274;</span>
+						<p class="flex-1 text-xs text-amber-200">
+							<strong>{{ 'pptx.security.protectedViewTitle' | translate }}</strong
+							>:
+							{{ 'pptx.options.trust.protectedViewInfo' | translate }}
+						</p>
+						<button
+							type="button"
+							class="shrink-0 rounded border border-amber-600/50 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-700/30"
+							(click)="enableEditing()"
+						>
+							{{ 'pptx.security.enableEditing' | translate }}
+						</button>
+					</div>
+				}
 				@if (!mobile.isMobile() && chromeVisible()) {
 					<pptx-title-bar
 						[canEdit]="canEdit()"
@@ -1407,13 +1427,40 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
 
 	/**
+	 * Whether the CURRENT document's Protected View lock was lifted via the
+	 * banner's "Enable Editing" button this session. A document the host
+	 * opened read-only (`canEditInput()` false) never shows the banner, so
+	 * there is nothing to dismiss for it; reset to `false` whenever a new
+	 * presentation finishes loading (see the `loader.slides()` effect below),
+	 * so re-opening (or opening another) file starts protected again,
+	 * mirroring PowerPoint's own per-document banner.
+	 */
+	protected readonly protectedViewDismissed = signal(false);
+
+	/**
 	 * Effective edit permission: the host's `canEdit` input gated by Trust
 	 * Center > "Open presentations in Protected View", which forces the deck
-	 * read-only while enabled (File > Options wiring, mirrors PowerPoint).
+	 * read-only while enabled (File > Options wiring, mirrors PowerPoint),
+	 * unless the user has lifted it via `enableEditing()` for this document.
 	 */
 	protected readonly canEdit = computed(
-		() => this.canEditInput() && !this.viewerOpts.options().trust.openInProtectedView,
+		() =>
+			this.canEditInput() &&
+			(!this.viewerOpts.options().trust.openInProtectedView || this.protectedViewDismissed()),
 	);
+
+	/** Whether the Protected View banner should show: host allows editing, the option still blocks it, and the user hasn't dismissed it yet. */
+	protected readonly protectedViewActive = computed(
+		() =>
+			this.canEditInput() &&
+			this.viewerOpts.options().trust.openInProtectedView &&
+			!this.protectedViewDismissed(),
+	);
+
+	/** Lift Protected View's read-only lock for the current document (File > Options > Trust Center). */
+	protected enableEditing(): void {
+		this.protectedViewDismissed.set(true);
+	}
 
 	/**
 	 * Toolbar/ribbon ids to hide: the host's own `hiddenActions` input, UNIONED
@@ -1882,6 +1929,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			untracked(() => {
 				this.editor.setSlides(slides, this.loader.sections());
 				this.activeSlideIndex.set(0);
+				// A newly opened document is protected again even if the previous
+				// one was unlocked via "Enable Editing" this session.
+				this.protectedViewDismissed.set(false);
 				// Adopt `p:showPr/p:custShow/@id`: a deck authored to open into a
 				// named custom show must actually play it. A manual pick made later
 				// overwrites this and wins until the next deck loads.
