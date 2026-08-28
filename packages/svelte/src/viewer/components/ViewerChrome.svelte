@@ -14,6 +14,7 @@
 	import { readBackstageRecentFile, toggleSheet } from 'pptx-viewer-shared';
 	import type { AccountAuthConfig, ToolbarActionId, ViewerTheme } from 'pptx-viewer-shared';
 
+	import { useTranslator } from '../../i18n/context';
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
 	import Ribbon from './ribbon/Ribbon.svelte';
 	import TitleBar from './TitleBar.svelte';
@@ -52,6 +53,7 @@
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
 	const { loader, viewer, editor, parityUi, chromeUi, findReplace, collab, dialogs, autosaveCtl, exportUi, ai } = vm;
+	const t = useTranslator();
 
 	// Options > Customize Ribbon hides tabs on top of whatever the host already
 	// hid via `hiddenActions`: both feed the same `ToolbarActionId` gate every
@@ -68,7 +70,7 @@
 	// React parity: the full ribbon renders for read-only decks too (with a
 	// read-only badge and inert edits), so it is gated on a loaded deck, not on
 	// `editable`; the badge itself is what reflects the read-only state.
-	const ribbonReadOnly = $derived(!vm.editable || collab.readOnly);
+	const ribbonReadOnly = $derived(!vm.editingActive || collab.readOnly);
 	const toggleAi = $derived(aiEnabled ? () => (ai.panelOpen = !ai.panelOpen) : undefined);
 </script>
 
@@ -86,6 +88,25 @@
 	aiActive={ai.panelOpen}
 	hiddenActions={effectiveHiddenActions}
 />
+{#if vm.protectedViewActive}
+	<div
+		class="pptx-svelte-protected-view-banner flex items-center gap-3 border-b border-amber-700/30 bg-amber-900/20 px-4 py-2"
+		role="status"
+	>
+		<span class="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true">&#128274;</span>
+		<p class="flex-1 text-xs text-amber-200">
+			<strong>{t('pptx.security.protectedViewTitle')}</strong>:
+			{t('pptx.options.trust.protectedViewInfo')}
+		</p>
+		<button
+			type="button"
+			class="shrink-0 rounded border border-amber-600/50 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-700/30"
+			onclick={() => vm.enableEditing()}
+		>
+			{t('pptx.security.enableEditing')}
+		</button>
+	</div>
+{/if}
 <TitleBar
 	{fileName}
 	editable={vm.editingActive}

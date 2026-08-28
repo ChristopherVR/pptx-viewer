@@ -163,6 +163,15 @@ export interface ViewerStateBag {
 	 */
 	editable: boolean;
 	/**
+	 * Whether the Protected View banner should show: the host allows editing,
+	 * Trust Center > "Open presentations in Protected View" is still blocking
+	 * it, and the user hasn't lifted it via {@link enableEditing} for this
+	 * document yet.
+	 */
+	readonly protectedViewActive: boolean;
+	/** Lift Protected View's read-only lock for the current document (File > Options > Trust Center). */
+	enableEditing(): void;
+	/**
 	 * The EFFECTIVE title-bar AutoSave state: the user's preference, or false
 	 * when the host vetoed autosave (the switch renders off and inert rather
 	 * than pretending to work). Mutate via {@link setAutosaveEnabled}, which

@@ -80,15 +80,23 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		editable = next;
 	};
 	// Trust Center > "Open presentations in Protected View" ANDs onto the raw
-	// flag continuously (a live gate, not a one-shot "block on load"): the only
-	// way back to editing a protected deck is unchecking the option in File >
-	// Options, so the gate has to keep listening for that instead of forcing
-	// `editable` false once and leaving no way to reverse it. `editorUi` is a
-	// forward reference (assigned a few lines below, like `getOptionsIntervalSeconds`
-	// elsewhere in this file); safe because this closure is only ever CALLED
-	// later, once construction below has completed.
+	// flag continuously (a live gate, not a one-shot "block on load"), unless
+	// the user has lifted it via the banner's "Enable Editing" button for the
+	// CURRENT document (`protectedViewDismissed`, reset on every new load
+	// below); the option itself is the other way back, since unchecking it
+	// re-enables editing immediately instead of only taking effect on the next
+	// load. `editorUi` is a forward reference (assigned a few lines below, like
+	// `getOptionsIntervalSeconds` elsewhere in this file); safe because this
+	// closure is only ever CALLED later, once construction below has completed.
+	let protectedViewDismissed = $state(false);
 	const getEditable = (): boolean =>
-		editable && !editorUi.optionsState.options.trust.openInProtectedView;
+		editable &&
+		(!editorUi.optionsState.options.trust.openInProtectedView || protectedViewDismissed);
+	const isProtectedViewActive = (): boolean =>
+		editable && editorUi.optionsState.options.trust.openInProtectedView && !protectedViewDismissed;
+	const enableEditing = (): void => {
+		protectedViewDismissed = true;
+	};
 
 	const loader = new PresentationLoader();
 	provideRenderContext({
@@ -150,6 +158,11 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		options,
 		getScale: () => derived.scale,
 		getEditable,
+		// A newly opened document is protected again even if the previous one
+		// was unlocked via "Enable Editing" this session.
+		onNewDocumentLoaded: () => {
+			protectedViewDismissed = false;
+		},
 		// The RAW preference, not the host-gated effective value: the options store
 		// persists what the user chose, and a host shipping `autosave={false}`
 		// must not rewrite that choice for every other host.
@@ -362,6 +375,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		set editable(next: boolean) {
 			editable = next;
 		},
+		/** Whether the Protected View banner should show (see `enableEditing`). */
+		get protectedViewActive() {
+			return isProtectedViewActive();
+		},
+		/** Lift Protected View's read-only lock for the current document (File > Options > Trust Center). */
+		enableEditing,
 		get scale() {
 			return derived.scale;
 		},

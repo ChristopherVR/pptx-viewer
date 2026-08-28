@@ -26,6 +26,8 @@ export interface EditorUiClusterDeps {
 	getScale(): number;
 	/** The live editable flag (not the raw host prop; already ANDs Trust Center's Protected View). */
 	getEditable(): boolean;
+	/** Reset the Protected View "Enable Editing" dismissal; called on every new document load. */
+	onNewDocumentLoaded?(): void;
 	/** Autosave flag + toggle, owned by the collaboration cluster built before this one. */
 	getAutosaveEnabled(): boolean;
 	setAutosaveEnabled(enabled: boolean): void;
@@ -139,6 +141,7 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getOnerror: () => options.onerror,
 		getOnslidechange: () => options.onslidechange,
 		onContentApplied: () => {
+			deps.onNewDocumentLoaded?.();
 			collab.adoptDocAfterLoad(loader.loadOrigin);
 			// `p:showPr/p:custShow/@id` is authored intent: a deck saved with "Set
 			// Up Slide Show > Custom show" plays that subset. It was parsed and
