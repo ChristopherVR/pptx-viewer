@@ -1,5 +1,6 @@
 import { convertEmfToDataUrl, convertWmfToDataUrl } from 'emf-converter';
 
+import { resolveNativeAnimationThemeColors } from '../../services/native-animation-theme-colors';
 import { XmlObject, PptxElement } from '../../types';
 import type { PptxNativeAnimation } from '../../types';
 import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
@@ -58,6 +59,11 @@ export async function decodeTiffToPngBlob(bytes: ArrayBuffer): Promise<Blob | un
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/** Forward declaration implemented later in the runtime inheritance chain. */
+	protected resolveThemeColor(_schemeKey: string): string | undefined {
+		return undefined;
+	}
+
 	/**
 	 * Convert raw image bytes to a URL suitable for <img src>.
 	 * Uses Blob URLs in browsers (avoids 33% base64 overhead),
@@ -291,10 +297,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		slideXml: XmlObject,
 		slidePath: string,
 	): PptxNativeAnimation[] | undefined {
-		const animations = this.nativeAnimationService.parseNativeAnimations(slideXml);
-		if (!animations) {
+		const parsedAnimations = this.nativeAnimationService.parseNativeAnimations(slideXml);
+		if (!parsedAnimations) {
 			return undefined;
 		}
+		const animations = resolveNativeAnimationThemeColors(parsedAnimations, (token) =>
+			this.resolveThemeColor(token),
+		);
 		for (const anim of animations) {
 			if (anim.soundRId) {
 				anim.soundPath = this.resolveRelationshipTarget(slidePath, anim.soundRId);

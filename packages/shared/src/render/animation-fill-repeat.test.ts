@@ -93,4 +93,37 @@ describe('resolveEffectTiming', () => {
 		expect(result.iterationCount).toBe(4);
 		expect(result.holdEndState).toBeTruthy();
 	});
+
+	it('plays an auto-reverse cycle forward and backward before cleanup', () => {
+		const result = resolveEffectTiming(
+			{
+				presetClass: 'emph',
+				fill: 'hold',
+				autoReverse: true,
+				speedPct: undefined,
+				repeatCount: undefined,
+				repeatDurMs: undefined,
+			},
+			250,
+		);
+		expect(result.durationMs).toBe(250);
+		expect(result.iterationCount).toBe(2);
+		expect(result.activeDurationMs).toBe(500);
+	});
+
+	it('counts each repeated auto-reverse cycle as a forward/backward pair', () => {
+		const result = resolveEffectTiming(
+			{
+				presetClass: 'emph',
+				fill: 'remove',
+				autoReverse: true,
+				speedPct: undefined,
+				repeatCount: 3,
+				repeatDurMs: undefined,
+			},
+			200,
+		);
+		expect(result.iterationCount).toBe(6);
+		expect(result.activeDurationMs).toBe(1200);
+	});
 });

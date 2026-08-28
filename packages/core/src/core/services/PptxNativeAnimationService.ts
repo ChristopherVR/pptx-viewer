@@ -21,6 +21,7 @@ import { extractAnimationTarget } from './animation-target-build-helpers';
 import { extractCTnTimingAttrs, extractSeqAttrs } from './animation-timing-attrs';
 import { extractChildKeyframeAttrName } from './native-animation-attr-name';
 import { extractAttributeAnimations } from './native-animation-attribute-components';
+import { extractChildAutoReverseTiming } from './native-animation-child-timing';
 import {
 	extractColorAnimation,
 	extractTextTarget,
@@ -239,8 +240,11 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			// (`p:stCondLst/p:cond @delay`). Reading only the attributes on this node
 			// dropped both, so a "fade in after 1s over 0.4s" effect played
 			// immediately at the 500ms default and no longer matched PowerPoint.
+			const childAutoReverseTiming = extractChildAutoReverseTiming(cTn, ensureArray);
 			const durationMs =
-				readTimingAttr(cTn['@_dur']) ?? extractChildBehaviourDurationMs(cTn, ensureArray);
+				readTimingAttr(cTn['@_dur']) ??
+				childAutoReverseTiming?.durationMs ??
+				extractChildBehaviourDurationMs(cTn, ensureArray);
 			const delayMs = readTimingAttr(cTn['@_delay']) ?? extractStartConditionDelayMs(cTn);
 			const accel = parseTimingPercentFraction(cTn['@_accel']);
 			const decel = parseTimingPercentFraction(cTn['@_decel']);
@@ -373,7 +377,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					attrName: keyframeAttrName,
 					attributeAnimations,
 					repeatCount: repeatInfo.repeatCount,
-					autoReverse: repeatInfo.autoReverse,
+					autoReverse: repeatInfo.autoReverse ?? childAutoReverseTiming?.autoReverse,
 					soundRId: soundInfo.soundRId,
 					stopSound: soundInfo.stopSound,
 					startConditions: startConditions ?? undefined,

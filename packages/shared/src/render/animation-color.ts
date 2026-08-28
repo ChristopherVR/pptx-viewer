@@ -9,6 +9,8 @@ import type { PptxColorAnimation } from 'pptx-viewer-core';
 
 import type { ColorAnimationTarget } from './animation-timeline-types';
 
+const HEX_COLOR = /^#?[0-9a-f]{6}$/iu;
+
 // ==========================================================================
 // Colour conversion utilities
 // ==========================================================================
@@ -302,14 +304,23 @@ function absoluteComponentColor(
 	let effectiveFrom: string;
 	let effectiveTo: string;
 	if (fromColor && toColor) {
+		if (!HEX_COLOR.test(fromColor) || !HEX_COLOR.test(toColor)) {
+			return undefined;
+		}
 		effectiveFrom = fromColor;
 		effectiveTo = toColor;
 	} else if (fromColor && byColor) {
+		if (!HEX_COLOR.test(fromColor) || !HEX_COLOR.test(byColor)) {
+			return undefined;
+		}
 		const fromRgb = hexToRgb(fromColor);
 		const byRgb = hexToRgb(byColor);
 		effectiveFrom = fromColor;
 		effectiveTo = rgbToHex(fromRgb.r + byRgb.r, fromRgb.g + byRgb.g, fromRgb.b + byRgb.b);
 	} else if (toColor) {
+		if (!HEX_COLOR.test(toColor)) {
+			return undefined;
+		}
 		effectiveFrom = '#000000';
 		effectiveTo = toColor;
 	} else {
@@ -347,6 +358,7 @@ export function buildColorAnimationKeyframes(
 		return undefined;
 	}
 	const lines: string[] = [];
+	let hasDeclarations = false;
 	const actualSteps = Math.max(2, steps);
 
 	for (let i = 0; i <= actualSteps; i++) {
@@ -356,22 +368,27 @@ export function buildColorAnimationKeyframes(
 		for (const component of components) {
 			const cssProperties = resolveCssProperties(component.targetAttribute);
 			if (component.hslDelta) {
+				if (component.fromColor && !HEX_COLOR.test(component.fromColor)) {
+					continue;
+				}
 				for (const property of cssProperties) {
 					const color = component.fromColor
 						? applyHslDelta(component.fromColor, component.hslDelta, t)
 						: relativeHslColor(property, component.hslDelta, t);
 					declarations.push(`${property}: ${color};`);
+					hasDeclarations = true;
 				}
 				continue;
 			}
 			const color = absoluteComponentColor(component, t);
 			if (color) {
 				declarations.push(...cssProperties.map((property) => `${property}: ${color};`));
+				hasDeclarations = true;
 			}
 		}
 		const decls = declarations.join(' ');
 		lines.push(`\t${pct}% { ${decls} }`);
 	}
 
-	return `@keyframes ${keyframeName} {\n${lines.join('\n')}\n}`;
+	return hasDeclarations ? `@keyframes ${keyframeName} {\n${lines.join('\n')}\n}` : undefined;
 }

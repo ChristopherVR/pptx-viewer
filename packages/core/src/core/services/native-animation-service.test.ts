@@ -234,6 +234,64 @@ describe('pptxNativeAnimationService.parseNativeAnimations', () => {
 		expect(anim!.autoReverse).toBeTruthy();
 	});
 
+	it('uses timing from an authored auto-reversing child transform behaviour', () => {
+		const slideXml = buildSlideXml(
+			buildTimingWithAnimNode(
+				{
+					'@_presetClass': 'emph',
+					'@_presetID': '26',
+				},
+				{
+					'p:animScale': {
+						'p:cBhvr': {
+							'p:cTn': {
+								'@_dur': '250',
+								'@_autoRev': '1',
+							},
+							'p:tgtEl': {
+								'p:spTgt': { '@_spid': 'shape1' },
+							},
+						},
+						'p:by': { '@_x': '105000', '@_y': '105000' },
+					},
+				},
+			),
+		);
+
+		const result = service.parseNativeAnimations(slideXml);
+		const anim = result?.find((candidate) => candidate.targetId === 'shape1');
+		expect(anim?.durationMs).toBe(250);
+		expect(anim?.autoReverse).toBeTruthy();
+	});
+
+	it('uses timing shared by sibling auto-reversing colour behaviours', () => {
+		const colorBehaviour = (targetAttribute: string) => ({
+			'p:to': { 'a:schemeClr': { '@_val': 'bg1' } },
+			'p:cBhvr': {
+				'p:cTn': { '@_dur': '250', '@_autoRev': '1' },
+				'p:tgtEl': { 'p:spTgt': { '@_spid': 'shape1' } },
+				'p:attrNameLst': { 'p:attrName': targetAttribute },
+			},
+		});
+		const slideXml = buildSlideXml(
+			buildTimingWithAnimNode(
+				{
+					'@_presetClass': 'emph',
+					'@_presetID': '27',
+				},
+				{
+					'p:animClr': [colorBehaviour('style.color'), colorBehaviour('fillcolor')],
+				},
+			),
+		);
+
+		const result = service.parseNativeAnimations(slideXml);
+		const anim = result?.find((candidate) => candidate.targetId === 'shape1');
+		expect(anim?.durationMs).toBe(250);
+		expect(anim?.autoReverse).toBeTruthy();
+		expect(anim?.colorAnimation?.components).toHaveLength(2);
+	});
+
 	it('parses afterDelay trigger from positive delay in start conditions', () => {
 		const slideXml = buildSlideXml(
 			buildTimingWithAnimNode({

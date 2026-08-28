@@ -261,6 +261,19 @@ describe('interpolateColor (HSL)', () => {
 // ==========================================================================
 
 describe('buildColorAnimationKeyframes', () => {
+	it('does not coerce an unresolved theme token into a near-black hex colour', () => {
+		expect(
+			buildColorAnimationKeyframes(
+				{
+					colorSpace: 'rgb',
+					toColor: 'bg1',
+					targetAttribute: 'fillcolor',
+				},
+				'theme-token',
+			),
+		).toBeUndefined();
+	});
+
 	it('generates keyframes for RGB from-to animation', () => {
 		const anim: PptxColorAnimation = {
 			colorSpace: 'rgb',

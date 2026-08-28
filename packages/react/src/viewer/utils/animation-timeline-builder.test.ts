@@ -185,8 +185,7 @@ describe('buildTimeline', () => {
 			} as PptxNativeAnimation),
 		]);
 		const step = result.clickGroups[0].steps[0];
-		expect(step.cssAnimation).toContain('3');
-		expect(step.cssAnimation).toContain('alternate');
+		expect(step.cssAnimation).toContain(' 6 alternate ');
 	});
 
 	it("uses 'infinite' for infinite repeat count", () => {

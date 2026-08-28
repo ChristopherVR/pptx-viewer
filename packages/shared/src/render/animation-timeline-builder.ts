@@ -20,6 +20,7 @@ import { resolveEffectTiming } from './animation-fill-repeat';
 import { resolveFilterPresetSubtype } from './animation-filter-effects';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
+import { canComposeParallelSteps, composeParallelSteps } from './animation-parallel-composition';
 import { resolveAnimationTargetId } from './animation-target-id';
 import { buildColorTavKeyframe, buildOpacityTavKeyframe } from './animation-timeline-absolute';
 import {
@@ -199,6 +200,7 @@ export function buildTimeline(
 	let dynamicUid = 0;
 
 	let currentGroup: TimelineStep[] = [];
+	let currentGroupLastParallelIndex: number | undefined;
 	/** Whether the current group was started by an onClick trigger. */
 	let currentGroupIsClick = false;
 	/**
@@ -329,7 +331,7 @@ export function buildTimeline(
 			// Apply `@spd` / `@repeatDur` / `@fill` (animation-fill-repeat), then
 			// compute direction. A command step carries no timing of its own.
 			const timing = isCommand
-				? { durationMs: 0, iterationCount: 1, holdEndState: false }
+				? { durationMs: 0, iterationCount: 1, activeDurationMs: 0, holdEndState: false }
 				: resolveEffectTiming(singleAnim, baseDuration);
 			const duration = timing.durationMs;
 			const iterCount = timing.iterationCount;
@@ -356,6 +358,7 @@ export function buildTimeline(
 					clickGroups.push(group);
 				}
 				currentGroup = [];
+				currentGroupLastParallelIndex = undefined;
 				currentGroupIsClick = isOnClick || isFirstAnimation;
 				// A group the deck marks as auto-starting plays on slide entry. This
 				// is how PowerPoint renders a deck whose opening effects are "With
@@ -418,20 +421,20 @@ export function buildTimeline(
 						singleAnim,
 						baseCssAnimation,
 						timing.holdEndState,
-						delayMs + duration,
+						delayMs + timing.activeDurationMs,
 						`pptx-tl-dim-${dynamicUid++}`,
 					);
 			if (afterFields.dimKeyframeBlock) {
 				dynamicBlocks.push(afterFields.dimKeyframeBlock);
 			}
 
-			currentGroup.push({
+			const step: TimelineStep = {
 				elementId,
 				cssAnimation: afterFields.cssAnimation,
 				keyframeName: keyframe,
 				trigger,
 				delayMs,
-				durationMs: duration,
+				durationMs: timing.activeDurationMs,
 				fillMode: fill,
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: singleAnim.soundPath,
@@ -447,7 +450,19 @@ export function buildTimeline(
 				seqNextAction: singleAnim.seqNextAction,
 				seqPrevAction: singleAnim.seqPrevAction,
 				exclGroupId: singleAnim.exclGroupId,
-			});
+			};
+			const previousParallelStep = currentGroup[currentGroup.length - 1];
+			if (
+				singleAnim.parGroupIndex !== undefined &&
+				singleAnim.parGroupIndex === currentGroupLastParallelIndex &&
+				previousParallelStep &&
+				canComposeParallelSteps(previousParallelStep, step)
+			) {
+				currentGroup[currentGroup.length - 1] = composeParallelSteps(previousParallelStep, step);
+			} else {
+				currentGroup.push(step);
+			}
+			currentGroupLastParallelIndex = singleAnim.parGroupIndex;
 		}
 	}
 
@@ -565,6 +580,7 @@ function buildSequenceGroups(
 	for (const [shapeId, anims] of animsByKey) {
 		const seqGroups: TimelineClickGroup[] = [];
 		let seqGroup: TimelineStep[] = [];
+		let seqGroupLastParallelIndex: number | undefined;
 		let subGroupIndex: number | undefined;
 		let subGroupStartMs = 0;
 
@@ -630,7 +646,7 @@ function buildSequenceGroups(
 			const presetClass = isCommand ? 'emph' : (anim.presetClass ?? 'entr');
 			const fill = fillModeForClass(anim.presetClass);
 			const timing = isCommand
-				? { durationMs: 0, iterationCount: 1, holdEndState: false }
+				? { durationMs: 0, iterationCount: 1, activeDurationMs: 0, holdEndState: false }
 				: resolveEffectTiming(anim, baseDuration);
 			const duration = timing.durationMs;
 			const iterCount = timing.iterationCount;
@@ -684,20 +700,20 @@ function buildSequenceGroups(
 						anim,
 						baseCssAnimation,
 						timing.holdEndState,
-						delayMs + duration,
+						delayMs + timing.activeDurationMs,
 						`pptx-tl-dim-${dynamicUid++}`,
 					);
 			if (afterFields.dimKeyframeBlock) {
 				dynamicBlocks.push(afterFields.dimKeyframeBlock);
 			}
 
-			seqGroup.push({
+			const step: TimelineStep = {
 				elementId,
 				cssAnimation: afterFields.cssAnimation,
 				keyframeName: keyframe,
 				trigger: seqTrigger,
 				delayMs,
-				durationMs: duration,
+				durationMs: timing.activeDurationMs,
 				fillMode: fill,
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: anim.soundPath,
@@ -713,7 +729,19 @@ function buildSequenceGroups(
 				seqNextAction: anim.seqNextAction,
 				seqPrevAction: anim.seqPrevAction,
 				exclGroupId: anim.exclGroupId,
-			});
+			};
+			const previousParallelStep = seqGroup[seqGroup.length - 1];
+			if (
+				anim.parGroupIndex !== undefined &&
+				anim.parGroupIndex === seqGroupLastParallelIndex &&
+				previousParallelStep &&
+				canComposeParallelSteps(previousParallelStep, step)
+			) {
+				seqGroup[seqGroup.length - 1] = composeParallelSteps(previousParallelStep, step);
+			} else {
+				seqGroup.push(step);
+			}
+			seqGroupLastParallelIndex = anim.parGroupIndex;
 		}
 
 		if (seqGroup.length > 0) {

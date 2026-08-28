@@ -230,8 +230,79 @@ describe('buildTimeline', () => {
 			} as PptxNativeAnimation),
 		]);
 		const step = result.clickGroups[0].steps[0];
-		expect(step.cssAnimation).toContain('3');
-		expect(step.cssAnimation).toContain('alternate');
+		expect(step.cssAnimation).toContain(' 6 alternate ');
+	});
+
+	it('keeps an auto-reverse step active through its backward pass', () => {
+		const result = buildTimeline([
+			makeAnim({
+				presetClass: 'emph',
+				presetId: 26,
+				durationMs: 250,
+				autoReverse: true,
+			}),
+		]);
+		const step = result.clickGroups[0].steps[0];
+		expect(step.cssAnimation).toContain('250ms');
+		expect(step.cssAnimation).toContain(' 2 alternate ');
+		expect(step.durationMs).toBe(500);
+		expect(result.clickGroups[0].totalDurationMs).toBe(500);
+	});
+
+	it('composes parallel transform and colour behaviours on the same target', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'picture1',
+				presetClass: 'emph',
+				presetId: 6,
+				durationMs: 1000,
+				fill: 'hold',
+				scaleByX: 1.2,
+				scaleByY: 1.2,
+				parGroupIndex: 3,
+			}),
+			makeAnim({
+				targetId: 'picture1',
+				trigger: 'withPrevious',
+				presetClass: 'emph',
+				presetId: 7,
+				durationMs: 1000,
+				fill: 'hold',
+				colorAnimation: {
+					colorSpace: 'rgb',
+					toColor: '#7f7f7f',
+					targetAttribute: 'stroke.color',
+				},
+				parGroupIndex: 3,
+			}),
+		]);
+		const group = result.clickGroups[0];
+		expect(group.steps).toHaveLength(1);
+		expect(group.steps[0].cssAnimation).toContain('pptx-tl-scale-');
+		expect(group.steps[0].cssAnimation).toContain('pptx-tl-color-');
+		expect(group.steps[0].colorTargets).toStrictEqual(['stroke']);
+	});
+
+	it('does not compose parallel transform behaviours that animate the same CSS property', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'picture1',
+				presetClass: 'emph',
+				durationMs: 1000,
+				rotationBy: 45,
+				parGroupIndex: 3,
+			}),
+			makeAnim({
+				targetId: 'picture1',
+				trigger: 'withPrevious',
+				presetClass: 'emph',
+				durationMs: 1000,
+				scaleByX: 1.2,
+				scaleByY: 1.2,
+				parGroupIndex: 3,
+			}),
+		]);
+		expect(result.clickGroups[0].steps).toHaveLength(2);
 	});
 
 	it("uses 'infinite' for infinite repeat count", () => {

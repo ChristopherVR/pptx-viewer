@@ -16,7 +16,7 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 /** The subset of a native animation this module's functions need. */
 export type EffectTimingInput = Pick<
 	PptxNativeAnimation,
-	'presetClass' | 'fill' | 'speedPct' | 'repeatCount' | 'repeatDurMs'
+	'presetClass' | 'fill' | 'speedPct' | 'repeatCount' | 'repeatDurMs' | 'autoReverse'
 >;
 
 /** Adjusted duration + iteration count + end-state hold decision for a step. */
@@ -25,6 +25,8 @@ export interface EffectTimingResolution {
 	durationMs: number;
 	/** CSS `animation-iteration-count` value: a finite count, or `Infinity`. */
 	iterationCount: number;
+	/** Total finite active window, including repeat and auto-reverse passes. */
+	activeDurationMs: number;
 	/** See {@link import('./animation-timeline-types').TimelineStep.holdEndState}. */
 	holdEndState: boolean;
 }
@@ -93,10 +95,18 @@ export function resolveEffectTiming(
 	baseDurationMs: number,
 ): EffectTimingResolution {
 	const durationMs = applySpeedToDuration(anim.speedPct, baseDurationMs);
-	const iterationCount = resolveIterationCount(anim.repeatCount, anim.repeatDurMs, durationMs);
+	const authoredIterations = resolveIterationCount(anim.repeatCount, anim.repeatDurMs, durationMs);
+	const iterationCount =
+		anim.autoReverse && anim.repeatDurMs === undefined
+			? authoredIterations * 2
+			: authoredIterations;
+	const activeDurationMs = Number.isFinite(iterationCount)
+		? durationMs * iterationCount
+		: durationMs;
 	return {
 		durationMs,
 		iterationCount,
+		activeDurationMs,
 		holdEndState: shouldHoldEndState(anim),
 	};
 }
