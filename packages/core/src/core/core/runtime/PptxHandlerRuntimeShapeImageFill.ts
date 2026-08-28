@@ -84,6 +84,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const rEmbed = xmlAttr(blip, 'r:embed');
 			const rLink = xmlAttr(blip, 'r:link');
 			const crop = this.readImageCropFromBlipFill(blipFill);
+			// A shape image fill carries the same blip effects as a regular p:pic.
+			// Dropping these made authored transparency such as
+			// <a:alphaModFix amt="15000"/> render at full opacity.
+			const imageEffects = this.extractImageEffects(blip);
 
 			// Image tiling properties from a:tile
 			const tileNode = blipFill?.['a:tile'] as XmlObject | undefined;
@@ -176,6 +180,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				height,
 				imageData,
 				imagePath,
+				imageEffects: imageEffects || undefined,
 				...crop,
 				...tileProps,
 				shapeType,
