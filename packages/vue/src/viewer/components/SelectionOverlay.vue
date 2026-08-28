@@ -210,9 +210,17 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 	   handles and the per-box drag body (which are re-enabled below) do.
 	   50 left a slide with 50+ elements able to paint its topmost elements
 	   above this host, hiding the selected element's own handles behind its
-	   own fill; bumped to match the other four bindings' headroom. */
+	   own fill; bumped for headroom, but capped at 55, NOT 58 like the other
+	   bindings: a connector's own selection box still renders its
+	   `pptx-vue-selection-body` move-drag hit area (every selected element
+	   gets one, connectors included), and going to 58 put that above
+	   ConnectorEndpointOverlay (56) - it then swallowed `elementFromPoint` at
+	   the drop coordinates during endpoint authoring, so dropping an
+	   endpoint on empty canvas (inside the connector's own bounding box,
+	   between the shapes it spans) read back whatever site the endpoint
+	   started on instead of detaching. */
 	pointer-events: none;
-	z-index: 58;
+	z-index: 55;
 }
 
 .pptx-vue-selection-box {

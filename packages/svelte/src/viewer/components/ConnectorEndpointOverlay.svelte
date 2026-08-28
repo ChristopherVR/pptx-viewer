@@ -81,11 +81,21 @@
 </div>
 
 <style>
+	/*
+	 * Above SelectionOverlay's z-index (58): a connector's own selection box
+	 * still renders a `pptx-svelte-selection-body` move-drag hit area (every
+	 * selected element gets one, connectors included), which used to sit
+	 * above this overlay whenever SelectionOverlay's z-index climbed past 6 -
+	 * it swallowed `elementFromPoint` at the drop coordinates during endpoint
+	 * authoring, so dropping an endpoint on empty canvas (inside the
+	 * connector's own bounding box, between the shapes it spans) read back
+	 * whatever site the endpoint started on instead of detaching.
+	 */
 	.pptx-svelte-connector-endpoints {
 		position: absolute;
 		inset: 0;
 		pointer-events: none;
-		z-index: 6;
+		z-index: 59;
 	}
 
 	.pptx-svelte-connection-site {

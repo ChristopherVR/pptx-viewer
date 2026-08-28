@@ -116,7 +116,13 @@
 	   resize/rotate handles behind its own fill (worst on a rotated shape,
 	   where the rotate knob deliberately overlaps the box) and stealing their
 	   clicks. Pinned above any realistic per-slide element count, matching the
-	   React binding's `SelectionHandleOverlay` (z-index 58). */
+	   React binding's `SelectionHandleOverlay` (z-index 58).
+
+	   Below ConnectorEndpointOverlay (59): this host still renders a
+	   move-drag hit area for a connector's own selection box, which must not
+	   sit above the connector-endpoint-authoring layer or it swallows
+	   `elementFromPoint` during endpoint drag/detach (see
+	   ConnectorEndpointOverlay's z-index comment). */
 	.pptx-svelte-editor-overlay {
 		position: absolute;
 		inset: 0;
