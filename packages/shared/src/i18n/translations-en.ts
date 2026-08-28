@@ -1833,9 +1833,6 @@ export const translationsEn: Record<string, string> = {
 	'pptx.viewer.digitalSignatures': 'Digital Signatures',
 	'pptx.viewer.elementProperties': 'Element Properties',
 	'pptx.viewer.slideProperties': 'Slide Properties',
-	'pptx.viewer.protectedViewBanner':
-		'Protected View. This file was opened read-only because Trust Center > Protected View is on.',
-	'pptx.viewer.enableEditing': 'Enable Editing',
 	// Angular ribbon / mobile / notes / share / security (additions from sweep batch 3)
 	'pptx.common.close': 'Close',
 	'pptx.common.save': 'Save',
