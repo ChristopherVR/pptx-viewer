@@ -22,7 +22,12 @@ const { t } = useI18n();
 const page = ref<BackstagePage>('home');
 const query = ref('');
 const recent = ref<BackstageRecentFile[]>([]);
-onMounted(() => void listBackstageRecentFiles(t).then((items) => (recent.value = items)));
+onMounted(
+	() =>
+		void listBackstageRecentFiles(t, props.recentPresentationsCount).then(
+			(items) => (recent.value = items),
+		),
+);
 const visibleRecent = computed(() => {
 	const q = query.value.trim().toLowerCase();
 	return q

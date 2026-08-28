@@ -86,6 +86,14 @@ function pressKey(key: string): void {
 	window.dispatchEvent(new KeyboardEvent('keydown', { key }));
 }
 
+/** Right-click the (teleported) presentation overlay to open its context menu. */
+function rightClickOverlay(): void {
+	const overlay = document.querySelector('.pptx-vue-presentation');
+	overlay?.dispatchEvent(
+		new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 20 }),
+	);
+}
+
 /** Let a 10 ms authored timing elapse and Vue flush the resulting render. */
 async function settle(): Promise<void> {
 	await new Promise((resolve) => {
@@ -410,6 +418,79 @@ describe('presentationMode end of show', () => {
 		pressKey('ArrowRight');
 		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('close')).toHaveLength(1);
+		wrapper.unmount();
+	});
+});
+
+describe('presentationMode right-click menu', () => {
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('opens a menu on right-click by default', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
+		rightClickOverlay();
+		await wrapper.vm.$nextTick();
+		expect(document.querySelector('[data-pptx-context-menu]')).not.toBeNull();
+		expect(document.querySelector('[data-item-id="next"]')).not.toBeNull();
+		expect(document.querySelector('[data-item-id="endShow"]')).not.toBeNull();
+		wrapper.unmount();
+	});
+
+	it('never opens when the option is off', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')], 0, false, undefined, {
+			showMenuOnRightClick: false,
+		});
+		rightClickOverlay();
+		await wrapper.vm.$nextTick();
+		expect(document.querySelector('[data-pptx-context-menu]')).toBeNull();
+		wrapper.unmount();
+	});
+
+	it('advances the slide and closes when "Next Slide" is chosen', async () => {
+		const wrapper = mountMode([makeSlide('s1'), makeSlide('s2')]);
+		rightClickOverlay();
+		await wrapper.vm.$nextTick();
+		const next = document.querySelector<HTMLButtonElement>('[data-item-id="next"]');
+		next?.click();
+		await wrapper.vm.$nextTick();
+		expect(document.querySelector('[data-pptx-context-menu]')).toBeNull();
+		expect(wrapper.emitted('slide-change')?.at(-1)).toStrictEqual([1]);
+		wrapper.unmount();
+	});
+
+	it('ends the show when "End Presentation" is chosen', async () => {
+		const wrapper = mountMode([makeSlide('s1')]);
+		rightClickOverlay();
+		await wrapper.vm.$nextTick();
+		const end = document.querySelector<HTMLButtonElement>('[data-item-id="endShow"]');
+		end?.click();
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('close')).toHaveLength(1);
+		wrapper.unmount();
+	});
+});
+
+describe('presentationMode popup toolbar', () => {
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('reveals the floating toolbar on mousemove by default', async () => {
+		const wrapper = mountMode([makeSlide('s1')]);
+		window.dispatchEvent(new MouseEvent('mousemove'));
+		await wrapper.vm.$nextTick();
+		expect(document.querySelector('.pptx-vue-presentation-toolbar-slot.is-visible')).not.toBeNull();
+		wrapper.unmount();
+	});
+
+	it('never auto-reveals when the option is off', async () => {
+		const wrapper = mountMode([makeSlide('s1')], 0, false, undefined, {
+			showPopupToolbar: false,
+		});
+		window.dispatchEvent(new MouseEvent('mousemove'));
+		await wrapper.vm.$nextTick();
+		expect(document.querySelector('.pptx-vue-presentation-toolbar-slot.is-visible')).toBeNull();
 		wrapper.unmount();
 	});
 });

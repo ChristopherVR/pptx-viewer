@@ -8,9 +8,11 @@
  */
 import { ChevronDown, ChevronUp } from 'lucide-vue-next';
 import type { ToolbarActionId, ToolbarTabDefinition } from 'pptx-viewer-shared';
+import { inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { ScreenTipKey } from '../../composables/useViewerOptionsStore';
 import type { ToolbarSection, ViewerMode } from './ribbon-types';
 import TabRowActions from './TabRowActions.vue';
 
@@ -22,7 +24,6 @@ interface Props {
 	onEnterRehearsalMode?: () => void;
 	onSetMode: (mode: ViewerMode) => void;
 	onOpenShareDialog?: () => void;
-	onPackageForSharing?: () => void;
 	isCollaborating?: boolean;
 	collaboratorCount?: number;
 	hiddenActions?: ToolbarActionId[];
@@ -32,6 +33,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const screenTip = inject(ScreenTipKey, (label: string) => label);
 </script>
 
 <template>
@@ -45,6 +47,7 @@ const { t } = useI18n();
 			type="button"
 			role="tab"
 			:aria-selected="props.toolbarSection === sec.id"
+			:title="screenTip(t(sec.labelKey))"
 			:class="
 				cn(
 					'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors max-md:min-h-[36px] max-md:px-3',
@@ -69,7 +72,6 @@ const { t } = useI18n();
 					: undefined
 			"
 			:on-open-share-dialog="props.onOpenShareDialog"
-			:on-package-for-sharing="props.onPackageForSharing"
 			:is-collaborating="props.isCollaborating"
 			:collaborator-count="props.collaboratorCount"
 			:hidden-actions="props.hiddenActions"

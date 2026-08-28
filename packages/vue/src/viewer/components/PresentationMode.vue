@@ -19,16 +19,21 @@
  * and last slide, Esc exits, and a click on the stage advances.
  */
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type { PresentationContextMenuActionId } from 'pptx-viewer-shared';
 import {
 	ANIMATION_KEYFRAMES_CSS,
+	DEFAULT_VIEWER_OPTIONS,
 	endAudienceDisplay,
+	getPresentationContextMenuSections,
 	handlePresentationStageClick,
 	mayLeaveSlideShow,
 	PRESENT_TOOLBAR_METRICS,
 	PRESENTATION_HIT_TEST_CSS,
+	shouldConfirmExternalHyperlink,
 	toggleBlackboard,
 } from 'pptx-viewer-shared';
-import { computed, onMounted, ref } from 'vue';
+import { computed, inject, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { providePresentationElementStates } from '../composables/presentation-element-states';
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
@@ -45,8 +50,11 @@ import { usePresenterSession } from '../composables/usePresenterSession';
 import { useSlideAutoAdvance } from '../composables/useSlideAutoAdvance';
 import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
 import { useTouchGestures } from '../composables/useTouchGestures';
+import { ViewerOptionsKey } from '../composables/useViewerOptionsStore';
 import { provideZoomNavigation } from '../composables/zoom-navigation';
 import type { CanvasSize } from '../types';
+import type { ContextMenuItem } from './ContextMenu.vue';
+import ContextMenu from './ContextMenu.vue';
 import KeepAnnotationsDialog from './KeepAnnotationsDialog.vue';
 import MobilePresenterView from './MobilePresenterView.vue';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
@@ -73,12 +81,16 @@ const props = withDefaults(
 		/** File > Options > Advanced > Slide Show behavior flags. */
 		endWithBlackSlide?: boolean;
 		promptKeepInkAnnotations?: boolean;
+		showMenuOnRightClick?: boolean;
+		showPopupToolbar?: boolean;
 	}>(),
 	{
 		startIndex: 0,
 		startInPresenterView: false,
 		endWithBlackSlide: true,
 		promptKeepInkAnnotations: true,
+		showMenuOnRightClick: true,
+		showPopupToolbar: true,
 	},
 );
 
@@ -94,6 +106,15 @@ const emit = defineEmits<{
 
 const overlayRef = ref<HTMLDivElement | null>(null);
 const frameRef = ref<HTMLDivElement | null>(null);
+
+const { t } = useI18n();
+// Absent when this overlay is mounted without a `PowerPointViewer` ancestor
+// (e.g. an isolated test fixture): the Trust Center default then applies.
+const viewerOptions = inject(ViewerOptionsKey, undefined);
+// Options > Accessibility > "reduced motion": this overlay is <Teleport>-ed to
+// `document.body`, outside the `.pptx-vue-viewer` subtree the option's other
+// root class lands on, so it needs its own copy of the class (see theme.css).
+const reducedMotion = computed(() => viewerOptions?.value.accessibility.reducedMotion ?? false);
 
 // -- Navigation --------------------------------------------------------
 // Declaration order below is load-bearing: `usePresenterSession` and
@@ -280,7 +301,9 @@ const inkMarkupVisible = ref(true);
  * `useToolbarAutoHide` for why (it otherwise sits over the persistent touch
  * controls' fixed prev/next buttons).
  */
-const { toolbarVisible, setToolbarVisible } = useToolbarAutoHide();
+const { toolbarVisible, setToolbarVisible } = useToolbarAutoHide({
+	enabled: () => props.showPopupToolbar,
+});
 
 /** Toolbar `move(+-1)` -> next/prev. */
 function onToolbarMove(direction: 1 | -1): void {
@@ -308,6 +331,96 @@ function onToggleBlackboard(): void {
 }
 
 /**
+ * Set (or clear) the whole-screen blank, independent of the toolbar's
+ * pen-coupled Blackboard toggle: clicking an already-active colour turns the
+ * blank off, matching the keyboard B/W shortcuts in `usePresentationKeyboard`.
+ */
+function setBlankScreen(value: 'black' | 'white'): void {
+	const current = presenterSession.snapshot.value.blackout;
+	presenterSession.updateSnapshot({ blackout: current === value ? 'none' : value });
+}
+
+// -- Slide-show right-click menu ----------------------------------------
+// Options > Advanced > "Show menu on right mouse click": while presenting,
+// right-click opens a minimal Next/Previous/End Show menu (plus pointer
+// tools, See All Slides, Presenter View and the black/white blank screen);
+// with the option off, right-click is swallowed entirely (no browser menu
+// either). Item order/grouping/i18n keys come from the shared
+// `getPresentationContextMenuSections` so this menu cannot drift from React's.
+const contextMenuState = ref<{ x: number; y: number } | null>(null);
+
+const contextMenuItems = computed<ContextMenuItem[]>(() => {
+	const sections = getPresentationContextMenuSections({
+		seeAllSlides: true,
+		presenterView: true,
+		pointerTools: true,
+		eraseInk: true,
+		blankBlack: true,
+		blankWhite: true,
+	});
+	const items: ContextMenuItem[] = [];
+	sections.forEach((section, sectionIndex) => {
+		if (sectionIndex > 0) {
+			items.push({ id: `sep-${section.id}`, label: '', separator: true });
+		}
+		for (const item of section.items) {
+			items.push({ id: item.id, label: t(item.labelKey) });
+		}
+	});
+	return items;
+});
+
+function onOverlayContextMenu(event: MouseEvent): void {
+	event.preventDefault();
+	if (!props.showMenuOnRightClick) {
+		return;
+	}
+	contextMenuState.value = { x: event.clientX, y: event.clientY };
+}
+
+function onContextMenuSelect(id: string): void {
+	switch (id as PresentationContextMenuActionId) {
+		case 'next':
+			nav.next();
+			break;
+		case 'previous':
+			nav.prev();
+			break;
+		case 'seeAllSlides':
+			presenterMode.value = true;
+			openSlideGridNonce.value += 1;
+			break;
+		case 'presenterView':
+			presenterMode.value = !presenterMode.value;
+			break;
+		case 'pointerArrow':
+			annotations.setPresentationTool('none');
+			break;
+		case 'pointerPen':
+			annotations.setPresentationTool('pen');
+			break;
+		case 'pointerHighlighter':
+			annotations.setPresentationTool('highlighter');
+			break;
+		case 'pointerLaser':
+			annotations.setPresentationTool('laser');
+			break;
+		case 'eraseInk':
+			annotations.clearAnnotations();
+			break;
+		case 'blankBlack':
+			setBlankScreen('black');
+			break;
+		case 'blankWhite':
+			setBlankScreen('white');
+			break;
+		case 'endShow':
+			close();
+			break;
+	}
+}
+
+/**
  * How an on-slide Action Setting (`a:hlinkClick`) navigates this show.
  * `goTo` is deliberately the unfiltered jump: an action names its target slide
  * outright, hidden or not, exactly as PowerPoint's typed slide number does.
@@ -326,6 +439,16 @@ const actionRunner = {
 	},
 	endShow: () => {
 		close();
+	},
+	// Trust Center > "Confirm before opening external hyperlinks", for an
+	// on-slide Action Setting that opens a URL (the run-level `<a href>` gate
+	// lives in `SlideTextRunBase.vue`; this covers a shape's own action).
+	confirmUrl: (url: string) => {
+		const options = viewerOptions?.value ?? DEFAULT_VIEWER_OPTIONS;
+		if (!shouldConfirmExternalHyperlink(options, url)) {
+			return true;
+		}
+		return window.confirm(`${t('pptx.options.trust.confirmHyperlinks')}\n\n${url}`);
 	},
 };
 
@@ -368,10 +491,7 @@ usePresentationKeyboard({
 	subtitlesOn,
 	toolbarVisible,
 	setToolbarVisible,
-	setBlackout: (value) => {
-		const current = presenterSession.snapshot.value.blackout;
-		presenterSession.updateSnapshot({ blackout: current === value ? 'none' : value });
-	},
+	setBlackout: setBlankScreen,
 	// PowerPoint's Ctrl+S is "See All Slides", not "open presenter view": raising
 	// the console alone left the presenter one more click away from the grid the
 	// shortcut is named after, and nothing on screen said which click.
@@ -410,7 +530,13 @@ useTouchGestures({
 
 <template>
 	<Teleport to="body">
-		<div ref="overlayRef" class="pptx-vue-presentation" @click="onOverlayClick">
+		<div
+			ref="overlayRef"
+			class="pptx-vue-presentation"
+			:class="{ 'pptx-vue-reduced-motion': reducedMotion }"
+			@click="onOverlayClick"
+			@contextmenu="onOverlayContextMenu"
+		>
 			<!-- Inject the static preset @keyframes plus this slide's native-animation
 			     (`p:timing`) keyframes (staged builds + `p:animClr` colour stops),
 			     plus the show's hit-testing rule: scenery is pointer-transparent so a
@@ -563,6 +689,16 @@ useTouchGestures({
 					@toggle-blackboard="onToggleBlackboard"
 				/>
 			</div>
+
+			<!-- Slide-show right-click menu. -->
+			<ContextMenu
+				:open="contextMenuState !== null"
+				:x="contextMenuState?.x ?? 0"
+				:y="contextMenuState?.y ?? 0"
+				:items="contextMenuItems"
+				@select="onContextMenuSelect"
+				@close="contextMenuState = null"
+			/>
 
 			<!-- Keep-or-discard ink annotations on exit. -->
 			<KeepAnnotationsDialog

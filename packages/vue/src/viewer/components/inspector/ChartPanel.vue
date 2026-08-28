@@ -2,12 +2,13 @@
 import { X } from 'lucide-vue-next';
 import type { ChartPptxElement, PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
 import { GROUPING_OPTIONS, GROUPING_SUPPORTED_TYPES, CHART_TYPE_OPTIONS } from 'pptx-viewer-shared';
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectChartCanvasEdit } from '../../composables/chart-part-selection';
 import { useChartEditing } from '../../composables/useChartEditing';
 import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
+import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
 import ChartAxisOptions from './ChartAxisOptions.vue';
 import ChartAxisStyleOptions from './ChartAxisStyleOptions.vue';
 import ChartComboTypeOptions from './ChartComboTypeOptions.vue';
@@ -78,7 +79,16 @@ function emitChartData(next: PptxChartData): void {
 	emit('update', { chartData: next } as Partial<PptxElement>);
 }
 
-const editing = useChartEditing(chartElement, chartData, emitChartData);
+// File > Options > Advanced > "Properties follow chart data point for
+// current workbook": whether per-point manual formatting re-indexes with the
+// underlying data (default) or stays pinned to its old position. Undefined
+// (no provider, e.g. a standalone unit test) falls back to PowerPoint's own
+// default of `true`.
+const viewerOptions = inject(ViewerOptionsKey, undefined);
+const getFollowDataPoint = (): boolean =>
+	viewerOptions?.value.advanced.chartPropertiesFollowDataPoint ?? true;
+
+const editing = useChartEditing(chartElement, chartData, emitChartData, getFollowDataPoint);
 
 // Series colour commits are debounced (~180ms) so dragging through the native
 // colour picker collapses into one history-friendly update, matching React.

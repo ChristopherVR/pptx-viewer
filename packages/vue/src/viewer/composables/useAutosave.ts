@@ -202,6 +202,19 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 		{ flush: 'sync' },
 	);
 
+	// File > Options > Save > "AutoRecover interval": re-arm a PENDING timer
+	// immediately when the cadence changes, rather than only picking up the new
+	// value on the next edit. Harmless when `intervalMs` is a plain number
+	// (the getter never changes, so this never re-fires).
+	watch(
+		() => toValue(intervalMs),
+		() => {
+			if (timerId !== null) {
+				scheduleSave();
+			}
+		},
+	);
+
 	onScopeDispose(() => {
 		clearTimer();
 	});

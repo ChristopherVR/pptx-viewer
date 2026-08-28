@@ -46,10 +46,21 @@
 }
 
 /* ── Reduced motion ─────────────────────────────────────────────────── */
+/*
+ * `.pptx-vue-presentation` is included alongside `.pptx-vue-viewer` here
+ * because Present mode (`PresentationMode.vue`) is <Teleport>-ed to
+ * `document.body`, outside the `.pptx-vue-viewer` subtree: without this, a
+ * slide show's transitions/morph ignored both the OS setting and Options >
+ * Accessibility > "reduced motion" even though the editing canvas respected
+ * both.
+ */
 @media (prefers-reduced-motion: reduce) {
 	.pptx-vue-viewer *,
 	.pptx-vue-viewer *::before,
-	.pptx-vue-viewer *::after {
+	.pptx-vue-viewer *::after,
+	.pptx-vue-presentation *,
+	.pptx-vue-presentation *::before,
+	.pptx-vue-presentation *::after {
 		animation-duration: 0.01ms !important;
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
@@ -59,7 +70,10 @@
 
 .pptx-vue-viewer.pptx-vue-reduced-motion *,
 .pptx-vue-viewer.pptx-vue-reduced-motion *::before,
-.pptx-vue-viewer.pptx-vue-reduced-motion *::after {
+.pptx-vue-viewer.pptx-vue-reduced-motion *::after,
+.pptx-vue-presentation.pptx-vue-reduced-motion *,
+.pptx-vue-presentation.pptx-vue-reduced-motion *::before,
+.pptx-vue-presentation.pptx-vue-reduced-motion *::after {
 	animation-duration: 0.01ms !important;
 	animation-iteration-count: 1 !important;
 	scroll-behavior: auto !important;
@@ -73,6 +87,34 @@
 	animation-iteration-count: 1 !important;
 	transition-duration: 0.01ms !important;
 	scroll-behavior: auto !important;
+}
+
+/* ── Hardware acceleration (Options > Advanced > "Disable hardware
+ * graphics acceleration"). Strips the GPU-compositing hints (will-change,
+ * backface-visibility, perspective) transitions/3D effects rely on, for
+ * users on underpowered/unstable graphics drivers. See
+ * `resolveOptionRootClasses` in pptx-viewer-shared.
+ */
+.pptx-vue-viewer.pptx-vue-no-hw-accel *,
+.pptx-vue-viewer.pptx-vue-no-hw-accel *::before,
+.pptx-vue-viewer.pptx-vue-no-hw-accel *::after {
+	will-change: auto !important;
+	backface-visibility: visible !important;
+	perspective: none !important;
+}
+
+/* ── Display optimization (Options > General > "Optimize for compatibility")
+ * Drops shadow/blur/blend-mode effects across the viewer, mirroring
+ * PowerPoint's own degraded-effects mode for older/weaker hardware. See
+ * `resolveOptionRootClasses` in pptx-viewer-shared.
+ */
+.pptx-vue-viewer.pptx-vue-compat-display *,
+.pptx-vue-viewer.pptx-vue-compat-display *::before,
+.pptx-vue-viewer.pptx-vue-compat-display *::after {
+	box-shadow: none !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	mix-blend-mode: normal !important;
 }
 
 /* ── Custom scrollbar styling (matches React) ───────────────────────── */

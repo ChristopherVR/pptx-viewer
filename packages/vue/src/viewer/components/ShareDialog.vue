@@ -7,10 +7,11 @@ import {
 	buildJoinCollaborationConfig,
 	resolveTransportForServerUrl,
 } from 'pptx-viewer-shared';
-import { computed, ref, watch } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { UseCollaborationResult } from '../composables/useCollaboration';
+import { ViewerOptionsKey } from '../composables/useViewerOptionsStore';
 import ModalDialog from './ModalDialog.vue';
 
 /**
@@ -35,6 +36,8 @@ const props = defineProps<{
 	/** The config the active session was started with; null while stopped. */
 	activeCollaboration?: CollaborationConfig | null;
 }>();
+
+const viewerOptions = inject(ViewerOptionsKey, undefined);
 
 const emit = defineEmits<{
 	/** Fired with the assembled config when the user starts sharing. */
@@ -111,6 +114,7 @@ const sessionUsers = computed(() => {
 	}
 	return buildActiveSessionUsers({
 		localUserName: props.activeCollaboration.userName,
+		localUserInitials: viewerOptions?.value.general.userInitials,
 		localUserColor: props.activeCollaboration.userColor,
 		remoteUsers: props.collab.remotePresences.value.map((peer) => ({
 			clientId: peer.clientId,

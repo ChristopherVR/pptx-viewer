@@ -191,6 +191,8 @@ export interface RibbonProps {
 	collaboratorCount?: number;
 	/** Toolbar buttons / ribbon tabs the host has asked to hide. Undefined/empty hides nothing. */
 	hiddenActions?: ToolbarActionId[];
+	/** File > Options > Advanced > "Quickly access this number of Recent Documents". */
+	recentPresentationsCount?: number;
 	/** True when the host opted into the AI assistant (the `ai` prop is set). */
 	aiEnabled?: boolean;
 	/** Whether the AI chat panel is currently open (drives the toggle's active state). */
@@ -264,7 +266,6 @@ export interface RibbonProps {
 	onExportGif: () => void;
 	/** Serialise the deck to pptx-viewer-json and download it (Export page card). */
 	onExportJson: () => void;
-	onPackageForSharing: () => void;
 	onOpenShareDialog?: () => void;
 	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;

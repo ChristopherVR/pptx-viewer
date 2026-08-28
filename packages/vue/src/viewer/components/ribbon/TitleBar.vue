@@ -57,10 +57,14 @@ const viewerOptions = inject(ViewerOptionsKey, undefined);
 const quickAccess = computed(
 	() => viewerOptions?.value.quickAccess ?? DEFAULT_VIEWER_OPTIONS.quickAccess,
 );
+// Options > Quick Access Toolbar > position: when set to "below the Ribbon",
+// `PowerPointViewer.vue` renders the strip in its own row under the ribbon
+// instead, so the title bar suppresses its inline copy to avoid duplicates.
 const extraQuickCommands = computed(() =>
-	(quickAccess.value.visible ? extraQuickAccessCommands(quickAccess.value.commandIds) : []).map(
-		(command) => ({ id: command.id, label: t(command.labelKey), icon: command.icon }),
-	),
+	(quickAccess.value.visible && quickAccess.value.position !== 'below'
+		? extraQuickAccessCommands(quickAccess.value.commandIds)
+		: []
+	).map((command) => ({ id: command.id, label: t(command.labelKey), icon: command.icon })),
 );
 
 const editing = computed(() => (props.mode === 'edit' || props.mode === 'master') && props.canEdit);

@@ -22,7 +22,6 @@ import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 interface Props {
 	onEnterRehearsalMode?: () => void;
 	onOpenShareDialog?: () => void;
-	onPackageForSharing?: () => void;
 	isCollaborating?: boolean;
 	collaboratorCount?: number;
 	/** Toolbar buttons the host has asked to hide (gates Record + Share below). */
@@ -64,7 +63,7 @@ const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 					: t('pptx.toolbar.share')
 			"
 			:aria-label="t('pptx.toolbar.share')"
-			@click="(props.onOpenShareDialog ?? props.onPackageForSharing)?.()"
+			@click="props.onOpenShareDialog?.()"
 		>
 			<Share2 class="w-3 h-3" />
 			<span>

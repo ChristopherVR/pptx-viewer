@@ -20,9 +20,11 @@
  *  - `close` : the dialog was dismissed.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
-import { computed, ref, watch } from 'vue';
+import { DEFAULT_VIEWER_OPTIONS, resolveDefaultPrintSettings } from 'pptx-viewer-shared';
+import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { ViewerOptionsKey } from '../composables/useViewerOptionsStore';
 import ModalDialog from './ModalDialog.vue';
 import {
 	computePageCount,
@@ -57,11 +59,21 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
+// File > Options > Advanced > Print. `undefined` (Options > "Use the most
+// recently used print settings") keeps this dialog's own sticky in-session
+// ref state below, since it is only reseeded when the dialog re-opens.
+const injectedViewerOptions = inject(ViewerOptionsKey, undefined);
+const printOptionDefaults = computed(() =>
+	resolveDefaultPrintSettings(injectedViewerOptions?.value ?? DEFAULT_VIEWER_OPTIONS),
+);
+
 // ── State ──────────────────────────────────────────────────────────────
-const printWhat = ref<PrintWhat>('slides');
+const printWhat = ref<PrintWhat>(printOptionDefaults.value?.printWhat ?? 'slides');
 const orientation = ref<PrintOrientation>('landscape');
-const colorMode = ref<PrintColorMode>('color');
-const frameSlides = ref<boolean>(props.defaultFrameSlides ?? false);
+const colorMode = ref<PrintColorMode>(printOptionDefaults.value?.colorMode ?? 'color');
+const frameSlides = ref<boolean>(
+	printOptionDefaults.value?.frameSlides ?? props.defaultFrameSlides ?? false,
+);
 const slidesPerPage = ref<HandoutSlidesPerPage>(resolveSlidesPerPage(props.defaultSlidesPerPage));
 const slideRange = ref<PrintSlideRange>('all');
 const customFrom = ref<number>(1);
@@ -72,10 +84,11 @@ watch(
 	() => props.open,
 	(isOpen) => {
 		if (isOpen) {
-			printWhat.value = 'slides';
+			const defaults = printOptionDefaults.value;
+			printWhat.value = defaults?.printWhat ?? 'slides';
 			orientation.value = 'landscape';
-			colorMode.value = 'color';
-			frameSlides.value = props.defaultFrameSlides ?? false;
+			colorMode.value = defaults?.colorMode ?? 'color';
+			frameSlides.value = defaults?.frameSlides ?? props.defaultFrameSlides ?? false;
 			slidesPerPage.value = resolveSlidesPerPage(props.defaultSlidesPerPage);
 			slideRange.value = 'all';
 			customFrom.value = 1;
@@ -129,6 +142,9 @@ function confirmPrint(): void {
 		slideRange: slideRange.value,
 		customRangeFrom: Math.max(1, Math.min(customFrom.value, totalSlides.value || 1)),
 		customRangeTo: Math.max(1, Math.min(customTo.value, totalSlides.value || 1)),
+		// Options > Advanced > "Print scale to fit"; no dialog control of its own
+		// (PowerPoint keeps this an Options default, not a per-job choice).
+		scaleToFit: printOptionDefaults.value?.scaleToFit ?? true,
 	});
 }
 </script>

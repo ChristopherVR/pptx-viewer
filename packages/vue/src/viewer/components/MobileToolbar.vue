@@ -133,7 +133,7 @@ const BTN =
 			:class="cn(BTN, 'bg-primary px-3 text-white hover:bg-primary/90')"
 			:title="t('pptx.toolbar.share')"
 			:aria-label="t('pptx.toolbar.share')"
-			@click="(props.onOpenShareDialog ?? props.onPackageForSharing)()"
+			@click="props.onOpenShareDialog?.()"
 		>
 			<Share2 class="h-4 w-4" />
 		</button>

@@ -11,15 +11,47 @@
  * inline `m:oMath` rendered as nothing at all, and a furigana reading vanished.
  */
 import type { ParagraphRun } from 'pptx-viewer-shared';
-import { runEquationMathMl } from 'pptx-viewer-shared';
-import { computed } from 'vue';
+import {
+	DEFAULT_VIEWER_OPTIONS,
+	runEquationMathMl,
+	shouldConfirmExternalHyperlink,
+} from 'pptx-viewer-shared';
+import { computed, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+import { ViewerOptionsKey } from '../composables/useViewerOptionsStore';
 import SlideTextRunContent from './SlideTextRunContent.vue';
 
 const props = defineProps<{ run: ParagraphRun }>();
 
+const { t } = useI18n();
+// Absent when this run renders outside a `PowerPointViewer` (an isolated test
+// fixture, a thumbnail-only mount): the Trust Center default then applies.
+const viewerOptions = inject(ViewerOptionsKey, undefined);
+
 /** Sanitised MathML for an equation run, or `''` when the OMML yields nothing. */
 const mathml = computed(() => (props.run.equation ? runEquationMathMl(props.run.equation) : ''));
+
+/**
+ * Trust Center gate on the run's own `<a href>`: `run.hyperlink.href` is
+ * already filtered to a safe external URL at build time (an internal
+ * `ppaction://` jump resolves to no href), so this only has to decide whether
+ * to ask before letting the browser follow it, in both editing/view mode and
+ * inside a running slide show (this renderer is shared by both).
+ */
+function onLinkClick(event: MouseEvent): void {
+	const href = props.run.hyperlink?.href;
+	if (!href) {
+		return;
+	}
+	const options = viewerOptions?.value ?? DEFAULT_VIEWER_OPTIONS;
+	if (
+		shouldConfirmExternalHyperlink(options, href) &&
+		!window.confirm(`${t('pptx.options.trust.confirmHyperlinks')}\n\n${href}`)
+	) {
+		event.preventDefault();
+	}
+}
 </script>
 
 <template>
@@ -41,6 +73,7 @@ const mathml = computed(() => (props.run.equation ? runEquationMathMl(props.run.
 		rel="noopener noreferrer"
 		:title="run.hyperlink.tooltip"
 		:style="run.style"
+		@click="onLinkClick"
 		><SlideTextRunContent :run="run"
 	/></a>
 	<!-- `a:ruby`: the phonetic guide sits above its base text. The `<rp>`

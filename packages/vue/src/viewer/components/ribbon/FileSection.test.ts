@@ -23,7 +23,6 @@ function mountFileSection(hiddenActions?: string[]) {
 			onExportJson: () => {},
 			onExportVideo: () => {},
 			onExportGif: () => {},
-			onPackageForSharing: () => {},
 			onSaveAsPptx: () => {},
 			onSaveAsPpsx: () => {},
 			onSaveAsPptm: () => {},

@@ -246,6 +246,16 @@ export interface UseLoadContentOptions {
 	 * owns the flag, and the answer must be the current one.
 	 */
 	getEmbedFonts?: () => boolean;
+	/**
+	 * Trust Center > "Allow external content (remote images and media)", read
+	 * at load time. `false` (core's own default) makes `getImageData` drop any
+	 * `http://`/`https://` image URL instead of fetching it; omitted defaults to
+	 * `true` (fetch them), matching this option's own default. A getter, not a
+	 * value, so a later options-store change is picked up on the next load
+	 * without re-wiring this composable, the same convention as
+	 * {@link getSaveIntent} and {@link getEmbedFonts}.
+	 */
+	getAllowExternalImages?: () => boolean;
 }
 
 export function useLoadContent(
@@ -333,7 +343,9 @@ export function useLoadContent(
 			const previousHandler = handler.value;
 
 			const newHandler = new PptxHandler();
-			const parsed = await newHandler.load(buffer as ArrayBuffer);
+			const parsed = await newHandler.load(buffer as ArrayBuffer, {
+				allowExternalImages: options?.getAllowExternalImages?.(),
+			});
 			if (token !== renderToken) {
 				newHandler.dispose();
 				return;

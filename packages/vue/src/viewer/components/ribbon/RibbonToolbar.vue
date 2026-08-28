@@ -12,10 +12,11 @@
  * renders its own mobile chrome (`MobileBottomBar`) at the host level, so this
  * shell always renders the desktop ribbon (the host hides it on mobile).
  */
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
 import AnimationsSection from './AnimationsSection.vue';
 import ArrangeSection from './ArrangeSection.vue';
 import DesignSection from './DesignSection.vue';
@@ -41,8 +42,17 @@ const showRibbon = computed(() => props.mode === 'edit' || props.mode === 'maste
 const s = computed(() => props.toolbarSection);
 /** The Text group shows on both the Home and Text tabs (mirrors React). */
 const showText = computed(() => s.value === 'home' || s.value === 'text');
-/** Tab list + per-button gating, driven by the host's `hiddenActions` prop. */
-const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
+/**
+ * Tab list + per-button gating, driven by the host's `hiddenActions` prop AND
+ * the user's File > Options > Customize Ribbon choice. Injection has a
+ * fallback so a caller that mounts this shell without the options provider
+ * (isolated unit tests, storybook-style fixtures) still renders every tab.
+ */
+const viewerOptions = inject(ViewerOptionsKey, undefined);
+const { visibleTabs } = useToolbarVisibility(
+	() => props.hiddenActions,
+	() => viewerOptions?.value,
+);
 </script>
 
 <template>
@@ -64,7 +74,6 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 			:on-enter-rehearsal-mode="props.onEnterRehearsalMode"
 			:on-set-mode="props.onSetMode"
 			:on-open-share-dialog="props.onOpenShareDialog"
-			:on-package-for-sharing="props.onPackageForSharing"
 			:is-collaborating="props.isCollaborating"
 			:collaborator-count="props.collaboratorCount"
 			:hidden-actions="props.hiddenActions"
@@ -90,7 +99,6 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-export-video="props.onExportVideo"
 				:on-export-gif="props.onExportGif"
 				:on-export-json="props.onExportJson"
-				:on-package-for-sharing="props.onPackageForSharing"
 				:on-save-as-pptx="props.onSaveAsPptx"
 				:on-save-as-ppsx="props.onSaveAsPpsx"
 				:on-save-as-pptm="props.onSaveAsPptm"
@@ -105,6 +113,7 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 				:on-open-digital-signatures="props.onOpenDigitalSignatures"
 				:on-open-version-history="props.onToggleVersionHistory"
 				:hidden-actions="props.hiddenActions"
+				:recent-presentations-count="props.recentPresentationsCount"
 			/>
 
 			<HomeSection

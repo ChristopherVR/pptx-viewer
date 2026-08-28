@@ -1,16 +1,16 @@
 import type { PptxData, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, ViewerOptions } from 'pptx-viewer-shared';
 import {
+	deleteAutosaveSnapshot,
 	downloadBlob,
 	exportDeckJson,
-	presentationBaseName,
-	savedPresentationFileName,
+	playFeedbackSound,
+	shouldDiscardAutosaveOnSuccessfulSave,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 import { renderToCanvas } from '../../lib/canvas-export';
-import { buildSharingPackage } from './package-sharing';
 import { useExport } from './useExport';
 import type { UseExportResult } from './useExport';
 import { useExportProgress } from './useExportProgress';
@@ -29,12 +29,30 @@ export interface UseExportWiringInput {
 	fileName?: () => string | undefined;
 	/** Snapshot the live deck (slides + presentation-level state) for JSON export. */
 	getDeckData: () => PptxData;
+	/**
+	 * File > Options > Advanced > "Image Size and Quality"
+	 * (`resolveImageResolutionScale`), read fresh on every `rasterizeSlide()`
+	 * call so a mid-session change applies without reconstructing this
+	 * composable. A getter (not a `Ref`) so it can be wired in even though
+	 * `viewerOptions` is not available yet at this composable's call site.
+	 * The raw multiplier (default preset = 1), applied on top of the baseline
+	 * 2x capture scale; see the `rasterizeSlide` body.
+	 */
+	imageExportScale?: () => number;
+	/**
+	 * Live File > Options getter, read only once a Save-As download actually
+	 * completes (feedback sound, AutoRecover-snapshot discard). Omitted in
+	 * tests that don't exercise those behaviors.
+	 */
+	getOptions?: () => ViewerOptions;
+	/** IndexedDB key for this deck's AutoRecover snapshot, read at the same time. */
+	filePath?: () => string | undefined;
 }
 
 export interface UseExportWiringResult {
 	exportStageRef: Ref<HTMLElement | null>;
 	exportSlide: ComputedRef<PptxSlide | undefined>;
-	rasterizeSlide: (index: number) => Promise<HTMLCanvasElement>;
+	rasterizeSlide: (index: number, scaleMultiplier?: number) => Promise<HTMLCanvasElement>;
 	exporter: UseExportResult;
 	mediaExport: UseMediaExportResult;
 	exportProgressCtl: UseExportProgressResult;
@@ -45,7 +63,6 @@ export interface UseExportWiringResult {
 	onExportWebm: () => void;
 	onExportJson: () => void;
 	downloadAs: (format: PptxSaveFormat) => Promise<void>;
-	packageForSharing: () => Promise<void>;
 	onCopySlideAsImage: () => Promise<void>;
 }
 
@@ -56,7 +73,15 @@ export interface UseExportWiringResult {
  * `PowerPointViewer.vue`.
  */
 export function useExportWiring(input: UseExportWiringInput): UseExportWiringResult {
-	const { mergedSlides, slides, slideCount, canvasSize, activeSlideIndex, saveAs } = input;
+	const {
+		mergedSlides,
+		slides,
+		slideCount,
+		canvasSize,
+		activeSlideIndex,
+		saveAs,
+		imageExportScale,
+	} = input;
 
 	// An off-screen stage renders one slide at a time at scale 1; `rasterizeSlide`
 	// drives it and snapshots it with `html2canvas-pro`.
@@ -66,7 +91,13 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 	// the on-screen presentation and the saved file.
 	const exportSlide = computed(() => mergedSlides.value[exportIndex.value]);
 
-	async function rasterizeSlide(index: number): Promise<HTMLCanvasElement> {
+	/**
+	 * `scaleMultiplier` (default 1) is an extra factor on top of the baseline
+	 * 2x * Options > Advanced > Image Size/Quality scale below; the Print
+	 * dialog's notes/handouts raster path passes a higher value when Options >
+	 * Advanced > "High quality" is on, without changing plain PNG/PDF export.
+	 */
+	async function rasterizeSlide(index: number, scaleMultiplier = 1): Promise<HTMLCanvasElement> {
 		exportIndex.value = index;
 		await nextTick();
 		await new Promise<void>((resolve) => {
@@ -78,7 +109,11 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		}
 		return renderToCanvas(stageEl, {
 			backgroundColor: '#ffffff',
-			scale: 2,
+			// Multiplied against the pre-existing 2x baseline (not used outright) so
+			// the default "High fidelity" preset (raw multiplier 1) keeps today's
+			// export quality instead of silently downgrading it. Mirrors the
+			// vanilla/angular/svelte bindings.
+			scale: 2 * (imageExportScale?.() ?? 1) * scaleMultiplier,
 			width: canvasSize.value.width,
 			height: canvasSize.value.height,
 			logging: false,
@@ -119,23 +154,20 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 				type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 			});
 			downloadBlob(blob, `presentation.${format}`);
+			// Options > Accessibility > "feedback with sound", and Options > Save >
+			// "keep the last AutoRecover version": once a `.pptx` save lands, the
+			// crash-recovery snapshot for this file is stale (the real file already
+			// has the work), so it's discarded unless the user asked to keep it.
+			const options = input.getOptions?.();
+			if (options) {
+				playFeedbackSound(options);
+				const filePath = input.filePath?.();
+				if (format === 'pptx' && filePath && shouldDiscardAutosaveOnSuccessfulSave(options)) {
+					void deleteAutosaveSnapshot(filePath);
+				}
+			}
 		} catch (err) {
 			console.error(`[PowerPointViewer] Save as .${format} failed:`, err);
-		}
-	}
-
-	/** Bundle the current deck with usage notes, matching React's File action. */
-	async function packageForSharing(): Promise<void> {
-		try {
-			// The bytes are always an OpenXML package, so the name inside the ZIP
-			// has to be re-extensioned: a deck opened as `report.ppt` used to be
-			// packaged as `report.ppt` containing `.pptx` bytes.
-			const fileName = savedPresentationFileName(input.fileName?.());
-			const bytes = await saveAs('pptx');
-			const blob = await buildSharingPackage(bytes, fileName);
-			downloadBlob(blob, `${presentationBaseName(fileName)}-package.zip`);
-		} catch (err) {
-			console.error('[PowerPointViewer] Package export failed:', err);
 		}
 	}
 
@@ -168,7 +200,6 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		onExportWebm,
 		onExportJson,
 		downloadAs,
-		packageForSharing,
 		onCopySlideAsImage,
 	};
 }

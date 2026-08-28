@@ -12,7 +12,6 @@ function noopProps(): FileSectionProps {
 		onExportJson: () => {},
 		onExportVideo: () => {},
 		onExportGif: () => {},
-		onPackageForSharing: () => {},
 		onSaveAsPptx: () => {},
 		onSaveAsPpsx: () => {},
 		onSaveAsPptm: () => {},

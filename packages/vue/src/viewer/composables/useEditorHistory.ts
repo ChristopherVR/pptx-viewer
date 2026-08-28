@@ -63,6 +63,12 @@ export interface EditorHistoryResult {
 	redo: () => void;
 	/** Drop all undo/redo history (e.g. when new content is loaded). */
 	clearHistory: () => void;
+	/**
+	 * Apply a new File > Options > Advanced > "Maximum number of undos" value
+	 * at runtime (`resolveHistoryDepth`). Trims the past stack immediately if
+	 * the new limit is smaller.
+	 */
+	setMaxDepth: (depth: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,6 +177,11 @@ export function useEditorHistory(
 		bump();
 	};
 
+	const setMaxDepth = (depth: number): void => {
+		stack.setMaxDepth(depth);
+		bump();
+	};
+
 	return {
 		canUndo,
 		canRedo,
@@ -178,5 +189,6 @@ export function useEditorHistory(
 		undo,
 		redo,
 		clearHistory,
+		setMaxDepth,
 	};
 }

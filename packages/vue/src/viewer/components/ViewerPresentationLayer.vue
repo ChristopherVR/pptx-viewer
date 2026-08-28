@@ -37,6 +37,8 @@ defineProps<{
 	/** File > Options > Advanced > Slide Show behaviour flags. */
 	endWithBlackSlide: boolean;
 	promptKeepInkAnnotations: boolean;
+	showMenuOnRightClick: boolean;
+	showPopupToolbar: boolean;
 	duplicateSlide: (index: number) => void;
 	deleteSlide: (index: number) => void;
 	toggleSlideHidden: (index: number) => void;
@@ -98,6 +100,8 @@ defineProps<{
 		:active-custom-show="presentation.activePresentationCustomShow.value"
 		:end-with-black-slide="endWithBlackSlide"
 		:prompt-keep-ink-annotations="promptKeepInkAnnotations"
+		:show-menu-on-right-click="showMenuOnRightClick"
+		:show-popup-toolbar="showPopupToolbar"
 		@close="presentation.closePresentation"
 		@slide-change="presentation.handlePresentSlideChange"
 	/>

@@ -25,7 +25,6 @@ function ovAct(k: string): void {
 		pdf: props.onExportPdf,
 		video: props.onExportVideo,
 		gif: props.onExportGif,
-		package: props.onPackageForSharing,
 		pptx: props.onSaveAsPptx,
 		ppsx: props.onSaveAsPpsx,
 		pptm: props.onSaveAsPptm,

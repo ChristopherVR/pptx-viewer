@@ -29,7 +29,16 @@ export interface UseToolbarAutoHideResult {
 	setToolbarVisible: (visible: boolean) => void;
 }
 
-export function useToolbarAutoHide(): UseToolbarAutoHideResult {
+export interface UseToolbarAutoHideOptions {
+	/**
+	 * File > Options > Advanced > "Show popup toolbar" (default true). When
+	 * `false`, `mousemove` never auto-reveals the bar; `setToolbarVisible`
+	 * (PowerPoint's Ctrl+H) still works, matching React's `popupToolbarEnabled`.
+	 */
+	enabled?: () => boolean;
+}
+
+export function useToolbarAutoHide(options?: UseToolbarAutoHideOptions): UseToolbarAutoHideResult {
 	const toolbarVisible = ref(false);
 	let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -41,6 +50,9 @@ export function useToolbarAutoHide(): UseToolbarAutoHideResult {
 	}
 
 	function handleMouseMove(): void {
+		if (options?.enabled?.() === false) {
+			return;
+		}
 		toolbarVisible.value = true;
 		clearHideTimer();
 		hideTimer = setTimeout(() => {

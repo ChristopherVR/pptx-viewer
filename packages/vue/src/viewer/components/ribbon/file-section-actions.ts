@@ -8,7 +8,6 @@ import {
 	FileText,
 	Info,
 	Lock,
-	Package,
 	Play,
 	Printer,
 	Share2,
@@ -45,7 +44,6 @@ const ICONS: Record<BackstageCardId, Component> = {
 	saveAsPptx: Download,
 	saveAsPpsx: Play,
 	saveAsPptm: FileText,
-	package: Package,
 	pdf: FileText,
 	png: FileImage,
 	video: Video,
@@ -54,7 +52,6 @@ const ICONS: Record<BackstageCardId, Component> = {
 	copyImage: Copy,
 	print: Printer,
 	share: Share2,
-	sharePackage: Package,
 };
 
 /**
@@ -89,7 +86,6 @@ export function buildFileSectionActions(
 		saveAsPptx: props.onSaveAsPptx,
 		saveAsPpsx: props.onSaveAsPpsx,
 		saveAsPptm: props.onSaveAsPptm,
-		package: props.onPackageForSharing,
 		pdf: props.onExportPdf,
 		png: props.onExportPng,
 		video: props.onExportVideo,
@@ -98,7 +94,6 @@ export function buildFileSectionActions(
 		copyImage: props.onCopySlideAsImage,
 		print: props.onPrint,
 		share: props.onOpenShareDialog,
-		sharePackage: props.onPackageForSharing,
 	};
 	return backstageCardsFor(page)
 		.filter((card) => card.id !== 'saveAsPptm' || props.hasMacros)

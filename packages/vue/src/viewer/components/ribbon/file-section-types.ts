@@ -12,7 +12,6 @@ export interface FileSectionProps {
 	onExportJson: () => void;
 	onExportVideo: () => void;
 	onExportGif: () => void;
-	onPackageForSharing: () => void;
 	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;
 	onSaveAsPptm: () => void;
@@ -28,4 +27,6 @@ export interface FileSectionProps {
 	onOpenVersionHistory?: () => void;
 	/** Toolbar buttons the host has asked to hide (gates the Export page's action cards). */
 	hiddenActions?: ToolbarActionId[];
+	/** File > Options > Advanced > "Quickly access this number of Recent Documents". */
+	recentPresentationsCount?: number;
 }

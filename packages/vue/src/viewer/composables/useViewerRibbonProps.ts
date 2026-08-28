@@ -281,7 +281,6 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 		onExportGif: o.exporter.onExportGif,
 		onExportJson: o.exporter.onExportJson,
 		downloadAs: o.exporter.downloadAs,
-		packageForSharing: o.exporter.packageForSharing,
 		onCopySlideAsImage: o.exporter.onCopySlideAsImage,
 		openPrintDialog: o.printer.openPrintDialog,
 		ribbonUpdateTextStyle: o.ribbonActions.ribbonUpdateTextStyle,

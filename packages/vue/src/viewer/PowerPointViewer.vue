@@ -23,6 +23,7 @@
  *  - function-prop callbacks -> emits ({@link PowerPointViewerEmits}).
  *  - `theme` context      -> `provideViewerTheme` + `useThemeStyle`.
  */
+import { ShieldAlert } from 'lucide-vue-next';
 import { hasShapeProperties, PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, PptxTheme, ShapeStyle } from 'pptx-viewer-core';
 import {
@@ -32,13 +33,22 @@ import {
 	computeGridSpacingPx,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
+	extraQuickAccessCommands,
 	listAutosaveSnapshots,
 	MAX_ZOOM_SCALE,
 	MIN_ZOOM_SCALE,
 	openPptxFile,
+	resolve3DRenderingFlags,
 	resolveAutosaveIntervalSeconds,
+	resolveExpiredAutosaveSnapshots,
+	resolveHistoryDepth,
+	resolveImageResolutionScale,
+	resolveOptionRootClasses,
+	shouldClearAutosaveCacheOnClose,
+	shouldOpenInProtectedView,
 	shouldShowAutosaveRecoveryPrompt,
 } from 'pptx-viewer-shared';
+import type { ViewerAddinStatus } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -52,6 +62,7 @@ import MobileToolbar from './components/MobileToolbar.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import TitleBar from './components/ribbon/TitleBar.vue';
+import TitleBarQuickAccess from './components/ribbon/TitleBarQuickAccess.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideStage from './components/SlideStage.vue';
 import StatusBar from './components/StatusBar.vue';
@@ -160,18 +171,10 @@ const { t } = useI18n();
 const prefs = useViewerPreferences(props);
 provideViewerTheme(prefs.effectiveTheme);
 const themeStyle = useThemeStyle(prefs.effectiveTheme);
-// SmartArt 3D opt-in: surface the prop to the element dispatcher via inject.
-provide(SmartArt3DKey, props.smartArt3D);
-// Surface-chart 3D opt-in: surface the prop to ChartRenderer via inject.
-provide(SurfaceChart3DKey, props.surfaceChart3D);
-// Bar3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
-provide(BarChart3DKey, props.barChart3D);
-// Line3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
-provide(LineChart3DKey, props.lineChart3D);
-// Area3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
-provide(AreaChart3DKey, props.areaChart3D);
-// Pie3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
-provide(PieChart3DKey, props.pieChart3D);
+// The six 3D opt-in flags are provided further down, once `viewerOptions` (File
+// > Options) exists: each ANDs the host's own prop with Options > Advanced >
+// "Disable 3D rendering", so a viewer user can force flat 2D even in a deck the
+// host enabled 3D for. See the `provide(SmartArt3DKey, ...)` block below.
 // File > Account sign-in hook point: surface the prop to AccountPage.vue via
 // inject, avoiding threading `accountAuth` through the large RibbonProps
 // contract just to reach one deeply-nested panel (mirrors SmartArt3DKey above).
@@ -193,6 +196,13 @@ const loadVersion = ref(0);
 // Protect-Presentation secret so a protected deck serialises encrypted.
 const password = usePasswordProtection();
 
+// Full PowerPoint File > Options model (persisted). Declared ahead of
+// `useLoadContent` (rather than down with the rest of the settings wiring)
+// because the load path itself reads Trust Center > "Allow external content"
+// to decide whether `handler.load()` may fetch remote image URLs, exactly
+// like `password` above is read for the save path.
+const { optionsStore, viewerOptions } = useViewerOptionsStore();
+
 const deck = useLoadContent(() => activeContent.value, {
 	onContentApplied: () => {
 		loadVersion.value += 1;
@@ -201,6 +211,11 @@ const deck = useLoadContent(() => activeContent.value, {
 		password: password.presentationPassword.value,
 		passwordProtected: password.isPasswordProtected.value,
 	}),
+	// Trust Center > "Allow external content (remote images and media)".
+	// Off (the option's non-default) makes core drop any http(s) image URL
+	// instead of fetching it (SSRF/privacy gate); every binding used to skip
+	// this entirely, so the toggle changed nothing regardless of its value.
+	getAllowExternalImages: () => viewerOptions.value.trust.allowExternalContent,
 	// File > Fonts. `fontEmbedding` is declared further down (it needs the
 	// loaded deck's embedded fonts), so this getter reads it lazily at save
 	// time, exactly like `getSaveIntent` reads the password.
@@ -234,6 +249,23 @@ const {
 	getContent,
 	getRecoverySnapshot,
 } = deck;
+
+// -- Trust Center > Protected View --------------------------------------
+// A freshly loaded document opens read-only when the option is on; "Enable
+// Editing" (below) lifts it for the CURRENT document only, mirroring
+// PowerPoint's own per-document banner rather than flipping the global
+// option. `watch(activeContent, ...)` further down resets the dismissal on
+// every new load, so re-opening (or opening another) file starts protected
+// again. `canEditEffective` is the single gate every actual edit entry point
+// below reads instead of `props.canEdit` directly.
+const protectedViewDismissed = ref(false);
+const protectedViewActive = computed(
+	() => shouldOpenInProtectedView(viewerOptions.value) && !protectedViewDismissed.value,
+);
+const canEditEffective = computed(() => props.canEdit && !protectedViewActive.value);
+function enableEditing(): void {
+	protectedViewDismissed.value = true;
+}
 
 function createPresentation(templateId: string): void {
 	slides.value = createBackstagePresentation(templateId);
@@ -274,8 +306,8 @@ provide(FieldContextKey, () =>
 // Inline table-cell editing + table cell selection/resize contexts for
 // `TableRenderer` / `TablePanel`.
 const { tableSelection } = useTableCellEditingContext({
-	canEdit: () => props.canEdit,
-	canEditInline: () => props.canEdit && !presentation.presenting.value,
+	canEdit: () => canEditEffective.value,
+	canEditInline: () => canEditEffective.value && !presentation.presenting.value,
 	findActiveElement: (id) => selection.findActiveElement(id),
 	updateElement: (id, patch) => ops.updateElement(id, patch),
 	commitTableCell: (elementId, rowIndex, colIndex, text) =>
@@ -285,8 +317,8 @@ const { tableSelection } = useTableCellEditingContext({
 // Inline SmartArt node-text and per-node fill editing context. Mirrors the
 // table-cell context above (same forward-reference / wrapper-closure pattern).
 useSmartArtNodeEditContext({
-	canEdit: () => props.canEdit,
-	canEditInline: () => props.canEdit && !presentation.presenting.value,
+	canEdit: () => canEditEffective.value,
+	canEditInline: () => canEditEffective.value && !presentation.presenting.value,
 	findActiveElement: (id) => selection.findActiveElement(id),
 	updateElement: (id, patch) => ops.updateElement(id, patch),
 });
@@ -318,6 +350,9 @@ watch(activeContent, () => {
 	activeSlideIndex.value = 0;
 	selection.selectedElementIds.value = [];
 	history.clearHistory();
+	// A newly opened document is protected again even if the previous one
+	// was unlocked via "Enable Editing" this session.
+	protectedViewDismissed.value = false;
 });
 watch(activeSlideIndex, (index) => {
 	emit('active-slide-change', index);
@@ -326,7 +361,7 @@ watch(activeSlideIndex, (index) => {
 
 // On touch devices a horizontal swipe across the slide area changes slides
 // (view mode only, so it never hijacks an edit gesture).
-const swipe = useSwipeNavigation({ canEdit: () => props.canEdit, goPrev, goNext });
+const swipe = useSwipeNavigation({ canEdit: () => canEditEffective.value, goPrev, goNext });
 
 // -- Editing: selection, history, operations ---------------------------
 // Composed unconditionally (cheap); the toolbar/overlay/handlers only act when
@@ -342,7 +377,15 @@ const {
 	mergedSlides,
 	clearSelection,
 } = selection;
-const history = useEditorHistory(slides, templateElementsBySlideId);
+const history = useEditorHistory(slides, templateElementsBySlideId, {
+	maxDepth: resolveHistoryDepth(viewerOptions.value),
+});
+// File > Options > Advanced > "Maximum number of undos", re-applied whenever
+// it changes mid-session (not just at construction).
+watch(
+	() => resolveHistoryDepth(viewerOptions.value),
+	(depth) => history.setMaxDepth(depth),
+);
 const ops = useEditorOperations({
 	slides,
 	activeSlideIndex,
@@ -406,7 +449,7 @@ const {
 // (SelectionOverlay emits `requestEdit`). Commits on blur, on selecting another
 // element, or on an empty-canvas tap.
 const inlineEdit = useInlineEditing({
-	canEdit: () => props.canEdit,
+	canEdit: () => canEditEffective.value,
 	findActiveElement,
 	ops,
 	// Live preview: mirror each keystroke into the shared doc so peers see
@@ -414,6 +457,10 @@ const inlineEdit = useInlineEditing({
 	// the accessor is only invoked from user input, long after setup.
 	livePatcher: () => collaboration.collab.livePatcher,
 	activeSlide: () => activeSlide.value,
+	// Options > Proofing > AutoCorrect, applied on commit (blur/Enter/element
+	// switch), not on every keystroke. `viewerOptions` is declared further
+	// down; the accessor is only invoked from user input, long after setup.
+	proofing: () => viewerOptions.value.proofing,
 });
 
 // Declared before the pointer wiring below so `requestElementEdit` (the
@@ -423,7 +470,7 @@ const insertDialogs = useInsertElementDialogs({ ops, selectedElementIds, findAct
 // -- Canvas pointer routing --------------------------------------------
 const { requestElementEdit, onCanvasDoubleClick, onCanvasPointerDown, onEscape } = useCanvasPointer(
 	{
-		canEdit: () => props.canEdit,
+		canEdit: () => canEditEffective.value,
 		editTemplateMode,
 		findActiveElement,
 		openEquationEditorForElement: insertDialogs.openEquationEditorForElement,
@@ -528,7 +575,7 @@ const presentation = usePresentationControls({
 // mode, carries the canvas <-> inspector part selection, and routes commits
 // through the SAME history-tracked editor op the inspector uses.
 useChartCanvasEditContext({
-	canEditInline: () => props.canEdit && !presentation.presenting.value,
+	canEditInline: () => canEditEffective.value && !presentation.presenting.value,
 	isElementSelected: (id) => selectedElementIds.value.includes(id),
 	updateElement: (id, patch) => ops.updateElement(id, patch),
 });
@@ -570,6 +617,15 @@ const exporter = useExportWiring({
 	saveAs: deck.saveAs,
 	fileName: () => props.fileName,
 	getDeckData: () => readDeckData(deck),
+	// `viewerOptions` is declared further down (see file-level forward-reference
+	// note); the getter is only invoked once an export actually runs. The raw
+	// multiplier: `useExportWiring`'s `rasterizeSlide` applies it on top of the
+	// baseline 2x capture scale itself, so it is NOT pre-multiplied here.
+	imageExportScale: () => resolveImageResolutionScale(viewerOptions.value),
+	// Same forward-reference pattern as `imageExportScale` above: only invoked
+	// once a Save-As download actually completes.
+	getOptions: () => viewerOptions.value,
+	filePath: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
 });
 const { exportStageRef, exportSlide, rasterizeSlide, exportProgressCtl, downloadAs, onExportPdf } =
 	exporter;
@@ -623,7 +679,7 @@ const { canGroup, canUngroup, canDistribute, onAlign, onDistribute, onGroup, onU
 
 // -- Element context menu (right-click / long-press) -------------------
 const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useContextMenu({
-	canEdit: () => props.canEdit,
+	canEdit: () => canEditEffective.value,
 	findActiveElement,
 	tableSelection,
 	hasClipboard: clipboard.hasClipboard,
@@ -660,7 +716,7 @@ const { autosave, autosaveEnabled, autosaveActive, toggleAutosave, autosaveDisab
 		// Edit-template mode rebuilds only this map, never `slides`.
 		templateElements: templateElementsBySlideId,
 		loading,
-		canEdit: () => props.canEdit,
+		canEdit: () => canEditEffective.value,
 		// Undefined (the host said nothing) permits autosave; only an explicit
 		// `false` vetoes it. See `resolveAutosaveActivation` in the shared package.
 		autosaveEnabledByHost: () => props.autosave,
@@ -712,7 +768,11 @@ const deckActions = useInspectorDeckActions({
 });
 
 // -- Comments ----------------------------------------------------------
-const authorNameRef = computed(() => props.authorName ?? 'You');
+// An explicit host `authorName` wins; otherwise fall back to the user's own
+// Options > General > "User name" before the generic "You".
+const authorNameRef = computed(
+	() => props.authorName || viewerOptions.value.general.userName || 'You',
+);
 const comments = useCommentsWiring({
 	activeSlide,
 	activeSlideIndex,
@@ -823,7 +883,9 @@ async function compareWithPresentation(): Promise<void> {
 	if (!picked) {
 		return;
 	}
-	const incoming = await new PptxHandler().load(picked.buffer);
+	const incoming = await new PptxHandler().load(picked.buffer, {
+		allowExternalImages: viewerOptions.value.trust.allowExternalContent,
+	});
 	if (incoming) {
 		versionHistoryWiring.compareWithSlides(incoming.slides);
 	}
@@ -861,7 +923,7 @@ useTouchGestures({
 		onLongPress: (clientX, clientY) => {
 			// Mirror React: long-press opens the element context menu, but only in
 			// edit mode with an element already selected.
-			if (!props.canEdit || presentation.presenting.value) {
+			if (!canEditEffective.value || presentation.presenting.value) {
 				return;
 			}
 			const id = selectedElementIds.value[0];
@@ -884,7 +946,7 @@ const mobileChrome = useMobileChrome({
 // `onEditorKeydown` intercepts nothing ahead of the registry.
 const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElements } =
 	useEditorKeyboard({
-		canEdit: () => props.canEdit,
+		canEdit: () => canEditEffective.value,
 		hasSelection: selection.hasSelection,
 		presenting: presentation.presenting,
 		findOpen,
@@ -931,9 +993,87 @@ const {
 
 // -- Viewer settings ---------------------------------------------------
 const reducedMotion = ref(false);
-// Full PowerPoint File > Options model (persisted); the six legacy toggles
-// below stay the behavior source and sync with it both ways.
-const { optionsStore, viewerOptions } = useViewerOptionsStore();
+// `optionsStore` / `viewerOptions` (the six legacy toggles below stay the
+// behavior source and sync with it both ways) are declared up near `password`,
+// ahead of `useLoadContent` - see the comment there.
+// Viewer-root CSS classes reflecting display-affecting options (reduced
+// motion, disabled hardware acceleration, "optimize for compatibility").
+const optionRootClasses = computed(() => resolveOptionRootClasses(viewerOptions.value, 'pptx-vue'));
+// Options > Quick Access Toolbar > "Show below the Ribbon": `TitleBar.vue`
+// suppresses its own inline strip when this is the position, and this row
+// renders in its place, directly under `RibbonToolbar`.
+const belowRibbonQuickAccess = computed(() => {
+	const quickAccess = viewerOptions.value.quickAccess;
+	if (!quickAccess.visible || quickAccess.position !== 'below') {
+		return [];
+	}
+	return extraQuickAccessCommands(quickAccess.commandIds).map((command) => ({
+		id: command.id,
+		label: t(command.labelKey),
+		icon: command.icon,
+	}));
+});
+// The host's own 3D opt-in props, ANDed with the viewer user's Options >
+// Advanced > "Disable 3D rendering" override (see `resolve3DRenderingFlags`),
+// each provided as a computed ref so toggling the option takes effect live,
+// without needing a reload.
+const effective3D = computed(() =>
+	resolve3DRenderingFlags(
+		{
+			smartArt3D: props.smartArt3D,
+			surfaceChart3D: props.surfaceChart3D,
+			barChart3D: props.barChart3D,
+			lineChart3D: props.lineChart3D,
+			areaChart3D: props.areaChart3D,
+			pieChart3D: props.pieChart3D,
+		},
+		viewerOptions.value,
+	),
+);
+// SmartArt 3D opt-in: surface it to the element dispatcher via inject.
+provide(
+	SmartArt3DKey,
+	computed(() => effective3D.value.smartArt3D),
+);
+// Surface-chart 3D opt-in: surface it to ChartRenderer via inject.
+provide(
+	SurfaceChart3DKey,
+	computed(() => effective3D.value.surfaceChart3D),
+);
+// Bar3D-chart 3D opt-in: surface it to ChartRenderer via inject.
+provide(
+	BarChart3DKey,
+	computed(() => effective3D.value.barChart3D),
+);
+// Line3D-chart 3D opt-in: surface it to ChartRenderer via inject.
+provide(
+	LineChart3DKey,
+	computed(() => effective3D.value.lineChart3D),
+);
+// Area3D-chart 3D opt-in: surface it to ChartRenderer via inject.
+provide(
+	AreaChart3DKey,
+	computed(() => effective3D.value.areaChart3D),
+);
+// Pie3D-chart 3D opt-in: surface it to ChartRenderer via inject.
+provide(
+	PieChart3DKey,
+	computed(() => effective3D.value.pieChart3D),
+);
+
+// File > Options > Add-ins: real availability signals for the two catalog
+// entries this binding can actually answer for. `smartArt3d` reflects the
+// same host-prop/user-override AND `effective3D` already resolves; live
+// collaboration reflects whether a session is currently joined. Every other
+// catalog id (model3d, emfConverter, mtxDecompressor, locales) has no
+// runtime on/off switch - they are bundled dependencies that are simply
+// always there - so they are left out and fall back to the pane's own
+// `active: true` default rather than being padded with a fake status here.
+const addinStatus = computed<ViewerAddinStatus>(() => ({
+	smartArt3d: effective3D.value.smartArt3D,
+	collaboration: collaboration.collabActive.value,
+}));
+
 const { showSettings } = useViewerSettingsDialog({
 	autoSave: autosaveEnabled,
 	spellCheck: spellCheckEnabled,
@@ -953,8 +1093,39 @@ function onOptionsClearCache(): void {
 	})();
 }
 
+// File > Options > Save > "cache retention": a one-time sweep per mount is
+// enough, since a fresh snapshot only ever lands with a fresh timestamp.
+onMounted(() => {
+	void (async () => {
+		try {
+			const snapshots = await listAutosaveSnapshots();
+			const expired = resolveExpiredAutosaveSnapshots(snapshots, viewerOptions.value);
+			await Promise.all(expired.map((key) => deleteAutosaveSnapshot(key)));
+		} catch {
+			// Best-effort background maintenance; a blocked IndexedDB skips it.
+		}
+	})();
+});
+
+// File > Options > Save > "clear cache on close": wipe recovery snapshots
+// when the tab closes/navigates away, and when this viewer unmounts.
+function clearCacheIfRequested(): void {
+	if (shouldClearAutosaveCacheOnClose(viewerOptions.value)) {
+		onOptionsClearCache();
+	}
+}
+if (typeof window !== 'undefined') {
+	window.addEventListener('beforeunload', clearCacheIfRequested);
+}
+onBeforeUnmount(() => {
+	if (typeof window !== 'undefined') {
+		window.removeEventListener('beforeunload', clearCacheIfRequested);
+	}
+	clearCacheIfRequested();
+});
+
 const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
-	canEdit: () => props.canEdit,
+	canEdit: () => canEditEffective.value,
 	presenting: presentation.presenting,
 	activeTool,
 	activeSlide,
@@ -1017,7 +1188,7 @@ const aiBridge = useAiBridge({
 });
 
 const ribbonActions = useRibbonActions({
-	canEdit: () => props.canEdit,
+	canEdit: () => canEditEffective.value,
 	presenting: presentation.presenting,
 	showMasterView: masterView.showMasterView,
 	tableSelection,
@@ -1036,7 +1207,7 @@ watch(ribbonMode, (mode) => {
 });
 
 const ribbonProps = useViewerRibbonProps({
-	canEdit: () => props.canEdit,
+	canEdit: () => canEditEffective.value,
 	isMobile,
 	zoom,
 	zoomIn,
@@ -1179,10 +1350,10 @@ defineExpose<PowerPointViewerExpose>(
 	<div
 		ref="viewerRootRef"
 		class="pptx-vue-viewer"
-		:class="[props.class, { 'pptx-vue-reduced-motion': reducedMotion }]"
+		:class="[props.class, { 'pptx-vue-reduced-motion': reducedMotion }, ...optionRootClasses]"
 		:style="themeStyle"
 		:aria-busy="loading ? 'true' : 'false'"
-		:tabindex="props.canEdit ? 0 : undefined"
+		:tabindex="canEditEffective ? 0 : undefined"
 		@keydown="onEditorKeydown"
 	>
 		<!-- Loading -->
@@ -1214,13 +1385,34 @@ defineExpose<PowerPointViewerExpose>(
 			     its controls tab-focusable and creates duplicate accessible names
 			     (e.g. a second "Present" / "Menu" button) underneath the overlay. -->
 			<template v-if="!presentation.presenting.value">
+				<!-- Trust Center > Protected View: shown only when the HOST allows
+				     editing but the option is still blocking it; a document the host
+				     opened read-only never shows this (there is nothing to enable). -->
+				<div
+					v-if="props.canEdit && protectedViewActive"
+					class="pptx-vue-protected-view-banner flex items-center gap-3 border-b border-amber-700/30 bg-amber-900/20 px-4 py-2"
+					role="status"
+				>
+					<ShieldAlert class="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
+					<p class="flex-1 text-xs text-amber-200">
+						{{ t('pptx.viewer.protectedViewBanner') }}
+					</p>
+					<button
+						type="button"
+						class="shrink-0 rounded border border-amber-600/50 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-700/30"
+						@click="enableEditing"
+					>
+						{{ t('pptx.viewer.enableEditing') }}
+					</button>
+				</div>
+
 				<!-- PowerPoint-style title bar sits ABOVE and OUTSIDE the
 				     role="toolbar" ribbon element (which e2e measures for height
 				     parity), gated like React on desktop + non-present. -->
 				<TitleBar
 					v-if="!isMobile"
 					:mode="ribbonMode"
-					:can-edit="props.canEdit"
+					:can-edit="canEditEffective"
 					:file-name="props.fileName"
 					:is-dirty="autosave.isDirty.value"
 					:autosave-status="autosaveDisabledReason ? 'disabled' : autosave.status.value"
@@ -1242,10 +1434,23 @@ defineExpose<PowerPointViewerExpose>(
 					v-if="!isMobile"
 					v-bind="ribbonProps"
 					:hidden-actions="props.hiddenActions"
+					:recent-presentations-count="viewerOptions.advanced.recentPresentationsCount"
 					:ai-enabled="Boolean(props.ai)"
 					:is-ai-panel-open="aiPanelOpen"
 					:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
 				/>
+				<!-- Options > Quick Access Toolbar > "below the Ribbon" -->
+				<div
+					v-if="!isMobile && belowRibbonQuickAccess.length > 0"
+					class="flex items-center border-b border-border bg-background px-2 py-0.5"
+					data-pptx-quick-access-below
+				>
+					<TitleBarQuickAccess
+						:items="belowRibbonQuickAccess"
+						:show-labels="viewerOptions.quickAccess.showCommandLabels"
+						:on-command="handleQuickAccessCommand"
+					/>
+				</div>
 				<!-- The AI bindings must be passed here too: `ribbonProps` does not
 				     carry them, so without these the mobile toolbar's Sparkles
 				     toggle never rendered and the assistant was unreachable on
@@ -1255,6 +1460,7 @@ defineExpose<PowerPointViewerExpose>(
 					v-else
 					v-bind="ribbonProps"
 					:hidden-actions="props.hiddenActions"
+					:recent-presentations-count="viewerOptions.advanced.recentPresentationsCount"
 					:ai-enabled="Boolean(props.ai)"
 					:is-ai-panel-open="aiPanelOpen"
 					:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
@@ -1281,7 +1487,7 @@ defineExpose<PowerPointViewerExpose>(
 
 			<!-- Find & replace bar -->
 			<FindReplaceBar
-				v-if="props.canEdit && findOpen"
+				v-if="canEditEffective && findOpen"
 				v-model:query="find.query.value"
 				v-model:replacement="find.replacement.value"
 				v-model:match-case="find.matchCase.value"
@@ -1306,7 +1512,7 @@ defineExpose<PowerPointViewerExpose>(
 					:active-slide-index="activeSlideIndex"
 					:canvas-size="canvasSize"
 					:media-data-urls="mediaDataUrls"
-					:can-edit="props.canEdit"
+					:can-edit="canEditEffective"
 					:has-sections="hasSections"
 					:section-ops="sectionOps"
 					:slide-ops="slideOps"
@@ -1317,7 +1523,7 @@ defineExpose<PowerPointViewerExpose>(
 				<main
 					ref="mainRef"
 					class="pptx-vue-main"
-					:class="{ 'is-editable': props.canEdit }"
+					:class="{ 'is-editable': canEditEffective }"
 					:data-pptx-ai-active="props.ai && aiPanel.canvasAnimating.value ? 'true' : undefined"
 					@pointerdown="onCanvasPointerDown"
 					@dblclick.capture="onCanvasDoubleClick"
@@ -1333,7 +1539,7 @@ defineExpose<PowerPointViewerExpose>(
 						:zoom="effectiveZoom"
 						:show-rulers="showRulers && !presentation.presenting.value"
 						:ruler-selected-bounds="selection.rulerSelectedBounds.value"
-						:can-drag-guides="props.canEdit && !presentation.presenting.value"
+						:can-drag-guides="canEditEffective && !presentation.presenting.value"
 						:template-elements="activeTemplateElements"
 						:edit-template-mode="editTemplateMode && !presentation.presenting.value"
 						:inline-editing-element-id="inlineEdit.inlineEditingElementId.value"
@@ -1341,7 +1547,7 @@ defineExpose<PowerPointViewerExpose>(
 						@create-guide="drag.addGuide"
 					>
 						<ViewerCanvasOverlays
-							:can-edit="props.canEdit"
+							:can-edit="canEditEffective"
 							:presenting="presentation.presenting.value"
 							:canvas-size="canvasSize"
 							:effective-zoom="effectiveZoom"
@@ -1379,7 +1585,7 @@ defineExpose<PowerPointViewerExpose>(
 				<ViewerSidePanels
 					v-if="!presentation.presenting.value"
 					:deck="deck"
-					:can-edit="props.canEdit"
+					:can-edit="canEditEffective"
 					:edit-template-mode="editTemplateMode"
 					:is-mobile="isMobile"
 					:inspector-open="inspectorOpen"
@@ -1417,7 +1623,7 @@ defineExpose<PowerPointViewerExpose>(
 			     status-bar Notes button and this strip's chevron stay in sync. It
 			     lives OUTSIDE <main> so it never scrolls away with the canvas. -->
 			<NotesPanel
-				v-if="props.canEdit && !isMobile && slideCount > 0 && !presentation.presenting.value"
+				v-if="canEditEffective && !isMobile && slideCount > 0 && !presentation.presenting.value"
 				:slide="activeSlide"
 				:expanded="notesExpanded"
 				:notes-style="notesMaster?.notesStyle"
@@ -1438,7 +1644,7 @@ defineExpose<PowerPointViewerExpose>(
 				:scale="zoom"
 				:mode="ribbonMode"
 				:is-notes-expanded="notesExpanded"
-				:show-notes="props.canEdit"
+				:show-notes="canEditEffective"
 				:hidden-actions="props.hiddenActions"
 				@zoom-in="zoomIn"
 				@zoom-out="zoomOut"
@@ -1464,7 +1670,7 @@ defineExpose<PowerPointViewerExpose>(
 			</StatusBar>
 
 			<ViewerEditDialogs
-				:can-edit="props.canEdit"
+				:can-edit="canEditEffective"
 				:theme="pptxTheme"
 				:theme-gallery-open="themeGalleryOpen"
 				:on-close-theme-gallery="() => (themeGalleryOpen = false)"
@@ -1518,6 +1724,7 @@ defineExpose<PowerPointViewerExpose>(
 				:on-close-settings="() => (showSettings = false)"
 				:options-store="optionsStore"
 				:viewer-options="viewerOptions"
+				:addin-status="addinStatus"
 				:theme-key="prefs.themeKey.value"
 				:on-theme-select="prefs.selectTheme"
 				:locale-code="prefs.localeCode.value"
@@ -1538,7 +1745,7 @@ defineExpose<PowerPointViewerExpose>(
 				:notes-master="notesMaster"
 				:notes-canvas-size="deck.notesCanvasSize.value"
 				:handout-master="handoutMaster"
-				:can-edit="canEdit"
+				:can-edit="canEditEffective"
 			/>
 
 			<ViewerDeckDialogs
@@ -1568,7 +1775,7 @@ defineExpose<PowerPointViewerExpose>(
 				:active-slide-index="activeSlideIndex"
 				:slide-count="slideCount"
 				:active-comments="comments.activeComments.value"
-				:can-edit="props.canEdit"
+				:can-edit="canEditEffective"
 				:keyboard-inset="keyboardInset"
 				:inspector-element="inspector.inspectorElementForPanels.value"
 				:author-name="authorNameRef"
@@ -1618,10 +1825,12 @@ defineExpose<PowerPointViewerExpose>(
 			:media-data-urls="mediaDataUrls"
 			:content="props.content"
 			:active-slide-index="activeSlideIndex"
-			:can-edit="props.canEdit"
+			:can-edit="canEditEffective"
 			:presentation-properties="presentationProperties"
 			:end-with-black-slide="viewerOptions.advanced.slideShowEndWithBlackSlide"
 			:prompt-keep-ink-annotations="viewerOptions.advanced.slideShowPromptKeepInkAnnotations"
+			:show-menu-on-right-click="viewerOptions.advanced.slideShowShowMenuOnRightClick"
+			:show-popup-toolbar="viewerOptions.advanced.slideShowShowPopupToolbar"
 			:duplicate-slide="slideOps.duplicateSlide"
 			:delete-slide="slideOps.deleteSlide"
 			:toggle-slide-hidden="toggleSlideHidden"

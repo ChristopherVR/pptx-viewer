@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
 
 import { buildRibbonPropsActions } from './ribbon-props-actions';
@@ -18,23 +18,6 @@ describe('useRibbonUiState', () => {
 		expect(state.eyedropperActive.value).toBeTruthy();
 		actions.onToggleEyedropper();
 		expect(state.eyedropperActive.value).toBeFalsy();
-	});
-
-	it('packages the presentation without opening the collaboration dialog', () => {
-		const state = useRibbonUiState();
-		const shareOpen = ref(false);
-		const packageForSharing = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
-		const actions = buildRibbonPropsActions({
-			...state,
-			canDistribute: ref(false),
-			shareOpen,
-			packageForSharing,
-		} as unknown as UseRibbonPropsInput);
-
-		actions.onPackageForSharing();
-
-		expect(packageForSharing).toHaveBeenCalledOnce();
-		expect(shareOpen.value).toBeFalsy();
 	});
 
 	it('opens the header and footer editor from the Insert ribbon', () => {

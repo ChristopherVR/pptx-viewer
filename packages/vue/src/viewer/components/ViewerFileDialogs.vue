@@ -17,7 +17,7 @@ import type {
 	PptxHeaderFooter,
 	PptxSlide,
 } from 'pptx-viewer-core';
-import type { ViewerOptions, ViewerOptionsStore } from 'pptx-viewer-shared';
+import type { ViewerAddinStatus, ViewerOptions, ViewerOptionsStore } from 'pptx-viewer-shared';
 
 import type { LocaleCatalogEntry } from '../../i18n';
 import type { ThemeCatalogEntry } from '../../theme';
@@ -54,6 +54,8 @@ defineProps<{
 	onCloseSettings: () => void;
 	optionsStore: ViewerOptionsStore;
 	viewerOptions: ViewerOptions;
+	/** Availability flags for the Add-ins pane. */
+	addinStatus?: ViewerAddinStatus;
 	themeKey: string;
 	onThemeSelect: (key: string) => void;
 	localeCode: string;
@@ -128,6 +130,7 @@ const emit = defineEmits<{
 		:on-quick-access-commands-change="(ids) => optionsStore.setQuickAccessCommands(ids)"
 		:on-reset-options="(group) => optionsStore.reset(group)"
 		:on-clear-cache="onClearCache"
+		:addin-status="addinStatus"
 		:theme-key="themeKey"
 		:on-theme-select="onThemeSelect"
 		:locale-code="localeCode"

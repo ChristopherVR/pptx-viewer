@@ -118,11 +118,15 @@ export interface ChartEditing {
  * @param element    reactive accessor for the selected chart element (or null).
  * @param chartData  reactive accessor for that element's chart data (or null).
  * @param emitUpdate emits the shallow `{ chartData }` patch up to the host.
+ * @param getFollowDataPoint File > Options > Advanced > "Properties follow
+ *   chart data point for current workbook", read fresh on every category
+ *   removal. Defaults to PowerPoint's own default (`true`) when omitted.
  */
 export function useChartEditing(
 	element: ComputedRef<ChartPptxElement | null>,
 	chartData: ComputedRef<PptxChartData | null>,
 	emitUpdate: (next: PptxChartData) => void,
+	getFollowDataPoint: () => boolean = () => true,
 ): ChartEditing {
 	const replaceChartData = (next: PptxChartData): void => emitUpdate(next);
 
@@ -201,7 +205,7 @@ export function useChartEditing(
 
 	const removeCategory = (catIndex: number): void => {
 		const data = chartData.value;
-		const next = data && removeChartCategory(data, catIndex);
+		const next = data && removeChartCategory(data, catIndex, getFollowDataPoint());
 		if (next) {
 			replaceChartData(next);
 		}
