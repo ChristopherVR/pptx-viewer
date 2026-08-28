@@ -234,7 +234,6 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 	const searchWrap = createEl(doc, 'span', 'pptxv-titlebar-search');
 	searchWrap.appendChild(createCommandSearch(doc, t, deps.commands).el);
 	el.appendChild(searchWrap);
-	el.appendChild(createEl(doc, 'span', 'pptxv-titlebar-spacer'));
 
 	applyAutosaveSwitch();
 	applyStatus();

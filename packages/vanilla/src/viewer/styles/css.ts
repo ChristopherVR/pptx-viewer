@@ -214,9 +214,17 @@ const CHROME_CSS = `
 .pptxv-titlebar-dot { color: var(--pptx-muted-foreground); }
 .pptxv-titlebar-status.is-error { color: #dc2626; }
 .pptxv-titlebar-status.is-saving { color: #ca8a04; }
-.pptxv-titlebar-search { position: absolute; left: 50%; width: min(320px, 30vw); transform: translateX(-50%); }
-.pptxv-titlebar-spacer { flex: 1; min-width: 20px; }
-.pptxv-cmdsearch { position: relative; width: 100%; }
+/*
+ * Flex-based centering (not position:absolute + left:50%): an absolutely
+ * positioned box centers on the FULL bar width regardless of how much room
+ * the file name / status text on the left actually uses, so a longer status
+ * message (e.g. "Saved to this PC") gets visually covered by the search box
+ * instead of the two ever sharing space. flex:1 here reserves the real
+ * remaining width between the file group and the bar's end, and centers the
+ * search box within that.
+ */
+.pptxv-titlebar-search { flex: 1 1 auto; display: flex; justify-content: center; min-width: 20px; }
+.pptxv-cmdsearch { position: relative; width: min(320px, 30vw); }
 .pptxv-cmdsearch-box { display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: var(--pptx-muted-foreground); }
 .pptxv-cmdsearch-box svg { width: 13px; height: 13px; flex: none; }
 .pptxv-cmdsearch-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--pptx-foreground); font: inherit; }
