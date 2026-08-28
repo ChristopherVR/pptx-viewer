@@ -4,7 +4,12 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 import type { PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState, TimelineClickGroup } from '../../utils/animation-timeline';
-import { applyAnimationGroupSteps } from './animation-helpers';
+import {
+	applyAnimationGroupSteps,
+	finishAnimationGroupSteps,
+	finishDomAnimationsForGroup,
+	shouldSeekAnimationGroup,
+} from './animation-helpers';
 import { driveBuildReveal, cancelBuildReveal } from './build-playback';
 import {
 	scheduleEntranceAnimationTimers,
@@ -99,6 +104,9 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	const controllerRef = useRef<PresentationAnimationController | null>(null);
 	/** In-flight requestAnimationFrame id for the active staged-build reveal. */
 	const buildRafRef = useRef<number | null>(null);
+	/** Main-timeline group whose authored active window has not elapsed yet. */
+	const activeAnimationGroupRef = useRef<TimelineClickGroup | null>(null);
+	const activeAnimationEndAtRef = useRef(0);
 	/** Whether the active slide was seeded as fully built (backward entry). */
 	const seededCompletedRef = useRef(false);
 	/**
@@ -145,6 +153,13 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 		});
 		presentationTimersRef.current = [];
 		cancelBuildReveal(buildRafRef);
+		activeAnimationGroupRef.current = null;
+		activeAnimationEndAtRef.current = 0;
+	}, []);
+
+	const markAnimationGroupActive = useCallback((group: TimelineClickGroup) => {
+		activeAnimationGroupRef.current = group;
+		activeAnimationEndAtRef.current = performance.now() + Math.max(0, group.totalDurationMs);
 	}, []);
 
 	// -----------------------------------------------------------------------
@@ -184,6 +199,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 						setPresentationElementStates,
 						presentationTimersRef,
 					);
+					markAnimationGroupActive(group);
 					startBuildReveal(controller, group);
 
 					// Continue the chain if more auto-advance groups follow
@@ -200,7 +216,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 		// resolves correctly because the setTimeout callback only reads the binding
 		// once the outer const has been assigned.
 		// oxlint-disable-next-line react/memo-dependencies -- see comment above
-		[onPlayActionSound, startBuildReveal],
+		[markAnimationGroupActive, onPlayActionSound, startBuildReveal],
 	);
 
 	// -----------------------------------------------------------------------
@@ -245,6 +261,19 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			return false;
 		}
 		const controller = controllerRef.current;
+		const activeGroup = activeAnimationGroupRef.current;
+		if (
+			controller &&
+			shouldSeekAnimationGroup(activeGroup, activeAnimationEndAtRef.current, performance.now())
+		) {
+			finishDomAnimationsForGroup(activeGroup);
+			const buildIds = PresentationAnimationController.collectBuildStepIds(activeGroup);
+			const completedStates = controller.computeStatesFor(buildIds);
+			clearPresentationTimers();
+			finishAnimationGroupSteps(activeGroup, setPresentationElementStates, completedStates);
+			scheduleAutoAdvanceChain(controller);
+			return true;
+		}
 		if (!controller || !controller.hasMoreSteps()) {
 			return false;
 		}
@@ -260,13 +289,21 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			setPresentationElementStates,
 			presentationTimersRef,
 		);
+		markAnimationGroupActive(group);
 		startBuildReveal(controller, group);
 
 		// Schedule auto-advance for consecutive non-click groups
 		scheduleAutoAdvanceChain(controller);
 
 		return true;
-	}, [animationsEnabled, onPlayActionSound, scheduleAutoAdvanceChain, startBuildReveal]);
+	}, [
+		animationsEnabled,
+		clearPresentationTimers,
+		markAnimationGroupActive,
+		onPlayActionSound,
+		scheduleAutoAdvanceChain,
+		startBuildReveal,
+	]);
 
 	// -----------------------------------------------------------------------
 	// Interactive shape-click animation
@@ -414,13 +451,21 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 					presentationTimersRef,
 					startBuildReveal,
 					scheduleAutoAdvanceChain,
+					markAnimationGroupActive,
 				});
 			}
 
 			// Legacy preset (`slide.animations`) entrance timers.
 			scheduleEntranceAnimationTimers(slide, setPresentationAnimations, presentationTimersRef);
 		},
-		[animationsEnabled, slides, onPlayActionSound, scheduleAutoAdvanceChain, startBuildReveal],
+		[
+			animationsEnabled,
+			slides,
+			onPlayActionSound,
+			markAnimationGroupActive,
+			scheduleAutoAdvanceChain,
+			startBuildReveal,
+		],
 	);
 
 	const runPresentationEntranceAnimations = useCallback(

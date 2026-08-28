@@ -21,6 +21,8 @@ export interface AutoPlayGroupDeps {
 	) => void;
 	/** Chain any consecutive auto-advance groups that follow. */
 	scheduleAutoAdvanceChain: (controller: PresentationAnimationController) => void;
+	/** Record the group so a rapid `nextAc="seek"` press can finish it. */
+	markAnimationGroupActive: (group: TimelineClickGroup) => void;
 }
 
 /**
@@ -51,6 +53,7 @@ export function scheduleOpeningAutoPlayGroup(
 			deps.setPresentationElementStates,
 			deps.presentationTimersRef,
 		);
+		deps.markAnimationGroupActive(group);
 		deps.startBuildReveal(controller, group);
 		deps.scheduleAutoAdvanceChain(controller);
 	}, firstGroup.autoAdvanceDelayMs ?? 0);
