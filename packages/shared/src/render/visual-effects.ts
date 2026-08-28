@@ -146,6 +146,7 @@ export function getOuterShadowCss(
 		return undefined;
 	}
 
+	const usesOoxmlDefaults = style.outerShadowXml !== undefined;
 	let offsetX: number;
 	let offsetY: number;
 	if (typeof style.shadowAngle === 'number' && typeof style.shadowDistance === 'number') {
@@ -160,21 +161,33 @@ export function getOuterShadowCss(
 		offsetX =
 			typeof style.shadowOffsetX === 'number' && Number.isFinite(style.shadowOffsetX)
 				? style.shadowOffsetX
-				: 4;
+				: usesOoxmlDefaults
+					? 0
+					: 4;
 		offsetY =
 			typeof style.shadowOffsetY === 'number' && Number.isFinite(style.shadowOffsetY)
 				? style.shadowOffsetY
-				: 4;
+				: usesOoxmlDefaults
+					? 0
+					: 4;
 	}
 
-	const blur =
+	const rawBlur =
 		typeof style.shadowBlur === 'number' && Number.isFinite(style.shadowBlur)
 			? Math.max(0, style.shadowBlur)
-			: 6;
+			: usesOoxmlDefaults
+				? 0
+				: 6;
+	// DrawingML `blurRad` is a radius while CSS shadows take a Gaussian
+	// standard deviation. Halving authored OOXML radii matches PowerPoint's
+	// falloff; host-authored CSS-style values retain their historical meaning.
+	const blur = usesOoxmlDefaults ? rawBlur / 2 : rawBlur;
 	const opacity =
 		typeof style.shadowOpacity === 'number' && Number.isFinite(style.shadowOpacity)
 			? clampUnitInterval(style.shadowOpacity)
-			: 0.35;
+			: usesOoxmlDefaults
+				? 1
+				: 0.35;
 
 	// Honour @sx/@sy (1000ths of a percent, 100000 = 100%) as a box-shadow
 	// spread: a scaled-up shadow grows outward, a scaled-down one shrinks. This
@@ -189,6 +202,94 @@ export function getOuterShadowCss(
 	);
 	const geometry = `${Math.round(offsetX)}px ${Math.round(offsetY)}px ${Math.round(blur)}px`;
 	return spread === 0 ? `${geometry} ${color}` : `${geometry} ${spread}px ${color}`;
+}
+
+/**
+ * Build pixel-composited outer shadows for images, text and groups.
+ *
+ * `box-shadow` follows the rectangular element box; PowerPoint shadows the
+ * already-composited pixels. CSS `drop-shadow()` has those semantics.
+ */
+export function getCompositeOuterShadowFilterCss(
+	style: ShapeStyle | undefined,
+	context?: ShadowRenderContext,
+): string | undefined {
+	if (!style) {
+		return undefined;
+	}
+	const usesOoxmlDefaults = style.outerShadowXml !== undefined;
+	const shadows: Array<{
+		angle?: number;
+		distance?: number;
+		offsetX?: number;
+		offsetY?: number;
+		blur?: number;
+		color?: string;
+		opacity?: number;
+	}> =
+		style.shadows && style.shadows.length > 0
+			? style.shadows
+			: style.shadowColor && style.shadowColor !== 'transparent'
+				? [
+						{
+							angle: style.shadowAngle,
+							distance: style.shadowDistance,
+							offsetX: style.shadowOffsetX,
+							offsetY: style.shadowOffsetY,
+							blur: style.shadowBlur,
+							color: style.shadowColor,
+							opacity: style.shadowOpacity,
+						},
+					]
+				: [];
+	const parts: string[] = [];
+	for (const shadow of shadows) {
+		if (!shadow.color || shadow.color === 'transparent') {
+			continue;
+		}
+		let offsetX: number;
+		let offsetY: number;
+		if (typeof shadow.angle === 'number' && typeof shadow.distance === 'number') {
+			const angle =
+				style.shadowRotateWithShape === false && typeof context?.rotation === 'number'
+					? shadow.angle - context.rotation
+					: shadow.angle;
+			const angleRad = (angle * Math.PI) / 180;
+			offsetX = Math.cos(angleRad) * shadow.distance;
+			offsetY = Math.sin(angleRad) * shadow.distance;
+		} else {
+			offsetX =
+				typeof shadow.offsetX === 'number' && Number.isFinite(shadow.offsetX)
+					? shadow.offsetX
+					: usesOoxmlDefaults
+						? 0
+						: 4;
+			offsetY =
+				typeof shadow.offsetY === 'number' && Number.isFinite(shadow.offsetY)
+					? shadow.offsetY
+					: usesOoxmlDefaults
+						? 0
+						: 4;
+		}
+		const rawBlur =
+			typeof shadow.blur === 'number' && Number.isFinite(shadow.blur)
+				? Math.max(0, shadow.blur)
+				: usesOoxmlDefaults
+					? 0
+					: 6;
+		const blur = usesOoxmlDefaults ? rawBlur / 2 : rawBlur;
+		const opacity =
+			typeof shadow.opacity === 'number' && Number.isFinite(shadow.opacity)
+				? clampUnitInterval(shadow.opacity)
+				: usesOoxmlDefaults
+					? 1
+					: 0.35;
+		const color = colorWithOpacity(normalizeHexColor(shadow.color, DEFAULT_SHADOW_COLOR), opacity);
+		parts.push(
+			`drop-shadow(${Math.round(offsetX)}px ${Math.round(offsetY)}px ${Math.round(blur)}px ${color})`,
+		);
+	}
+	return parts.length > 0 ? parts.join(' ') : undefined;
 }
 
 /**
@@ -545,7 +646,7 @@ export function getEffectFilterCss(
 	// Outer glow → drop-shadow
 	if (style.glowColor && style.glowColor !== 'transparent' && style.glowRadius) {
 		const glowOpacity = typeof style.glowOpacity === 'number' ? style.glowOpacity : 0.75;
-		const glowRad = Math.round(Math.max(0, style.glowRadius));
+		const glowRad = Math.max(0, style.glowRadius / 2);
 		const glowCol = colorWithOpacity(
 			normalizeHexColor(style.glowColor, DEFAULT_GLOW_COLOR),
 			glowOpacity,
@@ -869,11 +970,21 @@ export function getComputedEffectStyle(
 		element.type === 'connector' ||
 		getShapeType('shapeType' in element ? element.shapeType : undefined) === 'connector';
 
-	const boxShadow = getBoxShadowCss(
-		style,
-		{ includeGlow: options.includeGlowBoxShadow },
-		{ rotation: element.rotation },
-	);
+	const shadowsCompositePixels =
+		element.type === 'group' ||
+		element.type === 'text' ||
+		element.type === 'image' ||
+		element.type === 'picture';
+	const compositeShadow = shadowsCompositePixels
+		? getCompositeOuterShadowFilterCss(style, { rotation: element.rotation })
+		: undefined;
+	const boxShadow = shadowsCompositePixels
+		? undefined
+		: getBoxShadowCss(
+				style,
+				{ includeGlow: options.includeGlowBoxShadow },
+				{ rotation: element.rotation },
+			);
 	// The line-level shadow (`a:ln/a:effectLst/a:outerShdw`) is part of the same
 	// box-shadow channel. Only React applied it to a shape container; folding it
 	// in here is what carries it to the other four bindings.
@@ -888,7 +999,7 @@ export function getComputedEffectStyle(
 	const filter = getEffectFilterCss(style, element.id);
 	// As above for `a:ln/a:effectLst/a:glow`, which is a `drop-shadow` filter.
 	const lineGlow = paintsLineEffectsItself ? undefined : getLineGlowFilterCss(style);
-	const filterParts = [filter, lineGlow].filter(
+	const filterParts = [compositeShadow, filter, lineGlow].filter(
 		(part): part is string => part !== undefined && part !== '',
 	);
 	if (filterParts.length > 0) {

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	getBoxShadowCss,
 	getComputedEffectStyle,
+	getCompositeOuterShadowFilterCss,
 	getDuotoneSvgFilter,
 	getEffectDagBlendMode,
 	getEffectDagCssFilter,
@@ -71,6 +72,16 @@ describe('getOuterShadowCss', () => {
 		expect(css).toBe('4px 4px 6px rgba(17, 34, 51, 0.35)');
 	});
 
+	it('uses DrawingML defaults and converts blur radius for authored OOXML shadows', () => {
+		const css = getOuterShadowCss({
+			shadowColor: '#000000',
+			shadowBlur: 20,
+			shadowOpacity: 0.7,
+			outerShadowXml: {},
+		});
+		expect(css).toBe('0px 0px 10px rgba(0, 0, 0, 0.7)');
+	});
+
 	it('ignores rotation when shadowRotateWithShape is unset/true (rotates for free with the shape)', () => {
 		const style: ShapeStyle = {
 			shadowColor: '#000000',
@@ -111,6 +122,19 @@ describe('getOuterShadowCss', () => {
 			shadowRotateWithShape: false,
 		});
 		expect(css).toBe('10px 0px 0px rgba(0, 0, 0, 1)');
+	});
+});
+
+describe('getCompositeOuterShadowFilterCss', () => {
+	it('follows the composited pixels with a drop-shadow filter', () => {
+		expect(
+			getCompositeOuterShadowFilterCss({
+				shadowColor: '#000000',
+				shadowBlur: 20,
+				shadowOpacity: 0.7,
+				outerShadowXml: {},
+			}),
+		).toBe('drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.7))');
 	});
 });
 
@@ -232,7 +256,7 @@ describe('getEffectFilterCss', () => {
 	it('glow produces a drop-shadow filter', () => {
 		const css = getEffectFilterCss({ glowColor: '#ffff00', glowRadius: 12, glowOpacity: 0.75 });
 		expect(css).toBeDefined();
-		expect(css).toContain('drop-shadow(0 0 12px rgba(255, 255, 0, 0.75))');
+		expect(css).toContain('drop-shadow(0 0 6px rgba(255, 255, 0, 0.75))');
 	});
 
 	it('soft edge without an element id falls back to a minimised blur', () => {
@@ -357,6 +381,22 @@ describe('getComputedEffectStyle', () => {
 		expect(result.reflection?.top).toBe('calc(100% + 4px)');
 		expect(result.opacity).toBe(0.8);
 		expect(result.mixBlendMode).toBe('multiply');
+	});
+
+	it('uses a pixel-composited filter instead of a rectangular box shadow for pictures', () => {
+		const result = getComputedEffectStyle(
+			shape(
+				{
+					shadowColor: '#000000',
+					shadowBlur: 20,
+					shadowOpacity: 0.7,
+					outerShadowXml: {},
+				},
+				{ type: 'picture' },
+			),
+		);
+		expect(result.boxShadow).toBeUndefined();
+		expect(result.filter).toBe('drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.7))');
 	});
 
 	it('emits a fillOverlay tint layer (not a whole-element blend) when a colour is parsed', () => {
