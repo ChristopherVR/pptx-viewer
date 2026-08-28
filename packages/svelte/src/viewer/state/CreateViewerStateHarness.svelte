@@ -46,6 +46,7 @@
 		getBarChart3D: () => false,
 		getLineChart3D: () => false,
 		getAreaChart3D: () => false,
+		getPieChart3D: () => false,
 		getEditable: () => editable,
 		onautosavetoggle: (enabled) => onautosavetoggle?.(enabled),
 		getStageHolderEl: () => undefined,

@@ -24,6 +24,7 @@ export interface ExportWiringDeps {
 	getBarChart3D(): boolean;
 	getLineChart3D(): boolean;
 	getAreaChart3D(): boolean;
+	getPieChart3D(): boolean;
 	/**
 	 * Deck-level field-substitution context, so an exported slide resolves its
 	 * slide-number / date / footer runs exactly like the on-screen stage does.
@@ -69,6 +70,7 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 				barChart3D: deps.getBarChart3D(),
 				lineChart3D: deps.getLineChart3D(),
 				areaChart3D: deps.getAreaChart3D(),
+				pieChart3D: deps.getPieChart3D(),
 				getFieldContext: () => deps.getFieldContext?.(),
 			});
 		}

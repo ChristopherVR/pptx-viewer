@@ -24,6 +24,8 @@ import { BarChart3DContext } from './bar-chart-3d-context';
 import { Bar3DChartRenderer } from './Bar3DChartRenderer';
 import { LineChart3DContext } from './line-chart-3d-context';
 import { Line3DChartRenderer } from './Line3DChartRenderer';
+import { PieChart3DContext } from './pie-chart-3d-context';
+import { PieChart3DRenderer } from './PieChart3DRenderer';
 import { SurfaceChart3DContext } from './surface-chart-3d-context';
 import { SurfaceChart3DRenderer } from './SurfaceChart3DRenderer';
 
@@ -82,6 +84,11 @@ export function ChartElementView({
 	const isLine3DKind = element.chartData?.chartType === 'line3D';
 	const use3DArea = useContext(AreaChart3DContext);
 	const isArea3DKind = element.chartData?.chartType === 'area3D';
+	// Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
+	// OrbitControls). Same "marks are not selectable/draggable" caveat as the
+	// surface/bar3D scenes above.
+	const use3DPie = useContext(PieChart3DContext);
+	const isPie3DKind = element.chartData?.chartType === 'pie3D';
 
 	// The drag context comes from the committed data, captured at drag start, so
 	// axis ranges do not rescale under the pointer mid-drag.
@@ -253,6 +260,8 @@ export function ChartElementView({
 				<Line3DChartRenderer element={renderedElement} />
 			) : use3DArea && isArea3DKind ? (
 				<Area3DChartRenderer element={renderedElement} />
+			) : use3DPie && isPie3DKind ? (
+				<PieChart3DRenderer element={renderedElement} />
 			) : (
 				renderChartElement(renderedElement)
 			)}

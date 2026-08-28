@@ -16,6 +16,7 @@ import { renderBarChart3DElement } from './bar-chart-3d';
 import { attachChartEditing } from './chart-editable';
 import { renderChartViewModelSvg } from './chart-svg';
 import { renderLineChart3DElement } from './line-chart-3d';
+import { renderPieChart3DElement } from './pie-chart-3d';
 import { renderSurfaceChart3DElement } from './surface-chart-3d';
 
 /**
@@ -33,6 +34,12 @@ import { renderSurfaceChart3DElement } from './surface-chart-3d';
  * `PptxViewerOptions.areaChart3D`) and the chart's raw `chartType` is
  * `area3D` (each checked directly against the raw `chartType`, NOT via
  * `resolveChartKind`, which folds plain/3D variants together), otherwise
+ * `chartType` is `bar3D` (checked directly, NOT via `resolveChartKind`,
+ * which folds plain `bar` and `bar3D` together), or to the opt-in interactive
+ * Three.js pie3D-chart scene (`pie-chart-3d.ts`) when `context.pieChart3D`
+ * is set (see `PptxViewerOptions.pieChart3D`) and the chart's raw
+ * `chartType` is `pie3D` (checked directly, NOT via `resolveChartKind`,
+ * which folds plain `pie`/`doughnut` and `pie3D` together), otherwise
  * renders the flat SVG below. Mirrors `smartart.ts`'s `renderSmartArtElement`
  * dispatch.
  */
@@ -61,6 +68,8 @@ export const renderChartElement: ElementRenderer = (element, zIndex, context) =>
 		element.chartData?.chartType === 'area3D'
 	) {
 		return renderAreaChart3DElement(element, zIndex, context);
+	if (element.type === 'chart' && context.pieChart3D && element.chartData?.chartType === 'pie3D') {
+		return renderPieChart3DElement(element, zIndex, context);
 	}
 	return renderChartSvgElement(element, zIndex, context);
 };

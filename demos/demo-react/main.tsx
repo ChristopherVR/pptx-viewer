@@ -406,6 +406,12 @@ function App() {
 	// eslint-disable-next-line react/hook-use-state
 	const [areaChart3D] = useState(
 		() => new URLSearchParams(window.location.search).get('areaChart3D') === '1',
+	// Opt in to the experimental Three.js interactive pie3D-chart renderer
+	// (real wedge meshes, camera orbit/zoom + raycast hover tooltip) via
+	// `?pieChart3D=1`.
+	// eslint-disable-next-line react/hook-use-state
+	const [pieChart3D] = useState(
+		() => new URLSearchParams(window.location.search).get('pieChart3D') === '1',
 	);
 	// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 	// page to embed a live, pre-populated viewer).
@@ -943,6 +949,7 @@ function App() {
 					barChart3D={barChart3D}
 					lineChart3D={lineChart3D}
 					areaChart3D={areaChart3D}
+					pieChart3D={pieChart3D}
 					authorName={collaborationConfig?.userName ?? autoName}
 					collaboration={collaborationConfig ?? undefined}
 					onStartCollaboration={handleStartCollaboration}

@@ -36,6 +36,10 @@ export interface RasterizeSlideDeps {
 	 * `PptxViewerOptions.areaChart3D`.
 	 */
 	areaChart3D: boolean;
+	 * Opt-in interactive WebGL pie3D-chart renderer flag; see
+	 * `PptxViewerOptions.pieChart3D`.
+	 */
+	pieChart3D: boolean;
 	/**
 	 * Overridable frame-wait before capture (test seam: the real
 	 * `requestAnimationFrame` double-wait is not worth driving through fake
@@ -110,6 +114,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			barChart3D: deps.barChart3D,
 			lineChart3D: deps.lineChart3D,
 			areaChart3D: deps.areaChart3D,
+			pieChart3D: deps.pieChart3D,
 			presenting: false,
 		});
 		host.appendChild(stage);

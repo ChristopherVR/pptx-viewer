@@ -9,6 +9,7 @@ import { AreaChart3DContextKey } from '../state/area-chart-3d-context';
 import { BarChart3DContextKey } from '../state/bar-chart-3d-context';
 import { FieldContextKey } from '../state/field-context';
 import { LineChart3DContextKey } from '../state/line-chart-3d-context';
+import { PieChart3DContextKey } from '../state/pie-chart-3d-context';
 import { SmartArt3DContextKey } from '../state/smart-art-3d-context';
 import { SurfaceChart3DContextKey } from '../state/surface-chart-3d-context';
 import { renderToCanvas } from './render-to-canvas';
@@ -43,6 +44,10 @@ export interface RasterizeSlideDeps {
 	 * `PowerPointViewerProps.areaChart3D`.
 	 */
 	areaChart3D: boolean;
+	 * Opt-in WebGL pie3D-chart renderer flag; see
+	 * `PowerPointViewerProps.pieChart3D`.
+	 */
+	pieChart3D: boolean;
 	/**
 	 * Deck-level OOXML field-substitution context. The capture stage is mounted
 	 * outside the viewer tree, so without this an exported PNG/PDF would print
@@ -150,6 +155,7 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 				[BarChart3DContextKey, () => deps.barChart3D],
 				[LineChart3DContextKey, () => deps.lineChart3D],
 				[AreaChart3DContextKey, () => deps.areaChart3D],
+				[PieChart3DContextKey, () => deps.pieChart3D],
 				[FieldContextKey, () => deps.getFieldContext?.()],
 			]),
 		});

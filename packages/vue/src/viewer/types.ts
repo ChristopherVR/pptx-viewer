@@ -164,6 +164,16 @@ export interface PowerPointViewerProps {
 	 */
 	areaChart3D?: boolean;
 	/**
+	 * Opt in to the interactive Three.js pie3D-chart renderer. When `true`,
+	 * `pie3D` charts render as camera-orbitable real wedge meshes (drag to
+	 * rotate, scroll to zoom) instead of the flat SVG oblique-projection
+	 * illusion. Chart marks are not selectable/draggable in this mode.
+	 * Requires the optional `three` peer dependency; when it is not installed
+	 * (or the chart has no plottable series), the viewer transparently falls
+	 * back to the flat SVG pie3D renderer. Default `false`.
+	 */
+	pieChart3D?: boolean;
+	/**
 	 * Individual toolbar buttons and/or ribbon tabs to hide, letting a host
 	 * curate the chrome instead of only the all-or-nothing `canEdit` toggle.
 	 * Omit (default) to show everything, matching prior behaviour.

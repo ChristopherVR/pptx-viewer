@@ -107,6 +107,12 @@ export interface ElementRenderContext {
 	 * Defaults to `false` when the option is unset.
 	 */
 	readonly areaChart3D: boolean;
+	 * Opt-in flag: render `pie3D` charts as an interactive, camera-orbitable
+	 * Three.js wedge-mesh scene instead of the flat SVG oblique-projection
+	 * illusion (see `PptxViewerOptions.pieChart3D`). Defaults to `false` when
+	 * the option is unset.
+	 */
+	readonly pieChart3D: boolean;
 	/**
 	 * True only for the live presentation stage (real Fullscreen API active):
 	 * media renderers use this to autoplay once mounted, matching PowerPoint's

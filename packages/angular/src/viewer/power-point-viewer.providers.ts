@@ -37,6 +37,7 @@ import { FieldContextService } from './field-context.service';
 import { IsMobileService } from './is-mobile';
 import { LineChart3DService } from './line-chart-3d.service';
 import { LoadContentService } from './load-content.service';
+import { PieChart3DService } from './pie-chart-3d.service';
 import { PrintService } from './print.service';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { SurfaceChart3DService } from './surface-chart-3d.service';
@@ -88,6 +89,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	BarChart3DService,
 	LineChart3DService,
 	AreaChart3DService,
+	PieChart3DService,
 	FieldContextService,
 	ZoomTargetService,
 	AiPanelStore,

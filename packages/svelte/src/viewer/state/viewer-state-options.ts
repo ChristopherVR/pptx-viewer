@@ -47,6 +47,7 @@ export function toViewerStateOptions(
 		getBarChart3D: () => getProps().barChart3D ?? false,
 		getLineChart3D: () => getProps().lineChart3D ?? false,
 		getAreaChart3D: () => getProps().areaChart3D ?? false,
+		getPieChart3D: () => getProps().pieChart3D ?? false,
 		getEditable: () => getProps().editable ?? false,
 		getFileName: () => getProps().fileName,
 		getAiEnabled: () => Boolean(getProps().ai),

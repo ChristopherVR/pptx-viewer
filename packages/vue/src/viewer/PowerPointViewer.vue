@@ -72,6 +72,7 @@ import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
 import { LineChart3DKey } from './composables/line-chart-3d';
+import { PieChart3DKey } from './composables/pie-chart-3d';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { SurfaceChart3DKey } from './composables/surface-chart-3d';
 import { TableThemeKey } from './composables/table-theme';
@@ -149,6 +150,7 @@ const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	barChart3D: false,
 	lineChart3D: false,
 	areaChart3D: false,
+	pieChart3D: false,
 });
 const emit = defineEmits<PowerPointViewerEmits>();
 
@@ -168,6 +170,8 @@ provide(BarChart3DKey, props.barChart3D);
 provide(LineChart3DKey, props.lineChart3D);
 // Area3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
 provide(AreaChart3DKey, props.areaChart3D);
+// Pie3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
+provide(PieChart3DKey, props.pieChart3D);
 // File > Account sign-in hook point: surface the prop to AccountPage.vue via
 // inject, avoiding threading `accountAuth` through the large RibbonProps
 // contract just to reach one deeply-nested panel (mirrors SmartArt3DKey above).

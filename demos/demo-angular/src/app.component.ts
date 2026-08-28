@@ -79,6 +79,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 					[autosaveIntervalMs]="2000"
 					[smartArt3D]="smartArt3D"
 					[surfaceChart3D]="surfaceChart3D"
+					[pieChart3D]="pieChart3D"
 					[authorName]="autoName"
 					[shareDefaults]="{ roomId: autoRoomId, userName: autoName, serverUrl: defaultServerUrl }"
 					[collaboration]="collaborationConfig() ?? undefined"
@@ -116,6 +117,11 @@ export class AppComponent {
 	 * (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
 	 */
 	readonly surfaceChart3D = this.params.get('surfaceChart3D') === '1';
+	/**
+	 * Opt in to the experimental Three.js interactive pie3D-chart renderer
+	 * (real wedge meshes, camera orbit/zoom) via `?pieChart3D=1`.
+	 */
+	readonly pieChart3D = this.params.get('pieChart3D') === '1';
 	/** `?sample=1` auto-loads the bundled sample deck (docs landing embed). */
 	private readonly urlSample = this.params.get('sample') === '1';
 	readonly urlRoom = this.params.get('room');

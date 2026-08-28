@@ -27,6 +27,7 @@ function makeContext(): ElementRenderContext {
 		barChart3D: false,
 		lineChart3D: false,
 		areaChart3D: false,
+		pieChart3D: false,
 		presenting: false,
 		registry,
 		renderElement: (element, zIndex) => registry.resolve(element.type)(element, zIndex, context),

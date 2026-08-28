@@ -49,6 +49,7 @@ function mountResizableTable() {
 		barChart3D: false,
 		lineChart3D: false,
 		areaChart3D: false,
+		pieChart3D: false,
 		presenting: false,
 		interactive: true,
 		onTableResizeColumns,
@@ -109,6 +110,7 @@ describe('enableTableResize', () => {
 			barChart3D: false,
 			lineChart3D: false,
 			areaChart3D: false,
+			pieChart3D: false,
 			presenting: false,
 			registry,
 			renderElement(element, zIndex) {

@@ -20,6 +20,7 @@ import { provideFieldContext } from './field-context';
 import { createInspectorDeckActions, provideInspectorDeck } from './inspector-deck';
 import { provideLineChart3D } from './line-chart-3d-context';
 import { createOpenFile } from './open-file';
+import { providePieChart3D } from './pie-chart-3d-context';
 import { PresentationLoader } from './presentation-loader.svelte';
 import { runQuickAccessCommand } from './quick-access-commands';
 import { provideRenderContext } from './render-context';
@@ -63,6 +64,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	provideBarChart3D(options.getBarChart3D);
 	provideLineChart3D(options.getLineChart3D);
 	provideAreaChart3D(options.getAreaChart3D);
+	providePieChart3D(options.getPieChart3D);
 
 	// The live editable flag. Seeded from the host prop, but writable, because
 	// an AI edit, `deck.setMode()` and Trust Center's Protected View all have to
@@ -203,6 +205,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getBarChart3D: options.getBarChart3D,
 		getLineChart3D: options.getLineChart3D,
 		getAreaChart3D: options.getAreaChart3D,
+		getPieChart3D: options.getPieChart3D,
 		getRootEl: options.getRootEl,
 		getEditable,
 		getFieldContext: fieldContext,

@@ -20,6 +20,7 @@ export interface ExportNotesClusterDeps {
 	getBarChart3D(): boolean;
 	getLineChart3D(): boolean;
 	getAreaChart3D(): boolean;
+	getPieChart3D(): boolean;
 	getRootEl(): HTMLDivElement | undefined;
 	/** Whether in-place editing is on (gates whether notes edits are history-tracked). */
 	getEditable(): boolean;
@@ -64,6 +65,7 @@ export function buildExportNotesCluster(deps: ExportNotesClusterDeps): ExportNot
 		getBarChart3D: deps.getBarChart3D,
 		getLineChart3D: deps.getLineChart3D,
 		getAreaChart3D: deps.getAreaChart3D,
+		getPieChart3D: deps.getPieChart3D,
 		getFieldContext: () => deps.getFieldContext?.(),
 		getDeckData: () => buildDeckExportData(editor, loader),
 		getFileName: () => deps.getFileName?.(),

@@ -120,6 +120,10 @@ const smartArt3D = params.get('smartArt3D') === '1';
 // Opt in to the experimental Three.js interactive surface-chart renderer
 // (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
 const surfaceChart3D = params.get('surfaceChart3D') === '1';
+// Opt in to the experimental Three.js interactive pie3D-chart renderer
+// (real wedge meshes, camera orbit/zoom + raycast hover tooltip) via
+// `?pieChart3D=1`.
+const pieChart3D = params.get('pieChart3D') === '1';
 // `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 // page to embed a live, pre-populated viewer).
 const urlSample = params.get('sample') === '1';
@@ -520,6 +524,7 @@ function onZoneClick(e: MouseEvent): void {
 			can-edit
 			:smartArt3D="smartArt3D"
 			:surfaceChart3D="surfaceChart3D"
+			:pieChart3D="pieChart3D"
 			:ai="aiConfig"
 			:author-name="collaborationConfig?.userName ?? autoName"
 			:collaboration="collaborationConfig ?? undefined"
