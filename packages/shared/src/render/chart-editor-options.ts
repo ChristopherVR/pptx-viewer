@@ -103,10 +103,15 @@ export type ChartTypeSelectValue = PptxChartType | 'pareto';
 
 export const CHART_TYPE_OPTIONS: ReadonlyArray<ChartOption<ChartTypeSelectValue>> = [
 	{ value: 'bar', label: 'Bar', labelKey: 'pptx.chart.typeBar' },
+	{ value: 'bar3D', label: 'Bar (3-D)', labelKey: 'pptx.chart.typeBar3D' },
 	{ value: 'line', label: 'Line', labelKey: 'pptx.chart.typeLine' },
+	{ value: 'line3D', label: 'Line (3-D)', labelKey: 'pptx.chart.typeLine3D' },
 	{ value: 'pie', label: 'Pie', labelKey: 'pptx.chart.typePie' },
+	{ value: 'pie3D', label: 'Pie (3-D)', labelKey: 'pptx.chart.typePie3D' },
 	{ value: 'doughnut', label: 'Doughnut', labelKey: 'pptx.chart.typeDoughnut' },
 	{ value: 'area', label: 'Area', labelKey: 'pptx.chart.typeArea' },
+	{ value: 'area3D', label: 'Area (3-D)', labelKey: 'pptx.chart.typeArea3D' },
+	{ value: 'surface', label: 'Surface', labelKey: 'pptx.chart.typeSurface' },
 	{ value: 'scatter', label: 'Scatter', labelKey: 'pptx.chart.typeScatter' },
 	{ value: 'bubble', label: 'Bubble', labelKey: 'pptx.chart.typeBubble' },
 	{ value: 'radar', label: 'Radar', labelKey: 'pptx.chart.typeRadar' },

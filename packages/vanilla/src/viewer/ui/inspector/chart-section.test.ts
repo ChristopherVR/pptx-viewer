@@ -38,16 +38,21 @@ function mount() {
 }
 
 describe('chart section type and grouping selects', () => {
-	it('keeps every chart type it has always offered, plus the six ChartEx types', () => {
+	it('keeps every chart type it has always offered, plus the ChartEx and 3-D types', () => {
 		const { labelFor } = mount();
 		const select = labelFor('pptx.chart.type').querySelector('select')!;
 
 		expect(Array.from(select.options).map((option) => option.value)).toStrictEqual([
 			'bar',
+			'bar3D',
 			'line',
+			'line3D',
 			'pie',
+			'pie3D',
 			'doughnut',
 			'area',
+			'area3D',
+			'surface',
 			'scatter',
 			'bubble',
 			'radar',
@@ -70,10 +75,15 @@ describe('chart section type and grouping selects', () => {
 
 		expect(Array.from(select.options).map((option) => option.textContent)).toStrictEqual([
 			'pptx.chart.typeBar',
+			'pptx.chart.typeBar3D',
 			'pptx.chart.typeLine',
+			'pptx.chart.typeLine3D',
 			'pptx.chart.typePie',
+			'pptx.chart.typePie3D',
 			'pptx.chart.typeDoughnut',
 			'pptx.chart.typeArea',
+			'pptx.chart.typeArea3D',
+			'pptx.chart.typeSurface',
 			'pptx.chart.typeScatter',
 			'pptx.chart.typeBubble',
 			'pptx.chart.typeRadar',

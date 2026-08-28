@@ -109,10 +109,15 @@ function chartEditor(): EditorState {
 describe('chartSection chart-type select', () => {
 	const tokens = [
 		'bar',
+		'bar3D',
 		'line',
+		'line3D',
 		'pie',
+		'pie3D',
 		'doughnut',
 		'area',
+		'area3D',
+		'surface',
 		'scatter',
 		'bubble',
 		'radar',

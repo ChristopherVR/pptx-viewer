@@ -49,8 +49,8 @@ describe('cSS class strings', () => {
 // ---------------------------------------------------------------------------
 
 describe('cHART_TYPE_OPTIONS', () => {
-	it('has 18 chart types', () => {
-		expect(CHART_TYPE_OPTIONS).toHaveLength(18);
+	it('has 23 chart types', () => {
+		expect(CHART_TYPE_OPTIONS).toHaveLength(23);
 	});
 
 	it('contains bar, line, pie', () => {
