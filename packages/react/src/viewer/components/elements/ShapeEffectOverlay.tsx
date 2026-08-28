@@ -89,8 +89,14 @@ function renderOutlinePaint(paint: StrokeOutlinePaint): React.ReactElement {
  */
 export function ShapeEffectOverlay({
 	element,
+	animatesFill = false,
+	animatesStroke = false,
 }: {
 	element: PptxElement;
+	/** Let an active fill-colour keyframe own SVG sub-path paint. */
+	animatesFill?: boolean;
+	/** Let an active stroke-colour keyframe own the SVG outline paint. */
+	animatesStroke?: boolean;
 }): React.ReactElement | null {
 	if (!hasShapeProperties(element)) {
 		return null;
@@ -143,7 +149,12 @@ export function ShapeEffectOverlay({
 					style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
 				>
 					{subpathFill.paints.map((paint, idx) => (
-						<path key={idx} d={paint.d} fill={paint.fill} stroke='none' />
+						<path
+							key={idx}
+							d={paint.d}
+							fill={animatesFill ? 'inherit' : paint.fill}
+							stroke='none'
+						/>
 					))}
 				</svg>
 			) : null}
@@ -181,7 +192,7 @@ export function ShapeEffectOverlay({
 							key={idx}
 							d={strokeOutline.d}
 							fill='none'
-							stroke={strokeOutline.stroke}
+							stroke={animatesStroke ? 'inherit' : strokeOutline.stroke}
 							strokeWidth={strand.strokeWidth}
 							strokeDasharray={strokeOutline.dashArray}
 							strokeLinecap={strokeOutline.lineCap}

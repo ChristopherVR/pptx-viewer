@@ -291,7 +291,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}
-				<ShapeEffectOverlay element={el} />
+				<ShapeEffectOverlay
+					element={el}
+					animatesFill={animationState?.animatesFill}
+					animatesStroke={animationState?.animatesStroke}
+				/>
 				{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
 				{renderBody({
 					el,

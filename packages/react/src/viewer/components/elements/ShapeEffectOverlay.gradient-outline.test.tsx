@@ -40,8 +40,10 @@ function shape(overrides: Record<string, unknown> = {}): PptxElement {
 	} as unknown as PptxElement;
 }
 
-const markup = (element: PptxElement) =>
-	renderToStaticMarkup(<ShapeEffectOverlay element={element} />);
+const markup = (
+	element: PptxElement,
+	options: { animatesFill?: boolean; animatesStroke?: boolean } = {},
+) => renderToStaticMarkup(<ShapeEffectOverlay element={element} {...options} />);
 
 describe('shapeEffectOverlay gradient outline', () => {
 	it('strokes the outline with a paint server instead of one flat colour', () => {
@@ -106,6 +108,17 @@ describe('shapeEffectOverlay gradient outline', () => {
 		expect(markup(element)).toContain('stroke="#123456"');
 		const { hf, fc, sw, sc } = shapeParams(element);
 		expect(getShapeVisualStyle(element, hf, fc, sw, sc).borderWidth).toBe(0);
+	});
+
+	it('lets an active stroke-colour animation own the SVG outline', () => {
+		const element = shape({
+			strokeFillMode: 'solid',
+			strokeColor: '#ff0000',
+			strokeGradientStops: undefined,
+		});
+		const html = markup(element, { animatesStroke: true });
+		expect(html).toContain('stroke="inherit"');
+		expect(html).not.toContain('stroke="#ff0000"');
 	});
 });
 
