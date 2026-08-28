@@ -1432,27 +1432,37 @@ defineExpose<PowerPointViewerExpose>(
 					:on-quick-command="handleQuickAccessCommand"
 					:hidden-actions="props.hiddenActions"
 				/>
-				<RibbonToolbar
-					v-if="!isMobile"
-					v-bind="ribbonProps"
-					:hidden-actions="props.hiddenActions"
-					:recent-presentations-count="viewerOptions.advanced.recentPresentationsCount"
-					:ai-enabled="Boolean(props.ai)"
-					:is-ai-panel-open="aiPanelOpen"
-					:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
-				/>
-				<!-- Options > Quick Access Toolbar > "below the Ribbon" -->
-				<div
-					v-if="!isMobile && belowRibbonQuickAccess.length > 0"
-					class="flex items-center border-b border-border bg-background px-2 py-0.5"
-					data-pptx-quick-access-below
-				>
-					<TitleBarQuickAccess
-						:items="belowRibbonQuickAccess"
-						:show-labels="viewerOptions.quickAccess.showCommandLabels"
-						:on-command="handleQuickAccessCommand"
+				<!-- Both the ribbon and its optional below-strip are grouped under one
+				     v-if so MobileToolbar's v-else keeps pairing with "desktop or
+				     not" (its original condition), not with the below-strip's OWN
+				     (usually-false) condition: an ungrouped sibling v-if/v-else pair
+				     here previously bound MobileToolbar's v-else to the below-strip
+				     div instead of the ribbon, so MobileToolbar rendered ALONGSIDE
+				     the desktop ribbon whenever no below-ribbon Quick Access was
+				     configured (the default), covering the ribbon and swallowing
+				     clicks meant for it. -->
+				<template v-if="!isMobile">
+					<RibbonToolbar
+						v-bind="ribbonProps"
+						:hidden-actions="props.hiddenActions"
+						:recent-presentations-count="viewerOptions.advanced.recentPresentationsCount"
+						:ai-enabled="Boolean(props.ai)"
+						:is-ai-panel-open="aiPanelOpen"
+						:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
 					/>
-				</div>
+					<!-- Options > Quick Access Toolbar > "below the Ribbon" -->
+					<div
+						v-if="belowRibbonQuickAccess.length > 0"
+						class="flex items-center border-b border-border bg-background px-2 py-0.5"
+						data-pptx-quick-access-below
+					>
+						<TitleBarQuickAccess
+							:items="belowRibbonQuickAccess"
+							:show-labels="viewerOptions.quickAccess.showCommandLabels"
+							:on-command="handleQuickAccessCommand"
+						/>
+					</div>
+				</template>
 				<!-- The AI bindings must be passed here too: `ribbonProps` does not
 				     carry them, so without these the mobile toolbar's Sparkles
 				     toggle never rendered and the assistant was unreachable on
