@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.1) - 2026-08-28
+
+### Bug Fixes
+
+- **charts:** Offer 3-D chart types in the type-change dropdown (by @ChristopherVR) ([4e960f7](https://github.com/ChristopherVR/pptx-viewer/commit/4e960f7d25fa53149de667171f4e0fe4a168499c))
+- **charts:** Stop 3-D charts from flashing their 2D rendering (by @ChristopherVR) ([18802e0](https://github.com/ChristopherVR/pptx-viewer/commit/18802e041d7293f99b10b860ba793c79eed82b67))
+
 ## [3.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.0) - 2026-08-28
 
 ### Features
