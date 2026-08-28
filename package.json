@@ -104,6 +104,9 @@
 		"@react-three/fiber": "^9.7.0",
 		"three": "^0.185.1"
 	},
+	"overrides": {
+		"ai": "^7.0.69"
+	},
 	"lint-staged": {
 		"*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,css,scss,less,html,vue,yaml,toml,md,mdx,graphql}": "oxfmt",
 		"*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint --deny-warnings"
