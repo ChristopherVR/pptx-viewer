@@ -26,7 +26,7 @@ export function createProtectedViewBanner(
 	const text = createEl(doc, 'span', 'pptxv-protected-view-text');
 	const title = createEl(doc, 'strong');
 	title.textContent = t('pptx.security.protectedViewTitle');
-	text.append(title, ' — ', t('pptx.options.trust.protectedViewInfo'));
+	text.append(title, ': ', t('pptx.options.trust.protectedViewInfo'));
 	const enable = createEl(doc, 'button', 'pptxv-protected-view-enable');
 	enable.type = 'button';
 	enable.textContent = t('pptx.security.enableEditing');
