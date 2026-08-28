@@ -43,6 +43,14 @@ interface ExportHost {
 	readonly mergedSlides: () => readonly PptxSlide[];
 	/** Resolve the live slide-stage element, or `undefined` when not mounted. */
 	readonly resolveStage: () => HTMLElement | undefined;
+	/**
+	 * File > Options > Advanced > "Image Size and Quality"
+	 * (`resolveImageResolutionScale`), read fresh for every PNG/PDF capture.
+	 * Not applied to GIF/video (those intentionally stay at their own fixed
+	 * capture resolution). Defaults to 2 (the pre-existing hardcoded value)
+	 * when omitted.
+	 */
+	readonly imageExportScale?: () => number;
 }
 
 @Injectable()
@@ -88,6 +96,7 @@ export class ViewerExportService {
 			await this.exportSvc.exportElementToPng(
 				el,
 				slideFileName('slide', host.activeSlideIndex() + 1, 'png'),
+				host.imageExportScale?.() ?? 2,
 			);
 		} finally {
 			this.exporting.set(false);
@@ -96,13 +105,14 @@ export class ViewerExportService {
 
 	/** Copy the current slide to the system clipboard as a PNG image. */
 	async copySlideAsImage(): Promise<void> {
-		const el = this.requireHost().resolveStage();
+		const host = this.requireHost();
+		const el = host.resolveStage();
 		if (!el || this.exporting()) {
 			return;
 		}
 		this.exporting.set(true);
 		try {
-			await this.exportSvc.copyElementAsPng(el);
+			await this.exportSvc.copyElementAsPng(el, host.imageExportScale?.() ?? 2);
 		} catch (err) {
 			console.error('[PowerPointViewer] Copy slide as image failed:', err);
 		} finally {
@@ -127,6 +137,7 @@ export class ViewerExportService {
 				controller.signal,
 				this.translate.instant('pptx.export.rendering'),
 				90,
+				this.requireHost().imageExportScale?.() ?? 2,
 			);
 			this.progress.set(EXPORT_ASSEMBLING_PERCENT);
 			this.statusMessage.set(this.translate.instant('pptx.export.buildingPdf'));
@@ -204,16 +215,28 @@ export class ViewerExportService {
 		}
 	}
 
-	async onPrint(settings: PrintSettings): Promise<void> {
+	/**
+	 * `includeHiddenSlides`: Options > Advanced > "Print hidden slides".
+	 * `highQuality`: Options > Advanced > "High quality" raster scale for the
+	 * notes/handouts fallback path, composed on top of the host's own Image
+	 * Size/Quality scale.
+	 */
+	async onPrint(
+		settings: PrintSettings,
+		includeHiddenSlides = false,
+		highQuality = false,
+	): Promise<void> {
 		const host = this.requireHost();
 		const original = host.activeSlideIndex();
+		const printScale = (host.imageExportScale?.() ?? 2) * (highQuality ? 2 : 1);
 		try {
 			await this.print.print(
 				settings,
 				[...host.mergedSlides()],
 				original,
-				(index) => this.captureSlideDataUrl(index),
+				(index) => this.captureSlideDataUrl(index, printScale),
 				this.loader.canvasSize(),
+				includeHiddenSlides,
 			);
 		} finally {
 			host.activeSlideIndex.set(original);
@@ -256,6 +279,7 @@ export class ViewerExportService {
 		abortSignal: AbortSignal,
 		verb: string,
 		span: number,
+		scale: number = 2,
 	): Promise<HTMLCanvasElement[]> {
 		const host = this.requireHost();
 		const total = host.slideCount();
@@ -274,7 +298,7 @@ export class ViewerExportService {
 				});
 				const el = host.resolveStage();
 				if (el) {
-					canvases.push(await this.exportSvc.renderElement(el));
+					canvases.push(await this.exportSvc.renderElement(el, scale));
 				}
 			}
 		} finally {
@@ -283,8 +307,13 @@ export class ViewerExportService {
 		return canvases;
 	}
 
-	/** Flip the live stage to `index`, let it settle, and capture it to a PNG data URL. */
-	private async captureSlideDataUrl(index: number): Promise<string | null> {
+	/**
+	 * Flip the live stage to `index`, let it settle, and capture it to a PNG
+	 * data URL. `scale` defaults to the host's own Image Size/Quality scale
+	 * (matching PNG/PDF export); the print notes/handouts path passes a higher
+	 * value when Options > Advanced > "High quality" is on.
+	 */
+	private async captureSlideDataUrl(index: number, scale?: number): Promise<string | null> {
 		const host = this.requireHost();
 		host.activeSlideIndex.set(index);
 		await new Promise<void>((resolve) => {
@@ -294,7 +323,7 @@ export class ViewerExportService {
 		if (!el) {
 			return null;
 		}
-		const canvas = await this.exportSvc.renderElement(el);
+		const canvas = await this.exportSvc.renderElement(el, scale ?? host.imageExportScale?.() ?? 2);
 		return canvas.toDataURL('image/png');
 	}
 }

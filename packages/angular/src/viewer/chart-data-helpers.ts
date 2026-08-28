@@ -265,9 +265,13 @@ export function addCategory(element: ChartPptxElement): ChartPptxElement {
  * const updated = removeCategory(el, 2);
  * ```
  */
-export function removeCategory(element: ChartPptxElement, catIndex: number): ChartPptxElement {
+export function removeCategory(
+	element: ChartPptxElement,
+	catIndex: number,
+	followDataPoint = true,
+): ChartPptxElement {
 	const chartData = element.chartData;
-	const next = chartData && removeChartCategory(chartData, catIndex);
+	const next = chartData && removeChartCategory(chartData, catIndex, followDataPoint);
 	return next ? { ...element, chartData: next } : element;
 }
 

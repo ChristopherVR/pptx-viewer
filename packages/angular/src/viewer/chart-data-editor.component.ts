@@ -56,6 +56,7 @@ import {
 	setSeriesValue,
 } from './chart-data-helpers';
 import { ChartPartSelectionService } from './chart-part-selection.service';
+import { ViewerOptionsService } from './viewer-options.service';
 
 @Component({
 	selector: 'pptx-chart-data-editor',
@@ -431,8 +432,19 @@ export class ChartDataEditorComponent {
 	private readonly translate = inject(TranslateService);
 	/** Canvas <-> inspector chart-part selection bridge (viewer-scoped, optional). */
 	private readonly partSelection = inject(ChartPartSelectionService, { optional: true });
+	/** File > Options access (viewer-scoped, optional for standalone unit tests). */
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
 	private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 	private readonly injector = inject(Injector);
+
+	/**
+	 * File > Options > Advanced > "Properties follow chart data point for
+	 * current workbook". Falls back to PowerPoint's own default (`true`) when
+	 * the service is unavailable (standalone unit tests).
+	 */
+	private followDataPoint(): boolean {
+		return this.viewerOpts?.options().advanced.chartPropertiesFollowDataPoint ?? true;
+	}
 
 	/** The chart element being edited. */
 	readonly element = input.required<ChartPptxElement>();
@@ -566,11 +578,11 @@ export class ChartDataEditorComponent {
 		if (last < 0) {
 			return;
 		}
-		this.elementChange.emit(removeCategory(this.element(), last));
+		this.elementChange.emit(removeCategory(this.element(), last, this.followDataPoint()));
 	}
 
 	protected onRemoveCategory(catIndex: number): void {
-		this.elementChange.emit(removeCategory(this.element(), catIndex));
+		this.elementChange.emit(removeCategory(this.element(), catIndex, this.followDataPoint()));
 	}
 }
 

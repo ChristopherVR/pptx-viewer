@@ -300,6 +300,13 @@ export class PrintDialogComponent {
 	/** Default frame-slides from presentation properties. */
 	readonly defaultFrameSlides = input<boolean | undefined>(undefined);
 
+	/**
+	 * File > Options > Advanced > Print seed (`ViewerOptionsService.printDefaults`).
+	 * `undefined` (Options > "Use the most recently used print settings") leaves
+	 * `printWhat`/`colorMode`/`frameSlides` at their hardcoded defaults below.
+	 */
+	readonly defaultSettings = input<Partial<PrintSettings> | undefined>(undefined);
+
 	/** Emits the resolved, validated settings when the user clicks Print. */
 	readonly print = output<PrintSettings>();
 
@@ -333,10 +340,14 @@ export class PrintDialogComponent {
 			}
 			this._seeded = true;
 			const total = this.slides().length;
+			const optionDefaults = this.defaultSettings();
 			this.settings.set({
 				...DEFAULT_PRINT_SETTINGS,
+				printWhat: optionDefaults?.printWhat ?? DEFAULT_PRINT_SETTINGS.printWhat,
+				colorMode: optionDefaults?.colorMode ?? DEFAULT_PRINT_SETTINGS.colorMode,
 				slidesPerPage: normalizeSlidesPerPage(this.defaultSlidesPerPage()),
-				frameSlides: this.defaultFrameSlides() ?? false,
+				frameSlides: optionDefaults?.frameSlides ?? this.defaultFrameSlides() ?? false,
+				scaleToFit: optionDefaults?.scaleToFit ?? DEFAULT_PRINT_SETTINGS.scaleToFit,
 				customRangeFrom: 1,
 				customRangeTo: Math.max(1, total),
 			});

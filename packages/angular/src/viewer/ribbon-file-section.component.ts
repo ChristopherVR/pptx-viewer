@@ -44,7 +44,6 @@ const CARD_ICONS: Record<BackstageCardId, string> = {
 	saveAsPptx: 'P',
 	saveAsPpsx: '▶',
 	saveAsPptm: 'M',
-	package: '□',
 	pdf: 'PDF',
 	png: 'PNG',
 	video: '▶',
@@ -53,7 +52,6 @@ const CARD_ICONS: Record<BackstageCardId, string> = {
 	copyImage: '▣',
 	print: '▧',
 	share: '◇',
-	sharePackage: '□',
 };
 
 /**
@@ -86,6 +84,8 @@ export class RibbonFileSectionComponent {
 	readonly hasMacros = input(false);
 	/** Toolbar buttons the host wants hidden (drops the Export nav entry/page). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/** File > Options > Advanced > "Quickly access this number of Recent Documents". */
+	readonly recentPresentationsCount = input<number | undefined>(undefined);
 	/** Optional sign-in hook point for the Account page. Absent/disabled by default. */
 	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);
 	readonly close = output<void>();
@@ -95,7 +95,6 @@ export class RibbonFileSectionComponent {
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
-	readonly packageForSharing = output<void>();
 	readonly exportPng = output<void>();
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
@@ -143,7 +142,8 @@ export class RibbonFileSectionComponent {
 	protected readonly actions = computed(() => this.pageActions(this.page()));
 
 	constructor() {
-		void (async () => this.recent.set(await listBackstageRecentFiles(this.t)))();
+		void (async () =>
+			this.recent.set(await listBackstageRecentFiles(this.t, this.recentPresentationsCount())))();
 	}
 
 	protected date(timestamp: number): string {
@@ -197,7 +197,6 @@ export class RibbonFileSectionComponent {
 			saveAsPptx: this.save,
 			saveAsPpsx: this.savePpsx,
 			saveAsPptm: this.savePptm,
-			package: this.packageForSharing,
 			pdf: this.exportPdf,
 			png: this.exportPng,
 			video: this.exportVideo,
@@ -206,7 +205,6 @@ export class RibbonFileSectionComponent {
 			copyImage: this.copySlideAsImage,
 			print: this.print,
 			share: this.share,
-			sharePackage: this.packageForSharing,
 		};
 		return backstageCardsFor(page)
 			.filter((card) => card.id !== 'saveAsPptm' || this.hasMacros())

@@ -26,9 +26,10 @@ import {
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 
 import { THEME_CATALOG } from '../internal/shared';
-import type { ThemeCatalogEntry } from '../internal/shared';
+import type { ThemeCatalogEntry, ViewerAddinStatus } from '../internal/shared';
 import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
 import type { LocaleCatalogEntry } from '../internal/shared-src/i18n';
+import { CollaborationService } from './collaboration.service';
 import { ComparePanelComponent } from './compare-panel.component';
 import { CustomFontsService } from './custom-fonts.service';
 import { EditorStateService } from './editor-state.service';
@@ -45,6 +46,7 @@ import { SetUpSlideShowDialogComponent } from './set-up-slide-show-dialog.compon
 import { SettingsDialogComponent } from './settings-dialog.component';
 import { ShortcutPanelComponent } from './shortcut-panel.component';
 import { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
+import { SmartArt3DService } from './smart-art-3d.service';
 import { VersionHistoryPanelComponent } from './version-history-panel.component';
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
@@ -54,6 +56,7 @@ import {
 	buildEquationSegment,
 	collectUsedFontFamilies,
 	countAnnotationStrokes,
+	resolveViewerExtraAddinStatus,
 } from './viewer-extra-dialogs-helpers';
 import { ViewerOptionsService } from './viewer-options.service';
 
@@ -140,6 +143,7 @@ import { ViewerOptionsService } from './viewer-options.service';
 		<pptx-settings-dialog
 			[open]="svc.showSettings()"
 			[options]="viewerOpts.options()"
+			[addinStatus]="addinStatus()"
 			[themeKey]="themeKey()"
 			[availableThemes]="availableThemes()"
 			[localeCode]="localeCode()"
@@ -211,6 +215,17 @@ export class ViewerExtraDialogsComponent {
 	protected readonly editor = inject(EditorStateService);
 	protected readonly loader = inject(LoadContentService);
 	private readonly fonts = inject(EmbeddedFontsService);
+	private readonly smartArt3D = inject(SmartArt3DService);
+	private readonly collab = inject(CollaborationService);
+
+	/** Real runtime availability for the Options > Add-ins pane; see {@link resolveViewerExtraAddinStatus}. */
+	protected readonly addinStatus = computed<ViewerAddinStatus>(() =>
+		resolveViewerExtraAddinStatus({
+			smartArt3dEnabled: this.smartArt3D.enabled(),
+			disable3DRendering: this.viewerOpts.options().advanced.disable3DRendering,
+			collaborationConnected: this.collab.connected(),
+		}),
+	);
 
 	/** Distinct font families used across the editable deck. */
 	protected readonly usedFontFamilies = computed(() =>

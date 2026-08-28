@@ -57,7 +57,22 @@ import type { TableCellCommit } from './table-renderer.component';
 import { showsTemplateAffordance } from './template-mode';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
+import { ViewerOptionsService } from './viewer-options.service';
 import { ZoomRendererComponent } from './zoom-renderer.component';
+
+/**
+ * Trust Center > "Confirm before opening external hyperlinks" gate for a
+ * text-run hyperlink click. `confirm` is `viewerOpts?.confirmExternalHyperlink`
+ * (absent outside a `PowerPointViewerComponent` host, where a click is never
+ * vetoed); returns `true` when the browser's default navigation must be
+ * prevented. Exported (and pure) because this package has no TestBed.
+ */
+export function shouldPreventHyperlinkNavigation(
+	confirm: ((href: string) => boolean) | undefined,
+	href: string,
+): boolean {
+	return confirm !== undefined && !confirm(href);
+}
 
 /**
  * ElementRendererComponent: Angular port of the React `ElementRenderer.tsx`
@@ -123,6 +138,12 @@ export class ElementRendererComponent {
 	 */
 	private readonly playback = inject(AnimationPlaybackService, { optional: true });
 	private readonly translate = inject(TranslateService);
+	/**
+	 * Optional so this renderer still works outside a `PowerPointViewerComponent`
+	 * host (thumbnails, export): a text-run hyperlink click is then never
+	 * confirmed, matching the option's own default meaning ("not configured").
+	 */
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
 	readonly smartArt3D = computed(() => this.smartArt3DService?.enabled() ?? false);
 	/**
 	 * Whether the Selection Pane has hidden this element. Drives the empty first
@@ -379,6 +400,19 @@ export class ElementRendererComponent {
 			),
 		);
 	});
+
+	/**
+	 * Trust Center > "Confirm before opening external hyperlinks" gate for a
+	 * text-run hyperlink (`<a class="pptx-ng-link">`). The anchor's own `href` /
+	 * `target="_blank"` still does the actual navigation; this only vetoes it
+	 * via `preventDefault()` when the user declines the prompt.
+	 */
+	protected onHyperlinkClick(event: MouseEvent, href: string): void {
+		const confirm = this.viewerOpts?.confirmExternalHyperlink.bind(this.viewerOpts);
+		if (shouldPreventHyperlinkNavigation(confirm, href)) {
+			event.preventDefault();
+		}
+	}
 
 	/** Whole-paragraph text, for the paragraph-level build wrapper. */
 	protected paragraphText(para: Paragraph): string {

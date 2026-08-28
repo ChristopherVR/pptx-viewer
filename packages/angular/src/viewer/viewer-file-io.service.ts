@@ -20,10 +20,9 @@ import { inject, Injectable, signal } from '@angular/core';
 import type { PptxSaveFormat, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
 import type { DeckSaveIntent } from '../internal/shared';
-import { downloadBlob, exportDeckJson, openPptxFile } from '../internal/shared';
+import { exportDeckJson, openPptxFile } from '../internal/shared';
 import { ExportService } from './export.service';
 import { LoadContentService } from './load-content.service';
-import { buildSharingPackage } from './package-sharing';
 import { buildSaveSlides } from './template-mode';
 import type { TemplateElementsBySlideId } from './template-mode';
 
@@ -42,6 +41,12 @@ interface FileIOHost {
 	 * encrypted OLE2 container instead of a plain ZIP.
 	 */
 	readonly saveIntent: () => DeckSaveIntent;
+	/**
+	 * Options > Accessibility > "feedback with sound", and Options > Save >
+	 * "keep the last AutoRecover version": run once a Save/Save-As download
+	 * actually completes.
+	 */
+	readonly afterSuccessfulSave: (format: PptxSaveFormat) => void;
 }
 
 @Injectable()
@@ -119,6 +124,7 @@ export class ViewerFileIOService {
 			: await this.loader.saveSlides(this.loader.slides(), format, undefined, intent);
 		host.emitContentChange(bytes);
 		this.exportSvc.savePresentation(bytes, `presentation.${format}`, format);
+		host.afterSuccessfulSave(format);
 	}
 
 	async saveAsPptx(): Promise<void> {
@@ -160,13 +166,6 @@ export class ViewerFileIOService {
 			},
 			sourceName,
 		);
-	}
-
-	/** Bundle the presentation and its usage notes in a shareable ZIP archive. */
-	async packageForSharing(): Promise<void> {
-		const presentationFilename = 'presentation.pptx';
-		const blob = await buildSharingPackage(await this.getContent(), presentationFilename);
-		downloadBlob(blob, 'presentation-package.zip');
 	}
 
 	/**

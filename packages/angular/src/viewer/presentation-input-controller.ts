@@ -20,10 +20,12 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	acceptsPresentationInput,
 	createPresentationKeyBuffer,
-	handlePresentationStageClick,
 	createWheelStepBuffer,
 	mapPresentationKey,
 	mapPresentationWheel,
+	resolvePresentationAction,
+	resolvePresentationClick,
+	runPresentationAction,
 } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
 import type { PresentationAnnotationsService } from './presentation-annotations.service';
@@ -53,6 +55,14 @@ export interface PresentationInputDeps {
 	showAllSlides: () => void;
 	/** End the show; the component guards against double-closing. */
 	requestClose: () => void;
+	/**
+	 * Trust Center > "Confirm before opening external hyperlinks" gate for an
+	 * on-slide action click (`a:hlinkClick`) that resolves to an external URL.
+	 * Return `true` to allow the navigation, `false` to block it. Omitted (or
+	 * absent) means "always allow", matching `shouldConfirmExternalHyperlink`
+	 * with the option off.
+	 */
+	confirmExternalHyperlink?: (href: string) => boolean;
 }
 
 export class PresentationInputController {
@@ -185,18 +195,33 @@ export class PresentationInputController {
 	/**
 	 * Run any on-slide action under the pointer, and report what the click left
 	 * for the show: only `'advance'` reaches {@link advanceFromClick}.
+	 *
+	 * Reimplements `handlePresentationStageClick`'s classify-then-run in two
+	 * steps (rather than calling it directly) so an `openUrl` intent can be
+	 * gated by Trust Center > "Confirm before opening external hyperlinks"
+	 * before the navigation actually runs. A declined confirmation still
+	 * consumes the click (PowerPoint does not also advance the slide).
 	 */
 	private handleActionClick(target: EventTarget | null): 'action' | 'advance' | 'inert' {
-		return handlePresentationStageClick(
-			target,
-			this.deps.currentSlide(),
-			{ slideCount: this.deps.slides().length },
-			{
-				goToSlide: (index) => this.deps.navigator.goToSlide(index),
-				move: (direction) => this.deps.navigator.navigate(direction > 0 ? 'next' : 'prev'),
-				endShow: () => this.deps.requestClose(),
-			},
-		);
+		const outcome = resolvePresentationClick(target, this.deps.currentSlide());
+		if (outcome.kind !== 'action') {
+			return outcome.kind;
+		}
+		const options = { slideCount: this.deps.slides().length };
+		const { intent } = resolvePresentationAction(outcome.action, options);
+		if (
+			intent.kind === 'openUrl' &&
+			this.deps.confirmExternalHyperlink &&
+			!this.deps.confirmExternalHyperlink(intent.url)
+		) {
+			return 'action';
+		}
+		runPresentationAction(outcome.action, options, {
+			goToSlide: (index) => this.deps.navigator.goToSlide(index),
+			move: (direction) => this.deps.navigator.navigate(direction > 0 ? 'next' : 'prev'),
+			endShow: () => this.deps.requestClose(),
+		});
+		return 'action';
 	}
 
 	/**

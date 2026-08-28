@@ -25,6 +25,7 @@ import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
+import { ViewerOptionsService } from './viewer-options.service';
 
 /** Live host accessors the canvas-editing controller needs. */
 interface CanvasEditingHost {
@@ -39,6 +40,8 @@ export class ViewerCanvasEditingService {
 	private readonly dialogs = inject(ViewerDialogsService);
 	private readonly formatPainter = inject(ViewerFormatPainterService);
 	private readonly collab = inject(CollaborationService);
+	/** Options > Proofing > AutoCorrect, applied to committed inline-edit text. */
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
 
 	/** Id of the element being inline text-edited, or null. */
 	readonly editingId = signal<string | null>(null);
@@ -251,12 +254,10 @@ export class ViewerCanvasEditingService {
 		if (!el || el.type !== 'table') {
 			return;
 		}
-		const updated = setCellText(
-			el,
-			event.commit.rowIndex,
-			event.commit.colIndex,
-			event.commit.text,
-		);
+		const text = this.viewerOpts
+			? this.viewerOpts.autoCorrect(event.commit.text)
+			: event.commit.text;
+		const updated = setCellText(el, event.commit.rowIndex, event.commit.colIndex, text);
 		this.editor.updateElement(host.activeSlideIndex(), event.id, {
 			tableData: updated.tableData,
 		});

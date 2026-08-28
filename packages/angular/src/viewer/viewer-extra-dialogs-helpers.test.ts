@@ -16,6 +16,7 @@ import {
 	buildEquationSegment,
 	collectUsedFontFamilies,
 	countAnnotationStrokes,
+	resolveViewerExtraAddinStatus,
 } from './viewer-extra-dialogs-helpers';
 
 function slideWith(elements: PptxElement[]): PptxSlide {
@@ -158,5 +159,32 @@ describe('applyAcceptedDiff', () => {
 		const result = applyAcceptedDiff(base, diff);
 		expect(result).toStrictEqual(base);
 		expect(result).not.toBe(base);
+	});
+});
+
+/**
+ * The Options > Add-ins pane used to render the whole catalog through
+ * `resolveViewerAddinRows`'s bare `active: true` default: every row showed
+ * "active" regardless of whether the underlying capability actually was.
+ */
+describe('resolveViewerExtraAddinStatus', () => {
+	it('reflects the live SmartArt3D, model3d override, and collaboration state', () => {
+		expect(
+			resolveViewerExtraAddinStatus({
+				smartArt3dEnabled: true,
+				disable3DRendering: false,
+				collaborationConnected: true,
+			}),
+		).toStrictEqual({ smartArt3d: true, model3d: true, collaboration: true });
+	});
+
+	it('turns model3d off with the Advanced "Disable 3D rendering" override, independent of SmartArt3D', () => {
+		expect(
+			resolveViewerExtraAddinStatus({
+				smartArt3dEnabled: false,
+				disable3DRendering: true,
+				collaborationConnected: false,
+			}),
+		).toStrictEqual({ smartArt3d: false, model3d: false, collaboration: false });
 	});
 });

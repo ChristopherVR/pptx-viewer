@@ -50,6 +50,7 @@ import {
 	slideSizeToCanvasPx,
 } from '../internal/shared';
 import type { CanvasSize, DeckSaveIntent, SlideSizeEmu } from '../internal/shared';
+import { ViewerOptionsService } from './viewer-options.service';
 
 /**
  * `LoadContentService`: Angular port of the React `useLoadContent` hook and
@@ -199,6 +200,19 @@ export class LoadContentService {
 	private renderToken = 0;
 	private activeBlobUrls: string[] = [];
 
+	/**
+	 * Optional: `inject()` needs an active injection context, which the
+	 * colocated unit tests construct this service without. Trust Center >
+	 * "Allow external content" reads through this when present.
+	 */
+	private readonly optionsService: ViewerOptionsService | null = (() => {
+		try {
+			return inject(ViewerOptionsService);
+		} catch {
+			return null;
+		}
+	})();
+
 	constructor() {
 		inject(DestroyRef).onDestroy(() => {
 			this.renderToken++;
@@ -312,7 +326,12 @@ export class LoadContentService {
 
 			const previousHandler = this.handler;
 			const newHandler = new PptxHandler();
-			const parsed = await newHandler.load(buffer as ArrayBuffer);
+			// Trust Center > "Allow external content": gates linked (non-embedded)
+			// http(s) image URLs. Defaults to blocked when the options service is
+			// unreachable (e.g. constructed outside DI in a unit test).
+			const allowExternalImages =
+				this.optionsService?.options().trust.allowExternalContent ?? false;
+			const parsed = await newHandler.load(buffer as ArrayBuffer, { allowExternalImages });
 			if (token !== this.renderToken) {
 				newHandler.dispose();
 				return;

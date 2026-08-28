@@ -26,3 +26,21 @@ export function toolbarVisibility(
 		isHidden: (id) => isActionHidden(id, hiddenActions()),
 	};
 }
+
+/**
+ * Union the host's own `hiddenActions` input with File > Options > Customize
+ * Ribbon's `ribbon.hiddenTabIds`, so both reach the same filter every chrome
+ * component already gates on. `ToolbarTabId` is a subtype of `ToolbarActionId`,
+ * so a hidden tab id fits directly into the result.
+ *
+ * Without this, Customize Ribbon changed only what its own pane displayed:
+ * nothing downstream (the ribbon's tab strip, the title bar, the mobile
+ * toolbar/menu, the status bar) ever read `ribbon.hiddenTabIds`, so ticking a
+ * tab off there left every one of them unchanged.
+ */
+export function mergeHiddenActions(
+	hostHiddenActions: readonly ToolbarActionId[],
+	ribbonHiddenTabIds: readonly ToolbarActionId[],
+): ToolbarActionId[] {
+	return [...hostHiddenActions, ...ribbonHiddenTabIds];
+}

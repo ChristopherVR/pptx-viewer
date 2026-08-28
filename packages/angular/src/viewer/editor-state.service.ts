@@ -94,6 +94,14 @@ export class EditorStateService {
 	private readonly history = new EditorHistory<EditorSnapshot>();
 
 	/**
+	 * Apply File > Options > Advanced > "Maximum number of undos" at runtime.
+	 * Trims the past stack immediately if the new limit is smaller.
+	 */
+	setHistoryDepth(depth: number): void {
+		this.history.setMaxDepth(depth);
+	}
+
+	/**
 	 * Resolve a translation. Outside an injection context (see {@link translate})
 	 * falls back to the canonical English dictionary text, then the raw key.
 	 */

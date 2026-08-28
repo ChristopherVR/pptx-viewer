@@ -31,7 +31,7 @@
 		(click)="onBodyClick($event)"
 		(mouseover)="onStageHover($event)"
 		(mouseout)="onStageHoverEnd($event)"
-		(contextmenu)="$event.preventDefault()"
+		(contextmenu)="onStageContextMenu($event)"
 	>
 		<pptx-slide-canvas
 			[slide]="currentSlide()"
@@ -151,6 +151,7 @@
 		[totalSlides]="slides().length"
 		[presentationStartTime]="showStartedAt"
 		[presenterMode]="presenterMode()"
+		[popupToolbarEnabled]="showPopupToolbar()"
 		(move)="navigator.navigate($event === 1 ? 'next' : 'prev')"
 		(presenterViewToggle)="presenterViewToggle.emit()"
 		(endPresentation)="onToolbarEnd()"
@@ -170,6 +171,16 @@
 			[mediaDataUrls]="mediaDataUrls()"
 			(select)="onNavigatorSelect($event)"
 			(close)="allSlidesOpen.set(false)"
+		/>
+	}
+
+	<!-- Slide-show right-click menu. -->
+	@if (contextMenuState(); as pos) {
+		<pptx-presentation-context-menu
+			[x]="pos.x"
+			[y]="pos.y"
+			(action)="onContextMenuAction($event)"
+			(closed)="contextMenuState.set(null)"
 		/>
 	}
 </div>

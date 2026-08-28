@@ -88,6 +88,10 @@ describe('printService SVG slides', () => {
 		);
 
 		expect(captureSlide).toHaveBeenCalledOnce();
-		expect(String(write.mock.calls[0][0])).toContain('data:image/png;base64,raster');
+		// The raster path opens the window with a placeholder BEFORE awaiting
+		// `captureSlide` (so it isn't popup-blocked), then writes the real
+		// document once ready -- two writes, the real content in the last one.
+		expect(write).toHaveBeenCalledTimes(2);
+		expect(String(write.mock.calls.at(-1)?.[0])).toContain('data:image/png;base64,raster');
 	});
 });

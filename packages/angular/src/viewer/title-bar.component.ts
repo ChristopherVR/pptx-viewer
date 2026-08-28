@@ -56,6 +56,26 @@ export function narrowToExtraQuickAccess(
 	};
 }
 
+/**
+ * The below-ribbon strip's options, or `null` when nothing renders there:
+ * hidden, position `above`, or no commands beyond the dedicated trio.
+ *
+ * Single source of truth for BOTH sides of the "below the ribbon" placement:
+ * {@link PowerPointViewerComponent} renders the strip precisely when this is
+ * non-null, and this component's own inline strip below suppresses itself
+ * under the identical condition, so the two can never disagree about where
+ * the configured commands show up.
+ */
+export function resolveBelowRibbonQuickAccess(
+	options: ViewerQuickAccessOptions,
+): ViewerQuickAccessOptions | null {
+	if (!options.visible || options.position !== 'below') {
+		return null;
+	}
+	const narrowed = narrowToExtraQuickAccess(options);
+	return narrowed.commandIds.length > 0 ? narrowed : null;
+}
+
 @Component({
 	selector: 'pptx-title-bar',
 	standalone: true,
@@ -141,7 +161,7 @@ export function narrowToExtraQuickAccess(
 							<svg lucideRedo class="h-3.5 w-3.5"></svg>
 						</button>
 					}
-					@if (extraQat().commandIds.length > 0) {
+					@if (extraQat().commandIds.length > 0 && !belowRibbonActive()) {
 						<pptx-quick-access-strip
 							[quickAccess]="extraQat()"
 							(command)="onQuickCommand($event)"
@@ -222,6 +242,15 @@ export class TitleBarComponent {
 	 * remainder means those buttons carry real icons rather than a letter glyph.
 	 */
 	protected readonly extraQat = computed(() => narrowToExtraQuickAccess(this.qat()));
+
+	/**
+	 * Whether the below-ribbon strip is the one rendering the configured extra
+	 * commands right now, so this component's OWN inline strip stands down
+	 * instead of showing the same commands twice.
+	 */
+	protected readonly belowRibbonActive = computed(
+		() => resolveBelowRibbonQuickAccess(this.qat()) !== null,
+	);
 
 	/**
 	 * Route a Quick Access press: keep the dedicated save/undo/redo outputs

@@ -8,14 +8,15 @@
  * from the original inline tab-bar `<div>` in `ribbon.component.ts`.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { LucideChevronDown, LucideChevronUp, LucideShare2 } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { filterVisibleTabs, TAB_ROW_ACTION_CLASSES, TOOLBAR_TABS } from '../internal/shared';
 import type { ToolbarActionId, ToolbarTabId } from '../internal/shared';
 import type { RibbonTab } from './ribbon-types';
 import { toolbarVisibility } from './toolbar-visibility';
+import { ViewerOptionsService } from './viewer-options.service';
 
 @Component({
 	selector: 'pptx-ribbon-tab-list',
@@ -33,6 +34,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 						type="button"
 						role="tab"
 						[attr.aria-selected]="activeTab() === t.id"
+						[title]="tabTip(t.labelKey)"
 						(click)="selectTab.emit(t.id)"
 						class="relative whitespace-nowrap px-3.5 py-2 text-[12px] font-medium transition-colors"
 						[ngClass]="
@@ -138,4 +140,14 @@ export class RibbonTabListComponent {
 	protected readonly visibleTabs = computed(() =>
 		filterVisibleTabs(TOOLBAR_TABS, this.hiddenActions()),
 	);
+
+	private readonly translate = inject(TranslateService);
+	/** Optional so the tab strip renders outside a full viewer host too. */
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
+
+	/** ScreenTip-styled tab tooltip (null suppresses the title attribute). */
+	protected tabTip(labelKey: string): string | null {
+		const label = this.translate.instant(labelKey) as string;
+		return this.viewerOpts ? (this.viewerOpts.screenTip(label) ?? null) : label;
+	}
 }

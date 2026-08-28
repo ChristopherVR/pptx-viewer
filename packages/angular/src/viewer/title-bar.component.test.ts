@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_VIEWER_OPTIONS } from '../internal/shared';
 import type { ViewerQuickAccessOptions } from '../internal/shared';
-import { narrowToExtraQuickAccess } from './title-bar.component';
+import { narrowToExtraQuickAccess, resolveBelowRibbonQuickAccess } from './title-bar.component';
 
 function quickAccess(over: Partial<ViewerQuickAccessOptions> = {}): ViewerQuickAccessOptions {
 	return { ...DEFAULT_VIEWER_OPTIONS.quickAccess, ...over };
@@ -40,5 +40,41 @@ describe('narrowToExtraQuickAccess', () => {
 		const narrowed = narrowToExtraQuickAccess(quickAccess({ showCommandLabels: true }));
 		expect(narrowed.showCommandLabels).toBeTruthy();
 		expect(narrowed.visible).toBeTruthy();
+	});
+});
+
+/**
+ * Options > Quick Access Toolbar > Position "Below the Ribbon" used to be
+ * stored and displayed by the pane but never actually moved anything: no
+ * component read `position`, so every strip stayed in the title bar
+ * regardless of what the pane showed as selected. `resolveBelowRibbonQuickAccess`
+ * is the single decision both the below-ribbon row (PowerPointViewerComponent)
+ * and the title bar's own inline strip key off, so they can never disagree
+ * about where the configured commands render.
+ */
+describe('resolveBelowRibbonQuickAccess', () => {
+	it('renders nothing above (the default position)', () => {
+		expect(resolveBelowRibbonQuickAccess(quickAccess())).toBeNull();
+	});
+
+	it('renders the extra commands below when position is "below"', () => {
+		const resolved = resolveBelowRibbonQuickAccess(
+			quickAccess({ position: 'below', commandIds: ['save', 'undo', 'redo', 'zoomIn'] }),
+		);
+		expect(resolved?.commandIds).toStrictEqual(['zoomIn']);
+	});
+
+	it('renders nothing below when the strip is hidden entirely', () => {
+		expect(
+			resolveBelowRibbonQuickAccess(quickAccess({ position: 'below', visible: false })),
+		).toBeNull();
+	});
+
+	it('renders nothing below when no commands are configured beyond the dedicated trio', () => {
+		expect(
+			resolveBelowRibbonQuickAccess(
+				quickAccess({ position: 'below', commandIds: ['save', 'undo', 'redo'] }),
+			),
+		).toBeNull();
 	});
 });

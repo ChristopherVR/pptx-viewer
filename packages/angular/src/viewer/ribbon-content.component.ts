@@ -65,7 +65,6 @@ import type { RibbonTab } from './ribbon-types';
 					(save)="save.emit()"
 					(savePpsx)="savePpsx.emit()"
 					(savePptm)="savePptm.emit()"
-					(packageForSharing)="packageForSharing.emit()"
 					(exportPng)="exportPng.emit()"
 					(exportPdf)="exportPdf.emit()"
 					(exportGif)="exportGif.emit()"
@@ -178,7 +177,6 @@ export class RibbonContentComponent {
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
-	readonly packageForSharing = output<void>();
 	readonly signatures = output<void>();
 	readonly info = output<void>();
 	readonly print = output<void>();

@@ -21,12 +21,17 @@ import { LucideChevronLeft, LucideChevronRight, LucideX } from '@lucide/angular'
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { CanvasSize, ShowOrderCustomShow } from '../internal/shared';
+import type {
+	CanvasSize,
+	PresentationContextMenuActionId,
+	ShowOrderCustomShow,
+} from '../internal/shared';
 import { annotationOverlayZIndex, mayLeaveSlideShow } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
 import type { SlideAnnotationMap } from './presentation-annotations.service';
+import { PresentationContextMenuComponent } from './presentation-context-menu.component';
 import { hasExitedFullscreen } from './presentation-fullscreen';
 import { PresentationInputController } from './presentation-input-controller';
 import {
@@ -59,6 +64,7 @@ import { PresentationTransitionOverlayComponent } from './presentation-transitio
 import { PresenterSlideNavigatorComponent } from './presenter-slide-navigator.component';
 import { PresenterWindowService } from './presenter-window.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
+import { ViewerOptionsService } from './viewer-options.service';
 import { ZoomNavigationService } from './zoom-navigation.service';
 
 /**
@@ -93,6 +99,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 		PresentationAnnotationOverlayComponent,
 		PresentationSubtitleBarComponent,
 		PresentationToolbarComponent,
+		PresentationContextMenuComponent,
 		PresenterSlideNavigatorComponent,
 		TranslatePipe,
 		LucideX,
@@ -105,6 +112,12 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 })
 export class PresentationOverlayComponent implements OnInit {
 	protected readonly presenterWindow = inject(PresenterWindowService);
+	/**
+	 * Optional so this overlay still renders in isolation (Storybook-style
+	 * usage, tests): outside a `PowerPointViewerComponent` host that provides
+	 * it, external-hyperlink clicks are simply never confirmed.
+	 */
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
 	// ------------------------------------------------------------------
 	// Inputs
 	// ------------------------------------------------------------------
@@ -144,6 +157,13 @@ export class PresentationOverlayComponent implements OnInit {
 	readonly endWithBlackSlide = input<boolean>(true);
 	/** Whether presenter view is up (tints the toolbar's presenter-view toggle). */
 	readonly presenterMode = input<boolean>(false);
+	/**
+	 * File > Options > Advanced > "Show menu on right mouse click". Off swallows
+	 * right-click entirely (no browser menu either), matching React/Vue.
+	 */
+	readonly showMenuOnRightClick = input<boolean>(true);
+	/** File > Options > Advanced > "Show popup toolbar" while presenting. */
+	readonly showPopupToolbar = input<boolean>(true);
 
 	// ------------------------------------------------------------------
 	// Outputs
@@ -220,10 +240,17 @@ export class PresentationOverlayComponent implements OnInit {
 		// the shortcut mean something else.
 		showAllSlides: () => this.allSlidesOpen.set(true),
 		requestClose: () => this.emitClosed(),
+		// Trust Center > "Confirm before opening external hyperlinks" (File >
+		// Options), gating a slide's on-click `a:hlinkClick` action the same way
+		// it gates a text-run hyperlink.
+		confirmExternalHyperlink: (href) => this.viewerOpts?.confirmExternalHyperlink(href) ?? true,
 	});
 
 	/** Whether PowerPoint's "See All Slides" navigator is up (Ctrl+S). */
 	protected readonly allSlidesOpen = signal(false);
+
+	/** Slide-show right-click menu position, or null when closed. */
+	protected readonly contextMenuState = signal<{ x: number; y: number } | null>(null);
 
 	/** Template aliases for the navigator's state. */
 	protected readonly currentIndex = this.navigator.currentIndex;
@@ -557,6 +584,68 @@ export class PresentationOverlayComponent implements OnInit {
 
 	protected onBodyClick(event: MouseEvent): void {
 		this.input.handleBodyClick(event);
+	}
+
+	/**
+	 * Options > Advanced > "Show menu on right mouse click": right-click opens
+	 * a minimal Next/Previous/End Show menu (plus pointer tools, See All
+	 * Slides, presenter view and the black/white blank screen); off swallows
+	 * the click entirely, matching React/Vue.
+	 */
+	protected onStageContextMenu(event: MouseEvent): void {
+		event.preventDefault();
+		if (!this.showMenuOnRightClick()) {
+			return;
+		}
+		this.contextMenuState.set({ x: event.clientX, y: event.clientY });
+	}
+
+	/** Route a chosen context-menu action onto this overlay's own handlers. */
+	protected onContextMenuAction(id: PresentationContextMenuActionId): void {
+		switch (id) {
+			case 'next':
+				this.navigator.navigate('next');
+				break;
+			case 'previous':
+				this.navigator.navigate('prev');
+				break;
+			case 'seeAllSlides':
+				this.allSlidesOpen.set(true);
+				break;
+			case 'presenterView':
+				this.presenterViewToggle.emit();
+				break;
+			case 'pointerArrow':
+				this.annotations.setTool('none');
+				break;
+			case 'pointerPen':
+				this.annotations.setTool('pen');
+				break;
+			case 'pointerHighlighter':
+				this.annotations.setTool('highlighter');
+				break;
+			case 'pointerLaser':
+				this.annotations.setTool('laser');
+				break;
+			case 'eraseInk':
+				this.annotations.clearAnnotations();
+				break;
+			case 'blankBlack':
+				this.setBlankScreen('black');
+				break;
+			case 'blankWhite':
+				this.setBlankScreen('white');
+				break;
+			case 'endShow':
+				this.emitClosed();
+				break;
+		}
+	}
+
+	/** Set (or clear) the whole-screen blank, mirroring the keyboard B/W shortcuts. */
+	private setBlankScreen(value: 'black' | 'white'): void {
+		const current = this.presenterWindow.snapshot().blackout;
+		this.presenterWindow.updateSnapshot({ blackout: current === value ? 'none' : value });
 	}
 
 	/** Click on the end screen: exit the show, like PowerPoint's "click to exit". */

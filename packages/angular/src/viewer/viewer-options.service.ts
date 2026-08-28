@@ -25,10 +25,14 @@ import {
 	playFeedbackSound,
 	resolveAutosaveIntervalSeconds,
 	resolveDefaultPrintSettings,
+	resolveExpiredAutosaveSnapshots,
 	resolveHistoryDepth,
+	resolveImageResolutionScale,
 	resolveOptionRootClasses,
 	resolveScreenTip,
+	shouldClearAutosaveCacheOnClose,
 	shouldConfirmExternalHyperlink,
+	shouldDiscardAutosaveOnSuccessfulSave,
 	shouldOpenInProtectedView,
 } from '../internal/shared';
 import type {
@@ -110,6 +114,18 @@ export class ViewerOptionsService {
 		return resolveAutosaveIntervalSeconds(this.options());
 	}
 
+	/**
+	 * Raster-scale multiplier for PNG/PDF export and copy-slide-as-image.
+	 * Multiplied against the pre-existing 2x baseline (not used outright) so
+	 * the default "High fidelity" preset (raw multiplier 1) keeps today's
+	 * export quality instead of silently downgrading it; the explicit ppi
+	 * presets still scale proportionally from that baseline. Mirrors the
+	 * vanilla/vue/svelte bindings.
+	 */
+	imageExportScale(): number {
+		return 2 * resolveImageResolutionScale(this.options());
+	}
+
 	/** Print-dialog seed; `undefined` keeps the dialog's own recents. */
 	printDefaults(): Partial<PrintSettings> | undefined {
 		return resolveDefaultPrintSettings(this.options());
@@ -165,5 +181,27 @@ export class ViewerOptionsService {
 		const snapshots = await listAutosaveSnapshots();
 		await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
 		return snapshots.length;
+	}
+
+	/**
+	 * Options > Save > "keep the last AutoRecover version": whether a
+	 * successful `.pptx` save should discard the AutoRecover snapshot for the
+	 * deck just saved (PowerPoint's default: the real file already has the
+	 * work, so the snapshot is stale unless the user asked to keep it).
+	 */
+	shouldDiscardAutosaveOnSave(): boolean {
+		return shouldDiscardAutosaveOnSuccessfulSave(this.options());
+	}
+
+	/** Options > Save > "clear cache on close": whether to wipe snapshots now. */
+	shouldClearCacheOnClose(): boolean {
+		return shouldClearAutosaveCacheOnClose(this.options());
+	}
+
+	/** Options > Save > "cache retention": prune snapshots older than N days. */
+	async pruneExpiredCache(): Promise<void> {
+		const snapshots = await listAutosaveSnapshots();
+		const expired = resolveExpiredAutosaveSnapshots(snapshots, this.options());
+		await Promise.all(expired.map((key) => deleteAutosaveSnapshot(key)));
 	}
 }

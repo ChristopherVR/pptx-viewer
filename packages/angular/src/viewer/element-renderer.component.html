@@ -572,6 +572,7 @@
 			rel="noopener noreferrer"
 			[attr.title]="run.tooltip ?? null"
 			[ngStyle]="run.style"
+			(click)="onHyperlinkClick($event, run.href)"
 			><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
 		/></a>
 	} @else if (run.rubyText) {

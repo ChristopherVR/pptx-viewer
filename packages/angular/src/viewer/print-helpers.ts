@@ -40,6 +40,7 @@ export {
 	effectiveOrientation,
 	escapeHtml,
 	estimatePageCount,
+	filterHiddenSlideIndices,
 	normalizeSlidesPerPage,
 	safeDataImageSrc,
 	slideTitle,

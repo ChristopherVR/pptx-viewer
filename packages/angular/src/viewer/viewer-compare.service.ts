@@ -17,12 +17,14 @@ import type { SlideDiff } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { applyAcceptedDiff } from './viewer-extra-dialogs-helpers';
+import { ViewerOptionsService } from './viewer-options.service';
 
 @Injectable()
 export class ViewerCompareService {
 	private readonly svc = inject(ViewerDialogsService);
 	private readonly editor = inject(EditorStateService);
 	private readonly translate = inject(TranslateService);
+	private readonly optionsService = inject(ViewerOptionsService);
 
 	/**
 	 * Open a `.pptx` picker and diff it against the current deck, opening the
@@ -50,7 +52,8 @@ export class ViewerCompareService {
 		try {
 			const buffer = await file.arrayBuffer();
 			const handler = new PptxHandler();
-			const parsed = await handler.load(buffer);
+			const allowExternalImages = this.optionsService.options().trust.allowExternalContent;
+			const parsed = await handler.load(buffer, { allowExternalImages });
 			const result = compareSlides([...this.editor.slides()], [...parsed.slides]);
 			this.svc.compareResult.set(result);
 			this.svc.showCompare.set(true);

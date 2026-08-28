@@ -33,7 +33,11 @@ function deckOf(elements: PptxElement[], transition?: PptxSlide['transition']): 
 	);
 }
 
-function harness(elements: PptxElement[], transition?: PptxSlide['transition']) {
+function harness(
+	elements: PptxElement[],
+	transition?: PptxSlide['transition'],
+	confirmExternalHyperlink?: (href: string) => boolean,
+) {
 	const deck = deckOf(elements, transition);
 	const playback = {
 		advance: () => false,
@@ -70,6 +74,7 @@ function harness(elements: PptxElement[], transition?: PptxSlide['transition']) 
 		} as never,
 		toggleInkMarkup: () => undefined,
 		requestClose,
+		confirmExternalHyperlink,
 	});
 	return { controller, navigator, requestClose };
 }
@@ -85,6 +90,7 @@ function clickOn(node: Element | null): MouseEvent {
 
 afterEach(() => {
 	document.body.innerHTML = '';
+	vi.restoreAllMocks();
 });
 
 describe('presentation action clicks', () => {
@@ -127,5 +133,56 @@ describe('presentation action clicks', () => {
 		]);
 		controller.handleBodyClick(clickOn(render('<div data-element-id="dead"></div>')));
 		expect(navigator.currentIndex()).toBe(1);
+	});
+
+	it('opens an external-link action and does not also advance the show', () => {
+		vi.spyOn(window, 'open').mockReturnValue(null);
+		const { controller, navigator } = harness([
+			actionShape('cta', { action: '', url: 'https://example.com/deck' }),
+		]);
+		controller.handleBodyClick(clickOn(render('<div data-element-id="cta"></div>')));
+		expect(window.open).toHaveBeenCalledWith(
+			'https://example.com/deck',
+			'_blank',
+			'noopener,noreferrer',
+		);
+		expect(navigator.currentIndex()).toBe(0);
+	});
+
+	/**
+	 * Trust Center > "Confirm before opening external hyperlinks" (File >
+	 * Options) must gate an on-slide `a:hlinkClick` action the same way it
+	 * gates a text-run hyperlink: declining the prompt blocks the navigation
+	 * (`window.open` never runs) without ALSO falling through to advance the
+	 * slide, matching a followed link.
+	 */
+	it('blocks an external-link action when the confirmation is declined', () => {
+		vi.spyOn(window, 'open').mockReturnValue(null);
+		const confirmExternalHyperlink = vi.fn().mockReturnValue(false);
+		const { controller, navigator } = harness(
+			[actionShape('cta', { action: '', url: 'https://example.com/deck' })],
+			undefined,
+			confirmExternalHyperlink,
+		);
+		controller.handleBodyClick(clickOn(render('<div data-element-id="cta"></div>')));
+		expect(confirmExternalHyperlink).toHaveBeenCalledWith('https://example.com/deck');
+		expect(window.open).not.toHaveBeenCalled();
+		expect(navigator.currentIndex()).toBe(0);
+	});
+
+	it('opens an external-link action when the confirmation is accepted', () => {
+		vi.spyOn(window, 'open').mockReturnValue(null);
+		const confirmExternalHyperlink = vi.fn().mockReturnValue(true);
+		const { controller } = harness(
+			[actionShape('cta', { action: '', url: 'https://example.com/deck' })],
+			undefined,
+			confirmExternalHyperlink,
+		);
+		controller.handleBodyClick(clickOn(render('<div data-element-id="cta"></div>')));
+		expect(window.open).toHaveBeenCalledWith(
+			'https://example.com/deck',
+			'_blank',
+			'noopener,noreferrer',
+		);
 	});
 });

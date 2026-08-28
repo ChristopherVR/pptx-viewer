@@ -28,6 +28,7 @@ import type { ConnectOptions } from './collaboration.service';
 import { buildShareUrl } from './share-helpers';
 import type { TemplateElementsBySlideId } from './template-mode';
 import type { CollaborationConfig } from './types';
+import { ViewerOptionsService } from './viewer-options.service';
 
 /** Seed values for the Share dialog's start form. */
 interface ShareDefaults {
@@ -56,6 +57,7 @@ interface CollaborationSessionHost {
 @Injectable()
 export class ViewerCollaborationSessionService {
 	private readonly collab = inject(CollaborationService);
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
 
 	/** Share (collaboration) dialog visibility. */
 	readonly showShare = signal(false);
@@ -125,6 +127,7 @@ export class ViewerCollaborationSessionService {
 		}
 		return buildActiveSessionUsers({
 			localUserName: config.userName,
+			localUserInitials: this.viewerOpts?.options().general.userInitials,
 			localUserColor: config.userColor,
 			remoteUsers: this.collab.presence(),
 		});

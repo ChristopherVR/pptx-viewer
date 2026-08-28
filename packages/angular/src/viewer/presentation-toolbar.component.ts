@@ -110,6 +110,12 @@ export class PresentationToolbarComponent {
 	readonly presentationStartTime = input<number | null>(null);
 	/** Whether presenter view is currently up (tints the toggle). */
 	readonly presenterMode = input<boolean>(false);
+	/**
+	 * File > Options > Advanced > "Show popup toolbar" (default true). When
+	 * `false`, `mousemove` never auto-reveals the bar; `toggleVisible`
+	 * (PowerPoint's Ctrl+H) still works.
+	 */
+	readonly popupToolbarEnabled = input<boolean>(true);
 
 	/** Step the show by one slide (`-1` back, `1` forward). */
 	readonly move = output<1 | -1>();
@@ -195,6 +201,9 @@ export class PresentationToolbarComponent {
 	 */
 	@HostListener('document:mousemove', ['$event'])
 	protected onDocumentMouseMove(event: MouseEvent): void {
+		if (!this.popupToolbarEnabled()) {
+			return;
+		}
 		const surface = this.host.nativeElement.parentElement;
 		if (surface) {
 			const rect = surface.getBoundingClientRect();

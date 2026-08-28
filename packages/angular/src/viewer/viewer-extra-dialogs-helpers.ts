@@ -18,7 +18,7 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 
-import type { SlideDiff } from '../internal/shared';
+import type { SlideDiff, ViewerAddinStatus } from '../internal/shared';
 import { strokeToInkElement } from './ink-drawing-helpers';
 import type { SlideAnnotationMap } from './presentation-annotations-helpers';
 
@@ -129,6 +129,31 @@ export function annotationMapToInkInserts(map: SlideAnnotationMap): AnnotationIn
 		}
 	}
 	return inserts;
+}
+
+/**
+ * Real runtime availability for the Options > Add-ins pane, for the catalog
+ * ids this host can answer cheaply. Every other id (emfConverter,
+ * mtxDecompressor, locales) has no meaningful "off" state: they are
+ * compile-time bundled dependencies, always present, so they fall back to
+ * `resolveViewerAddinRows`'s own `active: true` default instead of a
+ * fabricated signal.
+ */
+export function resolveViewerExtraAddinStatus(flags: {
+	/** {@link SmartArt3DService.enabled}: host opt-in ANDed with the Advanced
+	 * "Disable 3D rendering" override (see `resolve3DRenderingFlags`). */
+	smartArt3dEnabled: boolean;
+	/** `model3d` has no dedicated per-scene service, but shares the same
+	 * viewer-user override as the chart/SmartArt 3D scenes. */
+	disable3DRendering: boolean;
+	/** {@link CollaborationService.connected}. */
+	collaborationConnected: boolean;
+}): ViewerAddinStatus {
+	return {
+		smartArt3d: flags.smartArt3dEnabled,
+		model3d: !flags.disable3DRendering,
+		collaboration: flags.collaborationConnected,
+	};
 }
 
 /**

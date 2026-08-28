@@ -88,6 +88,7 @@ import { computeGridSpacingPx, computeSnap, snapToGridStep } from './snap-guides
 import type { SnapGuide } from './snap-guides';
 import type { TableCellCommit } from './table-renderer.component';
 import { isElementInteractive } from './template-mode';
+import { ViewerOptionsService } from './viewer-options.service';
 
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
@@ -580,6 +581,8 @@ export class SlideCanvasComponent implements SlideContext {
 	 */
 	private readonly fieldContextSvc = inject(FieldContextService, { optional: true });
 	readonly fieldContext = computed(() => this.fieldContextSvc?.forSlide(this.slide()));
+	/** Options > Proofing > AutoCorrect, applied to committed inline-edit text. */
+	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
 
 	/**
 	 * Obstacle rects (absolute slide coords) for connector A* routing: every
@@ -966,9 +969,8 @@ export class SlideCanvasComponent implements SlideContext {
 		// is the live, still-mounted textarea (this handler runs off its own
 		// `blur`), so no separate DOM lookup is needed here.
 		const height = resolveCommitTextAutoFitHeight(this.allElements(), id, editor);
-		this.textCommit.emit(
-			height !== undefined ? { id, text: editor.value, height } : { id, text: editor.value },
-		);
+		const text = this.viewerOpts ? this.viewerOpts.autoCorrect(editor.value) : editor.value;
+		this.textCommit.emit(height !== undefined ? { id, text, height } : { id, text });
 	}
 
 	onContextMenu(event: MouseEvent): void {

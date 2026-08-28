@@ -25,6 +25,9 @@ import {
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
 	buildPrintDocument as buildSvgPrintDocument,
+	finishPrintWindow,
+	openPendingPrintWindow,
+	openPrintWindow,
 } from '../internal/shared';
 import { addSvgSlideFrame, exportSlideToSvg } from './export-svg';
 import {
@@ -35,6 +38,7 @@ import {
 	buildPrintDocument,
 	computeColorFilter,
 	computeSlideIndices,
+	filterHiddenSlideIndices,
 	validatePrintSettings,
 } from './print-helpers';
 import type { PrintSettings } from './print-helpers';
@@ -97,17 +101,23 @@ export class PrintService {
 			width: DEFAULT_CANVAS_WIDTH,
 			height: DEFAULT_CANVAS_HEIGHT,
 		},
+		/** Options > Advanced > "Print hidden slides". Defaults to PowerPoint's own default (excluded). */
+		includeHiddenSlides = false,
 	): Promise<boolean> {
 		this.closeDialog();
 
 		const settings = validatePrintSettings(rawSettings, slides.length);
 		const colorFilter = computeColorFilter(settings.colorMode);
-		const slideIndices = computeSlideIndices(
-			settings.slideRange,
-			activeSlideIndex,
-			slides.length,
-			settings.customRangeFrom,
-			settings.customRangeTo,
+		const slideIndices = filterHiddenSlideIndices(
+			computeSlideIndices(
+				settings.slideRange,
+				activeSlideIndex,
+				slides.length,
+				settings.customRangeFrom,
+				settings.customRangeTo,
+			),
+			slides,
+			includeHiddenSlides,
 		);
 
 		if (slideIndices.length === 0) {
@@ -124,6 +134,7 @@ export class PrintService {
 					orientation: settings.orientation,
 					colorFilter,
 					frameSlides: settings.frameSlides,
+					scaleToFit: settings.scaleToFit,
 				}),
 			);
 		}
@@ -147,11 +158,23 @@ export class PrintService {
 					title: this.translate.instant('pptx.sections.slides'),
 					orientation: settings.orientation,
 					colorFilter,
+					scaleToFit: settings.scaleToFit,
 				}),
 			);
 		}
 
 		// ── Capture the requested slides to PNG data URLs ─────────────────
+		// `captureSlide` awaits per slide, so the print window has to be opened
+		// NOW, before that first await, or the browser silently blocks it as a
+		// popup the instant the call stack leaves the click's user gesture (see
+		// `openPendingPrintWindow`, shared by every window.open-based binding).
+		const pendingWindow = openPendingPrintWindow(
+			this.translate.instant('pptx.print.preparingToPrint'),
+		);
+		if (!pendingWindow) {
+			return false;
+		}
+
 		const slideImages: string[] = [];
 		const capturedIndices: number[] = [];
 		for (const idx of slideIndices) {
@@ -163,23 +186,28 @@ export class PrintService {
 		}
 
 		if (slideImages.length === 0) {
+			pendingWindow.close();
 			return false;
 		}
 
 		if (settings.printWhat === 'notes') {
-			return this._open(
+			finishPrintWindow(
+				pendingWindow,
 				buildPrintDocument({
 					title: this.translate.instant('pptx.print.notesPages'),
 					bodyHtml: buildNotesHtml(slideImages, capturedIndices, slides),
 					orientation: 'portrait',
 					colorFilter,
 					frameSlides: settings.frameSlides,
+					scaleToFit: settings.scaleToFit,
 				}),
 			);
+			return true;
 		}
 
 		// printWhat === 'handouts'
-		return this._open(
+		finishPrintWindow(
+			pendingWindow,
 			buildPrintDocument({
 				title: this.translate.instant('pptx.print.handoutPerPageTitle', {
 					count: settings.slidesPerPage,
@@ -188,8 +216,10 @@ export class PrintService {
 				orientation: 'portrait',
 				colorFilter,
 				frameSlides: settings.frameSlides,
+				scaleToFit: settings.scaleToFit,
 			}),
 		);
+		return true;
 	}
 
 	/* ---------------------------------------------------------------- */
@@ -197,21 +227,13 @@ export class PrintService {
 	/* ---------------------------------------------------------------- */
 
 	/**
-	 * Open a print window, write the document, focus, and trigger printing.
-	 * Returns `false` if the popup was blocked.
+	 * Open a print window, write the document, focus, and trigger printing, all
+	 * in one synchronous call. Used by the outline/slides paths, which never
+	 * `await` before this point so the window is never at risk of being popup
+	 * blocked -- no need for the placeholder-then-real-document split `print`'s
+	 * notes/handouts branch needs (see `openPendingPrintWindow`/`finishPrintWindow`).
 	 */
 	private _open(htmlDocument: string): boolean {
-		const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-		if (!printWindow) {
-			return false;
-		}
-		printWindow.document.open();
-		printWindow.document.write(htmlDocument);
-		printWindow.document.close();
-		printWindow.focus();
-		setTimeout(() => {
-			printWindow.print();
-		}, 300);
-		return true;
+		return openPrintWindow(htmlDocument);
 	}
 }

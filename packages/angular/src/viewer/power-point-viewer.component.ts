@@ -31,12 +31,16 @@ import type {
 import {
 	applyPreferenceToOptions,
 	createBackstagePresentation,
+	deleteAutosaveSnapshot,
 	endAudienceDisplay,
+	listAutosaveSnapshots,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	recoverySnapshotIntent,
+	resolve3DRenderingFlags,
 	resolveAutosaveActivation,
 	resolveAutosaveIntervalMs,
+	resolveExpiredAutosaveSnapshots,
 	resolveThemeCatalogEntry,
 	shouldShowAutosaveRecoveryPrompt,
 	setMasterViewBackgroundColor,
@@ -54,6 +58,7 @@ import type {
 	ThemeCatalogEntry,
 	ToolbarActionId,
 	ViewerMode,
+	ViewerQuickAccessOptions,
 	ViewerSettings,
 	ViewerTheme,
 } from '../internal/shared';
@@ -120,6 +125,7 @@ import { parseAudienceNonce, PresenterWindowService } from './presenter-window.s
 import { PrintDialogComponent } from './print-dialog.component';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
+import { QuickAccessStripComponent } from './quick-access-strip.component';
 import { ReadingViewOverlayComponent } from './reading-view-overlay.component';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
@@ -139,7 +145,8 @@ import { StatusBarComponent } from './status-bar.component';
 import { SurfaceChart3DService } from './surface-chart-3d.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
-import { TitleBarComponent } from './title-bar.component';
+import { resolveBelowRibbonQuickAccess, TitleBarComponent } from './title-bar.component';
+import { mergeHiddenActions } from './toolbar-visibility';
 import type { CollaborationConfig } from './types';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerCollabCursorService } from './viewer-collab-cursor.service';
@@ -222,6 +229,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		MasterViewCanvasComponent,
 		MasterViewSidebarComponent,
 		NotesPanelComponent,
+		QuickAccessStripComponent,
 		RibbonComponent,
 		TitleBarComponent,
 		ThemeGalleryComponent,
@@ -269,7 +277,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[undoLabel]="editor.undoLabel()"
 						[redoLabel]="editor.redoLabel()"
 						[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
-						[hiddenActions]="hiddenActions()"
+						[hiddenActions]="effectiveHiddenActions()"
 						[quickAccess]="viewerOpts.options().quickAccess"
 						(toggleAutosave)="toggleAutosave()"
 						(save)="fileIO.saveAsPptx()"
@@ -284,7 +292,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[slideCount]="slideCount()"
 						[canEdit]="canEdit()"
 						[selectedElement]="selectedElement()"
-						[hiddenActions]="hiddenActions()"
+						[hiddenActions]="effectiveHiddenActions()"
 						[zoomPercent]="zoomSvc.zoomPercent()"
 						[formatPainterActive]="formatPainter.active()"
 						[canActivateFormatPainter]="formatPainter.canActivate()"
@@ -324,7 +332,6 @@ import { ZoomTargetService } from './zoom-target.service';
 						(save)="fileIO.saveAsPptx()"
 						(savePpsx)="fileIO.saveAsPpsx()"
 						(savePptm)="fileIO.saveAsPptm()"
-						(packageForSharing)="fileIO.packageForSharing()"
 						(info)="docProperties.showProperties.set(true)"
 						(print)="print.openDialog()"
 						(comments)="inspectorPanel.togglePanel('comments')"
@@ -387,6 +394,20 @@ import { ZoomTargetService } from './zoom-target.service';
 						[aiPanelOpen]="aiPanelOpen()"
 						(toggleAiPanel)="aiPanelOpen.update((v) => !v)"
 					/>
+
+					@if (belowRibbonQuickAccess(); as belowQuickAccess) {
+						<div
+							class="flex items-center gap-0.5 border-b border-border/60 px-2 py-0.5"
+							data-pptx-quick-access="below"
+						>
+							<pptx-quick-access-strip
+								[quickAccess]="belowQuickAccess"
+								[canUndo]="editor.canUndo()"
+								[canRedo]="editor.canRedo()"
+								(command)="onQuickAccessCommand($event)"
+							/>
+						</div>
+					}
 				}
 
 				@if (mobile.isMobile() && chromeVisible()) {
@@ -398,7 +419,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[menuOpen]="mobileSheetSvc.mobileSheet() === 'menu'"
 						[aiEnabled]="aiEnabled()"
 						[aiPanelOpen]="aiPanelOpen()"
-						[hiddenActions]="hiddenActions()"
+						[hiddenActions]="effectiveHiddenActions()"
 						(toggleMenu)="
 							mobileSheetSvc.mobileSheet.set(
 								mobileSheetSvc.mobileSheet() === 'menu' ? null : 'menu'
@@ -690,7 +711,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[zoomPercent]="zoomSvc.zoomPercent()"
 						[sorterActive]="showSorter()"
 						[presenting]="presentationMode.presenting()"
-						[hiddenActions]="hiddenActions()"
+						[hiddenActions]="effectiveHiddenActions()"
 						(toggleNotes)="mobileSheetSvc.toggleNotes()"
 						(normalView)="showSorter.set(false)"
 						(openSorter)="showSorter.set(true)"
@@ -801,6 +822,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					[subtitlesVisible]="presentationMode.subtitlesVisible()"
 					[sessionEnded]="audienceSessionEnded()"
 					[endWithBlackSlide]="viewerOpts.options().advanced.slideShowEndWithBlackSlide"
+					[showMenuOnRightClick]="viewerOpts.options().advanced.slideShowShowMenuOnRightClick"
+					[showPopupToolbar]="viewerOpts.options().advanced.slideShowShowPopupToolbar"
 					[presenterMode]="presentationMode.presentingPresenter()"
 					(presenterViewToggle)="presentationMode.togglePresenterView()"
 					(subtitlesChange)="presentationMode.subtitlesVisible.set($event)"
@@ -951,7 +974,14 @@ import { ZoomTargetService } from './zoom-target.service';
 				<pptx-print-dialog
 					[slides]="displaySlidesMut()"
 					[activeSlideIndex]="activeSlideIndex()"
-					(print)="xport.onPrint($event)"
+					[defaultSettings]="viewerOpts.printDefaults()"
+					(print)="
+						xport.onPrint(
+							$event,
+							viewerOpts.options().advanced.printHiddenSlides,
+							viewerOpts.options().advanced.printHighQuality
+						)
+					"
 					(cancel)="print.closeDialog()"
 				/>
 			}
@@ -1040,7 +1070,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[exporting]="xport.exporting()"
 					[showNotes]="mobileSheetSvc.showNotes()"
 					[canEdit]="canEdit()"
-					[hiddenActions]="hiddenActions()"
+					[hiddenActions]="effectiveHiddenActions()"
 					(closed)="mobileSheetSvc.mobileSheet.set(null)"
 					(openFind)="findReplace.showFind.set(true)"
 					(openSorter)="showSorter.set(true)"
@@ -1383,6 +1413,31 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 */
 	protected readonly canEdit = computed(
 		() => this.canEditInput() && !this.viewerOpts.options().trust.openInProtectedView,
+	);
+
+	/**
+	 * Toolbar/ribbon ids to hide: the host's own `hiddenActions` input, UNIONED
+	 * with File > Options > Customize Ribbon's `ribbon.hiddenTabIds` (see
+	 * {@link mergeHiddenActions}). Every chrome component downstream (ribbon,
+	 * title bar, mobile toolbar/menu, status bar) must see BOTH, or ticking a
+	 * tab off in Customize Ribbon changes what the pane displays without
+	 * changing what actually renders.
+	 */
+	protected readonly effectiveHiddenActions = computed<ToolbarActionId[]>(() =>
+		mergeHiddenActions(this.hiddenActions(), this.viewerOpts.options().ribbon.hiddenTabIds),
+	);
+
+	/**
+	 * File > Options > Quick Access Toolbar > Position "Below the Ribbon": the
+	 * configured commands beyond the dedicated Save/Undo/Redo trio (which stay
+	 * in the title bar regardless of position), or `null` when the strip has
+	 * nothing to show there (hidden, `above`, or no extra commands configured).
+	 * {@link TitleBarComponent} independently suppresses its own inline strip
+	 * under the identical {@link resolveBelowRibbonQuickAccess} condition, so
+	 * the commands render in exactly one place.
+	 */
+	protected readonly belowRibbonQuickAccess = computed<ViewerQuickAccessOptions | null>(() =>
+		resolveBelowRibbonQuickAccess(this.viewerOpts.options().quickAccess),
 	);
 
 	protected readonly activeSlideIndex = signal(0);
@@ -1772,40 +1827,35 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			}
 		});
 
-		// Surface the `smartArt3D` opt-in to the element dispatcher via the
-		// viewer-scoped SmartArt3DService.
+		// Surface the six 3D opt-in props to their viewer-scoped services, each
+		// ANDed with Options > Advanced > "Disable 3D rendering" (see
+		// `resolve3DRenderingFlags`) so a viewer user can force flat 2D even in a
+		// deck the host enabled 3D for. One effect (not six) so they all react to
+		// the same options-changed signal read.
 		effect(() => {
-			this.smartArt3DSvc.enabled.set(this.smartArt3D());
+			const effective = resolve3DRenderingFlags(
+				{
+					smartArt3D: this.smartArt3D(),
+					surfaceChart3D: this.surfaceChart3D(),
+					barChart3D: this.barChart3D(),
+					lineChart3D: this.lineChart3D(),
+					areaChart3D: this.areaChart3D(),
+					pieChart3D: this.pieChart3D(),
+				},
+				this.viewerOpts.options(),
+			);
+			this.smartArt3DSvc.enabled.set(effective.smartArt3D);
+			this.surfaceChart3DSvc.enabled.set(effective.surfaceChart3D);
+			this.barChart3DSvc.enabled.set(effective.barChart3D);
+			this.lineChart3DSvc.enabled.set(effective.lineChart3D);
+			this.areaChart3DSvc.enabled.set(effective.areaChart3D);
+			this.pieChart3DSvc.enabled.set(effective.pieChart3D);
 		});
 
-		// Surface the `surfaceChart3D` opt-in to the chart element view via the
-		// viewer-scoped SurfaceChart3DService.
+		// Advanced > "Maximum number of undos", re-applied live on every change
+		// (not just at construction).
 		effect(() => {
-			this.surfaceChart3DSvc.enabled.set(this.surfaceChart3D());
-		});
-
-		// Surface the `barChart3D` opt-in to the chart element view via the
-		// viewer-scoped BarChart3DService.
-		effect(() => {
-			this.barChart3DSvc.enabled.set(this.barChart3D());
-		});
-
-		// Surface the `lineChart3D` opt-in to the chart element view via the
-		// viewer-scoped LineChart3DService.
-		effect(() => {
-			this.lineChart3DSvc.enabled.set(this.lineChart3D());
-		});
-
-		// Surface the `areaChart3D` opt-in to the chart element view via the
-		// viewer-scoped AreaChart3DService.
-		effect(() => {
-			this.areaChart3DSvc.enabled.set(this.areaChart3D());
-		});
-
-		// Surface the `pieChart3D` opt-in to the chart element view via the
-		// viewer-scoped PieChart3DService.
-		effect(() => {
-			this.pieChart3DSvc.enabled.set(this.pieChart3D());
+			this.editor.setHistoryDepth(this.viewerOpts.historyDepth());
 		});
 
 		// A new host `content` input supersedes any in-place picked file.
@@ -2005,6 +2055,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			slideCount: () => this.slideCount(),
 			mergedSlides: () => this.mergedSlides(),
 			resolveStage: () => this.stageElement(),
+			imageExportScale: () => this.viewerOpts.imageExportScale(),
 		});
 
 		// Hand the find/replace controller a slide-navigation callback so a match
@@ -2148,6 +2199,34 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				password: this.dialogs.presentationPassword(),
 				passwordProtected: this.dialogs.isPasswordProtected(),
 			}),
+			afterSuccessfulSave: (format) => {
+				this.viewerOpts.playFeedback();
+				const filePath = this.filePath();
+				if (format === 'pptx' && filePath && this.viewerOpts.shouldDiscardAutosaveOnSave()) {
+					void deleteAutosaveSnapshot(filePath);
+				}
+			},
+		});
+
+		// File > Options > Save > "cache retention": a one-time sweep per mount is
+		// enough, since a fresh snapshot only ever lands with a fresh timestamp.
+		void (async () => {
+			try {
+				const snapshots = await listAutosaveSnapshots();
+				const expired = resolveExpiredAutosaveSnapshots(snapshots, this.viewerOpts.options());
+				await Promise.all(expired.map((key) => deleteAutosaveSnapshot(key)));
+			} catch {
+				// Best-effort background maintenance; a blocked IndexedDB skips it.
+			}
+		})();
+
+		// File > Options > Save > "clear cache on close": also cover the viewer
+		// being destroyed without a page unload (the `beforeunload` listener
+		// above covers the tab actually closing/navigating away).
+		this.destroyRef.onDestroy(() => {
+			if (this.viewerOpts.shouldClearCacheOnClose()) {
+				void this.viewerOpts.clearCache();
+			}
 		});
 
 		// Hand the canvas-editing controller the accessors it alone needs from the
@@ -2934,9 +3013,17 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		this.activeDrawWidth.set(state.width);
 	}
 
+	/**
+	 * Comment/reply author: the host `authorName` input wins, otherwise fall
+	 * back to Options > General > "User name" before the generic "You".
+	 */
+	private commentAuthorName(): string {
+		return this.authorName() || this.viewerOpts.options().general.userName || 'You';
+	}
+
 	/** Append a comment to the active slide (one history entry). */
 	onCommentAdd(text: string): void {
-		const next = addCommentToList(this.activeComments(), text, 'You');
+		const next = addCommentToList(this.activeComments(), text, this.commentAuthorName());
 		if (next) {
 			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
 		}
@@ -2960,7 +3047,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 
 	/** Append a threaded reply under a top-level comment on the active slide. */
 	onCommentReply(event: { parentId: string; text: string }): void {
-		const next = replyToCommentInList(this.activeComments(), event.parentId, event.text, 'You');
+		const next = replyToCommentInList(
+			this.activeComments(),
+			event.parentId,
+			event.text,
+			this.commentAuthorName(),
+		);
 		if (next) {
 			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
 		}
@@ -2999,6 +3091,14 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	@HostListener('document:keydown', ['$event'])
 	onKeyDown(event: KeyboardEvent): void {
 		this.keyboard.handleKeyDown(event);
+	}
+
+	/** Options > Save > "clear cache on close": wipe recovery snapshots when the tab closes. */
+	@HostListener('window:beforeunload')
+	protected clearCacheOnUnload(): void {
+		if (this.viewerOpts.shouldClearCacheOnClose()) {
+			void this.viewerOpts.clearCache();
+		}
 	}
 
 	/** Resolve the live slide-stage element within `<main>`. */
