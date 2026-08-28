@@ -13,14 +13,8 @@ import type {
 	PptxSlide,
 	TextSegment,
 } from 'pptx-viewer-core';
-import {
-	armEditorKeyboard,
-	downloadBlob,
-	presentationBaseName,
-	savedPresentationFileName,
-} from 'pptx-viewer-shared';
+import { armEditorKeyboard, downloadBlob, savedPresentationFileName } from 'pptx-viewer-shared';
 
-import { buildSharingPackage } from '../export/package-sharing';
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
@@ -51,6 +45,10 @@ export interface EditorControllerDeps {
 	getTranslator(): Translator;
 	getScale(): number;
 	getHandler(): PptxHandler | null;
+	/** Options > General > "User name" override for new comment/reply authorship. */
+	getUserName?: () => string | undefined;
+	/** Options > Proofing > AutoCorrect, applied to committed inline-edit text. */
+	transformCommittedText?: (text: string) => string;
 	/** Host `onChange` callback: fired after every committed mutation. */
 	onChange?: () => void;
 	/** Notified with slide-space coordinates on stage pointer move (collaboration cursor broadcast). */
@@ -108,7 +106,6 @@ export interface EditorController {
 	updateCustomShows(value: PptxCustomShow[]): void;
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
-	packageForSharing(fileName?: string): Promise<void>;
 	downloadPptx(fileName?: string): Promise<void>;
 	destroy(): void;
 }
@@ -142,9 +139,16 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getHandler: deps.getHandler,
 		onChange: deps.onChange,
 		onHistoryChange: () => updateToolbar(),
+		transformCommittedText: deps.transformCommittedText,
 	});
 
-	const editActions = createEditActions({ doc, store, ops, getHandler: deps.getHandler });
+	const editActions = createEditActions({
+		doc,
+		store,
+		ops,
+		getHandler: deps.getHandler,
+		getUserName: deps.getUserName,
+	});
 	const findReplaceActions = createFindReplaceActions({ store, ops });
 
 	/**
@@ -497,11 +501,6 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		},
 		async downloadPptx(fileName) {
 			await this.downloadAs('pptx', fileName);
-		},
-		async packageForSharing(fileName) {
-			const bytes = await ops.save('pptx');
-			const blob = await buildSharingPackage(bytes, savedPresentationFileName(fileName));
-			downloadBlob(blob, `${presentationBaseName(fileName)}-package.zip`);
 		},
 		destroy() {
 			unsubscribe();

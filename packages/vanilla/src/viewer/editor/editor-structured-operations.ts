@@ -18,14 +18,17 @@ export function createStructuredEditorOperations(deps: {
 	store: Store<ViewerState>;
 	pushHistory(): void;
 	commitChange(): void;
+	/** Options > Proofing > AutoCorrect, applied to committed table-cell text. */
+	transformCommittedText?: (text: string) => string;
 }): StructuredEditorOperations {
 	return {
-		commitTableCell(id, row, column, text) {
+		commitTableCell(id, row, column, rawText) {
 			const state = deps.store.get();
 			const target = findActiveElement(state, id);
 			if (target?.type !== 'table' || !target.tableData?.rows[row]?.cells[column]) {
 				return;
 			}
+			const text = deps.transformCommittedText ? deps.transformCommittedText(rawText) : rawText;
 			deps.pushHistory();
 			const rows = target.tableData.rows.map((tableRow, rowIndex) => ({
 				...tableRow,

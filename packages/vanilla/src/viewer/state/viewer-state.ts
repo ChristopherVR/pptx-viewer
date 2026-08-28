@@ -180,6 +180,13 @@ export interface ViewerState {
 	enteringBackward?: boolean;
 	/** True when editing interactions (select/move/resize/...) are enabled. */
 	editable: boolean;
+	/**
+	 * True while a freshly-opened deck is held read-only by Trust Center >
+	 * "Open documents in Protected View" (see `shouldOpenInProtectedView`).
+	 * While set, `editable` is forced off regardless of the host's own
+	 * `editable` option; the "Enable Editing" banner clears it for the session.
+	 */
+	protectedView: boolean;
 	/** Id of the selected element on the current slide, or null. */
 	selectedElementId: string | null;
 	/** All selected top-level element ids; the primary selection is listed last. */
@@ -291,6 +298,7 @@ export function createInitialViewerState(): ViewerState {
 		endOfShow: false,
 		enteringBackward: false,
 		editable: false,
+		protectedView: false,
 		selectedElementId: null,
 		selectedElementIds: [],
 		selectedTableCell: null,

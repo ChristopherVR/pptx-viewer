@@ -131,6 +131,8 @@ export interface EditActionsDeps {
 	ops: EditorOps;
 	/** Live handler getter (deck-level theme apply); null before a load. */
 	getHandler(): PptxHandler | null;
+	/** Options > General > "User name" override for new comment/reply authorship. */
+	getUserName?: () => string | undefined;
 }
 
 /**
@@ -172,7 +174,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createInkActions({ store, ops }),
 		...createDeckActions({ store, ops, getHandler: deps.getHandler }),
 		sections: createSectionActions(store, ops),
-		comments: createCommentActions({ store, ops }),
+		comments: createCommentActions({ store, ops, getUserName: deps.getUserName }),
 		toggleFormatPainter() {
 			const state = store.get();
 			store.set({

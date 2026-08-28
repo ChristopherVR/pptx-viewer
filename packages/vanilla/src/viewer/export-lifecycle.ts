@@ -22,12 +22,34 @@ export interface ExportLifecycleDeps {
 	store: Store<ViewerState>;
 	registry: ElementRendererRegistry;
 	getTranslator(): Translator;
-	smartArt3D: boolean;
-	surfaceChart3D: boolean;
-	barChart3D: boolean;
-	lineChart3D: boolean;
-	areaChart3D: boolean;
-	pieChart3D: boolean;
+	/**
+	 * The six 3D opt-in flags as getters (not plain booleans), each already
+	 * ANDed with Options > Advanced > "Disable 3D rendering" by the caller
+	 * (see `resolve3DRenderingFlags`) and read fresh on every export/print so
+	 * a mid-session toggle reaches the very next one. See `RasterizeSlideDeps`.
+	 */
+	getSmartArt3D(): boolean;
+	getSurfaceChart3D(): boolean;
+	getBarChart3D(): boolean;
+	getLineChart3D(): boolean;
+	getAreaChart3D(): boolean;
+	getPieChart3D(): boolean;
+	/**
+	 * Options > Advanced > "Default resolution" / "Do not compress images"
+	 * raster-scale multiplier (see `resolveImageResolutionScale`), read fresh
+	 * on every rasterize call so a mid-session change reaches the next export.
+	 */
+	getImageResolutionScale(): number;
+	/**
+	 * Options > Advanced > "Print hidden slides", read fresh on every print so a
+	 * mid-session toggle reaches the very next print job.
+	 */
+	getIncludeHiddenSlides?(): boolean;
+	/**
+	 * Options > Advanced > "High quality" raster scale for the print
+	 * notes/handouts fallback path, read fresh on every print.
+	 */
+	getPrintHighQuality?(): boolean;
 	/** Source file name (title-bar name); drives export download names. */
 	fileName?: string;
 }
@@ -107,6 +129,9 @@ export function createExportLifecycle(deps: ExportLifecycleDeps): ExportLifecycl
 		store: deps.store,
 		rasterizeSlide: (index) => rasterizer.rasterizeSlide(index),
 		fileName: deps.fileName,
+		getTranslator: deps.getTranslator,
+		getIncludeHiddenSlides: deps.getIncludeHiddenSlides,
+		getPrintHighQuality: deps.getPrintHighQuality,
 	});
 	// Multi-slide exports (PDF / GIF / video) run through the progress envelope
 	// so a visible modal (bar + status + Cancel) accompanies them, exactly like

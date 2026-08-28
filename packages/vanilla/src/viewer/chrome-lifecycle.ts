@@ -1,5 +1,5 @@
 import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
-import { readRibbonTransitionDraft, toggleBlackboard } from 'pptx-viewer-shared';
+import { readRibbonTransitionDraft, safeOpenUrl, toggleBlackboard } from 'pptx-viewer-shared';
 import type {
 	PresentationPointerState,
 	PresentationPointerTool,
@@ -26,6 +26,7 @@ import {
 	attachTouchGestures,
 	buildViewerChrome,
 	createPresentationController,
+	mountPresentationContextMenu,
 } from './ui';
 import type { CommandSearchCommand } from './ui/command-search';
 
@@ -74,6 +75,8 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	togglePresenterView?(): void;
 	/** Raise the presenter console's "See All Slides" navigator (Ctrl+S). */
 	showPresentationAllSlides?(): void;
+	/** File > Options > Advanced > "Show menu on right mouse click". */
+	shouldShowPresentationContextMenu?(): boolean;
 	/**
 	 * Say what a fullscreen exit seen while the show is running actually meant.
 	 *
@@ -97,6 +100,16 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	getQuickAccessOptions(): ViewerQuickAccessOptions;
 	/** ScreenTip-styled tooltip for a strip button (undefined suppresses it). */
 	quickAccessScreenTip(label: string): string | undefined;
+	/** Trust Center > Protected View's "Enable Editing" banner button. */
+	enableEditingFromProtectedView(): void;
+	/**
+	 * Trust Center > "Confirm before opening external hyperlinks": shows the
+	 * confirm prompt when the option applies to `url` and reports whether the
+	 * navigation may proceed. Omitted (direct construction in tests) opens
+	 * unconditionally, matching the pre-existing behavior for a binding that
+	 * has not wired the gate.
+	 */
+	confirmExternalHyperlink?(url: string): boolean;
 }
 
 /**
@@ -165,6 +178,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			clearAnnotations: () => deps.erasePresentationAnnotations?.(),
 			togglePresenterView: () => deps.togglePresenterView?.(),
 		},
+		onEnableEditing: () => deps.enableEditingFromProtectedView(),
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
@@ -173,6 +187,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	chrome.statusBar?.setDirty(store.get().dirty);
 	chrome.mobileActionSheets?.setNotesExpanded(store.get().notesExpanded);
 	chrome.titleBar?.setDirty(store.get().dirty);
+	chrome.setProtectedView(store.get().protectedView);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {
 		next: deps.next,
@@ -307,6 +322,9 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 				goToSlide: (index) => deps.goToSlide(index),
 				move: (direction) => (direction > 0 ? deps.next() : deps.prev()),
 				endShow: () => deps.exitPresentation(),
+				// An on-slide Action Setting's own "Hyperlink to a URL" must clear the
+				// same Trust Center gate a text hyperlink click does.
+				confirmUrl: (url) => deps.confirmExternalHyperlink?.(url) ?? true,
 			},
 		});
 		if (!shouldAdvance) {
@@ -315,6 +333,31 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		deps.next();
 	};
 	chrome.root.addEventListener('click', onPresentationClick);
+
+	/**
+	 * A run-level text hyperlink (`<a class="pptxv-link" href>`, see
+	 * `render/elements/text-block.ts`) is a real anchor with `target="_blank"`:
+	 * left un-intercepted, the browser navigates on its own before any Trust
+	 * Center gate gets a look-in, in both editing/view and presentation mode.
+	 * `resolveHyperlinkHref` already keeps internal `ppaction://` jumps from
+	 * ever becoming one of these, so every match here is a genuine external
+	 * navigation candidate.
+	 */
+	const onHyperlinkClick = (event: MouseEvent): void => {
+		if (!(event.target instanceof Element)) {
+			return;
+		}
+		const anchor = event.target.closest('a.pptxv-link');
+		const href = anchor?.getAttribute('href');
+		if (!anchor || !href) {
+			return;
+		}
+		event.preventDefault();
+		if (deps.confirmExternalHyperlink?.(href) ?? true) {
+			safeOpenUrl(href);
+		}
+	};
+	chrome.root.addEventListener('click', onHyperlinkClick);
 
 	// PowerPoint's "Advance slide: After <n>". Without it a deck whose slide also
 	// sets "on mouse click" OFF has no way forward at all: the gate above
@@ -336,12 +379,36 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		rearmAutoAdvance: autoAdvance.rearm,
 	});
 
+	// Options > Advanced > "Show menu on right mouse click": right-click opens
+	// a minimal Next/Previous/End Show menu (plus pointer tools, See All
+	// Slides, presenter view and the black/white blank screen); off swallows
+	// the click entirely (no browser menu either), matching every other
+	// binding. Gated on `store.get().presenting` internally, so it never
+	// interferes with the editor's own `element-context-menu`.
+	const presentationContextMenu = mountPresentationContextMenu({
+		doc,
+		store,
+		root: chrome.root,
+		getTranslator: () => deps.t,
+		shouldShow: () => deps.shouldShowPresentationContextMenu?.() ?? true,
+		next: () => deps.next(),
+		prev: () => deps.prev(),
+		exitPresentation: () => deps.exitPresentation(),
+		showAllSlides: () => deps.showPresentationAllSlides?.(),
+		togglePresenterView: () => deps.togglePresenterView?.(),
+		setPointerTool: (tool) => deps.setPresentationPointerTool?.(tool),
+		eraseAnnotations: () => deps.erasePresentationAnnotations?.(),
+		toggleBlank: (value) => deps.togglePresentationBlank?.(value),
+	});
+
 	const detachPresentationClick = (): void => {
 		chrome.root.removeEventListener('click', onPresentationClick);
+		chrome.root.removeEventListener('click', onHyperlinkClick);
 		autoAdvance.detach();
 		detachShowVisibility();
 		detachEndScreen();
 		endScreen.remove();
+		presentationContextMenu.destroy();
 	};
 	// The callback needs the controller it is being passed to, so it reads it
 	// back through this box rather than closing over an uninitialised binding:
@@ -436,6 +503,10 @@ export interface ChromeHost {
 	getQuickAccessOptions(): ViewerQuickAccessOptions;
 	/** ScreenTip-styled tooltip for a strip button (undefined suppresses it). */
 	quickAccessScreenTip(label: string): string | undefined;
+	/** Trust Center > Protected View's "Enable Editing" banner button. */
+	enableEditingFromProtectedView(): void;
+	/** Trust Center > "Confirm before opening external hyperlinks" gate + prompt. */
+	confirmExternalHyperlink(url: string): boolean;
 	toggleAutosave(): boolean;
 	/** The AutoSave switch's state (the user preference within the host ceiling). */
 	isAutosaveSwitchOn(): boolean;
@@ -443,7 +514,6 @@ export interface ChromeHost {
 	isAutosaveToggleAvailable(): boolean;
 	downloadPptx(): Promise<void>;
 	downloadAs(format: PptxSaveFormat): Promise<void>;
-	packageForSharing(): Promise<void>;
 	toggleNotes(): void;
 	goToSlide(index: number): void;
 	/** Home: the show's first slide (skips a hidden slide 1 while presenting). */
@@ -457,6 +527,11 @@ export interface ChromeHost {
 	togglePresenterView(): void;
 	/** Raise the console's "See All Slides" navigator (Ctrl+S during a show). */
 	showPresentationAllSlides(): void;
+	/**
+	 * File > Options > Advanced > "Show menu on right mouse click", read fresh
+	 * on every right-click during a show.
+	 */
+	shouldShowPresentationContextMenu(): boolean;
 	/** See {@link MountChromeDeps.classifyPresentationExit}. */
 	classifyPresentationExit(): 'end-show' | 'restore-show';
 	exitPresentation(): Promise<void>;
@@ -487,6 +562,16 @@ export interface ChromeHost {
 	openDigitalSignatures(): void;
 	openPasswordProtection(): void;
 	openVersionHistory(): void;
+	/**
+	 * File > Options > Advanced > "Properties follow chart data point for
+	 * current workbook", read fresh on every chart category removal.
+	 */
+	getChartFollowDataPoint(): boolean;
+	/**
+	 * File > Options > Advanced > "Quickly access this number of Recent
+	 * Documents" (0-50), read fresh whenever the Recent list loads.
+	 */
+	getRecentPresentationsCount(): number;
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
 	selectElements(ids: string[]): void;
@@ -566,6 +651,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openDigitalSignatures: () => host.openDigitalSignatures(),
 		openPasswordProtection: () => host.openPasswordProtection(),
 		openVersionHistory: () => host.openVersionHistory(),
+		getChartFollowDataPoint: () => host.getChartFollowDataPoint(),
+		getRecentPresentationsCount: () => host.getRecentPresentationsCount(),
 		toggleTemplateEditing: () => host.toggleTemplateEditing(),
 		toggleMasterNavigation: () => host.toggleMasterNavigation(),
 		toggleInspector: () => host.store.set({ inspectorOpen: !host.store.get().inspectorOpen }),
@@ -584,7 +671,6 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		presentationProperties: () => host.store.get().presentationProperties,
 		save: () => void host.downloadPptx(),
 		downloadAs: (format) => host.downloadAs(format),
-		packageForSharing: () => host.packageForSharing(),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),
 		goToFirstSlide: () => host.goToFirstSlide(),
@@ -611,6 +697,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		},
 		togglePresenterView: () => host.togglePresenterView(),
 		showPresentationAllSlides: () => host.showPresentationAllSlides(),
+		shouldShowPresentationContextMenu: () => host.shouldShowPresentationContextMenu(),
 		classifyPresentationExit: () => host.classifyPresentationExit(),
 		erasePresentationAnnotations: () => host.clearPresentationAnnotations(),
 		togglePresentationInkMarkup: () =>
@@ -658,5 +745,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		setDrawWidth: (width) => host.editor.setDrawWidth(width),
 		getQuickAccessOptions: () => host.getQuickAccessOptions(),
 		quickAccessScreenTip: (label) => host.quickAccessScreenTip(label),
+		enableEditingFromProtectedView: () => host.enableEditingFromProtectedView(),
+		confirmExternalHyperlink: (url) => host.confirmExternalHyperlink(url),
 	};
 }

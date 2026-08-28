@@ -62,6 +62,8 @@ export function createShareDialog(
 	t: Translator,
 	handlers: ShareDialogHandlers,
 	themeHost?: () => HTMLElement | null,
+	/** Options > General > "Initials" override for the local-user avatar. */
+	getUserInitials?: () => string | undefined,
 ): ShareDialog {
 	let fields: ShareFormFields = seedShareFields();
 	let active = false;
@@ -267,6 +269,7 @@ export function createShareDialog(
 		const users = config
 			? buildActiveSessionUsers({
 					localUserName: config.userName,
+					localUserInitials: getUserInitials?.(),
 					localUserColor: config.userColor,
 					remoteUsers: session.remoteUsers,
 				})

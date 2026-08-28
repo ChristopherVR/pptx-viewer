@@ -56,7 +56,12 @@ export function createChartSection(
 	// dropping per-series colour/marker/trendline fields the advanced controls
 	// below had just set. The grid edits through core's `chartData*` helpers,
 	// which preserve them.
-	const grid = createChartDataGrid(doc, t, (data) => handlers.setChartData(data));
+	const grid = createChartDataGrid(
+		doc,
+		t,
+		(data) => handlers.setChartData(data),
+		() => handlers.getChartFollowDataPoint(),
+	);
 	const legend = checkbox(doc, t('pptx.chart.showLegend'));
 	const labels = checkbox(doc, t('pptx.chart.dataLabels'));
 	// One point picker drives every `c:dPt` control in the panel: the advanced

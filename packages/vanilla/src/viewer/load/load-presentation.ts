@@ -97,11 +97,25 @@ export interface LoadedPresentation {
 	blobUrls: string[];
 }
 
-export async function loadPresentation(buffer: ArrayBuffer): Promise<LoadedPresentation> {
+export interface LoadPresentationOptions {
+	/**
+	 * Trust Center > "Allow external content" (default false, matching core's
+	 * own SSRF/privacy-safe default). When false, `PptxHandler.getImageData`
+	 * silently drops `http(s)://` image references instead of fetching them.
+	 */
+	allowExternalImages?: boolean;
+}
+
+export async function loadPresentation(
+	buffer: ArrayBuffer,
+	options?: LoadPresentationOptions,
+): Promise<LoadedPresentation> {
 	const handler = new PptxHandler();
 	const blobUrls: string[] = [];
 	try {
-		const parsed = await handler.load(buffer);
+		const parsed = await handler.load(buffer, {
+			allowExternalImages: options?.allowExternalImages,
+		});
 
 		const mediaDataUrls = await resolveMediaUrls(handler, parsed.slides, blobUrls);
 		const imageResolvedSlides = await resolveImageUrls(handler, parsed.slides);

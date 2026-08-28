@@ -27,36 +27,49 @@ export interface RenderControllerDeps {
 	doc: Document;
 	store: Store<ViewerState>;
 	registry: ElementRendererRegistry;
-	/** Getters so chrome/translator swaps (setLocale) are picked up live. */
+	/**
+	 * Getters, not plain booleans, so chrome/translator swaps (setLocale) and
+	 * the six 3D flags below are picked up live.
+	 */
 	getChrome(): ViewerChrome;
 	getTranslator(): Translator;
-	/** Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`. */
-	smartArt3D: boolean;
+	/**
+	 * Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`.
+	 * Already ANDed with Options > Advanced > "Disable 3D rendering" by the
+	 * caller (see `resolve3DRenderingFlags`), so this getter alone decides
+	 * whether the WebGL scene renders.
+	 */
+	getSmartArt3D(): boolean;
 	/**
 	 * Opt-in interactive WebGL surface-chart renderer flag; see
-	 * `PptxViewerOptions.surfaceChart3D`.
+	 * `PptxViewerOptions.surfaceChart3D`. Same "already ANDed" note as
+	 * `getSmartArt3D`.
 	 */
-	surfaceChart3D: boolean;
+	getSurfaceChart3D(): boolean;
 	/**
 	 * Opt-in interactive WebGL bar3D-chart renderer flag; see
-	 * `PptxViewerOptions.barChart3D`.
+	 * `PptxViewerOptions.barChart3D`. Same "already ANDed" note as
+	 * `getSmartArt3D`.
 	 */
-	barChart3D: boolean;
+	getBarChart3D(): boolean;
 	/**
 	 * Opt-in interactive WebGL line3D-chart renderer flag; see
-	 * `PptxViewerOptions.lineChart3D`.
+	 * `PptxViewerOptions.lineChart3D`. Same "already ANDed" note as
+	 * `getSmartArt3D`.
 	 */
-	lineChart3D: boolean;
+	getLineChart3D(): boolean;
 	/**
 	 * Opt-in interactive WebGL area3D-chart renderer flag; see
-	 * `PptxViewerOptions.areaChart3D`.
+	 * `PptxViewerOptions.areaChart3D`. Same "already ANDed" note as
+	 * `getSmartArt3D`.
 	 */
-	areaChart3D: boolean;
+	getAreaChart3D(): boolean;
 	/**
 	 * Opt-in interactive WebGL pie3D-chart renderer flag; see
-	 * `PptxViewerOptions.pieChart3D`.
+	 * `PptxViewerOptions.pieChart3D`. Same "already ANDed" note as
+	 * `getSmartArt3D`.
 	 */
-	pieChart3D: boolean;
+	getPieChart3D(): boolean;
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
@@ -168,12 +181,12 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			t: deps.getTranslator(),
 			scale,
 			gridSpacingPx: computeGridSpacingPx(state.viewProperties?.gridSpacing, 10),
-			smartArt3D: deps.smartArt3D,
-			surfaceChart3D: deps.surfaceChart3D,
-			barChart3D: deps.barChart3D,
-			lineChart3D: deps.lineChart3D,
-			areaChart3D: deps.areaChart3D,
-			pieChart3D: deps.pieChart3D,
+			smartArt3D: deps.getSmartArt3D(),
+			surfaceChart3D: deps.getSurfaceChart3D(),
+			barChart3D: deps.getBarChart3D(),
+			lineChart3D: deps.getLineChart3D(),
+			areaChart3D: deps.getAreaChart3D(),
+			pieChart3D: deps.getPieChart3D(),
 			presenting,
 			slides: state.slides,
 			currentSlideIndex: state.currentSlide,

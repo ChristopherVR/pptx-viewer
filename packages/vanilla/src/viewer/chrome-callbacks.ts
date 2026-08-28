@@ -32,7 +32,6 @@ export interface ChromeCallbackDeps {
 	redo(): void;
 	save(): void;
 	downloadAs(format: PptxSaveFormat): Promise<void>;
-	packageForSharing(): Promise<void>;
 	toggleAutosave(): boolean;
 	startPresentationFromBeginning(): void;
 	startPresentationFromCurrent(): void;
@@ -85,6 +84,17 @@ export interface ChromeCallbackDeps {
 	createPresentation(templateId: string): void;
 	/** Lazily resolve the editor's edit actions (editor is built after chrome). */
 	getEditActions(): EditActions;
+	/**
+	 * File > Options > Advanced > "Properties follow chart data point for
+	 * current workbook", read fresh on every chart category removal.
+	 */
+	getChartFollowDataPoint(): boolean;
+	/**
+	 * File > Options > Advanced > "Quickly access this number of Recent
+	 * Documents" (0-50), read fresh whenever the File backstage's Recent list
+	 * loads.
+	 */
+	getRecentPresentationsCount(): number;
 	/**
 	 * Store reads the ribbon needs WHILE IT IS BEING BUILT, which is before the
 	 * editor exists: the Transitions tab seeds its draft from the active slide
@@ -165,10 +175,10 @@ export function buildChromeCallbacks(
 			openDigitalSignatures: () => deps.openDigitalSignatures(),
 			openPasswordProtection: () => deps.openPasswordProtection(),
 			openVersionHistory: () => deps.openVersionHistory(),
+			getRecentPresentationsCount: () => deps.getRecentPresentationsCount(),
 			save: () => deps.save(),
 			saveAsPpsx: () => void deps.downloadAs('ppsx'),
 			saveAsPptm: () => void deps.downloadAs('pptm'),
-			packageForSharing: () => void deps.packageForSharing(),
 			exportPng: () => void deps.exportSlidePng(),
 			copySlideAsImage: () => void deps.copySlideAsImage(),
 			exportPdf: () => void deps.exportPdf(),
@@ -229,6 +239,7 @@ export function buildChromeCallbacks(
 	const inspectorHandlers: ChromeOptions['inspectorHandlers'] = {
 		selectElement: (id) => deps.selectElement(id),
 		openDocumentProperties: () => deps.openDocumentProperties(),
+		getChartFollowDataPoint: () => deps.getChartFollowDataPoint(),
 		updatePresentationSettings: (patch) => deps.getEditActions().updatePresentationSettings(patch),
 		applyThemeByPath: (themePath, allMasters) =>
 			deps.getEditActions().applyThemeByPath(themePath, allMasters),

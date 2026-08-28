@@ -233,7 +233,47 @@ const CHROME_CSS = `
 .pptxv-cmdsearch-item { cursor: pointer; }
 .pptxv-cmdsearch-item:hover { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv-cmdsearch-empty { color: var(--pptx-muted-foreground); }
-@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) { .pptxv-titlebar { display: none; } }
+@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) { .pptxv-titlebar, .pptxv-qat-row { display: none; } }
+
+/* Quick Access Toolbar docked below the Ribbon (Options > Quick Access
+   Toolbar > position); hidden and empty until the strip is moved in. */
+.pptxv-qat-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-height: ${TB.height}px;
+	padding: 0 ${TB.paddingX}px;
+	border-bottom: 1px solid var(--pptx-border);
+	background: var(--pptx-card);
+}
+.pptxv-qat-row .pptxv-qat { display: flex; align-items: center; gap: 4px; }
+
+/* Trust Center > Protected View banner: PowerPoint's persistent "this file
+   is read-only until you Enable Editing" bar under the Ribbon. */
+.pptxv-protected-view {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px ${TB.paddingX}px;
+	background: #fef3c7;
+	color: #78350f;
+	border-bottom: 1px solid #fcd34d;
+	font-size: ${TB.fontSize}px;
+}
+.pptxv-protected-view svg { width: 16px; height: 16px; flex: none; }
+.pptxv-protected-view-text { flex: 1 1 auto; }
+.pptxv-protected-view-enable {
+	flex: none;
+	padding: 3px 10px;
+	border: 1px solid #b45309;
+	border-radius: 4px;
+	background: #fff;
+	color: #78350f;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+.pptxv-protected-view-enable:hover { background: #fde68a; }
 
 /* ── Body: thumbnail rail + viewport ─────────────────────────────────── */
 .pptxv-body { display: flex; flex: 1; min-height: 0; }
@@ -792,6 +832,8 @@ const CHROME_CSS = `
 /* ── Presentation (fullscreen) mode ──────────────────────────────────── */
 .pptxv.pptxv-presenting .pptxv-ribbon,
 .pptxv.pptxv-presenting .pptxv-thumbs,
+.pptxv.pptxv-presenting .pptxv-qat-row,
+.pptxv.pptxv-presenting .pptxv-protected-view,
 .pptxv.pptxv-presenting .pptxv-titlebar { display: none; }
 /* A show letterboxes the slide in the middle of the black, so the editing
    canvas's top alignment is overridden back to centred here. */

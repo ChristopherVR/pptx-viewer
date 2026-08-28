@@ -8,20 +8,27 @@ import {
 	computeColorFilter,
 	computeSlideIndices,
 	exportAbortError,
+	filterHiddenSlideIndices,
+	finishPrintWindow as finishPendingWindow,
+	openPendingPrintWindow as openPendingWindow,
+	openPrintWindow as defaultOpenPrintWindow,
 	validatePrintSettings,
 } from 'pptx-viewer-shared';
 
+import { createTranslator } from '../i18n';
 import { exportSlideToSvg } from './export-svg';
 import type { ExportCaptureDeps, ExportProgress } from './export-types';
 
 /**
  * Print for the vanilla binding, assembled entirely from the shared print
- * module (`pptx-viewer-shared` `print-document`): `validatePrintSettings`,
- * `computeSlideIndices` / `computeColorFilter`, the `build*Html` body markup
- * builders, and the DOMPurify-hardened `buildPrintHtmlDocument` assembler.
- * Only the drivers live here: rasterising the selected slides to data URLs and
- * writing the document into a print window. Vanilla port of Vue's `usePrint`
- * raster path (slides / notes / handouts / outline).
+ * module (`pptx-viewer-shared` `print-document` + `print-window`):
+ * `validatePrintSettings`, `computeSlideIndices` / `computeColorFilter`, the
+ * `build*Html` body markup builders, the DOMPurify-hardened
+ * `buildPrintHtmlDocument` assembler, and the popup-blocking-safe
+ * open/finish window lifecycle. Only the drivers live here: rasterising the
+ * selected slides to data URLs and deciding which path each print mode
+ * takes. Vanilla port of Vue's `usePrint` raster path (slides / notes /
+ * handouts / outline).
  */
 
 /**
@@ -51,28 +58,6 @@ export interface PrintOptions extends Partial<PrintSettings> {
 }
 
 /**
- * Default print-window opener: writes a full HTML doc and calls `print()`.
- * Matches Vue's `usePrint`. `document.write` is safe here: the target is a
- * fresh `about:blank` window this function just opened (never the host page),
- * and the document string comes from the shared `buildPrintHtmlDocument`,
- * which DOMPurify-sanitises the body and escapes every interpolated value.
- */
-function defaultOpenPrintWindow(htmlDocument: string): boolean {
-	const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-	if (!printWindow) {
-		return false;
-	}
-	printWindow.document.open();
-	printWindow.document.write(htmlDocument);
-	printWindow.document.close();
-	printWindow.focus();
-	setTimeout(() => {
-		printWindow.print();
-	}, 300);
-	return true;
-}
-
-/**
  * Assemble the printable HTML document for the (validated) settings and open
  * it in a print window. Resolves `true` when the window opened, `false` when
  * it was blocked or nothing matched the slide range. Throws the shared
@@ -88,12 +73,16 @@ export async function runPrint(
 	const slides = state.slides;
 	const settings = validatePrintSettings(partialSettings, slides.length);
 	const colorFilter = computeColorFilter(settings.colorMode);
-	const slideIndices = computeSlideIndices(
-		settings.slideRange,
-		state.currentSlide,
-		slides.length,
-		settings.customRangeFrom,
-		settings.customRangeTo,
+	const slideIndices = filterHiddenSlideIndices(
+		computeSlideIndices(
+			settings.slideRange,
+			state.currentSlide,
+			slides.length,
+			settings.customRangeFrom,
+			settings.customRangeTo,
+		),
+		slides,
+		deps.getIncludeHiddenSlides?.() ?? false,
 	);
 
 	// Outline is text-only: no rasterisation needed.
@@ -122,28 +111,54 @@ export async function runPrint(
 				title: 'Slides (Vector)',
 				orientation: settings.orientation,
 				colorFilter,
+				scaleToFit: settings.scaleToFit,
 			}),
 		);
 	}
 
+	// Rasterising each slide below `await`s, so the default opener must grab
+	// the window NOW, before that first await, or it gets popup-blocked. A
+	// custom `openPrintWindow` owns its own timing and gets the finished
+	// document in a single call, as documented.
+	const t = deps.getTranslator?.() ?? createTranslator();
+	const pendingWindow = openPrintWindow
+		? undefined
+		: openPendingWindow(t('pptx.print.preparingToPrint'));
+	if (!openPrintWindow && !pendingWindow) {
+		return false;
+	}
+
+	// Options > Advanced > "High quality" raster scale for this notes/handouts
+	// fallback path, composed on top of the host's own baseline (2x * Options >
+	// Advanced > Image Size/Quality) scale.
+	const printScaleMultiplier = deps.getPrintHighQuality?.() ? 2 : 1;
 	const images: string[] = [];
 	for (let i = 0; i < slideIndices.length; i++) {
 		if (signal?.aborted) {
+			pendingWindow?.close();
 			throw exportAbortError();
 		}
 		onProgress?.(i, slideIndices.length);
-		const canvas = await deps.rasterizeSlide(slideIndices[i]);
+		const canvas = await deps.rasterizeSlide(slideIndices[i], printScaleMultiplier);
 		images.push(canvas.toDataURL('image/png'));
 	}
 	onProgress?.(slideIndices.length, slideIndices.length);
 
+	const commit = (html: string): boolean => {
+		if (pendingWindow) {
+			finishPendingWindow(pendingWindow, html);
+			return true;
+		}
+		return openWindow(html);
+	};
+
 	if (settings.printWhat === 'notes') {
 		const bodyHtml = buildNotesHtml(images, slideIndices, slides);
-		return openWindow(buildDocument('Notes Pages', bodyHtml, settings, colorFilter));
+		return commit(buildDocument('Notes Pages', bodyHtml, settings, colorFilter));
 	}
 	const bodyHtml = buildHandoutsHtml(images, slideIndices, settings.slidesPerPage);
 	const title = `Handout ${settings.slidesPerPage} per page`;
-	return openWindow(buildDocument(title, bodyHtml, settings, colorFilter));
+	return commit(buildDocument(title, bodyHtml, settings, colorFilter));
 }
 
 /**
@@ -163,5 +178,6 @@ function buildDocument(
 		orientation: settings.orientation,
 		colorFilter,
 		frameSlides: settings.frameSlides,
+		scaleToFit: settings.scaleToFit,
 	});
 }

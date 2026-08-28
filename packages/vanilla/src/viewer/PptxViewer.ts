@@ -11,6 +11,7 @@ import type {
 } from 'pptx-viewer-core';
 import type {
 	PresentationSnapshot,
+	Rendering3DFlags,
 	ThemeCatalogEntry,
 	ViewerMode,
 	ViewerQuickAccessOptions,
@@ -43,12 +44,18 @@ import {
 	createBackstagePresentation,
 	DEFAULT_VIEWER_OPTIONS,
 	describeFontEmbedding,
+	resolve3DRenderingFlags,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
 	readBackstageRecentFile,
 	makeSlideId,
 	mergePresentationSnapshot,
 	openPptxFile,
+	resolveExpiredAutosaveSnapshots,
+	resolveImageResolutionScale,
+	shouldClearAutosaveCacheOnClose,
+	shouldConfirmExternalHyperlink,
+	shouldDiscardAutosaveOnSuccessfulSave,
 	THEME_CATALOG,
 	writeStoredViewerPrefs,
 } from 'pptx-viewer-shared';
@@ -204,6 +211,13 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			// the lazy optional access).
 			onContentApplying: (origin) => this.sessions?.beginCollaborationContentLoad(origin),
 			onContentApplied: (origin) => this.sessions?.notifyCollaborationContentLoaded(origin),
+			// Trust Center > "Allow external content"; the options controller is
+			// constructed after this one, hence the lazy read (see its own comment).
+			getAllowExternalContent: () =>
+				this.optionsController?.getOptions().trust.allowExternalContent ??
+				DEFAULT_VIEWER_OPTIONS.trust.allowExternalContent,
+			shouldOpenProtectedView: () => this.optionsController?.isProtectedView() ?? false,
+			setEditableForLoad: (editable) => this.setEditable(editable),
 		});
 		this.renderer = createRenderController({
 			doc: this.doc,
@@ -211,12 +225,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			registry: this.registry,
 			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
-			smartArt3D: options.smartArt3D ?? false,
-			surfaceChart3D: options.surfaceChart3D ?? false,
-			barChart3D: options.barChart3D ?? false,
-			lineChart3D: options.lineChart3D ?? false,
-			areaChart3D: options.areaChart3D ?? false,
-			pieChart3D: options.pieChart3D ?? false,
+			getSmartArt3D: () => this.effective3DFlags().smartArt3D,
+			getSurfaceChart3D: () => this.effective3DFlags().surfaceChart3D,
+			getBarChart3D: () => this.effective3DFlags().barChart3D,
+			getLineChart3D: () => this.effective3DFlags().lineChart3D,
+			getAreaChart3D: () => this.effective3DFlags().areaChart3D,
+			getPieChart3D: () => this.effective3DFlags().pieChart3D,
 			onHandoutSlidesPerPageChange: (count) => this.editor?.setHandoutSlidesPerPage(count),
 			onMasterBackgroundColorChange: (color) =>
 				this.editor?.getEditActions().setSlideBackgroundColor(color),
@@ -324,6 +338,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getTranslator: () => this.t,
 			getScale: () => this.renderer.effectiveScale(),
 			getHandler: () => this.loading.getHandler(),
+			getUserName: () => this.optionsController?.getOptions().general.userName,
+			transformCommittedText: (text) =>
+				this.optionsController?.transformCommittedText(text) ?? text,
 			onChange: options.onChange,
 			onCursorMove: (x, y) => this.sessions.setCollaborationCursor(x, y),
 			onInlineTextInput: (elementId, text) =>
@@ -347,6 +364,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getChrome: () => this.lifecycle.chrome,
 			getSnapshot: () => this.presenterSnapshot,
 			updateSnapshot: (patch) => this.updatePresenterSnapshot(patch),
+			// Read lazily: the options controller is constructed further down.
+			shouldPromptKeepAnnotations: () =>
+				this.optionsController?.getOptions().advanced.slideShowPromptKeepInkAnnotations ?? true,
 		});
 		this.exporter = createExportLifecycle({
 			doc: this.doc,
@@ -354,12 +374,16 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			store: this.store,
 			registry: this.registry,
 			getTranslator: () => this.t,
-			smartArt3D: options.smartArt3D ?? false,
-			surfaceChart3D: options.surfaceChart3D ?? false,
-			barChart3D: options.barChart3D ?? false,
-			lineChart3D: options.lineChart3D ?? false,
-			areaChart3D: options.areaChart3D ?? false,
-			pieChart3D: options.pieChart3D ?? false,
+			getSmartArt3D: () => this.effective3DFlags().smartArt3D,
+			getSurfaceChart3D: () => this.effective3DFlags().surfaceChart3D,
+			getBarChart3D: () => this.effective3DFlags().barChart3D,
+			getLineChart3D: () => this.effective3DFlags().lineChart3D,
+			getAreaChart3D: () => this.effective3DFlags().areaChart3D,
+			getPieChart3D: () => this.effective3DFlags().pieChart3D,
+			getImageResolutionScale: () =>
+				resolveImageResolutionScale(this.optionsController.getOptions()),
+			getIncludeHiddenSlides: () => this.optionsController.getOptions().advanced.printHiddenSlides,
+			getPrintHighQuality: () => this.optionsController.getOptions().advanced.printHighQuality,
 			fileName: options.fileName,
 		});
 		// File > Options controller: owns the persisted options store and turns
@@ -381,11 +405,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				setAutosaveIntervalMs: (ms) => this.sessions?.setAutosaveIntervalMs(ms),
 				setHistoryDepth: (depth) => this.editor?.setHistoryDepth(depth),
 				setRibbonHiddenTabs: (tabIds) => this.lifecycle?.chrome.ribbon?.setHiddenOptionTabs(tabIds),
-				refreshQuickAccess: () => this.lifecycle?.chrome.titleBar?.refreshQuickAccess(),
+				refreshQuickAccess: () => {
+					this.lifecycle?.chrome.titleBar?.refreshQuickAccess();
+					this.lifecycle?.chrome.setQuickAccessPosition(this.getQuickAccessOptions().position);
+				},
 				applyScreenTips: () =>
 					this.lifecycle?.chrome.ribbon?.applyScreenTips((label) =>
 						this.optionsController.screenTip(label),
 					),
+				renderStage: () => this.renderer.renderStage(),
 			},
 			// Seed the AutoSave preference from the constructor option so persisted
 			// values (if any) override it. The default is ON: the host option is a
@@ -417,6 +445,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			setLocale: (locale) => this.setLocale(locale),
 			getThemeState: () => ({ key: this.currentThemeKey, catalog: this.availableThemes }),
 			getLocaleState: () => ({ code: this.currentLocale, catalog: this.availableLocales }),
+			getAddinStatus: () => {
+				const rendering3D = !this.optionsController.getOptions().advanced.disable3DRendering;
+				return {
+					smartArt3d: rendering3D,
+					model3d: rendering3D,
+					collaboration: this.getCollaborationStatus() === 'connected',
+				};
+			},
 		};
 		// `t` needs to be a live getter (not the value copy above): `setLocale`
 		// reassigns `this.t` on every language switch, and parityWorkflows'
@@ -472,13 +508,23 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			setEditable: (editable) => this.setEditable(editable),
 			goToSlide: (index) => this.controls.goToSlide(index),
 			// Restoring a crash-recovery snapshot re-enters the normal load path,
-			// exactly as `openRecentFile` does.
-			loadFile: (bytes) => this.loadFile(bytes),
+			// exactly as `openRecentFile` does, except it is the SAME document the
+			// user was already editing (not a new one), so Protected View does not
+			// apply to it.
+			loadFile: (bytes) => this.loadFile(bytes, { skipProtectedView: true }),
+			// Options > General > "Initials": explicit override for the Share
+			// dialog's local-user avatar-circle fallback (see `getUserInitials`
+			// in `collaboration-active-session.ts`).
+			getUserInitials: () => this.optionsController?.getOptions().general.userInitials,
 		});
 		// Every subsystem the options controller drives now exists: apply the
 		// persisted File > Options values (undo depth, ribbon visibility, root
 		// classes, ScreenTips, etc.) for the first time.
 		this.optionsController.applyAll();
+		// File > Options > Save > "Automatically delete files older than N days":
+		// a one-time sweep on mount is enough since new snapshots only ever land
+		// with a fresh timestamp; no periodic timer is needed to keep it honest.
+		void this.pruneExpiredAutosaveSnapshots();
 		this.renderer.renderAll();
 		this.setupAiChat();
 
@@ -572,9 +618,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.renderer.renderAll();
 	}
 
-	async loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void> {
+	async loadFile(
+		file: Blob | ArrayBuffer | Uint8Array,
+		options?: { skipProtectedView?: boolean },
+	): Promise<void> {
 		this.signatureWarningAcknowledged = false;
-		await this.loading.load(file);
+		await this.loading.load(file, 'user', options);
 	}
 
 	openFile(): void {
@@ -897,7 +946,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	openVersionHistory(): void {
 		openVersionHistoryPanel(this.doc, this.lifecycle.chrome.root, this.t, {
 			filePath: this.options.autosaveFilePath ?? 'presentation.pptx',
-			onRestore: (bytes) => this.loadFile(bytes),
+			// A prior local AutoRecover snapshot of the SAME document, not a new
+			// file being opened, so Protected View does not apply.
+			onRestore: (bytes) => this.loadFile(bytes, { skipProtectedView: true }),
 		});
 	}
 
@@ -1161,6 +1212,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.presenterView?.showAllSlides();
 	}
 
+	/** File > Options > Advanced > "Show menu on right mouse click". */
+	shouldShowPresentationContextMenu(): boolean {
+		return this.optionsController?.getOptions().advanced.slideShowShowMenuOnRightClick ?? true;
+	}
+
 	/** Start or stop the console's live captions, publishing onto the snapshot. */
 	private togglePresenterCaptions(): void {
 		this.presenterCaptions ??= createPresenterCaptions({
@@ -1307,6 +1363,24 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.editor.setEditable(editable);
 	}
 
+	/** Trust Center > Protected View's "Enable Editing" banner button. */
+	enableEditingFromProtectedView(): void {
+		this.store.set({ protectedView: false });
+		this.setEditable(true);
+	}
+
+	/**
+	 * Trust Center > "Confirm before opening external hyperlinks": both a
+	 * run-level text hyperlink click and an on-slide Action Setting's
+	 * "Hyperlink to a URL" clear this same gate before the URL opens.
+	 */
+	confirmExternalHyperlink(url: string): boolean {
+		if (!shouldConfirmExternalHyperlink(this.optionsController.getOptions(), url)) {
+			return true;
+		}
+		return window.confirm(`${this.t('pptx.options.trust.confirmHyperlinks')}\n\n${url}`);
+	}
+
 	setEditTemplateMode(enabled: boolean): void {
 		const state = this.store.get();
 		if (!state.editable || state.editTemplateMode === enabled) {
@@ -1381,23 +1455,83 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		return controller?.screenTip(label) ?? label;
 	}
 
+	/**
+	 * File > Options > Advanced > "Properties follow chart data point for
+	 * current workbook", read fresh on every category removal. Defaults to
+	 * PowerPoint's own default (`true`) before the options controller exists
+	 * (same pre-construction timing note as `getQuickAccessOptions`).
+	 */
+	getChartFollowDataPoint(): boolean {
+		const controller = this.optionsController as ViewerOptionsController | undefined;
+		return controller?.getOptions().advanced.chartPropertiesFollowDataPoint ?? true;
+	}
+
+	/**
+	 * File > Options > Advanced > "Quickly access this number of Recent
+	 * Documents" (0-50). Defaults to the schema default before the options
+	 * controller exists (same pre-construction timing note as
+	 * `getQuickAccessOptions`).
+	 */
+	getRecentPresentationsCount(): number {
+		const controller = this.optionsController as ViewerOptionsController | undefined;
+		return (
+			controller?.getOptions().advanced.recentPresentationsCount ??
+			DEFAULT_VIEWER_OPTIONS.advanced.recentPresentationsCount
+		);
+	}
+
 	canUndo = (): boolean => this.editor.canUndo();
 	canRedo = (): boolean => this.editor.canRedo();
 
 	async save(format: PptxSaveFormat = 'pptx'): Promise<Uint8Array> {
-		return this.editor.save(format);
+		const bytes = await this.editor.save(format);
+		this.afterSuccessfulSave(format);
+		return bytes;
 	}
 
 	async downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void> {
-		return this.editor.downloadAs(format, fileName);
+		await this.editor.downloadAs(format, fileName);
+		this.afterSuccessfulSave(format);
 	}
 
 	async downloadPptx(fileName?: string): Promise<void> {
-		return this.editor.downloadPptx(fileName);
+		await this.editor.downloadPptx(fileName);
+		this.afterSuccessfulSave('pptx');
 	}
 
-	async packageForSharing(fileName?: string): Promise<void> {
-		return this.editor.packageForSharing(fileName);
+	/**
+	 * Options > Accessibility > "feedback with sound" cue, plus Options > Save >
+	 * "keep the last AutoRecover version": once a `.pptx` save actually landed,
+	 * the crash-recovery snapshot for this file is stale (the real file already
+	 * has the work), so it is discarded unless the user asked to keep it.
+	 */
+	private afterSuccessfulSave(format: PptxSaveFormat): void {
+		this.optionsController.notifyActionSuccess();
+		if (
+			format === 'pptx' &&
+			shouldDiscardAutosaveOnSuccessfulSave(this.optionsController.getOptions())
+		) {
+			void deleteAutosaveSnapshot(this.autosaveFilePath());
+		}
+	}
+
+	/** IndexedDB key for this deck's AutoRecover snapshot. */
+	private autosaveFilePath(): string {
+		return this.options.autosaveFilePath ?? 'presentation.pptx';
+	}
+
+	/** File > Options > Save > "cache retention": a one-time sweep on mount. */
+	private async pruneExpiredAutosaveSnapshots(): Promise<void> {
+		try {
+			const snapshots = await listAutosaveSnapshots();
+			const expired = resolveExpiredAutosaveSnapshots(
+				snapshots,
+				this.optionsController.getOptions(),
+			);
+			await Promise.all(expired.map((key) => deleteAutosaveSnapshot(key)));
+		} catch {
+			// Best-effort background maintenance; a blocked IndexedDB just skips it.
+		}
 	}
 
 	deleteSelected = (): void => this.editor.deleteSelected();
@@ -1456,6 +1590,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			return;
 		}
 		this.destroyed = true;
+		// File > Options > Save > "clear cache on close": wipe recovery snapshots
+		// before the options store that answers the question is disposed below.
+		if (shouldClearAutosaveCacheOnClose(this.optionsController.getOptions())) {
+			this.clearOptionsCache();
+		}
 		this.aiChat?.destroy();
 		this.aiChat = null;
 		this.aiFocus = null;
@@ -1485,6 +1624,25 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			const snapshots = await listAutosaveSnapshots();
 			await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
 		})();
+	}
+
+	/**
+	 * The six 3D opt-in flags this host was constructed with, ANDed against
+	 * File > Options > Advanced > "Disable 3D rendering". Read fresh (never
+	 * cached) so a mid-session toggle reaches the very next render/export.
+	 */
+	private effective3DFlags(): Rendering3DFlags {
+		return resolve3DRenderingFlags(
+			{
+				smartArt3D: this.options.smartArt3D ?? false,
+				surfaceChart3D: this.options.surfaceChart3D ?? false,
+				barChart3D: this.options.barChart3D ?? false,
+				lineChart3D: this.options.lineChart3D ?? false,
+				areaChart3D: this.options.areaChart3D ?? false,
+				pieChart3D: this.options.pieChart3D ?? false,
+			},
+			this.optionsController.getOptions(),
+		);
 	}
 
 	private remountChrome(): void {

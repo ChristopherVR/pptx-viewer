@@ -47,6 +47,11 @@ export interface InspectorHandlers {
 	selectElement(id: string): void;
 	/** Open the full Document Properties dialog from the Properties tab. */
 	openDocumentProperties(): void;
+	/**
+	 * File > Options > Advanced > "Properties follow chart data point for
+	 * current workbook", read fresh on every chart category removal.
+	 */
+	getChartFollowDataPoint(): boolean;
 	/** Merge a patch into the presentation show/print settings (PRESENTATION card). */
 	updatePresentationSettings(patch: Partial<PptxPresentationProperties>): void;
 	/** Apply a packaged theme part by archive path (THEME card). */

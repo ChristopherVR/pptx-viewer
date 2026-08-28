@@ -44,7 +44,10 @@ export function updateSlideComments(
 export function createCommentActions(deps: {
 	store: Store<ViewerState>;
 	ops: EditorOps;
+	/** Options > General > "User name" override; falls back to "You" when unset/blank. */
+	getUserName?: () => string | undefined;
 }): CommentActions {
+	const authorName = (): string => deps.getUserName?.() || 'You';
 	/**
 	 * Run `transform` against the active slide's comments and, if it produced a
 	 * real change, commit the result history-aware. `transform` follows the
@@ -72,13 +75,13 @@ export function createCommentActions(deps: {
 	return {
 		addComment(text, elementId) {
 			const next = applyToActiveComments((comments) =>
-				addCommentToList(comments, text, 'You', undefined, undefined, elementId),
+				addCommentToList(comments, text, authorName(), undefined, undefined, elementId),
 			);
 			return next ? (next[next.length - 1]?.id ?? null) : null;
 		},
 		addCommentReply(parentId, text) {
 			const next = applyToActiveComments((comments) =>
-				replyToCommentInList(comments, parentId, text, 'You'),
+				replyToCommentInList(comments, parentId, text, authorName()),
 			);
 			if (!next) {
 				return null;

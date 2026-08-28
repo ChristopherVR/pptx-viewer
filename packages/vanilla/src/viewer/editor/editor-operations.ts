@@ -54,6 +54,8 @@ export interface EditorOpsDeps {
 	onChange?: () => void;
 	/** Fired whenever canUndo/canRedo may have changed (toolbar refresh). */
 	onHistoryChange(): void;
+	/** Options > Proofing > AutoCorrect, applied to committed inline-edit text. */
+	transformCommittedText?: (text: string) => string;
 }
 
 export interface EditorOps {
@@ -187,7 +189,12 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		});
 		commitChange();
 	};
-	const structured = createStructuredEditorOperations({ store, pushHistory, commitChange });
+	const structured = createStructuredEditorOperations({
+		store,
+		pushHistory,
+		commitChange,
+		transformCommittedText: deps.transformCommittedText,
+	});
 
 	return {
 		selectedElement,
@@ -264,12 +271,13 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			commitChange();
 		},
 
-		commitInlineText(id, text) {
+		commitInlineText(id, rawText) {
 			const state = store.get();
 			const target = findActiveElement(state, id);
 			if (!target) {
 				return;
 			}
+			const text = deps.transformCommittedText ? deps.transformCommittedText(rawText) : rawText;
 			pushHistory();
 			// `a:spAutoFit`: grow/shrink the shape to the text's natural content
 			// height, the way PowerPoint does. See `resolveInlineTextAutoFitHeight`

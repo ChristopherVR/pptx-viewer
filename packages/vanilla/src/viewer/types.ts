@@ -366,8 +366,6 @@ export interface PptxViewerInstance extends PowerPointViewerAPI {
 	save(format?: PptxSaveFormat): Promise<Uint8Array>;
 	/** Save and download a presentation in a supported OpenXML format. */
 	downloadAs(format: PptxSaveFormat, fileName?: string): Promise<void>;
-	/** Bundle the current presentation and usage notes in a shareable ZIP. */
-	packageForSharing(fileName?: string): Promise<void>;
 	/** `save()` + trigger a browser download (default `presentation.pptx`). */
 	downloadPptx(fileName?: string): Promise<void>;
 	/** Delete the selected element (no-op without a selection). */

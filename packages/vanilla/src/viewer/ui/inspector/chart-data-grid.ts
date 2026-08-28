@@ -46,6 +46,12 @@ export function createChartDataGrid(
 	doc: Document,
 	t: Translator,
 	onChange: (data: PptxChartData) => void,
+	/**
+	 * File > Options > Advanced > "Properties follow chart data point for
+	 * current workbook", read fresh on every category removal. Defaults to
+	 * PowerPoint's own default (`true`) when omitted.
+	 */
+	getFollowDataPoint: () => boolean = () => true,
 ) {
 	const el = createEl(doc, 'div', 'pptxv-chart-grid');
 	const toolbar = createEl(doc, 'div', 'pptxv-chart-grid-toolbar');
@@ -182,7 +188,7 @@ export function createChartDataGrid(
 			if (data.categories.length > 1) {
 				labelCell.appendChild(
 					removeButton(t('pptx.chart.removeCategory'), () =>
-						commit(removeChartCategory(data, categoryIndex)),
+						commit(removeChartCategory(data, categoryIndex, getFollowDataPoint())),
 					),
 				);
 			}

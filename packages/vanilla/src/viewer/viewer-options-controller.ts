@@ -49,6 +49,13 @@ export interface ViewerOptionsHost {
 	setRibbonHiddenTabs(tabIds: readonly ToolbarTabId[]): void;
 	refreshQuickAccess(): void;
 	applyScreenTips(): void;
+	/**
+	 * Re-render the current slide. Needed so toggling Advanced > "Disable 3D
+	 * rendering" takes effect on the live canvas immediately: the six 3D
+	 * flag getters are read fresh on every render, but nothing re-renders on
+	 * its own just because an option changed.
+	 */
+	renderStage(): void;
 }
 
 export interface ViewerOptionsController {
@@ -113,6 +120,7 @@ export function createViewerOptionsController(
 			host.setRibbonHiddenTabs(options.ribbon.hiddenTabIds);
 			host.refreshQuickAccess();
 			host.applyScreenTips();
+			host.renderStage();
 		} finally {
 			syncing = false;
 		}

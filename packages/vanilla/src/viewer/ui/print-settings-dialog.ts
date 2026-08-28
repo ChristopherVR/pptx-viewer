@@ -8,6 +8,12 @@ export function openPrintSettingsDialog(
 	t: Translator,
 	slideCount: number,
 	onPrint: (options: PrintOptions) => void,
+	/**
+	 * File > Options > Advanced > Print seed (`resolveDefaultPrintSettings`).
+	 * `undefined` (Options > "Use the most recently used print settings") leaves
+	 * `printWhat`/`colorMode`/`frameSlides` at their hardcoded defaults below.
+	 */
+	defaultSettings?: Partial<PrintOptions>,
 ): void {
 	const shell = createParityDialogShell(doc, t, t('pptx.print.title'));
 	const selectRow = (
@@ -56,6 +62,9 @@ export function openPrintSettingsDialog(
 		['handouts', t('pptx.print.handouts')],
 		['outline', t('pptx.print.outline')],
 	]);
+	if (defaultSettings?.printWhat) {
+		what.value = defaultSettings.printWhat;
+	}
 	const orientation = selectRow(t('pptx.print.orientation'), [
 		['landscape', t('pptx.print.landscape')],
 		['portrait', t('pptx.print.portrait')],
@@ -63,9 +72,17 @@ export function openPrintSettingsDialog(
 	const color = selectRow(t('pptx.print.colorMode'), [
 		['color', t('pptx.print.color')],
 		['grayscale', t('pptx.print.grayscale')],
-		['pureBlackWhite', t('pptx.print.blackAndWhite')],
+		['blackAndWhite', t('pptx.print.blackAndWhite')],
 	]);
-	const frame = appendCheckRow(doc, shell.body, t('pptx.print.frameSlides'), false);
+	if (defaultSettings?.colorMode) {
+		color.value = defaultSettings.colorMode;
+	}
+	const frame = appendCheckRow(
+		doc,
+		shell.body,
+		t('pptx.print.frameSlides'),
+		defaultSettings?.frameSlides ?? false,
+	);
 	appendDialogButton(doc, shell.footer, t('pptx.common.cancel'), shell.close);
 	appendDialogButton(
 		doc,
@@ -80,6 +97,9 @@ export function openPrintSettingsDialog(
 				orientation: orientation.value as PrintOptions['orientation'],
 				colorMode: color.value as PrintOptions['colorMode'],
 				frameSlides: frame.checked,
+				// Options > Advanced > "Print scale to fit"; no dialog control of its
+				// own (PowerPoint keeps this an Options default, not a per-job choice).
+				scaleToFit: defaultSettings?.scaleToFit ?? true,
 			});
 			shell.close();
 		},

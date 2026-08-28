@@ -32,6 +32,12 @@ export interface ExportControllerDeps {
 	rasterizeSlide: RasterizeSlide;
 	/** Base file name (without extension) for downloads. Defaults to `presentation`. */
 	fileName?: string;
+	/** Live translator (host-supplied), for the print path's own UI text. */
+	getTranslator?: ExportCaptureDeps['getTranslator'];
+	/** Options > Advanced > "Print hidden slides". */
+	getIncludeHiddenSlides?: ExportCaptureDeps['getIncludeHiddenSlides'];
+	/** Options > Advanced > "High quality" raster scale for the print fallback path. */
+	getPrintHighQuality?: ExportCaptureDeps['getPrintHighQuality'];
 }
 
 export interface ExportController {
@@ -109,6 +115,9 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 		store: deps.store,
 		rasterizeSlide: deps.rasterizeSlide,
 		baseName: resolveExportBaseName(deps.fileName),
+		getTranslator: deps.getTranslator,
+		getIncludeHiddenSlides: deps.getIncludeHiddenSlides,
+		getPrintHighQuality: deps.getPrintHighQuality,
 	};
 
 	/** Run one export at a time; a call while one is in flight gets `fallback`. */

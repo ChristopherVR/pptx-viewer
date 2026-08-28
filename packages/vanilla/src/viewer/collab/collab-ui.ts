@@ -43,6 +43,8 @@ export interface CollabUiDeps {
 	shareDefaults?: ShareDefaults;
 	/** Individually hidden toolbar buttons; gates the Share/Broadcast triggers this module builds. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** Options > General > "Initials" override for the Share dialog's local-user avatar. */
+	getUserInitials?: () => string | undefined;
 }
 
 export interface CollabUiController {
@@ -93,6 +95,7 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 			},
 		},
 		themeHost,
+		deps.getUserInitials,
 	);
 
 	const broadcastDialog = createBroadcastDialog(

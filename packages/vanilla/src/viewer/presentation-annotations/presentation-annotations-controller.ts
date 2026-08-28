@@ -20,6 +20,13 @@ export interface PresentationAnnotationsControllerOptions {
 	commitSlides(slides: PptxSlide[]): void;
 	onStrokesChange?(strokes: PresentationInkStroke[]): void;
 	onPointerMove?(point: PresentationInkPoint): void;
+	/**
+	 * File > Options > Advanced > "Prompt to keep ink annotations when
+	 * exiting". Read fresh on every `finishPresentation()` call; defaults to
+	 * `true` (always prompt) when omitted. When it returns `false`, the ink is
+	 * discarded silently, matching real PowerPoint (no dialog).
+	 */
+	shouldPromptKeepAnnotations?(): boolean;
 }
 
 export interface PresentationAnnotationStage {
@@ -156,6 +163,10 @@ export function createPresentationAnnotationsController(
 		async finishPresentation() {
 			if (strokes.length === 0) {
 				return 'none';
+			}
+			if (options.shouldPromptKeepAnnotations?.() === false) {
+				clear();
+				return 'discarded';
 			}
 			const slides = new Set(strokes.map((stroke) => stroke.slideIndex)).size;
 			const choice = await promptKeepAnnotations(options.doc, options.t, strokes.length, slides);

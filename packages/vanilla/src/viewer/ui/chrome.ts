@@ -19,6 +19,8 @@ import type { PresentationToolbar, PresentationToolbarHandlers } from './present
 import { createPresentationToolbar } from './presentation-toolbar';
 import type { PresentationTouchControls } from './presentation-touch-controls';
 import { createPresentationTouchControls } from './presentation-touch-controls';
+import type { ProtectedViewBanner } from './protected-view-banner';
+import { createProtectedViewBanner } from './protected-view-banner';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
@@ -68,6 +70,8 @@ export interface ChromeOptions {
 	onToggleNotes(): void;
 	/** Fired when the notes textarea commits (change/blur) in editable mode. */
 	onCommitNotes(notes: string, notesSegments?: TextSegment[]): void;
+	/** "Enable Editing" click on the Protected View banner. */
+	onEnableEditing(): void;
 }
 
 /** The viewer's static DOM skeleton plus the mutable overlay controls. */
@@ -106,6 +110,15 @@ export interface ViewerChrome {
 	setError(message: string | null): void;
 	setEmpty(empty: boolean): void;
 	setPresenting(presenting: boolean): void;
+	/**
+	 * Move the Quick Access strip between the title bar (above the Ribbon,
+	 * PowerPoint's default) and a dedicated row directly under the Ribbon
+	 * (Options > Quick Access Toolbar > position). A no-op when the toolbar is
+	 * hidden, since neither the title bar nor the strip exist.
+	 */
+	setQuickAccessPosition(position: 'above' | 'below'): void;
+	/** Show/hide the Protected View "Enable Editing" banner. */
+	setProtectedView(active: boolean): void;
 }
 
 /**
@@ -131,8 +144,21 @@ export function buildViewerChrome(
 
 	let titleBar: TitleBar | null = null;
 	let ribbon: Ribbon | null = null;
+	let quickAccessRow: HTMLElement | null = null;
+	let quickAccessDetached = false;
 	if (options.showToolbar) {
-		titleBar = createTitleBar(doc, t, options.titleBar);
+		titleBar = createTitleBar(doc, t, {
+			...options.titleBar,
+			// Mirror the strip's own visibility onto the below-the-ribbon dock so
+			// a read-only view or "Show Quick Access Toolbar" off does not leave
+			// an empty bordered row when the strip lives there.
+			onQuickAccessVisibilityChange: (hidden) => {
+				if (quickAccessDetached && quickAccessRow) {
+					quickAccessRow.hidden = hidden;
+				}
+				options.titleBar.onQuickAccessVisibilityChange?.(hidden);
+			},
+		});
 		root.appendChild(titleBar.el);
 		ribbon = createRibbon(
 			doc,
@@ -145,6 +171,18 @@ export function buildViewerChrome(
 			ribbon.setEditable(false);
 		}
 		root.appendChild(ribbon.el);
+		// Below-the-Ribbon Quick Access dock (Options > Quick Access Toolbar).
+		// Hidden until `setQuickAccessPosition('below')` moves the live strip
+		// element in; otherwise it stays docked inside the title bar.
+		quickAccessRow = createEl(doc, 'div', 'pptxv-qat-row');
+		quickAccessRow.hidden = true;
+		root.appendChild(quickAccessRow);
+	}
+	const protectedViewBanner: ProtectedViewBanner | null = options.showToolbar
+		? createProtectedViewBanner(doc, t, () => options.onEnableEditing())
+		: null;
+	if (protectedViewBanner) {
+		root.appendChild(protectedViewBanner.el);
 	}
 	let mobileActionSheets: MobileActionSheets | null = null;
 	const mobileToolbar = options.showToolbar
@@ -313,6 +351,29 @@ export function buildViewerChrome(
 			// The bar owns a 1s timer and two document listeners; both are armed
 			// only for the duration of the show.
 			presentationToolbar.setPresenting(presenting);
+		},
+		setQuickAccessPosition(position) {
+			if (!titleBar || !quickAccessRow) {
+				return;
+			}
+			if (position === 'below') {
+				const strip = titleBar.getQuickAccessElement();
+				quickAccessRow.appendChild(strip);
+				quickAccessDetached = true;
+				// Follow the strip's own visibility (Options > "Show Quick Access
+				// Toolbar" off, or the chrome currently read-only): an empty docked
+				// row would otherwise still draw its border/padding.
+				quickAccessRow.hidden = strip.hidden;
+				titleBar.setQuickAccessDetached(true);
+			} else {
+				quickAccessDetached = false;
+				titleBar.dockQuickAccessElement();
+				quickAccessRow.hidden = true;
+				titleBar.setQuickAccessDetached(false);
+			}
+		},
+		setProtectedView(active) {
+			protectedViewBanner?.setActive(active);
 		},
 	};
 }

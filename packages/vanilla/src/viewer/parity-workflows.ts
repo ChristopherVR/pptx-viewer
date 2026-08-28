@@ -6,9 +6,11 @@ import {
 	compareSlides,
 	openPptxFile,
 	resolveAuthoredCustomShowId,
+	resolveDefaultPrintSettings,
 } from 'pptx-viewer-shared';
 import type {
 	ThemeCatalogEntry,
+	ViewerAddinStatus,
 	ViewerOptionsStore,
 	ViewerOptionsTabId,
 	ViewerTheme,
@@ -66,6 +68,14 @@ export interface ParityWorkflowHost {
 	getThemeState(): { key: string; catalog: readonly ThemeCatalogEntry[] };
 	/** The viewer's live locale catalog + currently active code, read fresh each time Options opens. */
 	getLocaleState(): { code: string; catalog: readonly LocaleCatalogEntry[] };
+	/**
+	 * Live runtime availability for Options > Add-ins, read fresh each time
+	 * Options opens: the smartArt3d/model3d renderers follow Advanced >
+	 * "Disable 3D rendering", and collaboration follows the actual connection
+	 * state. Converters/locales have no per-session on/off signal (they are
+	 * always-bundled dependencies), so they are left out and default active.
+	 */
+	getAddinStatus(): ViewerAddinStatus;
 }
 
 export interface ParityWorkflows {
@@ -111,6 +121,7 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 				store: host.optionsStore,
 				initialTab,
 				aiEnabled: host.aiEnabled,
+				addinStatus: host.getAddinStatus(),
 				onClearCache: () => host.clearOptionsCache(),
 				themeOptions: {
 					catalog: themeState.catalog,
@@ -158,9 +169,15 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 			void comparePresentation(host);
 		},
 		openPrintDialog() {
-			openPrintSettingsDialog(host.doc, host.t, state().slides.length, (options) => {
-				void host.print(options);
-			});
+			openPrintSettingsDialog(
+				host.doc,
+				host.t,
+				state().slides.length,
+				(options) => {
+					void host.print(options);
+				},
+				resolveDefaultPrintSettings(host.optionsStore.getOptions()),
+			);
 		},
 		startRehearsal() {
 			openRehearseTimings(host.doc, host.root(), host.t, {
@@ -256,7 +273,9 @@ async function comparePresentation(host: ParityWorkflowHost): Promise<void> {
 	if (!picked) {
 		return;
 	}
-	const incoming = await loadPresentation(picked.buffer);
+	const incoming = await loadPresentation(picked.buffer, {
+		allowExternalImages: host.optionsStore.getOptions().trust.allowExternalContent,
+	});
 	try {
 		const result = compareSlides(host.store.get().slides, incoming.slides);
 		openComparePanel(host.doc, host.root(), host.t, {

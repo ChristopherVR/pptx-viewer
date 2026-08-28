@@ -11,6 +11,11 @@ export { makeDropdown } from './dropdown';
 export type { ElementContextMenu, ElementContextMenuDeps } from './element-context-menu';
 export { mountElementContextMenu } from './element-context-menu';
 export type {
+	PresentationContextMenu,
+	PresentationContextMenuDeps,
+} from './presentation-context-menu';
+export { mountPresentationContextMenu } from './presentation-context-menu';
+export type {
 	ContextMenuAiHooks,
 	ContextMenuCommandDeps,
 	ContextMenuTableTarget,
@@ -53,3 +58,5 @@ export type { ThumbnailRail } from './thumbnails';
 export { createThumbnailRail } from './thumbnails';
 export type { RulerSelection, RulerStrips, RulerStripsState } from './ruler-strips';
 export { createRulerStrips } from './ruler-strips';
+export type { ProtectedViewBanner } from './protected-view-banner';
+export { createProtectedViewBanner } from './protected-view-banner';

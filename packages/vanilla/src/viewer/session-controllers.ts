@@ -34,6 +34,8 @@ export interface SessionControllersDeps {
 	goToSlide: (index: number) => void;
 	/** Load bytes through the viewer's normal pipeline (recovery restore). */
 	loadFile: (bytes: Uint8Array) => Promise<void>;
+	/** Options > General > "Initials" override for the Share dialog's local-user avatar. */
+	getUserInitials?: () => string | undefined;
 }
 
 /**
@@ -193,6 +195,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		followUser: (clientId) => collaboration.followUser(clientId),
 		shareDefaults: options.shareDefaults,
 		hiddenActions: options.hiddenActions,
+		getUserInitials: deps.getUserInitials,
 	});
 	notifyCollabUi = (status) => collabUi.onStatusChange(status);
 

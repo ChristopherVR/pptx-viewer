@@ -28,12 +28,15 @@ export function createPresentationAnnotationsHost(options: {
 	getChrome(): ViewerChrome;
 	getSnapshot(): PresentationSnapshot;
 	updateSnapshot(patch: Partial<PresentationSnapshot>): void;
+	/** File > Options > Advanced > "Prompt to keep ink annotations when exiting". */
+	shouldPromptKeepAnnotations?(): boolean;
 }): PresentationAnnotationsHost {
 	const controller: PresentationAnnotationsController = createPresentationAnnotationsController({
 		doc: options.doc,
 		t: options.t,
 		getSlides: () => options.store.get().slides,
 		commitSlides: (slides) => options.editor.commitSlides(slides),
+		shouldPromptKeepAnnotations: options.shouldPromptKeepAnnotations,
 		onStrokesChange: (inkStrokes) => options.updateSnapshot({ inkStrokes }),
 		onPointerMove: ({ x, y }) =>
 			options.updateSnapshot({

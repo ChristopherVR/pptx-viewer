@@ -58,7 +58,7 @@ export function createFileTab(
 	let query = '';
 	let recent: BackstageRecentFile[] = [];
 	void (async () => {
-		recent = await listBackstageRecentFiles(t);
+		recent = await listBackstageRecentFiles(t, handlers.getRecentPresentationsCount());
 		render();
 	})();
 

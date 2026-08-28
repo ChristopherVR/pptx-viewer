@@ -57,6 +57,12 @@ export interface TitleBarDeps {
 	hiddenActions?: readonly ToolbarActionId[];
 	/** Options-driven Quick Access strip; omitted = the classic Save/Undo/Redo. */
 	quickAccess?: TitleBarQuickAccess;
+	/**
+	 * Fires whenever the strip's own `hidden` state is (re)computed, so a
+	 * detached "below the Ribbon" dock (see `ViewerChrome.setQuickAccessPosition`)
+	 * can mirror it instead of showing an empty bar.
+	 */
+	onQuickAccessVisibilityChange?(hidden: boolean): void;
 }
 
 export interface TitleBar {
@@ -71,6 +77,16 @@ export interface TitleBar {
 	setAutosaveEnabled(enabled: boolean): void;
 	/** Re-render the Quick Access strip from the current options state. */
 	refreshQuickAccess(): void;
+	/**
+	 * The Quick Access strip element itself, so the chrome can relocate it for
+	 * Options > Quick Access Toolbar > "Show below the Ribbon". Detaching it
+	 * moves the live node (and its rendered buttons) rather than rebuilding it.
+	 */
+	getQuickAccessElement(): HTMLElement;
+	/** Re-dock a detached Quick Access strip back into the title bar row. */
+	dockQuickAccessElement(): void;
+	/** Hide the title bar's own separators while the strip lives elsewhere. */
+	setQuickAccessDetached(detached: boolean): void;
 }
 
 /** Catalog icon name -> local inline icon; unmapped ids fall back to a glyph. */
@@ -149,6 +165,13 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 	let lastEditState: RibbonEditState = { editable: true, canUndo: false, canRedo: false };
 	let undoHandle: ButtonHandle | null = null;
 	let redoHandle: ButtonHandle | null = null;
+	let qatDetached = false;
+	const applyQatSeparators = (): void => {
+		sep1.hidden = !lastEditState.editable;
+		// Detached (docked below the ribbon instead), sep2 would bracket nothing:
+		// hide it so autosave/sep1 don't render two separators back to back.
+		sep2.hidden = qatDetached || !lastEditState.editable;
+	};
 
 	const runCommand = (id: string): void => {
 		if (id === 'save') {
@@ -172,6 +195,7 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 			commandIds: ['save', 'undo', 'redo'],
 		};
 		qat.hidden = !state.visible || !lastEditState.editable;
+		deps.onQuickAccessVisibilityChange?.(qat.hidden);
 		for (const id of state.commandIds) {
 			if ((id === 'undo' || id === 'redo') && isActionHidden(id, deps.hiddenActions)) {
 				continue;
@@ -237,17 +261,18 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 
 	applyAutosaveSwitch();
 	applyStatus();
+	applyQatSeparators();
 	renderQuickAccess();
 
 	return {
 		el,
 		setEditState(state) {
 			lastEditState = state;
-			for (const editingEl of [autosaveGroup, sep1, sep2]) {
-				editingEl.hidden = !state.editable;
-			}
+			autosaveGroup.hidden = !state.editable;
+			applyQatSeparators();
 			const qatState = deps.quickAccess?.getState();
 			qat.hidden = !state.editable || qatState?.visible === false;
+			deps.onQuickAccessVisibilityChange?.(qat.hidden);
 			statusDot.hidden = !state.editable;
 			statusText.hidden = !state.editable;
 			searchWrap.hidden = !state.editable;
@@ -268,5 +293,13 @@ export function createTitleBar(doc: Document, t: Translator, deps: TitleBarDeps)
 			applyStatus();
 		},
 		refreshQuickAccess: renderQuickAccess,
+		getQuickAccessElement: () => qat,
+		dockQuickAccessElement() {
+			el.insertBefore(qat, sep2);
+		},
+		setQuickAccessDetached(detached) {
+			qatDetached = detached;
+			applyQatSeparators();
+		},
 	};
 }

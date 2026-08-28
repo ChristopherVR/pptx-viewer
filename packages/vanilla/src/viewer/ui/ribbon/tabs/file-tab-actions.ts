@@ -9,7 +9,6 @@ import {
 	Images,
 	Info,
 	LockKeyhole,
-	Package,
 	Presentation,
 	Printer,
 	Type,
@@ -35,7 +34,6 @@ const CARD_ICONS: Record<BackstageCardId, IconNode> = {
 	saveAsPptx: FileText,
 	saveAsPpsx: Presentation,
 	saveAsPptm: FileCode2,
-	package: Package,
 	pdf: FileText,
 	png: Image,
 	video: Video,
@@ -44,7 +42,6 @@ const CARD_ICONS: Record<BackstageCardId, IconNode> = {
 	copyImage: Copy,
 	print: Printer,
 	share: UserPlus,
-	sharePackage: Package,
 };
 
 /**
@@ -77,7 +74,6 @@ export function createFileActionGrid(
 		saveAsPptx: handlers.save,
 		saveAsPpsx: handlers.saveAsPpsx,
 		saveAsPptm: handlers.saveAsPptm,
-		package: handlers.packageForSharing,
 		pdf: handlers.exportPdf,
 		png: handlers.exportPng,
 		video: handlers.exportVideo,
@@ -86,7 +82,6 @@ export function createFileActionGrid(
 		copyImage: handlers.copySlideAsImage,
 		print: handlers.print,
 		share: handlers.openShare,
-		sharePackage: handlers.packageForSharing,
 	};
 	for (const card of backstageCardsFor(page)) {
 		if (card.id === 'saveAsPptm' && !hasMacros) {

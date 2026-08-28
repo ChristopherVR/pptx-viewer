@@ -30,6 +30,31 @@ export interface LoadingControllerDeps {
 	onContentApplying?: (origin: CollabLoadOrigin) => void;
 	/** Called synchronously right after a parsed deck was applied to the store. */
 	onContentApplied?: (origin: CollabLoadOrigin) => void;
+	/**
+	 * Trust Center > "Allow external content" for the deck about to load
+	 * (lazily read: the options controller is constructed after the loading
+	 * controller, see `PptxViewer`'s constructor order). Omitted defaults to
+	 * core's own safe-by-default `allowExternalImages: false`.
+	 */
+	getAllowExternalContent?: () => boolean;
+	/** Trust Center > "Open documents in Protected View" (same lazy-read reason). */
+	shouldOpenProtectedView?: () => boolean;
+	/**
+	 * Apply the editable state a completed load resolves to, through the
+	 * central editable gate (`PptxViewer.setEditable`), so Protected View
+	 * cannot desync the store's `editable` flag from the editor controller's
+	 * own mirrored one.
+	 */
+	setEditableForLoad?: (editable: boolean) => void;
+}
+
+export interface LoadOptions {
+	/**
+	 * Skip Protected View for this load even if Trust Center has it on: for
+	 * restoring the SAME document (AutoRecover crash recovery, Version History),
+	 * not for opening one, which is what Protected View gates.
+	 */
+	skipProtectedView?: boolean;
 }
 
 export interface LoadingController {
@@ -38,7 +63,11 @@ export interface LoadingController {
 	 *   `user` (the default) for one opened during the session, which a
 	 *   collaboration room must not silently replace.
 	 */
-	load(source: PptxViewerSource, origin?: CollabLoadOrigin): Promise<void>;
+	load(
+		source: PptxViewerSource,
+		origin?: CollabLoadOrigin,
+		loadOptions?: LoadOptions,
+	): Promise<void>;
 	/** Dispose the current handler + Blob URLs (before replacing or on destroy). */
 	releaseLoaded(): void;
 	getHandler(): PptxHandler | null;
@@ -66,13 +95,19 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 		handler = null;
 	}
 
-	async function load(source: PptxViewerSource, origin: CollabLoadOrigin = 'user'): Promise<void> {
+	async function load(
+		source: PptxViewerSource,
+		origin: CollabLoadOrigin = 'user',
+		loadOptions?: LoadOptions,
+	): Promise<void> {
 		const token = ++loadToken;
 		deps.getEditor()?.reset();
 		store.set({ loading: true, error: null });
 		try {
 			const buffer = await resolveSourceToBuffer(source);
-			const loaded = await loadPresentation(buffer);
+			const loaded = await loadPresentation(buffer, {
+				allowExternalImages: deps.getAllowExternalContent?.(),
+			});
 			if (token !== loadToken) {
 				revokeBlobUrls(loaded.blobUrls);
 				loaded.handler.dispose();
@@ -83,8 +118,19 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			blobUrls = loaded.blobUrls;
 			const partition = partitionTemplateElements(loaded.slides);
 			deps.onContentApplying?.(origin);
+			// Trust Center > "Open documents in Protected View": a freshly-opened
+			// deck (not the host's own bootstrap content, and not a same-document
+			// restore) starts read-only until "Enable Editing" is clicked, but only
+			// when the host permits editing at all - there is nothing to protect on
+			// a viewer already locked to read-only by `options.editable: false`.
+			const protectedView =
+				origin === 'user' &&
+				!loadOptions?.skipProtectedView &&
+				options.editable === true &&
+				(deps.shouldOpenProtectedView?.() ?? false);
 			store.set({
 				slides: partition.slides,
+				protectedView,
 				sections: loaded.sections,
 				presentationProperties: loaded.presentationProperties,
 				viewProperties: loaded.viewProperties,
@@ -134,6 +180,10 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				currentSlide: clampSlideIndex(options.initialSlide ?? 0, partition.slides.length),
 				loading: false,
 			});
+			// Goes through the central editable gate (store flag + the editor
+			// controller's own mirrored flag), not a bare store patch, so
+			// interaction gating and the store agree on whether editing is live.
+			deps.setEditableForLoad?.(protectedView ? false : options.editable === true);
 			deps.onContentApplied?.(origin);
 			options.onLoad?.({ slideCount: loaded.slides.length, canvasSize: loaded.canvasSize });
 		} catch (error) {

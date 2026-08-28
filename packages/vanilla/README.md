@@ -125,7 +125,7 @@ selection methods) plus vanilla-specific methods:
   `redo()`, `canUndo()`, `canRedo()`, `deleteSelected()`,
   `getSelectedElementId()`.
 - **Saving**: `save(format?)`, `downloadPptx(fileName?)`,
-  `downloadAs(format, fileName?)`, `packageForSharing(fileName?)`.
+  `downloadAs(format, fileName?)`.
 - **Export / print**: `exportSlidePng(index?)`, `copySlideAsImage(index?)`,
   `exportPdf(options?)`, `exportGif(options?)`, `exportVideo(options?)`,
   `print(options?)` (returns `false` when the popup was blocked; call from a

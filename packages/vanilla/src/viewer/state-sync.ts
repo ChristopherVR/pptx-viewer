@@ -118,6 +118,9 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			});
 			chrome.mobileActionSheets?.setEditable(state.editable);
 		}
+		if (state.protectedView !== previous.protectedView) {
+			chrome.setProtectedView(state.protectedView);
+		}
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);

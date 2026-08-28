@@ -106,7 +106,6 @@ export function buildOverflowMenuItems(
 			{ label: t('pptx.ribbon.exportPdf'), run: () => file.exportPdf() },
 			{ label: t('pptx.ribbon.exportVideo'), run: () => file.exportVideo() },
 			{ label: t('pptx.ribbon.exportGif'), run: () => file.exportGif() },
-			{ label: t('pptx.file.packageTooltip'), run: () => file.packageForSharing() },
 			{ label: t('pptx.file.saveAsPptxTooltip'), run: () => file.save() },
 			{ label: t('pptx.file.saveAsPpsxTooltip'), run: () => file.saveAsPpsx() },
 			{ label: t('pptx.file.saveAsPptmTooltip'), run: () => file.saveAsPptm() },

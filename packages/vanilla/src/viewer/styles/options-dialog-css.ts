@@ -95,5 +95,9 @@ label.pptxv-options-row { cursor: pointer; }
 .pptxv.pptxv-no-show-popup .pptxv-presentation-touch-prev,
 .pptxv.pptxv-no-show-popup .pptxv-presentation-touch-next,
 .pptxv.pptxv-no-show-popup .pptxv-presentation-touch-counter { display: none !important; }
+/* The desktop hover toolbar (createPresentationToolbar) sets its own inline
+   opacity/pointer-events on mousemove; !important here is required to win
+   over that inline style regardless of the JS auto-show timer. */
+.pptxv.pptxv-no-show-popup .pptxv-present-toolbar-wrap { opacity: 0 !important; pointer-events: none !important; }
 @media (max-width: 767px) { .pptxv-options-body { flex-direction: column; } .pptxv-options-nav { flex-direction: row; width: 100%; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--pptx-border); } }
 `;

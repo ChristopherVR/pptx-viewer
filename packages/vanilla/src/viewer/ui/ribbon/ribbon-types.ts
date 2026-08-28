@@ -86,10 +86,14 @@ export interface RibbonFileHandlers {
 	openDigitalSignatures(): void;
 	openPasswordProtection(): void;
 	openVersionHistory(): void;
+	/**
+	 * File > Options > Advanced > "Quickly access this number of Recent
+	 * Documents" (0-50), read fresh whenever the Recent list loads.
+	 */
+	getRecentPresentationsCount(): number;
 	save(): void;
 	saveAsPpsx(): void;
 	saveAsPptm(): void;
-	packageForSharing(): void;
 	exportPng(): void;
 	copySlideAsImage(): void;
 	exportPdf(): void;
