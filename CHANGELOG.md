@@ -10,6 +10,45 @@ dated sections beneath it are generated from
 
 ## 2026-08-28
 
+_Releases: pptx-viewer-core@3.1.1, pptx-react-viewer@3.1.2, pptx-vue-viewer@3.1.2, pptx-angular-viewer@3.2.0, pptx-vanilla-viewer@2.1.2, pptx-svelte-viewer@3.2.0, @christophervr/pptx-viewer@2.1.2_
+
+### Features
+
+- **angular:** Add a Protected View banner with per-document dismissal (by @ChristopherVR) ([a26dc84](https://github.com/ChristopherVR/pptx-viewer/commit/a26dc84c122e3ee107667752b0add219872aad47))
+- **svelte:** Add a Protected View banner with per-document dismissal (by @ChristopherVR) ([9710dea](https://github.com/ChristopherVR/pptx-viewer/commit/9710deadbe7ce8716f39e878c7584de243726960))
+
+### Bug Fixes
+
+- **react:** Resolve rotate-handle live preview to the real element (by @ChristopherVR) ([f896b61](https://github.com/ChristopherVR/pptx-viewer/commit/f896b619431222916ff5f9e0edb9aa435cb2adf9))
+- **angular:** Stop background-image file input from inflating scroll height (by @ChristopherVR) ([094e8d6](https://github.com/ChristopherVR/pptx-viewer/commit/094e8d69064f6489100a036fa9c72e85cf7dc147))
+- **vanilla:** Center the title-bar search box instead of absolute-positioning it (by @ChristopherVR) ([ae0816d](https://github.com/ChristopherVR/pptx-viewer/commit/ae0816dfd656320488a68bdf227bf90d7a50c6b0))
+- **ui:** Stop ribbon action buttons from stretching to fill the row height (by @ChristopherVR) ([d53ce5b](https://github.com/ChristopherVR/pptx-viewer/commit/d53ce5b4b00e5cfaab70d8a230f37d3f0c241a96))
+- **core:** Reindex chart data-point overrides after removing a category (by @ChristopherVR) ([7bd64f8](https://github.com/ChristopherVR/pptx-viewer/commit/7bd64f821d66d1bc7b3f91f46a3e262eda1072ee))
+- **shared:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([bcc2ac7](https://github.com/ChristopherVR/pptx-viewer/commit/bcc2ac7420b50f69d7217f3b9915f0b3e0698640))
+- **react:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([30822ae](https://github.com/ChristopherVR/pptx-viewer/commit/30822ae70806ba81702e4cd1b662ba038965c460))
+- **vue:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([1b01af0](https://github.com/ChristopherVR/pptx-viewer/commit/1b01af0f0a99fd0f482e2918cd0e15b777d654a5))
+- **angular:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([c1bbb5e](https://github.com/ChristopherVR/pptx-viewer/commit/c1bbb5e58e4ddf4a1bec24038205c649d2d8b48f))
+- **svelte:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([9a164d6](https://github.com/ChristopherVR/pptx-viewer/commit/9a164d659db653c85fc132b26ef54a213e7fc105))
+- **vanilla:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([00b0697](https://github.com/ChristopherVR/pptx-viewer/commit/00b0697c2def0ba01fabada2e388cc0bdc361268))
+- **vanilla:** Remove an em-dash from the Protected View banner text (by @ChristopherVR) ([ba2dc03](https://github.com/ChristopherVR/pptx-viewer/commit/ba2dc0381f857093cebf79e411d91aebf673f8aa))
+- **vue:** Use the canonical Protected View i18n keys in the banner (by @ChristopherVR) ([e84718b](https://github.com/ChristopherVR/pptx-viewer/commit/e84718b70637749c300938807b5e2f910d42ec55))
+- **vue:** Stop MobileToolbar rendering alongside the desktop ribbon (by @ChristopherVR) ([9885f93](https://github.com/ChristopherVR/pptx-viewer/commit/9885f93d18f38b144b3646cd06c4b72885b90059))
+
+### Security
+
+- **shared:** Drop duplicate Protected View banner strings (by @ChristopherVR) ([1c35863](https://github.com/ChristopherVR/pptx-viewer/commit/1c358639246cc7fe058e2afe6f95cf52893dfff7))
+- **locales:** Drop duplicate Protected View banner strings (by @ChristopherVR) ([73f5aea](https://github.com/ChristopherVR/pptx-viewer/commit/73f5aeaefc0daefa9775851ff2d2d8ca610cbdca))
+
+### Other
+
+- **locales:** Sync de/es/fr with new and removed shared translation keys (by @ChristopherVR) ([9af265b](https://github.com/ChristopherVR/pptx-viewer/commit/9af265bc0f96cd4af92231855093bcbcdb5da51e))
+
+### Dependencies
+
+- **deps:** Pin ai to a single resolved version across the workspace (by @ChristopherVR) ([e66671c](https://github.com/ChristopherVR/pptx-viewer/commit/e66671c9e8a75ff4e1a3b286b4f874d864247f97))
+
+## 2026-08-28
+
 _Releases: pptx-react-viewer@3.1.1, pptx-vue-viewer@3.1.1, pptx-angular-viewer@3.1.1, pptx-vanilla-viewer@2.1.1, pptx-svelte-viewer@3.1.1, @christophervr/pptx-viewer@2.1.1_
 
 ### Bug Fixes

@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.1.1) - 2026-08-28
+
+### Bug Fixes
+
+- **core:** Reindex chart data-point overrides after removing a category (by @ChristopherVR) ([7bd64f8](https://github.com/ChristopherVR/pptx-viewer/commit/7bd64f821d66d1bc7b3f91f46a3e262eda1072ee))
+
 ## [3.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.1.0) - 2026-08-28
 
 ### Features

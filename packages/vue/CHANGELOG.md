@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.2) - 2026-08-28
+
+### Bug Fixes
+
+- **ui:** Stop ribbon action buttons from stretching to fill the row height (by @ChristopherVR) ([d53ce5b](https://github.com/ChristopherVR/pptx-viewer/commit/d53ce5b4b00e5cfaab70d8a230f37d3f0c241a96))
+- **core:** Reindex chart data-point overrides after removing a category (by @ChristopherVR) ([7bd64f8](https://github.com/ChristopherVR/pptx-viewer/commit/7bd64f821d66d1bc7b3f91f46a3e262eda1072ee))
+- **shared:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([bcc2ac7](https://github.com/ChristopherVR/pptx-viewer/commit/bcc2ac7420b50f69d7217f3b9915f0b3e0698640))
+- **vue:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([1b01af0](https://github.com/ChristopherVR/pptx-viewer/commit/1b01af0f0a99fd0f482e2918cd0e15b777d654a5))
+- **vue:** Use the canonical Protected View i18n keys in the banner (by @ChristopherVR) ([e84718b](https://github.com/ChristopherVR/pptx-viewer/commit/e84718b70637749c300938807b5e2f910d42ec55))
+- **vue:** Stop MobileToolbar rendering alongside the desktop ribbon (by @ChristopherVR) ([9885f93](https://github.com/ChristopherVR/pptx-viewer/commit/9885f93d18f38b144b3646cd06c4b72885b90059))
+
+### Security
+
+- **shared:** Drop duplicate Protected View banner strings (by @ChristopherVR) ([1c35863](https://github.com/ChristopherVR/pptx-viewer/commit/1c358639246cc7fe058e2afe6f95cf52893dfff7))
+
 ## [3.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.1) - 2026-08-28
 
 ### Bug Fixes

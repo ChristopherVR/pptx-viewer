@@ -7,6 +7,24 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.2.0) - 2026-08-28
+
+### Features
+
+- **angular:** Add a Protected View banner with per-document dismissal (by @ChristopherVR) ([a26dc84](https://github.com/ChristopherVR/pptx-viewer/commit/a26dc84c122e3ee107667752b0add219872aad47))
+
+### Bug Fixes
+
+- **angular:** Stop background-image file input from inflating scroll height (by @ChristopherVR) ([094e8d6](https://github.com/ChristopherVR/pptx-viewer/commit/094e8d69064f6489100a036fa9c72e85cf7dc147))
+- **ui:** Stop ribbon action buttons from stretching to fill the row height (by @ChristopherVR) ([d53ce5b](https://github.com/ChristopherVR/pptx-viewer/commit/d53ce5b4b00e5cfaab70d8a230f37d3f0c241a96))
+- **core:** Reindex chart data-point overrides after removing a category (by @ChristopherVR) ([7bd64f8](https://github.com/ChristopherVR/pptx-viewer/commit/7bd64f821d66d1bc7b3f91f46a3e262eda1072ee))
+- **shared:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([bcc2ac7](https://github.com/ChristopherVR/pptx-viewer/commit/bcc2ac7420b50f69d7217f3b9915f0b3e0698640))
+- **angular:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([c1bbb5e](https://github.com/ChristopherVR/pptx-viewer/commit/c1bbb5e58e4ddf4a1bec24038205c649d2d8b48f))
+
+### Security
+
+- **shared:** Drop duplicate Protected View banner strings (by @ChristopherVR) ([1c35863](https://github.com/ChristopherVR/pptx-viewer/commit/1c358639246cc7fe058e2afe6f95cf52893dfff7))
+
 ## [3.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.1.1) - 2026-08-28
 
 ### Bug Fixes

@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.1.2) - 2026-08-28
+
+### Bug Fixes
+
+- **react:** Resolve rotate-handle live preview to the real element (by @ChristopherVR) ([f896b61](https://github.com/ChristopherVR/pptx-viewer/commit/f896b619431222916ff5f9e0edb9aa435cb2adf9))
+- **ui:** Stop ribbon action buttons from stretching to fill the row height (by @ChristopherVR) ([d53ce5b](https://github.com/ChristopherVR/pptx-viewer/commit/d53ce5b4b00e5cfaab70d8a230f37d3f0c241a96))
+- **react:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([30822ae](https://github.com/ChristopherVR/pptx-viewer/commit/30822ae70806ba81702e4cd1b662ba038965c460))
+
 ## [2.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.1.1) - 2026-08-28
 
 ### Bug Fixes

@@ -7,6 +7,23 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.2.0) - 2026-08-28
+
+### Features
+
+- **svelte:** Add a Protected View banner with per-document dismissal (by @ChristopherVR) ([9710dea](https://github.com/ChristopherVR/pptx-viewer/commit/9710deadbe7ce8716f39e878c7584de243726960))
+
+### Bug Fixes
+
+- **ui:** Stop ribbon action buttons from stretching to fill the row height (by @ChristopherVR) ([d53ce5b](https://github.com/ChristopherVR/pptx-viewer/commit/d53ce5b4b00e5cfaab70d8a230f37d3f0c241a96))
+- **core:** Reindex chart data-point overrides after removing a category (by @ChristopherVR) ([7bd64f8](https://github.com/ChristopherVR/pptx-viewer/commit/7bd64f821d66d1bc7b3f91f46a3e262eda1072ee))
+- **shared:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([bcc2ac7](https://github.com/ChristopherVR/pptx-viewer/commit/bcc2ac7420b50f69d7217f3b9915f0b3e0698640))
+- **svelte:** Repair print, drop Package for Sharing, wire Options behavior (by @ChristopherVR) ([9a164d6](https://github.com/ChristopherVR/pptx-viewer/commit/9a164d659db653c85fc132b26ef54a213e7fc105))
+
+### Security
+
+- **shared:** Drop duplicate Protected View banner strings (by @ChristopherVR) ([1c35863](https://github.com/ChristopherVR/pptx-viewer/commit/1c358639246cc7fe058e2afe6f95cf52893dfff7))
+
 ## [3.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.1.1) - 2026-08-28
 
 ### Bug Fixes
