@@ -48,13 +48,24 @@ export function usePointerHandlers(input: UsePointerHandlersInput): void {
 	// The effect body closes over `input` as a whole (passed straight through to
 	// processPointerMove/processPointerUp) rather than the individually
 	// destructured fields above, so the fields never show up as "read" to the
-	// dependency analyzer. They are listed anyway, deliberately, alongside
-	// `input`: this re-subscribes the global pointermove/pointerup listeners
-	// whenever any one of these specific values changes, rather than only on
-	// `input`'s object identity (which would also work, but the caller doesn't
-	// guarantee `input` is memoized, so relying on identity alone risks missing
-	// a change or re-subscribing on every render).
-	/* oxlint-disable react/exhaustive-effect-dependencies -- see comment above */
+	// dependency analyzer. They are listed below anyway, deliberately, so the
+	// global pointermove/pointerup listeners only re-subscribe when one of
+	// these specific values actually changes.
+	//
+	// Deliberately does NOT also list `input` itself: the caller
+	// (`useViewerIntegration`) builds it as a fresh object literal on every
+	// render, so its identity differs every render regardless of whether any
+	// field changed. Every field the closure reads is already covered
+	// individually below, so adding `input` on top contributes nothing except
+	// forcing this effect to tear down and rebuild on EVERY render. During a
+	// drag that is fatal: `handlePointerMove`'s rAF-scheduled call to
+	// `processPointerMove` (which writes the live position straight to the
+	// DOM, bypassing React) gets cancelled by the old effect's cleanup before
+	// it ever fires if a re-render lands mid-frame for any unrelated reason,
+	// so the dragged element only reaches its true position once, on
+	// `pointerup`, when React actually commits the new `x`/`y` - i.e. the
+	// element visually does not move until the mouse is released.
+	/* oxlint-disable react-hooks/exhaustive-deps -- see comment above */
 	useEffect(() => {
 		const tracker: PointerFrameTracker = {
 			rafId: 0,
@@ -121,7 +132,6 @@ export function usePointerHandlers(input: UsePointerHandlersInput): void {
 		updateElementById,
 		markDirty,
 		livePatcher,
-		input,
 	]);
-	/* oxlint-enable react/exhaustive-effect-dependencies */
+	/* oxlint-enable react-hooks/exhaustive-deps */
 }
