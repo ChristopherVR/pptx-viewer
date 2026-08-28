@@ -173,18 +173,26 @@ function splitFilePath(
  * Recent autosave snapshots, newest first. `translate` only covers the two
  * fallback labels for a snapshot with no usable path; pass the binding's `t`
  * so those read in the user's language rather than English.
+ *
+ * @param limit File > Options > Advanced > "Quickly access this number of
+ *   Recent Documents" (`options.advanced.recentPresentationsCount`, 0-50).
+ *   Truncates the list to this many entries; `0` returns an empty list
+ *   (PowerPoint's own semantics for the setting). Omit to keep every stored
+ *   snapshot (existing callers that predate the option).
  */
 export async function listBackstageRecentFiles(
 	translate?: BackstageTranslate,
+	limit?: number,
 ): Promise<BackstageRecentFile[]> {
 	if (typeof indexedDB === 'undefined') {
 		return [];
 	}
 	try {
 		const snapshots = await listAutosaveSnapshots();
-		return snapshots
+		const sorted = snapshots
 			.map((snapshot) => ({ ...snapshot, ...splitFilePath(snapshot.key, translate) }))
 			.sort((a, b) => b.timestamp - a.timestamp);
+		return limit === undefined ? sorted : sorted.slice(0, Math.max(0, limit));
 	} catch {
 		return [];
 	}

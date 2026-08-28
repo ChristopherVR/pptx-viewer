@@ -430,6 +430,7 @@ export const translationsEn: Record<string, string> = {
 	// Print
 	'pptx.print.title': 'Print',
 	'pptx.print.printButton': 'Print',
+	'pptx.print.preparingToPrint': 'Preparing to print…',
 
 	// Export
 	'pptx.export.processing': 'Processing…',
@@ -1832,6 +1833,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.viewer.digitalSignatures': 'Digital Signatures',
 	'pptx.viewer.elementProperties': 'Element Properties',
 	'pptx.viewer.slideProperties': 'Slide Properties',
+	'pptx.viewer.protectedViewBanner':
+		'Protected View. This file was opened read-only because Trust Center > Protected View is on.',
+	'pptx.viewer.enableEditing': 'Enable Editing',
 	// Angular ribbon / mobile / notes / share / security (additions from sweep batch 3)
 	'pptx.common.close': 'Close',
 	'pptx.common.save': 'Save',
@@ -1860,6 +1864,8 @@ export const translationsEn: Record<string, string> = {
 	'pptx.security.hidePassword': 'Hide password',
 	'pptx.security.show': 'Show',
 	'pptx.security.hide': 'Hide',
+	'pptx.security.protectedViewTitle': 'PROTECTED VIEW',
+	'pptx.security.enableEditing': 'Enable Editing',
 	'pptx.ribbon.slideShowOptions': 'Slide show options',
 	'pptx.ribbon.fromBeginning': 'From Beginning',
 	'pptx.ribbon.presenterView': 'Presenter View',
@@ -2295,8 +2301,6 @@ export const translationsEn: Record<string, string> = {
 	'pptx.file.copyImageTooltip': 'Copy Slide as Image',
 	'pptx.file.fonts': 'Fonts',
 	'pptx.file.gif': 'GIF',
-	'pptx.file.package': 'Package',
-	'pptx.file.packageTooltip': 'Package for Sharing',
 	'pptx.file.pdf': 'PDF',
 	'pptx.file.png': 'PNG',
 	'pptx.file.saveAsPpsx': 'Save .ppsx',
@@ -3106,6 +3110,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.options.advanced.display': 'Display',
 	'pptx.options.advanced.recentCount': 'Show this number of Recent Presentations',
 	'pptx.options.advanced.disableHardwareAcceleration': 'Disable hardware graphics acceleration',
+	'pptx.options.advanced.disable3DRendering': 'Disable 3D rendering (for performance)',
+	'pptx.options.advanced.disable3DRenderingInfo':
+		'Forces every 3D chart and SmartArt scene to fall back to flat 2D rendering, even in a presentation that enables 3D. Turn this on if 3D scenes run slowly on this device.',
 	'pptx.options.advanced.openDocumentsView': 'Open all documents using this view',
 	'pptx.options.openView.savedView': 'The view saved in the file',
 	'pptx.options.openView.normal': 'Normal',
@@ -3447,8 +3454,6 @@ export const translationsEn: Record<string, string> = {
 	'pptx.backstage.card.saveAsPpsx.body': 'Save a .ppsx file that opens directly in slide show.',
 	'pptx.backstage.card.saveAsPptm.title': 'Macro-Enabled Presentation',
 	'pptx.backstage.card.saveAsPptm.body': 'Preserve VBA content in a .pptm file.',
-	'pptx.backstage.card.package.title': 'Package for Sharing',
-	'pptx.backstage.card.package.body': 'Bundle the presentation and linked assets.',
 	'pptx.backstage.card.pdf.title': 'Create PDF',
 	'pptx.backstage.card.pdf.body': 'Publish a portable document with one page per slide.',
 	'pptx.backstage.card.png.title': 'Export current slide',
@@ -3467,8 +3472,6 @@ export const translationsEn: Record<string, string> = {
 		'Choose a printer, layout, copies, and output settings in your browser print dialog.',
 	'pptx.backstage.card.share.title': 'Share with People',
 	'pptx.backstage.card.share.body': 'Invite collaborators and work on the presentation together.',
-	'pptx.backstage.card.sharePackage.title': 'Package for Sharing',
-	'pptx.backstage.card.sharePackage.body': 'Download a self-contained package for offline sharing.',
 
 	// OOXML wire tokens that controls used to render verbatim. Wording follows
 	// PowerPoint's own dialogs; see `render/schema-label-keys.ts` for the

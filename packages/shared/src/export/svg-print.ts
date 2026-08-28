@@ -44,6 +44,14 @@ export interface PrintDocumentOptions {
 	title?: string;
 	orientation?: 'landscape' | 'portrait';
 	colorFilter?: string;
+	/**
+	 * PowerPoint's Print > "Scale to Fit Paper". Defaults to `true` (the only
+	 * behavior this vector print path ever had before this option existed):
+	 * each slide's SVG shrinks/grows to fill its page while preserving aspect
+	 * ratio. `false` renders each SVG at its native `width`/`height` (px)
+	 * instead, which may overflow or under-fill the page.
+	 */
+	scaleToFit?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -205,9 +213,20 @@ export function buildPrintDocument(
 	height: number,
 	options: PrintDocumentOptions = {},
 ): string {
-	const { title = 'Print', orientation = 'landscape', colorFilter = '' } = options;
+	const {
+		title = 'Print',
+		orientation = 'landscape',
+		colorFilter = '',
+		scaleToFit = true,
+	} = options;
 	const safeOrientation = sanitizeOrientation(orientation);
 	const safeColorFilter = sanitizeCssDeclaration(colorFilter);
+	// Options > Advanced > "Print scale to fit" off: render each slide SVG at
+	// its native `width`/`height` instead of shrinking/growing it to fill the
+	// page, matching PowerPoint's "Scale to Fit Paper" off.
+	const svgSizeStyle = scaleToFit
+		? '.print-slide-page svg { max-width: 100%; max-height: 100%; width: auto; height: auto; }'
+		: `.print-slide-page svg { max-width: none; max-height: none; width: ${width}px; height: ${height}px; }`;
 
 	const slidePages = svgs
 		.map((svg, i) => {
@@ -247,12 +266,7 @@ export function buildPrintDocument(
     .print-slide-page:last-child {
       page-break-after: auto;
     }
-    .print-slide-page svg {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-    }
+    ${svgSizeStyle}
     @page {
       size: ${safeOrientation};
       margin: 5mm;

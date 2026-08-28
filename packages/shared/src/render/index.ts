@@ -982,6 +982,9 @@ export * from './present-chrome';
 // sheet, and the one-click "black screen + pen" toggle state used by the show
 // toolbar's Blackboard action.
 export * from './presentation-blackboard';
+// Slide-show right-click menu: shared item structure (order/grouping/i18n
+// keys) consumed by every binding's own thin context-menu component.
+export * from './presentation-context-menu';
 // Presenter-console inventory + geometry: which controls the presenter view
 // carries, in what order, under which label keys, and at what measurements.
 // The `present-chrome` counterpart for the console rather than the show bar.

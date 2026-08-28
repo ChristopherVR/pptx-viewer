@@ -72,6 +72,7 @@ export function resolveDefaultPrintSettings(
 		printWhat: options.advanced.printWhat,
 		colorMode: options.advanced.printColorMode,
 		frameSlides: options.advanced.printFrameSlides,
+		scaleToFit: options.advanced.printScaleToFit,
 	};
 }
 
@@ -113,6 +114,45 @@ export function shouldConfirmExternalHyperlink(options: ViewerOptions, href: str
 	return /^https?:/i.test(href);
 }
 
+/** The six opt-in interactive-3D scene flags every binding exposes as host props. */
+export interface Rendering3DFlags {
+	smartArt3D: boolean;
+	surfaceChart3D: boolean;
+	barChart3D: boolean;
+	lineChart3D: boolean;
+	areaChart3D: boolean;
+	pieChart3D: boolean;
+}
+
+/**
+ * AND every host-supplied 3D opt-in flag with the viewer user's own
+ * Options > Advanced > "Disable 3D rendering" override.
+ *
+ * The host prop says "this deck may render its 3D scenes"; a viewer user on
+ * underpowered hardware needs a way to fall back to the flat 2D rendering
+ * regardless of what the host wired up. Each binding should pass its raw
+ * host props through this before feeding them to the SmartArt3D/*Chart3D
+ * context/provider/service that actually gates the WebGL scenes, so the
+ * override reaches every one of them uniformly instead of being wired (or
+ * missed) six separate times.
+ */
+export function resolve3DRenderingFlags(
+	hostFlags: Rendering3DFlags,
+	options: ViewerOptions,
+): Rendering3DFlags {
+	if (!options.advanced.disable3DRendering) {
+		return hostFlags;
+	}
+	return {
+		smartArt3D: false,
+		surfaceChart3D: false,
+		barChart3D: false,
+		lineChart3D: false,
+		areaChart3D: false,
+		pieChart3D: false,
+	};
+}
+
 /** CSS class list for the viewer root reflecting display-affecting options. */
 export function resolveOptionRootClasses(options: ViewerOptions, prefix: string): string[] {
 	const classes: string[] = [];
@@ -126,6 +166,50 @@ export function resolveOptionRootClasses(options: ViewerOptions, prefix: string)
 		classes.push(`${prefix}-compat-display`);
 	}
 	return classes;
+}
+
+/**
+ * Whether a successful, explicit save should discard the AutoRecover
+ * snapshot for the deck just saved.
+ *
+ * PowerPoint's default behavior: once the user has saved, the snapshot that
+ * existed to recover unsaved work is stale (the file on disk already has it),
+ * so it is dropped. Options > Save > "Keep the last autosaved version if I
+ * close without saving" flips that off: the snapshot survives a successful
+ * save too, in case the user wants to roll back to it later.
+ */
+export function shouldDiscardAutosaveOnSuccessfulSave(options: ViewerOptions): boolean {
+	return !options.save.keepLastAutoRecoveredVersion;
+}
+
+/** Whether Options > Save > "clear cache on close" should wipe recovery snapshots for this deck. */
+export function shouldClearAutosaveCacheOnClose(options: ViewerOptions): boolean {
+	return options.save.clearCacheOnClose;
+}
+
+/** The subset of an autosave record's metadata age-based pruning needs. */
+export interface AutosaveSnapshotAge {
+	readonly key: string;
+	readonly timestamp: number;
+}
+
+/**
+ * Snapshot keys older than Options > Save > "cache retention" (days), for
+ * periodic pruning. A non-positive or non-finite retention value prunes
+ * nothing rather than everything, since it means the option could not be
+ * read rather than "retain 0 days".
+ */
+export function resolveExpiredAutosaveSnapshots(
+	snapshots: readonly AutosaveSnapshotAge[],
+	options: ViewerOptions,
+	now: number = Date.now(),
+): string[] {
+	const days = options.save.cacheRetentionDays;
+	if (!Number.isFinite(days) || days <= 0) {
+		return [];
+	}
+	const maxAgeMs = days * 24 * 60 * 60 * 1000;
+	return snapshots.filter((snapshot) => now - snapshot.timestamp > maxAgeMs).map((s) => s.key);
 }
 
 /** Play the Accessibility > "feedback with sound" cue for a completed action. */

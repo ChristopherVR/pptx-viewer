@@ -50,15 +50,25 @@ export function addChartCategory(data: PptxChartData): PptxChartData {
 	return chartDataAddCategory(data, `Cat ${data.categories.length + 1}`);
 }
 
-/** Remove one category, or `null` when it is the last one. */
+/**
+ * Remove one category, or `null` when it is the last one.
+ *
+ * `followDataPoint` mirrors File > Options > Advanced > "Properties follow
+ * chart data point for current workbook" (`chartPropertiesFollowDataPoint`):
+ * when `true` (the default, and PowerPoint's own default), each series'
+ * per-point manual formatting re-indexes along with the removed column
+ * instead of staying pinned to its old numeric position. See
+ * `chartDataRemoveCategory`.
+ */
 export function removeChartCategory(
 	data: PptxChartData,
 	categoryIndex: number,
+	followDataPoint = true,
 ): PptxChartData | null {
 	if (data.categories.length <= 1 || categoryIndex < 0 || categoryIndex >= data.categories.length) {
 		return null;
 	}
-	return chartDataRemoveCategory(data, categoryIndex);
+	return chartDataRemoveCategory(data, categoryIndex, followDataPoint);
 }
 
 /** Rename one category label. */

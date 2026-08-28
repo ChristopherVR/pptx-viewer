@@ -23,7 +23,6 @@ export * from './download-helpers';
 export * from './deck-json';
 // Canvas -> JPEG byte extraction for PDF embedding.
 export * from './canvas-jpeg';
-export * from './package-readme';
 export * from './gif-encoder';
 export * from './handout-layout';
 export * from './notes-page-layout';
@@ -45,6 +44,9 @@ export * from './pdf-page-size';
 // resolution, page-count estimation, HTML markup builders + escaping, and the
 // full print-document string assembler. The binding writes it to a print window.
 export * from './print-document';
+// DOM-touching print-window open/finish lifecycle (window.open-based paths
+// only; the popup-blocking fix every binding needs lives here once).
+export * from './print-window';
 // Pure WebM video planning: frame-segment timing, fps maths, MediaRecorder MIME
 // selection. The MediaRecorder/canvas capture driver stays in each binding.
 export * from './video-plan';

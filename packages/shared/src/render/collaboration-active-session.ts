@@ -62,6 +62,12 @@ export function getUserInitials(name: string): string {
 
 export interface BuildActiveSessionUsersParams {
 	localUserName: string;
+	/**
+	 * Explicit override from Options > General > "Initials" (PowerPoint lets a
+	 * user type custom initials independent of their display name). Falls back
+	 * to `getUserInitials(localUserName)` when unset or blank.
+	 */
+	localUserInitials?: string;
 	/** Falls back to the same default colour React's dialog has always used. */
 	localUserColor?: string;
 	remoteUsers: readonly ActiveSessionRemoteUserInput[];
@@ -77,7 +83,9 @@ export function buildActiveSessionUsers(
 	const local: ActiveSessionUserDescriptor = {
 			id: 'local',
 			name: params.localUserName,
-			initials: getUserInitials(params.localUserName),
+			initials: params.localUserInitials?.trim()
+				? params.localUserInitials.trim().slice(0, 2).toUpperCase()
+				: getUserInitials(params.localUserName),
 			color: params.localUserColor ?? DEFAULT_LOCAL_COLOR,
 			isLocal: true,
 		},

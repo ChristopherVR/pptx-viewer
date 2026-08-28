@@ -44,6 +44,17 @@ export interface PrintSettings {
 	slideRange: PrintSlideRange;
 	customRangeFrom: number;
 	customRangeTo: number;
+	/**
+	 * PowerPoint's Print > "Scale to Fit Paper". `true` (the default, and the
+	 * only behavior this printed output ever had before this field existed)
+	 * shrinks/grows each slide image to fill its page/cell while preserving
+	 * aspect ratio. `false` prints at the slide's native pixel size instead,
+	 * which may overflow or under-fill the page, exactly like PowerPoint with
+	 * the option off. Optional so existing `Partial<PrintSettings>` literals
+	 * across every binding keep compiling; `validatePrintSettings` defaults it
+	 * to `true`.
+	 */
+	scaleToFit?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -60,6 +71,7 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
 	slideRange: 'all',
 	customRangeFrom: 1,
 	customRangeTo: 1,
+	scaleToFit: true,
 };
 
 /** Number of ruled note lines drawn next to each slide in 3-per-page handouts. */
@@ -122,6 +134,7 @@ export function validatePrintSettings(
 		slideRange: merged.slideRange,
 		customRangeFrom: from,
 		customRangeTo: to,
+		scaleToFit: merged.scaleToFit ?? true,
 	};
 }
 
@@ -163,6 +176,29 @@ export function computeSlideIndices(
 		return Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
 	}
 	return Array.from({ length: slideCount }, (_, i) => i);
+}
+
+/**
+ * Filter hidden slides out of a resolved index list, unless `includeHidden` is
+ * set. Mirrors PowerPoint: slides marked "hidden" (skipped during normal
+ * presentation) are excluded from print output by default too (Options >
+ * Advanced > "Print hidden slides" turns that off).
+ *
+ * A post-filter over {@link computeSlideIndices}'s output rather than a new
+ * parameter on that function: `computeSlideIndices` is called from every
+ * binding's print path already and only ever received a `slideCount`, so
+ * threading the slides array (or a hidden-flags array) through its signature
+ * would be a breaking change to a widely-called function for one option.
+ */
+export function filterHiddenSlideIndices(
+	indices: number[],
+	slides: PptxSlide[],
+	includeHidden: boolean,
+): number[] {
+	if (includeHidden) {
+		return indices;
+	}
+	return indices.filter((index) => !slides[index]?.hidden);
 }
 
 /**
@@ -400,6 +436,14 @@ export interface PrintHtmlDocumentOptions {
 	orientation: PrintOrientation;
 	colorFilter: string;
 	frameSlides: boolean;
+	/**
+	 * PowerPoint's Print > "Scale to Fit Paper". Defaults to `true` (shrink/grow
+	 * each slide image to fill its page/cell, the only behavior this printed
+	 * output ever had before this option existed). `false` prints images at
+	 * their native size instead, which may overflow (clipped by the cell's
+	 * `overflow: hidden`) or under-fill the page/cell.
+	 */
+	scaleToFit?: boolean;
 }
 
 /**
@@ -463,6 +507,15 @@ export function buildPrintHtmlDocument(options: PrintHtmlDocumentOptions): strin
 	const frameStyle = frameSlides
 		? 'img.slide-img, .notes-slide, .handout-cell img { border: 2px solid #000 !important; }'
 		: '';
+	// Options > Advanced > "Print scale to fit" (also the Print dialog's own
+	// setting when it exposes one). `false` drops the shrink/grow-to-fill
+	// rules so each slide image prints at its native size instead: it may
+	// overflow its page/cell (clipped by `.handout-cell`'s `overflow: hidden`)
+	// or under-fill it, exactly like PowerPoint with "Scale to Fit Paper" off.
+	const scaleToFitStyle =
+		options.scaleToFit === false
+			? '.slide-page img.slide-img { max-width: none; max-height: none; width: auto; height: auto; } .handout-cell img { width: auto; height: auto; max-width: none; max-height: none; object-fit: none; }'
+			: '';
 
 	return `<!doctype html>
 <html>
@@ -506,6 +559,7 @@ export function buildPrintHtmlDocument(options: PrintHtmlDocumentOptions): strin
         img { break-inside: avoid; }
       }
       ${frameStyle}
+      ${scaleToFitStyle}
     </style>
   </head>
   <body>${safeBodyHtml}</body>

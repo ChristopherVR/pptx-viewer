@@ -18,10 +18,13 @@ import {
 } from './viewer-options';
 import {
 	resolveDefaultPrintSettings,
+	resolveExpiredAutosaveSnapshots,
 	resolveHistoryDepth,
 	resolveImageResolutionScale,
 	resolveScreenTip,
 	resolveVisibleRibbonTabs,
+	shouldClearAutosaveCacheOnClose,
+	shouldDiscardAutosaveOnSuccessfulSave,
 } from './viewer-options-apply';
 import { VIEWER_OPTIONS_TABS, getViewerOptionsTab } from './viewer-options-schema';
 import { createViewerOptionsStore } from './viewer-options-store';
@@ -173,6 +176,7 @@ describe('behavior helpers', () => {
 			printWhat: 'slides',
 			colorMode: 'grayscale',
 			frameSlides: false,
+			scaleToFit: false,
 		});
 	});
 
@@ -193,6 +197,30 @@ describe('behavior helpers', () => {
 		expect(resolveImageResolutionScale(DEFAULT_VIEWER_OPTIONS)).toBe(1);
 		const ppi = mergeViewerOptions({ advanced: { imageDefaultResolution: 'ppi330' } });
 		expect(resolveImageResolutionScale(ppi)).toBeCloseTo(330 / 96);
+	});
+
+	it('discards the autosave snapshot on a successful save unless kept', () => {
+		expect(shouldDiscardAutosaveOnSuccessfulSave(DEFAULT_VIEWER_OPTIONS)).toBeFalsy();
+		const discard = mergeViewerOptions({ save: { keepLastAutoRecoveredVersion: false } });
+		expect(shouldDiscardAutosaveOnSuccessfulSave(discard)).toBeTruthy();
+	});
+
+	it('clears the autosave cache on close only when the option is on', () => {
+		expect(shouldClearAutosaveCacheOnClose(DEFAULT_VIEWER_OPTIONS)).toBeFalsy();
+		const on = mergeViewerOptions({ save: { clearCacheOnClose: true } });
+		expect(shouldClearAutosaveCacheOnClose(on)).toBeTruthy();
+	});
+
+	it('prunes autosave snapshots older than the cache retention window', () => {
+		const now = Date.now();
+		const options = mergeViewerOptions({ save: { cacheRetentionDays: 7 } });
+		const snapshots = [
+			{ key: 'fresh', timestamp: now - 1 * 24 * 60 * 60 * 1000 },
+			{ key: 'stale', timestamp: now - 10 * 24 * 60 * 60 * 1000 },
+		];
+		expect(resolveExpiredAutosaveSnapshots(snapshots, options, now)).toStrictEqual(['stale']);
+		const zero = mergeViewerOptions({ save: { cacheRetentionDays: 0 } });
+		expect(resolveExpiredAutosaveSnapshots(snapshots, zero, now)).toStrictEqual([]);
 	});
 });
 

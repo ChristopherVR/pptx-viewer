@@ -76,3 +76,22 @@ export function resolveViewerAddinRows(status?: ViewerAddinStatus): ViewerAddinR
 		active: status?.[definition.id] ?? true,
 	}));
 }
+
+/**
+ * Build an Add-ins status map from the runtime signals every binding can
+ * cheaply read: Options > Advanced > "Disable 3D rendering" (gates the two
+ * three.js-backed renderers) and whether a collaboration session is live.
+ * The remaining catalog entries (EMF/MTX converters, locales) have no
+ * runtime on/off switch, so they are left out and fall back to `active: true`
+ * in {@link resolveViewerAddinRows}.
+ */
+export function resolveViewerAddinStatus(
+	disable3DRendering: boolean,
+	collaborationActive: boolean,
+): ViewerAddinStatus {
+	return {
+		smartArt3d: !disable3DRendering,
+		model3d: !disable3DRendering,
+		collaboration: collaborationActive,
+	};
+}

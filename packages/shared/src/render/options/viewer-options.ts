@@ -102,6 +102,15 @@ export interface ViewerAdvancedOptions {
 	showGrid: boolean;
 	snapToGrid: boolean;
 	disableHardwareAcceleration: boolean;
+	/**
+	 * Force every opt-in interactive 3D scene (SmartArt, bar/line/area/pie/
+	 * surface charts) to fall back to its flat 2D rendering, even when the
+	 * host has enabled that scene via its own `smartArt3D`/`*Chart3D` prop.
+	 * A host opting in says "this deck may want 3D"; this is the viewer
+	 * user's own override for when the WebGL scenes it renders are too much
+	 * for their machine. See `resolve3DRenderingFlags`.
+	 */
+	disable3DRendering: boolean;
 	openDocumentsView: OpenDocumentsView;
 	slideShowShowMenuOnRightClick: boolean;
 	slideShowShowPopupToolbar: boolean;
@@ -207,6 +216,7 @@ export const DEFAULT_VIEWER_OPTIONS: ViewerOptions = {
 		showGrid: false,
 		snapToGrid: false,
 		disableHardwareAcceleration: false,
+		disable3DRendering: false,
 		openDocumentsView: 'savedView',
 		slideShowShowMenuOnRightClick: true,
 		slideShowShowPopupToolbar: true,

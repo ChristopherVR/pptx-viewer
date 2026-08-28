@@ -80,6 +80,9 @@ export const ADVANCED_TAB: ViewerOptionsTabDefinition = {
 					'disableHardwareAcceleration',
 					'pptx.options.advanced.disableHardwareAcceleration',
 				),
+				toggle('advanced', 'disable3DRendering', 'pptx.options.advanced.disable3DRendering', {
+					infoKey: 'pptx.options.advanced.disable3DRenderingInfo',
+				}),
 				select(
 					'advanced',
 					'openDocumentsView',

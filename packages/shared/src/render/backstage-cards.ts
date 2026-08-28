@@ -20,7 +20,6 @@ export type BackstageCardId =
 	| 'saveAsPptx'
 	| 'saveAsPpsx'
 	| 'saveAsPptm'
-	| 'package'
 	| 'pdf'
 	| 'png'
 	| 'video'
@@ -28,8 +27,7 @@ export type BackstageCardId =
 	| 'json'
 	| 'copyImage'
 	| 'print'
-	| 'share'
-	| 'sharePackage';
+	| 'share';
 
 export interface BackstageCard {
 	id: BackstageCardId;
@@ -86,7 +84,6 @@ export const BACKSTAGE_CARDS: Readonly<Record<BackstageCardId, BackstageCard>> =
 		'Macro-Enabled Presentation',
 		'Preserve VBA content in a .pptm file.',
 	),
-	package: card('package', 'Package for Sharing', 'Bundle the presentation and linked assets.'),
 	pdf: card('pdf', 'Create PDF', 'Publish a portable document with one page per slide.'),
 	png: card('png', 'Export current slide', 'Create a high-quality PNG image.'),
 	video: card('video', 'Create a Video', 'Export slide timings and animations as WebM.'),
@@ -107,11 +104,6 @@ export const BACKSTAGE_CARDS: Readonly<Record<BackstageCardId, BackstageCard>> =
 		'Share with People',
 		'Invite collaborators and work on the presentation together.',
 	),
-	sharePackage: card(
-		'sharePackage',
-		'Package for Sharing',
-		'Download a self-contained package for offline sharing.',
-	),
 };
 
 /**
@@ -126,10 +118,10 @@ export const BACKSTAGE_PAGE_CARDS: Readonly<
 	Partial<Record<BackstagePage, readonly BackstageCardId[]>>
 > = {
 	info: ['protect', 'inspect', 'embedFonts', 'signatures', 'versionHistory'],
-	saveAs: ['saveAsPptx', 'saveAsPpsx', 'saveAsPptm', 'package'],
+	saveAs: ['saveAsPptx', 'saveAsPpsx', 'saveAsPptm'],
 	export: ['pdf', 'png', 'video', 'gif', 'json', 'copyImage'],
 	print: ['print'],
-	share: ['share', 'sharePackage'],
+	share: ['share'],
 };
 
 /** The cards for a page, already resolved to their descriptors. */
