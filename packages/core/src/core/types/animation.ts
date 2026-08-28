@@ -513,6 +513,16 @@ export interface PptxAttributeAnimation {
 	delayMs?: number;
 }
 
+/** Signed HSL channel deltas parsed from `p:animClr/p:by/p:hsl`. */
+export interface PptxHslColorDelta {
+	/** Hue offset in degrees. OOXML stores this in 60000ths of a degree. */
+	hue: number;
+	/** Saturation offset in percentage points. */
+	saturation: number;
+	/** Lightness offset in percentage points. */
+	lightness: number;
+}
+
 /** Color animation data parsed from `p:animClr`. */
 export interface PptxColorAnimation {
 	/** Color interpolation space: "hsl" or "rgb". */
@@ -532,15 +542,27 @@ export interface PptxColorAnimation {
 	toColor?: string;
 	/**
 	 * Color delta (for "by" animations) as hex string. For HSL colour-space
-	 * animations the value encodes a delta over hue/sat/lum and is preserved
-	 * verbatim from the source.
+	 * animations this retains the historical byte-packed compatibility value;
+	 * consumers should prefer {@link hslDelta}, which preserves signed values.
 	 */
 	byColor?: string;
+	/**
+	 * Typed HSL delta from `p:by/p:hsl`. This preserves signed values and their
+	 * OOXML units without forcing them through the legacy byte-packed `byColor`
+	 * representation.
+	 */
+	hslDelta?: PptxHslColorDelta;
 	/**
 	 * Target attribute from `p:attrNameLst` (e.g. "fillcolor", "style.color",
 	 * "stroke.color"). Used to determine which CSS property to animate.
 	 */
 	targetAttribute?: string;
+	/**
+	 * All sibling `p:animClr` behaviours authored for the same timing node.
+	 * The top-level fields continue to mirror the first behaviour for backwards
+	 * compatibility; this list is present only when there is more than one.
+	 */
+	components?: readonly PptxColorAnimation[];
 }
 
 /** Text-level animation target from `p:txEl`. */

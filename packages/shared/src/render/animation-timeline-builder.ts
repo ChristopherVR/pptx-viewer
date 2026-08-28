@@ -100,12 +100,11 @@ function stepColorTargets(
 	// colour ramp on a generic `p:anim` node (see `buildColorTavKeyframe`)
 	// names the same kind of attribute, so it resolves paint targets the
 	// same way once there's no dedicated colour animation to defer to.
-	const targetAttribute =
-		anim.colorAnimation?.targetAttribute ?? (tavColorApplied ? anim.attrName : undefined);
-	if (!targetAttribute) {
+	const colorSource = anim.colorAnimation ?? (tavColorApplied ? anim.attrName : undefined);
+	if (!colorSource) {
 		return undefined;
 	}
-	const targets = resolveColorAnimationTargets(targetAttribute);
+	const targets = resolveColorAnimationTargets(colorSource);
 	return targets.length > 0 ? targets : undefined;
 }
 

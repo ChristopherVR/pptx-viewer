@@ -4,6 +4,7 @@ import {
 	getComputedEffectStyle,
 	getComputedFillStyle,
 	getComputedStrokeStyle,
+	getAnimationColorBaseStyle,
 	isStrokeOnlyPresetElement,
 	resolveShapeGeometry,
 } from 'pptx-viewer-shared';
@@ -142,6 +143,14 @@ export function getShapeVisualStyle(
 		strokeMiterlimit: stroke.strokeMiterlimit,
 		strokeLinecap: stroke.strokeLinecap,
 	};
+	Object.assign(
+		base,
+		getAnimationColorBaseStyle(element, {
+			animatesFill,
+			animatesStroke,
+			parentGroupFill,
+		}),
+	);
 
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──
 	// Pass the resolved fill colour so extrusion/contour default to it when no
