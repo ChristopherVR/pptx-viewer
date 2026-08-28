@@ -217,10 +217,15 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	height: number;
 	/** Rotation in degrees. */
 	rotation?: number;
+	/** Horizontal/vertical mirrors declared on the cached drawing transform. */
+	flipHorizontal?: boolean;
+	flipVertical?: boolean;
 	/** Skew along the X axis in degrees. */
 	skewX?: number;
 	/** Skew along the Y axis in degrees. */
 	skewY?: number;
+	/** Preset-geometry adjustment values from `a:prstGeom/a:avLst`. */
+	shapeAdjustments?: Record<string, number>;
 	/**
 	 * The cached shape declares `a:noFill`. Renderers must leave it unpainted
 	 * rather than substituting a palette colour, because these shapes usually sit
@@ -267,10 +272,36 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	text?: string;
 	/** Standard rich-text segments projected from the associated SmartArt node. */
 	textSegments?: TextSegment[];
-	/** Font size in points. */
+	/** Font size in CSS pixels. */
 	fontSize?: number;
 	/** Font colour (hex). */
 	fontColor?: string;
+	/** Authored font family from the first styled run. */
+	fontFamily?: string;
+	/** Authored font weight (400 or 700). */
+	fontWeight?: number;
+	/** Authored font style. */
+	fontStyle?: 'normal' | 'italic';
+	/** Absolute line height in CSS pixels from `a:spcPts`. */
+	lineHeight?: number;
+	/** Relative line height from `a:spcPct`. */
+	lineHeightRatio?: number;
+	/** Absolute spacing after a paragraph in CSS pixels. */
+	lineSpacingAfter?: number;
+	/** Relative spacing after a paragraph. */
+	lineSpacingAfterRatio?: number;
+	/** Text-body insets in CSS pixels. */
+	textInsetLeft?: number;
+	textInsetTop?: number;
+	textInsetRight?: number;
+	textInsetBottom?: number;
+	/** DiagramML text vertical anchor (`t`, `ctr`, or `b`). */
+	textVerticalAnchor?: string;
+	/** Independent DiagramML text-frame geometry from `dsp:txXfrm`. */
+	textFrameX?: number;
+	textFrameY?: number;
+	textFrameWidth?: number;
+	textFrameHeight?: number;
 }
 
 /**

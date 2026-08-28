@@ -312,17 +312,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			ctx.slideRelationshipMap,
 			false,
 		);
-		const endParagraphStyle = this.extractTextRunStyle(
-			p?.['a:endParaRPr'] as XmlObject | undefined,
-			paraAlign,
-			ctx.slideRelationshipMap,
-			false,
-		);
 		const mergedDefaultRunStyle = {
 			...ctx.bodyDefaultRunStyle,
 			...inheritedLevelStyle,
 			...bodyLevelStyle,
-			...endParagraphStyle,
 			...defaultRunStyle,
 		} as TextStyle;
 

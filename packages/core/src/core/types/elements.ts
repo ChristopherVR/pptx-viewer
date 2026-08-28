@@ -323,6 +323,22 @@ export interface MediaPptxElement extends PptxElementBase {
 	posterFramePath?: string;
 	/** Base64 data-URL for the poster frame image. */
 	posterFrameData?: string;
+	/** Poster source crop from the left edge as a 0..1 fraction. */
+	cropLeft?: number;
+	/** Poster source crop from the top edge as a 0..1 fraction. */
+	cropTop?: number;
+	/** Poster source crop from the right edge as a 0..1 fraction. */
+	cropRight?: number;
+	/** Poster source crop from the bottom edge as a 0..1 fraction. */
+	cropBottom?: number;
+	/** Poster stretch-target inset from the left frame edge. */
+	fillRectLeft?: number;
+	/** Poster stretch-target inset from the top frame edge. */
+	fillRectTop?: number;
+	/** Poster stretch-target inset from the right frame edge. */
+	fillRectRight?: number;
+	/** Poster stretch-target inset from the bottom frame edge. */
+	fillRectBottom?: number;
 	/** Whether media should play full-screen during presentation. */
 	fullScreen?: boolean;
 	/** Whether media should loop continuously. */

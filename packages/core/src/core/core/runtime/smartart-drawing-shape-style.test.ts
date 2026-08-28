@@ -199,9 +199,47 @@ describe('extractDrawingShapeTextStyle', () => {
 			},
 		};
 
-		const style = extractDrawingShapeTextStyle(txBody, deps);
+		const style = extractDrawingShapeTextStyle(txBody, deps, 9525);
 
-		expect(style.fontSize).toBe(18);
+		expect(style.fontSize).toBe(24);
 		expect(style.fontColor).toBe('#FFFFFF');
+	});
+
+	it('reads CJK font, insets, and paragraph spacing in renderer units', () => {
+		const txBody: XmlObject = {
+			'a:bodyPr': {
+				'@_lIns': '95250',
+				'@_rIns': '190500',
+				'@_anchor': 'ctr',
+			},
+			'a:p': {
+				'a:pPr': {
+					'a:lnSpc': { 'a:spcPct': { '@_val': '90000' } },
+					'a:spcAft': { 'a:spcPct': { '@_val': '35000' } },
+				},
+				'a:r': {
+					'a:rPr': {
+						'@_sz': '1800',
+						'@_b': '1',
+						'@_i': '1',
+						'a:ea': { '@_typeface': '微软雅黑' },
+					},
+				},
+			},
+		};
+
+		const style = extractDrawingShapeTextStyle(txBody, deps, 9525);
+
+		expect(style).toMatchObject({
+			fontFamily: '微软雅黑',
+			fontSize: 24,
+			fontStyle: 'italic',
+			fontWeight: 700,
+			lineHeightRatio: 0.9,
+			lineSpacingAfterRatio: 0.35,
+			textInsetLeft: 10,
+			textInsetRight: 20,
+			textVerticalAnchor: 'ctr',
+		});
 	});
 });

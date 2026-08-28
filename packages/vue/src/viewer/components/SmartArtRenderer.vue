@@ -494,13 +494,13 @@ function onEditorKeydown(event: KeyboardEvent): void {
 						:stroke-width="shape.strokeWidth"
 						:transform="shape.transform"
 					/>
-					<polygon
-						v-else-if="shape.kind === 'polygon'"
-						:points="shape.points"
+					<path
+						v-else-if="shape.kind === 'path'"
+						:d="shape.pathData"
 						:fill="shape.fill"
 						:stroke="shape.stroke"
 						:stroke-width="shape.strokeWidth"
-						:transform="shape.transform"
+						:transform="shape.pathTransform"
 					/>
 					<rect
 						v-else
@@ -521,6 +521,9 @@ function onEditorKeydown(event: KeyboardEvent): void {
 						dominant-baseline="central"
 						:fill="shape.fontColor"
 						:font-size="shape.fontSize"
+						:font-family="shape.fontFamily"
+						:font-weight="shape.fontWeight"
+						:font-style="shape.fontStyle"
 					>
 						<tspan v-for="(line, li) in shape.textLines" :key="li" :x="shape.textX" :y="line.y">
 							{{ line.text }}

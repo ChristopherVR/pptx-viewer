@@ -13,8 +13,62 @@
  * @module text-wrap-estimate
  */
 
-/** Average glyph advance as a fraction of the font size, across mixed-case Latin text. */
-const AVERAGE_ADVANCE_RATIO = 0.5;
+function estimatedGlyphAdvanceRatio(glyph: string): number {
+	if (/\p{Mark}/u.test(glyph)) {
+		return 0;
+	}
+	if (/\s/u.test(glyph)) {
+		return 0.33;
+	}
+	if (
+		/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Extended_Pictographic}]/u.test(
+			glyph,
+		)
+	) {
+		return 1;
+	}
+	if (/[A-Z]/u.test(glyph)) {
+		return 0.65;
+	}
+	if (/[a-z0-9]/u.test(glyph)) {
+		return 0.55;
+	}
+	if (/[,.;:!?()\u005b\u005d{}'"`\-_/\\]/u.test(glyph)) {
+		return 0.35;
+	}
+	return 0.6;
+}
+
+function estimatedTextWidth(glyphs: readonly string[], fontSize: number): number {
+	return glyphs.reduce((sum, glyph) => sum + estimatedGlyphAdvanceRatio(glyph) * fontSize, 0);
+}
+
+const HANGING_PUNCTUATION_RE =
+	/^[\u3001\u3002\uff0c\uff0e\uff01\uff1f\uff1b\uff1a\u3009\u300b\u300d\u300f\u3011\u3015\u3017\u3019\u301b\uff09\uff3d\uff5d\u2019\u201d\u00bb\u203a]$/u;
+const BREAKABLE_GLYPH_RE =
+	/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Extended_Pictographic}]$/u;
+
+function estimatedWrapUnits(text: string): string[] {
+	const units: string[] = [];
+	let unbreakableRun = '';
+	const flushRun = () => {
+		if (unbreakableRun.length > 0) {
+			units.push(unbreakableRun);
+			unbreakableRun = '';
+		}
+	};
+
+	for (const glyph of Array.from(text)) {
+		if (/\s/u.test(glyph) || BREAKABLE_GLYPH_RE.test(glyph)) {
+			flushRun();
+			units.push(glyph);
+		} else {
+			unbreakableRun += glyph;
+		}
+	}
+	flushRun();
+	return units;
+}
 
 /** Options for {@link wrapTextByEstimatedWidth}. */
 export interface EstimatedWrapOptions {
@@ -48,8 +102,7 @@ export function wrapTextByEstimatedWidth(
 		return [];
 	}
 
-	const charactersPerLine = Math.floor(maxWidth / Math.max(fontSize * AVERAGE_ADVANCE_RATIO, 1));
-	if (charactersPerLine <= 0) {
+	if (!(maxWidth > 0) || !(fontSize > 0)) {
 		return [];
 	}
 
@@ -63,18 +116,33 @@ export function wrapTextByEstimatedWidth(
 		}
 
 		let current = '';
-		for (const word of paragraph.split(/\s+/u)) {
-			if (current.length === 0) {
-				current = word;
-			} else if (current.length + 1 + word.length <= charactersPerLine) {
-				current += ` ${word}`;
-			} else {
-				lines.push(current);
-				current = word;
+		let pendingWhitespace = false;
+		for (const unit of estimatedWrapUnits(paragraph)) {
+			if (/^\s+$/u.test(unit)) {
+				pendingWhitespace = current.length > 0;
+				continue;
 			}
-		}
-		if (current.length > 0) {
+
+			const separator = pendingWhitespace && current.length > 0 ? ' ' : '';
+			const candidate = `${current}${separator}${unit}`;
+			if (current.length === 0 || estimatedTextWidth(Array.from(candidate), fontSize) <= maxWidth) {
+				current = candidate;
+				pendingWhitespace = false;
+				continue;
+			}
+			if (HANGING_PUNCTUATION_RE.test(unit)) {
+				current += unit;
+				pendingWhitespace = false;
+				continue;
+			}
+
 			lines.push(current);
+			current = unit;
+			pendingWhitespace = false;
+		}
+		const completed = current.trimEnd();
+		if (completed.length > 0) {
+			lines.push(completed);
 		}
 	}
 

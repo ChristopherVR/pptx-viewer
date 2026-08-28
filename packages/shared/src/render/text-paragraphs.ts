@@ -164,7 +164,14 @@ export function buildParagraphs(
 				paragraphIndents?.[paraIndex],
 				firstSeg?.paragraphLevel,
 			);
-			const bulletStyle = buildBulletMarkerStyle(bullet, firstSeg, fontScale, indent.textIndentPx);
+			// A bare negative indent without marL or a bullet is not a hanging
+			// indent. Applying it directly sends ordinary text outside its box.
+			const textIndentPx =
+				indent.textIndentPx !== undefined &&
+				(indent.textIndentPx >= 0 || indent.marginLeftPx !== undefined || bullet !== undefined)
+					? indent.textIndentPx
+					: undefined;
+			const bulletStyle = buildBulletMarkerStyle(bullet, firstSeg, fontScale, textIndentPx);
 			const spacing = resolveParagraphSpacing({
 				paraProps: propsCarrier?.paragraphProperties,
 				bodyStyle,
@@ -213,7 +220,7 @@ export function buildParagraphs(
 				bulletPicture: bullet?.picture,
 				bulletStyle,
 				marginLeftPx: indent.marginLeftPx,
-				textIndentPx: indent.textIndentPx,
+				textIndentPx,
 				lineHeight: spacing.lineHeight,
 				spaceBeforePx: spacing.spaceBeforePx,
 				spaceAfterPx: spacing.spaceAfterPx,

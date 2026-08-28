@@ -272,8 +272,9 @@ export function parseRunFontElements(
 	const eastAsian = rPr['a:ea'] as XmlObject | undefined;
 	const complexScript = rPr['a:cs'] as XmlObject | undefined;
 
-	const chosenTypeface =
-		latin?.['@_typeface'] || eastAsian?.['@_typeface'] || complexScript?.['@_typeface'];
+	// Keep the Latin face as the primary family. Per-script faces are stored in
+	// their dedicated fields below and selected at render time.
+	const chosenTypeface = latin?.['@_typeface'];
 
 	if (typeof chosenTypeface === 'string' && chosenTypeface.trim().length > 0) {
 		result.fontFamily = chosenTypeface.trim();

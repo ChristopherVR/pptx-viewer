@@ -164,6 +164,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			// Parse hyperlink / action for the shape-with-image-fill element
 			const sifCNvPr = xmlPath(shape, 'p:nvSpPr', 'p:cNvPr');
+			const sifElementName = xmlAttr(sifCNvPr, 'name')?.trim() || undefined;
 			const sifSlideRels = this.slideRelsMap.get(slidePath);
 			const { actionClick: sifActionClick, actionHover: sifActionHover } = this.parseElementActions(
 				sifCNvPr,
@@ -196,6 +197,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				flipHorizontal,
 				flipVertical,
 				rawXml: shape,
+				name: sifElementName,
 				actionClick: sifActionClick,
 				actionHover: sifActionHover,
 			};

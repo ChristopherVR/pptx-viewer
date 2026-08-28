@@ -189,6 +189,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * scheme fill style list.
 	 *
 	 * Per the OOXML spec:
+	 * - idx 0 or 1000 → no fill
 	 * - idx 1-3 → fillStyleLst[idx-1]
 	 * - idx 1001-1003 → bgFillStyleLst[idx-1001]
 	 *
@@ -205,6 +206,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const overrideColorXml = extractStyleReferenceColorXml(refNode);
 		if (overrideColorXml) {
 			style.fillRefColorXml = overrideColorXml;
+		}
+		if (idx === 0 || idx === 1000) {
+			style.fillMode = 'none';
+			style.fillColor = 'transparent';
+			style.fillOpacity = 0;
+			return;
 		}
 		if (!Number.isFinite(idx) || idx <= 0 || !this.themeFormatScheme) {
 			// Fallback: just use the colour child (pre-existing behaviour)

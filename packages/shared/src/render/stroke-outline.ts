@@ -39,7 +39,7 @@ import { DEFAULT_STROKE_COLOR } from '../constants';
 import { getCompoundLineOffsets, getCompoundLineWidths, svgLineCap } from './connector-style';
 import { getSvgStrokeDasharray, normalizeStrokeDashType } from './element-style-transform';
 import { colorWithOpacity } from './fill-style';
-import { getResolvedShapeClipPath } from './shape-geometry';
+import { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
 import { strokeOnlyPresetPathData } from './stroke-only-preset';
 import { hasStrokePaint } from './stroke-paint';
 import {
@@ -140,6 +140,88 @@ export function outlinePathData(
 		return `M ${first[0]} ${first[1]} ${rest.map(([x, y]) => `L ${x} ${y}`).join(' ')} Z`;
 	}
 	return rect;
+}
+
+const WEDGE_CALLOUT_PRESET_NAMES = new Set([
+	'wedgerectcallout',
+	'wedgeroundrectcallout',
+	'wedgeellipsecallout',
+]);
+
+/** Whether a preset's pointer is part of the authored outline and may extend outside its body box. */
+export function isWedgeCalloutPresetShape(shapeType?: string): boolean {
+	return typeof shapeType === 'string' && WEDGE_CALLOUT_PRESET_NAMES.has(shapeType.toLowerCase());
+}
+
+export interface PresetShapeVectorGeometry {
+	d: string;
+	minX: number;
+	minY: number;
+	maxX: number;
+	maxY: number;
+	viewWidth: number;
+	viewHeight: number;
+}
+
+function clipPathPolygonPoints(
+	clipPath: string,
+	width: number,
+	height: number,
+): Array<[number, number]> {
+	const asPolygon = /^polygon\((.*)\)$/su.exec(clipPath.trim());
+	if (!asPolygon) {
+		return [];
+	}
+	const toPx = (token: string, extent: number): number =>
+		token.endsWith('%') ? (Number.parseFloat(token) / 100) * extent : Number.parseFloat(token);
+	return asPolygon[1]
+		.split(',')
+		.map((pair) => pair.trim().split(/\s+/u))
+		.filter((parts) => parts.length === 2)
+		.map(([rawX, rawY]) => [toPx(rawX, width), toPx(rawY, height)] as [number, number])
+		.filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+}
+
+/** Resolve a preset outline into SVG path data plus any authored out-of-box bounds. */
+export function getPresetShapeVectorGeometry(
+	shapeType: string | undefined,
+	width: number,
+	height: number,
+	adjustments?: Record<string, number>,
+): PresetShapeVectorGeometry | undefined {
+	const normalizedWidth = Math.max(Number.isFinite(width) ? width : 0, 1);
+	const normalizedHeight = Math.max(Number.isFinite(height) ? height : 0, 1);
+	const clipPath = getResolvedShapeClipPathFor(
+		shapeType,
+		normalizedWidth,
+		normalizedHeight,
+		adjustments,
+	);
+	const d = outlinePathData(clipPath, normalizedWidth, normalizedHeight);
+	if (!d) {
+		return undefined;
+	}
+	let minX = 0;
+	let minY = 0;
+	let maxX = normalizedWidth;
+	let maxY = normalizedHeight;
+	for (const [x, y] of clipPath
+		? clipPathPolygonPoints(clipPath, normalizedWidth, normalizedHeight)
+		: []) {
+		minX = Math.min(minX, x);
+		minY = Math.min(minY, y);
+		maxX = Math.max(maxX, x);
+		maxY = Math.max(maxY, y);
+	}
+	return {
+		d,
+		minX,
+		minY,
+		maxX,
+		maxY,
+		viewWidth: Math.max(maxX - minX, 1),
+		viewHeight: Math.max(maxY - minY, 1),
+	};
 }
 
 /**

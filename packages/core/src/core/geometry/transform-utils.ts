@@ -6,7 +6,49 @@
  * are framework-agnostic and produce plain CSS transform strings
  * suitable for use with any rendering system.
  */
-import type { PptxElement } from '../types';
+import type { PptxElement, TextOrientationMatrix } from '../types';
+
+export const TEXT_ORIENTATION_IDENTITY: TextOrientationMatrix = [1, 0, 0, 1];
+
+export function isTextOrientationMatrix(value: unknown): value is TextOrientationMatrix {
+	return (
+		Array.isArray(value) &&
+		value.length === 4 &&
+		value.every((entry) => typeof entry === 'number' && Number.isFinite(entry))
+	);
+}
+
+export function multiplyTextOrientationMatrices(
+	left: TextOrientationMatrix,
+	right: TextOrientationMatrix,
+): TextOrientationMatrix {
+	return [
+		left[0] * right[0] + left[2] * right[1],
+		left[1] * right[0] + left[3] * right[1],
+		left[0] * right[2] + left[2] * right[3],
+		left[1] * right[2] + left[3] * right[3],
+	];
+}
+
+export function getElementOrientationMatrix(
+	element: Pick<PptxElement, 'rotation' | 'flipHorizontal' | 'flipVertical'>,
+): TextOrientationMatrix {
+	const radians = ((Number(element.rotation) || 0) * Math.PI) / 180;
+	const cosine = Math.cos(radians);
+	const sine = Math.sin(radians);
+	const rotation: TextOrientationMatrix = [cosine, sine, -sine, cosine];
+	const flip: TextOrientationMatrix = [
+		element.flipHorizontal ? -1 : 1,
+		0,
+		0,
+		element.flipVertical ? -1 : 1,
+	];
+	return multiplyTextOrientationMatrices(rotation, flip);
+}
+
+function textOrientationAngleScore(matrix: TextOrientationMatrix): number {
+	return Math.abs(Math.atan2(matrix[1], matrix[0]));
+}
 
 /**
  * Build a CSS `transform` string combining an element's flip and rotation.
@@ -47,11 +89,45 @@ export function getElementTransform(element: PptxElement): string | undefined {
  */
 export function getTextCompensationTransform(element: PptxElement): string | undefined {
 	const transforms: string[] = [];
-	if (element.flipHorizontal) {
+	const normalizedRotation = (((Number(element.rotation) || 0) % 360) + 360) % 360;
+	const swapFlipAxis =
+		normalizedRotation > 90 &&
+		normalizedRotation < 270 &&
+		element.flipHorizontal !== element.flipVertical;
+	const compensateHorizontal = swapFlipAxis ? element.flipVertical : element.flipHorizontal;
+	const compensateVertical = swapFlipAxis ? element.flipHorizontal : element.flipVertical;
+	if (compensateHorizontal) {
 		transforms.push('scaleX(-1)');
 	}
-	if (element.flipVertical) {
+	if (compensateVertical) {
 		transforms.push('scaleY(-1)');
+	}
+
+	const ancestorGroupTransform =
+		'textStyle' in element ? element.textStyle?.ancestorGroupTransform : undefined;
+	if (isTextOrientationMatrix(ancestorGroupTransform)) {
+		const localCompensation: TextOrientationMatrix = [
+			compensateHorizontal ? -1 : 1,
+			0,
+			0,
+			compensateVertical ? -1 : 1,
+		];
+		const visibleTransform = multiplyTextOrientationMatrices(
+			multiplyTextOrientationMatrices(ancestorGroupTransform, getElementOrientationMatrix(element)),
+			localCompensation,
+		);
+		const determinant =
+			visibleTransform[0] * visibleTransform[3] - visibleTransform[1] * visibleTransform[2];
+		if (determinant < -1e-6) {
+			const horizontalCandidate = multiplyTextOrientationMatrices(visibleTransform, [-1, 0, 0, 1]);
+			const verticalCandidate = multiplyTextOrientationMatrices(visibleTransform, [1, 0, 0, -1]);
+			transforms.push(
+				textOrientationAngleScore(horizontalCandidate) <=
+					textOrientationAngleScore(verticalCandidate)
+					? 'scaleX(-1)'
+					: 'scaleY(-1)',
+			);
+		}
 	}
 	return transforms.length > 0 ? transforms.join(' ') : undefined;
 }

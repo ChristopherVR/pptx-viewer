@@ -143,6 +143,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					isLinked: mediaReference.isLinked,
 					posterFramePath,
 					posterFrameData,
+					...this.readImageCropFromBlipFill(posterBlipFill),
 					// Real PowerPoint media is `p:pic`-shaped even though the
 					// `media` type buckets as `p:graphicFrame`, so its locks live
 					// in `a:picLocks`. The writer resolves the same container from

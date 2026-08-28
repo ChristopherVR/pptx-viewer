@@ -211,13 +211,13 @@
 									stroke-width={shape.strokeWidth}
 									transform={shape.transform}
 								/>
-							{:else if shape.kind === 'polygon'}
-								<polygon
-									points={shape.points}
+							{:else if shape.kind === 'path'}
+								<path
+									d={shape.pathData}
 									fill={shape.fill}
 									stroke={shape.stroke}
 									stroke-width={shape.strokeWidth}
-									transform={shape.transform}
+									transform={shape.pathTransform}
 								/>
 							{:else}
 								<rect
@@ -238,6 +238,9 @@
 									text-anchor="middle"
 									dominant-baseline="central"
 									fill={shape.fontColor}
+									font-family={shape.fontFamily}
+									font-weight={shape.fontWeight}
+									font-style={shape.fontStyle}
 									font-size={shape.fontSize}
 								>
 									{#each shape.textLines as line, i (i)}

@@ -236,7 +236,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const latinTypefaceToken = xmlAttr(latin, 'typeface');
 		const eaTypefaceToken = xmlAttr(eastAsian, 'typeface');
 		const csTypefaceToken = xmlAttr(complexScript, 'typeface');
-		const chosenTypeface = latinTypefaceToken || eaTypefaceToken || csTypefaceToken;
+		// The run's primary CSS family is its Latin face. East Asian and complex
+		// script faces are preserved below and applied only to matching glyphs.
+		const chosenTypeface = latinTypefaceToken;
 		const resolvedTypeface = this.resolveThemeTypeface(chosenTypeface);
 		if (resolvedTypeface) {
 			style.fontFamily = resolvedTypeface;

@@ -1,4 +1,10 @@
-import { XmlObject, PptxElement, hasShapeProperties } from '../../types';
+import {
+	TEXT_ORIENTATION_IDENTITY,
+	getElementOrientationMatrix,
+	isTextOrientationMatrix,
+	multiplyTextOrientationMatrices,
+} from '../../geometry/transform-utils';
+import { XmlObject, PptxElement, hasShapeProperties, hasTextProperties } from '../../types';
 import type { GroupPptxElement } from '../../types';
 import { xmlPath } from '../../utils/xml-access';
 import { findGroupXmlOffset } from './group-child-order';
@@ -155,6 +161,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (ext) {
 			el.width = parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX;
 			el.height = parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX;
+		}
+	}
+
+	private applyAncestorGroupTextTransform(
+		children: PptxElement[],
+		groupTransform: ReturnType<typeof getElementOrientationMatrix>,
+	): void {
+		for (const child of children) {
+			if (child.type === 'group') {
+				this.applyAncestorGroupTextTransform(child.children, groupTransform);
+				continue;
+			}
+			if (!hasTextProperties(child)) {
+				continue;
+			}
+			const existing = child.textStyle?.ancestorGroupTransform;
+			const nestedTransform = isTextOrientationMatrix(existing)
+				? existing
+				: TEXT_ORIENTATION_IDENTITY;
+			child.textStyle = {
+				...child.textStyle,
+				ancestorGroupTransform: multiplyTextOrientationMatrices(groupTransform, nestedTransform),
+			};
 		}
 	}
 
@@ -317,6 +346,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// here would just re-stamp `fillMode: 'group'` on the leaves.
 		if (hasGroupFill && grpFillStyle.fillMode !== 'group') {
 			this.applyGroupFillInheritance(children, grpFillStyle);
+		}
+
+		if (raw.rotation || raw.flipHorizontal || raw.flipVertical) {
+			this.applyAncestorGroupTextTransform(
+				children,
+				getElementOrientationMatrix({
+					rotation: raw.rotation,
+					flipHorizontal: raw.flipHorizontal,
+					flipVertical: raw.flipVertical,
+				}),
+			);
 		}
 
 		// Convert children to group-relative coordinates

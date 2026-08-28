@@ -326,7 +326,7 @@ describe('getElementTransform vs getTextCompensationTransform relationship', () 
 		expect(getTextCompensationTransform(el)).toBeUndefined();
 	});
 
-	it('text compensation matches the flip portion of element transform', () => {
+	it('swaps the compensation axis for a single mirror rotated past 90 degrees', () => {
 		const el = makeElement({
 			flipHorizontal: true,
 			rotation: 120,
@@ -336,9 +336,16 @@ describe('getElementTransform vs getTextCompensationTransform relationship', () 
 
 		// Element transform is rotation followed by the flip (OOXML order).
 		expect(elementT).toBe('rotate(120deg) scaleX(-1)');
-		// Text compensation should only have the flip
-		expect(textT).toBe('scaleX(-1)');
-		// The flip portion is present in the element transform
-		expect(elementT.includes(textT)).toBeTruthy();
+		// In screen coordinates, a 120-degree rotation turns the authored
+		// horizontal mirror into the vertical compensation that keeps glyphs upright.
+		expect(textT).toBe('scaleY(-1)');
+	});
+
+	it('compensates an inherited group mirror after local rotation', () => {
+		const el = makeElement({
+			rotation: 90,
+			textStyle: { ancestorGroupTransform: [0, -1, -1, 0] },
+		});
+		expect(getTextCompensationTransform(el)).toBe('scaleX(-1)');
 	});
 });

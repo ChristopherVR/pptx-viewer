@@ -173,5 +173,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (textStyle.align === undefined && levelStyle.alignment !== undefined) {
 			textStyle.align = levelStyle.alignment as TextStyle['align'];
 		}
+		if (textStyle.defaultTabSize === undefined && levelStyle.defaultTabSize !== undefined) {
+			textStyle.defaultTabSize = levelStyle.defaultTabSize;
+		}
+		if (textStyle.eaLineBreak === undefined && levelStyle.eaLineBreak !== undefined) {
+			textStyle.eaLineBreak = levelStyle.eaLineBreak;
+		}
+		if (textStyle.latinLineBreak === undefined && levelStyle.latinLineBreak !== undefined) {
+			textStyle.latinLineBreak = levelStyle.latinLineBreak;
+		}
+		if (textStyle.fontAlignment === undefined && levelStyle.fontAlignment !== undefined) {
+			textStyle.fontAlignment = levelStyle.fontAlignment;
+		}
+		if (textStyle.hangingPunctuation === undefined && levelStyle.hangingPunctuation !== undefined) {
+			textStyle.hangingPunctuation = levelStyle.hangingPunctuation;
+		}
 	}
 }
