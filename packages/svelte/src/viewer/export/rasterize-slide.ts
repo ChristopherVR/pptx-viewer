@@ -44,6 +44,7 @@ export interface RasterizeSlideDeps {
 	 * `PowerPointViewerProps.areaChart3D`.
 	 */
 	areaChart3D: boolean;
+	/**
 	 * Opt-in WebGL pie3D-chart renderer flag; see
 	 * `PowerPointViewerProps.pieChart3D`.
 	 */

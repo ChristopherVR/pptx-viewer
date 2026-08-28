@@ -68,6 +68,7 @@ export const renderChartElement: ElementRenderer = (element, zIndex, context) =>
 		element.chartData?.chartType === 'area3D'
 	) {
 		return renderAreaChart3DElement(element, zIndex, context);
+	}
 	if (element.type === 'chart' && context.pieChart3D && element.chartData?.chartType === 'pie3D') {
 		return renderPieChart3DElement(element, zIndex, context);
 	}

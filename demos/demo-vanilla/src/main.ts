@@ -56,6 +56,12 @@ const surfaceChart3D = new URLSearchParams(window.location.search).get('surfaceC
 // Opt in to the experimental Three.js interactive bar3D-chart renderer
 // (camera orbit/zoom, real box meshes) via `?barChart3D=1`.
 const barChart3D = new URLSearchParams(window.location.search).get('barChart3D') === '1';
+// Opt in to the experimental Three.js interactive line3D-chart renderer
+// (camera orbit/zoom, real tube-path meshes) via `?lineChart3D=1`.
+const lineChart3D = new URLSearchParams(window.location.search).get('lineChart3D') === '1';
+// Opt in to the experimental Three.js interactive area3D-chart renderer
+// (camera orbit/zoom, real tube-path + ribbon meshes) via `?areaChart3D=1`.
+const areaChart3D = new URLSearchParams(window.location.search).get('areaChart3D') === '1';
 // Opt in to the experimental Three.js interactive pie3D-chart renderer
 // (camera orbit/zoom, real wedge meshes) via `?pieChart3D=1`.
 const pieChart3D = new URLSearchParams(window.location.search).get('pieChart3D') === '1';
@@ -162,6 +168,8 @@ function openViewer(
 		smartArt3D,
 		surfaceChart3D,
 		barChart3D,
+		lineChart3D,
+		areaChart3D,
 		pieChart3D,
 		ai: buildViewerAiConfig(),
 		shareDefaults: { userName },

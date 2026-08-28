@@ -1271,6 +1271,8 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * SVG area3D renderer. Default `false`.
 	 */
 	readonly areaChart3D = input<boolean>(false);
+
+	/**
 	 * Opt in to the interactive Three.js pie3D-chart renderer. When `true`,
 	 * `pie3D` charts render as a camera-orbitable real wedge-mesh scene (drag
 	 * to rotate, scroll to zoom) instead of the flat SVG oblique-projection
@@ -1798,6 +1800,8 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// viewer-scoped AreaChart3DService.
 		effect(() => {
 			this.areaChart3DSvc.enabled.set(this.areaChart3D());
+		});
+
 		// Surface the `pieChart3D` opt-in to the chart element view via the
 		// viewer-scoped PieChart3DService.
 		effect(() => {

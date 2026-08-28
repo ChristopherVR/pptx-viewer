@@ -151,6 +151,7 @@
 	);
 	const isAreaChart3D = $derived(
 		element.type === 'chart' && element.chartData?.chartType === 'area3D',
+	);
 	/**
 	 * `resolveChartKind` folds `pie`/`doughnut`/`pie3D` onto the same 'pie'
 	 * kind, so the gate reads `chartData.chartType` directly: a plain 'pie' or

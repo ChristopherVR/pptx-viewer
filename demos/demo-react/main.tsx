@@ -406,6 +406,7 @@ function App() {
 	// eslint-disable-next-line react/hook-use-state
 	const [areaChart3D] = useState(
 		() => new URLSearchParams(window.location.search).get('areaChart3D') === '1',
+	);
 	// Opt in to the experimental Three.js interactive pie3D-chart renderer
 	// (real wedge meshes, camera orbit/zoom + raycast hover tooltip) via
 	// `?pieChart3D=1`.

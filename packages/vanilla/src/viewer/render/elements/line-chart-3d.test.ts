@@ -55,6 +55,7 @@ function buildContext(lineChart3D: boolean): ElementRenderContext {
 		barChart3D: false,
 		lineChart3D,
 		areaChart3D: false,
+		pieChart3D: false,
 		presenting: false,
 		registry,
 		renderElement(element, zIndex) {

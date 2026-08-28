@@ -47,6 +47,12 @@
 	// Opt in to the experimental Three.js interactive bar3D-chart renderer via
 	// `?barChart3D=1`.
 	const barChart3D = params.get('barChart3D') === '1';
+	// Opt in to the experimental Three.js interactive line3D-chart renderer via
+	// `?lineChart3D=1`.
+	const lineChart3D = params.get('lineChart3D') === '1';
+	// Opt in to the experimental Three.js interactive area3D-chart renderer via
+	// `?areaChart3D=1`.
+	const areaChart3D = params.get('areaChart3D') === '1';
 	// Opt in to the experimental Three.js interactive pie3D-chart renderer via
 	// `?pieChart3D=1`.
 	const pieChart3D = params.get('pieChart3D') === '1';
@@ -306,6 +312,8 @@
 			{smartArt3D}
 			{surfaceChart3D}
 			{barChart3D}
+			{lineChart3D}
+			{areaChart3D}
 			{pieChart3D}
 			editable
 			autosave

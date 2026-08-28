@@ -120,6 +120,18 @@ const smartArt3D = params.get('smartArt3D') === '1';
 // Opt in to the experimental Three.js interactive surface-chart renderer
 // (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
 const surfaceChart3D = params.get('surfaceChart3D') === '1';
+// Opt in to the experimental Three.js interactive bar3D-chart renderer
+// (real box meshes, camera orbit/zoom + raycast hover tooltip) via
+// `?barChart3D=1`.
+const barChart3D = params.get('barChart3D') === '1';
+// Opt in to the experimental Three.js interactive line3D-chart renderer
+// (real tube-path meshes, camera orbit/zoom + raycast hover tooltip) via
+// `?lineChart3D=1`.
+const lineChart3D = params.get('lineChart3D') === '1';
+// Opt in to the experimental Three.js interactive area3D-chart renderer
+// (real tube-path + ribbon meshes, camera orbit/zoom + raycast hover
+// tooltip) via `?areaChart3D=1`.
+const areaChart3D = params.get('areaChart3D') === '1';
 // Opt in to the experimental Three.js interactive pie3D-chart renderer
 // (real wedge meshes, camera orbit/zoom + raycast hover tooltip) via
 // `?pieChart3D=1`.
@@ -524,6 +536,9 @@ function onZoneClick(e: MouseEvent): void {
 			can-edit
 			:smartArt3D="smartArt3D"
 			:surfaceChart3D="surfaceChart3D"
+			:barChart3D="barChart3D"
+			:lineChart3D="lineChart3D"
+			:areaChart3D="areaChart3D"
 			:pieChart3D="pieChart3D"
 			:ai="aiConfig"
 			:author-name="collaborationConfig?.userName ?? autoName"

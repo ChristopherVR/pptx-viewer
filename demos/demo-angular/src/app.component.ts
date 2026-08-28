@@ -79,6 +79,9 @@ type DemoContent = Uint8Array | ArrayBuffer;
 					[autosaveIntervalMs]="2000"
 					[smartArt3D]="smartArt3D"
 					[surfaceChart3D]="surfaceChart3D"
+					[barChart3D]="barChart3D"
+					[lineChart3D]="lineChart3D"
+					[areaChart3D]="areaChart3D"
 					[pieChart3D]="pieChart3D"
 					[authorName]="autoName"
 					[shareDefaults]="{ roomId: autoRoomId, userName: autoName, serverUrl: defaultServerUrl }"
@@ -117,6 +120,21 @@ export class AppComponent {
 	 * (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
 	 */
 	readonly surfaceChart3D = this.params.get('surfaceChart3D') === '1';
+	/**
+	 * Opt in to the experimental Three.js interactive bar3D-chart renderer
+	 * (real box meshes, camera orbit/zoom) via `?barChart3D=1`.
+	 */
+	readonly barChart3D = this.params.get('barChart3D') === '1';
+	/**
+	 * Opt in to the experimental Three.js interactive line3D-chart renderer
+	 * (real tube-path meshes, camera orbit/zoom) via `?lineChart3D=1`.
+	 */
+	readonly lineChart3D = this.params.get('lineChart3D') === '1';
+	/**
+	 * Opt in to the experimental Three.js interactive area3D-chart renderer
+	 * (real tube-path + ribbon meshes, camera orbit/zoom) via `?areaChart3D=1`.
+	 */
+	readonly areaChart3D = this.params.get('areaChart3D') === '1';
 	/**
 	 * Opt in to the experimental Three.js interactive pie3D-chart renderer
 	 * (real wedge meshes, camera orbit/zoom) via `?pieChart3D=1`.

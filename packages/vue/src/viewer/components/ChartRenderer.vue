@@ -162,6 +162,8 @@ const use3DLine = useLineChart3D();
 const isLine3DKind = computed(() => chartType.value === 'line3D');
 const use3DArea = useAreaChart3D();
 const isArea3DKind = computed(() => chartType.value === 'area3D');
+
+/**
  * Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
  * OrbitControls). Same "marks are not selectable/draggable" caveat as the
  * surface/bar3D scenes above. Gated on the RAW chart type, not `chartKind`,
@@ -236,6 +238,11 @@ const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 		<!-- Opt-in interactive 3D area scene, falling back to the SVG below -->
 		<Area3DChartRenderer
 			v-else-if="use3DArea && isArea3DKind && viewModel"
+			:element="revealedElement"
+			:view-model="viewModel"
+			:preserve-aspect-ratio="aspectRatio"
+		/>
+
 		<!-- Opt-in interactive 3D pie scene, falling back to the SVG below -->
 		<PieChart3DRenderer
 			v-else-if="use3DPie && isPie3DKind && viewModel"

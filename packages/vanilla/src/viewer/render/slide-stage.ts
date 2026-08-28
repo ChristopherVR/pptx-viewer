@@ -77,6 +77,7 @@ export interface SlideStageOptions {
 	 * `PptxViewerOptions.areaChart3D`.
 	 */
 	areaChart3D?: boolean;
+	/**
 	 * Opt-in interactive WebGL pie3D-chart renderer flag; see
 	 * `PptxViewerOptions.pieChart3D`.
 	 */

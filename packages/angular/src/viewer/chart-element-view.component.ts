@@ -196,6 +196,8 @@ export class ChartElementViewComponent {
 	protected readonly isLine3DKind = computed(() => this.chartData()?.chartType === 'line3D');
 	protected readonly use3DArea = computed(() => this.areaChart3DSvc?.enabled() ?? false);
 	protected readonly isArea3DKind = computed(() => this.chartData()?.chartType === 'area3D');
+
+	/**
 	 * Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
 	 * OrbitControls). Same "marks are not selectable/draggable" caveat as the
 	 * bar scene above. `chartType` is checked directly (NOT via
