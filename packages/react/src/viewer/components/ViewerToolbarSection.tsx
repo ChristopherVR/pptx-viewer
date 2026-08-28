@@ -174,12 +174,23 @@ export interface ViewerToolbarSectionProps {
 	onToggleAutosave?: () => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: ToolbarActionId[];
+	/** File > Options > Advanced > "Quickly access this number of Recent Documents". */
+	recentPresentationsCount?: number;
 	/** Whether the AI assistant is available (the host passed the `ai` prop). */
 	aiEnabled?: boolean;
 	/** Whether the AI assistant panel is currently open. */
 	isAiPanelOpen?: boolean;
 	/** Toggle the AI assistant panel. */
 	onToggleAiPanel?: () => void;
+	/**
+	 * True when `canEdit` is false because Trust Center > "Open presentations
+	 * in Protected View" is on (not because the host itself withheld edit
+	 * permission). Turns the toolbar's read-only badge into an "Enable
+	 * Editing" action.
+	 */
+	isProtectedView?: boolean;
+	/** Drops the Protected View override for this session. Only offered when `isProtectedView` is true. */
+	onEnableEditing?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,9 +234,12 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		autosaveEnabled = true,
 		onToggleAutosave,
 		hiddenActions,
+		recentPresentationsCount,
 		aiEnabled,
 		isAiPanelOpen,
 		onToggleAiPanel,
+		isProtectedView,
+		onEnableEditing,
 	} = props;
 
 	const { t } = useTranslation();
@@ -533,7 +547,14 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				fileName={fileName}
 				mode={mode}
 				canEdit={canEdit}
+				isProtectedView={isProtectedView}
+				onEnableEditing={onEnableEditing}
+				// Below-ribbon Quick Access strip (Options > Quick Access Toolbar >
+				// position = "below"); same dispatcher the title bar's inline strip
+				// uses when position is "above".
+				onQuickCommand={handleQuickAccessCommand}
 				hiddenActions={hiddenActions}
+				recentPresentationsCount={recentPresentationsCount}
 				isNarrowViewport={dialogs.isNarrowViewport}
 				isSidebarCollapsed={!s.isSlidesPaneOpen}
 				isInspectorPaneOpen={s.isInspectorPaneOpen}
@@ -625,7 +646,6 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onExportVideo={exportHandlers.handleExportVideo}
 				onExportGif={exportHandlers.handleExportGif}
 				onExportJson={exportHandlers.handleExportJson}
-				onPackageForSharing={exportHandlers.handlePackageForSharing}
 				onOpenFile={onOpenFile}
 				onOpenRecentFile={onOpenRecentFile}
 				onCreatePresentation={(templateId) => {

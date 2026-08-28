@@ -152,7 +152,6 @@ describe('exportHandlersResult shape', () => {
 			handleCopySlideAsImage: vi.fn<() => void>(),
 			handleExportVideo: vi.fn<() => void>(),
 			handleExportGif: vi.fn<() => void>(),
-			handlePackageForSharing: vi.fn<() => void>(),
 			handleSaveAsFormat: vi.fn<() => void>(),
 			handleSaveAsPpsx: vi.fn<() => void>(),
 			handleSaveAsPptm: vi.fn<() => void>(),
@@ -167,7 +166,7 @@ describe('exportHandlersResult shape', () => {
 		const handlers = Object.keys(result).filter(
 			(k) => typeof (result as Record<string, unknown>)[k] === 'function',
 		);
-		expect(handlers).toHaveLength(11);
+		expect(handlers).toHaveLength(10);
 	});
 
 	it('initial state values are correct', () => {

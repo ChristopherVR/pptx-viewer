@@ -14,7 +14,6 @@ export interface FileSectionProps {
 	onExportVideo: () => void;
 	onExportGif: () => void;
 	onExportJson: () => void;
-	onPackageForSharing: () => void;
 	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;
 	onSaveAsPptm: () => void;
@@ -30,6 +29,8 @@ export interface FileSectionProps {
 	onOpenVersionHistory?: () => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** File > Options > Advanced > "Quickly access this number of Recent Documents". */
+	recentPresentationsCount?: number;
 }
 
 const actionClass =

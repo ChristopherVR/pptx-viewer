@@ -1,4 +1,5 @@
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { ViewerOptions } from 'pptx-viewer-shared';
 /**
  * useViewerBuildingBlocksCore: The "core state" third of
  * `useViewerBuildingBlocks`'s hook wiring (state, zoom, history, derived
@@ -9,6 +10,7 @@ import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
  * Calls the exact same hooks, in the exact same order/wiring, as the
  * corresponding section of `PowerPointViewer.tsx`.
  */
+import { resolveHistoryDepth, resolveImageResolutionScale } from 'pptx-viewer-shared';
 import { useCallback } from 'react';
 
 import type { ViewerMode } from '../types-core';
@@ -47,8 +49,14 @@ export interface ViewerBuildingBlocksCore {
 	presentation: UsePresentationModeResult;
 	annotations: UsePresentationAnnotationsResult;
 	actionSoundHandlerRef: React.MutableRefObject<PptxHandler | null>;
+	/** See `usePresentationSetup`'s `setExitModeHandler`. */
+	setExitModeHandler: (handler: ((nextMode: ViewerMode) => void) | null) => void;
 	masterPseudoSlide: PptxSlide | undefined;
 	gridSpacingPx: number;
+	/** File > Options > Advanced > "Image Size and Quality" raster-scale multiplier. */
+	imageExportScale: number;
+	/** Full File > Options snapshot, for Trust Center gates in the canvas mapping. */
+	viewerOptions: ViewerOptions;
 }
 
 // ---------------------------------------------------------------------------
@@ -96,6 +104,14 @@ export function useViewerBuildingBlocksCore(
 
 	const zoom = useZoomViewport({ canvasSize, selectedElements: state.selectedElements });
 
+	// Read here (not only inside `PowerPointViewer`) so the headless
+	// building-blocks API's undo stack honors Advanced > "Maximum number of
+	// undos" too, and "End with black slide" below does the same for
+	// presentation setup. Moved above `history`'s construction (originally
+	// declared just before `usePresentationSetup`) so both consumers share
+	// this one `useViewerOptions()` call/store instance.
+	const { options: viewerOptions } = useViewerOptions();
+
 	const history = useEditorHistory({
 		slides,
 		canvasSize,
@@ -107,6 +123,7 @@ export function useViewerBuildingBlocksCore(
 		headerFooter: state.headerFooter,
 		loading,
 		error,
+		maxHistoryEntries: resolveHistoryDepth(viewerOptions),
 		hasActivePointerInteraction,
 		pointerCommitNonce: state.pointerCommitNonce,
 		setSlides: state.setSlides,
@@ -130,32 +147,32 @@ export function useViewerBuildingBlocksCore(
 		documentGridSpacing: state.viewProperties?.gridSpacing,
 	});
 
-	// File > Options > Advanced owns "End with black slide". Reading it here (not
-	// only inside `PowerPointViewer`) keeps the headless building-blocks API on
-	// the same end-of-show behaviour as the packaged component.
-	const { options: viewerOptions } = useViewerOptions();
-
-	const { presentation, annotations, actionSoundHandlerRef } = usePresentationSetup({
-		mode,
-		slides,
-		visibleSlideIndexes,
-		endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
-		activeSlideIndex,
-		containerRef,
-		content,
-		mediaDataUrls: state.mediaDataUrls,
-		presentationProperties: state.presentationProperties,
-		setMode: state.setMode,
-		setActiveSlideIndex: state.setActiveSlideIndex,
-		setSlides: state.setSlides,
-		history,
-		// PowerPoint's bare `J` during a show toggles live captions.
-		onToggleSubtitles: () =>
-			state.setPresentationProperties((prev) => ({
-				...prev,
-				showSubtitles: !prev.showSubtitles,
-			})),
-	});
+	const { presentation, annotations, actionSoundHandlerRef, setExitModeHandler } =
+		usePresentationSetup({
+			mode,
+			slides,
+			visibleSlideIndexes,
+			endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
+			// File > Options > Advanced > "Prompt to keep ink annotations when
+			// exiting" / "Show popup toolbar" while presenting.
+			promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
+			popupToolbarEnabled: viewerOptions.advanced.slideShowShowPopupToolbar,
+			activeSlideIndex,
+			containerRef,
+			content,
+			mediaDataUrls: state.mediaDataUrls,
+			presentationProperties: state.presentationProperties,
+			setMode: state.setMode,
+			setActiveSlideIndex: state.setActiveSlideIndex,
+			setSlides: state.setSlides,
+			history,
+			// PowerPoint's bare `J` during a show toggles live captions.
+			onToggleSubtitles: () =>
+				state.setPresentationProperties((prev) => ({
+					...prev,
+					showSubtitles: !prev.showSubtitles,
+				})),
+		});
 
 	return {
 		state,
@@ -171,7 +188,12 @@ export function useViewerBuildingBlocksCore(
 		presentation,
 		annotations,
 		actionSoundHandlerRef,
+		setExitModeHandler,
 		masterPseudoSlide,
 		gridSpacingPx,
+		// Multiplied against the pre-existing 2x baseline; see the matching
+		// comment in `PowerPointViewer.tsx`.
+		imageExportScale: 2 * resolveImageResolutionScale(viewerOptions),
+		viewerOptions,
 	};
 }

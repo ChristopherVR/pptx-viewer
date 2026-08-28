@@ -30,6 +30,7 @@ import type { ToolbarActionId } from 'pptx-viewer-shared';
  * render `PowerPointViewer` instead.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { SlideCanvasProps } from '../components/canvas/canvas-types';
 import type { ToolbarProps } from '../components/toolbar/toolbar-types';
@@ -123,6 +124,7 @@ export function useViewerBuildingBlocks(
 		onOpenHeaderFooter,
 		onOpenShareDialog,
 	} = input;
+	const { t } = useTranslation();
 
 	// Local content state, synced from the incoming prop but able to diverge
 	// when the built-in File ▸ Open picker loads a different deck in place
@@ -164,6 +166,7 @@ export function useViewerBuildingBlocks(
 		presentation,
 		masterPseudoSlide,
 		gridSpacingPx,
+		viewerOptions,
 	} = core;
 
 	const {
@@ -246,6 +249,8 @@ export function useViewerBuildingBlocks(
 		presentation,
 		findResults: editorOps.findReplace.findResults,
 		findResultIndex: editorOps.findReplace.findResultIndex,
+		viewerOptions,
+		buildHyperlinkConfirmMessage: (url) => `${t('pptx.options.trust.confirmHyperlinks')}\n\n${url}`,
 	});
 
 	return { toolbarProps, canvasProps, mode, loading, error, autosaveStatus };

@@ -15,6 +15,8 @@ export interface UseTableOperationsInput {
 	setTableEditorState: Dispatch<SetStateAction<TableCellEditorState | null>>;
 	ops: ElementOperations;
 	history: EditorHistoryResult;
+	/** AutoCorrect transform applied to committed table-cell text edits. */
+	transformCommittedText?: (text: string) => string;
 }
 
 export interface TableStructHandlers {

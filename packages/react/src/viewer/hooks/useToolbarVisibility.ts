@@ -13,6 +13,8 @@ import { isActionHidden, TOOLBAR_TABS } from 'pptx-viewer-shared';
 import type { ToolbarActionId, ToolbarTabId } from 'pptx-viewer-shared';
 import { useMemo } from 'react';
 
+import { useViewerOptionsContext } from '../components/viewer-options-context';
+
 /** Every ribbon-tab id the shared catalogue knows about (for the guard below). */
 const KNOWN_TAB_IDS = new Set<string>(TOOLBAR_TABS.map((tab) => tab.id));
 
@@ -20,10 +22,12 @@ export interface ToolbarVisibility {
 	/** True when `id` is present in the host's `hiddenActions` list. */
 	isHidden: (id: ToolbarActionId) => boolean;
 	/**
-	 * True when a ribbon-section id should render. React's local
-	 * `ToolbarSection` union has two contextual ids (`text`, `arrange`) that
-	 * are not part of the shared `ToolbarTabId` catalogue; those always
-	 * render since hiding them is outside this feature's scope.
+	 * True when a ribbon-section id should render: neither the host's
+	 * `hiddenActions` list nor the user's own Options > Customize Ribbon
+	 * unticked it. React's local `ToolbarSection` union has two contextual
+	 * ids (`text`, `arrange`) that are not part of the shared `ToolbarTabId`
+	 * catalogue; those always render since hiding them is outside this
+	 * feature's scope.
 	 */
 	isTabVisible: (id: string) => boolean;
 }
@@ -32,22 +36,37 @@ export interface ToolbarVisibility {
  * Pure derivation, extracted from the hook so it can be unit-tested without
  * a React renderer (matches the convention used by the other small
  * derivation hooks in this directory).
+ *
+ * `hiddenTabIds` is the user's own Options > Customize Ribbon selection
+ * (`options.ribbon.hiddenTabIds`); the File tab can never be hidden by it,
+ * matching the shared `resolveVisibleRibbonTabs`.
  */
 export function computeToolbarVisibility(
 	hiddenActions: readonly ToolbarActionId[] | undefined,
+	hiddenTabIds: readonly ToolbarTabId[] = [],
 ): ToolbarVisibility {
 	const isHidden = (id: ToolbarActionId): boolean => isActionHidden(id, hiddenActions);
+	const userHidden = new Set(hiddenTabIds);
+	userHidden.delete('file');
 	const isTabVisible = (id: string): boolean =>
-		!KNOWN_TAB_IDS.has(id) || !isHidden(id as ToolbarTabId);
+		!KNOWN_TAB_IDS.has(id) ||
+		(!isHidden(id as ToolbarTabId) && !userHidden.has(id as ToolbarTabId));
 	return { isHidden, isTabVisible };
 }
 
 /**
  * Builds a stable `{ isHidden, isTabVisible }` pair from the host-supplied
- * `hiddenActions` list. Recomputed only when the list reference changes.
+ * `hiddenActions` list and the live Options > Customize Ribbon selection
+ * (read from `ViewerOptionsContext`, so this reacts to a mid-session change
+ * without every caller having to thread the options snapshot through).
+ * Recomputed only when the list reference or the hidden-tab set changes.
  */
 export function useToolbarVisibility(
 	hiddenActions: readonly ToolbarActionId[] | undefined,
 ): ToolbarVisibility {
-	return useMemo(() => computeToolbarVisibility(hiddenActions), [hiddenActions]);
+	const hiddenTabIds = useViewerOptionsContext().ribbon.hiddenTabIds;
+	return useMemo(
+		() => computeToolbarVisibility(hiddenActions, hiddenTabIds),
+		[hiddenActions, hiddenTabIds],
+	);
 }

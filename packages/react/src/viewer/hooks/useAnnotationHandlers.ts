@@ -153,12 +153,13 @@ export function useAnnotationHandlers(input: UseAnnotationHandlersInput): Annota
 				presentation.enterPresentMode();
 			} else if (mode === 'present' && annotations.hasAnyAnnotations) {
 				stopAllPersistentAudio();
-				pendingModeAfterAnnotationsRef.current = nextMode;
 				if (promptKeepInkAnnotations) {
+					pendingModeAfterAnnotationsRef.current = nextMode;
 					setShowKeepAnnotationsDialog(true);
 				} else {
-					// Option off: keep the ink silently, no dialog.
-					handleKeepAnnotations();
+					// Option off: discard the ink silently, no dialog (PowerPoint parity).
+					annotations.clearAllAnnotations();
+					setMode(nextMode);
 				}
 			} else {
 				if (mode === 'present') {
@@ -167,14 +168,7 @@ export function useAnnotationHandlers(input: UseAnnotationHandlersInput): Annota
 				setMode(nextMode);
 			}
 		},
-		[
-			presentation,
-			mode,
-			annotations.hasAnyAnnotations,
-			promptKeepInkAnnotations,
-			handleKeepAnnotations,
-			setMode,
-		],
+		[presentation, mode, annotations, promptKeepInkAnnotations, setMode],
 	);
 
 	// ── Discard annotations ───────────────────────────────────────

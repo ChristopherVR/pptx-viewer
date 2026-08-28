@@ -129,7 +129,7 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 			{showEdit && !isHidden('share') && (
 				<button
 					type='button'
-					onClick={props.onOpenShareDialog ?? props.onPackageForSharing}
+					onClick={props.onOpenShareDialog}
 					className={cn(btn, 'bg-primary text-white hover:bg-primary/90 px-3')}
 					title={t('pptx.toolbar.share')}
 					aria-label={t('pptx.toolbar.share')}

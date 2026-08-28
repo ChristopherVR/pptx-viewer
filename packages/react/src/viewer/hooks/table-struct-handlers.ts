@@ -40,6 +40,7 @@ export function createTableStructHandlers(input: UseTableOperationsInput): Table
 		setTableEditorState,
 		ops,
 		history,
+		transformCommittedText,
 	} = input;
 
 	// ── Cell text editing ─────────────────────────────────────────────────
@@ -48,13 +49,14 @@ export function createTableStructHandlers(input: UseTableOperationsInput): Table
 		elementId: string,
 		rowIndex: number,
 		colIndex: number,
-		text: string,
+		rawText: string,
 	) => {
 		const el = elementLookup.get(elementId);
 		if (!el || el.type !== 'table') {
 			return;
 		}
 
+		const text = transformCommittedText ? transformCommittedText(rawText) : rawText;
 		const updates: Record<string, unknown> = {};
 
 		// Always update tableData if it exists. Through shared `setCellText`, not

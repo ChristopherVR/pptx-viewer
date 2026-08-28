@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import type { PptxElement, PptxSaveFormat, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 /**
  * PowerPoint Viewer Plugin: Top-level Orchestrator Component.
  *
@@ -22,18 +22,28 @@ import type { PptxElement, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import type {
 	CollabLoadOrigin,
 	CollaborationLivePatcher,
+	ViewerAddinStatus,
 	ViewerSettings,
 } from 'pptx-viewer-shared';
 import {
+	applyAutoCorrect,
 	applyPreferenceToOptions,
 	buildUserFontFaceStyles,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
 	openPptxFile,
+	playFeedbackSound,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	resolve3DRenderingFlags,
 	resolveAutosaveActivation,
 	resolveAutosaveIntervalMs,
+	resolveExpiredAutosaveSnapshots,
+	resolveHistoryDepth,
+	resolveImageResolutionScale,
+	resolveOptionRootClasses,
+	shouldClearAutosaveCacheOnClose,
+	shouldDiscardAutosaveOnSuccessfulSave,
 	shouldShowAutosaveRecoveryPrompt,
 	resolveAutosaveIntervalSeconds,
 	viewerOptionsToPreferences,
@@ -77,6 +87,7 @@ import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { SettingsDialog } from './components/SettingsDialog';
 import { AccountAuthContext } from './components/toolbar/account-auth-context';
+import { ViewerOptionsContext } from './components/viewer-options-context';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
@@ -106,6 +117,7 @@ import { useViewerOptions } from './hooks/useViewerOptions';
 import { useViewerState } from './hooks/useViewerState';
 import { useZoomViewport } from './hooks/useZoomViewport';
 import type { PowerPointViewerProps, PowerPointViewerHandle } from './types';
+import { cn } from './utils';
 
 export type { PowerPointViewerProps, PowerPointViewerHandle } from './types';
 export { getAnimationInitialStyle } from './utils/animation';
@@ -131,7 +143,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			fonts = [],
 			filePath,
 			fileName,
-			canEdit = false,
+			canEdit: hostCanEdit = false,
 			autosave: hostAutosave,
 			autosaveIntervalMs: hostAutosaveIntervalMs,
 			onContentChange,
@@ -302,6 +314,31 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			})();
 		}, []);
 
+		// ── File > Options store ─────────────────────────────────────
+		// Declared here (rather than alongside the legacy ViewerSettings sync
+		// further down) because Protected View, just below, has to gate
+		// `canEdit` before `useViewerState` and the autosave activation read it.
+		const { optionsStore, options: viewerOptions } = useViewerOptions();
+
+		// ── Protected View (Trust Center) ───────────────────────────
+		// Options > Trust Center > "Open presentations in Protected View" forces
+		// every newly opened document read-only, mirroring PowerPoint's yellow
+		// protected-view bar. `canEdit` below becomes the effective value: the
+		// host's own `canEdit` prop, additionally gated by this. A per-session
+		// "Enable Editing" action (the toolbar's read-only badge, wired through
+		// `ViewerToolbarSection`) can drop the override without touching the
+		// option itself; the next document loaded (or a manual re-check of the
+		// option) puts the deck back in protected view.
+		const [protectedViewOverridden, setProtectedViewOverridden] = useState(false);
+		useEffect(() => {
+			setProtectedViewOverridden(false);
+		}, [content]);
+		const isProtectedView = viewerOptions.trust.openInProtectedView && !protectedViewOverridden;
+		const handleEnableEditing = useCallback(() => {
+			setProtectedViewOverridden(true);
+		}, []);
+		const canEdit = hostCanEdit && !isProtectedView;
+
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 		const [isHeaderFooterOpen, setIsHeaderFooterOpen] = useState(false);
@@ -404,11 +441,11 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			[state, reducedMotion, toggleReducedMotion],
 		);
 
-		// ── File > Options store ─────────────────────────────────────
-		// Full PowerPoint Options model; persisted to localStorage by the
-		// shared store. The six legacy `ViewerSettings` toggles stay the
-		// source of behavior, kept in sync with the store both ways.
-		const { optionsStore, options: viewerOptions } = useViewerOptions();
+		// ── Legacy ViewerSettings sync ────────────────────────────────
+		// `optionsStore`/`viewerOptions` are declared earlier (Protected View
+		// needs them before this point). The six legacy `ViewerSettings`
+		// toggles stay the source of behavior, kept in sync with the store
+		// both ways below.
 		const settingsRef = useRef(settings);
 		settingsRef.current = settings;
 		// `handleSettingsChange` depends on `state`, which is a fresh object on
@@ -461,6 +498,36 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
 			})();
 		}, []);
+
+		// File > Options > Save > "cache retention": a one-time sweep per mount is
+		// enough, since a fresh snapshot only ever lands with a fresh timestamp.
+		useEffect(() => {
+			void (async () => {
+				try {
+					const snapshots = await listAutosaveSnapshots();
+					const expired = resolveExpiredAutosaveSnapshots(snapshots, viewerOptions);
+					await Promise.all(expired.map((key) => deleteAutosaveSnapshot(key)));
+				} catch {
+					// Best-effort background maintenance; a blocked IndexedDB skips it.
+				}
+			})();
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- one sweep per mount, not per option edit
+		}, []);
+
+		// File > Options > Save > "clear cache on close": wipe recovery snapshots
+		// when the tab closes/navigates away, and when this viewer unmounts.
+		useEffect(() => {
+			const clearIfRequested = (): void => {
+				if (shouldClearAutosaveCacheOnClose(viewerOptions)) {
+					handleClearOptionsCache();
+				}
+			};
+			window.addEventListener('beforeunload', clearIfRequested);
+			return () => {
+				window.removeEventListener('beforeunload', clearIfRequested);
+				clearIfRequested();
+			};
+		}, [viewerOptions, handleClearOptionsCache]);
 
 		// ── Mobile / responsive ─────────────────────────────────────
 		const mobile = useIsMobile();
@@ -534,6 +601,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			headerFooter: state.headerFooter,
 			loading,
 			error,
+			// File > Options > Advanced > "Maximum number of undos", re-read every
+			// render so a mid-session change reaches the undo stack.
+			maxHistoryEntries: resolveHistoryDepth(viewerOptions),
 			hasActivePointerInteraction,
 			pointerCommitNonce: state.pointerCommitNonce,
 			onDirty: markDocumentDirty,
@@ -548,30 +618,36 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		});
 
 		// ── Presentation mode + annotations ───────────────────────────
-		const { presentation, annotations, actionSoundHandlerRef } = usePresentationSetup({
-			mode,
-			slides,
-			visibleSlideIndexes,
-			// File > Options > Advanced > "End with black slide". Off means the show
-			// exits straight to the editor instead of raising the black end screen.
-			endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
-			activeSlideIndex,
-			containerRef,
-			content,
-			mediaDataUrls: state.mediaDataUrls,
-			presentationProperties: state.presentationProperties,
-			setMode: state.setMode,
-			setActiveSlideIndex: state.setActiveSlideIndex,
-			setSlides: state.setSlides,
-			history,
-			// PowerPoint's bare `J` during a show toggles live captions. It resolves
-			// in the shared slide-show keymap; this is the state it has to reach.
-			onToggleSubtitles: () =>
-				state.setPresentationProperties((prev) => ({
-					...prev,
-					showSubtitles: !prev.showSubtitles,
-				})),
-		});
+		const { presentation, annotations, actionSoundHandlerRef, setExitModeHandler } =
+			usePresentationSetup({
+				mode,
+				slides,
+				visibleSlideIndexes,
+				// File > Options > Advanced > "End with black slide". Off means the show
+				// exits straight to the editor instead of raising the black end screen.
+				endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
+				// File > Options > Advanced > "Prompt to keep ink annotations when
+				// exiting". Off skips the keep/discard dialog entirely.
+				promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
+				// File > Options > Advanced > "Show popup toolbar" while presenting.
+				popupToolbarEnabled: viewerOptions.advanced.slideShowShowPopupToolbar,
+				activeSlideIndex,
+				containerRef,
+				content,
+				mediaDataUrls: state.mediaDataUrls,
+				presentationProperties: state.presentationProperties,
+				setMode: state.setMode,
+				setActiveSlideIndex: state.setActiveSlideIndex,
+				setSlides: state.setSlides,
+				history,
+				// PowerPoint's bare `J` during a show toggles live captions. It resolves
+				// in the shared slide-show keymap; this is the state it has to reach.
+				onToggleSubtitles: () =>
+					state.setPresentationProperties((prev) => ({
+						...prev,
+						showSubtitles: !prev.showSubtitles,
+					})),
+			});
 
 		// ── Touch gestures: pinch-to-zoom on canvas viewport ──────
 		useTouchGestures({
@@ -681,13 +757,19 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			canvasSize,
 			dialogs,
 			presentation,
-			userName: authorName ?? collaboration?.userName,
+			// Comment/reply authorship: an explicit host `authorName` or an active
+			// collaboration session's identity wins; otherwise fall back to the
+			// user's own Options > General > "User name" before the generic "You".
+			userName:
+				authorName ?? collaboration?.userName ?? (viewerOptions.general.userName || undefined),
 			handlerRef: actionSoundHandlerRef,
+			// Options > Proofing > AutoCorrect, applied to committed inline-edit text.
+			transformCommittedText: (text) => applyAutoCorrect(text, viewerOptions.proofing),
 		});
 
 		// ── Integration (pointers, lifecycle, I/O, annotations, etc.) ─
 		const {
-			exportHandlers,
+			exportHandlers: rawExportHandlers,
 			printHandlers,
 			themeHandlers,
 			propertyHandlers,
@@ -723,7 +805,20 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				hostIntervalMs: hostAutosaveIntervalMs,
 				optionsIntervalSeconds: resolveAutosaveIntervalSeconds(viewerOptions),
 			}),
+			// Trust Center > "Allow external content": core defaults this to false
+			// (SSRF/privacy-safe), so only an explicit `true` here lets remote
+			// http(s) image sources actually load.
+			allowExternalImages: viewerOptions.trust.allowExternalContent,
 			canEdit,
+			promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
+			// File > Options > Advanced > "Image Size and Quality" (do-not-compress /
+			// default resolution), resolved to a raster-scale multiplier for
+			// PNG/PDF export and copy-slide-as-image. Multiplied against the
+			// pre-existing 2x baseline (not used outright) so the default "High
+			// fidelity" preset (raw multiplier 1) keeps today's export quality
+			// instead of silently downgrading it; the explicit ppi presets still
+			// scale proportionally from that baseline. Mirrors the other bindings.
+			imageExportScale: 2 * resolveImageResolutionScale(viewerOptions),
 			mode,
 			slides,
 			activeSlide,
@@ -741,6 +836,36 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onSelectionChange,
 			onSlideCountChange,
 		});
+
+		// Options > Accessibility > "feedback with sound", and Options > Save >
+		// "keep the last AutoRecover version": once a `.pptx` Save/Save-As
+		// actually lands, play the completion cue and, unless the user asked to
+		// keep it, discard the crash-recovery snapshot for this file (the real
+		// file on disk already has the work).
+		const exportHandlers = useMemo(() => {
+			const afterSuccessfulSave = (format: PptxSaveFormat): void => {
+				playFeedbackSound(viewerOptions);
+				if (format === 'pptx' && filePath && shouldDiscardAutosaveOnSuccessfulSave(viewerOptions)) {
+					void deleteAutosaveSnapshot(filePath);
+				}
+			};
+			const handleSaveAsFormat = async (format: PptxSaveFormat): Promise<void> => {
+				await rawExportHandlers.handleSaveAsFormat(format);
+				afterSuccessfulSave(format);
+			};
+			return {
+				...rawExportHandlers,
+				handleSaveAsFormat,
+				handleSaveAsPptx: () => void handleSaveAsFormat('pptx'),
+				handleSaveAsPpsx: () => void handleSaveAsFormat('ppsx'),
+				handleSaveAsPptm: () => void handleSaveAsFormat('pptm'),
+			};
+		}, [rawExportHandlers, viewerOptions, filePath]);
+
+		// Route keyboard/end-of-show exits (Escape, the timed advance past the
+		// last slide) through the same keep/discard-ink-annotations dialog as the
+		// toolbar's exit button, rather than the two paths silently diverging.
+		setExitModeHandler(handleSetMode);
 
 		// ── Layout switching (Home > Layout) ────────────────────────
 		// Backs the Layout dropdown's entries, which re-map the active slide onto
@@ -820,13 +945,31 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			mode === 'edit' && !isMobile && !dialogs.isNarrowViewport && state.isSlidesPaneOpen;
 		const showMasterPane = mode === 'master' && !isMobile && state.isSlidesPaneOpen;
 
+		// ── Add-ins status (File > Options > Add-ins) ────────────────
+		// Real availability signals rather than the shared catalog's `active:
+		// true` fallback for everything: SmartArt 3D reflects the same
+		// host-opt-in + Advanced > "Disable 3D rendering" gate the SmartArt3D
+		// scene itself reads, collaboration reflects whether the host actually
+		// configured a room for this session, and locales reflects whether more
+		// than the built-in English pack is registered. The EMF/MTX converters
+		// and the 3D model renderer have no runtime on/off signal to read (they
+		// are always-on infrastructure), so they keep the catalog default.
+		const addinStatus: ViewerAddinStatus = {
+			smartArt3d: smartArt3D && !viewerOptions.advanced.disable3DRendering,
+			collaboration: Boolean(collaboration),
+			locales: resolvedLocales.length > 1,
+		};
+
 		// ── JSX ───────────────────────────────────────────────────────
 		const viewerContent = (
 			<div
 				style={themeStyle}
 				data-pptx-viewer=''
 				aria-busy={loading}
-				className='h-full w-full bg-background text-foreground relative'
+				className={cn(
+					'h-full w-full bg-background text-foreground relative',
+					...resolveOptionRootClasses(viewerOptions, 'pptx'),
+				)}
 			>
 				{/* Inner measured container: only layout content (toolbar, canvas,
 				    bottom panels) lives here. Fixed-position dialogs/overlays are
@@ -895,9 +1038,12 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										}
 									}}
 									hiddenActions={hiddenActions}
+									recentPresentationsCount={viewerOptions.advanced.recentPresentationsCount}
 									aiEnabled={Boolean(ai)}
 									isAiPanelOpen={aiPanel.isOpen}
 									onToggleAiPanel={aiPanel.toggle}
+									isProtectedView={isProtectedView}
+									onEnableEditing={hostCanEdit ? handleEnableEditing : undefined}
 								/>
 							)}
 
@@ -1048,6 +1194,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					}
 					onResetOptions={(group) => optionsStore.reset(group)}
 					onClearCache={handleClearOptionsCache}
+					addinStatus={addinStatus}
 					themeKey={themeKey}
 					availableThemes={themeCatalog}
 					onSelectTheme={handleThemeChange}
@@ -1172,45 +1319,63 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// compact mobile UI on a desktop viewport. When `collaboration` is
 		// undefined the provider stays dormant (no transport, null context), so
 		// its sync/follow children below are inert no-ops.
+		//
+		// Each 3D flag ANDs the host's own opt-in prop with the viewer user's
+		// Options > Advanced > "Disable 3D rendering" override, so a user on
+		// underpowered hardware can fall back to flat 2D even in a deck the host
+		// enabled 3D for. See `resolve3DRenderingFlags`.
+		const effective3D = resolve3DRenderingFlags(
+			{ smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D },
+			viewerOptions,
+		);
 		return (
-			<AccountAuthContext.Provider value={accountAuth}>
-				<SmartArt3DContext.Provider value={smartArt3D}>
-					<SurfaceChart3DContext.Provider value={surfaceChart3D}>
-						<BarChart3DContext.Provider value={barChart3D}>
-							<LineChart3DContext.Provider value={lineChart3D}>
-								<AreaChart3DContext.Provider value={areaChart3D}>
-									<PieChart3DContext.Provider value={pieChart3D}>
-										<ViewerThemeProvider theme={effectiveTheme}>
-											<CollaborationProvider
-												config={collaboration}
-												canvasWidth={canvasSize.width}
-												canvasHeight={canvasSize.height}
-											>
-												<CollaborationDocumentSync
-													slides={slides}
-													templateElementsBySlideId={templateElementsBySlideId}
-													setSlides={state.setSlides}
+			// `ViewerOptionsContext` is how every deeply-nested chrome piece (the
+			// toolbar, title bar, Quick Access strip, print dialog, canvas
+			// hyperlink gate, share dialog) reads the live File > Options
+			// snapshot without threading it through each intermediate prop list.
+			// Nothing previously provided it, so every one of those consumers was
+			// silently reading `DEFAULT_VIEWER_OPTIONS` forever, no matter what
+			// the user changed in the Options dialog.
+			<ViewerOptionsContext.Provider value={viewerOptions}>
+				<AccountAuthContext.Provider value={accountAuth}>
+					<SmartArt3DContext.Provider value={effective3D.smartArt3D}>
+						<SurfaceChart3DContext.Provider value={effective3D.surfaceChart3D}>
+							<BarChart3DContext.Provider value={effective3D.barChart3D}>
+								<LineChart3DContext.Provider value={effective3D.lineChart3D}>
+									<AreaChart3DContext.Provider value={effective3D.areaChart3D}>
+										<PieChart3DContext.Provider value={effective3D.pieChart3D}>
+											<ViewerThemeProvider theme={effectiveTheme}>
+												<CollaborationProvider
 													config={collaboration}
-													content={content}
-													loadVersion={loadVersion}
-													loadOrigin={loadOrigin}
-													livePatcher={state.livePatcher}
-												/>
-												<CollaborationFollowLayer
-													activeSlideIndex={activeSlideIndex}
-													setActiveSlideIndex={state.setActiveSlideIndex}
-													slideCount={slides.length}
-												/>
-												{viewerContent}
-											</CollaborationProvider>
-										</ViewerThemeProvider>
-									</PieChart3DContext.Provider>
-								</AreaChart3DContext.Provider>
-							</LineChart3DContext.Provider>
-						</BarChart3DContext.Provider>
-					</SurfaceChart3DContext.Provider>
-				</SmartArt3DContext.Provider>
-			</AccountAuthContext.Provider>
+													canvasWidth={canvasSize.width}
+													canvasHeight={canvasSize.height}
+												>
+													<CollaborationDocumentSync
+														slides={slides}
+														templateElementsBySlideId={templateElementsBySlideId}
+														setSlides={state.setSlides}
+														config={collaboration}
+														content={content}
+														loadVersion={loadVersion}
+														loadOrigin={loadOrigin}
+														livePatcher={state.livePatcher}
+													/>
+													<CollaborationFollowLayer
+														activeSlideIndex={activeSlideIndex}
+														setActiveSlideIndex={state.setActiveSlideIndex}
+														slideCount={slides.length}
+													/>
+													{viewerContent}
+												</CollaborationProvider>
+											</ViewerThemeProvider>
+										</PieChart3DContext.Provider>
+									</AreaChart3DContext.Provider>
+								</LineChart3DContext.Provider>
+							</BarChart3DContext.Provider>
+						</SurfaceChart3DContext.Provider>
+					</SmartArt3DContext.Provider>
+				</AccountAuthContext.Provider>
+			</ViewerOptionsContext.Provider>
 		);
 	},
 );

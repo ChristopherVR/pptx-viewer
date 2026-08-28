@@ -92,6 +92,9 @@ export function useViewerBuildingBlocksState(
 		annotations,
 		actionSoundHandlerRef,
 		gridSpacingPx,
+		imageExportScale,
+		setExitModeHandler,
+		viewerOptions,
 	} = core;
 
 	const dialogs = useViewerDialogs({
@@ -178,7 +181,13 @@ export function useViewerBuildingBlocksState(
 		content,
 		filePath,
 		autosaveEnabled,
+		// Trust Center > "Allow external content": same gate `PowerPointViewer`
+		// applies, so the headless building-blocks API loads http(s) images
+		// under the same default-off, core-side SSRF/privacy guard.
+		allowExternalImages: viewerOptions.trust.allowExternalContent,
 		canEdit,
+		promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
+		imageExportScale,
 		mode,
 		slides,
 		activeSlide,
@@ -196,6 +205,10 @@ export function useViewerBuildingBlocksState(
 		onSelectionChange,
 		onSlideCountChange,
 	});
+
+	// Route keyboard/end-of-show exits through the same keep/discard-ink dialog
+	// as the toolbar's exit button (see `usePresentationSetup.setExitModeHandler`).
+	setExitModeHandler(handleSetMode);
 
 	return {
 		dialogs,

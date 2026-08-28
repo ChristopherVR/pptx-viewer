@@ -59,7 +59,21 @@ export interface UseViewerIntegrationInput {
 	 * Optional: omitting it keeps the shared 120s AutoRecover default.
 	 */
 	autosaveIntervalMs?: number;
+	/** File > Options > Trust Center > "Allow external content"; forwarded to `useContentLifecycle`. */
+	allowExternalImages?: boolean;
 	canEdit: boolean;
+	/**
+	 * Options > Advanced > "Prompt to keep ink annotations when exiting"
+	 * (default true). When false, exiting a slide show with annotations
+	 * skips the dialog and keeps them silently.
+	 */
+	promptKeepInkAnnotations?: boolean;
+	/**
+	 * File > Options > Advanced > "Image Size and Quality", resolved via the
+	 * shared `resolveImageResolutionScale`. Threaded into PNG/PDF export and
+	 * copy-slide-as-image so the option actually controls output resolution.
+	 */
+	imageExportScale?: number;
 	mode: ViewerState['mode'];
 	slides: PptxSlide[];
 	activeSlide: PptxSlide | undefined;
@@ -128,7 +142,10 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		autosaveEnabled,
 		autosaveAllowed = true,
 		autosaveIntervalMs,
+		allowExternalImages,
 		canEdit,
+		promptKeepInkAnnotations,
+		imageExportScale,
 		mode,
 		slides,
 		activeSlide,
@@ -198,6 +215,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			setIsEncryptedDialogOpen,
 			password: dialogs.presentationPassword ?? undefined,
 			onContentApplied: () => setLoadVersion((v) => v + 1),
+			allowExternalImages,
 		},
 	);
 
@@ -217,6 +235,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		setContent,
 		onContentChange,
 		password: dialogs.presentationPassword ?? undefined,
+		imageExportScale,
 	});
 
 	// ── Mode switching with annotation awareness ──────────────────
@@ -234,6 +253,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		history,
 		setMode: state.setMode,
 		setSlides: state.setSlides,
+		promptKeepInkAnnotations,
 	});
 
 	// ── Recovery detection ────────────────────────────────────────

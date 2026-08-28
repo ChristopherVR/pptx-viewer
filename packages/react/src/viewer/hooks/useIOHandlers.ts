@@ -44,6 +44,8 @@ export interface UseIOHandlersInput {
 	setContent: React.Dispatch<React.SetStateAction<ArrayBuffer | Uint8Array | null>>;
 	onContentChange: ((content: Uint8Array) => void) | undefined;
 	password?: string;
+	/** File > Options > Advanced > "Image Size and Quality" raster-scale multiplier. */
+	imageExportScale?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,11 +74,11 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		ops,
 		zoom,
 		handlerRef,
-		serializeSlides,
 		serializeForRecovery,
 		setContent,
 		onContentChange,
 		password,
+		imageExportScale,
 	} = input;
 
 	const exportHandlers = useExportHandlers({
@@ -88,7 +90,6 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		canvasStageRef: zoom.canvasStageRef,
 		setActiveSlideIndex: state.setActiveSlideIndex,
 		handlerRef,
-		serializeSlides,
 		headerFooter: state.headerFooter as unknown as Record<string, unknown>,
 		presentationProperties: state.presentationProperties as unknown as Record<string, unknown>,
 		customShows: state.customShows,
@@ -106,6 +107,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		canvasSize,
 		slideSizeEmu: state.slideSizeEmu,
 		password,
+		imageExportScale,
 	});
 
 	const printHandlers = usePrintHandlers({

@@ -33,6 +33,7 @@ import {
 import { useCallback } from 'react';
 
 import { useChartPartSelection } from '../chart-part-selection';
+import { useViewerOptionsContext } from '../viewer-options-context';
 import { ChartAxisOptions } from './ChartAxisOptions';
 import { ChartAxisStyleOptions } from './ChartAxisStyleOptions';
 import { ChartComboTypeOptions } from './ChartComboTypeOptions';
@@ -61,6 +62,10 @@ export interface ChartDataPanelProps {
 // ---------------------------------------------------------------------------
 export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: ChartDataPanelProps) {
 	const chartData = selectedElement.chartData;
+	// File > Options > Advanced > "Properties follow chart data point for
+	// current workbook": whether per-point manual formatting re-indexes with
+	// the underlying data (default) or stays pinned to its old position.
+	const followDataPoint = useViewerOptionsContext().advanced.chartPropertiesFollowDataPoint;
 	// Part selected by clicking a mark on the canvas chart, if it is this chart's.
 	const { selection: partSelection } = useChartPartSelection();
 	const canvasPart = partSelection?.elementId === selectedElement.id ? partSelection.part : null;
@@ -203,12 +208,12 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 
 	const removeCategory = useCallback(
 		(catIndex: number) => {
-			const next = chartData && removeChartCategory(chartData, catIndex);
+			const next = chartData && removeChartCategory(chartData, catIndex, followDataPoint);
 			if (next) {
 				replaceChartData(next);
 			}
 		},
-		[chartData, replaceChartData],
+		[chartData, followDataPoint, replaceChartData],
 	);
 
 	const addSeries = useCallback(() => {

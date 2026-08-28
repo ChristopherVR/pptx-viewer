@@ -94,4 +94,13 @@ describe('the quick-access strip follows File > Options', () => {
 			translationsEn['pptx.toolbar.redo'],
 		]);
 	});
+
+	it('suppresses the configured extras when position is "below" (they render under the ribbon instead)', () => {
+		const names = quickAccessNames(render(withQuickAccess({ position: 'below' })));
+		expect(names).toStrictEqual([
+			translationsEn['pptx.titleBar.save'],
+			translationsEn['pptx.toolbar.undo'],
+			translationsEn['pptx.toolbar.redo'],
+		]);
+	});
 });

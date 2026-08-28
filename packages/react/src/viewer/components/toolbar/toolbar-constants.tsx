@@ -15,7 +15,6 @@ import {
 	LuDatabase,
 	LuDownload,
 	LuFileText,
-	LuFolderOpen,
 	LuImage,
 	LuInfo,
 	LuItalic,
@@ -126,11 +125,6 @@ export const OV: Array<{ labelKey: string; i: React.ReactNode; k: string }> = [
 		k: 'gif',
 		labelKey: 'pptx.ribbon.exportGif',
 		i: <LuImage className={`${ics} text-muted-foreground`} />,
-	},
-	{
-		k: 'package',
-		labelKey: 'pptx.file.packageTooltip',
-		i: <LuFolderOpen className={`${ics} text-muted-foreground`} />,
 	},
 	{
 		k: 'pptx',

@@ -30,6 +30,15 @@ export interface ToolbarProps {
 	fileName?: string;
 	mode: ViewerMode;
 	canEdit: boolean;
+	/**
+	 * True when `canEdit` is false because Trust Center > "Open presentations
+	 * in Protected View" is on (not because the host itself withheld edit
+	 * permission). Turns the toolbar's read-only badge into an "Enable
+	 * Editing" action.
+	 */
+	isProtectedView?: boolean;
+	/** Drops the Protected View override for this session. Only offered when `isProtectedView` is true. */
+	onEnableEditing?: () => void;
 	isNarrowViewport: boolean;
 	isSidebarCollapsed: boolean;
 	isInspectorPaneOpen: boolean;
@@ -130,7 +139,6 @@ export interface ToolbarProps {
 	onExportVideo: () => void;
 	onExportGif: () => void;
 	onExportJson: () => void;
-	onPackageForSharing: () => void;
 	onOpenShareDialog?: () => void;
 	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;
@@ -233,10 +241,19 @@ export interface ToolbarProps {
 	onPresentationPropertiesChange?: (updates: Partial<PptxPresentationProperties>) => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. See `PowerPointViewerProps.hiddenActions`. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** File > Options > Advanced > "Quickly access this number of Recent Documents". */
+	recentPresentationsCount?: number;
 	/** Whether the AI assistant is available (the host passed the `ai` prop). */
 	aiEnabled?: boolean;
 	/** Whether the AI assistant panel is currently open. */
 	isAiPanelOpen?: boolean;
 	/** Toggle the AI assistant panel. */
 	onToggleAiPanel?: () => void;
+	/**
+	 * Run a Quick Access command beyond the dedicated Save/Undo/Redo trio, by
+	 * catalog id. Used for the below-ribbon strip when Options > Quick Access
+	 * Toolbar > position is "below" (the same handler `TitleBar` uses for its
+	 * own inline strip when position is "above").
+	 */
+	onQuickCommand?: (id: string) => void;
 }

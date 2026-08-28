@@ -1,5 +1,5 @@
 /**
- * Slide export utilities: PNG, PDF, SVG, Video (WebM), GIF, and Package export.
+ * Slide export utilities: PNG, PDF, SVG, Video (WebM), and GIF.
  *
  * Barrel re-export. Implementation split into:
  *   - export-helpers.ts   (types + shared helpers)
@@ -7,7 +7,6 @@
  *   - export-svg.ts       (SVG vector export)
  *   - export-video.ts     (WebM video export)
  *   - export-gif.ts       (animated GIF export)
- *   - export-package.ts   (media asset collection + readme)
  */
 
 export type {
@@ -34,9 +33,6 @@ export { exportAllSlidesAsVideo } from './export-video';
 
 export type { GifExportOptions } from './export-gif';
 export { exportAllSlidesAsGif } from './export-gif';
-
-export type { MediaAssetInfo, PackageExportOptions } from './export-package';
-export { collectMediaAssets, generatePackageReadme } from './export-package';
 
 export type { SvgExportSingleSlideOptions, SvgExportAllOptions, FontFaceEntry } from './export-svg';
 export {

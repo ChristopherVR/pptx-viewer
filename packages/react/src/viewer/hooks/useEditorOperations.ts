@@ -265,6 +265,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setTableEditorState: state.setTableEditorState,
 		ops,
 		history,
+		transformCommittedText,
 	});
 
 	// Combined text style updater: if a table cell is active, apply formatting

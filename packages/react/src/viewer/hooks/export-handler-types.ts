@@ -24,7 +24,6 @@ export interface UseExportHandlersInput {
 	canvasStageRef: RefObject<HTMLDivElement | null>;
 	setActiveSlideIndex: Dispatch<SetStateAction<number>>;
 	handlerRef: RefObject<PptxHandler | null>;
-	serializeSlides: () => Promise<Uint8Array | null>;
 	/** State from the viewer needed for save-as */
 	headerFooter: Record<string, unknown>;
 	presentationProperties: Record<string, unknown>;
@@ -56,6 +55,13 @@ export interface UseExportHandlersInput {
 	 */
 	slideSizeEmu?: SlideSizeEmu | undefined;
 	password?: string;
+	/**
+	 * File > Options > Advanced > "Image Size and Quality"
+	 * (`resolveImageResolutionScale`), the raster-scale multiplier for PNG/PDF
+	 * export and copy-slide-as-image. Defaults to 2 (the pre-existing hardcoded
+	 * behavior) when omitted.
+	 */
+	imageExportScale?: number;
 }
 
 export interface ExportHandlersResult {
@@ -66,7 +72,6 @@ export interface ExportHandlersResult {
 	handleExportVideo: () => Promise<void>;
 	handleExportGif: () => Promise<void>;
 	handleExportJson: () => void;
-	handlePackageForSharing: () => Promise<void>;
 	handleSaveAsFormat: (format: PptxSaveFormat) => Promise<void>;
 	handleSaveAsPptx: () => void;
 	handleSaveAsPpsx: () => void;

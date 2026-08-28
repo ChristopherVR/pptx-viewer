@@ -47,4 +47,23 @@ describe('computeToolbarVisibility', () => {
 		expect(isHidden('record')).toBeTruthy();
 		expect(isTabVisible('record')).toBeFalsy();
 	});
+
+	it('hides a ribbon tab unticked in Options > Customize Ribbon (hiddenTabIds)', () => {
+		const { isTabVisible } = computeToolbarVisibility(undefined, ['insert', 'design']);
+		expect(isTabVisible('insert')).toBeFalsy();
+		expect(isTabVisible('design')).toBeFalsy();
+		expect(isTabVisible('home')).toBeTruthy();
+	});
+
+	it('never hides the File tab via hiddenTabIds, even if listed', () => {
+		const { isTabVisible } = computeToolbarVisibility(undefined, ['file']);
+		expect(isTabVisible('file')).toBeTruthy();
+	});
+
+	it('combines hiddenActions and hiddenTabIds: either can hide a tab', () => {
+		const { isTabVisible } = computeToolbarVisibility(['review'], ['insert']);
+		expect(isTabVisible('review')).toBeFalsy();
+		expect(isTabVisible('insert')).toBeFalsy();
+		expect(isTabVisible('home')).toBeTruthy();
+	});
 });

@@ -4,6 +4,7 @@ import {
 	buildFieldSubstitutionContext,
 	isPresentationAdvanceClick,
 	PRESENT_TOOLBAR_CLASSES,
+	resolvePresentationAction,
 	shouldConfirmExternalHyperlink,
 	toggleBlackboard,
 } from 'pptx-viewer-shared';
@@ -193,6 +194,16 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	const handleActionClick = useCallback(
 		(_elementId: string, action: PptxAction) => {
 			if (mode === 'present') {
+				// `runPresentationAction` (inside `handlePresentationAction`) opens an
+				// action's own external hyperlink unconditionally: it has no host hook
+				// for the Trust Center gate. Resolve the action here first so an
+				// `openUrl` intent goes through `openExternalUrl`'s confirm check
+				// instead, same as an on-slide `<a>` hyperlink click already does.
+				const resolved = resolvePresentationAction(action, { slideCount: slides.length });
+				if (resolved.intent.kind === 'openUrl') {
+					openExternalUrl(resolved.intent.url);
+					return;
+				}
 				presentation.handlePresentationAction(action);
 			} else if (action.url) {
 				// In editing/view mode, only open external URLs (Ctrl+Click).
@@ -200,7 +211,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				openExternalUrl(action.url);
 			}
 		},
-		[mode, presentation, openExternalUrl],
+		[mode, presentation, openExternalUrl, slides.length],
 	);
 
 	const handleHyperlinkClick = useCallback(

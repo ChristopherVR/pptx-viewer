@@ -1,9 +1,9 @@
 /**
- * useExportHandlers: Export to PNG, PDF, Video, GIF, "Package for Sharing",
- * "Copy slide as image", and "Save As" format handlers.
+ * useExportHandlers: Export to PNG, PDF, Video, GIF, "Copy slide as image",
+ * and "Save As" format handlers.
  *
  * Types live in ./export-handler-types.ts;
- * Save-as / packaging logic lives in ./useExportSaveAs.ts.
+ * Save-as logic lives in ./useExportSaveAs.ts.
  */
 import {
 	EXPORT_ASSEMBLING_PERCENT,
@@ -41,7 +41,6 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		canvasStageRef,
 		setActiveSlideIndex,
 		handlerRef,
-		serializeSlides,
 		headerFooter,
 		presentationProperties,
 		customShows,
@@ -59,6 +58,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		canvasSize,
 		slideSizeEmu,
 		password,
+		imageExportScale,
 	} = input;
 
 	const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -67,17 +67,8 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 	const [exportStatusMessage, setExportStatusMessage] = useState('');
 	const exportAbortRef = useRef<AbortController | null>(null);
 
-	const modalControls = {
-		setExportModalOpen,
-		setExportModalTitle,
-		setExportProgress,
-		setExportStatusMessage,
-		exportAbortRef,
-	};
-
 	const {
 		handleExportJson,
-		handlePackageForSharing,
 		handleSaveAsFormat,
 		handleSaveAsPptx,
 		handleSaveAsPpsx,
@@ -87,7 +78,6 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		templateElementsBySlideId,
 		filePath,
 		handlerRef,
-		serializeSlides,
 		headerFooter,
 		presentationProperties,
 		customShows,
@@ -104,7 +94,6 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		theme,
 		canvasSize,
 		slideSizeEmu,
-		modalControls,
 		password,
 	});
 
@@ -116,11 +105,12 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		try {
 			await exportSlideAsPng(stageEl, activeSlideIndex, {
 				backgroundColor: activeSlide?.backgroundColor,
+				scale: imageExportScale,
 			});
 		} catch (err) {
 			console.error('[PowerPointViewer] PNG export failed:', err);
 		}
-	}, [canvasStageRef, activeSlideIndex, activeSlide?.backgroundColor]);
+	}, [canvasStageRef, activeSlideIndex, activeSlide?.backgroundColor, imageExportScale]);
 
 	const handleExportPdf = useCallback(async () => {
 		if (!canvasStageRef.current) {
@@ -140,7 +130,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 				activeSlideIndex,
 				'presentation.pdf',
 				{
-					scale: 2,
+					scale: imageExportScale,
 					onProgress: (current, total) => {
 						setExportProgress(slideProgressPercent(current, total));
 						setExportStatusMessage(slideStatusLabel('Rendering', current, total));
@@ -163,7 +153,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			exportAbortRef.current = null;
 			setExportModalOpen(false);
 		}
-	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex]);
+	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex, imageExportScale]);
 
 	const handleExportNotesPdf = useCallback(async () => {
 		if (!canvasStageRef.current) {
@@ -185,7 +175,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 				slideNotes,
 				'presentation-notes.pdf',
 				{
-					scale: 2,
+					scale: imageExportScale,
 					onProgress: (current, total) => {
 						setExportProgress(slideProgressPercent(current, total));
 						setExportStatusMessage(slideStatusLabel('Rendering', current, total));
@@ -208,7 +198,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			exportAbortRef.current = null;
 			setExportModalOpen(false);
 		}
-	}, [canvasStageRef, slides, setActiveSlideIndex, activeSlideIndex]);
+	}, [canvasStageRef, slides, setActiveSlideIndex, activeSlideIndex, imageExportScale]);
 
 	const handleCopySlideAsImage = useCallback(async () => {
 		const stageEl = canvasStageRef.current;
@@ -218,11 +208,12 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		try {
 			await copySlideToClipboard(stageEl, {
 				backgroundColor: activeSlide?.backgroundColor,
+				scale: imageExportScale,
 			});
 		} catch (err) {
 			console.error('[PowerPointViewer] Copy slide as image failed:', err);
 		}
-	}, [canvasStageRef, activeSlide?.backgroundColor]);
+	}, [canvasStageRef, activeSlide?.backgroundColor, imageExportScale]);
 
 	const handleExportVideo = useCallback(async () => {
 		if (!canvasStageRef.current) {
@@ -323,7 +314,6 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handleExportVideo,
 		handleExportGif,
 		handleExportJson,
-		handlePackageForSharing,
 		handleSaveAsFormat,
 		handleSaveAsPptx,
 		handleSaveAsPpsx,

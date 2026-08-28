@@ -342,7 +342,6 @@ function MobileSectionBody({
 						onExportVideo={p.onExportVideo}
 						onExportGif={p.onExportGif}
 						onExportJson={p.onExportJson}
-						onPackageForSharing={p.onPackageForSharing}
 						onSaveAsPptx={p.onSaveAsPptx}
 						onSaveAsPpsx={p.onSaveAsPpsx}
 						onSaveAsPptm={p.onSaveAsPptm}
@@ -357,6 +356,7 @@ function MobileSectionBody({
 						onOpenDigitalSignatures={p.onOpenDigitalSignatures}
 						onOpenVersionHistory={p.onToggleVersionHistory}
 						hiddenActions={p.hiddenActions}
+						recentPresentationsCount={p.recentPresentationsCount}
 					/>
 				</div>
 			);

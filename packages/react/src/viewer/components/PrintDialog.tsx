@@ -4,6 +4,7 @@
  * Options: print what (slides/handouts/notes/outline), slides per page,
  * orientation, colour mode, frame slides, slide range.
  */
+import { resolveDefaultPrintSettings } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPrinter, LuX } from 'react-icons/lu';
@@ -20,6 +21,7 @@ import type {
 } from './print-dialog-types';
 import { HANDOUT_OPTIONS } from './print-dialog-types';
 import { PrintSettingsPanel } from './PrintSettingsPanel';
+import { useViewerOptionsContext } from './viewer-options-context';
 
 // ---------------------------------------------------------------------------
 // Component
@@ -37,11 +39,22 @@ export function PrintDialog({
 	const { t } = useTranslation();
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 
+	// File > Options > Advanced > Print. `undefined` (Options > "Use the most
+	// recently used print settings") keeps this dialog's own sticky in-session
+	// state, since its component instance stays mounted (returns `null` while
+	// `open` is false) rather than remounting, so React state already IS the
+	// "most recent settings" store across opens within one viewer session.
+	const printOptionDefaults = resolveDefaultPrintSettings(useViewerOptionsContext());
+
 	// ── State ───────────────────────────────────────────────────────────
-	const [printWhat, setPrintWhat] = useState<PrintWhat>('slides');
+	const [printWhat, setPrintWhat] = useState<PrintWhat>(printOptionDefaults?.printWhat ?? 'slides');
 	const [orientation, setOrientation] = useState<PrintOrientation>('landscape');
-	const [colorMode, setColorMode] = useState<PrintColorMode>('color');
-	const [frameSlides, setFrameSlides] = useState(defaultFrameSlides ?? false);
+	const [colorMode, setColorMode] = useState<PrintColorMode>(
+		printOptionDefaults?.colorMode ?? 'color',
+	);
+	const [frameSlides, setFrameSlides] = useState(
+		printOptionDefaults?.frameSlides ?? defaultFrameSlides ?? false,
+	);
 	const [slidesPerPage, setSlidesPerPage] = useState<HandoutSlidesPerPage>(
 		(HANDOUT_OPTIONS.includes(defaultSlidesPerPage as HandoutSlidesPerPage)
 			? defaultSlidesPerPage
@@ -110,6 +123,9 @@ export function PrintDialog({
 			slideRange,
 			customRangeFrom: Math.max(1, Math.min(customFrom, slides.length)),
 			customRangeTo: Math.max(1, Math.min(customTo, slides.length)),
+			// Options > Advanced > "Print scale to fit"; no dialog control of its
+			// own (PowerPoint keeps this an Options default, not a per-job choice).
+			scaleToFit: printOptionDefaults?.scaleToFit ?? true,
 		});
 	}, [
 		printWhat,
@@ -121,6 +137,7 @@ export function PrintDialog({
 		customFrom,
 		customTo,
 		slides.length,
+		printOptionDefaults?.scaleToFit,
 		onPrint,
 	]);
 

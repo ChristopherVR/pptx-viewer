@@ -4,7 +4,7 @@ import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
  * `usePresentationMode` together with the annotation-aware mode-switching
  * logic.  Returns both hook results plus the shared `actionSoundHandlerRef`.
  */
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import type { ViewerMode } from '../types-core';
 import { playAnimationSound, stopAnimationSound } from '../utils/animation-sound';
@@ -65,6 +65,16 @@ export interface PresentationSetupResult {
 	presentation: UsePresentationModeResult;
 	annotations: UsePresentationAnnotationsResult;
 	actionSoundHandlerRef: React.MutableRefObject<PptxHandler | null>;
+	/**
+	 * Wire the caller's own exit-mode handler (typically
+	 * `useAnnotationHandlers`'s `handleSetMode`) so keyboard/end-of-show exits
+	 * (Escape, the timed end-of-show advance) share the exact same
+	 * keep/discard-ink-annotations dialog as the toolbar's exit button,
+	 * instead of a second, independently-diverging implementation. Safe to
+	 * call on every render (a plain ref write); the handler is only read
+	 * later, from the async keyboard/timer callbacks below.
+	 */
+	setExitModeHandler: (handler: ((nextMode: ViewerMode) => void) | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,9 +103,10 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 
 	const actionSoundHandlerRef = useRef<PptxHandler | null>(null);
 
-	// Annotations dialog state (shared between annotations & presentation)
-	const [, setShowKeepAnnotationsDialog] = useState(false);
-	const pendingModeRef = useRef<ViewerMode>('edit');
+	// See `setExitModeHandler` on the return type: lets the caller route
+	// keyboard/end-of-show exits through the same annotation-prompt dialog as
+	// its own toolbar exit handler.
+	const exitModeHandlerRef = useRef<((nextMode: ViewerMode) => void) | null>(null);
 
 	const annotations = usePresentationAnnotations({
 		isActive: mode === 'present',
@@ -117,21 +128,23 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 			if (mode === 'present' && nextMode !== 'present' && !mayLeaveSlideShow()) {
 				return;
 			}
-			if (
-				mode === 'present' &&
-				nextMode !== 'present' &&
-				annotations.hasAnyAnnotations &&
-				promptKeepInkAnnotations
-			) {
-				pendingModeRef.current = nextMode;
-				setShowKeepAnnotationsDialog(true);
-			} else {
-				if (mode === 'present' && nextMode !== 'present') {
-					stopAllPersistentAudio();
-					stopAnimationSound();
+			if (mode === 'present' && nextMode !== 'present') {
+				stopAllPersistentAudio();
+				stopAnimationSound();
+				const exitHandler = exitModeHandlerRef.current;
+				if (exitHandler) {
+					exitHandler(nextMode);
+					return;
 				}
-				setMode(nextMode);
+				// No external handler wired (e.g. a headless consumer that never
+				// calls `setExitModeHandler`): fall back to the option's own
+				// non-dialog behavior rather than getting stuck with unresolved
+				// annotations blocking the exit.
+				if (annotations.hasAnyAnnotations && !promptKeepInkAnnotations) {
+					annotations.clearAllAnnotations();
+				}
 			}
+			setMode(nextMode);
 		},
 		onSetActiveSlideIndex: setActiveSlideIndex,
 		onPlayActionSound: (soundPath: string, options?: { loop?: boolean }) => {
@@ -199,5 +212,12 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		endWithBlackSlide,
 	});
 
-	return { presentation, annotations, actionSoundHandlerRef };
+	return {
+		presentation,
+		annotations,
+		actionSoundHandlerRef,
+		setExitModeHandler: (handler) => {
+			exitModeHandlerRef.current = handler;
+		},
+	};
 }

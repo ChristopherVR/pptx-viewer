@@ -1,4 +1,3 @@
-import JSZip from 'jszip';
 import type {
 	PptxData,
 	PptxElement,
@@ -13,20 +12,17 @@ import type { DeckSaveOptions, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
 	downloadBlob,
 	exportDeckJson,
-	presentationBaseName,
 	resolveSlideSizeSelection,
 	savedPresentationFileName,
 	saveDeckWithPassword,
 } from 'pptx-viewer-shared';
 /**
- * useExportSaveAs: Save-As format and Package-for-Sharing handlers.
+ * useExportSaveAs: Save-As format handlers.
  */
 import type { RefObject } from 'react';
 
 import type { CanvasSize } from '../types';
-import { generatePackageReadme } from '../utils/export';
 import { buildSaveSlides } from '../utils/template-editing';
-import type { ExportModalControls } from './export-handler-types';
 
 export interface UseExportSaveAsInput {
 	slides: PptxSlide[];
@@ -34,7 +30,6 @@ export interface UseExportSaveAsInput {
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	filePath: string | undefined;
 	handlerRef: RefObject<PptxHandler | null>;
-	serializeSlides: () => Promise<Uint8Array | null>;
 	headerFooter: Record<string, unknown>;
 	presentationProperties: Record<string, unknown>;
 	customShows: Array<{ id: string; name: string; slideRIds: string[] }>;
@@ -65,13 +60,11 @@ export interface UseExportSaveAsInput {
 	canvasSize: CanvasSize;
 	/** The EMU `p:sldSz` the viewer holds; see `UseExportHandlersInput`. */
 	slideSizeEmu?: SlideSizeEmu | undefined;
-	modalControls: ExportModalControls;
 	password?: string;
 }
 
 export interface ExportSaveAsResult {
 	handleExportJson: () => void;
-	handlePackageForSharing: () => Promise<void>;
 	handleSaveAsFormat: (format: PptxSaveFormat) => Promise<void>;
 	handleSaveAsPptx: () => void;
 	handleSaveAsPpsx: () => void;
@@ -84,7 +77,6 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		templateElementsBySlideId,
 		filePath,
 		handlerRef,
-		serializeSlides,
 		headerFooter,
 		presentationProperties,
 		customShows,
@@ -101,65 +93,8 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		theme,
 		canvasSize,
 		slideSizeEmu,
-		modalControls,
 		password,
 	} = input;
-
-	const {
-		setExportModalOpen,
-		setExportModalTitle,
-		setExportProgress,
-		setExportStatusMessage,
-		exportAbortRef,
-	} = modalControls;
-
-	const handlePackageForSharing = async () => {
-		const abortCtrl = new AbortController();
-		exportAbortRef.current = abortCtrl;
-		setExportModalTitle('Package for Sharing');
-		setExportStatusMessage('Preparing package...');
-		setExportProgress(0);
-		setExportModalOpen(true);
-		try {
-			const zip = new JSZip();
-			const pkgFolder = zip.folder('presentation-package')!;
-
-			setExportProgress(10);
-			setExportStatusMessage('Adding presentation...');
-			const pptxData = await serializeSlides();
-			// Re-extensioned, not copied: the bytes are always an OpenXML package,
-			// so a deck opened as `report.ppt` must be packaged as `report.pptx`.
-			const pptxFilename = savedPresentationFileName(filePath);
-			if (pptxData) {
-				pkgFolder.file(pptxFilename, pptxData);
-			}
-
-			setExportProgress(70);
-			setExportStatusMessage('Writing README...');
-			const readme = generatePackageReadme(pptxFilename);
-			pkgFolder.file('README.txt', readme);
-
-			if (abortCtrl.signal.aborted) {
-				throw new DOMException('Export cancelled', 'AbortError');
-			}
-
-			setExportProgress(85);
-			setExportStatusMessage('Generating ZIP...');
-			const zipBlob = await zip.generateAsync({ type: 'blob' });
-
-			setExportProgress(95);
-			setExportStatusMessage('Downloading...');
-			downloadBlob(zipBlob, `${presentationBaseName(pptxFilename)}-package.zip`);
-			setExportProgress(100);
-		} catch (err) {
-			if ((err as DOMException).name !== 'AbortError') {
-				console.error('[PowerPointViewer] Package export failed:', err);
-			}
-		} finally {
-			exportAbortRef.current = null;
-			setExportModalOpen(false);
-		}
-	};
 
 	const handleSaveAsFormat = async (format: PptxSaveFormat): Promise<void> => {
 		const handler = handlerRef.current;
@@ -273,7 +208,6 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 
 	return {
 		handleExportJson,
-		handlePackageForSharing,
 		handleSaveAsFormat,
 		handleSaveAsPptx,
 		handleSaveAsPpsx,

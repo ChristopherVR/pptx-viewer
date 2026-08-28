@@ -13,7 +13,6 @@ import {
 	LuFileText,
 	LuInfo,
 	LuLock,
-	LuPackage,
 	LuPlay,
 	LuPrinter,
 	LuShare2,
@@ -34,7 +33,6 @@ const ICONS: Record<BackstageCardId, IconType> = {
 	saveAsPptx: LuDownload,
 	saveAsPpsx: LuPlay,
 	saveAsPptm: LuFileText,
-	package: LuPackage,
 	pdf: LuFileText,
 	png: LuFileImage,
 	video: LuVideo,
@@ -43,7 +41,6 @@ const ICONS: Record<BackstageCardId, IconType> = {
 	copyImage: LuCopy,
 	print: LuPrinter,
 	share: LuShare2,
-	sharePackage: LuPackage,
 };
 
 /**
@@ -73,7 +70,6 @@ export function BackstageCards({
 		saveAsPptx: props.onSaveAsPptx,
 		saveAsPpsx: props.onSaveAsPpsx,
 		saveAsPptm: props.onSaveAsPptm,
-		package: props.onPackageForSharing,
 		pdf: props.onExportPdf,
 		png: props.onExportPng,
 		video: props.onExportVideo,
@@ -82,7 +78,6 @@ export function BackstageCards({
 		copyImage: props.onCopySlideAsImage,
 		print: props.onPrint,
 		share: props.onOpenShareDialog,
-		sharePackage: props.onPackageForSharing,
 	};
 	// The macro format is offered only when the open deck actually carries VBA,
 	// matching PowerPoint's own Save As list.

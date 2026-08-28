@@ -1,3 +1,4 @@
+import { resolveScreenTip } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -20,9 +21,11 @@ import { ReviewSection } from './toolbar/ReviewSection';
 import { SlideShowSection } from './toolbar/SlideShowSection';
 import { TabRowActions } from './toolbar/TabRowActions';
 import { TextSection } from './toolbar/TextSection';
+import { TitleBarQuickExtras } from './toolbar/TitleBarQuickExtras';
 import type { ToolbarProps } from './toolbar/toolbar-types';
 import { ToolbarPrimaryRow } from './toolbar/ToolbarPrimaryRow';
 import { ViewSection } from './toolbar/ViewSection';
+import { useViewerOptionsContext } from './viewer-options-context';
 
 export type { ToolbarProps } from './toolbar/toolbar-types';
 
@@ -30,6 +33,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const { mode, isNarrowViewport, isCompactToolbarOpen, toolbarSection, onSetToolbarSection } = p;
 	const { t } = useTranslation();
 	const { isTabVisible } = useToolbarVisibility(p.hiddenActions);
+	const viewerOptions = useViewerOptionsContext();
 
 	// Mobile-first: at <768px we swap the entire desktop ribbon for a compact
 	// top bar plus a slide-up sheet exposing every section. The bottom action
@@ -76,6 +80,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							type='button'
 							role='tab'
 							aria-selected={toolbarSection === s.id}
+							title={resolveScreenTip(viewerOptions, t(s.labelKey))}
 							onClick={() => onSetToolbarSection(s.id)}
 							className={cn(
 								'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors max-md:min-h-[36px] max-md:px-3',
@@ -95,7 +100,6 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 					<TabRowActions
 						onEnterRehearsalMode={p.canEdit ? p.onEnterRehearsalMode : undefined}
 						onOpenShareDialog={p.onOpenShareDialog}
-						onPackageForSharing={p.onPackageForSharing}
 						hiddenActions={p.hiddenActions}
 					/>
 					{isNarrowViewport && (
@@ -115,6 +119,23 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							{t(isCompactToolbarOpen ? 'pptx.ribbon.collapseRibbon' : 'pptx.ribbon.expandRibbon')}
 						</button>
 					)}
+				</div>
+			)}
+
+			{/*
+			 * Quick Access strip, relocated: Options > Quick Access Toolbar >
+			 * position = "below" moves the configured commands (beyond the
+			 * dedicated Save/Undo/Redo trio, which always stays in the title
+			 * bar) into their own row under the ribbon tabs instead of the
+			 * title bar's inline strip, which suppresses itself for the same
+			 * condition (see `TitleBar`).
+			 */}
+			{showRibbon && viewerOptions.quickAccess.position === 'below' && (
+				<div className='flex items-center gap-0.5 border-b border-border/60 px-2 py-1'>
+					<TitleBarQuickExtras
+						quickAccess={viewerOptions.quickAccess}
+						onCommand={p.onQuickCommand}
+					/>
 				</div>
 			)}
 
@@ -138,7 +159,6 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onExportVideo={p.onExportVideo}
 							onExportGif={p.onExportGif}
 							onExportJson={p.onExportJson}
-							onPackageForSharing={p.onPackageForSharing}
 							onSaveAsPptx={p.onSaveAsPptx}
 							onSaveAsPpsx={p.onSaveAsPpsx}
 							onSaveAsPptm={p.onSaveAsPptm}
@@ -153,6 +173,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onOpenDigitalSignatures={p.onOpenDigitalSignatures}
 							onOpenVersionHistory={p.onToggleVersionHistory}
 							hiddenActions={p.hiddenActions}
+							recentPresentationsCount={p.recentPresentationsCount}
 						/>
 					)}
 

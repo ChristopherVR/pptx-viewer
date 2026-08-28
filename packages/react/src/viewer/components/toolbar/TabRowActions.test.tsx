@@ -42,7 +42,6 @@ function createProps(overrides: Partial<TabRowActionsProps> = {}): TabRowActions
 	return {
 		onEnterRehearsalMode: vi.fn<() => void>(),
 		onOpenShareDialog: vi.fn<() => void>(),
-		onPackageForSharing: vi.fn<() => void>(),
 		...overrides,
 	};
 }

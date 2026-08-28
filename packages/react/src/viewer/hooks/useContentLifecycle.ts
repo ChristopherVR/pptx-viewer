@@ -48,6 +48,8 @@ export interface UseContentLifecycleInput {
 	password?: string;
 	/** Forwarded to {@link useLoadContent}: fires after a parse applies. */
 	onContentApplied?: () => void;
+	/** Forwarded to {@link useLoadContent}: File > Options > Trust Center > "Allow external content". */
+	allowExternalImages?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +88,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setIsEncryptedDialogOpen,
 		password,
 		onContentApplied,
+		allowExternalImages,
 	} = input;
 
 	const { handlerRef } = useLoadContent({
@@ -126,6 +129,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setIsDirty: state.setIsDirty,
 		setIsEncrypted: setIsEncryptedDialogOpen,
 		onContentApplied,
+		allowExternalImages,
 	});
 
 	// Sync the shared handler ref for action sounds. `state.loading` is not read

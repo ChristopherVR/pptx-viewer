@@ -4,6 +4,7 @@ import { LuCheck, LuCopy, LuUsers, LuWifi, LuWifiOff } from 'react-icons/lu';
 
 import type { CollaborationConfig } from '../hooks/collaboration/types';
 import { useCollaboration } from './collaboration';
+import { useViewerOptionsContext } from './viewer-options-context';
 
 function isP2P(config: { transport?: string; serverUrl?: string }): boolean {
 	return config.transport === 'webrtc' || !config.serverUrl?.trim();
@@ -32,6 +33,7 @@ export function ActiveSessionView({
 	onStopCollaboration?: () => void;
 }) {
 	const { t } = useTranslation(),
+		viewerOptions = useViewerOptionsContext(),
 		statusColor =
 			collab.status === 'connected'
 				? 'text-green-400'
@@ -46,6 +48,7 @@ export function ActiveSessionView({
 			),
 		sessionUsers = buildActiveSessionUsers({
 			localUserName: activeCollaboration?.userName ?? collab.config.userName,
+			localUserInitials: viewerOptions.general.userInitials,
 			localUserColor: collab.config.userColor,
 			remoteUsers: collab.remoteUsers,
 		});

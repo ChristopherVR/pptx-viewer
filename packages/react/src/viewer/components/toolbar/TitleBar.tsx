@@ -190,8 +190,16 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 					 * configured order. Without this the strip was hardcoded to the three
 					 * buttons above and silently ignored the options model, so it showed
 					 * three commands where the shared default (and Angular) had four.
+					 *
+					 * Suppressed here when position is "below": the same commands then
+					 * render in a row under the ribbon (`Toolbar`'s own
+					 * `TitleBarQuickExtras` usage) instead, so they show in exactly one
+					 * place. The dedicated Save/Undo/Redo trio above always stays here,
+					 * matching Angular's `belowRibbonQuickAccess`.
 					 */}
-					<TitleBarQuickExtras quickAccess={quickAccess} onCommand={p.onQuickCommand} />
+					{quickAccess.position !== 'below' && (
+						<TitleBarQuickExtras quickAccess={quickAccess} onCommand={p.onQuickCommand} />
+					)}
 
 					<div className={TB.separator} />
 				</>

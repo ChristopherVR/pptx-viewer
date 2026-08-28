@@ -220,7 +220,7 @@ export function ViewerDialogGroup(props: ViewerDialogGroupProps) {
 			<PrintDialog
 				open={printHandlers.isPrintDialogOpen}
 				onClose={() => printHandlers.setIsPrintDialogOpen(false)}
-				onPrint={printHandlers.handlePrintWithSettings}
+				onPrint={printHandlers.handlePrintSvg}
 				slides={slides}
 				activeSlideIndex={activeSlideIndex}
 				defaultSlidesPerPage={printPropertiesSlidesPerPage(presentationProperties.printProperties)}

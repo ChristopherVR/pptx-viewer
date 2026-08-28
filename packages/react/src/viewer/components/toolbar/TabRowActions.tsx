@@ -11,7 +11,6 @@ import { useCollaboration } from '../collaboration';
 export interface TabRowActionsProps {
 	onEnterRehearsalMode?: () => void;
 	onOpenShareDialog?: () => void;
-	onPackageForSharing?: () => void;
 	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
 	hiddenActions?: readonly ToolbarActionId[];
 }
@@ -43,7 +42,7 @@ export function TabRowActions(p: TabRowActionsProps): React.ReactElement {
 			{!isHidden('share') && (
 				<button
 					type='button'
-					onClick={p.onOpenShareDialog ?? p.onPackageForSharing}
+					onClick={p.onOpenShareDialog}
 					className={cn(
 						'relative inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-colors whitespace-nowrap',
 						isCollaborating

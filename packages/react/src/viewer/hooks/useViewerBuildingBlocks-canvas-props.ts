@@ -1,5 +1,10 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { buildFieldSubstitutionContext } from 'pptx-viewer-shared';
+import type { ViewerOptions } from 'pptx-viewer-shared';
+import {
+	buildFieldSubstitutionContext,
+	resolvePresentationAction,
+	shouldConfirmExternalHyperlink,
+} from 'pptx-viewer-shared';
 
 import type { SlideCanvasProps, ZoomViewport } from '../components/canvas/canvas-types';
 import type { CanvasSize, TableCellEditorState, ViewerMode } from '../types';
@@ -42,6 +47,15 @@ export interface BuildCanvasPropsInput {
 	presentation: UsePresentationModeResult;
 	findResults?: SlideCanvasProps['findResults'];
 	findResultIndex?: number;
+	/** Live File > Options snapshot, for the Trust Center hyperlink-confirm gate. */
+	viewerOptions: ViewerOptions;
+	/**
+	 * Confirmation prompt text for `window.confirm`, pre-built by the caller
+	 * (a hook, so it can call `useTranslation`) as
+	 * `` `${t('pptx.options.trust.confirmHyperlinks')}\n\n${url}` ``. Only
+	 * invoked when `shouldConfirmExternalHyperlink` says the gate applies.
+	 */
+	buildHyperlinkConfirmMessage: (url: string) => string;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +82,8 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 		presentation,
 		findResults,
 		findResultIndex,
+		viewerOptions,
+		buildHyperlinkConfirmMessage,
 	} = input;
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
@@ -91,11 +107,34 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 		s.theme || s.tableStyleMap ? { theme: s.theme, tableStyleMap: s.tableStyleMap } : undefined;
 
 	// ── Action / hyperlink handlers ────────────────────────────────────
+	// Trust Center gate: external http(s) links may require confirmation
+	// before opening (Options > Trust Center > confirm external hyperlinks),
+	// same as `ViewerCanvasArea`'s wiring for the packaged `PowerPointViewer`.
+	const openExternalUrl = (url: string) => {
+		if (
+			shouldConfirmExternalHyperlink(viewerOptions, url) &&
+			!window.confirm(buildHyperlinkConfirmMessage(url))
+		) {
+			return;
+		}
+		safeOpenUrl(url);
+	};
+
 	const handleActionClick = (_elementId: string, action: PptxAction) => {
 		if (mode === 'present') {
+			// `runPresentationAction` (inside `handlePresentationAction`) opens an
+			// action's own external hyperlink unconditionally: it has no host hook
+			// for the Trust Center gate. Resolve the action here first so an
+			// `openUrl` intent goes through `openExternalUrl`'s confirm check
+			// instead.
+			const resolved = resolvePresentationAction(action, { slideCount: slides.length });
+			if (resolved.intent.kind === 'openUrl') {
+				openExternalUrl(resolved.intent.url);
+				return;
+			}
 			presentation.handlePresentationAction(action);
 		} else if (action.url) {
-			safeOpenUrl(action.url);
+			openExternalUrl(action.url);
 		}
 	};
 
@@ -112,7 +151,7 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 			}
 			return;
 		}
-		safeOpenUrl(url);
+		openExternalUrl(url);
 	};
 
 	return {

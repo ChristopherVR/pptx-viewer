@@ -99,6 +99,13 @@ export interface UseLoadContentInput {
 	 * load lands mid-session and would otherwise clobber remotely-synced state.
 	 */
 	onContentApplied?: () => void;
+	/**
+	 * File > Options > Trust Center > "Allow external content". Forwarded to
+	 * `PptxHandler.load` as `allowExternalImages`; core defaults this to
+	 * `false` (drop `http(s)://` image sources) regardless of what this flag
+	 * says unless it is passed through explicitly.
+	 */
+	allowExternalImages?: boolean;
 }
 
 export interface UseLoadContentResult {
@@ -147,6 +154,7 @@ export function useLoadContent({
 	setIsDirty,
 	setIsEncrypted,
 	onContentApplied,
+	allowExternalImages,
 }: UseLoadContentInput): UseLoadContentResult {
 	const handlerRef = useRef<PptxHandler | null>(null);
 	const originalBufferRef = useRef<ArrayBuffer | null>(null);
@@ -189,7 +197,10 @@ export function useLoadContent({
 				const previousHandler = handlerRef.current;
 
 				const handler = new PptxHandler();
-				const parsed = await handler.load(buffer as ArrayBuffer);
+				// Trust Center > "Allow external content" (default off, matching
+				// core's own SSRF/privacy-safe default): only pass `true` through
+				// when the option is explicitly on.
+				const parsed = await handler.load(buffer as ArrayBuffer, { allowExternalImages });
 				if (cancelled || token !== renderTokenRef.current) {
 					handler.dispose();
 					return;

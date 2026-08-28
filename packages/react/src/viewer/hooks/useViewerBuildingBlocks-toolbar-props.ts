@@ -220,7 +220,6 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onExportVideo: exportHandlers.handleExportVideo,
 		onExportGif: exportHandlers.handleExportGif,
 		onExportJson: exportHandlers.handleExportJson,
-		onPackageForSharing: exportHandlers.handlePackageForSharing,
 		onOpenFile,
 		onOpenRecentFile,
 		onCreatePresentation: (templateId: string) => {

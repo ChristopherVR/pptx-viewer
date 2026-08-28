@@ -19,8 +19,8 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 	const { isHidden } = useToolbarVisibility(p.hiddenActions);
 	const exportHidden = isHidden('export');
 	useEffect(() => {
-		void listBackstageRecentFiles(t).then(setRecent);
-	}, [t]);
+		void listBackstageRecentFiles(t, p.recentPresentationsCount).then(setRecent);
+	}, [t, p.recentPresentationsCount]);
 	const visibleRecent = useMemo(() => {
 		const q = query.trim().toLowerCase();
 		return q

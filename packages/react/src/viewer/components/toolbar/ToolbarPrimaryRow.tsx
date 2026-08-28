@@ -148,10 +148,21 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 				<LuSettings className={ics} />
 			</button>
 
-			{!canEdit && (
-				<span className='inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50'>
-					{t('pptx.toolbar.readOnly')}
-				</span>
+			{!canEdit && p.isProtectedView && p.onEnableEditing ? (
+				<button
+					type='button'
+					onClick={p.onEnableEditing}
+					className='inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50 transition-colors hover:bg-amber-600'
+					title={t('pptx.options.trust.protectedViewInfo')}
+				>
+					{t('pptx.security.enableEditing')}
+				</button>
+			) : (
+				!canEdit && (
+					<span className='inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50'>
+						{t('pptx.toolbar.readOnly')}
+					</span>
+				)
 			)}
 			<OverflowMenu {...p} />
 		</div>
