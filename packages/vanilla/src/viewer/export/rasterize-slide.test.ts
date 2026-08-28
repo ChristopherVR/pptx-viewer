@@ -41,6 +41,8 @@ describe('createRasterizeSlide', () => {
 			smartArt3D: false,
 			surfaceChart3D: false,
 			barChart3D: false,
+			lineChart3D: false,
+			areaChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -68,6 +70,8 @@ describe('createRasterizeSlide', () => {
 			smartArt3D: false,
 			surfaceChart3D: false,
 			barChart3D: false,
+			lineChart3D: false,
+			areaChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -101,6 +105,8 @@ describe('createRasterizeSlide', () => {
 			smartArt3D: false,
 			surfaceChart3D: false,
 			barChart3D: false,
+			lineChart3D: false,
+			areaChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -168,6 +174,8 @@ describe('createRasterizeSlide', () => {
 			smartArt3D: false,
 			surfaceChart3D: false,
 			barChart3D: false,
+			lineChart3D: false,
+			areaChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 
@@ -199,6 +207,8 @@ describe('createRasterizeSlide', () => {
 			smartArt3D: false,
 			surfaceChart3D: false,
 			barChart3D: false,
+			lineChart3D: false,
+			areaChart3D: false,
 			waitForFrame: () => Promise.resolve(),
 		});
 

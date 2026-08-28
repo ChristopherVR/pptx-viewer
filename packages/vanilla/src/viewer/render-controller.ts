@@ -42,6 +42,16 @@ export interface RenderControllerDeps {
 	 * `PptxViewerOptions.barChart3D`.
 	 */
 	barChart3D: boolean;
+	/**
+	 * Opt-in interactive WebGL line3D-chart renderer flag; see
+	 * `PptxViewerOptions.lineChart3D`.
+	 */
+	lineChart3D: boolean;
+	/**
+	 * Opt-in interactive WebGL area3D-chart renderer flag; see
+	 * `PptxViewerOptions.areaChart3D`.
+	 */
+	areaChart3D: boolean;
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
@@ -156,6 +166,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			smartArt3D: deps.smartArt3D,
 			surfaceChart3D: deps.surfaceChart3D,
 			barChart3D: deps.barChart3D,
+			lineChart3D: deps.lineChart3D,
+			areaChart3D: deps.areaChart3D,
 			presenting,
 			slides: state.slides,
 			currentSlideIndex: state.currentSlide,

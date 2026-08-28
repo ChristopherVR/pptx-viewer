@@ -27,6 +27,16 @@ export interface RasterizeSlideDeps {
 	 */
 	barChart3D: boolean;
 	/**
+	 * Opt-in interactive WebGL line3D-chart renderer flag; see
+	 * `PptxViewerOptions.lineChart3D`.
+	 */
+	lineChart3D: boolean;
+	/**
+	 * Opt-in interactive WebGL area3D-chart renderer flag; see
+	 * `PptxViewerOptions.areaChart3D`.
+	 */
+	areaChart3D: boolean;
+	/**
 	 * Overridable frame-wait before capture (test seam: the real
 	 * `requestAnimationFrame` double-wait is not worth driving through fake
 	 * timers). Defaults to {@link nextFrame}.
@@ -98,6 +108,8 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			smartArt3D: deps.smartArt3D,
 			surfaceChart3D: deps.surfaceChart3D,
 			barChart3D: deps.barChart3D,
+			lineChart3D: deps.lineChart3D,
+			areaChart3D: deps.areaChart3D,
 			presenting: false,
 		});
 		host.appendChild(stage);

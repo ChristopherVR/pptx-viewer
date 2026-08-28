@@ -45,6 +45,8 @@ export function toViewerStateOptions(
 		getSmartArt3D: () => getProps().smartArt3D ?? false,
 		getSurfaceChart3D: () => getProps().surfaceChart3D ?? false,
 		getBarChart3D: () => getProps().barChart3D ?? false,
+		getLineChart3D: () => getProps().lineChart3D ?? false,
+		getAreaChart3D: () => getProps().areaChart3D ?? false,
 		getEditable: () => getProps().editable ?? false,
 		getFileName: () => getProps().fileName,
 		getAiEnabled: () => Boolean(getProps().ai),

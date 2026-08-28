@@ -67,6 +67,7 @@ import { createAngularAiBridge } from './ai/ai-bridge';
 import { AiChatPanelComponent } from './ai/ai-chat-panel.component';
 import { aiToggleVisible } from './ai/ai-gating';
 import { AiPanelStore } from './ai/ai-panel-store';
+import { AreaChart3DService } from './area-chart-3d.service';
 import { AutosaveRecoveryDialogComponent } from './autosave-recovery-dialog.component';
 import { AutosaveRecoveryService } from './autosave-recovery.service';
 import { AutosaveService } from './autosave.service';
@@ -96,6 +97,7 @@ import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
 import { IsMobileService } from './is-mobile';
+import { LineChart3DService } from './line-chart-3d.service';
 import { LoadContentService } from './load-content.service';
 import { MasterViewCanvasComponent } from './master-view-canvas.component';
 import { MasterViewSidebarComponent } from './master-view-sidebar.component';
@@ -1247,6 +1249,28 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 */
 	readonly barChart3D = input<boolean>(false);
 	/**
+	 * Opt in to the interactive Three.js line3D-chart renderer. When `true`,
+	 * `line3D` charts render as a camera-orbitable real tube-path mesh per
+	 * series, one per depth ("series") plane (drag to rotate, scroll to zoom),
+	 * instead of the flat SVG oblique-projection illusion. Chart marks are not
+	 * selectable/draggable in this mode. Requires the optional `three` peer
+	 * dependency; when it is not installed (or the chart has no plottable
+	 * grid), the viewer transparently falls back to the flat SVG line3D
+	 * renderer. Default `false`.
+	 */
+	readonly lineChart3D = input<boolean>(false);
+	/**
+	 * Opt in to the interactive Three.js area3D-chart renderer. When `true`,
+	 * `area3D` charts render as a camera-orbitable real tube path + filled
+	 * ribbon mesh per series, one per depth ("series") plane (drag to rotate,
+	 * scroll to zoom), instead of the flat SVG oblique-projection illusion.
+	 * Chart marks are not selectable/draggable in this mode. Requires the
+	 * optional `three` peer dependency; when it is not installed (or the chart
+	 * has no plottable grid), the viewer transparently falls back to the flat
+	 * SVG area3D renderer. Default `false`.
+	 */
+	readonly areaChart3D = input<boolean>(false);
+	/**
 	 * Toolbar buttons and ribbon tabs the host wants hidden (share, broadcast,
 	 * export, undo, redo, record, notes, fullscreen, zoom, navigation, or any
 	 * ribbon tab id). Default `[]` hides nothing, matching prior behaviour.
@@ -1298,6 +1322,8 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
 	private readonly surfaceChart3DSvc = inject(SurfaceChart3DService);
 	private readonly barChart3DSvc = inject(BarChart3DService);
+	private readonly lineChart3DSvc = inject(LineChart3DService);
+	private readonly areaChart3DSvc = inject(AreaChart3DService);
 	private readonly zoomTarget = inject(ZoomTargetService);
 	protected readonly presenterWindow = inject(PresenterWindowService);
 	private readonly destroyRef = inject(DestroyRef);
@@ -1749,6 +1775,18 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// viewer-scoped BarChart3DService.
 		effect(() => {
 			this.barChart3DSvc.enabled.set(this.barChart3D());
+		});
+
+		// Surface the `lineChart3D` opt-in to the chart element view via the
+		// viewer-scoped LineChart3DService.
+		effect(() => {
+			this.lineChart3DSvc.enabled.set(this.lineChart3D());
+		});
+
+		// Surface the `areaChart3D` opt-in to the chart element view via the
+		// viewer-scoped AreaChart3DService.
+		effect(() => {
+			this.areaChart3DSvc.enabled.set(this.areaChart3D());
 		});
 
 		// A new host `content` input supersedes any in-place picked file.

@@ -12,7 +12,9 @@
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
 	import { getSlideElementsGetter } from '../state/slide-elements';
+	import { useAreaChart3D } from '../state/area-chart-3d-context';
 	import { useBarChart3D } from '../state/bar-chart-3d-context';
+	import { useLineChart3D } from '../state/line-chart-3d-context';
 	import { useSmartArt3D } from '../state/smart-art-3d-context';
 	import { useSurfaceChart3D } from '../state/surface-chart-3d-context';
 	import {
@@ -35,7 +37,9 @@
 	import Model3dView from './Model3dView.svelte';
 	import OleView from './OleView.svelte';
 	import PlaceholderElement from './PlaceholderElement.svelte';
+	import Area3DChartView from './Area3DChartView.svelte';
 	import Bar3DChartView from './Bar3DChartView.svelte';
+	import Line3DChartView from './Line3DChartView.svelte';
 	import SmartArt3DView from './SmartArt3DView.svelte';
 	import SmartArtView from './SmartArtView.svelte';
 	import SurfaceChart3DView from './SurfaceChart3DView.svelte';
@@ -117,6 +121,10 @@
 	const surfaceChart3D = useSurfaceChart3D();
 	/** Host opt-in to the interactive Three.js bar3D-chart renderer (provided by PowerPointViewer). */
 	const barChart3D = useBarChart3D();
+	/** Host opt-in to the interactive Three.js line3D-chart renderer (provided by PowerPointViewer). */
+	const lineChart3D = useLineChart3D();
+	/** Host opt-in to the interactive Three.js area3D-chart renderer (provided by PowerPointViewer). */
+	const areaChart3D = useAreaChart3D();
 	/**
 	 * Marks are not selectable/draggable in 3D mode: a mesh facet has no 2D
 	 * screen geometry to hit-test against, so value-drag editing stays SVG-only.
@@ -132,6 +140,13 @@
 	 */
 	const isBarChart3D = $derived(
 		element.type === 'chart' && element.chartData?.chartType === 'bar3D',
+	);
+	/** Same direct-`chartType` gate as `isBarChart3D`, for `line3D`/`area3D`. */
+	const isLineChart3D = $derived(
+		element.type === 'chart' && element.chartData?.chartType === 'line3D',
+	);
+	const isAreaChart3D = $derived(
+		element.type === 'chart' && element.chartData?.chartType === 'area3D',
 	);
 
 	const isShapeLike = $derived(element.type === 'text' || element.type === 'shape');
@@ -219,6 +234,10 @@
 	<SurfaceChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'chart' && barChart3D && isBarChart3D}
 	<Bar3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+{:else if element.type === 'chart' && lineChart3D && isLineChart3D}
+	<Line3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+{:else if element.type === 'chart' && areaChart3D && isAreaChart3D}
+	<Area3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'chart'}
 	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
 {:else if element.type === 'smartArt' && smartArt3D}

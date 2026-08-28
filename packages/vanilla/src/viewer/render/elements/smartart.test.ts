@@ -36,6 +36,8 @@ function makeContext(
 		smartArt3D,
 		surfaceChart3D: false,
 		barChart3D: false,
+		lineChart3D: false,
+		areaChart3D: false,
 		presenting: false,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),

@@ -11,14 +11,18 @@ import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useAreaChart3D } from '../composables/area-chart-3d';
 import { useBarChart3D } from '../composables/bar-chart-3d';
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { getContainerStyle } from '../composables/element-style';
+import { useLineChart3D } from '../composables/line-chart-3d';
 import { useSurfaceChart3D } from '../composables/surface-chart-3d';
+import Area3DChartRenderer from './Area3DChartRenderer.vue';
 import Bar3DChartRenderer from './Bar3DChartRenderer.vue';
 import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartEditOverlays from './chart/ChartEditOverlays.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
+import Line3DChartRenderer from './Line3DChartRenderer.vue';
 import SurfaceChart3DRenderer from './SurfaceChart3DRenderer.vue';
 
 /**
@@ -147,6 +151,16 @@ const isSurfaceKind = computed(() => chartKind.value === 'surface');
 const use3DBar = useBarChart3D();
 const isBar3DKind = computed(() => chartType.value === 'bar3D');
 
+/**
+ * Opt-in interactive 3D line/area scenes (tube path / ribbon meshes, camera
+ * orbit/zoom via OrbitControls). Same "marks are not selectable/draggable"
+ * caveat as the surface/bar scenes above.
+ */
+const use3DLine = useLineChart3D();
+const isLine3DKind = computed(() => chartType.value === 'line3D');
+const use3DArea = useAreaChart3D();
+const isArea3DKind = computed(() => chartType.value === 'area3D');
+
 const placeholderLabel = computed(() =>
 	chartPlaceholderLabel(chartType.value, (key, params) => t(key, params ?? {})),
 );
@@ -196,6 +210,22 @@ const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 		<!-- Opt-in interactive 3D bar scene, falling back to the SVG below -->
 		<Bar3DChartRenderer
 			v-else-if="use3DBar && isBar3DKind && viewModel"
+			:element="revealedElement"
+			:view-model="viewModel"
+			:preserve-aspect-ratio="aspectRatio"
+		/>
+
+		<!-- Opt-in interactive 3D line scene, falling back to the SVG below -->
+		<Line3DChartRenderer
+			v-else-if="use3DLine && isLine3DKind && viewModel"
+			:element="revealedElement"
+			:view-model="viewModel"
+			:preserve-aspect-ratio="aspectRatio"
+		/>
+
+		<!-- Opt-in interactive 3D area scene, falling back to the SVG below -->
+		<Area3DChartRenderer
+			v-else-if="use3DArea && isArea3DKind && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"
