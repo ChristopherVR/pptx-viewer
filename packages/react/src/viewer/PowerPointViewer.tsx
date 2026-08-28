@@ -1179,58 +1179,34 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						<BarChart3DContext.Provider value={barChart3D}>
 							<LineChart3DContext.Provider value={lineChart3D}>
 								<AreaChart3DContext.Provider value={areaChart3D}>
-									<ViewerThemeProvider theme={effectiveTheme}>
-										<CollaborationProvider
-											config={collaboration}
-											canvasWidth={canvasSize.width}
-											canvasHeight={canvasSize.height}
-										>
-											<CollaborationDocumentSync
-												slides={slides}
-												templateElementsBySlideId={templateElementsBySlideId}
-												setSlides={state.setSlides}
+									<PieChart3DContext.Provider value={pieChart3D}>
+										<ViewerThemeProvider theme={effectiveTheme}>
+											<CollaborationProvider
 												config={collaboration}
-												content={content}
-												loadVersion={loadVersion}
-												loadOrigin={loadOrigin}
-												livePatcher={state.livePatcher}
-											/>
-											<CollaborationFollowLayer
-												activeSlideIndex={activeSlideIndex}
-												setActiveSlideIndex={state.setActiveSlideIndex}
-												slideCount={slides.length}
-											/>
-											{viewerContent}
-										</CollaborationProvider>
-									</ViewerThemeProvider>
+												canvasWidth={canvasSize.width}
+												canvasHeight={canvasSize.height}
+											>
+												<CollaborationDocumentSync
+													slides={slides}
+													templateElementsBySlideId={templateElementsBySlideId}
+													setSlides={state.setSlides}
+													config={collaboration}
+													content={content}
+													loadVersion={loadVersion}
+													loadOrigin={loadOrigin}
+													livePatcher={state.livePatcher}
+												/>
+												<CollaborationFollowLayer
+													activeSlideIndex={activeSlideIndex}
+													setActiveSlideIndex={state.setActiveSlideIndex}
+													slideCount={slides.length}
+												/>
+												{viewerContent}
+											</CollaborationProvider>
+										</ViewerThemeProvider>
+									</PieChart3DContext.Provider>
 								</AreaChart3DContext.Provider>
 							</LineChart3DContext.Provider>
-							<PieChart3DContext.Provider value={pieChart3D}>
-								<ViewerThemeProvider theme={effectiveTheme}>
-									<CollaborationProvider
-										config={collaboration}
-										canvasWidth={canvasSize.width}
-										canvasHeight={canvasSize.height}
-									>
-										<CollaborationDocumentSync
-											slides={slides}
-											templateElementsBySlideId={templateElementsBySlideId}
-											setSlides={state.setSlides}
-											config={collaboration}
-											content={content}
-											loadVersion={loadVersion}
-											loadOrigin={loadOrigin}
-											livePatcher={state.livePatcher}
-										/>
-										<CollaborationFollowLayer
-											activeSlideIndex={activeSlideIndex}
-											setActiveSlideIndex={state.setActiveSlideIndex}
-											slideCount={slides.length}
-										/>
-										{viewerContent}
-									</CollaborationProvider>
-								</ViewerThemeProvider>
-							</PieChart3DContext.Provider>
 						</BarChart3DContext.Provider>
 					</SurfaceChart3DContext.Provider>
 				</SmartArt3DContext.Provider>
