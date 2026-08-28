@@ -139,13 +139,17 @@ export function ResizeHandles({
 	// is robust to the current rotation), preview live by mutating the wrapper
 	// transform, then commit the final degrees on release. Shift snaps to 15°.
 	const startRotate = (btn: HTMLElement, pointerId?: number): void => {
-		// The handle host comes first: selection handles now live in a stage-level
-		// overlay that deliberately does NOT carry `data-element-id`, because a
-		// second node with that attribute makes every spec's element locator
-		// ambiguous. Connectors still nest their handles inside the element, so
-		// the original selector stays as the fallback.
-		const wrapper = btn.closest(
-			'[data-pptx-selection-handle-host], [data-element-id]',
+		// Resolve the REAL element node directly by id, not via `closest`: since
+		// selection handles now live in a stage-level overlay that is a SIBLING of
+		// `ElementRenderer` (not its parent), `data-element-id` is never an
+		// ancestor of `btn` for a regular shape, so `closest` always landed on the
+		// overlay host instead. Mutating the overlay's (invisible) transform live
+		// rotated only the handles; the shape itself stayed frozen until the
+		// `onRotate` commit on release. A connector still nests its handles
+		// inside its own element, which also carries `data-element-id`, so the
+		// direct lookup covers both cases uniformly.
+		const wrapper = document.querySelector(
+			`[data-element-id="${elementId}"]`,
 		) as HTMLElement | null;
 		if (!wrapper) {
 			return;
