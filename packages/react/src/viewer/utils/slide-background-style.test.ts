@@ -15,7 +15,7 @@ describe('getReactSlideBackgroundStyle', () => {
 
 		expect(style).toStrictEqual({
 			backgroundColor: '#123456',
-			backgroundImage: 'url(data:image/png;base64,abc)',
+			backgroundImage: undefined,
 			backgroundSize: '100% 100%',
 			backgroundRepeat: 'no-repeat',
 		});

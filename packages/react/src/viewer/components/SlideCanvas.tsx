@@ -22,6 +22,7 @@ import { useDrawingOverlay } from './canvas/useDrawingOverlay';
 import { useStableCallbacks } from './canvas/useStableCallbacks';
 import { ElementRenderer } from './ElementRenderer';
 import { ActiveXControlOverlay } from './elements/ActiveXControlOverlay';
+import { SlideBackgroundImageLayer } from './SlideBackgroundImageLayer';
 
 /**
  * A stable empty array for the un-selected case: a fresh `[]` on every render
@@ -272,6 +273,7 @@ export function SlideCanvas({
 					onPointerMove={handleStagePointerMove}
 					onPointerUp={handleStagePointerUp}
 				>
+					<SlideBackgroundImageLayer slide={activeSlide} />
 					{presentationKeyframesCss && <style>{presentationKeyframesCss}</style>}
 					<GridOverlay canvasSize={canvasSize} gridSpacingPx={gridSpacingPx} visible={showGrid} />
 					<CanvasGuides

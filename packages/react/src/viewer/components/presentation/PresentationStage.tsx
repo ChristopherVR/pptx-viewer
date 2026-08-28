@@ -28,6 +28,7 @@ import { getReactSlideBackgroundStyle } from '../../utils/slide-background-style
 import type { TableStyleContext } from '../../utils/table-parse';
 import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
 import { ElementRenderer } from '../ElementRenderer';
+import { SlideBackgroundImageLayer } from '../SlideBackgroundImageLayer';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -175,6 +176,7 @@ export function PresentationStage({
 						} as React.CSSProperties
 					}
 				>
+					<SlideBackgroundImageLayer slide={activeSlide} />
 					{/*
 					 * Which elements a running show accepts a pointer on. It has to be a
 					 * STYLESHEET, not a per-element `pointer-events: none`: an actionable

@@ -133,8 +133,17 @@ export interface PptxSlideLoaderParams {
 	getLayoutBackgroundGradient: (slidePath: string) => Promise<string | undefined>;
 	/** Extract background image data URI from slide XML. */
 	extractBackgroundImage: (slideXml: XmlObject, slidePath: string) => Promise<string | undefined>;
+	/** Extract crop, tiling and image effects from a background blip fill. */
+	extractBackgroundImageProperties: (
+		slideXml: XmlObject,
+		rootElement?: string,
+	) => PptxSlide['backgroundImageProperties'];
 	/** Get background image from the slide's layout (fallback). */
 	getLayoutBackgroundImage: (slidePath: string) => Promise<string | undefined>;
+	/** Get background image properties from the slide's layout/master fallback chain. */
+	getLayoutBackgroundImageProperties: (
+		slidePath: string,
+	) => Promise<PptxSlide['backgroundImageProperties']>;
 	/**
 	 * Record whether this slide authored its own `<p:bg>` and what the
 	 * inheritance chain resolved to, so the save writer can tell a background

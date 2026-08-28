@@ -17,6 +17,7 @@ import {
 	SLIDE_TRANSITION_KEYFRAMES,
 } from '../utils/slide-transitions';
 import type { SlideTransitionAnimations } from '../utils/slide-transitions';
+import { SlideBackgroundImageLayer } from './SlideBackgroundImageLayer';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
 // ---------------------------------------------------------------------------
@@ -100,6 +101,7 @@ function SlideLayer({ slide, templateElements, canvasSize }: SlideLayerProps): R
 				backgroundPosition: slide.backgroundImage ? 'center' : undefined,
 			}}
 		>
+			<SlideBackgroundImageLayer slide={slide} />
 			{elements.map((element, index) => (
 				<StaticElementRenderer
 					key={element.id}

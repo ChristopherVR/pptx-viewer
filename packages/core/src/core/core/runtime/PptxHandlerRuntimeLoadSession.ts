@@ -457,7 +457,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			getLayoutBackgroundGradient: (slidePath) => this.getLayoutBackgroundGradient(slidePath),
 			extractBackgroundImage: (slideXml, slidePath) =>
 				this.extractBackgroundImage(slideXml, slidePath),
+			extractBackgroundImageProperties: (slideXml, rootElement) =>
+				this.extractBackgroundImageProperties(slideXml, rootElement),
 			getLayoutBackgroundImage: (slidePath) => this.getLayoutBackgroundImage(slidePath),
+			getLayoutBackgroundImageProperties: (slidePath) =>
+				this.getLayoutBackgroundImageProperties(slidePath),
 			rememberSlideBackgroundOrigin: (slidePath, origin) =>
 				rememberSlideBackgroundOrigin(this, slidePath, origin),
 			extractSlideNotes: (slidePath) => this.extractSlideNotes(slidePath),

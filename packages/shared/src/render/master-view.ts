@@ -15,6 +15,7 @@ import type {
 	MasterViewTab,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxImageProperties,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideLayout,
@@ -51,6 +52,7 @@ export interface MasterViewPart {
 	elements: readonly PptxElement[];
 	backgroundColor?: string | undefined;
 	backgroundImage?: string | undefined;
+	backgroundImageProperties?: PptxImageProperties | undefined;
 }
 
 /** A write-back for one master-view edit; only the touched models are set. */
@@ -91,6 +93,7 @@ export function masterViewParts(
 		elements: master.elements ?? [],
 		backgroundColor: master.backgroundColor,
 		backgroundImage: master.backgroundImage,
+		backgroundImageProperties: master.backgroundImageProperties,
 	};
 	const layout = target.layoutIndex === null ? undefined : master.layouts?.[target.layoutIndex];
 	if (!layout || target.layoutIndex === null) {
@@ -106,6 +109,9 @@ export function masterViewParts(
 			elements: layout.elements ?? [],
 			backgroundColor: layout.backgroundColor ?? master.backgroundColor,
 			backgroundImage: layout.backgroundImage ?? master.backgroundImage,
+			backgroundImageProperties: layout.backgroundImage
+				? layout.backgroundImageProperties
+				: master.backgroundImageProperties,
 		},
 	];
 }
@@ -122,6 +128,7 @@ function auxiliaryParts(
 					elements: part.elements ?? [],
 					backgroundColor: part.backgroundColor,
 					backgroundImage: part.backgroundImage,
+					backgroundImageProperties: part.backgroundImageProperties,
 				},
 			]
 		: [];
@@ -157,6 +164,7 @@ export function masterViewPseudoSlide(
 		elements: parts.flatMap((part) => [...part.elements]),
 		backgroundColor: primary.backgroundColor,
 		backgroundImage: primary.backgroundImage,
+		backgroundImageProperties: primary.backgroundImageProperties,
 	};
 }
 
