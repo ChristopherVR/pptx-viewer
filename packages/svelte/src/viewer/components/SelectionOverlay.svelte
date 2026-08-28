@@ -110,11 +110,18 @@
 </div>
 
 <style>
+	/* Every slide element carries an explicit numeric z-index (`zIndex={i}` in
+	   `SlideStage.svelte`), so on a slide with more than 5 elements this host
+	   used to paint BEHIND later ones, hiding the selected element's own
+	   resize/rotate handles behind its own fill (worst on a rotated shape,
+	   where the rotate knob deliberately overlaps the box) and stealing their
+	   clicks. Pinned above any realistic per-slide element count, matching the
+	   React binding's `SelectionHandleOverlay` (z-index 58). */
 	.pptx-svelte-editor-overlay {
 		position: absolute;
 		inset: 0;
 		pointer-events: none;
-		z-index: 5;
+		z-index: 58;
 	}
 
 	.pptx-svelte-sel-box {

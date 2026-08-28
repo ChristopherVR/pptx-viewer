@@ -103,6 +103,17 @@ export function SelectionHandleOverlay({
 				top: element.y,
 				width: Math.max(element.width, MIN_ELEMENT_SIZE),
 				height: Math.max(element.height, MIN_ELEMENT_SIZE),
+				// Every slide element carries an explicit numeric `zIndex` (see
+				// `getContainerStyle`), so a sibling with no z-index at all paints
+				// at the CSS "z-index: 0" level regardless of DOM order: any
+				// element other than the very bottom one (index 0) then renders
+				// ABOVE this host, hiding its own resize/rotate handles behind its
+				// own fill (worst on a rotated shape, where the rotate knob
+				// deliberately overlaps the box) and stealing their clicks. Pinned
+				// above the stage's other interaction overlays
+				// (marquee z-50, connector overlay z-55/56) to match, well clear of
+				// any realistic per-slide element count.
+				zIndex: 58,
 				transform: getElementTransform(element),
 				transformOrigin: 'center',
 				// Transparent everywhere a handle button is not, so a click that

@@ -207,9 +207,12 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 	position: absolute;
 	inset: 0;
 	/* The overlay container itself never intercepts pointer events; only the
-	   handles and the per-box drag body (which are re-enabled below) do. */
+	   handles and the per-box drag body (which are re-enabled below) do.
+	   50 left a slide with 50+ elements able to paint its topmost elements
+	   above this host, hiding the selected element's own handles behind its
+	   own fill; bumped to match the other four bindings' headroom. */
 	pointer-events: none;
-	z-index: 50;
+	z-index: 58;
 }
 
 .pptx-vue-selection-box {
