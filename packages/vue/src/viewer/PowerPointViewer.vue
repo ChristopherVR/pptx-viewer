@@ -1395,14 +1395,16 @@ defineExpose<PowerPointViewerExpose>(
 				>
 					<ShieldAlert class="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
 					<p class="flex-1 text-xs text-amber-200">
-						{{ t('pptx.viewer.protectedViewBanner') }}
+						<strong>{{ t('pptx.security.protectedViewTitle') }}</strong
+						>:
+						{{ t('pptx.options.trust.protectedViewInfo') }}
 					</p>
 					<button
 						type="button"
 						class="shrink-0 rounded border border-amber-600/50 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-700/30"
 						@click="enableEditing"
 					>
-						{{ t('pptx.viewer.enableEditing') }}
+						{{ t('pptx.security.enableEditing') }}
 					</button>
 				</div>
 
