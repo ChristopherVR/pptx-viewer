@@ -89,7 +89,7 @@ import type { RibbonTab } from './ribbon-types';
 			/>
 
 			<div
-				class="flex min-h-[82px] flex-nowrap items-stretch gap-0 overflow-x-auto px-1 py-0.5 [&>*]:shrink-0"
+				class="flex min-h-[82px] flex-nowrap items-center gap-0 overflow-x-auto px-1 py-0.5 [&>*]:shrink-0"
 				[style.display]="ribbonExpanded() ? null : 'none'"
 			>
 				<pptx-ribbon-content

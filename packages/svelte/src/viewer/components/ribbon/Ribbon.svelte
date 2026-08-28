@@ -237,13 +237,16 @@
 	}
 
 	/* One horizontal, non-wrapping row of ribbon groups (React parity:
-	   `flex min-h-[82px] items-stretch gap-0 px-1 py-0.5 overflow-x-auto
-	   flex-nowrap`); the tall min-height + stretch lets each tab's groups fill
-	   the row (controls pinned to the top) instead of floating in a short band.
-	   Narrow viewports scroll sideways. */
+	   `flex min-h-[82px] items-center gap-0 px-1 py-0.5 overflow-x-auto
+	   flex-nowrap`). `items-center` (not `stretch`): a plain single-row button
+	   or group has no internal layout that uses extra height, so stretching it
+	   to the row's full 82px just padded it out top and bottom into an
+	   oversized pill. A group that genuinely wants the full height still gets
+	   it via its own explicit sizing (e.g. a stacked icon-over-label button),
+	   unaffected by this default. Narrow viewports scroll sideways. */
 	.pptx-svelte-ribbon-content {
 		display: flex;
-		align-items: stretch;
+		align-items: center;
 		flex-wrap: nowrap;
 		gap: 0;
 		min-height: 82px;

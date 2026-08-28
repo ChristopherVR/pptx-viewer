@@ -63,7 +63,7 @@ export const RIBBON_CSS = `
 .pptxv-ribbon-tab-content {
 	display: flex;
 	flex-wrap: nowrap;
-	align-items: stretch;
+	align-items: center;
 	gap: 0;
 	min-height: 82px;
 	padding: 2px 4px;

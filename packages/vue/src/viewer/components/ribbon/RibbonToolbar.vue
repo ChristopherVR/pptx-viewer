@@ -76,7 +76,7 @@ const { visibleTabs } = useToolbarVisibility(() => props.hiddenActions);
 		<div
 			v-if="showRibbon"
 			v-show="props.isCompactToolbarOpen"
-			class="flex min-h-[82px] items-stretch gap-0 overflow-x-auto px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap [&>*]:shrink-0"
+			class="flex min-h-[82px] items-center gap-0 overflow-x-auto px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap [&>*]:shrink-0"
 		>
 			<FileSection
 				v-if="s === 'file'"
