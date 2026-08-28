@@ -34,6 +34,8 @@ function makeContext(overrides: Partial<ElementRenderContext> = {}): ElementRend
 		smartArt3D: false,
 		surfaceChart3D: false,
 		barChart3D: false,
+		lineChart3D: false,
+		areaChart3D: false,
 		presenting: false,
 		interactive: true,
 		registry: {} as ElementRenderContext['registry'],

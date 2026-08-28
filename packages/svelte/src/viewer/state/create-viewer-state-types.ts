@@ -60,6 +60,8 @@ export interface CreateViewerStateOptions {
 	getSmartArt3D: () => boolean;
 	getSurfaceChart3D: () => boolean;
 	getBarChart3D: () => boolean;
+	getLineChart3D: () => boolean;
+	getAreaChart3D: () => boolean;
 	/**
 	 * The host `editable` prop. The factory mirrors it into its own
 	 * {@link ViewerStateBag.editable} flag, which the AI seam, `setMode()` and

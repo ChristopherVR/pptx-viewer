@@ -53,6 +53,8 @@ function buildContext(barChart3D: boolean): ElementRenderContext {
 		smartArt3D: false,
 		surfaceChart3D: false,
 		barChart3D,
+		lineChart3D: false,
+		areaChart3D: false,
 		presenting: false,
 		registry,
 		renderElement(element, zIndex) {

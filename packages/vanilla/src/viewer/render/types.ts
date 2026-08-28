@@ -94,6 +94,20 @@ export interface ElementRenderContext {
 	 */
 	readonly barChart3D: boolean;
 	/**
+	 * Opt-in flag: render `line3D` charts as an interactive, camera-orbitable
+	 * Three.js tube-path scene instead of the flat SVG oblique-projection
+	 * illusion (see `PptxViewerOptions.lineChart3D`). Defaults to `false` when
+	 * the option is unset.
+	 */
+	readonly lineChart3D: boolean;
+	/**
+	 * Opt-in flag: render `area3D` charts as an interactive, camera-orbitable
+	 * Three.js tube-path + ribbon-fill scene instead of the flat SVG
+	 * oblique-projection illusion (see `PptxViewerOptions.areaChart3D`).
+	 * Defaults to `false` when the option is unset.
+	 */
+	readonly areaChart3D: boolean;
+	/**
 	 * True only for the live presentation stage (real Fullscreen API active):
 	 * media renderers use this to autoplay once mounted, matching PowerPoint's
 	 * slideshow behaviour. `false` for the editor canvas and thumbnail rail.

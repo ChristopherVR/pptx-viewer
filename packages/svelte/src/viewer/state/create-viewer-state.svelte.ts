@@ -6,6 +6,7 @@ import { createDeckApi } from '../editor/deck-api';
 import { createEditingApi } from '../editor/editing-api';
 import { EditorState } from '../editor/editor-state.svelte';
 import { createExportingApi } from '../export/exporting-api';
+import { provideAreaChart3D } from './area-chart-3d-context';
 import { provideBarChart3D } from './bar-chart-3d-context';
 import { useAiCluster } from './create-viewer-state-ai.svelte';
 import { useCollabCluster } from './create-viewer-state-collab.svelte';
@@ -17,6 +18,7 @@ import { usePresenterCluster } from './create-viewer-state-presenter.svelte';
 import type { CreateViewerStateOptions, ViewerStateBag } from './create-viewer-state-types';
 import { provideFieldContext } from './field-context';
 import { createInspectorDeckActions, provideInspectorDeck } from './inspector-deck';
+import { provideLineChart3D } from './line-chart-3d-context';
 import { createOpenFile } from './open-file';
 import { PresentationLoader } from './presentation-loader.svelte';
 import { runQuickAccessCommand } from './quick-access-commands';
@@ -59,6 +61,8 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	provideSmartArt3D(options.getSmartArt3D);
 	provideSurfaceChart3D(options.getSurfaceChart3D);
 	provideBarChart3D(options.getBarChart3D);
+	provideLineChart3D(options.getLineChart3D);
+	provideAreaChart3D(options.getAreaChart3D);
 
 	// The live editable flag. Seeded from the host prop, but writable, because
 	// an AI edit, `deck.setMode()` and Trust Center's Protected View all have to
@@ -197,6 +201,8 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getSmartArt3D: options.getSmartArt3D,
 		getSurfaceChart3D: options.getSurfaceChart3D,
 		getBarChart3D: options.getBarChart3D,
+		getLineChart3D: options.getLineChart3D,
+		getAreaChart3D: options.getAreaChart3D,
 		getRootEl: options.getRootEl,
 		getEditable,
 		getFieldContext: fieldContext,

@@ -213,6 +213,31 @@ export interface PptxViewerOptions extends PptxViewerCallbacks {
 	 */
 	barChart3D?: boolean;
 	/**
+	 * Opt in to the interactive Three.js line3D-chart renderer (default
+	 * `false`). When `true`, `line3D` charts render as camera-orbitable real
+	 * tube-path meshes, one per depth ("series") plane (drag to rotate, scroll
+	 * to zoom), instead of the flat SVG oblique-projection illusion. Chart
+	 * marks are not selectable/draggable in this mode. `three` is an optional
+	 * peer dependency, lazily imported only when this is `true`; when it is
+	 * unavailable or the chart has no plottable grid, the SVG renderer is used
+	 * instead. Set once at construction (no runtime setter, mirroring the
+	 * Vue/React/Angular/Svelte bindings).
+	 */
+	lineChart3D?: boolean;
+	/**
+	 * Opt in to the interactive Three.js area3D-chart renderer (default
+	 * `false`). When `true`, `area3D` charts render as camera-orbitable real
+	 * tube-path meshes plus a filled ribbon mesh per series, one per depth
+	 * ("series") plane (drag to rotate, scroll to zoom), instead of the flat
+	 * SVG oblique-projection illusion. Chart marks are not selectable/draggable
+	 * in this mode. `three` is an optional peer dependency, lazily imported
+	 * only when this is `true`; when it is unavailable or the chart has no
+	 * plottable grid, the SVG renderer is used instead. Set once at
+	 * construction (no runtime setter, mirroring the Vue/React/Angular/Svelte
+	 * bindings).
+	 */
+	areaChart3D?: boolean;
+	/**
 	 * Whether this application PERMITS recovery autosave (`@default true`).
 	 *
 	 * This is a policy ceiling, not the user's setting: the title-bar AutoSave

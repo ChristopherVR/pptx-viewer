@@ -9,12 +9,14 @@ import { registerRichMediaRenderers } from './register-rich-media';
 import { registerTableChartRenderers } from './register-table-chart';
 import { renderTextShapeElement } from './text-shape';
 
+export { renderAreaChart3DElement } from './area-chart-3d';
 export { renderBarChart3DElement } from './bar-chart-3d';
 export { renderChartElement, renderChartSvgElement } from './chart';
 export { renderConnectorElement } from './connector';
 export { renderGroupElement } from './group';
 export { renderImageElement } from './image';
 export { renderInkElement } from './ink';
+export { renderLineChart3DElement } from './line-chart-3d';
 export { renderMediaElement } from './media';
 export { renderOleElement } from './ole';
 export { renderPlaceholderElement } from './placeholder';

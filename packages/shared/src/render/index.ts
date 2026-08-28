@@ -783,6 +783,33 @@ export * from './bar-chart-3d-layout';
 // `mountBarChart3D` needs, sharing colour/value-range resolution with the
 // flat SVG oblique-projection engine so both presentations agree.
 export * from './bar-chart-3d-data';
+// Pure per-series depth-plane path layout shared by the interactive line3D
+// and area3D true-3D scenes (each series gets its own Z plane, exactly like
+// bar3D's clustered layout), plus the area3D ribbon-fill triangle builder.
+export * from './cartesian-line-chart-3d-layout';
+// Chart-type-agnostic point/series data-shaping shared by line3D and area3D
+// (`line-chart-3d-data`/`area-chart-3d-data` below only differ in which
+// `c:chartType` they gate on).
+export * from './cartesian-line-chart-3d-data';
+// `line3D` element-gate onto the shared cartesian line/area 3D data shaping.
+export * from './line-chart-3d-data';
+// `area3D` element-gate onto the shared cartesian line/area 3D data shaping.
+export * from './area-chart-3d-data';
+// Pure raycast-hit (series, category, value) -> hover-tooltip text mapping
+// shared by the interactive line3D/area3D scenes, mirroring
+// `bar-chart-3d-hit-test`'s pattern.
+export * from './cartesian-chart-3d-hit-test';
+// Vanilla three.js 3D line-chart scene controller: one `THREE.TubeGeometry`
+// path per series (its own depth plane) plus per-vertex hover markers. Like
+// `bar-chart-3d-scene`, `three` is dynamically imported and optional,
+// resolving to a no-op sentinel so the chart falls back to the flat 2D
+// oblique-projection line3D renderer when it is missing.
+export * from './line-chart-3d-scene';
+// Vanilla three.js 3D area-chart scene controller: identical to
+// `line-chart-3d-scene` plus a translucent ribbon fill from each series' path
+// down to its baseline. Falls back to the flat 2D oblique-projection area3D
+// renderer when `three` is missing.
+export * from './area-chart-3d-scene';
 // SmartArt pre-computed drawing-shapes projection (the `smartArtData.
 // drawingShapes` path the core engine extracts from `ppt/diagrams/drawing*.xml`,
 // preferred over the SVG-fallback layout engine when present): palette

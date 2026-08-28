@@ -139,6 +139,30 @@ export interface PowerPointViewerProps {
 	 * `false`.
 	 */
 	barChart3D?: boolean;
+
+	/**
+	 * Opt in to the interactive Three.js line3D-chart renderer. When `true`,
+	 * `line3D` charts render as a camera-orbitable real tube-path mesh per
+	 * series, one per depth ("series") plane (drag to rotate, scroll to zoom),
+	 * instead of the flat SVG oblique-projection illusion. Chart marks are not
+	 * selectable/draggable in this mode. Requires the optional `three` peer
+	 * dependency; when it is not installed (or the chart has no plottable
+	 * grid), the viewer transparently falls back to the flat SVG line3D
+	 * renderer. Default `false`.
+	 */
+	lineChart3D?: boolean;
+
+	/**
+	 * Opt in to the interactive Three.js area3D-chart renderer. When `true`,
+	 * `area3D` charts render as a camera-orbitable real tube path + filled
+	 * ribbon mesh per series, one per depth ("series") plane (drag to rotate,
+	 * scroll to zoom), instead of the flat SVG oblique-projection illusion.
+	 * Chart marks are not selectable/draggable in this mode. Requires the
+	 * optional `three` peer dependency; when it is not installed (or the chart
+	 * has no plottable grid), the viewer transparently falls back to the flat
+	 * SVG area3D renderer. Default `false`.
+	 */
+	areaChart3D?: boolean;
 	/**
 	 * Individual toolbar buttons and/or ribbon tabs to hide, letting a host
 	 * curate the chrome instead of only the all-or-nothing `canEdit` toggle.

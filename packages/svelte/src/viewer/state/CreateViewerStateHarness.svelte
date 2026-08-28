@@ -44,6 +44,8 @@
 		getSmartArt3D: () => false,
 		getSurfaceChart3D: () => false,
 		getBarChart3D: () => false,
+		getLineChart3D: () => false,
+		getAreaChart3D: () => false,
 		getEditable: () => editable,
 		onautosavetoggle: (enabled) => onautosavetoggle?.(enabled),
 		getStageHolderEl: () => undefined,

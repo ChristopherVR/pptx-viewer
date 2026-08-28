@@ -66,10 +66,12 @@ import ViewerSlideRail from './components/ViewerSlideRail.vue';
 import { AccountAuthKey } from './composables/account-auth';
 import { useAiBridge } from './composables/ai/useAiBridge';
 import { useAiPanelController } from './composables/ai/useAiPanelController';
+import { AreaChart3DKey } from './composables/area-chart-3d';
 import { BarChart3DKey } from './composables/bar-chart-3d';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
+import { LineChart3DKey } from './composables/line-chart-3d';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { SurfaceChart3DKey } from './composables/surface-chart-3d';
 import { TableThemeKey } from './composables/table-theme';
@@ -145,6 +147,8 @@ const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	smartArt3D: false,
 	surfaceChart3D: false,
 	barChart3D: false,
+	lineChart3D: false,
+	areaChart3D: false,
 });
 const emit = defineEmits<PowerPointViewerEmits>();
 
@@ -160,6 +164,10 @@ provide(SmartArt3DKey, props.smartArt3D);
 provide(SurfaceChart3DKey, props.surfaceChart3D);
 // Bar3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
 provide(BarChart3DKey, props.barChart3D);
+// Line3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
+provide(LineChart3DKey, props.lineChart3D);
+// Area3D-chart 3D opt-in: surface the prop to ChartRenderer via inject.
+provide(AreaChart3DKey, props.areaChart3D);
 // File > Account sign-in hook point: surface the prop to AccountPage.vue via
 // inject, avoiding threading `accountAuth` through the large RibbonProps
 // contract just to reach one deeply-nested panel (mirrors SmartArt3DKey above).

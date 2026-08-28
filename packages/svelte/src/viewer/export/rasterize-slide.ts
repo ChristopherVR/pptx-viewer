@@ -5,8 +5,10 @@ import { mount, unmount } from 'svelte';
 import { I18N_CONTEXT_KEY } from '../../i18n/context';
 import type { Translator } from '../../i18n/translator';
 import SlideStage from '../components/SlideStage.svelte';
+import { AreaChart3DContextKey } from '../state/area-chart-3d-context';
 import { BarChart3DContextKey } from '../state/bar-chart-3d-context';
 import { FieldContextKey } from '../state/field-context';
+import { LineChart3DContextKey } from '../state/line-chart-3d-context';
 import { SmartArt3DContextKey } from '../state/smart-art-3d-context';
 import { SurfaceChart3DContextKey } from '../state/surface-chart-3d-context';
 import { renderToCanvas } from './render-to-canvas';
@@ -31,6 +33,16 @@ export interface RasterizeSlideDeps {
 	 * `PowerPointViewerProps.barChart3D`.
 	 */
 	barChart3D: boolean;
+	/**
+	 * Opt-in WebGL line3D-chart renderer flag; see
+	 * `PowerPointViewerProps.lineChart3D`.
+	 */
+	lineChart3D: boolean;
+	/**
+	 * Opt-in WebGL area3D-chart renderer flag; see
+	 * `PowerPointViewerProps.areaChart3D`.
+	 */
+	areaChart3D: boolean;
 	/**
 	 * Deck-level OOXML field-substitution context. The capture stage is mounted
 	 * outside the viewer tree, so without this an exported PNG/PDF would print
@@ -136,6 +148,8 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 				[SmartArt3DContextKey, () => deps.smartArt3D],
 				[SurfaceChart3DContextKey, () => deps.surfaceChart3D],
 				[BarChart3DContextKey, () => deps.barChart3D],
+				[LineChart3DContextKey, () => deps.lineChart3D],
+				[AreaChart3DContextKey, () => deps.areaChart3D],
 				[FieldContextKey, () => deps.getFieldContext?.()],
 			]),
 		});

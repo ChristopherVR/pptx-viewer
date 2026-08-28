@@ -18,6 +18,8 @@ function makeContext(presenting = false): ElementRenderContext {
 		smartArt3D: false,
 		surfaceChart3D: false,
 		barChart3D: false,
+		lineChart3D: false,
+		areaChart3D: false,
 		presenting,
 		registry,
 		renderElement: (el, z) => registry.resolve(el.type)(el, z, context),

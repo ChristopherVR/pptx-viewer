@@ -18,6 +18,8 @@ export interface ExportNotesClusterDeps {
 	getSmartArt3D(): boolean;
 	getSurfaceChart3D(): boolean;
 	getBarChart3D(): boolean;
+	getLineChart3D(): boolean;
+	getAreaChart3D(): boolean;
 	getRootEl(): HTMLDivElement | undefined;
 	/** Whether in-place editing is on (gates whether notes edits are history-tracked). */
 	getEditable(): boolean;
@@ -60,6 +62,8 @@ export function buildExportNotesCluster(deps: ExportNotesClusterDeps): ExportNot
 		getSmartArt3D: deps.getSmartArt3D,
 		getSurfaceChart3D: deps.getSurfaceChart3D,
 		getBarChart3D: deps.getBarChart3D,
+		getLineChart3D: deps.getLineChart3D,
+		getAreaChart3D: deps.getAreaChart3D,
 		getFieldContext: () => deps.getFieldContext?.(),
 		getDeckData: () => buildDeckExportData(editor, loader),
 		getFileName: () => deps.getFileName?.(),

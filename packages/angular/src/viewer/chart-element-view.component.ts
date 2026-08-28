@@ -35,6 +35,8 @@ import {
 	withChartTitle,
 } from '../internal/shared';
 import type { ChartValueDragState, ElementAnimationState } from '../internal/shared';
+import { AreaChart3DRendererComponent } from './area-chart-3d-renderer.component';
+import { AreaChart3DService } from './area-chart-3d.service';
 import { BarChart3DRendererComponent } from './bar-chart-3d-renderer.component';
 import { BarChart3DService } from './bar-chart-3d.service';
 import {
@@ -46,6 +48,8 @@ import { ChartPartSelectionService } from './chart-part-selection.service';
 import { buildChartViewModel, formatAxisValue, resolveChartKind } from './chart-renderer-helpers';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { EditorStateService } from './editor-state.service';
+import { LineChart3DRendererComponent } from './line-chart-3d-renderer.component';
+import { LineChart3DService } from './line-chart-3d.service';
 import { SLIDE_CONTEXT } from './slide-context';
 import { SurfaceChart3DRendererComponent } from './surface-chart-3d-renderer.component';
 import { SurfaceChart3DService } from './surface-chart-3d.service';
@@ -54,7 +58,13 @@ import { SurfaceChart3DService } from './surface-chart-3d.service';
 	selector: 'pptx-chart-element-view',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ChartRendererComponent, SurfaceChart3DRendererComponent, BarChart3DRendererComponent],
+	imports: [
+		ChartRendererComponent,
+		SurfaceChart3DRendererComponent,
+		BarChart3DRendererComponent,
+		LineChart3DRendererComponent,
+		AreaChart3DRendererComponent,
+	],
 	template: `
 		<div
 			#wrapper
@@ -69,6 +79,10 @@ import { SurfaceChart3DService } from './surface-chart-3d.service';
 				<pptx-surface-chart-3d-renderer [element]="renderedElement()" />
 			} @else if (use3DBar() && isBar3DKind()) {
 				<pptx-bar-chart-3d-renderer [element]="renderedElement()" />
+			} @else if (use3DLine() && isLine3DKind()) {
+				<pptx-line-chart-3d-renderer [element]="renderedElement()" />
+			} @else if (use3DArea() && isArea3DKind()) {
+				<pptx-area-chart-3d-renderer [element]="renderedElement()" />
 			} @else {
 				<pptx-chart-renderer [element]="renderedElement()" />
 			}
@@ -123,6 +137,10 @@ export class ChartElementViewComponent {
 	private readonly surfaceChart3DSvc = inject(SurfaceChart3DService, { optional: true });
 	/** Viewer-scoped opt-in flag for the interactive 3D bar3D-chart renderer. */
 	private readonly barChart3DSvc = inject(BarChart3DService, { optional: true });
+	/** Viewer-scoped opt-in flag for the interactive 3D line3D-chart renderer. */
+	private readonly lineChart3DSvc = inject(LineChart3DService, { optional: true });
+	/** Viewer-scoped opt-in flag for the interactive 3D area3D-chart renderer. */
+	private readonly areaChart3DSvc = inject(AreaChart3DService, { optional: true });
 	private readonly injector = inject(Injector);
 
 	private readonly wrapper = viewChild<ElementRef<HTMLElement>>('wrapper');
@@ -161,6 +179,16 @@ export class ChartElementViewComponent {
 	 */
 	protected readonly use3DBar = computed(() => this.barChart3DSvc?.enabled() ?? false);
 	protected readonly isBar3DKind = computed(() => this.chartData()?.chartType === 'bar3D');
+
+	/**
+	 * Opt-in interactive 3D line/area scenes (tube path / ribbon meshes, camera
+	 * orbit/zoom via OrbitControls). Same "marks are not selectable/draggable"
+	 * caveat as the surface/bar scenes above.
+	 */
+	protected readonly use3DLine = computed(() => this.lineChart3DSvc?.enabled() ?? false);
+	protected readonly isLine3DKind = computed(() => this.chartData()?.chartType === 'line3D');
+	protected readonly use3DArea = computed(() => this.areaChart3DSvc?.enabled() ?? false);
+	protected readonly isArea3DKind = computed(() => this.chartData()?.chartType === 'area3D');
 
 	/** Whether this chart element is currently selected in the editor. */
 	private readonly isSelected = computed(

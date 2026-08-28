@@ -23,6 +23,7 @@
  */
 import { AccessibilityService } from './accessibility.service';
 import { AiPanelStore } from './ai/ai-panel-store';
+import { AreaChart3DService } from './area-chart-3d.service';
 import { AutosaveRecoveryService } from './autosave-recovery.service';
 import { AutosaveService } from './autosave.service';
 import { BarChart3DService } from './bar-chart-3d.service';
@@ -34,6 +35,7 @@ import { EmbeddedFontsService } from './embedded-fonts.service';
 import { ExportService } from './export.service';
 import { FieldContextService } from './field-context.service';
 import { IsMobileService } from './is-mobile';
+import { LineChart3DService } from './line-chart-3d.service';
 import { LoadContentService } from './load-content.service';
 import { PrintService } from './print.service';
 import { SmartArt3DService } from './smart-art-3d.service';
@@ -84,6 +86,8 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	SmartArt3DService,
 	SurfaceChart3DService,
 	BarChart3DService,
+	LineChart3DService,
+	AreaChart3DService,
 	FieldContextService,
 	ZoomTargetService,
 	AiPanelStore,
