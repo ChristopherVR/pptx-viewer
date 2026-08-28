@@ -47,11 +47,31 @@ const FAMILY_COLUMNS = MOTION_PATH_FAMILIES.map((family) => ({
 function presetLabel(presetId: string): string {
 	return t(motionPathPresetLabelKey(presetId));
 }
+
+/*
+ * The root div below carries `max-w-[420px] overflow-x-auto`: matches the cap
+ * React applies via the className on the RibbonGroup that wraps its
+ * MotionPathGallery (`max-w-[420px] overflow-hidden`). Without a width cap
+ * here, the five family columns (Lines/Arcs/Turns/Shapes/Loops), each already
+ * capped individually at `max-w-[150px]`, still measured ~810px combined in
+ * this binding (vs. React's own ~400px for the identical shared-catalogue
+ * content), wide enough to push the Advanced Animation and Timing groups
+ * after it off the ribbon's visible row: reachable only via a second,
+ * easy-to-miss nested horizontal scrollbar (the reported Animations-tab
+ * "clipping"). `overflow-x-auto` (rather than React's `overflow-hidden` on
+ * its wrapper) keeps every family reachable via a small scrollbar instead of
+ * silently hiding whatever a hard clip would cut off.
+ *
+ * The comment lives here, not inside <template>, because a comment placed
+ * before the template's root element turns this component into a multi-root
+ * fragment, which drops single-root $attrs inheritance and broke
+ * MotionPathGallery.test.ts's `wrapper.attributes('aria-label')` lookup.
+ */
 </script>
 
 <template>
 	<div
-		class="flex max-h-[62px] items-start gap-2 overflow-y-auto rounded-sm border border-border/60 bg-muted/30 px-1.5 py-1"
+		class="flex max-h-[62px] max-w-[420px] items-start gap-2 overflow-x-auto overflow-y-auto rounded-sm border border-border/60 bg-muted/30 px-1.5 py-1"
 		:aria-label="t('pptx.animations.motionPathGalleryAria')"
 	>
 		<div v-for="column in FAMILY_COLUMNS" :key="column.family" class="flex flex-col gap-0.5">

@@ -121,10 +121,8 @@
 	<FindReplacePanel findReplace={props.findReplace} editable={props.editor.editable} />
 	<!-- The File backstage is a full-screen `position: fixed` overlay, not a row
 	     of ribbon groups, so it is deliberately a sibling of
-	     `.pptx-svelte-ribbon-content`: that container's `> * { align-items:
-	     flex-start }` rule (which top-aligns each tab's groups) otherwise landed
-	     on the backstage flex row and stopped its left nav rail stretching to
-	     the full window height. -->
+	     `.pptx-svelte-ribbon-content` rather than routed through its
+	     `> :global(*)` alignment rule, which is scoped to ribbon tab content. -->
 	{#if activeTab === 'file'}
 		<FileTab
 			fileName={props.fileName}
@@ -256,11 +254,18 @@
 	}
 
 	/* Each active tab is the single direct child; stretch it to the full row
-	   height and top-align its groups so controls sit at the top with labels
-	   below (PowerPoint layout), rather than vertically centered. */
+	   height. `align-items: stretch` (not `flex-start`) additionally stretches
+	   EACH of the tab's own `RibbonGroup` sections to that same full height,
+	   so every group's border-right divider and bottom-pinned label
+	   (`RibbonGroup`'s own `justify-content: space-between`) line up at a
+	   consistent height across the row. A tab whose groups vary in natural
+	   content height (e.g. View's five-row "Show" group next to its
+	   two-row "Zoom" group) otherwise left the shorter groups' dividers and
+	   labels stranded partway down the row while the tall group's ran the
+	   full height, reading as broken/clipped rather than merely uneven. */
 	.pptx-svelte-ribbon-content > :global(*) {
 		align-self: stretch;
-		align-items: flex-start;
+		align-items: stretch;
 	}
 
 	/* Shared compact dark select for ribbon dropdowns (font family, change

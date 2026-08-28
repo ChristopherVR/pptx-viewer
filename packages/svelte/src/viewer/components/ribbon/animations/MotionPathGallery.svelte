@@ -59,11 +59,25 @@
 </div>
 
 <style>
+	/*
+	 * `max-width: 420px` + `overflow-x: auto` matches the cap React applies to
+	 * the RibbonGroup that wraps `MotionPathGallery` (`max-w-[420px]
+	 * overflow-hidden`). Without a width cap here, the five family columns
+	 * (Lines/Arcs/Turns/Shapes/Loops) laid out in a single un-wrapped row could
+	 * run past 800px, pushing the Advanced Animation and Timing groups after it
+	 * off the ribbon's visible row (reachable only via a second, easy-to-miss
+	 * nested horizontal scrollbar: the reported Animations-tab clipping).
+	 * `overflow-x: auto` (rather than React's `overflow-hidden` on its
+	 * wrapper) keeps every family reachable via a small scrollbar instead of
+	 * silently hiding the columns a hard clip would cut off.
+	 */
 	.pptx-svelte-motionpaths {
 		display: flex;
 		align-items: flex-start;
 		gap: 8px;
+		max-width: 420px;
 		max-height: 62px;
+		overflow-x: auto;
 		overflow-y: auto;
 		padding: 2px 4px;
 		border: 1px solid color-mix(in srgb, var(--pptx-border, #33334d) 60%, transparent);

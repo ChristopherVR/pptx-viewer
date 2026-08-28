@@ -10,10 +10,28 @@
 	 */
 	import type { Snippet } from 'svelte';
 
-	const { label, children }: { label: string; children: Snippet } = $props();
+	/**
+	 * `maxWidth` (px): the Svelte twin of React's per-instance
+	 * `className='max-w-[…px] overflow-hidden'` on `RibbonGroup`. A dense tab
+	 * (Animations' preset/motion-path galleries) needs to cap a single group's
+	 * width so it cannot silently push the groups after it off the ribbon's
+	 * visible row; a plain `class` prop can't do this here because a class
+	 * string handed down from a parent component does not carry that parent's
+	 * Svelte scoped-style hash, so a rule the parent declares for it would
+	 * never match this element. An inline style has no such scoping problem.
+	 */
+	const {
+		label,
+		maxWidth,
+		children,
+	}: { label: string; maxWidth?: number; children: Snippet } = $props();
 </script>
 
-<section class="pptx-svelte-rbgroup" aria-label={label}>
+<section
+	class="pptx-svelte-rbgroup"
+	style={maxWidth !== undefined ? `max-width: ${maxWidth}px; overflow: hidden;` : undefined}
+	aria-label={label}
+>
 	<div class="pptx-svelte-rbgroup-row">{@render children()}</div>
 	<span class="pptx-svelte-rbgroup-label">{label}</span>
 </section>

@@ -38,35 +38,52 @@
    global sheet. Global classes still match emulated-encapsulated component
    elements (same pattern as the .pptx-ng-* rules below). */
 @layer components {
+	/*
+	 * flex-shrink:0 (Tailwind `shrink-0`) is applied directly on every one of
+	 * these classes rather than relied on from the ribbon row's `[&>*]:shrink-0`
+	 * (ribbon.component.ts). That ancestor selector only ever reaches its
+	 * *actual* DOM children, and every ribbon tab-section custom element
+	 * between the row and these controls is `display: contents` (see the
+	 * `pptx-ribbon-*-section { display: contents }` block below) precisely so
+	 * its children lay out as if they were direct children of the row - which
+	 * also means the row's `> *` selector stops at the section element and
+	 * never reaches the buttons/pills nested inside it. Left at the flexbox
+	 * default (`shrink: 1`), a wide tab (View's flat, ungrouped pill row is the
+	 * worst case: every command is one long `flex-nowrap` line with no
+	 * per-group wrapping to absorb the width) silently shrinks pills below
+	 * their label's min-content width instead of scrolling
+	 * (`overflow-x: auto` on the row), clipping/overlapping text like
+	 * "Eyedropper" mid-word. Setting shrink-0 here, on the control itself,
+	 * survives no matter how many `display: contents` layers sit in between. */
 	.pptx-rb-icon {
-		@apply inline-flex h-7 min-w-7 items-center justify-center rounded text-[0.95rem] text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+		@apply inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded text-[0.95rem] text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
 	}
 	.pptx-rb-pill {
-		@apply inline-flex items-center gap-1.5 rounded bg-muted px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+		@apply inline-flex shrink-0 items-center gap-1.5 rounded bg-muted px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
 	}
 	.pptx-rb-grp {
-		@apply inline-flex items-center overflow-hidden rounded bg-muted text-xs text-foreground;
+		@apply inline-flex shrink-0 items-center overflow-hidden rounded bg-muted text-xs text-foreground;
 	}
 	.pptx-rb-gb {
-		@apply inline-flex items-center justify-center border-r border-border px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+		@apply inline-flex shrink-0 items-center justify-center border-r border-border px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
 	}
 	.pptx-rb-gl {
-		@apply inline-flex items-center justify-center px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+		@apply inline-flex shrink-0 items-center justify-center px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
 	}
 	.pptx-rb-sep {
-		@apply mx-1 w-px self-stretch bg-border/40;
+		@apply mx-1 w-px shrink-0 self-stretch bg-border/40;
 	}
 	/* Compact checkbox/label row used by the ribbon's "Options"-style groups
 	   (Slide Show, View), where PowerPoint stacks three small toggles in the
 	   height of one command button. */
 	.pptx-rb-toggle {
-		@apply flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[10px] text-foreground;
+		@apply flex h-[19px] shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[10px] text-foreground;
 	}
 	/* Native selects styled to sit flush with the surrounding ribbon pills
 	   (same height, radius, background and type size as .pptx-rb-pill /
 	   .pptx-rb-gb) instead of the stock OS select chrome. */
 	.pptx-rb-select {
-		@apply h-7 cursor-pointer rounded border border-border bg-muted px-1.5 text-xs text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+		@apply h-7 shrink-0 cursor-pointer rounded border border-border bg-muted px-1.5 text-xs text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
 	}
 	/* Horizontal-scroll container for the ribbon tab row with a hidden
 	   scrollbar (mirrors React's `overflow-x-auto scrollbar-none`), so on

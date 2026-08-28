@@ -52,7 +52,7 @@
 		</RibbonCommand>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.animations.animation')}>
+	<RibbonGroup label={t('pptx.animations.animation')} maxWidth={500}>
 		<div class="pptx-svelte-animationstab-galleries">
 			{#each ANIMATION_CATEGORIES as category (category.group)}
 				<div class="pptx-svelte-animationstab-group">
@@ -114,11 +114,23 @@
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 
+	/*
+	 * 150px, not a round number: matches React's `AnimationPresetGallery`
+	 * (`max-w-[150px]`) exactly. This used to be 240px, which let each of the
+	 * three buckets (entrance/emphasis/exit) run noticeably wider than React's,
+	 * pushing the whole "Animation" RibbonGroup out to ~750px instead of the
+	 * ~480px React renders at (React additionally caps the group itself at
+	 * `max-w-[500px]`, see the `maxWidth` prop below). That extra width shoved
+	 * the Advanced Animation and Timing groups far enough right that they fell
+	 * off the ribbon's visible row, reachable only via a second, undiscoverable
+	 * nested horizontal scrollbar clipping/scroll region: the user-reported
+	 * "Animations tab clipping".
+	 */
 	.pptx-svelte-animationstab-gallery {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 4px;
-		max-width: 240px;
+		max-width: 150px;
 	}
 
 	.pptx-svelte-animationstab-gallery button {

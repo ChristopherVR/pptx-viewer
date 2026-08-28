@@ -60,8 +60,22 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 </script>
 
 <template>
+	<!--
+		Every group below is a direct child of the ribbon content row
+		(`RibbonToolbar.vue`'s `items-center` row), so a group that keeps its
+		own intrinsic height sits vertically centered at that height rather than
+		reaching the row's true bottom edge whenever a taller sibling group sets
+		the row's height (View's five-row "Show" group next to its two-row
+		"Zoom" group is the clearest case: without `self-stretch` + `justify-
+		between`, "Show"'s caption lands well below the other four groups'
+		captions, and their border-right dividers stop short of the row's own
+		bottom edge). `self-stretch` claims the row's full height per group;
+		`justify-between` then pins each group's caption to that stretched
+		box's own bottom, independent of its neighbours' heights, matching
+		every other binding's `RibbonGroup`.
+	-->
 	<!-- Presentation Views group -->
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center justify-between self-stretch gap-0.5">
 		<div class="flex items-center gap-0.5">
 			<button :class="pill" :title="t('pptx.statusBar.normalView')">
 				{{ t('pptx.view.normal') }}
@@ -93,7 +107,7 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 	<div :class="SEP" />
 
 	<!-- Master Views group -->
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center justify-between self-stretch gap-0.5">
 		<div class="flex items-center gap-0.5">
 			<button
 				:disabled="!props.canEdit"
@@ -117,93 +131,109 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 	<div :class="SEP" />
 
 	<!-- Show group -->
-	<div class="flex flex-col justify-start gap-0.5">
-		<label :class="cn(toggleRow, props.showRulers ? 'bg-primary/15 text-primary' : '')">
-			<input
-				type="checkbox"
-				class="h-3 w-3 accent-primary"
-				:checked="props.showRulers"
-				@change="props.onSetShowRulers(($event.target as HTMLInputElement).checked)"
-			/>
-			{{ t('pptx.ruler.rulers') }}
-		</label>
-		<label :class="cn(toggleRow, props.showGrid ? 'bg-primary/15 text-primary' : '')">
-			<input
-				type="checkbox"
-				class="h-3 w-3 accent-primary"
-				:checked="props.showGrid"
-				:title="t('pptx.grid.toggleGrid')"
-				@change="props.onSetShowGrid(($event.target as HTMLInputElement).checked)"
-			/>
-			{{ t('pptx.grid.grid') }}
-		</label>
-		<label :class="cn(toggleRow, props.showGuides ? 'bg-primary/15 text-primary' : '')">
-			<input
-				type="checkbox"
-				class="h-3 w-3 accent-primary"
-				:checked="props.showGuides"
-				:title="t('pptx.ribbon.toggleGuides')"
-				@change="props.onSetShowGuides(($event.target as HTMLInputElement).checked)"
-			/>
-			{{ t('pptx.view.guides') }}
-		</label>
-		<label :class="cn(toggleRow, props.snapToGrid ? 'bg-primary/15 text-primary' : '')">
-			<input
-				type="checkbox"
-				class="h-3 w-3 accent-primary"
-				:checked="props.snapToGrid"
-				@change="props.onSetSnapToGrid(($event.target as HTMLInputElement).checked)"
-			/>
-			{{ t('pptx.grid.snapToGrid') }}
-		</label>
-	</div>
-	<div class="flex flex-col justify-start gap-0.5">
-		<button
-			v-if="props.onToggleSelectionPane"
-			type="button"
-			:class="
-				cn(pill, props.isSelectionPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')
-			"
-			:title="t('pptx.selectionPane.title')"
-			@click="props.onToggleSelectionPane()"
-		>
-			<List :class="ic" />
-			{{ t('pptx.view.selection') }}
-		</button>
-		<button
-			v-if="props.onToggleEyedropper"
-			type="button"
-			:disabled="!props.canEdit"
-			:class="
-				cn(pill, props.eyedropperActive ? 'bg-purple-600 hover:bg-purple-500 text-purple-50' : '')
-			"
-			:title="t('pptx.view.eyedropperTooltip')"
-			@click="props.onToggleEyedropper()"
-		>
-			<Pipette :class="ic" />
-			{{ t('pptx.ribbon.eyedropper') }}
-		</button>
-		<button
-			type="button"
-			:class="cn(pill, props.snapToShape ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-			:aria-pressed="props.snapToShape"
-			:title="t('pptx.view.snapToShape')"
-			@click="props.onSetSnapToShape(!props.snapToShape)"
-		>
-			<Grid3X3 :class="ic" />
-			{{ t('pptx.view.snapToShape') }}
-		</button>
-		<button :class="pill" :title="t('pptx.view.addHorizontalGuide')" @click="props.onAddGuide('h')">
-			{{ t('pptx.view.hGuide') }}
-		</button>
-		<button :class="pill" :title="t('pptx.view.addVerticalGuide')" @click="props.onAddGuide('v')">
-			{{ t('pptx.view.vGuide') }}
-		</button>
+	<div class="flex flex-col items-center justify-between self-stretch gap-0.5">
+		<div class="flex items-start gap-2">
+			<div class="flex flex-col justify-start gap-0.5">
+				<label :class="cn(toggleRow, props.showRulers ? 'bg-primary/15 text-primary' : '')">
+					<input
+						type="checkbox"
+						class="h-3 w-3 accent-primary"
+						:checked="props.showRulers"
+						@change="props.onSetShowRulers(($event.target as HTMLInputElement).checked)"
+					/>
+					{{ t('pptx.ruler.rulers') }}
+				</label>
+				<label :class="cn(toggleRow, props.showGrid ? 'bg-primary/15 text-primary' : '')">
+					<input
+						type="checkbox"
+						class="h-3 w-3 accent-primary"
+						:checked="props.showGrid"
+						:title="t('pptx.grid.toggleGrid')"
+						@change="props.onSetShowGrid(($event.target as HTMLInputElement).checked)"
+					/>
+					{{ t('pptx.grid.grid') }}
+				</label>
+				<label :class="cn(toggleRow, props.showGuides ? 'bg-primary/15 text-primary' : '')">
+					<input
+						type="checkbox"
+						class="h-3 w-3 accent-primary"
+						:checked="props.showGuides"
+						:title="t('pptx.ribbon.toggleGuides')"
+						@change="props.onSetShowGuides(($event.target as HTMLInputElement).checked)"
+					/>
+					{{ t('pptx.view.guides') }}
+				</label>
+				<label :class="cn(toggleRow, props.snapToGrid ? 'bg-primary/15 text-primary' : '')">
+					<input
+						type="checkbox"
+						class="h-3 w-3 accent-primary"
+						:checked="props.snapToGrid"
+						@change="props.onSetSnapToGrid(($event.target as HTMLInputElement).checked)"
+					/>
+					{{ t('pptx.grid.snapToGrid') }}
+				</label>
+			</div>
+			<div class="flex flex-col justify-start gap-0.5">
+				<button
+					v-if="props.onToggleSelectionPane"
+					type="button"
+					:class="
+						cn(pill, props.isSelectionPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')
+					"
+					:title="t('pptx.selectionPane.title')"
+					@click="props.onToggleSelectionPane()"
+				>
+					<List :class="ic" />
+					{{ t('pptx.view.selection') }}
+				</button>
+				<button
+					v-if="props.onToggleEyedropper"
+					type="button"
+					:disabled="!props.canEdit"
+					:class="
+						cn(
+							pill,
+							props.eyedropperActive ? 'bg-purple-600 hover:bg-purple-500 text-purple-50' : '',
+						)
+					"
+					:title="t('pptx.view.eyedropperTooltip')"
+					@click="props.onToggleEyedropper()"
+				>
+					<Pipette :class="ic" />
+					{{ t('pptx.ribbon.eyedropper') }}
+				</button>
+				<button
+					type="button"
+					:class="cn(pill, props.snapToShape ? 'bg-primary hover:bg-primary/80 text-white' : '')"
+					:aria-pressed="props.snapToShape"
+					:title="t('pptx.view.snapToShape')"
+					@click="props.onSetSnapToShape(!props.snapToShape)"
+				>
+					<Grid3X3 :class="ic" />
+					{{ t('pptx.view.snapToShape') }}
+				</button>
+				<button
+					:class="pill"
+					:title="t('pptx.view.addHorizontalGuide')"
+					@click="props.onAddGuide('h')"
+				>
+					{{ t('pptx.view.hGuide') }}
+				</button>
+				<button
+					:class="pill"
+					:title="t('pptx.view.addVerticalGuide')"
+					@click="props.onAddGuide('v')"
+				>
+					{{ t('pptx.view.vGuide') }}
+				</button>
+			</div>
+		</div>
+		<span :class="GROUP_LABEL">{{ t('pptx.view.show') }}</span>
 	</div>
 	<div :class="SEP" />
 
 	<!-- Zoom group -->
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center justify-between self-stretch gap-0.5">
 		<div class="flex items-center gap-0.5">
 			<button disabled :class="pill">
 				<ZoomIn :class="ic" />
@@ -218,16 +248,23 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 	<div :class="SEP" />
 
 	<!-- Window group -->
-	<button
-		:disabled="!props.canEdit"
-		:class="cn(pill, props.editTemplateMode ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')"
-		:title="t('pptx.view.templateEditingTooltip')"
-		@click="props.onSetEditTemplateMode(!props.editTemplateMode)"
-	>
-		{{ props.editTemplateMode ? t('pptx.ribbon.templatesOn') : t('pptx.ribbon.templatesOff') }}
-	</button>
-	<button disabled :class="pill">
-		<Code :class="ic" />
-		{{ t('pptx.view.macros') }}
-	</button>
+	<div class="flex flex-col items-center justify-between self-stretch gap-0.5">
+		<div class="flex items-center gap-0.5">
+			<button
+				:disabled="!props.canEdit"
+				:class="
+					cn(pill, props.editTemplateMode ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
+				"
+				:title="t('pptx.view.templateEditingTooltip')"
+				@click="props.onSetEditTemplateMode(!props.editTemplateMode)"
+			>
+				{{ props.editTemplateMode ? t('pptx.ribbon.templatesOn') : t('pptx.ribbon.templatesOff') }}
+			</button>
+			<button disabled :class="pill">
+				<Code :class="ic" />
+				{{ t('pptx.view.macros') }}
+			</button>
+		</div>
+		<span :class="GROUP_LABEL">{{ t('pptx.view.window') }}</span>
+	</div>
 </template>

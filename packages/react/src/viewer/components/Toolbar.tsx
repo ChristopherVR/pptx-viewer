@@ -143,7 +143,19 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 			{showRibbon && (
 				<div
 					className={cn(
-						'flex min-h-[82px] items-center gap-0 overflow-x-auto px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap [&>*]:shrink-0',
+						/*
+						 * `items-stretch` (not `items-center`): `RibbonGroup` pins its
+						 * caption to `bottom-0.5` of ITS OWN box (`position: relative`), so
+						 * a group left at its un-stretched intrinsic height sits centered in
+						 * the row with its caption floating well above the row's true bottom
+						 * edge whenever a taller sibling sets the row's height (e.g. View's
+						 * five-row "Show" group next to its two-row "Zoom" group). Stretching
+						 * every direct child to the row's full height lines up every group's
+						 * caption and right-hand divider at the same baseline. File's
+						 * backstage is unaffected: it renders `position: fixed`, outside this
+						 * row's flex layout entirely.
+						 */
+						'flex min-h-[82px] items-stretch gap-0 overflow-x-auto px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap [&>*]:shrink-0',
 						isNarrowViewport && !isCompactToolbarOpen && 'hidden',
 					)}
 				>

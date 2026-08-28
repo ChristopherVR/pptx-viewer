@@ -11,7 +11,6 @@
 	 * `EquationEditorDialog` before inserting (there's no single-click default
 	 * for free-form maths).
 	 */
-	import Hash from '@lucide/svelte/icons/hash';
 	import Link from '@lucide/svelte/icons/link';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
@@ -159,7 +158,9 @@
 	<SmartArtMenu {editor} {canvasSize} />
 	<ActionButtonMenu {editor} {canvasSize} />
 	<FieldMenu {editor} {canvasSize} />
-	{#if onheaderfooter}<button type="button" onclick={onheaderfooter}><Hash size={15} aria-hidden="true" /> <span>{t('pptx.headerFooter.title')}</span></button>{/if}
+	<!-- No icon, matching React/Vue's plain-text Header & Footer pill (every
+	     other Insert control pairs an icon with its label; this one doesn't). -->
+	{#if onheaderfooter}<button type="button" onclick={onheaderfooter}><span>{t('pptx.headerFooter.title')}</span></button>{/if}
 	<!-- `pptx.hyperlink.title` has no dictionary entry, so this button used to
 	     render as the humanised key fallback, "Title". -->
 	<button type="button" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}><Link size={15} aria-hidden="true" /> <span>{t('pptx.hyperlinkDialog.title')}</span></button>
@@ -172,9 +173,22 @@
 </div>
 
 <style>
+	/* `Ribbon.svelte`'s `.pptx-svelte-ribbon-content > :global(*)` rule forces
+	   `align-self: stretch` + `align-items: flex-start` on every tab's root
+	   (a handful of grouped/multi-row tabs - Animations, Slide Show, Review,
+	   View - genuinely need the full row height for their own internal
+	   layout). Insert is a flat single row of fixed-height pill buttons like
+	   Home/Design/Draw, so that rule stretched this wrapper to the full
+	   82px row and top-anchored its buttons, leaving dead space below them
+	   instead of the row-level `align-items: center` fix (from the "stop
+	   ribbon action buttons from stretching" change) centering them. Both
+	   declarations tie that global rule's specificity, so cascade order (not
+	   intent) decides the winner; `!important` here makes Insert's own
+	   values win regardless of build/bundling order. */
 	.pptx-svelte-inserttab {
 		display: flex;
-		align-items: center;
+		align-items: center !important;
+		align-self: auto !important;
 		flex-wrap: nowrap;
 		gap: 4px;
 	}

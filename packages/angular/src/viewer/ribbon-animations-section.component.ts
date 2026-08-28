@@ -87,9 +87,30 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 			own 420px. Uncapped, five 150px family columns claim ~800px of a
 			single-row ribbon and squeeze the Advanced Animation pills beside them
 			until their labels overlap.
+
+			shrink-0, not shrink: this section used to opt INTO shrinking
+			(shrink = flex-shrink: 1) with no min-width, and overflow-hidden
+			removes the browser's automatic min-content-size floor a flex item
+			would otherwise get. With the ribbon row tight on space (which is the
+			normal case once Advanced Animation and Timing claim their own
+			content-sized width), ALL of the row's required shrinkage landed on
+			this one section, collapsing it to ~50px wide, i.e. hard-clipping four
+			of the five families (Arcs/Turns/Shapes/Loops), reachable by neither
+			scroll nor sight. pptx-ribbon-animations-section renders with
+			display: contents (see its host below), so the ribbon row's own
+			shrink-0-on-every-child safety net (ribbon.component.ts) never reaches
+			this section either: that rule is a real CSS child combinator, so it
+			lands on the custom element itself, not on the elements its
+			display: contents template promotes up into the row's flex layout.
+			Every element promoted that way needs its own shrink-0, the same fix
+			already applied to the View tab's Eyedropper control (see the
+			shrink-0-on-every-child comment in pptx-angular-viewer.css). shrink-0
+			keeps this section at its own content width (capped at max-w-420px)
+			and lets the row's own horizontal scroll handle any total overflow,
+			same as every other group.
 		-->
 		<section
-			class="relative flex max-w-[420px] shrink items-start gap-1 overflow-hidden pb-3"
+			class="relative flex max-w-[420px] shrink-0 items-start gap-1 overflow-hidden pb-3"
 			[attr.aria-label]="'pptx.animation.motionPath' | translate"
 		>
 			<pptx-ribbon-motion-path-gallery
