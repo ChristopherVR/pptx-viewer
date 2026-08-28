@@ -162,6 +162,8 @@ const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image
 			 */
 			.bg__file {
 				position: absolute;
+				top: 0;
+				left: 0;
 				width: 1px;
 				height: 1px;
 				overflow: hidden;
