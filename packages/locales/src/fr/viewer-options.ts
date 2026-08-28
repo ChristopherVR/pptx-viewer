@@ -134,6 +134,9 @@ export const translations = {
 	'pptx.options.advanced.recentCount': 'Afficher ce nombre de présentations récentes',
 	'pptx.options.advanced.disableHardwareAcceleration':
 		"Désactiver l'accélération graphique matérielle",
+	'pptx.options.advanced.disable3DRendering': 'Désactiver le rendu 3D (pour la performance)',
+	'pptx.options.advanced.disable3DRenderingInfo':
+		'Force chaque graphique 3D et scène SmartArt à revenir à un rendu 2D plat, même dans une présentation qui active la 3D. Activez cette option si les scènes 3D sont lentes sur cet appareil.',
 	'pptx.options.advanced.openDocumentsView': "Ouvrir tous les documents avec ce mode d'affichage",
 	'pptx.options.openView.savedView': "Le mode d'affichage enregistré dans le fichier",
 	'pptx.options.openView.normal': 'Normal',

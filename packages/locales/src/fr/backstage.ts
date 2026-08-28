@@ -69,8 +69,6 @@ export const translations = {
 		'Enregistrez un fichier .ppsx qui s’ouvre directement en diaporama.',
 	'pptx.backstage.card.saveAsPptm.title': 'Présentation prenant en charge les macros',
 	'pptx.backstage.card.saveAsPptm.body': 'Conservez le contenu VBA dans un fichier .pptm.',
-	'pptx.backstage.card.package.title': 'Package pour le partage',
-	'pptx.backstage.card.package.body': 'Regroupez la présentation et les ressources liées.',
 	'pptx.backstage.card.pdf.title': 'Créer un PDF',
 	'pptx.backstage.card.pdf.body': 'Publiez un document portable avec une page par diapositive.',
 	'pptx.backstage.card.png.title': 'Exporter la diapositive active',
@@ -91,7 +89,4 @@ export const translations = {
 	'pptx.backstage.card.share.title': 'Partager avec des personnes',
 	'pptx.backstage.card.share.body':
 		'Invitez des collaborateurs et travaillez ensemble sur la présentation.',
-	'pptx.backstage.card.sharePackage.title': 'Package pour le partage',
-	'pptx.backstage.card.sharePackage.body':
-		'Téléchargez un package autonome pour un partage hors connexion.',
 } as const;

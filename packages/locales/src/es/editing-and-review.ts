@@ -139,8 +139,6 @@ export const translations = {
 	'pptx.file.copyImageTooltip': 'Copiar diapositiva como imagen',
 	'pptx.file.fonts': 'Fuentes',
 	'pptx.file.gif': 'GIF',
-	'pptx.file.package': 'Paquete',
-	'pptx.file.packageTooltip': 'Empaquetar para compartir',
 	'pptx.file.pdf': 'PDF',
 	'pptx.file.png': 'PNG',
 	'pptx.file.saveAsPpsx': 'Guardar .ppsx',

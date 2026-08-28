@@ -68,8 +68,6 @@ export const translations = {
 		'Eine PPSX-Datei speichern, die direkt als Bildschirmpräsentation geöffnet wird.',
 	'pptx.backstage.card.saveAsPptm.title': 'Präsentation mit Makros',
 	'pptx.backstage.card.saveAsPptm.body': 'VBA-Inhalte in einer PPTM-Datei beibehalten.',
-	'pptx.backstage.card.package.title': 'Für Weitergabe verpacken',
-	'pptx.backstage.card.package.body': 'Die Präsentation und verknüpfte Objekte bündeln.',
 	'pptx.backstage.card.pdf.title': 'PDF erstellen',
 	'pptx.backstage.card.pdf.body':
 		'Ein portables Dokument mit einer Seite pro Folie veröffentlichen.',
@@ -90,7 +88,4 @@ export const translations = {
 	'pptx.backstage.card.share.title': 'Mit Personen teilen',
 	'pptx.backstage.card.share.body':
 		'Mitwirkende einladen und gemeinsam an der Präsentation arbeiten.',
-	'pptx.backstage.card.sharePackage.title': 'Für Weitergabe verpacken',
-	'pptx.backstage.card.sharePackage.body':
-		'Ein eigenständiges Paket für die Offlineweitergabe herunterladen.',
 } as const;

@@ -68,8 +68,6 @@ export const translations = {
 		'Guarde un archivo .ppsx que se abre directamente como presentación con diapositivas.',
 	'pptx.backstage.card.saveAsPptm.title': 'Presentación habilitada para macros',
 	'pptx.backstage.card.saveAsPptm.body': 'Conserve el contenido VBA en un archivo .pptm.',
-	'pptx.backstage.card.package.title': 'Empaquetar para compartir',
-	'pptx.backstage.card.package.body': 'Agrupe la presentación y los recursos vinculados.',
 	'pptx.backstage.card.pdf.title': 'Crear PDF',
 	'pptx.backstage.card.pdf.body': 'Publique un documento portátil con una página por diapositiva.',
 	'pptx.backstage.card.png.title': 'Exportar diapositiva actual',
@@ -89,7 +87,4 @@ export const translations = {
 		'Elija impresora, diseño, copias y opciones de salida en el cuadro de diálogo de impresión del navegador.',
 	'pptx.backstage.card.share.title': 'Compartir con personas',
 	'pptx.backstage.card.share.body': 'Invite a colaboradores y trabajen juntos en la presentación.',
-	'pptx.backstage.card.sharePackage.title': 'Empaquetar para compartir',
-	'pptx.backstage.card.sharePackage.body':
-		'Descargue un paquete autónomo para compartir sin conexión.',
 } as const;
