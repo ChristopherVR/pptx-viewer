@@ -654,48 +654,53 @@ function App() {
 		};
 	}, [joinRoomId, urlServer, content, urlBroadcast, isWebrtcJoin]);
 
-	// Fallback: try IndexedDB (same-browser tabs). For a peer-to-peer join with
-	// no local copy, bootstrap a blank deck so the viewer (and its webrtc
-	// provider) mount; the Y.Doc late-joiner sync then replaces the slides with
-	// the host's deck.
+	// Fallback: try IndexedDB (same-browser tabs).
+	// A `?sample=1` host seeds the session from the bundled deck instead, so
+	// never race it with the IndexedDB / blank-deck fallbacks.
 	useEffect(() => {
-		// A `?sample=1` host seeds the session from the bundled deck instead, so
-		// never race it with the IndexedDB / blank-deck fallbacks.
 		if (!joinRoomId || content || urlSample) {
 			return;
 		}
 		let cancelled = false;
 		const timer = setTimeout(() => {
-			void (async () => {
-				const bytes = await loadAudienceContent();
-				if (cancelled) {
-					return;
+			void loadAudienceContent().then((bytes) => {
+				if (cancelled || !bytes) {
+					return undefined;
 				}
-				if (bytes) {
-					setContent(bytes);
-					setFileName(urlBroadcast ? 'Broadcast Session' : 'Collaboration Session');
-					return;
-				}
-				if (!isWebrtcJoin) {
-					return;
-				}
-				const { handler, data } = await PptxHandler.createBlank({
-					title: 'Collaboration Session',
-					initialSlideCount: 1,
-				});
-				const blank = await handler.save(data.slides);
-				if (cancelled) {
-					return;
-				}
-				setContent(blank);
+				setContent(bytes);
 				setFileName(urlBroadcast ? 'Broadcast Session' : 'Collaboration Session');
-			})();
+				return undefined;
+			});
 		}, 1500);
 		return () => {
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [joinRoomId, content, isWebrtcJoin, urlBroadcast, urlSample]);
+	}, [joinRoomId, content, urlBroadcast, urlSample]);
+
+	// Serverless webrtc joins have no file server and no IndexedDB seed:
+	// bootstrap a blank deck immediately (no delay) so the viewer (and its
+	// webrtc provider) mount right away; the Y.Doc late-joiner sync then
+	// replaces the blank deck with the host's real slides.
+	useEffect(() => {
+		if (!isWebrtcJoin || !joinRoomId || content || urlSample) {
+			return;
+		}
+		let cancelled = false;
+		void PptxHandler.createBlank({ title: 'Collaboration Session', initialSlideCount: 1 })
+			.then(({ handler, data }) => handler.save(data.slides))
+			.then((blank) => {
+				if (cancelled) {
+					return undefined;
+				}
+				setContent(blank);
+				setFileName(urlBroadcast ? 'Broadcast Session' : 'Collaboration Session');
+				return undefined;
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [isWebrtcJoin, joinRoomId, content, urlBroadcast, urlSample]);
 
 	// When opened as an audience tab, load the PPTX content from IndexedDB
 	useEffect(() => {

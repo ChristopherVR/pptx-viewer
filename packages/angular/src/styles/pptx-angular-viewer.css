@@ -285,6 +285,7 @@ pptx-element-renderer {
 }
 
 .pptx-ng-main {
+	display: flex;
 	position: relative;
 	flex: 1;
 	min-width: 0;
@@ -305,7 +306,25 @@ pptx-element-renderer {
 }
 
 /* ── Canvas ─────────────────────────────────────────────────────────── */
+/*
+ * The `<pptx-slide-canvas>` host has no template of its own around
+ * `.pptx-ng-canvas-viewport`, but unlike a Vue SFC root it IS a real element
+ * in the DOM. Once `.pptx-ng-main` becomes a flex container (for the
+ * viewport's `margin: auto` centering below), this host would otherwise
+ * become a flex item with an auto/shrink-to-fit main size (percentage widths
+ * don't contribute to that calculation), collapsing the canvas. `flex: 1`
+ * gives it a definite size to fill instead, matching what block layout gave
+ * it for free before.
+ */
+pptx-slide-canvas {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+}
+
 .pptx-ng-canvas-viewport {
+	display: flex;
 	width: 100%;
 	height: 100%;
 }

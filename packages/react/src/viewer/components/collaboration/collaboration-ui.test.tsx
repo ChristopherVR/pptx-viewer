@@ -341,7 +341,7 @@ describe('remoteUserCursors - extended', () => {
 				canvasHeight={540}
 			/>,
 		);
-		expect(html).toContain(`translate(${mockUser1.cursorX}, ${mockUser1.cursorY})`);
+		expect(html).toContain(`translate(${mockUser1.cursorX}px, ${mockUser1.cursorY}px)`);
 	});
 
 	it('renders SVG with correct viewBox dimensions', () => {

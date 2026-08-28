@@ -58,7 +58,11 @@ export function RemoteUserCursors({
 			{visibleUsers.map((user) => (
 				<g
 					key={user.clientId}
-					transform={`translate(${user.cursorX}, ${user.cursorY})`}
+					style={{
+						transform: `translate(${user.cursorX}px, ${user.cursorY}px)`,
+						transition: 'transform 90ms linear',
+						willChange: 'transform',
+					}}
 					data-testid={`remote-cursor-${user.clientId}`}
 					// Framework-neutral e2e contract: every binding tags its remote
 					// cursor nodes, whose top-left corner is the pointer tip.

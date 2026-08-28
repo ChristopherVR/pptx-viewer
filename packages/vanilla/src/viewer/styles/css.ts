@@ -413,12 +413,12 @@ const CHROME_CSS = `
 	overflow: auto;
 	display: grid;
 	/*
-	 * Centred across, TOP-aligned down, which is what React's canvas does
-	 * (mx-auto my-4). Centring both ways only looks the same while the slide
-	 * nearly fills the area: on a phone the slide floated in the middle of a
-	 * screen-tall gap while React had it just under the toolbar.
+	 * Centred both ways, matching every other binding's canvas viewport
+	 * (React/Vue/Angular now flex + 'margin: auto', Svelte flex + 'margin:
+	 * auto'): the slide sits in the middle of the scroll area rather than
+	 * pinned under the toolbar.
 	 */
-	place-items: start center;
+	place-items: center center;
 	padding: 16px;
 	background: var(--pptx-muted);
 }
