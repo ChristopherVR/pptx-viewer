@@ -121,9 +121,6 @@ export const translations = {
 	'pptx.viewer.digitalSignatures': 'Digitale Signaturen',
 	'pptx.viewer.elementProperties': 'Elementeigenschaften',
 	'pptx.viewer.slideProperties': 'Folieneigenschaften',
-	'pptx.viewer.protectedViewBanner':
-		'Geschützte Ansicht. Diese Datei wurde schreibgeschützt geöffnet, weil Trust Center > Geschützte Ansicht aktiviert ist.',
-	'pptx.viewer.enableEditing': 'Bearbeitung aktivieren',
 	'pptx.common.close': 'Schließen',
 	'pptx.common.save': 'Speichern',
 	'pptx.common.ok': 'OK',

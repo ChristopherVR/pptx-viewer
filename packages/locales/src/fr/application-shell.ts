@@ -121,9 +121,6 @@ export const translations = {
 	'pptx.viewer.digitalSignatures': 'Signatures numériques',
 	'pptx.viewer.elementProperties': 'Propriétés des éléments',
 	'pptx.viewer.slideProperties': 'Propriétés de la diapositive',
-	'pptx.viewer.protectedViewBanner':
-		'Mode protégé. Ce fichier a été ouvert en lecture seule car Centre de gestion de la confidentialité > Mode protégé est activé.',
-	'pptx.viewer.enableEditing': 'Activer la modification',
 	'pptx.common.close': 'Fermer',
 	'pptx.common.save': 'Sauvegarder',
 	'pptx.common.ok': 'OK',

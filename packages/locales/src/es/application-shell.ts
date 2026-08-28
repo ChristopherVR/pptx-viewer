@@ -121,9 +121,6 @@ export const translations = {
 	'pptx.viewer.digitalSignatures': 'Firmas digitales',
 	'pptx.viewer.elementProperties': 'Propiedades del elemento',
 	'pptx.viewer.slideProperties': 'Propiedades de diapositiva',
-	'pptx.viewer.protectedViewBanner':
-		'Vista protegida. Este archivo se abrió como solo lectura porque Centro de confianza > Vista protegida está activado.',
-	'pptx.viewer.enableEditing': 'Habilitar edición',
 	'pptx.common.close': 'Cerrar',
 	'pptx.common.save': 'Guardar',
 	'pptx.common.ok': 'Aceptar',
