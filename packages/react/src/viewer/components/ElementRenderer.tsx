@@ -119,16 +119,16 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			visualAnimationState?.animatesStroke,
 		);
 		const ts = getTextStyleForElement(el, DEFAULT_TEXT_COLOR);
+		const isImg = el.type === 'picture' || el.type === 'image';
 		const vs = renderVectorShape(
 			el,
-			hf,
+			isImg ? false : hf,
 			fc,
 			sw,
 			sc,
 			visualAnimationState?.animatesFill,
 			visualAnimationState?.animatesStroke,
 		);
-		const isImg = el.type === 'picture' || el.type === 'image';
 		const isModel3D = el.type === 'model3d';
 		const isConn = isConnectorOrLineElement(el);
 
@@ -218,7 +218,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					? 'cursor-pointer'
 					: '';
 
-		const isPresentationPassive = !effectiveCanInteract;
+		const isPresentationPassive = presenting === true;
 		const isFullscreenMedia =
 			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
 
@@ -312,7 +312,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 							animatesStroke={visualAnimationState?.animatesStroke}
 						/>
 						{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
-						{vs}
+						{isImg ? null : vs}
 					</div>
 				) : (
 					<>
@@ -332,7 +332,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					spellCheck: spellCheckEnabled,
 					txtSE,
 					txtS: ts,
-					vecShape: backgroundAnimationState ? null : vs,
+					vecShape: backgroundAnimationState && !isImg ? null : vs,
 					imgStyle: getImageRenderStyle(el),
 					imgFilter: getImageEffectsFilter(el),
 					imgOpacity: getImageEffectsOpacity(el),

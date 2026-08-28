@@ -1,6 +1,7 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
 import {
 	MEDIA_CHROME_ATTRIBUTE,
+	getImageFitStyle,
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
 	mediaFallbackVisual,
@@ -161,7 +162,8 @@ export function renderMediaFallback({
 							? translationsEn['pptx.media.posterAlt']
 							: translationsEn['pptx.media.videoPosterAlt']
 					}
-					className={`w-full h-full object-contain${visual.dimPoster ? ' opacity-50' : ''}`}
+					className={`w-full h-full${visual.dimPoster ? ' opacity-50' : ''}`}
+					style={getImageFitStyle(element)}
 				/>
 				<Badge visual={visual} element={element} />
 			</div>

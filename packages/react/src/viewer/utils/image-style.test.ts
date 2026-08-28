@@ -8,6 +8,7 @@ import {
 	isImageTiled,
 	getImageTilingStyle,
 	getImageRenderStyle,
+	getImageSurfaceMaskStyle,
 	buildMirrorTiledBackground,
 } from './image-style';
 
@@ -355,5 +356,19 @@ describe('getImageRenderStyle', () => {
 		} as Partial<PptxElement>);
 		const style = getImageRenderStyle(el);
 		expect(style.transformOrigin).toBe('top left');
+	});
+});
+
+describe('getImageSurfaceMaskStyle', () => {
+	it('keeps a translated crop inside a stationary preset mask', () => {
+		const element = makeImageElement({
+			shapeType: 'ellipse',
+			cropLeft: 0.2,
+		} as Partial<PptxElement>);
+		const bitmap = getImageRenderStyle(element);
+		const surface = getImageSurfaceMaskStyle(element);
+		expect(bitmap.transform).toBeDefined();
+		expect(bitmap.borderRadius).toBeUndefined();
+		expect(surface).toMatchObject({ overflow: 'hidden', borderRadius: '50%' });
 	});
 });

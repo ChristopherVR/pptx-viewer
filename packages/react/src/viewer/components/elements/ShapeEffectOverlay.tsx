@@ -13,7 +13,7 @@ import type { StrokeOutlinePaint } from 'pptx-viewer-shared';
 import React from 'react';
 import type { CSSProperties } from 'react';
 
-import { getImageRenderStyle } from '../../utils';
+import { getImageRenderStyle, getImageSurfaceMaskStyle, getImageSurfaceStyle } from '../../utils';
 import { imgSrc } from './ImageRenderer';
 
 /**
@@ -132,6 +132,7 @@ export function ShapeEffectOverlay({
 		? {
 				position: 'absolute',
 				inset: 0,
+				...(isImageLikeElement(element) ? getImageSurfaceMaskStyle(element) : {}),
 				background: overlay.color,
 				mixBlendMode: overlay.blendMode as CSSProperties['mixBlendMode'],
 				pointerEvents: 'none',
@@ -146,7 +147,12 @@ export function ShapeEffectOverlay({
 					aria-hidden='true'
 					viewBox={`0 0 ${subpathFill.viewBoxWidth} ${subpathFill.viewBoxHeight}`}
 					preserveAspectRatio='none'
-					style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+					style={{
+						position: 'absolute',
+						inset: 0,
+						width: '100%',
+						height: '100%',
+					}}
 				>
 					{subpathFill.paints.map((paint, idx) => (
 						<path
@@ -163,7 +169,12 @@ export function ShapeEffectOverlay({
 					width={0}
 					height={0}
 					aria-hidden='true'
-					style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
+					style={{
+						position: 'absolute',
+						width: 0,
+						height: 0,
+						overflow: 'hidden',
+					}}
 				>
 					<defs dangerouslySetInnerHTML={{ __html: softEdge.filterMarkup }} />
 				</svg>
@@ -234,12 +245,21 @@ export function ShapeEffectOverlay({
 					style={reflection as CSSProperties}
 				>
 					{reflectionImgSrc ? (
-						<img
-							src={reflectionImgSrc}
-							alt=''
-							draggable={false}
-							style={{ width: '100%', height: '100%', ...getImageRenderStyle(element) }}
-						/>
+						<div
+							className='pptx-react-reflection-picture-surface'
+							style={getImageSurfaceStyle(element)}
+						>
+							<img
+								src={reflectionImgSrc}
+								alt=''
+								draggable={false}
+								style={{
+									width: '100%',
+									height: '100%',
+									...getImageRenderStyle(element),
+								}}
+							/>
+						</div>
 					) : reflectionFill ? (
 						<div
 							style={{

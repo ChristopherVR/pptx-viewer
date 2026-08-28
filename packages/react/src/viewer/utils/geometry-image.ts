@@ -12,6 +12,8 @@ import { GRID_SIZE } from '../constants';
 export {
 	getImageMaskStyle,
 	getImageRenderStyle,
+	getImageSurfaceMaskStyle,
+	getImageSurfaceStyle,
 	getCropShapeClipPath,
 	isImageTiled,
 	getImageTilingStyle,

@@ -12,6 +12,7 @@ import { getGroupChildParentFill, mediaTransportVisible } from 'pptx-viewer-shar
 import React from 'react';
 
 import {
+	getImageSurfaceStyle,
 	getTextLayoutStyle,
 	renderMediaElement,
 	renderTableElement,
@@ -97,7 +98,12 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		);
 	}
 	if (isImg) {
-		return renderImg(el, imgStyle, imgFilter, imgAlt, imgOpacity);
+		return (
+			<div className='absolute inset-0 pointer-events-none' style={getImageSurfaceStyle(el)}>
+				{renderImg(el, imgStyle, imgFilter, imgAlt, imgOpacity)}
+				{vecShape ? <div className='pointer-events-none absolute inset-0'>{vecShape}</div> : null}
+			</div>
+		);
 	}
 	if (isEditing) {
 		return (
@@ -153,7 +159,7 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 	}
 	if (el.type === 'media') {
 		return renderMediaElement(el, media, {
-			autoPlay: isPresentationPassive,
+			autoPlay: isPresentationPassive && el.autoPlay === true,
 			fullScreen: isPresentationPassive && Boolean(el.fullScreen),
 			isPresentationMode: isPresentationPassive,
 			// A still of a slide never carries a transport, whatever the canvas

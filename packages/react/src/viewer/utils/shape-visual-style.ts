@@ -5,6 +5,7 @@ import {
 	getComputedFillStyle,
 	getComputedStrokeStyle,
 	getAnimationColorBaseStyle,
+	isWedgeCalloutPresetShape,
 	isStrokeOnlyPresetElement,
 	resolveShapeGeometry,
 } from 'pptx-viewer-shared';
@@ -48,6 +49,10 @@ function rendersCustomVectorPath(element: PptxElement): boolean {
 		typeof element.pathHeight === 'number' &&
 		element.pathHeight > 0
 	);
+}
+
+function rendersWedgeCalloutVector(element: PptxElement): boolean {
+	return element.type === 'shape' && isWedgeCalloutPresetShape(element.shapeType);
 }
 
 /**
@@ -152,6 +157,12 @@ export function getShapeVisualStyle(
 		}),
 	);
 
+	if (element.type === 'image' || element.type === 'picture') {
+		base.borderWidth = 0;
+		base.borderColor = undefined;
+		base.borderStyle = undefined;
+	}
+
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──
 	// Pass the resolved fill colour so extrusion/contour default to it when no
 	// explicit extrusion colour is set.
@@ -160,7 +171,11 @@ export function getShapeVisualStyle(
 	// The SVG `<path>` owns the fill/stroke for freeform geometry; keep effects
 	// (shadow, glow, opacity, blend) on the container but drop the rectangular
 	// fill and border that would otherwise flood the bounding box.
-	if (rendersCustomVectorPath(element) || isStrokeOnlyPresetElement(element)) {
+	if (
+		rendersCustomVectorPath(element) ||
+		rendersWedgeCalloutVector(element) ||
+		isStrokeOnlyPresetElement(element)
+	) {
 		base.backgroundColor = 'transparent';
 		base.backgroundImage = undefined;
 		base.borderWidth = undefined;
@@ -174,6 +189,10 @@ export function getShapeVisualStyle(
 	if (animatesFill) {
 		base.backgroundColor = undefined;
 		base.backgroundImage = undefined;
+	}
+
+	if (rendersWedgeCalloutVector(element)) {
+		return base;
 	}
 
 	// Geometry: the branch ORDER and every threshold live in shared

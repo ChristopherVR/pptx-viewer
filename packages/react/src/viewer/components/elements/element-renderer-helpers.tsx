@@ -79,13 +79,14 @@ export function getContainerStyle({
 	// likewise needs `overflow: visible` so the blur halo is not clipped at the
 	// element box (mirrors shared `getComputedEffectStyle().overflowVisible`).
 	const ss = hasShapeProperties(el) ? el.shapeStyle : undefined;
+	const isPicture = el.type === 'picture' || el.type === 'image';
 	const blurGrowVisible = Boolean(
 		ss?.blurGrow && typeof ss.blurRadius === 'number' && ss.blurRadius > 0,
 	);
 	const overflowValue =
-		has3DExtrusion || blurGrowVisible
+		has3DExtrusion || blurGrowVisible || isPicture
 			? ('visible' as const)
-			: isImg
+			: isImg || el.type === 'media'
 				? ('hidden' as const)
 				: undefined;
 
@@ -97,7 +98,11 @@ export function getContainerStyle({
 		transform: isFullscreenMedia ? 'none' : getElementTransform(el),
 		transformOrigin: 'center',
 		overflow: overflowValue,
-		clipPath: isImg && !has3DExtrusion ? getCropShapeClipPath(el) : undefined,
+		clipPath: isPicture
+			? undefined
+			: isImg && !has3DExtrusion
+				? getCropShapeClipPath(el)
+				: undefined,
 		zIndex: isFullscreenMedia ? 20 : zIndex,
 		visibility: animationState?.visible === false ? 'hidden' : 'visible',
 		animation: animationState?.cssAnimation,
@@ -107,6 +112,18 @@ export function getContainerStyle({
 			: undefined,
 		borderColor: isFullscreenMedia ? 'transparent' : undefined,
 		...shapeVisualStyle,
+		...(isPicture
+			? {
+					backgroundColor: 'transparent',
+					backgroundImage: undefined,
+					backgroundRepeat: undefined,
+					backgroundSize: undefined,
+					backgroundPosition: undefined,
+					borderRadius: undefined,
+					clipPath: undefined,
+					overflow: 'visible',
+				}
+			: {}),
 		// COMPOSE the effect alpha (`a:alphaModFix` on the effect DAG) with the
 		// element opacity instead of letting the spread clobber it. The other four
 		// bindings multiply the two; React spread the shape style over its own

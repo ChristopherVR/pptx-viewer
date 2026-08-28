@@ -26,7 +26,14 @@ describe('shapeEffectOverlay', () => {
 	});
 
 	it('renders nothing for an element without shape properties', () => {
-		const media = { type: 'media', id: 'm1', x: 0, y: 0, width: 10, height: 10 };
+		const media = {
+			type: 'media',
+			id: 'm1',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+		};
 		expect(render(media as unknown as PptxElement)).toBe('');
 	});
 
@@ -53,7 +60,11 @@ describe('shapeEffectOverlay', () => {
 	describe('reflection', () => {
 		it('renders a mirrored sibling with no -webkit-box-reflect', () => {
 			const html = render(
-				shape({ fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 }),
+				shape({
+					fillColor: '#ff0000',
+					reflectionStartOpacity: 0.5,
+					reflectionDistance: 4,
+				}),
 			);
 			expect(html).toContain('pptx-react-reflection');
 			expect(html).not.toContain('box-reflect');
@@ -63,7 +74,11 @@ describe('shapeEffectOverlay', () => {
 
 		it('paints the reflected fill from the resolved solid colour for a shape', () => {
 			const html = render(
-				shape({ fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 }),
+				shape({
+					fillColor: '#ff0000',
+					reflectionStartOpacity: 0.5,
+					reflectionDistance: 4,
+				}),
 			);
 			expect(html).toContain('background-color:#ff0000');
 		});
@@ -81,12 +96,55 @@ describe('shapeEffectOverlay', () => {
 			} as unknown as PptxElement;
 			const html = renderToStaticMarkup(<ShapeEffectOverlay element={picture} />);
 			expect(html).toContain('pptx-react-reflection');
+			expect(html).toContain('pptx-react-reflection-picture-surface');
 			expect(html).toContain('<img');
 			expect(html).toContain('data:image/png;base64,AAAA');
+			expect(html).toContain('overflow:hidden');
+		});
+
+		it('keeps a reflected cropped picture inside a stationary shape mask', () => {
+			const picture = {
+				type: 'picture',
+				id: 'pic-crop',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 80,
+				imageData: 'data:image/png;base64,AAAA',
+				shapeType: 'ellipse',
+				cropLeft: 0.1,
+				cropRight: 0.1,
+				shapeStyle: { reflectionStartOpacity: 0.5 },
+			} as unknown as PptxElement;
+			const html = renderToStaticMarkup(<ShapeEffectOverlay element={picture} />);
+			expect(html).toContain('pptx-react-reflection-picture-surface');
+			expect(html).toContain('border-radius:50%');
+			expect(html).toContain('transform:translate(');
 		});
 
 		it('renders nothing extra when there is no reflection', () => {
 			expect(render(shape({ fillColor: '#ffffff' }))).not.toContain('pptx-react-reflection');
 		});
+	});
+
+	it('masks a picture fill overlay without clipping outer effects', () => {
+		const picture = {
+			type: 'picture',
+			id: 'pic-overlay',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 80,
+			shapeType: 'ellipse',
+			imageData: 'data:image/png;base64,AAAA',
+			shapeStyle: {
+				dagFillOverlayColor: '#ff0000',
+				dagFillOverlayBlend: 'mult',
+			},
+		} as unknown as PptxElement;
+		const html = renderToStaticMarkup(<ShapeEffectOverlay element={picture} />);
+		expect(html).toContain('pptx-react-fill-overlay');
+		expect(html).toContain('border-radius:50%');
+		expect(html).toContain('overflow:hidden');
 	});
 });

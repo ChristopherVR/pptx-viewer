@@ -129,6 +129,8 @@ export interface SmartArtNodeTextProps {
 	fontWeight?: number | string;
 	/** Optional font style (e.g. `'italic'`). */
 	fontStyle?: string;
+	/** Optional resolved CSS font-family chain. */
+	fontFamily?: string;
 	/** Optional CSS class applied to the outer `<text>` element. */
 	className?: string;
 	/**
@@ -178,6 +180,7 @@ export function SmartArtNodeText({
 	fontSize,
 	fontWeight,
 	fontStyle,
+	fontFamily,
 	className,
 	textAnchor = 'middle',
 	anchor = 'middle',
@@ -193,6 +196,7 @@ export function SmartArtNodeText({
 				fontSize={fontSize}
 				fontWeight={fontWeight}
 				fontStyle={fontStyle}
+				fontFamily={fontFamily}
 				className={className}
 			>
 				{positionedLines.map((line, i) => (
@@ -238,6 +242,7 @@ export function SmartArtNodeText({
 			fontSize={fontSize}
 			fontWeight={fontWeight}
 			fontStyle={fontStyle}
+			fontFamily={fontFamily}
 			className={className}
 		>
 			{lines.map((line, i) => (

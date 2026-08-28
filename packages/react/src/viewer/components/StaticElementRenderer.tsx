@@ -5,6 +5,7 @@ import {
 	getAriaRole,
 	getAriaRoleDescription,
 	getGroupChildParentFill,
+	isWedgeCalloutPresetShape,
 	isElementActionable,
 	isElementRendered,
 	paintedStrokeWidth,
@@ -99,6 +100,18 @@ export interface StaticElementRendererProps {
 const noop = (): void => {};
 const EMPTY_MEDIA_DATA_URLS = new Map<string, string>();
 
+function defaultTextColorForFill(fillColor: string): string {
+	const hex = String(fillColor ?? '').replace(/^#/u, '');
+	if (!/^[0-9a-f]{6}$/iu.test(hex)) {
+		return DEFAULT_TEXT_COLOR;
+	}
+	const channels = [0, 2, 4]
+		.map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255)
+		.map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
+	const luminance = channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722;
+	return luminance > 0.179 ? DEFAULT_TEXT_COLOR : '#ffffff';
+}
+
 function StaticElementRendererImpl({
 	element,
 	activeSlide,
@@ -148,9 +161,19 @@ function StaticElementRendererImpl({
 		: baseVisualStyle;
 	const textStyle = getTextStyleForElement(
 		element,
-		element.type === 'shape' && hasFill ? '#ffffff' : DEFAULT_TEXT_COLOR,
+		element.type === 'shape' && hasFill ? defaultTextColorForFill(fill) : DEFAULT_TEXT_COLOR,
 	);
 	const isImage = element.type === 'picture' || element.type === 'image';
+	const letsTextOverflow =
+		hasTextProperties(element) &&
+		element.textStyle?.autoFitMode === 'shrink' &&
+		(element.type === 'text' || element.locks?.txBox === true);
+	const shapeType = hasShapeProperties(element) ? element.shapeType : undefined;
+	const isCallout =
+		isWedgeCalloutPresetShape(shapeType) ||
+		String(shapeType ?? '')
+			.toLowerCase()
+			.includes('callout');
 	const action = element.actionClick;
 	const isActionable = Boolean(action && onActionClick);
 	// A node that exposes the element contract is a slide element in its own
@@ -184,7 +207,13 @@ function StaticElementRendererImpl({
 			// while the live stage (ConnectorElementRenderer, an unclipped
 			// MIN_ELEMENT_SIZE box) drew them fine.
 			className={`${positioned ? 'absolute' : 'relative'} ${
-				isConnectorOrLineElement(element) ? '' : 'overflow-hidden'
+				isImage ||
+				element.type === 'group' ||
+				isConnectorOrLineElement(element) ||
+				isCallout ||
+				letsTextOverflow
+					? ''
+					: 'overflow-hidden'
 			} ${isActionable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}`}
 			role={contractRole}
 			aria-label={exposeElementId ? getAriaLabel(element) : undefined}
@@ -224,6 +253,18 @@ function StaticElementRendererImpl({
 				transformOrigin: 'center',
 				zIndex,
 				...visualStyle,
+				...(isImage
+					? {
+							backgroundColor: 'transparent',
+							backgroundImage: undefined,
+							backgroundRepeat: undefined,
+							backgroundSize: undefined,
+							backgroundPosition: undefined,
+							borderRadius: undefined,
+							clipPath: undefined,
+							overflow: 'visible',
+						}
+					: {}),
 				animation,
 			}}
 		>
@@ -261,7 +302,13 @@ function StaticElementRendererImpl({
 					spellCheck: false,
 					txtSE: hasTextProperties(element) ? element.textStyle : undefined,
 					txtS: textStyle,
-					vecShape: renderVectorShape(element, hasFill, fill, strokeWidth, stroke),
+					vecShape: renderVectorShape(
+						element,
+						isImage ? false : hasFill,
+						fill,
+						strokeWidth,
+						stroke,
+					),
 					imgStyle: imageAnimation
 						? { ...getImageRenderStyle(element), animation: imageAnimation }
 						: getImageRenderStyle(element),
