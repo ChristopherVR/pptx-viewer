@@ -171,6 +171,28 @@ describe('buildDynamicKeyframe', () => {
 		expect(result!.css).toContain('scale(1.5, 2)');
 	});
 
+	it('composes motion, rotation, scale, and entrance opacity in one keyframe block', () => {
+		const anim = {
+			motionPath: 'M 0,0 L 0.2,0.1',
+			presetClass: 'entr',
+			rotationFrom: 30,
+			rotationTo: 0,
+			scaleFromX: 2.5,
+			scaleFromY: 2,
+			scaleToX: 1,
+			scaleToY: 1,
+		} as unknown as PptxNativeAnimation;
+		const result = buildDynamicKeyframe(anim, 4);
+
+		expect(result?.keyframeName).toBe('pptx-tl-transform-4');
+		expect(result?.css).toContain('opacity: 0');
+		expect(result?.css).toContain('rotate(30deg)');
+		expect(result?.css).toContain('scale(2.5, 2)');
+		expect(result?.css).toContain('opacity: 1');
+		expect(result?.css).toContain('rotate(0deg)');
+		expect(result?.css).toContain('scale(1, 1)');
+	});
+
 	it('returns undefined when no motion/rotation/scale', () => {
 		const anim = {} as PptxNativeAnimation;
 		expect(buildDynamicKeyframe(anim, 1)).toBeUndefined();

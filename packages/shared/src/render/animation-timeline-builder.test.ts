@@ -38,6 +38,40 @@ describe('buildTimeline', () => {
 		expect(result.clickGroups[0].steps[0].elementId).toBe('el1');
 	});
 
+	it('prefers authored sibling transforms over the approximate preset', () => {
+		const keyframes = (from: number | string, to: number | string) => [
+			{
+				tm: 0,
+				value: from,
+				valueType: typeof from === 'number' ? ('flt' as const) : ('str' as const),
+			},
+			{
+				tm: 100000,
+				value: to,
+				valueType: typeof to === 'number' ? ('flt' as const) : ('str' as const),
+			},
+		];
+		const result = buildTimeline([
+			makeAnim({
+				durationMs: 1000,
+				presetId: 31,
+				attributeAnimations: [
+					{ attrName: 'ppt_w', durationMs: 1000, keyframes: keyframes(0, '#ppt_w') },
+					{ attrName: 'ppt_h', durationMs: 1000, keyframes: keyframes(0, '#ppt_h') },
+					{
+						attrName: 'style.rotation',
+						durationMs: 1000,
+						keyframes: keyframes(90, 0),
+					},
+				],
+			}),
+		]);
+
+		expect(result.clickGroups[0].steps[0].keyframeName).toContain('pptx-tl-transform');
+		expect(result.keyframesCss).toContain('rotate(90deg) scale(0, 0)');
+		expect(result.keyframesCss).not.toContain('@keyframes pptx-expandIn');
+	});
+
 	it('tracks entrance element IDs', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'entr' })]);
 		expect(result.entranceElementIds.has('el1')).toBeTruthy();
@@ -321,6 +355,30 @@ describe('buildTimeline', () => {
 		]);
 		expect(result.keyframesCss).toContain('@keyframes pptx-tl-rotate-');
 		expect(result.keyframesCss).toContain('rotate(360deg)');
+	});
+
+	it('prefers authored compound transforms over the canned preset', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: 'entr',
+				presetId: 52,
+				motionPath: 'M 0 0 L 0.2 0.1',
+				rotationFrom: 30,
+				rotationTo: 0,
+				scaleFromX: 2.5,
+				scaleFromY: 2,
+				scaleToX: 1,
+				scaleToY: 1,
+			} as PptxNativeAnimation),
+		]);
+
+		expect(result.keyframesCss).toContain('@keyframes pptx-tl-transform-');
+		expect(result.keyframesCss).toContain('rotate(30deg)');
+		expect(result.keyframesCss).toContain('scale(2.5, 2)');
+		expect(result.keyframesCss).toContain('opacity: 0');
+		expect(result.clickGroups[0].steps[0].keyframeName).toContain('pptx-tl-transform-');
 	});
 
 	it('generates dynamic keyframes for an absolute p:animRot (from/to, no @by)', () => {

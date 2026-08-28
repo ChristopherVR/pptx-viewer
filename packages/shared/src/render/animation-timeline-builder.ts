@@ -35,6 +35,7 @@ import type {
 	TimelineClickGroup,
 	AnimationTimeline,
 } from './animation-timeline-types';
+import { hasAuthoredTransform } from './animation-transform-keyframes';
 
 // ==========================================================================
 // Unmapped-preset safety net
@@ -210,8 +211,13 @@ export function buildTimeline(
 		const expandedSteps = expandIterateAnimation(anim);
 
 		for (const singleAnim of expandedSteps) {
-			let effect = resolveEffect(singleAnim);
-			let dynamic = effect ? undefined : buildDynamicKeyframe(singleAnim, dynamicUid++);
+			let dynamic = hasAuthoredTransform(singleAnim)
+				? buildDynamicKeyframe(singleAnim, dynamicUid++)
+				: undefined;
+			let effect = dynamic ? undefined : resolveEffect(singleAnim);
+			if (!effect && !dynamic) {
+				dynamic = buildDynamicKeyframe(singleAnim, dynamicUid++);
+			}
 			// A real `p:tavLst` keyframe list on an emphasis effect (e.g.
 			// PowerPoint's "Transparency") carries the AUTHORED opacity ramp;
 			// prefer it over the canned 2/3-stop static effect so a custom fade
@@ -546,8 +552,13 @@ function buildSequenceGroups(
 		let seqGroup: TimelineStep[] = [];
 
 		for (const anim of anims) {
-			let effect = resolveEffect(anim);
-			let dynamic = effect ? undefined : buildDynamicKeyframe(anim, dynamicUid++);
+			let dynamic = hasAuthoredTransform(anim)
+				? buildDynamicKeyframe(anim, dynamicUid++)
+				: undefined;
+			let effect = dynamic ? undefined : resolveEffect(anim);
+			if (!effect && !dynamic) {
+				dynamic = buildDynamicKeyframe(anim, dynamicUid++);
+			}
 			// Same authored-tavLst-over-canned-default preference as the main
 			// click-group loop (see the comment there for why it's gated to
 			// 'transparency' / unmapped emphasis effects only).

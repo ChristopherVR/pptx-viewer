@@ -20,6 +20,7 @@ import type { AnimationGroupContext } from './animation-group-context';
 import { extractAnimationTarget } from './animation-target-build-helpers';
 import { extractCTnTimingAttrs, extractSeqAttrs } from './animation-timing-attrs';
 import { extractChildKeyframeAttrName } from './native-animation-attr-name';
+import { extractAttributeAnimations } from './native-animation-attribute-components';
 import {
 	extractColorAnimation,
 	extractTextTarget,
@@ -325,6 +326,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const textTarget = this.extractTextTargetFromCTn(cTn);
 				const keyframes = extractChildKeyframes(childTnList);
 				const keyframeAttrName = extractChildKeyframeAttrName(childTnList);
+				const attributeAnimations = extractAttributeAnimations(childTnList);
 				// Round-trip surface for cTn attrs that don't have a typed home.
 				const roundTripAttrs = captureRoundTripCTnAttrs(cTn);
 				const afterEffectFlag = extractAfterEffect(cTn);
@@ -366,6 +368,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					scaleZoomContents: childMotion.scaleZoomContents,
 					keyframes: keyframes ?? undefined,
 					attrName: keyframeAttrName,
+					attributeAnimations,
 					repeatCount: repeatInfo.repeatCount,
 					autoReverse: repeatInfo.autoReverse,
 					soundRId: soundInfo.soundRId,

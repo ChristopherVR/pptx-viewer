@@ -251,6 +251,8 @@ export interface PptxNativeAnimation {
 	 * instead). Absent when the behaviour carries no `p:attrNameLst`.
 	 */
 	attrName?: string;
+	/** Every generic `p:anim` sibling composed by the authored effect. */
+	attributeAnimations?: PptxAttributeAnimation[];
 	/** Repeat count (e.g. `2`, `Infinity` for indefinite). */
 	repeatCount?: number;
 	/** Whether the animation plays in reverse after completion. */
@@ -497,6 +499,18 @@ export interface PptxAnimationKeyframe {
 	 * fidelity; consumers may use it to drive computed animation values.
 	 */
 	fmla?: string;
+}
+
+/** One generic `p:anim` behaviour inside a composed PowerPoint effect. */
+export interface PptxAttributeAnimation {
+	/** Lowercased target attribute from `p:attrNameLst`. */
+	attrName: string;
+	/** Authored value stops from this behaviour's `p:tavLst`. */
+	keyframes: PptxAnimationKeyframe[];
+	/** Duration from this behaviour's nested `p:cTn/@dur`. */
+	durationMs?: number;
+	/** Start offset from this behaviour's nested `p:stCondLst`. */
+	delayMs?: number;
 }
 
 /** Color animation data parsed from `p:animClr`. */
