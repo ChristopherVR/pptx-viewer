@@ -7,6 +7,56 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.1.0) - 2026-08-28
+
+### Features
+
+- **core:** Decrypt RC4-encrypted legacy .ppt files (by @ChristopherVR) ([b95adc7](https://github.com/ChristopherVR/pptx-viewer/commit/b95adc74f036eefd4d44af441fa600512ff44282))
+- **ole:** Make embedded OLE objects' Object Name editable (by @ChristopherVR) ([e06b32c](https://github.com/ChristopherVR/pptx-viewer/commit/e06b32c1b4e9375c37916097b494ab05bf4b7850))
+- **shared:** Add Pareto as an insertable chart type (by @ChristopherVR) ([8fea110](https://github.com/ChristopherVR/pptx-viewer/commit/8fea110ef6aa4036fee97f232f4f7d8ecd5f7b94))
+- **core:** Support writing ECMA-376 Standard scheme encryption (by @ChristopherVR) ([210d2a2](https://github.com/ChristopherVR/pptx-viewer/commit/210d2a22603467092f667f031bc7881f7e7833bf))
+- **shared:** Apply the shadeToTitle background gradient effect (by @ChristopherVR) ([f287389](https://github.com/ChristopherVR/pptx-viewer/commit/f2873891828125b315f2cae2155824c84609626f))
+- **core:** Allow animation drag-to-reorder across deck-native effects (by @ChristopherVR) ([6f48a34](https://github.com/ChristopherVR/pptx-viewer/commit/6f48a3455338c78f34c4d0978bcc4cf0be075db2))
+- Author animation effect sound and after-animation controls (by @ChristopherVR) ([78daeb4](https://github.com/ChristopherVR/pptx-viewer/commit/78daeb4276733fe5ed048872d262a8cf080bfc3b))
+- **shared:** Honour p:seq @concurrent/@nextAc/@prevAc and p:cTn @restart (by @ChristopherVR) ([3e3427d](https://github.com/ChristopherVR/pptx-viewer/commit/3e3427d9d747ae97485a5186b59e3d5aa80c1579))
+- **shared:** Honour animRot/animScale absolute values, tavLst, txEl ranges, p:excl and bldLvl in playback (by @ChristopherVR) ([f71396b](https://github.com/ChristopherVR/pptx-viewer/commit/f71396bbc1309909aa3eecfd4855268f4e6fbfac))
+- **shared:** Resolve 9 more SMIL animEffect filter families to real reveals (by @ChristopherVR) ([e47aa40](https://github.com/ChristopherVR/pptx-viewer/commit/e47aa409b5bcd10c24eadad3fb9aa8ab8f055fbd))
+- Author and embed transition sounds from the ribbon Sound picker (by @ChristopherVR) ([ada8cdb](https://github.com/ChristopherVR/pptx-viewer/commit/ada8cdb65a0689660b9afc852d0a85e2a1b04534))
+- Expose transition speed and morph-option controls in all five bindings (by @ChristopherVR) ([122894d](https://github.com/ChristopherVR/pptx-viewer/commit/122894db9366c91a87371311bf4f69ccbf53ffb4))
+- **ink:** Retain pen-tilt InkML channels and render a calligraphic nib (by @ChristopherVR) ([6adab79](https://github.com/ChristopherVR/pptx-viewer/commit/6adab79f7cf8ae19346c3e74d34413cccd2eb08f))
+- **shared:** Raycast hover tooltip for surface chart marks (by @ChristopherVR) ([c943646](https://github.com/ChristopherVR/pptx-viewer/commit/c9436468d2a1997168f12d079e0da758ab488758))
+- **shared:** Resolve stretch, newsflash and random animEffect filters (by @ChristopherVR) ([58c898e](https://github.com/ChristopherVR/pptx-viewer/commit/58c898e55c2fb520cde7845baf8ae4b2e7a1c224))
+- **core,shared:** Surface p:tavLst attrName, honour colour ramps (by @ChristopherVR) ([2ccf45f](https://github.com/ChristopherVR/pptx-viewer/commit/2ccf45fbcb23da9e0084769c0895b35cfc027326))
+- **shared:** Widen native-animation preset playback coverage to 54/200 (by @ChristopherVR) ([41e2b52](https://github.com/ChristopherVR/pptx-viewer/commit/41e2b526dc654e4f7c24f3dd9026eb3124c47dd5))
+- **shared:** True 3D bar3D chart scene via three.js, opt-in all bindings (by @ChristopherVR) ([ac920da](https://github.com/ChristopherVR/pptx-viewer/commit/ac920da1d2cc302f36ba7b2b19dc4011ac5aae07))
+- **shared:** True 3D line3D/area3D chart scenes via three.js, opt-in all bindings (by @ChristopherVR) ([1447517](https://github.com/ChristopherVR/pptx-viewer/commit/1447517ee8c95ca958146f668a5cd0f64616b473))
+- **charts:** Give pie3D charts true 3D rendering across all bindings (by @ChristopherVR) ([a1b32e7](https://github.com/ChristopherVR/pptx-viewer/commit/a1b32e7b9c44230f35d9c73cf786f8594b4b4157))
+
+### Bug Fixes
+
+- Author Draw-tab ink as a PowerPoint-compatible content part (by @ChristopherVR) ([d91ce08](https://github.com/ChristopherVR/pptx-viewer/commit/d91ce08757c3697eab6891808e527c5e1eaea555))
+- **animation:** Correct swapped exit/emphasis presets, cover 4 more IDs (by @ChristopherVR) ([11c2d2e](https://github.com/ChristopherVR/pptx-viewer/commit/11c2d2e8e68b0539c9920d8c6de4de93ca2cc5e1))
+- **shared:** Capture Draw tool pressure in all five bindings (by @ChristopherVR) ([b8a124a](https://github.com/ChristopherVR/pptx-viewer/commit/b8a124ae7cd48733b00baac11dda325eeefeea43))
+- **shared:** Sample ink pressure curves along the actual Bezier path (by @ChristopherVR) ([629ab5d](https://github.com/ChristopherVR/pptx-viewer/commit/629ab5dc8af3fee409376176a2b92e0e0ed26c12))
+- **core:** Honour text-run reflection scale/skew/rotation/fade/anchor (by @ChristopherVR) ([41dfa76](https://github.com/ChristopherVR/pptx-viewer/commit/41dfa76c9540136b5c09fee52e21d8d0bc3e079c))
+- **shared:** Render rect path gradients as nested rectangles, not an ellipse (by @ChristopherVR) ([f6f479e](https://github.com/ChristopherVR/pptx-viewer/commit/f6f479ece08a4c632db8bb4840377641079dcf3b))
+- **shared:** Add elliptical tilt foreshortening to pie3D charts (by @ChristopherVR) ([63f57ba](https://github.com/ChristopherVR/pptx-viewer/commit/63f57ba146b6918e068ace19449ce3964140968a))
+- **shared:** Claim morph proximity pairs closest-first, not by document order (by @ChristopherVR) ([b68a04d](https://github.com/ChristopherVR/pptx-viewer/commit/b68a04d120f15db4d2fd4c2f2c33ac31761f208b))
+- **deps:** Converge ai-sdk adapters on a single ai package version, fix two flaky tests (by @ChristopherVR) ([4365a02](https://github.com/ChristopherVR/pptx-viewer/commit/4365a0222d80abc4ba2d651a464dfb353f882656))
+- **core:** Author Draw-tab ink InkML that real PowerPoint actually opens (by @ChristopherVR) ([38633c7](https://github.com/ChristopherVR/pptx-viewer/commit/38633c7f25af358c24ea91c42019ad76b786ca54))
+- **animation:** Correct tests left stale by combining independent preset fix waves (by @ChristopherVR) ([02371bb](https://github.com/ChristopherVR/pptx-viewer/commit/02371bbdb1b6124b47be1932a7af80c5ddfbee20))
+- **charts:** Repair merge conflicts left broken by a diff3 edge case, wire remaining demos (by @ChristopherVR) ([42d550d](https://github.com/ChristopherVR/pptx-viewer/commit/42d550d6016ab0fc8ae2b5c643958cdf43f1020b))
+
+### Testing
+
+- **core:** Cover lte/equ ops and multi-hop bounds for SmartArt constraints (by @ChristopherVR) ([3d8c5a0](https://github.com/ChristopherVR/pptx-viewer/commit/3d8c5a08c85f7652dd2ba08cf9e345f98a767f8c))
+- **react:** Fix stale duplicate preset-mapping expectations (by @ChristopherVR) ([7b302b6](https://github.com/ChristopherVR/pptx-viewer/commit/7b302b64d95acb4ba877b8c7592806ceb8478c28))
+
+### Chores
+
+- Reformat limitations.md table and a core test after merge (by @ChristopherVR) ([d9db1f7](https://github.com/ChristopherVR/pptx-viewer/commit/d9db1f7c32e0ee7383837ac6db668e10a6060752))
+- Fix oxfmt comment placement in ppt-import.test.ts (by @ChristopherVR) ([7cb2d3d](https://github.com/ChristopherVR/pptx-viewer/commit/7cb2d3dabe470f4a0ad2a2023d90a1f9642d2c28))
+
 ## [3.0.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.0.4) - 2026-08-26
 
 ### Bug Fixes

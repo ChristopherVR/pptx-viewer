@@ -7,6 +7,38 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.1.0) - 2026-08-28
+
+### Features
+
+- **core:** Decrypt RC4-encrypted legacy .ppt files (by @ChristopherVR) ([b95adc7](https://github.com/ChristopherVR/pptx-viewer/commit/b95adc74f036eefd4d44af441fa600512ff44282))
+- **ole:** Make embedded OLE objects' Object Name editable (by @ChristopherVR) ([e06b32c](https://github.com/ChristopherVR/pptx-viewer/commit/e06b32c1b4e9375c37916097b494ab05bf4b7850))
+- **shared:** Add Pareto as an insertable chart type (by @ChristopherVR) ([8fea110](https://github.com/ChristopherVR/pptx-viewer/commit/8fea110ef6aa4036fee97f232f4f7d8ecd5f7b94))
+- **core:** Support writing ECMA-376 Standard scheme encryption (by @ChristopherVR) ([210d2a2](https://github.com/ChristopherVR/pptx-viewer/commit/210d2a22603467092f667f031bc7881f7e7833bf))
+- **shared:** Apply the shadeToTitle background gradient effect (by @ChristopherVR) ([f287389](https://github.com/ChristopherVR/pptx-viewer/commit/f2873891828125b315f2cae2155824c84609626f))
+- **core:** Allow animation drag-to-reorder across deck-native effects (by @ChristopherVR) ([6f48a34](https://github.com/ChristopherVR/pptx-viewer/commit/6f48a3455338c78f34c4d0978bcc4cf0be075db2))
+- Author animation effect sound and after-animation controls (by @ChristopherVR) ([78daeb4](https://github.com/ChristopherVR/pptx-viewer/commit/78daeb4276733fe5ed048872d262a8cf080bfc3b))
+- **shared:** Honour animRot/animScale absolute values, tavLst, txEl ranges, p:excl and bldLvl in playback (by @ChristopherVR) ([f71396b](https://github.com/ChristopherVR/pptx-viewer/commit/f71396bbc1309909aa3eecfd4855268f4e6fbfac))
+- Author and embed transition sounds from the ribbon Sound picker (by @ChristopherVR) ([ada8cdb](https://github.com/ChristopherVR/pptx-viewer/commit/ada8cdb65a0689660b9afc852d0a85e2a1b04534))
+- **ink:** Retain pen-tilt InkML channels and render a calligraphic nib (by @ChristopherVR) ([6adab79](https://github.com/ChristopherVR/pptx-viewer/commit/6adab79f7cf8ae19346c3e74d34413cccd2eb08f))
+- **core,shared:** Surface p:tavLst attrName, honour colour ramps (by @ChristopherVR) ([2ccf45f](https://github.com/ChristopherVR/pptx-viewer/commit/2ccf45fbcb23da9e0084769c0895b35cfc027326))
+
+### Bug Fixes
+
+- Author Draw-tab ink as a PowerPoint-compatible content part (by @ChristopherVR) ([d91ce08](https://github.com/ChristopherVR/pptx-viewer/commit/d91ce08757c3697eab6891808e527c5e1eaea555))
+- **animation:** Correct swapped exit/emphasis presets, cover 4 more IDs (by @ChristopherVR) ([11c2d2e](https://github.com/ChristopherVR/pptx-viewer/commit/11c2d2e8e68b0539c9920d8c6de4de93ca2cc5e1))
+- **core:** Honour text-run reflection scale/skew/rotation/fade/anchor (by @ChristopherVR) ([41dfa76](https://github.com/ChristopherVR/pptx-viewer/commit/41dfa76c9540136b5c09fee52e21d8d0bc3e079c))
+- **core:** Author Draw-tab ink InkML that real PowerPoint actually opens (by @ChristopherVR) ([38633c7](https://github.com/ChristopherVR/pptx-viewer/commit/38633c7f25af358c24ea91c42019ad76b786ca54))
+
+### Testing
+
+- **core:** Cover lte/equ ops and multi-hop bounds for SmartArt constraints (by @ChristopherVR) ([3d8c5a0](https://github.com/ChristopherVR/pptx-viewer/commit/3d8c5a08c85f7652dd2ba08cf9e345f98a767f8c))
+
+### Chores
+
+- Reformat limitations.md table and a core test after merge (by @ChristopherVR) ([d9db1f7](https://github.com/ChristopherVR/pptx-viewer/commit/d9db1f7c32e0ee7383837ac6db668e10a6060752))
+- Fix oxfmt comment placement in ppt-import.test.ts (by @ChristopherVR) ([7cb2d3d](https://github.com/ChristopherVR/pptx-viewer/commit/7cb2d3dabe470f4a0ad2a2023d90a1f9642d2c28))
+
 ## [3.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.0.2) - 2026-08-26
 
 ### Dependencies
