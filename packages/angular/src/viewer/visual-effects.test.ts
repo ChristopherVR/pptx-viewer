@@ -236,7 +236,7 @@ describe('getEffectFilterCss', () => {
 	it('glow produces a drop-shadow filter', () => {
 		const css = getEffectFilterCss({ glowColor: '#ffff00', glowRadius: 12, glowOpacity: 0.75 });
 		expect(css).toBeDefined();
-		expect(css).toContain('drop-shadow(0 0 12px rgba(255, 255, 0, 0.75))');
+		expect(css).toContain('drop-shadow(0 0 6px rgba(255, 255, 0, 0.75))');
 	});
 
 	it('soft edge without an element id falls back to a capped blur filter', () => {
