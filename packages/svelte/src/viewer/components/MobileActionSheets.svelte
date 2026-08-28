@@ -18,7 +18,7 @@
 	import ReviewCommentsPanel from './ribbon/review/ReviewCommentsPanel.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
 
-	const { active, onactivechange, editor, handler, presentationTheme, onthemechange, slides, canvasSize, mediaDataUrls, current, onselect, onzoomin, onzoomout, onzoomfit }: {
+	const { active, onactivechange, editor, handler, presentationTheme, onthemechange, slides, canvasSize, mediaDataUrls, current, onselect }: {
 		active: MobileSheetKey;
 		onactivechange: (active: MobileSheetKey) => void;
 		editor: EditorState;
@@ -30,9 +30,6 @@
 		mediaDataUrls: Map<string, string>;
 		current: number;
 		onselect: (index: number) => void;
-		onzoomin: () => void;
-		onzoomout: () => void;
-		onzoomfit: () => void;
 	} = $props();
 	const t = useTranslator();
 	const open = (key: Exclude<MobileSheetKey, null>) => {
@@ -76,15 +73,6 @@
 		<MobileSheet title={t('pptx.field.format')} onclose={close}><InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} /></MobileSheet>
 	{:else if active === 'comments'}
 		<MobileSheet title={t('pptx.toolbar.comments')} onclose={close}><ReviewCommentsPanel {editor} embedded /></MobileSheet>
-	{:else if active === 'menu'}
-		<MobileSheet title={t('pptx.mobileToolbar.menu')} onclose={close}>
-			<div class="pptx-svelte-mobile-menu-grid">
-				<button type="button" onclick={() => open('insert')}>{t('pptx.ribbon.insert')}</button>
-				<button type="button" onclick={onzoomout}>{t('pptx.statusBar.zoomOut')}</button>
-				<button type="button" onclick={onzoomfit}>{t('pptx.statusBar.zoomToFit')}</button>
-				<button type="button" onclick={onzoomin}>{t('pptx.statusBar.zoomIn')}</button>
-			</div>
-		</MobileSheet>
 	{/if}
 	<nav aria-label={t('pptx.mobileBar.ariaLabel')}>
 		{#each actions as action}
@@ -114,13 +102,11 @@
 	.pptx-svelte-mobile-actions { display: none; }
 	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 		.pptx-svelte-mobile-actions { display: contents; }
-		.pptx-svelte-mobile-actions nav { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; display: flex; min-height: 64px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border, #33334d); background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 94%, transparent); }
+		.pptx-svelte-mobile-actions nav { position: absolute; z-index: 50; right: 0; bottom: 0; left: 0; display: flex; min-height: 56px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border, #33334d); background: color-mix(in srgb, var(--pptx-card, #1e1e2e) 94%, transparent); }
 		.pptx-svelte-mobile-actions nav button { display: grid; flex: 1; place-items: center; align-content: center; gap: 1px; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground, #94a3b8); touch-action: manipulation; }
-		.pptx-svelte-mobile-actions nav button:focus-visible, .pptx-svelte-mobile-menu-grid button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: -2px; }
+		.pptx-svelte-mobile-actions nav button:focus-visible { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: -2px; }
 		.pptx-svelte-mobile-actions nav button.active { color: var(--pptx-primary, #818cf8); }
 		.pptx-svelte-mobile-actions nav small { font-size: 10px; }
-		.pptx-svelte-mobile-menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-		.pptx-svelte-mobile-menu-grid button { min-height: 44px; border: 1px solid var(--pptx-border, #33334d); border-radius: 8px; background: var(--pptx-muted, #2a2a3d); color: inherit; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-thumbs) { display:flex !important; max-height:55dvh; border:0; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-insert) { display: flex; flex-wrap: wrap; gap: 8px; }
 		:global(.pptx-svelte-mobile-sheet .pptx-svelte-insert-btn) { min-width: 44px; min-height: 44px; }

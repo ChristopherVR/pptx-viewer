@@ -244,9 +244,6 @@
 			mediaDataUrls={loader.mediaDataUrls}
 			current={viewer.current}
 			onselect={(index) => viewer.goTo(index)}
-			onzoomin={() => viewer.zoomIn(vm.effectivePercent)}
-			onzoomout={() => viewer.zoomOut(vm.effectivePercent)}
-			onzoomfit={() => viewer.zoomToFit()}
 		/>
 	{/if}
 	{#if showToolbar && vm.chromeVisible}

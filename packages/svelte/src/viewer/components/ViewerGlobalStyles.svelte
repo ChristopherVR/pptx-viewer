@@ -107,7 +107,7 @@
 		}
 
 		:global(.pptx-svelte-viewport) {
-			padding-bottom: 64px;
+			padding-bottom: 56px;
 		}
 	}
 </style>

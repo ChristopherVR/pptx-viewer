@@ -19,6 +19,7 @@
 	import Ribbon from './ribbon/Ribbon.svelte';
 	import TitleBar from './TitleBar.svelte';
 	import MobileChrome from './MobileChrome.svelte';
+	import MobileMenuSheet from './MobileMenuSheet.svelte';
 	import QuickAccessToolbar from './QuickAccessToolbar.svelte';
 	import ViewerToolbar from './ViewerToolbar.svelte';
 
@@ -253,6 +254,138 @@
 		onentermasterview={() => editor.masterOps.enter()}
 		hiddenActions={effectiveHiddenActions}
 	/>
+	{#if vm.activeMobileSheet === 'menu'}
+		<MobileMenuSheet
+			{fileName}
+			{editor}
+			readOnly={ribbonReadOnly}
+			{findReplace}
+			canvasSize={loader.canvasSize}
+			current={viewer.current}
+			total={viewer.slideCount}
+			onprev={() => viewer.prev()}
+			onnext={() => viewer.next()}
+			onnavigateslide={(index) => viewer.goTo(index)}
+			canUndo={editor.canUndo}
+			canRedo={editor.canRedo}
+			dirty={editor.dirty}
+			onundo={() => editor.undo()}
+			onredo={() => editor.redo()}
+			onsave={() => void editor.save()}
+			ondownload={() => void vm.downloadPptx()}
+			ondownloadppsx={() => void vm.downloadAs('ppsx')}
+			ondownloadpptm={() => void vm.downloadAs('pptm')}
+			onversionhistory={() => (vm.versionHistoryOpen = true)}
+			hasMacros={loader.hasMacros}
+			embeddedFontNames={loader.embeddedFonts.map((font) => font.name)}
+			hasDigitalSignatures={loader.hasDigitalSignatures}
+			digitalSignatureCount={loader.digitalSignatureCount}
+			isPasswordProtected={loader.isPasswordProtected}
+			{autosaveStatus}
+			autosaveDirty={autosaveCtl.isDirty}
+			zoomPercent={vm.effectivePercent}
+			onzoomin={() => viewer.zoomIn(vm.effectivePercent)}
+			onzoomout={() => viewer.zoomOut(vm.effectivePercent)}
+			onzoomfit={() => viewer.zoomToFit()}
+			isFullscreen={viewer.isFullscreen}
+			onfullscreen={vm.onFullscreenToggle}
+			showNotes={notesAvailable}
+			notesExpanded={vm.notesExpanded}
+			onnotestoggle={vm.onNotesToggle}
+			onshare={() => dialogs.openShare()}
+			onbroadcast={() => dialogs.openBroadcast()}
+			collabActive={collab.active}
+			{chromeUi}
+			subtitlesEnabled={parityUi.subtitlesEnabled}
+			slides={vm.displaySlides}
+			onnavigatetoissue={(slideIndex, elementId) => {
+				viewer.goTo(slideIndex);
+				if (elementId) editor.select(elementId);
+			}}
+			onfrombeginning={() => {
+				viewer.goTo(0);
+				vm.onFullscreenToggle();
+			}}
+			onfromcurrent={vm.onFullscreenToggle}
+			{onpresenter}
+			onsetupslideshow={() => (parityUi.setupSlideShowOpen = true)}
+			onhideslide={() =>
+				editor.commitSlides(
+					editor.slides.map((slide, index) =>
+						index === viewer.current ? { ...slide, hidden: !slide.hidden } : slide,
+					),
+				)}
+			onheaderfooter={() => (parityUi.headerFooterOpen = true)}
+			oncompare={() => void parityUi.compare.chooseFile()}
+			onshortcuts={() => (parityUi.shortcutsOpen = !parityUi.shortcutsOpen)}
+			onai={toggleAi}
+			aiActive={ai.panelOpen}
+			onsettings={() => {
+				parityUi.syncAutosave(vm.autosaveEnabled);
+				parityUi.settingsOpen = true;
+			}}
+			onprintsettings={() => (parityUi.printSettingsOpen = true)}
+			onrehearse={() => {
+				parityUi.rehearse.start(viewer.current);
+				vm.onFullscreenToggle();
+			}}
+			onrecordfrombeginning={() => {
+				viewer.goTo(0);
+				parityUi.rehearse.start(0);
+				vm.onFullscreenToggle();
+			}}
+			onrecordfromcurrent={() => {
+				parityUi.rehearse.start(viewer.current);
+				vm.onFullscreenToggle();
+			}}
+			onsubtitles={() => (parityUi.subtitlesEnabled = !parityUi.subtitlesEnabled)}
+			oncustomshows={() => (parityUi.customShowsOpen = true)}
+			onselectionpane={() => (parityUi.selectionPaneOpen = !parityUi.selectionPaneOpen)}
+			onslidesorter={() => (parityUi.slideSorterOpen = true)}
+			onreadingview={() => (parityUi.readingViewOpen = true)}
+			onoutlineview={() => (parityUi.outlineViewOpen = true)}
+			onnormal={() => {
+				if (viewer.isFullscreen) {
+					vm.onFullscreenToggle();
+				}
+				parityUi.slideSorterOpen = false;
+				parityUi.readingViewOpen = false;
+				parityUi.outlineViewOpen = false;
+			}}
+			preferences={parityUi.preferences}
+			onpreferenceschange={(next) => {
+				parityUi.preferences = next;
+			}}
+			showGuides={parityUi.showGuides}
+			onshowguideschange={(next) => (parityUi.showGuides = next)}
+			snapToShape={parityUi.snapToShape}
+			onsnapToShapechange={(next) => (parityUi.snapToShape = next)}
+			onaddguide={(axis) => {
+				parityUi.guides = [
+					...parityUi.guides,
+					{
+						axis,
+						position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2,
+					},
+				];
+				parityUi.showGuides = true;
+			}}
+			{exportUi}
+			onopenfile={vm.openFile}
+			onopenrecent={(key) => {
+				void (async () => {
+					const bytes = await readBackstageRecentFile(key);
+					if (bytes) await loader.load(bytes);
+				})();
+			}}
+			{theme}
+			{onsettheme}
+			{accountAuth}
+			onentermasterview={() => editor.masterOps.enter()}
+			hiddenActions={effectiveHiddenActions}
+			onclose={() => vm.setActiveMobileSheet(null)}
+		/>
+	{/if}
 {:else}
 	<ViewerToolbar
 		current={viewer.current}

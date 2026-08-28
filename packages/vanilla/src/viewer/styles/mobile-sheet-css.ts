@@ -16,11 +16,11 @@ export const MOBILE_SHEET_CSS = `
 	.pptxv-mobile-toolbar-ai .pptxv-ai-toggle.is-active { color: var(--pptx-primary); background: transparent; }
 	.pptxv-mobile-share { min-width: 44px; background: var(--pptx-primary); color: var(--pptx-primary-foreground); }
 	.pptxv-mobile-actions { display: contents; }
-	.pptxv-mobile-actions > nav { position: relative; z-index: 50; display: flex; flex: none; min-height: 64px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border); background: var(--pptx-card); }
+	.pptxv-mobile-actions > nav { position: relative; z-index: 50; display: flex; flex: none; min-height: 56px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--pptx-border); background: var(--pptx-card); }
 	.pptxv-mobile-actions > nav button { position: relative; display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 44px; border: 0; background: transparent; color: var(--pptx-muted-foreground); font-size: 10px; touch-action: manipulation; }
 	.pptxv-mobile-actions > nav button svg { width: 20px; height: 20px; }
 	.pptxv-mobile-actions > nav button[aria-pressed='true'] { color: var(--pptx-primary); }
-	.pptxv-mobile-sheet-host { position: absolute; z-index: 48; inset: 0 0 64px; display: flex; align-items: end; }
+	.pptxv-mobile-sheet-host { position: absolute; z-index: 48; inset: 0 0 56px; display: flex; align-items: end; }
 	.pptxv-mobile-sheet-host[hidden] { display: none; }
 	.pptxv-mobile-sheet-backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: rgb(0 0 0 / 40%); }
 	.pptxv-mobile-sheet { position: relative; display: flex; flex-direction: column; width: 100%; max-height: min(70dvh, 620px); border: 1px solid var(--pptx-border); border-bottom: 0; border-radius: 16px 16px 0 0; background: var(--pptx-background); box-shadow: 0 -12px 36px rgb(0 0 0 / 35%); transition: transform 150ms ease-out; }

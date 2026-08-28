@@ -288,12 +288,12 @@ export const AI_CSS = `
 }
 
 /* ── Mobile: bottom sheet instead of a full-width drawer that hides the
-   canvas. Anchored above the mobile bottom-action nav (64px + safe area) so
+   canvas. Anchored above the mobile bottom-action nav (56px + safe area) so
    the slide stage stays visible and tappable above the sheet. Uses the same
    breakpoint as the rest of the mobile chrome (mobile-sheet-css.ts). ────── */
 @media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) {
 	.pptxv-ai-panel {
-		inset: auto 0 calc(64px + env(safe-area-inset-bottom)) 0;
+		inset: auto 0 calc(56px + env(safe-area-inset-bottom)) 0;
 		width: auto;
 		height: min(75dvh, 640px);
 		z-index: 46;
