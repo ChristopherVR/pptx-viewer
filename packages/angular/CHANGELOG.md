@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.2.2) - 2026-08-29
+
+### Bug Fixes
+
+- **animation:** Preserve authored PowerPoint playback and rendering ([#185](https://github.com/ChristopherVR/pptx-viewer/issues/185)) (by @primerch) ([628be23](https://github.com/ChristopherVR/pptx-viewer/commit/628be23999fb116d11cde2a5f62aac941416a1f5))
+
 ## [3.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.2.1) - 2026-08-29
 
 ### Bug Fixes

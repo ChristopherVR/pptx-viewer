@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-08-29
 
+_Releases: pptx-viewer-core@3.1.2, pptx-react-viewer@3.1.4, pptx-vue-viewer@3.1.4, pptx-angular-viewer@3.2.2, pptx-vanilla-viewer@2.1.4, pptx-svelte-viewer@3.2.2, @christophervr/pptx-viewer@2.1.4_
+
+### Bug Fixes
+
+- **animation:** Preserve authored PowerPoint playback and rendering ([#185](https://github.com/ChristopherVR/pptx-viewer/issues/185)) (by @primerch) ([628be23](https://github.com/ChristopherVR/pptx-viewer/commit/628be23999fb116d11cde2a5f62aac941416a1f5))
+
+## 2026-08-29
+
 _Releases: pptx-react-viewer@3.1.3, pptx-vue-viewer@3.1.3, pptx-angular-viewer@3.2.1, pptx-vanilla-viewer@2.1.3, pptx-svelte-viewer@3.2.1, @christophervr/pptx-viewer@2.1.3_
 
 ### Bug Fixes
