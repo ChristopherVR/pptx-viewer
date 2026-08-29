@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.1.3) - 2026-08-29
+
+### Bug Fixes
+
+- **react:** Smooth collaboration cursors and remove webrtc join delay (by @ChristopherVR) ([332c547](https://github.com/ChristopherVR/pptx-viewer/commit/332c54713cbf82a5669f0d7825d58346e2ad8e45))
+- Vertically center the slide canvas to match svelte (by @ChristopherVR) ([c5ff901](https://github.com/ChristopherVR/pptx-viewer/commit/c5ff90100af8d5d70119a82aaea50fe56fbee0a6))
+- **ui:** Stop resize/rotate handles rendering behind their own element (by @ChristopherVR) ([1eefded](https://github.com/ChristopherVR/pptx-viewer/commit/1eefded8efb893f9eb9ee19c4f85c64fde94f86b))
+- **react:** Stop the pointer-move listener re-subscribing every render (by @ChristopherVR) ([897fa8e](https://github.com/ChristopherVR/pptx-viewer/commit/897fa8edca54e826906cf396394bec510df775d1))
+- **ui:** Stop ribbon Insert/Animation/View tab content stretching and clipping (by @ChristopherVR) ([9487346](https://github.com/ChristopherVR/pptx-viewer/commit/9487346f32b7ec51a2180305643d960e1e7b65cb))
+
 ## [2.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.1.2) - 2026-08-28
 
 ### Bug Fixes

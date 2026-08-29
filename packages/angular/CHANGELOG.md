@@ -7,6 +7,15 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.2.1) - 2026-08-29
+
+### Bug Fixes
+
+- **react:** Smooth collaboration cursors and remove webrtc join delay (by @ChristopherVR) ([332c547](https://github.com/ChristopherVR/pptx-viewer/commit/332c54713cbf82a5669f0d7825d58346e2ad8e45))
+- Vertically center the slide canvas to match svelte (by @ChristopherVR) ([c5ff901](https://github.com/ChristopherVR/pptx-viewer/commit/c5ff90100af8d5d70119a82aaea50fe56fbee0a6))
+- **ui:** Stop ribbon Insert/Animation/View tab content stretching and clipping (by @ChristopherVR) ([9487346](https://github.com/ChristopherVR/pptx-viewer/commit/9487346f32b7ec51a2180305643d960e1e7b65cb))
+- **print:** Stop print opening a blank tab and doing nothing (by @ChristopherVR) ([6616f81](https://github.com/ChristopherVR/pptx-viewer/commit/6616f81003354b57b3b56e7de957d4044616b811))
+
 ## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.2.0) - 2026-08-28
 
 ### Features

@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.3) - 2026-08-29
+
+### Bug Fixes
+
+- Vertically center the slide canvas to match svelte (by @ChristopherVR) ([c5ff901](https://github.com/ChristopherVR/pptx-viewer/commit/c5ff90100af8d5d70119a82aaea50fe56fbee0a6))
+- **ui:** Stop resize/rotate handles rendering behind their own element (by @ChristopherVR) ([1eefded](https://github.com/ChristopherVR/pptx-viewer/commit/1eefded8efb893f9eb9ee19c4f85c64fde94f86b))
+- **ui:** Stop ribbon Insert/Animation/View tab content stretching and clipping (by @ChristopherVR) ([9487346](https://github.com/ChristopherVR/pptx-viewer/commit/9487346f32b7ec51a2180305643d960e1e7b65cb))
+- **print:** Stop print opening a blank tab and doing nothing (by @ChristopherVR) ([6616f81](https://github.com/ChristopherVR/pptx-viewer/commit/6616f81003354b57b3b56e7de957d4044616b811))
+- **ui:** Stop connector-endpoint detach breaking on Vue and Svelte (by @ChristopherVR) ([7fe9401](https://github.com/ChristopherVR/pptx-viewer/commit/7fe9401e6d6ea48ccfa69ae8b0c9bf9f35b88f97))
+
 ## [3.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.2) - 2026-08-28
 
 ### Bug Fixes

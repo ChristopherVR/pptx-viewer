@@ -8,6 +8,21 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-08-29
+
+_Releases: pptx-react-viewer@3.1.3, pptx-vue-viewer@3.1.3, pptx-angular-viewer@3.2.1, pptx-vanilla-viewer@2.1.3, pptx-svelte-viewer@3.2.1, @christophervr/pptx-viewer@2.1.3_
+
+### Bug Fixes
+
+- **react:** Smooth collaboration cursors and remove webrtc join delay (by @ChristopherVR) ([332c547](https://github.com/ChristopherVR/pptx-viewer/commit/332c54713cbf82a5669f0d7825d58346e2ad8e45))
+- Vertically center the slide canvas to match svelte (by @ChristopherVR) ([c5ff901](https://github.com/ChristopherVR/pptx-viewer/commit/c5ff90100af8d5d70119a82aaea50fe56fbee0a6))
+- **svelte:** Shrink mobile bottom bar and rebuild the hamburger menu (by @ChristopherVR) ([c8f394d](https://github.com/ChristopherVR/pptx-viewer/commit/c8f394d6b9ceedd8a250f9cd36392a66d0c57276))
+- **ui:** Stop resize/rotate handles rendering behind their own element (by @ChristopherVR) ([1eefded](https://github.com/ChristopherVR/pptx-viewer/commit/1eefded8efb893f9eb9ee19c4f85c64fde94f86b))
+- **react:** Stop the pointer-move listener re-subscribing every render (by @ChristopherVR) ([897fa8e](https://github.com/ChristopherVR/pptx-viewer/commit/897fa8edca54e826906cf396394bec510df775d1))
+- **ui:** Stop ribbon Insert/Animation/View tab content stretching and clipping (by @ChristopherVR) ([9487346](https://github.com/ChristopherVR/pptx-viewer/commit/9487346f32b7ec51a2180305643d960e1e7b65cb))
+- **print:** Stop print opening a blank tab and doing nothing (by @ChristopherVR) ([6616f81](https://github.com/ChristopherVR/pptx-viewer/commit/6616f81003354b57b3b56e7de957d4044616b811))
+- **ui:** Stop connector-endpoint detach breaking on Vue and Svelte (by @ChristopherVR) ([7fe9401](https://github.com/ChristopherVR/pptx-viewer/commit/7fe9401e6d6ea48ccfa69ae8b0c9bf9f35b88f97))
+
 ## 2026-08-28
 
 _Releases: pptx-viewer-core@3.1.1, pptx-react-viewer@3.1.2, pptx-vue-viewer@3.1.2, pptx-angular-viewer@3.2.0, pptx-vanilla-viewer@2.1.2, pptx-svelte-viewer@3.2.0, @christophervr/pptx-viewer@2.1.2_
