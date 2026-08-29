@@ -32,7 +32,7 @@ const slide = {
 	],
 	nativeAnimations: [
 		makeAnimation('first', { seqNextAction: 'seek' }),
-		makeAnimation('second', { durationMs: 500 }),
+		makeAnimation('second', { durationMs: 500, seqNextAction: 'seek' }),
 	],
 } as unknown as PptxSlide;
 
@@ -89,5 +89,7 @@ describe('useAnimationPlayback rapid next seek', () => {
 
 		await act(async () => expect(latest!.playNextAnimationGroup()).toBeTruthy());
 		expect(latest!.presentationElementStates.get('second')?.visible).toBeTruthy();
+
+		await act(async () => expect(latest!.playNextAnimationGroup()).toBeFalsy());
 	});
 });

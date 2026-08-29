@@ -264,6 +264,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 		const activeGroup = activeAnimationGroupRef.current;
 		if (
 			controller &&
+			controller.hasMoreSteps() &&
 			shouldSeekAnimationGroup(activeGroup, activeAnimationEndAtRef.current, performance.now())
 		) {
 			finishDomAnimationsForGroup(activeGroup);

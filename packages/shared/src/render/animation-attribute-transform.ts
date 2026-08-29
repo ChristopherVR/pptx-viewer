@@ -145,15 +145,27 @@ export function createAttributeTransformModel(
 	anim: Pick<PptxNativeAnimation, 'attributeAnimations' | 'durationMs'>,
 ): AttributeTransformModel | undefined {
 	const effectDurationMs = Math.max(1, anim.durationMs ?? 1000);
-	const components = (anim.attributeAnimations ?? [])
-		.map((component) => parseComponent(component, effectDurationMs))
-		.filter((component): component is ParsedComponent => component !== undefined);
-	if (components.length === 0) {
+	const supportedComponents = (anim.attributeAnimations ?? []).filter(
+		(component) => ATTRIBUTE_KINDS[component.attrName] !== undefined,
+	);
+	const components = supportedComponents.map((component) =>
+		parseComponent(component, effectDurationMs),
+	);
+	const parsedComponents = components.filter(
+		(component): component is ParsedComponent => component !== undefined,
+	);
+	// A partial transform is worse than the preset fallback: one unrepresentable
+	// sibling can carry the primary movement while an identity sibling still
+	// parses, causing the incomplete dynamic keyframe to suppress that preset.
+	if (parsedComponents.length !== supportedComponents.length) {
+		return undefined;
+	}
+	if (parsedComponents.length === 0) {
 		return undefined;
 	}
 
 	const progressSet = new Set<number>([0, 1]);
-	for (const component of components) {
+	for (const component of parsedComponents) {
 		for (const stop of component.stops) {
 			progressSet.add(
 				clamp01((component.delayMs + stop.progress * component.durationMs) / effectDurationMs),
@@ -165,7 +177,7 @@ export function createAttributeTransformModel(
 		progresses: [...progressSet].sort((left, right) => left - right),
 		stateAt(progress) {
 			const state: AttributeTransformState = {};
-			for (const component of components) {
+			for (const component of parsedComponents) {
 				state[component.kind] = valueAt(component, progress, effectDurationMs);
 			}
 			return state;

@@ -59,4 +59,16 @@ describe('generic p:anim transform composition', () => {
 		expect(model?.stateAt(0)).toMatchObject({ translateX: 0, translateY: -10 });
 		expect(model?.stateAt(1)).toMatchObject({ translateX: 0, translateY: 0 });
 	});
+
+	it('rejects a partial transform when a supported sibling formula is not representable', () => {
+		const model = createAttributeTransformModel({
+			durationMs: 500,
+			attributeAnimations: [
+				component('ppt_x', '0-#ppt_w/2', '#ppt_x'),
+				component('ppt_y', '#ppt_y', '#ppt_y'),
+			],
+		});
+
+		expect(model).toBeUndefined();
+	});
 });

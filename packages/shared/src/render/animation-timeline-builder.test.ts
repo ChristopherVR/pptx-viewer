@@ -72,6 +72,27 @@ describe('buildTimeline', () => {
 		expect(result.keyframesCss).not.toContain('@keyframes pptx-expandIn');
 	});
 
+	it('keeps a directional fly preset when its sibling position formula is not representable', () => {
+		const keyframes = (from: string, to: string) => [
+			{ tm: 0, value: from, valueType: 'str' as const },
+			{ tm: 100000, value: to, valueType: 'str' as const },
+		];
+		const result = buildTimeline([
+			makeAnim({
+				durationMs: 500,
+				presetId: 2,
+				presetSubtype: 8,
+				attributeAnimations: [
+					{ attrName: 'ppt_x', durationMs: 500, keyframes: keyframes('0-#ppt_w/2', '#ppt_x') },
+					{ attrName: 'ppt_y', durationMs: 500, keyframes: keyframes('#ppt_y', '#ppt_y') },
+				],
+			}),
+		]);
+
+		expect(result.clickGroups[0].steps[0].keyframeName).toBe('pptx-flyInLeft');
+		expect(result.keyframesCss).toContain('@keyframes pptx-flyInLeft');
+	});
+
 	it('tracks entrance element IDs', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'entr' })]);
 		expect(result.entranceElementIds.has('el1')).toBeTruthy();
