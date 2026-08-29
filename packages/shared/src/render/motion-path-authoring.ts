@@ -172,6 +172,9 @@ export function motionPathNativeAnimations(slide: PptxSlide): PptxNativeAnimatio
 			delayMs: animation.delayMs ?? 0,
 			motionPath: animation.motionPath,
 			motionPathEditMode: animation.motionPathEditMode ?? 'relative',
+			motionPathRotationAngle: animation.motionPathRotationAngle,
+			motionPathRotationCenterX: animation.motionPathRotationCenterX,
+			motionPathRotationCenterY: animation.motionPathRotationCenterY,
 		}));
 }
 

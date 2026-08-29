@@ -17,6 +17,7 @@ import type {
 import type { XmlObject, PptxDrawingGuide } from './common';
 import type { PptxElement } from './elements';
 import type { PptxEmbeddedFontList } from './embedded-font';
+import type { PptxImageProperties } from './image';
 import type {
 	PptxThemeOption,
 	PptxNotesMaster,
@@ -170,6 +171,8 @@ export interface PptxSlide {
 	elements: PptxElement[];
 	backgroundColor?: string;
 	backgroundImage?: string; // base64 data URL for background image
+	/** Crop, tiling and image effects authored on the background blip fill. */
+	backgroundImageProperties?: PptxImageProperties;
 	backgroundGradient?: string; // CSS gradient string for background
 	/**
 	 * Pattern fill on the slide background (`<a:pattFill>` inside `<p:bgPr>`).

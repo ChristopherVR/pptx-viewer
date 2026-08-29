@@ -1,4 +1,5 @@
 import type { MediaPptxElement, MediaCaptionTrack, MediaMetadata } from 'pptx-viewer-core';
+import { getImageFitStyle } from 'pptx-viewer-shared';
 import React, { useEffect, useState } from 'react';
 
 // ---------------------------------------------------------------------------
@@ -138,7 +139,8 @@ export function VideoWithMetadata({
 	return (
 		<video
 			ref={mediaRef as React.RefObject<HTMLVideoElement>}
-			className={`w-full h-full pointer-events-auto ${isFullScreen ? 'object-cover' : 'object-contain'}`}
+			className='w-full h-full pointer-events-auto'
+			style={isFullScreen ? { objectFit: 'cover' } : getImageFitStyle(element)}
 			controls={showTransport}
 			preload='metadata'
 			playsInline

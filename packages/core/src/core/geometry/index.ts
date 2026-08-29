@@ -54,7 +54,14 @@ export {
 export { getConnectorAdjustment, getConnectorPathGeometry } from './connector-geometry';
 export type { ConnectorPathGeometry } from './connector-geometry';
 
-export { getElementTransform, getTextCompensationTransform } from './transform-utils';
+export {
+	TEXT_ORIENTATION_IDENTITY,
+	getElementOrientationMatrix,
+	getElementTransform,
+	getTextCompensationTransform,
+	isTextOrientationMatrix,
+	multiplyTextOrientationMatrices,
+} from './transform-utils';
 
 export {
 	PRESET_SHAPE_CLIP_PATHS,

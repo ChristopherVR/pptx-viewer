@@ -67,14 +67,14 @@ function shapeBody(shape: RenderedShape): React.ReactElement {
 					transform={shape.transform}
 				/>
 			);
-		case 'polygon':
+		case 'path':
 			return (
-				<polygon
-					points={shape.points}
+				<path
+					d={shape.pathData}
 					fill={shape.fill}
 					stroke={shape.stroke}
 					strokeWidth={shape.strokeWidth}
-					transform={shape.transform}
+					transform={shape.pathTransform}
 				/>
 			);
 		default:
@@ -147,6 +147,9 @@ export function DrawingShapeRenderer({
 								lines={shape.textLines}
 								fill={shape.fontColor}
 								fontSize={shape.fontSize}
+								fontFamily={shape.fontFamily}
+								fontWeight={shape.fontWeight}
+								fontStyle={shape.fontStyle}
 								className='pointer-events-none'
 							/>
 						) : null}

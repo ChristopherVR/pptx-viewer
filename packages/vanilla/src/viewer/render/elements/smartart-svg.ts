@@ -19,6 +19,8 @@ export interface SvgTextLinesOptions {
 	x: number;
 	fill: string;
 	fontSize: number;
+	/** SVG `font-family`. Omitted when unset. */
+	fontFamily?: string;
 	/** SVG `text-anchor`. Defaults to `middle`. */
 	textAnchor?: 'start' | 'middle' | 'end';
 	/** SVG `dominant-baseline`. Defaults to `central`. */
@@ -46,6 +48,7 @@ export function appendSvgTextLines(
 		'dominant-baseline': options.dominantBaseline ?? 'central',
 		fill: options.fill,
 		'font-size': options.fontSize,
+		'font-family': options.fontFamily,
 		'font-weight': options.fontWeight,
 		'font-style': options.fontStyle,
 	});

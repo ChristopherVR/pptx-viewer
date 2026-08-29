@@ -38,6 +38,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
 
 import { applyAfterAnimationFromEditorList } from './animation-after-effect';
+import { resolveAnimationTargetId } from './animation-target-id';
 import type { ElementStatesOptions } from './animation-timeline-engine';
 import { TimelineEngine } from './animation-timeline-engine';
 import {
@@ -137,8 +138,9 @@ export class PresentationAnimationController {
 
 		const elementIds: string[] = slide.elements.map((element) => element.id);
 		for (const anim of expandedAnims) {
-			if (anim.targetId && anim.targetId.includes(TEXT_BUILD_ID_SEP)) {
-				elementIds.push(anim.targetId);
+			const targetId = resolveAnimationTargetId(anim);
+			if (targetId.includes(TEXT_BUILD_ID_SEP)) {
+				elementIds.push(targetId);
 			}
 		}
 

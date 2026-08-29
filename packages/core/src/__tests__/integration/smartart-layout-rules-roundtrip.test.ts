@@ -131,7 +131,8 @@ describe('smartArt layout rule round-trip: forName-scoped rule overrides', () =>
 		const cached = smartArt(reloaded.slides).smartArtData!.drawingShapes;
 		expect(cached?.length).toBe(3);
 		for (const shape of cached ?? []) {
-			expect(shape.fontSize).toBe(28);
+			// The cached model exposes renderer units even though OOXML stores points.
+			expect(shape.fontSize).toBeCloseTo(28 * (96 / 72));
 		}
 	});
 

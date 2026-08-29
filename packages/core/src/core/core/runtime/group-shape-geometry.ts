@@ -13,7 +13,6 @@
  * group nested inside another group has to be mapped twice.
  */
 import type { PptxElement } from '../../types';
-import { hasShapeProperties } from '../../types';
 
 /**
  * Maximum nesting depth for `p:grpSp` recursion (Load H1).
@@ -184,10 +183,6 @@ export function scaleElementSubtree(el: PptxElement, scaleX: number, scaleY: num
 	el.y *= scaleY;
 	el.width *= scaleX;
 	el.height *= scaleY;
-	const avgScale = (Math.abs(scaleX) + Math.abs(scaleY)) / 2;
-	if (hasShapeProperties(el) && el.shapeStyle?.strokeWidth) {
-		el.shapeStyle.strokeWidth *= avgScale;
-	}
 	if (el.type === 'group') {
 		for (const nested of el.children) {
 			scaleElementSubtree(nested, scaleX, scaleY);
@@ -199,12 +194,13 @@ export function scaleElementSubtree(el: PptxElement, scaleX: number, scaleY: num
  * Map one child of a group from the group's child coordinate space into the
  * group's parent space, in place.
  *
- * Text is deliberately NOT scaled. Resizing a group in PowerPoint rewrites
- * `a:ext` while leaving `a:chExt`, which scales the child GEOMETRY only:
- * every run keeps the point size it was authored at, which is why text in a
- * shrunken group overflows its box in PowerPoint too. Scaling `fontSize` here
- * made grouped text render visibly smaller than PowerPoint draws it (issue
- * #131 slide 3, where a 0.79 group scale turned 12pt into ~9.5pt).
+ * Text and stroke widths are deliberately NOT scaled. `a:chOff` / `a:chExt`
+ * define an arbitrary coordinate space for child GEOMETRY, while font sizes
+ * and `a:ln/@w` remain absolute measurements. A real deck uses a 1,710-unit
+ * child space inside a 1,085,850-EMU group; multiplying its authored 8 px
+ * connector stroke by that 635x coordinate ratio turns three curved lines
+ * into slide-height black bars. The same rule already keeps grouped text at
+ * its authored point size (issue #131 slide 3).
  */
 export function transformGroupChild(el: PptxElement, t: GroupTransform): void {
 	const relativeX = el.x - t.chX;
@@ -214,10 +210,6 @@ export function transformGroupChild(el: PptxElement, t: GroupTransform): void {
 	el.width *= t.scaleX;
 	el.height *= t.scaleY;
 
-	const avgScale = (Math.abs(t.scaleX) + Math.abs(t.scaleY)) / 2;
-	if (hasShapeProperties(el) && el.shapeStyle?.strokeWidth) {
-		el.shapeStyle.strokeWidth *= avgScale;
-	}
 	if (el.type === 'group') {
 		// The wrapper itself has just been placed; its children are stored
 		// relative to it, so they take the scale but not the offset.

@@ -72,6 +72,55 @@ describe('parseDrawingShape', () => {
 		expect(shape).not.toBeNull();
 		expect(shape!.shapeType).toBe('rect');
 	});
+
+	it('preserves preset adjustments, flips, and independent text-frame geometry', () => {
+		const shape = runtime.parseShape({
+			'dsp:spPr': {
+				'a:xfrm': {
+					'@_flipH': '1',
+					'a:off': { '@_x': '0', '@_y': '0' },
+					'a:ext': { '@_cx': '762000', '@_cy': '381000' },
+				},
+				'a:prstGeom': {
+					'@_prst': 'rightArrow',
+					'a:avLst': {
+						'a:gd': [
+							{ '@_name': 'adj1', '@_fmla': 'val 40000' },
+							{ '@_name': 'adj2', '@_fmla': 'val 70000' },
+						],
+					},
+				},
+			},
+			'dsp:txXfrm': {
+				'a:off': { '@_x': '95250', '@_y': '95250' },
+				'a:ext': { '@_cx': '571500', '@_cy': '190500' },
+			},
+			'dsp:txBody': {
+				'a:bodyPr': { '@_lIns': '95250', '@_rIns': '95250' },
+				'a:p': {
+					'a:r': {
+						'a:rPr': { '@_sz': '1800', '@_b': '1', 'a:ea': { '@_typeface': '微软雅黑' } },
+						'a:t': '测试文本',
+					},
+				},
+			},
+		});
+
+		expect(shape).toMatchObject({
+			flipHorizontal: true,
+			fontFamily: '微软雅黑',
+			fontSize: 24,
+			fontWeight: 700,
+			shapeAdjustments: { adj1: 40000, adj2: 70000 },
+			shapeType: 'rightArrow',
+			textFrameHeight: 20,
+			textFrameWidth: 60,
+			textFrameX: 10,
+			textFrameY: 10,
+			textInsetLeft: 10,
+			textInsetRight: 10,
+		});
+	});
 });
 
 describe('parseSmartArtConnections', () => {

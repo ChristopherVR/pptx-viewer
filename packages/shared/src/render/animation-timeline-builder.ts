@@ -20,6 +20,8 @@ import { resolveEffectTiming } from './animation-fill-repeat';
 import { resolveFilterPresetSubtype } from './animation-filter-effects';
 import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
+import { canComposeParallelSteps, composeParallelSteps } from './animation-parallel-composition';
+import { resolveAnimationTargetId } from './animation-target-id';
 import { buildColorTavKeyframe, buildOpacityTavKeyframe } from './animation-timeline-absolute';
 import {
 	resolveEffect,
@@ -35,6 +37,7 @@ import type {
 	TimelineClickGroup,
 	AnimationTimeline,
 } from './animation-timeline-types';
+import { hasAuthoredTransform } from './animation-transform-keyframes';
 
 // ==========================================================================
 // Unmapped-preset safety net
@@ -99,12 +102,11 @@ function stepColorTargets(
 	// colour ramp on a generic `p:anim` node (see `buildColorTavKeyframe`)
 	// names the same kind of attribute, so it resolves paint targets the
 	// same way once there's no dedicated colour animation to defer to.
-	const targetAttribute =
-		anim.colorAnimation?.targetAttribute ?? (tavColorApplied ? anim.attrName : undefined);
-	if (!targetAttribute) {
+	const colorSource = anim.colorAnimation ?? (tavColorApplied ? anim.attrName : undefined);
+	if (!colorSource) {
 		return undefined;
 	}
-	const targets = resolveColorAnimationTargets(targetAttribute);
+	const targets = resolveColorAnimationTargets(colorSource);
 	return targets.length > 0 ? targets : undefined;
 }
 
@@ -162,6 +164,7 @@ export function buildTimeline(
 			entranceElementIds: new Set(),
 			keyframesCss: '',
 			interactiveSequences: new Map(),
+			restartableInteractiveSequences: new Set(),
 			hoverSequences: new Map(),
 		};
 	}
@@ -169,13 +172,20 @@ export function buildTimeline(
 	// Separate interactive (onShapeClick), hover (onHover), and regular animations
 	const regularAnims: PptxNativeAnimation[] = [];
 	const interactiveAnims = new Map<string, PptxNativeAnimation[]>();
+	const restartableInteractiveSequences = new Set<string>();
 	const hoverAnims: PptxNativeAnimation[] = [];
 
 	for (const anim of nativeAnimations) {
-		if (anim.trigger === 'onShapeClick' && anim.triggerShapeId) {
+		if (
+			(anim.interactiveSequence === true || anim.trigger === 'onShapeClick') &&
+			anim.triggerShapeId
+		) {
 			const existing = interactiveAnims.get(anim.triggerShapeId) ?? [];
 			existing.push(anim);
 			interactiveAnims.set(anim.triggerShapeId, existing);
+			if (anim.interactiveRestart === true) {
+				restartableInteractiveSequences.add(anim.triggerShapeId);
+			}
 		} else if (anim.trigger === 'onHover' && anim.targetId) {
 			hoverAnims.push(anim);
 		} else {
@@ -190,6 +200,7 @@ export function buildTimeline(
 	let dynamicUid = 0;
 
 	let currentGroup: TimelineStep[] = [];
+	let currentGroupLastParallelIndex: number | undefined;
 	/** Whether the current group was started by an onClick trigger. */
 	let currentGroupIsClick = false;
 	/**
@@ -210,8 +221,13 @@ export function buildTimeline(
 		const expandedSteps = expandIterateAnimation(anim);
 
 		for (const singleAnim of expandedSteps) {
-			let effect = resolveEffect(singleAnim);
-			let dynamic = effect ? undefined : buildDynamicKeyframe(singleAnim, dynamicUid++);
+			let dynamic = hasAuthoredTransform(singleAnim)
+				? buildDynamicKeyframe(singleAnim, dynamicUid++)
+				: undefined;
+			let effect = dynamic ? undefined : resolveEffect(singleAnim);
+			if (!effect && !dynamic) {
+				dynamic = buildDynamicKeyframe(singleAnim, dynamicUid++);
+			}
 			// A real `p:tavLst` keyframe list on an emphasis effect (e.g.
 			// PowerPoint's "Transparency") carries the AUTHORED opacity ramp;
 			// prefer it over the canned 2/3-stop static effect so a custom fade
@@ -287,7 +303,7 @@ export function buildTimeline(
 			// Command steps carry no element visibility semantics: an empty
 			// elementId keeps them from hiding/revealing a real element; the media
 			// target is routed via the command payload instead.
-			const elementId = isCommand ? '' : (singleAnim.targetId ?? '');
+			const elementId = isCommand ? '' : resolveAnimationTargetId(singleAnim);
 			// Honour the FULL start-condition OR-set (compound / simultaneous
 			// triggers) rather than the collapsed single trigger. The effective
 			// condition drives grouping and supplies the governing start delay.
@@ -315,7 +331,7 @@ export function buildTimeline(
 			// Apply `@spd` / `@repeatDur` / `@fill` (animation-fill-repeat), then
 			// compute direction. A command step carries no timing of its own.
 			const timing = isCommand
-				? { durationMs: 0, iterationCount: 1, holdEndState: false }
+				? { durationMs: 0, iterationCount: 1, activeDurationMs: 0, holdEndState: false }
 				: resolveEffectTiming(singleAnim, baseDuration);
 			const duration = timing.durationMs;
 			const iterCount = timing.iterationCount;
@@ -342,6 +358,7 @@ export function buildTimeline(
 					clickGroups.push(group);
 				}
 				currentGroup = [];
+				currentGroupLastParallelIndex = undefined;
 				currentGroupIsClick = isOnClick || isFirstAnimation;
 				// A group the deck marks as auto-starting plays on slide entry. This
 				// is how PowerPoint renders a deck whose opening effects are "With
@@ -358,19 +375,25 @@ export function buildTimeline(
 				currentGroupAutoStart =
 					singleAnim.groupAutoStart === true && !effective.requiresInteraction;
 				subGroupIndex = singleAnim.parGroupIndex;
-				subGroupStartMs = 0;
+				subGroupStartMs = singleAnim.parGroupDelayMs ?? 0;
 			}
 
 			// Compute delay relative to start of this click-group
 			const prevStep = currentGroup.length > 0 ? currentGroup[currentGroup.length - 1] : undefined;
 			let delayMs: number;
-			if (singleAnim.parGroupIndex !== undefined && prevStep) {
+			if (singleAnim.parGroupIndex !== undefined) {
 				if (singleAnim.parGroupIndex !== subGroupIndex) {
-					// New effect wrapper: it starts with (withPrevious) or after
-					// (afterPrevious / afterDelay) the step that came before it.
+					// Prefer the wrapper's authored absolute offset. Older or
+					// programmatically-created entries may not carry one, so retain
+					// the duration-based chaining fallback for those entries.
 					subGroupIndex = singleAnim.parGroupIndex;
 					subGroupStartMs =
-						trigger === 'withPrevious' ? prevStep.delayMs : prevStep.delayMs + prevStep.durationMs;
+						singleAnim.parGroupDelayMs ??
+						(prevStep
+							? trigger === 'withPrevious'
+								? prevStep.delayMs
+								: prevStep.delayMs + prevStep.durationMs
+							: 0);
 				}
 				// Siblings of one wrapper are simultaneous in OOXML: each `@delay` is
 				// an offset from the wrapper, never a chain off the previous effect.
@@ -398,20 +421,20 @@ export function buildTimeline(
 						singleAnim,
 						baseCssAnimation,
 						timing.holdEndState,
-						delayMs + duration,
+						delayMs + timing.activeDurationMs,
 						`pptx-tl-dim-${dynamicUid++}`,
 					);
 			if (afterFields.dimKeyframeBlock) {
 				dynamicBlocks.push(afterFields.dimKeyframeBlock);
 			}
 
-			currentGroup.push({
+			const step: TimelineStep = {
 				elementId,
 				cssAnimation: afterFields.cssAnimation,
 				keyframeName: keyframe,
 				trigger,
 				delayMs,
-				durationMs: duration,
+				durationMs: timing.activeDurationMs,
 				fillMode: fill,
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: singleAnim.soundPath,
@@ -427,7 +450,19 @@ export function buildTimeline(
 				seqNextAction: singleAnim.seqNextAction,
 				seqPrevAction: singleAnim.seqPrevAction,
 				exclGroupId: singleAnim.exclGroupId,
-			});
+			};
+			const previousParallelStep = currentGroup[currentGroup.length - 1];
+			if (
+				singleAnim.parGroupIndex !== undefined &&
+				singleAnim.parGroupIndex === currentGroupLastParallelIndex &&
+				previousParallelStep &&
+				canComposeParallelSteps(previousParallelStep, step)
+			) {
+				currentGroup[currentGroup.length - 1] = composeParallelSteps(previousParallelStep, step);
+			} else {
+				currentGroup.push(step);
+			}
+			currentGroupLastParallelIndex = singleAnim.parGroupIndex;
 		}
 	}
 
@@ -487,6 +522,7 @@ export function buildTimeline(
 		entranceElementIds: entranceIds,
 		keyframesCss: keyframeBlocks.join('\n\n'),
 		interactiveSequences,
+		restartableInteractiveSequences,
 		hoverSequences,
 	};
 }
@@ -544,10 +580,18 @@ function buildSequenceGroups(
 	for (const [shapeId, anims] of animsByKey) {
 		const seqGroups: TimelineClickGroup[] = [];
 		let seqGroup: TimelineStep[] = [];
+		let seqGroupLastParallelIndex: number | undefined;
+		let subGroupIndex: number | undefined;
+		let subGroupStartMs = 0;
 
 		for (const anim of anims) {
-			let effect = resolveEffect(anim);
-			let dynamic = effect ? undefined : buildDynamicKeyframe(anim, dynamicUid++);
+			let dynamic = hasAuthoredTransform(anim)
+				? buildDynamicKeyframe(anim, dynamicUid++)
+				: undefined;
+			let effect = dynamic ? undefined : resolveEffect(anim);
+			if (!effect && !dynamic) {
+				dynamic = buildDynamicKeyframe(anim, dynamicUid++);
+			}
 			// Same authored-tavLst-over-canned-default preference as the main
 			// click-group loop (see the comment there for why it's gated to
 			// 'transparency' / unmapped emphasis effects only).
@@ -593,7 +637,7 @@ function buildSequenceGroups(
 			}
 
 			// Command steps carry no element visibility semantics; see the main loop.
-			const elementId = isCommand ? '' : (anim.targetId ?? '');
+			const elementId = isCommand ? '' : resolveAnimationTargetId(anim);
 			const seqTrigger: PptxAnimationTrigger = anim.trigger ?? 'onShapeClick';
 			const baseDuration = isCommand ? 0 : (anim.durationMs ?? defaultDuration(anim.presetClass));
 			// Same single-quantity rule as the main sequence: never sum the two.
@@ -602,7 +646,7 @@ function buildSequenceGroups(
 			const presetClass = isCommand ? 'emph' : (anim.presetClass ?? 'entr');
 			const fill = fillModeForClass(anim.presetClass);
 			const timing = isCommand
-				? { durationMs: 0, iterationCount: 1, holdEndState: false }
+				? { durationMs: 0, iterationCount: 1, activeDurationMs: 0, holdEndState: false }
 				: resolveEffectTiming(anim, baseDuration);
 			const duration = timing.durationMs;
 			const iterCount = timing.iterationCount;
@@ -618,16 +662,24 @@ function buildSequenceGroups(
 				seqGroup = [];
 			}
 
+			const prevStep = seqGroup.length > 0 ? seqGroup[seqGroup.length - 1] : undefined;
 			let delayMs: number;
-			if (seqTrigger === 'withPrevious' && seqGroup.length > 0) {
-				const prev = seqGroup[seqGroup.length - 1];
-				delayMs = prev.delayMs + animDelay + triggerDelay;
-			} else if (
-				(seqTrigger === 'afterPrevious' || seqTrigger === 'afterDelay') &&
-				seqGroup.length > 0
-			) {
-				const prev = seqGroup[seqGroup.length - 1];
-				delayMs = prev.delayMs + prev.durationMs + animDelay + triggerDelay;
+			if (anim.parGroupIndex !== undefined) {
+				if (anim.parGroupIndex !== subGroupIndex) {
+					subGroupIndex = anim.parGroupIndex;
+					subGroupStartMs =
+						anim.parGroupDelayMs ??
+						(prevStep
+							? seqTrigger === 'withPrevious'
+								? prevStep.delayMs
+								: prevStep.delayMs + prevStep.durationMs
+							: 0);
+				}
+				delayMs = subGroupStartMs + animDelay + triggerDelay;
+			} else if (seqTrigger === 'withPrevious' && prevStep) {
+				delayMs = prevStep.delayMs + animDelay + triggerDelay;
+			} else if ((seqTrigger === 'afterPrevious' || seqTrigger === 'afterDelay') && prevStep) {
+				delayMs = prevStep.delayMs + prevStep.durationMs + animDelay + triggerDelay;
 			} else {
 				delayMs = animDelay + triggerDelay;
 			}
@@ -648,20 +700,20 @@ function buildSequenceGroups(
 						anim,
 						baseCssAnimation,
 						timing.holdEndState,
-						delayMs + duration,
+						delayMs + timing.activeDurationMs,
 						`pptx-tl-dim-${dynamicUid++}`,
 					);
 			if (afterFields.dimKeyframeBlock) {
 				dynamicBlocks.push(afterFields.dimKeyframeBlock);
 			}
 
-			seqGroup.push({
+			const step: TimelineStep = {
 				elementId,
 				cssAnimation: afterFields.cssAnimation,
 				keyframeName: keyframe,
 				trigger: seqTrigger,
 				delayMs,
-				durationMs: duration,
+				durationMs: timing.activeDurationMs,
 				fillMode: fill,
 				presetClass: presetClass as TimelineStep['presetClass'],
 				soundPath: anim.soundPath,
@@ -677,7 +729,19 @@ function buildSequenceGroups(
 				seqNextAction: anim.seqNextAction,
 				seqPrevAction: anim.seqPrevAction,
 				exclGroupId: anim.exclGroupId,
-			});
+			};
+			const previousParallelStep = seqGroup[seqGroup.length - 1];
+			if (
+				anim.parGroupIndex !== undefined &&
+				anim.parGroupIndex === seqGroupLastParallelIndex &&
+				previousParallelStep &&
+				canComposeParallelSteps(previousParallelStep, step)
+			) {
+				seqGroup[seqGroup.length - 1] = composeParallelSteps(previousParallelStep, step);
+			} else {
+				seqGroup.push(step);
+			}
+			seqGroupLastParallelIndex = anim.parGroupIndex;
 		}
 
 		if (seqGroup.length > 0) {

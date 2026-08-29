@@ -39,7 +39,9 @@ function createMockParams(overrides?: Partial<PptxSlideLoaderParams>): PptxSlide
 		extractBackgroundGradient: vi.fn(() => undefined),
 		getLayoutBackgroundGradient: vi.fn(async () => undefined),
 		extractBackgroundImage: vi.fn(async () => undefined),
+		extractBackgroundImageProperties: vi.fn(() => undefined),
 		getLayoutBackgroundImage: vi.fn(async () => undefined),
+		getLayoutBackgroundImageProperties: vi.fn(async () => undefined),
 		rememberSlideBackgroundOrigin: vi.fn(),
 		extractSlideNotes: vi.fn(async () => ({
 			notes: undefined,

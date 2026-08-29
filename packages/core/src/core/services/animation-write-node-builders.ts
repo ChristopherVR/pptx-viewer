@@ -591,6 +591,18 @@ export function buildMotionPathNode(
 			},
 		},
 	};
+	if (anim.motionPathRotationAngle !== undefined) {
+		motionNode['@_rAng'] = String(Math.round(anim.motionPathRotationAngle * 60000));
+	}
+	if (
+		anim.motionPathRotationCenterX !== undefined ||
+		anim.motionPathRotationCenterY !== undefined
+	) {
+		motionNode['p:rCtr'] = {
+			'@_x': String(Math.round((anim.motionPathRotationCenterX ?? 0) * 1000)),
+			'@_y': String(Math.round((anim.motionPathRotationCenterY ?? 0) * 1000)),
+		};
+	}
 
 	const effectCTn: XmlObject = {
 		'@_id': String(effectId),

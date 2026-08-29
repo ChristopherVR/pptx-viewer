@@ -11,6 +11,31 @@ import { parseCondition, serializeCondition } from './native-animation-helpers';
 import { PptxNativeAnimationService } from './PptxNativeAnimationService';
 
 describe('presentationML timing target choices', () => {
+	it('round-trips a background-only shape target', () => {
+		const xml: XmlObject = { 'p:spTgt': { '@_spid': '17', 'p:bg': {} } };
+		const parsed = parseTimeTargetElement(xml);
+		expect(parsed).toMatchObject({
+			type: 'shape',
+			shapeId: '17',
+			backgroundOnly: true,
+		});
+		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
+	});
+
+	it('writes and removes p:bg when the model changes', () => {
+		expect(
+			serializeTimeTargetElement({ type: 'shape', shapeId: '4', backgroundOnly: true }),
+		).toStrictEqual({ 'p:spTgt': { '@_spid': '4', 'p:bg': {} } });
+		expect(
+			serializeTimeTargetElement({
+				type: 'shape',
+				shapeId: '4',
+				backgroundOnly: false,
+				rawXml: { 'p:spTgt': { '@_spid': '4', 'p:bg': {} } },
+			}),
+		).toStrictEqual({ 'p:spTgt': { '@_spid': '4' } });
+	});
+
 	it('round-trips a sound target and unknown XML', () => {
 		const xml: XmlObject = {
 			'p:sndTgt': { '@_r:embed': 'rId9', '@_name': 'Chime', '@_future': 'kept' },

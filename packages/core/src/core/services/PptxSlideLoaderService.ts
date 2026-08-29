@@ -225,6 +225,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			const ownBackgroundColor = params.extractBackgroundColor(slideXmlObj);
 			const ownBackgroundGradient = params.extractBackgroundGradient(slideXmlObj);
 			let ownBackgroundImage: string | undefined;
+			let backgroundImageProperties: PptxSlide['backgroundImageProperties'];
 			const [
 				backgroundColor,
 				backgroundGradient,
@@ -245,7 +246,12 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 					// Kept, not just consumed: whether the image was the slide's own
 					// is half the "did this slide author a background" question.
 					ownBackgroundImage = own;
-					return own || params.getLayoutBackgroundImage(path);
+					if (own) {
+						backgroundImageProperties = params.extractBackgroundImageProperties(slideXmlObj);
+						return own;
+					}
+					backgroundImageProperties = await params.getLayoutBackgroundImageProperties(path);
+					return params.getLayoutBackgroundImage(path);
 				})(),
 				params.extractSlideNotes(path),
 				params.extractSlideComments(path),
@@ -355,6 +361,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				backgroundColor,
 				backgroundGradient: backgroundGradient || undefined,
 				backgroundImage,
+				backgroundImageProperties,
 				transition,
 				animations,
 				animationTimelineAnchors,

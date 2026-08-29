@@ -1,5 +1,6 @@
 import { convertEmfToDataUrl, convertWmfToDataUrl } from 'emf-converter';
 
+import { resolveNativeAnimationThemeColors } from '../../services/native-animation-theme-colors';
 import { XmlObject, PptxElement } from '../../types';
 import type { PptxNativeAnimation } from '../../types';
 import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
@@ -13,7 +14,56 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 const CAN_USE_BLOB_URLS =
 	typeof globalThis.URL?.createObjectURL === 'function' && typeof globalThis.Blob !== 'undefined';
 
+/**
+ * Decode the first page of a TIFF into a browser-renderable PNG.
+ *
+ * Chromium, Firefox, and most WebKit builds do not decode TIFF files in an
+ * `<img>`, while PowerPoint presentations can legally embed `.tif` / `.tiff`
+ * picture parts. Keep the decoder browser-only so Node consumers without a
+ * canvas implementation retain the existing raw-data fallback.
+ */
+export async function decodeTiffToPngBlob(bytes: ArrayBuffer): Promise<Blob | undefined> {
+	if (typeof document === 'undefined') {
+		return undefined;
+	}
+
+	const imported = await import('utif');
+	const decoder = ('default' in imported ? imported.default : imported) as typeof import('utif');
+	const page = decoder.decode(bytes)[0];
+	if (!page) {
+		return undefined;
+	}
+	decoder.decodeImage(bytes, page);
+
+	const width = Number(page.width);
+	const height = Number(page.height);
+	if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+		return undefined;
+	}
+
+	const rgba = new Uint8ClampedArray(decoder.toRGBA8(page));
+	const canvas = document.createElement('canvas');
+	canvas.width = width;
+	canvas.height = height;
+	const context = canvas.getContext('2d');
+	if (!context) {
+		return undefined;
+	}
+	const imageData = context.createImageData(width, height);
+	imageData.data.set(rgba);
+	context.putImageData(imageData, 0, 0);
+
+	return await new Promise<Blob | undefined>((resolve) => {
+		canvas.toBlob((blob) => resolve(blob ?? undefined), 'image/png');
+	});
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/** Forward declaration implemented later in the runtime inheritance chain. */
+	protected resolveThemeColor(_schemeKey: string): string | undefined {
+		return undefined;
+	}
+
 	/**
 	 * Convert raw image bytes to a URL suitable for <img src>.
 	 * Uses Blob URLs in browsers (avoids 33% base64 overhead),
@@ -101,6 +151,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 
 				return undefined;
+			}
+
+			if (ext === 'tif' || ext === 'tiff') {
+				const binaryBuffer = await imageFile.async('arraybuffer');
+				const pngBlob = await decodeTiffToPngBlob(binaryBuffer);
+				if (pngBlob) {
+					const converted = this.createImageUrl(await pngBlob.arrayBuffer(), 'image/png');
+					this.imageDataCache.set(imagePath, converted);
+					return converted;
+				}
+				// A non-browser runtime has no canvas. Preserve the existing raw-TIFF
+				// fallback instead of turning a formerly returned image into undefined.
+				const imageData = this.createImageUrl(binaryBuffer, this.getImageMimeType(imagePath));
+				this.imageDataCache.set(imagePath, imageData);
+				return imageData;
 			}
 
 			const imageBytes = await imageFile.async('arraybuffer');
@@ -232,10 +297,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		slideXml: XmlObject,
 		slidePath: string,
 	): PptxNativeAnimation[] | undefined {
-		const animations = this.nativeAnimationService.parseNativeAnimations(slideXml);
-		if (!animations) {
+		const parsedAnimations = this.nativeAnimationService.parseNativeAnimations(slideXml);
+		if (!parsedAnimations) {
 			return undefined;
 		}
+		const animations = resolveNativeAnimationThemeColors(parsedAnimations, (token) =>
+			this.resolveThemeColor(token),
+		);
 		for (const anim of animations) {
 			if (anim.soundRId) {
 				anim.soundPath = this.resolveRelationshipTarget(slidePath, anim.soundRId);

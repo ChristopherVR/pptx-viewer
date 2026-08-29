@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 
 import type { PptxElementAnimation, PptxNativeAnimation, XmlObject } from '../types';
 import {
+	childGroupContext,
 	conditionsStartAutomatically,
+	createGroupContext,
+	extractWrapperStartDelayMs,
 	isEffectNode,
 	isMainSequence,
 } from './animation-group-context';
@@ -43,6 +46,19 @@ describe('conditionsStartAutomatically', () => {
 		).toBeTruthy();
 	});
 
+	it('does not treat a non-concurrent main sequence self-reference as automatic', () => {
+		const cTn: XmlObject = {
+			'p:stCondLst': {
+				'p:cond': [
+					{ '@_delay': 'indefinite' },
+					{ '@_evt': 'onBegin', '@_delay': '0', 'p:tn': { '@_val': '2' } },
+				],
+			},
+		};
+		expect(conditionsStartAutomatically(cTn, { autoStart: false, id: '2' })).toBeFalsy();
+		expect(conditionsStartAutomatically(cTn, { autoStart: true, id: '2' })).toBeTruthy();
+	});
+
 	it('auto-starts on a finite delay with no event', () => {
 		expect(
 			conditionsStartAutomatically({
@@ -79,6 +95,53 @@ describe('node classification', () => {
 	});
 });
 
+describe('wrapper start offsets', () => {
+	it('uses a direct delay before the earliest finite start condition', () => {
+		expect(
+			extractWrapperStartDelayMs({
+				'@_delay': '1250',
+				'p:stCondLst': {
+					'p:cond': [{ '@_delay': '3100' }, { '@_delay': 'indefinite' }],
+				},
+			}),
+		).toBe(1250);
+		expect(
+			extractWrapperStartDelayMs({
+				'p:stCondLst': {
+					'p:cond': [{ '@_delay': '4200' }, { '@_delay': 'indefinite' }, { '@_delay': '3100' }],
+				},
+			}),
+		).toBe(3100);
+	});
+
+	it('ignores indefinite and negative wrapper delays', () => {
+		expect(
+			extractWrapperStartDelayMs({
+				'p:stCondLst': {
+					'p:cond': [{ '@_delay': 'indefinite' }, { '@_delay': '-1' }],
+				},
+			}),
+		).toBeUndefined();
+	});
+
+	it('accumulates nested structural-wrapper offsets', () => {
+		const root = createGroupContext();
+		const outer = childGroupContext(
+			root,
+			{ 'p:stCondLst': { 'p:cond': { '@_delay': '1250' } } },
+			{ isClickLevelGroup: false },
+		);
+		const inner = childGroupContext(
+			outer,
+			{ 'p:stCondLst': { 'p:cond': { '@_delay': '600' } } },
+			{ isClickLevelGroup: false },
+		);
+
+		expect(outer.parGroupDelayMs).toBe(1250);
+		expect(inner.parGroupDelayMs).toBe(1850);
+	});
+});
+
 // ==========================================================================
 // End-to-end: the shape PowerPoint writes for two simultaneous entrances
 // ==========================================================================
@@ -89,7 +152,12 @@ describe('node classification', () => {
  * an `onBegin` tie to the mainSeq, and both effects live in ONE wrapper `p:par`
  * with their own delays.
  */
-function buildAutoStartTiming(clickStepConditions: XmlObject): XmlObject {
+function buildAutoStartTiming(
+	clickStepConditions: XmlObject,
+	options: { sequenceAttrs?: XmlObject; wrapperDelay?: string } = {},
+): XmlObject {
+	const sequenceAttrs = options.sequenceAttrs ?? { '@_concurrent': '1', '@_nextAc': 'seek' };
+	const wrapperDelay = options.wrapperDelay ?? '0';
 	const effect = (id: string, spid: string, delay: string): XmlObject => ({
 		'p:cTn': {
 			'@_id': id,
@@ -120,6 +188,7 @@ function buildAutoStartTiming(clickStepConditions: XmlObject): XmlObject {
 							'@_nodeType': 'tmRoot',
 							'p:childTnLst': {
 								'p:seq': {
+									...sequenceAttrs,
 									'p:cTn': {
 										'@_id': '2',
 										'@_nodeType': 'mainSeq',
@@ -132,7 +201,7 @@ function buildAutoStartTiming(clickStepConditions: XmlObject): XmlObject {
 														'p:par': {
 															'p:cTn': {
 																'@_id': '4',
-																'p:stCondLst': { 'p:cond': { '@_delay': '0' } },
+																'p:stCondLst': { 'p:cond': { '@_delay': wrapperDelay } },
 																'p:childTnLst': {
 																	'p:par': [effect('5', '2', '1000'), effect('8', '3', '2000')],
 																},
@@ -182,11 +251,30 @@ describe('click-step grouping metadata', () => {
 		}
 	});
 
+	it('keeps a self-referenced step gated when mainSeq lacks auto-start attributes', () => {
+		const result = service.parseNativeAnimations(
+			buildAutoStartTiming(autoConditions, { sequenceAttrs: {} }),
+		);
+		const effects = result!.filter((a) => a.presetClass === 'entr');
+		expect(effects).toHaveLength(2);
+		for (const anim of effects) {
+			expect(anim.groupAutoStart).toBeFalsy();
+		}
+	});
+
 	it('gives effects sharing one wrapper p:par the same group index', () => {
 		const result = service.parseNativeAnimations(buildAutoStartTiming(autoConditions));
 		const effects = result!.filter((a) => a.presetClass === 'entr');
 		expect(effects[0].parGroupIndex).toBeDefined();
 		expect(effects[1].parGroupIndex).toBe(effects[0].parGroupIndex);
+	});
+
+	it('stamps an authored wrapper offset on every effect inside it', () => {
+		const result = service.parseNativeAnimations(
+			buildAutoStartTiming(autoConditions, { wrapperDelay: '1250' }),
+		);
+		const effects = result!.filter((a) => a.presetClass === 'entr');
+		expect(effects.map((a) => a.parGroupDelayMs)).toStrictEqual([1250, 1250]);
 	});
 });
 

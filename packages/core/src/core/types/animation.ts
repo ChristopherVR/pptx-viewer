@@ -90,7 +90,13 @@ export type PptxNativeAnimationKind = 'media';
 
 /** A target selected by `p:tgtEl` in the PresentationML timing model. */
 export type PptxAnimationTarget =
-	| { type: 'shape'; shapeId: string; rawXml?: XmlObject }
+	| {
+			type: 'shape';
+			shapeId: string;
+			/** Whether `p:spTgt/p:bg` limits the effect to the shape background. */
+			backgroundOnly?: boolean;
+			rawXml?: XmlObject;
+	  }
 	| { type: 'slide'; rawXml?: XmlObject }
 	| { type: 'sound'; relationshipId: string; name?: string; rawXml?: XmlObject }
 	| { type: 'ink'; shapeId: string; rawXml?: XmlObject }
@@ -171,6 +177,10 @@ export interface PptxNativeAnimation {
 	trigger?: PptxAnimationTrigger;
 	/** Shape ID that triggers this animation when clicked (interactive sequence). */
 	triggerShapeId?: string;
+	/** Whether this effect belongs to an OOXML `interactiveSeq`. */
+	interactiveSequence?: boolean;
+	/** Whether `p:endSync/p:rtn[@val="all"]` makes that sequence replayable. */
+	interactiveRestart?: boolean;
 	/** Effect preset class (entr, exit, emph, path). */
 	presetClass?: 'entr' | 'exit' | 'emph' | 'path';
 	/** Effect preset sub-type identifier. */
@@ -216,6 +226,12 @@ export interface PptxNativeAnimation {
 	motionPathEditMode?: string;
 	/** Comma-separated point-types string from `p:animMotion/@ptsTypes`. */
 	motionPtsTypes?: string;
+	/** Authored path rotation in degrees from `p:animMotion/@rAng`. */
+	motionPathRotationAngle?: number;
+	/** Motion-path rotation centre X in slide percentage units (`p:rCtr/@x`). */
+	motionPathRotationCenterX?: number;
+	/** Motion-path rotation centre Y in slide percentage units (`p:rCtr/@y`). */
+	motionPathRotationCenterY?: number;
 	/** Rotation angle in degrees for `p:animRot/@by` (converted from 60000ths). */
 	rotationBy?: number;
 	/** Starting rotation angle in degrees for `p:animRot/@from` (converted from 60000ths). */
@@ -251,6 +267,8 @@ export interface PptxNativeAnimation {
 	 * instead). Absent when the behaviour carries no `p:attrNameLst`.
 	 */
 	attrName?: string;
+	/** Every generic `p:anim` sibling composed by the authored effect. */
+	attributeAnimations?: PptxAttributeAnimation[];
 	/** Repeat count (e.g. `2`, `Infinity` for indefinite). */
 	repeatCount?: number;
 	/** Whether the animation plays in reverse after completion. */
@@ -340,6 +358,14 @@ export interface PptxNativeAnimation {
 	 * simultaneous effects at their true offsets instead of accumulating delays.
 	 */
 	parGroupIndex?: number;
+	/**
+	 * Absolute start offset of the enclosing effect-wrapper from its click group.
+	 *
+	 * Structural `p:par` wrappers can carry their own start conditions. Keeping
+	 * this offset separate from the effect's delay prevents playback from
+	 * replacing an authored absolute start with a duration-based approximation.
+	 */
+	parGroupDelayMs?: number;
 	/** Structured start conditions parsed from `p:stCondLst`. */
 	startConditions?: AnimationCondition[];
 	/** Structured end conditions parsed from `p:endCondLst`. */
@@ -499,6 +525,28 @@ export interface PptxAnimationKeyframe {
 	fmla?: string;
 }
 
+/** One generic `p:anim` behaviour inside a composed PowerPoint effect. */
+export interface PptxAttributeAnimation {
+	/** Lowercased target attribute from `p:attrNameLst`. */
+	attrName: string;
+	/** Authored value stops from this behaviour's `p:tavLst`. */
+	keyframes: PptxAnimationKeyframe[];
+	/** Duration from this behaviour's nested `p:cTn/@dur`. */
+	durationMs?: number;
+	/** Start offset from this behaviour's nested `p:stCondLst`. */
+	delayMs?: number;
+}
+
+/** Signed HSL channel deltas parsed from `p:animClr/p:by/p:hsl`. */
+export interface PptxHslColorDelta {
+	/** Hue offset in degrees. OOXML stores this in 60000ths of a degree. */
+	hue: number;
+	/** Saturation offset in percentage points. */
+	saturation: number;
+	/** Lightness offset in percentage points. */
+	lightness: number;
+}
+
 /** Color animation data parsed from `p:animClr`. */
 export interface PptxColorAnimation {
 	/** Color interpolation space: "hsl" or "rgb". */
@@ -518,15 +566,27 @@ export interface PptxColorAnimation {
 	toColor?: string;
 	/**
 	 * Color delta (for "by" animations) as hex string. For HSL colour-space
-	 * animations the value encodes a delta over hue/sat/lum and is preserved
-	 * verbatim from the source.
+	 * animations this retains the historical byte-packed compatibility value;
+	 * consumers should prefer {@link hslDelta}, which preserves signed values.
 	 */
 	byColor?: string;
+	/**
+	 * Typed HSL delta from `p:by/p:hsl`. This preserves signed values and their
+	 * OOXML units without forcing them through the legacy byte-packed `byColor`
+	 * representation.
+	 */
+	hslDelta?: PptxHslColorDelta;
 	/**
 	 * Target attribute from `p:attrNameLst` (e.g. "fillcolor", "style.color",
 	 * "stroke.color"). Used to determine which CSS property to animate.
 	 */
 	targetAttribute?: string;
+	/**
+	 * All sibling `p:animClr` behaviours authored for the same timing node.
+	 * The top-level fields continue to mirror the first behaviour for backwards
+	 * compatibility; this list is present only when there is more than one.
+	 */
+	components?: readonly PptxColorAnimation[];
 }
 
 /** Text-level animation target from `p:txEl`. */
@@ -674,6 +734,12 @@ export interface PptxElementAnimation {
 	motionPathEditMode?: string;
 	/** Comma-separated point-types string for `p:animMotion/@ptsTypes`. */
 	motionPtsTypes?: string;
+	/** Authored path rotation in degrees from `p:animMotion/@rAng`. */
+	motionPathRotationAngle?: number;
+	/** Motion-path rotation centre X in slide percentage units (`p:rCtr/@x`). */
+	motionPathRotationCenterX?: number;
+	/** Motion-path rotation centre Y in slide percentage units (`p:rCtr/@y`). */
+	motionPathRotationCenterY?: number;
 	/** Sound relationship ID to play when animation triggers (`p:stSnd`). */
 	soundRId?: string;
 	/** Resolved sound file path from relationship. */

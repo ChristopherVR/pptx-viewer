@@ -170,7 +170,7 @@ export function getImageFitStyle(el: PptxElement): CssStyleMap {
 		height: '100%',
 		objectFit: 'fill',
 	};
-	if (!isImageLikeElement(el)) {
+	if (!isImageLikeElement(el) && el.type !== 'media') {
 		return uncropped;
 	}
 
@@ -206,7 +206,7 @@ const IDENTITY_TRANSFORM_PAIR = 'translate(0%, 0%) scale(1, 1)';
  * PLACEMENT and the `a:srcRect` source CROP. Either is `''` when absent.
  */
 function imageFitTransformParts(el: PptxElement): { placement: string; crop: string } {
-	if (!isImageLikeElement(el)) {
+	if (!isImageLikeElement(el) && el.type !== 'media') {
 		return { placement: '', crop: '' };
 	}
 

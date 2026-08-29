@@ -84,6 +84,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const rEmbed = xmlAttr(blip, 'r:embed');
 			const rLink = xmlAttr(blip, 'r:link');
 			const crop = this.readImageCropFromBlipFill(blipFill);
+			// A shape image fill carries the same blip effects as a regular p:pic.
+			// Dropping these made authored transparency such as
+			// <a:alphaModFix amt="15000"/> render at full opacity.
+			const imageEffects = this.extractImageEffects(blip);
 
 			// Image tiling properties from a:tile
 			const tileNode = blipFill?.['a:tile'] as XmlObject | undefined;
@@ -160,6 +164,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			// Parse hyperlink / action for the shape-with-image-fill element
 			const sifCNvPr = xmlPath(shape, 'p:nvSpPr', 'p:cNvPr');
+			const sifElementName = xmlAttr(sifCNvPr, 'name')?.trim() || undefined;
 			const sifSlideRels = this.slideRelsMap.get(slidePath);
 			const { actionClick: sifActionClick, actionHover: sifActionHover } = this.parseElementActions(
 				sifCNvPr,
@@ -176,6 +181,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				height,
 				imageData,
 				imagePath,
+				imageEffects: imageEffects || undefined,
 				...crop,
 				...tileProps,
 				shapeType,
@@ -191,6 +197,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				flipHorizontal,
 				flipVertical,
 				rawXml: shape,
+				name: sifElementName,
 				actionClick: sifActionClick,
 				actionHover: sifActionHover,
 			};

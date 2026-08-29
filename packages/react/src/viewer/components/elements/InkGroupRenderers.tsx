@@ -21,8 +21,8 @@ import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { DEFAULT_TEXT_COLOR, MIN_ELEMENT_SIZE } from '../../constants';
 import {
 	getElementTransform,
-	getCropShapeClipPath,
 	getImageRenderStyle,
+	getImageSurfaceStyle,
 	getImageTilingStyle,
 	getShapeVisualStyle,
 	getTextStyleForElement,
@@ -242,10 +242,10 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 							backgroundPosition: inheritedFill.backgroundPosition,
 						}
 					: baseSs;
-				const vs = renderVectorShape(c, hf, fc, sw, sc);
+				const isI = c.type === 'picture' || c.type === 'image';
+				const vs = renderVectorShape(c, isI ? false : hf, fc, sw, sc);
 				const ts = getTextStyleForElement(c, DEFAULT_TEXT_COLOR);
 				const isTxt = isEditableTextElement(c);
-				const isI = c.type === 'picture' || c.type === 'image';
 				return (
 					<div
 						key={c.id}
@@ -262,9 +262,19 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 							height: Math.max(c.height, MIN_ELEMENT_SIZE),
 							transform: getElementTransform(c),
 							transformOrigin: 'center',
-							overflow: isI ? 'hidden' : undefined,
-							clipPath: isI ? getCropShapeClipPath(c) : undefined,
 							...ss,
+							...(isI
+								? {
+										backgroundColor: 'transparent',
+										backgroundImage: undefined,
+										backgroundRepeat: undefined,
+										backgroundSize: undefined,
+										backgroundPosition: undefined,
+										borderRadius: undefined,
+										clipPath: undefined,
+										overflow: 'visible',
+									}
+								: {}),
 							// Explicit z-index preserves document order stacking within the
 							// group: later children in the array (= later in p:grpSp XML)
 							// render on top, matching PowerPoint's painter's algorithm.
@@ -280,20 +290,23 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 							// `grpFill` shape under a fill-less sub-group still paints.
 							renderGroup(c.children, getGroupChildParentFill(c, parentGroupFill))
 						) : isI && (('svgData' in c && c.svgData) || ('imageData' in c && c.imageData)) ? (
-							isImageTiled(c) ? (
-								<div
-									className='pointer-events-none select-none w-full h-full'
-									style={getImageTilingStyle(c)}
-								/>
-							) : (
-								<img
-									src={('svgData' in c && c.svgData ? c.svgData : c.imageData) as string}
-									alt={translationsEn['pptx.ink.groupChildAlt']}
-									className='pointer-events-none select-none'
-									style={getImageRenderStyle(c)}
-									draggable={false}
-								/>
-							)
+							<div className='absolute inset-0 pointer-events-none' style={getImageSurfaceStyle(c)}>
+								{isImageTiled(c) ? (
+									<div
+										className='pointer-events-none select-none w-full h-full'
+										style={getImageTilingStyle(c)}
+									/>
+								) : (
+									<img
+										src={('svgData' in c && c.svgData ? c.svgData : c.imageData) as string}
+										alt={translationsEn['pptx.ink.groupChildAlt']}
+										className='pointer-events-none select-none'
+										style={getImageRenderStyle(c)}
+										draggable={false}
+									/>
+								)}
+								{vs ? <div className='pointer-events-none absolute inset-0'>{vs}</div> : null}
+							</div>
 						) : (
 							<>
 								{vs}

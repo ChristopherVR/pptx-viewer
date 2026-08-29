@@ -49,7 +49,15 @@ import type { Pptx3DScene, PptxTextWarpPreset, Text3DStyle } from './three-d';
  * // => both satisfy the TextStyle interface
  * ```
  */
+/** 2D linear transform matrix `[a, b, c, d]` for inherited group orientation. */
+export type TextOrientationMatrix = [number, number, number, number];
+
 export interface TextStyle {
+	/**
+	 * Combined rotation/flip matrix inherited from ancestor groups.
+	 * Used only to keep descendant text readable after nested group mirrors.
+	 */
+	ancestorGroupTransform?: TextOrientationMatrix;
 	/** Original `a:rPr` XML retained by projections that share the shape-text model. */
 	runPropertiesXml?: XmlObject;
 	/**

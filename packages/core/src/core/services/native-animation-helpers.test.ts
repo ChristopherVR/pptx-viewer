@@ -233,6 +233,22 @@ describe('extractChildMotionValues', () => {
 		const result = extractChildMotionValues(childTnList);
 		expect(result.motionPath).toBe('M 0 0 L -0.08 0');
 		expect(result.motionPathRotateAuto).toBeUndefined();
+		expect(result.motionPathRotationAngle).toBe(0);
+	});
+
+	it('extracts authored path rotation and its centre from p:animMotion', () => {
+		const result = extractChildMotionValues({
+			'p:animMotion': {
+				'@_path': 'M 0 0 L 0.2 0',
+				'@_rAng': '5400000',
+				'p:rCtr': { '@_x': '10000', '@_y': '-25000' },
+			},
+		});
+		expect(result).toMatchObject({
+			motionPathRotationAngle: 90,
+			motionPathRotationCenterX: 10,
+			motionPathRotationCenterY: -25,
+		});
 	});
 
 	it('extracts rotation from p:animRot', () => {

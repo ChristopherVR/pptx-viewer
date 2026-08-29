@@ -1,10 +1,63 @@
-import type { PptxSlideBackgroundPattern, XmlObject } from '../../types';
+import type { PptxImageProperties, PptxSlideBackgroundPattern, XmlObject } from '../../types';
 import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { xmlAttr, xmlAttrNumber, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeColorAndEffects';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Preserve the visual properties authored on a background `a:blipFill`.
+	 *
+	 * The decoded image URL alone is not enough to reproduce PowerPoint: crop,
+	 * stretch/tile placement and blip effects such as `a:alphaModFix` live next
+	 * to the relationship id and otherwise disappear during slide assembly.
+	 */
+	protected extractBackgroundImageProperties(
+		slideXml: XmlObject,
+		rootElement: string = 'p:sld',
+	): PptxImageProperties | undefined {
+		try {
+			const blipFill = xmlPath(slideXml, rootElement, 'p:cSld', 'p:bg', 'p:bgPr', 'a:blipFill');
+			const blip = xmlChild(blipFill, 'a:blip');
+			if (!blipFill || !blip) {
+				return undefined;
+			}
+
+			const properties: PptxImageProperties = {
+				...this.readImageCropFromBlipFill(blipFill),
+			};
+			const imageEffects = this.extractImageEffects(blip);
+			if (imageEffects) {
+				properties.imageEffects = imageEffects;
+			}
+
+			const tileNode = xmlChild(blipFill, 'a:tile');
+			if (tileNode) {
+				const txRaw = Number.parseInt(String(tileNode['@_tx'] ?? ''), 10);
+				const tyRaw = Number.parseInt(String(tileNode['@_ty'] ?? ''), 10);
+				const sxRaw = Number.parseInt(String(tileNode['@_sx'] ?? ''), 10);
+				const syRaw = Number.parseInt(String(tileNode['@_sy'] ?? ''), 10);
+				properties.tileOffsetX = Number.isFinite(txRaw) ? txRaw / 9525 : 0;
+				properties.tileOffsetY = Number.isFinite(tyRaw) ? tyRaw / 9525 : 0;
+				properties.tileScaleX = Number.isFinite(sxRaw) ? sxRaw / 100000 : 1;
+				properties.tileScaleY = Number.isFinite(syRaw) ? syRaw / 100000 : 1;
+				const flip = String(tileNode['@_flip'] ?? 'none').trim();
+				if (flip === 'x' || flip === 'y' || flip === 'xy' || flip === 'none') {
+					properties.tileFlip = flip;
+				}
+				const alignment = String(tileNode['@_algn'] ?? 'tl').trim();
+				if (alignment.length > 0) {
+					properties.tileAlignment = alignment;
+				}
+			}
+
+			return Object.keys(properties).length > 0 ? properties : undefined;
+		} catch (error) {
+			console.warn('Failed to extract background image properties:', error);
+			return undefined;
+		}
+	}
+
 	protected async extractBackgroundImage(
 		slideXml: XmlObject,
 		slidePath: string,
@@ -337,6 +390,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return undefined;
 	}
 
+	protected async getMasterBackgroundImageProperties(
+		layoutPath: string,
+	): Promise<PptxImageProperties | undefined> {
+		const layoutRels = this.slideRelsMap.get(layoutPath);
+		if (!layoutRels) {
+			return undefined;
+		}
+
+		for (const [, target] of layoutRels.entries()) {
+			if (!target.includes('slideMaster')) {
+				continue;
+			}
+			const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
+			const masterPath = target.startsWith('/')
+				? target.substring(1)
+				: target.startsWith('..')
+					? this.resolvePath(layoutDir, target)
+					: `ppt/${stripParentDirSegments(target)}`;
+			try {
+				const masterXmlObj = await this.resolveCachedMasterXml(masterPath);
+				return masterXmlObj
+					? this.extractBackgroundImageProperties(masterXmlObj, 'p:sldMaster')
+					: undefined;
+			} catch {
+				return undefined;
+			}
+		}
+		return undefined;
+	}
+
 	protected async getLayoutBackgroundImage(slidePath: string): Promise<string | undefined> {
 		const slideRels = this.slideRelsMap.get(slidePath);
 		if (!slideRels) {
@@ -359,7 +442,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						const layoutRelsPath = partRelsPath(layoutPath);
 						await this.loadSlideRelationships(layoutPath, layoutRelsPath);
 
-						const bg = this.extractBackgroundImage(layoutXmlObj, layoutPath, 'p:sldLayout');
+						const bg = await this.extractBackgroundImage(layoutXmlObj, layoutPath, 'p:sldLayout');
 
 						if (bg) {
 							return bg;
@@ -372,6 +455,46 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// Ignore
 				}
 				break;
+			}
+		}
+		return undefined;
+	}
+
+	protected async getLayoutBackgroundImageProperties(
+		slidePath: string,
+	): Promise<PptxImageProperties | undefined> {
+		const slideRels = this.slideRelsMap.get(slidePath);
+		if (!slideRels) {
+			return undefined;
+		}
+
+		for (const [, target] of slideRels.entries()) {
+			if (!target.includes('slideLayout')) {
+				continue;
+			}
+			const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
+			const layoutPath = target.startsWith('/')
+				? target.substring(1)
+				: target.startsWith('..')
+					? this.resolvePath(slideDir, target)
+					: `ppt/${stripParentDirSegments(target)}`;
+			try {
+				const layoutXmlObj = await this.resolveCachedLayoutXml(layoutPath);
+				if (!layoutXmlObj) {
+					return undefined;
+				}
+				const layoutRelsPath = partRelsPath(layoutPath);
+				await this.loadSlideRelationships(layoutPath, layoutRelsPath);
+				const layoutImage = await this.extractBackgroundImage(
+					layoutXmlObj,
+					layoutPath,
+					'p:sldLayout',
+				);
+				return layoutImage
+					? this.extractBackgroundImageProperties(layoutXmlObj, 'p:sldLayout')
+					: this.getMasterBackgroundImageProperties(layoutPath);
+			} catch {
+				return undefined;
 			}
 		}
 		return undefined;

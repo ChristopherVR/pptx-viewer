@@ -9,6 +9,7 @@ import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
 import type { TableStyleContext } from '../utils/table-band-style';
 import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
 import { deriveSlideFieldContext } from './slide-field-context';
+import { SlideBackgroundImageLayer } from './SlideBackgroundImageLayer';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
 interface SlideThumbnailProps {
@@ -56,6 +57,7 @@ function SlideThumbnailImpl({
 					transformOrigin: 'top left',
 				}}
 			>
+				<SlideBackgroundImageLayer slide={slide} />
 				{/* Transition indicator badge */}
 				{slide.transition &&
 					slide.transition.type !== 'none' &&

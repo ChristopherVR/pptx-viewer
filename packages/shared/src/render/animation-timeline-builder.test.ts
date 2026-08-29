@@ -38,9 +38,75 @@ describe('buildTimeline', () => {
 		expect(result.clickGroups[0].steps[0].elementId).toBe('el1');
 	});
 
+	it('prefers authored sibling transforms over the approximate preset', () => {
+		const keyframes = (from: number | string, to: number | string) => [
+			{
+				tm: 0,
+				value: from,
+				valueType: typeof from === 'number' ? ('flt' as const) : ('str' as const),
+			},
+			{
+				tm: 100000,
+				value: to,
+				valueType: typeof to === 'number' ? ('flt' as const) : ('str' as const),
+			},
+		];
+		const result = buildTimeline([
+			makeAnim({
+				durationMs: 1000,
+				presetId: 31,
+				attributeAnimations: [
+					{ attrName: 'ppt_w', durationMs: 1000, keyframes: keyframes(0, '#ppt_w') },
+					{ attrName: 'ppt_h', durationMs: 1000, keyframes: keyframes(0, '#ppt_h') },
+					{
+						attrName: 'style.rotation',
+						durationMs: 1000,
+						keyframes: keyframes(90, 0),
+					},
+				],
+			}),
+		]);
+
+		expect(result.clickGroups[0].steps[0].keyframeName).toContain('pptx-tl-transform');
+		expect(result.keyframesCss).toContain('rotate(90deg) scale(0, 0)');
+		expect(result.keyframesCss).not.toContain('@keyframes pptx-expandIn');
+	});
+
+	it('keeps a directional fly preset when its sibling position formula is not representable', () => {
+		const keyframes = (from: string, to: string) => [
+			{ tm: 0, value: from, valueType: 'str' as const },
+			{ tm: 100000, value: to, valueType: 'str' as const },
+		];
+		const result = buildTimeline([
+			makeAnim({
+				durationMs: 500,
+				presetId: 2,
+				presetSubtype: 8,
+				attributeAnimations: [
+					{ attrName: 'ppt_x', durationMs: 500, keyframes: keyframes('0-#ppt_w/2', '#ppt_x') },
+					{ attrName: 'ppt_y', durationMs: 500, keyframes: keyframes('#ppt_y', '#ppt_y') },
+				],
+			}),
+		]);
+
+		expect(result.clickGroups[0].steps[0].keyframeName).toBe('pptx-flyInLeft');
+		expect(result.keyframesCss).toContain('@keyframes pptx-flyInLeft');
+	});
+
 	it('tracks entrance element IDs', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'entr' })]);
 		expect(result.entranceElementIds.has('el1')).toBeTruthy();
+	});
+
+	it('routes a p:bg animation to an independent background target', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				target: { type: 'shape', shapeId: 'el1', backgroundOnly: true },
+			}),
+		]);
+		expect(result.clickGroups[0].steps[0].elementId).toBe('el1::pptx-bg');
+		expect(result.entranceElementIds).toStrictEqual(new Set(['el1::pptx-bg']));
 	});
 
 	it('does not track exit elements as entrance', () => {
@@ -185,8 +251,79 @@ describe('buildTimeline', () => {
 			} as PptxNativeAnimation),
 		]);
 		const step = result.clickGroups[0].steps[0];
-		expect(step.cssAnimation).toContain('3');
-		expect(step.cssAnimation).toContain('alternate');
+		expect(step.cssAnimation).toContain(' 6 alternate ');
+	});
+
+	it('keeps an auto-reverse step active through its backward pass', () => {
+		const result = buildTimeline([
+			makeAnim({
+				presetClass: 'emph',
+				presetId: 26,
+				durationMs: 250,
+				autoReverse: true,
+			}),
+		]);
+		const step = result.clickGroups[0].steps[0];
+		expect(step.cssAnimation).toContain('250ms');
+		expect(step.cssAnimation).toContain(' 2 alternate ');
+		expect(step.durationMs).toBe(500);
+		expect(result.clickGroups[0].totalDurationMs).toBe(500);
+	});
+
+	it('composes parallel transform and colour behaviours on the same target', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'picture1',
+				presetClass: 'emph',
+				presetId: 6,
+				durationMs: 1000,
+				fill: 'hold',
+				scaleByX: 1.2,
+				scaleByY: 1.2,
+				parGroupIndex: 3,
+			}),
+			makeAnim({
+				targetId: 'picture1',
+				trigger: 'withPrevious',
+				presetClass: 'emph',
+				presetId: 7,
+				durationMs: 1000,
+				fill: 'hold',
+				colorAnimation: {
+					colorSpace: 'rgb',
+					toColor: '#7f7f7f',
+					targetAttribute: 'stroke.color',
+				},
+				parGroupIndex: 3,
+			}),
+		]);
+		const group = result.clickGroups[0];
+		expect(group.steps).toHaveLength(1);
+		expect(group.steps[0].cssAnimation).toContain('pptx-tl-scale-');
+		expect(group.steps[0].cssAnimation).toContain('pptx-tl-color-');
+		expect(group.steps[0].colorTargets).toStrictEqual(['stroke']);
+	});
+
+	it('does not compose parallel transform behaviours that animate the same CSS property', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'picture1',
+				presetClass: 'emph',
+				durationMs: 1000,
+				rotationBy: 45,
+				parGroupIndex: 3,
+			}),
+			makeAnim({
+				targetId: 'picture1',
+				trigger: 'withPrevious',
+				presetClass: 'emph',
+				durationMs: 1000,
+				scaleByX: 1.2,
+				scaleByY: 1.2,
+				parGroupIndex: 3,
+			}),
+		]);
+		expect(result.clickGroups[0].steps).toHaveLength(2);
 	});
 
 	it("uses 'infinite' for infinite repeat count", () => {
@@ -292,6 +429,28 @@ describe('buildTimeline', () => {
 		expect(totalSteps).toBe(2);
 	});
 
+	it('preserves within-sequence timing and marks endSync replay', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onShapeClick',
+				triggerShapeId: 'btn1',
+				interactiveSequence: true,
+				interactiveRestart: true,
+			}),
+			makeAnim({
+				targetId: 'el2',
+				trigger: 'withPrevious',
+				triggerShapeId: 'btn1',
+				interactiveSequence: true,
+			}),
+		]);
+		const groups = result.interactiveSequences.get('btn1');
+		expect(groups).toHaveLength(1);
+		expect(groups?.[0].steps.map((step) => step.elementId)).toStrictEqual(['el1', 'el2']);
+		expect(result.restartableInteractiveSequences).toStrictEqual(new Set(['btn1']));
+	});
+
 	// -------------------------------------------------------------------
 	// Dynamic keyframes (motion path)
 	// -------------------------------------------------------------------
@@ -321,6 +480,30 @@ describe('buildTimeline', () => {
 		]);
 		expect(result.keyframesCss).toContain('@keyframes pptx-tl-rotate-');
 		expect(result.keyframesCss).toContain('rotate(360deg)');
+	});
+
+	it('prefers authored compound transforms over the canned preset', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				trigger: 'onClick',
+				presetClass: 'entr',
+				presetId: 52,
+				motionPath: 'M 0 0 L 0.2 0.1',
+				rotationFrom: 30,
+				rotationTo: 0,
+				scaleFromX: 2.5,
+				scaleFromY: 2,
+				scaleToX: 1,
+				scaleToY: 1,
+			} as PptxNativeAnimation),
+		]);
+
+		expect(result.keyframesCss).toContain('@keyframes pptx-tl-transform-');
+		expect(result.keyframesCss).toContain('rotate(30deg)');
+		expect(result.keyframesCss).toContain('scale(2.5, 2)');
+		expect(result.keyframesCss).toContain('opacity: 0');
+		expect(result.clickGroups[0].steps[0].keyframeName).toContain('pptx-tl-transform-');
 	});
 
 	it('generates dynamic keyframes for an absolute p:animRot (from/to, no @by)', () => {
@@ -675,6 +858,40 @@ describe('buildTimeline', () => {
 	});
 
 	describe('effect-wrapper (p:par) siblings', () => {
+		it('preserves authored absolute starts across sibling wrappers', () => {
+			const starts = [0, 1250, 3100, 4200];
+			const result = buildTimeline(
+				starts.map((parGroupDelayMs, index) =>
+					makeAnim({
+						targetId: `shape-${index}`,
+						trigger: index === 0 ? 'onClick' : 'afterPrevious',
+						delayMs: 0,
+						parGroupIndex: index,
+						parGroupDelayMs,
+					}),
+				),
+			);
+			expect(result.clickGroups[0].steps.map((step) => step.delayMs)).toStrictEqual(starts);
+		});
+
+		it('preserves authored wrapper starts in interactive sequences', () => {
+			const starts = [0, 1250, 3100, 4200];
+			const result = buildTimeline(
+				starts.map((parGroupDelayMs, index) =>
+					makeAnim({
+						targetId: `shape-${index}`,
+						trigger: 'onShapeClick',
+						triggerShapeId: 'button',
+						delayMs: 0,
+						parGroupIndex: index,
+						parGroupDelayMs,
+					}),
+				),
+			);
+			const steps = result.interactiveSequences.get('button')?.[0].steps;
+			expect(steps?.map((step) => step.delayMs)).toStrictEqual(starts);
+		});
+
 		it('measures each sibling delay from the wrapper, not the effect before it', () => {
 			const result = buildTimeline([
 				makeAnim({ targetId: 'title', trigger: 'afterDelay', delayMs: 1000, parGroupIndex: 0 }),

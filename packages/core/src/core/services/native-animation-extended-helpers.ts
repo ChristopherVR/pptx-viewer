@@ -26,8 +26,13 @@ export function extractColorAnimation(
 	if (animClrNodes.length === 0) {
 		return undefined;
 	}
+	const components = animClrNodes.map(extractSingleColorAnimation);
+	const primary = components[0];
+	return components.length > 1 ? { ...primary, components } : primary;
+}
 
-	const node = animClrNodes[0];
+/** Parse one `p:animClr` behaviour while keeping the public aggregate flat. */
+function extractSingleColorAnimation(node: XmlObject): PptxColorAnimation {
 	const clrSpc = String(node['@_clrSpc'] || 'rgb').toLowerCase();
 	const colorSpace: 'hsl' | 'rgb' = clrSpc === 'hsl' ? 'hsl' : 'rgb';
 	const dir = String(node['@_dir'] || '').toLowerCase();
@@ -39,7 +44,9 @@ export function extractColorAnimation(
 
 	const fromColor = extractColorValue(node['p:from'] as XmlObject | undefined);
 	const toColor = extractColorValue(node['p:to'] as XmlObject | undefined);
-	const byColor = extractHslDeltaOrColorValue(node['p:by'] as XmlObject | undefined, colorSpace);
+	const byContainer = node['p:by'] as XmlObject | undefined;
+	const byColor = extractHslDeltaOrColorValue(byContainer, colorSpace);
+	const hslDelta = colorSpace === 'hsl' ? extractHslDelta(byContainer) : undefined;
 
 	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName.
 	const targetAttribute = extractAttrNameFromCBhvr(node['p:cBhvr'] as XmlObject | undefined);
@@ -51,17 +58,30 @@ export function extractColorAnimation(
 		fromColor,
 		toColor,
 		byColor,
+		hslDelta,
 		targetAttribute,
 	};
 }
 
+/** Decode OOXML's signed HSL offsets into degrees / percentage points. */
+function extractHslDelta(colorContainer: XmlObject | undefined): PptxColorAnimation['hslDelta'] {
+	const hsl = colorContainer?.['p:hsl'] as XmlObject | undefined;
+	if (!hsl) {
+		return undefined;
+	}
+	return {
+		hue: Number(hsl['@_h'] ?? 0) / 60000,
+		saturation: Number(hsl['@_s'] ?? 0) / 1000,
+		lightness: Number(hsl['@_l'] ?? 0) / 1000,
+	};
+}
+
 /**
- * Extract a `p:by` colour container, preserving HSL deltas as `#rrggbb`-style
- * delta-hex (channels packed as `#HHSSLL` where each pair is the lower byte of
- * the signed delta). For RGB animations behaves identically to
- * {@link extractColorValue}. The intent is round-trip fidelity: the byte-packed
- * form is reversible because we always emit it verbatim again through
- * the value, and consumers that don't understand HSL deltas can ignore it.
+ * Extract a `p:by` colour container, retaining the historical HSL delta-hex
+ * compatibility value (`#HHSSLL`, each channel's low byte). The structured
+ * `hslDelta` parsed alongside it is authoritative because it preserves signs
+ * and values outside one byte. RGB animations behave like
+ * {@link extractColorValue}.
  */
 function extractHslDeltaOrColorValue(
 	colorContainer: XmlObject | undefined,

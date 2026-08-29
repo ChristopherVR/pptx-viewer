@@ -284,6 +284,7 @@ export * from './animation-filter-effects';
 export * from './animation-mask-reveal';
 export * from './animation-keyframes';
 export * from './animation-color';
+export * from './animation-color-base-style';
 // Staged-build (p:bldChart / p:bldDgm) mode resolution + time->progress helpers
 // consumed by staged chart / SmartArt reveal renderers.
 export * from './animation-build';

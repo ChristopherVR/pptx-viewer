@@ -21,6 +21,7 @@
 import type {
 	PptxElement,
 	PptxHandoutMaster,
+	PptxImageProperties,
 	PptxNotesMaster,
 	PptxSlideMaster,
 	XmlObject,
@@ -37,6 +38,7 @@ export interface MasterPartElementHost {
 	path: string;
 	elements?: PptxElement[];
 	backgroundImage?: string;
+	backgroundImageProperties?: PptxImageProperties;
 	/**
 	 * Already resolved by the master/layout parser. Read here only so the save
 	 * side can tell a chosen colour from a flattened `p:bgRef`.
@@ -93,6 +95,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			await this.loadSlideRelationships(partPath, `${partDirectory}/_rels/${fileName}.rels`);
 		}
 		part.backgroundImage = await this.extractBackgroundImage(data, partPath, rootTag);
+		part.backgroundImageProperties = this.extractBackgroundImageProperties(data, rootTag);
 		this.unwrapAlternateContent(spTree as Record<string, unknown>);
 
 		// A layout may re-route the colour aliases its own shapes resolve

@@ -11,6 +11,7 @@
 
 import type { PlaceholderTextLevelStyle } from './element-base';
 import type { PptxElement } from './elements';
+import type { PptxImageProperties } from './image';
 
 /**
  * A placeholder slot declared on a master or layout.
@@ -62,6 +63,8 @@ export interface PptxNotesMaster {
 	backgroundColor?: string;
 	/** Background image data URL. */
 	backgroundImage?: string;
+	/** Crop, tiling and image effects authored on the background blip fill. */
+	backgroundImageProperties?: PptxImageProperties;
 	/** Placeholder shapes found on the notes master. */
 	placeholders?: PptxPlaceholderFrame[];
 	/** Editable elements on the notes master (header, footer, date, page number, slide image, notes body). */
@@ -101,6 +104,8 @@ export interface PptxHandoutMaster {
 	backgroundColor?: string;
 	/** Background image data URL. */
 	backgroundImage?: string;
+	/** Crop, tiling and image effects authored on the background blip fill. */
+	backgroundImageProperties?: PptxImageProperties;
 	/** Placeholder shapes found on the handout master. */
 	placeholders?: PptxPlaceholderFrame[];
 	/** Editable elements on the handout master (header, footer, date, page number, slide placeholders). */
@@ -151,6 +156,8 @@ export interface PptxSlideMaster {
 	backgroundColor?: string;
 	/** Background image data URL for the slide master. */
 	backgroundImage?: string;
+	/** Crop, tiling and image effects authored on the background blip fill. */
+	backgroundImageProperties?: PptxImageProperties;
 	/** Theme file path this master references. */
 	themePath?: string;
 	/** Layout paths associated with this master. */
@@ -237,6 +244,8 @@ export interface PptxSlideLayout {
 	backgroundColor?: string;
 	/** Background image data URL for the layout. */
 	backgroundImage?: string;
+	/** Crop, tiling and image effects authored on the background blip fill. */
+	backgroundImageProperties?: PptxImageProperties;
 	/** Parsed element shapes on the layout. */
 	elements?: PptxElement[];
 	/** Placeholder shapes on the layout. */
@@ -286,6 +295,8 @@ export interface PptxLayoutPreview {
 	backgroundColor?: string;
 	/** Background image data URL, when the layout or master declares one. */
 	backgroundImage?: string;
+	/** Crop, tiling and image effects authored on the resolved background image. */
+	backgroundImageProperties?: PptxImageProperties;
 	/** The layout's own artwork (pictures, shapes and static text). */
 	elements: PptxElement[];
 	/** Placeholder slots, drawn as outlined frames in the gallery. */

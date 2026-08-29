@@ -29,6 +29,10 @@ export interface CenteredSvgTextOptions {
 	maxWidth?: number;
 	/** Baseline the block is centred on. Defaults to 0, giving relative offsets. */
 	centerY?: number;
+	/** Absolute line box height. Takes precedence over `lineHeightRatio`. */
+	lineHeight?: number;
+	/** Multiple of `fontSize` used as the line box height. */
+	lineHeightRatio?: number;
 }
 
 /**
@@ -54,7 +58,8 @@ export function centeredSvgTextLines(
 		return [{ text: '', y: centerY }];
 	}
 
-	const lineHeight = fontSize * LINE_HEIGHT_RATIO;
+	const lineHeight =
+		options.lineHeight ?? fontSize * (options.lineHeightRatio ?? LINE_HEIGHT_RATIO);
 	const blockTop = centerY - (lines.length * lineHeight) / 2;
 	return lines.map((line, index) => ({
 		text: line,

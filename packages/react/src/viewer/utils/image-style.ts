@@ -1,17 +1,16 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement, hasShapeProperties } from 'pptx-viewer-core';
 import {
+	getComputedFillStyle,
 	getImageFitStyle,
 	getImageTilingStyle as sharedGetImageTilingStyle,
+	resolveShapeGeometry,
 } from 'pptx-viewer-shared';
 /**
  * Image mask, render style, crop shape, and tiling helpers
  * for the PowerPoint editor.
  */
 import type React from 'react';
-
-import { getResolvedShapeClipPath } from './resolved-shape-clip-path';
-import { getRoundRectRadiusPx } from './shape-adjustment';
 
 // ---------------------------------------------------------------------------
 // Image mask / render style helpers
@@ -21,42 +20,11 @@ export function getImageMaskStyle(element: PptxElement): React.CSSProperties | u
 	if (!hasShapeProperties(element)) {
 		return undefined;
 	}
-	const shapeType = element.shapeType;
-	if (!shapeType) {
-		return undefined;
+	const geometry = resolveShapeGeometry(element);
+	if (geometry.kind === 'borderRadius') {
+		return { borderRadius: geometry.radius };
 	}
-	const normalized = shapeType.toLowerCase();
-
-	if (
-		normalized === 'roundrect' ||
-		normalized === 'round1rect' ||
-		normalized === 'round2samerect' ||
-		normalized === 'round2diagrect' ||
-		normalized === 'sniproundrect' ||
-		normalized === 'snip1rect' ||
-		normalized === 'snip2diagrect'
-	) {
-		const radiusPx = getRoundRectRadiusPx(element);
-		if (radiusPx <= 0.01) {
-			return undefined;
-		}
-		return { borderRadius: radiusPx };
-	}
-
-	if (normalized === 'ellipse' || normalized === 'oval') {
-		// `50%`, not a huge px value: CSS clamps over-large radii uniformly, so
-		// `9999px` on a non-square box crops the image to a pill, not an ellipse.
-		return { borderRadius: '50%' };
-	}
-	if (normalized === 'can' || normalized === 'cylinder') {
-		return { borderRadius: '48% / 12%' };
-	}
-
-	const clipPath = getResolvedShapeClipPath(element);
-	if (!clipPath) {
-		return undefined;
-	}
-	return { clipPath };
+	return geometry.kind === 'clipPath' ? { clipPath: geometry.clipPath } : undefined;
 }
 
 /**
@@ -67,9 +35,37 @@ export function getImageMaskStyle(element: PptxElement): React.CSSProperties | u
  * resolved-clip-path helpers) stays here.
  */
 export function getImageRenderStyle(element: PptxElement): React.CSSProperties {
+	const fit = getImageFitStyle(element) as React.CSSProperties;
 	return {
-		...(getImageMaskStyle(element) || {}),
-		...(getImageFitStyle(element) as React.CSSProperties),
+		// A translated/scaled crop must be masked by its stationary wrapper, not
+		// by the moving bitmap itself.
+		...(fit.transform ? {} : getImageMaskStyle(element) || {}),
+		...fit,
+	};
+}
+
+/** The stationary mask shared by a picture surface and its effect overlays. */
+export function getImageSurfaceMaskStyle(element: PptxElement): React.CSSProperties {
+	const mask = getImageMaskStyle(element);
+	return {
+		overflow: 'hidden',
+		borderRadius: mask?.borderRadius,
+		clipPath: mask?.clipPath ?? getCropShapeClipPath(element),
+	};
+}
+
+/** Stationary picture surface that owns the preset/crop mask and authored fill. */
+export function getImageSurfaceStyle(element: PptxElement): React.CSSProperties {
+	const fill = hasShapeProperties(element) ? getComputedFillStyle(element) : undefined;
+	return {
+		position: 'absolute',
+		inset: 0,
+		...getImageSurfaceMaskStyle(element),
+		backgroundColor: fill?.backgroundColor ?? 'transparent',
+		backgroundImage: fill?.backgroundImage,
+		backgroundRepeat: fill?.backgroundRepeat,
+		backgroundSize: fill?.backgroundSize,
+		backgroundPosition: fill?.backgroundPosition,
 	};
 }
 

@@ -978,6 +978,64 @@ describe('pptxNativeAnimationService', () => {
 			expect(result![0].colorAnimation!.toColor).toBe('#0000FF');
 		});
 
+		it('preserves signed HSL deltas and every sibling p:animClr behaviour', () => {
+			const colorBehaviour = (targetAttribute: string, h: string, s: string, l: string) => ({
+				'@_clrSpc': 'hsl',
+				'p:by': { 'p:hsl': { '@_h': h, '@_s': s, '@_l': l } },
+				'p:cBhvr': {
+					'p:tgtEl': { 'p:spTgt': { '@_spid': 'clrShape' } },
+					'p:attrNameLst': { 'p:attrName': targetAttribute },
+				},
+			});
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'@_presetID': '1',
+										'@_presetClass': 'emph',
+										'@_dur': '1000',
+										'p:childTnLst': {
+											'p:animClr': [
+												colorBehaviour('style.color', '7200000', '0', '0'),
+												colorBehaviour('fillcolor', '0', '-12549', '-25098'),
+												colorBehaviour('stroke.color', '-3600000', '5000', '10000'),
+											],
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			const color = result?.[0]?.colorAnimation;
+			expect(color?.hslDelta).toStrictEqual({ hue: 120, saturation: 0, lightness: 0 });
+			expect(color?.components).toHaveLength(3);
+			expect(color?.components?.map((component) => component.targetAttribute)).toStrictEqual([
+				'style.color',
+				'fillcolor',
+				'stroke.color',
+			]);
+			expect(color?.components?.[1]?.hslDelta).toStrictEqual({
+				hue: 0,
+				saturation: -12.549,
+				lightness: -25.098,
+			});
+			expect(color?.components?.[2]?.hslDelta).toStrictEqual({
+				hue: -60,
+				saturation: 5,
+				lightness: 10,
+			});
+		});
+
 		it('extracts command from p:cmd in child timing list', () => {
 			const slideXml = buildSlideXmlWithTiming({
 				'p:tnLst': {
@@ -1135,6 +1193,11 @@ describe('pptxNativeAnimationService', () => {
 													},
 												},
 											},
+											'p:endSync': {
+												'@_evt': 'end',
+												'@_delay': '0',
+												'p:rtn': { '@_val': 'all' },
+											},
 											'p:childTnLst': {
 												'p:par': {
 													'p:cTn': {
@@ -1173,6 +1236,8 @@ describe('pptxNativeAnimationService', () => {
 			expect(interactiveAnim).toBeDefined();
 			expect(interactiveAnim!.triggerShapeId).toBe('triggerButton');
 			expect(interactiveAnim!.targetId).toBe('hiddenShape');
+			expect(interactiveAnim!.interactiveSequence).toBeTruthy();
+			expect(interactiveAnim!.interactiveRestart).toBeTruthy();
 
 			// The interactive effect must appear EXACTLY ONCE. The generic timing
 			// walk used to descend into the interactive `p:seq` as well, emitting a

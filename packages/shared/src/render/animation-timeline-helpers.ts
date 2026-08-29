@@ -18,22 +18,18 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { buildColorAnimationKeyframes } from './animation-color';
 import { resolveFilterEffect } from './animation-filter-effects';
-import { parseMotionPathPoints } from './animation-motion-path';
 import {
 	emphasisFilterKeyframeCss,
 	FLY_SUBTYPE_TO_EDGE,
 	PRESET_ID_TO_EFFECT,
 } from './animation-presets';
-import {
-	buildAbsoluteRotationKeyframe,
-	buildAbsoluteScaleKeyframe,
-} from './animation-timeline-absolute';
 import type {
 	AnimationStep,
 	EffectName,
 	TimelineStep,
 	TimelineClickGroup,
 } from './animation-timeline-types';
+import { buildTransformKeyframes } from './animation-transform-keyframes';
 
 // ==========================================================================
 // Effect name resolution
@@ -124,10 +120,23 @@ function applyFlyDirection(
  * @param percent - Sampled coordinate in percent-of-slide units (path * 100).
  * @param axis - `w` for the horizontal offset, `h` for the vertical one.
  */
-function slideOffset(percent: number, axis: 'w' | 'h'): string {
-	const fallback = axis === 'w' ? '1280px' : '720px';
-	return `calc(var(--pptx-slide-${axis}, ${fallback}) * ${(percent / 100).toFixed(4)})`;
-}
+const FLAT_TRANSFORM_PREFIXES = {
+	motion: 'pptx-motionPath',
+	rotationAbsolute: 'pptx-rotateAbs',
+	rotationRelative: 'pptx-rotateBy',
+	scaleAbsolute: 'pptx-scaleAbs',
+	scaleRelative: 'pptx-scaleBy',
+	transform: 'pptx-transform',
+} as const;
+
+const TIMELINE_TRANSFORM_PREFIXES = {
+	motion: 'pptx-tl-motion',
+	rotationAbsolute: 'pptx-tl-rotateAbs',
+	rotationRelative: 'pptx-tl-rotate',
+	scaleAbsolute: 'pptx-tl-scaleAbs',
+	scaleRelative: 'pptx-tl-scale',
+	transform: 'pptx-tl-transform',
+} as const;
 
 /**
  * Build a dynamic CSS `@keyframes` block for motion path, rotation, scale, or
@@ -139,53 +148,9 @@ export function buildDynamicKeyframes(
 	anim: PptxNativeAnimation,
 	uid: number,
 ): { keyframeName: string; css: string } | undefined {
-	// Motion path animation
-	if (anim.motionPath) {
-		const name = `pptx-motionPath-${uid}`;
-		const points = parseMotionPathPoints(anim.motionPath);
-		if (points.length < 2) {
-			return undefined;
-		}
-		const kfLines: string[] = [];
-		for (let i = 0; i < points.length; i++) {
-			const pct = Math.round((i / (points.length - 1)) * 100);
-			kfLines.push(
-				`\t${pct}% { transform: translate(${slideOffset(points[i].x, 'w')}, ${slideOffset(points[i].y, 'h')}); }`,
-			);
-		}
-		return {
-			keyframeName: name,
-			css: `@keyframes ${name} {\n${kfLines.join('\n')}\n}`,
-		};
-	}
-
-	// Rotation animation (relative `@by`, then absolute `from`/`to`)
-	if (anim.rotationBy !== undefined) {
-		const name = `pptx-rotateBy-${uid}`;
-		const deg = anim.rotationBy;
-		return {
-			keyframeName: name,
-			css: `@keyframes ${name} {\n\tfrom { transform: rotate(0deg); }\n\tto { transform: rotate(${deg}deg); }\n}`,
-		};
-	}
-	const absoluteRotate = buildAbsoluteRotationKeyframe(anim, 'pptx-rotateAbs', uid);
-	if (absoluteRotate) {
-		return absoluteRotate;
-	}
-
-	// Scale animation (relative `@by`, then absolute `from`/`to`)
-	if (anim.scaleByX !== undefined || anim.scaleByY !== undefined) {
-		const name = `pptx-scaleBy-${uid}`;
-		const sx = anim.scaleByX ?? 1;
-		const sy = anim.scaleByY ?? 1;
-		return {
-			keyframeName: name,
-			css: `@keyframes ${name} {\n\tfrom { transform: scale(1); }\n\tto { transform: scale(${sx}, ${sy}); }\n}`,
-		};
-	}
-	const absoluteScale = buildAbsoluteScaleKeyframe(anim, 'pptx-scaleAbs', uid);
-	if (absoluteScale) {
-		return absoluteScale;
+	const transform = buildTransformKeyframes(anim, uid, FLAT_TRANSFORM_PREFIXES);
+	if (transform) {
+		return transform;
 	}
 
 	// Color animation (p:animClr)
@@ -218,61 +183,9 @@ export function buildDynamicKeyframe(
 	anim: PptxNativeAnimation,
 	uid: number,
 ): { keyframeName: string; css: string } | undefined {
-	if (anim.motionPath) {
-		const name = `pptx-tl-motion-${uid}`;
-		const points = parseMotionPathPoints(anim.motionPath);
-		if (points.length < 2) {
-			return undefined;
-		}
-		const lines: string[] = [];
-		for (let i = 0; i < points.length; i++) {
-			const pct = Math.round((i / (points.length - 1)) * 100);
-			const tx = slideOffset(points[i].x, 'w');
-			const ty = slideOffset(points[i].y, 'h');
-
-			if (anim.motionPathRotateAuto) {
-				// Compute the tangent angle at this point using the direction
-				// to the next point (or from the previous point for the last one).
-				const next = i < points.length - 1 ? points[i + 1] : points[i];
-				const prev = i > 0 ? points[i - 1] : points[i];
-				const dx = i < points.length - 1 ? next.x - points[i].x : points[i].x - prev.x;
-				const dy = i < points.length - 1 ? next.y - points[i].y : points[i].y - prev.y;
-				const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-				lines.push(
-					`\t${pct}% { transform: translate(${tx}, ${ty}) rotate(${angleDeg.toFixed(2)}deg); }`,
-				);
-			} else {
-				lines.push(`\t${pct}% { transform: translate(${tx}, ${ty}); }`);
-			}
-		}
-		return {
-			keyframeName: name,
-			css: `@keyframes ${name} {\n${lines.join('\n')}\n}`,
-		};
-	}
-	if (anim.rotationBy !== undefined) {
-		const name = `pptx-tl-rotate-${uid}`;
-		return {
-			keyframeName: name,
-			css: `@keyframes ${name} {\n\tfrom { transform: rotate(0deg); }\n\tto { transform: rotate(${anim.rotationBy}deg); }\n}`,
-		};
-	}
-	const absoluteRotate = buildAbsoluteRotationKeyframe(anim, 'pptx-tl-rotateAbs', uid);
-	if (absoluteRotate) {
-		return absoluteRotate;
-	}
-	if (anim.scaleByX !== undefined || anim.scaleByY !== undefined) {
-		const name = `pptx-tl-scale-${uid}`;
-		const sx = anim.scaleByX ?? 1;
-		const sy = anim.scaleByY ?? 1;
-		return {
-			keyframeName: name,
-			css: `@keyframes ${name} {\n\tfrom { transform: scale(1); }\n\tto { transform: scale(${sx}, ${sy}); }\n}`,
-		};
-	}
-	const absoluteScale = buildAbsoluteScaleKeyframe(anim, 'pptx-tl-scaleAbs', uid);
-	if (absoluteScale) {
-		return absoluteScale;
+	const transform = buildTransformKeyframes(anim, uid, TIMELINE_TRANSFORM_PREFIXES);
+	if (transform) {
+		return transform;
 	}
 	// Color animation (p:animClr)
 	if (anim.colorAnimation) {

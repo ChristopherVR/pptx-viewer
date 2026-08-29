@@ -9,6 +9,8 @@ import type { PptxColorAnimation } from 'pptx-viewer-core';
 
 import type { ColorAnimationTarget } from './animation-timeline-types';
 
+const HEX_COLOR = /^#?[0-9a-f]{6}$/iu;
+
 // ==========================================================================
 // Colour conversion utilities
 // ==========================================================================
@@ -209,17 +211,122 @@ export function resolveCssProperties(attrName?: string): string[] {
  * vector renderer to relinquish its painted fill / stroke.
  */
 export function resolveColorAnimationTargets(
-	targetAttribute?: string,
+	animationOrAttribute?: PptxColorAnimation | string,
 ): readonly ColorAnimationTarget[] {
-	const cssProperties = resolveCssProperties(targetAttribute);
+	const attributes =
+		typeof animationOrAttribute === 'string' || animationOrAttribute === undefined
+			? [animationOrAttribute]
+			: colorAnimationComponents(animationOrAttribute).map(
+					(component) => component.targetAttribute,
+				);
 	const targets: ColorAnimationTarget[] = [];
-	if (cssProperties.includes('fill')) {
-		targets.push('fill');
-	}
-	if (cssProperties.includes('stroke')) {
-		targets.push('stroke');
+	for (const attribute of attributes) {
+		const cssProperties = resolveCssProperties(attribute);
+		if (cssProperties.includes('fill') && !targets.includes('fill')) {
+			targets.push('fill');
+		}
+		if (cssProperties.includes('stroke') && !targets.includes('stroke')) {
+			targets.push('stroke');
+		}
 	}
 	return targets;
+}
+
+/** CSS custom properties that snapshot the shape paint before animation owns it. */
+export const ANIMATION_COLOR_BASE_PROPERTIES = {
+	color: '--pptx-animation-color-base',
+	fill: '--pptx-animation-fill-base',
+	stroke: '--pptx-animation-stroke-base',
+} as const;
+
+/** Return every authored sibling behaviour, or the legacy single behaviour. */
+function colorAnimationComponents(colorAnim: PptxColorAnimation): readonly PptxColorAnimation[] {
+	return colorAnim.components && colorAnim.components.length > 0
+		? colorAnim.components
+		: [colorAnim];
+}
+
+/** Clamp saturation / lightness to PowerPoint's legal range. */
+function clampPercent(value: number): number {
+	return Math.max(0, Math.min(100, value));
+}
+
+/** Apply a signed OOXML HSL delta to a concrete starting colour. */
+function applyHslDelta(
+	fromColor: string,
+	delta: NonNullable<PptxColorAnimation['hslDelta']>,
+	progress: number,
+): string {
+	const fromRgb = hexToRgb(fromColor);
+	const fromHsl = rgbToHsl(fromRgb.r, fromRgb.g, fromRgb.b);
+	const hue = (((fromHsl.h + delta.hue * progress) % 360) + 360) % 360;
+	const saturation = clampPercent(fromHsl.s + delta.saturation * progress);
+	const lightness = clampPercent(fromHsl.l + delta.lightness * progress);
+	const rgb = hslToRgb(hue, saturation, lightness);
+	return rgbToHex(rgb.r, rgb.g, rgb.b);
+}
+
+/** Stable compact number for generated CSS (also avoids `-0`). */
+function cssNumber(value: number): string {
+	const rounded = Math.round(value * 1_000_000) / 1_000_000;
+	return String(Object.is(rounded, -0) ? 0 : rounded);
+}
+
+/** The pre-animation paint snapshot appropriate for one emitted CSS property. */
+function baseColorForProperty(property: string): string {
+	if (property === 'fill' || property === 'background-color' || property === 'backgroundColor') {
+		return `var(${ANIMATION_COLOR_BASE_PROPERTIES.fill}, currentColor)`;
+	}
+	if (property === 'stroke' || property === 'border-color' || property === 'borderColor') {
+		return `var(${ANIMATION_COLOR_BASE_PROPERTIES.stroke}, currentColor)`;
+	}
+	return `var(${ANIMATION_COLOR_BASE_PROPERTIES.color}, currentColor)`;
+}
+
+/** CSS relative-colour form for a `by` HSL animation with no explicit `from`. */
+function relativeHslColor(
+	property: string,
+	delta: NonNullable<PptxColorAnimation['hslDelta']>,
+	progress: number,
+): string {
+	const hue = cssNumber(delta.hue * progress);
+	const saturation = cssNumber(delta.saturation * progress);
+	const lightness = cssNumber(delta.lightness * progress);
+	return `hsl(from ${baseColorForProperty(property)} calc(h + ${hue}) calc(s + ${saturation}) calc(l + ${lightness}) / alpha)`;
+}
+
+/** Resolve an ordinary absolute/RGB-delta component at one progress stop. */
+function absoluteComponentColor(
+	component: PptxColorAnimation,
+	progress: number,
+): string | undefined {
+	const { colorSpace, direction, fromColor, toColor, byColor } = component;
+	let effectiveFrom: string;
+	let effectiveTo: string;
+	if (fromColor && toColor) {
+		if (!HEX_COLOR.test(fromColor) || !HEX_COLOR.test(toColor)) {
+			return undefined;
+		}
+		effectiveFrom = fromColor;
+		effectiveTo = toColor;
+	} else if (fromColor && byColor) {
+		if (!HEX_COLOR.test(fromColor) || !HEX_COLOR.test(byColor)) {
+			return undefined;
+		}
+		const fromRgb = hexToRgb(fromColor);
+		const byRgb = hexToRgb(byColor);
+		effectiveFrom = fromColor;
+		effectiveTo = rgbToHex(fromRgb.r + byRgb.r, fromRgb.g + byRgb.g, fromRgb.b + byRgb.b);
+	} else if (toColor) {
+		if (!HEX_COLOR.test(toColor)) {
+			return undefined;
+		}
+		effectiveFrom = '#000000';
+		effectiveTo = toColor;
+	} else {
+		return undefined;
+	}
+	return interpolateColor(effectiveFrom, effectiveTo, progress, colorSpace, direction);
 }
 
 /**
@@ -239,40 +346,49 @@ export function buildColorAnimationKeyframes(
 	keyframeName: string,
 	steps: number = 10,
 ): string | undefined {
-	const { colorSpace, direction, fromColor, toColor, byColor, targetAttribute } = colorAnim;
-
-	// Determine effective start and end colors
-	let effectiveFrom: string;
-	let effectiveTo: string;
-
-	if (fromColor && toColor) {
-		effectiveFrom = fromColor;
-		effectiveTo = toColor;
-	} else if (fromColor && byColor) {
-		// "by" animation: add the delta to the from color
-		const fromRgb = hexToRgb(fromColor);
-		const byRgb = hexToRgb(byColor);
-		effectiveFrom = fromColor;
-		effectiveTo = rgbToHex(fromRgb.r + byRgb.r, fromRgb.g + byRgb.g, fromRgb.b + byRgb.b);
-	} else if (toColor) {
-		// No from specified — use a neutral starting point
-		effectiveFrom = '#000000';
-		effectiveTo = toColor;
-	} else {
+	const components = colorAnimationComponents(colorAnim);
+	if (
+		!components.some(
+			(component) =>
+				component.hslDelta !== undefined ||
+				component.toColor !== undefined ||
+				(component.fromColor !== undefined && component.byColor !== undefined),
+		)
+	) {
 		return undefined;
 	}
-
-	const cssProperties = resolveCssProperties(targetAttribute);
 	const lines: string[] = [];
+	let hasDeclarations = false;
 	const actualSteps = Math.max(2, steps);
 
 	for (let i = 0; i <= actualSteps; i++) {
 		const t = i / actualSteps;
 		const pct = Math.round(t * 100);
-		const color = interpolateColor(effectiveFrom, effectiveTo, t, colorSpace, direction);
-		const decls = cssProperties.map((prop) => `${prop}: ${color};`).join(' ');
+		const declarations: string[] = [];
+		for (const component of components) {
+			const cssProperties = resolveCssProperties(component.targetAttribute);
+			if (component.hslDelta) {
+				if (component.fromColor && !HEX_COLOR.test(component.fromColor)) {
+					continue;
+				}
+				for (const property of cssProperties) {
+					const color = component.fromColor
+						? applyHslDelta(component.fromColor, component.hslDelta, t)
+						: relativeHslColor(property, component.hslDelta, t);
+					declarations.push(`${property}: ${color};`);
+					hasDeclarations = true;
+				}
+				continue;
+			}
+			const color = absoluteComponentColor(component, t);
+			if (color) {
+				declarations.push(...cssProperties.map((property) => `${property}: ${color};`));
+				hasDeclarations = true;
+			}
+		}
+		const decls = declarations.join(' ');
 		lines.push(`\t${pct}% { ${decls} }`);
 	}
 
-	return `@keyframes ${keyframeName} {\n${lines.join('\n')}\n}`;
+	return hasDeclarations ? `@keyframes ${keyframeName} {\n${lines.join('\n')}\n}` : undefined;
 }

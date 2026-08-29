@@ -31,6 +31,21 @@ describe('wrapTextByEstimatedWidth', () => {
 		expect(lines).toContain('Unsplittableverylongtoken');
 	});
 
+	it('wraps CJK text between glyphs without inserting spaces', () => {
+		const lines = wrapTextByEstimatedWidth(
+			'\u4e2d\u6587\u6587\u672c\u53ef\u4ee5\u6362\u884c',
+			30,
+			12,
+		);
+		expect(lines.length).toBeGreaterThan(1);
+		expect(lines.join('')).toBe('\u4e2d\u6587\u6587\u672c\u53ef\u4ee5\u6362\u884c');
+	});
+
+	it('keeps CJK closing punctuation on the preceding line', () => {
+		const lines = wrapTextByEstimatedWidth('\u4e2d\u6587\uff0c\u6362\u884c', 24, 12);
+		expect(lines[0]).toBe('\u4e2d\u6587\uff0c');
+	});
+
 	it('returns nothing for empty or blank text', () => {
 		expect(wrapTextByEstimatedWidth('', 100, 12)).toStrictEqual([]);
 		expect(wrapTextByEstimatedWidth('   ', 100, 12)).toStrictEqual([]);

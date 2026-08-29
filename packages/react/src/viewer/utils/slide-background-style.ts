@@ -7,7 +7,9 @@ export function getReactSlideBackgroundStyle(slide: PptxSlide | undefined): CSSP
 	const style = getSlideBackgroundStyle(slide);
 	return {
 		backgroundColor: style['background-color'] as CSSProperties['backgroundColor'],
-		backgroundImage: style['background-image'] as CSSProperties['backgroundImage'],
+		backgroundImage: slide?.backgroundImage
+			? undefined
+			: (style['background-image'] as CSSProperties['backgroundImage']),
 		backgroundSize: style['background-size'] as CSSProperties['backgroundSize'],
 		backgroundRepeat: style['background-repeat'] as CSSProperties['backgroundRepeat'],
 	};

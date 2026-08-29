@@ -198,9 +198,10 @@ describe('projectDrawingShapes', () => {
 		expect(round.rx).toBe(5);
 		expect(rect.kind).toBe('rect');
 		expect(rect.rx).toBe(0);
-		expect(chevron.kind).toBe('polygon');
-		expect(chevron.points).toBeTruthy();
-		expect(homePlate.kind).toBe('polygon');
+		expect(chevron.kind).toBe('path');
+		expect(chevron.pathData).toBeTruthy();
+		expect(homePlate.kind).toBe('path');
+		expect(homePlate.pathData).toBeTruthy();
 		// A resolved picture fill paints the body instead of any colour.
 		expect(picture.kind).toBe('image');
 	});

@@ -31,6 +31,9 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 
 	// Text wrapping mode
 	const textWrapNone = element.textStyle?.textWrap === 'none';
+	const shapeAutoFitTextBox =
+		element.textStyle?.autoFitMode === 'shrink' &&
+		(element.type === 'text' || element.locks?.txBox === true);
 
 	// Paragraph indentation: applied at global level only when no per-paragraph
 	// indents are available (backward compat / single-level text).
@@ -62,6 +65,17 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 		direction: verticalDirection,
 		marginLeft,
 		textIndent,
+		...(shapeAutoFitTextBox
+			? {
+					width: textWrapNone ? ('max-content' as const) : '100%',
+					minWidth: '100%',
+					height: 'max-content',
+					minHeight: '100%',
+					whiteSpace: 'pre-wrap' as const,
+					wordBreak: textWrapNone ? ('normal' as const) : ('break-word' as const),
+					overflow: 'visible' as const,
+				}
+			: {}),
 		...(textWrapNone
 			? {
 					whiteSpace: 'nowrap' as const,

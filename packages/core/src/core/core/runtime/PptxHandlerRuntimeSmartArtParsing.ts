@@ -16,6 +16,7 @@ import { resolveSmartArtEffectIntensity } from '../../utils/smartart-effect-inte
 import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 import {
+	drawingTextEmuAttribute,
 	extractDrawingShapeFill,
 	extractDrawingShapeTextStyle,
 } from './smartart-drawing-shape-style';
@@ -200,11 +201,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const height = Math.round(parseInt(String(ext['@_cy'] || '0'), 10) / emuPerPx);
 
 		const rotation = xfrm?.['@_rot'] ? parseInt(String(xfrm['@_rot']), 10) / 60000 : undefined;
+		const flipHorizontal = ['1', 'true'].includes(String(xfrm?.['@_flipH'] ?? '').toLowerCase());
+		const flipVertical = ['1', 'true'].includes(String(xfrm?.['@_flipV'] ?? '').toLowerCase());
 		const skewX = xfrm?.['@_skewX'] ? parseInt(String(xfrm['@_skewX']), 10) / 60000 : undefined;
 		const skewY = xfrm?.['@_skewY'] ? parseInt(String(xfrm['@_skewY']), 10) / 60000 : undefined;
 
 		const prstGeom = this.xmlLookupService.getChildByLocalName(spPr, 'prstGeom');
 		const custGeom = this.xmlLookupService.getChildByLocalName(spPr, 'custGeom');
+		const shapeAdjustments = prstGeom ? this.parseGeometryAdjustments(prstGeom) : undefined;
 		let shapeType = prstGeom ? String(prstGeom['@_prst'] || 'rect') : 'rect';
 		let customGeometry: PptxCustomPathProperties = {};
 		if (custGeom) {
@@ -258,10 +262,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const text = textValues.join('').trim() || undefined;
 
-		const { fontSize, fontColor } = extractDrawingShapeTextStyle(
-			txBody,
-			this.drawingShapeStyleDeps(),
-		);
+		const textStyle = extractDrawingShapeTextStyle(txBody, this.drawingShapeStyleDeps(), emuPerPx);
+		const { fontSize, fontColor } = textStyle;
+		const txXfrm = this.xmlLookupService.getChildByLocalName(sp, 'txXfrm');
+		const txOff = this.xmlLookupService.getChildByLocalName(txXfrm, 'off');
+		const txExt = this.xmlLookupService.getChildByLocalName(txXfrm, 'ext');
+		const textFrameX = drawingTextEmuAttribute(txOff, 'x', emuPerPx);
+		const textFrameY = drawingTextEmuAttribute(txOff, 'y', emuPerPx);
+		const textFrameWidth = drawingTextEmuAttribute(txExt, 'cx', emuPerPx);
+		const textFrameHeight = drawingTextEmuAttribute(txExt, 'cy', emuPerPx);
 		const paragraphs = txBody
 			? resolveSmartArtTextStyles(parseSmartArtTextParagraphs({ 'dgm:t': txBody }), (rPr) =>
 					this.extractTextRunStyle(rPr, undefined, undefined, false),
@@ -294,16 +303,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			width,
 			height,
 			rotation,
+			flipHorizontal,
+			flipVertical,
 			skewX,
 			skewY,
+			shapeAdjustments,
 			...fill,
 			fillColor: fill.fillColor ?? undefined,
 			strokeColor: strokeColor ?? undefined,
 			strokeWidth,
 			text: structuredText,
 			textSegments,
-			fontSize,
-			fontColor,
+			...textStyle,
+			textFrameX,
+			textFrameY,
+			textFrameWidth,
+			textFrameHeight,
 			...customGeometry,
 		};
 	}

@@ -6,7 +6,15 @@ import {
 	buildCalloutLeaderLineSvgPath,
 	getCalloutViewBoxBounds,
 } from 'pptx-viewer-core';
-import { buildSvgGradientDef, svgLineCap } from 'pptx-viewer-shared';
+import {
+	buildStrokeOutline,
+	buildSvgGradientDef,
+	getPresetShapeVectorGeometry,
+	isWedgeCalloutPresetShape,
+	svgGradientFillRef,
+	svgLineCap,
+} from 'pptx-viewer-shared';
+import type { SvgGradientDef } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -19,6 +27,34 @@ import {
 import { getShapeType } from './shape-types';
 import { normalizeStrokeDashType, getSvgStrokeDasharray } from './style';
 import { renderCustomGeometryVector } from './vector-subpath-render';
+
+function renderGradientDefs(gradient: SvgGradientDef | undefined): React.ReactNode {
+	if (!gradient) {
+		return null;
+	}
+	const stops = gradient.stops.map((stop, index) => (
+		<stop key={index} offset={stop.offset} stopColor={stop.color} stopOpacity={stop.opacity} />
+	));
+	return (
+		<defs>
+			{gradient.kind === 'radial' ? (
+				<radialGradient id={gradient.id} cx={gradient.cx} cy={gradient.cy} r={gradient.r}>
+					{stops}
+				</radialGradient>
+			) : (
+				<linearGradient
+					id={gradient.id}
+					x1={gradient.x1}
+					y1={gradient.y1}
+					x2={gradient.x2}
+					y2={gradient.y2}
+				>
+					{stops}
+				</linearGradient>
+			)}
+		</defs>
+	);
+}
 
 export function renderVectorShape(
 	element: PptxElement,
@@ -130,6 +166,79 @@ export function renderVectorShape(
 			// and lost every fade (issue #132).
 			buildSvgGradientDef(element.shapeStyle, element.id),
 		);
+	}
+
+	if (
+		(element.type === 'image' || element.type === 'picture') &&
+		strokeWidth > 0 &&
+		!buildStrokeOutline(element)
+	) {
+		const width = Math.max(element.width, 1);
+		const height = Math.max(element.height, 1);
+		const geometry = getPresetShapeVectorGeometry(
+			element.shapeType || 'rect',
+			width,
+			height,
+			element.shapeAdjustments,
+		);
+		if (geometry) {
+			return (
+				<svg
+					viewBox={`${geometry.minX} ${geometry.minY} ${geometry.viewWidth} ${geometry.viewHeight}`}
+					className='w-full h-full pointer-events-none'
+					preserveAspectRatio='none'
+				>
+					<path
+						d={geometry.d}
+						fill='none'
+						stroke={strokePaint}
+						strokeWidth={strokeWidth * 2}
+						strokeDasharray={dashArray}
+						vectorEffect='non-scaling-stroke'
+					/>
+				</svg>
+			);
+		}
+	}
+
+	if (element.type === 'shape' && isWedgeCalloutPresetShape(element.shapeType)) {
+		const width = Math.max(element.width, 1);
+		const height = Math.max(element.height, 1);
+		const geometry = getPresetShapeVectorGeometry(
+			element.shapeType,
+			width,
+			height,
+			element.shapeAdjustments,
+		);
+		if (geometry) {
+			const gradient = buildSvgGradientDef(element.shapeStyle, element.id);
+			const gradientPaint = gradient ? svgGradientFillRef(gradient) : undefined;
+			return (
+				<svg
+					viewBox={`${geometry.minX} ${geometry.minY} ${geometry.viewWidth} ${geometry.viewHeight}`}
+					className='pointer-events-none'
+					preserveAspectRatio='none'
+					style={{
+						position: 'absolute',
+						left: geometry.minX,
+						top: geometry.minY,
+						width: geometry.viewWidth,
+						height: geometry.viewHeight,
+						overflow: 'visible',
+					}}
+				>
+					{animatesFill ? null : renderGradientDefs(gradient)}
+					<path
+						d={geometry.d}
+						fill={hasFill ? (animatesFill ? 'inherit' : (gradientPaint ?? fillPaint)) : 'none'}
+						stroke={strokeWidth > 0 ? strokePaint : 'none'}
+						strokeWidth={strokeWidth}
+						strokeDasharray={dashArray}
+						vectorEffect='non-scaling-stroke'
+					/>
+				</svg>
+			);
+		}
 	}
 
 	// ── Callout leader lines ──────────────────────────────────────────────

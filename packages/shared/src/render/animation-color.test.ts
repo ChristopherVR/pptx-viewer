@@ -261,6 +261,19 @@ describe('interpolateColor (HSL)', () => {
 // ==========================================================================
 
 describe('buildColorAnimationKeyframes', () => {
+	it('does not coerce an unresolved theme token into a near-black hex colour', () => {
+		expect(
+			buildColorAnimationKeyframes(
+				{
+					colorSpace: 'rgb',
+					toColor: 'bg1',
+					targetAttribute: 'fillcolor',
+				},
+				'theme-token',
+			),
+		).toBeUndefined();
+	});
+
 	it('generates keyframes for RGB from-to animation', () => {
 		const anim: PptxColorAnimation = {
 			colorSpace: 'rgb',
@@ -324,6 +337,60 @@ describe('buildColorAnimationKeyframes', () => {
 		expect(css).toContain('@keyframes by-color');
 		// From #100000 + by #001000 => to #101000
 		expect(css).toContain('100% { color:');
+	});
+
+	it('applies a signed HSL delta to an explicit starting colour', () => {
+		const anim: PptxColorAnimation = {
+			colorSpace: 'hsl',
+			fromColor: '#ff0000',
+			hslDelta: { hue: 120, saturation: 0, lightness: 0 },
+		};
+		const css = buildColorAnimationKeyframes(anim, 'hsl-by', 2);
+		expect(css).toContain('0% { color: #ff0000; }');
+		expect(css).toContain('100% { color: #00ff00; }');
+	});
+
+	it('uses the captured fill paint for a relative HSL delta without from', () => {
+		const anim: PptxColorAnimation = {
+			colorSpace: 'hsl',
+			targetAttribute: 'fillcolor',
+			hslDelta: { hue: 120, saturation: 0, lightness: 0 },
+		};
+		const css = buildColorAnimationKeyframes(anim, 'hsl-relative', 2);
+		expect(css).toContain(
+			'fill: hsl(from var(--pptx-animation-fill-base, currentColor) calc(h + 120)',
+		);
+		expect(css).toContain('background-color: hsl(from var(--pptx-animation-fill-base');
+	});
+
+	it('composes sibling colour behaviours into one keyframe rule', () => {
+		const anim: PptxColorAnimation = {
+			colorSpace: 'hsl',
+			hslDelta: { hue: 120, saturation: 0, lightness: 0 },
+			targetAttribute: 'style.color',
+			components: [
+				{
+					colorSpace: 'hsl',
+					hslDelta: { hue: 120, saturation: 0, lightness: 0 },
+					targetAttribute: 'style.color',
+				},
+				{
+					colorSpace: 'hsl',
+					hslDelta: { hue: 120, saturation: 0, lightness: 0 },
+					targetAttribute: 'fillcolor',
+				},
+				{
+					colorSpace: 'hsl',
+					hslDelta: { hue: 120, saturation: 0, lightness: 0 },
+					targetAttribute: 'stroke.color',
+				},
+			],
+		};
+		const css = buildColorAnimationKeyframes(anim, 'compound-color', 2);
+		expect(css).toContain('color: hsl(from var(--pptx-animation-color-base');
+		expect(css).toContain('fill: hsl(from var(--pptx-animation-fill-base');
+		expect(css).toContain('stroke: hsl(from var(--pptx-animation-stroke-base');
+		expect(resolveColorAnimationTargets(anim)).toStrictEqual(['fill', 'stroke']);
 	});
 
 	it('handles toColor-only animation (defaults from to black)', () => {

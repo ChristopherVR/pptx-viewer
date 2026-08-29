@@ -176,6 +176,8 @@ export function wrapInInteractiveSequence(
  */
 export function buildMainSequenceNode(mainSeqId: number, children: XmlObject[]): XmlObject {
 	const node: XmlObject = {
+		'@_concurrent': '1',
+		'@_nextAc': 'seek',
 		'p:cTn': {
 			'@_id': String(mainSeqId),
 			'@_dur': 'indefinite',

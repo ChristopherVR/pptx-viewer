@@ -223,14 +223,14 @@ function buildDrawingShapesSvg(
 					transform: shape.transform,
 				}),
 			);
-		} else if (shape.kind === 'polygon') {
+		} else if (shape.kind === 'path') {
 			g.appendChild(
-				createSvgEl(doc, 'polygon', {
-					points: shape.points,
+				createSvgEl(doc, 'path', {
+					d: shape.pathData,
 					fill: shape.fill,
 					stroke: shape.stroke,
 					'stroke-width': shape.strokeWidth,
-					transform: shape.transform,
+					transform: shape.pathTransform,
 				}),
 			);
 		} else {
@@ -254,6 +254,9 @@ function buildDrawingShapesSvg(
 				x: shape.textX,
 				fill: shape.fontColor,
 				fontSize: shape.fontSize,
+				fontFamily: shape.fontFamily,
+				fontWeight: shape.fontWeight,
+				fontStyle: shape.fontStyle,
 			});
 		}
 		svg.appendChild(g);

@@ -235,6 +235,16 @@ export interface PlaceholderTextLevelStyle {
 	lineSpacingExactPt?: number;
 	spaceBefore?: number;
 	spaceAfter?: number;
+	/** Default tab interval in CSS pixels (`a:lvlXpPr/@defTabSz`). */
+	defaultTabSize?: number;
+	/** Whether East Asian line-breaking rules are enabled. */
+	eaLineBreak?: boolean;
+	/** Whether Latin line-breaking rules are enabled. */
+	latinLineBreak?: boolean;
+	/** Font vertical alignment within the text line. */
+	fontAlignment?: string;
+	/** Whether end punctuation may hang outside the text frame. */
+	hangingPunctuation?: boolean;
 }
 
 /**

@@ -139,10 +139,38 @@ export function extractDrawingShapeFill(
 	return result;
 }
 
-/** Font size (points) + colour resolved from the first styled run of a `txBody`. */
+/** Font size (CSS pixels) + colour resolved from the first styled run of a `txBody`. */
 export interface DrawingShapeTextStyle {
 	fontSize: number | undefined;
 	fontColor: string | undefined;
+	fontFamily?: string;
+	fontWeight?: number;
+	fontStyle?: 'normal' | 'italic';
+	lineHeight?: number;
+	lineHeightRatio?: number;
+	lineSpacingAfter?: number;
+	lineSpacingAfterRatio?: number;
+	textInsetLeft?: number;
+	textInsetTop?: number;
+	textInsetRight?: number;
+	textInsetBottom?: number;
+	textVerticalAnchor?: string;
+}
+
+export function drawingTextEmuAttribute(
+	node: XmlObject | undefined,
+	name: string,
+	emuPerPx: number,
+): number | undefined {
+	if (!node || node[`@_${name}`] === undefined) {
+		return undefined;
+	}
+	const value = Number.parseInt(String(node[`@_${name}`]), 10);
+	return Number.isFinite(value) ? value / emuPerPx : undefined;
+}
+
+function drawingTextBoolean(value: unknown): boolean {
+	return value === true || value === 1 || value === '1' || value === 'true';
 }
 
 /**
@@ -152,33 +180,104 @@ export interface DrawingShapeTextStyle {
 export function extractDrawingShapeTextStyle(
 	txBody: XmlObject | undefined,
 	deps: DrawingShapeStyleDeps,
+	emuPerPx: number,
 ): DrawingShapeTextStyle {
 	let fontSize: number | undefined;
 	let fontColor: string | undefined;
+	let fontFamily: string | undefined;
+	let fontWeight: number | undefined;
+	let fontStyle: 'normal' | 'italic' | undefined;
+	let lineHeight: number | undefined;
+	let lineHeightRatio: number | undefined;
+	let lineSpacingAfter: number | undefined;
+	let lineSpacingAfterRatio: number | undefined;
 	if (!txBody) {
 		return { fontSize, fontColor };
 	}
 
+	const bodyPr = deps.getChild(txBody, 'bodyPr');
 	const paragraphs = deps.getChildren(txBody, 'p');
 	for (const p of paragraphs) {
+		const pPr = deps.getChild(p, 'pPr');
+		const lineSpacing = deps.getChild(pPr, 'lnSpc');
+		const lineSpacingPercent = deps.getChild(lineSpacing, 'spcPct');
+		const lineSpacingPoints = deps.getChild(lineSpacing, 'spcPts');
+		const spacingAfter = deps.getChild(pPr, 'spcAft');
+		const spacingAfterPercent = deps.getChild(spacingAfter, 'spcPct');
+		const spacingAfterPoints = deps.getChild(spacingAfter, 'spcPts');
+		if (lineHeightRatio === undefined && lineSpacingPercent?.['@_val'] !== undefined) {
+			const raw = Number.parseInt(String(lineSpacingPercent['@_val']), 10);
+			if (Number.isFinite(raw) && raw > 0) {
+				lineHeightRatio = raw / 100000;
+			}
+		}
+		if (lineHeight === undefined && lineSpacingPoints?.['@_val'] !== undefined) {
+			const raw = Number.parseInt(String(lineSpacingPoints['@_val']), 10);
+			if (Number.isFinite(raw) && raw > 0) {
+				lineHeight = (raw / 100) * (96 / 72);
+			}
+		}
+		if (lineSpacingAfterRatio === undefined && spacingAfterPercent?.['@_val'] !== undefined) {
+			const raw = Number.parseInt(String(spacingAfterPercent['@_val']), 10);
+			if (Number.isFinite(raw) && raw >= 0) {
+				lineSpacingAfterRatio = raw / 100000;
+			}
+		}
+		if (lineSpacingAfter === undefined && spacingAfterPoints?.['@_val'] !== undefined) {
+			const raw = Number.parseInt(String(spacingAfterPoints['@_val']), 10);
+			if (Number.isFinite(raw) && raw >= 0) {
+				lineSpacingAfter = (raw / 100) * (96 / 72);
+			}
+		}
 		const runs = deps.getChildren(p, 'r');
 		for (const r of runs) {
 			const rPr = deps.getChild(r, 'rPr');
-			if (rPr && !fontSize) {
+			if (rPr) {
 				const szRaw = parseInt(String(rPr['@_sz'] || ''), 10);
-				if (Number.isFinite(szRaw) && szRaw > 0) {
-					fontSize = szRaw / 100;
+				if (fontSize === undefined && Number.isFinite(szRaw) && szRaw > 0) {
+					fontSize = (szRaw / 100) * (96 / 72);
 				}
-				fontColor = deps.parseColor(deps.getChild(rPr, 'solidFill')) ?? undefined;
+				fontColor ??= deps.parseColor(deps.getChild(rPr, 'solidFill')) ?? undefined;
+				const eastAsian = deps.getChild(rPr, 'ea');
+				const latin = deps.getChild(rPr, 'latin');
+				const complexScript = deps.getChild(rPr, 'cs');
+				fontFamily ??=
+					String(
+						eastAsian?.['@_typeface'] ||
+							latin?.['@_typeface'] ||
+							complexScript?.['@_typeface'] ||
+							'',
+					).trim() || undefined;
+				if (fontWeight === undefined && rPr['@_b'] !== undefined) {
+					fontWeight = drawingTextBoolean(rPr['@_b']) ? 700 : 400;
+				}
+				if (fontStyle === undefined && rPr['@_i'] !== undefined) {
+					fontStyle = drawingTextBoolean(rPr['@_i']) ? 'italic' : 'normal';
+				}
 			}
-			if (fontSize) {
+			if (fontSize !== undefined && fontFamily !== undefined && fontColor !== undefined) {
 				break;
 			}
 		}
-		if (fontSize) {
+		if (fontSize !== undefined && fontFamily !== undefined && fontColor !== undefined) {
 			break;
 		}
 	}
 
-	return { fontSize, fontColor };
+	return {
+		fontSize,
+		fontColor,
+		fontFamily,
+		fontWeight,
+		fontStyle,
+		lineHeight,
+		lineHeightRatio,
+		lineSpacingAfter,
+		lineSpacingAfterRatio,
+		textInsetLeft: drawingTextEmuAttribute(bodyPr, 'lIns', emuPerPx),
+		textInsetTop: drawingTextEmuAttribute(bodyPr, 'tIns', emuPerPx),
+		textInsetRight: drawingTextEmuAttribute(bodyPr, 'rIns', emuPerPx),
+		textInsetBottom: drawingTextEmuAttribute(bodyPr, 'bIns', emuPerPx),
+		textVerticalAnchor: String(bodyPr?.['@_anchor'] || '').trim() || undefined,
+	};
 }

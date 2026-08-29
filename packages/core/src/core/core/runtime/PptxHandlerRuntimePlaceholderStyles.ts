@@ -47,6 +47,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
+		const defaultTabSizeRaw = levelProps['@_defTabSz'];
+		if (defaultTabSizeRaw !== undefined) {
+			const defaultTabSize = Number.parseInt(String(defaultTabSizeRaw), 10);
+			if (Number.isFinite(defaultTabSize)) {
+				style.defaultTabSize = defaultTabSize / PptxHandlerRuntime.EMU_PER_PX;
+			}
+		}
+		const eaLineBreak = this.parseOptionalBooleanAttr(levelProps['@_eaLnBrk']);
+		if (eaLineBreak !== undefined) {
+			style.eaLineBreak = eaLineBreak;
+		}
+		const latinLineBreak = this.parseOptionalBooleanAttr(levelProps['@_latinLnBrk']);
+		if (latinLineBreak !== undefined) {
+			style.latinLineBreak = latinLineBreak;
+		}
+		const fontAlignment = String(levelProps['@_fontAlgn'] ?? '').trim();
+		if (fontAlignment.length > 0) {
+			style.fontAlignment = fontAlignment;
+		}
+		const hangingPunctuation = this.parseOptionalBooleanAttr(levelProps['@_hangingPunct']);
+		if (hangingPunctuation !== undefined) {
+			style.hangingPunctuation = hangingPunctuation;
+		}
+
 		// Line spacing
 		const lnSpc = levelProps['a:lnSpc'] as XmlObject | undefined;
 		if (lnSpc) {

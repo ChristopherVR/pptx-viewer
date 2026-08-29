@@ -486,6 +486,28 @@ describe('p:seq @concurrent / @nextAc (advance gating)', () => {
 		expect(engine.advanceInteractive('btn', 1000)).not.toBeNull();
 	});
 
+	it('restarts an interactive sequence only when endSync marks it replayable', () => {
+		const group = makeGroup([makeStep({ elementId: 'a' })]);
+		const interactiveSequences = new Map([['btn', [group]]]);
+		const restartableInteractiveSequences = new Set(['btn']);
+		const engine = new TimelineEngine(
+			makeTimeline({ interactiveSequences, restartableInteractiveSequences }),
+		);
+
+		expect(engine.advanceInteractive('btn', 0)).toBe(group);
+		expect(engine.advanceInteractive('btn', 1000)).toBe(group);
+	});
+
+	it('leaves an interactive sequence exhausted without endSync replay', () => {
+		const group = makeGroup([makeStep({ elementId: 'a' })]);
+		const engine = new TimelineEngine(
+			makeTimeline({ interactiveSequences: new Map([['btn', [group]]]) }),
+		);
+
+		expect(engine.advanceInteractive('btn', 0)).toBe(group);
+		expect(engine.advanceInteractive('btn', 1000)).toBeNull();
+	});
+
 	it('a blocked advance never falls through as "exhausted" even on the LAST group', () => {
 		// Regression guard: with only one group, a naive implementation could
 		// conflate "blocked, try again later" with "nextIndex out of range,

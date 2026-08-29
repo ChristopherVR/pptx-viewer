@@ -85,6 +85,21 @@ export function serializePlaceholderLevelStyle(
 	if (style.indent !== undefined) {
 		attrEdits.indent = String(Math.round(style.indent * EMU_PER_PX));
 	}
+	if (style.defaultTabSize !== undefined) {
+		attrEdits.defTabSz = String(Math.round(style.defaultTabSize * EMU_PER_PX));
+	}
+	if (style.eaLineBreak !== undefined) {
+		attrEdits.eaLnBrk = style.eaLineBreak ? '1' : '0';
+	}
+	if (style.latinLineBreak !== undefined) {
+		attrEdits.latinLnBrk = style.latinLineBreak ? '1' : '0';
+	}
+	if (style.fontAlignment !== undefined) {
+		attrEdits.fontAlgn = style.fontAlignment;
+	}
+	if (style.hangingPunctuation !== undefined) {
+		attrEdits.hangingPunct = style.hangingPunctuation ? '1' : '0';
+	}
 
 	const childEdits = new Map<string, XmlObject | null>();
 	if (style.lineSpacing !== undefined) {

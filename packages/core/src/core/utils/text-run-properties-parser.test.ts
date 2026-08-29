@@ -426,7 +426,7 @@ describe('parseRunFontElements — font child elements', () => {
 			'a:ea': { '@_typeface': 'MS Gothic' },
 		};
 		const result = parseRunFontElements(rPr);
-		expect(result.fontFamily).toBe('MS Gothic');
+		expect(result.fontFamily).toBeUndefined();
 		expect(result.eastAsiaFont).toBe('MS Gothic');
 	});
 
@@ -436,7 +436,7 @@ describe('parseRunFontElements — font child elements', () => {
 			'a:cs': { '@_typeface': 'Arial' },
 		};
 		const result = parseRunFontElements(rPr);
-		expect(result.fontFamily).toBe('Arial');
+		expect(result.fontFamily).toBeUndefined();
 		expect(result.complexScriptFont).toBe('Arial');
 	});
 

@@ -21,7 +21,12 @@ export function parseTimeTargetElement(
 	const rawXml = tgtEl;
 	const shape = tgtEl['p:spTgt'] as XmlObject | undefined;
 	if (shape?.['@_spid'] !== undefined) {
-		return { type: 'shape', shapeId: String(shape['@_spid']), rawXml };
+		return {
+			type: 'shape',
+			shapeId: String(shape['@_spid']),
+			...(shape['p:bg'] !== undefined ? { backgroundOnly: true } : {}),
+			rawXml,
+		};
 	}
 	if (tgtEl['p:sldTgt'] !== undefined) {
 		return { type: 'slide', rawXml };
@@ -50,12 +55,19 @@ export function parseTimeTargetElement(
 export function serializeTimeTargetElement(target: PptxAnimationTarget): XmlObject {
 	const result: XmlObject = { ...(target.rawXml ?? {}) };
 	switch (target.type) {
-		case 'shape':
-			result['p:spTgt'] = {
+		case 'shape': {
+			const shape: XmlObject = {
 				...((result['p:spTgt'] as XmlObject | undefined) ?? {}),
 				'@_spid': target.shapeId,
 			};
+			if (target.backgroundOnly === true) {
+				shape['p:bg'] ??= {};
+			} else if (target.backgroundOnly === false) {
+				delete shape['p:bg'];
+			}
+			result['p:spTgt'] = shape;
 			break;
+		}
 		case 'slide':
 			result['p:sldTgt'] ??= {};
 			break;

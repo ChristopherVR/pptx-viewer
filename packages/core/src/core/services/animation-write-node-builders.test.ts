@@ -281,6 +281,23 @@ describe('buildMotionPathNode', () => {
 		expect(motionNode['@_origin']).toBe('layout');
 	});
 
+	it('writes authored path rotation and its centre', () => {
+		const anim: PptxElementAnimation = {
+			elementId: 'sp1',
+			motionPath: 'M 0 0 L 0.2 0',
+			motionPathRotationAngle: 90,
+			motionPathRotationCenterX: 10,
+			motionPathRotationCenterY: -25,
+		};
+		const node = buildMotionPathNode(anim, createIdAllocator())!;
+		const outerCTn = node['p:cTn'] as XmlObject;
+		const innerPar = (outerCTn['p:childTnLst'] as XmlObject)['p:par'] as XmlObject;
+		const effectCTn = innerPar['p:cTn'] as XmlObject;
+		const motionNode = (effectCTn['p:childTnLst'] as XmlObject)['p:animMotion'] as XmlObject;
+		expect(motionNode['@_rAng']).toBe('5400000');
+		expect(motionNode['p:rCtr']).toStrictEqual({ '@_x': '10000', '@_y': '-25000' });
+	});
+
 	it('uses the correct duration', () => {
 		const anim: PptxElementAnimation = {
 			elementId: 'sp1',

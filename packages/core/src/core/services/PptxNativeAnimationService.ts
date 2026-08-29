@@ -20,6 +20,8 @@ import type { AnimationGroupContext } from './animation-group-context';
 import { extractAnimationTarget } from './animation-target-build-helpers';
 import { extractCTnTimingAttrs, extractSeqAttrs } from './animation-timing-attrs';
 import { extractChildKeyframeAttrName } from './native-animation-attr-name';
+import { extractAttributeAnimations } from './native-animation-attribute-components';
+import { extractChildAutoReverseTiming } from './native-animation-child-timing';
 import {
 	extractColorAnimation,
 	extractTextTarget,
@@ -238,8 +240,11 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			// (`p:stCondLst/p:cond @delay`). Reading only the attributes on this node
 			// dropped both, so a "fade in after 1s over 0.4s" effect played
 			// immediately at the 500ms default and no longer matched PowerPoint.
+			const childAutoReverseTiming = extractChildAutoReverseTiming(cTn, ensureArray);
 			const durationMs =
-				readTimingAttr(cTn['@_dur']) ?? extractChildBehaviourDurationMs(cTn, ensureArray);
+				readTimingAttr(cTn['@_dur']) ??
+				childAutoReverseTiming?.durationMs ??
+				extractChildBehaviourDurationMs(cTn, ensureArray);
 			const delayMs = readTimingAttr(cTn['@_delay']) ?? extractStartConditionDelayMs(cTn);
 			const accel = parseTimingPercentFraction(cTn['@_accel']);
 			const decel = parseTimingPercentFraction(cTn['@_decel']);
@@ -325,6 +330,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const textTarget = this.extractTextTargetFromCTn(cTn);
 				const keyframes = extractChildKeyframes(childTnList);
 				const keyframeAttrName = extractChildKeyframeAttrName(childTnList);
+				const attributeAnimations = extractAttributeAnimations(childTnList);
 				// Round-trip surface for cTn attrs that don't have a typed home.
 				const roundTripAttrs = captureRoundTripCTnAttrs(cTn);
 				const afterEffectFlag = extractAfterEffect(cTn);
@@ -354,6 +360,9 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					motionPathRotateAuto: childMotion.motionPathRotateAuto,
 					motionPathEditMode: childMotion.motionPathEditMode,
 					motionPtsTypes: childMotion.motionPtsTypes,
+					motionPathRotationAngle: childMotion.motionPathRotationAngle,
+					motionPathRotationCenterX: childMotion.motionPathRotationCenterX,
+					motionPathRotationCenterY: childMotion.motionPathRotationCenterY,
 					rotationBy: childMotion.rotationBy,
 					rotationFrom: childMotion.rotationFrom,
 					rotationTo: childMotion.rotationTo,
@@ -366,8 +375,9 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					scaleZoomContents: childMotion.scaleZoomContents,
 					keyframes: keyframes ?? undefined,
 					attrName: keyframeAttrName,
+					attributeAnimations,
 					repeatCount: repeatInfo.repeatCount,
-					autoReverse: repeatInfo.autoReverse,
+					autoReverse: repeatInfo.autoReverse ?? childAutoReverseTiming?.autoReverse,
 					soundRId: soundInfo.soundRId,
 					stopSound: soundInfo.stopSound,
 					startConditions: startConditions ?? undefined,
@@ -382,6 +392,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					afterEffect: afterEffectFlag,
 					groupAutoStart: group.groupAutoStart,
 					parGroupIndex: group.parGroupIndex,
+					parGroupDelayMs: group.parGroupDelayMs,
 					effectFilter,
 				});
 			}
@@ -396,12 +407,20 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const sequences = ensureArray(childTnList['p:seq']);
 				const exclusives = ensureArray(childTnList['p:excl']);
 				for (const parallel of parallels) {
+					const mainSequenceId = cTn['@_id'];
 					this.walkTimingTree(
 						parallel,
 						animations,
 						trigger,
 						childGroupContext(group, parallel['p:cTn'] as XmlObject | undefined, {
 							isClickLevelGroup: isClickLevel,
+							mainSequence:
+								isClickLevel && mainSequenceId !== undefined
+									? {
+											autoStart: group.seqConcurrent === true && group.seqNextAction === 'seek',
+											id: String(mainSequenceId),
+										}
+									: undefined,
 						}),
 					);
 				}
@@ -622,6 +641,9 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			if (!triggerShapeId) {
 				continue;
 			}
+			const endSync = seqCTn?.['p:endSync'] as XmlObject | undefined;
+			const runtimeTrigger = endSync?.['p:rtn'] as XmlObject | undefined;
+			const restartable = String(runtimeTrigger?.['@_val'] ?? '') === 'all';
 
 			// Walk this interactive sequence children and tag them.
 			// `@concurrent`/`@nextAc`/`@prevAc` are attributes of `<p:seq>` itself
@@ -635,7 +657,13 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 
 			for (const anim of interactiveAnims) {
 				anim.triggerShapeId = triggerShapeId;
-				anim.trigger = 'onShapeClick';
+				anim.interactiveSequence = true;
+				anim.interactiveRestart = restartable;
+				// Preserve within-sequence with/after timing. Keep the historical
+				// public `onShapeClick` token for click effects themselves.
+				if (anim.trigger === 'onClick') {
+					anim.trigger = 'onShapeClick';
+				}
 				animations.push(anim);
 			}
 		}
