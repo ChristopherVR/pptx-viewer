@@ -67,7 +67,7 @@
 		"@angular/compiler-cli": "^22.1.2",
 		"@angular/core": "^22.1.2",
 		"@angular/platform-browser": "^22.1.2",
-		"@angular/platform-browser-dynamic": "^22.1.2",
+		"@angular/platform-browser-dynamic": "^22.1.4",
 		"@microsoft/api-extractor": "^7.58.13",
 		"@vitejs/plugin-react": "^6.0.5",
 		"html2canvas-pro": "^2.3.9",
