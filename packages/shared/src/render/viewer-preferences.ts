@@ -6,6 +6,17 @@ export interface ViewerPreferences {
 	showRulers: boolean;
 	snapToGrid: boolean;
 	reducedMotion: boolean;
+	/**
+	 * `p:viewPr/p:slideViewPr/p:cSldViewPr/@snapToObjects`. Optional: absent
+	 * until a binding wires the round-trip in {@link viewerPreferencesFromViewProperties}.
+	 */
+	snapToObjects?: boolean;
+	/** `p:viewPr/p:slideViewPr/p:cSldViewPr/@showGuides`. */
+	showGuides?: boolean;
+	/** `p:viewPr/p:gridSpacing/@cx`, in positive DrawingML (EMU) units. */
+	gridSpacingCx?: number;
+	/** `p:viewPr/p:gridSpacing/@cy`, in positive DrawingML (EMU) units. */
+	gridSpacingCy?: number;
 }
 
 export type ViewerSettings = ViewerPreferences;
@@ -78,4 +89,83 @@ export function updateViewerPreference<K extends keyof ViewerPreferences>(
 	value: ViewerPreferences[K],
 ): ViewerPreferences {
 	return { ...preferences, [key]: value };
+}
+
+/**
+ * The subset of `PptxData` this round-trip reads: `ppt/viewProps.xml`'s
+ * `slideViewPr` (snap-to-grid, snap-to-objects, show-guides) and grid spacing.
+ * Declared structurally, matching `pptx-viewer-core`'s `PptxData` shape,
+ * rather than importing it, so a binding can pass a lighter view model.
+ */
+export interface ViewPropertiesSource {
+	readonly viewProperties?: {
+		readonly slideViewPr?: {
+			readonly snapToGrid?: boolean;
+			readonly snapToObjects?: boolean;
+			readonly showGuides?: boolean;
+		};
+		readonly gridSpacing?: {
+			readonly cx?: number;
+			readonly cy?: number;
+		};
+	};
+}
+
+/**
+ * Seed viewer preferences from a loaded deck's `ppt/viewProps.xml`, falling
+ * back to `defaults` for anything the file didn't carry.
+ *
+ * `ViewerPreferences` previously always started from hard-coded defaults even
+ * when the source `.pptx` explicitly authored `snapToGrid="0"` or shipped its
+ * own grid spacing, so a deck's own view settings were silently discarded on
+ * load. Every field is read independently (a deck can set `snapToGrid`
+ * without `showGuides`, etc.), so only the fields actually present override
+ * the default.
+ */
+export function viewerPreferencesFromViewProperties(
+	data: ViewPropertiesSource,
+	defaults: ViewerPreferences,
+): ViewerPreferences {
+	const slideViewPr = data.viewProperties?.slideViewPr;
+	const gridSpacing = data.viewProperties?.gridSpacing;
+	return {
+		...defaults,
+		snapToGrid: slideViewPr?.snapToGrid ?? defaults.snapToGrid,
+		snapToObjects: slideViewPr?.snapToObjects ?? defaults.snapToObjects,
+		showGuides: slideViewPr?.showGuides ?? defaults.showGuides,
+		gridSpacingCx: gridSpacing?.cx ?? defaults.gridSpacingCx,
+		gridSpacingCy: gridSpacing?.cy ?? defaults.gridSpacingCy,
+	};
+}
+
+/**
+ * The partial `viewProperties` shape core's `applyViewPropertiesPart` writes
+ * back to `ppt/viewProps.xml` for a set of viewer preferences.
+ *
+ * Deliberately partial and additive: `applyViewPropertiesPart` merges onto
+ * `props.rawXml` when present (see `buildViewPropertiesXml` in
+ * `pptx-view-props-helpers.ts`), so this only needs to carry the fields this
+ * module owns, never a full `PptxViewProperties`.
+ */
+export function viewPropertiesPatchFromPreferences(preferences: ViewerPreferences): {
+	slideViewPr: { snapToGrid: boolean; snapToObjects: boolean; showGuides: boolean };
+	gridSpacing?: { cx: number; cy: number };
+} {
+	const patch: {
+		slideViewPr: { snapToGrid: boolean; snapToObjects: boolean; showGuides: boolean };
+		gridSpacing?: { cx: number; cy: number };
+	} = {
+		slideViewPr: {
+			snapToGrid: preferences.snapToGrid,
+			snapToObjects: preferences.snapToObjects ?? false,
+			showGuides: preferences.showGuides ?? false,
+		},
+	};
+	if (
+		typeof preferences.gridSpacingCx === 'number' &&
+		typeof preferences.gridSpacingCy === 'number'
+	) {
+		patch.gridSpacing = { cx: preferences.gridSpacingCx, cy: preferences.gridSpacingCy };
+	}
+	return patch;
 }

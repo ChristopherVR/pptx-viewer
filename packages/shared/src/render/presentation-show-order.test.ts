@@ -8,6 +8,7 @@ import {
 	nextShowSlideIndex,
 	previousShowSlideIndex,
 	resolveAuthoredCustomShowId,
+	resolveAuthoredSlideRange,
 	resolveShowSlideIndexes,
 } from './presentation-show-order';
 import type { ShowOrderSlide } from './presentation-show-order';
@@ -228,5 +229,84 @@ describe('resolveAuthoredCustomShowId', () => {
 
 	it('tolerates a deck with no showPr at all', () => {
 		expect(resolveAuthoredCustomShowId(undefined, shows)).toBeUndefined();
+	});
+});
+
+describe('resolveAuthoredSlideRange', () => {
+	it('resolves a 1-based range to 0-based inclusive indexes', () => {
+		expect(
+			resolveAuthoredSlideRange({ showSlidesMode: 'range', showSlidesFrom: 2, showSlidesTo: 5 }, 8),
+		).toStrictEqual({ fromIndex: 1, toIndex: 4 });
+	});
+
+	it('clamps a range that overruns the deck', () => {
+		expect(
+			resolveAuthoredSlideRange(
+				{ showSlidesMode: 'range', showSlidesFrom: 3, showSlidesTo: 99 },
+				5,
+			),
+		).toStrictEqual({ fromIndex: 2, toIndex: 4 });
+	});
+
+	it('normalises a reversed range', () => {
+		expect(
+			resolveAuthoredSlideRange({ showSlidesMode: 'range', showSlidesFrom: 6, showSlidesTo: 2 }, 8),
+		).toStrictEqual({ fromIndex: 1, toIndex: 5 });
+	});
+
+	it('ignores the range when the mode is not range', () => {
+		expect(
+			resolveAuthoredSlideRange({ showSlidesMode: 'all', showSlidesFrom: 2, showSlidesTo: 5 }, 8),
+		).toBeUndefined();
+	});
+
+	it('returns undefined for missing or non-finite bounds', () => {
+		expect(resolveAuthoredSlideRange({ showSlidesMode: 'range' }, 8)).toBeUndefined();
+		expect(
+			resolveAuthoredSlideRange(
+				{ showSlidesMode: 'range', showSlidesFrom: Number.NaN, showSlidesTo: 5 },
+				8,
+			),
+		).toBeUndefined();
+	});
+
+	it('tolerates an empty deck', () => {
+		expect(
+			resolveAuthoredSlideRange({ showSlidesMode: 'range', showSlidesFrom: 1, showSlidesTo: 2 }, 0),
+		).toBeUndefined();
+	});
+});
+
+describe('resolveShowSlideIndexes with an authored range', () => {
+	it('restricts the show to the range', () => {
+		const slides = deck(false, false, false, false, false, false);
+		const range = resolveAuthoredSlideRange(
+			{ showSlidesMode: 'range', showSlidesFrom: 2, showSlidesTo: 4 },
+			slides.length,
+		);
+		expect(resolveShowSlideIndexes(slides, undefined, range)).toStrictEqual([1, 2, 3]);
+	});
+
+	it('still drops hidden slides inside the range', () => {
+		const slides = deck(false, true, false, false, false, false);
+		const range = resolveAuthoredSlideRange(
+			{ showSlidesMode: 'range', showSlidesFrom: 1, showSlidesTo: 3 },
+			slides.length,
+		);
+		expect(resolveShowSlideIndexes(slides, undefined, range)).toStrictEqual([0, 2]);
+	});
+
+	it('falls back to the unfiltered base when the range is empty after clamping', () => {
+		const slides = deck(false, false, false);
+		// Impossible via resolveAuthoredSlideRange's own clamping, but the
+		// filtering step must still be defensive against a hand-built range.
+		expect(
+			resolveShowSlideIndexes(slides, undefined, { fromIndex: 10, toIndex: 20 }),
+		).toStrictEqual([0, 1, 2]);
+	});
+
+	it('is unaffected when no range is passed (backward compatible)', () => {
+		const slides = deck(false, false, false);
+		expect(resolveShowSlideIndexes(slides)).toStrictEqual([0, 1, 2]);
 	});
 });

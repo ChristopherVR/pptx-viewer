@@ -28,6 +28,38 @@ describe('sLIDE_TRANSITION_OPTIONS', () => {
 		expect(values).toContain('morph');
 		expect(values).toContain('newsflash');
 	});
+
+	it('includes the 23 cinematic transitions Vue offered that React did not', () => {
+		const values = SLIDE_TRANSITION_OPTIONS.map((option) => option.value);
+		for (const extra of [
+			'conveyor',
+			'doors',
+			'ferris',
+			'flash',
+			'flythrough',
+			'gallery',
+			'glitter',
+			'honeycomb',
+			'pan',
+			'prism',
+			'reveal',
+			'ripple',
+			'shred',
+			'switch',
+			'vortex',
+			'warp',
+			'wheelReverse',
+			'window',
+			'cube',
+			'flip',
+			'rotate',
+			'box',
+			'orbit',
+		]) {
+			expect(values).toContain(extra);
+		}
+		expect(values).toHaveLength(47);
+	});
 });
 
 describe('tRANSITION_ORIENTATION_TYPES', () => {

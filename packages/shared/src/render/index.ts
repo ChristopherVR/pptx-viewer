@@ -1269,3 +1269,71 @@ export * from './toolbar-actions';
 // File > Options parity: schema, store, persistence, and behavior helpers
 // behind the PowerPoint-style Options dialog in every binding.
 export * from './options';
+
+// small helper extractions (wave 2)
+// OLE placeholder icon SVG-fragment primitives (rect/line/text builders +
+// the per-type shape table), shared by every binding's OLE renderer.
+// (`buildSmartArtPreviewElement` + its constants, and `buildQueryLinkUrl` /
+// `buildShareUrl`, are new exports of the already-star-exported
+// `preview-elements` / `broadcast-helpers` above; `modelDataToBlobUrl` /
+// `DEFAULT_MODEL_MIME` likewise ride the existing `model3d-scene` export.)
+export * from './ole-icon-primitives';
+// The one `hexToRgbUnit` for render/'s SVG duotone `<filter>` builders.
+export * from './color-units';
+// Cross-slide ("play across slides") audio registration, split out of
+// `media-playback.ts` purely to stay under the file-size cap.
+export * from './cross-slide-audio';
+// Presentation ink-annotation overlay pure helpers (stroke path + cursor).
+export * from './annotation-overlay';
+
+// editor + playback engines (wave 2)
+// Click-group step application / staged-build RAF reveal / auto-advance chain
+// that drives a running slide show, extracted from four near-identical
+// per-binding copies (Vue/Angular/Svelte/Vanilla `*animation-playback-helpers`).
+export * from './animation-playback-engine';
+// Shift-to-lock-aspect resize + arrow-key nudge math for the editing overlay.
+export * from './editor-geometry';
+// Pure, immutable PptxSlide[] mutations (CRUD/z-order/notes) the editor
+// composables/services commit through.
+export * from './editor-mutations';
+// Pointer move/resize/rotate gesture state machine for the editing overlay.
+export * from './editor-gestures';
+// Read a contenteditable inline-edit surface's plain text back out.
+export * from './inline-text-extract';
+
+// inspector option lists (wave 2)
+// Stroke/dash pattern picker: the 12 ST_PresetLineDashVal values.
+export * from './stroke-dash-options';
+// Compound-line / line-join / line-cap picker option lists.
+export * from './stroke-line-style-options';
+// Ribbon Arrange group shape-level extras gating (Group/Ungroup/stroke width).
+export * from './arrange-extras';
+// "Show Gridlines" checkbox: toggles the value axis's majorGridlines, not the
+// dead style.hasGridlines field.
+export * from './chart-gridlines-toggle';
+// Series "use secondary axis" checkbox: axisId resolution against chartData.axes.
+export * from './chart-secondary-axis';
+
+// presentation parity descriptors (wave 2)
+// Placeholder prompt text ("Click to add title"): edit-only, never Present/export/thumbnail.
+export * from './placeholder-prompt';
+// Slide-size Maximize/Ensure Fit rescale (x/y/width/height + font sizes).
+export * from './slide-size-rescale';
+// Write-protection recommendation (p:modifyVerifier / docProps _MarkAsFinal).
+export * from './read-only-recommendation';
+// getCompatibilityWarnings() -> toast descriptors, deduped by code.
+export * from './compatibility-warning-toasts';
+// Picture "Crop to Shape" clip-path (reuses the shared shape-geometry cascade).
+export * from './crop-shape-clip';
+// ActiveX control overlay geometry/label/fallback-image.
+export * from './activex-overlay-view';
+// a14 Corrections/Color panel CSS + SVG sharpen filter (sharpenSoften/brightnessContrast/colorTemperature/colorSaturation).
+export * from './image-effect-corrections';
+
+// chart subtypes (wave 2)
+// bar3D column/bar shape geometry (box/cylinder/cone[ToMax]/pyramid[ToMax])
+// for the interactive three.js bar3D scene.
+export * from './bar-chart-3d-geometry';
+// Inspector option lists + pure patch builders for bar3D shape, radar style,
+// and surface wireframe.
+export * from './chart-subtype-options';

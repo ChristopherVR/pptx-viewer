@@ -29,6 +29,14 @@ export interface MarkerShape {
 	markerWidth: number;
 	/** Suggested `markerHeight` (perpendicular: arrow *width*, from `@w`). */
 	markerHeight: number;
+	/**
+	 * True for a stroke-only (open, unfilled) marker path, i.e. the `'arrow'`
+	 * open chevron. A binding should render this path with `fill="none"` and
+	 * `stroke={strokeColor}` instead of the default solid `fill={strokeColor}`
+	 * it uses for every other shape; a chevron rendered with a solid fill draws
+	 * as a filled wedge, indistinguishable from `'triangle'`.
+	 */
+	strokeOnly?: boolean;
 }
 
 /**
@@ -66,7 +74,12 @@ export function markerPath(
 			return { shape: 'circle', ...box };
 		case 'stealth':
 			return { shape: 'path', d: 'M0 0 L10 5 L0 10 L3 5 Z', ...box };
-		// triangle / arrow / fallback
+		case 'arrow':
+			// Open chevron ("<"), stroke-only: distinct from the solid 'triangle'
+			// wedge below. No closing `Z`, so a binding rendering it with
+			// `fill="none"` draws two open strokes rather than a filled shape.
+			return { shape: 'path', d: 'M1 1 L9 5 L1 9', strokeOnly: true, ...box };
+		// triangle / fallback
 		default:
 			return { shape: 'path', d: 'M0 0 L10 5 L0 10 Z', ...box };
 	}

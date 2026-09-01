@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { mountModel3D, THREE_UNAVAILABLE } from './model3d-scene';
+import {
+	DEFAULT_MODEL_MIME,
+	modelDataToBlobUrl,
+	mountModel3D,
+	THREE_UNAVAILABLE,
+} from './model3d-scene';
 
 // Shared tests run in the default node environment (no DOM globals), so the
 // controller is exercised against hand-rolled element/canvas stand-ins that
@@ -193,6 +198,45 @@ afterEach(() => {
 	h.calls.geometryDispose.mockClear();
 	h.calls.materialDispose.mockClear();
 	vi.unstubAllGlobals();
+});
+
+describe('modelDataToBlobUrl', () => {
+	let createObjectURLMock: ReturnType<typeof vi.fn>;
+	let original: unknown;
+
+	beforeEach(() => {
+		original = (URL as unknown as { createObjectURL?: unknown }).createObjectURL;
+		createObjectURLMock = vi.fn(() => 'blob:mock-url');
+		(URL as unknown as { createObjectURL: unknown }).createObjectURL = createObjectURLMock;
+	});
+
+	afterEach(() => {
+		(URL as unknown as { createObjectURL: unknown }).createObjectURL = original;
+	});
+
+	it('returns undefined for a missing data URL', () => {
+		expect(modelDataToBlobUrl(undefined, 'model/gltf-binary')).toBeUndefined();
+		expect(createObjectURLMock).not.toHaveBeenCalled();
+	});
+
+	it('returns undefined for a malformed (non-data-URL) input', () => {
+		expect(modelDataToBlobUrl('not-a-data-url', 'model/gltf-binary')).toBeUndefined();
+		expect(createObjectURLMock).not.toHaveBeenCalled();
+	});
+
+	it('creates a blob URL from a valid base64 data URL, using the supplied MIME type', () => {
+		const url = modelDataToBlobUrl('data:model/gltf-binary;base64,AAAA', 'model/gltf-binary');
+		expect(url).toBe('blob:mock-url');
+		expect(createObjectURLMock).toHaveBeenCalledOnce();
+		const blob = createObjectURLMock.mock.calls[0]?.[0] as Blob;
+		expect(blob.type).toBe('model/gltf-binary');
+	});
+
+	it('falls back to DEFAULT_MODEL_MIME when no mimeType is supplied', () => {
+		modelDataToBlobUrl('data:application/octet-stream;base64,AAAA', undefined);
+		const blob = createObjectURLMock.mock.calls[0]?.[0] as Blob;
+		expect(blob.type).toBe(DEFAULT_MODEL_MIME);
+	});
 });
 
 describe('mountModel3D - three unavailable', () => {

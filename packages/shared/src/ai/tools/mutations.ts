@@ -7,8 +7,8 @@
  * is consistent between the MCP server and the in-viewer assistant.
  */
 
-import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement, PptxElementWithText } from 'pptx-viewer-core';
+import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import type { PptxElement, PptxElementWithText, TextStyle } from 'pptx-viewer-core';
 
 import type { PptxAiElementUpdate } from '../bridge';
 
@@ -76,28 +76,36 @@ export function applyTextUpdate(el: PptxElement, u: PptxAiElementUpdate): void {
 	) {
 		return;
 	}
-	textEl.textStyle ??= {};
-	const style = textEl.textStyle;
+	const textStyle: Partial<TextStyle> = {};
 	if (u.fontSize !== undefined) {
-		style.fontSize = u.fontSize;
+		textStyle.fontSize = u.fontSize;
 	}
 	if (u.fontFamily !== undefined) {
-		style.fontFamily = u.fontFamily;
+		textStyle.fontFamily = u.fontFamily;
 	}
 	if (u.fontColor !== undefined) {
-		style.color = u.fontColor;
+		textStyle.color = u.fontColor;
 	}
 	if (u.bold !== undefined) {
-		style.bold = u.bold;
+		textStyle.bold = u.bold;
 	}
 	if (u.italic !== undefined) {
-		style.italic = u.italic;
+		textStyle.italic = u.italic;
 	}
 	if (u.underline !== undefined) {
-		style.underline = u.underline;
+		textStyle.underline = u.underline;
 	}
 	if (u.align !== undefined) {
-		style.align = u.align;
+		textStyle.align = u.align;
+	}
+	// Set the element-level default AND merge onto every run so multi-run text
+	// visibly restyles instead of only the (unused) element-level fallback.
+	textEl.textStyle = { ...textEl.textStyle, ...textStyle };
+	if (textEl.textSegments) {
+		textEl.textSegments = textEl.textSegments.map((seg) => ({
+			...seg,
+			style: { ...seg.style, ...textStyle },
+		}));
 	}
 }
 
@@ -106,7 +114,11 @@ export function applyShapeStyleUpdate(el: PptxElement, u: PptxAiElementUpdate): 
 	if (u.fillColor === undefined && u.strokeColor === undefined && u.strokeWidth === undefined) {
 		return;
 	}
-	if (!('shapeStyle' in el)) {
+	// `hasShapeProperties` narrows by `element.type` (text/shape/connector/image/
+	// picture). A raw `'shapeStyle' in el` check is unsound here: `shapeStyle` is
+	// an optional field, so an element parsed with no fill/stroke never gets the
+	// key assigned and the check silently drops the update.
+	if (!hasShapeProperties(el)) {
 		return;
 	}
 	const holder = el as unknown as { shapeStyle?: MutableShapeStyle };

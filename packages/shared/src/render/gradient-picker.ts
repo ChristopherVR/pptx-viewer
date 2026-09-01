@@ -139,7 +139,8 @@ export function updateGradientStopPatch(
 
 // -- Private helpers ----------------------------------------------------------
 
-function defaultGradientState(): GradientState {
+/** A default two-stop linear gradient (blue -> white), used when no gradient is configured yet. */
+export function defaultGradientState(): GradientState {
 	return { type: 'linear', angle: 90, stops: [{ ...DEFAULT_STOP_A }, { ...DEFAULT_STOP_B }] };
 }
 

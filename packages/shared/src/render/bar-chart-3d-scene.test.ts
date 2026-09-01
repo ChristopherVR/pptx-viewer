@@ -289,8 +289,9 @@ describe('mountBarChart3D - mounted scene', () => {
 		expect(container.children).toHaveLength(0);
 		expect(h.calls.rendererDispose).toHaveBeenCalledOnce();
 		expect(h.calls.controlsDispose).toHaveBeenCalledOnce();
-		// One shared box geometry, disposed once.
-		expect(h.calls.boxGeometryDispose).toHaveBeenCalledOnce();
+		// One geometry per box (shape is resolved per box, so geometry is no
+		// longer shared across boxes; 2 boxes in baseOptions()).
+		expect(h.calls.boxGeometryDispose).toHaveBeenCalledTimes(2);
 		// One material per box (2 boxes in baseOptions()).
 		expect(h.calls.materialDispose).toHaveBeenCalledTimes(2);
 		expect(h.calls.gridDispose).toHaveBeenCalledOnce();

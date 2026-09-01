@@ -90,7 +90,15 @@ function buildPoints(
 			const catTotal = totals?.[ci];
 			const plotValue =
 				isPercent && catTotal !== undefined && catTotal > 0 ? (value / catTotal) * 100 : value;
-			points.push({ seriesIndex: si, categoryIndex: ci, value, plotValue, color });
+			points.push({
+				seriesIndex: si,
+				categoryIndex: ci,
+				value,
+				plotValue,
+				color,
+				// Per-series `c:ser/c:shape` wins over the chart-level `c:bar3DChart/c:shape`.
+				shape: series[si].shape ?? chartData.barShape,
+			});
 		}
 	}
 	return points;

@@ -3,9 +3,10 @@
  *
  * Mounts an interactive `bar3D` chart into a caller-provided container
  * element: dynamically imports `three` plus its `OrbitControls` addon, builds
- * one `THREE.BoxGeometry` mesh per data point (clustered: each series its own
- * depth plane; stacked/percentStacked: coplanar, stacked vertically - see
- * {@link ./bar-chart-3d-data.ts}), a grid floor, authored `c:floor`/
+ * one mesh per data point (clustered: each series its own depth plane;
+ * stacked/percentStacked: coplanar, stacked vertically - see
+ * {@link ./bar-chart-3d-data.ts}; geometry per box's resolved `c:shape` - see
+ * {@link ./bar-chart-3d-geometry.ts}), a grid floor, authored `c:floor`/
  * `c:sideWall`/`c:backWall` panels, a perspective camera driven by `c:view3D`,
  * OrbitControls, and a RAF loop. Raycasts pointer moves against the boxes to
  * set a native hover tooltip on the canvas element (see
@@ -25,6 +26,7 @@ import type * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import type { BarChart3DSceneOptions } from './bar-chart-3d-data';
+import { buildBar3DMeshGroup } from './bar-chart-3d-geometry';
 import { buildBarChart3DHoverTooltip } from './bar-chart-3d-hit-test';
 import type { BarChart3DHit } from './bar-chart-3d-hit-test';
 import {
@@ -151,24 +153,14 @@ export async function mountBarChart3D(
 		scene.add(mesh);
 	}
 
-	// One box mesh per data point, sharing a unit geometry (scaled per box).
-	const boxGeometry = new three.BoxGeometry(1, 1, 1);
-	const boxMeshes: THREE.Mesh[] = [];
-	const boxMaterials: THREE.Material[] = [];
-	for (const box of options.boxes) {
-		const material = new three.MeshPhongMaterial({ color: box.color, shininess: 30 });
-		const mesh = new three.Mesh(boxGeometry, material);
-		mesh.position.set(...box.center);
-		mesh.scale.set(...box.size);
-		mesh.userData = {
-			seriesIndex: box.seriesIndex,
-			categoryIndex: box.categoryIndex,
-			value: box.value,
-		} satisfies BarChart3DHit;
-		scene.add(mesh);
-		boxMeshes.push(mesh);
-		boxMaterials.push(material);
-	}
+	// One mesh per data point, geometry chosen per box's resolved bar3D shape
+	// (`box`, `cone[ToMax]`, `cylinder`, `pyramid[ToMax]`; see
+	// {@link ./bar-chart-3d-geometry.ts}).
+	const {
+		meshes: boxMeshes,
+		materials: boxMaterials,
+		geometries: boxGeometries,
+	} = buildBar3DMeshGroup(three, scene, options.boxes);
 
 	// Raycast-based hover tooltip: each box mesh carries its own (series,
 	// category, value) in `userData`, so a hit reports the cell directly (no
@@ -280,7 +272,9 @@ export async function mountBarChart3D(
 			canvas.removeEventListener('pointermove', onPointerMove);
 			canvas.removeEventListener('pointerleave', onPointerLeave);
 			controls.dispose();
-			boxGeometry.dispose();
+			for (const g of boxGeometries) {
+				g.dispose();
+			}
 			for (const m of boxMaterials) {
 				m.dispose();
 			}

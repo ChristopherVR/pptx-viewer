@@ -12,6 +12,8 @@
  *
  * @module bar-chart-3d-layout
  */
+import type { PptxBar3DShape } from 'pptx-viewer-core';
+
 import { computeCartesianGridExtent, MAX_VALUE_HEIGHT } from './cartesian-chart-3d-geom';
 import type { ValueRange } from './chart-view-model';
 
@@ -28,6 +30,12 @@ export interface CartesianChart3DPoint {
 	 */
 	plotValue: number;
 	color: string;
+	/**
+	 * Resolved 3-D bar/column shape for this box (the series' own
+	 * `c:ser/c:shape` override, else the chart-level `c:bar3DChart/c:shape`).
+	 * Absent defaults to `box` (a plain rectangular column).
+	 */
+	shape?: PptxBar3DShape;
 }
 
 /** One box mesh: world-space center + size (width=X, height=Y, depth=Z). */
@@ -38,6 +46,31 @@ export interface BarChart3DBox {
 	color: string;
 	center: readonly [number, number, number];
 	size: readonly [number, number, number];
+	/** See {@link CartesianChart3DPoint.shape}. */
+	shape?: PptxBar3DShape;
+	/**
+	 * `coneToMax` / `pyramidToMax` only: the mesh's top radius as a fraction
+	 * (0-1) of its base radius, so the geometry looks like a slice of one
+	 * imaginary cone/pyramid whose apex sits exactly at the value-axis
+	 * maximum: `0` (a full point) when this box's value equals the axis max,
+	 * approaching `1` (nearly cylindrical) as the value approaches zero.
+	 */
+	coneToMaxTopRadiusFactor?: number;
+}
+
+/** Fraction (0-1) of the base radius `coneToMax`/`pyramidToMax` tapers to at the top. */
+function coneToMaxTopRadiusFactor(
+	shape: PptxBar3DShape | undefined,
+	value: number,
+	max: number,
+): number | undefined {
+	if (shape !== 'coneToMax' && shape !== 'pyramidToMax') {
+		return undefined;
+	}
+	if (!(max > 0)) {
+		return 0;
+	}
+	return Math.max(0, Math.min(1, 1 - Math.abs(value) / max));
 }
 
 const MIN_BOX_HEIGHT = 0.02;
@@ -79,6 +112,8 @@ function layoutClustered(
 			color: p.color,
 			center: [x, bottom + h / 2, z],
 			size: [boxW, h, boxD],
+			shape: p.shape,
+			coneToMaxTopRadiusFactor: coneToMaxTopRadiusFactor(p.shape, p.value, range.max),
 		};
 	});
 }
@@ -123,6 +158,8 @@ function layoutStacked(
 				color: p.color,
 				center: [x, Math.min(baseH, topH) + h / 2, 0],
 				size: [boxW, h, boxD],
+				shape: p.shape,
+				coneToMaxTopRadiusFactor: coneToMaxTopRadiusFactor(p.shape, p.value, range.max),
 			});
 		}
 	}

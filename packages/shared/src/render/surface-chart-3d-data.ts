@@ -27,7 +27,12 @@ import type {
 export interface SurfaceChart3DDataOptions {
 	width: number;
 	height: number;
-	/** Draw wireframe grid lines over the surface mesh. Default `true`. */
+	/**
+	 * Draw wireframe grid lines over the surface mesh, overriding the
+	 * authored `c:wireframe/@val`. Most callers omit this and let
+	 * `chartData.wireframe` (falling back to `true`, the schema default for
+	 * an absent `c:wireframe`) decide.
+	 */
 	wireframe?: boolean;
 }
 
@@ -83,7 +88,7 @@ export function buildSurfaceChart3DData(
 		colorMap,
 		values,
 		numberFormats: chartData.series.map((s) => s.numberFormat),
-		wireframe: options.wireframe ?? true,
+		wireframe: options.wireframe ?? chartData.wireframe ?? true,
 		categoryLabels,
 		seriesNames: chartData.series.map((s) => s.name),
 		width: options.width,

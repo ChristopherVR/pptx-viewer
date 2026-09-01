@@ -85,6 +85,35 @@ export function buildBroadcastConfig(fields: BroadcastConfig): BroadcastConfig |
 }
 
 /**
+ * Build a shareable link that carries a session id under `paramName`: either
+ * `?<paramName>=<id>&transport=webrtc` (blank server URL, peer-to-peer) or
+ * `?<paramName>=<id>&server=<url>`. Returns just the id when no
+ * `origin`/`pathname` are available (non-browser environments).
+ *
+ * The one query-link builder behind both {@link buildBroadcastViewerUrl}
+ * (`paramName: 'broadcast'`) and Angular's `buildShareUrl`
+ * (`paramName: 'room'`, re-exported here) - the two diverged only in that one
+ * literal, so a room/broadcast link cannot drift apart on the query shape.
+ */
+export function buildQueryLinkUrl(
+	id: string,
+	serverUrl: string,
+	location: { origin: string; pathname: string } | undefined,
+	paramName: string,
+): string {
+	if (!location) {
+		return id;
+	}
+	const encodedId = encodeURIComponent(id);
+	const trimmed = serverUrl.trim();
+	if (trimmed.length === 0) {
+		return `${location.origin}${location.pathname}?${paramName}=${encodedId}&transport=webrtc`;
+	}
+	const server = encodeURIComponent(trimmed);
+	return `${location.origin}${location.pathname}?${paramName}=${encodedId}&server=${server}`;
+}
+
+/**
  * Build the shareable viewer follow-link for a broadcast. Returns just the
  * room id when no `origin`/`pathname` are available (non-browser environments).
  * A blank server URL produces a `transport=webrtc` link instead of a
@@ -95,16 +124,21 @@ export function buildBroadcastViewerUrl(
 	serverUrl: string,
 	location?: { origin: string; pathname: string },
 ): string {
-	if (!location) {
-		return roomId;
-	}
-	const room = encodeURIComponent(roomId);
-	const trimmed = serverUrl.trim();
-	if (trimmed.length === 0) {
-		return `${location.origin}${location.pathname}?broadcast=${room}&transport=webrtc`;
-	}
-	const server = encodeURIComponent(trimmed);
-	return `${location.origin}${location.pathname}?broadcast=${room}&server=${server}`;
+	return buildQueryLinkUrl(roomId, serverUrl, location, 'broadcast');
+}
+
+/**
+ * Build a shareable join URL for a (non-broadcast) collaboration session.
+ * Identical shape to {@link buildBroadcastViewerUrl}, but under the `room=`
+ * query key Angular's Share dialog uses. Returns just the room id when no
+ * `origin`/`pathname` are available (e.g. non-browser environments).
+ */
+export function buildShareUrl(
+	roomId: string,
+	serverUrl: string,
+	location?: { origin: string; pathname: string },
+): string {
+	return buildQueryLinkUrl(roomId, serverUrl, location, 'room');
 }
 
 /** Whether the runtime exposes a usable async clipboard write API. */

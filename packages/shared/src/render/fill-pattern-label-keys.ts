@@ -8,8 +8,15 @@
  * keys in shared is what lets every binding spell the same preset the same way
  * without changing which presets it offers.
  *
+ * {@link PATTERN_PRESET_OPTIONS} is the same catalogue as an ordered array
+ * (React's own `PATTERN_PRESET_OPTIONS` in `fill-stroke-options.ts` retyped
+ * all 56 `OOXML_PATTERN_PRESETS` values by hand), so a binding's pattern
+ * select can iterate one list instead of zipping `OOXML_PATTERN_PRESETS`
+ * against this map itself.
+ *
  * @module render/fill-pattern-label-keys
  */
+import { OOXML_PATTERN_PRESETS } from './fill-style';
 
 /** Wire token -> i18n key for every OOXML pattern preset. */
 export const FILL_PATTERN_LABEL_KEYS: Readonly<Record<string, string>> = {
@@ -70,3 +77,19 @@ export const FILL_PATTERN_LABEL_KEYS: Readonly<Record<string, string>> = {
 	trellis: 'pptx.fillPatterns.trellis',
 	zigZag: 'pptx.fillPatterns.zigZag',
 };
+
+/** A selectable pattern preset with its i18n key. */
+export interface PatternPresetOption {
+	value: (typeof OOXML_PATTERN_PRESETS)[number];
+	labelKey: string;
+}
+
+/**
+ * All 56 pattern presets, in `OOXML_PATTERN_PRESETS` order, as `{ value,
+ * labelKey }` pairs ready for a binding's select. Derived from
+ * {@link FILL_PATTERN_LABEL_KEYS} rather than re-listing the presets so the
+ * two can never drift.
+ */
+export const PATTERN_PRESET_OPTIONS: readonly PatternPresetOption[] = OOXML_PATTERN_PRESETS.map(
+	(value) => ({ value, labelKey: FILL_PATTERN_LABEL_KEYS[value] }),
+);

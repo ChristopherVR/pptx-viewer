@@ -16,6 +16,8 @@ import type {
 } from 'pptx-viewer-core';
 import { guideEmuToPx } from 'pptx-viewer-core';
 
+import { walkAndPatchElements } from './element-patch-walker';
+
 export interface GuideEntry {
 	id: string;
 	axis: 'h' | 'v';
@@ -223,50 +225,35 @@ export function applyTableCellImagePatches(
 		return elements;
 	}
 
-	const patchElements = (els: PptxElement[]): PptxElement[] => {
-		let mutated = false;
-		const next = els.map((el) => {
-			let updated: PptxElement = el;
-			const cellPatches = patchesByElementId.get(el.id);
-			if (cellPatches && el.type === 'table') {
-				const table = el as TablePptxElement;
-				const tableData = table.tableData;
-				if (tableData) {
-					const newRows = tableData.rows.map((row, rowIndex) => {
-						const rowPatches = cellPatches.filter((p) => p.rowIndex === rowIndex);
-						if (rowPatches.length === 0) {
-							return row;
-						}
-						const newCells = row.cells.map((cell, cellIndex) => {
-							const patch = rowPatches.find((p) => p.cellIndex === cellIndex);
-							if (!patch || !cell.style) {
-								return cell;
-							}
-							return {
-								...cell,
-								style: { ...cell.style, backgroundImageFillData: patch.url },
-							};
-						});
-						return { ...row, cells: newCells };
-					});
-					updated = { ...table, tableData: { ...tableData, rows: newRows } };
+	return walkAndPatchElements(elements, (el) => {
+		const cellPatches = patchesByElementId.get(el.id);
+		if (!cellPatches || el.type !== 'table') {
+			return el;
+		}
+		const table = el as TablePptxElement;
+		const tableData = table.tableData;
+		if (!tableData) {
+			return el;
+		}
+		const newRows = tableData.rows.map((row, rowIndex) => {
+			const rowPatches = cellPatches.filter((p) => p.rowIndex === rowIndex);
+			if (rowPatches.length === 0) {
+				return row;
+			}
+			const newCells = row.cells.map((cell, cellIndex) => {
+				const patch = rowPatches.find((p) => p.cellIndex === cellIndex);
+				if (!patch || !cell.style) {
+					return cell;
 				}
-			}
-			if (updated.type === 'group' && updated.children?.length) {
-				const newChildren = patchElements(updated.children);
-				if (newChildren !== updated.children) {
-					updated = { ...updated, children: newChildren };
-				}
-			}
-			if (updated !== el) {
-				mutated = true;
-			}
-			return updated;
+				return {
+					...cell,
+					style: { ...cell.style, backgroundImageFillData: patch.url },
+				};
+			});
+			return { ...row, cells: newCells };
 		});
-		return mutated ? next : els;
-	};
-
-	return patchElements(elements);
+		return { ...table, tableData: { ...tableData, rows: newRows } };
+	});
 }
 
 function isExternalUrl(path: string): boolean {

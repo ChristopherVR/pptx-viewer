@@ -13,11 +13,46 @@
  * No framework imports - the React, Vue, and Angular bindings can all mount it.
  */
 
+import { parseDataUrlToBytes } from 'pptx-viewer-core';
 // Type-only imports are erased at build time, so they do not pull `three` into
 // the bundle; the actual modules are loaded via dynamic `import()` at runtime.
 import type * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+/** Default MIME for GLB binaries when the element omits `modelMimeType`. */
+export const DEFAULT_MODEL_MIME = 'model/gltf-binary';
+
+/**
+ * Convert a base64 `modelData` data URL to a blob (object) URL the GLTF
+ * loader can fetch. Returns `undefined` for missing / non-base64 data URLs.
+ *
+ * Vue's `useModel3dScene` (`modelDataToBlobUrl`), Svelte's `render/
+ * model3d-view.ts`, and Vanilla's `render/elements/model3d.ts` each carried a
+ * byte-identical copy of this, built on core's `parseDataUrlToBytes`; this is
+ * the one copy. (React's own `Model3DRenderer.tsx` hand-decodes base64 itself
+ * rather than calling core's `parseDataUrlToBytes` and infers its MIME from
+ * the data URL instead of accepting a `mimeType` parameter - a behavioural
+ * difference for the binding wave to reconcile when repointing.)
+ */
+export function modelDataToBlobUrl(
+	dataUrl: string | undefined,
+	mimeType: string | undefined,
+): string | undefined {
+	if (!dataUrl) {
+		return undefined;
+	}
+	const parsed = parseDataUrlToBytes(dataUrl);
+	if (!parsed) {
+		return undefined;
+	}
+	// Copy into a fresh ArrayBuffer-backed view: `parseDataUrlToBytes` returns a
+	// `Uint8Array<ArrayBufferLike>`, which TS does not accept as a `BlobPart`
+	// (the backing buffer could in theory be a SharedArrayBuffer).
+	const bytes = new Uint8Array(parsed.bytes);
+	const blob = new Blob([bytes], { type: mimeType ?? DEFAULT_MODEL_MIME });
+	return URL.createObjectURL(blob);
+}
 
 /** Options for {@link mountModel3D}. */
 export interface Model3DSceneOptions {

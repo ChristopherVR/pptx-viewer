@@ -36,6 +36,31 @@ describe('buildBarChart3DData', () => {
 		expect(result!.grouping).toBe('clustered');
 	});
 
+	it('resolves each box shape from the series override, else the chart-level barShape', () => {
+		const data = makeBarData({
+			barShape: 'cylinder',
+			series: [
+				{ name: 'S1', values: [10, 20, 30] },
+				{ name: 'S2', values: [15, 5, 25], shape: 'cone' },
+			],
+		});
+		const result = buildBarChart3DData(data, data.categories, { width: 400, height: 300 })!;
+		const shapesBySeries = new Map<number, Set<string | undefined>>();
+		for (const box of result.boxes) {
+			const set = shapesBySeries.get(box.seriesIndex) ?? new Set();
+			set.add(box.shape);
+			shapesBySeries.set(box.seriesIndex, set);
+		}
+		expect([...shapesBySeries.get(0)!]).toStrictEqual(['cylinder']);
+		expect([...shapesBySeries.get(1)!]).toStrictEqual(['cone']);
+	});
+
+	it('leaves the box shape undefined when neither series nor chart declares one', () => {
+		const data = makeBarData();
+		const result = buildBarChart3DData(data, data.categories, { width: 400, height: 300 })!;
+		expect(result.boxes.every((box) => box.shape === undefined)).toBeTruthy();
+	});
+
 	it('gives every series its own Z (depth) position in clustered mode', () => {
 		const data = makeBarData();
 		const result = buildBarChart3DData(data, data.categories, { width: 400, height: 300 });

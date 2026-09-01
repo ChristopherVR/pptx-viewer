@@ -87,7 +87,15 @@ export function buildRadarViewModel(
 		});
 	}
 
-	// Per-series data polygons + vertex dots.
+	// Per-series data polygons + vertex dots. `c:radarStyle` (PowerPoint's own
+	// default is `marker`) decides the polygon fill and whether vertex markers
+	// are drawn: `filled` paints the enclosed area solid (PowerPoint's own
+	// ~60% opacity) with no markers; `standard` is an outline only, also with
+	// no markers; `marker` (the pre-existing behaviour, also the fallback for
+	// an absent/unrecognised value) draws a light fill plus vertex markers.
+	const radarStyle = chartData.radarStyle ?? 'marker',
+		polygonFill = radarStyle === 'standard' ? 'none' : undefined,
+		polygonOpacity = radarStyle === 'filled' ? 0.6 : radarStyle === 'standard' ? undefined : 0.2;
 	const dataLabels: SvgText[] = [];
 	chartData.series.forEach((series, si) => {
 		const c = seriesColor(series, si, chartData.colorPalette),
@@ -99,29 +107,31 @@ export function buildRadarViewModel(
 		primitives.push({
 			kind: 'polygon',
 			points: pointsStr,
-			fill: c,
-			opacity: 0.2,
+			fill: polygonFill ?? c,
+			opacity: polygonOpacity,
 			stroke: c,
 			strokeWidth: 1.5,
 			part: { role: 'series', seriesIndex: si },
 			title: series.name.length > 0 ? series.name : undefined,
 		} satisfies SvgPolygon);
-		pts.forEach((p, vi) => {
-			primitives.push({
-				kind: 'circle',
-				cx: p.x,
-				cy: p.y,
-				r: 3,
-				fill: c,
-				part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
-				title: buildMarkTooltip(
-					series.name,
-					categoryLabels[vi],
-					series.values[vi] ?? 0,
-					series.numberFormat,
-				),
-			} satisfies SvgCircle);
-		});
+		if (radarStyle === 'marker') {
+			pts.forEach((p, vi) => {
+				primitives.push({
+					kind: 'circle',
+					cx: p.x,
+					cy: p.y,
+					r: 3,
+					fill: c,
+					part: { role: 'dataPoint', seriesIndex: si, pointIndex: vi },
+					title: buildMarkTooltip(
+						series.name,
+						categoryLabels[vi],
+						series.values[vi] ?? 0,
+						series.numberFormat,
+					),
+				} satisfies SvgCircle);
+			});
+		}
 
 		if (chartData.style?.hasDataLabels) {
 			pts.forEach((p, vi) => {

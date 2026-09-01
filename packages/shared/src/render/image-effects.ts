@@ -1,6 +1,8 @@
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
+import { hexToRgbUnit } from './color-units';
+import { getImageCorrectionsFilterTokens, getImageSharpenFilter } from './image-effect-corrections';
 import { buildImageBiLevelTable, buildImageLuminanceTransfer } from './image-effect-filter-values';
 import {
 	getImageFillOverlayFilter,
@@ -61,19 +63,6 @@ function clamp(v: number, lo: number, hi: number): number {
 /** Normalize a radius value (0–100) to a 0–1 float for proportional scaling. */
 function normalizeRadius01(radius: number): number {
 	return clamp(radius / 100, 0, 1);
-}
-
-/** Parse a hex colour (`#RRGGBB` or `RRGGBB`) to normalised 0–1 RGB components. */
-function hexToRgbUnit(hex: string): { r: number; g: number; b: number } {
-	const clean = hex.replace(/^#/u, '');
-	const r = parseInt(clean.substring(0, 2), 16) / 255;
-	const g = parseInt(clean.substring(2, 4), 16) / 255;
-	const b = parseInt(clean.substring(4, 6), 16) / 255;
-	return {
-		r: Number.isFinite(r) ? r : 0,
-		g: Number.isFinite(g) ? g : 0,
-		b: Number.isFinite(b) ? b : 0,
-	};
 }
 
 /** Get the image effects off an element, or `undefined` for non-image elements. */
@@ -238,6 +227,14 @@ export function getImageFilterCss(
 	// Grayscale
 	if (effects.grayscale) {
 		filters.push('grayscale(100%)');
+	}
+	// PowerPoint 2010+ Corrections/Color panel (a14 extensions): distinct from,
+	// and additive with, the legacy a:blip bright/contrast/saturation above.
+	// See image-effect-corrections.ts for the precision and approximation notes.
+	filters.push(...getImageCorrectionsFilterTokens(effects));
+	const sharpenFilter = getImageSharpenFilter(effects, element.id);
+	if (sharpenFilter) {
+		filters.push(sharpenFilter.cssReference);
 	}
 	// Duotone: reference inline SVG filter (rendered by getImageSvgFilters).
 	if (effects.duotone && !options?.excludeDuotone) {
@@ -853,6 +850,11 @@ export function getImageSvgFilters(element: PptxElement): ImageSvgFilterDefiniti
 	const fillOverlay = getImageFillOverlayFilter(element);
 	if (fillOverlay) {
 		defs.push({ id: fillOverlay.id, markup: fillOverlay.filterMarkup });
+	}
+	const effects = getEffects(element);
+	const sharpen = effects && getImageSharpenFilter(effects, element.id);
+	if (sharpen) {
+		defs.push({ id: sharpen.id, markup: sharpen.filterMarkup });
 	}
 	return defs;
 }

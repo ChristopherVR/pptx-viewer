@@ -3570,6 +3570,83 @@ export const translationsEn: Record<string, string> = {
 	'pptx.transitionPresets.pageCurlSingle': 'Page Curl Single',
 	'pptx.transitionPresets.airplane': 'Airplane',
 	'pptx.transitionPresets.origami': 'Origami',
+
+	// Write-protection recommendation (presentation parity wave 2)
+	'pptx.readOnly.modifyVerifierRecommended':
+		'This presentation is password-protected. Opened read-only until the password is provided.',
+	'pptx.readOnly.markedFinal':
+		'This presentation was marked as final by its author. Opened read-only to discourage editing.',
+
+	// Compatibility warning toasts (presentation parity wave 2)
+	'pptx.compatibility.generic':
+		'This presentation contains a feature that may not be fully supported ({{code}}).',
+	'pptx.compatibility.unmodelledPresentationMarkup':
+		'Some presentation-level settings are preserved but not editable in this viewer.',
+	'pptx.compatibility.unmodelledSlideMarkup':
+		'Some slide-level settings are preserved but not editable in this viewer.',
+	'pptx.compatibility.unmodelledShapeProperty':
+		'Some shape properties are preserved but not editable in this viewer.',
+	'pptx.compatibility.unmodelledTextBodyMarkup':
+		'Some text formatting is preserved but not editable in this viewer.',
+	'pptx.compatibility.unmodelledBlipFillMarkup':
+		'Some picture fill settings are preserved but not editable in this viewer.',
+	'pptx.compatibility.unmodelledImageEffect':
+		'Some image effects are preserved but not rendered in this viewer.',
+	'pptx.compatibility.externalImageReference':
+		'This presentation links to an image outside the file, which may not load for other people.',
+	'pptx.compatibility.slideSynchronizationMetadata':
+		'This slide is linked to another presentation for synchronization; that link is preserved but not applied here.',
+	'pptx.compatibility.unsupportedAlternateContentChoice':
+		'This presentation uses a newer PowerPoint feature; a compatible fallback was used instead.',
+	'pptx.compatibility.groupDepthExceeded':
+		'A group of shapes is nested more deeply than this viewer supports and was flattened.',
+	'pptx.compatibility.saveNotesRelationshipMissing':
+		'Speaker notes could not be linked to this slide when saving.',
+	'pptx.compatibility.saveNotesPartMissing': 'Speaker notes could not be saved for this slide.',
+	'pptx.compatibility.saveNotesUpdateSkipped':
+		'Changes to speaker notes were not saved for this slide.',
+	'pptx.compatibility.chartExternalDataWritebackUnsupported':
+		'This chart uses external data that cannot be updated by this viewer.',
+	'pptx.compatibility.chartEmbeddedWorkbookMissing':
+		"This chart's embedded data workbook is missing, so its data could not be saved.",
+	'pptx.compatibility.chartEmbeddedWorkbookUnreadable':
+		"This chart's embedded data workbook could not be read, so its data could not be saved.",
+	'pptx.compatibility.chartEmbeddedWorkbookPartialWriteback':
+		"Only some of this chart's data changes could be saved to its embedded workbook.",
+	'pptx.compatibility.saveImagePayloadUnsupported':
+		'One image could not be saved in its original format and was skipped.',
+	'pptx.compatibility.saveMediaPayloadUnsupported':
+		'One audio or video clip could not be saved in its original format and was skipped.',
+	'pptx.compatibility.saveElementSkipped': 'One slide element could not be saved and was skipped.',
+	'pptx.compatibility.saveSignaturesStripped':
+		'This presentation had digital signatures, which are removed once the file is edited and saved.',
+	'pptx.compatibility.saveGroupChildSkipped':
+		'One shape inside a group could not be saved and was skipped.',
+	'pptx.compatibility.saveAnimationSoundPayloadUnsupported':
+		'One animation sound could not be saved and was skipped.',
+	'pptx.compatibility.saveBackgroundImageUnsupported':
+		'One slide background image could not be saved and was skipped.',
+	'pptx.compatibility.shapeIdDeduplicated':
+		'Two shapes shared the same internal id; one was reassigned automatically.',
+	'pptx.compatibility.saveTransitionSoundPayloadUnsupported':
+		'One slide transition sound could not be saved and was skipped.',
+	'pptx.compatibility.diagramRelationshipIdsIncomplete':
+		'This SmartArt diagram is missing some internal references, so it may not display exactly as authored.',
+	'pptx.compatibility.exportBackendUnavailable':
+		'Export to this format is not available in the current environment.',
+
+	// bar3D shape / radar style / surface wireframe pickers (chart subtypes wave 2)
+	'pptx.chart.bar3DShapeBox': 'Box',
+	'pptx.chart.bar3DShapeCylinder': 'Cylinder',
+	'pptx.chart.bar3DShapeFullPyramid': 'Full Pyramid',
+	'pptx.chart.bar3DShapePartialPyramid': 'Partial Pyramid',
+	'pptx.chart.bar3DShapeFullCone': 'Full Cone',
+	'pptx.chart.bar3DShapePartialCone': 'Partial Cone',
+	'pptx.chart.radarStyleStandard': 'Standard',
+	'pptx.chart.radarStyleMarker': 'Markers',
+	'pptx.chart.radarStyleFilled': 'Filled',
+	'pptx.chart.wireframeOn': 'Wireframe',
+	'pptx.chart.wireframeOff': 'Solid',
 };
 
 /**

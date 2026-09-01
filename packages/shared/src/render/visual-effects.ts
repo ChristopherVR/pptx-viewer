@@ -30,6 +30,7 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { getShapeType, isImageLikeElement } from 'pptx-viewer-core';
 
+import { hexToRgbUnit } from './color-units';
 import type { ReflectionWrapperStyle } from './reflection';
 import { getReflectionWrapperStyle } from './reflection';
 
@@ -748,19 +749,6 @@ export function getEffectDagFillOverlay(style: ShapeStyle | undefined): FillOver
 /** Stable SVG filter id for a DAG duotone effect on a given element. */
 export function getDuotoneFilterId(elementId: string): string {
 	return `dag-duotone-${elementId}`;
-}
-
-/** Parse a hex colour to normalised 0–1 RGB components (invalid → 0). */
-function hexToRgbUnit(hex: string): { r: number; g: number; b: number } {
-	const clean = hex.replace('#', '');
-	const r = Number.parseInt(clean.substring(0, 2), 16) / 255;
-	const g = Number.parseInt(clean.substring(2, 4), 16) / 255;
-	const b = Number.parseInt(clean.substring(4, 6), 16) / 255;
-	return {
-		r: Number.isFinite(r) ? r : 0,
-		g: Number.isFinite(g) ? g : 0,
-		b: Number.isFinite(b) ? b : 0,
-	};
 }
 
 /**

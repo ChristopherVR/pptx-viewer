@@ -6,13 +6,19 @@
  * for the binding's element-update path. Shared across React, Vue, and Angular.
  */
 
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PlaceholderDefaults, PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 const DEFAULT_FILL = '#ffffff';
 const DEFAULT_STROKE = '#000000';
 const DEFAULT_TEXT_COLOR = '#000000';
-const DEFAULT_FONT_SIZE = 12;
+/**
+ * PowerPoint's own presentation-level default text style (`p:defaultTextStyle
+ * /a:lvl1pPr/a:defRPr@sz`) is 1800 (18pt), so a shape with no explicit font
+ * size renders at 18pt in real PowerPoint, not 12pt. Kept as the last-resort
+ * fallback below the deck's actual default when {@link fontSizeOf} is given one.
+ */
+const DEFAULT_FONT_SIZE = 18;
 
 /**
  * Returns the fill colour of the element's shapeStyle, or a white default.
@@ -48,14 +54,19 @@ export function textColorOf(el: PptxElement): string {
 }
 
 /**
- * Returns the font size (in points) from the element's textStyle,
- * or DEFAULT_FONT_SIZE when absent.
+ * Returns the font size (in points) from the element's textStyle.
+ *
+ * Falls back, in order, to: the deck's presentation-level default text style
+ * (`p:defaultTextStyle`, passed as `presentationDefault` when the caller has
+ * one), then `DEFAULT_FONT_SIZE` (18pt, matching PowerPoint's own
+ * `a:lvl1pPr/a:defRPr@sz="1800"` when neither is available).
  */
-export function fontSizeOf(el: PptxElement): number {
-	if (hasTextProperties(el)) {
-		return el.textStyle?.fontSize ?? DEFAULT_FONT_SIZE;
+export function fontSizeOf(el: PptxElement, presentationDefault?: PlaceholderDefaults): number {
+	if (hasTextProperties(el) && el.textStyle?.fontSize !== undefined) {
+		return el.textStyle.fontSize;
 	}
-	return DEFAULT_FONT_SIZE;
+	const deckDefault = presentationDefault?.levelStyles?.[0]?.fontSize;
+	return deckDefault ?? DEFAULT_FONT_SIZE;
 }
 
 /** Returns whether the element's text is bold (false when absent). */

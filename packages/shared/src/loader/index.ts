@@ -12,3 +12,9 @@ export {
 	collectTableStyleImagePaths,
 	applyTableStyleImagePatches,
 } from './table-style-image-paths';
+
+// small helper extractions (wave 2)
+export type { ElementPatcher } from './element-patch-walker';
+export { walkAndPatchElements, applyImagePathPatches } from './element-patch-walker';
+export type { GetImageData } from './lazy-image-resolution';
+export { resolveTableCellImageUrls, resolveTableStyleImageUrls } from './lazy-image-resolution';

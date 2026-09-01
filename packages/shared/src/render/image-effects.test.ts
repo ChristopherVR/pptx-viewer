@@ -310,3 +310,38 @@ describe('getComputedImageStyle', () => {
 		expect(style.opacity).toBe(0.4);
 	});
 });
+
+describe('a14 corrections wiring (sharpenSoften/brightnessContrast/colorTemperature/colorSaturation)', () => {
+	it('appends brightness/contrast/saturation correction tokens to the CSS filter', () => {
+		const css = getImageFilterCss(
+			image({ brightnessContrast: { bright: 50000 }, colorSaturation: { sat: 200000 } }),
+		);
+		expect(css).toBe('brightness(1.5) saturate(2)');
+	});
+
+	it('combines with legacy a:blip bright/contrast without dropping either', () => {
+		const css = getImageFilterCss(image({ brightness: 20, brightnessContrast: { bright: 10000 } }));
+		expect(css).toBe('brightness(1.2) brightness(1.1)');
+	});
+
+	it('appends a blur() token for a negative sharpenSoften amount', () => {
+		const css = getImageFilterCss(image({ sharpenSoften: { amount: -100000 } }));
+		expect(css).toBe('blur(3.00px)');
+	});
+
+	it('references an SVG sharpen filter for a positive sharpenSoften amount', () => {
+		const el = image({ sharpenSoften: { amount: 80000 } });
+		const css = getImageFilterCss(el);
+		expect(css).toBe('url(#sharpen-img1)');
+		const svgFilters = getImageSvgFilters(el);
+		expect(svgFilters).toHaveLength(1);
+		expect(svgFilters[0].id).toBe('sharpen-img1');
+		expect(svgFilters[0].markup).toContain('feConvolveMatrix');
+	});
+
+	it('getComputedImageStyle surfaces the sharpen SVG filter def', () => {
+		const style = getComputedImageStyle(image({ sharpenSoften: { amount: 50000 } }));
+		expect(style.filter).toBe('url(#sharpen-img1)');
+		expect(style.svgFilters).toHaveLength(1);
+	});
+});

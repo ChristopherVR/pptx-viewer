@@ -17,6 +17,12 @@ export interface TableInspectorState {
 	firstRowHeader: boolean;
 	bandedRows: boolean;
 	bandedColumns: boolean;
+	/** `a:tblPr/@firstCol`: emphasise the first column (per the table style). */
+	firstCol: boolean;
+	/** `a:tblPr/@lastCol`: emphasise the last column (per the table style). */
+	lastCol: boolean;
+	/** `a:tblPr/@lastRow`: emphasise the last (total) row (per the table style). */
+	lastRow: boolean;
 	/** Uniform cell padding in px, read from the first cell (0 when unset/mixed). */
 	cellPadding: number;
 }
@@ -24,13 +30,24 @@ export interface TableInspectorState {
 /** Read table-level flags off a table element (all false/0 for non-table elements). */
 export function tableInspectorStateOf(el: PptxElement): TableInspectorState {
 	if (el.type !== 'table' || !el.tableData) {
-		return { firstRowHeader: false, bandedRows: false, bandedColumns: false, cellPadding: 0 };
+		return {
+			firstRowHeader: false,
+			bandedRows: false,
+			bandedColumns: false,
+			firstCol: false,
+			lastCol: false,
+			lastRow: false,
+			cellPadding: 0,
+		};
 	}
 	const data = el.tableData;
 	return {
 		firstRowHeader: data.firstRowHeader ?? false,
 		bandedRows: data.bandedRows ?? false,
 		bandedColumns: data.bandedColumns ?? false,
+		firstCol: data.firstCol ?? false,
+		lastCol: data.lastCol ?? false,
+		lastRow: data.lastRow ?? false,
 		cellPadding: firstCellPadding(data),
 	};
 }
@@ -40,9 +57,12 @@ function firstCellPadding(data: PptxTableData): number {
 	return firstCell?.style?.marginLeft ?? 0;
 }
 
-/** Changes to apply to the table-level flags (header row / banded rows / columns). */
+/** Changes to apply to the table-level flags (header row / banded rows / columns / first-last emphasis). */
 export type TableInspectorChanges = Partial<
-	Pick<PptxTableData, 'firstRowHeader' | 'bandedRows' | 'bandedColumns'>
+	Pick<
+		PptxTableData,
+		'firstRowHeader' | 'bandedRows' | 'bandedColumns' | 'firstCol' | 'lastCol' | 'lastRow'
+	>
 >;
 
 /**

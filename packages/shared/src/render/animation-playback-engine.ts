@@ -1,0 +1,275 @@
+/**
+ * `animation-playback-engine`: the framework-light clock + DOM glue that drives
+ * a {@link PresentationAnimationController}-shaped clock (see
+ * {@link PlaybackAnimationController}) during a running slide show. Extracted
+ * from four near-identical copies (Vue `composables/animation-playback-helpers`,
+ * Angular `viewer/presentation-playback-helpers`, Svelte
+ * `presentation/animation-playback-helpers`, VanillaJS
+ * `animation/animation-playback-helpers`) that had all been hand-ported from the
+ * React binding's `presentation-mode/animation-helpers` + `build-playback`.
+ *
+ * The controller itself is pure (no DOM, no timers, no RAF) and lives in
+ * {@link module:render/presentation-animation-controller}. This module owns:
+ *  - applying a click-group's steps (visibility, CSS animation, sound, media
+ *    command) onto a `Map<elementId, ElementAnimationState>`;
+ *  - the requestAnimationFrame loop that ramps a staged chart / SmartArt build's
+ *    `progress` 0 -> 1 (`p:bldChart` / `p:bldDgm`);
+ *  - the auto-advance chain for consecutive withPrevious / afterPrevious groups.
+ *
+ * Only `window.setTimeout` / `requestAnimationFrame` / `cancelAnimationFrame` /
+ * `performance.now` (all present in jsdom) and DOM lookups scoped through the
+ * caller-supplied {@link PlaybackContext.frameRoot} are touched, so this stays
+ * unit-testable outside a browser. Actual `Audio` playback is NOT touched here:
+ * a binding wires its local sound helper in as {@link PlaybackContext.playSound}
+ * / {@link PlaybackContext.stopSound} (an optional {@link PlaybackContext.onPlayActionSound}
+ * host override takes priority over `playSound` when set, matching the
+ * pre-extraction behaviour of `ctx.onPlayActionSound ?? playAnimationSound`).
+ *
+ * React's `presentation-mode/animation-helpers.ts` additionally implements a
+ * "seek" nuance this module intentionally does NOT include yet: a second
+ * advance while a `p:seq/@nextAc="seek"` group is still mid-flight fast-forwards
+ * it to its authored end state (`shouldSeekAnimationGroup`,
+ * `finishDomAnimationsForGroup`, `finishAnimationGroupSteps`) instead of playing
+ * the next group. Only React has this; Vue/Angular/Svelte/Vanilla currently just
+ * advance immediately regardless of `seqNextAction`. See the extraction report
+ * for how a later wave can port that nuance in here too.
+ *
+ * @module render/animation-playback-engine
+ */
+
+import { executeMediaCommandInDom } from './animation-media-playback';
+import type { ElementAnimationState, TimelineClickGroup } from './animation-timeline-types';
+import { PresentationAnimationController } from './presentation-animation-controller';
+import type { PresentationStatesOptions } from './presentation-animation-controller';
+
+/** Updater over the element-state map (React `setState`-compatible signature). */
+export type StatesSetter = (
+	updater: (prev: Map<string, ElementAnimationState>) => Map<string, ElementAnimationState>,
+) => void;
+
+/** Mutable handle holding the in-flight `requestAnimationFrame` id (or null). */
+export interface BuildRafHandle {
+	current: number | null;
+}
+
+/**
+ * The subset of {@link PresentationAnimationController} this engine needs to
+ * drive playback. A real controller instance satisfies this structurally, so a
+ * binding passes it through unchanged; tests can pass a plain stub instead of
+ * constructing a full controller from a slide.
+ */
+export interface PlaybackAnimationController {
+	shouldAutoAdvance(): boolean;
+	getAutoAdvanceDelay(): number;
+	peekNext(): TimelineClickGroup | null;
+	advance(nowMs?: number): TimelineClickGroup | null;
+	computeStatesFor(
+		elementIds: readonly string[],
+		options?: PresentationStatesOptions,
+	): Map<string, ElementAnimationState>;
+}
+
+/** Everything the step / build / auto-advance helpers need from the host. */
+export interface PlaybackContext {
+	setStates: StatesSetter;
+	/** Timer ids collected here so the host can clear them on slide change. */
+	timers: number[];
+	buildHandle: BuildRafHandle;
+	/** Host-provided action-sound player; takes priority over `playSound`. */
+	onPlayActionSound?: (soundPath: string) => void;
+	/** The binding's local action-sound player, used when no host override is set. */
+	playSound: (soundPath: string) => void;
+	/** Stops any in-progress action/animation sound. */
+	stopSound: () => void;
+	/** Root element to scope media-command target lookups to (the slide stage). */
+	frameRoot?: () => HTMLElement | null;
+}
+
+// ---------------------------------------------------------------------------
+// Click-group step application
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply a click-group's steps onto the element-state map: fire sound / media
+ * commands, set each step's initial visibility + CSS animation, then schedule
+ * cleanup timers to clear the animation (and hide exits) once each step ends.
+ */
+export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: PlaybackContext): void {
+	// Sound + media-playback side effects.
+	for (const step of group.steps) {
+		if (step.command) {
+			const command = step.command;
+			const timer = window.setTimeout(
+				() => {
+					executeMediaCommandInDom(command, ctx.frameRoot);
+				},
+				Math.max(0, step.delayMs),
+			);
+			ctx.timers.push(timer);
+			continue;
+		}
+		if (step.stopSound) {
+			ctx.stopSound();
+		} else if (step.soundPath) {
+			(ctx.onPlayActionSound ?? ctx.playSound)(step.soundPath);
+		}
+	}
+
+	// Initial CSS-animation / visibility state. A `p:animClr` step also surfaces
+	// its fill / stroke colour targets so the vector / connector renderers
+	// relinquish their static paint (`inherit`) and the wrapper's colour keyframes
+	// cascade in for the duration of the step.
+	ctx.setStates((previous) => {
+		const next = new Map(previous);
+		for (const step of group.steps) {
+			if (step.command) {
+				continue;
+			}
+			const current = next.get(step.elementId) ?? { visible: true, cssAnimation: undefined };
+			const shouldBeVisible = step.presetClass === 'exit' ? current.visible : true;
+			next.set(step.elementId, {
+				visible: shouldBeVisible,
+				cssAnimation: step.cssAnimation,
+				animatesFill: step.colorTargets?.includes('fill') ? true : undefined,
+				animatesStroke: step.colorTargets?.includes('stroke') ? true : undefined,
+			});
+		}
+		return next;
+	});
+
+	// Cleanup after each step completes: clear the animation, hide finished exits,
+	// and drop the colour-target flags so the static paint is restored.
+	for (const step of group.steps) {
+		if (step.command) {
+			continue;
+		}
+		const timer = window.setTimeout(
+			() => {
+				ctx.setStates((previous) => {
+					const next = new Map(previous);
+					const current = next.get(step.elementId) ?? { visible: true, cssAnimation: undefined };
+					// `afterAnimation: "hideAfterAnimation"` hides the element once its
+					// (entrance/emphasis) effect ends, overriding normal visibility.
+					const visibleAfter =
+						step.presetClass === 'exit' || step.hideAfterEffect ? false : current.visible;
+					// `p:cTn/@fill="hold"`/`"freeze"`: keep the CSS animation attached so
+					// its final frame persists instead of reverting on cleanup.
+					next.set(step.elementId, {
+						visible: visibleAfter,
+						cssAnimation: step.holdEndState ? step.cssAnimation : undefined,
+					});
+					return next;
+				});
+			},
+			Math.max(0, step.delayMs + step.durationMs + 8),
+		);
+		ctx.timers.push(timer);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Staged chart / SmartArt build reveal (RAF-driven)
+// ---------------------------------------------------------------------------
+
+/** Cancel any in-flight build RAF and clear the handle. */
+export function cancelBuildReveal(handle: BuildRafHandle): void {
+	if (handle.current !== null && typeof cancelAnimationFrame === 'function') {
+		cancelAnimationFrame(handle.current);
+	}
+	handle.current = null;
+}
+
+/**
+ * Ramp a click-group's staged-build `progress` from 0 -> 1 via
+ * requestAnimationFrame, merging each build element's `build` descriptor onto the
+ * element states each frame. No-op when the group carries no build step, so
+ * ordinary click-advance is unchanged.
+ */
+export function driveBuildReveal(
+	controller: PlaybackAnimationController,
+	group: TimelineClickGroup,
+	ctx: PlaybackContext,
+): void {
+	cancelBuildReveal(ctx.buildHandle);
+	const buildIds = PresentationAnimationController.collectBuildStepIds(group);
+	if (buildIds.length === 0 || typeof requestAnimationFrame !== 'function') {
+		return;
+	}
+
+	const start = performance.now();
+	const tick = (): void => {
+		const elapsedMs = performance.now() - start;
+		const states = controller.computeStatesFor(buildIds, { elapsedMs });
+
+		ctx.setStates((previous) => {
+			const next = new Map(previous);
+			for (const id of buildIds) {
+				const build = states.get(id)?.build;
+				if (!build) {
+					continue;
+				}
+				const existing = next.get(id) ?? { visible: true, cssAnimation: undefined };
+				next.set(id, { ...existing, build });
+			}
+			return next;
+		});
+
+		let pending = false;
+		for (const id of buildIds) {
+			const build = states.get(id)?.build;
+			if (build && build.progress < 1) {
+				pending = true;
+				break;
+			}
+		}
+		ctx.buildHandle.current = pending ? requestAnimationFrame(tick) : null;
+	};
+
+	// Seed synchronously (progress ~0) so the graphic never flashes fully built.
+	tick();
+}
+
+// ---------------------------------------------------------------------------
+// Play a group + auto-advance chaining
+// ---------------------------------------------------------------------------
+
+/** Apply a group's steps and start its staged-build reveal (if any). */
+export function playGroup(
+	controller: PlaybackAnimationController,
+	group: TimelineClickGroup,
+	ctx: PlaybackContext,
+): void {
+	applyAnimationGroupSteps(group, ctx);
+	driveBuildReveal(controller, group, ctx);
+}
+
+/**
+ * After a click-group plays, schedule the next group when it should auto-advance
+ * (withPrevious / afterPrevious), chaining through consecutive auto-advance
+ * groups.
+ */
+export function scheduleAutoAdvanceChain(
+	controller: PlaybackAnimationController,
+	ctx: PlaybackContext,
+): void {
+	if (!controller.shouldAutoAdvance()) {
+		return;
+	}
+	const previousGroup = controller.peekNext();
+	if (!previousGroup) {
+		return;
+	}
+	const totalDelay = controller.getAutoAdvanceDelay() + (previousGroup.autoAdvanceDelayMs ?? 0);
+	const timer = window.setTimeout(
+		() => {
+			const group = controller.advance();
+			if (!group) {
+				return;
+			}
+			playGroup(controller, group, ctx);
+			scheduleAutoAdvanceChain(controller, ctx);
+		},
+		Math.max(0, totalDelay),
+	);
+	ctx.timers.push(timer);
+}

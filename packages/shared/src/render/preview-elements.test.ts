@@ -1,7 +1,14 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { buildPreviewElements, DEFAULT_PREVIEW_ELEMENT_CAP } from './preview-elements';
+import {
+	buildPreviewElements,
+	buildSmartArtPreviewElement,
+	DEFAULT_PREVIEW_ELEMENT_CAP,
+	SMARTART_PREVIEW_ELEMENT_HEIGHT,
+	SMARTART_PREVIEW_ELEMENT_WIDTH,
+	SMARTART_PREVIEW_FALLBACK_ITEMS,
+} from './preview-elements';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -64,5 +71,41 @@ describe('buildPreviewElements', () => {
 	it('treats cap <= 0 as unlimited', () => {
 		const owned = Array.from({ length: 700 }, (_, i) => makeElement(`s${i}`));
 		expect(buildPreviewElements(makeSlide(owned), [], { cap: 0 })).toHaveLength(700);
+	});
+});
+
+// ===========================================================================
+// buildSmartArtPreviewElement
+// ===========================================================================
+
+describe('buildSmartArtPreviewElement', () => {
+	it('builds the same id scheme, box and type every binding gallery uses', () => {
+		const el = buildSmartArtPreviewElement('basicBlockList');
+		expect(el.id).toBe('smartart-preview-basicBlockList');
+		expect(el.type).toBe('smartArt');
+		expect(el.x).toBe(0);
+		expect(el.y).toBe(0);
+		expect(el.width).toBe(SMARTART_PREVIEW_ELEMENT_WIDTH);
+		expect(el.height).toBe(SMARTART_PREVIEW_ELEMENT_HEIGHT);
+		expect(el.smartArtData).toBeDefined();
+	});
+
+	it("uses the layout's preset default items when none are supplied", () => {
+		// basicBlockList's preset ships ['Item 1', 'Item 2', 'Item 3'].
+		const el = buildSmartArtPreviewElement('basicBlockList');
+		const nodeTexts = el.smartArtData?.nodes?.map((n) => n.text);
+		expect(nodeTexts).toStrictEqual(['Item 1', 'Item 2', 'Item 3']);
+	});
+
+	it('honours explicitly supplied default items over the preset lookup', () => {
+		const el = buildSmartArtPreviewElement('basicBlockList', ['A', 'B']);
+		const nodeTexts = el.smartArtData?.nodes?.map((n) => n.text);
+		expect(nodeTexts).toStrictEqual(['A', 'B']);
+	});
+
+	it('falls back to the generic 1/2/3 items for an unknown layout', () => {
+		const el = buildSmartArtPreviewElement('does-not-exist' as never);
+		const nodeTexts = el.smartArtData?.nodes?.map((n) => n.text);
+		expect(nodeTexts).toStrictEqual([...SMARTART_PREVIEW_FALLBACK_ITEMS]);
 	});
 });

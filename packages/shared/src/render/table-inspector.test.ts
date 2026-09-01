@@ -45,6 +45,9 @@ describe('tableInspectorStateOf', () => {
 			firstRowHeader: false,
 			bandedRows: false,
 			bandedColumns: false,
+			firstCol: false,
+			lastCol: false,
+			lastRow: false,
 			cellPadding: 0,
 		});
 	});
@@ -53,12 +56,18 @@ describe('tableInspectorStateOf', () => {
 		const data = tableData({
 			firstRowHeader: true,
 			bandedRows: true,
+			firstCol: true,
+			lastCol: true,
+			lastRow: true,
 			rows: [{ cells: [{ text: 'A', style: { marginLeft: 8 } }] }],
 		});
 		expect(tableInspectorStateOf(table(data))).toStrictEqual({
 			firstRowHeader: true,
 			bandedRows: true,
 			bandedColumns: false,
+			firstCol: true,
+			lastCol: true,
+			lastRow: true,
 			cellPadding: 8,
 		});
 	});
@@ -68,6 +77,9 @@ describe('tableInspectorStateOf', () => {
 			firstRowHeader: false,
 			bandedRows: false,
 			bandedColumns: false,
+			firstCol: false,
+			lastCol: false,
+			lastRow: false,
 			cellPadding: 0,
 		});
 	});
@@ -86,6 +98,18 @@ describe('tableInspectorPatch', () => {
 
 	it('is a no-op for non-table elements', () => {
 		expect(tableInspectorPatch(shape(), { firstRowHeader: true })).toStrictEqual({});
+	});
+
+	it('merges the first-column / last-column / last-row emphasis flags', () => {
+		const data = tableData();
+		const patch = tableInspectorPatch(table(data), {
+			firstCol: true,
+			lastCol: true,
+			lastRow: true,
+		});
+		expect(patch).toStrictEqual({
+			tableData: { ...data, firstCol: true, lastCol: true, lastRow: true },
+		});
 	});
 });
 

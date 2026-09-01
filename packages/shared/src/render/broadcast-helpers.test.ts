@@ -10,6 +10,8 @@ import {
 	DEFAULT_BROADCAST_SERVER_URL,
 	buildBroadcastConfig,
 	buildBroadcastViewerUrl,
+	buildQueryLinkUrl,
+	buildShareUrl,
 	canStartBroadcast,
 	canUseClipboard,
 	generateBroadcastRoomId,
@@ -108,6 +110,48 @@ describe('buildBroadcastViewerUrl', () => {
 
 	it('falls back to the room id without a location', () => {
 		expect(buildBroadcastViewerUrl('room-1', 'ws://x')).toBe('room-1');
+	});
+});
+
+describe('buildQueryLinkUrl', () => {
+	it('builds a ?<paramName>=&server= link from a location', () => {
+		const url = buildQueryLinkUrl(
+			'room-1',
+			'ws://x',
+			{ origin: 'https://app.test', pathname: '/' },
+			'foo',
+		);
+		expect(url).toBe('https://app.test/?foo=room-1&server=ws%3A%2F%2Fx');
+	});
+
+	it('builds a ?<paramName>=&transport=webrtc link when the server URL is blank', () => {
+		const url = buildQueryLinkUrl(
+			'room-1',
+			'  ',
+			{ origin: 'https://app.test', pathname: '/' },
+			'foo',
+		);
+		expect(url).toBe('https://app.test/?foo=room-1&transport=webrtc');
+	});
+
+	it('falls back to the id without a location', () => {
+		expect(buildQueryLinkUrl('room-1', 'ws://x', undefined, 'foo')).toBe('room-1');
+	});
+});
+
+describe('buildShareUrl', () => {
+	it('builds a ?room=&server= link (Angular Share dialog shape)', () => {
+		const url = buildShareUrl('room-1', 'ws://x', { origin: 'https://app.test', pathname: '/' });
+		expect(url).toBe('https://app.test/?room=room-1&server=ws%3A%2F%2Fx');
+	});
+
+	it('builds a ?room=&transport=webrtc link when the server URL is blank', () => {
+		const url = buildShareUrl('room-1', '  ', { origin: 'https://app.test', pathname: '/' });
+		expect(url).toBe('https://app.test/?room=room-1&transport=webrtc');
+	});
+
+	it('falls back to the room id without a location', () => {
+		expect(buildShareUrl('room-1', 'ws://x')).toBe('room-1');
 	});
 });
 

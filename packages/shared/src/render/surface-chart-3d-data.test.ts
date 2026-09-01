@@ -77,7 +77,7 @@ describe('buildSurfaceChart3DData', () => {
 		expect(result!.height).toBe(480);
 	});
 
-	it('honours an explicit wireframe: false', () => {
+	it('honours an explicit options.wireframe: false', () => {
 		const data = makeSurfaceData(2, 2);
 		const result = buildSurfaceChart3DData(data, data.categories, {
 			width: 400,
@@ -85,6 +85,22 @@ describe('buildSurfaceChart3DData', () => {
 			wireframe: false,
 		});
 		expect(result!.wireframe).toBeFalsy();
+	});
+
+	it('honours the authored chartData.wireframe when options.wireframe is not set', () => {
+		const data = { ...makeSurfaceData(2, 2), wireframe: false };
+		const result = buildSurfaceChart3DData(data, data.categories, { width: 400, height: 300 });
+		expect(result!.wireframe).toBeFalsy();
+	});
+
+	it('an explicit options.wireframe overrides an authored chartData.wireframe', () => {
+		const data = { ...makeSurfaceData(2, 2), wireframe: false };
+		const result = buildSurfaceChart3DData(data, data.categories, {
+			width: 400,
+			height: 300,
+			wireframe: true,
+		});
+		expect(result!.wireframe).toBeTruthy();
 	});
 
 	it('carries each series name through as the series axis label', () => {

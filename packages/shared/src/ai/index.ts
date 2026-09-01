@@ -95,6 +95,33 @@ export { createChatHistoryStore } from './chat-history-store';
 export type { PptxAiChatStore, PptxAiChatSummary, PptxAiStoredChat } from './chat-history-store';
 
 export {
+	buildChatLogExport,
+	buildChatLogMarkdown,
+	collectStoredChats,
+	exportAiChatLogs,
+	toLogChat,
+	toolCallLine,
+} from './chat-log-export';
+export type {
+	AiLogChat,
+	AiLogExport,
+	AiLogFormat,
+	AiLogMessage,
+	AiLogToolCall,
+	BuildChatLogOptions,
+	ExportAiChatLogsMeta,
+	SaveChatLogFile,
+} from './chat-log-export';
+
+export {
+	computeFocusTargets,
+	focusTargetChips,
+	isTwoTableFocus,
+	mergeTablesDirective,
+} from './focus-targets';
+export type { AiCanvasHighlight, FocusChip, FocusSelectionInput } from './focus-targets';
+
+export {
 	createAiChatHistoryController,
 	deckIdFromBridge,
 	deriveChatTitle,

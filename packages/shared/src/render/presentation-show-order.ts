@@ -103,13 +103,24 @@ function resolveCustomShowIndexes(
 export function resolveShowSlideIndexes(
 	slides: readonly ShowOrderSlide[],
 	activeCustomShow?: ShowOrderCustomShow | null,
+	authoredRange?: AuthoredSlideRange | null,
 ): number[] {
 	const all: number[] = [];
 	for (let index = 0; index < slides.length; index++) {
 		all.push(index);
 	}
 	const base = activeCustomShow ? resolveCustomShowIndexes(slides, activeCustomShow) : all;
-	const effectiveBase = base.length > 0 ? base : all;
+	// The `p:showPr/p:sldRg` custom range restricts which slides play, exactly
+	// like a custom show's membership does. It is filtered in ADDITION to a
+	// custom show (PowerPoint lets an author combine "Custom show" selection
+	// with... in practice the UI only offers one at a time, but nothing stops a
+	// hand-edited file from carrying both, and the range is authored intent
+	// either way), falling back to the unfiltered base when it would leave
+	// nothing to present.
+	const rangeFiltered = authoredRange
+		? base.filter((index) => index >= authoredRange.fromIndex && index <= authoredRange.toIndex)
+		: base;
+	const effectiveBase = rangeFiltered.length > 0 ? rangeFiltered : base.length > 0 ? base : all;
 	const visible = effectiveBase.filter((index) => !slides[index]?.hidden);
 	return visible.length > 0 ? visible : effectiveBase;
 }
@@ -225,6 +236,18 @@ export function nextPresentedSlide<T extends ShowOrderSlide>(
 export interface ShowSlidesSelection {
 	readonly showSlidesMode?: 'all' | 'customShow' | 'range';
 	readonly showSlidesCustomShowId?: string;
+	/** `p:showPr/p:sldRg/@st`: range start, 1-based, when `showSlidesMode === 'range'`. */
+	readonly showSlidesFrom?: number;
+	/** `p:showPr/p:sldRg/@end`: range end, 1-based, when `showSlidesMode === 'range'`. */
+	readonly showSlidesTo?: number;
+}
+
+/** A `p:showPr/p:sldRg` custom range, resolved to 0-based deck indexes. */
+export interface AuthoredSlideRange {
+	/** First slide of the range, 0-based, inclusive. */
+	readonly fromIndex: number;
+	/** Last slide of the range, 0-based, inclusive. */
+	readonly toIndex: number;
 }
 
 /** A custom show, as far as selecting one by id is concerned. */
@@ -257,6 +280,43 @@ export function resolveAuthoredCustomShowId(
 		return undefined;
 	}
 	return customShows?.some((show) => show.id === id) ? id : undefined;
+}
+
+/**
+ * The custom slide range (`p:showPr/p:sldRg`) a deck is authored to open
+ * into, resolved and clamped to 0-based deck indexes, or `undefined` when the
+ * deck is not in `'range'` mode or the range is unusable.
+ *
+ * `st`/`end` are 1-based in the file (`p:sldRg/@st="2" @end="5"` means slides
+ * 2 through 5), matching every other 1-based OOXML slide reference. A range
+ * whose bounds fall outside the deck (the file was edited after slides were
+ * deleted) is clamped rather than dropped, and a reversed range (`st > end`,
+ * which the schema permits) is normalised the same way PowerPoint reads it:
+ * by its lower and upper bound, not by authoring order.
+ */
+export function resolveAuthoredSlideRange(
+	selection: ShowSlidesSelection | undefined,
+	slideCount: number,
+): AuthoredSlideRange | undefined {
+	if (!selection || selection.showSlidesMode !== 'range' || slideCount <= 0) {
+		return undefined;
+	}
+	const { showSlidesFrom: from, showSlidesTo: to } = selection;
+	if (
+		typeof from !== 'number' ||
+		typeof to !== 'number' ||
+		!Number.isFinite(from) ||
+		!Number.isFinite(to)
+	) {
+		return undefined;
+	}
+	const clamp = (value: number): number => Math.min(Math.max(Math.round(value), 1), slideCount);
+	const clampedFrom = clamp(from);
+	const clampedTo = clamp(to);
+	return {
+		fromIndex: Math.min(clampedFrom, clampedTo) - 1,
+		toIndex: Math.max(clampedFrom, clampedTo) - 1,
+	};
 }
 
 /** The show's first slide (PowerPoint's Home key), or `undefined` when empty. */
