@@ -34,6 +34,7 @@ import {
 	readStoredViewerPrefs,
 	reflowSmartArtData,
 	resolveAudienceScreenPlacement,
+	resolveGoogleWebfontHref,
 	shouldCommitSmartArtNodeText,
 	stepPresenterZoom,
 	storePresentationDeck,
@@ -119,6 +120,7 @@ import type { ViewerControls } from './viewer-controls';
 import { createViewerControls } from './viewer-controls';
 import type { ViewerOptionsController } from './viewer-options-controller';
 import { createViewerOptionsController } from './viewer-options-controller';
+import { removeGoogleWebfontsLink, syncGoogleWebfontsLink } from './webfonts';
 
 /**
  * The zero-framework PowerPoint viewer. Construct via {@link createPptxViewer}:
@@ -165,6 +167,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private userFontsStyle: HTMLStyleElement | null = null;
 	private signatureWarningAcknowledged = false;
 	private detachSignatureWarning: (() => void) | null = null;
+	/** Tags in-flight webfont probes; only the newest deck may apply its result. */
+	private webfontsToken = 0;
 	private annotations!: PresentationAnnotationsHost;
 	private parityWorkflows!: ParityWorkflows;
 	private aiChat: AiChatMount | null = null;
@@ -496,6 +500,25 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				this.signatureWarningAcknowledged = true;
 				openSignatureStrippedDialog(this.doc, this.t, state.digitalSignatureCount);
 			}
+		});
+		// Fetch Google-served webfonts for referenced families that are neither
+		// installed nor embedded (Microsoft 365 "cloud fonts" have no browser
+		// equivalent); re-evaluated only when the inputs actually change, since
+		// resolving walks every text segment of the deck. The probe is
+		// session-cached and asynchronous, so each run is tagged and a
+		// superseded deck's late result never applies.
+		this.store.subscribe((state, previous) => {
+			if (state.slides === previous.slides && state.embeddedFonts === previous.embeddedFonts) {
+				return;
+			}
+			const token = ++this.webfontsToken;
+			void resolveGoogleWebfontHref(state.slides, state.embeddedFonts).then((href) => {
+				if (token !== this.webfontsToken) {
+					return null;
+				}
+				syncGoogleWebfontsLink(this.doc, href);
+				return href;
+			});
 		});
 		this.sessions = createSessionControllers({
 			doc: this.doc,
@@ -1614,6 +1637,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.annotations.dispose();
 		this.exporter.destroy();
 		this.userFontsStyle?.remove();
+		this.webfontsToken++;
+		removeGoogleWebfontsLink(this.doc);
 		unmountChrome(this.lifecycle, () => this.editor?.detachChrome());
 		this.loading.releaseLoaded();
 	}
