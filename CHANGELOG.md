@@ -8,6 +8,31 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-01
+
+_Releases: pptx-viewer-core@3.1.3, pptx-react-viewer@3.1.5, pptx-vue-viewer@3.1.5, pptx-angular-viewer@3.2.3, pptx-vanilla-viewer@2.1.5, pptx-svelte-viewer@3.2.3_
+
+### Bug Fixes
+
+- **vue:** Stop the Tailwind CLI build step from deleting every scoped SFC style (by @ChristopherVR) ([cc5e2eb](https://github.com/ChristopherVR/pptx-viewer/commit/cc5e2eb1064c362d2fc00e3c47b0cf3a99f47cf1))
+- **ci:** Repair three sources of e2e flake unrelated to any one binding (by @ChristopherVR) ([18542c4](https://github.com/ChristopherVR/pptx-viewer/commit/18542c453ad3d809ebfcc0d55fae2c9e58828be0))
+
+### Dependencies
+
+- **deps:** Update vue-i18n requirement from ^11.4.8 to ^11.4.10 ([#188](https://github.com/ChristopherVR/pptx-viewer/issues/188)) (by @dependabot[bot]) ([175d0ae](https://github.com/ChristopherVR/pptx-viewer/commit/175d0ae5e28bc8bf1794b26eab374a149e6ea863))
+- **deps:** Update @vitejs/plugin-react requirement ([#191](https://github.com/ChristopherVR/pptx-viewer/issues/191)) (by @dependabot[bot]) ([3be9c13](https://github.com/ChristopherVR/pptx-viewer/commit/3be9c13954808cc4a1d7881d5fa17dc991c40dd0))
+- **deps:** Bump @lucide/svelte from 1.37.0 to 1.34.0 ([#192](https://github.com/ChristopherVR/pptx-viewer/issues/192)) (by @dependabot[bot]) ([351c48f](https://github.com/ChristopherVR/pptx-viewer/commit/351c48f954cf88fa2f1c1202bda5083e9f0e5da4))
+- **deps:** Update @angular/platform-browser-dynamic requirement ([#193](https://github.com/ChristopherVR/pptx-viewer/issues/193)) (by @dependabot[bot]) ([0f22aff](https://github.com/ChristopherVR/pptx-viewer/commit/0f22affc8921a1f5b6e7594512cf288c5be555ed))
+- **deps:** Bump @lucide/angular from 1.37.0 to 1.34.0 ([#194](https://github.com/ChristopherVR/pptx-viewer/issues/194)) (by @dependabot[bot]) ([8caa6af](https://github.com/ChristopherVR/pptx-viewer/commit/8caa6af2d9e9ac3b0f0d011f9803da6f0f510202))
+- **deps:** Bump lucide from 1.37.0 to 1.34.0 ([#195](https://github.com/ChristopherVR/pptx-viewer/issues/195)) (by @dependabot[bot]) ([03ef290](https://github.com/ChristopherVR/pptx-viewer/commit/03ef290f4255a4970696dc0da75494839b146d0c))
+
+### Chores
+
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#186](https://github.com/ChristopherVR/pptx-viewer/issues/186)) (by @dependabot[bot]) ([effb251](https://github.com/ChristopherVR/pptx-viewer/commit/effb2510e3a6cf633ceb3dd0c1234bb0998c275c))
+- **deps-dev:** Bump happy-dom from 20.12.0 to 20.11.12 ([#187](https://github.com/ChristopherVR/pptx-viewer/issues/187)) (by @dependabot[bot]) ([f386308](https://github.com/ChristopherVR/pptx-viewer/commit/f386308f2a1fd66c7a080628e4ce91b33247f685))
+- **deps-dev:** Bump rollup from 4.63.1 to 4.63.0 ([#190](https://github.com/ChristopherVR/pptx-viewer/issues/190)) (by @dependabot[bot]) ([8ea2abc](https://github.com/ChristopherVR/pptx-viewer/commit/8ea2abc51966c761fd3cb552201443a4dc04f5b9))
+- **deps-dev:** Update lint-staged requirement from ^17.3.0 to ^17.4.1 ([#189](https://github.com/ChristopherVR/pptx-viewer/issues/189)) (by @dependabot[bot]) ([171e860](https://github.com/ChristopherVR/pptx-viewer/commit/171e860204333fff7fa46b6a10cff2c18b0d7cb6))
+
 ## 2026-08-29
 
 _Releases: pptx-viewer-core@3.1.2, pptx-react-viewer@3.1.4, pptx-vue-viewer@3.1.4, pptx-angular-viewer@3.2.2, pptx-vanilla-viewer@2.1.4, pptx-svelte-viewer@3.2.2, @christophervr/pptx-viewer@2.1.4_

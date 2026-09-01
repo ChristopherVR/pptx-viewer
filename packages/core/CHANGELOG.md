@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.1.3) - 2026-09-01
+
+### Chores
+
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#186](https://github.com/ChristopherVR/pptx-viewer/issues/186)) (by @dependabot[bot]) ([effb251](https://github.com/ChristopherVR/pptx-viewer/commit/effb2510e3a6cf633ceb3dd0c1234bb0998c275c))
+
 ## [3.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.1.2) - 2026-08-29
 
 ### Bug Fixes

@@ -7,6 +7,18 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.2.3) - 2026-09-01
+
+### Dependencies
+
+- **deps:** Bump @lucide/svelte from 1.37.0 to 1.34.0 ([#192](https://github.com/ChristopherVR/pptx-viewer/issues/192)) (by @dependabot[bot]) ([351c48f](https://github.com/ChristopherVR/pptx-viewer/commit/351c48f954cf88fa2f1c1202bda5083e9f0e5da4))
+
+### Chores
+
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#186](https://github.com/ChristopherVR/pptx-viewer/issues/186)) (by @dependabot[bot]) ([effb251](https://github.com/ChristopherVR/pptx-viewer/commit/effb2510e3a6cf633ceb3dd0c1234bb0998c275c))
+- **deps-dev:** Bump happy-dom from 20.12.0 to 20.11.12 ([#187](https://github.com/ChristopherVR/pptx-viewer/issues/187)) (by @dependabot[bot]) ([f386308](https://github.com/ChristopherVR/pptx-viewer/commit/f386308f2a1fd66c7a080628e4ce91b33247f685))
+- **deps-dev:** Bump rollup from 4.63.1 to 4.63.0 ([#190](https://github.com/ChristopherVR/pptx-viewer/issues/190)) (by @dependabot[bot]) ([8ea2abc](https://github.com/ChristopherVR/pptx-viewer/commit/8ea2abc51966c761fd3cb552201443a4dc04f5b9))
+
 ## [3.2.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.2.2) - 2026-08-29
 
 ### Bug Fixes

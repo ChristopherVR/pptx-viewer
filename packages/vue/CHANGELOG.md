@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.1.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.5) - 2026-09-01
+
+### Bug Fixes
+
+- **vue:** Stop the Tailwind CLI build step from deleting every scoped SFC style (by @ChristopherVR) ([cc5e2eb](https://github.com/ChristopherVR/pptx-viewer/commit/cc5e2eb1064c362d2fc00e3c47b0cf3a99f47cf1))
+
+### Chores
+
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#186](https://github.com/ChristopherVR/pptx-viewer/issues/186)) (by @dependabot[bot]) ([effb251](https://github.com/ChristopherVR/pptx-viewer/commit/effb2510e3a6cf633ceb3dd0c1234bb0998c275c))
+- **deps-dev:** Bump happy-dom from 20.12.0 to 20.11.12 ([#187](https://github.com/ChristopherVR/pptx-viewer/issues/187)) (by @dependabot[bot]) ([f386308](https://github.com/ChristopherVR/pptx-viewer/commit/f386308f2a1fd66c7a080628e4ce91b33247f685))
+
 ## [3.1.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.1.4) - 2026-08-29
 
 ### Bug Fixes

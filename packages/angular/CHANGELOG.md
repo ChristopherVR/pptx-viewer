@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.2.3) - 2026-09-01
+
+### Dependencies
+
+- **deps:** Bump @lucide/angular from 1.37.0 to 1.34.0 ([#194](https://github.com/ChristopherVR/pptx-viewer/issues/194)) (by @dependabot[bot]) ([8caa6af](https://github.com/ChristopherVR/pptx-viewer/commit/8caa6af2d9e9ac3b0f0d011f9803da6f0f510202))
+
+### Chores
+
+- **deps-dev:** Bump the minor-and-patch group with 2 updates ([#186](https://github.com/ChristopherVR/pptx-viewer/issues/186)) (by @dependabot[bot]) ([effb251](https://github.com/ChristopherVR/pptx-viewer/commit/effb2510e3a6cf633ceb3dd0c1234bb0998c275c))
+- **deps-dev:** Bump happy-dom from 20.12.0 to 20.11.12 ([#187](https://github.com/ChristopherVR/pptx-viewer/issues/187)) (by @dependabot[bot]) ([f386308](https://github.com/ChristopherVR/pptx-viewer/commit/f386308f2a1fd66c7a080628e4ce91b33247f685))
+
 ## [3.2.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.2.2) - 2026-08-29
 
 ### Bug Fixes
