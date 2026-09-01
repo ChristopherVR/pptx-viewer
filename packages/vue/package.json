@@ -65,7 +65,7 @@
 		"./styles.css": "./dist/pptx-vue-viewer.css"
 	},
 	"scripts": {
-		"build": "vite build && npx @tailwindcss/cli -i src/styles/pptx-vue-viewer.css -o dist/pptx-vue-viewer.css --minify && node ../../scripts/compress-dist.mjs dist",
+		"build": "vite build && node ../../scripts/vue-css-merge.mjs save dist/pptx-vue-viewer.css && npx @tailwindcss/cli -i src/styles/pptx-vue-viewer.css -o dist/pptx-vue-viewer.css --minify && node ../../scripts/vue-css-merge.mjs merge dist/pptx-vue-viewer.css && node ../../scripts/compress-dist.mjs dist",
 		"dev": "vite build --watch",
 		"typecheck": "vue-tsc --noEmit -p tsconfig.json",
 		"test": "vitest run",
