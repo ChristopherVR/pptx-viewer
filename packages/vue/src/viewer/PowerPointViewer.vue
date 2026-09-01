@@ -111,6 +111,7 @@ import { useExportWiring } from './composables/useExportWiring';
 import { useFindReplace } from './composables/useFindReplace';
 import { useFontEmbedding } from './composables/useFontEmbedding';
 import { useFormatPainter } from './composables/useFormatPainter';
+import { useGoogleWebfonts } from './composables/useGoogleWebfonts';
 import { useHeaderFooterDialog } from './composables/useHeaderFooterDialog';
 import { useHyperlinkDialog } from './composables/useHyperlinkDialog';
 import { useInkDrawing } from './composables/useInkDrawing';
@@ -325,6 +326,10 @@ useSmartArtNodeEditContext({
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
 useEmbeddedFonts(deck.embeddedFonts);
+// Fetch Google-hosted webfonts for referenced families that are neither
+// installed nor embedded (Microsoft 365 "cloud fonts" have no browser
+// equivalent); auto-cleaned on unmount.
+useGoogleWebfonts(slides, deck.embeddedFonts);
 watchEffect((onCleanup) => {
 	const css = buildUserFontFaceStyles(props.fonts ?? []);
 	if (!css || typeof document === 'undefined') {
