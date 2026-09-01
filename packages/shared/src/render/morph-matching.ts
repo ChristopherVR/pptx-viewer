@@ -3,6 +3,8 @@
  *
  * Matches elements between two consecutive slides using a multi-pass
  * strategy: explicit `!!` naming convention, `a16:creationId` GUID identity,
+ * the child correspondence that let two groups be decomposed, same-media
+ * pictures, identical twins (same type / exact size / identical paint),
  * native shape-id matching (creationId-less decks only), and
  * type + proximity + size matching.
  *
@@ -11,6 +13,13 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { flattenMorphElements, morphGroupChildPairs } from './morph-flatten';
+import {
+	conflictingMorphNames,
+	differentText,
+	matchGroupTwins,
+	matchIdenticalTwins,
+	matchSameMedia,
+} from './morph-heuristics';
 import { getElementMorphName } from './morph-name';
 import type { MorphMatchResult, MorphPair } from './morph-types';
 import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
@@ -23,68 +32,6 @@ import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 // importing this one back (a cycle that breaks once the graph is bundled).
 export { getElementMorphName } from './morph-name';
 
-/** Depth cap for the recursive text read; real decks never nest this far. */
-const TEXT_MAX_DEPTH = 8;
-
-/**
- * Everything an element WRITES, including the text of its descendants.
- *
- * A group paints nothing itself - all of its words live in its children - so
- * reading only `element.text` reports every group as wordless and lets two
- * groups with nothing in common look interchangeable (issue #144: a wheel
- * slide's centre panel paired with a detail slide's callout box and glided
- * across the slide, "drifting text"). The same recursion is why
- * `appearanceSignature` descends into children.
- */
-function elementText(element: PptxElement, depth = 0): string {
-	const own = (element as { text?: string }).text ?? '';
-	const children = (element as { children?: PptxElement[] }).children;
-	if (!children || depth >= TEXT_MAX_DEPTH) {
-		return own;
-	}
-	let text = own;
-	for (const child of children) {
-		text += ` ${elementText(child, depth + 1)}`;
-	}
-	return text;
-}
-
-/**
- * Whether two elements both carry text, and carry DIFFERENT text.
- *
- * Used to veto a purely positional match: same-place-different-words is the
- * signature of a rebuilt panel, not of one object that moved. Whitespace is
- * normalised so a reflowed line break does not read as a different string.
- */
-function differentText(a: PptxElement, b: PptxElement): boolean {
-	const textOf = (element: PptxElement): string =>
-		elementText(element).replace(/\s+/gu, ' ').trim();
-	const fromText = textOf(a);
-	const toText = textOf(b);
-	return fromText !== '' && toText !== '' && fromText !== toText;
-}
-
-/**
- * Whether both elements carry an explicit `!!` morph name and those names
- * DIFFER.
- *
- * The `!!` prefix is the author telling PowerPoint which shapes are the same
- * object across slides, so two different `!!` names are a statement that these
- * two are NOT (pass 1 already paired every side that agreed). Letting such a
- * pair fall through to a weaker signal is how an off-canvas 100x74 rect named
- * `!!D` came to be paired with a detail slide's `!!Breakdgsdfgdfsg` header
- * chip 247px away, flying an empty grey box in from off-stage - the
- * "mystery box" of issue #144. Mirrors the `a16:creationId` rule in pass 2b:
- * evidence of identity that disagrees is evidence of difference.
- */
-function conflictingMorphNames(a: PptxElement, b: PptxElement): boolean {
-	const fromName = getElementMorphName(a);
-	if (!fromName) {
-		return false;
-	}
-	const toName = getElementMorphName(b);
-	return Boolean(toName) && toName !== fromName;
-}
 // ---------------------------------------------------------------------------
 // Creation identity (`a16:creationId`)
 // ---------------------------------------------------------------------------
@@ -146,6 +93,9 @@ export function getElementCreationId(element: PptxElement): string | undefined {
  *   1. Explicit !! naming convention (element name from cNvPr/@name, or text content)
  *   2a. `a16:creationId` GUID (PowerPoint's own cross-slide shape identity)
  *   2c. The child correspondence that let two groups be decomposed
+ *   2d. Same media part (pictures: the same image)
+ *   2e. Identical twins: same type, exact size, identical paint appearance
+ *   2f. Group twins: same-size groups whose child casts correspond one for one
  *   2b. Native shape id from `p:cNvPr/@id` (only when creationIds are absent)
  *   3. Type + proximity + size matching (same type within 300px, similar box)
  *
@@ -264,6 +214,46 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 			usedTo.add(toEl.id);
 		}
 	}
+
+	// Pass 2d: same media part (pictures).
+	//
+	// PowerPoint's by-object matcher pairs a picture with its counterpart even
+	// when every id differs: slides authored independently number their shapes
+	// from 1, so the same off-stage full-bleed photo can carry the same pane
+	// name on both slides with a different `p:cNvPr/@id` AND a different
+	// `a16:creationId` - and the name often differs too ("Picture 3" on one
+	// slide, "Picture 7" on the other). What makes them the same object is the
+	// identical image bytes. Without this pass the pair dissolves and the
+	// picture pops in place instead of gliding in from off-stage.
+	pairs.push(...matchSameMedia(fromElements, toElements, usedFrom, usedTo));
+
+	// Pass 2e: identical twins - same type, the EXACT same box size and an
+	// identical appearance signature, however far apart they sit.
+	//
+	// A title dimmed by a full-slide black overlay parked off one edge on the
+	// outgoing slide and on-screen on the incoming one is the same object
+	// twice over: same shape type, same box, same fill and line, different
+	// name/ids/creationIds, and far beyond the proximity pass's 300px reach.
+	// PowerPoint glides it in from the edge; two shapes indistinguishable
+	// apart from where they sit are the same object as far as a morph is
+	// concerned. The exact-size + identical-paint gate keeps the issue #131
+	// wheel safe: its wedges differ in colour and size, so they still fall
+	// through to proximity.
+	pairs.push(...matchIdenticalTwins(fromElements, toElements, usedFrom, usedTo));
+
+	// Pass 2f: group twins - whole GROUPS of the same box size whose child
+	// casts correspond one for one, however far apart they sit.
+	//
+	// A title panel staged as a rotated full-slide group parked far above the
+	// visible area on one slide and landed un-rotated on the next has nothing
+	// a stronger pass can read: different name/ids/creationIds, different
+	// position and angle - but the same box and a one-for-one child cast
+	// (backdrop rectangle and title text box). PowerPoint glides the container
+	// into place while un-rotating it; pairing the groups (instead of
+	// decomposing them, which would bake the children out of their rotated
+	// frame) reproduces that as one journey interpolating the box and the
+	// angle.
+	pairs.push(...matchGroupTwins(fromElements, toElements, usedFrom, usedTo));
 
 	// Pass 2b: match by the shape's native OOXML id (`p:cNvPr/@id`) - a
 	// fallback for decks whose producer emits no creationIds.

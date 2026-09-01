@@ -184,8 +184,11 @@ function childrenPair(a: PptxElement, b: PptxElement): boolean {
  * Returns the one-for-one correspondence itself, not just a yes/no, because
  * that IS the pairing the matcher then has to honour: see
  * {@link morphGroupChildPairs}.
+ *
+ * Exported for the matcher's group-twin pass, which needs the same evidence
+ * read the same way when it pairs two WHOLE groups whose ids all differ.
  */
-function correspondingChildren(
+export function correspondingChildren(
 	a: readonly PptxElement[],
 	b: readonly PptxElement[],
 ): Array<[PptxElement, PptxElement]> | undefined {
