@@ -181,6 +181,7 @@ export type { AccessibilityIssueGroup } from './accessibility-helpers';
 
 // Embedded fonts
 export { EmbeddedFontsService } from './embedded-fonts.service';
+export { GoogleWebfontsService, GOOGLE_WEBFONTS_LINK_ID } from './google-webfonts.service';
 export {
 	EMBEDDED_FONTS_STYLE_ID,
 	buildEmbeddedFontStyles,
