@@ -197,4 +197,68 @@ export const translations = {
 	'pptx.review.restrictPermission': 'Berechtigung einschränken',
 	'pptx.review.showComments': 'Kommentare anzeigen',
 	'pptx.review.thesaurus': 'Thesaurus',
+
+	'pptx.readOnly.modifyVerifierRecommended':
+		'Diese Präsentation ist passwortgeschützt. Sie wurde schreibgeschützt geöffnet, bis das Passwort eingegeben wird.',
+	'pptx.readOnly.markedFinal':
+		'Diese Präsentation wurde vom Autor als endgültig markiert. Sie wurde schreibgeschützt geöffnet, um Änderungen zu vermeiden.',
+
+	'pptx.compatibility.generic':
+		'Diese Präsentation enthält eine Funktion, die möglicherweise nicht vollständig unterstützt wird ({{code}}).',
+	'pptx.compatibility.unmodelledPresentationMarkup':
+		'Einige Präsentationseinstellungen bleiben erhalten, sind in diesem Viewer aber nicht bearbeitbar.',
+	'pptx.compatibility.unmodelledSlideMarkup':
+		'Einige Folieneinstellungen bleiben erhalten, sind in diesem Viewer aber nicht bearbeitbar.',
+	'pptx.compatibility.unmodelledShapeProperty':
+		'Einige Formeigenschaften bleiben erhalten, sind in diesem Viewer aber nicht bearbeitbar.',
+	'pptx.compatibility.unmodelledTextBodyMarkup':
+		'Einige Textformatierungen bleiben erhalten, sind in diesem Viewer aber nicht bearbeitbar.',
+	'pptx.compatibility.unmodelledBlipFillMarkup':
+		'Einige Bildfülleinstellungen bleiben erhalten, sind in diesem Viewer aber nicht bearbeitbar.',
+	'pptx.compatibility.unmodelledImageEffect':
+		'Einige Bildeffekte bleiben erhalten, werden in diesem Viewer aber nicht dargestellt.',
+	'pptx.compatibility.externalImageReference':
+		'Diese Präsentation verweist auf ein Bild außerhalb der Datei, das bei anderen Personen möglicherweise nicht geladen wird.',
+	'pptx.compatibility.slideSynchronizationMetadata':
+		'Diese Folie ist zur Synchronisierung mit einer anderen Präsentation verknüpft; die Verknüpfung bleibt erhalten, wird hier aber nicht angewendet.',
+	'pptx.compatibility.unsupportedAlternateContentChoice':
+		'Diese Präsentation verwendet eine neuere PowerPoint-Funktion; stattdessen wurde eine kompatible Alternative verwendet.',
+	'pptx.compatibility.groupDepthExceeded':
+		'Eine Formengruppe ist tiefer verschachtelt, als dieser Viewer unterstützt, und wurde abgeflacht.',
+	'pptx.compatibility.saveNotesRelationshipMissing':
+		'Die Notizen konnten beim Speichern nicht mit dieser Folie verknüpft werden.',
+	'pptx.compatibility.saveNotesPartMissing':
+		'Die Notizen konnten für diese Folie nicht gespeichert werden.',
+	'pptx.compatibility.saveNotesUpdateSkipped':
+		'Änderungen an den Notizen wurden für diese Folie nicht gespeichert.',
+	'pptx.compatibility.chartExternalDataWritebackUnsupported':
+		'Dieses Diagramm verwendet externe Daten, die von diesem Viewer nicht aktualisiert werden können.',
+	'pptx.compatibility.chartEmbeddedWorkbookMissing':
+		'Die eingebettete Datenarbeitsmappe dieses Diagramms fehlt, sodass die Daten nicht gespeichert werden konnten.',
+	'pptx.compatibility.chartEmbeddedWorkbookUnreadable':
+		'Die eingebettete Datenarbeitsmappe dieses Diagramms konnte nicht gelesen werden, sodass die Daten nicht gespeichert werden konnten.',
+	'pptx.compatibility.chartEmbeddedWorkbookPartialWriteback':
+		'Nur ein Teil der Datenänderungen dieses Diagramms konnte in seiner eingebetteten Arbeitsmappe gespeichert werden.',
+	'pptx.compatibility.saveImagePayloadUnsupported':
+		'Ein Bild konnte nicht in seinem Originalformat gespeichert werden und wurde übersprungen.',
+	'pptx.compatibility.saveMediaPayloadUnsupported':
+		'Eine Audio- oder Videodatei konnte nicht in ihrem Originalformat gespeichert werden und wurde übersprungen.',
+	'pptx.compatibility.saveElementSkipped':
+		'Ein Folienelement konnte nicht gespeichert werden und wurde übersprungen.',
+	'pptx.compatibility.saveSignaturesStripped':
+		'Diese Präsentation enthielt digitale Signaturen, die beim Bearbeiten und Speichern der Datei entfernt werden.',
+	'pptx.compatibility.saveGroupChildSkipped':
+		'Eine Form innerhalb einer Gruppe konnte nicht gespeichert werden und wurde übersprungen.',
+	'pptx.compatibility.saveAnimationSoundPayloadUnsupported':
+		'Ein Animationston konnte nicht gespeichert werden und wurde übersprungen.',
+	'pptx.compatibility.saveBackgroundImageUnsupported':
+		'Ein Folienhintergrundbild konnte nicht gespeichert werden und wurde übersprungen.',
+	'pptx.compatibility.shapeIdDeduplicated':
+		'Zwei Formen hatten dieselbe interne ID; eine wurde automatisch neu zugewiesen.',
+	'pptx.compatibility.saveTransitionSoundPayloadUnsupported':
+		'Ein Folienübergangston konnte nicht gespeichert werden und wurde übersprungen.',
+	'pptx.compatibility.diagramRelationshipIdsIncomplete':
+		'Diesem SmartArt-Diagramm fehlen einige interne Verweise, sodass es möglicherweise nicht genau wie ursprünglich erstellt angezeigt wird.',
+	'pptx.compatibility.exportBackendUnavailable':
+		'Der Export in dieses Format ist in der aktuellen Umgebung nicht verfügbar.',
 } as const;

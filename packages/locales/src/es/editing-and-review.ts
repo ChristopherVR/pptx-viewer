@@ -197,4 +197,68 @@ export const translations = {
 	'pptx.review.restrictPermission': 'Restringir permisos',
 	'pptx.review.showComments': 'Mostrar comentarios',
 	'pptx.review.thesaurus': 'Sinónimos',
+
+	'pptx.readOnly.modifyVerifierRecommended':
+		'Esta presentación está protegida con contraseña. Se abrió como solo lectura hasta que se indique la contraseña.',
+	'pptx.readOnly.markedFinal':
+		'El autor marcó esta presentación como final. Se abrió como solo lectura para evitar cambios.',
+
+	'pptx.compatibility.generic':
+		'Esta presentación contiene una función que puede no ser totalmente compatible ({{code}}).',
+	'pptx.compatibility.unmodelledPresentationMarkup':
+		'Algunos ajustes de la presentación se conservan pero no se pueden editar en este visor.',
+	'pptx.compatibility.unmodelledSlideMarkup':
+		'Algunos ajustes de la diapositiva se conservan pero no se pueden editar en este visor.',
+	'pptx.compatibility.unmodelledShapeProperty':
+		'Algunas propiedades de la forma se conservan pero no se pueden editar en este visor.',
+	'pptx.compatibility.unmodelledTextBodyMarkup':
+		'Algunos formatos de texto se conservan pero no se pueden editar en este visor.',
+	'pptx.compatibility.unmodelledBlipFillMarkup':
+		'Algunos ajustes de relleno de imagen se conservan pero no se pueden editar en este visor.',
+	'pptx.compatibility.unmodelledImageEffect':
+		'Algunos efectos de imagen se conservan pero no se representan en este visor.',
+	'pptx.compatibility.externalImageReference':
+		'Esta presentación enlaza a una imagen fuera del archivo, que puede no cargarse para otras personas.',
+	'pptx.compatibility.slideSynchronizationMetadata':
+		'Esta diapositiva está vinculada a otra presentación para sincronización; ese vínculo se conserva pero no se aplica aquí.',
+	'pptx.compatibility.unsupportedAlternateContentChoice':
+		'Esta presentación usa una función más reciente de PowerPoint; se usó una alternativa compatible en su lugar.',
+	'pptx.compatibility.groupDepthExceeded':
+		'Un grupo de formas está anidado más profundamente de lo que admite este visor y se aplanó.',
+	'pptx.compatibility.saveNotesRelationshipMissing':
+		'Las notas del orador no se pudieron vincular a esta diapositiva al guardar.',
+	'pptx.compatibility.saveNotesPartMissing':
+		'No se pudieron guardar las notas del orador de esta diapositiva.',
+	'pptx.compatibility.saveNotesUpdateSkipped':
+		'Los cambios en las notas del orador no se guardaron para esta diapositiva.',
+	'pptx.compatibility.chartExternalDataWritebackUnsupported':
+		'Este gráfico usa datos externos que este visor no puede actualizar.',
+	'pptx.compatibility.chartEmbeddedWorkbookMissing':
+		'Falta el libro de datos incrustado de este gráfico, por lo que sus datos no se pudieron guardar.',
+	'pptx.compatibility.chartEmbeddedWorkbookUnreadable':
+		'No se pudo leer el libro de datos incrustado de este gráfico, por lo que sus datos no se pudieron guardar.',
+	'pptx.compatibility.chartEmbeddedWorkbookPartialWriteback':
+		'Solo se pudieron guardar algunos de los cambios de datos de este gráfico en su libro incrustado.',
+	'pptx.compatibility.saveImagePayloadUnsupported':
+		'No se pudo guardar una imagen en su formato original y se omitió.',
+	'pptx.compatibility.saveMediaPayloadUnsupported':
+		'No se pudo guardar un clip de audio o video en su formato original y se omitió.',
+	'pptx.compatibility.saveElementSkipped':
+		'No se pudo guardar un elemento de la diapositiva y se omitió.',
+	'pptx.compatibility.saveSignaturesStripped':
+		'Esta presentación tenía firmas digitales, que se eliminan al editar y guardar el archivo.',
+	'pptx.compatibility.saveGroupChildSkipped':
+		'No se pudo guardar una forma dentro de un grupo y se omitió.',
+	'pptx.compatibility.saveAnimationSoundPayloadUnsupported':
+		'No se pudo guardar un sonido de animación y se omitió.',
+	'pptx.compatibility.saveBackgroundImageUnsupported':
+		'No se pudo guardar una imagen de fondo de diapositiva y se omitió.',
+	'pptx.compatibility.shapeIdDeduplicated':
+		'Dos formas compartían el mismo id interno; una de ellas se reasignó automáticamente.',
+	'pptx.compatibility.saveTransitionSoundPayloadUnsupported':
+		'No se pudo guardar un sonido de transición de diapositiva y se omitió.',
+	'pptx.compatibility.diagramRelationshipIdsIncomplete':
+		'A este diagrama de SmartArt le faltan algunas referencias internas, por lo que puede no mostrarse exactamente como se creó.',
+	'pptx.compatibility.exportBackendUnavailable':
+		'La exportación a este formato no está disponible en el entorno actual.',
 } as const;
