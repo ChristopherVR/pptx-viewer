@@ -98,6 +98,7 @@ import { ExportProgressModalComponent } from './export-progress-modal.component'
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
 import { FollowModeBarComponent } from './follow-mode-bar.component';
+import { GoogleWebfontsService } from './google-webfonts.service';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
@@ -1375,6 +1376,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly loader = inject(LoadContentService);
 	protected readonly editor = inject(EditorStateService);
 	private readonly fonts = inject(EmbeddedFontsService);
+	private readonly googleWebfonts = inject(GoogleWebfontsService);
 	protected readonly collab = inject(CollaborationService);
 	protected readonly accessibility = inject(AccessibilityService);
 	protected readonly autosave = inject(AutosaveService);
@@ -2020,6 +2022,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		});
 		effect(() => {
 			this.fonts.setHostFonts(this.fontsInput());
+		});
+		// Fetch Google-hosted webfonts for referenced families that are neither
+		// installed nor embedded (Microsoft 365 "cloud fonts" have no browser
+		// equivalent).
+		effect(() => {
+			this.googleWebfonts.sync(this.mergedSlides(), this.loader.embeddedFonts());
 		});
 
 		// Feed the live deck (templates merged back) to the accessibility checker.

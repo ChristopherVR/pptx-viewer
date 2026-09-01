@@ -34,6 +34,7 @@ import { EditorStateService } from './editor-state.service';
 import { EmbeddedFontsService } from './embedded-fonts.service';
 import { ExportService } from './export.service';
 import { FieldContextService } from './field-context.service';
+import { GoogleWebfontsService } from './google-webfonts.service';
 import { IsMobileService } from './is-mobile';
 import { LineChart3DService } from './line-chart-3d.service';
 import { LoadContentService } from './load-content.service';
@@ -77,6 +78,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	ChartPartSelectionService,
 	TableSelectionService,
 	EmbeddedFontsService,
+	GoogleWebfontsService,
 	CollaborationService,
 	CustomFontsService,
 	AccessibilityService,
