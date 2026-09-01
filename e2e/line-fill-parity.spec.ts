@@ -100,7 +100,14 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 					// A tiled picture paints as a repeating background LAYER, which a
 					// binding may render on the element or on a child in place of the
 					// `<img>`; either is fine, the tiling values are what must match.
-					const layer = node.querySelector('div[style*="background"]');
+					// Matched on `background-image` specifically, not the broader
+					// `background`: React wraps the paint layer in an intermediate
+					// `position:absolute` div that ALSO carries `background-color:
+					// transparent` for its own layering reasons, and that wrapper is
+					// encountered first in document order, so a bare `background` match
+					// silently read its un-set (`auto` / `0% 0%`) tiling values instead
+					// of the real paint layer's beneath it.
+					const layer = node.querySelector('div[style*="background-image"]');
 					const paint = layer ? getComputedStyle(layer) : own;
 					// The mirrored reflection sibling (`pptx-<binding>-reflection`, or
 					// `pptxv-reflection` for vanilla); excludes the differently-shaped

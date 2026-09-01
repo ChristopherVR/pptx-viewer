@@ -56,6 +56,22 @@ const SLIDE = {
 /** The deck is 5 MB with a real video; give the initial parse room on CI. */
 const LOAD_TIMEOUT_MS = 60_000;
 
+/**
+ * Wait for every `@font-face` the browser has decided to fetch (embedded deck
+ * fonts included) to finish loading. These tests pin sub-pixel wrap margins
+ * (0.8px / 0.12px of slack), so a slide measured mid-fetch - while its run is
+ * still laid out in a fallback font - reads a DIFFERENT (wrong) line break
+ * than the same slide measured a moment later; under CI's CPU contention this
+ * is timing-dependent, not deterministic, which is what made it flake instead
+ * of failing outright. `@font-face` fonts are fetched lazily, on first use, so
+ * this must run after `gotoSlide` too, not only after the initial load.
+ */
+async function waitForFonts(page: Page): Promise<void> {
+	await page.waitForFunction(() => document.fonts.status === 'loaded', undefined, {
+		timeout: LOAD_TIMEOUT_MS,
+	});
+}
+
 async function loadDeck(page: Page): Promise<void> {
 	await page.setViewportSize({ width: 1600, height: 1000 });
 	// Forget any restored session first, or the deck reopens and the landing
@@ -65,11 +81,13 @@ async function loadDeck(page: Page): Promise<void> {
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await page.locator('[aria-label="Go to slide 14"]').first().waitFor({ timeout: LOAD_TIMEOUT_MS });
 	await page.waitForTimeout(1200);
+	await waitForFonts(page);
 }
 
 async function gotoSlide(page: Page, slideNumber: number): Promise<void> {
 	await page.locator(`[aria-label="Go to slide ${slideNumber}"]`).first().click();
 	await page.waitForTimeout(900);
+	await waitForFonts(page);
 }
 
 test.describe('issue #149 - word wrap matches PowerPoint in both directions', () => {

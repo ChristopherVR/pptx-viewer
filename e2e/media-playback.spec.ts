@@ -323,7 +323,10 @@ test.describe('media element playback', () => {
 							(el) => !el.paused && el.currentTime > 0,
 						),
 					),
-				{ timeout: 6_000 },
+				// Decode start under CI's shared, CPU-constrained runners can take
+				// noticeably longer than on a dev machine; 6s was tight enough to flake
+				// under contention even though playback genuinely started moments later.
+				{ timeout: 15_000 },
 			)
 			.toBe(true);
 
