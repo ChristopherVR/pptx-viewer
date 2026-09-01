@@ -85,6 +85,27 @@ describe('chart-editor option lists', () => {
 		expect(pareto?.labelKey).toBe('pptx.chart.typePareto');
 	});
 
+	it('offers every c:dLblPos schema value, not just the five bar-chart ones', () => {
+		// `PptxChartDataLabelPosition` (core chart.ts) has nine members; the select
+		// exposed five, so "Above"/"Below"/"Left"/"Right" (the line, scatter and
+		// bubble positions) could not be authored from any binding's inspector.
+		const values = DATA_LABEL_POSITION_OPTIONS.map((opt) => opt.value);
+		expect(values).toStrictEqual([
+			'',
+			'ctr',
+			'inEnd',
+			'inBase',
+			'outEnd',
+			'bestFit',
+			't',
+			'b',
+			'l',
+			'r',
+		]);
+		const missing = DATA_LABEL_POSITION_OPTIONS.filter((opt) => !(opt.labelKey in translationsEn));
+		expect(missing).toStrictEqual([]);
+	});
+
 	it('data_label_content_options pairs a content key with a label', () => {
 		expect(DATA_LABEL_CONTENT_OPTIONS).toHaveLength(5);
 		for (const opt of DATA_LABEL_CONTENT_OPTIONS) {

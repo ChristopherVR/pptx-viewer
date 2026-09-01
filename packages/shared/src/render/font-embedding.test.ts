@@ -54,12 +54,25 @@ describe('embeddedFontSaveOptions', () => {
 	it('asks core to strip the embedded font list when the toggle is off', () => {
 		// `null` is what removes p:embeddedFontLst, the /font relationships and
 		// the .fntdata parts. Anything else (including `undefined`) preserves.
-		expect(embeddedFontSaveOptions(false)).toStrictEqual({ embeddedFontList: null });
+		expect(embeddedFontSaveOptions(false)).toStrictEqual({
+			embeddedFontList: null,
+			embedTrueTypeFonts: false,
+		});
 	});
 
-	it('says nothing at all when the toggle is on, leaving core to re-embed', () => {
-		expect(embeddedFontSaveOptions(true)).toStrictEqual({});
+	it('never names the font list when the toggle is on, leaving core to re-embed', () => {
 		expect('embeddedFontList' in embeddedFontSaveOptions(true)).toBeFalsy();
+	});
+
+	it('writes p:presentation/@embedTrueTypeFonts to match the toggle in both positions', () => {
+		// The attribute is PowerPoint's own record of the switch. Leaving it at
+		// the loaded value produced a deck that said "1" with every .fntdata part
+		// stripped (or "0" with them all kept), which is what File > Options >
+		// Save then showed the user. `false` must be explicit: core writes "0" for
+		// it and only preserves the loaded value for `undefined`.
+		expect(embeddedFontSaveOptions(true).embedTrueTypeFonts).toBeTruthy();
+		expect(embeddedFontSaveOptions(false).embedTrueTypeFonts).toBeFalsy();
+		expect('embedTrueTypeFonts' in embeddedFontSaveOptions(false)).toBeTruthy();
 	});
 });
 
@@ -89,7 +102,10 @@ describe('font embedding has exactly one setting', () => {
 	});
 
 	it('leaves `embeddedFontSaveOptions` as the only thing a save reads it through', () => {
-		expect(embeddedFontSaveOptions(true)).toStrictEqual({});
-		expect(embeddedFontSaveOptions(false)).toStrictEqual({ embeddedFontList: null });
+		expect(embeddedFontSaveOptions(true)).toStrictEqual({ embedTrueTypeFonts: true });
+		expect(embeddedFontSaveOptions(false)).toStrictEqual({
+			embeddedFontList: null,
+			embedTrueTypeFonts: false,
+		});
 	});
 });

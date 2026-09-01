@@ -174,6 +174,11 @@ export type {
 	SupportedChartKind,
 	PlotLayoutOptions,
 } from './chart-view-model';
+// `c:manualLayout` (CT_ManualLayout) conversion: the pure edge / factor
+// fraction-to-pixel resolver the chart engine uses to honour a hand-placed
+// title, plot area or legend, plus the title / legend post-pass.
+export * from './chart-manual-layout';
+export { withManualLayouts } from './chart-view-model-manual';
 // Direct on-canvas chart editing: data-attribute hit-testing bridge,
 // drag-to-value inversion, and immutable chart-data edit helpers.
 export {
@@ -454,6 +459,8 @@ export * from './snap-guides';
 export * from './ruler';
 export * from './bullet-autonum';
 export * from './bullet-list';
+// Ribbon Bullets / Numbering toggle: authors real `bulletInfo`, not `listType`.
+export * from './bullet-toggle';
 // Rich speaker-notes editor: segment/paragraph maths, contentEditable HTML
 // serialise/parse, caret-aware toolbar commands, and the print-notes document
 // builder. The view layer (contentEditable + textarea fallback) stays per

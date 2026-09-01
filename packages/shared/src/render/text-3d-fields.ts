@@ -74,6 +74,14 @@ export function mergeText3d(
  * Resolve the `text3d` value an extrusion checkbox should commit: a seeded
  * default depth when switching on, and `undefined` (drop the whole `a:sp3d`)
  * when switching off, so an unticked box never leaves an orphan bevel behind.
+ *
+ * This is only HALF of the change a checkbox has to commit. Writing
+ * `text3d: undefined` on a placeholder does not switch the 3D off: the shape
+ * inherits its `a:sp3d` from the layout/master, and the inheritance merge
+ * refills the field from that ancestor on the next resolve. The other half
+ * is `flatText` (`a:flatTx`), the explicit stop marker; use
+ * {@link toggleText3dExtrusionPatch} (or {@link text3dStylePatch}), which
+ * write both, rather than assigning this function's result to `text3d` alone.
  */
 export function toggleText3dExtrusion(
 	current: Text3DStyle | undefined,
@@ -88,7 +96,65 @@ export function toggleText3dExtrusion(
 }
 
 /**
- * Build a `Partial<PptxElement>` patch that writes `text3d` onto the element's
+ * The `TextStyle` fields a 3D-text edit touches. `flatText` is always present
+ * so a stale `a:flatTx` cannot survive switching 3D back on (a renderer
+ * short-circuits on it regardless of `text3d`).
+ */
+export interface Text3DTextStylePatch {
+	text3d: Text3DStyle | undefined;
+	flatText: boolean | undefined;
+}
+
+/**
+ * Whether a text body may inherit `a:sp3d` from a layout/master placeholder.
+ *
+ * Only placeholders take part in the slide -> layout -> master body-property
+ * cascade, so a non-placeholder shape that drops its own `text3d` really is
+ * flat afterwards, while a placeholder needs an explicit `a:flatTx` to stop
+ * the ancestor's extrusion leaking back in (see `TextStyle.flatText`).
+ */
+export function text3dInheritsFromTemplate(el: PptxElement): boolean {
+	return typeof el.placeholderType === 'string' && el.placeholderType.length > 0;
+}
+
+/**
+ * Pair a `text3d` value with the `flatText` marker it needs so the patch means
+ * what the checkbox says on every shape:
+ *
+ * - `text3d` present: `flatText` is cleared, or an earlier "off" would keep
+ *   suppressing the extrusion the user just switched on.
+ * - `text3d` absent on an inheriting shape: `flatText: true`, the only signal
+ *   that stops the layout/master `a:sp3d` from being merged back in.
+ * - `text3d` absent on a plain shape: `flatText` cleared; there is nothing to
+ *   inherit, and an orphan `a:flatTx` would be noise in the saved file.
+ */
+export function text3dFieldsPatch(
+	t3d: Text3DStyle | undefined,
+	inherits: boolean,
+): Text3DTextStylePatch {
+	return { text3d: t3d, flatText: t3d === undefined && inherits ? true : undefined };
+}
+
+/**
+ * The `TextStyle` patch an extrusion checkbox should commit. Combines
+ * {@link toggleText3dExtrusion} with {@link text3dFieldsPatch}.
+ *
+ * @param current - The text body's current 3D style.
+ * @param enabled - The checkbox's new position.
+ * @param inherits - Whether the shape inherits body properties from a
+ *   layout/master placeholder; pass {@link text3dInheritsFromTemplate}(element).
+ */
+export function toggleText3dExtrusionPatch(
+	current: Text3DStyle | undefined,
+	enabled: boolean,
+	inherits: boolean,
+): Text3DTextStylePatch {
+	return text3dFieldsPatch(toggleText3dExtrusion(current, enabled), inherits);
+}
+
+/**
+ * Build a `Partial<PptxElement>` patch that writes `text3d` (and the matching
+ * `flatText` marker, see {@link text3dFieldsPatch}) onto the element's
  * existing `textStyle` without dropping the other text fields. Mirrors
  * `textStylePatch` in `inspector-helpers`, which cannot carry `text3d` because
  * its change set is the flat font-formatting subset.
@@ -98,5 +164,7 @@ export function text3dStylePatch(
 	t3d: Text3DStyle | undefined,
 ): Partial<PptxElement> {
 	const base: TextStyle = hasTextProperties(el) ? (el.textStyle ?? {}) : {};
-	return { textStyle: { ...base, text3d: t3d } } as Partial<PptxElement>;
+	return {
+		textStyle: { ...base, ...text3dFieldsPatch(t3d, text3dInheritsFromTemplate(el)) },
+	} as Partial<PptxElement>;
 }

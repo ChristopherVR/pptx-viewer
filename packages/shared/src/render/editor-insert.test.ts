@@ -1,6 +1,18 @@
+import { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { newFieldElement, resolveInsertedFieldText } from './editor-insert';
+import { newFieldElement, newTableElement, resolveInsertedFieldText } from './editor-insert';
+
+describe('inserted tables', () => {
+	it('seeds PowerPoint default table style at creation, not at save', () => {
+		const element = newTableElement(2, 3);
+		expect(element.type).toBe('table');
+		if (element.type !== 'table') {
+			throw new Error('expected table');
+		}
+		expect(element.tableData.tableStyleId).toBe(DEFAULT_POWERPOINT_TABLE_STYLE_ID);
+	});
+});
 
 describe('inserted fields', () => {
 	it('resolves canonical field display text', () => {

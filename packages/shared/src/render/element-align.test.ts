@@ -103,8 +103,66 @@ describe('distributeElements', () => {
 	});
 });
 
+describe('slide reference (PowerPoint "Align to Slide")', () => {
+	const slideSize = { width: 960, height: 540 };
+
+	it('aligns a single element to the slide when a slideSize is given', () => {
+		// Regression: a lone selection used to be a no-op because the only
+		// reference was the selection's own union box.
+		const el = box('a', 10, 20, 100, 50);
+		expect(alignElements([el], 'left', { slideSize }).get('a')).toStrictEqual({ x: 0 });
+		expect(alignElements([el], 'centerH', { slideSize }).get('a')).toStrictEqual({ x: 430 });
+		expect(alignElements([el], 'right', { slideSize }).get('a')).toStrictEqual({ x: 860 });
+		expect(alignElements([el], 'top', { slideSize }).get('a')).toStrictEqual({ y: 0 });
+		expect(alignElements([el], 'middle', { slideSize }).get('a')).toStrictEqual({ y: 245 });
+		expect(alignElements([el], 'bottom', { slideSize }).get('a')).toStrictEqual({ y: 490 });
+	});
+
+	it('still returns an empty map for a single element without a slideSize', () => {
+		expect(alignElements([box('a', 10, 10)], 'left', {}).size).toBe(0);
+		expect(alignElements([box('a', 10, 10)], 'left', { reference: 'slide' }).size).toBe(0);
+	});
+
+	it('keeps the selection reference for multiple elements by default', () => {
+		const els = [box('a', 100, 0), box('b', 300, 0)];
+		const map = alignElements(els, 'left', { slideSize });
+		expect(map.get('a')).toStrictEqual({ x: 100 });
+		expect(map.get('b')).toStrictEqual({ x: 100 });
+	});
+
+	it("uses the slide for multiple elements when reference is 'slide'", () => {
+		const els = [box('a', 100, 0), box('b', 300, 0)];
+		const map = alignElements(els, 'left', { reference: 'slide', slideSize });
+		expect(map.get('a')).toStrictEqual({ x: 0 });
+		expect(map.get('b')).toStrictEqual({ x: 0 });
+	});
+
+	it("honours an explicit 'selection' reference for a lone element (no-op)", () => {
+		const map = alignElements([box('a', 10, 10)], 'left', { reference: 'selection', slideSize });
+		expect(map.size).toBe(0);
+	});
+
+	it('distributes across the slide with equal margins and gaps', () => {
+		// two 100-wide boxes across a 960 slide: free 760 over 3 gaps = 253.33.
+		const els = [box('b', 500, 0, 100), box('a', 10, 0, 100)];
+		const map = distributeElements(els, 'horizontal', { reference: 'slide', slideSize });
+		expect(map.get('a')!.x!).toBeCloseTo(760 / 3);
+		expect(map.get('b')!.x!).toBeCloseTo(760 / 3 + 100 + 760 / 3);
+	});
+
+	it('centres a single element when distributing against the slide', () => {
+		const map = distributeElements([box('a', 10, 10, 100, 50)], 'vertical', { slideSize });
+		expect(map.get('a')).toStrictEqual({ y: 245 });
+	});
+
+	it('flows into computeAlign so a lone box can move', () => {
+		const map = computeAlign(oneBox, 'right', { slideSize });
+		expect(map.get('a')).toStrictEqual({ x: 910 });
+	});
+});
+
 // ---------------------------------------------------------------------------
-// computeAlign / computeDistribute — skip-unchanged variants (Angular surface)
+// computeAlign / computeDistribute: skip-unchanged variants (Angular surface)
 // ---------------------------------------------------------------------------
 
 const threeBoxes: readonly AlignBox[] = [
@@ -120,7 +178,7 @@ const twoBoxes: readonly AlignBox[] = [
 
 const oneBox: readonly AlignBox[] = [{ id: 'a', x: 5, y: 5, width: 50, height: 50 }];
 
-describe('computeAlign — guards and skip-unchanged', () => {
+describe('computeAlign: guards and skip-unchanged', () => {
 	it('returns an empty map for fewer than two boxes', () => {
 		expect(computeAlign([], 'left').size).toBe(0);
 		expect(computeAlign(oneBox, 'left').size).toBe(0);
@@ -159,7 +217,7 @@ describe('computeAlign — guards and skip-unchanged', () => {
 	});
 });
 
-describe('computeDistribute — guards and skip-unchanged', () => {
+describe('computeDistribute: guards and skip-unchanged', () => {
 	it('returns an empty map for fewer than three boxes', () => {
 		expect(computeDistribute([], 'horizontal').size).toBe(0);
 		expect(computeDistribute(twoBoxes, 'horizontal').size).toBe(0);

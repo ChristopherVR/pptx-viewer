@@ -1,5 +1,5 @@
 /**
- * Connector dynamic rerouting — recalculates connector endpoints when
+ * Connector dynamic rerouting: recalculates connector endpoints when
  * connected shapes are moved or resized. Pure (no framework imports).
  *
  * Connectors reference shapes via `shapeStyle.connectorStartConnection` and
@@ -8,71 +8,17 @@
  * connector's position and dimensions must be updated to follow.
  */
 
-import { createBuiltinVariables, resolveCoordinate } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-/** A single connection site on a shape's bounding box (element-local coords). */
-export interface ConnectionSite {
-	x: number;
-	y: number;
-	index: number;
-}
+import { getShapeConnectionSites } from './connector-sites';
 
-/**
- * Compute connection sites for a rectangular bounding box. Returns the four
- * edge midpoints in element-local coordinates: top, right, bottom, left.
- *
- * This is the fallback used for shapes whose real connection sites are
- * unknown (preset shapes without a parsed `a:cxnLst`).
- */
-export function getConnectionSites(width: number, height: number): ConnectionSite[] {
-	return [
-		{ x: width / 2, y: 0, index: 0 }, // top center
-		{ x: width, y: height / 2, index: 1 }, // right center
-		{ x: width / 2, y: height, index: 2 }, // bottom center
-		{ x: 0, y: height / 2, index: 3 }, // left center
-	];
-}
-
-/** Structural view of the custom-geometry fields we read off a shape element. */
-interface ShapeGeometryFields {
-	customGeometryConnectionSites?: Array<{ posX?: string; posY?: string; ang?: string }>;
-	pathWidth?: number;
-	pathHeight?: number;
-}
-
-/**
- * Resolve the connection sites of a shape element in element-local pixel
- * coordinates.
- *
- * When the shape carries typed custom-geometry connection sites (parsed from
- * `a:custGeom/a:cxnLst/a:cxn`), each `a:pos` formula is evaluated against the
- * shape's path coordinate space and scaled to the element's pixel box, so a
- * connector referencing `stCxn/@idx` on a non-rectangular shape attaches near
- * the real site rather than collapsing to an edge midpoint. Shapes with no
- * known sites fall back to the four edge midpoints.
- */
-export function getShapeConnectionSites(shape: PptxElement): ConnectionSite[] {
-	const geo = shape as PptxElement & ShapeGeometryFields;
-	const cxn = geo.customGeometryConnectionSites;
-	if (!cxn || cxn.length === 0) {
-		return getConnectionSites(shape.width, shape.height);
-	}
-
-	// Path coordinate space the `a:pos` formulas are expressed in. Fall back to
-	// the element's pixel dimensions (scale factor 1) when unavailable.
-	const pathW = geo.pathWidth && geo.pathWidth > 0 ? geo.pathWidth : shape.width;
-	const pathH = geo.pathHeight && geo.pathHeight > 0 ? geo.pathHeight : shape.height;
-	const vars = createBuiltinVariables({ w: pathW, h: pathH });
-	const scaleX = pathW > 0 ? shape.width / pathW : 1;
-	const scaleY = pathH > 0 ? shape.height / pathH : 1;
-
-	return cxn.map((site, index) => ({
-		x: resolveCoordinate(site.posX, vars) * scaleX,
-		y: resolveCoordinate(site.posY, vars) * scaleY,
-		index,
-	}));
-}
+export {
+	getConnectionSites,
+	getShapeConnectionSites,
+	getUnrotatedShapeConnectionSites,
+	transformConnectionSite,
+} from './connector-sites';
+export type { ConnectionSite, ConnectionSiteFrame } from './connector-sites';
 
 /** Describes the updated geometry for a connector after rerouting. */
 export interface ReroutedConnector {

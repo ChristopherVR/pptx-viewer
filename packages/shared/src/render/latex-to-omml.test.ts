@@ -167,16 +167,18 @@ describe('convertLatexToOmml', () => {
 		expect(subsup).toBeDefined();
 	});
 
-	it('converts x_i^2 (unbraced) to nested m:sSub containing m:sSup', () => {
+	it('converts x_i^2 (unbraced) to m:sSubSup: both scripts belong to x', () => {
 		const oMath = getOmml('x_i^2');
-		const sub = oMath['m:sSub'] as Record<string, unknown>;
-		expect(sub).toBeDefined();
+		const subsup = oMath['m:sSubSup'] as Record<string, unknown>;
+		expect(subsup).toBeDefined();
+		expect(runText((subsup['m:sub'] as Record<string, unknown>)['m:r'])).toBe('i');
+		expect(runText((subsup['m:sup'] as Record<string, unknown>)['m:r'])).toBe('2');
 	});
 
-	it('converts x^2_i (unbraced, reversed) to nested m:sSup containing m:sSub', () => {
+	it('converts x^2_i (unbraced, reversed) to m:sSubSup', () => {
 		const oMath = getOmml('x^2_i');
-		const sup = oMath['m:sSup'] as Record<string, unknown>;
-		expect(sup).toBeDefined();
+		const subsup = oMath['m:sSubSup'] as Record<string, unknown>;
+		expect(subsup).toBeDefined();
 	});
 
 	// ── Square root ──────────────────────────────────────────────────────
@@ -683,5 +685,52 @@ describe('operator/construct interleaving order', () => {
 			},
 		};
 		expect(convertOmmlToLatex(omml)).toBe('x');
+	});
+});
+
+describe('convertLatexToOmml regressions (equation Update data loss)', () => {
+	it('no longer reverses a matrix (or any structural tag) to an empty string', () => {
+		const omml = {
+			'm:oMath': {
+				'm:m': {
+					'm:mr': [
+						{ 'm:e': [{ 'm:r': { 'm:t': '1' } }, { 'm:r': { 'm:t': '0' } }] },
+						{ 'm:e': [{ 'm:r': { 'm:t': '0' } }, { 'm:r': { 'm:t': '1' } }] },
+					],
+				},
+			},
+		};
+		expect(convertOmmlToLatex(omml)).toBe('\\begin{matrix}1 & 0 \\\\ 0 & 1\\end{matrix}');
+	});
+
+	it("parses \\lim_{...} into PowerPoint's m:func > m:limLow structure", () => {
+		const func = getOmml('\\lim_{x\\to 0}{f}')['m:func'] as Record<string, unknown>;
+		expect(func).toBeDefined();
+		const fName = func['m:fName'] as Record<string, unknown>;
+		expect(fName['m:limLow']).toBeDefined();
+	});
+
+	it('attaches trailing scripts to \\left...\\right and \\text{} constructs', () => {
+		expect(getOmml('\\left(a+b\\right)^{n}')['m:sSup']).toBeDefined();
+		expect(getOmml('\\text{abc}^{2}')['m:sSup']).toBeDefined();
+	});
+
+	it('keeps inner spaces in \\text{} and parses \\left\\{ as a brace delimiter', () => {
+		const run = getOmml('\\text{a b}')['m:r'];
+		expect(runText(run)).toBe('a b');
+		const d = getOmml('\\left\\{x\\right\\}')['m:d'] as Record<string, unknown>;
+		const dPr = d['m:dPr'] as Record<string, Record<string, string>>;
+		expect(dPr['m:begChr']?.['@_val']).toBe('{');
+		expect(dPr['m:endChr']?.['@_val']).toBe('}');
+	});
+
+	it('gives bare script arguments no scripts of their own (x_i^2 is sSubSup)', () => {
+		expect(getOmml('x_i^2')['m:sSubSup']).toBeDefined();
+		expect(convertOmmlToLatex(convertLatexToOmml('\\int_0^1 f'))).toBe('\\int_{0}^{1}{f}');
+	});
+
+	it('treats spacing commands as plain space runs', () => {
+		expect(convertOmmlToLatex(convertLatexToOmml('x \\quad y'))).toBe('x\\ y');
+		expect(convertOmmlToLatex(convertLatexToOmml('x\\!y'))).toBe('xy');
 	});
 });

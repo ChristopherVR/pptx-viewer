@@ -98,13 +98,26 @@ export function describeFontEmbedding(
  * handler.save(slides, { ...saveOptions, ...embeddedFontSaveOptions(embedFonts) });
  * ```
  *
- * `true` returns nothing at all, deliberately: core's default already re-embeds
- * whatever the deck arrived with, and naming `embeddedFonts` explicitly would
- * hand it a stale array captured before the last load.
+ * `true` never names the font list, deliberately: core's default already
+ * re-embeds whatever the deck arrived with, and naming `embeddedFonts`
+ * explicitly would hand it a stale array captured before the last load.
+ *
+ * Both positions DO write `p:presentation/@embedTrueTypeFonts`. The attribute
+ * is PowerPoint's own record of the toggle (it is what File > Options > Save
+ * reads back), so a deck saved with the switch off must say `"0"` even though
+ * the binary parts are what actually changed; leaving it at the loaded value
+ * made PowerPoint report fonts as embedded in a file that no longer carried
+ * any, and vice versa.
  *
  * @param embedFonts - The toggle's position.
- * @returns `{ embeddedFontList: null }` to strip, `{}` to keep.
+ * @returns `{ embeddedFontList: null, embedTrueTypeFonts: false }` to strip,
+ *   `{ embedTrueTypeFonts: true }` to keep.
  */
-export function embeddedFontSaveOptions(embedFonts: boolean): { embeddedFontList?: null } {
-	return embedFonts ? {} : { embeddedFontList: null };
+export function embeddedFontSaveOptions(embedFonts: boolean): {
+	embeddedFontList?: null;
+	embedTrueTypeFonts: boolean;
+} {
+	return embedFonts
+		? { embedTrueTypeFonts: true }
+		: { embeddedFontList: null, embedTrueTypeFonts: false };
 }

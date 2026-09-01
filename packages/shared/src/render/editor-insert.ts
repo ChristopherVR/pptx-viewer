@@ -10,6 +10,7 @@
  */
 
 import type { PptxElement, PptxSmartArtNode, PptxTableCell, PptxTableRow } from 'pptx-viewer-core';
+import { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from 'pptx-viewer-core';
 
 import { substituteFieldText } from './text-field-substitution';
 
@@ -213,6 +214,9 @@ export function newTableElement(
 			columnWidths,
 			firstRowHeader: true,
 			bandedRows: true,
+			// PowerPoint's default for a freshly inserted table; the save path no
+			// longer injects it, so creation is where it has to land.
+			tableStyleId: DEFAULT_POWERPOINT_TABLE_STYLE_ID,
 		},
 	} as PptxElement;
 }
