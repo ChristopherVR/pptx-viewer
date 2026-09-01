@@ -4,6 +4,11 @@ import type { Translator } from '../../i18n/translator';
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
 import type { ViewerLoadDetail } from '../types';
+import {
+	removeGoogleWebfontsLink,
+	resolveWebfontHref,
+	syncGoogleWebfontsLink,
+} from './google-webfonts';
 import type { PresentationLoader } from './presentation-loader.svelte';
 import type { ViewerState } from './viewer-state.svelte';
 
@@ -135,4 +140,24 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 			deps.getOnslidechange()?.(index);
 		}
 	});
+
+	// Google-hosted webfonts for referenced families that are neither installed
+	// nor embedded (Microsoft 365 "cloud fonts" have no browser equivalent);
+	// the probe is session-cached, so only unseen families hit the network.
+	if (typeof document !== 'undefined') {
+		$effect(() => {
+			let cancelled = false;
+			void resolveWebfontHref(deps.loader.slides, deps.loader.embeddedFonts).then((href) => {
+				if (cancelled) {
+					return null;
+				}
+				syncGoogleWebfontsLink(document, href);
+				return href;
+			});
+			return () => {
+				cancelled = true;
+				removeGoogleWebfontsLink(document);
+			};
+		});
+	}
 }
