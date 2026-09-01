@@ -48,6 +48,12 @@ import { applyChartPrintSettings } from '../../utils/chart-print-settings';
 import { applyChartProtection } from '../../utils/chart-protection';
 import { writeSeriesColorToSpPr } from '../../utils/chart-series-color-serializer';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
+import {
+	applyBar3DShapeToXml,
+	applyRadarStyleToXml,
+	applySeriesBar3DShapeToXml,
+	applySurfaceWireframeToXml,
+} from '../../utils/chart-subtype-serializer';
 import { applyChartTitleToXml } from '../../utils/chart-title-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
@@ -474,6 +480,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							this.compatibilityService.getXmlLocalName(key),
 						);
 					}
+
+					// Per-series 3-D bar/column shape override (c:ser/c:shape), legal
+					// only inside a bar3D container. Undefined = passthrough.
+					if (seriesData.shape !== undefined && chartData.chartType === 'bar3D') {
+						applySeriesBar3DShapeToXml(seriesNode, seriesData.shape, (key) =>
+							this.compatibilityService.getXmlLocalName(key),
+						);
+					}
 				}
 
 				// ── Add new series (when data has more series than XML) ───
@@ -608,6 +622,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						chartData.bandFmts,
 						(key) => this.compatibilityService.getXmlLocalName(key),
 						(node) => this.parseColor(node),
+					);
+				}
+
+				// ── bar3D shape / radar style / surface wireframe round-trip ──
+				if (chartData.barShape !== undefined && chartData.chartType === 'bar3D') {
+					applyBar3DShapeToXml(chartTypeContainer, containerLocalName, chartData.barShape, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+				if (chartData.radarStyle !== undefined && chartData.chartType === 'radar') {
+					applyRadarStyleToXml(
+						chartTypeContainer,
+						containerLocalName,
+						chartData.radarStyle,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+				if (chartData.wireframe !== undefined && chartData.chartType === 'surface') {
+					applySurfaceWireframeToXml(
+						chartTypeContainer,
+						containerLocalName,
+						chartData.wireframe,
+						(key) => this.compatibilityService.getXmlLocalName(key),
 					);
 				}
 

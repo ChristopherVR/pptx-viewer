@@ -105,6 +105,9 @@ function buildSeries(
 			? numLit(dateCategories.values, dateCategories.formatCode)
 			: strLit(categories);
 		ser['c:val'] = numLit(s.values);
+		if (family === 'bar' && s.shape) {
+			ser['c:shape'] = { '@_val': s.shape };
+		}
 	}
 	if (s.dataLabels !== undefined) {
 		applySeriesDataLabelsToXml(ser, s.dataLabels, (key) => key.replace(/^.*:/u, ''));
@@ -140,7 +143,7 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 		container['c:grouping'] = { '@_val': chartData.grouping ?? 'standard' };
 		container['c:varyColors'] = { '@_val': '0' };
 	} else if (family === 'radar') {
-		container['c:radarStyle'] = { '@_val': 'marker' };
+		container['c:radarStyle'] = { '@_val': chartData.radarStyle ?? 'marker' };
 		container['c:varyColors'] = { '@_val': '0' };
 	} else if (family === 'scatter') {
 		container['c:scatterStyle'] = { '@_val': 'lineMarker' };
@@ -149,9 +152,13 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 		// A pie-of-pie / bar-of-pie needs its split type before the series.
 		container['c:ofPieType'] = { '@_val': 'pie' };
 		container['c:varyColors'] = { '@_val': '1' };
-	} else if (family === 'stock' || family === 'surface') {
-		// Stock and surface containers carry neither c:grouping nor c:varyColors;
-		// hi/low lines (stock) and axes are added in the trailing block below.
+	} else if (family === 'stock') {
+		// Stock containers carry neither c:grouping nor c:varyColors; hi/low
+		// lines are added in the trailing block below.
+	} else if (family === 'surface') {
+		// c:wireframe must precede c:ser in CT_SurfaceChart/CT_Surface3DChart.
+		// Absent `chartData.wireframe` defaults to the schema's own `true`.
+		container['c:wireframe'] = { '@_val': chartData.wireframe === false ? '0' : '1' };
 	} else {
 		container['c:varyColors'] = { '@_val': family === 'bubble' ? '0' : '1' };
 	}
@@ -168,6 +175,9 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 
 	if (family === 'bar' || family === 'ofPie') {
 		container['c:gapWidth'] = { '@_val': '150' };
+	}
+	if (family === 'bar' && chartData.chartType === 'bar3D' && chartData.barShape) {
+		container['c:shape'] = { '@_val': chartData.barShape };
 	}
 	if (family === 'stock') {
 		// Stock charts join the high/low points across categories.

@@ -44,6 +44,7 @@ import {
 	parseSeriesExplosion,
 	parseMarker,
 } from '../../utils/chart-series-detail-parser';
+import { parseBar3DShapeVal, parseRadarStyleVal } from '../../utils/chart-subtype-values';
 import { parseChartUpDownBars } from '../../utils/chart-up-down-bars';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartColorStyle';
 
@@ -202,6 +203,33 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			barDirection = String(barDirNode['@_val']).trim() === 'bar' ? 'bar' : 'col';
 		}
 
+		// 3-D bar/column shape (c:bar3DChart/c:shape), bar3D only.
+		const barShape =
+			chartType === 'bar3D'
+				? parseBar3DShapeVal(
+						String(
+							this.xmlLookupService.getChildByLocalName(seriesContainer, 'shape')?.['@_val'] ?? '',
+						).trim(),
+					)
+				: undefined;
+
+		// Radar drawing style (c:radarChart/c:radarStyle), radar only.
+		const radarStyle =
+			chartType === 'radar'
+				? parseRadarStyleVal(
+						String(
+							this.xmlLookupService.getChildByLocalName(seriesContainer, 'radarStyle')?.['@_val'] ??
+								'',
+						).trim(),
+					)
+				: undefined;
+
+		// Surface wireframe flag (c:surfaceChart|surface3DChart/c:wireframe), surface
+		// only. Absent element is left `undefined`; the CT_Boolean schema default of
+		// `true` applies at the consuming (render) site, matching `plotVisibleOnly`.
+		const wireframe =
+			chartType === 'surface' ? this.parseChartBoolVal(seriesContainer, 'wireframe') : undefined;
+
 		// Store the chart part path for round-trip save
 		const chartPartPath = chartPart.partPath;
 
@@ -320,6 +348,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(barGapWidth !== undefined ? { barGapWidth } : {}),
 			...(barOverlap !== undefined ? { barOverlap } : {}),
 			...(barDirection !== undefined ? { barDirection } : {}),
+			...(barShape !== undefined ? { barShape } : {}),
+			...(radarStyle !== undefined ? { radarStyle } : {}),
+			...(wireframe !== undefined ? { wireframe } : {}),
 			...(scatterStyle !== undefined ? { scatterStyle } : {}),
 			chartPartPath,
 			chartRelationshipId,
@@ -650,6 +681,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				? !(invertNode['@_val'] === '0' || invertNode['@_val'] === 'false')
 				: undefined;
 
+			// Per-series 3-D bar/column shape override (c:ser/c:shape), legal only
+			// inside a bar3D container.
+			const seriesShape =
+				containerChartType === 'bar3D'
+					? parseBar3DShapeVal(
+							String(
+								this.xmlLookupService.getChildByLocalName(seriesNode, 'shape')?.['@_val'] ?? '',
+							).trim(),
+						)
+					: undefined;
+
 			return {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
 				values: fallbackValues,
@@ -672,6 +714,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(smooth !== undefined ? { smooth } : {}),
 				...(axisId !== undefined ? { axisId } : {}),
 				...(seriesChartType ? { seriesChartType } : {}),
+				...(seriesShape !== undefined ? { shape: seriesShape } : {}),
 			};
 		});
 	}

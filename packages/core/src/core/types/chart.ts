@@ -67,6 +67,21 @@ export type PptxChartType =
 export type PptxChartBarDirection = 'col' | 'bar';
 
 /**
+ * 3-D bar/column shape (OOXML `ST_Shape`, `c:bar3DChart/c:shape/@val` or a
+ * per-series `c:ser/c:shape` override). `coneToMax` / `pyramidToMax` scale
+ * the cone/pyramid so it reaches full height at the value axis maximum,
+ * appearing truncated below it; the plain `cone`/`pyramid` always come to a
+ * full point at the bar's own value.
+ *
+ * @example
+ * ```ts
+ * const shape: PptxBar3DShape = "cylinder";
+ * // => "cylinder", one of: "box" | "cone" | "coneToMax" | "cylinder" | "pyramid" | "pyramidToMax"
+ * ```
+ */
+export type PptxBar3DShape = 'box' | 'cone' | 'coneToMax' | 'cylinder' | 'pyramid' | 'pyramidToMax';
+
+/**
  * Supported trendline regression types.
  *
  * @example
@@ -570,6 +585,12 @@ export interface PptxChartSeries {
 	 * series.
 	 */
 	seriesChartType?: PptxChartType;
+	/**
+	 * Per-series 3-D bar/column shape override (`c:ser/c:shape`), legal only
+	 * inside a bar3D chart-type container. Overrides {@link PptxChartData.barShape}
+	 * for this series alone.
+	 */
+	shape?: PptxBar3DShape;
 	boxWhiskerOptions?: PptxChartBoxWhiskerOptions;
 	histogramOptions?: PptxChartHistogramOptions;
 	waterfallOptions?: PptxChartWaterfallOptions;
@@ -882,6 +903,28 @@ export interface PptxChartData {
 	 * default), so only horizontal bar charts need to carry the field.
 	 */
 	barDirection?: PptxChartBarDirection;
+	/**
+	 * 3-D bar/column shape (`c:bar3DChart/c:shape/@val`). Bar3D only; a plain
+	 * bar chart has no `c:shape` element. A per-series `c:ser/c:shape`
+	 * ({@link PptxChartSeries.shape}) overrides this for that series.
+	 */
+	barShape?: PptxBar3DShape;
+	/**
+	 * Radar chart drawing style (`c:radarChart/c:radarStyle/@val`). `standard`
+	 * draws an outline only, `marker` adds markers at each vertex (PowerPoint's
+	 * own default for every radar chart it authors), and `filled` paints the
+	 * enclosed polygon with the series fill and omits markers. Radar only.
+	 */
+	radarStyle?: 'standard' | 'marker' | 'filled';
+	/**
+	 * Whether a surface chart renders as a wireframe grid rather than a solid
+	 * coloured surface (`c:surfaceChart/c:wireframe/@val` or
+	 * `c:surface3DChart/c:wireframe/@val`, both modeled as chart type
+	 * `"surface"`). A `CT_Boolean` element: absent from the source XML
+	 * defaults to `true` per schema, so `undefined` here means "not present in
+	 * the source" and callers should treat it as `true`. Surface only.
+	 */
+	wireframe?: boolean;
 	/**
 	 * Scatter presentation mode (`c:scatterChart/c:scatterStyle/@val`).
 	 *
