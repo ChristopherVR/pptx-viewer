@@ -894,6 +894,10 @@ export * from './effects-helpers';
 // fallback, and the resolved-variant -> stylesheet/family-list build (the
 // managed <style> id + object-URL minting stay per-binding).
 export * from './embedded-fonts';
+// Pure Google Fonts webfont-fallback helpers: referenced-family collection,
+// known-family selection, and CSS2 href building (the managed <link> id +
+// injection stay per-binding).
+export * from './google-webfonts';
 // Pure slide text search: per-element/-slide text collection + case-insensitive
 // substring search with match counts and context snippets.
 export * from './slide-search';
