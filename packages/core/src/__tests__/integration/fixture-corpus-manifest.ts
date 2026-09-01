@@ -190,6 +190,17 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'so keep this deck: it is the only witness that invariant has.',
 	},
 	{
+		file: 'adlam-webfont.pptx',
+		dir: 'e2e',
+		provenance: 'synthetic',
+		status: 'roundtrip',
+		note:
+			'Hand-built minimal deck (no docProps) whose five text runs each reference a cloud-hosted ' +
+			'typeface that is neither embedded nor installed by the demos. Drives the google-webfonts ' +
+			'e2e spec, which stubs the Google Fonts css2 endpoint, so the family name only has to be ' +
+			'well-formed (two words, exercising the %20 encoding).',
+	},
+	{
 		file: 'anatidae-animation.pptx',
 		dir: 'e2e',
 		provenance: 'powerpoint',
