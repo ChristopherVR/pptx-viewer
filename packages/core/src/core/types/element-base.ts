@@ -224,13 +224,32 @@ export interface PlaceholderTextLevelStyle {
 	bulletSizePercent?: number;
 	/** Bullet colour from `a:buClr` as hex string. */
 	bulletColor?: string;
+	/**
+	 * The colour-choice node inside `a:buClr` this level's {@link bulletColor}
+	 * resolved from (`a:schemeClr` / `a:sysClr` / `a:prstClr` / `a:srgbClr`,
+	 * transforms included), mirroring `BulletInfo.colorXml`. Re-emitted
+	 * verbatim on save so a themed bullet is not downgraded to a literal
+	 * `a:srgbClr`. Absent when the level declares no bullet colour.
+	 */
+	bulletColorXml?: XmlObject;
 	/** Bullet size in points from `a:buSzPts`. */
 	bulletSizePts?: number;
 	/** True when `a:buNone` is present at this level. */
 	bulletNone?: boolean;
 	marginLeft?: number; // indent in px (from `@_marL` EMU)
+	/** Paragraph right margin in px (from `@_marR` EMU). */
+	marginRight?: number;
 	indent?: number; // first-line indent in px (from `@_indent` EMU)
+	/**
+	 * Paragraph alignment as a `TextStyle['align']` token (`left`, `center`,
+	 * `right`, `justify`, `justLow`, `dist`, `thaiDist`), never the raw OOXML
+	 * `@algn` value.
+	 */
 	alignment?: string;
+	/** Right-to-left paragraph direction (`@rtl`). */
+	rtl?: boolean;
+	/** Tab stops from `a:tabLst/a:tab` (positions in px). */
+	tabStops?: TextStyle['tabStops'];
 	lineSpacing?: number;
 	lineSpacingExactPt?: number;
 	spaceBefore?: number;

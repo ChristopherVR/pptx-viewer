@@ -18,6 +18,7 @@ import { mergeNativeSoundIntoEditorAnimations } from './animation-sound-merge';
 import { reconcileAnimationTargets } from './animation-target-reconcile';
 import { computeAnimationTimelineOrder } from './animation-timeline-anchors';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
+import { readCommonSlideDataName } from './slide-name';
 
 export type {
 	PptxMediaTimingEntry,
@@ -182,16 +183,25 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 		// Phase 2 Stream B / C-H4.
 		await params.setActiveMasterForSlide?.(path);
 
-		// Use try/finally to ensure theme override state is always restored
-		let restoreThemeOverride: (() => void) | undefined;
+		// Use try/finally to ensure theme override state is always restored.
+		// Restores run in reverse order of application (slide first, then
+		// layout), so each one puts back exactly the state it replaced.
+		const restoreThemeOverrides: Array<() => void> = [];
 		try {
 			// Apply layout-level theme overrides if present
 			const layoutPathForOverride = params.findLayoutPathForSlide(path);
 			if (layoutPathForOverride) {
 				const themeOverride = await params.loadThemeOverride(layoutPathForOverride);
 				if (themeOverride) {
-					restoreThemeOverride = params.applyThemeOverrideState(themeOverride);
+					restoreThemeOverrides.push(params.applyThemeOverrideState(themeOverride));
 				}
+			}
+			// A slide can carry its OWN `themeOverride` relationship (a pasted
+			// slide keeping its source deck's colours). It sits on top of the
+			// layout's, so it is applied second and wins on overlapping keys.
+			const slideThemeOverride = await params.loadThemeOverride(path);
+			if (slideThemeOverride) {
+				restoreThemeOverrides.push(params.applyThemeOverrideState(slideThemeOverride));
 			}
 
 			// Layout parsing seeds placeholder defaults consumed by slide parsing.
@@ -354,6 +364,10 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				// for the theme override; the field stayed unset until now, so
 				// nothing downstream could tell which layout a slide was using.
 				layoutPath: layoutPathForOverride,
+				// `p:cSld/@name`, the author-facing slide name PowerPoint shows in
+				// the Selection Pane and Outline view and that section zooms and
+				// VBA address slides by. Layouts already round-trip theirs.
+				name: readCommonSlideDataName(slideXmlObj),
 				hidden,
 				sectionId: sectionMeta?.sectionId,
 				sectionName: sectionMeta?.sectionName,
@@ -385,8 +399,8 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				slideSynchronization,
 			};
 		} finally {
-			if (restoreThemeOverride) {
-				restoreThemeOverride();
+			for (const restore of restoreThemeOverrides.reverse()) {
+				restore();
 			}
 			params.setCurrentSlideClrMapOverride(null);
 		}

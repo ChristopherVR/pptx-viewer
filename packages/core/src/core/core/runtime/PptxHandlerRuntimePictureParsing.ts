@@ -1,5 +1,6 @@
 import { XmlObject, PptxElement } from '../../types';
 import type { MediaPptxElement } from '../../types';
+import { cropShapeForPresetGeometry } from '../../utils/crop-shape-geometry';
 import { parseDrawingMediaReference } from '../../utils/drawing-media-reference';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParsing';
@@ -159,6 +160,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				effectiveSpPr?.['a:prstGeom'] as XmlObject | undefined,
 			);
 			let shapeType = prstGeom || 'rect';
+			const cropShape = xmlChild(effectiveSpPr, 'a:custGeom')
+				? undefined
+				: cropShapeForPresetGeometry(prstGeom);
 			let pathData: string | undefined;
 			let pathWidth: number | undefined;
 			let pathHeight: number | undefined;
@@ -359,6 +363,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...crop,
 				...tileProps,
 				shapeType,
+				// "Crop to Shape" is the picture's own preset geometry; surface the
+				// typed view only when the preset expresses one (never for custGeom).
+				...(cropShape !== undefined ? { cropShape } : {}),
 				shapeAdjustments,
 				adjustmentHandles,
 				pathData,

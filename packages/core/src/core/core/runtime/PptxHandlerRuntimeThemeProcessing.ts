@@ -1,155 +1,175 @@
 import { XmlObject } from '../../types';
 import type { PptxThemeColorScheme, PptxThemeFontScheme } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeThemeLoading';
+import {
+	applyColorSchemeToMap,
+	applyColorSchemeToThemeXml,
+	applyFontSchemeToMap,
+	applyFontSchemeToThemeXml,
+} from './theme-scheme-edit';
 
+const THEME_PART_PATTERN = /^ppt\/theme\/theme\d+\.xml$/;
+
+/**
+ * Theme editing: update colour scheme, font scheme, and name in the zip.
+ *
+ * A deck may carry one theme part per slide master. Every edit therefore
+ * targets ALL theme parts the masters point at (the same set the save
+ * pipeline's `persistThemeParts` walks), unless the caller narrows it with an
+ * explicit `themePaths` list. The in-memory maps are refreshed alongside:
+ * the per-master maps, the deck-wide snapshots, and the currently active
+ * `themeColorMap` / `themeFontMap`.
+ */
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	// ---------------------------------------------------------------------------
-	// Theme editing — update colour scheme, font scheme, and name in the zip
-	// ---------------------------------------------------------------------------
-
 	/**
-	 * Resolve the primary theme file path and return its parsed XML data.
-	 * Returns both the file path and the parsed XML object, or undefined
-	 * if no theme file exists.
+	 * The theme parts an edit should touch, primary theme first.
+	 *
+	 * Defaults to every theme referenced by a slide master. A deck whose
+	 * masters were never resolved (nothing loaded yet, or a bare zip) falls
+	 * back to the primary theme part so the legacy single-theme behaviour is
+	 * preserved.
 	 */
-	private async getPrimaryThemeXml(): Promise<{ path: string; data: XmlObject } | undefined> {
-		const themeFiles = this.zip.file(/^ppt\/theme\/theme\d+\.xml$/);
-		if (!themeFiles || themeFiles.length === 0) {
+	private async resolveThemeEditTargets(themePaths?: readonly string[]): Promise<string[]> {
+		const existing = (path: string): boolean => this.zip.file(path) !== null;
+		if (themePaths) {
+			return [...new Set(themePaths)].filter(existing);
+		}
+		const primary = await this.resolvePrimaryThemePath();
+		const targets = new Set<string>();
+		if (primary && existing(primary)) {
+			targets.add(primary);
+		}
+		for (const themePath of this.masterThemePaths.values()) {
+			if (themePath && existing(themePath)) {
+				targets.add(themePath);
+			}
+		}
+		if (targets.size === 0) {
+			const first = this.zip.file(THEME_PART_PATTERN)[0];
+			if (first) {
+				targets.add(first.name);
+			}
+		}
+		return [...targets];
+	}
+
+	private async readThemePart(path: string): Promise<XmlObject | undefined> {
+		const file = this.zip.file(path);
+		if (!file) {
 			return undefined;
 		}
-		const preferredPath = await this.resolvePrimaryThemePath();
-		const file = preferredPath
-			? (themeFiles.find((f) => f.name === preferredPath) ?? themeFiles[0])
-			: themeFiles[0];
 		const xml = await file.async('string');
-		return { path: file.name, data: this.parser.parse(xml) as XmlObject };
+		return this.parser.parse(xml) as XmlObject;
 	}
 
 	/**
-	 * Build an OOXML colour node (`a:srgbClr`) from a hex string.
+	 * Parse, edit, and write back every target theme part. Parts the edit
+	 * cannot apply to (no `a:themeElements`) are left untouched.
+	 *
+	 * @returns the paths that were rewritten
 	 */
-	private buildSrgbClrNode(hex: string): XmlObject {
-		const clean = hex.replace(/^#/, '').toUpperCase();
-		return { 'a:srgbClr': { '@_val': clean } };
+	private async rewriteThemeParts(
+		themePaths: readonly string[] | undefined,
+		edit: (data: XmlObject) => boolean,
+	): Promise<string[]> {
+		const written: string[] = [];
+		for (const path of await this.resolveThemeEditTargets(themePaths)) {
+			const data = await this.readThemePart(path);
+			if (!data || !edit(data)) {
+				continue;
+			}
+			this.zip.file(path, this.builder.build(data));
+			written.push(path);
+		}
+		return written;
+	}
+
+	/** Masters whose theme part is among the rewritten paths. */
+	private mastersUsingThemes(themePaths: readonly string[]): string[] {
+		const targets = new Set(themePaths);
+		const masters: string[] = [];
+		for (const [masterPath, themePath] of this.masterThemePaths.entries()) {
+			if (targets.has(themePath)) {
+				masters.push(masterPath);
+			}
+		}
+		return masters;
 	}
 
 	/**
 	 * Update the theme's colour scheme in-memory and in the zip.
-	 * Also updates `themeColorMap` so subsequent renders use the new colours.
+	 *
+	 * Refreshes `themeColorMap`, the deck-wide snapshot, and every per-master
+	 * colour map whose theme was rewritten. The `tx1` / `bg1` / `tx2` / `bg2`
+	 * alias slots are routed through each master's own `p:clrMap` rather than
+	 * assuming the default `tx1 = dk1` mapping, so a master that swaps light
+	 * and dark keeps its swap after the edit.
+	 *
+	 * @param themePaths optional explicit theme parts to edit; defaults to
+	 *   every theme a slide master references
 	 */
-	public async updateThemeColorScheme(colorScheme: PptxThemeColorScheme): Promise<void> {
-		const result = await this.getPrimaryThemeXml();
-		if (!result) {
+	public async updateThemeColorScheme(
+		colorScheme: PptxThemeColorScheme,
+		themePaths?: readonly string[],
+	): Promise<void> {
+		const written = await this.rewriteThemeParts(themePaths, (data) =>
+			applyColorSchemeToThemeXml(data, colorScheme),
+		);
+		if (written.length === 0) {
 			return;
 		}
-		const { path, data } = result;
-		const root = data['a:theme'] as XmlObject | undefined;
-		const themeElements = root?.['a:themeElements'] as XmlObject | undefined;
-		if (!themeElements) {
-			return;
+		for (const masterPath of this.mastersUsingThemes(written)) {
+			const map = this.masterThemeColorMaps.get(masterPath);
+			if (map) {
+				applyColorSchemeToMap(map, colorScheme, this.masterClrMaps.get(masterPath));
+			}
 		}
-
-		const clrScheme = (themeElements['a:clrScheme'] ?? {}) as XmlObject;
-		const schemeKeys: Array<keyof PptxThemeColorScheme> = [
-			'dk1',
-			'lt1',
-			'dk2',
-			'lt2',
-			'accent1',
-			'accent2',
-			'accent3',
-			'accent4',
-			'accent5',
-			'accent6',
-			'hlink',
-			'folHlink',
-		];
-		for (const key of schemeKeys) {
-			clrScheme[`a:${key}`] = this.buildSrgbClrNode(colorScheme[key]);
-		}
-		themeElements['a:clrScheme'] = clrScheme;
-		this.zip.file(path, this.builder.build(data));
-
-		// Update internal color map
-		for (const key of schemeKeys) {
-			this.themeColorMap[key] = colorScheme[key].replace(/^#/, '').toUpperCase();
-		}
-		this.themeColorMap['tx1'] = this.themeColorMap['dk1'];
-		this.themeColorMap['bg1'] = this.themeColorMap['lt1'];
-		this.themeColorMap['tx2'] = this.themeColorMap['dk2'];
-		this.themeColorMap['bg2'] = this.themeColorMap['lt2'];
+		applyColorSchemeToMap(this.globalThemeColorMapSnapshot, colorScheme, null);
+		applyColorSchemeToMap(this.themeColorMap, colorScheme, this.currentMasterClrMap);
 	}
 
 	/**
-	 * Update the theme's font scheme in-memory and in the zip.
+	 * Update the theme's font scheme in-memory and in the zip, across every
+	 * target theme part and the matching per-master font maps.
+	 *
+	 * @param themePaths optional explicit theme parts to edit; defaults to
+	 *   every theme a slide master references
 	 */
-	public async updateThemeFontScheme(fontScheme: PptxThemeFontScheme): Promise<void> {
-		const result = await this.getPrimaryThemeXml();
-		if (!result) {
+	public async updateThemeFontScheme(
+		fontScheme: PptxThemeFontScheme,
+		themePaths?: readonly string[],
+	): Promise<void> {
+		const written = await this.rewriteThemeParts(themePaths, (data) =>
+			applyFontSchemeToThemeXml(data, fontScheme),
+		);
+		if (written.length === 0) {
 			return;
 		}
-		const { path, data } = result;
-		const root = data['a:theme'] as XmlObject | undefined;
-		const themeElements = root?.['a:themeElements'] as XmlObject | undefined;
-		if (!themeElements) {
-			return;
-		}
-
-		const fntScheme = (themeElements['a:fontScheme'] ?? {}) as XmlObject;
-
-		if (fontScheme.majorFont?.latin) {
-			const majorFont = (fntScheme['a:majorFont'] ?? {}) as XmlObject;
-			majorFont['a:latin'] = { '@_typeface': fontScheme.majorFont.latin };
-			if (!majorFont['a:ea']) {
-				majorFont['a:ea'] = { '@_typeface': '' };
+		for (const masterPath of this.mastersUsingThemes(written)) {
+			const map = this.masterThemeFontMaps.get(masterPath);
+			if (map) {
+				applyFontSchemeToMap(map, fontScheme);
 			}
-			if (!majorFont['a:cs']) {
-				majorFont['a:cs'] = { '@_typeface': '' };
-			}
-			fntScheme['a:majorFont'] = majorFont;
 		}
-		if (fontScheme.minorFont?.latin) {
-			const minorFont = (fntScheme['a:minorFont'] ?? {}) as XmlObject;
-			minorFont['a:latin'] = { '@_typeface': fontScheme.minorFont.latin };
-			if (!minorFont['a:ea']) {
-				minorFont['a:ea'] = { '@_typeface': '' };
-			}
-			if (!minorFont['a:cs']) {
-				minorFont['a:cs'] = { '@_typeface': '' };
-			}
-			fntScheme['a:minorFont'] = minorFont;
-		}
-		themeElements['a:fontScheme'] = fntScheme;
-		this.zip.file(path, this.builder.build(data));
-
-		// Update internal font map
-		if (fontScheme.majorFont?.latin) {
-			this.themeFontMap['mj-lt'] = fontScheme.majorFont.latin;
-			this.themeFontMap['mj-ea'] = fontScheme.majorFont.latin;
-			this.themeFontMap['mj-cs'] = fontScheme.majorFont.latin;
-		}
-		if (fontScheme.minorFont?.latin) {
-			this.themeFontMap['mn-lt'] = fontScheme.minorFont.latin;
-			this.themeFontMap['mn-ea'] = fontScheme.minorFont.latin;
-			this.themeFontMap['mn-cs'] = fontScheme.minorFont.latin;
-		}
+		applyFontSchemeToMap(this.globalThemeFontMapSnapshot, fontScheme);
+		applyFontSchemeToMap(this.themeFontMap, fontScheme);
 	}
 
 	/**
-	 * Update the theme name in the zip.
+	 * Update the theme name in the zip, on every target theme part.
+	 *
+	 * @param themePaths optional explicit theme parts to edit; defaults to
+	 *   every theme a slide master references
 	 */
-	public async updateThemeName(name: string): Promise<void> {
-		const result = await this.getPrimaryThemeXml();
-		if (!result) {
-			return;
-		}
-		const { path, data } = result;
-		const root = data['a:theme'] as XmlObject | undefined;
-		if (!root) {
-			return;
-		}
-		root['@_name'] = name;
-		this.zip.file(path, this.builder.build(data));
+	public async updateThemeName(name: string, themePaths?: readonly string[]): Promise<void> {
+		await this.rewriteThemeParts(themePaths, (data) => {
+			const root = data['a:theme'] as XmlObject | undefined;
+			if (!root) {
+				return false;
+			}
+			root['@_name'] = name;
+			return true;
+		});
 	}
 
 	/**

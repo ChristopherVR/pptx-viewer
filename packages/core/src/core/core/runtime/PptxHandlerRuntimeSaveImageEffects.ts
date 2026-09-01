@@ -1,5 +1,7 @@
 import { XmlObject, TextStyle, TextSegment, ShapeStyle } from '../../types';
 import type { PptxImageLikeElement, PptxImageEffects } from '../../types';
+import { syncPictureShapeTypeWithCropShape } from '../../utils/crop-shape-geometry';
+import { applyA14ImageExtension } from './image-a14-effects-writer';
 import { applyImageAlphaEffects } from './image-alpha-effects';
 import { applyImageColorEffects } from './image-color-effects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveShapeXml';
@@ -16,6 +18,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		blipFill: XmlObject | undefined,
 		element: PptxImageLikeElement,
 	): void {
+		// Fold a changed "Crop to Shape" into `shapeType` so the geometry writer
+		// (which runs after the blip fill and reads `shapeType`) emits the
+		// matching `a:prstGeom`. Runs before the blipFill guard on purpose: the
+		// crop is geometry, not fill.
+		syncPictureShapeTypeWithCropShape(element);
 		if (!blipFill) {
 			return;
 		}
@@ -133,7 +140,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			delete blip['a:tint'];
 		}
 
-		// a:fillOverlay — preserve inner fill XML opaquely
+		// a:fillOverlay: preserve inner fill XML opaquely
 		if (nextEffects.fillOverlay) {
 			const node: XmlObject = {
 				'@_blend': nextEffects.fillOverlay.blend,
@@ -163,6 +170,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		} else {
 			delete blip['a:blur'];
 		}
+
+		// a14 extension: artistic effect, Corrections / Color panel settings and
+		// the background-removal layer. Rebuilt from the model so a gallery pick
+		// actually reaches the file, and removed when everything is cleared.
+		applyA14ImageExtension(blip, nextEffects);
 	}
 
 	protected normalizePresetGeometry(shapeType: string | undefined): string {

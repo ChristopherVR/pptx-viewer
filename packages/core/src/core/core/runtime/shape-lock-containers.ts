@@ -21,29 +21,11 @@
  * `@noTextEdit` its type does not declare, and groups had no branch at all.
  */
 import type { PptxShapeLocks, XmlObject } from '../../types';
+import type { ShapeLockProperty } from './shape-lock-node';
+import { parseShapeLockNode } from './shape-lock-node';
 
-/** Model property -> lock attribute name, for every lock this model carries. */
-const LOCK_ATTRIBUTE: Readonly<Record<ShapeLockProperty, string>> = {
-	noGrouping: '@_noGrp',
-	noRotation: '@_noRot',
-	noMove: '@_noMove',
-	noResize: '@_noResize',
-	noTextEdit: '@_noTextEdit',
-	noSelect: '@_noSelect',
-	noChangeAspect: '@_noChangeAspect',
-	noEditPoints: '@_noEditPoints',
-	noAdjustHandles: '@_noAdjustHandles',
-	noChangeArrowheads: '@_noChangeArrowheads',
-	noChangeShapeType: '@_noChangeShapeType',
-	noDrilldown: '@_noDrilldown',
-};
-
-/**
- * The lock flags this model represents. `txBox` is deliberately absent: it is
- * an attribute of `p:cNvSpPr` itself, not of the `a:spLocks` child, and is
- * written by the shape XML factory.
- */
-export type ShapeLockProperty = Exclude<keyof PptxShapeLocks, 'txBox'>;
+export type { ShapeLockProperty } from './shape-lock-node';
+export { buildShapeLockNode, LOCK_ATTRIBUTE, parseShapeLockNode } from './shape-lock-node';
 
 /** `AG_Locking`: the attribute group every lock type below is built on. */
 const AG_LOCKING: readonly ShapeLockProperty[] = [
@@ -92,7 +74,8 @@ export const SHAPE_LOCK_CONTAINERS: Readonly<Record<string, ShapeLockContainerSp
 		nvKey: 'p:nvPicPr',
 		cNvKey: 'p:cNvPicPr',
 		lockTag: 'a:picLocks',
-		permitted: AG_LOCKING,
+		// `CT_PictureLocking` is the only type that adds `@noCrop` to AG_Locking.
+		permitted: [...AG_LOCKING, 'noCrop'],
 	},
 	'p:cxnSp': {
 		nvKey: 'p:nvCxnSpPr',
@@ -231,68 +214,4 @@ export function resolveLockContainerNode(
 	}
 	Object.assign(nv, rebuilt);
 	return created;
-}
-
-/** Every attribute the model owns, so carry-over can skip them. */
-const MODELLED_ATTRIBUTES: ReadonlySet<string> = new Set(Object.values(LOCK_ATTRIBUTE));
-
-/**
- * Build the replacement lock node for one container.
- *
- * Attributes the model does not describe (`a:grpSpLocks/@noUngrp`,
- * `a:picLocks/@noCrop`) and any `a:extLst` are carried over from `existing`:
- * rewriting the node from the model alone dropped them the first time any
- * other lock on the same shape was edited. Modelled attributes that this
- * container does not permit are NOT carried over, so a `@noTextEdit` that only
- * ever got onto a `a:picLocks` because the writer applied one flat list is
- * corrected rather than preserved.
- *
- * @returns the node to write, or `undefined` when nothing is left to write and
- *   the caller should delete the element.
- */
-export function buildShapeLockNode(
-	locks: PptxShapeLocks | undefined,
-	spec: ShapeLockContainerSpec,
-	existing: XmlObject | undefined,
-): XmlObject | undefined {
-	const node: XmlObject = {};
-	for (const [key, value] of Object.entries(existing ?? {})) {
-		if (!MODELLED_ATTRIBUTES.has(key)) {
-			node[key] = value;
-		}
-	}
-	if (locks) {
-		for (const prop of spec.permitted) {
-			const value = locks[prop];
-			if (value !== undefined) {
-				node[LOCK_ATTRIBUTE[prop]] = value ? '1' : '0';
-			}
-		}
-	}
-	return Object.keys(node).length > 0 ? node : undefined;
-}
-
-/**
- * Parse a lock element into the model, restricted to the attributes its type
- * declares. Mirrors {@link buildShapeLockNode} so a container round-trips.
- */
-export function parseShapeLockNode(
-	node: XmlObject | undefined,
-	spec: ShapeLockContainerSpec,
-): PptxShapeLocks | undefined {
-	if (!node) {
-		return undefined;
-	}
-	const locks: PptxShapeLocks = {};
-	let hasAny = false;
-	for (const prop of spec.permitted) {
-		const raw = node[LOCK_ATTRIBUTE[prop]];
-		if (raw === undefined) {
-			continue;
-		}
-		const value = String(raw).trim().toLowerCase();
-		locks[prop] = value === '1' || value === 'true';
-		hasAny = true;
-	}
-	return hasAny ? locks : undefined;
 }

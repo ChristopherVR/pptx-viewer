@@ -8,6 +8,7 @@
  * @module sdk/ElementFactory
  */
 
+import { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from '../../core/runtime/table-style-defaults';
 import { svgToCustomGeometryPaths } from '../../geometry/custom-geometry';
 import type { PptxChartData, PptxChartSeries, PptxChartType } from '../../types/chart';
 import type {
@@ -463,7 +464,11 @@ export function createTableElement(input: TableInput, options?: TableOptions): T
 		lastRow: input.lastRow,
 		firstCol: input.firstCol,
 		lastCol: input.lastCol,
-		tableStyleId: input.style,
+		// Match PowerPoint's "Insert > Table": a new table gets Medium Style 2 -
+		// Accent 1 unless the caller picked a style. This is decided at
+		// creation time so the save pipeline never has to invent a style for
+		// loaded tables that legitimately have none.
+		tableStyleId: input.style ?? DEFAULT_POWERPOINT_TABLE_STYLE_ID,
 	};
 
 	return {

@@ -6,6 +6,7 @@ import {
 	createTableGraphicFrameRawXml,
 	applyTableCellTextAndStyle,
 } from './table-create-xml';
+import { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from './table-style-defaults';
 
 describe('createTableCellXml', () => {
 	it('should create cell XML with the given text', () => {
@@ -106,6 +107,19 @@ describe('createTableGraphicFrameRawXml', () => {
 		const cols = grid['a:gridCol'] as XmlObject[];
 		expect(rows).toHaveLength(3);
 		expect(cols).toHaveLength(4);
+	});
+
+	it('seeds PowerPoint Medium Style 2 - Accent 1 on the new table at creation time', () => {
+		// The default style is decided here, at creation, so the save path
+		// never has to inject one (which would also mutate loaded tables that
+		// legitimately have no style).
+		const xml = createTableGraphicFrameRawXml(baseElement, 2, 2);
+		const tbl = ((xml['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'a:tbl'
+		] as XmlObject;
+		const tblPr = tbl['a:tblPr'] as XmlObject;
+		expect(tblPr['a:tableStyleId']).toBe(DEFAULT_POWERPOINT_TABLE_STYLE_ID);
+		expect(tblPr['a:tableStyleId']).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
 	});
 
 	it('should set header text for first row cells', () => {

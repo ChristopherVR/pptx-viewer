@@ -2,36 +2,61 @@ import { XmlObject, PlaceholderDefaults, PlaceholderTextLevelStyle } from '../..
 import { isHeaderFooterPlaceholder } from '../../utils/header-footer-placeholder';
 import { placeholderStyleFamily } from '../../utils/placeholder-style-family';
 import { xmlPath } from '../../utils/xml-access';
+import { mergeXmlObjects } from './merge-xml-objects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSummaryZoomParsing';
 import type { PlaceholderInfo, PlaceholderLookupContext } from './PptxHandlerRuntimeTypes';
+
+/**
+ * {@link PlaceholderLookupContext} plus the graphic-frame slot. Kept local
+ * until the base interface in `PptxHandlerRuntimeTypes` grows the field; it
+ * is a structural superset, so every existing consumer keeps compiling.
+ */
+export interface PlaceholderNodeContext extends PlaceholderLookupContext {
+	/** The inherited graphic frame XML object from the layout/master, if any. */
+	graphicFrame?: XmlObject;
+}
+
+/**
+ * The `p:spTree` buckets a placeholder can live in, with the non-visual
+ * wrapper that holds its `p:nvPr/p:ph` and the context key it is reported
+ * under. A layout or master placeholder is normally a `p:sp`, but a picture
+ * placeholder is a `p:pic`, and a table/chart/SmartArt/OLE/media placeholder
+ * is a `p:graphicFrame` (`p:nvGraphicFramePr/p:nvPr/p:ph`); the lookup used
+ * to walk only the first two, so a frame placeholder never resolved its
+ * layout/master counterpart.
+ */
+const PLACEHOLDER_BUCKETS: ReadonlyArray<{
+	readonly bucket: string;
+	readonly nvKey: string;
+	readonly contextKey: keyof PlaceholderNodeContext;
+}> = [
+	{ bucket: 'p:sp', nvKey: 'p:nvSpPr', contextKey: 'shape' },
+	{ bucket: 'p:pic', nvKey: 'p:nvPicPr', contextKey: 'picture' },
+	{ bucket: 'p:graphicFrame', nvKey: 'p:nvGraphicFramePr', contextKey: 'graphicFrame' },
+];
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected findPlaceholderInShapeTree(
 		spTree: XmlObject | undefined,
 		expected: PlaceholderInfo | null,
-	): PlaceholderLookupContext | undefined {
+	): PlaceholderNodeContext | undefined {
+		return this.scanPlaceholderBuckets(spTree, (info) => this.placeholderMatches(expected, info));
+	}
+
+	private scanPlaceholderBuckets(
+		spTree: XmlObject | undefined,
+		matches: (info: PlaceholderInfo | null) => boolean,
+	): PlaceholderNodeContext | undefined {
 		if (!spTree) {
 			return undefined;
 		}
-
-		const shapes = this.ensureArray(spTree['p:sp']) as XmlObject[];
-		for (const shape of shapes) {
-			const info = this.extractPlaceholderInfo(xmlPath(shape, 'p:nvSpPr', 'p:nvPr'));
-			if (!this.placeholderMatches(expected, info)) {
-				continue;
+		for (const { bucket, nvKey, contextKey } of PLACEHOLDER_BUCKETS) {
+			for (const node of this.ensureArray(spTree[bucket]) as XmlObject[]) {
+				if (matches(this.extractPlaceholderInfo(xmlPath(node, nvKey, 'p:nvPr')))) {
+					return { [contextKey]: node };
+				}
 			}
-			return { shape };
 		}
-
-		const pictures = this.ensureArray(spTree['p:pic']) as XmlObject[];
-		for (const picture of pictures) {
-			const info = this.extractPlaceholderInfo(xmlPath(picture, 'p:nvPicPr', 'p:nvPr'));
-			if (!this.placeholderMatches(expected, info)) {
-				continue;
-			}
-			return { picture };
-		}
-
 		return undefined;
 	}
 
@@ -52,37 +77,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected findSingletonPlaceholderInShapeTree(
 		spTree: XmlObject | undefined,
 		expected: PlaceholderInfo | null,
-	): PlaceholderLookupContext | undefined {
+	): PlaceholderNodeContext | undefined {
 		const type = expected?.type;
 		if (!spTree || !isHeaderFooterPlaceholder(type)) {
 			return undefined;
 		}
-
-		for (const shape of this.ensureArray(spTree['p:sp']) as XmlObject[]) {
-			if (this.extractPlaceholderInfo(xmlPath(shape, 'p:nvSpPr', 'p:nvPr'))?.type === type) {
-				return { shape };
-			}
-		}
-		for (const picture of this.ensureArray(spTree['p:pic']) as XmlObject[]) {
-			if (this.extractPlaceholderInfo(xmlPath(picture, 'p:nvPicPr', 'p:nvPr'))?.type === type) {
-				return { picture };
-			}
-		}
-		return undefined;
+		return this.scanPlaceholderBuckets(spTree, (info) => info?.type === type);
 	}
 
-	protected findPlaceholderContext(
+	/** The layout and master counterparts of a placeholder, unmerged. */
+	private findPlaceholderContexts(
 		slidePath: string,
 		expected: PlaceholderInfo | null,
-	): PlaceholderLookupContext | undefined {
+	): { layout?: PlaceholderNodeContext; master?: PlaceholderNodeContext } {
 		const layoutPath = this.resolveLayoutPathForSlide(slidePath);
 		if (!layoutPath) {
-			return undefined;
+			return {};
 		}
 
 		const layoutXmlObj = this.layoutXmlMap.get(layoutPath);
 		const layoutSpTree = xmlPath(layoutXmlObj, 'p:sldLayout', 'p:cSld', 'p:spTree');
-		const layoutContext =
+		const layout =
 			this.findPlaceholderInShapeTree(layoutSpTree, expected) ??
 			this.findSingletonPlaceholderInShapeTree(layoutSpTree, expected);
 
@@ -90,10 +105,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const masterSpTree = masterPath
 			? xmlPath(this.masterXmlMap.get(masterPath), 'p:sldMaster', 'p:cSld', 'p:spTree')
 			: undefined;
-		const masterContext =
+		const master =
 			this.findPlaceholderInShapeTree(masterSpTree, expected) ??
 			this.findSingletonPlaceholderInShapeTree(masterSpTree, expected);
+		return { layout, master };
+	}
 
+	protected findPlaceholderContext(
+		slidePath: string,
+		expected: PlaceholderInfo | null,
+	): PlaceholderNodeContext | undefined {
+		const { layout: layoutContext, master: masterContext } = this.findPlaceholderContexts(
+			slidePath,
+			expected,
+		);
 		if (!layoutContext) {
 			return masterContext;
 		}
@@ -104,16 +129,39 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// A layout placeholder can override only its text properties and inherit
 		// its transform and style from the matching master placeholder. Return a
 		// merged node so slide shapes resolve the complete inheritance chain.
-		return {
-			shape:
-				layoutContext.shape || masterContext.shape
-					? this.mergeXmlObjects(masterContext.shape, layoutContext.shape)
-					: undefined,
-			picture:
-				layoutContext.picture || masterContext.picture
-					? this.mergeXmlObjects(masterContext.picture, layoutContext.picture)
-					: undefined,
-		};
+		const merged: PlaceholderNodeContext = {};
+		for (const { contextKey } of PLACEHOLDER_BUCKETS) {
+			const layoutNode = layoutContext[contextKey];
+			const masterNode = masterContext[contextKey];
+			merged[contextKey] =
+				layoutNode || masterNode ? this.mergeXmlObjects(masterNode, layoutNode) : undefined;
+		}
+		return merged;
+	}
+
+	/**
+	 * The single inherited node for a placeholder, whichever bucket the
+	 * layout/master authored it in. This is what a parser that only needs "the
+	 * counterpart's transform" consumes.
+	 *
+	 * The layout node is merged OVER the master node even when the two parts
+	 * spell the slot in different buckets (a layout `p:graphicFrame` refining
+	 * a master `p:sp`), so the layout keeps winning exactly as it does when
+	 * both are shapes.
+	 */
+	protected findPlaceholderNode(
+		slidePath: string,
+		expected: PlaceholderInfo | null,
+	): XmlObject | undefined {
+		const { layout, master } = this.findPlaceholderContexts(slidePath, expected);
+		const firstNode = (context: PlaceholderNodeContext | undefined): XmlObject | undefined =>
+			context?.shape ?? context?.picture ?? context?.graphicFrame;
+		const layoutNode = firstNode(layout);
+		const masterNode = firstNode(master);
+		if (!layoutNode || !masterNode) {
+			return layoutNode ?? masterNode;
+		}
+		return this.mergeXmlObjects(masterNode, layoutNode);
 	}
 
 	protected mergeXmlObjects(
@@ -121,66 +169,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		override: XmlObject | undefined,
 		depth: number = 0,
 	): XmlObject | undefined {
-		// Load H1: cap recursion depth on attacker-controlled XML structures
-		// to prevent stack-overflow DoS. 64 is well above any plausible
-		// placeholder property nesting (typical depth < 10).
-		const MAX_MERGE_DEPTH = 64;
-		if (depth > MAX_MERGE_DEPTH) {
-			// Beyond cap: shallow-merge override onto base without further
-			// recursion, preserving as much data as possible while bounding
-			// stack usage.
-			if (!base && !override) {
-				return undefined;
-			}
-			if (!base) {
-				return override ? { ...override } : undefined;
-			}
-			if (!override) {
-				return { ...base };
-			}
-			return { ...base, ...override };
-		}
-
-		if (!base && !override) {
-			return undefined;
-		}
-		if (!base) {
-			return override ? { ...override } : undefined;
-		}
-		if (!override) {
-			return { ...base };
-		}
-
-		const merged: XmlObject = { ...base };
-		for (const [key, value] of Object.entries(override)) {
-			const existing = merged[key];
-			if (
-				value &&
-				typeof value === 'object' &&
-				!Array.isArray(value) &&
-				existing &&
-				typeof existing === 'object' &&
-				!Array.isArray(existing)
-			) {
-				merged[key] = this.mergeXmlObjects(existing as XmlObject, value as XmlObject, depth + 1);
-			} else if (
-				value === '' &&
-				existing !== undefined &&
-				existing !== '' &&
-				typeof existing === 'object'
-			) {
-				// An empty element in the override (e.g. a self-closing
-				// `<p:spPr/>` on a layout placeholder, parsed as "") means
-				// "no explicit value at this level" and must NOT clobber a
-				// populated value inherited from the base (master). Keeping the
-				// base preserves inherited geometry (`a:xfrm`) so the slide
-				// placeholder still resolves a position instead of being dropped.
-				merged[key] = existing;
-			} else {
-				merged[key] = value;
-			}
-		}
-		return merged;
+		return mergeXmlObjects(base, override, depth);
 	}
 
 	protected readFlipState(xfrm: XmlObject | undefined): {

@@ -581,6 +581,12 @@ export { extractStyleReferenceColorXml, withThemePlaceholderColor } from './them
 
 export { deriveSlideTitle, deriveSlideTitles } from './slide-title';
 
+export {
+	cropShapeForPresetGeometry,
+	presetGeometryForCropShape,
+	syncPictureShapeTypeWithCropShape,
+} from './crop-shape-geometry';
+
 // Auto-numbered bullet markers (`ST_TextAutonumberScheme`). The single copy:
 // the load path stamps the marker onto the parsed segment and
 // `pptx-viewer-shared` re-exports these for the render layer, so the two can

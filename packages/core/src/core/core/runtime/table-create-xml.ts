@@ -17,6 +17,7 @@ import {
 } from '../../constants';
 import type { PptxElement, TextStyle, XmlObject } from '../../types';
 import { createDrawingObjectId } from '../../utils/element-utils';
+import { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from './table-style-defaults';
 
 /**
  * Build the XML object for a single table cell (`<a:tc>`) containing the
@@ -122,9 +123,13 @@ export function createTableGraphicFrameRawXml(
 			'a:graphicData': {
 				'@_uri': 'http://schemas.openxmlformats.org/drawingml/2006/table',
 				'a:tbl': {
+					// Seed PowerPoint's "Insert > Table" default style here, at
+					// creation time. The save pipeline never injects one, so a
+					// loaded table without a style stays that way on round-trip.
 					'a:tblPr': {
 						'@_firstRow': '1',
 						'@_bandRow': '1',
+						'a:tableStyleId': DEFAULT_POWERPOINT_TABLE_STYLE_ID,
 					},
 					'a:tblGrid': {
 						'a:gridCol': Array.from({ length: safeColumns }, () => ({

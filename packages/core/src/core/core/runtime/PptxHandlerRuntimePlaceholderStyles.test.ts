@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import type { PlaceholderTextLevelStyle, XmlObject } from '../../types';
+import type { PlaceholderTextLevelStyle, TextStyle, XmlObject } from '../../types';
 import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
 // ---------------------------------------------------------------------------
@@ -28,6 +28,10 @@ class TestRuntime extends PptxHandlerRuntime {
 
 	public parseLevelStyle(levelProps: XmlObject | undefined): PlaceholderTextLevelStyle | null {
 		return this.parsePlaceholderLevelStyle(levelProps);
+	}
+
+	public applyLevelDefaults(textStyle: TextStyle, levelStyle: PlaceholderTextLevelStyle): void {
+		this.applyPlaceholderLevelDefaults(textStyle, levelStyle);
 	}
 }
 
@@ -74,5 +78,130 @@ describe('parsePlaceholderLevelStyle - bullet colour', () => {
 
 		const style = runtime.parseLevelStyle(levelProps);
 		expect(style?.bulletColor).toBeUndefined();
+		expect(style?.bulletColorXml).toBeUndefined();
+	});
+
+	it('keeps the authored a:schemeClr node alongside the resolved hex', () => {
+		const runtime = new TestRuntime();
+		const style = runtime.parseLevelStyle({
+			'a:buClr': { 'a:schemeClr': { '@_val': 'accent1', 'a:lumMod': { '@_val': '75000' } } },
+			'a:buChar': { '@_char': '•' },
+		});
+		expect(style?.bulletColorXml).toStrictEqual({
+			'a:schemeClr': { '@_val': 'accent1', 'a:lumMod': { '@_val': '75000' } },
+		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// The level parser must carry the same paragraph field set as a directly
+// authored `a:pPr`: it used to drop marR / rtl / tabLst outright and folded
+// `justLow` / `dist` / `thaiDist` to lower-case strings no render branch
+// matched.
+// ---------------------------------------------------------------------------
+
+describe('parsePlaceholderLevelStyle - paragraph attribute parity with a:pPr', () => {
+	const fullLevel: XmlObject = {
+		'@_marL': '342900',
+		'@_marR': '190500',
+		'@_indent': '-342900',
+		'@_algn': 'thaiDist',
+		'@_rtl': '1',
+		'@_defTabSz': '914400',
+		'@_eaLnBrk': '1',
+		'@_latinLnBrk': '0',
+		'@_fontAlgn': 'base',
+		'@_hangingPunct': '1',
+		'a:tabLst': {
+			'a:tab': [
+				{ '@_pos': '914400', '@_algn': 'l' },
+				{ '@_pos': '1828800', '@_algn': 'dec', '@_leader': 'dot' },
+			],
+		},
+		'a:buClr': { 'a:schemeClr': { '@_val': 'accent1' } },
+		'a:buChar': { '@_char': '•' },
+		'a:defRPr': { '@_sz': '2000' },
+	};
+
+	it('parses every paragraph attribute into the typed level style', () => {
+		const style = new TestRuntime().parseLevelStyle(fullLevel);
+		expect(style).toMatchObject({
+			marginLeft: 36,
+			marginRight: 20,
+			indent: -36,
+			alignment: 'thaiDist',
+			rtl: true,
+			defaultTabSize: 96,
+			eaLineBreak: true,
+			latinLineBreak: false,
+			fontAlignment: 'base',
+			hangingPunctuation: true,
+			tabStops: [
+				{ position: 96, align: 'l' },
+				{ position: 192, align: 'dec', leader: 'dot' },
+			],
+			bulletColor: '#0070C0',
+			bulletColorXml: { 'a:schemeClr': { '@_val': 'accent1' } },
+		});
+	});
+
+	it.each([
+		['l', 'left'],
+		['ctr', 'center'],
+		['r', 'right'],
+		['just', 'justify'],
+		['justLow', 'justLow'],
+		['dist', 'dist'],
+		['thaiDist', 'thaiDist'],
+	])('maps algn="%s" to the case-sensitive %s token', (algn, expected) => {
+		const style = new TestRuntime().parseLevelStyle({ '@_algn': algn });
+		expect(style?.alignment).toBe(expected);
+	});
+
+	it('drops an alignment token that is not a valid ST_TextAlignType', () => {
+		const style = new TestRuntime().parseLevelStyle({ '@_algn': 'middle', '@_marL': '0' });
+		expect(style?.alignment).toBeUndefined();
+	});
+
+	it('leaves the new fields unset when the level does not declare them', () => {
+		const style = new TestRuntime().parseLevelStyle({ '@_marL': '0' });
+		expect(style?.marginRight).toBeUndefined();
+		expect(style?.rtl).toBeUndefined();
+		expect(style?.tabStops).toBeUndefined();
+	});
+});
+
+describe('applyPlaceholderLevelDefaults - cascade of the added fields', () => {
+	const level: PlaceholderTextLevelStyle = {
+		marginRight: 20,
+		rtl: true,
+		alignment: 'thaiDist',
+		tabStops: [{ position: 96, align: 'ctr' }],
+	};
+
+	it('fills undefined paragraph slots from the level style', () => {
+		const textStyle: TextStyle = {};
+		new TestRuntime().applyLevelDefaults(textStyle, level);
+		expect(textStyle.paragraphMarginRight).toBe(20);
+		expect(textStyle.rtl).toBeTruthy();
+		expect(textStyle.align).toBe('thaiDist');
+		expect(textStyle.tabStops).toStrictEqual([{ position: 96, align: 'ctr' }]);
+		// The cascade hands out a copy: mutating the paragraph must not leak
+		// back into the shared, cached level style.
+		expect(textStyle.tabStops).not.toBe(level.tabStops);
+	});
+
+	it('never overrides values the paragraph already declares', () => {
+		const textStyle: TextStyle = {
+			paragraphMarginRight: 0,
+			rtl: false,
+			align: 'left',
+			tabStops: [],
+		};
+		new TestRuntime().applyLevelDefaults(textStyle, level);
+		expect(textStyle.paragraphMarginRight).toBe(0);
+		expect(textStyle.rtl).toBeFalsy();
+		expect(textStyle.align).toBe('left');
+		expect(textStyle.tabStops).toStrictEqual([]);
 	});
 });

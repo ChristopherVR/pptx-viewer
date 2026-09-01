@@ -133,11 +133,21 @@ describe('serializeTablePropertyFlags', () => {
 		expect(tblPr['@_lastCol']).toBeUndefined();
 	});
 
-	it('defaults to PowerPoint Medium Style 2 - Accent 1 when no tableStyleId given', () => {
+	it('does NOT inject a default tableStyleId when the model has none (W1-D)', () => {
+		// A loaded table with no <a:tableStyleId> ("No Style, No Grid") must
+		// round-trip without one. The default style is a CREATION-time
+		// decision (table-style-defaults.ts), never a save-time one.
 		const tbl: XmlObject = {};
 		serializeTablePropertyFlags(tbl, {});
 		const tblPr = tbl['a:tblPr'] as XmlObject;
-		expect(tblPr['a:tableStyleId']).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
+		expect(tblPr['a:tableStyleId']).toBeUndefined();
+	});
+
+	it('preserves an existing tableStyleId when the model leaves it undefined', () => {
+		const tbl: XmlObject = { 'a:tblPr': { 'a:tableStyleId': '{EXISTING}' } };
+		serializeTablePropertyFlags(tbl, { bandedRows: true });
+		const tblPr = tbl['a:tblPr'] as XmlObject;
+		expect(tblPr['a:tableStyleId']).toBe('{EXISTING}');
 	});
 
 	it('respects a caller-supplied tableStyleId', () => {
@@ -145,6 +155,24 @@ describe('serializeTablePropertyFlags', () => {
 		serializeTablePropertyFlags(tbl, { tableStyleId: '{AABB-CCDD}' });
 		const tblPr = tbl['a:tblPr'] as XmlObject;
 		expect(tblPr['a:tableStyleId']).toBe('{AABB-CCDD}');
+	});
+
+	it('removes the tableStyleId when the model explicitly clears it', () => {
+		const tbl: XmlObject = { 'a:tblPr': { 'a:tableStyleId': '{EXISTING}' } };
+		serializeTablePropertyFlags(tbl, { tableStyleId: '' });
+		const tblPr = tbl['a:tblPr'] as XmlObject;
+		expect(tblPr['a:tableStyleId']).toBeUndefined();
+	});
+
+	it('tolerates an empty <a:tblPr/> that parsed as the empty string', () => {
+		// fast-xml-parser yields '' for `<a:tblPr></a:tblPr>`; writing flags
+		// onto that string used to throw and abort the table serialisation.
+		const tbl: XmlObject = { 'a:tblPr': '' };
+		serializeTablePropertyFlags(tbl, { bandedRows: true });
+		const tblPr = tbl['a:tblPr'] as XmlObject;
+		expect(tblPr).toBeTypeOf('object');
+		expect(tblPr['@_bandRow']).toBe('1');
+		expect(tblPr['a:tableStyleId']).toBeUndefined();
 	});
 
 	it('should preserve existing a:tblPr properties', () => {

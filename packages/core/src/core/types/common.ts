@@ -214,6 +214,12 @@ export interface PptxShapeLocks {
 	 */
 	noDrilldown?: boolean;
 	/**
+	 * `a:picLocks/@noCrop`: forbids cropping the picture. Declared ONLY by
+	 * `CT_PictureLocking`, so it is written for pictures (and media authored as
+	 * a `p:pic`) and never onto the other lock elements.
+	 */
+	noCrop?: boolean;
+	/**
 	 * Text-box flag from `p:cNvSpPr/@txBox`. Not a lock in the strict sense,
 	 * but it lives on the same non-visual-properties node as `a:spLocks`, so
 	 * it is captured here to round-trip through the model. When `true` the

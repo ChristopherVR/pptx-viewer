@@ -129,3 +129,43 @@ describe('parseA14ImageExtension', () => {
 		expect(parsed?.backgroundRemoval).toBeUndefined();
 	});
 });
+
+describe('parseA14ImageExtension: Corrections / Color panel effects', () => {
+	// These four used to be silently dropped: only `artistic*` and
+	// `backgroundRemoval` were read out of `a14:imgEffect`.
+	it('reads sharpenSoften, brightnessContrast, colorTemperature and saturation raw', () => {
+		const parsed = parseA14ImageExtension(
+			realNesting([
+				{ 'a14:sharpenSoften': { '@_amount': '25000' } },
+				{ 'a14:brightnessContrast': { '@_bright': '20000', '@_contrast': '-40000' } },
+				{ 'a14:colorTemperature': { '@_colorTemp': '4700' } },
+				{ 'a14:saturation': { '@_sat': '166000' } },
+			]),
+		);
+		expect(parsed).toStrictEqual({
+			originalImageRelId: 'rId5',
+			sharpenSoften: { amount: 25000 },
+			brightnessContrast: { bright: 20000, contrast: -40000 },
+			colorTemperature: { colorTemp: 4700 },
+			colorSaturation: { sat: 166000 },
+		});
+	});
+
+	it('keeps a brightnessContrast that carries only one of its attributes', () => {
+		const parsed = parseA14ImageExtension(
+			realNesting([{ 'a14:brightnessContrast': { '@_contrast': '30000' } }]),
+		);
+		expect(parsed?.brightnessContrast).toStrictEqual({ contrast: 30000 });
+	});
+
+	it('does not mistake a correction for the artistic effect', () => {
+		const parsed = parseA14ImageExtension(
+			realNesting([
+				{ 'a14:saturation': { '@_sat': '0' } },
+				{ 'a14:artisticPencilSketch': { '@_trans': '0', '@_pressure': '52000' } },
+			]),
+		);
+		expect(parsed?.artisticEffect).toBe('artisticPencilSketch');
+		expect(parsed?.colorSaturation).toStrictEqual({ sat: 0 });
+	});
+});

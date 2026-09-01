@@ -1,5 +1,13 @@
 import { XmlObject, PlaceholderTextLevelStyle } from '../../types';
-import { parseBulletSizePercent } from '../../utils/paragraph-properties-parser';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import {
+	parseAlignmentAttr,
+	parseBulletSizePercent,
+	parseParagraphExtraAttributes,
+	parseParagraphMargins,
+	parseParagraphRtl,
+	parseTabStops,
+} from '../../utils/paragraph-properties-parser';
 import { xmlHasChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSlideUtils';
 
@@ -7,6 +15,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Parse a single `a:lvlXpPr` node into a structured
 	 * {@link PlaceholderTextLevelStyle}.
+	 *
+	 * The paragraph-level attributes go through the same helpers the
+	 * per-paragraph `a:pPr` path uses (`paragraph-properties-parser`), so a
+	 * master `p:txStyles` or layout `a:lstStyle` level carries exactly the
+	 * field set a directly-authored paragraph does: margins on both sides,
+	 * `rtl`, tab stops, and the full `ST_TextAlignType` token set.
 	 */
 	protected parsePlaceholderLevelStyle(
 		levelProps: XmlObject | undefined,
@@ -17,59 +31,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const style: PlaceholderTextLevelStyle = {};
 
-		// Paragraph-level properties
-		const alignRaw = String(levelProps['@_algn'] || '')
-			.trim()
-			.toLowerCase();
-		if (alignRaw.length > 0) {
-			const alignMap: Record<string, string> = {
-				l: 'left',
-				ctr: 'center',
-				r: 'right',
-				just: 'justify',
-			};
-			style.alignment = alignMap[alignRaw] ?? alignRaw;
+		// Paragraph-level properties. `parseAlignmentAttr` keeps `justLow` /
+		// `dist` / `thaiDist` as the case-sensitive tokens the renderer branches
+		// on; an unknown token is dropped rather than passed through raw.
+		const alignRaw = String(levelProps['@_algn'] ?? '').trim();
+		const alignment = parseAlignmentAttr(alignRaw.length > 0 ? alignRaw : undefined);
+		if (alignment !== undefined) {
+			style.alignment = alignment;
 		}
 
-		const marLRaw = levelProps['@_marL'];
-		if (marLRaw !== undefined) {
-			const marL = Number.parseInt(String(marLRaw), 10);
-			if (Number.isFinite(marL)) {
-				style.marginLeft = marL / PptxHandlerRuntime.EMU_PER_PX;
-			}
+		const margins = parseParagraphMargins(levelProps);
+		if (margins.paragraphMarginLeft !== undefined) {
+			style.marginLeft = margins.paragraphMarginLeft;
+		}
+		if (margins.paragraphMarginRight !== undefined) {
+			style.marginRight = margins.paragraphMarginRight;
+		}
+		if (margins.paragraphIndent !== undefined) {
+			style.indent = margins.paragraphIndent;
 		}
 
-		const indentRaw = levelProps['@_indent'];
-		if (indentRaw !== undefined) {
-			const indent = Number.parseInt(String(indentRaw), 10);
-			if (Number.isFinite(indent)) {
-				style.indent = indent / PptxHandlerRuntime.EMU_PER_PX;
-			}
+		const rtl = parseParagraphRtl(levelProps);
+		if (rtl !== undefined) {
+			style.rtl = rtl;
 		}
 
-		const defaultTabSizeRaw = levelProps['@_defTabSz'];
-		if (defaultTabSizeRaw !== undefined) {
-			const defaultTabSize = Number.parseInt(String(defaultTabSizeRaw), 10);
-			if (Number.isFinite(defaultTabSize)) {
-				style.defaultTabSize = defaultTabSize / PptxHandlerRuntime.EMU_PER_PX;
-			}
+		const tabStops = parseTabStops(levelProps);
+		if (tabStops && tabStops.length > 0) {
+			style.tabStops = tabStops;
 		}
-		const eaLineBreak = this.parseOptionalBooleanAttr(levelProps['@_eaLnBrk']);
-		if (eaLineBreak !== undefined) {
-			style.eaLineBreak = eaLineBreak;
-		}
-		const latinLineBreak = this.parseOptionalBooleanAttr(levelProps['@_latinLnBrk']);
-		if (latinLineBreak !== undefined) {
-			style.latinLineBreak = latinLineBreak;
-		}
-		const fontAlignment = String(levelProps['@_fontAlgn'] ?? '').trim();
-		if (fontAlignment.length > 0) {
-			style.fontAlignment = fontAlignment;
-		}
-		const hangingPunctuation = this.parseOptionalBooleanAttr(levelProps['@_hangingPunct']);
-		if (hangingPunctuation !== undefined) {
-			style.hangingPunctuation = hangingPunctuation;
-		}
+
+		Object.assign(style, parseParagraphExtraAttributes(levelProps));
 
 		// Line spacing
 		const lnSpc = levelProps['a:lnSpc'] as XmlObject | undefined;
@@ -88,12 +80,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Spacing before / after. Percentage spacing (`a:spcPct`) resolves against
 		// the level's own default run size (`a:defRPr/@sz`, in hundredths of a
 		// point), which is the closest size basis available at parse time.
-		const defRPrSzRaw = Number.parseInt(
-			String(
-				((levelProps['a:defRPr'] as XmlObject | undefined)?.['@_sz'] as string | undefined) || '',
-			),
-			10,
-		);
+		const defRPr = levelProps['a:defRPr'] as XmlObject | undefined;
+		const defRPrSzRaw = Number.parseInt(String(defRPr?.['@_sz'] ?? ''), 10);
 		const basisFontSizePx = Number.isFinite(defRPrSzRaw)
 			? this.pointsToPixels(defRPrSzRaw / 100)
 			: undefined;
@@ -113,7 +101,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.spaceAfter = spcAft;
 		}
 
-		// Bullet properties
+		this.parsePlaceholderLevelBullet(levelProps, style);
+
+		if (defRPr) {
+			this.parsePlaceholderLevelRunDefaults(defRPr, style);
+		}
+
+		// Return null if nothing useful was captured
+		const hasValues = Object.keys(style).length > 0;
+		return hasValues ? style : null;
+	}
+
+	/** Bullet group of an `a:lvlXpPr` node (`a:bu*` children). */
+	private parsePlaceholderLevelBullet(
+		levelProps: XmlObject,
+		style: PlaceholderTextLevelStyle,
+	): void {
 		const buChar = levelProps['a:buChar'] as XmlObject | undefined;
 		if (buChar?.['@_char']) {
 			style.bulletChar = String(buChar['@_char']);
@@ -139,12 +142,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Bullet colour. Route through `parseColor` so themed choices
 		// (`a:schemeClr`/`a:sysClr`/`a:prstClr`/`a:hslClr`/`a:scrgbClr`), which are
 		// standard in the Office master bodyStyle, resolve correctly rather than
-		// being dropped by reading only `a:srgbClr/@_val`.
+		// being dropped by reading only `a:srgbClr/@_val`. The authored choice is
+		// kept alongside so save can re-emit the theme reference, not the hex.
 		const buClr = levelProps['a:buClr'] as XmlObject | undefined;
 		if (buClr) {
 			const bulletColor = this.parseColor(buClr);
 			if (bulletColor) {
 				style.bulletColor = bulletColor;
+			}
+			const bulletColorXml = extractColorChoiceXml(buClr);
+			if (bulletColorXml) {
+				style.bulletColorXml = bulletColorXml;
 			}
 		}
 
@@ -161,45 +169,43 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (xmlHasChild(levelProps, 'a:buNone')) {
 			style.bulletNone = true;
 		}
+	}
 
-		// Default run properties (font, size, bold, italic, color)
-		const defRPr = levelProps['a:defRPr'] as XmlObject | undefined;
-		if (defRPr) {
-			if (defRPr['@_sz'] !== undefined) {
-				const hundredths = Number.parseInt(String(defRPr['@_sz']), 10);
-				if (Number.isFinite(hundredths)) {
-					style.fontSize = (hundredths / 100) * (96 / 72);
-				}
-			}
-			if (defRPr['@_b'] !== undefined) {
-				style.bold = defRPr['@_b'] === '1';
-			}
-			if (defRPr['@_i'] !== undefined) {
-				style.italic = defRPr['@_i'] === '1';
-			}
-
-			const solidFill = defRPr['a:solidFill'] as XmlObject | undefined;
-			const color = this.parseColor(solidFill);
-			if (color) {
-				style.color = color;
-			}
-			if (solidFill) {
-				// Keep the authored choice: this level may be inherited by a slide
-				// whose `p:clrMapOvr` routes the alias elsewhere, and only the
-				// original node can be resolved against that slide's map.
-				style.colorChoiceXml = solidFill;
-			}
-
-			const latin = defRPr['a:latin'] as XmlObject | undefined;
-			if (latin?.['@_typeface']) {
-				const typeface = String(latin['@_typeface']);
-				const resolved = this.resolveThemeTypeface(typeface);
-				style.fontFamily = resolved ?? typeface;
+	/** Default run properties of a level (`a:defRPr`: font, size, bold, italic, colour). */
+	private parsePlaceholderLevelRunDefaults(
+		defRPr: XmlObject,
+		style: PlaceholderTextLevelStyle,
+	): void {
+		if (defRPr['@_sz'] !== undefined) {
+			const hundredths = Number.parseInt(String(defRPr['@_sz']), 10);
+			if (Number.isFinite(hundredths)) {
+				style.fontSize = (hundredths / 100) * (96 / 72);
 			}
 		}
+		if (defRPr['@_b'] !== undefined) {
+			style.bold = defRPr['@_b'] === '1';
+		}
+		if (defRPr['@_i'] !== undefined) {
+			style.italic = defRPr['@_i'] === '1';
+		}
 
-		// Return null if nothing useful was captured
-		const hasValues = Object.keys(style).length > 0;
-		return hasValues ? style : null;
+		const solidFill = defRPr['a:solidFill'] as XmlObject | undefined;
+		const color = this.parseColor(solidFill);
+		if (color) {
+			style.color = color;
+		}
+		if (solidFill) {
+			// Keep the authored choice: this level may be inherited by a slide
+			// whose `p:clrMapOvr` routes the alias elsewhere, and only the
+			// original node can be resolved against that slide's map.
+			style.colorChoiceXml = solidFill;
+		}
+
+		const latin = defRPr['a:latin'] as XmlObject | undefined;
+		if (latin?.['@_typeface']) {
+			const typeface = String(latin['@_typeface']);
+			const resolved = this.resolveThemeTypeface(typeface);
+			style.fontFamily = resolved ?? typeface;
+		}
 	}
 }

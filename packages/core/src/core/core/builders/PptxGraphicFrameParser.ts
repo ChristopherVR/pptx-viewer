@@ -10,6 +10,12 @@ import type {
 } from '../../types';
 import { detectOleObjectType, inferOleExtensionFromTarget } from '../../utils/ole-utils';
 import { parseShapeLocksFromNode, SHAPE_LOCK_CONTAINERS } from '../runtime/shape-lock-containers';
+import type { GraphicFramePlaceholder } from './graphic-frame-placeholder';
+import {
+	hasUsableTransform,
+	readGraphicFramePlaceholder,
+	readInheritedTransform,
+} from './graphic-frame-placeholder';
 
 /**
  * Recognised `a:graphicData/a:extLst/a:ext` URIs that map to first-class
@@ -400,6 +406,16 @@ export interface PptxGraphicFrameParserContext {
 		slidePath: string,
 		elementId: string,
 	) => void;
+	/**
+	 * Resolve the layout/master node a placeholder frame inherits from, so a
+	 * frame whose own `p:xfrm` has no usable offset/extent can take the
+	 * inherited transform. Optional: without it the frame keeps its own
+	 * (possibly zero) transform.
+	 */
+	findPlaceholderNode?: (
+		slidePath: string,
+		placeholder: GraphicFramePlaceholder,
+	) => XmlObject | undefined;
 }
 
 export interface IPptxGraphicFrameParser {
@@ -416,7 +432,15 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 
 	public parseGraphicFrame(frame: XmlObject, id: string, slidePath?: string): PptxElement | null {
 		try {
-			const transform = frame['p:xfrm'] as XmlObject | undefined;
+			const placeholder = readGraphicFramePlaceholder(frame);
+			const ownTransform = frame['p:xfrm'] as XmlObject | undefined;
+			// A placeholder frame without a usable transform of its own inherits
+			// the layout/master placeholder's, the same way a `p:sp` does.
+			const inheritedTransform =
+				placeholder && slidePath && !hasUsableTransform(ownTransform)
+					? readInheritedTransform(this.context.findPlaceholderNode?.(slidePath, placeholder))
+					: undefined;
+			const transform = inheritedTransform ?? ownTransform;
 			const offset = ((transform?.['a:off'] as XmlObject | undefined) || {}) as XmlObject;
 			const extent = ((transform?.['a:ext'] as XmlObject | undefined) || {}) as XmlObject;
 
@@ -448,6 +472,12 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 					: undefined,
 				flipHorizontal,
 				flipVertical,
+				// `p:nvGraphicFramePr/p:nvPr/p:ph`: a table/chart/SmartArt/OLE/media
+				// frame filling a layout placeholder. Surfaced on the same fields a
+				// `p:sp` placeholder uses so consumers need not re-walk `rawXml`.
+				...(placeholder?.type !== undefined ? { placeholderType: placeholder.type } : {}),
+				...(placeholder?.sz !== undefined ? { placeholderSz: placeholder.sz } : {}),
+				...(placeholder?.orient !== undefined ? { placeholderOrient: placeholder.orient } : {}),
 				rawXml: frame,
 				// `a:graphicFrameLocks` is the lock element for every family that
 				// round-trips as a graphic frame (table, chart, SmartArt, OLE

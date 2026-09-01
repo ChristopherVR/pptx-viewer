@@ -70,6 +70,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		set('@_noChangeShapeType', (v) => {
 			locks.noChangeShapeType = v;
 		});
+		// `a:picLocks` only: pictures carry noCrop on top of the shared set.
+		set('@_noCrop', (v) => {
+			locks.noCrop = v;
+		});
 
 		return hasAny ? locks : undefined;
 	}

@@ -33,6 +33,7 @@ import {
 	renameXmlKeyInPlace,
 } from '../../utils/chart-container-schema';
 import { isLineDrawnChartType } from '../../utils/chart-container-type-map';
+import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-generator';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applyChartDataTable } from '../../utils/chart-data-table';
 import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
@@ -47,12 +48,19 @@ import { applyChartPrintSettings } from '../../utils/chart-print-settings';
 import { applyChartProtection } from '../../utils/chart-protection';
 import { writeSeriesColorToSpPr } from '../../utils/chart-series-color-serializer';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
+import { applyChartTitleToXml } from '../../utils/chart-title-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
 import type { PptxChartWorkbookWrite } from '../../utils/chart-xlsx-writer';
 import { collectChartWorkbookWrite } from '../../utils/chart-xlsx-writer';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
+import { applyChartExUpdate, chartExLayoutChanged } from './chart-cx-update';
 import { saveChartExternalWorkbookUpdates } from './chart-external-workbook-save';
+import {
+	detectChartPartFamily,
+	switchChartPartFamily,
+	targetChartPartFamily,
+} from './chart-part-family-switch';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
 	buildChartPoints,
@@ -233,6 +241,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				const chartSpace = this.xmlLookupService.getChildByLocalName(chartXmlData, 'chartSpace');
 				if (!chartSpace) {
+					continue;
+				}
+
+				// A 2006 `c:chartSpace` and a 2016+ `cx:chartSpace` are different
+				// part families; see `chart-part-family-switch` / `chart-cx-update`.
+				if (await this.saveChartAcrossFamilies(chartXmlData, chartSpace, chartData, slidePath)) {
 					continue;
 				}
 
@@ -522,14 +536,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					);
 				}
 
-				// Update chart title
-				if (chartData.title !== undefined) {
-					const titleNode = this.xmlLookupService.getChildByLocalName(chartRoot, 'title');
-					if (titleNode) {
-						this.replaceFirstTextValue(titleNode, 't', chartData.title);
-					}
-				}
-
 				// Update external data autoUpdate attribute (c:externalData / c:autoUpdate)
 				if (chartData.externalData?.autoUpdate !== undefined) {
 					const externalDataNode = this.xmlLookupService.getChildByLocalName(
@@ -614,6 +620,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (chartData.chartChrome) {
 					this.applyChartChrome(chartRoot, chartData.chartChrome);
 				}
+
+				// ── Title (c:title / c:autoTitleDeleted) ──────────────────
+				// After the chrome flags: a loaded chart carries the parsed
+				// `autoTitleDeleted`, which must not clobber the value a newly
+				// added or removed title decides.
+				applyChartTitleToXml(
+					chartRoot,
+					{ title: chartData.title, hasTitle: chartData.style?.hasTitle },
+					(key) => this.compatibilityService.getXmlLocalName(key),
+				);
 
 				if (chartData.pivotFormats !== undefined) {
 					applyChartPivotFormats(chartRoot, chartData.pivotFormats, (key) =>
@@ -816,6 +832,42 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Route a chart save that the 2006 `c:*Chart` update loop cannot handle:
+	 * a part-family change (regenerated into a fresh part of the right
+	 * family), a ChartEx type change (regenerated in place), or an edited
+	 * ChartEx chart (updated in place). Returns `true` when the part was
+	 * written here and the caller must skip the legacy update.
+	 */
+	protected async saveChartAcrossFamilies(
+		chartXmlData: XmlObject,
+		chartSpace: XmlObject,
+		chartData: PptxChartData,
+		slidePath: string,
+	): Promise<boolean> {
+		const getLocalName = (key: string) => this.compatibilityService.getXmlLocalName(key);
+		const deps = { zip: this.zip, parser: this.parser, builder: this.builder, getLocalName };
+		const existingFamily = detectChartPartFamily(chartSpace, getLocalName);
+		const targetFamily = targetChartPartFamily(chartData);
+		if (targetFamily && targetFamily !== existingFamily) {
+			return (await switchChartPartFamily(deps, chartData, slidePath, targetFamily)) !== undefined;
+		}
+		if (existingFamily !== 'chartEx' || !chartData.chartPartPath) {
+			return false;
+		}
+		if (
+			canGenerateChartEx(chartData) &&
+			chartExLayoutChanged(chartSpace, chartData, getLocalName)
+		) {
+			this.zip.file(chartData.chartPartPath, this.builder.build(buildChartExSpaceXml(chartData)));
+			return true;
+		}
+		if (applyChartExUpdate(chartSpace, chartData, getLocalName)) {
+			this.zip.file(chartData.chartPartPath, this.builder.build(chartXmlData));
+		}
+		return true;
+	}
+
+	/**
 	 * Upsert a `c:<localName>` child with `@_val` on an axis or scaling node.
 	 * When `value` is undefined, removes any existing child of that local name.
 	 */
@@ -867,6 +919,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.xmlLookupService.getChildByLocalName(container, refName) ||
 			this.xmlLookupService.getChildByLocalName(container, litName);
 		if (!refNode) {
+			// `CT_SerTx` is a choice of `c:strRef` or a bare `c:v` (the shape the
+			// SDK generator emits for series names): update the literal in place.
+			const literalKey = Object.keys(container).find(
+				(key) => this.compatibilityService.getXmlLocalName(key) === 'v',
+			);
+			if (literalKey && values.length === 1) {
+				container[literalKey] = values[0];
+			}
 			return;
 		}
 

@@ -1,4 +1,5 @@
 import { remapEditorAnimationsToShapeIds } from '../../services';
+import { writeCommonSlideDataName } from '../../services/slide-name';
 import { XmlObject, PptxComment, PptxSlide } from '../../types';
 import type { MediaPptxElement, PptxElementAnimation } from '../../types';
 import type { AlternateContentBlock } from '../../utils';
@@ -196,6 +197,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		slideNode['p:clrMapOvr'] = buildClrMapOverrideXml(slide.clrMapOverride);
 
 		const spTree = this.ensureSlideTree(xmlObj);
+		// `p:cSld/@name`: set or cleared from the model the same way the layout
+		// writer handles a layout's name; `ensureSlideTree` guarantees `p:cSld`.
+		writeCommonSlideDataName(slideNode['p:cSld'] as XmlObject | undefined, slide.name);
 
 		// Relationships are resolved here, ahead of the transition and animation
 		// timing blocks below, because a newly-authored effect sound

@@ -35,3 +35,4 @@ export {
 	updateMergeAttrsInRawXml,
 	rebuildTableStructureInRawXml,
 } from './runtime/table-structural-ops';
+export { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from './runtime/table-style-defaults';

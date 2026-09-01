@@ -2,6 +2,7 @@ import { XmlObject } from '../../types';
 import type { PptxImageEffects, MediaBookmark } from '../../types';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { parseA14ImageExtension } from './image-a14-effects';
+import { applyA14ExtensionToEffects } from './image-a14-effects-model';
 import { parseImageAlphaEffects } from './image-alpha-effects';
 import { parseImageColorEffects } from './image-color-effects';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStylesAndActions';
@@ -75,7 +76,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasAny = true;
 		}
 
-		// a:lum — luminance modulation (@_bright, @_contrast in 1/1000ths of a percent)
+		// a:lum: luminance modulation (@_bright, @_contrast in 1/1000ths of a percent)
 		const lumNode = blip['a:lum'] as XmlObject | undefined;
 		if (lumNode) {
 			const lumEffect: NonNullable<PptxImageEffects['lum']> = {};
@@ -97,7 +98,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasAny = true;
 		}
 
-		// a:hsl — HSL modulation (@_hue in 1/60000ths of a degree, @_sat/@_lum in 1/1000ths of a percent)
+		// a:hsl: HSL modulation (@_hue in 1/60000ths of a degree, @_sat/@_lum in 1/1000ths of a percent)
 		const hslNode = blip['a:hsl'] as XmlObject | undefined;
 		if (hslNode) {
 			const hslEffect: NonNullable<PptxImageEffects['hsl']> = {};
@@ -126,7 +127,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasAny = true;
 		}
 
-		// a:tint (image-effect tint inside blip) — @_hue (1/60000ths degree), @_amt (1/1000ths %)
+		// a:tint (image-effect tint inside blip): @_hue (1/60000ths degree), @_amt (1/1000ths %)
 		const tintNode = blip['a:tint'] as XmlObject | undefined;
 		if (tintNode) {
 			const tintEffect: NonNullable<PptxImageEffects['tint']> = {};
@@ -148,7 +149,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasAny = true;
 		}
 
-		// a:fillOverlay — overlay fill (@_blend, child fill preserved opaquely)
+		// a:fillOverlay: overlay fill (@_blend, child fill preserved opaquely)
 		const fillOverlay = blip['a:fillOverlay'] as XmlObject | undefined;
 		if (fillOverlay) {
 			const blendRaw = String(fillOverlay['@_blend'] || 'over');
@@ -159,7 +160,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				: 'over';
 			// Preserve the entire fillOverlay node (minus the blend attribute) as raw XML.
 			// fast-xml-parser returns child fill nodes as keys like a:solidFill, a:gradFill,
-			// a:blipFill, a:pattFill, a:noFill — we just keep the whole object.
+			// a:blipFill, a:pattFill, a:noFill: we just keep the whole object.
 			const rawCopy: Record<string, unknown> = {};
 			for (const key of Object.keys(fillOverlay)) {
 				if (key === '@_blend') {
@@ -193,7 +194,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasAny = true;
 		}
 
-		// a:blur — blur (@_rad in EMU, @_grow boolean)
+		// a:blur: blur (@_rad in EMU, @_grow boolean)
 		const blurNode = blip['a:blur'] as XmlObject | undefined;
 		if (blurNode) {
 			const blurEffect: NonNullable<PptxImageEffects['blur']> = {};
@@ -220,26 +221,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const extLst = xmlChild(blip, 'a:extLst');
 		if (extLst) {
 			const a14 = parseA14ImageExtension(this.ensureArray(extLst['a:ext']));
-			if (a14) {
-				if (a14.artisticEffect !== undefined) {
-					effects.artisticEffect = a14.artisticEffect;
-					effects.artisticPrerenderedEffect = a14.artisticEffect;
-					if (a14.artisticRadius !== undefined) {
-						effects.artisticRadius = a14.artisticRadius;
-					}
-					if (a14.artisticParams) {
-						effects.artisticParams = a14.artisticParams;
-					}
-					hasAny = true;
-				}
-				if (a14.backgroundRemoval) {
-					effects.backgroundRemoval = a14.backgroundRemoval;
-					hasAny = true;
-				}
-				if (a14.originalImageRelId !== undefined) {
-					effects.originalImageRelId = a14.originalImageRelId;
-					hasAny = true;
-				}
+			if (a14 && applyA14ExtensionToEffects(effects, a14)) {
+				hasAny = true;
 			}
 		}
 
@@ -309,7 +292,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Check for artistic image effects (`a14:imgEffect`) on images and report warnings.
 	 */
-	// Artistic effects are fully round-tripped via rawXml — no warnings needed.
+	// Artistic effects are fully round-tripped via rawXml: no warnings needed.
 	protected inspectArtisticEffects(
 		_blip: XmlObject | undefined,
 		_slideId?: string,

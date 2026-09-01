@@ -127,6 +127,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.parseElementActions(cNvPr, slideRelationships, orderedSlidePaths),
 			inspectGraphicFrameCompatibility: (type, slidePath, elementId) =>
 				this.compatibilityService.inspectGraphicFrameCompatibility(type, slidePath, elementId),
+			// A frame sitting in a layout content placeholder inherits its
+			// position/size from the layout (then master) `p:ph` counterpart.
+			findPlaceholderNode: (slidePath, placeholder) =>
+				this.findPlaceholderNode(slidePath, {
+					idx: placeholder.idx,
+					type: placeholder.type,
+					sz: placeholder.sz,
+					orient: placeholder.orient,
+				}),
 		});
 		const commentXmlFactoryProvider = new PptxCommentXmlFactoryProvider();
 		this.slideCommentsXmlFactory = commentXmlFactoryProvider.createSlideCommentsFactory();

@@ -125,18 +125,49 @@ export interface PptxImageEffects {
 	 */
 	backgroundRemoval?: PptxBackgroundRemoval;
 	/**
-	 * `a14:imgLayer/@r:embed` — relationship id of the PRISTINE original image
+	 * `a14:imgLayer/@r:embed`: relationship id of the PRISTINE original image
 	 * the baked effects were derived from (PowerPoint stores it as an HD Photo
 	 * `.wdp` part, which browsers cannot decode).
 	 */
 	originalImageRelId?: string;
+	/**
+	 * PowerPoint 2010+ Corrections panel "Sharpen/Soften"
+	 * (`a14:sharpenSoften/@amount`). Raw as the XML carries it: 1/1000ths of a
+	 * percent, `-100000` (fully softened) .. `100000` (fully sharpened).
+	 * Edit-time metadata like the artistic effects: PowerPoint bakes the result
+	 * into the stored bitmap.
+	 */
+	sharpenSoften?: { amount: number };
+	/**
+	 * PowerPoint 2010+ Corrections panel "Brightness/Contrast"
+	 * (`a14:brightnessContrast/@bright`, `@contrast`). Raw 1/1000ths of a
+	 * percent, `-100000` .. `100000`. Distinct from the legacy `a:blip/@bright`
+	 * + `@contrast` pair in {@link PptxImageEffects.brightness} /
+	 * {@link PptxImageEffects.contrast}, which PowerPoint 2007 wrote and which
+	 * a renderer still applies.
+	 */
+	brightnessContrast?: { bright?: number; contrast?: number };
+	/**
+	 * PowerPoint 2010+ Color panel "Color Tone"
+	 * (`a14:colorTemperature/@colorTemp`). Raw Kelvin value, `1500` .. `11500`;
+	 * `6500` is neutral.
+	 */
+	colorTemperature?: { colorTemp: number };
+	/**
+	 * PowerPoint 2010+ Color panel "Color Saturation" (`a14:saturation/@sat`).
+	 * Raw 1/1000ths of a percent: `100000` is unchanged, `0` is grayscale,
+	 * `400000` the maximum. Named `colorSaturation` because
+	 * {@link PptxImageEffects.saturation} is the viewer-side -100..100 knob
+	 * that has no OOXML counterpart.
+	 */
+	colorSaturation?: { sat: number };
 	/** Alpha modulation fixed: non-negative percentage (100 means unchanged opacity). */
 	alphaModFix?: number;
 	/** Original alpha modulation fixed node, including foreign attributes. */
 	alphaModFixRawXml?: XmlObject;
-	/** Bi-level threshold — converts to 1-bit black/white (0-100). */
+	/** Bi-level threshold: converts to 1-bit black/white (0-100). */
 	biLevel?: number;
-	/** Colour change — swap one colour range for another (used for transparency keying). */
+	/** Colour change: swap one colour range for another (used for transparency keying). */
 	clrChange?: {
 		clrFrom: string;
 		clrTo: string;
@@ -159,11 +190,11 @@ export interface PptxImageEffects {
 		/** Original effect XML, including colour transforms and foreign attributes. */
 		rawXml?: XmlObject;
 	};
-	/** Alpha ceiling (`a:alphaCeiling`) — clamps any non-zero alpha to fully opaque. Boolean flag. */
+	/** Alpha ceiling (`a:alphaCeiling`): clamps any non-zero alpha to fully opaque. Boolean flag. */
 	alphaCeiling?: boolean;
 	/** Original alpha ceiling node, including foreign attributes. */
 	alphaCeilingRawXml?: XmlObject;
-	/** Alpha floor (`a:alphaFloor`) — clamps any non-fully-opaque alpha to fully transparent. Boolean flag. */
+	/** Alpha floor (`a:alphaFloor`): clamps any non-fully-opaque alpha to fully transparent. Boolean flag. */
 	alphaFloor?: boolean;
 	/** Original alpha floor node, including foreign attributes. */
 	alphaFloorRawXml?: XmlObject;
@@ -187,16 +218,16 @@ export interface PptxImageEffects {
 		 */
 		amt?: number;
 	};
-	/** Alpha replace (`a:alphaRepl`) — replaces alpha with the given fixed-percent value (0..100). */
+	/** Alpha replace (`a:alphaRepl`): replaces alpha with the given fixed-percent value (0..100). */
 	alphaRepl?: number;
 	/** Original alpha replace node, including foreign attributes. */
 	alphaReplRawXml?: XmlObject;
-	/** Alpha bi-level (`a:alphaBiLevel`) — threshold (0..100) above which alpha becomes fully opaque. */
+	/** Alpha bi-level (`a:alphaBiLevel`): threshold (0..100) above which alpha becomes fully opaque. */
 	alphaBiLevel?: number;
 	/** Original alpha bi-level node, including foreign attributes. */
 	alphaBiLevelRawXml?: XmlObject;
 	/**
-	 * Colour replace (`a:clrRepl`) — replaces all colour information in an image
+	 * Colour replace (`a:clrRepl`): replaces all colour information in an image
 	 * with the given solid colour. Stores the raw colour child to preserve scheme
 	 * colour references and modifiers.
 	 */
@@ -206,24 +237,24 @@ export interface PptxImageEffects {
 		/** Raw opaque colour XML for round-trip. */
 		rawXml?: Record<string, unknown>;
 	};
-	/** Luminance modulation (`a:lum`) — bright/contrast as fixed percentages (0..100). */
+	/** Luminance modulation (`a:lum`): bright/contrast as fixed percentages (0..100). */
 	lum?: {
 		bright?: number;
 		contrast?: number;
 	};
-	/** HSL modulation (`a:hsl`) — hue (0..360 degrees), saturation/luminance (-100..100). */
+	/** HSL modulation (`a:hsl`): hue (0..360 degrees), saturation/luminance (-100..100). */
 	hsl?: {
 		hue?: number;
 		sat?: number;
 		lum?: number;
 	};
-	/** Image-effect tint (`a:tint` inside blip) — hue (0..360), amount (-100..100). */
+	/** Image-effect tint (`a:tint` inside blip): hue (0..360), amount (-100..100). */
 	tint?: {
 		hue?: number;
 		amt?: number;
 	};
 	/**
-	 * Fill overlay (`a:fillOverlay`) — overlays a fill on top of the blip.
+	 * Fill overlay (`a:fillOverlay`): overlays a fill on top of the blip.
 	 * Stores blend mode and the raw inner fill XML for round-trip.
 	 */
 	fillOverlay?: {
@@ -261,7 +292,7 @@ export interface PptxImageEffects {
 			background?: string;
 		};
 	};
-	/** Blur (`a:blur`) — radius in EMU and grow flag. */
+	/** Blur (`a:blur`): radius in EMU and grow flag. */
 	blur?: {
 		rad?: number;
 		grow?: boolean;
@@ -274,7 +305,7 @@ export interface PptxImageEffects {
  * @example
  * ```ts
  * const shape: PptxCropShape = "ellipse";
- * // => "ellipse" — one of: none | ellipse | roundedRect | triangle | diamond | pentagon | hexagon | star
+ * // => "ellipse": one of: none | ellipse | roundedRect | triangle | diamond | pentagon | hexagon | star
  * ```
  */
 export type PptxCropShape =
@@ -288,7 +319,7 @@ export type PptxCropShape =
 	| 'star';
 
 /**
- * Image content mixin — present on image and picture elements.
+ * Image content mixin: present on image and picture elements.
  *
  * Contains the decoded image data (base64 data URL or archive path),
  * alt text, crop insets, tiling settings, and image effects.
@@ -358,7 +389,16 @@ export interface PptxImageProperties {
 	dpi?: number;
 	/** Image recolour/artistic effect properties. */
 	imageEffects?: PptxImageEffects;
-	/** Crop-to-shape — CSS clip-path shape name. */
+	/**
+	 * Crop-to-shape (CSS clip-path shape name).
+	 *
+	 * PowerPoint implements "Crop to Shape" by writing the picture's own
+	 * `a:prstGeom`, so this is a typed view over `shapeType`: on load it is
+	 * derived from the preset (`ellipse` -> `'ellipse'`, `roundRect` ->
+	 * `'roundedRect'`, `star5` -> `'star'`, ...; see
+	 * `utils/crop-shape-geometry`), and on save a changed value rewrites the
+	 * preset. `'none'` / `undefined` leaves the geometry alone.
+	 */
 	cropShape?: PptxCropShape;
 }
 

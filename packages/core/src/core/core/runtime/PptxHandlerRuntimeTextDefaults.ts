@@ -154,8 +154,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (textStyle.paragraphMarginLeft === undefined && levelStyle.marginLeft !== undefined) {
 			textStyle.paragraphMarginLeft = levelStyle.marginLeft;
 		}
+		if (textStyle.paragraphMarginRight === undefined && levelStyle.marginRight !== undefined) {
+			textStyle.paragraphMarginRight = levelStyle.marginRight;
+		}
 		if (textStyle.paragraphIndent === undefined && levelStyle.indent !== undefined) {
 			textStyle.paragraphIndent = levelStyle.indent;
+		}
+		if (textStyle.rtl === undefined && levelStyle.rtl !== undefined) {
+			textStyle.rtl = levelStyle.rtl;
+		}
+		if (textStyle.tabStops === undefined && levelStyle.tabStops && levelStyle.tabStops.length > 0) {
+			textStyle.tabStops = levelStyle.tabStops.map((tab) => ({ ...tab }));
 		}
 		if (textStyle.lineSpacing === undefined && textStyle.lineSpacingExactPt === undefined) {
 			if (levelStyle.lineSpacing !== undefined) {

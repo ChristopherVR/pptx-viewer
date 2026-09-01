@@ -73,21 +73,25 @@ export function serializeCellMergeAttributes(xmlCell: XmlObject, cell: CellMerge
 	}
 }
 
+// Re-exported so existing importers keep resolving; the constant itself now
+// lives with the creation-time defaults.
+export { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from './table-style-defaults';
+
 /**
  * Write table-level property flags (`bandRow`, `bandCol`, etc.) onto
  * the `<a:tblPr>` XML object from the given table data.
+ *
+ * `tableStyleId` follows the model, never a save-time default:
+ * - a non-empty id is written to `<a:tableStyleId>`;
+ * - `undefined` leaves whatever the raw XML already carries untouched (a
+ *   partial update that doesn't know the full table state, or a loaded
+ *   table that legitimately has no style: "No Style, No Grid");
+ * - an empty string is an explicit clear and removes the element.
+ *
+ * Newly created tables get PowerPoint's default style at CREATION time
+ * (see `table-style-defaults.ts`), so an untouched loaded table is never
+ * mutated on round-trip.
  */
-/**
- * Default table style GUID that PowerPoint's "Insert > Table" UI applies
- * when the user hasn't picked a specific style. This is "Medium Style 2 -
- * Accent 1" — a blue header row with banded white rows — and is defined
- * in PowerPoint's built-in `ppt/tableStyles.xml`. Emitting a table with
- * no `<a:tableStyleId>` produces an unstyled table (no borders, no fill)
- * in PowerPoint, which doesn't match what users see when inserting a
- * table through the UI.
- */
-export const DEFAULT_POWERPOINT_TABLE_STYLE_ID = '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}';
-
 export function serializeTablePropertyFlags(
 	tbl: XmlObject,
 	tableData: {
@@ -103,7 +107,13 @@ export function serializeTablePropertyFlags(
 		rtl?: boolean;
 	},
 ): void {
-	const tblPr = ((tbl as XmlObject)['a:tblPr'] ?? {}) as XmlObject;
+	// An empty `<a:tblPr/>` (no attributes, no children: e.g. a "No Style,
+	// No Grid" table with every flag off) parses as the empty string, not an
+	// object. Treat anything that isn't an object as an empty property bag so
+	// the writer doesn't throw and drop the whole table serialisation.
+	const existingTblPr = (tbl as XmlObject)['a:tblPr'];
+	const tblPr: XmlObject =
+		existingTblPr !== null && typeof existingTblPr === 'object' ? (existingTblPr as XmlObject) : {};
 	// Match PowerPoint's convention: only emit the attribute when the flag
 	// is true. All of these default to `false` per CT_TableProperties, so
 	// emitting `="0"` is behaviorally identical but adds noise and doesn't
@@ -142,13 +152,13 @@ export function serializeTablePropertyFlags(
 	setOrDeleteAttr('@_bandRowCycle', tableData.bandRowCycle);
 	setOrDeleteAttr('@_bandColCycle', tableData.bandColCycle);
 
-	// Default to PowerPoint's Medium Style 2 - Accent 1 when the caller
-	// didn't pick a style. Without an `<a:tableStyleId>`, PowerPoint renders
-	// the table with no borders and no fill.
-	if (tableData.tableStyleId) {
-		tblPr['a:tableStyleId'] = tableData.tableStyleId;
-	} else if (!tblPr['a:tableStyleId']) {
-		tblPr['a:tableStyleId'] = DEFAULT_POWERPOINT_TABLE_STYLE_ID;
+	if (tableData.tableStyleId !== undefined) {
+		const styleId = tableData.tableStyleId.trim();
+		if (styleId.length > 0) {
+			tblPr['a:tableStyleId'] = styleId;
+		} else {
+			delete tblPr['a:tableStyleId'];
+		}
 	}
 	(tbl as XmlObject)['a:tblPr'] = tblPr;
 }

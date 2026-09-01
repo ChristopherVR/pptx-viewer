@@ -235,6 +235,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePercent: levelStyle.bulletSizePercent,
 				sizePts: levelStyle.bulletSizePts,
 				color: levelStyle.bulletColor,
+				colorXml: levelStyle.bulletColorXml,
 			};
 		}
 
@@ -247,6 +248,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePercent: levelStyle.bulletSizePercent,
 				sizePts: levelStyle.bulletSizePts,
 				color: levelStyle.bulletColor,
+				colorXml: levelStyle.bulletColorXml,
 			};
 		}
 

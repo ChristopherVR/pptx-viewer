@@ -160,7 +160,11 @@ export interface PptxSlide {
 	 */
 	slideId?: string;
 	sourceSlideId?: string; // Optional source slide path when creating new slides
-	/** Optional author-supplied slide name (set via `SlideBuilder.setName`). */
+	/**
+	 * The slide name, `p:cSld/@name`: loaded from the part, written back on
+	 * save (an empty string clears the attribute), and settable via
+	 * `SlideBuilder.setName`.
+	 */
 	name?: string;
 	layoutPath?: string;
 	layoutName?: string;

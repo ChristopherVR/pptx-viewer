@@ -1,9 +1,26 @@
-import type { PptxBackgroundRemoval, PptxBackgroundRemovalMark, XmlObject } from '../../types';
+import type {
+	PptxBackgroundRemoval,
+	PptxBackgroundRemovalMark,
+	PptxImageEffects,
+	XmlObject,
+} from '../../types';
+import {
+	A14_IMAGE_PROPS_EXT_URI,
+	attrByLocalName,
+	childByLocalName,
+	childrenByLocalName,
+	localName,
+	numberAttrByLocalName,
+	percent100k,
+} from './image-a14-xml';
+
+export { A14_IMAGE_PROPS_EXT_URI } from './image-a14-xml';
 
 /**
  * Parser for the Microsoft `a14` picture-editing blip extension
  * (`{BEBA8EAE-BF5A-486C-A8C5-ECC9F3942E4B}`), which carries PowerPoint 2010+
- * artistic effects and the "Remove Background" state.
+ * artistic effects, the Corrections / Color panel settings and the "Remove
+ * Background" state. The writer is `image-a14-effects-writer.ts`.
  *
  * ## Shape on disk
  *
@@ -11,9 +28,10 @@ import type { PptxBackgroundRemoval, PptxBackgroundRemovalMark, XmlObject } from
  * <a:blip r:embed="rId4">
  *   <a:extLst>
  *     <a:ext uri="{BEBA8EAE-BF5A-486C-A8C5-ECC9F3942E4B}">
- *       <a14:imgProps>
+ *       <a14:imgProps xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main">
  *         <a14:imgLayer r:embed="rId5">
  *           <a14:imgEffect><a14:backgroundRemoval t="12000" b="88000" l="7000" r="93000"/></a14:imgEffect>
+ *           <a14:imgEffect><a14:sharpenSoften amount="25000"/></a14:imgEffect>
  *           <a14:imgEffect><a14:artisticPencilSketch trans="16000" pressure="80000"/></a14:imgEffect>
  *         </a14:imgLayer>
  *       </a14:imgProps>
@@ -42,9 +60,6 @@ import type { PptxBackgroundRemoval, PptxBackgroundRemovalMark, XmlObject } from
  * flagged `artisticPrerendered`, but the render layer must leave it alone.
  */
 
-/** URI of the `a14` image-properties blip extension. */
-export const A14_IMAGE_PROPS_EXT_URI = '{BEBA8EAE-BF5A-486C-A8C5-ECC9F3942E4B}';
-
 /** Everything the `a14` blip extension contributes to the image-effects model. */
 export interface A14ImageExtension {
 	/** Local element name of the artistic effect, without the `a14:` prefix. */
@@ -55,8 +70,16 @@ export interface A14ImageExtension {
 	artisticParams?: Record<string, number>;
 	/** PowerPoint "Remove Background" state. */
 	backgroundRemoval?: PptxBackgroundRemoval;
-	/** `a14:imgLayer/@r:embed` — relationship id of the pristine original image. */
+	/** `a14:imgLayer/@r:embed`: relationship id of the pristine original image. */
 	originalImageRelId?: string;
+	/** `a14:sharpenSoften`, raw. */
+	sharpenSoften?: PptxImageEffects['sharpenSoften'];
+	/** `a14:brightnessContrast`, raw. */
+	brightnessContrast?: PptxImageEffects['brightnessContrast'];
+	/** `a14:colorTemperature`, raw. */
+	colorTemperature?: PptxImageEffects['colorTemperature'];
+	/** `a14:saturation`, raw. */
+	colorSaturation?: PptxImageEffects['colorSaturation'];
 }
 
 /**
@@ -65,7 +88,7 @@ export interface A14ImageExtension {
  * percentage in 1/1000ths of a percent, so it is divided by 1000 to land on the
  * 0..100 scale {@link A14ImageExtension.artisticRadius} uses.
  */
-const ARTISTIC_PRIMARY_ATTRIBUTE: Record<string, string> = {
+export const ARTISTIC_PRIMARY_ATTRIBUTE: Readonly<Record<string, string>> = {
 	artisticBlur: 'radius',
 	artisticCement: 'crackSpacing',
 	artisticChalkSketch: 'pressure',
@@ -93,71 +116,6 @@ const ARTISTIC_PRIMARY_ATTRIBUTE: Record<string, string> = {
 
 /** Attributes that never describe the effect's size/strength. */
 const NON_SIZE_ATTRIBUTES = new Set(['trans', 'visible']);
-
-const localName = (key: string): string => key.split(':').at(-1) ?? key;
-
-function childByLocalName(parent: XmlObject | undefined, name: string): XmlObject | undefined {
-	if (!parent) {
-		return undefined;
-	}
-	for (const key of Object.keys(parent)) {
-		if (localName(key) !== name) {
-			continue;
-		}
-		const value = parent[key];
-		const first = Array.isArray(value) ? value[0] : value;
-		if (first && typeof first === 'object') {
-			return first as XmlObject;
-		}
-	}
-	return undefined;
-}
-
-function childrenByLocalName(parent: XmlObject | undefined, name: string): XmlObject[] {
-	if (!parent) {
-		return [];
-	}
-	const out: XmlObject[] = [];
-	for (const key of Object.keys(parent)) {
-		if (localName(key) !== name) {
-			continue;
-		}
-		const value = parent[key];
-		for (const entry of Array.isArray(value) ? value : [value]) {
-			if (entry && typeof entry === 'object') {
-				out.push(entry as XmlObject);
-			}
-		}
-	}
-	return out;
-}
-
-/** Read an attribute (prefix-insensitive: `@_r:embed` and `@_embed` both match). */
-function attrByLocalName(node: XmlObject | undefined, name: string): string | undefined {
-	if (!node) {
-		return undefined;
-	}
-	for (const key of Object.keys(node)) {
-		if (!key.startsWith('@_')) {
-			continue;
-		}
-		if (localName(key.slice(2)) === name) {
-			const value = node[key];
-			return value === undefined || value === null ? undefined : String(value);
-		}
-	}
-	return undefined;
-}
-
-/** Parse a per-100000 relative unit (`ST_PositiveFixedPercentage`) to a 0..1 fraction. */
-function percent100k(node: XmlObject | undefined, name: string): number | undefined {
-	const raw = attrByLocalName(node, name);
-	if (raw === undefined) {
-		return undefined;
-	}
-	const parsed = Number(raw.endsWith('%') ? raw.slice(0, -1) : raw);
-	return Number.isFinite(parsed) ? parsed / 100000 : undefined;
-}
 
 function parseMarks(parent: XmlObject, name: string): PptxBackgroundRemovalMark[] | undefined {
 	const marks: PptxBackgroundRemovalMark[] = [];
@@ -224,16 +182,63 @@ function artisticRadiusOf(name: string, params: Record<string, number>): number 
 	return key === 'radius' ? value : value / 1000;
 }
 
-/** Read the artistic effect and background-removal state out of one `a14:imgEffect`. */
+/**
+ * Read one Corrections / Color panel effect (`a14:sharpenSoften`,
+ * `a14:brightnessContrast`, `a14:colorTemperature`, `a14:saturation`). Values
+ * are kept exactly as the XML carries them; the first occurrence wins.
+ * @returns `true` when `name` was one of the four, whether or not it parsed.
+ */
+function readCorrectionEffect(name: string, node: XmlObject, out: A14ImageExtension): boolean {
+	if (name === 'sharpenSoften') {
+		const amount = numberAttrByLocalName(node, 'amount');
+		if (amount !== undefined) {
+			out.sharpenSoften ??= { amount };
+		}
+		return true;
+	}
+	if (name === 'brightnessContrast') {
+		const bright = numberAttrByLocalName(node, 'bright');
+		const contrast = numberAttrByLocalName(node, 'contrast');
+		if (bright !== undefined || contrast !== undefined) {
+			out.brightnessContrast ??= {
+				...(bright !== undefined ? { bright } : {}),
+				...(contrast !== undefined ? { contrast } : {}),
+			};
+		}
+		return true;
+	}
+	if (name === 'colorTemperature') {
+		const colorTemp = numberAttrByLocalName(node, 'colorTemp');
+		if (colorTemp !== undefined) {
+			out.colorTemperature ??= { colorTemp };
+		}
+		return true;
+	}
+	if (name === 'saturation') {
+		const sat = numberAttrByLocalName(node, 'sat');
+		if (sat !== undefined) {
+			out.colorSaturation ??= { sat };
+		}
+		return true;
+	}
+	return false;
+}
+
+/** Read the effects out of one `a14:imgEffect`. */
 function readImgEffect(imgEffect: XmlObject, out: A14ImageExtension): void {
 	for (const key of Object.keys(imgEffect)) {
-		const name = localName(key);
-		const node = childByLocalName(imgEffect, name);
-		if (!node) {
+		if (key.startsWith('@_')) {
 			continue;
 		}
+		const name = localName(key);
+		// An attribute-less effect (`<a14:artisticMarker/>`, all defaults) parses
+		// to an empty string rather than an object; it is still the effect.
+		const node = childByLocalName(imgEffect, name) ?? {};
 		if (name === 'backgroundRemoval') {
 			out.backgroundRemoval ??= parseBackgroundRemoval(node);
+			continue;
+		}
+		if (readCorrectionEffect(name, node, out)) {
 			continue;
 		}
 		if (!name.startsWith('artistic') || out.artisticEffect !== undefined) {

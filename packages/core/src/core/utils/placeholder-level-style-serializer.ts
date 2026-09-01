@@ -7,23 +7,29 @@
  * Every write merges into the existing node via {@link mergeOrderedXml}
  * rather than rebuilding it: only the fields explicitly set on the typed
  * style are touched, and any attribute, run-property, or child this model
- * does not cover (tab stops, extensions, ...) survives untouched, in its
- * original schema position.
+ * does not cover (extensions, `a:buBlip`, ...) survives untouched, in its
+ * original schema position. Preserved colour nodes (`colorChoiceXml`,
+ * `bulletColorXml`) are re-emitted verbatim so theme aliases survive.
  *
  * @module placeholder-level-style-serializer
  */
 import type { PlaceholderTextLevelStyle, XmlObject } from '../types';
+import { colorsEqual } from './color-xml-preservation';
 import { mergeOrderedXml } from './ordered-xml-merge';
 
 const EMU_PER_PX = 9525;
 /** px -> hundredths-of-a-point: px * (72/96) * 100. */
 const PT_HUNDREDTHS_PER_PX = 75;
 
+/** `TextStyle['align']` token -> `ST_TextAlignType`; the last three are spelled the same on both sides. */
 const ALIGN_TO_XML: Record<string, string> = {
 	left: 'l',
 	center: 'ctr',
 	right: 'r',
 	justify: 'just',
+	justLow: 'justLow',
+	dist: 'dist',
+	thaiDist: 'thaiDist',
 };
 
 /** CT_TextParagraphProperties child order (bullet group: buClr*, buSz*, buFont*, bu<type>). */
@@ -82,8 +88,14 @@ export function serializePlaceholderLevelStyle(
 	if (style.marginLeft !== undefined) {
 		attrEdits.marL = String(Math.round(style.marginLeft * EMU_PER_PX));
 	}
+	if (style.marginRight !== undefined) {
+		attrEdits.marR = String(Math.round(style.marginRight * EMU_PER_PX));
+	}
 	if (style.indent !== undefined) {
 		attrEdits.indent = String(Math.round(style.indent * EMU_PER_PX));
+	}
+	if (style.rtl !== undefined) {
+		attrEdits.rtl = style.rtl ? '1' : '0';
 	}
 	if (style.defaultTabSize !== undefined) {
 		attrEdits.defTabSz = String(Math.round(style.defaultTabSize * EMU_PER_PX));
@@ -122,6 +134,12 @@ export function serializePlaceholderLevelStyle(
 		});
 	}
 	applyBulletGroup(childEdits, style);
+	if (style.tabStops !== undefined) {
+		childEdits.set(
+			'a:tabLst',
+			style.tabStops.length > 0 ? serializeTabStops(style.tabStops) : null,
+		);
+	}
 
 	if (hasRunPropertyEdits(style)) {
 		const existingDefRPr = existing?.['a:defRPr'] as XmlObject | undefined;
@@ -158,7 +176,10 @@ function serializeDefaultRunProperties(
 
 	const childEdits = new Map<string, XmlObject | null>();
 	if (style.color !== undefined) {
-		childEdits.set('a:solidFill', { 'a:srgbClr': { '@_val': style.color.replace('#', '') } });
+		// `colorChoiceXml` is the whole authored `a:solidFill`; keep it (theme
+		// alias + transforms) unless the hex was edited away from it.
+		const preserved = preservedIfStillCurrent(style.colorChoiceXml, style.color);
+		childEdits.set('a:solidFill', preserved ?? srgbChoice(style.color));
 		for (const variant of FILL_VARIANTS) {
 			childEdits.set(variant, null);
 		}
@@ -177,7 +198,12 @@ function applyBulletGroup(
 	style: PlaceholderTextLevelStyle,
 ): void {
 	if (style.bulletColor !== undefined) {
-		childEdits.set('a:buClr', { 'a:srgbClr': { '@_val': style.bulletColor.replace('#', '') } });
+		// A themed `a:schemeClr` bullet is re-emitted as authored; only a hex
+		// edited away from the preserved node falls back to a literal srgb.
+		const preserved = preservedIfStillCurrent(style.bulletColorXml, style.bulletColor);
+		childEdits.set('a:buClr', preserved ?? srgbChoice(style.bulletColor));
+	} else if (style.bulletColorXml !== undefined) {
+		childEdits.set('a:buClr', style.bulletColorXml);
 	}
 	if (style.bulletSizePercent !== undefined) {
 		childEdits.set('a:buSzPct', { '@_val': String(Math.round(style.bulletSizePercent * 1000)) });
@@ -206,4 +232,49 @@ function applyBulletGroup(
 		'a:buChar',
 		style.bulletChar !== undefined ? { '@_char': style.bulletChar } : null,
 	);
+}
+
+/** `a:tabLst` from typed tab stops (positions px -> EMU); mirrors the paragraph writer. */
+function serializeTabStops(
+	tabStops: NonNullable<PlaceholderTextLevelStyle['tabStops']>,
+): XmlObject {
+	return {
+		'a:tab': tabStops.map((tab) => {
+			const node: XmlObject = { '@_pos': String(Math.round(tab.position * EMU_PER_PX)) };
+			if (tab.align && tab.align !== 'l') {
+				node['@_algn'] = tab.align;
+			}
+			if (tab.leader && tab.leader !== 'none') {
+				node['@_leader'] = tab.leader;
+			}
+			return node;
+		}),
+	};
+}
+
+function srgbChoice(hex: string): XmlObject {
+	return { 'a:srgbClr': { '@_val': hex.replace('#', '') } };
+}
+
+/**
+ * Decide whether a preserved colour node still describes `hex`.
+ *
+ * A themed choice (`a:schemeClr`, `a:sysClr`, ...) cannot be resolved here
+ * (no theme in scope), so it is trusted and re-emitted as authored: an
+ * editor that changes the colour is expected to clear the preserved node.
+ * A literal `a:srgbClr` can be compared, so a hex that moved away from it
+ * wins over the stale node.
+ */
+function preservedIfStillCurrent(
+	preserved: XmlObject | undefined,
+	hex: string,
+): XmlObject | undefined {
+	if (!preserved) {
+		return undefined;
+	}
+	const srgb = preserved['a:srgbClr'] as XmlObject | undefined;
+	if (srgb && !colorsEqual(String(srgb['@_val'] ?? ''), hex)) {
+		return undefined;
+	}
+	return preserved;
 }

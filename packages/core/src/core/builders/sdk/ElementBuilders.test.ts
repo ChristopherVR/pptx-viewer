@@ -504,6 +504,14 @@ describe('tableBuilder', () => {
 		expect(el.tableData.tableStyleId).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
 	});
 
+	it('defaults to PowerPoint Medium Style 2 - Accent 1 when no style is picked', () => {
+		// The default is applied at CREATION time so the save pipeline never
+		// has to inject a style (which would also mutate loaded tables that
+		// legitimately have none).
+		const el = TableBuilder.create().addRow(['A']).build();
+		expect(el.tableData.tableStyleId).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
+	});
+
 	it('sets position', () => {
 		const el = TableBuilder.create().addRow(['A']).position(100, 200).build();
 		expect(el.x).toBe(100);

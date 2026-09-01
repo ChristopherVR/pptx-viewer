@@ -42,7 +42,15 @@ function buildHistogramBinning(series: PptxChartSeries): XmlObject {
 	return binning;
 }
 
-function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number): XmlObject {
+/**
+ * Build one `cx:chartData/cx:data` entry (category string dimension plus the
+ * value dimension the chart type expects) for `series`, keyed by `id`.
+ */
+export function buildChartExData(
+	chartData: PptxChartData,
+	series: PptxChartSeries,
+	id: number,
+): XmlObject {
 	const regionOptions = chartData.chartType === 'regionMap' ? series.regionMapOptions : undefined;
 	const categoryLevels =
 		(chartData.chartType === 'sunburst' || chartData.chartType === 'treemap') &&
@@ -92,25 +100,43 @@ function buildData(chartData: PptxChartData, series: PptxChartSeries, id: number
 	};
 }
 
-function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: number): XmlObject {
-	const layoutId =
-		chartData.chartType === 'waterfall'
-			? 'waterfall'
-			: chartData.chartType === 'treemap'
-				? 'treemap'
-				: chartData.chartType === 'sunburst'
-					? 'sunburst'
-					: chartData.chartType === 'boxWhisker'
-						? 'boxWhisker'
-						: chartData.chartType === 'histogram'
-							? series.histogramOptions?.layout === 'pareto'
-								? 'paretoLine'
-								: 'clusteredColumn'
-							: chartData.chartType === 'regionMap'
-								? 'regionMap'
-								: 'funnel';
+/** The `cx:series/@layoutId` PowerPoint uses for this chart type. */
+export function chartExLayoutId(chartData: PptxChartData, series: PptxChartSeries): string {
+	return chartData.chartType === 'waterfall'
+		? 'waterfall'
+		: chartData.chartType === 'treemap'
+			? 'treemap'
+			: chartData.chartType === 'sunburst'
+				? 'sunburst'
+				: chartData.chartType === 'boxWhisker'
+					? 'boxWhisker'
+					: chartData.chartType === 'histogram'
+						? series.histogramOptions?.layout === 'pareto'
+							? 'paretoLine'
+							: 'clusteredColumn'
+						: chartData.chartType === 'regionMap'
+							? 'regionMap'
+							: 'funnel';
+}
+
+/** Series colour as a `cx:spPr` block, when the model carries one. */
+export function buildChartExSeriesFill(series: PptxChartSeries): XmlObject | undefined {
+	return seriesColor(series);
+}
+
+/** The default `cx:dataLabels` block (category + value shown). */
+export function buildChartExDataLabels(): XmlObject {
+	return { 'cx:visibility': { '@_categoryName': '1', '@_value': '1', '@_seriesName': '0' } };
+}
+
+/** Build one `cx:plotAreaRegion/cx:series` entry bound to data `id`. */
+export function buildChartExSeries(
+	chartData: PptxChartData,
+	series: PptxChartSeries,
+	id: number,
+): XmlObject {
 	const result: XmlObject = {
-		'@_layoutId': layoutId,
+		'@_layoutId': chartExLayoutId(chartData, series),
 		'cx:tx': { 'cx:txData': { 'cx:v': series.name } },
 	};
 	const spPr = seriesColor(series);
@@ -118,9 +144,7 @@ function buildSeries(chartData: PptxChartData, series: PptxChartSeries, id: numb
 		result['cx:spPr'] = spPr;
 	}
 	if (chartData.style?.hasDataLabels) {
-		result['cx:dataLabels'] = {
-			'cx:visibility': { '@_categoryName': '1', '@_value': '1', '@_seriesName': '0' },
-		};
+		result['cx:dataLabels'] = buildChartExDataLabels();
 	}
 	result['cx:dataId'] = { '@_val': String(id) };
 	if (chartData.chartType === 'boxWhisker' && series.boxWhiskerOptions) {
@@ -224,18 +248,37 @@ export function buildChartExSpaceXml(chartData: PptxChartData): XmlObject {
 	}
 	chart['cx:plotArea'] = {
 		'cx:plotAreaRegion': {
-			'cx:series': chartData.series.map((series, index) => buildSeries(chartData, series, index)),
+			'cx:series': chartData.series.map((series, index) =>
+				buildChartExSeries(chartData, series, index),
+			),
 		},
 	};
+	if (chartData.style?.hasLegend) {
+		chart['cx:legend'] = buildChartExLegend(chartData.style.legendPosition);
+	}
 	return {
 		'cx:chartSpace': {
 			'@_xmlns:cx': NS_CX,
 			'@_xmlns:a': NS_A,
 			'@_xmlns:r': NS_R,
 			'cx:chartData': {
-				'cx:data': chartData.series.map((series, index) => buildData(chartData, series, index)),
+				'cx:data': chartData.series.map((series, index) =>
+					buildChartExData(chartData, series, index),
+				),
 			},
 			'cx:chart': chart,
 		},
 	};
+}
+
+/**
+ * A `cx:legend` node. ChartEx positions are `ST_SidePos` (`t`, `b`, `l`, `r`),
+ * so the 2006 corner value `tr` folds onto the right edge.
+ */
+export function buildChartExLegend(legendPosition: string | undefined): XmlObject {
+	const pos =
+		legendPosition === 't' || legendPosition === 'b' || legendPosition === 'l'
+			? legendPosition
+			: 'r';
+	return { '@_pos': pos, '@_align': 'ctr', '@_overlay': '0' };
 }
