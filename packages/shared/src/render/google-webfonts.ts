@@ -10,34 +10,32 @@
  * `<link rel="stylesheet">` so the text renders with the intended face
  * anyway.
  *
- * There is no hard-coded family list: the API itself is the source of truth.
- * Each candidate family is probed with a `fetch` (the endpoint answers 400
- * for families it does not serve, and silently serves only the weights and
- * styles that DO exist for families it does, so one universal axis spec is
- * safe for every family). Verified families are combined into a single css2
- * URL. Probe results are cached for the page session, and a family that
- * fails both probe attempts is never re-requested.
+ * Which families the API serves is answered by the bundled catalogue
+ * (`google-fonts-catalogue.ts`, regenerated from Google's own metadata feed
+ * by `bun run fonts:catalogue`), never by probing the API per family: a
+ * probe of an unknown family answers 400 without CORS headers, which the
+ * browser reports as an uncatchable console error, and it discloses every
+ * missing family name to Google. With the catalogue the only request ever
+ * made is the stylesheet for families already known to be served. The API is
+ * lenient about weights and styles (it serves only the ones a family has),
+ * so one universal axis spec is safe for every catalogue family.
  *
- * Families detected as locally installed are dropped BEFORE any network
- * request is made, so the API only ever learns the names of families the
- * reader's machine is actually missing. That residual disclosure is the
- * accepted cost of the dynamic probe (a family can only be matched against
- * the catalogue by naming it); a build-time-generated family list would avoid
- * it entirely at the price of losing every family the list does not know.
- *
- * Everything except the probe is pure; the DOM side effect (injecting /
- * updating / removing the managed `<link>` element) stays in each binding,
- * and the element id is binding-specific.
+ * Families detected as locally installed are dropped before the href is
+ * built, so an installed face is used as-is. Everything here is pure; the DOM
+ * side effect (injecting / updating / removing the managed `<link>` element)
+ * stays in each binding, and the element id is binding-specific.
  */
 
 import type { PptxElement, PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { GOOGLE_FONTS_FAMILIES } from './google-fonts-catalogue';
+
 /** Base URL of the Google Fonts CSS2 API. */
 export const GOOGLE_FONTS_CSS2_BASE = 'https://fonts.googleapis.com/css2';
 
 /**
- * Axis spec requested for every probed family. The API is lenient: it serves
+ * Axis spec requested for every catalogue family. The API is lenient: it serves
  * only the weights/styles the family actually has (verified for single-style
  * families), so this one fragment is safe to request universally and yields
  * real bold + italic faces where they exist.
@@ -74,7 +72,7 @@ export function collectReferencedFontFamilies(slides: readonly PptxSlide[]): Set
 }
 
 /**
- * Pick the referenced families this runtime should probe for: everything not
+ * Pick the referenced families this runtime should look up: everything not
  * already satisfied by an embedded font, and (when the caller supplies the
  * check) everything not available locally, so an installed family is used
  * as-is and its name never reaches the API.
@@ -98,7 +96,7 @@ export function selectGoogleWebfontFamilies(
 	return selected;
 }
 
-/** Text measured for the local-availability probe (mixed glyph widths). */
+/** Text measured for the local-availability check (mixed glyph widths). */
 const INSTALLED_FONT_TEST_STRING = 'mmmmmmmmmmllww';
 
 /**
@@ -112,9 +110,8 @@ const INSTALLED_FONT_TEST_STRING = 'mmmmmmmmmmllww';
  * provides renders with different metrics for at least one common fallback
  * class, while a missing family renders exactly like the fallback and is
  * reported as absent. False negatives (a family metrically identical to
- * every fallback class) are safe: the caller then probes the API for a
- * family it may not have needed to, which is exactly the pre-check
- * behaviour.
+ * every fallback class) are safe: the caller then loads a catalogue face it
+ * may not have needed to, which is exactly the pre-check behaviour.
  */
 export function isFontFamilyInstalledLocally(family: string): boolean {
 	if (typeof document === 'undefined') {
@@ -167,98 +164,77 @@ export function buildGoogleFontsHref(fragments: readonly string[]): string | nul
 	return `${GOOGLE_FONTS_CSS2_BASE}?${query}&${DISPLAY_PARAM}`;
 }
 
-/** Minimal shape of `fetch` the probe needs (lets tests stub it). */
-export type FetchLike = (url: string) => Promise<{ status: number }>;
+/** Lower-cased catalogue name -> canonical Google Fonts spelling (lazy). */
+let catalogueIndex: Map<string, string> | undefined;
 
-/** Session cache: family -> probe promise resolving to its fragment or null. */
-const probeCache = new Map<string, Promise<string | null>>();
-
-/** Reset the session probe cache (test isolation). */
-export function resetGoogleWebfontProbeCache(): void {
-	probeCache.clear();
+/**
+ * Canonical Google Fonts spelling for `family`, or `null` when the CSS2 API
+ * does not serve it. Matching is case-insensitive and whitespace-normalised
+ * because PowerPoint stores the name as the author typed it.
+ */
+export function findGoogleFontsFamily(family: string): string | null {
+	if (!catalogueIndex) {
+		catalogueIndex = new Map(GOOGLE_FONTS_FAMILIES.map((name) => [normaliseFamily(name), name]));
+	}
+	return catalogueIndex.get(normaliseFamily(family)) ?? null;
 }
 
-function fetchLike(): FetchLike | undefined {
-	return typeof fetch === 'function' ? fetch : undefined;
+function normaliseFamily(family: string): string {
+	return family.trim().replace(/\s+/gu, ' ').toLowerCase();
 }
 
 /**
- * Request `family` from the css2 API and return the query fragment that
- * worked: the full axis spec, a bare fallback (in case a future API change
- * makes the axis spec strict for some family), or `null` when the family is
- * not served at all. Network failures count as "not served": an offline
- * browser could not load the stylesheet either.
+ * Families this session has already resolved against the catalogue (by
+ * their referenced spelling). Once the injected stylesheet has loaded, the
+ * webfont itself satisfies the canvas measurement, so re-running the local
+ * check would report the family as installed, drop it from the href, remove
+ * the very `<link>` that made it available, and find it missing again on the
+ * next call: an oscillation that re-fetches the stylesheet on every edit.
  */
-async function probeFamily(family: string, doFetch: FetchLike): Promise<string | null> {
-	const withAxis = buildGoogleFontsFragment(family);
-	if (await probeUrl(doFetch, `family=${encodeURIComponent(withAxis)}`)) {
-		return withAxis;
-	}
-	if (await probeUrl(doFetch, `family=${encodeURIComponent(family)}`)) {
-		return family;
-	}
-	return null;
-}
+const resolvedFamilies = new Set<string>();
 
-async function probeUrl(doFetch: FetchLike, familyParam: string): Promise<boolean> {
-	try {
-		const response = await doFetch(`${GOOGLE_FONTS_CSS2_BASE}?${familyParam}&${DISPLAY_PARAM}`);
-		return response.status === 200;
-	} catch {
-		return false;
-	}
+/** Reset the session cache (test isolation). */
+export function resetGoogleWebfontSessionCache(): void {
+	resolvedFamilies.clear();
 }
 
 /**
- * Probe the candidate families (in parallel, session-cached) and return the
- * query fragments the Google Fonts API serves.
+ * The query fragments for the candidate families the catalogue knows,
+ * requested under their canonical spelling. Unknown families are dropped
+ * without any network request.
  */
-export function probeGoogleWebfontFragments(
-	families: readonly string[],
-	doFetch: FetchLike = fetchLike() as FetchLike,
-): Promise<string[]> {
-	const effective = typeof doFetch === 'function' ? doFetch : undefined;
-	if (!effective) {
-		return Promise.resolve([]);
-	}
-	const probes = families.map(async (family) => {
-		let probe = probeCache.get(family);
-		if (!probe) {
-			probe = probeFamily(family, effective);
-			probeCache.set(family, probe);
+export function matchGoogleWebfontFragments(families: readonly string[]): string[] {
+	const fragments: string[] = [];
+	for (const family of families) {
+		const canonical = findGoogleFontsFamily(family);
+		if (canonical !== null) {
+			resolvedFamilies.add(family);
+			fragments.push(buildGoogleFontsFragment(canonical));
 		}
-		return probe;
-	});
-	return Promise.all(probes).then((fragments) => fragments.filter((f) => f !== null));
+	}
+	return fragments;
 }
 
 /**
  * One-stop helper the bindings call from their reactive wiring: resolve the
- * href for a loaded deck's slides + embedded fonts (`null` when no fetch is
- * needed). Families available locally are used as-is and never requested;
- * the rest are probed (session-cached), so repeated calls (every load /
- * edit) only fetch families never seen before.
+ * href for a loaded deck's slides + embedded fonts (`null` when no stylesheet
+ * is needed). Families available locally are used as-is; the rest are matched
+ * against the bundled catalogue. The local-install check is skipped for
+ * families the session already resolved (see `resolvedFamilies`).
  *
- * The local-install check is skipped for families the session has already
- * probed. Once the injected stylesheet has loaded, the webfont itself
- * satisfies the canvas measurement, so re-checking would report the family as
- * installed, drop it from the href, remove the very `<link>` that made it
- * available, and then find it missing again on the next call: an oscillation
- * that re-fetches the stylesheet on every edit. The cached probe result (a
- * fragment or null) already answers the question for those families.
+ * Async only so the bindings' `.then` wiring is the same whether resolution
+ * is a lookup or, one day, something slower.
  */
 export async function resolveGoogleWebfontHref(
 	slides: readonly PptxSlide[],
 	embeddedFonts: readonly PptxEmbeddedFont[],
-	doFetch?: FetchLike,
 	isLocallyInstalled: (family: string) => boolean = isFontFamilyInstalledLocally,
 ): Promise<string | null> {
 	const referenced = collectReferencedFontFamilies(slides);
 	const candidates = selectGoogleWebfontFamilies(
 		referenced,
 		embeddedFonts.map((font) => font.name),
-		(family) => !probeCache.has(family) && isLocallyInstalled(family),
+		(family) => !resolvedFamilies.has(family) && isLocallyInstalled(family),
 	);
-	const fragments = await probeGoogleWebfontFragments(candidates, doFetch);
-	return buildGoogleFontsHref(fragments);
+	return buildGoogleFontsHref(matchGoogleWebfontFragments(candidates));
 }

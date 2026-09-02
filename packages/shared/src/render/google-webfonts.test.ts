@@ -1,13 +1,15 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { GOOGLE_FONTS_CATALOGUE_DATE, GOOGLE_FONTS_FAMILIES } from './google-fonts-catalogue';
 import {
 	buildGoogleFontsFragment,
 	buildGoogleFontsHref,
 	collectReferencedFontFamilies,
 	isFontFamilyInstalledLocally,
-	probeGoogleWebfontFragments,
-	resetGoogleWebfontProbeCache,
+	findGoogleFontsFamily,
+	matchGoogleWebfontFragments,
+	resetGoogleWebfontSessionCache,
 	resolveGoogleWebfontHref,
 	selectGoogleWebfontFamilies,
 } from './google-webfonts';
@@ -24,23 +26,8 @@ function slide(...elements: PptxElement[]): PptxSlide {
 	return { elements } as unknown as PptxSlide;
 }
 
-/** A fetch stub keyed by family name: 200 for `served`, 400 otherwise. */
-function fetchStub(served: readonly string[]): {
-	fetch: (url: string) => Promise<{ status: number }>;
-	urls: string[];
-} {
-	const urls: string[] = [];
-	const fetch = async (url: string): Promise<{ status: number }> => {
-		urls.push(url);
-		const match = /family=([^&]+)/.exec(url);
-		const name = match ? decodeURIComponent(match[1]) : '';
-		return { status: served.includes(name.split(':')[0]) ? 200 : 400 };
-	};
-	return { fetch, urls };
-}
-
 beforeEach(() => {
-	resetGoogleWebfontProbeCache();
+	resetGoogleWebfontSessionCache();
 });
 
 afterEach(() => {
@@ -122,110 +109,97 @@ describe('buildGoogleFontsHref', () => {
 	});
 });
 
-describe('probeGoogleWebfontFragments', () => {
-	it('keeps families the API serves and drops unknown ones', async () => {
-		const { fetch } = fetchStub(['ADLaM Display', 'Roboto']);
-		const fragments = await probeGoogleWebfontFragments(
-			['ADLaM Display', 'Roboto', 'Totally Unknown'],
-			fetch,
+describe('google-fonts-catalogue', () => {
+	it('is a sorted, deduplicated snapshot with a regeneration date', () => {
+		expect(GOOGLE_FONTS_CATALOGUE_DATE).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
+		expect(GOOGLE_FONTS_FAMILIES.length).toBeGreaterThan(1000);
+		expect(new Set(GOOGLE_FONTS_FAMILIES).size).toBe(GOOGLE_FONTS_FAMILIES.length);
+		expect([...GOOGLE_FONTS_FAMILIES]).toStrictEqual(
+			[...GOOGLE_FONTS_FAMILIES].sort((a, b) => a.localeCompare(b, 'en')),
 		);
-		expect(fragments).toHaveLength(2);
-		expect(fragments[0]).toContain('ADLaM Display:ital,wght');
-		expect(fragments[1]).toBe('Roboto:ital,wght@0,400;0,700;1,400;1,700');
+	});
+});
+
+describe('findGoogleFontsFamily', () => {
+	it('answers with the canonical spelling, case- and whitespace-insensitively', () => {
+		expect(findGoogleFontsFamily('ADLaM Display')).toBe('ADLaM Display');
+		expect(findGoogleFontsFamily('adlam  display ')).toBe('ADLaM Display');
+		expect(findGoogleFontsFamily('roboto')).toBe('Roboto');
 	});
 
-	it('falls back to a bare fragment when the axis spec is rejected', async () => {
-		const served = new Set(['Legacy Face']);
-		const fetch = async (url: string): Promise<{ status: number }> => ({
-			status:
-				served.has(decodeURIComponent(/family=([^&]+)/.exec(url)![1])) && !url.includes('ital')
-					? 200
-					: 400,
-		});
-		const fragments = await probeGoogleWebfontFragments(['Legacy Face'], fetch);
-		expect(fragments).toStrictEqual(['Legacy Face']);
+	it('rejects families the API does not serve without any request', () => {
+		expect(findGoogleFontsFamily('Calibri')).toBeNull();
+		expect(findGoogleFontsFamily('Helvetica Neue Medium')).toBeNull();
+		expect(findGoogleFontsFamily('')).toBeNull();
+	});
+});
+
+describe('matchGoogleWebfontFragments', () => {
+	it('keeps catalogue families (canonically spelled) and drops unknown ones', () => {
+		const fragments = matchGoogleWebfontFragments(['adlam display', 'Roboto', 'Totally Unknown']);
+		expect(fragments).toStrictEqual([
+			'ADLaM Display:ital,wght@0,400;0,700;1,400;1,700',
+			'Roboto:ital,wght@0,400;0,700;1,400;1,700',
+		]);
 	});
 
-	it('caches probes for the session', async () => {
-		const { fetch, urls } = fetchStub(['ADLaM Display']);
-		await probeGoogleWebfontFragments(['ADLaM Display'], fetch);
-		await probeGoogleWebfontFragments(['ADLaM Display'], fetch);
-		expect(urls).toHaveLength(1);
-	});
-
-	it('returns nothing when fetch is unavailable', async () => {
-		vi.stubGlobal('fetch', undefined);
-		const fragments = await probeGoogleWebfontFragments(['ADLaM Display']);
-		expect(fragments).toStrictEqual([]);
+	it('never touches the network', () => {
+		const fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+		matchGoogleWebfontFragments(['ADLaM Display', 'Totally Unknown']);
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 });
 
 describe('resolveGoogleWebfontHref', () => {
 	it('resolves the href for a deck referencing an unembedded served font', async () => {
-		const { fetch } = fetchStub(['ADLaM Display']);
-		const href = await resolveGoogleWebfontHref([slide(textEl('ADLaM Display'))], [], fetch);
+		const href = await resolveGoogleWebfontHref([slide(textEl('ADLaM Display'))], []);
 		expect(href).toContain('family=ADLaM%20Display%3Aital');
 	});
 
 	it('returns null when the family is embedded or not served', async () => {
-		const { fetch } = fetchStub([]);
 		await expect(
-			resolveGoogleWebfontHref(
-				[slide(textEl('ADLaM Display'))],
-				[{ name: 'ADLaM Display' }],
-				fetch,
-			),
+			resolveGoogleWebfontHref([slide(textEl('ADLaM Display'))], [{ name: 'ADLaM Display' }]),
 		).resolves.toBeNull();
-		await expect(
-			resolveGoogleWebfontHref([slide(textEl('Calibri'))], [], fetch),
-		).resolves.toBeNull();
+		await expect(resolveGoogleWebfontHref([slide(textEl('Calibri'))], [])).resolves.toBeNull();
 	});
 
-	it('never requests a family the runtime reports as installed', async () => {
-		const { fetch, urls } = fetchStub(['Missing Face']);
+	it('never loads a family the runtime reports as installed', async () => {
 		await expect(
 			resolveGoogleWebfontHref(
-				[slide(textEl('Installed Face'), textEl('Missing Face'))],
+				[slide(textEl('Roboto'), textEl('ADLaM Display'))],
 				[],
-				fetch,
-				(family) => family === 'Installed Face',
+				(family) => family === 'Roboto',
 			),
-		).resolves.toContain('family=Missing%20Face');
-		expect(urls.some((url) => url.includes('Installed'))).toBeFalsy();
+		).resolves.toBe(buildGoogleFontsHref([buildGoogleFontsFragment('ADLaM Display')]));
 	});
 
-	it('keeps a family the probe already verified even when it now measures as installed', async () => {
+	it('keeps a family it already resolved even when it now measures as installed', async () => {
 		// Once the injected stylesheet has loaded, the canvas measurement sees
 		// the webfont itself and reports the family as "installed". Without the
-		// probe-cache guard the second resolve would drop the family, the
-		// binding would remove the <link>, and the third resolve would find it
-		// missing again: an oscillation that re-fetches on every edit.
-		const { fetch, urls } = fetchStub(['ADLaM Display']);
+		// session guard the second resolve would drop the family, the binding
+		// would remove the <link>, and the third resolve would find it missing
+		// again: an oscillation that re-fetches on every edit.
 		const slides = [slide(textEl('ADLaM Display'))];
 		let webfontLoaded = false;
 		const isInstalled = (): boolean => webfontLoaded;
 
-		const first = await resolveGoogleWebfontHref(slides, [], fetch, isInstalled);
+		const first = await resolveGoogleWebfontHref(slides, [], isInstalled);
 		expect(first).toContain('family=ADLaM%20Display');
 		webfontLoaded = true;
 
-		const second = await resolveGoogleWebfontHref(slides, [], fetch, isInstalled);
+		const second = await resolveGoogleWebfontHref(slides, [], isInstalled);
 		expect(second).toBe(first);
-		// The cached probe answered; no new request went out.
-		expect(urls).toHaveLength(1);
 	});
 
-	it('still runs the local check for families the session has not probed', async () => {
-		const { fetch, urls } = fetchStub(['Probed Face', 'Installed Face']);
-		await resolveGoogleWebfontHref([slide(textEl('Probed Face'))], [], fetch, () => false);
+	it('still runs the local check for families the session has not resolved', async () => {
+		await resolveGoogleWebfontHref([slide(textEl('ADLaM Display'))], [], () => false);
 		await expect(
 			resolveGoogleWebfontHref(
-				[slide(textEl('Probed Face'), textEl('Installed Face'))],
+				[slide(textEl('ADLaM Display'), textEl('Roboto'))],
 				[],
-				fetch,
-				(family) => family === 'Installed Face',
+				(family) => family === 'Roboto',
 			),
-		).resolves.toContain('family=Probed%20Face');
-		expect(urls.some((url) => url.includes('Installed'))).toBeFalsy();
+		).resolves.toBe(buildGoogleFontsHref([buildGoogleFontsFragment('ADLaM Display')]));
 	});
 });
