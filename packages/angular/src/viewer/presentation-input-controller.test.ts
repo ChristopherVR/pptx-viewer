@@ -148,14 +148,33 @@ describe('presentationInputController show-runner verbs', () => {
 		expect(video.play).toHaveBeenCalledOnce();
 	});
 
-	it('oleVerb never throws with no existing OLE activate action', () => {
+	it("oleVerb opens the clicked OLE object's recovered embedding", () => {
 		const slide = slideWithAction({ action: 'ppaction://ole?verb=0' });
+		const element = slide.elements[0] as unknown as Record<string, unknown>;
+		element.type = 'ole';
+		element.oleEmbeddedData = 'blob:http://localhost/ole-payload';
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
 		const { controller } = makeController(slide);
+		controller.handleBodyClick({
+			button: 0,
+			target: stageClickTarget('el-1'),
+		} as unknown as MouseEvent);
+		expect(openSpy).toHaveBeenCalledWith('blob:http://localhost/ole-payload', '_blank');
+		openSpy.mockRestore();
+	});
+
+	it('oleVerb on a shape with no embedding consumes the click without opening anything', () => {
+		const slide = slideWithAction({ action: 'ppaction://ole?verb=0' });
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+		const { controller, deps } = makeController(slide);
 		expect(() =>
 			controller.handleBodyClick({
 				button: 0,
 				target: stageClickTarget('el-1'),
 			} as unknown as MouseEvent),
 		).not.toThrow();
+		expect(openSpy).not.toHaveBeenCalled();
+		expect(deps.navigator.navigate).not.toHaveBeenCalled();
+		openSpy.mockRestore();
 	});
 });

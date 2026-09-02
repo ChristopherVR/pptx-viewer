@@ -11,14 +11,15 @@ import { componentSource } from './component-source.test-support';
 const source = componentSource(import.meta.dirname, 'ribbon-color-popover.component.ts');
 
 describe('ribbonColorPopoverComponent recent colours', () => {
-	it('renders a swatch per recent colour, seeded from the shared RecentColorsService', () => {
-		expect(source).toContain('data-testid="pptx-color-recent"');
-		expect(source).toContain('recentColors.recent()');
-		expect(source).toContain("'pptx.colorPicker.recentColors' | translate");
+	it('mounts the reusable recent-colours row, seeded from the shared RecentColorsService', () => {
+		expect(source).toContain('<pptx-recent-colors-row');
+		expect(source).toContain('[colors]="recentColors.recent()"');
+		expect(source).toContain('RecentColorsRowComponent');
 	});
 
-	it('every commit (preset swatch, recent swatch, or custom colour input) records the pick', () => {
+	it('every commit (preset swatch, recent-row pick, or custom colour input) records the pick', () => {
 		expect(source).toContain('(click)="onPick(c)"');
+		expect(source).toContain('(pick)="onPick($event)"');
 		expect(source).toContain('(change)="onPick($any($event.target).value)"');
 		expect(source).toContain('this.recentColors.push(color)');
 	});

@@ -23,6 +23,8 @@ import {
 	createWheelStepBuffer,
 	mapPresentationKey,
 	mapPresentationWheel,
+	openUrlInNewTab,
+	resolveOleVerbTarget,
 	resolvePresentationAction,
 	resolvePresentationClick,
 	runPresentationAction,
@@ -242,9 +244,14 @@ export class PresentationInputController {
 				safeOpenUrl(presentationTarget);
 			},
 			playMedia: (elementId) => toggleStageElementMedia(this.deps.root(), elementId),
-			// No existing OLE "open/activate" action to trigger (the OLE renderer
-			// only supports downloading the embedded file); never throw.
-			oleVerb: () => undefined,
+			// A browser cannot run the verb in the owning application: open the
+			// recovered embedding, as the OLE renderer's own "Open" does.
+			oleVerb: (verb, elementId) => {
+				const oleTarget = resolveOleVerbTarget(this.deps.currentSlide(), elementId, verb);
+				if (oleTarget) {
+					openUrlInNewTab(oleTarget.url);
+				}
+			},
 		});
 		return 'action';
 	}

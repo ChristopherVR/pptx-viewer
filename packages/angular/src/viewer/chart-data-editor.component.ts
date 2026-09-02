@@ -56,6 +56,7 @@ import {
 	setSeriesValue,
 } from './chart-data-helpers';
 import { ChartPartSelectionService } from './chart-part-selection.service';
+import { RecentColorsService } from './recent-colors.service';
 import { ViewerOptionsService } from './viewer-options.service';
 
 @Component({
@@ -150,6 +151,7 @@ import { ViewerOptionsService } from './viewer-options.service';
 													'pptx.chart.seriesColor' | translate: { name: seriesDisplayName(s, si) }
 												"
 												(input)="onSeriesColorChange($event, si)"
+												(change)="pushRecentColor($event)"
 											/>
 											@if (canEdit() && s.color) {
 												<button
@@ -436,6 +438,8 @@ export class ChartDataEditorComponent {
 	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
 	private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 	private readonly injector = inject(Injector);
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
 
 	/**
 	 * File > Options > Advanced > "Properties follow chart data point for
@@ -567,6 +571,17 @@ export class ChartDataEditorComponent {
 
 	protected onRemoveSeries(seriesIndex: number): void {
 		this.elementChange.emit(removeSeries(this.element(), seriesIndex));
+	}
+
+	/**
+	 * Record the committed (native `change`, not the live-preview `input`)
+	 * series colour into the shared "Recent colours" list.
+	 */
+	protected pushRecentColor(event: Event): void {
+		const value = stringFromEvent(event);
+		if (value) {
+			this.recentColors?.push(value);
+		}
 	}
 
 	protected onAddCategory(): void {

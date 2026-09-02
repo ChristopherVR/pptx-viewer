@@ -23,12 +23,13 @@
  *
  * @module viewer/pattern-fill-panel
  */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
 import { getPatternSvg, PATTERN_PRESET_OPTIONS } from '../internal/shared';
+import { RecentColorsService } from './recent-colors.service';
 
 @Component({
 	selector: 'pptx-pattern-fill-panel',
@@ -153,6 +154,9 @@ export class PatternFillPanelComponent {
 	readonly element = input.required<PptxElement>();
 	readonly patch = output<Partial<PptxElement>>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	protected readonly presetOptions = PATTERN_PRESET_OPTIONS;
 
 	protected readonly applicable = computed(() => hasShapeProperties(this.element()));
@@ -181,6 +185,7 @@ export class PatternFillPanelComponent {
 			return;
 		}
 		this.patchStyle({ fillColor: value });
+		this.recentColors?.push(value);
 	}
 
 	protected onBackground(event: Event): void {
@@ -189,6 +194,7 @@ export class PatternFillPanelComponent {
 			return;
 		}
 		this.patchStyle({ fillPatternBackgroundColor: value });
+		this.recentColors?.push(value);
 	}
 
 	private patchStyle(changes: Partial<ShapeStyle>): void {

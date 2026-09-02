@@ -61,6 +61,7 @@ import { IsMobileService } from './is-mobile';
 import { LineFormatPanelComponent } from './line-format-panel.component';
 import { MediaPropertiesPanelComponent } from './media-properties-panel.component';
 import { PatternFillPanelComponent } from './pattern-fill-panel.component';
+import { RecentColorsRowComponent } from './recent-colors-row.component';
 import { RecentColorsService } from './recent-colors.service';
 import { ShapeAuthoringPanelComponent } from './shape-authoring-panel.component';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
@@ -96,6 +97,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 		ShapeAuthoringPanelComponent,
 		Text3DPanelComponent,
 		TextWarpGalleryComponent,
+		RecentColorsRowComponent,
 		TranslatePipe,
 		LucideArrowUp,
 		LucideArrowDown,
@@ -228,6 +230,22 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 								(change)="onStrokeColorChange($event)"
 							/>
 						</div>
+						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
+							<span class="pptx-ng-inspector__label">{{ 'pptx.inspector.fill' | translate }}</span>
+							<pptx-recent-colors-row
+								[colors]="recentColors.recent()"
+								(pick)="onFillColorPick($event)"
+							/>
+						</div>
+						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
+							<span class="pptx-ng-inspector__label">{{
+								'pptx.inspector.stroke' | translate
+							}}</span>
+							<pptx-recent-colors-row
+								[colors]="recentColors.recent()"
+								(pick)="onStrokeColorPick($event)"
+							/>
+						</div>
 					}
 				</section>
 			}
@@ -269,6 +287,10 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 								(change)="onFontSizeChange($event)"
 							/>
 						</div>
+						<pptx-recent-colors-row
+							[colors]="recentColors.recent()"
+							(pick)="onTextColorPick($event)"
+						/>
 					}
 
 					<div class="pptx-ng-inspector__row pptx-ng-inspector__row--toggles">
@@ -802,7 +824,7 @@ export class InspectorPanelComponent {
 	protected readonly mobile = inject(IsMobileService);
 
 	/** "Recent colours" row backing the fill/stroke/text colour pickers below. */
-	private readonly recentColors = inject(RecentColorsService);
+	protected readonly recentColors = inject(RecentColorsService);
 
 	/**
 	 * Root class list: gains the `is-mobile` modifier under the mobile
@@ -1003,6 +1025,15 @@ export class InspectorPanelComponent {
 		if (!color) {
 			return;
 		}
+		this.commitFillColor(color);
+	}
+
+	/** Recent-colours row pick: commits through the same path as the native picker. */
+	protected onFillColorPick(color: string): void {
+		this.commitFillColor(color);
+	}
+
+	private commitFillColor(color: string): void {
 		const cur = this.el();
 		this.editor.updateElement(
 			this.slideIndex(),
@@ -1017,6 +1048,15 @@ export class InspectorPanelComponent {
 		if (!color) {
 			return;
 		}
+		this.commitStrokeColor(color);
+	}
+
+	/** Recent-colours row pick: commits through the same path as the native picker. */
+	protected onStrokeColorPick(color: string): void {
+		this.commitStrokeColor(color);
+	}
+
+	private commitStrokeColor(color: string): void {
 		const cur = this.el();
 		this.editor.updateElement(
 			this.slideIndex(),
@@ -1033,6 +1073,15 @@ export class InspectorPanelComponent {
 		if (!color) {
 			return;
 		}
+		this.commitTextColor(color);
+	}
+
+	/** Recent-colours row pick: commits through the same path as the native picker. */
+	protected onTextColorPick(color: string): void {
+		this.commitTextColor(color);
+	}
+
+	private commitTextColor(color: string): void {
 		const cur = this.el();
 		this.editor.updateElement(this.slideIndex(), cur.id, textStylePatch(cur, { color }));
 		this.recentColors.push(color);

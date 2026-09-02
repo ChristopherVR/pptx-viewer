@@ -8,7 +8,7 @@
  * `setAxisLogScale` / `setAxisTitleStyle` / `setGridlineStyle`.
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -20,6 +20,7 @@ import { GRIDLINE_DASH_OPTIONS } from '../internal/shared';
 import { setAxisLogScale, setAxisTitleStyle, setGridlineStyle } from './chart-data-helpers';
 import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { boolFromEvent, numFromEvent, selectValue, stringFromEvent } from './chart-event-helpers';
+import { RecentColorsService } from './recent-colors.service';
 
 interface AxisRow {
 	type: PptxChartAxisType;
@@ -113,6 +114,7 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 									[disabled]="!canEdit()"
 									[value]="row.axis.fontColor ?? '#000000'"
 									(input)="onTitleColor(row.type, $event)"
+									(change)="pushRecentColor($event)"
 								/>
 							</div>
 
@@ -134,6 +136,7 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 											[disabled]="!canEdit()"
 											[value]="gridlineSpPr(row.axis, which)?.strokeColor ?? '#d9d9d9'"
 											(input)="onGridlineColor(row.type, which, $event)"
+											(change)="pushRecentColor($event)"
 										/>
 										<input
 											type="number"
@@ -178,8 +181,22 @@ export class ChartAxisStyleOptionsComponent {
 	readonly canEdit = input<boolean>(true);
 	readonly elementChange = output<ChartPptxElement>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	protected readonly dashOptions = GRIDLINE_DASH_OPTIONS;
 	protected readonly gridlineKinds = ['major', 'minor'] as const;
+
+	/**
+	 * Record the committed (native `change`, not the live-preview `input`)
+	 * colour into the shared "Recent colours" list.
+	 */
+	protected pushRecentColor(event: Event): void {
+		const value = stringFromEvent(event);
+		if (value) {
+			this.recentColors?.push(value);
+		}
+	}
 
 	protected readonly rows = computed<AxisRow[]>(() => {
 		const axes = this.element().chartData?.axes ?? [];

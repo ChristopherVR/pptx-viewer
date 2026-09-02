@@ -1,6 +1,8 @@
 /**
  * inspector-panel.component.test.ts: Unit tests for the pure layout helper that
- * drives the inspector's responsive (full-width bottom-sheet) branch.
+ * drives the inspector's responsive (full-width bottom-sheet) branch, plus
+ * source-text guards for the "Recent colours" row (wave-4 B6) mounted under
+ * the fill/stroke/text colour pickers.
  *
  * No Angular TestBed: the component-rendering path needs
  * `@analogjs/vite-plugin-angular` (a follow-up), so the mobile
@@ -11,7 +13,10 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { componentSource } from './component-source.test-support';
 import { inspectorRootClass } from './inspector-panel.component';
+
+const source = componentSource(import.meta.dirname, 'inspector-panel.component.ts');
 
 describe('inspectorRootClass', () => {
 	it('returns the plain inspector class on desktop (side panel)', () => {
@@ -25,5 +30,27 @@ describe('inspectorRootClass', () => {
 	it('always keeps the base class so shared inspector styles apply', () => {
 		expect(inspectorRootClass(false)).toContain('pptx-ng-inspector');
 		expect(inspectorRootClass(true)).toContain('pptx-ng-inspector');
+	});
+});
+
+describe('inspector panel recent colours (wave-4 B6)', () => {
+	it('mounts the recent-colours row under fill, stroke, and text colour', () => {
+		expect(source).toContain('RecentColorsRowComponent');
+		const mounts = (source.match(/<pptx-recent-colors-row/gu) ?? []).length;
+		expect(mounts).toBe(3);
+	});
+
+	it('wires each mount to its own pick handler, committing through the picker path', () => {
+		expect(source).toContain('(pick)="onFillColorPick($event)"');
+		expect(source).toContain('(pick)="onStrokeColorPick($event)"');
+		expect(source).toContain('(pick)="onTextColorPick($event)"');
+	});
+
+	it('every colour commit path (native input or recent-row pick) pushes into RecentColorsService', () => {
+		expect(source).toContain('private commitFillColor(color: string): void {');
+		expect(source).toContain('private commitStrokeColor(color: string): void {');
+		expect(source).toContain('private commitTextColor(color: string): void {');
+		const pushCalls = (source.match(/this\.recentColors\.push\(color\)/gu) ?? []).length;
+		expect(pushCalls).toBe(3);
 	});
 });

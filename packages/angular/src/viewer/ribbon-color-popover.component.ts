@@ -10,13 +10,14 @@ import { ChangeDetectionStrategy, Component, inject, input, output } from '@angu
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AnchoredPopupDirective } from './anchored-popup.directive';
+import { RecentColorsRowComponent } from './recent-colors-row.component';
 import { RecentColorsService } from './recent-colors.service';
 
 @Component({
 	selector: 'pptx-ribbon-color-popover',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe, AnchoredPopupDirective],
+	imports: [NgClass, TranslatePipe, AnchoredPopupDirective, RecentColorsRowComponent],
 	template: `
 		<div class="group relative">
 			<button
@@ -50,25 +51,12 @@ import { RecentColorsService } from './recent-colors.service';
 							></button>
 						}
 					</div>
-					@if (recentColors.recent().length > 0) {
-						<div class="mb-1 text-[9px] uppercase text-muted-foreground">
-							{{ 'pptx.colorPicker.recentColors' | translate }}
-						</div>
-						<div class="mb-2 grid grid-cols-5 gap-1.5">
-							@for (c of recentColors.recent(); track c) {
-								<button
-									type="button"
-									data-testid="pptx-color-recent"
-									data-pptx-compact
-									class="h-5 w-5 rounded-full border border-border transition-transform hover:scale-125"
-									[style.background]="c"
-									[attr.aria-label]="swatchAriaKey() | translate: { color: c }"
-									(mousedown)="$event.preventDefault()"
-									(click)="onPick(c)"
-								></button>
-							}
-						</div>
-					}
+					<pptx-recent-colors-row
+						class="mb-2 block"
+						[colors]="recentColors.recent()"
+						[disabled]="disabled()"
+						(pick)="onPick($event)"
+					/>
 					<label
 						class="block w-full cursor-pointer py-1 text-center text-[10px] text-muted-foreground transition-colors hover:text-foreground"
 					>

@@ -29,7 +29,7 @@
  * @module angular-viewer/smart-art-properties
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	PptxSmartArtData,
@@ -40,6 +40,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import { SWITCHABLE_LAYOUT_TYPES } from './editor-insert';
+import { RecentColorsService } from './recent-colors.service';
 import {
 	smartArtColorSchemeLabelKey,
 	smartArtLayoutLabelKey,
@@ -524,6 +525,9 @@ export class SmartArtPropertiesComponent {
 	/** Emits a complete new data model after any edit. */
 	readonly smartArtDataChange = output<PptxSmartArtData>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	// ── Static option lists (template-bound) ─────────────────────────────────
 	protected readonly layoutTypes: readonly SmartArtLayoutType[] = SWITCHABLE_LAYOUT_TYPES;
 	protected readonly colorSchemes = SMART_ART_COLOR_SCHEMES;
@@ -627,6 +631,7 @@ export class SmartArtPropertiesComponent {
 			return;
 		}
 		this.commit(setNodeStyle(this.smartArtData(), nodeId, { fillColor: value }));
+		this.recentColors?.push(value);
 	}
 
 	protected onNodeFontColor(event: Event, nodeId: string): void {
@@ -635,6 +640,7 @@ export class SmartArtPropertiesComponent {
 			return;
 		}
 		this.commit(setNodeStyle(this.smartArtData(), nodeId, { fontColor: value }));
+		this.recentColors?.push(value);
 	}
 
 	protected onNodeBold(node: PptxSmartArtNode): void {

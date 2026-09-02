@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCropShape, PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
+
+import { RecentColorsService } from './recent-colors.service';
 
 const SIDES = ['Left', 'Top', 'Right', 'Bottom'] as const;
 const CROP_SHAPES: readonly { value: PptxCropShape; label: string; glyph: string }[] = [
@@ -149,6 +151,8 @@ export function replacementImagePatch(dataUrl: string): Partial<PptxElement> {
 export class ImageCropWashPanelComponent {
 	readonly element = input.required<PptxElement>();
 	readonly patch = output<Partial<PptxElement>>();
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
 	protected readonly sides = SIDES;
 	protected readonly cropShapes = CROP_SHAPES;
 	protected readonly effects = computed(() => (this.element() as ImageElement).imageEffects ?? {});
@@ -201,12 +205,14 @@ export class ImageCropWashPanelComponent {
 		});
 	}
 	protected onWashColor(event: Event): void {
+		const color = (event.target as HTMLInputElement).value;
 		this.updateEffects({
 			colorWash: {
-				color: (event.target as HTMLInputElement).value,
+				color,
 				opacity: this.wash()?.opacity ?? 40,
 			},
 		});
+		this.recentColors?.push(color);
 	}
 	protected onWashOpacity(event: Event): void {
 		this.updateEffects({

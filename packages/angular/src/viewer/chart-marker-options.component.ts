@@ -11,7 +11,7 @@
  * @module angular-viewer/chart-marker-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -24,6 +24,7 @@ import { MARKER_SUPPORTED_TYPES, MARKER_SYMBOL_OPTIONS } from '../internal/share
 import { setSeriesMarker } from './chart-data-helpers';
 import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helpers';
+import { RecentColorsService } from './recent-colors.service';
 
 @Component({
 	selector: 'pptx-chart-marker-options',
@@ -76,6 +77,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 									[disabled]="!canEdit()"
 									[value]="s.marker.spPr?.fillColor ?? '#4472c4'"
 									(input)="onFill(i, $event)"
+									(change)="pushRecentColor($event)"
 								/>
 							</div>
 						}
@@ -93,9 +95,23 @@ export class ChartMarkerOptionsComponent {
 
 	protected readonly symbolOptions = MARKER_SYMBOL_OPTIONS;
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	protected readonly series = computed<PptxChartSeries[]>(
 		() => this.element().chartData?.series ?? [],
 	);
+
+	/**
+	 * Record the committed (native `change`, not the live-preview `input`)
+	 * colour into the shared "Recent colours" list.
+	 */
+	protected pushRecentColor(event: Event): void {
+		const value = stringFromEvent(event);
+		if (value) {
+			this.recentColors?.push(value);
+		}
+	}
 
 	protected readonly supported = computed(() => {
 		const type = this.element().chartData?.chartType as PptxChartType | undefined;
