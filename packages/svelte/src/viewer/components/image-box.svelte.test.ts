@@ -129,4 +129,29 @@ describe('image box', () => {
 		expect(sharpenFilter).not.toBeNull();
 		expect(sharpenFilter?.querySelector('feConvolveMatrix')).not.toBeNull();
 	});
+
+	it('clips a custGeom oval-cut picture on the FRAME, not the img', () => {
+		// Regression: the picture's own shape geometry (an authored oval
+		// custGeom) must clip the stationary frame. A pixel-space clip on the
+		// `<img>` would be scaled and shifted by the source-crop transform, and
+		// the oval rendered past its frame.
+		const target = mountBox({
+			type: 'picture',
+			id: 'pic-oval',
+			x: 0,
+			y: 0,
+			width: 756,
+			height: 427,
+			imageData: 'data:image/png;base64,AA==',
+			shapeType: 'custom',
+			pathData: 'M 0 0 L 100 0 L 100 100 Z',
+			pathWidth: 100,
+			pathHeight: 100,
+		} as unknown as PptxElement);
+
+		const box = target.querySelector('.pptx-svelte-image') as HTMLElement;
+		const img = target.querySelector('img') as HTMLImageElement;
+		expect(box.style.clipPath.startsWith('path(')).toBeTruthy();
+		expect(img.style.clipPath).toBe('');
+	});
 });
