@@ -158,4 +158,30 @@ describe('renderImageElement source effects', () => {
 		const node = renderImageElement(element, 0, context()) as HTMLElement;
 		expect(node.querySelector('.pptxv-reflection')).toBeNull();
 	});
+
+	it('clips a custGeom oval-cut picture on the FRAME, not the img', () => {
+		// Regression: the picture's own shape geometry (an authored oval
+		// custGeom) must clip the stationary frame. A pixel-space clip on the
+		// `<img>` would be scaled and shifted by the source-crop transform, and
+		// the oval rendered past its frame.
+		const element = {
+			type: 'picture',
+			id: 'pic-oval',
+			x: 0,
+			y: 0,
+			width: 756,
+			height: 427,
+			imageData: 'data:image/png;base64,source',
+			shapeType: 'custom',
+			pathData: 'M 0 0 L 100 0 L 100 100 Z',
+			pathWidth: 100,
+			pathHeight: 100,
+		} as unknown as ImagePptxElement;
+
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		const img = node.querySelector('img') as HTMLImageElement;
+
+		expect(node.style.clipPath.startsWith('path(')).toBeTruthy();
+		expect(img.style.clipPath).toBe('');
+	});
 });
