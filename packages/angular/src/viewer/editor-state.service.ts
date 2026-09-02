@@ -51,8 +51,6 @@ import { LoadContentService } from './load-content.service';
 import { partitionSlides, slidesWithReappliedLayout } from './template-mode';
 import type { TemplateElementsBySlideId } from './template-mode';
 
-/** Default nudge distance (px) for arrow-key moves. */
-const NUDGE_STEP = 1;
 /** Offset (px) applied to a duplicated element so it is visible. */
 const DUPLICATE_OFFSET = 12;
 
@@ -304,10 +302,6 @@ export class EditorStateService {
 		this.commit(this.t('pptx.undoAction.move'), slideIndex, (els) =>
 			ids.reduce<PptxElement[]>((acc, id) => moveElementBy(acc, id, dx, dy), [...els]),
 		);
-	}
-
-	nudgeSelected(slideIndex: number, dirX: number, dirY: number): void {
-		this.moveSelectedBy(slideIndex, dirX * NUDGE_STEP, dirY * NUDGE_STEP);
 	}
 
 	setPosition(slideIndex: number, id: string, x: number, y: number): void {
