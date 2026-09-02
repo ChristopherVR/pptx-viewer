@@ -18,6 +18,10 @@
  * `PresentationTransitionOverlayComponent` imports the same symbol names from
  * here unchanged.
  */
+import type { PptxSlideTransition } from 'pptx-viewer-core';
+
+import { resolveTransitionDurationMs } from '../internal/shared';
+
 export type {
 	SlideTransitionAnimations,
 	ResolvedDirection,
@@ -57,6 +61,30 @@ export function resolveTransitionDuration(durationMs: number | undefined): numbe
 			? durationMs
 			: DEFAULT_TRANSITION_DURATION_MS;
 	return Math.max(MIN_TRANSITION_DURATION_MS, raw);
+}
+
+/**
+ * The presentation overlay's effective duration (ms): an explicit override
+ * wins; a MORPH delegates to the shared resolver, which honours an authored
+ * `p14:dur`, then the legacy `spd` token, then PowerPoint's 0.5s fallback for
+ * a morph that declares neither. The previous local copy ignored `spd`
+ * entirely, so spd-authored morphs played at the (wrong) hard-coded default
+ * while every other binding honoured the authored speed.
+ *
+ * Classic (non-morph) transitions keep Angular's own floor/default policy
+ * above - that divergence is deliberate (see the file header).
+ */
+export function resolveOverlayDurationMs(
+	override: number | undefined,
+	transition: PptxSlideTransition,
+): number {
+	if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
+		return override;
+	}
+	if (transition.type === 'morph') {
+		return resolveTransitionDurationMs(transition);
+	}
+	return resolveTransitionDuration(transition.durationMs);
 }
 
 // ---------------------------------------------------------------------------

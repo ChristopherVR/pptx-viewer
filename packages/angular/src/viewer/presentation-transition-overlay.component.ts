@@ -15,7 +15,6 @@ import type { CanvasSize, MorphTransitionPlan } from '../internal/shared';
 import {
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
-	DEFAULT_MORPH_DURATION_MS,
 	MORPH_CROSSFADE_GROUP_STYLE,
 	MORPH_CROSSFADE_HALF_BLEND_MODE,
 	morphOptionToMode,
@@ -24,7 +23,7 @@ import type { StyleMap } from './element-style';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import {
 	getSlideTransitionAnimations,
-	resolveTransitionDuration,
+	resolveOverlayDurationMs,
 	transitionSlideBoxSize,
 } from './transition-helpers';
 import type { SlideTransitionAnimations } from './transition-helpers';
@@ -362,19 +361,9 @@ export class PresentationTransitionOverlayComponent {
 	// ------------------------------------------------------------------
 
 	/** Effective transition duration (ms), floored/defaulted. */
-	protected readonly resolvedDurationMs = computed<number>(() => {
-		const override = this.durationMs();
-		if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
-			return override;
-		}
-		const tr = this.transition();
-		// PowerPoint's Morph defaults to 2.00s (`p14:dur` overrides arrive in
-		// `durationMs`); the generic 1s default made it visibly abrupt.
-		if (tr.type === 'morph' && !(typeof tr.durationMs === 'number' && tr.durationMs > 0)) {
-			return DEFAULT_MORPH_DURATION_MS;
-		}
-		return resolveTransitionDuration(tr.durationMs);
-	});
+	protected readonly resolvedDurationMs = computed<number>(() =>
+		resolveOverlayDurationMs(this.durationMs(), this.transition()),
+	);
 
 	/** Resolved CSS animation descriptors for the outgoing/incoming layers. */
 	protected readonly animations = computed<SlideTransitionAnimations>(() => {
