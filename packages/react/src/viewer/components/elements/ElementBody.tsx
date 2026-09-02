@@ -159,7 +159,13 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 	}
 	if (el.type === 'media') {
 		return renderMediaElement(el, media, {
-			autoPlay: isPresentationPassive && el.autoPlay === true,
+			// Present mode autoplays every media element on the active slide,
+			// not only ones persisted with their own `autoPlay` flag (matching
+			// the other four bindings' unconditional `presenting`-gated
+			// `startMediaAutoplay` call): a clip inserted via Insert > Media
+			// never gets that flag, so gating on `el.autoPlay` left it silently
+			// paused the moment the show reached its slide.
+			autoPlay: isPresentationPassive === true,
 			fullScreen: isPresentationPassive && Boolean(el.fullScreen),
 			isPresentationMode: isPresentationPassive,
 			// A still of a slide never carries a transport, whatever the canvas
