@@ -16,6 +16,7 @@ import { createChartDataGrid } from './chart-data-grid';
 import { tokenSelect } from './chart-exhaustive-controls';
 import { createChartExhaustiveSection } from './chart-exhaustive-section';
 import { createChartPointIndexField } from './chart-point-index';
+import { createChartSubtypeSection } from './chart-subtype-section';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -83,6 +84,10 @@ export function createChartSection(
 		(data) => handlers.setChartData(data),
 		pointIndex,
 	);
+	// Family-specific subtype pickers (bar3D shape, radar style, surface
+	// wireframe): shown beside the advanced section's gridlines toggle and the
+	// exhaustive section's secondary-axis control, same wave.
+	const subtype = createChartSubtypeSection(doc, t, (data) => handlers.setChartData(data));
 	el.append(
 		title.label,
 		chartType.label,
@@ -91,6 +96,7 @@ export function createChartSection(
 		legend.label,
 		labels.label,
 		advanced.el,
+		subtype.el,
 		exhaustive.el,
 	);
 
@@ -154,6 +160,7 @@ export function createChartSection(
 			legend.control.checked = current.style?.hasLegend ?? false;
 			labels.control.checked = current.style?.hasDataLabels ?? false;
 			advanced.update(current);
+			subtype.update(current);
 			exhaustive.update(current);
 		},
 	};

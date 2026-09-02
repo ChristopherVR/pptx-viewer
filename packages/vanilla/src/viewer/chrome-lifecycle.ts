@@ -66,6 +66,8 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	isAutosaveToggleAvailable?(): boolean;
 	goToFirstSlide(): void;
 	goToLastSlide(): void;
+	/** "Present From Beginning"'s target deck index (skips a hidden slide 1 / honours the authored range). */
+	firstShowSlideIndex(): number;
 	exitPresentation(): void;
 	/** Select a slide-show pointer tool (Ctrl+L / Ctrl+P / Ctrl+A / Ctrl+E). */
 	setPresentationPointerTool?(tool: PresentationPointerTool): void;
@@ -102,6 +104,14 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	quickAccessScreenTip(label: string): string | undefined;
 	/** Trust Center > Protected View's "Enable Editing" banner button. */
 	enableEditingFromProtectedView(): void;
+	/** The read-only recommendation banner's "Edit anyway" button. */
+	editAnywayFromReadOnlyRecommendation(): void;
+	/** The read-only recommendation banner's plain close button. */
+	dismissReadOnlyBanner(): void;
+	/** One compatibility toast's own dismiss button. */
+	dismissCompatToast(id: string): void;
+	/** The compatibility toast stack's "Dismiss all" button. */
+	dismissAllCompatToasts(): void;
 	/**
 	 * Trust Center > "Confirm before opening external hyperlinks": shows the
 	 * confirm prompt when the option applies to `url` and reports whether the
@@ -179,6 +189,10 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			togglePresenterView: () => deps.togglePresenterView?.(),
 		},
 		onEnableEditing: () => deps.enableEditingFromProtectedView(),
+		onEditAnywayFromReadOnly: () => deps.editAnywayFromReadOnlyRecommendation(),
+		onDismissReadOnlyBanner: () => deps.dismissReadOnlyBanner(),
+		onDismissCompatToast: (id) => deps.dismissCompatToast(id),
+		onDismissAllCompatToasts: () => deps.dismissAllCompatToasts(),
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
@@ -188,6 +202,11 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	chrome.mobileActionSheets?.setNotesExpanded(store.get().notesExpanded);
 	chrome.titleBar?.setDirty(store.get().dirty);
 	chrome.setProtectedView(store.get().protectedView);
+	chrome.setReadOnlyRecommendation(
+		store.get().readOnlyRecommendation,
+		store.get().readOnlyBannerDismissed,
+	);
+	chrome.setCompatToasts(store.get().compatToasts);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {
 		next: deps.next,
@@ -505,6 +524,14 @@ export interface ChromeHost {
 	quickAccessScreenTip(label: string): string | undefined;
 	/** Trust Center > Protected View's "Enable Editing" banner button. */
 	enableEditingFromProtectedView(): void;
+	/** The read-only recommendation banner's "Edit anyway" button. */
+	editAnywayFromReadOnlyRecommendation(): void;
+	/** The read-only recommendation banner's plain close button. */
+	dismissReadOnlyBanner(): void;
+	/** One compatibility toast's own dismiss button. */
+	dismissCompatToast(id: string): void;
+	/** The compatibility toast stack's "Dismiss all" button. */
+	dismissAllCompatToasts(): void;
 	/** Trust Center > "Confirm before opening external hyperlinks" gate + prompt. */
 	confirmExternalHyperlink(url: string): boolean;
 	toggleAutosave(): boolean;
@@ -520,6 +547,12 @@ export interface ChromeHost {
 	goToFirstSlide(): void;
 	/** End: the show's last slide (skips trailing hidden slides while presenting). */
 	goToLastSlide(): void;
+	/**
+	 * The deck index "Present From Beginning" should land on (skips a hidden
+	 * slide 1 and honours the authored `p:showPr/p:sldRg` range / custom show),
+	 * unconditionally unlike {@link goToFirstSlide}.
+	 */
+	firstShowSlideIndex(): number;
 	getSlideCount(): number;
 	enterPresentation(): Promise<void>;
 	openPresenterView(): void;
@@ -624,7 +657,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		isAutosaveSwitchOn: () => host.isAutosaveSwitchOn(),
 		isAutosaveToggleAvailable: () => host.isAutosaveToggleAvailable(),
 		startPresentationFromBeginning: () => {
-			host.goToSlide(0);
+			host.goToSlide(host.firstShowSlideIndex());
 			void host.enterPresentation();
 		},
 		startPresentationFromCurrent: () => void host.enterPresentation(),
@@ -675,6 +708,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		goToSlide: (index) => host.goToSlide(index),
 		goToFirstSlide: () => host.goToFirstSlide(),
 		goToLastSlide: () => host.goToLastSlide(),
+		firstShowSlideIndex: () => host.firstShowSlideIndex(),
 		exitPresentation: () => void host.exitPresentation(),
 		setPresentationPointerTool: (tool) => {
 			const pointer: PresentationPointerState = host.getPresenterSnapshot().pointer ?? {
@@ -746,6 +780,10 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		getQuickAccessOptions: () => host.getQuickAccessOptions(),
 		quickAccessScreenTip: (label) => host.quickAccessScreenTip(label),
 		enableEditingFromProtectedView: () => host.enableEditingFromProtectedView(),
+		editAnywayFromReadOnlyRecommendation: () => host.editAnywayFromReadOnlyRecommendation(),
+		dismissReadOnlyBanner: () => host.dismissReadOnlyBanner(),
+		dismissCompatToast: (id) => host.dismissCompatToast(id),
+		dismissAllCompatToasts: () => host.dismissAllCompatToasts(),
 		confirmExternalHyperlink: (url) => host.confirmExternalHyperlink(url),
 	};
 }

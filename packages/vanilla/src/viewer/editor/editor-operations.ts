@@ -431,6 +431,12 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					customProperties: state.customProperties.length > 0 ? state.customProperties : undefined,
 					headerFooter: state.headerFooter,
 					presentationProperties: state.presentationProperties,
+					// Deck view preferences (grid/snap/guide toggles, `p:viewPr`): without
+					// this the serialiser fell back to whatever `ppt/viewProps.xml` said
+					// at load time, so a toggle flipped in the ribbon never reached a
+					// saved file (see `viewPropertiesPatchFromPreferences` write-back in
+					// `editor-edit-ops.ts`'s `toggleViewOption`).
+					viewProperties: state.viewProperties,
 					customShows: state.customShows.length ? state.customShows : undefined,
 					tags: state.tagCollections.length > 0 ? state.tagCollections : undefined,
 					slideMasters: state.slideMasters,

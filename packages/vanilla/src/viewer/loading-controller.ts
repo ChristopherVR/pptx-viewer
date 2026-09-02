@@ -1,13 +1,16 @@
 import type { PptxHandler } from 'pptx-viewer-core';
 import { EncryptedFileError } from 'pptx-viewer-core';
 import {
+	compatibilityWarningToasts,
 	describeFontEmbedding,
 	partitionTemplateElements,
+	readOnlyRecommendation,
 	resolveAuthoredCustomShowId,
 } from 'pptx-viewer-shared';
 import type { CollabLoadOrigin } from 'pptx-viewer-shared';
 
 import type { EditorController } from './editor';
+import { seedDeckViewPreferences } from './editor';
 import type { Translator } from './i18n';
 import type { PptxViewerSource } from './load';
 import { loadPresentation, resolveSourceToBuffer, revokeBlobUrls } from './load';
@@ -128,9 +131,29 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				!loadOptions?.skipProtectedView &&
 				options.editable === true &&
 				(deps.shouldOpenProtectedView?.() ?? false);
+			// `p:modifyVerifier` (a password-protected deck) or `docProps/custom.xml`
+			// "Mark as Final" both ask to open read-only, independent of Trust
+			// Center's Protected View above (which only gates a freshly opened file,
+			// not host bootstrap content). Only meaningful when the host permits
+			// editing at all.
+			const recommendation = readOnlyRecommendation({
+				modifyVerifier: loaded.modifyVerifier,
+				customProperties: loaded.customProperties,
+			});
+			const readOnlyLocked =
+				options.editable === true && recommendation.kind !== null && recommendation.defaultReadOnly;
+			const deckViewPreferences = seedDeckViewPreferences(store.get(), loaded.viewProperties);
+			const compatToasts = compatibilityWarningToasts([
+				...loaded.warnings,
+				...loaded.slides.flatMap((slide) => slide.warnings ?? []),
+			]);
 			store.set({
 				slides: partition.slides,
 				protectedView,
+				readOnlyRecommendation: recommendation.kind === null ? null : recommendation,
+				readOnlyBannerDismissed: false,
+				compatToasts,
+				...deckViewPreferences,
 				sections: loaded.sections,
 				presentationProperties: loaded.presentationProperties,
 				viewProperties: loaded.viewProperties,
@@ -183,7 +206,9 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 			// Goes through the central editable gate (store flag + the editor
 			// controller's own mirrored flag), not a bare store patch, so
 			// interaction gating and the store agree on whether editing is live.
-			deps.setEditableForLoad?.(protectedView ? false : options.editable === true);
+			deps.setEditableForLoad?.(
+				protectedView || readOnlyLocked ? false : options.editable === true,
+			);
 			deps.onContentApplied?.(origin);
 			options.onLoad?.({ slideCount: loaded.slides.length, canvasSize: loaded.canvasSize });
 		} catch (error) {

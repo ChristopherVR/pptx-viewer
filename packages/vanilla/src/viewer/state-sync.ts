@@ -121,6 +121,15 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.protectedView !== previous.protectedView) {
 			chrome.setProtectedView(state.protectedView);
 		}
+		if (
+			state.readOnlyRecommendation !== previous.readOnlyRecommendation ||
+			state.readOnlyBannerDismissed !== previous.readOnlyBannerDismissed
+		) {
+			chrome.setReadOnlyRecommendation(state.readOnlyRecommendation, state.readOnlyBannerDismissed);
+		}
+		if (state.compatToasts !== previous.compatToasts) {
+			chrome.setCompatToasts(state.compatToasts);
+		}
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);

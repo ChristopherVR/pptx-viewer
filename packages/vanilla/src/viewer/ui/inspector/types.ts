@@ -30,6 +30,7 @@ import type {
 	GradientState,
 	InlineTextSelection,
 	SlideSizeEmu,
+	SlideSizeRescaleMode,
 	TextAdvancedChanges,
 } from 'pptx-viewer-shared';
 
@@ -81,6 +82,12 @@ export interface InspectorHandlers {
 	 * Writes both the EMU state and the pixel canvas.
 	 */
 	updateSlideSize(size: SlideSizeEmu): void;
+	/**
+	 * Adopt an EMU slide size AND rescale every slide's content for it in one
+	 * undoable step (the "Scale content for the new slide size?" prompt shown
+	 * when the deck has content and the new size differs from the current one).
+	 */
+	applySlideSizeRescale(size: SlideSizeEmu, mode: SlideSizeRescaleMode): void;
 	/** Add a comment on the current slide (Comments tab). */
 	addComment(text: string): void;
 	/** Append a reply under a top-level comment (Comments tab reply form). */
@@ -305,6 +312,12 @@ export interface InspectorDeckState {
 	canvasSize: { width: number; height: number };
 	/** The deck's `p:sldSz` in EMU, which is what a save persists. */
 	slideSize: SlideSizeEmu | undefined;
+	/**
+	 * Whether ANY slide in the deck has at least one element (not just the
+	 * active one). Gates the SLIDE SIZE card's rescale prompt: PowerPoint only
+	 * offers Maximize/Ensure Fit when there is content to rescale.
+	 */
+	hasDeckElements: boolean;
 	elements: readonly PptxElement[];
 	selectedIds: readonly string[];
 	/** Primary selected element id (docked Animation panel target), if any. */

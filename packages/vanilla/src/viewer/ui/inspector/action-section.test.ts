@@ -32,6 +32,12 @@ describe('action settings section', () => {
 			'Previous Slide',
 			'Next Slide',
 			'End Show',
+			'Last slide viewed',
+			'Custom show',
+			'Open file',
+			'Open presentation',
+			'Play media',
+			'Object action',
 		]);
 	});
 

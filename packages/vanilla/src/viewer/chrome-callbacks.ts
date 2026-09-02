@@ -251,6 +251,7 @@ export function buildChromeCallbacks(
 		getTemplateBackgroundColor: (path) => deps.getEditActions().getTemplateBackgroundColor(path),
 		updateCanvasSize: (size) => deps.getEditActions().updateCanvasSize(size),
 		updateSlideSize: (size) => deps.getEditActions().updateSlideSize(size),
+		applySlideSizeRescale: (size, mode) => deps.getEditActions().applySlideSizeRescale(size, mode),
 		addComment: (text) => void deps.getEditActions().comments.addComment(text),
 		addCommentReply: (parentId, text) =>
 			void deps.getEditActions().comments.addCommentReply(parentId, text),

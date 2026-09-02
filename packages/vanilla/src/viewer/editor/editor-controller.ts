@@ -13,7 +13,13 @@ import type {
 	PptxSlide,
 	TextSegment,
 } from 'pptx-viewer-core';
-import { armEditorKeyboard, downloadBlob, savedPresentationFileName } from 'pptx-viewer-shared';
+import {
+	armEditorKeyboard,
+	downloadBlob,
+	moveGuide,
+	removeGuide,
+	savedPresentationFileName,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
@@ -252,7 +258,26 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		connectorEndpoints?.sync();
 		// View > Guides hides the overlay, never the model: `state.guides` stays
 		// whole so snapping and saving still see every guide.
-		syncAlignmentGuides(doc, overlay.root, state.showGuides ? state.guides : [], deps.getScale());
+		syncAlignmentGuides(
+			doc,
+			overlay.root,
+			state.showGuides ? state.guides : [],
+			deps.getScale(),
+			// Draggable + double-click-removable only while editing gestures apply
+			// at all; a read-only or presenting viewer shows static lines, same as
+			// every other on-canvas interaction.
+			state.editable && !state.presenting
+				? {
+						onMoveGuide: (id, position) => {
+							const current = store.get();
+							store.set({ guides: moveGuide(current.guides, id, position, current.canvasSize) });
+						},
+						onRemoveGuide: (id) => {
+							store.set({ guides: removeGuide(store.get().guides, id) });
+						},
+					}
+				: undefined,
+		);
 	};
 
 	const onKeyDown = createEditorKeydownHandler({

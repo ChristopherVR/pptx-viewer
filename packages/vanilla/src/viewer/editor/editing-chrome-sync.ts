@@ -118,6 +118,9 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			currentSlide: state.currentSlide,
 			canvasSize: state.canvasSize,
 			slideSize: state.slideSize,
+			// Design > Slide Size's rescale prompt only applies when the deck has
+			// content to rescale; an empty deck adopts a new size directly.
+			hasDeckElements: state.slides.some((slide) => slide.elements.length > 0),
 			elements: activeSlide?.elements ?? [],
 			selectedIds: state.selectedElementIds,
 			selectedElementId: el?.id,

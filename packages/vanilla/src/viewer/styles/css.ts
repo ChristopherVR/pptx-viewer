@@ -23,6 +23,7 @@ import { MASTER_VIEW_CSS } from './master-view-css';
 import { MOBILE_SHEET_CSS } from './mobile-sheet-css';
 import { OPTIONS_DIALOG_CSS } from './options-dialog-css';
 import { OUTLINE_VIEW_CSS } from './outline-view-css';
+import { PARITY_BANNERS_CSS } from './parity-banners-css';
 import { PARITY_DIALOG_CSS } from './parity-dialog-css';
 import { PRESENTATION_TOOLBAR_CSS } from './presentation-toolbar-css';
 import { PRESENTATION_TOUCH_CSS } from './presentation-touch-css';
@@ -881,5 +882,6 @@ ${AI_HISTORY_CSS}
 ${AI_FOCUS_CSS}
 ${READING_VIEW_CSS}
 ${OUTLINE_VIEW_CSS}
-${EXPORT_PROGRESS_CSS}`;
+${EXPORT_PROGRESS_CSS}
+${PARITY_BANNERS_CSS}`;
 }

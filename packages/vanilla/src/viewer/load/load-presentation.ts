@@ -2,12 +2,14 @@ import type {
 	MediaPptxElement,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCompatibilityWarning,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -93,6 +95,19 @@ export interface LoadedPresentation {
 	notesCanvasSize?: CanvasSize;
 	/** Blob URLs created during the load; revoke them when replacing/destroying. */
 	blobUrls: string[];
+	/**
+	 * Write-protection verifier from `p:modifyVerifier` (`presentation.xml`).
+	 * Feeds `readOnlyRecommendation`: its presence means editing requires a
+	 * password this viewer never asks for.
+	 */
+	modifyVerifier?: PptxModifyVerifier;
+	/**
+	 * Deck-level compatibility warnings (`data.warnings`, distinct from each
+	 * slide's own `warnings`): unmodelled markup, lossy save fallbacks, etc.
+	 * reported by core's `PptxCompatibilityService`. Feeds
+	 * `compatibilityWarningToasts` alongside every slide's `warnings`.
+	 */
+	warnings: PptxCompatibilityWarning[];
 }
 
 export interface LoadPresentationOptions {
@@ -151,6 +166,8 @@ export async function loadPresentation(
 			notesMaster: parsed.notesMaster,
 			handoutMaster: parsed.handoutMaster,
 			hasMacros: parsed.hasMacros ?? false,
+			modifyVerifier: parsed.modifyVerifier,
+			warnings: parsed.warnings ?? [],
 			slideSize:
 				typeof parsed.widthEmu === 'number' &&
 				typeof parsed.heightEmu === 'number' &&

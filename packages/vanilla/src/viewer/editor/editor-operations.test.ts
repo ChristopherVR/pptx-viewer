@@ -218,6 +218,26 @@ describe('createEditorOps save formats', () => {
 		expect(store.get().dirty).toBeFalsy();
 	});
 
+	it('passes the live viewProperties (grid/snap/guide toggles) so a save round-trips them', async () => {
+		const viewProperties = { slideViewPr: { snapToGrid: true, snapToObjects: false } };
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [buildSlide('a')],
+			viewProperties,
+			dirty: true,
+		});
+		const save = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
+		const handler = { save } as unknown as PptxHandler;
+		const ops = createEditorOps({ store, getHandler: () => handler, onHistoryChange: vi.fn() });
+
+		await ops.save();
+
+		expect(save).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.objectContaining({ viewProperties }),
+		);
+	});
+
 	it('updates document properties as one undoable change', () => {
 		const store = createStore({
 			...createInitialViewerState(),

@@ -685,6 +685,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	goToFirstSlide = (): void => this.controls.firstSlide();
 	/** End: the show's last slide (skips trailing hidden slides while presenting). */
 	goToLastSlide = (): void => this.controls.lastSlide();
+	/** "Present From Beginning"'s target deck index (skips a hidden slide 1 / honours the authored range). */
+	firstShowSlideIndex = (): number => this.controls.firstShowSlideIndex();
 	getSlideCount = (): number => this.controls.slideCount();
 	getCurrentSlide = (): number => this.controls.currentSlide();
 	getZoom = (): number => this.controls.zoom();
@@ -1390,6 +1392,33 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	enableEditingFromProtectedView(): void {
 		this.store.set({ protectedView: false });
 		this.setEditable(true);
+	}
+
+	/**
+	 * The read-only recommendation banner's "Edit anyway" button
+	 * (`p:modifyVerifier` / "Mark as Final"): lifts the lock and hides the
+	 * banner, unlike plain dismiss which only hides it.
+	 */
+	editAnywayFromReadOnlyRecommendation(): void {
+		this.store.set({ readOnlyBannerDismissed: true });
+		this.setEditable(true);
+	}
+
+	/** The read-only recommendation banner's plain close button: hides the banner, keeps the lock. */
+	dismissReadOnlyBanner(): void {
+		this.store.set({ readOnlyBannerDismissed: true });
+	}
+
+	/** One compatibility toast's own dismiss button. */
+	dismissCompatToast(id: string): void {
+		this.store.set({
+			compatToasts: this.store.get().compatToasts.filter((toast) => toast.id !== id),
+		});
+	}
+
+	/** The compatibility toast stack's "Dismiss all" button. */
+	dismissAllCompatToasts(): void {
+		this.store.set({ compatToasts: [] });
 	}
 
 	/**

@@ -53,6 +53,7 @@ import type { TextActions } from './editor-text-actions';
 import { createTextActions } from './editor-text-actions';
 import type { TransitionActions } from './editor-transition-actions';
 import { createTransitionActions } from './editor-transition-actions';
+import { isDeckViewToggleOption, patchViewPropertiesForToggle } from './editor-view-preferences';
 
 /** A geometry patch from the inspector (all fields optional). */
 export interface GeometryPatch {
@@ -293,9 +294,23 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		},
 		toggleViewOption(option) {
 			const state = store.get();
-			store.set({ [option]: !state[option] });
+			const nextValue = !state[option];
+			// PowerPoint round-trips snap-to-grid, snap-to-shape (`snapToObjects`)
+			// and show-guides through `ppt/viewProps.xml`'s `p:viewPr`; write the
+			// flip back into `viewProperties` (outside history: view toggles are
+			// not undoable) so a save persists it, mirroring the shared
+			// `viewer-preferences` decision every binding uses to seed the same
+			// three toggles on load.
+			store.set(
+				isDeckViewToggleOption(option)
+					? {
+							[option]: nextValue,
+							viewProperties: patchViewPropertiesForToggle(state, option, nextValue),
+						}
+					: { [option]: nextValue },
+			);
 			for (const root of doc.querySelectorAll('.pptxv')) {
-				root.classList.toggle(`pptxv-${option}`, !state[option]);
+				root.classList.toggle(`pptxv-${option}`, nextValue);
 			}
 		},
 		addGuide(axis, position) {
