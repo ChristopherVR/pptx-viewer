@@ -1,11 +1,5 @@
 import type { PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
-import {
-	buildGoogleFontsHref,
-	collectReferencedFontFamilies,
-	isFontFamilyInstalledLocally,
-	probeGoogleWebfontFragments,
-	selectGoogleWebfontFamilies,
-} from 'pptx-viewer-shared';
+import { collectReferencedFontFamilies, resolveGoogleWebfontHref } from 'pptx-viewer-shared';
 /**
  * useFontInjection: Injects @font-face declarations for embedded PPTX fonts
  * and loads Google Fonts fallbacks for referenced families the API serves.
@@ -132,19 +126,14 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 	useEffect(() => {
 		// Embedded fonts satisfy their own families and locally installed ones
 		// render as-is; the rest are probed against the Google Fonts API
-		// (session-cached).
+		// (session-cached). The shared resolver also skips the local-install
+		// check for already-probed families, so a webfont that has loaded is
+		// not mistaken for an installed one and dropped on the next pass.
 		let cancelled = false;
-		void probeGoogleWebfontFragments(
-			selectGoogleWebfontFamilies(
-				referencedFamilies,
-				embeddedFonts.map((font) => font.name),
-				isFontFamilyInstalledLocally,
-			),
-		).then((fragments) => {
+		void resolveGoogleWebfontHref(slides, embeddedFonts).then((href) => {
 			if (cancelled) {
 				return null;
 			}
-			const href = buildGoogleFontsHref(fragments);
 			if (!href || document.getElementById(GOOGLE_FONTS_LINK_ID)) {
 				return null;
 			}
@@ -163,7 +152,7 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 				document.head.removeChild(existing);
 			}
 		};
-	}, [embeddedFonts, referencedFamilies]);
+	}, [embeddedFonts, slides]);
 
 	// ── Wingdings and symbol font fallback ────────────────────────
 	useEffect(() => {
