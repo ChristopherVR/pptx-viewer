@@ -444,7 +444,7 @@ describe('resolveOverlayDurationMs', () => {
 	});
 
 	it('falls back to the un-authored morph default', () => {
-		expect(resolveOverlayDurationMs(undefined, transition({}))).toBe(500);
+		expect(resolveOverlayDurationMs(undefined, transition({}))).toBe(DEFAULT_MORPH_DURATION_MS);
 	});
 
 	it('keeps the angular classic-transition policy for non-morphs', () => {
