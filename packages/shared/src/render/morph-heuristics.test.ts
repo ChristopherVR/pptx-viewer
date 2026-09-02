@@ -15,13 +15,13 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
-	appearanceSignature,
-	differentText,
 	matchGroupTwins,
 	matchIdenticalTwins,
+	matchNamedTextTwins,
 	matchSameMedia,
 } from './morph-heuristics';
 import { matchMorphElementsFull } from './morph-matching';
+import { appearanceSignature, differentText } from './morph-predicates';
 
 function makeElement(
 	overrides: Partial<PptxElement> & { id: string; type: PptxElement['type'] },
@@ -162,10 +162,107 @@ describe('matchSameMedia', () => {
 		expect(byFrom.get('a-right')).toBe('b-right');
 	});
 
+	it('pairs a split-picture mosaic piece-for-piece', () => {
+		// One artwork is staged as a 971x971 base plus seven cropped tiles, ALL
+		// the same media part, all named "Picture 2" but the base. The next
+		// slide repeats the same eight boxes shifted straight up; several tiles
+		// SHARE the base's exact corner, so nearest-first greedy pairing runs
+		// into equidistant candidates, lets early iterations consume a
+		// neighbour's twin and forces later ones across the slide ("the pieces
+		// jump around"). The incoming list here is even authored bottom-up,
+		// unlike the outgoing one.
+		const from = [
+			picture('f-base', 155, { y: 581, width: 971, height: 971, name: 'Picture 5' }),
+			picture('f-t1', 513, { y: 1217, width: 384, height: 335 }),
+			picture('f-t2', 481, { y: 958, width: 414, height: 259 }),
+			picture('f-t3', 158, { y: 1121, width: 356, height: 431 }),
+			picture('f-t4', 492, { y: 581, width: 381, height: 377 }),
+			picture('f-t5', 873, { y: 581, width: 254, height: 584 }),
+			picture('f-t6', 896, { y: 1165, width: 231, height: 386 }),
+			// Same top-left corner as the base, different box: the tie trap.
+			picture('f-t7', 155, { y: 581, width: 356, height: 540 }),
+		];
+		const SHIFT_Y = -700;
+		const twin = (id: string, el: PptxElement): PptxElement =>
+			picture(id, el.x, {
+				y: el.y + SHIFT_Y,
+				width: el.width,
+				height: el.height,
+				name: el.name,
+			});
+		const to = [
+			...from
+				.slice(1)
+				.reverse()
+				.map((el, i) => twin(`b-t${7 - i}`, el)),
+			twin('b-base', from[0]),
+		];
+		const pairs = matchSameMedia(from, to, new Set(), new Set());
+		expect(pairs).toHaveLength(8);
+		for (const pair of pairs) {
+			const f = pair.fromElement;
+			const t = pair.toElement;
+			expect(t.x).toBe(f.x);
+			expect(t.y).toBe(f.y + SHIFT_Y);
+			expect(t.width).toBe(f.width);
+			expect(t.height).toBe(f.height);
+		}
+	});
+
 	it('refuses conflicting !! names', () => {
 		const from = makeSlide([picture('a', -1279, { name: '!!hero' })]);
 		const to = makeSlide([picture('b', 1, { name: '!!villain' })], 'slide-2');
 		expect(matchSameMedia(from.elements, to.elements, new Set(), new Set())).toHaveLength(0);
+	});
+});
+
+describe('matchNamedTextTwins', () => {
+	/** A same-named headline parked far off-stage on the outgoing slide. */
+	function headline(id: string, y: number, overrides: Partial<PptxElement> = {}): PptxElement {
+		return makeElement({
+			id,
+			type: 'text',
+			name: 'Title 1',
+			x: 78,
+			y,
+			width: 1123,
+			height: 486,
+			text: 'ROADMAP 2026',
+			...overrides,
+		});
+	}
+
+	it('pairs a same-named headline parked far off-stage with its landing spot', () => {
+		const from = makeSlide([headline('a', -1439)]);
+		const to = makeSlide([headline('b', 117)], 'slide-2');
+		const pairs = matchNamedTextTwins(from.elements, to.elements, new Set(), new Set());
+		expect(pairs).toHaveLength(1);
+		expect(pairs[0].fromElement.id).toBe('a');
+		expect(pairs[0].toElement.id).toBe('b');
+	});
+
+	it('refuses twins whose words differ (a rebuilt headline)', () => {
+		const from = makeSlide([headline('a', -1439)]);
+		const to = makeSlide([headline('b', 117, { text: 'ROADMAP 2027' })], 'slide-2');
+		expect(matchNamedTextTwins(from.elements, to.elements, new Set(), new Set())).toHaveLength(0);
+	});
+
+	it('refuses different names, which carry no identity', () => {
+		const from = makeSlide([headline('a', -1439)]);
+		const to = makeSlide([headline('b', 117, { name: 'Title 2' })], 'slide-2');
+		expect(matchNamedTextTwins(from.elements, to.elements, new Set(), new Set())).toHaveLength(0);
+	});
+
+	it('refuses a different box, which is a rebuilt frame', () => {
+		const from = makeSlide([headline('a', -1439)]);
+		const to = makeSlide([headline('b', 117, { width: 900 })], 'slide-2');
+		expect(matchNamedTextTwins(from.elements, to.elements, new Set(), new Set())).toHaveLength(0);
+	});
+
+	it('refuses conflicting !! names', () => {
+		const from = makeSlide([headline('a', -1439, { name: '!!Title 1' })]);
+		const to = makeSlide([headline('b', 117, { name: '!!Other 1' })], 'slide-2');
+		expect(matchNamedTextTwins(from.elements, to.elements, new Set(), new Set())).toHaveLength(0);
 	});
 });
 

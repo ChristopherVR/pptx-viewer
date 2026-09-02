@@ -14,13 +14,13 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { flattenMorphElements, morphGroupChildPairs } from './morph-flatten';
 import {
-	conflictingMorphNames,
-	differentText,
 	matchGroupTwins,
 	matchIdenticalTwins,
+	matchNamedTextTwins,
 	matchSameMedia,
 } from './morph-heuristics';
 import { getElementMorphName } from './morph-name';
+import { conflictingMorphNames, differentText } from './morph-predicates';
 import type { MorphMatchResult, MorphPair } from './morph-types';
 import { PROXIMITY_SIZE_RATIO_LIMIT, PROXIMITY_THRESHOLD } from './morph-types';
 
@@ -95,6 +95,7 @@ export function getElementCreationId(element: PptxElement): string | undefined {
  *   2c. The child correspondence that let two groups be decomposed
  *   2d. Same media part (pictures: the same image)
  *   2e. Identical twins: same type, exact size, identical paint appearance
+ *   2e2. Named text twins: same pane name, same box, same words
  *   2f. Group twins: same-size groups whose child casts correspond one for one
  *   2b. Native shape id from `p:cNvPr/@id` (only when creationIds are absent)
  *   3. Type + proximity + size matching (same type within 300px, similar box)
@@ -240,6 +241,13 @@ export function matchMorphElementsFull(fromSlide: PptxSlide, toSlide: PptxSlide)
 	// wheel safe: its wedges differ in colour and size, so they still fall
 	// through to proximity.
 	pairs.push(...matchIdenticalTwins(fromElements, toElements, usedFrom, usedTo));
+
+	// Pass 2e2: named text twins - same pane NAME, same box, same words,
+	// however far apart. A text box never declares paint (the gate pass 2e
+	// requires), so a headline parked off-stage and re-landed on-screen -
+	// different creationId, same everything a reader can see - fell through
+	// every pass and dissolved instead of sliding with its panel.
+	pairs.push(...matchNamedTextTwins(fromElements, toElements, usedFrom, usedTo));
 
 	// Pass 2f: group twins - whole GROUPS of the same box size whose child
 	// casts correspond one for one, however far apart they sit.
