@@ -194,6 +194,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (slide.showMasterPhAnim !== undefined) {
 			slideNode['@_showMasterPhAnim'] = slide.showMasterPhAnim ? '1' : '0';
 		}
+		// `@showMasterSp` (CT_Slide, ECMA-376 §19.3.1.38): "Hide Background
+		// Graphics" - whether the slide displays its inherited layout/master
+		// decorative shapes. Only touched when the typed model carries an
+		// explicit value; otherwise the attribute (if any) survives untouched
+		// via the cached XmlObject passthrough.
+		if (slide.showMasterShapes !== undefined) {
+			slideNode['@_showMasterSp'] = slide.showMasterShapes ? '1' : '0';
+		}
 		slideNode['p:clrMapOvr'] = buildClrMapOverrideXml(slide.clrMapOverride);
 
 		const spTree = this.ensureSlideTree(xmlObj);
