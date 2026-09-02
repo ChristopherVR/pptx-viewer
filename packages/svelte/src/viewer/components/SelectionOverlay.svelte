@@ -34,7 +34,7 @@
 	// `top` are ELEMENT-LOCAL px from the element's top-left and mark where the
 	// diamond's CENTRE belongs, so they are multiplied by the stage scale (this
 	// layer is unscaled) and centred by the handle's own negative margin.
-	const adjust = $derived(selectionCount === 1 && !editing ? interactivity.adjust : []);
+	const adjust = $derived(selectionCount === 1 ? interactivity.adjust : []);
 
 	// `border-width:${scale}px` scales the outline with the zoom so it tracks
 	// React's border/ring (which live inside React's scaled stage). Without it
@@ -58,7 +58,12 @@
 	class:is-editing={editing}
 	data-pptx-selection-overlay
 >
-	{#if box && !editing}
+	<!-- Rendered even while `editing` is true (PowerPoint keeps a text box's
+	     handles live and draggable mid-edit): `.pptx-svelte-sel-box` and this
+	     host are both `pointer-events: none`, so only the handle buttons
+	     themselves (pointer-events: auto) can intercept a click, leaving caret
+	     placement in the text underneath unaffected. -->
+	{#if box}
 		<div class="pptx-svelte-sel-box" style={boxStyle}>
 			{#if showRotate}<div
 				class="pptx-svelte-rotate-stem"

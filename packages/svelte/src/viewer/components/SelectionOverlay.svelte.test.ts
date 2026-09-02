@@ -43,7 +43,11 @@ function plainRect(): PptxElement {
 	return { ...roundRect(), id: 'r', shapeType: 'rect' } as PptxElement;
 }
 
-function mountOverlay(elements: PptxElement[], scale = 1): HTMLElement {
+function mountOverlay(
+	elements: PptxElement[],
+	scale = 1,
+	extra: { editing?: boolean } = {},
+): HTMLElement {
 	const target = document.createElement('div');
 	document.body.append(target);
 	const app = mount(SelectionOverlay, {
@@ -57,6 +61,7 @@ function mountOverlay(elements: PptxElement[], scale = 1): HTMLElement {
 			onhandlepointerdown: () => {},
 			onrotatepointerdown: () => {},
 			onadjustpointerdown: () => {},
+			...extra,
 		},
 	});
 	flushSync();
@@ -97,6 +102,23 @@ describe('selectionOverlay adjustment handle', () => {
 		const target = mountOverlay([roundRect()], 2);
 		const style = target.querySelector('[data-pptx-adjust-handle]')?.getAttribute('style') ?? '';
 		expect(style).toContain(`left: ${(descriptor?.left ?? 0) * 2}px`);
+	});
+});
+
+describe('selectionOverlay during inline text edit', () => {
+	// PowerPoint keeps a text box's resize/rotate/adjustment handles visible
+	// and draggable while you are actively typing inside it; the overlay
+	// previously unmounted its entire selection box whenever `editing` was
+	// true, hiding them for the very element being edited.
+	it('still draws the resize handles and rotate knob while editing', () => {
+		const target = mountOverlay([plainRect()], 1, { editing: true });
+		expect(target.querySelectorAll('[data-handle]')).toHaveLength(8);
+		expect(target.querySelector('.pptx-svelte-rotate-knob')).not.toBeNull();
+	});
+
+	it('still draws the shape-adjustment diamond while editing', () => {
+		const target = mountOverlay([roundRect()], 1, { editing: true });
+		expect(target.querySelector('[data-pptx-adjust-handle]')).not.toBeNull();
 	});
 });
 

@@ -408,6 +408,7 @@ export * from './grid-spacing';
 // locked shape behaves the same in all five bindings (it used to be honoured in
 // React alone, while Vue and Angular shipped a Lock button that locked nothing).
 export * from './element-locks';
+export * from './selection-handle-visibility';
 export * from './selection-transform';
 // Element CSS-style builders: absolute container style (position/transform/
 // opacity/z-index) + displayable image-source resolution, shared by every

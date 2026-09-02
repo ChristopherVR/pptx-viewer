@@ -61,9 +61,12 @@ describe('selectionOverlay', () => {
 		expect(box?.style.width).toBe('200px');
 	});
 
-	it('hides the box + handles while inline editing', () => {
+	it('still draws the box + handles while inline editing', () => {
+		// PowerPoint keeps a text box's resize/rotate handles visible and
+		// draggable while you are actively typing inside it. See the more
+		// thorough coverage in `SelectionOverlay.svelte.test.ts`.
 		const { target } = mountOverlay({ editing: true });
-		expect(target.querySelector('.pptx-svelte-sel-box')).toBeNull();
+		expect(target.querySelector('.pptx-svelte-sel-box')).not.toBeNull();
 	});
 
 	it('renders nothing selectable when box is null', () => {

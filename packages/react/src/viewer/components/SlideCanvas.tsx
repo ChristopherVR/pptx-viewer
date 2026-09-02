@@ -1,4 +1,4 @@
-import { motionPathFor, setMotionPath } from 'pptx-viewer-shared';
+import { motionPathFor, setMotionPath, shouldShowElementHandles } from 'pptx-viewer-shared';
 import { useCallback } from 'react';
 
 import type { ShapeAdjustmentHandleDescriptor } from '../types';
@@ -302,12 +302,11 @@ export function SlideCanvas({
 							templateEditing={editTemplateMode}
 							zIndex={index}
 							imageAltText='Template element'
-							showResizeHandles={
-								isEditableCanvas &&
-								selectedElementIdSet.has(element.id) &&
-								selectedElementIdSet.size <= 1 &&
-								!inlineEditingElementId
-							}
+							showResizeHandles={shouldShowElementHandles(
+								isEditableCanvas,
+								selectedElementIdSet.has(element.id),
+								selectedElementIdSet.size,
+							)}
 							renderInk={false}
 							renderGroups
 							adjustmentHandles={
@@ -352,12 +351,11 @@ export function SlideCanvas({
 							showHoverBorder
 							zIndex={templateElements.length + index}
 							imageAltText='Slide element'
-							showResizeHandles={
-								isEditableCanvas &&
-								selectedElementIdSet.has(element.id) &&
-								selectedElementIdSet.size <= 1 &&
-								!inlineEditingElementId
-							}
+							showResizeHandles={shouldShowElementHandles(
+								isEditableCanvas,
+								selectedElementIdSet.has(element.id),
+								selectedElementIdSet.size,
+							)}
 							renderInk
 							renderGroups
 							adjustmentHandles={
@@ -396,11 +394,15 @@ export function SlideCanvas({
 					    carries the shape's `clip-path`, which excludes every
 					    descendant from hit-testing outside the preset's silhouette).
 					    Connectors keep their own (already-unclipped) handles inside
-					    `ConnectorElementRenderer`. */}
-					{isEditableCanvas &&
-						selectedElement &&
-						selectedElementIdSet.size <= 1 &&
-						!inlineEditingElementId &&
+					    `ConnectorElementRenderer`. Rendered even while inline-editing
+					    text (PowerPoint keeps a text box's handles live and draggable
+					    mid-edit): the host's `pointerEvents: 'none'` plus each handle
+					    button's own small `forcePointerEvents` hit area (see
+					    `ResizeHandles`) already confine every click that isn't
+					    precisely on a handle to the shape/caret underneath, so nothing
+					    extra is needed to keep caret placement working. */}
+					{selectedElement &&
+						shouldShowElementHandles(isEditableCanvas, true, selectedElementIdSet.size) &&
 						!isConnectorOrLineElement(selectedElement) && (
 							<SelectionHandleOverlay
 								element={selectedElement}
