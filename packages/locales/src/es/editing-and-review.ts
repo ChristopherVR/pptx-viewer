@@ -202,6 +202,23 @@ export const translations = {
 		'Esta presentación está protegida con contraseña. Se abrió como solo lectura hasta que se indique la contraseña.',
 	'pptx.readOnly.markedFinal':
 		'El autor marcó esta presentación como final. Se abrió como solo lectura para evitar cambios.',
+	'pptx.readOnly.bannerTitle': 'Solo lectura',
+	'pptx.readOnly.editAnyway': 'Editar de todos modos',
+	'pptx.readOnly.dismiss': 'Descartar',
+	'pptx.compatibility.toastTitle': 'Aviso de compatibilidad',
+	'pptx.compatibility.dismiss': 'Descartar',
+	'pptx.compatibility.dismissAll': 'Descartar todo',
+	'pptx.hyperlink.actionCustomShow': 'Presentación personalizada',
+	'pptx.hyperlink.customShowLabel': 'Presentación personalizada',
+	'pptx.hyperlink.actionLastViewed': 'Última diapositiva vista',
+	'pptx.hyperlink.actionOpenFile': 'Abrir archivo',
+	'pptx.hyperlink.actionOpenPresentation': 'Abrir presentación',
+	'pptx.hyperlink.actionPlayMedia': 'Reproducir multimedia',
+	'pptx.hyperlink.actionOleVerb': 'Acción del objeto',
+	'pptx.colorPicker.recentColors': 'Colores recientes',
+	'pptx.colorPicker.customColors': 'Colores personalizados',
+	'pptx.comments.mentionPlaceholder': 'Escribe @ para mencionar a alguien',
+	'pptx.comments.mentionSuggestions': 'Personas',
 
 	'pptx.compatibility.generic':
 		'Esta presentación contiene una función que puede no ser totalmente compatible ({{code}}).',

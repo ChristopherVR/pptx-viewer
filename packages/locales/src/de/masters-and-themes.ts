@@ -96,6 +96,29 @@ export const translations = {
 	'pptx.masterView.notesMasterTitle': 'Notizenmaster',
 	'pptx.masterView.handoutMasterTitle': 'Handzettelmaster',
 	'pptx.masterView.collapse': 'Masterbereich reduzieren',
+	'pptx.slideSize.rescaleTitle': 'Inhalt an die neue Foliengröße anpassen?',
+	'pptx.slideSize.rescaleDescription':
+		'Sie ändern die Foliengröße. Wählen Sie, wie der vorhandene Inhalt eingepasst werden soll.',
+	'pptx.slideSize.rescaleMaximize': 'Maximieren',
+	'pptx.slideSize.rescaleMaximizeHint':
+		'Der Inhalt füllt die neue Folie aus und kann beschnitten werden.',
+	'pptx.slideSize.rescaleEnsureFit': 'Passend skalieren',
+	'pptx.slideSize.rescaleEnsureFitHint':
+		'Der Inhalt wird verkleinert, sodass nichts abgeschnitten wird.',
+	'pptx.masterView.addLayout': 'Layout einfügen',
+	'pptx.masterView.duplicateLayout': 'Layout duplizieren',
+	'pptx.masterView.deleteLayout': 'Layout löschen',
+	'pptx.masterView.renameLayout': 'Layout umbenennen',
+	'pptx.masterView.addMaster': 'Folienmaster einfügen',
+	'pptx.masterView.duplicateMaster': 'Folienmaster duplizieren',
+	'pptx.masterView.deleteMaster': 'Folienmaster löschen',
+	'pptx.masterView.renameMaster': 'Folienmaster umbenennen',
+	'pptx.masterView.renamePrompt': 'Neuer Name',
+	'pptx.masterView.layoutInUse':
+		'Dieses Layout wird von Folien verwendet und kann nicht gelöscht werden.',
+	'pptx.masterView.masterInUse':
+		'Dieser Folienmaster wird von Folien verwendet und kann nicht gelöscht werden.',
+	'pptx.masterView.lastMaster': 'Der letzte Folienmaster kann nicht gelöscht werden.',
 	'pptx.notesMaster.phSlideImage': 'Folienbild',
 	'pptx.notesMaster.phNotesBody': 'Notizentext',
 	'pptx.notesMaster.phDate': 'Datum',

@@ -224,4 +224,7 @@ export const translations = {
 	'pptx.chart.radarStyleFilled': 'Relleno',
 	'pptx.chart.wireframeOn': 'Malla de alambre',
 	'pptx.chart.wireframeOff': 'Sólido',
+	'pptx.chart.bar3DShapeLabel': 'Forma de columna',
+	'pptx.chart.radarStyleLabel': 'Estilo radial',
+	'pptx.chart.surfaceWireframeLabel': 'Superficie',
 } as const;

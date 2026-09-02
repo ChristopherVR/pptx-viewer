@@ -202,6 +202,23 @@ export const translations = {
 		'Diese Präsentation ist passwortgeschützt. Sie wurde schreibgeschützt geöffnet, bis das Passwort eingegeben wird.',
 	'pptx.readOnly.markedFinal':
 		'Diese Präsentation wurde vom Autor als endgültig markiert. Sie wurde schreibgeschützt geöffnet, um Änderungen zu vermeiden.',
+	'pptx.readOnly.bannerTitle': 'Schreibgeschützt',
+	'pptx.readOnly.editAnyway': 'Trotzdem bearbeiten',
+	'pptx.readOnly.dismiss': 'Schließen',
+	'pptx.compatibility.toastTitle': 'Kompatibilitätshinweis',
+	'pptx.compatibility.dismiss': 'Schließen',
+	'pptx.compatibility.dismissAll': 'Alle schließen',
+	'pptx.hyperlink.actionCustomShow': 'Zielgruppenorientierte Präsentation',
+	'pptx.hyperlink.customShowLabel': 'Zielgruppenorientierte Präsentation',
+	'pptx.hyperlink.actionLastViewed': 'Zuletzt angezeigte Folie',
+	'pptx.hyperlink.actionOpenFile': 'Datei öffnen',
+	'pptx.hyperlink.actionOpenPresentation': 'Präsentation öffnen',
+	'pptx.hyperlink.actionPlayMedia': 'Medien wiedergeben',
+	'pptx.hyperlink.actionOleVerb': 'Objektaktion',
+	'pptx.colorPicker.recentColors': 'Zuletzt verwendete Farben',
+	'pptx.colorPicker.customColors': 'Benutzerdefinierte Farben',
+	'pptx.comments.mentionPlaceholder': 'Tippe @, um jemanden zu erwähnen',
+	'pptx.comments.mentionSuggestions': 'Personen',
 
 	'pptx.compatibility.generic':
 		'Diese Präsentation enthält eine Funktion, die möglicherweise nicht vollständig unterstützt wird ({{code}}).',

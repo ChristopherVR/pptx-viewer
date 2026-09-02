@@ -96,6 +96,28 @@ export const translations = {
 	'pptx.masterView.notesMasterTitle': 'Maître des notes',
 	'pptx.masterView.handoutMasterTitle': 'Masque du document',
 	'pptx.masterView.collapse': 'Réduire le volet principal',
+	'pptx.slideSize.rescaleTitle': 'Adapter le contenu à la nouvelle taille de diapositive ?',
+	'pptx.slideSize.rescaleDescription':
+		'Vous modifiez la taille de la diapositive. Choisissez comment ajuster le contenu existant.',
+	'pptx.slideSize.rescaleMaximize': 'Agrandir',
+	'pptx.slideSize.rescaleMaximizeHint':
+		'Le contenu remplit la nouvelle diapositive et peut être rogné.',
+	'pptx.slideSize.rescaleEnsureFit': 'Ajuster',
+	'pptx.slideSize.rescaleEnsureFitHint': 'Le contenu est réduit pour que rien ne soit coupé.',
+	'pptx.masterView.addLayout': 'Insérer une disposition',
+	'pptx.masterView.duplicateLayout': 'Dupliquer la disposition',
+	'pptx.masterView.deleteLayout': 'Supprimer la disposition',
+	'pptx.masterView.renameLayout': 'Renommer la disposition',
+	'pptx.masterView.addMaster': 'Insérer un masque des diapositives',
+	'pptx.masterView.duplicateMaster': 'Dupliquer le masque des diapositives',
+	'pptx.masterView.deleteMaster': 'Supprimer le masque des diapositives',
+	'pptx.masterView.renameMaster': 'Renommer le masque des diapositives',
+	'pptx.masterView.renamePrompt': 'Nouveau nom',
+	'pptx.masterView.layoutInUse':
+		'Cette disposition est utilisée par des diapositives et ne peut pas être supprimée.',
+	'pptx.masterView.masterInUse':
+		'Ce masque est utilisé par des diapositives et ne peut pas être supprimé.',
+	'pptx.masterView.lastMaster': 'Le dernier masque des diapositives ne peut pas être supprimé.',
 	'pptx.notesMaster.phSlideImage': 'Image de diapositive',
 	'pptx.notesMaster.phNotesBody': 'Corps des notes',
 	'pptx.notesMaster.phDate': 'Date',
