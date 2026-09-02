@@ -76,6 +76,12 @@ export function buildPrimaryAxis(
 	layout: PlotLayout,
 	axis: PptxChartAxisFormatting | undefined,
 	axisX = layout.plotLeft,
+	/**
+	 * `false` keeps the axis line, tick marks and labels but draws no major
+	 * gridlines: `c:majorGridlines` absent on the axis (the caller decides via
+	 * `shouldRenderMajorGridlines`; defaults to drawn for legacy callers).
+	 */
+	showMajorGridlines = true,
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
 	const gridlines: SvgLine[] = [];
 	const axisLabels: SvgText[] = [];
@@ -111,17 +117,19 @@ export function buildPrimaryAxis(
 
 	for (const val of tickVals) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		gridlines.push(
-			buildStyledGridline(
-				y,
-				layout,
-				axis?.majorGridlinesSpPr,
-				GRIDLINE_COLOR,
-				1,
-				undefined,
-				undefined,
-			),
-		);
+		if (showMajorGridlines) {
+			gridlines.push(
+				buildStyledGridline(
+					y,
+					layout,
+					axis?.majorGridlinesSpPr,
+					GRIDLINE_COLOR,
+					1,
+					undefined,
+					undefined,
+				),
+			);
+		}
 		const tick = buildVerticalTickMark(
 			axisX,
 			y,

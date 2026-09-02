@@ -172,6 +172,11 @@ export function axisTickValues(range: ValueRange): number[] {
 export function buildGridlinesAndLabels(
 	range: ValueRange,
 	layout: PlotLayout,
+	/**
+	 * `false` keeps the tick labels but draws no gridlines: a value axis whose
+	 * `c:majorGridlines` is absent (see `shouldRenderMajorGridlines`).
+	 */
+	showMajorGridlines = true,
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
 	const gridlines: SvgLine[] = [],
 		axisLabels: SvgText[] = [];
@@ -179,15 +184,17 @@ export function buildGridlinesAndLabels(
 	for (const val of axisTickValues(range)) {
 		const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
 
-		gridlines.push({
-			kind: 'line',
-			x1: layout.plotLeft,
-			y1: y,
-			x2: layout.plotRight,
-			y2: y,
-			stroke: GRIDLINE_COLOR,
-			strokeWidth: 1,
-		});
+		if (showMajorGridlines) {
+			gridlines.push({
+				kind: 'line',
+				x1: layout.plotLeft,
+				y1: y,
+				x2: layout.plotRight,
+				y2: y,
+				stroke: GRIDLINE_COLOR,
+				strokeWidth: 1,
+			});
+		}
 
 		axisLabels.push({
 			kind: 'text',

@@ -30,6 +30,7 @@ import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis } from './chart-axis-render';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import {
@@ -116,6 +117,7 @@ export function buildStockViewModel(
 			(axis.axisType === 'catAx' || axis.axisType === 'dateAx') &&
 			axis.axisId === valueAxis?.crossAxisId,
 	);
+	const showMajorGridlines = shouldRenderMajorGridlines(chartData);
 	const renderedAxis =
 		categoryAxis?.crosses !== undefined || categoryAxis?.crossesAt !== undefined
 			? buildPrimaryAxis(
@@ -123,8 +125,9 @@ export function buildStockViewModel(
 					layout,
 					valueAxis,
 					verticalAxisX(categoryAxis, catCount, layout, 'left', chartData.dateCategories?.values),
+					showMajorGridlines,
 				)
-			: buildGridlinesAndLabels(range, layout);
+			: buildGridlinesAndLabels(range, layout, showMajorGridlines);
 	const { gridlines, axisLabels } = renderedAxis;
 	const zeroLine = buildZeroLine(range, layout);
 	const horizontalAxis = buildCartesianHorizontalAxis(

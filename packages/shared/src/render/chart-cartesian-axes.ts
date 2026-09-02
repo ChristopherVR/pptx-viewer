@@ -3,6 +3,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { getSecondaryValueAxis } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
+import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
 import type { PlotLayout, SvgLine, SvgText, ValueRange } from './chart-view-model';
 import { buildGridlinesAndLabels } from './chart-view-model';
 
@@ -51,8 +52,15 @@ export function buildCartesianAxes(
 	secondaryRange: ValueRange | undefined,
 	categoryCount: number,
 ): CartesianAxesResult {
+	// `c:majorGridlines` absent on a parsed value axis means PowerPoint draws
+	// none; the same decision feeds the inspector's "Show Gridlines" checkbox.
+	const showMajorGridlines = shouldRenderMajorGridlines(chartData);
 	if (!hasRicherAxisFeatures(chartData)) {
-		const { gridlines, axisLabels } = buildGridlinesAndLabels(primaryRange, layout);
+		const { gridlines, axisLabels } = buildGridlinesAndLabels(
+			primaryRange,
+			layout,
+			showMajorGridlines,
+		);
 		return { gridlines, axisLabels, secondaryGridlines: undefined, secondaryAxisLabels: undefined };
 	}
 	const primaryAxis =
@@ -75,6 +83,7 @@ export function buildCartesianAxes(
 		layout,
 		primaryAxis,
 		axisX(primaryAxis?.crossAxisId, 'left'),
+		showMajorGridlines,
 	);
 	if (!secondaryRange) {
 		return { ...primary, secondaryGridlines: undefined, secondaryAxisLabels: undefined };

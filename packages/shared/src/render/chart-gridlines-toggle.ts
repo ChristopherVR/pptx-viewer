@@ -39,17 +39,28 @@ function primaryValueAxis(
 
 /**
  * Whether the chart's primary value axis currently shows major gridlines.
- * Falls back to the legacy `style.hasGridlines` flag (default `false`,
- * matching every binding's existing checkbox default) when the chart has no
- * parsed value axis yet.
+ *
+ * A parsed value axis is authoritative: `c:majorGridlines` present means
+ * shown, absent means hidden, exactly as PowerPoint renders it. A chart with
+ * no parsed value axis (SDK/AI-created, never saved) falls back to the legacy
+ * `style.hasGridlines` flag and then to `true`, because that is what the
+ * renderer draws for such a chart (PowerPoint's own default chart has major
+ * gridlines), so the checkbox and the canvas agree.
+ *
+ * This is also the renderer's decision ({@link shouldRenderMajorGridlines});
+ * the two are one function so the inspector can never disagree with the
+ * canvas.
  */
 export function chartGridlinesState(chartData: PptxChartData): boolean {
 	const axis = primaryValueAxis(chartData.axes);
 	if (axis) {
 		return axis.majorGridlines ?? false;
 	}
-	return chartData.style?.hasGridlines ?? false;
+	return chartData.style?.hasGridlines ?? true;
 }
+
+/** Whether the cartesian renderer should draw primary major gridlines. */
+export const shouldRenderMajorGridlines = chartGridlinesState;
 
 /**
  * Build a `Partial<PptxChartData>` patch that toggles major gridlines on the

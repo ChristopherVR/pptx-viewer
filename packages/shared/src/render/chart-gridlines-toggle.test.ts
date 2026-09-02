@@ -1,7 +1,11 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { chartGridlinesPatch, chartGridlinesState } from './chart-gridlines-toggle';
+import {
+	chartGridlinesPatch,
+	chartGridlinesState,
+	shouldRenderMajorGridlines,
+} from './chart-gridlines-toggle';
 
 function chart(overrides: Partial<PptxChartData> = {}): PptxChartData {
 	return {
@@ -13,12 +17,14 @@ function chart(overrides: Partial<PptxChartData> = {}): PptxChartData {
 }
 
 describe('chartGridlinesState', () => {
-	it('falls back to false when the chart has no axes and no style flag', () => {
-		expect(chartGridlinesState(chart())).toBeFalsy();
+	it('defaults to shown when the chart has no axes and no style flag (what the renderer draws)', () => {
+		expect(chartGridlinesState(chart())).toBeTruthy();
+		expect(shouldRenderMajorGridlines(chart())).toBeTruthy();
 	});
 
 	it('falls back to the legacy style.hasGridlines flag when there is no value axis', () => {
 		expect(chartGridlinesState(chart({ style: { hasGridlines: true } }))).toBeTruthy();
+		expect(chartGridlinesState(chart({ style: { hasGridlines: false } }))).toBeFalsy();
 	});
 
 	it('reads majorGridlines off the left-positioned value axis', () => {

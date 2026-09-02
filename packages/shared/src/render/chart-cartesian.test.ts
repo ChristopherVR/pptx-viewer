@@ -92,7 +92,9 @@ describe('cartesian log value axis', () => {
 		chartType: 'line',
 		categories: ['A', 'B', 'C', 'D'],
 		series: [{ name: 'S', values: [1, 10, 100, 1000] }],
-		axes: [{ axisType: 'valAx', axPos: 'l', logScale: true, logBase: 10 }],
+		// `majorGridlines` is what the parser sets for `c:majorGridlines`; an axis
+		// without it draws no gridlines, so the fixture declares it explicitly.
+		axes: [{ axisType: 'valAx', axPos: 'l', logScale: true, logBase: 10, majorGridlines: true }],
 	};
 
 	it('produces log-spaced gridlines at each power of the base', () => {
@@ -220,7 +222,7 @@ describe('cartesian secondary value axis', () => {
 			{ name: 'Growth %', values: [5, 10, 15], axisId: 200 },
 		],
 		axes: [
-			{ axisType: 'valAx', axPos: 'l', axisId: 100 },
+			{ axisType: 'valAx', axPos: 'l', axisId: 100, majorGridlines: true },
 			{ axisType: 'valAx', axPos: 'r', axisId: 200, titleText: 'Growth' },
 		],
 	};
@@ -254,7 +256,10 @@ describe('cartesian secondary value axis', () => {
 		const withSec = buildChartViewModel(chartElement(secChart));
 		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const withoutSec = buildChartViewModel(
-			chartElement({ ...secChart, axes: [{ axisType: 'valAx', axPos: 'l', axisId: 100 }] }),
+			chartElement({
+				...secChart,
+				axes: [{ axisType: 'valAx', axPos: 'l', axisId: 100, majorGridlines: true }],
+			}),
 		);
 		// plotRight (= gridline x2) is pulled in by 40px when a secondary axis exists.
 		expect(withoutSec.gridlines[0].x2 - withSec.gridlines[0].x2).toBe(40);

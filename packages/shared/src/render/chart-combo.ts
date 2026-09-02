@@ -12,6 +12,7 @@ import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import { computeAxisTitlePrimitives, computeTrendlinePrimitives } from './chart-overlays';
@@ -91,10 +92,11 @@ export function buildComboViewModel(
 		'left',
 		chartData.dateCategories?.values,
 	);
+	const showMajorGridlines = shouldRenderMajorGridlines(chartData);
 	const primaryRendered =
 		primaryCategoryAxis?.crosses !== undefined || primaryCategoryAxis?.crossesAt !== undefined
-			? buildPrimaryAxis(primaryRange, layout, primaryAxis, primaryAxisX)
-			: buildGridlinesAndLabels(primaryRange, layout);
+			? buildPrimaryAxis(primaryRange, layout, primaryAxis, primaryAxisX, showMajorGridlines)
+			: buildGridlinesAndLabels(primaryRange, layout, showMajorGridlines);
 	const { gridlines, axisLabels } = primaryRendered;
 	const secondaryCategoryAxis = chartData.axes?.find(
 		(axis) =>

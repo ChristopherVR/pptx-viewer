@@ -38,6 +38,25 @@ describe('buildPrimaryAxis linear default', () => {
 		const fresh = buildPrimaryAxis(range, layout, axis);
 		expect(fresh.axisLabels).toStrictEqual(legacy.axisLabels);
 	});
+
+	it('keeps labels and tick marks but drops the gridlines when showMajorGridlines is false', () => {
+		const axis: PptxChartAxisFormatting = { axisType: 'valAx', axPos: 'l', majorTickMark: 'out' };
+		const shown = buildPrimaryAxis(range, layout, axis, layout.plotLeft, true);
+		const hidden = buildPrimaryAxis(range, layout, axis, layout.plotLeft, false);
+		expect(hidden.axisLabels).toStrictEqual(shown.axisLabels);
+		const spansPlot = (line: { x1: number; x2: number }) =>
+			line.x1 === layout.plotLeft && line.x2 === layout.plotRight;
+		expect(shown.gridlines.some(spansPlot)).toBeTruthy();
+		expect(hidden.gridlines.some(spansPlot)).toBeFalsy();
+		// The tick marks survive: only the plot-spanning gridlines went.
+		expect(hidden.gridlines.length).toBeGreaterThan(0);
+	});
+
+	it('buildGridlinesAndLabels mirrors the flag on the fast path', () => {
+		const hidden = buildGridlinesAndLabels(range, layout, false);
+		expect(hidden.gridlines).toHaveLength(0);
+		expect(hidden.axisLabels).toStrictEqual(buildGridlinesAndLabels(range, layout).axisLabels);
+	});
 });
 
 describe('buildPrimaryAxis log scale', () => {
