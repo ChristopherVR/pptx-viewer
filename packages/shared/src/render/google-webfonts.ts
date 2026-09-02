@@ -238,6 +238,14 @@ export function probeGoogleWebfontFragments(
  * needed). Families available locally are used as-is and never requested;
  * the rest are probed (session-cached), so repeated calls (every load /
  * edit) only fetch families never seen before.
+ *
+ * The local-install check is skipped for families the session has already
+ * probed. Once the injected stylesheet has loaded, the webfont itself
+ * satisfies the canvas measurement, so re-checking would report the family as
+ * installed, drop it from the href, remove the very `<link>` that made it
+ * available, and then find it missing again on the next call: an oscillation
+ * that re-fetches the stylesheet on every edit. The cached probe result (a
+ * fragment or null) already answers the question for those families.
  */
 export async function resolveGoogleWebfontHref(
 	slides: readonly PptxSlide[],
@@ -249,7 +257,7 @@ export async function resolveGoogleWebfontHref(
 	const candidates = selectGoogleWebfontFamilies(
 		referenced,
 		embeddedFonts.map((font) => font.name),
-		isLocallyInstalled,
+		(family) => !probeCache.has(family) && isLocallyInstalled(family),
 	);
 	const fragments = await probeGoogleWebfontFragments(candidates, doFetch);
 	return buildGoogleFontsHref(fragments);

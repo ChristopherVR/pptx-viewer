@@ -193,4 +193,39 @@ describe('resolveGoogleWebfontHref', () => {
 		).resolves.toContain('family=Missing%20Face');
 		expect(urls.some((url) => url.includes('Installed'))).toBeFalsy();
 	});
+
+	it('keeps a family the probe already verified even when it now measures as installed', async () => {
+		// Once the injected stylesheet has loaded, the canvas measurement sees
+		// the webfont itself and reports the family as "installed". Without the
+		// probe-cache guard the second resolve would drop the family, the
+		// binding would remove the <link>, and the third resolve would find it
+		// missing again: an oscillation that re-fetches on every edit.
+		const { fetch, urls } = fetchStub(['ADLaM Display']);
+		const slides = [slide(textEl('ADLaM Display'))];
+		let webfontLoaded = false;
+		const isInstalled = (): boolean => webfontLoaded;
+
+		const first = await resolveGoogleWebfontHref(slides, [], fetch, isInstalled);
+		expect(first).toContain('family=ADLaM%20Display');
+		webfontLoaded = true;
+
+		const second = await resolveGoogleWebfontHref(slides, [], fetch, isInstalled);
+		expect(second).toBe(first);
+		// The cached probe answered; no new request went out.
+		expect(urls).toHaveLength(1);
+	});
+
+	it('still runs the local check for families the session has not probed', async () => {
+		const { fetch, urls } = fetchStub(['Probed Face', 'Installed Face']);
+		await resolveGoogleWebfontHref([slide(textEl('Probed Face'))], [], fetch, () => false);
+		await expect(
+			resolveGoogleWebfontHref(
+				[slide(textEl('Probed Face'), textEl('Installed Face'))],
+				[],
+				fetch,
+				(family) => family === 'Installed Face',
+			),
+		).resolves.toContain('family=Probed%20Face');
+		expect(urls.some((url) => url.includes('Installed'))).toBeFalsy();
+	});
 });

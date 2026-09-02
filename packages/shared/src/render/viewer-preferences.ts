@@ -1,4 +1,11 @@
-/** Framework-neutral viewer preferences surfaced by Settings dialogs. */
+/**
+ * Framework-neutral viewer preferences surfaced by Settings dialogs.
+ *
+ * Every field is a boolean toggle on purpose: the bindings iterate
+ * `keyof ViewerPreferences` and hand each value to a `(key, boolean)` setter,
+ * so the deck-authored view properties (grid spacing is a number) live on the
+ * extending {@link DeckViewPreferences} instead.
+ */
 export interface ViewerPreferences {
 	autoSave: boolean;
 	spellCheck: boolean;
@@ -6,10 +13,17 @@ export interface ViewerPreferences {
 	showRulers: boolean;
 	snapToGrid: boolean;
 	reducedMotion: boolean;
-	/**
-	 * `p:viewPr/p:slideViewPr/p:cSldViewPr/@snapToObjects`. Optional: absent
-	 * until a binding wires the round-trip in {@link viewerPreferencesFromViewProperties}.
-	 */
+}
+
+export type ViewerSettings = ViewerPreferences;
+
+/**
+ * Viewer preferences plus the `ppt/viewProps.xml` fields the round-trip in
+ * {@link viewerPreferencesFromViewProperties} seeds from the deck itself. All
+ * optional, so a plain {@link ViewerPreferences} is assignable.
+ */
+export interface DeckViewPreferences extends ViewerPreferences {
+	/** `p:viewPr/p:slideViewPr/p:cSldViewPr/@snapToObjects`. */
 	snapToObjects?: boolean;
 	/** `p:viewPr/p:slideViewPr/p:cSldViewPr/@showGuides`. */
 	showGuides?: boolean;
@@ -18,8 +32,6 @@ export interface ViewerPreferences {
 	/** `p:viewPr/p:gridSpacing/@cy`, in positive DrawingML (EMU) units. */
 	gridSpacingCy?: number;
 }
-
-export type ViewerSettings = ViewerPreferences;
 
 export const DEFAULT_VIEWER_PREFERENCES: ViewerPreferences = {
 	autoSave: true,
@@ -124,8 +136,8 @@ export interface ViewPropertiesSource {
  */
 export function viewerPreferencesFromViewProperties(
 	data: ViewPropertiesSource,
-	defaults: ViewerPreferences,
-): ViewerPreferences {
+	defaults: DeckViewPreferences,
+): DeckViewPreferences {
 	const slideViewPr = data.viewProperties?.slideViewPr;
 	const gridSpacing = data.viewProperties?.gridSpacing;
 	return {
@@ -147,7 +159,7 @@ export function viewerPreferencesFromViewProperties(
  * `pptx-view-props-helpers.ts`), so this only needs to carry the fields this
  * module owns, never a full `PptxViewProperties`.
  */
-export function viewPropertiesPatchFromPreferences(preferences: ViewerPreferences): {
+export function viewPropertiesPatchFromPreferences(preferences: DeckViewPreferences): {
 	slideViewPr: { snapToGrid: boolean; snapToObjects: boolean; showGuides: boolean };
 	gridSpacing?: { cx: number; cy: number };
 } {
