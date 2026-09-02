@@ -4,8 +4,8 @@
  */
 import { themeColorSchemesEqual } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
-import { slideSizeToCanvasPx } from 'pptx-viewer-shared';
+import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
+import { scaleSlidesForSizeChange, slideSizeToCanvasPx } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 import { ViewerInspector, SelectionPane } from '.';
@@ -90,7 +90,17 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 	// writes and the pixel canvas the stage renders at. Keeping them in step
 	// here is what lets `resolveSlideSizeSelection` prefer the EMU (and so the
 	// preset identity) instead of falling back to the lossy pixel round-trip.
-	const handleSetSlideSize = (size: SlideSizeEmu): void => {
+	//
+	// `rescaleMode` arrives only when the user confirmed `SlideSizeCard`'s
+	// Maximize/Ensure Fit prompt: every slide's elements are rescaled via the
+	// shared `scaleSlidesForSizeChange` in the SAME state update as the size
+	// change, so the editor's change-detection effect (`useEditorHistory`,
+	// which watches `slides` and `canvasSize` together) captures both as one
+	// undo entry rather than two.
+	const handleSetSlideSize = (size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode): void => {
+		if (rescaleMode && s.slideSizeEmu) {
+			s.setSlides(scaleSlidesForSizeChange(slides, s.slideSizeEmu, size, rescaleMode));
+		}
 		s.setSlideSizeEmu(size);
 		s.setCanvasSize(slideSizeToCanvasPx(size));
 		history.markDirty();

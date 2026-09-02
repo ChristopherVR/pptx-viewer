@@ -20,9 +20,15 @@ import type {
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import type {
+	CompatibilityWarningToast,
+	ReadOnlyRecommendation,
+	SlideSizeEmu,
+} from 'pptx-viewer-shared';
 import {
 	applyImagePathPatches,
+	compatibilityWarningToasts,
+	readOnlyRecommendation,
 	resolveAuthoredCustomShowId,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
@@ -90,6 +96,10 @@ export interface UseLoadContentInput {
 	setGuides: React.Dispatch<
 		React.SetStateAction<Array<{ id: string; axis: 'h' | 'v'; position: number }>>
 	>;
+	/** Whether the loaded deck recommends opening read-only (`p:modifyVerifier` / "Mark as Final"). */
+	setReadOnlyRecommendation: React.Dispatch<React.SetStateAction<ReadOnlyRecommendation>>;
+	/** Deck + slide compatibility-warning toast stack for this load. */
+	setCompatToasts: React.Dispatch<React.SetStateAction<CompatibilityWarningToast[]>>;
 	setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 	setError: React.Dispatch<React.SetStateAction<string | null>>;
 	setIsDirty: React.Dispatch<React.SetStateAction<boolean>>;
@@ -150,6 +160,8 @@ export function useLoadContent({
 	setHasDigitalSignatures,
 	setDigitalSignatureCount,
 	setGuides,
+	setReadOnlyRecommendation,
+	setCompatToasts,
 	setLoading,
 	setError,
 	setIsDirty,
@@ -374,6 +386,17 @@ export function useLoadContent({
 
 				// Initialize drawing guides from parsed presentation + slide data
 				setGuides(buildInitialGuides(parsed.presentationGuides, parsed.slides[0]?.guides));
+
+				// Whether this deck asks to be opened read-only, and the deck + slide
+				// compatibility-warning toast stack: both reset wholesale on every
+				// load, matching every other setter here.
+				setReadOnlyRecommendation(readOnlyRecommendation(parsed));
+				setCompatToasts(
+					compatibilityWarningToasts([
+						...(parsed.warnings ?? []),
+						...parsed.slides.flatMap((slide) => slide.warnings ?? []),
+					]),
+				);
 
 				setActiveSlideIndex(0);
 				clearSelection();

@@ -12,6 +12,7 @@ import type {
 	PptxSlideMaster,
 	PptxSection,
 	PptxTagCollection,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
 import type { DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
@@ -54,6 +55,16 @@ export interface UseSerializeInput {
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	headerFooter: PptxHeaderFooter;
 	presentationProperties: PptxPresentationProperties;
+	/**
+	 * `ppt/viewProps.xml` (grid/snap/guides toggles, grid spacing). Optional so
+	 * existing callers/tests that construct this input directly keep compiling;
+	 * omitting it (or passing `undefined`) reproduces the PRE-EXISTING bug this
+	 * field fixes: core falls back to `this.loadedViewProperties` (the file as
+	 * it was FIRST opened) whenever the caller does not pass `viewProperties`
+	 * explicitly, so every session change to the View-ribbon toggles was
+	 * silently dropped. `useContentLifecycle` always passes `state.viewProperties`.
+	 */
+	viewProperties?: PptxViewProperties | undefined;
 	customShows: Array<{ id: string; name: string; slideRIds: string[] }>;
 	sections: PptxSection[];
 	coreProperties: PptxCoreProperties | undefined;
@@ -113,6 +124,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		guides,
 		headerFooter,
 		presentationProperties,
+		viewProperties,
 		customShows,
 		sections,
 		coreProperties,
@@ -186,6 +198,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			slideSize: resolveSlideSizeSelection({ current: slideSizeEmu, canvas: canvasSize }).size,
 			headerFooter,
 			presentationProperties,
+			viewProperties,
 			customShows: customShows.length > 0 ? customShows : undefined,
 			sections: sections.length > 0 ? sections : undefined,
 			coreProperties,
@@ -209,6 +222,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		slideSizeEmu,
 		headerFooter,
 		presentationProperties,
+		viewProperties,
 		customShows,
 		sections,
 		coreProperties,

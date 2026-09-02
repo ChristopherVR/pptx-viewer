@@ -179,6 +179,7 @@ export function useViewerBuildingBlocks(
 		handleEnterPresenterView,
 		handleEnterRehearsalMode,
 		autosaveStatus,
+		viewPreferencesSync,
 	} = useViewerBuildingBlocksState({
 		core,
 		content,
@@ -228,6 +229,7 @@ export function useViewerBuildingBlocks(
 		autosaveStatus,
 		autosaveEnabled,
 		hiddenActions,
+		viewPreferencesSync,
 	});
 
 	const canvasProps = buildCanvasProps({

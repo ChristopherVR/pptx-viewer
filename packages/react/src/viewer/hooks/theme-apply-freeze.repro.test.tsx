@@ -20,7 +20,11 @@ import type {
 	PptxViewProperties,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import type {
+	CompatibilityWarningToast,
+	ReadOnlyRecommendation,
+	SlideSizeEmu,
+} from 'pptx-viewer-shared';
 // @vitest-environment happy-dom
 /**
  * Regression harness for the "AI theme colour change freezes the renderer" bug.
@@ -117,6 +121,8 @@ function Harness({ initial }: { initial: Uint8Array }): React.ReactElement {
 		setHasDigitalSignatures: noopDispatch<boolean>(),
 		setDigitalSignatureCount: noopDispatch<number>(),
 		setGuides: noopDispatch<Array<{ id: string; axis: 'h' | 'v'; position: number }>>(),
+		setReadOnlyRecommendation: noopDispatch<ReadOnlyRecommendation>(),
+		setCompatToasts: noopDispatch<CompatibilityWarningToast[]>(),
 		setLoading: noopDispatch<boolean>(),
 		setError: noopDispatch<string | null>(),
 		setIsDirty: noopDispatch<boolean>(),

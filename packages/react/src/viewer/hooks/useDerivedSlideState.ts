@@ -1,8 +1,14 @@
-import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
+import type {
+	PptxPresentationProperties,
+	PptxSlide,
+	PptxSlideMaster,
+	PptxSlideLayout,
+} from 'pptx-viewer-core';
 import {
 	computeGridSpacingPx as sharedComputeGridSpacingPx,
 	groupSlidesBySection,
 	masterViewPseudoSlide,
+	resolveAuthoredSlideRange,
 	resolveShowSlideIndexes,
 } from 'pptx-viewer-shared';
 /**
@@ -31,6 +37,15 @@ export interface UseDerivedSlideStateInput {
 	}>;
 	customShows: Array<{ id: string; name: string; slideRIds: string[] }>;
 	activeCustomShowId: string | null;
+	/**
+	 * `p:showPr`, read for `resolveAuthoredSlideRange` so a deck authored to
+	 * open into a `p:sldRg` range (`showSlidesMode === 'range'`) presents only
+	 * that range when no custom show is active.
+	 */
+	presentationProperties: Pick<
+		PptxPresentationProperties,
+		'showSlidesMode' | 'showSlidesFrom' | 'showSlidesTo'
+	>;
 	mode: ViewerMode;
 	activeLayout: PptxSlideLayout | undefined;
 	activeMaster: PptxSlideMaster | undefined;
@@ -70,21 +85,28 @@ export function computeGridSpacingPx(documentGridSpacing: { cx: number } | undef
 
 /**
  * The ordered deck indexes the slide show visits: the active custom show's
- * membership, minus any slide the author hid.
+ * membership (or the deck's authored `p:sldRg` range), minus any slide the
+ * author hid.
  *
  * The rule itself lives in `pptx-viewer-shared` so React, Vue, Angular, Svelte
  * and Vanilla cannot answer "what comes next" differently and present a slide
- * its author hid. This wrapper only adapts React's custom-show shape.
+ * its author hid, or a slide outside a deck authored to open into a range.
+ * This wrapper only adapts React's custom-show shape.
  */
 export function computeVisibleSlideIndexes(
 	slides: PptxSlide[],
 	activeCustomShowId: string | null,
 	customShows: Array<{ id: string; name: string; slideRIds: string[] }>,
+	presentationProperties?: Pick<
+		PptxPresentationProperties,
+		'showSlidesMode' | 'showSlidesFrom' | 'showSlidesTo'
+	>,
 ): number[] {
 	const activeShow = activeCustomShowId
 		? customShows.find((show) => show.id === activeCustomShowId)
 		: undefined;
-	return resolveShowSlideIndexes(slides, activeShow);
+	const authoredRange = resolveAuthoredSlideRange(presentationProperties, slides.length);
+	return resolveShowSlideIndexes(slides, activeShow, authoredRange);
 }
 
 /** Compute slide section groups for the slides pane sidebar. */
@@ -148,6 +170,7 @@ export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedS
 		sections,
 		customShows,
 		activeCustomShowId,
+		presentationProperties,
 		mode,
 		activeLayout,
 		activeMaster,
@@ -162,8 +185,9 @@ export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedS
 
 	// Slide indexes visible in the current custom show (or all non-hidden)
 	const visibleSlideIndexes = useMemo(
-		() => computeVisibleSlideIndexes(slides, activeCustomShowId, customShows),
-		[slides, activeCustomShowId, customShows],
+		() =>
+			computeVisibleSlideIndexes(slides, activeCustomShowId, customShows, presentationProperties),
+		[slides, activeCustomShowId, customShows, presentationProperties],
 	);
 
 	// Slide section groups for the slides pane sidebar. `computeSlideSectionGroups`

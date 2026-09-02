@@ -2,16 +2,19 @@
  * ActiveX control overlay.
  *
  * ActiveX controls (`p:controls > p:control`) are preserved on
- * `slide.activeXControls` but cannot run inside a viewer. Historically they
- * rendered as nothing at all. This overlay draws each control's static
- * fallback picture when one was resolved, otherwise a labelled placeholder
- * badge, so the slide shows where the control lives instead of a blank gap.
+ * `slide.activeXControls` but cannot run inside a viewer. This overlay draws
+ * each control's static fallback picture when one was resolved, otherwise a
+ * labelled placeholder badge, so the slide shows where the control lives
+ * instead of a blank gap.
  *
- * The control's geometry (`x/y/width/height`, px) comes from the
- * `mc:AlternateContent > mc:Fallback > p:pic` preview parsed in core. Controls
- * without a fallback picture have no geometry and are pinned to the top-left.
+ * The geometry/label/fallback-image decision lives in
+ * `pptx-viewer-shared`'s `getActiveXControlOverlayView` (this was the
+ * React-only implementation it was extracted from) so Vue, Angular, Svelte
+ * and Vanilla agree on where and how a control is drawn; this component only
+ * maps the returned view onto JSX.
  */
 import type { PptxActiveXControl } from 'pptx-viewer-core';
+import { getActiveXControlOverlayView } from 'pptx-viewer-shared';
 
 import type { CanvasSize } from '../../types';
 
@@ -40,9 +43,6 @@ interface ActiveXControlOverlayProps {
 	resolveFallbackImage?: (relId: string) => string | undefined;
 }
 
-const PLACEHOLDER_WIDTH = 120;
-const PLACEHOLDER_HEIGHT = 40;
-
 export function ActiveXControlOverlay({
 	controls,
 	canvasSize,
@@ -53,28 +53,19 @@ export function ActiveXControlOverlay({
 	}
 
 	return (
-		<div className='absolute inset-0 pointer-events-none z-[40]'>
+		<div className='absolute inset-0 pointer-events-none z-[40]' data-testid='pptx-activex-overlay'>
 			{controls.map((control, idx) => {
-				const width = control.width ?? PLACEHOLDER_WIDTH;
-				const height = control.height ?? PLACEHOLDER_HEIGHT;
-				const left = control.x ?? 8;
-				const top = control.y ?? 8 + idx * (PLACEHOLDER_HEIGHT + 6);
-				const clampedWidth = Math.min(width, canvasSize.width);
-				const clampedHeight = Math.min(height, canvasSize.height);
-				const imageUrl = control.fallbackImageRelId
-					? resolveFallbackImage?.(control.fallbackImageRelId)
-					: undefined;
-				const label = control.name || 'ActiveX control';
+				const view = getActiveXControlOverlayView(control, canvasSize, idx, resolveFallbackImage);
 
-				if (imageUrl) {
+				if (view.className === 'image' && view.imageUrl) {
 					return (
 						<img
 							key={`${control.relId}-${idx}`}
-							src={imageUrl}
-							alt={label}
-							title={`ActiveX control: ${label}`}
+							src={view.imageUrl}
+							alt={view.label}
+							title={`ActiveX control: ${view.label}`}
 							className='absolute'
-							style={{ left, top, width: clampedWidth, height: clampedHeight }}
+							style={{ left: view.left, top: view.top, width: view.width, height: view.height }}
 						/>
 					);
 				}
@@ -83,12 +74,12 @@ export function ActiveXControlOverlay({
 					<div
 						key={`${control.relId}-${idx}`}
 						className='absolute'
-						title={`ActiveX control: ${label} (interactive controls are not supported in the viewer)`}
+						title={`ActiveX control: ${view.label} (interactive controls are not supported in the viewer)`}
 						style={{
-							left,
-							top,
-							width: clampedWidth,
-							height: clampedHeight,
+							left: view.left,
+							top: view.top,
+							width: view.width,
+							height: view.height,
 							display: 'flex',
 							alignItems: 'center',
 							justifyContent: 'center',
@@ -108,7 +99,7 @@ export function ActiveXControlOverlay({
 						}}
 					>
 						<span aria-hidden='true'>&#9881;</span>
-						<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+						<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{view.label}</span>
 					</div>
 				);
 			})}

@@ -191,6 +191,15 @@ export interface ViewerToolbarSectionProps {
 	isProtectedView?: boolean;
 	/** Drops the Protected View override for this session. Only offered when `isProtectedView` is true. */
 	onEnableEditing?: () => void;
+	/**
+	 * Overrides `state.setSnapToGrid`/`setSnapToShape`/`setShowGuides` with a
+	 * handler that also writes the toggle back into `state.viewProperties`
+	 * (`useViewPreferencesSync`), so a save round-trips it. Falls back to the
+	 * raw state setter (no write-back) when omitted.
+	 */
+	onSetSnapToGrid?: (value: boolean) => void;
+	onSetSnapToShape?: (value: boolean) => void;
+	onSetShowGuides?: (value: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +249,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onToggleAiPanel,
 		isProtectedView,
 		onEnableEditing,
+		onSetSnapToGrid,
+		onSetSnapToShape,
+		onSetShowGuides,
 	} = props;
 
 	const { t } = useTranslation();
@@ -619,9 +631,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onSetSpellCheckEnabled={s.setSpellCheckEnabled}
 				onSetShowGrid={s.setShowGrid}
 				onSetShowRulers={s.setShowRulers}
-				onSetShowGuides={s.setShowGuides}
-				onSetSnapToGrid={s.setSnapToGrid}
-				onSetSnapToShape={s.setSnapToShape}
+				onSetShowGuides={onSetShowGuides ?? s.setShowGuides}
+				onSetSnapToGrid={onSetSnapToGrid ?? s.setSnapToGrid}
+				onSetSnapToShape={onSetSnapToShape ?? s.setSnapToShape}
 				onAddGuide={dialogs.handleAddGuide}
 				onAlignElements={manipulation.handleAlignElements}
 				onDistributeElements={manipulation.handleDistributeElements}

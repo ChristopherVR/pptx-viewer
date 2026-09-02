@@ -21,7 +21,7 @@ import type {
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
@@ -56,7 +56,7 @@ export interface ViewerInspectorProps {
 	/** The deck's `p:sldSz` in EMU, forwarded to the Slide Size card. */
 	slideSizeEmu?: SlideSizeEmu | undefined;
 	/** Applies a Slide Size preset / orientation pick (EMU + pixel canvas). */
-	onSetSlideSize?: (size: SlideSizeEmu) => void;
+	onSetSlideSize?: (size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode) => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
 	onDeleteElement: () => void;

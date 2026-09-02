@@ -198,6 +198,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 										onUpdateCanvasSize={onUpdateCanvasSize}
 										slideSizeEmu={slideSizeEmu}
 										onUpdateSlideSize={onUpdateSlideSize}
+										hasContent={slides.some((slide) => slide.elements.length > 0)}
 										activeSlide={activeSlide}
 										theme={theme}
 										onUpdateSlide={onUpdateSlide}

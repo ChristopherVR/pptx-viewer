@@ -47,4 +47,9 @@ describe('activeXControlOverlay', () => {
 		const html = render([{ relId: 'rId9' }]);
 		expect(html).toContain('ActiveX control');
 	});
+
+	it('carries the pptx-activex-overlay testid for the framework-neutral e2e spec', () => {
+		const html = render([{ relId: 'rId5', name: 'SubmitButton' }]);
+		expect(html).toContain('data-testid="pptx-activex-overlay"');
+	});
 });

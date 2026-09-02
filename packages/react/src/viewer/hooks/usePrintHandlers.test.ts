@@ -1,8 +1,8 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (many independent short-lived `const`s per test case); merging them isn't a
    style choice here. */
-import type { PptxSlide } from 'pptx-viewer-core';
-import { computeColorFilter, computeSlideIndices } from 'pptx-viewer-shared';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
+import { buildHandoutsHtml, computeColorFilter, computeSlideIndices } from 'pptx-viewer-shared';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import { escapeHtml } from '../utils/dom-helpers';
@@ -292,5 +292,71 @@ describe('handout pagination', () => {
 
 	it('handles zero slides', () => {
 		expect(computePageCount(0, 6)).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Handout master chrome: `handlePrintWithSettings`'s handouts branch passes
+// `pptxData?.handoutMaster` as `buildHandoutsHtml`'s 4th argument (see
+// `usePrintHandlers.ts`). This pins that the shared builder actually paints
+// the master's footer text when its `<p:hf>` flag leaves it enabled.
+// ---------------------------------------------------------------------------
+
+describe('buildHandoutsHtml with a handout master (usePrintHandlers wiring)', () => {
+	it('renders the handout master footer text when ftr is enabled', () => {
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 4,
+			headerFooter: { hasFooter: true },
+			elements: [
+				{
+					id: 'ftr1',
+					type: 'text',
+					placeholderType: 'ftr',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: 'Confidential - Acme Corp',
+				} as unknown as PptxSlide['elements'][number],
+			],
+		};
+
+		const html = buildHandoutsHtml(['data:image/png;base64,AA=='], [0], 4, handoutMaster);
+		expect(html).toContain('Confidential - Acme Corp');
+	});
+
+	it('omits the footer text when ftr is explicitly disabled', () => {
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 4,
+			headerFooter: { hasFooter: false },
+			elements: [
+				{
+					id: 'ftr1',
+					type: 'text',
+					placeholderType: 'ftr',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: 'Confidential - Acme Corp',
+				} as unknown as PptxSlide['elements'][number],
+			],
+		};
+
+		const html = buildHandoutsHtml(['data:image/png;base64,AA=='], [0], 4, handoutMaster);
+		expect(html).not.toContain('Confidential - Acme Corp');
+	});
+
+	it('renders byte-identical output when no handout master is passed', () => {
+		const withoutMaster = buildHandoutsHtml(['data:image/png;base64,AA=='], [0], 4);
+		const withUndefinedMaster = buildHandoutsHtml(
+			['data:image/png;base64,AA=='],
+			[0],
+			4,
+			undefined,
+		);
+		expect(withUndefinedMaster).toBe(withoutMaster);
 	});
 });
