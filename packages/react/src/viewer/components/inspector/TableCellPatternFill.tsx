@@ -3,6 +3,7 @@ import { FILL_PATTERN_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useRecentColors } from './RecentColorsContext';
 import { LBL, PATTERN_OPTIONS, SEL } from './table-cell-advanced-fill-constants';
 
 /**
@@ -29,6 +30,7 @@ export function TableCellPatternFill({
 	onUpdateCellStyle,
 }: TableCellPatternFillProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 	// `schemaLabel` takes a plain `(key) => string`; react-i18next's `t` is an
 	// overloaded generic, so narrow it once here.
 	const translate = (key: string): string => t(key);
@@ -59,7 +61,10 @@ export function TableCellPatternFill({
 						disabled={!canEdit}
 						className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
 						value={cellStyle.patternFillForeground ?? '#000000'}
-						onChange={(e) => onUpdateCellStyle({ patternFillForeground: e.target.value })}
+						onChange={(e) => {
+							onUpdateCellStyle({ patternFillForeground: e.target.value });
+							pushColor(e.target.value);
+						}}
 					/>
 				</label>
 				<label className='flex flex-col gap-0.5'>
@@ -69,7 +74,10 @@ export function TableCellPatternFill({
 						disabled={!canEdit}
 						className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
 						value={cellStyle.patternFillBackground ?? '#FFFFFF'}
-						onChange={(e) => onUpdateCellStyle({ patternFillBackground: e.target.value })}
+						onChange={(e) => {
+							onUpdateCellStyle({ patternFillBackground: e.target.value });
+							pushColor(e.target.value);
+						}}
 					/>
 				</label>
 			</div>

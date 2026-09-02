@@ -120,7 +120,7 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 		safeOpenUrl(url);
 	};
 
-	const handleActionClick = (_elementId: string, action: PptxAction) => {
+	const handleActionClick = (elementId: string, action: PptxAction) => {
 		if (mode === 'present') {
 			// `runPresentationAction` (inside `handlePresentationAction`) opens an
 			// action's own external hyperlink unconditionally: it has no host hook
@@ -132,7 +132,7 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 				openExternalUrl(resolved.intent.url);
 				return;
 			}
-			presentation.handlePresentationAction(action);
+			presentation.handlePresentationAction(action, elementId);
 		} else if (action.url) {
 			openExternalUrl(action.url);
 		}

@@ -2,6 +2,7 @@ import type { PptxSmartArtNodeStyle } from 'pptx-viewer-core';
 import React from 'react';
 
 import { cn } from '../../utils';
+import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -48,6 +49,7 @@ export function SmartArtNodeStyleControls({
 	canEdit,
 	onChangeStyle,
 }: SmartArtNodeStyleControlsProps): React.ReactElement {
+	const { pushColor } = useRecentColors();
 	const bold = Boolean(style?.bold);
 	const italic = Boolean(style?.italic);
 
@@ -65,7 +67,10 @@ export function SmartArtNodeStyleControls({
 					aria-label={`Fill colour for ${label}`}
 					className='h-4 w-5 cursor-pointer rounded border border-border bg-transparent p-0 disabled:cursor-not-allowed'
 					value={style?.fillColor ?? DEFAULT_FILL}
-					onChange={(e) => onChangeStyle(nodeId, { fillColor: e.target.value })}
+					onChange={(e) => {
+						onChangeStyle(nodeId, { fillColor: e.target.value });
+						pushColor(e.target.value);
+					}}
 				/>
 			</label>
 			<label className='flex items-center gap-0.5 text-[9px] text-muted-foreground'>
@@ -76,7 +81,10 @@ export function SmartArtNodeStyleControls({
 					aria-label={`Font colour for ${label}`}
 					className='h-4 w-5 cursor-pointer rounded border border-border bg-transparent p-0 disabled:cursor-not-allowed'
 					value={style?.fontColor ?? DEFAULT_FONT}
-					onChange={(e) => onChangeStyle(nodeId, { fontColor: e.target.value })}
+					onChange={(e) => {
+						onChangeStyle(nodeId, { fontColor: e.target.value });
+						pushColor(e.target.value);
+					}}
 				/>
 			</label>
 			<button

@@ -206,6 +206,21 @@ describe('handlePresentationActionImpl', () => {
 		expect(deps.navigateToSlide).toHaveBeenCalledWith(3);
 	});
 
+	// -- Element-scoped verbs ---------------------------------------------------
+
+	it('should hand the clicked element id to playMedia', () => {
+		deps = createMockDeps({ elementId: 'media1', onPlayMedia: vi.fn<() => void>() });
+		handlePresentationActionImpl({ action: 'ppaction://media' }, deps);
+		expect(deps.onPlayMedia).toHaveBeenCalledWith('media1');
+	});
+
+	it('should hand the OLE verb and the clicked element id to oleVerb', () => {
+		deps = createMockDeps({ elementId: 'ole1', onOleVerb: vi.fn<() => void>() });
+		handlePresentationActionImpl({ action: 'ppaction://ole?verb=0' }, deps);
+		expect(deps.onOleVerb).toHaveBeenCalledWith(0, 'ole1');
+		expect(deps.movePresentationSlide).not.toHaveBeenCalled();
+	});
+
 	// -- Empty / no-op action ---------------------------------------------------
 
 	it('should not throw for empty action', () => {

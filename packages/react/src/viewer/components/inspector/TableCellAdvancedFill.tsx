@@ -2,6 +2,7 @@ import type { PptxTableCellStyle } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useRecentColors } from './RecentColorsContext';
 import {
 	FILL_MODE_OPTIONS,
 	GRADIENT_TYPE_OPTIONS,
@@ -141,6 +142,7 @@ function GradientControls({
 	onUpdateCellStyle,
 }: TableCellAdvancedFillProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 	const stops = cellStyle.gradientFillStops ?? [];
 	const gradType = cellStyle.gradientFillType ?? 'linear';
 
@@ -208,7 +210,10 @@ function GradientControls({
 						disabled={!canEdit}
 						className='h-6 w-6 rounded border border-border cursor-pointer'
 						value={stop.color}
-						onChange={(e) => updateStop(idx, { color: e.target.value })}
+						onChange={(e) => {
+							updateStop(idx, { color: e.target.value });
+							pushColor(e.target.value);
+						}}
 					/>
 					<input
 						type='number'

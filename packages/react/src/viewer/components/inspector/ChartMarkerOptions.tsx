@@ -13,6 +13,7 @@ import {
 	MARKER_SUPPORTED_TYPES,
 	MARKER_SYMBOL_OPTIONS,
 } from './chart-panel-constants';
+import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -38,6 +39,7 @@ export function ChartMarkerOptions({
 	onSetMarker,
 }: ChartMarkerOptionsProps) {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 
 	if (!MARKER_SUPPORTED_TYPES.has(chartType) || series.length === 0) {
 		return null;
@@ -102,7 +104,10 @@ export function ChartMarkerOptions({
 											disabled={!canEdit}
 											className='h-6 w-8 cursor-pointer rounded border border-border bg-transparent'
 											value={marker.spPr?.fillColor ?? '#4472c4'}
-											onChange={(e) => onSetMarker(i, { fillColor: e.target.value })}
+											onChange={(e) => {
+												onSetMarker(i, { fillColor: e.target.value });
+												pushColor(e.target.value);
+											}}
 										/>
 									</label>
 								</div>

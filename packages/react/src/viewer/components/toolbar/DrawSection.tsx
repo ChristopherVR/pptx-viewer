@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { DrawingTool } from '../../types';
 import { cn } from '../../utils';
+import { useRecentColors } from '../inspector/RecentColorsContext';
 import { gB, gL, grp, DRAW_TOOLS } from './toolbar-constants';
 
 export interface DrawSectionProps {
@@ -16,6 +17,22 @@ export interface DrawSectionProps {
 
 export function DrawSection(p: DrawSectionProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
+
+	// The pen colour joins the deck's "Recent colours" list like every other
+	// picker, but only on the native `change` (the committed pick): React's
+	// `onChange` is the continuous `input` stream while the dialog is dragged,
+	// which must keep driving the live pen colour without flooding the list.
+	const colorRef = useRef<HTMLInputElement>(null);
+	useEffect(() => {
+		const el = colorRef.current;
+		if (!el) {
+			return;
+		}
+		const handler = () => pushColor(el.value);
+		el.addEventListener('change', handler);
+		return () => el.removeEventListener('change', handler);
+	}, [pushColor]);
 
 	return (
 		<>
@@ -42,6 +59,7 @@ export function DrawSection(p: DrawSectionProps): React.ReactElement {
 				>
 					{t('pptx.ribbon.colour')}
 					<input
+						ref={colorRef}
 						type='color'
 						value={p.drawingColor}
 						onChange={(e) => p.onSetDrawingColor(e.target.value)}

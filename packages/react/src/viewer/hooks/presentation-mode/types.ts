@@ -125,7 +125,8 @@ export interface UsePresentationModeResult {
 	closeAllSlides: () => void;
 	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;
-	handlePresentationAction: (action: PptxAction) => void;
+	/** `elementId` is the clicked element, for the verbs that act on it (`playMedia`, `oleVerb`). */
+	handlePresentationAction: (action: PptxAction, elementId?: string) => void;
 	/**
 	 * Handle a shape click in presentation mode. If the shape is an interactive
 	 * trigger, play its animation sequence. Returns `true` if handled.

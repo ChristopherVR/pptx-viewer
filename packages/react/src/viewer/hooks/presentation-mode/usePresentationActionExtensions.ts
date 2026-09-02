@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { safeOpenUrl } from 'pptx-viewer-shared';
+import { openUrlInNewTab, resolveOleVerbTarget, safeOpenUrl } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types';
@@ -42,6 +42,8 @@ export interface UsePresentationActionExtensionsResult {
 	onOpenFile: (target: string) => void;
 	onOpenPresentation: (target: string) => void;
 	onPlayMedia: (elementId: string | undefined) => void;
+	/** `ppaction://ole?verb=<n>`: open the clicked element's recovered embedding. */
+	onOleVerb: (verb: number, elementId: string | undefined) => void;
 	/**
 	 * Advancing past the last slide either restores a pending `returnAfter`
 	 * custom-show origin, shows the black end-of-show screen, or exits
@@ -144,6 +146,18 @@ export function usePresentationActionExtensions(
 		[containerRef],
 	);
 
+	// A browser cannot run the verb in the owning application: open the
+	// recovered embedding, as the OLE renderer's own "Open" does.
+	const onOleVerb = useCallback(
+		(verb: number, elementId: string | undefined) => {
+			const target = resolveOleVerbTarget(slides[presentationSlideIndex], elementId, verb);
+			if (target) {
+				openUrlInNewTab(target.url);
+			}
+		},
+		[slides, presentationSlideIndex],
+	);
+
 	const handleAdvancePastLastSlide = useCallback(() => {
 		if (customShowRunner.tryReturnFromCustomShow()) {
 			return;
@@ -165,6 +179,7 @@ export function usePresentationActionExtensions(
 		onOpenFile,
 		onOpenPresentation,
 		onPlayMedia,
+		onOleVerb,
 		handleAdvancePastLastSlide,
 		bindNavigateToSlide,
 	};

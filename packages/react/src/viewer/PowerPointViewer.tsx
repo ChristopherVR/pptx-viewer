@@ -85,6 +85,7 @@ import { PieChart3DContext } from './components/elements/pie-chart-3d-context';
 import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { SurfaceChart3DContext } from './components/elements/surface-chart-3d-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
+import { RecentColorsProvider } from './components/inspector/RecentColorsContext';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { ReadOnlyBanner } from './components/ReadOnlyBanner';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -112,6 +113,7 @@ import { useLayoutSwitching } from './hooks/useLayoutSwitching';
 import { useMasterViewCrud } from './hooks/useMasterViewCrud';
 import { usePresentationSetup } from './hooks/usePresentationSetup';
 import { useReadOnlyRecommendationState } from './hooks/useReadOnlyRecommendationState';
+import { useRecentColorsSync } from './hooks/useRecentColorsSync';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useResizablePanels } from './hooks/useResizablePanels';
 import { useTouchGestures } from './hooks/useTouchGestures';
@@ -405,6 +407,22 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			activeSlide,
 			selectedElement,
 		} = state;
+
+		// ── Recent colours ("Most Recently Used") ─────────────────────
+		// Shared by every colour picker in BOTH the ribbon toolbar and the
+		// inspector via context (rather than per-caller prop threading), so
+		// the provider must sit above both: `ViewerToolbarSection` and
+		// `ViewerMainContent` are siblings in the JSX below, and a provider
+		// nested only inside the latter would leave the ribbon reading the
+		// context's empty default (see `RecentColorsContext`'s doc).
+		const { pushColor } = useRecentColorsSync({
+			setRecentColors: state.setRecentColors,
+			setPresentationProperties: state.setPresentationProperties,
+		});
+		const recentColorsValue = useMemo(
+			() => ({ recentColors: state.recentColors, pushColor }),
+			[state.recentColors, pushColor],
+		);
 
 		// ── Settings dialog (General tab) ────────────────────────────
 		// A single `ViewerSettings` bag + change callback, mapped over the
@@ -1059,7 +1077,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					) : error ? (
 						<ErrorState error={error} />
 					) : (
-						<>
+						<RecentColorsProvider value={recentColorsValue}>
 							{mode !== 'present' && (
 								<ViewerToolbarSection
 									mode={mode}
@@ -1207,7 +1225,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									commentCount={activeSlide?.comments?.length ?? 0}
 								/>
 							)}
-						</>
+						</RecentColorsProvider>
 					)}
 				</div>
 

@@ -192,7 +192,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	);
 
 	const handleActionClick = useCallback(
-		(_elementId: string, action: PptxAction) => {
+		(elementId: string, action: PptxAction) => {
 			if (mode === 'present') {
 				// `runPresentationAction` (inside `handlePresentationAction`) opens an
 				// action's own external hyperlink unconditionally: it has no host hook
@@ -204,7 +204,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					openExternalUrl(resolved.intent.url);
 					return;
 				}
-				presentation.handlePresentationAction(action);
+				presentation.handlePresentationAction(action, elementId);
 			} else if (action.url) {
 				// In editing/view mode, only open external URLs (Ctrl+Click).
 				// Slide-internal jumps are not meaningful outside presentation mode.

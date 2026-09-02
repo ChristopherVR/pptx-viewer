@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import { normalizeHexColor } from '../../utils';
 import { DUOTONE_PRESETS } from '../../utils/duotone-effects';
+import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -37,6 +38,7 @@ function DebouncedColorInput({
 	const [local, setLocal] = useState(value);
 	const commitRef = useRef(onCommit);
 	commitRef.current = onCommit;
+	const { pushColor } = useRecentColors();
 
 	// Sync external value when the selected element changes. Not pure derived
 	// state: `local` is then mutated independently by every keystroke until the
@@ -53,7 +55,8 @@ function DebouncedColorInput({
 
 	const handleBlur = useCallback(() => {
 		commitRef.current(local);
-	}, [local]);
+		pushColor(local);
+	}, [local, pushColor]);
 
 	const inputRef = useRef<HTMLInputElement>(null);
 	useEffect(() => {
@@ -63,10 +66,11 @@ function DebouncedColorInput({
 		}
 		const handler = () => {
 			commitRef.current(el.value);
+			pushColor(el.value);
 		};
 		el.addEventListener('change', handler);
 		return () => el.removeEventListener('change', handler);
-	}, []);
+	}, [pushColor]);
 
 	return (
 		<input

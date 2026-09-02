@@ -8,6 +8,7 @@ import { cn, normalizeHexColor, sanitizeGradientStops } from '../../utils';
 import { DebouncedColorInput } from './DebouncedColorInput';
 import { FillStrokeProperties } from './FillStrokeProperties';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
+import { RecentColorsRow } from './RecentColorsRow';
 import { TextAdvancedSections } from './TextAdvancedSections';
 
 // ---------------------------------------------------------------------------
@@ -85,7 +86,7 @@ export function ShapeTextPanels({
 
 			{/* Text Color & Font Size */}
 			{hasTextProperties(selectedElement) && (
-				<div className={CARD}>
+				<div className={CARD} data-pptx-text-card>
 					<div className={HEADING}>{t('pptx.text.title', 'Text')}</div>
 					<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
 						<label className='flex flex-col gap-1'>
@@ -104,11 +105,19 @@ export function ShapeTextPanels({
 							<span className='text-muted-foreground'>Color</span>
 							<DebouncedColorInput
 								disabled={!canEdit}
+								ariaLabel='Text Color'
 								value={normalizeHexColor(selectedElement.textStyle?.color, '#000000')}
 								className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
 								onCommit={(hex) => onUpdateTextStyle({ color: hex })}
 							/>
 						</label>
+						<div className='col-span-2'>
+							<RecentColorsRow
+								prefix='text-color'
+								disabled={!canEdit}
+								onCommit={(hex) => onUpdateTextStyle({ color: hex })}
+							/>
+						</div>
 						<div className='flex gap-1 col-span-2'>
 							<TextFormatToggle
 								label='B'

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { CARD, EXPLOSION_SUPPORTED_TYPES, HEADING, INPUT } from './chart-panel-constants';
+import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -31,6 +32,7 @@ export function ChartDataPointOptions({
 	onSetPointLabel,
 }: ChartDataPointOptionsProps) {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 	const [seriesIndex, setSeriesIndex] = useState(0);
 
 	if (series.length === 0 || categories.length === 0) {
@@ -96,7 +98,10 @@ export function ChartDataPointOptions({
 								title={t('pptx.chart.pointFill')}
 								className='h-6 w-8 cursor-pointer rounded border border-border bg-transparent'
 								value={point?.spPr?.fillColor ?? activeSeries.color ?? '#4472c4'}
-								onChange={(e) => onSetPointFill(seriesIndex, idx, e.target.value)}
+								onChange={(e) => {
+									onSetPointFill(seriesIndex, idx, e.target.value);
+									pushColor(e.target.value);
+								}}
 							/>
 							{point?.spPr?.fillColor && (
 								<button

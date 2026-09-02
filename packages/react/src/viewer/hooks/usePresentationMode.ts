@@ -135,7 +135,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	}, [mode]);
 
 	// Wave-4 `PresentationActionRunner` extensions (customShow, lastViewed,
-	// openFile, openPresentation, playMedia) and the end-of-show hook that
+	// openFile, openPresentation, playMedia, oleVerb) and the end-of-show hook that
 	// lets a `returnAfter` custom show resume its origin. Extracted: see
 	// `usePresentationActionExtensions` for why the navigator is wired in via
 	// `bindNavigateToSlide` after `useSlideNavigation` builds it below.
@@ -182,6 +182,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onOpenFile: actionExtensions.onOpenFile,
 		onOpenPresentation: actionExtensions.onOpenPresentation,
 		onPlayMedia: actionExtensions.onPlayMedia,
+		onOleVerb: actionExtensions.onOleVerb,
 	});
 
 	actionExtensions.bindNavigateToSlide(navigateToSlide);

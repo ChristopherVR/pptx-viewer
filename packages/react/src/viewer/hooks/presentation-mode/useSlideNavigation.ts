@@ -74,12 +74,15 @@ export interface UseSlideNavigationInput {
 	onOpenPresentation?: (target: string) => void;
 	/** `ppaction://media`. */
 	onPlayMedia?: (elementId: string | undefined) => void;
+	/** `ppaction://ole?verb=<n>`. */
+	onOleVerb?: (verb: number, elementId: string | undefined) => void;
 }
 
 export interface UseSlideNavigationResult {
 	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;
-	handlePresentationAction: (action: PptxAction) => void;
+	/** `elementId` is the clicked element, for the verbs that act on it (`playMedia`, `oleVerb`). */
+	handlePresentationAction: (action: PptxAction, elementId?: string) => void;
 	scheduleAutoAdvanceForSlide: (slideIndex: number) => void;
 }
 
@@ -114,6 +117,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		onOpenFile,
 		onOpenPresentation,
 		onPlayMedia,
+		onOleVerb,
 	} = input;
 
 	const movePresentationSlideRef = useRef<(direction: 1 | -1) => void>(() => {});
@@ -314,8 +318,9 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 	// -----------------------------------------------------------------------
 
 	const handlePresentationAction = useCallback(
-		(action: PptxAction) => {
+		(action: PptxAction, elementId?: string) => {
 			handlePresentationActionImpl(action, {
+				elementId,
 				movePresentationSlide,
 				navigateToSlide,
 				onPlayActionSound,
@@ -326,6 +331,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				onOpenFile,
 				onOpenPresentation,
 				onPlayMedia,
+				onOleVerb,
 			});
 		},
 		[
@@ -339,6 +345,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			onOpenFile,
 			onOpenPresentation,
 			onPlayMedia,
+			onOleVerb,
 		],
 	);
 
