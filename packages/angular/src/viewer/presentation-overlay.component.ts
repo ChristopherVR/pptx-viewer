@@ -22,6 +22,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type {
+	AuthoredSlideRange,
 	CanvasSize,
 	PresentationContextMenuActionId,
 	ShowOrderCustomShow,
@@ -133,6 +134,15 @@ export class PresentationOverlayComponent implements OnInit {
 	 * hidden slides inside a show are still skipped.
 	 */
 	readonly activeCustomShow = input<ShowOrderCustomShow | null>(null);
+	/**
+	 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is authored
+	 * to open into a range (`p:showPr/@showSlidesMode == 'range'`) rather than
+	 * the whole deck or a custom show. Applied the same way `activeCustomShow`
+	 * is: a filter on the navigable order, not a pre-filtered slide array.
+	 */
+	readonly authoredRange = input<AuthoredSlideRange | null>(null);
+	/** Set Up Slide Show > "Loop continuously until 'Esc'". */
+	readonly loopContinuously = input<boolean>(false);
 	readonly showWithAnimation = input<boolean | undefined>(undefined);
 	/**
 	 * Whether authored slide timings (`p:transition/@advTm`) advance the show on
@@ -204,6 +214,7 @@ export class PresentationOverlayComponent implements OnInit {
 	protected readonly navigator: PresentationShowNavigator = new PresentationShowNavigator({
 		slides: () => this.slides(),
 		activeCustomShow: () => this.activeCustomShow(),
+		authoredRange: () => this.authoredRange(),
 		currentSlide: () => this.currentSlide(),
 		showWithAnimation: () => this.showWithAnimation(),
 		playback: this.playback,
@@ -211,6 +222,7 @@ export class PresentationOverlayComponent implements OnInit {
 		emitIndex: (index) => this.indexChange.emit(index),
 		requestClose: () => this.emitClosed(),
 		endWithBlackSlide: () => this.endWithBlackSlide(),
+		loopContinuously: () => this.loopContinuously(),
 	});
 
 	/**

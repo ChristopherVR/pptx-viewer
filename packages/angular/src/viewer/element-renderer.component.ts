@@ -10,6 +10,7 @@ import {
 	getGroupChildParentFill,
 	getOverflowSegments,
 	isElementHidden,
+	placeholderPromptDescriptor,
 	textBuildSpanStyle,
 	inlineElementPointerEvents,
 	buildHollowHitOutline,
@@ -535,6 +536,32 @@ export class ElementRendererComponent {
 			(p) => p.runs.length > 0 || p.bulletMarker !== undefined || p.bulletPicture !== undefined,
 		),
 	);
+
+	/**
+	 * An empty inherited placeholder's greyed-out hint ("Click to add title"),
+	 * or null when it should not be shown. `editable` is only ever set true on
+	 * the live editing canvas (Present Mode leaves it at its `false` default,
+	 * and the thumbnail rail passes it explicitly false), matching shared's
+	 * `'edit'`-only surface: PowerPoint never prints, presents or thumbnails
+	 * this authoring hint.
+	 */
+	readonly placeholderPrompt = computed<{ text: string; style: StyleMap } | null>(() => {
+		const descriptor = placeholderPromptDescriptor(
+			this.element(),
+			this.editable() && !this.presenting() ? 'edit' : 'present',
+		);
+		if (!descriptor) {
+			return null;
+		}
+		return {
+			text: descriptor.text,
+			style: {
+				opacity: descriptor.style['opacity'] ?? '0.5',
+				color: descriptor.style['color'] ?? '#888888',
+				'pointer-events': descriptor.style['pointerEvents'] ?? 'none',
+			},
+		};
+	});
 
 	readonly placeholderLabel = computed(() => {
 		const map: Record<string, string> = {

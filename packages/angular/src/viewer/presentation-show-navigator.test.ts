@@ -1,6 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import type { AuthoredSlideRange } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
 import type { PresentationAnnotationsService } from './presentation-annotations.service';
 import { PresentationShowNavigator } from './presentation-show-navigator';
@@ -29,7 +30,11 @@ interface Harness {
 	closes: number;
 }
 
-function makeNavigator(deck: PptxSlide[], endWithBlackSlide?: boolean): Harness {
+function makeNavigator(
+	deck: PptxSlide[],
+	endWithBlackSlide?: boolean,
+	options?: { loopContinuously?: boolean; authoredRange?: AuthoredSlideRange },
+): Harness {
 	const emitted: number[] = [];
 	let closes = 0;
 	// Only the members the navigator actually touches are implemented.
@@ -53,6 +58,10 @@ function makeNavigator(deck: PptxSlide[], endWithBlackSlide?: boolean): Harness 
 			closes += 1;
 		},
 		...(endWithBlackSlide === undefined ? {} : { endWithBlackSlide: () => endWithBlackSlide }),
+		...(options?.loopContinuously === undefined
+			? {}
+			: { loopContinuously: () => options.loopContinuously }),
+		...(options?.authoredRange === undefined ? {} : { authoredRange: () => options.authoredRange }),
 	});
 	return {
 		navigator,
@@ -156,5 +165,60 @@ describe('presentationShowNavigator end of show', () => {
 		harness.navigator.navigate('prev');
 		expect(harness.navigator.endOfShow()).toBeFalsy();
 		expect(harness.closes).toBe(0);
+	});
+});
+
+describe('presentationShowNavigator loopContinuously', () => {
+	it('wraps to the first slide instead of ending the show when set', () => {
+		const harness = makeNavigator(slides(false, false, false), undefined, {
+			loopContinuously: true,
+		});
+		harness.navigator.goToSlide(2);
+		harness.navigator.navigate('next');
+		expect(harness.navigator.currentIndex()).toBe(0);
+		expect(harness.navigator.endOfShow()).toBeFalsy();
+		expect(harness.closes).toBe(0);
+	});
+
+	it('still raises the end screen when unset (PowerPoint default)', () => {
+		const harness = makeNavigator(slides(false, false, false), undefined, {
+			loopContinuously: false,
+		});
+		harness.navigator.goToSlide(2);
+		harness.navigator.navigate('next');
+		expect(harness.navigator.currentIndex()).toBe(2);
+		expect(harness.navigator.endOfShow()).toBeTruthy();
+	});
+
+	it('exits outright when combined with endWithBlackSlide off', () => {
+		const harness = makeNavigator(slides(false, false), false, { loopContinuously: false });
+		harness.navigator.goToSlide(1);
+		harness.navigator.navigate('next');
+		expect(harness.closes).toBe(1);
+	});
+});
+
+describe('presentationShowNavigator authored slide range (p:showPr/p:sldRg)', () => {
+	it('restricts forward/backward navigation to the authored range', () => {
+		const harness = makeNavigator(slides(false, false, false, false), undefined, {
+			authoredRange: { fromIndex: 1, toIndex: 2 },
+		});
+		harness.navigator.goToSlide(1);
+		harness.navigator.navigate('next');
+		expect(harness.navigator.currentIndex()).toBe(2);
+		harness.navigator.navigate('next');
+		// No slide after index 2 within the range: ends the show rather than
+		// stepping onto slide index 3, which is outside p:sldRg.
+		expect(harness.navigator.endOfShow()).toBeTruthy();
+	});
+
+	it('lands Home / End on the range bounds, not the whole deck', () => {
+		const harness = makeNavigator(slides(false, false, false, false), undefined, {
+			authoredRange: { fromIndex: 1, toIndex: 2 },
+		});
+		harness.navigator.navigate('last');
+		expect(harness.navigator.currentIndex()).toBe(2);
+		harness.navigator.navigate('first');
+		expect(harness.navigator.currentIndex()).toBe(1);
 	});
 });

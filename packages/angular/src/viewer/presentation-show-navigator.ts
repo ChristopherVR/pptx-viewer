@@ -27,7 +27,7 @@ import {
 	nextVisibleIndex,
 	prevVisibleIndex,
 } from './presentation-overlay-helpers';
-import type { ActiveShow } from './presentation-overlay-helpers';
+import type { ActiveShow, AuthoredRange } from './presentation-overlay-helpers';
 
 /** Where a navigation request wants to go. */
 export type ShowDirection = 'next' | 'prev' | 'first' | 'last';
@@ -51,6 +51,13 @@ export interface ShowNavigatorDeps {
 	 * space never has to be translated.
 	 */
 	activeCustomShow?: () => ActiveShow;
+	/**
+	 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is authored
+	 * to open into a range rather than the whole deck or a custom show. Applied
+	 * the same way `activeCustomShow` is: a filter on the navigable order, not a
+	 * pre-filtered slide array.
+	 */
+	authoredRange?: () => AuthoredRange;
 	/** The slide at the CURRENT index (a computed over `currentIndex`). */
 	currentSlide: () => PptxSlide | undefined;
 	showWithAnimation: () => boolean | undefined;
@@ -67,6 +74,12 @@ export interface ShowNavigatorDeps {
 	 * the show immediately instead. Undefined means the PowerPoint default.
 	 */
 	endWithBlackSlide?: () => boolean | undefined;
+	/**
+	 * Set Up Slide Show > "Loop continuously until 'Esc'". When true, running
+	 * past the last slide wraps back to the show's first slide instead of
+	 * raising the end-of-show screen (or exiting, per `endWithBlackSlide`).
+	 */
+	loopContinuously?: () => boolean | undefined;
 }
 
 export class PresentationShowNavigator {
@@ -185,29 +198,35 @@ export class PresentationShowNavigator {
 
 		const current = this.currentIndex();
 		const activeShow = this.deps.activeCustomShow?.();
+		const authoredRange = this.deps.authoredRange?.();
 		let next: number;
 
 		switch (direction) {
 			case 'next':
-				next = nextVisibleIndex(current, slides, activeShow);
+				next = nextVisibleIndex(current, slides, activeShow, authoredRange);
 				break;
 			case 'prev':
-				next = prevVisibleIndex(current, slides, activeShow);
+				next = prevVisibleIndex(current, slides, activeShow, authoredRange);
 				break;
 			case 'first':
 				// Home goes to the START OF THE SHOW, which is not slide 1 when the
 				// author hid it. Clamped anyway so an empty order cannot produce -1.
-				next = clampIndex(firstVisibleIndex(slides, activeShow), count);
+				next = clampIndex(firstVisibleIndex(slides, activeShow, authoredRange), count);
 				break;
 			case 'last':
-				next = clampIndex(lastVisibleIndex(slides, activeShow), count);
+				next = clampIndex(lastVisibleIndex(slides, activeShow, authoredRange), count);
 				break;
 		}
 
-		if (direction === 'next' && !hasVisibleSlideAfter(current, slides, activeShow)) {
-			// Nothing further to advance to. `nextVisibleIndex` would wrap back to
-			// the first slide and loop for ever; PowerPoint only loops when "Loop
-			// continuously until Esc" is set, so end the show instead.
+		// `nextVisibleIndex` always wraps back to the first slide (`loop: true`)
+		// so `next` above is already the wrapped index; whether that wrap is
+		// honoured or overridden into ending the show is "Loop continuously
+		// until Esc" (Set Up Slide Show), matching PowerPoint's own default OFF.
+		if (
+			direction === 'next' &&
+			!hasVisibleSlideAfter(current, slides, activeShow, authoredRange) &&
+			this.deps.loopContinuously?.() !== true
+		) {
 			if (this.deps.endWithBlackSlide?.() === false) {
 				// No black slide configured: PowerPoint ends the show outright rather
 				// than sitting on the last slide ignoring every further advance.

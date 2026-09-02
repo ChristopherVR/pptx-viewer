@@ -127,6 +127,16 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().outerShadow.distance"
 							(change)="onOuterShadowField('distance', $event)"
 						/>
+						<label class="pptx-ng-fx__toggle-row" for="fx-os-rotate-with-shape">
+							<input
+								id="fx-os-rotate-with-shape"
+								type="checkbox"
+								class="pptx-ng-fx__checkbox"
+								[checked]="state().outerShadow.rotateWithShape"
+								(change)="onOuterShadowRotateWithShapeToggle($event)"
+							/>
+							<span>Rotate with Shape</span>
+						</label>
 					</div>
 				}
 			</section>
@@ -504,6 +514,18 @@ export class EffectsPanelComponent {
 			return;
 		}
 		this.emit(updateOuterShadowPatch(el, { [field]: val }));
+	}
+
+	/**
+	 * `a:outerShdw@rotWithShape`: whether the shadow rotates along with the
+	 * shape. PowerPoint defaults to `true` when the attribute is absent.
+	 */
+	protected onOuterShadowRotateWithShapeToggle(event: Event): void {
+		const checked = checkedFromEvent(event);
+		if (checked === null) {
+			return;
+		}
+		this.emit(updateOuterShadowPatch(this.element(), { rotateWithShape: checked }));
 	}
 
 	// ── Inner shadow ──────────────────────────────────────────────────────────

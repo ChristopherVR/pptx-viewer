@@ -40,6 +40,7 @@ import {
 	resolve3DRenderingFlags,
 	resolveAutosaveActivation,
 	resolveAutosaveIntervalMs,
+	resolveAuthoredSlideRange,
 	resolveExpiredAutosaveSnapshots,
 	resolveThemeCatalogEntry,
 	shouldShowAutosaveRecoveryPrompt,
@@ -838,6 +839,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[startIndex]="customShowsCtl.presentationStartIndex()"
 					[activeCustomShow]="customShowsCtl.activeCustomShow()"
+					[authoredRange]="presentationAuthoredRange()"
+					[loopContinuously]="loader.presentationProperties().loopContinuously ?? false"
 					[showWithAnimation]="loader.presentationProperties().showWithAnimation"
 					[useTimings]="loader.presentationProperties().advanceMode !== 'manual'"
 					[subtitlesVisible]="presentationMode.subtitlesVisible()"
@@ -1398,6 +1401,19 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly xport = inject(ViewerExportService);
 	protected readonly findReplace = inject(ViewerFindReplaceService);
 	protected readonly customShowsCtl = inject(ViewerCustomShowsService);
+	/**
+	 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is authored
+	 * to open into a range (`showSlidesMode === 'range'`) rather than the whole
+	 * deck or a custom show. Fed to the presentation overlay's navigator
+	 * alongside `activeCustomShow` so a running show honours it.
+	 */
+	protected readonly presentationAuthoredRange = computed(
+		() =>
+			resolveAuthoredSlideRange(
+				this.loader.presentationProperties(),
+				this.loader.slides().length,
+			) ?? null,
+	);
 	protected readonly session = inject(ViewerCollaborationSessionService);
 	protected readonly formatPainter = inject(ViewerFormatPainterService);
 	private readonly keyboard = inject(ViewerKeyboardService);

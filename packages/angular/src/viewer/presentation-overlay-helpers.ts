@@ -18,7 +18,17 @@ import {
 	resolveShowSlideIndexes,
 	stopAllPersistentAudio,
 } from '../internal/shared';
-import type { CanvasSize, ShowOrderCustomShow } from '../internal/shared';
+import type { AuthoredSlideRange, CanvasSize, ShowOrderCustomShow } from '../internal/shared';
+
+/**
+ * The `p:showPr/p:sldRg` range restriction, when the deck is authored to open
+ * into a slide range (`p:showPr/@showSlidesMode == 'range'`). Every navigation
+ * helper below forwards it to `resolveShowSlideIndexes` alongside
+ * {@link ActiveShow}, so a range restriction is applied the same way a custom
+ * show's membership is: as a filter on the show's slide order, not a
+ * pre-filtered slide array.
+ */
+export type AuthoredRange = AuthoredSlideRange | null | undefined;
 
 /**
  * The running custom show, when one is active. Every navigation helper below
@@ -129,11 +139,12 @@ export function nextVisibleIndex(
 	current: number,
 	slides: readonly PptxSlide[],
 	activeShow?: ActiveShow,
+	authoredRange?: AuthoredRange,
 ): number {
 	if (slides.length === 0) {
 		return 0;
 	}
-	const order = resolveShowSlideIndexes(slides, activeShow);
+	const order = resolveShowSlideIndexes(slides, activeShow, authoredRange);
 	return nextShowSlideIndex(current, order, { loop: true }) ?? current;
 }
 
@@ -146,11 +157,12 @@ export function prevVisibleIndex(
 	current: number,
 	slides: readonly PptxSlide[],
 	activeShow?: ActiveShow,
+	authoredRange?: AuthoredRange,
 ): number {
 	if (slides.length === 0) {
 		return 0;
 	}
-	const order = resolveShowSlideIndexes(slides, activeShow);
+	const order = resolveShowSlideIndexes(slides, activeShow, authoredRange);
 	return previousShowSlideIndex(current, order) ?? current;
 }
 
@@ -179,18 +191,27 @@ export function hasVisibleSlideAfter(
 	current: number,
 	slides: readonly PptxSlide[],
 	activeShow?: ActiveShow,
+	authoredRange?: AuthoredRange,
 ): boolean {
-	return hasShowSlideAfter(current, resolveShowSlideIndexes(slides, activeShow));
+	return hasShowSlideAfter(current, resolveShowSlideIndexes(slides, activeShow, authoredRange));
 }
 
 /** The show's first visible slide (Home), or 0 for an empty deck. */
-export function firstVisibleIndex(slides: readonly PptxSlide[], activeShow?: ActiveShow): number {
-	return firstShowSlideIndex(resolveShowSlideIndexes(slides, activeShow)) ?? 0;
+export function firstVisibleIndex(
+	slides: readonly PptxSlide[],
+	activeShow?: ActiveShow,
+	authoredRange?: AuthoredRange,
+): number {
+	return firstShowSlideIndex(resolveShowSlideIndexes(slides, activeShow, authoredRange)) ?? 0;
 }
 
 /** The show's last visible slide (End), or 0 for an empty deck. */
-export function lastVisibleIndex(slides: readonly PptxSlide[], activeShow?: ActiveShow): number {
-	return lastShowSlideIndex(resolveShowSlideIndexes(slides, activeShow)) ?? 0;
+export function lastVisibleIndex(
+	slides: readonly PptxSlide[],
+	activeShow?: ActiveShow,
+	authoredRange?: AuthoredRange,
+): number {
+	return lastShowSlideIndex(resolveShowSlideIndexes(slides, activeShow, authoredRange)) ?? 0;
 }
 
 /**

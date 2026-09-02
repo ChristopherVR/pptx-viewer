@@ -14,9 +14,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartLegendPosition } from 'pptx-viewer-core';
 
-import { LEGEND_POSITION_OPTIONS } from '../internal/shared';
+import {
+	chartGridlinesPatch,
+	chartGridlinesState,
+	LEGEND_POSITION_OPTIONS,
+} from '../internal/shared';
 import { setDataLabels, setLegend } from './chart-advanced-helpers';
-import { patchChartStyle } from './chart-data-helpers';
+import { patchChartData, patchChartStyle } from './chart-data-helpers';
 import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { boolFromEvent, selectValue } from './chart-event-helpers';
 
@@ -72,7 +76,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 					<input
 						type="checkbox"
 						[disabled]="!canEdit()"
-						[checked]="style().hasGridlines ?? false"
+						[checked]="gridlinesShown()"
 						(change)="onToggleGridlines($event)"
 					/>
 					<span>{{ 'pptx.chart.showGridlines' | translate }}</span>
@@ -99,6 +103,16 @@ export class ChartDisplayOptionsComponent {
 
 	protected readonly legendPositions = LEGEND_POSITION_OPTIONS;
 	protected readonly style = computed(() => this.element().chartData?.style ?? {});
+	/**
+	 * Read from the primary value axis's `majorGridlines`, matching what the
+	 * cartesian renderer actually draws; `style.hasGridlines` alone is a legacy
+	 * field the renderer never reads, so wiring the checkbox straight to it
+	 * silently did nothing (see `chart-gridlines-toggle.ts` in shared).
+	 */
+	protected readonly gridlinesShown = computed(() => {
+		const chartData = this.element().chartData;
+		return chartData ? chartGridlinesState(chartData) : false;
+	});
 
 	protected onToggleTitle(event: Event): void {
 		this.elementChange.emit(patchChartStyle(this.element(), { hasTitle: boolFromEvent(event) }));
@@ -119,8 +133,12 @@ export class ChartDisplayOptionsComponent {
 	}
 
 	protected onToggleGridlines(event: Event): void {
+		const chartData = this.element().chartData;
+		if (!chartData) {
+			return;
+		}
 		this.elementChange.emit(
-			patchChartStyle(this.element(), { hasGridlines: boolFromEvent(event) }),
+			patchChartData(this.element(), chartGridlinesPatch(chartData, boolFromEvent(event))),
 		);
 	}
 

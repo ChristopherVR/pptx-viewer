@@ -392,6 +392,8 @@
 							</text>
 						}
 					</svg>
+				} @else if (placeholderPrompt(); as prompt) {
+					<div class="pptx-ng-text" [ngStyle]="prompt.style">{{ prompt.text }}</div>
 				} @else if (hasText()) {
 					<div class="pptx-ng-text" [ngStyle]="warpedTextStyle()">
 						@for (para of paragraphs(); track $index) {
