@@ -25,12 +25,17 @@ export function getKinsokuLineBreakStyles(textStyle: TextStyle | undefined): Kin
 
 	const result: KinsokuStyle = {};
 
-	// East Asian line break: when eaLineBreak is true (the default in most CJK
-	// presentations), allow standard CJK line breaks between characters. When
-	// false, use strict mode to prevent breaks at kinsoku characters.
+	// East Asian line break (ECMA-376 21.1.2.2.7 `eaLnBrk`): when true, an East
+	// Asian word may be broken between characters, which is exactly what the
+	// browser's default `word-break: normal` already does for CJK runs. It says
+	// NOTHING about Latin words: `eaLnBrk="1"` is the default in every
+	// PowerPoint master, so mapping it to `break-all` (as this once did) split
+	// every Latin paragraph mid-word ("electro / nic"). Only `latinLnBrk`
+	// licenses mid-word breaks in Latin text (below). When false, use strict
+	// mode to prevent breaks at kinsoku characters.
 	if (textStyle.eaLineBreak === true) {
 		result.lineBreak = 'normal';
-		result.wordBreak = 'break-all';
+		result.wordBreak = 'normal';
 		result.overflowWrap = 'break-word';
 	} else if (textStyle.eaLineBreak === false) {
 		result.lineBreak = 'strict';

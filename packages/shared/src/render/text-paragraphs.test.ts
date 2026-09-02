@@ -372,7 +372,8 @@ describe('per-paragraph kinsoku / tab-default override', () => {
 			),
 		);
 		expect(paras).toHaveLength(2);
-		expect(paras[0].paragraphStyle?.wordBreak).toBe('break-all');
+		expect(paras[0].paragraphStyle?.lineBreak).toBe('normal');
+		expect(paras[0].paragraphStyle?.wordBreak).toBe('normal');
 		expect(paras[0].paragraphStyle?.hangingPunctuation).toBe('last');
 		expect(paras[1].paragraphStyle?.lineBreak).toBe('strict');
 		expect(paras[1].paragraphStyle?.hangingPunctuation).toBe('none');
@@ -382,7 +383,8 @@ describe('per-paragraph kinsoku / tab-default override', () => {
 		const paras = buildParagraphs(
 			textEl([{ text: 'Body-driven', style: {} }], { textStyle: { eaLineBreak: true } }),
 		);
-		expect(paras[0].paragraphStyle?.wordBreak).toBe('break-all');
+		expect(paras[0].paragraphStyle?.lineBreak).toBe('normal');
+		expect(paras[0].paragraphStyle?.wordBreak).toBe('normal');
 	});
 });
 
