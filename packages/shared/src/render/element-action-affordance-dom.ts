@@ -22,6 +22,7 @@
 
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { elementIdSelector } from './css-escape';
 import {
 	ACTION_INDICATOR_CLASS,
 	ACTION_INDICATOR_ICON_PATH,
@@ -137,11 +138,7 @@ export function applyElementActionAffordances(
 ): number {
 	let painted = 0;
 	for (const element of elements) {
-		const escapedId =
-			typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
-				? CSS.escape(element.id)
-				: element.id.replace(/["\\]/gu, '\\$&');
-		const node = stage.querySelector(`[data-element-id="${escapedId}"]`);
+		const node = stage.querySelector(elementIdSelector(element.id));
 		if (!node) {
 			continue;
 		}

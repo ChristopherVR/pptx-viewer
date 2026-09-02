@@ -74,6 +74,36 @@ describe('focusTargetChips', () => {
 		expect(chips[0].label).toBe('SmartArt 1');
 		expect(chips[1].label).toBe('Element (missing)');
 	});
+
+	it('shortens a path-prefixed id to its trailing number, or its last segment', () => {
+		const ids = ['ppt/slides/slide1.xml-shape-9', 'shape-12  ', 'ppt/slides/pic.alpha', 'plain'];
+		const slides = [
+			slide(
+				0,
+				ids.map((id) => ({ id, type: 'shape' })),
+			),
+		];
+		const chips = focusTargetChips(
+			ids.map((elementId) => ({ kind: 'element' as const, slideIndex: 0, elementId })),
+			slides,
+		);
+		expect(chips.map((c) => c.label)).toStrictEqual([
+			'Shape 9',
+			'Shape 12',
+			'Shape alpha',
+			'Shape plain',
+		]);
+	});
+
+	it('labels a long run of digits in linear time', () => {
+		const elementId = `shape-${'0'.repeat(100_000)}x`;
+		const slides = [slide(0, [{ id: elementId, type: 'shape' }])];
+		const started = performance.now();
+		const [chip] = focusTargetChips([{ kind: 'element', slideIndex: 0, elementId }], slides);
+		expect(performance.now() - started).toBeLessThan(500);
+		// No trailing number, so the last path segment (after the `-`) is kept whole.
+		expect(chip.label).toBe(`Shape ${'0'.repeat(100_000)}x`);
+	});
 });
 
 describe('isTwoTableFocus', () => {

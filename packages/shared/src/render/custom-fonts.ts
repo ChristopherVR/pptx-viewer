@@ -52,17 +52,62 @@ const WEIGHT_SUFFIXES: ReadonlyArray<[RegExp, string]> = [
 ];
 
 /**
- * Style tokens stripped from the family name once interpreted.
+ * Style tokens stripped from the family name once interpreted, longest first
+ * so "semibold" is never read as "semi" + "bold".
  *
- * No trailing `+` around the alternation: several alternatives share a suffix
- * (semibold/demibold/extrabold/ultrabold all end in "bold"), and repeating an
- * overlapping alternation with `+` is polynomial on adversarial input (e.g. a
- * filename padded with many "bold" repetitions). The call site already loops
- * to strip multiple trailing tokens one at a time, so a single, unrepeated
- * alternation per call is enough.
+ * Deliberately not a regex. The earlier `/[-_\s]*(?:thin|...|bold)$/`
+ * backtracked quadratically on a name padded with whitespace, and repeating
+ * an alternation whose members share a suffix is polynomial on a name padded
+ * with "bold"s. A case-insensitive `endsWith` per token is bounded work per
+ * strip, and the call site loops so a run of tokens
+ * ("Inter-SemiBold-Italic") sheds one per pass in linear total time.
  */
-const STYLE_TOKEN =
-	/[-_\s]*(?:thin|hairline|extralight|ultralight|light|regular|normal|book|medium|semibold|demibold|extrabold|ultrabold|black|heavy|bold|italic|oblique)$/giu;
+const STYLE_TOKENS: readonly string[] = [
+	'extralight',
+	'ultralight',
+	'extrabold',
+	'ultrabold',
+	'semibold',
+	'demibold',
+	'hairline',
+	'oblique',
+	'regular',
+	'italic',
+	'medium',
+	'normal',
+	'light',
+	'black',
+	'heavy',
+	'bold',
+	'book',
+	'thin',
+];
+
+/** Drop the `-`, `_` and whitespace run at the end of `value`, in linear time. */
+function stripTrailingSeparators(value: string): string {
+	let end = value.length;
+	while (end > 0) {
+		const ch = value[end - 1];
+		if (ch !== '-' && ch !== '_' && !/\s/u.test(ch)) {
+			break;
+		}
+		end -= 1;
+	}
+	return value.slice(0, end);
+}
+
+/** Drop one trailing style token from `value`, if it ends in one. */
+function stripTrailingStyleToken(value: string): string {
+	for (const token of STYLE_TOKENS) {
+		if (
+			value.length >= token.length &&
+			value.slice(value.length - token.length).toLowerCase() === token
+		) {
+			return value.slice(0, value.length - token.length);
+		}
+	}
+	return value;
+}
 
 /**
  * Derive a family name, weight and style from a font file's name.
@@ -103,7 +148,7 @@ export function deriveCustomFontDescriptor(fileName: string): CustomFontDescript
 	let previous: string;
 	do {
 		previous = family;
-		family = family.replace(STYLE_TOKEN, '');
+		family = stripTrailingStyleToken(stripTrailingSeparators(family));
 	} while (family !== previous);
 
 	family = family.replace(/[-_]+/gu, ' ').replace(/\s+/gu, ' ').trim();

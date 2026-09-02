@@ -65,6 +65,22 @@ describe('deriveCustomFontDescriptor', () => {
 	});
 });
 
+describe('deriveCustomFontDescriptor: adversarial names', () => {
+	it('handles a name padded with whitespace in linear time', () => {
+		const started = performance.now();
+		const descriptor = deriveCustomFontDescriptor(`Inter${'	'.repeat(50_000)}Bold.ttf`);
+		expect(performance.now() - started).toBeLessThan(500);
+		expect(descriptor).toStrictEqual({ family: 'Inter', weight: '700', style: 'normal' });
+	});
+
+	it('handles a name padded with repeated style tokens in linear time', () => {
+		const started = performance.now();
+		const descriptor = deriveCustomFontDescriptor(`Inter${'-Bold'.repeat(20_000)}.ttf`);
+		expect(performance.now() - started).toBeLessThan(500);
+		expect(descriptor.family).toBe('Inter');
+	});
+});
+
 describe('cUSTOM_FONT_ACCEPT', () => {
 	it('advertises both the extensions and the MIME types', () => {
 		expect(CUSTOM_FONT_ACCEPT).toContain('.woff2');

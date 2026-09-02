@@ -150,3 +150,31 @@ export function executeMediaCommandInDom(
 		findMediaElementByElementId(targetId, frameRoot?.() ?? null),
 	);
 }
+
+/**
+ * `ppaction://media`: toggle play/pause on the `<video>` / `<audio>` embedded
+ * in `elementId`'s rendered subtree, scoped to `root` (the presentation stage).
+ *
+ * A click carrying this action targets the CLICKED element's own media, as
+ * opposed to a `media` element's normal inline transport controls. A missing
+ * element, or one carrying no playable media, is a silent no-op.
+ *
+ * Every binding's action runner calls this; it deliberately resolves the node
+ * through {@link findMediaElementByElementId} (an attribute compare) rather
+ * than splicing the id into a selector string, so an id never needs escaping.
+ *
+ * @returns `true` when a media element was found and toggled.
+ */
+export function toggleStageElementMedia(
+	root: ParentNode | null | undefined,
+	elementId: string | undefined,
+): boolean {
+	if (!root || !elementId) {
+		return false;
+	}
+	const media = findMediaElementByElementId(elementId, root);
+	if (!media) {
+		return false;
+	}
+	return applyMediaCommandVerb(media, { verb: 'togglePlay' });
+}

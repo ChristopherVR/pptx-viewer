@@ -154,6 +154,18 @@ export function isSafeSvgMarkup(svg: string): boolean {
 	return !EVENT_HANDLER_ATTR_RE.test(trimmed);
 }
 
+/**
+ * Coerce a caller-supplied pixel dimension to a positive finite number before
+ * it is interpolated into markup or a stylesheet. The parameters are typed as
+ * `number`, but these functions are public exports reachable from plain JS,
+ * so a string smuggled in as a "width" must not be able to close a `<style>`
+ * or an attribute. Anything unusable becomes `1`.
+ */
+export function sanitizePixelDimension(value: number): number {
+	const numeric = typeof value === 'number' ? value : Number(value);
+	return Number.isFinite(numeric) && numeric > 0 ? numeric : 1;
+}
+
 function sanitizeSlideSvg(svg: string, width: number, height: number): string {
 	if (!isSafeSvgMarkup(svg)) {
 		return '';
@@ -162,8 +174,8 @@ function sanitizeSlideSvg(svg: string, width: number, height: number): string {
 	if (!sanitized || sanitized.toLowerCase().startsWith('<svg')) {
 		return sanitized;
 	}
-	const safeWidth = Number.isFinite(width) && width > 0 ? width : 1;
-	const safeHeight = Number.isFinite(height) && height > 0 ? height : 1;
+	const safeWidth = sanitizePixelDimension(width);
+	const safeHeight = sanitizePixelDimension(height);
 	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${safeWidth} ${safeHeight}" width="${safeWidth}" height="${safeHeight}">${sanitized}</svg>`;
 }
 
@@ -176,11 +188,13 @@ function sanitizeSlideSvg(svg: string, width: number, height: number): string {
  * override browser defaults and ensure clean print output.
  */
 export function buildPrintStyleSheet(width: number, height: number, customCss?: string): string {
+	const safeWidth = sanitizePixelDimension(width);
+	const safeHeight = sanitizePixelDimension(height);
 	return `
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :host, :root {
-      width: ${width}px;
-      height: ${height}px;
+      width: ${safeWidth}px;
+      height: ${safeHeight}px;
       overflow: hidden;
     }
     img { display: block; max-width: 100%; }
@@ -221,12 +235,14 @@ export function buildPrintDocument(
 	} = options;
 	const safeOrientation = sanitizeOrientation(orientation);
 	const safeColorFilter = sanitizeCssDeclaration(colorFilter);
+	const safeWidth = sanitizePixelDimension(width);
+	const safeHeight = sanitizePixelDimension(height);
 	// Options > Advanced > "Print scale to fit" off: render each slide SVG at
 	// its native `width`/`height` instead of shrinking/growing it to fill the
 	// page, matching PowerPoint's "Scale to Fit Paper" off.
 	const svgSizeStyle = scaleToFit
 		? '.print-slide-page svg { max-width: 100%; max-height: 100%; width: auto; height: auto; }'
-		: `.print-slide-page svg { max-width: none; max-height: none; width: ${width}px; height: ${height}px; }`;
+		: `.print-slide-page svg { max-width: none; max-height: none; width: ${safeWidth}px; height: ${safeHeight}px; }`;
 
 	const slidePages = svgs
 		.map((svg, i) => {
@@ -235,7 +251,7 @@ export function buildPrintDocument(
 			// markup (stripping `<script>`/`<foreignObject>`/event handlers/
 			// `javascript:` URIs) before it is spliced in, rather than merely
 			// gating the raw, untransformed string behind a boolean check.
-			const safeSvg = sanitizeSlideSvg(svg, width, height);
+			const safeSvg = sanitizeSlideSvg(svg, safeWidth, safeHeight);
 			return `<section class="print-slide-page" aria-label="Slide ${i + 1}">
   ${safeSvg}
 </section>`;

@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { getAriaLabel, getAriaRole, getAriaRoleDescription } from './accessibility';
+import { elementIdSelector } from './css-escape';
 import { isElementActionable } from './element-actionability';
 import { PRESENTATION_STAGE_ATTRIBUTE } from './presentation-hit-test';
 
@@ -41,11 +42,7 @@ export function applyRenderedElementAccessibility(
 	}
 	let applied = 0;
 	for (const element of flattenElements(elements)) {
-		const escapedId =
-			typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
-				? CSS.escape(element.id)
-				: element.id.replace(/["\\]/gu, '\\$&');
-		const node = stage.querySelector<HTMLElement>(`[data-element-id="${escapedId}"]`);
+		const node = stage.querySelector<HTMLElement>(elementIdSelector(element.id));
 		if (!node) {
 			continue;
 		}

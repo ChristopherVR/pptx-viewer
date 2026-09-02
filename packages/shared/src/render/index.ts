@@ -1088,6 +1088,8 @@ export * from './element-action-options';
 // Presentation `ppt/tags/*.xml` name/value metadata: flatten + immutable edits.
 export * from './tag-collections';
 export * from './element-accessibility-dom';
+// `[data-element-id="..."]` selector escaping with a safe non-`CSS.escape` fallback.
+export * from './css-escape';
 // Pointer-to-element hit-test: a click on a grouped child selects the GROUP
 // (PowerPoint's rule), with the innermost id kept available for drill-in.
 export * from './element-hit-test';
