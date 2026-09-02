@@ -19,6 +19,7 @@ import ChartDataPointOptions from './ChartDataPointOptions.vue';
 import ChartDisplayOptions from './ChartDisplayOptions.vue';
 import ChartErrorBarOptions from './ChartErrorBarOptions.vue';
 import ChartMarkerOptions from './ChartMarkerOptions.vue';
+import ChartSubtypeOptions from './ChartSubtypeOptions.vue';
 import ChartTrendlineOptions from './ChartTrendlineOptions.vue';
 
 /**
@@ -184,6 +185,8 @@ const CONTROL =
 				@update="editing.updateStyle"
 				@update-chart-data="editing.patchChartData"
 			/>
+
+			<ChartSubtypeOptions :chart-data="chartData" @update-chart-data="editing.patchChartData" />
 
 			<ChartDataLabelOptions :style="chartData.style" @update="editing.updateStyle" />
 

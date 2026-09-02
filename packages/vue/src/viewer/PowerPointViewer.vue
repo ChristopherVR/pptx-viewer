@@ -42,6 +42,7 @@ import {
 	resolveAutosaveIntervalSeconds,
 	resolveExpiredAutosaveSnapshots,
 	resolveHistoryDepth,
+	resolveAuthoredSlideRange,
 	resolveImageResolutionScale,
 	resolveOptionRootClasses,
 	shouldClearAutosaveCacheOnClose,
@@ -55,11 +56,13 @@ import { useI18n } from 'vue-i18n';
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AutosaveRecoveryDialog from './components/AutosaveRecoveryDialog.vue';
 import CollaborationStatusIndicator from './components/CollaborationStatusIndicator.vue';
+import CompatibilityToasts from './components/CompatibilityToasts.vue';
 import ExportProgressModal from './components/ExportProgressModal.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import MasterViewOverlay from './components/MasterViewOverlay.vue';
 import MobileToolbar from './components/MobileToolbar.vue';
 import NotesPanel from './components/NotesPanel.vue';
+import ReadOnlyBanner from './components/ReadOnlyBanner.vue';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import TitleBar from './components/ribbon/TitleBar.vue';
 import TitleBarQuickAccess from './components/ribbon/TitleBarQuickAccess.vue';
@@ -95,9 +98,11 @@ import { useCanvasPointer } from './composables/useCanvasPointer';
 import { useCollaborationWiring } from './composables/useCollaborationWiring';
 import { useCommandDispatch } from './composables/useCommandDispatch';
 import { useCommentsWiring } from './composables/useCommentsWiring';
+import { useCompatibilityToasts } from './composables/useCompatibilityToasts';
 import { useContentSource } from './composables/useContentSource';
 import { useContextMenu } from './composables/useContextMenu';
 import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
+import { useDeckViewPreferencesSync } from './composables/useDeckViewPreferencesSync';
 import { useDeckViews } from './composables/useDeckViews';
 import { useDocumentPropertiesDialog } from './composables/useDocumentPropertiesDialog';
 import { useEditorHistory } from './composables/useEditorHistory';
@@ -129,6 +134,7 @@ import { useMultiSelectOps } from './composables/useMultiSelectOps';
 import { usePasswordProtection } from './composables/usePasswordProtection';
 import { usePresentationControls } from './composables/usePresentationControls';
 import { usePrint } from './composables/usePrint';
+import { useReadOnlyRecommendation } from './composables/useReadOnlyRecommendation';
 import { useRibbonActions } from './composables/useRibbonActions';
 import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
@@ -232,6 +238,8 @@ const {
 	isEncrypted,
 	coreProperties,
 	customProperties,
+	modifyVerifier,
+	compatibilityWarnings,
 	appProperties,
 	tagCollections,
 	signatures,
@@ -263,10 +271,19 @@ const protectedViewDismissed = ref(false);
 const protectedViewActive = computed(
 	() => shouldOpenInProtectedView(viewerOptions.value) && !protectedViewDismissed.value,
 );
-const canEditEffective = computed(() => props.canEdit && !protectedViewActive.value);
+// A deck's own `p:modifyVerifier` / "Mark as Final" recommends read-only the
+// same way Protected View does, so its lock feeds the SAME gate rather than a
+// second mechanism.
+const readOnlyRec = useReadOnlyRecommendation({ modifyVerifier, customProperties });
+const canEditEffective = computed(
+	() => props.canEdit && !protectedViewActive.value && !readOnlyRec.locked.value,
+);
 function enableEditing(): void {
 	protectedViewDismissed.value = true;
 }
+
+// -- Compatibility-warning toasts (load diagnostics) --------------------
+const compatToasts = useCompatibilityToasts({ warnings: compatibilityWarnings });
 
 function createPresentation(templateId: string): void {
 	slides.value = createBackstagePresentation(templateId);
@@ -358,6 +375,8 @@ watch(activeContent, () => {
 	// A newly opened document is protected again even if the previous one
 	// was unlocked via "Enable Editing" this session.
 	protectedViewDismissed.value = false;
+	readOnlyRec.reset();
+	compatToasts.reset();
 });
 watch(activeSlideIndex, (index) => {
 	emit('active-slide-change', index);
@@ -641,6 +660,7 @@ const printer = usePrint({
 	activeSlideIndex,
 	rasterizeSlide,
 	slideSize: canvasSize,
+	handoutMaster,
 });
 
 // -- Full-deck overlays (sorter / outline / reading view) --------------
@@ -756,6 +776,7 @@ const deckActions = useInspectorDeckActions({
 	slideMasters,
 	canvasSize,
 	slideSize: deck.slideSize,
+	slides,
 	coreProperties,
 	appProperties,
 	customProperties,
@@ -763,6 +784,7 @@ const deckActions = useInspectorDeckActions({
 	markDirty: () => {
 		autosave.isDirty.value = true;
 	},
+	pushHistory: history.pushHistory,
 	// Mirror React's refreshContentAfterThemeChange: re-serialise and reload so
 	// slide colours re-resolve against the newly-applied theme. These bytes go
 	// straight back into our own loader, which has no password, so they use the
@@ -863,6 +885,13 @@ const customShowsWiring = useCustomShowsWiring({
 	presentationProperties,
 	pushHistory: history.pushHistory,
 });
+
+// Honours `p:showPr/p:sldRg`: a deck authored to open into a custom slide
+// range (`showSlidesMode === 'range'`) presents only that range instead of
+// the whole deck. Fed to `PresentationMode` alongside `activeCustomShow`.
+const presentationAuthoredRange = computed(
+	() => resolveAuthoredSlideRange(presentationProperties.value, slides.value.length) ?? null,
+);
 
 // -- Master view (slide / notes / handout masters) ---------------------
 const masterView = useMasterViewWiring({
@@ -995,6 +1024,17 @@ const {
 	themeGalleryOpen,
 	themeEditorOpen,
 } = ribbonUi;
+
+// Seed the View-tab snap/guide toggles from the deck's own `viewProps.xml` on
+// every load, and write user changes back so a save round-trips them. Kept
+// out of the undo stack (PowerPoint does not undo View-tab toggles).
+useDeckViewPreferencesSync({
+	viewProperties,
+	loadVersion,
+	snapToGrid: drag.snapToGrid,
+	snapToObjects: drag.snapToShape,
+	showGuides,
+});
 
 // -- Viewer settings ---------------------------------------------------
 const reducedMotion = ref(false);
@@ -1413,6 +1453,17 @@ defineExpose<PowerPointViewerExpose>(
 					</button>
 				</div>
 
+				<!-- The deck's own `p:modifyVerifier` / "Mark as Final" recommendation:
+				     shown regardless of `props.canEdit` (a host-read-only deck still
+				     benefits from the "why" this banner explains). -->
+				<ReadOnlyBanner
+					v-if="readOnlyRec.showBanner.value"
+					:kind="readOnlyRec.recommendation.value.kind"
+					:message-key="readOnlyRec.recommendation.value.messageKey"
+					@edit-anyway="readOnlyRec.editAnyway"
+					@dismiss="readOnlyRec.dismiss"
+				/>
+
 				<!-- PowerPoint-style title bar sits ABOVE and OUTSIDE the
 				     role="toolbar" ribbon element (which e2e measures for height
 				     parity), gated like React on desktop + non-present. -->
@@ -1777,6 +1828,7 @@ defineExpose<PowerPointViewerExpose>(
 				:insert-dialogs="insertDialogs"
 				:signature-workflow="signatureWorkflow"
 				:signature-count="signatures.length"
+				:deck-actions="deckActions"
 			/>
 
 			<ViewerMobileSheets
@@ -1824,6 +1876,16 @@ defineExpose<PowerPointViewerExpose>(
 			</div>
 		</template>
 
+		<!-- Compatibility-warning toasts: load diagnostics, hidden during a
+		     running show like the rest of the editor chrome. -->
+		<CompatibilityToasts
+			v-if="!presentation.presenting.value"
+			:toasts="compatToasts.visibleToasts.value"
+			:overflow-count="compatToasts.overflowCount.value"
+			@dismiss="compatToasts.dismiss"
+			@dismiss-all="compatToasts.dismissAll"
+		/>
+
 		<!-- Export progress overlay (PDF / GIF / WebM) -->
 		<ExportProgressModal
 			:open="exportProgressCtl.exportModalOpen.value"
@@ -1844,6 +1906,7 @@ defineExpose<PowerPointViewerExpose>(
 			:active-slide-index="activeSlideIndex"
 			:can-edit="canEditEffective"
 			:presentation-properties="presentationProperties"
+			:authored-range="presentationAuthoredRange"
 			:end-with-black-slide="viewerOptions.advanced.slideShowEndWithBlackSlide"
 			:prompt-keep-ink-annotations="viewerOptions.advanced.slideShowPromptKeepInkAnnotations"
 			:show-menu-on-right-click="viewerOptions.advanced.slideShowShowMenuOnRightClick"

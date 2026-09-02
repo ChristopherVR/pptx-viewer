@@ -19,7 +19,7 @@
  * and last slide, Esc exits, and a click on the stage advances.
  */
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
-import type { PresentationContextMenuActionId } from 'pptx-viewer-shared';
+import type { AuthoredSlideRange, PresentationContextMenuActionId } from 'pptx-viewer-shared';
 import {
 	ANIMATION_KEYFRAMES_CSS,
 	DEFAULT_VIEWER_OPTIONS,
@@ -79,6 +79,13 @@ const props = withDefaults(
 		presentationProperties?: PptxPresentationProperties;
 		/** Membership of the running custom show, when one is selected. */
 		activeCustomShow?: { slideRIds: string[] } | null;
+		/**
+		 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is
+		 * authored to open into a range rather than the whole deck or a custom
+		 * show. Applied the same way `activeCustomShow` is: a filter on the
+		 * navigable order, not a pre-filtered slide array.
+		 */
+		authoredRange?: AuthoredSlideRange | null;
 		/** File > Options > Advanced > Slide Show behavior flags. */
 		endWithBlackSlide?: boolean;
 		promptKeepInkAnnotations?: boolean;
@@ -131,6 +138,7 @@ const reducedMotion = computed(() => viewerOptions?.value.accessibility.reducedM
 const showOrder = usePresentationShowOrder({
 	slides: () => props.slides,
 	activeCustomShow: () => props.activeCustomShow,
+	authoredRange: () => props.authoredRange,
 });
 
 const nav = usePresentationNavigation({

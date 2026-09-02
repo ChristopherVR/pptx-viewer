@@ -13,6 +13,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 import type { UseCollaborationWiringResult } from '../composables/useCollaborationWiring';
 import type { UseFontEmbeddingResult } from '../composables/useFontEmbedding';
 import type { UseInsertElementDialogsResult } from '../composables/useInsertElementDialogs';
+import type { UseInspectorDeckActionsResult } from '../composables/useInspectorDeckActions';
 import type { UsePasswordProtectionResult } from '../composables/usePasswordProtection';
 import type { UseSignatureWorkflowResult } from '../composables/useSignatureWorkflow';
 import type { UseSlideShowSettingsResult } from '../composables/useSlideShowSettings';
@@ -23,6 +24,7 @@ import InsertSmartArtDialog from './InsertSmartArtDialog.vue';
 import PasswordProtectionDialog from './PasswordProtectionDialog.vue';
 import SetUpSlideShowDialog from './SetUpSlideShowDialog.vue';
 import SignatureStrippedDialog from './SignatureStrippedDialog.vue';
+import SlideSizeRescalePrompt from './SlideSizeRescalePrompt.vue';
 
 defineProps<{
 	collaboration: UseCollaborationWiringResult;
@@ -36,6 +38,7 @@ defineProps<{
 	insertDialogs: UseInsertElementDialogsResult;
 	signatureWorkflow: UseSignatureWorkflowResult;
 	signatureCount: number;
+	deckActions: UseInspectorDeckActionsResult;
 }>();
 </script>
 
@@ -104,5 +107,13 @@ defineProps<{
 		:signature-count="signatureCount"
 		@confirm="signatureWorkflow.onAckSignatureStripped"
 		@cancel="signatureWorkflow.onAckSignatureStripped"
+	/>
+
+	<!-- Design > Slide Size: Maximize / Ensure Fit prompt when the deck already
+	     has content and the chosen size does not match it. -->
+	<SlideSizeRescalePrompt
+		:open="deckActions.pendingSlideSizeRescale.value !== null"
+		@choose="deckActions.chooseSlideSizeRescale"
+		@close="deckActions.cancelSlideSizeRescale"
 	/>
 </template>

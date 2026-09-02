@@ -5,6 +5,7 @@ import type {
 	ParsedSignature,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCompatibilityWarning,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
@@ -12,6 +13,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxLayoutOption,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSaveFormat,
@@ -206,6 +208,21 @@ export interface UseLoadContentResult {
 	themeOptions: ShallowRef<PptxThemeOption[]>;
 	/** Notes page size in pixels (`p:notesSz`), or `undefined` when absent. */
 	notesCanvasSize: Ref<CanvasSize | undefined>;
+	/**
+	 * Write-protection verifier from `p:modifyVerifier` (`presentationPr.xml`),
+	 * or `undefined` when the deck carries none. Feeds
+	 * `readOnlyRecommendation` (`pptx-viewer-shared`), which the read-only
+	 * banner uses to default a password-protected deck open read-only.
+	 */
+	modifyVerifier: ShallowRef<PptxModifyVerifier | undefined>;
+	/**
+	 * `handler.getCompatibilityWarnings()` right after this load: every
+	 * warning the parse reported, deck-scoped and slide-scoped alike (the
+	 * same list `attachSlideWarnings` partitions per slide, read back whole).
+	 * Feeds `compatibilityWarningToasts` (`pptx-viewer-shared`) for the
+	 * compat-warning toast stack.
+	 */
+	compatibilityWarnings: ShallowRef<PptxCompatibilityWarning[]>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 	/**
@@ -278,6 +295,8 @@ export function useLoadContent(
 	const handler = shallowRef<PptxHandler | null>(null);
 	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
 	const customProperties = shallowRef<PptxCustomProperty[]>([]);
+	const modifyVerifier = shallowRef<PptxModifyVerifier | undefined>(undefined);
+	const compatibilityWarnings = shallowRef<PptxCompatibilityWarning[]>([]);
 	const appProperties = shallowRef<PptxAppProperties | undefined>(undefined);
 	const tagCollections = shallowRef<PptxTagCollection[]>([]);
 	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
@@ -484,6 +503,8 @@ export function useLoadContent(
 			layoutOptions.value = parsed.layoutOptions ?? [];
 			coreProperties.value = parsed.coreProperties;
 			customProperties.value = parsed.customProperties ?? [];
+			modifyVerifier.value = parsed.modifyVerifier;
+			compatibilityWarnings.value = newHandler.getCompatibilityWarnings();
 			appProperties.value = parsed.appProperties;
 			tagCollections.value = parsed.tags ?? [];
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
@@ -618,6 +639,8 @@ export function useLoadContent(
 		handler,
 		coreProperties,
 		customProperties,
+		modifyVerifier,
+		compatibilityWarnings,
 		appProperties,
 		tagCollections,
 		embeddedFonts,

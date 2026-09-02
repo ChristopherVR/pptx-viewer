@@ -10,6 +10,7 @@
  * than unpacked, so this file stays markup.
  */
 import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange } from 'pptx-viewer-shared';
 
 import type { UseDeckViewsResult } from '../composables/useDeckViews';
 import type { UsePresentationControlsResult } from '../composables/usePresentationControls';
@@ -34,6 +35,8 @@ defineProps<{
 	activeSlideIndex: number;
 	canEdit: boolean;
 	presentationProperties: PptxPresentationProperties;
+	/** `p:showPr/p:sldRg`, resolved to deck indexes; `null`/`undefined` for no range. */
+	authoredRange?: AuthoredSlideRange | null;
 	/** File > Options > Advanced > Slide Show behaviour flags. */
 	endWithBlackSlide: boolean;
 	promptKeepInkAnnotations: boolean;
@@ -98,6 +101,7 @@ defineProps<{
 		:start-in-presenter-view="presentation.startInPresenterView.value"
 		:presentation-properties="presentationProperties"
 		:active-custom-show="presentation.activePresentationCustomShow.value"
+		:authored-range="authoredRange"
 		:end-with-black-slide="endWithBlackSlide"
 		:prompt-keep-ink-annotations="promptKeepInkAnnotations"
 		:show-menu-on-right-click="showMenuOnRightClick"

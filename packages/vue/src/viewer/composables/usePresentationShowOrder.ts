@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange } from 'pptx-viewer-shared';
 import {
 	firstShowSlideIndex,
 	hasShowSlideAfter,
@@ -42,13 +43,19 @@ export interface UsePresentationShowOrderInput {
 	slides: () => readonly PptxSlide[];
 	/** Membership of the running custom show, when one is selected. */
 	activeCustomShow?: () => { slideRIds: string[] } | null | undefined;
+	/**
+	 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is
+	 * authored to open into a range rather than the whole deck or a custom
+	 * show (`resolveAuthoredSlideRange`, `pptx-viewer-shared`).
+	 */
+	authoredRange?: () => AuthoredSlideRange | null | undefined;
 }
 
 export function usePresentationShowOrder(
 	input: UsePresentationShowOrderInput,
 ): PresentationShowOrder {
 	const indexes = computed(() =>
-		resolveShowSlideIndexes(input.slides(), input.activeCustomShow?.()),
+		resolveShowSlideIndexes(input.slides(), input.activeCustomShow?.(), input.authoredRange?.()),
 	);
 	return {
 		indexes,
