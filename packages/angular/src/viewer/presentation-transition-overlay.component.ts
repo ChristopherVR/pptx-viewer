@@ -15,7 +15,6 @@ import type { CanvasSize, MorphTransitionPlan } from '../internal/shared';
 import {
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
-	DEFAULT_MORPH_DURATION_MS,
 	MORPH_CROSSFADE_GROUP_STYLE,
 	MORPH_CROSSFADE_HALF_BLEND_MODE,
 	morphOptionToMode,
@@ -24,7 +23,7 @@ import type { StyleMap } from './element-style';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import {
 	getSlideTransitionAnimations,
-	resolveTransitionDuration,
+	resolveOverlayDurationMs,
 	transitionSlideBoxSize,
 } from './transition-helpers';
 import type { SlideTransitionAnimations } from './transition-helpers';
@@ -32,6 +31,35 @@ import { ensureTransitionKeyframes } from './transition-keyframes';
 
 /** Safety margin (ms) added to the animation duration before firing complete. */
 const COMPLETE_MARGIN_MS = 50;
+
+/**
+ * The slide the incoming (arriving) layer paints for a CLASSIC transition, or
+ * `undefined` when no such layer may exist.
+ *
+ * Without this layer the overlay painted only the outgoing slide: a wipe
+ * (whose outgoing half is `none`) sat opaque for the whole duration and the
+ * arriving slide - only ever the live stage beneath - popped in the instant
+ * the overlay tore down ("takes the time, then instantly replaced"). Types
+ * whose incoming half is `none` (the uncover family) deliberately reveal the
+ * live stage and get no layer, and a morph paints its own halves.
+ *
+ * Exported and pure so it can be unit-tested: this package renders no component
+ * under test (see `action-settings-panel.component.test.ts`).
+ */
+export function classicIncomingLayerSlide(
+	isMorph: boolean,
+	incomingAnimation: string,
+	incomingSlide: PptxSlide | undefined,
+	templateElements: readonly PptxElement[],
+): PptxSlide | undefined {
+	if (isMorph || incomingAnimation === 'none' || !incomingSlide) {
+		return undefined;
+	}
+	if (templateElements.length === 0) {
+		return incomingSlide;
+	}
+	return { ...incomingSlide, elements: [...templateElements, ...incomingSlide.elements] };
+}
 
 /**
  * The slide the overlay paints ABOVE its ghosts, or `undefined` when a morph
@@ -170,6 +198,25 @@ export function morphCrossfadeGroupSlides(
 		}
 	`,
 	template: `
+		@if (incomingLayerSlide(); as incoming) {
+			<div
+				class="pptx-ng-transition-layer"
+				data-pptx-transition-layer="incoming"
+				[ngStyle]="incomingLayerStyle()"
+			>
+				<div [ngStyle]="slideBoxStyle()">
+					<pptx-slide-canvas
+						[slide]="incoming"
+						[canvasSize]="canvasSize()"
+						[mediaDataUrls]="mediaDataUrls()"
+						[zoom]="zoom()"
+						[autoFit]="false"
+						[interactive]="false"
+					/>
+				</div>
+			</div>
+		}
+
 		<div
 			class="pptx-ng-transition-layer"
 			data-pptx-transition-layer="outgoing"
@@ -362,19 +409,9 @@ export class PresentationTransitionOverlayComponent {
 	// ------------------------------------------------------------------
 
 	/** Effective transition duration (ms), floored/defaulted. */
-	protected readonly resolvedDurationMs = computed<number>(() => {
-		const override = this.durationMs();
-		if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
-			return override;
-		}
-		const tr = this.transition();
-		// PowerPoint's Morph defaults to 2.00s (`p14:dur` overrides arrive in
-		// `durationMs`); the generic 1s default made it visibly abrupt.
-		if (tr.type === 'morph' && !(typeof tr.durationMs === 'number' && tr.durationMs > 0)) {
-			return DEFAULT_MORPH_DURATION_MS;
-		}
-		return resolveTransitionDuration(tr.durationMs);
-	});
+	protected readonly resolvedDurationMs = computed<number>(() =>
+		resolveOverlayDurationMs(this.durationMs(), this.transition()),
+	);
 
 	/** Resolved CSS animation descriptors for the outgoing/incoming layers. */
 	protected readonly animations = computed<SlideTransitionAnimations>(() => {
@@ -465,6 +502,27 @@ export class PresentationTransitionOverlayComponent {
 		}
 		return style;
 	});
+
+	/**
+	 * The arriving slide rendered ABOVE the outgoing layer for a classic
+	 * transition, carrying the incoming animation (wipe/cover/fade/push), or
+	 * `undefined` for morphs and the uncover family (which reveal the live
+	 * stage instead).
+	 */
+	protected readonly incomingLayerSlide = computed<PptxSlide | undefined>(() =>
+		classicIncomingLayerSlide(
+			this.isMorph(),
+			this.animations().incoming,
+			this.incomingSlide(),
+			this.templateElements(),
+		),
+	);
+
+	/** Style for that arriving layer: the incoming animation + its stacking. */
+	protected readonly incomingLayerStyle = computed<StyleMap>(() => ({
+		'z-index': this.animations().outgoingOnTop ? '30' : '25',
+		animation: this.animations().incoming,
+	}));
 
 	/**
 	 * Slide box sized to the ZOOMED slide footprint, matching the stage's own

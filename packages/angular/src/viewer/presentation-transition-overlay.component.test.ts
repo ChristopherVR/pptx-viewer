@@ -28,6 +28,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildMorphScopedCss, buildMorphTransitionPlan } from '../internal/shared';
 import {
+	classicIncomingLayerSlide,
 	morphCrossfadeGroupSlides,
 	morphLiftedSlide,
 } from './presentation-transition-overlay.component';
@@ -224,6 +225,68 @@ function discAndReplacedWording(): { from: PptxSlide; to: PptxSlide } {
 // chunks out of glyphs where the two line grids cross. PowerPoint's own render
 // keeps the blend coefficients summing to 1.0 for every frame, so the pair is
 // summed inside its own isolation group instead.
+describe('classicIncomingLayerSlide', () => {
+	const template = [
+		{
+			id: 'tpl-1',
+			type: 'shape',
+			name: 'Template Rect',
+			x: 0,
+			y: 0,
+			width: 960,
+			height: 540,
+		} as unknown as PptxElement,
+	];
+
+	it('wraps the arriving slide (with template elements) for a wipe', () => {
+		const incoming = slide('in', [
+			{
+				id: 'in-1',
+				type: 'shape',
+				name: 'Rect',
+				x: 10,
+				y: 10,
+				width: 50,
+				height: 25,
+			} as unknown as PptxElement,
+		]);
+
+		const layer = classicIncomingLayerSlide(
+			false,
+			'pptx-tr-wipe-from-left 600ms',
+			incoming,
+			template,
+		);
+
+		expect(layer?.id).toBe('in');
+		expect(layer?.elements.map((element) => element.id)).toStrictEqual(['tpl-1', 'in-1']);
+	});
+
+	it('renders no layer for the uncover family, which reveals the live stage', () => {
+		const incoming = slide('in', []);
+		expect(classicIncomingLayerSlide(false, 'none', incoming, template)).toBeUndefined();
+	});
+
+	it('renders no layer for a morph, which paints its own halves', () => {
+		const incoming = slide('in', []);
+		expect(
+			classicIncomingLayerSlide(true, 'pptx-morph-7-incoming 800ms', incoming, template),
+		).toBeUndefined();
+	});
+
+	it('renders no layer without an incoming slide', () => {
+		expect(
+			classicIncomingLayerSlide(false, 'pptx-tr-wipe-from-left 600ms', undefined, []),
+		).toBeUndefined();
+	});
+
+	it('binds the layer and its animation in the template', () => {
+		expect(OVERLAY_SOURCE).toContain('data-pptx-transition-layer="incoming"');
+		expect(OVERLAY_SOURCE).toContain('[ngStyle]="incomingLayerStyle()"');
+		expect(OVERLAY_SOURCE).toContain('incomingLayerSlide()');
+	});
+});
+
 describe('morphCrossfadeGroupSlides', () => {
 	it('wraps each half as its own single-element slide, in an isolated group', () => {
 		const { from, to } = discAndReplacedWording();
