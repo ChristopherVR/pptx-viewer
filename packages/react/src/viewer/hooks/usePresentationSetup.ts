@@ -1,4 +1,4 @@
-import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
 /**
  * usePresentationSetup: Wires up `usePresentationAnnotations` and
  * `usePresentationMode` together with the annotation-aware mode-switching
@@ -24,6 +24,8 @@ import { shouldLoopContinuously, applyRehearsalTimings } from './usePresentation
 export interface UsePresentationSetupInput {
 	mode: ViewerMode;
 	slides: PptxSlide[];
+	/** Master/layout shapes painted beneath each slide, by slide id (see `usePresentationMode`). */
+	templateElementsBySlideId?: Record<string, PptxElement[]>;
 	visibleSlideIndexes: number[];
 	activeSlideIndex: number;
 	containerRef: React.RefObject<HTMLElement | null>;
@@ -91,6 +93,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 	const {
 		mode,
 		slides,
+		templateElementsBySlideId,
 		visibleSlideIndexes,
 		activeSlideIndex,
 		containerRef,
@@ -126,6 +129,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 	const presentation = usePresentationMode({
 		mode,
 		slides,
+		templateElementsBySlideId,
 		visibleSlideIndexes,
 		activeSlideIndex,
 		containerRef,

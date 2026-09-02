@@ -1,4 +1,4 @@
-import type { PptxAction, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import type { PptxAction, PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import type {
 	MorphTransitionPlan,
 	PresentationPointerTool,
@@ -48,6 +48,12 @@ export interface PresentationTransitionOverlayState {
 export interface UsePresentationModeInput {
 	mode: ViewerMode;
 	slides: PptxSlide[];
+	/**
+	 * Master/layout shapes the presentation stage paints beneath each slide,
+	 * by slide id. Their count is the z-index the stage gives a slide's first
+	 * element, which a morph's stacking-order journeys must be written in.
+	 */
+	templateElementsBySlideId?: Record<string, PptxElement[]>;
 	visibleSlideIndexes: number[];
 	activeSlideIndex: number;
 	containerRef: React.RefObject<HTMLElement | null>;
