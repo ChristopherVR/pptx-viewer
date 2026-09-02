@@ -30,7 +30,7 @@ import { isImageLikeElement } from 'pptx-viewer-core';
 import { buildImageFitTransform, fitTransformsFromInsets } from './element-style';
 import type { ImageFitInsets } from './element-style';
 import type { MorphAnimationStyle, MorphPair } from './morph-types';
-import { MORPH_EASING } from './morph-types';
+import { MORPH_EASING, MORPH_EASING_POINTS } from './morph-types';
 
 /** Crop/placement insets are fractions of the source; 0.0001 is ~0.01%. */
 const CROP_EPSILON = 0.0001;
@@ -178,7 +178,7 @@ export function sampleImageCropMorphSteps(
 	for (let step = 0; step <= CROP_TRACK_STEPS; step++) {
 		const time = step / CROP_TRACK_STEPS;
 		const progress =
-			step === 0 ? 0 : step === CROP_TRACK_STEPS ? 1 : easedProgress(time, 0.4, 0, 0.2, 1);
+			step === 0 ? 0 : step === CROP_TRACK_STEPS ? 1 : easedProgress(time, ...MORPH_EASING_POINTS);
 		const insets = {} as ImageFitInsets;
 		for (const key of keys) {
 			insets[key] = from[key] + (to[key] - from[key]) * progress;
