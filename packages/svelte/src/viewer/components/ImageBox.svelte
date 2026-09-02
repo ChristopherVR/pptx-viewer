@@ -5,8 +5,10 @@
 	 * the shared computed CSS filter + any SVG `<filter>` defs for duotone /
 	 * artistic image effects.
 	 */
+	import { isImageLikeElement } from 'pptx-viewer-core';
 	import {
 		getComputedImageStyle,
+		getCropShapeClipPath,
 		getImageColorWashStyle,
 		getImageFitStyle,
 		getImageOverflow,
@@ -19,11 +21,27 @@
 
 	const { element, mediaDataUrls, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
 
+	// "Crop to Shape" (`element.cropShape`, the picture-format gallery, distinct
+	// from `<a:srcRect>` rectangular cropping below): a CSS `clip-path` on the
+	// stationary container. Shared's `getCropShapeClipPath` routes through the
+	// same adjustment-aware preset cascade every shape uses, so `roundedRect` and
+	// `star` render with their real geometry instead of a fixed approximation.
+	// Svelte had no crop-to-shape support at all before this.
+	const cropShapeClip = $derived(
+		isImageLikeElement(element)
+			? getCropShapeClipPath(element.cropShape, element.width, element.height)
+			: undefined,
+	);
+
 	// The clip is load-bearing, not cosmetic: a cropped picture is rendered by
 	// scaling the source up and translating the cropped-away part out of the
 	// frame, so without it the discarded region paints over its neighbours.
 	const containerStyle = $derived(
-		styleToString({ ...getContainerStyle(element, zIndex), overflow: getImageOverflow(element) }),
+		styleToString({
+			...getContainerStyle(element, zIndex),
+			overflow: getImageOverflow(element),
+			...(cropShapeClip ? { clipPath: cropShapeClip } : {}),
+		}),
 	);
 	const imageSrc = $derived(getImageSrc(element, mediaDataUrls));
 	const imageEffects = $derived(

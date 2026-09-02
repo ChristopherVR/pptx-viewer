@@ -12,10 +12,11 @@
 	 * to stay owned by the component that constructed it.
 	 */
 	import type { Translator } from '../../i18n/translator';
-	import { computeGridSpacingPx } from 'pptx-viewer-shared';
+	import { computeGridSpacingPx, createGuide, moveGuide, removeGuide } from 'pptx-viewer-shared';
 	import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
+	import { nextGuideId } from '../state/guide-id';
 	import MasterViewBody from './MasterViewBody.svelte';
 	import ViewerBody from './ViewerBody.svelte';
 
@@ -121,13 +122,15 @@
 		{controller}
 		annotations={parityUi.annotations}
 		guides={parityUi.showGuides ? parityUi.guides : []}
-		onchangeguide={(index, position) => {
-			parityUi.guides = parityUi.guides.map((guide, guideIndex) =>
-				guideIndex === index ? { ...guide, position } : guide,
-			);
+		onchangeguide={(id, position) => {
+			parityUi.guides = moveGuide(parityUi.guides, id, position, loader.canvasSize);
+		}}
+		ondeleteguide={(id) => {
+			parityUi.guides = removeGuide(parityUi.guides, id);
 		}}
 		onaddguide={(axis, position) => {
-			parityUi.guides = [...parityUi.guides, { axis, position }];
+			const guide = createGuide(nextGuideId(), axis, loader.canvasSize);
+			parityUi.guides = [...parityUi.guides, { ...guide, position }];
 			parityUi.showGuides = true;
 		}}
 		showRulers={parityUi.preferences.showRulers}

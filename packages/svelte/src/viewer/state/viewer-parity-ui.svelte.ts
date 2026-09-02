@@ -1,4 +1,4 @@
-import type { ViewerPreferences } from 'pptx-viewer-shared';
+import type { DeckViewPreferences, Guide } from 'pptx-viewer-shared';
 import { DEFAULT_VIEWER_PREFERENCES } from 'pptx-viewer-shared';
 
 import { CompareController } from '../compare/compare-controller.svelte';
@@ -52,10 +52,25 @@ export class ViewerParityUiState {
 	readingViewOpen = $state(false);
 	/** View tab > Outline View: the deck as one editable indented text document. */
 	outlineViewOpen = $state(false);
+	/** View > H/V Guides. Also seeded from the deck's `slideViewPr/@showGuides`. */
 	showGuides = $state(false);
+	/**
+	 * "Snap to shape" (View ▸ Snap Objects to Other Objects): the on-drag
+	 * alignment-guide snap. Also seeded from the deck's
+	 * `slideViewPr/@snapToObjects` (shared's `DeckViewPreferences.snapToObjects`
+	 * field; this binding's own historical name for the same toggle).
+	 */
 	snapToShape = $state(true);
-	guides = $state<{ axis: 'h' | 'v'; position: number }[]>([]);
-	preferences = $state<ViewerPreferences>({ ...DEFAULT_VIEWER_PREFERENCES });
+	guides = $state<Guide[]>([]);
+	/**
+	 * Also carries the deck-authored `snapToObjects`/`showGuides`/
+	 * `gridSpacingCx`/`gridSpacingCy` fields (`DeckViewPreferences`, a superset
+	 * of the base `ViewerPreferences` toggles), even though `showGuides` and
+	 * `snapToShape` above are the fields this binding actually reads: keeping
+	 * them here too is what lets `viewerPreferencesFromViewProperties` seed (and
+	 * `viewPropertiesPatchFromPreferences` later read back) a single object.
+	 */
+	preferences = $state<DeckViewPreferences>({ ...DEFAULT_VIEWER_PREFERENCES });
 
 	constructor(editor: EditorState) {
 		this.compare = new CompareController(editor);
@@ -65,7 +80,7 @@ export class ViewerParityUiState {
 		this.preferences = { ...this.preferences, autoSave: enabled };
 	}
 
-	updatePreferences(next: ViewerPreferences, onAutosaveChange: (enabled: boolean) => void): void {
+	updatePreferences(next: DeckViewPreferences, onAutosaveChange: (enabled: boolean) => void): void {
 		this.preferences = next;
 		onAutosaveChange(next.autoSave);
 	}

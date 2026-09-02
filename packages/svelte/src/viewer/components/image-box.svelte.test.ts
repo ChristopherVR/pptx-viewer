@@ -7,6 +7,7 @@
  * region. Both rules now come from `pptx-viewer-shared`.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { getCropShapeClipPath } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -69,5 +70,63 @@ describe('image box', () => {
 		// The scaled-up source must not paint outside its own frame.
 		const box = target.querySelector('.pptx-svelte-image') as HTMLElement;
 		expect(box.style.overflow).toBe('hidden');
+	});
+
+	it('applies a "Crop to Shape" clip-path on the stationary container (issue: wave 4 #7)', () => {
+		const target = mountBox({
+			type: 'picture',
+			id: 'pic-crop-shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			imageData: 'data:image/png;base64,AA==',
+			cropShape: 'ellipse',
+		} as unknown as PptxElement);
+
+		const box = target.querySelector('.pptx-svelte-image') as HTMLElement;
+		expect(box.style.clipPath).toBe(getCropShapeClipPath('ellipse', 100, 60));
+		expect(box.style.clipPath.length).toBeGreaterThan(0);
+	});
+
+	it('writes no clip-path when the picture has no crop shape', () => {
+		const target = mountBox({
+			type: 'picture',
+			id: 'pic-no-crop-shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			imageData: 'data:image/png;base64,AA==',
+		} as unknown as PptxElement);
+
+		const box = target.querySelector('.pptx-svelte-image') as HTMLElement;
+		expect(box.style.clipPath).toBe('');
+	});
+
+	it('applies a14 Corrections/Color panel filters and the sharpen SVG filter def (issue: wave 4 #8)', () => {
+		const target = mountBox({
+			type: 'picture',
+			id: 'pic-a14-corrections',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			imageData: 'data:image/png;base64,AA==',
+			imageEffects: {
+				brightnessContrast: { bright: -20000, contrast: 10000 },
+				colorSaturation: { sat: 50000 },
+				sharpenSoften: { amount: 50000 },
+			},
+		} as unknown as PptxElement);
+
+		const img = target.querySelector('img') as HTMLImageElement;
+		expect(img.style.filter).toContain('brightness(');
+		expect(img.style.filter).toContain('contrast(');
+		expect(img.style.filter).toContain('saturate(0.5)');
+		expect(img.style.filter).toContain(`url(#sharpen-pic-a14-corrections)`);
+		const sharpenFilter = target.querySelector('filter#sharpen-pic-a14-corrections');
+		expect(sharpenFilter).not.toBeNull();
+		expect(sharpenFilter?.querySelector('feConvolveMatrix')).not.toBeNull();
 	});
 });

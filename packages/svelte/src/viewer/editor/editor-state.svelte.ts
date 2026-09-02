@@ -13,6 +13,7 @@ import type {
 	PptxSlideMaster,
 	PptxSlideSize,
 	PptxTheme,
+	PptxViewProperties,
 	PptxPresentationProperties,
 	PptxCustomShow,
 	PptxTagCollection,
@@ -106,6 +107,15 @@ export class EditorState {
 	 * undo stack owns.
 	 */
 	theme = $state.raw<PptxTheme | undefined>(undefined);
+	/**
+	 * `ppt/viewProps.xml`, seeded from the load and kept in sync with the View >
+	 * Grid/Guides/Snap toggles (wave 4 #5: `viewPropertiesPatchFromPreferences`
+	 * writes the toggle state back in here). Deliberately outside
+	 * {@link EditorSnapshot}, like {@link theme}: PowerPoint does not undo a view
+	 * toggle, so this is session state that `saveEditorDocument` reads directly,
+	 * never something `pushHistory`/`commitChange` touches.
+	 */
+	viewProperties = $state.raw<PptxViewProperties | undefined>(undefined);
 	/**
 	 * Families the deck embeds, offered as their own font-dropdown group. Write
 	 * through {@link adoptEmbeddedFontFamilies} so {@link embedFonts} is reseeded

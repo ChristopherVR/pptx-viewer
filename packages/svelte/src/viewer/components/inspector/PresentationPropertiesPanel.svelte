@@ -98,8 +98,9 @@
 				canvasSize={effectiveCanvasSize}
 				slideSize={deck.slideSize}
 				{canEdit}
+				hasContent={deck.hasContent}
 				onupdate={(size) => deck.updateCanvasSize(size)}
-				onupdateslidesize={(size) => deck.updateSlideSize(size)}
+				onupdateslidesize={(size, rescaleMode) => deck.updateSlideSize(size, rescaleMode)}
 			/>
 		</div>
 	{/if}

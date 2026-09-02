@@ -10,7 +10,7 @@ import {
 	resolveShowSlideIndexes,
 	stopAllPersistentAudio,
 } from 'pptx-viewer-shared';
-import type { ElementAnimationState } from 'pptx-viewer-shared';
+import type { AuthoredSlideRange, ElementAnimationState } from 'pptx-viewer-shared';
 
 import { AnimationPlayback } from './animation-playback.svelte';
 import { ensurePresentationKeyframes } from './keyframes';
@@ -85,6 +85,14 @@ export interface PresentationControllerDeps {
 	 * omitted opens unconditionally.
 	 */
 	confirmUrl?(url: string): boolean;
+	/**
+	 * The `p:showPr/p:sldRg` authored slide-range restriction (deck opens into
+	 * slides `fromIndex..toIndex` rather than the whole deck), when no custom
+	 * show is active. `resolveShowSlideIndexes` applies hiding and the active
+	 * custom show first, same as `getActiveCustomShow`; this is the third,
+	 * lowest-precedence restriction.
+	 */
+	getAuthoredRange?(): AuthoredSlideRange | null | undefined;
 }
 
 export class PresentationController {
@@ -125,7 +133,11 @@ export class PresentationController {
 	 * over it: a slide pulled out of rotation stays out of the shows it is in.
 	 */
 	#showOrder(): number[] {
-		return resolveShowSlideIndexes(this.#deps.getSlides(), this.#deps.getActiveCustomShow?.());
+		return resolveShowSlideIndexes(
+			this.#deps.getSlides(),
+			this.#deps.getActiveCustomShow?.(),
+			this.#deps.getAuthoredRange?.(),
+		);
 	}
 
 	/** The active slide-transition overlay state, or `null` when none is playing. */

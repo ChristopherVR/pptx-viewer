@@ -5,8 +5,12 @@ import type {
 	PptxPresentationProperties,
 	PptxThemeOption,
 } from 'pptx-viewer-core';
-import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
-import { resolveSlideSizeSelection, slideSizeToCanvasPx } from 'pptx-viewer-shared';
+import type { CanvasSize, SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
+import {
+	resolveSlideSizeSelection,
+	scaleSlidesForSizeChange,
+	slideSizeToCanvasPx,
+} from 'pptx-viewer-shared';
 import { getContext, setContext } from 'svelte';
 
 import { createEditorSnapshot, saveEditorDocument } from '../editor/editor-document-state';
@@ -33,6 +37,8 @@ export interface InspectorDeckActions {
 	readonly notesCanvasSize: CanvasSize | undefined;
 	/** The deck's `p:sldSz` in EMU, which is what a save persists. */
 	readonly slideSize: SlideSizeEmu | undefined;
+	/** Whether any slide has at least one element; gates the Maximize/Ensure Fit rescale prompt. */
+	readonly hasContent: boolean;
 	/** Apply a packaged theme part by archive path (React's `handleApplyTheme`). */
 	applyThemeByPath(themePath: string, applyToAllMasters: boolean): void;
 	/** Resize the slide canvas (inspector SLIDE SIZE card's raw W/H inputs). */
@@ -41,8 +47,13 @@ export interface InspectorDeckActions {
 	 * Adopt an EMU slide size (a preset pick or an orientation flip). Writes the
 	 * EMU state AND the pixel canvas, so the stage resizes and the save keeps the
 	 * exact authored dimensions.
+	 *
+	 * `rescaleMode` is set only when the user confirmed the Maximize/Ensure Fit
+	 * prompt for a size change that affects existing content: the shared
+	 * `scaleSlidesForSizeChange` transform is applied to every slide as ONE
+	 * undo step together with the size change (`commitSlides`).
 	 */
-	updateSlideSize(size: SlideSizeEmu): void;
+	updateSlideSize(size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode): void;
 	/** Patch deck-wide slide-show / print settings (PRESENTATION card). */
 	updatePresentationProperties(patch: Partial<PptxPresentationProperties>): void;
 	/** Patch document core properties (Title / Author / ...). */
@@ -108,6 +119,9 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 		get slideSize(): SlideSizeEmu | undefined {
 			return loader.slideSize;
 		},
+		get hasContent(): boolean {
+			return editor.slides.some((slide) => slide.elements.length > 0);
+		},
 		applyThemeByPath(themePath: string, applyToAllMasters: boolean): void {
 			const handler = loader.handler;
 			if (!handler) {
@@ -131,12 +145,21 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 			loader.canvasSize = { width: Math.max(1, width), height: Math.max(1, height) };
 			editor.commitChange();
 		},
-		updateSlideSize(size: SlideSizeEmu): void {
+		updateSlideSize(size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode): void {
 			if (!Number.isFinite(size.widthEmu) || !Number.isFinite(size.heightEmu)) {
 				return;
 			}
 			if (size.widthEmu <= 0 || size.heightEmu <= 0) {
 				return;
+			}
+			if (rescaleMode) {
+				// Maximize/Ensure Fit: rescale every slide's content through the
+				// normal undoable path (one history entry), THEN apply the new size.
+				const oldSize = resolveSlideSizeSelection({
+					current: loader.slideSize,
+					canvas: loader.canvasSize,
+				}).size;
+				editor.commitSlides(scaleSlidesForSizeChange(editor.slides, oldSize, size, rescaleMode));
 			}
 			loader.slideSize = { ...size };
 			loader.canvasSize = slideSizeToCanvasPx(size);

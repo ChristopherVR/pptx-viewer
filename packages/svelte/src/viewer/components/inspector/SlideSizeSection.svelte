@@ -10,7 +10,12 @@
 	 * = 1278.5px, and a pixel round-trip would cost the deck its preset
 	 * identity) and the pixels win once the user has typed into W/H.
 	 */
-	import type { CanvasSize, SlideSizeEmu, SlideSizeOrientation } from 'pptx-viewer-shared';
+	import type {
+		CanvasSize,
+		SlideSizeEmu,
+		SlideSizeOrientation,
+		SlideSizeRescaleMode,
+	} from 'pptx-viewer-shared';
 	import {
 		resolveSlideSizeSelection,
 		SLIDE_SIZE_PRESETS,
@@ -19,11 +24,13 @@
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
+	import SlideSizeRescalePrompt from './SlideSizeRescalePrompt.svelte';
 
 	const {
 		canvasSize,
 		slideSize,
 		canEdit = true,
+		hasContent = false,
 		onupdate,
 		onupdateslidesize,
 	}: {
@@ -31,10 +38,41 @@
 		/** The deck's `p:sldSz`, when one has been loaded or picked. */
 		slideSize?: SlideSizeEmu | undefined;
 		canEdit?: boolean;
+		/** Whether any slide has at least one element; gates the rescale prompt. */
+		hasContent?: boolean;
 		onupdate: (size: CanvasSize) => void;
-		onupdateslidesize?: (size: SlideSizeEmu) => void;
+		onupdateslidesize?: (size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode) => void;
 	} = $props();
 	const t = useTranslator();
+
+	/**
+	 * PowerPoint's Maximize/Ensure Fit prompt: held here rather than applied
+	 * immediately whenever the picked size differs from the current one AND the
+	 * deck actually has content to rescale. An empty deck (or a size that
+	 * happens to match already) applies directly, matching today's behaviour.
+	 */
+	let pendingSize = $state<SlideSizeEmu | null>(null);
+
+	/** Whether two EMU sizes differ, ignoring `type` (a preset id carries no geometry of its own). */
+	function sizesDiffer(a: SlideSizeEmu, b: SlideSizeEmu): boolean {
+		return a.widthEmu !== b.widthEmu || a.heightEmu !== b.heightEmu;
+	}
+
+	function applyOrPromptSize(nextSize: SlideSizeEmu): void {
+		if (hasContent && sizesDiffer(selection.size, nextSize)) {
+			pendingSize = nextSize;
+			return;
+		}
+		onupdateslidesize?.(nextSize);
+	}
+
+	function chooseRescale(mode: SlideSizeRescaleMode): void {
+		if (!pendingSize) {
+			return;
+		}
+		onupdateslidesize?.(pendingSize, mode);
+		pendingSize = null;
+	}
 
 	const FIELDS = [
 		['W', 'width'],
@@ -65,11 +103,11 @@
 		if (!preset) {
 			return;
 		}
-		onupdateslidesize?.(slideSizeFromPreset(preset, selection.orientation));
+		applyOrPromptSize(slideSizeFromPreset(preset, selection.orientation));
 	}
 
 	function pickOrientation(orientation: SlideSizeOrientation): void {
-		onupdateslidesize?.(withSlideSizeOrientation(selection.size, orientation));
+		applyOrPromptSize(withSlideSizeOrientation(selection.size, orientation));
 	}
 </script>
 
@@ -109,6 +147,9 @@
 			</button>
 		{/each}
 	</div>
+{#if pendingSize}
+	<SlideSizeRescalePrompt onchoose={chooseRescale} />
+{/if}
 {/if}
 <div class="pptx-svelte-slide-size">
 	{#each FIELDS as [label, key] (key)}

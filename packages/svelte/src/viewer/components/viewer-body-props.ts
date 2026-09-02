@@ -1,6 +1,7 @@
 import type { PptxHandler, PptxSlide, PptxTheme, TextSegment } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
+	Guide,
 	PresentationBlackout,
 	RemoteCursor,
 	RulerUnit,
@@ -28,11 +29,13 @@ import type { StageContextMenu } from './props';
  * instead of three drifting copies of the same twenty props.
  */
 
-/** A user-placed drawing guide: `h` is a horizontal line, `v` a vertical one. */
-export interface ViewerGuide {
-	axis: 'h' | 'v';
-	position: number;
-}
+/**
+ * A user-placed drawing guide: `h` is a horizontal line, `v` a vertical one.
+ * Re-exported from `pptx-viewer-shared` (`render/alignment-guides`) under the
+ * binding's historical name; the `id` is what `onchangeguide`/`ondeleteguide`
+ * address instead of a positional array index.
+ */
+export type ViewerGuide = Guide;
 
 export interface ViewerBodyProps {
 	t: Translator;
@@ -105,7 +108,10 @@ export interface ViewerBodyProps {
 	onmoveSlide?: (fromIndex: number, toIndex: number) => void;
 	annotations: PresentationAnnotations;
 	guides?: readonly ViewerGuide[];
-	onchangeguide?: (index: number, position: number) => void;
+	/** Drag a guide to a new (clamped) position. */
+	onchangeguide?: (id: string, position: number) => void;
+	/** Delete key while a guide is focused, or a double-click on it. */
+	ondeleteguide?: (id: string) => void;
 	/** Drop a new guide dragged off a ruler strip (View > Rulers must be on). */
 	onaddguide?: (axis: 'h' | 'v', position: number) => void;
 	/** View > Rulers: paint the tick strips along the top/left of the stage. */
@@ -165,6 +171,7 @@ export type ViewerStageProps = Pick<
 	| 'annotations'
 	| 'guides'
 	| 'onchangeguide'
+	| 'ondeleteguide'
 	| 'onaddguide'
 	| 'showRulers'
 	| 'rulerUnit'
@@ -203,6 +210,7 @@ export type SlideOverlaysProps = Pick<
 	| 'annotations'
 	| 'guides'
 	| 'onchangeguide'
+	| 'ondeleteguide'
 	| 'spellCheck'
 	| 'aiHighlights'
 	| 'aiChangeBatch'

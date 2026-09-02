@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize, PrintSettings } from 'pptx-viewer-shared';
 import {
 	buildHandoutsHtml,
@@ -62,6 +62,12 @@ export interface PrintDeps {
 	getIncludeHiddenSlides?(): boolean;
 	/** Options > Advanced > "High quality" raster scale for the print fallback path. */
 	getPrintHighQuality?(): boolean;
+	/**
+	 * The deck's handout master, consumed for its background, header/footer/
+	 * date/page-number placeholders, and (when authored) positioned slide
+	 * rects, in the `handouts` print mode.
+	 */
+	getHandoutMaster?(): PptxHandoutMaster | undefined;
 }
 
 /** How long the hidden print iframe survives if `afterprint` never fires. */
@@ -191,7 +197,10 @@ export async function printSlides(deps: PrintDeps, options: PrintOptions = {}): 
 	}
 	if (settings.printWhat === 'handouts') {
 		return openWindow(
-			assemble(buildHandoutsHtml(images, slideIndices, settings.slidesPerPage), true),
+			assemble(
+				buildHandoutsHtml(images, slideIndices, settings.slidesPerPage, deps.getHandoutMaster?.()),
+				true,
+			),
 		);
 	}
 	return false;

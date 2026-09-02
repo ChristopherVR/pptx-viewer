@@ -41,6 +41,7 @@
 		annotations,
 		guides = [],
 		onchangeguide,
+		ondeleteguide,
 		spellCheck = false,
 		aiHighlights = [],
 		aiChangeBatch = null,
@@ -67,7 +68,7 @@
 	<AiChangeOverlay batch={aiChangeBatch} activeSlideIndex={current} {scale} {canvasSize} />
 {/if}
 {#if editingActive && guides.length && onchangeguide}
-	<AlignmentGuides {guides} {scale} onchange={onchangeguide} />
+	<AlignmentGuides {guides} {scale} onchange={onchangeguide} ondelete={ondeleteguide} />
 {/if}
 {#if editingActive}
 	<EditorLayer {controller} {scale} {spellCheck} />

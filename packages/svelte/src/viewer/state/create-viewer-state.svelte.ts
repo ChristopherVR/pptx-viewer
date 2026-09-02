@@ -353,6 +353,8 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		editor,
 		controller: editorUi.controller,
 		parityUi: editorUi.parityUi,
+		readOnlyRec: editorUi.readOnlyRec,
+		compatToasts: editorUi.compatToasts,
 		chromeUi: editorUi.chromeUi,
 		optionsState: editorUi.optionsState,
 		findReplace: editorUi.findReplace,

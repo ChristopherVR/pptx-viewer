@@ -23,10 +23,16 @@
 	import { setChartDataPointMarker } from 'pptx-viewer-core';
 	import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 	import {
+		bar3DShapePatch,
+		BAR3D_SHAPE_OPTIONS,
 		CHART_TYPE_LABEL_KEYS,
 		CHART_TYPE_OPTIONS,
 		patchChartData as sharedPatchChartData,
+		radarStylePatch,
+		RADAR_STYLE_OPTIONS,
 		schemaLabel,
+		surfaceWireframePatch,
+		SURFACE_WIREFRAME_OPTIONS,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
@@ -122,12 +128,44 @@
 		setChartDataPointMarker(clone, seriesIndex, pointIndex, marker);
 		replace(clone.chartData!);
 	}
+
+	/**
+	 * The three chart-subtype pickers (wave 4 #1): `bar3DShapePatch` /
+	 * `radarStylePatch` / `surfaceWireframePatch` are pure decision functions
+	 * from shared, each returning `{}` when the current chart type does not
+	 * match, so a stray call is always harmless.
+	 */
+	function onBar3DShapeChange(value: string): void {
+		if (data) {
+			patch(bar3DShapePatch(data, value as (typeof BAR3D_SHAPE_OPTIONS)[number]['value']));
+		}
+	}
+	function onRadarStyleChange(value: string): void {
+		if (data) {
+			patch(radarStylePatch(data, value as (typeof RADAR_STYLE_OPTIONS)[number]['value']));
+		}
+	}
+	function onSurfaceWireframeChange(value: string): void {
+		if (data) {
+			patch(surfaceWireframePatch(data, value === 'true'));
+		}
+	}
 </script>
 
 {#if data}<div class="section">
 	<label>Chart type<select aria-label="Chart type" value={data.chartType} onchange={(event) => onTypeChange(event.currentTarget.value as ChartTypeSelectValue)}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
 	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ title: event.currentTarget.value, style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
-	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label></div>
+	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label>
+		{#if data.chartType === 'bar3D'}
+			<label>{t('pptx.chart.bar3DShapeLabel')}<select aria-label={t('pptx.chart.bar3DShapeLabel')} data-testid="pptx-chart-bar3d-shape" value={data.barShape ?? 'box'} onchange={(event) => onBar3DShapeChange(event.currentTarget.value)}>{#each BAR3D_SHAPE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</select></label>
+		{/if}
+		{#if data.chartType === 'radar'}
+			<label>{t('pptx.chart.radarStyleLabel')}<select aria-label={t('pptx.chart.radarStyleLabel')} data-testid="pptx-chart-radar-style" value={data.radarStyle ?? 'standard'} onchange={(event) => onRadarStyleChange(event.currentTarget.value)}>{#each RADAR_STYLE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</select></label>
+		{/if}
+		{#if data.chartType === 'surface'}
+			<label>{t('pptx.chart.surfaceWireframeLabel')}<select aria-label={t('pptx.chart.surfaceWireframeLabel')} data-testid="pptx-chart-surface-wireframe" value={data.wireframe ? 'true' : 'false'} onchange={(event) => onSurfaceWireframeChange(event.currentTarget.value)}>{#each SURFACE_WIREFRAME_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</select></label>
+		{/if}
+	</div>
 	<ChartDataGrid
 		{data}
 		{canEdit}

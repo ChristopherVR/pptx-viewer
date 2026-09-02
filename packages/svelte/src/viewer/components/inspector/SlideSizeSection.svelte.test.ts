@@ -27,6 +27,7 @@ interface MountResult {
 function mountCard(
 	canvasSize: { width: number; height: number },
 	slideSize?: { widthEmu: number; heightEmu: number; type: string },
+	hasContent = false,
 ): MountResult {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
@@ -34,7 +35,7 @@ function mountCard(
 	const instance = mount(SlideSizeSection, {
 		target,
 		context: new Map<symbol, unknown>([[I18N_CONTEXT_KEY, (key: string) => key]]),
-		props: { canvasSize, slideSize, onupdate: vi.fn(), onupdateslidesize },
+		props: { canvasSize, slideSize, hasContent, onupdate: vi.fn(), onupdateslidesize },
 	});
 	flushSync();
 	cleanup = () => {
@@ -94,6 +95,90 @@ describe('slide size section', () => {
 			widthEmu: LEDGER.heightEmu,
 			heightEmu: LEDGER.widthEmu,
 			type: 'ledger',
+		});
+	});
+
+	describe('rescale prompt (wave 4 #4)', () => {
+		it('applies directly when the deck has no content, even if the size differs', () => {
+			const { target, onupdateslidesize } = mountCard({ width: 1279, height: 959 }, LEDGER, false);
+
+			const select = target.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
+			select.value = 'a4';
+			select.dispatchEvent(new Event('change', { bubbles: true }));
+
+			expect(onupdateslidesize).toHaveBeenCalledWith({
+				widthEmu: 9906000,
+				heightEmu: 6858000,
+				type: 'A4',
+			});
+			expect(target.querySelector('[data-testid="pptx-slide-size-rescale-prompt"]')).toBeNull();
+		});
+
+		it('holds the pick and shows the prompt when the deck has content and the size differs', () => {
+			const { target, onupdateslidesize } = mountCard({ width: 1279, height: 959 }, LEDGER, true);
+
+			const select = target.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
+			select.value = 'a4';
+			select.dispatchEvent(new Event('change', { bubbles: true }));
+			flushSync();
+
+			expect(onupdateslidesize).not.toHaveBeenCalled();
+			expect(target.querySelector('[data-testid="pptx-slide-size-rescale-prompt"]')).not.toBeNull();
+		});
+
+		it('choosing Maximize applies the pending size with rescaleMode "maximize"', () => {
+			const { target, onupdateslidesize } = mountCard({ width: 1279, height: 959 }, LEDGER, true);
+			target.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!.value = 'a4';
+			target
+				.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!
+				.dispatchEvent(new Event('change', { bubbles: true }));
+			flushSync();
+
+			(
+				target.querySelector(
+					'[data-testid="pptx-slide-size-rescale-maximize"]',
+				) as HTMLButtonElement
+			).click();
+			flushSync();
+
+			expect(onupdateslidesize).toHaveBeenCalledWith(
+				{ widthEmu: 9906000, heightEmu: 6858000, type: 'A4' },
+				'maximize',
+			);
+			expect(target.querySelector('[data-testid="pptx-slide-size-rescale-prompt"]')).toBeNull();
+		});
+
+		it('choosing Ensure Fit applies the pending size with rescaleMode "ensureFit"', () => {
+			const { target, onupdateslidesize } = mountCard({ width: 1279, height: 959 }, LEDGER, true);
+			target.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!.value = 'a4';
+			target
+				.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!
+				.dispatchEvent(new Event('change', { bubbles: true }));
+			flushSync();
+
+			(
+				target.querySelector(
+					'[data-testid="pptx-slide-size-rescale-ensure-fit"]',
+				) as HTMLButtonElement
+			).click();
+			flushSync();
+
+			expect(onupdateslidesize).toHaveBeenCalledWith(
+				{ widthEmu: 9906000, heightEmu: 6858000, type: 'A4' },
+				'ensureFit',
+			);
+		});
+
+		it('applies directly when the size does not actually change', () => {
+			const { target, onupdateslidesize } = mountCard({ width: 1279, height: 959 }, LEDGER, true);
+
+			// Re-picking the same preset: no size change, so no prompt.
+			const select = target.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
+			select.value = 'ledger';
+			select.dispatchEvent(new Event('change', { bubbles: true }));
+
+			expect(onupdateslidesize).toHaveBeenCalledWith(LEDGER);
+			expect(target.querySelector('[data-testid="pptx-slide-size-rescale-prompt"]')).toBeNull();
 		});
 	});
 });

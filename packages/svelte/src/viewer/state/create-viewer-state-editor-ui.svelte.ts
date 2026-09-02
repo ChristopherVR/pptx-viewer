@@ -1,4 +1,10 @@
-import { computeGridSpacingPx, resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
+import {
+	computeGridSpacingPx,
+	resolveAuthoredCustomShowId,
+	viewerPreferencesFromViewProperties,
+	viewPropertiesPatchFromPreferences,
+} from 'pptx-viewer-shared';
+import { untrack } from 'svelte';
 
 import type { CollaborationController } from '../collab';
 import type { StageContextMenu } from '../components/props';
@@ -6,8 +12,10 @@ import { EditorController } from '../editor/editor-controller.svelte';
 import { FindReplaceState } from '../editor/editor-find-replace.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
 import { ChromeUiState } from './chrome-ui.svelte';
+import { CompatToastsState } from './compat-toasts.svelte';
 import type { CreateViewerStateOptions } from './create-viewer-state-types';
 import type { PresentationLoader } from './presentation-loader.svelte';
+import { ReadOnlyRecommendationState } from './read-only-recommendation.svelte';
 import { useViewerEffects } from './viewer-effects.svelte';
 import { provideViewerOptions } from './viewer-options-context';
 import { useViewerOptionsWiring } from './viewer-options-wiring.svelte';
@@ -35,6 +43,8 @@ export interface EditorUiClusterDeps {
 
 export interface EditorUiCluster {
 	parityUi: ViewerParityUiState;
+	readOnlyRec: ReadOnlyRecommendationState;
+	compatToasts: CompatToastsState;
 	chromeUi: ChromeUiState;
 	optionsState: ViewerOptionsState;
 	controller: EditorController;
@@ -59,6 +69,17 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 	const { loader, editor, viewer, collab, options } = deps;
 
 	const parityUi = new ViewerParityUiState(editor);
+	// Wave 4 #2: the deck's own `p:modifyVerifier` / "Mark as Final" read-only
+	// recommendation. `locked` is ANDed into the editable gate below, mirroring
+	// (not duplicating) the existing Protected View mechanism.
+	const readOnlyRec = new ReadOnlyRecommendationState({
+		getModifyVerifier: () => loader.modifyVerifier,
+		getCustomProperties: () => loader.customProperties,
+	});
+	// Wave 4 #3: fidelity-loss toasts from `handler.getCompatibilityWarnings()`.
+	const compatToasts = new CompatToastsState({
+		getWarnings: () => loader.compatibilityWarnings,
+	});
 	// Full PowerPoint File > Options model (persisted); provided to chrome
 	// components (quick access, ribbon) and the Options dialog. The wiring below
 	// keeps it in sync with the six legacy preference toggles both ways.
@@ -130,7 +151,7 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 
 	useViewerEffects({
 		getSource: options.getSource,
-		getEditable: () => deps.getEditable() && !collab.readOnly,
+		getEditable: () => deps.getEditable() && !collab.readOnly && !readOnlyRec.locked,
 		getInitialSlide: options.getInitialSlide,
 		getTranslator: () => options.t,
 		loader,
@@ -149,11 +170,58 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 			// manual pick made afterwards still wins for the rest of the session.
 			parityUi.activeCustomShowId =
 				resolveAuthoredCustomShowId(loader.presentationProperties, loader.customShows) ?? null;
+			// Wave 4 #2: re-arm the read-only recommendation for the newly loaded
+			// document, even if a previous one was unlocked via "Edit anyway".
+			readOnlyRec.reset();
+			// Wave 4 #3: clear the compat-toast dismissal state for the newly
+			// loaded document; its own warnings feed in live off the loader.
+			compatToasts.reset();
+			// Wave 4 #5: seed the grid/snap/guides toggles from the deck's own
+			// `ppt/viewProps.xml`, falling back to whatever this session already
+			// has for anything the file did not author. `editor.viewProperties`
+			// starts as the as-parsed part so a save that touches no toggle at all
+			// still round-trips fields this binding has no UI for (last view,
+			// splitter position, ...) instead of silently dropping them.
+			const seeded = viewerPreferencesFromViewProperties(
+				{ viewProperties: loader.viewProperties },
+				{
+					...parityUi.preferences,
+					snapToObjects: parityUi.snapToShape,
+					showGuides: parityUi.showGuides,
+				},
+			);
+			parityUi.preferences = seeded;
+			parityUi.snapToShape = seeded.snapToObjects ?? parityUi.snapToShape;
+			parityUi.showGuides = seeded.showGuides ?? parityUi.showGuides;
+			editor.viewProperties = loader.viewProperties;
 		},
+	});
+
+	// Wave 4 #5 write-back: fold the grid/snap/guides toggles into
+	// `editor.viewProperties` on every change so a save round-trips them
+	// (`viewPropertiesPatchFromPreferences`). Deliberately a plain `$effect`,
+	// not routed through `pushHistory`/`commitChange`: PowerPoint does not undo
+	// a view toggle, and `editor.viewProperties` already lives outside
+	// `EditorSnapshot` for the same reason `theme` does.
+	$effect(() => {
+		const patch = viewPropertiesPatchFromPreferences({
+			...parityUi.preferences,
+			snapToObjects: parityUi.snapToShape,
+			showGuides: parityUi.showGuides,
+		});
+		untrack(() => {
+			editor.viewProperties = {
+				...editor.viewProperties,
+				...patch,
+				slideViewPr: { ...editor.viewProperties?.slideViewPr, ...patch.slideViewPr },
+			};
+		});
 	});
 
 	return {
 		parityUi,
+		readOnlyRec,
+		compatToasts,
 		chromeUi,
 		optionsState,
 		controller,

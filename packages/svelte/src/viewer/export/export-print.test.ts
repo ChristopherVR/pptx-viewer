@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { PrintDeps } from './export-print';
@@ -139,6 +139,29 @@ describe('printSlides', () => {
 		expect(html).toContain('<title>Handout 4 per page</title>');
 		expect(html).toContain('handout-grid');
 		expect(harness.rasterizeSlide).toHaveBeenCalledTimes(3);
+	});
+
+	it('paints the handout master footer text when getHandoutMaster is wired and ftr is enabled', async () => {
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 4,
+			headerFooter: { hasFooter: true },
+			elements: [
+				{
+					id: 'ftr1',
+					type: 'text',
+					placeholderType: 'ftr',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: 'Confidential - Acme Corp',
+				} as unknown as PptxSlide['elements'][number],
+			],
+		};
+		const harness = make({ getHandoutMaster: () => handoutMaster });
+		await printSlides(harness.deps, { printWhat: 'handouts', slidesPerPage: 4 });
+		expect(harness.html()).toContain('Confidential - Acme Corp');
 	});
 
 	it('applies the grayscale colour filter', async () => {

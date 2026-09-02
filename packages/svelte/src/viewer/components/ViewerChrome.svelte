@@ -11,12 +11,14 @@
 	 * whole bag rather than ~40 individual props is deliberate; the bag is the
 	 * viewer's single composition root and the chrome reads most of it.
 	 */
-	import { readBackstageRecentFile, toggleSheet } from 'pptx-viewer-shared';
+	import { createGuide, readBackstageRecentFile, toggleSheet } from 'pptx-viewer-shared';
 	import type { AccountAuthConfig, ToolbarActionId, ViewerTheme } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
+	import { nextGuideId } from '../state/guide-id';
 	import Ribbon from './ribbon/Ribbon.svelte';
+	import ReadOnlyBanner from './ReadOnlyBanner.svelte';
 	import TitleBar from './TitleBar.svelte';
 	import MobileChrome from './MobileChrome.svelte';
 	import MobileMenuSheet from './MobileMenuSheet.svelte';
@@ -53,7 +55,7 @@
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
-	const { loader, viewer, editor, parityUi, chromeUi, findReplace, collab, dialogs, autosaveCtl, exportUi, ai } = vm;
+	const { loader, viewer, editor, parityUi, readOnlyRec, chromeUi, findReplace, collab, dialogs, autosaveCtl, exportUi, ai } = vm;
 	const t = useTranslator();
 
 	// Options > Customize Ribbon hides tabs on top of whatever the host already
@@ -107,6 +109,14 @@
 			{t('pptx.security.enableEditing')}
 		</button>
 	</div>
+{/if}
+{#if readOnlyRec.showBanner}
+	<ReadOnlyBanner
+		kind={readOnlyRec.recommendation.kind}
+		messageKey={readOnlyRec.recommendation.messageKey}
+		oneditanyway={() => readOnlyRec.editAnyway()}
+		ondismiss={() => readOnlyRec.dismiss()}
+	/>
 {/if}
 <TitleBar
 	{fileName}
@@ -231,13 +241,7 @@
 		snapToShape={parityUi.snapToShape}
 		onsnapToShapechange={(next) => (parityUi.snapToShape = next)}
 		onaddguide={(axis) => {
-			parityUi.guides = [
-				...parityUi.guides,
-				{
-					axis,
-					position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2,
-				},
-			];
+			parityUi.guides = [...parityUi.guides, createGuide(nextGuideId(), axis, loader.canvasSize)];
 			parityUi.showGuides = true;
 		}}
 		{exportUi}
@@ -361,13 +365,7 @@
 			snapToShape={parityUi.snapToShape}
 			onsnapToShapechange={(next) => (parityUi.snapToShape = next)}
 			onaddguide={(axis) => {
-				parityUi.guides = [
-					...parityUi.guides,
-					{
-						axis,
-						position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2,
-					},
-				];
+				parityUi.guides = [...parityUi.guides, createGuide(nextGuideId(), axis, loader.canvasSize)];
 				parityUi.showGuides = true;
 			}}
 			{exportUi}

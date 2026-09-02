@@ -4,9 +4,11 @@ import type {
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxEmbeddedFont,
+	PptxCompatibilityWarning,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxHandlerLoadOptions,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxCustomShow,
@@ -58,6 +60,15 @@ export class PresentationLoader {
 	 * `p:presentationPr`.
 	 */
 	viewProperties = $state.raw<PptxViewProperties | undefined>(undefined);
+	/** Write-protection verifier from `p:modifyVerifier` (`presentation.xml`). */
+	modifyVerifier = $state.raw<PptxModifyVerifier | undefined>(undefined);
+	/**
+	 * Every compatibility warning the load (and any save/patch so far this
+	 * session) has raised, from `handler.getCompatibilityWarnings()`: unmodelled
+	 * markup round-tripped only via `rawXml`, an external image reference that
+	 * cannot be embedded, and so on. Feeds the compat-toast stack (wave 4 #3).
+	 */
+	compatibilityWarnings = $state.raw<PptxCompatibilityWarning[]>([]);
 	customShows = $state.raw<PptxCustomShow[]>([]);
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
@@ -177,6 +188,8 @@ export class PresentationLoader {
 			this.headerFooter = parsed.headerFooter ?? {};
 			this.presentationProperties = parsed.presentationProperties ?? {};
 			this.viewProperties = parsed.viewProperties;
+			this.modifyVerifier = parsed.modifyVerifier;
+			this.compatibilityWarnings = newHandler.getCompatibilityWarnings();
 			this.customShows = parsed.customShows ?? [];
 			this.coreProperties = parsed.coreProperties;
 			this.appProperties = parsed.appProperties;

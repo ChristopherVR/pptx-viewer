@@ -1,4 +1,8 @@
-import { mayLeaveSlideShow, shouldLoopContinuously } from 'pptx-viewer-shared';
+import {
+	mayLeaveSlideShow,
+	resolveAuthoredSlideRange,
+	shouldLoopContinuously,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n/translator';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -73,6 +77,12 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			parityUi.activeCustomShowId
 				? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
 				: null,
+		// `p:showPr/p:sldRg`: the deck is authored to open into slides
+		// `fromIndex..toIndex` rather than the whole deck. Read from the loader's
+		// as-parsed snapshot (there is no UI to edit this range yet, unlike the
+		// custom-show selection above), resolved fresh on every read.
+		getAuthoredRange: () =>
+			resolveAuthoredSlideRange(loader.presentationProperties, editor.renderedSlides.length),
 		// Trust Center > "Confirm before opening external hyperlinks": gates an
 		// on-slide Action Setting's `openUrl` intent the same way a text-run
 		// hyperlink click already is (`TextRunBase.svelte`).
