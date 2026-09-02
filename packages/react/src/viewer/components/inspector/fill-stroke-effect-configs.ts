@@ -162,6 +162,7 @@ export const SHADOW_EFFECT_CONFIGS: EffectToggleCfg[] = [
 			{
 				key: 'sr',
 				label: 'Rotate with Shape',
+				i18nKey: 'pptx.effects.rotateWithShape',
 				type: 'checkbox',
 				read: (s) => s?.shadowRotateWithShape ?? true,
 				write: (v) => ({ shadowRotateWithShape: Boolean(v) }),
