@@ -330,6 +330,7 @@ function StaticElementRendererImpl({
 					// mode, so without saying so a video here would carry Chrome's
 					// scrubber over a slide nobody can play.
 					isStaticSurface: true,
+					placeholderPromptMode: 'thumbnail',
 					slideElements: activeSlide?.elements,
 					allSlides,
 					sourceSlideIndex,

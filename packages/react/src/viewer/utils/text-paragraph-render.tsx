@@ -6,7 +6,11 @@ import {
 	resolveParagraphAlign,
 	resolveParagraphRtl,
 } from 'pptx-viewer-shared';
-import type { ParagraphRun, RenderParagraph } from 'pptx-viewer-shared';
+import type {
+	ParagraphRun,
+	PlaceholderPromptDescriptor,
+	RenderParagraph,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import type { ElementAnimationState } from './animation-timeline';
@@ -52,6 +56,13 @@ export function renderTextSegments(
 	segmentOverrides?: readonly TextSegment[],
 	/** When true, hyperlinks require Ctrl+Click (editing mode). */
 	requireCtrlClick?: boolean,
+	/**
+	 * An empty inherited placeholder's hint, already resolved by the caller
+	 * through shared `placeholderPromptDescriptor` for its render surface.
+	 * Absent (the default) means no hint: a still, the live stage and an
+	 * export never show one.
+	 */
+	placeholderPrompt?: PlaceholderPromptDescriptor | null,
 ): React.ReactNode {
 	if (!hasTextProperties(element)) {
 		return emptyFallback || null;
@@ -59,11 +70,9 @@ export function renderTextSegments(
 
 	const segments = segmentOverrides ?? element.textSegments;
 	if (!segments || segments.length === 0) {
-		if (!element.text && element.promptText) {
+		if (placeholderPrompt) {
 			return (
-				<span style={{ opacity: 0.5, color: '#888888', pointerEvents: 'none' }}>
-					{element.promptText}
-				</span>
+				<span style={placeholderPrompt.style as React.CSSProperties}>{placeholderPrompt.text}</span>
 			);
 		}
 		return element.text || emptyFallback || '';

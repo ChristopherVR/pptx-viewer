@@ -379,6 +379,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					findHl: findHighlights,
 					onHyperlinkClick,
 					isPresentationPassive,
+					// Same rule as the other four bindings: the hint belongs to the
+					// editable canvas, not to a read-only viewer or the show stage.
+					placeholderPromptMode: canInteract && !isPresentationPassive ? 'edit' : 'present',
 					handleMediaPlayStateChange,
 					presentationElementStates,
 					slideElements: activeSlide?.elements,

@@ -17,11 +17,11 @@ describe('getKinsokuLineBreakStyles', () => {
 
 	// ── eaLineBreak ──────────────────────────────────────────────────────
 
-	it('sets lineBreak=normal and wordBreak=break-all when eaLineBreak is true', () => {
+	it('sets lineBreak=normal and keeps Latin words whole when eaLineBreak is true', () => {
 		const style: TextStyle = { eaLineBreak: true };
 		const result = getKinsokuLineBreakStyles(style);
 		expect(result.lineBreak).toBe('normal');
-		expect(result.wordBreak).toBe('break-all');
+		expect(result.wordBreak).toBe('normal');
 		expect(result.overflowWrap).toBe('break-word');
 	});
 
@@ -79,7 +79,7 @@ describe('getKinsokuLineBreakStyles', () => {
 		const style: TextStyle = { eaLineBreak: true, hangingPunctuation: true };
 		const result = getKinsokuLineBreakStyles(style);
 		expect(result.lineBreak).toBe('normal');
-		expect(result.wordBreak).toBe('break-all');
+		expect(result.wordBreak).toBe('normal');
 		expect(result.overflowWrap).toBe('break-word');
 		expect(result.hangingPunctuation).toBe('last');
 	});
@@ -96,7 +96,7 @@ describe('getKinsokuLineBreakStyles', () => {
 		const style: TextStyle = { eaLineBreak: true, latinLineBreak: true };
 		const result = getKinsokuLineBreakStyles(style);
 		expect(result.lineBreak).toBe('normal');
-		// latinLineBreak=true also sets wordBreak=break-all (same as eaLineBreak=true)
+		// only latinLineBreak=true licenses mid-word breaks; eaLineBreak alone never does
 		expect(result.wordBreak).toBe('break-all');
 		expect(result.overflowWrap).toBe('break-word');
 	});

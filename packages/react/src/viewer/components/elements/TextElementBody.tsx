@@ -3,6 +3,7 @@ import {
 	getOverflowSegments,
 	getTextBodyRotationTransform,
 	isLinkedTextBox as isLinkedTextBoxElement,
+	placeholderPromptDescriptor,
 } from 'pptx-viewer-shared';
 import React from 'react';
 
@@ -31,6 +32,7 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 		fieldContext,
 		presentationElementStates,
 		isPresentationPassive,
+		placeholderPromptMode = 'present',
 		slideElements,
 	} = options;
 	// `a:linkedTxbx` overflow now resolves through `pptx-viewer-shared` so all
@@ -60,7 +62,11 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 		...(isLinkedTextBox ? { overflow: 'hidden' } : {}),
 	};
 	const shapeType = 'shapeType' in el ? (el as { shapeType?: string }).shapeType : undefined;
-	const shouldRenderText = isTxtEl || (hasTextProperties(el) && Boolean(el.promptText));
+	// An empty inherited placeholder's greyed-out hint ("Click to add title").
+	// Shared owns the surface rule (editing canvas only); a non-text shape that
+	// carries nothing but the hint still needs a text body to show it in.
+	const placeholderPrompt = placeholderPromptDescriptor(el, placeholderPromptMode);
+	const shouldRenderText = isTxtEl || placeholderPrompt !== null;
 
 	return (
 		<>
@@ -107,6 +113,7 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 							presentationElementStates,
 							linkedSegments ?? undefined,
 							!isPresentationPassive,
+							placeholderPrompt,
 						)}
 					</div>
 				))}

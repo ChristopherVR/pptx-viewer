@@ -222,11 +222,11 @@ describe('getTextLayoutStyle', () => {
 	});
 
 	// ── Kinsoku line-breaking (CJK) ─────────────────────────────
-	it('applies lineBreak=normal and wordBreak=break-all when eaLineBreak is true', () => {
+	it('applies lineBreak=normal and keeps Latin words whole when eaLineBreak is true', () => {
 		const el = makeTextElement({ eaLineBreak: true });
 		const style = getTextLayoutStyle(el);
 		expect(style.lineBreak).toBe('normal');
-		expect(style.wordBreak).toBe('break-all');
+		expect(style.wordBreak).toBe('normal');
 		expect(style.overflowWrap).toBe('break-word');
 	});
 
@@ -257,7 +257,7 @@ describe('getTextLayoutStyle', () => {
 		const style = getTextLayoutStyle(el);
 		expect(style.display).toBe('block');
 		expect(style.lineBreak).toBe('normal');
-		expect(style.wordBreak).toBe('break-all');
+		expect(style.wordBreak).toBe('normal');
 		expect(style.hangingPunctuation).toBe('last');
 	});
 });
