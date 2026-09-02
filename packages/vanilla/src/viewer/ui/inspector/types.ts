@@ -122,6 +122,16 @@ export interface InspectorHandlers {
 	setShapeStrokeWidth(width: number): void;
 	setShapeStyle(patch: Partial<ShapeStyle>): void;
 	setShapeType(shapeType: string): void;
+	/**
+	 * B6: fold a colour into the deck's "Recent colours" (`p:clrMru`) MRU list,
+	 * without touching the selected element. Every inspector colour input that
+	 * has no dedicated recent-colours row of its own (chart/table/image/
+	 * SmartArt/text-effects colours, gradient stops, pattern fill) calls this
+	 * on COMMIT (native `change`, never the continuous `input` event a drag
+	 * through the OS picker fires) so the deck's MRU list still grows even
+	 * though there is nowhere on screen to show it going in.
+	 */
+	pushRecentColor(hex: string): void;
 
 	setTextVerticalAlign(vAlign: InspectorState['vAlign']): void;
 	setTextWrap(wrap: InspectorState['textWrap']): void;
@@ -303,6 +313,11 @@ export interface InspectorState {
 	tableRowHeights: number[];
 	/** The selected table element itself, feeding the inspector data grid. */
 	tableElement?: TablePptxElement;
+	/**
+	 * B6: the deck's `p:clrMru`, most-recent-first, feeding the "Recent
+	 * colours" row under the fill/stroke/text colour pickers.
+	 */
+	recentColors: readonly string[];
 }
 
 /**

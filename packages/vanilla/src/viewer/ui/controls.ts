@@ -76,6 +76,13 @@ export interface ColorControlOptions {
 	label: string;
 	/** Fired on every colour change (native `<input type=color>` input event). */
 	onInput(hex: string): void;
+	/**
+	 * B6: fired once the picker COMMITS (native `change`), separate from the
+	 * continuous `onInput` a drag through the OS colour picker fires. Wired by
+	 * callers to `InspectorHandlers.pushRecentColor` so the "Recent colours"
+	 * MRU list grows once per pick rather than on every drag tick.
+	 */
+	onCommit?(hex: string): void;
 }
 
 export interface ColorControlHandle {
@@ -110,6 +117,9 @@ export function makeColorControl(
 	input.value = fallback;
 	input.setAttribute('aria-label', options.label);
 	input.addEventListener('input', () => options.onInput(input.value));
+	if (options.onCommit) {
+		input.addEventListener('change', () => options.onCommit?.(input.value));
+	}
 	el.appendChild(input);
 	return {
 		el,

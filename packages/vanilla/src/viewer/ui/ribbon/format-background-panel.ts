@@ -1,4 +1,5 @@
 import type { SlideBackgroundActions } from '../../editor/editor-background-actions';
+import type { EditActions } from '../../editor/editor-edit-ops';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { makeButton, makeColorControl } from '../controls';
@@ -22,7 +23,8 @@ export interface FormatBackgroundPanel {
 export function createFormatBackgroundPanel(
 	doc: Document,
 	t: Translator,
-	actions: Pick<SlideBackgroundActions, 'setSlideBackgroundColor' | 'clearSlideBackground'>,
+	actions: Pick<SlideBackgroundActions, 'setSlideBackgroundColor' | 'clearSlideBackground'> &
+		Partial<Pick<EditActions, 'pushRecentColor'>>,
 ): FormatBackgroundPanel {
 	const el = createEl(doc, 'div', 'pptxv-format-background-panel');
 	el.hidden = true;
@@ -34,6 +36,9 @@ export function createFormatBackgroundPanel(
 		{
 			label: t('pptx.slideBackground.colourAriaLabel'),
 			onInput: (hex) => actions.setSlideBackgroundColor(hex),
+			// The committed pick (native `change`, not the drag stream) joins the
+			// deck's "Recent colours" list like every other colour picker.
+			onCommit: (hex) => actions.pushRecentColor?.(hex),
 		},
 		'#ffffff',
 	);

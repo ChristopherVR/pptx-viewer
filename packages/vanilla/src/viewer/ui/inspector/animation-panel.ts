@@ -64,6 +64,7 @@ type PanelHandlers = Pick<
 	| 'setAnimationTiming'
 	| 'setAnimationSound'
 	| 'reorderAnimation'
+	| 'pushRecentColor'
 >;
 
 /**
@@ -169,7 +170,10 @@ export function createAnimationPanel(
 		doc,
 		t,
 		(action) => commit({ afterAnimation: action }),
-		(color) => commit({ afterAnimationColor: color }),
+		(color) => {
+			commit({ afterAnimationColor: color });
+			handlers.pushRecentColor(color);
+		},
 	);
 	options.appendChild(afterAnimationRow.el);
 

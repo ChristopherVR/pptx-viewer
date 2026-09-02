@@ -4,6 +4,7 @@ import type { AnchoredPopupHandle } from './anchored-popup';
 import { attachAnchoredPopup } from './anchored-popup';
 import type { IconName } from './icons';
 import { createIcon } from './icons';
+import { createRecentColorsRow } from './recent-colors-row';
 
 /**
  * Office theme-colour swatch set: no shared catalogue exists for this yet
@@ -83,28 +84,23 @@ export function makeSwatchPicker(
 	// B6: "Recent colours" - MRU picks, seeded from the deck's `p:clrMru` and
 	// folded forward by every commit (`editor-recent-colors.ts`). Built above
 	// the preset grid, PowerPoint's own ordering, and hidden while empty.
-	const recentLabel = createEl(doc, 'div', 'pptxv-swatch-recent-label');
-	recentLabel.textContent = t('pptx.colorPicker.recentColors');
-	recentLabel.hidden = true;
-	const recentGrid = createEl(doc, 'div', 'pptxv-swatch-grid pptxv-swatch-recent-grid');
-	recentGrid.dataset.testid = 'pptx-color-recent';
-	recentGrid.hidden = true;
-	menu.append(recentLabel, recentGrid);
+	const recent = createRecentColorsRow(doc, t, (hex) => {
+		setOpen(false);
+		options.onSelect(hex);
+	});
+	menu.appendChild(recent.el);
 
 	const grid = createEl(doc, 'div', 'pptxv-swatch-grid');
 	menu.appendChild(grid);
 
 	let value = options.fallback;
 	const swatchButtons = new Map<HTMLButtonElement, string>();
-	const recentButtons = new Map<HTMLButtonElement, string>();
 
 	const applySelected = (): void => {
 		for (const [btn, hex] of swatchButtons) {
 			btn.classList.toggle('is-selected', hex === value);
 		}
-		for (const [btn, hex] of recentButtons) {
-			btn.classList.toggle('is-selected', hex === value);
-		}
+		recent.setSelected(value);
 		swab.style.backgroundColor = value;
 	};
 
@@ -168,29 +164,13 @@ export function makeSwatchPicker(
 		},
 		setDisabled(disabled) {
 			trigger.disabled = disabled;
+			recent.setDisabled(disabled);
 			if (disabled) {
 				setOpen(false);
 			}
 		},
 		setRecentColors(colors) {
-			recentButtons.clear();
-			recentGrid.replaceChildren();
-			for (const hex of colors) {
-				const btn = createEl(doc, 'button', 'pptxv-swatch');
-				btn.type = 'button';
-				btn.setAttribute('data-pptx-compact', '');
-				btn.style.backgroundColor = hex;
-				btn.setAttribute('aria-label', hex);
-				btn.addEventListener('click', () => {
-					setOpen(false);
-					options.onSelect(hex);
-				});
-				recentGrid.appendChild(btn);
-				recentButtons.set(btn, hex);
-			}
-			recentLabel.hidden = colors.length === 0;
-			recentGrid.hidden = colors.length === 0;
-			applySelected();
+			recent.setColors(colors);
 		},
 	};
 }

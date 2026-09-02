@@ -36,6 +36,8 @@ export function createChartExhaustiveSection(
 	 * which keeps it operable (and unit-testable) on its own.
 	 */
 	pointIndex?: ChartPointIndexField,
+	/** B6: pushes a committed colour into the deck's "Recent colours" MRU list. */
+	pushRecentColor?: (hex: string) => void,
 ): ChartExhaustiveSection {
 	const el = doc.createElement('div');
 	el.className = 'pptxv-chart-exhaustive';
@@ -77,7 +79,7 @@ export function createChartExhaustiveSection(
 		axisFontSize,
 		seriesFields,
 		axisFields,
-	} = createChartExhaustiveFields(doc, t);
+	} = createChartExhaustiveFields(doc, t, pushRecentColor);
 	const ownsPointPicker = pointIndex === undefined;
 	const pointPicker = pointIndex ?? createChartPointIndexField(doc, t);
 	el.append(

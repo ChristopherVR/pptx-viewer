@@ -53,6 +53,8 @@ export function createChartAdvancedSection(
 	 * omitting it (as the unit tests do) gives this section a private one.
 	 */
 	pointIndex: ChartPointIndexField = createChartPointIndexField(doc, t),
+	/** B6: pushes a committed colour into the deck's "Recent colours" MRU list. */
+	pushRecentColor?: (hex: string) => void,
 ): ChartAdvancedSection {
 	const el = doc.createElement('div');
 	el.className = 'pptxv-chart-advanced';
@@ -89,8 +91,8 @@ export function createChartAdvancedSection(
 		t,
 	);
 	const markerSize = number(doc, t('pptx.chart.markerSize'));
-	const seriesColor = color(doc, t('pptx.chart.seriesColor'));
-	const pointColor = color(doc, t('pptx.chart.dataPointColor'));
+	const seriesColor = color(doc, t('pptx.chart.seriesColor'), pushRecentColor);
+	const pointColor = color(doc, t('pptx.chart.dataPointColor'), pushRecentColor);
 	const pointExplosion = number(doc, t('pptx.chart.pointExplosion'));
 	el.append(
 		axisSelect.label,

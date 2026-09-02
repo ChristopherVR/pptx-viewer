@@ -274,6 +274,7 @@ export function buildChromeCallbacks(
 		setShapeStrokeWidth: (width) => deps.getEditActions().setShapeStrokeWidth(width),
 		setShapeStyle: (patch) => deps.getEditActions().setShapeStyle(patch),
 		setShapeType: (shapeType) => deps.getEditActions().setShapeType(shapeType),
+		pushRecentColor: (hex) => deps.getEditActions().pushRecentColor(hex),
 
 		setTextVerticalAlign: (vAlign) => deps.getEditActions().setTextVerticalAlign(vAlign),
 		setTextWrap: (wrap) => deps.getEditActions().setTextWrap(wrap),

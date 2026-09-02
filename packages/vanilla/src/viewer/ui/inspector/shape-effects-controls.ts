@@ -55,7 +55,11 @@ export function createShapeEffectsControls(
 		caption.textContent = label;
 		const control = makeColorControl(
 			doc,
-			{ label, onInput: (value) => handlers.setShapeStyle({ [key]: value }) },
+			{
+				label,
+				onInput: (value) => handlers.setShapeStyle({ [key]: value }),
+				onCommit: handlers.pushRecentColor,
+			},
 			fallback,
 		);
 		row.append(caption, control.el);

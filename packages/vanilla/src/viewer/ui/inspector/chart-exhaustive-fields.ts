@@ -40,7 +40,12 @@ import {
 const POINT_MARKER_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !== '');
 
 /** Build every control of the exhaustive section, grouped by commit handler. */
-export function createChartExhaustiveFields(doc: Document, t: Translator) {
+export function createChartExhaustiveFields(
+	doc: Document,
+	t: Translator,
+	/** B6: pushes a committed colour into the deck's "Recent colours" MRU list. */
+	pushRecentColor?: (hex: string) => void,
+) {
 	const series = select(doc, t('pptx.chart.series'), []);
 	// Not `COMBO_SERIES_TYPE_OPTIONS`: that catalogue carries a '' default and
 	// stops at four types, where this select offers six concrete ones and no
@@ -73,7 +78,7 @@ export function createChartExhaustiveFields(doc: Document, t: Translator) {
 	const trendForward = number(doc, t('pptx.chart.forecastForward'));
 	const trendBackward = number(doc, t('pptx.chart.forecastBackward'));
 	const trendIntercept = number(doc, t('pptx.chart.trendlineIntercept'));
-	const trendColor = color(doc, t('pptx.chart.trendlineColor'));
+	const trendColor = color(doc, t('pptx.chart.trendlineColor'), pushRecentColor);
 	const errorDirection = tokenSelect(
 		doc,
 		t('pptx.chart.errorBarDirection'),
@@ -84,12 +89,12 @@ export function createChartExhaustiveFields(doc: Document, t: Translator) {
 	// The shared catalogue holds exactly these three `c:errBarType` values, so it
 	// can drive the control outright.
 	const errorBarType = optionSelect(doc, t('pptx.chart.errorBarType'), ERROR_BAR_TYPE_OPTIONS, t);
-	const errorColor = color(doc, t('pptx.chart.errorBarColor'));
+	const errorColor = color(doc, t('pptx.chart.errorBarColor'), pushRecentColor);
 	const noEndCap = checkbox(doc, t('pptx.chart.noEndCap'));
 	const customPlus = input(doc, t('pptx.chart.customPlus'));
 	const customMinus = input(doc, t('pptx.chart.customMinus'));
-	const markerFill = color(doc, t('pptx.chart.markerFill'));
-	const markerLine = color(doc, t('pptx.chart.markerOutline'));
+	const markerFill = color(doc, t('pptx.chart.markerFill'), pushRecentColor);
+	const markerLine = color(doc, t('pptx.chart.markerOutline'), pushRecentColor);
 	const pointMarker = optionSelect(doc, t('pptx.chart.dataPointMarker'), POINT_MARKER_OPTIONS, t);
 	const pointMarkerSize = number(doc, t('pptx.chart.markerSize'));
 	const pointInvert = checkbox(doc, t('pptx.chart.invertIfNegative'));
@@ -104,8 +109,8 @@ export function createChartExhaustiveFields(doc: Document, t: Translator) {
 		TICK_LABEL_POSITION_OPTIONS,
 		t,
 	);
-	const axisColor = color(doc, t('pptx.chart.axisColor'));
-	const axisFontColor = color(doc, t('pptx.chart.axisFontColor'));
+	const axisColor = color(doc, t('pptx.chart.axisColor'), pushRecentColor);
+	const axisFontColor = color(doc, t('pptx.chart.axisFontColor'), pushRecentColor);
 	const axisFontSize = number(doc, t('pptx.chart.axisFontSize'));
 
 	return {

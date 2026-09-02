@@ -101,6 +101,8 @@ export interface EditActions
 	setShapeStrokeWidth(width: number): void;
 	setShapeStyle(patch: Partial<import('pptx-viewer-core').ShapeStyle>): void;
 	setShapeType(shapeType: string): void;
+	/** B6: fold a colour into the deck's "Recent colours" MRU list; see `InspectorHandlers.pushRecentColor`. */
+	pushRecentColor(hex: string): void;
 	/** Commit an inspector geometry edit (X/Y/W/H/rotation). */
 	setGeometry(patch: GeometryPatch): void;
 	insert(kind: InsertKind, shapeType?: ShapePresetType): void;
@@ -218,6 +220,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		setShapeStyle: (patch) => applyToSelected((el) => patchShapeStyle(el, patch)),
 		setShapeType: (shapeType) =>
 			applyToSelected((el) => (el.type === 'shape' ? { shapeType } : {})),
+		pushRecentColor: (hex) => recordRecentColor(store, hex),
 
 		setGeometry(patch) {
 			applyToSelected(() => {

@@ -1,3 +1,4 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildPresentationActionRunner } from './presentation-action-runner';
@@ -13,6 +14,7 @@ function harness(overrides: Partial<PresentationActionRunnerDeps> = {}) {
 		exitPresentation: vi.fn(),
 		getStageRoot: () => stageRoot,
 		getPreviousPresentedSlide: () => null,
+		getCurrentSlide: () => undefined,
 		customShowRunner: { customShow: vi.fn(), dispose: vi.fn() },
 		...overrides,
 	};
@@ -97,8 +99,23 @@ describe('vanilla presentation action runner (B7)', () => {
 		expect(deps.goToSlide).not.toHaveBeenCalled();
 	});
 
-	it('oleVerb never throws (no runtime OLE action exists in this binding)', () => {
-		const { runner } = harness();
-		expect(() => runner.oleVerb?.(-1)).not.toThrow();
+	it("oleVerb opens the clicked OLE object's recovered embedding", () => {
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+		const slide = {
+			id: 's1',
+			elements: [{ id: 'ole1', type: 'ole', oleEmbeddedData: 'blob:http://localhost/ole-payload' }],
+		} as unknown as PptxSlide;
+		const { runner } = harness({ getCurrentSlide: () => slide });
+		runner.oleVerb?.(-1, 'ole1');
+		expect(openSpy).toHaveBeenCalledWith('blob:http://localhost/ole-payload', '_blank');
+	});
+
+	it('oleVerb is a no-op without a slide, an element, or a recovered embedding', () => {
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+		const slide = { id: 's1', elements: [{ id: 'ole1', type: 'ole' }] } as unknown as PptxSlide;
+		const { runner } = harness({ getCurrentSlide: () => slide });
+		expect(() => runner.oleVerb?.(-1, undefined)).not.toThrow();
+		runner.oleVerb?.(-1, 'ole1');
+		expect(openSpy).not.toHaveBeenCalled();
 	});
 });

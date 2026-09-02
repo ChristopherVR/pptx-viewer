@@ -64,4 +64,30 @@ describe('table cell alignment pickers', () => {
 			vAlign: 'middle',
 		});
 	});
+
+	// B6: category-B push (no row of its own; folds into the deck-level MRU list).
+	it('pushes the cell text colour into the recent-colours MRU on commit, not on drag', () => {
+		const setTableCellStyles = vi.fn();
+		const pushRecentColor = vi.fn();
+		const panel = createTableCellFormatting(document, (key) => key, {
+			setTableCellStyles,
+			pushRecentColor,
+		} as unknown as InspectorHandlers);
+		panel.update({
+			isTable: true,
+			selectedTableCell: { row: 0, column: 0 },
+			selectedTableCells: [],
+		} as unknown as InspectorState);
+		const labels = Array.from(panel.el.querySelectorAll('label'));
+		const colorInput = labels
+			.find((label) => label.textContent?.startsWith('pptx.table.color'))!
+			.querySelector('input[type="color"]') as HTMLInputElement;
+
+		colorInput.value = '#123456';
+		colorInput.dispatchEvent(new Event('input'));
+		expect(pushRecentColor).not.toHaveBeenCalled();
+
+		colorInput.dispatchEvent(new Event('change'));
+		expect(pushRecentColor).toHaveBeenCalledExactlyOnceWith('#123456');
+	});
 });

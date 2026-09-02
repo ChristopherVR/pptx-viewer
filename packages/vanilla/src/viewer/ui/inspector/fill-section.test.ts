@@ -32,6 +32,7 @@ function mount() {
 		addGradientStop: vi.fn(),
 		setShapeStyle: vi.fn(),
 		setShapeType: vi.fn(),
+		pushRecentColor: vi.fn(),
 	} as unknown as InspectorHandlers;
 	const section = createFillSection(
 		document,
@@ -119,5 +120,48 @@ describe('createFillSection pattern-fill panel', () => {
 			fillMode: 'pattern',
 			fillPatternPreset: 'dotGrid',
 		});
+	});
+});
+
+// B6 (A1/A2): "Recent colours" rows under the fill and stroke pickers.
+describe('createFillSection recent-colours rows', () => {
+	it('renders one recent-colours row per picker, hidden until there are entries', () => {
+		const { section } = mount();
+		section.update(baseState());
+
+		const rows = section.el.querySelectorAll('[data-testid="pptx-color-recent"]');
+		expect(rows).toHaveLength(2);
+		for (const row of rows) {
+			expect((row as HTMLElement).hidden).toBeTruthy();
+		}
+
+		section.update(baseState({ recentColors: ['#112233'] }));
+		for (const row of section.el.querySelectorAll('[data-testid="pptx-color-recent"]')) {
+			expect((row as HTMLElement).hidden).toBeFalsy();
+		}
+	});
+
+	it('commits a fill pick through setShapeFill, and a stroke pick through setShapeStroke', () => {
+		const { section, handlers } = mount();
+		section.update(baseState({ recentColors: ['#112233'] }));
+
+		const [fillRow, strokeRow] = Array.from(
+			section.el.querySelectorAll<HTMLElement>('[data-testid="pptx-color-recent"]'),
+		);
+		fillRow.querySelector<HTMLButtonElement>('.pptxv-swatch')!.click();
+		expect(handlers.setShapeFill).toHaveBeenCalledExactlyOnceWith('#112233');
+		expect(handlers.setShapeStroke).not.toHaveBeenCalled();
+
+		strokeRow.querySelector<HTMLButtonElement>('.pptxv-swatch')!.click();
+		expect(handlers.setShapeStroke).toHaveBeenCalledExactlyOnceWith('#112233');
+	});
+
+	it('disables both rows when the shape cannot be formatted', () => {
+		const { section } = mount();
+		section.update(baseState({ canShape: false, recentColors: ['#112233'] }));
+
+		for (const row of section.el.querySelectorAll('[data-testid="pptx-color-recent"]')) {
+			expect(row.querySelector<HTMLButtonElement>('.pptxv-swatch')!.disabled).toBeTruthy();
+		}
 	});
 });

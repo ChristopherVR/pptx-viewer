@@ -30,6 +30,7 @@ export type DeckPanelHandlers = Pick<
 	| 'updateTagCollections'
 	| 'setTemplateBackground'
 	| 'getTemplateBackgroundColor'
+	| 'pushRecentColor'
 >;
 
 /** The read-only NOTES & HANDOUT card (React's `NotesHandoutCard`). */

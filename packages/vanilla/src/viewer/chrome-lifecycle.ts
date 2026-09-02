@@ -344,6 +344,10 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		confirmExternalHyperlink: deps.confirmExternalHyperlink,
 		getStageRoot: () => chrome.stageWrap,
 		getPreviousPresentedSlide: () => previousPresentedSlide,
+		getCurrentSlide: () => {
+			const state = store.get();
+			return state.slides[state.currentSlide];
+		},
 		customShowRunner,
 	});
 

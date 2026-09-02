@@ -118,6 +118,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 				state.selectedTextRange,
 				state.mediaDataUrls,
 				state.chartPartSelection,
+				currentRecentColors(state),
 			),
 		);
 		const activeSlide = state.slides[state.currentSlide];

@@ -5,6 +5,7 @@ import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import type { ColorControlHandle, NumberFieldHandle } from '../controls';
 import { makeButton, makeColorControl, makeNumberField } from '../controls';
+import { createRecentColorsRow } from '../recent-colors-row';
 import { makeCheckboxField, makeRangeField, makeSelectField } from './controls-extra';
 import { createShapeEffectsControls } from './shape-effects-controls';
 import type { InspectorHandlers, InspectorState } from './types';
@@ -52,6 +53,15 @@ export function createFillSection(
 	lineLabel.textContent = t('pptx.inspector.line');
 	fillRow.append(fillLabel, fill.el, lineLabel, stroke.el);
 	el.appendChild(fillRow);
+
+	// B6 (A1/A2): "Recent colours" rows under the fill and stroke pickers.
+	// Clicking a swatch commits through the SAME handler the picker's own
+	// `<input type="color">` uses (`setShapeFill`/`setShapeStroke`), which
+	// already folds the pick back into the deck's MRU list.
+	const fillRecent = createRecentColorsRow(doc, t, handlers.setShapeFill);
+	el.appendChild(fillRecent.el);
+	const strokeRecent = createRecentColorsRow(doc, t, handlers.setShapeStroke);
+	el.appendChild(strokeRecent.el);
 
 	const strokeWidth = makeNumberField(doc, {
 		label: t('pptx.ribbon.strokeWidth'),
@@ -175,6 +185,7 @@ export function createFillSection(
 				lastPatternBackground = hex;
 				handlers.setShapeStyle({ fillMode: 'pattern', fillPatternBackgroundColor: hex });
 			},
+			onCommit: handlers.pushRecentColor,
 		},
 		'#ffffff',
 	);
@@ -199,6 +210,7 @@ export function createFillSection(
 				{
 					label: t('pptx.gradient.stops'),
 					onInput: (hex) => handlers.updateGradientStop(index, { color: hex }),
+					onCommit: handlers.pushRecentColor,
 				},
 				stop.color,
 			);
@@ -244,6 +256,10 @@ export function createFillSection(
 			strokeWidth.setValue(state.strokeWidth);
 			fillOpacity.setValue(state.fillOpacity);
 			strokeOpacity.setValue(state.strokeOpacity);
+			fillRecent.setColors(state.recentColors ?? []);
+			strokeRecent.setColors(state.recentColors ?? []);
+			fillRecent.setDisabled(!state.canShape);
+			strokeRecent.setDisabled(!state.canShape);
 			gradientToggle.setValue(state.gradientEnabled);
 			angleField.setValue(state.gradient.angle);
 			lastGradient = state.gradient;

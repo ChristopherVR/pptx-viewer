@@ -20,6 +20,7 @@ function makeHandlers() {
 		applySlideSizeRescale: vi.fn<DeckPanelHandlers['applySlideSizeRescale']>(),
 		setTemplateBackground: vi.fn<DeckPanelHandlers['setTemplateBackground']>(),
 		getTemplateBackgroundColor: vi.fn<DeckPanelHandlers['getTemplateBackgroundColor']>(),
+		pushRecentColor: vi.fn<DeckPanelHandlers['pushRecentColor']>(),
 	} satisfies DeckPanelHandlers;
 }
 

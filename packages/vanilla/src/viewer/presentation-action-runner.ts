@@ -1,4 +1,5 @@
-import { safeOpenUrl } from 'pptx-viewer-shared';
+import type { PptxSlide } from 'pptx-viewer-core';
+import { openUrlInNewTab, resolveOleVerbTarget, safeOpenUrl } from 'pptx-viewer-shared';
 import type { PresentationActionRunner } from 'pptx-viewer-shared';
 
 import type { CustomShowRunner } from './presenter/presentation-custom-show-runner';
@@ -23,6 +24,8 @@ export interface PresentationActionRunnerDeps {
 	getStageRoot(): HTMLElement;
 	/** The deck index the show was on immediately before the current one. */
 	getPreviousPresentedSlide(): number | null;
+	/** The slide on stage, for `oleVerb`'s embedded-object lookup. */
+	getCurrentSlide(): PptxSlide | undefined;
 	customShowRunner: CustomShowRunner;
 }
 
@@ -71,9 +74,13 @@ export function buildPresentationActionRunner(
 				media.pause();
 			}
 		},
-		// No OLE "open/activate" runtime action exists in this binding yet (only
-		// the inspector's read-only OLE properties section), so this action has
-		// nothing to trigger; a no-op, never throws.
-		oleVerb: () => {},
+		// A browser cannot run the verb in the owning application: open the
+		// recovered embedding, as the inspector's OLE "Open" button does.
+		oleVerb: (verb, elementId) => {
+			const target = resolveOleVerbTarget(deps.getCurrentSlide(), elementId, verb);
+			if (target) {
+				openUrlInNewTab(target.url);
+			}
+		},
 	};
 }

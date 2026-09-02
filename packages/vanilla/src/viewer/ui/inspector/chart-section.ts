@@ -77,12 +77,14 @@ export function createChartSection(
 		t,
 		(data) => handlers.setChartData(data),
 		pointIndex,
+		handlers.pushRecentColor,
 	);
 	const exhaustive = createChartExhaustiveSection(
 		doc,
 		t,
 		(data) => handlers.setChartData(data),
 		pointIndex,
+		handlers.pushRecentColor,
 	);
 	// Family-specific subtype pickers (bar3D shape, radar style, surface
 	// wireframe): shown beside the advanced section's gridlines toggle and the

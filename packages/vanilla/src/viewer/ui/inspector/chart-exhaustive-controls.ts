@@ -27,9 +27,18 @@ export function number(doc: Document, text: string) {
 	return result;
 }
 
-export function color(doc: Document, text: string) {
+/**
+ * `onCommit`, when given, fires on the native `change` event (the picker's
+ * commit, never the continuous `input` a drag through the OS picker fires) so
+ * a caller can push the pick into the deck's "Recent colours" MRU list
+ * (`InspectorHandlers.pushRecentColor`) without flooding it while dragging.
+ */
+export function color(doc: Document, text: string, onCommit?: (hex: string) => void) {
 	const result = input(doc, text);
 	result.control.type = 'color';
+	if (onCommit) {
+		result.control.addEventListener('change', () => onCommit(result.control.value));
+	}
 	return result;
 }
 
