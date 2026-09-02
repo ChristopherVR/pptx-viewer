@@ -11,7 +11,7 @@ import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxLayoutPreview, TextStyle } from 'pptx-viewer-core';
-import { resolveDefaultFontFamily } from 'pptx-viewer-shared';
+import { fontSizeOf, resolveDefaultFontFamily } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -74,31 +74,38 @@ const { t } = useI18n();
  * deck would actually render: the theme's major font inside a title
  * placeholder and its minor font elsewhere. It used to show a hardcoded
  * "Segoe UI", which misreported every themed deck.
+ *
+ * Font size falls back through shared's `fontSizeOf`, which mirrors this same
+ * fix for size: PowerPoint's presentation-level default text style
+ * (`p:defaultTextStyle`) is 18pt, so a shape with no explicit size renders at
+ * 18pt in real PowerPoint. This box used to show a hardcoded 24pt with no
+ * relation to that default (also present, unfixed, in React's own
+ * `toolbar/HomeSection.tsx`). `fontSizeOf` is only reached once this
+ * component's own segment-level override (finer-grained than what the shared
+ * reader itself considers) has had a chance to answer first.
  */
 function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fontSize: string } {
 	const placeholderType = (element as { placeholderType?: string } | null | undefined)
 		?.placeholderType;
-	const defaults = {
-		fontFamily: resolveDefaultFontFamily(placeholderType, props.themeFonts),
-		fontSize: '24',
-	};
+	const fontFamilyDefault = resolveDefaultFontFamily(placeholderType, props.themeFonts);
 	if (!element) {
-		return defaults;
+		// `fontSizeOf` requires a real element (it narrows internally via
+		// `hasTextProperties`); with nothing selected there is none to pass, so
+		// this mirrors its own fallback value directly. Shared's `DEFAULT_FONT_SIZE`
+		// is not itself exported (see final report), so the value is inlined.
+		return { fontFamily: fontFamilyDefault, fontSize: '18' };
 	}
 	if (!hasTextProperties(element)) {
-		return defaults;
+		return { fontFamily: fontFamilyDefault, fontSize: String(fontSizeOf(element)) };
 	}
 
 	const segStyle = element.textSegments?.[0]?.style;
 	const textStyle = element.textStyle;
 
-	const fontFamily = segStyle?.fontFamily ?? textStyle?.fontFamily ?? defaults.fontFamily;
-	const fontSize = segStyle?.fontSize ?? textStyle?.fontSize;
+	const fontFamily = segStyle?.fontFamily ?? textStyle?.fontFamily ?? fontFamilyDefault;
+	const fontSize = segStyle?.fontSize ?? fontSizeOf(element);
 
-	return {
-		fontFamily,
-		fontSize: fontSize !== undefined && fontSize !== null ? String(fontSize) : defaults.fontSize,
-	};
+	return { fontFamily, fontSize: String(fontSize) };
 }
 
 const fontInfo = computed(() => extractFontInfo(props.selectedElement));

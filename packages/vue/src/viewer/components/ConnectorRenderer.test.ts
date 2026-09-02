@@ -92,6 +92,38 @@ describe('connectorRenderer', () => {
 		expect(marker.attributes('markerWidth')).toBe('6');
 		expect(marker.attributes('markerHeight')).toBe('2.4');
 	});
+
+	// Shared `markerPath` flags the 'arrow' open-chevron type `strokeOnly: true`
+	// because its path has no closing `Z`: filled solid it renders as an
+	// indistinguishable wedge, same as 'triangle'. Pins the fix onto the
+	// element-level marker <path>, not just the shared descriptor.
+	it('renders the "arrow" open-chevron marker stroke-only, not solid-filled', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeStyle: { strokeColor: '#ff0000', strokeWidth: 3, connectorEndArrow: 'arrow' },
+				}),
+				zIndex: 0,
+			},
+		});
+		const path = wrapper.get('marker#cxn_1-end path');
+		expect(path.attributes('fill')).toBe('none');
+		expect(path.attributes('stroke')).toBe('#ff0000');
+	});
+
+	it('renders a solid-filled marker (e.g. "triangle") with no stroke attribute', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeStyle: { strokeColor: '#ff0000', strokeWidth: 3, connectorEndArrow: 'triangle' },
+				}),
+				zIndex: 0,
+			},
+		});
+		const path = wrapper.get('marker#cxn_1-end path');
+		expect(path.attributes('fill')).toBe('#ff0000');
+		expect(path.attributes('stroke')).toBeUndefined();
+	});
 });
 
 // ── Bent connector routing ────────────────────────────────────────────────────

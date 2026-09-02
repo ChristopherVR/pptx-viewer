@@ -1,5 +1,6 @@
 // oxlint-disable react-hooks/rules-of-hooks
 import type { PptxSlide } from 'pptx-viewer-core';
+import { assignUserColor } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 
@@ -237,6 +238,29 @@ describe('useCollaboration', () => {
 			userName: 'Ada',
 			selectedElementId: 'el-1',
 			activeSlideIndex: 3,
+		});
+
+		scope.stop();
+	});
+
+	it('falls back to a deterministic per-user colour (shared assignUserColor) when none is supplied', async () => {
+		state.slidesArray = null;
+		state.awarenessStates.clear();
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const onRemoteSlides = vi.fn();
+		const scope = effectScope();
+		// `config` carries no `userColor`, and no `options.userColor` is passed
+		// either: every peer without an explicit colour used to collapse onto the
+		// same flat `DEFAULT_CURSOR_COLOR`, making simultaneous anonymous
+		// collaborators indistinguishable. It must now resolve to shared's
+		// `assignUserColor`, keyed on the user's name so the same person keeps a
+		// stable hue across sessions/reconnects.
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
+		await collab.start(config);
+
+		const self = state.awarenessStates.get(1);
+		expect(self?.presence).toMatchObject({
+			userColor: assignUserColor(config.userName),
 		});
 
 		scope.stop();

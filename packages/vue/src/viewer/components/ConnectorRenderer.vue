@@ -267,7 +267,12 @@ function offsetTransform(offset: number): string | undefined {
 					markerUnits="strokeWidth"
 				>
 					<circle v-if="startMarker.shape === 'circle'" cx="5" cy="5" r="4" :fill="strokeColor" />
-					<path v-else :d="startMarker.d" :fill="strokeColor" />
+					<path
+						v-else
+						:d="startMarker.d"
+						:fill="startMarker.strokeOnly ? 'none' : strokeColor"
+						:stroke="startMarker.strokeOnly ? strokeColor : undefined"
+					/>
 				</marker>
 				<marker
 					v-if="endMarker"
@@ -281,7 +286,12 @@ function offsetTransform(offset: number): string | undefined {
 					markerUnits="strokeWidth"
 				>
 					<circle v-if="endMarker.shape === 'circle'" cx="5" cy="5" r="4" :fill="strokeColor" />
-					<path v-else :d="endMarker.d" :fill="strokeColor" />
+					<path
+						v-else
+						:d="endMarker.d"
+						:fill="endMarker.strokeOnly ? 'none' : strokeColor"
+						:stroke="endMarker.strokeOnly ? strokeColor : undefined"
+					/>
 				</marker>
 				<filter v-if="lineShadow" :id="shadowFilterId" x="-50%" y="-50%" width="200%" height="200%">
 					<feDropShadow

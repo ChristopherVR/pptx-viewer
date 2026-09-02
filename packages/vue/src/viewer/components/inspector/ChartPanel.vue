@@ -179,7 +179,11 @@ const CONTROL =
 				</select>
 			</label>
 
-			<ChartDisplayOptions :style="chartData.style" @update="editing.updateStyle" />
+			<ChartDisplayOptions
+				:chart-data="chartData"
+				@update="editing.updateStyle"
+				@update-chart-data="editing.patchChartData"
+			/>
 
 			<ChartDataLabelOptions :style="chartData.style" @update="editing.updateStyle" />
 

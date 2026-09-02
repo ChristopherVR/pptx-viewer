@@ -147,6 +147,32 @@ describe('useEditorOperations - z-order', () => {
 		expect(history.canUndo.value).toBeFalsy();
 	});
 
+	it('bringToFront moves an element past every sibling (shared element-operations)', () => {
+		const { ops, ids } = setup([shapeEl('a'), shapeEl('b'), shapeEl('c')]);
+		ops.bringToFront('a');
+		expect(ids()).toStrictEqual(['b', 'c', 'a']);
+	});
+
+	it('sendToBack moves an element behind every sibling (shared element-operations)', () => {
+		const { ops, ids } = setup([shapeEl('a'), shapeEl('b'), shapeEl('c')]);
+		ops.sendToBack('c');
+		expect(ids()).toStrictEqual(['c', 'a', 'b']);
+	});
+
+	it('bringToFront is a no-op for the front-most element and does not push history', () => {
+		const { ops, ids, history } = setup([shapeEl('a'), shapeEl('b')]);
+		ops.bringToFront('b');
+		expect(ids()).toStrictEqual(['a', 'b']);
+		expect(history.canUndo.value).toBeFalsy();
+	});
+
+	it('sendToBack is a no-op for the back-most element and does not push history', () => {
+		const { ops, ids, history } = setup([shapeEl('a'), shapeEl('b')]);
+		ops.sendToBack('a');
+		expect(ids()).toStrictEqual(['a', 'b']);
+		expect(history.canUndo.value).toBeFalsy();
+	});
+
 	it('reorder moves an element to an explicit index', () => {
 		const { ops, ids } = setup([shapeEl('a'), shapeEl('b'), shapeEl('c')]);
 		ops.reorder('a', 2);

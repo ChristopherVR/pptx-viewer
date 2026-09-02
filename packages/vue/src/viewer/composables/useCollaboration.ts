@@ -13,12 +13,12 @@ import type {
 	YDocLike,
 } from 'pptx-viewer-shared';
 import {
+	assignUserColor,
 	CONNECTION_TIMEOUT_MS,
 	createCollaborationLivePatcher,
 	createPresencePublisher,
 	createSyncGate,
 	createWriteBackScheduler,
-	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
 	LOCAL_SYNC_ORIGIN,
 	observeYDocSlides,
@@ -214,7 +214,12 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 
 			publisher = createPresencePublisher(awareness, {
 				userName: config.userName,
-				userColor: options.userColor ?? config.userColor ?? DEFAULT_CURSOR_COLOR,
+				// Deterministic per-user colour when the host app supplied none: the
+				// same `userName` always lands on the same palette entry, so a peer
+				// keeps a stable hue across sessions instead of every unlabelled peer
+				// sharing one flat default colour (indistinguishable cursors in a
+				// room with more than one anonymous participant).
+				userColor: options.userColor ?? config.userColor ?? assignUserColor(config.userName),
 				userAvatar: config.userAvatar,
 				role: config.role,
 			});
