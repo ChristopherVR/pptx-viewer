@@ -13,21 +13,60 @@
  * on the same picture and both apply (OOXML does not treat one as replacing
  * the other), so this module is purely additive to the legacy handling.
  *
- * CAVEAT carried over from the artistic-effects handling in `image-effects.ts`
- * (see `isArtisticEffectRendered`'s docs): PowerPoint's Corrections/Color
- * panel, like its Artistic Effects gallery, historically bakes the chosen
+ * Like the Artistic Effects gallery (see `isArtisticEffectRendered` in
+ * `image-effects.ts`), PowerPoint's Corrections/Color panel bakes the chosen
  * correction into the stored bitmap and keeps the pristine original behind
- * `a14:imgLayer/@r:embed` (`PptxImageEffects.originalImageRelId`). Unlike
- * `artisticEffect`, these four fields have no `*Prerendered` companion to
- * detect "this is already baked in", so this module always re-applies them.
- * If a corpus sample turns up a deck where that double-applies a correction
- * already baked into the referenced bitmap, the fix is the same shape as
- * `isArtisticEffectRendered`: track a prerendered snapshot in core and gate
- * on it here.
+ * `a14:imgLayer/@r:embed`. Measured on `e2e/fixtures/issue-132-gradient-fill.pptx`
+ * (slide 1 logo, `brightnessContrast bright="-20000" contrast="-40000"`): the
+ * main-blip PNG is a monotone tonal transform of the `.wdp` original (slope 0.7,
+ * fitted per channel over every opaque pixel), so re-applying the panel values
+ * on top of it darkens the picture twice. Core records the file's values in
+ * `PptxImageEffects.prerenderedCorrections`; {@link renderedImageCorrections}
+ * keeps only the fields that differ from that snapshot (i.e. ones changed in
+ * this library's inspector), and everything below reads through it.
  *
  * Framework-agnostic: no React, Vue, Angular, Svelte or DOM imports.
  */
-import type { PptxImageEffects } from 'pptx-viewer-core';
+import type { PptxImageEffects, PptxImagePrerenderedCorrections } from 'pptx-viewer-core';
+
+type CorrectionKey = keyof PptxImagePrerenderedCorrections;
+
+/** Structural equality for the small flat records the four corrections use. */
+function sameCorrection(
+	live: Record<string, number | undefined> | undefined,
+	baked: Record<string, number | undefined> | undefined,
+): boolean {
+	if (!live || !baked) {
+		return live === baked;
+	}
+	const keys = new Set([...Object.keys(live), ...Object.keys(baked)]);
+	for (const key of keys) {
+		if (live[key] !== baked[key]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * The a14 corrections a renderer must actually apply: each of the four fields
+ * whose live value differs from the baked-in snapshot. A field equal to its
+ * snapshot is already in the bitmap; one with no snapshot was set in this
+ * library and is applied as-is.
+ */
+export function renderedImageCorrections(
+	effects: PptxImageEffects,
+): PptxImagePrerenderedCorrections {
+	const baked = effects.prerenderedCorrections;
+	const isLive = (key: CorrectionKey): boolean =>
+		Boolean(effects[key]) && !(baked && sameCorrection(effects[key], baked[key]));
+	return {
+		...(isLive('sharpenSoften') ? { sharpenSoften: effects.sharpenSoften } : {}),
+		...(isLive('brightnessContrast') ? { brightnessContrast: effects.brightnessContrast } : {}),
+		...(isLive('colorTemperature') ? { colorTemperature: effects.colorTemperature } : {}),
+		...(isLive('colorSaturation') ? { colorSaturation: effects.colorSaturation } : {}),
+	};
+}
 
 /** Clamp a number to the inclusive `[lo, hi]` range. */
 function clamp(v: number, lo: number, hi: number): number {
@@ -70,9 +109,13 @@ function buildColorTemperatureCss(colorTempK: number): string | undefined {
  * Sharpening (a positive `sharpenSoften.amount`) is NOT included here: it
  * needs an SVG `feConvolveMatrix`, produced by {@link getImageSharpenFilter}
  * and appended by the caller as a `url(#id)` reference instead.
+ *
+ * Values already baked into the bitmap are skipped (see
+ * {@link renderedImageCorrections}).
  */
-export function getImageCorrectionsFilterTokens(effects: PptxImageEffects): string[] {
+export function getImageCorrectionsFilterTokens(imageEffects: PptxImageEffects): string[] {
 	const tokens: string[] = [];
+	const effects = renderedImageCorrections(imageEffects);
 
 	if (effects.brightnessContrast) {
 		const { bright, contrast } = effects.brightnessContrast;
@@ -128,13 +171,14 @@ function buildSharpenKernel(strength: number): string {
 /**
  * The SVG `feConvolveMatrix` sharpen filter for a positive `sharpenSoften`
  * amount, or `undefined` when the element has none (or is only softened,
- * which {@link getImageCorrectionsFilterTokens} handles as a CSS `blur()`).
+ * which {@link getImageCorrectionsFilterTokens} handles as a CSS `blur()`), or
+ * when the sharpening is already baked into the bitmap.
  */
 export function getImageSharpenFilter(
 	effects: PptxImageEffects,
 	elementId: string,
 ): { id: string; cssReference: string; filterMarkup: string } | undefined {
-	const amount = effects.sharpenSoften?.amount;
+	const amount = renderedImageCorrections(effects).sharpenSoften?.amount;
 	if (typeof amount !== 'number' || amount <= 0) {
 		return undefined;
 	}

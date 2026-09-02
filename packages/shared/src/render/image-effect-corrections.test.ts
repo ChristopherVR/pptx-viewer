@@ -5,6 +5,7 @@ import {
 	getImageCorrectionsFilterTokens,
 	getImageSharpenFilter,
 	getImageSharpenFilterId,
+	renderedImageCorrections,
 } from './image-effect-corrections';
 
 describe('getImageCorrectionsFilterTokens', () => {
@@ -129,5 +130,69 @@ describe('getImageSharpenFilter', () => {
 		const values = (match![1] as string).split(' ').map(Number);
 		const sum = values.reduce((a, b) => a + b, 0);
 		expect(sum).toBeCloseTo(1, 5);
+	});
+});
+
+describe('prerendered corrections (a14:imgLayer present)', () => {
+	// Mirrors e2e/fixtures/issue-132-gradient-fill.pptx slide 1: PowerPoint baked
+	// bright -20% / contrast -40% into the stored PNG and kept the .wdp original.
+	const baked: PptxImageEffects = {
+		brightnessContrast: { bright: -20000, contrast: -40000 },
+		colorSaturation: { sat: 150000 },
+		sharpenSoften: { amount: 50000 },
+		originalImageRelId: 'rId5',
+		prerenderedCorrections: {
+			brightnessContrast: { bright: -20000, contrast: -40000 },
+			colorSaturation: { sat: 150000 },
+			sharpenSoften: { amount: 50000 },
+		},
+	};
+
+	it('applies nothing when every value matches its baked snapshot', () => {
+		expect(renderedImageCorrections(baked)).toStrictEqual({});
+		expect(getImageCorrectionsFilterTokens(baked)).toStrictEqual([]);
+		expect(getImageSharpenFilter(baked, 'el1')).toBeUndefined();
+	});
+
+	it('applies only the fields the inspector changed since the file was read', () => {
+		const edited: PptxImageEffects = {
+			...baked,
+			brightnessContrast: { bright: 30000, contrast: -40000 },
+			sharpenSoften: { amount: -100000 },
+		};
+		expect(renderedImageCorrections(edited)).toStrictEqual({
+			brightnessContrast: { bright: 30000, contrast: -40000 },
+			sharpenSoften: { amount: -100000 },
+		});
+		const tokens = getImageCorrectionsFilterTokens(edited);
+		expect(tokens).toContain('brightness(1.3)');
+		expect(tokens).toContain('contrast(0.6)');
+		expect(tokens).toContain('blur(3.00px)');
+		expect(tokens.some((token) => token.startsWith('saturate('))).toBeFalsy();
+	});
+
+	it('applies a field added after the snapshot, and one whose snapshot is absent', () => {
+		const added: PptxImageEffects = {
+			...baked,
+			colorTemperature: { colorTemp: 1500 },
+		};
+		expect(renderedImageCorrections(added)).toStrictEqual({
+			colorTemperature: { colorTemp: 1500 },
+		});
+		const library: PptxImageEffects = { brightnessContrast: { bright: 10000 } };
+		expect(renderedImageCorrections(library)).toStrictEqual({
+			brightnessContrast: { bright: 10000 },
+		});
+	});
+
+	it('treats a snapshot with a missing key as different from a live value with it', () => {
+		const effects: PptxImageEffects = {
+			brightnessContrast: { bright: -20000, contrast: 0 },
+			prerenderedCorrections: { brightnessContrast: { bright: -20000 } },
+		};
+		expect(renderedImageCorrections(effects).brightnessContrast).toStrictEqual({
+			bright: -20000,
+			contrast: 0,
+		});
 	});
 });
