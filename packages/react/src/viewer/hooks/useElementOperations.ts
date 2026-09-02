@@ -6,10 +6,12 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	ShapeStyle,
+	TextSegment,
 	TextStyle,
 } from 'pptx-viewer-core';
 import {
 	masterViewElements as resolveMasterViewElements,
+	remapTextToSegments,
 	replaceMasterViewElements,
 	updateElement as updateSlideElement,
 	updateMasterViewElement,
@@ -75,6 +77,20 @@ export interface UseElementOperationsInput {
 	setSelectedElementId: React.Dispatch<React.SetStateAction<string | null>>;
 	setSelectedElementIds: React.Dispatch<React.SetStateAction<string[]>>;
 	setInlineEditingElementId: React.Dispatch<React.SetStateAction<string | null>>;
+	/**
+	 * The element currently being inline-edited, and its live (uncommitted)
+	 * plain text. `InlineTextEditor`'s contentEditable is UNCONTROLLED — the
+	 * DOM owns the text between keystrokes and blur, only pushing plain text
+	 * out on every input — so `selectedElement.textSegments` on the model can
+	 * be stale relative to what's on screen while the user is still typing.
+	 * A toolbar style click (Bold, etc.) doesn't blur first (see the toolbar
+	 * buttons' `onMouseDown` + `preventDefault`), so it can land while that gap
+	 * exists. `updateSelectedTextStyle`/`updateSelectedTextCase` reconcile
+	 * against these before touching segments, so a style change always applies
+	 * to what the user actually sees, not stale pre-keystroke content.
+	 */
+	inlineEditingElementId: string | null;
+	inlineEditingText: string;
 	setContextMenuState: React.Dispatch<
 		React.SetStateAction<import('../types').ElementContextMenuState | null>
 	>;
@@ -123,7 +139,31 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		setSelectedElementIds,
 		setInlineEditingElementId,
 		setContextMenuState,
+		inlineEditingElementId,
+		inlineEditingText,
 	} = input;
+
+	/**
+	 * `selectedElement.textSegments`, reconciled with the live DOM text when
+	 * `selectedElement` is the one currently being inline-edited. Uses the
+	 * SAME remap the blur/commit path uses (`remapTextToSegments`), so a
+	 * mid-edit toolbar style click computes its selection range and writes
+	 * its update against what is actually on screen, not a stale pre-keystroke
+	 * snapshot. See `inlineEditingElementId`/`inlineEditingText` above.
+	 */
+	const liveTextSegments = useCallback((): TextSegment[] | undefined => {
+		if (!selectedElement || !hasTextProperties(selectedElement)) {
+			return undefined;
+		}
+		if (selectedElement.id !== inlineEditingElementId) {
+			return selectedElement.textSegments;
+		}
+		return remapTextToSegments(
+			inlineEditingText,
+			selectedElement.textSegments,
+			selectedElement.textStyle,
+		);
+	}, [selectedElement, inlineEditingElementId, inlineEditingText]);
 
 	// ── Selection ─────────────────────────────────────────────────────
 	const applySelection = useCallback(
@@ -229,12 +269,15 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 				return;
 			}
 
+			const isLiveEditing = selectedElement.id === inlineEditingElementId;
+			const currentSegments = liveTextSegments();
+
 			// Check if there's an active text selection in the inline editor
-			const inlineSel = getInlineEditorSelection(selectedElement.textSegments);
-			if (inlineSel && selectedElement.textSegments) {
+			const inlineSel = getInlineEditorSelection(currentSegments);
+			if (inlineSel && currentSegments) {
 				// Apply formatting only to the selected segment range
 				const { newSegments, newSelection } = applyStyleToSelectedSegments(
-					selectedElement.textSegments,
+					currentSegments,
 					inlineSel,
 					updates,
 				);
@@ -242,22 +285,30 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 				setPendingSelectionRestore(newSelection);
 				updateSelectedElement({
 					textSegments: newSegments,
+					...(isLiveEditing ? { text: inlineEditingText } : {}),
 				} as Partial<PptxElement>);
 				return;
 			}
 
 			// No inline selection: apply to the entire element (existing behavior)
 			const newTextStyle = { ...selectedElement.textStyle, ...updates };
-			const newSegments = selectedElement.textSegments?.map((seg: { style: TextStyle }) => ({
+			const newSegments = currentSegments?.map((seg: { style: TextStyle }) => ({
 				...seg,
 				style: { ...seg.style, ...updates },
 			}));
 			updateSelectedElement({
 				textStyle: newTextStyle,
 				textSegments: newSegments,
+				...(isLiveEditing ? { text: inlineEditingText } : {}),
 			} as Partial<PptxElement>);
 		},
-		[selectedElement, updateSelectedElement],
+		[
+			selectedElement,
+			updateSelectedElement,
+			inlineEditingElementId,
+			inlineEditingText,
+			liveTextSegments,
+		],
 	);
 
 	const updateSelectedTextCase = useCallback(
@@ -266,32 +317,41 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 				return;
 			}
 
-			const inlineSel = getInlineEditorSelection(selectedElement.textSegments);
-			if (inlineSel && selectedElement.textSegments) {
-				const newSegments = applyCaseTransformToSegments(
-					selectedElement.textSegments,
-					inlineSel,
-					mode,
-				);
-				updateSelectedElement({ textSegments: newSegments } as Partial<PptxElement>);
+			const isLiveEditing = selectedElement.id === inlineEditingElementId;
+			const currentSegments = liveTextSegments();
+
+			const inlineSel = getInlineEditorSelection(currentSegments);
+			if (inlineSel && currentSegments) {
+				const newSegments = applyCaseTransformToSegments(currentSegments, inlineSel, mode);
+				updateSelectedElement({
+					textSegments: newSegments,
+					...(isLiveEditing ? { text: inlineEditingText } : {}),
+				} as Partial<PptxElement>);
 				return;
 			}
 
 			// No inline selection: transform the entire element's text.
 			const updates: Partial<PptxElement> = {};
-			if (selectedElement.textSegments && selectedElement.textSegments.length > 0) {
+			if (currentSegments && currentSegments.length > 0) {
 				(updates as { textSegments?: unknown }).textSegments = applyCaseTransformToSegments(
-					selectedElement.textSegments,
+					currentSegments,
 					null,
 					mode,
 				);
 			}
-			if (typeof selectedElement.text === 'string') {
-				(updates as { text?: string }).text = transformTextCase(selectedElement.text, mode);
+			const baseText = isLiveEditing ? inlineEditingText : selectedElement.text;
+			if (typeof baseText === 'string') {
+				(updates as { text?: string }).text = transformTextCase(baseText, mode);
 			}
 			updateSelectedElement(updates);
 		},
-		[selectedElement, updateSelectedElement],
+		[
+			selectedElement,
+			updateSelectedElement,
+			inlineEditingElementId,
+			inlineEditingText,
+			liveTextSegments,
+		],
 	);
 
 	// ── Slide-level helpers ───────────────────────────────────────────

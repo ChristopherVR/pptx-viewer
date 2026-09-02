@@ -49,6 +49,29 @@ export function remapInlineText(
 export { readEditableText };
 
 /**
+ * The live (uncommitted) plain text of the currently open inline editor, or
+ * `undefined` when none is open. This binding's `[data-inline-editor]`
+ * surface is a single global overlay (`inline` in `editor-stage-interactions.ts`
+ * holds at most one), so a live editor is always for the currently selected
+ * element - `enterInlineEdit` selects before opening it.
+ *
+ * The surface is UNCONTROLLED: typing mutates its DOM directly and `onInput`
+ * only forwards to collaboration broadcast, never the store, so
+ * `state.selectedElement().textSegments` can be stale relative to what is on
+ * screen for the whole edit session, not just mid-keystroke. A toolbar/inspector
+ * action reached through `applyToSelected` must reconcile against this (via
+ * `remapInlineText`/`remapTextToSegments`) before it touches segments, or its
+ * change lands on stale content and is discarded when the session commits.
+ */
+export function currentInlineEditorText(): string | undefined {
+	if (typeof document === 'undefined') {
+		return undefined;
+	}
+	const surface = document.querySelector<HTMLElement>('[data-inline-editor]');
+	return surface ? readEditableText(surface) : undefined;
+}
+
+/**
  * `a:spAutoFit` ("Resize shape to fit text") editor-commit resize: decide the
  * element's new height from its text style, current height, and the live
  * (still-mounted) editor DOM node - `undefined` when the element carries no

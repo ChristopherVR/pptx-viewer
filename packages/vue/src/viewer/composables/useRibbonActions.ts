@@ -7,7 +7,7 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge, ChangeCaseMode } from 'pptx-viewer-shared';
-import { transformTextCase } from 'pptx-viewer-shared';
+import { readEditableText, remapTextToSegments, transformTextCase } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -158,14 +158,30 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 		if (!el || !hasTextProperties(el)) {
 			return;
 		}
+		// `InlineTextEditor.vue`'s contenteditable is uncontrolled: it only emits
+		// plain text on input/blur, never writing back to `el.textSegments`/`.text`
+		// until commit. Reconcile against its live DOM text first (same remap the
+		// commit path uses), or case-transforming a stale snapshot leaves
+		// whatever the user typed since untransformed once the session commits.
+		const liveEditor =
+			typeof document === 'undefined'
+				? null
+				: document.querySelector<HTMLElement>('[data-inline-editor]');
+		const liveText = liveEditor ? readEditableText(liveEditor) : undefined;
+		const baseSegments =
+			liveText !== undefined && el.textSegments
+				? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+				: el.textSegments;
+		const baseText = liveText ?? el.text;
+
 		const updates: Partial<PptxElement> = {};
-		if (el.textSegments && el.textSegments.length > 0) {
-			(updates as { textSegments?: unknown }).textSegments = el.textSegments.map((s) =>
+		if (baseSegments && baseSegments.length > 0) {
+			(updates as { textSegments?: unknown }).textSegments = baseSegments.map((s) =>
 				s.isParagraphBreak || s.text === '\n' ? s : { ...s, text: transformTextCase(s.text, mode) },
 			);
 		}
-		if (typeof el.text === 'string') {
-			(updates as { text?: string }).text = transformTextCase(el.text, mode);
+		if (typeof baseText === 'string') {
+			(updates as { text?: string }).text = transformTextCase(baseText, mode);
 		}
 		ops.updateElement(id, updates);
 	}

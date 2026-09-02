@@ -153,6 +153,8 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setSelectedElementIds: state.setSelectedElementIds,
 		setInlineEditingElementId: state.setInlineEditingElementId,
 		setContextMenuState: state.setContextMenuState,
+		inlineEditingElementId: state.inlineEditingElementId,
+		inlineEditingText: state.inlineEditingText,
 	});
 
 	const sectionOps = useSectionOperations({

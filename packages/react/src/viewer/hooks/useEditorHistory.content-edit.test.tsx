@@ -163,6 +163,8 @@ function Harness(): React.ReactElement {
 		setSelectedElementIds,
 		setInlineEditingElementId: noopDispatch<string | null>(),
 		setContextMenuState: noopDispatch<ElementContextMenuState | null>(),
+		inlineEditingElementId: null,
+		inlineEditingText: '',
 	});
 
 	const slidesRef = useRef(slides);

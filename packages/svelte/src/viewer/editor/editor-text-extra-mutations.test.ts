@@ -61,6 +61,28 @@ describe('editor-text-extra-mutations changeCasePatch', () => {
 		const lower = changeCasePatch(textEl(), 'lower');
 		expect(lower.textStyle?.textCaps).toBe('none');
 	});
+
+	it('reconciles against a live open inline editor before transforming case', () => {
+		// `InlineTextEditor.svelte`'s contenteditable is uncontrolled: text typed
+		// since the edit session began is not yet on `el.textSegments`/`.text`.
+		// Regression: previously the case transform ran against that stale
+		// snapshot, leaving anything typed since untransformed once the edit
+		// session committed.
+		const editor = document.createElement('div');
+		editor.dataset.inlineEditor = '';
+		editor.textContent = 'hello world, typed more';
+		document.body.appendChild(editor);
+		try {
+			const segments: TextSegment[] = [{ text: 'hello world', style: {} }]; // stale
+			const patch = changeCasePatch(textEl({}, segments), 'upper');
+			expect(patch.text).toBe('HELLO WORLD, TYPED MORE');
+			expect((patch.textSegments as TextSegment[]).map((s) => s.text).join('')).toBe(
+				'HELLO WORLD, TYPED MORE',
+			);
+		} finally {
+			editor.remove();
+		}
+	});
 });
 
 describe('editor-text-extra-mutations clearFormattingPatch', () => {

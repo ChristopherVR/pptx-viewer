@@ -139,6 +139,44 @@ describe('createInspectorActions text', () => {
 		expect(segments?.[1].style).toMatchObject({ bold: true, textGlowColor: '#ffff00' });
 		expect(segments?.[0].style).not.toMatchObject({ bold: true });
 	});
+
+	it('reconciles against a live open inline editor before slicing a selection range', () => {
+		// The inline editor is uncontrolled: text typed since the edit session
+		// began is not yet on `el.textSegments`. Regression: previously the range
+		// slice ran against that stale snapshot, silently discarding anything
+		// typed since once the edit session committed.
+		const element = {
+			...textElement(),
+			text: 'hello',
+			textSegments: [{ text: 'hello', style: { color: '#000000' } }],
+		} as PptxElement;
+		const { store, actions } = buildActions(element);
+
+		const surface = document.createElement('div');
+		surface.dataset.inlineEditor = '';
+		surface.textContent = 'hello world'; // live text: 6 more chars than the model
+		document.body.appendChild(surface);
+		try {
+			// Selection offsets are DOM-accurate (as `getInlineEditorSelection`
+			// would produce against the live surface): select "world".
+			actions.setTextStyle(
+				{ bold: true },
+				{ startSegIdx: 0, startOffset: 6, endSegIdx: 0, endOffset: 11 },
+			);
+		} finally {
+			surface.remove();
+		}
+
+		const el = selectedEl(store) as {
+			text?: string;
+			textSegments?: Array<{ text: string; style?: { bold?: boolean } }>;
+		};
+		const combined = el.textSegments?.map(({ text }) => text).join('') ?? '';
+		expect(combined).toBe('hello world');
+		expect(el.text).toBe('hello world');
+		const boldSegment = el.textSegments?.find((s) => s.style?.bold === true);
+		expect(boldSegment?.text).toBe('world');
+	});
 });
 
 describe('createInspectorActions fill/gradient', () => {

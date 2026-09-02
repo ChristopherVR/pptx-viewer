@@ -144,6 +144,30 @@ describe('editor-format-mutations extras', () => {
 		expect(patch.textSegments[0].text).toBe('HELLO WORLD');
 	});
 
+	it('reconciles against a live open inline editor before transforming case', () => {
+		// The inline editor is uncontrolled: text typed since the edit session
+		// began is not yet on `el.textSegments`. Regression: previously the case
+		// transform ran against that stale snapshot, so anything typed since was
+		// silently left untransformed once the session committed.
+		const surface = document.createElement('div');
+		surface.dataset.inlineEditor = '';
+		surface.textContent = 'hello world, typed more';
+		document.body.appendChild(surface);
+		try {
+			const el = textElement() as PptxElement & { textSegments: Array<{ text: string }> };
+			el.textSegments[0].text = 'hello world'; // stale: missing ", typed more"
+			const patch = changeTextCase(el, 'upper') as {
+				textSegments: Array<{ text: string }>;
+				text: string;
+			};
+			const combined = patch.textSegments.map((s) => s.text).join('');
+			expect(combined).toBe('HELLO WORLD, TYPED MORE');
+			expect(patch.text).toBe('HELLO WORLD, TYPED MORE');
+		} finally {
+			surface.remove();
+		}
+	});
+
 	it('clears character formatting back to defaults', () => {
 		const el = textElement() as PptxElement & {
 			textStyle: { bold?: boolean; highlightColor?: string };

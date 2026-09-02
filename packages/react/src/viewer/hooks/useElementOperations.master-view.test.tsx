@@ -116,6 +116,8 @@ function mount(target: MasterViewRouting['target']): Harness {
 			setSelectedElementIds: vi.fn(),
 			setInlineEditingElementId: vi.fn(),
 			setContextMenuState: vi.fn(),
+			inlineEditingElementId: null,
+			inlineEditingText: '',
 		});
 		return null;
 	}

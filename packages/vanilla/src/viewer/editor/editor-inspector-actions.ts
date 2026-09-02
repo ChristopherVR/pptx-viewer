@@ -37,6 +37,7 @@ import {
 	imageCropPatch,
 	isElementLocked,
 	reflowSmartArtData,
+	remapTextToSegments,
 	removeGradientStopPatch,
 	tableInspectorPatch,
 	textAdvancedPatch,
@@ -48,6 +49,7 @@ import type { GradientState, InlineTextSelection, TextAdvancedChanges } from 'pp
 
 import type { ApplyToSelected } from './editor-apply-to-selected';
 import { patchShapeStyle } from './editor-format-mutations';
+import { currentInlineEditorText } from './inline-text-editor';
 import {
 	mergeTableCellRange,
 	mutateTableStructure,
@@ -144,9 +146,20 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 					return {};
 				}
 				if (selection && el.textSegments?.length) {
+					// The inline editor is uncontrolled: reconcile against its live
+					// text (same remap the commit path uses) before slicing by
+					// `selection`, or the style applies to stale pre-keystroke
+					// content and is discarded when the edit session commits. See
+					// `currentInlineEditorText`.
+					const liveText = currentInlineEditorText();
+					const currentSegments =
+						liveText !== undefined
+							? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+							: el.textSegments;
 					return {
-						textSegments: applyStyleToSelectedSegments(el.textSegments, selection, patch)
+						textSegments: applyStyleToSelectedSegments(currentSegments, selection, patch)
 							.newSegments,
+						...(liveText !== undefined ? { text: liveText } : {}),
 					};
 				}
 				return { textStyle: { ...el.textStyle, ...patch } };

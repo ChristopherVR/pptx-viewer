@@ -8,7 +8,9 @@ import type {
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { applyCaseTransformToSegments } from 'pptx-viewer-shared';
+import { applyCaseTransformToSegments, remapTextToSegments } from 'pptx-viewer-shared';
+
+import { currentInlineEditorText } from './inline-text-editor';
 
 /**
  * Pure formatting-patch builders for the vanilla editor.
@@ -203,7 +205,17 @@ export function changeTextCase(el: PptxElement, mode: ChangeCaseMode): Partial<P
 	if (!canFormatText(el) || !el.textSegments) {
 		return {};
 	}
-	const textSegments = applyCaseTransformToSegments(el.textSegments, null, mode);
+	// Reconcile against the live inline-editor text first (same remap the
+	// commit path uses): the editor is uncontrolled, so `el.textSegments` can
+	// be stale relative to what is on screen, and case-transforming a stale
+	// snapshot leaves whatever the user typed since untransformed once the
+	// edit session commits. See `currentInlineEditorText`.
+	const liveText = currentInlineEditorText();
+	const baseSegments =
+		liveText !== undefined
+			? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+			: el.textSegments;
+	const textSegments = applyCaseTransformToSegments(baseSegments, null, mode);
 	return { textSegments, text: textSegments.map((s) => s.text).join('') } as Partial<PptxElement>;
 }
 

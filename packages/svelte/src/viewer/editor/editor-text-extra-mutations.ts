@@ -1,7 +1,11 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { applyCaseTransformToSegments } from 'pptx-viewer-shared';
+import {
+	applyCaseTransformToSegments,
+	readEditableText,
+	remapTextToSegments,
+} from 'pptx-viewer-shared';
 
 /**
  * Pure font-formatting patch builders that extend `editor-format-mutations.ts`
@@ -39,7 +43,22 @@ export function setCharacterSpacingPatch(el: PptxElement, spacing: number): Part
  */
 export function changeCasePatch(el: PptxElement, mode: ChangeCaseMode): Partial<PptxElement> {
 	if (hasTextProperties(el) && el.textSegments && el.textSegments.length > 0) {
-		const next = applyCaseTransformToSegments(el.textSegments, null, mode);
+		// `InlineTextEditor.svelte`'s contenteditable is uncontrolled: it "stays
+		// uncontrolled and only commits on blur/Escape", so `el.textSegments` can
+		// be stale relative to what is on screen for the whole edit session.
+		// Reconcile against the live DOM text first (same remap the commit path
+		// uses), or case-transforming a stale snapshot leaves whatever the user
+		// typed since untransformed once the session commits.
+		const liveEditor =
+			typeof document === 'undefined'
+				? null
+				: document.querySelector<HTMLElement>('[data-inline-editor]');
+		const liveText = liveEditor ? readEditableText(liveEditor) : undefined;
+		const baseSegments =
+			liveText !== undefined
+				? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+				: el.textSegments;
+		const next = applyCaseTransformToSegments(baseSegments, null, mode);
 		const text = next
 			.filter((seg) => !seg.isParagraphBreak)
 			.map((seg) => seg.text)
