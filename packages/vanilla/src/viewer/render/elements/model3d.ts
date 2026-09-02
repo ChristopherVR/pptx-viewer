@@ -1,12 +1,8 @@
 import type { Model3DPptxElement } from 'pptx-viewer-core';
-import { parseDataUrlToBytes } from 'pptx-viewer-core';
-import { getContainerStyle, mountModel3D } from 'pptx-viewer-shared';
+import { getContainerStyle, modelDataToBlobUrl, mountModel3D } from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl } from '../dom';
 import type { ElementRenderContext, ElementRenderer } from '../types';
-
-/** Default MIME for GLB binaries when the element omits `modelMimeType`. */
-const DEFAULT_MODEL_MIME = 'model/gltf-binary';
 
 /**
  * Renderer for `model3d` (embedded GLB/GLTF) elements, vanilla port of Vue's
@@ -111,28 +107,6 @@ function buildPlaceholder(doc: Document, label: string): HTMLElement {
 	text.textContent = label;
 	box.appendChild(text);
 	return box;
-}
-
-/**
- * Convert the base64 `modelData` data URL to a blob (object) URL the shared
- * GLTF loader can fetch. Returns undefined for missing / malformed data URLs.
- */
-function modelDataToBlobUrl(
-	dataUrl: string | undefined,
-	mimeType: string | undefined,
-): string | undefined {
-	if (!dataUrl) {
-		return undefined;
-	}
-	const parsed = parseDataUrlToBytes(dataUrl);
-	if (!parsed) {
-		return undefined;
-	}
-	// Copy into a fresh ArrayBuffer-backed view: `parseDataUrlToBytes` returns a
-	// `Uint8Array<ArrayBufferLike>`, which TS does not accept as a `BlobPart`.
-	const bytes = new Uint8Array(parsed.bytes);
-	const blob = new Blob([bytes], { type: mimeType ?? DEFAULT_MODEL_MIME });
-	return URL.createObjectURL(blob);
 }
 
 /** The on-demand "view in 3D" affordance overlaying the poster. */

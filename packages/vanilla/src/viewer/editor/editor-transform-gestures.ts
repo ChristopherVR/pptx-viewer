@@ -1,6 +1,12 @@
-import type { InteractionBox, SelectionTransformBox } from 'pptx-viewer-shared';
+import type {
+	GestureController,
+	GestureKind,
+	InteractionBox,
+	SelectionTransformBox,
+} from 'pptx-viewer-shared';
 import {
 	computeGridSpacingPx,
+	createGestureController,
 	moveSelection,
 	resizeSelection,
 	selectionBounds,
@@ -9,8 +15,6 @@ import {
 import type { Store, ViewerState } from '../state';
 import { findActiveElement, getActiveElements } from './editor-active-elements';
 import { syncConnectorsForMovedElements } from './editor-connector-sync';
-import type { GestureController, GestureKind } from './editor-gestures';
-import { createGestureController } from './editor-gestures';
 import { interactableIds } from './editor-lock-gates';
 import type { EditorOps } from './editor-operations';
 import { snapSiblings, snapToGrid } from './editor-pointer-special-actions';

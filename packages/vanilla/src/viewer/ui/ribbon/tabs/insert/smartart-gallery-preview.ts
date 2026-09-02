@@ -1,5 +1,5 @@
-import type { PptxSlide, SmartArtLayout, SmartArtPptxElement } from 'pptx-viewer-core';
-import { buildSmartArtPresetData, PRESETS } from 'pptx-viewer-shared';
+import type { PptxSlide, SmartArtLayout } from 'pptx-viewer-core';
+import { buildSmartArtPreviewElement } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../../i18n';
@@ -20,21 +20,6 @@ const PREVIEW_ELEMENT_WIDTH = 600;
 const PREVIEW_ELEMENT_HEIGHT = 340;
 /** Gallery tile width in px. */
 const PREVIEW_TILE_WIDTH = 64;
-
-const FALLBACK_ITEMS = ['1', '2', '3'];
-
-function buildPreviewElement(layout: SmartArtLayout): SmartArtPptxElement {
-	const preset = PRESETS.find((p) => p.layout === layout);
-	return {
-		id: `smartart-preview-${layout}`,
-		type: 'smartArt',
-		x: 0,
-		y: 0,
-		width: PREVIEW_ELEMENT_WIDTH,
-		height: PREVIEW_ELEMENT_HEIGHT,
-		smartArtData: buildSmartArtPresetData(layout, preset?.defaultItems ?? FALLBACK_ITEMS),
-	} as SmartArtPptxElement;
-}
 
 /** Build the live, scaled-down gallery tile preview for one SmartArt layout. */
 export function buildSmartArtGalleryPreview(
@@ -61,7 +46,7 @@ export function buildSmartArtGalleryPreview(
 	});
 	tile.appendChild(scaledStage);
 
-	const element = buildPreviewElement(layout);
+	const element = buildSmartArtPreviewElement(layout);
 	const canvasSize: CanvasSize = { width: PREVIEW_ELEMENT_WIDTH, height: PREVIEW_ELEMENT_HEIGHT };
 	const slide: PptxSlide = {
 		id: 'smartart-preview',

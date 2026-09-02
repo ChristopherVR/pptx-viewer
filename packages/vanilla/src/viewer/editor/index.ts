@@ -84,27 +84,24 @@ export { createTextActions } from './editor-text-actions';
 export type { TransitionActions, TransitionActionsDeps } from './editor-transition-actions';
 export { createTransitionActions } from './editor-transition-actions';
 export type {
+	ElementBoxPatch,
 	GestureController,
 	GestureDeps,
 	GestureKind,
 	GestureTransform,
-} from './editor-gestures';
-export { createGestureController } from './editor-gestures';
+	PointerLike,
+} from 'pptx-viewer-shared';
 export {
+	appendElementOnSlide,
+	cloneSlides,
+	createGestureController,
+	duplicateElementOnSlide,
+	findSlideElement,
 	isCornerHandle,
 	lockResizeAspect,
 	NUDGE_STEP,
 	NUDGE_STEP_LARGE,
 	nudgeDelta,
-} from './editor-geometry';
-export type { EditorKeyboardDeps } from './editor-keyboard';
-export { createEditorKeydownHandler } from './editor-keyboard';
-export type { ElementBoxPatch } from './editor-mutations';
-export {
-	appendElementOnSlide,
-	cloneSlides,
-	duplicateElementOnSlide,
-	findSlideElement,
 	patchElementGeometry,
 	removeElement,
 	reorderElementOnSlide,
@@ -112,7 +109,10 @@ export {
 	updateElement,
 	updateSlide,
 	updateSlideNotes,
-} from './editor-mutations';
+} from 'pptx-viewer-shared';
+
+export type { EditorKeyboardDeps } from './editor-keyboard';
+export { createEditorKeydownHandler } from './editor-keyboard';
 export type { EditorOps, EditorOpsDeps } from './editor-operations';
 export { createEditorOps } from './editor-operations';
 export { resolveTopLevelElementId } from './element-hit';

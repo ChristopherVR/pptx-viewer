@@ -16,15 +16,18 @@ import type {
 	TextSegment,
 } from 'pptx-viewer-core';
 import { duplicateElement } from 'pptx-viewer-core';
+import type { ElementBoxPatch } from 'pptx-viewer-shared';
 import {
 	applyFormatToElement,
 	buildSaveSlides,
+	cloneSlides,
 	cloneTemplateElementsBySlideId,
 	copyFormatFromElement,
 	EditorHistory,
 	embeddedFontSaveOptions,
 	resolveSlideSizeSelection,
 	saveDeckWithPassword,
+	updateSlideNotes,
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -34,8 +37,6 @@ import {
 	replaceActiveElements,
 } from './editor-active-elements';
 import { setHandoutSlidesPerPage } from './editor-master-actions';
-import type { ElementBoxPatch } from './editor-mutations';
-import { cloneSlides, updateSlideNotes } from './editor-mutations';
 import { selectionState } from './editor-selection-state';
 import { createStructuredEditorOperations } from './editor-structured-operations';
 import { remapInlineText, resolveInlineTextAutoFitHeight } from './inline-text-editor';

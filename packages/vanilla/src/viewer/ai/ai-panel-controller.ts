@@ -15,18 +15,16 @@
  * the bridge's `getFocusedTargets`) re-read state on every `subscribe` notify.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import type { PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
+import type {
+	AiCanvasHighlight,
+	PptxAiFocusedTarget,
+	ToolCanvasTarget,
+} from 'pptx-viewer-shared/ai';
+import { computeFocusTargets } from 'pptx-viewer-shared/ai';
 
 import type { Store, ViewerState } from '../state';
-import { computeFocusTargets } from './ai-focus-targets';
 
-/** One element ring to draw on the canvas: an explicit pick or a live-tool focus. */
-export interface AiCanvasHighlight {
-	slideIndex: number;
-	elementId: string;
-	/** `pick` = persistent user pick; `active` = transient AI-is-working ring. */
-	variant: 'pick' | 'active';
-}
+export type { AiCanvasHighlight };
 
 /** One-shot composer prefill; `nonce` bumps on every ask/fix so it re-applies. */
 export interface AiPrefill {

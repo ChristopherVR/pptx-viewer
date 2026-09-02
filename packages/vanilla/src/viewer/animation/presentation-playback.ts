@@ -1,19 +1,18 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { PresentationAnimationController } from 'pptx-viewer-shared';
-import type { ElementAnimationState } from 'pptx-viewer-shared';
+import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
+import {
+	cancelBuildReveal,
+	playGroup,
+	PresentationAnimationController,
+	scheduleAutoAdvanceChain,
+} from 'pptx-viewer-shared';
 
 import {
 	applyElementAnimationStyles,
 	ensurePresentationKeyframes,
 	injectSlideKeyframes,
 } from './animation-dom';
-import type { BuildRafHandle, PlaybackContext } from './animation-playback-helpers';
-import {
-	cancelBuildReveal,
-	playGroup,
-	scheduleAutoAdvanceChain,
-} from './animation-playback-helpers';
-import { playAnimationSound } from './animation-sound';
+import { playAnimationSound, stopAnimationSound } from './animation-sound';
 import { attachTriggerListeners } from './presentation-triggers';
 import { playTransitionOverlay } from './transition-overlay';
 
@@ -159,9 +158,10 @@ export function createPresentationPlayback(): PresentationPlayback {
 		},
 		timers,
 		buildHandle,
-		onPlayActionSound: (soundPath) => {
+		playSound: (soundPath) => {
 			playAnimationSound(mediaDataUrls.get(soundPath) ?? soundPath);
 		},
+		stopSound: stopAnimationSound,
 		frameRoot: () => currentStage,
 	};
 

@@ -4,14 +4,22 @@
  * log for debugging. Built into the vanilla settings dialog only when the host
  * enables the `ai` option. Vanilla counterpart of React's `SettingsAiTab`.
  */
-import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
-import { createChatHistoryStore } from 'pptx-viewer-shared/ai';
+import { downloadBlob } from 'pptx-viewer-shared';
+import type { AiLogFormat, PptxAiChatStore, SaveChatLogFile } from 'pptx-viewer-shared/ai';
+import {
+	collectStoredChats,
+	createChatHistoryStore,
+	exportAiChatLogs,
+} from 'pptx-viewer-shared/ai';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { createIcon } from '../ui/icons';
-import type { AiLogFormat } from './ai-log-export';
-import { exportAiChatLogs } from './ai-log-export';
+
+/** {@link SaveChatLogFile} implementation: wraps the body in a `Blob` and downloads it. */
+const saveChatLogFile: SaveChatLogFile = (filename, content, mime) => {
+	downloadBlob(new Blob([content], { type: mime }), filename);
+};
 
 export interface AiSettingsSectionDeps {
 	doc: Document;
@@ -65,7 +73,12 @@ export function createAiSettingsSection(deps: AiSettingsSectionDeps): HTMLElemen
 			b.disabled = true;
 		}
 		try {
-			const exported = await exportAiChatLogs({ store, format, detailed: detailed.checked });
+			const chats = await collectStoredChats(store);
+			const exported = exportAiChatLogs(
+				chats,
+				{ format, detailed: detailed.checked },
+				saveChatLogFile,
+			);
 			status.hidden = false;
 			status.textContent =
 				exported > 0

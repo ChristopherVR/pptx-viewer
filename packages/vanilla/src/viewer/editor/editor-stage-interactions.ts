@@ -216,6 +216,8 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			// A `noMove` shape stays SELECTABLE (so it can be unlocked from the
 			// inspector) but must never arm the drag.
 			if (canBeginMoveGesture(store.get(), id)) {
+				event.preventDefault();
+				event.stopPropagation();
 				gestures.begin('move', id, event);
 			}
 		},
@@ -245,6 +247,8 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			if (!id || (kind === 'resize' ? !allowed.resizable : !allowed.rotatable)) {
 				return;
 			}
+			event.preventDefault();
+			event.stopPropagation();
 			gestures.begin(kind, id, event, handle);
 		},
 		beginAdjustGesture: (event, descriptor) => adjustGesture.begin(event, descriptor),

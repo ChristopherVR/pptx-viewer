@@ -38,10 +38,10 @@ import {
 	setTimingCurve,
 	setTrigger,
 	setTriggerShapeId,
+	updateSlide,
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import { updateSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
 
 /**

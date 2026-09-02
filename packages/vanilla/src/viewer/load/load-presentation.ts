@@ -6,7 +6,6 @@ import type {
 	PptxCustomProperty,
 	PptxCustomShow,
 	PptxEmbeddedFont,
-	PptxElement,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxNotesMaster,
@@ -23,15 +22,14 @@ import type {
 import { PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
-	applyTableCellImagePatches,
-	applyTableStyleImagePatches,
+	applyImagePathPatches,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
-	collectTableCellImagePaths,
-	collectTableStyleImagePaths,
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
+	resolveTableCellImageUrls,
+	resolveTableStyleImageUrls,
 } from 'pptx-viewer-shared';
 
 /**
@@ -117,10 +115,11 @@ export async function loadPresentation(
 			allowExternalImages: options?.allowExternalImages,
 		});
 
+		const getImageData = (path: string): Promise<string | undefined> => handler.getImageData(path);
 		const mediaDataUrls = await resolveMediaUrls(handler, parsed.slides, blobUrls);
 		const imageResolvedSlides = await resolveImageUrls(handler, parsed.slides);
-		const slides = await resolveTableCellImageUrls(handler, imageResolvedSlides);
-		const tableStyleMap = await resolveTableStyleImageUrls(handler, parsed.tableStyleMap);
+		const slides = await resolveTableCellImageUrls(imageResolvedSlides, getImageData);
+		const tableStyleMap = await resolveTableStyleImageUrls(parsed.tableStyleMap, getImageData);
 
 		return {
 			handler,
@@ -278,116 +277,8 @@ async function resolveImageUrls(handler: PptxHandler, slides: PptxSlide[]): Prom
 		}),
 	);
 
-	const elementPatches = new Map<string, Record<string, string>>();
-	for (const ref of refs) {
-		const url = resolvedMap.get(ref.path);
-		if (!url) {
-			continue;
-		}
-		const existing = elementPatches.get(ref.element.id) ?? {};
-		existing[ref.field] = url;
-		elementPatches.set(ref.element.id, existing);
-	}
-	if (elementPatches.size === 0) {
-		return slides;
-	}
-
-	const patchElements = (elements: PptxElement[]): PptxElement[] => {
-		let mutated = false;
-		const next = elements.map((el) => {
-			let updated = el;
-			const patch = elementPatches.get(el.id);
-			if (patch) {
-				updated = { ...el, ...patch } as PptxElement;
-			}
-			if (updated.type === 'group' && updated.children?.length) {
-				const newChildren = patchElements(updated.children);
-				if (newChildren !== updated.children) {
-					updated = { ...updated, children: newChildren };
-				}
-			}
-			if (updated !== el) {
-				mutated = true;
-			}
-			return updated;
-		});
-		return mutated ? next : elements;
-	};
 	return slides.map((slide) => {
-		const newElements = patchElements(slide.elements);
+		const newElements = applyImagePathPatches(slide.elements, resolvedMap, refs);
 		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
 	});
-}
-
-/**
- * Resolve lazily-loaded table cell image-fill URLs (`a:tcPr/a:blipFill`) and
- * patch them into the slide tree. Same lazy-load story as
- * {@link resolveImageUrls}, but for a cell's `backgroundImageFillPath`.
- */
-async function resolveTableCellImageUrls(
-	handler: PptxHandler,
-	slides: PptxSlide[],
-): Promise<PptxSlide[]> {
-	const { paths, refs } = collectTableCellImagePaths(slides);
-	if (paths.size === 0) {
-		return slides;
-	}
-
-	const resolvedMap = new Map<string, string>();
-	await Promise.all(
-		Array.from(paths).map(async (path) => {
-			try {
-				const url = await handler.getImageData(path);
-				if (url) {
-					resolvedMap.set(path, url);
-				}
-			} catch {
-				// Non-critical: the cell falls back to no image fill.
-			}
-		}),
-	);
-	if (resolvedMap.size === 0) {
-		return slides;
-	}
-
-	return slides.map((slide) => {
-		const newElements = applyTableCellImagePatches(slide.elements, resolvedMap, refs);
-		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
-	});
-}
-
-/**
- * Resolve lazily-loaded whole-table-STYLE image-fill URLs
- * (`a:tcStyle/a:fill/a:blipFill` on `ppt/tableStyles.xml`) and patch them
- * into the table style map. Same lazy-load story as
- * {@link resolveTableCellImageUrls}, but for a presentation-level style
- * section fill rather than a per-cell one.
- */
-async function resolveTableStyleImageUrls(
-	handler: PptxHandler,
-	tableStyleMap: ParsedTableStyleMap | undefined,
-): Promise<ParsedTableStyleMap | undefined> {
-	const { paths, refs } = collectTableStyleImagePaths(tableStyleMap);
-	if (paths.size === 0 || !tableStyleMap) {
-		return tableStyleMap;
-	}
-
-	const resolvedMap = new Map<string, string>();
-	await Promise.all(
-		Array.from(paths).map(async (path) => {
-			try {
-				const url = await handler.getImageData(path);
-				if (url) {
-					resolvedMap.set(path, url);
-				}
-			} catch {
-				// Non-critical: the style section falls back to no image fill.
-			}
-		}),
-	);
-	if (resolvedMap.size === 0) {
-		return tableStyleMap;
-	}
-
-	return applyTableStyleImagePatches(tableStyleMap, resolvedMap, refs);
 }

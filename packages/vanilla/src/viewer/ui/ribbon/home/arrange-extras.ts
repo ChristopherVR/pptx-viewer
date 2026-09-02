@@ -1,5 +1,11 @@
-import { hasShapeProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
+import {
+	canGroupSelection,
+	canSetStrokeWidth,
+	canUngroupSelection,
+	DEFAULT_STROKE_WIDTH,
+	strokeWidthOf,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -22,9 +28,6 @@ export interface ArrangeExtras {
 	el: HTMLElement;
 	update(state: ArrangeExtrasState): void;
 }
-
-/** Outline thickness the renderer assumes when the shape declares none. */
-const DEFAULT_STROKE_WIDTH = 1;
 
 /**
  * The Arrange group's shape-level extras: Group, Ungroup, and the outline
@@ -83,14 +86,11 @@ export function createArrangeExtras(
 	return {
 		el,
 		update({ editable, selectedCount, selectedElement }) {
-			group.setDisabled(!editable || selectedCount < 2);
-			ungroup.setDisabled(!editable || selectedElement?.type !== 'group');
-			const shape = selectedElement !== undefined && hasShapeProperties(selectedElement);
-			stroke.disabled = !editable || !shape;
-			const width =
-				selectedElement !== undefined && hasShapeProperties(selectedElement)
-					? (selectedElement.shapeStyle?.strokeWidth ?? DEFAULT_STROKE_WIDTH)
-					: DEFAULT_STROKE_WIDTH;
+			const element = selectedElement ?? null;
+			group.setDisabled(!canGroupSelection(editable, selectedCount));
+			ungroup.setDisabled(!canUngroupSelection(editable, element));
+			stroke.disabled = !canSetStrokeWidth(editable, element);
+			const width = strokeWidthOf(element);
 			// Never clobber the field while the user is typing into it.
 			if (doc.activeElement !== stroke) {
 				stroke.value = String(width);

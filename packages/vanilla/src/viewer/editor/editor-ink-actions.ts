@@ -1,8 +1,12 @@
 import type { StrokeToInkElementOpts } from 'pptx-viewer-shared';
-import { strokeToInkElement } from 'pptx-viewer-shared';
+import {
+	appendElementOnSlide,
+	findSlideElement,
+	removeElement,
+	strokeToInkElement,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import { appendElementOnSlide, findSlideElement, removeElement } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
 
 /**

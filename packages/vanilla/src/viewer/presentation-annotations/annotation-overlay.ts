@@ -1,6 +1,7 @@
 import {
 	annotationOverlayZIndex,
 	appendPresentationInkPoint,
+	cursorForTool,
 	erasePresentationInkAt,
 	presentationInkPath,
 } from 'pptx-viewer-shared';
@@ -73,7 +74,7 @@ export function mountAnnotationOverlay(options: AnnotationOverlayOptions): () =>
 		zIndex: String(annotationOverlayZIndex(options.blackout)),
 		width: '100%',
 		height: '100%',
-		cursor: tool === 'laser' ? 'none' : 'crosshair',
+		cursor: cursorForTool(tool),
 		touchAction: 'none',
 	});
 	let strokes = [...options.strokes];

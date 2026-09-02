@@ -4,6 +4,7 @@
 import type { PptxElement, PptxHandler, SmartArtLayout } from 'pptx-viewer-core';
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
 import {
+	appendElementOnSlide,
 	createGuide,
 	DEFAULT_INSERT_CHART_KIND,
 	isElementIdInteractive,
@@ -43,7 +44,6 @@ import {
 } from './editor-insert-structured';
 import type { InspectorActions } from './editor-inspector-actions';
 import { createInspectorActions } from './editor-inspector-actions';
-import { appendElementOnSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
 import type { SectionActions } from './editor-section-actions';
 import { createSectionActions } from './editor-section-actions';

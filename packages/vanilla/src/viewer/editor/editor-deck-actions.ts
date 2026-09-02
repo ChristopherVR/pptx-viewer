@@ -9,10 +9,9 @@ import type {
 } from 'pptx-viewer-core';
 import { applyThemeToData } from 'pptx-viewer-core';
 import type { SlideSizeEmu } from 'pptx-viewer-shared';
-import { slideSizeToCanvasPx } from 'pptx-viewer-shared';
+import { slideSizeToCanvasPx, updateSlide } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import { updateSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
 
 /**

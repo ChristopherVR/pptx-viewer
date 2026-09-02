@@ -4,10 +4,11 @@ import {
 	applyRibbonTransitionDraft,
 	mergeSlideTransition,
 	ribbonTransitionTargets,
+	updateAllSlides,
+	updateSlide,
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import { updateAllSlides, updateSlide } from './editor-mutations';
 import type { EditorOps } from './editor-operations';
 
 /**

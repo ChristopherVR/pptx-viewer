@@ -6,7 +6,13 @@ import type {
 	PptxChartMarkerSymbol,
 	PptxChartType,
 } from 'pptx-viewer-core';
-import { CHART_AXIS_TYPE_LABEL_KEYS, schemaLabel, upsertDataPoint } from 'pptx-viewer-shared';
+import {
+	CHART_AXIS_TYPE_LABEL_KEYS,
+	isSeriesUsingSecondaryAxis,
+	resolveSecondaryAxisId,
+	schemaLabel,
+	upsertDataPoint,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { numbers, set, setOptions, value } from './chart-exhaustive-controls';
@@ -100,9 +106,7 @@ export function createChartExhaustiveSection(
 		next[seriesIndex()] = {
 			...item,
 			seriesChartType: comboType.control.value as PptxChartType,
-			axisId: secondaryAxis.control.checked
-				? current.axes?.find((candidate) => candidate.axPos === 'r')?.axisId
-				: current.axes?.find((candidate) => candidate.axPos === 'l')?.axisId,
+			axisId: resolveSecondaryAxisId(current, secondaryAxis.control.checked),
 			trendlines: trend
 				? [
 						{
@@ -215,9 +219,7 @@ export function createChartExhaustiveSection(
 		const trend = item?.trendlines?.[0];
 		const error = item?.errBars?.[0];
 		comboType.control.value = item?.seriesChartType ?? data.chartType;
-		secondaryAxis.control.checked = Boolean(
-			item?.axisId && data.axes?.find((a) => a.axisId === item.axisId)?.axPos === 'r',
-		);
+		secondaryAxis.control.checked = isSeriesUsingSecondaryAxis(data, seriesIndex());
 		const labels = data.style?.dataLabels;
 		labelPosition.control.value = labels?.position ?? 'bestFit';
 		showValue.control.checked = labels?.showValue ?? false;
