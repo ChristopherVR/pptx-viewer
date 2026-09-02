@@ -4,10 +4,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
 	findPresentationActionTarget,
+	handlePresentationStageClick,
 	isNoOpPresentationAction,
 	resolvePresentationAction,
 	resolvePresentationClick,
+	runPresentationAction,
 } from './presentation-action';
+import type { PresentationActionRunner } from './presentation-action';
 
 function shape(id: string, actionClick?: PptxElement['actionClick']): PptxElement {
 	return {
@@ -104,6 +107,139 @@ describe('resolvePresentationAction', () => {
 				.kind,
 		).toBe('none');
 	});
+
+	it('maps hlinkshowjump?jump=lastslideviewed to lastViewed, not lastSlide', () => {
+		expect(
+			resolvePresentationAction(
+				{ action: 'ppaction://hlinkshowjump?jump=lastslideviewed' },
+				{ slideCount: 14 },
+			).intent,
+		).toStrictEqual({ kind: 'lastViewed' });
+	});
+
+	it('maps a custom show action to customShow with its id and returnAfter', () => {
+		expect(
+			resolvePresentationAction(
+				{ action: 'ppaction://customshow?id=3&return=true' },
+				{ slideCount: 3 },
+			).intent,
+		).toStrictEqual({ kind: 'customShow', customShowId: '3', returnAfter: true });
+		expect(
+			resolvePresentationAction({ action: 'ppaction://customshow?id=7' }, { slideCount: 3 }).intent,
+		).toStrictEqual({ kind: 'customShow', customShowId: '7', returnAfter: false });
+	});
+
+	it('navigates nowhere for a custom show action with no id', () => {
+		expect(
+			resolvePresentationAction({ action: 'ppaction://customshow' }, { slideCount: 3 }).intent.kind,
+		).toBe('none');
+	});
+
+	it('maps hlinkfile / hlinkpres to openFile / openPresentation with the resolved target', () => {
+		expect(
+			resolvePresentationAction(
+				{ action: 'ppaction://hlinkfile', url: 'report.docx' },
+				{ slideCount: 3 },
+			).intent,
+		).toStrictEqual({ kind: 'openFile', target: 'report.docx' });
+		expect(
+			resolvePresentationAction(
+				{ action: 'ppaction://hlinkpres', url: 'other.pptx' },
+				{ slideCount: 3 },
+			).intent,
+		).toStrictEqual({ kind: 'openPresentation', target: 'other.pptx' });
+	});
+
+	it('navigates nowhere for hlinkfile / hlinkpres with no resolved target', () => {
+		expect(
+			resolvePresentationAction({ action: 'ppaction://hlinkfile' }, { slideCount: 3 }).intent.kind,
+		).toBe('none');
+	});
+
+	it('maps ppaction://media to playMedia, carrying the clicked element id', () => {
+		expect(
+			resolvePresentationAction(
+				{ action: 'ppaction://media' },
+				{ slideCount: 3, elementId: 'video1' },
+			).intent,
+		).toStrictEqual({ kind: 'playMedia', elementId: 'video1' });
+		expect(
+			resolvePresentationAction({ action: 'ppaction://media' }, { slideCount: 3 }).intent,
+		).toStrictEqual({ kind: 'playMedia' });
+	});
+
+	it('maps ppaction://ole?verb=N to oleVerb with the parsed number', () => {
+		expect(
+			resolvePresentationAction({ action: 'ppaction://ole?verb=-1' }, { slideCount: 3 }).intent,
+		).toStrictEqual({ kind: 'oleVerb', verb: -1 });
+	});
+});
+
+describe('runPresentationAction: wave-4 verbs', () => {
+	function runnerSpy(): { runner: PresentationActionRunner; calls: string[] } {
+		const calls: string[] = [];
+		const runner: PresentationActionRunner = {
+			goToSlide: () => calls.push('goToSlide'),
+			move: () => calls.push('move'),
+			endShow: () => calls.push('endShow'),
+			lastViewed: () => calls.push('lastViewed'),
+			customShow: (id, returnAfter) => calls.push(`customShow:${id}:${returnAfter}`),
+			openFile: (target) => calls.push(`openFile:${target}`),
+			openPresentation: (target) => calls.push(`openPresentation:${target}`),
+			playMedia: (elementId) => calls.push(`playMedia:${elementId}`),
+			oleVerb: (verb) => calls.push(`oleVerb:${verb}`),
+		};
+		return { runner, calls };
+	}
+
+	it('calls the matching optional callback and reports the click as spent', () => {
+		const { runner, calls } = runnerSpy();
+		expect(
+			runPresentationAction(
+				{ action: 'ppaction://hlinkshowjump?jump=lastslideviewed' },
+				{ slideCount: 3 },
+				runner,
+			),
+		).toBeTruthy();
+		expect(calls).toStrictEqual(['lastViewed']);
+	});
+
+	it('still reports the click as spent when the optional callback is missing', () => {
+		const emptyRunner: PresentationActionRunner = {
+			goToSlide: () => undefined,
+			move: () => undefined,
+			endShow: () => undefined,
+		};
+		expect(
+			runPresentationAction({ action: 'ppaction://media' }, { slideCount: 3 }, emptyRunner),
+		).toBeTruthy();
+	});
+
+	it('passes the custom show id and returnAfter through', () => {
+		const { runner, calls } = runnerSpy();
+		runPresentationAction(
+			{ action: 'ppaction://customshow?id=3&return=true' },
+			{ slideCount: 3 },
+			runner,
+		);
+		expect(calls).toStrictEqual(['customShow:3:true']);
+	});
+
+	it('passes the resolved target through for openFile and openPresentation', () => {
+		const { runner, calls } = runnerSpy();
+		runPresentationAction(
+			{ action: 'ppaction://hlinkfile', url: 'report.docx' },
+			{ slideCount: 3 },
+			runner,
+		);
+		expect(calls).toStrictEqual(['openFile:report.docx']);
+	});
+
+	it('passes the OLE verb number through', () => {
+		const { runner, calls } = runnerSpy();
+		runPresentationAction({ action: 'ppaction://ole?verb=-1' }, { slideCount: 3 }, runner);
+		expect(calls).toStrictEqual(['oleVerb:-1']);
+	});
 });
 
 describe('findPresentationActionTarget', () => {
@@ -170,5 +306,21 @@ describe('resolvePresentationClick', () => {
 			resolvePresentationClick(render('<button type="button">next</button>'), slide).kind,
 		).toBe('inert');
 		expect(resolvePresentationClick(render('<a href="#x">link</a>'), slide).kind).toBe('inert');
+	});
+});
+
+describe('handlePresentationStageClick: playMedia elementId threading', () => {
+	it('threads the clicked element id into playMedia', () => {
+		const slide = slideOf([shape('video1', { action: 'ppaction://media' })]);
+		const node = render('<div data-element-id="video1"></div>');
+		const calls: Array<string | undefined> = [];
+		const runner: PresentationActionRunner = {
+			goToSlide: () => undefined,
+			move: () => undefined,
+			endShow: () => undefined,
+			playMedia: (elementId) => calls.push(elementId),
+		};
+		handlePresentationStageClick(node, slide, { slideCount: 1 }, runner);
+		expect(calls).toStrictEqual(['video1']);
 	});
 });

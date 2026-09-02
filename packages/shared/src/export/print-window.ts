@@ -28,7 +28,7 @@
  * is opened blank (`''`) and filled entirely with the app's own
  * document.write() output, so there is no opener relationship worth cutting.
  */
-import { escapeHtml } from './print-document';
+import { escapeHtml } from './html-escape';
 
 /**
  * Open a blank print window right now, synchronously, still inside the

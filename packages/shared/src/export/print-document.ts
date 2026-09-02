@@ -5,18 +5,26 @@
  *
  * No DOM side effects and no `window.print()`: everything is deterministic and
  * the binding writes the returned HTML string into a print window. The handout
- * grid geometry lives in `handout-layout`; this module reuses it.
- *
- * ng-packagr constraint honoured here (the Angular binding inlines this source
- * and compiles it through ng-packagr): NO `String.prototype.replaceAll`
- * (`escapeHtml` uses `.split(x).join(y)` instead).
+ * grid geometry lives in `handout-layout`; this module reuses it. Handout
+ * master "chrome" (background/header/footer/date/page-number/positioned slide
+ * rects) is resolved by `handout-master-chrome.ts` and painted by
+ * `handout-chrome-html.ts`; escaping helpers live in `html-escape.ts` (both
+ * split out to keep this file under this repo's per-file LOC guideline and to
+ * avoid a circular import between the two).
  */
 
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 
 import { sanitizeMarkupOrEmpty } from '../render/dompurify-safe';
+import {
+	handoutBackgroundStyle,
+	handoutChromeBoxesHtml,
+	handoutSlideRectCellsHtml,
+} from './handout-chrome-html';
 import { getHandoutGrid, HANDOUT_OPTIONS } from './handout-layout';
 import type { HandoutSlidesPerPage } from './handout-layout';
+import { handoutMasterChrome } from './handout-master-chrome';
+import { escapeHtml, safeDataImageSrc } from './html-escape';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -76,10 +84,6 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
 
 /** Number of ruled note lines drawn next to each slide in 3-per-page handouts. */
 const NOTE_LINE_COUNT = 8;
-
-/** Transparent 1x1 PNG used as a safe fallback for non-data image sources. */
-const TRANSPARENT_PNG =
-	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=';
 
 /* ------------------------------------------------------------------ */
 /*  Validation / normalisation                                         */
@@ -268,41 +272,6 @@ export function estimatePageCount(
 }
 
 /* ------------------------------------------------------------------ */
-/*  HTML escaping                                                      */
-/* ------------------------------------------------------------------ */
-
-/**
- * Escape text for safe interpolation into HTML element content / attributes.
- * Escapes `&`, `<`, `>`, `"`, and `'`. Uses `.split().join()` rather than
- * `replaceAll` to stay within the ng-packagr lib target.
- */
-export function escapeHtml(value: string): string {
-	return value
-		.split('&')
-		.join('&amp;')
-		.split('<')
-		.join('&lt;')
-		.split('>')
-		.join('&gt;')
-		.split('"')
-		.join('&quot;')
-		.split("'")
-		.join('&#39;');
-}
-
-/**
- * Validate an `img` `src` for inclusion in the print document. Only
- * `data:image/...` URLs pass through (escaped); anything else collapses to a
- * transparent 1x1 PNG so the markup stays well-formed and inert.
- */
-export function safeDataImageSrc(src: string): string {
-	if (typeof src !== 'string' || !src.startsWith('data:image/')) {
-		return TRANSPARENT_PNG;
-	}
-	return escapeHtml(src);
-}
-
-/* ------------------------------------------------------------------ */
 /*  Slide-title extraction (outline mode)                              */
 /* ------------------------------------------------------------------ */
 
@@ -388,18 +357,33 @@ function buildNoteLines(): string {
 /**
  * Build the body markup for handout printing. The grid is derived from
  * `slidesPerPage`; the 3-per-page layout adds ruled note lines on the right.
+ *
+ * `handoutMaster`, when supplied, paints its background, header/footer/date/
+ * page-number placeholders (per `handoutMasterChrome`), and, when it defines
+ * positioned slide-image placeholders, sizes the slide cells from them
+ * instead of the app-computed grid (skipped for the 3-per-page layout, whose
+ * note-line column has no equivalent in placeholder geometry). Omitting it
+ * (existing callers) renders byte-identical output to before this parameter
+ * existed.
  */
 export function buildHandoutsHtml(
 	slideImages: string[],
 	slideIndices: number[],
 	slidesPerPage: HandoutSlidesPerPage,
+	handoutMaster?: PptxHandoutMaster,
 ): string {
 	const grid = getHandoutGrid(slidesPerPage);
 	const isThreePerPage = slidesPerPage === 3;
 	const pages: string[] = [];
+	const pageCount = computePrintPageCount(slideImages.length, slidesPerPage);
 
-	for (let i = 0; i < slideImages.length; i += slidesPerPage) {
+	for (let i = 0, pageIndex = 0; i < slideImages.length; i += slidesPerPage, pageIndex++) {
 		const pageImgs = slideImages.slice(i, i + slidesPerPage);
+		const chrome = handoutMasterChrome(handoutMaster, { pageIndex, pageCount });
+		const backgroundStyle = handoutBackgroundStyle(chrome);
+		const chromeBoxesHtml = handoutChromeBoxesHtml(chrome);
+		const sectionStyle = backgroundStyle ? ` style="${backgroundStyle}"` : '';
+
 		if (isThreePerPage) {
 			const rows = Array.from({ length: slidesPerPage }, (_, cellIndex) => {
 				const img = pageImgs[cellIndex];
@@ -408,17 +392,27 @@ export function buildHandoutsHtml(
 					: `<div class="handout-cell"></div>`;
 				return `<div class="handout-row-3">${slideCell}${buildNoteLines()}</div>`;
 			}).join('');
-			pages.push(`<section class="page"><div class="handout-grid-3">${rows}</div></section>`);
+			const gridHtml = `<div class="handout-grid-3">${rows}</div>`;
+			const body = chromeBoxesHtml
+				? `<div class="handout-chrome-frame">${chromeBoxesHtml}${gridHtml}</div>`
+				: gridHtml;
+			pages.push(`<section class="page"${sectionStyle}>${body}</section>`);
 		} else {
-			const cells = Array.from({ length: slidesPerPage }, (_, cellIndex) => {
-				const img = pageImgs[cellIndex];
-				return img
-					? `<div class="handout-cell"><img src="${safeDataImageSrc(img)}" alt="Slide ${(slideIndices[i + cellIndex] ?? i + cellIndex) + 1}" /></div>`
-					: `<div class="handout-cell"></div>`;
-			}).join('');
-			pages.push(
-				`<section class="page"><div class="handout-grid" style="grid-template-columns: repeat(${grid.columns}, minmax(0, 1fr)); grid-template-rows: repeat(${grid.rows}, minmax(0, 1fr));">${cells}</div></section>`,
-			);
+			const cellsHtml = chrome.slideRects
+				? handoutSlideRectCellsHtml(pageImgs, chrome.slideRects, slideIndices, i)
+				: Array.from({ length: slidesPerPage }, (_, cellIndex) => {
+						const img = pageImgs[cellIndex];
+						return img
+							? `<div class="handout-cell"><img src="${safeDataImageSrc(img)}" alt="Slide ${(slideIndices[i + cellIndex] ?? i + cellIndex) + 1}" /></div>`
+							: `<div class="handout-cell"></div>`;
+					}).join('');
+			const gridHtml = chrome.slideRects
+				? `<div class="handout-grid handout-grid--positioned">${cellsHtml}</div>`
+				: `<div class="handout-grid" style="grid-template-columns: repeat(${grid.columns}, minmax(0, 1fr)); grid-template-rows: repeat(${grid.rows}, minmax(0, 1fr));">${cellsHtml}</div>`;
+			const body = chromeBoxesHtml
+				? `<div class="handout-chrome-frame">${chromeBoxesHtml}${gridHtml}</div>`
+				: gridHtml;
+			pages.push(`<section class="page"${sectionStyle}>${body}</section>`);
 		}
 	}
 
@@ -541,6 +535,14 @@ export function buildPrintHtmlDocument(options: PrintHtmlDocumentOptions): strin
       .handout-row-3 .handout-cell { flex: 0 0 45%; }
       .handout-note-lines { flex: 1; position: relative; border-left: 1px solid #d1d5db; padding-left: 3mm; }
       .handout-note-line { position: absolute; left: 3mm; right: 0; height: 0; border-bottom: 1px solid #d1d5db; }
+      .handout-chrome-frame { position: relative; width: 100%; height: 250mm; }
+      .handout-chrome-box { position: absolute; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 8px; line-height: 1.2; color: #6b7280; display: flex; align-items: center; }
+      .handout-chrome-box--header, .handout-chrome-box--date { align-items: flex-start; }
+      .handout-chrome-box--footer, .handout-chrome-box--page-number { align-items: flex-end; }
+      .handout-chrome-box--footer, .handout-chrome-box--page-number { justify-content: flex-start; }
+      .handout-chrome-box--date, .handout-chrome-box--page-number { justify-content: flex-end; }
+      .handout-grid--positioned { position: relative; height: 250mm; }
+      .handout-cell--positioned { position: absolute; }
       .outline-page { padding: 10mm; }
       .outline-page h2 { font-size: 14px; margin: 12px 0 4px; color: #374151; }
       .outline-page p { font-size: 12px; margin: 2px 0 2px 16px; color: #4b5563; }

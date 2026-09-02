@@ -1242,6 +1242,7 @@ export * from './backstage-cards';
 export * from './master-page-layout';
 export * from './master-view';
 export * from './master-view-editing';
+export * from './master-view-crud';
 export * from './virtualized-list';
 export * from './document-statistics';
 export * from './used-fonts';
@@ -1341,3 +1342,7 @@ export * from './bar-chart-3d-geometry';
 // Inspector option lists + pure patch builders for bar3D shape, radar style,
 // and surface wireframe.
 export * from './chart-subtype-options';
+
+// comment threading, extended hyperlink verbs, MRU colours (wave 4)
+// Recent-colours seed/push/patch for every colour picker's "Recent colours" row.
+export * from './recent-colors';
