@@ -29,11 +29,11 @@ import {
 	resolvePresentationClick,
 	runPresentationAction,
 	safeOpenUrl,
+	toggleStageElementMedia,
 } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
 import type { PresentationAnnotationsService } from './presentation-annotations.service';
 import { requestPresentationFullscreen } from './presentation-fullscreen';
-import { toggleStageElementMedia } from './presentation-media-transport';
 import { shouldBlockClickAdvance } from './presentation-overlay-helpers';
 import type { PresentationShowNavigator } from './presentation-show-navigator';
 import { closestElementId } from './presentation-stage-animator';
