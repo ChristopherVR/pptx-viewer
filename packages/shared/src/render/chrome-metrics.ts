@@ -77,6 +77,61 @@ export const STATUS_BAR_CLASSES = {
 } as const;
 
 /**
+ * Compatibility-toast stack measurements.
+ *
+ * The stack sits in the bottom-right corner of the viewer chrome, ABOVE the
+ * status bar: anchored to the viewer root with a bottom inset of the status
+ * bar's height plus a margin. Every binding first anchored it `bottom: 12px`
+ * of whatever box happened to contain it, and in React that box included the
+ * status bar, so a single toast covered the "Slide show" button (the e2e
+ * parity suite could not start a show while a warning was up).
+ */
+export const COMPAT_TOAST_METRICS = {
+	/** Distance from the viewer's right edge (`right-3`). */
+	insetRight: 12,
+	/** Clearance between the stack and the status bar's top edge (`bottom-3`). */
+	marginAboveStatusBar: 12,
+	/** Stack width (`w-80`). */
+	width: 320,
+	/** Vertical gap between stacked toasts (`gap-2`). */
+	gap: 8,
+	/** Stacking order: above the canvas and inspector, below dialogs. */
+	zIndex: 40,
+} as const;
+
+/**
+ * Inline style for the toast stack, positioned relative to the viewer root
+ * (which must establish a containing block, as it already does in every
+ * binding for the dialogs). Numbers are stringified with units so the record
+ * can be spread straight onto a style object or joined into a `style`
+ * attribute.
+ */
+export function compatToastStackStyle(): Record<string, string> {
+	const m = COMPAT_TOAST_METRICS;
+	return {
+		position: 'absolute',
+		right: `${String(m.insetRight)}px`,
+		bottom: `${String(STATUS_BAR_METRICS.height + m.marginAboveStatusBar)}px`,
+		width: `${String(m.width)}px`,
+		zIndex: String(m.zIndex),
+		display: 'flex',
+		flexDirection: 'column',
+		gap: `${String(m.gap)}px`,
+		pointerEvents: 'none',
+	};
+}
+
+/** {@link compatToastStackStyle} flattened into an inline `style` attribute value. */
+export function compatToastStackStyleAttr(): string {
+	return Object.entries(compatToastStackStyle())
+		.map(
+			([name, value]) =>
+				`${name.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)}:${value}`,
+		)
+		.join(';');
+}
+
+/**
  * The title-bar metrics as CSS custom properties.
  *
  * Vanilla interpolates numbers straight into its CSS-in-TS, but Svelte's

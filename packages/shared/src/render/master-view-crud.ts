@@ -57,6 +57,25 @@ export interface MasterViewCrudAction {
 	disabledReasonKey?: string;
 }
 
+/**
+ * The i18n key a binding should show when {@link applyMasterViewCrudAction}
+ * refuses a command. Core reports a single `inUse` reason for both part
+ * kinds, so the copy is picked by the command that was attempted.
+ */
+export function masterViewCrudFailureKey(
+	id: MasterViewCrudActionId,
+	reason: MasterLayoutCrudFailure['reason'],
+): string {
+	switch (reason) {
+		case 'inUse':
+			return id === 'deleteMaster' ? 'pptx.masterView.masterInUse' : 'pptx.masterView.layoutInUse';
+		case 'lastMaster':
+			return 'pptx.masterView.lastMaster';
+		case 'notFound':
+			return 'pptx.masterView.notFound';
+	}
+}
+
 function layoutInUse(data: PptxData, layoutPath: string): boolean {
 	return data.slides.some((slide) => slide.layoutPath === layoutPath);
 }

@@ -1261,6 +1261,9 @@ export * from './presentation-action';
 // runs; the rest of the slide is scenery the click passes through.
 export * from './presentation-hit-test';
 export * from './presentation-show-order';
+// The slide a show opens on: the active slide when the show includes it, else
+// the first show slide after it. Entering on an excluded slide is a parity bug.
+export * from './presentation-entry-slide';
 // The rail / sorter cue for a slide `presentation-show-order` will skip: the
 // neutral marker attribute, the shared slash mark, and the description id that
 // announces the state without touching the tile's accessible name.

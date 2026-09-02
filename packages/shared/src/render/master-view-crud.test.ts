@@ -3,11 +3,29 @@ import type { PptxData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import type { MasterViewTarget } from './master-view';
-import { applyMasterViewCrudAction, masterViewCrudActions } from './master-view-crud';
+import {
+	applyMasterViewCrudAction,
+	masterViewCrudActions,
+	masterViewCrudFailureKey,
+} from './master-view-crud';
 
 function actionMap(data: PptxData, target: MasterViewTarget) {
 	return Object.fromEntries(masterViewCrudActions(data, target).map((a) => [a.id, a]));
 }
+
+describe('masterViewCrudFailureKey', () => {
+	it("names the part kind for core's single inUse reason", () => {
+		expect(masterViewCrudFailureKey('deleteMaster', 'inUse')).toBe('pptx.masterView.masterInUse');
+		expect(masterViewCrudFailureKey('deleteLayout', 'inUse')).toBe('pptx.masterView.layoutInUse');
+	});
+
+	it('maps the other reasons one-to-one', () => {
+		expect(masterViewCrudFailureKey('deleteMaster', 'lastMaster')).toBe(
+			'pptx.masterView.lastMaster',
+		);
+		expect(masterViewCrudFailureKey('renameLayout', 'notFound')).toBe('pptx.masterView.notFound');
+	});
+});
 
 describe('masterViewCrudActions', () => {
 	it('returns [] outside the slides tab', () => {
