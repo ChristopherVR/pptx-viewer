@@ -1022,6 +1022,10 @@ export * from './outline-view-edit';
 // group, select-all, slide paging, help) as one shared mapping, so the five
 // bindings cannot disagree about what Ctrl+D or an arrow key does.
 export * from './editor-keymap';
+// Start-a-show keys (F5 / Shift+F5): kept apart from the editor keymap because
+// they must fire on a read-only host and from inside a text field, which the
+// editor gates forbid.
+export * from './slide-show-start-keymap';
 // Slide-sorter keyboard map: the sorter overlay is a second editing surface
 // with its own keys (slide clipboard, duplicate, delete, thumbnail zoom, and an
 // Escape that collapses a multi-selection before it closes).
