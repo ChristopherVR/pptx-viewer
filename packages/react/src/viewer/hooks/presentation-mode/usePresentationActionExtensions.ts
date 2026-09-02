@@ -1,5 +1,10 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { openUrlInNewTab, resolveOleVerbTarget, safeOpenUrl } from 'pptx-viewer-shared';
+import {
+	openUrlInNewTab,
+	resolveOleVerbTarget,
+	safeOpenUrl,
+	toggleStageElementMedia,
+} from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types';
@@ -118,30 +123,7 @@ export function usePresentationActionExtensions(
 	// same DOM node a direct click on it plays/pauses.
 	const onPlayMedia = useCallback(
 		(elementId: string | undefined) => {
-			if (!elementId) {
-				return;
-			}
-			const root = containerRef.current;
-			if (!root) {
-				return;
-			}
-			const selector =
-				typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
-					? CSS.escape(elementId)
-					: elementId;
-			const media = root.querySelector<HTMLMediaElement>(
-				`[data-element-id="${selector}"] video, [data-element-id="${selector}"] audio`,
-			);
-			if (!media) {
-				return;
-			}
-			if (media.paused) {
-				void media.play().catch(() => {
-					/* ignore */
-				});
-			} else {
-				media.pause();
-			}
+			toggleStageElementMedia(containerRef.current, elementId);
 		},
 		[containerRef],
 	);
