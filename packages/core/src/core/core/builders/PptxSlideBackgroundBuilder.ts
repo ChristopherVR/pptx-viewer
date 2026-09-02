@@ -81,11 +81,22 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 		// backgroundColor / backgroundGradient frequently come from layout or
 		// master fallbacks in the loader (see PptxSlideLoaderService), so their
 		// presence alone must not clobber a slide-level blipFill. We only
-		// regenerate on a data-URL image (a direct override).
+		// regenerate on a data-URL image (a direct override), OR when the
+		// model's `backgroundImage` no longer matches what was authored at load.
+		// The latter catches an explicit removal (e.g. the inspector's "remove
+		// background image" button, which only clears `backgroundImage` and
+		// leaves whatever fallback `backgroundColor` the loader resolved
+		// untouched): the field goes to '' without ever producing a data URL, so
+		// it previously fell through this guard unnoticed and the stale image
+		// kept rendering after save, because nothing distinguished "empty
+		// because never touched" from "empty because the user cleared it".
 		const existingBg = cSld['p:bg'] as XmlObject | undefined;
 		const existingBgPr = existingBg?.['p:bgPr'] as XmlObject | undefined;
 		const existingHasBlipFill = existingBgPr?.['a:blipFill'] !== undefined;
-		if (!hasDataUrlBackgroundImage && existingHasBlipFill) {
+		const backgroundImageUnchangedFromAuthored =
+			init.authoredBackground === undefined ||
+			rawBackgroundImage === (init.authoredBackground.image ?? '');
+		if (!hasDataUrlBackgroundImage && existingHasBlipFill && backgroundImageUnchangedFromAuthored) {
 			// OOXML CT_CommonSlideData requires child order: bg, spTree, ...
 			// Reorder cSld so p:bg comes first while preserving the raw node.
 			this.reorderCSldBgFirst(cSld, existingBg!);

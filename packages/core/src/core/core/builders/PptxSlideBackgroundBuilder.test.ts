@@ -326,6 +326,82 @@ describe('pptxSlideBackgroundBuilder', () => {
 		);
 	});
 
+	// ── Explicit image removal (regression: stale image survived save) ────
+
+	it('regenerates as a solid fill when backgroundImage is explicitly cleared, even with a fallback backgroundColor', async () => {
+		// A slide that authored its own blipFill background also carries a
+		// `backgroundColor` resolved from the layout (see PptxSlideLoaderService),
+		// purely as a paint fallback. Clicking "remove background image" in the
+		// inspector only clears `backgroundImage`; it leaves that fallback colour
+		// untouched. Previously the blipFill-preservation guard could not tell
+		// this apart from "backgroundColor changed but the image was never
+		// touched", so it kept re-emitting the stale image on every save.
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:blipFill': {
+					'a:blip': { '@_r:embed': 'rId4' },
+					'a:stretch': { 'a:fillRect': {} },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = {
+			...createInput({ backgroundColor: '#FFFFFF', backgroundImage: undefined }, slideNode),
+			authoredBackground: {
+				authored: true,
+				color: '#FFFFFF',
+				image: 'ppt/media/image5.jpg',
+			},
+		};
+		await builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
+		expect(bgPr['a:blipFill']).toBeUndefined();
+		expect((bgPr['a:solidFill'] as XmlObject)['a:srgbClr']).toStrictEqual({ '@_val': 'FFFFFF' });
+	});
+
+	it('still preserves the raw blipFill when backgroundImage matches what was authored at load', async () => {
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:blipFill': {
+					'a:blip': { '@_r:embed': 'rId4' },
+					'a:stretch': { 'a:fillRect': {} },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = {
+			...createInput(
+				{ backgroundColor: '#FFFFFF', backgroundImage: 'ppt/media/image5.jpg' },
+				slideNode,
+			),
+			authoredBackground: {
+				authored: true,
+				color: '#FFFFFF',
+				image: 'ppt/media/image5.jpg',
+			},
+		};
+		await builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
+		expect(bgPr['a:blipFill']).toBeDefined();
+		expect((bgPr['a:blipFill'] as XmlObject)['a:blip']).toStrictEqual({ '@_r:embed': 'rId4' });
+	});
+
 	// ── Schema child order ────────────────────────────────────────────────
 
 	it('places p:bg before p:spTree in p:cSld when adding a background', async () => {
