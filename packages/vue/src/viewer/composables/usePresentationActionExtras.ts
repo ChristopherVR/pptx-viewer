@@ -14,7 +14,12 @@
  * writes to it.
  */
 import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
-import { openUrlInNewTab, resolveOleVerbTarget, safeOpenUrl } from 'pptx-viewer-shared';
+import {
+	openUrlInNewTab,
+	resolveOleVerbTarget,
+	safeOpenUrl,
+	toggleStageElementMedia,
+} from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
 import type { Ref } from 'vue';
 
@@ -47,16 +52,6 @@ export interface UsePresentationActionExtrasResult {
 	openPresentation: (target: string) => void;
 	playMedia: (elementId: string | undefined) => void;
 	oleVerb: (verb: number, elementId: string | undefined) => void;
-}
-
-/** The `<video>`/`<audio>` node for `elementId`, within `root`, or `undefined`. */
-function findMediaElement(root: HTMLElement, elementId: string): HTMLMediaElement | undefined {
-	for (const node of root.querySelectorAll<HTMLElement>('[data-element-id]')) {
-		if (node.getAttribute('data-element-id') === elementId) {
-			return node.querySelector<HTMLMediaElement>('video, audio') ?? undefined;
-		}
-	}
-	return undefined;
 }
 
 export function usePresentationActionExtras(
@@ -122,19 +117,7 @@ export function usePresentationActionExtras(
 	}
 
 	function playMedia(elementId: string | undefined): void {
-		const root = input.frameRoot();
-		if (!elementId || !root) {
-			return;
-		}
-		const media = findMediaElement(root, elementId);
-		if (!media) {
-			return;
-		}
-		if (media.paused) {
-			void media.play();
-		} else {
-			media.pause();
-		}
+		toggleStageElementMedia(input.frameRoot(), elementId);
 	}
 
 	/** A browser cannot run the verb in the owning application: open the recovered embedding instead. */
