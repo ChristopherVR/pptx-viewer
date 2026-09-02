@@ -65,6 +65,10 @@ describe('aiFocusBar', () => {
 		await merge?.trigger('click');
 		const emitted = wrapper.emitted('send-directive');
 		expect(emitted).toBeTruthy();
-		expect(String(emitted?.[0]?.[0])).toContain('merge_tables');
+		// Pins the exact shared `mergeTablesDirective` wording through the component.
+		expect(String(emitted?.[0]?.[0])).toBe(
+			'Merge the two selected tables (elementIdA=t1, elementIdB=t2) ' +
+				'on slide 1 using merge_tables; stage it now, do not ask me to confirm.',
+		);
 	});
 });

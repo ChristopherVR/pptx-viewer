@@ -8,7 +8,6 @@ import type {
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
-	PptxElement,
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
@@ -33,8 +32,11 @@ import {
 } from 'pptx-viewer-core';
 import type { DeckSaveIntent, DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
+	applyImagePathPatches,
 	embeddedFontSaveOptions,
 	resolveSlideSizeSelection,
+	resolveTableCellImageUrls,
+	resolveTableStyleImageUrls,
 	saveDeckWithPassword,
 } from 'pptx-viewer-shared';
 import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
@@ -43,13 +45,9 @@ import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type { CanvasSize } from '../types';
 import {
-	applyTableCellImagePatches,
-	applyTableStyleImagePatches,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
-	collectTableCellImagePaths,
-	collectTableStyleImagePaths,
 } from './load-content-helpers';
 import type { TemplateElementMap } from './template-editing';
 import { buildSaveSlides, partitionTemplateElements } from './template-editing';
@@ -436,102 +434,21 @@ export function useLoadContent(
 					}),
 				);
 
-				const elementPatches = new Map<string, Record<string, string>>();
-				for (const refEntry of imageRefs) {
-					const url = resolvedMap.get(refEntry.path);
-					if (!url) {
-						continue;
-					}
-					const id = refEntry.element.id;
-					const existing = elementPatches.get(id) ?? {};
-					existing[refEntry.field] = url;
-					elementPatches.set(id, existing);
-				}
-
-				if (elementPatches.size > 0) {
-					const patchElements = (elements: PptxElement[]): PptxElement[] => {
-						let mutated = false;
-						const next = elements.map((el) => {
-							let updated = el;
-							const patch = elementPatches.get(el.id);
-							if (patch) {
-								updated = { ...el, ...patch } as PptxElement;
-							}
-							if (updated.type === 'group' && updated.children?.length) {
-								const newChildren = patchElements(updated.children);
-								if (newChildren !== updated.children) {
-									updated = { ...updated, children: newChildren };
-								}
-							}
-							if (updated !== el) {
-								mutated = true;
-							}
-							return updated;
-						});
-						return mutated ? next : elements;
-					};
-					nextSlides = parsed.slides.map((s) => {
-						const newElements = patchElements(s.elements);
-						return newElements === s.elements ? s : { ...s, elements: newElements };
-					});
-				}
+				nextSlides = parsed.slides.map((s) => {
+					const newElements = applyImagePathPatches(s.elements, resolvedMap, imageRefs);
+					return newElements === s.elements ? s : { ...s, elements: newElements };
+				});
 			}
 
 			// ── Resolve table cell image-fill Blob URLs ──
-			const { paths: tableImagePaths, refs: tableImageRefs } =
-				collectTableCellImagePaths(nextSlides);
-			if (tableImagePaths.size > 0) {
-				const resolvedTableMap = new Map<string, string>();
-				await Promise.all(
-					Array.from(tableImagePaths).map(async (path) => {
-						try {
-							const url = await newHandler.getImageData(path);
-							if (url) {
-								resolvedTableMap.set(path, url);
-							}
-						} catch {
-							// Non-critical: the cell falls back to no image fill.
-						}
-					}),
-				);
-				if (resolvedTableMap.size > 0) {
-					nextSlides = nextSlides.map((s) => {
-						const newElements = applyTableCellImagePatches(
-							s.elements,
-							resolvedTableMap,
-							tableImageRefs,
-						);
-						return newElements === s.elements ? s : { ...s, elements: newElements };
-					});
-				}
-			}
+			nextSlides = await resolveTableCellImageUrls(nextSlides, (path) =>
+				newHandler.getImageData(path),
+			);
 
 			// ── Resolve whole-table-STYLE image-fill Blob URLs ──
-			let nextTableStyleMap = parsed.tableStyleMap;
-			const { paths: tableStyleImagePaths, refs: tableStyleImageRefs } =
-				collectTableStyleImagePaths(nextTableStyleMap);
-			if (tableStyleImagePaths.size > 0) {
-				const resolvedStyleMap = new Map<string, string>();
-				await Promise.all(
-					Array.from(tableStyleImagePaths).map(async (path) => {
-						try {
-							const url = await newHandler.getImageData(path);
-							if (url) {
-								resolvedStyleMap.set(path, url);
-							}
-						} catch {
-							// Non-critical: the style section falls back to no image fill.
-						}
-					}),
-				);
-				if (resolvedStyleMap.size > 0 && nextTableStyleMap) {
-					nextTableStyleMap = applyTableStyleImagePatches(
-						nextTableStyleMap,
-						resolvedStyleMap,
-						tableStyleImageRefs,
-					);
-				}
-			}
+			const nextTableStyleMap = await resolveTableStyleImageUrls(parsed.tableStyleMap, (path) =>
+				newHandler.getImageData(path),
+			);
 
 			// Pull master/layout (template) elements out of each slide into their own
 			// store so the editor can gate / route / merge them back independently.

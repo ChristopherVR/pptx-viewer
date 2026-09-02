@@ -2,10 +2,8 @@
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
 import {
 	FILL_MODE_OPTIONS,
-	FILL_PATTERN_LABEL_KEYS,
 	GRADIENT_TYPE_OPTIONS,
-	PATTERN_OPTIONS,
-	schemaLabel,
+	PATTERN_PRESET_OPTIONS,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -14,8 +12,9 @@ import { useI18n } from 'vue-i18n';
  * TableCellAdvancedFill: Vue port of React's inspector
  * `TableCellAdvancedFill.tsx`. Advanced (gradient / pattern) cell fill controls
  * plus cell margins. Fill-mode, gradient-type and pattern-preset option lists
- * come from `pptx-viewer-shared` (`render/table-advanced-fill.ts`); their i18n
- * keys are resolved via vue-i18n's `t()` against the host dictionary.
+ * come from `pptx-viewer-shared` (`render/table-advanced-fill.ts`,
+ * `render/fill-pattern-label-keys.ts`); their i18n keys are resolved via
+ * vue-i18n's `t()` against the host dictionary.
  */
 const props = defineProps<{
 	cellStyle: PptxTableCellStyle;
@@ -62,17 +61,6 @@ function onFillModeChange(event: Event): void {
 	} else {
 		emit('update', { fillMode: next });
 	}
-}
-
-/**
- * Spell an `a:pattFill/@prst` preset for display.
- *
- * `PATTERN_OPTIONS` is a bare token list, so the option VALUE (and therefore
- * `patternFillPreset`) is unchanged; only the text is translated.
- * `t` is an overloaded generic, hence the narrowing lambda.
- */
-function patternLabel(preset: string): string {
-	return schemaLabel(FILL_PATTERN_LABEL_KEYS, preset, (key: string) => t(key));
 }
 
 function updateStop(index: number, patch: Partial<{ color: string; position: number }>): void {
@@ -186,8 +174,8 @@ function addStop(): void {
 						emit('update', { patternFillPreset: ($event.target as HTMLSelectElement).value })
 					"
 				>
-					<option v-for="p in PATTERN_OPTIONS" :key="p" :value="p">
-						{{ patternLabel(p) }}
+					<option v-for="p in PATTERN_PRESET_OPTIONS" :key="p.value" :value="p.value">
+						{{ t(p.labelKey) }}
 					</option>
 				</select>
 			</label>

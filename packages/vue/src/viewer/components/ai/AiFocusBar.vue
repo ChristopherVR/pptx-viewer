@@ -12,11 +12,11 @@
 import { Crosshair, GitMerge, Pin, PinOff, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { PptxAiFocusedTarget } from 'pptx-viewer-shared/ai';
+import { focusTargetChips, isTwoTableFocus, mergeTablesDirective } from 'pptx-viewer-shared/ai';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
-import { focusTargetChips, isTwoTableFocus } from '../../composables/ai/focus-targets';
 
 const props = defineProps<{
 	targets: PptxAiFocusedTarget[];
@@ -36,17 +36,13 @@ const { t } = useI18n();
 const chips = computed(() => focusTargetChips(props.targets, props.slides));
 const twoTables = computed(() => isTwoTableFocus(props.targets, props.slides));
 
-/** Build the directive that fires `merge_tables` without a confirmation round-trip. */
+/** Send the directive that fires `merge_tables` without a confirmation round-trip. */
 function sendMerge(): void {
 	const tt = twoTables.value;
 	if (!tt) {
 		return;
 	}
-	emit(
-		'send-directive',
-		`Merge the two selected tables (elementIdA=${tt.elementIdA}, elementIdB=${tt.elementIdB}) ` +
-			`on slide ${tt.slideIndex + 1} using merge_tables; stage it now, do not ask me to confirm.`,
-	);
+	emit('send-directive', mergeTablesDirective(tt.slideIndex, tt.elementIdA, tt.elementIdB));
 }
 </script>
 

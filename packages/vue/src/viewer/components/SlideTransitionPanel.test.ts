@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import { SLIDE_TRANSITION_OPTIONS } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import SlideTransitionPanel from './SlideTransitionPanel.vue';
@@ -193,5 +194,14 @@ describe('slideTransitionPanel - effect names', () => {
 				expect(option.text()).not.toBe(value);
 			}
 		}
+	});
+
+	it('matches the shared SLIDE_TRANSITION_OPTIONS catalogue exactly, in order', () => {
+		const values = typeSelect()
+			.map((o) => (o.element as HTMLOptionElement).value)
+			.filter((v) => v !== '__none__');
+		expect(values).toStrictEqual(
+			SLIDE_TRANSITION_OPTIONS.filter((o) => o.value !== 'none').map((o) => o.value),
+		);
 	});
 });

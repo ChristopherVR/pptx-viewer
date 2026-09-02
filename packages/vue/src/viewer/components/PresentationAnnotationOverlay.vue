@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { annotationOverlayZIndex } from 'pptx-viewer-shared';
+import { annotationOverlayZIndex, buildStrokePathD, cursorForTool } from 'pptx-viewer-shared';
 import type { PresentationBlackout } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
@@ -9,7 +9,6 @@ import type {
 	LaserPosition,
 	PresentationTool,
 } from '../composables/usePresentationAnnotations';
-import { buildStrokePathD } from '../composables/usePresentationAnnotations';
 import type { CanvasSize } from '../types';
 
 /**
@@ -124,18 +123,7 @@ function onPointerLeave(): void {
 	emit('pointer-up');
 }
 
-const cursor = computed<string>(() => {
-	switch (props.presentationTool) {
-		case 'laser':
-			return 'none';
-		case 'pen':
-		case 'highlighter':
-		case 'eraser':
-			return 'crosshair';
-		default:
-			return 'default';
-	}
-});
+const cursor = computed<string>(() => cursorForTool(props.presentationTool));
 
 const allStrokes = computed<AnnotationStroke[]>(() =>
 	props.currentStroke ? [...props.annotationStrokes, props.currentStroke] : props.annotationStrokes,

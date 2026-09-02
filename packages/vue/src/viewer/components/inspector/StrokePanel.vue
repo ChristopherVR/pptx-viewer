@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, ShapeStyle, StrokeDashType } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
+import { STROKE_DASH_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -24,15 +25,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-
-const DASH_OPTIONS: ReadonlyArray<{ value: StrokeDashType; i18nKey: string }> = [
-	{ value: 'solid', i18nKey: 'pptx.stroke.dashSolid' },
-	{ value: 'dash', i18nKey: 'pptx.stroke.dashDash' },
-	{ value: 'dot', i18nKey: 'pptx.stroke.dashDot' },
-	{ value: 'dashDot', i18nKey: 'pptx.stroke.dashDashDot' },
-	{ value: 'sysDash', i18nKey: 'pptx.stroke.dashSysDash' },
-	{ value: 'sysDot', i18nKey: 'pptx.stroke.dashSysDot' },
-];
 
 const applicable = computed(() => hasShapeProperties(props.element));
 
@@ -109,7 +101,7 @@ function onDash(event: Event): void {
 					:value="strokeDash"
 					@change="onDash"
 				>
-					<option v-for="opt in DASH_OPTIONS" :key="opt.value" :value="opt.value">
+					<option v-for="opt in STROKE_DASH_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ t(opt.i18nKey) }}
 					</option>
 				</select>

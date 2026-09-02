@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
 
 import {
-	buildStrokePathD,
 	createStroke,
 	eraseStrokesAtPoint,
 	ERASER_RADIUS,
@@ -74,21 +73,10 @@ describe('eraseStrokesAtPoint', () => {
 	});
 });
 
-describe('buildStrokePathD', () => {
-	it('returns empty string for no points', () => {
-		expect(buildStrokePathD([])).toBe('');
-	});
-
-	it('builds an M/L polyline path', () => {
-		expect(
-			buildStrokePathD([
-				{ x: 0, y: 0 },
-				{ x: 10, y: 5 },
-				{ x: 20, y: 15 },
-			]),
-		).toBe('M 0 0 L 10 5 L 20 15');
-	});
-});
+// `buildStrokePathD` now lives in `pptx-viewer-shared`
+// (`render/annotation-overlay`, exhaustively tested there); its Vue-side pin is
+// `PresentationAnnotationOverlay.test.ts`'s "renders one path per stroke",
+// which asserts the `d` attribute through the component.
 
 // ---------------------------------------------------------------------------
 // Composable

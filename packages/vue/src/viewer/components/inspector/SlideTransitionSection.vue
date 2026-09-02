@@ -8,21 +8,13 @@
  */
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
-import { TRANSITION_MORPH_OPTIONS } from 'pptx-viewer-shared';
+import { TRANSITION_MORPH_OPTIONS, TRANSITION_ORIENTATION_TYPES } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import SlideTransitionPanel from '../SlideTransitionPanel.vue';
 import DirectionPicker from './DirectionPicker.vue';
 import TransitionPreview from './TransitionPreview.vue';
-
-/** Transition types that pick a horz/vert orientation instead of a direction. */
-const ORIENTATION_TYPES: ReadonlySet<PptxTransitionType> = new Set([
-	'blinds',
-	'checker',
-	'comb',
-	'randomBar',
-]);
 
 const props = defineProps<{ slide: PptxSlide | undefined }>();
 
@@ -45,7 +37,7 @@ const transitionType = computed<PptxTransitionType>(
 const validDirections = computed<readonly string[]>(
 	() => TRANSITION_VALID_DIRECTIONS[transitionType.value] ?? [],
 );
-const usesOrientation = computed(() => ORIENTATION_TYPES.has(transitionType.value));
+const usesOrientation = computed(() => TRANSITION_ORIENTATION_TYPES.has(transitionType.value));
 const showDirection = computed(
 	() => hasTransition.value && validDirections.value.length > 0 && !usesOrientation.value,
 );

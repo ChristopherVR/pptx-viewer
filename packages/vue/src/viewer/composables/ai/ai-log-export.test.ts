@@ -1,27 +1,29 @@
+// @vitest-environment happy-dom
 import type { PptxAiChatStore, PptxAiStoredChat } from 'pptx-viewer-shared/ai';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-	buildChatLogExport,
-	buildChatLogMarkdown,
-	collectStoredChats,
-	exportAiChatLogs,
-} from './ai-log-export';
+const downloaded: { blob: Blob; filename: string }[] = [];
+vi.mock(import('pptx-viewer-shared'), () => ({
+	downloadBlob: (blob: Blob, filename: string) => {
+		downloaded.push({ blob, filename });
+	},
+}));
 
-/**
- * ai-log-export tests: the detailed chat-log serialization preserves every tool
- * call's name, input and output (the debugging payload the panel hides in
- * collapsed cards), the Markdown transcript renders them, and `detailed: false`
- * omits the payloads while keeping the tool name + state.
- */
+const { exportAiChatLogs } = await import('./ai-log-export');
+
+afterEach(() => {
+	downloaded.length = 0;
+});
+
 function chatWithToolCall(): PptxAiStoredChat {
 	return {
 		id: 'chat-1',
-		title: 'Recolour the title',
+		title: 'Recolor the title',
+		deckId: 'my-deck::3',
 		createdAt: 1_000,
 		updatedAt: 2_000,
 		messages: [
-			{ id: 'm1', role: 'user', parts: [{ type: 'text', text: 'Make the title blue' }] },
+			{ id: 'm1', role: 'user', parts: [{ type: 'text', text: 'Make the title red' }] },
 			{
 				id: 'm2',
 				role: 'assistant',
@@ -31,63 +33,68 @@ function chatWithToolCall(): PptxAiStoredChat {
 						type: 'tool-update_element_style',
 						toolCallId: 'call-1',
 						state: 'output-available',
-						input: { slideIndex: 0, elementId: 'shape-1', fill: '#0000ff' },
-						output: { ok: true },
+						input: { slideIndex: 0, color: 'FF0000' },
+						output: { updated: true },
 					},
 				],
 			},
-		] as unknown as PptxAiStoredChat['messages'],
-	};
+		],
+	} as unknown as PptxAiStoredChat;
 }
 
-/** In-memory store seeded with one chat. */
-function memoryStore(chats: PptxAiStoredChat[]): PptxAiChatStore {
+function mockStore(chats: PptxAiStoredChat[]): PptxAiChatStore {
 	return {
-		listChats: async () => chats.map((c) => ({ ...c, messageCount: c.messages.length })),
-		loadChat: async (id) => chats.find((c) => c.id === id) ?? null,
-		saveChat: async () => {},
-		deleteChat: async () => {},
-		clearChats: async () => {},
+		listChats: vi.fn(async () =>
+			chats.map((c) => ({
+				id: c.id,
+				title: c.title,
+				deckId: c.deckId,
+				createdAt: c.createdAt,
+				updatedAt: c.updatedAt,
+				messageCount: c.messages.length,
+			})),
+		),
+		loadChat: vi.fn(async (id: string) => chats.find((c) => c.id === id) ?? null),
+		saveChat: vi.fn(async () => {}),
+		deleteChat: vi.fn(async () => {}),
+		clearChats: vi.fn(async () => {}),
 	};
 }
 
-describe('ai-log-export', () => {
-	it('captures each tool call name, input and output when detailed', () => {
-		const doc = buildChatLogExport([chatWithToolCall()], { now: 5_000 });
-		expect(doc.format).toBe('pptx-ai-chat-log');
-		expect(doc.chatCount).toBe(1);
-		const call = doc.chats[0].messages[1].toolCalls[0];
+// `buildChatLogExport` / `buildChatLogMarkdown` / `collectStoredChats` are pure
+// shared helpers (packages/shared/src/ai/chat-log-export.ts) covered by that
+// module's own tests. This file pins only Vue's DOM glue: that the wrapper
+// reads the store, hands the shared builder's output to `downloadBlob`, and
+// preserves the shared filename/format contract through the binding.
+describe('exportAiChatLogs (Vue DOM glue)', () => {
+	it('downloads a JSON blob containing tool call details and returns the count', async () => {
+		const store = mockStore([chatWithToolCall()]);
+		const count = await exportAiChatLogs({ store, format: 'json', now: 5_000 });
+		expect(count).toBe(1);
+		expect(store.listChats).toHaveBeenCalledOnce();
+		expect(store.loadChat).toHaveBeenCalledWith('chat-1');
+		expect(downloaded).toHaveLength(1);
+		expect(downloaded[0].filename).toMatch(/^pptx-ai-chats-\d{8}-\d{6}\.json$/u);
+		const parsed = JSON.parse(await downloaded[0].blob.text()) as {
+			chats: {
+				messages: { toolCalls: { toolName: string; input: unknown; output: unknown }[] }[];
+			}[];
+		};
+		const call = parsed.chats[0].messages[1].toolCalls[0];
 		expect(call.toolName).toBe('update_element_style');
-		expect(call.state).toBe('output-available');
-		expect(call.input).toStrictEqual({ slideIndex: 0, elementId: 'shape-1', fill: '#0000ff' });
-		expect(call.output).toStrictEqual({ ok: true });
+		expect(call.input).toStrictEqual({ slideIndex: 0, color: 'FF0000' });
+		expect(call.output).toStrictEqual({ updated: true });
 	});
 
-	it('omits tool inputs/outputs when not detailed (keeps name + state)', () => {
-		const doc = buildChatLogExport([chatWithToolCall()], { detailed: false });
-		const call = doc.chats[0].messages[1].toolCalls[0];
-		expect(call.toolName).toBe('update_element_style');
-		expect(call.input).toBeUndefined();
-		expect(call.output).toBeUndefined();
+	it('downloads a markdown transcript when requested', async () => {
+		await exportAiChatLogs({ store: mockStore([chatWithToolCall()]), format: 'markdown' });
+		expect(downloaded[0].filename).toMatch(/\.md$/u);
+		await expect(downloaded[0].blob.text()).resolves.toContain('Tool `update_element_style`');
 	});
 
-	it('renders a Markdown transcript including the tool payloads', () => {
-		const md = buildChatLogMarkdown(buildChatLogExport([chatWithToolCall()]));
-		expect(md).toContain('# AI chat logs');
-		expect(md).toContain('Recolour the title');
-		expect(md).toContain('update_element_style');
-		expect(md).toContain('#0000ff');
-	});
-
-	it('collectStoredChats loads every listed chat in full', async () => {
-		const store = memoryStore([chatWithToolCall()]);
-		const chats = await collectStoredChats(store);
-		expect(chats).toHaveLength(1);
-		expect(chats[0].messages).toHaveLength(2);
-	});
-
-	it('exportAiChatLogs returns 0 (no download) when there are no chats', async () => {
-		const count = await exportAiChatLogs({ store: memoryStore([]) });
+	it('does not download and returns 0 when there are no chats', async () => {
+		const count = await exportAiChatLogs({ store: mockStore([]) });
 		expect(count).toBe(0);
+		expect(downloaded).toHaveLength(0);
 	});
 });

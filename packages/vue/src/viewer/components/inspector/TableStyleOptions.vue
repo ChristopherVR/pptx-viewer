@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxTableData } from 'pptx-viewer-core';
+import type { TableInspectorChanges } from 'pptx-viewer-shared';
 import { applyTableStylePreset, TABLE_STYLE_PRESETS } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
@@ -20,7 +21,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const TOGGLES: Array<[keyof PptxTableData, string]> = [
+// Keyed to `TableInspectorChanges` (shared `table-inspector.ts`): the
+// authoritative set of table-level style flags the inspector may toggle, so an
+// addition/removal there is a type error here instead of a silent drift.
+const TOGGLES: Array<[keyof TableInspectorChanges, string]> = [
 	['bandedRows', 'pptx.table.bandedRows'],
 	['firstRowHeader', 'pptx.table.headerRow'],
 	['bandedColumns', 'pptx.table.bandedColumns'],
@@ -29,7 +33,7 @@ const TOGGLES: Array<[keyof PptxTableData, string]> = [
 	['lastRow', 'pptx.table.lastRow'],
 ];
 
-function toggle(key: keyof PptxTableData, event: Event): void {
+function toggle(key: keyof TableInspectorChanges, event: Event): void {
 	emit('update', { [key]: (event.target as HTMLInputElement).checked });
 }
 

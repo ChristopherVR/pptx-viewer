@@ -1,5 +1,5 @@
 import type { PptxElement, PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 
 import { buildClickGroups, useAnimationPlayback } from './useAnimationPlayback';
@@ -121,6 +121,92 @@ describe('useAnimationPlayback (native controller)', () => {
 
 		expect(result.interactiveTriggerShapeIds.value.size).toBe(0);
 		expect(result.hoverTriggerShapeIds.value.size).toBe(0);
+		stop();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Repoint pins: the step/build/auto-advance clock is now the shared
+// `pptx-viewer-shared` `animation-playback-engine` (formerly a local
+// `composables/animation-playback-helpers` copy); these pin that the
+// composable's wiring into it (the `playSound`/`stopSound`/`onPlayActionSound`
+// host hooks, and the timer bookkeeping the engine's cleanup + auto-advance
+// callbacks run through) still behaves correctly end-to-end.
+// ---------------------------------------------------------------------------
+
+describe('useAnimationPlayback: shared engine wiring', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('routes a step sound through the host onPlayActionSound override', () => {
+		const onPlayActionSound = vi.fn<(soundPath: string) => void>();
+		const anim = {
+			targetId: 'a',
+			presetClass: 'entr',
+			trigger: 'onClick',
+			soundPath: 'media/click.wav',
+		} as unknown as PptxNativeAnimation;
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({
+				slide: () => slideWith([shapeElement('a')], [anim]),
+				onPlayActionSound,
+			}),
+		);
+
+		result.advance();
+
+		expect(onPlayActionSound).toHaveBeenCalledWith('media/click.wav');
+		stop();
+	});
+
+	it('keeps the css animation attached after cleanup for a fill="hold" step (holdEndState)', () => {
+		const anim = {
+			targetId: 'a',
+			presetClass: 'emph',
+			presetId: 26,
+			fill: 'hold',
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation;
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({ slide: () => slideWith([shapeElement('a')], [anim]) }),
+		);
+
+		result.advance();
+		const held = result.presentationElementStates.value.get('a')?.cssAnimation;
+		expect(held).toBeTruthy();
+
+		// Past the step's cleanup timer: a non-held step would clear its
+		// cssAnimation here, but `holdEndState` keeps this one attached.
+		vi.advanceTimersByTime(2000);
+		expect(result.presentationElementStates.value.get('a')?.cssAnimation).toBe(held);
+		stop();
+	});
+
+	it('auto-plays the first group on slide entry when authored to start automatically', () => {
+		const anim = {
+			targetId: 'a',
+			presetClass: 'entr',
+			trigger: 'afterDelay',
+			delayMs: 0,
+			groupAutoStart: true,
+			parGroupIndex: 0,
+		} as unknown as PptxNativeAnimation;
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({ slide: () => slideWith([shapeElement('a')], [anim]) }),
+		);
+
+		// Not yet: the auto-advance chain schedules its own timer rather than
+		// revealing the group synchronously during `resetForSlide`.
+		expect(result.presentationElementStates.value.get('a')?.visible).toBeFalsy();
+
+		vi.advanceTimersByTime(50);
+
+		expect(result.presentationElementStates.value.get('a')?.visible).toBeTruthy();
+		expect(result.isComplete.value).toBeTruthy();
 		stop();
 	});
 });

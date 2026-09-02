@@ -12,8 +12,12 @@
  *
  * The composable owns the reactive per-element state map, the keyframes CSS, and
  * the interactive / hover trigger-shape id sets; the controller stays pure. The
- * clock (timers, requestAnimationFrame) + DOM effects live in
- * {@link module:composables/animation-playback-helpers}.
+ * clock (timers, requestAnimationFrame) + DOM step/build/auto-advance effects are
+ * the shared `pptx-viewer-shared` `animation-playback-engine` (formerly a local
+ * `composables/animation-playback-helpers` copy, hand-ported from React and
+ * near-identical across all five bindings); this composable supplies the
+ * `playSound` / `stopSound` host hooks it needs (Vue's own `./animation-sound`)
+ * and the reactive `Map` + `Ref`s the shared engine's callbacks write into.
  *
  * NOTE: the editor / inspector animation PREVIEW still uses the older shared
  * `buildClickGroups` model; those exports are re-exported below unchanged.
@@ -22,17 +26,17 @@
  */
 
 import type { PptxSlide } from 'pptx-viewer-core';
-import { PresentationAnimationController } from 'pptx-viewer-shared';
-import type { ElementAnimationState } from 'pptx-viewer-shared';
-import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
-import type { MaybeRefOrGetter, Ref } from 'vue';
-
-import type { BuildRafHandle, PlaybackContext } from './animation-playback-helpers';
 import {
 	cancelBuildReveal,
 	playGroup,
+	PresentationAnimationController,
 	scheduleAutoAdvanceChain,
-} from './animation-playback-helpers';
+} from 'pptx-viewer-shared';
+import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
+import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
+import type { MaybeRefOrGetter, Ref } from 'vue';
+
+import { playAnimationSound, stopAnimationSound } from './animation-sound';
 
 // Re-export the older preset click-group model so existing importers (the editor
 // animation preview + the unstable composable surface) keep working unchanged.
@@ -107,6 +111,8 @@ export function useAnimationPlayback(
 		timers,
 		buildHandle,
 		onPlayActionSound: options.onPlayActionSound,
+		playSound: playAnimationSound,
+		stopSound: stopAnimationSound,
 		frameRoot: options.frameRoot,
 	};
 

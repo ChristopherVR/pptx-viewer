@@ -92,4 +92,18 @@ describe('presentationAnnotationOverlay', () => {
 		await wrapper.find('svg').trigger('pointerup', { clientX: 0, clientY: 0 });
 		expect(wrapper.emitted('pointer-up')).toHaveLength(1);
 	});
+
+	// Cursor is derived via shared's `cursorForTool`; pin the mapping through
+	// the mounted component's own overlay style.
+	it.each([
+		['pen', 'crosshair'],
+		['highlighter', 'crosshair'],
+		['eraser', 'crosshair'],
+		['laser', 'none'],
+	] as const)('sets the "%s" tool cursor to "%s"', (tool, expected) => {
+		const wrapper = mountOverlay({ presentationTool: tool });
+		expect(wrapper.get('.pptx-vue-annotation-overlay').attributes('style')).toContain(
+			`cursor: ${expected}`,
+		);
+	});
 });

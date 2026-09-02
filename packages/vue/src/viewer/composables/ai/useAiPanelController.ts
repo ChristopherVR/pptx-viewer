@@ -14,11 +14,17 @@
  *     the tool references (see {@link flashToolTarget}).
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import type { AiChangeBatch, PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
+import type {
+	AiCanvasHighlight,
+	AiChangeBatch,
+	PptxAiFocusedTarget,
+	ToolCanvasTarget,
+} from 'pptx-viewer-shared/ai';
+import { computeFocusTargets } from 'pptx-viewer-shared/ai';
 import { computed, onScopeDispose, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
-import { computeFocusTargets } from './focus-targets';
+export type { AiCanvasHighlight } from 'pptx-viewer-shared/ai';
 
 /** Live reactive inputs the controller derives its focus from. */
 export interface UseAiPanelControllerInput {
@@ -26,14 +32,6 @@ export interface UseAiPanelControllerInput {
 	selectedElementIds: Ref<string[]>;
 	/** The primary selected element, for building the "Fix with AI" directive. */
 	selectedElement: () => PptxElement | null;
-}
-
-/** One element ring to draw on the canvas: an explicit pick or a live-tool focus. */
-export interface AiCanvasHighlight {
-	slideIndex: number;
-	elementId: string;
-	/** `pick` = persistent user pick; `active` = transient AI-is-working ring. */
-	variant: 'pick' | 'active';
 }
 
 export interface AiPanelController {

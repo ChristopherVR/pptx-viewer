@@ -5,13 +5,14 @@ import {
 	getOleAriaLabel,
 	getOleBadgeLabel,
 	getOleDisplayName,
+	getOleIconShapes,
 	getOleTypeColor,
 	getOleTypeLabel,
 	isBrowserOpenableMime,
 	openUrlInNewTab,
 	resolveOleType,
 } from 'pptx-viewer-shared';
-import type { ResolvedOleType } from 'pptx-viewer-shared';
+import type { OleIconShape, ResolvedOleType } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -27,8 +28,9 @@ import { getContainerStyle } from '../composables/element-style';
  * overlay; otherwise a type-specific icon + label placeholder box is drawn,
  * mirroring the React fallback.
  *
- * The OLE-type resolution (icon / colour / label) is replicated locally to
- * match the React renderer's branding. Editing the embedded object in place
+ * The OLE-type resolution (icon / colour / label) uses the shared
+ * `resolveOleType` / `getOleIconShapes` helpers so the branding matches the
+ * React renderer and cannot drift from it. Editing the embedded object in place
  * is not possible (a browser cannot run the native app that owns it); the
  * action bar below still offers Download and, for browser-openable types,
  * Open in a new tab, when core extracted an embedded payload. The object's
@@ -60,6 +62,9 @@ const oleType = computed<ResolvedOleType>(() => {
 
 const typeColor = computed(() => getOleTypeColor(oleType.value));
 const typeLabel = computed(() => getOleTypeLabel(oleType.value));
+
+/** Data-driven placeholder icon primitives for the resolved OLE type. */
+const oleIconShapes = computed<OleIconShape[]>(() => getOleIconShapes(oleType.value));
 
 const previewSrc = computed<string | undefined>(() => ole.value?.previewImageData);
 const fileName = computed<string | undefined>(() => ole.value?.fileName);
@@ -170,177 +175,13 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 
 		<!-- Type-specific placeholder box -->
 		<div v-else class="pptx-vue-ole-placeholder" :style="placeholderStyle">
-			<!-- Excel -->
-			<svg v-if="oleType === 'excel'" width="36" height="36" viewBox="0 0 24 24" fill="none">
-				<rect
-					x="3"
-					y="3"
-					width="18"
-					height="18"
-					rx="2"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<line x1="3" y1="9" x2="21" y2="9" :stroke="typeColor" stroke-width="1" />
-				<line x1="3" y1="15" x2="21" y2="15" :stroke="typeColor" stroke-width="1" />
-				<line x1="9" y1="3" x2="9" y2="21" :stroke="typeColor" stroke-width="1" />
-				<line x1="15" y1="3" x2="15" y2="21" :stroke="typeColor" stroke-width="1" />
-			</svg>
-			<!-- Word -->
-			<svg v-else-if="oleType === 'word'" width="36" height="36" viewBox="0 0 24 24" fill="none">
-				<rect
-					x="4"
-					y="2"
-					width="16"
-					height="20"
-					rx="2"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<line
-					x1="7"
-					y1="7"
-					x2="17"
-					y2="7"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					stroke-linecap="round"
-				/>
-				<line
-					x1="7"
-					y1="11"
-					x2="17"
-					y2="11"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					stroke-linecap="round"
-				/>
-				<line
-					x1="7"
-					y1="15"
-					x2="13"
-					y2="15"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					stroke-linecap="round"
-				/>
-			</svg>
-			<!-- PDF -->
-			<svg v-else-if="oleType === 'pdf'" width="36" height="36" viewBox="0 0 24 24" fill="none">
-				<rect
-					x="4"
-					y="2"
-					width="16"
-					height="20"
-					rx="2"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<text x="12" y="14" text-anchor="middle" :fill="typeColor" font-size="7" font-weight="bold">
-					PDF
-				</text>
-			</svg>
-			<!-- Visio -->
-			<svg v-else-if="oleType === 'visio'" width="36" height="36" viewBox="0 0 24 24" fill="none">
-				<rect
-					x="8"
-					y="2"
-					width="8"
-					height="5"
-					rx="1"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<line x1="12" y1="7" x2="12" y2="10" :stroke="typeColor" stroke-width="1.5" />
-				<line x1="6" y1="10" x2="18" y2="10" :stroke="typeColor" stroke-width="1.5" />
-				<line x1="6" y1="10" x2="6" y2="13" :stroke="typeColor" stroke-width="1.5" />
-				<line x1="18" y1="10" x2="18" y2="13" :stroke="typeColor" stroke-width="1.5" />
-				<rect
-					x="2"
-					y="13"
-					width="8"
-					height="5"
-					rx="1"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<rect
-					x="14"
-					y="13"
-					width="8"
-					height="5"
-					rx="1"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-			</svg>
-			<!-- MathType -->
-			<svg
-				v-else-if="oleType === 'mathtype'"
-				width="36"
-				height="36"
-				viewBox="0 0 24 24"
-				fill="none"
-			>
-				<rect
-					x="2"
-					y="4"
-					width="20"
-					height="16"
-					rx="2"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<text
-					x="12"
-					y="15"
-					text-anchor="middle"
-					:fill="typeColor"
-					font-size="9"
-					font-style="italic"
-					font-weight="bold"
-				>
-					f(x)
-				</text>
-			</svg>
-			<!-- Generic -->
-			<svg v-else width="36" height="36" viewBox="0 0 24 24" fill="none">
-				<rect
-					x="2"
-					y="5"
-					width="9"
-					height="7"
-					rx="1.5"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<rect
-					x="13"
-					y="12"
-					width="9"
-					height="7"
-					rx="1.5"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					fill="none"
-				/>
-				<line
-					x1="11"
-					y1="8.5"
-					x2="13"
-					y2="15.5"
-					:stroke="typeColor"
-					stroke-width="1.5"
-					stroke-linecap="round"
-				/>
+			<!-- Icon primitives (shared `getOleIconShapes`) for the resolved type. -->
+			<svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+				<template v-for="(shape, i) in oleIconShapes" :key="i">
+					<rect v-if="shape.tag === 'rect'" v-bind="shape.attrs" :stroke="typeColor" />
+					<line v-else-if="shape.tag === 'line'" v-bind="shape.attrs" :stroke="typeColor" />
+					<text v-else v-bind="shape.attrs" :fill="typeColor">{{ shape.text }}</text>
+				</template>
 			</svg>
 
 			<span class="pptx-vue-ole-name" :style="{ color: typeColor }">{{ displayName }}</span>

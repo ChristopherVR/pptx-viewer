@@ -29,7 +29,7 @@ import type {
 	PptxTheme,
 } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { applyElementUpdate } from 'pptx-viewer-shared/ai';
+import { applyElementUpdate, computeFocusTargets } from 'pptx-viewer-shared/ai';
 import type {
 	PptxAiBridge,
 	PptxAiDataUpdater,
@@ -40,8 +40,6 @@ import type {
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
 import type { Ref } from 'vue';
-
-import { computeFocusTargets } from './focus-targets';
 
 /** Live reactive inputs the bridge closes over. */
 export interface UseAiBridgeInput {

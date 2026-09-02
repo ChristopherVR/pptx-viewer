@@ -34,4 +34,23 @@ describe('tableStyleOptions', () => {
 		expect(patch.rows?.[0].cells[0].style?.bold).toBeTruthy();
 		expect(patch.rows?.[1].cells[0].style?.borderColor).toBe('#B4C6E7');
 	});
+
+	it('emits firstCol/lastCol/lastRow toggle patches keyed to the shared TableInspectorChanges flags', async () => {
+		const wrapper = mount(TableStyleOptions, {
+			props: { tableData: tableData(), canEdit: true },
+		});
+
+		const checkboxes = wrapper.findAll('input[type="checkbox"]');
+		// TOGGLES order: bandedRows, firstRowHeader, bandedColumns, firstCol, lastCol, lastRow.
+		await checkboxes[3].setValue(true);
+		expect((wrapper.emitted('update') as unknown[][]).at(-1)?.[0]).toStrictEqual({
+			firstCol: true,
+		});
+
+		await checkboxes[4].setValue(true);
+		expect((wrapper.emitted('update') as unknown[][]).at(-1)?.[0]).toStrictEqual({ lastCol: true });
+
+		await checkboxes[5].setValue(true);
+		expect((wrapper.emitted('update') as unknown[][]).at(-1)?.[0]).toStrictEqual({ lastRow: true });
+	});
 });

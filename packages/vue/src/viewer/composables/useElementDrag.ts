@@ -1,11 +1,11 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import {
-	applyDragDelta,
 	canInteractWithElement,
+	createGestureController,
 	isTemplateElementId,
 	resolveElementInteractivity,
 } from 'pptx-viewer-shared';
-import type { ElementInteractivity } from 'pptx-viewer-shared';
+import type { ElementInteractivity, GestureController } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref } from 'vue';
 
 import { useConnectorReroute } from './connector-reroute-store';
@@ -13,7 +13,6 @@ import { applyGeometryLocks, geometryOf } from './element-lock-guards';
 import type { GeometryBox } from './element-lock-guards';
 import { useElementStorePatch } from './element-store-patch';
 import { snapBox } from './snap';
-import { computeSnapToShape } from './snap-shape';
 import type { TemplateElementMap } from './template-editing';
 import { useSnapGuides } from './useSnapGuides';
 
@@ -85,118 +84,92 @@ export function useElementDrag(input: UseElementDragInput) {
 	const rerouteConnectorsFor = useConnectorReroute(stores);
 
 	// ── Element drag-to-move + tap-to-edit (driven from the element) ──────
-	interface ElementDragState {
-		id: string;
-		startClientX: number;
-		startClientY: number;
-		startBox: GeometryBox;
-		moved: boolean;
-		wasSelected: boolean;
-		/** False when `a:spLocks/@noMove` (or `@noSelect`) pins the element. */
-		movable: boolean;
-	}
-	let elementDrag: ElementDragState | null = null;
-	function startElementDrag(id: string, event: PointerEvent, wasSelected: boolean): void {
-		const el = findActiveElement(id);
-		if (!el) {
-			return;
-		}
-		elementDrag = {
-			id,
-			startClientX: event.clientX,
-			startClientY: event.clientY,
-			startBox: geometryOf(el),
-			moved: false,
-			wasSelected,
-			// A pinned shape still ARMS the gesture, because releasing without a
-			// drag is what opens the inline editor; it just never travels.
-			movable: canInteractWithElement(el, 'move'),
-		};
-		window.addEventListener('pointermove', onElementDragMove);
-		window.addEventListener('pointerup', onElementDragUp);
-		window.addEventListener('pointercancel', onElementDragUp);
-	}
-	function onElementDragMove(event: PointerEvent): void {
-		const drag = elementDrag;
-		if (!drag) {
-			return;
-		}
-		const dx = event.clientX - drag.startClientX;
-		const dy = event.clientY - drag.startClientY;
-		if (!drag.moved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
-			drag.moved = true;
-			// No geometry will change for a pinned shape, so taking a history
-			// snapshot would leave an undo step that undoes nothing.
-			if (drag.movable) {
-				pushHistory();
+	//
+	// The dead zone, `window` pointer listener lifecycle and drag math (incl.
+	// snap-to-shape) are the shared `createGestureController` (only the 'move'
+	// kind is ever used here); grid-snap stays a separate step applied by
+	// `patchActiveElementGeometry` below, AFTER the controller's own
+	// snap-to-shape result, matching the pre-repoint chain order.
+	//
+	// `dragId`/`dragMovable`/`dragWasSelected` are captured once per gesture at
+	// `startElementDrag`, since the shared deps callbacks below take no such
+	// per-gesture context of their own.
+	let dragId: string | null = null;
+	let dragMovable = true;
+	let dragWasSelected = false;
+
+	const elementDragController: GestureController = createGestureController({
+		getScale: () => effectiveZoom.value,
+		getElementBox: (id) => {
+			const el = findActiveElement(id);
+			return el ? geometryOf(el) : undefined;
+		},
+		getSiblings: () => {
+			if (!dragId) {
+				return [];
 			}
-		}
-		if (!drag.moved || !drag.movable) {
-			return;
-		}
-		const box = applyDragDelta(drag.startBox, dx, dy, effectiveZoom.value);
-		let nextX = box.x;
-		let nextY = box.y;
-		// Snap to other shapes' edges/centres (+ user guides), with visual snap lines.
-		if (snapToShape.value && !box.rotation) {
 			// Snap against siblings in the same store as the dragged element (slide
 			// content, or the template layer when dragging a template element).
-			const dragSiblings = isTemplateElementId(drag.id)
+			const dragSiblings = isTemplateElementId(dragId)
 				? activeTemplateElements.value
 				: (activeSlide.value?.elements ?? []);
-			const siblings = dragSiblings.map((el) => ({
+			return dragSiblings.map((el) => ({
 				id: el.id,
 				x: el.x,
 				y: el.y,
 				width: el.width,
 				height: el.height,
 			}));
-			const result = computeSnapToShape(
-				box.x,
-				box.y,
-				box.width,
-				box.height,
-				siblings,
-				new Set([drag.id]),
-				guides.value,
-			);
-			nextX = result.x;
-			nextY = result.y;
-			snapLines.value = result.lines.map((line) => ({
+		},
+		getSnapToShape: () => snapToShape.value,
+		getSnapToGrid: () => false,
+		getGuides: () => guides.value,
+		getStageOrigin: () => ({ left: 0, top: 0 }), // unused: this controller only ever runs 'move'
+		onStart: () => {
+			// A pinned shape still ARMS the gesture, because releasing without a
+			// drag is what opens the inline editor; it just never travels, and no
+			// geometry will change for it, so taking a history snapshot would leave
+			// an undo step that undoes nothing.
+			if (dragMovable) {
+				pushHistory();
+			}
+		},
+		onPreview: (transform, lines) => {
+			snapLines.value = lines.map((line) => ({
 				axis: line.axis === 'v' ? 'x' : 'y',
 				position: line.position,
 			}));
-		} else if (snapLines.value.length > 0) {
-			snapLines.value = [];
+			if (!dragMovable) {
+				return;
+			}
+			patchActiveElementGeometry(transform);
+		},
+		onEnd: (transform, moved, id) => {
+			if (snapLines.value.length > 0) {
+				snapLines.value = [];
+			}
+			// A tap (no drag) on an already-selected element enters inline edit.
+			if (!moved && dragWasSelected) {
+				enterInlineEdit(id);
+			}
+			// The shape has landed: every connector glued to it has to catch up. Vue
+			// never called the shared reroute, so a connector stayed put while the box
+			// it points at walked off.
+			if (moved && dragMovable) {
+				rerouteConnectorsFor(new Set([id]));
+			}
+		},
+	});
+
+	function startElementDrag(id: string, event: PointerEvent, wasSelected: boolean): void {
+		const el = findActiveElement(id);
+		if (!el) {
+			return;
 		}
-		patchActiveElementGeometry({
-			id: drag.id,
-			x: nextX,
-			y: nextY,
-			width: box.width,
-			height: box.height,
-			rotation: box.rotation ?? 0,
-		});
-	}
-	function onElementDragUp(): void {
-		const drag = elementDrag;
-		elementDrag = null;
-		if (snapLines.value.length > 0) {
-			snapLines.value = [];
-		}
-		window.removeEventListener('pointermove', onElementDragMove);
-		window.removeEventListener('pointerup', onElementDragUp);
-		window.removeEventListener('pointercancel', onElementDragUp);
-		// A tap (no drag) on an already-selected element enters inline edit.
-		if (drag && !drag.moved && drag.wasSelected) {
-			enterInlineEdit(drag.id);
-		}
-		// The shape has landed: every connector glued to it has to catch up. Vue
-		// never called the shared reroute, so a connector stayed put while the box
-		// it points at walked off.
-		if (drag?.moved && drag.movable) {
-			rerouteConnectorsFor(new Set([drag.id]));
-		}
+		dragId = id;
+		dragMovable = canInteractWithElement(el, 'move');
+		dragWasSelected = wasSelected;
+		elementDragController.begin('move', id, event);
 	}
 
 	/** Patch one element's geometry in its store WITHOUT a history entry. */

@@ -6,14 +6,16 @@
  * itself, and inherited master/layout shapes in `templateElementsBySlideId`
  * (they carry a `master-` / `layout-` id prefix). Every live patch has to route
  * to the right one, and getting that wrong silently drops the edit, so the
- * routing lives in exactly one place.
+ * routing lives in exactly one place. The actual per-id, recurse-into-groups
+ * splice is the shared `walkAndPatchElements` walker, so a patch target nested
+ * inside a group is found correctly.
  *
  * Split out of `useElementDrag`, which had grown past the repo's 300-LOC budget.
  *
  * @module composables/element-store-patch
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { isTemplateElementId } from 'pptx-viewer-shared';
+import { isTemplateElementId, walkAndPatchElements } from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 import { setTemplateElements } from './template-editing';
@@ -45,12 +47,13 @@ export function useElementStorePatch(
 		if (!slide) {
 			return;
 		}
+		const patch = (el: PptxElement): PptxElement => (el.id === id ? mapElement(el) : el);
 		if (isTemplateElementId(id)) {
 			const current = templateElementsBySlideId.value[slide.id];
 			if (!current) {
 				return;
 			}
-			const next = current.map((el) => (el.id === id ? mapElement(el) : el));
+			const next = walkAndPatchElements(current, patch);
 			templateElementsBySlideId.value = setTemplateElements(
 				templateElementsBySlideId.value,
 				slide.id,
@@ -58,7 +61,7 @@ export function useElementStorePatch(
 			);
 			return;
 		}
-		const nextElements = slide.elements.map((el) => (el.id === id ? mapElement(el) : el));
+		const nextElements = walkAndPatchElements(slide.elements, patch);
 		const nextSlides = slides.value.slice();
 		nextSlides[index] = { ...slide, elements: nextElements };
 		slides.value = nextSlides;

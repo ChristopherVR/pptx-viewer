@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-import {
-	schemaLabel,
-	SLIDE_TRANSITION_LABEL_KEYS,
-	TRANSITION_SPEED_OPTIONS,
-} from 'pptx-viewer-shared';
+import { SLIDE_TRANSITION_OPTIONS, TRANSITION_SPEED_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -26,78 +22,19 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 /**
- * The complete set of transition effects from the core `PptxTransitionType`
- * union. `"none"` is part of the union and doubles as the "clear transition"
- * option, so it is excluded from the effect list and surfaced separately.
+ * The complete set of transition effects offered by the Type select, from
+ * shared's `SLIDE_TRANSITION_OPTIONS` (the same 47-entry catalogue React
+ * offers). `"none"` is part of that catalogue and doubles as the "clear
+ * transition" option, so it is excluded from the effect list and surfaced
+ * separately.
  */
-const TRANSITION_TYPES: readonly PptxTransitionType[] = [
-	'cut',
-	'fade',
-	'push',
-	'wipe',
-	'split',
-	'randomBar',
-	'blinds',
-	'checker',
-	'circle',
-	'comb',
-	'cover',
-	'diamond',
-	'dissolve',
-	'plus',
-	'pull',
-	'random',
-	'strips',
-	'uncover',
-	'wedge',
-	'wheel',
-	'zoom',
-	'newsflash',
-	'morph',
-	'conveyor',
-	'doors',
-	'ferris',
-	'flash',
-	'flythrough',
-	'gallery',
-	'glitter',
-	'honeycomb',
-	'pan',
-	'prism',
-	'reveal',
-	'ripple',
-	'shred',
-	'switch',
-	'vortex',
-	'warp',
-	'wheelReverse',
-	'window',
-	'cube',
-	'flip',
-	'rotate',
-	'box',
-	'orbit',
-];
+const TRANSITION_OPTIONS = SLIDE_TRANSITION_OPTIONS.filter((option) => option.value !== 'none');
 
 /** Sentinel `<option>` value representing "no transition" (clears the field). */
 const NONE_VALUE = '__none__';
 
 /** Default transition duration (ms) applied when an effect is first chosen. */
 const DEFAULT_DURATION_MS = 1000;
-
-/**
- * Spell a `p:transition` child-element name for display.
- *
- * The option VALUE stays the wire token that is emitted on the update, and
- * `TRANSITION_TYPES` above is untouched, so the select still offers exactly the
- * same effects; only the text is translated.
- * `SLIDE_TRANSITION_LABEL_KEYS` covers the whole `PptxTransitionType` union,
- * which is deliberately wider than this panel's list, so adding an effect here
- * later needs no second edit. `t` is an overloaded generic, hence the lambda.
- */
-function transitionLabel(type: PptxTransitionType): string {
-	return schemaLabel(SLIDE_TRANSITION_LABEL_KEYS, type, (key: string) => t(key));
-}
 
 const current = computed<PptxSlideTransition | undefined>(() => props.slide?.transition);
 
@@ -184,8 +121,8 @@ function onSpeedChange(event: Event): void {
 				@change="onTypeChange"
 			>
 				<option :value="NONE_VALUE">{{ t('pptx.transition.none') }}</option>
-				<option v-for="type in TRANSITION_TYPES" :key="type" :value="type">
-					{{ transitionLabel(type) }}
+				<option v-for="option in TRANSITION_OPTIONS" :key="option.value" :value="option.value">
+					{{ t(option.i18nKey) }}
 				</option>
 			</select>
 		</label>

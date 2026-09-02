@@ -11,8 +11,13 @@
  * Home tab quietly thinner than the reference's.
  */
 import { Group, Ungroup } from 'lucide-vue-next';
-import { hasShapeProperties } from 'pptx-viewer-core';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import {
+	canGroupSelection,
+	canSetStrokeWidth,
+	canUngroupSelection,
+	strokeWidthOf,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -31,21 +36,14 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 
-/** Outline thickness the renderer assumes when the shape declares none. */
-const DEFAULT_STROKE_WIDTH = 1;
-
-const canGroup = computed(() => props.canEdit && props.selectedCount >= 2);
-const canUngroup = computed(() => props.canEdit && props.selectedElement?.type === 'group');
-const isShape = computed(
-	() => props.selectedElement !== null && hasShapeProperties(props.selectedElement),
-);
-const strokeWidth = computed(() => {
-	const el = props.selectedElement;
-	if (el === null || !hasShapeProperties(el)) {
-		return DEFAULT_STROKE_WIDTH;
-	}
-	return el.shapeStyle?.strokeWidth ?? DEFAULT_STROKE_WIDTH;
-});
+const canGroup = computed(() => canGroupSelection(props.canEdit, props.selectedCount));
+const canUngroup = computed(() => canUngroupSelection(props.canEdit, props.selectedElement));
+// `canSetStrokeWidth` also requires `canEdit`, which this control does not
+// gate on (the spinner is disabled by `!props.canEdit || !isShape` below, same
+// as before the repoint), so it is checked with `canEdit` forced true here to
+// isolate just the "is this a shape" half of the decision.
+const isShape = computed(() => canSetStrokeWidth(true, props.selectedElement));
+const strokeWidth = computed(() => strokeWidthOf(props.selectedElement));
 
 function onStrokeWidthInput(event: Event): void {
 	const next = Number((event.target as HTMLInputElement).value);

@@ -4,7 +4,8 @@
  *
  * Responsibilities (the framework-coupled glue the SFC should stay free of):
  * - derive a blob (object) URL from the element's base64 `modelData` data URL
- *   (via core `parseDataUrlToBytes`, never hand-rolled base64), recomputing when
+ *   via the shared `modelDataToBlobUrl` (itself built on core
+ *   `parseDataUrlToBytes`, never hand-rolled base64), recomputing when
  *   `modelData` changes and revoking the previous URL;
  * - mount the shared scene into a caller-provided container ref whenever a blob
  *   URL exists, three.js is available, and the container is attached;
@@ -17,9 +18,8 @@
  * inside the shared module, so this composable adds nothing to the bundle when
  * the consumer does not install it.
  */
-import { parseDataUrlToBytes } from 'pptx-viewer-core';
 import type { Model3DPptxElement } from 'pptx-viewer-core';
-import { mountModel3D } from 'pptx-viewer-shared';
+import { modelDataToBlobUrl, mountModel3D } from 'pptx-viewer-shared';
 import type { Model3DHandle } from 'pptx-viewer-shared';
 import { onScopeDispose, ref, watch } from 'vue';
 import type { Ref } from 'vue';
@@ -42,32 +42,6 @@ export interface UseModel3dSceneOptions {
 export interface UseModel3dSceneResult {
 	/** True once an interactive scene has actually mounted (three available). */
 	mounted: Ref<boolean>;
-}
-
-/** Default MIME for GLB binaries when the element omits `modelMimeType`. */
-const DEFAULT_MODEL_MIME = 'model/gltf-binary';
-
-/**
- * Convert a base64 data URL to a blob (object) URL the GLTF loader can fetch.
- * Returns undefined for missing / non-base64 data URLs.
- */
-function modelDataToBlobUrl(
-	dataUrl: string | undefined,
-	mimeType: string | undefined,
-): string | undefined {
-	if (!dataUrl) {
-		return undefined;
-	}
-	const parsed = parseDataUrlToBytes(dataUrl);
-	if (!parsed) {
-		return undefined;
-	}
-	// Copy into a fresh ArrayBuffer-backed view: `parseDataUrlToBytes` returns a
-	// `Uint8Array<ArrayBufferLike>`, which TS does not accept as a `BlobPart`
-	// (the backing buffer could in theory be a SharedArrayBuffer).
-	const bytes = new Uint8Array(parsed.bytes);
-	const blob = new Blob([bytes], { type: mimeType ?? DEFAULT_MODEL_MIME });
-	return URL.createObjectURL(blob);
 }
 
 /**

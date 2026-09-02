@@ -145,20 +145,6 @@ export function eraseStrokesAtPoint(
 	return filtered.length === strokes.length ? strokes : filtered;
 }
 
-/** Build the SVG path `d` attribute for a polyline of stroke points. */
-export function buildStrokePathD(points: AnnotationPoint[]): string {
-	if (points.length === 0) {
-		return '';
-	}
-	const first = points[0];
-	let d = `M ${first.x} ${first.y}`;
-	for (let i = 1; i < points.length; i++) {
-		const pt = points[i];
-		d += ` L ${pt.x} ${pt.y}`;
-	}
-	return d;
-}
-
 // ---------------------------------------------------------------------------
 // Composable
 // ---------------------------------------------------------------------------

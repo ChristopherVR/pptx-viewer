@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { STROKE_DASH_OPTIONS } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import StrokePanel from './StrokePanel.vue';
@@ -67,5 +68,13 @@ describe('strokePanel', () => {
 
 		const patch = wrapper.emitted('update')?.at(-1)?.[0] as Partial<PptxElement>;
 		expect(patch).toStrictEqual({ shapeStyle: { strokeDash: 'sysDot' } });
+	});
+
+	it('offers the full shared dash-pattern catalogue, in shared order', () => {
+		const wrapper = mount(StrokePanel, { props: { element: shapeEl({}) } });
+		const values = wrapper
+			.findAll('select option')
+			.map((o) => (o.element as HTMLOptionElement).value);
+		expect(values).toStrictEqual(STROKE_DASH_OPTIONS.map((o) => o.value));
 	});
 });
