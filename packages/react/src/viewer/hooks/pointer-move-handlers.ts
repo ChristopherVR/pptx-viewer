@@ -14,6 +14,7 @@ import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 import { MIN_ELEMENT_SIZE } from '../constants';
 import { computeSnapToShapeResult } from '../utils/geometry-selection';
+import { syncSelectionHandleOverlay } from '../utils/selection-handle-overlay';
 import type { UsePointerHandlersInput, PointerFrameTracker } from './pointer-handler-types';
 
 // ---------------------------------------------------------------------------
@@ -262,8 +263,11 @@ function processDragMove(
 	for (const [id, domEl] of drag.domEls) {
 		const start = drag.startPositionsById[id];
 		if (start) {
-			domEl.style.left = `${start.x + appliedDx}px`;
-			domEl.style.top = `${start.y + appliedDy}px`;
+			const x = start.x + appliedDx;
+			const y = start.y + appliedDy;
+			domEl.style.left = `${x}px`;
+			domEl.style.top = `${y}px`;
+			syncSelectionHandleOverlay(id, { x, y });
 		}
 	}
 	// Mirror the in-flight positions to collaborators. The DOM writes above
@@ -315,18 +319,21 @@ function processResizeMove(
 	rs.lastY = geo.y;
 	rs.lastWidth = geo.width;
 	rs.lastHeight = geo.height;
+	const width = Math.max(geo.width, MIN_ELEMENT_SIZE);
+	const height = Math.max(geo.height, MIN_ELEMENT_SIZE);
 	if (rs.domEl) {
 		rs.domEl.style.left = `${geo.x}px`;
 		rs.domEl.style.top = `${geo.y}px`;
-		rs.domEl.style.width = `${Math.max(geo.width, MIN_ELEMENT_SIZE)}px`;
-		rs.domEl.style.height = `${Math.max(geo.height, MIN_ELEMENT_SIZE)}px`;
+		rs.domEl.style.width = `${width}px`;
+		rs.domEl.style.height = `${height}px`;
 	}
+	syncSelectionHandleOverlay(rs.elementId, { x: geo.x, y: geo.y, width, height });
 	if (live) {
 		publishLiveGeometry(live.patcher, live.slideId, rs.elementId, {
 			x: geo.x,
 			y: geo.y,
-			width: Math.max(geo.width, MIN_ELEMENT_SIZE),
-			height: Math.max(geo.height, MIN_ELEMENT_SIZE),
+			width,
+			height,
 		});
 	}
 }
