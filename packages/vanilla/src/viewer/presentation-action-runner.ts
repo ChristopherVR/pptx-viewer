@@ -1,5 +1,10 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { openUrlInNewTab, resolveOleVerbTarget, safeOpenUrl } from 'pptx-viewer-shared';
+import {
+	openUrlInNewTab,
+	resolveOleVerbTarget,
+	safeOpenUrl,
+	toggleStageElementMedia,
+} from 'pptx-viewer-shared';
 import type { PresentationActionRunner } from 'pptx-viewer-shared';
 
 import type { CustomShowRunner } from './presenter/presentation-custom-show-runner';
@@ -57,22 +62,7 @@ export function buildPresentationActionRunner(
 			safeOpenUrl(target);
 		},
 		playMedia: (elementId) => {
-			if (!elementId) {
-				return;
-			}
-			const media = deps
-				.getStageRoot()
-				.querySelector<HTMLMediaElement>(
-					`[data-element-id="${elementId}"] video, [data-element-id="${elementId}"] audio`,
-				);
-			if (!media) {
-				return;
-			}
-			if (media.paused) {
-				void media.play();
-			} else {
-				media.pause();
-			}
+			toggleStageElementMedia(deps.getStageRoot(), elementId);
 		},
 		// A browser cannot run the verb in the owning application: open the
 		// recovered embedding, as the inspector's OLE "Open" button does.
