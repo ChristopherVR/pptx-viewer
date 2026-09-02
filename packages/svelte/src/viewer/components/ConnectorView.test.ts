@@ -62,6 +62,32 @@ describe('connectorView arrow markers', () => {
 		expect(marker?.getAttribute('markerWidth')).toBe('6');
 		expect(marker?.getAttribute('markerHeight')).toBe('6');
 	});
+
+	// Shared `markerPath` flags the open chevron ('arrow') as `strokeOnly`: a
+	// solid fill draws it as a filled wedge, indistinguishable from 'triangle'.
+	it('renders the open-chevron "arrow" head stroke-only, not solid-filled', () => {
+		const element = connector({
+			strokeColor: '#123456',
+			strokeWidth: 2,
+			connectorEndArrow: 'arrow',
+		});
+		const path = render(element).querySelector('marker path');
+		expect(path).not.toBeNull();
+		expect(path?.getAttribute('fill')).toBe('none');
+		expect(path?.getAttribute('stroke')).toBe('#123456');
+	});
+
+	it('still solid-fills a closed triangle head', () => {
+		const element = connector({
+			strokeColor: '#123456',
+			strokeWidth: 2,
+			connectorEndArrow: 'triangle',
+		});
+		const path = render(element).querySelector('marker path');
+		expect(path).not.toBeNull();
+		expect(path?.getAttribute('fill')).toBe('#123456');
+		expect(path?.hasAttribute('stroke')).toBeFalsy();
+	});
 });
 
 /**

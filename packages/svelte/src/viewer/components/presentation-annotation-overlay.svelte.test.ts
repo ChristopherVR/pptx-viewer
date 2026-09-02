@@ -93,4 +93,21 @@ describe('svelte presentation annotation overlay', () => {
 		flushSync();
 		expect(overlay.classList.contains('interactive')).toBeTruthy();
 	});
+
+	// Shared `cursorForTool`: crosshair for a drawing tool, none while the
+	// laser hides the native pointer, default with no tool armed.
+	it('shows a tool-specific cursor via the shared cursorForTool helper', () => {
+		const annotations = new PresentationAnnotations();
+		const { stage } = mountOverlay(annotations);
+		const overlay = stage.querySelector<HTMLElement>('[data-pptx-annotation-overlay]')!;
+		expect(overlay.style.cursor).toBe('default');
+
+		annotations.tool = 'pen';
+		flushSync();
+		expect(overlay.style.cursor).toBe('crosshair');
+
+		annotations.tool = 'laser';
+		flushSync();
+		expect(overlay.style.cursor).toBe('none');
+	});
 });

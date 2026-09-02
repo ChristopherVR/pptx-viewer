@@ -58,6 +58,8 @@
 				>
 					{#if geometry.startMarker.shape === 'circle'}
 						<circle cx="5" cy="5" r="4" fill={strokeColor} />
+					{:else if geometry.startMarker.strokeOnly}
+						<path d={geometry.startMarker.d} fill="none" stroke={strokeColor} />
 					{:else}
 						<path d={geometry.startMarker.d} fill={strokeColor} />
 					{/if}
@@ -76,6 +78,8 @@
 				>
 					{#if geometry.endMarker.shape === 'circle'}
 						<circle cx="5" cy="5" r="4" fill={strokeColor} />
+					{:else if geometry.endMarker.strokeOnly}
+						<path d={geometry.endMarker.d} fill="none" stroke={strokeColor} />
 					{:else}
 						<path d={geometry.endMarker.d} fill={strokeColor} />
 					{/if}

@@ -6,7 +6,7 @@
 	 * moved into `PresentationToolbar.svelte`, so the show has one toolbar with
 	 * translated labels instead of a second, competing strip.
 	 */
-	import { annotationCapturesPointer, annotationOverlayZIndex, pointsToSvgPathD } from 'pptx-viewer-shared';
+	import { annotationCapturesPointer, annotationOverlayZIndex, cursorForTool, pointsToSvgPathD } from 'pptx-viewer-shared';
 	import type { CanvasSize, PresentationBlackout } from 'pptx-viewer-shared';
 	import type { PresentationAnnotations } from '../presentation/presentation-annotations.svelte';
 
@@ -30,7 +30,7 @@
      (a scoped style block cannot read a TS value): 60 during a normal show,
      raised above the blackout sheet (z 75) while the screen is blanked so
      "blackboard" ink stays visible. -->
-<div class="overlay" class:interactive={capturing} data-pptx-annotation-overlay style={`z-index:${annotationOverlayZIndex(blackout)}`}>
+<div class="overlay" class:interactive={capturing} data-pptx-annotation-overlay style={`z-index:${annotationOverlayZIndex(blackout)};cursor:${cursorForTool(annotations.tool)}`}>
 	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -- the drawing surface is pointer-only by nature; the show's keyboard commands live on the viewer root, and `onclick` here exists solely to keep a stroke from also advancing the slide -->
 	<svg role="application" aria-label="Slide annotations" viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} preserveAspectRatio="none" onpointerdown={(event) => { keepGesture(event); event.currentTarget.setPointerCapture(event.pointerId); annotations.pointerDown(current, point(event)); }} onpointermove={(event) => annotations.pointerMove(current, point(event))} onpointerup={(event) => { keepGesture(event); annotations.pointerUp(current); }} onclick={keepGesture} onpointerleave={() => (annotations.laser = null)}>
 		{#each annotations.strokes(current) as stroke}<path d={pointsToSvgPathD(stroke.points)} stroke={stroke.color} stroke-width={stroke.width} stroke-opacity={stroke.tool === 'highlighter' ? .4 : 1} />{/each}
