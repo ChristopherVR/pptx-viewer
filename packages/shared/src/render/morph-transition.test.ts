@@ -902,6 +902,59 @@ describe('generateMorphAnimations', () => {
 		expect(anims[0].keyframes).not.toContain('rotate(315deg)');
 	});
 
+	it('animates a flip change through edge-on instead of snapping it', () => {
+		// A small photo is mirror-flipped and upside down; its grown counterpart
+		// on the next slide is upright. Stating one endpoint's flips on BOTH
+		// frames either flew an upright copy (losing the authored mirror) or
+		// snapped it at landing. Per-frame factors with a constant function
+		// list let CSS interpolate scaleX -1 -> 1 through 0, which is the
+		// edge-on card flip PowerPoint plays, while rotation runs its own arc
+		// alongside.
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({
+					id: 'a',
+					type: 'picture',
+					imagePath: 'ppt/media/photo.jpeg',
+					rotation: 183.5,
+					flipHorizontal: true,
+				}),
+				toElement: makeElement({
+					id: 'b',
+					type: 'picture',
+					imagePath: 'ppt/media/photo.jpeg',
+				}),
+			},
+		];
+		const anims = generateMorphAnimations(pairs, 1000);
+		const frames = anims[0].keyframes;
+		expect(frames).toContain('scaleX(-1)');
+		expect(frames).toContain('scaleX(1)');
+		// The unflipped axis stays explicit on both frames too, so the transform
+		// lists pair up and interpolate numerically rather than by matrix.
+		expect(frames.match(/scaleY\(1\)/gu)?.length).toBe(2);
+		expect(frames).toContain('rotate(-176.5deg)');
+		expect(frames).toContain('rotate(0deg)');
+
+		// The ghost mirrors the same journey in reverse.
+		const ghosts = generateMorphGhostAnimations(pairs, 1000, 0);
+		expect(ghosts[0].keyframes).toContain('scaleX(-1)');
+		expect(ghosts[0].keyframes).toContain('scaleX(1)');
+	});
+
+	it('keeps a shared flip stated on every frame', () => {
+		// Both endpoints mirrored horizontally: the factor must survive on both
+		// frames or the flight loses the authored mirror and snaps at the end.
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({ id: 'a', type: 'shape', flipHorizontal: true }),
+				toElement: makeElement({ id: 'b', type: 'shape', flipHorizontal: true }),
+			},
+		];
+		const anims = generateMorphAnimations(pairs, 1000);
+		expect(anims[0].keyframes.match(/scaleX\(-1\)/gu)?.length).toBe(2);
+	});
+
 	it('keeps a short forward turn untouched', () => {
 		const pairs: MorphPair[] = [
 			{

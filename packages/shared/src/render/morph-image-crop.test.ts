@@ -7,6 +7,7 @@ import {
 	generateImageCropGhostAnimations,
 	generateImageCropMorphAnimations,
 	morphImageCropChanged,
+	sampleImageCropMorphSteps,
 } from './morph-image-crop';
 import { buildMorphAnimationRules, buildMorphTransitionPlan } from './morph-plan';
 
@@ -161,6 +162,107 @@ describe('generateImageCropGhostAnimations', () => {
 		expect(ghost.target).toBe('image');
 	});
 });
+
+describe('a pair whose frame grows WITH its crop', () => {
+	// A rotated sliver of a picture (right 91% cropped away, frame 43x482px)
+	// grows into the full picture (no crop, 482px wide), same height, same
+	// rotation. The frame widens ~11x while the crop opens ~11x, so the
+	// picture's pixel scale is the same on both slides and PowerPoint REVEALS
+	// rightwards - no stretch, no zoom, no slide. The outgoing frame's width
+	// ratio (0.089935) must match the surviving crop fraction (1 - 0.91007) or
+	// the picture's pixel scale genuinely differs between the slides.
+	const from = {
+		id: 'sliver',
+		type: 'picture',
+		name: 'Picture 8',
+		x: 143,
+		y: 36,
+		width: 43.31,
+		height: 482.1,
+		rotation: 26.7,
+		imagePath: 'ppt/media/reveal.png',
+		cropRight: 0.91007,
+	} as unknown as PptxElement;
+	const to = {
+		id: 'full',
+		type: 'picture',
+		name: 'Picture 6',
+		x: 120,
+		y: 135,
+		width: 481.53,
+		height: 482.1,
+		rotation: 26.7,
+		imagePath: 'ppt/media/reveal.png',
+	} as unknown as PptxElement;
+
+	it('switches the track to stepped, linear-timed keyframes', () => {
+		const [animation] = generateImageCropMorphAnimations(
+			[{ fromElement: from, toElement: to }],
+			300,
+		);
+		expect(animation.animation).toContain('300ms linear forwards');
+		expect(animation.animation).not.toContain('cubic-bezier');
+		// Densely sampled: more stops than a from/to pair could carry.
+		expect(animation.keyframes.match(/transform:/gu)?.length).toBeGreaterThan(10);
+	});
+
+	it('keeps the painted width constant through the flight', () => {
+		// At every sample the img scale must cancel the frame's own growth at
+		// the SAME eased progress, or the image visibly zooms mid-morph.
+		const samples = sampleImageCropMorphSteps(from, to);
+		const initialWidth = from.width * extractCropScaleX(samples[0].transform);
+		for (const sample of samples) {
+			const frameWidth = from.width + (to.width - from.width) * sample.progress;
+			const paintedWidth = frameWidth * extractCropScaleX(sample.transform);
+			expect(Math.abs(paintedWidth - initialWidth)).toBeLessThan(initialWidth * 0.02);
+		}
+	});
+
+	it('advances the sample progress along the real CSS easing curve', () => {
+		// Regression: a swapped-exponent bezier evaluation made the early
+		// samples race ahead (progress 0.097 at time 0.021), so the img track
+		// desynced from the container journey in the live transition even
+		// though a per-sample invariant still held. cubic-bezier(0.4, 0, 0.2, 1)
+		// stays well below the diagonal early on and is monotone.
+		const samples = sampleImageCropMorphSteps(from, to);
+		expect(samples[1].percent).toBe('2.0833%');
+		expect(samples[1].progress).toBeLessThan(0.05);
+		let previous = -1;
+		for (const sample of samples) {
+			expect(sample.progress).toBeGreaterThanOrEqual(previous);
+			previous = sample.progress;
+		}
+		expect(samples[samples.length - 1].progress).toBe(1);
+	});
+
+	it('lands on the incoming static transform and starts on the outgoing one', () => {
+		const samples = sampleImageCropMorphSteps(from, to);
+		expect(samples[0].percent).toBe('0%');
+		expect(samples[0].transform).toBe(buildImageFitTransform(from, true));
+		expect(samples[samples.length - 1].percent).toBe('100%');
+		expect(samples[samples.length - 1].transform).toBe(buildImageFitTransform(to, true));
+	});
+
+	it('keeps the single eased pair when only the crop changes', () => {
+		// The issue #148 case (identical frames) must stay a from/to pair on
+		// the morph easing; the stepped track is only for compounding frames.
+		const same = background('b', SLIDE_12_CROP);
+		const [animation] = generateImageCropMorphAnimations(
+			[{ fromElement: background('a', SLIDE_3_CROP), toElement: same }],
+			300,
+		);
+		expect(animation.animation).toContain('cubic-bezier');
+		expect(animation.animation).not.toContain('linear forwards');
+		expect(animation.keyframes.match(/transform:/gu)?.length).toBe(2);
+	});
+});
+
+/** Pull the CROP pair's scale factor out of a padded img fit transform. */
+function extractCropScaleX(transform: string): number {
+	const matches = [...transform.matchAll(/scale\(([\d.]+)/gu)];
+	expect(matches.length).toBeGreaterThanOrEqual(2);
+	return Number(matches[matches.length - 1][1]);
+}
 
 describe('a rescaled picture end to end', () => {
 	const from = slide('slide3', [background('slide3-bg', SLIDE_3_CROP)]);
