@@ -107,6 +107,13 @@ function clearBackground(): void {
 		backgroundGradient: undefined,
 	});
 }
+
+const hideBackgroundGraphics = computed(() => props.slide?.showMasterShapes === false);
+
+function onToggleHideBackgroundGraphics(event: Event): void {
+	const checked = (event.target as HTMLInputElement).checked;
+	emit('update', { showMasterShapes: !checked });
+}
 </script>
 
 <template>
@@ -184,6 +191,18 @@ function clearBackground(): void {
 		>
 			{{ t('pptx.slideBackground.clearBackground') }}
 		</button>
+
+		<label class="flex items-center gap-2 text-[11px]">
+			<input
+				type="checkbox"
+				:checked="hideBackgroundGraphics"
+				:disabled="!canEdit"
+				@change="onToggleHideBackgroundGraphics"
+			/>
+			<span class="text-muted-foreground">{{
+				t('pptx.slideBackground.hideBackgroundGraphics')
+			}}</span>
+		</label>
 	</div>
 
 	<div v-if="editTemplateMode && (templateRows.layout || templateRows.master)" :class="CARD">

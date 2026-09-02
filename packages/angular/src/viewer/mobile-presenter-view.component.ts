@@ -20,6 +20,7 @@ import {
 	mobileSlideCounter,
 	presenterNextDisabled,
 	presenterPrevDisabled,
+	visibleTemplateElements as filterVisibleTemplateElements,
 } from '../internal/shared';
 import { currentSlideAt, nextSlideAfter, resolvePresenterNotes } from './presenter-view-helpers';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -156,7 +157,7 @@ export class MobilePresenterViewComponent {
 		if (!slide) {
 			return undefined;
 		}
-		const template = this.templateElements();
+		const template = filterVisibleTemplateElements(slide, this.templateElements());
 		if (template.length === 0) {
 			return slide;
 		}

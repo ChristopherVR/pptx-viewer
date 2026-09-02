@@ -60,6 +60,7 @@ export const translations = {
 	'pptx.slideBackground.backgroundPreview': 'Hintergrundvorschau',
 	'pptx.slideBackground.removeBackgroundImage': 'Hintergrundbild entfernen',
 	'pptx.slideBackground.clearBackground': 'Hintergrund löschen',
+	'pptx.slideBackground.hideBackgroundGraphics': 'Hintergrundgrafiken ausblenden',
 	'pptx.master.backgroundColorLabel': 'Hintergrundfarbe der Vorlage',
 	'pptx.master.collapseMasterPane': 'Bereich minimieren',
 	'pptx.master.handoutBackground': 'Hintergrund',

@@ -16,6 +16,7 @@ import {
 	presenterNextDisabled,
 	presenterPaneAdvancesOnClick,
 	presenterPrevDisabled,
+	visibleTemplateElements as filterVisibleTemplateElements,
 } from '../internal/shared';
 import type { AuthoredSlideRange, CanvasSize, ShowOrderCustomShow } from '../internal/shared';
 import type { StyleMap } from './element-style';
@@ -283,7 +284,7 @@ export class PresenterViewComponent {
 		if (!slide) {
 			return undefined;
 		}
-		const template = this.templateElements();
+		const template = filterVisibleTemplateElements(slide, this.templateElements());
 		if (template.length === 0) {
 			return slide;
 		}

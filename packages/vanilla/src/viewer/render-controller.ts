@@ -12,6 +12,7 @@ import {
 	DEFAULT_MASTER_PAGE_SIZE,
 	masterViewCrudActions,
 	masterViewPseudoSlide,
+	visibleTemplateElements,
 } from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
@@ -178,7 +179,10 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		canvasSize = store.get().canvasSize,
 	): HTMLElement => {
 		const state = store.get();
-		const template = state.templateElementsBySlideId[slide.id] ?? [];
+		const template = visibleTemplateElements(
+			slide,
+			state.templateElementsBySlideId[slide.id] ?? [],
+		);
 		const renderSlide = template.length
 			? { ...slide, elements: [...template, ...slide.elements] }
 			: slide;

@@ -2,6 +2,7 @@ import type { PptxElement, PptxSlide, SmartArtLayout, SmartArtPptxElement } from
 
 import { buildSmartArtPresetData } from './smart-art-preset-data';
 import { PRESETS } from './smart-art-presets';
+import { visibleTemplateElements } from './template-editing';
 
 /**
  * Composition helper for slide previews and sidebar thumbnails.
@@ -39,7 +40,7 @@ export function buildPreviewElements(
 	options?: BuildPreviewElementsOptions,
 ): PptxElement[] {
 	const cap = options?.cap ?? DEFAULT_PREVIEW_ELEMENT_CAP;
-	const merged = [...templateElements, ...slide.elements];
+	const merged = [...visibleTemplateElements(slide, templateElements), ...slide.elements];
 	if (cap > 0 && merged.length > cap) {
 		return merged.slice(0, cap);
 	}

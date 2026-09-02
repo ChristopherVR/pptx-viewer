@@ -60,6 +60,7 @@ export const translations = {
 	'pptx.slideBackground.backgroundPreview': 'Vista previa de fondo',
 	'pptx.slideBackground.removeBackgroundImage': 'Quitar imagen de fondo',
 	'pptx.slideBackground.clearBackground': 'Borrar fondo',
+	'pptx.slideBackground.hideBackgroundGraphics': 'Ocultar gráficos de fondo',
 	'pptx.master.backgroundColorLabel': 'Color de fondo del patrón',
 	'pptx.master.collapseMasterPane': 'Contraer panel',
 	'pptx.master.handoutBackground': 'Fondo',

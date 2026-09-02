@@ -26,7 +26,7 @@
 				them even while locked: the marker means "rendered slide element",
 				not "editable right now".
 			-->
-			@for (element of templateElements(); track element.id; let i = $index) {
+			@for (element of visibleTemplateElements(); track element.id; let i = $index) {
 				<pptx-element-renderer
 					[element]="element"
 					[mediaDataUrls]="mediaDataUrls()"
@@ -50,7 +50,7 @@
 				<pptx-element-renderer
 					[element]="element"
 					[mediaDataUrls]="mediaDataUrls()"
-					[zIndex]="templateElements().length + i"
+					[zIndex]="visibleTemplateElements().length + i"
 					[obstacles]="connectorObstacles()"
 					[canvasWidth]="canvasSize().width"
 					[canvasHeight]="canvasSize().height"

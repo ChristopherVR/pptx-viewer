@@ -57,6 +57,27 @@ describe('slideStage slide-size custom properties', () => {
 	});
 });
 
+describe('slideStage "Hide Background Graphics"', () => {
+	it('renders the template layer by default', () => {
+		const wrapper = mountStage({
+			slide: slideWith([shape('own-1')]),
+			templateElements: [shape('tpl-1')],
+			interactive: true,
+		});
+		expect(wrapper.text()).toContain('tpl-1');
+	});
+
+	it('omits the template layer when showMasterShapes is false', () => {
+		const wrapper = mountStage({
+			slide: { ...slideWith([shape('own-1')]), showMasterShapes: false },
+			templateElements: [shape('tpl-1')],
+			interactive: true,
+		});
+		expect(wrapper.text()).not.toContain('tpl-1');
+		expect(wrapper.text()).toContain('own-1');
+	});
+});
+
 describe('slideStage accessibility contract', () => {
 	// The e2e contract is ONE aria-roledescription="slide" region per surface.
 	// On the editable canvas that region is the SlideCanvas wrapper, so the

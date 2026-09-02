@@ -6,6 +6,7 @@ import type {
 	PptxSlideLayout,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
+import { visibleTemplateElements } from 'pptx-viewer-shared';
 /**
  * useDerivedElementState: Memoised element and master-view derived state.
  *
@@ -125,7 +126,12 @@ export function useDerivedElementState(input: UseDerivedElementStateInput): Deri
 		if (!activeSlide) {
 			return [];
 		}
-		return templateElementsBySlideId[activeSlide.id] ?? [];
+		// Re-evaluated on every render (not partitioned again): "Hide Background
+		// Graphics" (`showMasterShapes`) can be toggled after load, and the
+		// template/slide split itself only happens once.
+		return [
+			...visibleTemplateElements(activeSlide, templateElementsBySlideId[activeSlide.id] ?? []),
+		];
 	}, [activeSlide, templateElementsBySlideId]);
 
 	// ── Master View derived state ───────────────────────────────────

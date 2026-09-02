@@ -52,6 +52,24 @@ describe('editorBackgroundController', () => {
 		expect(editor.canUndo).toBeTruthy();
 	});
 
+	it('setHideBackgroundGraphics(true) sets showMasterShapes: false, undoably', () => {
+		const editor = make();
+		editor.setSlides([slide('a')]);
+		editor.backgroundOps.setHideBackgroundGraphics(true);
+		expect(editor.slides[0].showMasterShapes).toBeFalsy();
+		expect(editor.canUndo).toBeTruthy();
+
+		editor.undo();
+		expect(editor.slides[0].showMasterShapes).toBeUndefined();
+	});
+
+	it('setHideBackgroundGraphics(false) sets showMasterShapes: true', () => {
+		const editor = make();
+		editor.setSlides([slide('a', { showMasterShapes: false })]);
+		editor.backgroundOps.setHideBackgroundGraphics(false);
+		expect(editor.slides[0].showMasterShapes).toBeTruthy();
+	});
+
 	it('is a no-op when not editable', () => {
 		const editor = make();
 		editor.setSlides([slide('a')]);

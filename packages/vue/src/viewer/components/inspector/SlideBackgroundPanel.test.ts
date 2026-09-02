@@ -50,6 +50,22 @@ describe('slideBackgroundPanel', () => {
 		]);
 	});
 
+	it('hide background graphics checkbox reflects showMasterShapes and toggles it', async () => {
+		const shown = mount(SlideBackgroundPanel, { props: { slide: slide() } });
+		const shownCheckbox = shown.get('input[type="checkbox"]').element as HTMLInputElement;
+		expect(shownCheckbox.checked).toBeFalsy();
+
+		const hidden = mount(SlideBackgroundPanel, {
+			props: { slide: slide({ showMasterShapes: false }) },
+		});
+		const hiddenCheckbox = hidden.get('input[type="checkbox"]').element as HTMLInputElement;
+		expect(hiddenCheckbox.checked).toBeTruthy();
+
+		hiddenCheckbox.checked = false;
+		await hidden.get('input[type="checkbox"]').trigger('change');
+		expect(hidden.emitted('update')?.[0]).toStrictEqual([{ showMasterShapes: true }]);
+	});
+
 	it('disables controls when canEdit is false', () => {
 		const wrapper = mount(SlideBackgroundPanel, {
 			props: { slide: slide(), canEdit: false },

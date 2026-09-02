@@ -1,4 +1,5 @@
 import type { ViewerMode } from 'pptx-viewer-shared';
+import { visibleTemplateElements } from 'pptx-viewer-shared';
 
 import type { CollaborationController } from '../collab';
 import type { EditorState } from '../editor/editor-state.svelte';
@@ -58,8 +59,20 @@ export function useViewerDerived(deps: ViewerDerivedDeps): ViewerDerived {
 	);
 	const effectivePercent = $derived(Math.max(1, Math.round(viewer.zoomPercent ?? 100)));
 	// Render the editable slide array (single source of truth), so committed
-	// edits flow to the stage, thumbnails, and notes panel.
-	const displaySlides = $derived(editor.renderedSlides);
+	// edits flow to the stage, thumbnails, and notes panel. Re-merged here
+	// (not just `editor.renderedSlides`, which SAVE also reads and must keep
+	// merging template edits unconditionally) so a slide with "Hide Background
+	// Graphics" (`showMasterShapes === false`) drops its master/layout layer
+	// from what's actually painted, without touching what gets saved.
+	const displaySlides = $derived(
+		editor.slides.map((slide) => {
+			const template = visibleTemplateElements(
+				slide,
+				editor.templateElementsBySlideId[slide.id] ?? [],
+			);
+			return template.length > 0 ? { ...slide, elements: [...template, ...slide.elements] } : slide;
+		}),
+	);
 	const activeSlide = $derived(displaySlides[viewer.current]);
 	const chromeVisible = $derived(!viewer.isFullscreen);
 	const editingActive = $derived(deps.getEditable() && !viewer.isFullscreen && !collab.readOnly);

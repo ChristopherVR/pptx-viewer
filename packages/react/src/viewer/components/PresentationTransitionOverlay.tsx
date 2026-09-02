@@ -7,7 +7,11 @@ import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-co
  * main SlideCanvas underneath (or on top, depending on `outgoingOnTop`).
  */
 import type { MorphTransitionPlan } from 'pptx-viewer-shared';
-import { MORPH_CROSSFADE_GROUP_STYLE, MORPH_CROSSFADE_HALF_STYLE } from 'pptx-viewer-shared';
+import {
+	MORPH_CROSSFADE_GROUP_STYLE,
+	MORPH_CROSSFADE_HALF_STYLE,
+	visibleTemplateElements,
+} from 'pptx-viewer-shared';
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 
 import type { CanvasSize } from '../types';
@@ -81,7 +85,7 @@ interface SlideLayerProps {
 function SlideLayer({ slide, templateElements, canvasSize }: SlideLayerProps): React.ReactElement {
 	const safeWidth = Math.max(canvasSize.width, 1);
 	const safeHeight = Math.max(canvasSize.height, 1);
-	const elements = [...templateElements, ...slide.elements];
+	const elements = [...visibleTemplateElements(slide, templateElements), ...slide.elements];
 
 	return (
 		<div

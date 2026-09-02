@@ -19,7 +19,11 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { PRESENTER_CONSOLE_CLASSES, PRESENTER_LAYOUT_METRICS } from '../internal/shared';
+import {
+	PRESENTER_CONSOLE_CLASSES,
+	PRESENTER_LAYOUT_METRICS,
+	visibleTemplateElements as filterVisibleTemplateElements,
+} from '../internal/shared';
 import type { CanvasSize } from '../internal/shared';
 import { SlideCanvasComponent } from './slide-canvas.component';
 
@@ -114,10 +118,13 @@ export class PresenterSlideNavigatorComponent {
 
 	protected readonly tiles = computed<NavigatorTile[]>(() => {
 		const template = this.templateElements();
-		return this.slides().map((slide, index) => ({
-			slide: template.length > 0 ? { ...slide, elements: [...template, ...slide.elements] } : slide,
-			index,
-			key: slide.id || `slide-${String(index)}`,
-		}));
+		return this.slides().map((slide, index) => {
+			const visible = filterVisibleTemplateElements(slide, template);
+			return {
+				slide: visible.length > 0 ? { ...slide, elements: [...visible, ...slide.elements] } : slide,
+				index,
+				key: slide.id || `slide-${String(index)}`,
+			};
+		});
 	});
 }

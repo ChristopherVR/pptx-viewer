@@ -33,6 +33,24 @@ export function isElementIdInteractive(elementId: string, editTemplateMode: bool
 	return !isTemplateElementId(elementId) || editTemplateMode;
 }
 
+/**
+ * Template (layout/master) elements to actually paint for `slide`, honouring
+ * PowerPoint's "Hide Background Graphics" (`p:sld/@showMasterSp="0"`,
+ * `slide.showMasterShapes === false`, ECMA-376 §19.3.1.38).
+ *
+ * `templateElementsBySlideId` is partitioned once, at load time (see
+ * {@link partitionTemplateElements}); toggling the flag afterwards does not
+ * re-partition it. Every render site that paints the template layer must
+ * funnel the slide's entry through this before use, so flipping the toggle
+ * takes effect immediately instead of requiring a full reload.
+ */
+export function visibleTemplateElements(
+	slide: Pick<PptxSlide, 'showMasterShapes'> | undefined,
+	templateElements: readonly PptxElement[],
+): readonly PptxElement[] {
+	return slide?.showMasterShapes === false ? [] : templateElements;
+}
+
 /** Split layout/master elements out of each loaded slide while preserving order. */
 export function partitionTemplateElements(slides: PptxSlide[]): TemplateElementPartition {
 	const templateElementsBySlideId: Record<string, PptxElement[]> = {};

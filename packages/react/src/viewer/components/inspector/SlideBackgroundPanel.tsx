@@ -135,6 +135,19 @@ export function SlideBackgroundPanel({
 						{t('pptx.slideBackground.clearBackground')}
 					</button>
 				)}
+
+				{/* Hide Background Graphics (p:sld/@showMasterSp) */}
+				<label className='flex items-center gap-2 text-[11px]'>
+					<input
+						type='checkbox'
+						checked={activeSlide.showMasterShapes === false}
+						disabled={!canEdit}
+						onChange={(e) => onUpdateSlide({ showMasterShapes: !e.target.checked })}
+					/>
+					<span className='text-muted-foreground'>
+						{t('pptx.slideBackground.hideBackgroundGraphics')}
+					</span>
+				</label>
 			</div>
 
 			{/* Master / Layout Background (template mode) */}

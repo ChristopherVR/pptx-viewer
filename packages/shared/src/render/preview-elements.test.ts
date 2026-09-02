@@ -72,6 +72,20 @@ describe('buildPreviewElements', () => {
 		const owned = Array.from({ length: 700 }, (_, i) => makeElement(`s${i}`));
 		expect(buildPreviewElements(makeSlide(owned), [], { cap: 0 })).toHaveLength(700);
 	});
+
+	it('omits template elements when the slide hides background graphics', () => {
+		const slide = { ...makeSlide([makeElement('s1')]), showMasterShapes: false };
+		const template = [makeElement('t1'), makeElement('t2')];
+		expect(buildPreviewElements(slide, template).map((e) => e.id)).toStrictEqual(['s1']);
+	});
+
+	it('includes template elements when showMasterShapes is true or undefined', () => {
+		const template = [makeElement('t1')];
+		expect(
+			buildPreviewElements({ ...makeSlide([]), showMasterShapes: true }, template).map((e) => e.id),
+		).toStrictEqual(['t1']);
+		expect(buildPreviewElements(makeSlide([]), template).map((e) => e.id)).toStrictEqual(['t1']);
+	});
 });
 
 // ===========================================================================

@@ -46,4 +46,15 @@ export class EditorBackgroundController {
 			}),
 		);
 	}
+
+	/** Toggle PowerPoint's "Hide Background Graphics" (`p:sld/@showMasterSp`). */
+	setHideBackgroundGraphics(hide: boolean): void {
+		const current = this.#editor.currentSlideIndex;
+		if (!this.#editor.editable || !this.#editor.slides[current]) {
+			return;
+		}
+		this.#editor.commitSlides(
+			updateSlide(this.#editor.slides, current, { showMasterShapes: !hide }),
+		);
+	}
 }

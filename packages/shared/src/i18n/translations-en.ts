@@ -1020,6 +1020,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.slideBackground.backgroundPreview': 'Background preview',
 	'pptx.slideBackground.removeBackgroundImage': 'Remove background image',
 	'pptx.slideBackground.clearBackground': 'Clear Background',
+	'pptx.slideBackground.hideBackgroundGraphics': 'Hide Background Graphics',
 	'pptx.presentationSettings.showType': 'Show type',
 	'pptx.presentationSettings.showTypePresented': 'Presented',
 	'pptx.presentationSettings.showTypeBrowsed': 'Browsed',

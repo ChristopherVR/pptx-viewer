@@ -18,6 +18,7 @@ import {
 	MORPH_CROSSFADE_GROUP_STYLE,
 	MORPH_CROSSFADE_HALF_BLEND_MODE,
 	morphOptionToMode,
+	visibleTemplateElements as filterVisibleTemplateElements,
 } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -55,10 +56,11 @@ export function classicIncomingLayerSlide(
 	if (isMorph || incomingAnimation === 'none' || !incomingSlide) {
 		return undefined;
 	}
-	if (templateElements.length === 0) {
+	const visible = filterVisibleTemplateElements(incomingSlide, templateElements);
+	if (visible.length === 0) {
 		return incomingSlide;
 	}
-	return { ...incomingSlide, elements: [...templateElements, ...incomingSlide.elements] };
+	return { ...incomingSlide, elements: [...visible, ...incomingSlide.elements] };
 }
 
 /**
@@ -463,7 +465,7 @@ export class PresentationTransitionOverlayComponent {
 		if (plan) {
 			return { ...slide, elements: [...plan.outgoingElements] };
 		}
-		const template = this.templateElements();
+		const template = filterVisibleTemplateElements(slide, this.templateElements());
 		if (template.length === 0) {
 			return slide;
 		}

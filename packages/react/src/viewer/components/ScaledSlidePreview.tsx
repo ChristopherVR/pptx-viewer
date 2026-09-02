@@ -5,6 +5,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  *
  * Used by PresenterView for current-slide and next-slide previews.
  */
+import { visibleTemplateElements } from 'pptx-viewer-shared';
 import React, { useEffect, useRef, useState } from 'react';
 
 import type { CanvasSize } from '../types';
@@ -54,7 +55,10 @@ function ScaledSlidePreviewImpl({
 	const safeCanvasHeight = Math.max(canvasSize.height, 1);
 	const scale = containerWidth > 0 ? containerWidth / safeCanvasWidth : 0.2;
 	const previewHeight = Math.max(40, Math.round(safeCanvasHeight * scale));
-	const previewElements = [...templateElements, ...slide.elements].slice(0, 80);
+	const previewElements = [
+		...visibleTemplateElements(slide, templateElements),
+		...slide.elements,
+	].slice(0, 80);
 
 	return (
 		<div

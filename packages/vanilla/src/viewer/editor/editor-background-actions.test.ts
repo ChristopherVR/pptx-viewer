@@ -71,6 +71,40 @@ describe('createSlideBackgroundActions', () => {
 		expect(store.get().slides[1].backgroundColor).toBe('#00ff00');
 	});
 
+	it('setHideBackgroundGraphics(true) sets showMasterShapes: false, undoably', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [buildSlide('a')],
+			currentSlide: 0,
+			editable: true,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createSlideBackgroundActions({ store, ops });
+
+		actions.setHideBackgroundGraphics(true);
+
+		expect(store.get().slides[0].showMasterShapes).toBeFalsy();
+		expect(ops.canUndo()).toBeTruthy();
+
+		ops.undo();
+		expect(store.get().slides[0].showMasterShapes).toBeUndefined();
+	});
+
+	it('setHideBackgroundGraphics(false) sets showMasterShapes: true', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [{ ...buildSlide('a'), showMasterShapes: false }],
+			currentSlide: 0,
+			editable: true,
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createSlideBackgroundActions({ store, ops });
+
+		actions.setHideBackgroundGraphics(false);
+
+		expect(store.get().slides[0].showMasterShapes).toBeTruthy();
+	});
+
 	it('is a no-op when the viewer is not editable', () => {
 		const store = createStore({
 			...createInitialViewerState(),

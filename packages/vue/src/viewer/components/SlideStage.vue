@@ -5,6 +5,7 @@ import {
 	applyElementActionAffordances,
 	applyRenderedElementAccessibility,
 	getSlideBackgroundStyle,
+	visibleTemplateElements,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, ref, watchPostEffect } from 'vue';
@@ -102,13 +103,19 @@ const stageRef = ref<HTMLElement | null>(null);
 // rather than from the active one.
 provideSlideFieldContext(() => props.slide);
 
+/**
+ * Template elements render behind the slide content; default to none, and
+ * empty out entirely when the slide has "Hide Background Graphics"
+ * (`showMasterShapes === false`) set.
+ */
+const templateElements = computed<PptxElement[]>(() => [
+	...visibleTemplateElements(props.slide, props.templateElements ?? []),
+]);
+
 // Publish THIS stage's sibling list so a text box in an `a:linkedTxbx` chain can
 // find the rest of its chain and render only its own slice of the overflow.
 // Template elements are included because a chain may be authored on a layout.
-provideSlideElements(() => [...(props.templateElements ?? []), ...(props.slide?.elements ?? [])]);
-
-/** Template elements render behind the slide content; default to none. */
-const templateElements = computed<PptxElement[]>(() => props.templateElements ?? []);
+provideSlideElements(() => [...templateElements.value, ...(props.slide?.elements ?? [])]);
 
 /** Number of template elements, used to offset the main layer's z-index above them. */
 const templateCount = computed(() => templateElements.value.length);

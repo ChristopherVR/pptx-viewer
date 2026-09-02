@@ -11,6 +11,7 @@ describe('createFormatBackgroundPanel', () => {
 		const panel = createFormatBackgroundPanel(document, t, {
 			setSlideBackgroundColor,
 			clearSlideBackground: vi.fn(),
+			setHideBackgroundGraphics: vi.fn(),
 			pushRecentColor,
 		});
 		const input = panel.el.querySelector<HTMLInputElement>('input[type="color"]')!;
@@ -31,8 +32,28 @@ describe('createFormatBackgroundPanel', () => {
 		const panel = createFormatBackgroundPanel(document, t, {
 			setSlideBackgroundColor: vi.fn(),
 			clearSlideBackground: vi.fn(),
+			setHideBackgroundGraphics: vi.fn(),
 		});
 		const input = panel.el.querySelector<HTMLInputElement>('input[type="color"]')!;
 		expect(() => input.dispatchEvent(new Event('change', { bubbles: true }))).not.toThrow();
+	});
+
+	it('toggles Hide Background Graphics via the checkbox', () => {
+		const t = createTranslator();
+		const setHideBackgroundGraphics = vi.fn();
+		const panel = createFormatBackgroundPanel(document, t, {
+			setSlideBackgroundColor: vi.fn(),
+			clearSlideBackground: vi.fn(),
+			setHideBackgroundGraphics,
+		});
+		const checkbox = panel.el.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+
+		checkbox.checked = true;
+		checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(setHideBackgroundGraphics).toHaveBeenCalledWith(true);
+
+		checkbox.checked = false;
+		checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(setHideBackgroundGraphics).toHaveBeenCalledWith(false);
 	});
 });

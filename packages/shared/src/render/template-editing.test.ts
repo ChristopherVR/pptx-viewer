@@ -7,6 +7,7 @@ import {
 	isElementIdInteractive,
 	partitionTemplateElements,
 	setTemplateElements,
+	visibleTemplateElements,
 } from './template-editing';
 
 const element = (id: string): PptxElement =>
@@ -51,5 +52,13 @@ describe('template editing helpers', () => {
 		expect(isElementIdInteractive('layout-title', false)).toBeFalsy();
 		expect(isElementIdInteractive('layout-title', true)).toBeTruthy();
 		expect(isElementIdInteractive('shape-1', false)).toBeTruthy();
+	});
+
+	it('visibleTemplateElements hides the template layer only when showMasterShapes is explicitly false', () => {
+		const template = [element('master-bg')];
+		expect(visibleTemplateElements({ showMasterShapes: false }, template)).toStrictEqual([]);
+		expect(visibleTemplateElements({ showMasterShapes: true }, template)).toBe(template);
+		expect(visibleTemplateElements({ showMasterShapes: undefined }, template)).toBe(template);
+		expect(visibleTemplateElements(undefined, template)).toBe(template);
 	});
 });

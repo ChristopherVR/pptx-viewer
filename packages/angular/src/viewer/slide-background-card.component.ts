@@ -101,6 +101,18 @@ const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image
 						{{ 'pptx.slideBackground.clearBackground' | translate }}
 					</button>
 				}
+
+				<label class="icard__row">
+					<input
+						type="checkbox"
+						[checked]="hideBackgroundGraphics()"
+						[disabled]="!canEdit()"
+						(change)="onToggleHideBackgroundGraphics($event)"
+					/>
+					<span class="icard__label">{{
+						'pptx.slideBackground.hideBackgroundGraphics' | translate
+					}}</span>
+				</label>
 			</section>
 		}
 		@if (editTemplateMode() && (templateRows().layout || templateRows().master)) {
@@ -230,6 +242,10 @@ export class SlideBackgroundCardComponent {
 		return Boolean(sl?.backgroundColor || sl?.backgroundImage || sl?.backgroundGradient);
 	});
 
+	protected readonly hideBackgroundGraphics = computed(
+		() => this.slide()?.showMasterShapes === false,
+	);
+
 	protected readonly editTemplateMode = this.editor.editTemplateMode;
 
 	/**
@@ -306,6 +322,11 @@ export class SlideBackgroundCardComponent {
 			backgroundImage: undefined,
 			backgroundGradient: undefined,
 		});
+	}
+
+	protected onToggleHideBackgroundGraphics(event: Event): void {
+		const checked = (event.target as HTMLInputElement).checked;
+		this.patch({ showMasterShapes: !checked });
 	}
 
 	private patch(changes: Partial<PptxSlide>): void {

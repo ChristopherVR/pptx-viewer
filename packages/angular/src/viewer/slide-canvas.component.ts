@@ -43,6 +43,7 @@ import {
 	withConnectorEndpointUpdate,
 	RULER_FONT_SIZE,
 	RULER_THICKNESS,
+	visibleTemplateElements as filterVisibleTemplateElements,
 } from '../internal/shared';
 import type {
 	CanvasSize,
@@ -565,12 +566,22 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly elements = computed(() => this.slide()?.elements ?? []);
 
 	/**
+	 * `templateElements()` filtered for "Hide Background Graphics"
+	 * (`showMasterShapes === false`); every consumer below reads THIS instead
+	 * of the raw input, so toggling the flag takes effect immediately instead
+	 * of requiring a full reload.
+	 */
+	readonly visibleTemplateElements = computed<readonly PptxElement[]>(() =>
+		filterVisibleTemplateElements(this.slide(), this.templateElements()),
+	);
+
+	/**
 	 * Template elements + the slide's own elements, template first (behind). Used
 	 * for every id-based lookup (hit-testing, selection boxes, inline-edit box) so
 	 * a selected/dragged template element resolves the same as a normal one.
 	 */
 	readonly allElements = computed<readonly PptxElement[]>(() => [
-		...this.templateElements(),
+		...this.visibleTemplateElements(),
 		...this.elements(),
 	]);
 
@@ -1462,7 +1473,7 @@ export class SlideCanvasComponent implements SlideContext {
 		if (ids.length !== 1) {
 			return null;
 		}
-		const all = [...this.templateElements(), ...(this.slide()?.elements ?? [])];
+		const all = [...this.visibleTemplateElements(), ...(this.slide()?.elements ?? [])];
 		const element = all.find((candidate) => candidate.id === ids[0]);
 		return element
 			? { x: element.x, y: element.y, width: element.width, height: element.height }
