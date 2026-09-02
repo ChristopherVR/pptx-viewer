@@ -9,7 +9,7 @@ import { resolveGoogleWebfontHref } from 'pptx-viewer-shared';
  * by silently downloading its "cloud fonts"; a browser has no equivalent).
  * When a referenced family is served by the Google Fonts API, the binding
  * injects a `<link rel="stylesheet">` so the text renders with the intended
- * face anyway. The pure href resolution (a session-cached probe) lives in
+ * face anyway. The pure href resolution (a bundled-catalogue lookup) lives in
  * `pptx-viewer-shared`; this module owns only the managed `<link>` element
  * (binding-specific DOM id) that the `$effect` in `viewer-effects.svelte.ts`
  * drives.

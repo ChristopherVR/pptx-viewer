@@ -26,11 +26,8 @@ beforeEach(() => {
 	if (happy) {
 		happy.settings.disableCSSFileLoading = true;
 	}
-	// The probe is stubbed to "served" so href resolution stays deterministic.
-	vi.stubGlobal(
-		'fetch',
-		vi.fn(async () => ({ status: 200 })),
-	);
+	// The bundled catalogue answers every lookup; nothing may reach the network.
+	vi.stubGlobal('fetch', vi.fn());
 });
 
 afterEach(() => {
@@ -56,12 +53,9 @@ describe('resolveWebfontHref', () => {
 		expect(href).toContain('family=ADLaM%20Display');
 	});
 
-	it('returns null when the probe rejects every referenced family', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn(async () => ({ status: 400 })),
-		);
+	it('returns null when no referenced family is in the catalogue', async () => {
 		await expect(resolveWebfontHref([slide(textEl('Calibri'))], [])).resolves.toBeNull();
+		expect(fetch).not.toHaveBeenCalled();
 	});
 });
 
