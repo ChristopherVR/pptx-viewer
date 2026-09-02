@@ -109,6 +109,48 @@ describe('presentationTransitionOverlay', () => {
 		expect(html).toContain('Outgoing Slide');
 	});
 
+	// Regression: for classic transitions the overlay used to render ONLY the
+	// outgoing layer, so a wipe (whose outgoing half is 'none') sat opaque for
+	// the whole duration and the arriving slide - only ever the live stage
+	// beneath - popped in the instant the overlay tore down. The arriving slide
+	// has to be IN the overlay, carrying the incoming animation.
+	it('renders the arriving slide carrying the incoming wipe animation', () => {
+		const html = renderToStaticMarkup(
+			<PresentationTransitionOverlay
+				outgoingSlide={makeSlide()}
+				incomingSlide={{ ...makeSlide(), id: 'incoming-slide' }}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+				transition={{ type: 'wipe', durationMs: 600, direction: 'r' }}
+				durationMs={600}
+				onComplete={vi.fn()}
+			/>,
+		);
+		expect(html).toMatch(/animation:\s*pptx-tr-wipe-from-left 600ms/u);
+		expect(html).toContain('data-pptx-transition-layer="incoming"');
+		// The arriving wording is painted by the overlay copy too (it is not
+		// relying on the stage beneath, which the outgoing layer covers).
+		expect(html).toContain('Outgoing Slide');
+	});
+
+	it('renders no static incoming layer for types that reveal the stage', () => {
+		// Uncover animates the OUTGOING slide away; its incoming half is 'none'
+		// precisely so the live stage is revealed. A static incoming layer here
+		// would cover the animation.
+		const html = renderToStaticMarkup(
+			<PresentationTransitionOverlay
+				outgoingSlide={makeSlide()}
+				incomingSlide={{ ...makeSlide(), id: 'incoming-slide' }}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+				transition={{ type: 'uncover', durationMs: 600, direction: 'l' }}
+				durationMs={600}
+				onComplete={vi.fn()}
+			/>,
+		);
+		expect(html).not.toContain('data-pptx-transition-layer="incoming"');
+	});
+
 	// Regression (issue #106): the overlay used to measure itself in a mount
 	// effect, so the FIRST painted frame scaled the outgoing slide by 1 while
 	// the incoming slide was already at stage scale. On a 1080p display that is

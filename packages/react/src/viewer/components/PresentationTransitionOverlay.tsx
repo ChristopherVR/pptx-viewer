@@ -333,11 +333,45 @@ export function PresentationTransitionOverlay({
 		>
 			{/* Inject the transition @keyframes so the `animation` shorthands resolve. */}
 			<style>{SLIDE_TRANSITION_KEYFRAMES}</style>
+			{/* The ARRIVING slide, carrying the incoming animation. Without this
+			    layer the arriving slide is only the live stage BENEATH the
+			    overlay: an opaque outgoing layer (wipe/cover leave it in place)
+			    hid it for the whole duration, then the teardown revealed it in
+			    one frame - "takes the time, then instantly replaced". Types whose
+			    incoming half is 'none' (uncover family) must keep revealing the
+			    stage, so no static layer is rendered for them. */}
+			{!morphPlan && animations.incoming !== 'none' && incomingSlide ? (
+				<div
+					data-pptx-transition-layer='incoming'
+					className='pptx-react-transition-layer absolute inset-0 flex items-center justify-center'
+					style={{
+						animation: animations.incoming,
+						zIndex: animations.outgoingOnTop ? 0 : 10,
+					}}
+				>
+					<div
+						style={{
+							width: canvasSize.width,
+							height: canvasSize.height,
+							flexShrink: 0,
+							transform: `scale(${scale})`,
+							transformOrigin: 'center',
+						}}
+					>
+						<SlideLayer
+							slide={incomingSlide}
+							templateElements={templateElements}
+							canvasSize={canvasSize}
+						/>
+					</div>
+				</div>
+			) : null}
 			<div
 				data-pptx-transition-layer='outgoing'
 				className='pptx-react-transition-layer absolute inset-0 flex items-center justify-center'
 				style={{
 					animation: animations.outgoing !== 'none' ? animations.outgoing : undefined,
+					zIndex: animations.outgoingOnTop ? 10 : 0,
 				}}
 			>
 				<div
