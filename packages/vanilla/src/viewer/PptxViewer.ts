@@ -167,7 +167,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private userFontsStyle: HTMLStyleElement | null = null;
 	private signatureWarningAcknowledged = false;
 	private detachSignatureWarning: (() => void) | null = null;
-	/** Tags in-flight webfont probes; only the newest deck may apply its result. */
+	/** Tags in-flight webfont resolutions; only the newest deck may apply its result. */
 	private webfontsToken = 0;
 	private annotations!: PresentationAnnotationsHost;
 	private parityWorkflows!: ParityWorkflows;
@@ -504,7 +504,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		// Fetch Google-served webfonts for referenced families that are neither
 		// installed nor embedded (Microsoft 365 "cloud fonts" have no browser
 		// equivalent); re-evaluated only when the inputs actually change, since
-		// resolving walks every text segment of the deck. The probe is
+		// resolving walks every text segment of the deck. The catalogue lookup is
 		// session-cached and asynchronous, so each run is tagged and a
 		// superseded deck's late result never applies.
 		this.store.subscribe((state, previous) => {

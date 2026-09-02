@@ -6,10 +6,10 @@
  * by silently downloading its "cloud fonts"; a browser has no equivalent).
  * When a referenced family is served by the Google Fonts API, the viewer
  * injects a `<link rel="stylesheet">` so the text renders with the intended
- * face anyway. The href resolution (a session-cached probe) lives in
+ * face anyway. The href resolution (a bundled-catalogue lookup) lives in
  * `pptx-viewer-shared`; this module owns only the managed `<link>` element
  * (binding-specific DOM id) that the store subscription in `PptxViewer`
- * drives. The probe is asynchronous, so the viewer tags each run with a token
+ * drives. Resolution is asynchronous, so the viewer tags each run with a token
  * and a superseded deck's late result never applies.
  */
 
