@@ -54,7 +54,9 @@ function templateBackgroundValue(path: string): string {
 }
 
 function onTemplateColorChange(path: string, event: Event): void {
-	emit('set-template-background', path, (event.target as HTMLInputElement).value);
+	const hex = (event.target as HTMLInputElement).value;
+	emit('set-template-background', path, hex);
+	recentColors?.push(hex);
 }
 
 const fileInput = ref<HTMLInputElement | null>(null);

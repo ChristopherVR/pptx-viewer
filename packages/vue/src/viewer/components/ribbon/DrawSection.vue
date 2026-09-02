@@ -11,6 +11,7 @@
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { injectRecentColors } from '../../composables/recent-colors-context';
 import { DRAW_TOOLS, gB, gL, grp, ic } from './ribbon-constants';
 import type { DrawingTool } from './ribbon-types';
 
@@ -26,6 +27,14 @@ interface Props {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
+
+// The pen colour joins the deck's "Recent colours" list like every other
+// picker, but only on `change` (the committed pick): `input` is the continuous
+// stream while the dialog is dragged, which keeps driving the live pen colour.
+const recentColors = injectRecentColors();
+function commitPenColor(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
+}
 </script>
 
 <template>
@@ -57,6 +66,7 @@ const { t } = useI18n();
 				:value="props.drawingColor"
 				class="w-6 h-6 rounded border border-border bg-transparent cursor-pointer"
 				@input="props.onSetDrawingColor(($event.target as HTMLInputElement).value)"
+				@change="commitPenColor"
 			/>
 		</label>
 		<label

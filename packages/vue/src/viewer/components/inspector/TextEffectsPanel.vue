@@ -4,6 +4,7 @@ import { normalizeHexColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
 import {
 	CLEAR_TEXT_GLOW,
 	CLEAR_TEXT_REFLECTION,
@@ -30,9 +31,14 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 function apply(patch: Partial<TextStyle>): void {
 	emit('update', patch);
+}
+
+function onColorCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
 }
 
 const numChange = createNumberHandler(apply);
@@ -89,6 +95,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 						:class="COLOR_CLS"
 						:value="normalizeHexColor(ts?.textShadowColor, '#000000')"
 						@input="apply({ textShadowColor: ($event.target as HTMLInputElement).value })"
+						@change="onColorCommit"
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
@@ -160,6 +167,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 						:class="COLOR_CLS"
 						:value="normalizeHexColor(ts?.textGlowColor, '#ffff00')"
 						@input="apply({ textGlowColor: ($event.target as HTMLInputElement).value })"
+						@change="onColorCommit"
 					/>
 				</label>
 				<label class="flex flex-col gap-1">

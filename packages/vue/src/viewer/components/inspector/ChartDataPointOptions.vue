@@ -4,6 +4,8 @@ import { EXPLOSION_SUPPORTED_TYPES } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 /**
  * ChartDataPointOptions: per-data-point fill override + pie/doughnut slice
  * explosion, targeting one series at a time. Mirrors React's
@@ -22,6 +24,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const seriesIndex = ref(0);
 
@@ -50,6 +53,10 @@ function onSeriesPick(event: Event): void {
 
 function onFill(event: Event, idx: number): void {
 	emit('setPointFill', activeIndex.value, idx, (event.target as HTMLInputElement).value);
+}
+
+function onFillCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
 }
 
 function onClearFill(idx: number): void {
@@ -118,6 +125,7 @@ function onExplosion(event: Event, idx: number): void {
 					:title="t('pptx.chart.pointFill')"
 					:value="pointFor(idx)?.spPr?.fillColor ?? activeSeries?.color ?? '#4472c4'"
 					@input="onFill($event, idx)"
+					@change="onFillCommit"
 				/>
 				<button
 					v-if="pointFor(idx)?.spPr?.fillColor"

@@ -22,4 +22,22 @@ describe('recentColorsRow', () => {
 		await swatches[1].trigger('click');
 		expect(wrapper.emitted('pick')).toStrictEqual([['#445566']]);
 	});
+
+	it('labels the container and each swatch per the row contract', () => {
+		const wrapper = mount(RecentColorsRow, { props: { colors: ['#112233'] } });
+		const container = wrapper.get('[data-testid="pptx-color-recent"]');
+		expect(container.attributes('aria-label')).toBe('Recent Colors');
+		const swatch = wrapper.get('[data-testid="pptx-color-recent"] button');
+		expect(swatch.attributes('aria-label')).toBe('Recent #112233');
+		expect(swatch.attributes('title')).toBe('#112233');
+	});
+
+	it('disables every swatch when the picker is disabled', () => {
+		const wrapper = mount(RecentColorsRow, {
+			props: { colors: ['#112233', '#445566'], disabled: true },
+		});
+		for (const swatch of wrapper.findAll('[data-testid="pptx-color-recent"] button')) {
+			expect((swatch.element as HTMLButtonElement).disabled).toBeTruthy();
+		}
+	});
 });

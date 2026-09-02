@@ -503,7 +503,7 @@ const actionRunner = {
 	openFile: (target: string) => actionExtras?.openFile(target),
 	openPresentation: (target: string) => actionExtras?.openPresentation(target),
 	playMedia: (elementId: string | undefined) => actionExtras?.playMedia(elementId),
-	oleVerb: (verb: number) => actionExtras?.oleVerb(verb),
+	oleVerb: (verb: number, elementId: string | undefined) => actionExtras?.oleVerb(verb, elementId),
 };
 
 /**
@@ -519,10 +519,6 @@ function onOverlayClick(event: MouseEvent): void {
 	if (annotations.presentationTool.value !== 'none' || presenterMode.value) {
 		return;
 	}
-	// `oleVerb`'s runner callback carries no elementId of its own; this is the
-	// one place the clicked element is known, so it is captured here for that
-	// callback to read back.
-	actionExtras?.noteActionClickTarget(event.target);
 	const outcome = handlePresentationStageClick(
 		event.target,
 		nav.activeSlide.value,

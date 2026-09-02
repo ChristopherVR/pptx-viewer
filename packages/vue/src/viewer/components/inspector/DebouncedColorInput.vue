@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 /**
  * DebouncedColorInput: a native colour picker that commits live as the user
  * drags through the swatch, keeping the canvas in sync while a local mirror
  * keeps the control responsive. Vue equivalent of React's DebouncedColorInput;
  * undo grouping is handled downstream in the editor history.
+ *
+ * Every caller wraps the same native `<input type="color">`, so the
+ * "Recent colours" push (wave-4 B6) is wired here once, on the native
+ * `change` event (the committed value, never the continuous `input` stream),
+ * instead of every one of this component's callers repeating it.
  */
 const props = defineProps<{
 	value: string;
@@ -19,6 +26,7 @@ const emit = defineEmits<{
 
 /** Local mirror so the swatch stays responsive during a drag. */
 const local = ref<string>(props.value);
+const recentColors = injectRecentColors();
 
 // Re-sync when the selected element (external value) changes.
 watch(
@@ -33,6 +41,10 @@ function onInput(event: Event): void {
 	local.value = next;
 	emit('commit', next);
 }
+
+function onChange(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
+}
 </script>
 
 <template>
@@ -43,5 +55,6 @@ function onInput(event: Event): void {
 		:disabled="disabled"
 		:value="local"
 		@input="onInput"
+		@change="onChange"
 	/>
 </template>

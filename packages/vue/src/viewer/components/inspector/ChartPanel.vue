@@ -6,6 +6,7 @@ import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectChartCanvasEdit } from '../../composables/chart-part-selection';
+import { injectRecentColors } from '../../composables/recent-colors-context';
 import { useChartEditing } from '../../composables/useChartEditing';
 import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
 import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
@@ -44,6 +45,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const DEFAULT_SERIES_COLOR = '#4472c4';
 
@@ -114,6 +116,10 @@ function onGroupingChange(event: Event): void {
 
 function onSeriesColorInput(event: Event, index: number): void {
 	commitSeriesColor(index, (event.target as HTMLInputElement).value);
+}
+
+function onSeriesColorCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
 }
 
 function onClearSeriesColor(index: number): void {
@@ -254,6 +260,7 @@ const CONTROL =
 						:value="s.color || DEFAULT_SERIES_COLOR"
 						:aria-label="t('pptx.chart.seriesColor', { name: s.name })"
 						@input="onSeriesColorInput($event, si)"
+						@change="onSeriesColorCommit"
 					/>
 					<button
 						v-if="s.color"

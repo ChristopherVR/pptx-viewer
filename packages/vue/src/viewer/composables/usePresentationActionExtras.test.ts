@@ -20,10 +20,9 @@ function slide(rId: string, elements: PptxElement[] = []): PptxSlide {
 
 /**
  * `actionClick` is set the same way core parses a real `ppaction://ole?verb=`
- * shape: `findPresentationActionTarget` (which `noteActionClickTarget` calls)
- * only resolves a node to an element that actually carries an action, which
- * is also true in production - `oleVerb` only fires once that same lookup has
- * already matched inside `handlePresentationStageClick`.
+ * shape: in production `oleVerb` only fires once
+ * `handlePresentationStageClick` has matched the click to an element that
+ * actually carries an action, and it hands that element's id through.
  */
 function oleElement(id: string, oleEmbeddedData?: string): PptxElement {
 	return {
@@ -188,24 +187,21 @@ describe('usePresentationActionExtras', () => {
 	});
 
 	describe('oleVerb', () => {
-		it('does nothing when no action click has been noted', () => {
+		it('does nothing when the click carried no element', () => {
 			currentSlide = slide('rId1', [oleElement('ole-1', 'blob:http://localhost/ole-payload')]);
 			const extras = build();
 			const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
-			extras.oleVerb(-1);
+			extras.oleVerb(-1, undefined);
 			expect(openSpy).not.toHaveBeenCalled();
 			openSpy.mockRestore();
 		});
 
-		it("opens the noted element's embedded payload", () => {
+		it("opens the clicked element's embedded payload", () => {
 			currentSlide = slide('rId1', [oleElement('ole-1', 'blob:http://localhost/ole-payload')]);
 			const extras = build();
-			const node = document.createElement('div');
-			node.setAttribute('data-element-id', 'ole-1');
 			const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
 
-			extras.noteActionClickTarget(node);
-			extras.oleVerb(-1);
+			extras.oleVerb(-1, 'ole-1');
 
 			expect(openSpy).toHaveBeenCalledWith('blob:http://localhost/ole-payload', '_blank');
 			openSpy.mockRestore();
@@ -214,12 +210,9 @@ describe('usePresentationActionExtras', () => {
 		it('does nothing for an element with no embedded payload', () => {
 			currentSlide = slide('rId1', [oleElement('ole-1', undefined)]);
 			const extras = build();
-			const node = document.createElement('div');
-			node.setAttribute('data-element-id', 'ole-1');
 			const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
 
-			extras.noteActionClickTarget(node);
-			extras.oleVerb(-1);
+			extras.oleVerb(-1, 'ole-1');
 
 			expect(openSpy).not.toHaveBeenCalled();
 			openSpy.mockRestore();

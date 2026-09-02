@@ -12,6 +12,8 @@ import {
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 /**
  * EffectsShadowSection: the outer-shadow and inner-shadow halves of
  * {@link EffectsPanel}, split out to keep that file under this repo's
@@ -29,6 +31,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const state = computed(() => effectsStateOf(props.element));
 
@@ -55,6 +58,9 @@ function onToggleShadow(checked: boolean): void {
 }
 function onShadowColor(value: string): void {
 	emit('update', updateOuterShadowPatch(props.element, { color: value }));
+}
+function onShadowColorCommit(value: string): void {
+	recentColors?.push(value);
 }
 function onShadowBlur(value: string): void {
 	const n = toNumber(value);
@@ -92,6 +98,9 @@ function onToggleInnerShadow(checked: boolean): void {
 }
 function onInnerShadowColor(value: string): void {
 	emit('update', updateInnerShadowPatch(props.element, { color: value }));
+}
+function onInnerShadowColorCommit(value: string): void {
+	recentColors?.push(value);
 }
 function onInnerShadowBlur(value: string): void {
 	const n = toNumber(value);
@@ -137,6 +146,7 @@ function onInnerShadowOffsetY(value: string): void {
 					class="pptx-vue-effects-color h-7 w-full rounded border border-border bg-muted p-0"
 					:value="state.outerShadow.color"
 					@input="onShadowColor(($event.target as HTMLInputElement).value)"
+					@change="onShadowColorCommit(($event.target as HTMLInputElement).value)"
 				/>
 			</label>
 			<label class="pptx-vue-effects-field flex flex-col gap-1">
@@ -215,6 +225,7 @@ function onInnerShadowOffsetY(value: string): void {
 					class="pptx-vue-effects-color h-7 w-full rounded border border-border bg-muted p-0"
 					:value="state.innerShadow.color"
 					@input="onInnerShadowColor(($event.target as HTMLInputElement).value)"
+					@change="onInnerShadowColorCommit(($event.target as HTMLInputElement).value)"
 				/>
 			</label>
 			<label class="pptx-vue-effects-field flex flex-col gap-1">

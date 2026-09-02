@@ -13,8 +13,8 @@
  * instead of the `activeCustomShow` prop directly; this composable is what
  * writes to it.
  */
-import type { PptxCustomShow, PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { findPresentationActionTarget, openUrlInNewTab, safeOpenUrl } from 'pptx-viewer-shared';
+import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
+import { openUrlInNewTab, resolveOleVerbTarget, safeOpenUrl } from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
 import type { Ref } from 'vue';
 
@@ -46,28 +46,7 @@ export interface UsePresentationActionExtrasResult {
 	openFile: (target: string) => void;
 	openPresentation: (target: string) => void;
 	playMedia: (elementId: string | undefined) => void;
-	oleVerb: (verb: number) => void;
-	/** Call from the stage's click handler, before `handlePresentationStageClick`, so `oleVerb` knows its target. */
-	noteActionClickTarget: (rawTarget: unknown) => void;
-}
-
-/** Depth-first search for an element by id, group children included. */
-function findElementById(
-	elements: readonly PptxElement[] | undefined,
-	id: string,
-): PptxElement | undefined {
-	for (const element of elements ?? []) {
-		if (element.id === id) {
-			return element;
-		}
-		if (element.type === 'group' && element.children) {
-			const found = findElementById(element.children, id);
-			if (found) {
-				return found;
-			}
-		}
-	}
-	return undefined;
+	oleVerb: (verb: number, elementId: string | undefined) => void;
 }
 
 /** The `<video>`/`<audio>` node for `elementId`, within `root`, or `undefined`. */
@@ -101,9 +80,6 @@ export function usePresentationActionExtras(
 		},
 		{ flush: 'sync' },
 	);
-
-	/** The element an on-slide action click landed on, for `oleVerb` (its callback carries no elementId). */
-	const lastClickElementId = ref<string | undefined>(undefined);
 
 	function lastViewed(): void {
 		if (previousIndex.value !== null) {
@@ -146,12 +122,11 @@ export function usePresentationActionExtras(
 	}
 
 	function playMedia(elementId: string | undefined): void {
-		const id = elementId ?? lastClickElementId.value;
 		const root = input.frameRoot();
-		if (!id || !root) {
+		if (!elementId || !root) {
 			return;
 		}
-		const media = findMediaElement(root, id);
+		const media = findMediaElement(root, elementId);
 		if (!media) {
 			return;
 		}
@@ -162,23 +137,12 @@ export function usePresentationActionExtras(
 		}
 	}
 
-	function oleVerb(_verb: number): void {
-		const id = lastClickElementId.value;
-		if (!id) {
-			return;
+	/** A browser cannot run the verb in the owning application: open the recovered embedding instead. */
+	function oleVerb(verb: number, elementId: string | undefined): void {
+		const target = resolveOleVerbTarget(input.activeSlide(), elementId, verb);
+		if (target) {
+			openUrlInNewTab(target.url);
 		}
-		const element = findElementById(input.activeSlide()?.elements, id);
-		if (!element || element.type !== 'ole' || !element.oleEmbeddedData) {
-			return;
-		}
-		openUrlInNewTab(element.oleEmbeddedData);
-	}
-
-	function noteActionClickTarget(rawTarget: unknown): void {
-		lastClickElementId.value = findPresentationActionTarget(
-			rawTarget,
-			input.activeSlide(),
-		)?.elementId;
 	}
 
 	return {
@@ -189,6 +153,5 @@ export function usePresentationActionExtras(
 		openPresentation,
 		playMedia,
 		oleVerb,
-		noteActionClickTarget,
 	};
 }

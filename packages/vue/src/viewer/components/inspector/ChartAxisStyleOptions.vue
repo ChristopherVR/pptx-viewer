@@ -4,6 +4,7 @@ import { EDITABLE_AXIS_ROWS, GRIDLINE_DASH_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
 import type {
 	ChartAxisTitleStyleEdit,
 	ChartGridlineStyleEdit,
@@ -33,6 +34,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 type AxisRow = (typeof EDITABLE_AXIS_ROWS)[number] & { axis: PptxChartAxisFormatting };
 
@@ -76,6 +78,10 @@ function onColor(event: Event, row: AxisRow): void {
 	emit('setTitleStyle', row.type, { fontColor: (event.target as HTMLInputElement).value });
 }
 
+function onColorCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
+}
+
 function gridSpPr(row: AxisRow, which: 'major' | 'minor') {
 	return which === 'major' ? row.axis.majorGridlinesSpPr : row.axis.minorGridlinesSpPr;
 }
@@ -86,6 +92,10 @@ function gridEnabled(row: AxisRow, which: 'major' | 'minor'): boolean {
 
 function onGridColor(event: Event, row: AxisRow, which: 'major' | 'minor'): void {
 	emit('setGridlineStyle', row.type, which, { color: (event.target as HTMLInputElement).value });
+}
+
+function onGridColorCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
 }
 
 function onGridWidth(event: Event, row: AxisRow, which: 'major' | 'minor'): void {
@@ -181,6 +191,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 							class="h-6 w-8 cursor-pointer rounded border border-border bg-transparent"
 							:value="row.axis.fontColor ?? '#000000'"
 							@input="onColor($event, row)"
+							@change="onColorCommit"
 						/>
 					</label>
 				</div>
@@ -195,6 +206,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 							class="h-6 w-8 cursor-pointer rounded border border-border bg-transparent"
 							:value="gridSpPr(row, kind.which)?.strokeColor ?? '#d9d9d9'"
 							@input="onGridColor($event, row, kind.which)"
+							@change="onGridColorCommit"
 						/>
 						<input
 							type="number"

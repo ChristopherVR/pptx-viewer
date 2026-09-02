@@ -10,6 +10,8 @@ import { RIBBON_SHAPE_SWATCHES, shapeFillChange, shapeOutlineChange } from 'pptx
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { injectRecentColors } from '../../composables/recent-colors-context';
+import RecentColorsRow from '../RecentColorsRow.vue';
 import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
@@ -33,6 +35,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const TOP_SHAPES: Array<{ type: SupportedShapeType; labelKey: string }> = [
 	{ type: 'rect', labelKey: 'pptx.editorToolbar.shapeRectangle' },
@@ -73,11 +76,13 @@ function handleArrange(action: string, edge: boolean): void {
 
 function handleFill(color: string): void {
 	props.onUpdateElementStyle?.(shapeFillChange(color));
+	recentColors?.push(color);
 	fillMenu.close();
 }
 
 function handleOutline(color: string): void {
 	props.onUpdateElementStyle?.(shapeOutlineChange(color));
+	recentColors?.push(color);
 	outlineMenu.close();
 }
 </script>
@@ -166,20 +171,26 @@ function handleOutline(color: string): void {
 					class="z-50 pt-1"
 					v-anchored-popup="{ anchor: fillMenu.root.value }"
 				>
-					<div
-						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1"
-					>
-						<button
-							v-for="c in FILL_COLORS"
-							:key="c"
-							type="button"
-							:aria-label="`Fill colour ${c}`"
-							class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
-							data-pptx-compact
-							:style="{ backgroundColor: c }"
-							:title="c"
-							@mousedown.prevent
-							@click="handleFill(c)"
+					<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2">
+						<div class="grid grid-cols-6 gap-1">
+							<button
+								v-for="c in FILL_COLORS"
+								:key="c"
+								type="button"
+								:aria-label="`Fill colour ${c}`"
+								class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
+								data-pptx-compact
+								:style="{ backgroundColor: c }"
+								:title="c"
+								@mousedown.prevent
+								@click="handleFill(c)"
+							/>
+						</div>
+						<RecentColorsRow
+							v-if="recentColors"
+							:colors="recentColors.recent.value"
+							:disabled="!props.canEdit || !props.selectedElement"
+							@pick="handleFill"
 						/>
 					</div>
 				</div>
@@ -201,20 +212,26 @@ function handleOutline(color: string): void {
 					class="z-50 pt-1"
 					v-anchored-popup="{ anchor: outlineMenu.root.value }"
 				>
-					<div
-						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 grid grid-cols-6 gap-1"
-					>
-						<button
-							v-for="c in FILL_COLORS"
-							:key="c"
-							type="button"
-							:aria-label="`Outline colour ${c}`"
-							class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
-							data-pptx-compact
-							:style="{ backgroundColor: c }"
-							:title="c"
-							@mousedown.prevent
-							@click="handleOutline(c)"
+					<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2">
+						<div class="grid grid-cols-6 gap-1">
+							<button
+								v-for="c in FILL_COLORS"
+								:key="c"
+								type="button"
+								:aria-label="`Outline colour ${c}`"
+								class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
+								data-pptx-compact
+								:style="{ backgroundColor: c }"
+								:title="c"
+								@mousedown.prevent
+								@click="handleOutline(c)"
+							/>
+						</div>
+						<RecentColorsRow
+							v-if="recentColors"
+							:colors="recentColors.recent.value"
+							:disabled="!props.canEdit || !props.selectedElement"
+							@pick="handleOutline"
 						/>
 					</div>
 				</div>

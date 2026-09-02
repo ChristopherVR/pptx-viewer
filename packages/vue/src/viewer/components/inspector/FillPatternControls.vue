@@ -5,6 +5,8 @@ import { getPatternSvg, PATTERN_PRESET_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 /**
  * FillPatternControls: the pattern-fill half of {@link FillPanel}, shown when
  * `shapeStyle.fillMode === 'pattern'`. Split into its own file to keep
@@ -27,6 +29,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const currentStyle = computed<ShapeStyle>(() =>
 	hasShapeProperties(props.element) ? (props.element.shapeStyle ?? {}) : {},
@@ -56,6 +59,10 @@ function onForeground(value: string): void {
 
 function onBackground(value: string): void {
 	patchStyle({ fillPatternBackgroundColor: value });
+}
+
+function onColorCommit(value: string): void {
+	recentColors?.push(value);
 }
 </script>
 
@@ -101,6 +108,7 @@ function onBackground(value: string): void {
 				class="pptx-vue-pattern-color h-8 w-full rounded border border-border bg-muted p-0"
 				:value="foreground"
 				@input="onForeground(($event.target as HTMLInputElement).value)"
+				@change="onColorCommit(($event.target as HTMLInputElement).value)"
 			/>
 		</label>
 		<label class="pptx-vue-pattern-field flex flex-col gap-1">
@@ -112,6 +120,7 @@ function onBackground(value: string): void {
 				class="pptx-vue-pattern-color h-8 w-full rounded border border-border bg-muted p-0"
 				:value="background"
 				@input="onBackground(($event.target as HTMLInputElement).value)"
+				@change="onColorCommit(($event.target as HTMLInputElement).value)"
 			/>
 		</label>
 	</div>

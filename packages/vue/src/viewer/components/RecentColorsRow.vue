@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 
 defineProps<{
 	colors: string[];
+	disabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -24,7 +25,11 @@ const { t } = useI18n();
 		<span class="pptx-vue-recent-colors__label text-[10px] text-muted-foreground">{{
 			t('pptx.colorPicker.recentColors')
 		}}</span>
-		<div class="flex flex-wrap gap-1" data-testid="pptx-color-recent">
+		<div
+			class="flex flex-wrap gap-1"
+			data-testid="pptx-color-recent"
+			:aria-label="t('pptx.colorPicker.recentColors')"
+		>
 			<button
 				v-for="hex in colors"
 				:key="hex"
@@ -32,7 +37,8 @@ const { t } = useI18n();
 				class="pptx-vue-recent-colors__swatch h-5 w-5 rounded border border-border"
 				:style="{ backgroundColor: hex }"
 				:title="hex"
-				:aria-label="hex"
+				:aria-label="`Recent ${hex}`"
+				:disabled="disabled"
 				@click="emit('pick', hex)"
 			/>
 		</div>
