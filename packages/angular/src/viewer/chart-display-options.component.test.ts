@@ -47,6 +47,15 @@ function checkboxChange(checked: boolean): Event {
 	return { target: input } as unknown as Event;
 }
 
+function selectChange(value: string): Event {
+	const select = document.createElement('select');
+	const option = document.createElement('option');
+	option.value = value;
+	select.append(option);
+	select.value = value;
+	return { target: select } as unknown as Event;
+}
+
 describe('chartDisplayOptionsComponent gridlines', () => {
 	it('reads the primary value axis majorGridlines, not the unread style flag', () => {
 		const options = createOptions({
@@ -84,5 +93,75 @@ describe('chartDisplayOptionsComponent gridlines', () => {
 		options['onToggleGridlines'](checkboxChange(false));
 		expect(emitted?.chartData?.axes?.[0]).toMatchObject({ majorGridlines: false });
 		expect(emitted?.chartData?.style?.hasGridlines).toBeFalsy();
+	});
+});
+
+describe('chartDisplayOptionsComponent chart subtype pickers', () => {
+	it('shows the bar3D shape picker only for a bar3D chart and applies the patch', () => {
+		const options = createOptions({
+			chartType: 'bar3D',
+			series: [],
+		} as unknown as PptxChartData);
+		expect(options['isBar3D']()).toBeTruthy();
+		expect(options['isRadar']()).toBeFalsy();
+		expect(options['isSurface']()).toBeFalsy();
+
+		let emitted: ChartPptxElement | undefined;
+		vi.spyOn(
+			options.elementChange as OutputEmitterRef<ChartPptxElement>,
+			'emit',
+		).mockImplementation((value) => {
+			emitted = value;
+		});
+		options['onBar3DShape'](selectChange('cylinder'));
+		expect(emitted?.chartData?.barShape).toBe('cylinder');
+	});
+
+	it('shows the radar style picker only for a radar chart and applies the patch', () => {
+		const options = createOptions({
+			chartType: 'radar',
+			series: [],
+		} as unknown as PptxChartData);
+		expect(options['isRadar']()).toBeTruthy();
+		expect(options['isBar3D']()).toBeFalsy();
+
+		let emitted: ChartPptxElement | undefined;
+		vi.spyOn(
+			options.elementChange as OutputEmitterRef<ChartPptxElement>,
+			'emit',
+		).mockImplementation((value) => {
+			emitted = value;
+		});
+		options['onRadarStyle'](selectChange('filled'));
+		expect(emitted?.chartData?.radarStyle).toBe('filled');
+	});
+
+	it('shows the surface wireframe picker only for a surface chart and applies the patch', () => {
+		const options = createOptions({
+			chartType: 'surface',
+			series: [],
+		} as unknown as PptxChartData);
+		expect(options['isSurface']()).toBeTruthy();
+		expect(options['isRadar']()).toBeFalsy();
+
+		let emitted: ChartPptxElement | undefined;
+		vi.spyOn(
+			options.elementChange as OutputEmitterRef<ChartPptxElement>,
+			'emit',
+		).mockImplementation((value) => {
+			emitted = value;
+		});
+		options['onSurfaceWireframe'](selectChange('true'));
+		expect(emitted?.chartData?.wireframe).toBeTruthy();
+	});
+
+	it('does not show any subtype picker for a plain bar chart', () => {
+		const options = createOptions({
+			chartType: 'bar',
+			series: [],
+		} as unknown as PptxChartData);
+		expect(options['isBar3D']()).toBeFalsy();
+		expect(options['isRadar']()).toBeFalsy();
+		expect(options['isSurface']()).toBeFalsy();
 	});
 });

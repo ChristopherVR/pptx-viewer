@@ -58,7 +58,9 @@ import {
 	textStylePatch,
 } from './inspector-helpers';
 import { IsMobileService } from './is-mobile';
+import { LineFormatPanelComponent } from './line-format-panel.component';
 import { MediaPropertiesPanelComponent } from './media-properties-panel.component';
+import { PatternFillPanelComponent } from './pattern-fill-panel.component';
 import { ShapeAuthoringPanelComponent } from './shape-authoring-panel.component';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableCellFormattingComponent } from './table-cell-formatting.component';
@@ -75,6 +77,8 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 	imports: [
 		GradientPickerComponent,
 		EffectsPanelComponent,
+		LineFormatPanelComponent,
+		PatternFillPanelComponent,
 		TextAdvancedPanelComponent,
 		TableDataEditorComponent,
 		TablePropertiesComponent,
@@ -393,6 +397,22 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 						{{ 'pptx.inspector.effects' | translate }}
 					</summary>
 					<pptx-effects-panel [element]="el()" (patch)="onPatch($event)" />
+				</details>
+
+				<!-- ── Advanced: line format (dash / compound / join / cap) ────── -->
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.line' | translate }}
+					</summary>
+					<pptx-line-format-panel [element]="el()" (patch)="onPatch($event)" />
+				</details>
+
+				<!-- ── Advanced: pattern fill (preset + fg/bg) ─────────────────── -->
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.table.fillPattern' | translate }}
+					</summary>
+					<pptx-pattern-fill-panel [element]="el()" (patch)="onPatch($event)" />
 				</details>
 			}
 

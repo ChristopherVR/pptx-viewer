@@ -237,6 +237,7 @@ export class ViewerExportService {
 				(index) => this.captureSlideDataUrl(index, printScale),
 				this.loader.canvasSize(),
 				includeHiddenSlides,
+				this.loader.handoutMaster(),
 			);
 		} finally {
 			host.activeSlideIndex.set(original);

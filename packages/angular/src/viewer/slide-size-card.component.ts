@@ -14,17 +14,31 @@
  * `resolveSlideSizeSelection` encodes that rule, so both controls write the EMU
  * size AND the canvas size, and the raw W/H inputs write only the canvas (which
  * is exactly the "user typed a custom size" case the rule falls back for).
+ *
+ * Slide-size RESCALE prompt (shared `render/slide-size-rescale`,
+ * `resolveSlideSizeRescaleTransform` / `scaleSlidesForSizeChange`): PowerPoint
+ * asks Maximize-or-Ensure-Fit whenever a size change would resize existing
+ * content and the deck has content to resize. A size change that leaves the
+ * pending prompt unanswered does not commit until the user picks a mode (or
+ * there is nothing to scale, in which case it commits immediately, as before).
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
+	scaleSlidesForSizeChange,
 	SLIDE_SIZE_PRESETS,
+	slideSizeFromCanvasPx,
 	slideSizeFromPreset,
 	slideSizeToCanvasPx,
 	withSlideSizeOrientation,
 } from '../internal/shared';
-import type { SlideSizeEmu, SlideSizeOrientation, SlideSizePreset } from '../internal/shared';
+import type {
+	SlideSizeEmu,
+	SlideSizeOrientation,
+	SlideSizePreset,
+	SlideSizeRescaleMode,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
 import { LoadContentService } from './load-content.service';
@@ -115,11 +129,43 @@ const CUSTOM_PRESET_VALUE = '';
 					/>
 				</label>
 			</div>
+
+			@if (pendingResize(); as pending) {
+				<div class="icard__col" data-testid="pptx-slide-size-rescale-prompt">
+					<span class="icard__label">{{ 'pptx.slideSize.rescaleTitle' | translate }}</span>
+					<p class="icard__hint">{{ 'pptx.slideSize.rescaleDescription' | translate }}</p>
+					<div class="icard__row">
+						<button
+							type="button"
+							class="icard__btn"
+							data-testid="pptx-slide-size-rescale-maximize"
+							[title]="'pptx.slideSize.rescaleMaximizeHint' | translate"
+							(click)="onRescaleChoice(pending, 'maximize')"
+						>
+							{{ 'pptx.slideSize.rescaleMaximize' | translate }}
+						</button>
+						<button
+							type="button"
+							class="icard__btn"
+							data-testid="pptx-slide-size-rescale-ensure-fit"
+							[title]="'pptx.slideSize.rescaleEnsureFitHint' | translate"
+							(click)="onRescaleChoice(pending, 'ensureFit')"
+						>
+							{{ 'pptx.slideSize.rescaleEnsureFit' | translate }}
+						</button>
+					</div>
+				</div>
+			}
 		</section>
 	`,
 	styles: [
 		INSPECTOR_CARD_STYLES,
 		`
+			.icard__hint {
+				font-size: 11px;
+				color: var(--pptx-inspector-muted, #888);
+				margin: 0 0 0.35rem;
+			}
 			.icard__btn--on {
 				background: var(--pptx-inspector-accent, #2f6feb);
 				border-color: var(--pptx-inspector-accent, #2f6feb);
@@ -134,6 +180,7 @@ export class SlideSizeCardComponent {
 
 	private readonly loader = inject(LoadContentService);
 	private readonly editor = inject(EditorStateService);
+	private readonly translate = inject(TranslateService);
 
 	protected readonly CUSTOM_PRESET_VALUE = CUSTOM_PRESET_VALUE;
 	protected readonly presets = SLIDE_SIZE_PRESETS;
@@ -144,6 +191,13 @@ export class SlideSizeCardComponent {
 	protected readonly selectedPresetValue = computed(
 		() => this.selection().preset?.labelKey ?? CUSTOM_PRESET_VALUE,
 	);
+
+	/**
+	 * A confirmed size that differs from the current one and has at least one
+	 * element to rescale, awaiting the user's Maximize/Ensure-Fit choice. `null`
+	 * once answered (or when no prompt was needed) so the inline prompt hides.
+	 */
+	protected readonly pendingResize = signal<SlideSizeEmu | null>(null);
 
 	protected onPresetChange(event: Event): void {
 		const labelKey = (event.target as HTMLSelectElement).value;
@@ -169,12 +223,40 @@ export class SlideSizeCardComponent {
 		if (!Number.isFinite(value) || value < 1) {
 			return;
 		}
-		this.loader.canvasSize.update((current) => ({ ...current, [dim]: value }));
-		this.editor.dirty.set(true);
+		this.apply(slideSizeFromCanvasPx({ ...this.loader.canvasSize(), [dim]: value }));
+	}
+
+	/**
+	 * PowerPoint's Maximize/Ensure-Fit prompt: choosing a mode rescales every
+	 * slide's elements (one undoable history entry via
+	 * `EditorStateService.applyReplacement`) before the new size itself commits.
+	 */
+	protected onRescaleChoice(pending: SlideSizeEmu, mode: SlideSizeRescaleMode): void {
+		const oldSize = this.selection().size;
+		const rescaled = scaleSlidesForSizeChange(this.editor.slides(), oldSize, pending, mode);
+		this.editor.applyReplacement(rescaled, this.translate.instant('pptx.slideSize.rescaleTitle'));
+		this.commit(pending);
+		this.pendingResize.set(null);
+	}
+
+	/**
+	 * Commit a confirmed size, prompting first (PowerPoint's Maximize/Ensure
+	 * Fit) when it differs from the current size AND the deck has at least one
+	 * element anywhere to rescale; an empty deck commits directly, as before.
+	 */
+	private apply(next: SlideSizeEmu): void {
+		const current = this.selection().size;
+		const sizeChanged = current.widthEmu !== next.widthEmu || current.heightEmu !== next.heightEmu;
+		const hasContent = this.editor.slides().some((slide) => slide.elements.length > 0);
+		if (sizeChanged && hasContent) {
+			this.pendingResize.set(next);
+			return;
+		}
+		this.commit(next);
 	}
 
 	/** Commit an EMU size and the canvas size it implies, together. */
-	private apply(next: SlideSizeEmu): void {
+	private commit(next: SlideSizeEmu): void {
 		this.loader.slideSizeEmu.set(next);
 		this.loader.canvasSize.set(slideSizeToCanvasPx(next));
 		this.editor.dirty.set(true);

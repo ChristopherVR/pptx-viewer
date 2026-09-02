@@ -54,6 +54,7 @@ import type {
 } from '../internal/shared';
 import type { AiCanvasHighlight, AiChangeBatch } from '../internal/shared-ai';
 import { resolveContextMenuElementId } from '../internal/shared-src/render/context-menu-target';
+import { ActiveXControlsOverlayComponent } from './activex-controls-overlay.component';
 import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
 import { CanvasFitService } from './canvas-fit.service';
@@ -174,6 +175,7 @@ function plainText(el: PptxElement): string {
 		TranslatePipe,
 		AiFocusHighlightOverlayComponent,
 		AiChangeOverlayComponent,
+		ActiveXControlsOverlayComponent,
 	],
 	styleUrl: './slide-canvas.component.css',
 	templateUrl: './slide-canvas.component.html',

@@ -50,10 +50,13 @@ import {
 	templateSchemeFromTheme,
 	THEME_CATALOG,
 	viewerOptionsToPreferences,
+	viewerPreferencesFromViewProperties,
+	viewPropertiesPatchFromPreferences,
 	writeStoredViewerPrefs,
 } from '../internal/shared';
 import type {
 	AccountAuthConfig,
+	DeckViewPreferences,
 	PowerPointViewerAPI,
 	SlideTemplateId,
 	ThemeCatalogEntry,
@@ -89,6 +92,7 @@ import {
 	toggleCommentResolvedInList,
 } from './comments-helpers';
 import { CommentsPanelComponent } from './comments-panel.component';
+import { CompatToastsComponent } from './compat-toasts.component';
 import { CustomShowsComponent } from './custom-shows.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { newChartElement, newShapeElement, newTableElement, newTextElement } from './editor-insert';
@@ -106,6 +110,7 @@ import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
 import { IsMobileService } from './is-mobile';
 import { LineChart3DService } from './line-chart-3d.service';
 import { LoadContentService } from './load-content.service';
+import { LoadNoticesService } from './load-notices.service';
 import { MasterViewCanvasComponent } from './master-view-canvas.component';
 import { MasterViewSidebarComponent } from './master-view-sidebar.component';
 import { applyMobileBarSheetTap } from './mobile-bar-sheet-tap';
@@ -129,6 +134,7 @@ import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
 import { QuickAccessStripComponent } from './quick-access-strip.component';
 import { ReadingViewOverlayComponent } from './reading-view-overlay.component';
+import { ReadOnlyBannerComponent } from './readonly-banner.component';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { patchTextStyle } from './ribbon-text-helpers';
@@ -213,6 +219,8 @@ import { ZoomTargetService } from './zoom-target.service';
 		ExportProgressModalComponent,
 		CommentMarkersOverlayComponent,
 		CommentsPanelComponent,
+		CompatToastsComponent,
+		ReadOnlyBannerComponent,
 		SignaturesPanelComponent,
 		AccessibilityPanelComponent,
 		CollaborationCursorsComponent,
@@ -286,6 +294,14 @@ import { ZoomTargetService } from './zoom-target.service';
 							{{ 'pptx.security.enableEditing' | translate }}
 						</button>
 					</div>
+				}
+				@if (loadNotices.bannerActive() && chromeVisible()) {
+					<pptx-readonly-banner
+						[kind]="loadNotices.recommendation().kind"
+						[messageKey]="loadNotices.recommendation().messageKey"
+						(editAnyway)="loadNotices.editAnyway()"
+						(dismiss)="loadNotices.dismissBanner()"
+					/>
 				}
 				@if (!mobile.isMobile() && chromeVisible()) {
 					<pptx-title-bar
@@ -1168,6 +1184,12 @@ import { ZoomTargetService } from './zoom-target.service';
 					(notes)="applyMobileSheetTap('notes')"
 				/>
 			}
+
+			<pptx-compat-toasts
+				[toasts]="loadNotices.visibleToasts()"
+				(dismissOne)="loadNotices.dismissToast($event)"
+				(dismissAll)="loadNotices.dismissAllToasts()"
+			/>
 		</div>
 	`,
 })
@@ -1377,6 +1399,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	readonly stopCollaboration = output<void>();
 
 	protected readonly loader = inject(LoadContentService);
+	protected readonly loadNotices = inject(LoadNoticesService);
 	protected readonly editor = inject(EditorStateService);
 	private readonly fonts = inject(EmbeddedFontsService);
 	private readonly googleWebfonts = inject(GoogleWebfontsService);
@@ -1457,14 +1480,17 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 
 	/**
 	 * Effective edit permission: the host's `canEdit` input gated by Trust
-	 * Center > "Open presentations in Protected View", which forces the deck
-	 * read-only while enabled (File > Options wiring, mirrors PowerPoint),
-	 * unless the user has lifted it via `enableEditing()` for this document.
+	 * Center > "Open presentations in Protected View" (forces the deck
+	 * read-only while enabled, mirrors PowerPoint, unless the user has lifted
+	 * it via `enableEditing()` for this document) and by the deck's own
+	 * read-only recommendation (`p:modifyVerifier` / "Mark as Final"; lifted by
+	 * the read-only banner's "Edit anyway", see {@link LoadNoticesService}).
 	 */
 	protected readonly canEdit = computed(
 		() =>
 			this.canEditInput() &&
-			(!this.viewerOpts.options().trust.openInProtectedView || this.protectedViewDismissed()),
+			(!this.viewerOpts.options().trust.openInProtectedView || this.protectedViewDismissed()) &&
+			!this.loadNotices.lockActive(),
 	);
 
 	/** Whether the Protected View banner should show: host allows editing, the option still blocks it, and the user hasn't dismissed it yet. */
@@ -1950,6 +1976,30 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				// A newly opened document is protected again even if the previous
 				// one was unlocked via "Enable Editing" this session.
 				this.protectedViewDismissed.set(false);
+				// The read-only banner and compatibility toasts are per-document
+				// diagnostics; a newly opened deck starts with neither dismissed.
+				this.loadNotices.resetForLoad();
+				// Seed the grid/snap/guides toggles from THIS deck's own
+				// `ppt/viewProps.xml`, falling back to whatever the toggles already
+				// read (a deck that says nothing about a field keeps the prior one).
+				// gridSpacing has no toggle here; it is read straight off
+				// `loader.viewProperties()` where it is displayed, so it needs no seed.
+				const seededPrefs = viewerPreferencesFromViewProperties(
+					{ viewProperties: this.loader.viewProperties() },
+					{
+						autoSave: false,
+						spellCheck: false,
+						showGrid: false,
+						showRulers: false,
+						reducedMotion: false,
+						snapToGrid: this.snapToGrid(),
+						showGuides: this.showGuides(),
+						snapToObjects: this.snapToShape(),
+					},
+				);
+				this.snapToGrid.set(seededPrefs.snapToGrid);
+				this.showGuides.set(seededPrefs.showGuides ?? this.showGuides());
+				this.snapToShape.set(seededPrefs.snapToObjects ?? this.snapToShape());
 				// Adopt `p:showPr/p:custShow/@id`: a deck authored to open into a
 				// named custom show must actually play it. A manual pick made later
 				// overwrites this and wins until the next deck loads.
@@ -1968,6 +2018,32 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				this.collab.adoptDocSlidesAfterLoad(
 					this.fileIO.contentOverride() === null ? 'bootstrap' : 'user',
 				);
+			});
+		});
+
+		// Write the grid/snap/guides toggles back into `ppt/viewProps.xml` so a
+		// save round-trips them, mirroring PowerPoint (a view toggle is not an
+		// undoable edit, so this deliberately writes straight to the loader's
+		// signal rather than going through `EditorStateService`).
+		effect(() => {
+			const snapToGrid = this.snapToGrid();
+			const showGuides = this.showGuides();
+			const snapToObjects = this.snapToShape();
+			const patch = viewPropertiesPatchFromPreferences({
+				autoSave: false,
+				spellCheck: false,
+				showGrid: false,
+				showRulers: false,
+				reducedMotion: false,
+				snapToGrid,
+				showGuides,
+				snapToObjects,
+			} as DeckViewPreferences);
+			untracked(() => {
+				this.loader.viewProperties.update((current) => ({
+					...current,
+					slideViewPr: { ...current?.slideViewPr, ...patch.slideViewPr },
+				}));
 			});
 		});
 

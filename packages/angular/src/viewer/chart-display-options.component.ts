@@ -12,12 +12,23 @@
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { ChartPptxElement, PptxChartLegendPosition } from 'pptx-viewer-core';
+import type {
+	ChartPptxElement,
+	PptxBar3DShape,
+	PptxChartData,
+	PptxChartLegendPosition,
+} from 'pptx-viewer-core';
 
 import {
+	bar3DShapePatch,
+	BAR3D_SHAPE_OPTIONS,
 	chartGridlinesPatch,
 	chartGridlinesState,
 	LEGEND_POSITION_OPTIONS,
+	radarStylePatch,
+	RADAR_STYLE_OPTIONS,
+	SURFACE_WIREFRAME_OPTIONS,
+	surfaceWireframePatch,
 } from '../internal/shared';
 import { setDataLabels, setLegend } from './chart-advanced-helpers';
 import { patchChartData, patchChartStyle } from './chart-data-helpers';
@@ -91,6 +102,66 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 					/>
 					<span>{{ 'pptx.chart.showDataLabels' | translate }}</span>
 				</label>
+
+				@if (isBar3D()) {
+					<label class="pptx-chart-card__row pptx-chart-card__group--indent">
+						<span class="pptx-chart-card__label">{{
+							'pptx.chart.bar3DShapeLabel' | translate
+						}}</span>
+						<select
+							data-testid="pptx-chart-bar3d-shape"
+							[attr.aria-label]="'pptx.chart.bar3DShapeLabel' | translate"
+							class="pptx-chart-card__input"
+							[disabled]="!canEdit()"
+							[value]="chartData()?.barShape ?? 'box'"
+							(change)="onBar3DShape($event)"
+						>
+							@for (opt of bar3DShapeOptions; track opt.value) {
+								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+							}
+						</select>
+					</label>
+				}
+
+				@if (isRadar()) {
+					<label class="pptx-chart-card__row pptx-chart-card__group--indent">
+						<span class="pptx-chart-card__label">{{
+							'pptx.chart.radarStyleLabel' | translate
+						}}</span>
+						<select
+							data-testid="pptx-chart-radar-style"
+							[attr.aria-label]="'pptx.chart.radarStyleLabel' | translate"
+							class="pptx-chart-card__input"
+							[disabled]="!canEdit()"
+							[value]="chartData()?.radarStyle ?? 'standard'"
+							(change)="onRadarStyle($event)"
+						>
+							@for (opt of radarStyleOptions; track opt.value) {
+								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+							}
+						</select>
+					</label>
+				}
+
+				@if (isSurface()) {
+					<label class="pptx-chart-card__row pptx-chart-card__group--indent">
+						<span class="pptx-chart-card__label">{{
+							'pptx.chart.surfaceWireframeLabel' | translate
+						}}</span>
+						<select
+							data-testid="pptx-chart-surface-wireframe"
+							[attr.aria-label]="'pptx.chart.surfaceWireframeLabel' | translate"
+							class="pptx-chart-card__input"
+							[disabled]="!canEdit()"
+							[value]="chartData()?.wireframe ? 'true' : 'false'"
+							(change)="onSurfaceWireframe($event)"
+						>
+							@for (opt of surfaceWireframeOptions; track opt.value) {
+								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+							}
+						</select>
+					</label>
+				}
 			</div>
 		</section>
 	`,
@@ -102,7 +173,16 @@ export class ChartDisplayOptionsComponent {
 	readonly elementChange = output<ChartPptxElement>();
 
 	protected readonly legendPositions = LEGEND_POSITION_OPTIONS;
+	protected readonly bar3DShapeOptions = BAR3D_SHAPE_OPTIONS;
+	protected readonly radarStyleOptions = RADAR_STYLE_OPTIONS;
+	protected readonly surfaceWireframeOptions = SURFACE_WIREFRAME_OPTIONS;
 	protected readonly style = computed(() => this.element().chartData?.style ?? {});
+	protected readonly chartData = computed<PptxChartData | undefined>(
+		() => this.element().chartData,
+	);
+	protected readonly isBar3D = computed(() => this.chartData()?.chartType === 'bar3D');
+	protected readonly isRadar = computed(() => this.chartData()?.chartType === 'radar');
+	protected readonly isSurface = computed(() => this.chartData()?.chartType === 'surface');
 	/**
 	 * Read from the primary value axis's `majorGridlines`, matching what the
 	 * cartesian renderer actually draws; `style.hasGridlines` alone is a legacy
@@ -145,5 +225,41 @@ export class ChartDisplayOptionsComponent {
 	protected onToggleDataLabels(event: Event): void {
 		// Route through the dedicated op so content keys initialise consistently.
 		this.elementChange.emit(setDataLabels(this.element(), { show: boolFromEvent(event) }));
+	}
+
+	protected onBar3DShape(event: Event): void {
+		const chartData = this.chartData();
+		const value = selectValue(event);
+		if (!chartData || value === null) {
+			return;
+		}
+		this.elementChange.emit(
+			patchChartData(this.element(), bar3DShapePatch(chartData, value as PptxBar3DShape)),
+		);
+	}
+
+	protected onRadarStyle(event: Event): void {
+		const chartData = this.chartData();
+		const value = selectValue(event);
+		if (!chartData || value === null) {
+			return;
+		}
+		this.elementChange.emit(
+			patchChartData(
+				this.element(),
+				radarStylePatch(chartData, value as NonNullable<PptxChartData['radarStyle']>),
+			),
+		);
+	}
+
+	protected onSurfaceWireframe(event: Event): void {
+		const chartData = this.chartData();
+		const value = selectValue(event);
+		if (!chartData || value === null) {
+			return;
+		}
+		this.elementChange.emit(
+			patchChartData(this.element(), surfaceWireframePatch(chartData, value === 'true')),
+		);
 	}
 }
