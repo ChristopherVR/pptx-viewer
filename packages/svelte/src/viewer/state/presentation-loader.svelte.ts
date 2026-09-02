@@ -254,6 +254,19 @@ export class PresentationLoader {
 		}
 	}
 
+	/**
+	 * Replace the live handler with one core rebuilt (master-view CRUD returns
+	 * a fresh package rather than a patch). Disposes the previous handler; the
+	 * Blob URLs stay valid because the media parts are unchanged.
+	 */
+	adoptHandler(next: PptxHandler): void {
+		if (next === this.handler) {
+			return;
+		}
+		this.handler?.dispose();
+		this.handler = next;
+	}
+
 	/** Cancel in-flight loads, revoke Blob URLs, dispose the handler. */
 	dispose(): void {
 		this.#renderToken++;

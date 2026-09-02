@@ -120,6 +120,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	const editor = new EditorState({
 		getCurrent: () => viewer.current,
 		getHandler: () => loader.handler,
+		setHandler: (handler) => loader.adoptHandler(handler),
 		// Design > Slide Size. The EMU state wins wherever it still agrees with
 		// the pixel canvas (a pixel round-trip would cost Ledger its preset
 		// identity); once the raw W/H inputs disagree, the pixels win.

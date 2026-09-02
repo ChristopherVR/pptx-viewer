@@ -58,6 +58,7 @@ import { EditorHistoryState } from './editor-history-state.svelte';
 import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
+import { EditorMasterCrudController } from './editor-master-crud';
 import { EditorPresentationMetadata } from './editor-presentation-metadata.svelte';
 import { EditorSectionController } from './editor-section-controller';
 import { EditorSelection, resolveSelectedElements } from './editor-selection.svelte';
@@ -77,6 +78,13 @@ export interface EditorStateDeps {
 	 * case core re-emits the load-time dimensions verbatim.
 	 */
 	getSlideSize?: () => PptxSlideSize | undefined;
+	/**
+	 * Adopt a fresh handler in place of the loaded one. Master-view CRUD
+	 * (`masterCrud`) rebuilds the package through core and comes back with a
+	 * new `PptxHandler`; the loader owns handler lifecycle, so it disposes the
+	 * previous one here. Optional for out-of-tree mounts and the unit tests.
+	 */
+	setHandler?: (handler: PptxHandler) => void;
 	onChange?: () => void;
 }
 
@@ -203,6 +211,7 @@ export class EditorState {
 	readonly animationOps = new EditorAnimationController(this);
 	readonly inkOps = new EditorInkController(this);
 	readonly masterOps = new EditorMasterController(this);
+	readonly masterCrud = new EditorMasterCrudController(this);
 	readonly formatPainter = new EditorFormatPainterController(this);
 	readonly equationOps = new EditorEquationController(this);
 
@@ -283,6 +292,11 @@ export class EditorState {
 	 *  Slides group for layout switching (`applyLayoutToSlide`). */
 	getHandler(): PptxHandler | null {
 		return this.#deps.getHandler();
+	}
+
+	/** Hand a rebuilt handler to the loader (see `EditorStateDeps.setHandler`). */
+	adoptHandler(handler: PptxHandler): void {
+		this.#deps.setHandler?.(handler);
 	}
 
 	/**
