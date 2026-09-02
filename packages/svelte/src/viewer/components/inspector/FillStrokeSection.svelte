@@ -33,6 +33,7 @@
 	} from '../../editor';
 	import GradientPanel from './GradientPanel.svelte';
 	import PatternFillPanel from './PatternFillPanel.svelte';
+	import RecentColorsRow from './RecentColorsRow.svelte';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
 	const t = useTranslator();
@@ -56,6 +57,16 @@
 		} else {
 			editor.patchSelected(setSolidFillPatch(el, fill));
 		}
+	}
+
+	function commitFill(hex: string): void {
+		editor.patchSelected(setSolidFillPatch(el, hex));
+		editor.recordRecentColor(hex);
+	}
+
+	function commitStroke(hex: string): void {
+		editor.patchSelected(setStrokeColorPatch(el, hex));
+		editor.recordRecentColor(hex);
 	}
 
 	function togglePattern(checked: boolean): void {
@@ -82,16 +93,18 @@
 		<input
 			type="color"
 			value={/^#/.test(fill) ? fill : '#ffffff'}
-			onchange={(e) => editor.patchSelected(setSolidFillPatch(el, e.currentTarget.value))}
+			onchange={(e) => commitFill(e.currentTarget.value)}
 		/>
+		<RecentColorsRow colors={editor.mruColors} onselect={commitFill} />
 	</label>
 	<label class="pptx-svelte-inspector-color">
 		<span>{t('pptx.inspector.line')}</span>
 		<input
 			type="color"
 			value={/^#/.test(stroke) ? stroke : '#000000'}
-			onchange={(e) => editor.patchSelected(setStrokeColorPatch(el, e.currentTarget.value))}
+			onchange={(e) => commitStroke(e.currentTarget.value)}
 		/>
+		<RecentColorsRow colors={editor.mruColors} onselect={commitStroke} />
 	</label>
 </div>
 

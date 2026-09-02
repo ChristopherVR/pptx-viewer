@@ -1,6 +1,7 @@
 import {
 	computeGridSpacingPx,
 	resolveAuthoredCustomShowId,
+	seedRecentColors,
 	viewerPreferencesFromViewProperties,
 	viewPropertiesPatchFromPreferences,
 } from 'pptx-viewer-shared';
@@ -194,6 +195,12 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 			parityUi.snapToShape = seeded.snapToObjects ?? parityUi.snapToShape;
 			parityUi.showGuides = seeded.showGuides ?? parityUi.showGuides;
 			editor.viewProperties = loader.viewProperties;
+			// Wave 4 #6 (B6): seed the colour pickers' "Recent colours" row from
+			// the deck's own `p:clrMru`. Written back the same way as the view
+			// preferences above: outside `pushHistory`/`commitChange`.
+			editor.presentationMetadata.setMruColorsSilently(
+				seedRecentColors({ mruColors: loader.presentationProperties.mruColors }),
+			);
 		},
 	});
 

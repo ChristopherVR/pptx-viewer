@@ -71,3 +71,69 @@ describe('slide-show chrome shortcuts', () => {
 		expect(toggleChrome).not.toHaveBeenCalled();
 	});
 });
+
+/**
+ * Wave-4 B1: entering the show must open on a slide the show actually
+ * includes, not the raw active slide. `onFullscreenToggle` is the single
+ * chokepoint every entry surface (status-bar button, ribbon "From Current
+ * Slide", `setMode('present')`, the mobile toolbar) funnels through, so
+ * fixing it here fixes all of them at once. `getRootEl` returns `undefined`
+ * so the real fullscreen API is never reached; only the navigation matters.
+ */
+describe('onFullscreenToggle: presentation entry slide', () => {
+	function toggleHarness(entryIndex: number, current: number) {
+		const goTo = vi.fn();
+		const handlers = createViewportHandlers({
+			getRootEl: () => undefined,
+			viewer: {
+				isFullscreen: false,
+				current,
+				slideCount: 5,
+				goTo,
+				handleNavigationKey: () => false,
+			},
+			controller: { onKeyDown: vi.fn(), capturesKeyboard: () => false },
+			getEditingActive: () => false,
+			presentation: {
+				advance: vi.fn(),
+				retreat: () => false,
+				previousSlide: vi.fn(),
+				entryIndex: vi.fn().mockReturnValue(entryIndex),
+			},
+		} as unknown as ViewportHandlersDeps);
+		return { handlers, goTo };
+	}
+
+	it('navigates to the resolved entry index when it differs from the active slide', () => {
+		const { handlers, goTo } = toggleHarness(2, 0);
+		handlers.onFullscreenToggle();
+		expect(goTo).toHaveBeenCalledWith(2);
+	});
+
+	it('does not navigate when the active slide is already in the show', () => {
+		const { handlers, goTo } = toggleHarness(0, 0);
+		handlers.onFullscreenToggle();
+		expect(goTo).not.toHaveBeenCalled();
+	});
+
+	it('does not resolve an entry index while already presenting (a plain exit toggle)', () => {
+		const goTo = vi.fn();
+		const entryIndex = vi.fn().mockReturnValue(3);
+		const handlers = createViewportHandlers({
+			getRootEl: () => undefined,
+			viewer: {
+				isFullscreen: true,
+				current: 0,
+				slideCount: 5,
+				goTo,
+				handleNavigationKey: () => false,
+			},
+			controller: { onKeyDown: vi.fn(), capturesKeyboard: () => false },
+			getEditingActive: () => false,
+			presentation: { advance: vi.fn(), retreat: () => false, previousSlide: vi.fn(), entryIndex },
+		} as unknown as ViewportHandlersDeps);
+		handlers.onFullscreenToggle();
+		expect(entryIndex).not.toHaveBeenCalled();
+		expect(goTo).not.toHaveBeenCalled();
+	});
+});

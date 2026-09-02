@@ -1,6 +1,7 @@
 import type {
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxEmbeddedFont,
@@ -8,6 +9,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxHandlerLoadOptions,
+	PptxModernCommentAuthor,
 	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
@@ -70,6 +72,10 @@ export class PresentationLoader {
 	 */
 	compatibilityWarnings = $state.raw<PptxCompatibilityWarning[]>([]);
 	customShows = $state.raw<PptxCustomShow[]>([]);
+	/** Modern comment authors (`ppt/authors.xml`, Office 2021 `p188:author`), for the @-mention typeahead (wave-4 B5). */
+	modernCommentAuthors = $state.raw<PptxModernCommentAuthor[]>([]);
+	/** Legacy comment authors (`ppt/commentAuthors.xml`), round-tripped and offered to the typeahead alongside the modern list. */
+	commentAuthors = $state.raw<PptxCommentAuthor[]>([]);
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
@@ -191,6 +197,8 @@ export class PresentationLoader {
 			this.modifyVerifier = parsed.modifyVerifier;
 			this.compatibilityWarnings = newHandler.getCompatibilityWarnings();
 			this.customShows = parsed.customShows ?? [];
+			this.modernCommentAuthors = parsed.modernCommentAuthors ?? [];
+			this.commentAuthors = parsed.commentAuthors ?? [];
 			this.coreProperties = parsed.coreProperties;
 			this.appProperties = parsed.appProperties;
 			this.customProperties = parsed.customProperties ?? [];

@@ -95,3 +95,25 @@ describe('presentationController authored slide range', () => {
 		expect(deck.index).toBe(3);
 	});
 });
+
+/**
+ * `entryIndex` (wave-4 B1): the deck index a show opens on when entered from
+ * the active slide. Every "enter the show" surface must seed the
+ * presentation index with this instead of the raw active slide.
+ */
+describe('presentationController.entryIndex', () => {
+	it('keeps the active slide when the show already includes it', () => {
+		const { controller } = controllerFor({ authoredRange: RANGE, startIndex: 1 });
+		expect(controller.entryIndex(1)).toBe(1);
+	});
+
+	it('resolves to the range start when the active slide is outside the range', () => {
+		const { controller } = controllerFor({ authoredRange: RANGE, startIndex: 0 });
+		expect(controller.entryIndex(0)).toBe(1);
+	});
+
+	it('resolves to the whole deck when no range/custom show restricts it', () => {
+		const { controller } = controllerFor({ startIndex: 3 });
+		expect(controller.entryIndex(3)).toBe(3);
+	});
+});

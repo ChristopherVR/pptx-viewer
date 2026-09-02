@@ -1,4 +1,4 @@
-import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import type { PptxCustomShow, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
 	firstShowSlideIndex,
 	handlePresentationStageClick,
@@ -6,12 +6,15 @@ import {
 	isClickAdvanceAllowed,
 	lastShowSlideIndex,
 	nextShowSlideIndex,
+	presentationEntrySlideIndex,
 	previousShowSlideIndex,
 	resolveShowSlideIndexes,
 	stopAllPersistentAudio,
 } from 'pptx-viewer-shared';
 import type { AuthoredSlideRange, ElementAnimationState } from 'pptx-viewer-shared';
 
+import type { CustomShowReturnState } from './action-runner-callbacks';
+import { buildWaveFourActionCallbacks } from './action-runner-callbacks';
 import { AnimationPlayback } from './animation-playback.svelte';
 import { ensurePresentationKeyframes } from './keyframes';
 
@@ -93,6 +96,16 @@ export interface PresentationControllerDeps {
 	 * lowest-precedence restriction.
 	 */
 	getAuthoredRange?(): AuthoredSlideRange | null | undefined;
+	/**
+	 * The deck's custom shows, for `ppaction://customshow?id=<id>` (wave-4
+	 * B7): the runner resolves `id` against this list to find the show's
+	 * membership.
+	 */
+	getCustomShows?(): readonly PptxCustomShow[];
+	/** Current active custom show id (or null for the whole deck), read back by `returnAfter`. */
+	getActiveCustomShowId?(): string | null;
+	/** Switch the active custom show (mirrors {@link getActiveCustomShow}'s source of truth). */
+	setActiveCustomShowId?(id: string | null): void;
 }
 
 export class PresentationController {
@@ -105,6 +118,15 @@ export class PresentationController {
 	 * kept painting its last slide looked stuck and then exited with no warning.
 	 */
 	#endOfShow = $state(false);
+	/**
+	 * Set while a `ppaction://customshow?...&return=true` sub-show is running
+	 * (wave-4 B7): when that show runs off its end, {@link advance} restores
+	 * the previous active show and returns to the origin slide instead of
+	 * raising the end screen.
+	 */
+	#customShowReturn: CustomShowReturnState | null = null;
+	/** Last-viewed slide, for `ppaction://hlinkshowjump?jump=lastslideviewed` (wave-4 B7). */
+	#lastViewedIndex: number | undefined;
 	readonly #deps: PresentationControllerDeps;
 
 	constructor(deps: PresentationControllerDeps) {
@@ -211,6 +233,16 @@ export class PresentationController {
 				endShow: () => this.#deps.exit?.(),
 				playSound: this.#deps.onPlayActionSound,
 				confirmUrl: this.#deps.confirmUrl,
+				// Wave-4 B7: the six action verbs added alongside the Action
+				// Settings panel's new option list; built in a sibling module to
+				// keep this file under the repo's file-size budget.
+				...buildWaveFourActionCallbacks(
+					this.#deps,
+					() => this.#lastViewedIndex,
+					(next) => {
+						this.#customShowReturn = next;
+					},
+				),
 			},
 		);
 		if (outcome === 'advance') {
@@ -245,6 +277,16 @@ export class PresentationController {
 		const current = this.#deps.getCurrentIndex();
 		const order = this.#showOrder();
 		if (!hasShowSlideAfter(current, order)) {
+			// Wave-4 B7: a `ppaction://customshow?...&return=true` sub-show running
+			// off its end returns to the show it interrupted, at the slide it
+			// interrupted, instead of raising the black end screen.
+			if (this.#customShowReturn) {
+				const { previousId, originIndex } = this.#customShowReturn;
+				this.#customShowReturn = null;
+				this.#deps.setActiveCustomShowId?.(previousId);
+				this.#deps.navigate(originIndex);
+				return;
+			}
 			if (this.#deps.getLoopContinuously?.()) {
 				// PowerPoint's "Loop continuously until 'Esc'": wrap straight back to
 				// the show's first slide instead of the black end screen.
@@ -278,6 +320,20 @@ export class PresentationController {
 		if (previous !== undefined && previous !== current) {
 			this.#deps.navigate(previous);
 		}
+	}
+
+	/**
+	 * The deck index the show should OPEN on when entered from `activeIndex`
+	 * (wave-4 B1): `activeIndex` itself when the show includes it ("From
+	 * Current Slide"), otherwise the nearest show slide, per
+	 * `presentationEntrySlideIndex`. Every entry point (status-bar button,
+	 * ribbon From Current Slide, `setMode('present')`, the mobile toolbar) must
+	 * seed the presentation index with this instead of the raw active slide, or
+	 * a deck authored with a `p:showPr/p:sldRg` range (or a custom show that
+	 * excludes the active slide) opens on a slide the show does not include.
+	 */
+	entryIndex(activeIndex: number): number {
+		return presentationEntrySlideIndex(activeIndex, this.#showOrder());
 	}
 
 	/** Home: the show's first slide, which is not slide 1 when that one is hidden. */
@@ -351,6 +407,9 @@ export class PresentationController {
 	 */
 	onSlideChange(previousIndex: number, nextIndex: number): void {
 		this.#endOfShow = false;
+		// Wave-4 B7: the slide the audience was just looking at, for
+		// `ppaction://hlinkshowjump?jump=lastslideviewed`.
+		this.#lastViewedIndex = previousIndex;
 		// PowerPoint shows a slide you step BACK onto with its builds already
 		// played; only a forward step replays them.
 		this.playback.reset({ completed: nextIndex < previousIndex });

@@ -17,6 +17,7 @@
  * `slides[current + 1]` fails rather than quietly previewing a hidden slide.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange } from 'pptx-viewer-shared';
 import {
 	createInitialPresentationSnapshot,
 	NOTES_FONT_SIZE_DEFAULT,
@@ -51,6 +52,7 @@ function textSlide(index: number, text: string, overrides: Partial<PptxSlide> = 
 interface MountOptions {
 	current?: number;
 	startedAt?: number;
+	authoredRange?: AuthoredSlideRange | null;
 }
 
 function mountConsole(slides: PptxSlide[], options: MountOptions = {}) {
@@ -73,6 +75,7 @@ function mountConsole(slides: PptxSlide[], options: MountOptions = {}) {
 			mediaDataUrls: new Map<string, string>(),
 			startedAt: options.startedAt ?? Date.now(),
 			audienceOpen: false,
+			authoredRange: options.authoredRange ?? null,
 			snapshot: createInitialPresentationSnapshot(options.current ?? 0),
 			...callbacks,
 		},
@@ -163,6 +166,29 @@ describe('presenterView next-slide preview', () => {
 		const { target } = mountConsole([textSlide(1, 'only')], { current: 0 });
 		expect(target.querySelector('[data-pptx-presenter-next-preview]')).toBeNull();
 		expect(target.textContent).toContain(translate('en', 'pptx.presenter.endOfPresentation'));
+	});
+
+	/**
+	 * Wave-4 B1: a deck authored to open into a `p:showPr/p:sldRg` range must
+	 * preview only within that range, matching the running show. Before
+	 * `authoredRange` reached `nextPresentedSlide`, the console previewed the
+	 * next DECK slide even when the range excluded it.
+	 */
+	it('previews within the authored slide range, ending at its bound', () => {
+		const slides = [
+			textSlide(1, 'first slide'),
+			textSlide(2, 'ranged slide'),
+			textSlide(3, 'excluded slide'),
+		];
+		const range: AuthoredSlideRange = { fromIndex: 0, toIndex: 1 };
+		const { target } = mountConsole(slides, { current: 0, authoredRange: range });
+		const preview = target.querySelector<HTMLElement>('[data-pptx-presenter-next-preview]');
+		expect(preview?.textContent).toContain('ranged slide');
+
+		cleanup?.();
+		cleanup = undefined;
+		const atEnd = mountConsole(slides, { current: 1, authoredRange: range });
+		expect(atEnd.target.querySelector('[data-pptx-presenter-next-preview]')).toBeNull();
 	});
 });
 

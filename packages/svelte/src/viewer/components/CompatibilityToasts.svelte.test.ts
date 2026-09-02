@@ -65,6 +65,28 @@ describe('compatibilityToasts', () => {
 		expect(target.textContent).toContain('+3');
 	});
 
+	it('renders the dismiss-all button for a single toast', () => {
+		const { target } = mountToasts([
+			{
+				id: 'A',
+				code: 'A',
+				severity: 'warning',
+				messageKey: 'pptx.compatibility.generic',
+			},
+		]);
+		expect(target.querySelector('[data-testid="pptx-compat-toasts-dismiss-all"]')).not.toBeNull();
+	});
+
+	it('positions the stack relative to the containing block, above the status bar', () => {
+		const { target } = mountToasts([
+			{ id: 'A', code: 'A', severity: 'info', messageKey: 'pptx.compatibility.generic' },
+		]);
+		const stack = target.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
+		expect(stack.style.position).toBe('absolute');
+		expect(stack.style.bottom).toBe('41px');
+		expect(stack.style.right).toBe('12px');
+	});
+
 	it('dismisses a single toast and all toasts through the callbacks', () => {
 		const { target, ondismiss, ondismissall } = mountToasts([
 			{

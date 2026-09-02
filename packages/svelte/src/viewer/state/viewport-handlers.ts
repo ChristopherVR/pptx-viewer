@@ -165,6 +165,18 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 			if (deps.viewer.isFullscreen && !mayLeaveSlideShow()) {
 				return;
 			}
+			// Entering the show (every path funnels through here: the status-bar
+			// button, ribbon "From Current Slide", `setMode('present')`, the mobile
+			// toolbar): open on a slide the show actually includes rather than the
+			// raw active slide (wave-4 B1). "From Beginning" instead calls
+			// `presentation.firstSlide()` before reaching this toggle, so the active
+			// slide is already the show's first slide and this is a no-op there.
+			if (!deps.viewer.isFullscreen) {
+				const entry = deps.presentation.entryIndex(deps.viewer.current);
+				if (entry !== deps.viewer.current) {
+					deps.viewer.goTo(entry);
+				}
+			}
 			const root = deps.getRootEl();
 			if (root) {
 				void toggleFullscreen(root);

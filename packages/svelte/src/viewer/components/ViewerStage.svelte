@@ -123,6 +123,7 @@
 			{editingActive}
 			editTemplateMode={editor.editTemplateMode}
 			editingElementId={controller.editingId}
+			selectedElementIds={editor.selection.ids}
 			ontablecellcommit={editingActive ? commits.commitTableCell : undefined}
 			onsmartartnodecommit={editingActive ? commits.commitSmartArtNode : undefined}
 			onsmartartnodefill={editingActive ? commits.commitSmartArtFill : undefined}

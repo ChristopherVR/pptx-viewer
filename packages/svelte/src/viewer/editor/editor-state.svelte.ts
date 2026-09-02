@@ -1,11 +1,13 @@
 import type {
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxHandler,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSaveFormat,
 	PptxSection,
@@ -30,6 +32,7 @@ import {
 	canInteractWithElement,
 	describeFontEmbedding,
 	isElementIdInteractive,
+	pushRecentColor,
 } from 'pptx-viewer-shared';
 
 import { EditorAnimationController } from './editor-animation-controller';
@@ -116,6 +119,19 @@ export class EditorState {
 	 * never something `pushHistory`/`commitChange` touches.
 	 */
 	viewProperties = $state.raw<PptxViewProperties | undefined>(undefined);
+	/**
+	 * Modern comment authors (`ppt/authors.xml`, Office 2021 `p188:author`),
+	 * seeded from the load. Read-only round-trip metadata, like {@link theme}:
+	 * the comment panel's @-mention typeahead (wave-4 B5) reads this to match
+	 * against, never something a binding edits or that undo restores.
+	 */
+	modernCommentAuthors = $state.raw<PptxModernCommentAuthor[]>([]);
+	/**
+	 * Legacy comment authors (`ppt/commentAuthors.xml`), offered to the
+	 * @-mention typeahead alongside {@link modernCommentAuthors}. Same
+	 * read-only, non-undo lifecycle.
+	 */
+	commentAuthors = $state.raw<PptxCommentAuthor[]>([]);
 	/**
 	 * Families the deck embeds, offered as their own font-dropdown group. Write
 	 * through {@link adoptEmbeddedFontFamilies} so {@link embedFonts} is reseeded
@@ -208,6 +224,25 @@ export class EditorState {
 
 	get customShows(): PptxCustomShow[] {
 		return this.presentationMetadata.customShows;
+	}
+
+	/** The colour picker's "Recent colours" row (`p:clrMru`), most-recent-first. */
+	get mruColors(): string[] {
+		return this.presentationProperties.mruColors ?? [];
+	}
+
+	/**
+	 * Record a colour just picked in ANY colour picker (fill, line, text,
+	 * background, table cell, chart series, ...) into the recent-colours row
+	 * (wave-4 B6). Writes `presentationProperties.mruColors` OUTSIDE the undo
+	 * stack, like the view-preferences write-back.
+	 */
+	recordRecentColor(hex: string): void {
+		const current = this.mruColors;
+		const next = pushRecentColor(current, hex);
+		if (next !== current) {
+			this.presentationMetadata.setMruColorsSilently(next);
+		}
 	}
 
 	get canRedo(): boolean {

@@ -77,6 +77,15 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			parityUi.activeCustomShowId
 				? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
 				: null,
+		// Wave-4 B7: `ppaction://customshow?id=<id>[&return=true]` reads and
+		// switches the SAME `parityUi.activeCustomShowId` the radio-button UI
+		// (Slide Show > Custom Shows) drives, so an on-slide action and the menu
+		// agree about which show is "active".
+		getCustomShows: () => editor.customShows,
+		getActiveCustomShowId: () => parityUi.activeCustomShowId,
+		setActiveCustomShowId: (id) => {
+			parityUi.activeCustomShowId = id;
+		},
 		// `p:showPr/p:sldRg`: the deck is authored to open into slides
 		// `fromIndex..toIndex` rather than the whole deck. Read from the loader's
 		// as-parsed snapshot (there is no UI to edit this range yet, unlike the

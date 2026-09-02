@@ -110,6 +110,10 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 				// Seeded separately from setSlides (which clears them) so the
 				// parsed tag parts survive the load without becoming an undo step.
 				deps.editor.adoptTagCollections(deps.loader.tagCollections);
+				// Wave 4 B5: seed the comment @-mention typeahead's author list.
+				// Read-only round-trip metadata, like `theme` above, not an undo step.
+				deps.editor.modernCommentAuthors = deps.loader.modernCommentAuthors;
+				deps.editor.commentAuthors = deps.loader.commentAuthors;
 				// Must run before this commit's effects flush: a live collab
 				// session re-adopts the shared doc's slides so the load cannot
 				// clobber (or publish over) already-synced room content.

@@ -34,6 +34,7 @@
 		editTemplateMode = false,
 		editingElementId = null,
 		editable = false,
+		selectedElementIds,
 		transparentBackground = false,
 		ontablecellcommit,
 		onsmartartnodecommit,
@@ -143,7 +144,7 @@
 	aria-label={interactive ? t('pptx.canvas.slide') : undefined}
 >
 	{#each slide?.elements ?? [] as element, index (element.id)}
-		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {editingElementId} {editable} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
+		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {editingElementId} {editable} {selectedElementIds} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
 	{/each}
 	{#if slide?.activeXControls && slide.activeXControls.length > 0}
 		<ActiveXOverlay controls={slide.activeXControls} {canvasSize} />

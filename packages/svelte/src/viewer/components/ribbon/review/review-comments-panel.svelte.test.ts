@@ -85,4 +85,41 @@ describe('reviewCommentsPanel', () => {
 			'A threaded reply',
 		);
 	});
+
+	/**
+	 * Wave-4 B5: typing `@al` opens the typeahead; accepting inserts `@Alice `
+	 * into the draft AND records the mention, which must reach the saved
+	 * comment's `mentions` array.
+	 */
+	it('the @-mention typeahead inserts a mention that reaches the saved comment', () => {
+		const target = document.createElement('div');
+		const editor = createEditor();
+		editor.modernCommentAuthors = [{ id: 'a1', name: 'Alice', userId: 'u1', providerId: 'p1' }];
+		const instance = mount(ReviewCommentsPanel, { target, props: { editor } });
+		cleanup = () => unmount(instance);
+
+		const textarea = target.querySelector('textarea') as HTMLTextAreaElement;
+		textarea.value = 'hey @al';
+		textarea.selectionStart = 7;
+		textarea.selectionEnd = 7;
+		textarea.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		const suggestions = target.querySelector('[data-testid="pptx-comment-mention-suggestions"]');
+		expect(suggestions).not.toBeNull();
+		const option = target.querySelector(
+			'[data-testid="pptx-comment-mention-option"]',
+		) as HTMLButtonElement;
+		expect(option.textContent?.trim()).toBe('Alice');
+		option.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+		flushSync();
+
+		expect((target.querySelector('textarea') as HTMLTextAreaElement).value).toBe('hey @Alice ');
+		(target.querySelector('.pptx-svelte-comments-compose button') as HTMLButtonElement).click();
+		flushSync();
+
+		const saved = editor.slides[0]?.comments?.[0];
+		expect(saved?.text).toBe('hey @Alice');
+		expect(saved?.mentions?.[0]).toMatchObject({ personId: 'a1', authorName: 'Alice' });
+	});
 });

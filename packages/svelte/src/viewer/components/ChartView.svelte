@@ -20,7 +20,7 @@
 	import { ChartDragController } from './chart-drag.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, animationState, interactive = false, marked = false, onchartpointcommit }: ElementRendererProps = $props();
+	const { element, zIndex, animationState, interactive = false, marked = false, selected = false, onchartpointcommit }: ElementRendererProps = $props();
 	const t = useTranslator();
 
 	/**
@@ -31,6 +31,17 @@
 	let rootEl = $state<HTMLElement | null>(null);
 	let titleInputEl = $state<HTMLInputElement | null>(null);
 	const editable = $derived(interactive && Boolean(onchartpointcommit) && element.type === 'chart');
+	/**
+	 * The marks are pointer-armed (`pptx-chart-interactive`) only while the
+	 * chart itself is SELECTED, matching React (`render/chart-canvas-drag`'s
+	 * contract). Armed whenever the canvas was merely editable, a mark's own
+	 * `stopPropagation` on pointerdown ate the first click on an unselected
+	 * chart before it ever reached the element-selection handler, so a chart
+	 * with no prior selection could never be selected by clicking a mark; a
+	 * click on an unselected chart now falls through and selects it like any
+	 * other element, exactly as clicking a bar in React does.
+	 */
+	const interactiveArmed = $derived(editable && selected);
 	const drag = new ChartDragController({
 		element: () => element as ChartPptxElement,
 		root: () => rootEl,
@@ -91,12 +102,12 @@
 	     chart inspector, as it does in the other four bindings. -->
 	<div
 		bind:this={rootEl}
-		class={`pptx-svelte-element pptx-svelte-chart${editable ? ' pptx-chart-interactive' : ''}`}
+		class={`pptx-svelte-element pptx-svelte-chart${interactiveArmed ? ' pptx-chart-interactive' : ''}`}
 		style={containerStyle}
 		data-element-id={element.id}
 		data-pptx-element={interactive || marked ? 'true' : undefined}
-		onpointerdown={editable ? drag.onpointerdown : undefined}
-		ondblclick={editable ? drag.ondblclick : undefined}
+		onpointerdown={interactiveArmed ? drag.onpointerdown : undefined}
+		ondblclick={interactiveArmed ? drag.ondblclick : undefined}
 	>
 		{#if view.kind === 'chart'}
 			{@const vm = view.vm}

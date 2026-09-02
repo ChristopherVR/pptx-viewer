@@ -29,6 +29,7 @@
 		editingActive = false,
 		editTemplateMode = false,
 		editingElementId = null,
+		selectedElementIds,
 		ontablecellcommit,
 		onsmartartnodecommit,
 		onsmartartnodefill,
@@ -110,6 +111,7 @@
 		editable={editingActive}
 		{editTemplateMode}
 		{editingElementId}
+		{selectedElementIds}
 		{ontablecellcommit}
 		{onsmartartnodecommit}
 		{onsmartartnodefill}
