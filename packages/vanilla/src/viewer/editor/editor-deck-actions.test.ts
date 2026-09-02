@@ -1,4 +1,10 @@
-import type { PptxHandler, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxHandler,
+	PptxSlide,
+	PptxSlideMaster,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
@@ -88,6 +94,51 @@ describe('editor deck actions (no-selection inspector)', () => {
 		const locked = setup({ handler, editable: false });
 		locked.actions.applyThemeByPath('ppt/theme/theme1.xml', true);
 		expect(setPresentationTheme).not.toHaveBeenCalled();
+	});
+
+	it('re-colours templateElementsBySlideId alongside slides when editing the theme', () => {
+		const OFFICE_ACCENT1 = '#4472C4';
+		const ION_ACCENT1 = '#B01513';
+		const officeColors: PptxThemeColorScheme = {
+			dk1: '#000000',
+			lt1: '#FFFFFF',
+			dk2: '#44546A',
+			lt2: '#E7E6E6',
+			accent1: OFFICE_ACCENT1,
+			accent2: '#ED7D31',
+			accent3: '#A5A5A5',
+			accent4: '#FFC000',
+			accent5: '#5B9BD5',
+			accent6: '#70AD47',
+			hlink: '#0563C1',
+			folHlink: '#954F72',
+		};
+		const templateShape = {
+			type: 'shape',
+			id: 'bg_1',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			shapeStyle: { fillColor: OFFICE_ACCENT1 },
+		} as PptxElement;
+
+		const { store, actions } = setup();
+		store.set({
+			colorScheme: officeColors,
+			templateElementsBySlideId: { s1: [templateShape] },
+		});
+
+		actions.applyThemeEdit({
+			colorScheme: { ...officeColors, accent1: ION_ACCENT1 },
+			fontScheme: { majorFont: { latin: 'Calibri' }, minorFont: { latin: 'Calibri' } },
+			name: 'Custom',
+		});
+
+		const patched = store.get().templateElementsBySlideId.s1?.[0] as {
+			shapeStyle?: { fillColor?: string };
+		};
+		expect(patched?.shapeStyle?.fillColor).toBe(ION_ACCENT1);
 	});
 
 	it('patches the active slide with history (theme override)', () => {

@@ -7,7 +7,7 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
-import { applyThemeToData } from 'pptx-viewer-core';
+import { applyThemeToData, reResolveElementColors } from 'pptx-viewer-core';
 import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import {
 	resolveSlideSizeSelection,
@@ -111,18 +111,31 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 			// Core's pure `applyThemeToData` re-resolves every slide's scheme-based
 			// colours against the new palette, which is what makes an edited theme
 			// visible on the canvas rather than only on the next save.
+			const previousColorMap = state.colorScheme ? { ...state.colorScheme } : undefined;
 			const result = applyThemeToData(
 				{
 					slides: state.slides,
 					theme: { colorScheme: state.colorScheme, fontScheme: state.fontScheme },
-					themeColorMap: state.colorScheme ? { ...state.colorScheme } : undefined,
+					themeColorMap: previousColorMap,
 				} as unknown as PptxData,
 				colorScheme,
 				fontScheme,
 				name,
 			);
+			// Master/layout elements render as a separate per-slide layer (not part
+			// of `slide.elements`), so the slides re-resolve above never touches
+			// them; left alone they'd keep painting the old scheme's colours.
+			const templateElementsBySlideId = Object.keys(state.templateElementsBySlideId).length
+				? Object.fromEntries(
+						Object.entries(state.templateElementsBySlideId).map(([slideId, elements]) => [
+							slideId,
+							reResolveElementColors(elements, previousColorMap ?? {}, colorScheme),
+						]),
+					)
+				: state.templateElementsBySlideId;
 			store.set({
 				slides: result.slides,
+				templateElementsBySlideId,
 				colorScheme: result.theme?.colorScheme ?? colorScheme,
 				fontScheme: result.theme?.fontScheme ?? fontScheme,
 				themeName: name,

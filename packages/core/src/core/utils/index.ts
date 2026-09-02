@@ -459,7 +459,12 @@ export {
 	type RepairResult,
 } from './pptx-validator';
 
-export { reResolveSlideColors, applyThemeToData, buildThemeColorMap } from './theme-switching';
+export {
+	reResolveSlideColors,
+	reResolveElementColors,
+	applyThemeToData,
+	buildThemeColorMap,
+} from './theme-switching';
 export { applyThemeOverrideToSlide } from './slide-theme-override';
 
 export {

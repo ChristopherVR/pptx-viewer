@@ -1,5 +1,6 @@
-import { buildThemeColorMap, reResolveSlideColors } from 'pptx-viewer-core';
+import { buildThemeColorMap, reResolveElementColors, reResolveSlideColors } from 'pptx-viewer-core';
 import type {
+	PptxElement,
 	PptxSlide,
 	PptxTheme,
 	PptxThemeColorScheme,
@@ -26,6 +27,14 @@ export interface UseThemeHandlersInput {
 	history: EditorHistoryResult;
 	/** Current live slides, re-coloured in place on a scheme-colour change. */
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
+	/**
+	 * Master/layout elements rendered as a separate per-slide overlay layer
+	 * (`slide.elements` does not include them), re-coloured in place alongside
+	 * `slides` so a scheme-colour change doesn't leave inherited background
+	 * shapes painted with the old scheme until a full reload.
+	 */
+	templateElementsBySlideId: Record<string, PptxElement[]>;
+	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;
 	/** Current theme, used to derive the previous colour map for re-resolution. */
 	theme: PptxTheme | undefined;
 	/**
@@ -68,6 +77,8 @@ export function useThemeHandlers(input: UseThemeHandlersInput): ThemeHandlersRes
 		slideMasters,
 		history,
 		setSlides,
+		templateElementsBySlideId,
+		setTemplateElementsBySlideId,
 		theme,
 		bumpHistory,
 	} = input;
@@ -116,6 +127,15 @@ export function useThemeHandlers(input: UseThemeHandlersInput): ThemeHandlersRes
 		// as a single undoable entry.
 		const previousMap = theme?.colorScheme ? buildThemeColorMap(theme.colorScheme) : {};
 		setSlides((prev) => reResolveSlideColors(prev, previousMap, colorScheme));
+		if (Object.keys(templateElementsBySlideId).length > 0) {
+			setTemplateElementsBySlideId((prev) => {
+				const next: Record<string, PptxElement[]> = {};
+				for (const [slideId, elements] of Object.entries(prev)) {
+					next[slideId] = reResolveElementColors(elements, previousMap, colorScheme);
+				}
+				return next;
+			});
+		}
 		setTheme((prev) => (prev ? { ...prev, colorScheme } : { colorScheme }));
 		bumpHistory();
 		history.markDirty();

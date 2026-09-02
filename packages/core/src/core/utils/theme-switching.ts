@@ -384,6 +384,34 @@ export function reResolveSlideColors(
 }
 
 /**
+ * Re-resolve all theme-derived colours across a flat element list (not a
+ * full slide) when switching colour schemes.
+ *
+ * Master/layout shapes rendered as a separate template-elements layer are
+ * NOT part of `PptxSlide.elements` (see `templateElementsBySlideId` in the
+ * React binding and its counterparts), so a live in-place colour-scheme
+ * change that only walks `reResolveSlideColors` over `slides` leaves that
+ * layer painted with the old scheme until a full reload. Callers that keep
+ * such a layer must re-resolve it too, using the SAME old/new colour maps
+ * passed to `reResolveSlideColors` so both layers land on identical hex
+ * values.
+ *
+ * This function does NOT modify its input — it returns a new element array.
+ */
+export function reResolveElementColors(
+	elements: PptxElement[],
+	oldColorMap: Record<string, string>,
+	newColorScheme: PptxThemeColorScheme,
+): PptxElement[] {
+	const newMap = buildThemeColorMap(newColorScheme);
+	const remap = buildColorRemapTable(oldColorMap, newMap);
+	if (remap.size === 0) {
+		return elements;
+	}
+	return elements.map((el) => remapElementColors(el, remap));
+}
+
+/**
  * Apply a theme switch to a full PptxData object.
  *
  * Updates:

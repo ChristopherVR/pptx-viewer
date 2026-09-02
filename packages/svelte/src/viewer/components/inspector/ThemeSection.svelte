@@ -30,6 +30,7 @@
 		buildThemeColorMap,
 		COLOR_MAP_ALIAS_KEYS,
 		DEFAULT_COLOR_MAP,
+		reResolveElementColors,
 		reResolveSlideColors,
 		THEME_COLOR_SCHEME_KEYS,
 		THEME_PRESETS,
@@ -68,6 +69,16 @@
 		const previousMap = current.colorScheme ? buildThemeColorMap(current.colorScheme) : {};
 		await handler.updateThemeColorScheme(colorScheme);
 		editor.commitSlides(reResolveSlideColors(editor.slides, previousMap, colorScheme));
+		// Master/layout elements render as a separate per-slide layer (not part
+		// of `slide.elements`), so `commitSlides` above never touches them; left
+		// alone they'd keep painting the old scheme's colours until a full reload.
+		if (Object.keys(editor.templateElementsBySlideId).length > 0) {
+			const recoloured: typeof editor.templateElementsBySlideId = {};
+			for (const [slideId, elements] of Object.entries(editor.templateElementsBySlideId)) {
+				recoloured[slideId] = reResolveElementColors(elements, previousMap, colorScheme);
+			}
+			editor.templateElementsBySlideId = recoloured;
+		}
 		onthemechange({ ...current, colorScheme });
 	}
 

@@ -148,6 +148,32 @@ describe('themeSection', () => {
 		);
 	});
 
+	it('re-colours templateElementsBySlideId alongside slides on the cheap in-place path', async () => {
+		const mock = makeHandler();
+		const { target, editor } = mountSection(mock);
+		editor.templateElementsBySlideId = {
+			s1: [
+				{
+					type: 'shape',
+					id: 'bg_1',
+					x: 0,
+					y: 0,
+					width: 200,
+					height: 100,
+					shapeStyle: { fillColor: THEME_PRESETS[0].colorScheme.accent1 },
+				} as unknown as (typeof editor.templateElementsBySlideId)['s1'][number],
+			],
+		};
+
+		target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-theme-presets button')[1]?.click();
+		await tick();
+
+		const patched = editor.templateElementsBySlideId.s1?.[0] as unknown as {
+			shapeStyle?: { fillColor?: string };
+		};
+		expect(patched?.shapeStyle?.fillColor).toBe(PRESET_THEMES[1].colorScheme.accent1);
+	});
+
 	it('runs the full switchTheme only from Apply to Presentation', async () => {
 		const mock = makeHandler();
 		const { target } = mountSection(mock);

@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 
 import type { PptxSlide, PptxElement, PptxThemeColorScheme, PptxData, TextSegment } from '../types';
 import { applyThemeOverrideToSlide } from './slide-theme-override';
-import { reResolveSlideColors, applyThemeToData, buildThemeColorMap } from './theme-switching';
+import {
+	reResolveSlideColors,
+	reResolveElementColors,
+	applyThemeToData,
+	buildThemeColorMap,
+} from './theme-switching';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -216,6 +221,23 @@ describe('reResolveSlideColors', () => {
 		};
 		expect(resultEl.shapeStyle?.shadowColor).toBe('#1B1D2C'); // ION dk2
 		expect(resultEl.shapeStyle?.glowColor).toBe('#58C1BA'); // ION hlink
+	});
+});
+
+describe('reResolveElementColors', () => {
+	it('remaps a flat element list the same way reResolveSlideColors remaps slide.elements', () => {
+		const elements = [makeShapeElement()];
+		const result = reResolveElementColors(elements, makeOldColorMap(), ION_COLORS);
+
+		const el = result[0] as { shapeStyle?: { fillColor?: string; strokeColor?: string } };
+		expect(el.shapeStyle?.fillColor).toBe('#B01513'); // accent1
+		expect(el.shapeStyle?.strokeColor).toBe('#EA6312'); // accent2
+	});
+
+	it('returns the original array when no colours changed', () => {
+		const elements = [makeShapeElement()];
+		const result = reResolveElementColors(elements, makeOldColorMap(), OFFICE_COLORS);
+		expect(result).toBe(elements); // Same reference — no changes needed
 	});
 });
 

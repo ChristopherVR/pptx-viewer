@@ -1223,6 +1223,7 @@ const themeEditing = useThemeEditing({
 	pushHistory: history.pushHistory,
 	themeGalleryOpen,
 	themeEditorOpen,
+	templateElementsBySlideId,
 });
 
 // -- AI assistant ------------------------------------------------------

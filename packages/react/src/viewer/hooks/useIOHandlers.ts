@@ -133,6 +133,8 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		slideMasters: state.slideMasters as unknown as Array<Record<string, unknown>>,
 		history,
 		setSlides: state.setSlides,
+		templateElementsBySlideId: state.templateElementsBySlideId,
+		setTemplateElementsBySlideId: state.setTemplateElementsBySlideId,
 		theme: state.theme,
 		bumpHistory: () => state.setPointerCommitNonce((n) => n + 1),
 	});

@@ -14,7 +14,7 @@
 
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { applyThemeToData } from 'pptx-viewer-core';
+import { applyThemeToData, reResolveElementColors } from 'pptx-viewer-core';
 import type {
 	PptxData,
 	PptxThemeColorScheme,
@@ -24,6 +24,7 @@ import type {
 
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
+import type { TemplateElementsBySlideId } from './template-mode';
 
 @Injectable()
 export class ViewerThemeGalleryService {
@@ -55,11 +56,12 @@ export class ViewerThemeGalleryService {
 		name: string,
 	): void {
 		const currentSlides = this.editor.slides();
+		const previousColorMap = this.loader.themeColorMap() ?? {};
 		const result = applyThemeToData(
 			{
 				slides: [...currentSlides],
 				theme: this.loader.theme() ?? {},
-				themeColorMap: this.loader.themeColorMap() ?? {},
+				themeColorMap: previousColorMap,
 			} as unknown as PptxData,
 			colorScheme,
 			fontScheme,
@@ -70,6 +72,17 @@ export class ViewerThemeGalleryService {
 			result.slides,
 			this.translate.instant('pptx.undoAction.applyTheme', { name }),
 		);
+		// Master/layout elements render as a separate per-slide layer (not part
+		// of `slide.elements`), so `applyReplacement` above never touches them;
+		// left alone they'd keep painting the old scheme's colours.
+		const currentTemplateElements = this.editor.templateElementsBySlideId();
+		if (Object.keys(currentTemplateElements).length > 0) {
+			const recoloured: TemplateElementsBySlideId = {};
+			for (const [slideId, elements] of Object.entries(currentTemplateElements)) {
+				recoloured[slideId] = reResolveElementColors(elements, previousColorMap, colorScheme);
+			}
+			this.editor.templateElementsBySlideId.set(recoloured);
+		}
 		// Update the loader's theme signals so the check-mark and future switches are correct.
 		this.loader.theme.set(result.theme);
 		this.loader.themeColorMap.set(result.themeColorMap);
