@@ -259,10 +259,13 @@ describe('matchNamedTextTwins', () => {
 		expect(matchNamedTextTwins(from.elements, to.elements, new Set(), new Set())).toHaveLength(0);
 	});
 
-	it('refuses conflicting !! names', () => {
-		const from = makeSlide([headline('a', -1439, { name: '!!Title 1' })]);
-		const to = makeSlide([headline('b', 117, { name: '!!Other 1' })], 'slide-2');
-		expect(matchNamedTextTwins(from.elements, to.elements, new Set(), new Set())).toHaveLength(0);
+	it('takes the nearest twin when several share the name', () => {
+		// Two panels each carry a layout "Title 1"; the headline that slid a
+		// short way is the twin, not the one across the deck.
+		const from = makeSlide([headline('a', 100)]);
+		const to = makeSlide([headline('far', 1900), headline('near', 140)], 'slide-2');
+		const pairs = matchNamedTextTwins(from.elements, to.elements, new Set(), new Set());
+		expect(pairs.map((p) => p.toElement.id)).toStrictEqual(['near']);
 	});
 });
 

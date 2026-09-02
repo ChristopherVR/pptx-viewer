@@ -25,20 +25,29 @@ import type { PptxElement } from 'pptx-viewer-core';
 export interface MediaCandidate {
 	readonly to: PptxElement;
 	readonly named: boolean;
+	/** Centre-to-centre travel, in slide px. */
 	readonly dist: number;
-	/** How far apart the two BOXES are (`|dw| + |dh|`), breaking exact ties. */
+	/**
+	 * How unlike the two BOXES are (`|dw| + |dh|`, slide px). Summed with
+	 * `dist` on the same scale: a box mismatch costs as much as that many px of
+	 * travel, so it is a weight, not a tie-break.
+	 */
 	readonly sizeDelta: number;
-	/** Incoming-array index: deterministic tie-break among equal candidates. */
+	/**
+	 * Index into the incoming slide's element list. Weighted at 1/1024 px, so
+	 * it only decides between candidates whose travel + box cost agree to
+	 * within a fraction of a px (exact ties under a uniform shift).
+	 */
 	readonly toIndex: number;
 }
 
 /**
- * Preference order for one outgoing picture's candidate list.
+ * Cost of one candidate edge, lower is better.
  *
- * Lexicographic preference encoded as weights whose scales cannot cross: an
- * unnamed edge pays a bonus-sized penalty, then raw travel distance, then how
- * unlike the two BOXES are, then the incoming input index (a power-of-two
- * divisor stays binary-exact) for full determinism.
+ * A same-name edge always beats an unnamed one (the penalty dwarfs any
+ * on-slide distance); among edges of one kind, travel and box mismatch add
+ * up in px; the incoming index (a power-of-two divisor stays binary-exact)
+ * settles what is left, so the assignment is deterministic.
  */
 export function mediaEdgeCost(candidate: MediaCandidate): number {
 	return (
@@ -121,8 +130,8 @@ export function hungarianAssignment(cost: readonly (readonly number[])[]): numbe
 	}
 	const u = new Array<number>(k + 1).fill(0);
 	const v = new Array<number>(k + 1).fill(0);
-	// p[j]: the row (1-based) currently matched to column j; way[j]: the
-	// previous column on the alternating path that reached j.
+	// matchOfCol[j]: the row (1-based) currently matched to column j;
+	// parent[j]: the previous column on the alternating path that reached j.
 	const matchOfCol = new Array<number>(k + 1).fill(0);
 	const parent = new Array<number>(k + 1).fill(0);
 	for (let i = 1; i <= k; i++) {

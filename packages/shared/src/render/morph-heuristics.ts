@@ -169,6 +169,10 @@ export function matchNamedTextTwins(
 		if (!fromName) {
 			continue;
 		}
+		// Equal names cannot conflict, so the `!!` veto has nothing to add here.
+		// Several twins may carry one name (a layout's "Title 1" on every
+		// panel), so take the NEAREST, as the proximity pass would.
+		let best: { toEl: PptxElement; dist: number } | undefined;
 		for (const toEl of toElements) {
 			if (usedTo.has(toEl.id) || toEl.type !== 'text') {
 				continue;
@@ -185,13 +189,15 @@ export function matchNamedTextTwins(
 			if (differentText(fromEl, toEl)) {
 				continue;
 			}
-			if (conflictingMorphNames(fromEl, toEl)) {
-				continue;
+			const dist = centreDistance(fromEl, toEl);
+			if (!best || dist < best.dist) {
+				best = { toEl, dist };
 			}
-			pairs.push({ fromElement: fromEl, toElement: toEl });
+		}
+		if (best) {
+			pairs.push({ fromElement: fromEl, toElement: best.toEl });
 			usedFrom.add(fromEl.id);
-			usedTo.add(toEl.id);
-			break;
+			usedTo.add(best.toEl.id);
 		}
 	}
 	return pairs;
