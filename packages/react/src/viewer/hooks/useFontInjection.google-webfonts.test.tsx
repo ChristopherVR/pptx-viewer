@@ -3,12 +3,12 @@
  * Regression coverage for the Google Fonts webfont fallback in
  * `useFontInjection`: a deck that references a family which is neither
  * installed nor embedded (PowerPoint would fetch it as a Microsoft 365 cloud
- * font) must get a Google Fonts stylesheet link once the API probe confirms
- * the family is served, and must not when the deck embeds it itself or the
- * probe rejects the family.
+ * font) must get a Google Fonts stylesheet link when the bundled catalogue
+ * lists the family, and must not when the deck embeds it itself or the
+ * catalogue does not know it. Nothing may reach the network.
  */
 import type { PptxElement, PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
-import { resetGoogleWebfontProbeCache } from 'pptx-viewer-shared';
+import { resetGoogleWebfontSessionCache } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -22,7 +22,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
-	resetGoogleWebfontProbeCache();
+	resetGoogleWebfontSessionCache();
 	// happy-dom eagerly fetches injected `<link rel="stylesheet">` elements;
 	// disable that so tests stay offline-deterministic, and silence its
 	// "loading is disabled" report for the links this hook injects.
@@ -75,21 +75,14 @@ function render(slides: PptxSlide[], fonts: PptxEmbeddedFont[]): void {
 	});
 }
 
-/** Stub the session probe: 200 (served) for the listed families, else 400. */
-function stubProbe(served: readonly string[]): void {
-	vi.stubGlobal(
-		'fetch',
-		vi.fn(async (url: string | URL | Request) => {
-			const match = /family=([^&]+)/.exec(String(url));
-			const name = match ? decodeURIComponent(match[1]) : '';
-			return { status: served.includes(name.split(':')[0]) ? 200 : 400 };
-		}),
-	);
+/** The bundled catalogue answers every lookup; nothing may reach the network. */
+function stubNetwork(): void {
+	vi.stubGlobal('fetch', vi.fn());
 }
 
 describe('useFontInjection google webfonts fallback', () => {
-	it('injects a Google Fonts link once the probe confirms the family', async () => {
-		stubProbe(['ADLaM Display']);
+	it('injects a Google Fonts link for a catalogue family', async () => {
+		stubNetwork();
 		render([slide(textEl('ADLaM Display'))], []);
 		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
 		const link = document.getElementById(LINK_ID);
@@ -98,7 +91,7 @@ describe('useFontInjection google webfonts fallback', () => {
 	});
 
 	it('skips the link when the referenced family is embedded', async () => {
-		stubProbe(['ADLaM Display']);
+		stubNetwork();
 		const fetch = vi.fn();
 		vi.stubGlobal('fetch', fetch);
 		render(
@@ -112,8 +105,8 @@ describe('useFontInjection google webfonts fallback', () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	it('injects no link when the probe rejects every referenced family', async () => {
-		stubProbe([]);
+	it('injects no link when no referenced family is in the catalogue', async () => {
+		stubNetwork();
 		render([slide(textEl('Some Local Font'), textEl('Calibri'))], []);
 		await act(async () => {
 			await Promise.resolve();
@@ -122,11 +115,11 @@ describe('useFontInjection google webfonts fallback', () => {
 	});
 
 	it('removes the link when the deck changes to unneeded families', async () => {
-		stubProbe(['ADLaM Display']);
+		stubNetwork();
 		render([slide(textEl('ADLaM Display'))], []);
 		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
 
-		stubProbe([]);
+		stubNetwork();
 		render([slide(textEl('Some Local Font'))], []);
 		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).toBeNull());
 	});

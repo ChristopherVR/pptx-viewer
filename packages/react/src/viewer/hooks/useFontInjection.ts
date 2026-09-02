@@ -125,9 +125,9 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 
 	useEffect(() => {
 		// Embedded fonts satisfy their own families and locally installed ones
-		// render as-is; the rest are probed against the Google Fonts API
-		// (session-cached). The shared resolver also skips the local-install
-		// check for already-probed families, so a webfont that has loaded is
+		// render as-is; the rest are matched against the bundled Google Fonts
+		// catalogue (no network round-trip). The shared resolver also skips the
+		// local-install check for already-resolved families, so a webfont that has loaded is
 		// not mistaken for an installed one and dropped on the next pass.
 		let cancelled = false;
 		void resolveGoogleWebfontHref(slides, embeddedFonts).then((href) => {
