@@ -15,9 +15,8 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import type { AiChangeBatch, PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
+import { computeFocusTargets } from 'pptx-viewer-shared/ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import { computeFocusTargets } from './focus-targets';
 
 export interface UseAiPanelControllerInput {
 	activeSlideIndex: number;

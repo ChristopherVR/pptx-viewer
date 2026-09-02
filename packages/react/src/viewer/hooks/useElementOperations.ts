@@ -11,6 +11,7 @@ import type {
 import {
 	masterViewElements as resolveMasterViewElements,
 	replaceMasterViewElements,
+	updateElement as updateSlideElement,
 	updateMasterViewElement,
 } from 'pptx-viewer-shared';
 import type { MasterViewTarget, MasterViewWrite } from 'pptx-viewer-shared';
@@ -185,23 +186,7 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 					}));
 				}
 			} else {
-				setSlides((prev) =>
-					prev.map((s, i) =>
-						i !== activeSlideIndex
-							? s
-							: {
-									...s,
-									elements: s.elements.map((el) =>
-										el.id === elementId
-											? ({
-													...el,
-													...updates,
-												} as PptxElement)
-											: el,
-									),
-								},
-					),
-				);
+				setSlides((prev) => updateSlideElement(prev, activeSlideIndex, elementId, updates));
 			}
 			history.markDirty();
 		},

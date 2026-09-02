@@ -104,3 +104,50 @@ describe('useAiBridge getFocusedTargets', () => {
 		expect(bridge().getFocusedTargets?.()).toStrictEqual(pinned);
 	});
 });
+
+// `updateElement` routes field updates through the shared `applyElementUpdate`
+// (pptx-viewer-shared/ai tools/mutations.ts); this pins that repoint through
+// the binding rather than only through shared's own tests.
+describe('useAiBridge updateElement', () => {
+	it('applies geometry and text/style field updates via the shared mutation helper', () => {
+		let updated: PptxSlide[] = [];
+		const withElement = [
+			{
+				id: 's0',
+				slideNumber: 1,
+				elements: [
+					{
+						id: 'shape-1',
+						type: 'text',
+						x: 0,
+						y: 0,
+						width: 100,
+						height: 50,
+						text: 'hi',
+						textSegments: [{ text: 'hi', style: {} }],
+					},
+				],
+			},
+		] as unknown as PptxSlide[];
+		const { bridge } = mount(
+			baseInput({
+				slides: withElement,
+				setSlides: (updater) => {
+					updated =
+						typeof updater === 'function'
+							? (updater as (prev: PptxSlide[]) => PptxSlide[])(withElement)
+							: updater;
+				},
+			}),
+		);
+		bridge().updateElement?.(0, 'shape-1', { x: 10, text: 'updated', fontSize: 24 });
+		const el = updated[0].elements[0] as unknown as {
+			x: number;
+			text: string;
+			textStyle?: { fontSize?: number };
+		};
+		expect(el.x).toBe(10);
+		expect(el.text).toBe('updated');
+		expect(el.textStyle?.fontSize).toBe(24);
+	});
+});

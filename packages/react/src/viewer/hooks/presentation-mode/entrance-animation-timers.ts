@@ -1,29 +1,12 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { PresentationAnimationController } from 'pptx-viewer-shared';
+import type { PlaybackContext, PresentationAnimationController } from 'pptx-viewer-shared';
+import { playGroup, scheduleAutoAdvanceChain } from 'pptx-viewer-shared';
 
 import type { PresentationAnimationRuntime } from '../../types';
-import type { ElementAnimationState, TimelineClickGroup } from '../../utils/animation-timeline';
 import { computeEntranceAnimationDelay } from '../usePresentationSetup-helpers';
-import { applyAnimationGroupSteps } from './animation-helpers';
 
 /** State updater function (compatible with a React useState setter). */
 type StateUpdater<T> = (updater: T | ((prev: T) => T)) => void;
-
-/** Everything the opening auto-play group needs to run and chain onward. */
-export interface AutoPlayGroupDeps {
-	onPlayActionSound?: (soundPath: string) => void;
-	setPresentationElementStates: StateUpdater<Map<string, ElementAnimationState>>;
-	presentationTimersRef: { current: number[] };
-	/** Start the staged chart / SmartArt reveal loop for the played group. */
-	startBuildReveal: (
-		controller: PresentationAnimationController,
-		group: TimelineClickGroup,
-	) => void;
-	/** Chain any consecutive auto-advance groups that follow. */
-	scheduleAutoAdvanceChain: (controller: PresentationAnimationController) => void;
-	/** Record the group so a rapid `nextAc="seek"` press can finish it. */
-	markAnimationGroupActive: (group: TimelineClickGroup) => void;
-}
 
 /**
  * Schedule the slide's OPENING click-group when the deck marks it as
@@ -33,7 +16,7 @@ export interface AutoPlayGroupDeps {
  */
 export function scheduleOpeningAutoPlayGroup(
 	controller: PresentationAnimationController,
-	deps: AutoPlayGroupDeps,
+	ctx: PlaybackContext,
 ): void {
 	if (!controller.hasMoreSteps()) {
 		return;
@@ -47,17 +30,10 @@ export function scheduleOpeningAutoPlayGroup(
 		if (!group) {
 			return;
 		}
-		applyAnimationGroupSteps(
-			group,
-			deps.onPlayActionSound,
-			deps.setPresentationElementStates,
-			deps.presentationTimersRef,
-		);
-		deps.markAnimationGroupActive(group);
-		deps.startBuildReveal(controller, group);
-		deps.scheduleAutoAdvanceChain(controller);
+		playGroup(controller, group, ctx);
+		scheduleAutoAdvanceChain(controller, ctx);
 	}, firstGroup.autoAdvanceDelayMs ?? 0);
-	deps.presentationTimersRef.current.push(timer);
+	ctx.timers.push(timer);
 }
 
 /**

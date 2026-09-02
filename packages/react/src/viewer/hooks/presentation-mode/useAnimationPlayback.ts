@@ -1,16 +1,21 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { PresentationAnimationController } from 'pptx-viewer-shared';
+import type { PlaybackContext } from 'pptx-viewer-shared';
+import {
+	cancelBuildReveal,
+	PresentationAnimationController,
+	playGroup,
+	scheduleAutoAdvanceChain,
+} from 'pptx-viewer-shared';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 import type { PresentationAnimationRuntime } from '../../types';
+import { playAnimationSound, stopAnimationSound } from '../../utils/animation-sound';
 import type { ElementAnimationState, TimelineClickGroup } from '../../utils/animation-timeline';
 import {
-	applyAnimationGroupSteps,
 	finishAnimationGroupSteps,
 	finishDomAnimationsForGroup,
 	shouldSeekAnimationGroup,
 } from './animation-helpers';
-import { driveBuildReveal, cancelBuildReveal } from './build-playback';
 import {
 	scheduleEntranceAnimationTimers,
 	scheduleOpeningAutoPlayGroup,
@@ -116,25 +121,26 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	const lastSeedCompletedRef = useRef(false);
 
 	// -----------------------------------------------------------------------
-	// Staged chart / SmartArt build reveal (RAF-driven)
+	// Shared playback context
+	//
+	// The click-group step application, staged-build RAF loop, and auto-advance
+	// chain live in the shared `animation-playback-engine`; this hook only
+	// supplies the React state setters, timer bookkeeping, and sound callbacks
+	// the engine needs. Built fresh per call so `ctx.timers` always mutates the
+	// CURRENT `presentationTimersRef.current` array (never a stale one from
+	// before a `clearPresentationTimers` reset).
 	// -----------------------------------------------------------------------
 
-	/**
-	 * Start (or restart) the requestAnimationFrame loop that ramps a click-group's
-	 * staged-build `progress` from 0 -> 1. No-op when the group carries no build
-	 * step, so ordinary click-advance is unchanged.
-	 */
-	const startBuildReveal = useCallback(
-		(controller: PresentationAnimationController, group: TimelineClickGroup) => {
-			driveBuildReveal(
-				controller,
-				PresentationAnimationController.collectBuildStepIds(group),
-				setPresentationElementStates,
-				buildRafRef,
-			);
-		},
-		[],
-	);
+	const buildPlaybackContext = useCallback((): PlaybackContext => {
+		return {
+			setStates: setPresentationElementStates,
+			timers: presentationTimersRef.current,
+			buildHandle: buildRafRef,
+			onPlayActionSound,
+			playSound: playAnimationSound,
+			stopSound: stopAnimationSound,
+		};
+	}, [onPlayActionSound]);
 
 	// Stop the build loop on unmount so a detached RAF never touches state.
 	useEffect(() => {
@@ -161,63 +167,6 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 		activeAnimationGroupRef.current = group;
 		activeAnimationEndAtRef.current = performance.now() + Math.max(0, group.totalDurationMs);
 	}, []);
-
-	// -----------------------------------------------------------------------
-	// Auto-advance scheduling
-	// -----------------------------------------------------------------------
-
-	/**
-	 * After playing a click-group, check if the next group should auto-advance
-	 * and schedule it accordingly. This chains through consecutive auto-advance
-	 * groups so sequences like onClick -> afterPrevious -> afterPrevious all
-	 * play without additional clicks.
-	 */
-	const scheduleAutoAdvanceChain = useCallback(
-		(controller: PresentationAnimationController) => {
-			if (!controller.shouldAutoAdvance()) {
-				return;
-			}
-
-			const delay = controller.getAutoAdvanceDelay();
-			const previousGroup = controller.peekNext();
-			if (!previousGroup) {
-				return;
-			}
-
-			const totalDelay = delay + (previousGroup.autoAdvanceDelayMs ?? 0);
-
-			const timer = window.setTimeout(
-				() => {
-					const group = controller.advance();
-					if (!group) {
-						return;
-					}
-
-					applyAnimationGroupSteps(
-						group,
-						onPlayActionSound,
-						setPresentationElementStates,
-						presentationTimersRef,
-					);
-					markAnimationGroupActive(group);
-					startBuildReveal(controller, group);
-
-					// Continue the chain if more auto-advance groups follow
-					scheduleAutoAdvanceChain(controller);
-				},
-				Math.max(0, totalDelay),
-			);
-
-			presentationTimersRef.current.push(timer);
-		},
-		// `scheduleAutoAdvanceChain` recursively calls itself (line 190) to walk the
-		// auto-advance chain; it can't list itself as its own dependency (the const
-		// isn't assigned yet when the array is evaluated). The recursive call still
-		// resolves correctly because the setTimeout callback only reads the binding
-		// once the outer const has been assigned.
-		// oxlint-disable-next-line react/memo-dependencies -- see comment above
-		[markAnimationGroupActive, onPlayActionSound, startBuildReveal],
-	);
 
 	// -----------------------------------------------------------------------
 	// Slide timeline reset
@@ -272,7 +221,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			const completedStates = controller.computeStatesFor(buildIds);
 			clearPresentationTimers();
 			finishAnimationGroupSteps(activeGroup, setPresentationElementStates, completedStates);
-			scheduleAutoAdvanceChain(controller);
+			scheduleAutoAdvanceChain(controller, buildPlaybackContext());
 			return true;
 		}
 		if (!controller || !controller.hasMoreSteps()) {
@@ -284,27 +233,15 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			return false;
 		}
 
-		applyAnimationGroupSteps(
-			group,
-			onPlayActionSound,
-			setPresentationElementStates,
-			presentationTimersRef,
-		);
+		const ctx = buildPlaybackContext();
+		playGroup(controller, group, ctx);
 		markAnimationGroupActive(group);
-		startBuildReveal(controller, group);
 
 		// Schedule auto-advance for consecutive non-click groups
-		scheduleAutoAdvanceChain(controller);
+		scheduleAutoAdvanceChain(controller, ctx);
 
 		return true;
-	}, [
-		animationsEnabled,
-		clearPresentationTimers,
-		markAnimationGroupActive,
-		onPlayActionSound,
-		scheduleAutoAdvanceChain,
-		startBuildReveal,
-	]);
+	}, [animationsEnabled, buildPlaybackContext, clearPresentationTimers, markAnimationGroupActive]);
 
 	// -----------------------------------------------------------------------
 	// Interactive shape-click animation
@@ -322,17 +259,11 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				return false;
 			}
 
-			applyAnimationGroupSteps(
-				group,
-				onPlayActionSound,
-				setPresentationElementStates,
-				presentationTimersRef,
-			);
-			startBuildReveal(controller, group);
+			playGroup(controller, group, buildPlaybackContext());
 
 			return true;
 		},
-		[onPlayActionSound, startBuildReveal],
+		[buildPlaybackContext],
 	);
 
 	// -----------------------------------------------------------------------
@@ -357,17 +288,11 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				return false;
 			}
 
-			applyAnimationGroupSteps(
-				group,
-				onPlayActionSound,
-				setPresentationElementStates,
-				presentationTimersRef,
-			);
-			startBuildReveal(controller, group);
+			playGroup(controller, group, buildPlaybackContext());
 
 			return true;
 		},
-		[animationsEnabled, onPlayActionSound, startBuildReveal],
+		[animationsEnabled, buildPlaybackContext],
 	);
 
 	const handleHoverEnd = useCallback((shapeId: string): void => {
@@ -446,27 +371,14 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			// The slide's opening click-group, when the deck auto-starts it.
 			const controller = controllerRef.current;
 			if (controller) {
-				scheduleOpeningAutoPlayGroup(controller, {
-					onPlayActionSound,
-					setPresentationElementStates,
-					presentationTimersRef,
-					startBuildReveal,
-					scheduleAutoAdvanceChain,
-					markAnimationGroupActive,
-				});
+				const ctx = buildPlaybackContext();
+				scheduleOpeningAutoPlayGroup(controller, ctx);
 			}
 
 			// Legacy preset (`slide.animations`) entrance timers.
 			scheduleEntranceAnimationTimers(slide, setPresentationAnimations, presentationTimersRef);
 		},
-		[
-			animationsEnabled,
-			slides,
-			onPlayActionSound,
-			markAnimationGroupActive,
-			scheduleAutoAdvanceChain,
-			startBuildReveal,
-		],
+		[animationsEnabled, slides, buildPlaybackContext],
 	);
 
 	const runPresentationEntranceAnimations = useCallback(

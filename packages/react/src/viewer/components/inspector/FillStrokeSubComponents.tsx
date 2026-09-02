@@ -24,7 +24,7 @@ export function SelectRow({
 	label: string;
 	value: string;
 	span2?: boolean;
-	options: Array<{ value: string; label: string; i18nKey?: string }>;
+	options: readonly { value: string; label: string; i18nKey?: string }[];
 	onChange: (v: string) => void;
 }): React.ReactElement {
 	const { t } = useTranslation();

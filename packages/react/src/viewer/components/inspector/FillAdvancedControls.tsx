@@ -130,7 +130,7 @@ export function FillAdvancedControls({
 									<button
 										key={opt.value}
 										type='button'
-										title={opt.label}
+										title={t(opt.labelKey)}
 										className={`h-8 w-8 rounded border transition-all ${
 											isSelected
 												? 'border-primary border-2 ring-2 ring-primary/20'

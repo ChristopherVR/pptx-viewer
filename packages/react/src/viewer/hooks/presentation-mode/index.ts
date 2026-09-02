@@ -10,7 +10,6 @@ export {
 	type UseRehearsalTimingsResult,
 } from './useRehearsalTimings';
 export { usePresentationKeyboard } from './usePresentationKeyboard';
-export { applyAnimationGroupSteps } from './animation-helpers';
 export { executeSlideTransition } from './slide-transition';
 export { handlePresentationActionImpl } from './presentation-actions';
 export {

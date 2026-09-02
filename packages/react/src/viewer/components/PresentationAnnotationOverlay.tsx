@@ -5,7 +5,7 @@
  * mode. Captures pointer events for pen/highlighter/eraser tools and
  * displays the laser pointer dot.
  */
-import { annotationOverlayZIndex } from 'pptx-viewer-shared';
+import { annotationOverlayZIndex, buildStrokePathD, cursorForTool } from 'pptx-viewer-shared';
 import type { PresentationBlackout } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 
@@ -41,39 +41,11 @@ export interface PresentationAnnotationOverlayProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function buildPathD(points: Array<{ x: number; y: number }>): string {
-	if (points.length === 0) {
-		return '';
-	}
-	const first = points[0];
-	let d = `M ${first.x} ${first.y}`;
-	for (let i = 1; i < points.length; i++) {
-		const pt = points[i];
-		d += ` L ${pt.x} ${pt.y}`;
-	}
-	return d;
-}
-
-function getCursorForTool(tool: PresentationTool): string {
-	switch (tool) {
-		case 'laser':
-			return 'none';
-		case 'pen':
-			return 'crosshair';
-		case 'highlighter':
-			return 'crosshair';
-		case 'eraser':
-			return 'crosshair';
-		default:
-			return 'default';
-	}
-}
-
-// ---------------------------------------------------------------------------
 // Component
+//
+// `buildPathD`/`getCursorForTool` used to be a private, byte-identical copy
+// of the shared `buildStrokePathD`/`cursorForTool` (render/annotation-overlay);
+// React, Vue, and Angular all carried the same pair, now imported instead.
 // ---------------------------------------------------------------------------
 
 export function PresentationAnnotationOverlay({
@@ -198,7 +170,7 @@ export function PresentationAnnotationOverlay({
 			className='absolute inset-0'
 			style={{
 				zIndex: annotationOverlayZIndex(blackout),
-				cursor: getCursorForTool(presentationTool),
+				cursor: cursorForTool(presentationTool),
 				pointerEvents: isCapturing ? 'auto' : 'none',
 			}}
 		>
@@ -220,7 +192,7 @@ export function PresentationAnnotationOverlay({
 				{allStrokes.map((stroke) => (
 					<path
 						key={stroke.id}
-						d={buildPathD(stroke.points)}
+						d={buildStrokePathD(stroke.points)}
 						fill='none'
 						stroke={stroke.color}
 						strokeWidth={stroke.width}

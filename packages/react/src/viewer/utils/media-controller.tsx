@@ -1,10 +1,7 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
-import { mediaPlaybackAttributes } from 'pptx-viewer-shared';
+import { mediaPlaybackAttributes, registerCrossSlideAudio } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-import { registerMediaElement } from './media-element-registry';
-import { registerPersistentAudio } from './media-persistent-audio';
 
 // ---------------------------------------------------------------------------
 // PresentationMediaController: manages trim, fade, volume at runtime
@@ -75,25 +72,11 @@ export function PresentationMediaController({
 		};
 	}, []);
 
-	// Register the media node so `p:cmd` command steps in the animation timeline
-	// can drive it (play/pause/seek) by the owning element id.
-	useEffect(() => {
-		const el = mediaRef.current;
-		if (!el) {
-			return;
-		}
-		return registerMediaElement(element.id, el);
-	}, [element.id]);
-
 	// The clamps that turn authored playback settings into DOM values live in
 	// shared, so all five bindings agree on what `vol="0"` or a 10x rate means.
 	// `loop` is declarative here (the <video>/<audio> `loop` prop, from
 	// `element.loop`), so only the two IDL-only properties are applied by hand.
-	const {
-		loop: shouldLoop,
-		volume: playbackVolume,
-		playbackRate,
-	} = mediaPlaybackAttributes({
+	const { volume: playbackVolume, playbackRate } = mediaPlaybackAttributes({
 		loop: element.loop,
 		volume: element.volume,
 		playbackSpeed: element.playbackSpeed,
@@ -260,15 +243,7 @@ export function PresentationMediaController({
 		// mediaDataUrls lookup (passed in as `resolvedDataUrl`).
 		if (element.playAcrossSlides && element.mediaType === 'audio') {
 			const dataUrl = element.mediaData ?? resolvedDataUrl;
-			if (dataUrl) {
-				registerPersistentAudio(
-					element.id,
-					dataUrl,
-					element.mediaMimeType,
-					shouldLoop,
-					playbackVolume,
-					trimStartSec,
-				);
+			if (registerCrossSlideAudio(element, dataUrl)) {
 				// The detached persistent element plays; don't also play inline.
 				return;
 			}
@@ -291,19 +266,7 @@ export function PresentationMediaController({
 			});
 		}, 100);
 		return () => window.clearTimeout(timer);
-	}, [
-		isPresentationMode,
-		shouldAutoPlay,
-		element.playAcrossSlides,
-		element.mediaType,
-		element.mediaData,
-		element.mediaMimeType,
-		element.id,
-		resolvedDataUrl,
-		shouldLoop,
-		playbackVolume,
-		trimStartSec,
-	]);
+	}, [isPresentationMode, shouldAutoPlay, element, resolvedDataUrl, trimStartSec]);
 
 	const wrapperStyle: React.CSSProperties = hideWhenNotPlaying
 		? {

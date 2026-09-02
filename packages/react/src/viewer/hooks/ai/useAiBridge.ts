@@ -28,11 +28,9 @@ import type {
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
+import { applyElementUpdate, computeFocusTargets } from 'pptx-viewer-shared/ai';
 import type { RefObject } from 'react';
 import { useMemo, useRef } from 'react';
-
-import { applyAiElementUpdate } from './ai-element-update';
-import { computeFocusTargets } from './focus-targets';
 
 /** Live inputs the bridge closes over. Updated on every render via a ref. */
 export interface UseAiBridgeInput {
@@ -148,7 +146,7 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 				applySlidesUpdate((slides) => {
 					const el = slides[slideIndex]?.elements.find((e) => e.id === elementId);
 					if (el) {
-						applyAiElementUpdate(el, updates);
+						applyElementUpdate(el, updates);
 					}
 					return slides;
 				}, `Update element ${elementId}`);

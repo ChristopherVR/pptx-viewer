@@ -6,6 +6,7 @@ import {
 	buildImageBiLevelTable,
 	buildImageLuminanceTransfer,
 	getImageAlphaFilterId,
+	hexToRgbUnit,
 } from 'pptx-viewer-shared';
 import React from 'react';
 
@@ -18,21 +19,6 @@ export { getImageAlphaFilterId };
 /** Generate a stable filter ID for a duotone effect on an element. */
 export function getDuotoneFilterId(elementId: string): string {
 	return `duotone-${elementId}`;
-}
-
-/**
- * Parse a hex colour string to normalised 0-1 RGB components.
- */
-function hexToRgbUnit(hex: string): { r: number; g: number; b: number } {
-	const clean = hex.replace('#', '');
-	const r = parseInt(clean.substring(0, 2), 16) / 255;
-	const g = parseInt(clean.substring(2, 4), 16) / 255;
-	const b = parseInt(clean.substring(4, 6), 16) / 255;
-	return {
-		r: Number.isFinite(r) ? r : 0,
-		g: Number.isFinite(g) ? g : 0,
-		b: Number.isFinite(b) ? b : 0,
-	};
 }
 
 /**

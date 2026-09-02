@@ -1,6 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-import { resolveDefaultFontFamily } from 'pptx-viewer-shared';
+import { COMMON_FONT_SIZES, resolveDefaultFontFamily } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -76,8 +76,6 @@ function extractFontInfo(
 		fontSize: fontSize !== undefined && fontSize !== null ? String(fontSize) : defaults.fontSize,
 	};
 }
-
-const COMMON_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 72, 96];
 
 export function HomeSection(p: HomeSectionProps): React.ReactElement {
 	const { t } = useTranslation();
@@ -243,7 +241,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						{sizeMenuOpen && (
 							<RibbonMenu anchorRef={sizeMenuRef} className='flex flex-col w-48 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
-									{COMMON_SIZES.map((s) => (
+									{COMMON_FONT_SIZES.map((s) => (
 										<button
 											key={s}
 											type='button'

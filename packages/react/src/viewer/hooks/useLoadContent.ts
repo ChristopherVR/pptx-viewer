@@ -21,7 +21,12 @@ import type {
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError } from 'pptx-viewer-core';
 import type { SlideSizeEmu } from 'pptx-viewer-shared';
-import { resolveAuthoredCustomShowId } from 'pptx-viewer-shared';
+import {
+	applyImagePathPatches,
+	resolveAuthoredCustomShowId,
+	resolveTableCellImageUrls,
+	resolveTableStyleImageUrls,
+} from 'pptx-viewer-shared';
 /**
  * useLoadContent: Handles loading/parsing PPTX content into viewer state.
  *
@@ -36,10 +41,6 @@ import { partitionTemplateElements } from '../utils/template-editing';
 import {
 	collectMediaElements,
 	collectImagePaths,
-	collectTableCellImagePaths,
-	applyTableCellImagePatches,
-	collectTableStyleImagePaths,
-	applyTableStyleImagePatches,
 	buildInitialGuides,
 } from './load-content-helpers';
 import type { EditorHistoryResult } from './useEditorHistory';
@@ -280,110 +281,30 @@ export function useLoadContent({
 							}
 						}),
 					);
-					// Build a per-element-id patch map (id → { field: url, ... })
-					// outside the transform loop so we don't repeat lookups.
-					const elementPatches = new Map<string, Record<string, string>>();
-					for (const ref of imageRefs) {
-						const url = resolvedMap.get(ref.path);
-						if (!url) {
-							continue;
-						}
-						const id = ref.element.id;
-						const existing = elementPatches.get(id) ?? {};
-						existing[ref.field] = url;
-						elementPatches.set(id, existing);
-					}
-
-					if (elementPatches.size > 0) {
-						const patchElements = (elements: PptxElement[]): PptxElement[] => {
-							let mutated = false;
-							const next = elements.map((el) => {
-								let updated = el;
-								const patch = elementPatches.get(el.id);
-								if (patch) {
-									updated = { ...el, ...patch } as PptxElement;
-								}
-								if (updated.type === 'group' && updated.children?.length) {
-									const newChildren = patchElements(updated.children);
-									if (newChildren !== updated.children) {
-										updated = { ...updated, children: newChildren };
-									}
-								}
-								if (updated !== el) {
-									mutated = true;
-								}
-								return updated;
-							});
-							return mutated ? next : elements;
-						};
-						nextSlides = parsed.slides.map((s) => {
-							const newElements = patchElements(s.elements);
-							return newElements === s.elements ? s : { ...s, elements: newElements };
-						});
-					}
+					// The per-element-id patch map + group-recursing tree walk are the
+					// shared `applyImagePathPatches` / `walkAndPatchElements`
+					// (loader/element-patch-walker.ts), which every binding's
+					// `useLoadContent` used to hand-roll identically.
+					nextSlides = parsed.slides.map((s) => {
+						const newElements = applyImagePathPatches(s.elements, resolvedMap, imageRefs);
+						return newElements === s.elements ? s : { ...s, elements: newElements };
+					});
 				}
 
-				// ── Resolve table cell image-fill Blob URLs ─────────────────
+				// ── Resolve table cell + whole-table-STYLE image-fill Blob URLs ──
 				// Same lazy-load story as picture elements above: a cell's
-				// `a:tcPr/a:blipFill` parses to an archive path
-				// (`backgroundImageFillPath`), resolved here to a displayable URL.
-				const { paths: tableImagePaths, refs: tableImageRefs } =
-					collectTableCellImagePaths(nextSlides);
-				if (tableImagePaths.size > 0) {
-					const resolvedTableMap = new Map<string, string>();
-					await Promise.all(
-						Array.from(tableImagePaths).map(async (path) => {
-							try {
-								const url = await handler.getImageData(path);
-								if (url) {
-									resolvedTableMap.set(path, url);
-								}
-							} catch {
-								// Non-critical: the cell falls back to no image fill.
-							}
-						}),
-					);
-					if (resolvedTableMap.size > 0) {
-						nextSlides = nextSlides.map((s) => {
-							const newElements = applyTableCellImagePatches(
-								s.elements,
-								resolvedTableMap,
-								tableImageRefs,
-							);
-							return newElements === s.elements ? s : { ...s, elements: newElements };
-						});
-					}
-				}
-
-				// ── Resolve whole-table-STYLE image-fill Blob URLs ──────────
-				// Same lazy-load story as the per-cell image fill above, but for a
-				// whole `a:tcStyle/a:fill/a:blipFill` on `ppt/tableStyles.xml`
-				// (presentation-level, not per-slide).
-				let nextTableStyleMap = parsed.tableStyleMap;
-				const { paths: tableStyleImagePaths, refs: tableStyleImageRefs } =
-					collectTableStyleImagePaths(nextTableStyleMap);
-				if (tableStyleImagePaths.size > 0) {
-					const resolvedStyleMap = new Map<string, string>();
-					await Promise.all(
-						Array.from(tableStyleImagePaths).map(async (path) => {
-							try {
-								const url = await handler.getImageData(path);
-								if (url) {
-									resolvedStyleMap.set(path, url);
-								}
-							} catch {
-								// Non-critical: the style section falls back to no image fill.
-							}
-						}),
-					);
-					if (resolvedStyleMap.size > 0 && nextTableStyleMap) {
-						nextTableStyleMap = applyTableStyleImagePatches(
-							nextTableStyleMap,
-							resolvedStyleMap,
-							tableStyleImageRefs,
-						);
-					}
-				}
+				// `a:tcPr/a:blipFill` (per-slide) and a `a:tcStyle/a:fill/a:blipFill`
+				// on `ppt/tableStyles.xml` (presentation-level) each parse to an
+				// archive path, resolved here to a displayable URL. The collect +
+				// resolve + patch orchestration is the shared
+				// `resolveTableCellImageUrls` / `resolveTableStyleImageUrls`
+				// (loader/lazy-image-resolution.ts).
+				nextSlides = await resolveTableCellImageUrls(nextSlides, (path) =>
+					handler.getImageData(path),
+				);
+				const nextTableStyleMap = await resolveTableStyleImageUrls(parsed.tableStyleMap, (path) =>
+					handler.getImageData(path),
+				);
 
 				handlerRef.current = handler;
 				// Separate the inherited master/layout (template) elements that the

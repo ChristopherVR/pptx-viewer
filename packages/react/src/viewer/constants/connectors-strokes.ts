@@ -9,7 +9,9 @@
  * `t(option.i18nKey)` without a data-shape change.
  */
 
-import type { ConnectorArrowOption, ConnectorGeometryOption, StrokeDashOption } from '../types';
+import { STROKE_DASH_OPTIONS as SHARED_STROKE_DASH_OPTIONS } from 'pptx-viewer-shared';
+
+import type { ConnectorArrowOption, ConnectorGeometryOption } from '../types';
 
 export const CONNECTOR_GEOMETRY_OPTIONS: (ConnectorGeometryOption & { i18nKey: string })[] = [
 	{ value: 'straightConnector1', label: 'Straight', i18nKey: 'pptx.connectorOptions.straight' },
@@ -46,29 +48,9 @@ export const ARROW_SIZE_OPTIONS: {
 	{ value: 'lg', label: 'Large', i18nKey: 'pptx.connectorOptions.sizeLarge' },
 ];
 
-export const STROKE_DASH_OPTIONS: (StrokeDashOption & { i18nKey: string })[] = [
-	{ value: 'solid', label: 'Solid', i18nKey: 'pptx.stroke.dashSolid' },
-	{ value: 'dot', label: 'Dot', i18nKey: 'pptx.stroke.dashDot' },
-	{ value: 'dash', label: 'Dash', i18nKey: 'pptx.stroke.dashDash' },
-	{ value: 'dashDot', label: 'Dash Dot', i18nKey: 'pptx.stroke.dashDashDot' },
-	{ value: 'lgDash', label: 'Long Dash', i18nKey: 'pptx.connectorOptions.dashLongDash' },
-	{ value: 'lgDashDot', label: 'Long Dash Dot', i18nKey: 'pptx.connectorOptions.dashLongDashDot' },
-	{
-		value: 'lgDashDotDot',
-		label: 'Long Dash Dot Dot',
-		i18nKey: 'pptx.connectorOptions.dashLongDashDotDot',
-	},
-	{ value: 'sysDot', label: 'System Dot', i18nKey: 'pptx.stroke.dashSysDot' },
-	{ value: 'sysDash', label: 'System Dash', i18nKey: 'pptx.stroke.dashSysDash' },
-	{
-		value: 'sysDashDot',
-		label: 'System Dash Dot',
-		i18nKey: 'pptx.connectorOptions.dashSysDashDot',
-	},
-	{
-		value: 'sysDashDotDot',
-		label: 'System Dash Dot Dot',
-		i18nKey: 'pptx.connectorOptions.dashSysDashDotDot',
-	},
-	{ value: 'custom', label: 'Custom', i18nKey: 'pptx.documentProperties.tabs.custom' },
-];
+/**
+ * The 12 `ST_PresetLineDashVal` values, now the one shared copy
+ * (render/stroke-dash-options.ts) instead of a private retype of the same
+ * list + i18n keys.
+ */
+export const STROKE_DASH_OPTIONS = SHARED_STROKE_DASH_OPTIONS;

@@ -10,10 +10,10 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { PptxAiFocusedTarget } from 'pptx-viewer-shared/ai';
+import { focusTargetChips, isTwoTableFocus, mergeTablesDirective } from 'pptx-viewer-shared/ai';
 import { useTranslation } from 'react-i18next';
 import { LuCrosshair, LuGitMerge, LuPin, LuPinOff, LuX } from 'react-icons/lu';
 
-import { focusTargetChips, isTwoTableFocus } from '../../hooks/ai/focus-targets';
 import { cn } from '../../utils';
 
 export interface AiFocusBarProps {
@@ -30,14 +30,6 @@ export interface AiFocusBarProps {
 	onStartPick: () => void;
 	onStopPick: () => void;
 	onClearPicks: () => void;
-}
-
-/** Build the directive that fires `merge_tables` without a confirmation round-trip. */
-function mergeDirective(slideIndex: number, elementIdA: string, elementIdB: string): string {
-	return (
-		`Merge the two selected tables (elementIdA=${elementIdA}, elementIdB=${elementIdB}) ` +
-		`on slide ${slideIndex + 1} using merge_tables; stage it now, do not ask me to confirm.`
-	);
 }
 
 export function AiFocusBar({
@@ -88,7 +80,11 @@ export function AiFocusBar({
 							type='button'
 							onClick={() =>
 								onSendDirective(
-									mergeDirective(twoTables.slideIndex, twoTables.elementIdA, twoTables.elementIdB),
+									mergeTablesDirective(
+										twoTables.slideIndex,
+										twoTables.elementIdA,
+										twoTables.elementIdB,
+									),
 								)
 							}
 							className='inline-flex items-center gap-1 rounded-sm bg-primary/90 px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary'

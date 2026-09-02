@@ -108,6 +108,10 @@ describe('fILL_MODE_OPTIONS', () => {
 // PATTERN_PRESET_OPTIONS
 // ---------------------------------------------------------------------------
 
+// `PATTERN_PRESET_OPTIONS` is now the shared `{ value, labelKey }` catalogue
+// (render/fill-pattern-label-keys.ts): no English `label`, so it does not fit
+// `assertOptionArray` (used by every other list on this page). This pins the
+// repoint's shape + wiring through the binding instead.
 describe('pATTERN_PRESET_OPTIONS', () => {
 	it('has 50 or more items', () => {
 		expect(PATTERN_PRESET_OPTIONS.length).toBeGreaterThanOrEqual(50);
@@ -123,7 +127,15 @@ describe('pATTERN_PRESET_OPTIONS', () => {
 		expect(values).toContain('zigZag');
 	});
 
-	assertOptionArray(PATTERN_PRESET_OPTIONS, 'PATTERN_PRESET_OPTIONS');
+	it('every item has a non-empty value and labelKey, no duplicate values', () => {
+		for (const opt of PATTERN_PRESET_OPTIONS) {
+			expect(opt.value).toBeTruthy();
+			expect(opt.labelKey).toBeTruthy();
+			expectTypeOf(opt.labelKey).toBeString();
+		}
+		const values = PATTERN_PRESET_OPTIONS.map((o) => o.value);
+		expect(new Set(values).size).toBe(values.length);
+	});
 });
 
 // ---------------------------------------------------------------------------

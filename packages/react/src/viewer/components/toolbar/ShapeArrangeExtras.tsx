@@ -1,5 +1,10 @@
-import { hasShapeProperties } from 'pptx-viewer-core';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import {
+	canGroupSelection,
+	canSetStrokeWidth,
+	canUngroupSelection,
+	strokeWidthOf,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuGroup, LuUngroup } from 'react-icons/lu';
@@ -16,9 +21,6 @@ export interface ShapeArrangeExtrasProps {
 	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
 }
 
-/** Outline thickness the renderer assumes when the shape declares none. */
-const DEFAULT_STROKE_WIDTH = 1;
-
 /**
  * The Arrange group's shape-level extras: Group, Ungroup, and the outline
  * width spinner.
@@ -32,13 +34,10 @@ const DEFAULT_STROKE_WIDTH = 1;
  */
 export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactElement {
 	const { t } = useTranslation();
-	const canGroup = p.canEdit && p.selectedCount >= 2;
-	const canUngroup = p.canEdit && p.selectedElement?.type === 'group';
-	const shape = p.selectedElement !== null && hasShapeProperties(p.selectedElement);
-	const strokeWidth =
-		p.selectedElement !== null && hasShapeProperties(p.selectedElement)
-			? (p.selectedElement.shapeStyle?.strokeWidth ?? DEFAULT_STROKE_WIDTH)
-			: DEFAULT_STROKE_WIDTH;
+	const canGroup = canGroupSelection(p.canEdit, p.selectedCount);
+	const canUngroup = canUngroupSelection(p.canEdit, p.selectedElement);
+	const canStrokeWidth = canSetStrokeWidth(p.canEdit, p.selectedElement);
+	const strokeWidth = strokeWidthOf(p.selectedElement);
 
 	return (
 		<>
@@ -69,7 +68,7 @@ export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactEleme
 				min='0'
 				max='120'
 				step='0.5'
-				disabled={!p.canEdit || !shape}
+				disabled={!canStrokeWidth}
 				// Named explicitly: the spinner has no visible caption in the ribbon,
 				// so without this it announces itself as an anonymous number box.
 				aria-label={t('pptx.ribbon.strokeWidth')}

@@ -9,8 +9,7 @@ vi.mock(import('./dom-helpers'), () => ({
 	},
 }));
 
-const { buildChatLogExport, buildChatLogMarkdown, collectStoredChats, exportAiChatLogs } =
-	await import('./ai-log-export');
+const { exportAiChatLogs } = await import('./ai-log-export');
 
 afterEach(() => {
 	downloaded.length = 0;
@@ -62,59 +61,12 @@ function mockStore(chats: PptxAiStoredChat[]): PptxAiChatStore {
 	};
 }
 
-describe('buildChatLogExport', () => {
-	it('captures tool call name, input, state, and output in detail', () => {
-		const doc = buildChatLogExport([chatWithToolCall()], { now: 5_000 });
-		expect(doc.format).toBe('pptx-ai-chat-log');
-		expect(doc.chatCount).toBe(1);
-		const chat = doc.chats[0];
-		expect(chat.deckId).toBe('my-deck::3');
-		expect(chat.createdAtIso).toBe(new Date(1_000).toISOString());
-		const assistant = chat.messages[1];
-		expect(assistant.text).toBe('Done.');
-		expect(assistant.toolCalls).toHaveLength(1);
-		const call = assistant.toolCalls[0];
-		expect(call.toolName).toBe('update_element_style');
-		expect(call.state).toBe('output-available');
-		expect(call.input).toStrictEqual({ slideIndex: 0, color: 'FF0000' });
-		expect(call.output).toStrictEqual({ updated: true });
-	});
-
-	it('omits tool inputs/outputs when detailed is false', () => {
-		const doc = buildChatLogExport([chatWithToolCall()], { detailed: false });
-		const call = doc.chats[0].messages[1].toolCalls[0];
-		expect(call.toolName).toBe('update_element_style');
-		expect(call.input).toBeUndefined();
-		expect(call.output).toBeUndefined();
-	});
-
-	it('handles the empty case', () => {
-		const doc = buildChatLogExport([]);
-		expect(doc.chatCount).toBe(0);
-		expect(doc.chats).toStrictEqual([]);
-		const md = buildChatLogMarkdown(doc);
-		expect(md).toContain('Chats: 0');
-	});
-});
-
-describe('buildChatLogMarkdown', () => {
-	it('renders tool calls with fenced JSON payloads', () => {
-		const md = buildChatLogMarkdown(buildChatLogExport([chatWithToolCall()]));
-		expect(md).toContain('## Recolor the title');
-		expect(md).toContain('Tool `update_element_style`');
-		expect(md).toContain('FF0000');
-	});
-});
-
-describe('collectStoredChats', () => {
-	it('loads every chat in full from the store', async () => {
-		const chats = await collectStoredChats(mockStore([chatWithToolCall()]));
-		expect(chats).toHaveLength(1);
-		expect(chats[0].messages).toHaveLength(2);
-	});
-});
-
-describe('exportAiChatLogs', () => {
+// `buildChatLogExport` / `buildChatLogMarkdown` / `collectStoredChats` are pure
+// shared helpers (packages/shared/src/ai/chat-log-export.ts) covered by that
+// module's own tests. This file pins only React's DOM glue: that the wrapper
+// reads the store, hands the shared builder's output to `downloadBlob`, and
+// preserves the shared filename/format contract through the binding.
+describe('exportAiChatLogs (React DOM glue)', () => {
 	it('downloads a JSON blob containing tool call details and returns the count', async () => {
 		const store = mockStore([chatWithToolCall()]);
 		const count = await exportAiChatLogs({ store, format: 'json', now: 5_000 });
