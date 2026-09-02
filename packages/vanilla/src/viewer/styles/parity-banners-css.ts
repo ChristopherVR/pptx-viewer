@@ -46,16 +46,12 @@ export const PARITY_BANNERS_CSS = `
 .pptxv-readonly-banner-dismiss svg { width: 14px; height: 14px; }
 
 .pptxv-compat-toasts {
-	position: absolute;
-	right: 12px;
-	bottom: 12px;
-	z-index: 40;
-	display: flex;
-	flex-direction: column;
+	/* Position, size, stacking order and pointer-events come from
+	   \`compatToastStackStyleAttr()\` (render/chrome-metrics), set as an inline
+	   style on the element so every binding anchors the stack to the same
+	   bottom inset above the status bar (see \`ui/compat-toasts.ts\`). */
 	align-items: flex-end;
-	gap: 6px;
 	max-width: min(340px, calc(100% - 24px));
-	pointer-events: none;
 }
 .pptxv-compat-toasts-list {
 	display: flex;

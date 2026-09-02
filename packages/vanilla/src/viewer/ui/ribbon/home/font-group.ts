@@ -41,6 +41,8 @@ export interface FontGroupState {
 	embeddedFontFamilies?: readonly string[];
 	/** Families registered this session via File > Options > Fonts. */
 	customFontFamilies?: readonly string[];
+	/** B6: the deck's `p:clrMru`, most-recent-first; seeds/refreshes both pickers' rows. */
+	recentColors?: readonly string[];
 }
 
 export interface FontGroup {
@@ -212,7 +214,15 @@ export function createFontGroup(
 
 	return {
 		el,
-		update({ canFormat, editable, text, themeFonts, embeddedFontFamilies, customFontFamilies }) {
+		update({
+			canFormat,
+			editable,
+			text,
+			themeFonts,
+			embeddedFontFamilies,
+			customFontFamilies,
+			recentColors,
+		}) {
 			// Regroup per deck: the theme fonts and the embedded set are not
 			// known until a presentation has loaded.
 			fontFamily.setItems(
@@ -235,6 +245,8 @@ export function createFontGroup(
 			fontSize.setSelected(text.fontSize);
 			fontColor.setValue(text.color);
 			highlight.setValue(text.highlightColor);
+			fontColor.setRecentColors(recentColors ?? []);
+			highlight.setRecentColors(recentColors ?? []);
 
 			fontFamily.setDisabled(!editable);
 			fontSize.setDisabled(!editable);

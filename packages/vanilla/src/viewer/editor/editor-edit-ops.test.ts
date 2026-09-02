@@ -3,6 +3,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
 import type { ViewerState } from '../state';
 import { createEditActions } from './editor-edit-ops';
@@ -38,7 +39,14 @@ function setup(overrides: Partial<ViewerState> = {}) {
 		...overrides,
 	});
 	const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
-	const actions = createEditActions({ doc: document, store, ops, getHandler: () => null });
+	const actions = createEditActions({
+		doc: document,
+		getTranslator: () => createTranslator(),
+		store,
+		ops,
+		getHandler: () => null,
+		setHandler: () => {},
+	});
 	return { store, ops, actions };
 }
 

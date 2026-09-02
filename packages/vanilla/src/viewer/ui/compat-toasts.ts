@@ -1,3 +1,4 @@
+import { compatToastStackStyleAttr } from 'pptx-viewer-shared';
 import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -28,6 +29,10 @@ export function createCompatToastStack(
 	const el = createEl(doc, 'div', 'pptxv-compat-toasts');
 	el.dataset.testid = 'pptx-compat-toasts';
 	el.hidden = true;
+	// Anchored to the VIEWER ROOT (this element must be appended there, the
+	// same containing block the dialogs use), bottom-inset above the status
+	// bar so a toast never covers the "Slide show" button.
+	el.setAttribute('style', compatToastStackStyleAttr());
 	el.setAttribute('role', 'region');
 	el.setAttribute('aria-label', t('pptx.compatibility.toastTitle'));
 	const list = createEl(doc, 'div', 'pptxv-compat-toasts-list');

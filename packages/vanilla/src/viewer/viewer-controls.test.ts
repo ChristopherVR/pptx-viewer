@@ -247,3 +247,37 @@ describe('viewerControls authored slide range (p:showPr/p:sldRg)', () => {
 		expect(store.get().currentSlide).toBe(2);
 	});
 });
+
+describe('viewerControls presentationEntryIndex (entering a show "from current slide")', () => {
+	it('stays on the active slide when the show includes it', () => {
+		const { controls } = harness({
+			deck: slides(false, false, false, false),
+			presenting: false,
+			startIndex: 2,
+			showSlidesRange: { from: 2, to: 3 },
+		});
+		expect(controls.presentationEntryIndex()).toBe(2);
+	});
+
+	it('lands on the nearest show slide when the active slide is outside the range', () => {
+		const { controls } = harness({
+			deck: slides(false, false, false, false),
+			presenting: false,
+			startIndex: 0,
+			// 1-based: slides 2..3.
+			showSlidesRange: { from: 2, to: 3 },
+		});
+		expect(controls.presentationEntryIndex()).toBe(1);
+	});
+
+	it('falls back to the show start when the active slide is past the range', () => {
+		const { controls } = harness({
+			deck: slides(false, false, false, false),
+			presenting: false,
+			startIndex: 3,
+			// 1-based: slides 1..2.
+			showSlidesRange: { from: 1, to: 2 },
+		});
+		expect(controls.presentationEntryIndex()).toBe(0);
+	});
+});

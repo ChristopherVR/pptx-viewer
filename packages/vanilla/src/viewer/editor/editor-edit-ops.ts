@@ -13,6 +13,7 @@ import {
 } from 'pptx-viewer-shared';
 import type { Guide, InsertChartKind, ShapePresetType } from 'pptx-viewer-shared';
 
+import type { Translator } from '../i18n';
 import type { Store, ViewerState } from '../state';
 import { getActiveElements } from './editor-active-elements';
 import type { AnimationActions } from './editor-animation-actions';
@@ -44,7 +45,10 @@ import {
 } from './editor-insert-structured';
 import type { InspectorActions } from './editor-inspector-actions';
 import { createInspectorActions } from './editor-inspector-actions';
+import type { MasterViewCrudActions } from './editor-master-view-crud-actions';
+import { createMasterViewCrudActions } from './editor-master-view-crud-actions';
 import type { EditorOps } from './editor-operations';
+import { recordRecentColor } from './editor-recent-colors';
 import type { SectionActions } from './editor-section-actions';
 import { createSectionActions } from './editor-section-actions';
 import type { SlideActions } from './editor-slide-actions';
@@ -87,6 +91,8 @@ export interface EditActions
 		DeckActions {
 	/** Slide section CRUD and ordering actions. */
 	sections: SectionActions;
+	/** Slide Master view sidebar CRUD (Insert/Duplicate/Delete/Rename Layout/Master). */
+	masterView: MasterViewCrudActions;
 	// Slide-level review comments, shared by desktop and mobile chrome.
 	comments: CommentActions;
 	toggleFormatPainter(): void;
@@ -128,10 +134,14 @@ export interface EditActions
 
 export interface EditActionsDeps {
 	doc: Document;
+	/** Live getter: a `setLocale` switch must reach the master-view CRUD actions. */
+	getTranslator(): Translator;
 	store: Store<ViewerState>;
 	ops: EditorOps;
 	/** Live handler getter (deck-level theme apply); null before a load. */
 	getHandler(): PptxHandler | null;
+	/** See `MasterViewCrudActionsDeps.setHandler`. */
+	setHandler(handler: PptxHandler): void;
 	/** Options > General > "User name" override for new comment/reply authorship. */
 	getUserName?: () => string | undefined;
 }
@@ -164,7 +174,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 	};
 
 	return {
-		...createTextActions(applyToSelected),
+		...createTextActions(store, applyToSelected),
 		...createArrangeActions({ store, ops, applyToSelected }),
 		...createClipboardActions({ store, ops }),
 		...createSlideActions({ store, ops, getHandler: deps.getHandler }),
@@ -175,6 +185,14 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createInkActions({ store, ops }),
 		...createDeckActions({ store, ops, getHandler: deps.getHandler }),
 		sections: createSectionActions(store, ops),
+		masterView: createMasterViewCrudActions({
+			doc,
+			getTranslator: deps.getTranslator,
+			store,
+			ops,
+			getHandler: deps.getHandler,
+			setHandler: deps.setHandler,
+		}),
 		comments: createCommentActions({ store, ops, getUserName: deps.getUserName }),
 		toggleFormatPainter() {
 			const state = store.get();
@@ -187,9 +205,14 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		// active gradient/pattern mode (mirrors the React/Vue "Fill & Stroke" panel).
 		// The patch itself comes from the shared `shapeFillChange`/`shapeOutlineChange`
 		// decision functions so the two keys can't drift from the other bindings.
-		setShapeFill: (color) => applyToSelected((el) => patchShapeStyle(el, shapeFillChange(color))),
-		setShapeStroke: (color) =>
-			applyToSelected((el) => patchShapeStyle(el, shapeOutlineChange(color))),
+		setShapeFill: (color) => {
+			recordRecentColor(store, color);
+			applyToSelected((el) => patchShapeStyle(el, shapeFillChange(color)));
+		},
+		setShapeStroke: (color) => {
+			recordRecentColor(store, color);
+			applyToSelected((el) => patchShapeStyle(el, shapeOutlineChange(color)));
+		},
 		setShapeStrokeWidth: (width) =>
 			applyToSelected((el) => patchShapeStyle(el, { strokeWidth: Math.max(0, width) })),
 		setShapeStyle: (patch) => applyToSelected((el) => patchShapeStyle(el, patch)),

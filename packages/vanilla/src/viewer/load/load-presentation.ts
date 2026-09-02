@@ -2,6 +2,7 @@ import type {
 	MediaPptxElement,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCompatibilityWarning,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -9,6 +10,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
+	PptxModernCommentAuthor,
 	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
@@ -63,6 +65,10 @@ export interface LoadedPresentation {
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
 	customShows: PptxCustomShow[];
+	/** Office 2021 (p188) comment authors, for the `@`-mention typeahead. */
+	modernCommentAuthors: PptxModernCommentAuthor[];
+	/** Legacy `ppt/commentAuthors.xml` authors, mapped into the typeahead too. */
+	commentAuthors: PptxCommentAuthor[];
 	embeddedFonts: PptxEmbeddedFont[];
 	hasDigitalSignatures: boolean;
 	digitalSignatureCount: number;
@@ -147,6 +153,8 @@ export async function loadPresentation(
 			appProperties: parsed.appProperties,
 			customProperties: parsed.customProperties ?? [],
 			customShows: parsed.customShows ?? [],
+			modernCommentAuthors: parsed.modernCommentAuthors ?? [],
+			commentAuthors: parsed.commentAuthors ?? [],
 			embeddedFonts: parsed.embeddedFonts ?? [],
 			hasDigitalSignatures: parsed.hasDigitalSignatures ?? false,
 			digitalSignatureCount: parsed.digitalSignatureCount ?? 0,

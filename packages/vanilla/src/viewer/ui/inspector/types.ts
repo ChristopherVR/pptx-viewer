@@ -4,7 +4,10 @@ import type {
 	PptxChartData,
 	MediaPptxElement,
 	PptxComment,
+	PptxCommentMention,
+	PptxCustomShow,
 	PptxElement,
+	PptxModernCommentAuthor,
 	PptxPresentationProperties,
 	PptxSlide,
 	PptxSlideMaster,
@@ -89,9 +92,9 @@ export interface InspectorHandlers {
 	 */
 	applySlideSizeRescale(size: SlideSizeEmu, mode: SlideSizeRescaleMode): void;
 	/** Add a comment on the current slide (Comments tab). */
-	addComment(text: string): void;
+	addComment(text: string, mentions?: PptxCommentMention[]): void;
 	/** Append a reply under a top-level comment (Comments tab reply form). */
-	addCommentReply(parentId: string, text: string): void;
+	addCommentReply(parentId: string, text: string, mentions?: PptxCommentMention[]): void;
 	/** Replace a comment's (or reply's) text (Comments tab edit-in-place). */
 	editComment(id: string, text: string): void;
 	deleteComment(id: string): void;
@@ -323,6 +326,10 @@ export interface InspectorDeckState {
 	/** Primary selected element id (docked Animation panel target), if any. */
 	selectedElementId?: string;
 	comments: readonly PptxComment[];
+	/** Authors offered by the Comments tab's `@`-mention typeahead. */
+	commentMentionAuthors: readonly PptxModernCommentAuthor[];
+	/** Named custom shows, for the Action Settings panel's `customShow` picker. */
+	customShows: readonly PptxCustomShow[];
 	docTitle: string | undefined;
 	docAuthor: string | undefined;
 	editable: boolean;

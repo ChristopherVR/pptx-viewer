@@ -2,15 +2,21 @@
    (many independent short-lived `const`s per render pass); merging them
    isn't a style choice here. */
 import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { ChartPartRef } from 'pptx-viewer-shared';
+import type {
+	ChartPartRef,
+	MasterViewCrudAction,
+	MasterViewCrudActionId,
+} from 'pptx-viewer-shared';
 import {
 	computeGridSpacingPx,
 	DEFAULT_MASTER_PAGE_SIZE,
+	masterViewCrudActions,
 	masterViewPseudoSlide,
 } from 'pptx-viewer-shared';
 
 import type { PresentationPlayback } from './animation';
 import { createPresentationPlayback } from './animation';
+import { fullTarget, toPptxData } from './editor/editor-master-view-crud-actions';
 import type { Translator } from './i18n';
 import type { ElementRenderContext, ElementRendererRegistry } from './render';
 import { renderSlideStage, reRenderPresentationElements } from './render';
@@ -19,6 +25,12 @@ import { appendCommentMarkers } from './render/comment-markers';
 import type { Store, ViewerState } from './state';
 import type { ViewerChrome } from './ui';
 import { renderHandoutMasterCanvas, renderNotesMasterCanvas } from './ui/master-canvases';
+
+/** The sidebar's action list for the current master-view target, or `[]` when there is none. */
+function currentMasterViewCrudActions(state: ViewerState): MasterViewCrudAction[] {
+	const target = fullTarget(state);
+	return target ? masterViewCrudActions(toPptxData(state), target) : [];
+}
 
 /** Fit-mode breathing room around the stage (viewport padding), in px. */
 const FIT_PADDING_PX = 32;
@@ -73,6 +85,8 @@ export interface RenderControllerDeps {
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
+	/** Run a Slide Master view sidebar CRUD command (B4). */
+	onMasterCrudAction(id: MasterViewCrudActionId): void;
 	onSectionToggle(sectionId: string): void;
 	onSectionRename(sectionId: string, name: string): void;
 	onSectionDelete(sectionId: string): void;
@@ -198,6 +212,10 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			onTableResizeRow: interactive ? deps.onTableResizeRow : undefined,
 			chartPartSelection: state.chartPartSelection,
 			onChartPartSelect: interactive ? deps.onChartPartSelect : undefined,
+			// Only the interactive canvas arms a chart's on-canvas mark hit-testing
+			// (`chart-editable.ts` requires BOTH `interactive` and this to include the
+			// chart's id), so thumbnails and export rasters never see it either way.
+			selectedElementIds: interactive ? new Set(state.selectedElementIds) : undefined,
 			interactive,
 			templateEditing: state.editTemplateMode || state.masterViewTarget !== null,
 			// Native-animation state + context capture only for the live presentation
@@ -398,6 +416,8 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				handoutMasterPresent: Boolean(state.handoutMaster),
 				handoutSlidesPerPage: state.handoutSlidesPerPage,
 				editable: state.editable,
+				crudActions: currentMasterViewCrudActions(state),
+				onCrudAction: deps.onMasterCrudAction,
 				renderStage: renderStageFor,
 				onSelect: (masterIndex, layoutIndex) => {
 					store.set({

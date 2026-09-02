@@ -107,4 +107,45 @@ export const INSPECTOR_PANELS_CSS = `
 	padding-left: 8px;
 	border-left: 2px solid color-mix(in srgb, var(--pptx-primary) 40%, transparent);
 }
+
+/* ── @-mention typeahead (new-comment / reply drafts) ────────────────── */
+.pptxv-comment-mention-suggestions {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	margin-top: 2px;
+	padding: 2px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-card);
+	max-height: 140px;
+	overflow-y: auto;
+}
+.pptxv-comment-mention-option {
+	padding: 4px 6px;
+	border: none;
+	border-radius: 3px;
+	background: transparent;
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 11px;
+	text-align: left;
+	cursor: pointer;
+}
+.pptxv-comment-mention-option:hover,
+.pptxv-comment-mention-option.is-active {
+	background: var(--pptx-accent);
+	color: var(--pptx-accent-foreground);
+}
+
+/* ── Action Settings: custom-show "return after" checkbox ────────────── */
+.pptxv-action-return-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 4px;
+	font-size: 11px;
+	color: var(--pptx-foreground);
+}
+.pptxv-action-return-row[hidden] { display: none; }
 `;

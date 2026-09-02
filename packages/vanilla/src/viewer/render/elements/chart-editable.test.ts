@@ -39,6 +39,10 @@ function makeContext(overrides: Partial<ElementRenderContext> = {}): ElementRend
 		pieChart3D: false,
 		presenting: false,
 		interactive: true,
+		// B3: marks arm only while the chart is selected. Every pre-existing test
+		// below exercises the ARMED (selected) behaviour, so this defaults to
+		// selected; the "not selected" gating gets its own describe block.
+		selectedElementIds: new Set([element.id]),
 		registry: {} as ElementRenderContext['registry'],
 		renderChild: () => null,
 		...overrides,
@@ -197,6 +201,58 @@ describe('vanilla chart on-canvas value drag', () => {
 		drag(180, 'pointerup');
 
 		expect(onChartPointChange).not.toHaveBeenCalled();
+	});
+});
+
+/**
+ * B3: marks are armed only while the chart is SELECTED, so the FIRST click on
+ * an unselected chart's mark selects the chart (like a click anywhere else on
+ * it) rather than being swallowed as a value-drag press.
+ */
+describe('vanilla chart marks arm only when selected', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	it('does not arm the marks for an unselected chart', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(
+			element,
+			1,
+			makeContext({ onChartPointChange, selectedElementIds: new Set() }),
+		);
+		expect(container?.classList.contains('pptx-chart-interactive')).toBeFalsy();
+	});
+
+	it('lets a mark press on an unselected chart bubble up instead of being consumed', () => {
+		const onChartPointChange = vi.fn();
+		const onChartPartSelect = vi.fn();
+		const container = renderChartElement(
+			element,
+			1,
+			makeContext({ onChartPointChange, onChartPartSelect, selectedElementIds: new Set() }),
+		);
+		document.body.appendChild(container as HTMLElement);
+		const bar = container?.querySelector('[data-chart-part="dataPoint"]') as SVGElement;
+
+		const event = new MouseEvent('pointerdown', { bubbles: true, cancelable: true });
+		const stopped = !bar.dispatchEvent(event);
+
+		// Nothing here claims the press: it is not treated as a value drag or a
+		// part selection, and propagation is left alone for the normal
+		// element-selection handler higher up the tree to see it.
+		expect(onChartPartSelect).not.toHaveBeenCalled();
+		expect(stopped).toBeFalsy();
+	});
+
+	it('arms the marks once the chart is selected', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(
+			element,
+			1,
+			makeContext({ onChartPointChange, selectedElementIds: new Set([element.id]) }),
+		);
+		expect(container?.classList.contains('pptx-chart-interactive')).toBeTruthy();
 	});
 });
 

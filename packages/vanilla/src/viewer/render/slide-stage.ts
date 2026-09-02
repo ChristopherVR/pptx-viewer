@@ -101,6 +101,8 @@ export interface SlideStageOptions {
 	readonly chartPartSelection?: ChartPartSelection | null;
 	/** See `ElementRenderContext.onChartPartSelect`. */
 	readonly onChartPartSelect?: (element: PptxElement, part: ChartPartRef) => void;
+	/** See `ElementRenderContext.selectedElementIds`. */
+	readonly selectedElementIds?: ReadonlySet<string>;
 	/**
 	 * True only for the main (interactive) canvas, never the thumbnail rail.
 	 * Marks every rendered element (recursively, including group children) with
@@ -195,6 +197,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		onTableResizeRow: options.onTableResizeRow,
 		chartPartSelection: options.chartPartSelection,
 		onChartPartSelect: options.onChartPartSelect,
+		selectedElementIds: options.selectedElementIds,
 		registry,
 		renderElement(element: PptxElement, zIndex: number) {
 			// Hidden via the Selection Pane: build no node at all, exactly as

@@ -52,6 +52,7 @@ import {
 	makeSlideId,
 	mergePresentationSnapshot,
 	openPptxFile,
+	resolveAuthoredSlideRange,
 	resolveExpiredAutosaveSnapshots,
 	resolveImageResolutionScale,
 	shouldClearAutosaveCacheOnClose,
@@ -238,6 +239,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onHandoutSlidesPerPageChange: (count) => this.editor?.setHandoutSlidesPerPage(count),
 			onMasterBackgroundColorChange: (color) =>
 				this.editor?.getEditActions().setSlideBackgroundColor(color),
+			onMasterCrudAction: (id) =>
+				void this.editor?.getEditActions().masterView.runMasterViewCrudAction(id),
 			onSectionToggle: (sectionId) =>
 				this.editor?.getEditActions().sections.toggleSection(sectionId),
 			onSectionRename: (sectionId, name) =>
@@ -342,6 +345,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getTranslator: () => this.t,
 			getScale: () => this.renderer.effectiveScale(),
 			getHandler: () => this.loading.getHandler(),
+			setHandler: (handler) => this.loading.setHandler(handler),
 			getUserName: () => this.optionsController?.getOptions().general.userName,
 			transformCommittedText: (text) =>
 				this.optionsController?.transformCommittedText(text) ?? text,
@@ -1131,6 +1135,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 					? (state.customShows.find(({ id }) => id === state.activeCustomShowId) ?? null)
 					: null;
 			},
+			getAuthoredRange: () => {
+				const state = this.store.get();
+				return resolveAuthoredSlideRange(state.presentationProperties, state.slides.length);
+			},
 			renderSlide: (slide, scale) => this.renderer.renderSlideNode(slide, scale),
 			navigate: (index) => this.goToSlide(index),
 			move: (direction) => (direction === 1 ? this.controls.next() : this.controls.prev()),
@@ -1594,6 +1602,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	getSelectedElementId = (): string | null => this.editor.getSelectedElementId();
 
 	async enterPresentation(): Promise<void> {
+		// Every "from current slide" way into the show (status-bar button, ribbon
+		// From Current Slide, Shift+F5, `setMode('present')`, mobile toolbar) seeds
+		// the presentation index here, not the raw active slide: a deck authored
+		// with `p:showPr/p:sldRg` or a custom show can have an active slide the
+		// show does not include. "From Beginning" already lands on
+		// `firstShowSlideIndex()` before calling this, which this leaves alone
+		// (it is by definition already in the show).
+		this.controls.goToSlide(this.controls.presentationEntryIndex());
 		await this.lifecycle.presentation.enter();
 	}
 

@@ -2,6 +2,7 @@ import type {
 	MasterViewTab,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
@@ -9,6 +10,7 @@ import type {
 	PptxElement,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -73,6 +75,10 @@ export interface ViewerState {
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
 	customShows: PptxCustomShow[];
+	/** Office 2021 (p188) comment authors, for the `@`-mention typeahead. */
+	modernCommentAuthors: PptxModernCommentAuthor[];
+	/** Legacy `ppt/commentAuthors.xml` authors, mapped into the typeahead too. */
+	commentAuthors: PptxCommentAuthor[];
 	/**
 	 * The custom show a started slide show is restricted to, or null for the
 	 * whole deck. Custom shows were definable here but nothing could select one,
@@ -288,6 +294,8 @@ export function createInitialViewerState(): ViewerState {
 		appProperties: undefined,
 		customProperties: [],
 		customShows: [],
+		modernCommentAuthors: [],
+		commentAuthors: [],
 		activeCustomShowId: null,
 		embeddedFonts: [],
 		embedFonts: true,

@@ -53,6 +53,16 @@ export function attachChartEditing(
 	if (!chart.chartData) {
 		return;
 	}
+	// Marks are armed (pointer-events:auto, hit-testing) only while THIS chart is
+	// selected. An unselected chart must let a mark press bubble up to the normal
+	// element-selection handler, exactly like a click anywhere else on it: the
+	// first click on a mark selects the chart instead of being swallowed here.
+	// A selection change re-renders the stage (`state-sync.ts`), which rebuilds
+	// this container and re-runs this function with the new selection, so the
+	// class (and every listener below) is re-armed or torn down on the next click.
+	if (!context.selectedElementIds?.has(element.id)) {
+		return;
+	}
 	ensureChartInteractionStyles();
 	container.classList.add(CHART_INTERACTIVE_CLASS);
 

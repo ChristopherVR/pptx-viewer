@@ -74,6 +74,14 @@ export interface LoadingController {
 	/** Dispose the current handler + Blob URLs (before replacing or on destroy). */
 	releaseLoaded(): void;
 	getHandler(): PptxHandler | null;
+	/**
+	 * Adopt a handler produced by an IN-SESSION document mutation that returns
+	 * a fresh `PptxHandler` rather than patching the existing one (Slide
+	 * Master view CRUD's `applyMasterViewCrudAction`, which reloads a new ZIP
+	 * built from the current archive). Disposes the previous handler; leaves
+	 * Blob URLs and the load token alone, since this is not a new document.
+	 */
+	setHandler(next: PptxHandler): void;
 	/** Invalidate any in-flight load so it discards its result on resolution. */
 	invalidate(): void;
 }
@@ -162,6 +170,8 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				appProperties: loaded.appProperties,
 				customProperties: loaded.customProperties,
 				customShows: loaded.customShows,
+				modernCommentAuthors: loaded.modernCommentAuthors,
+				commentAuthors: loaded.commentAuthors,
 				// Custom-show ids belong to the document that defined them, so the
 				// previous deck's active show must not survive into this one.
 				//
@@ -231,6 +241,10 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 		load,
 		releaseLoaded,
 		getHandler: () => handler,
+		setHandler: (next) => {
+			handler?.dispose();
+			handler = next;
+		},
 		invalidate: () => {
 			loadToken++;
 		},

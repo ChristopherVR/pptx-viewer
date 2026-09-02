@@ -1,6 +1,7 @@
 import type { TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
 
+import type { Store, ViewerState } from '../state';
 import type { ApplyToSelected } from './editor-apply-to-selected';
 import {
 	adjustFontSize,
@@ -22,6 +23,7 @@ import {
 	setTextDirection,
 	toggleListType,
 } from './editor-paragraph-mutations';
+import { recordRecentColor } from './editor-recent-colors';
 
 /**
  * Character + paragraph formatting actions for the ribbon's Home > Font and
@@ -54,7 +56,10 @@ export interface TextActions {
 	setColumnCount(count: number): void;
 }
 
-export function createTextActions(applyToSelected: ApplyToSelected): TextActions {
+export function createTextActions(
+	store: Store<ViewerState>,
+	applyToSelected: ApplyToSelected,
+): TextActions {
 	return {
 		toggleBold: () => applyToSelected((el) => toggleTextProp(el, 'bold')),
 		toggleItalic: () => applyToSelected((el) => toggleTextProp(el, 'italic')),
@@ -64,8 +69,14 @@ export function createTextActions(applyToSelected: ApplyToSelected): TextActions
 		changeFontSize: (delta) => applyToSelected((el) => adjustFontSize(el, delta)),
 		setFontSize: (size) => applyToSelected((el) => setFontSize(el, size)),
 		setFontFamily: (family) => applyToSelected((el) => setFontFamily(el, family)),
-		setTextColor: (color) => applyToSelected((el) => setTextColor(el, color)),
-		setHighlightColor: (color) => applyToSelected((el) => setHighlightColor(el, color)),
+		setTextColor: (color) => {
+			recordRecentColor(store, color);
+			applyToSelected((el) => setTextColor(el, color));
+		},
+		setHighlightColor: (color) => {
+			recordRecentColor(store, color);
+			applyToSelected((el) => setHighlightColor(el, color));
+		},
 		setCharacterSpacing: (value) => applyToSelected((el) => setCharacterSpacing(el, value)),
 		changeCase: (mode) => applyToSelected((el) => changeTextCase(el, mode)),
 		clearFormatting: () => applyToSelected((el) => clearFormatting(el)),

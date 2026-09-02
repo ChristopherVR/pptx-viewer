@@ -69,7 +69,10 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.masterViewTab !== previous.masterViewTab ||
 			state.handoutSlidesPerPage !== previous.handoutSlidesPerPage ||
 			state.headerFooter !== previous.headerFooter ||
-			state.customProperties !== previous.customProperties
+			state.customProperties !== previous.customProperties ||
+			// A chart arms its on-canvas mark hit-testing only while selected (B3),
+			// so selecting/deselecting one must re-render the stage to re-arm it.
+			state.selectedElementIds !== previous.selectedElementIds
 		) {
 			renderer.renderStage();
 		}

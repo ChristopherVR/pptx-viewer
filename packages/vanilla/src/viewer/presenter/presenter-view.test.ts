@@ -168,6 +168,19 @@ describe('vanilla presenter view', () => {
 		expect(preview?.querySelector('[data-preview-slide-id="s2"]')).toBeNull();
 	});
 
+	// `p:showPr/p:sldRg`: Set Up Slide Show > "Show slides" > "From"/"To"
+	// confines the preview exactly like a custom show does: past the range's
+	// last slide there is nothing next, even though the deck continues.
+	it('confines the next-slide preview to the authored range', () => {
+		harness = mount([slide('s1'), slide('s2'), slide('s3'), slide('s4')], {
+			getAuthoredRange: () => ({ fromIndex: 0, toIndex: 1 }),
+		});
+		harness.setCurrent(1);
+		expect(harness.container.querySelector('.pptxv-presenter-next-body')?.textContent).toBe(
+			t('pptx.presenter.endOfPresentation'),
+		);
+	});
+
 	it('says so when there is nothing after the current slide', () => {
 		harness = mount([slide('s1'), slide('s2', { hidden: true })]);
 		expect(harness.container.querySelector('.pptxv-presenter-next-body')?.textContent).toBe(

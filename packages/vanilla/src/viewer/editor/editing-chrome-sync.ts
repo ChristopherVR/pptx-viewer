@@ -5,7 +5,9 @@ import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
+import { combineCommentMentionAuthors } from '../ui/comment-mention-typeahead';
 import type { LayoutOption } from '../ui/ribbon/ribbon-types';
+import { currentRecentColors } from './editor-recent-colors';
 import { buildInspectorState } from './inspector-state-builder';
 
 /**
@@ -99,8 +101,14 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			},
 			embeddedFontFamilies: state.embeddedFonts.map((font) => font.name),
 			customFontFamilies: state.customFontFamilies,
+			recentColors: currentRecentColors(state),
 		});
-		ribbon?.setDrawState({ tool: state.drawTool, color: state.drawColor, width: state.drawWidth });
+		ribbon?.setDrawState({
+			tool: state.drawTool,
+			color: state.drawColor,
+			width: state.drawWidth,
+			recentColors: currentRecentColors(state),
+		});
 
 		inspector?.update(
 			buildInspectorState(
@@ -125,6 +133,11 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			selectedIds: state.selectedElementIds,
 			selectedElementId: el?.id,
 			comments: activeSlide?.comments ?? [],
+			commentMentionAuthors: combineCommentMentionAuthors(
+				state.modernCommentAuthors,
+				state.commentAuthors,
+			),
+			customShows: state.customShows,
 			docTitle: state.coreProperties?.title,
 			docAuthor: state.coreProperties?.creator,
 			editable: editingVisible,

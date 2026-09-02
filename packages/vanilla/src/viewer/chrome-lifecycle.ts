@@ -13,9 +13,11 @@ import type { ChromeCallbackDeps } from './chrome-callbacks';
 import type { EditActions } from './editor';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
+import { buildPresentationActionRunner } from './presentation-action-runner';
 import { isSwipeAdvanceBlocked, resolvePresentationStageClick } from './presentation-advance-gate';
 import { attachAutoAdvance } from './presentation-auto-advance';
 import { attachShowVisibilityPause } from './presentation-visibility';
+import { createCustomShowRunner } from './presenter/presentation-custom-show-runner';
 import type { RenderController } from './render-controller';
 import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
@@ -319,6 +321,32 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	const detachEndScreen = store.subscribe(syncEndScreen);
 	syncEndScreen();
 
+	// `ppaction://hlinkshowjump?jump=lastslideviewed`: the deck index the show
+	// was on immediately before the current one. Tracked here (not derived from
+	// `viewer-controls`' show order) because "last viewed" is genuinely the
+	// previous slide the audience SAW, including a jump made by a different
+	// action or a custom show, not "the previous slide in show order".
+	let previousPresentedSlide: number | null = null;
+	const detachLastViewedTracker = store.subscribe((state, previous) => {
+		if (state.presenting && state.currentSlide !== previous.currentSlide) {
+			previousPresentedSlide = previous.currentSlide;
+		}
+		if (previous.presenting && !state.presenting) {
+			previousPresentedSlide = null;
+		}
+	});
+	const customShowRunner = createCustomShowRunner(store, (index) => deps.goToSlide(index));
+	const presentationActionRunner = buildPresentationActionRunner({
+		goToSlide: (index) => deps.goToSlide(index),
+		next: () => deps.next(),
+		prev: () => deps.prev(),
+		exitPresentation: () => deps.exitPresentation(),
+		confirmExternalHyperlink: deps.confirmExternalHyperlink,
+		getStageRoot: () => chrome.stageWrap,
+		getPreviousPresentedSlide: () => previousPresentedSlide,
+		customShowRunner,
+	});
+
 	const onPresentationClick = (event: MouseEvent): void => {
 		const state = store.get();
 		if (!state.presenting || !(event.target instanceof Element)) {
@@ -337,14 +365,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			animationBuildsComplete: renderer.presentationPlayback.isComplete(),
 			currentSlide: state.slides[state.currentSlide],
 			slideCount: state.slides.length,
-			runner: {
-				goToSlide: (index) => deps.goToSlide(index),
-				move: (direction) => (direction > 0 ? deps.next() : deps.prev()),
-				endShow: () => deps.exitPresentation(),
-				// An on-slide Action Setting's own "Hyperlink to a URL" must clear the
-				// same Trust Center gate a text hyperlink click does.
-				confirmUrl: (url) => deps.confirmExternalHyperlink?.(url) ?? true,
-			},
+			runner: presentationActionRunner,
 		});
 		if (!shouldAdvance) {
 			return;
@@ -426,6 +447,8 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		autoAdvance.detach();
 		detachShowVisibility();
 		detachEndScreen();
+		detachLastViewedTracker();
+		customShowRunner.dispose();
 		endScreen.remove();
 		presentationContextMenu.destroy();
 	};

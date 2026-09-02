@@ -39,6 +39,8 @@ export interface SwatchPickerHandle {
 	el: HTMLElement;
 	setValue(hex: string | undefined): void;
 	setDisabled(disabled: boolean): void;
+	/** B6: refresh the "Recent colours" row (most-recent-first); hidden when empty. */
+	setRecentColors(colors: readonly string[]): void;
 }
 
 /** Normalise an arbitrary colour string to `#rrggbb`, or the fallback when invalid. */
@@ -78,14 +80,29 @@ export function makeSwatchPicker(
 	menu.hidden = true;
 	el.appendChild(menu);
 
+	// B6: "Recent colours" - MRU picks, seeded from the deck's `p:clrMru` and
+	// folded forward by every commit (`editor-recent-colors.ts`). Built above
+	// the preset grid, PowerPoint's own ordering, and hidden while empty.
+	const recentLabel = createEl(doc, 'div', 'pptxv-swatch-recent-label');
+	recentLabel.textContent = t('pptx.colorPicker.recentColors');
+	recentLabel.hidden = true;
+	const recentGrid = createEl(doc, 'div', 'pptxv-swatch-grid pptxv-swatch-recent-grid');
+	recentGrid.dataset.testid = 'pptx-color-recent';
+	recentGrid.hidden = true;
+	menu.append(recentLabel, recentGrid);
+
 	const grid = createEl(doc, 'div', 'pptxv-swatch-grid');
 	menu.appendChild(grid);
 
 	let value = options.fallback;
 	const swatchButtons = new Map<HTMLButtonElement, string>();
+	const recentButtons = new Map<HTMLButtonElement, string>();
 
 	const applySelected = (): void => {
 		for (const [btn, hex] of swatchButtons) {
+			btn.classList.toggle('is-selected', hex === value);
+		}
+		for (const [btn, hex] of recentButtons) {
 			btn.classList.toggle('is-selected', hex === value);
 		}
 		swab.style.backgroundColor = value;
@@ -154,6 +171,26 @@ export function makeSwatchPicker(
 			if (disabled) {
 				setOpen(false);
 			}
+		},
+		setRecentColors(colors) {
+			recentButtons.clear();
+			recentGrid.replaceChildren();
+			for (const hex of colors) {
+				const btn = createEl(doc, 'button', 'pptxv-swatch');
+				btn.type = 'button';
+				btn.setAttribute('data-pptx-compact', '');
+				btn.style.backgroundColor = hex;
+				btn.setAttribute('aria-label', hex);
+				btn.addEventListener('click', () => {
+					setOpen(false);
+					options.onSelect(hex);
+				});
+				recentGrid.appendChild(btn);
+				recentButtons.set(btn, hex);
+			}
+			recentLabel.hidden = colors.length === 0;
+			recentGrid.hidden = colors.length === 0;
+			applySelected();
 		},
 	};
 }

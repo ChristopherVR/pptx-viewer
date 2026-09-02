@@ -38,6 +38,7 @@ import { createFindReplaceActions } from './editor-find-replace-actions';
 import { createEditorKeydownHandler } from './editor-keyboard';
 import { selectionInteractivity } from './editor-lock-gates';
 import { createEditorOps } from './editor-operations';
+import { recordRecentColor } from './editor-recent-colors';
 import { createStageInteractions } from './editor-stage-interactions';
 import { createMotionPathController } from './motion-path-controller';
 import type { SelectionOverlay } from './selection-overlay';
@@ -51,6 +52,8 @@ export interface EditorControllerDeps {
 	getTranslator(): Translator;
 	getScale(): number;
 	getHandler(): PptxHandler | null;
+	/** Adopt a handler produced by an in-session mutation (Slide Master view CRUD). */
+	setHandler(handler: PptxHandler): void;
 	/** Options > General > "User name" override for new comment/reply authorship. */
 	getUserName?: () => string | undefined;
 	/** Options > Proofing > AutoCorrect, applied to committed inline-edit text. */
@@ -150,9 +153,11 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 
 	const editActions = createEditActions({
 		doc,
+		getTranslator: deps.getTranslator,
 		store,
 		ops,
 		getHandler: deps.getHandler,
+		setHandler: deps.setHandler,
 		getUserName: deps.getUserName,
 	});
 	const findReplaceActions = createFindReplaceActions({ store, ops });
@@ -501,7 +506,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			ops.commitChange();
 		},
 		setDrawTool: (tool) => drawMode.setTool(tool),
-		setDrawColor: (color) => drawMode.setColor(color),
+		setDrawColor: (color) => {
+			recordRecentColor(store, color);
+			drawMode.setColor(color);
+		},
 		setDrawWidth: (width) => drawMode.setWidth(width),
 		getEditActions: () => editActions,
 		getFindReplaceActions: () => findReplaceActions,

@@ -34,6 +34,8 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 		elements: [],
 		selectedIds: [],
 		comments: [],
+		commentMentionAuthors: [],
+		customShows: [],
 		docTitle: 'Deck',
 		docAuthor: 'Author',
 		editable: true,

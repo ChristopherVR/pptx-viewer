@@ -1,14 +1,17 @@
-import type { PptxComment } from 'pptx-viewer-core';
+import type { PptxComment, PptxCommentMention, PptxModernCommentAuthor } from 'pptx-viewer-core';
 
 import type { CommentActions } from '../editor/editor-comment-actions';
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { attachCommentMentionTypeahead } from './comment-mention-typeahead';
 import { createCommentThreadView } from './comment-thread-view';
 
 /** Live view of the active slide's comments backing the workspace pane. */
 export interface CommentsPanelModel {
 	/** The active slide's comments at this moment. */
 	getComments(): readonly PptxComment[];
+	/** Authors offered by the `@`-mention typeahead. */
+	getAuthors(): readonly PptxModernCommentAuthor[];
 	/** Notify on any state change; returns an unsubscribe function. */
 	subscribe(listener: () => void): () => void;
 }
@@ -55,7 +58,7 @@ export function openCommentsPanel(
 	// The SAME threaded view the inspector Comments tab renders, so the pane a
 	// canvas "Add Comment" lands in offers replies too (it used to offer only
 	// save/resolve/delete, leaving no way to reply without closing it).
-	const threads = createCommentThreadView(doc, t, actions);
+	const threads = createCommentThreadView(doc, t, actions, model.getAuthors);
 	const empty = createEl(doc, 'p');
 	empty.textContent = t('pptx.comments.noneOnSlide');
 	list.append(threads.el, empty);
@@ -68,16 +71,29 @@ export function openCommentsPanel(
 
 	const draft = createEl(doc, 'textarea');
 	draft.placeholder = t('pptx.comments.addPlaceholder');
+	let draftMentions: PptxCommentMention[] = [];
+	const draftMentionTypeahead = attachCommentMentionTypeahead({
+		doc,
+		t,
+		field: draft,
+		getAuthors: model.getAuthors,
+		getMentions: () => draftMentions,
+		onChange: (next) => {
+			draft.value = next.text;
+			draftMentions = next.mentions;
+		},
+	});
 	const add = createEl(doc, 'button');
 	add.type = 'button';
 	add.textContent = t('pptx.comments.addComment');
 	add.addEventListener('click', () => {
-		if (actions.addComment(draft.value)) {
+		if (actions.addComment(draft.value, undefined, draftMentions)) {
 			// The subscription re-renders the card list; the pane stays open.
 			draft.value = '';
+			draftMentions = [];
 		}
 	});
-	list.append(draft, add);
+	list.append(draft, draftMentionTypeahead.el, add);
 	pane.appendChild(list);
 
 	// Re-render only when the comment ARRAY changes (every mutation replaces
@@ -85,6 +101,7 @@ export function openCommentsPanel(
 	let lastRendered = model.getComments();
 	const dispose = (): void => {
 		unsubscribe();
+		draftMentionTypeahead.destroy();
 		delete pane[DISPOSE];
 	};
 	const unsubscribe = model.subscribe(() => {

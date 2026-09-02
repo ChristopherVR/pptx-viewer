@@ -72,6 +72,62 @@ describe('makeSwatchPicker', () => {
 		expect(swab.style.backgroundColor).toBe('#ff0000');
 	});
 
+	// B6: "Recent colours" (`p:clrMru`) row.
+	it('hides the recent-colours row until setRecentColors is called with entries', () => {
+		const t = createTranslator();
+		const picker = makeSwatchPicker(document, t, {
+			label: 'Font colour',
+			icon: 'font-color',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#000000',
+			onSelect: vi.fn(),
+		});
+		expect(
+			picker.el.querySelector('[data-testid="pptx-color-recent"]')?.hasAttribute('hidden'),
+		).toBeTruthy();
+
+		picker.setRecentColors(['#112233', '#445566']);
+
+		const row = picker.el.querySelector<HTMLElement>('[data-testid="pptx-color-recent"]')!;
+		expect(row.hidden).toBeFalsy();
+		expect(row.querySelectorAll('.pptxv-swatch')).toHaveLength(2);
+	});
+
+	it('fires onSelect from a recent-colours swatch', () => {
+		const onSelect = vi.fn();
+		const t = createTranslator();
+		const picker = makeSwatchPicker(document, t, {
+			label: 'Font colour',
+			icon: 'font-color',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#000000',
+			onSelect,
+		});
+		picker.setRecentColors(['#112233']);
+
+		picker.el
+			.querySelector<HTMLButtonElement>('[data-testid="pptx-color-recent"] .pptxv-swatch')!
+			.click();
+
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith('#112233');
+	});
+
+	it('replaces the recent-colours row on repeated calls rather than accumulating', () => {
+		const t = createTranslator();
+		const picker = makeSwatchPicker(document, t, {
+			label: 'Font colour',
+			icon: 'font-color',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#000000',
+			onSelect: vi.fn(),
+		});
+		picker.setRecentColors(['#112233', '#445566']);
+		picker.setRecentColors(['#778899']);
+
+		const row = picker.el.querySelector<HTMLElement>('[data-testid="pptx-color-recent"]')!;
+		expect(row.querySelectorAll('.pptxv-swatch')).toHaveLength(1);
+	});
+
 	it('setDisabled disables the trigger', () => {
 		const t = createTranslator();
 		const picker = makeSwatchPicker(document, t, {

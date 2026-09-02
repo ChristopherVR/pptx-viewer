@@ -1,3 +1,4 @@
+import { COMPAT_TOAST_METRICS, STATUS_BAR_METRICS } from 'pptx-viewer-shared';
 import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -21,6 +22,18 @@ function mount() {
 }
 
 describe('compatibility toast stack', () => {
+	// B2: the stack must sit ABOVE the status bar, not merely `bottom: 12px` of
+	// whatever contains it, or it covers the "Slide show" button.
+	it('anchors above the status bar using the shared chrome metrics', () => {
+		const { stack } = mount();
+
+		expect(stack.el.style.position).toBe('absolute');
+		expect(stack.el.style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight)}px`);
+		expect(stack.el.style.bottom).toBe(
+			`${String(STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar)}px`,
+		);
+	});
+
 	it('starts hidden with an empty stack', () => {
 		const { stack } = mount();
 

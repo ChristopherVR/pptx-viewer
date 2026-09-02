@@ -73,7 +73,7 @@ describe('inspector comments tab', () => {
 		area!.value = 'A fresh reply';
 		area!.dispatchEvent(new Event('input'));
 		findAction(form!, t('pptx.comments.addReply')).click();
-		expect(handlers.addCommentReply).toHaveBeenCalledWith('c1', 'A fresh reply');
+		expect(handlers.addCommentReply).toHaveBeenCalledWith('c1', 'A fresh reply', []);
 		// The inline form closes after submitting.
 		expect(tab.el.querySelector('.pptxv-inspector-comment-reply-form')).toBeNull();
 	});
