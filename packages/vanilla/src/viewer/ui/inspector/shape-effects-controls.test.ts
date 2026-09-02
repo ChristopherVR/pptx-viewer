@@ -69,7 +69,7 @@ describe('shadow rotate-with-shape toggle', () => {
 	it('writes shadowRotateWithShape when toggled', () => {
 		const { controls, setShapeStyle } = mount();
 		const checkbox = Array.from(controls.el.querySelectorAll('input[type="checkbox"]')).find(
-			(input) => input.closest('label')?.textContent?.includes('pptx.shape.shadowRotateWithShape'),
+			(input) => input.closest('label')?.textContent?.includes('pptx.effects.rotateWithShape'),
 		) as HTMLInputElement;
 		expect(checkbox).toBeDefined();
 

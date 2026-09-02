@@ -77,7 +77,7 @@ export function createShapeEffectsControls(
 	const shadowBlur = numberRow(t('pptx.textEffects.blur'), 'shadowBlur');
 	const shadowDistance = numberRow(t('pptx.shape.shadowDistance'), 'shadowDistance');
 	const shadowRotateWithShape = makeCheckboxField(doc, {
-		label: t('pptx.shape.shadowRotateWithShape'),
+		label: t('pptx.effects.rotateWithShape'),
 		onChange: (checked) => handlers.setShapeStyle({ shadowRotateWithShape: checked }),
 	});
 	el.appendChild(shadowRotateWithShape.el);
