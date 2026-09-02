@@ -40,6 +40,8 @@ import {
 	MORPH_FADE_OUT_END_PERCENT,
 	MORPH_FADE_OUT_HOLD_PERCENT,
 } from './morph-types';
+import type { ZOrderJourney } from './morph-z-order';
+import { computeZOrderSwaps } from './morph-z-order';
 
 // ---------------------------------------------------------------------------
 // Build colour/stroke interpolation keyframes
@@ -361,54 +363,6 @@ function crossfadeIncomingMayFadeIn(element: PptxElement): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Stage-journeyed matched pairs whose stacking ORDER swaps between the slides,
- * as incoming element id -> the z-index journey `{ from, to }` (the pair's
- * outgoing document index -> its incoming document index).
- *
- * Only pairs the overlay does NOT ghost participate: a stage-journeyed pair is
- * painted directly on the live stage in the INCOMING slide's order, so a pair
- * that swaps stacking order would pop to its new layer at frame 1 and never
- * show the outgoing slide's front relationship. The z-index track makes the
- * browser step the swap at the animation midpoint, in sync with the motion -
- * the closest a discrete layer model gets to PowerPoint's continuous z-order
- * interpolation. Pairs with ghosts are handled by the overlay-order machinery
- * instead (see `morph-overlay-order`).
- */
-export function computeZOrderSwaps(
-	pairs: MorphPair[],
-	flattenedFrom: readonly PptxElement[],
-	flattenedTo: readonly PptxElement[],
-	ghostIds?: ReadonlySet<string>,
-): Map<string, { from: number; to: number }> {
-	const outIndex = new Map(flattenedFrom.map((el, i) => [el.id, i] as const));
-	const inIndex = new Map(flattenedTo.map((el, i) => [el.id, i] as const));
-	const swaps = new Map<string, { from: number; to: number }>();
-	const stageJourneyed = pairs.filter((pair) => !(ghostIds?.has(pair.fromElement.id) ?? false));
-	for (let i = 0; i < stageJourneyed.length; i++) {
-		for (let j = i + 1; j < stageJourneyed.length; j++) {
-			const a = stageJourneyed[i];
-			const b = stageJourneyed[j];
-			const aOut = outIndex.get(a.fromElement.id);
-			const bOut = outIndex.get(b.fromElement.id);
-			const aIn = inIndex.get(a.toElement.id);
-			const bIn = inIndex.get(b.toElement.id);
-			if (aOut === undefined || bOut === undefined || aIn === undefined || bIn === undefined) {
-				continue;
-			}
-			// Relative order flips: the outgoing slide stacks a above b while the
-			// incoming slide stacks b above a. Both journeys then carry the
-			// swap (a: 0->1 behind, b: 1->0 front), stepping together at the
-			// animation midpoint.
-			if (aOut < bOut !== aIn < bIn) {
-				swaps.set(a.toElement.id, { from: aOut, to: aIn });
-				swaps.set(b.toElement.id, { from: bOut, to: bIn });
-			}
-		}
-	}
-	return swaps;
-}
-
-/**
  * Generate morph animation keyframes for matched element pairs.
  *
  * Produces CSS `@keyframes` blocks that animate position, size, rotation,
@@ -430,7 +384,7 @@ export function generateMorphAnimations(
 	durationMs: number,
 	_mode: MorphMode = 'object',
 	ghostIds?: ReadonlySet<string>,
-	zSwaps?: ReadonlyMap<string, { from: number; to: number }>,
+	zSwaps?: ReadonlyMap<string, ZOrderJourney>,
 ): MorphAnimationStyle[] {
 	const animations: MorphAnimationStyle[] = [];
 
@@ -506,9 +460,10 @@ export function generateMorphAnimations(
 		// along the PARENT's axes - a shear for any rotated pair whose sx≠sy
 		// (a rotated sliver widening 11x reads as stretch + skew), while
 		// `rotate(θ) scale(sx, sy)` scales the box along its OWN axes, which is
-		// the resize PowerPoint animates. It also lets a picture's crop track
-		// (which scales the img in that same local frame) compose with the
-		// frame scale multiplicatively.
+		// the resize PowerPoint animates. A picture's crop track transforms
+		// the img inside that same local frame; where the frame scales too the
+		// track is sampled against this scale (see `morph-image-crop`), since
+		// two independently eased tracks would not compose to a plain reveal.
 		//
 		// Flips are stated PER FRAME, each endpoint carrying ITS OWN element's
 		// flags: when they differ (a small mirror-flipped photo growing into an
@@ -548,10 +503,12 @@ export function generateMorphAnimations(
 			`\t\ttransform: translate(0, 0) rotate(${toRot}deg) scale(1, 1)${toFlips};`,
 		];
 		// A stacking-order swap rides the same journey: z-index interpolates as
-		// an integer, so the browser steps front <-> behind at the animation
-		// midpoint, while both pictures are mid-flight (PowerPoint interpolates
-		// z-order continuously; a stepped swap synced to the motion is the
-		// closest a discrete layer model gets).
+		// an integer and rounds on the EASED progress, so the browser steps
+		// front <-> behind when the motion is half travelled (about a third of
+		// the way through the wall clock on the morph curve), while both
+		// pictures are mid-flight (PowerPoint interpolates z-order
+		// continuously; a stepped swap synced to the motion is the closest a
+		// discrete layer model gets).
 		const zSwap = zSwaps?.get(toElement.id);
 		if (zSwap) {
 			fromProps.push(`\t\tz-index: ${zSwap.from};`);
@@ -948,6 +905,9 @@ export function generateTextMorphAnimations(
  * @param toSlide - The incoming slide.
  * @param durationMs - Animation duration in milliseconds.
  * @param mode - Morph granularity: "object", "word", or "character".
+ * @param zIndexBase - The z-index the live stage gives the incoming slide's
+ *   first top-level element (see {@link computeZOrderSwaps}); a binding that
+ *   paints master/layout shapes beneath the slide passes their count.
  * @returns A complete array of animation style descriptors for the transition.
  */
 export function generateFullMorphTransition(
@@ -955,6 +915,7 @@ export function generateFullMorphTransition(
 	toSlide: PptxSlide,
 	durationMs: number,
 	mode: MorphMode = 'object',
+	zIndexBase = 0,
 ): MorphAnimationStyle[] {
 	const matchResult = matchMorphElementsFull(fromSlide, toSlide);
 	const allAnimations: MorphAnimationStyle[] = [];
@@ -967,15 +928,16 @@ export function generateFullMorphTransition(
 	const ghostIds = resolveMorphGhostIds(flattenedFrom, matchResult.pairs);
 
 	// Stage-journeyed pairs whose stacking ORDER flips between the slides get a
-	// z-index journey (outgoing index -> incoming index), so the pass-behind
-	// happens mid-flight in sync with the motion instead of popping at frame 1:
-	// two same-named full-bleed pictures that swap stacking order must both be
+	// z-index journey in the stage's own z space, so the pass-behind happens
+	// mid-flight in sync with the motion instead of popping at frame 1: two
+	// same-named full-bleed pictures that swap stacking order must both be
 	// painted in front while they fly, never only at rest.
 	const zSwaps = computeZOrderSwaps(
 		matchResult.pairs,
 		flattenedFrom,
-		flattenMorphElements(toSlide.elements, fromSlide.elements),
+		toSlide.elements,
 		ghostIds,
+		zIndexBase,
 	);
 
 	// Generate main element morph animations

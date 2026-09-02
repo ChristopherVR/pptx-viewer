@@ -13,7 +13,6 @@ import {
 	buildColorInterpolationProps,
 	buildStrokeInterpolationProps,
 	morphPairNeedsCrossfade,
-	computeZOrderSwaps,
 } from './morph-animation';
 import { parseHexColor, lerpColor, rgbaToHex } from './morph-color';
 import { matchMorphElements, matchMorphElementsFull, getElementMorphName } from './morph-matching';
@@ -28,6 +27,7 @@ import {
 	MORPH_FADE_OUT_HOLD_PERCENT,
 } from './morph-types';
 import type { MorphPair, RgbaColor, SvgPathCommand } from './morph-types';
+import { computeZOrderSwaps } from './morph-z-order';
 
 // ---------------------------------------------------------------------------
 // Helpers

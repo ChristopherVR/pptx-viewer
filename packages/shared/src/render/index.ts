@@ -684,6 +684,7 @@ export * from './morph-geometry-keyframes';
 // invisible to every other comparison in the engine (issue #148).
 export * from './morph-image-crop';
 export * from './morph-animation';
+export * from './morph-z-order';
 // Slide-transition (slide-to-slide swap) CSS/keyframe generation — pure mapping
 // from a `PptxSlideTransition` to the outgoing/incoming `animation` shorthands
 // plus the `@keyframes` strings each binding injects once. Keyframe names use
