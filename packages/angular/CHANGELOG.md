@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.6.0) - 2026-09-02
+
+### Features
+
+- Add a Hide Background Graphics toggle to the background inspector (by @ChristopherVR) ([108da7d](https://github.com/ChristopherVR/pptx-viewer/commit/108da7dd6efa3e1f2496918546bf8926fdcb7f6f))
+
+### Bug Fixes
+
+- **core:** Preserve custom-geometry command order through placeholder merges (by @ChristopherVR) ([29af002](https://github.com/ChristopherVR/pptx-viewer/commit/29af002ba54e514aa0dd4a2b80dedf3ea6d92b3f))
+- **core:** Regenerate slide background when an image is explicitly cleared (by @ChristopherVR) ([c43e1ea](https://github.com/ChristopherVR/pptx-viewer/commit/c43e1ea3bd48a970422fb40cd867deeefc38aed7))
+- Recolour template-layer shapes on a live theme colour-scheme edit (by @ChristopherVR) ([34c3935](https://github.com/ChristopherVR/pptx-viewer/commit/34c3935daa5e3e6a18c3b2871fb25fe7e2c80bfa))
+- Keep resize/rotate handles visible while inline-editing text (by @ChristopherVR) ([3074929](https://github.com/ChristopherVR/pptx-viewer/commit/307492907f567485283ce6f29cf257c3d254bd04))
+- Apply text formatting to live inline-edit text, not a stale snapshot (by @ChristopherVR) ([7815cc2](https://github.com/ChristopherVR/pptx-viewer/commit/7815cc22bf1e1074a985c0bb951a2c772ab4709a))
+- **core:** Round-trip Hide Background Graphics (@showMasterSp) on save (by @ChristopherVR) ([75ac54f](https://github.com/ChristopherVR/pptx-viewer/commit/75ac54f9f4bc46ce5f11cb44a5ecbc3ce9369dab))
+- **angular:** Stop a preference write reloading the deck (by @ChristopherVR) ([12feaee](https://github.com/ChristopherVR/pptx-viewer/commit/12feaeea7ab21eb8093be7bad1b0e63d1eb0a83b))
+
 ## [3.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.5.1) - 2026-09-02
 
 ### Bug Fixes

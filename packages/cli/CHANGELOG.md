@@ -7,6 +7,18 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.5.0) - 2026-09-02
+
+### Features
+
+- Add a Hide Background Graphics toggle to the background inspector (by @ChristopherVR) ([108da7d](https://github.com/ChristopherVR/pptx-viewer/commit/108da7dd6efa3e1f2496918546bf8926fdcb7f6f))
+
+### Bug Fixes
+
+- Recolour template-layer shapes on a live theme colour-scheme edit (by @ChristopherVR) ([34c3935](https://github.com/ChristopherVR/pptx-viewer/commit/34c3935daa5e3e6a18c3b2871fb25fe7e2c80bfa))
+- Keep resize/rotate handles visible while inline-editing text (by @ChristopherVR) ([3074929](https://github.com/ChristopherVR/pptx-viewer/commit/307492907f567485283ce6f29cf257c3d254bd04))
+- Apply text formatting to live inline-edit text, not a stale snapshot (by @ChristopherVR) ([7815cc2](https://github.com/ChristopherVR/pptx-viewer/commit/7815cc22bf1e1074a985c0bb951a2c772ab4709a))
+
 ## [2.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.4.1) - 2026-09-02
 
 ### Bug Fixes
