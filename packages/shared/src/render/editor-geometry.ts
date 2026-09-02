@@ -1,5 +1,6 @@
 import { MIN_ELEMENT_SIZE } from 'pptx-viewer-core';
 
+import { NUDGE_LARGE, NUDGE_SMALL, editorNudgeDelta } from './editor-keymap';
 import type { BoxTransform, InteractionBox, ResizeHandleId } from './element-interaction';
 
 /**
@@ -9,9 +10,13 @@ import type { BoxTransform, InteractionBox, ResizeHandleId } from './element-int
  * from four byte-identical copies (Svelte / Vanilla `editor/editor-geometry`).
  */
 
-/** Arrow-key nudge step in element px (Shift multiplies to the large step). */
-export const NUDGE_STEP = 1;
-export const NUDGE_STEP_LARGE = 10;
+/**
+ * Arrow-key nudge step in element px (Shift multiplies to the large step).
+ * Aliases of the keymap's `NUDGE_SMALL`/`NUDGE_LARGE`: the step is defined once
+ * so the inspector's position boxes and the keyboard cannot disagree.
+ */
+export const NUDGE_STEP = NUDGE_SMALL;
+export const NUDGE_STEP_LARGE = NUDGE_LARGE;
 
 const CORNER_HANDLES: ReadonlySet<ResizeHandleId> = new Set(['nw', 'ne', 'se', 'sw']);
 
@@ -62,20 +67,7 @@ export function lockResizeAspect(
 
 /**
  * Map an arrow key to a nudge delta in element px, or `null` for other keys.
- * `large` (Shift held) uses the 10px step.
+ * `large` (Shift held) uses the 10px step. Same function as the keymap's
+ * `editorNudgeDelta`, kept under this name for the Svelte/Vanilla editors.
  */
-export function nudgeDelta(key: string, large: boolean): { dx: number; dy: number } | null {
-	const step = large ? NUDGE_STEP_LARGE : NUDGE_STEP;
-	switch (key) {
-		case 'ArrowLeft':
-			return { dx: -step, dy: 0 };
-		case 'ArrowRight':
-			return { dx: step, dy: 0 };
-		case 'ArrowUp':
-			return { dx: 0, dy: -step };
-		case 'ArrowDown':
-			return { dx: 0, dy: step };
-		default:
-			return null;
-	}
-}
+export const nudgeDelta: typeof editorNudgeDelta = editorNudgeDelta;
