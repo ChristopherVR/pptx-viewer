@@ -125,6 +125,40 @@ describe('buildChartSpaceXml', () => {
 		expect(names.indexOf('auto')).toBeGreaterThan(names.indexOf('crossAx'));
 	});
 
+	it('writes major/minor gridlines (with styling) on a generated value axis in schema order', () => {
+		const pa = plotArea(
+			buildChartSpaceXml(
+				makeData({
+					axes: [
+						{
+							axisType: 'valAx',
+							majorGridlines: true,
+							majorGridlinesSpPr: { strokeColor: '#FF0000', strokeWidth: 1.5 },
+							minorGridlines: true,
+							majorTickMark: 'out',
+						},
+					],
+				}),
+			),
+		);
+		const axis = pa['c:valAx'] as XmlObject;
+		expect(axis['c:majorGridlines']).toBeDefined();
+		expect(axis['c:minorGridlines']).toBeDefined();
+		const spPr = (axis['c:majorGridlines'] as XmlObject)['c:spPr'] as XmlObject;
+		expect(JSON.stringify(spPr)).toContain('FF0000');
+		const names = Object.keys(axis).map((key) => key.replace(/^.*:/u, ''));
+		expect(names.indexOf('majorGridlines')).toBeGreaterThan(names.indexOf('axPos'));
+		expect(names.indexOf('majorGridlines')).toBeLessThan(names.indexOf('minorGridlines'));
+		expect(names.indexOf('minorGridlines')).toBeLessThan(names.indexOf('majorTickMark'));
+	});
+
+	it('omits gridline elements from a generated axis that does not declare them', () => {
+		const pa = plotArea(buildChartSpaceXml(makeData({ axes: [{ axisType: 'valAx' }] })));
+		const axis = pa['c:valAx'] as XmlObject;
+		expect(axis['c:majorGridlines']).toBeUndefined();
+		expect(axis['c:minorGridlines']).toBeUndefined();
+	});
+
 	it('generates a typed data table after axes in CT_PlotArea schema order', () => {
 		const pa = plotArea(
 			buildChartSpaceXml(

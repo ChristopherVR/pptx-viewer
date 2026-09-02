@@ -1,5 +1,6 @@
 import type { PptxChartAxisFormatting, XmlObject } from '../types';
 import { applyChartAxisDisplayUnitsToXml } from './chart-axis-dispunits-serializer';
+import { applyChartAxisGridlinesToXml } from './chart-axis-gridlines-serializer';
 import { applyChartAxisLabelFormatting } from './chart-axis-label-formatting';
 import { applyChartAxisScaling, upsertChartAxisChild } from './chart-axis-scaling';
 import { applyChartDateAxisUnits } from './chart-date-axis';
@@ -35,6 +36,9 @@ export function buildGeneratedChartAxis(
 			localName,
 		);
 		applyChartDateAxisUnits(axis, formatting, localName);
+		// A generated axis never carried c:majorGridlines/c:minorGridlines, so a
+		// gridlines toggle on an SDK-created chart was lost on save.
+		applyChartAxisGridlinesToXml(axis, formatting, localName);
 	}
 	if (formatting?.displayUnits) {
 		applyChartAxisDisplayUnitsToXml(axis, formatting, (key) => key.replace(/^.*:/u, ''));
