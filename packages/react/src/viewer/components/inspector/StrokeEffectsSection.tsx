@@ -20,7 +20,6 @@ import { SelectRow, ColorPickerRow, EffectField } from './FillStrokeSubComponent
 export interface StrokeEffectsSectionProps {
 	style: ShapeStyle | undefined;
 	isLine: boolean;
-	recentColors: string[];
 	onUpdateShapeStyle: (updates: Partial<ShapeStyle>) => void;
 	onSetStrokeColor: (color: string) => void;
 }
@@ -32,7 +31,6 @@ export interface StrokeEffectsSectionProps {
 export function StrokeEffectsSection({
 	style,
 	isLine,
-	recentColors,
 	onUpdateShapeStyle,
 	onSetStrokeColor,
 }: StrokeEffectsSectionProps): React.ReactElement {
@@ -45,7 +43,6 @@ export function StrokeEffectsSection({
 				label={t('pptx.inspector.stroke')}
 				prefix='stroke'
 				value={normalizeHexColor(style?.strokeColor, DEFAULT_STROKE_COLOR)}
-				recentColors={recentColors}
 				onChange={onSetStrokeColor}
 			/>
 

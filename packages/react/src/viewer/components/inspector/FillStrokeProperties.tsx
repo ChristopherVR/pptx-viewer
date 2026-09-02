@@ -35,7 +35,6 @@ export function FillStrokeProperties({
 	selectedShapeStyle,
 	selectedShapeType,
 	selectedGradientStops,
-	recentColors,
 	onUpdateShapeStyle,
 	onSetFillColor,
 	onSetStrokeColor,
@@ -152,7 +151,6 @@ export function FillStrokeProperties({
 				<StrokeEffectsSection
 					style={style}
 					isLine={line}
-					recentColors={recentColors}
 					onUpdateShapeStyle={onUpdateShapeStyle}
 					onSetStrokeColor={onSetStrokeColor}
 				/>

@@ -110,6 +110,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setHeaderFooter: state.setHeaderFooter,
 		setLayoutOptions: state.setLayoutOptions,
 		setSlideMasters: state.setSlideMasters,
+		setModernCommentAuthors: state.setModernCommentAuthors,
+		setRecentColors: state.setRecentColors,
 		setTheme: state.setTheme,
 		setTableStyleMap: state.setTableStyleMap,
 		setThemeOptions: state.setThemeOptions,

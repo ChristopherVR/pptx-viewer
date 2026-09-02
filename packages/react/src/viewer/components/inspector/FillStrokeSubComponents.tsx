@@ -8,6 +8,7 @@ import { normalizeHexColor, openNativeEyeDropper } from '../../utils';
 import type { EffectToggleCfg } from './fill-stroke-effect-configs';
 import { SEL, NUM, RNG, SWATCH, DIS, LBL, COL2, safeNum } from './FillStrokeHelpers';
 import type { GradientStop } from './FillStrokeHelpers';
+import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
 // SelectRow
@@ -51,27 +52,39 @@ export function SelectRow({
 // ColorPickerRow
 // ---------------------------------------------------------------------------
 
-/** Color picker + theme swatches + recent colors + eyedropper. */
+/**
+ * Color picker + theme swatches + recent colors + eyedropper.
+ *
+ * The recent-colours row is sourced from {@link useRecentColors} (context),
+ * not a prop: every caller used to have to thread its own `recentColors`
+ * array down from the loaded deck, and one of the two calls (the fill
+ * colour's own row) simply never did, so its row silently rendered nothing.
+ * Every commit here (typed colour, theme swatch, recent swatch, eyedropper)
+ * also pushes the pick back into that same shared list.
+ */
 export function ColorPickerRow({
 	label,
 	value,
 	disabled,
 	prefix,
-	recentColors,
 	onChange,
 }: {
 	label: string;
 	value: string;
 	disabled?: boolean;
 	prefix: string;
-	recentColors?: string[];
 	onChange: (c: string) => void;
 }): React.ReactElement {
 	const { t } = useTranslation();
+	const { recentColors, pushColor } = useRecentColors();
+	const commit = (color: string): void => {
+		onChange(color);
+		pushColor(color);
+	};
 	const handleEyedropper = async (): Promise<void> => {
 		const color = await openNativeEyeDropper();
 		if (color) {
-			onChange(color);
+			commit(color);
 		}
 	};
 
@@ -83,7 +96,7 @@ export function ColorPickerRow({
 					type='color'
 					value={value}
 					disabled={disabled}
-					onChange={(e) => onChange(e.target.value)}
+					onChange={(e) => commit(e.target.value)}
 					className={`h-8 flex-1 ${SEL} px-1 ${DIS}`}
 				/>
 				<button
@@ -110,22 +123,34 @@ export function ColorPickerRow({
 						aria-label={`${label} ${c}`}
 						data-pptx-compact
 						disabled={disabled}
-						onClick={() => onChange(c)}
-					/>
-				))}
-				{recentColors?.map((c) => (
-					<button
-						key={`${prefix}-recent-${c}`}
-						type='button'
-						data-pptx-compact
-						className='h-4 w-4 rounded border border-primary'
-						style={{ backgroundColor: c }}
-						title={`Recent ${c}`}
-						aria-label={`Recent ${c}`}
-						onClick={() => onChange(c)}
+						onClick={() => commit(c)}
 					/>
 				))}
 			</div>
+			{recentColors.length > 0 && (
+				<div
+					data-testid='pptx-color-recent'
+					aria-label={t('pptx.colorPicker.recentColors')}
+					className='mt-1 flex flex-wrap items-center gap-1'
+				>
+					<span className='text-[9px] text-muted-foreground'>
+						{t('pptx.colorPicker.recentColors')}
+					</span>
+					{recentColors.map((c) => (
+						<button
+							key={`${prefix}-recent-${c}`}
+							type='button'
+							data-pptx-compact
+							className='h-4 w-4 rounded border border-primary'
+							style={{ backgroundColor: c }}
+							title={c}
+							aria-label={`Recent ${c}`}
+							disabled={disabled}
+							onClick={() => commit(c)}
+						/>
+					))}
+				</div>
+			)}
 		</label>
 	);
 }

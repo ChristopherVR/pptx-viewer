@@ -7,6 +7,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	MasterViewTab,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideLayout,
@@ -188,6 +189,12 @@ export interface ViewerCoreState {
 	/** All slide masters parsed from the presentation. */
 	slideMasters: PptxSlideMaster[];
 	setSlideMasters: React.Dispatch<React.SetStateAction<PptxSlideMaster[]>>;
+	/** Modern (`p188:person`) comment authors, for the `@`-mention typeahead. */
+	modernCommentAuthors: PptxModernCommentAuthor[];
+	setModernCommentAuthors: React.Dispatch<React.SetStateAction<PptxModernCommentAuthor[]>>;
+	/** The deck's "Recent Colors" row (`p:clrMru`), most-recent-first. */
+	recentColors: string[];
+	setRecentColors: React.Dispatch<React.SetStateAction<string[]>>;
 	/** The currently active theme applied to the presentation. */
 	theme: PptxTheme | undefined;
 	setTheme: React.Dispatch<React.SetStateAction<PptxTheme | undefined>>;

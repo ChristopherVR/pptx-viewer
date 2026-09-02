@@ -53,6 +53,8 @@ const comments = {
 	commentEditDraftByCommentId: {},
 	replyingToCommentId: null,
 	replyDraftByCommentId: {},
+	commentDraftMentionsBySlideId: {},
+	replyDraftMentionsByCommentId: {},
 	handleCommentDraftChange: vi.fn<() => void>(),
 	handleAddSlideComment: vi.fn<() => void>(),
 	handleDeleteSlideComment: vi.fn<() => void>(),

@@ -270,6 +270,7 @@ function MobileSectionBody({
 				<div className={wrap}>
 					<SlideShowSection
 						onPresent={() => p.onSetMode('present')}
+						onPresentFromBeginning={p.onPresentFromBeginning}
 						onEnterPresenterView={p.onEnterPresenterView ?? (() => {})}
 						onEnterRehearsalMode={p.onEnterRehearsalMode ?? (() => {})}
 						onOpenSetUpSlideShow={p.onOpenSetUpSlideShow ?? (() => {})}

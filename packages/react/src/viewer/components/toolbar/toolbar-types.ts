@@ -59,6 +59,13 @@ export interface ToolbarProps {
 	drawingWidth: number;
 	clipboardPayload: ElementClipboardPayload | null;
 	onSetMode: (mode: ViewerMode) => void;
+	/**
+	 * PowerPoint's "From Beginning" (F5): enters the show on the show's FIRST
+	 * slide regardless of the currently active slide, unlike `onSetMode`
+	 * ('present') which enters "From Current Slide". Falls back to
+	 * `onSetMode('present')` when omitted.
+	 */
+	onPresentFromBeginning?: () => void;
 	onToggleSidebar: () => void;
 	onToggleInspector: () => void;
 	/** Opens the inspector pane and switches to the properties tab (for animation panel). */

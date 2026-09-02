@@ -7,6 +7,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHeaderFooter,
 	PptxHandoutMaster,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
@@ -32,6 +33,7 @@ import {
 	resolveAuthoredCustomShowId,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
+	seedRecentColors,
 } from 'pptx-viewer-shared';
 /**
  * useLoadContent: Handles loading/parsing PPTX content into viewer state.
@@ -68,6 +70,9 @@ export interface UseLoadContentInput {
 	setHeaderFooter: React.Dispatch<React.SetStateAction<PptxHeaderFooter>>;
 	setLayoutOptions: React.Dispatch<React.SetStateAction<Array<{ path: string; name: string }>>>;
 	setSlideMasters: React.Dispatch<React.SetStateAction<PptxSlideMaster[]>>;
+	setModernCommentAuthors: React.Dispatch<React.SetStateAction<PptxModernCommentAuthor[]>>;
+	/** Seeds the "Recent Colors" row (`p:clrMru`) every colour picker shares. */
+	setRecentColors: React.Dispatch<React.SetStateAction<string[]>>;
 	setTheme: React.Dispatch<React.SetStateAction<PptxTheme | undefined>>;
 	setTableStyleMap: React.Dispatch<React.SetStateAction<ParsedTableStyleMap | undefined>>;
 	setThemeOptions: React.Dispatch<React.SetStateAction<PptxThemeOption[]>>;
@@ -139,6 +144,8 @@ export function useLoadContent({
 	setHeaderFooter,
 	setLayoutOptions,
 	setSlideMasters,
+	setModernCommentAuthors,
+	setRecentColors,
 	setTheme,
 	setTableStyleMap,
 	setThemeOptions,
@@ -347,6 +354,8 @@ export function useLoadContent({
 				setHeaderFooter(parsed.headerFooter ?? {});
 				setLayoutOptions(parsed.layoutOptions ?? []);
 				setSlideMasters(parsed.slideMasters ?? []);
+				setModernCommentAuthors(parsed.modernCommentAuthors ?? []);
+				setRecentColors(seedRecentColors({ mruColors: parsed.mruColors }));
 				setTheme(parsed.theme);
 				setTableStyleMap(nextTableStyleMap);
 				setThemeOptions(parsed.themeOptions ?? []);

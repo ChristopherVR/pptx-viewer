@@ -1,9 +1,16 @@
-import type { PptxComment, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxComment,
+	PptxCommentMention,
+	PptxElement,
+	PptxModernCommentAuthor,
+	PptxSlide,
+} from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuMessageSquare, LuType } from 'react-icons/lu';
 
 import { cn, getElementLabel } from '../../utils';
+import { CommentMentionTextarea } from './CommentMentionTextarea';
 import { InspectorCommentRow } from './InspectorCommentRow';
 
 // ---------------------------------------------------------------------------
@@ -18,9 +25,15 @@ export interface InspectorCommentsSectionProps {
 	editingCommentId: string | null;
 	commentEditDraft: string;
 	commentDraft: string;
+	/** `@`-mentions accumulated on the in-progress new-comment draft. */
+	commentDraftMentions: PptxCommentMention[];
+	/** Modern comment authors, for the `@`-mention typeahead. */
+	commentAuthors: PptxModernCommentAuthor[];
 	replyingToCommentId: string | null;
 	replyDraftByCommentId: Record<string, string>;
-	onSetCommentDraft: (draft: string) => void;
+	/** `@`-mentions accumulated on each in-progress reply draft. */
+	replyDraftMentionsByCommentId: Record<string, PptxCommentMention[]>;
+	onSetCommentDraft: (draft: string, mentions?: PptxCommentMention[]) => void;
 	onAddComment: () => void;
 	onDeleteComment: (id: string) => void;
 	onStartEditComment: (id: string) => void;
@@ -30,7 +43,7 @@ export interface InspectorCommentsSectionProps {
 	onToggleCommentResolved?: (id: string) => void;
 	onStartReply?: (id: string) => void;
 	onCancelReply?: () => void;
-	onReplyDraftChange?: (commentId: string, draft: string) => void;
+	onReplyDraftChange?: (commentId: string, draft: string, mentions?: PptxCommentMention[]) => void;
 	onSubmitReply?: (commentId: string) => void;
 	onSelectElement: (id: string | null) => void;
 }
@@ -47,8 +60,11 @@ export function InspectorCommentsSection({
 	editingCommentId,
 	commentEditDraft,
 	commentDraft,
+	commentDraftMentions,
+	commentAuthors,
 	replyingToCommentId,
 	replyDraftByCommentId,
+	replyDraftMentionsByCommentId,
 	onSetCommentDraft,
 	onAddComment,
 	onDeleteComment,
@@ -87,6 +103,8 @@ export function InspectorCommentsSection({
 							commentEditDraft={commentEditDraft}
 							replyingToCommentId={replyingToCommentId}
 							replyDraftByCommentId={replyDraftByCommentId}
+							replyDraftMentionsByCommentId={replyDraftMentionsByCommentId}
+							commentAuthors={commentAuthors}
 							onStartEditComment={onStartEditComment}
 							onSaveEditComment={onSaveEditComment}
 							onCancelEditComment={onCancelEditComment}
@@ -114,7 +132,10 @@ export function InspectorCommentsSection({
 							})}
 						</div>
 					)}
-					<textarea
+					<CommentMentionTextarea
+						value={commentDraft}
+						mentions={commentDraftMentions}
+						authors={commentAuthors}
 						rows={2}
 						placeholder={
 							selectedElement
@@ -123,15 +144,9 @@ export function InspectorCommentsSection({
 									})
 								: t('pptx.comments.addPlaceholder')
 						}
-						value={commentDraft}
 						className='w-full bg-muted border border-border rounded px-2 py-1 text-xs resize-y outline-none focus:border-primary'
-						onChange={(e) => onSetCommentDraft(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-								e.preventDefault();
-								onAddComment();
-							}
-						}}
+						onChange={onSetCommentDraft}
+						onSubmitShortcut={onAddComment}
 					/>
 					<button
 						type='button'

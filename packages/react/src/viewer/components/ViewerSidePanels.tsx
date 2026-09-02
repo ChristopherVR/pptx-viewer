@@ -123,6 +123,7 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 				mode={mode}
 				activeSlide={effectiveSlide}
 				slides={slides}
+				customShows={s.customShows}
 				canvasSize={canvasSize}
 				selectedElement={selectedElement}
 				effectiveSelectedIds={s.effectiveSelectedIds}
@@ -130,6 +131,7 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 				sidebarPanelMode={s.sidebarPanelMode}
 				activeSlideIndex={activeSlideIndex}
 				comments={comments}
+				commentAuthors={s.modernCommentAuthors}
 				onSetSidebarPanelMode={s.setSidebarPanelMode}
 				onClose={() => s.setIsInspectorPaneOpen(false)}
 				onUpdateElementStyle={ops.updateSelectedShapeStyle}

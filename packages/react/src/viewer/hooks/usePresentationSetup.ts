@@ -40,6 +40,12 @@ export interface UsePresentationSetupInput {
 	setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	history: EditorHistoryResult;
+	/** Custom shows defined in the presentation, for `ppaction://customshow`. */
+	customShows?: Array<{ id: string; name: string; slideRIds: string[] }>;
+	/** The custom show currently driving the show order, if any. */
+	activeCustomShowId?: string | null;
+	/** Switch the active custom show (does not itself navigate). */
+	onSetActiveCustomShowId?: (id: string | null) => void;
 	/** Options > Advanced > "End with black slide" (default true). */
 	endWithBlackSlide?: boolean;
 	/**
@@ -99,6 +105,9 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		promptKeepInkAnnotations = true,
 		popupToolbarEnabled = true,
 		onToggleSubtitles,
+		customShows = [],
+		activeCustomShowId = null,
+		onSetActiveCustomShowId,
 	} = input;
 
 	const actionSoundHandlerRef = useRef<PptxHandler | null>(null);
@@ -210,6 +219,9 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		showWithAnimation: presentationProperties.showWithAnimation,
 		useTimings: presentationProperties.advanceMode !== 'manual',
 		endWithBlackSlide,
+		customShows,
+		activeCustomShowId,
+		onSetActiveCustomShowId,
 	});
 
 	return {

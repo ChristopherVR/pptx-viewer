@@ -1,11 +1,13 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (each handler is a short sequence of independent `const`s); merging them
    isn't a style choice here. */
+import type { PptxCommentMention } from 'pptx-viewer-core';
 import { useState, useCallback, useEffect } from 'react';
 
+import { useCommentMentionDrafts } from './useCommentMentionDrafts';
+import { useCommentReplyHandlers } from './useCommentReplyHandlers';
 import {
 	addCommentToSlide,
-	addReplyToSlide,
 	removeCommentFromSlide,
 	editCommentInSlide,
 	toggleResolvedInSlide,
@@ -34,14 +36,36 @@ export function useComments({
 	const [commentEditDraftByCommentId, setCommentEditDraftByCommentId] = useState<
 		Record<string, string>
 	>({});
-	const [replyDraftByCommentId, setReplyDraftByCommentId] = useState<Record<string, string>>({});
-	const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
+	const {
+		commentDraftMentionsBySlideId,
+		replyDraftMentionsByCommentId,
+		setCommentDraftMentions,
+		setReplyDraftMentions,
+		clearCommentDraftMentions,
+		clearReplyDraftMentions,
+	} = useCommentMentionDrafts();
+	const reply = useCommentReplyHandlers({
+		slides,
+		canEdit,
+		userName,
+		onUpdateSlides,
+		onMarkDirty,
+		replyDraftMentionsByCommentId,
+		setReplyDraftMentions,
+		clearReplyDraftMentions,
+	});
 
 	// -- Draft management ----------------------------------------------------
 
-	const handleCommentDraftChange = useCallback((slideId: string, draft: string) => {
-		setCommentDraftBySlideId((prev) => ({ ...prev, [slideId]: draft }));
-	}, []);
+	const handleCommentDraftChange = useCallback(
+		(slideId: string, draft: string, mentions?: PptxCommentMention[]) => {
+			setCommentDraftBySlideId((prev) => ({ ...prev, [slideId]: draft }));
+			if (mentions) {
+				setCommentDraftMentions(slideId, mentions);
+			}
+		},
+		[setCommentDraftMentions],
+	);
 
 	const handleSetCommentEditDraft = useCallback((commentId: string, draft: string) => {
 		setCommentEditDraftByCommentId((prev) => ({
@@ -75,6 +99,7 @@ export function useComments({
 					draft,
 					userName,
 					selectedElementId ?? undefined,
+					commentDraftMentionsBySlideId[slide.id],
 				);
 				didAdd = result.didAdd;
 				return result.slides;
@@ -88,12 +113,15 @@ export function useComments({
 				...prev,
 				[slide.id]: '',
 			}));
+			clearCommentDraftMentions(slide.id);
 
 			onMarkDirty();
 		},
 		[
 			canEdit,
 			commentDraftBySlideId,
+			commentDraftMentionsBySlideId,
+			clearCommentDraftMentions,
 			onMarkDirty,
 			onUpdateSlides,
 			selectedElementId,
@@ -225,58 +253,6 @@ export function useComments({
 		[canEdit, onMarkDirty, onUpdateSlides, slides],
 	);
 
-	// -- Reply ---------------------------------------------------------------
-
-	const handleStartReply = useCallback((_slideIndex: number, commentId: string) => {
-		setReplyingToCommentId(commentId);
-		setReplyDraftByCommentId((prev) => ({ ...prev, [commentId]: '' }));
-	}, []);
-
-	const handleCancelReply = useCallback(() => {
-		setReplyingToCommentId(null);
-	}, []);
-
-	const handleReplyDraftChange = useCallback((commentId: string, draft: string) => {
-		setReplyDraftByCommentId((prev) => ({ ...prev, [commentId]: draft }));
-	}, []);
-
-	const handleSubmitReply = useCallback(
-		(slideIndex: number, commentId: string) => {
-			if (!canEdit) {
-				return;
-			}
-			const slide = slides[slideIndex];
-			if (!slide) {
-				return;
-			}
-
-			const replyText = String(replyDraftByCommentId[commentId] || '').trim();
-			if (replyText.length === 0) {
-				return;
-			}
-
-			let didAdd = false;
-			onUpdateSlides((prev) => {
-				const result = addReplyToSlide(prev, slideIndex, commentId, replyText, userName);
-				didAdd = result.didAdd;
-				return result.slides;
-			});
-
-			if (!didAdd) {
-				return;
-			}
-
-			setReplyingToCommentId(null);
-			setReplyDraftByCommentId((prev) => {
-				const next = { ...prev };
-				delete next[commentId];
-				return next;
-			});
-			onMarkDirty();
-		},
-		[canEdit, onMarkDirty, onUpdateSlides, replyDraftByCommentId, slides, userName],
-	);
-
 	// -- Cleanup effect: prune drafts for deleted slides ---------------------
 
 	useEffect(() => {
@@ -296,8 +272,8 @@ export function useComments({
 		commentDraftBySlideId,
 		editingCommentIdBySlideId,
 		commentEditDraftByCommentId,
-		replyingToCommentId,
-		replyDraftByCommentId,
+		commentDraftMentionsBySlideId,
+		replyDraftMentionsByCommentId,
 		handleCommentDraftChange,
 		handleAddSlideComment,
 		handleDeleteSlideComment,
@@ -306,9 +282,6 @@ export function useComments({
 		handleSaveCommentEdit,
 		handleSetCommentEditDraft,
 		handleToggleCommentResolved,
-		handleStartReply,
-		handleCancelReply,
-		handleReplyDraftChange,
-		handleSubmitReply,
+		...reply,
 	};
 }

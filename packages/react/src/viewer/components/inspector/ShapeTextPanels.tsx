@@ -14,13 +14,6 @@ import { TextAdvancedSections } from './TextAdvancedSections';
 // Props
 // ---------------------------------------------------------------------------
 
-/**
- * React keeps no recent-colour history yet (no binding-level store feeds one),
- * so the swatch strip renders empty rather than being wired to a stale array.
- * Hoisted to module scope so the identity is stable across renders.
- */
-const EMPTY_RECENT_COLORS: string[] = [];
-
 interface ShapeTextPanelsProps {
 	selectedElement: PptxElement;
 	canEdit: boolean;
@@ -82,7 +75,6 @@ export function ShapeTextPanels({
 						selectedGradientStops={sanitizeGradientStops(
 							selectedElement.shapeStyle?.fillGradientStops,
 						)}
-						recentColors={EMPTY_RECENT_COLORS}
 						canEdit={canEdit}
 						onUpdateShapeStyle={onUpdateElementStyle}
 						onSetFillColor={(hex) => onUpdateElementStyle({ fillColor: hex, fillMode: 'solid' })}

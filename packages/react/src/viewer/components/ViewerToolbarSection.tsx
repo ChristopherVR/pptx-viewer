@@ -159,6 +159,8 @@ export interface ViewerToolbarSectionProps {
 	customFontFamilies?: readonly string[];
 	ops: ElementOperations;
 	onSetMode: (mode: ViewerMode) => void;
+	/** "From Beginning" (F5): enters the show on its first slide. */
+	onPresentFromBeginning?: () => void;
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
 	onOpenSettings?: () => void;
@@ -230,6 +232,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		customFontFamilies,
 		ops,
 		onSetMode,
+		onPresentFromBeginning,
 		onEnterPresenterView,
 		onEnterRehearsalMode,
 		onOpenSettings,
@@ -450,7 +453,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				case 'slideShow':
 					switch (action) {
 						case 'fromBeginning':
-							onSetMode('present');
+							(onPresentFromBeginning ?? (() => onSetMode('present')))();
 							break;
 						case 'presenterView':
 							onEnterPresenterView();
@@ -502,6 +505,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 			dialogs,
 			zoom,
 			onSetMode,
+			onPresentFromBeginning,
 			onEnterPresenterView,
 			manipulation,
 			handleOpenSlideSize,
@@ -517,7 +521,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 	const handleQuickAccessCommand = useCallback(
 		(id: string) => {
 			const handlers: Record<string, () => void> = {
-				presentFromStart: () => onSetMode('present'),
+				presentFromStart: onPresentFromBeginning ?? (() => onSetMode('present')),
 				print: printHandlers.handlePrint,
 				exportPdf: exportHandlers.handleExportPdf,
 				newSlide: slideOps.handleAddSlide,
@@ -527,7 +531,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 			};
 			handlers[id]?.();
 		},
-		[onSetMode, printHandlers, exportHandlers, slideOps, s, zoom],
+		[onSetMode, onPresentFromBeginning, printHandlers, exportHandlers, slideOps, s, zoom],
 	);
 
 	return (
@@ -587,6 +591,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				drawingWidth={s.drawingWidth}
 				clipboardPayload={s.clipboardPayload}
 				onSetMode={onSetMode}
+				onPresentFromBeginning={onPresentFromBeginning}
 				onToggleSidebar={() => s.setIsSlidesPaneOpen((p) => !p)}
 				onToggleInspector={() => s.setIsInspectorPaneOpen((p) => !p)}
 				onOpenAnimationPanel={() => {

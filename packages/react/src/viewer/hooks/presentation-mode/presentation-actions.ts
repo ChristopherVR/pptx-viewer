@@ -13,6 +13,16 @@ export interface PresentationActionDeps {
 	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
 	onSetMode: (mode: ViewerMode) => void;
 	slidesLength: number;
+	/** `ppaction://hlinkshowjump?jump=lastslideviewed`. */
+	onLastViewed?: () => void;
+	/** `ppaction://customshow?id=<id>[&return=true]`. */
+	onCustomShow?: (customShowId: string, returnAfter: boolean) => void;
+	/** `ppaction://hlinkfile`. */
+	onOpenFile?: (target: string) => void;
+	/** `ppaction://hlinkpres`. */
+	onOpenPresentation?: (target: string) => void;
+	/** `ppaction://media`: play/toggle the acting element's own embedded media. */
+	onPlayMedia?: (elementId: string | undefined) => void;
 }
 
 /**
@@ -43,6 +53,11 @@ export function handlePresentationActionImpl(
 			playSound: deps.onPlayActionSound
 				? (soundPath) => deps.onPlayActionSound?.(soundPath)
 				: undefined,
+			lastViewed: deps.onLastViewed,
+			customShow: deps.onCustomShow,
+			openFile: deps.onOpenFile,
+			openPresentation: deps.onOpenPresentation,
+			playMedia: deps.onPlayMedia,
 		},
 	);
 }

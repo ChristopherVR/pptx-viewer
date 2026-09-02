@@ -65,20 +65,11 @@ describe('compatibilityToasts', () => {
 		expect(onDismiss).toHaveBeenCalledWith('UNMODELLED_SLIDE_MARKUP');
 	});
 
-	it('shows "Dismiss all" only with more than one toast, and calls onDismissAll', () => {
+	it('shows "Dismiss all" with a SINGLE toast too, and calls onDismissAll', () => {
 		const onDismissAll = vi.fn();
-		const twoToasts: CompatibilityWarningToast[] = [
-			...toasts,
-			{
-				id: 'EXTERNAL_IMAGE_REFERENCE',
-				code: 'EXTERNAL_IMAGE_REFERENCE',
-				severity: 'info',
-				messageKey: 'pptx.compatibility.externalImageReference',
-			},
-		];
 		act(() =>
 			root.render(
-				<CompatibilityToasts toasts={twoToasts} onDismiss={() => {}} onDismissAll={onDismissAll} />,
+				<CompatibilityToasts toasts={toasts} onDismiss={() => {}} onDismissAll={onDismissAll} />,
 			),
 		);
 		const button = container.querySelector(
@@ -87,5 +78,19 @@ describe('compatibilityToasts', () => {
 		expect(button).not.toBeNull();
 		act(() => button.click());
 		expect(onDismissAll).toHaveBeenCalledOnce();
+	});
+
+	it('positions the stack relative to its containing block, above the status bar', () => {
+		act(() =>
+			root.render(
+				<CompatibilityToasts toasts={toasts} onDismiss={() => {}} onDismissAll={() => {}} />,
+			),
+		);
+		const stack = container.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
+		expect(stack.style.position).toBe('absolute');
+		// Status bar (29px) + margin (12px): the container must clear the status
+		// bar's "Slide show" button, not the viewport bottom.
+		expect(stack.style.bottom).toBe('41px');
+		expect(stack.style.pointerEvents).toBe('none');
 	});
 });

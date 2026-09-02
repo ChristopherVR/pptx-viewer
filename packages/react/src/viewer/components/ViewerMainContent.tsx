@@ -13,9 +13,11 @@ import type { AiPanelController } from '../hooks/ai/useAiPanelController';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
 import type { EditorHistoryResult } from '../hooks/useEditorHistory';
 import type { EditorOperationsResult } from '../hooks/useEditorOperations';
+import type { UseMasterViewCrudResult } from '../hooks/useMasterViewCrud';
 import type { UsePresentationAnnotationsResult } from '../hooks/usePresentationAnnotations';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
 import type { PropertyHandlersResult } from '../hooks/usePropertyHandlers';
+import { useRecentColorsSync } from '../hooks/useRecentColorsSync';
 import type { ThemeHandlersResult } from '../hooks/useThemeHandlers';
 import type { ViewerDialogsResult } from '../hooks/useViewerDialogs';
 import type { ViewerState } from '../hooks/useViewerState';
@@ -24,6 +26,7 @@ import type { CanvasSize, SlideSectionGroup } from '../types';
 import type { ViewerMode } from '../types-core';
 import { AiChangeOverlay, AiFocusHighlightOverlay } from './ai';
 import { ChartPartSelectionProvider } from './chart-part-selection';
+import { RecentColorsProvider } from './inspector/RecentColorsContext';
 import { ResizeHandle } from './ResizeHandle';
 import { ViewerCanvasArea } from './ViewerCanvasArea';
 import { ViewerSidePanels } from './ViewerSidePanels';
@@ -54,6 +57,8 @@ export interface ViewerMainContentProps {
 	themeHandlers: ThemeHandlersResult;
 	history: EditorHistoryResult;
 	comments: UseCommentsResult;
+	/** Slide Master view sidebar CRUD (Insert/Duplicate/Delete/Rename). */
+	masterViewCrud: UseMasterViewCrudResult;
 	zoom: UseZoomViewportResult;
 	/** Whether the viewport is mobile-sized (<768px). */
 	isMobile?: boolean;
@@ -106,6 +111,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		themeHandlers,
 		history,
 		comments,
+		masterViewCrud,
 		zoom,
 		isMobile: _isMobile = false,
 		isTouchDevice: _isTouchDevice = false,
@@ -153,192 +159,215 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		[state.theme, state.tableStyleMap],
 	);
 
+	// Recent-colours ("Most Recently Used") support, shared by every colour
+	// picker in the inspector via context rather than per-caller prop
+	// threading (see `RecentColorsContext`'s doc for why).
+	const { pushColor } = useRecentColorsSync({
+		setRecentColors: state.setRecentColors,
+		setPresentationProperties: state.setPresentationProperties,
+	});
+	const recentColorsValue = useMemo(
+		() => ({ recentColors: state.recentColors, pushColor }),
+		[state.recentColors, pushColor],
+	);
+
 	return (
-		<ChartPartSelectionProvider>
-			<div className='relative z-10 flex flex-1 min-h-0'>
-				{showSlidesPane && (
-					<>
-						<SlidesPaneSidebar
-							slides={slides}
-							templateElementsBySlideId={state.templateElementsBySlideId}
-							activeSlideIndex={activeSlideIndex}
+		<RecentColorsProvider value={recentColorsValue}>
+			<ChartPartSelectionProvider>
+				<div className='relative z-10 flex flex-1 min-h-0'>
+					{showSlidesPane && (
+						<>
+							<SlidesPaneSidebar
+								slides={slides}
+								templateElementsBySlideId={state.templateElementsBySlideId}
+								activeSlideIndex={activeSlideIndex}
+								canvasSize={canvasSize}
+								sectionGroups={slideSectionGroups}
+								isOpen={state.isSlidesPaneOpen}
+								canEdit={canEdit}
+								onSelectSlide={state.setActiveSlideIndex}
+								onSlideContextMenu={slideOps.handleSlideContextMenu}
+								onMoveSlide={slideOps.handleMoveSlide}
+								onAddSlide={slideOps.handleAddSlide}
+								onCollapse={() => state.setIsSlidesPaneOpen(false)}
+								onAddSection={sectionOps.addSection}
+								onRenameSection={sectionOps.renameSection}
+								onDeleteSection={sectionOps.deleteSection}
+								onMoveSectionUp={sectionOps.moveSectionUp}
+								onMoveSectionDown={sectionOps.moveSectionDown}
+								onToggleSectionCollapse={sectionOps.toggleSectionCollapse}
+								rehearsalTimings={
+									Object.keys(presentation.recordedTimings).length > 0
+										? presentation.recordedTimings
+										: undefined
+								}
+								panelWidth={leftPanelWidth}
+								fieldContext={thumbnailFieldContext}
+								tableStyleContext={thumbnailTableStyleContext}
+							/>
+							{onResizeLeft && <ResizeHandle direction='horizontal' onResize={onResizeLeft} />}
+						</>
+					)}
+					{showMasterPane && (
+						<MasterViewSidebar
+							slideMasters={state.slideMasters}
+							activeMasterIndex={state.activeMasterIndex}
+							activeLayoutIndex={state.activeLayoutIndex}
 							canvasSize={canvasSize}
-							sectionGroups={slideSectionGroups}
-							isOpen={state.isSlidesPaneOpen}
+							masterViewTab={state.masterViewTab}
+							notesMaster={state.notesMaster}
+							handoutMaster={state.handoutMaster}
+							handoutSlidesPerPage={
+								state.handoutMaster?.slidesPerPage ?? state.handoutSlidesPerPage
+							}
+							onSelectMaster={dialogs.handleSelectMaster}
+							onSelectLayout={dialogs.handleSelectLayout}
+							onCollapse={dialogs.handleCloseMasterView}
+							onTabChange={state.setMasterViewTab}
+							crudActions={masterViewCrud.crudActions}
+							onCrudAction={masterViewCrud.handleCrudAction}
+							onHandoutSlidesPerPageChange={(count) => {
+								state.setHandoutSlidesPerPage(count);
+								state.setHandoutMaster((master) =>
+									master ? { ...master, slidesPerPage: count } : master,
+								);
+								state.setIsDirty(true);
+							}}
+							onNotesMasterBackgroundChange={(backgroundColor) => {
+								state.setNotesMaster((master) =>
+									master ? { ...master, backgroundColor } : master,
+								);
+								state.setIsDirty(true);
+							}}
+							onHandoutMasterBackgroundChange={(backgroundColor) => {
+								state.setHandoutMaster((master) =>
+									master ? { ...master, backgroundColor } : master,
+								);
+								state.setIsDirty(true);
+							}}
 							canEdit={canEdit}
-							onSelectSlide={state.setActiveSlideIndex}
-							onSlideContextMenu={slideOps.handleSlideContextMenu}
-							onMoveSlide={slideOps.handleMoveSlide}
-							onAddSlide={slideOps.handleAddSlide}
-							onCollapse={() => state.setIsSlidesPaneOpen(false)}
-							onAddSection={sectionOps.addSection}
-							onRenameSection={sectionOps.renameSection}
-							onDeleteSection={sectionOps.deleteSection}
-							onMoveSectionUp={sectionOps.moveSectionUp}
-							onMoveSectionDown={sectionOps.moveSectionDown}
-							onToggleSectionCollapse={sectionOps.toggleSectionCollapse}
-							rehearsalTimings={
-								Object.keys(presentation.recordedTimings).length > 0
-									? presentation.recordedTimings
+							onSlidesBackgroundChange={(backgroundColor) => {
+								const write = setMasterViewBackgroundColor(
+									{ slideMasters: state.slideMasters },
+									{
+										tab: 'slides',
+										masterIndex: state.activeMasterIndex,
+										layoutIndex: state.activeLayoutIndex,
+									},
+									backgroundColor,
+								);
+								if (write?.slideMasters) {
+									state.setSlideMasters(write.slideMasters);
+									state.setIsDirty(true);
+								}
+							}}
+						/>
+					)}
+
+					<ViewerCanvasArea
+						onUpdateSlideAnimations={(animations) =>
+							propertyHandlers.handleUpdateSlide({ animations })
+						}
+						mode={mode}
+						canEdit={canEdit}
+						slides={slides}
+						activeSlide={activeSlide}
+						masterPseudoSlide={masterPseudoSlide}
+						templateElements={state.templateElements}
+						canvasSize={canvasSize}
+						activeSlideIndex={activeSlideIndex}
+						gridSpacingPx={gridSpacingPx}
+						zoom={zoom}
+						state={state}
+						selectedElement={selectedElement}
+						canvasHandlers={canvasHandlers}
+						insertHandlers={insertHandlers}
+						tableOps={tableOps}
+						annotations={annotations}
+						presentation={presentation}
+						onEndPresentation={onEndPresentation}
+						findReplace={findReplace}
+						hiddenActions={hiddenActions}
+						aiPickMode={aiPanel?.pickMode}
+						onAiPickElement={aiPanel ? aiPanel.addPick : undefined}
+						aiCanvasActive={aiPanel?.canvasAnimating}
+						aiHighlightOverlay={
+							aiPanel ? (
+								<>
+									<AiFocusHighlightOverlay
+										highlights={aiPanel.canvasHighlights}
+										elements={activeSlide?.elements ?? []}
+										activeSlideIndex={activeSlideIndex}
+									/>
+									<AiChangeOverlay
+										batch={aiPanel.changeBatch}
+										activeSlideIndex={activeSlideIndex}
+									/>
+								</>
+							) : undefined
+						}
+					/>
+
+					{state.contextMenuState && (
+						<ContextMenu
+							contextMenuState={state.contextMenuState}
+							mode={mode}
+							selectedElement={selectedElement}
+							tableEditorState={state.tableEditorState}
+							hasMultiSelection={state.effectiveSelectedIds.length > 1}
+							onAction={manipulation.handleContextMenuAction}
+							onInsertTableRow={tableOps.handleInsertTableRow}
+							onDeleteTableRow={tableOps.handleDeleteTableRow}
+							onInsertTableColumn={tableOps.handleInsertTableColumn}
+							onDeleteTableColumn={tableOps.handleDeleteTableColumn}
+							onMergeCellRight={tableOps.handleMergeCellRight}
+							onMergeCellDown={tableOps.handleMergeCellDown}
+							onMergeSelectedCells={tableOps.handleMergeSelectedCells}
+							onSplitCell={tableOps.handleSplitCell}
+							onAskAi={
+								aiPanel && selectedElement
+									? () => {
+											aiPanel.askAboutSelection();
+											state.setContextMenuState(null);
+										}
 									: undefined
 							}
-							panelWidth={leftPanelWidth}
-							fieldContext={thumbnailFieldContext}
-							tableStyleContext={thumbnailTableStyleContext}
-						/>
-						{onResizeLeft && <ResizeHandle direction='horizontal' onResize={onResizeLeft} />}
-					</>
-				)}
-				{showMasterPane && (
-					<MasterViewSidebar
-						slideMasters={state.slideMasters}
-						activeMasterIndex={state.activeMasterIndex}
-						activeLayoutIndex={state.activeLayoutIndex}
-						canvasSize={canvasSize}
-						masterViewTab={state.masterViewTab}
-						notesMaster={state.notesMaster}
-						handoutMaster={state.handoutMaster}
-						handoutSlidesPerPage={state.handoutMaster?.slidesPerPage ?? state.handoutSlidesPerPage}
-						onSelectMaster={dialogs.handleSelectMaster}
-						onSelectLayout={dialogs.handleSelectLayout}
-						onCollapse={dialogs.handleCloseMasterView}
-						onTabChange={state.setMasterViewTab}
-						onHandoutSlidesPerPageChange={(count) => {
-							state.setHandoutSlidesPerPage(count);
-							state.setHandoutMaster((master) =>
-								master ? { ...master, slidesPerPage: count } : master,
-							);
-							state.setIsDirty(true);
-						}}
-						onNotesMasterBackgroundChange={(backgroundColor) => {
-							state.setNotesMaster((master) => (master ? { ...master, backgroundColor } : master));
-							state.setIsDirty(true);
-						}}
-						onHandoutMasterBackgroundChange={(backgroundColor) => {
-							state.setHandoutMaster((master) =>
-								master ? { ...master, backgroundColor } : master,
-							);
-							state.setIsDirty(true);
-						}}
-						canEdit={canEdit}
-						onSlidesBackgroundChange={(backgroundColor) => {
-							const write = setMasterViewBackgroundColor(
-								{ slideMasters: state.slideMasters },
-								{
-									tab: 'slides',
-									masterIndex: state.activeMasterIndex,
-									layoutIndex: state.activeLayoutIndex,
-								},
-								backgroundColor,
-							);
-							if (write?.slideMasters) {
-								state.setSlideMasters(write.slideMasters);
-								state.setIsDirty(true);
+							onFixAi={
+								aiPanel && selectedElement
+									? () => {
+											aiPanel.fixSelection();
+											state.setContextMenuState(null);
+										}
+									: undefined
 							}
-						}}
-					/>
-				)}
+							onClose={() => state.setContextMenuState(null)}
+						/>
+					)}
 
-				<ViewerCanvasArea
-					onUpdateSlideAnimations={(animations) =>
-						propertyHandlers.handleUpdateSlide({ animations })
-					}
-					mode={mode}
-					canEdit={canEdit}
-					slides={slides}
-					activeSlide={activeSlide}
-					masterPseudoSlide={masterPseudoSlide}
-					templateElements={state.templateElements}
-					canvasSize={canvasSize}
-					activeSlideIndex={activeSlideIndex}
-					gridSpacingPx={gridSpacingPx}
-					zoom={zoom}
-					state={state}
-					selectedElement={selectedElement}
-					canvasHandlers={canvasHandlers}
-					insertHandlers={insertHandlers}
-					tableOps={tableOps}
-					annotations={annotations}
-					presentation={presentation}
-					onEndPresentation={onEndPresentation}
-					findReplace={findReplace}
-					hiddenActions={hiddenActions}
-					aiPickMode={aiPanel?.pickMode}
-					onAiPickElement={aiPanel ? aiPanel.addPick : undefined}
-					aiCanvasActive={aiPanel?.canvasAnimating}
-					aiHighlightOverlay={
-						aiPanel ? (
-							<>
-								<AiFocusHighlightOverlay
-									highlights={aiPanel.canvasHighlights}
-									elements={activeSlide?.elements ?? []}
-									activeSlideIndex={activeSlideIndex}
-								/>
-								<AiChangeOverlay batch={aiPanel.changeBatch} activeSlideIndex={activeSlideIndex} />
-							</>
-						) : undefined
-					}
-				/>
-
-				{state.contextMenuState && (
-					<ContextMenu
-						contextMenuState={state.contextMenuState}
+					<ViewerSidePanels
 						mode={mode}
+						canEdit={canEdit}
+						activeSlide={activeSlide}
+						masterPseudoSlide={masterPseudoSlide}
+						slides={slides}
+						canvasSize={canvasSize}
+						activeSlideIndex={activeSlideIndex}
 						selectedElement={selectedElement}
-						tableEditorState={state.tableEditorState}
-						hasMultiSelection={state.effectiveSelectedIds.length > 1}
-						onAction={manipulation.handleContextMenuAction}
-						onInsertTableRow={tableOps.handleInsertTableRow}
-						onDeleteTableRow={tableOps.handleDeleteTableRow}
-						onInsertTableColumn={tableOps.handleInsertTableColumn}
-						onDeleteTableColumn={tableOps.handleDeleteTableColumn}
-						onMergeCellRight={tableOps.handleMergeCellRight}
-						onMergeCellDown={tableOps.handleMergeCellDown}
-						onMergeSelectedCells={tableOps.handleMergeSelectedCells}
-						onSplitCell={tableOps.handleSplitCell}
-						onAskAi={
-							aiPanel && selectedElement
-								? () => {
-										aiPanel.askAboutSelection();
-										state.setContextMenuState(null);
-									}
-								: undefined
-						}
-						onFixAi={
-							aiPanel && selectedElement
-								? () => {
-										aiPanel.fixSelection();
-										state.setContextMenuState(null);
-									}
-								: undefined
-						}
-						onClose={() => state.setContextMenuState(null)}
+						state={state}
+						comments={comments}
+						ops={ops}
+						manipulation={manipulation}
+						propertyHandlers={propertyHandlers}
+						themeHandlers={themeHandlers}
+						history={history}
+						panelWidth={rightPanelWidth}
+						onResizeRight={onResizeRight}
+						aiConfig={aiConfig}
+						aiBridge={aiBridge}
+						aiPanel={aiPanel}
 					/>
-				)}
-
-				<ViewerSidePanels
-					mode={mode}
-					canEdit={canEdit}
-					activeSlide={activeSlide}
-					masterPseudoSlide={masterPseudoSlide}
-					slides={slides}
-					canvasSize={canvasSize}
-					activeSlideIndex={activeSlideIndex}
-					selectedElement={selectedElement}
-					state={state}
-					comments={comments}
-					ops={ops}
-					manipulation={manipulation}
-					propertyHandlers={propertyHandlers}
-					themeHandlers={themeHandlers}
-					history={history}
-					panelWidth={rightPanelWidth}
-					onResizeRight={onResizeRight}
-					aiConfig={aiConfig}
-					aiBridge={aiBridge}
-					aiPanel={aiPanel}
-				/>
-			</div>
-		</ChartPartSelectionProvider>
+				</div>
+			</ChartPartSelectionProvider>
+		</RecentColorsProvider>
 	);
 }

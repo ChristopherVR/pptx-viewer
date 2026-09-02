@@ -4,6 +4,7 @@ import type {
 	PptxSlideMaster,
 	PptxSlideLayout,
 } from 'pptx-viewer-core';
+import type { AuthoredSlideRange } from 'pptx-viewer-shared';
 import {
 	computeGridSpacingPx as sharedComputeGridSpacingPx,
 	groupSlidesBySection,
@@ -67,6 +68,13 @@ export interface DerivedSlideState {
 	visibleSlideIndexes: number[];
 	slideSectionGroups: SlideSectionGroup[];
 	masterPseudoSlide: PptxSlide | undefined;
+	/**
+	 * The `p:showPr/p:sldRg` range the deck is authored to open into, resolved
+	 * to 0-based indexes (or `undefined` outside range mode). Forwarded to
+	 * `nextPresentedSlide` calls (presenter rail, mobile presenter view) so a
+	 * "coming up next" preview never shows a slide outside the authored range.
+	 */
+	authoredRange: AuthoredSlideRange | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +198,15 @@ export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedS
 		[slides, activeCustomShowId, customShows, presentationProperties],
 	);
 
+	// The authored `p:sldRg` range, resolved once and reused by both
+	// `visibleSlideIndexes` above (via `computeVisibleSlideIndexes`) and every
+	// `nextPresentedSlide` preview, so they cannot disagree on the deck's
+	// authored bounds.
+	const authoredRange = useMemo(
+		() => resolveAuthoredSlideRange(presentationProperties, slides.length),
+		[presentationProperties, slides.length],
+	);
+
 	// Slide section groups for the slides pane sidebar. `computeSlideSectionGroups`
 	// is a pure helper (unit-tested with literal English labels), so translation
 	// of its two auto-generated group labels happens here, at the hook level.
@@ -218,5 +235,6 @@ export function useDerivedSlideState(input: UseDerivedSlideStateInput): DerivedS
 		visibleSlideIndexes,
 		slideSectionGroups,
 		masterPseudoSlide,
+		authoredRange,
 	};
 }

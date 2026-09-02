@@ -3,7 +3,9 @@ import {
 	buildMorphAnimationRules,
 	buildMorphTransitionPlan,
 	createPresenterShowGuard,
+	firstShowSlideIndex,
 	morphOptionToMode,
+	presentationEntrySlideIndex,
 } from 'pptx-viewer-shared';
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
@@ -16,6 +18,7 @@ import type {
 } from './presentation-mode/types';
 import { useAnimationPlayback } from './presentation-mode/useAnimationPlayback';
 import { useAudienceMode } from './presentation-mode/useAudienceMode';
+import { usePresentationActionExtensions } from './presentation-mode/usePresentationActionExtensions';
 import { usePresentationKeyboard } from './presentation-mode/usePresentationKeyboard';
 import { usePresenterConsole } from './presentation-mode/usePresenterConsole';
 import { usePresenterWindow } from './presentation-mode/usePresenterWindow';
@@ -50,6 +53,9 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		showWithAnimation,
 		useTimings,
 		endWithBlackSlide = true,
+		customShows = [],
+		activeCustomShowId = null,
+		onSetActiveCustomShowId,
 	} = input;
 
 	// -----------------------------------------------------------------------
@@ -128,15 +134,22 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		}
 	}, [mode]);
 
-	// Advancing past the last slide either shows the black end-of-show
-	// screen (PowerPoint's "End with black slide") or exits directly.
-	const handleAdvancePastLastSlide = useCallback(() => {
-		if (endWithBlackSlide) {
-			setEndOfShowVisible(true);
-		} else {
-			onSetMode('edit');
-		}
-	}, [endWithBlackSlide, onSetMode]);
+	// Wave-4 `PresentationActionRunner` extensions (customShow, lastViewed,
+	// openFile, openPresentation, playMedia) and the end-of-show hook that
+	// lets a `returnAfter` custom show resume its origin. Extracted: see
+	// `usePresentationActionExtensions` for why the navigator is wired in via
+	// `bindNavigateToSlide` after `useSlideNavigation` builds it below.
+	const actionExtensions = usePresentationActionExtensions({
+		slides,
+		customShows,
+		activeCustomShowId,
+		onSetActiveCustomShowId,
+		presentationSlideIndex,
+		containerRef,
+		endWithBlackSlide,
+		onSetMode,
+		setEndOfShowVisible,
+	});
 
 	const {
 		movePresentationSlide: moveNavigationSlide,
@@ -155,7 +168,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onPlayActionSound,
 		loopContinuously,
 		useTimings,
-		onAdvancePastLastSlide: handleAdvancePastLastSlide,
+		onAdvancePastLastSlide: actionExtensions.handleAdvancePastLastSlide,
 		playNextAnimationGroup,
 		clearPresentationTimers,
 		seedSlideAnimations,
@@ -164,7 +177,14 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		rehearsing,
 		recordCurrentSlideTime,
 		setShowRehearsalSummary,
+		onLastViewed: actionExtensions.onLastViewed,
+		onCustomShow: actionExtensions.onCustomShow,
+		onOpenFile: actionExtensions.onOpenFile,
+		onOpenPresentation: actionExtensions.onOpenPresentation,
+		onPlayMedia: actionExtensions.onPlayMedia,
 	});
+
+	actionExtensions.bindNavigateToSlide(navigateToSlide);
 
 	// While the end-of-show screen is up, the next forward advance exits the
 	// show and a backward advance returns to the last slide.
@@ -262,6 +282,20 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onSetMode('present');
 	}, [containerRef, onSetMode, setRehearsing]);
 
+	/**
+	 * "From Beginning" / F5: unlike {@link enterPresentMode} ("From Current
+	 * Slide"), this ignores wherever the editor's active slide happens to be
+	 * and seeds it to the show's first slide first, so the entry effect below
+	 * (which reads the active slide) opens there. Also a user-gesture handler.
+	 */
+	const enterPresentModeFromBeginning = useCallback(() => {
+		const first = firstShowSlideIndex(visibleSlideIndexes);
+		if (first !== undefined) {
+			onSetActiveSlideIndex(first);
+		}
+		enterPresentMode();
+	}, [visibleSlideIndexes, onSetActiveSlideIndex, enterPresentMode]);
+
 	const enterPresenterView = useCallback(() => {
 		setPresenterMode(true);
 		setRehearsing(false);
@@ -353,6 +387,10 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	scheduleAutoAdvanceRef.current = scheduleAutoAdvanceForSlide;
 	const activeSlideIndexRef = useRef(activeSlideIndex);
 	activeSlideIndexRef.current = activeSlideIndex;
+	const visibleSlideIndexesRef = useRef(visibleSlideIndexes);
+	visibleSlideIndexesRef.current = visibleSlideIndexes;
+	const onSetActiveSlideIndexRef = useRef(onSetActiveSlideIndex);
+	onSetActiveSlideIndexRef.current = onSetActiveSlideIndex;
 	const presentationSlideIndexRef = useRef(presentationSlideIndex);
 	presentationSlideIndexRef.current = presentationSlideIndex;
 	const clearPresentationTimersRef = useRef(clearPresentationTimers);
@@ -383,8 +421,23 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 			// Slide-to-slide navigation during presentation is handled entirely
 			// by executeSlideTransition; re-running here on every activeSlideIndex
 			// change would duplicate entrance animations and cause visible lag.
-			const idx = activeSlideIndexRef.current;
+			//
+			// The active slide wins only when the show actually includes it
+			// ("From Current Slide"); otherwise the show opens on its own first
+			// slide instead of a slide the author took out of the show
+			// (`presentationEntrySlideIndex`, see its own doc for the full rule).
+			const idx = presentationEntrySlideIndex(
+				activeSlideIndexRef.current,
+				visibleSlideIndexesRef.current,
+			);
 			setPresentationSlideIndex(idx);
+			// The stage paints the ACTIVE slide (navigation moves both indexes
+			// together, see `executeSlideTransition`), so an entry slide other
+			// than the active one has to move it as well or the counter says
+			// "2 / 3" over a stage still showing slide 1.
+			if (idx !== activeSlideIndexRef.current) {
+				onSetActiveSlideIndexRef.current(idx);
+			}
 			runEntranceAnimationsRef.current(idx);
 			scheduleAutoAdvanceRef.current(idx);
 		} else {
@@ -557,6 +610,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		handleHoverStart,
 		handleHoverEnd,
 		enterPresentMode,
+		enterPresentModeFromBeginning,
 		presenterMode,
 		enterPresenterView,
 		togglePresenterView,

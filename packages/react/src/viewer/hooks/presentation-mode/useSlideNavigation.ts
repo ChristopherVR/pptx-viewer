@@ -64,6 +64,16 @@ export interface UseSlideNavigationInput {
 	rehearsing: boolean;
 	recordCurrentSlideTime: (slideIndex: number) => void;
 	setShowRehearsalSummary: (value: boolean) => void;
+	/** `ppaction://hlinkshowjump?jump=lastslideviewed`. */
+	onLastViewed?: () => void;
+	/** `ppaction://customshow?id=<id>[&return=true]`. */
+	onCustomShow?: (customShowId: string, returnAfter: boolean) => void;
+	/** `ppaction://hlinkfile`. */
+	onOpenFile?: (target: string) => void;
+	/** `ppaction://hlinkpres`. */
+	onOpenPresentation?: (target: string) => void;
+	/** `ppaction://media`. */
+	onPlayMedia?: (elementId: string | undefined) => void;
 }
 
 export interface UseSlideNavigationResult {
@@ -99,6 +109,11 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		rehearsing,
 		recordCurrentSlideTime,
 		setShowRehearsalSummary,
+		onLastViewed,
+		onCustomShow,
+		onOpenFile,
+		onOpenPresentation,
+		onPlayMedia,
 	} = input;
 
 	const movePresentationSlideRef = useRef<(direction: 1 | -1) => void>(() => {});
@@ -306,9 +321,25 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				onPlayActionSound,
 				onSetMode,
 				slidesLength: slides.length,
+				onLastViewed,
+				onCustomShow,
+				onOpenFile,
+				onOpenPresentation,
+				onPlayMedia,
 			});
 		},
-		[movePresentationSlide, navigateToSlide, onPlayActionSound, onSetMode, slides.length],
+		[
+			movePresentationSlide,
+			navigateToSlide,
+			onPlayActionSound,
+			onSetMode,
+			slides.length,
+			onLastViewed,
+			onCustomShow,
+			onOpenFile,
+			onOpenPresentation,
+			onPlayMedia,
+		],
 	);
 
 	return {

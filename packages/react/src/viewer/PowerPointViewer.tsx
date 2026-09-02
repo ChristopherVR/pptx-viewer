@@ -109,6 +109,7 @@ import { useEditorHistory } from './hooks/useEditorHistory';
 import { useEditorOperations } from './hooks/useEditorOperations';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useLayoutSwitching } from './hooks/useLayoutSwitching';
+import { useMasterViewCrud } from './hooks/useMasterViewCrud';
 import { usePresentationSetup } from './hooks/usePresentationSetup';
 import { useReadOnlyRecommendationState } from './hooks/useReadOnlyRecommendationState';
 import { useReducedMotion } from './hooks/useReducedMotion';
@@ -554,18 +555,23 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const resizablePanels = useResizablePanels();
 
 		// ── Derived computed values ───────────────────────────────────
-		const { gridSpacingPx, visibleSlideIndexes, slideSectionGroups, masterPseudoSlide } =
-			useDerivedSlideState({
-				slides,
-				sections: state.sections,
-				customShows: state.customShows,
-				activeCustomShowId: state.activeCustomShowId,
-				presentationProperties: state.presentationProperties,
-				mode,
-				activeLayout: state.activeLayout,
-				activeMaster: state.activeMaster,
-				documentGridSpacing: state.viewProperties?.gridSpacing,
-			});
+		const {
+			gridSpacingPx,
+			visibleSlideIndexes,
+			slideSectionGroups,
+			masterPseudoSlide,
+			authoredRange,
+		} = useDerivedSlideState({
+			slides,
+			sections: state.sections,
+			customShows: state.customShows,
+			activeCustomShowId: state.activeCustomShowId,
+			presentationProperties: state.presentationProperties,
+			mode,
+			activeLayout: state.activeLayout,
+			activeMaster: state.activeMaster,
+			documentGridSpacing: state.viewProperties?.gridSpacing,
+		});
 
 		// The show that is actually playing, resolved once so presenter view's
 		// next-slide preview follows the same order as the forward key.
@@ -665,6 +671,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						...prev,
 						showSubtitles: !prev.showSubtitles,
 					})),
+				customShows: state.customShows,
+				activeCustomShowId: state.activeCustomShowId,
+				onSetActiveCustomShowId: state.setActiveCustomShowId,
 			});
 
 		// ── Touch gestures: pinch-to-zoom on canvas viewport ──────
@@ -922,6 +931,24 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onTemplateElementsChanged: handleTemplateElementsChanged,
 		});
 
+		// ── Slide Master view sidebar CRUD ────────────────────────────
+		const masterViewCrud = useMasterViewCrud({
+			handlerRef,
+			slides,
+			slideMasters: state.slideMasters,
+			target: {
+				tab: state.masterViewTab,
+				masterIndex: state.activeMasterIndex,
+				layoutIndex: state.activeLayoutIndex,
+			},
+			setSlides: state.setSlides,
+			setSlideMasters: state.setSlideMasters,
+			setActiveMasterIndex: state.setActiveMasterIndex,
+			setActiveLayoutIndex: state.setActiveLayoutIndex,
+			markDirty: history.markDirty,
+			pushToast: (toast) => compatToastsState.setToasts((prev) => [...prev, toast]),
+		});
+
 		// ── AI assistant bridge ─────────────────────────────────────
 		// Built unconditionally (cheap, type-only SDK deps) but only consumed
 		// when the host passes the `ai` prop. Its three write choke points route
@@ -1057,6 +1084,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									customFontFamilies={customFontFamilies}
 									ops={editorOps.ops}
 									onSetMode={handleSetMode}
+									onPresentFromBeginning={presentation.enterPresentModeFromBeginning}
 									onEnterPresenterView={handleEnterPresenterView}
 									onEnterRehearsalMode={handleEnterRehearsalMode}
 									onOpenSettings={() => setIsSettingsOpen(true)}
@@ -1117,6 +1145,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								themeHandlers={themeHandlers}
 								history={history}
 								comments={editorOps.comments}
+								masterViewCrud={masterViewCrud}
 								zoom={zoom}
 								isMobile={isMobile}
 								isTouchDevice={isTouchDevice}
@@ -1130,14 +1159,6 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								aiBridge={ai ? aiBridge : undefined}
 								aiPanel={ai ? aiPanel : undefined}
 							/>
-
-							{mode !== 'present' && (
-								<CompatibilityToasts
-									toasts={compatToastsState.toasts}
-									onDismiss={compatToastsState.dismiss}
-									onDismissAll={compatToastsState.dismissAll}
-								/>
-							)}
 
 							{/* Keep the bottom panels mounted while the notes panel is expanded:
 				    focusing the notes textbox opens the virtual keyboard, and
@@ -1189,6 +1210,18 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						</>
 					)}
 				</div>
+
+				{/* Positioned against the OUTER viewer-root div (same containing
+				    block the dialogs below use), not the measured container above:
+				    that container's own bottom edge sits behind the status bar, so a
+				    toast anchored to IT covered the "Slide show" button. */}
+				{mode !== 'present' && (
+					<CompatibilityToasts
+						toasts={compatToastsState.toasts}
+						onDismiss={compatToastsState.dismiss}
+						onDismissAll={compatToastsState.dismissAll}
+					/>
+				)}
 
 				{/* Fixed-position dialogs and overlays: rendered outside the measured
 				    container so their mount/unmount cannot trigger ResizeObserver
@@ -1346,6 +1379,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					templateElements={state.templateElements}
 					presentation={presentation}
 					activeCustomShow={activeCustomShow}
+					authoredRange={authoredRange}
 					onExitPresentation={() => handleSetMode('edit')}
 					onUpdateNotes={propertyHandlers.handleUpdateNotes}
 					isMobile={isMobile}

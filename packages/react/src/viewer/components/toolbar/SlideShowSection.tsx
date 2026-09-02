@@ -30,6 +30,11 @@ import { RibbonMenu } from './RibbonMenu';
 
 export interface SlideShowSectionProps {
 	onPresent: () => void;
+	/**
+	 * "From Beginning": enters the show on its first slide regardless of the
+	 * active slide. Falls back to `onSetMode('present')` when omitted.
+	 */
+	onPresentFromBeginning?: () => void;
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
 	onOpenSetUpSlideShow: () => void;
@@ -86,7 +91,7 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 				<RibbonCommand
 					label={t('pptx.slideShow.fromBeginning')}
 					icon={<LuPlay />}
-					onClick={() => p.onSetMode('present')}
+					onClick={p.onPresentFromBeginning ?? (() => p.onSetMode('present'))}
 					title={t('pptx.slideShow.fromBeginningTooltip')}
 				/>
 				<RibbonCommand

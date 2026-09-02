@@ -1,5 +1,6 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type {
+	AuthoredSlideRange,
 	PresentationPointerTool,
 	PresentationSnapshot,
 	ShowOrderCustomShow,
@@ -48,6 +49,8 @@ export interface PresenterViewProps {
 	presentationStartTime: number | null;
 	/** The running custom show, so the next-slide preview follows its order. */
 	activeCustomShow?: ShowOrderCustomShow | null;
+	/** The deck's authored `p:sldRg` range, forwarded to the same preview. */
+	authoredRange?: AuthoredSlideRange | undefined;
 	/**
 	 * `trigger` mirrors the show stage: `'click'` steps through pending element
 	 * builds first and honours the slide's `advanceOnClick` transition flag,
@@ -93,6 +96,7 @@ export function PresenterView({
 	templateElements,
 	presentationStartTime,
 	activeCustomShow,
+	authoredRange,
 	onMovePresentationSlide,
 	onExit,
 	onOpenAudienceWindow,
@@ -229,6 +233,7 @@ export function PresenterView({
 					canvasSize={canvasSize}
 					templateElements={templateElements}
 					activeCustomShow={activeCustomShow}
+					authoredRange={authoredRange}
 					now={now}
 					elapsed={elapsed}
 					onMove={onMovePresentationSlide}

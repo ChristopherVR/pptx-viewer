@@ -17,7 +17,10 @@ export const DEFAULT_FILL_COLOR = '#3b82f6';
 export const DEFAULT_STROKE_COLOR = '#1f2937';
 export const DEFAULT_FONT_FAMILY = '"Segoe UI", "Helvetica Neue", Arial, sans-serif';
 export const DEFAULT_TEXT_FONT_SIZE = 24;
-export const RECENT_COLOR_LIMIT = 8;
+// Re-exported from pptx-viewer-shared: the "Recent Colors" row is a
+// cross-binding contract (`render/recent-colors.ts`), so the cap is defined
+// once there rather than copied into each binding's constants file.
+export { RECENT_COLOR_LIMIT } from 'pptx-viewer-shared';
 export const HYPERLINK_COLOR = '#0563C1';
 export const DEFAULT_TABLE_ROWS = 3;
 export const DEFAULT_TABLE_COLUMNS = 3;

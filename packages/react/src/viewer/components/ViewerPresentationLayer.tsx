@@ -3,7 +3,7 @@
  * rehearsal summary overlays that sit above the main editor UI.
  */
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
-import type { ShowOrderCustomShow } from 'pptx-viewer-shared';
+import type { AuthoredSlideRange, ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 import { PresenterView, RehearseTimingsHud, RehearseTimingsSummary } from '.';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
@@ -23,6 +23,11 @@ export interface ViewerPresentationLayerProps {
 	presentation: UsePresentationModeResult;
 	/** The running custom show, forwarded to the presenter next-slide preview. */
 	activeCustomShow?: ShowOrderCustomShow | null;
+	/**
+	 * The deck's authored `p:sldRg` range, also forwarded to the next-slide
+	 * preview so it never shows a slide outside the range the deck opens into.
+	 */
+	authoredRange?: AuthoredSlideRange | undefined;
 	onExitPresentation: () => void;
 	/** Use the single-column mobile presenter layout instead of the desktop one. */
 	isMobile?: boolean;
@@ -41,6 +46,7 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
 		templateElements,
 		presentation,
 		activeCustomShow,
+		authoredRange,
 		onExitPresentation,
 		isMobile,
 		onUpdateNotes,
@@ -57,6 +63,8 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
 						currentSlideIndex={presentation.presentationSlideIndex}
 						canvasSize={canvasSize}
 						templateElements={templateElements}
+						activeCustomShow={activeCustomShow}
+						authoredRange={authoredRange}
 						presentationStartTime={presentation.presentationStartTime}
 						onMovePresentationSlide={presentation.movePresentationSlide}
 						onExit={onExitPresentation}
@@ -68,6 +76,7 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
 						canvasSize={canvasSize}
 						templateElements={templateElements}
 						activeCustomShow={activeCustomShow}
+						authoredRange={authoredRange}
 						presentationStartTime={presentation.presentationStartTime}
 						onMovePresentationSlide={presentation.movePresentationSlide}
 						onExit={onExitPresentation}
