@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * Regression test for the collaboration live-preview channel: React's drag and
  * resize write straight to the DOM and only commit to `slides` on pointer-up,
@@ -12,7 +13,7 @@ import {
 	reconcileSlidesInYDoc,
 } from 'pptx-viewer-shared';
 import type { YDocLike, YjsFactories } from 'pptx-viewer-shared';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import type { UsePointerHandlersInput, PointerFrameTracker } from './pointer-handler-types';
@@ -93,6 +94,17 @@ const newTracker = (): PointerFrameTracker => ({
 	lastSnapLinesKey: '',
 });
 
+function appendHandleHost(elementId: string): HTMLDivElement {
+	const host = document.createElement('div');
+	host.setAttribute('data-pptx-handle-for', elementId);
+	document.body.appendChild(host);
+	return host;
+}
+
+afterEach(() => {
+	document.body.replaceChildren();
+});
+
 function seed(activeSlide: PptxSlide): {
 	doc: Y.Doc;
 	patcher: ReturnType<typeof createCollaborationLivePatcher>;
@@ -103,6 +115,64 @@ function seed(activeSlide: PptxSlide): {
 	patcher.configure(asDoc(doc), factories);
 	return { doc, patcher };
 }
+
+describe('selection handle overlay preview', () => {
+	it('keeps the selection handles aligned during a drag preview', () => {
+		const active = slide([element('e1')]);
+		const input = makeInput(active, createCollaborationLivePatcher());
+		const domEl = document.createElement('div');
+		const handleHost = appendHandleHost('e1');
+		input.dragStateRef.current = {
+			elementId: 'e1',
+			startClientX: 0,
+			startClientY: 0,
+			startPositionsById: { e1: { x: 100, y: 100 } },
+			domEls: new Map([['e1', domEl]]),
+			moved: false,
+			lastDx: 0,
+			lastDy: 0,
+		};
+
+		processPointerMove(move(40, 25), input, newTracker());
+
+		expect(domEl.style.left).toBe('140px');
+		expect(domEl.style.top).toBe('125px');
+		expect(handleHost.style.left).toBe('140px');
+		expect(handleHost.style.top).toBe('125px');
+	});
+
+	it('keeps the selection handles aligned during a resize preview', () => {
+		const active = slide([element('e1')]);
+		const input = makeInput(active, createCollaborationLivePatcher());
+		const domEl = document.createElement('div');
+		const handleHost = appendHandleHost('e1');
+		input.resizeStateRef.current = {
+			elementId: 'e1',
+			startClientX: 0,
+			startClientY: 0,
+			startX: 100,
+			startY: 100,
+			startWidth: 200,
+			startHeight: 150,
+			handle: 'se',
+			moved: false,
+			domEl,
+			lastX: 100,
+			lastY: 100,
+			lastWidth: 200,
+			lastHeight: 150,
+		};
+
+		processPointerMove(move(50, 30), input, newTracker());
+
+		expect(domEl.style.width).toBe('250px');
+		expect(domEl.style.height).toBe('180px');
+		expect(handleHost.style.left).toBe('100px');
+		expect(handleHost.style.top).toBe('100px');
+		expect(handleHost.style.width).toBe('250px');
+		expect(handleHost.style.height).toBe('180px');
+	});
+});
 
 describe('pointer live patch', () => {
 	it('publishes a drag to the Y.Doc before pointer-up', () => {

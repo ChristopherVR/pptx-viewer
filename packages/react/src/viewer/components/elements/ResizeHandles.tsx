@@ -4,6 +4,7 @@ import { LuRotateCw } from 'react-icons/lu';
 
 import type { ResizeHandle, ShapeAdjustmentHandleDescriptor } from '../../types';
 import { cn } from '../../utils';
+import { syncSelectionHandleOverlay } from '../../utils/selection-handle-overlay';
 
 export interface ResizeHandlesProps {
 	elementId: string;
@@ -175,7 +176,9 @@ export function ResizeHandles({
 			}
 			deg = Math.round(((deg % 360) + 360) % 360);
 			last = deg;
-			wrapper.style.transform = `rotate(${deg}deg)${base}`;
+			const transform = `rotate(${deg}deg)${base}`;
+			wrapper.style.transform = transform;
+			syncSelectionHandleOverlay(elementId, { transform });
 		};
 		const onPointerMove = (ev: PointerEvent): void => apply(ev.clientX, ev.clientY, ev.shiftKey);
 		const end = (): void => {
