@@ -11,11 +11,11 @@ import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resetGoogleWebfontProbeCache } from '../internal/shared';
+import { resetGoogleWebfontSessionCache } from '../internal/shared';
 import { GoogleWebfontsService, GOOGLE_WEBFONTS_LINK_ID } from './google-webfonts.service';
 
 beforeEach(() => {
-	resetGoogleWebfontProbeCache();
+	resetGoogleWebfontSessionCache();
 	// happy-dom eagerly fetches injected `<link rel="stylesheet">` elements;
 	// disable that so tests stay offline-deterministic, and silence its
 	// "loading is disabled" report for the links this service injects.
@@ -45,16 +45,9 @@ function slide(...elements: PptxElement[]): PptxSlide {
 	return { elements } as unknown as PptxSlide;
 }
 
-/** Stub the session probe: 200 (served) for the listed families, else 400. */
-function stubProbe(served: readonly string[]): void {
-	vi.stubGlobal(
-		'fetch',
-		vi.fn(async (url: string | URL | Request) => {
-			const match = /family=([^&]+)/.exec(String(url));
-			const name = match ? decodeURIComponent(match[1]) : '';
-			return { status: served.includes(name.split(':')[0]) ? 200 : 400 };
-		}),
-	);
+/** The bundled catalogue answers every lookup; nothing may reach the network. */
+function stubNetwork(): void {
+	vi.stubGlobal('fetch', vi.fn());
 }
 
 /** Build the service inside an injection context with a capturing DestroyRef. */
@@ -83,8 +76,8 @@ describe('googleWebfontsService', () => {
 		destroy();
 	});
 
-	it('injects a Google Fonts link once the probe confirms the family', async () => {
-		stubProbe(['ADLaM Display']);
+	it('injects a Google Fonts link for a catalogue family', async () => {
+		stubNetwork();
 		const { svc, destroy } = makeService();
 		svc.sync([slide(textEl('ADLaM Display'))], []);
 
@@ -96,7 +89,7 @@ describe('googleWebfontsService', () => {
 	});
 
 	it('skips the link when the referenced family is embedded', async () => {
-		stubProbe(['ADLaM Display']);
+		stubNetwork();
 		const fetch = vi.fn();
 		vi.stubGlobal('fetch', fetch);
 		const { svc, destroy } = makeService();
@@ -108,7 +101,7 @@ describe('googleWebfontsService', () => {
 	});
 
 	it('reuses a single <link> element across syncs', async () => {
-		stubProbe(['ADLaM Display', 'Roboto']);
+		stubNetwork();
 		const { svc, destroy } = makeService();
 		svc.sync([slide(textEl('ADLaM Display'))], []);
 		await vi.waitFor(() => expect(document.getElementById(GOOGLE_WEBFONTS_LINK_ID)).not.toBeNull());
@@ -127,7 +120,7 @@ describe('googleWebfontsService', () => {
 	});
 
 	it('removes the <link> when nothing needs fetching or on destroy', async () => {
-		stubProbe(['ADLaM Display']);
+		stubNetwork();
 		const { svc, destroy } = makeService();
 		svc.sync([slide(textEl('ADLaM Display'))], []);
 		await vi.waitFor(() => expect(document.getElementById(GOOGLE_WEBFONTS_LINK_ID)).not.toBeNull());

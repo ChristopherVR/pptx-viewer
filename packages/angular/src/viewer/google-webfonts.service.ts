@@ -8,7 +8,8 @@
  * by silently downloading its "cloud fonts"; a browser has no equivalent).
  * When a referenced family is served by the Google Fonts API, this service
  * injects a `<link rel="stylesheet">` so the text renders with the intended
- * face anyway. Candidates are probed (session-cached) asynchronously, so each
+ * face anyway. Candidates are resolved against the bundled Google Fonts
+ * catalogue (no network round-trip) asynchronously, so each
  * `sync` call tags its result with a token: only the most recent call may
  * apply its outcome. The managed `<link>` element lives in a single element
  * keyed by {@link GOOGLE_WEBFONTS_LINK_ID} and is removed on destroy via
@@ -37,7 +38,7 @@ function hasDomSupport(): boolean {
 @Injectable()
 export class GoogleWebfontsService {
 	private linkEl: HTMLLinkElement | null = null;
-	/** Tags in-flight probes; only the newest `sync` may apply its result. */
+	/** Tags in-flight resolutions; only the newest `sync` may apply its result. */
 	private syncToken = 0;
 
 	constructor() {
@@ -48,7 +49,7 @@ export class GoogleWebfontsService {
 
 	/**
 	 * Resolve which referenced families need a Google Fonts fetch for this
-	 * deck and sync the managed `<link>` element once the probe settles.
+	 * deck and sync the managed `<link>` element once the resolution settles.
 	 * Pass empty slides / fonts (e.g. before a load) to remove it.
 	 */
 	sync(slides: readonly PptxSlide[], embeddedFonts: readonly PptxEmbeddedFont[]): void {
@@ -76,7 +77,7 @@ export class GoogleWebfontsService {
 	}
 
 	/**
-	 * Remove the injected `<link>` element and invalidate in-flight probes.
+	 * Remove the injected `<link>` element and invalidate in-flight resolutions.
 	 * Called automatically on destroy; safe to call manually.
 	 */
 	dispose(): void {
