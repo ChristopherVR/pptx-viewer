@@ -9,6 +9,8 @@ import type {
 } from 'pptx-viewer-core';
 
 import { masterViewBackgroundColor } from '../internal/shared';
+import type { MasterViewCrudAction, MasterViewCrudActionId } from '../internal/shared';
+import { MasterViewCrudRowComponent } from './master-view-crud-row.component';
 
 const HANDOUT_COUNTS = [1, 2, 3, 4, 6, 9] as const;
 
@@ -17,7 +19,7 @@ const HANDOUT_COUNTS = [1, 2, 3, 4, 6, 9] as const;
 	selector: 'pptx-master-view-sidebar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgTemplateOutlet, TranslatePipe],
+	imports: [NgTemplateOutlet, TranslatePipe, MasterViewCrudRowComponent],
 	template: `
 		<aside class="master-sidebar" [attr.aria-label]="'pptx.view.masterViews' | translate">
 			<header>
@@ -50,6 +52,9 @@ const HANDOUT_COUNTS = [1, 2, 3, 4, 6, 9] as const;
 							[ngTemplateOutlet]="backgroundEditor"
 							[ngTemplateOutletContext]="{ color: slidesBackground() ?? '#ffffff' }"
 						/>
+					}
+					@if (editable() && crudActions().length > 0) {
+						<pptx-master-view-crud-row [actions]="crudActions()" (pick)="crudAction.emit($event)" />
 					}
 					@for (master of slideMasters(); track master.path; let masterIndex = $index) {
 						<button
@@ -233,6 +238,8 @@ export class MasterViewSidebarComponent {
 	readonly activeLayoutIndex = input<number | null>(null);
 	readonly handoutSlidesPerPage = input(4);
 	readonly editable = input(false);
+	/** The Insert/Duplicate/Delete/Rename Layout+Master sidebar commands. */
+	readonly crudActions = input<readonly MasterViewCrudAction[]>([]);
 
 	/** Background of the master or layout the Slides tab has selected. */
 	protected readonly slidesBackground = computed(() =>
@@ -252,6 +259,8 @@ export class MasterViewSidebarComponent {
 	readonly slidesPerPageChange = output<number>();
 	readonly backgroundChange = output<string>();
 	readonly close = output<void>();
+	/** A Slide Master view sidebar CRUD command was clicked. */
+	readonly crudAction = output<MasterViewCrudActionId>();
 
 	protected readonly tabs = [
 		{ tab: 'slides' as const, key: 'pptx.sections.slides' },

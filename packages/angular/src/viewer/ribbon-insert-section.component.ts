@@ -80,7 +80,9 @@ import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-p
 				(change)="setShapeType($event)"
 			>
 				@for (sp of shapePresets; track sp.type) {
-					<option [value]="sp.type">{{ sp.i18nKey | translate }}</option>
+					<option [value]="sp.type" [selected]="sp.type === newShapeType()">
+						{{ sp.i18nKey | translate }}
+					</option>
 				}
 			</select>
 			<button
@@ -134,7 +136,9 @@ import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-p
 				(change)="setChartType($event)"
 			>
 				@for (ct of chartTypes; track ct.id) {
-					<option [value]="ct.id">{{ ct.labelKey | translate }}</option>
+					<option [value]="ct.id" [selected]="ct.id === newChartType()">
+						{{ ct.labelKey | translate }}
+					</option>
 				}
 			</select>
 			<button

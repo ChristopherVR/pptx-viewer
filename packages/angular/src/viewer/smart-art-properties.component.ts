@@ -124,7 +124,9 @@ import {
 					(change)="onColorScheme($event)"
 				>
 					@for (scheme of colorSchemes; track scheme) {
-						<option [value]="scheme">{{ colorSchemeLabelKey(scheme) | translate }}</option>
+						<option [value]="scheme" [selected]="scheme === activeColorScheme()">
+							{{ colorSchemeLabelKey(scheme) | translate }}
+						</option>
 					}
 				</select>
 			</label>

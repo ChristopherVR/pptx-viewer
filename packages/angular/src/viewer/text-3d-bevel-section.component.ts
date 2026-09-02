@@ -75,7 +75,9 @@ export function bevelSizePatch(
 						(change)="onType($event)"
 					>
 						@for (preset of bevelPresets; track preset.value) {
-							<option [value]="preset.value">{{ preset.label }}</option>
+							<option [value]="preset.value" [selected]="preset.value === bevelType()">
+								{{ preset.label }}
+							</option>
 						}
 					</select>
 				</label>

@@ -77,7 +77,12 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 							(change)="onLegendPosition($event)"
 						>
 							@for (opt of legendPositions; track opt.value) {
-								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+								<option
+									[value]="opt.value"
+									[selected]="opt.value === (style().legendPosition ?? 'b')"
+								>
+									{{ opt.labelKey | translate }}
+								</option>
 							}
 						</select>
 					</label>
@@ -117,7 +122,12 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 							(change)="onBar3DShape($event)"
 						>
 							@for (opt of bar3DShapeOptions; track opt.value) {
-								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+								<option
+									[value]="opt.value"
+									[selected]="opt.value === (chartData()?.barShape ?? 'box')"
+								>
+									{{ opt.labelKey | translate }}
+								</option>
 							}
 						</select>
 					</label>
@@ -137,7 +147,12 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 							(change)="onRadarStyle($event)"
 						>
 							@for (opt of radarStyleOptions; track opt.value) {
-								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+								<option
+									[value]="opt.value"
+									[selected]="opt.value === (chartData()?.radarStyle ?? 'standard')"
+								>
+									{{ opt.labelKey | translate }}
+								</option>
 							}
 						</select>
 					</label>
@@ -157,7 +172,12 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 							(change)="onSurfaceWireframe($event)"
 						>
 							@for (opt of surfaceWireframeOptions; track opt.value) {
-								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+								<option
+									[value]="opt.value"
+									[selected]="opt.value === (chartData()?.wireframe ? 'true' : 'false')"
+								>
+									{{ opt.labelKey | translate }}
+								</option>
 							}
 						</select>
 					</label>

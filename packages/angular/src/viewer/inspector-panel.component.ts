@@ -61,6 +61,7 @@ import { IsMobileService } from './is-mobile';
 import { LineFormatPanelComponent } from './line-format-panel.component';
 import { MediaPropertiesPanelComponent } from './media-properties-panel.component';
 import { PatternFillPanelComponent } from './pattern-fill-panel.component';
+import { RecentColorsService } from './recent-colors.service';
 import { ShapeAuthoringPanelComponent } from './shape-authoring-panel.component';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableCellFormattingComponent } from './table-cell-formatting.component';
@@ -476,7 +477,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 
 			<!-- ── Chart data editor ──────────────────────────────────────────── -->
 			@if (chartEl(); as c) {
-				<details class="pptx-ng-inspector__details">
+				<details class="pptx-ng-inspector__details" open>
 					<summary class="pptx-ng-inspector__summary">
 						{{ 'pptx.inspector.chartData' | translate }}
 					</summary>
@@ -800,6 +801,9 @@ export class InspectorPanelComponent {
 	/** Reactive viewport / pointer flags (drives the bottom-sheet layout). */
 	protected readonly mobile = inject(IsMobileService);
 
+	/** "Recent colours" row backing the fill/stroke/text colour pickers below. */
+	private readonly recentColors = inject(RecentColorsService);
+
 	/**
 	 * Root class list: gains the `is-mobile` modifier under the mobile
 	 * breakpoint so the panel becomes a full-width, touch-sized bottom sheet.
@@ -1005,6 +1009,7 @@ export class InspectorPanelComponent {
 			cur.id,
 			shapeStylePatch(cur, { fillColor: color }),
 		);
+		this.recentColors.push(color);
 	}
 
 	protected onStrokeColorChange(event: Event): void {
@@ -1018,6 +1023,7 @@ export class InspectorPanelComponent {
 			cur.id,
 			shapeStylePatch(cur, { strokeColor: color }),
 		);
+		this.recentColors.push(color);
 	}
 
 	// ── Text style ───────────────────────────────────────────────────────────
@@ -1029,6 +1035,7 @@ export class InspectorPanelComponent {
 		}
 		const cur = this.el();
 		this.editor.updateElement(this.slideIndex(), cur.id, textStylePatch(cur, { color }));
+		this.recentColors.push(color);
 	}
 
 	protected onFontSizeChange(event: Event): void {

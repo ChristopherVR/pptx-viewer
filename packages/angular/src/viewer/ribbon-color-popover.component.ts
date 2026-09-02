@@ -6,10 +6,11 @@
  * cap; behaviour and markup are unchanged.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AnchoredPopupDirective } from './anchored-popup.directive';
+import { RecentColorsService } from './recent-colors.service';
 
 @Component({
 	selector: 'pptx-ribbon-color-popover',
@@ -45,10 +46,29 @@ import { AnchoredPopupDirective } from './anchored-popup.directive';
 								[style.background]="c"
 								[attr.aria-label]="swatchAriaKey() | translate: { color: c }"
 								(mousedown)="$event.preventDefault()"
-								(click)="pick.emit(c)"
+								(click)="onPick(c)"
 							></button>
 						}
 					</div>
+					@if (recentColors.recent().length > 0) {
+						<div class="mb-1 text-[9px] uppercase text-muted-foreground">
+							{{ 'pptx.colorPicker.recentColors' | translate }}
+						</div>
+						<div class="mb-2 grid grid-cols-5 gap-1.5">
+							@for (c of recentColors.recent(); track c) {
+								<button
+									type="button"
+									data-testid="pptx-color-recent"
+									data-pptx-compact
+									class="h-5 w-5 rounded-full border border-border transition-transform hover:scale-125"
+									[style.background]="c"
+									[attr.aria-label]="swatchAriaKey() | translate: { color: c }"
+									(mousedown)="$event.preventDefault()"
+									(click)="onPick(c)"
+								></button>
+							}
+						</div>
+					}
 					<label
 						class="block w-full cursor-pointer py-1 text-center text-[10px] text-muted-foreground transition-colors hover:text-foreground"
 					>
@@ -57,7 +77,7 @@ import { AnchoredPopupDirective } from './anchored-popup.directive';
 							type="color"
 							class="sr-only"
 							[value]="current()"
-							(change)="pick.emit($any($event.target).value)"
+							(change)="onPick($any($event.target).value)"
 						/>
 					</label>
 				</div>
@@ -73,4 +93,12 @@ export class RibbonColorPopoverComponent {
 	readonly swatchAriaKey = input<string>('');
 
 	readonly pick = output<string>();
+
+	protected readonly recentColors = inject(RecentColorsService);
+
+	/** Every commit through this popover both fires `pick` and records the colour as recently used. */
+	protected onPick(color: string): void {
+		this.pick.emit(color);
+		this.recentColors.push(color);
+	}
 }

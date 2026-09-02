@@ -114,7 +114,9 @@ const DEFAULT_EXTRUSION_COLOR = '#888888';
 						(change)="onMaterialChange($event)"
 					>
 						@for (preset of materialPresets; track preset.value) {
-							<option [value]="preset.value">{{ preset.label }}</option>
+							<option [value]="preset.value" [selected]="preset.value === material()">
+								{{ preset.label }}
+							</option>
 						}
 					</select>
 				</label>

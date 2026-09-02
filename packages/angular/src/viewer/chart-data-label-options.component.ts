@@ -54,7 +54,9 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 							(change)="onPosition($event)"
 						>
 							@for (opt of positionOptions; track opt.value) {
-								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+								<option [value]="opt.value" [selected]="opt.value === (labels().position ?? '')">
+									{{ opt.labelKey | translate }}
+								</option>
 							}
 						</select>
 					</label>

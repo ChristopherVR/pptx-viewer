@@ -34,7 +34,9 @@ import { LoadContentService } from './load-content.service';
 						<option value="">{{ 'pptx.documentProperties.noThemesOption' | translate }}</option>
 					} @else {
 						@for (opt of options(); track opt.path) {
-							<option [value]="opt.path">{{ optionLabel(opt) }}</option>
+							<option [value]="opt.path" [selected]="opt.path === selectedThemePath()">
+								{{ optionLabel(opt) }}
+							</option>
 						}
 					}
 				</select>

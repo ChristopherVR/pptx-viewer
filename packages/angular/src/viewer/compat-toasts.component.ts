@@ -15,6 +15,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CompatibilityWarningToast } from '../internal/shared';
+import { compatToastStackStyleAttr } from '../internal/shared';
 
 @Component({
 	selector: 'pptx-compat-toasts',
@@ -24,14 +25,15 @@ import type { CompatibilityWarningToast } from '../internal/shared';
 	template: `
 		@if (toasts().length > 0) {
 			<div
-				class="pptx-ng-compat-toasts fixed bottom-4 right-4 z-50 flex max-h-[70vh] w-80 flex-col gap-2 overflow-y-auto"
+				class="pptx-ng-compat-toasts max-h-[70vh] overflow-y-auto"
 				data-testid="pptx-compat-toasts"
+				[style]="stackStyle"
 			>
-				<div class="flex items-center justify-between px-1">
+				<div class="flex items-center justify-between px-1" style="pointer-events:auto">
 					<span class="text-xs font-semibold text-foreground">{{
 						'pptx.compatibility.toastTitle' | translate
 					}}</span>
-					@if (toasts().length > 1) {
+					@if (toasts().length > 0) {
 						<button
 							type="button"
 							data-testid="pptx-compat-toasts-dismiss-all"
@@ -49,6 +51,7 @@ import type { CompatibilityWarningToast } from '../internal/shared';
 						[attr.data-code]="toast.code"
 						[attr.data-severity]="toast.severity"
 						role="status"
+						style="pointer-events:auto"
 					>
 						<div class="flex items-start justify-between gap-2">
 							<p class="flex-1 text-foreground">{{ toast.messageKey | translate: toast.params }}</p>
@@ -75,4 +78,13 @@ export class CompatToastsComponent {
 	readonly dismissOne = output<string>();
 	/** Dismiss every visible toast. */
 	readonly dismissAll = output<void>();
+
+	/**
+	 * The stack's position/size/z-index, from shared's `COMPAT_TOAST_METRICS`
+	 * rather than a Tailwind `fixed bottom-* right-*` class. Anchored to the
+	 * VIEWER ROOT (`.pptx-ng-viewer`, which is `position: relative`, the same
+	 * containing block the dialogs use), bottom-inset above the status bar so
+	 * a toast can never cover the status bar's "Slide show" button.
+	 */
+	readonly stackStyle = compatToastStackStyleAttr();
 }

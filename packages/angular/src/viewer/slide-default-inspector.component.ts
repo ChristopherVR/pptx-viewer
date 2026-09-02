@@ -20,9 +20,10 @@ import {
 	signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxComment, PptxElement } from 'pptx-viewer-core';
+import type { PptxComment, PptxElement, PptxModernCommentAuthor } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import type { CommentSubmission } from './comments-panel.component';
 import { CommentsPanelComponent } from './comments-panel.component';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
@@ -122,6 +123,7 @@ interface LayerRow {
 				@case ('comments') {
 					<pptx-comments-panel
 						[comments]="comments()"
+						[modernCommentAuthors]="modernCommentAuthors()"
 						(add)="commentAdd.emit($event)"
 						(remove)="commentRemove.emit($event)"
 						(resolve)="commentResolve.emit($event)"
@@ -199,12 +201,14 @@ export class SlideDefaultInspectorComponent {
 	readonly selectedElement = input<PptxElement | null>(null);
 	/** The active slide's comments (host-owned; history-aware writes stay there). */
 	readonly comments = input<PptxComment[]>([]);
+	/** Office 2021 modern comment authors, for the `@`-mention typeahead. */
+	readonly modernCommentAuthors = input<readonly PptxModernCommentAuthor[]>([]);
 
 	/** Re-emitted comments-panel events (the host owns the comment writes). */
-	readonly commentAdd = output<string>();
+	readonly commentAdd = output<CommentSubmission>();
 	readonly commentRemove = output<string>();
 	readonly commentResolve = output<string>();
-	readonly commentReply = output<{ parentId: string; text: string }>();
+	readonly commentReply = output<{ parentId: string } & CommentSubmission>();
 
 	protected readonly editor = inject(EditorStateService);
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);

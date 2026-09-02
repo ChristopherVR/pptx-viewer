@@ -74,7 +74,7 @@ function loaderWithSaveSpy(): {
 	return { loader, lastOptions: () => captured };
 }
 
-function showsService(loader: LoadContentService): ViewerCustomShowsService {
+function showsService(loader: LoadContentService, activeSlideIndex = 0): ViewerCustomShowsService {
 	const injector = Injector.create({
 		providers: [
 			{ provide: LoadContentService, useValue: loader },
@@ -82,7 +82,7 @@ function showsService(loader: LoadContentService): ViewerCustomShowsService {
 		],
 	});
 	const svc = runInInjectionContext(injector, () => injector.get(ViewerCustomShowsService));
-	svc.bind({ activeSlideIndex: () => 0, liveSlides: () => DECK });
+	svc.bind({ activeSlideIndex: () => activeSlideIndex, liveSlides: () => DECK });
 	return svc;
 }
 
@@ -181,20 +181,87 @@ describe('viewerCustomShowsService', () => {
 		expect(resolveAuthoredCustomShowId({ showSlidesMode: 'all' }, PARSED_SHOWS)).toBeUndefined();
 	});
 
-	it('presents the whole deck and starts at the show, never a pre-filtered array', () => {
+	it('presents the whole deck, never a pre-filtered array', () => {
 		const { loader } = loaderWithSaveSpy();
 		loader.customShows.set(PARSED_SHOWS);
 		const svc = showsService(loader);
 		svc.activeId.set('1');
-		// Reverse = slides 3, 2, 1 -> the overlay still gets all three slides and
-		// OPENS on deck index 2.
 		expect(svc.presentationSlides()).toHaveLength(3);
-		expect(svc.showEntryIndex()).toBe(2);
 		// The entry slide is a one-shot SEED, not the live `startIndex` input:
-		// pinning that input to the show's first slide made the overlay re-adopt
-		// it over every advance, so the show never left its first slide. See
+		// pinning that input to a fixed slide made the overlay re-adopt it over
+		// every advance, so the show never left its first slide. See
 		// `presentation-custom-show-advance.test.ts`.
 		expect(svc.presentationStartIndex()).toBe(0);
+	});
+
+	it('entry keeps the active slide when the running custom show includes it', () => {
+		const { loader } = loaderWithSaveSpy();
+		loader.customShows.set(PARSED_SHOWS);
+		// Reverse = deck indexes 2, 1, 0 -> every deck slide is a member, so
+		// "From Current Slide" opens on the slide the editor is actually on,
+		// not unconditionally on the show's own first member.
+		const svc = showsService(loader, 0);
+		svc.activeId.set('1');
+		expect(svc.showEntryIndex()).toBe(0);
+	});
+
+	it('entry jumps forward to the next show slide when the active slide is outside the show', () => {
+		const { loader } = loaderWithSaveSpy();
+		loader.customShows.set(PARSED_SHOWS);
+		// Short Show = deck indexes 0, 2 (excludes deck index 1).
+		const svc = showsService(loader, 1);
+		svc.activeId.set('0');
+		expect(svc.showEntryIndex()).toBe(2);
+	});
+
+	it('runCustomShow switches the active show and resolves its own first slide', () => {
+		const { loader } = loaderWithSaveSpy();
+		loader.customShows.set(PARSED_SHOWS);
+		const svc = showsService(loader, 1);
+		// "Short Show" = deck indexes 0, 2.
+		const entry = svc.runCustomShow('0', false);
+		expect(entry).toBe(0);
+		expect(svc.activeId()).toBe('0');
+	});
+
+	it('runCustomShow is a no-op for an id naming no surviving show', () => {
+		const { loader } = loaderWithSaveSpy();
+		loader.customShows.set(PARSED_SHOWS);
+		const svc = showsService(loader);
+		svc.activeId.set('1');
+		expect(svc.runCustomShow('does-not-exist', false)).toBeNull();
+		expect(svc.activeId()).toBe('1');
+	});
+
+	it('a return-after custom show restores the origin show + slide once it ends', () => {
+		const { loader } = loaderWithSaveSpy();
+		loader.customShows.set(PARSED_SHOWS);
+		const svc = showsService(loader, 2);
+		svc.activeId.set(null);
+		svc.runCustomShow('0', true);
+		expect(svc.activeId()).toBe('0');
+		const restored = svc.consumeReturnAfterOnEnd();
+		expect(restored).toBe(2);
+		expect(svc.activeId()).toBeNull();
+	});
+
+	it('consumeReturnAfterOnEnd is a no-op when no return is pending', () => {
+		const { loader } = loaderWithSaveSpy();
+		loader.customShows.set(PARSED_SHOWS);
+		const svc = showsService(loader);
+		svc.activeId.set('1');
+		expect(svc.consumeReturnAfterOnEnd()).toBeNull();
+		expect(svc.activeId()).toBe('1');
+	});
+
+	it("showFirstIndex always opens the show's own first slide, ignoring the active slide", () => {
+		const { loader } = loaderWithSaveSpy();
+		loader.customShows.set(PARSED_SHOWS);
+		// Reverse's first member is deck index 2, even though the editor is
+		// parked on deck index 0.
+		const svc = showsService(loader, 0);
+		svc.activeId.set('1');
+		expect(svc.showFirstIndex()).toBe(2);
 	});
 
 	it('saves a created show with relationship ids', async () => {

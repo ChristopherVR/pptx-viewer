@@ -51,7 +51,12 @@ export function mergeImageEffects(
 					(change)="onArtistic($event)"
 				>
 					@for (effect of artisticEffects; track effect[0]) {
-						<option [value]="effect[0]">{{ effect[1] | translate }}</option>
+						<option
+							[value]="effect[0]"
+							[selected]="effect[0] === (effects().artisticEffect ?? 'none')"
+						>
+							{{ effect[1] | translate }}
+						</option>
 					}
 				</select>
 			</label>

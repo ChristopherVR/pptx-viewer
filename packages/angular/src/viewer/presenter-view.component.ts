@@ -17,7 +17,7 @@ import {
 	presenterPaneAdvancesOnClick,
 	presenterPrevDisabled,
 } from '../internal/shared';
-import type { CanvasSize, ShowOrderCustomShow } from '../internal/shared';
+import type { AuthoredSlideRange, CanvasSize, ShowOrderCustomShow } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { PresenterControlsComponent } from './presenter-controls.component';
 import {
@@ -96,6 +96,12 @@ export class PresenterViewComponent {
 	 * forward press lands on is the show's next member, not `index + 1`.
 	 */
 	readonly activeCustomShow = input<ShowOrderCustomShow | null>(null);
+	/**
+	 * The deck's authored `p:showPr/p:sldRg` slide-range restriction, or null
+	 * for the whole deck. The next-slide preview must honour it the same way it
+	 * honours {@link activeCustomShow}.
+	 */
+	readonly authoredRange = input<AuthoredSlideRange | null>(null);
 	readonly canvasSize = input.required<CanvasSize>();
 	readonly templateElements = input<readonly PptxElement[]>([]);
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
@@ -139,7 +145,12 @@ export class PresenterViewComponent {
 	);
 
 	protected readonly nextSlide = computed<PptxSlide | undefined>(() =>
-		nextSlideAfter(this.slides(), this.currentSlideIndex(), this.activeCustomShow()),
+		nextSlideAfter(
+			this.slides(),
+			this.currentSlideIndex(),
+			this.activeCustomShow(),
+			this.authoredRange(),
+		),
 	);
 
 	/** Current slide with master/layout elements prepended for preview. */

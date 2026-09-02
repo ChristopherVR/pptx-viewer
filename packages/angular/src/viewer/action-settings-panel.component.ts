@@ -1,6 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { ElementAction, ElementActionType, PptxElement } from 'pptx-viewer-core';
+import type {
+	ElementAction,
+	ElementActionType,
+	PptxCustomShow,
+	PptxElement,
+} from 'pptx-viewer-core';
 import { elementActionToPptxAction, pptxActionToElementAction } from 'pptx-viewer-core';
 
 import {
@@ -9,6 +22,8 @@ import {
 	resolveActionType,
 	toSlideIndex,
 } from '../internal/shared';
+import { ActionTargetFieldsComponent } from './action-target-fields.component';
+import { LoadContentService } from './load-content.service';
 
 type Trigger = 'click' | 'hover';
 
@@ -58,7 +73,7 @@ export function displayedActionType(
 @Component({
 	selector: 'pptx-action-settings-panel',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, ActionTargetFieldsComponent],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<section class="pptx-ng-action">
@@ -75,28 +90,22 @@ export function displayedActionType(
 						(change)="onType($event, trigger)"
 					>
 						@for (option of actionTypes; track option.value) {
-							<option [value]="option.value">{{ option.labelKey | translate }}</option>
+							<option [value]="option.value" [selected]="option.value === typeFor(trigger)">
+								{{ option.labelKey | translate }}
+							</option>
 						}
 					</select>
-					@if (typeFor(trigger) === 'url') {
-						<input
-							type="url"
-							class="pptx-ng-action__input"
-							[value]="actionFor(trigger)?.url ?? ''"
-							placeholder="https://..."
-							(input)="onUrl($event, trigger)"
-						/>
-					}
-					@if (typeFor(trigger) === 'slide') {
-						<input
-							type="number"
-							class="pptx-ng-action__input"
-							min="1"
-							[max]="slideCount()"
-							[value]="(actionFor(trigger)?.slideIndex ?? 0) + 1"
-							(change)="onSlide($event, trigger)"
-						/>
-					}
+					<pptx-action-target-fields
+						[type]="typeFor(trigger)"
+						[action]="actionFor(trigger)"
+						[slideCount]="slideCount()"
+						[customShows]="customShows()"
+						[idPrefix]="'action-' + trigger"
+						(urlChange)="onUrl($event, trigger)"
+						(slideChange)="onSlide($event, trigger)"
+						(customShowChange)="onCustomShow($event, trigger)"
+						(returnAfterChange)="onReturnAfter($event, trigger)"
+					/>
 				</div>
 			}
 		</section>
@@ -176,13 +185,20 @@ export class ActionSettingsPanelComponent {
 		);
 	}
 
-	private update(
-		trigger: Trigger,
-		type: ElementActionType,
-		url?: string,
-		slideIndex?: number,
-	): void {
-		const action = elementActionToPptxAction({ trigger, type, url, slideIndex });
+	/** `data.customShows`, for the `customShow` type's target `<select>`. */
+	private readonly loader = inject(LoadContentService, { optional: true });
+	protected readonly customShows = computed<readonly PptxCustomShow[]>(
+		() => this.loader?.customShows() ?? [],
+	);
+
+	private update(trigger: Trigger, next: Partial<ElementAction>): void {
+		const type = next.type ?? this.typeFor(trigger);
+		const action = elementActionToPptxAction({
+			trigger,
+			...this.actionFor(trigger),
+			...next,
+			type,
+		});
 		this.patch.emit(
 			(trigger === 'click'
 				? { actionClick: action }
@@ -195,20 +211,40 @@ export class ActionSettingsPanelComponent {
 		const elementId = this.element().id;
 		this.pending.update((previous) => withPendingActionType(previous, elementId, trigger, type));
 		const current = this.actionFor(trigger);
-		const target = { url: current?.url, slideIndex: current?.slideIndex };
+		const target = {
+			url: current?.url,
+			slideIndex: current?.slideIndex,
+			customShowId: current?.customShowId,
+		};
+		// `typeFor(trigger)` (fed by `pending` above) is what makes the target
+		// control (URL / slide number / custom-show select) appear at all, the
+		// same set `actionTypeNeedsTarget` names; `canCommitActionType` is the
+		// separate question of whether THIS pick may be written yet (it already
+		// carries a target, or needs none).
 		if (canCommitActionType(type, target)) {
-			this.update(trigger, type, target.url, target.slideIndex);
+			this.update(trigger, { type });
 		}
 	}
 
-	protected onUrl(event: Event, trigger: Trigger): void {
-		this.update(trigger, 'url', (event.target as HTMLInputElement).value);
+	protected onUrl(url: string, trigger: Trigger): void {
+		this.update(trigger, { url });
 	}
 
-	protected onSlide(event: Event, trigger: Trigger): void {
-		const index = toSlideIndex(Number((event.target as HTMLInputElement).value), this.slideCount());
+	protected onSlide(oneBasedSlide: number, trigger: Trigger): void {
+		const index = toSlideIndex(oneBasedSlide, this.slideCount());
 		if (index !== undefined) {
-			this.update(trigger, 'slide', undefined, index);
+			this.update(trigger, { slideIndex: index });
 		}
+	}
+
+	protected onCustomShow(customShowId: string, trigger: Trigger): void {
+		if (!customShowId) {
+			return;
+		}
+		this.update(trigger, { customShowId });
+	}
+
+	protected onReturnAfter(returnAfter: boolean, trigger: Trigger): void {
+		this.update(trigger, { returnAfter });
 	}
 }

@@ -96,7 +96,14 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 							(change)="onSelectCustomShowId($event)"
 						>
 							@for (cs of customShows(); track cs.id) {
-								<option [value]="cs.id">{{ cs.name }}</option>
+								<option
+									[value]="cs.id"
+									[selected]="
+										cs.id === (draft().showSlidesCustomShowId ?? customShows()[0]?.id ?? '')
+									"
+								>
+									{{ cs.name }}
+								</option>
 							}
 						</select>
 					</div>

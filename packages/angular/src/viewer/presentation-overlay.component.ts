@@ -193,6 +193,21 @@ export class PresentationOverlayComponent implements OnInit {
 	 * host can offer the keep/discard prompt (mirrors React's exit flow).
 	 */
 	readonly annotationsExit = output<SlideAnnotationMap>();
+	/**
+	 * `ppaction://customshow?id=<id>[&return=true]`: the host resolves the id
+	 * against its own custom-show registry (this overlay only knows the
+	 * CURRENTLY active show's membership, via `activeCustomShow`) and, when
+	 * `returnAfter` is true, restores the origin show + slide once the
+	 * sub-show runs off its end (see `endOfShowChange` below).
+	 */
+	readonly customShowRequest = output<{ customShowId: string; returnAfter: boolean }>();
+	/**
+	 * Mirrors the navigator's `endOfShow` flag. The host listens for this to
+	 * implement `ppaction://customshow`'s "return after": ending the show while
+	 * a return is pending means restore the origin instead of raising the
+	 * black end screen (which `syncFromHost`'s host-forced jump then clears).
+	 */
+	readonly endOfShowChange = output<boolean>();
 
 	// ------------------------------------------------------------------
 	// Internal state
@@ -256,6 +271,8 @@ export class PresentationOverlayComponent implements OnInit {
 		// Options), gating a slide's on-click `a:hlinkClick` action the same way
 		// it gates a text-run hyperlink.
 		confirmExternalHyperlink: (href) => this.viewerOpts?.confirmExternalHyperlink(href) ?? true,
+		runCustomShow: (customShowId, returnAfter) =>
+			this.customShowRequest.emit({ customShowId, returnAfter }),
 	});
 
 	/** Whether PowerPoint's "See All Slides" navigator is up (Ctrl+S). */
@@ -348,6 +365,11 @@ export class PresentationOverlayComponent implements OnInit {
 			this.slideKeyframes.dispose();
 			this.navigator.clearAutoAdvance();
 		});
+
+		// Mirror the navigator's end-of-show flag out to the host, so it can act
+		// on a pending `ppaction://customshow ... &return=true` (see
+		// `endOfShowChange`'s doc comment).
+		effect(() => this.endOfShowChange.emit(this.endOfShow()));
 
 		// PowerPoint's "Advance slide: After <n>" timing (`p:transition/@advTm`).
 		// Re-armed on every slide change; the previous slide's pending timer is

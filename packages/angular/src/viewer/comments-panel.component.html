@@ -81,14 +81,17 @@
 					<!-- Reply composer -->
 					@if (replyingTo() === comment.id) {
 						<div class="pptx-ng-comments__reply-compose">
-							<textarea
-								class="pptx-ng-comments__reply-textarea"
-								rows="2"
+							<pptx-comment-mention-textarea
+								[text]="replyDraft()"
+								[mentions]="replyMentions()"
+								[authors]="modernCommentAuthors()"
+								textareaClass="pptx-ng-comments__reply-textarea"
+								[rows]="2"
 								[placeholder]="replyPlaceholder(comment)"
-								[attr.aria-label]="'pptx.comments.reply' | translate"
-								[value]="replyDraft()"
-								(input)="onReplyInput($event)"
-							></textarea>
+								[ariaLabel]="'pptx.comments.reply' | translate"
+								(textChange)="replyDraft.set($event)"
+								(mentionsChange)="replyMentions.set($event)"
+							/>
 							<div class="pptx-ng-comments__reply-actions">
 								<button type="button" class="pptx-ng-comments__action" (click)="cancelReply()">
 									{{ 'pptx.comments.cancel' | translate }}
@@ -120,14 +123,17 @@
 		>
 			{{ 'pptx.comments.addComment' | translate }}
 		</label>
-		<textarea
-			class="pptx-ng-comments__textarea"
-			rows="3"
+		<pptx-comment-mention-textarea
+			[text]="draft()"
+			[mentions]="draftMentions()"
+			[authors]="modernCommentAuthors()"
+			textareaClass="pptx-ng-comments__textarea"
+			[rows]="3"
 			[placeholder]="'pptx.comments.writePlaceholder' | translate"
-			[attr.aria-label]="'pptx.comments.addComment' | translate"
-			[value]="draft()"
-			(input)="onDraftInput($event)"
-		></textarea>
+			[ariaLabel]="'pptx.comments.addComment' | translate"
+			(textChange)="draft.set($event)"
+			(mentionsChange)="draftMentions.set($event)"
+		/>
 		<button
 			type="submit"
 			class="pptx-ng-comments__submit"

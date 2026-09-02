@@ -37,9 +37,13 @@
 			[value]="current()?.entrance ?? 'none'"
 			(change)="onSelect($event, 'entrance')"
 		>
-			<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
+			<option value="none" [selected]="(current()?.entrance ?? 'none') === 'none'">
+				{{ 'pptx.animations.noneOption' | translate }}
+			</option>
 			@for (opt of entrancePresets; track opt.value) {
-				<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+				<option [value]="opt.value" [selected]="opt.value === (current()?.entrance ?? 'none')">
+					{{ opt.labelKey | translate }}
+				</option>
 			}
 		</select>
 	</section>
@@ -56,9 +60,13 @@
 			[value]="current()?.emphasis ?? 'none'"
 			(change)="onSelect($event, 'emphasis')"
 		>
-			<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
+			<option value="none" [selected]="(current()?.emphasis ?? 'none') === 'none'">
+				{{ 'pptx.animations.noneOption' | translate }}
+			</option>
 			@for (opt of emphasisPresets; track opt.value) {
-				<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+				<option [value]="opt.value" [selected]="opt.value === (current()?.emphasis ?? 'none')">
+					{{ opt.labelKey | translate }}
+				</option>
 			}
 		</select>
 	</section>
@@ -75,9 +83,13 @@
 			[value]="current()?.exit ?? 'none'"
 			(change)="onSelect($event, 'exit')"
 		>
-			<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
+			<option value="none" [selected]="(current()?.exit ?? 'none') === 'none'">
+				{{ 'pptx.animations.noneOption' | translate }}
+			</option>
 			@for (opt of exitPresets; track opt.value) {
-				<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+				<option [value]="opt.value" [selected]="opt.value === (current()?.exit ?? 'none')">
+					{{ opt.labelKey | translate }}
+				</option>
 			}
 		</select>
 	</section>
@@ -127,7 +139,9 @@
 				(change)="onSelect($event, 'sequence')"
 			>
 				@for (opt of sequenceOptions; track opt.value) {
-					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+					<option [value]="opt.value" [selected]="opt.value === (current()?.sequence ?? 'asOne')">
+						{{ opt.labelKey | translate }}
+					</option>
 				}
 			</select>
 		</section>
@@ -162,7 +176,9 @@
 				(change)="onSelect($event, 'trigger')"
 			>
 				@for (opt of triggerOptions; track opt.value) {
-					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+					<option [value]="opt.value" [selected]="opt.value === (current()?.trigger ?? 'onClick')">
+						{{ opt.labelKey | translate }}
+					</option>
 				}
 			</select>
 		</section>
@@ -180,9 +196,13 @@
 					[value]="current()?.triggerShapeId ?? ''"
 					(change)="onTriggerShapeChange($event)"
 				>
-					<option value="">{{ 'pptx.animations.selectShapeOption' | translate }}</option>
+					<option value="" [selected]="(current()?.triggerShapeId ?? '') === ''">
+						{{ 'pptx.animations.selectShapeOption' | translate }}
+					</option>
 					@for (el of otherElements(); track el.id) {
-						<option [value]="el.id">{{ elementLabel(el) }}</option>
+						<option [value]="el.id" [selected]="el.id === (current()?.triggerShapeId ?? '')">
+							{{ elementLabel(el) }}
+						</option>
 					}
 				</select>
 			</section>
@@ -247,7 +267,9 @@
 				(change)="onSelect($event, 'timingCurve')"
 			>
 				@for (opt of timingCurveOptions; track opt.value) {
-					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+					<option [value]="opt.value" [selected]="opt.value === (current()?.timingCurve ?? 'ease')">
+						{{ opt.labelKey | translate }}
+					</option>
 				}
 			</select>
 		</section>
@@ -288,7 +310,9 @@
 				(change)="onSelect($event, 'repeatMode')"
 			>
 				@for (opt of repeatModeOptions; track opt.value) {
-					<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+					<option [value]="opt.value" [selected]="opt.value === (current()?.repeatMode ?? 'none')">
+						{{ opt.labelKey | translate }}
+					</option>
 				}
 			</select>
 		</section>

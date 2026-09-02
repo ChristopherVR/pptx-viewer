@@ -51,7 +51,9 @@ import { numFromEvent, selectValue } from './chart-event-helpers';
 								(change)="onValType(i, s, $event)"
 							>
 								@for (opt of valTypeOptions; track opt.value) {
-									<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+									<option [value]="opt.value" [selected]="opt.value === (barsOf(s)?.valType ?? '')">
+										{{ opt.labelKey | translate }}
+									</option>
 								}
 							</select>
 						</div>
@@ -65,7 +67,9 @@ import { numFromEvent, selectValue } from './chart-event-helpers';
 									(change)="onBarType(i, bars, $event)"
 								>
 									@for (opt of barTypeOptions; track opt.value) {
-										<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+										<option [value]="opt.value" [selected]="opt.value === bars.barType">
+											{{ opt.labelKey | translate }}
+										</option>
 									}
 								</select>
 								@if (showValue(bars)) {

@@ -1,16 +1,11 @@
 /**
  * chart-axis-style-options.component.ts: Per-axis log scaling, title font, and
- * gridline line styling.
+ * gridline line styling. Selector: `pptx-chart-axis-style-options`.
  *
- * Selector: `pptx-chart-axis-style-options`
- *
- * Mirrors React's `ChartAxisStyleOptions.tsx`: logarithmic scale (value/date
- * axes) with a base, axis-title font family/size/bold/colour, and major/minor
- * gridline colour/width/dash styling (shown only when the matching gridlines are
- * enabled). Routes through `setAxisLogScale` / `setAxisTitleStyle` /
- * `setGridlineStyle` and emits a new `ChartPptxElement`.
- *
- * @module angular-viewer/chart-axis-style-options
+ * Mirrors React's `ChartAxisStyleOptions.tsx`: log scale (value/date axes)
+ * with a base, axis-title font family/size/bold/colour, and major/minor
+ * gridline colour/width/dash (shown only when enabled). Routes through
+ * `setAxisLogScale` / `setAxisTitleStyle` / `setGridlineStyle`.
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
@@ -155,11 +150,16 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 											class="pptx-chart-card__input"
 											[title]="'pptx.chart.gridlineDash' | translate"
 											[disabled]="!canEdit()"
-											[value]="gridlineSpPr(row.axis, which)?.strokeDashStyle ?? ''"
+											[value]="gridDash(row.axis, which)"
 											(change)="onGridlineDash(row.type, which, $event)"
 										>
 											@for (opt of dashOptions; track opt.value) {
-												<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+												<option
+													[value]="opt.value"
+													[selected]="opt.value === gridDash(row.axis, which)"
+												>
+													{{ opt.labelKey | translate }}
+												</option>
 											}
 										</select>
 									</div>
@@ -201,6 +201,9 @@ export class ChartAxisStyleOptionsComponent {
 		return which === 'major' ? axis.majorGridlinesSpPr : axis.minorGridlinesSpPr;
 	}
 
+	protected gridDash(axis: PptxChartAxisFormatting, which: 'major' | 'minor'): string {
+		return this.gridlineSpPr(axis, which)?.strokeDashStyle ?? '';
+	}
 	protected onLogScale(
 		axisType: PptxChartAxisType,
 		axis: PptxChartAxisFormatting,

@@ -53,7 +53,12 @@ import {
 						(change)="onDash($event)"
 					>
 						@for (opt of dashOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+							<option
+								[value]="opt.value"
+								[selected]="opt.value === (style().strokeDash ?? 'solid')"
+							>
+								{{ opt.i18nKey | translate }}
+							</option>
 						}
 					</select>
 				</label>
@@ -68,7 +73,12 @@ import {
 						(change)="onCompound($event)"
 					>
 						@for (opt of compoundOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+							<option
+								[value]="opt.value"
+								[selected]="opt.value === (style().compoundLine ?? 'sng')"
+							>
+								{{ opt.i18nKey | translate }}
+							</option>
 						}
 					</select>
 				</label>
@@ -83,7 +93,9 @@ import {
 						(change)="onJoin($event)"
 					>
 						@for (opt of joinOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+							<option [value]="opt.value" [selected]="opt.value === (style().lineJoin ?? 'round')">
+								{{ opt.i18nKey | translate }}
+							</option>
 						}
 					</select>
 				</label>
@@ -98,7 +110,9 @@ import {
 						(change)="onCap($event)"
 					>
 						@for (opt of capOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+							<option [value]="opt.value" [selected]="opt.value === (style().lineCap ?? 'flat')">
+								{{ opt.i18nKey | translate }}
+							</option>
 						}
 					</select>
 				</label>

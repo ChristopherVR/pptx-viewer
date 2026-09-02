@@ -42,7 +42,9 @@ type GradientStop = { color: string; position: number };
 					(change)="onFillModeChange($event)"
 				>
 					@for (opt of fillModes; track opt.value) {
-						<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+						<option [value]="opt.value" [selected]="opt.value === fillMode()">
+							{{ opt.i18nKey | translate }}
+						</option>
 					}
 				</select>
 			</label>
@@ -59,7 +61,9 @@ type GradientStop = { color: string; position: number };
 							(change)="onGradTypeChange($event)"
 						>
 							@for (opt of gradientTypes; track opt.value) {
-								<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+								<option [value]="opt.value" [selected]="opt.value === gradType()">
+									{{ opt.i18nKey | translate }}
+								</option>
 							}
 						</select>
 					</label>
@@ -122,7 +126,9 @@ type GradientStop = { color: string; position: number };
 							(change)="onPatternPreset($event)"
 						>
 							@for (p of patterns(); track p) {
-								<option [value]="p">{{ patternLabelKey(p) | translate }}</option>
+								<option [value]="p" [selected]="p === patternPreset()">
+									{{ patternLabelKey(p) | translate }}
+								</option>
 							}
 						</select>
 					</label>

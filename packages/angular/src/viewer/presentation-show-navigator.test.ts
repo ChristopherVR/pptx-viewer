@@ -222,3 +222,32 @@ describe('presentationShowNavigator authored slide range (p:showPr/p:sldRg)', ()
 		expect(harness.navigator.currentIndex()).toBe(1);
 	});
 });
+
+describe('presentationShowNavigator goToLastViewed', () => {
+	it('jumps back to the slide the show was on immediately before the current one', () => {
+		const harness = makeNavigator(slides(false, false, false, false));
+		harness.navigator.goToSlide(2);
+		harness.navigator.goToSlide(0);
+		harness.navigator.goToLastViewed();
+		expect(harness.navigator.currentIndex()).toBe(2);
+	});
+
+	it('is a no-op before any navigation has happened', () => {
+		const harness = makeNavigator(slides(false, false, false));
+		harness.navigator.goToLastViewed();
+		expect(harness.navigator.currentIndex()).toBe(0);
+		expect(harness.emitted).toStrictEqual([]);
+	});
+});
+
+describe('presentationShowNavigator syncFromHost', () => {
+	it('clears endOfShow on a host-forced jump (customShow return-after restoring the origin)', () => {
+		const harness = makeNavigator(slides(false, false));
+		harness.navigator.goToSlide(1);
+		harness.navigator.navigate('next'); // Runs off the end -> endOfShow.
+		expect(harness.navigator.endOfShow()).toBeTruthy();
+		harness.navigator.syncFromHost(0);
+		expect(harness.navigator.endOfShow()).toBeFalsy();
+		expect(harness.navigator.currentIndex()).toBe(0);
+	});
+});

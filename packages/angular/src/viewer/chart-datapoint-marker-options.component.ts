@@ -57,7 +57,7 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 							(change)="onSeries($event)"
 						>
 							@for (s of series(); track $index; let i = $index) {
-								<option [value]="i">{{ s.name }}</option>
+								<option [value]="i" [selected]="i === activeIndex()">{{ s.name }}</option>
 							}
 						</select>
 					</label>
@@ -87,7 +87,9 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 									(change)="onSymbol(ci, $event)"
 								>
 									@for (opt of symbolOptions; track opt.value) {
-										<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+										<option [value]="opt.value" [selected]="opt.value === marker.symbol">
+											{{ opt.labelKey | translate }}
+										</option>
 									}
 								</select>
 								<input

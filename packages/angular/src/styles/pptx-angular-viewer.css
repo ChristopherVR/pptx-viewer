@@ -154,6 +154,7 @@ pptx-element-renderer {
 	   (inspector cards, toolbar, thumbnail rail) to dark. Passing a `theme` input
 	   to <pptx-viewer> still themes it, because `themeStyle` writes the vars inline
 	   on this element, which wins over the fallback below. */
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	width: 100%;

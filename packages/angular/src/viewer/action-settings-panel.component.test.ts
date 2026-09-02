@@ -12,6 +12,9 @@
  * Reference bindings: packages/react/src/viewer/components/inspector/
  * ActionSettingsPanel.tsx and packages/svelte/.../ActionTriggerFields.svelte.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { canCommitActionType } from '../internal/shared';
@@ -60,6 +63,42 @@ describe('displayedActionType', () => {
 		const pending = withPendingActionType(NO_PENDING_ACTION_TYPE, 'shape-1', 'click', 'url');
 
 		expect(displayedActionType(pending, 'shape-2', 'click', undefined)).toBe('none');
+	});
+});
+
+describe('wave-4 action types (customShow / openFile / openPresentation)', () => {
+	it('reveals the custom-show select + return-after checkbox as soon as it is picked', () => {
+		const pending = withPendingActionType(NO_PENDING_ACTION_TYPE, 'shape-1', 'click', 'customShow');
+		expect(displayedActionType(pending, 'shape-1', 'click', undefined)).toBe('customShow');
+		// A target-less customShow action would name no show, so it must not be
+		// committed yet; the panel holds the pick until an id is chosen.
+		expect(canCommitActionType('customShow', {})).toBeFalsy();
+		expect(canCommitActionType('customShow', { customShowId: '3' })).toBeTruthy();
+	});
+
+	it('openFile / openPresentation commit immediately (their target is filled in afterwards)', () => {
+		expect(canCommitActionType('openFile', {})).toBeTruthy();
+		expect(canCommitActionType('openPresentation', {})).toBeTruthy();
+	});
+
+	it('renders the custom-show target select, return-after checkbox, and file/presentation target input', () => {
+		// The per-trigger target controls live in the sub-component
+		// `ActionTargetFieldsComponent`, split out to keep this file under the
+		// repo's 300-LOC cap.
+		const source = readFileSync(path.join(__dirname, 'action-target-fields.component.ts'), 'utf8');
+		expect(source).toContain('data-testid="pptx-action-custom-show"');
+		expect(source).toContain('data-testid="pptx-action-custom-show-return"');
+		expect(source).toContain("type() === 'openFile' || type() === 'openPresentation'");
+		expect(source).toContain('@for (show of customShows(); track show.id)');
+	});
+
+	it('the panel wires the sub-component to its own state and commit handlers', () => {
+		const source = readFileSync(path.join(__dirname, 'action-settings-panel.component.ts'), 'utf8');
+		expect(source).toContain('<pptx-action-target-fields');
+		expect(source).toContain('[type]="typeFor(trigger)"');
+		expect(source).toContain('[customShows]="customShows()"');
+		expect(source).toContain('(customShowChange)="onCustomShow($event, trigger)"');
+		expect(source).toContain('(returnAfterChange)="onReturnAfter($event, trigger)"');
 	});
 });
 
