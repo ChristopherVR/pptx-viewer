@@ -1,4 +1,6 @@
+import { getActiveElements } from './editor/editor-active-elements';
 import type { RenderController } from './render-controller';
+import { selectionChangeNeedsStageRender } from './selection-render-trigger';
 import type { StoreListener, ViewerState } from './state';
 import type { PptxViewerCallbacks } from './types';
 import type { ViewerChrome } from './ui';
@@ -71,8 +73,15 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.headerFooter !== previous.headerFooter ||
 			state.customProperties !== previous.customProperties ||
 			// A chart arms its on-canvas mark hit-testing only while selected (B3),
-			// so selecting/deselecting one must re-render the stage to re-arm it.
-			state.selectedElementIds !== previous.selectedElementIds
+			// so a chart entering/leaving the selection re-renders the stage to
+			// re-arm it. Only a chart: rebuilding on every selection change would
+			// replace the node under the pointer between the two clicks of a
+			// double-click (see `selection-render-trigger.ts`).
+			selectionChangeNeedsStageRender(
+				previous.selectedElementIds,
+				state.selectedElementIds,
+				getActiveElements(state),
+			)
 		) {
 			renderer.renderStage();
 		}
