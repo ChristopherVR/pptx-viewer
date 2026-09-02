@@ -235,6 +235,12 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		// inside the presenter console, so the host raises the console with the
 		// grid already up rather than this module rebuilding a second copy.
 		showAllSlides: deps.showPresentationAllSlides,
+		// F5 / Shift+F5: the same entry points the ribbon's "From Beginning" and
+		// "From Current Slide" buttons call (see `buildQuickAccessRunner` /
+		// `buildChromeCallbacks`'s `slideShow.startFromBeginning`), so the key and
+		// the button seed the same slide and cannot disagree.
+		startFromBeginning: () => deps.startPresentationFromBeginning(),
+		startFromCurrent: () => deps.startPresentationFromCurrent(),
 	});
 	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),

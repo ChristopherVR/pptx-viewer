@@ -5,6 +5,7 @@ import {
 	createWheelStepBuffer,
 	mapPresentationKey,
 	mapPresentationWheel,
+	mapSlideShowStartKey,
 } from 'pptx-viewer-shared';
 
 export interface KeyboardHandlers {
@@ -34,6 +35,10 @@ export interface KeyboardHandlers {
 	toggleChrome?(): void;
 	/** Raise PowerPoint's "See All Slides" navigator (Ctrl+S). */
 	showAllSlides?(): void;
+	/** Bare F5: the exact entry point the ribbon's "From Beginning" button calls. */
+	startFromBeginning?(): void;
+	/** Shift+F5: the exact entry point the ribbon's "From Current Slide" button calls. */
+	startFromCurrent?(): void;
 }
 
 /**
@@ -53,6 +58,25 @@ export function attachKeyboardNavigation(
 	const keyBuffer = createPresentationKeyBuffer();
 
 	const onKeyDown = (event: KeyboardEvent) => {
+		// PowerPoint starts a show with F5 / Shift+F5 even while the caret sits in
+		// a text box, so this runs ahead of the "ignore form-field keys" guard
+		// below (which exists for the paging shortcuts, not this one) and ahead of
+		// every editing gate. A running show already owns F5 through the
+		// presentation keymap below, which `mapSlideShowStartKey`'s own guard
+		// mirrors.
+		const startAction = mapSlideShowStartKey(event, {
+			isPresenting: handlers.isPresenting?.() ?? false,
+		});
+		if (startAction) {
+			event.preventDefault();
+			if (startAction === 'fromBeginning') {
+				handlers.startFromBeginning?.();
+			} else {
+				handlers.startFromCurrent?.();
+			}
+			return;
+		}
+
 		const target = event.target as HTMLElement | null;
 		if (target && /^(?:INPUT|TEXTAREA|SELECT)$/u.test(target.tagName)) {
 			return;
