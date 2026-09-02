@@ -10,6 +10,7 @@ import {
 	inlineElementPointerEvents,
 	isElementRendered,
 	isEquationOnlyText,
+	placeholderPromptDescriptor,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
@@ -219,6 +220,19 @@ const paragraphs = computed(() =>
 );
 const hasText = computed(() =>
 	paragraphs.value.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
+);
+/**
+ * An empty inherited placeholder's greyed-out hint ("Click to add title").
+ * Shared decides the surface rule: the editing canvas only, never the live
+ * stage, a thumbnail or an export.
+ */
+const placeholderPrompt = computed(() =>
+	hasText.value
+		? null
+		: placeholderPromptDescriptor(
+				props.element,
+				props.interactive && !props.presenting ? 'edit' : 'present',
+			),
 );
 
 /** Affordance class toggled on for editable template (master/layout) elements. */
@@ -475,6 +489,13 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 				:element-id="element.id"
 				:sub-element-anim-states="presentationStates"
 			/>
+			<div
+				v-else-if="placeholderPrompt"
+				class="pptx-vue-text pptx-vue-placeholder-prompt"
+				:style="[textStyle, placeholderPrompt.style]"
+			>
+				{{ placeholderPrompt.text }}
+			</div>
 		</template>
 	</div>
 
