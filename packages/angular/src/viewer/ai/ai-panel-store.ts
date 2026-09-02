@@ -19,16 +19,15 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { createAiChangeAnimator } from '../../internal/shared-ai';
+import { computeFocusTargets, createAiChangeAnimator } from '../../internal/shared-ai';
 import type {
+	AiCanvasHighlight,
 	AiChangeAnimationConfig,
 	AiChangeAnimator,
 	AiChangeBatch,
 	PptxAiFocusedTarget,
 	ToolCanvasTarget,
 } from '../../internal/shared-ai';
-import type { AiCanvasHighlight } from './focus-targets';
-import { computeFocusTargets } from './focus-targets';
 
 /** Live selection accessors the store reads to derive the follow-selection focus. */
 export interface AiPanelSelectionAccessors {

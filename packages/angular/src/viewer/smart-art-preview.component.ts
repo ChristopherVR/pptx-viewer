@@ -14,14 +14,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { PptxElement, SmartArtLayout } from 'pptx-viewer-core';
 
-import { buildSmartArtPresetData, PRESETS } from '../internal/shared';
+import { buildSmartArtPreviewElement } from '../internal/shared';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
-
-/** Element size the insert handler creates; previews render the same box. */
-const PREVIEW_ELEMENT_WIDTH = 600;
-const PREVIEW_ELEMENT_HEIGHT = 340;
-
-const FALLBACK_ITEMS = ['1', '2', '3'];
 
 @Component({
 	selector: 'pptx-smart-art-preview',
@@ -35,9 +29,9 @@ const FALLBACK_ITEMS = ['1', '2', '3'];
 			</div>
 		</div>
 	`,
-	// NOTE: values must stay in sync with the PREVIEW_* constants below; the
-	// Angular AOT compiler requires `styles` to be a static string (no
-	// interpolation), so the numbers are written out literally.
+	// NOTE: values must stay in sync with shared's SMARTART_PREVIEW_ELEMENT_*
+	// constants; the Angular AOT compiler requires `styles` to be a static
+	// string (no interpolation), so the numbers are written out literally.
 	styles: `
 		.pptx-sa-preview {
 			width: 64px;
@@ -59,17 +53,7 @@ export class SmartArtPreviewComponent {
 	readonly layout = input.required<SmartArtLayout>();
 
 	/** The element this preset would insert, rendered at full size then scaled. */
-	protected readonly previewElement = computed<PptxElement>(() => {
-		const layout = this.layout();
-		const preset = PRESETS.find((p) => p.layout === layout);
-		return {
-			id: `smartart-preview-${layout}`,
-			type: 'smartArt',
-			x: 0,
-			y: 0,
-			width: PREVIEW_ELEMENT_WIDTH,
-			height: PREVIEW_ELEMENT_HEIGHT,
-			smartArtData: buildSmartArtPresetData(layout, preset?.defaultItems ?? FALLBACK_ITEMS),
-		} as PptxElement;
-	});
+	protected readonly previewElement = computed<PptxElement>(() =>
+		buildSmartArtPreviewElement(this.layout()),
+	);
 }

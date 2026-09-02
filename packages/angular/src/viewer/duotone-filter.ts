@@ -15,33 +15,7 @@
 
 import type { PptxElement } from 'pptx-viewer-core';
 
-// ── Colour helper ─────────────────────────────────────────────────────────────
-
-/**
- * Normalised 0–1 RGB components parsed from a 6-digit hex colour string.
- * Invalid or missing channels default to `0`.
- */
-interface RgbUnit {
-	r: number;
-	g: number;
-	b: number;
-}
-
-/**
- * Parse a 6-digit hex colour (`#RRGGBB` or `RRGGBB`) to normalised 0–1 RGB.
- * Any channel that fails to parse produces `0`.
- */
-function hexToRgbUnit(hex: string): RgbUnit {
-	const clean = hex.replace('#', '');
-	const r = Number.parseInt(clean.substring(0, 2), 16) / 255;
-	const g = Number.parseInt(clean.substring(2, 4), 16) / 255;
-	const b = Number.parseInt(clean.substring(4, 6), 16) / 255;
-	return {
-		r: Number.isFinite(r) ? r : 0,
-		g: Number.isFinite(g) ? g : 0,
-		b: Number.isFinite(b) ? b : 0,
-	};
-}
+import { hexToRgbUnit } from '../internal/shared';
 
 // ── Filter primitive descriptors ──────────────────────────────────────────────
 

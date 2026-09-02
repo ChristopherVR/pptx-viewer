@@ -22,7 +22,7 @@ import {
 } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import type { AiCanvasHighlight } from './focus-targets';
+import type { AiCanvasHighlight } from '../../internal/shared-ai';
 
 interface HighlightBox extends AiCanvasHighlight {
 	x: number;

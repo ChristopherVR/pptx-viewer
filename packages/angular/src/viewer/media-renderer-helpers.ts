@@ -1,12 +1,9 @@
 import type { MediaCaptionTrack, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 
-import {
-	mediaFallbackVisual,
-	mediaPlaybackAttributes,
-	mediaSurfaceOf,
-	registerPersistentAudio,
-} from '../internal/shared';
+import { mediaFallbackVisual, mediaSurfaceOf, registerCrossSlideAudio } from '../internal/shared';
 import type { MediaFallbackVisual, MediaSurface } from '../internal/shared';
+
+export { registerCrossSlideAudio };
 
 /**
  * Pure helpers for {@link MediaRendererComponent}, mirroring React's
@@ -55,37 +52,6 @@ export function resolveMediaSrc(
 	mediaDataUrls: Map<string, string>,
 ): string | undefined {
 	return el.mediaData ?? (el.mediaPath ? mediaDataUrls.get(el.mediaPath) : undefined);
-}
-
-/**
- * Register a `playAcrossSlides` audio element with the shared persistent-audio
- * manager, using the same resolved source, loop, volume and trim start the
- * slide-local element would have used. PowerPoint keeps such background audio
- * playing when the show advances, but the slide-local `<audio>` dies with its
- * slide's DOM; the manager's hidden document-level element survives it.
- *
- * Returns true when the persistent element owns playback, in which case the
- * slide-local media node must stay silent or the track doubles. Idempotent per
- * element id (the manager no-ops a re-register), so re-entering the owning
- * slide does not restart the track.
- */
-export function registerCrossSlideAudio(
-	element: MediaPptxElement,
-	src: string | undefined,
-): boolean {
-	if (element.playAcrossSlides !== true || element.mediaType !== 'audio' || !src) {
-		return false;
-	}
-	const playback = mediaPlaybackAttributes(element);
-	registerPersistentAudio(
-		element.id,
-		src,
-		element.mediaMimeType,
-		playback.loop,
-		playback.volume,
-		(element.trimStartMs ?? 0) / 1000,
-	);
-	return true;
 }
 
 /**

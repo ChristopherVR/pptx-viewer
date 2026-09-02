@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PptxAiChatStore, PptxAiStoredChat, PptxAiUIMessage } from '../../internal/shared-ai';
-import { buildChatLogExport, buildChatLogMarkdown, collectStoredChats } from './ai-log-export';
+import {
+	buildChatLogExport,
+	buildChatLogMarkdown,
+	collectStoredChats,
+	exportAiChatLogs,
+} from './ai-log-export';
 
 /** A stored chat whose assistant turn contains one tool call with input + output. */
 function storedChat(): PptxAiStoredChat {
@@ -93,5 +98,41 @@ describe('collectStoredChats', () => {
 
 	it('returns an empty list for an empty store', async () => {
 		await expect(collectStoredChats(fakeStore([]))).resolves.toStrictEqual([]);
+	});
+});
+
+describe('exportAiChatLogs', () => {
+	let createObjectUrl: ReturnType<typeof vi.fn>;
+
+	beforeEach(() => {
+		createObjectUrl = vi.fn(() => 'blob:ai-chat-log');
+		Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl });
+		Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockReturnValue(undefined);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('reads the given store and triggers a JSON download by default', async () => {
+		const count = await exportAiChatLogs({ store: fakeStore([storedChat()]), now: 5000 });
+		expect(count).toBe(1);
+		expect(createObjectUrl).toHaveBeenCalledWith(
+			expect.objectContaining({ type: 'application/json' }),
+		);
+	});
+
+	it('triggers a Markdown download when format is markdown', async () => {
+		await exportAiChatLogs({ store: fakeStore([storedChat()]), format: 'markdown', now: 5000 });
+		expect(createObjectUrl).toHaveBeenCalledWith(
+			expect.objectContaining({ type: 'text/markdown' }),
+		);
+	});
+
+	it('does not download and returns 0 for an empty store', async () => {
+		const count = await exportAiChatLogs({ store: fakeStore([]) });
+		expect(count).toBe(0);
+		expect(createObjectUrl).not.toHaveBeenCalled();
 	});
 });

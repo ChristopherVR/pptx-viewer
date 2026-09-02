@@ -16,6 +16,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { COMMON_FONT_SIZES } from '../internal/shared';
 import {
 	buildFontCatalog,
 	resolveDefaultFontFamily,
@@ -32,7 +33,11 @@ import {
 	transformSelectedTextCase,
 } from './ribbon-text-helpers';
 
-const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 54, 66, 80, 96];
+/**
+ * The Home/Text tab's size dropdown + grow/shrink ladder. Sourced from shared
+ * so it cannot drift from the other bindings' Font control group.
+ */
+export const FONT_SIZES = COMMON_FONT_SIZES;
 /** Font-colour swatches in the Home/Text colour popover (mirrors React/Vue). */
 const FONT_COLOR_PRESETS = [
 	'#000000',

@@ -15,16 +15,8 @@ import { LucideCrosshair, LucideGitMerge, LucidePin, LucidePinOff, LucideX } fro
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import { focusTargetChips, isTwoTableFocus, mergeTablesDirective } from '../../internal/shared-ai';
 import { AiPanelStore } from './ai-panel-store';
-import { focusTargetChips, isTwoTableFocus } from './focus-targets';
-
-/** Build the directive that fires `merge_tables` without a confirmation round-trip. */
-function mergeDirective(slideIndex: number, elementIdA: string, elementIdB: string): string {
-	return (
-		`Merge the two selected tables (elementIdA=${elementIdA}, elementIdB=${elementIdB}) ` +
-		`on slide ${slideIndex + 1} using merge_tables; stage it now, do not ask me to confirm.`
-	);
-}
 
 @Component({
 	selector: 'pptx-ai-focus-bar',
@@ -144,6 +136,6 @@ export class AiFocusBarComponent {
 	);
 
 	protected onMerge(tt: { slideIndex: number; elementIdA: string; elementIdB: string }): void {
-		this.sendDirective.emit(mergeDirective(tt.slideIndex, tt.elementIdA, tt.elementIdB));
+		this.sendDirective.emit(mergeTablesDirective(tt.slideIndex, tt.elementIdA, tt.elementIdB));
 	}
 }

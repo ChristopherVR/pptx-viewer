@@ -2,22 +2,27 @@
  * share-helpers.ts: Share dialog helpers for the Angular viewer.
  *
  * The shared subset (ShareFormFields / ShareDefaults / seedShareFields /
- * canStartShare) is re-exported from `pptx-viewer-shared` (`render/share-form`).
- * Two helpers stay local because they diverge from the shared builders:
- *   - `buildCollaborationConfig` validates with `canStartShare` (non-blank room)
- *     and emits a config WITHOUT `role`/`sessionIntent`, unlike the shared
- *     `buildShareConfig` (which is `buildCreateCollaborationConfig`).
- *   - `buildShareUrl` is Angular-only (no other binding builds a share link).
+ * canStartShare / buildShareUrl) is re-exported from `pptx-viewer-shared`
+ * (`render/share-form`, `render/broadcast-helpers`). One helper stays local
+ * because it diverges from the shared builders: `buildCollaborationConfig`
+ * validates with `canStartShare` (non-blank room) and emits a config WITHOUT
+ * `role`/`sessionIntent`, unlike the shared `buildShareConfig` (which is
+ * `buildCreateCollaborationConfig`).
  *
  * No `any`; all regexes use the `/u` flag; no `String.prototype.replaceAll`,
  * no regex named-capture-groups (ng-packagr lib-target constraints).
  */
 
 import type { CollaborationConfig, ShareDefaults, ShareFormFields } from '../internal/shared';
-import { canStartShare, resolveTransportForServerUrl, seedShareFields } from '../internal/shared';
+import {
+	buildShareUrl,
+	canStartShare,
+	resolveTransportForServerUrl,
+	seedShareFields,
+} from '../internal/shared';
 
 export type { ShareDefaults, ShareFormFields };
-export { canStartShare, seedShareFields };
+export { buildShareUrl, canStartShare, seedShareFields };
 
 /**
  * Assemble a {@link CollaborationConfig} from the (trimmed) form fields, or
@@ -35,25 +40,4 @@ export function buildCollaborationConfig(fields: ShareFormFields): Collaboration
 		serverUrl,
 		transport: resolveTransportForServerUrl(serverUrl),
 	};
-}
-
-/**
- * Build a shareable join URL for a session. Returns just the room id when no
- * `origin`/`pathname` are available (e.g. non-browser environments).
- */
-export function buildShareUrl(
-	roomId: string,
-	serverUrl: string,
-	location?: { origin: string; pathname: string },
-): string {
-	if (!location) {
-		return roomId;
-	}
-	const room = encodeURIComponent(roomId);
-	const trimmed = serverUrl.trim();
-	if (trimmed.length === 0) {
-		return `${location.origin}${location.pathname}?room=${room}&transport=webrtc`;
-	}
-	const server = encodeURIComponent(trimmed);
-	return `${location.origin}${location.pathname}?room=${room}&server=${server}`;
 }

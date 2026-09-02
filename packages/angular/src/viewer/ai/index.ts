@@ -29,5 +29,10 @@ export { AiPanelStore } from './ai-panel-store';
 export type { AiPanelSelectionAccessors } from './ai-panel-store';
 export { AiProposalCardComponent } from './ai-proposal-card.component';
 export { AiToolCallCardComponent } from './ai-tool-call-card.component';
-export { computeFocusTargets, focusTargetChips, isTwoTableFocus } from './focus-targets';
-export type { AiCanvasHighlight, FocusChip, FocusSelectionInput } from './focus-targets';
+export {
+	computeFocusTargets,
+	focusTargetChips,
+	isTwoTableFocus,
+	mergeTablesDirective,
+} from '../../internal/shared-ai';
+export type { AiCanvasHighlight, FocusChip, FocusSelectionInput } from '../../internal/shared-ai';

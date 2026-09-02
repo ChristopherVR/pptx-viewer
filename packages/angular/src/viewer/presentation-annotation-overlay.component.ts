@@ -28,7 +28,7 @@ import {
 } from '@angular/core';
 
 import type { CanvasSize } from '../internal/shared';
-import { cursorForTool } from './presentation-annotations-helpers';
+import { buildPathD, cursorForTool } from './presentation-annotations-helpers';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
 
 @Component({
@@ -110,16 +110,7 @@ export class PresentationAnnotationOverlayComponent {
 	// ------------------------------------------------------------------
 
 	protected strokePath(points: Array<{ x: number; y: number }>): string {
-		if (points.length === 0) {
-			return '';
-		}
-		const first = points[0];
-		let d = `M ${first.x} ${first.y}`;
-		for (let i = 1; i < points.length; i++) {
-			const pt = points[i];
-			d += ` L ${pt.x} ${pt.y}`;
-		}
-		return d;
+		return buildPathD(points);
 	}
 
 	protected laserDotStyle(x: number, y: number): Record<string, string> {

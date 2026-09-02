@@ -114,8 +114,8 @@ describe('textColorOf', () => {
 // ── fontSizeOf ────────────────────────────────────────────────────────────────
 
 describe('fontSizeOf', () => {
-	it('returns 12 as default when textStyle absent', () => {
-		expect(fontSizeOf(makeText())).toBe(12);
+	it('returns 18 as default when textStyle absent (matches PowerPoint own default text style)', () => {
+		expect(fontSizeOf(makeText())).toBe(18);
 	});
 
 	it('returns authored fontSize when present', () => {
@@ -123,8 +123,8 @@ describe('fontSizeOf', () => {
 		expect(fontSizeOf(el)).toBe(24);
 	});
 
-	it('returns 12 for elements without text properties', () => {
-		expect(fontSizeOf(makeTable())).toBe(12);
+	it('returns 18 for elements without text properties', () => {
+		expect(fontSizeOf(makeTable())).toBe(18);
 	});
 });
 

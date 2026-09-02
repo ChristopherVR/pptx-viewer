@@ -3,10 +3,10 @@ import { isImageLikeElement } from 'pptx-viewer-core';
 
 import {
 	getComputedImageStyle,
+	getCropShapeClipPath,
 	getImageColorWashStyle,
 	getImageFitStyle,
 	getImageTilingStyle,
-	getResolvedShapeClipPathFor,
 } from '../internal/shared';
 import type { ImageSvgFilterDefinition } from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
@@ -27,16 +27,10 @@ export interface AngularImageRenderView {
 }
 
 export function getImageCropShapeClipPath(element: PptxElement): string | undefined {
-	if (!isImageLikeElement(element) || !element.cropShape || element.cropShape === 'none') {
+	if (!isImageLikeElement(element)) {
 		return undefined;
 	}
-	const shapeType =
-		element.cropShape === 'roundedRect'
-			? 'roundRect'
-			: element.cropShape === 'star'
-				? 'star5'
-				: element.cropShape;
-	return getResolvedShapeClipPathFor(shapeType, element.width, element.height);
+	return getCropShapeClipPath(element.cropShape, element.width, element.height);
 }
 
 /** Build the complete shared image-effect view consumed by Angular templates. */

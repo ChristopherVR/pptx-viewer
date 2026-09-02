@@ -52,11 +52,10 @@ import type {
 	ShapeAdjustmentDragState,
 	Tick,
 } from '../internal/shared';
-import type { AiChangeBatch } from '../internal/shared-ai';
+import type { AiCanvasHighlight, AiChangeBatch } from '../internal/shared-ai';
 import { resolveContextMenuElementId } from '../internal/shared-src/render/context-menu-target';
 import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
-import type { AiCanvasHighlight } from './ai/focus-targets';
 import { CanvasFitService } from './canvas-fit.service';
 import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';

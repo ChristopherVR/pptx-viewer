@@ -20,33 +20,15 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import {
+	canGroupSelection,
+	canSetStrokeWidth,
+	canUngroupSelection,
+	strokeWidthOf,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 
-/** Outline thickness the renderer assumes when the shape declares none. */
-const DEFAULT_STROKE_WIDTH = 1;
-
-/** Grouping needs an editable deck and at least two selected elements. */
-export function canGroupSelection(canEdit: boolean, selectedCount: number): boolean {
-	return canEdit && selectedCount >= 2;
-}
-
-/** Ungrouping needs an editable deck and a selection that IS a group. */
-export function canUngroupSelection(canEdit: boolean, element: PptxElement | null): boolean {
-	return canEdit && element?.type === 'group';
-}
-
-/** An outline width only exists on an element that carries shape properties. */
-export function canSetStrokeWidth(canEdit: boolean, element: PptxElement | null): boolean {
-	return canEdit && element !== null && hasShapeProperties(element);
-}
-
-/** The stroke width to show for a selection, defaulted for a shape without one. */
-export function strokeWidthOf(element: PptxElement | null): number {
-	if (element === null || !hasShapeProperties(element)) {
-		return DEFAULT_STROKE_WIDTH;
-	}
-	return element.shapeStyle?.strokeWidth ?? DEFAULT_STROKE_WIDTH;
-}
+export { canGroupSelection, canSetStrokeWidth, canUngroupSelection, strokeWidthOf };
 
 @Component({
 	selector: 'pptx-ribbon-shape-extras',

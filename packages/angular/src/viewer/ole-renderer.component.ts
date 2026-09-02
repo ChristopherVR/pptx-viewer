@@ -3,7 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { TranslatePipe } from '@ngx-translate/core';
 import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 
-import { openUrlInNewTab } from '../internal/shared';
+import { getOleIconShapes, openUrlInNewTab } from '../internal/shared';
+import type { OleIconShape } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import {
 	buildOleActionModel,
@@ -95,6 +96,15 @@ export class OleRendererComponent {
 
 	/** Border + background style for the placeholder box. */
 	readonly placeholderStyle = computed<StyleMap>(() => getPlaceholderStyle(this.oleType()));
+
+	/**
+	 * Data-driven `rect`/`line`/`text` primitives for the placeholder icon,
+	 * shared with every other binding's OLE renderer so the icon glyphs
+	 * (Excel grid, Word lines, PDF box, Visio diagram, MathType `f(x)`,
+	 * generic linked-object) cannot drift apart. The template maps each
+	 * primitive onto its own SVG element.
+	 */
+	readonly iconShapes = computed<OleIconShape[]>(() => getOleIconShapes(this.oleType()));
 
 	/**
 	 * Download / Open action model derived from the recovered embedded payload.

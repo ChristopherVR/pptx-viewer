@@ -6,9 +6,13 @@
  *   packages/react/src/viewer/components/PresentationAnnotationOverlay.tsx
  *   packages/react/src/viewer/hooks/usePresentationAnnotations.ts
  *
- * No Angular dependencies; all functions are pure so they can be unit-tested
- * without TestBed.
+ * The stroke-path and cursor helpers live in `pptx-viewer-shared`
+ * (`render/annotation-overlay.ts`, shared by React/Vue/Angular) and are
+ * re-wrapped here with this file's own local point/tool types; everything
+ * else (smoothing, eraser hit-testing, laser fade, stroke ids) is
+ * Angular-only and stays pure so it can be unit-tested without TestBed.
  */
+import { buildStrokePathD, cursorForTool as sharedCursorForTool } from '../internal/shared';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -88,16 +92,7 @@ export function resetStrokeIdCounter(): void {
  * buildPathD([{x:0,y:0},{x:10,y:5}]) // "M 0 0 L 10 5"
  */
 export function buildPathD(points: AnnotationPoint[]): string {
-	if (points.length === 0) {
-		return '';
-	}
-	const first = points[0];
-	let d = `M ${first.x} ${first.y}`;
-	for (let i = 1; i < points.length; i++) {
-		const pt = points[i];
-		d += ` L ${pt.x} ${pt.y}`;
-	}
-	return d;
+	return buildStrokePathD(points);
 }
 
 // ---------------------------------------------------------------------------
@@ -205,16 +200,5 @@ export function laserDotOpacity(ratio: number): number {
  * Return the CSS `cursor` value that matches `tool`.
  */
 export function cursorForTool(tool: PresentationTool): string {
-	switch (tool) {
-		case 'laser':
-			return 'none';
-		case 'pen':
-			return 'crosshair';
-		case 'highlighter':
-			return 'crosshair';
-		case 'eraser':
-			return 'crosshair';
-		default:
-			return 'default';
-	}
+	return sharedCursorForTool(tool);
 }
