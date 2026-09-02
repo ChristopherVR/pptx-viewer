@@ -8,6 +8,43 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-02
+
+_Releases: pptx-viewer-core@3.2.0, pptx-react-viewer@3.2.0, pptx-vue-viewer@3.2.0, pptx-angular-viewer@3.3.0, pptx-vanilla-viewer@2.2.0, pptx-svelte-viewer@3.3.0, @christophervr/pptx-viewer@2.2.0_
+
+### Features
+
+- **core:** Parse and save bar3D shape, radar style and surface wireframe (by @ChristopherVR) ([1f46205](https://github.com/ChristopherVR/pptx-viewer/commit/1f46205a1f1280df55baf990a3ed496e308233a2))
+- **locales:** Translate chart subtype, read-only and compatibility-warning keys (by @ChristopherVR) ([9933b96](https://github.com/ChristopherVR/pptx-viewer/commit/9933b96f3918770fe3a2fac59e5dd93ca240b5c3))
+- **shared:** Google fonts webfont fallback for referenced families (by @nikko82) ([49571a5](https://github.com/ChristopherVR/pptx-viewer/commit/49571a5d192d54f992dd34cfdf3b60d8780c79ad))
+- **react:** Load google-hosted webfonts for missing families (by @nikko82) ([ca1024f](https://github.com/ChristopherVR/pptx-viewer/commit/ca1024f2bd745fe4a1afc24366613592d28afb97))
+- **vue:** Load google-hosted webfonts for missing families (by @nikko82) ([8b2815a](https://github.com/ChristopherVR/pptx-viewer/commit/8b2815a5731da4b9136613d6337fd8970053e21d))
+- **angular:** Load google-hosted webfonts for missing families (by @nikko82) ([e0e74a3](https://github.com/ChristopherVR/pptx-viewer/commit/e0e74a3f597e37d35ab4473bcd1320f1444dd78d))
+- **svelte:** Load google-hosted webfonts for missing families (by @nikko82) ([a5f86bc](https://github.com/ChristopherVR/pptx-viewer/commit/a5f86bcedc5d4329f3c8b0472508fc287f40b3fc))
+- **vanilla:** Load google-hosted webfonts for missing families (by @nikko82) ([8876311](https://github.com/ChristopherVR/pptx-viewer/commit/88763116c1f10efd2cde9eb1f331d74e7b886240))
+- **shared:** Morph matching heuristics for media, twins, and group twins (by @nikko82) ([d5ba90b](https://github.com/ChristopherVR/pptx-viewer/commit/d5ba90b2bbc4ed8866e2367bb7751c00a3cc9f8f))
+
+### Bug Fixes
+
+- **core:** Close OpenXML round-trip gaps in charts, pictures, tables, text and structure (by @ChristopherVR) ([9780265](https://github.com/ChristopherVR/pptx-viewer/commit/9780265ead99aba7f9e3fde80c0527eaed4f8d17))
+- **shared:** Equation reverse conversion, chart manual layout and editor decision helpers (by @ChristopherVR) ([bffc2b3](https://github.com/ChristopherVR/pptx-viewer/commit/bffc2b380f125787cd39b20096127ab4eb9d6bbf))
+- **shared:** Stop the webfont resolver dropping families the injected stylesheet satisfied (by @ChristopherVR) ([25a9a78](https://github.com/ChristopherVR/pptx-viewer/commit/25a9a781ade7bb3f2dc79847f2ade3284237b7c5))
+- **react:** Resolve google webfonts through the shared resolver (by @ChristopherVR) ([7a359d7](https://github.com/ChristopherVR/pptx-viewer/commit/7a359d734a7b36c696e104d23078f1f9294b785b))
+- **core:** Write gridline elements on generated chart axes (by @ChristopherVR) ([0d03c1a](https://github.com/ChristopherVR/pptx-viewer/commit/0d03c1a17c29499e234cc7e836a55e2d29bd2716))
+- **shared:** Honour c:majorGridlines when drawing value-axis gridlines (by @ChristopherVR) ([8b9dd88](https://github.com/ChristopherVR/pptx-viewer/commit/8b9dd88cbe32f873ed8246903105aba0a7ad7e3b))
+- **ci:** Stop testing click-advance on a slide whose own trigger swallows it (by @ChristopherVR) ([f83f2f8](https://github.com/ChristopherVR/pptx-viewer/commit/f83f2f867656df95dd593bd0e6de2ab1fc78df9b))
+- **core:** Snapshot baked-in a14 corrections next to the live values (by @ChristopherVR) ([9e6cc01](https://github.com/ChristopherVR/pptx-viewer/commit/9e6cc01181e481d6e3132cc086c6f85c1c80fd44))
+- **shared:** Stop re-applying a14 corrections PowerPoint already baked in (by @ChristopherVR) ([52766e7](https://github.com/ChristopherVR/pptx-viewer/commit/52766e78250805a4a03353dc22b1ed637f0c750f))
+- **react:** Autoplay every media element in presentation mode (by @ChristopherVR) ([2f8e760](https://github.com/ChristopherVR/pptx-viewer/commit/2f8e76058e9669d5ce0a8d0620d1aa239f206ff0))
+
+### Refactor
+
+- **shared:** Extract binding-duplicated engines, option lists and parity descriptors (by @ChristopherVR) ([b0acb02](https://github.com/ChristopherVR/pptx-viewer/commit/b0acb02210b17266f44eed013c2d801d3992257e))
+
+### Testing
+
+- **e2e:** Pin the webfont fallback probe across the five bindings (by @nikko82) ([aabb9dd](https://github.com/ChristopherVR/pptx-viewer/commit/aabb9dd226fc08df63f270aef080936d9f602268))
+
 ## 2026-09-01
 
 _Releases: pptx-viewer-core@3.1.3, pptx-react-viewer@3.1.5, pptx-vue-viewer@3.1.5, pptx-angular-viewer@3.2.3, pptx-vanilla-viewer@2.1.5, pptx-svelte-viewer@3.2.3_

@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.2.0) - 2026-09-02
+
+### Features
+
+- **core:** Parse and save bar3D shape, radar style and surface wireframe (by @ChristopherVR) ([1f46205](https://github.com/ChristopherVR/pptx-viewer/commit/1f46205a1f1280df55baf990a3ed496e308233a2))
+
+### Bug Fixes
+
+- **core:** Close OpenXML round-trip gaps in charts, pictures, tables, text and structure (by @ChristopherVR) ([9780265](https://github.com/ChristopherVR/pptx-viewer/commit/9780265ead99aba7f9e3fde80c0527eaed4f8d17))
+- **core:** Write gridline elements on generated chart axes (by @ChristopherVR) ([0d03c1a](https://github.com/ChristopherVR/pptx-viewer/commit/0d03c1a17c29499e234cc7e836a55e2d29bd2716))
+- **core:** Snapshot baked-in a14 corrections next to the live values (by @ChristopherVR) ([9e6cc01](https://github.com/ChristopherVR/pptx-viewer/commit/9e6cc01181e481d6e3132cc086c6f85c1c80fd44))
+
+### Testing
+
+- **e2e:** Pin the webfont fallback probe across the five bindings (by @nikko82) ([aabb9dd](https://github.com/ChristopherVR/pptx-viewer/commit/aabb9dd226fc08df63f270aef080936d9f602268))
+
 ## [3.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.1.3) - 2026-09-01
 
 ### Chores

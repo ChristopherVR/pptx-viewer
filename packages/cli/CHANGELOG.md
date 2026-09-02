@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.2.0) - 2026-09-02
+
+### Features
+
+- **react:** Load google-hosted webfonts for missing families (by @nikko82) ([ca1024f](https://github.com/ChristopherVR/pptx-viewer/commit/ca1024f2bd745fe4a1afc24366613592d28afb97))
+
+### Bug Fixes
+
+- **react:** Resolve google webfonts through the shared resolver (by @ChristopherVR) ([7a359d7](https://github.com/ChristopherVR/pptx-viewer/commit/7a359d734a7b36c696e104d23078f1f9294b785b))
+- **react:** Autoplay every media element in presentation mode (by @ChristopherVR) ([2f8e760](https://github.com/ChristopherVR/pptx-viewer/commit/2f8e76058e9669d5ce0a8d0620d1aa239f206ff0))
+
 ## [2.1.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.1.4) - 2026-08-29
 
 ### Bug Fixes

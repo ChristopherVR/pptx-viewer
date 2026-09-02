@@ -7,6 +7,33 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.3.0) - 2026-09-02
+
+### Features
+
+- **core:** Parse and save bar3D shape, radar style and surface wireframe (by @ChristopherVR) ([1f46205](https://github.com/ChristopherVR/pptx-viewer/commit/1f46205a1f1280df55baf990a3ed496e308233a2))
+- **shared:** Google fonts webfont fallback for referenced families (by @nikko82) ([49571a5](https://github.com/ChristopherVR/pptx-viewer/commit/49571a5d192d54f992dd34cfdf3b60d8780c79ad))
+- **svelte:** Load google-hosted webfonts for missing families (by @nikko82) ([a5f86bc](https://github.com/ChristopherVR/pptx-viewer/commit/a5f86bcedc5d4329f3c8b0472508fc287f40b3fc))
+- **shared:** Morph matching heuristics for media, twins, and group twins (by @nikko82) ([d5ba90b](https://github.com/ChristopherVR/pptx-viewer/commit/d5ba90b2bbc4ed8866e2367bb7751c00a3cc9f8f))
+
+### Bug Fixes
+
+- **core:** Close OpenXML round-trip gaps in charts, pictures, tables, text and structure (by @ChristopherVR) ([9780265](https://github.com/ChristopherVR/pptx-viewer/commit/9780265ead99aba7f9e3fde80c0527eaed4f8d17))
+- **shared:** Equation reverse conversion, chart manual layout and editor decision helpers (by @ChristopherVR) ([bffc2b3](https://github.com/ChristopherVR/pptx-viewer/commit/bffc2b380f125787cd39b20096127ab4eb9d6bbf))
+- **shared:** Stop the webfont resolver dropping families the injected stylesheet satisfied (by @ChristopherVR) ([25a9a78](https://github.com/ChristopherVR/pptx-viewer/commit/25a9a781ade7bb3f2dc79847f2ade3284237b7c5))
+- **core:** Write gridline elements on generated chart axes (by @ChristopherVR) ([0d03c1a](https://github.com/ChristopherVR/pptx-viewer/commit/0d03c1a17c29499e234cc7e836a55e2d29bd2716))
+- **shared:** Honour c:majorGridlines when drawing value-axis gridlines (by @ChristopherVR) ([8b9dd88](https://github.com/ChristopherVR/pptx-viewer/commit/8b9dd88cbe32f873ed8246903105aba0a7ad7e3b))
+- **core:** Snapshot baked-in a14 corrections next to the live values (by @ChristopherVR) ([9e6cc01](https://github.com/ChristopherVR/pptx-viewer/commit/9e6cc01181e481d6e3132cc086c6f85c1c80fd44))
+- **shared:** Stop re-applying a14 corrections PowerPoint already baked in (by @ChristopherVR) ([52766e7](https://github.com/ChristopherVR/pptx-viewer/commit/52766e78250805a4a03353dc22b1ed637f0c750f))
+
+### Refactor
+
+- **shared:** Extract binding-duplicated engines, option lists and parity descriptors (by @ChristopherVR) ([b0acb02](https://github.com/ChristopherVR/pptx-viewer/commit/b0acb02210b17266f44eed013c2d801d3992257e))
+
+### Testing
+
+- **e2e:** Pin the webfont fallback probe across the five bindings (by @nikko82) ([aabb9dd](https://github.com/ChristopherVR/pptx-viewer/commit/aabb9dd226fc08df63f270aef080936d9f602268))
+
 ## [3.2.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.2.3) - 2026-09-01
 
 ### Dependencies
