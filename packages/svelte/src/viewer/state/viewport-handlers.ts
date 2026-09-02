@@ -5,6 +5,7 @@ import {
 	createWheelStepBuffer,
 	mapPresentationKey,
 	mapPresentationWheel,
+	mapSlideShowStartKey,
 	mayLeaveSlideShow,
 } from 'pptx-viewer-shared';
 
@@ -36,6 +37,10 @@ export interface ViewportHandlersDeps {
 	toggleChrome?(): void;
 	/** Raise PowerPoint's "See All Slides" navigator (Ctrl+S). */
 	showAllSlides?(): void;
+	/** Start the show from slide 1 (F5): the ribbon's "From Beginning" button. */
+	onStartFromBeginning?(): void;
+	/** Start the show on the active slide (Shift+F5): the ribbon's "From Current Slide" button. */
+	onStartFromCurrent?(): void;
 }
 
 export interface ViewportHandlers {
@@ -197,6 +202,20 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 			}
 		},
 		onKeydown(event: KeyboardEvent): void {
+			// PowerPoint starts the show with F5/Shift+F5 from ANYWHERE, including a
+			// read-only viewer and with the caret sitting in a text box, so this must
+			// run before the editing branch below, which gates on `getEditingActive()`
+			// and swallows keys the inline editor or a text-input target owns.
+			const startAction = mapSlideShowStartKey(event, { isPresenting: deps.viewer.isFullscreen });
+			if (startAction) {
+				event.preventDefault();
+				if (startAction === 'fromBeginning') {
+					deps.onStartFromBeginning?.();
+				} else {
+					deps.onStartFromCurrent?.();
+				}
+				return;
+			}
 			if (deps.getEditingActive()) {
 				deps.controller.onKeyDown(event);
 				// While a selection or inline edit owns the keyboard, arrows nudge and

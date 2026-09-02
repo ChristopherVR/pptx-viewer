@@ -168,6 +168,16 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		getEditingActive: deps.getEditingActive,
 		presentation,
 		onEndShow: () => handlers.onFullscreenToggle(),
+		// F5 / the ribbon's "From Beginning": same two calls `ViewerChrome`'s
+		// `onfrombeginning` makes, so the key and the button agree.
+		onStartFromBeginning: () => {
+			presentation.firstSlide();
+			handlers.onFullscreenToggle();
+		},
+		// Shift+F5 / the ribbon's "From Current Slide": `onFullscreenToggle` alone
+		// already resolves the show's actual entry slide (wave-4 B1), same as the
+		// ribbon button.
+		onStartFromCurrent: () => handlers.onFullscreenToggle(),
 		setPointerTool: (tool) => {
 			parityUi.annotations.tool = tool;
 		},

@@ -73,6 +73,93 @@ describe('slide-show chrome shortcuts', () => {
 });
 
 /**
+ * F5 / Shift+F5 start-a-show keys (`mapSlideShowStartKey`). Must fire even
+ * with editing disabled and even though `handleShowKey`/the editor keymap sit
+ * behind gates F5 must ignore, per `packages/shared/src/render/slide-show-start-keymap.ts`.
+ */
+describe('the F5/Shift+F5 start-show keys', () => {
+	function startHarness(overrides: Partial<ViewportHandlersDeps> = {}) {
+		const onStartFromBeginning = vi.fn();
+		const onStartFromCurrent = vi.fn();
+		const handlers = createViewportHandlers({
+			getRootEl: () => undefined,
+			viewer: {
+				isFullscreen: false,
+				slideCount: 3,
+				goTo: vi.fn(),
+				handleNavigationKey: () => false,
+			},
+			controller: { onKeyDown: vi.fn(), capturesKeyboard: () => false },
+			getEditingActive: () => false,
+			presentation: { advance: vi.fn(), retreat: () => false, previousSlide: vi.fn() },
+			onStartFromBeginning,
+			onStartFromCurrent,
+			...overrides,
+		} as unknown as ViewportHandlersDeps);
+		return { handlers, onStartFromBeginning, onStartFromCurrent };
+	}
+
+	it('a bare F5 starts the show from the beginning and prevents the page reload', () => {
+		const { handlers, onStartFromBeginning, onStartFromCurrent } = startHarness();
+		const event = new KeyboardEvent('keydown', { key: 'F5', cancelable: true });
+
+		handlers.onKeydown(event);
+
+		expect(event.defaultPrevented).toBeTruthy();
+		expect(onStartFromBeginning).toHaveBeenCalledOnce();
+		expect(onStartFromCurrent).not.toHaveBeenCalled();
+	});
+
+	it('shift+F5 starts the show from the current slide', () => {
+		const { handlers, onStartFromBeginning, onStartFromCurrent } = startHarness();
+		const event = new KeyboardEvent('keydown', { key: 'F5', shiftKey: true, cancelable: true });
+
+		handlers.onKeydown(event);
+
+		expect(event.defaultPrevented).toBeTruthy();
+		expect(onStartFromCurrent).toHaveBeenCalledOnce();
+		expect(onStartFromBeginning).not.toHaveBeenCalled();
+	});
+
+	it('a bare F5 does nothing and leaves the reload alone while a show is already presenting', () => {
+		const { handlers, onStartFromBeginning, onStartFromCurrent } = startHarness({
+			viewer: {
+				isFullscreen: true,
+				slideCount: 3,
+				goTo: vi.fn(),
+				handleNavigationKey: () => false,
+			} as unknown as ViewportHandlersDeps['viewer'],
+		});
+		const event = new KeyboardEvent('keydown', { key: 'F5', cancelable: true });
+
+		handlers.onKeydown(event);
+
+		expect(event.defaultPrevented).toBeFalsy();
+		expect(onStartFromBeginning).not.toHaveBeenCalled();
+		expect(onStartFromCurrent).not.toHaveBeenCalled();
+	});
+
+	it('starts the show from F5 even with editing disabled, ahead of the editor keymap gate', () => {
+		const onKeyDown = vi.fn();
+		const { handlers, onStartFromBeginning } = startHarness({
+			controller: {
+				onKeyDown,
+				capturesKeyboard: () => false,
+			} as unknown as ViewportHandlersDeps['controller'],
+			getEditingActive: () => false,
+		});
+		const event = new KeyboardEvent('keydown', { key: 'F5', cancelable: true });
+
+		handlers.onKeydown(event);
+
+		expect(onStartFromBeginning).toHaveBeenCalledOnce();
+		// Never reached the editor's own keydown handler, which the editing branch
+		// would only have called anyway if `getEditingActive()` were true.
+		expect(onKeyDown).not.toHaveBeenCalled();
+	});
+});
+
+/**
  * Wave-4 B1: entering the show must open on a slide the show actually
  * includes, not the raw active slide. `onFullscreenToggle` is the single
  * chokepoint every entry surface (status-bar button, ribbon "From Current
