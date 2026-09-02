@@ -441,7 +441,32 @@ export function generateMorphAnimations(
 		// element already looks exactly as it should, for the whole morph. Leaving
 		// it alone (rather than animating it from itself to itself) also keeps it
 		// out of the binding's animation state, so nothing has to unwind at the end.
+		//
+		// EXCEPT when the pair's stacking order swaps: a z-index journey only
+		// works if BOTH sides of the flip are stepped together. The swapping
+		// counterpart may be this very inert pair - skipping it leaves it at
+		// its static (incoming) layer, and since an omitted z-index loses the
+		// DOM-order tie-break to an animated one, the flip renders as an
+		// immediate swap instead of a mid-flight one. Emit the journey alone.
 		if (!ghosted && isInertMorphPair(fromElement, toElement)) {
+			const inertZSwap = zSwaps?.get(toElement.id);
+			if (!inertZSwap) {
+				continue;
+			}
+			const inertName = `pptx-morph-z-${index}-${toElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
+			animations.push({
+				elementId: toElement.id,
+				animation: `${inertName} ${durationMs}ms ${MORPH_EASING} forwards`,
+				keyframes: `
+@keyframes ${inertName} {
+\tfrom {
+\t\tz-index: ${inertZSwap.from};
+\t}
+\tto {
+\t\tz-index: ${inertZSwap.to};
+\t}
+}`,
+			});
 			continue;
 		}
 		const safeName = `pptx-morph-${index}-${toElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;

@@ -13,6 +13,7 @@ import {
 	buildColorInterpolationProps,
 	buildStrokeInterpolationProps,
 	morphPairNeedsCrossfade,
+	computeZOrderSwaps,
 } from './morph-animation';
 import { parseHexColor, lerpColor, rgbaToHex } from './morph-color';
 import { matchMorphElements, matchMorphElementsFull, getElementMorphName } from './morph-matching';
@@ -953,6 +954,71 @@ describe('generateMorphAnimations', () => {
 		];
 		const anims = generateMorphAnimations(pairs, 1000);
 		expect(anims[0].keyframes.match(/scaleX\(-1\)/gu)?.length).toBe(2);
+	});
+
+	it('steps an inert counterpart of a stacking swap together with the mover', () => {
+		// The outgoing slide stacks the photo UNDER a full-frame graphic and the
+		// incoming slide stacks it ABOVE; the graphic itself is visually
+		// unchanged (an inert pair). The z-index journey only works if BOTH
+		// sides of the flip are stepped together: skipping the inert half
+		// leaves it at its static (incoming) layer, where the DOM-order
+		// tie-break already favours the mover, and the swap renders
+		// immediately instead of at the animation midpoint.
+		const inertFrom = makeElement({
+			id: 'inert-a',
+			type: 'picture',
+			imagePath: 'ppt/media/g.png',
+			x: 345,
+			y: 65,
+			width: 590,
+			height: 590,
+		});
+		const inertTo = makeElement({
+			id: 'inert-b',
+			type: 'picture',
+			imagePath: 'ppt/media/g.png',
+			x: 345,
+			y: 65,
+			width: 590,
+			height: 590,
+		});
+		const moverFrom = makeElement({
+			id: 'a',
+			type: 'picture',
+			imagePath: 'ppt/media/p.jpeg',
+			x: 601,
+			y: 282,
+			width: 79,
+			height: 76,
+		});
+		const moverTo = makeElement({
+			id: 'b',
+			type: 'picture',
+			imagePath: 'ppt/media/p.jpeg',
+			x: 307,
+			y: 37,
+			width: 667,
+			height: 645,
+		});
+		const pairs: MorphPair[] = [
+			{ fromElement: inertFrom, toElement: inertTo },
+			{ fromElement: moverFrom, toElement: moverTo },
+		];
+		// Outgoing doc order: mover first (under the graphic); incoming: mover
+		// last (above it).
+		const zSwaps = computeZOrderSwaps(pairs, [moverFrom, inertFrom], [inertTo, moverTo]);
+		expect(zSwaps.get('b')).toStrictEqual({ from: 0, to: 1 });
+		expect(zSwaps.get('inert-b')).toStrictEqual({ from: 1, to: 0 });
+
+		const anims = generateMorphAnimations(pairs, 1000, 'object', new Set(), zSwaps);
+		const inertAnim = anims.find((a) => a.elementId === 'inert-b');
+		expect(inertAnim).toBeDefined();
+		expect(inertAnim!.keyframes).toContain('z-index: 1');
+		expect(inertAnim!.keyframes).toContain('z-index: 0');
+		expect(inertAnim!.keyframes).not.toContain('transform');
+		const moverAnim = anims.find((a) => a.elementId === 'b');
+		expect(moverAnim!.keyframes).toContain('z-index: 0');
+		expect(moverAnim!.keyframes).toContain('z-index: 1');
 	});
 
 	it('keeps a short forward turn untouched', () => {
