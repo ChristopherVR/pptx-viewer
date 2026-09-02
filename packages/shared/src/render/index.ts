@@ -1257,6 +1257,8 @@ export * from './presentation-setup';
 // Action Setting first, then live content that owns its own click, then
 // click-to-advance.
 export * from './presentation-action';
+// `ppaction://ole?verb=N` can only open the recovered embedding in a browser.
+export * from './presentation-ole-verb';
 // Only action shapes, media transport and links take the pointer while a show
 // runs; the rest of the slide is scenery the click passes through.
 export * from './presentation-hit-test';

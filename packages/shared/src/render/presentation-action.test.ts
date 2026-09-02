@@ -168,10 +168,16 @@ describe('resolvePresentationAction', () => {
 		).toStrictEqual({ kind: 'playMedia' });
 	});
 
-	it('maps ppaction://ole?verb=N to oleVerb with the parsed number', () => {
+	it('maps ppaction://ole?verb=N to oleVerb with the parsed number and the acting element', () => {
 		expect(
 			resolvePresentationAction({ action: 'ppaction://ole?verb=-1' }, { slideCount: 3 }).intent,
 		).toStrictEqual({ kind: 'oleVerb', verb: -1 });
+		expect(
+			resolvePresentationAction(
+				{ action: 'ppaction://ole?verb=0' },
+				{ slideCount: 3, elementId: 'ole1' },
+			).intent,
+		).toStrictEqual({ kind: 'oleVerb', verb: 0, elementId: 'ole1' });
 	});
 });
 
@@ -187,7 +193,7 @@ describe('runPresentationAction: wave-4 verbs', () => {
 			openFile: (target) => calls.push(`openFile:${target}`),
 			openPresentation: (target) => calls.push(`openPresentation:${target}`),
 			playMedia: (elementId) => calls.push(`playMedia:${elementId}`),
-			oleVerb: (verb) => calls.push(`oleVerb:${verb}`),
+			oleVerb: (verb, elementId) => calls.push(`oleVerb:${verb}:${elementId}`),
 		};
 		return { runner, calls };
 	}
@@ -235,10 +241,14 @@ describe('runPresentationAction: wave-4 verbs', () => {
 		expect(calls).toStrictEqual(['openFile:report.docx']);
 	});
 
-	it('passes the OLE verb number through', () => {
+	it('passes the OLE verb number and the acting element through', () => {
 		const { runner, calls } = runnerSpy();
-		runPresentationAction({ action: 'ppaction://ole?verb=-1' }, { slideCount: 3 }, runner);
-		expect(calls).toStrictEqual(['oleVerb:-1']);
+		runPresentationAction(
+			{ action: 'ppaction://ole?verb=-1' },
+			{ slideCount: 3, elementId: 'ole1' },
+			runner,
+		);
+		expect(calls).toStrictEqual(['oleVerb:-1:ole1']);
 	});
 });
 

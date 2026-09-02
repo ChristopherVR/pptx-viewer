@@ -87,8 +87,8 @@ export type PresentationActionIntent =
 	| { kind: 'openPresentation'; target: string }
 	/** `ppaction://media`: play (or toggle) the acting element's own embedded media. */
 	| { kind: 'playMedia'; elementId?: string }
-	/** `ppaction://ole?verb=<n>`: run a numbered OLE verb on an embedded object. */
-	| { kind: 'oleVerb'; verb: number }
+	/** `ppaction://ole?verb=<n>`: run a numbered OLE verb on the acting element's embedded object. */
+	| { kind: 'oleVerb'; verb: number; elementId?: string }
 	| { kind: 'none' };
 
 /** A resolved action: what to navigate, plus any sound to play alongside. */
@@ -103,8 +103,9 @@ export interface ResolvePresentationActionOptions {
 	slideCount: number;
 	/**
 	 * The element the action is running against, when known. Only used for
-	 * `ppaction://media`'s `playMedia` intent, which targets the acting
-	 * element's OWN embedded media rather than a navigation target.
+	 * the two intents that act on the clicked element ITSELF rather than a
+	 * navigation target: `ppaction://media`'s `playMedia` (the element's own
+	 * embedded media) and `ppaction://ole`'s `oleVerb` (its embedded object).
 	 */
 	elementId?: string;
 }
@@ -213,7 +214,11 @@ export function resolvePresentationAction(
 			verbNumberRaw !== undefined ? Number.parseInt(verbNumberRaw, 10) : Number.NaN;
 		return {
 			intent: Number.isFinite(verbNumber)
-				? { kind: 'oleVerb', verb: verbNumber }
+				? {
+						kind: 'oleVerb',
+						verb: verbNumber,
+						...(options.elementId ? { elementId: options.elementId } : {}),
+					}
 				: { kind: 'none' },
 			soundPath,
 		};
@@ -233,7 +238,7 @@ export function resolvePresentationAction(
 }
 
 /** Every element on a slide, group children included, in document order. */
-function flattenSlideElements(elements: readonly PptxElement[] | undefined): PptxElement[] {
+export function flattenSlideElements(elements: readonly PptxElement[] | undefined): PptxElement[] {
 	const flat: PptxElement[] = [];
 	for (const element of elements ?? []) {
 		flat.push(element);
@@ -345,8 +350,12 @@ export interface PresentationActionRunner {
 	/**
 	 * `ppaction://ole?verb=<n>`: run a numbered OLE verb (e.g. `-1` = primary
 	 * verb, `0` = "Edit") on the clicked element's embedded OLE object.
+	 * `elementId` is the element the click landed on, the same way `playMedia`
+	 * receives it; a browser cannot run the verb inside the owning
+	 * application, so {@link resolveOleVerbTarget} maps it onto the one thing
+	 * it can do, open the embedded payload.
 	 */
-	oleVerb?: (verb: number) => void;
+	oleVerb?: (verb: number, elementId: string | undefined) => void;
 }
 
 /**
@@ -403,7 +412,7 @@ export function runPresentationAction(
 			runner.playMedia?.(intent.elementId);
 			return true;
 		case 'oleVerb':
-			runner.oleVerb?.(intent.verb);
+			runner.oleVerb?.(intent.verb, intent.elementId);
 			return true;
 		default:
 			return false;
@@ -452,9 +461,10 @@ export function handlePresentationStageClick(
 ): PresentationClickOutcome['kind'] {
 	const outcome = resolvePresentationClick(target, slide);
 	if (outcome.kind === 'action') {
-		// Threads the clicked element's id through for `playMedia`, which acts
-		// on the acting element's OWN embedded media rather than a navigation
-		// target; a caller-supplied `options.elementId` (if any) still wins.
+		// Threads the clicked element's id through for `playMedia` / `oleVerb`,
+		// which act on the acting element's OWN embedded payload rather than a
+		// navigation target; a caller-supplied `options.elementId` (if any)
+		// still wins.
 		runPresentationAction(
 			outcome.action,
 			{ ...options, elementId: options.elementId ?? outcome.elementId },
