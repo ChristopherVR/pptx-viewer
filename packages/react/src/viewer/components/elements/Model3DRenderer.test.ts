@@ -4,18 +4,20 @@ import { dataUrlToBlobUrl } from './Model3DRenderer';
 
 // ---------------------------------------------------------------------------
 // dataUrlToBlobUrl
+//
+// This used to be a private, hand-decoded copy of the base64 -> Blob
+// conversion that inferred its MIME from the data URL itself. It is now a
+// thin wrapper over the shared `modelDataToBlobUrl`
+// (packages/shared/src/render/model3d-scene.ts, covered by that module's own
+// tests), threading the element's `modelMimeType` through as the Blob type
+// (falling back to the shared `DEFAULT_MODEL_MIME`, "model/gltf-binary",
+// instead of whatever MIME segment the data URL happens to declare). These
+// tests pin that wiring through the binding.
 // ---------------------------------------------------------------------------
 
 describe('dataUrlToBlobUrl', () => {
-	const revokedUrls: string[] = [];
-	const originalCreateObjectURL = globalThis.URL.createObjectURL;
-	const originalRevokeObjectURL = globalThis.URL.revokeObjectURL;
-
 	afterEach(() => {
-		revokedUrls.length = 0;
-		// Restore originals (in case a test swapped them)
-		globalThis.URL.createObjectURL = originalCreateObjectURL;
-		globalThis.URL.revokeObjectURL = originalRevokeObjectURL;
+		vi.restoreAllMocks();
 	});
 
 	it('returns undefined for falsy input', () => {
@@ -23,24 +25,22 @@ describe('dataUrlToBlobUrl', () => {
 		expect(dataUrlToBlobUrl('')).toBeUndefined();
 	});
 
-	it('returns undefined for a string without a comma (not a data URL)', () => {
+	it('returns undefined for a string that is not a base64 data URL', () => {
 		expect(dataUrlToBlobUrl('not-a-data-url')).toBeUndefined();
 	});
 
-	it('converts a valid base64 data URL to a blob URL', () => {
+	it('converts a valid base64 data URL to a blob URL using the given MIME type', () => {
 		// Minimal valid base64 data URL (1 byte: 0x00)
 		const dataUrl = 'data:application/octet-stream;base64,AA==';
 
-		// Mock URL.createObjectURL to return a predictable string
 		const fakeUrl = 'blob:http://localhost/fake-uuid';
 		vi.spyOn(globalThis.URL, 'createObjectURL').mockReturnValue(fakeUrl);
 
-		const result = dataUrlToBlobUrl(dataUrl);
+		const result = dataUrlToBlobUrl(dataUrl, 'application/octet-stream');
 
 		expect(result).toBe(fakeUrl);
 		expect(globalThis.URL.createObjectURL).toHaveBeenCalledOnce();
 
-		// Verify the Blob was created with the correct MIME type
 		const blob = (globalThis.URL.createObjectURL as ReturnType<typeof vi.fn>).mock
 			.calls[0][0] as Blob;
 		expect(blob).toBeInstanceOf(Blob);
@@ -48,9 +48,8 @@ describe('dataUrlToBlobUrl', () => {
 		expect(blob.size).toBe(1);
 	});
 
-	it('defaults to application/octet-stream when MIME type is missing', () => {
-		// data URL without a proper MIME prefix (still has comma)
-		const dataUrl = 'data:;base64,AA==';
+	it('defaults to the shared DEFAULT_MODEL_MIME when no modelMimeType is given', () => {
+		const dataUrl = 'data:model/gltf-binary;base64,AA==';
 
 		const fakeUrl = 'blob:http://localhost/fake-uuid-2';
 		vi.spyOn(globalThis.URL, 'createObjectURL').mockReturnValue(fakeUrl);
@@ -60,12 +59,14 @@ describe('dataUrlToBlobUrl', () => {
 
 		const blob = (globalThis.URL.createObjectURL as ReturnType<typeof vi.fn>).mock
 			.calls[0][0] as Blob;
-		expect(blob.type).toBe('application/octet-stream');
+		expect(blob.type).toBe('model/gltf-binary');
 	});
 
-	it('returns undefined when atob throws (invalid base64)', () => {
-		// Provide an invalid base64 payload that will cause atob to throw
-		const dataUrl = 'data:application/octet-stream;base64,!!!invalid!!!';
+	it('returns undefined for a data URL missing the base64 marker', () => {
+		// The shared `parseDataUrlToBytes` (core) requires the exact
+		// `data:<mime>;base64,<payload>` shape; a `;base64` marker is not
+		// optional the way it was in the old hand-rolled decoder.
+		const dataUrl = 'data:application/octet-stream,AA==';
 		const result = dataUrlToBlobUrl(dataUrl);
 		expect(result).toBeUndefined();
 	});

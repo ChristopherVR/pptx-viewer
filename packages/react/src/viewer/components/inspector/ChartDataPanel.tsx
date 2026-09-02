@@ -24,9 +24,12 @@ import {
 import {
 	addChartCategory,
 	addChartSeries,
+	chartGridlinesPatch,
+	chartGridlinesState,
 	patchChartData,
 	removeChartCategory,
 	removeChartSeries,
+	seriesSecondaryAxisPatch,
 	setChartCategoryLabel,
 	setChartCellValue,
 } from 'pptx-viewer-shared';
@@ -111,6 +114,27 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			} as Partial<PptxElement>);
 		},
 		[chartData, style, onUpdateElement],
+	);
+
+	const hasGridlines = chartData ? chartGridlinesState(chartData) : false;
+	const toggleGridlines = useCallback(
+		(show: boolean) => {
+			if (!chartData) {
+				return;
+			}
+			updateChartData(chartGridlinesPatch(chartData, show));
+		},
+		[chartData, updateChartData],
+	);
+
+	const toggleSecondaryAxis = useCallback(
+		(seriesIndex: number, useSecondary: boolean) => {
+			if (!chartData) {
+				return;
+			}
+			updateChartData(seriesSecondaryAxisPatch(chartData, seriesIndex, useSecondary));
+		},
+		[chartData, updateChartData],
 	);
 
 	const updateAxis = useCallback(
@@ -338,7 +362,13 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				onUpdateChartData={updateChartData}
 			/>
 
-			<ChartDisplayOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />
+			<ChartDisplayOptions
+				style={style}
+				canEdit={canEdit}
+				onUpdateStyle={updateStyle}
+				hasGridlines={hasGridlines}
+				onToggleGridlines={toggleGridlines}
+			/>
 
 			<ChartDataLabelOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />
 
@@ -404,7 +434,12 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			/>
 
 			{/* ── Series colour picker (delimited block; keep merge-friendly) ── */}
-			<ChartSeriesColorOptions series={series} canEdit={canEdit} onSetColor={setSeriesColor} />
+			<ChartSeriesColorOptions
+				chartData={chartData}
+				canEdit={canEdit}
+				onSetColor={setSeriesColor}
+				onToggleSecondaryAxis={toggleSecondaryAxis}
+			/>
 
 			<ChartDataGrid
 				categories={categories}

@@ -10,12 +10,29 @@ export interface ChartDisplayOptionsProps {
 	style: PptxChartStyle | undefined;
 	canEdit: boolean;
 	onUpdateStyle: (patch: Partial<PptxChartStyle>) => void;
+	/**
+	 * Whether the chart currently shows major gridlines, per the shared
+	 * `chartGridlinesState` (render/chart-gridlines-toggle.ts): the RENDERER
+	 * draws gridlines from the primary value axis's `majorGridlines`, not from
+	 * `style.hasGridlines`, so this must be read from the axis (via the shared
+	 * helper), not from `style`, or the checkbox silently disagrees with the
+	 * canvas.
+	 */
+	hasGridlines: boolean;
+	/** Toggle major gridlines via the shared `chartGridlinesPatch`. */
+	onToggleGridlines: (show: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-export function ChartDisplayOptions({ style, canEdit, onUpdateStyle }: ChartDisplayOptionsProps) {
+export function ChartDisplayOptions({
+	style,
+	canEdit,
+	onUpdateStyle,
+	hasGridlines,
+	onToggleGridlines,
+}: ChartDisplayOptionsProps) {
 	const { t } = useTranslation();
 
 	return (
@@ -77,8 +94,8 @@ export function ChartDisplayOptions({ style, canEdit, onUpdateStyle }: ChartDisp
 					<input
 						type='checkbox'
 						disabled={!canEdit}
-						checked={style?.hasGridlines ?? false}
-						onChange={(e) => onUpdateStyle({ hasGridlines: e.target.checked })}
+						checked={hasGridlines}
+						onChange={(e) => onToggleGridlines(e.target.checked)}
 						className='accent-primary'
 					/>
 					<span className='text-[11px]'>{t('pptx.chart.showGridlines')}</span>

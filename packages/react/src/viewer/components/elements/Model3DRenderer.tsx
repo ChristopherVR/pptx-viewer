@@ -13,6 +13,7 @@
  */
 
 import type { Model3DPptxElement } from 'pptx-viewer-core';
+import { modelDataToBlobUrl } from 'pptx-viewer-shared';
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
 
 // ---------------------------------------------------------------------------
@@ -41,37 +42,19 @@ const LazyModel3DScene = React.lazy(
 // ---------------------------------------------------------------------------
 
 /**
- * Convert a base64 data URL to an object (blob) URL suitable for
- * Three.js loaders.  Returns `undefined` when the input is falsy or
- * not a valid data URL.
+ * Convert a `Model3DPptxElement`'s `modelData` (base64 data URL) to an object
+ * (blob) URL suitable for Three.js loaders, using the element's own
+ * `modelMimeType` (falling back to the shared `DEFAULT_MODEL_MIME`). Thin
+ * wrapper over the shared `modelDataToBlobUrl` (render/model3d-scene.ts),
+ * which Vue, Svelte, and Vanilla also consume; this used to be a private,
+ * hand-decoded copy that inferred its MIME from the data URL itself instead
+ * of the element's `modelMimeType` field.
  */
-export function dataUrlToBlobUrl(dataUrl: string | undefined): string | undefined {
-	if (!dataUrl) {
-		return undefined;
-	}
-
-	try {
-		const commaIdx = dataUrl.indexOf(',');
-		if (commaIdx === -1) {
-			return undefined;
-		}
-
-		const meta = dataUrl.slice(0, commaIdx);
-		const base64 = dataUrl.slice(commaIdx + 1);
-		const mimeMatch = meta.match(/data:(?<mime>[^;]+)/u);
-		const mime = mimeMatch?.groups?.mime ?? 'application/octet-stream';
-
-		const binary = atob(base64);
-		const bytes = new Uint8Array(binary.length);
-		for (let i = 0; i < binary.length; i++) {
-			bytes[i] = binary.charCodeAt(i);
-		}
-
-		const blob = new Blob([bytes], { type: mime });
-		return URL.createObjectURL(blob);
-	} catch {
-		return undefined;
-	}
+export function dataUrlToBlobUrl(
+	dataUrl: string | undefined,
+	mimeType?: string | undefined,
+): string | undefined {
+	return modelDataToBlobUrl(dataUrl, mimeType);
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +179,10 @@ export function Model3DRenderer({ element, width, height, interactive }: Model3D
 	}, []);
 
 	// Convert modelData (base64 data URL) to a blob URL for the GLTF loader.
-	const blobUrl = useMemo(() => dataUrlToBlobUrl(element.modelData), [element.modelData]);
+	const blobUrl = useMemo(
+		() => dataUrlToBlobUrl(element.modelData, element.modelMimeType),
+		[element.modelData, element.modelMimeType],
+	);
 
 	// Clean up the blob URL on unmount or when modelData changes.
 	useEffect(() => {
