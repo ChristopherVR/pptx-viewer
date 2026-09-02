@@ -41,6 +41,7 @@
 				disabled={!editor.editable}
 				value={currentColor}
 				oninput={(e) => editor.backgroundOps.setSlideBackgroundColor(e.currentTarget.value)}
+				onchange={(e) => editor.recordRecentColor(e.currentTarget.value)}
 			/>
 		</label>
 		<button

@@ -16,6 +16,7 @@
 	import { MARKER_SUPPORTED_TYPES, MARKER_SYMBOL_OPTIONS } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
+	import type { EditorState } from '../../editor/editor-state.svelte';
 
 	/** Patch accepted by core's `setChartDataPointMarker`. */
 	interface PointMarkerEdit {
@@ -25,10 +26,12 @@
 	}
 
 	const {
+		editor,
 		element,
 		canEdit,
 		onsetpointmarker,
 	}: {
+		editor: EditorState;
 		element: ChartPptxElement;
 		canEdit: boolean;
 		onsetpointmarker: (
@@ -129,8 +132,10 @@
 						disabled={!canEdit}
 						title={t('pptx.chart.markerFill')}
 						value={marker.spPr?.fillColor ?? '#4472c4'}
-						onchange={(event) =>
-							onsetpointmarker(active, index, { fillColor: event.currentTarget.value })}
+						onchange={(event) => {
+							onsetpointmarker(active, index, { fillColor: event.currentTarget.value });
+							editor.recordRecentColor(event.currentTarget.value);
+						}}
 					/>
 				</div>
 			{/if}

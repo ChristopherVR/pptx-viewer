@@ -12,16 +12,23 @@
 	const {
 		colors,
 		onselect,
+		disabled = false,
 	}: {
 		colors: readonly string[];
 		onselect: (hex: string) => void;
+		/** Mirrors the owning picker's disabled state onto every swatch. */
+		disabled?: boolean;
 	} = $props();
 
 	const t = useTranslator();
 </script>
 
 {#if colors.length > 0}
-	<div class="pptx-svelte-recent-colors" data-testid="pptx-color-recent">
+	<div
+		class="pptx-svelte-recent-colors"
+		data-testid="pptx-color-recent"
+		aria-label={t('pptx.colorPicker.recentColors')}
+	>
 		<span>{t('pptx.colorPicker.recentColors')}</span>
 		<div class="pptx-svelte-recent-colors-swatches">
 			{#each colors as hex (hex)}
@@ -30,8 +37,9 @@
 					class="pptx-svelte-recent-colors-swatch"
 					style={`background-color:${hex}`}
 					title={hex}
-					aria-label={hex}
+					aria-label={`Recent ${hex}`}
 					data-pptx-compact
+					{disabled}
 					onclick={() => onselect(hex)}
 				></button>
 			{/each}

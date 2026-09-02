@@ -30,9 +30,27 @@ describe('recentColorsRow', () => {
 
 		const row = target.querySelector('[data-testid="pptx-color-recent"]');
 		expect(row).not.toBeNull();
+		expect(row?.getAttribute('aria-label')).toBeTruthy();
 		const swatches = target.querySelectorAll('.pptx-svelte-recent-colors-swatch');
 		expect(swatches).toHaveLength(2);
+		// The cross-binding row contract: title is the hex, the accessible name
+		// says which list the swatch came from.
+		expect(swatches[0]?.getAttribute('title')).toBe('#112233');
+		expect(swatches[0]?.getAttribute('aria-label')).toBe('Recent #112233');
 		(swatches[1] as HTMLButtonElement).click();
 		expect(onselect).toHaveBeenCalledWith('#445566');
+	});
+
+	it('disables every swatch while the owning picker is disabled', () => {
+		const target = document.createElement('div');
+		const instance = mount(RecentColorsRow, {
+			target,
+			props: { colors: ['#112233'], onselect: vi.fn(), disabled: true },
+		});
+		cleanup = () => unmount(instance);
+		flushSync();
+
+		const swatch = target.querySelector<HTMLButtonElement>('.pptx-svelte-recent-colors-swatch');
+		expect(swatch?.disabled).toBeTruthy();
 	});
 });

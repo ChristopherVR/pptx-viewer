@@ -93,6 +93,10 @@
 			patch({ series: data.series.map((series, i) => (i === index ? { ...series, ...next } : series)) });
 		}
 	}
+	function seriesColorPatch(index: number, color: string): void {
+		seriesPatch(index, { color });
+		editor.recordRecentColor(color);
+	}
 	function axisPatch(index: number, next: Partial<PptxChartAxisFormatting>): void {
 		if (data) {
 			patch({ axes: (data.axes ?? []).map((axis, i) => (i === index ? { ...axis, ...next } : axis)) });
@@ -172,14 +176,14 @@
 		onreplace={replace}
 		onrenameseries={(index, name) => seriesPatch(index, { name })}
 	/>
-	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { color: event.currentTarget.value })} /></fieldset>{/each}
+	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesColorPatch(index, event.currentTarget.value)} /></fieldset>{/each}
 	<ChartTrendlineSection {data} {canEdit} onsettrendline={setTrendline} />
-	{#if chart}<ChartPointMarkerSection element={chart} {canEdit} onsetpointmarker={setPointMarker} />{/if}
+	{#if chart}<ChartPointMarkerSection {editor} element={chart} {canEdit} onsetpointmarker={setPointMarker} />{/if}
 	<h5>Axes</h5>{#each data.axes ?? [] as axis, index}<fieldset><input aria-label="Axis title" value={axis.titleText ?? ''} oninput={(event) => axisPatch(index, { titleText: event.currentTarget.value })} /><input type="number" aria-label="Axis minimum" placeholder="Min" value={axis.min ?? ''} onchange={(event) => axisPatch(index, { min: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /><input type="number" aria-label="Axis maximum" placeholder="Max" value={axis.max ?? ''} onchange={(event) => axisPatch(index, { max: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /></fieldset>{/each}
 	<ChartErrorBarSection {data} {canEdit} onseterrorbars={setErrorBars} />
 	<ChartAxisFormatSection {data} {canEdit} onpatch={patch} />
-	<ChartLabelsAxesSection {data} onpatch={patch} />
-	<ChartAdvancedSection {data} onpatch={patch} />
+	<ChartLabelsAxesSection {editor} {data} onpatch={patch} />
+	<ChartAdvancedSection {editor} {data} onpatch={patch} />
 </div>{/if}
 
 <style>.section{display:grid;gap:8px}label{display:grid;gap:3px;color:var(--pptx-muted-foreground);font-size:10px}input,select{min-width:0;height:26px;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-background);color:inherit}.checks{display:grid;grid-template-columns:1fr 1fr;gap:5px}.checks label{display:flex;align-items:center}h5{margin:6px 0 0;font-size:10px;text-transform:uppercase}fieldset{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0;padding:7px;border:1px solid var(--pptx-border);border-radius:6px}</style>

@@ -160,7 +160,11 @@ describe('chartAdvancedSection token selects', () => {
 	];
 
 	it('labels the per-series chart type and marker symbol', () => {
-		const target = mountAt(ChartAdvancedSection, { data: chartData(), onpatch: () => undefined });
+		const target = mountAt(ChartAdvancedSection, {
+			editor: chartEditor(),
+			data: chartData(),
+			onpatch: () => undefined,
+		});
 
 		const type = selectFor(target, 'Series chart type');
 		// The leading '' option ("Chart default") is part of the value set and
@@ -186,6 +190,7 @@ describe('chartLabelsAxesSection token selects', () => {
 
 	it('labels the data-label position without changing its values', () => {
 		const target = mountAt(ChartLabelsAxesSection, {
+			editor: chartEditor(),
 			data: chartData(),
 			onpatch: () => undefined,
 		});
@@ -200,6 +205,7 @@ describe('chartLabelsAxesSection token selects', () => {
 
 	it('names each axis fieldset instead of showing valAx / catAx', () => {
 		const target = mountAt(ChartLabelsAxesSection, {
+			editor: chartEditor(),
 			data: chartData(),
 			onpatch: () => undefined,
 		});
@@ -212,6 +218,7 @@ describe('chartLabelsAxesSection token selects', () => {
 
 	it('keeps the gridline dash values now that the option text is translated', () => {
 		const target = mountAt(ChartLabelsAxesSection, {
+			editor: chartEditor(),
 			data: chartData(),
 			onpatch: () => undefined,
 		});
@@ -227,6 +234,7 @@ describe('chartLabelsAxesSection token selects', () => {
 	it('still writes the wire token when a dash is picked', () => {
 		let patched: Partial<PptxChartData> | undefined;
 		const target = mountAt(ChartLabelsAxesSection, {
+			editor: chartEditor(),
 			data: chartData(),
 			onpatch: (patch: Partial<PptxChartData>) => {
 				patched = patch;

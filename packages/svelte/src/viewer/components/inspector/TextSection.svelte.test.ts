@@ -53,7 +53,13 @@ function currentEl(editor: EditorState): PptxElement {
 }
 
 type TextStyleShape = {
-	textStyle?: { vAlign?: string; textWrap?: string; autoFitMode?: string; autoFit?: boolean };
+	textStyle?: {
+		vAlign?: string;
+		textWrap?: string;
+		autoFitMode?: string;
+		autoFit?: boolean;
+		color?: string;
+	};
 };
 
 function mountSection(editor: EditorState, el: PptxElement): { target: HTMLElement } {
@@ -130,6 +136,40 @@ describe('textSection', () => {
 		const style = (currentEl(editor) as TextStyleShape).textStyle;
 		expect(style?.autoFitMode).toBe('shrink');
 		expect(style?.autoFit).toBeTruthy();
+	});
+
+	it('sets the text colour and pushes it into the recent-colours list', () => {
+		const editor = makeEditor(textEl());
+		const { target } = mountSection(editor, currentEl(editor));
+		const colorInput = target.querySelector<HTMLInputElement>('input[type="color"]');
+		if (!colorInput) {
+			throw new Error('text colour input not found');
+		}
+		colorInput.value = '#336699';
+		colorInput.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect((currentEl(editor) as TextStyleShape).textStyle?.color).toBe('#336699');
+		expect(editor.mruColors).toStrictEqual(['#336699']);
+	});
+
+	it('shows the recent-colours row once a colour has been used, and applies a swatch pick', () => {
+		const editor = makeEditor(textEl());
+		const { target } = mountSection(editor, currentEl(editor));
+		expect(target.querySelector('[data-testid="pptx-color-recent"]')).toBeNull();
+
+		editor.recordRecentColor('#aabbcc');
+		flushSync();
+
+		const row = target.querySelector('[data-testid="pptx-color-recent"]');
+		expect(row).not.toBeNull();
+		const swatch = row!.querySelector<HTMLButtonElement>('.pptx-svelte-recent-colors-swatch');
+		swatch?.click();
+		flushSync();
+
+		// The shared MRU list normalises hex to upper-case, and the swatch applies
+		// exactly the value it displays.
+		expect((currentEl(editor) as TextStyleShape).textStyle?.color).toBe('#AABBCC');
 	});
 
 	it('enables editable text shadow effects', () => {

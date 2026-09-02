@@ -115,6 +115,7 @@
 		<div class="pptx-svelte-inspector-section">
 			<h4>{t('pptx.slideBackground.templateBackgroundsHeading')}</h4>
 			<TemplateBackgroundSection
+				{editor}
 				{activeSlide}
 				slideMasters={editor.slideMasters}
 				{deck}

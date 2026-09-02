@@ -3,6 +3,8 @@ import {
 	applyMediaCommandVerb,
 	findMediaElementByElementId,
 	firstShowSlideIndex,
+	openUrlInNewTab,
+	resolveOleVerbTarget,
 	resolveShowSlideIndexes,
 	safeOpenUrl,
 } from 'pptx-viewer-shared';
@@ -70,10 +72,17 @@ export function buildWaveFourActionCallbacks(
 				applyMediaCommandVerb(el, { verb: 'togglePlay' });
 			}
 		},
-		// No general-purpose "activate an embedded OLE object" action exists on
-		// the live show stage in this binding (OleView's own Download/Open
-		// affordance is editor-canvas-only), so this stays a documented no-op
-		// rather than throwing.
-		oleVerb: () => undefined,
+		// A browser cannot run the verb in the owning application: open the
+		// recovered embedding, as OleView's own "Open" affordance does.
+		oleVerb: (verb, elementId) => {
+			const target = resolveOleVerbTarget(
+				deps.getSlides()[deps.getCurrentIndex()],
+				elementId,
+				verb,
+			);
+			if (target) {
+				openUrlInNewTab(target.url);
+			}
+		},
 	};
 }

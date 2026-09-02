@@ -124,7 +124,7 @@ describe('gradientPanel', () => {
 		expect((currentEl(editor) as ShapeStyleShape).shapeStyle?.fillGradientAngle).toBe(45);
 	});
 
-	it('adds, updates, and removes a colour stop', () => {
+	it('adds, updates, and removes a colour stop, pushing the update into the recent-colours list', () => {
 		const editor = makeEditor(gradientShapeEl());
 		const { target, setProps } = mountPanel(editor, currentEl(editor));
 
@@ -144,6 +144,7 @@ describe('gradientPanel', () => {
 		expect((currentEl(editor) as ShapeStyleShape).shapeStyle?.fillGradientStops?.[1]?.color).toBe(
 			'#123456',
 		);
+		expect(editor.mruColors).toContain('#123456');
 		setProps({ el: currentEl(editor) });
 
 		target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-gradient-remove')[1]?.click();

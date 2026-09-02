@@ -111,6 +111,41 @@ describe('fillStrokeSection', () => {
 		expect(editor.canUndo).toBeTruthy();
 	});
 
+	it('pushes fill and stroke commits into the recent-colours list, and applies a swatch pick', () => {
+		const editor = makeEditor(shapeEl());
+		const { target, setProps } = mountSection(editor, currentEl(editor));
+		const [fill] = colorInputs(target);
+		if (!fill) {
+			throw new Error('fill input not found');
+		}
+		fill.value = '#00ff00';
+		fill.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		// The shared MRU list normalises hex to upper-case (`normalizeRecentColor`);
+		// the element's own colour field is left exactly as the picker submitted it.
+		expect(editor.mruColors).toStrictEqual(['#00FF00']);
+		setProps({ el: currentEl(editor) });
+
+		const [, stroke] = colorInputs(target);
+		if (!stroke) {
+			throw new Error('stroke input not found');
+		}
+		stroke.value = '#123456';
+		stroke.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		expect(editor.mruColors).toStrictEqual(['#123456', '#00FF00']);
+		setProps({ el: currentEl(editor) });
+
+		const row = target.querySelector('[data-testid="pptx-color-recent"]');
+		expect(row).not.toBeNull();
+		const swatch = row!.querySelector<HTMLButtonElement>('.pptx-svelte-recent-colors-swatch');
+		swatch?.click();
+		flushSync();
+
+		const el = currentEl(editor) as { shapeStyle?: { fillColor?: string } };
+		expect(el.shapeStyle?.fillColor).toBe('#123456');
+	});
+
 	it('sets fill/stroke opacity via the sliders', () => {
 		const editor = makeEditor(shapeEl());
 		const { target, setProps } = mountSection(editor, currentEl(editor));

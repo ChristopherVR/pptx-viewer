@@ -140,3 +140,53 @@ describe('presentationController action runner: openFile / openPresentation', ()
 		openSpy.mockRestore();
 	});
 });
+
+describe('presentationController action runner: oleVerb', () => {
+	function oleDeck(oleEmbeddedData: string | undefined): Deck {
+		const deck = new Deck();
+		deck.slides = [
+			slide('s1', {
+				elements: [
+					{
+						...actionElement('ole1', { action: 'ppaction://ole?verb=-1' }),
+						type: 'ole',
+						oleEmbeddedData,
+					} as unknown as PptxSlide['elements'][number],
+				],
+			}),
+		];
+		return deck;
+	}
+
+	it("opens the clicked OLE object's recovered embedding in a new tab", () => {
+		const deck = oleDeck('blob:http://localhost/ole-payload');
+		const navigate = vi.fn();
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate,
+		});
+		controller.start();
+		controller.handleStageClick(clickTargetFor('ole1'));
+		expect(openSpy).toHaveBeenCalledWith('blob:http://localhost/ole-payload', '_blank');
+		expect(navigate).not.toHaveBeenCalled();
+		openSpy.mockRestore();
+	});
+
+	it('consumes the click without opening anything when the embedding was not recovered', () => {
+		const deck = oleDeck(undefined);
+		const navigate = vi.fn();
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate,
+		});
+		controller.start();
+		controller.handleStageClick(clickTargetFor('ole1'));
+		expect(openSpy).not.toHaveBeenCalled();
+		expect(navigate).not.toHaveBeenCalled();
+		openSpy.mockRestore();
+	});
+});

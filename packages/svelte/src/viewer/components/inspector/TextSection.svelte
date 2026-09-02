@@ -15,6 +15,7 @@
 		autoFitModeOf,
 		autoFitModePatch,
 		textAdvancedStateOf,
+		textColorOf,
 		textWrapOf,
 		textWrapPatch,
 		vAlignPatch,
@@ -22,6 +23,8 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import { setTextColorPatch } from '../../editor';
+	import RecentColorsRow from './RecentColorsRow.svelte';
 	import TextEffectsSection from './TextEffectsSection.svelte';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
@@ -30,6 +33,7 @@
 	const vAlign = $derived(textAdvancedStateOf(el).vAlign);
 	const wrap = $derived(textWrapOf(el));
 	const autoFit = $derived(autoFitModeOf(el));
+	const textColor = $derived(textColorOf(el));
 	const textStyle = $derived('textStyle' in el ? (el.textStyle ?? {}) : {});
 
 	function setVAlign(value: string): void {
@@ -40,6 +44,10 @@
 	}
 	function setAutoFit(value: string): void {
 		editor.patchSelected(autoFitModePatch(el, value as NonNullable<TextStyle['autoFitMode']>));
+	}
+	function commitTextColor(hex: string): void {
+		editor.patchSelected(setTextColorPatch(el, hex));
+		editor.recordRecentColor(hex);
 	}
 	function patchText(next: Partial<TextStyle>): void {
 		editor.patchSelected({ textStyle: { ...textStyle, ...next } } as Partial<PptxElement>);
@@ -54,6 +62,17 @@
 		<option value="bottom">{t('pptx.textPanel.valignBottom')}</option>
 	</select>
 </label>
+
+<label class="pptx-svelte-field pptx-svelte-text-color-field">
+	<span class="pptx-svelte-field-label">{t('pptx.textPanel.color')}</span>
+	<input
+		type="color"
+		class="pptx-svelte-text-color"
+		value={/^#/.test(textColor) ? textColor : '#000000'}
+		onchange={(e) => commitTextColor(e.currentTarget.value)}
+	/>
+</label>
+<RecentColorsRow colors={editor.mruColors} onselect={commitTextColor} />
 
 <label class="pptx-svelte-field-checkbox">
 	<input type="checkbox" checked={wrap === 'square'} onchange={(e) => setWrap(e.currentTarget.checked)} />
@@ -106,6 +125,16 @@
 	}
 	.pptx-svelte-field input { height: 26px; box-sizing: border-box; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-background, #11111b); color: inherit; font: inherit; }
 	.pptx-svelte-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 6px; }
+
+	.pptx-svelte-text-color-field {
+		align-items: flex-start;
+	}
+
+	.pptx-svelte-text-color {
+		width: 40px;
+		padding: 0;
+		cursor: pointer;
+	}
 
 	.pptx-svelte-field-checkbox {
 		display: flex;

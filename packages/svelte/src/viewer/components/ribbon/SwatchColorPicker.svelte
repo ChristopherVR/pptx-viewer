@@ -8,6 +8,7 @@
 	 * uses a standard Office theme-color set local to the component.
 	 */
 	import { useTranslator } from '../../../i18n/context';
+	import RecentColorsRow from '../inspector/RecentColorsRow.svelte';
 	import { anchoredPopup } from './anchored-popup';
 
 	const {
@@ -18,6 +19,7 @@
 		title,
 		glyph,
 		swatches,
+		recentColors,
 	}: {
 		value: string;
 		onselect: (hex: string) => void;
@@ -29,6 +31,12 @@
 		glyph: string;
 		/** Defaults to a standard Office theme-colour set when omitted. */
 		swatches?: readonly string[];
+		/**
+		 * When provided, renders the shared "Recent colours" row (wave-4 B6)
+		 * inside the popover, below the swatch grid. Omit for pickers that only
+		 * need to PUSH into the MRU list without showing a row of their own.
+		 */
+		recentColors?: readonly string[];
 	} = $props();
 
 	const t = useTranslator();
@@ -94,6 +102,9 @@
 					></button>
 				{/each}
 			</div>
+			{#if recentColors}
+				<RecentColorsRow colors={recentColors} onselect={choose} />
+			{/if}
 			<label class="pptx-svelte-swatch-custom">
 				<span>{t('pptx.ribbon.customColour')}</span>
 				<input type="color" {value} onchange={(e) => choose(e.currentTarget.value)} />

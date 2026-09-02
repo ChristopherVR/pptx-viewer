@@ -2,6 +2,7 @@ import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { EditorState } from '../../editor/editor-state.svelte';
 import ChartPointMarkerSection from './ChartPointMarkerSection.svelte';
 
 let cleanup: (() => void) | undefined;
@@ -27,23 +28,30 @@ function chartElement(overrides: Partial<PptxChartData> = {}): ChartPptxElement 
 	} as ChartPptxElement;
 }
 
+function makeEditor(): EditorState {
+	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+	editor.editable = true;
+	return editor;
+}
+
 function mountSection(
 	element: ChartPptxElement,
 	canEdit = true,
-): { target: HTMLElement; onsetpointmarker: ReturnType<typeof vi.fn> } {
+): { target: HTMLElement; editor: EditorState; onsetpointmarker: ReturnType<typeof vi.fn> } {
 	const onsetpointmarker = vi.fn();
+	const editor = makeEditor();
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ChartPointMarkerSection, {
 		target,
-		props: { element, canEdit, onsetpointmarker },
+		props: { editor, element, canEdit, onsetpointmarker },
 	});
 	flushSync();
 	cleanup = () => {
 		unmount(instance);
 		target.remove();
 	};
-	return { target, onsetpointmarker };
+	return { target, editor, onsetpointmarker };
 }
 
 function setValue(control: HTMLSelectElement | HTMLInputElement, value: string): void {
@@ -144,14 +152,16 @@ describe('chartPointMarkerSection', () => {
 		expect(onsetpointmarker).toHaveBeenCalledWith(0, 1, { symbol: 'diamond' });
 	});
 
-	it('emits the marker size and fill', () => {
-		const { target, onsetpointmarker } = mountSection(chartElement(WITH_OVERRIDE));
+	it('emits the marker size and fill, and pushes the fill into the recent-colours list', () => {
+		const { target, editor, onsetpointmarker } = mountSection(chartElement(WITH_OVERRIDE));
 
 		setValue(target.querySelector<HTMLInputElement>('.overrides input[type="number"]')!, '9');
 		expect(onsetpointmarker).toHaveBeenCalledWith(0, 1, { size: 9 });
 
 		setValue(target.querySelector<HTMLInputElement>('.overrides input[type="color"]')!, '#ff0000');
 		expect(onsetpointmarker).toHaveBeenCalledWith(0, 1, { fillColor: '#ff0000' });
+		// The shared MRU list normalises hex to upper-case (`normalizeRecentColor`).
+		expect(editor.mruColors).toContain('#FF0000');
 	});
 
 	it('disables every control in read-only mode', () => {
