@@ -2,7 +2,9 @@ import { mount } from '@vue/test-utils';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { STROKE_DASH_OPTIONS } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
+import { ref } from 'vue';
 
+import { RecentColorsKey } from '../../composables/recent-colors-context';
 import StrokePanel from './StrokePanel.vue';
 
 function shapeEl(shapeStyle?: ShapeStyle): PptxElement {
@@ -68,6 +70,26 @@ describe('strokePanel', () => {
 
 		const patch = wrapper.emitted('update')?.at(-1)?.[0] as Partial<PptxElement>;
 		expect(patch).toStrictEqual({ shapeStyle: { strokeDash: 'sysDot' } });
+	});
+
+	it('pushes a committed colour onto the injected recent-colours list and offers it back', async () => {
+		const recent = ref<string[]>(['#112233']);
+		const push = (hex: string): void => {
+			recent.value = [hex, ...recent.value.filter((c) => c !== hex)];
+		};
+		const wrapper = mount(StrokePanel, {
+			props: { element: shapeEl({}) },
+			global: {
+				provide: { [RecentColorsKey as symbol]: { recent, push } },
+			},
+		});
+
+		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
+
+		const color = wrapper.find('input[type="color"]');
+		(color.element as HTMLInputElement).value = '#00ff00';
+		await color.trigger('change');
+		expect(recent.value[0]).toBe('#00ff00');
 	});
 
 	it('offers the full shared dash-pattern catalogue, in shared order', () => {

@@ -31,6 +31,7 @@ const s = computed(() => props.toolbarSection);
 	<SlideShowSection
 		v-if="s === 'slideShow'"
 		:on-present="() => props.onSetMode('present')"
+		:on-present-from-beginning="props.onPresentFromBeginning"
 		:on-enter-presenter-view="props.onEnterPresenterView ?? (() => {})"
 		:on-enter-rehearsal-mode="props.onEnterRehearsalMode ?? (() => {})"
 		:on-open-set-up-slide-show="props.onOpenSetUpSlideShow ?? (() => {})"
@@ -39,7 +40,6 @@ const s = computed(() => props.toolbarSection);
 		:on-open-broadcast-dialog="props.onOpenBroadcastDialog ?? (() => {})"
 		:on-toggle-subtitles="props.onToggleSubtitles ?? (() => {})"
 		:show-subtitles="props.showSubtitles ?? false"
-		:on-set-mode="props.onSetMode"
 		:custom-show-controls="toCustomShowsControlsProps(props)"
 		:hidden-actions="props.hiddenActions"
 		:presentation-properties="props.presentationProperties"

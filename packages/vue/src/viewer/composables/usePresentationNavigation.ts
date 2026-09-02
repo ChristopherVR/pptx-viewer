@@ -46,6 +46,15 @@ export interface UsePresentationNavigationOptions {
 	/** Leave the show (goes through the keep-annotations prompt when needed). */
 	requestClose: () => void;
 	onSlideChange: (index: number) => void;
+	/**
+	 * Checked before the loop / black-slide / close fallback, when the running
+	 * show has no next slide. Returning `true` means the caller already
+	 * navigated (e.g. a `ppaction://customshow?...&return=true` sub-show
+	 * restoring the origin show and slide) and `next()` should do nothing
+	 * further. Returning `false` (or omitting the option) falls through to the
+	 * normal end-of-show handling.
+	 */
+	onShowEnd?: () => boolean;
 }
 
 export interface UsePresentationNavigationResult {
@@ -111,6 +120,12 @@ export function usePresentationNavigation(
 			return; // revealed an animation build step; stay on the slide
 		}
 		if (!showOrder.hasNext(currentIndex.value)) {
+			// A returning sub-show (`ppaction://customshow?...&return=true`)
+			// outranks everything else: PowerPoint resumes the show it branched
+			// from at the slide it branched at, not the black end screen.
+			if (options.onShowEnd?.()) {
+				return;
+			}
 			// "Loop continuously until 'Esc'" outranks both the black end screen and
 			// exiting: PowerPoint wraps straight back to the show's first slide.
 			if (options.loopContinuously?.()) {

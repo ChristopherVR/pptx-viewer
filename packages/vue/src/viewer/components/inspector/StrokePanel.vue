@@ -5,6 +5,9 @@ import { STROKE_DASH_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+import RecentColorsRow from '../RecentColorsRow.vue';
+
 /**
  * StrokePanel: line/border inspector for the Vue `pptx-vue-viewer` editor.
  *
@@ -25,6 +28,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const applicable = computed(() => hasShapeProperties(props.element));
 
@@ -42,6 +46,11 @@ function patchShapeStyle(next: Partial<ShapeStyle>): void {
 
 function onColor(event: Event): void {
 	patchShapeStyle({ strokeColor: (event.target as HTMLInputElement).value });
+}
+
+function onColorPick(hex: string): void {
+	patchShapeStyle({ strokeColor: hex });
+	recentColors?.push(hex);
 }
 
 function onWidth(event: Event): void {
@@ -76,8 +85,14 @@ function onDash(event: Event): void {
 					class="pptx-vue-stroke-color w-full h-8 bg-muted border border-border rounded p-0.5"
 					:value="strokeColor"
 					@input="onColor"
+					@change="onColorPick(($event.target as HTMLInputElement).value)"
 				/>
 			</label>
+			<RecentColorsRow
+				v-if="recentColors"
+				:colors="recentColors.recent.value"
+				@pick="onColorPick"
+			/>
 
 			<label class="pptx-vue-stroke-field flex flex-col gap-1">
 				<span class="pptx-vue-stroke-label text-muted-foreground">{{

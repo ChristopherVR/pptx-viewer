@@ -1,9 +1,11 @@
 /* oxlint-disable eslint/one-var -- independent per-test locals, not intended as one statement */
 import { mount } from '@vue/test-utils';
-import type { PptxComment } from 'pptx-viewer-core';
+import type { PptxComment, PptxModernCommentAuthor } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import CommentsPanel from './CommentsPanel.vue';
+
+const AUTHORS: PptxModernCommentAuthor[] = [{ id: '{A}', name: 'Alice', initials: 'AL' }];
 
 function comment(overrides: Partial<PptxComment> = {}): PptxComment {
 	return {
@@ -40,7 +42,7 @@ describe('commentsPanel', () => {
 		const wrapper = mountPanel([]);
 		await wrapper.find('textarea').setValue('  hello world  ');
 		await wrapper.find('form').trigger('submit.prevent');
-		expect(wrapper.emitted('add')).toStrictEqual([['hello world']]);
+		expect(wrapper.emitted('add')).toStrictEqual([[{ text: 'hello world', mentions: [] }]]);
 		// textarea is cleared after submit
 		expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('');
 	});
@@ -86,6 +88,58 @@ describe('commentsPanel', () => {
 		const time = wrapper.find('time');
 		expect(time.exists()).toBeTruthy();
 		expect(time.text().length).toBeGreaterThan(0);
+	});
+
+	it('threads a mention through the add-comment composer', async () => {
+		const wrapper = mount(CommentsPanel, {
+			props: { comments: [], authorName: 'You', modernCommentAuthors: AUTHORS },
+		});
+		const textarea = wrapper.find('textarea').element as HTMLTextAreaElement;
+		textarea.value = 'hey @al';
+		textarea.setSelectionRange(7, 7);
+		await wrapper.find('textarea').trigger('input');
+		await wrapper.find('[data-testid="pptx-comment-mention-option"]').trigger('mousedown');
+		await wrapper.find('form').trigger('submit.prevent');
+
+		const added = wrapper.emitted('add')?.[0]?.[0] as {
+			text: string;
+			mentions?: { authorName: string }[];
+		};
+		expect(added.text).toBe('hey @Alice');
+		expect(added.mentions?.[0]?.authorName).toBe('Alice');
+	});
+
+	it('threads a mention through a reply composer', async () => {
+		const wrapper = mount(CommentsPanel, {
+			props: { comments: [comment()], authorName: 'You', modernCommentAuthors: AUTHORS },
+		});
+		const toggleReply = wrapper
+			.findAll('.pptx-comments-panel__action')
+			.find((b) => b.text() === 'Reply');
+		await toggleReply?.trigger('click');
+
+		// The reply composer's own textarea: it renders inside the comment list,
+		// which comes before the bottom add-comment form in DOM order, so it is
+		// the FIRST textarea once the reply box is open.
+		const textarea = wrapper.findAll('textarea')[0].element as HTMLTextAreaElement;
+		textarea.value = 'ping @al';
+		textarea.setSelectionRange(8, 8);
+		await wrapper.findAll('textarea')[0].trigger('input');
+
+		await wrapper.find('[data-testid="pptx-comment-mention-option"]').trigger('mousedown');
+		// The composer's submit button, not the top toggle (both read "Reply";
+		// only the submit button lacks the toggle's shared action class).
+		const submitReply = wrapper
+			.findAll('button')
+			.find((b) => b.text() === 'Reply' && !b.classes().includes('pptx-comments-panel__action'));
+		await submitReply?.trigger('click');
+
+		const replied = wrapper.emitted('reply')?.[0]?.[0] as {
+			text: string;
+			mentions?: { authorName: string }[];
+		};
+		expect(replied.text).toBe('ping @Alice');
+		expect(replied.mentions?.[0]?.authorName).toBe('Alice');
 	});
 
 	it('renders its own header by default, but suppresses it when embedded', () => {

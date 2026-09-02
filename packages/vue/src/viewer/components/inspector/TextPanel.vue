@@ -4,6 +4,8 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+import RecentColorsRow from '../RecentColorsRow.vue';
 import Text3DProperties from './Text3DProperties.vue';
 import TextEffectsPanel from './TextEffectsPanel.vue';
 import TextWarpGallery from './TextWarpGallery.vue';
@@ -32,6 +34,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const FONT_OPTIONS: ReadonlyArray<string> = [
 	'Arial',
@@ -95,6 +98,11 @@ function onFontSize(event: Event): void {
 
 function onColor(event: Event): void {
 	patchTextStyle({ color: (event.target as HTMLInputElement).value });
+}
+
+function onColorPick(hex: string): void {
+	patchTextStyle({ color: hex });
+	recentColors?.push(hex);
 }
 
 function toggle(key: 'bold' | 'italic' | 'underline' | 'strikethrough'): void {
@@ -178,9 +186,15 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 						class="pptx-vue-text-color w-full h-8 bg-muted border border-border rounded p-0.5"
 						:value="color"
 						@input="onColor"
+						@change="onColorPick(($event.target as HTMLInputElement).value)"
 					/>
 				</label>
 			</div>
+			<RecentColorsRow
+				v-if="recentColors"
+				:colors="recentColors.recent.value"
+				@pick="onColorPick"
+			/>
 
 			<div class="pptx-vue-text-field flex flex-col gap-1">
 				<span class="pptx-vue-text-label text-muted-foreground">{{

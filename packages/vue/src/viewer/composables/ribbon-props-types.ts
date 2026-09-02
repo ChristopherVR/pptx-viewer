@@ -118,6 +118,8 @@ export interface UseRibbonPropsStateInput {
 /** Action callbacks the ribbon adapter dispatches. */
 export interface UseRibbonPropsActionsInput {
 	startPresenting: () => void;
+	/** "From Beginning": the show's first slide, unconditionally. */
+	presentFromBeginning: () => void;
 	startPresenterView: () => void;
 	startRehearsal: () => void;
 	compareWithPresentation: () => Promise<void>;

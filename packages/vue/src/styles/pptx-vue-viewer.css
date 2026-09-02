@@ -46,6 +46,13 @@
 	width: 100%;
 	height: 100%;
 	min-height: 0;
+	/* Establishes the containing block for descendants positioned relative to
+	   the viewer chrome rather than the browser viewport (e.g. the
+	   compatibility-toast stack's `compatToastStackStyle()`, which anchors
+	   `position: absolute` to this element). Without this, an absolutely
+	   positioned child resolves against the nearest positioned ancestor further
+	   up the host page instead. */
+	position: relative;
 	/* Mirrors React's root `overflow-hidden`: several ribbon rows use
 	   `overflow-visible flex-nowrap` internally (so their own dropdowns and
 	   tooltips are never clipped) and are allowed to be wider than the

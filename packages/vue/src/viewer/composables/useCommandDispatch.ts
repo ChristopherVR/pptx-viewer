@@ -42,6 +42,8 @@ export interface CommandDispatchActions {
 	zoomOut: () => void;
 	zoomReset: () => void;
 	startPresenting: () => void;
+	/** "From Beginning": the show's first slide, unconditionally (Shift+F5 semantics). */
+	presentFromBeginning: () => void;
 	moveToEdge: (edge: string) => void;
 	duplicateSelected: () => void;
 	openPrintDialog: () => void;
@@ -107,7 +109,7 @@ export function useCommandDispatch(actions: CommandDispatchActions): UseCommandD
 			zoomToFit: () => actions.zoomReset(),
 		},
 		slideShow: {
-			fromBeginning: () => actions.startPresenting(),
+			fromBeginning: () => actions.presentFromBeginning(),
 			presenterView: () => actions.startPresenting(),
 		},
 		design: {
@@ -137,7 +139,7 @@ export function useCommandDispatch(actions: CommandDispatchActions): UseCommandD
 
 	function handleQuickAccessCommand(id: string): void {
 		const handlers: Record<string, () => void> = {
-			presentFromStart: () => actions.startPresenting(),
+			presentFromStart: () => actions.presentFromBeginning(),
 			print: () => actions.openPrintDialog(),
 			exportPdf: () => void actions.exportPdf(),
 			newSlide: () => actions.addSlide(),

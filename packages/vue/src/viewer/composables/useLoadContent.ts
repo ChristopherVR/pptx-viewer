@@ -5,6 +5,7 @@ import type {
 	ParsedSignature,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCompatibilityWarning,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -13,6 +14,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxLayoutOption,
+	PptxModernCommentAuthor,
 	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
@@ -188,6 +190,14 @@ export interface UseLoadContentResult {
 	sections: ShallowRef<PptxSection[]>;
 	/** Named custom slide shows (`p:custShowLst`), empty when none. */
 	customShows: ShallowRef<PptxCustomShow[]>;
+	/**
+	 * Modern comment authors (`ppt/commentAuthors.xml`'s `p188:` schema), used
+	 * to seed the `@`-mention typeahead (`matchCommentMentionAuthors`,
+	 * `pptx-viewer-shared`). Empty when the deck has no modern comments.
+	 */
+	modernCommentAuthors: ShallowRef<PptxModernCommentAuthor[]>;
+	/** Legacy comment authors (`p:cm`'s original `ppt/commentAuthors.xml` schema), empty when none. */
+	commentAuthors: ShallowRef<PptxCommentAuthor[]>;
 	/** Presentation-level slide-show properties (`presentationPr.xml`); reactive so Set Up Slide Show persists. */
 	presentationProperties: ShallowRef<PptxPresentationProperties>;
 	/**
@@ -304,6 +314,8 @@ export function useLoadContent(
 	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
 	const sections = shallowRef<PptxSection[]>([]);
 	const customShows = shallowRef<PptxCustomShow[]>([]);
+	const modernCommentAuthors = shallowRef<PptxModernCommentAuthor[]>([]);
+	const commentAuthors = shallowRef<PptxCommentAuthor[]>([]);
 	const presentationProperties = shallowRef<PptxPresentationProperties>({});
 	const viewProperties = shallowRef<PptxViewProperties | undefined>(undefined);
 	const headerFooter = shallowRef<PptxHeaderFooter | undefined>(undefined);
@@ -511,6 +523,8 @@ export function useLoadContent(
 			tableStyleMap.value = nextTableStyleMap;
 			sections.value = parsed.sections ?? [];
 			customShows.value = parsed.customShows ?? [];
+			modernCommentAuthors.value = parsed.modernCommentAuthors ?? [];
+			commentAuthors.value = parsed.commentAuthors ?? [];
 			presentationProperties.value = parsed.presentationProperties ?? {};
 			viewProperties.value = parsed.viewProperties;
 			headerFooter.value = parsed.headerFooter;
@@ -648,6 +662,8 @@ export function useLoadContent(
 		tableStyleMap,
 		sections,
 		customShows,
+		modernCommentAuthors,
+		commentAuthors,
 		presentationProperties,
 		viewProperties,
 		headerFooter,

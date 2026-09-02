@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange } from 'pptx-viewer-shared';
 import {
 	formatMobileElapsed,
 	mobileElapsedSince,
@@ -39,6 +40,8 @@ const props = defineProps<{
 	presentationStartTime: number | null;
 	/** Membership of the running custom show, when one is playing. */
 	activeCustomShow?: { slideRIds: string[] } | null;
+	/** `p:showPr/p:sldRg`, resolved to deck indexes; `null`/`undefined` for no range. */
+	authoredRange?: AuthoredSlideRange | null;
 }>();
 
 const emit = defineEmits<{
@@ -75,7 +78,12 @@ const currentSlide = computed<PptxSlide | undefined>(() => props.slides[props.cu
 // the shared show-order rule: it skips slides the author hid, and follows the
 // running custom show's order rather than the deck's.
 const nextSlide = computed<PptxSlide | undefined>(() =>
-	nextPresentedSlide(props.slides, props.currentSlideIndex, props.activeCustomShow),
+	nextPresentedSlide(
+		props.slides,
+		props.currentSlideIndex,
+		props.activeCustomShow,
+		props.authoredRange,
+	),
 );
 
 const counterText = computed(() =>

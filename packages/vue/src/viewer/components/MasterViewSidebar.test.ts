@@ -71,3 +71,53 @@ describe('masterViewSidebar', () => {
 		expect(events![0]).toStrictEqual([9]);
 	});
 });
+
+describe('masterViewSidebar CRUD row', () => {
+	const crudActions = [
+		{ id: 'addLayout' as const, labelKey: 'pptx.masterView.addLayout', enabled: true },
+		{
+			id: 'deleteLayout' as const,
+			labelKey: 'pptx.masterView.deleteLayout',
+			enabled: false,
+			disabledReasonKey: 'pptx.masterView.layoutInUse',
+		},
+	];
+
+	it('renders one button per crud action, disabled with its reason as a title', () => {
+		const wrapper = mount(MasterViewSidebar, {
+			props: { ...baseProps('slides'), canEdit: true, crudActions },
+		});
+		const add = wrapper.get('[data-testid="pptx-master-crud-addLayout"]');
+		expect(add.attributes('disabled')).toBeUndefined();
+		const del = wrapper.get('[data-testid="pptx-master-crud-deleteLayout"]');
+		expect(del.attributes('disabled')).toBeDefined();
+		expect(del.attributes('title')).toBe('This layout is used by slides and cannot be deleted.');
+	});
+
+	it('emits crud-run with the action id when a button is clicked', async () => {
+		const wrapper = mount(MasterViewSidebar, {
+			props: { ...baseProps('slides'), canEdit: true, crudActions },
+		});
+		await wrapper.get('[data-testid="pptx-master-crud-addLayout"]').trigger('click');
+		expect(wrapper.emitted('crud-run')).toStrictEqual([['addLayout']]);
+	});
+
+	it('shows the crud error message when set', () => {
+		const wrapper = mount(MasterViewSidebar, {
+			props: {
+				...baseProps('slides'),
+				canEdit: true,
+				crudActions,
+				crudError: 'The last slide master cannot be deleted.',
+			},
+		});
+		expect(wrapper.text()).toContain('The last slide master cannot be deleted.');
+	});
+
+	it('renders no crud buttons on a read-only deck', () => {
+		const wrapper = mount(MasterViewSidebar, {
+			props: { ...baseProps('slides'), canEdit: false, crudActions },
+		});
+		expect(wrapper.find('[data-testid="pptx-master-crud-addLayout"]').exists()).toBeFalsy();
+	});
+});

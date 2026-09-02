@@ -8,6 +8,8 @@ import {
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 /**
  * TableCellAdvancedFill: Vue port of React's inspector
  * `TableCellAdvancedFill.tsx`. Advanced (gradient / pattern) cell fill controls
@@ -26,6 +28,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const MARGIN_FIELDS: Array<[keyof PptxTableCellStyle, string]> = [
 	['marginTop', 'pptx.table.marginTop'],
@@ -139,6 +142,7 @@ function addStop(): void {
 					:disabled="!canEdit"
 					:value="stop.color"
 					@input="updateStop(idx, { color: ($event.target as HTMLInputElement).value })"
+					@change="recentColors?.push(($event.target as HTMLInputElement).value)"
 				/>
 				<input
 					type="number"
@@ -192,6 +196,7 @@ function addStop(): void {
 						@input="
 							emit('update', { patternFillForeground: ($event.target as HTMLInputElement).value })
 						"
+						@change="recentColors?.push(($event.target as HTMLInputElement).value)"
 					/>
 				</label>
 				<label class="flex flex-col gap-0.5">
@@ -206,6 +211,7 @@ function addStop(): void {
 						@input="
 							emit('update', { patternFillBackground: ($event.target as HTMLInputElement).value })
 						"
+						@change="recentColors?.push(($event.target as HTMLInputElement).value)"
 					/>
 				</label>
 			</div>

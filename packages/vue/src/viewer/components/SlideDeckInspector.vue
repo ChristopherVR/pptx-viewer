@@ -63,6 +63,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:slide-elements="activeSlide?.elements ?? []"
 		:slide-animations="activeSlide?.animations ?? []"
 		:animation-timeline-anchors="activeSlide?.animationTimelineAnchors ?? []"
+		:custom-shows="deck.customShows.value"
 		@update="onUpdate"
 		@update-slide-animations="onUpdateSlideAnimations"
 	/>
@@ -90,6 +91,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:tag-collections="deck.tagCollections.value"
 		:comments="comments.commentsApi.slideComments.value"
 		:author-name="authorName"
+		:modern-comment-authors="deck.modernCommentAuthors.value"
 		@slide-update="onSlideUpdate"
 		@presentation-update="onPresentationUpdate"
 		@apply-theme="deckActions.applyThemeByPath"
@@ -102,10 +104,14 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		@set-template-background="deckActions.setTemplateBackground"
 		:get-template-background-color="deckActions.getTemplateBackgroundColor"
 		@select-element="onSelectElement"
-		@comment-add="(text) => commit(comments.commentsApi.addComment(text))"
+		@comment-add="
+			(p) => commit(comments.commentsApi.addComment(p.text, undefined, undefined, p.mentions))
+		"
 		@comment-remove="(id) => commit(comments.commentsApi.removeComment(id))"
 		@comment-resolve="(id) => commit(comments.commentsApi.resolveComment(id))"
-		@comment-reply="(p) => commit(comments.commentsApi.replyToComment(p.parentId, p.text))"
+		@comment-reply="
+			(p) => commit(comments.commentsApi.replyToComment(p.parentId, p.text, p.mentions))
+		"
 		@close="onClose"
 	/>
 

@@ -238,6 +238,7 @@ export function useViewerRibbonProps(o: UseViewerRibbonPropsOptions): ComputedRe
 
 		// -- Actions --
 		startPresenting: o.presentation.startPresenting,
+		presentFromBeginning: o.presentation.presentFromBeginning,
 		startPresenterView: o.presentation.startPresenterView,
 		startRehearsal: o.presentation.startRehearsal,
 		compareWithPresentation: o.compareWithPresentation,

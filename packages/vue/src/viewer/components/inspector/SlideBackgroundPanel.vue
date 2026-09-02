@@ -15,6 +15,8 @@ import { normalizeHexColor, resolveTemplateBackgroundRows } from 'pptx-viewer-sh
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+import RecentColorsRow from '../RecentColorsRow.vue';
 import { CARD, HEADING } from './inspector-cards';
 
 const props = withDefaults(
@@ -34,6 +36,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const templateRows = computed(() =>
 	props.slide
@@ -65,7 +68,14 @@ const hasBackground = computed(() =>
 );
 
 function onColorChange(event: Event): void {
-	emit('update', { backgroundColor: (event.target as HTMLInputElement).value });
+	const hex = (event.target as HTMLInputElement).value;
+	emit('update', { backgroundColor: hex });
+	recentColors?.push(hex);
+}
+
+function onColorPick(hex: string): void {
+	emit('update', { backgroundColor: hex });
+	recentColors?.push(hex);
 }
 
 function onImageChange(event: Event): void {
@@ -116,6 +126,7 @@ function clearBackground(): void {
 				slide?.backgroundColor || 'none'
 			}}</span>
 		</label>
+		<RecentColorsRow v-if="recentColors" :colors="recentColors.recent.value" @pick="onColorPick" />
 
 		<div class="space-y-1">
 			<div class="flex items-center gap-2 text-[11px]">

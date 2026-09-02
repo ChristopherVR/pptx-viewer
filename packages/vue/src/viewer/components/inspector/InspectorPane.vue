@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {
 	PptxAnimationTimelineAnchor,
+	PptxCustomShow,
 	PptxElement,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
@@ -46,6 +47,8 @@ const props = defineProps<{
 	slideAnimations?: readonly PptxElementAnimation[];
 	/** Read-only anchors for the deck's own effect groups; see {@link PptxAnimationTimelineAnchor}. */
 	animationTimelineAnchors?: readonly PptxAnimationTimelineAnchor[];
+	/** Named custom shows, for the Action Settings "Custom show" target picker. */
+	customShows?: readonly PptxCustomShow[];
 }>();
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
@@ -111,6 +114,7 @@ function relay(patch: Partial<PptxElement>): void {
 				:element="element"
 				:slide-count="props.slideCount"
 				:can-edit="props.canEdit"
+				:custom-shows="props.customShows"
 				@update="relay"
 			/>
 		</div>

@@ -20,6 +20,12 @@ export type DeckDataSource = Pick<
 	| 'customProperties'
 	| 'coreProperties'
 	| 'appProperties'
+	// Slide Master view CRUD (`master-view-crud`, pptx-viewer-shared) reads
+	// `data.slideMasters` to decide which sidebar buttons are enabled (a layout
+	// still used by a slide, the last remaining master) and to validate the
+	// action against, so a caller building a snapshot for that flow needs it
+	// alongside `slides`.
+	| 'slideMasters'
 >;
 
 /** Snapshot the live deck refs into a `PptxData` for serialization. */
@@ -34,5 +40,6 @@ export function readDeckData(deck: DeckDataSource): PptxData {
 		customProperties: deck.customProperties.value,
 		coreProperties: deck.coreProperties.value,
 		appProperties: deck.appProperties.value,
+		slideMasters: deck.slideMasters.value,
 	} satisfies Partial<PptxData> as PptxData;
 }

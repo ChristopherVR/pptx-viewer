@@ -100,3 +100,88 @@ describe('action settings panel', () => {
 		expect(JSON.stringify(wrapper.emitted('update')?.at(-1)?.[0])).toContain('nextslide');
 	});
 });
+
+describe('action settings panel: custom show target', () => {
+	const customShows = [
+		{ id: 'show-1', name: 'Short Show', slideRIds: ['rId2'] },
+		{ id: 'show-2', name: 'Reverse', slideRIds: ['rId4', 'rId3'] },
+	];
+
+	it('reveals the custom-show picker as soon as "Custom show" is picked, uncommitted', async () => {
+		const wrapper = mount(ActionSettingsPanel, {
+			props: { element: bare, slideCount: 5, customShows },
+		});
+		await wrapper.findAll('select')[0].setValue('customShow');
+
+		const picker = wrapper.find('[data-testid="pptx-action-custom-show"]');
+		expect(picker.exists()).toBeTruthy();
+		expect(wrapper.findAll('[data-testid="pptx-action-custom-show"] option')).toHaveLength(3); // placeholder + 2 shows
+		expect(wrapper.emitted('update')).toBeUndefined();
+	});
+
+	it('commits customShowId once a show is picked', async () => {
+		const wrapper = mount(ActionSettingsPanel, {
+			props: { element: bare, slideCount: 5, customShows },
+		});
+		await wrapper.findAll('select')[0].setValue('customShow');
+		await wrapper.find('[data-testid="pptx-action-custom-show"]').setValue('show-2');
+
+		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
+			actionClick: { action: expect.stringContaining('id=show-2') },
+		});
+	});
+
+	it('the return-after checkbox commits returnAfter alongside the existing customShowId', async () => {
+		const withShow = {
+			...bare,
+			actionClick: { action: 'ppaction://customshow?id=show-1' },
+		};
+		const wrapper = mount(ActionSettingsPanel, {
+			props: { element: withShow, slideCount: 5, customShows },
+		});
+		const checkbox = wrapper.find('[data-testid="pptx-action-custom-show-return"]');
+		expect(checkbox.exists()).toBeTruthy();
+		await checkbox.setValue(true);
+
+		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
+			actionClick: { action: expect.stringMatching(/id=show-1.*return=true/u) },
+		});
+	});
+
+	it('the return-after checkbox is a no-op with no customShowId committed yet', async () => {
+		const wrapper = mount(ActionSettingsPanel, {
+			props: { element: bare, slideCount: 5, customShows },
+		});
+		await wrapper.findAll('select')[0].setValue('customShow');
+		await wrapper.find('[data-testid="pptx-action-custom-show-return"]').setValue(true);
+		expect(wrapper.emitted('update')).toBeUndefined();
+	});
+});
+
+describe('action settings panel: openFile / openPresentation', () => {
+	it('reuses the url target field for openFile, and commits immediately with no target', async () => {
+		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
+		await wrapper.findAll('select')[0].setValue('openFile');
+		// Unlike url/slide/customShow, openFile has no "round-trips to none"
+		// failure mode, so picking it alone is already a committed action.
+		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
+			actionClick: { action: expect.stringContaining('hlinkfile') },
+		});
+
+		const target = wrapper.find('input[type="text"]');
+		expect(target.exists()).toBeTruthy();
+		await target.setValue('C:\\reports\\q3.xlsx');
+		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
+			actionClick: { url: 'C:\\reports\\q3.xlsx' },
+		});
+	});
+
+	it('reuses the url target field for openPresentation', async () => {
+		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
+		await wrapper.findAll('select')[0].setValue('openPresentation');
+		await wrapper.find('input[type="text"]').setValue('other-deck.pptx');
+		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
+			actionClick: { action: expect.stringContaining('hlinkpres'), url: 'other-deck.pptx' },
+		});
+	});
+});

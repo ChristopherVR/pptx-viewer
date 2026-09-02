@@ -13,6 +13,7 @@
  */
 import { AlertTriangle, Info, X } from 'lucide-vue-next';
 import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
+import { compatToastStackStyle } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
@@ -31,8 +32,9 @@ const { t } = useI18n();
 <template>
 	<div
 		v-if="props.toasts.length > 0"
-		class="pptx-vue-compat-toasts pointer-events-none fixed bottom-4 right-4 z-[900] flex w-80 max-w-[90vw] flex-col gap-2"
+		class="pptx-vue-compat-toasts max-w-[90vw]"
 		data-testid="pptx-compat-toasts"
+		:style="compatToastStackStyle()"
 	>
 		<div class="pointer-events-auto flex items-center justify-between">
 			<span class="text-[11px] font-semibold text-muted-foreground">{{

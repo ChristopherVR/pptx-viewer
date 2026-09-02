@@ -87,6 +87,7 @@ import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
 import { LineChart3DKey } from './composables/line-chart-3d';
 import { PieChart3DKey } from './composables/pie-chart-3d';
+import { RecentColorsKey } from './composables/recent-colors-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { SurfaceChart3DKey } from './composables/surface-chart-3d';
 import { TableThemeKey } from './composables/table-theme';
@@ -128,6 +129,7 @@ import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useLoadContent } from './composables/useLoadContent';
 import { useMarqueeSelection } from './composables/useMarqueeSelection';
+import { useMasterViewCrud } from './composables/useMasterViewCrud';
 import { useMasterViewWiring } from './composables/useMasterViewWiring';
 import { useMobileChrome } from './composables/useMobileChrome';
 import { useMultiSelectOps } from './composables/useMultiSelectOps';
@@ -135,6 +137,7 @@ import { usePasswordProtection } from './composables/usePasswordProtection';
 import { usePresentationControls } from './composables/usePresentationControls';
 import { usePrint } from './composables/usePrint';
 import { useReadOnlyRecommendation } from './composables/useReadOnlyRecommendation';
+import { useRecentColors } from './composables/useRecentColors';
 import { useRibbonActions } from './composables/useRibbonActions';
 import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
@@ -247,6 +250,7 @@ const {
 	slideMasters,
 	sections,
 	customShows,
+	modernCommentAuthors,
 	presentationProperties,
 	viewProperties,
 	headerFooter,
@@ -301,6 +305,12 @@ provide(TableThemeKey, () => ({
 	tableStyleMap: tableStyleMap.value,
 	fontScheme: pptxTheme.value?.fontScheme,
 }));
+
+// "Recent colours" (`p:clrMru`): one shared list every colour-picking panel
+// in the inspector reads and pushes to, so a colour picked in Fill shows up
+// in Stroke, Text, Slide Background, table-cell fill and chart series alike.
+const recentColors = useRecentColors({ presentationProperties, loadVersion });
+provide(RecentColorsKey, recentColors);
 
 // Expose a zoom-target lookup so Slide-Zoom / Section-Zoom tiles can render a
 // higher-fidelity fallback thumbnail (target slide's real background colour,
@@ -591,6 +601,11 @@ const presentation = usePresentationControls({
 	activeSlideIndex,
 	customShows,
 	activeCustomShowId: () => customShowsWiring.activeCustomShowId.value,
+	// `presentationAuthoredRange` is declared further down (it depends on
+	// `presentationProperties`); a getter is fine here since it is only READ
+	// once the show is actually entered, long after every composable in this
+	// file has been constructed.
+	authoredRange: () => presentationAuthoredRange.value,
 	pushHistory: history.pushHistory,
 });
 
@@ -901,6 +916,27 @@ const masterView = useMasterViewWiring({
 	markDirty: () => {
 		autosave.isDirty.value = true;
 	},
+});
+
+// Slide Master view sidebar CRUD (Insert/Duplicate/Delete/Rename Layout and
+// Slide Master). Real ZIP surgery (`pptx-viewer-core`) that hands back a new
+// `handler` + `data`, adopted the same way `refreshContent` above adopts a
+// re-serialised deck: the mutation is not an in-place edit.
+const masterViewCrud = useMasterViewCrud({
+	handler,
+	slideMasters,
+	deckData: () => readDeckData(deck),
+	target: () => ({
+		tab: masterView.masterViewTab.value,
+		masterIndex: masterView.activeMasterIndex.value,
+		layoutIndex: masterView.activeLayoutIndex.value,
+	}),
+	onSelectMaster: masterView.onSelectMaster,
+	onSelectLayout: masterView.onSelectLayout,
+	markDirty: () => {
+		autosave.isDirty.value = true;
+	},
+	pushHistory: history.pushHistory,
 });
 
 // -- Sections (group the slide rail) -----------------------------------
@@ -1355,6 +1391,7 @@ const { handleCommandSearch, handleQuickAccessCommand } = useCommandDispatch({
 	zoomOut,
 	zoomReset,
 	startPresenting: presentation.startPresenting,
+	presentFromBeginning: presentation.presentFromBeginning,
 	moveToEdge: ribbonMoveToEdge,
 	duplicateSelected,
 	openPrintDialog: printer.openPrintDialog,
@@ -1568,7 +1605,14 @@ defineExpose<PowerPointViewerExpose>(
 				@close="findOpen = false"
 			/>
 
-			<div class="pptx-vue-body">
+			<!-- Hidden (not unmounted) while presenting: the show overlay is a
+			     separate fixed layer painting the SHOW's slide, so the editor
+			     canvas underneath would otherwise keep showing the slide the
+			     author had selected, which an authored `p:sldRg` / custom show
+			     may exclude. The other bindings present in place on the same
+			     stage; Vue keeps the editor mounted so its refs (touch gestures,
+			     inspector state) survive the show. -->
+			<div v-show="!presentation.presenting.value" class="pptx-vue-body">
 				<!-- Like the ribbon above, unmounted while presenting: the show
 				     overlay hides it visually, but a mounted rail keeps every
 				     thumbnail in the tab order and the accessibility tree during
@@ -1807,6 +1851,7 @@ defineExpose<PowerPointViewerExpose>(
 			<MasterViewOverlay
 				v-if="masterView.showMasterView.value"
 				:state="masterView"
+				:crud="masterViewCrud"
 				:slide-masters="slideMasters"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
@@ -1906,6 +1951,7 @@ defineExpose<PowerPointViewerExpose>(
 			:active-slide-index="activeSlideIndex"
 			:can-edit="canEditEffective"
 			:presentation-properties="presentationProperties"
+			:custom-shows="customShows"
 			:authored-range="presentationAuthoredRange"
 			:end-with-black-slide="viewerOptions.advanced.slideShowEndWithBlackSlide"
 			:prompt-keep-ink-annotations="viewerOptions.advanced.slideShowPromptKeepInkAnnotations"

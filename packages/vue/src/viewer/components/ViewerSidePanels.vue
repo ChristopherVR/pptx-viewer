@@ -123,10 +123,11 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		v-if="canEdit && !isMobile && comments.showComments.value"
 		:comments="comments.commentsApi.slideComments.value"
 		:author-name="authorName"
-		@add="(text) => commit(comments.commentsApi.addComment(text))"
+		:modern-comment-authors="deck.modernCommentAuthors.value"
+		@add="(p) => commit(comments.commentsApi.addComment(p.text, undefined, undefined, p.mentions))"
 		@remove="(id) => commit(comments.commentsApi.removeComment(id))"
 		@resolve="(id) => commit(comments.commentsApi.resolveComment(id))"
-		@reply="(p) => commit(comments.commentsApi.replyToComment(p.parentId, p.text))"
+		@reply="(p) => commit(comments.commentsApi.replyToComment(p.parentId, p.text, p.mentions))"
 	/>
 
 	<!-- Signed-document badge (opens the signatures panel). -->

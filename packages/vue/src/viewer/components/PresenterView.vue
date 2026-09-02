@@ -21,7 +21,11 @@ import {
 	presenterPaneAdvancesOnClick,
 	stepPresenterZoom,
 } from 'pptx-viewer-shared';
-import type { PresentationPointerTool, PresentationSnapshot } from 'pptx-viewer-shared';
+import type {
+	AuthoredSlideRange,
+	PresentationPointerTool,
+	PresentationSnapshot,
+} from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -44,6 +48,8 @@ const props = withDefaults(
 		snapshot?: PresentationSnapshot;
 		/** Membership of the running custom show, for the next-slide preview. */
 		activeCustomShow?: { slideRIds: string[] } | null;
+		/** `p:showPr/p:sldRg`, resolved to deck indexes; `null`/`undefined` for no range. */
+		authoredRange?: AuthoredSlideRange | null;
 		/**
 		 * Bumped by the host to raise the "all slides" grid (PowerPoint's Ctrl+S).
 		 * A counter rather than a boolean so the host never has to be told when the
@@ -169,6 +175,7 @@ const timerTitle = computed(() =>
 					:elapsed-text="elapsedText"
 					:audience-open="Boolean(audienceOpen)"
 					:active-custom-show="activeCustomShow"
+					:authored-range="authoredRange"
 					@move="(direction) => emit('move', direction)"
 					@audience="toggleAudience"
 					@exit="emit('exit')"
