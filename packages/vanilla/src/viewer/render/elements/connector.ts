@@ -11,6 +11,7 @@ import {
 	getLineGlowFilterCss,
 	getLineShadowParams,
 	markerPath,
+	normalizeArrow,
 } from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl } from '../dom';
@@ -223,10 +224,6 @@ function appendConnectorLabel(
 	wrapper.appendChild(label);
 }
 
-function normalizeArrow(a: ConnectorArrowType | undefined): ConnectorArrowType | undefined {
-	return a && a !== 'none' ? a : undefined;
-}
-
 function buildMarker(
 	context: ElementRenderContext,
 	id: string,
@@ -250,6 +247,10 @@ function buildMarker(
 	});
 	if (shape.shape === 'circle') {
 		marker.appendChild(createSvgEl(doc, 'circle', { cx: 5, cy: 5, r: 4, fill: strokeColor }));
+	} else if (shape.strokeOnly) {
+		// The open chevron ('arrow'): stroked, not filled, or it draws as a solid
+		// wedge indistinguishable from 'triangle'.
+		marker.appendChild(createSvgEl(doc, 'path', { d: shape.d, fill: 'none', stroke: strokeColor }));
 	} else {
 		marker.appendChild(createSvgEl(doc, 'path', { d: shape.d, fill: strokeColor }));
 	}

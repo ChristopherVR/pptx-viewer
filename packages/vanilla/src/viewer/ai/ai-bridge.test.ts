@@ -1,4 +1,4 @@
-import type { PptxSection, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSection, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EditorController } from '../editor';
@@ -97,5 +97,95 @@ describe('vanilla AI bridge deck seam', () => {
 		bridge.applyDeckData?.((data) => ({ ...data, coreProperties: { title: 'Deck' } }), 'Set title');
 		expect(calls.updateDocumentProperties).toHaveBeenCalledOnce();
 		expect(store.get().coreProperties?.title).toBe('Deck');
+	});
+
+	it('updateElement routes through the shared applyElementUpdate: text restyles every run', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			slides: [
+				{
+					id: 's1',
+					slideNumber: 1,
+					elements: [
+						{
+							id: 'el-1',
+							type: 'text',
+							x: 0,
+							y: 0,
+							width: 100,
+							height: 50,
+							text: 'Hello world',
+							textSegments: [
+								{ text: 'Hello ', style: { bold: true } },
+								{ text: 'world', style: {} },
+							],
+						} as unknown as PptxElement,
+					],
+				} as unknown as PptxSlide,
+			],
+		});
+		const { editor, calls } = fakeEditor(store);
+		const bridge = createVanillaAiBridge({
+			store,
+			editor,
+			goToSlide: vi.fn(),
+			ensureEditable: vi.fn(),
+			getHandler: () => null,
+			applyThemeUpdates: vi.fn(),
+		});
+
+		bridge.updateElement(0, 'el-1', { fontColor: '#ff0000' });
+
+		expect(calls.commitSlides).toHaveBeenCalledOnce();
+		const el = store.get().slides[0]?.elements[0] as unknown as {
+			textSegments: { text: string; style: { color?: string; bold?: boolean } }[];
+		};
+		// Every run gets the new colour (the shared reconcile fix), not just run 0.
+		expect(el.textSegments[0]?.style.color).toBe('#ff0000');
+		expect(el.textSegments[1]?.style.color).toBe('#ff0000');
+		// The pre-existing per-run bold flag survives the merge.
+		expect(el.textSegments[0]?.style.bold).toBeTruthy();
+	});
+
+	it('updateElement applies a shape-style update via hasShapeProperties, not a raw key check', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			slides: [
+				{
+					id: 's1',
+					slideNumber: 1,
+					elements: [
+						{
+							id: 'el-2',
+							type: 'shape',
+							shapeType: 'rect',
+							x: 0,
+							y: 0,
+							width: 100,
+							height: 50,
+						} as unknown as PptxElement,
+					],
+				} as unknown as PptxSlide,
+			],
+		});
+		const { editor, calls } = fakeEditor(store);
+		const bridge = createVanillaAiBridge({
+			store,
+			editor,
+			goToSlide: vi.fn(),
+			ensureEditable: vi.fn(),
+			getHandler: () => null,
+			applyThemeUpdates: vi.fn(),
+		});
+
+		bridge.updateElement(0, 'el-2', { fillColor: '#00ff00' });
+
+		expect(calls.commitSlides).toHaveBeenCalledOnce();
+		const el = store.get().slides[0]?.elements[0] as unknown as {
+			shapeStyle?: { fillColor?: string };
+		};
+		expect(el.shapeStyle?.fillColor).toBe('#00ff00');
 	});
 });

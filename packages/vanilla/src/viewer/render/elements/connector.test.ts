@@ -92,3 +92,33 @@ describe('connector pointer hit target', () => {
 		expect(path.closest('[data-element-id]')?.getAttribute('data-element-id')).toBe('conn-1');
 	});
 });
+
+describe('connector arrowhead markers', () => {
+	it('strokes the open-chevron "arrow" marker instead of filling it', () => {
+		const wrapper = renderConnectorElement(
+			connector({
+				shapeStyle: { strokeColor: '#333333', strokeWidth: 1, connectorEndArrow: 'arrow' },
+			}),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		const markerPath = wrapper.querySelector('marker path');
+		expect(markerPath).not.toBeNull();
+		expect(markerPath?.getAttribute('fill')).toBe('none');
+		expect(markerPath?.getAttribute('stroke')).toBe('#333333');
+	});
+
+	it('fills a closed "triangle" marker as before', () => {
+		const wrapper = renderConnectorElement(
+			connector({
+				shapeStyle: { strokeColor: '#333333', strokeWidth: 1, connectorEndArrow: 'triangle' },
+			}),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		const markerPath = wrapper.querySelector('marker path');
+		expect(markerPath).not.toBeNull();
+		expect(markerPath?.getAttribute('fill')).toBe('#333333');
+		expect(markerPath?.hasAttribute('stroke')).toBeFalsy();
+	});
+});

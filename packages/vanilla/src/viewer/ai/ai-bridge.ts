@@ -19,10 +19,10 @@ import type {
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
+import { applyElementUpdate } from 'pptx-viewer-shared/ai';
 
 import type { EditorController } from '../editor';
 import type { Store, ViewerState } from '../state';
-import { applyAiElementUpdate } from './ai-element-update';
 
 export interface VanillaAiBridgeDeps {
 	store: Store<ViewerState>;
@@ -113,7 +113,7 @@ export function createVanillaAiBridge(deps: VanillaAiBridgeDeps): PptxAiBridge {
 			applySlidesUpdate((slides) => {
 				const el = slides[slideIndex]?.elements.find((e) => e.id === elementId);
 				if (el) {
-					applyAiElementUpdate(el, updates);
+					applyElementUpdate(el, updates);
 				}
 				return slides;
 			}, `Update ${elementId}`);
