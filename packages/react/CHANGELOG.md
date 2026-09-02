@@ -7,6 +7,30 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.3.0) - 2026-09-02
+
+### Features
+
+- **react:** Per-series secondary axis toggle and shift-locked corner resize (by @ChristopherVR) ([ae7d13b](https://github.com/ChristopherVR/pptx-viewer/commit/ae7d13bab96dedfcbf07aa3be3c11fea6b5e64b2))
+- **shared:** Add the pptx.effects.rotateWithShape key and export DEFAULT_FONT_SIZE (by @ChristopherVR) ([2021a28](https://github.com/ChristopherVR/pptx-viewer/commit/2021a28c4442b5769f3faaed1cb7abc27b7316a3))
+
+### Bug Fixes
+
+- **react:** Make the chart gridlines checkbox change the canvas and keep 3D model MIME types (by @ChristopherVR) ([77381a1](https://github.com/ChristopherVR/pptx-viewer/commit/77381a16dd051978ae965b0d461a35916ef59d8d))
+- **react:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([181ca8d](https://github.com/ChristopherVR/pptx-viewer/commit/181ca8d0f189d8d9832489042d19a00ed0123ef7))
+- **shared:** Stop eaLnBrk splitting Latin words mid-word (by @ChristopherVR) ([c3eedb9](https://github.com/ChristopherVR/pptx-viewer/commit/c3eedb9e7adaccfcd5fc954518d554218f1050e2))
+- **react:** Keep the placeholder prompt off show, viewer and still surfaces (by @ChristopherVR) ([58474f7](https://github.com/ChristopherVR/pptx-viewer/commit/58474f7b127d06beb2f9c034d52c6a21c7551053))
+- **shared:** Resolve Google webfonts from a bundled catalogue instead of probing the API (by @ChristopherVR) ([43bda70](https://github.com/ChristopherVR/pptx-viewer/commit/43bda70309f0e9b2cd80dc3ae2ec5cdecda41548))
+
+### Refactor
+
+- **react:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([52e7011](https://github.com/ChristopherVR/pptx-viewer/commit/52e701140d82c29e82e7604608cbef122dd1c874))
+- **shared:** Make editor-geometry nudge helpers alias editor-keymap (by @ChristopherVR) ([87cf256](https://github.com/ChristopherVR/pptx-viewer/commit/87cf256d9bf0565dd6b70e264c6a558416d31ef5))
+
+### Testing
+
+- **react:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([b5e5275](https://github.com/ChristopherVR/pptx-viewer/commit/b5e527599b7937027f6bd772db0790ec9b72ca3a))
+
 ## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.2.0) - 2026-09-02
 
 ### Features

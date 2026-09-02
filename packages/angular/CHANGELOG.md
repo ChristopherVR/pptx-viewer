@@ -7,6 +7,29 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.4.0) - 2026-09-02
+
+### Features
+
+- **angular:** Honour authored slide ranges, loop-continuously and the gridlines toggle in the viewer (by @ChristopherVR) ([2f33cc9](https://github.com/ChristopherVR/pptx-viewer/commit/2f33cc9fa9fb27146bcac5a0e03e4c9938e200b4))
+- **shared:** Add the pptx.effects.rotateWithShape key and export DEFAULT_FONT_SIZE (by @ChristopherVR) ([2021a28](https://github.com/ChristopherVR/pptx-viewer/commit/2021a28c4442b5769f3faaed1cb7abc27b7316a3))
+
+### Bug Fixes
+
+- **angular:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([252655f](https://github.com/ChristopherVR/pptx-viewer/commit/252655fa718376d0bd70d57def52beeea11c6d24))
+- **shared:** Stop eaLnBrk splitting Latin words mid-word (by @ChristopherVR) ([c3eedb9](https://github.com/ChristopherVR/pptx-viewer/commit/c3eedb9e7adaccfcd5fc954518d554218f1050e2))
+- **shared:** Resolve Google webfonts from a bundled catalogue instead of probing the API (by @ChristopherVR) ([43bda70](https://github.com/ChristopherVR/pptx-viewer/commit/43bda70309f0e9b2cd80dc3ae2ec5cdecda41548))
+
+### Refactor
+
+- **angular:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([d20dc75](https://github.com/ChristopherVR/pptx-viewer/commit/d20dc75c2be56bb96f8970636adfbcd7d2f67613))
+- **shared:** Make editor-geometry nudge helpers alias editor-keymap (by @ChristopherVR) ([87cf256](https://github.com/ChristopherVR/pptx-viewer/commit/87cf256d9bf0565dd6b70e264c6a558416d31ef5))
+- **angular:** Drop the dead nudgeSelected editor-state method (by @ChristopherVR) ([c3de73d](https://github.com/ChristopherVR/pptx-viewer/commit/c3de73db49227c94ee475993c31d3322e7c3e1ad))
+
+### Testing
+
+- **angular:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([db88192](https://github.com/ChristopherVR/pptx-viewer/commit/db8819232f6393ec25961ada002fc8fee5bf67ab))
+
 ## [3.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.3.0) - 2026-09-02
 
 ### Features

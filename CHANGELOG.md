@@ -10,6 +10,58 @@ dated sections beneath it are generated from
 
 ## 2026-09-02
 
+_Releases: pptx-react-viewer@3.3.0, pptx-vue-viewer@3.3.0, pptx-angular-viewer@3.4.0, pptx-vanilla-viewer@2.3.0, pptx-svelte-viewer@3.4.0, @christophervr/pptx-viewer@2.3.0_
+
+### Features
+
+- **angular:** Honour authored slide ranges, loop-continuously and the gridlines toggle in the viewer (by @ChristopherVR) ([2f33cc9](https://github.com/ChristopherVR/pptx-viewer/commit/2f33cc9fa9fb27146bcac5a0e03e4c9938e200b4))
+- **vanilla:** Crop to shape, ActiveX overlay, pattern fills, placeholder prompts and loop-continuously (by @ChristopherVR) ([92e8b04](https://github.com/ChristopherVR/pptx-viewer/commit/92e8b04aaf2c2df280311f7a681cc36bf348516f))
+- **react:** Per-series secondary axis toggle and shift-locked corner resize (by @ChristopherVR) ([ae7d13b](https://github.com/ChristopherVR/pptx-viewer/commit/ae7d13bab96dedfcbf07aa3be3c11fea6b5e64b2))
+- **vue:** Gradient and pattern fill panels, full effects panel, crop to shape and loop-continuously (by @ChristopherVR) ([9da1c43](https://github.com/ChristopherVR/pptx-viewer/commit/9da1c43eb9eccc19344e6b9fe8594ec502d50274))
+- **svelte:** Effects panel, pattern fills, placeholder prompts, layout scoping and loop-continuously (by @ChristopherVR) ([329357a](https://github.com/ChristopherVR/pptx-viewer/commit/329357a047430720781274ab44d7704db60b83d3))
+- **shared:** Add the pptx.effects.rotateWithShape key and export DEFAULT_FONT_SIZE (by @ChristopherVR) ([2021a28](https://github.com/ChristopherVR/pptx-viewer/commit/2021a28c4442b5769f3faaed1cb7abc27b7316a3))
+- **locales:** Translate pptx.effects.rotateWithShape into de, es and fr (by @ChristopherVR) ([7ed74c1](https://github.com/ChristopherVR/pptx-viewer/commit/7ed74c161f06e6bff4e6bf74af7ec1d6fdc94f0e))
+
+### Bug Fixes
+
+- **vanilla:** Paint open arrowheads as strokes and restyle every text run from AI edits (by @ChristopherVR) ([7557e41](https://github.com/ChristopherVR/pptx-viewer/commit/7557e4117e4c4a43cacf339f0c4bc4875676daf4))
+- **react:** Make the chart gridlines checkbox change the canvas and keep 3D model MIME types (by @ChristopherVR) ([77381a1](https://github.com/ChristopherVR/pptx-viewer/commit/77381a16dd051978ae965b0d461a35916ef59d8d))
+- **vue:** Z-order, collab colours, gridlines toggle, font-size default and open arrowheads (by @ChristopherVR) ([7423d7e](https://github.com/ChristopherVR/pptx-viewer/commit/7423d7e52b532f9c78cf5707ec78fdb3b5bb02e9))
+- **svelte:** Paint open arrowheads as strokes and set the annotation cursor per tool (by @ChristopherVR) ([0b9dcb1](https://github.com/ChristopherVR/pptx-viewer/commit/0b9dcb1b916e9b0e7591656e23d93296f739e39a))
+- **react:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([181ca8d](https://github.com/ChristopherVR/pptx-viewer/commit/181ca8d0f189d8d9832489042d19a00ed0123ef7))
+- **vue:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([1910fa6](https://github.com/ChristopherVR/pptx-viewer/commit/1910fa6b0e273c9df2aba3228af85b4b805c3f50))
+- **angular:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([252655f](https://github.com/ChristopherVR/pptx-viewer/commit/252655fa718376d0bd70d57def52beeea11c6d24))
+- **svelte:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([dd4f329](https://github.com/ChristopherVR/pptx-viewer/commit/dd4f32996d3b28cb269bafa200b69d8554147a93))
+- **vanilla:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([d0ad3b8](https://github.com/ChristopherVR/pptx-viewer/commit/d0ad3b8078721eed4b3e0b084376e500cf04a70a))
+- **shared:** Stop eaLnBrk splitting Latin words mid-word (by @ChristopherVR) ([c3eedb9](https://github.com/ChristopherVR/pptx-viewer/commit/c3eedb9e7adaccfcd5fc954518d554218f1050e2))
+- **react:** Keep the placeholder prompt off show, viewer and still surfaces (by @ChristopherVR) ([58474f7](https://github.com/ChristopherVR/pptx-viewer/commit/58474f7b127d06beb2f9c034d52c6a21c7551053))
+- **vue:** Show the placeholder prompt on empty inherited placeholders (by @ChristopherVR) ([bc1b76f](https://github.com/ChristopherVR/pptx-viewer/commit/bc1b76f2714f8bd97995bf9a37b3347c596b455a))
+- **shared:** Resolve Google webfonts from a bundled catalogue instead of probing the API (by @ChristopherVR) ([43bda70](https://github.com/ChristopherVR/pptx-viewer/commit/43bda70309f0e9b2cd80dc3ae2ec5cdecda41548))
+
+### Refactor
+
+- **angular:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([d20dc75](https://github.com/ChristopherVR/pptx-viewer/commit/d20dc75c2be56bb96f8970636adfbcd7d2f67613))
+- **vanilla:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([65a982b](https://github.com/ChristopherVR/pptx-viewer/commit/65a982b2207139622f09ba0270784f68e7da7d2e))
+- **react:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([52e7011](https://github.com/ChristopherVR/pptx-viewer/commit/52e701140d82c29e82e7604608cbef122dd1c874))
+- **vue:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([3b5cf0a](https://github.com/ChristopherVR/pptx-viewer/commit/3b5cf0a79befebcfd29b7e007425b441d7998891))
+- **svelte:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([6e1b4ee](https://github.com/ChristopherVR/pptx-viewer/commit/6e1b4eef9d7560d7b7d6f86a183f6a8f84b7b76c))
+- **shared:** Make editor-geometry nudge helpers alias editor-keymap (by @ChristopherVR) ([87cf256](https://github.com/ChristopherVR/pptx-viewer/commit/87cf256d9bf0565dd6b70e264c6a558416d31ef5))
+- **angular:** Drop the dead nudgeSelected editor-state method (by @ChristopherVR) ([c3de73d](https://github.com/ChristopherVR/pptx-viewer/commit/c3de73db49227c94ee475993c31d3322e7c3e1ad))
+
+### Documentation
+
+- **vanilla:** Describe webfont resolution as a catalogue lookup (by @ChristopherVR) ([128275d](https://github.com/ChristopherVR/pptx-viewer/commit/128275d98e7dc7851e8a8469c9fcba1cf789e93f))
+
+### Testing
+
+- **e2e:** Regenerate the transitions-animations fixture (by @ChristopherVR) ([546d408](https://github.com/ChristopherVR/pptx-viewer/commit/546d408c7b8b1dda69eef6b57a749d12e026bd8b))
+- **react:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([b5e5275](https://github.com/ChristopherVR/pptx-viewer/commit/b5e527599b7937027f6bd772db0790ec9b72ca3a))
+- **vue:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([cc78554](https://github.com/ChristopherVR/pptx-viewer/commit/cc7855484b443ec573d832b9ab723ebff795d97e))
+- **angular:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([db88192](https://github.com/ChristopherVR/pptx-viewer/commit/db8819232f6393ec25961ada002fc8fee5bf67ab))
+- **svelte:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([95a2b29](https://github.com/ChristopherVR/pptx-viewer/commit/95a2b29ea65e68ae0a21335dc98f1792410254e6))
+
+## 2026-09-02
+
 _Releases: pptx-viewer-core@3.2.0, pptx-react-viewer@3.2.0, pptx-vue-viewer@3.2.0, pptx-angular-viewer@3.3.0, pptx-vanilla-viewer@2.2.0, pptx-svelte-viewer@3.3.0, @christophervr/pptx-viewer@2.2.0_
 
 ### Features

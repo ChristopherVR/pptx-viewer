@@ -7,6 +7,29 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.3.0) - 2026-09-02
+
+### Features
+
+- **vanilla:** Crop to shape, ActiveX overlay, pattern fills, placeholder prompts and loop-continuously (by @ChristopherVR) ([92e8b04](https://github.com/ChristopherVR/pptx-viewer/commit/92e8b04aaf2c2df280311f7a681cc36bf348516f))
+- **shared:** Add the pptx.effects.rotateWithShape key and export DEFAULT_FONT_SIZE (by @ChristopherVR) ([2021a28](https://github.com/ChristopherVR/pptx-viewer/commit/2021a28c4442b5769f3faaed1cb7abc27b7316a3))
+
+### Bug Fixes
+
+- **vanilla:** Paint open arrowheads as strokes and restyle every text run from AI edits (by @ChristopherVR) ([7557e41](https://github.com/ChristopherVR/pptx-viewer/commit/7557e4117e4c4a43cacf339f0c4bc4875676daf4))
+- **vanilla:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([d0ad3b8](https://github.com/ChristopherVR/pptx-viewer/commit/d0ad3b8078721eed4b3e0b084376e500cf04a70a))
+- **shared:** Stop eaLnBrk splitting Latin words mid-word (by @ChristopherVR) ([c3eedb9](https://github.com/ChristopherVR/pptx-viewer/commit/c3eedb9e7adaccfcd5fc954518d554218f1050e2))
+- **shared:** Resolve Google webfonts from a bundled catalogue instead of probing the API (by @ChristopherVR) ([43bda70](https://github.com/ChristopherVR/pptx-viewer/commit/43bda70309f0e9b2cd80dc3ae2ec5cdecda41548))
+
+### Refactor
+
+- **vanilla:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([65a982b](https://github.com/ChristopherVR/pptx-viewer/commit/65a982b2207139622f09ba0270784f68e7da7d2e))
+- **shared:** Make editor-geometry nudge helpers alias editor-keymap (by @ChristopherVR) ([87cf256](https://github.com/ChristopherVR/pptx-viewer/commit/87cf256d9bf0565dd6b70e264c6a558416d31ef5))
+
+### Documentation
+
+- **vanilla:** Describe webfont resolution as a catalogue lookup (by @ChristopherVR) ([128275d](https://github.com/ChristopherVR/pptx-viewer/commit/128275d98e7dc7851e8a8469c9fcba1cf789e93f))
+
 ## [2.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.2.0) - 2026-09-02
 
 ### Features

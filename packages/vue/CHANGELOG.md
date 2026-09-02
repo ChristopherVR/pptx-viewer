@@ -7,6 +7,30 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.3.0) - 2026-09-02
+
+### Features
+
+- **vue:** Gradient and pattern fill panels, full effects panel, crop to shape and loop-continuously (by @ChristopherVR) ([9da1c43](https://github.com/ChristopherVR/pptx-viewer/commit/9da1c43eb9eccc19344e6b9fe8594ec502d50274))
+- **shared:** Add the pptx.effects.rotateWithShape key and export DEFAULT_FONT_SIZE (by @ChristopherVR) ([2021a28](https://github.com/ChristopherVR/pptx-viewer/commit/2021a28c4442b5769f3faaed1cb7abc27b7316a3))
+
+### Bug Fixes
+
+- **vue:** Z-order, collab colours, gridlines toggle, font-size default and open arrowheads (by @ChristopherVR) ([7423d7e](https://github.com/ChristopherVR/pptx-viewer/commit/7423d7e52b532f9c78cf5707ec78fdb3b5bb02e9))
+- **vue:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([1910fa6](https://github.com/ChristopherVR/pptx-viewer/commit/1910fa6b0e273c9df2aba3228af85b4b805c3f50))
+- **shared:** Stop eaLnBrk splitting Latin words mid-word (by @ChristopherVR) ([c3eedb9](https://github.com/ChristopherVR/pptx-viewer/commit/c3eedb9e7adaccfcd5fc954518d554218f1050e2))
+- **vue:** Show the placeholder prompt on empty inherited placeholders (by @ChristopherVR) ([bc1b76f](https://github.com/ChristopherVR/pptx-viewer/commit/bc1b76f2714f8bd97995bf9a37b3347c596b455a))
+- **shared:** Resolve Google webfonts from a bundled catalogue instead of probing the API (by @ChristopherVR) ([43bda70](https://github.com/ChristopherVR/pptx-viewer/commit/43bda70309f0e9b2cd80dc3ae2ec5cdecda41548))
+
+### Refactor
+
+- **vue:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([3b5cf0a](https://github.com/ChristopherVR/pptx-viewer/commit/3b5cf0a79befebcfd29b7e007425b441d7998891))
+- **shared:** Make editor-geometry nudge helpers alias editor-keymap (by @ChristopherVR) ([87cf256](https://github.com/ChristopherVR/pptx-viewer/commit/87cf256d9bf0565dd6b70e264c6a558416d31ef5))
+
+### Testing
+
+- **vue:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([cc78554](https://github.com/ChristopherVR/pptx-viewer/commit/cc7855484b443ec573d832b9ab723ebff795d97e))
+
 ## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.2.0) - 2026-09-02
 
 ### Features
