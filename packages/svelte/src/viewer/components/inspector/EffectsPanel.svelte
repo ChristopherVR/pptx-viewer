@@ -60,8 +60,7 @@
 			<label>{t('pptx.effects.distance')}<input type="number" min="0" max="200" value={Math.round(effects.outerShadow.distance)} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { distance: Number(e.currentTarget.value) }))} /></label>
 			<label class="pptx-svelte-effects-check">
 				<input type="checkbox" checked={effects.outerShadow.rotateWithShape} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { rotateWithShape: e.currentTarget.checked }))} />
-				<!-- No dedicated i18n key yet (see report); plain text mirrors React's own unlocalised label. -->
-				<span>Rotate with Shape</span>
+				<span>{t('pptx.effects.rotateWithShape')}</span>
 			</label>
 		</div>
 	{/if}
