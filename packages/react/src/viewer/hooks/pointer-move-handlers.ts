@@ -267,7 +267,7 @@ function processDragMove(
 			const y = start.y + appliedDy;
 			domEl.style.left = `${x}px`;
 			domEl.style.top = `${y}px`;
-			syncSelectionHandleOverlay(id, { x, y });
+			syncSelectionHandleOverlay(domEl, id, { x, y });
 		}
 	}
 	// Mirror the in-flight positions to collaborators. The DOM writes above
@@ -326,8 +326,8 @@ function processResizeMove(
 		rs.domEl.style.top = `${geo.y}px`;
 		rs.domEl.style.width = `${width}px`;
 		rs.domEl.style.height = `${height}px`;
+		syncSelectionHandleOverlay(rs.domEl, rs.elementId, { x: geo.x, y: geo.y, width, height });
 	}
-	syncSelectionHandleOverlay(rs.elementId, { x: geo.x, y: geo.y, width, height });
 	if (live) {
 		publishLiveGeometry(live.patcher, live.slideId, rs.elementId, {
 			x: geo.x,

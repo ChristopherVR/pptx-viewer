@@ -94,11 +94,21 @@ const newTracker = (): PointerFrameTracker => ({
 	lastSnapLinesKey: '',
 });
 
-function appendHandleHost(elementId: string): HTMLDivElement {
-	const host = document.createElement('div');
-	host.setAttribute('data-pptx-handle-for', elementId);
-	document.body.appendChild(host);
-	return host;
+/**
+ * One viewer instance's worth of DOM: a `[data-pptx-viewport]` wrapper holding
+ * the element node and its detached handle host as siblings, the way
+ * `SlideCanvas` lays them out. Two of these on one page is the docs landing.
+ */
+function mountViewport(elementId: string): { domEl: HTMLDivElement; handleHost: HTMLDivElement } {
+	const viewport = document.createElement('div');
+	viewport.setAttribute('data-pptx-viewport', '');
+	const domEl = document.createElement('div');
+	domEl.setAttribute('data-element-id', elementId);
+	const handleHost = document.createElement('div');
+	handleHost.setAttribute('data-pptx-handle-for', elementId);
+	viewport.append(domEl, handleHost);
+	document.body.appendChild(viewport);
+	return { domEl, handleHost };
 }
 
 afterEach(() => {
@@ -120,8 +130,7 @@ describe('selection handle overlay preview', () => {
 	it('keeps the selection handles aligned during a drag preview', () => {
 		const active = slide([element('e1')]);
 		const input = makeInput(active, createCollaborationLivePatcher());
-		const domEl = document.createElement('div');
-		const handleHost = appendHandleHost('e1');
+		const { domEl, handleHost } = mountViewport('e1');
 		input.dragStateRef.current = {
 			elementId: 'e1',
 			startClientX: 0,
@@ -144,8 +153,7 @@ describe('selection handle overlay preview', () => {
 	it('keeps the selection handles aligned during a resize preview', () => {
 		const active = slide([element('e1')]);
 		const input = makeInput(active, createCollaborationLivePatcher());
-		const domEl = document.createElement('div');
-		const handleHost = appendHandleHost('e1');
+		const { domEl, handleHost } = mountViewport('e1');
 		input.resizeStateRef.current = {
 			elementId: 'e1',
 			startClientX: 0,
@@ -171,6 +179,52 @@ describe('selection handle overlay preview', () => {
 		expect(handleHost.style.top).toBe('100px');
 		expect(handleHost.style.width).toBe('250px');
 		expect(handleHost.style.height).toBe('180px');
+	});
+
+	it('moves only the handles of the viewer the drag is happening in', () => {
+		const active = slide([element('e1')]);
+		const input = makeInput(active, createCollaborationLivePatcher());
+		// Same deck mounted twice on one page: both instances render a handle
+		// host for the same selected id, and only the dragged instance's may move.
+		const other = mountViewport('e1');
+		const { domEl, handleHost } = mountViewport('e1');
+		input.dragStateRef.current = {
+			elementId: 'e1',
+			startClientX: 0,
+			startClientY: 0,
+			startPositionsById: { e1: { x: 100, y: 100 } },
+			domEls: new Map([['e1', domEl]]),
+			moved: false,
+			lastDx: 0,
+			lastDy: 0,
+		};
+
+		processPointerMove(move(40, 25), input, newTracker());
+
+		expect(handleHost.style.left).toBe('140px');
+		expect(other.handleHost.style.left).toBe('');
+		expect(other.domEl.style.left).toBe('');
+	});
+
+	it('finds the handle host for an id a selector string could not carry', () => {
+		const id = 'shape"7"';
+		const active = slide([element(id)]);
+		const input = makeInput(active, createCollaborationLivePatcher());
+		const { domEl, handleHost } = mountViewport(id);
+		input.dragStateRef.current = {
+			elementId: id,
+			startClientX: 0,
+			startClientY: 0,
+			startPositionsById: { [id]: { x: 10, y: 10 } },
+			domEls: new Map([[id, domEl]]),
+			moved: false,
+			lastDx: 0,
+			lastDy: 0,
+		};
+
+		processPointerMove(move(5, 5), input, newTracker());
+
+		expect(handleHost.style.left).toBe('15px');
 	});
 });
 
