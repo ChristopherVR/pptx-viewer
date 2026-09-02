@@ -35,6 +35,14 @@ export interface SlideTransitionDeps {
 	 */
 	playTransition: boolean;
 	/**
+	 * Play the LEAVING slide's transition instead, running it in reverse. Set
+	 * when stepping backward onto the previous slide: PowerPoint replays the
+	 * transition of the slide being left (a morph glides its shapes back to
+	 * where they came from). The overlay still animates the outgoing slide out
+	 * over the incoming one, only the transition definition's source changes.
+	 */
+	reverse?: boolean;
+	/**
 	 * Seed the incoming slide as fully built rather than replaying it. Set when
 	 * stepping BACKWARD onto a slide, which PowerPoint shows with its builds
 	 * already complete.
@@ -49,14 +57,19 @@ export interface SlideTransitionDeps {
  * incoming slide carries a real (non-instant) `p:transition` and this is a
  * forward navigation, the outgoing slide is snapshotted into an animated
  * overlay layer that plays over the new slide for the transition's duration
- * (mirroring the Vue/Angular bindings). Entrance animations and auto-advance
- * are deferred until the transition has played so the incoming slide's builds
- * don't start underneath the overlay. For instant transitions the slide is
- * revealed at once with no overlay.
+ * (mirroring the Vue/Angular bindings). A backward step plays the LEAVING
+ * slide's transition in reverse instead ({@link SlideTransitionDeps.reverse}).
+ * Entrance animations and auto-advance are deferred until the transition has
+ * played so the incoming slide's builds don't start underneath the overlay.
+ * For instant transitions the slide is revealed at once with no overlay.
  */
 export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransitionDeps): void {
 	const incomingSlide = deps.slides[nextSlideIndex];
-	const transition = incomingSlide?.transition;
+	// Forward navigation (and jumps) play the ENTERING slide's transition; a
+	// backward step replays the LEAVING slide's transition in reverse.
+	const transition = deps.reverse
+		? deps.slides[deps.currentSlideIndex]?.transition
+		: incomingSlide?.transition;
 	const durationMs = deps.playTransition ? resolveTransitionDurationMs(transition) : 0;
 
 	deps.clearPresentationTimers();

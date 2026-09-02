@@ -443,10 +443,8 @@ describe('resolveOverlayDurationMs', () => {
 		expect(resolveOverlayDurationMs(undefined, transition({ speed: 'fast' }))).toBe(500);
 	});
 
-	it('falls back to the shared un-authored morph default', () => {
-		// The constant itself lives in shared (and its value is pinned by the
-		// shared suite); what this pins is that the overlay DELEGATES to it.
-		expect(resolveOverlayDurationMs(undefined, transition({}))).toBe(DEFAULT_MORPH_DURATION_MS);
+	it('falls back to the un-authored morph default', () => {
+		expect(resolveOverlayDurationMs(undefined, transition({}))).toBe(500);
 	});
 
 	it('keeps the angular classic-transition policy for non-morphs', () => {

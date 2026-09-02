@@ -36,6 +36,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	const {
 		mode,
 		slides,
+		templateElementsBySlideId,
 		visibleSlideIndexes,
 		activeSlideIndex,
 		containerRef,
@@ -544,13 +545,18 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		if (!transitionOverlay || transitionOverlay.transition.type !== 'morph') {
 			return undefined;
 		}
+		const incoming = slides[transitionOverlay.incomingSlideIndex];
 		return buildMorphTransitionPlan(
 			slides[transitionOverlay.outgoingSlideIndex],
-			slides[transitionOverlay.incomingSlideIndex],
+			incoming,
 			transitionOverlay.durationMs,
 			morphOptionToMode(transitionOverlay.transition.morphOption),
+			// `PresentationStage` stacks the incoming slide's elements above its
+			// template shapes (`zIndex = templateElements.length + index`), so a
+			// z-index journey has to start counting where the stage does.
+			{ zIndexBase: incoming ? (templateElementsBySlideId?.[incoming.id]?.length ?? 0) : 0 },
 		);
-	}, [transitionOverlay, slides]);
+	}, [transitionOverlay, slides, templateElementsBySlideId]);
 
 	const morphedElementStates = useMemo(() => {
 		if (!morphPlan || morphPlan.incomingAnimations.size === 0) {

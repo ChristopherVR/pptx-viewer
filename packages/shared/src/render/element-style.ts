@@ -209,7 +209,43 @@ function imageFitTransformParts(el: PptxElement): { placement: string; crop: str
 	if (!isImageLikeElement(el) && el.type !== 'media') {
 		return { placement: '', crop: '' };
 	}
+	return fitTransformsFromInsets({
+		cropLeft: clampCropValue(el.cropLeft),
+		cropTop: clampCropValue(el.cropTop),
+		cropRight: clampCropValue(el.cropRight),
+		cropBottom: clampCropValue(el.cropBottom),
+		fillRectLeft: el.fillRectLeft ?? 0,
+		fillRectTop: el.fillRectTop ?? 0,
+		fillRectRight: el.fillRectRight ?? 0,
+		fillRectBottom: el.fillRectBottom ?? 0,
+	});
+}
 
+/** The eight `a:srcRect` / `a:fillRect` inset fractions that place a picture. */
+export interface ImageFitInsets {
+	cropLeft: number;
+	cropTop: number;
+	cropRight: number;
+	cropBottom: number;
+	fillRectLeft: number;
+	fillRectTop: number;
+	fillRectRight: number;
+	fillRectBottom: number;
+}
+
+/**
+ * The `<img>` `transform` for ARBITRARY inset fractions, always padded to the
+ * full `translate/scale translate/scale` list.
+ *
+ * The Morph engine interpolates a pair's insets SAMPLE BY SAMPLE (the crop and
+ * the frame must compensate each other or the image visibly zooms, see
+ * `morph-image-crop`), so it needs the mapping for values between two
+ * elements', not just for whole elements.
+ */
+export function fitTransformsFromInsets(insets: ImageFitInsets): {
+	placement: string;
+	crop: string;
+} {
 	// `a:stretch/a:fillRect` stretches the (cropped) image into a sub-rect of
 	// the FRAME; negative offsets legitimately push it past the frame edges,
 	// and the overflow-hidden frame clips the spill (issue #132 deck, phone
@@ -217,10 +253,10 @@ function imageFitTransformParts(el: PptxElement): { placement: string; crop: str
 	// stamp a pixel-sized shape clip-path on the img itself, and a transform
 	// moves the already-clipped result while a geometry change would move the
 	// img out of its own clip and blank it.
-	const frLeft = el.fillRectLeft ?? 0;
-	const frTop = el.fillRectTop ?? 0;
-	const frRight = el.fillRectRight ?? 0;
-	const frBottom = el.fillRectBottom ?? 0;
+	const frLeft = insets.fillRectLeft;
+	const frTop = insets.fillRectTop;
+	const frRight = insets.fillRectRight;
+	const frBottom = insets.fillRectBottom;
 	const hasFillRect =
 		Math.abs(frLeft) + Math.abs(frTop) + Math.abs(frRight) + Math.abs(frBottom) > 0.0001;
 	const placement = hasFillRect
@@ -229,31 +265,29 @@ function imageFitTransformParts(el: PptxElement): { placement: string; crop: str
 			)}, ${round6(Math.max(0.01, 1 - frTop - frBottom))})`
 		: '';
 
-	const cropLeft = clampCropValue(el.cropLeft);
-	const cropTop = clampCropValue(el.cropTop);
-	const cropRight = clampCropValue(el.cropRight);
-	const cropBottom = clampCropValue(el.cropBottom);
-	if (cropLeft + cropRight <= 0.0001 && cropTop + cropBottom <= 0.0001) {
-		return { placement, crop: '' };
+	let cropLeft = insets.cropLeft;
+	let cropTop = insets.cropTop;
+	let cropRight = insets.cropRight;
+	let cropBottom = insets.cropBottom;
+	if (cropLeft + cropRight > 0.0001 || cropTop + cropBottom > 0.0001) {
+		// A crop that swallows (almost) the whole source would divide by ~0
+		// below, so the pair is rescaled to leave a 1% sliver rather than
+		// producing Infinity.
+		const horizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
+		const verticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
+		cropLeft = clampCropValue(cropLeft * horizontalScale);
+		cropRight = clampCropValue(cropRight * horizontalScale);
+		cropTop = clampCropValue(cropTop * verticalScale);
+		cropBottom = clampCropValue(cropBottom * verticalScale);
+		const remainingWidth = Math.max(0.01, 1 - cropLeft - cropRight);
+		const remainingHeight = Math.max(0.01, 1 - cropTop - cropBottom);
+		const tx = Math.round((-cropLeft / remainingWidth) * 10000) / 100;
+		const ty = Math.round((-cropTop / remainingHeight) * 10000) / 100;
+		const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
+		const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
+		return { placement, crop: `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})` };
 	}
-
-	// A crop that swallows (almost) the whole source would divide by ~0
-	// below, so the pair is rescaled to leave a 1% sliver rather than
-	// producing Infinity.
-	const horizontalScale = cropLeft + cropRight >= 0.99 ? 0.99 / (cropLeft + cropRight) : 1;
-	const verticalScale = cropTop + cropBottom >= 0.99 ? 0.99 / (cropTop + cropBottom) : 1;
-	const left = clampCropValue(cropLeft * horizontalScale);
-	const right = clampCropValue(cropRight * horizontalScale);
-	const top = clampCropValue(cropTop * verticalScale);
-	const bottom = clampCropValue(cropBottom * verticalScale);
-	const remainingWidth = Math.max(0.01, 1 - left - right);
-	const remainingHeight = Math.max(0.01, 1 - top - bottom);
-
-	const tx = Math.round((-left / remainingWidth) * 10000) / 100;
-	const ty = Math.round((-top / remainingHeight) * 10000) / 100;
-	const sx = Math.round((1 / remainingWidth) * 1e6) / 1e6;
-	const sy = Math.round((1 / remainingHeight) * 1e6) / 1e6;
-	return { placement, crop: `translate(${tx}%, ${ty}%) scale(${sx}, ${sy})` };
+	return { placement, crop: '' };
 }
 
 /**

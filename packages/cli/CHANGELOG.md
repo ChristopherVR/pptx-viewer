@@ -7,6 +7,23 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.4.0) - 2026-09-02
+
+### Features
+
+- **react,vue,angular,svelte,vanilla:** Replay the leaving slide's transition on backward steps (by @nikko82) ([e23838e](https://github.com/ChristopherVR/pptx-viewer/commit/e23838ebc6253c413fe87cd75e96244311349214))
+- **react:** Wave-4 parity UI (chart subtypes, read-only banner, compat toasts, rescale, sldRg) (by @ChristopherVR) ([abfc61f](https://github.com/ChristopherVR/pptx-viewer/commit/abfc61f966dabb24807d98e5eca5e917c4857315))
+- **react:** Wave-4 show entry, custom-show actions, master CRUD, mentions (by @ChristopherVR) ([4d45b72](https://github.com/ChristopherVR/pptx-viewer/commit/4d45b7211c8596c889f4f14f7f90a83709ad0ec5))
+- **react:** Recent-colours row under every picker and OLE verb actions (by @ChristopherVR) ([5965928](https://github.com/ChristopherVR/pptx-viewer/commit/5965928f695618d58c9202c18bfcd0dfdb3a457b))
+- **react:** Start the slide show on F5 and Shift+F5 (by @ChristopherVR) ([4904fb4](https://github.com/ChristopherVR/pptx-viewer/commit/4904fb484397fe8a4319eff8f923cd559d2f1447))
+
+### Bug Fixes
+
+- **react:** Route ppaction://media through the shared media toggle (by @ChristopherVR) ([7e0bfb1](https://github.com/ChristopherVR/pptx-viewer/commit/7e0bfb137d1f38855a595625fb126cc3f0c1d246))
+- **react:** Keep selection handles aligned during transforms (by @Sudhansh6) ([4867a0a](https://github.com/ChristopherVR/pptx-viewer/commit/4867a0a74ad026719e4abddc6366eb7a27adce44))
+- **react:** Scope the selection-handle overlay sync to its own viewer (by @ChristopherVR) ([a2af2a1](https://github.com/ChristopherVR/pptx-viewer/commit/a2af2a1dde67f8ab87e618431ce4e11c7e97cacf))
+- **react:** Hand the morph plan the stage's z-index base (by @ChristopherVR) ([67fba80](https://github.com/ChristopherVR/pptx-viewer/commit/67fba80e4a7faff912df452ef5126259f46d91bf))
+
 ## [2.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.3.0) - 2026-09-02
 
 ### Features

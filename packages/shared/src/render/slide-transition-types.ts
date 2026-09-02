@@ -131,11 +131,15 @@ export const DEFAULT_TRANSITION_DURATION_MS = 1000;
 /**
  * Default Morph duration (ms) for a transition that declares NEITHER an
  * explicit `p14:dur` (which lands in `durationMs` and always wins) NOR a legacy
- * `spd` speed (see {@link TRANSITION_SPEED_DURATION_MS}). Applying Morph in the
- * PowerPoint UI writes an explicit duration, so this only covers decks that
- * declare nothing at all.
+ * `spd` speed (see {@link TRANSITION_SPEED_DURATION_MS}).
+ *
+ * A Morph that declares nothing carries no duration hint at all, and desktop
+ * PowerPoint then plays it at its own 0.5s fallback (the Duration box shows
+ * 0.50 for such slides and the transition measures at half a second); the
+ * previous 1.0s/2.0s defaults made those decks play at double PowerPoint
+ * speed.
  */
-export const DEFAULT_MORPH_DURATION_MS = 2000;
+export const DEFAULT_MORPH_DURATION_MS = 500;
 
 /**
  * Duration (ms) for each legacy `p:transition/@spd` speed.

@@ -10,6 +10,81 @@ dated sections beneath it are generated from
 
 ## 2026-09-02
 
+_Releases: pptx-viewer-core@3.3.0, pptx-react-viewer@3.4.0, pptx-vue-viewer@3.4.0, pptx-angular-viewer@3.5.0, pptx-vanilla-viewer@2.4.0, pptx-svelte-viewer@3.5.0, @christophervr/pptx-viewer@2.4.0_
+
+### Features
+
+- **shared:** Animate morph stacking, flips, and crop reveal like PowerPoint (by @nikko82) ([a9bba84](https://github.com/ChristopherVR/pptx-viewer/commit/a9bba842827274a9dc7cdb0b8934fe7509b560e6))
+- **shared:** Minimum-cost media pairing and named text twins for morphs (by @nikko82) ([3abda95](https://github.com/ChristopherVR/pptx-viewer/commit/3abda95e72133e1fe886f2bc98d76a5c23a645c6))
+- **shared:** Step an inert stacking-swap counterpart together with the mover (by @nikko82) ([e4f9438](https://github.com/ChristopherVR/pptx-viewer/commit/e4f9438771bcec15c78ebba5eb3b4e2c173152e0))
+- **react,vue,angular,svelte,vanilla:** Replay the leaving slide's transition on backward steps (by @nikko82) ([e23838e](https://github.com/ChristopherVR/pptx-viewer/commit/e23838ebc6253c413fe87cd75e96244311349214))
+- **shared:** I18n keys for the wave-4 parity UI (by @ChristopherVR) ([6cc9a86](https://github.com/ChristopherVR/pptx-viewer/commit/6cc9a8646c3f6174ec70928e00137412fea1778a))
+- **locales:** De/es/fr strings for the wave-4 parity UI (by @ChristopherVR) ([6a8078f](https://github.com/ChristopherVR/pptx-viewer/commit/6a8078f43f33362c512f95b848fdb6f6cce0e978))
+- **core:** Master/layout CRUD, legacy comment threading, extended ppaction verbs (by @ChristopherVR) ([033b024](https://github.com/ChristopherVR/pptx-viewer/commit/033b024a70d041cf884aafb47dbc35e9d2ed10f6))
+- **shared:** Master-view CRUD, recent colours, action options, handout-master print chrome (by @ChristopherVR) ([3cc928f](https://github.com/ChristopherVR/pptx-viewer/commit/3cc928fea1e07293ca24faabcf6058b0c43713b2))
+- **react:** Wave-4 parity UI (chart subtypes, read-only banner, compat toasts, rescale, sldRg) (by @ChristopherVR) ([abfc61f](https://github.com/ChristopherVR/pptx-viewer/commit/abfc61f966dabb24807d98e5eca5e917c4857315))
+- **vue:** Wave-4 parity UI (chart subtypes, read-only banner, compat toasts, rescale, sldRg) (by @ChristopherVR) ([58ac9f4](https://github.com/ChristopherVR/pptx-viewer/commit/58ac9f4b0f642fe089e82300c4a5fe53eb687df2))
+- **angular:** Wave-4 parity UI (chart subtypes, read-only banner, compat toasts, rescale, ActiveX) (by @ChristopherVR) ([b27ddd7](https://github.com/ChristopherVR/pptx-viewer/commit/b27ddd76559f5b8e380f9b65d36aaa73dbdf8278))
+- **svelte:** Wave-4 parity UI (chart subtypes, read-only banner, compat toasts, rescale, sldRg, guides) (by @ChristopherVR) ([90bc190](https://github.com/ChristopherVR/pptx-viewer/commit/90bc190e9100cd0725c9c8ecd38d1de006271bf8))
+- **vanilla:** Wave-4 parity UI (chart subtypes, read-only banner, compat toasts, rescale, sldRg, guides) (by @ChristopherVR) ([30df3a2](https://github.com/ChristopherVR/pptx-viewer/commit/30df3a2dce5782137c63e713913ac80aec5dd9d6))
+- **shared:** Show entry slide, compat toast placement, master-view failure copy (by @ChristopherVR) ([79a42ba](https://github.com/ChristopherVR/pptx-viewer/commit/79a42ba93d0fd76d4fb509710c14eae22609c5de))
+- **locales:** Translate the wave-4 custom-show and master-view keys (by @ChristopherVR) ([59da9c7](https://github.com/ChristopherVR/pptx-viewer/commit/59da9c7de7c64cc455c388b9848ff37c93c3b90f))
+- **react:** Wave-4 show entry, custom-show actions, master CRUD, mentions (by @ChristopherVR) ([4d45b72](https://github.com/ChristopherVR/pptx-viewer/commit/4d45b7211c8596c889f4f14f7f90a83709ad0ec5))
+- **vue:** Wave-4 show entry, custom-show actions, master CRUD, mentions (by @ChristopherVR) ([e04c12f](https://github.com/ChristopherVR/pptx-viewer/commit/e04c12f6a2d5c0aec4bf3dd2531614b8f91bcee9))
+- **angular:** Wave-4 show entry, custom-show actions, master CRUD, mentions (by @ChristopherVR) ([eb336d1](https://github.com/ChristopherVR/pptx-viewer/commit/eb336d18be6539da834c42acd4aae6b043c70d55))
+- **svelte:** Wave-4 show entry, custom-show actions, master CRUD, mentions (by @ChristopherVR) ([00c6546](https://github.com/ChristopherVR/pptx-viewer/commit/00c6546272c998e8dba336d9e058d2104eb3ace0))
+- **vanilla:** Wave-4 show entry, custom-show actions, master CRUD, mentions (by @ChristopherVR) ([9d5441d](https://github.com/ChristopherVR/pptx-viewer/commit/9d5441df75183caf5da70f689facad842d308651))
+- **svelte:** Slide master view insert/duplicate/delete/rename commands (by @ChristopherVR) ([5980f71](https://github.com/ChristopherVR/pptx-viewer/commit/5980f718fe4d54f9c878b8a15c303bd5af9603cf))
+- **shared:** Resolve OLE action verbs against the clicked element (by @ChristopherVR) ([680c70c](https://github.com/ChristopherVR/pptx-viewer/commit/680c70c7d4cbb1f37d0c132b99544309e3563629))
+- **react:** Recent-colours row under every picker and OLE verb actions (by @ChristopherVR) ([5965928](https://github.com/ChristopherVR/pptx-viewer/commit/5965928f695618d58c9202c18bfcd0dfdb3a457b))
+- **vue:** Recent-colours row under every picker and OLE verb actions (by @ChristopherVR) ([a8bb0fb](https://github.com/ChristopherVR/pptx-viewer/commit/a8bb0fb792bcf091d990cce82992348af3f4f9c7))
+- **angular:** Recent-colours row under every picker and OLE verb actions (by @ChristopherVR) ([1dfbcd9](https://github.com/ChristopherVR/pptx-viewer/commit/1dfbcd9e174220a4bea55530404115cef19f14a7))
+- **svelte:** Recent-colours row under every picker and OLE verb actions (by @ChristopherVR) ([87a93b8](https://github.com/ChristopherVR/pptx-viewer/commit/87a93b8d5edc39c58d43afc86e12dd0481e49bcd))
+- **vanilla:** Recent-colours row under every picker and OLE verb actions (by @ChristopherVR) ([a9cadea](https://github.com/ChristopherVR/pptx-viewer/commit/a9cadeac130631752846f503deba7246a450a87e))
+- **shared:** Map F5 and Shift+F5 to the start-show actions (by @ChristopherVR) ([94852ed](https://github.com/ChristopherVR/pptx-viewer/commit/94852edbe44a6fb712e15dd8892ff4dcd1e9e7b0))
+- **react:** Start the slide show on F5 and Shift+F5 (by @ChristopherVR) ([4904fb4](https://github.com/ChristopherVR/pptx-viewer/commit/4904fb484397fe8a4319eff8f923cd559d2f1447))
+- **vue:** Start the slide show on F5 and Shift+F5 (by @ChristopherVR) ([4de964c](https://github.com/ChristopherVR/pptx-viewer/commit/4de964c355a42a2ebe6bcffa82a2eae30fcdc482))
+- **angular:** Start the slide show on F5 and Shift+F5 (by @ChristopherVR) ([174aaec](https://github.com/ChristopherVR/pptx-viewer/commit/174aaec3baf8e4ab52f39877f88e3690eff8cb21))
+- **svelte:** Start the slide show on F5 and Shift+F5 (by @ChristopherVR) ([8040342](https://github.com/ChristopherVR/pptx-viewer/commit/80403429e3a1edc18916d382d4e3d35d44ba9646))
+- **vanilla:** Start the slide show on F5 and Shift+F5 (by @ChristopherVR) ([6bdeb84](https://github.com/ChristopherVR/pptx-viewer/commit/6bdeb846a8f47ab9c7166ee104acc53d0b4dd782))
+
+### Bug Fixes
+
+- **shared:** Play an un-authored morph at PowerPoint's 0.5s fallback (by @nikko82) ([0a70ef2](https://github.com/ChristopherVR/pptx-viewer/commit/0a70ef2db656e830ad429e9fd0a6efeb43ff7bde))
+- **angular:** Honour spd and the shared morph default in the overlay duration (by @nikko82) ([7c690d1](https://github.com/ChristopherVR/pptx-viewer/commit/7c690d13920dbf863308628624effe9219c62113))
+- **vanilla:** Keep the stage DOM on non-chart selection so double-click still opens table cells (by @ChristopherVR) ([427bbed](https://github.com/ChristopherVR/pptx-viewer/commit/427bbed1073de66a83536f8874726de2db39d0d0))
+- **shared:** Close the open code-scanning findings at their root (by @ChristopherVR) ([455f853](https://github.com/ChristopherVR/pptx-viewer/commit/455f853f028ba1cb4142285558bbeef715d130d7))
+- **angular:** Route ppaction://media through the shared media toggle (by @ChristopherVR) ([aeb5489](https://github.com/ChristopherVR/pptx-viewer/commit/aeb5489deceb615abc4b3eeff18ea22310faa50c))
+- **react:** Route ppaction://media through the shared media toggle (by @ChristopherVR) ([7e0bfb1](https://github.com/ChristopherVR/pptx-viewer/commit/7e0bfb137d1f38855a595625fb126cc3f0c1d246))
+- **vanilla:** Route ppaction://media through the shared media toggle (by @ChristopherVR) ([94b49a7](https://github.com/ChristopherVR/pptx-viewer/commit/94b49a755768b89c1c180fb1636a3574d625112c))
+- **react:** Keep selection handles aligned during transforms (by @Sudhansh6) ([4867a0a](https://github.com/ChristopherVR/pptx-viewer/commit/4867a0a74ad026719e4abddc6366eb7a27adce44))
+- **react:** Scope the selection-handle overlay sync to its own viewer (by @ChristopherVR) ([a2af2a1](https://github.com/ChristopherVR/pptx-viewer/commit/a2af2a1dde67f8ab87e618431ce4e11c7e97cacf))
+- **shared:** Write morph stacking-order journeys in the stage's z space (by @ChristopherVR) ([867b05b](https://github.com/ChristopherVR/pptx-viewer/commit/867b05b4e9bfea62361e7d1361ae4cb84787c191))
+- **react:** Hand the morph plan the stage's z-index base (by @ChristopherVR) ([67fba80](https://github.com/ChristopherVR/pptx-viewer/commit/67fba80e4a7faff912df452ef5126259f46d91bf))
+- **shared:** Take the nearest named text twin and drop its dead name veto (by @ChristopherVR) ([c6e8062](https://github.com/ChristopherVR/pptx-viewer/commit/c6e8062919e9b9ccc1d1b18c4504270fd8138f51))
+- **shared:** Sample the morph crop track from the one easing definition (by @ChristopherVR) ([349e8bd](https://github.com/ChristopherVR/pptx-viewer/commit/349e8bd5eb1908077f3693e6ee4573cf88ad253c))
+
+### Refactor
+
+- **vue:** Route ppaction://media through the shared media toggle (by @ChristopherVR) ([4b4a50d](https://github.com/ChristopherVR/pptx-viewer/commit/4b4a50d6451c3c136f6408d82ef3ff63ee5454e3))
+
+### Documentation
+
+- **guide:** Document platform-bound slide-show and protection behaviour (by @ChristopherVR) ([e3ec163](https://github.com/ChristopherVR/pptx-viewer/commit/e3ec163065a3f92cfe53a3ce4ff8594f73199fb4))
+- Document the F5 and Shift+F5 start-show keys (by @ChristopherVR) ([109b7fc](https://github.com/ChristopherVR/pptx-viewer/commit/109b7fc8e217dddfc083697760df4dac564a35c7))
+
+### Testing
+
+- **e2e:** Wave-4 parity fixture and neutral spec (by @ChristopherVR) ([fb8fd55](https://github.com/ChristopherVR/pptx-viewer/commit/fb8fd553347ea9bbbb912d5b54edf47634b9ac57))
+- **e2e:** Make the wave-4 parity spec binding-neutral (by @ChristopherVR) ([84b80da](https://github.com/ChristopherVR/pptx-viewer/commit/84b80dabf21a87686c07eef9d4fdd52dd5ad751f))
+- **e2e:** Cover slide master view CRUD in every binding (by @ChristopherVR) ([eb23a44](https://github.com/ChristopherVR/pptx-viewer/commit/eb23a4420af773f6a159bd92158e4fc08a2029af))
+- **e2e:** Recent-colours row parity spec across all five bindings (by @ChristopherVR) ([3c8572e](https://github.com/ChristopherVR/pptx-viewer/commit/3c8572e744b210a171aa252dac4f6eb2589b21bb))
+- **e2e:** Pin F5 and Shift+F5 starting the show in every binding (by @ChristopherVR) ([6e342c2](https://github.com/ChristopherVR/pptx-viewer/commit/6e342c24aa35c1179ac1a004cb4a94982e178ee3))
+- **e2e:** Pin selection handles tracking a live drag and resize in every binding (by @ChristopherVR) ([3a64197](https://github.com/ChristopherVR/pptx-viewer/commit/3a6419778379d9cfb934d65cb01c196a052aa687))
+- **shared:** Cover the morph media assignment solver (by @ChristopherVR) ([cbf671f](https://github.com/ChristopherVR/pptx-viewer/commit/cbf671f7a7a2037006f19ddaabc502211069ded5))
+
+## 2026-09-02
+
 _Releases: pptx-react-viewer@3.3.0, pptx-vue-viewer@3.3.0, pptx-angular-viewer@3.4.0, pptx-vanilla-viewer@2.3.0, pptx-svelte-viewer@3.4.0, @christophervr/pptx-viewer@2.3.0_
 
 ### Features

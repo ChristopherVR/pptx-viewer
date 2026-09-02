@@ -90,8 +90,15 @@ export interface SvgPathCommand {
 // Constants
 // ---------------------------------------------------------------------------
 
+/**
+ * Control points of PowerPoint's morph easing curve, `[x1, y1, x2, y2]`.
+ * Anything that samples the curve itself (the stepped crop track) reads these,
+ * so the CSS string below and the sampled keyframes cannot drift apart.
+ */
+export const MORPH_EASING_POINTS: readonly [number, number, number, number] = [0.4, 0, 0.2, 1];
+
 /** PowerPoint's morph transition uses a specific cubic-bezier easing. */
-export const MORPH_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
+export const MORPH_EASING = `cubic-bezier(${MORPH_EASING_POINTS.join(', ')})`;
 
 /**
  * The curve a matched pair DISSOLVES on, which is not the curve it travels on.

@@ -198,4 +198,60 @@ describe('resolveMorphOverlayArrivals', () => {
 
 		expect([...lifted]).toStrictEqual([]);
 	});
+
+	it('lifts a dissolving-in pair the incoming slide stacks above a travelling ghost', () => {
+		// A title sits at the BOTTOM of the outgoing stack and near the top of
+		// the incoming one, while a full-slide photo (same name, same image,
+		// every id different) slides in from off-stage left and a full-slide
+		// overlay glides in from the right. The merged order anchors the pair
+		// to its outgoing layer, where the ghosts are above it - but mid-flight
+		// those ghosts composite at their counterparts' INCOMING layer, below
+		// the title, so the title must lift to stay visible for the whole
+		// morph.
+		const photo = {
+			from: box('a-photo', -1279, 0, 1279, 720),
+			to: box('b-photo', 1, 0, 1279, 720),
+		};
+		const title = {
+			from: box('a-title', 219, 262, 841, 195),
+			to: box('b-title', 219, 262, 841, 195),
+		};
+		const outgoing = [title.from, photo.from];
+		const incoming = [photo.to, title.to];
+
+		const lifted = resolveMorphOverlayArrivals(
+			outgoing,
+			incoming,
+			[pair(photo.from, photo.to), pair(title.from, title.to)],
+			new Set(['a-photo']),
+			new Set(['b-title']),
+		);
+
+		expect([...lifted]).toStrictEqual(['b-title']);
+	});
+
+	it('leaves an arrival the incoming slide stacks below a travelling ghost', () => {
+		// Mirror image: the incoming slide puts the title UNDER the photo, so
+		// the ghost legitimately passes over it and no lift is warranted.
+		const photo = {
+			from: box('a-photo', -1279, 0, 1279, 720),
+			to: box('b-photo', 1, 0, 1279, 720),
+		};
+		const title = {
+			from: box('a-title', 219, 262, 841, 195),
+			to: box('b-title', 219, 262, 841, 195),
+		};
+		const outgoing = [title.from, photo.from];
+		const incoming = [title.to, photo.to];
+
+		const lifted = resolveMorphOverlayArrivals(
+			outgoing,
+			incoming,
+			[pair(photo.from, photo.to), pair(title.from, title.to)],
+			new Set(['a-photo']),
+			new Set(['b-title']),
+		);
+
+		expect([...lifted]).toStrictEqual([]);
+	});
 });

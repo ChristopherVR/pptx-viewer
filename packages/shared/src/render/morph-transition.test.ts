@@ -27,6 +27,7 @@ import {
 	MORPH_FADE_OUT_HOLD_PERCENT,
 } from './morph-types';
 import type { MorphPair, RgbaColor, SvgPathCommand } from './morph-types';
+import { computeZOrderSwaps } from './morph-z-order';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -900,6 +901,124 @@ describe('generateMorphAnimations', () => {
 		expect(anims[0].keyframes).toContain('rotate(-45deg)');
 		expect(anims[0].keyframes).toContain('rotate(0deg)');
 		expect(anims[0].keyframes).not.toContain('rotate(315deg)');
+	});
+
+	it('animates a flip change through edge-on instead of snapping it', () => {
+		// A small photo is mirror-flipped and upside down; its grown counterpart
+		// on the next slide is upright. Stating one endpoint's flips on BOTH
+		// frames either flew an upright copy (losing the authored mirror) or
+		// snapped it at landing. Per-frame factors with a constant function
+		// list let CSS interpolate scaleX -1 -> 1 through 0, which is the
+		// edge-on card flip PowerPoint plays, while rotation runs its own arc
+		// alongside.
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({
+					id: 'a',
+					type: 'picture',
+					imagePath: 'ppt/media/photo.jpeg',
+					rotation: 183.5,
+					flipHorizontal: true,
+				}),
+				toElement: makeElement({
+					id: 'b',
+					type: 'picture',
+					imagePath: 'ppt/media/photo.jpeg',
+				}),
+			},
+		];
+		const anims = generateMorphAnimations(pairs, 1000);
+		const frames = anims[0].keyframes;
+		expect(frames).toContain('scaleX(-1)');
+		expect(frames).toContain('scaleX(1)');
+		// The unflipped axis stays explicit on both frames too, so the transform
+		// lists pair up and interpolate numerically rather than by matrix.
+		expect(frames.match(/scaleY\(1\)/gu)?.length).toBe(2);
+		expect(frames).toContain('rotate(-176.5deg)');
+		expect(frames).toContain('rotate(0deg)');
+
+		// The ghost mirrors the same journey in reverse.
+		const ghosts = generateMorphGhostAnimations(pairs, 1000, 0);
+		expect(ghosts[0].keyframes).toContain('scaleX(-1)');
+		expect(ghosts[0].keyframes).toContain('scaleX(1)');
+	});
+
+	it('keeps a shared flip stated on every frame', () => {
+		// Both endpoints mirrored horizontally: the factor must survive on both
+		// frames or the flight loses the authored mirror and snaps at the end.
+		const pairs: MorphPair[] = [
+			{
+				fromElement: makeElement({ id: 'a', type: 'shape', flipHorizontal: true }),
+				toElement: makeElement({ id: 'b', type: 'shape', flipHorizontal: true }),
+			},
+		];
+		const anims = generateMorphAnimations(pairs, 1000);
+		expect(anims[0].keyframes.match(/scaleX\(-1\)/gu)?.length).toBe(2);
+	});
+
+	it('steps an inert counterpart of a stacking swap together with the mover', () => {
+		// The outgoing slide stacks the photo UNDER a full-frame graphic and the
+		// incoming slide stacks it ABOVE; the graphic itself is visually
+		// unchanged (an inert pair). The z-index journey only works if BOTH
+		// sides of the flip are stepped together: skipping the inert half
+		// leaves it at its static (incoming) layer, where the DOM-order
+		// tie-break already favours the mover, and the swap renders
+		// immediately instead of at the animation midpoint.
+		const inertFrom = makeElement({
+			id: 'inert-a',
+			type: 'picture',
+			imagePath: 'ppt/media/g.png',
+			x: 345,
+			y: 65,
+			width: 590,
+			height: 590,
+		});
+		const inertTo = makeElement({
+			id: 'inert-b',
+			type: 'picture',
+			imagePath: 'ppt/media/g.png',
+			x: 345,
+			y: 65,
+			width: 590,
+			height: 590,
+		});
+		const moverFrom = makeElement({
+			id: 'a',
+			type: 'picture',
+			imagePath: 'ppt/media/p.jpeg',
+			x: 601,
+			y: 282,
+			width: 79,
+			height: 76,
+		});
+		const moverTo = makeElement({
+			id: 'b',
+			type: 'picture',
+			imagePath: 'ppt/media/p.jpeg',
+			x: 307,
+			y: 37,
+			width: 667,
+			height: 645,
+		});
+		const pairs: MorphPair[] = [
+			{ fromElement: inertFrom, toElement: inertTo },
+			{ fromElement: moverFrom, toElement: moverTo },
+		];
+		// Outgoing doc order: mover first (under the graphic); incoming: mover
+		// last (above it).
+		const zSwaps = computeZOrderSwaps(pairs, [moverFrom, inertFrom], [inertTo, moverTo]);
+		expect(zSwaps.get('b')).toStrictEqual({ from: 0, to: 1 });
+		expect(zSwaps.get('inert-b')).toStrictEqual({ from: 1, to: 0 });
+
+		const anims = generateMorphAnimations(pairs, 1000, 'object', new Set(), zSwaps);
+		const inertAnim = anims.find((a) => a.elementId === 'inert-b');
+		expect(inertAnim).toBeDefined();
+		expect(inertAnim!.keyframes).toContain('z-index: 1');
+		expect(inertAnim!.keyframes).toContain('z-index: 0');
+		expect(inertAnim!.keyframes).not.toContain('transform');
+		const moverAnim = anims.find((a) => a.elementId === 'b');
+		expect(moverAnim!.keyframes).toContain('z-index: 0');
+		expect(moverAnim!.keyframes).toContain('z-index: 1');
 	});
 
 	it('keeps a short forward turn untouched', () => {

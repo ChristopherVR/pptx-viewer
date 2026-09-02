@@ -426,6 +426,9 @@ describe('resolveTransitionDurationMs', () => {
 
 	it('keeps the morph default when neither a duration nor a speed is authored', () => {
 		expect(resolveTransitionDurationMs({ type: 'morph' })).toBe(DEFAULT_MORPH_DURATION_MS);
+		// Desktop PowerPoint plays a Morph that declares nothing at 0.5s (its
+		// Duration box reads 0.50 for such slides).
+		expect(DEFAULT_MORPH_DURATION_MS).toBe(500);
 	});
 });
 

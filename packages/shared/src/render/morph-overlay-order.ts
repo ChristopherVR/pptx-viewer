@@ -17,7 +17,10 @@
  * at the end instead of cross-dissolving with the old.
  *
  * This module decides which incoming shapes have to be lifted into the overlay
- * as well, by ranking both slides' shapes in one merged z-order.
+ * as well, by ranking both slides' shapes in one merged z-order and - because
+ * a travelling ghost composites at the layer the INCOMING slide gives its
+ * counterpart, not at the layer the outgoing slide gave the pair - by the
+ * incoming slide's own stacking too.
  *
  * @module render/morph-overlay-order
  */
@@ -158,12 +161,29 @@ export function resolveMorphOverlayArrivals(
 	const rank = buildMorphMergedOrder(outgoing, incoming, pairs);
 	const matched = new Set(pairs.map((pair) => pair.toElement.id));
 	const counterpart = new Map(pairs.map((pair) => [pair.fromElement.id, pair.toElement]));
+	const incomingIndex = new Map(incoming.map((element, index) => [element.id, index]));
 	const ghosts = outgoing
 		.filter((element) => holdingGhostIds.has(element.id))
-		.map((element) => ({
-			rank: rank.get(element.id) ?? 0,
-			box: travelledBox(element, counterpart.get(element.id)),
-		}));
+		.map((element) => {
+			const twin = counterpart.get(element.id);
+			return {
+				rank: rank.get(element.id) ?? 0,
+				// Mid-flight a ghost IS its counterpart, so it composites at the
+				// layer the INCOMING slide gives that counterpart - which is not
+				// always where the outgoing slide stacked the pair. A title that
+				// sits at the bottom of the outgoing stack and near the top of
+				// the incoming one must stay above the sliding photo and overlay
+				// for the whole morph: the merged order (which anchors a pair to
+				// its outgoing layer) must not be the only voice here, or the
+				// arrival dissolves in underneath the travelling ghost and pops
+				// when the overlay comes down.
+				incomingRank:
+					twin === undefined
+						? Number.POSITIVE_INFINITY
+						: (incomingIndex.get(twin.id) ?? Number.POSITIVE_INFINITY),
+				box: travelledBox(element, twin),
+			};
+		});
 
 	const lifted = new Set<string>();
 	for (const element of incoming) {
@@ -171,8 +191,14 @@ export function resolveMorphOverlayArrivals(
 			continue;
 		}
 		const mine = rank.get(element.id) ?? 0;
+		const mineIncoming = incomingIndex.get(element.id) ?? Number.NEGATIVE_INFINITY;
 		const box = travelledBox(element);
-		if (ghosts.some((ghost) => ghost.rank < mine && boxesOverlap(ghost.box, box))) {
+		if (
+			ghosts.some(
+				(ghost) =>
+					boxesOverlap(ghost.box, box) && (ghost.rank < mine || ghost.incomingRank < mineIncoming),
+			)
+		) {
 			lifted.add(element.id);
 		}
 	}

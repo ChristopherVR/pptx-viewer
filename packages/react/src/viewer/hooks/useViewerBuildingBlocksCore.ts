@@ -152,6 +152,7 @@ export function useViewerBuildingBlocksCore(
 		usePresentationSetup({
 			mode,
 			slides,
+			templateElementsBySlideId,
 			visibleSlideIndexes,
 			endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
 			// File > Options > Advanced > "Prompt to keep ink annotations when

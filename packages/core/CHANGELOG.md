@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.3.0) - 2026-09-02
+
+### Features
+
+- **core:** Master/layout CRUD, legacy comment threading, extended ppaction verbs (by @ChristopherVR) ([033b024](https://github.com/ChristopherVR/pptx-viewer/commit/033b024a70d041cf884aafb47dbc35e9d2ed10f6))
+
 ## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.2.0) - 2026-09-02
 
 ### Features

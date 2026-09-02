@@ -1,5 +1,5 @@
 /**
- * Appearance and media heuristics for the weaker morph matching passes.
+ * The weaker morph matching passes.
  *
  * PowerPoint's by-object matcher does not stop at explicit identity
  * (`!!` names, `a16:creationId`): real decks show it also pairs a picture
@@ -12,7 +12,9 @@
  * colours and sizes) keeps falling through to proximity.
  *
  * Everything here is pure; the pass bookkeeping (used-element sets) is owned
- * by `morph-matching`, which calls into this module one-way.
+ * by `morph-matching`, which calls into this module one-way. The shared
+ * evidence predicates live in `morph-predicates`, and the same-media pass's
+ * minimum-cost solver in `morph-media-assignment`.
  *
  * @module render/morph-heuristics
  */
@@ -20,142 +22,17 @@
 import type { GroupPptxElement, PptxElement } from 'pptx-viewer-core';
 
 import { correspondingChildren } from './morph-flatten';
-import { getElementMorphName } from './morph-name';
+import { minCostMediaAssignment } from './morph-media-assignment';
+import type { MediaCandidate } from './morph-media-assignment';
+import {
+	appearanceSignature,
+	centreDistance,
+	conflictingMorphNames,
+	differentText,
+	hasDeclaredPaint,
+	sameMediaPicture,
+} from './morph-predicates';
 import type { MorphPair } from './morph-types';
-
-/** Depth cap for the recursive text read; real decks never nest this far. */
-const TEXT_MAX_DEPTH = 8;
-
-/**
- * Everything an element WRITES, including the text of its descendants.
- *
- * A group paints nothing itself - all of its words live in its children - so
- * reading only `element.text` reports every group as wordless and lets two
- * groups with nothing in common look interchangeable (issue #144: a wheel
- * slide's centre panel paired with a detail slide's callout box and glided
- * across the slide, "drifting text").
- */
-function elementText(element: PptxElement, depth = 0): string {
-	const own = (element as { text?: string }).text ?? '';
-	const children = (element as { children?: PptxElement[] }).children;
-	if (!children || depth >= TEXT_MAX_DEPTH) {
-		return own;
-	}
-	let text = own;
-	for (const child of children) {
-		text += ` ${elementText(child, depth + 1)}`;
-	}
-	return text;
-}
-
-/**
- * Whether two elements both carry text, and carry DIFFERENT text.
- *
- * Used to veto a purely positional or appearance-based match:
- * same-place-different-words is the signature of a rebuilt panel, not of one
- * object that moved. Whitespace is normalised so a reflowed line break does
- * not read as a different string.
- */
-export function differentText(a: PptxElement, b: PptxElement): boolean {
-	const textOf = (element: PptxElement): string =>
-		elementText(element).replace(/\s+/gu, ' ').trim();
-	const fromText = textOf(a);
-	const toText = textOf(b);
-	return fromText !== '' && toText !== '' && fromText !== toText;
-}
-
-/**
- * Whether two elements both carry an explicit `!!` morph name and those names
- * DIFFER.
- *
- * The `!!` prefix is the author telling PowerPoint which shapes are the same
- * object across slides, so two different `!!` names are a statement that these
- * two are NOT (pass 1 already paired every side that agreed). Letting such a
- * pair fall through to a weaker signal lets an off-canvas box fly in from
- * off-stage - the "mystery box" of issue #144. Mirrors the `a16:creationId`
- * rule in pass 2b: evidence of identity that disagrees is evidence of
- * difference.
- */
-export function conflictingMorphNames(a: PptxElement, b: PptxElement): boolean {
-	const fromName = getElementMorphName(a);
-	if (!fromName) {
-		return false;
-	}
-	const toName = getElementMorphName(b);
-	return Boolean(toName) && toName !== fromName;
-}
-
-/** The media part an image/picture element paints (path, else data URL). */
-function mediaIdentity(el: PptxElement): string | undefined {
-	const props = el as { imagePath?: string; imageData?: string };
-	return props.imagePath ?? props.imageData ?? undefined;
-}
-
-/** Euclidean distance between two elements' top-left corners (slide space). */
-function centreDistance(a: PptxElement, b: PptxElement): number {
-	const dx = a.x - b.x;
-	const dy = a.y - b.y;
-	return Math.sqrt(dx * dx + dy * dy);
-}
-
-/** Whether two elements are the same kind of picture painting the same media. */
-function sameMediaPicture(a: PptxElement, b: PptxElement): boolean {
-	if (a.type !== 'picture' && a.type !== 'image') {
-		return false;
-	}
-	if (b.type !== a.type) {
-		return false;
-	}
-	if (conflictingMorphNames(a, b)) {
-		return false;
-	}
-	const aMedia = mediaIdentity(a);
-	const bMedia = mediaIdentity(b);
-	return Boolean(aMedia) && aMedia === bMedia;
-}
-
-/** The `shapeStyle` paint fields that decide what an element looks like. */
-const APPEARANCE_KEYS = [
-	'fillMode',
-	'fillColor',
-	'fillOpacity',
-	'strokeColor',
-	'strokeWidth',
-	'strokeOpacity',
-	'strokeDash',
-] as const;
-
-/**
- * Whether the element DECLARES paint (an explicit fill or stroke). The twin
- * pass requires this: two default, unstyled shapes are interchangeable
- * background debris on any slide, and pairing them is how off-stage boxes
- * come flying in (the "mystery box" class of bug). A shape whose author
- * picked a fill and a line and then moved it is a deliberate object.
- */
-function hasDeclaredPaint(el: PptxElement): boolean {
-	const style = (el as { shapeStyle?: Record<string, unknown> }).shapeStyle;
-	if (!style) {
-		return false;
-	}
-	return APPEARANCE_KEYS.some((key) => style[key] !== undefined);
-}
-
-/**
- * A canonical string for everything an element LOOKS like (discriminant,
- * geometry preset, resolved fill/stroke paint, media). Two elements with
- * equal signatures are visually interchangeable apart from where they sit.
- */
-export function appearanceSignature(el: PptxElement): string {
-	const style = (el as { shapeStyle?: Record<string, unknown> }).shapeStyle;
-	const parts: string[] = [el.type, (el as { shapeType?: string }).shapeType ?? ''];
-	if (style) {
-		for (const key of APPEARANCE_KEYS) {
-			parts.push(style[key] === undefined ? '' : String(style[key]));
-		}
-	}
-	parts.push(mediaIdentity(el) ?? '');
-	return parts.join('|');
-}
 
 /**
  * Pass: pair pictures that paint the SAME media part, even when every id - and
@@ -167,11 +44,17 @@ export function appearanceSignature(el: PptxElement): string {
  * auto-named differently on each slide ("Picture 3" on one, "Picture 7" on
  * the other); pairing by media is what makes it glide instead of fading in.
  *
- * When several outgoing pictures share one media part, the author's Selection
- * Pane name outranks distance, and the nearest candidate wins the rest -
- * which keeps two same-named thumbnails parked at opposite edges from
- * CROSS-pairing (each thumbnail morphs into its nearest on-slide copy, not
- * its neighbour's).
+ * When MANY pictures share one media part the choice is global, not greedy.
+ * A staged artwork can be a base plus several cropped tiles, all the same
+ * media, several PARKED ON EXACTLY THE SAME CORNER - and a uniform slide-up
+ * shift leaves alternative bijections whose TOTAL travel equals the true one,
+ * so neither nearest-first greedy nor cardinality-first augmenting paths can
+ * tell them apart. The pass therefore runs a minimum-cost assignment
+ * (Hungarian, see `morph-media-assignment`) over every legal pairing edge,
+ * where an edge's cost ranks the same preferences pair by pair: same
+ * Selection Pane name beats unnamed regardless of distance, nearer beats
+ * farther, an equally reachable box of the same size beats a mismatched one,
+ * and input order breaks whatever ties remain.
  */
 export function matchSameMedia(
 	fromElements: readonly PptxElement[],
@@ -179,29 +62,50 @@ export function matchSameMedia(
 	usedFrom: Set<string>,
 	usedTo: Set<string>,
 ): MorphPair[] {
-	const pairs: MorphPair[] = [];
-	for (const fromEl of fromElements) {
+	const candidatesOf = new Map<string, MediaCandidate[]>();
+	for (let i = 0; i < fromElements.length; i++) {
+		const fromEl = fromElements[i];
 		if (usedFrom.has(fromEl.id)) {
 			continue;
 		}
 		const fromName = fromEl.name?.trim();
-		let best: { to: PptxElement; named: boolean; dist: number } | undefined;
-		for (const toEl of toElements) {
+		const candidates: MediaCandidate[] = [];
+		for (let j = 0; j < toElements.length; j++) {
+			const toEl = toElements[j];
 			if (usedTo.has(toEl.id) || !sameMediaPicture(fromEl, toEl)) {
 				continue;
 			}
-			const named = Boolean(fromName) && toEl.name?.trim() === fromName;
-			const dist = centreDistance(fromEl, toEl);
-			const better =
-				best === undefined || (named && !best.named) || (named === best.named && dist < best.dist);
-			if (better) {
-				best = { to: toEl, named, dist };
-			}
+			candidates.push({
+				to: toEl,
+				named: Boolean(fromName) && toEl.name?.trim() === fromName,
+				dist: centreDistance(fromEl, toEl),
+				sizeDelta: Math.abs(toEl.width - fromEl.width) + Math.abs(toEl.height - fromEl.height),
+				toIndex: j,
+			});
 		}
-		if (best) {
-			pairs.push({ fromElement: fromEl, toElement: best.to });
+		if (candidates.length > 0) {
+			candidatesOf.set(fromEl.id, candidates);
+		}
+	}
+	if (candidatesOf.size === 0) {
+		return [];
+	}
+
+	const assignment = minCostMediaAssignment(candidatesOf);
+
+	const toById = new Map(toElements.map((el) => [el.id, el] as const));
+	const pairs: MorphPair[] = [];
+	for (const fromEl of fromElements) {
+		const candidates = candidatesOf.get(fromEl.id);
+		const col = assignment.get(fromEl.id);
+		if (!candidates || col === undefined || usedFrom.has(fromEl.id)) {
+			continue;
+		}
+		const toEl = toById.get(candidates[col].to.id);
+		if (toEl) {
+			pairs.push({ fromElement: fromEl, toElement: toEl });
 			usedFrom.add(fromEl.id);
-			usedTo.add(best.to.id);
+			usedTo.add(toEl.id);
 		}
 	}
 	return pairs;
@@ -234,6 +138,69 @@ function sameSizedTwinCasts(a: PptxElement, b: PptxElement): boolean {
 		return false;
 	}
 	return correspondingChildren(aChildren, bChildren) !== undefined;
+}
+
+/**
+ * Pass: pair TEXT elements that carry the same Selection Pane NAME, the same
+ * box size and the same words, however far apart they sit.
+ *
+ * A headline parked far off-stage on one slide and re-landed on-screen on the
+ * next is the same object to PowerPoint and the reader: same pane name,
+ * byte-identical box, identical words, different `a16:creationId`. No other
+ * pass can take it: media is pictures-only, the identical-twin pass demands
+ * DECLARED paint which a text box never has, and proximity caps at 300px - so
+ * the headline dissolved out and faded in instead of sliding with the rest of
+ * its panel. Name + box + words together are as strong an identity statement
+ * as paint is for shapes; a rebuilt headline says different words and stays
+ * excluded by the words veto.
+ */
+export function matchNamedTextTwins(
+	fromElements: readonly PptxElement[],
+	toElements: readonly PptxElement[],
+	usedFrom: Set<string>,
+	usedTo: Set<string>,
+): MorphPair[] {
+	const pairs: MorphPair[] = [];
+	for (const fromEl of fromElements) {
+		if (usedFrom.has(fromEl.id) || fromEl.type !== 'text') {
+			continue;
+		}
+		const fromName = fromEl.name?.trim();
+		if (!fromName) {
+			continue;
+		}
+		// Equal names cannot conflict, so the `!!` veto has nothing to add here.
+		// Several twins may carry one name (a layout's "Title 1" on every
+		// panel), so take the NEAREST, as the proximity pass would.
+		let best: { toEl: PptxElement; dist: number } | undefined;
+		for (const toEl of toElements) {
+			if (usedTo.has(toEl.id) || toEl.type !== 'text') {
+				continue;
+			}
+			if (toEl.name?.trim() !== fromName) {
+				continue;
+			}
+			if (
+				Math.abs(fromEl.width - toEl.width) > 0.5 ||
+				Math.abs(fromEl.height - toEl.height) > 0.5
+			) {
+				continue;
+			}
+			if (differentText(fromEl, toEl)) {
+				continue;
+			}
+			const dist = centreDistance(fromEl, toEl);
+			if (!best || dist < best.dist) {
+				best = { toEl, dist };
+			}
+		}
+		if (best) {
+			pairs.push({ fromElement: fromEl, toElement: best.toEl });
+			usedFrom.add(fromEl.id);
+			usedTo.add(best.toEl.id);
+		}
+	}
+	return pairs;
 }
 
 /**
@@ -283,7 +250,7 @@ export function matchGroupTwins(
  * they sit. The distance-agnostic counterpart of the proximity pass: for two
  * shapes that are indistinguishable apart from where they are, interpolating
  * the box is what PowerPoint does, and what a morph is for. Unstyled shapes
- * carry no such statement and stay unmatched (see {@link hasDeclaredPaint}).
+ * carry no such statement and stay unmatched (see `hasDeclaredPaint`).
  */
 export function matchIdenticalTwins(
 	fromElements: readonly PptxElement[],

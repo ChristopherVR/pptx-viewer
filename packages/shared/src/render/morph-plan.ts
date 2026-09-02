@@ -177,6 +177,18 @@ export function morphOptionToMode(option: string | undefined): MorphMode {
 	return 'object';
 }
 
+/** Per-binding knobs for {@link buildMorphTransitionPlan}. */
+export interface MorphPlanOptions {
+	/**
+	 * The z-index the live stage gives the incoming slide's FIRST top-level
+	 * element. Stacking-order swaps ride z-index journeys written in the
+	 * stage's real z space, so a binding that paints master/layout shapes
+	 * beneath the slide (React's presentation stage) passes their count;
+	 * a stage that starts the slide at 0 leaves it out.
+	 */
+	readonly zIndexBase?: number;
+}
+
 /**
  * Build the render plan for morphing `fromSlide` into `toSlide`.
  *
@@ -188,6 +200,7 @@ export function buildMorphTransitionPlan(
 	toSlide: PptxSlide | undefined,
 	durationMs: number,
 	mode: MorphMode = 'object',
+	options: MorphPlanOptions = {},
 ): MorphTransitionPlan | undefined {
 	if (!fromSlide || !toSlide) {
 		return undefined;
@@ -201,7 +214,13 @@ export function buildMorphTransitionPlan(
 		return undefined;
 	}
 
-	const animations = generateFullMorphTransition(fromSlide, toSlide, durationMs, mode);
+	const animations = generateFullMorphTransition(
+		fromSlide,
+		toSlide,
+		durationMs,
+		mode,
+		options.zIndexBase ?? 0,
+	);
 
 	// The overlay paints the outgoing slide as a moving copy of itself, in the
 	// slide's own document order so its z-stacking is preserved:

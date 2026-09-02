@@ -40,6 +40,8 @@ import {
 	MORPH_FADE_OUT_END_PERCENT,
 	MORPH_FADE_OUT_HOLD_PERCENT,
 } from './morph-types';
+import type { ZOrderJourney } from './morph-z-order';
+import { computeZOrderSwaps } from './morph-z-order';
 
 // ---------------------------------------------------------------------------
 // Build colour/stroke interpolation keyframes
@@ -373,6 +375,8 @@ function crossfadeIncomingMayFadeIn(element: PptxElement): boolean {
  *   {@link resolveMorphGhostIds}). A pair whose ghost is NOT painted has no
  *   stand-in above it, so this half must stay visible. Defaults to "all", the
  *   behaviour before the ghost set existed.
+ * @param zSwaps - Incoming id -> z-index journey for stacking-order swaps (see
+ *   {@link computeZOrderSwaps}). The track rides the same shorthand.
  * @returns An array of animation style descriptors for each pair.
  */
 export function generateMorphAnimations(
@@ -380,6 +384,7 @@ export function generateMorphAnimations(
 	durationMs: number,
 	_mode: MorphMode = 'object',
 	ghostIds?: ReadonlySet<string>,
+	zSwaps?: ReadonlyMap<string, ZOrderJourney>,
 ): MorphAnimationStyle[] {
 	const animations: MorphAnimationStyle[] = [];
 
@@ -390,7 +395,32 @@ export function generateMorphAnimations(
 		// element already looks exactly as it should, for the whole morph. Leaving
 		// it alone (rather than animating it from itself to itself) also keeps it
 		// out of the binding's animation state, so nothing has to unwind at the end.
+		//
+		// EXCEPT when the pair's stacking order swaps: a z-index journey only
+		// works if BOTH sides of the flip are stepped together. The swapping
+		// counterpart may be this very inert pair - skipping it leaves it at
+		// its static (incoming) layer, and since an omitted z-index loses the
+		// DOM-order tie-break to an animated one, the flip renders as an
+		// immediate swap instead of a mid-flight one. Emit the journey alone.
 		if (!ghosted && isInertMorphPair(fromElement, toElement)) {
+			const inertZSwap = zSwaps?.get(toElement.id);
+			if (!inertZSwap) {
+				continue;
+			}
+			const inertName = `pptx-morph-z-${index}-${toElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
+			animations.push({
+				elementId: toElement.id,
+				animation: `${inertName} ${durationMs}ms ${MORPH_EASING} forwards`,
+				keyframes: `
+@keyframes ${inertName} {
+\tfrom {
+\t\tz-index: ${inertZSwap.from};
+\t}
+\tto {
+\t\tz-index: ${inertZSwap.to};
+\t}
+}`,
+			});
 			continue;
 		}
 		const safeName = `pptx-morph-${index}-${toElement.id.replace(/[^a-zA-Z0-9]/gu, '')}`;
@@ -423,16 +453,29 @@ export function generateMorphAnimations(
 		// rotates its ring graphic per slide so the arrow points at the selected
 		// wedge; interpolating only the DELTA played the ring at `rotate(dr)->0`
 		// instead of `rotate(from)->rotate(to)`, sweeping giant arcs across the
-		// slide. Flips use the incoming element's, stated after the rotation to
-		// match the static order (right-to-left: flip first, then rotate).
-		// Animate FROM an equivalent start angle that reaches the element's own
-		// authored rotation over the shorter arc; the `to` frame must keep the
-		// authored value so the element lands exactly on its static transform.
+		// slide.
+		//
+		// The ROTATION must sit LEFT of the scale: CSS applies the list
+		// right-to-left, so `scale(sx, sy) rotate(θ)` scales the rotated shape
+		// along the PARENT's axes - a shear for any rotated pair whose sx≠sy
+		// (a rotated sliver widening 11x reads as stretch + skew), while
+		// `rotate(θ) scale(sx, sy)` scales the box along its OWN axes, which is
+		// the resize PowerPoint animates. A picture's crop track transforms
+		// the img inside that same local frame; where the frame scales too the
+		// track is sampled against this scale (see `morph-image-crop`), since
+		// two independently eased tracks would not compose to a plain reveal.
+		//
+		// Flips are stated PER FRAME, each endpoint carrying ITS OWN element's
+		// flags: when they differ (a small mirror-flipped photo growing into an
+		// upright one), CSS interpolates the scale arguments numerically through
+		// zero, exactly the edge-on card flip PowerPoint plays. The factors are
+		// always emitted (even when +1) so both frames share one function list
+		// and interpolate numerically instead of falling back to matrix
+		// decomposition.
 		const toRot = toElement.rotation ?? 0;
 		const fromRot = inSlot ? toRot : shortestRotationTarget(toRot, fromElement.rotation ?? 0);
-		const flips = `${toElement.flipHorizontal ? ' scaleX(-1)' : ''}${
-			toElement.flipVertical ? ' scaleY(-1)' : ''
-		}`;
+		const fromFlips = flipFactors(fromElement);
+		const toFlips = flipFactors(toElement);
 
 		// A GHOSTED inert pair is painted twice: its ghost is a pixel-identical
 		// copy sitting in the overlay directly above it. For an opaque element
@@ -454,11 +497,23 @@ export function generateMorphAnimations(
 		// out of this block and rides a second animation, so the journey and the
 		// dissolve can follow their own measured curves (see the ghost half).
 		const fromProps: string[] = [
-			`\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${fromRot}deg)${flips};`,
+			`\t\ttransform: translate(${dx}px, ${dy}px) rotate(${fromRot}deg) scale(${sx}, ${sy})${fromFlips};`,
 		];
 		const toProps: string[] = [
-			`\t\ttransform: translate(0, 0) scale(1, 1) rotate(${toRot}deg)${flips};`,
+			`\t\ttransform: translate(0, 0) rotate(${toRot}deg) scale(1, 1)${toFlips};`,
 		];
+		// A stacking-order swap rides the same journey: z-index interpolates as
+		// an integer and rounds on the EASED progress, so the browser steps
+		// front <-> behind when the motion is half travelled (about a third of
+		// the way through the wall clock on the morph curve), while both
+		// pictures are mid-flight (PowerPoint interpolates z-order
+		// continuously; a stepped swap synced to the motion is the closest a
+		// discrete layer model gets).
+		const zSwap = zSwaps?.get(toElement.id);
+		if (zSwap) {
+			fromProps.push(`\t\tz-index: ${zSwap.from};`);
+			toProps.push(`\t\tz-index: ${zSwap.to};`);
+		}
 		if (!crossfadesIn) {
 			fromProps.push(`\t\topacity: ${inert ? 0 : fromOpacity};`);
 			toProps.push(`\t\topacity: ${inert ? 0 : toOpacity};`);
@@ -586,12 +641,12 @@ export function generateMorphGhostAnimations(
 		const sx = inSlot ? 1 : Math.max(toElement.width, 1) / Math.max(fromElement.width, 1);
 		const sy = inSlot ? 1 : Math.max(toElement.height, 1) / Math.max(fromElement.height, 1);
 		// The ghost starts on its own authored rotation, so the SHORTEST-arc
-		// adjustment goes on the target angle here (mirror of the incoming half).
+		// adjustment goes on the target angle here (mirror of the incoming
+		// half). Flips are per-frame, as in {@link generateMorphAnimations}.
 		const fromRot = fromElement.rotation ?? 0;
 		const toRot = inSlot ? fromRot : shortestRotationTarget(fromRot, toElement.rotation ?? 0);
-		const flips = `${fromElement.flipHorizontal ? ' scaleX(-1)' : ''}${
-			fromElement.flipVertical ? ' scaleY(-1)' : ''
-		}`;
+		const fromFlips = flipFactors(fromElement);
+		const toFlips = flipFactors(toElement);
 		// A dissolve and a journey are two different curves, so when the ghost does
 		// both they ride two animations: the transform keeps {@link MORPH_EASING},
 		// which its live counterpart also travels on (a single easing for both
@@ -602,13 +657,13 @@ export function generateMorphGhostAnimations(
 @keyframes ${safeName} {
 \tfrom {
 \t\ttransform-origin: center;
-\t\ttransform: translate(0, 0) scale(1, 1) rotate(${fromRot}deg)${flips};${
+\t\ttransform: translate(0, 0) rotate(${fromRot}deg) scale(1, 1)${fromFlips};${
 			fadesOut ? '' : `\n\t\topacity: ${opacity};`
 		}
 \t}
 \tto {
 \t\ttransform-origin: center;
-\t\ttransform: translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${toRot}deg)${flips};${
+\t\ttransform: translate(${dx}px, ${dy}px) rotate(${toRot}deg) scale(${sx}, ${sy})${toFlips};${
 			fadesOut ? '' : `\n\t\topacity: ${opacity};`
 		}
 \t}
@@ -684,6 +739,21 @@ function staticTransformSuffix(el: PptxElement): string {
 	return ` rotate(${rot}deg)${el.flipHorizontal ? ' scaleX(-1)' : ''}${
 		el.flipVertical ? ' scaleY(-1)' : ''
 	}`;
+}
+
+/**
+ * The flip factors a journey frame must carry for this element, ALWAYS emitted
+ * (even as +1) so paired keyframes share one transform function list and CSS
+ * interpolates them numerically.
+ *
+ * Interpolating a differing flag then runs the scale argument through zero,
+ * which is precisely the edge-on card flip PowerPoint plays when one slide's
+ * picture is mirrored and its counterpart is not. Stating only one endpoint's
+ * flags (the old behaviour) snapped the mirror at the flight's start instead
+ * of animating it.
+ */
+function flipFactors(el: PptxElement): string {
+	return ` scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})`;
 }
 
 /**
@@ -835,6 +905,9 @@ export function generateTextMorphAnimations(
  * @param toSlide - The incoming slide.
  * @param durationMs - Animation duration in milliseconds.
  * @param mode - Morph granularity: "object", "word", or "character".
+ * @param zIndexBase - The z-index the live stage gives the incoming slide's
+ *   first top-level element (see {@link computeZOrderSwaps}); a binding that
+ *   paints master/layout shapes beneath the slide passes their count.
  * @returns A complete array of animation style descriptors for the transition.
  */
 export function generateFullMorphTransition(
@@ -842,6 +915,7 @@ export function generateFullMorphTransition(
 	toSlide: PptxSlide,
 	durationMs: number,
 	mode: MorphMode = 'object',
+	zIndexBase = 0,
 ): MorphAnimationStyle[] {
 	const matchResult = matchMorphElementsFull(fromSlide, toSlide);
 	const allAnimations: MorphAnimationStyle[] = [];
@@ -850,13 +924,24 @@ export function generateFullMorphTransition(
 	// of a pair have to agree on it, since a hidden live element with no ghost
 	// above it is an invisible shape, and a ghost with a visible element under it
 	// is a double exposure.
-	const ghostIds = resolveMorphGhostIds(
-		flattenMorphElements(fromSlide.elements, toSlide.elements),
+	const flattenedFrom = flattenMorphElements(fromSlide.elements, toSlide.elements);
+	const ghostIds = resolveMorphGhostIds(flattenedFrom, matchResult.pairs);
+
+	// Stage-journeyed pairs whose stacking ORDER flips between the slides get a
+	// z-index journey in the stage's own z space, so the pass-behind happens
+	// mid-flight in sync with the motion instead of popping at frame 1: two
+	// same-named full-bleed pictures that swap stacking order must both be
+	// painted in front while they fly, never only at rest.
+	const zSwaps = computeZOrderSwaps(
 		matchResult.pairs,
+		flattenedFrom,
+		toSlide.elements,
+		ghostIds,
+		zIndexBase,
 	);
 
 	// Generate main element morph animations
-	const pairAnims = generateMorphAnimations(matchResult.pairs, durationMs, mode, ghostIds);
+	const pairAnims = generateMorphAnimations(matchResult.pairs, durationMs, mode, ghostIds, zSwaps);
 	allAnimations.push(...pairAnims);
 
 	// Shape-geometry morph: for matched pairs whose shape outline changes

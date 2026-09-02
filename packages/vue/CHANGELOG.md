@@ -7,6 +7,41 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.4.0) - 2026-09-02
+
+### Features
+
+- **shared:** Animate morph stacking, flips, and crop reveal like PowerPoint (by @nikko82) ([a9bba84](https://github.com/ChristopherVR/pptx-viewer/commit/a9bba842827274a9dc7cdb0b8934fe7509b560e6))
+- **shared:** Minimum-cost media pairing and named text twins for morphs (by @nikko82) ([3abda95](https://github.com/ChristopherVR/pptx-viewer/commit/3abda95e72133e1fe886f2bc98d76a5c23a645c6))
+- **shared:** Step an inert stacking-swap counterpart together with the mover (by @nikko82) ([e4f9438](https://github.com/ChristopherVR/pptx-viewer/commit/e4f9438771bcec15c78ebba5eb3b4e2c173152e0))
+- **react,vue,angular,svelte,vanilla:** Replay the leaving slide's transition on backward steps (by @nikko82) ([e23838e](https://github.com/ChristopherVR/pptx-viewer/commit/e23838ebc6253c413fe87cd75e96244311349214))
+- **shared:** I18n keys for the wave-4 parity UI (by @ChristopherVR) ([6cc9a86](https://github.com/ChristopherVR/pptx-viewer/commit/6cc9a8646c3f6174ec70928e00137412fea1778a))
+- **core:** Master/layout CRUD, legacy comment threading, extended ppaction verbs (by @ChristopherVR) ([033b024](https://github.com/ChristopherVR/pptx-viewer/commit/033b024a70d041cf884aafb47dbc35e9d2ed10f6))
+- **shared:** Master-view CRUD, recent colours, action options, handout-master print chrome (by @ChristopherVR) ([3cc928f](https://github.com/ChristopherVR/pptx-viewer/commit/3cc928fea1e07293ca24faabcf6058b0c43713b2))
+- **vue:** Wave-4 parity UI (chart subtypes, read-only banner, compat toasts, rescale, sldRg) (by @ChristopherVR) ([58ac9f4](https://github.com/ChristopherVR/pptx-viewer/commit/58ac9f4b0f642fe089e82300c4a5fe53eb687df2))
+- **shared:** Show entry slide, compat toast placement, master-view failure copy (by @ChristopherVR) ([79a42ba](https://github.com/ChristopherVR/pptx-viewer/commit/79a42ba93d0fd76d4fb509710c14eae22609c5de))
+- **vue:** Wave-4 show entry, custom-show actions, master CRUD, mentions (by @ChristopherVR) ([e04c12f](https://github.com/ChristopherVR/pptx-viewer/commit/e04c12f6a2d5c0aec4bf3dd2531614b8f91bcee9))
+- **shared:** Resolve OLE action verbs against the clicked element (by @ChristopherVR) ([680c70c](https://github.com/ChristopherVR/pptx-viewer/commit/680c70c7d4cbb1f37d0c132b99544309e3563629))
+- **vue:** Recent-colours row under every picker and OLE verb actions (by @ChristopherVR) ([a8bb0fb](https://github.com/ChristopherVR/pptx-viewer/commit/a8bb0fb792bcf091d990cce82992348af3f4f9c7))
+- **shared:** Map F5 and Shift+F5 to the start-show actions (by @ChristopherVR) ([94852ed](https://github.com/ChristopherVR/pptx-viewer/commit/94852edbe44a6fb712e15dd8892ff4dcd1e9e7b0))
+- **vue:** Start the slide show on F5 and Shift+F5 (by @ChristopherVR) ([4de964c](https://github.com/ChristopherVR/pptx-viewer/commit/4de964c355a42a2ebe6bcffa82a2eae30fcdc482))
+
+### Bug Fixes
+
+- **shared:** Play an un-authored morph at PowerPoint's 0.5s fallback (by @nikko82) ([0a70ef2](https://github.com/ChristopherVR/pptx-viewer/commit/0a70ef2db656e830ad429e9fd0a6efeb43ff7bde))
+- **shared:** Close the open code-scanning findings at their root (by @ChristopherVR) ([455f853](https://github.com/ChristopherVR/pptx-viewer/commit/455f853f028ba1cb4142285558bbeef715d130d7))
+- **shared:** Write morph stacking-order journeys in the stage's z space (by @ChristopherVR) ([867b05b](https://github.com/ChristopherVR/pptx-viewer/commit/867b05b4e9bfea62361e7d1361ae4cb84787c191))
+- **shared:** Take the nearest named text twin and drop its dead name veto (by @ChristopherVR) ([c6e8062](https://github.com/ChristopherVR/pptx-viewer/commit/c6e8062919e9b9ccc1d1b18c4504270fd8138f51))
+- **shared:** Sample the morph crop track from the one easing definition (by @ChristopherVR) ([349e8bd](https://github.com/ChristopherVR/pptx-viewer/commit/349e8bd5eb1908077f3693e6ee4573cf88ad253c))
+
+### Refactor
+
+- **vue:** Route ppaction://media through the shared media toggle (by @ChristopherVR) ([4b4a50d](https://github.com/ChristopherVR/pptx-viewer/commit/4b4a50d6451c3c136f6408d82ef3ff63ee5454e3))
+
+### Testing
+
+- **shared:** Cover the morph media assignment solver (by @ChristopherVR) ([cbf671f](https://github.com/ChristopherVR/pptx-viewer/commit/cbf671f7a7a2037006f19ddaabc502211069ded5))
+
 ## [3.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.3.0) - 2026-09-02
 
 ### Features

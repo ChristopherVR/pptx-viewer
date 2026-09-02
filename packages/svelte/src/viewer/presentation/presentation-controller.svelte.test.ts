@@ -162,6 +162,21 @@ describe('presentationController (native-timing)', () => {
 		expect(controller.transition).toBeNull();
 	});
 
+	it('onSlideChange replays the leaving slide transition on a backward step', () => {
+		const deck = new Deck();
+		deck.slides = [slide('s1'), slide('s2', { transition: { type: 'morph', durationMs: 500 } })];
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate: () => {},
+		});
+
+		controller.onSlideChange(1, 0);
+		expect(controller.transition?.transition.type).toBe('morph');
+		expect(controller.transition?.outgoing?.id).toBe('s2');
+		expect(controller.transition?.incoming?.id).toBe('s1');
+	});
+
 	it('endTransition and stop drop the overlay', () => {
 		const deck = new Deck();
 		deck.slides = [slide('s1'), slide('s2', { transition: { type: 'fade', durationMs: 600 } })];

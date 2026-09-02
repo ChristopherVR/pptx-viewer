@@ -415,7 +415,10 @@ export class PresentationController {
 		this.playback.reset({ completed: nextIndex < previousIndex });
 		const slides = this.#deps.getSlides();
 		const incoming = slides[nextIndex];
-		const transition = incoming?.transition;
+		// Forward steps play the ENTERING slide's transition; a backward step
+		// replays the LEAVING slide's transition in reverse (a morph glides its
+		// shapes back to where they came from).
+		const transition = (nextIndex < previousIndex ? slides[previousIndex] : incoming)?.transition;
 		if (transition && transition.type && transition.type !== 'none') {
 			this.#transition = { outgoing: slides[previousIndex], incoming, transition };
 		} else {
