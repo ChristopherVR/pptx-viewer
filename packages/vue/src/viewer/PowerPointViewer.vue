@@ -1038,6 +1038,8 @@ const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElem
 		onEscape,
 		onGroup,
 		onUngroup,
+		presentFromBeginning: presentation.presentFromBeginning,
+		startPresenting: presentation.startPresenting,
 	});
 
 // -- Office-style ribbon wiring (RibbonToolbar <- React Toolbar.tsx) ----
