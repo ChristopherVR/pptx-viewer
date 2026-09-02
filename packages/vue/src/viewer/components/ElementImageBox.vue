@@ -6,8 +6,10 @@
  * effects.
  */
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
+import { isImageLikeElement } from 'pptx-viewer-core';
 import {
 	getComputedImageStyle,
+	getCropShapeClipPath,
 	getImageColorWashStyle,
 	getImageFitStyle,
 	getImageOverflow,
@@ -29,12 +31,25 @@ const props = defineProps<{
 	marked?: boolean;
 }>();
 
+// "Crop to Shape" (`element.cropShape`, the picture-format gallery, distinct
+// from `<a:srcRect>` rectangular cropping above): a CSS `clip-path` on the
+// stationary container. Shared's `getCropShapeClipPath` routes through the
+// same adjustment-aware preset cascade every shape uses, so `roundedRect` and
+// `star` render with their real geometry instead of a fixed approximation.
+// Vue had no crop-to-shape support at all before this.
+const cropShapeClip = computed<string | undefined>(() =>
+	isImageLikeElement(props.element)
+		? getCropShapeClipPath(props.element.cropShape, props.element.width, props.element.height)
+		: undefined,
+);
+
 // The clip is load-bearing, not cosmetic: a cropped picture is rendered by
 // scaling the source up and translating the cropped-away part out of the frame,
 // so without it the discarded region paints over its neighbours.
 const containerStyle = computed<CSSProperties>(() => ({
 	...getContainerStyle(props.element, props.zIndex),
 	overflow: getImageOverflow(props.element),
+	clipPath: cropShapeClip.value,
 }));
 const imageFitStyle = computed<CSSProperties>(
 	() => getImageFitStyle(props.element) as CSSProperties,

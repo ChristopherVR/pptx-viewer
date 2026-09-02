@@ -1,0 +1,129 @@
+// oxlint-disable react-hooks/rules-of-hooks
+import type { PptxSlide } from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
+import { ref } from 'vue';
+
+import type { UseAnimationPlaybackResult } from './useAnimationPlayback';
+import { usePresentationNavigation } from './usePresentationNavigation';
+import { usePresentationShowOrder } from './usePresentationShowOrder';
+
+function slide(id: string, overrides: Partial<PptxSlide> = {}): PptxSlide {
+	return { id, elements: [], ...overrides } as PptxSlide;
+}
+
+/** A playback stub whose builds are always already exhausted, so `next()` always falls through to slide navigation. */
+function fakePlayback(): UseAnimationPlaybackResult {
+	return {
+		presentationElementStates: ref(new Map()),
+		presentationKeyframesCss: ref(''),
+		interactiveTriggerShapeIds: ref(new Set()),
+		hoverTriggerShapeIds: ref(new Set()),
+		isComplete: ref(true),
+		seededCompleted: ref(false),
+		markNextEntryCompleted: vi.fn(),
+		advance: () => false,
+		reset: vi.fn(),
+		handleInteractiveShapeClick: () => false,
+		handleHoverStart: () => false,
+		handleHoverEnd: vi.fn(),
+		clearTimers: vi.fn(),
+	};
+}
+
+function setup(opts: {
+	slides: PptxSlide[];
+	loopContinuously?: boolean;
+	endWithBlackSlide?: boolean;
+	startIndex?: number;
+}) {
+	const playback = fakePlayback();
+	const showOrder = usePresentationShowOrder({ slides: () => opts.slides });
+	const requestClose = vi.fn();
+	const onSlideChange = vi.fn();
+	const nav = usePresentationNavigation({
+		slides: () => opts.slides,
+		startIndex: () => opts.startIndex ?? 0,
+		playback: () => playback,
+		showOrder,
+		endWithBlackSlide: () => opts.endWithBlackSlide ?? true,
+		loopContinuously: () => Boolean(opts.loopContinuously),
+		requestClose,
+		onSlideChange,
+	});
+	return { nav, requestClose, onSlideChange };
+}
+
+describe('usePresentationNavigation - loop continuously', () => {
+	it('wraps to the first show slide past the last one when loopContinuously is true', () => {
+		const { nav, requestClose } = setup({
+			slides: [slide('a'), slide('b'), slide('c')],
+			startIndex: 2,
+			loopContinuously: true,
+		});
+		expect(nav.currentIndex.value).toBe(2);
+		nav.next();
+		expect(nav.currentIndex.value).toBe(0);
+		expect(nav.showEndScreen.value).toBeFalsy();
+		expect(requestClose).not.toHaveBeenCalled();
+	});
+
+	it('skips hidden slides when wrapping (loop honours the show order)', () => {
+		const { nav } = setup({
+			slides: [slide('a'), slide('b', { hidden: true }), slide('c')],
+			startIndex: 2,
+			loopContinuously: true,
+		});
+		nav.next();
+		expect(nav.currentIndex.value).toBe(0); // 'a': 'b' is hidden and skipped
+	});
+
+	it('raises the black end screen past the last slide when loopContinuously is false', () => {
+		const { nav, requestClose } = setup({
+			slides: [slide('a'), slide('b')],
+			startIndex: 1,
+			loopContinuously: false,
+			endWithBlackSlide: true,
+		});
+		nav.next();
+		expect(nav.currentIndex.value).toBe(1); // stayed put
+		expect(nav.showEndScreen.value).toBeTruthy();
+		expect(requestClose).not.toHaveBeenCalled();
+	});
+
+	it('takes loop over the black end screen when both would otherwise apply', () => {
+		const { nav } = setup({
+			slides: [slide('a'), slide('b')],
+			startIndex: 1,
+			loopContinuously: true,
+			endWithBlackSlide: true,
+		});
+		nav.next();
+		expect(nav.currentIndex.value).toBe(0);
+		expect(nav.showEndScreen.value).toBeFalsy();
+	});
+
+	it('is a no-op loop of one when the show has a single slide', () => {
+		const { nav, onSlideChange } = setup({
+			slides: [slide('a')],
+			startIndex: 0,
+			loopContinuously: true,
+		});
+		nav.next();
+		expect(nav.currentIndex.value).toBe(0);
+		// `goTo` short-circuits when the target equals the current index, so no
+		// redundant slide-change notification fires for a single-slide loop.
+		expect(onSlideChange).not.toHaveBeenCalled();
+	});
+
+	it('exits the show past the last slide when neither loop nor the black screen is enabled', () => {
+		const { nav, requestClose } = setup({
+			slides: [slide('a'), slide('b')],
+			startIndex: 1,
+			loopContinuously: false,
+			endWithBlackSlide: false,
+		});
+		nav.next();
+		expect(requestClose).toHaveBeenCalledOnce();
+		expect(nav.showEndScreen.value).toBeFalsy();
+	});
+});

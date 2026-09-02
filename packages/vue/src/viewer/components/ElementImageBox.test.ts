@@ -71,4 +71,44 @@ describe('element image box', () => {
 		// The scaled-up source must not paint outside its own frame.
 		expect(wrapper.attributes('style')).toContain('overflow: hidden');
 	});
+
+	it('clips a "Crop to Shape" picture via the shared adjustment-aware preset cascade', () => {
+		// Regression: Vue had no `cropShape` (Format Picture > Crop to Shape gallery)
+		// support at all; a picture with `cropShape: 'ellipse'` rendered as a plain
+		// rectangle.
+		const element: ImagePptxElement = {
+			type: 'image',
+			id: 'image-ellipse',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageData: 'data:image/png;base64,AA==',
+			cropShape: 'ellipse',
+		};
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+
+		expect(wrapper.attributes('style')).toContain('clip-path');
+	});
+
+	it('renders no clip-path when cropShape is unset', () => {
+		const element: ImagePptxElement = {
+			type: 'image',
+			id: 'image-plain',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageData: 'data:image/png;base64,AA==',
+		};
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+
+		expect(wrapper.attributes('style')).not.toContain('clip-path');
+	});
 });

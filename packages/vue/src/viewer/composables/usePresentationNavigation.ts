@@ -36,6 +36,13 @@ export interface UsePresentationNavigationOptions {
 	showOrder: PresentationShowOrder;
 	/** File > Options > Advanced: show a black slide instead of ending outright. */
 	endWithBlackSlide: () => boolean;
+	/**
+	 * Slide Show Setup > "Loop continuously until 'Esc'" (or a kiosk-type show,
+	 * which forces it): advancing past the show's last slide wraps to its first
+	 * slide instead of raising the end screen or exiting. Callers should pass
+	 * shared's `shouldLoopContinuously(presentationProperties)`.
+	 */
+	loopContinuously?: () => boolean;
 	/** Leave the show (goes through the keep-annotations prompt when needed). */
 	requestClose: () => void;
 	onSlideChange: (index: number) => void;
@@ -104,6 +111,12 @@ export function usePresentationNavigation(
 			return; // revealed an animation build step; stay on the slide
 		}
 		if (!showOrder.hasNext(currentIndex.value)) {
+			// "Loop continuously until 'Esc'" outranks both the black end screen and
+			// exiting: PowerPoint wraps straight back to the show's first slide.
+			if (options.loopContinuously?.()) {
+				goTo(showOrder.first(currentIndex.value));
+				return;
+			}
 			if (options.endWithBlackSlide()) {
 				showEndScreen.value = true;
 			} else {

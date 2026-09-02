@@ -30,6 +30,7 @@ import {
 	PRESENT_TOOLBAR_METRICS,
 	PRESENTATION_HIT_TEST_CSS,
 	shouldConfirmExternalHyperlink,
+	shouldLoopContinuously,
 	toggleBlackboard,
 } from 'pptx-viewer-shared';
 import { computed, inject, onMounted, ref } from 'vue';
@@ -138,6 +139,7 @@ const nav = usePresentationNavigation({
 	playback: () => playback,
 	showOrder,
 	endWithBlackSlide: () => props.endWithBlackSlide,
+	loopContinuously: () => shouldLoopContinuously(props.presentationProperties ?? {}),
 	requestClose: close,
 	onSlideChange: (index) => emit('slide-change', index),
 });

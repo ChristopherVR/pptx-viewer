@@ -4,28 +4,27 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import EffectsGlowReflectionSection from './EffectsGlowReflectionSection.vue';
+import EffectsShadowSection from './EffectsShadowSection.vue';
 import QuickStylesGallery from './QuickStylesGallery.vue';
 
 /**
- * EffectsPanel: element opacity plus outer-shadow and outer-glow controls.
+ * EffectsPanel: element opacity plus every shape visual effect PowerPoint's
+ * Format Shape > Effects pane exposes: outer shadow, inner shadow, glow, soft
+ * edge, and reflection.
  *
- * Opacity is an element-level field and is emitted as a SHALLOW patch
- * (`{ opacity }`). Shadow and glow live on `element.shapeStyle` as FLAT fields
- * (core `ShapeStyle` has no nested `outerShadow`/`glow` objects; see below), so
- * those controls emit the FULL merged sub-object: `{ shapeStyle: { ...current,
- * <fields> } }`. The parent merges every patch via `ops.updateElement(id, patch)`.
+ * Every effect's state extraction AND patch-building comes from shared's
+ * `effects-helpers.ts` / `effects-shadow-helpers.ts` (`effectsStateOf`,
+ * `enable*Patch`/`disable*Patch`/`update*Patch`), the same pure decision
+ * functions Angular's `effects-panel.component.ts` already consumes. This
+ * component itself only owns opacity (the one field that is NOT part of
+ * `shapeStyle`) and the shape-like gate; the shadow and glow/reflection/soft-edge
+ * controls live in {@link EffectsShadowSection} / {@link
+ * EffectsGlowReflectionSection}, split out to keep every file under this
+ * repo's 300-LOC budget. Both children re-emit the same `update` patch shape,
+ * so this file forwards them untouched.
  *
- * Core `ShapeStyle` field mapping (authoritative; mirrors the React renderer's
- * shape-visual-style.ts and fill-stroke effect configs):
- *   Outer shadow → `shadowColor`, `shadowOpacity`, `shadowBlur`, `shadowAngle`,
- *                  `shadowDistance` (a shadow is "on" when `shadowColor` is set
- *                  and not `'transparent'`; disabled by `shadowColor:
- *                  'transparent'`).
- *   Outer glow   → `glowColor`, `glowRadius`, `glowOpacity` (on when `glowColor`
- *                  is set and not `'transparent'`; disabled by `glowColor:
- *                  'transparent'`, `glowRadius: 0`).
- *
- * Shadow/glow controls only apply to shape-like elements
+ * Shadow/glow/reflection/soft-edge controls only apply to shape-like elements
  * (core `hasShapeProperties`). For other elements a muted note is shown.
  */
 const props = defineProps<{
@@ -38,41 +37,19 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-// Defaults mirror the React effect configs.
-const DEFAULT_SHADOW_COLOR = '#000000';
-const DEFAULT_SHADOW_OPACITY = 0.4;
-const DEFAULT_SHADOW_BLUR = 6;
-const DEFAULT_SHADOW_ANGLE = 315;
-const DEFAULT_SHADOW_DISTANCE = 5.66;
-
-const DEFAULT_GLOW_COLOR = '#ffff00';
-const DEFAULT_GLOW_OPACITY = 0.75;
-const DEFAULT_GLOW_RADIUS = 6;
-
-const TRANSPARENT = 'transparent';
-
 const isShapeLike = computed(() => hasShapeProperties(props.element));
 
-const shapeStyle = computed<ShapeStyle>(() => {
-	if (hasShapeProperties(props.element)) {
-		return props.element.shapeStyle ?? {};
-	}
-	return {};
-});
-
-function clamp(value: number, lo: number, hi: number): number {
-	return Math.max(lo, Math.min(hi, value));
-}
-
-function toNumber(value: string): number | undefined {
-	const n = Number(value);
-	return Number.isFinite(n) ? n : undefined;
-}
-
-function emitShapeStyle(next: Partial<ShapeStyle>): void {
-	emit('update', {
-		shapeStyle: { ...shapeStyle.value, ...next },
-	} as Partial<PptxElement>);
+/**
+ * Apply a Quick Styles gallery preset (a `Partial<ShapeStyle>` of unrelated
+ * fields, e.g. fill/outline) on top of the CURRENT shapeStyle. Unlike the
+ * shadow/glow/reflection/soft-edge sections, a preset is not itself a shared
+ * decision function, just a plain merge, so it stays local.
+ */
+function onQuickStyleSelect(preset: Partial<ShapeStyle>): void {
+	const base: ShapeStyle = hasShapeProperties(props.element)
+		? (props.element.shapeStyle ?? {})
+		: {};
+	emit('update', { shapeStyle: { ...base, ...preset } } as Partial<PptxElement>);
 }
 
 // ---------------------------------------------------------------------------
@@ -82,111 +59,11 @@ function emitShapeStyle(next: Partial<ShapeStyle>): void {
 const opacityPercent = computed(() => Math.round((props.element.opacity ?? 1) * 100));
 
 function onOpacity(value: string): void {
-	const n = toNumber(value);
-	if (n === undefined) {
+	const n = Number(value);
+	if (!Number.isFinite(n)) {
 		return;
 	}
-	emit('update', { opacity: clamp(n, 0, 100) / 100 });
-}
-
-// ---------------------------------------------------------------------------
-// Outer shadow
-// ---------------------------------------------------------------------------
-
-const shadowOn = computed(
-	() => Boolean(shapeStyle.value.shadowColor) && shapeStyle.value.shadowColor !== TRANSPARENT,
-);
-
-const shadowColor = computed(() => {
-	const c = shapeStyle.value.shadowColor;
-	return c && c !== TRANSPARENT ? c : DEFAULT_SHADOW_COLOR;
-});
-const shadowBlur = computed(() => Math.round(shapeStyle.value.shadowBlur ?? DEFAULT_SHADOW_BLUR));
-const shadowDistance = computed(
-	() => Math.round((shapeStyle.value.shadowDistance ?? DEFAULT_SHADOW_DISTANCE) * 10) / 10,
-);
-const shadowAngle = computed(
-	() => Math.round(shapeStyle.value.shadowAngle ?? DEFAULT_SHADOW_ANGLE) % 360,
-);
-
-function onToggleShadow(checked: boolean): void {
-	if (checked) {
-		emitShapeStyle({
-			shadowColor: shadowColor.value,
-			shadowOpacity: shapeStyle.value.shadowOpacity ?? DEFAULT_SHADOW_OPACITY,
-			shadowBlur: shapeStyle.value.shadowBlur ?? DEFAULT_SHADOW_BLUR,
-			shadowAngle: shapeStyle.value.shadowAngle ?? DEFAULT_SHADOW_ANGLE,
-			shadowDistance: shapeStyle.value.shadowDistance ?? DEFAULT_SHADOW_DISTANCE,
-		});
-	} else {
-		emitShapeStyle({ shadowColor: TRANSPARENT });
-	}
-}
-
-function onShadowColor(value: string): void {
-	emitShapeStyle({ shadowColor: value });
-}
-
-function onShadowBlur(value: string): void {
-	const n = toNumber(value);
-	if (n === undefined) {
-		return;
-	}
-	emitShapeStyle({ shadowBlur: clamp(n, 0, 96) });
-}
-
-function onShadowDistance(value: string): void {
-	const n = toNumber(value);
-	if (n === undefined) {
-		return;
-	}
-	emitShapeStyle({ shadowDistance: clamp(n, 0, 96) });
-}
-
-function onShadowAngle(value: string): void {
-	const n = toNumber(value);
-	if (n === undefined) {
-		return;
-	}
-	emitShapeStyle({ shadowAngle: ((n % 360) + 360) % 360 });
-}
-
-// ---------------------------------------------------------------------------
-// Outer glow
-// ---------------------------------------------------------------------------
-
-const glowOn = computed(
-	() => Boolean(shapeStyle.value.glowColor) && shapeStyle.value.glowColor !== TRANSPARENT,
-);
-
-const glowColor = computed(() => {
-	const c = shapeStyle.value.glowColor;
-	return c && c !== TRANSPARENT ? c : DEFAULT_GLOW_COLOR;
-});
-const glowRadius = computed(() => Math.round(shapeStyle.value.glowRadius ?? DEFAULT_GLOW_RADIUS));
-
-function onToggleGlow(checked: boolean): void {
-	if (checked) {
-		emitShapeStyle({
-			glowColor: glowColor.value,
-			glowOpacity: shapeStyle.value.glowOpacity ?? DEFAULT_GLOW_OPACITY,
-			glowRadius: shapeStyle.value.glowRadius ?? DEFAULT_GLOW_RADIUS,
-		});
-	} else {
-		emitShapeStyle({ glowColor: TRANSPARENT, glowRadius: 0 });
-	}
-}
-
-function onGlowColor(value: string): void {
-	emitShapeStyle({ glowColor: value });
-}
-
-function onGlowRadius(value: string): void {
-	const n = toNumber(value);
-	if (n === undefined) {
-		return;
-	}
-	emitShapeStyle({ glowRadius: clamp(n, 0, 96) });
+	emit('update', { opacity: Math.max(0, Math.min(100, n)) / 100 });
 }
 </script>
 
@@ -207,109 +84,9 @@ function onGlowRadius(value: string): void {
 		</label>
 
 		<template v-if="isShapeLike">
-			<QuickStylesGallery @select="emitShapeStyle" />
-
-			<div class="pptx-vue-effects-section flex flex-col gap-2">
-				<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
-					<input
-						type="checkbox"
-						:checked="shadowOn"
-						@change="onToggleShadow(($event.target as HTMLInputElement).checked)"
-					/>
-					{{ t('pptx.effects.outerShadow') }}
-				</label>
-
-				<div v-if="shadowOn" class="pptx-vue-effects-grid grid grid-cols-2 gap-2">
-					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">{{
-							t('pptx.effects.color')
-						}}</span>
-						<input
-							type="color"
-							class="pptx-vue-effects-color w-full h-7 p-0 bg-muted border border-border rounded"
-							:value="shadowColor"
-							@input="onShadowColor(($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">{{
-							t('pptx.effects.blur')
-						}}</span>
-						<input
-							type="number"
-							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
-							min="0"
-							max="96"
-							:value="shadowBlur"
-							@input="onShadowBlur(($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">{{
-							t('pptx.effects.distance')
-						}}</span>
-						<input
-							type="number"
-							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
-							min="0"
-							max="96"
-							:value="shadowDistance"
-							@input="onShadowDistance(($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">{{
-							t('pptx.effects.angle')
-						}}</span>
-						<input
-							type="number"
-							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
-							min="0"
-							max="360"
-							:value="shadowAngle"
-							@input="onShadowAngle(($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-				</div>
-			</div>
-
-			<div class="pptx-vue-effects-section flex flex-col gap-2">
-				<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
-					<input
-						type="checkbox"
-						:checked="glowOn"
-						@change="onToggleGlow(($event.target as HTMLInputElement).checked)"
-					/>
-					{{ t('pptx.effects.outerGlow') }}
-				</label>
-
-				<div v-if="glowOn" class="pptx-vue-effects-grid grid grid-cols-2 gap-2">
-					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">{{
-							t('pptx.effects.color')
-						}}</span>
-						<input
-							type="color"
-							class="pptx-vue-effects-color w-full h-7 p-0 bg-muted border border-border rounded"
-							:value="glowColor"
-							@input="onGlowColor(($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">{{
-							t('pptx.effects.radius')
-						}}</span>
-						<input
-							type="number"
-							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
-							min="0"
-							max="96"
-							:value="glowRadius"
-							@input="onGlowRadius(($event.target as HTMLInputElement).value)"
-						/>
-					</label>
-				</div>
-			</div>
+			<QuickStylesGallery @select="onQuickStyleSelect" />
+			<EffectsShadowSection :element="element" @update="(patch) => emit('update', patch)" />
+			<EffectsGlowReflectionSection :element="element" @update="(patch) => emit('update', patch)" />
 		</template>
 
 		<p v-else class="pptx-vue-effects-note text-muted-foreground italic">

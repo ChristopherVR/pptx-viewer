@@ -1,6 +1,6 @@
 // oxlint-disable react-hooks/rules-of-hooks
 import { mount } from '@vue/test-utils';
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import EffectsPanel from './EffectsPanel.vue';
@@ -40,10 +40,6 @@ function lastPatch(wrapper: ReturnType<typeof mount>): Partial<PptxElement> {
 	return ev[ev.length - 1][0] as Partial<PptxElement>;
 }
 
-function patchStyle(patch: Partial<PptxElement>): ShapeStyle {
-	return (patch as { shapeStyle: ShapeStyle }).shapeStyle;
-}
-
 describe('effectsPanel', () => {
 	it('emits a shallow opacity patch (0-100 slider to 0-1)', async () => {
 		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
@@ -52,62 +48,45 @@ describe('effectsPanel', () => {
 		expect(lastPatch(wrapper)).toStrictEqual({ opacity: 0.5 });
 	});
 
-	it('enables outer shadow with default flat shapeStyle fields', async () => {
-		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
-		const toggle = wrapper.findAll('input[type="checkbox"]')[0];
-		await toggle.setValue(true);
-		const style = patchStyle(lastPatch(wrapper));
-		expect(style.shadowColor).toBe('#000000');
-		expect(style.shadowOpacity).toBe(0.4);
-		expect(style.shadowBlur).toBe(6);
-		expect(style.shadowAngle).toBe(315);
-		expect(style.shadowDistance).toBe(5.66);
-	});
-
-	it('disables outer shadow by setting shadowColor transparent', async () => {
-		const wrapper = mount(EffectsPanel, {
-			props: { element: shape({ shapeStyle: { shadowColor: '#000000' } }) },
-		});
-		const toggle = wrapper.findAll('input[type="checkbox"]')[0];
-		await toggle.setValue(false);
-		expect(patchStyle(lastPatch(wrapper)).shadowColor).toBe('transparent');
-	});
-
-	it('merges shadow blur onto the current shapeStyle', async () => {
-		const wrapper = mount(EffectsPanel, {
-			props: { element: shape({ shapeStyle: { shadowColor: '#112233' } }) },
-		});
-		const blur = wrapper.findAll('input[type="number"]')[0];
-		await blur.setValue('12');
-		const style = patchStyle(lastPatch(wrapper));
-		expect(style.shadowColor).toBe('#112233');
-		expect(style.shadowBlur).toBe(12);
-	});
-
-	it('enables outer glow with default flat shapeStyle fields', async () => {
-		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
-		const toggle = wrapper.findAll('input[type="checkbox"]')[1];
-		await toggle.setValue(true);
-		const style = patchStyle(lastPatch(wrapper));
-		expect(style.glowColor).toBe('#ffff00');
-		expect(style.glowOpacity).toBe(0.75);
-		expect(style.glowRadius).toBe(6);
-	});
-
-	it('disables outer glow by zeroing radius and clearing color', async () => {
-		const wrapper = mount(EffectsPanel, {
-			props: { element: shape({ shapeStyle: { glowColor: '#ffff00', glowRadius: 6 } }) },
-		});
-		const toggle = wrapper.findAll('input[type="checkbox"]')[1];
-		await toggle.setValue(false);
-		const style = patchStyle(lastPatch(wrapper));
-		expect(style.glowColor).toBe('transparent');
-		expect(style.glowRadius).toBe(0);
-	});
-
-	it('shows a muted note for non-shape-like elements and hides effect toggles', () => {
+	it('shows a muted note for non-shape-like elements and hides every effect control', () => {
 		const wrapper = mount(EffectsPanel, { props: { element: image() } });
 		expect(wrapper.find('.pptx-vue-effects-note').exists()).toBeTruthy();
 		expect(wrapper.findAll('input[type="checkbox"]')).toHaveLength(0);
+	});
+
+	it('forwards a shadow-section patch through to the update event untouched', async () => {
+		// EffectsPanel composes EffectsShadowSection + EffectsGlowReflectionSection
+		// (each split out to stay under the repo's 300-LOC-per-file budget) and
+		// re-emits their `update` events as its own. The shadow toggle button lives
+		// on the child; this pins that forwarding wire, not the shadow logic itself
+		// (covered in `EffectsShadowSection.test.ts`).
+		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
+		const toggle = wrapper.find('[data-testid="fx-outer-shadow-toggle"]');
+		expect(toggle.exists()).toBeTruthy();
+		await toggle.setValue(true);
+		const patch = lastPatch(wrapper) as { shapeStyle?: { shadowColor?: string } };
+		expect(patch.shapeStyle?.shadowColor).toBe('#000000');
+	});
+
+	it('forwards a glow/reflection-section patch through to the update event untouched', async () => {
+		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
+		const toggle = wrapper.find('[data-testid="fx-glow-toggle"]');
+		expect(toggle.exists()).toBeTruthy();
+		await toggle.setValue(true);
+		const patch = lastPatch(wrapper) as { shapeStyle?: { glowColor?: string } };
+		expect(patch.shapeStyle?.glowColor).toBe('#ffff00');
+	});
+
+	it('applies a Quick Styles preset merged onto the current shapeStyle', async () => {
+		const wrapper = mount(EffectsPanel, {
+			// `fillOpacity` is not set by any SHAPE_QUICK_STYLES preset, so its
+			// survival in the patch is what proves this is a MERGE, not a replace.
+			props: { element: shape({ shapeStyle: { fillOpacity: 0.42 } }) },
+		});
+		const swatch = wrapper.find('.pptx-vue-quickstyles-swatch');
+		expect(swatch.exists()).toBeTruthy();
+		await swatch.trigger('click');
+		const patch = lastPatch(wrapper) as { shapeStyle?: { fillOpacity?: number } };
+		expect(patch.shapeStyle?.fillOpacity).toBe(0.42);
 	});
 });

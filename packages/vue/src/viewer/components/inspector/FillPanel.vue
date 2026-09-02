@@ -4,14 +4,23 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import FillGradientControls from './FillGradientControls.vue';
+import FillPatternControls from './FillPatternControls.vue';
+
 /**
- * FillPanel: shape fill controls (mode, solid colour, opacity).
+ * FillPanel: shape fill controls (mode, solid colour, opacity, gradient,
+ * pattern).
  *
  * Only meaningful for shape-like elements (`hasShapeProperties`). When the
  * element has no shape properties a muted "No fill options" note is shown.
  *
- * Emits the FULL merged `shapeStyle` sub-object as a shallow patch:
- * `{ shapeStyle: { ...current, fillMode, fillColor, fillOpacity } }`.
+ * Solid-mode fields emit the FULL merged `shapeStyle` sub-object as a shallow
+ * patch directly (`{ shapeStyle: { ...current, fillMode, fillColor,
+ * fillOpacity } }`); gradient and pattern mode delegate their own field
+ * editing to {@link FillGradientControls} / {@link FillPatternControls} (split
+ * out to keep this file under the repo's 300-LOC budget), which build the same
+ * shallow `shapeStyle` patch shape from shared's `gradient-picker.ts` /
+ * `PATTERN_PRESET_OPTIONS` and re-emit it here untouched.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -23,7 +32,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-type FillMode = 'none' | 'solid' | 'gradient';
+type FillMode = 'none' | 'solid' | 'gradient' | 'pattern';
 
 const applicable = computed(() => hasShapeProperties(props.element));
 
@@ -33,7 +42,7 @@ const currentStyle = computed<ShapeStyle>(() =>
 
 const fillMode = computed<FillMode>(() => {
 	const mode = currentStyle.value.fillMode;
-	return mode === 'gradient' || mode === 'none' ? mode : 'solid';
+	return mode === 'gradient' || mode === 'pattern' || mode === 'none' ? mode : 'solid';
 });
 
 const fillColor = computed(() => currentStyle.value.fillColor ?? '#ffffff');
@@ -85,32 +94,49 @@ function onOpacity(value: string): void {
 					<option value="none">{{ t('pptx.fill.none') }}</option>
 					<option value="solid">{{ t('pptx.fill.solid') }}</option>
 					<option value="gradient">{{ t('pptx.fill.gradient') }}</option>
+					<!-- No dedicated `pptx.fill.pattern` key exists yet (see final report);
+					     reuses `pptx.table.fillPattern` ("Pattern"), the closest existing key. -->
+					<option value="pattern">{{ t('pptx.table.fillPattern') }}</option>
 				</select>
 			</label>
 
-			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field flex flex-col gap-1">
-				<span class="pptx-vue-fill-label text-muted-foreground">{{ t('pptx.fill.color') }}</span>
-				<input
-					type="color"
-					class="pptx-vue-fill-color w-full h-8 p-0 bg-muted border border-border rounded"
-					:value="fillColor"
-					@input="onColor(($event.target as HTMLInputElement).value)"
-				/>
-			</label>
+			<template v-if="fillMode === 'solid'">
+				<label class="pptx-vue-fill-field flex flex-col gap-1">
+					<span class="pptx-vue-fill-label text-muted-foreground">{{ t('pptx.fill.color') }}</span>
+					<input
+						type="color"
+						class="pptx-vue-fill-color w-full h-8 p-0 bg-muted border border-border rounded"
+						:value="fillColor"
+						@input="onColor(($event.target as HTMLInputElement).value)"
+					/>
+				</label>
 
-			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field flex flex-col gap-1">
-				<span class="pptx-vue-fill-label text-muted-foreground">{{
-					t('pptx.fill.opacityPercent', { value: fillOpacityPercent })
-				}}</span>
-				<input
-					type="range"
-					class="pptx-vue-fill-range w-full accent-primary"
-					min="0"
-					max="100"
-					:value="fillOpacityPercent"
-					@input="onOpacity(($event.target as HTMLInputElement).value)"
-				/>
-			</label>
+				<label class="pptx-vue-fill-field flex flex-col gap-1">
+					<span class="pptx-vue-fill-label text-muted-foreground">{{
+						t('pptx.fill.opacityPercent', { value: fillOpacityPercent })
+					}}</span>
+					<input
+						type="range"
+						class="pptx-vue-fill-range w-full accent-primary"
+						min="0"
+						max="100"
+						:value="fillOpacityPercent"
+						@input="onOpacity(($event.target as HTMLInputElement).value)"
+					/>
+				</label>
+			</template>
+
+			<FillGradientControls
+				v-else-if="fillMode === 'gradient'"
+				:element="element"
+				@update="(patch) => emit('update', patch)"
+			/>
+
+			<FillPatternControls
+				v-else-if="fillMode === 'pattern'"
+				:element="element"
+				@update="(patch) => emit('update', patch)"
+			/>
 		</template>
 	</div>
 </template>
