@@ -116,6 +116,7 @@ export const translations = {
 	'pptx.masterView.layoutInUse': 'Este diseño lo usan diapositivas y no se puede eliminar.',
 	'pptx.masterView.masterInUse': 'Este patrón lo usan diapositivas y no se puede eliminar.',
 	'pptx.masterView.lastMaster': 'El último patrón de diapositivas no se puede eliminar.',
+	'pptx.masterView.notFound': 'El diseño o patrón de diapositivas seleccionado ya no existe.',
 	'pptx.notesMaster.phSlideImage': 'Imagen de diapositiva',
 	'pptx.notesMaster.phNotesBody': 'Cuerpo de notas',
 	'pptx.notesMaster.phDate': 'Fecha',

@@ -210,6 +210,7 @@ export const translations = {
 	'pptx.compatibility.dismissAll': 'Descartar todo',
 	'pptx.hyperlink.actionCustomShow': 'Presentación personalizada',
 	'pptx.hyperlink.customShowLabel': 'Presentación personalizada',
+	'pptx.hyperlink.customShowReturn': 'Mostrar y volver',
 	'pptx.hyperlink.actionLastViewed': 'Última diapositiva vista',
 	'pptx.hyperlink.actionOpenFile': 'Abrir archivo',
 	'pptx.hyperlink.actionOpenPresentation': 'Abrir presentación',

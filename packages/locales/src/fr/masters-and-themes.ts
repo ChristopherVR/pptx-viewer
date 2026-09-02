@@ -118,6 +118,8 @@ export const translations = {
 	'pptx.masterView.masterInUse':
 		'Ce masque est utilisé par des diapositives et ne peut pas être supprimé.',
 	'pptx.masterView.lastMaster': 'Le dernier masque des diapositives ne peut pas être supprimé.',
+	'pptx.masterView.notFound':
+		"La disposition ou le masque des diapositives sélectionné n'existe plus.",
 	'pptx.notesMaster.phSlideImage': 'Image de diapositive',
 	'pptx.notesMaster.phNotesBody': 'Corps des notes',
 	'pptx.notesMaster.phDate': 'Date',

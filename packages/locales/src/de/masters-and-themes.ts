@@ -119,6 +119,8 @@ export const translations = {
 	'pptx.masterView.masterInUse':
 		'Dieser Folienmaster wird von Folien verwendet und kann nicht gelöscht werden.',
 	'pptx.masterView.lastMaster': 'Der letzte Folienmaster kann nicht gelöscht werden.',
+	'pptx.masterView.notFound':
+		'Das ausgewählte Layout bzw. der Folienmaster ist nicht mehr vorhanden.',
 	'pptx.notesMaster.phSlideImage': 'Folienbild',
 	'pptx.notesMaster.phNotesBody': 'Notizentext',
 	'pptx.notesMaster.phDate': 'Datum',

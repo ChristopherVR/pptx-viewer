@@ -210,6 +210,7 @@ export const translations = {
 	'pptx.compatibility.dismissAll': 'Alle schließen',
 	'pptx.hyperlink.actionCustomShow': 'Zielgruppenorientierte Präsentation',
 	'pptx.hyperlink.customShowLabel': 'Zielgruppenorientierte Präsentation',
+	'pptx.hyperlink.customShowReturn': 'Anzeigen und zurückkehren',
 	'pptx.hyperlink.actionLastViewed': 'Zuletzt angezeigte Folie',
 	'pptx.hyperlink.actionOpenFile': 'Datei öffnen',
 	'pptx.hyperlink.actionOpenPresentation': 'Präsentation öffnen',

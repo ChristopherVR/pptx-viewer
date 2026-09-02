@@ -211,6 +211,7 @@ export const translations = {
 	'pptx.compatibility.dismissAll': 'Tout fermer',
 	'pptx.hyperlink.actionCustomShow': 'Diaporama personnalisé',
 	'pptx.hyperlink.customShowLabel': 'Diaporama personnalisé',
+	'pptx.hyperlink.customShowReturn': 'Afficher et revenir',
 	'pptx.hyperlink.actionLastViewed': 'Dernière diapositive affichée',
 	'pptx.hyperlink.actionOpenFile': 'Ouvrir un fichier',
 	'pptx.hyperlink.actionOpenPresentation': 'Ouvrir une présentation',
