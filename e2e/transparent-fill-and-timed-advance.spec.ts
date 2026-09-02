@@ -200,8 +200,22 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 
 	test('clicking keeps the slide show moving', async ({ page }) => {
 		await startShowFromSlideOne(page);
+		expect(await presentedSlideNumber(page), 'the show is past slide 1').toBeGreaterThan(1);
+
+		// Slide 2's full-bleed background video (`!!Background`) carries its OWN
+		// `p:cTn`-level `onClick` sequence (`restart="whenNotActive"`), and it
+		// covers the entire slide, so `closestElementId` resolves every click
+		// inside the frame to that shape. Each click legitimately replays that
+		// sequence rather than falling through to the show's click-advance -
+		// PowerPoint routes an on-shape interactive trigger the same way, and
+		// with the shape covering the whole slide there is no pixel left that
+		// reaches the advance handler by clicking. The keyboard is unaffected
+		// (see `advanceFromClick`'s doc comment: "Keyboard ... never gated"), so
+		// use it to reach a slide with no click-trigger of its own before
+		// asserting on CLICK behaviour specifically.
+		await page.keyboard.press('ArrowRight');
+		await page.waitForTimeout(1200);
 		const before = await presentedSlideNumber(page);
-		expect(before, 'the show is past slide 1').toBeGreaterThan(1);
 
 		// A click on a slide that DOES allow click-advance must move the show on.
 		// The first click can legitimately be consumed by the slide's remaining
@@ -215,7 +229,7 @@ test.describe('solution-explorer.pptx: transparent overlay + timed advance', () 
 		}
 		expect(
 			await presentedSlideNumber(page),
-			'clicking advances the show once past slide 1',
+			'clicking advances the show past a slide with no click-trigger of its own',
 		).toBeGreaterThan(before);
 	});
 
