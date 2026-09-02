@@ -935,6 +935,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.effects.blur': 'Blur',
 	'pptx.effects.distance': 'Distance',
 	'pptx.effects.angle': 'Angle',
+	'pptx.effects.rotateWithShape': 'Rotate with Shape',
 	'pptx.effects.outerGlow': 'Outer Glow',
 	'pptx.effects.radius': 'Radius',
 	'pptx.effects.shapeOnlyNote': 'Shadow and glow are only available on shape-like elements.',

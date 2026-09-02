@@ -18,7 +18,7 @@ const DEFAULT_TEXT_COLOR = '#000000';
  * size renders at 18pt in real PowerPoint, not 12pt. Kept as the last-resort
  * fallback below the deck's actual default when {@link fontSizeOf} is given one.
  */
-const DEFAULT_FONT_SIZE = 18;
+export const DEFAULT_FONT_SIZE = 18;
 
 /**
  * Returns the fill colour of the element's shapeStyle, or a white default.
