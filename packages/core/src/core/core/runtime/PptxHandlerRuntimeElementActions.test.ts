@@ -461,4 +461,12 @@ describe('serializeSingleAction', () => {
 		expect(node['@_highlightClick']).toBe('1');
 		expect(node['a:snd']).toStrictEqual({ '@_r:embed': 'rId30' });
 	});
+
+	it('writes an extended-verb action string byte-for-byte (customshow)', () => {
+		const cNvPr: XmlObject = {};
+		const action: PptxAction = { action: 'ppaction://customshow?id=3&return=true' };
+		serializeSingleAction(cNvPr, 'a:hlinkClick', action, noopResolver);
+		const node = cNvPr['a:hlinkClick'] as XmlObject;
+		expect(node['@_action']).toBe('ppaction://customshow?id=3&return=true');
+	});
 });

@@ -83,6 +83,31 @@ export type {
 	LayoutCreationResult,
 } from './layout-operations';
 
+// Slide Master view CRUD (Insert/Duplicate/Delete/Rename Layout and Slide Master)
+export {
+	duplicateLayout,
+	deleteLayout,
+	renameLayout,
+	insertLayout,
+	duplicateSlideMaster,
+	deleteSlideMaster,
+	renameSlideMaster,
+	insertSlideMaster,
+	collectLayoutNames,
+	collectMasterNames,
+	uniqueDisplayName,
+	uniquePrefixedName,
+} from './master-layout-crud';
+export type {
+	DuplicateLayoutSuccess,
+	DuplicateLayoutResult,
+	DuplicateMasterSuccess,
+	DuplicateMasterResult,
+	MasterLayoutCrudFailure,
+	MasterLayoutCrudResult,
+	MasterLayoutCrudSuccess,
+} from './master-layout-crud';
+
 // Section operations
 export {
 	addSection,

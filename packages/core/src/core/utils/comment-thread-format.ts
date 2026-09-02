@@ -4,23 +4,34 @@ import type { PptxComment } from '../types';
  * Which comment vocabulary a comment has to be written in.
  *
  * The legacy PresentationML comment list (`p:cmLst` / `CT_CommentList`) has no
- * reply concept at all: `CT_Comment` is `pos` + `text` plus attributes. A
- * threaded reply therefore cannot be expressed there, and used to be dropped
- * silently on save. Any comment that carries replies is promoted to the modern
- * Office 2021 threaded-comment part (`p188:cmLst`), which models `replyLst`
- * natively, rather than being flattened or discarded.
+ * native reply concept: `CT_Comment` is `pos` + `text` plus attributes. A
+ * reply chain can still round-trip through it via the Office 2013
+ * `p15:threadingInfo` extension (see `utils/legacy-comment-threading`), which
+ * records each reply's parent as an (`authorId`, `idx`) pair rather than
+ * nesting - so carrying `replies` is, by itself, no longer a reason to
+ * promote. `@`-mentions still are: legacy `CT_Comment` has nowhere to record
+ * a mention's person id or its span, so any comment in the thread that owns
+ * one (or is itself already in the modern format) promotes the WHOLE thread
+ * to the modern Office 2021 threaded-comment part (`p188:cmLst`), which
+ * models both natively.
  */
 
 const GUID_PATTERN = /^\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}$/iu;
 
+/** Whether THIS comment, on its own, needs the modern vocabulary. */
+function commentOwnsModernOnlyFeature(comment: PptxComment): boolean {
+	return comment.format === 'modern' || (comment.mentions?.length ?? 0) > 0;
+}
+
 /**
- * Whether the legacy vocabulary is incapable of round-tripping this comment.
- *
- * Replies are one such feature; `@`-mentions are the other, because legacy
- * `CT_Comment` has nowhere to record a mention's person id or its span.
+ * Whether the legacy vocabulary is incapable of round-tripping this comment
+ * OR any comment in its reply thread.
  */
 export function commentRequiresModernFormat(comment: PptxComment): boolean {
-	return (comment.replies?.length ?? 0) > 0 || (comment.mentions?.length ?? 0) > 0;
+	if (commentOwnsModernOnlyFeature(comment)) {
+		return true;
+	}
+	return (comment.replies ?? []).some((reply) => commentRequiresModernFormat(reply));
 }
 
 /** Whether this comment belongs in the modern (`p188`) threaded-comment part. */
