@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal, untracked } from '@angular/core';
 import { XMLParser } from 'fast-xml-parser';
 import JSZip from 'jszip';
 import type {
@@ -333,8 +333,17 @@ export class LoadContentService {
 			// Trust Center > "Allow external content": gates linked (non-embedded)
 			// http(s) image URLs. Defaults to blocked when the options service is
 			// unreachable (e.g. constructed outside DI in a unit test).
-			const allowExternalImages =
-				this.optionsService?.options().trust.allowExternalContent ?? false;
+			//
+			// Read UNTRACKED: this runs synchronously inside the viewer's load
+			// effect, before the first await, so a tracked read here made that
+			// effect depend on the whole Options store. Every preference write
+			// (the AutoSave switch, a View toggle, an Options dialog field) then
+			// re-parsed the deck from its original bytes, which re-seeded the
+			// editor and threw away unsaved edits and the undo history. The option
+			// is a load-time input, exactly as in React (`[content]` deps only).
+			const allowExternalImages = untracked(
+				() => this.optionsService?.options().trust.allowExternalContent ?? false,
+			);
 			const parsed = await newHandler.load(buffer as ArrayBuffer, { allowExternalImages });
 			if (token !== this.renderToken) {
 				newHandler.dispose();

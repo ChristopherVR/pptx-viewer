@@ -1972,9 +1972,15 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			this.fileIO.contentOverride.set(null);
 		});
 
-		// Load whenever the active content (picked override, else input) changes.
+		// Load whenever the active content (picked override, else input) changes,
+		// and ONLY then (React: `useEffect(..., [content])`). The call itself is
+		// untracked so no signal `load()` reads before its first await (it used
+		// to read the Options store for Trust Center > "Allow external content")
+		// can re-arm this effect: a tracked read there made every preference
+		// write re-parse the deck and re-seed the editor from the original bytes.
 		effect(() => {
-			void this.loader.load(this.fileIO.activeContent());
+			const content = this.fileIO.activeContent();
+			untracked(() => void this.loader.load(content));
 		});
 
 		// Reset to the first slide and seed the editable deck whenever a new
