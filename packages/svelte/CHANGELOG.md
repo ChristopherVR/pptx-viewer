@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.5.1) - 2026-09-02
+
+### Bug Fixes
+
+- **shared:** Map the wipe direction by travel and feather its edge (by @nikko82) ([7f26a8b](https://github.com/ChristopherVR/pptx-viewer/commit/7f26a8b9871c015f45f90fc2eac646a1e7d6aad1))
+
 ## [3.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.5.0) - 2026-09-02
 
 ### Features

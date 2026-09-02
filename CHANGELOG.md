@@ -10,6 +10,21 @@ dated sections beneath it are generated from
 
 ## 2026-09-02
 
+_Releases: pptx-react-viewer@3.4.1, pptx-vue-viewer@3.4.1, pptx-angular-viewer@3.5.1, pptx-vanilla-viewer@2.4.1, pptx-svelte-viewer@3.5.1, @christophervr/pptx-viewer@2.4.1_
+
+### Bug Fixes
+
+- **shared:** Map the wipe direction by travel and feather its edge (by @nikko82) ([7f26a8b](https://github.com/ChristopherVR/pptx-viewer/commit/7f26a8b9871c015f45f90fc2eac646a1e7d6aad1))
+- **react:** Play the arriving half of classic transitions (by @nikko82) ([18558ab](https://github.com/ChristopherVR/pptx-viewer/commit/18558ab090ce2ce8d9868d8e42fc38acde9b5769))
+- **angular:** Play the arriving half of classic transitions and honour the authored speed (by @nikko82) ([c2d9a34](https://github.com/ChristopherVR/pptx-viewer/commit/c2d9a34541ecdb2af6f86492962406d08b5d406c))
+- **angular:** Play classic transitions at the authored speed (by @ChristopherVR) ([7c5537b](https://github.com/ChristopherVR/pptx-viewer/commit/7c5537bd0c8189d662853ae1618b60b6464025de))
+
+### Testing
+
+- **angular:** Pin the morph fallback to DEFAULT_MORPH_DURATION_MS (by @ChristopherVR) ([e372bd4](https://github.com/ChristopherVR/pptx-viewer/commit/e372bd4fac3b2c00d2ebfb86875ec78ff9a99854))
+
+## 2026-09-02
+
 _Releases: pptx-viewer-core@3.3.0, pptx-react-viewer@3.4.0, pptx-vue-viewer@3.4.0, pptx-angular-viewer@3.5.0, pptx-vanilla-viewer@2.4.0, pptx-svelte-viewer@3.5.0, @christophervr/pptx-viewer@2.4.0_
 
 ### Features
