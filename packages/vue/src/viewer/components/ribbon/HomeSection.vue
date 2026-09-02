@@ -11,7 +11,7 @@ import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxLayoutPreview, TextStyle } from 'pptx-viewer-core';
-import { fontSizeOf, resolveDefaultFontFamily } from 'pptx-viewer-shared';
+import { DEFAULT_FONT_SIZE, fontSizeOf, resolveDefaultFontFamily } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -91,9 +91,8 @@ function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fo
 	if (!element) {
 		// `fontSizeOf` requires a real element (it narrows internally via
 		// `hasTextProperties`); with nothing selected there is none to pass, so
-		// this mirrors its own fallback value directly. Shared's `DEFAULT_FONT_SIZE`
-		// is not itself exported (see final report), so the value is inlined.
-		return { fontFamily: fontFamilyDefault, fontSize: '18' };
+		// this mirrors its own last-resort fallback directly.
+		return { fontFamily: fontFamilyDefault, fontSize: String(DEFAULT_FONT_SIZE) };
 	}
 	if (!hasTextProperties(element)) {
 		return { fontFamily: fontFamilyDefault, fontSize: String(fontSizeOf(element)) };

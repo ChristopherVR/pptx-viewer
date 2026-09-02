@@ -187,10 +187,7 @@ function onInnerShadowOffsetY(value: string): void {
 					:checked="state.outerShadow.rotateWithShape"
 					@change="onShadowRotateWithShape(($event.target as HTMLInputElement).checked)"
 				/>
-				<!-- No dedicated i18n key exists yet for this field (see final report); falls back to
-				     the raw English label, matching the same fallback React's own effect-config fields
-				     use when `i18nKey` is absent. -->
-				Rotate with Shape
+				{{ t('pptx.effects.rotateWithShape') }}
 			</label>
 		</div>
 	</div>
