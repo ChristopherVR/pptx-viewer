@@ -17,12 +17,11 @@ import type {
 } from 'pptx-viewer-core';
 import type { DeckSaveIntent, TemplateElementMap } from 'pptx-viewer-shared';
 import {
+	cloneSlides,
 	cloneTemplateElementsBySlideId,
 	embeddedFontSaveOptions,
 	saveDeckWithPassword,
 } from 'pptx-viewer-shared';
-
-import { cloneSlides } from './editor-mutations';
 
 export interface EditorSnapshot {
 	slides: PptxSlide[];

@@ -1,18 +1,16 @@
 import type {
 	MediaPptxElement,
 	ParsedTableStyleMap,
-	PptxElement,
 	PptxHandler,
 	PptxSlide,
 } from 'pptx-viewer-core';
 import {
-	applyTableCellImagePatches,
-	applyTableStyleImagePatches,
+	applyImagePathPatches,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
-	collectTableCellImagePaths,
-	collectTableStyleImagePaths,
+	resolveTableCellImageUrls,
+	resolveTableStyleImageUrls,
 } from 'pptx-viewer-shared';
 
 /**
@@ -135,45 +133,8 @@ export async function resolveLazyImages(
 		}),
 	);
 
-	const elementPatches = new Map<string, Record<string, string>>();
-	for (const refEntry of refs) {
-		const url = resolvedMap.get(refEntry.path);
-		if (!url) {
-			continue;
-		}
-		const id = refEntry.element.id;
-		const existing = elementPatches.get(id) ?? {};
-		existing[refEntry.field] = url;
-		elementPatches.set(id, existing);
-	}
-	if (elementPatches.size === 0) {
-		return slides;
-	}
-
-	const patchElements = (elements: PptxElement[]): PptxElement[] => {
-		let mutated = false;
-		const next = elements.map((el) => {
-			let updated = el;
-			const patch = elementPatches.get(el.id);
-			if (patch) {
-				updated = { ...el, ...patch } as PptxElement;
-			}
-			if (updated.type === 'group' && updated.children?.length) {
-				const newChildren = patchElements(updated.children);
-				if (newChildren !== updated.children) {
-					updated = { ...updated, children: newChildren };
-				}
-			}
-			if (updated !== el) {
-				mutated = true;
-			}
-			return updated;
-		});
-		return mutated ? next : elements;
-	};
-
 	return slides.map((slide) => {
-		const newElements = patchElements(slide.elements);
+		const newElements = applyImagePathPatches(slide.elements, resolvedMap, refs);
 		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
 	});
 }
@@ -184,36 +145,11 @@ export async function resolveLazyImages(
  * {@link resolveLazyImages}, but for a cell's `backgroundImageFillPath`
  * rather than a top-level element field.
  */
-export async function resolveLazyTableCellImages(
+export function resolveLazyTableCellImages(
 	handler: PptxHandler,
 	slides: PptxSlide[],
 ): Promise<PptxSlide[]> {
-	const { paths, refs } = collectTableCellImagePaths(slides);
-	if (paths.size === 0) {
-		return slides;
-	}
-
-	const resolvedMap = new Map<string, string>();
-	await Promise.all(
-		Array.from(paths).map(async (path) => {
-			try {
-				const url = await handler.getImageData(path);
-				if (url) {
-					resolvedMap.set(path, url);
-				}
-			} catch {
-				// Non-critical: the cell falls back to no image fill.
-			}
-		}),
-	);
-	if (resolvedMap.size === 0) {
-		return slides;
-	}
-
-	return slides.map((slide) => {
-		const newElements = applyTableCellImagePatches(slide.elements, resolvedMap, refs);
-		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
-	});
+	return resolveTableCellImageUrls(slides, (path) => handler.getImageData(path));
 }
 
 /**
@@ -223,31 +159,9 @@ export async function resolveLazyTableCellImages(
  * {@link resolveLazyTableCellImages}, but for a presentation-level style
  * section fill rather than a per-cell one.
  */
-export async function resolveLazyTableStyleImages(
+export function resolveLazyTableStyleImages(
 	handler: PptxHandler,
 	tableStyleMap: ParsedTableStyleMap | undefined,
 ): Promise<ParsedTableStyleMap | undefined> {
-	const { paths, refs } = collectTableStyleImagePaths(tableStyleMap);
-	if (paths.size === 0 || !tableStyleMap) {
-		return tableStyleMap;
-	}
-
-	const resolvedMap = new Map<string, string>();
-	await Promise.all(
-		Array.from(paths).map(async (path) => {
-			try {
-				const url = await handler.getImageData(path);
-				if (url) {
-					resolvedMap.set(path, url);
-				}
-			} catch {
-				// Non-critical: the style section falls back to no image fill.
-			}
-		}),
-	);
-	if (resolvedMap.size === 0) {
-		return tableStyleMap;
-	}
-
-	return applyTableStyleImagePatches(tableStyleMap, resolvedMap, refs);
+	return resolveTableStyleImageUrls(tableStyleMap, (path) => handler.getImageData(path));
 }

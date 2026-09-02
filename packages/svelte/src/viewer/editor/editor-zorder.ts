@@ -1,7 +1,11 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { bringForward, bringToFront, sendBackward, sendToBack } from 'pptx-viewer-shared';
-
-import { mapSlideElements } from './editor-mutations';
+import {
+	bringForward,
+	bringToFront,
+	reorderElementOnSlide,
+	sendBackward,
+	sendToBack,
+} from 'pptx-viewer-shared';
 
 /**
  * Z-order (paint-order) reordering for the Svelte editor.
@@ -10,8 +14,8 @@ import { mapSlideElements } from './editor-mutations';
  * `sendBackward`) are the shared, framework-agnostic operations from
  * `pptx-viewer-shared` (`render/element-operations`), where array index 0 is
  * the back and the last index is the front. This module only lifts them to the
- * slide-array shape the editor state stores, reusing the same immutable
- * `mapSlideElements` helper as the other mutations.
+ * slide-array shape the editor state stores, reusing the shared
+ * `reorderElementOnSlide` helper as the other mutations do.
  */
 
 /** Which way to move the selected element through the paint-order stack. */
@@ -35,5 +39,5 @@ export function reorderElement(
 	direction: ZOrderDirection,
 ): PptxSlide[] {
 	const op = OPS[direction];
-	return mapSlideElements(slides, slideIndex, (elements) => op(elements, id));
+	return reorderElementOnSlide(slides, slideIndex, (elements) => op(elements, id));
 }

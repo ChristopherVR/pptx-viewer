@@ -7,10 +7,10 @@ import {
 	animationEffectLabel,
 	buildAnimationTimelineBars,
 	getElementLabel,
+	updateSlide,
 } from 'pptx-viewer-shared';
 import type { AnimationLabelTranslate } from 'pptx-viewer-shared';
 
-import { updateSlide } from '../../editor/editor-mutations';
 import type { EditorState } from '../../editor/editor-state.svelte';
 
 /**

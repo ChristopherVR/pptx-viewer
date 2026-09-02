@@ -7,9 +7,12 @@ import {
 	resizeSelection,
 	selectionBounds,
 } from 'pptx-viewer-shared';
-import type { InteractionBox, MarqueeRect, ResizeHandleId } from 'pptx-viewer-shared';
-
-import type { ElementBoxPatch } from './editor-mutations';
+import type {
+	ElementBoxPatch,
+	InteractionBox,
+	MarqueeRect,
+	ResizeHandleId,
+} from 'pptx-viewer-shared';
 
 export interface EditorMarqueeRect extends MarqueeRect {
 	additive: boolean;

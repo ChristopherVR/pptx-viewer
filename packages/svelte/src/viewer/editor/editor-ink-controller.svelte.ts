@@ -1,8 +1,12 @@
 import type { InkPoint } from 'pptx-viewer-shared';
-import { findEraserHitElementId, pointsToSvgPathD, strokeToInkElement } from 'pptx-viewer-shared';
+import {
+	findEraserHitElementId,
+	pointsToSvgPathD,
+	removeElement,
+	strokeToInkElement,
+} from 'pptx-viewer-shared';
 
 import { strokeToFreeformShape } from './editor-freeform';
-import { removeElement } from './editor-mutations';
 import type { EditorState } from './editor-state.svelte';
 
 /**

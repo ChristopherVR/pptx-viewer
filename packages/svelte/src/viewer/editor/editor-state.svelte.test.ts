@@ -377,7 +377,12 @@ describe('editorState save', () => {
 
 		const bytes = await editor.save();
 		expect(bytes).toStrictEqual(new Uint8Array([1, 2, 3]));
-		expect(save).toHaveBeenCalledWith(editor.slides, { outputFormat: 'pptx' });
+		// `editor.embedFonts` defaults to true, so the shared
+		// `embeddedFontSaveOptions` helper always contributes `embedTrueTypeFonts`.
+		expect(save).toHaveBeenCalledWith(editor.slides, {
+			embedTrueTypeFonts: true,
+			outputFormat: 'pptx',
+		});
 		expect(editor.dirty).toBeFalsy();
 	});
 
@@ -387,7 +392,10 @@ describe('editorState save', () => {
 
 		await editor.save('ppsx');
 
-		expect(save).toHaveBeenCalledWith(editor.slides, { outputFormat: 'ppsx' });
+		expect(save).toHaveBeenCalledWith(editor.slides, {
+			embedTrueTypeFonts: true,
+			outputFormat: 'ppsx',
+		});
 	});
 
 	it('rejects when no presentation is loaded', async () => {

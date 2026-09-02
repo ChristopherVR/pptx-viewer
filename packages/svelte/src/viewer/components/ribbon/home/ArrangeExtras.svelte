@@ -7,6 +7,8 @@
 	 * Reads `editor.selectedElements`/`selection` (the ordered multi-select)
 	 * and routes every mutation through `EditorState.arrangeOps`.
 	 */
+	import { canGroupSelection, canUngroupSelection } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 
@@ -17,8 +19,8 @@
 	const canAlign = $derived(editor.editable && count >= 2);
 	const canDistribute = $derived(editor.editable && count >= 3);
 	const canFlip = $derived(editor.editable && count >= 1);
-	const canGroup = $derived(editor.editable && count >= 2);
-	const canUngroup = $derived(editor.editable && editor.selectedElement?.type === 'group');
+	const canGroup = $derived(canGroupSelection(editor.editable, count));
+	const canUngroup = $derived(canUngroupSelection(editor.editable, editor.selectedElement ?? null));
 
 	const ALIGN_BUTTONS = [
 		{ edge: 'left', key: 'pptx.ribbon.alignLeft', d: 'M3 2v12M6 4h6v2H6zM6 10h4v2H6z' },

@@ -1,7 +1,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { SnapLine } from 'pptx-viewer-shared';
+import type { GestureController, SnapLine } from 'pptx-viewer-shared';
 import {
 	applyReroutedConnectors,
+	createGestureController,
 	filterInteractableIds,
 	rerouteConnectorsForMovedElements,
 } from 'pptx-viewer-shared';
@@ -10,8 +11,6 @@ import { createAdjustGestureController, withShapeAdjustments } from './editor-ad
 import type { AdjustGestureController } from './editor-adjust-gesture';
 import type { EditorControllerDeps } from './editor-controller-deps';
 import { elementInteractionBox, siblingBoxes } from './editor-controller-geometry';
-import { createGestureController } from './editor-gestures';
-import type { GestureController } from './editor-gestures';
 import { createInkGestureController } from './editor-ink-gesture';
 import type { InkGestureController } from './editor-ink-gesture';
 import { createEditorKeydownHandler } from './editor-keyboard';

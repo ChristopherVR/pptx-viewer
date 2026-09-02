@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type {
 	ConnectorEndpointKind,
+	GestureController,
 	ResizeHandleId,
 	ShapeAdjustmentHandleDescriptor,
 	SnapLine,
@@ -27,7 +28,6 @@ import {
 	createTransformGestures,
 } from './editor-controller-wiring';
 import type { EditorControllerHost } from './editor-controller-wiring';
-import type { GestureController } from './editor-gestures';
 import { createHandleHandlers } from './editor-handle-handlers';
 import type { HandleHandlers } from './editor-handle-handlers';
 import type { InkGestureController } from './editor-ink-gesture';
@@ -208,6 +208,11 @@ export class EditorController {
 		if (this.#selectionGestures.beginTransform('move', event)) {
 			return;
 		}
+		// Shared `GestureController.begin` takes a plain `PointerLike` and no
+		// longer calls `preventDefault`/`stopPropagation` itself (a plain object
+		// has no such methods), so the caller must consume the event first.
+		event.preventDefault();
+		event.stopPropagation();
 		this.#gestures.begin('move', id, event);
 	};
 

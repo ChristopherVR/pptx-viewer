@@ -6,10 +6,9 @@ import {
 	generateElementId,
 	groupElements,
 	makeCloneId,
+	mapSlideElements,
 	ungroupElements,
 } from 'pptx-viewer-shared';
-
-import { mapSlideElements } from './editor-mutations';
 
 /**
  * Pure, multi-select-aware arrange mutations for the Home tab's Arrange

@@ -6,9 +6,9 @@ import {
 	clearMotionPath,
 	removeElementAnimation,
 	setMotionPath,
+	updateSlide,
 } from 'pptx-viewer-shared';
 
-import { updateSlide } from './editor-mutations';
 import type { EditorState } from './editor-state.svelte';
 
 /**

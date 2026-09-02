@@ -1,9 +1,8 @@
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
-import { cloneElementForPaste } from 'pptx-viewer-shared';
+import type { ElementBoxPatch } from 'pptx-viewer-shared';
+import { cloneElementForPaste, updateSlideNotes } from 'pptx-viewer-shared';
 
 import { appendElement, newElementId } from './editor-insert';
-import type { ElementBoxPatch } from './editor-mutations';
-import { updateSlideNotes } from './editor-mutations';
 import type { EditorState } from './editor-state.svelte';
 import type { ZOrderDirection } from './editor-zorder';
 import { reorderElement } from './editor-zorder';

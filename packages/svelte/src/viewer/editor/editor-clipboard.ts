@@ -1,8 +1,11 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { ElementClipboardPayload } from 'pptx-viewer-shared';
-import { buildElementClipboardPayload, cloneElementForPaste } from 'pptx-viewer-shared';
-
-import { findSlideElement, mapSlideElements } from './editor-mutations';
+import {
+	buildElementClipboardPayload,
+	cloneElementForPaste,
+	findSlideElement,
+	mapSlideElements,
+} from 'pptx-viewer-shared';
 
 /**
  * Pure clipboard mutations for the Svelte editor's Ctrl+C/X/V and Home tab

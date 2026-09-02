@@ -18,7 +18,11 @@
 	import type { PptxAiFocusedTarget } from 'pptx-viewer-shared/ai';
 
 	import { useTranslator } from '../../../i18n/context';
-	import { focusTargetChips, isTwoTableFocus, mergeTablesDirective } from '../../ai/focus-targets';
+	import {
+		focusTargetChips,
+		isTwoTableFocus,
+		mergeTablesDirective,
+	} from 'pptx-viewer-shared/ai';
 
 	const {
 		targets,

@@ -1,13 +1,13 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { PresentationAnimationController } from 'pptx-viewer-shared';
-import type { ElementAnimationState } from 'pptx-viewer-shared';
-
-import type { BuildRafHandle, PlaybackContext } from './animation-playback-helpers';
+import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
 import {
 	cancelBuildReveal,
 	playGroup,
+	PresentationAnimationController,
 	scheduleAutoAdvanceChain,
-} from './animation-playback-helpers';
+} from 'pptx-viewer-shared';
+
+import { playAnimationSound, stopAnimationSound } from './animation-sound';
 
 /**
  * `AnimationPlayback`: native-timing (`p:timing`) animation playback for the
@@ -24,8 +24,9 @@ import {
  *
  * The class owns the reactive per-element state map, the keyframes CSS, and the
  * interactive / hover trigger-shape id sets; the controller stays pure. The
- * clock (timers, requestAnimationFrame) + DOM effects live in
- * {@link module:presentation/animation-playback-helpers}.
+ * clock (timers, requestAnimationFrame) + DOM effects live in the shared
+ * {@link module:render/animation-playback-engine}, wired here with the local
+ * `./animation-sound` player.
  *
  * NOTE: the editor / inspector animation PREVIEW still uses the older shared
  * `buildClickGroups` model (see `AnimationsTab` / `editor-animation-controller`);
@@ -69,6 +70,8 @@ export class AnimationPlayback {
 			timers: this.#timers,
 			buildHandle: this.#buildHandle,
 			onPlayActionSound: deps.onPlayActionSound,
+			playSound: playAnimationSound,
+			stopSound: stopAnimationSound,
 			frameRoot: deps.frameRoot,
 		};
 	}

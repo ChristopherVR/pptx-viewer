@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationLivePatcher } from 'pptx-viewer-shared';
+import type { CollaborationLivePatcher, SnapGuideInput } from 'pptx-viewer-shared';
 
 import type { ContextMenuCellTarget } from './context-menu-dispatch';
 
@@ -33,7 +33,7 @@ export interface EditorControllerDeps {
 	 */
 	getGridSize?(): number;
 	getSnapToShape?(): boolean;
-	getGuides?(): readonly { axis: 'h' | 'v'; position: number }[];
+	getGuides?(): readonly SnapGuideInput[];
 	/**
 	 * Transform inline-editor text at commit time (File > Options > Proofing
 	 * AutoCorrect); identity when unset.

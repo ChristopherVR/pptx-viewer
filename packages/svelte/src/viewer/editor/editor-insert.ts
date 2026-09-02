@@ -1,7 +1,6 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize, ShapePresetType } from 'pptx-viewer-shared';
-
-import { mapSlideElements } from './editor-mutations';
+import { mapSlideElements } from 'pptx-viewer-shared';
 
 /**
  * Element insertion for the Svelte editor.

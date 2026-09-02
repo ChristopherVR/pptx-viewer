@@ -17,17 +17,15 @@
  * stays scoped even after the user clicks away.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import type { AiChangeBatch, PptxAiFocusedTarget, ToolCanvasTarget } from 'pptx-viewer-shared/ai';
+import type {
+	AiCanvasHighlight,
+	AiChangeBatch,
+	PptxAiFocusedTarget,
+	ToolCanvasTarget,
+} from 'pptx-viewer-shared/ai';
+import { computeFocusTargets } from 'pptx-viewer-shared/ai';
 
-import { computeFocusTargets } from './focus-targets';
-
-/** One element ring to draw on the canvas: an explicit pick or a live-tool focus. */
-export interface AiCanvasHighlight {
-	slideIndex: number;
-	elementId: string;
-	/** `pick` = persistent user pick; `active` = transient AI-is-working ring. */
-	variant: 'pick' | 'active';
-}
+export type { AiCanvasHighlight } from 'pptx-viewer-shared/ai';
 
 /** Live viewer accessors + the panel-open hook the controller closes over. */
 export interface AiPanelControllerDeps {

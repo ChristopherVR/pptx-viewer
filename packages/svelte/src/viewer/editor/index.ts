@@ -53,15 +53,16 @@ export type {
 	GestureDeps,
 	GestureKind,
 	GestureTransform,
-} from './editor-gestures';
-export { createGestureController } from './editor-gestures';
+	PointerLike,
+} from 'pptx-viewer-shared';
 export {
+	createGestureController,
 	isCornerHandle,
 	lockResizeAspect,
 	NUDGE_STEP,
 	NUDGE_STEP_LARGE,
 	nudgeDelta,
-} from './editor-geometry';
+} from 'pptx-viewer-shared';
 export type { EditorKeyboardDeps } from './editor-keyboard';
 export { createEditorKeydownHandler } from './editor-keyboard';
 export {
@@ -99,19 +100,21 @@ export {
 	strokeWidthOf,
 	toggleTextFlagPatch,
 } from './editor-format-mutations';
-export type { ElementBoxPatch } from './editor-mutations';
+export type { ElementBoxPatch } from 'pptx-viewer-shared';
 export {
+	appendElementOnSlide,
 	cloneSlides,
 	duplicateElementOnSlide,
 	findSlideElement,
 	mapSlideElements,
 	patchElementGeometry,
 	removeElement,
+	reorderElementOnSlide,
 	updateAllSlides,
 	updateElement,
 	updateSlide,
 	updateSlideNotes,
-} from './editor-mutations';
+} from 'pptx-viewer-shared';
 export type { ZOrderDirection } from './editor-zorder';
 export { reorderElement } from './editor-zorder';
 export { resolveEditTargetElementId, resolveTopLevelElementId } from './element-hit';

@@ -1,4 +1,5 @@
-import { updateSlide } from './editor-mutations';
+import { updateSlide } from 'pptx-viewer-shared';
+
 import type { EditorState } from './editor-state.svelte';
 
 /**

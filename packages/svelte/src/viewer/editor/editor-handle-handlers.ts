@@ -1,8 +1,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor } from 'pptx-viewer-shared';
+import type {
+	GestureController,
+	ResizeHandleId,
+	ShapeAdjustmentHandleDescriptor,
+} from 'pptx-viewer-shared';
 
 import type { AdjustGestureController } from './editor-adjust-gesture';
-import type { GestureController } from './editor-gestures';
 import type { SelectionInteractivity } from './editor-selection-interactivity';
 
 /**
@@ -57,12 +60,18 @@ export function createHandleHandlers(host: HandleGestureHost): HandleHandlers {
 			if (host.beginCollectiveTransform('resize', event, handle)) {
 				return;
 			}
+			// Shared `GestureController.begin` takes a plain `PointerLike` and no
+			// longer consumes the event itself; the caller must.
+			event.preventDefault();
+			event.stopPropagation();
 			host.gestures.begin('resize', id, event, handle);
 		},
 
 		onRotatePointerDown(event) {
 			const id = host.getSelectedId();
 			if (id && host.getInteractivity().rotatable) {
+				event.preventDefault();
+				event.stopPropagation();
 				host.gestures.begin('rotate', id, event);
 			}
 		},

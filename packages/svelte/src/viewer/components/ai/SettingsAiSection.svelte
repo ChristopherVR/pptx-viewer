@@ -6,13 +6,12 @@
 	 */
 	import Bug from '@lucide/svelte/icons/bug';
 	import Download from '@lucide/svelte/icons/download';
-	import { createChatHistoryStore } from 'pptx-viewer-shared/ai';
-	import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
+	import { downloadBlob } from 'pptx-viewer-shared';
+	import { collectStoredChats, createChatHistoryStore, exportAiChatLogs } from 'pptx-viewer-shared/ai';
+	import type { AiLogFormat, PptxAiChatStore } from 'pptx-viewer-shared/ai';
 	import { untrack } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
-	import type { AiLogFormat } from '../../ai/ai-log-export';
-	import { exportAiChatLogs } from '../../ai/ai-log-export';
 
 	const { store }: { store?: PptxAiChatStore } = $props();
 
@@ -50,7 +49,10 @@
 	async function handleExport(format: AiLogFormat): Promise<void> {
 		busy = true;
 		try {
-			doneCount = await exportAiChatLogs({ store: activeStore, format, detailed });
+			const chats = await collectStoredChats(activeStore);
+			doneCount = exportAiChatLogs(chats, { format, detailed }, (filename, content, mime) => {
+				downloadBlob(new Blob([content], { type: mime }), filename);
+			});
 		} catch {
 			doneCount = 0;
 		} finally {

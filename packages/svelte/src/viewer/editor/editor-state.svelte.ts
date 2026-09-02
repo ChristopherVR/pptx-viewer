@@ -20,6 +20,7 @@ import type {
 } from 'pptx-viewer-core';
 import type {
 	DeckSaveIntent,
+	ElementBoxPatch,
 	ElementClipboardPayload,
 	FontEmbeddingDescriptor,
 	TemplateElementMap,
@@ -53,7 +54,6 @@ import { EditorHistoryState } from './editor-history-state.svelte';
 import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
-import type { ElementBoxPatch } from './editor-mutations';
 import { EditorPresentationMetadata } from './editor-presentation-metadata.svelte';
 import { EditorSectionController } from './editor-section-controller';
 import { EditorSelection, resolveSelectedElements } from './editor-selection.svelte';
