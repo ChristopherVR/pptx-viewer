@@ -23,7 +23,7 @@
  * Run: bunx playwright test parity-wave4
  */
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { WAVE4_SLIDE_TEXT } from './fixtures/generate-parity-wave4-fixture';
 import { fixture, inspector, loadDeck, selectElement, thumbnail } from './support/deck';
@@ -50,6 +50,18 @@ async function enterPresentation(page: Page): Promise<void> {
 		.click();
 }
 
+/**
+ * The chart element on the current slide: the one hosting chart marks. The
+ * gallery slides also carry a 9px stray shape that sorts first in DOM order,
+ * so "the first element" is not the chart.
+ */
+function chartElement(page: Page): Locator {
+	return page
+		.locator('[data-pptx-viewport] [data-element-id]')
+		.filter({ has: page.locator('svg [data-chart-part]') })
+		.first();
+}
+
 /** The fixture slide whose text is on screen right now, or 'none'. */
 async function visibleSlideText(page: Page): Promise<string> {
 	for (const text of WAVE4_SLIDE_TEXT) {
@@ -73,7 +85,9 @@ test.describe('read-only recommendation banner', () => {
 		await expect(banner).toHaveAttribute('data-kind', 'modifyVerifier');
 
 		await page.getByTestId('pptx-readonly-edit-anyway').click();
-		await expect(banner).toHaveCount(0);
+		// Unmounted or hidden are both fine: a binding may keep the node and
+		// toggle `hidden` rather than tear it down.
+		await expect(banner).toBeHidden();
 	});
 
 	test('"Dismiss" hides the banner', async ({ page }) => {
@@ -81,7 +95,7 @@ test.describe('read-only recommendation banner', () => {
 
 		await expect(page.getByTestId('pptx-readonly-banner')).toBeVisible();
 		await page.getByTestId('pptx-readonly-dismiss').click();
-		await expect(page.getByTestId('pptx-readonly-banner')).toHaveCount(0);
+		await expect(page.getByTestId('pptx-readonly-banner')).toBeHidden();
 	});
 });
 
@@ -146,21 +160,22 @@ test.describe('chart subtype pickers', () => {
 		await loadDeck(page, CHART_DECK);
 		await thumbnail(page, RADAR_SLIDE).click();
 		await page.waitForTimeout(300);
-		await selectElement(page, page.locator('[data-pptx-viewport] [data-element-id]').first());
+		await selectElement(page, chartElement(page));
 
 		await expect(inspector(page).getByTestId('pptx-chart-radar-style')).toBeVisible();
-		await expect(inspector(page).getByTestId('pptx-chart-bar3d-shape')).toHaveCount(0);
-		await expect(inspector(page).getByTestId('pptx-chart-surface-wireframe')).toHaveCount(0);
+		// Unmounted or hidden are both fine (see the banner spec above).
+		await expect(inspector(page).getByTestId('pptx-chart-bar3d-shape')).toBeHidden();
+		await expect(inspector(page).getByTestId('pptx-chart-surface-wireframe')).toBeHidden();
 	});
 
 	test('a surface chart exposes the wireframe select', async ({ page }) => {
 		await loadDeck(page, CHART_DECK);
 		await thumbnail(page, SURFACE_SLIDE).click();
 		await page.waitForTimeout(300);
-		await selectElement(page, page.locator('[data-pptx-viewport] [data-element-id]').first());
+		await selectElement(page, chartElement(page));
 
 		const select = inspector(page).getByTestId('pptx-chart-surface-wireframe');
 		await expect(select).toBeVisible();
-		await expect(inspector(page).getByTestId('pptx-chart-radar-style')).toHaveCount(0);
+		await expect(inspector(page).getByTestId('pptx-chart-radar-style')).toBeHidden();
 	});
 });
