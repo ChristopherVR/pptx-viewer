@@ -159,4 +159,29 @@ describe('buildAngularImageRenderView - tiled pictures', () => {
 	it('is undefined for an ordinary picture, which keeps the <img> branch', () => {
 		expect(buildAngularImageRenderView(image()).tilingStyle).toBeUndefined();
 	});
+
+	it('clips a custGeom oval-cut picture on the FRAME, not the img', () => {
+		// Regression: the picture's own shape geometry (an authored oval
+		// custGeom) must clip the stationary frame container. A pixel-space
+		// clip on the `<img>` would be scaled and shifted by the source-crop
+		// transform, and the oval rendered past its frame.
+		const view = buildAngularImageRenderView(
+			image(undefined, {
+				shapeType: 'custom',
+				pathData: 'M 0 0 L 100 0 L 100 100 Z',
+				pathWidth: 100,
+				pathHeight: 100,
+			}),
+		);
+
+		expect(String(view.frameGeometryMask?.['clip-path'])).toMatch(/^path\(/);
+		expect(view.imageStyle['clip-path']).toBeUndefined();
+	});
+
+	it('rounds an ellipse picture via border-radius on the frame', () => {
+		const view = buildAngularImageRenderView(image(undefined, { shapeType: 'ellipse' }));
+
+		expect(view.frameGeometryMask?.['border-radius']).toBe('50%');
+		expect(view.imageStyle['border-radius']).toBeUndefined();
+	});
 });

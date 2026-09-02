@@ -7,6 +7,7 @@ import {
 	getImageColorWashStyle,
 	getImageFitStyle,
 	getImageTilingStyle,
+	resolveShapeGeometry,
 } from '../internal/shared';
 import type { ImageSvgFilterDefinition } from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
@@ -18,12 +19,14 @@ export interface AngularImageRenderView {
 	svgFilters: ImageSvgFilterDefinition[];
 	clrChange: ClrChangeParams | undefined;
 	colorWashStyle: StyleMap | undefined;
-	/**
-	 * `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express,
-	 * so the picture paints as a repeating background layer instead. Undefined
-	 * for an ordinary picture, which keeps the `<img>` branch.
-	 */
 	tilingStyle: StyleMap | undefined;
+	/**
+	 * The picture's own shape geometry as a mask for the stationary frame
+	 * container (see {@link getAngularImageGeometryMask}). `undefined` for
+	 * effectively rectangular pictures, where the frame's overflow clipping
+	 * already expresses the geometry.
+	 */
+	frameGeometryMask: StyleMap | undefined;
 }
 
 export function getImageCropShapeClipPath(element: PptxElement): string | undefined {
@@ -31,6 +34,23 @@ export function getImageCropShapeClipPath(element: PptxElement): string | undefi
 		return undefined;
 	}
 	return getCropShapeClipPath(element.cropShape, element.width, element.height);
+}
+
+/**
+ * The picture's own shape geometry as a mask for the stationary frame
+ * container: `border-radius` for the roundRect family and ellipse presets, a
+ * rescaled `clip-path` for custGeom and other silhouettes. The authored
+ * Crop-to-Shape clip is the fallback.
+ */
+export function getAngularImageGeometryMask(element: PptxElement): StyleMap | undefined {
+	if (!isImageLikeElement(element)) {
+		return undefined;
+	}
+	const geometry = resolveShapeGeometry(element);
+	if (geometry.kind === 'borderRadius') {
+		return { 'border-radius': geometry.radius };
+	}
+	return geometry.kind === 'clipPath' ? { 'clip-path': geometry.clipPath } : undefined;
 }
 
 /** Build the complete shared image-effect view consumed by Angular templates. */
@@ -48,6 +68,7 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 	if (computed.opacity !== undefined) {
 		imageStyle.opacity = computed.opacity;
 	}
+	const geometryMask = getAngularImageGeometryMask(element);
 	const cropShapeClipPath = getImageCropShapeClipPath(element);
 	if (cropShapeClipPath) {
 		imageStyle['clip-path'] = cropShapeClipPath;
@@ -87,5 +108,6 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 		clrChange: getClrChangeParams(element),
 		colorWashStyle,
 		tilingStyle,
+		frameGeometryMask: geometryMask,
 	};
 }
