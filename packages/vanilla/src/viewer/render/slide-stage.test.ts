@@ -246,4 +246,18 @@ describe('renderSlideStage', () => {
 			'button',
 		);
 	});
+
+	it('draws a labelled placeholder badge for an ActiveX control', () => {
+		const slide = buildSlide();
+		slide.activeXControls = [{ relId: 'rId9', name: 'CommandButton1' }];
+		const stage = renderStage(slide);
+		const badge = stage.querySelector('.pptxv-activex-overlay-placeholder');
+		expect(badge).not.toBeNull();
+		expect(badge?.textContent).toBe('CommandButton1');
+	});
+
+	it('renders no ActiveX overlay when the slide has no controls', () => {
+		const stage = renderStage(buildSlide());
+		expect(stage.querySelector('.pptxv-activex-overlay')).toBeNull();
+	});
 });

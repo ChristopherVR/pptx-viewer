@@ -76,6 +76,11 @@ export function createShapeEffectsControls(
 	const shadowColor = colorRow(t('pptx.textEffects.shadowColor'), 'shadowColor', '#000000');
 	const shadowBlur = numberRow(t('pptx.textEffects.blur'), 'shadowBlur');
 	const shadowDistance = numberRow(t('pptx.shape.shadowDistance'), 'shadowDistance');
+	const shadowRotateWithShape = makeCheckboxField(doc, {
+		label: t('pptx.shape.shadowRotateWithShape'),
+		onChange: (checked) => handlers.setShapeStyle({ shadowRotateWithShape: checked }),
+	});
+	el.appendChild(shadowRotateWithShape.el);
 	const glowColor = colorRow(t('pptx.textEffects.glowColor'), 'glowColor', '#ffff00');
 	const glowRadius = numberRow(t('pptx.textEffects.glow'), 'glowRadius');
 	const softEdge = numberRow(t('pptx.shape.softEdges'), 'softEdgeRadius');
@@ -96,6 +101,7 @@ export function createShapeEffectsControls(
 		shadowColor,
 		shadowBlur,
 		shadowDistance,
+		shadowRotateWithShape,
 		glowColor,
 		glowRadius,
 		softEdge,
@@ -109,6 +115,7 @@ export function createShapeEffectsControls(
 			shadowColor.setValue(style.shadowColor ?? '#000000');
 			shadowBlur.setValue(style.shadowBlur ?? 0);
 			shadowDistance.setValue(style.shadowDistance ?? 0);
+			shadowRotateWithShape.setValue(style.shadowRotateWithShape ?? true);
 			glowColor.setValue(style.glowColor ?? '#ffff00');
 			glowRadius.setValue(style.glowRadius ?? 0);
 			softEdge.setValue(style.softEdgeRadius ?? 0);

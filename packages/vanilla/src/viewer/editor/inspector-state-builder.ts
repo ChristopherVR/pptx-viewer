@@ -7,9 +7,9 @@ import {
 	isImageLikeElement,
 	pptxActionToElementAction,
 } from 'pptx-viewer-core';
-import type { GradientState, InlineTextSelection } from 'pptx-viewer-shared';
 import {
 	autoFitModeOf,
+	defaultGradientState,
 	gradientStateOf,
 	hasGradientFill,
 	imageAdjustmentsStateOf,
@@ -19,19 +19,11 @@ import {
 	textAdvancedStateOf,
 	textWrapOf,
 } from 'pptx-viewer-shared';
+import type { InlineTextSelection } from 'pptx-viewer-shared';
 
 import type { ChartPartSelection } from '../render';
 import type { InspectorState } from '../ui';
 import { canFormatShape, canFormatText } from './editor-format-mutations';
-
-const DEFAULT_GRADIENT: GradientState = {
-	type: 'linear',
-	angle: 90,
-	stops: [
-		{ color: '#4472c4', position: 0, opacity: 1 },
-		{ color: '#ffffff', position: 100, opacity: 1 },
-	],
-};
 
 /** Read the shape fill/stroke for the inspector (undefined/0 when not a shape). */
 function shapeStyleOf(el: PptxElement | undefined): {
@@ -115,7 +107,7 @@ export function buildInspectorState(
 		fillOpacity: shape.fillOpacity,
 		strokeOpacity: shape.strokeOpacity,
 		gradientEnabled: el !== undefined && hasGradientFill(el),
-		gradient: el ? gradientStateOf(el) : DEFAULT_GRADIENT,
+		gradient: el ? gradientStateOf(el) : defaultGradientState(),
 		vAlign: textAdvanced?.vAlign ?? 'top',
 		textWrap: el ? textWrapOf(el) : 'square',
 		autoFitMode: el ? autoFitModeOf(el) : 'none',

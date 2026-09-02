@@ -132,7 +132,13 @@ export function createViewerControls(
 				return;
 			}
 			const order = showOrder();
-			if (state.presenting && !hasShowSlideAfter(state.currentSlide, order)) {
+			// "Loop Continuously" (`p:showPr/@loop`, the Set Up Slide Show dialog's
+			// checkbox): the end of the show wraps back to its first slide instead of
+			// raising the black end screen. Rehearsal (a distinct "record timings"
+			// flow) is not modelled by this controller, so there is no rehearsing
+			// exception to make here.
+			const loop = state.presentationProperties.loopContinuously === true;
+			if (state.presenting && !loop && !hasShowSlideAfter(state.currentSlide, order)) {
 				if (getEndWithBlackSlide?.() === false) {
 					// No black slide configured: PowerPoint ends the show outright
 					// rather than sitting on the last slide swallowing every advance.
@@ -148,7 +154,7 @@ export function createViewerControls(
 			// still editable and still reachable); inside one the show order rules.
 			goToSlide(
 				state.presenting
-					? (nextShowSlideIndex(state.currentSlide, order) ?? state.currentSlide)
+					? (nextShowSlideIndex(state.currentSlide, order, { loop }) ?? state.currentSlide)
 					: state.currentSlide + 1,
 			);
 		},

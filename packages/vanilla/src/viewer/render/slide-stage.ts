@@ -29,6 +29,7 @@ import {
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
+import { buildActiveXControlsOverlay } from './activex-controls-overlay';
 import { createEl } from './dom';
 import type { ChartPartSelection, ElementRenderContext, ElementRendererRegistry } from './types';
 
@@ -249,6 +250,15 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 				labels: actionAffordanceLabels((key) => t(key)),
 			},
 		);
+	}
+
+	// ActiveX controls (`p:controls > p:control`) cannot run inside a viewer.
+	// Draw each one's static fallback picture when core resolved one, otherwise
+	// a labelled placeholder badge, so the slide shows where the control lives
+	// instead of a blank gap (React-only before this; the other bindings drew
+	// nothing).
+	if (slide.activeXControls && slide.activeXControls.length > 0) {
+		stage.appendChild(buildActiveXControlsOverlay(doc, slide.activeXControls, canvasSize));
 	}
 
 	return stage;

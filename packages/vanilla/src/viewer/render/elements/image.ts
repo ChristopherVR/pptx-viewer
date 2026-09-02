@@ -1,6 +1,7 @@
 import {
 	getComputedImageStyle,
 	getContainerStyle,
+	getCropShapeClipPath,
 	getImageColorWashStyle,
 	getImageFitStyle,
 	getImageOverflow,
@@ -35,6 +36,13 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	}
 
 	const fx = getComputedImageStyle(element);
+	// "Crop to Shape": PowerPoint writes it as the picture's own `a:prstGeom`, so
+	// this is a typed clip-path view over `cropShape`, applied to whatever
+	// surface actually paints the bitmap below (plain `<img>` or the tiled fill).
+	const cropShapeClipPath =
+		element.type === 'image' || element.type === 'picture'
+			? getCropShapeClipPath(element.cropShape, element.width, element.height)
+			: undefined;
 
 	// SVG <filter> defs so the `url(#...)` references in `fx.filter` resolve.
 	for (const f of fx.svgFilters) {
@@ -67,6 +75,9 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		if (fx.opacity !== undefined) {
 			tile.style.opacity = String(fx.opacity);
 		}
+		if (cropShapeClipPath) {
+			tile.style.clipPath = cropShapeClipPath;
+		}
 		el.appendChild(tile);
 		if (reflection) {
 			el.appendChild(reflection);
@@ -85,6 +96,9 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	}
 	if (fx.opacity !== undefined) {
 		img.style.opacity = String(fx.opacity);
+	}
+	if (cropShapeClipPath) {
+		img.style.clipPath = cropShapeClipPath;
 	}
 	el.appendChild(img);
 	if (element.type === 'image' || element.type === 'picture') {

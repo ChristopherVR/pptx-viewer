@@ -1,12 +1,16 @@
 import type { GradientState } from 'pptx-viewer-shared';
+import { defaultGradientState, PATTERN_PRESET_OPTIONS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import type { ColorControlHandle, NumberFieldHandle } from '../controls';
 import { makeButton, makeColorControl, makeNumberField } from '../controls';
-import { makeCheckboxField, makeRangeField } from './controls-extra';
+import { makeCheckboxField, makeRangeField, makeSelectField } from './controls-extra';
 import { createShapeEffectsControls } from './shape-effects-controls';
 import type { InspectorHandlers, InspectorState } from './types';
+
+/** Preset used when a shape switches into pattern-fill mode with no prior one. */
+const DEFAULT_PATTERN_PRESET = 'pct20';
 
 export interface FillSection {
 	el: HTMLElement;
@@ -129,7 +133,57 @@ export function createFillSection(
 	});
 	gradientPanel.appendChild(addStopBtn.btn);
 
-	let lastGradient: GradientState = { type: 'linear', angle: 90, stops: [] };
+	// -- Pattern sub-panel --------------------------------------------------------
+	// `a:pattFill`: the shape's own `fillColor` is the pattern foreground (the
+	// existing Fill swatch above doubles as it, matching how the wire format
+	// itself has no separate foreground field), `fillPatternBackgroundColor` is
+	// the second colour, and `fillPatternPreset` picks one of the 56 presets.
+	const patternToggle = makeCheckboxField(doc, {
+		label: t('pptx.table.fillPattern'),
+		onChange(checked) {
+			if (checked) {
+				handlers.setShapeStyle({
+					fillMode: 'pattern',
+					fillPatternPreset: lastPatternPreset,
+					fillPatternBackgroundColor: lastPatternBackground,
+				});
+			} else {
+				handlers.setShapeFill(fill.el.querySelector('input')?.value ?? '#4f86ff');
+			}
+		},
+	});
+	el.appendChild(patternToggle.el);
+
+	const patternPanel = createEl(doc, 'div', 'pptxv-inspector-pattern');
+	el.appendChild(patternPanel);
+
+	const patternPreset = makeSelectField<string>(doc, {
+		label: t('pptx.table.patternPreset'),
+		options: PATTERN_PRESET_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) })),
+		onChange: (value) => {
+			lastPatternPreset = value;
+			handlers.setShapeStyle({ fillMode: 'pattern', fillPatternPreset: value });
+		},
+	});
+	patternPanel.appendChild(patternPreset.el);
+
+	const patternBackground = makeColorControl(
+		doc,
+		{
+			label: t('pptx.table.patternBackground'),
+			onInput: (hex) => {
+				lastPatternBackground = hex;
+				handlers.setShapeStyle({ fillMode: 'pattern', fillPatternBackgroundColor: hex });
+			},
+		},
+		'#ffffff',
+	);
+	patternPanel.appendChild(patternBackground.el);
+
+	let lastPatternPreset = DEFAULT_PATTERN_PRESET;
+	let lastPatternBackground = '#ffffff';
+
+	let lastGradient: GradientState = defaultGradientState();
 	let stopRows: Array<{
 		color: ColorControlHandle;
 		position: NumberFieldHandle;
@@ -167,8 +221,17 @@ export function createFillSection(
 		});
 	};
 
-	const gated = [fill, stroke, strokeWidth, fillOpacity, strokeOpacity, gradientToggle];
+	const gated = [
+		fill,
+		stroke,
+		strokeWidth,
+		fillOpacity,
+		strokeOpacity,
+		gradientToggle,
+		patternToggle,
+	];
 	const gradientGated = [linearBtn, radialBtn, angleField, addStopBtn];
+	const patternGated = [patternPreset, patternBackground];
 	const effects = createShapeEffectsControls(doc, t, handlers);
 	el.appendChild(effects.el);
 
@@ -188,11 +251,22 @@ export function createFillSection(
 			gradientPanel.hidden = !state.gradientEnabled;
 			effects.update(state);
 
+			const patternEnabled = state.shapeStyle?.fillMode === 'pattern';
+			patternToggle.setValue(patternEnabled);
+			lastPatternPreset = state.shapeStyle?.fillPatternPreset ?? lastPatternPreset;
+			lastPatternBackground = state.shapeStyle?.fillPatternBackgroundColor ?? lastPatternBackground;
+			patternPreset.setValue(lastPatternPreset);
+			patternBackground.setValue(lastPatternBackground);
+			patternPanel.hidden = !patternEnabled;
+
 			for (const c of gated) {
 				c.setDisabled(!state.canShape);
 			}
 			for (const c of gradientGated) {
 				c.setDisabled(!state.canShape || !state.gradientEnabled);
+			}
+			for (const c of patternGated) {
+				c.setDisabled(!state.canShape || !patternEnabled);
 			}
 			for (const row of stopRows) {
 				row.color.setDisabled(!state.canShape);

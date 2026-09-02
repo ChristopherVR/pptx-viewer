@@ -37,12 +37,17 @@ function harness(options: {
 	startIndex?: number;
 	endWithBlackSlide?: boolean;
 	buildsRemaining?: boolean;
+	loopContinuously?: boolean;
 }): Harness {
 	const store = createStore<ViewerState>({
 		...createInitialViewerState(),
 		slides: options.deck,
 		presenting: options.presenting ?? true,
 		currentSlide: options.startIndex ?? 0,
+		presentationProperties: {
+			...createInitialViewerState().presentationProperties,
+			loopContinuously: options.loopContinuously,
+		},
 	});
 	let ended = 0;
 	// Only the two members `createViewerControls` reaches for are implemented.
@@ -89,6 +94,17 @@ describe('viewerControls hidden slides', () => {
 		controls.next();
 		expect(store.get().currentSlide).toBe(1);
 		expect(store.get().endOfShow).toBeTruthy();
+	});
+
+	it('wraps back to the first slide instead of ending, when "Loop Continuously" is on', () => {
+		const { store, controls } = harness({
+			deck: slides(false, false, true, true),
+			startIndex: 1,
+			loopContinuously: true,
+		});
+		controls.next();
+		expect(store.get().currentSlide).toBe(0);
+		expect(store.get().endOfShow).toBeFalsy();
 	});
 
 	it('lands Home / End on the first / last VISIBLE slide during a show', () => {

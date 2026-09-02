@@ -1,4 +1,9 @@
-import { buildParagraphs, getContainerStyle, getOverflowSegments } from 'pptx-viewer-shared';
+import {
+	buildParagraphs,
+	getContainerStyle,
+	getOverflowSegments,
+	placeholderPromptDescriptor,
+} from 'pptx-viewer-shared';
 
 import { composeTransforms, createEl } from '../dom';
 import { getShapeFillStrokeStyle, getTextBlockStyle } from '../element-styles';
@@ -105,6 +110,19 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 					states: context.presentationStates,
 				}),
 			);
+		} else {
+			// An empty inherited placeholder's greyed-out hint ("Click to add
+			// title"): editor stage only, never present/export/thumbnail.
+			const mode = context.interactive && !context.presenting ? 'edit' : 'present';
+			const prompt = placeholderPromptDescriptor(element, mode);
+			if (prompt) {
+				const hint = createEl(context.document, 'div', 'pptxv-placeholder-prompt', {
+					...getTextBlockStyle(element),
+					...prompt.style,
+				});
+				hint.textContent = prompt.text;
+				el.appendChild(hint);
+			}
 		}
 	}
 

@@ -64,3 +64,18 @@ describe('shape effects arrowhead pickers', () => {
 		expect(setShapeStyle).toHaveBeenCalledWith({ connectorStartArrow: 'stealth' });
 	});
 });
+
+describe('shadow rotate-with-shape toggle', () => {
+	it('writes shadowRotateWithShape when toggled', () => {
+		const { controls, setShapeStyle } = mount();
+		const checkbox = Array.from(controls.el.querySelectorAll('input[type="checkbox"]')).find(
+			(input) => input.closest('label')?.textContent?.includes('pptx.shape.shadowRotateWithShape'),
+		) as HTMLInputElement;
+		expect(checkbox).toBeDefined();
+
+		checkbox.checked = false;
+		checkbox.dispatchEvent(new Event('change'));
+
+		expect(setShapeStyle).toHaveBeenCalledWith({ shadowRotateWithShape: false });
+	});
+});

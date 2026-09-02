@@ -47,6 +47,37 @@ describe('renderImageElement source effects', () => {
 		expect(wash.style.opacity).toBe('0.35');
 	});
 
+	it('applies a clip-path when the picture has a crop shape', () => {
+		const element: ImagePptxElement = {
+			type: 'image',
+			id: 'image-crop',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageData: 'data:image/png;base64,source',
+			cropShape: 'ellipse',
+		};
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		const img = node.querySelector('img') as HTMLImageElement;
+		expect(img.style.clipPath).toContain('path(');
+	});
+
+	it('applies no clip-path when the picture has no crop shape', () => {
+		const element: ImagePptxElement = {
+			type: 'image',
+			id: 'image-no-crop',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageData: 'data:image/png;base64,source',
+		};
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		const img = node.querySelector('img') as HTMLImageElement;
+		expect(img.style.clipPath).toBe('');
+	});
+
 	it('renders a picture whose only blip is an SVG extension', () => {
 		// Regression: `<a:blip>` with no `r:embed`, only `asvg:svgBlip`, resolved
 		// to nothing here while React painted it, so icon artwork silently vanished.
