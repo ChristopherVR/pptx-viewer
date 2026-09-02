@@ -134,6 +134,60 @@ describe('groupElementParagraphs', () => {
 		expect(paragraphGroupText(groups[0])).toBe('Item');
 	});
 
+	it('keeps real numbered content that carries paragraph metadata', () => {
+		const element = textElement('a', {
+			textSegments: [
+				{
+					text: 'Item',
+					style: {},
+					bulletInfo: {
+						autoNumType: 'arabicPeriod',
+						autoNumStartAt: 2,
+						paragraphIndex: 1,
+					},
+				},
+			],
+		});
+		const groups = groupElementParagraphs(element);
+		expect(groups[0].marker).toBeUndefined();
+		expect(paragraphGroupText(groups[0])).toBe('Item');
+	});
+
+	it.each(['3.', '3. '])('lifts the generated numbered marker %j out of the text', (marker) => {
+		const element = textElement('a', {
+			textSegments: [
+				{
+					text: marker,
+					style: {},
+					bulletInfo: {
+						autoNumType: 'arabicPeriod',
+						autoNumStartAt: 2,
+						paragraphIndex: 1,
+					},
+				},
+				{ text: 'Item', style: {} },
+			],
+		});
+		const groups = groupElementParagraphs(element);
+		expect(groups[0].marker?.text).toBe(marker);
+		expect(paragraphGroupText(groups[0])).toBe('Item');
+	});
+
+	it('keeps marker-like numbered text without a runtime paragraph index', () => {
+		const element = textElement('a', {
+			textSegments: [
+				{
+					text: '1.',
+					style: {},
+					bulletInfo: { autoNumType: 'arabicPeriod' },
+				},
+			],
+		});
+		const groups = groupElementParagraphs(element);
+		expect(groups[0].marker).toBeUndefined();
+		expect(paragraphGroupText(groups[0])).toBe('1.');
+	});
+
 	it('renders a soft line break as a space, never as a paragraph split', () => {
 		const element = textElement('a', {
 			textSegments: [

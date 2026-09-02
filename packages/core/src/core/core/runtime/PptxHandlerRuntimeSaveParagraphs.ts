@@ -1,5 +1,6 @@
 import { XmlObject, TextStyle, TextSegment } from '../../types';
 import type { BulletInfo } from '../../types';
+import { formatAutoNumberMarker } from '../../utils/auto-number-format';
 import {
 	buildParagraphPropertiesXml,
 	assembleParagraphXml,
@@ -15,14 +16,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!bullet) {
 			return false;
 		}
+		if (bullet.autoNumType) {
+			if (bullet.paragraphIndex === undefined) {
+				return false;
+			}
+			const ordinal = Math.max(1, (bullet.autoNumStartAt ?? 1) + bullet.paragraphIndex);
+			const marker = formatAutoNumberMarker(bullet.autoNumType, ordinal);
+			return segment.text === marker || segment.text === `${marker} `;
+		}
 		const marker = bullet.char
 			? `${bullet.char} `
 			: bullet.imageRelId || bullet.imageDataUrl
 				? '\u{1F4CE} '
-				: bullet.autoNumType
-					? undefined
-					: '• ';
-		return marker ? segment.text === marker : bullet.paragraphIndex !== undefined;
+				: '• ';
+		return segment.text === marker;
 	}
 
 	protected createParagraphsFromTextContent(

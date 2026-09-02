@@ -5,6 +5,46 @@
  */
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
+import { resolveParagraphBullet } from './bullet-list';
+import { isBulletMarkerSegment } from './bullet-toggle';
+
+/**
+ * Remove marker text from editor surfaces that seed it as ordinary text.
+ * Depending on the binding, the gap can be CSS (`"1.Item"`) or the parsed
+ * marker's trailing space (`"1. Item"`). React instead annotates its rendered
+ * marker so `readEditableText` can exclude it at the DOM boundary.
+ */
+function withoutRenderedBulletPrefix(
+	text: string,
+	originalSegments: readonly TextSegment[],
+	dedicatedMarker: TextSegment | undefined,
+): string {
+	if (!dedicatedMarker) {
+		return text;
+	}
+	const resolved = resolveParagraphBullet(dedicatedMarker);
+	if (!resolved || !text.startsWith(resolved.marker)) {
+		return text;
+	}
+
+	const withoutMarker = text.slice(resolved.marker.length);
+	const originalContent = originalSegments
+		.slice(1)
+		.map((segment) => segment.text)
+		.join('');
+	// Empty list paragraphs do not render a marker, so marker-like text typed
+	// into them is authored content and must not be stripped.
+	if (originalContent.trim().length === 0) {
+		return text;
+	}
+	const originalLeadingSpaces = originalContent.length - originalContent.trimStart().length;
+	const editedLeadingSpaces = withoutMarker.length - withoutMarker.trimStart().length;
+	if (editedLeadingSpaces > originalLeadingSpaces) {
+		return withoutMarker.slice(1);
+	}
+	return withoutMarker;
+}
+
 /**
  * Whether an original segment is ATOMIC: its rendered text is not what is
  * literally stored (a field re-substitutes its live value at render, from
@@ -96,6 +136,27 @@ export function remapTextToSegments(
 			return paraNewText.length > 0
 				? [{ text: paraNewText, style: { ...baseFallbackStyle } }]
 				: [{ text: '', style: { ...baseFallbackStyle } }];
+		}
+
+		const firstSegment = paraOrigSegments[0];
+		const dedicatedMarker =
+			isBulletMarkerSegment(firstSegment) &&
+			(!firstSegment.bulletInfo?.autoNumType ||
+				firstSegment.bulletInfo.paragraphIndex !== undefined)
+				? firstSegment
+				: undefined;
+		if (dedicatedMarker) {
+			const contentSegments = paraOrigSegments.slice(1);
+			const contentText = withoutRenderedBulletPrefix(
+				paraNewText,
+				paraOrigSegments,
+				dedicatedMarker,
+			);
+			const content =
+				contentSegments.length > 0
+					? remapParagraph(contentText, contentSegments)
+					: [{ text: contentText, style: { ...dedicatedMarker.style } }];
+			return [dedicatedMarker, ...content];
 		}
 
 		const paragraphBulletInfo = paraOrigSegments[0].bulletInfo;

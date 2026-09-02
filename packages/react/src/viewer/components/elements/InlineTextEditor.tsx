@@ -1,6 +1,6 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { placeCaretAtEnd } from 'pptx-viewer-shared';
+import { placeCaretAtEnd, readEditableText } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../../constants';
@@ -75,13 +75,14 @@ export function InlineTextEditor({
 	}
 	const seed = seedRef.current;
 
-	// Extract plain text from the contentEditable div
+	// Extract authored text from the contentEditable div. Rendered list markers
+	// are annotated presentation chrome and are intentionally excluded.
 	const extractText = useCallback((): string => {
 		const el = editorRef.current;
 		if (!el) {
 			return seed.initialText;
 		}
-		return el.innerText || '';
+		return readEditableText(el);
 	}, [seed]);
 
 	// Sync text to parent on every input via ref (no re-render)

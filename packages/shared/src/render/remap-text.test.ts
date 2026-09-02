@@ -116,6 +116,84 @@ describe('remapTextToSegments', () => {
 			const result = remapTextToSegments('New item', original, {});
 			expect(result[0].bulletInfo).toStrictEqual(bulletInfo);
 		});
+
+		it.each(['1.Item edited', '1. Item edited'])(
+			'removes the rendered number from edited text %j without consuming content',
+			(newText) => {
+				const bulletInfo = {
+					autoNumType: 'arabicPeriod',
+					autoNumStartAt: 1,
+					paragraphIndex: 0,
+				};
+				const original: TextSegment[] = [{ text: '1. ', style: {}, bulletInfo }, seg('Item')];
+				const result = remapTextToSegments(newText, original, {});
+
+				expect(result.map((segment) => segment.text)).toStrictEqual(['1. ', 'Item edited']);
+				expect(result[0].bulletInfo).toStrictEqual(bulletInfo);
+			},
+		);
+
+		it('removes a rendered character bullet without consuming content', () => {
+			const bulletInfo = { char: '•' };
+			const original: TextSegment[] = [{ text: '• ', style: {}, bulletInfo }, seg('Item')];
+			const result = remapTextToSegments('•Item edited', original, {});
+
+			expect(result.map((segment) => segment.text)).toStrictEqual(['• ', 'Item edited']);
+			expect(result[0].bulletInfo).toStrictEqual(bulletInfo);
+		});
+
+		it.each(['1. Item edited', '1.  Item edited'])(
+			'preserves an authored leading space in edited text %j',
+			(newText) => {
+				const bulletInfo = { autoNumType: 'arabicPeriod', paragraphIndex: 0 };
+				const original: TextSegment[] = [{ text: '1. ', style: {}, bulletInfo }, seg(' Item')];
+				const result = remapTextToSegments(newText, original, {});
+
+				expect(result.map((segment) => segment.text)).toStrictEqual(['1. ', ' Item edited']);
+			},
+		);
+
+		it('keeps paragraph metadata on the marker and content styles on their runs', () => {
+			const paragraphProperties = { paragraphSpacingBefore: 8 };
+			const endParaRunProperties = { '@_sz': '1800' };
+			const original: TextSegment[] = [
+				{
+					text: '1. ',
+					style: { color: '#FF0000' },
+					bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+					paragraphLevel: 2,
+					paragraphProperties,
+					endParaRunProperties,
+				},
+				seg('Bold', { bold: true }),
+				seg(' plain', { italic: true }),
+			];
+			const result = remapTextToSegments('1.Bold plus plain', original, {});
+
+			expect(result.map((segment) => segment.text)).toStrictEqual(['1. ', 'Bold', ' plus plain']);
+			expect(result[0].paragraphLevel).toBe(2);
+			expect(result[0].paragraphProperties).toBe(paragraphProperties);
+			expect(result[0].endParaRunProperties).toBe(endParaRunProperties);
+			expect(result[1].style.bold).toBeTruthy();
+			expect(result[2].style.italic).toBeTruthy();
+		});
+
+		it('keeps marker-like content when an auto-number has no runtime paragraph index', () => {
+			const bulletInfo = { autoNumType: 'arabicPeriod' };
+			const original: TextSegment[] = [{ text: '1.', style: {}, bulletInfo }];
+			const result = remapTextToSegments('1.Item', original, {});
+
+			expect(result.map((segment) => segment.text)).toStrictEqual(['1.Item']);
+			expect(result[0].bulletInfo).toStrictEqual(bulletInfo);
+		});
+
+		it('keeps marker-like text typed into a marker-only empty paragraph', () => {
+			const bulletInfo = { autoNumType: 'arabicPeriod', paragraphIndex: 0 };
+			const original: TextSegment[] = [{ text: '1.', style: {}, bulletInfo }];
+			const result = remapTextToSegments('1.Item', original, {});
+
+			expect(result.map((segment) => segment.text)).toStrictEqual(['1.', '1.Item']);
+		});
 	});
 
 	describe('segment metadata preservation', () => {

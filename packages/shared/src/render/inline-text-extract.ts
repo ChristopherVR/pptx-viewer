@@ -23,6 +23,13 @@ export function readEditableText(root: Node): string {
 			if (!(child instanceof HTMLElement)) {
 				continue;
 			}
+			// A list marker is presentation chrome, not authored paragraph text.
+			// React renders it inside the contenteditable so edit mode matches view
+			// mode; excluding the annotated node prevents a semantic bullet from
+			// being committed as literal text (for example, "1.Item").
+			if (child.hasAttribute('data-pptx-bullet-marker')) {
+				continue;
+			}
 			if (child.tagName === 'BR') {
 				out += '\n';
 				continue;

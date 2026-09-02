@@ -120,4 +120,63 @@ describe('elementRenderer - inline formatting shortcut wiring', () => {
 		// Must not throw; the shortcut simply does nothing.
 		pressShortcut(getInlineEditor(), 'b');
 	});
+
+	it.each([
+		{
+			name: 'content-carrying first run',
+			segments: [
+				{
+					text: 'Item',
+					style: {},
+					bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+				},
+			],
+			contentSegmentIndex: 0,
+		},
+		{
+			name: 'dedicated marker run',
+			segments: [
+				{
+					text: '1. ',
+					style: {},
+					bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+				},
+				{ text: 'Item', style: {} },
+			],
+			contentSegmentIndex: 1,
+		},
+	])(
+		'excludes the rendered number for a $name from committed text',
+		({ segments, contentSegmentIndex }) => {
+			const onInlineEditChange = vi.fn<(text: string) => void>();
+			mount(
+				makeProps({
+					element: {
+						...makeTextElement(),
+						text: 'Item',
+						textSegments: segments,
+					} as PptxElement,
+					onInlineEditChange,
+				}),
+			);
+
+			const editor = getInlineEditor();
+			const marker = editor.querySelector<HTMLElement>('[data-pptx-bullet-marker]');
+			const content = editor.querySelector<HTMLElement>(
+				`[data-seg-idx="${String(contentSegmentIndex)}"]`,
+			);
+			expect(marker?.textContent).toBe('1.');
+			expect(marker?.contentEditable).toBe('false');
+			expect(content).not.toBeNull();
+
+			act(() => {
+				if (content) {
+					content.textContent = 'Item edited';
+				}
+				editor.dispatchEvent(new Event('input', { bubbles: true }));
+			});
+
+			expect(onInlineEditChange).toHaveBeenLastCalledWith('Item edited');
+		},
+	);
 });

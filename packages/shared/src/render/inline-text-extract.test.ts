@@ -38,6 +38,26 @@ describe('readEditableText', () => {
 		);
 	});
 
+	it('excludes rendered bullet markers from editable text', () => {
+		expect(
+			readEditableText(
+				elementFromHtml(
+					'<div><span data-pptx-bullet-marker contenteditable="false">1.</span><span>Item</span></div>',
+				),
+			),
+		).toBe('Item');
+	});
+
+	it('keeps paragraph breaks when every paragraph starts with a rendered marker', () => {
+		expect(
+			readEditableText(
+				elementFromHtml(
+					'<div><span data-pptx-bullet-marker>1.</span><span>First</span></div><div><span data-pptx-bullet-marker>2.</span><span>Second</span></div>',
+				),
+			),
+		).toBe('First\nSecond');
+	});
+
 	it('does not prefix a newline for the very first block', () => {
 		expect(readEditableText(elementFromHtml('<div>only</div>'))).toBe('only');
 	});
