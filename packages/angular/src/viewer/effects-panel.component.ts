@@ -135,7 +135,7 @@ import type { EffectsState } from './effects-helpers';
 								[checked]="state().outerShadow.rotateWithShape"
 								(change)="onOuterShadowRotateWithShapeToggle($event)"
 							/>
-							<span>Rotate with Shape</span>
+							<span>{{ 'pptx.effects.rotateWithShape' | translate }}</span>
 						</label>
 					</div>
 				}
