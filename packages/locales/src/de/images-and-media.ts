@@ -37,6 +37,7 @@ export const translations = {
 	'pptx.effects.blur': 'Verwischen',
 	'pptx.effects.distance': 'Distanz',
 	'pptx.effects.angle': 'Winkel',
+	'pptx.effects.rotateWithShape': 'Mit Form drehen',
 	'pptx.effects.outerGlow': 'Äußeres Leuchten',
 	'pptx.effects.radius': 'Radius',
 	'pptx.effects.shapeOnlyNote':
