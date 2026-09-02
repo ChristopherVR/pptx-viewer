@@ -9,14 +9,13 @@
  * (`getSlideTransitionAnimations`, including the exotic/3-D 2-D approximations
  * that originated here) now lives in shared and is consumed by every binding.
  *
- * Angular keeps its OWN duration policy locally: the presentation overlay floors
- * very short authored durations and uses a smaller default than React/Vue, so
- * `MIN_TRANSITION_DURATION_MS` / `DEFAULT_TRANSITION_DURATION_MS` /
- * `resolveTransitionDuration` are defined here rather than re-exported from
- * shared (whose `DEFAULT_TRANSITION_DURATION_MS` is the larger React/Vue value).
- *
- * `PresentationTransitionOverlayComponent` imports the same symbol names from
- * here unchanged.
+ * The presentation overlay's duration comes from the shared resolver
+ * (`resolveTransitionDurationMs`), exactly as in the other four bindings, so
+ * an authored `p14:dur`, the legacy `spd` token and the COM-verified defaults
+ * all play at PowerPoint's speed here too. The older local floor/default
+ * policy (`MIN_TRANSITION_DURATION_MS` / `DEFAULT_TRANSITION_DURATION_MS` /
+ * `resolveTransitionDuration`) stays exported for callers that adopted it, but
+ * the overlay no longer consults it.
  */
 import type { PptxSlideTransition } from 'pptx-viewer-core';
 
@@ -39,22 +38,23 @@ export {
 } from '../internal/shared';
 
 // ---------------------------------------------------------------------------
-// Angular-specific duration policy (deliberately diverges from React/Vue)
+// Legacy local duration policy (no longer used by the overlay)
 // ---------------------------------------------------------------------------
 
 /**
- * Floor applied to the transition duration so very short authored durations
- * still produce a visible animation. Mirrors the React presentation hook.
+ * Floor applied by {@link resolveTransitionDuration} so very short authored
+ * durations still produce a visible animation.
  */
 export const MIN_TRANSITION_DURATION_MS = 120;
 
-/** Fallback transition duration when the slide declares none. */
+/** Fallback used by {@link resolveTransitionDuration} when nothing is authored. */
 export const DEFAULT_TRANSITION_DURATION_MS = 320;
 
 /**
- * Resolve the effective transition duration (ms) from an optional authored
- * value, applying the minimum floor and a sensible default. Mirrors the React
- * `executeSlideTransition` clamping (`Math.max(120, durationMs || 320)`).
+ * Resolve an effective duration (ms) from an optional authored value, applying
+ * the minimum floor and the local default. Kept as a public helper; the
+ * presentation overlay resolves through the shared
+ * {@link resolveOverlayDurationMs} instead, which is what plays on screen.
  */
 export function resolveTransitionDuration(durationMs: number | undefined): number {
 	const raw =
@@ -66,14 +66,15 @@ export function resolveTransitionDuration(durationMs: number | undefined): numbe
 
 /**
  * The presentation overlay's effective duration (ms): an explicit override
- * wins; a MORPH delegates to the shared resolver, which honours an authored
- * `p14:dur`, then the legacy `spd` token, then PowerPoint's 0.5s fallback for
- * a morph that declares neither. The previous local copy ignored `spd`
- * entirely, so spd-authored morphs played at the (wrong) hard-coded default
- * while every other binding honoured the authored speed.
+ * wins; otherwise the shared resolver decides for EVERY type, honouring an
+ * authored `p14:dur`, then the legacy `spd` token (COM-measured: fast 0.5s,
+ * med 0.75s, slow 1.0s), then PowerPoint's default (0.5s for a morph, 1s
+ * otherwise).
  *
- * Classic (non-morph) transitions keep Angular's own floor/default policy
- * above - that divergence is deliberate (see the file header).
+ * Classic transitions used to keep a local 320ms default that ignored `spd`,
+ * so a `spd="slow"` wipe PowerPoint plays over a full second flashed past in
+ * a third of that here while React, Vue, Svelte and Vanilla all played it at
+ * 1s. Nothing about that was Angular-specific; the divergence is gone.
  */
 export function resolveOverlayDurationMs(
 	override: number | undefined,
@@ -82,10 +83,7 @@ export function resolveOverlayDurationMs(
 	if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
 		return override;
 	}
-	if (transition.type === 'morph') {
-		return resolveTransitionDurationMs(transition);
-	}
-	return resolveTransitionDuration(transition.durationMs);
+	return resolveTransitionDurationMs(transition);
 }
 
 // ---------------------------------------------------------------------------

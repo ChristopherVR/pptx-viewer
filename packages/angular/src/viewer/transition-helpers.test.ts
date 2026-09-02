@@ -1,6 +1,7 @@
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_TRANSITION_DURATION_MS as SHARED_DEFAULT_TRANSITION_DURATION_MS } from '../internal/shared';
 import {
 	DEFAULT_MORPH_DURATION_MS,
 	DEFAULT_TRANSITION_DURATION_MS,
@@ -447,9 +448,31 @@ describe('resolveOverlayDurationMs', () => {
 		expect(resolveOverlayDurationMs(undefined, transition({}))).toBe(DEFAULT_MORPH_DURATION_MS);
 	});
 
-	it('keeps the angular classic-transition policy for non-morphs', () => {
-		expect(resolveOverlayDurationMs(undefined, { type: 'fade' } as PptxSlideTransition)).toBe(
-			DEFAULT_TRANSITION_DURATION_MS,
+	// Regression: classic transitions used a local 320ms default that ignored
+	// `spd`, so a `spd="slow"` wipe PowerPoint plays over 1s flashed past in
+	// 320ms here while the other four bindings played it at 1s.
+	it('honours the legacy spd token for classic transitions too', () => {
+		expect(resolveOverlayDurationMs(undefined, transition({ type: 'wipe', speed: 'slow' }))).toBe(
+			1000,
 		);
+		expect(resolveOverlayDurationMs(undefined, transition({ type: 'wipe', speed: 'med' }))).toBe(
+			750,
+		);
+		expect(resolveOverlayDurationMs(undefined, transition({ type: 'fade', speed: 'fast' }))).toBe(
+			500,
+		);
+	});
+
+	it('honours an authored p14:dur for classic transitions', () => {
+		expect(
+			resolveOverlayDurationMs(undefined, transition({ type: 'push', durationMs: 2500 })),
+		).toBe(2500);
+	});
+
+	it("falls back to PowerPoint's 1s for an un-authored classic transition", () => {
+		expect(resolveOverlayDurationMs(undefined, transition({ type: 'fade' }))).toBe(
+			SHARED_DEFAULT_TRANSITION_DURATION_MS,
+		);
+		expect(SHARED_DEFAULT_TRANSITION_DURATION_MS).not.toBe(DEFAULT_TRANSITION_DURATION_MS);
 	});
 });
