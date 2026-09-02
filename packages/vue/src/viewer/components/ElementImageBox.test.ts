@@ -159,4 +159,30 @@ describe('element image box', () => {
 
 		expect(wrapper.attributes('style')).toContain('border-radius: 50%');
 	});
+
+	it('prefers the geometry mask over the derived crop shape when both exist', () => {
+		// On load `cropShape` is derived from the picture's own prstGeom, so an
+		// oval custGeom picture carries BOTH a geometry mask and a truthy
+		// cropShape ('ellipse'). The geometry mask wins.
+		const element: ImagePptxElement = {
+			type: 'picture',
+			id: 'pic-both',
+			x: 0,
+			y: 0,
+			width: 756,
+			height: 427,
+			imageData: 'data:image/png;base64,AA==',
+			shapeType: 'custom',
+			pathData: 'M 0 0 L 100 0 L 100 100 Z',
+			pathWidth: 100,
+			pathHeight: 100,
+			cropShape: 'ellipse',
+		} as unknown as ImagePptxElement;
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+
+		expect(wrapper.attributes('style')).toContain('clip-path: path(');
+	});
 });

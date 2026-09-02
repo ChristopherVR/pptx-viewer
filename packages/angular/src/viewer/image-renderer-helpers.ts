@@ -70,7 +70,11 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 	}
 	const geometryMask = getAngularImageGeometryMask(element);
 	const cropShapeClipPath = getImageCropShapeClipPath(element);
-	if (cropShapeClipPath) {
+	// The picture's own geometry mask outranks the derived crop shape: on load
+	// `cropShape` is derived from the same `prstGeom`/custGeom, so both are
+	// truthy for every non-rectangular picture, and the img-level crop clip
+	// would be scaled and shifted by the source-crop transform.
+	if (!geometryMask?.['clip-path'] && cropShapeClipPath) {
 		imageStyle['clip-path'] = cropShapeClipPath;
 	}
 
@@ -84,7 +88,9 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 				'pointer-events': 'none',
 				'background-color': colorWash.backgroundColor,
 				opacity: colorWash.opacity,
-				...(cropShapeClipPath ? { 'clip-path': cropShapeClipPath } : {}),
+				...(!geometryMask?.['clip-path'] && cropShapeClipPath
+					? { 'clip-path': cropShapeClipPath }
+					: {}),
 			}
 		: undefined;
 
@@ -98,7 +104,9 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 				...(tiling as StyleMap),
 				...(computed.filter ? { filter: computed.filter } : {}),
 				...(computed.opacity !== undefined ? { opacity: computed.opacity } : {}),
-				...(cropShapeClipPath ? { 'clip-path': cropShapeClipPath } : {}),
+				...(!geometryMask?.['clip-path'] && cropShapeClipPath
+					? { 'clip-path': cropShapeClipPath }
+					: {}),
 			}
 		: undefined;
 

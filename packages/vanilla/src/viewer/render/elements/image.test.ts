@@ -184,4 +184,31 @@ describe('renderImageElement source effects', () => {
 		expect(node.style.clipPath.startsWith('path(')).toBeTruthy();
 		expect(img.style.clipPath).toBe('');
 	});
+
+	it('prefers the geometry mask over the derived crop shape when both exist', () => {
+		// On load `cropShape` is derived from the picture's own prstGeom, so an
+		// oval custGeom picture carries BOTH a geometry mask and a truthy
+		// cropShape ('ellipse'). The img-level crop clip would be scaled and
+		// shifted by the source-crop transform - the geometry mask wins.
+		const element = {
+			type: 'picture',
+			id: 'pic-both',
+			x: 0,
+			y: 0,
+			width: 756,
+			height: 427,
+			imageData: 'data:image/png;base64,source',
+			shapeType: 'custom',
+			pathData: 'M 0 0 L 100 0 L 100 100 Z',
+			pathWidth: 100,
+			pathHeight: 100,
+			cropShape: 'ellipse',
+		} as unknown as ImagePptxElement;
+
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		const img = node.querySelector('img') as HTMLImageElement;
+
+		expect(node.style.clipPath.startsWith('path(')).toBeTruthy();
+		expect(img.style.clipPath).toBe('');
+	});
 });

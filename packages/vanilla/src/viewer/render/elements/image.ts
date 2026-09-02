@@ -59,7 +59,11 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	// "Crop to Shape": PowerPoint writes it as the picture's own `a:prstGeom`, so
 	// this is a typed clip-path view over `cropShape`, applied to whatever
 	// surface actually paints the bitmap below (plain `<img>` or the tiled fill).
-	// The frame-level geometry mask above outranks it.
+	// The picture's own geometry mask outranks it: on load `cropShape` is
+	// derived from the same `prstGeom`/custGeom, so both are truthy for every
+	// non-rectangular picture, and the img-level crop clip would be scaled and
+	// shifted by the source-crop transform.
+	const geometryClipPath = geometry?.kind === 'clipPath' ? geometry.clipPath : undefined;
 	const cropShapeClipPath =
 		element.type === 'image' || element.type === 'picture'
 			? getCropShapeClipPath(element.cropShape, element.width, element.height)
@@ -96,7 +100,7 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		if (fx.opacity !== undefined) {
 			tile.style.opacity = String(fx.opacity);
 		}
-		if (cropShapeClipPath) {
+		if (!geometryClipPath && cropShapeClipPath) {
 			tile.style.clipPath = cropShapeClipPath;
 		}
 		el.appendChild(tile);
@@ -118,7 +122,7 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	if (fx.opacity !== undefined) {
 		img.style.opacity = String(fx.opacity);
 	}
-	if (cropShapeClipPath) {
+	if (!geometryClipPath && cropShapeClipPath) {
 		img.style.clipPath = cropShapeClipPath;
 	}
 	el.appendChild(img);

@@ -178,6 +178,28 @@ describe('buildAngularImageRenderView - tiled pictures', () => {
 		expect(view.imageStyle['clip-path']).toBeUndefined();
 	});
 
+	it('prefers the geometry mask over the derived crop shape when both exist', () => {
+		// On load `cropShape` is derived from the picture's own prstGeom, so an
+		// oval custGeom picture carries BOTH a geometry mask and a truthy
+		// cropShape ('ellipse'). The img-level crop clip would be scaled and
+		// shifted by the source-crop transform - the geometry mask wins, and
+		// the derived crop shape must not ride the `<img>`.
+		const view = buildAngularImageRenderView(
+			image(undefined, {
+				shapeType: 'custom',
+				pathData: 'M 0 0 L 100 0 L 100 100 Z',
+				pathWidth: 100,
+				pathHeight: 100,
+				cropShape: 'ellipse',
+			}),
+		);
+
+		expect(String(view.frameGeometryMask?.['clip-path'])).toMatch(/^path\(/);
+		expect(view.imageStyle['clip-path']).toBeUndefined();
+		expect(view.tilingStyle?.['clip-path']).toBeUndefined();
+		expect(view.colorWashStyle?.['clip-path']).toBeUndefined();
+	});
+
 	it('rounds an ellipse picture via border-radius on the frame', () => {
 		const view = buildAngularImageRenderView(image(undefined, { shapeType: 'ellipse' }));
 
