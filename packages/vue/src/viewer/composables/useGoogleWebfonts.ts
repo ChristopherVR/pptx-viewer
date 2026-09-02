@@ -12,7 +12,8 @@ import type { MaybeRefOrGetter } from 'vue';
  * by silently downloading its "cloud fonts"; a browser has no equivalent).
  * When a referenced family is served by the Google Fonts API, this
  * composable injects a `<link rel="stylesheet">` so the text renders with
- * the intended face anyway. Candidates are probed (session-cached) and the
+ * the intended face anyway. Candidates are matched against the bundled
+ * Google Fonts catalogue (no network round-trip; session-cached) and the
  * managed `<link>` element is updated when slides or embedded fonts change
  * and removed on scope dispose.
  *

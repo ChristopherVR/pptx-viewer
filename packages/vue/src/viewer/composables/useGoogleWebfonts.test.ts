@@ -1,6 +1,6 @@
 // oxlint-disable react-hooks/rules-of-hooks
 import type { PptxElement, PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
-import { resetGoogleWebfontProbeCache } from 'pptx-viewer-shared';
+import { resetGoogleWebfontSessionCache } from 'pptx-viewer-shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 
@@ -9,7 +9,7 @@ import { useGoogleWebfonts } from './useGoogleWebfonts';
 const LINK_ID = 'pptx-vue-google-fonts';
 
 beforeEach(() => {
-	resetGoogleWebfontProbeCache();
+	resetGoogleWebfontSessionCache();
 	// happy-dom eagerly fetches injected `<link rel="stylesheet">` elements;
 	// disable that so tests stay offline-deterministic, and silence its
 	// "loading is disabled" report for the links this composable injects.
@@ -39,16 +39,9 @@ function slide(...elements: PptxElement[]): PptxSlide {
 	return { elements } as unknown as PptxSlide;
 }
 
-/** Stub the session probe: 200 (served) for the listed families, else 400. */
-function stubProbe(served: readonly string[]): void {
-	vi.stubGlobal(
-		'fetch',
-		vi.fn(async (url: string | URL | Request) => {
-			const match = /family=([^&]+)/.exec(String(url));
-			const name = match ? decodeURIComponent(match[1]) : '';
-			return { status: served.includes(name.split(':')[0]) ? 200 : 400 };
-		}),
-	);
+/** The bundled catalogue answers every lookup; nothing may reach the network. */
+function stubNetwork(): void {
+	vi.stubGlobal('fetch', vi.fn());
 }
 
 /** Run `fn` inside an effect scope so watchers + dispose work. */
@@ -59,8 +52,8 @@ function withScope<T>(fn: () => T): { result: T; stop: () => void } {
 }
 
 describe('useGoogleWebfonts', () => {
-	it('injects a Google Fonts link once the probe confirms the family', async () => {
-		stubProbe(['ADLaM Display']);
+	it('injects a Google Fonts link for a catalogue family', async () => {
+		stubNetwork();
 		const slides = ref([slide(textEl('ADLaM Display'))]);
 		withScope(() => useGoogleWebfonts(slides, ref([])));
 		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
@@ -70,7 +63,7 @@ describe('useGoogleWebfonts', () => {
 	});
 
 	it('skips the link when the referenced family is embedded', async () => {
-		stubProbe([]);
+		stubNetwork();
 		const fetch = vi.fn();
 		vi.stubGlobal('fetch', fetch);
 		const fonts = ref<PptxEmbeddedFont[]>([
@@ -84,18 +77,18 @@ describe('useGoogleWebfonts', () => {
 	});
 
 	it('updates the managed link when slides change reactively', async () => {
-		stubProbe(['ADLaM Display']);
+		stubNetwork();
 		const slides = ref([slide(textEl('ADLaM Display'))]);
 		withScope(() => useGoogleWebfonts(slides, ref([])));
 		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
 
-		stubProbe([]);
+		stubNetwork();
 		slides.value = [slide(textEl('Some Local Font'))];
 		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).toBeNull());
 	});
 
 	it('removes the injected link on scope dispose', async () => {
-		stubProbe(['ADLaM Display']);
+		stubNetwork();
 		const slides = ref([slide(textEl('ADLaM Display'))]);
 		const { stop } = withScope(() => useGoogleWebfonts(slides, ref([])));
 		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
