@@ -169,6 +169,34 @@ export function orderedPathCommandEntries(
 	});
 }
 
+/**
+ * Preserve an annotated path's source command order when an XML inheritance
+ * merge creates a new object. Placeholder resolution recursively merges
+ * `a:custGeom/a:path` nodes; the merged path is no longer the WeakMap key that
+ * was annotated by the parser, so type-grouped object order would otherwise
+ * move curves and arcs away from their authored positions.
+ */
+export function inheritCustomGeometryCommandOrder(
+	target: XmlObject,
+	...sources: Array<XmlObject | undefined>
+): void {
+	let targetSignature: string | undefined;
+	for (const source of sources) {
+		if (!source) {
+			continue;
+		}
+		const order = commandOrder.get(source);
+		if (!order) {
+			continue;
+		}
+		targetSignature ??= pathSignature(target);
+		if (orderSignature(order) === targetSignature) {
+			commandOrder.set(target, [...order]);
+			return;
+		}
+	}
+}
+
 /** Create an internal ordered key for a repeated non-adjacent XML element. */
 export function orderedXmlKey(baseName: string, order: number): string {
 	return `${baseName}${ORDER_SUFFIX}${order}`;
