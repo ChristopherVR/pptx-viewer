@@ -1,7 +1,8 @@
-import type { PptxTransitionType } from 'pptx-viewer-core';
+import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	DEFAULT_MORPH_DURATION_MS,
 	DEFAULT_TRANSITION_DURATION_MS,
 	INSTANT,
 	MIN_TRANSITION_DURATION_MS,
@@ -11,6 +12,7 @@ import {
 	resolveDirection,
 	resolveDirection8,
 	resolveOrientation,
+	resolveOverlayDurationMs,
 	resolveTransitionDuration,
 	transitionSlideBoxSize,
 } from './transition-helpers';
@@ -237,7 +239,10 @@ describe('getSlideTransitionAnimations', () => {
 	it('produces wipe animations with direction', () => {
 		const result = getSlideTransitionAnimations('wipe', 800, 'u');
 		expect(result.outgoing).toBe('none');
-		expect(result.incoming).toContain('wipe-from-top');
+		// `p:wipe/@dir` is the direction of TRAVEL: PowerPoint's UI "From
+		// Bottom" is stored as dir="u", so token u reveals from the BOTTOM
+		// edge sweeping up.
+		expect(result.incoming).toContain('wipe-from-bottom');
 		expect(result.incoming).toContain('800ms');
 	});
 
@@ -416,5 +421,37 @@ describe('transitionSlideBoxSize', () => {
 			width: 1,
 			height: 1,
 		});
+	});
+});
+
+describe('resolveOverlayDurationMs', () => {
+	const transition = (overrides: Partial<PptxSlideTransition>): PptxSlideTransition =>
+		({ type: 'morph', ...overrides }) as PptxSlideTransition;
+
+	it('lets the explicit override win over everything', () => {
+		expect(resolveOverlayDurationMs(800, transition({ durationMs: 2500, speed: 'slow' }))).toBe(
+			800,
+		);
+	});
+
+	it('honours an authored p14:dur for morphs', () => {
+		expect(resolveOverlayDurationMs(undefined, transition({ durationMs: 2500 }))).toBe(2500);
+	});
+
+	it('honours the legacy spd token for morphs', () => {
+		expect(resolveOverlayDurationMs(undefined, transition({ speed: 'slow' }))).toBe(1000);
+		expect(resolveOverlayDurationMs(undefined, transition({ speed: 'fast' }))).toBe(500);
+	});
+
+	it('falls back to the shared un-authored morph default', () => {
+		// The constant itself lives in shared (and its value is pinned by the
+		// shared suite); what this pins is that the overlay DELEGATES to it.
+		expect(resolveOverlayDurationMs(undefined, transition({}))).toBe(DEFAULT_MORPH_DURATION_MS);
+	});
+
+	it('keeps the angular classic-transition policy for non-morphs', () => {
+		expect(resolveOverlayDurationMs(undefined, { type: 'fade' } as PptxSlideTransition)).toBe(
+			DEFAULT_TRANSITION_DURATION_MS,
+		);
 	});
 });

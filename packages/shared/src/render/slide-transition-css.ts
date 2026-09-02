@@ -134,12 +134,20 @@ export function getSlideTransitionAnimations(
 		}
 
 		case 'wipe': {
+			// `p:wipe/@dir` is the direction of TRAVEL, not the starting edge:
+			// PowerPoint's UI offers "From Left / From Right / ..." and stores
+			// the OPPOSITE token (UI "From Left" is written as dir="r", and
+			// desktop PowerPoint reveals such a slide from the LEFT edge
+			// sweeping right). So a token of r starts the reveal at the left
+			// edge, u at the bottom, etc. - the inverse of every other mapping
+			// here, where the token names the motion and the keyframe names it
+			// the same way.
 			const dir = resolveDirection(direction, 'left');
 			const wipeNames: Record<ResolvedDirection, string> = {
-				left: `pptx-tr-wipe-from-left ${dur} ${EASE} forwards`,
-				right: `pptx-tr-wipe-from-right ${dur} ${EASE} forwards`,
-				up: `pptx-tr-wipe-from-top ${dur} ${EASE} forwards`,
-				down: `pptx-tr-wipe-from-bottom ${dur} ${EASE} forwards`,
+				left: `pptx-tr-wipe-from-right ${dur} ${EASE} forwards`,
+				right: `pptx-tr-wipe-from-left ${dur} ${EASE} forwards`,
+				up: `pptx-tr-wipe-from-bottom ${dur} ${EASE} forwards`,
+				down: `pptx-tr-wipe-from-top ${dur} ${EASE} forwards`,
 			};
 			return {
 				outgoing: 'none',

@@ -37,7 +37,10 @@ describe('getSlideTransitionAnimations', () => {
 	it('should produce wipe animations with direction', () => {
 		const result = getSlideTransitionAnimations('wipe', 800, 'u');
 		expect(result.outgoing).toBe('none');
-		expect(result.incoming).toContain('wipe-from-top');
+		// `p:wipe/@dir` is the direction of TRAVEL: PowerPoint's UI "From
+		// Bottom" is stored as dir="u", so token u reveals from the BOTTOM
+		// edge sweeping up.
+		expect(result.incoming).toContain('wipe-from-bottom');
 		expect(result.incoming).toContain('800ms');
 	});
 

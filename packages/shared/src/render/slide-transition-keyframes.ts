@@ -22,6 +22,7 @@
 
 import { P14_TRANSITION_KEYFRAMES_ALL } from './p14-transition-keyframes';
 import { CINEMATIC_TRANSITION_KEYFRAMES } from './slide-transition-cinematic';
+import { WIPE_MASK_KEYFRAMES } from './slide-transition-wipe-keyframes';
 
 const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 /* ── Fade ───────────────────────────────────────────────────────────── */
@@ -134,24 +135,6 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 @keyframes pptx-tr-uncover-to-rd {
 	from { transform: translate(0, 0); }
 	to   { transform: translate(100%, 100%); }
-}
-
-/* ── Wipe (clip-path reveal) ────────────────────────────────────────── */
-@keyframes pptx-tr-wipe-from-left {
-	from { clip-path: inset(0 100% 0 0); }
-	to   { clip-path: inset(0 0 0 0); }
-}
-@keyframes pptx-tr-wipe-from-right {
-	from { clip-path: inset(0 0 0 100%); }
-	to   { clip-path: inset(0 0 0 0); }
-}
-@keyframes pptx-tr-wipe-from-top {
-	from { clip-path: inset(0 0 100% 0); }
-	to   { clip-path: inset(0 0 0 0); }
-}
-@keyframes pptx-tr-wipe-from-bottom {
-	from { clip-path: inset(100% 0 0 0); }
-	to   { clip-path: inset(0 0 0 0); }
 }
 
 /* ── Split ──────────────────────────────────────────────────────────── */
@@ -292,7 +275,7 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
  * faithful Office 2010 (`p14`) keyframes, so both the classic and exotic / 3-D
  * transitions animate wherever this single string is injected.
  */
-export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}`;
+export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${WIPE_MASK_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}`;
 
 /**
  * Alias of {@link SLIDE_TRANSITION_KEYFRAMES} under the `_CSS` name the Vue

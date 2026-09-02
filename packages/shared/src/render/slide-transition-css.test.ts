@@ -109,8 +109,22 @@ describe('getSlideTransitionAnimations', () => {
 	it('wipes the incoming layer only', () => {
 		const result = getSlideTransitionAnimations('wipe', 400, 'r');
 		expect(result.outgoing).toBe('none');
-		expect(result.incoming).toContain('pptx-tr-wipe-from-right');
+		// `dir` is the direction of TRAVEL: PowerPoint stores "From Left" as
+		// dir="r", so token r reveals from the LEFT edge sweeping right.
+		expect(result.incoming).toContain('pptx-tr-wipe-from-left');
 		expect(result.outgoingOnTop).toBeFalsy();
+	});
+
+	it('maps every wipe token to its opposite starting edge', () => {
+		expect(getSlideTransitionAnimations('wipe', 400, 'l').incoming).toContain(
+			'pptx-tr-wipe-from-right',
+		);
+		expect(getSlideTransitionAnimations('wipe', 400, 'u').incoming).toContain(
+			'pptx-tr-wipe-from-bottom',
+		);
+		expect(getSlideTransitionAnimations('wipe', 400, 'd').incoming).toContain(
+			'pptx-tr-wipe-from-top',
+		);
 	});
 
 	it('covers with diagonal support', () => {
