@@ -485,6 +485,8 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		ops: editorOps.ops,
 		manipulation: editorOps.manipulation,
 		history,
+		onEnterPresentModeFromBeginning: presentation.enterPresentModeFromBeginning,
+		onSetMode: handleSetMode,
 	});
 
 	return {

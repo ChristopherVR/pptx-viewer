@@ -24,6 +24,20 @@ export interface UseKeyboardShortcutWiringInput {
 	ops: ElementOperations;
 	manipulation: ElementManipulationHandlers;
 	history: EditorHistoryResult;
+	/**
+	 * F5 "From Beginning": the exact callback the Slide Show ribbon's "From
+	 * Beginning" button invokes (`presentation.enterPresentModeFromBeginning`),
+	 * so custom shows and the first-slide-of-the-show seeding behave identically
+	 * whether started from the button or the key.
+	 */
+	onEnterPresentModeFromBeginning: () => void;
+	/**
+	 * Shift+F5 "From Current Slide": the exact callback the ribbon's "From
+	 * Current Slide" button invokes, `onSetMode('present')` (which is
+	 * `handleSetMode`, so the audience-mirror guard and annotation prompt still
+	 * apply the same way they do for the button).
+	 */
+	onSetMode: (mode: ViewerMode) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -31,7 +45,18 @@ export interface UseKeyboardShortcutWiringInput {
 // ---------------------------------------------------------------------------
 
 export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput): void {
-	const { state, mode, canEdit, slides, activeSlide, ops, manipulation, history } = input;
+	const {
+		state,
+		mode,
+		canEdit,
+		slides,
+		activeSlide,
+		ops,
+		manipulation,
+		history,
+		onEnterPresentModeFromBeginning,
+		onSetMode,
+	} = input;
 
 	useKeyboardShortcuts({
 		containerRef: state.containerRef,
@@ -106,5 +131,7 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 			}
 			state.setActiveSlideIndex((prev) => Math.min(slides.length - 1, prev + 1));
 		},
+		onStartShowFromBeginning: onEnterPresentModeFromBeginning,
+		onStartShowFromCurrent: () => onSetMode('present'),
 	});
 }
