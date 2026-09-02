@@ -1,4 +1,4 @@
-import type { PptxImageEffects } from '../../types';
+import type { PptxImageEffects, PptxImagePrerenderedCorrections } from '../../types';
 import type { A14ImageExtension } from './image-a14-effects';
 
 /**
@@ -43,20 +43,32 @@ export function applyA14ExtensionToEffects(
 	}
 
 	// Corrections / Color panel settings, raw as the XML carries them.
+	// The snapshot gets its own copies: an inspector patching a live value in
+	// place must not silently update the record of what is baked in.
+	const corrections: PptxImagePrerenderedCorrections = {};
 	if (a14.sharpenSoften) {
 		effects.sharpenSoften = a14.sharpenSoften;
-		hasAny = true;
+		corrections.sharpenSoften = { ...a14.sharpenSoften };
 	}
 	if (a14.brightnessContrast) {
 		effects.brightnessContrast = a14.brightnessContrast;
-		hasAny = true;
+		corrections.brightnessContrast = { ...a14.brightnessContrast };
 	}
 	if (a14.colorTemperature) {
 		effects.colorTemperature = a14.colorTemperature;
-		hasAny = true;
+		corrections.colorTemperature = { ...a14.colorTemperature };
 	}
 	if (a14.colorSaturation) {
 		effects.colorSaturation = a14.colorSaturation;
+		corrections.colorSaturation = { ...a14.colorSaturation };
+	}
+	if (Object.keys(corrections).length > 0) {
+		// Same rule as the artistic effect: the pristine layer is PowerPoint's
+		// signature for "the main blip already carries the result", and the
+		// snapshot lets the renderer skip exactly the values that are baked in.
+		if (a14.originalImageRelId !== undefined) {
+			effects.prerenderedCorrections = corrections;
+		}
 		hasAny = true;
 	}
 	return hasAny;

@@ -92,6 +92,42 @@ describe('extractImageEffects: a14 image extension', () => {
 		);
 		expect(parsed?.originalImageRelId).toBe('rId5');
 	});
+
+	it('snapshots file-sourced corrections as already baked into the bitmap', () => {
+		const parsed = new ImageEffectsProbe().parse(
+			blipWithA14([
+				{ 'a14:brightnessContrast': { '@_bright': '-20000', '@_contrast': '-40000' } },
+				{ 'a14:saturation': { '@_sat': '150000' } },
+			]),
+		);
+		expect(parsed?.brightnessContrast).toStrictEqual({ bright: -20000, contrast: -40000 });
+		expect(parsed?.prerenderedCorrections).toStrictEqual({
+			brightnessContrast: { bright: -20000, contrast: -40000 },
+			colorSaturation: { sat: 150000 },
+		});
+		// A snapshot that aliased the live value could never differ from it.
+		expect(parsed?.prerenderedCorrections?.brightnessContrast).not.toBe(parsed?.brightnessContrast);
+	});
+
+	it('leaves corrections written without a pristine layer un-snapshotted', () => {
+		// This library's own writer emits no a14:imgLayer, so its corrections were
+		// never baked and must keep rendering after a round-trip.
+		const parsed = new ImageEffectsProbe().parse({
+			'@_r:embed': 'rId4',
+			'a:extLst': {
+				'a:ext': [
+					{
+						'@_uri': '{BEBA8EAE-BF5A-486C-A8C5-ECC9F3942E4B}',
+						'a14:imgProps': {
+							'a14:imgEffect': [{ 'a14:sharpenSoften': { '@_amount': '50000' } }],
+						},
+					},
+				],
+			},
+		});
+		expect(parsed?.sharpenSoften).toStrictEqual({ amount: 50000 });
+		expect(parsed?.prerenderedCorrections).toBeUndefined();
+	});
 });
 
 const FIXTURE = fileURLToPath(

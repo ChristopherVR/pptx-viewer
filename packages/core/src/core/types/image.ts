@@ -61,6 +61,18 @@ export interface PptxBackgroundRemovalMark {
  * // => retains the middle of the image; the marks list stays empty
  * ```
  */
+/**
+ * Snapshot of the a14 Corrections / Color panel values as they were read from
+ * the file, kept on {@link PptxImageEffects.prerenderedCorrections} so a
+ * renderer can tell a baked-in value from one changed in this library.
+ */
+export interface PptxImagePrerenderedCorrections {
+	sharpenSoften?: { amount: number };
+	brightnessContrast?: { bright?: number; contrast?: number };
+	colorTemperature?: { colorTemp: number };
+	colorSaturation?: { sat: number };
+}
+
 export interface PptxBackgroundRemoval {
 	/** Top edge of the retained rectangle (0..1 fraction of the image height). */
 	top: number;
@@ -161,6 +173,19 @@ export interface PptxImageEffects {
 	 * that has no OOXML counterpart.
 	 */
 	colorSaturation?: { sat: number };
+	/**
+	 * The Corrections / Color panel values ALREADY baked into the image data,
+	 * which a renderer must not apply a second time. The a14 counterpart of
+	 * {@link PptxImageEffects.artisticPrerenderedEffect}: PowerPoint writes the
+	 * corrected bitmap to the main `a:blip` and keeps the pristine original in
+	 * `a14:imgLayer` (measured on a real deck: the stored PNG is a monotone tonal
+	 * transform of the `.wdp` original, slope 0.7 for `contrast="-40000"`).
+	 *
+	 * Holds the VALUES rather than a boolean so that changing one of the four
+	 * fields in this library's inspector still renders: a field that differs
+	 * from its snapshot is applied, one that matches is skipped.
+	 */
+	prerenderedCorrections?: PptxImagePrerenderedCorrections;
 	/** Alpha modulation fixed: non-negative percentage (100 means unchanged opacity). */
 	alphaModFix?: number;
 	/** Original alpha modulation fixed node, including foreign attributes. */
