@@ -6,6 +6,11 @@
  * Vue / Vanilla / Svelte again. This service only supplies the guard state, then
  * performs the resolved action against {@link EditorStateService}.
  *
+ * F5 / Shift+F5 (real PowerPoint's "start the show") are resolved separately by
+ * the shared `mapSlideShowStartKey`, ahead of `mapEditorKey`, because they must
+ * fire regardless of `canEdit` or the event target: PowerPoint starts the show
+ * even from a read-only deck and even with the caret in a text box.
+ *
  * Extracted from {@link PowerPointViewerComponent}: the component keeps the thin
  * `@HostListener('document:keydown')` (a decorator can only live on the
  * component) and forwards the event to {@link handleKeyDown}; the host binds the
@@ -17,11 +22,12 @@
 
 import { inject, Injectable } from '@angular/core';
 
-import { isEditorTextInputTarget, mapEditorKey } from '../internal/shared';
+import { isEditorTextInputTarget, mapEditorKey, mapSlideShowStartKey } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
+import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 
 /** Live host accessors the shortcut handler consults. */
 interface KeyboardHost {
@@ -47,6 +53,7 @@ export class ViewerKeyboardService {
 	private readonly dialogs = inject(ViewerDialogsService);
 	private readonly formatPainter = inject(ViewerFormatPainterService);
 	private readonly findReplace = inject(ViewerFindReplaceService);
+	private readonly presentationMode = inject(ViewerPresentationModeService);
 
 	private host: KeyboardHost | null = null;
 
@@ -60,6 +67,23 @@ export class ViewerKeyboardService {
 		if (!host) {
 			return;
 		}
+
+		// F5 / Shift+F5 must start the show even with editing disabled and even
+		// with the caret parked in a text box, exactly like real PowerPoint, so
+		// this runs ahead of (and unguarded by) the canEdit/text-input gates
+		// `mapEditorKey` applies below. `event.preventDefault()` only on a match:
+		// otherwise the browser reloads the page on a bare F5.
+		const showAction = mapSlideShowStartKey(event, { isPresenting: host.presenting() });
+		if (showAction !== null) {
+			event.preventDefault();
+			if (showAction === 'fromBeginning') {
+				this.presentationMode.presentFromBeginning();
+			} else {
+				this.presentationMode.present();
+			}
+			return;
+		}
+
 		const { action, dx, dy } = mapEditorKey(event, {
 			canEdit: host.canEdit(),
 			isPresenting: host.presenting(),

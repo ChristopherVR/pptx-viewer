@@ -20,6 +20,7 @@ import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
+import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 
 /** The editor methods the keymap can reach, all spies. */
 function editorStub(hasSelection: boolean) {
@@ -51,6 +52,8 @@ interface Harness {
 	cancelPainter: ReturnType<typeof vi.fn>;
 	goPrev: ReturnType<typeof vi.fn>;
 	goNext: ReturnType<typeof vi.fn>;
+	presentFromBeginning: ReturnType<typeof vi.fn>;
+	present: ReturnType<typeof vi.fn>;
 	press: (key: string, modifiers?: Partial<KeyboardEventInit>) => KeyboardEvent;
 }
 
@@ -60,6 +63,8 @@ function harness(
 		painterActive?: boolean;
 		findOpen?: boolean;
 		findReplaceOpen?: boolean;
+		canEdit?: boolean;
+		presenting?: boolean;
 	} = {},
 ): Harness {
 	const editor = editorStub(options.hasSelection ?? true);
@@ -70,6 +75,8 @@ function harness(
 	const cancelPainter = vi.fn();
 	const goPrev = vi.fn();
 	const goNext = vi.fn();
+	const presentFromBeginning = vi.fn();
+	const present = vi.fn();
 
 	const injector = Injector.create({
 		providers: [
@@ -89,13 +96,17 @@ function harness(
 				provide: ViewerFindReplaceService,
 				useValue: { showFind, showFindReplace } as unknown as ViewerFindReplaceService,
 			},
+			{
+				provide: ViewerPresentationModeService,
+				useValue: { presentFromBeginning, present } as unknown as ViewerPresentationModeService,
+			},
 			{ provide: ViewerKeyboardService, useClass: ViewerKeyboardService, deps: [] },
 		],
 	});
 	const service = injector.get(ViewerKeyboardService);
 	service.bind({
-		canEdit: () => true,
-		presenting: () => false,
+		canEdit: () => options.canEdit ?? true,
+		presenting: () => options.presenting ?? false,
 		activeSlideIndex: () => 2,
 		goPrev,
 		goNext,
@@ -111,6 +122,8 @@ function harness(
 		cancelPainter,
 		goPrev,
 		goNext,
+		presentFromBeginning,
+		present,
 		press(key, modifiers = {}) {
 			const event = new KeyboardEvent('keydown', { key, cancelable: true, ...modifiers });
 			service.handleKeyDown(event);
@@ -168,6 +181,54 @@ describe('viewerKeyboardService: arrows', () => {
 		h.press('ArrowLeft');
 		expect(h.goPrev).toHaveBeenCalledOnce();
 		expect(h.editor.moveSelectedBy).not.toHaveBeenCalled();
+	});
+});
+
+/**
+ * F5 / Shift+F5. Resolved by the shared `mapSlideShowStartKey`, ahead of
+ * `mapEditorKey`, so it must reach the presentation-mode entry points even
+ * while editing is disabled and even with the caret in a text field, exactly
+ * like real PowerPoint.
+ */
+describe('viewerKeyboardService: F5 start-show keys', () => {
+	it('starts the show from the beginning on F5 and prevents the reload', () => {
+		const h = harness();
+		const event = h.press('F5');
+		expect(h.presentFromBeginning).toHaveBeenCalledOnce();
+		expect(h.present).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBeTruthy();
+	});
+
+	it('starts the show from the current slide on shift+F5', () => {
+		const h = harness();
+		h.press('F5', { shiftKey: true });
+		expect(h.present).toHaveBeenCalledOnce();
+		expect(h.presentFromBeginning).not.toHaveBeenCalled();
+	});
+
+	it('does nothing while already presenting, and does not preventDefault', () => {
+		const h = harness({ presenting: true });
+		const event = h.press('F5');
+		expect(h.presentFromBeginning).not.toHaveBeenCalled();
+		expect(h.present).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBeFalsy();
+	});
+
+	it('still starts the show when editing is disabled', () => {
+		const h = harness({ canEdit: false });
+		h.press('F5');
+		expect(h.presentFromBeginning).toHaveBeenCalledOnce();
+	});
+
+	it('still starts the show with the caret in a text input', () => {
+		const h = harness();
+		const input = document.createElement('input');
+		document.body.appendChild(input);
+		const event = new KeyboardEvent('keydown', { key: 'F5', cancelable: true });
+		Object.defineProperty(event, 'target', { value: input });
+		h.service.handleKeyDown(event);
+		expect(h.presentFromBeginning).toHaveBeenCalledOnce();
+		input.remove();
 	});
 });
 
