@@ -6,6 +6,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import {
 	applyResize,
 	getDraggedShapeAdjustments,
+	lockResizeAspect,
 	publishLiveGeometry,
 	snapBoxToGrid,
 } from 'pptx-viewer-shared';
@@ -30,8 +31,10 @@ export interface ResizeGeometry {
  * Compute new resize geometry from an (element-space) delta and handle position.
  *
  * The core 8-handle resize is the shared `applyResize` (called with `zoom = 1`
- * since `dx`/`dy` are already in element px and the element is axis-aligned),
- * followed by the shared per-edge grid snap when `snapToGrid` is set.
+ * since `dx`/`dy` are already in element px and the element is axis-aligned).
+ * When `lockAspect` is set (Shift held) on a corner handle, the shared
+ * `lockResizeAspect` constrains the result to the start box's aspect ratio
+ * before the shared per-edge grid snap runs (when `snapToGrid` is set).
  */
 export function computeResizeGeometry(
 	handle: ResizeHandleId,
@@ -43,15 +46,13 @@ export function computeResizeGeometry(
 	dy: number,
 	snapToGrid: boolean,
 	gridSpacingPx: number,
+	lockAspect = false,
 ): ResizeGeometry {
-	const resized = applyResize(
-		{ x: startX, y: startY, width: startWidth, height: startHeight },
-		handle,
-		dx,
-		dy,
-		1,
-		{ minSize: MIN_ELEMENT_SIZE },
-	);
+	const startBox = { x: startX, y: startY, width: startWidth, height: startHeight };
+	let resized = applyResize(startBox, handle, dx, dy, 1, { minSize: MIN_ELEMENT_SIZE });
+	if (lockAspect) {
+		resized = lockResizeAspect(resized, startBox, handle, MIN_ELEMENT_SIZE);
+	}
 	const box = { x: resized.x, y: resized.y, width: resized.width, height: resized.height };
 	if (!snapToGrid) {
 		return box;
@@ -308,6 +309,7 @@ function processResizeMove(
 		dy,
 		snapToGrid,
 		gridSpacingPx,
+		e.shiftKey,
 	);
 	rs.lastX = geo.x;
 	rs.lastY = geo.y;

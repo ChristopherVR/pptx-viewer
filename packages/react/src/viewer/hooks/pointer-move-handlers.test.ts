@@ -138,6 +138,58 @@ describe('computeResizeGeometry', () => {
 		});
 	});
 
+	describe('lockAspect (Shift-held corner resize)', () => {
+		it('constrains a se-handle resize to the start aspect ratio', () => {
+			// start is 200x150 (4:3). A drag that would make it 250x180 (not 4:3)
+			// should instead lock to the axis with the larger relative change (width:
+			// +25%) and scale height to match, keeping the anchored nw corner fixed.
+			const result = computeResizeGeometry(
+				'se',
+				start.x,
+				start.y,
+				start.width,
+				start.height,
+				50,
+				30,
+				false,
+				8,
+				true,
+			);
+			expect(result.x).toBe(start.x);
+			expect(result.y).toBe(start.y);
+			expect(result.width / result.height).toBeCloseTo(start.width / start.height, 5);
+			expect(result.width).toBe(250);
+			expect(result.height).toBe(187.5);
+		});
+
+		it('is a no-op on an edge handle (not a corner)', () => {
+			const unlocked = computeResizeGeometry(
+				'e',
+				start.x,
+				start.y,
+				start.width,
+				start.height,
+				50,
+				0,
+				false,
+				8,
+			);
+			const locked = computeResizeGeometry(
+				'e',
+				start.x,
+				start.y,
+				start.width,
+				start.height,
+				50,
+				0,
+				false,
+				8,
+				true,
+			);
+			expect(locked).toStrictEqual(unlocked);
+		});
+	});
+
 	describe('snap to grid', () => {
 		it('snaps se handle right edge to grid', () => {
 			const gs = 10;

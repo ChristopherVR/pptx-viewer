@@ -1,4 +1,5 @@
-import type { PptxChartSeries } from 'pptx-viewer-core';
+import type { PptxChartData } from 'pptx-viewer-core';
+import { isSeriesUsingSecondaryAxis } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
@@ -9,10 +10,16 @@ import { DebouncedColorInput } from './DebouncedColorInput';
 // Props
 // ---------------------------------------------------------------------------
 export interface ChartSeriesColorOptionsProps {
-	series: PptxChartSeries[];
+	chartData: PptxChartData;
 	canEdit: boolean;
 	/** Set (hex) or clear (`null`) the solid fill colour of a series. */
 	onSetColor: (seriesIndex: number, color: string | null) => void;
+	/**
+	 * Move a series onto the primary or secondary (right-positioned) value
+	 * axis, via the shared `seriesSecondaryAxisPatch`
+	 * (render/chart-secondary-axis.ts).
+	 */
+	onToggleSecondaryAxis: (seriesIndex: number, useSecondary: boolean) => void;
 }
 
 /** Fallback swatch colour shown for series with no explicit colour set. */
@@ -24,14 +31,18 @@ const DEFAULT_SWATCH = '#4472c4';
 /**
  * Per-series colour picker for the chart inspector. Each series row shows a
  * swatch (native colour input) that commits the chosen hex via `onSetColor`,
- * plus a clear button that resets the series to its automatic theme colour.
+ * a clear button that resets the series to its automatic theme colour, and a
+ * "secondary axis" checkbox that moves the series onto the chart's
+ * right-positioned value axis (a combo chart's second Y scale).
  */
 export function ChartSeriesColorOptions({
-	series,
+	chartData,
 	canEdit,
 	onSetColor,
+	onToggleSecondaryAxis,
 }: ChartSeriesColorOptionsProps) {
 	const { t } = useTranslation();
+	const series = chartData.series;
 
 	if (series.length === 0) {
 		return null;
@@ -46,6 +57,16 @@ export function ChartSeriesColorOptions({
 						<span className='flex-1 truncate' title={s.name}>
 							{s.name}
 						</span>
+						<label className='flex items-center gap-1 text-muted-foreground shrink-0'>
+							<input
+								type='checkbox'
+								disabled={!canEdit}
+								checked={isSeriesUsingSecondaryAxis(chartData, i)}
+								onChange={(e) => onToggleSecondaryAxis(i, e.target.checked)}
+								className='accent-primary'
+							/>
+							{t('pptx.chart.secondaryAxis')}
+						</label>
 						<DebouncedColorInput
 							value={s.color ?? DEFAULT_SWATCH}
 							disabled={!canEdit}
