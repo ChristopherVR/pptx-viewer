@@ -153,4 +153,55 @@ describe('fillStrokeSection', () => {
 		expect(el.shapeStyle?.fillMode).toBe('gradient');
 		expect(target.querySelector('.pptx-svelte-gradient')).not.toBeNull();
 	});
+
+	it('shows the pattern sub-panel only while the pattern toggle is on, defaulting a preset', () => {
+		const editor = makeEditor(shapeEl());
+		const { target, setProps } = mountSection(editor, currentEl(editor));
+		expect(target.querySelector('.pptx-svelte-pattern')).toBeNull();
+
+		const checkboxes = target.querySelectorAll<HTMLInputElement>(
+			'.pptx-svelte-field-checkbox input[type="checkbox"]',
+		);
+		const patternToggle = checkboxes[1];
+		if (!patternToggle) {
+			throw new Error('pattern toggle not found');
+		}
+		patternToggle.click();
+		flushSync();
+		setProps({ el: currentEl(editor) });
+
+		const el = currentEl(editor) as {
+			shapeStyle?: { fillMode?: string; fillPatternPreset?: string };
+		};
+		expect(el.shapeStyle?.fillMode).toBe('pattern');
+		expect(el.shapeStyle?.fillPatternPreset).toBe('pct20');
+		expect(target.querySelector('.pptx-svelte-pattern')).not.toBeNull();
+		// 56 preset swatches from the shared PATTERN_PRESET_OPTIONS catalogue.
+		expect(target.querySelectorAll('.pptx-svelte-pattern-swatch')).toHaveLength(56);
+	});
+
+	it('turns pattern fill back to solid when the toggle is switched off', () => {
+		const editor = makeEditor(
+			shapeEl({
+				shapeStyle: { fillMode: 'pattern', fillColor: '#ff0000', fillPatternPreset: 'cross' },
+			}),
+		);
+		const { target, setProps } = mountSection(editor, currentEl(editor));
+		const checkboxes = target.querySelectorAll<HTMLInputElement>(
+			'.pptx-svelte-field-checkbox input[type="checkbox"]',
+		);
+		const patternToggle = checkboxes[1];
+		if (!patternToggle) {
+			throw new Error('pattern toggle not found');
+		}
+		expect(patternToggle.checked).toBeTruthy();
+
+		patternToggle.click();
+		flushSync();
+		setProps({ el: currentEl(editor) });
+
+		const el = currentEl(editor) as { shapeStyle?: { fillMode?: string } };
+		expect(el.shapeStyle?.fillMode).toBe('solid');
+		expect(target.querySelector('.pptx-svelte-pattern')).toBeNull();
+	});
 });

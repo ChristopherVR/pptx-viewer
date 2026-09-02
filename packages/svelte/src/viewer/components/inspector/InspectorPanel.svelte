@@ -30,8 +30,6 @@
 	import ActionSettingsPanel from './ActionSettingsPanel.svelte';
 	import AltTextSection from './AltTextSection.svelte';
 	import AnimationPanel from './AnimationPanel.svelte';
-	import FillStrokeSection from './FillStrokeSection.svelte';
-	import QuickStylesGallery from './QuickStylesGallery.svelte';
 	import ChartSection from './ChartSection.svelte';
 	import ElementsListSection from './ElementsListSection.svelte';
 	import GroupInfoSection from './GroupInfoSection.svelte';
@@ -39,7 +37,7 @@
 	import OlePropertiesSection from './OlePropertiesSection.svelte';
 	import PositionSection from './PositionSection.svelte';
 	import PresentationPropertiesPanel from './PresentationPropertiesPanel.svelte';
-	import ShapeSection from './ShapeSection.svelte';
+	import ShapeInspectorSections from './ShapeInspectorSections.svelte';
 	import SmartArtSection from './SmartArtSection.svelte';
 	import MediaSection from './MediaSection.svelte';
 	import TableDataGrid from './TableDataGrid.svelte';
@@ -132,14 +130,7 @@
 				{/if}
 
 				{#if canShape}
-					<div class="pptx-svelte-inspector-section">
-						<h4>{t('pptx.inspector.fillStroke')}</h4>
-						{#if canQuickStyle}
-							<QuickStylesGallery {editor} {el} />
-						{/if}
-						<ShapeSection {editor} {el} />
-						<FillStrokeSection {editor} {el} />
-					</div>
+					<ShapeInspectorSections {editor} {el} {canQuickStyle} />
 				{/if}
 
 				{#if canText}

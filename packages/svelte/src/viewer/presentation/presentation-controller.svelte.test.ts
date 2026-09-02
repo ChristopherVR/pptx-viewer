@@ -206,7 +206,7 @@ describe('presentationController (native-timing)', () => {
 // ---------------------------------------------------------------------------
 
 /** A deck of `hidden` flags plus the controller driving it. */
-function showHarness(hidden: boolean[], endWithBlackSlide?: boolean) {
+function showHarness(hidden: boolean[], endWithBlackSlide?: boolean, loopContinuously?: boolean) {
 	const deck = new Deck();
 	deck.slides = hidden.map((isHidden, index) =>
 		slide(`s${index + 1}`, { slideNumber: index + 1, hidden: isHidden }),
@@ -220,6 +220,7 @@ function showHarness(hidden: boolean[], endWithBlackSlide?: boolean) {
 		},
 		exit,
 		...(endWithBlackSlide === undefined ? {} : { getEndWithBlackSlide: () => endWithBlackSlide }),
+		...(loopContinuously === undefined ? {} : { getLoopContinuously: () => loopContinuously }),
 	});
 	controller.start();
 	return { deck, controller, exit };
@@ -305,5 +306,35 @@ describe('presentationController end of show', () => {
 		expect(controller.retreat()).toBeTruthy();
 		expect(controller.endOfShowVisible).toBeFalsy();
 		expect(exit).not.toHaveBeenCalled();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Slide Show > Set Up Show > "Loop continuously until 'Esc'"
+// ---------------------------------------------------------------------------
+
+describe('presentationController loop continuously', () => {
+	it('wraps to the first show slide instead of raising the end screen', () => {
+		const { deck, controller, exit } = showHarness([false, false, false], undefined, true);
+		deck.index = 2;
+		controller.advance();
+		expect(deck.index).toBe(0);
+		expect(controller.endOfShowVisible).toBeFalsy();
+		expect(exit).not.toHaveBeenCalled();
+	});
+
+	it('wraps to the first VISIBLE slide when the first is hidden', () => {
+		const { deck, controller } = showHarness([true, false, false], undefined, true);
+		deck.index = 2;
+		controller.advance();
+		expect(deck.index).toBe(1);
+	});
+
+	it('does not loop when the option is off', () => {
+		const { deck, controller } = showHarness([false, false], undefined, false);
+		deck.index = 1;
+		controller.advance();
+		expect(deck.index).toBe(1);
+		expect(controller.endOfShowVisible).toBeTruthy();
 	});
 });

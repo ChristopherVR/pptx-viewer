@@ -89,7 +89,7 @@
 				ondblclick={controller.onStageDblClick}
 				oncontextmenu={controller.onStageContextMenu}
 			>
-				<SlideStage slide={activeSlide} canvasSize={activeCanvasSize} {mediaDataUrls} {scale} interactive editTemplateMode />
+				<SlideStage slide={activeSlide} canvasSize={activeCanvasSize} {mediaDataUrls} {scale} interactive editTemplateMode editable />
 				<EditorLayer {controller} {scale} />
 				<InkDrawingOverlay ink={editor.inkOps} canvasSize={activeCanvasSize} />
 			</div>

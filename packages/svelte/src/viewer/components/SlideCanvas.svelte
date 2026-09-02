@@ -107,6 +107,7 @@
 		{scale}
 		{presenting}
 		interactive
+		editable={editingActive}
 		{editTemplateMode}
 		{editingElementId}
 		{ontablecellcommit}

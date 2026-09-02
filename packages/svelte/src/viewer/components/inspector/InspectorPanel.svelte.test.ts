@@ -127,7 +127,7 @@ describe('inspectorPanel', () => {
 		const { target } = mountInspector(editor);
 
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeTruthy();
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text', 'Action']);
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Effects', 'Text', 'Action']);
 		expect(target.querySelector('.pptx-svelte-inspector-empty')).toBeNull();
 	});
 
@@ -137,7 +137,7 @@ describe('inspectorPanel', () => {
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Text', 'Action']);
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Effects', 'Text', 'Action']);
 	});
 
 	it('shows Position + Fill & Stroke + Image for an image element (no Text section)', () => {
@@ -146,7 +146,7 @@ describe('inspectorPanel', () => {
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Image', 'Action']);
+		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Effects', 'Image', 'Action']);
 	});
 
 	it('shows only Position + Table for a table element (no Fill & Stroke or Text)', () => {

@@ -66,6 +66,14 @@ export interface PresentationControllerDeps {
 	/** `p:showPr` "end with black slide"; defaults to on, like PowerPoint. */
 	getEndWithBlackSlide?(): boolean | undefined;
 	/**
+	 * Slide Show > Set Up Show > "Loop continuously until 'Esc'"
+	 * (`p:presentationPr/@loopContinuously`), or the implicit loop of a kiosk
+	 * (`showType === 'kiosk'`) show. When true, advancing past the last slide
+	 * wraps to the show's first slide instead of raising the black end screen
+	 * or exiting.
+	 */
+	getLoopContinuously?(): boolean | undefined;
+	/**
 	 * Membership of the custom show the user selected, or null/undefined for the
 	 * whole deck. Restricts and reorders the show; hiding still wins over it.
 	 */
@@ -225,6 +233,15 @@ export class PresentationController {
 		const current = this.#deps.getCurrentIndex();
 		const order = this.#showOrder();
 		if (!hasShowSlideAfter(current, order)) {
+			if (this.#deps.getLoopContinuously?.()) {
+				// PowerPoint's "Loop continuously until 'Esc'": wrap straight back to
+				// the show's first slide instead of the black end screen.
+				const first = firstShowSlideIndex(order);
+				if (first !== undefined) {
+					this.#deps.navigate(first);
+				}
+				return;
+			}
 			if (this.#deps.getEndWithBlackSlide?.() === false) {
 				// No black slide configured: end the show outright rather than
 				// sitting on the last slide ignoring every further advance.

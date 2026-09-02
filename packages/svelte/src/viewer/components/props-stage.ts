@@ -26,6 +26,8 @@ export interface SlideStageProps {
 	editTemplateMode?: boolean;
 	/** Forwarded to each `ElementRenderer`; see `ElementRendererProps.editingElementId`. */
 	editingElementId?: string | null;
+	/** Forwarded to each `ElementRenderer`; see `ElementRendererProps.editable`. */
+	editable?: boolean;
 	/**
 	 * Skip the resolved slide background and leave the stage see-through.
 	 *

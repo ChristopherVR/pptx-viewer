@@ -1,4 +1,4 @@
-import { mayLeaveSlideShow } from 'pptx-viewer-shared';
+import { mayLeaveSlideShow, shouldLoopContinuously } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n/translator';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -50,6 +50,10 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		getCurrentIndex: () => viewer.current,
 		navigate: (index) => viewer.goTo(index),
 		getShowWithAnimation: () => loader.presentationProperties.showWithAnimation,
+		// Read from the EDITOR (Set Up Slide Show / File > Options commits there),
+		// not the loader's as-parsed snapshot, so a mid-session change reaches a
+		// show already running. Mirrors `getUseTimings` below.
+		getLoopContinuously: () => shouldLoopContinuously(editor.presentationProperties),
 		// Past the last slide the controller raises the black end screen; a further
 		// forward input (or a click on it) ends the show, like PowerPoint.
 		exit: () => {

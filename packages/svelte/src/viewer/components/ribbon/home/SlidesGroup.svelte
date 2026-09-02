@@ -12,6 +12,7 @@
 	 * re-housed into the New Slide split button's dropdown rather than dropped.
 	 */
 	import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
+	import { scopeLayoutOptionsToSlide } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -36,6 +37,11 @@
 	let newSplitEl: HTMLElement | undefined = $state();
 	// eslint-disable-next-line prefer-const
 	let layoutSplitEl: HTMLElement | undefined = $state();
+
+	/** Layout gallery scoped to the active slide's own master (shared `scopeLayoutOptionsToSlide`); dedupes same-named layouts across a multi-master deck. */
+	const scopedLayouts = $derived(
+		scopeLayoutOptionsToSlide(layouts, editor.slides[editor.currentSlideIndex]?.layoutPath),
+	);
 
 	function run(action: () => number | null): void {
 		const index = action();
@@ -128,7 +134,7 @@
 			{#if openMenu === 'layout'}
 				<div class="pptx-svelte-rgroup-pop pptx-svelte-rgroup-pop-wide" role="menu" use:anchoredPopup={{ anchor: layoutSplitEl }}>
 					<LayoutGalleryMenu
-						{layouts}
+						layouts={scopedLayouts}
 						{previews}
 						currentLayoutPath={editor.slides[editor.currentSlideIndex]?.layoutPath}
 						onselect={(layout) => void runAsync(() => editor.slidesOps.applyLayout(layout.path))}
@@ -291,5 +297,4 @@
 		overflow: visible;
 		padding: 0;
 	}
-
 </style>

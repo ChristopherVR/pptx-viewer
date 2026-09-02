@@ -43,6 +43,15 @@ export interface ElementRendererProps {
 	/** Whether inherited layout/master nodes participate in pointer editing. */
 	editTemplateMode?: boolean;
 	/**
+	 * True only on the main editing canvas (never presenting, exporting, or a
+	 * thumbnail/preview surface). Gates an empty inherited placeholder's
+	 * greyed-out hint text ("Click to add title") via the shared
+	 * `placeholderPromptDescriptor`: PowerPoint never prints, presents, or
+	 * thumbnails that authoring hint, only the editor shows it. Defaults to
+	 * `false`, so a surface that omits this prop never leaks the hint.
+	 */
+	editable?: boolean;
+	/**
 	 * The element currently open in the element-level inline text editor
 	 * (`InlineTextEditor.svelte`, rendered separately by `EditorLayer`), or
 	 * `null`/`undefined` when nothing is being edited.

@@ -7,7 +7,7 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, resolveChartKind } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, placeholderPromptDescriptor, resolveChartKind } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
@@ -51,7 +51,7 @@
 	import WordArtText from './WordArtText.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, marked = false, editTemplateMode = false, editingElementId = null, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill, onchartpointcommit, ontableresizecolumns, ontableresizerow }: ElementRendererProps =
+	const { element, mediaDataUrls, zIndex, presenting = false, interactive = false, marked = false, editTemplateMode = false, editingElementId = null, editable = false, parentGroupFill, ontablecellcommit, onsmartartnodecommit, onsmartartnodefill, onchartpointcommit, ontableresizecolumns, ontableresizerow }: ElementRendererProps =
 		$props();
 	/** This exact element is open in the element-level inline text editor right now. */
 	const isBeingInlineEdited = $derived(element.id === editingElementId);
@@ -192,6 +192,17 @@
 		paragraphs.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 	);
 	/**
+	 * An empty inherited placeholder's greyed-out authoring hint ("Click to add
+	 * title"), shown only on the editing canvas (`editable`) and only while the
+	 * element carries no real text of its own. `placeholderPromptDescriptor`
+	 * (shared) is the one place that decides "edit surface or not" so present
+	 * mode, export, and thumbnails never leak the hint (unlike a render surface
+	 * that reused the editor's text path unconditionally).
+	 */
+	const promptDescriptor = $derived(
+		editable && !hasText ? placeholderPromptDescriptor(element, 'edit') : null,
+	);
+	/**
 	 * A PURE equation box (OMML and nothing else) delegates wholesale to
 	 * `EquationView`, which centres the maths in the shape. A body that mixes
 	 * prose with an inline `m:oMath` renders through the paragraph path instead,
@@ -234,7 +245,7 @@
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
 		{#each element.children ?? [] as child, i (child.id)}
-			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {marked} {editTemplateMode} {editingElementId} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
+			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {marked} {editTemplateMode} {editingElementId} {editable} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
 		{/each}
 	</div>
 {:else if isImageLike}
@@ -297,6 +308,11 @@
 					elementId={element.id}
 					subElementAnimStates={allAnimStates}
 				/>
+			{:else if promptDescriptor}
+				<div
+					class="pptx-svelte-placeholder-prompt"
+					style={styleToString(mergeStyles(getTextBlockStyle(element), promptDescriptor.style))}
+				>{promptDescriptor.text}</div>
 			{/if}
 		{/if}
 	</div>
