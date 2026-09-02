@@ -24,6 +24,12 @@ describe('eLEMENT_ACTION_TYPE_OPTIONS', () => {
 			'prevSlide',
 			'nextSlide',
 			'endShow',
+			'lastViewed',
+			'customShow',
+			'openFile',
+			'openPresentation',
+			'playMedia',
+			'oleVerb',
 		]);
 		for (const option of ELEMENT_ACTION_TYPE_OPTIONS) {
 			expect(option.labelKey).toMatch(/^pptx\./);
@@ -32,10 +38,23 @@ describe('eLEMENT_ACTION_TYPE_OPTIONS', () => {
 });
 
 describe('actionTypeNeedsTarget', () => {
-	it('flags only the two kinds that carry an extra value', () => {
+	it('flags only the kinds that carry an extra value', () => {
 		expect(actionTypeNeedsTarget('url')).toBeTruthy();
 		expect(actionTypeNeedsTarget('slide')).toBeTruthy();
-		for (const type of ['none', 'firstSlide', 'lastSlide', 'prevSlide', 'nextSlide', 'endShow']) {
+		expect(actionTypeNeedsTarget('customShow')).toBeTruthy();
+		for (const type of [
+			'none',
+			'firstSlide',
+			'lastSlide',
+			'prevSlide',
+			'nextSlide',
+			'endShow',
+			'lastViewed',
+			'openFile',
+			'openPresentation',
+			'playMedia',
+			'oleVerb',
+		]) {
 			expect(actionTypeNeedsTarget(type as 'none')).toBeFalsy();
 		}
 	});
@@ -67,6 +86,17 @@ describe('canCommitActionType', () => {
 	it('commits target-free kinds straight away', () => {
 		expect(canCommitActionType('none', {})).toBeTruthy();
 		expect(canCommitActionType('endShow', {})).toBeTruthy();
+		expect(canCommitActionType('lastViewed', {})).toBeTruthy();
+		expect(canCommitActionType('openFile', {})).toBeTruthy();
+		expect(canCommitActionType('openPresentation', {})).toBeTruthy();
+		expect(canCommitActionType('playMedia', {})).toBeTruthy();
+		expect(canCommitActionType('oleVerb', {})).toBeTruthy();
+	});
+
+	it('holds back a target-less custom show', () => {
+		expect(canCommitActionType('customShow', {})).toBeFalsy();
+		expect(canCommitActionType('customShow', { customShowId: '' })).toBeFalsy();
+		expect(canCommitActionType('customShow', { customShowId: '3' })).toBeTruthy();
 	});
 });
 

@@ -22,7 +22,7 @@
  *
  * @module viewer/text-3d-panel
  */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { MaterialPresetType, PptxElement, Text3DStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
@@ -39,6 +39,7 @@ import {
 	text3dStylePatch,
 	toggleText3dExtrusion,
 } from '../internal/shared';
+import { RecentColorsService } from './recent-colors.service';
 import {
 	TEXT_3D_BOTTOM_BEVEL_KEYS,
 	TEXT_3D_TOP_BEVEL_KEYS,
@@ -114,7 +115,9 @@ const DEFAULT_EXTRUSION_COLOR = '#888888';
 						(change)="onMaterialChange($event)"
 					>
 						@for (preset of materialPresets; track preset.value) {
-							<option [value]="preset.value">{{ preset.label }}</option>
+							<option [value]="preset.value" [selected]="preset.value === material()">
+								{{ preset.label }}
+							</option>
 						}
 					</select>
 				</label>
@@ -186,6 +189,9 @@ export class Text3DPanelComponent {
 	/** A partial-element patch for the orchestrator to commit (one history entry). */
 	readonly patch = output<Partial<PptxElement>>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	protected readonly materialPresets = MATERIAL_PRESETS;
 	protected readonly maxDepthPt = TEXT_3D_MAX_EXTRUSION_PT;
 	protected readonly topBevelKeys = TEXT_3D_TOP_BEVEL_KEYS;
@@ -224,7 +230,9 @@ export class Text3DPanelComponent {
 	}
 
 	protected onColorChange(event: Event): void {
-		this.commit({ extrusionColor: (event.target as HTMLInputElement).value });
+		const color = (event.target as HTMLInputElement).value;
+		this.commit({ extrusionColor: color });
+		this.recentColors?.push(color);
 	}
 
 	protected onMaterialChange(event: Event): void {

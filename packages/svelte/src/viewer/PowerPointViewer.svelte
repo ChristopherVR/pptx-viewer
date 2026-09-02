@@ -17,6 +17,7 @@
 	import { createTranslator } from '../i18n/translator';
 	import AiDock from './components/ai/AiDock.svelte';
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
+	import CompatibilityToasts from './components/CompatibilityToasts.svelte';
 	import ExportProgressModal from './components/ExportProgressModal.svelte';
 	import MobileActionSheets from './components/MobileActionSheets.svelte';
 	import PresentationOverlays from './components/PresentationOverlays.svelte';
@@ -93,7 +94,7 @@
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
-	const { loader, viewer, editor, parityUi, collab, dialogs, exportUi } = vm;
+	const { loader, viewer, editor, parityUi, compatToasts, collab, dialogs, exportUi } = vm;
 
 	// Emit CSS custom properties ONLY for an explicitly chosen theme, matching
 	// React's `useThemeStyle` (returns nothing when no theme is set). Emitting a
@@ -209,6 +210,16 @@
 		statusMessage={exportUi.status}
 		oncancel={() => exportUi.cancel()}
 	/>
+	<!-- Compatibility-warning toasts: load diagnostics, hidden during a running
+	     show like the rest of the editor chrome. -->
+	{#if !viewer.isFullscreen}
+		<CompatibilityToasts
+			toasts={compatToasts.visibleToasts}
+			overflowCount={compatToasts.overflowCount}
+			ondismiss={(id) => compatToasts.dismiss(id)}
+			ondismissall={() => compatToasts.dismissAll()}
+		/>
+	{/if}
 	{#if vm.versionHistoryOpen}<VersionHistoryPanel filePath={props.filePath} onclose={() => (vm.versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
 	{#if vm.signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={vm.closeSignatureWarning} />{/if}
 	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={vm.displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={themeLocale.effectiveLocale} themeKey={themeLocale.themeKey} themeCatalog={themeLocale.catalog} onsetthemekey={(key) => themeLocale.setThemeKey(key)} availableLocales={props.availableLocales} onsetlocale={(code) => themeLocale.setLocale(code)} onselectslide={(index) => viewer.goTo(index)} onmoveslide={vm.deck.moveSlide} optionsState={vm.optionsState} autosaveRecovery={vm.autosaveRecovery} aiEnabled={Boolean(props.ai)} collabActive={vm.collab.active} />

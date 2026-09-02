@@ -19,7 +19,7 @@
 
 import { Injectable, inject, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 
 import {
 	DEFAULT_CANVAS_HEIGHT,
@@ -103,6 +103,13 @@ export class PrintService {
 		},
 		/** Options > Advanced > "Print hidden slides". Defaults to PowerPoint's own default (excluded). */
 		includeHiddenSlides = false,
+		/**
+		 * The deck's handout master, consumed for its background, header/footer/
+		 * date/page-number placeholders, and (when authored) positioned slide
+		 * rects, in the `handouts` print mode. Optional and defaulted to
+		 * `undefined` so existing callers keep printing the bare grid.
+		 */
+		handoutMaster?: PptxHandoutMaster,
 	): Promise<boolean> {
 		this.closeDialog();
 
@@ -212,7 +219,12 @@ export class PrintService {
 				title: this.translate.instant('pptx.print.handoutPerPageTitle', {
 					count: settings.slidesPerPage,
 				}),
-				bodyHtml: buildHandoutsHtml(slideImages, capturedIndices, settings.slidesPerPage),
+				bodyHtml: buildHandoutsHtml(
+					slideImages,
+					capturedIndices,
+					settings.slidesPerPage,
+					handoutMaster,
+				),
 				orientation: 'portrait',
 				colorFilter,
 				frameSlides: settings.frameSlides,

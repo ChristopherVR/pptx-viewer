@@ -46,6 +46,7 @@ export function createRibbonPropsFixture(overrides: Partial<RibbonProps> = {}): 
 		canDistribute: false,
 
 		onSetMode: noop,
+		onPresentFromBeginning: noop,
 		onToggleSidebar: noop,
 		onToggleInspector: noop,
 		onOpenAnimationPanel: noop,

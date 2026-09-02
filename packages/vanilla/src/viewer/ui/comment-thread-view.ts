@@ -1,8 +1,9 @@
-import type { PptxComment } from 'pptx-viewer-core';
+import type { PptxComment, PptxCommentMention, PptxModernCommentAuthor } from 'pptx-viewer-core';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import { renderCommentBody } from './comment-body';
+import { attachCommentMentionTypeahead } from './comment-mention-typeahead';
 
 /**
  * The threaded comment list: nested replies, edit-in-place, reply, resolve and
@@ -20,7 +21,7 @@ import { renderCommentBody } from './comment-body';
  */
 
 export interface CommentThreadHandlers {
-	addCommentReply(parentId: string, text: string): void;
+	addCommentReply(parentId: string, text: string, mentions?: PptxCommentMention[]): void;
 	editComment(id: string, text: string): void;
 	deleteComment(id: string): void;
 	toggleCommentResolved(id: string): void;
@@ -37,6 +38,8 @@ export function createCommentThreadView(
 	doc: Document,
 	t: Translator,
 	handlers: CommentThreadHandlers,
+	/** Authors offered by the reply draft's `@`-mention typeahead. */
+	getMentionAuthors: () => readonly PptxModernCommentAuthor[] = () => [],
 ): CommentThreadView {
 	const el = createEl(doc, 'div', 'pptxv-inspector-comment-list');
 
@@ -45,6 +48,7 @@ export function createCommentThreadView(
 	let editDraft = '';
 	let replyingId: string | null = null;
 	let replyDraft = '';
+	let replyMentions: PptxCommentMention[] = [];
 	const collapsedReplies = new Set<string>();
 	let comments: readonly PptxComment[] = [];
 	let editable = false;
@@ -111,22 +115,36 @@ export function createCommentThreadView(
 			},
 		);
 		area.setAttribute('aria-label', t('pptx.comments.reply'));
+		const mentionTypeahead = attachCommentMentionTypeahead({
+			doc,
+			t,
+			field: area,
+			getAuthors: getMentionAuthors,
+			getMentions: () => replyMentions,
+			onChange: (next) => {
+				replyDraft = next.text;
+				replyMentions = next.mentions;
+			},
+		});
 		const actions = createEl(doc, 'div', 'pptxv-inspector-comment-actions');
 		actions.append(
 			actionBtn(t('pptx.comments.addReply'), () => {
 				if (replyDraft.trim()) {
-					handlers.addCommentReply(comment.id, replyDraft.trim());
+					handlers.addCommentReply(comment.id, replyDraft.trim(), replyMentions);
 				}
+				mentionTypeahead.destroy();
 				replyingId = null;
 				replyDraft = '';
+				replyMentions = [];
 				render();
 			}),
 			actionBtn(t('pptx.comments.cancel'), () => {
+				mentionTypeahead.destroy();
 				replyingId = null;
 				render();
 			}),
 		);
-		form.append(area, actions);
+		form.append(area, mentionTypeahead.el, actions);
 		return form;
 	};
 
@@ -144,6 +162,7 @@ export function createCommentThreadView(
 				actionBtn(t('pptx.comments.reply'), () => {
 					replyingId = comment.id;
 					replyDraft = '';
+					replyMentions = [];
 					render();
 				}),
 			);

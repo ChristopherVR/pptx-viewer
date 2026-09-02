@@ -37,6 +37,7 @@ class MockPptxHandler {
 	dispose = disposeMock;
 	getImageData = getImageDataMock;
 	getMediaArrayBuffer = vi.fn();
+	getCompatibilityWarnings = vi.fn(() => []);
 }
 
 vi.mock(import('pptx-viewer-core'), async (importOriginal) => {

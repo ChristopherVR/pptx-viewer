@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { ShowOrderCustomShow } from 'pptx-viewer-shared';
+import type { AuthoredSlideRange, ShowOrderCustomShow } from 'pptx-viewer-shared';
 import {
 	nextPresentedSlide,
 	PRESENTER_CONSOLE_CLASSES,
@@ -37,6 +37,8 @@ interface PresenterNotesRailProps {
 	 * room never sees.
 	 */
 	activeCustomShow?: ShowOrderCustomShow | null;
+	/** The deck's authored `p:sldRg` range, so the preview never shows a slide outside it. */
+	authoredRange?: AuthoredSlideRange | undefined;
 	onMove: (direction: 1 | -1) => void;
 	onUpdateNotes?: (notes: string) => void;
 }
@@ -49,12 +51,13 @@ export function PresenterNotesRail({
 	now,
 	elapsed,
 	activeCustomShow,
+	authoredRange,
 	onMove,
 	onUpdateNotes,
 }: PresenterNotesRailProps): React.ReactElement {
 	const { t } = useTranslation();
 	const slide = slides[current];
-	const nextSlide = nextPresentedSlide(slides, current, activeCustomShow);
+	const nextSlide = nextPresentedSlide(slides, current, activeCustomShow, authoredRange);
 	const notesText = slide?.notes ?? '';
 	const notesSegments = slide?.notesSegments;
 	const [notesDraft, setNotesDraft] = useState(notesText);

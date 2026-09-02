@@ -3,10 +3,11 @@
  * Settings" inspector panel (PowerPoint's Insert > Action dialog).
  *
  * WHY shared: the mapping from `ElementActionType` to a translation key is
- * plain data that every binding's action panel needs verbatim, and the two
- * types that take an extra input (`url`, `slide`) are a rule, not a rendering
- * decision. Keeping the list here means adding a new action kind updates all
- * five bindings at once instead of five hand-typed copies drifting apart.
+ * plain data that every binding's action panel needs verbatim, and the three
+ * types that take an extra input before they can commit (`url`, `slide`,
+ * `customShow`) are a rule, not a rendering decision. Keeping the list here
+ * means adding a new action kind updates all five bindings at once instead of
+ * five hand-typed copies drifting apart.
  *
  * @module render/element-action-options
  */
@@ -28,6 +29,12 @@ export const ELEMENT_ACTION_TYPE_OPTIONS: readonly ElementActionOption[] = [
 	{ value: 'prevSlide', labelKey: 'pptx.hyperlink.actionPrevSlide' },
 	{ value: 'nextSlide', labelKey: 'pptx.hyperlink.actionNextSlide' },
 	{ value: 'endShow', labelKey: 'pptx.hyperlink.actionEndShow' },
+	{ value: 'lastViewed', labelKey: 'pptx.hyperlink.actionLastViewed' },
+	{ value: 'customShow', labelKey: 'pptx.hyperlink.actionCustomShow' },
+	{ value: 'openFile', labelKey: 'pptx.hyperlink.actionOpenFile' },
+	{ value: 'openPresentation', labelKey: 'pptx.hyperlink.actionOpenPresentation' },
+	{ value: 'playMedia', labelKey: 'pptx.hyperlink.actionPlayMedia' },
+	{ value: 'oleVerb', labelKey: 'pptx.hyperlink.actionOleVerb' },
 ];
 
 /**
@@ -36,11 +43,15 @@ export const ELEMENT_ACTION_TYPE_OPTIONS: readonly ElementActionOption[] = [
  * WHY this is a shared rule rather than a per-binding `if`: `url` and `slide`
  * serialise to an OOXML action that parses straight back as `none` while their
  * target is missing, so the panel that just wrote one would immediately read it
- * back as "no action". Every binding needs the same test to know when a picked
- * type may be committed and when it must only be held in the panel.
+ * back as "no action". `customShow` does not have that particular failure mode
+ * (`ppaction://customshow?id=` with an empty id still parses back as
+ * `customShow`, just target-less), but committing it with no id would still
+ * write a custom-show action that names no show, so it is held back the same
+ * way. Every binding needs the same test to know when a picked type may be
+ * committed and when it must only be held in the panel.
  */
 export function actionTypeNeedsTarget(type: ElementActionType): boolean {
-	return type === 'url' || type === 'slide';
+	return type === 'url' || type === 'slide' || type === 'customShow';
 }
 
 /**
@@ -65,21 +76,24 @@ export function resolveActionType(
 /**
  * Whether a picked action type can be written to the element yet.
  *
- * Target-free kinds (navigation verbs, `none`) commit on the spot; `url` and
- * `slide` wait for their target so the write cannot round-trip to `none` and
- * wipe the choice the user is halfway through making.
+ * Target-free kinds (navigation verbs, `none`) commit on the spot; `url`,
+ * `slide` and `customShow` wait for their target (see
+ * {@link actionTypeNeedsTarget}).
  *
  * @param target - The target values the panel currently holds.
  */
 export function canCommitActionType(
 	type: ElementActionType,
-	target: { url?: string; slideIndex?: number },
+	target: { url?: string; slideIndex?: number; customShowId?: string },
 ): boolean {
 	if (type === 'url') {
 		return Boolean(target.url);
 	}
 	if (type === 'slide') {
 		return typeof target.slideIndex === 'number';
+	}
+	if (type === 'customShow') {
+		return Boolean(target.customShowId);
 	}
 	return true;
 }

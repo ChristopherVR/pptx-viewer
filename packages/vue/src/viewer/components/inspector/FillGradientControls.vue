@@ -12,6 +12,8 @@ import type { GradientStop } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 /**
  * FillGradientControls: the gradient-fill half of {@link FillPanel}, shown
  * when `shapeStyle.fillMode === 'gradient'`. Split into its own file to keep
@@ -32,6 +34,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const state = computed(() => gradientStateOf(props.element));
 
@@ -67,6 +70,10 @@ function onAngleChange(value: string): void {
 
 function onStopColor(index: number, value: string): void {
 	emit('update', updateGradientStopPatch(props.element, index, { color: value }));
+}
+
+function onStopColorCommit(value: string): void {
+	recentColors?.push(value);
 }
 
 function onStopPosition(index: number, value: string): void {
@@ -171,6 +178,7 @@ function onAddStop(): void {
 				class="pptx-vue-gradient-color h-6 w-8 cursor-pointer rounded border border-border"
 				:value="stop.color"
 				@input="onStopColor(index, ($event.target as HTMLInputElement).value)"
+				@change="onStopColorCommit(($event.target as HTMLInputElement).value)"
 			/>
 			<input
 				type="number"

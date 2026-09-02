@@ -16,8 +16,9 @@
  *
  * Both are recommendations, not enforcement: neither core nor this module
  * blocks a save, they only tell a binding what state to default a "read-only"
- * toggle to and what banner to show. No binding currently surfaces either
- * signal, so a deck opened this way was silently editable.
+ * toggle to and what banner to show. Every binding surfaces it as the
+ * read-only banner (editing stays locked until "Edit anyway"); before that a
+ * deck opened this way was silently editable.
  *
  * Framework-agnostic: no React, Vue, Angular, Svelte or DOM imports.
  */

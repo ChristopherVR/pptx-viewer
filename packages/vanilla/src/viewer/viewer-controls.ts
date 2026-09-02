@@ -3,7 +3,9 @@ import {
 	hasShowSlideAfter,
 	lastShowSlideIndex,
 	nextShowSlideIndex,
+	presentationEntrySlideIndex,
 	previousShowSlideIndex,
+	resolveAuthoredSlideRange,
 	resolveShowSlideIndexes,
 	createViewerZoomStore,
 } from 'pptx-viewer-shared';
@@ -22,6 +24,24 @@ export interface ViewerControls {
 	prev(): void;
 	/** Jump to the show's first slide (Home). */
 	firstSlide(): void;
+	/**
+	 * The deck index "Present From Beginning" should land on: the first slide
+	 * the show actually visits (skips a hidden slide 1, and honours an authored
+	 * `p:showPr/p:sldRg` range or custom show), NOT bare deck index 0.
+	 * Unconditional, unlike {@link firstSlide}'s Home-key behaviour, which only
+	 * applies the show order while already presenting.
+	 */
+	firstShowSlideIndex(): number;
+	/**
+	 * The deck index entering the show FROM the current slide should land on:
+	 * the active slide itself when the show includes it, otherwise the nearest
+	 * show slide (see `presentationEntrySlideIndex`). Every way of starting a
+	 * show "from current" (the status-bar button, ribbon From Current Slide,
+	 * Shift+F5, `setMode('present')`, the mobile toolbar) reads this instead of
+	 * the raw active slide, so a slide the author excluded from the show is
+	 * never the opening frame.
+	 */
+	presentationEntryIndex(): number;
 	/** Jump to the show's last slide (End). */
 	lastSlide(): void;
 	goToSlide(index: number): void;
@@ -63,7 +83,14 @@ export function createViewerControls(
 		const active = state.activeCustomShowId
 			? state.customShows.find(({ id }) => id === state.activeCustomShowId)
 			: undefined;
-		return resolveShowSlideIndexes(state.slides, active);
+		// `p:showPr/p:sldRg`: an authored deck asking to present only slides
+		// `st`..`end` (Set Up Slide Show > "Show slides" > "From"/"To"). No custom
+		// show active overrides it (see `resolveAuthoredSlideRange`'s own docs).
+		const authoredRange = resolveAuthoredSlideRange(
+			state.presentationProperties,
+			state.slides.length,
+		);
+		return resolveShowSlideIndexes(state.slides, active, authoredRange);
 	};
 
 	/**
@@ -195,6 +222,9 @@ export function createViewerControls(
 			);
 		},
 		goToSlide,
+		firstShowSlideIndex: () => firstShowSlideIndex(showOrder()) ?? 0,
+		presentationEntryIndex: () =>
+			presentationEntrySlideIndex(store.get().currentSlide, showOrder()),
 		slideCount: () => store.get().slides.length,
 		currentSlide: () => store.get().currentSlide,
 		zoom: () => renderer.effectiveScale(),

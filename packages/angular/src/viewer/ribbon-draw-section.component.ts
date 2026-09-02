@@ -8,7 +8,7 @@
  * {@link DrawToolState} the parent re-broadcasts as `drawToolChange`.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import {
 	LucideMinus,
 	LucideMoveRight,
@@ -17,6 +17,8 @@ import {
 	LucideType,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
+
+import { RecentColorsService } from './recent-colors.service';
 
 /** Drawing tool IDs (mirrors React DRAW_TOOLS). */
 export type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
@@ -103,6 +105,7 @@ const DRAW_TOOLS: readonly DrawToolDef[] = [
 				type="color"
 				[value]="drawingColor()"
 				(input)="onColorInput($event)"
+				(change)="onColorCommit($event)"
 				class="h-6 w-6 cursor-pointer rounded border border-border bg-transparent"
 			/>
 		</label>
@@ -131,6 +134,9 @@ export class RibbonDrawSectionComponent {
 
 	readonly drawToolChange = output<DrawToolState>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	protected readonly drawTools = DRAW_TOOLS;
 
 	protected selectTool(tool: DrawTool): void {
@@ -140,6 +146,15 @@ export class RibbonDrawSectionComponent {
 	protected onColorInput(event: Event): void {
 		const color = (event.target as HTMLInputElement).value;
 		this.drawToolChange.emit({ tool: this.activeTool(), color, width: this.drawingWidth() });
+	}
+
+	/**
+	 * Record the committed (native `change`, not the live-preview `input`)
+	 * pen colour into the shared "Recent colours" list.
+	 */
+	protected onColorCommit(event: Event): void {
+		const color = (event.target as HTMLInputElement).value;
+		this.recentColors?.push(color);
 	}
 
 	protected onWidthInput(event: Event): void {

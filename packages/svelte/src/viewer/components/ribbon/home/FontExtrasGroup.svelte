@@ -207,7 +207,13 @@
 		label={t('pptx.text.fontColor')}
 		title={t('pptx.textProperties.textColor')}
 		glyph="A"
-		onselect={(hex) => el && apply(setTextColorPatch(el, hex))}
+		recentColors={editor.mruColors}
+		onselect={(hex) => {
+			if (el) {
+				apply(setTextColorPatch(el, hex));
+			}
+			editor.recordRecentColor(hex);
+		}}
 	/>
 	<SwatchColorPicker
 		value={highlight}
@@ -215,7 +221,12 @@
 		label={t('pptx.text.highlightColor')}
 		glyph="H"
 		swatches={['#ffff00', '#00ff00', '#00ffff', '#ff00ff', '#0000ff', '#ff0000', '#000080', '#008080', '#008000', '#800080']}
-		onselect={(hex) => el && apply(setHighlightColorPatch(el, hex))}
+		onselect={(hex) => {
+			if (el) {
+				apply(setHighlightColorPatch(el, hex));
+			}
+			editor.recordRecentColor(hex);
+		}}
 	/>
 </div>
 

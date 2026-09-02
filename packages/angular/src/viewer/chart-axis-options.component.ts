@@ -91,7 +91,12 @@ const SCALE_FIELDS: ReadonlyArray<{
 										(change)="onDisplayUnits(row.type, $event)"
 									>
 										@for (opt of displayUnitOptions; track opt.value) {
-											<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+											<option
+												[value]="opt.value"
+												[selected]="opt.value === (row.axis.displayUnits ?? '')"
+											>
+												{{ opt.labelKey | translate }}
+											</option>
 										}
 									</select>
 								</label>
@@ -135,7 +140,12 @@ const SCALE_FIELDS: ReadonlyArray<{
 									(change)="onTickPosition(row.type, $event)"
 								>
 									@for (opt of tickPositionOptions; track opt.value) {
-										<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+										<option
+											[value]="opt.value"
+											[selected]="opt.value === (row.axis.tickLblPos ?? 'nextTo')"
+										>
+											{{ opt.labelKey | translate }}
+										</option>
 									}
 								</select>
 							</label>

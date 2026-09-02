@@ -17,8 +17,10 @@ function makeHandlers() {
 		updateActiveSlide: vi.fn<DeckPanelHandlers['updateActiveSlide']>(),
 		updateCanvasSize: vi.fn<DeckPanelHandlers['updateCanvasSize']>(),
 		updateSlideSize: vi.fn<DeckPanelHandlers['updateSlideSize']>(),
+		applySlideSizeRescale: vi.fn<DeckPanelHandlers['applySlideSizeRescale']>(),
 		setTemplateBackground: vi.fn<DeckPanelHandlers['setTemplateBackground']>(),
 		getTemplateBackgroundColor: vi.fn<DeckPanelHandlers['getTemplateBackgroundColor']>(),
+		pushRecentColor: vi.fn<DeckPanelHandlers['pushRecentColor']>(),
 	} satisfies DeckPanelHandlers;
 }
 
@@ -29,9 +31,12 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 		currentSlide: 0,
 		canvasSize: { width: 960, height: 540 },
 		slideSize: { widthEmu: 9144000, heightEmu: 5143500, type: 'screen16x9' },
+		hasDeckElements: false,
 		elements: [],
 		selectedIds: [],
 		comments: [],
+		commentMentionAuthors: [],
+		customShows: [],
 		docTitle: 'Deck',
 		docAuthor: 'Author',
 		editable: true,

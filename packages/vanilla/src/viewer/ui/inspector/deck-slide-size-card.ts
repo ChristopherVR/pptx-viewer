@@ -1,4 +1,4 @@
-import type { SlideSizeOrientation } from 'pptx-viewer-shared';
+import type { SlideSizeEmu, SlideSizeOrientation } from 'pptx-viewer-shared';
 import {
 	resolveSlideSizeSelection,
 	SLIDE_SIZE_PRESETS,
@@ -11,6 +11,7 @@ import { createEl } from '../../render';
 import { makeNumberField } from '../controls';
 import type { DeckCard } from './deck-card-helpers';
 import { makeSection } from './deck-card-helpers';
+import { createSlideSizeRescalePrompt } from './slide-size-rescale-prompt';
 import type { InspectorDeckState, InspectorHandlers } from './types';
 
 /**
@@ -27,7 +28,15 @@ import type { InspectorDeckState, InspectorHandlers } from './types';
 /** The `<option>` value standing in for "no preset matches this size". */
 const CUSTOM_VALUE = '__custom__';
 
-export type SlideSizeHandlers = Pick<InspectorHandlers, 'updateCanvasSize' | 'updateSlideSize'>;
+export type SlideSizeHandlers = Pick<
+	InspectorHandlers,
+	'updateCanvasSize' | 'updateSlideSize' | 'applySlideSizeRescale'
+>;
+
+/** Whether two EMU sizes describe the same slide dimensions. */
+function sizesDiffer(a: SlideSizeEmu, b: SlideSizeEmu): boolean {
+	return a.widthEmu !== b.widthEmu || a.heightEmu !== b.heightEmu;
+}
 
 const ORIENTATIONS: readonly (readonly [SlideSizeOrientation, string])[] = [
 	['landscape', 'pptx.slideSize.landscape'],
@@ -96,24 +105,53 @@ export function createSlideSizeCard(
 	});
 	grid.append(wField.el, hField.el);
 
+	// ── Rescale prompt (PowerPoint's Design > Slide Size Maximize/Ensure Fit) ──
+	// Shown instead of applying immediately when the deck has content and the
+	// picked size differs from the current one; `pendingSize` is what a choice
+	// there commits.
+	let pendingSize: SlideSizeEmu | undefined;
+	const rescalePrompt = createSlideSizeRescalePrompt(doc, t, (mode) => {
+		if (pendingSize) {
+			handlers.applySlideSizeRescale(pendingSize, mode);
+		}
+		pendingSize = undefined;
+		rescalePrompt.hide();
+	});
+	body.appendChild(rescalePrompt.el);
+
 	// The live selection, so a change handler can rotate/re-preset without
 	// re-deriving it from a stale render.
 	let selection = resolveSlideSizeSelection({
 		current: undefined,
 		canvas: { width: 1, height: 1 },
 	});
+	let hasDeckElements = false;
+
+	/**
+	 * Adopt `next` directly when the deck is empty or `next` matches the
+	 * current size; otherwise stage it and show the Maximize/Ensure Fit prompt
+	 * instead of touching the deck yet.
+	 */
+	function requestSizeChange(next: SlideSizeEmu): void {
+		if (!hasDeckElements || !sizesDiffer(next, selection.size)) {
+			handlers.updateSlideSize(next);
+			return;
+		}
+		pendingSize = next;
+		rescalePrompt.show();
+	}
 
 	preset.addEventListener('change', () => {
 		const picked = SLIDE_SIZE_PRESETS.find((entry) => entry.labelKey === preset.value);
 		if (picked) {
-			handlers.updateSlideSize(slideSizeFromPreset(picked, selection.orientation));
+			requestSizeChange(slideSizeFromPreset(picked, selection.orientation));
 		}
 	});
 	// `forEach`, not `for..of`: a listener closure declared inside a loop
 	// statement trips oxlint's `no-loop-func`.
 	orientationButtons.forEach(({ value, button }) => {
 		button.addEventListener('click', () =>
-			handlers.updateSlideSize(withSlideSizeOrientation(selection.size, value)),
+			requestSizeChange(withSlideSizeOrientation(selection.size, value)),
 		);
 	});
 
@@ -125,6 +163,7 @@ export function createSlideSizeCard(
 				current: state.slideSize,
 				canvas: state.canvasSize,
 			});
+			hasDeckElements = state.hasDeckElements;
 			customOption.hidden = selection.preset !== undefined;
 			preset.value = selection.preset?.labelKey ?? CUSTOM_VALUE;
 			preset.disabled = !state.editable;
@@ -138,6 +177,12 @@ export function createSlideSizeCard(
 			hField.setValue(state.canvasSize.height);
 			wField.setDisabled(!state.editable);
 			hField.setDisabled(!state.editable);
+			// The prompt targets a size that is no longer current (a save/undo/new
+			// load landed underneath it); rather than commit a stale rescale, drop it.
+			if (pendingSize && !state.editable) {
+				pendingSize = undefined;
+				rescalePrompt.hide();
+			}
 		},
 	};
 }

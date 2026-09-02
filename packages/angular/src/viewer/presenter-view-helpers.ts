@@ -35,7 +35,7 @@ import type { TranslateService } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
 import { nextPresentedSlide, notesSegmentsToSpans } from '../internal/shared';
-import type { ShowOrderCustomShow } from '../internal/shared';
+import type { AuthoredSlideRange, ShowOrderCustomShow } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { cssObjectToStyleMap } from './table-renderer-helpers';
 
@@ -98,13 +98,18 @@ export function currentSlideAt(slides: readonly PptxSlide[], index: number): Ppt
  * `activeCustomShow` is the half Angular was dropping. While "Reverse" is
  * playing, the slide after slide 3 is slide 2, and a console that previewed
  * slide 4 had the presenter rehearsing a segue the room never sees.
+ *
+ * `authoredRange` is the other half: on the last slide of a deck authored to
+ * play only slides 2..3 (`p:showPr/p:sldRg`), the preview must be empty, not
+ * slide 4, which the show itself would never reach.
  */
 export function nextSlideAfter(
 	slides: readonly PptxSlide[],
 	index: number,
 	activeCustomShow?: ShowOrderCustomShow | null,
+	authoredRange?: AuthoredSlideRange | null,
 ): PptxSlide | undefined {
-	return nextPresentedSlide(slides, index, activeCustomShow);
+	return nextPresentedSlide(slides, index, activeCustomShow, authoredRange);
 }
 
 /** "Slide 3 of 12" style label for the current position. */

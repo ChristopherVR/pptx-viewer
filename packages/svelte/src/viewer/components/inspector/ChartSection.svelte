@@ -23,10 +23,16 @@
 	import { setChartDataPointMarker } from 'pptx-viewer-core';
 	import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 	import {
+		bar3DShapePatch,
+		BAR3D_SHAPE_OPTIONS,
 		CHART_TYPE_LABEL_KEYS,
 		CHART_TYPE_OPTIONS,
 		patchChartData as sharedPatchChartData,
+		radarStylePatch,
+		RADAR_STYLE_OPTIONS,
 		schemaLabel,
+		surfaceWireframePatch,
+		SURFACE_WIREFRAME_OPTIONS,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
@@ -87,6 +93,10 @@
 			patch({ series: data.series.map((series, i) => (i === index ? { ...series, ...next } : series)) });
 		}
 	}
+	function seriesColorPatch(index: number, color: string): void {
+		seriesPatch(index, { color });
+		editor.recordRecentColor(color);
+	}
 	function axisPatch(index: number, next: Partial<PptxChartAxisFormatting>): void {
 		if (data) {
 			patch({ axes: (data.axes ?? []).map((axis, i) => (i === index ? { ...axis, ...next } : axis)) });
@@ -122,26 +132,58 @@
 		setChartDataPointMarker(clone, seriesIndex, pointIndex, marker);
 		replace(clone.chartData!);
 	}
+
+	/**
+	 * The three chart-subtype pickers (wave 4 #1): `bar3DShapePatch` /
+	 * `radarStylePatch` / `surfaceWireframePatch` are pure decision functions
+	 * from shared, each returning `{}` when the current chart type does not
+	 * match, so a stray call is always harmless.
+	 */
+	function onBar3DShapeChange(value: string): void {
+		if (data) {
+			patch(bar3DShapePatch(data, value as (typeof BAR3D_SHAPE_OPTIONS)[number]['value']));
+		}
+	}
+	function onRadarStyleChange(value: string): void {
+		if (data) {
+			patch(radarStylePatch(data, value as (typeof RADAR_STYLE_OPTIONS)[number]['value']));
+		}
+	}
+	function onSurfaceWireframeChange(value: string): void {
+		if (data) {
+			patch(surfaceWireframePatch(data, value === 'true'));
+		}
+	}
 </script>
 
 {#if data}<div class="section">
 	<label>Chart type<select aria-label="Chart type" value={data.chartType} onchange={(event) => onTypeChange(event.currentTarget.value as ChartTypeSelectValue)}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
 	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ title: event.currentTarget.value, style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
-	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label></div>
+	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label>
+		{#if data.chartType === 'bar3D'}
+			<label>{t('pptx.chart.bar3DShapeLabel')}<select aria-label={t('pptx.chart.bar3DShapeLabel')} data-testid="pptx-chart-bar3d-shape" value={data.barShape ?? 'box'} onchange={(event) => onBar3DShapeChange(event.currentTarget.value)}>{#each BAR3D_SHAPE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</select></label>
+		{/if}
+		{#if data.chartType === 'radar'}
+			<label>{t('pptx.chart.radarStyleLabel')}<select aria-label={t('pptx.chart.radarStyleLabel')} data-testid="pptx-chart-radar-style" value={data.radarStyle ?? 'standard'} onchange={(event) => onRadarStyleChange(event.currentTarget.value)}>{#each RADAR_STYLE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</select></label>
+		{/if}
+		{#if data.chartType === 'surface'}
+			<label>{t('pptx.chart.surfaceWireframeLabel')}<select aria-label={t('pptx.chart.surfaceWireframeLabel')} data-testid="pptx-chart-surface-wireframe" value={data.wireframe ? 'true' : 'false'} onchange={(event) => onSurfaceWireframeChange(event.currentTarget.value)}>{#each SURFACE_WIREFRAME_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</select></label>
+		{/if}
+	</div>
 	<ChartDataGrid
 		{data}
 		{canEdit}
 		onreplace={replace}
 		onrenameseries={(index, name) => seriesPatch(index, { name })}
 	/>
-	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesPatch(index, { color: event.currentTarget.value })} /></fieldset>{/each}
+	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesColorPatch(index, event.currentTarget.value)} /></fieldset>{/each}
 	<ChartTrendlineSection {data} {canEdit} onsettrendline={setTrendline} />
-	{#if chart}<ChartPointMarkerSection element={chart} {canEdit} onsetpointmarker={setPointMarker} />{/if}
+	{#if chart}<ChartPointMarkerSection {editor} element={chart} {canEdit} onsetpointmarker={setPointMarker} />{/if}
 	<h5>Axes</h5>{#each data.axes ?? [] as axis, index}<fieldset><input aria-label="Axis title" value={axis.titleText ?? ''} oninput={(event) => axisPatch(index, { titleText: event.currentTarget.value })} /><input type="number" aria-label="Axis minimum" placeholder="Min" value={axis.min ?? ''} onchange={(event) => axisPatch(index, { min: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /><input type="number" aria-label="Axis maximum" placeholder="Max" value={axis.max ?? ''} onchange={(event) => axisPatch(index, { max: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /></fieldset>{/each}
 	<ChartErrorBarSection {data} {canEdit} onseterrorbars={setErrorBars} />
 	<ChartAxisFormatSection {data} {canEdit} onpatch={patch} />
-	<ChartLabelsAxesSection {data} onpatch={patch} />
-	<ChartAdvancedSection {data} onpatch={patch} />
+	<ChartLabelsAxesSection {editor} {data} onpatch={patch} />
+	<ChartAdvancedSection {editor} {data} onpatch={patch} />
 </div>{/if}
 
 <style>.section{display:grid;gap:8px}label{display:grid;gap:3px;color:var(--pptx-muted-foreground);font-size:10px}input,select{min-width:0;height:26px;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-background);color:inherit}.checks{display:grid;grid-template-columns:1fr 1fr;gap:5px}.checks label{display:flex;align-items:center}h5{margin:6px 0 0;font-size:10px;text-transform:uppercase}fieldset{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0;padding:7px;border:1px solid var(--pptx-border);border-radius:6px}</style>

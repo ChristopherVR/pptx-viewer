@@ -159,6 +159,8 @@ export interface ViewerToolbarSectionProps {
 	customFontFamilies?: readonly string[];
 	ops: ElementOperations;
 	onSetMode: (mode: ViewerMode) => void;
+	/** "From Beginning" (F5): enters the show on its first slide. */
+	onPresentFromBeginning?: () => void;
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
 	onOpenSettings?: () => void;
@@ -191,6 +193,15 @@ export interface ViewerToolbarSectionProps {
 	isProtectedView?: boolean;
 	/** Drops the Protected View override for this session. Only offered when `isProtectedView` is true. */
 	onEnableEditing?: () => void;
+	/**
+	 * Overrides `state.setSnapToGrid`/`setSnapToShape`/`setShowGuides` with a
+	 * handler that also writes the toggle back into `state.viewProperties`
+	 * (`useViewPreferencesSync`), so a save round-trips it. Falls back to the
+	 * raw state setter (no write-back) when omitted.
+	 */
+	onSetSnapToGrid?: (value: boolean) => void;
+	onSetSnapToShape?: (value: boolean) => void;
+	onSetShowGuides?: (value: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +232,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		customFontFamilies,
 		ops,
 		onSetMode,
+		onPresentFromBeginning,
 		onEnterPresenterView,
 		onEnterRehearsalMode,
 		onOpenSettings,
@@ -240,6 +252,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onToggleAiPanel,
 		isProtectedView,
 		onEnableEditing,
+		onSetSnapToGrid,
+		onSetSnapToShape,
+		onSetShowGuides,
 	} = props;
 
 	const { t } = useTranslation();
@@ -438,7 +453,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				case 'slideShow':
 					switch (action) {
 						case 'fromBeginning':
-							onSetMode('present');
+							(onPresentFromBeginning ?? (() => onSetMode('present')))();
 							break;
 						case 'presenterView':
 							onEnterPresenterView();
@@ -490,6 +505,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 			dialogs,
 			zoom,
 			onSetMode,
+			onPresentFromBeginning,
 			onEnterPresenterView,
 			manipulation,
 			handleOpenSlideSize,
@@ -505,7 +521,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 	const handleQuickAccessCommand = useCallback(
 		(id: string) => {
 			const handlers: Record<string, () => void> = {
-				presentFromStart: () => onSetMode('present'),
+				presentFromStart: onPresentFromBeginning ?? (() => onSetMode('present')),
 				print: printHandlers.handlePrint,
 				exportPdf: exportHandlers.handleExportPdf,
 				newSlide: slideOps.handleAddSlide,
@@ -515,7 +531,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 			};
 			handlers[id]?.();
 		},
-		[onSetMode, printHandlers, exportHandlers, slideOps, s, zoom],
+		[onSetMode, onPresentFromBeginning, printHandlers, exportHandlers, slideOps, s, zoom],
 	);
 
 	return (
@@ -575,6 +591,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				drawingWidth={s.drawingWidth}
 				clipboardPayload={s.clipboardPayload}
 				onSetMode={onSetMode}
+				onPresentFromBeginning={onPresentFromBeginning}
 				onToggleSidebar={() => s.setIsSlidesPaneOpen((p) => !p)}
 				onToggleInspector={() => s.setIsInspectorPaneOpen((p) => !p)}
 				onOpenAnimationPanel={() => {
@@ -619,9 +636,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onSetSpellCheckEnabled={s.setSpellCheckEnabled}
 				onSetShowGrid={s.setShowGrid}
 				onSetShowRulers={s.setShowRulers}
-				onSetShowGuides={s.setShowGuides}
-				onSetSnapToGrid={s.setSnapToGrid}
-				onSetSnapToShape={s.setSnapToShape}
+				onSetShowGuides={onSetShowGuides ?? s.setShowGuides}
+				onSetSnapToGrid={onSetSnapToGrid ?? s.setSnapToGrid}
+				onSetSnapToShape={onSetSnapToShape ?? s.setSnapToShape}
 				onAddGuide={dialogs.handleAddGuide}
 				onAlignElements={manipulation.handleAlignElements}
 				onDistributeElements={manipulation.handleDistributeElements}

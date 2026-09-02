@@ -5,6 +5,7 @@ import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AfterAnimationRow } from './AfterAnimationRow';
+import { RecentColorsProvider } from './RecentColorsContext';
 
 vi.mock(import('react-i18next'), () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
@@ -104,6 +105,32 @@ describe('afterAnimationRow', () => {
 			colorInput.dispatchEvent(new Event('change', { bubbles: true }));
 		});
 		expect(onColorChange).toHaveBeenCalledWith('#00ff00');
+	});
+
+	it('pushes the picked colour into the shared recent-colours list (wave-4 B6)', () => {
+		const pushColor = vi.fn();
+		act(() => {
+			root.render(
+				<RecentColorsProvider value={{ recentColors: [], pushColor }}>
+					<AfterAnimationRow
+						action='dimToColor'
+						color='#000000'
+						canEdit
+						onActionChange={() => undefined}
+						onColorChange={() => undefined}
+					/>
+				</RecentColorsProvider>,
+			);
+		});
+		const colorInput = container.querySelector('input[type="color"]') as HTMLInputElement;
+		act(() => {
+			const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set as (
+				v: string,
+			) => void;
+			setter.call(colorInput, '#00ff00');
+			colorInput.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+		expect(pushColor).toHaveBeenCalledWith('#00ff00');
 	});
 
 	it('disables both controls when canEdit is false', () => {

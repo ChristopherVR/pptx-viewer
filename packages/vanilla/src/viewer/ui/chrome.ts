@@ -1,10 +1,16 @@
 import type { TextSegment } from 'pptx-viewer-core';
-import type { AccountAuthConfig, ToolbarActionId } from 'pptx-viewer-shared';
+import type {
+	AccountAuthConfig,
+	CompatibilityWarningToast,
+	ReadOnlyRecommendation,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
 import type { AccessibilityPanel } from './accessibility-panel';
 import { createAccessibilityPanel } from './accessibility-panel';
+import { createCompatToastStack } from './compat-toasts';
 import type { Inspector, InspectorHandlers } from './inspector';
 import { createInspector } from './inspector';
 import type { MasterViewSidebar } from './master-view-sidebar';
@@ -21,6 +27,8 @@ import type { PresentationTouchControls } from './presentation-touch-controls';
 import { createPresentationTouchControls } from './presentation-touch-controls';
 import type { ProtectedViewBanner } from './protected-view-banner';
 import { createProtectedViewBanner } from './protected-view-banner';
+import type { ReadOnlyBanner } from './read-only-banner';
+import { createReadOnlyBanner } from './read-only-banner';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
@@ -72,6 +80,14 @@ export interface ChromeOptions {
 	onCommitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	/** "Enable Editing" click on the Protected View banner. */
 	onEnableEditing(): void;
+	/** "Edit anyway" click on the read-only recommendation banner. */
+	onEditAnywayFromReadOnly(): void;
+	/** Close click on the read-only recommendation banner. */
+	onDismissReadOnlyBanner(): void;
+	/** One compatibility toast's own dismiss button. */
+	onDismissCompatToast(id: string): void;
+	/** The compatibility toast stack's "Dismiss all" button. */
+	onDismissAllCompatToasts(): void;
 }
 
 /** The viewer's static DOM skeleton plus the mutable overlay controls. */
@@ -119,6 +135,13 @@ export interface ViewerChrome {
 	setQuickAccessPosition(position: 'above' | 'below'): void;
 	/** Show/hide the Protected View "Enable Editing" banner. */
 	setProtectedView(active: boolean): void;
+	/** Show/hide + populate the read-only recommendation banner. */
+	setReadOnlyRecommendation(
+		recommendation: ReadOnlyRecommendation | null,
+		dismissed: boolean,
+	): void;
+	/** Replace the compatibility-warning toast stack. */
+	setCompatToasts(toasts: readonly CompatibilityWarningToast[]): void;
 }
 
 /**
@@ -183,6 +206,17 @@ export function buildViewerChrome(
 		: null;
 	if (protectedViewBanner) {
 		root.appendChild(protectedViewBanner.el);
+	}
+	const readOnlyBanner: ReadOnlyBanner | null = options.showToolbar
+		? createReadOnlyBanner(
+				doc,
+				t,
+				() => options.onEditAnywayFromReadOnly(),
+				() => options.onDismissReadOnlyBanner(),
+			)
+		: null;
+	if (readOnlyBanner) {
+		root.appendChild(readOnlyBanner.el);
 	}
 	let mobileActionSheets: MobileActionSheets | null = null;
 	const mobileToolbar = options.showToolbar
@@ -303,6 +337,17 @@ export function buildViewerChrome(
 	});
 	root.appendChild(presentationToolbar.el);
 
+	// Load-diagnostics toast stack, bottom-right of the chrome; not part of the
+	// slide-show surface, so it mounts on `root` alongside the touch/desktop
+	// show controls rather than inside `body`.
+	const compatToasts = createCompatToastStack(
+		doc,
+		t,
+		(id) => options.onDismissCompatToast(id),
+		() => options.onDismissAllCompatToasts(),
+	);
+	root.appendChild(compatToasts.el);
+
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('pptx.common.loading');
 	loadingOverlay.setAttribute('role', 'status');
@@ -374,6 +419,12 @@ export function buildViewerChrome(
 		},
 		setProtectedView(active) {
 			protectedViewBanner?.setActive(active);
+		},
+		setReadOnlyRecommendation(recommendation, dismissed) {
+			readOnlyBanner?.update(recommendation, dismissed);
+		},
+		setCompatToasts(toasts) {
+			compatToasts.update(toasts);
 		},
 	};
 }

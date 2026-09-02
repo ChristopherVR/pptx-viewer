@@ -20,15 +20,46 @@ const legacyComment = (overrides: Partial<PptxComment> = {}): PptxComment => ({
 });
 
 describe('comment thread format selection', () => {
-	it('routes a replied-to legacy comment to the modern part', () => {
+	it('keeps a plain legacy reply (no mentions) in the legacy vocabulary', () => {
+		// A legacy reply chain round-trips through `p15:threadingInfo`
+		// (see `utils/legacy-comment-threading`), so carrying `replies` no
+		// longer forces promotion on its own.
 		const withReply = legacyComment({
 			replies: [{ id: 'r1', text: 'Done.', author: 'Bob', parentId: '0' }],
 		});
-		expect(commentRequiresModernFormat(withReply)).toBeTruthy();
-		expect(usesModernCommentFormat(withReply)).toBeTruthy();
+		expect(commentRequiresModernFormat(withReply)).toBeFalsy();
+		expect(usesModernCommentFormat(withReply)).toBeFalsy();
 
 		expect(commentRequiresModernFormat(legacyComment())).toBeFalsy();
 		expect(usesModernCommentFormat(legacyComment())).toBeFalsy();
+	});
+
+	it('promotes the whole thread when a reply carries mentions', () => {
+		const withMentionedReply = legacyComment({
+			replies: [
+				{
+					id: 'r1',
+					text: '@Bob thanks',
+					author: 'Bob',
+					parentId: '0',
+					mentions: [{ personId: 'Bob', startIndex: 0, length: 4 }],
+				},
+			],
+		});
+		expect(commentRequiresModernFormat(withMentionedReply)).toBeTruthy();
+		expect(usesModernCommentFormat(withMentionedReply)).toBeTruthy();
+	});
+
+	it('promotes the whole thread when a reply is already in the modern format', () => {
+		const withModernReply = legacyComment({
+			replies: [{ id: 'r1', text: 'Done.', author: 'Bob', parentId: '0', format: 'modern' }],
+		});
+		expect(commentRequiresModernFormat(withModernReply)).toBeTruthy();
+	});
+
+	it('promotes a comment that owns @-mentions even without replies', () => {
+		const mentioned = legacyComment({ mentions: [{ personId: 'Bob', startIndex: 0, length: 4 }] });
+		expect(commentRequiresModernFormat(mentioned)).toBeTruthy();
 	});
 
 	it('keeps comments already in the modern format untouched', () => {

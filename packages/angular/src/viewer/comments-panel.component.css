@@ -115,17 +115,11 @@
 	margin-top: 8px;
 }
 
-.pptx-ng-comments__reply-textarea {
-	resize: vertical;
-	width: 100%;
-	padding: 8px;
-	border-radius: 6px;
-	border: 1px solid var(--pptx-border, #374151);
-	background: var(--pptx-background, #030712);
-	color: inherit;
-	font: inherit;
-	font-size: 12px;
-}
+/* .pptx-ng-comments__reply-textarea itself is styled by
+   CommentMentionTextareaComponent's own stylesheet: the class name reaches
+   its <textarea> via the `textareaClass` input, but Angular's per-component
+   style ENCAPSULATION means a selector defined HERE could never match an
+   element rendered inside that leaf component's template. */
 
 .pptx-ng-comments__reply-actions {
 	display: flex;
@@ -182,17 +176,9 @@
 	font-weight: 600;
 }
 
-.pptx-ng-comments__textarea {
-	resize: vertical;
-	width: 100%;
-	padding: 8px;
-	border-radius: 6px;
-	border: 1px solid var(--pptx-border, #374151);
-	background: var(--pptx-background, #030712);
-	color: inherit;
-	font: inherit;
-	font-size: 13px;
-}
+/* .pptx-ng-comments__textarea: same encapsulation note as
+   .pptx-ng-comments__reply-textarea above; styled in
+   CommentMentionTextareaComponent instead. */
 
 .pptx-ng-comments__submit {
 	align-self: flex-end;

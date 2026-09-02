@@ -42,7 +42,7 @@
 		presenterNextDisabled,
 		presenterPrevDisabled,
 	} from 'pptx-viewer-shared';
-	import type { CanvasSize, ShowOrderCustomShow } from 'pptx-viewer-shared';
+	import type { AuthoredSlideRange, CanvasSize, ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { styleToString } from '../style';
@@ -57,6 +57,7 @@
 		elapsed,
 		notesSize,
 		activeCustomShow,
+		authoredRange,
 		onmove,
 		onnotessize,
 	}: {
@@ -74,6 +75,12 @@
 		 * custom show previewed the next DECK slide instead of the next SHOW one.
 		 */
 		activeCustomShow?: ShowOrderCustomShow | null;
+		/**
+		 * `p:showPr/p:sldRg`: the deck's authored slide-range restriction (wave-4
+		 * B1), passed to `nextPresentedSlide` alongside `activeCustomShow` so the
+		 * preview never names a slide outside the range the show was opened into.
+		 */
+		authoredRange?: AuthoredSlideRange | null;
 		onmove: (direction: -1 | 1) => void;
 		onnotessize: (size: number) => void;
 	} = $props();
@@ -87,7 +94,9 @@
 	}
 
 	const slide = $derived(slides[current]);
-	const nextSlide = $derived(nextPresentedSlide(slides, current, activeCustomShow));
+	const nextSlide = $derived(
+		nextPresentedSlide(slides, current, activeCustomShow, authoredRange),
+	);
 	const nextScale = $derived(
 		canvasSize.width > 0 ? PRESENTER_LAYOUT_METRICS.nextPreviewWidth / canvasSize.width : 1,
 	);

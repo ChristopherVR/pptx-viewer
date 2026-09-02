@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 import { useConnectorReroute } from './connector-reroute-store';
+import { dispatchSlideShowStartKey } from './slide-show-start-key';
 import { setTemplateElements } from './template-editing';
 import type { TemplateElementMap } from './template-editing';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -12,6 +13,7 @@ import type { UseKeyboardShortcutsResult } from './useKeyboardShortcuts';
 export interface UseEditorKeyboardInput {
 	canEdit: () => boolean;
 	hasSelection: ComputedRef<boolean>;
+	/** A slide show (or rehearsal) is actually running, not merely previewing. */
 	presenting: Ref<boolean>;
 	findOpen: Ref<boolean>;
 	selectedElementIds: Ref<string[]>;
@@ -34,6 +36,10 @@ export interface UseEditorKeyboardInput {
 	onGroup?: () => void;
 	/** Ungroup the selected group (Ctrl/Cmd+Shift+G). */
 	onUngroup?: () => void;
+	/** F5: start the show from its first slide (same as the ribbon's "From Beginning"). */
+	presentFromBeginning: () => void;
+	/** Shift+F5: start the show from the active slide (same as "From Current Slide"). */
+	startPresenting: () => void;
 }
 
 export interface UseEditorKeyboardResult {
@@ -79,6 +85,8 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		onEscape,
 		onGroup,
 		onUngroup,
+		presentFromBeginning,
+		startPresenting,
 	} = input;
 
 	const showShortcuts = ref(false);
@@ -211,8 +219,18 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 	 * Both are shared-keymap actions now (`find` and `toggleShortcuts`), so
 	 * Angular, Svelte and Vanilla get the same chords instead of Ctrl+F falling
 	 * through to the browser's find bar and Ctrl+/ doing nothing at all.
+	 *
+	 * F5 / Shift+F5 are checked FIRST, ahead of the registry: unlike every other
+	 * shortcut here, they must fire even with editing disabled and even while
+	 * the caret sits in a text input, so they cannot sit behind the registry's
+	 * `canEdit` / text-input gates. See `dispatchSlideShowStartKey`.
 	 */
 	function onEditorKeydown(event: KeyboardEvent): void {
+		if (
+			dispatchSlideShowStartKey(event, presenting.value, { presentFromBeginning, startPresenting })
+		) {
+			return;
+		}
 		shortcuts.handleKeyDown(event);
 	}
 

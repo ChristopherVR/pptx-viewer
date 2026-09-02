@@ -63,6 +63,7 @@
 		annotations,
 		guides = [],
 		onchangeguide,
+		ondeleteguide,
 		onaddguide,
 		showRulers = false,
 		rulerUnit = 'inches',
@@ -150,6 +151,7 @@
 				{annotations}
 				{guides}
 				{onchangeguide}
+				{ondeleteguide}
 				{onaddguide}
 				{showRulers}
 				{rulerUnit}

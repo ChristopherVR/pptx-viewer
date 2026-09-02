@@ -19,6 +19,7 @@
 	import { getFieldContextGetter, provideFieldContext } from '../state/field-context';
 	import { provideSlideElements } from '../state/slide-elements';
 	import { styleToString } from '../style';
+	import ActiveXOverlay from './ActiveXOverlay.svelte';
 	import CommentMarkersOverlay from './CommentMarkersOverlay.svelte';
 	import ElementRenderer from './ElementRenderer.svelte';
 	import type { SlideStageProps } from './props';
@@ -33,6 +34,7 @@
 		editTemplateMode = false,
 		editingElementId = null,
 		editable = false,
+		selectedElementIds,
 		transparentBackground = false,
 		ontablecellcommit,
 		onsmartartnodecommit,
@@ -142,8 +144,11 @@
 	aria-label={interactive ? t('pptx.canvas.slide') : undefined}
 >
 	{#each slide?.elements ?? [] as element, index (element.id)}
-		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {editingElementId} {editable} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
+		<ElementRenderer {element} {mediaDataUrls} zIndex={index} {presenting} {interactive} {editTemplateMode} {editingElementId} {editable} {selectedElementIds} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
 	{/each}
+	{#if slide?.activeXControls && slide.activeXControls.length > 0}
+		<ActiveXOverlay controls={slide.activeXControls} {canvasSize} />
+	{/if}
 	{#if comments.length > 0}
 		<CommentMarkersOverlay {comments} {canvasSize} onmarkerclick={oncommentmarkerclick} />
 	{/if}

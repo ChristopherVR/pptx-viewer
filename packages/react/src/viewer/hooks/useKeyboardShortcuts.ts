@@ -1,4 +1,4 @@
-import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
+import { isEditorTextInputTarget, mapEditorKey, mapSlideShowStartKey } from 'pptx-viewer-shared';
 /**
  * useKeyboardShortcuts: the editor keymap, wired into React.
  *
@@ -13,6 +13,13 @@ import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
  * slides. A `window` listener already sees events from inside the container
  * (they bubble), so the container listener was never a fallback, only a second
  * delivery.
+ *
+ * `F5` / `Shift+F5` (start the show) are resolved via the separate
+ * `mapSlideShowStartKey`, checked BEFORE `mapEditorKey` runs. PowerPoint starts
+ * the show from the keyboard even with the caret in a text box and even when
+ * the host is read-only, both of which `mapEditorKey` gates against, so the
+ * start-show check must sit ahead of (not inside) that gate, on the same
+ * always-attached `window` listener.
  */
 import { useEffect, useCallback, useRef } from 'react';
 
@@ -71,6 +78,10 @@ export interface UseKeyboardShortcutsInput {
 	onPrevSlide?: () => void;
 	/** Navigate to next visible slide (edit mode, no selection). */
 	onNextSlide?: () => void;
+	/** `F5`: start the show on its first slide. Same entry point as the Slide Show ribbon's "From Beginning". */
+	onStartShowFromBeginning: () => void;
+	/** `Shift+F5`: start the show on the current slide. Same entry point as the ribbon's "From Current Slide". */
+	onStartShowFromCurrent: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -85,6 +96,22 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 
 	const handleKeyDown = useCallback((e: KeyboardEvent) => {
 		const current = inputRef.current;
+
+		// Checked ahead of `mapEditorKey` and its `canEdit` / text-input gates:
+		// PowerPoint starts the show from F5 with the caret in a text box, and a
+		// read-only viewer can still start a show (it has a "From Beginning"
+		// button too), so neither gate may sit in front of this check.
+		const startAction = mapSlideShowStartKey(e, { isPresenting: current.mode === 'present' });
+		if (startAction !== null) {
+			e.preventDefault();
+			if (startAction === 'fromBeginning') {
+				current.onStartShowFromBeginning();
+			} else {
+				current.onStartShowFromCurrent();
+			}
+			return;
+		}
+
 		const { action, dx, dy } = mapEditorKey(e, {
 			canEdit: current.canEdit,
 			// The Slide Master view is an editing surface, not a viewing one.

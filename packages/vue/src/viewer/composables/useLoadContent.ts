@@ -5,6 +5,8 @@ import type {
 	ParsedSignature,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
+	PptxCompatibilityWarning,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
@@ -12,6 +14,8 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxLayoutOption,
+	PptxModernCommentAuthor,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSaveFormat,
@@ -186,6 +190,14 @@ export interface UseLoadContentResult {
 	sections: ShallowRef<PptxSection[]>;
 	/** Named custom slide shows (`p:custShowLst`), empty when none. */
 	customShows: ShallowRef<PptxCustomShow[]>;
+	/**
+	 * Modern comment authors (`ppt/commentAuthors.xml`'s `p188:` schema), used
+	 * to seed the `@`-mention typeahead (`matchCommentMentionAuthors`,
+	 * `pptx-viewer-shared`). Empty when the deck has no modern comments.
+	 */
+	modernCommentAuthors: ShallowRef<PptxModernCommentAuthor[]>;
+	/** Legacy comment authors (`p:cm`'s original `ppt/commentAuthors.xml` schema), empty when none. */
+	commentAuthors: ShallowRef<PptxCommentAuthor[]>;
 	/** Presentation-level slide-show properties (`presentationPr.xml`); reactive so Set Up Slide Show persists. */
 	presentationProperties: ShallowRef<PptxPresentationProperties>;
 	/**
@@ -206,6 +218,21 @@ export interface UseLoadContentResult {
 	themeOptions: ShallowRef<PptxThemeOption[]>;
 	/** Notes page size in pixels (`p:notesSz`), or `undefined` when absent. */
 	notesCanvasSize: Ref<CanvasSize | undefined>;
+	/**
+	 * Write-protection verifier from `p:modifyVerifier` (`presentationPr.xml`),
+	 * or `undefined` when the deck carries none. Feeds
+	 * `readOnlyRecommendation` (`pptx-viewer-shared`), which the read-only
+	 * banner uses to default a password-protected deck open read-only.
+	 */
+	modifyVerifier: ShallowRef<PptxModifyVerifier | undefined>;
+	/**
+	 * `handler.getCompatibilityWarnings()` right after this load: every
+	 * warning the parse reported, deck-scoped and slide-scoped alike (the
+	 * same list `attachSlideWarnings` partitions per slide, read back whole).
+	 * Feeds `compatibilityWarningToasts` (`pptx-viewer-shared`) for the
+	 * compat-warning toast stack.
+	 */
+	compatibilityWarnings: ShallowRef<PptxCompatibilityWarning[]>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 	/**
@@ -278,6 +305,8 @@ export function useLoadContent(
 	const handler = shallowRef<PptxHandler | null>(null);
 	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
 	const customProperties = shallowRef<PptxCustomProperty[]>([]);
+	const modifyVerifier = shallowRef<PptxModifyVerifier | undefined>(undefined);
+	const compatibilityWarnings = shallowRef<PptxCompatibilityWarning[]>([]);
 	const appProperties = shallowRef<PptxAppProperties | undefined>(undefined);
 	const tagCollections = shallowRef<PptxTagCollection[]>([]);
 	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
@@ -285,6 +314,8 @@ export function useLoadContent(
 	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
 	const sections = shallowRef<PptxSection[]>([]);
 	const customShows = shallowRef<PptxCustomShow[]>([]);
+	const modernCommentAuthors = shallowRef<PptxModernCommentAuthor[]>([]);
+	const commentAuthors = shallowRef<PptxCommentAuthor[]>([]);
 	const presentationProperties = shallowRef<PptxPresentationProperties>({});
 	const viewProperties = shallowRef<PptxViewProperties | undefined>(undefined);
 	const headerFooter = shallowRef<PptxHeaderFooter | undefined>(undefined);
@@ -484,12 +515,16 @@ export function useLoadContent(
 			layoutOptions.value = parsed.layoutOptions ?? [];
 			coreProperties.value = parsed.coreProperties;
 			customProperties.value = parsed.customProperties ?? [];
+			modifyVerifier.value = parsed.modifyVerifier;
+			compatibilityWarnings.value = newHandler.getCompatibilityWarnings();
 			appProperties.value = parsed.appProperties;
 			tagCollections.value = parsed.tags ?? [];
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
 			tableStyleMap.value = nextTableStyleMap;
 			sections.value = parsed.sections ?? [];
 			customShows.value = parsed.customShows ?? [];
+			modernCommentAuthors.value = parsed.modernCommentAuthors ?? [];
+			commentAuthors.value = parsed.commentAuthors ?? [];
 			presentationProperties.value = parsed.presentationProperties ?? {};
 			viewProperties.value = parsed.viewProperties;
 			headerFooter.value = parsed.headerFooter;
@@ -618,6 +653,8 @@ export function useLoadContent(
 		handler,
 		coreProperties,
 		customProperties,
+		modifyVerifier,
+		compatibilityWarnings,
 		appProperties,
 		tagCollections,
 		embeddedFonts,
@@ -625,6 +662,8 @@ export function useLoadContent(
 		tableStyleMap,
 		sections,
 		customShows,
+		modernCommentAuthors,
+		commentAuthors,
 		presentationProperties,
 		viewProperties,
 		headerFooter,

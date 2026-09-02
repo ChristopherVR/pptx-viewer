@@ -34,6 +34,10 @@
 	const t = useTranslator();
 
 	const effects = $derived(effectsStateOf(el));
+
+	function pushColor(hex: string): void {
+		editor.recordRecentColor(hex);
+	}
 </script>
 
 <div class="pptx-svelte-effects">
@@ -53,7 +57,7 @@
 	</label>
 	{#if effects.outerShadow.enabled}
 		<div class="pptx-svelte-effects-fields">
-			<label>{t('pptx.effects.color')}<input type="color" value={effects.outerShadow.color} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { color: e.currentTarget.value }))} /></label>
+			<label>{t('pptx.effects.color')}<input type="color" value={effects.outerShadow.color} onchange={(e) => { editor.patchSelected(updateOuterShadowPatch(el, { color: e.currentTarget.value })); pushColor(e.currentTarget.value); }} /></label>
 			<label>{t('pptx.effects.opacityPercent', { value: Math.round(effects.outerShadow.opacity * 100) })}<input type="range" min="0" max="100" value={Math.round(effects.outerShadow.opacity * 100)} oninput={(e) => editor.patchSelected(updateOuterShadowPatch(el, { opacity: Number(e.currentTarget.value) / 100 }))} /></label>
 			<label>{t('pptx.effects.blur')}<input type="number" min="0" max="96" value={Math.round(effects.outerShadow.blur)} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { blur: Number(e.currentTarget.value) }))} /></label>
 			<label>{t('pptx.effects.angle')}<input type="number" min="0" max="359" value={Math.round(effects.outerShadow.angle)} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { angle: Number(e.currentTarget.value) }))} /></label>
@@ -81,7 +85,7 @@
 	</label>
 	{#if effects.innerShadow.enabled}
 		<div class="pptx-svelte-effects-fields">
-			<label>{t('pptx.effects.color')}<input type="color" value={effects.innerShadow.color} onchange={(e) => editor.patchSelected(updateInnerShadowPatch(el, { color: e.currentTarget.value }))} /></label>
+			<label>{t('pptx.effects.color')}<input type="color" value={effects.innerShadow.color} onchange={(e) => { editor.patchSelected(updateInnerShadowPatch(el, { color: e.currentTarget.value })); pushColor(e.currentTarget.value); }} /></label>
 			<label>{t('pptx.effects.opacityPercent', { value: Math.round(effects.innerShadow.opacity * 100) })}<input type="range" min="0" max="100" value={Math.round(effects.innerShadow.opacity * 100)} oninput={(e) => editor.patchSelected(updateInnerShadowPatch(el, { opacity: Number(e.currentTarget.value) / 100 }))} /></label>
 			<label>{t('pptx.effects.blur')}<input type="number" min="0" max="96" value={Math.round(effects.innerShadow.blur)} onchange={(e) => editor.patchSelected(updateInnerShadowPatch(el, { blur: Number(e.currentTarget.value) }))} /></label>
 			<label>{t('pptx.effects.offsetX')}<input type="number" min="-96" max="96" value={Math.round(effects.innerShadow.offsetX)} onchange={(e) => editor.patchSelected(updateInnerShadowPatch(el, { offsetX: Number(e.currentTarget.value) }))} /></label>
@@ -103,7 +107,7 @@
 	</label>
 	{#if effects.glow.enabled}
 		<div class="pptx-svelte-effects-fields">
-			<label>{t('pptx.effects.color')}<input type="color" value={effects.glow.color} onchange={(e) => editor.patchSelected(updateGlowPatch(el, { color: e.currentTarget.value }))} /></label>
+			<label>{t('pptx.effects.color')}<input type="color" value={effects.glow.color} onchange={(e) => { editor.patchSelected(updateGlowPatch(el, { color: e.currentTarget.value })); pushColor(e.currentTarget.value); }} /></label>
 			<label>{t('pptx.effects.radius')}<input type="number" min="0" max="96" value={Math.round(effects.glow.radius)} onchange={(e) => editor.patchSelected(updateGlowPatch(el, { radius: Number(e.currentTarget.value) }))} /></label>
 			<label>{t('pptx.effects.opacityPercent', { value: Math.round(effects.glow.opacity * 100) })}<input type="range" min="0" max="100" value={Math.round(effects.glow.opacity * 100)} oninput={(e) => editor.patchSelected(updateGlowPatch(el, { opacity: Number(e.currentTarget.value) / 100 }))} /></label>
 		</div>

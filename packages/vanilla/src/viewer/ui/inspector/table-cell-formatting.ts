@@ -71,6 +71,8 @@ export function createTableCellFormatting(
 		const input = doc.createElement('input');
 		input.type = 'color';
 		input.addEventListener('input', () => apply({ [key]: input.value }));
+		// B6: push into the "Recent colours" MRU list once the picker commits.
+		input.addEventListener('change', () => handlers.pushRecentColor(input.value));
 		field(label, input);
 		return input;
 	};

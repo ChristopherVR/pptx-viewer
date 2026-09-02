@@ -25,6 +25,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 		canEdit,
 		activeSlide,
 		slides,
+		customShows,
 		canvasSize,
 		selectedElement,
 		selectedElementIds,
@@ -52,6 +53,8 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 		onApplyTheme,
 		comments,
 		commentDraft,
+		commentDraftMentions,
+		commentAuthors,
 		editingCommentId,
 		commentEditDraft,
 		onSetCommentDraft,
@@ -68,6 +71,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 		onSubmitReply,
 		replyingToCommentId,
 		replyDraftByCommentId,
+		replyDraftMentionsByCommentId,
 		onUpdateCanvasSize,
 		slideSizeEmu,
 		onUpdateSlideSize,
@@ -166,6 +170,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 									selectedElement={selectedElement}
 									canEdit={canEdit}
 									slides={slides}
+									customShows={customShows}
 									tableEditorState={tableEditorState}
 									mediaDataUrls={mediaDataUrls}
 									onUpdateElement={onUpdateElement}
@@ -198,6 +203,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 										onUpdateCanvasSize={onUpdateCanvasSize}
 										slideSizeEmu={slideSizeEmu}
 										onUpdateSlideSize={onUpdateSlideSize}
+										hasContent={slides.some((slide) => slide.elements.length > 0)}
 										activeSlide={activeSlide}
 										theme={theme}
 										onUpdateSlide={onUpdateSlide}
@@ -229,8 +235,11 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 							editingCommentId={editingCommentId}
 							commentEditDraft={commentEditDraft}
 							commentDraft={commentDraft}
+							commentDraftMentions={commentDraftMentions ?? []}
+							commentAuthors={commentAuthors ?? []}
 							replyingToCommentId={replyingToCommentId ?? null}
 							replyDraftByCommentId={replyDraftByCommentId ?? {}}
+							replyDraftMentionsByCommentId={replyDraftMentionsByCommentId ?? {}}
 							onSetCommentDraft={onSetCommentDraft}
 							onAddComment={onAddComment}
 							onDeleteComment={onDeleteComment}

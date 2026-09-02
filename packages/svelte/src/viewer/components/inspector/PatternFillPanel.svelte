@@ -34,6 +34,10 @@
 			shapeStyle: { ...style, fillMode: 'pattern', ...changes },
 		} as Partial<PptxElement>);
 	}
+	function patchColor(changes: Partial<ShapeStyle>, color: string): void {
+		patch(changes);
+		editor.recordRecentColor(color);
+	}
 </script>
 
 <div class="pptx-svelte-pattern">
@@ -65,7 +69,7 @@
 		<input
 			type="color"
 			value={fgColor}
-			onchange={(e) => patch({ fillColor: e.currentTarget.value })}
+			onchange={(e) => patchColor({ fillColor: e.currentTarget.value }, e.currentTarget.value)}
 		/>
 	</label>
 	<label class="pptx-svelte-field">
@@ -73,7 +77,8 @@
 		<input
 			type="color"
 			value={bgColor}
-			onchange={(e) => patch({ fillPatternBackgroundColor: e.currentTarget.value })}
+			onchange={(e) =>
+				patchColor({ fillPatternBackgroundColor: e.currentTarget.value }, e.currentTarget.value)}
 		/>
 	</label>
 </div>

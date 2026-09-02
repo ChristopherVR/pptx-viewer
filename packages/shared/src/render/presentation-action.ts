@@ -63,12 +63,32 @@ export function isNoOpPresentationAction(action: PptxAction | undefined): boolea
  * `move` is deliberately distinct from `goToSlide`: PowerPoint's Next/Previous
  * verbs step through the SHOW ORDER (custom show membership minus hidden
  * slides), which only a binding's own navigator knows.
+ *
+ * The five wave-4 additions (`lastViewed`, `customShow`, `openFile`,
+ * `openPresentation`, `playMedia`, `oleVerb`) all name something only a
+ * binding's own show navigator can carry out - which slide the audience saw
+ * last, which show is "the" custom show `id`, how to prompt for or stream an
+ * external file, how to embed another presentation, which media element to
+ * toggle, which OLE verb to run - so they are classified here and left for
+ * {@link PresentationActionRunner}'s optional callbacks to perform.
  */
 export type PresentationActionIntent =
 	| { kind: 'goToSlide'; slideIndex: number }
 	| { kind: 'move'; direction: 1 | -1 }
 	| { kind: 'endShow' }
 	| { kind: 'openUrl'; url: string }
+	/** `ppaction://hlinkshowjump?jump=lastslideviewed`: back to the last slide the audience saw. */
+	| { kind: 'lastViewed' }
+	/** `ppaction://customshow?id=<id>[&return=true]`. */
+	| { kind: 'customShow'; customShowId: string; returnAfter: boolean }
+	/** `ppaction://hlinkfile`: `target` is the relationship's resolved external path. */
+	| { kind: 'openFile'; target: string }
+	/** `ppaction://hlinkpres`: `target` is the relationship's resolved external path. */
+	| { kind: 'openPresentation'; target: string }
+	/** `ppaction://media`: play (or toggle) the acting element's own embedded media. */
+	| { kind: 'playMedia'; elementId?: string }
+	/** `ppaction://ole?verb=<n>`: run a numbered OLE verb on the acting element's embedded object. */
+	| { kind: 'oleVerb'; verb: number; elementId?: string }
 	| { kind: 'none' };
 
 /** A resolved action: what to navigate, plus any sound to play alongside. */
@@ -81,6 +101,19 @@ export interface PresentationActionResolution {
 export interface ResolvePresentationActionOptions {
 	/** Total slides in the deck, used to clamp a jump target. */
 	slideCount: number;
+	/**
+	 * The element the action is running against, when known. Only used for
+	 * the two intents that act on the clicked element ITSELF rather than a
+	 * navigation target: `ppaction://media`'s `playMedia` (the element's own
+	 * embedded media) and `ppaction://ole`'s `oleVerb` (its embedded object).
+	 */
+	elementId?: string;
+}
+
+/** Read a `key=value` pair out of a `ppaction://verb?query` action string. */
+function actionQueryParam(action: string, key: string): string | undefined {
+	const match = action.match(new RegExp(`[?&]${key}=([^&]*)`, 'i'));
+	return match ? decodeURIComponent(match[1]) : undefined;
 }
 
 /**
@@ -115,6 +148,11 @@ export function resolvePresentationAction(
 	}
 
 	if (verb.includes('hlinkshowjump')) {
+		// Checked before "lastslide": "lastslideviewed" contains "lastslide" as
+		// a substring, so the more specific verb has to win first.
+		if (verb.includes('lastslideviewed')) {
+			return { intent: { kind: 'lastViewed' }, soundPath };
+		}
 		if (verb.includes('nextslide')) {
 			return { intent: { kind: 'move', direction: 1 }, soundPath };
 		}
@@ -139,6 +177,53 @@ export function resolvePresentationAction(
 		return { intent: { kind: 'none' }, soundPath };
 	}
 
+	if (verb.includes('customshow')) {
+		const customShowId = actionQueryParam(action.action ?? '', 'id');
+		return {
+			intent: customShowId
+				? {
+						kind: 'customShow',
+						customShowId,
+						returnAfter: verb.includes('return=true'),
+					}
+				: { kind: 'none' },
+			soundPath,
+		};
+	}
+
+	if (verb.includes('hlinkfile')) {
+		const target = (action.url ?? '').trim();
+		return { intent: target ? { kind: 'openFile', target } : { kind: 'none' }, soundPath };
+	}
+
+	if (verb.includes('hlinkpres')) {
+		const target = (action.url ?? '').trim();
+		return { intent: target ? { kind: 'openPresentation', target } : { kind: 'none' }, soundPath };
+	}
+
+	if (verb.includes('ppaction://media')) {
+		return {
+			intent: { kind: 'playMedia', ...(options.elementId ? { elementId: options.elementId } : {}) },
+			soundPath,
+		};
+	}
+
+	if (verb.includes('ppaction://ole')) {
+		const verbNumberRaw = actionQueryParam(action.action ?? '', 'verb');
+		const verbNumber =
+			verbNumberRaw !== undefined ? Number.parseInt(verbNumberRaw, 10) : Number.NaN;
+		return {
+			intent: Number.isFinite(verbNumber)
+				? {
+						kind: 'oleVerb',
+						verb: verbNumber,
+						...(options.elementId ? { elementId: options.elementId } : {}),
+					}
+				: { kind: 'none' },
+			soundPath,
+		};
+	}
+
 	// An unresolved slide jump (no relationship, or a broken r:id) navigates
 	// nowhere rather than being mistaken for an external link.
 	if (verb.includes('hlinksldjump')) {
@@ -153,7 +238,7 @@ export function resolvePresentationAction(
 }
 
 /** Every element on a slide, group children included, in document order. */
-function flattenSlideElements(elements: readonly PptxElement[] | undefined): PptxElement[] {
+export function flattenSlideElements(elements: readonly PptxElement[] | undefined): PptxElement[] {
 	const flat: PptxElement[] = [];
 	for (const element of elements ?? []) {
 		flat.push(element);
@@ -225,10 +310,62 @@ export interface PresentationActionRunner {
 	 * the pre-existing behavior for a binding that has not wired the gate yet.
 	 */
 	confirmUrl?: (url: string) => boolean;
+	/**
+	 * `ppaction://hlinkshowjump?jump=lastslideviewed`: jump back to the last
+	 * slide the audience actually saw (not necessarily the previous slide in
+	 * deck order - the show may have branched via a custom show or an action
+	 * button). Omitted: the click is still spent (see below), just with no
+	 * navigation performed.
+	 */
+	lastViewed?: () => void;
+	/**
+	 * `ppaction://customshow?id=<id>[&return=true]`: run the named custom
+	 * show. `customShowId` is the raw `id` from the action string (an index
+	 * into `PptxPresentationProperties`' custom-show list, byte-for-byte as
+	 * PowerPoint wrote it - a binding resolves it against its own custom-show
+	 * data). `returnAfter` is PowerPoint's "Resume last slide viewed after
+	 * showing this custom show" checkbox.
+	 */
+	customShow?: (customShowId: string, returnAfter: boolean) => void;
+	/**
+	 * `ppaction://hlinkfile`: open an external file. `target` is the
+	 * relationship's resolved path/URL, exactly as `PptxAction.url` carries it
+	 * (core resolves the `r:id` at parse time; nothing further to resolve
+	 * here).
+	 */
+	openFile?: (target: string) => void;
+	/**
+	 * `ppaction://hlinkpres`: open another presentation. `target` is the
+	 * relationship's resolved path/URL, same as {@link openFile}.
+	 */
+	openPresentation?: (target: string) => void;
+	/**
+	 * `ppaction://media`: play (or toggle) the CLICKED element's own embedded
+	 * media, as opposed to a `media` element's normal inline transport
+	 * controls. `elementId` is the element the click landed on
+	 * ({@link ResolvePresentationActionOptions.elementId}), when the caller
+	 * supplied one.
+	 */
+	playMedia?: (elementId: string | undefined) => void;
+	/**
+	 * `ppaction://ole?verb=<n>`: run a numbered OLE verb (e.g. `-1` = primary
+	 * verb, `0` = "Edit") on the clicked element's embedded OLE object.
+	 * `elementId` is the element the click landed on, the same way `playMedia`
+	 * receives it; a browser cannot run the verb inside the owning
+	 * application, so {@link resolveOleVerbTarget} maps it onto the one thing
+	 * it can do, open the embedded payload.
+	 */
+	oleVerb?: (verb: number, elementId: string | undefined) => void;
 }
 
 /**
  * Resolve an action and perform it.
+ *
+ * A wave-4 intent (`lastViewed`, `customShow`, `openFile`,
+ * `openPresentation`, `playMedia`, `oleVerb`) whose runner callback is
+ * omitted still counts as spent: the shape carries a real action either way,
+ * so the click must not ALSO fall through to click-to-advance just because
+ * this particular binding has not wired that verb's navigator yet.
  *
  * @returns `true` when the action navigated (or opened a URL), so the caller
  *   knows the click is spent and must not also advance the show.
@@ -259,6 +396,24 @@ export function runPresentationAction(
 				return true;
 			}
 			return safeOpenUrl(intent.url);
+		case 'lastViewed':
+			runner.lastViewed?.();
+			return true;
+		case 'customShow':
+			runner.customShow?.(intent.customShowId, intent.returnAfter);
+			return true;
+		case 'openFile':
+			runner.openFile?.(intent.target);
+			return true;
+		case 'openPresentation':
+			runner.openPresentation?.(intent.target);
+			return true;
+		case 'playMedia':
+			runner.playMedia?.(intent.elementId);
+			return true;
+		case 'oleVerb':
+			runner.oleVerb?.(intent.verb, intent.elementId);
+			return true;
 		default:
 			return false;
 	}
@@ -306,7 +461,15 @@ export function handlePresentationStageClick(
 ): PresentationClickOutcome['kind'] {
 	const outcome = resolvePresentationClick(target, slide);
 	if (outcome.kind === 'action') {
-		runPresentationAction(outcome.action, options, runner);
+		// Threads the clicked element's id through for `playMedia` / `oleVerb`,
+		// which act on the acting element's OWN embedded payload rather than a
+		// navigation target; a caller-supplied `options.elementId` (if any)
+		// still wins.
+		runPresentationAction(
+			outcome.action,
+			{ ...options, elementId: options.elementId ?? outcome.elementId },
+			runner,
+		);
 	}
 	return outcome.kind;
 }

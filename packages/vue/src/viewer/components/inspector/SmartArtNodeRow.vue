@@ -4,6 +4,8 @@ import type { ComponentPublicInstance } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 /**
  * SmartArtNodeRow: a single editable node row in the SmartArt text pane.
  *
@@ -35,6 +37,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 /** Child-node marker glyph (U+2022 bullet) shown in the text-pane list. */
 const bulletGlyph = String.fromCharCode(0x2022);
@@ -61,6 +64,10 @@ function onFill(event: Event): void {
 
 function onFont(event: Event): void {
 	emit('setStyle', props.node.id, { fontColor: (event.target as HTMLInputElement).value });
+}
+
+function onColorCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
 }
 
 function toggleBold(): void {
@@ -158,6 +165,7 @@ function bindInput(el: Element | ComponentPublicInstance | null): void {
 					class="h-4 w-5 rounded border border-border bg-transparent p-0"
 					:value="fillColor"
 					@input="onFill"
+					@change="onColorCommit"
 				/>
 			</label>
 			<label class="flex items-center gap-1 text-[9px] text-muted-foreground">
@@ -170,6 +178,7 @@ function bindInput(el: Element | ComponentPublicInstance | null): void {
 					class="h-4 w-5 rounded border border-border bg-transparent p-0"
 					:value="fontColor"
 					@input="onFont"
+					@change="onColorCommit"
 				/>
 			</label>
 			<button

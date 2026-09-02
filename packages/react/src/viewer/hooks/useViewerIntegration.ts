@@ -1,5 +1,9 @@
 import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import type { ViewerMode } from 'pptx-viewer-shared';
+import type {
+	CompatibilityWarningToast,
+	ReadOnlyRecommendation,
+	ViewerMode,
+} from 'pptx-viewer-shared';
 import { clampZoomScale } from 'pptx-viewer-shared';
 /**
  * useViewerIntegration: Wires pointer handling, content lifecycle,
@@ -61,6 +65,10 @@ export interface UseViewerIntegrationInput {
 	autosaveIntervalMs?: number;
 	/** File > Options > Trust Center > "Allow external content"; forwarded to `useContentLifecycle`. */
 	allowExternalImages?: boolean;
+	/** Forwarded to `useContentLifecycle` -> `useLoadContent`: see `useReadOnlyRecommendationState`. */
+	setReadOnlyRecommendation: Dispatch<SetStateAction<ReadOnlyRecommendation>>;
+	/** Forwarded to `useContentLifecycle` -> `useLoadContent`: see `useCompatibilityToastsState`. */
+	setCompatToasts: Dispatch<SetStateAction<CompatibilityWarningToast[]>>;
 	canEdit: boolean;
 	/**
 	 * Options > Advanced > "Prompt to keep ink annotations when exiting"
@@ -143,6 +151,8 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		autosaveAllowed = true,
 		autosaveIntervalMs,
 		allowExternalImages,
+		setReadOnlyRecommendation,
+		setCompatToasts,
 		canEdit,
 		promptKeepInkAnnotations,
 		imageExportScale,
@@ -216,6 +226,8 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			password: dialogs.presentationPassword ?? undefined,
 			onContentApplied: () => setLoadVersion((v) => v + 1),
 			allowExternalImages,
+			setReadOnlyRecommendation,
+			setCompatToasts,
 		},
 	);
 
@@ -473,6 +485,8 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		ops: editorOps.ops,
 		manipulation: editorOps.manipulation,
 		history,
+		onEnterPresentModeFromBeginning: presentation.enterPresentModeFromBeginning,
+		onSetMode: handleSetMode,
 	});
 
 	return {

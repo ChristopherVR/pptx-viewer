@@ -6,6 +6,7 @@ import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectChartCanvasEdit } from '../../composables/chart-part-selection';
+import { injectRecentColors } from '../../composables/recent-colors-context';
 import { useChartEditing } from '../../composables/useChartEditing';
 import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
 import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
@@ -19,6 +20,7 @@ import ChartDataPointOptions from './ChartDataPointOptions.vue';
 import ChartDisplayOptions from './ChartDisplayOptions.vue';
 import ChartErrorBarOptions from './ChartErrorBarOptions.vue';
 import ChartMarkerOptions from './ChartMarkerOptions.vue';
+import ChartSubtypeOptions from './ChartSubtypeOptions.vue';
 import ChartTrendlineOptions from './ChartTrendlineOptions.vue';
 
 /**
@@ -43,6 +45,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const DEFAULT_SERIES_COLOR = '#4472c4';
 
@@ -115,6 +118,10 @@ function onSeriesColorInput(event: Event, index: number): void {
 	commitSeriesColor(index, (event.target as HTMLInputElement).value);
 }
 
+function onSeriesColorCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
+}
+
 function onClearSeriesColor(index: number): void {
 	commitSeriesColor.cancel();
 	editing.setSeriesColor(index, null);
@@ -185,6 +192,8 @@ const CONTROL =
 				@update-chart-data="editing.patchChartData"
 			/>
 
+			<ChartSubtypeOptions :chart-data="chartData" @update-chart-data="editing.patchChartData" />
+
 			<ChartDataLabelOptions :style="chartData.style" @update="editing.updateStyle" />
 
 			<ChartAxisOptions :axes="chartData.axes" @update-axis="editing.updateAxis" />
@@ -251,6 +260,7 @@ const CONTROL =
 						:value="s.color || DEFAULT_SERIES_COLOR"
 						:aria-label="t('pptx.chart.seriesColor', { name: s.name })"
 						@input="onSeriesColorInput($event, si)"
+						@change="onSeriesColorCommit"
 					/>
 					<button
 						v-if="s.color"

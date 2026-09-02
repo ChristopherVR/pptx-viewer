@@ -18,6 +18,7 @@ import type { SlideManagementHandlers } from './useSlideManagement';
 import { buildToolbarAnimationHandlers } from './useViewerBuildingBlocks-toolbar-handlers';
 import type { ViewerDialogsResult } from './useViewerDialogs';
 import type { ViewerState } from './useViewerState';
+import type { UseViewPreferencesSyncResult } from './useViewPreferencesSync';
 
 /**
  * Pure mapping function that reproduces the `<Toolbar ... />` prop wiring
@@ -71,6 +72,12 @@ export interface BuildToolbarPropsInput {
 	hiddenActions?: readonly ToolbarActionId[];
 	/** Builds the New Slide / Layout gallery artwork on first menu open. */
 	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
+	/**
+	 * Grid/snap/guides handlers that also write the toggle back into
+	 * `state.viewProperties` (see `useViewPreferencesSync`). Falls back to the
+	 * raw state setter (no write-back) when omitted.
+	 */
+	viewPreferencesSync?: UseViewPreferencesSyncResult;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +113,7 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onOpenRecentFile,
 		fileName,
 		hiddenActions,
+		viewPreferencesSync,
 	} = input;
 
 	const {
@@ -195,9 +203,9 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onSetSpellCheckEnabled: s.setSpellCheckEnabled,
 		onSetShowGrid: s.setShowGrid,
 		onSetShowRulers: s.setShowRulers,
-		onSetShowGuides: s.setShowGuides,
-		onSetSnapToGrid: s.setSnapToGrid,
-		onSetSnapToShape: s.setSnapToShape,
+		onSetShowGuides: viewPreferencesSync?.handleSetShowGuides ?? s.setShowGuides,
+		onSetSnapToGrid: viewPreferencesSync?.handleSetSnapToGrid ?? s.setSnapToGrid,
+		onSetSnapToShape: viewPreferencesSync?.handleSetSnapToShape ?? s.setSnapToShape,
 		onAddGuide: dialogs.handleAddGuide,
 		onAlignElements: manipulation.handleAlignElements,
 		onDistributeElements: manipulation.handleDistributeElements,

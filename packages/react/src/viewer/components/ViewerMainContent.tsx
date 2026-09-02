@@ -13,6 +13,7 @@ import type { AiPanelController } from '../hooks/ai/useAiPanelController';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
 import type { EditorHistoryResult } from '../hooks/useEditorHistory';
 import type { EditorOperationsResult } from '../hooks/useEditorOperations';
+import type { UseMasterViewCrudResult } from '../hooks/useMasterViewCrud';
 import type { UsePresentationAnnotationsResult } from '../hooks/usePresentationAnnotations';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
 import type { PropertyHandlersResult } from '../hooks/usePropertyHandlers';
@@ -54,6 +55,8 @@ export interface ViewerMainContentProps {
 	themeHandlers: ThemeHandlersResult;
 	history: EditorHistoryResult;
 	comments: UseCommentsResult;
+	/** Slide Master view sidebar CRUD (Insert/Duplicate/Delete/Rename). */
+	masterViewCrud: UseMasterViewCrudResult;
 	zoom: UseZoomViewportResult;
 	/** Whether the viewport is mobile-sized (<768px). */
 	isMobile?: boolean;
@@ -106,6 +109,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		themeHandlers,
 		history,
 		comments,
+		masterViewCrud,
 		zoom,
 		isMobile: _isMobile = false,
 		isTouchDevice: _isTouchDevice = false,
@@ -152,6 +156,13 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 				: undefined,
 		[state.theme, state.tableStyleMap],
 	);
+
+	// Recent-colours ("Most Recently Used") support, shared by every colour
+	// picker in BOTH the ribbon toolbar and the inspector via context, is
+	// provided by `PowerPointViewer` above `ViewerToolbarSection` and this
+	// component (siblings in that tree), not here: a provider nested only
+	// inside this component would leave the ribbon reading the context's
+	// empty default (see `RecentColorsContext`'s doc).
 
 	return (
 		<ChartPartSelectionProvider>
@@ -203,6 +214,8 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						onSelectLayout={dialogs.handleSelectLayout}
 						onCollapse={dialogs.handleCloseMasterView}
 						onTabChange={state.setMasterViewTab}
+						crudActions={masterViewCrud.crudActions}
+						onCrudAction={masterViewCrud.handleCrudAction}
 						onHandoutSlidesPerPageChange={(count) => {
 							state.setHandoutSlidesPerPage(count);
 							state.setHandoutMaster((master) =>

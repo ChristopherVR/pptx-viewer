@@ -77,6 +77,7 @@ import {
 	CollaborationStatusIndicator,
 	FollowModeBar,
 } from './components/collaboration';
+import { CompatibilityToasts } from './components/CompatibilityToasts';
 import { AreaChart3DContext } from './components/elements/area-chart-3d-context';
 import { BarChart3DContext } from './components/elements/bar-chart-3d-context';
 import { LineChart3DContext } from './components/elements/line-chart-3d-context';
@@ -84,7 +85,9 @@ import { PieChart3DContext } from './components/elements/pie-chart-3d-context';
 import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { SurfaceChart3DContext } from './components/elements/surface-chart-3d-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
+import { RecentColorsProvider } from './components/inspector/RecentColorsContext';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
+import { ReadOnlyBanner } from './components/ReadOnlyBanner';
 import { SettingsDialog } from './components/SettingsDialog';
 import { AccountAuthContext } from './components/toolbar/account-auth-context';
 import { ViewerOptionsContext } from './components/viewer-options-context';
@@ -101,12 +104,16 @@ import {
 	useFollowMode,
 } from './hooks/collaboration';
 import type { CollaborationConfig } from './hooks/collaboration';
+import { useCompatibilityToastsState } from './hooks/useCompatibilityToastsState';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
 import { useEditorOperations } from './hooks/useEditorOperations';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useLayoutSwitching } from './hooks/useLayoutSwitching';
+import { useMasterViewCrud } from './hooks/useMasterViewCrud';
 import { usePresentationSetup } from './hooks/usePresentationSetup';
+import { useReadOnlyRecommendationState } from './hooks/useReadOnlyRecommendationState';
+import { useRecentColorsSync } from './hooks/useRecentColorsSync';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useResizablePanels } from './hooks/useResizablePanels';
 import { useTouchGestures } from './hooks/useTouchGestures';
@@ -115,6 +122,7 @@ import { useViewerIntegration } from './hooks/useViewerIntegration';
 import { useViewerOptions } from './hooks/useViewerOptions';
 // Hooks
 import { useViewerState } from './hooks/useViewerState';
+import { useViewPreferencesSync } from './hooks/useViewPreferencesSync';
 import { useZoomViewport } from './hooks/useZoomViewport';
 import type { PowerPointViewerProps, PowerPointViewerHandle } from './types';
 import { cn } from './utils';
@@ -337,7 +345,19 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const handleEnableEditing = useCallback(() => {
 			setProtectedViewOverridden(true);
 		}, []);
-		const canEdit = hostCanEdit && !isProtectedView;
+
+		// ── Read-only recommendation banner (p:modifyVerifier / "Mark as Final") ──
+		// Seeded on every load via `setReadOnlyRecommendation` (threaded through
+		// useViewerIntegration -> useContentLifecycle -> useLoadContent, alongside
+		// every other per-load setter). "Edit anyway" lifts `canEdit`'s lock,
+		// exactly like the Protected View override above; "Dismiss" only hides
+		// the banner.
+		const readOnlyRec = useReadOnlyRecommendationState(content);
+
+		// ── Compatibility-warning toasts ────────────────────────────
+		const compatToastsState = useCompatibilityToastsState();
+
+		const canEdit = hostCanEdit && !isProtectedView && !readOnlyRec.locked;
 
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -387,6 +407,22 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			activeSlide,
 			selectedElement,
 		} = state;
+
+		// ── Recent colours ("Most Recently Used") ─────────────────────
+		// Shared by every colour picker in BOTH the ribbon toolbar and the
+		// inspector via context (rather than per-caller prop threading), so
+		// the provider must sit above both: `ViewerToolbarSection` and
+		// `ViewerMainContent` are siblings in the JSX below, and a provider
+		// nested only inside the latter would leave the ribbon reading the
+		// context's empty default (see `RecentColorsContext`'s doc).
+		const { pushColor } = useRecentColorsSync({
+			setRecentColors: state.setRecentColors,
+			setPresentationProperties: state.setPresentationProperties,
+		});
+		const recentColorsValue = useMemo(
+			() => ({ recentColors: state.recentColors, pushColor }),
+			[state.recentColors, pushColor],
+		);
 
 		// ── Settings dialog (General tab) ────────────────────────────
 		// A single `ViewerSettings` bag + change callback, mapped over the
@@ -537,17 +573,23 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const resizablePanels = useResizablePanels();
 
 		// ── Derived computed values ───────────────────────────────────
-		const { gridSpacingPx, visibleSlideIndexes, slideSectionGroups, masterPseudoSlide } =
-			useDerivedSlideState({
-				slides,
-				sections: state.sections,
-				customShows: state.customShows,
-				activeCustomShowId: state.activeCustomShowId,
-				mode,
-				activeLayout: state.activeLayout,
-				activeMaster: state.activeMaster,
-				documentGridSpacing: state.viewProperties?.gridSpacing,
-			});
+		const {
+			gridSpacingPx,
+			visibleSlideIndexes,
+			slideSectionGroups,
+			masterPseudoSlide,
+			authoredRange,
+		} = useDerivedSlideState({
+			slides,
+			sections: state.sections,
+			customShows: state.customShows,
+			activeCustomShowId: state.activeCustomShowId,
+			presentationProperties: state.presentationProperties,
+			mode,
+			activeLayout: state.activeLayout,
+			activeMaster: state.activeMaster,
+			documentGridSpacing: state.viewProperties?.gridSpacing,
+		});
 
 		// The show that is actually playing, resolved once so presenter view's
 		// next-slide preview follows the same order as the forward key.
@@ -647,6 +689,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						...prev,
 						showSubtitles: !prev.showSubtitles,
 					})),
+				customShows: state.customShows,
+				activeCustomShowId: state.activeCustomShowId,
+				onSetActiveCustomShowId: state.setActiveCustomShowId,
 			});
 
 		// ── Touch gestures: pinch-to-zoom on canvas viewport ──────
@@ -809,6 +854,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			// (SSRF/privacy-safe), so only an explicit `true` here lets remote
 			// http(s) image sources actually load.
 			allowExternalImages: viewerOptions.trust.allowExternalContent,
+			setReadOnlyRecommendation: readOnlyRec.setRecommendation,
+			setCompatToasts: compatToastsState.setToasts,
 			canEdit,
 			promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
 			// File > Options > Advanced > "Image Size and Quality" (do-not-compress /
@@ -835,6 +882,23 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onZoomChange,
 			onSelectionChange,
 			onSlideCountChange,
+		});
+
+		// ── Deck view preferences (grid/snap/guides) load-seed + write-back ──
+		// Seeds `state.snapToGrid`/`snapToShape`/`showGuides` from the deck's own
+		// `ppt/viewProps.xml` once per completed load (`loadVersion`), and writes
+		// a View-ribbon toggle back into `state.viewProperties` so a save
+		// round-trips it (see `useSerialize`'s `viewProperties` save option).
+		const viewPreferencesSync = useViewPreferencesSync({
+			loadVersion,
+			viewProperties: state.viewProperties,
+			setViewProperties: state.setViewProperties,
+			snapToGrid: state.snapToGrid,
+			setSnapToGrid: state.setSnapToGrid,
+			snapToShape: state.snapToShape,
+			setSnapToShape: state.setSnapToShape,
+			showGuides: state.showGuides,
+			setShowGuides: state.setShowGuides,
 		});
 
 		// Options > Accessibility > "feedback with sound", and Options > Save >
@@ -883,6 +947,24 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			ops: editorOps.ops,
 			history,
 			onTemplateElementsChanged: handleTemplateElementsChanged,
+		});
+
+		// ── Slide Master view sidebar CRUD ────────────────────────────
+		const masterViewCrud = useMasterViewCrud({
+			handlerRef,
+			slides,
+			slideMasters: state.slideMasters,
+			target: {
+				tab: state.masterViewTab,
+				masterIndex: state.activeMasterIndex,
+				layoutIndex: state.activeLayoutIndex,
+			},
+			setSlides: state.setSlides,
+			setSlideMasters: state.setSlideMasters,
+			setActiveMasterIndex: state.setActiveMasterIndex,
+			setActiveLayoutIndex: state.setActiveLayoutIndex,
+			markDirty: history.markDirty,
+			pushToast: (toast) => compatToastsState.setToasts((prev) => [...prev, toast]),
 		});
 
 		// ── AI assistant bridge ─────────────────────────────────────
@@ -995,7 +1077,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					) : error ? (
 						<ErrorState error={error} />
 					) : (
-						<>
+						<RecentColorsProvider value={recentColorsValue}>
 							{mode !== 'present' && (
 								<ViewerToolbarSection
 									mode={mode}
@@ -1020,6 +1102,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									customFontFamilies={customFontFamilies}
 									ops={editorOps.ops}
 									onSetMode={handleSetMode}
+									onPresentFromBeginning={presentation.enterPresentModeFromBeginning}
 									onEnterPresenterView={handleEnterPresenterView}
 									onEnterRehearsalMode={handleEnterRehearsalMode}
 									onOpenSettings={() => setIsSettingsOpen(true)}
@@ -1044,6 +1127,17 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									onToggleAiPanel={aiPanel.toggle}
 									isProtectedView={isProtectedView}
 									onEnableEditing={hostCanEdit ? handleEnableEditing : undefined}
+									onSetSnapToGrid={viewPreferencesSync.handleSetSnapToGrid}
+									onSetSnapToShape={viewPreferencesSync.handleSetSnapToShape}
+									onSetShowGuides={viewPreferencesSync.handleSetShowGuides}
+								/>
+							)}
+
+							{mode !== 'present' && readOnlyRec.bannerVisible && (
+								<ReadOnlyBanner
+									recommendation={readOnlyRec.recommendation}
+									onEditAnyway={readOnlyRec.editAnyway}
+									onDismiss={readOnlyRec.dismiss}
 								/>
 							)}
 
@@ -1069,6 +1163,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								themeHandlers={themeHandlers}
 								history={history}
 								comments={editorOps.comments}
+								masterViewCrud={masterViewCrud}
 								zoom={zoom}
 								isMobile={isMobile}
 								isTouchDevice={isTouchDevice}
@@ -1130,9 +1225,21 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									commentCount={activeSlide?.comments?.length ?? 0}
 								/>
 							)}
-						</>
+						</RecentColorsProvider>
 					)}
 				</div>
+
+				{/* Positioned against the OUTER viewer-root div (same containing
+				    block the dialogs below use), not the measured container above:
+				    that container's own bottom edge sits behind the status bar, so a
+				    toast anchored to IT covered the "Slide show" button. */}
+				{mode !== 'present' && (
+					<CompatibilityToasts
+						toasts={compatToastsState.toasts}
+						onDismiss={compatToastsState.dismiss}
+						onDismissAll={compatToastsState.dismissAll}
+					/>
+				)}
 
 				{/* Fixed-position dialogs and overlays: rendered outside the measured
 				    container so their mount/unmount cannot trigger ResizeObserver
@@ -1208,22 +1315,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 				{isHeaderFooterOpen && (
 					<HeaderFooterPanel
-						showDateTime={state.headerFooter.hasDateTime ?? false}
-						showSlideNumber={state.headerFooter.hasSlideNumber ?? false}
-						showFooter={state.headerFooter.hasFooter ?? false}
-						footerText={state.headerFooter.footerText ?? ''}
-						onSetShowDateTime={(hasDateTime) =>
-							state.setHeaderFooter((current) => ({ ...current, hasDateTime }))
-						}
-						onSetShowSlideNumber={(hasSlideNumber) =>
-							state.setHeaderFooter((current) => ({ ...current, hasSlideNumber }))
-						}
-						onSetShowFooter={(hasFooter) =>
-							state.setHeaderFooter((current) => ({ ...current, hasFooter }))
-						}
-						onSetFooterText={(footerText) =>
-							state.setHeaderFooter((current) => ({ ...current, footerText }))
-						}
+						headerFooter={state.headerFooter}
+						onUpdate={(patch) => state.setHeaderFooter((current) => ({ ...current, ...patch }))}
 						onApplyToAll={() => {
 							history.markDirty();
 							setIsHeaderFooterOpen(false);
@@ -1304,6 +1397,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					templateElements={state.templateElements}
 					presentation={presentation}
 					activeCustomShow={activeCustomShow}
+					authoredRange={authoredRange}
 					onExitPresentation={() => handleSetMode('edit')}
 					onUpdateNotes={propertyHandlers.handleUpdateNotes}
 					isMobile={isMobile}

@@ -11,11 +11,12 @@
  * `gradientFillCss` string is rebuilt on every gradient edit so the renderer
  * reflects the change immediately.
  */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
 
 import { FILL_MODE_OPTIONS, GRADIENT_TYPE_OPTIONS } from '../internal/shared';
+import { RecentColorsService } from './recent-colors.service';
 import { fillPatternLabelKey } from './schema-token-labels';
 import {
 	buildGradientFillCss,
@@ -42,7 +43,9 @@ type GradientStop = { color: string; position: number };
 					(change)="onFillModeChange($event)"
 				>
 					@for (opt of fillModes; track opt.value) {
-						<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+						<option [value]="opt.value" [selected]="opt.value === fillMode()">
+							{{ opt.i18nKey | translate }}
+						</option>
 					}
 				</select>
 			</label>
@@ -59,7 +62,9 @@ type GradientStop = { color: string; position: number };
 							(change)="onGradTypeChange($event)"
 						>
 							@for (opt of gradientTypes; track opt.value) {
-								<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
+								<option [value]="opt.value" [selected]="opt.value === gradType()">
+									{{ opt.i18nKey | translate }}
+								</option>
 							}
 						</select>
 					</label>
@@ -86,6 +91,7 @@ type GradientStop = { color: string; position: number };
 								[disabled]="!canEdit()"
 								[value]="stop.color"
 								(input)="onStopColor(i, $event)"
+								(change)="pushRecentColor($event)"
 							/>
 							<input
 								type="number"
@@ -122,7 +128,9 @@ type GradientStop = { color: string; position: number };
 							(change)="onPatternPreset($event)"
 						>
 							@for (p of patterns(); track p) {
-								<option [value]="p">{{ patternLabelKey(p) | translate }}</option>
+								<option [value]="p" [selected]="p === patternPreset()">
+									{{ patternLabelKey(p) | translate }}
+								</option>
 							}
 						</select>
 					</label>
@@ -135,6 +143,7 @@ type GradientStop = { color: string; position: number };
 								[disabled]="!canEdit()"
 								[value]="cellStyle().patternFillForeground ?? '#000000'"
 								(input)="onPatternFg($event)"
+								(change)="pushRecentColor($event)"
 							/>
 						</label>
 						<label class="pptx-tcaf__field">
@@ -145,6 +154,7 @@ type GradientStop = { color: string; position: number };
 								[disabled]="!canEdit()"
 								[value]="cellStyle().patternFillBackground ?? '#FFFFFF'"
 								(input)="onPatternBg($event)"
+								(change)="pushRecentColor($event)"
 							/>
 						</label>
 					</div>
@@ -237,6 +247,9 @@ export class TableCellAdvancedFillComponent {
 	readonly canEdit = input<boolean>(true);
 	/** Emits a partial style patch to merge into the cell. */
 	readonly styleChange = output<Partial<PptxTableCellStyle>>();
+
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
 
 	protected readonly fillModes = FILL_MODE_OPTIONS.map((o) => ({
 		value: o.value ?? 'solid',
@@ -355,6 +368,17 @@ export class TableCellAdvancedFillComponent {
 		const value = numberValue(event);
 		if (value !== null) {
 			this.styleChange.emit({ [key]: value });
+		}
+	}
+
+	/**
+	 * Record the committed (native `change`, not the live-preview `input`)
+	 * colour into the shared "Recent colours" list.
+	 */
+	protected pushRecentColor(event: Event): void {
+		const value = inputValue(event);
+		if (value) {
+			this.recentColors?.push(value);
 		}
 	}
 

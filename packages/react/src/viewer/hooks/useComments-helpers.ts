@@ -1,7 +1,7 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (each wrapper is a short sequence of independent `const`s); merging them
    isn't a style choice here. */
-import type { PptxComment, PptxSlide } from 'pptx-viewer-core';
+import type { PptxComment, PptxCommentMention, PptxSlide } from 'pptx-viewer-core';
 // The comment-array mutations themselves are pure and shared with every
 // other binding; these helpers only add the slide-indexing wrapper the full
 // `PptxSlide[]` deck array needs on top of them.
@@ -34,7 +34,20 @@ export interface UseCommentsResult {
 	commentEditDraftByCommentId: Record<string, string>;
 	replyingToCommentId: string | null;
 	replyDraftByCommentId: Record<string, string>;
-	handleCommentDraftChange: (slideId: string, draft: string) => void;
+	/** `@`-mentions accumulated on the new-comment draft for the active slide. */
+	commentDraftMentionsBySlideId: Record<string, PptxCommentMention[]>;
+	/** `@`-mentions accumulated on each reply draft, keyed by parent comment id. */
+	replyDraftMentionsByCommentId: Record<string, PptxCommentMention[]>;
+	/**
+	 * `mentions` is passed through unchanged on a plain text edit (only
+	 * accepting a typeahead suggestion updates it); omitting it keeps
+	 * whatever was accumulated so far.
+	 */
+	handleCommentDraftChange: (
+		slideId: string,
+		draft: string,
+		mentions?: PptxCommentMention[],
+	) => void;
 	handleAddSlideComment: (slideIndex: number) => void;
 	handleDeleteSlideComment: (slideIndex: number, commentId: string) => void;
 	handleStartCommentEdit: (slideId: string, commentId: string) => void;
@@ -44,7 +57,11 @@ export interface UseCommentsResult {
 	handleToggleCommentResolved: (slideIndex: number, commentId: string) => void;
 	handleStartReply: (slideIndex: number, commentId: string) => void;
 	handleCancelReply: () => void;
-	handleReplyDraftChange: (commentId: string, draft: string) => void;
+	handleReplyDraftChange: (
+		commentId: string,
+		draft: string,
+		mentions?: PptxCommentMention[],
+	) => void;
 	handleSubmitReply: (slideIndex: number, commentId: string) => void;
 }
 
@@ -92,6 +109,7 @@ export function addCommentToSlide(
 	text: string,
 	authorName: string,
 	elementId?: string,
+	mentions?: PptxCommentMention[],
 ): { slides: PptxSlide[]; didAdd: boolean } {
 	const slide = slides[slideIndex];
 	if (!slide) {
@@ -108,7 +126,15 @@ export function addCommentToSlide(
 	if (!next) {
 		return { slides, didAdd: false };
 	}
-	return { slides: replaceCommentsOnSlide(slides, slideIndex, next), didAdd: true };
+	// `addCommentToList` appends the new comment last; shared has no `mentions`
+	// parameter of its own, so it is folded on here (React-only wrapper).
+	const withMentions =
+		mentions && mentions.length > 0
+			? next.map((comment, index) =>
+					index === next.length - 1 ? { ...comment, mentions } : comment,
+				)
+			: next;
+	return { slides: replaceCommentsOnSlide(slides, slideIndex, withMentions), didAdd: true };
 }
 
 /**
@@ -182,6 +208,7 @@ export function addReplyToSlide(
 	parentId: string,
 	text: string,
 	authorName: string,
+	mentions?: PptxCommentMention[],
 ): { slides: PptxSlide[]; didAdd: boolean } {
 	const slide = slides[slideIndex];
 	if (!slide) {
@@ -191,7 +218,22 @@ export function addReplyToSlide(
 	if (!next) {
 		return { slides, didAdd: false };
 	}
-	return { slides: replaceCommentsOnSlide(slides, slideIndex, next), didAdd: true };
+	// `replyToCommentInList` appends the new reply last under its parent;
+	// shared has no `mentions` parameter of its own, so it is folded on here.
+	const withMentions =
+		mentions && mentions.length > 0
+			? next.map((comment) =>
+					comment.id === parentId && comment.replies && comment.replies.length > 0
+						? {
+								...comment,
+								replies: comment.replies.map((reply, index) =>
+									index === comment.replies!.length - 1 ? { ...reply, mentions } : reply,
+								),
+							}
+						: comment,
+				)
+			: next;
+	return { slides: replaceCommentsOnSlide(slides, slideIndex, withMentions), didAdd: true };
 }
 
 /**

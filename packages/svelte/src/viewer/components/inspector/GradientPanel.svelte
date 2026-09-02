@@ -42,6 +42,7 @@
 	}
 	function updateStopColor(index: number, color: string): void {
 		editor.patchSelected(updateGradientStopPatch(el, index, { color }));
+		editor.recordRecentColor(color);
 	}
 	function updateStopPosition(index: number, value: string): void {
 		const position = Number(value);

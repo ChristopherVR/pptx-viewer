@@ -4,6 +4,7 @@ import { MARKER_SUPPORTED_TYPES, MARKER_SYMBOL_OPTIONS } from 'pptx-viewer-share
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
 import type { ChartMarkerEdit } from '../../composables/useChartEditing';
 
 /**
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const visible = computed(
 	() => MARKER_SUPPORTED_TYPES.has(props.chartType) && props.series.length > 0,
@@ -42,6 +44,10 @@ function onSize(event: Event, index: number): void {
 
 function onFill(event: Event, index: number): void {
 	emit('setMarker', index, { fillColor: (event.target as HTMLInputElement).value });
+}
+
+function onFillCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
 }
 </script>
 
@@ -91,6 +97,7 @@ function onFill(event: Event, index: number): void {
 							class="h-6 w-8 cursor-pointer rounded border border-border bg-transparent"
 							:value="s.marker.spPr?.fillColor ?? '#4472c4'"
 							@input="onFill($event, i)"
+							@change="onFillCommit"
 						/>
 					</label>
 				</div>

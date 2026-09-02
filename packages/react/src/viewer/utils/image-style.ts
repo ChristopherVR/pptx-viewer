@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement, hasShapeProperties } from 'pptx-viewer-core';
 import {
 	getComputedFillStyle,
+	getCropShapeClipPath as sharedGetCropShapeClipPath,
 	getImageFitStyle,
 	getImageTilingStyle as sharedGetImageTilingStyle,
 	resolveShapeGeometry,
@@ -69,26 +70,19 @@ export function getImageSurfaceStyle(element: PptxElement): React.CSSProperties 
 	};
 }
 
-/** Map cropShape to a CSS clip-path value. */
-const CROP_SHAPE_CLIP_PATHS: Record<string, string> = {
-	ellipse: 'ellipse(50% 50% at 50% 50%)',
-	roundedRect: 'inset(0 round 12%)',
-	triangle: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-	diamond: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-	pentagon: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
-	hexagon: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
-	star: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-};
-
+/**
+ * "Crop to Shape" clip-path for a picture (`element.cropShape`). Routes
+ * through `pptx-viewer-shared`'s adjustment-aware preset cascade (the same
+ * one shapes use) rather than a small fixed polygon table, so every crop
+ * shape PowerPoint's gallery offers renders correctly instead of degrading
+ * (a fixed 12% corner radius for `roundedRect`, a 10-point outline instead of
+ * the real 5-point star for `star`).
+ */
 export function getCropShapeClipPath(element: PptxElement): string | undefined {
 	if (!isImageLikeElement(element)) {
 		return undefined;
 	}
-	const shape = element.cropShape;
-	if (!shape || shape === 'none') {
-		return undefined;
-	}
-	return CROP_SHAPE_CLIP_PATHS[shape];
+	return sharedGetCropShapeClipPath(element.cropShape, element.width, element.height);
 }
 
 /**

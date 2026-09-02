@@ -72,6 +72,8 @@ export const VIEWER_SHORTCUT_REFERENCE: readonly ShortcutReferenceItem[] = [
 	// was advertising neither. The help panel is the keymap's documentation: a
 	// chord missing here is a chord nobody discovers.
 	{ actionKey: 'pptx.findReplace.title', shortcut: 'Ctrl/Cmd+F' },
+	{ actionKey: 'pptx.slideShow.fromBeginning', shortcut: 'F5' },
+	{ actionKey: 'pptx.slideShow.fromCurrent', shortcut: 'Shift+F5' },
 	{ actionKey: 'pptx.shortcuts.title', shortcut: '? or Ctrl/Cmd+/' },
 ];
 

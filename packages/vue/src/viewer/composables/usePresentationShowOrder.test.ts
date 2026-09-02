@@ -60,6 +60,25 @@ describe('usePresentationShowOrder', () => {
 		expect(order.hasNext(0)).toBeFalsy();
 	});
 
+	it('restricts to an authored p:showPr/p:sldRg slide range', () => {
+		const order = usePresentationShowOrder({
+			slides: () => deck(false, false, false, false),
+			authoredRange: () => ({ fromIndex: 1, toIndex: 2 }),
+		});
+		expect(order.indexes.value).toStrictEqual([1, 2]);
+		expect(order.first(0)).toBe(1);
+		expect(order.last(3)).toBe(2);
+		expect(order.hasNext(2)).toBeFalsy();
+	});
+
+	it('still skips hidden slides within an authored range', () => {
+		const order = usePresentationShowOrder({
+			slides: () => deck(false, true, false, false),
+			authoredRange: () => ({ fromIndex: 0, toIndex: 2 }),
+		});
+		expect(order.indexes.value).toStrictEqual([0, 2]);
+	});
+
 	it('reacts to the deck changing', () => {
 		// A reactive source, as `props.slides` is in the component: hiding a slide
 		// mid-show has to change what the next press resolves to.

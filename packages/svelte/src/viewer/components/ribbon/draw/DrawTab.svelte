@@ -112,7 +112,11 @@
 		label={t('pptx.ribbon.colour')}
 		title={t('pptx.ribbon.penColour')}
 		glyph="P"
-		onselect={(hex) => ink.setColor(hex)}
+		recentColors={editor.mruColors}
+		onselect={(hex) => {
+			ink.setColor(hex);
+			editor.recordRecentColor(hex);
+		}}
 	/>
 
 	<label class="pptx-svelte-drawtab-width" title={t('pptx.ribbon.strokeWidth')}>

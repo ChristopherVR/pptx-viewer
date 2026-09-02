@@ -74,6 +74,18 @@ describe('createDrawingGroup', () => {
 		expect(control(group, t('pptx.drawing.shapeEffectsUnavailable')).disabled).toBeTruthy();
 	});
 
+	// B6: both pickers show the same deck-level "Recent colours" row.
+	it('threads recentColors into the fill and outline pickers', () => {
+		const t = createTranslator();
+		const group = createDrawingGroup(document, t, handlers());
+		group.update({ editable: true, hasSelection: true, recentColors: ['#112233'] });
+
+		control(group, t('pptx.drawing.shapeFill')).click();
+		expect(
+			group.el.querySelector('[data-testid="pptx-color-recent"] .pptxv-swatch'),
+		).not.toBeNull();
+	});
+
 	it('needs a selection before fill, outline and arrange are usable', () => {
 		const t = createTranslator();
 		const group = createDrawingGroup(document, t, handlers());

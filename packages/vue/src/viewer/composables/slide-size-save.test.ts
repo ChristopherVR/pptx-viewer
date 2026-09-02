@@ -62,11 +62,13 @@ function wire(deck: ReturnType<typeof useLoadContent>): ReturnType<typeof useIns
 		slideMasters: deck.slideMasters,
 		canvasSize: deck.canvasSize,
 		slideSize: deck.slideSize,
+		slides: deck.slides,
 		coreProperties: deck.coreProperties,
 		appProperties: deck.appProperties,
 		customProperties: deck.customProperties,
 		tagCollections: deck.tagCollections,
 		markDirty: () => {},
+		pushHistory: () => {},
 	});
 }
 

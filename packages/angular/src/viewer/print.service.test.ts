@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import type { ChartPptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_PRINT_SETTINGS } from './print-helpers';
@@ -93,5 +93,38 @@ describe('printService SVG slides', () => {
 		// document once ready -- two writes, the real content in the last one.
 		expect(write).toHaveBeenCalledTimes(2);
 		expect(String(write.mock.calls.at(-1)?.[0])).toContain('data:image/png;base64,raster');
+	});
+
+	it('paints the handout master footer text when passed and ftr is enabled', async () => {
+		const captureSlide = vi.fn(async () => 'data:image/png;base64,raster');
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 4,
+			headerFooter: { hasFooter: true },
+			elements: [
+				{
+					id: 'ftr1',
+					type: 'text',
+					placeholderType: 'ftr',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: 'Confidential - Acme Corp',
+				} as unknown as PptxSlide['elements'][number],
+			],
+		};
+
+		await service().print(
+			{ ...DEFAULT_PRINT_SETTINGS, printWhat: 'handouts', slidesPerPage: 4 },
+			[chartSlide()],
+			0,
+			captureSlide,
+			{ width: 960, height: 540 },
+			false,
+			handoutMaster,
+		);
+
+		expect(String(write.mock.calls.at(-1)?.[0])).toContain('Confidential - Acme Corp');
 	});
 });

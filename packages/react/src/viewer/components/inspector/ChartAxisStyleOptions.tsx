@@ -2,6 +2,7 @@ import type { PptxChartAxisFormatting } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
 import { CARD, GRIDLINE_DASH_OPTIONS, HEADING, INPUT } from './chart-panel-constants';
+import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -47,6 +48,7 @@ export function ChartAxisStyleOptions({
 	onSetGridlineStyle,
 }: ChartAxisStyleOptionsProps) {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 
 	const rows = SCALE_AXES.map((row) => ({
 		...row,
@@ -147,7 +149,10 @@ export function ChartAxisStyleOptions({
 										disabled={!canEdit}
 										className='h-6 w-8 cursor-pointer rounded border border-border bg-transparent'
 										value={axis.fontColor ?? '#000000'}
-										onChange={(e) => onSetTitleStyle(type, { fontColor: e.target.value })}
+										onChange={(e) => {
+											onSetTitleStyle(type, { fontColor: e.target.value });
+											pushColor(e.target.value);
+										}}
 									/>
 								</label>
 							</div>
@@ -174,7 +179,10 @@ export function ChartAxisStyleOptions({
 											title={t('pptx.chart.gridlineColor')}
 											className='h-6 w-8 cursor-pointer rounded border border-border bg-transparent'
 											value={spPr?.strokeColor ?? '#d9d9d9'}
-											onChange={(e) => onSetGridlineStyle(type, which, { color: e.target.value })}
+											onChange={(e) => {
+												onSetGridlineStyle(type, which, { color: e.target.value });
+												pushColor(e.target.value);
+											}}
 										/>
 										<input
 											type='number'

@@ -17,7 +17,10 @@ import type { InspectorHandlers } from './types';
 export function createSlideBackgroundCard(
 	doc: Document,
 	t: Translator,
-	handlers: Pick<InspectorHandlers, 'setTemplateBackground' | 'getTemplateBackgroundColor'>,
+	handlers: Pick<
+		InspectorHandlers,
+		'setTemplateBackground' | 'getTemplateBackgroundColor' | 'pushRecentColor'
+	>,
 ): DeckCard {
 	const { el, body } = makeSection(doc, t('pptx.slideBackground.templateBackgroundsHeading'));
 
@@ -29,7 +32,10 @@ export function createSlideBackgroundCard(
 		const input = doc.createElement('input');
 		input.type = 'color';
 		input.value = normalizeHexColor(handlers.getTemplateBackgroundColor(row.path), '#ffffff');
-		input.addEventListener('change', () => handlers.setTemplateBackground(row.path, input.value));
+		input.addEventListener('change', () => {
+			handlers.setTemplateBackground(row.path, input.value);
+			handlers.pushRecentColor(input.value);
+		});
 		const value = createEl(doc, 'span', 'pptxv-inspector-row-value');
 		value.textContent = row.label;
 		rowEl.append(label, input, value);

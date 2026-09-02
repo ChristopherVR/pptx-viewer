@@ -10,7 +10,12 @@
  * pending-type rule and the 1-based to 0-based slide-number clamp all come from
  * `pptx-viewer-shared`, so a new action kind reaches every binding at once.
  */
-import type { ElementAction, ElementActionType, PptxElement } from 'pptx-viewer-core';
+import type {
+	ElementAction,
+	ElementActionType,
+	PptxCustomShow,
+	PptxElement,
+} from 'pptx-viewer-core';
 import { elementActionToPptxAction, pptxActionToElementAction } from 'pptx-viewer-core';
 import {
 	canCommitActionType,
@@ -24,7 +29,13 @@ import { useI18n } from 'vue-i18n';
 type Trigger = 'click' | 'hover';
 
 const props = withDefaults(
-	defineProps<{ element: PptxElement; slideCount?: number; canEdit?: boolean }>(),
+	defineProps<{
+		element: PptxElement;
+		slideCount?: number;
+		canEdit?: boolean;
+		/** Named custom shows, for the "Custom show" target picker. */
+		customShows?: readonly PptxCustomShow[];
+	}>(),
 	{ slideCount: 0, canEdit: true },
 );
 const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
@@ -77,8 +88,17 @@ function update(
 	type: ElementActionType,
 	url?: string,
 	slideIndex?: number,
+	customShowId?: string,
+	returnAfter?: boolean,
 ): void {
-	const action = elementActionToPptxAction({ trigger, type, url, slideIndex });
+	const action = elementActionToPptxAction({
+		trigger,
+		type,
+		url,
+		slideIndex,
+		customShowId,
+		returnAfter,
+	});
 	emit(
 		'update',
 		(trigger === 'click'
@@ -91,14 +111,19 @@ function onType(event: Event, trigger: Trigger): void {
 	const type = (event.target as HTMLSelectElement).value as ElementActionType;
 	pendingType.value = { ...pendingType.value, [trigger]: type };
 	const current = actionFor(trigger);
-	const target = { url: current?.url, slideIndex: current?.slideIndex };
+	const target = {
+		url: current?.url,
+		slideIndex: current?.slideIndex,
+		customShowId: current?.customShowId,
+	};
 	if (canCommitActionType(type, target)) {
-		update(trigger, type, target.url, target.slideIndex);
+		update(trigger, type, target.url, target.slideIndex, target.customShowId, current?.returnAfter);
 	}
 }
 
+/** `url`, `openFile` and `openPresentation` all commit through the shared `url` target field. */
 function onUrl(event: Event, trigger: Trigger): void {
-	update(trigger, 'url', (event.target as HTMLInputElement).value);
+	update(trigger, typeFor(trigger), (event.target as HTMLInputElement).value);
 }
 
 function onSlide(event: Event, trigger: Trigger): void {
@@ -106,6 +131,23 @@ function onSlide(event: Event, trigger: Trigger): void {
 	if (index !== undefined) {
 		update(trigger, 'slide', undefined, index);
 	}
+}
+
+function onCustomShow(event: Event, trigger: Trigger): void {
+	const customShowId = (event.target as HTMLSelectElement).value;
+	const current = actionFor(trigger);
+	if (canCommitActionType('customShow', { customShowId })) {
+		update(trigger, 'customShow', undefined, undefined, customShowId, current?.returnAfter);
+	}
+}
+
+function onCustomShowReturn(event: Event, trigger: Trigger): void {
+	const returnAfter = (event.target as HTMLInputElement).checked;
+	const current = actionFor(trigger);
+	if (!current?.customShowId) {
+		return;
+	}
+	update(trigger, 'customShow', undefined, undefined, current.customShowId, returnAfter);
 }
 </script>
 
@@ -134,10 +176,22 @@ function onSlide(event: Event, trigger: Trigger): void {
 				</option>
 			</select>
 			<input
-				v-if="typeFor(trigger) === 'url'"
-				type="url"
+				v-if="
+					typeFor(trigger) === 'url' ||
+					typeFor(trigger) === 'openFile' ||
+					typeFor(trigger) === 'openPresentation'
+				"
+				:type="typeFor(trigger) === 'url' ? 'url' : 'text'"
 				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px]"
-				:aria-label="t('pptx.action.gotoUrl')"
+				:aria-label="
+					t(
+						typeFor(trigger) === 'url'
+							? 'pptx.action.gotoUrl'
+							: typeFor(trigger) === 'openFile'
+								? 'pptx.hyperlink.actionOpenFile'
+								: 'pptx.hyperlink.actionOpenPresentation',
+					)
+				"
 				:disabled="!canEdit"
 				:value="actionFor(trigger)?.url ?? ''"
 				placeholder="https://..."
@@ -154,6 +208,31 @@ function onSlide(event: Event, trigger: Trigger): void {
 				:value="(actionFor(trigger)?.slideIndex ?? 0) + 1"
 				@change="onSlide($event, trigger)"
 			/>
+			<template v-if="typeFor(trigger) === 'customShow'">
+				<select
+					data-testid="pptx-action-custom-show"
+					class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px]"
+					:aria-label="t('pptx.hyperlink.customShowLabel')"
+					:disabled="!canEdit"
+					:value="actionFor(trigger)?.customShowId ?? ''"
+					@change="onCustomShow($event, trigger)"
+				>
+					<option value="" disabled>{{ t('pptx.hyperlink.customShowLabel') }}</option>
+					<option v-for="show in customShows ?? []" :key="show.id" :value="show.id">
+						{{ show.name }}
+					</option>
+				</select>
+				<label class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+					<input
+						type="checkbox"
+						data-testid="pptx-action-custom-show-return"
+						:disabled="!canEdit"
+						:checked="actionFor(trigger)?.returnAfter ?? false"
+						@change="onCustomShowReturn($event, trigger)"
+					/>
+					{{ t('pptx.hyperlink.customShowReturn') }}
+				</label>
+			</template>
 		</div>
 	</div>
 </template>

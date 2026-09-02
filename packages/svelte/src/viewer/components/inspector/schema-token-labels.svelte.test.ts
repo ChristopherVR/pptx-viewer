@@ -209,8 +209,18 @@ describe('tableCellSection pattern and alignment selects', () => {
 		};
 	}
 
+	function bareEditor(): EditorState {
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+		editor.editable = true;
+		return editor;
+	}
+
 	it('spells the fill patterns without widening the select', () => {
-		const target = mountAt(TableCellSection, { table: table(), onpatch: () => undefined });
+		const target = mountAt(TableCellSection, {
+			editor: bareEditor(),
+			table: table(),
+			onpatch: () => undefined,
+		});
 		const select = selectFor(target, 'Pattern');
 
 		expect(values(select)).toStrictEqual(patterns);
@@ -218,7 +228,11 @@ describe('tableCellSection pattern and alignment selects', () => {
 	});
 
 	it('translates both alignment selects while keeping their wire values', () => {
-		const target = mountAt(TableCellSection, { table: table(), onpatch: () => undefined });
+		const target = mountAt(TableCellSection, {
+			editor: bareEditor(),
+			table: table(),
+			onpatch: () => undefined,
+		});
 
 		const horizontal = selectFor(target, 'Horizontal');
 		expect(values(horizontal)).toStrictEqual(['left', 'center', 'right', 'justify']);
@@ -232,6 +246,7 @@ describe('tableCellSection pattern and alignment selects', () => {
 	it('writes the wire value, not the label, when an alignment is picked', () => {
 		let patched: Partial<PptxTableData> | undefined;
 		const target = mountAt(TableCellSection, {
+			editor: bareEditor(),
 			table: table(),
 			onpatch: (patch: Partial<PptxTableData>) => {
 				patched = patch;

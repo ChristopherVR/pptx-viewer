@@ -17,7 +17,7 @@
  * @module viewer/gradient-picker
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
@@ -30,6 +30,7 @@ import {
 	updateGradientStopPatch,
 } from './gradient-picker-helpers';
 import type { GradientState, GradientStop } from './gradient-picker-helpers';
+import { RecentColorsService } from './recent-colors.service';
 
 @Component({
 	selector: 'pptx-gradient-picker',
@@ -287,6 +288,9 @@ export class GradientPickerComponent {
 	 */
 	readonly patch = output<Partial<PptxElement>>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	/** Derived gradient state from the current element. */
 	protected readonly state = computed<GradientState>(() => gradientStateOf(this.element()));
 
@@ -333,6 +337,7 @@ export class GradientPickerComponent {
 			return;
 		}
 		this.emit(updateGradientStopPatch(this.element(), index, { color: val }));
+		this.recentColors?.push(val);
 	}
 
 	protected onStopPositionChange(event: Event, index: number): void {

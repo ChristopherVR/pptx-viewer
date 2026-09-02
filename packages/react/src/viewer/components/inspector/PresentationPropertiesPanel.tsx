@@ -11,7 +11,7 @@ import type {
 	PptxHandoutMaster,
 	PptxTagCollection,
 } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import { mergeSlideTransition } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -51,7 +51,9 @@ interface PresentationPropertiesPanelProps {
 	onUpdateCanvasSize: (size: CanvasSize) => void;
 	/** The deck's `p:sldSz` in EMU, so the card can name the matching preset. */
 	slideSizeEmu?: SlideSizeEmu | undefined;
-	onUpdateSlideSize?: (size: SlideSizeEmu) => void;
+	onUpdateSlideSize?: (size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode) => void;
+	/** Whether any slide has at least one element; gates the rescale prompt. */
+	hasContent: boolean;
 
 	notesCanvasSize: CanvasSize | undefined;
 	notesMaster: PptxNotesMaster | undefined;
@@ -87,6 +89,7 @@ export function PresentationPropertiesPanel({
 	onUpdateCanvasSize,
 	slideSizeEmu,
 	onUpdateSlideSize,
+	hasContent,
 	notesCanvasSize,
 	notesMaster,
 	handoutMaster,
@@ -147,6 +150,7 @@ export function PresentationPropertiesPanel({
 				canEdit={canEdit}
 				onUpdate={onUpdateCanvasSize}
 				onUpdateSlideSize={onUpdateSlideSize}
+				hasContent={hasContent}
 			/>
 
 			{/* SLIDE TRANSITION sits beside SLIDE SIZE, matching where Angular,

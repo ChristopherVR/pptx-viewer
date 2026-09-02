@@ -2,6 +2,7 @@ import type {
 	MasterViewTab,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
@@ -9,6 +10,7 @@ import type {
 	PptxElement,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -22,9 +24,11 @@ import type {
 } from 'pptx-viewer-core';
 import type {
 	CanvasSize,
+	CompatibilityWarningToast,
 	ElementClipboardPayload,
 	InlineTextSelection,
 	Guide,
+	ReadOnlyRecommendation,
 	RemoteCursor,
 	SanitizedPresence,
 	SlideSizeEmu,
@@ -71,6 +75,10 @@ export interface ViewerState {
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
 	customShows: PptxCustomShow[];
+	/** Office 2021 (p188) comment authors, for the `@`-mention typeahead. */
+	modernCommentAuthors: PptxModernCommentAuthor[];
+	/** Legacy `ppt/commentAuthors.xml` authors, mapped into the typeahead too. */
+	commentAuthors: PptxCommentAuthor[];
 	/**
 	 * The custom show a started slide show is restricted to, or null for the
 	 * whole deck. Custom shows were definable here but nothing could select one,
@@ -251,6 +259,28 @@ export interface ViewerState {
 	guides: Guide[];
 	eyedropperActive: boolean;
 	spellCheckEnabled: boolean;
+	/**
+	 * Whether the loaded deck recommends opening read-only (`p:modifyVerifier`
+	 * or `docProps/custom.xml`'s "Mark as Final"), and why; null when it does
+	 * not. See `readOnlyRecommendation` in `pptx-viewer-shared`. Reset on every
+	 * load.
+	 */
+	readOnlyRecommendation: ReadOnlyRecommendation | null;
+	/**
+	 * Whether the read-only recommendation banner has been closed for this
+	 * load, by either "Edit anyway" or the plain dismiss button. Independent
+	 * from whether editing is actually locked: "Dismiss" hides the banner but
+	 * keeps the lock, only "Edit anyway" lifts it too.
+	 */
+	readOnlyBannerDismissed: boolean;
+	/**
+	 * Compatibility-warning toasts for the current load (deck-level
+	 * `data.warnings` concatenated with every slide's own `warnings`, deduped
+	 * by code through the shared `compatibilityWarningToasts`). Load
+	 * diagnostics, not auto-hiding; cleared on the next load. Dismissing a
+	 * toast (or all of them) removes it from this list.
+	 */
+	compatToasts: CompatibilityWarningToast[];
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -264,6 +294,8 @@ export function createInitialViewerState(): ViewerState {
 		appProperties: undefined,
 		customProperties: [],
 		customShows: [],
+		modernCommentAuthors: [],
+		commentAuthors: [],
 		activeCustomShowId: null,
 		embeddedFonts: [],
 		embedFonts: true,
@@ -326,6 +358,9 @@ export function createInitialViewerState(): ViewerState {
 		guides: [],
 		eyedropperActive: false,
 		spellCheckEnabled: false,
+		readOnlyRecommendation: null,
+		readOnlyBannerDismissed: false,
+		compatToasts: [],
 	};
 }
 

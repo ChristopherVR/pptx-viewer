@@ -33,10 +33,11 @@ import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 import {
 	firstShowSlideIndex,
 	generateCustomShowId,
+	presentationEntrySlideIndex,
 	resolveAuthoredCustomShowId,
 	resolveShowSlideIndexes,
 } from '../internal/shared';
-import type { CustomShow, ShowOrderCustomShow } from '../internal/shared';
+import type { AuthoredSlideRange, CustomShow, ShowOrderCustomShow } from '../internal/shared';
 import {
 	activeCustomShowMembership,
 	customShowsFromDeck,
@@ -117,15 +118,91 @@ export class ViewerCustomShowsService {
 	readonly presentationStartIndex = computed<number>(() => this.activeSlideIndex());
 
 	/**
-	 * The slide a show should OPEN on: the first slide the active custom show
-	 * visits, else the active slide. Read once, when the show starts.
+	 * The slide a show should OPEN on: the active slide when the show (the
+	 * active custom show plus the deck's authored `p:showPr/p:sldRg` range, if
+	 * any) includes it, else the closest show slide at or after it, else the
+	 * show's own first slide. Read once, when the show starts.
+	 *
+	 * This is "From Current Slide" / the status-bar "Slide show" button /
+	 * `setMode('present')`. A deck authored `p:sldRg st="2" end="3"` used to
+	 * open on the editor's active slide unconditionally, which put a slide the
+	 * author took out of the show on screen first.
 	 */
-	showEntryIndex(): number {
-		const show = this.activeCustomShow();
+	showEntryIndex(authoredRange?: AuthoredSlideRange | null): number {
+		const showIndexes = resolveShowSlideIndexes(
+			this.liveSlides(),
+			this.activeCustomShow(),
+			authoredRange,
+		);
+		return presentationEntrySlideIndex(this.activeSlideIndex(), showIndexes);
+	}
+
+	/**
+	 * The show's own first slide ("From Beginning" / F5), honouring the active
+	 * custom show and the deck's authored range the same way {@link showEntryIndex}
+	 * does. Unlike `showEntryIndex`, this ignores the current active slide
+	 * entirely: PowerPoint's "From Beginning" always opens the show's first
+	 * slide, even when the editor is parked somewhere else in (or outside) it.
+	 */
+	showFirstIndex(authoredRange?: AuthoredSlideRange | null): number {
+		const showIndexes = resolveShowSlideIndexes(
+			this.liveSlides(),
+			this.activeCustomShow(),
+			authoredRange,
+		);
+		return firstShowSlideIndex(showIndexes) ?? 0;
+	}
+
+	/**
+	 * The show a running `ppaction://customshow?id=<id>[&return=true]` action
+	 * left pending: the show + slide to restore once the SUB-show it switched
+	 * to runs off its end (PowerPoint's "Resume last slide viewed after showing
+	 * this custom show"). `null` when no such action is in flight.
+	 */
+	private readonly pendingReturn = signal<{ originId: string | null; originIndex: number } | null>(
+		null,
+	);
+
+	/**
+	 * Run `ppaction://customshow?id=<id>[&return=true]`: switch the active
+	 * custom show to `customShowId` (an id naming no surviving show is a
+	 * no-op, returning `null`) and resolve the deck index its show should open
+	 * on. When `returnAfter` is true, remembers the origin show + slide so
+	 * {@link consumeReturnAfterOnEnd} can restore it once the sub-show ends.
+	 *
+	 * @returns The deck index to navigate to, or `null` for an unresolvable id.
+	 */
+	runCustomShow(customShowId: string, returnAfter: boolean): number | null {
+		const show = this.loader.customShows().find((candidate) => candidate.id === customShowId);
 		if (!show) {
-			return this.activeSlideIndex();
+			return null;
 		}
-		return firstShowSlideIndex(resolveShowSlideIndexes(this.liveSlides(), show)) ?? 0;
+		if (returnAfter) {
+			this.pendingReturn.set({ originId: this.activeId(), originIndex: this.activeSlideIndex() });
+		}
+		this.activeId.set(customShowId);
+		return (
+			firstShowSlideIndex(
+				resolveShowSlideIndexes(this.liveSlides(), { slideRIds: show.slideRIds }),
+			) ?? 0
+		);
+	}
+
+	/**
+	 * The running show just reached its end (`endOfShowChange` from the
+	 * overlay). If a `runCustomShow(..., returnAfter: true)` is pending,
+	 * restores the origin show and reports the origin slide to navigate back
+	 * to; otherwise a no-op (`null`), leaving the ordinary end-of-show screen
+	 * up.
+	 */
+	consumeReturnAfterOnEnd(): number | null {
+		const pending = this.pendingReturn();
+		if (!pending) {
+			return null;
+		}
+		this.pendingReturn.set(null);
+		this.activeId.set(pending.originId);
+		return pending.originIndex;
 	}
 
 	/**

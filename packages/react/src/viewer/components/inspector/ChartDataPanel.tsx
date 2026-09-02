@@ -48,6 +48,7 @@ import { ChartDisplayOptions } from './ChartDisplayOptions';
 import { ChartErrorBarOptions } from './ChartErrorBarOptions';
 import { ChartMarkerOptions } from './ChartMarkerOptions';
 import { ChartSeriesColorOptions } from './ChartSeriesColorOptions';
+import { ChartSubtypeOptions } from './ChartSubtypeOptions';
 import { ChartTrendlineOptions } from './ChartTrendlineOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
 
@@ -368,6 +369,12 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				onUpdateStyle={updateStyle}
 				hasGridlines={hasGridlines}
 				onToggleGridlines={toggleGridlines}
+			/>
+
+			<ChartSubtypeOptions
+				chartData={chartData}
+				canEdit={canEdit}
+				onUpdateChartData={updateChartData}
 			/>
 
 			<ChartDataLabelOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />

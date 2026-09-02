@@ -16,6 +16,8 @@ import {
 
 import type { TableCellEditorState } from '../../types';
 import type { ChangeCaseMode } from '../../utils/text-case-transform';
+import { useRecentColors } from '../inspector/RecentColorsContext';
+import { RecentColorsRow } from '../inspector/RecentColorsRow';
 import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
 import { RibbonMenu } from './RibbonMenu';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
@@ -114,14 +116,16 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 	const changeCaseRef = useRef<HTMLDivElement>(null);
 	const fontColorRef = useRef<HTMLDivElement>(null);
 	const highlightMenuRef = useRef<HTMLDivElement>(null);
+	const { pushColor } = useRecentColors();
 	const handleColorChange = useCallback(
 		(color: string) => {
 			if (!canFormat) {
 				return;
 			}
 			p.onUpdateTextStyle({ color });
+			pushColor(color);
 		},
-		[canFormat, p],
+		[canFormat, p, pushColor],
 	);
 	const handleHighlightChange = useCallback(
 		(highlightColor: string) => {
@@ -129,8 +133,9 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 				return;
 			}
 			p.onUpdateTextStyle({ highlightColor });
+			pushColor(highlightColor);
 		},
-		[canFormat, p],
+		[canFormat, p, pushColor],
 	);
 
 	return (
@@ -471,6 +476,11 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 									className='sr-only'
 									value={currentColor}
 									onChange={(e) => handleColorChange(e.target.value)}
+								/>
+								<RecentColorsRow
+									prefix='font-color'
+									disabled={!canMut}
+									onCommit={handleColorChange}
 								/>
 							</div>
 						</RibbonMenu>

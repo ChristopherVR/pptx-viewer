@@ -15,17 +15,20 @@ const customShowControls = {
 	onToggleCurrentSlideInActiveShow: () => {},
 };
 
-function mountSlideShowSection(hiddenActions?: string[]) {
+function mountSlideShowSection(
+	hiddenActions?: string[],
+	onPresentFromBeginning: () => void = () => {},
+) {
 	return mount(SlideShowSection, {
 		props: {
 			onPresent: () => {},
+			onPresentFromBeginning,
 			onEnterPresenterView: () => {},
 			onEnterRehearsalMode: () => {},
 			onOpenSetUpSlideShow: () => {},
 			onOpenBroadcastDialog: () => {},
 			onToggleSubtitles: () => {},
 			showSubtitles: false,
-			onSetMode: () => {},
 			customShowControls,
 			hiddenActions,
 		},
@@ -101,6 +104,28 @@ describe('slideShowSection', () => {
 		expect(wrapper.text()).toContain('+ Show');
 	});
 
+	/**
+	 * "From Beginning" and "From Current Slide" used to both call `onSetMode`
+	 * with the SAME argument, so the ribbon could not tell them apart and both
+	 * entered the show on the raw active slide (wave-4 B1). They now dispatch to
+	 * two distinct callbacks.
+	 */
+	it('dispatches "From Beginning" and "From Current Slide" to distinct callbacks', async () => {
+		let fromBeginningCalls = 0;
+		const wrapper = mountSlideShowSection(undefined, () => {
+			fromBeginningCalls += 1;
+		});
+		const buttons = wrapper.findAll('button');
+		const fromBeginning = buttons.find((b) => b.text() === 'From Beginning');
+		const fromCurrent = buttons.find((b) => b.text() === 'From Current Slide');
+
+		await fromCurrent?.trigger('click');
+		expect(fromBeginningCalls).toBe(0);
+
+		await fromBeginning?.trigger('click');
+		expect(fromBeginningCalls).toBe(1);
+	});
+
 	it('exposes the show options as labelled checkboxes', () => {
 		const wrapper = mountSlideShowSection(undefined);
 		const labels = wrapper.findAll('label').map((l) => l.text());
@@ -124,13 +149,13 @@ describe('slideShowSection options cluster', () => {
 		return mount(SlideShowSection, {
 			props: {
 				onPresent: () => {},
+				onPresentFromBeginning: () => {},
 				onEnterPresenterView: () => {},
 				onEnterRehearsalMode: () => {},
 				onOpenSetUpSlideShow: () => {},
 				onOpenBroadcastDialog: () => {},
 				onToggleSubtitles: () => {},
 				showSubtitles: false,
-				onSetMode: () => {},
 				customShowControls,
 				presentationProperties,
 				onPresentationPropertiesChange,

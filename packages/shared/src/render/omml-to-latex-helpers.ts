@@ -124,9 +124,20 @@ export function escapeMathText(text: string): string {
 	return Array.from(text).map(escapeChar).join('');
 }
 
-/** Escape text destined for a `\text{...}` argument: only the brace syntax matters. */
+/** Replacements for the characters that carry syntax inside a `\text{...}` argument. */
+const TEXT_ARGUMENT_ESCAPES: Readonly<Record<string, string>> = {
+	'\\': '\\backslash ',
+	'{': '\\{',
+	'}': '\\}',
+};
+
+/**
+ * Escape text destined for a `\text{...}` argument: only the brace syntax
+ * matters. One pass over a character class, so the backslash a brace escape
+ * introduces is never itself re-escaped by a later pass.
+ */
 export function escapeTextArgument(text: string): string {
-	return text.replace(/\\/gu, '\\backslash ').replace(/\{/gu, '\\{').replace(/\}/gu, '\\}');
+	return text.replace(/[\\{}]/gu, (ch) => TEXT_ARGUMENT_ESCAPES[ch] ?? ch);
 }
 
 /**

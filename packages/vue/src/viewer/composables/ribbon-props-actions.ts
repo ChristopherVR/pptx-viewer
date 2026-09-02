@@ -19,6 +19,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 				input.presenting.value = false;
 			}
 		},
+		onPresentFromBeginning: input.presentFromBeginning,
 		onToggleSidebar: () => {
 			input.sidebarCollapsed.value = !input.sidebarCollapsed.value;
 		},

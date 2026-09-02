@@ -1,12 +1,16 @@
 import type {
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxEmbeddedFont,
+	PptxCompatibilityWarning,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxHandlerLoadOptions,
+	PptxModernCommentAuthor,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxCustomShow,
@@ -58,7 +62,20 @@ export class PresentationLoader {
 	 * `p:presentationPr`.
 	 */
 	viewProperties = $state.raw<PptxViewProperties | undefined>(undefined);
+	/** Write-protection verifier from `p:modifyVerifier` (`presentation.xml`). */
+	modifyVerifier = $state.raw<PptxModifyVerifier | undefined>(undefined);
+	/**
+	 * Every compatibility warning the load (and any save/patch so far this
+	 * session) has raised, from `handler.getCompatibilityWarnings()`: unmodelled
+	 * markup round-tripped only via `rawXml`, an external image reference that
+	 * cannot be embedded, and so on. Feeds the compat-toast stack (wave 4 #3).
+	 */
+	compatibilityWarnings = $state.raw<PptxCompatibilityWarning[]>([]);
 	customShows = $state.raw<PptxCustomShow[]>([]);
+	/** Modern comment authors (`ppt/authors.xml`, Office 2021 `p188:author`), for the @-mention typeahead (wave-4 B5). */
+	modernCommentAuthors = $state.raw<PptxModernCommentAuthor[]>([]);
+	/** Legacy comment authors (`ppt/commentAuthors.xml`), round-tripped and offered to the typeahead alongside the modern list. */
+	commentAuthors = $state.raw<PptxCommentAuthor[]>([]);
 	coreProperties = $state.raw<PptxCoreProperties | undefined>(undefined);
 	appProperties = $state.raw<PptxAppProperties | undefined>(undefined);
 	customProperties = $state.raw<PptxCustomProperty[]>([]);
@@ -177,7 +194,11 @@ export class PresentationLoader {
 			this.headerFooter = parsed.headerFooter ?? {};
 			this.presentationProperties = parsed.presentationProperties ?? {};
 			this.viewProperties = parsed.viewProperties;
+			this.modifyVerifier = parsed.modifyVerifier;
+			this.compatibilityWarnings = newHandler.getCompatibilityWarnings();
 			this.customShows = parsed.customShows ?? [];
+			this.modernCommentAuthors = parsed.modernCommentAuthors ?? [];
+			this.commentAuthors = parsed.commentAuthors ?? [];
 			this.coreProperties = parsed.coreProperties;
 			this.appProperties = parsed.appProperties;
 			this.customProperties = parsed.customProperties ?? [];
@@ -231,6 +252,19 @@ export class PresentationLoader {
 				this.loading = false;
 			}
 		}
+	}
+
+	/**
+	 * Replace the live handler with one core rebuilt (master-view CRUD returns
+	 * a fresh package rather than a patch). Disposes the previous handler; the
+	 * Blob URLs stay valid because the media parts are unchanged.
+	 */
+	adoptHandler(next: PptxHandler): void {
+		if (next === this.handler) {
+			return;
+		}
+		this.handler?.dispose();
+		this.handler = next;
 	}
 
 	/** Cancel in-flight loads, revoke Blob URLs, dispose the handler. */

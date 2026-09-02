@@ -31,6 +31,8 @@ describe('master view sidebar', () => {
 			onCollapse: vi.fn(),
 			onHandoutSlidesPerPageChange: vi.fn(),
 			onMasterBackgroundColorChange: onBackground,
+			crudActions: [],
+			onCrudAction: vi.fn(),
 		});
 
 		const tabs = sidebar.el.querySelectorAll<HTMLButtonElement>('[role="tab"]');
@@ -70,6 +72,8 @@ describe('master view sidebar', () => {
 			onCollapse: vi.fn(),
 			onHandoutSlidesPerPageChange: onCount,
 			onMasterBackgroundColorChange: vi.fn(),
+			crudActions: [],
+			onCrudAction: vi.fn(),
 		};
 		sidebar.render({
 			...base,
@@ -99,5 +103,50 @@ describe('master view sidebar', () => {
 		expect(selected?.textContent).toBe('6');
 		sidebar.el.querySelectorAll<HTMLButtonElement>('.pptxv-master-count')[3]?.click();
 		expect(onCount).toHaveBeenCalledWith(4);
+	});
+
+	// B4: the sidebar's Insert/Duplicate/Delete/Rename Layout/Master row.
+	it('renders one button per CRUD action, disabled with a reason, and runs on click', () => {
+		const onCrudAction = vi.fn();
+		const sidebar = createMasterViewSidebar(document, createTranslator());
+		sidebar.render({
+			tab: 'slides',
+			masters: [{ path: 'master-1', name: 'Corporate', elements: [], layouts: [] }],
+			active: { masterIndex: 0, layoutIndex: null },
+			canvasSize: { width: 960, height: 540 },
+			notesMasterPresent: false,
+			handoutMasterPresent: false,
+			handoutSlidesPerPage: 4,
+			editable: true,
+			renderStage,
+			onSelect: vi.fn(),
+			onTabChange: vi.fn(),
+			onCollapse: vi.fn(),
+			onHandoutSlidesPerPageChange: vi.fn(),
+			onMasterBackgroundColorChange: vi.fn(),
+			crudActions: [
+				{ id: 'addLayout', labelKey: 'pptx.masterView.addLayout', enabled: true },
+				{
+					id: 'deleteMaster',
+					labelKey: 'pptx.masterView.deleteMaster',
+					enabled: false,
+					disabledReasonKey: 'pptx.masterView.lastMaster',
+				},
+			],
+			onCrudAction,
+		});
+
+		const addLayout = sidebar.el.querySelector<HTMLButtonElement>(
+			'[data-testid="pptx-master-crud-addLayout"]',
+		);
+		const deleteMaster = sidebar.el.querySelector<HTMLButtonElement>(
+			'[data-testid="pptx-master-crud-deleteMaster"]',
+		);
+		expect(addLayout?.disabled).toBeFalsy();
+		expect(deleteMaster?.disabled).toBeTruthy();
+		expect(deleteMaster?.title).toBe('The last slide master cannot be deleted.');
+
+		addLayout?.click();
+		expect(onCrudAction).toHaveBeenCalledExactlyOnceWith('addLayout');
 	});
 });

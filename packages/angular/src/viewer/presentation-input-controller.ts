@@ -23,9 +23,13 @@ import {
 	createWheelStepBuffer,
 	mapPresentationKey,
 	mapPresentationWheel,
+	openUrlInNewTab,
+	resolveOleVerbTarget,
 	resolvePresentationAction,
 	resolvePresentationClick,
 	runPresentationAction,
+	safeOpenUrl,
+	toggleStageElementMedia,
 } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
 import type { PresentationAnnotationsService } from './presentation-annotations.service';
@@ -63,6 +67,13 @@ export interface PresentationInputDeps {
 	 * with the option off.
 	 */
 	confirmExternalHyperlink?: (href: string) => boolean;
+	/**
+	 * `ppaction://customshow?id=<id>[&return=true]`: run the named custom show.
+	 * The host resolves `customShowId` against its own custom-show registry (an
+	 * id naming no surviving show is a no-op) and, when `returnAfter` is true,
+	 * restores the origin show + slide once the sub-show runs off its end.
+	 */
+	runCustomShow?: (customShowId: string, returnAfter: boolean) => void;
 }
 
 export class PresentationInputController {
@@ -207,7 +218,10 @@ export class PresentationInputController {
 		if (outcome.kind !== 'action') {
 			return outcome.kind;
 		}
-		const options = { slideCount: this.deps.slides().length };
+		const options = {
+			slideCount: this.deps.slides().length,
+			elementId: closestElementId(target),
+		};
 		const { intent } = resolvePresentationAction(outcome.action, options);
 		if (
 			intent.kind === 'openUrl' &&
@@ -220,6 +234,24 @@ export class PresentationInputController {
 			goToSlide: (index) => this.deps.navigator.goToSlide(index),
 			move: (direction) => this.deps.navigator.navigate(direction > 0 ? 'next' : 'prev'),
 			endShow: () => this.deps.requestClose(),
+			lastViewed: () => this.deps.navigator.goToLastViewed(),
+			customShow: (customShowId, returnAfter) =>
+				this.deps.runCustomShow?.(customShowId, returnAfter),
+			openFile: (fileTarget) => {
+				safeOpenUrl(fileTarget);
+			},
+			openPresentation: (presentationTarget) => {
+				safeOpenUrl(presentationTarget);
+			},
+			playMedia: (elementId) => toggleStageElementMedia(this.deps.root(), elementId),
+			// A browser cannot run the verb in the owning application: open the
+			// recovered embedding, as the OLE renderer's own "Open" does.
+			oleVerb: (verb, elementId) => {
+				const oleTarget = resolveOleVerbTarget(this.deps.currentSlide(), elementId, verb);
+				if (oleTarget) {
+					openUrlInNewTab(oleTarget.url);
+				}
+			},
 		});
 		return 'action';
 	}

@@ -80,7 +80,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 							(change)="onVAlignChange($event)"
 						>
 							@for (opt of vAlignOptions; track opt[0]) {
-								<option [value]="opt[0]">{{ opt[1] }}</option>
+								<option [value]="opt[0]" [selected]="opt[0] === state().vAlign">
+									{{ opt[1] }}
+								</option>
 							}
 						</select>
 					</div>
@@ -99,7 +101,9 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 							(change)="onTextDirectionChange($event)"
 						>
 							@for (opt of textDirectionOptions; track opt[0]) {
-								<option [value]="opt[0]">{{ opt[1] }}</option>
+								<option [value]="opt[0]" [selected]="opt[0] === state().textDirection">
+									{{ opt[1] }}
+								</option>
 							}
 						</select>
 					</div>

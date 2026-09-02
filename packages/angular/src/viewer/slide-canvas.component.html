@@ -66,6 +66,10 @@
 					(tableChange)="tableChange.emit($event)"
 				/>
 			}
+			<pptx-activex-controls-overlay
+				[controls]="slide()?.activeXControls ?? []"
+				[canvasSize]="canvasSize()"
+			/>
 			@if (aiHighlights().length > 0 || aiActive()) {
 				<pptx-ai-focus-highlight-overlay
 					[highlights]="aiHighlights()"

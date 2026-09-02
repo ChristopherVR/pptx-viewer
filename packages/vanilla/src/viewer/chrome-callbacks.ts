@@ -251,9 +251,11 @@ export function buildChromeCallbacks(
 		getTemplateBackgroundColor: (path) => deps.getEditActions().getTemplateBackgroundColor(path),
 		updateCanvasSize: (size) => deps.getEditActions().updateCanvasSize(size),
 		updateSlideSize: (size) => deps.getEditActions().updateSlideSize(size),
-		addComment: (text) => void deps.getEditActions().comments.addComment(text),
-		addCommentReply: (parentId, text) =>
-			void deps.getEditActions().comments.addCommentReply(parentId, text),
+		applySlideSizeRescale: (size, mode) => deps.getEditActions().applySlideSizeRescale(size, mode),
+		addComment: (text, mentions) =>
+			void deps.getEditActions().comments.addComment(text, undefined, mentions),
+		addCommentReply: (parentId, text, mentions) =>
+			void deps.getEditActions().comments.addCommentReply(parentId, text, mentions),
 		editComment: (id, text) => deps.getEditActions().comments.editComment(id, text),
 		deleteComment: (id) => deps.getEditActions().comments.deleteComment(id),
 		toggleCommentResolved: (id) => deps.getEditActions().comments.toggleCommentResolved(id),
@@ -272,6 +274,7 @@ export function buildChromeCallbacks(
 		setShapeStrokeWidth: (width) => deps.getEditActions().setShapeStrokeWidth(width),
 		setShapeStyle: (patch) => deps.getEditActions().setShapeStyle(patch),
 		setShapeType: (shapeType) => deps.getEditActions().setShapeType(shapeType),
+		pushRecentColor: (hex) => deps.getEditActions().pushRecentColor(hex),
 
 		setTextVerticalAlign: (vAlign) => deps.getEditActions().setTextVerticalAlign(vAlign),
 		setTextWrap: (wrap) => deps.getEditActions().setTextWrap(wrap),

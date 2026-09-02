@@ -34,16 +34,23 @@ import {
 	signal,
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import type { PptxComment } from 'pptx-viewer-core';
+import type { PptxComment, PptxCommentMention, PptxModernCommentAuthor } from 'pptx-viewer-core';
 import { formatCommentTimestamp } from 'pptx-viewer-core';
 
 import { CommentBodyComponent } from './comment-body.component';
+import { CommentMentionTextareaComponent } from './comment-mention-textarea.component';
+
+/** The trimmed text plus the mention spans an add/reply submit carries. */
+export interface CommentSubmission {
+	text: string;
+	mentions: PptxCommentMention[];
+}
 
 @Component({
 	selector: 'pptx-comments-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe, CommentBodyComponent],
+	imports: [TranslatePipe, CommentBodyComponent, CommentMentionTextareaComponent],
 	templateUrl: './comments-panel.component.html',
 	styleUrl: './comments-panel.component.css',
 })
@@ -60,8 +67,11 @@ export class CommentsPanelComponent {
 	/** Display name shown in the compose label ("Commenting as …"). */
 	readonly authorName = input<string>(this.translate.instant('pptx.comments.defaultAuthorName'));
 
-	/** Emits the trimmed comment text the user wants to add. */
-	readonly add = output<string>();
+	/** Office 2021 modern comment authors, for the `@`-mention typeahead. */
+	readonly modernCommentAuthors = input<readonly PptxModernCommentAuthor[]>([]);
+
+	/** Emits the trimmed comment text (+ mentions) the user wants to add. */
+	readonly add = output<CommentSubmission>();
 
 	/** Emits the id of a comment the user wants to remove. */
 	readonly remove = output<string>();
@@ -69,8 +79,8 @@ export class CommentsPanelComponent {
 	/** Emits the id of a comment whose resolved flag should toggle. */
 	readonly resolve = output<string>();
 
-	/** Emits the parent comment id + trimmed text of a threaded reply. */
-	readonly reply = output<{ parentId: string; text: string }>();
+	/** Emits the parent comment id + trimmed text (+ mentions) of a threaded reply. */
+	readonly reply = output<{ parentId: string } & CommentSubmission>();
 
 	// -------------------------------------------------------------------------
 	// Draft state
@@ -78,6 +88,8 @@ export class CommentsPanelComponent {
 
 	/** Current text typed into the compose textarea. */
 	readonly draft = signal('');
+	/** `@`-mentions recorded in {@link draft} so far. */
+	readonly draftMentions = signal<PptxCommentMention[]>([]);
 
 	/** Whether the draft has non-whitespace content (enables the submit button). */
 	readonly canAdd = computed<boolean>(() => this.draft().trim().length > 0);
@@ -87,6 +99,8 @@ export class CommentsPanelComponent {
 
 	/** Current text typed into the open reply composer. */
 	readonly replyDraft = signal('');
+	/** `@`-mentions recorded in {@link replyDraft} so far. */
+	readonly replyMentions = signal<PptxCommentMention[]>([]);
 
 	/** Whether the reply draft has content (enables the reply submit button). */
 	readonly canReply = computed<boolean>(() => this.replyDraft().trim().length > 0);
@@ -95,19 +109,15 @@ export class CommentsPanelComponent {
 	// Event handlers
 	// -------------------------------------------------------------------------
 
-	onDraftInput(event: Event): void {
-		const target = event.target as HTMLTextAreaElement;
-		this.draft.set(target.value);
-	}
-
 	submit(event: Event): void {
 		event.preventDefault();
 		const text = this.draft().trim();
 		if (text.length === 0) {
 			return;
 		}
-		this.add.emit(text);
+		this.add.emit({ text, mentions: this.draftMentions() });
 		this.draft.set('');
+		this.draftMentions.set([]);
 	}
 
 	/** Localized reply-composer placeholder ("Reply to <author>..."). */
@@ -121,16 +131,13 @@ export class CommentsPanelComponent {
 	startReply(parentId: string): void {
 		this.replyingTo.set(parentId);
 		this.replyDraft.set('');
+		this.replyMentions.set([]);
 	}
 
 	cancelReply(): void {
 		this.replyingTo.set(null);
 		this.replyDraft.set('');
-	}
-
-	onReplyInput(event: Event): void {
-		const target = event.target as HTMLTextAreaElement;
-		this.replyDraft.set(target.value);
+		this.replyMentions.set([]);
 	}
 
 	submitReply(parentId: string): void {
@@ -138,7 +145,7 @@ export class CommentsPanelComponent {
 		if (text.length === 0) {
 			return;
 		}
-		this.reply.emit({ parentId, text });
+		this.reply.emit({ parentId, text, mentions: this.replyMentions() });
 		this.cancelReply();
 	}
 

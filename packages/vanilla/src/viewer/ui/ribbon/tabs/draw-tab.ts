@@ -88,6 +88,7 @@ export function createDrawTab(doc: Document, t: Translator, handlers: RibbonDraw
 				toolButtons[i].setActive(state.tool === def.tool);
 			}
 			colorPicker.setValue(state.color);
+			colorPicker.setRecentColors(state.recentColors ?? []);
 			widthDropdown.setSelected(state.width);
 			widthDropdown.setTriggerText(`${state.width} px`);
 		},

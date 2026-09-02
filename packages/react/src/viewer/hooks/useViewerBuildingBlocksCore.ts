@@ -141,6 +141,7 @@ export function useViewerBuildingBlocksCore(
 		sections: state.sections,
 		customShows: state.customShows,
 		activeCustomShowId: state.activeCustomShowId,
+		presentationProperties: state.presentationProperties,
 		mode,
 		activeLayout: state.activeLayout,
 		activeMaster: state.activeMaster,

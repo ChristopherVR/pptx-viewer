@@ -13,9 +13,11 @@ import type { ChromeCallbackDeps } from './chrome-callbacks';
 import type { EditActions } from './editor';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
+import { buildPresentationActionRunner } from './presentation-action-runner';
 import { isSwipeAdvanceBlocked, resolvePresentationStageClick } from './presentation-advance-gate';
 import { attachAutoAdvance } from './presentation-auto-advance';
 import { attachShowVisibilityPause } from './presentation-visibility';
+import { createCustomShowRunner } from './presenter/presentation-custom-show-runner';
 import type { RenderController } from './render-controller';
 import type { DrawTool, Store, ViewerState } from './state';
 import { applyThemeVars } from './theme-apply';
@@ -66,6 +68,8 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	isAutosaveToggleAvailable?(): boolean;
 	goToFirstSlide(): void;
 	goToLastSlide(): void;
+	/** "Present From Beginning"'s target deck index (skips a hidden slide 1 / honours the authored range). */
+	firstShowSlideIndex(): number;
 	exitPresentation(): void;
 	/** Select a slide-show pointer tool (Ctrl+L / Ctrl+P / Ctrl+A / Ctrl+E). */
 	setPresentationPointerTool?(tool: PresentationPointerTool): void;
@@ -102,6 +106,14 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	quickAccessScreenTip(label: string): string | undefined;
 	/** Trust Center > Protected View's "Enable Editing" banner button. */
 	enableEditingFromProtectedView(): void;
+	/** The read-only recommendation banner's "Edit anyway" button. */
+	editAnywayFromReadOnlyRecommendation(): void;
+	/** The read-only recommendation banner's plain close button. */
+	dismissReadOnlyBanner(): void;
+	/** One compatibility toast's own dismiss button. */
+	dismissCompatToast(id: string): void;
+	/** The compatibility toast stack's "Dismiss all" button. */
+	dismissAllCompatToasts(): void;
 	/**
 	 * Trust Center > "Confirm before opening external hyperlinks": shows the
 	 * confirm prompt when the option applies to `url` and reports whether the
@@ -179,6 +191,10 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			togglePresenterView: () => deps.togglePresenterView?.(),
 		},
 		onEnableEditing: () => deps.enableEditingFromProtectedView(),
+		onEditAnywayFromReadOnly: () => deps.editAnywayFromReadOnlyRecommendation(),
+		onDismissReadOnlyBanner: () => deps.dismissReadOnlyBanner(),
+		onDismissCompatToast: (id) => deps.dismissCompatToast(id),
+		onDismissAllCompatToasts: () => deps.dismissAllCompatToasts(),
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
@@ -188,6 +204,11 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	chrome.mobileActionSheets?.setNotesExpanded(store.get().notesExpanded);
 	chrome.titleBar?.setDirty(store.get().dirty);
 	chrome.setProtectedView(store.get().protectedView);
+	chrome.setReadOnlyRecommendation(
+		store.get().readOnlyRecommendation,
+		store.get().readOnlyBannerDismissed,
+	);
+	chrome.setCompatToasts(store.get().compatToasts);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {
 		next: deps.next,
@@ -214,6 +235,12 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		// inside the presenter console, so the host raises the console with the
 		// grid already up rather than this module rebuilding a second copy.
 		showAllSlides: deps.showPresentationAllSlides,
+		// F5 / Shift+F5: the same entry points the ribbon's "From Beginning" and
+		// "From Current Slide" buttons call (see `buildQuickAccessRunner` /
+		// `buildChromeCallbacks`'s `slideShow.startFromBeginning`), so the key and
+		// the button seed the same slide and cannot disagree.
+		startFromBeginning: () => deps.startPresentationFromBeginning(),
+		startFromCurrent: () => deps.startPresentationFromCurrent(),
 	});
 	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),
@@ -300,6 +327,36 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	const detachEndScreen = store.subscribe(syncEndScreen);
 	syncEndScreen();
 
+	// `ppaction://hlinkshowjump?jump=lastslideviewed`: the deck index the show
+	// was on immediately before the current one. Tracked here (not derived from
+	// `viewer-controls`' show order) because "last viewed" is genuinely the
+	// previous slide the audience SAW, including a jump made by a different
+	// action or a custom show, not "the previous slide in show order".
+	let previousPresentedSlide: number | null = null;
+	const detachLastViewedTracker = store.subscribe((state, previous) => {
+		if (state.presenting && state.currentSlide !== previous.currentSlide) {
+			previousPresentedSlide = previous.currentSlide;
+		}
+		if (previous.presenting && !state.presenting) {
+			previousPresentedSlide = null;
+		}
+	});
+	const customShowRunner = createCustomShowRunner(store, (index) => deps.goToSlide(index));
+	const presentationActionRunner = buildPresentationActionRunner({
+		goToSlide: (index) => deps.goToSlide(index),
+		next: () => deps.next(),
+		prev: () => deps.prev(),
+		exitPresentation: () => deps.exitPresentation(),
+		confirmExternalHyperlink: deps.confirmExternalHyperlink,
+		getStageRoot: () => chrome.stageWrap,
+		getPreviousPresentedSlide: () => previousPresentedSlide,
+		getCurrentSlide: () => {
+			const state = store.get();
+			return state.slides[state.currentSlide];
+		},
+		customShowRunner,
+	});
+
 	const onPresentationClick = (event: MouseEvent): void => {
 		const state = store.get();
 		if (!state.presenting || !(event.target instanceof Element)) {
@@ -318,14 +375,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			animationBuildsComplete: renderer.presentationPlayback.isComplete(),
 			currentSlide: state.slides[state.currentSlide],
 			slideCount: state.slides.length,
-			runner: {
-				goToSlide: (index) => deps.goToSlide(index),
-				move: (direction) => (direction > 0 ? deps.next() : deps.prev()),
-				endShow: () => deps.exitPresentation(),
-				// An on-slide Action Setting's own "Hyperlink to a URL" must clear the
-				// same Trust Center gate a text hyperlink click does.
-				confirmUrl: (url) => deps.confirmExternalHyperlink?.(url) ?? true,
-			},
+			runner: presentationActionRunner,
 		});
 		if (!shouldAdvance) {
 			return;
@@ -407,6 +457,8 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		autoAdvance.detach();
 		detachShowVisibility();
 		detachEndScreen();
+		detachLastViewedTracker();
+		customShowRunner.dispose();
 		endScreen.remove();
 		presentationContextMenu.destroy();
 	};
@@ -505,6 +557,14 @@ export interface ChromeHost {
 	quickAccessScreenTip(label: string): string | undefined;
 	/** Trust Center > Protected View's "Enable Editing" banner button. */
 	enableEditingFromProtectedView(): void;
+	/** The read-only recommendation banner's "Edit anyway" button. */
+	editAnywayFromReadOnlyRecommendation(): void;
+	/** The read-only recommendation banner's plain close button. */
+	dismissReadOnlyBanner(): void;
+	/** One compatibility toast's own dismiss button. */
+	dismissCompatToast(id: string): void;
+	/** The compatibility toast stack's "Dismiss all" button. */
+	dismissAllCompatToasts(): void;
 	/** Trust Center > "Confirm before opening external hyperlinks" gate + prompt. */
 	confirmExternalHyperlink(url: string): boolean;
 	toggleAutosave(): boolean;
@@ -520,6 +580,12 @@ export interface ChromeHost {
 	goToFirstSlide(): void;
 	/** End: the show's last slide (skips trailing hidden slides while presenting). */
 	goToLastSlide(): void;
+	/**
+	 * The deck index "Present From Beginning" should land on (skips a hidden
+	 * slide 1 and honours the authored `p:showPr/p:sldRg` range / custom show),
+	 * unconditionally unlike {@link goToFirstSlide}.
+	 */
+	firstShowSlideIndex(): number;
 	getSlideCount(): number;
 	enterPresentation(): Promise<void>;
 	openPresenterView(): void;
@@ -624,7 +690,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		isAutosaveSwitchOn: () => host.isAutosaveSwitchOn(),
 		isAutosaveToggleAvailable: () => host.isAutosaveToggleAvailable(),
 		startPresentationFromBeginning: () => {
-			host.goToSlide(0);
+			host.goToSlide(host.firstShowSlideIndex());
 			void host.enterPresentation();
 		},
 		startPresentationFromCurrent: () => void host.enterPresentation(),
@@ -675,6 +741,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		goToSlide: (index) => host.goToSlide(index),
 		goToFirstSlide: () => host.goToFirstSlide(),
 		goToLastSlide: () => host.goToLastSlide(),
+		firstShowSlideIndex: () => host.firstShowSlideIndex(),
 		exitPresentation: () => void host.exitPresentation(),
 		setPresentationPointerTool: (tool) => {
 			const pointer: PresentationPointerState = host.getPresenterSnapshot().pointer ?? {
@@ -746,6 +813,10 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		getQuickAccessOptions: () => host.getQuickAccessOptions(),
 		quickAccessScreenTip: (label) => host.quickAccessScreenTip(label),
 		enableEditingFromProtectedView: () => host.enableEditingFromProtectedView(),
+		editAnywayFromReadOnlyRecommendation: () => host.editAnywayFromReadOnlyRecommendation(),
+		dismissReadOnlyBanner: () => host.dismissReadOnlyBanner(),
+		dismissCompatToast: (id) => host.dismissCompatToast(id),
+		dismissAllCompatToasts: () => host.dismissAllCompatToasts(),
 		confirmExternalHyperlink: (url) => host.confirmExternalHyperlink(url),
 	};
 }

@@ -7,21 +7,19 @@
  * keep/discard-annotations prompt shown when a slideshow with ink on it exits.
  *
  * Extracted from {@link PowerPointViewerComponent}: the component binds the few
- * accessors it alone owns (active-slide-index get/set, the editing-id clear,
- * the source bytes for the audience hand-off, canEdit, and the keep-annotations
- * prompt trigger) via {@link bind}; the template reads the signals / invokes the
- * handlers off the injected instance directly (same pattern as `session`/`xport`).
+ * accessors it alone owns via {@link bind}; the template reads the signals /
+ * invokes the handlers off the injected instance directly.
  *
- * This service owns no DOM node, so the real browser Fullscreen API request/exit
- * (mirroring React's `usePresentationMode` / Vue's `PresentationMode.vue`) is
- * driven by `PresentationOverlayComponent` itself off this `presenting` signal's
- * mount/unmount, not from here; see that component for the fullscreen wiring.
+ * This service owns no DOM node, so the real browser Fullscreen API
+ * request/exit is driven by `PresentationOverlayComponent` itself off this
+ * `presenting` signal's mount/unmount, not from here.
  *
  * Provide it once on the viewer component (`providers: [ViewerPresentationModeService]`).
  */
 
 import { inject, Injectable, signal } from '@angular/core';
 
+import type { AuthoredSlideRange } from '../internal/shared';
 import type { SlideAnnotationMap } from './presentation-annotations-helpers';
 import { endShowMediaCleanup } from './presentation-overlay-helpers';
 import { PresenterWindowService } from './presenter-window.service';
@@ -38,6 +36,8 @@ interface PresentationModeHost {
 	readonly canEdit: () => boolean;
 	readonly promptKeepAnnotations: (map: SlideAnnotationMap) => void;
 	readonly applyRehearsalTimings: (timings: Record<number, number>) => void;
+	/** The deck's authored `p:showPr/p:sldRg` range, or null for the whole deck. */
+	readonly authoredRange: () => AuthoredSlideRange | null;
 }
 
 export type RehearsalStart = 'beginning' | 'current';
@@ -91,32 +91,44 @@ export class ViewerPresentationModeService {
 	}
 
 	/**
-	 * Open the presentation overlay from the current slide. The overlay itself
+	 * Open the presentation overlay at `startIndex`, deselecting first so no
+	 * edit chrome (selection outline / resize + rotate "Adjust shape" handles)
+	 * leaks over the slideshow. The overlay itself
 	 * (`PresentationOverlayComponent`) requests real browser fullscreen once it
 	 * mounts as a result of `presenting` flipping true.
 	 */
-	present(): void {
+	private openShow(startIndex: number): void {
 		const host = this.requireHost();
 		if (host.slideCount() > 0) {
-			// Deselect first so no edit chrome (selection outline / resize + rotate
-			// "Adjust shape" handles) leaks over the slideshow.
 			host.clearSelection();
 			host.clearEditing();
-			// A custom show opens on its OWN first slide. Seeded here, once, rather
-			// than derived by the overlay's `startIndex` input: that input is live,
-			// and a value permanently pinned to the show's first slide re-adopted
-			// itself over every advance the show made.
-			host.setActiveSlideIndex(this.customShowsCtl.showEntryIndex());
+			// Seeded here, once, rather than derived by the overlay's `startIndex`
+			// input: that input is live, and a value permanently pinned to a fixed
+			// slide re-adopted itself over every advance the show made.
+			host.setActiveSlideIndex(startIndex);
 			this.presenting.set(true);
 		}
 	}
 
+	/**
+	 * Open the presentation overlay from the current slide ("From Current
+	 * Slide", the status-bar "Slide show" button, `setMode('present')`). Opens
+	 * on the active slide when the show (active custom show + the deck's
+	 * authored `p:showPr/p:sldRg` range) includes it, else the closest show
+	 * slide at or after it, else the show's own first slide.
+	 */
+	present(): void {
+		const host = this.requireHost();
+		this.openShow(this.customShowsCtl.showEntryIndex(host.authoredRange()));
+	}
+
+	/**
+	 * "From Beginning" / F5: always opens the show's own first slide, ignoring
+	 * where the editor is currently parked.
+	 */
 	presentFromBeginning(): void {
 		const host = this.requireHost();
-		if (host.slideCount() > 0) {
-			host.setActiveSlideIndex(0);
-			this.present();
-		}
+		this.openShow(this.customShowsCtl.showFirstIndex(host.authoredRange()));
 	}
 
 	presentFromCurrent(): void {

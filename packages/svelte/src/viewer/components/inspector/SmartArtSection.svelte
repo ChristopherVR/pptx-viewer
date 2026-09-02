@@ -90,6 +90,10 @@
 			applyData(setSmartArtNodeStyle(data, selectedNodeId, patch));
 		}
 	}
+	function nodeColorStyle(patch: Parameters<typeof setSmartArtNodeStyle>[2], color: string): void {
+		nodeStyle(patch);
+		editor.recordRecentColor(color);
+	}
 
 	/** Focus the text input for `nodeId` once the DOM has updated. */
 	async function focusNodeInput(nodeId: string): Promise<void> {
@@ -224,7 +228,7 @@
 		{/each}
 	</div>
 	<div class="pptx-svelte-smartart-actions"><button type="button" onclick={() => { if (data) applyData(addSmartArtNode(data, 'New item', selectedNodeId ?? undefined)); }}>Add</button><button type="button" disabled={!selectedNodeId || data.nodes.length <= 1} onclick={() => { if (data && selectedNodeId) { applyData(removeSmartArtNode(data, selectedNodeId)); selectedNodeId = null; } }}>Remove</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(reorderSmartArtNode(data, selectedNodeId, -1)); }}>Up</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(reorderSmartArtNode(data, selectedNodeId, 1)); }}>Down</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(promoteSmartArtNode(data, selectedNodeId)); }}>Promote</button><button type="button" disabled={!selectedNodeId} onclick={() => { if (data && selectedNodeId) applyData(demoteSmartArtNode(data, selectedNodeId)); }}>Demote</button></div>
-	{#if selectedNode}<div class="pptx-svelte-smartart-style"><label>Fill<input type="color" value={selectedNode.style?.fillColor ?? '#4472c4'} onchange={(event) => nodeStyle({ fillColor: event.currentTarget.value })} /></label><label>Font<input type="color" value={selectedNode.style?.fontColor ?? '#ffffff'} onchange={(event) => nodeStyle({ fontColor: event.currentTarget.value })} /></label><button type="button" class:active={selectedNode.style?.bold} onclick={() => nodeStyle({ bold: !selectedNode.style?.bold })}>Bold</button><button type="button" class:active={selectedNode.style?.italic} onclick={() => nodeStyle({ italic: !selectedNode.style?.italic })}>Italic</button></div>{/if}
+	{#if selectedNode}<div class="pptx-svelte-smartart-style"><label>Fill<input type="color" value={selectedNode.style?.fillColor ?? '#4472c4'} onchange={(event) => nodeColorStyle({ fillColor: event.currentTarget.value }, event.currentTarget.value)} /></label><label>Font<input type="color" value={selectedNode.style?.fontColor ?? '#ffffff'} onchange={(event) => nodeColorStyle({ fontColor: event.currentTarget.value }, event.currentTarget.value)} /></label><button type="button" class:active={selectedNode.style?.bold} onclick={() => nodeStyle({ bold: !selectedNode.style?.bold })}>Bold</button><button type="button" class:active={selectedNode.style?.italic} onclick={() => nodeStyle({ italic: !selectedNode.style?.italic })}>Italic</button></div>{/if}
 {/if}
 
 <style>

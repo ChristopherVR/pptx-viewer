@@ -28,6 +28,8 @@ export interface SlideStageProps {
 	editingElementId?: string | null;
 	/** Forwarded to each `ElementRenderer`; see `ElementRendererProps.editable`. */
 	editable?: boolean;
+	/** Forwarded to each `ElementRenderer`; see `ElementRendererProps.selectedElementIds`. */
+	selectedElementIds?: readonly string[];
 	/**
 	 * Skip the resolved slide background and leave the stage see-through.
 	 *
@@ -83,6 +85,8 @@ export interface SlideCanvasProps {
 	editTemplateMode?: boolean;
 	/** Forwarded to `SlideStage`; see `SlideStageProps.editingElementId`. */
 	editingElementId?: string | null;
+	/** Forwarded to `SlideStage`; see `SlideStageProps.selectedElementIds`. */
+	selectedElementIds?: readonly string[];
 	ontablecellcommit?: (
 		elementId: string,
 		rowIndex: number,

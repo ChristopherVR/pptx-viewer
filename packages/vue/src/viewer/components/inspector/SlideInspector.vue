@@ -16,9 +16,11 @@
 import type {
 	PptxAppProperties,
 	PptxComment,
+	PptxCommentMention,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxHandoutMaster,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSlide,
@@ -61,6 +63,8 @@ const props = withDefaults(
 		tagCollections?: PptxTagCollection[];
 		comments?: PptxComment[];
 		authorName?: string;
+		/** Modern comment authors (`ppt/commentAuthors.xml`), for the `@`-mention typeahead. */
+		modernCommentAuthors?: PptxModernCommentAuthor[];
 		/** Read a layout/master's current background colour (template-edit mode). */
 		getTemplateBackgroundColor?: (path: string) => string | undefined;
 	}>(),
@@ -79,10 +83,10 @@ const emit = defineEmits<{
 	'update-tag-collections': [next: PptxTagCollection[]];
 	'set-template-background': [path: string, backgroundColor: string];
 	'select-element': [id: string];
-	'comment-add': [text: string];
+	'comment-add': [payload: { text: string; mentions?: PptxCommentMention[] }];
 	'comment-remove': [id: string];
 	'comment-resolve': [id: string];
-	'comment-reply': [payload: { parentId: string; text: string }];
+	'comment-reply': [payload: { parentId: string; text: string; mentions?: PptxCommentMention[] }];
 	close: [];
 }>();
 
@@ -160,7 +164,8 @@ const activeTab = ref<InspectorTab>('properties');
 				class="!border-l-0"
 				:comments="comments ?? []"
 				:author-name="authorName"
-				@add="(text) => emit('comment-add', text)"
+				:modern-comment-authors="modernCommentAuthors ?? []"
+				@add="(payload) => emit('comment-add', payload)"
 				@remove="(id) => emit('comment-remove', id)"
 				@resolve="(id) => emit('comment-resolve', id)"
 				@reply="(payload) => emit('comment-reply', payload)"

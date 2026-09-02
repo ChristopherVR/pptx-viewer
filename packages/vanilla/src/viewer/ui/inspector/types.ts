@@ -4,7 +4,10 @@ import type {
 	PptxChartData,
 	MediaPptxElement,
 	PptxComment,
+	PptxCommentMention,
+	PptxCustomShow,
 	PptxElement,
+	PptxModernCommentAuthor,
 	PptxPresentationProperties,
 	PptxSlide,
 	PptxSlideMaster,
@@ -30,6 +33,7 @@ import type {
 	GradientState,
 	InlineTextSelection,
 	SlideSizeEmu,
+	SlideSizeRescaleMode,
 	TextAdvancedChanges,
 } from 'pptx-viewer-shared';
 
@@ -81,10 +85,16 @@ export interface InspectorHandlers {
 	 * Writes both the EMU state and the pixel canvas.
 	 */
 	updateSlideSize(size: SlideSizeEmu): void;
+	/**
+	 * Adopt an EMU slide size AND rescale every slide's content for it in one
+	 * undoable step (the "Scale content for the new slide size?" prompt shown
+	 * when the deck has content and the new size differs from the current one).
+	 */
+	applySlideSizeRescale(size: SlideSizeEmu, mode: SlideSizeRescaleMode): void;
 	/** Add a comment on the current slide (Comments tab). */
-	addComment(text: string): void;
+	addComment(text: string, mentions?: PptxCommentMention[]): void;
 	/** Append a reply under a top-level comment (Comments tab reply form). */
-	addCommentReply(parentId: string, text: string): void;
+	addCommentReply(parentId: string, text: string, mentions?: PptxCommentMention[]): void;
 	/** Replace a comment's (or reply's) text (Comments tab edit-in-place). */
 	editComment(id: string, text: string): void;
 	deleteComment(id: string): void;
@@ -112,6 +122,16 @@ export interface InspectorHandlers {
 	setShapeStrokeWidth(width: number): void;
 	setShapeStyle(patch: Partial<ShapeStyle>): void;
 	setShapeType(shapeType: string): void;
+	/**
+	 * B6: fold a colour into the deck's "Recent colours" (`p:clrMru`) MRU list,
+	 * without touching the selected element. Every inspector colour input that
+	 * has no dedicated recent-colours row of its own (chart/table/image/
+	 * SmartArt/text-effects colours, gradient stops, pattern fill) calls this
+	 * on COMMIT (native `change`, never the continuous `input` event a drag
+	 * through the OS picker fires) so the deck's MRU list still grows even
+	 * though there is nowhere on screen to show it going in.
+	 */
+	pushRecentColor(hex: string): void;
 
 	setTextVerticalAlign(vAlign: InspectorState['vAlign']): void;
 	setTextWrap(wrap: InspectorState['textWrap']): void;
@@ -293,6 +313,11 @@ export interface InspectorState {
 	tableRowHeights: number[];
 	/** The selected table element itself, feeding the inspector data grid. */
 	tableElement?: TablePptxElement;
+	/**
+	 * B6: the deck's `p:clrMru`, most-recent-first, feeding the "Recent
+	 * colours" row under the fill/stroke/text colour pickers.
+	 */
+	recentColors: readonly string[];
 }
 
 /**
@@ -305,11 +330,21 @@ export interface InspectorDeckState {
 	canvasSize: { width: number; height: number };
 	/** The deck's `p:sldSz` in EMU, which is what a save persists. */
 	slideSize: SlideSizeEmu | undefined;
+	/**
+	 * Whether ANY slide in the deck has at least one element (not just the
+	 * active one). Gates the SLIDE SIZE card's rescale prompt: PowerPoint only
+	 * offers Maximize/Ensure Fit when there is content to rescale.
+	 */
+	hasDeckElements: boolean;
 	elements: readonly PptxElement[];
 	selectedIds: readonly string[];
 	/** Primary selected element id (docked Animation panel target), if any. */
 	selectedElementId?: string;
 	comments: readonly PptxComment[];
+	/** Authors offered by the Comments tab's `@`-mention typeahead. */
+	commentMentionAuthors: readonly PptxModernCommentAuthor[];
+	/** Named custom shows, for the Action Settings panel's `customShow` picker. */
+	customShows: readonly PptxCustomShow[];
 	docTitle: string | undefined;
 	docAuthor: string | undefined;
 	editable: boolean;

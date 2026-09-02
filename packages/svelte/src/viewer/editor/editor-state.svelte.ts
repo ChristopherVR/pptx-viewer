@@ -1,11 +1,13 @@
 import type {
 	PptxAppProperties,
+	PptxCommentAuthor,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxHandler,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSaveFormat,
 	PptxSection,
@@ -13,6 +15,7 @@ import type {
 	PptxSlideMaster,
 	PptxSlideSize,
 	PptxTheme,
+	PptxViewProperties,
 	PptxPresentationProperties,
 	PptxCustomShow,
 	PptxTagCollection,
@@ -29,6 +32,7 @@ import {
 	canInteractWithElement,
 	describeFontEmbedding,
 	isElementIdInteractive,
+	pushRecentColor,
 } from 'pptx-viewer-shared';
 
 import { EditorAnimationController } from './editor-animation-controller';
@@ -54,6 +58,7 @@ import { EditorHistoryState } from './editor-history-state.svelte';
 import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
+import { EditorMasterCrudController } from './editor-master-crud';
 import { EditorPresentationMetadata } from './editor-presentation-metadata.svelte';
 import { EditorSectionController } from './editor-section-controller';
 import { EditorSelection, resolveSelectedElements } from './editor-selection.svelte';
@@ -73,6 +78,13 @@ export interface EditorStateDeps {
 	 * case core re-emits the load-time dimensions verbatim.
 	 */
 	getSlideSize?: () => PptxSlideSize | undefined;
+	/**
+	 * Adopt a fresh handler in place of the loaded one. Master-view CRUD
+	 * (`masterCrud`) rebuilds the package through core and comes back with a
+	 * new `PptxHandler`; the loader owns handler lifecycle, so it disposes the
+	 * previous one here. Optional for out-of-tree mounts and the unit tests.
+	 */
+	setHandler?: (handler: PptxHandler) => void;
 	onChange?: () => void;
 }
 
@@ -106,6 +118,28 @@ export class EditorState {
 	 * undo stack owns.
 	 */
 	theme = $state.raw<PptxTheme | undefined>(undefined);
+	/**
+	 * `ppt/viewProps.xml`, seeded from the load and kept in sync with the View >
+	 * Grid/Guides/Snap toggles (wave 4 #5: `viewPropertiesPatchFromPreferences`
+	 * writes the toggle state back in here). Deliberately outside
+	 * {@link EditorSnapshot}, like {@link theme}: PowerPoint does not undo a view
+	 * toggle, so this is session state that `saveEditorDocument` reads directly,
+	 * never something `pushHistory`/`commitChange` touches.
+	 */
+	viewProperties = $state.raw<PptxViewProperties | undefined>(undefined);
+	/**
+	 * Modern comment authors (`ppt/authors.xml`, Office 2021 `p188:author`),
+	 * seeded from the load. Read-only round-trip metadata, like {@link theme}:
+	 * the comment panel's @-mention typeahead (wave-4 B5) reads this to match
+	 * against, never something a binding edits or that undo restores.
+	 */
+	modernCommentAuthors = $state.raw<PptxModernCommentAuthor[]>([]);
+	/**
+	 * Legacy comment authors (`ppt/commentAuthors.xml`), offered to the
+	 * @-mention typeahead alongside {@link modernCommentAuthors}. Same
+	 * read-only, non-undo lifecycle.
+	 */
+	commentAuthors = $state.raw<PptxCommentAuthor[]>([]);
 	/**
 	 * Families the deck embeds, offered as their own font-dropdown group. Write
 	 * through {@link adoptEmbeddedFontFamilies} so {@link embedFonts} is reseeded
@@ -177,6 +211,7 @@ export class EditorState {
 	readonly animationOps = new EditorAnimationController(this);
 	readonly inkOps = new EditorInkController(this);
 	readonly masterOps = new EditorMasterController(this);
+	readonly masterCrud = new EditorMasterCrudController(this);
 	readonly formatPainter = new EditorFormatPainterController(this);
 	readonly equationOps = new EditorEquationController(this);
 
@@ -198,6 +233,25 @@ export class EditorState {
 
 	get customShows(): PptxCustomShow[] {
 		return this.presentationMetadata.customShows;
+	}
+
+	/** The colour picker's "Recent colours" row (`p:clrMru`), most-recent-first. */
+	get mruColors(): string[] {
+		return this.presentationProperties.mruColors ?? [];
+	}
+
+	/**
+	 * Record a colour just picked in ANY colour picker (fill, line, text,
+	 * background, table cell, chart series, ...) into the recent-colours row
+	 * (wave-4 B6). Writes `presentationProperties.mruColors` OUTSIDE the undo
+	 * stack, like the view-preferences write-back.
+	 */
+	recordRecentColor(hex: string): void {
+		const current = this.mruColors;
+		const next = pushRecentColor(current, hex);
+		if (next !== current) {
+			this.presentationMetadata.setMruColorsSilently(next);
+		}
 	}
 
 	get canRedo(): boolean {
@@ -238,6 +292,11 @@ export class EditorState {
 	 *  Slides group for layout switching (`applyLayoutToSlide`). */
 	getHandler(): PptxHandler | null {
 		return this.#deps.getHandler();
+	}
+
+	/** Hand a rebuilt handler to the loader (see `EditorStateDeps.setHandler`). */
+	adoptHandler(handler: PptxHandler): void {
+		this.#deps.setHandler?.(handler);
 	}
 
 	/**

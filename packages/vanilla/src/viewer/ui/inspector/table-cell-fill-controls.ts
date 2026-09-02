@@ -74,6 +74,9 @@ export function createTableCellFillControls(
 		wrapper.textContent = label;
 		const input = doc.createElement('input');
 		input.type = 'color';
+		// B6: push into the "Recent colours" MRU list once the picker commits
+		// (native `change`); the group's own listeners below commit the value.
+		input.addEventListener('change', () => handlers.pushRecentColor(input.value));
 		wrapper.appendChild(input);
 		el.appendChild(wrapper);
 		return input;

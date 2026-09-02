@@ -7,6 +7,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHeaderFooter,
 	PptxHandoutMaster,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
@@ -20,12 +21,19 @@ import type {
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import type {
+	CompatibilityWarningToast,
+	ReadOnlyRecommendation,
+	SlideSizeEmu,
+} from 'pptx-viewer-shared';
 import {
 	applyImagePathPatches,
+	compatibilityWarningToasts,
+	readOnlyRecommendation,
 	resolveAuthoredCustomShowId,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
+	seedRecentColors,
 } from 'pptx-viewer-shared';
 /**
  * useLoadContent: Handles loading/parsing PPTX content into viewer state.
@@ -62,6 +70,9 @@ export interface UseLoadContentInput {
 	setHeaderFooter: React.Dispatch<React.SetStateAction<PptxHeaderFooter>>;
 	setLayoutOptions: React.Dispatch<React.SetStateAction<Array<{ path: string; name: string }>>>;
 	setSlideMasters: React.Dispatch<React.SetStateAction<PptxSlideMaster[]>>;
+	setModernCommentAuthors: React.Dispatch<React.SetStateAction<PptxModernCommentAuthor[]>>;
+	/** Seeds the "Recent Colors" row (`p:clrMru`) every colour picker shares. */
+	setRecentColors: React.Dispatch<React.SetStateAction<string[]>>;
 	setTheme: React.Dispatch<React.SetStateAction<PptxTheme | undefined>>;
 	setTableStyleMap: React.Dispatch<React.SetStateAction<ParsedTableStyleMap | undefined>>;
 	setThemeOptions: React.Dispatch<React.SetStateAction<PptxThemeOption[]>>;
@@ -90,6 +101,10 @@ export interface UseLoadContentInput {
 	setGuides: React.Dispatch<
 		React.SetStateAction<Array<{ id: string; axis: 'h' | 'v'; position: number }>>
 	>;
+	/** Whether the loaded deck recommends opening read-only (`p:modifyVerifier` / "Mark as Final"). */
+	setReadOnlyRecommendation: React.Dispatch<React.SetStateAction<ReadOnlyRecommendation>>;
+	/** Deck + slide compatibility-warning toast stack for this load. */
+	setCompatToasts: React.Dispatch<React.SetStateAction<CompatibilityWarningToast[]>>;
 	setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 	setError: React.Dispatch<React.SetStateAction<string | null>>;
 	setIsDirty: React.Dispatch<React.SetStateAction<boolean>>;
@@ -129,6 +144,8 @@ export function useLoadContent({
 	setHeaderFooter,
 	setLayoutOptions,
 	setSlideMasters,
+	setModernCommentAuthors,
+	setRecentColors,
 	setTheme,
 	setTableStyleMap,
 	setThemeOptions,
@@ -150,6 +167,8 @@ export function useLoadContent({
 	setHasDigitalSignatures,
 	setDigitalSignatureCount,
 	setGuides,
+	setReadOnlyRecommendation,
+	setCompatToasts,
 	setLoading,
 	setError,
 	setIsDirty,
@@ -335,6 +354,8 @@ export function useLoadContent({
 				setHeaderFooter(parsed.headerFooter ?? {});
 				setLayoutOptions(parsed.layoutOptions ?? []);
 				setSlideMasters(parsed.slideMasters ?? []);
+				setModernCommentAuthors(parsed.modernCommentAuthors ?? []);
+				setRecentColors(seedRecentColors({ mruColors: parsed.mruColors }));
 				setTheme(parsed.theme);
 				setTableStyleMap(nextTableStyleMap);
 				setThemeOptions(parsed.themeOptions ?? []);
@@ -374,6 +395,17 @@ export function useLoadContent({
 
 				// Initialize drawing guides from parsed presentation + slide data
 				setGuides(buildInitialGuides(parsed.presentationGuides, parsed.slides[0]?.guides));
+
+				// Whether this deck asks to be opened read-only, and the deck + slide
+				// compatibility-warning toast stack: both reset wholesale on every
+				// load, matching every other setter here.
+				setReadOnlyRecommendation(readOnlyRecommendation(parsed));
+				setCompatToasts(
+					compatibilityWarningToasts([
+						...(parsed.warnings ?? []),
+						...parsed.slides.flatMap((slide) => slide.warnings ?? []),
+					]),
+				);
 
 				setActiveSlideIndex(0);
 				clearSelection();

@@ -11,14 +11,17 @@
 	import { normalizeHexColor, resolveTemplateBackgroundRows } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
+	import type { EditorState } from '../../editor/editor-state.svelte';
 	import type { InspectorDeckActions } from '../../state/inspector-deck';
 
 	const {
+		editor,
 		activeSlide,
 		slideMasters,
 		deck,
 		canEdit,
 	}: {
+		editor: EditorState;
 		activeSlide: PptxSlide;
 		slideMasters: readonly PptxSlideMaster[];
 		deck: InspectorDeckActions;
@@ -38,6 +41,10 @@
 	function colorValue(path: string): string {
 		return normalizeHexColor(deck.getTemplateBackgroundColor(path), '#ffffff');
 	}
+	function setBackground(path: string, color: string): void {
+		deck.setTemplateBackground(path, color);
+		editor.recordRecentColor(color);
+	}
 </script>
 
 {#if rows.layout || rows.master}
@@ -49,7 +56,7 @@
 					type="color"
 					disabled={!canEdit}
 					value={colorValue(rows.layout.path)}
-					onchange={(event) => deck.setTemplateBackground(rows.layout!.path, (event.currentTarget as HTMLInputElement).value)}
+					onchange={(event) => setBackground(rows.layout!.path, (event.currentTarget as HTMLInputElement).value)}
 				/>
 				<span class="value">{rows.layout.label}</span>
 			</label>
@@ -61,7 +68,7 @@
 					type="color"
 					disabled={!canEdit}
 					value={colorValue(rows.master.path)}
-					onchange={(event) => deck.setTemplateBackground(rows.master!.path, (event.currentTarget as HTMLInputElement).value)}
+					onchange={(event) => setBackground(rows.master!.path, (event.currentTarget as HTMLInputElement).value)}
 				/>
 				<span class="value">{rows.master.label}</span>
 			</label>

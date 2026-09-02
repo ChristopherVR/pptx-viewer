@@ -67,7 +67,9 @@ export function applyChartTypeSelectorPatch(
 						(change)="onType($event)"
 					>
 						@for (opt of typeOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+							<option [value]="opt.value" [selected]="opt.value === chartData.chartType">
+								{{ opt.labelKey | translate }}
+							</option>
 						}
 					</select>
 				</label>
@@ -83,7 +85,12 @@ export function applyChartTypeSelectorPatch(
 							(change)="onGrouping($event)"
 						>
 							@for (opt of groupingOptions; track opt.value) {
-								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+								<option
+									[value]="opt.value"
+									[selected]="opt.value === (chartData.grouping ?? 'clustered')"
+								>
+									{{ opt.labelKey | translate }}
+								</option>
 							}
 						</select>
 					</label>

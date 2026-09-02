@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	COMPAT_TOAST_METRICS,
+	compatToastStackStyle,
+	compatToastStackStyleAttr,
 	STATUS_BAR_CLASSES,
 	STATUS_BAR_METRICS,
 	TITLE_BAR_METRICS,
@@ -86,6 +89,30 @@ describe('the title-bar metrics agree with the Tailwind class tokens', () => {
 describe('the status-bar metric agrees with its Tailwind class token', () => {
 	it('pins the same row height', () => {
 		expect(arbitraryPx(STATUS_BAR_CLASSES.container, 'min-h')).toBe(STATUS_BAR_METRICS.height);
+	});
+});
+
+describe('compatToastStackStyle', () => {
+	it('anchors the stack above the status bar, not over it', () => {
+		const style = compatToastStackStyle();
+		expect(style.position).toBe('absolute');
+		expect(style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight)}px`);
+		expect(Number.parseFloat(style.bottom ?? '0')).toBe(
+			STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar,
+		);
+		expect(style.width).toBe('320px');
+	});
+
+	it('lets clicks through the empty stack to the chrome beneath', () => {
+		expect(compatToastStackStyle().pointerEvents).toBe('none');
+	});
+
+	it('flattens to a kebab-cased inline style attribute', () => {
+		const attr = compatToastStackStyleAttr();
+		expect(attr).toContain('position:absolute');
+		expect(attr).toContain('flex-direction:column');
+		expect(attr).toContain('z-index:40');
+		expect(attr.split(';')).toHaveLength(Object.keys(compatToastStackStyle()).length);
 	});
 });
 

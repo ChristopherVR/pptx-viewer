@@ -1,4 +1,8 @@
-import { mayLeaveSlideShow, shouldLoopContinuously } from 'pptx-viewer-shared';
+import {
+	mayLeaveSlideShow,
+	resolveAuthoredSlideRange,
+	shouldLoopContinuously,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n/translator';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -73,6 +77,21 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			parityUi.activeCustomShowId
 				? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
 				: null,
+		// Wave-4 B7: `ppaction://customshow?id=<id>[&return=true]` reads and
+		// switches the SAME `parityUi.activeCustomShowId` the radio-button UI
+		// (Slide Show > Custom Shows) drives, so an on-slide action and the menu
+		// agree about which show is "active".
+		getCustomShows: () => editor.customShows,
+		getActiveCustomShowId: () => parityUi.activeCustomShowId,
+		setActiveCustomShowId: (id) => {
+			parityUi.activeCustomShowId = id;
+		},
+		// `p:showPr/p:sldRg`: the deck is authored to open into slides
+		// `fromIndex..toIndex` rather than the whole deck. Read from the loader's
+		// as-parsed snapshot (there is no UI to edit this range yet, unlike the
+		// custom-show selection above), resolved fresh on every read.
+		getAuthoredRange: () =>
+			resolveAuthoredSlideRange(loader.presentationProperties, editor.renderedSlides.length),
 		// Trust Center > "Confirm before opening external hyperlinks": gates an
 		// on-slide Action Setting's `openUrl` intent the same way a text-run
 		// hyperlink click already is (`TextRunBase.svelte`).
@@ -149,6 +168,16 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		getEditingActive: deps.getEditingActive,
 		presentation,
 		onEndShow: () => handlers.onFullscreenToggle(),
+		// F5 / the ribbon's "From Beginning": same two calls `ViewerChrome`'s
+		// `onfrombeginning` makes, so the key and the button agree.
+		onStartFromBeginning: () => {
+			presentation.firstSlide();
+			handlers.onFullscreenToggle();
+		},
+		// Shift+F5 / the ribbon's "From Current Slide": `onFullscreenToggle` alone
+		// already resolves the show's actual entry slide (wave-4 B1), same as the
+		// ribbon button.
+		onStartFromCurrent: () => handlers.onFullscreenToggle(),
 		setPointerTool: (tool) => {
 			parityUi.annotations.tool = tool;
 		},

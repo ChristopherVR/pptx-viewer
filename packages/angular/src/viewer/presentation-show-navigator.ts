@@ -5,14 +5,10 @@
  * step may reveal the next animation build instead of changing slide, a
  * backward step may replay the current slide's builds instead of leaving it,
  * running off the end raises an end-of-show screen rather than wrapping, and an
- * authored `p:transition/@advTm` arms a timer that must be re-armed (and
- * cancelled) on every change. That is a state machine, and it was previously
- * interleaved with DOM wiring, keyboard handling and template plumbing inside
- * {@link PresentationOverlayComponent}.
- *
- * It lives here as a plain signal-holding class (no Angular injection context
- * needed) so the component keeps only the view wiring, and so the rules above
- * can be read in one place.
+ * authored `p:transition/@advTm` arms a timer re-armed (and cancelled) on every
+ * change. It lives here as a plain signal-holding class (no Angular injection
+ * context needed) so {@link PresentationOverlayComponent} keeps only view
+ * wiring, and the rules above stay in one place.
  */
 import { signal } from '@angular/core';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
@@ -52,10 +48,9 @@ export interface ShowNavigatorDeps {
 	 */
 	activeCustomShow?: () => ActiveShow;
 	/**
-	 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is authored
-	 * to open into a range rather than the whole deck or a custom show. Applied
-	 * the same way `activeCustomShow` is: a filter on the navigable order, not a
-	 * pre-filtered slide array.
+	 * The `p:showPr/p:sldRg` range, when the deck opens into a range rather than
+	 * the whole deck or a custom show. Applied like `activeCustomShow`: a filter
+	 * on the navigable order, not a pre-filtered slide array.
 	 */
 	authoredRange?: () => AuthoredRange;
 	/** The slide at the CURRENT index (a computed over `currentIndex`). */
@@ -68,16 +63,14 @@ export interface ShowNavigatorDeps {
 	/** Ask the host to end the show; the host guards against double-closing. */
 	requestClose: () => void;
 	/**
-	 * File > Options > Advanced > "End with black slide". PowerPoint's default
-	 * is ON: running past the last slide raises a black "End of slide show"
-	 * screen and only the NEXT forward input ends the show. Turning it off ends
-	 * the show immediately instead. Undefined means the PowerPoint default.
+	 * File > Options > Advanced > "End with black slide". PowerPoint's default is
+	 * ON: running past the last slide raises a black end screen and only the NEXT
+	 * forward input ends the show; off ends the show immediately instead.
 	 */
 	endWithBlackSlide?: () => boolean | undefined;
 	/**
-	 * Set Up Slide Show > "Loop continuously until 'Esc'". When true, running
-	 * past the last slide wraps back to the show's first slide instead of
-	 * raising the end-of-show screen (or exiting, per `endWithBlackSlide`).
+	 * Set Up Slide Show > "Loop continuously until 'Esc'": wraps to the show's
+	 * first slide instead of raising the end screen (or exiting).
 	 */
 	loopContinuously?: () => boolean | undefined;
 }
@@ -87,10 +80,10 @@ export class PresentationShowNavigator {
 	readonly currentIndex = signal(0);
 
 	/**
-	 * True once the show has run past its last slide and the black "End of slide
-	 * show" screen is up. It MUST be surfaced: while it is up the next input
-	 * either goes nowhere (backward) or ends the show (forward), so a deck that
-	 * kept painting its last slide looked stuck and swallowed every advance.
+	 * True once the show has run past its last slide and the black end screen is
+	 * up: while it is up the next input either goes nowhere (backward) or ends
+	 * the show (forward), so a stuck deck must surface this rather than swallow
+	 * every advance.
 	 */
 	readonly endOfShow = signal(false);
 
@@ -98,7 +91,7 @@ export class PresentationShowNavigator {
 	readonly activeTransition = signal<ActiveSlideTransition | null>(null);
 
 	/**
-	 * Set just before a BACKWARD slide change so the host's slide effect seeds the
+	 * Set just before a BACKWARD change so the host's slide effect seeds the
 	 * incoming slide as fully built. Read-and-cleared via
 	 * {@link takePendingCompletedEntry}.
 	 */
@@ -107,12 +100,12 @@ export class PresentationShowNavigator {
 	/** Pending `p:transition/@advTm` auto-advance timer for the current slide. */
 	private autoAdvanceTimer: ReturnType<typeof setTimeout> | undefined;
 
+	/** Deck index before each committed change; backs {@link goToLastViewed}. */
+	private previousIndex: number | null = null;
+
 	constructor(private readonly deps: ShowNavigatorDeps) {}
 
-	/**
-	 * Consume the "entered backward" flag. The host's per-slide effect asks once
-	 * per slide change, so this both reads and clears it.
-	 */
+	/** Consume the "entered backward" flag: reads and clears it in one call. */
 	takePendingCompletedEntry(): boolean {
 		const completed = this.pendingCompletedEntry;
 		this.pendingCompletedEntry = false;
@@ -133,14 +126,28 @@ export class PresentationShowNavigator {
 		if (requested !== this.currentIndex()) {
 			this.currentIndex.set(requested);
 			this.deps.annotations.setActiveSlide(requested);
+			// A host-forced jump (customShow return-after restoring the origin
+			// slide) supersedes the black end screen: the host would not push a
+			// new slide if it considered the show over.
+			this.endOfShow.set(false);
 		}
 	}
 
 	/**
-	 * (Re)arm PowerPoint's "Advance slide: After <n>" timer, cancelling whatever
-	 * was pending. Always cancelling first is load-bearing: a manual advance must
-	 * never leave a stale timer running that then skips the slide the presenter
-	 * just moved to.
+	 * Jump back to the slide the show was on immediately before the current one
+	 * (`ppaction://hlinkshowjump?jump=lastslideviewed`). A no-op before any
+	 * navigation has happened yet.
+	 */
+	goToLastViewed(): void {
+		if (this.previousIndex !== null) {
+			this.goToSlide(this.previousIndex);
+		}
+	}
+
+	/**
+	 * (Re)arm PowerPoint's "Advance slide: After <n>" timer, always cancelling
+	 * whatever was pending first: a manual advance must never leave a stale
+	 * timer running that skips the slide the presenter just moved to.
 	 */
 	armAutoAdvance(delayMs: number | undefined): void {
 		this.clearAutoAdvance();
@@ -259,13 +266,9 @@ export class PresentationShowNavigator {
 	}
 
 	/**
-	 * Jump directly to `index` (clamped to the slide range). Used by zoom tiles
-	 * and by on-slide Action Settings (`ppaction://hlinksldjump`).
-	 *
-	 * A jump ENTERS the target slide, so PowerPoint plays that slide's
-	 * transition exactly as a forward step does. Committing with `null` here is
-	 * why a deck navigated by clicking its own on-slide links showed no morph at
-	 * all while the same transition played fine on PageDown.
+	 * Jump directly to `index` (clamped). Used by zoom tiles and by on-slide
+	 * Action Settings (`ppaction://hlinksldjump`); ENTERS the target slide, so
+	 * PowerPoint plays its transition exactly as a forward step does.
 	 */
 	goToSlide(index: number): void {
 		const slides = this.deps.slides();
@@ -288,11 +291,10 @@ export class PresentationShowNavigator {
 
 	/**
 	 * The single place a slide change becomes visible: set the transition, move
-	 * the index, retarget the annotation layer, and tell the host. Both entry
-	 * points share it so a change to one can never silently skip a step in the
-	 * other (they had drifted apart as four repeated statements before).
+	 * the index, retarget the annotation layer, and tell the host.
 	 */
 	private commit(next: number, transition: ActiveSlideTransition | null): void {
+		this.previousIndex = this.currentIndex();
 		this.activeTransition.set(transition);
 		this.currentIndex.set(next);
 		this.deps.annotations.setActiveSlide(next);

@@ -19,6 +19,7 @@ import { masterViewOwnerElementId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import type { UseMasterViewCrudResult } from '../composables/useMasterViewCrud';
 import type { UseMasterViewWiringResult } from '../composables/useMasterViewWiring';
 import type { CanvasSize } from '../types';
 import HandoutMasterCanvas from './HandoutMasterCanvas.vue';
@@ -31,6 +32,8 @@ import SlideStage from './SlideStage.vue';
 
 const props = defineProps<{
 	state: UseMasterViewWiringResult;
+	/** Sidebar Insert/Duplicate/Delete/Rename Layout and Slide Master commands. */
+	crud: UseMasterViewCrudResult;
 	slideMasters: PptxSlideMaster[];
 	canvasSize: CanvasSize;
 	mediaDataUrls: Map<string, string>;
@@ -195,6 +198,8 @@ function canvasLabel(): string {
 			:handout-slides-per-page="handoutMaster?.slidesPerPage ?? state.handoutSlidesPerPage.value"
 			:slides-background="state.activeMasterViewBackground.value"
 			:can-edit="canEdit"
+			:crud-actions="crud.actions.value"
+			:crud-error="crud.error.value"
 			@select-master="state.onSelectMaster"
 			@select-layout="state.onSelectLayout"
 			@tab-change="state.masterViewTab.value = $event"
@@ -203,6 +208,7 @@ function canvasLabel(): string {
 			@handout-background-change="state.onHandoutMasterBackgroundChange"
 			@slides-background-change="state.onMasterViewBackgroundChange"
 			@collapse="state.showMasterView.value = false"
+			@crud-run="crud.run($event)"
 		/>
 		<main class="pptx-vue-master-canvas" role="application" :aria-label="canvasLabel()">
 			<NotesMasterCanvas

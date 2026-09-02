@@ -3,7 +3,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { normalizeHexColor } from '../../utils';
+import { useRecentColors } from './RecentColorsContext';
 import { INPUT_CLS, COLOR_CLS } from './TextPropertiesHelpers';
+import { TextReflectionSection } from './TextReflectionSection';
 
 // ==========================================================================
 // Props
@@ -27,13 +29,13 @@ export function TextEffectsPanel({
 	numChange,
 }: TextEffectsPanelProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 	const hasShadow = Boolean(
 		ts?.textShadowColor || (typeof ts?.textShadowBlur === 'number' && ts.textShadowBlur > 0),
 	);
 	const hasGlow = Boolean(
 		ts?.textGlowColor || (typeof ts?.textGlowRadius === 'number' && ts.textGlowRadius > 0),
 	);
-	const hasReflection = Boolean(ts?.textReflection);
 
 	return (
 		<div className='mt-2 rounded border border-border bg-card p-2 space-y-2'>
@@ -76,7 +78,10 @@ export function TextEffectsPanel({
 							<input
 								type='color'
 								value={normalizeHexColor(ts?.textShadowColor, '#000000')}
-								onChange={(e) => onUpdateTextStyle({ textShadowColor: e.target.value })}
+								onChange={(e) => {
+									onUpdateTextStyle({ textShadowColor: e.target.value });
+									pushColor(e.target.value);
+								}}
 								className={COLOR_CLS}
 							/>
 						</label>
@@ -167,7 +172,10 @@ export function TextEffectsPanel({
 							<input
 								type='color'
 								value={normalizeHexColor(ts?.textGlowColor, '#ffff00')}
-								onChange={(e) => onUpdateTextStyle({ textGlowColor: e.target.value })}
+								onChange={(e) => {
+									onUpdateTextStyle({ textGlowColor: e.target.value });
+									pushColor(e.target.value);
+								}}
 								className={COLOR_CLS}
 							/>
 						</label>
@@ -204,94 +212,7 @@ export function TextEffectsPanel({
 			</div>
 
 			{/* ── Text Reflection ── */}
-			<div className='space-y-1.5'>
-				<label className='inline-flex items-center gap-2 text-foreground'>
-					<input
-						type='checkbox'
-						checked={hasReflection}
-						onChange={(e) => {
-							if (e.target.checked) {
-								onUpdateTextStyle({
-									textReflection: true,
-									textReflectionBlur: 1,
-									textReflectionStartOpacity: 0.5,
-									textReflectionEndOpacity: 0,
-									textReflectionOffset: 3,
-								});
-							} else {
-								onUpdateTextStyle({
-									textReflection: undefined,
-									textReflectionBlur: undefined,
-									textReflectionStartOpacity: undefined,
-									textReflectionEndOpacity: undefined,
-									textReflectionOffset: undefined,
-								});
-							}
-						}}
-					/>
-					{t('pptx.textEffects.reflection')}
-				</label>
-				{hasReflection && (
-					<div className='grid grid-cols-2 gap-2 pl-4'>
-						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Blur</span>
-							<input
-								type='number'
-								min={0}
-								max={20}
-								step={0.5}
-								value={Number(ts?.textReflectionBlur ?? 1).toFixed(1)}
-								onChange={numChange((v) => ({
-									textReflectionBlur: Math.max(0, Math.min(20, v)),
-								}))}
-								className={INPUT_CLS}
-							/>
-						</label>
-						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Offset</span>
-							<input
-								type='number'
-								min={0}
-								max={20}
-								step={1}
-								value={Math.round(ts?.textReflectionOffset ?? 3)}
-								onChange={numChange((v) => ({
-									textReflectionOffset: Math.max(0, Math.min(20, v)),
-								}))}
-								className={INPUT_CLS}
-							/>
-						</label>
-						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>{t('pptx.textEffects.startOpacity')}</span>
-							<input
-								type='number'
-								min={0}
-								max={1}
-								step={0.05}
-								value={Number(ts?.textReflectionStartOpacity ?? 0.5).toFixed(2)}
-								onChange={numChange((v) => ({
-									textReflectionStartOpacity: Math.max(0, Math.min(1, v)),
-								}))}
-								className={INPUT_CLS}
-							/>
-						</label>
-						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>{t('pptx.textEffects.endOpacity')}</span>
-							<input
-								type='number'
-								min={0}
-								max={1}
-								step={0.05}
-								value={Number(ts?.textReflectionEndOpacity ?? 0).toFixed(2)}
-								onChange={numChange((v) => ({
-									textReflectionEndOpacity: Math.max(0, Math.min(1, v)),
-								}))}
-								className={INPUT_CLS}
-							/>
-						</label>
-					</div>
-				)}
-			</div>
+			<TextReflectionSection ts={ts} onUpdateTextStyle={onUpdateTextStyle} numChange={numChange} />
 		</div>
 	);
 }

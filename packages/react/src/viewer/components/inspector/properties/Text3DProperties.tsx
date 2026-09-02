@@ -10,6 +10,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { normalizeHexColor } from '../../../utils';
+import { useRecentColors } from '../RecentColorsContext';
 
 const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1';
 const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
@@ -24,6 +25,7 @@ export function Text3DProperties({
 	onUpdateTextStyle,
 }: Text3DPropertiesProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 	const t3d = ts?.text3d;
 	const hasExtrusion = Boolean(t3d?.extrusionHeight && t3d.extrusionHeight > 0);
 
@@ -81,7 +83,10 @@ export function Text3DProperties({
 							<input
 								type='color'
 								value={normalizeHexColor(t3d?.extrusionColor, '#888888')}
-								onChange={(e) => update3d({ extrusionColor: e.target.value })}
+								onChange={(e) => {
+									update3d({ extrusionColor: e.target.value });
+									pushColor(e.target.value);
+								}}
 								className={COLOR_CLS}
 							/>
 						</label>

@@ -46,6 +46,8 @@ function inputWith(
 		onSelectAll: vi.fn(),
 		onEscape: vi.fn(),
 		onNudge: vi.fn(),
+		onStartShowFromBeginning: vi.fn(),
+		onStartShowFromCurrent: vi.fn(),
 		...overrides,
 	};
 }
@@ -118,5 +120,70 @@ describe('useKeyboardShortcuts listener registration', () => {
 		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
 
 		expect(onDelete).not.toHaveBeenCalled();
+	});
+});
+
+describe('useKeyboardShortcuts F5 / Shift+F5 start-show keys', () => {
+	// These are resolved via the separate `mapSlideShowStartKey`, checked ahead
+	// of `mapEditorKey`'s `canEdit` / text-input gates, so F5 must still start
+	// the show with editing disabled and must never reach `mapEditorKey`
+	// (which would otherwise treat a bare F5 as NO_ACTION and let it through
+	// to the browser's own reload).
+	it('a bare F5 starts the show from the beginning and prevents the default reload', () => {
+		const onStartShowFromBeginning = vi.fn();
+		mount(inputWith(container, { onStartShowFromBeginning }));
+
+		const event = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true });
+		container.dispatchEvent(event);
+
+		expect(onStartShowFromBeginning).toHaveBeenCalledOnce();
+		expect(event.defaultPrevented).toBeTruthy();
+	});
+
+	it('shift+F5 starts the show from the current slide', () => {
+		const onStartShowFromCurrent = vi.fn();
+		mount(inputWith(container, { onStartShowFromCurrent }));
+
+		const event = new KeyboardEvent('keydown', {
+			key: 'F5',
+			shiftKey: true,
+			bubbles: true,
+			cancelable: true,
+		});
+		container.dispatchEvent(event);
+
+		expect(onStartShowFromCurrent).toHaveBeenCalledOnce();
+		expect(event.defaultPrevented).toBeTruthy();
+	});
+
+	it('f5 while presenting does nothing and leaves the reload unprevented', () => {
+		const onStartShowFromBeginning = vi.fn();
+		mount(inputWith(container, { mode: 'present', onStartShowFromBeginning }));
+
+		const event = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true });
+		container.dispatchEvent(event);
+
+		expect(onStartShowFromBeginning).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBeFalsy();
+	});
+
+	it('f5 still starts the show when editing is disabled (read-only viewer)', () => {
+		const onStartShowFromBeginning = vi.fn();
+		mount(inputWith(container, { canEdit: false, onStartShowFromBeginning }));
+
+		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'F5', bubbles: true }));
+
+		expect(onStartShowFromBeginning).toHaveBeenCalledOnce();
+	});
+
+	it('f5 still starts the show with the caret in a text input', () => {
+		const onStartShowFromBeginning = vi.fn();
+		mount(inputWith(container, { onStartShowFromBeginning }));
+		const textInput = document.createElement('input');
+		container.append(textInput);
+
+		textInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'F5', bubbles: true }));
+
+		expect(onStartShowFromBeginning).toHaveBeenCalledOnce();
 	});
 });

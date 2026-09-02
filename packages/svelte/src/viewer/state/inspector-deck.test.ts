@@ -204,4 +204,88 @@ describe('createInspectorDeckActions', () => {
 			expect(deck.getTemplateBackgroundColor('ppt/slideMasters/slideMaster1.xml')).toBeUndefined();
 		});
 	});
+
+	/**
+	 * Wave 4 #4: the Maximize/Ensure Fit rescale, applied through
+	 * `updateSlideSize`'s optional `rescaleMode` as ONE undo step alongside the
+	 * size change.
+	 */
+	describe('updateSlideSize rescale', () => {
+		it('hasContent is false for a deck with no elements on any slide', () => {
+			const editor = makeEditor();
+			const deck = createInspectorDeckActions({ loader: new PresentationLoader(), editor });
+
+			expect(deck.hasContent).toBeFalsy();
+		});
+
+		it('hasContent is true once a slide carries an element', () => {
+			const editor = makeEditor();
+			editor.setSlides([
+				{
+					id: 's1',
+					rId: 'rId1',
+					slideNumber: 1,
+					elements: [{ type: 'shape', id: 'el1', x: 0, y: 0, width: 100, height: 100 }],
+				},
+			]);
+			const deck = createInspectorDeckActions({ loader: new PresentationLoader(), editor });
+
+			expect(deck.hasContent).toBeTruthy();
+		});
+
+		it('without a rescaleMode, applies the size directly and does not touch element geometry', () => {
+			const editor = makeEditor();
+			editor.setSlides([
+				{
+					id: 's1',
+					rId: 'rId1',
+					slideNumber: 1,
+					elements: [{ type: 'shape', id: 'el1', x: 0, y: 0, width: 100, height: 100 }],
+				},
+			]);
+			const loader = new PresentationLoader();
+			const deck = createInspectorDeckActions({ loader, editor });
+
+			deck.updateSlideSize({ widthEmu: 6096000, heightEmu: 6858000, type: 'custom' });
+
+			expect(loader.slideSize).toStrictEqual({
+				widthEmu: 6096000,
+				heightEmu: 6858000,
+				type: 'custom',
+			});
+			expect(editor.slides[0]?.elements[0]?.width).toBe(100);
+			expect(editor.canUndo).toBeFalsy();
+		});
+
+		it('with rescaleMode "ensureFit", scales element geometry as one undo step alongside the size', () => {
+			const editor = makeEditor();
+			editor.setSlides([
+				{
+					id: 's1',
+					rId: 'rId1',
+					slideNumber: 1,
+					elements: [{ type: 'shape', id: 'el1', x: 0, y: 0, width: 100, height: 100 }],
+				},
+			]);
+			const loader = new PresentationLoader();
+			// Default canvas is 1280x720px = 12192000x6858000 EMU (widescreen).
+			const deck = createInspectorDeckActions({ loader, editor });
+
+			// Half the width, same height: ensureFit scales by the SMALLER ratio (0.5).
+			deck.updateSlideSize({ widthEmu: 6096000, heightEmu: 6858000, type: 'custom' }, 'ensureFit');
+
+			expect(loader.slideSize).toStrictEqual({
+				widthEmu: 6096000,
+				heightEmu: 6858000,
+				type: 'custom',
+			});
+			expect(editor.slides[0]?.elements[0]?.width).toBe(50);
+			expect(editor.dirty).toBeTruthy();
+
+			// One undo step: the rescale (content) and the size change land together.
+			expect(editor.canUndo).toBeTruthy();
+			editor.undo();
+			expect(editor.slides[0]?.elements[0]?.width).toBe(100);
+		});
+	});
 });

@@ -72,12 +72,24 @@ export interface FocusChip {
  * back to the last path segment when there is no trailing number.
  */
 function shortElementId(id: string): string {
-	const trailingNumber = id.match(/(\d+)\s*$/u);
-	if (trailingNumber) {
-		return trailingNumber[1];
+	// Scanned by hand rather than with `/(\d+)\s*$/`: an element id comes
+	// from the deck, and a backtracking regex is quadratic on a long run of
+	// digits followed by one non-digit. Two linear passes cost nothing.
+	const trimmed = id.trimEnd();
+	let start = trimmed.length;
+	while (start > 0 && isAsciiDigit(trimmed.charCodeAt(start - 1))) {
+		start -= 1;
 	}
-	const tail = id.replace(/^.*[/.-]/u, '');
+	if (start < trimmed.length) {
+		return trimmed.slice(start);
+	}
+	const separator = Math.max(id.lastIndexOf('/'), id.lastIndexOf('.'), id.lastIndexOf('-'));
+	const tail = separator === -1 ? id : id.slice(separator + 1);
 	return tail || id;
+}
+
+function isAsciiDigit(code: number): boolean {
+	return code >= 0x30 && code <= 0x39;
 }
 
 /**

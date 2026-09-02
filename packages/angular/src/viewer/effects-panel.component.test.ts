@@ -14,6 +14,7 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { EffectsPanelComponent } from './effects-panel.component';
+import { RecentColorsService } from './recent-colors.service';
 
 function shapeElement(shapeStyle: ShapeStyle): PptxElement {
 	return {
@@ -28,15 +29,26 @@ function shapeElement(shapeStyle: ShapeStyle): PptxElement {
 	} as PptxElement;
 }
 
-function createPanel(shapeStyle: ShapeStyle): EffectsPanelComponent {
+function createPanel(
+	shapeStyle: ShapeStyle,
+	recentColors?: { push: (hex: string) => void },
+): EffectsPanelComponent {
+	const providers = recentColors ? [{ provide: RecentColorsService, useValue: recentColors }] : [];
 	const panel = runInInjectionContext(
-		Injector.create({ providers: [] }),
+		Injector.create({ providers }),
 		() => new EffectsPanelComponent(),
 	);
 	Object.assign(panel, {
 		element: signal(shapeElement(shapeStyle)) as unknown as InputSignal<PptxElement>,
 	});
 	return panel;
+}
+
+function colorChange(value: string): Event {
+	const input = document.createElement('input');
+	input.type = 'color';
+	input.value = value;
+	return { target: input } as unknown as Event;
 }
 
 function checkboxChange(checked: boolean): Event {
@@ -70,5 +82,37 @@ describe('effectsPanelComponent outer shadow rotateWithShape', () => {
 		);
 		panel['onOuterShadowRotateWithShapeToggle'](checkboxChange(false));
 		expect((emitted?.shapeStyle as ShapeStyle | undefined)?.shadowRotateWithShape).toBeFalsy();
+	});
+});
+
+describe('effectsPanelComponent recent colours (wave-4 B6)', () => {
+	it('pushes a committed outer-shadow colour into RecentColorsService', () => {
+		const pushed: string[] = [];
+		const panel = createPanel({ shadowColor: '#000000' } as ShapeStyle, {
+			push: (hex) => pushed.push(hex),
+		});
+		vi.spyOn(panel.patch as OutputEmitterRef<Partial<PptxElement>>, 'emit').mockImplementation(
+			() => {},
+		);
+		panel['onOuterShadowField']('color', colorChange('#ff00ff'));
+		expect(pushed).toStrictEqual(['#ff00ff']);
+	});
+
+	it('pushes a committed glow colour into RecentColorsService', () => {
+		const pushed: string[] = [];
+		const panel = createPanel({} as ShapeStyle, { push: (hex) => pushed.push(hex) });
+		vi.spyOn(panel.patch as OutputEmitterRef<Partial<PptxElement>>, 'emit').mockImplementation(
+			() => {},
+		);
+		panel['onGlowField']('color', colorChange('#00ffaa'));
+		expect(pushed).toStrictEqual(['#00ffaa']);
+	});
+
+	it('does not throw when RecentColorsService is unavailable (standalone unit test)', () => {
+		const panel = createPanel({} as ShapeStyle);
+		vi.spyOn(panel.patch as OutputEmitterRef<Partial<PptxElement>>, 'emit').mockImplementation(
+			() => {},
+		);
+		expect(() => panel['onInnerShadowField']('color', colorChange('#123456'))).not.toThrow();
 	});
 });

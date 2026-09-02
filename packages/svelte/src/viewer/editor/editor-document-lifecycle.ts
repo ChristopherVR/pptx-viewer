@@ -209,6 +209,9 @@ export async function saveEditorState(
 		state.embedFonts,
 		// Design ▸ Slide Size: the ONLY way an edited `p:sldSz` reaches the file.
 		state.getSlideSize(),
+		// View ▸ Grid/Guides/Snap toggles, folded back into `ppt/viewProps.xml`
+		// (wave 4 #5). Outside the undo-tracked snapshot, like theme/embedFonts.
+		state.viewProperties,
 	);
 	state.dirty = false;
 	return bytes;

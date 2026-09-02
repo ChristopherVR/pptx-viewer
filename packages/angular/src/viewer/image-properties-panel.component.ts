@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
 import { ARTISTIC_EFFECTS } from '../internal/shared';
 import { ImageCropWashPanelComponent } from './image-crop-wash-panel.component';
+import { RecentColorsService } from './recent-colors.service';
 
 type ImageElement = PptxElement & { altText?: string; imageEffects?: PptxImageEffects };
 
@@ -51,7 +52,12 @@ export function mergeImageEffects(
 					(change)="onArtistic($event)"
 				>
 					@for (effect of artisticEffects; track effect[0]) {
-						<option [value]="effect[0]">{{ effect[1] | translate }}</option>
+						<option
+							[value]="effect[0]"
+							[selected]="effect[0] === (effects().artisticEffect ?? 'none')"
+						>
+							{{ effect[1] | translate }}
+						</option>
 					}
 				</select>
 			</label>
@@ -135,6 +141,9 @@ export class ImagePropertiesPanelComponent {
 	readonly element = input.required<PptxElement>();
 	readonly patch = output<Partial<PptxElement>>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	protected readonly image = computed(() => this.element() as ImageElement);
 	protected readonly effects = computed(() => this.image().imageEffects ?? {});
 	protected readonly artisticEffects = ARTISTIC_EFFECTS;
@@ -180,9 +189,11 @@ export class ImagePropertiesPanelComponent {
 
 	protected onDuotone(event: Event, key: 'color1' | 'color2'): void {
 		const current = this.effects().duotone ?? { color1: '#000000', color2: '#ffffff' };
+		const value = (event.target as HTMLInputElement).value;
 		this.updateEffects({
-			duotone: { ...current, [key]: (event.target as HTMLInputElement).value },
+			duotone: { ...current, [key]: value },
 		});
+		this.recentColors?.push(value);
 	}
 
 	protected clearDuotone(): void {

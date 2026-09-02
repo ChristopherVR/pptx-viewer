@@ -35,6 +35,7 @@ function setup(opts: {
 	loopContinuously?: boolean;
 	endWithBlackSlide?: boolean;
 	startIndex?: number;
+	onShowEnd?: () => boolean;
 }) {
 	const playback = fakePlayback();
 	const showOrder = usePresentationShowOrder({ slides: () => opts.slides });
@@ -49,9 +50,42 @@ function setup(opts: {
 		loopContinuously: () => Boolean(opts.loopContinuously),
 		requestClose,
 		onSlideChange,
+		onShowEnd: opts.onShowEnd,
 	});
 	return { nav, requestClose, onSlideChange };
 }
+
+describe('usePresentationNavigation - onShowEnd (returning custom-show sub-show)', () => {
+	it('outranks loop continuously, the black end screen, and requestClose', () => {
+		const onShowEnd = vi.fn().mockReturnValue(true);
+		const { nav, requestClose } = setup({
+			slides: [slide('a'), slide('b')],
+			startIndex: 1,
+			loopContinuously: true,
+			onShowEnd,
+		});
+		nav.next();
+		expect(onShowEnd).toHaveBeenCalledOnce();
+		// onShowEnd already navigated (e.g. back to the origin slide of a
+		// `&return=true` custom show); next() must not also loop, black-screen,
+		// or close on top of that.
+		expect(nav.showEndScreen.value).toBeFalsy();
+		expect(requestClose).not.toHaveBeenCalled();
+	});
+
+	it('falls through to the normal end-of-show handling when it returns false', () => {
+		const onShowEnd = vi.fn().mockReturnValue(false);
+		const { nav } = setup({
+			slides: [slide('a'), slide('b')],
+			startIndex: 1,
+			endWithBlackSlide: true,
+			onShowEnd,
+		});
+		nav.next();
+		expect(onShowEnd).toHaveBeenCalledOnce();
+		expect(nav.showEndScreen.value).toBeTruthy();
+	});
+});
 
 describe('usePresentationNavigation - loop continuously', () => {
 	it('wraps to the first show slide past the last one when loopContinuously is true', () => {

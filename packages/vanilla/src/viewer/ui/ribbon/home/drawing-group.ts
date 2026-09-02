@@ -22,6 +22,8 @@ export interface DrawingGroupHandlers {
 export interface DrawingGroupState {
 	editable: boolean;
 	hasSelection: boolean;
+	/** B6: the deck's `p:clrMru`, most-recent-first; seeds/refreshes both pickers' rows. */
+	recentColors?: readonly string[];
 }
 
 export interface DrawingGroup {
@@ -110,12 +112,14 @@ export function createDrawingGroup(
 
 	return {
 		el,
-		update({ editable, hasSelection }) {
+		update({ editable, hasSelection, recentColors }) {
 			shapes.setDisabled(!editable);
 			const canMut = editable && hasSelection;
 			arrange.setDisabled(!canMut);
 			fill.setDisabled(!canMut);
 			outline.setDisabled(!canMut);
+			fill.setRecentColors(recentColors ?? []);
+			outline.setRecentColors(recentColors ?? []);
 			effects.setDisabled(true);
 		},
 	};

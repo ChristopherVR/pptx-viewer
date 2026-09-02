@@ -1,4 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange, ShowOrderCustomShow } from 'pptx-viewer-shared';
 import {
 	formatMobileElapsed,
 	mobileElapsedSince,
@@ -40,6 +41,10 @@ export interface MobilePresenterViewProps {
 	currentSlideIndex: number;
 	canvasSize: CanvasSize;
 	templateElements: PptxElement[];
+	/** The running custom show, so the next-slide preview follows its order. */
+	activeCustomShow?: ShowOrderCustomShow | null;
+	/** The deck's authored `p:sldRg` range, so the preview never shows a slide outside it. */
+	authoredRange?: AuthoredSlideRange | undefined;
 	presentationStartTime: number | null;
 	onMovePresentationSlide: (direction: 1 | -1) => void;
 	onExit: () => void;
@@ -54,6 +59,8 @@ export function MobilePresenterView({
 	currentSlideIndex,
 	canvasSize,
 	templateElements,
+	activeCustomShow,
+	authoredRange,
 	presentationStartTime,
 	onMovePresentationSlide,
 	onExit,
@@ -72,7 +79,7 @@ export function MobilePresenterView({
 	const currentSlide = slides[currentSlideIndex];
 	// The preview must be the slide the next advance really lands on, so it runs
 	// the shared show-order rule and skips slides the author hid.
-	const nextSlide = nextPresentedSlide(slides, currentSlideIndex);
+	const nextSlide = nextPresentedSlide(slides, currentSlideIndex, activeCustomShow, authoredRange);
 
 	if (!currentSlide) {
 		return (

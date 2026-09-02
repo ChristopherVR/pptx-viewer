@@ -4,6 +4,8 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+import RecentColorsRow from '../RecentColorsRow.vue';
 import FillGradientControls from './FillGradientControls.vue';
 import FillPatternControls from './FillPatternControls.vue';
 
@@ -31,6 +33,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 type FillMode = 'none' | 'solid' | 'gradient' | 'pattern';
 
@@ -108,8 +111,19 @@ function onOpacity(value: string): void {
 						class="pptx-vue-fill-color w-full h-8 p-0 bg-muted border border-border rounded"
 						:value="fillColor"
 						@input="onColor(($event.target as HTMLInputElement).value)"
+						@change="recentColors?.push(($event.target as HTMLInputElement).value)"
 					/>
 				</label>
+				<RecentColorsRow
+					v-if="recentColors"
+					:colors="recentColors.recent.value"
+					@pick="
+						(hex) => {
+							onColor(hex);
+							recentColors?.push(hex);
+						}
+					"
+				/>
 
 				<label class="pptx-vue-fill-field flex flex-col gap-1">
 					<span class="pptx-vue-fill-label text-muted-foreground">{{

@@ -13,6 +13,25 @@ export interface PresentationActionDeps {
 	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
 	onSetMode: (mode: ViewerMode) => void;
 	slidesLength: number;
+	/** `ppaction://hlinkshowjump?jump=lastslideviewed`. */
+	onLastViewed?: () => void;
+	/** `ppaction://customshow?id=<id>[&return=true]`. */
+	onCustomShow?: (customShowId: string, returnAfter: boolean) => void;
+	/** `ppaction://hlinkfile`. */
+	onOpenFile?: (target: string) => void;
+	/** `ppaction://hlinkpres`. */
+	onOpenPresentation?: (target: string) => void;
+	/** `ppaction://media`: play/toggle the acting element's own embedded media. */
+	onPlayMedia?: (elementId: string | undefined) => void;
+	/** `ppaction://ole?verb=<n>`: open the acting element's recovered embedding. */
+	onOleVerb?: (verb: number, elementId: string | undefined) => void;
+	/**
+	 * The element the action was clicked on, when known. `playMedia` and
+	 * `oleVerb` act on THAT element rather than a navigation target, so
+	 * dropping it (as the canvas click handler used to) turned both verbs into
+	 * no-ops in this binding alone.
+	 */
+	elementId?: string;
 }
 
 /**
@@ -29,7 +48,7 @@ export function handlePresentationActionImpl(
 ): void {
 	runPresentationAction(
 		action,
-		{ slideCount: deps.slidesLength },
+		{ slideCount: deps.slidesLength, ...(deps.elementId ? { elementId: deps.elementId } : {}) },
 		{
 			goToSlide: (slideIndex) => {
 				deps.navigateToSlide(slideIndex);
@@ -43,6 +62,12 @@ export function handlePresentationActionImpl(
 			playSound: deps.onPlayActionSound
 				? (soundPath) => deps.onPlayActionSound?.(soundPath)
 				: undefined,
+			lastViewed: deps.onLastViewed,
+			customShow: deps.onCustomShow,
+			openFile: deps.onOpenFile,
+			openPresentation: deps.onOpenPresentation,
+			playMedia: deps.onPlayMedia,
+			oleVerb: deps.onOleVerb,
 		},
 	);
 }

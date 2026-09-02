@@ -1,6 +1,7 @@
 import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
 import { createEditActions } from './editor-edit-ops';
 import { createEditorOps } from './editor-operations';
@@ -58,7 +59,14 @@ describe('vanilla template editing', () => {
 			selectedElementIds: ['shape-1', 'shape-2'],
 		});
 		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
-		const actions = createEditActions({ doc: document, store, ops, getHandler: () => null });
+		const actions = createEditActions({
+			doc: document,
+			getTranslator: () => createTranslator(),
+			store,
+			ops,
+			getHandler: () => null,
+			setHandler: () => {},
+		});
 
 		actions.groupSelected();
 

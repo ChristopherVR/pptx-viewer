@@ -7,7 +7,7 @@
 // jsdom does not, and is what actually approximates the real browsers this
 // code runs in (`window.open` print windows), so this file opts into jsdom
 // specifically to get a faithful sanitisation result.
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 
@@ -220,6 +220,38 @@ describe('usePrint', () => {
 		// 7 slides / 6 per page → 2 pages
 		expect(html.match(/class="page"/gu)).toHaveLength(2);
 		expect(html).toContain('handout-grid');
+	});
+
+	it('paints the handout master footer text when a handoutMaster ref is wired and ftr is enabled', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
+		const openPrintWindow = vi.fn().mockReturnValue(true);
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 6,
+			headerFooter: { hasFooter: true },
+			elements: [
+				{
+					id: 'ftr1',
+					type: 'text',
+					placeholderType: 'ftr',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: 'Confidential - Acme Corp',
+				} as unknown as PptxSlide['elements'][number],
+			],
+		};
+		const { print } = usePrint({
+			slides: ref(makeSlides(2)),
+			activeSlideIndex: ref(0),
+			rasterizeSlide,
+			openPrintWindow,
+			handoutMaster: ref(handoutMaster),
+		});
+		await print(baseSettings({ printWhat: 'handouts', slidesPerPage: 6 }));
+		const html = openPrintWindow.mock.calls[0][0] as string;
+		expect(html).toContain('Confidential - Acme Corp');
 	});
 
 	it('uses the 3-per-page note-line layout', async () => {

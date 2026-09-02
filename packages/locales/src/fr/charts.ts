@@ -224,4 +224,7 @@ export const translations = {
 	'pptx.chart.radarStyleFilled': 'Rempli',
 	'pptx.chart.wireframeOn': 'Filaire',
 	'pptx.chart.wireframeOff': 'Plein',
+	'pptx.chart.bar3DShapeLabel': 'Forme des colonnes',
+	'pptx.chart.radarStyleLabel': 'Style radar',
+	'pptx.chart.surfaceWireframeLabel': 'Surface',
 } as const;

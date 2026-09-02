@@ -1,4 +1,6 @@
+import { getActiveElements } from './editor/editor-active-elements';
 import type { RenderController } from './render-controller';
+import { selectionChangeNeedsStageRender } from './selection-render-trigger';
 import type { StoreListener, ViewerState } from './state';
 import type { PptxViewerCallbacks } from './types';
 import type { ViewerChrome } from './ui';
@@ -69,7 +71,17 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.masterViewTab !== previous.masterViewTab ||
 			state.handoutSlidesPerPage !== previous.handoutSlidesPerPage ||
 			state.headerFooter !== previous.headerFooter ||
-			state.customProperties !== previous.customProperties
+			state.customProperties !== previous.customProperties ||
+			// A chart arms its on-canvas mark hit-testing only while selected (B3),
+			// so a chart entering/leaving the selection re-renders the stage to
+			// re-arm it. Only a chart: rebuilding on every selection change would
+			// replace the node under the pointer between the two clicks of a
+			// double-click (see `selection-render-trigger.ts`).
+			selectionChangeNeedsStageRender(
+				previous.selectedElementIds,
+				state.selectedElementIds,
+				getActiveElements(state),
+			)
 		) {
 			renderer.renderStage();
 		}
@@ -120,6 +132,15 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		}
 		if (state.protectedView !== previous.protectedView) {
 			chrome.setProtectedView(state.protectedView);
+		}
+		if (
+			state.readOnlyRecommendation !== previous.readOnlyRecommendation ||
+			state.readOnlyBannerDismissed !== previous.readOnlyBannerDismissed
+		) {
+			chrome.setReadOnlyRecommendation(state.readOnlyRecommendation, state.readOnlyBannerDismissed);
+		}
+		if (state.compatToasts !== previous.compatToasts) {
+			chrome.setCompatToasts(state.compatToasts);
 		}
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);

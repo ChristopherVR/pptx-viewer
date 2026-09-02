@@ -4,8 +4,10 @@ import {
 	buildPrintDocument,
 	escapeXml,
 	isSafeSvgMarkup,
+	buildPrintStyleSheet,
 	sanitizeCssDeclaration,
 	sanitizeOrientation,
+	sanitizePixelDimension,
 } from './svg-print';
 
 const SCRIPT_PAYLOAD = '<script>alert(1)</script>';
@@ -68,7 +70,36 @@ describe('isSafeSvgMarkup', () => {
 	});
 });
 
+describe('sanitizePixelDimension', () => {
+	it('passes a positive finite number through', () => {
+		expect(sanitizePixelDimension(800)).toBe(800);
+		expect(sanitizePixelDimension(0.5)).toBe(0.5);
+	});
+
+	it('falls back to 1 for zero, negative, NaN and Infinity', () => {
+		expect(sanitizePixelDimension(0)).toBe(1);
+		expect(sanitizePixelDimension(-3)).toBe(1);
+		expect(sanitizePixelDimension(Number.NaN)).toBe(1);
+		expect(sanitizePixelDimension(Number.POSITIVE_INFINITY)).toBe(1);
+	});
+
+	it('never lets a string reach the stylesheet, even from an untyped caller', () => {
+		const tampered = `1px; } </style>${SCRIPT_PAYLOAD}<style>` as unknown as number;
+		expect(sanitizePixelDimension(tampered)).toBe(1);
+		expect(sanitizePixelDimension('640' as unknown as number)).toBe(640);
+	});
+});
+
 describe('buildPrintDocument', () => {
+	it('coerces a tampered width/height before interpolating them', () => {
+		const tampered = `1px; } </style>${SCRIPT_PAYLOAD}<style>` as unknown as number;
+		const html = buildPrintDocument(['<svg></svg>'], tampered, tampered, { scaleToFit: false });
+
+		expect(html).not.toContain(SCRIPT_PAYLOAD);
+		expect(html).toContain('width: 1px; height: 1px;');
+		expect(buildPrintStyleSheet(tampered, 600)).not.toContain(SCRIPT_PAYLOAD);
+	});
+
 	it('escapes a <script> payload in the title so it never appears as a live tag', () => {
 		const html = buildPrintDocument(['<svg></svg>'], 800, 600, { title: SCRIPT_PAYLOAD });
 

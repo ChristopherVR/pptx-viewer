@@ -27,6 +27,7 @@
 
 	const canEdit = $derived(editor.editable);
 	const slideCount = $derived(editor.slides.length);
+	const customShows = $derived(editor.customShows);
 	const clickAction = $derived<ElementAction | undefined>(
 		el.actionClick ? pptxActionToElementAction(el.actionClick, 'click') : undefined,
 	);
@@ -34,17 +35,12 @@
 		el.actionHover ? pptxActionToElementAction(el.actionHover, 'hover') : undefined,
 	);
 
-	/** Write one trigger's action back onto the element (history-integrated). */
-	function updateAction(
-		trigger: 'click' | 'hover',
-		type: ElementActionType,
-		url?: string,
-		slideIndex?: number,
-	): void {
-		const action = elementActionToPptxAction({ trigger, type, url, slideIndex });
+	/** Write one trigger's FULL action back onto the element (history-integrated). */
+	function updateAction(trigger: 'click' | 'hover', action: Omit<ElementAction, 'trigger'>): void {
+		const pptxAction = elementActionToPptxAction({ trigger, ...action });
 		editor.applyElementPatch(
 			el.id,
-			(trigger === 'click' ? { actionClick: action } : { actionHover: action }) as Partial<
+			(trigger === 'click' ? { actionClick: pptxAction } : { actionHover: pptxAction }) as Partial<
 				PptxElement
 			>,
 		);
@@ -53,16 +49,32 @@
 	/**
 	 * Write a picked type back only once it carries its target.
 	 *
-	 * A target-less `url` / `slide` action serialises to an action that parses
-	 * straight back as `none`, so committing one would wipe the choice the user
-	 * is halfway through making; the fields keep showing the pick until the
+	 * A target-less `url` / `slide` / `customShow` action serialises to an
+	 * action that parses straight back as `none` (or, for `customShow`, one
+	 * naming no show), so committing one would wipe the choice the user is
+	 * halfway through making; the fields keep showing the pick until the
 	 * target arrives (shared `canCommitActionType`).
 	 */
 	function chooseType(trigger: 'click' | 'hover', type: ElementActionType): void {
 		const current = trigger === 'click' ? clickAction : hoverAction;
-		const target = { url: current?.url, slideIndex: current?.slideIndex };
-		if (canCommitActionType(type, target)) {
-			updateAction(trigger, type, target.url, target.slideIndex);
+		const action = { ...current, type };
+		if (canCommitActionType(type, action)) {
+			updateAction(trigger, action);
+		}
+	}
+
+	/**
+	 * A target field changed (URL, slide number, custom show, return-after):
+	 * `patch` always carries the type the field belongs to (the trigger
+	 * fields' own `effectiveType`, which may still be only PENDING), so this
+	 * commits under the SAME gate as a fresh type pick rather than the type
+	 * last actually written to the element.
+	 */
+	function changeTarget(trigger: 'click' | 'hover', patch: Partial<ElementAction>): void {
+		const current = trigger === 'click' ? clickAction : hoverAction;
+		const action = { ...current, ...patch, type: patch.type ?? current?.type ?? 'none' };
+		if (canCommitActionType(action.type, action)) {
+			updateAction(trigger, action);
 		}
 	}
 </script>
@@ -76,22 +88,26 @@
 			activeType={clickAction?.type ?? 'none'}
 			url={clickAction?.url ?? el.actionClick?.url ?? ''}
 			slideIndex={clickAction?.slideIndex ?? el.actionClick?.targetSlideIndex ?? 0}
+			customShowId={clickAction?.customShowId ?? ''}
+			returnAfter={clickAction?.returnAfter ?? false}
+			{customShows}
 			{canEdit}
 			{slideCount}
 			onchangetype={(type) => chooseType('click', type)}
-			onchangeurl={(url) => updateAction('click', 'url', url)}
-			onchangeslide={(index) => updateAction('click', 'slide', undefined, index)}
+			onchangetarget={(patch) => changeTarget('click', patch)}
 		/>
 		<ActionTriggerFields
 			label={t('pptx.action.onHover')}
 			activeType={hoverAction?.type ?? 'none'}
 			url={hoverAction?.url ?? el.actionHover?.url ?? ''}
 			slideIndex={hoverAction?.slideIndex ?? el.actionHover?.targetSlideIndex ?? 0}
+			customShowId={hoverAction?.customShowId ?? ''}
+			returnAfter={hoverAction?.returnAfter ?? false}
+			{customShows}
 			{canEdit}
 			{slideCount}
 			onchangetype={(type) => chooseType('hover', type)}
-			onchangeurl={(url) => updateAction('hover', 'url', url)}
-			onchangeslide={(index) => updateAction('hover', 'slide', undefined, index)}
+			onchangetarget={(patch) => changeTarget('hover', patch)}
 		/>
 	</div>
 {/key}

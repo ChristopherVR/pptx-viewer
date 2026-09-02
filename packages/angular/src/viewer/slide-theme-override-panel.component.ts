@@ -63,7 +63,9 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 							(change)="change(alias, $event)"
 						>
 							@for (slot of slots; track slot) {
-								<option [value]="slot">{{ slotLabelKey(slot) | translate }}</option>
+								<option [value]="slot" [selected]="slot === current(alias)">
+									{{ slotLabelKey(slot) | translate }}
+								</option>
 							}
 						</select>
 					</label>

@@ -13,6 +13,7 @@
  */
 import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-vue-next';
 import type { PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange } from 'pptx-viewer-shared';
 import {
 	nextPresentedSlide,
 	PRESENTER_CONSOLE_CLASSES,
@@ -45,6 +46,8 @@ const props = defineProps<{
 	audienceOpen: boolean;
 	/** Membership of the running custom show, when one is playing. */
 	activeCustomShow?: { slideRIds: string[] } | null;
+	/** `p:showPr/p:sldRg`, resolved to deck indexes; `null`/`undefined` for no range. */
+	authoredRange?: AuthoredSlideRange | null;
 }>();
 
 const emit = defineEmits<{
@@ -68,7 +71,12 @@ const currentSlide = computed<PptxSlide | undefined>(() => props.slides[props.cu
  * presenter into a segue the next press could not reach.
  */
 const nextSlide = computed<PptxSlide | undefined>(() =>
-	nextPresentedSlide(props.slides, props.currentSlideIndex, props.activeCustomShow),
+	nextPresentedSlide(
+		props.slides,
+		props.currentSlideIndex,
+		props.activeCustomShow,
+		props.authoredRange,
+	),
 );
 
 const notesText = computed(() => currentSlide.value?.notes ?? '');

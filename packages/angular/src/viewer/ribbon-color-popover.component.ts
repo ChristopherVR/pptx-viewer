@@ -6,16 +6,18 @@
  * cap; behaviour and markup are unchanged.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AnchoredPopupDirective } from './anchored-popup.directive';
+import { RecentColorsRowComponent } from './recent-colors-row.component';
+import { RecentColorsService } from './recent-colors.service';
 
 @Component({
 	selector: 'pptx-ribbon-color-popover',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe, AnchoredPopupDirective],
+	imports: [NgClass, TranslatePipe, AnchoredPopupDirective, RecentColorsRowComponent],
 	template: `
 		<div class="group relative">
 			<button
@@ -45,10 +47,16 @@ import { AnchoredPopupDirective } from './anchored-popup.directive';
 								[style.background]="c"
 								[attr.aria-label]="swatchAriaKey() | translate: { color: c }"
 								(mousedown)="$event.preventDefault()"
-								(click)="pick.emit(c)"
+								(click)="onPick(c)"
 							></button>
 						}
 					</div>
+					<pptx-recent-colors-row
+						class="mb-2 block"
+						[colors]="recentColors.recent()"
+						[disabled]="disabled()"
+						(pick)="onPick($event)"
+					/>
 					<label
 						class="block w-full cursor-pointer py-1 text-center text-[10px] text-muted-foreground transition-colors hover:text-foreground"
 					>
@@ -57,7 +65,7 @@ import { AnchoredPopupDirective } from './anchored-popup.directive';
 							type="color"
 							class="sr-only"
 							[value]="current()"
-							(change)="pick.emit($any($event.target).value)"
+							(change)="onPick($any($event.target).value)"
 						/>
 					</label>
 				</div>
@@ -73,4 +81,12 @@ export class RibbonColorPopoverComponent {
 	readonly swatchAriaKey = input<string>('');
 
 	readonly pick = output<string>();
+
+	protected readonly recentColors = inject(RecentColorsService);
+
+	/** Every commit through this popover both fires `pick` and records the colour as recently used. */
+	protected onPick(color: string): void {
+		this.pick.emit(color);
+		this.recentColors.push(color);
+	}
 }

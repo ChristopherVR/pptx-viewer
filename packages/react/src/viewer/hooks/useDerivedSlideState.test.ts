@@ -119,6 +119,32 @@ describe('computeVisibleSlideIndexes', () => {
 	it('returns empty array for empty slides', () => {
 		expect(computeVisibleSlideIndexes([], null, [])).toStrictEqual([]);
 	});
+
+	it('restricts to the authored p:sldRg range when no custom show is active', () => {
+		// `p:showPr/p:sldRg st="2" end="3"` -> 0-based [1, 2].
+		const slides = [
+			makeSlide({ id: 's1', rId: 'r1' }),
+			makeSlide({ id: 's2', rId: 'r2' }),
+			makeSlide({ id: 's3', rId: 'r3' }),
+			makeSlide({ id: 's4', rId: 'r4' }),
+		];
+		const result = computeVisibleSlideIndexes(slides, null, [], {
+			showSlidesMode: 'range',
+			showSlidesFrom: 2,
+			showSlidesTo: 3,
+		});
+		expect(result).toStrictEqual([1, 2]);
+	});
+
+	it('ignores the authored range outside range mode', () => {
+		const slides = [makeSlide({ id: 's1', rId: 'r1' }), makeSlide({ id: 's2', rId: 'r2' })];
+		const result = computeVisibleSlideIndexes(slides, null, [], {
+			showSlidesMode: 'all',
+			showSlidesFrom: 2,
+			showSlidesTo: 2,
+		});
+		expect(result).toStrictEqual([0, 1]);
+	});
 });
 
 // ---------------------------------------------------------------------------

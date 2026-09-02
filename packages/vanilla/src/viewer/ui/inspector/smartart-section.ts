@@ -196,6 +196,8 @@ export function createSmartArtSection(
 			fill.addEventListener('input', () =>
 				handlers.setSmartArtNodeStyle(node.id, { fillColor: fill.value }),
 			);
+			// B6: push into the "Recent colours" MRU list once the picker commits.
+			fill.addEventListener('change', () => handlers.pushRecentColor(fill.value));
 			const font = doc.createElement('input');
 			font.type = 'color';
 			font.value = node.style?.fontColor ?? '#ffffff';
@@ -203,6 +205,7 @@ export function createSmartArtSection(
 			font.addEventListener('input', () =>
 				handlers.setSmartArtNodeStyle(node.id, { fontColor: font.value }),
 			);
+			font.addEventListener('change', () => handlers.pushRecentColor(font.value));
 			const bold = doc.createElement('button');
 			bold.type = 'button';
 			bold.textContent = 'B';

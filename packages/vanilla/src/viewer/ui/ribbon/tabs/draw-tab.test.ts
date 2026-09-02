@@ -80,6 +80,15 @@ describe('createDrawTab', () => {
 		expect(widthTrigger?.textContent).toBe('8 px');
 	});
 
+	// B6: the pen colour picker gets the same deck-level "Recent colours" row.
+	it('update() threads recentColors into the pen colour picker', () => {
+		const t = createTranslator();
+		const tab = createDrawTab(document, t, makeHandlers());
+		tab.update({ tool: 'pen', color: '#123456', width: 2, recentColors: ['#112233'] });
+
+		expect(tab.el.querySelector('[data-testid="pptx-color-recent"] .pptxv-swatch')).not.toBeNull();
+	});
+
 	it('setEditable disables every tool button and control (trigger buttons, not the swatch/dropdown popover items, which are unreachable behind a disabled trigger)', () => {
 		const t = createTranslator();
 		const tab = createDrawTab(document, t, makeHandlers());

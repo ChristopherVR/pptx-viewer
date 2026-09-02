@@ -7,6 +7,7 @@ import type {
 
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
+import type { CustomShowDescriptor } from './useCustomShowRunner';
 
 /**
  * How a forward/backward slide advance was requested.
@@ -87,6 +88,12 @@ export interface UsePresentationModeInput {
 	 * advancing past the last slide exits the show directly.
 	 */
 	endWithBlackSlide?: boolean;
+	/** Custom shows defined in the presentation, for `ppaction://customshow`. */
+	customShows?: CustomShowDescriptor[];
+	/** The custom show currently driving the show order, if any. */
+	activeCustomShowId?: string | null;
+	/** Switch the active custom show (does not itself navigate). */
+	onSetActiveCustomShowId?: (id: string | null) => void;
 }
 
 export interface UsePresentationModeResult {
@@ -118,7 +125,8 @@ export interface UsePresentationModeResult {
 	closeAllSlides: () => void;
 	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
 	navigateToSlide: (slideIndex: number) => void;
-	handlePresentationAction: (action: PptxAction) => void;
+	/** `elementId` is the clicked element, for the verbs that act on it (`playMedia`, `oleVerb`). */
+	handlePresentationAction: (action: PptxAction, elementId?: string) => void;
 	/**
 	 * Handle a shape click in presentation mode. If the shape is an interactive
 	 * trigger, play its animation sequence. Returns `true` if handled.
@@ -134,6 +142,12 @@ export interface UsePresentationModeResult {
 	handleHoverEnd: (shapeId: string) => void;
 	/** Must be called from a user-gesture handler (click) to satisfy browser fullscreen policy. */
 	enterPresentMode: () => void;
+	/**
+	 * "From Beginning" / F5: enters the show on the FIRST slide the show
+	 * order visits (`firstShowSlideIndex`), regardless of the editor's
+	 * current active slide. Also a user-gesture handler.
+	 */
+	enterPresentModeFromBeginning: () => void;
 	/** Whether presenter view (split-screen with notes) is active instead of fullscreen. */
 	presenterMode: boolean;
 	/** Enter presenter view mode (no fullscreen, shows notes panel). */

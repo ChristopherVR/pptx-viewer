@@ -1,6 +1,6 @@
 import type { MasterViewTab, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import { masterViewBackgroundColor, masterViewPseudoSlide } from 'pptx-viewer-shared';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, MasterViewCrudAction, MasterViewCrudActionId } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -22,6 +22,9 @@ export interface MasterViewSidebarOptions {
 	handoutSlidesPerPage: number;
 	/** Editing affordances are offered only on an editable deck. */
 	editable?: boolean;
+	/** B4: the sidebar's CRUD command list for the current target (`[]` when there is none). */
+	crudActions: readonly MasterViewCrudAction[];
+	onCrudAction(id: MasterViewCrudActionId): void;
 	renderStage(slide: PptxSlide, scale: number): HTMLElement;
 	onSelect(masterIndex: number, layoutIndex: number | null): void;
 	onTabChange(tab: MasterViewTab): void;
@@ -99,6 +102,33 @@ function slideFromMaster(master: PptxSlideMaster, layoutIndex: number | null): P
 	);
 }
 
+/** One CRUD button per {@link MasterViewCrudAction} (Insert/Duplicate/Delete/Rename x2). */
+function addCrudActionsRow(
+	doc: Document,
+	t: Translator,
+	parent: HTMLElement,
+	actions: readonly MasterViewCrudAction[],
+	onAction: (id: MasterViewCrudActionId) => void,
+): void {
+	if (actions.length === 0) {
+		return;
+	}
+	const row = createEl(doc, 'div', 'pptxv-master-crud');
+	for (const action of actions) {
+		const button = createEl(doc, 'button', 'pptxv-master-crud-btn');
+		button.type = 'button';
+		button.dataset.testid = `pptx-master-crud-${action.id}`;
+		button.textContent = t(action.labelKey);
+		button.disabled = !action.enabled;
+		if (action.disabledReasonKey) {
+			button.title = t(action.disabledReasonKey);
+		}
+		button.addEventListener('click', () => onAction(action.id));
+		row.appendChild(button);
+	}
+	parent.appendChild(row);
+}
+
 function renderSlides(
 	doc: Document,
 	t: Translator,
@@ -119,6 +149,7 @@ function renderSlides(
 			) ?? '#ffffff',
 			o.onMasterBackgroundColorChange,
 		);
+		addCrudActionsRow(doc, t, body, o.crudActions, o.onCrudAction);
 	}
 	const scale = THUMB_WIDTH / Math.max(o.canvasSize.width, 1);
 	for (const [masterIndex, master] of o.masters.entries()) {

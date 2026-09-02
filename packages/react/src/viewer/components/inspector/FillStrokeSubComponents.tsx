@@ -1,13 +1,13 @@
-import type { ShapeStyle } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPipette } from 'react-icons/lu';
 
 import { THEME_COLOR_SWATCHES } from '../../constants';
 import { normalizeHexColor, openNativeEyeDropper } from '../../utils';
-import type { EffectToggleCfg } from './fill-stroke-effect-configs';
-import { SEL, NUM, RNG, SWATCH, DIS, LBL, COL2, safeNum } from './FillStrokeHelpers';
+import { SEL, RNG, SWATCH, DIS, LBL, COL2 } from './FillStrokeHelpers';
 import type { GradientStop } from './FillStrokeHelpers';
+import { useRecentColors } from './RecentColorsContext';
+import { RecentColorsRow } from './RecentColorsRow';
 
 // ---------------------------------------------------------------------------
 // SelectRow
@@ -51,27 +51,39 @@ export function SelectRow({
 // ColorPickerRow
 // ---------------------------------------------------------------------------
 
-/** Color picker + theme swatches + recent colors + eyedropper. */
+/**
+ * Color picker + theme swatches + recent colors + eyedropper.
+ *
+ * The recent-colours row is sourced from {@link useRecentColors} (context),
+ * not a prop: every caller used to have to thread its own `recentColors`
+ * array down from the loaded deck, and one of the two calls (the fill
+ * colour's own row) simply never did, so its row silently rendered nothing.
+ * Every commit here (typed colour, theme swatch, recent swatch, eyedropper)
+ * also pushes the pick back into that same shared list.
+ */
 export function ColorPickerRow({
 	label,
 	value,
 	disabled,
 	prefix,
-	recentColors,
 	onChange,
 }: {
 	label: string;
 	value: string;
 	disabled?: boolean;
 	prefix: string;
-	recentColors?: string[];
 	onChange: (c: string) => void;
 }): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
+	const commit = (color: string): void => {
+		onChange(color);
+		pushColor(color);
+	};
 	const handleEyedropper = async (): Promise<void> => {
 		const color = await openNativeEyeDropper();
 		if (color) {
-			onChange(color);
+			commit(color);
 		}
 	};
 
@@ -83,7 +95,7 @@ export function ColorPickerRow({
 					type='color'
 					value={value}
 					disabled={disabled}
-					onChange={(e) => onChange(e.target.value)}
+					onChange={(e) => commit(e.target.value)}
 					className={`h-8 flex-1 ${SEL} px-1 ${DIS}`}
 				/>
 				<button
@@ -110,22 +122,11 @@ export function ColorPickerRow({
 						aria-label={`${label} ${c}`}
 						data-pptx-compact
 						disabled={disabled}
-						onClick={() => onChange(c)}
-					/>
-				))}
-				{recentColors?.map((c) => (
-					<button
-						key={`${prefix}-recent-${c}`}
-						type='button'
-						data-pptx-compact
-						className='h-4 w-4 rounded border border-primary'
-						style={{ backgroundColor: c }}
-						title={`Recent ${c}`}
-						aria-label={`Recent ${c}`}
-						onClick={() => onChange(c)}
+						onClick={() => commit(c)}
 					/>
 				))}
 			</div>
+			<RecentColorsRow prefix={prefix} disabled={disabled} onCommit={commit} />
 		</label>
 	);
 }
@@ -149,6 +150,7 @@ export function GradientStopRow({
 	allStops: GradientStop[];
 }): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 	const patchStop = (patch: Partial<GradientStop>): void => {
 		const next = allStops.map((s, i) => (i === index ? { ...s, ...patch } : s));
 		onUpdate(next);
@@ -159,7 +161,11 @@ export function GradientStopRow({
 				<input
 					type='color'
 					value={normalizeHexColor(stop.color, '#3b82f6')}
-					onChange={(e) => patchStop({ color: normalizeHexColor(e.target.value, '#3b82f6') })}
+					onChange={(e) => {
+						const hex = normalizeHexColor(e.target.value, '#3b82f6');
+						patchStop({ color: hex });
+						pushColor(hex);
+					}}
 					className='h-7 w-10 rounded border border-border bg-muted'
 				/>
 				<input
@@ -197,112 +203,6 @@ export function GradientStopRow({
 	);
 }
 
-// ---------------------------------------------------------------------------
-// EffectField
-// ---------------------------------------------------------------------------
-
-/** Render fields for a togglable effect (shadow, glow, etc.). */
-export function EffectField({
-	field,
-	style,
-	onUpdate,
-}: {
-	field: EffectToggleCfg['fields'][number];
-	style: ShapeStyle | undefined;
-	onUpdate: (u: Partial<ShapeStyle>) => void;
-}): React.ReactElement {
-	const { t } = useTranslation();
-	const fieldLabel = field.i18nKey ? t(field.i18nKey) : field.label;
-	const val = field.read(style);
-	const cls = `flex flex-col gap-1 ${field.span2 ? COL2 : ''}`;
-	if (field.type === 'select' && field.options) {
-		return (
-			<label className={cls}>
-				<span className={LBL}>{fieldLabel}</span>
-				<select
-					aria-label={fieldLabel}
-					value={String(val)}
-					onChange={(e) => {
-						const result = field.write(e.target.value, style);
-						onUpdate(typeof result === 'function' ? result(style) : result);
-					}}
-					className={SEL}
-				>
-					{field.options.map((o) => (
-						<option key={o.value} value={o.value}>
-							{o.label}
-						</option>
-					))}
-				</select>
-			</label>
-		);
-	}
-	if (field.type === 'color') {
-		return (
-			<label className={cls}>
-				<span className={LBL}>{fieldLabel}</span>
-				<input
-					type='color'
-					value={String(val)}
-					onChange={(e) => {
-						const result = field.write(e.target.value, style);
-						onUpdate(typeof result === 'function' ? result(style) : result);
-					}}
-					className={`h-8 ${SEL} px-1`}
-				/>
-			</label>
-		);
-	}
-	if (field.type === 'checkbox') {
-		return (
-			<label className={`flex items-center gap-2 ${field.span2 ? COL2 : ''}`}>
-				<input
-					type='checkbox'
-					checked={Boolean(val)}
-					onChange={(e) => {
-						const result = field.write(e.target.checked, style);
-						onUpdate(typeof result === 'function' ? result(style) : result);
-					}}
-					className='h-4 w-4'
-				/>
-				<span className={LBL}>{fieldLabel}</span>
-			</label>
-		);
-	}
-	if (field.type === 'range') {
-		return (
-			<label className={cls}>
-				<span className={LBL}>{fieldLabel}</span>
-				<input
-					type='range'
-					min={field.min ?? 0}
-					max={field.max ?? 100}
-					value={Number(val)}
-					onChange={(e) => {
-						const result = field.write(Number(e.target.value), style);
-						onUpdate(typeof result === 'function' ? result(style) : result);
-					}}
-					className={RNG}
-				/>
-			</label>
-		);
-	}
-	return (
-		<label className={cls}>
-			<span className={LBL}>{fieldLabel}</span>
-			<input
-				type='number'
-				min={field.min}
-				max={field.max}
-				step={field.step}
-				value={Number(val)}
-				onChange={(e) => {
-					const n = safeNum(e.target.value, Number(val));
-					const result = field.write(n, style);
-					onUpdate(typeof result === 'function' ? result(style) : result);
-				}}
-				className={NUM}
-			/>
-		</label>
-	);
-}
+// EffectField was extracted to `./EffectField` to keep this file inside the
+// per-file line budget; re-exported here so existing imports keep working.
+export { EffectField } from './EffectField';

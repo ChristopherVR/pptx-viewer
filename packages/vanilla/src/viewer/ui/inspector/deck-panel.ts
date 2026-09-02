@@ -26,9 +26,11 @@ export type DeckPanelHandlers = Pick<
 	| 'updateActiveSlide'
 	| 'updateCanvasSize'
 	| 'updateSlideSize'
+	| 'applySlideSizeRescale'
 	| 'updateTagCollections'
 	| 'setTemplateBackground'
 	| 'getTemplateBackgroundColor'
+	| 'pushRecentColor'
 >;
 
 /** The read-only NOTES & HANDOUT card (React's `NotesHandoutCard`). */

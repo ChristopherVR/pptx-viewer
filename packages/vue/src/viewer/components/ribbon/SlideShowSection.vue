@@ -35,11 +35,13 @@ import { ic, pill, SEP } from './ribbon-constants';
  * reachable from this tab. It opens in a popover so the tab's control inventory
  * is unchanged while the menu is closed.
  */
-import type { CustomShowsControlsProps, ViewerMode } from './ribbon-types';
+import type { CustomShowsControlsProps } from './ribbon-types';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
 	onPresent: () => void;
+	/** Start > From Beginning: the show's first slide, unconditionally. */
+	onPresentFromBeginning: () => void;
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
 	onOpenSetUpSlideShow: () => void;
@@ -53,7 +55,6 @@ interface Props {
 	onOpenBroadcastDialog: () => void;
 	onToggleSubtitles: () => void;
 	showSubtitles: boolean;
-	onSetMode: (mode: ViewerMode) => void;
 	/** Everything the custom-show picker needs; see `CustomShowsControls.vue`. */
 	customShowControls: CustomShowsControlsProps;
 	/** Toolbar buttons the host has asked to hide (gates the Broadcast button below). */
@@ -95,7 +96,7 @@ function commitOption(id: (typeof SLIDE_SHOW_OPTIONS)[number]['id'], checked: bo
 	<button
 		:class="pill"
 		:title="t('pptx.slideShow.fromBeginningTooltip')"
-		@click="props.onSetMode('present')"
+		@click="props.onPresentFromBeginning()"
 	>
 		<Play :class="ic" />
 		{{ t('pptx.slideShow.fromBeginning') }}

@@ -1,9 +1,11 @@
+import { elementIdSelector } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuRotateCw } from 'react-icons/lu';
 
 import type { ResizeHandle, ShapeAdjustmentHandleDescriptor } from '../../types';
 import { cn } from '../../utils';
+import { syncSelectionHandleOverlay } from '../../utils/selection-handle-overlay';
 
 export interface ResizeHandlesProps {
 	elementId: string;
@@ -148,9 +150,15 @@ export function ResizeHandles({
 		// `onRotate` commit on release. A connector still nests its handles
 		// inside its own element, which also carries `data-element-id`, so the
 		// direct lookup covers both cases uniformly.
-		const wrapper = document.querySelector(
-			`[data-element-id="${elementId}"]`,
-		) as HTMLElement | null;
+		//
+		// Scoped to this viewer's `[data-pptx-viewport]`, never `document`: two
+		// viewers of one deck on the same page (docs landing, collab demo) both
+		// render the selected id, and a page-wide lookup would spin the OTHER
+		// instance's shape. The handle button is always inside the viewport, so
+		// `closest` finds it; the `document` fallback only serves unit tests that
+		// mount the handles bare.
+		const scope = btn.closest('[data-pptx-viewport]') ?? document;
+		const wrapper = scope.querySelector<HTMLElement>(elementIdSelector(elementId));
 		if (!wrapper) {
 			return;
 		}
@@ -175,7 +183,9 @@ export function ResizeHandles({
 			}
 			deg = Math.round(((deg % 360) + 360) % 360);
 			last = deg;
-			wrapper.style.transform = `rotate(${deg}deg)${base}`;
+			const transform = `rotate(${deg}deg)${base}`;
+			wrapper.style.transform = transform;
+			syncSelectionHandleOverlay(wrapper, elementId, { transform });
 		};
 		const onPointerMove = (ev: PointerEvent): void => apply(ev.clientX, ev.clientY, ev.shiftKey);
 		const end = (): void => {

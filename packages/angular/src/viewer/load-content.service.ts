@@ -12,6 +12,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHeaderFooter,
 	PptxHandoutMaster,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSaveFormat,
@@ -175,6 +176,11 @@ export class LoadContentService {
 	 * than silently dropped.
 	 */
 	readonly tagCollections = signal<PptxTagCollection[]>([]);
+	/**
+	 * Office 2021 modern comment authors (`ppt/commentAuthors/`, p188), the
+	 * candidate list the comment panel's `@`-mention typeahead matches against.
+	 */
+	readonly modernCommentAuthors = signal<PptxModernCommentAuthor[]>([]);
 	/** Header/footer settings (footer/header/date-time text + format) for field substitution. */
 	readonly headerFooter = signal<PptxHeaderFooter | undefined>(undefined);
 	/** Whether the presentation contains digital signatures. */
@@ -498,6 +504,7 @@ export class LoadContentService {
 			);
 			this.customProperties.set(parsed.customProperties ?? []);
 			this.tagCollections.set(parsed.tags ?? []);
+			this.modernCommentAuthors.set(parsed.modernCommentAuthors ?? []);
 			this.headerFooter.set(parsed.headerFooter);
 			this.hasDigitalSignatures.set(parsed.hasDigitalSignatures ?? false);
 			this.digitalSignatureCount.set(parsed.digitalSignatureCount ?? 0);
@@ -543,6 +550,29 @@ export class LoadContentService {
 				applyToAllMasters || index === 0 ? { ...master, themePath } : master,
 			),
 		);
+	}
+
+	/**
+	 * Adopt a new handler + fully-resolved `PptxData` from a Slide Master view
+	 * CRUD action (`applyMasterViewCrudAction`'s insert/duplicate/delete/rename
+	 * layout or master). Unlike {@link setPresentationTheme}, those functions
+	 * perform ZIP surgery and reload through a FRESH `PptxHandler` (see
+	 * `master-layout-crud`'s module doc) rather than mutating this one in
+	 * place, so the loaded handler itself must be swapped, not just the
+	 * derived signals.
+	 *
+	 * Media Blob URLs are left untouched: the slide array's own image
+	 * references are unaffected by a master/layout CRUD action, and a newly
+	 * inserted layout carries no images at all.
+	 */
+	adoptMasterViewData(handler: PptxHandler, data: PptxData): void {
+		this.disposeHandler();
+		this.handler = handler;
+		this.slides.set(data.slides);
+		this.slideMasters.set(data.slideMasters ?? []);
+		this.notesMaster.set(data.notesMaster);
+		this.handoutMaster.set(data.handoutMaster);
+		this.parsedData.set(data);
 	}
 
 	private disposeHandler(): void {

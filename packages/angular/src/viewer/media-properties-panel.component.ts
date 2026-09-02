@@ -60,7 +60,9 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 					(change)="numberPatch('playbackSpeed', $event)"
 				>
 					@for (speed of speeds; track speed) {
-						<option [value]="speed">{{ speed }}x</option>
+						<option [value]="speed" [selected]="speed === (media().playbackSpeed ?? 1)">
+							{{ speed }}x
+						</option>
 					}
 				</select>
 			</label>

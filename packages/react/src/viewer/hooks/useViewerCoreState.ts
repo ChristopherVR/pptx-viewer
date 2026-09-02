@@ -7,6 +7,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	MasterViewTab,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
@@ -162,6 +163,8 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const [headerFooter, setHeaderFooter] = useState<PptxHeaderFooter>({});
 	const [layoutOptions, setLayoutOptions] = useState<Array<{ path: string; name: string }>>([]);
 	const [slideMasters, setSlideMasters] = useState<PptxSlideMaster[]>([]);
+	const [modernCommentAuthors, setModernCommentAuthors] = useState<PptxModernCommentAuthor[]>([]);
+	const [recentColors, setRecentColors] = useState<string[]>([]);
 	const [theme, setTheme] = useState<PptxTheme | undefined>();
 	const [tableStyleMap, setTableStyleMap] = useState<ParsedTableStyleMap | undefined>();
 	const [themeOptions, setThemeOptions] = useState<PptxThemeOption[]>([]);
@@ -264,6 +267,10 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		setLayoutOptions,
 		slideMasters,
 		setSlideMasters,
+		modernCommentAuthors,
+		setModernCommentAuthors,
+		recentColors,
+		setRecentColors,
 		theme,
 		setTheme,
 		tableStyleMap,

@@ -1,7 +1,9 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
+import { ref } from 'vue';
 
+import { RecentColorsKey } from '../../composables/recent-colors-context';
 import TextPanel from './TextPanel.vue';
 
 function textEl(textStyle?: TextStyle): PptxElement {
@@ -65,5 +67,22 @@ describe('textPanel', () => {
 		const events = wrapper.emitted('update');
 		expect(events?.[0]?.[0]).toStrictEqual({ textStyle: { align: 'center' } });
 		expect(events?.[1]?.[0]).toStrictEqual({ textStyle: { vAlign: 'middle' } });
+	});
+
+	it('pushes a committed text colour onto the injected recent-colours list and offers it back', async () => {
+		const recent = ref<string[]>(['#112233']);
+		const push = (hex: string): void => {
+			recent.value = [hex, ...recent.value.filter((c) => c !== hex)];
+		};
+		const wrapper = mount(TextPanel, {
+			props: { element: textEl({ color: '#000000' }) },
+			global: { provide: { [RecentColorsKey as symbol]: { recent, push } } },
+		});
+
+		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
+
+		const color = wrapper.find('input[type="color"]');
+		await color.setValue('#00ff00');
+		expect(recent.value[0]).toBe('#00ff00');
 	});
 });

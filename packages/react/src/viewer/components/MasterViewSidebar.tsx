@@ -4,6 +4,7 @@ import type {
 	PptxHandoutMaster,
 	MasterViewTab,
 } from 'pptx-viewer-core';
+import type { MasterViewCrudAction, MasterViewCrudActionId } from 'pptx-viewer-shared';
 import { masterViewBackgroundColor } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,6 +45,9 @@ interface MasterViewSidebarProps {
 	onSelectLayout: (masterIndex: number, layoutIndex: number) => void;
 	onCollapse: () => void;
 	onTabChange: (tab: MasterViewTab) => void;
+	/** The sidebar's Insert/Duplicate/Delete/Rename Layout|Master buttons. */
+	crudActions: MasterViewCrudAction[];
+	onCrudAction: (id: MasterViewCrudActionId) => void;
 	onHandoutSlidesPerPageChange: (count: number) => void;
 	onNotesMasterBackgroundChange: (color: string) => void;
 	onHandoutMasterBackgroundChange: (color: string) => void;
@@ -69,6 +73,8 @@ export function MasterViewSidebar({
 	onSelectLayout,
 	onCollapse,
 	onTabChange,
+	crudActions,
+	onCrudAction,
 	onHandoutSlidesPerPageChange,
 	onNotesMasterBackgroundChange,
 	onHandoutMasterBackgroundChange,
@@ -161,6 +167,24 @@ export function MasterViewSidebar({
 							value={slidesBackground ?? '#ffffff'}
 							onChange={(event) => onSlidesBackgroundChange(event.target.value)}
 						/>
+					</section>
+				)}
+
+				{masterViewTab === 'slides' && canEdit && crudActions.length > 0 && (
+					<section className='grid grid-cols-2 gap-1 rounded-md border border-border/60 p-2'>
+						{crudActions.map((action) => (
+							<button
+								key={action.id}
+								type='button'
+								data-testid={`pptx-master-crud-${action.id}`}
+								disabled={!action.enabled}
+								title={action.disabledReasonKey ? t(action.disabledReasonKey) : undefined}
+								onClick={() => onCrudAction(action.id)}
+								className='rounded border border-border/60 px-1.5 py-1 text-[10px] hover:bg-accent/60 disabled:cursor-not-allowed disabled:opacity-40'
+							>
+								{t(action.labelKey)}
+							</button>
+						))}
 					</section>
 				)}
 

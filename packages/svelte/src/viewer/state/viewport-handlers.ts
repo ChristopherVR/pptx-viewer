@@ -5,6 +5,7 @@ import {
 	createWheelStepBuffer,
 	mapPresentationKey,
 	mapPresentationWheel,
+	mapSlideShowStartKey,
 	mayLeaveSlideShow,
 } from 'pptx-viewer-shared';
 
@@ -36,6 +37,10 @@ export interface ViewportHandlersDeps {
 	toggleChrome?(): void;
 	/** Raise PowerPoint's "See All Slides" navigator (Ctrl+S). */
 	showAllSlides?(): void;
+	/** Start the show from slide 1 (F5): the ribbon's "From Beginning" button. */
+	onStartFromBeginning?(): void;
+	/** Start the show on the active slide (Shift+F5): the ribbon's "From Current Slide" button. */
+	onStartFromCurrent?(): void;
 }
 
 export interface ViewportHandlers {
@@ -165,6 +170,18 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 			if (deps.viewer.isFullscreen && !mayLeaveSlideShow()) {
 				return;
 			}
+			// Entering the show (every path funnels through here: the status-bar
+			// button, ribbon "From Current Slide", `setMode('present')`, the mobile
+			// toolbar): open on a slide the show actually includes rather than the
+			// raw active slide (wave-4 B1). "From Beginning" instead calls
+			// `presentation.firstSlide()` before reaching this toggle, so the active
+			// slide is already the show's first slide and this is a no-op there.
+			if (!deps.viewer.isFullscreen) {
+				const entry = deps.presentation.entryIndex(deps.viewer.current);
+				if (entry !== deps.viewer.current) {
+					deps.viewer.goTo(entry);
+				}
+			}
 			const root = deps.getRootEl();
 			if (root) {
 				void toggleFullscreen(root);
@@ -185,6 +202,20 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 			}
 		},
 		onKeydown(event: KeyboardEvent): void {
+			// PowerPoint starts the show with F5/Shift+F5 from ANYWHERE, including a
+			// read-only viewer and with the caret sitting in a text box, so this must
+			// run before the editing branch below, which gates on `getEditingActive()`
+			// and swallows keys the inline editor or a text-input target owns.
+			const startAction = mapSlideShowStartKey(event, { isPresenting: deps.viewer.isFullscreen });
+			if (startAction) {
+				event.preventDefault();
+				if (startAction === 'fromBeginning') {
+					deps.onStartFromBeginning?.();
+				} else {
+					deps.onStartFromCurrent?.();
+				}
+				return;
+			}
 			if (deps.getEditingActive()) {
 				deps.controller.onKeyDown(event);
 				// While a selection or inline edit owns the keyboard, arrows nudge and

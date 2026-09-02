@@ -15,15 +15,19 @@ import { useEffect } from 'react';
 import type { PowerPointViewerHandle } from '../types';
 import type { ViewerMode } from '../types-core';
 import type { AutosaveStatus } from './useAutosave';
+import { useCompatibilityToastsState } from './useCompatibilityToastsState';
 import type { EditorOperationsResult } from './useEditorOperations';
 import { useEditorOperations } from './useEditorOperations';
 import type { ExportHandlersResult } from './useExportHandlers';
 import type { PrintHandlersResult } from './usePrintHandlers';
 import type { PropertyHandlersResult } from './usePropertyHandlers';
+import { useReadOnlyRecommendationState } from './useReadOnlyRecommendationState';
 import type { ViewerBuildingBlocksCore } from './useViewerBuildingBlocksCore';
 import type { ViewerDialogsResult } from './useViewerDialogs';
 import { useViewerDialogs } from './useViewerDialogs';
 import { useViewerIntegration } from './useViewerIntegration';
+import type { UseViewPreferencesSyncResult } from './useViewPreferencesSync';
+import { useViewPreferencesSync } from './useViewPreferencesSync';
 
 // ---------------------------------------------------------------------------
 // Input / Output
@@ -58,6 +62,13 @@ export interface ViewerBuildingBlocksState {
 	handleEnterPresenterView: () => void;
 	handleEnterRehearsalMode: () => void;
 	autosaveStatus: AutosaveStatus;
+	/**
+	 * Grid/snap/guides toggle handlers that also write the change back into
+	 * `state.viewProperties` (see `useViewPreferencesSync`), so a host driving
+	 * the standalone `<Toolbar>` off this API's `toolbarProps` gets the same
+	 * `ppt/viewProps.xml` round-trip `PowerPointViewer` does.
+	 */
+	viewPreferencesSync: UseViewPreferencesSyncResult;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +144,13 @@ export function useViewerBuildingBlocksState(
 		history,
 	});
 
+	// Load-diagnostic state PowerPointViewer also seeds on every load. This
+	// headless API renders no banner/toast UI of its own (a host building a
+	// custom shell would render one against these), but `useViewerIntegration`
+	// still needs somewhere to put the per-load setters.
+	const readOnlyRec = useReadOnlyRecommendationState(content);
+	const compatToastsState = useCompatibilityToastsState();
+
 	// ── Clear selection on slide change (same effect PowerPointViewer runs) ──
 	useEffect(() => {
 		state.setSelectedElementId(null);
@@ -168,6 +186,7 @@ export function useViewerBuildingBlocksState(
 		handleEnterPresenterView,
 		handleEnterRehearsalMode,
 		autosaveStatus,
+		loadVersion,
 	} = useViewerIntegration({
 		state,
 		zoom,
@@ -185,6 +204,8 @@ export function useViewerBuildingBlocksState(
 		// applies, so the headless building-blocks API loads http(s) images
 		// under the same default-off, core-side SSRF/privacy guard.
 		allowExternalImages: viewerOptions.trust.allowExternalContent,
+		setReadOnlyRecommendation: readOnlyRec.setRecommendation,
+		setCompatToasts: compatToastsState.setToasts,
 		canEdit,
 		promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
 		imageExportScale,
@@ -210,6 +231,18 @@ export function useViewerBuildingBlocksState(
 	// as the toolbar's exit button (see `usePresentationSetup.setExitModeHandler`).
 	setExitModeHandler(handleSetMode);
 
+	const viewPreferencesSync = useViewPreferencesSync({
+		loadVersion,
+		viewProperties: state.viewProperties,
+		setViewProperties: state.setViewProperties,
+		snapToGrid: state.snapToGrid,
+		setSnapToGrid: state.setSnapToGrid,
+		snapToShape: state.snapToShape,
+		setSnapToShape: state.setSnapToShape,
+		showGuides: state.showGuides,
+		setShowGuides: state.setShowGuides,
+	});
+
 	return {
 		dialogs,
 		editorOps,
@@ -220,5 +253,6 @@ export function useViewerBuildingBlocksState(
 		handleEnterPresenterView,
 		handleEnterRehearsalMode,
 		autosaveStatus,
+		viewPreferencesSync,
 	};
 }

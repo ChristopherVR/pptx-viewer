@@ -25,8 +25,10 @@ import type { ViewerLoadDetail } from '../types';
 import type { AutosaveRecoveryController } from './autosave-recovery.svelte';
 import type { AutosaveController } from './autosave.svelte';
 import type { ChromeUiState } from './chrome-ui.svelte';
+import type { CompatToastsState } from './compat-toasts.svelte';
 import type { AiCluster } from './create-viewer-state-ai.svelte';
 import type { PresentationLoader } from './presentation-loader.svelte';
+import type { ReadOnlyRecommendationState } from './read-only-recommendation.svelte';
 import type { ViewerOptionsState } from './viewer-options.svelte';
 import type { ViewerParityUiState } from './viewer-parity-ui.svelte';
 import type { ViewerState } from './viewer-state.svelte';
@@ -118,6 +120,14 @@ export interface ViewerStateBag {
 	readonly editor: EditorState;
 	readonly controller: EditorController;
 	readonly parityUi: ViewerParityUiState;
+	/**
+	 * The deck's own `p:modifyVerifier` / "Mark as Final" read-only
+	 * recommendation and lock (wave 4 #2), mirroring the Protected View banner
+	 * mechanism rather than inventing a second one.
+	 */
+	readonly readOnlyRec: ReadOnlyRecommendationState;
+	/** Fidelity-loss toast stack (wave 4 #3), fed by `loader.compatibilityWarnings`. */
+	readonly compatToasts: CompatToastsState;
 	readonly chromeUi: ChromeUiState;
 	readonly findReplace: FindReplaceState;
 	readonly collab: CollaborationController;

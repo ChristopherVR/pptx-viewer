@@ -47,7 +47,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 							(change)="onSeries($event)"
 						>
 							@for (s of series(); track $index; let i = $index) {
-								<option [value]="i">{{ s.name }}</option>
+								<option [value]="i" [selected]="i === activeIndex()">{{ s.name }}</option>
 							}
 						</select>
 					</label>

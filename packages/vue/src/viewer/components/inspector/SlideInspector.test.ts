@@ -141,7 +141,7 @@ describe('slideInspector', () => {
 		await commentsTab!.trigger('click');
 		await wrapper.get('textarea').setValue('First!');
 		await wrapper.get('form').trigger('submit.prevent');
-		expect(wrapper.emitted('comment-add')?.[0]).toStrictEqual(['First!']);
+		expect(wrapper.emitted('comment-add')?.[0]).toStrictEqual([{ text: 'First!', mentions: [] }]);
 	});
 
 	it('emits close from the tab strip close button', async () => {

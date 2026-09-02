@@ -30,11 +30,13 @@
 		if (el) {
 			editor.patchSelected(setFillColorPatch(el, value));
 		}
+		editor.recordRecentColor(value);
 	}
 	function setStroke(value: string): void {
 		if (el) {
 			editor.patchSelected(setStrokeColorPatch(el, value));
 		}
+		editor.recordRecentColor(value);
 	}
 	function setWidth(value: string): void {
 		const n = Number(value);

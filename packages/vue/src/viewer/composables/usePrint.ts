@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 import {
 	buildHandoutsHtml,
 	buildNotesHtml,
@@ -65,6 +65,12 @@ export interface UsePrintOptions {
 	slideSize?: Ref<CanvasSize>;
 	/** Override the print-window opener (defaults to a `window.open` impl). */
 	openPrintWindow?: OpenPrintWindow;
+	/**
+	 * The deck's handout master, consumed for its background, header/footer/
+	 * date/page-number placeholders, and (when authored) positioned slide
+	 * rects, in the `handouts` print mode.
+	 */
+	handoutMaster?: Ref<PptxHandoutMaster | undefined>;
 }
 
 export interface UsePrintResult {
@@ -257,7 +263,7 @@ export function usePrint(options: UsePrintOptions): UsePrintResult {
 			commit(
 				buildPrintDocument(
 					`Handout ${spp} per page`,
-					buildHandoutsHtml(images, slideIndices, spp),
+					buildHandoutsHtml(images, slideIndices, spp, options.handoutMaster?.value),
 					'portrait',
 					colorFilter,
 					settings.frameSlides,

@@ -103,7 +103,13 @@ function isoNow(): string {
 }
 
 // Standard layout definitions
-const STANDARD_LAYOUTS = [
+/**
+ * The eleven default slide layouts a from-scratch presentation ships with.
+ * Reused by {@link module:sdk/master-layout-crud}'s `insertSlideMaster` so a
+ * newly inserted master gets PowerPoint's own starter gallery rather than a
+ * single blank layout.
+ */
+export const STANDARD_LAYOUTS = [
 	// `type` is ST_SlideLayoutType per ECMA-376 §19.7.15. The Title Slide
 	// layout uses `title`; `ctrTitle` is a placeholder type (ST_PlaceholderType)
 	// and is not valid here — PowerPoint's OPC loader rejects the package

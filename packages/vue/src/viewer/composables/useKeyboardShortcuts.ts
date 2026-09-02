@@ -276,6 +276,21 @@ export const SHORTCUT_CATALOG: readonly ShortcutDefinition[] = [
 	},
 	{ id: 'find', combo: 'Mod+F', group: 'general', descriptionKey: 'pptx.findReplace.title' },
 	{ id: 'shortcuts', combo: '?', group: 'general', descriptionKey: 'pptx.shortcuts.title' },
+	// F5 / Shift+F5 are matched by `mapSlideShowStartKey` (pptx-viewer-shared),
+	// not by this file's `mapEditorKey` catalog - see `dispatchSlideShowStartKey`
+	// in `useEditorKeyboard.ts`. Listed here only so the help panel shows them.
+	{
+		id: 'present-from-beginning',
+		combo: 'F5',
+		group: 'general',
+		descriptionKey: 'pptx.slideShow.fromBeginning',
+	},
+	{
+		id: 'present-from-current',
+		combo: 'Shift+F5',
+		group: 'general',
+		descriptionKey: 'pptx.slideShow.fromCurrent',
+	},
 ] as const;
 
 /** i18n keys for each group's label, in display order. */

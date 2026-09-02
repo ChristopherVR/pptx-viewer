@@ -282,6 +282,17 @@ describe('nextSlideAfter', () => {
 		const fromHidden = [slide({ id: 'a', hidden: true }), slide({ id: 'b' })];
 		expect(nextSlideAfter(fromHidden, 0)?.id).toBe('b');
 	});
+
+	// The deck's authored `p:showPr/p:sldRg` range must gate the preview the
+	// same way a custom show does: on the last slide of a range-restricted
+	// show, the "up next" preview must be empty, not the deck's own next slide.
+	it('honours the authored slide range, stopping at its end', () => {
+		expect(nextSlideAfter(deck, 1, null, { fromIndex: 0, toIndex: 1 })).toBeUndefined();
+	});
+
+	it('honours the authored slide range mid-show', () => {
+		expect(nextSlideAfter(deck, 0, null, { fromIndex: 0, toIndex: 2 })?.id).toBe('b');
+	});
 });
 
 // ---------------------------------------------------------------------------

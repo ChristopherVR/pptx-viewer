@@ -229,6 +229,7 @@ export function createRibbon(
 			themeFonts: latestExtra.themeFonts,
 			embeddedFontFamilies: latestExtra.embeddedFontFamilies,
 			customFontFamilies: latestExtra.customFontFamilies,
+			recentColors: latestExtra.recentColors ?? [],
 		});
 	};
 	const syncAnimations = (): void => {

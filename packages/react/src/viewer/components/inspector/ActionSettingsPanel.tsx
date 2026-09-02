@@ -15,12 +15,12 @@ import {
 	canCommitActionType,
 	ELEMENT_ACTION_TYPE_OPTIONS,
 	resolveActionType,
-	toSlideIndex,
 } from 'pptx-viewer-shared';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { ActionTargetFields } from './ActionTargetFields';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
 
 // ---------------------------------------------------------------------------
@@ -31,7 +31,17 @@ interface ActionSettingsPanelProps {
 	selectedElement: PptxElement;
 	slides: PptxSlide[];
 	canEdit: boolean;
+	/** `data.customShows`, for the `customShow` target picker. */
+	customShows: Array<{ id: string; name: string }>;
 	onUpdateElement: (updates: Partial<PptxElement>) => void;
+}
+
+/** The action target fields, beyond `type`, that `updateAction` can write. */
+export interface ActionTargetPatch {
+	url?: string;
+	slideIndex?: number;
+	customShowId?: string;
+	returnAfter?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,6 +52,7 @@ export function ActionSettingsPanel({
 	selectedElement,
 	slides,
 	canEdit,
+	customShows,
 	onUpdateElement,
 }: ActionSettingsPanelProps): React.ReactElement {
 	const { t } = useTranslation();
@@ -57,10 +68,9 @@ export function ActionSettingsPanel({
 	const updateAction = (
 		trigger: 'click' | 'hover',
 		type: ElementActionType,
-		url?: string,
-		slideIndex?: number,
+		patch: ActionTargetPatch,
 	) => {
-		const ea: ElementAction = { trigger, type, url, slideIndex };
+		const ea: ElementAction = { trigger, type, ...patch };
 		const pa = elementActionToPptxAction(ea);
 		if (trigger === 'click') {
 			onUpdateElement({ actionClick: pa } as Partial<PptxElement>);
@@ -72,16 +82,21 @@ export function ActionSettingsPanel({
 	/**
 	 * Commit a picked type only once it can carry a target.
 	 *
-	 * "Go to URL" / "Go to Slide" round-trip back to `none` while their target is
-	 * missing, so writing one straight away would stamp an empty action onto the
-	 * element (and mark the deck dirty) for a choice the user has not finished
-	 * making. The pick still shows, because the section holds it locally.
+	 * "Go to URL" / "Go to Slide" / "Custom Show" round-trip back to `none`
+	 * while their target is missing, so writing one straight away would stamp
+	 * an empty action onto the element (and mark the deck dirty) for a choice
+	 * the user has not finished making. The pick still shows, because the
+	 * section holds it locally.
 	 */
 	const changeType = (trigger: 'click' | 'hover', type: ElementActionType) => {
 		const current = trigger === 'click' ? clickAction : hoverAction;
-		const target = { url: current?.url, slideIndex: current?.slideIndex };
+		const target: ActionTargetPatch = {
+			url: current?.url,
+			slideIndex: current?.slideIndex,
+			customShowId: current?.customShowId,
+		};
 		if (canCommitActionType(type, target)) {
-			updateAction(trigger, type, target.url, target.slideIndex);
+			updateAction(trigger, type, target);
 		}
 	};
 
@@ -103,9 +118,9 @@ export function ActionSettingsPanel({
 					fallbackSlideIndex={selectedElement.actionClick?.targetSlideIndex}
 					canEdit={canEdit}
 					slideCount={slides.length}
+					customShows={customShows}
 					onChangeType={(type) => changeType('click', type)}
-					onChangeUrl={(url) => updateAction('click', 'url', url)}
-					onChangeSlide={(idx) => updateAction('click', 'slide', undefined, idx)}
+					onChangeTarget={(type, patch) => updateAction('click', type, patch)}
 				/>
 
 				{/* On Hover */}
@@ -119,9 +134,9 @@ export function ActionSettingsPanel({
 					fallbackSlideIndex={selectedElement.actionHover?.targetSlideIndex}
 					canEdit={canEdit}
 					slideCount={slides.length}
+					customShows={customShows}
 					onChangeType={(type) => changeType('hover', type)}
-					onChangeUrl={(url) => updateAction('hover', 'url', url)}
-					onChangeSlide={(idx) => updateAction('hover', 'slide', undefined, idx)}
+					onChangeTarget={(type, patch) => updateAction('hover', type, patch)}
 				/>
 			</div>
 		</div>
@@ -142,9 +157,10 @@ interface ActionTriggerSectionProps {
 	fallbackSlideIndex: number | undefined;
 	canEdit: boolean;
 	slideCount: number;
+	customShows: Array<{ id: string; name: string }>;
 	onChangeType: (type: ElementActionType) => void;
-	onChangeUrl: (url: string) => void;
-	onChangeSlide: (idx: number) => void;
+	/** Commits a target-field patch against the EFFECTIVE type (pending or active). */
+	onChangeTarget: (type: ElementActionType, patch: ActionTargetPatch) => void;
 }
 
 function ActionTriggerSection({
@@ -156,15 +172,16 @@ function ActionTriggerSection({
 	fallbackSlideIndex,
 	canEdit,
 	slideCount,
+	customShows,
 	onChangeType,
-	onChangeUrl,
-	onChangeSlide,
+	onChangeTarget,
 }: ActionTriggerSectionProps): React.ReactElement {
 	const { t } = useTranslation();
-	// `url` and `slide` only become a stored action once they have a target, so
-	// deriving the select purely from the element round-tripped "Go to URL"
-	// straight back to "None" and its input never appeared. The locally picked
-	// type therefore wins until the element really carries an action.
+	// `url` / `slide` / `customShow` only become a stored action once they have
+	// a target, so deriving the select purely from the element round-tripped
+	// "Go to URL" straight back to "None" and its input never appeared. The
+	// locally picked type therefore wins until the element really carries an
+	// action.
 	const [pendingType, setPendingType] = useState<ElementActionType | undefined>(undefined);
 	const effectiveType = resolveActionType(pendingType, activeType);
 	const changeType = (type: ElementActionType) => {
@@ -188,36 +205,17 @@ function ActionTriggerSection({
 				))}
 			</select>
 
-			{effectiveType === 'url' && (
-				<input
-					type='text'
-					disabled={!canEdit}
-					aria-label={t('pptx.action.gotoUrl')}
-					className={cn(INPUT, 'w-full')}
-					placeholder='https://...'
-					value={action?.url ?? fallbackUrl ?? ''}
-					onChange={(e) => onChangeUrl(e.target.value)}
-				/>
-			)}
-
-			{effectiveType === 'slide' && (
-				<input
-					type='number'
-					disabled={!canEdit}
-					aria-label={t('pptx.action.gotoSlide')}
-					className={cn(INPUT, 'w-full')}
-					placeholder={t('pptx.action.slideNumberPlaceholder')}
-					min={1}
-					max={slideCount}
-					value={(action?.slideIndex ?? fallbackSlideIndex ?? 0) + 1}
-					onChange={(e) => {
-						const idx = toSlideIndex(Number(e.target.value), slideCount);
-						if (idx !== undefined) {
-							onChangeSlide(idx);
-						}
-					}}
-				/>
-			)}
+			<ActionTargetFields
+				type={effectiveType}
+				canEdit={canEdit}
+				slideCount={slideCount}
+				customShows={customShows}
+				url={action?.url ?? fallbackUrl}
+				slideIndex={action?.slideIndex ?? fallbackSlideIndex}
+				customShowId={action?.customShowId}
+				returnAfter={action?.returnAfter}
+				onChange={(patch) => onChangeTarget(effectiveType, patch)}
+			/>
 		</div>
 	);
 }

@@ -45,6 +45,8 @@ interface ElementInspectorBodyProps {
 	canEdit: boolean;
 	/** All slides in the presentation (used by ActionSettingsPanel for hyperlink targets). */
 	slides: PptxSlide[];
+	/** `data.customShows`, for the Action Settings `customShow` target picker. */
+	customShows: Array<{ id: string; name: string }>;
 	/** Active table cell editing state, if a table cell is being edited. */
 	tableEditorState?: TableCellEditorState | null;
 	/** Map of media relationship IDs to data URLs for media preview. */
@@ -84,6 +86,7 @@ export function ElementInspectorBody({
 	selectedElement,
 	canEdit,
 	slides,
+	customShows,
 	tableEditorState,
 	mediaDataUrls,
 	onUpdateElement,
@@ -221,6 +224,7 @@ export function ElementInspectorBody({
 				selectedElement={selectedElement}
 				slides={slides}
 				canEdit={canEdit}
+				customShows={customShows}
 				onUpdateElement={onUpdateElement}
 			/>
 

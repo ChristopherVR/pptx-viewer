@@ -1,4 +1,5 @@
 import { PptxComment, PptxCommentAuthor, XmlObject } from '../../types';
+import { nestLegacyCommentReplies } from '../../utils/legacy-comment-threading';
 import {
 	MODERN_AUTHOR_RELATIONSHIP,
 	MODERN_COMMENT_RELATIONSHIP,
@@ -183,7 +184,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const commentsRoot = this.xmlLookupService.getChildByLocalName(commentsData, 'cmLst');
 			const commentNodes = this.xmlLookupService.getChildrenArrayByLocalName(commentsRoot, 'cm');
 
-			return commentNodes.map((commentNode, index) => {
+			const flatComments = commentNodes.map((commentNode, index) => {
 				const commentId = String(commentNode?.['@_idx'] || commentNode?.['@_id'] || index).trim();
 				const authorId = String(commentNode?.['@_authorId'] || '').trim();
 				const createdAtRaw = String(commentNode?.['@_dt'] || '').trim();
@@ -217,6 +218,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					rawXml: commentNode,
 				};
 			});
+			return nestLegacyCommentReplies(flatComments);
 		} catch (error) {
 			console.warn('Failed to parse slide comments:', error);
 			return [];

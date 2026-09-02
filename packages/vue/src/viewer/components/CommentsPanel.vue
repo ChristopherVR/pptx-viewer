@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import type { PptxComment } from 'pptx-viewer-core';
+import type { PptxComment, PptxCommentMention, PptxModernCommentAuthor } from 'pptx-viewer-core';
 import { formatCommentTimestamp } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CommentBody from './CommentBody.vue';
+import CommentMentionTextarea from './CommentMentionTextarea.vue';
 
 /**
  * CommentsPanel: side panel listing the active slide's comments.
@@ -25,27 +26,37 @@ const props = defineProps<{
 	 * `<header>` so mobile doesn't show "Comments" twice stacked.
 	 */
 	embedded?: boolean;
+	/** Modern comment authors (`ppt/commentAuthors.xml`), for the `@`-mention typeahead. */
+	modernCommentAuthors?: PptxModernCommentAuthor[];
 }>();
 
 const emit = defineEmits<{
-	add: [text: string];
+	add: [payload: { text: string; mentions?: PptxCommentMention[] }];
 	remove: [id: string];
 	resolve: [id: string];
-	reply: [payload: { parentId: string; text: string }];
+	reply: [payload: { parentId: string; text: string; mentions?: PptxCommentMention[] }];
 }>();
 
 const { t } = useI18n();
 
-const draft = ref('');
+const mentionAuthors = computed(() => props.modernCommentAuthors ?? []);
 
-// Which comment currently has its reply box open, plus per-comment draft text.
+const draft = ref('');
+const draftMentions = ref<PptxCommentMention[]>([]);
+
+// Which comment currently has its reply box open, plus per-comment draft text
+// and mentions. Only one reply box is open at a time, so a flat record keyed
+// by comment id (rather than a single pair) just keeps a cancelled draft's
+// mentions from leaking onto the next comment's reply box.
 const replyingTo = ref<string | null>(null);
 const replyDrafts = ref<Record<string, string>>({});
+const replyMentions = ref<Record<string, PptxCommentMention[]>>({});
 
 function startReply(id: string): void {
 	replyingTo.value = id;
 	if (!(id in replyDrafts.value)) {
 		replyDrafts.value = { ...replyDrafts.value, [id]: '' };
+		replyMentions.value = { ...replyMentions.value, [id]: [] };
 	}
 }
 
@@ -54,10 +65,13 @@ function submitReply(id: string): void {
 	if (text.length === 0) {
 		return;
 	}
-	emit('reply', { parentId: id, text });
-	const next = { ...replyDrafts.value };
-	delete next[id];
-	replyDrafts.value = next;
+	emit('reply', { parentId: id, text, mentions: replyMentions.value[id] });
+	const nextDrafts = { ...replyDrafts.value };
+	delete nextDrafts[id];
+	replyDrafts.value = nextDrafts;
+	const nextMentions = { ...replyMentions.value };
+	delete nextMentions[id];
+	replyMentions.value = nextMentions;
 	replyingTo.value = null;
 }
 
@@ -68,8 +82,9 @@ const submit = (): void => {
 	if (text.length === 0) {
 		return;
 	}
-	emit('add', text);
+	emit('add', { text, mentions: draftMentions.value });
 	draft.value = '';
+	draftMentions.value = [];
 };
 
 const formatTimestamp = (value: string | undefined): string => formatCommentTimestamp(value);
@@ -180,13 +195,17 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 
 				<!-- Reply composer -->
 				<div v-if="replyingTo === comment.id" class="mt-2 flex flex-col gap-1.5">
-					<textarea
-						v-model="replyDrafts[comment.id]"
-						class="w-full resize-y rounded-md border border-border bg-background p-2 text-[12px] text-foreground"
-						rows="2"
+					<CommentMentionTextarea
+						:model-value="replyDrafts[comment.id] ?? ''"
+						:mentions="replyMentions[comment.id] ?? []"
+						:authors="mentionAuthors"
+						textarea-class="w-full resize-y rounded-md border border-border bg-background p-2 text-[12px] text-foreground"
+						:rows="2"
 						:placeholder="t('pptx.comments.replyPlaceholder')"
 						:aria-label="t('pptx.comments.reply')"
-					></textarea>
+						@update:model-value="replyDrafts[comment.id] = $event"
+						@update:mentions="replyMentions[comment.id] = $event"
+					/>
 					<div class="flex justify-end gap-2">
 						<button
 							type="button"
@@ -226,13 +245,16 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 			>
 				{{ t('pptx.comments.addComment') }}
 			</label>
-			<textarea
+			<CommentMentionTextarea
 				v-model="draft"
-				class="pptx-comments-panel__textarea w-full resize-y rounded-md border border-border bg-background p-2 text-[13px] text-foreground"
-				rows="3"
+				:mentions="draftMentions"
+				:authors="mentionAuthors"
+				textarea-class="pptx-comments-panel__textarea w-full resize-y rounded-md border border-border bg-background p-2 text-[13px] text-foreground"
+				:rows="3"
 				:placeholder="t('pptx.comments.addCommentPlaceholder')"
 				:aria-label="t('pptx.comments.addComment')"
-			></textarea>
+				@update:mentions="draftMentions = $event"
+			/>
 			<button
 				type="submit"
 				class="pptx-comments-panel__submit cursor-pointer self-end rounded-md border-none bg-primary px-3.5 py-1.5 text-[13px] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"

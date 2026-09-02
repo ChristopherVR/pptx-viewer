@@ -7,6 +7,7 @@
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import { layoutToSlide, masterToSlide } from '../master/master-view';
 	import HandoutMasterPanel from './HandoutMasterPanel.svelte';
+	import MasterViewCrudRow from './MasterViewCrudRow.svelte';
 	import NotesMasterPanel from './NotesMasterPanel.svelte';
 	import SlideStage from './SlideStage.svelte';
 
@@ -80,6 +81,8 @@
 						oninput={(event) => editor.masterOps.setBackgroundColor(event.currentTarget.value)}
 					/>
 				</section>
+				<!-- Insert/Duplicate/Delete/Rename for the selected master or layout. -->
+				<MasterViewCrudRow {editor} />
 			{/if}
 			{#each editor.slideMasters as master, masterIndex (master.path)}
 				<button

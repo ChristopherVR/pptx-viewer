@@ -13,7 +13,7 @@ import {
 	presenterNextDisabled,
 	presenterPrevDisabled,
 } from 'pptx-viewer-shared';
-import type { ShowOrderCustomShow } from 'pptx-viewer-shared';
+import type { AuthoredSlideRange, ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createIcon } from '../ui/icons';
@@ -48,6 +48,13 @@ export interface PresenterRailOptions {
 	 * previewed the next DECK slide instead of the next SHOW one.
 	 */
 	getActiveCustomShow?: () => ShowOrderCustomShow | null | undefined;
+	/**
+	 * The authored `p:showPr/p:sldRg` range (Set Up Slide Show > "From"/"To"),
+	 * so the next-slide preview honours it exactly like the custom show above:
+	 * a range-restricted show's preview must show what Next actually reaches,
+	 * not `current + 1` of the whole deck.
+	 */
+	getAuthoredRange?: () => AuthoredSlideRange | null | undefined;
 	move: (direction: 1 | -1) => void;
 }
 
@@ -222,7 +229,12 @@ export function buildPresenterRail(options: PresenterRailOptions): PresenterRail
 		nextBody.replaceChildren();
 		// Hidden slides and custom-show membership are the show order's business,
 		// not `current + 1`: the preview must show what Next will actually reach.
-		const upcoming = nextPresentedSlide(slides, current, options.getActiveCustomShow?.());
+		const upcoming = nextPresentedSlide(
+			slides,
+			current,
+			options.getActiveCustomShow?.(),
+			options.getAuthoredRange?.(),
+		);
 		if (upcoming) {
 			const scale = options.previewScale();
 			nextBody.append(options.renderSlide(upcoming, scale));

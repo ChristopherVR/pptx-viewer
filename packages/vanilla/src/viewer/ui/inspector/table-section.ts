@@ -113,11 +113,14 @@ export function createTableSection(
 	background.addEventListener('input', () =>
 		handlers.setTableOptions({}, { backgroundColor: background.value }),
 	);
+	// B6: push into the "Recent colours" MRU list once each picker commits.
+	background.addEventListener('change', () => handlers.pushRecentColor(background.value));
 	const border = doc.createElement('input');
 	border.type = 'color';
 	border.addEventListener('input', () =>
 		handlers.setTableOptions({}, { borderColor: border.value }),
 	);
+	border.addEventListener('change', () => handlers.pushRecentColor(border.value));
 	el.append(styleId, background, border);
 	const cellFormatting = createTableCellFormatting(doc, t, handlers);
 	const cellFill = createTableCellFillControls(doc, t, handlers);

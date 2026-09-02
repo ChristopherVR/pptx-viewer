@@ -29,11 +29,14 @@ import type {
 } from 'pptx-viewer-core';
 
 import {
+	applyMasterViewCrudAction,
 	applyPreferenceToOptions,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	endAudienceDisplay,
 	listAutosaveSnapshots,
+	masterViewCrudActions,
+	masterViewCrudFailureKey,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	recoverySnapshotIntent,
@@ -50,10 +53,15 @@ import {
 	templateSchemeFromTheme,
 	THEME_CATALOG,
 	viewerOptionsToPreferences,
+	viewerPreferencesFromViewProperties,
+	viewPropertiesPatchFromPreferences,
 	writeStoredViewerPrefs,
 } from '../internal/shared';
 import type {
 	AccountAuthConfig,
+	DeckViewPreferences,
+	MasterViewCrudActionId,
+	MasterViewTarget,
 	PowerPointViewerAPI,
 	SlideTemplateId,
 	ThemeCatalogEntry,
@@ -88,7 +96,10 @@ import {
 	replyToCommentInList,
 	toggleCommentResolvedInList,
 } from './comments-helpers';
+import { withMentionsOnLast, withMentionsOnLastReply } from './comments-mentions-patch';
+import type { CommentSubmission } from './comments-panel.component';
 import { CommentsPanelComponent } from './comments-panel.component';
+import { CompatToastsComponent } from './compat-toasts.component';
 import { CustomShowsComponent } from './custom-shows.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { newChartElement, newShapeElement, newTableElement, newTextElement } from './editor-insert';
@@ -106,6 +117,7 @@ import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
 import { IsMobileService } from './is-mobile';
 import { LineChart3DService } from './line-chart-3d.service';
 import { LoadContentService } from './load-content.service';
+import { LoadNoticesService } from './load-notices.service';
 import { MasterViewCanvasComponent } from './master-view-canvas.component';
 import { MasterViewSidebarComponent } from './master-view-sidebar.component';
 import { applyMobileBarSheetTap } from './mobile-bar-sheet-tap';
@@ -129,6 +141,8 @@ import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
 import { QuickAccessStripComponent } from './quick-access-strip.component';
 import { ReadingViewOverlayComponent } from './reading-view-overlay.component';
+import { ReadOnlyBannerComponent } from './readonly-banner.component';
+import { RecentColorsService } from './recent-colors.service';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { patchTextStyle } from './ribbon-text-helpers';
@@ -213,6 +227,8 @@ import { ZoomTargetService } from './zoom-target.service';
 		ExportProgressModalComponent,
 		CommentMarkersOverlayComponent,
 		CommentsPanelComponent,
+		CompatToastsComponent,
+		ReadOnlyBannerComponent,
 		SignaturesPanelComponent,
 		AccessibilityPanelComponent,
 		CollaborationCursorsComponent,
@@ -286,6 +302,14 @@ import { ZoomTargetService } from './zoom-target.service';
 							{{ 'pptx.security.enableEditing' | translate }}
 						</button>
 					</div>
+				}
+				@if (loadNotices.bannerActive() && chromeVisible()) {
+					<pptx-readonly-banner
+						[kind]="loadNotices.recommendation().kind"
+						[messageKey]="loadNotices.recommendation().messageKey"
+						(editAnyway)="loadNotices.editAnyway()"
+						(dismiss)="loadNotices.dismissBanner()"
+					/>
 				}
 				@if (!mobile.isMobile() && chromeVisible()) {
 					<pptx-title-bar
@@ -643,6 +667,7 @@ import { ZoomTargetService } from './zoom-target.service';
 								@case ('comments') {
 									<pptx-comments-panel
 										[comments]="activeComments()"
+										[modernCommentAuthors]="loader.modernCommentAuthors()"
 										(add)="onCommentAdd($event)"
 										(remove)="onCommentRemove($event)"
 										(resolve)="onCommentResolve($event)"
@@ -676,6 +701,7 @@ import { ZoomTargetService } from './zoom-target.service';
 										[canEdit]="canEdit()"
 										[selectedElement]="selectedElement()"
 										[comments]="activeComments()"
+										[modernCommentAuthors]="loader.modernCommentAuthors()"
 										(commentAdd)="onCommentAdd($event)"
 										(commentRemove)="onCommentRemove($event)"
 										(commentResolve)="onCommentResolve($event)"
@@ -760,6 +786,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[activeLayoutIndex]="activeLayoutIndex()"
 						[handoutSlidesPerPage]="loader.handoutMaster()?.slidesPerPage ?? 4"
 						[editable]="canEdit()"
+						[crudActions]="masterViewCrudActionsList()"
 						(tabChange)="selectMasterTab($event)"
 						(selectMaster)="activeMasterIndex.set($event); activeLayoutIndex.set(null)"
 						(selectLayout)="
@@ -767,6 +794,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						"
 						(slidesPerPageChange)="setHandoutSlidesPerPage($event)"
 						(backgroundChange)="setMasterBackground($event)"
+						(crudAction)="onMasterViewCrudAction($event)"
 						(close)="closeMasterView()"
 					/>
 					<pptx-master-view-canvas
@@ -854,6 +882,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					(indexChange)="presentationMode.onPresentationIndexChange($event)"
 					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"
 					(closed)="presentationMode.closePresentation()"
+					(customShowRequest)="onPresentationCustomShow($event)"
+					(endOfShowChange)="onPresentationEndOfShow($event)"
 				/>
 			}
 			@if (presentationMode.rehearsing()) {
@@ -881,6 +911,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[slides]="loader.slides()"
 						[currentSlideIndex]="activeSlideIndex()"
 						[activeCustomShow]="customShowsCtl.activeCustomShow()"
+						[authoredRange]="presentationAuthoredRange()"
 						[canvasSize]="loader.canvasSize()"
 						[mediaDataUrls]="loader.mediaDataUrls()"
 						[presentationStartTime]="presentationMode.presenterStartTime()"
@@ -892,6 +923,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						[slides]="loader.slides()"
 						[currentSlideIndex]="activeSlideIndex()"
 						[activeCustomShow]="customShowsCtl.activeCustomShow()"
+						[authoredRange]="presentationAuthoredRange()"
 						[canvasSize]="loader.canvasSize()"
 						[mediaDataUrls]="loader.mediaDataUrls()"
 						[presentationStartTime]="presentationMode.presenterStartTime()"
@@ -1168,6 +1200,12 @@ import { ZoomTargetService } from './zoom-target.service';
 					(notes)="applyMobileSheetTap('notes')"
 				/>
 			}
+
+			<pptx-compat-toasts
+				[toasts]="loadNotices.visibleToasts()"
+				(dismissOne)="loadNotices.dismissToast($event)"
+				(dismissAll)="loadNotices.dismissAllToasts()"
+			/>
 		</div>
 	`,
 })
@@ -1377,6 +1415,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	readonly stopCollaboration = output<void>();
 
 	protected readonly loader = inject(LoadContentService);
+	protected readonly loadNotices = inject(LoadNoticesService);
 	protected readonly editor = inject(EditorStateService);
 	private readonly fonts = inject(EmbeddedFontsService);
 	private readonly googleWebfonts = inject(GoogleWebfontsService);
@@ -1401,6 +1440,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly xport = inject(ViewerExportService);
 	protected readonly findReplace = inject(ViewerFindReplaceService);
 	protected readonly customShowsCtl = inject(ViewerCustomShowsService);
+	protected readonly recentColors = inject(RecentColorsService);
 	/**
 	 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is authored
 	 * to open into a range (`showSlidesMode === 'range'`) rather than the whole
@@ -1457,14 +1497,17 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 
 	/**
 	 * Effective edit permission: the host's `canEdit` input gated by Trust
-	 * Center > "Open presentations in Protected View", which forces the deck
-	 * read-only while enabled (File > Options wiring, mirrors PowerPoint),
-	 * unless the user has lifted it via `enableEditing()` for this document.
+	 * Center > "Open presentations in Protected View" (forces the deck
+	 * read-only while enabled, mirrors PowerPoint, unless the user has lifted
+	 * it via `enableEditing()` for this document) and by the deck's own
+	 * read-only recommendation (`p:modifyVerifier` / "Mark as Final"; lifted by
+	 * the read-only banner's "Edit anyway", see {@link LoadNoticesService}).
 	 */
 	protected readonly canEdit = computed(
 		() =>
 			this.canEditInput() &&
-			(!this.viewerOpts.options().trust.openInProtectedView || this.protectedViewDismissed()),
+			(!this.viewerOpts.options().trust.openInProtectedView || this.protectedViewDismissed()) &&
+			!this.loadNotices.lockActive(),
 	);
 
 	/** Whether the Protected View banner should show: host allows editing, the option still blocks it, and the user hasn't dismissed it yet. */
@@ -1950,10 +1993,36 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				// A newly opened document is protected again even if the previous
 				// one was unlocked via "Enable Editing" this session.
 				this.protectedViewDismissed.set(false);
+				// The read-only banner and compatibility toasts are per-document
+				// diagnostics; a newly opened deck starts with neither dismissed.
+				this.loadNotices.resetForLoad();
+				// Seed the grid/snap/guides toggles from THIS deck's own
+				// `ppt/viewProps.xml`, falling back to whatever the toggles already
+				// read (a deck that says nothing about a field keeps the prior one).
+				// gridSpacing has no toggle here; it is read straight off
+				// `loader.viewProperties()` where it is displayed, so it needs no seed.
+				const seededPrefs = viewerPreferencesFromViewProperties(
+					{ viewProperties: this.loader.viewProperties() },
+					{
+						autoSave: false,
+						spellCheck: false,
+						showGrid: false,
+						showRulers: false,
+						reducedMotion: false,
+						snapToGrid: this.snapToGrid(),
+						showGuides: this.showGuides(),
+						snapToObjects: this.snapToShape(),
+					},
+				);
+				this.snapToGrid.set(seededPrefs.snapToGrid);
+				this.showGuides.set(seededPrefs.showGuides ?? this.showGuides());
+				this.snapToShape.set(seededPrefs.snapToObjects ?? this.snapToShape());
 				// Adopt `p:showPr/p:custShow/@id`: a deck authored to open into a
 				// named custom show must actually play it. A manual pick made later
 				// overwrites this and wins until the next deck loads.
 				this.customShowsCtl.seedFromDeck();
+				// Seed the "Recent colours" row from the deck's own `p:clrMru`.
+				this.recentColors.seed(this.loader.parsedData());
 				// A load that lands mid-session must not clobber remotely synced
 				// slides: when the shared doc already holds the room's content, a
 				// late joiner's bootstrap deck (parsed slower than the doc sync)
@@ -1968,6 +2037,32 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				this.collab.adoptDocSlidesAfterLoad(
 					this.fileIO.contentOverride() === null ? 'bootstrap' : 'user',
 				);
+			});
+		});
+
+		// Write the grid/snap/guides toggles back into `ppt/viewProps.xml` so a
+		// save round-trips them, mirroring PowerPoint (a view toggle is not an
+		// undoable edit, so this deliberately writes straight to the loader's
+		// signal rather than going through `EditorStateService`).
+		effect(() => {
+			const snapToGrid = this.snapToGrid();
+			const showGuides = this.showGuides();
+			const snapToObjects = this.snapToShape();
+			const patch = viewPropertiesPatchFromPreferences({
+				autoSave: false,
+				spellCheck: false,
+				showGrid: false,
+				showRulers: false,
+				reducedMotion: false,
+				snapToGrid,
+				showGuides,
+				snapToObjects,
+			} as DeckViewPreferences);
+			untracked(() => {
+				this.loader.viewProperties.update((current) => ({
+					...current,
+					slideViewPr: { ...current?.slideViewPr, ...patch.slideViewPr },
+				}));
 			});
 		});
 
@@ -2206,6 +2301,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			clearSelection: () => this.editor.clearSelection(),
 			sourceContent: () => this.fileIO.activeContent(),
 			canEdit: () => this.canEdit(),
+			authoredRange: () => this.presentationAuthoredRange(),
 			promptKeepAnnotations: (map) => this.extraDialogs()?.promptKeepAnnotations(map),
 			applyRehearsalTimings: (timings) => {
 				const slides = this.editor.snapshot().map((slide, index) => {
@@ -2425,6 +2521,102 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected selectMasterTab(tab: MasterViewTab): void {
 		this.masterViewTab.set(tab);
 		this.editor.clearSelection();
+	}
+
+	/**
+	 * `ppaction://customshow?id=<id>[&return=true]` clicked during a running
+	 * show: switch to the named custom show and open its resolved entry slide.
+	 * An id naming no surviving show is a no-op (`resolveCustomShowEntry`
+	 * returns `null`).
+	 */
+	protected onPresentationCustomShow(event: { customShowId: string; returnAfter: boolean }): void {
+		const index = this.customShowsCtl.runCustomShow(event.customShowId, event.returnAfter);
+		if (index !== null) {
+			this.activeSlideIndex.set(index);
+		}
+	}
+
+	/**
+	 * The presentation overlay's end-of-show flag changed. Only relevant on the
+	 * rising edge: if a `ppaction://customshow ... &return=true` is pending,
+	 * restore the origin show and slide instead of leaving the black end
+	 * screen up (`syncFromHost`'s host-forced jump clears it once the new
+	 * index lands).
+	 */
+	protected onPresentationEndOfShow(isEnd: boolean): void {
+		if (!isEnd) {
+			return;
+		}
+		const originIndex = this.customShowsCtl.consumeReturnAfterOnEnd();
+		if (originIndex !== null) {
+			this.activeSlideIndex.set(originIndex);
+		}
+	}
+
+	/** The Slide Master view sidebar's current selection, in `master-view-crud`'s shape. */
+	protected readonly masterViewTarget = computed<MasterViewTarget>(() => ({
+		tab: this.masterViewTab(),
+		masterIndex: this.activeMasterIndex(),
+		layoutIndex: this.activeLayoutIndex(),
+	}));
+
+	/** The Insert/Duplicate/Delete/Rename Layout+Master sidebar commands for the current selection. */
+	protected readonly masterViewCrudActionsList = computed(() =>
+		masterViewCrudActions(
+			this.loader.parsedData() ?? { slides: [], width: 0, height: 0 },
+			this.masterViewTarget(),
+		),
+	);
+
+	/**
+	 * Run one Slide Master view sidebar CRUD command.
+	 *
+	 * rename* prompts for a name first (`window.prompt`, matching the pattern
+	 * `SlidesPanelComponent`'s section-rename already uses); every command then
+	 * runs through `applyMasterViewCrudAction` and, on success, adopts the
+	 * returned handler + data through `LoadContentService.adoptMasterViewData`
+	 * (that helper reloads through a FRESH `PptxHandler`, so it cannot be
+	 * applied as a plain signal patch) and moves the sidebar selection to the
+	 * returned target. A failure is surfaced with `window.alert`: Angular has
+	 * no generic toast/notice channel for an arbitrary action failure (the
+	 * compat-toast stack is load-diagnostics only).
+	 */
+	protected async onMasterViewCrudAction(id: MasterViewCrudActionId): Promise<void> {
+		const handler = this.loader.getHandler();
+		const data = this.loader.parsedData();
+		if (!handler || !data) {
+			return;
+		}
+		const target = this.masterViewTarget();
+		let name: string | undefined;
+		if (id === 'renameLayout' || id === 'renameMaster') {
+			// Branch on the COMMAND, not on whether a layout happens to be
+			// selected: "Rename Slide Master" must prompt with the master's own
+			// name even while the sidebar has one of its layouts selected.
+			const current =
+				id === 'renameMaster'
+					? (data.slideMasters?.[target.masterIndex]?.name ?? '')
+					: target.layoutIndex === null
+						? ''
+						: (data.slideMasters?.[target.masterIndex]?.layouts?.[target.layoutIndex]?.name ?? '');
+			const typed = window.prompt(
+				this.translateService.instant('pptx.masterView.renamePrompt'),
+				current,
+			);
+			if (typed === null || typed.trim().length === 0) {
+				return;
+			}
+			name = typed.trim();
+		}
+		const result = await applyMasterViewCrudAction(handler, data, id, target, { name });
+		if (!result.ok) {
+			window.alert(this.translateService.instant(masterViewCrudFailureKey(id, result.reason)));
+			return;
+		}
+		this.loader.adoptMasterViewData(result.handler, result.data);
+		this.editor.dirty.set(true);
+		this.activeMasterIndex.set(result.target.masterIndex);
+		this.activeLayoutIndex.set(result.target.layoutIndex);
 	}
 
 	/**
@@ -2845,7 +3037,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				break;
 			case 'slideShow':
 				if (action === 'fromBeginning') {
-					this.presentationMode.present();
+					this.presentationMode.presentFromBeginning();
 				} else if (action === 'presenterView') {
 					this.presentationMode.presentPresenter();
 				}
@@ -3095,11 +3287,19 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		return this.authorName() || this.viewerOpts.options().general.userName || 'You';
 	}
 
-	/** Append a comment to the active slide (one history entry). */
-	onCommentAdd(text: string): void {
-		const next = addCommentToList(this.activeComments(), text, this.commentAuthorName());
+	/**
+	 * Append a comment to the active slide (one history entry).
+	 *
+	 * `addCommentToList` (shared) has no `mentions` parameter, so the `@`-mention
+	 * spans the typeahead recorded are patched onto the newly-appended comment
+	 * (the array's last element) here, rather than in the shared helper.
+	 */
+	onCommentAdd(submission: CommentSubmission): void {
+		const next = addCommentToList(this.activeComments(), submission.text, this.commentAuthorName());
 		if (next) {
-			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
+			this.editor.updateSlide(this.activeSlideIndex(), {
+				comments: withMentionsOnLast(next, submission.mentions),
+			});
 		}
 	}
 
@@ -3119,8 +3319,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		}
 	}
 
-	/** Append a threaded reply under a top-level comment on the active slide. */
-	onCommentReply(event: { parentId: string; text: string }): void {
+	/**
+	 * Append a threaded reply under a top-level comment on the active slide.
+	 * See {@link onCommentAdd}: `mentions` is patched on afterwards, since
+	 * `replyToCommentInList` (shared) has no `mentions` parameter.
+	 */
+	onCommentReply(event: { parentId: string } & CommentSubmission): void {
 		const next = replyToCommentInList(
 			this.activeComments(),
 			event.parentId,
@@ -3128,7 +3332,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			this.commentAuthorName(),
 		);
 		if (next) {
-			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
+			this.editor.updateSlide(this.activeSlideIndex(), {
+				comments: withMentionsOnLastReply(next, event.parentId, event.mentions),
+			});
 		}
 	}
 

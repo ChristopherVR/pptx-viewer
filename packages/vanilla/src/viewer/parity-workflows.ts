@@ -24,6 +24,7 @@ import { loadPresentation, revokeBlobUrls } from './load/load-presentation';
 import { createOutlineWorkflow } from './outline-workflow';
 import { createSelectionPaneWorkflow } from './selection-pane-workflow';
 import type { Store, ViewerState } from './state';
+import { combineCommentMentionAuthors } from './ui/comment-mention-typeahead';
 import { openCommentsPanel } from './ui/comments-panel';
 import { openComparePanel } from './ui/compare-panel';
 import { openCustomShowsDialog } from './ui/custom-shows-dialog';
@@ -228,6 +229,13 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 					getComments: () => {
 						const current = state();
 						return current.slides[current.currentSlide]?.comments ?? [];
+					},
+					getAuthors: () => {
+						const current = state();
+						return combineCommentMentionAuthors(
+							current.modernCommentAuthors,
+							current.commentAuthors,
+						);
 					},
 					subscribe: (listener) => host.store.subscribe(() => listener()),
 				},

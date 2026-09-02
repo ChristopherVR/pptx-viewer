@@ -188,7 +188,7 @@ ${phShapes}
 /**
  * Generate a slide layout relationships XML that points back to the master.
  */
-function layoutRelsXml(masterIndex = 1): string {
+export function layoutRelsXml(masterIndex = 1): string {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster${masterIndex}.xml"/>
@@ -202,7 +202,7 @@ function layoutRelsXml(masterIndex = 1): string {
 /**
  * Count existing slide layouts in the ZIP by scanning file paths.
  */
-function countExistingLayouts(zip: JSZip): number {
+export function countExistingLayouts(zip: JSZip): number {
 	let count = 0;
 	zip.forEach((relativePath) => {
 		if (/^ppt\/slideLayouts\/slideLayout\d+\.xml$/.test(relativePath)) {
@@ -216,7 +216,7 @@ function countExistingLayouts(zip: JSZip): number {
  * Add a layout relationship to the slide master's rels file and
  * update the slide master XML's `<p:sldLayoutIdLst>` entry.
  */
-async function addLayoutToSlideMaster(
+export async function addLayoutToSlideMaster(
 	zip: JSZip,
 	layoutIndex: number,
 	masterIndex = 1,
@@ -262,7 +262,7 @@ async function addLayoutToSlideMaster(
 /**
  * Add the layout content type override to `[Content_Types].xml`.
  */
-async function addLayoutContentType(zip: JSZip, layoutIndex: number): Promise<void> {
+export async function addLayoutContentType(zip: JSZip, layoutIndex: number): Promise<void> {
 	const ctPath = '[Content_Types].xml';
 	const ctContent = await zip.file(ctPath)?.async('string');
 	if (!ctContent) {

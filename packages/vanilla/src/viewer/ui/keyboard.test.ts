@@ -47,6 +47,90 @@ function press(root: HTMLElement, key: string): boolean {
 	return event.defaultPrevented;
 }
 
+/** Dispatch a bare or Shift-modified F5, optionally from a given target. */
+function pressF5(
+	root: HTMLElement,
+	options: { shiftKey?: boolean; target?: HTMLElement } = {},
+): boolean {
+	const event = new KeyboardEvent('keydown', {
+		key: 'F5',
+		shiftKey: options.shiftKey ?? false,
+		bubbles: true,
+		cancelable: true,
+	});
+	(options.target ?? root).dispatchEvent(event);
+	return event.defaultPrevented;
+}
+
+describe('the F5/Shift+F5 start-show keys', () => {
+	it('a bare F5 starts the show from the beginning and prevents the reload', () => {
+		const { root, handlers, detach } = harness({
+			isPresenting: () => false,
+			startFromBeginning: vi.fn(),
+			startFromCurrent: vi.fn(),
+		});
+		try {
+			expect(pressF5(root)).toBeTruthy();
+			expect(handlers.startFromBeginning).toHaveBeenCalledOnce();
+			expect(handlers.startFromCurrent).not.toHaveBeenCalled();
+		} finally {
+			detach();
+			root.remove();
+		}
+	});
+
+	it('shift+F5 starts the show from the current slide', () => {
+		const { root, handlers, detach } = harness({
+			isPresenting: () => false,
+			startFromBeginning: vi.fn(),
+			startFromCurrent: vi.fn(),
+		});
+		try {
+			expect(pressF5(root, { shiftKey: true })).toBeTruthy();
+			expect(handlers.startFromCurrent).toHaveBeenCalledOnce();
+			expect(handlers.startFromBeginning).not.toHaveBeenCalled();
+		} finally {
+			detach();
+			root.remove();
+		}
+	});
+
+	it('does nothing and leaves the reload to the browser while a show is running', () => {
+		const { root, handlers, detach } = harness({
+			isPresenting: () => true,
+			startFromBeginning: vi.fn(),
+			startFromCurrent: vi.fn(),
+		});
+		try {
+			expect(pressF5(root)).toBeFalsy();
+			expect(handlers.startFromBeginning).not.toHaveBeenCalled();
+		} finally {
+			detach();
+			root.remove();
+		}
+	});
+
+	it('still starts the show when the caret is in a text field (read-only or mid-edit)', () => {
+		const { root, handlers, detach } = harness({
+			isPresenting: () => false,
+			startFromBeginning: vi.fn(),
+			startFromCurrent: vi.fn(),
+		});
+		const input = document.createElement('input');
+		root.appendChild(input);
+		try {
+			// The form-field guard below exists for the paging shortcuts; F5 must not
+			// sit behind it, matching PowerPoint starting a show with the caret in a
+			// text box.
+			expect(pressF5(root, { target: input })).toBeTruthy();
+			expect(handlers.startFromBeginning).toHaveBeenCalledOnce();
+		} finally {
+			detach();
+			root.remove();
+		}
+	});
+});
+
 describe('slide-show chrome shortcuts', () => {
 	it('the Ctrl+H chord toggles the show chrome', () => {
 		const { root, handlers, detach } = harness();

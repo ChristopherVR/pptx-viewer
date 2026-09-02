@@ -1,4 +1,10 @@
-import type { PptxComment, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxComment,
+	PptxCommentMention,
+	PptxElement,
+	PptxModernCommentAuthor,
+	PptxSlide,
+} from 'pptx-viewer-core';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,6 +19,12 @@ import {
 
 import { cn, formatCommentTimestamp, getElementLabel } from '../../utils';
 import { CommentBody } from './CommentBody';
+import { InspectorCommentReplyForm } from './InspectorCommentReplyForm';
+
+// Stable default references: an inline `{}` / `[]` default would be a fresh
+// object every render, defeating memoisation further down the tree.
+const EMPTY_REPLY_MENTIONS: Record<string, PptxCommentMention[]> = {};
+const EMPTY_AUTHORS: PptxModernCommentAuthor[] = [];
 
 // ---------------------------------------------------------------------------
 // Props
@@ -26,6 +38,10 @@ export interface InspectorCommentRowProps {
 	commentEditDraft: string;
 	replyingToCommentId: string | null;
 	replyDraftByCommentId: Record<string, string>;
+	/** `@`-mentions accumulated on each in-progress reply draft. */
+	replyDraftMentionsByCommentId?: Record<string, PptxCommentMention[]>;
+	/** Modern comment authors, for the reply form's `@`-mention typeahead. */
+	commentAuthors?: PptxModernCommentAuthor[];
 	onStartEditComment: (id: string) => void;
 	onSaveEditComment: (id: string) => void;
 	onCancelEditComment: () => void;
@@ -34,7 +50,7 @@ export interface InspectorCommentRowProps {
 	onToggleCommentResolved?: (id: string) => void;
 	onStartReply?: (id: string) => void;
 	onCancelReply?: () => void;
-	onReplyDraftChange?: (commentId: string, draft: string) => void;
+	onReplyDraftChange?: (commentId: string, draft: string, mentions?: PptxCommentMention[]) => void;
 	onSubmitReply?: (commentId: string) => void;
 	onSelectElement: (id: string | null) => void;
 	depth?: number;
@@ -52,6 +68,8 @@ export function InspectorCommentRow({
 	commentEditDraft,
 	replyingToCommentId,
 	replyDraftByCommentId,
+	replyDraftMentionsByCommentId = EMPTY_REPLY_MENTIONS,
+	commentAuthors = EMPTY_AUTHORS,
 	onStartEditComment,
 	onSaveEditComment,
 	onCancelEditComment,
@@ -232,6 +250,8 @@ export function InspectorCommentRow({
 									commentEditDraft={commentEditDraft}
 									replyingToCommentId={replyingToCommentId}
 									replyDraftByCommentId={replyDraftByCommentId}
+									replyDraftMentionsByCommentId={replyDraftMentionsByCommentId}
+									commentAuthors={commentAuthors}
 									onStartEditComment={onStartEditComment}
 									onSaveEditComment={onSaveEditComment}
 									onCancelEditComment={onCancelEditComment}
@@ -253,41 +273,16 @@ export function InspectorCommentRow({
 
 			{/* Inline reply form */}
 			{isReplying && onCancelReply && onReplyDraftChange && onSubmitReply && (
-				<div className='mt-2 space-y-1.5 pl-3 border-l-2 border-l-primary/40'>
-					<textarea
-						value={replyDraft}
-						onChange={(e) => onReplyDraftChange(comment.id, e.target.value)}
-						rows={2}
-						placeholder={t('pptx.comments.replyPlaceholder', {
-							author: comment.author || 'Author',
-						})}
-						className='w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary resize-y'
-						onKeyDown={(e) => {
-							if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-								e.preventDefault();
-								onSubmitReply(comment.id);
-							}
-						}}
-					/>
-					<div className='flex items-center gap-1.5'>
-						<button
-							type='button'
-							className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-white hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
-							onClick={() => onSubmitReply(comment.id)}
-							disabled={replyDraft.trim().length === 0}
-						>
-							<LuReply className='h-3 w-3' />
-							{t('pptx.comments.addReply')}
-						</button>
-						<button
-							type='button'
-							className='inline-flex items-center gap-1 rounded bg-muted px-2 py-1 text-[11px] text-foreground hover:bg-accent'
-							onClick={onCancelReply}
-						>
-							{t('pptx.comments.cancel')}
-						</button>
-					</div>
-				</div>
+				<InspectorCommentReplyForm
+					commentId={comment.id}
+					authorName={comment.author ?? ''}
+					draft={replyDraft}
+					mentions={replyDraftMentionsByCommentId[comment.id] ?? []}
+					authors={commentAuthors}
+					onDraftChange={onReplyDraftChange}
+					onSubmit={onSubmitReply}
+					onCancel={onCancelReply}
+				/>
 			)}
 		</div>
 	);

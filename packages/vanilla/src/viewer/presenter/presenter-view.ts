@@ -7,7 +7,7 @@ import {
 	presenterPaneAdvancesOnClick,
 	presenterTimerProgress,
 } from 'pptx-viewer-shared';
-import type { ShowOrderCustomShow } from 'pptx-viewer-shared';
+import type { AuthoredSlideRange, ShowOrderCustomShow } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { buildPresenterNavigator } from './presenter-navigator';
@@ -49,6 +49,8 @@ export interface PresenterViewOptions extends Omit<
 	navigate: (index: number) => void;
 	/** The custom show playback is restricted to; drives the next-slide preview. */
 	getActiveCustomShow?: () => ShowOrderCustomShow | null | undefined;
+	/** The authored `p:showPr/p:sldRg` range; see {@link PresenterRailOptions.getAuthoredRange}. */
+	getAuthoredRange?: () => AuthoredSlideRange | null | undefined;
 	move: (direction: 1 | -1) => void;
 	/** Milliseconds the show has been running. */
 	getElapsedMs: () => number;
@@ -111,6 +113,7 @@ export function mountPresenterView(options: PresenterViewOptions): PresenterView
 			scaleForWidth(options.canvasSize(), PRESENTER_LAYOUT_METRICS.nextPreviewWidth),
 		canvas: options.canvasSize,
 		getActiveCustomShow: options.getActiveCustomShow,
+		getAuthoredRange: options.getAuthoredRange,
 		move: options.move,
 	});
 	body.append(main, rail.root);

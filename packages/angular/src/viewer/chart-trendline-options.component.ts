@@ -45,7 +45,12 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 								(change)="onType(i, s, $event)"
 							>
 								@for (opt of typeOptions; track opt.value) {
-									<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+									<option
+										[value]="opt.value"
+										[selected]="opt.value === (trendlineOf(s)?.trendlineType ?? '')"
+									>
+										{{ opt.labelKey | translate }}
+									</option>
 								}
 							</select>
 						</div>

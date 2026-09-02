@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { AFTER_ANIMATION_OPTIONS, SELECT_CLS } from './animation-panel-constants';
+import { useRecentColors } from './RecentColorsContext';
 
 export interface AfterAnimationRowProps {
 	action: PptxAfterAnimationAction;
@@ -26,6 +27,7 @@ export function AfterAnimationRow({
 	onColorChange,
 }: AfterAnimationRowProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 
 	return (
 		<div className='flex flex-col gap-1'>
@@ -56,7 +58,10 @@ export function AfterAnimationRow({
 						type='color'
 						aria-label={t('pptx.animation.afterAnimation.color')}
 						value={color ?? '#808080'}
-						onChange={(event) => onColorChange(event.target.value)}
+						onChange={(event) => {
+							onColorChange(event.target.value);
+							pushColor(event.target.value);
+						}}
 						disabled={!canEdit}
 						className='h-6 w-10 rounded border border-border bg-transparent p-0'
 					/>

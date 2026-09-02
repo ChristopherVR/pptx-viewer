@@ -16,6 +16,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableCellStyle, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
+import { RecentColorsService } from './recent-colors.service';
 import { TableCellAdvancedFillComponent } from './table-cell-advanced-fill.component';
 import {
 	mergeDown,
@@ -80,6 +81,7 @@ type NumKey =
 							[disabled]="!canEdit()"
 							[value]="style().color ?? '#000000'"
 							(input)="onColor('color', $event)"
+							(change)="pushRecentColor($event)"
 						/>
 					</label>
 					<label class="pptx-tcf__field">
@@ -90,6 +92,7 @@ type NumKey =
 							[disabled]="!canEdit()"
 							[value]="style().backgroundColor ?? '#ffffff'"
 							(input)="onColor('backgroundColor', $event)"
+							(change)="pushRecentColor($event)"
 						/>
 					</label>
 				</div>
@@ -153,6 +156,7 @@ type NumKey =
 								[disabled]="!canEdit()"
 								[value]="colorOf(edge.colorKey)"
 								(input)="onColor(edge.colorKey, $event)"
+								(change)="pushRecentColor($event)"
 							/>
 							<input
 								type="number"
@@ -283,6 +287,8 @@ export class TableCellFormattingComponent {
 	readonly elementChange = output<TablePptxElement>();
 
 	private readonly selection = inject(TableSelectionService, { optional: true });
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
 
 	protected readonly textToggles: ReadonlyArray<{
 		key: 'bold' | 'italic' | 'underline';
@@ -356,6 +362,17 @@ export class TableCellFormattingComponent {
 		const t = event.target;
 		if (t instanceof HTMLInputElement) {
 			this.updateStyle({ [key]: t.value });
+		}
+	}
+
+	/**
+	 * Record the committed (native `change`, not the live-preview `input`)
+	 * colour into the shared "Recent colours" list.
+	 */
+	protected pushRecentColor(event: Event): void {
+		const t = event.target;
+		if (t instanceof HTMLInputElement && t.value) {
+			this.recentColors?.push(t.value);
 		}
 	}
 

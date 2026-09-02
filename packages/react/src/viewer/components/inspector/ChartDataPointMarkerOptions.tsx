@@ -8,6 +8,7 @@ import {
 	MARKER_SUPPORTED_TYPES,
 	MARKER_SYMBOL_OPTIONS,
 } from './chart-panel-constants';
+import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -39,6 +40,7 @@ export function ChartDataPointMarkerOptions({
 	onSetPointMarker,
 }: ChartDataPointMarkerOptionsProps) {
 	const { t } = useTranslation();
+	const { pushColor } = useRecentColors();
 	const [seriesIndex, setSeriesIndex] = useState(0);
 
 	if (!MARKER_SUPPORTED_TYPES.has(chartType) || series.length === 0 || categories.length === 0) {
@@ -138,9 +140,10 @@ export function ChartDataPointMarkerOptions({
 										title={t('pptx.chart.markerFill')}
 										className='h-6 w-8 cursor-pointer rounded border border-border bg-transparent'
 										value={point.marker.spPr?.fillColor ?? '#4472c4'}
-										onChange={(e) =>
-											onSetPointMarker(seriesIndex, idx, { fillColor: e.target.value })
-										}
+										onChange={(e) => {
+											onSetPointMarker(seriesIndex, idx, { fillColor: e.target.value });
+											pushColor(e.target.value);
+										}}
 									/>
 								</div>
 							)}

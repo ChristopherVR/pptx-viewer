@@ -115,6 +115,10 @@ export function createImageSection(
 	const color2 = duoField(t('pptx.image.duotoneLight'), 'color2');
 	colorInputs.color1 = color1;
 	colorInputs.color2 = color2;
+	// B6: push into the "Recent colours" MRU list once each picker commits.
+	for (const input of [color1, color2]) {
+		input.addEventListener('change', () => handlers.pushRecentColor(input.value));
+	}
 	el.append(artisticLabel, transparency.el, biLevel.el, duotone);
 	const wash = doc.createElement('input');
 	wash.type = 'checkbox';
@@ -141,6 +145,8 @@ export function createImageSection(
 			colorWash: { color: washColor.value, opacity: washOpacityValue },
 		}),
 	);
+	// B6: push into the "Recent colours" MRU list once the wash picker commits.
+	washColor.addEventListener('change', () => handlers.pushRecentColor(washColor.value));
 	el.append(wash, washColor, washOpacity.el);
 
 	const cropGrid = createEl(doc, 'div', 'pptxv-inspector-grid');

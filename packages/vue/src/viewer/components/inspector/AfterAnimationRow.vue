@@ -3,6 +3,8 @@ import type { PptxAfterAnimationAction } from 'pptx-viewer-core';
 import { AFTER_ANIMATION_VALUES } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
+
 defineProps<{
 	action: PptxAfterAnimationAction;
 	color: string | undefined;
@@ -12,12 +14,15 @@ const emit = defineEmits<{
 	color: [color: string];
 }>();
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 function onActionChange(event: Event): void {
 	emit('action', (event.target as HTMLSelectElement).value as PptxAfterAnimationAction);
 }
 function onColorChange(event: Event): void {
-	emit('color', (event.target as HTMLInputElement).value);
+	const hex = (event.target as HTMLInputElement).value;
+	emit('color', hex);
+	recentColors?.push(hex);
 }
 </script>
 

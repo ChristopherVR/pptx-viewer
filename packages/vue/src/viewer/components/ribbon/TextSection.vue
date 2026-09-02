@@ -23,13 +23,14 @@ import {
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { vAnchoredPopup } from './anchored-popup';
 import ParagraphDropdowns from './ParagraphDropdowns.vue';
 import { gB, gL, grp, FMT, ATXT, pill, ic, SEP, MENU_PANEL, MENU_ITEM } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
+import TextColorPopover from './TextColorPopover.vue';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
@@ -126,11 +127,6 @@ const currentHighlight = computed(() =>
 			'#ffff00')
 		: '#ffff00',
 );
-
-const colorInputRef = ref<HTMLInputElement | null>(null);
-const highlightInputRef = ref<HTMLInputElement | null>(null);
-const fontColorTriggerRef = ref<HTMLButtonElement | null>(null);
-const highlightTriggerRef = ref<HTMLButtonElement | null>(null);
 
 function handleColorChange(color: string): void {
 	if (!canFormat.value) {
@@ -356,126 +352,36 @@ function handleChangeCase(value: string): void {
 			</div>
 
 			<!-- Font colour -->
-			<div class="relative group">
-				<button
-					ref="fontColorTriggerRef"
-					type="button"
-					:disabled="!canMut"
-					:class="pill"
-					:title="t('pptx.text.fontColor')"
-					@mousedown.prevent
+			<TextColorPopover
+				:current="currentColor"
+				:presets="FONT_COLOR_PRESETS"
+				:disabled="!canMut"
+				title-key="pptx.text.fontColor"
+				@pick="handleColorChange"
+			>
+				<svg
+					:class="ic"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
 				>
-					<svg
-						:class="ic"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M6 20h12M9.5 4h5L18 16H6L9.5 4z" />
-					</svg>
-					<div class="w-4 h-1 rounded-sm -mt-0.5" :style="{ backgroundColor: currentColor }" />
-				</button>
-				<div
-					class="z-50 hidden group-hover:block pt-1"
-					v-anchored-popup="{ anchor: fontColorTriggerRef }"
-				>
-					<div
-						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36"
-					>
-						<div class="grid grid-cols-5 gap-1.5 mb-2">
-							<button
-								v-for="c in FONT_COLOR_PRESETS"
-								:key="c"
-								type="button"
-								:class="[
-									'w-5 h-5 rounded-full border transition-transform hover:scale-125',
-									currentColor?.toLowerCase() === c
-										? 'border-primary ring-1 ring-primary'
-										: 'border-border',
-								]"
-								data-pptx-compact
-								:style="{ backgroundColor: c }"
-								@mousedown.prevent
-								@click="handleColorChange(c)"
-							/>
-						</div>
-						<button
-							type="button"
-							class="w-full text-[10px] text-muted-foreground hover:text-foreground py-1 transition-colors"
-							@mousedown.prevent
-							@click="colorInputRef?.click()"
-						>
-							{{ t('pptx.ribbon.customColour') }}
-						</button>
-						<input
-							ref="colorInputRef"
-							type="color"
-							class="sr-only"
-							:value="currentColor"
-							@change="handleColorChange(($event.target as HTMLInputElement).value)"
-						/>
-					</div>
-				</div>
-			</div>
+					<path d="M6 20h12M9.5 4h5L18 16H6L9.5 4z" />
+				</svg>
+			</TextColorPopover>
 
 			<!-- Text highlight colour -->
-			<div class="relative group">
-				<button
-					ref="highlightTriggerRef"
-					type="button"
-					:disabled="!canMut"
-					:class="pill"
-					:title="t('pptx.text.highlightColor')"
-					@mousedown.prevent
-				>
-					<Highlighter :class="ic" />
-					<div class="w-4 h-1 rounded-sm -mt-0.5" :style="{ backgroundColor: currentHighlight }" />
-				</button>
-				<div
-					class="z-50 hidden group-hover:block pt-1"
-					v-anchored-popup="{ anchor: highlightTriggerRef }"
-				>
-					<div
-						class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36"
-					>
-						<div class="grid grid-cols-5 gap-1.5 mb-2">
-							<button
-								v-for="c in HIGHLIGHT_COLOR_PRESETS"
-								:key="c"
-								type="button"
-								:class="[
-									'w-5 h-5 rounded-full border transition-transform hover:scale-125',
-									currentHighlight?.toLowerCase() === c
-										? 'border-primary ring-1 ring-primary'
-										: 'border-border',
-								]"
-								data-pptx-compact
-								:style="{ backgroundColor: c }"
-								@mousedown.prevent
-								@click="handleHighlightChange(c)"
-							/>
-						</div>
-						<button
-							type="button"
-							class="w-full text-[10px] text-muted-foreground hover:text-foreground py-1 transition-colors"
-							@mousedown.prevent
-							@click="highlightInputRef?.click()"
-						>
-							{{ t('pptx.ribbon.customColour') }}
-						</button>
-						<input
-							ref="highlightInputRef"
-							type="color"
-							class="sr-only"
-							:value="currentHighlight"
-							@change="handleHighlightChange(($event.target as HTMLInputElement).value)"
-						/>
-					</div>
-				</div>
-			</div>
+			<TextColorPopover
+				:current="currentHighlight"
+				:presets="HIGHLIGHT_COLOR_PRESETS"
+				:disabled="!canMut"
+				title-key="pptx.text.highlightColor"
+				@pick="handleHighlightChange"
+			>
+				<Highlighter :class="ic" />
+			</TextColorPopover>
 
 			<!-- Text Shadow toggle -->
 			<button

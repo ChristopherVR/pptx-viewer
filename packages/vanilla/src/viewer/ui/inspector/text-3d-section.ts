@@ -116,7 +116,10 @@ export function createText3DSection(
 	const color = doc.createElement('input');
 	color.type = 'color';
 	color.setAttribute('aria-label', t('pptx.text3d.extrusionColor'));
-	color.addEventListener('change', () => commit({ extrusionColor: color.value }));
+	color.addEventListener('change', () => {
+		commit({ extrusionColor: color.value });
+		handlers.pushRecentColor(color.value);
+	});
 	colorLabel.append(colorCaption, color);
 
 	const top = createBevelBlock(doc, t, t('pptx.text3d.bevelTop'), commit, {

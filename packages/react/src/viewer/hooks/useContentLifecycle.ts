@@ -1,4 +1,5 @@
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { CompatibilityWarningToast, ReadOnlyRecommendation } from 'pptx-viewer-shared';
 /**
  * useContentLifecycle: Composes content loading, font injection,
  * serialisation, and autosave into a single hook.
@@ -50,6 +51,10 @@ export interface UseContentLifecycleInput {
 	onContentApplied?: () => void;
 	/** Forwarded to {@link useLoadContent}: File > Options > Trust Center > "Allow external content". */
 	allowExternalImages?: boolean;
+	/** Forwarded to {@link useLoadContent}: see `useReadOnlyRecommendationState`. */
+	setReadOnlyRecommendation: React.Dispatch<React.SetStateAction<ReadOnlyRecommendation>>;
+	/** Forwarded to {@link useLoadContent}: see `useCompatibilityToastsState`. */
+	setCompatToasts: React.Dispatch<React.SetStateAction<CompatibilityWarningToast[]>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +94,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		password,
 		onContentApplied,
 		allowExternalImages,
+		setReadOnlyRecommendation,
+		setCompatToasts,
 	} = input;
 
 	const { handlerRef } = useLoadContent({
@@ -103,6 +110,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setHeaderFooter: state.setHeaderFooter,
 		setLayoutOptions: state.setLayoutOptions,
 		setSlideMasters: state.setSlideMasters,
+		setModernCommentAuthors: state.setModernCommentAuthors,
+		setRecentColors: state.setRecentColors,
 		setTheme: state.setTheme,
 		setTableStyleMap: state.setTableStyleMap,
 		setThemeOptions: state.setThemeOptions,
@@ -124,6 +133,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setHasDigitalSignatures: state.setHasDigitalSignatures,
 		setDigitalSignatureCount: state.setDigitalSignatureCount,
 		setGuides: state.setGuides,
+		setReadOnlyRecommendation,
+		setCompatToasts,
 		setLoading: state.setLoading,
 		setError: state.setError,
 		setIsDirty: state.setIsDirty,
@@ -151,6 +162,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		guides: state.guides,
 		headerFooter: state.headerFooter,
 		presentationProperties: state.presentationProperties,
+		viewProperties: state.viewProperties,
 		customShows: state.customShows,
 		sections: state.sections,
 		coreProperties: state.coreProperties,

@@ -18,7 +18,6 @@ export interface FillStrokePropertiesProps {
 		position: number;
 		opacity?: number;
 	}>;
-	recentColors: string[];
 	canEdit: boolean;
 	onUpdateShapeStyle: (updates: Partial<ShapeStyle>) => void;
 	onSetFillColor: (color: string) => void;

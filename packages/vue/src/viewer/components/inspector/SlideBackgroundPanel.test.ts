@@ -1,7 +1,9 @@
 import { mount } from '@vue/test-utils';
 import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import { describe, it, expect, vi } from 'vitest';
+import { ref } from 'vue';
 
+import { RecentColorsKey } from '../../composables/recent-colors-context';
 import SlideBackgroundPanel from './SlideBackgroundPanel.vue';
 
 function slide(over: Partial<PptxSlide> = {}): PptxSlide {
@@ -100,5 +102,44 @@ describe('slideBackgroundPanel', () => {
 			'layout1.xml',
 			'#00ff00',
 		]);
+	});
+
+	it('pushes the main background colour onto the injected recent-colours list and offers it back', async () => {
+		const recent = ref<string[]>(['#112233']);
+		const push = (hex: string): void => {
+			recent.value = [hex, ...recent.value.filter((c) => c !== hex)];
+		};
+		const wrapper = mount(SlideBackgroundPanel, {
+			props: { slide: slide() },
+			global: { provide: { [RecentColorsKey as symbol]: { recent, push } } },
+		});
+
+		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
+
+		const input = wrapper.get('input[type="color"]');
+		await input.setValue('#00ff00');
+		expect(recent.value[0]).toBe('#00ff00');
+	});
+
+	it('pushes a template-row colour onto the injected recent-colours list too', async () => {
+		const masters: PptxSlideMaster[] = [
+			{ path: 'master1.xml', name: 'Office Theme', layoutPaths: ['layout1.xml'] },
+		];
+		const recent = ref<string[]>([]);
+		const push = (hex: string): void => {
+			recent.value = [hex, ...recent.value.filter((c) => c !== hex)];
+		};
+		const wrapper = mount(SlideBackgroundPanel, {
+			props: {
+				slide: slide({ layoutPath: 'layout1.xml' }),
+				editTemplateMode: true,
+				slideMasters: masters,
+				getTemplateBackgroundColor: vi.fn(() => undefined),
+			},
+			global: { provide: { [RecentColorsKey as symbol]: { recent, push } } },
+		});
+		const layoutInput = wrapper.findAll('input[type="color"]')[1];
+		await layoutInput.setValue('#00ff00');
+		expect(recent.value[0]).toBe('#00ff00');
 	});
 });

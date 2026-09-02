@@ -249,7 +249,7 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 					printWindow,
 					buildPrintHtmlDocument({
 						title: `Handout ${spp} per page`,
-						bodyHtml: buildHandoutsHtml(slideImages, slideIndices, spp),
+						bodyHtml: buildHandoutsHtml(slideImages, slideIndices, spp, pptxData?.handoutMaster),
 						orientation: 'portrait',
 						colorFilter,
 						frameSlides: settings.frameSlides,

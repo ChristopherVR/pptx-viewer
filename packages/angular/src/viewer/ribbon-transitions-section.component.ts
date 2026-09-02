@@ -120,7 +120,7 @@ import { EditorStateService } from './editor-state.service';
 				(change)="onSoundSelectChange($event)"
 			>
 				@for (option of soundOptions(); track option.value) {
-					<option [value]="option.value">
+					<option [value]="option.value" [selected]="option.value === soundSelectedValue()">
 						{{ option.i18nKey ? (option.i18nKey | translate) : option.label }}
 					</option>
 				}

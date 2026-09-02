@@ -201,6 +201,8 @@ export interface RibbonProps {
 	onToggleAiPanel?: () => void;
 
 	onSetMode: (mode: ViewerMode) => void;
+	/** Slide Show > Start > From Beginning: the show's first slide, unconditionally. */
+	onPresentFromBeginning: () => void;
 	onToggleSidebar: () => void;
 	onToggleInspector: () => void;
 	onOpenAnimationPanel: () => void;

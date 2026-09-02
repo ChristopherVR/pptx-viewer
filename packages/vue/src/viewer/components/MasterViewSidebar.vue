@@ -23,11 +23,13 @@ import type {
 	PptxHandoutMaster,
 	MasterViewTab,
 } from 'pptx-viewer-core';
+import type { MasterViewCrudAction, MasterViewCrudActionId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 import HandoutMasterPanel from './HandoutMasterPanel.vue';
+import MasterViewCrudRow from './MasterViewCrudRow.vue';
 import NotesMasterPanel from './NotesMasterPanel.vue';
 import SlideMastersList from './SlideMastersList.vue';
 
@@ -44,6 +46,10 @@ defineProps<{
 	/** Background of the selected slide master or layout (Slides tab). */
 	slidesBackground?: string | undefined;
 	canEdit?: boolean;
+	/** Insert/Duplicate/Delete/Rename Layout and Slide Master commands (Slides tab). */
+	crudActions?: MasterViewCrudAction[];
+	/** i18n key for the last CRUD command's failure, or null. */
+	crudError?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -55,6 +61,7 @@ const emit = defineEmits<{
 	'notes-background-change': [color: string];
 	'handout-background-change': [color: string];
 	'slides-background-change': [color: string];
+	'crud-run': [id: MasterViewCrudActionId];
 }>();
 
 const { t } = useI18n();
@@ -123,6 +130,13 @@ const TITLES = computed<Record<MasterViewTab, string>>(() => ({
 					@input="emit('slides-background-change', ($event.target as HTMLInputElement).value)"
 				/>
 			</section>
+
+			<MasterViewCrudRow
+				v-if="masterViewTab === 'slides' && canEdit"
+				:actions="crudActions ?? []"
+				:error="crudError"
+				@run="emit('crud-run', $event)"
+			/>
 
 			<SlideMastersList
 				v-if="masterViewTab === 'slides'"

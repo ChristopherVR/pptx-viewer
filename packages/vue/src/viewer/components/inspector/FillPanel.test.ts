@@ -2,7 +2,9 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
+import { ref } from 'vue';
 
+import { RecentColorsKey } from '../../composables/recent-colors-context';
 import FillPanel from './FillPanel.vue';
 
 function shape(overrides: Partial<PptxElement> = {}): PptxElement {
@@ -108,5 +110,22 @@ describe('fillPanel', () => {
 		await wrapper.find('[data-testid="fx-pattern-swatch"]').trigger('click');
 		const patch = lastPatch(wrapper) as { shapeStyle: { fillPatternPreset?: string } };
 		expect(patch.shapeStyle.fillPatternPreset).toBeDefined();
+	});
+
+	it('pushes a committed fill colour onto the injected recent-colours list and offers it back', async () => {
+		const recent = ref<string[]>(['#112233']);
+		const push = (hex: string): void => {
+			recent.value = [hex, ...recent.value.filter((c) => c !== hex)];
+		};
+		const wrapper = mount(FillPanel, {
+			props: { element: shape() },
+			global: { provide: { [RecentColorsKey as symbol]: { recent, push } } },
+		});
+
+		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
+
+		const color = wrapper.find('input[type="color"]');
+		await color.setValue('#00ff00');
+		expect(recent.value[0]).toBe('#00ff00');
 	});
 });

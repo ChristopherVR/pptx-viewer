@@ -11,6 +11,7 @@ import type {
 	PptxCustomProperty,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
@@ -21,7 +22,7 @@ import type {
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
@@ -39,6 +40,8 @@ export interface ViewerInspectorProps {
 	mode: ViewerMode;
 	activeSlide: PptxSlide | undefined;
 	slides: PptxSlide[];
+	/** `data.customShows`, for the Action Settings `customShow` target picker. */
+	customShows: Array<{ id: string; name: string }>;
 	canvasSize: CanvasSize;
 	selectedElement: PptxElement | null;
 	effectiveSelectedIds: string[];
@@ -46,6 +49,8 @@ export interface ViewerInspectorProps {
 	sidebarPanelMode: string;
 	activeSlideIndex: number;
 	comments: UseCommentsResult;
+	/** Modern comment authors, for the `@`-mention typeahead. */
+	commentAuthors?: PptxModernCommentAuthor[];
 	onSetSidebarPanelMode: (mode: string) => void;
 	onClose: () => void;
 	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
@@ -56,7 +61,7 @@ export interface ViewerInspectorProps {
 	/** The deck's `p:sldSz` in EMU, forwarded to the Slide Size card. */
 	slideSizeEmu?: SlideSizeEmu | undefined;
 	/** Applies a Slide Size preset / orientation pick (EMU + pixel canvas). */
-	onSetSlideSize?: (size: SlideSizeEmu) => void;
+	onSetSlideSize?: (size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode) => void;
 	onMoveLayer: (direction: string) => void;
 	onMoveLayerToEdge: (direction: string) => void;
 	onDeleteElement: () => void;
@@ -96,6 +101,7 @@ export function ViewerInspector({
 	mode,
 	activeSlide,
 	slides,
+	customShows,
 	canvasSize,
 	selectedElement,
 	effectiveSelectedIds,
@@ -103,6 +109,7 @@ export function ViewerInspector({
 	sidebarPanelMode,
 	activeSlideIndex,
 	comments,
+	commentAuthors,
 	onSetSidebarPanelMode,
 	onClose,
 	onUpdateElementStyle,
@@ -171,6 +178,7 @@ export function ViewerInspector({
 				mode={mode}
 				activeSlide={activeSlide}
 				slides={slides}
+				customShows={customShows}
 				canvasSize={canvasSize}
 				selectedElement={selectedElement}
 				selectedElementIds={effectiveSelectedIds}
@@ -203,11 +211,15 @@ export function ViewerInspector({
 				onUpdateTagCollections={onUpdateTagCollections}
 				onApplyTheme={onApplyTheme}
 				commentDraft={commentDraft}
+				commentDraftMentions={comments.commentDraftMentionsBySlideId?.[slideId] ?? []}
+				commentAuthors={commentAuthors ?? []}
 				editingCommentId={editingCommentId}
 				commentEditDraft={
 					editingCommentId ? (comments.commentEditDraftByCommentId[editingCommentId] ?? '') : ''
 				}
-				onSetCommentDraft={(draft) => comments.handleCommentDraftChange(slideId, draft)}
+				onSetCommentDraft={(draft, mentions) =>
+					comments.handleCommentDraftChange(slideId, draft, mentions)
+				}
 				onAddComment={() => comments.handleAddSlideComment(activeSlideIndex)}
 				onDeleteComment={(id) => comments.handleDeleteSlideComment(activeSlideIndex, id)}
 				onStartEditComment={(id) => comments.handleStartCommentEdit(slideId, id)}
@@ -222,10 +234,13 @@ export function ViewerInspector({
 				onToggleCommentResolved={(id) => comments.handleToggleCommentResolved(activeSlideIndex, id)}
 				onStartReply={(id) => comments.handleStartReply(activeSlideIndex, id)}
 				onCancelReply={comments.handleCancelReply}
-				onReplyDraftChange={(commentId, draft) => comments.handleReplyDraftChange(commentId, draft)}
+				onReplyDraftChange={(commentId, draft, mentions) =>
+					comments.handleReplyDraftChange(commentId, draft, mentions)
+				}
 				onSubmitReply={(commentId) => comments.handleSubmitReply(activeSlideIndex, commentId)}
 				replyingToCommentId={comments.replyingToCommentId}
 				replyDraftByCommentId={comments.replyDraftByCommentId}
+				replyDraftMentionsByCommentId={comments.replyDraftMentionsByCommentId}
 				onUpdateCanvasSize={onSetCanvasSize}
 				slideSizeEmu={slideSizeEmu}
 				onUpdateSlideSize={onSetSlideSize}

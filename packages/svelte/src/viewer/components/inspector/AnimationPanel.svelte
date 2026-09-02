@@ -125,6 +125,7 @@
 	}
 
 	function onAfterAnimationColorChange(color: string): void {
+		editor.recordRecentColor(color);
 		if (!el) {
 			return;
 		}

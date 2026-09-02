@@ -8,8 +8,13 @@ import type {
 	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 import { applyThemeToData } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
-import { slideSizeToCanvasPx, updateSlide } from 'pptx-viewer-shared';
+import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
+import {
+	resolveSlideSizeSelection,
+	scaleSlidesForSizeChange,
+	slideSizeToCanvasPx,
+	updateSlide,
+} from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { EditorOps } from './editor-operations';
@@ -52,6 +57,15 @@ export interface DeckActions {
 	 * exact authored dimensions.
 	 */
 	updateSlideSize(size: SlideSizeEmu): void;
+	/**
+	 * Adopt an EMU slide size AND rescale every slide's content for it in one
+	 * undoable step (PowerPoint's Design > Slide Size "Maximize" / "Ensure Fit"
+	 * prompt, shown when the deck has content and the new size does not match
+	 * the old one). Unlike {@link updateSlideSize}, this also repositions and
+	 * resizes every element (and scales font sizes) through the shared
+	 * `scaleSlidesForSizeChange`.
+	 */
+	applySlideSizeRescale(size: SlideSizeEmu, mode: SlideSizeRescaleMode): void;
 }
 
 export interface DeckActionsDeps {
@@ -184,6 +198,32 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 				return;
 			}
 			store.set({ slideSize: { ...size }, canvasSize: slideSizeToCanvasPx(size) });
+			ops.commitChange();
+		},
+
+		applySlideSizeRescale(size, mode) {
+			if (!Number.isFinite(size.widthEmu) || !Number.isFinite(size.heightEmu)) {
+				return;
+			}
+			if (size.widthEmu <= 0 || size.heightEmu <= 0) {
+				return;
+			}
+			const state = store.get();
+			if (!state.editable) {
+				return;
+			}
+			const oldSize = resolveSlideSizeSelection({
+				current: state.slideSize,
+				canvas: state.canvasSize,
+			}).size;
+			// One history entry for the rescale + size change together, per the
+			// Design > Slide Size prompt contract.
+			ops.pushHistory();
+			store.set({
+				slides: scaleSlidesForSizeChange(state.slides, oldSize, size, mode),
+				slideSize: { ...size },
+				canvasSize: slideSizeToCanvasPx(size),
+			});
 			ops.commitChange();
 		},
 	};

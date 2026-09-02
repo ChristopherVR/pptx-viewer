@@ -11,6 +11,7 @@ import {
 	executeMediaCommandInDom,
 	findMediaElementByElementId,
 	runMediaCommand,
+	toggleStageElementMedia,
 } from './animation-media-playback';
 import type { TimelineStepCommand } from './animation-timeline-types';
 
@@ -178,5 +179,51 @@ describe('executeMediaCommandInDom', () => {
 
 	it('no-ops when the target is not on the stage', () => {
 		expect(executeMediaCommandInDom(command({ command: 'play' }))).toBeFalsy();
+	});
+});
+
+describe('toggleStageElementMedia', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	it('plays a paused media node under the clicked element and pauses a playing one', () => {
+		document.body.innerHTML = '<div id="stage"><div data-element-id="clip1"><video/></div></div>';
+		const stage = document.querySelector<HTMLElement>('#stage');
+		const video = stage!.querySelector('video')!;
+		const play = vi.fn(() => Promise.resolve());
+		const pause = vi.fn();
+		Object.defineProperty(video, 'play', { value: play });
+		Object.defineProperty(video, 'pause', { value: pause });
+
+		expect(toggleStageElementMedia(stage, 'clip1')).toBeTruthy();
+		expect(play).toHaveBeenCalledOnce();
+
+		Object.defineProperty(video, 'paused', { value: false, configurable: true });
+		expect(toggleStageElementMedia(stage, 'clip1')).toBeTruthy();
+		expect(pause).toHaveBeenCalledOnce();
+	});
+
+	it('matches the id by attribute compare, so quotes and backslashes need no escaping', () => {
+		const id = 'weird"id\\1';
+		const host = document.createElement('div');
+		host.dataset['elementId'] = id;
+		const video = document.createElement('video');
+		const play = vi.fn(() => Promise.resolve());
+		Object.defineProperty(video, 'play', { value: play });
+		host.appendChild(video);
+		document.body.appendChild(host);
+
+		expect(toggleStageElementMedia(document.body, id)).toBeTruthy();
+		expect(play).toHaveBeenCalledOnce();
+	});
+
+	it('no-ops without a root, an id, or a media node', () => {
+		document.body.innerHTML = '<div id="stage"><div data-element-id="shape1"><span/></div></div>';
+		const stage = document.querySelector<HTMLElement>('#stage');
+		expect(toggleStageElementMedia(null, 'shape1')).toBeFalsy();
+		expect(toggleStageElementMedia(stage, undefined)).toBeFalsy();
+		expect(toggleStageElementMedia(stage, 'shape1')).toBeFalsy();
+		expect(toggleStageElementMedia(stage, 'missing')).toBeFalsy();
 	});
 });

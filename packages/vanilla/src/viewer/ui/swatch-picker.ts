@@ -4,6 +4,7 @@ import type { AnchoredPopupHandle } from './anchored-popup';
 import { attachAnchoredPopup } from './anchored-popup';
 import type { IconName } from './icons';
 import { createIcon } from './icons';
+import { createRecentColorsRow } from './recent-colors-row';
 
 /**
  * Office theme-colour swatch set: no shared catalogue exists for this yet
@@ -39,6 +40,8 @@ export interface SwatchPickerHandle {
 	el: HTMLElement;
 	setValue(hex: string | undefined): void;
 	setDisabled(disabled: boolean): void;
+	/** B6: refresh the "Recent colours" row (most-recent-first); hidden when empty. */
+	setRecentColors(colors: readonly string[]): void;
 }
 
 /** Normalise an arbitrary colour string to `#rrggbb`, or the fallback when invalid. */
@@ -78,6 +81,15 @@ export function makeSwatchPicker(
 	menu.hidden = true;
 	el.appendChild(menu);
 
+	// B6: "Recent colours" - MRU picks, seeded from the deck's `p:clrMru` and
+	// folded forward by every commit (`editor-recent-colors.ts`). Built above
+	// the preset grid, PowerPoint's own ordering, and hidden while empty.
+	const recent = createRecentColorsRow(doc, t, (hex) => {
+		setOpen(false);
+		options.onSelect(hex);
+	});
+	menu.appendChild(recent.el);
+
 	const grid = createEl(doc, 'div', 'pptxv-swatch-grid');
 	menu.appendChild(grid);
 
@@ -88,6 +100,7 @@ export function makeSwatchPicker(
 		for (const [btn, hex] of swatchButtons) {
 			btn.classList.toggle('is-selected', hex === value);
 		}
+		recent.setSelected(value);
 		swab.style.backgroundColor = value;
 	};
 
@@ -151,9 +164,13 @@ export function makeSwatchPicker(
 		},
 		setDisabled(disabled) {
 			trigger.disabled = disabled;
+			recent.setDisabled(disabled);
 			if (disabled) {
 				setOpen(false);
 			}
+		},
+		setRecentColors(colors) {
+			recent.setColors(colors);
 		},
 	};
 }

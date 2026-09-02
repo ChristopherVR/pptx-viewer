@@ -224,4 +224,7 @@ export const translations = {
 	'pptx.chart.radarStyleFilled': 'Gefüllt',
 	'pptx.chart.wireframeOn': 'Drahtgitter',
 	'pptx.chart.wireframeOff': 'Vollflächig',
+	'pptx.chart.bar3DShapeLabel': 'Säulenform',
+	'pptx.chart.radarStyleLabel': 'Netzstil',
+	'pptx.chart.surfaceWireframeLabel': 'Oberfläche',
 } as const;

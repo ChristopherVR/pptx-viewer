@@ -1,7 +1,26 @@
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { buildPrintHtmlDocument } from './print-document';
+import { buildHandoutsHtml, buildPrintHtmlDocument } from './print-document';
 import type { PrintHtmlDocumentOptions } from './print-document';
+
+function makeChromeElement(
+	placeholderType: string,
+	text: string,
+	fieldType?: string,
+): PptxSlide['elements'][number] {
+	return {
+		id: `${placeholderType}-el`,
+		type: 'text',
+		placeholderType,
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 20,
+		text,
+		textSegments: fieldType ? [{ text, style: {}, fieldType }] : undefined,
+	} as unknown as PptxSlide['elements'][number];
+}
 
 function baseOptions(overrides: Partial<PrintHtmlDocumentOptions> = {}): PrintHtmlDocumentOptions {
 	return {
@@ -81,5 +100,74 @@ describe('buildPrintHtmlDocument', () => {
 	it('escapes the title', () => {
 		const doc = buildPrintHtmlDocument(baseOptions({ title: '<x> & "y"' }));
 		expect(doc).toContain('<title>&lt;x&gt; &amp; &quot;y&quot;</title>');
+	});
+});
+
+describe('buildHandoutsHtml', () => {
+	const IMAGES = ['data:image/png;base64,AAAA', 'data:image/png;base64,BBBB'];
+	const INDICES = [0, 1];
+
+	it('renders byte-identical output when no handout master is passed (back-compat)', () => {
+		const withoutArg = buildHandoutsHtml(IMAGES, INDICES, 4);
+		const withUndefined = buildHandoutsHtml(IMAGES, INDICES, 4, undefined);
+		expect(withUndefined).toBe(withoutArg);
+		expect(withoutArg).toContain('class="handout-grid"');
+		expect(withoutArg).not.toContain('handout-chrome-frame');
+	});
+
+	it('renders byte-identical output for the 3-per-page layout with no handout master', () => {
+		const withoutArg = buildHandoutsHtml(IMAGES, INDICES, 3);
+		const withUndefined = buildHandoutsHtml(IMAGES, INDICES, 3, undefined);
+		expect(withUndefined).toBe(withoutArg);
+		expect(withoutArg).toContain('class="handout-grid-3"');
+	});
+
+	it('paints the master background, header, footer, date, and page number', () => {
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			backgroundColor: '#DDEEFF',
+			slidesPerPage: 4,
+			headerFooter: { hasHeader: true, hasFooter: true, hasDateTime: true, hasSlideNumber: true },
+			elements: [
+				makeChromeElement('hdr', 'Quarterly Review'),
+				makeChromeElement('ftr', 'Confidential - Acme Corp'),
+				makeChromeElement('dt', '', 'datetime'),
+				makeChromeElement('sldnum', '<#>', 'slidenum'),
+			],
+		};
+		const html = buildHandoutsHtml(IMAGES, INDICES, 4, handoutMaster);
+		expect(html).toContain('handout-chrome-frame');
+		expect(html).toContain('background-color: #DDEEFF;');
+		expect(html).toContain('Quarterly Review');
+		expect(html).toContain('Confidential - Acme Corp');
+		// Auto date field resolves to a formatted date, not the empty stored text.
+		expect(html).toContain('handout-chrome-box--date');
+		// Page number field always renders the actual 1-based page index.
+		expect(html).toMatch(/handout-chrome-box--page-number"[^>]*>1</u);
+	});
+
+	it('omits a chrome box whose <p:hf> flag is explicitly false, even with a placeholder shape', () => {
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 4,
+			headerFooter: { hasFooter: false },
+			elements: [makeChromeElement('ftr', 'Should not print')],
+		};
+		const html = buildHandoutsHtml(IMAGES, INDICES, 4, handoutMaster);
+		expect(html).not.toContain('Should not print');
+	});
+
+	it('sizes slide cells from the master placeholder rects when it defines positioned sldImg placeholders', () => {
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 2,
+			placeholders: [
+				{ type: 'sldImg', idx: '1', x: 36, y: 96, width: 300, height: 225 },
+				{ type: 'sldImg', idx: '2', x: 384, y: 96, width: 300, height: 225 },
+			],
+		};
+		const html = buildHandoutsHtml(IMAGES, INDICES, 2, handoutMaster);
+		expect(html).toContain('handout-grid--positioned');
+		expect(html).toContain('handout-cell--positioned');
 	});
 });

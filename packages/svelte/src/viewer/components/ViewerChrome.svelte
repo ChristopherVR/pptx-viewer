@@ -11,12 +11,14 @@
 	 * whole bag rather than ~40 individual props is deliberate; the bag is the
 	 * viewer's single composition root and the chrome reads most of it.
 	 */
-	import { readBackstageRecentFile, toggleSheet } from 'pptx-viewer-shared';
+	import { createGuide, readBackstageRecentFile, toggleSheet } from 'pptx-viewer-shared';
 	import type { AccountAuthConfig, ToolbarActionId, ViewerTheme } from 'pptx-viewer-shared';
 
-	import { useTranslator } from '../../i18n/context';
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
+	import { nextGuideId } from '../state/guide-id';
 	import Ribbon from './ribbon/Ribbon.svelte';
+	import ProtectedViewBanner from './ProtectedViewBanner.svelte';
+	import ReadOnlyBanner from './ReadOnlyBanner.svelte';
 	import TitleBar from './TitleBar.svelte';
 	import MobileChrome from './MobileChrome.svelte';
 	import MobileMenuSheet from './MobileMenuSheet.svelte';
@@ -53,8 +55,7 @@
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
-	const { loader, viewer, editor, parityUi, chromeUi, findReplace, collab, dialogs, autosaveCtl, exportUi, ai } = vm;
-	const t = useTranslator();
+	const { loader, viewer, editor, parityUi, readOnlyRec, chromeUi, findReplace, collab, dialogs, autosaveCtl, exportUi, ai } = vm;
 
 	// Options > Customize Ribbon hides tabs on top of whatever the host already
 	// hid via `hiddenActions`: both feed the same `ToolbarActionId` gate every
@@ -90,23 +91,15 @@
 	hiddenActions={effectiveHiddenActions}
 />
 {#if vm.protectedViewActive}
-	<div
-		class="pptx-svelte-protected-view-banner flex items-center gap-3 border-b border-amber-700/30 bg-amber-900/20 px-4 py-2"
-		role="status"
-	>
-		<span class="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true">&#128274;</span>
-		<p class="flex-1 text-xs text-amber-200">
-			<strong>{t('pptx.security.protectedViewTitle')}</strong>:
-			{t('pptx.options.trust.protectedViewInfo')}
-		</p>
-		<button
-			type="button"
-			class="shrink-0 rounded border border-amber-600/50 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-700/30"
-			onclick={() => vm.enableEditing()}
-		>
-			{t('pptx.security.enableEditing')}
-		</button>
-	</div>
+	<ProtectedViewBanner onenableediting={() => vm.enableEditing()} />
+{/if}
+{#if readOnlyRec.showBanner}
+	<ReadOnlyBanner
+		kind={readOnlyRec.recommendation.kind}
+		messageKey={readOnlyRec.recommendation.messageKey}
+		oneditanyway={() => readOnlyRec.editAnyway()}
+		ondismiss={() => readOnlyRec.dismiss()}
+	/>
 {/if}
 <TitleBar
 	{fileName}
@@ -173,7 +166,7 @@
 			if (elementId) editor.select(elementId);
 		}}
 		onfrombeginning={() => {
-			viewer.goTo(0);
+			vm.presentation.firstSlide();
 			vm.onFullscreenToggle();
 		}}
 		onfromcurrent={vm.onFullscreenToggle}
@@ -200,8 +193,8 @@
 			vm.onFullscreenToggle();
 		}}
 		onrecordfrombeginning={() => {
-			viewer.goTo(0);
-			parityUi.rehearse.start(0);
+			vm.presentation.firstSlide();
+			parityUi.rehearse.start(viewer.current);
 			vm.onFullscreenToggle();
 		}}
 		onrecordfromcurrent={() => {
@@ -231,13 +224,7 @@
 		snapToShape={parityUi.snapToShape}
 		onsnapToShapechange={(next) => (parityUi.snapToShape = next)}
 		onaddguide={(axis) => {
-			parityUi.guides = [
-				...parityUi.guides,
-				{
-					axis,
-					position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2,
-				},
-			];
+			parityUi.guides = [...parityUi.guides, createGuide(nextGuideId(), axis, loader.canvasSize)];
 			parityUi.showGuides = true;
 		}}
 		{exportUi}
@@ -303,7 +290,7 @@
 				if (elementId) editor.select(elementId);
 			}}
 			onfrombeginning={() => {
-				viewer.goTo(0);
+				vm.presentation.firstSlide();
 				vm.onFullscreenToggle();
 			}}
 			onfromcurrent={vm.onFullscreenToggle}
@@ -330,8 +317,8 @@
 				vm.onFullscreenToggle();
 			}}
 			onrecordfrombeginning={() => {
-				viewer.goTo(0);
-				parityUi.rehearse.start(0);
+				vm.presentation.firstSlide();
+				parityUi.rehearse.start(viewer.current);
 				vm.onFullscreenToggle();
 			}}
 			onrecordfromcurrent={() => {
@@ -361,13 +348,7 @@
 			snapToShape={parityUi.snapToShape}
 			onsnapToShapechange={(next) => (parityUi.snapToShape = next)}
 			onaddguide={(axis) => {
-				parityUi.guides = [
-					...parityUi.guides,
-					{
-						axis,
-						position: axis === 'v' ? loader.canvasSize.width / 2 : loader.canvasSize.height / 2,
-					},
-				];
+				parityUi.guides = [...parityUi.guides, createGuide(nextGuideId(), axis, loader.canvasSize)];
 				parityUi.showGuides = true;
 			}}
 			{exportUi}

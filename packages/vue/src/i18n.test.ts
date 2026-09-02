@@ -15,15 +15,38 @@ describe('translationsEn (vue-i18n syntax adapter)', () => {
 	});
 
 	it('compiles every message with vue-i18n without throwing (regression: "Not allowed nest placeholder")', () => {
-		expect(() =>
-			createI18n({
-				legacy: false,
-				locale: 'en',
-				messages: { en: translationsEn },
-				missingWarn: false,
-				fallbackWarn: false,
-			}),
-		).not.toThrow();
+		// vue-i18n compiles a message on first use, not at `createI18n`, so
+		// every key has to be rendered for a parse error to surface here.
+		const { t } = createI18n({
+			legacy: false,
+			locale: 'en',
+			messages: { en: translationsEn },
+			missingWarn: false,
+			fallbackWarn: false,
+		}).global;
+		const failures = Object.keys(translationsEn).filter((key) => {
+			try {
+				t(key);
+				return false;
+			} catch {
+				return true;
+			}
+		});
+		expect(failures).toStrictEqual([]);
+	});
+
+	it('escapes a literal @ so vue-i18n does not read it as a linked message', () => {
+		expect(translationsEn['pptx.comments.mentionPlaceholder']).toBe(
+			"Type {'@'} to mention someone",
+		);
+		const { t } = createI18n({
+			legacy: false,
+			locale: 'en',
+			messages: { en: translationsEn },
+			missingWarn: false,
+			fallbackWarn: false,
+		}).global;
+		expect(t('pptx.comments.mentionPlaceholder')).toBe('Type @ to mention someone');
 	});
 
 	it('resolves a parametrised message to the expected interpolated string', () => {

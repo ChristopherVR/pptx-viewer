@@ -9,7 +9,8 @@
  * chrome. Their controllers arrive whole (`deckViews`, `presentation`) rather
  * than unpacked, so this file stays markup.
  */
-import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type { PptxCustomShow, PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange } from 'pptx-viewer-shared';
 
 import type { UseDeckViewsResult } from '../composables/useDeckViews';
 import type { UsePresentationControlsResult } from '../composables/usePresentationControls';
@@ -34,6 +35,10 @@ defineProps<{
 	activeSlideIndex: number;
 	canEdit: boolean;
 	presentationProperties: PptxPresentationProperties;
+	/** Every named custom show, for an on-slide `ppaction://customshow` action's target. */
+	customShows?: readonly PptxCustomShow[];
+	/** `p:showPr/p:sldRg`, resolved to deck indexes; `null`/`undefined` for no range. */
+	authoredRange?: AuthoredSlideRange | null;
 	/** File > Options > Advanced > Slide Show behaviour flags. */
 	endWithBlackSlide: boolean;
 	promptKeepInkAnnotations: boolean;
@@ -94,10 +99,12 @@ defineProps<{
 		:slides="mergedSlides"
 		:canvas-size="canvasSize"
 		:media-data-urls="mediaDataUrls"
-		:start-index="activeSlideIndex"
+		:start-index="presentation.presentationStartIndex.value"
 		:start-in-presenter-view="presentation.startInPresenterView.value"
 		:presentation-properties="presentationProperties"
 		:active-custom-show="presentation.activePresentationCustomShow.value"
+		:custom-shows="customShows"
+		:authored-range="authoredRange"
 		:end-with-black-slide="endWithBlackSlide"
 		:prompt-keep-ink-annotations="promptKeepInkAnnotations"
 		:show-menu-on-right-click="showMenuOnRightClick"

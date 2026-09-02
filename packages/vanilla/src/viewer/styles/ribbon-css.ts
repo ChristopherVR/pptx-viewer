@@ -343,6 +343,16 @@ export const RIBBON_CSS = `
 	box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
 }
 .pptxv-swatch-menu[hidden] { display: none; }
+/* B6: "Recent colours" row (ui/recent-colors-row.ts), shared by the swatch
+   picker's popup menu and the property inspector's colour inputs. */
+.pptxv-recent-colors[hidden] { display: none; }
+.pptxv-recent-colors-label {
+	margin-bottom: 4px;
+	color: var(--pptx-muted-foreground);
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
 .pptxv-swatch-grid { display: grid; grid-template-columns: repeat(5, 20px); gap: 4px; margin-bottom: 6px; }
 .pptxv-swatch {
 	width: 20px;

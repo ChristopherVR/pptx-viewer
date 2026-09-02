@@ -12,12 +12,13 @@ import {
 	SLIDE_SIZE_PRESETS,
 	withSlideSizeOrientation,
 } from 'pptx-viewer-shared';
-import type { SlideSizeEmu, SlideSizeOrientation } from 'pptx-viewer-shared';
-import React from 'react';
+import type { SlideSizeEmu, SlideSizeOrientation, SlideSizeRescaleMode } from 'pptx-viewer-shared';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { CanvasSize } from '../../types';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
+import { SlideSizeRescalePrompt } from './SlideSizeRescalePrompt';
 
 /** Sentinel `<option>` value for a size that matches no preset. */
 const CUSTOM_PRESET_VALUE = '';
@@ -36,8 +37,18 @@ export interface SlideSizeCardProps {
 	 * A preset or orientation pick, in EMU. Distinct from {@link onUpdate}
 	 * because a pixel round-trip is lossy: Ledger is 12179300 EMU = 1278.5px,
 	 * and the integer pixel it rounds to would cost the deck its preset.
+	 *
+	 * `rescaleMode` is set only when the user confirmed the Maximize/Ensure Fit
+	 * prompt below for a size change that affects existing content.
 	 */
-	onUpdateSlideSize?: (size: SlideSizeEmu) => void;
+	onUpdateSlideSize?: (size: SlideSizeEmu, rescaleMode?: SlideSizeRescaleMode) => void;
+	/** Whether any slide has at least one element; gates the rescale prompt. */
+	hasContent: boolean;
+}
+
+/** Whether two EMU sizes differ, ignoring `type` (a preset id carries no geometry of its own). */
+function sizesDiffer(a: SlideSizeEmu, b: SlideSizeEmu): boolean {
+	return a.widthEmu !== b.widthEmu || a.heightEmu !== b.heightEmu;
 }
 
 export function SlideSizeCard({
@@ -46,21 +57,44 @@ export function SlideSizeCard({
 	canEdit,
 	onUpdate,
 	onUpdateSlideSize,
+	hasContent,
 }: SlideSizeCardProps): React.ReactElement {
 	const { t } = useTranslation();
 	const selection = resolveSlideSizeSelection({ current: slideSizeEmu, canvas: canvasSize });
 	const presetDisabled = !canEdit || !onUpdateSlideSize;
+
+	// PowerPoint's Maximize/Ensure Fit prompt: held here rather than applied
+	// immediately whenever the picked size differs from the current one AND the
+	// deck actually has content to rescale. An empty deck (or a size that
+	// happens to match already) applies directly, matching today's behaviour.
+	const [pendingSize, setPendingSize] = useState<SlideSizeEmu | null>(null);
+
+	const applyOrPromptSize = (nextSize: SlideSizeEmu): void => {
+		if (hasContent && sizesDiffer(selection.size, nextSize)) {
+			setPendingSize(nextSize);
+			return;
+		}
+		onUpdateSlideSize?.(nextSize);
+	};
 
 	const handlePreset = (labelKey: string): void => {
 		const preset = SLIDE_SIZE_PRESETS.find((candidate) => candidate.labelKey === labelKey);
 		if (!preset) {
 			return;
 		}
-		onUpdateSlideSize?.(slideSizeFromPreset(preset, selection.orientation));
+		applyOrPromptSize(slideSizeFromPreset(preset, selection.orientation));
 	};
 
 	const handleOrientation = (orientation: SlideSizeOrientation): void => {
-		onUpdateSlideSize?.(withSlideSizeOrientation(selection.size, orientation));
+		applyOrPromptSize(withSlideSizeOrientation(selection.size, orientation));
+	};
+
+	const handleRescale = (mode: SlideSizeRescaleMode): void => {
+		if (!pendingSize) {
+			return;
+		}
+		onUpdateSlideSize?.(pendingSize, mode);
+		setPendingSize(null);
 	};
 
 	return (
@@ -124,6 +158,8 @@ export function SlideSizeCard({
 						</label>
 					))}
 				</div>
+
+				{pendingSize && <SlideSizeRescalePrompt onChoose={handleRescale} />}
 			</div>
 		</div>
 	);

@@ -41,7 +41,9 @@ import { selectValue } from './chart-event-helpers';
 								(change)="onType(i, $event)"
 							>
 								@for (opt of typeOptions; track opt.value) {
-									<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+									<option [value]="opt.value" [selected]="opt.value === (s.seriesChartType ?? '')">
+										{{ opt.labelKey | translate }}
+									</option>
 								}
 							</select>
 						</div>

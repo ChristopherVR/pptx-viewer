@@ -164,6 +164,16 @@ export interface ElementRenderContext {
 	 */
 	readonly onChartPartSelect?: (element: PptxElement, part: ChartPartRef) => void;
 	/**
+	 * Ids of the currently selected elements (the store's `selectedElementIds`).
+	 * A chart renderer arms its on-canvas mark hit-testing
+	 * (`chart-editable.ts`'s `CHART_INTERACTIVE_CLASS`) only while ITS OWN id is
+	 * in this set: an unselected chart must let a mark click bubble up and
+	 * select the chart like any other element, exactly as a bare click on any
+	 * other element type does. Absent on every non-authoring surface, matching
+	 * `onChartPointChange`.
+	 */
+	readonly selectedElementIds?: ReadonlySet<string>;
+	/**
 	 * Per-element native-animation playback state, keyed by element id, present
 	 * only during a running presentation. Chart / SmartArt renderers read their
 	 * element's {@link ElementAnimationState.build} to reveal a staged build

@@ -7,6 +7,7 @@ import { generateLinkedTextBoxFixture } from './fixtures/generate-linked-textbox
 import { generateMasterViewsFixture } from './fixtures/generate-master-views-fixture';
 import { generateMorphShapeSwapFixture } from './fixtures/generate-morph-shape-swap-fixture';
 import { generateInkFixture, generateOleFixture } from './fixtures/generate-ole-ink-fixtures';
+import { generateParityWave4Fixture } from './fixtures/generate-parity-wave4-fixture';
 import { generateFixture as generateTemplateEditingFixture } from './fixtures/generate-template-editing-fixture';
 import {
 	generateTemplateGroupFixture,
@@ -35,4 +36,5 @@ export default async function globalSetup() {
 	await generateLinkedTextBoxFixture();
 	await generateMorphShapeSwapFixture();
 	await generateLineFillFidelityFixture();
+	await generateParityWave4Fixture();
 }

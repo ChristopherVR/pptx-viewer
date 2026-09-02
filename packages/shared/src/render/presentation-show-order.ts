@@ -222,13 +222,21 @@ export function hasShowSlideAfter(deckIndex: number, showIndexes: readonly numbe
  * rail that previewed slide 4 would be previewing a slide the next press
  * cannot reach. Pass the active show; omitting it presents the whole deck,
  * which is the previous behaviour.
+ *
+ * The same holds for a `p:showPr/p:sldRg` range: on the last slide of a deck
+ * authored to play 2..3, the preview must be empty, not slide 4. Pass the
+ * resolved range (`resolveAuthoredSlideRange`) exactly as the show does.
  */
 export function nextPresentedSlide<T extends ShowOrderSlide>(
 	slides: readonly T[],
 	deckIndex: number,
 	activeCustomShow?: ShowOrderCustomShow | null,
+	authoredRange?: AuthoredSlideRange | null,
 ): T | undefined {
-	const next = nextShowSlideIndex(deckIndex, resolveShowSlideIndexes(slides, activeCustomShow));
+	const next = nextShowSlideIndex(
+		deckIndex,
+		resolveShowSlideIndexes(slides, activeCustomShow, authoredRange),
+	);
 	return next === undefined ? undefined : slides[next];
 }
 

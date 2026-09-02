@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
@@ -137,6 +137,34 @@ describe('runPrint', () => {
 		const html = openPrintWindow.mock.calls[0][0];
 		expect(html).toContain('<title>Handout 4 per page</title>');
 		expect(html).toContain('handout-grid');
+	});
+
+	it('paints the handout master footer text from store state when ftr is enabled', async () => {
+		const deps = makeDeps(4);
+		const handoutMaster: PptxHandoutMaster = {
+			path: 'ppt/handoutMasters/handoutMaster1.xml',
+			slidesPerPage: 4,
+			headerFooter: { hasFooter: true },
+			elements: [
+				{
+					id: 'ftr1',
+					type: 'text',
+					placeholderType: 'ftr',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: 'Confidential - Acme Corp',
+				} as unknown as PptxSlide['elements'][number],
+			],
+		};
+		deps.store.set({ handoutMaster });
+		const openPrintWindow = vi.fn((_html: string) => true);
+
+		await runPrint(deps, { printWhat: 'handouts', slidesPerPage: 4, openPrintWindow });
+
+		const html = openPrintWindow.mock.calls[0][0];
+		expect(html).toContain('Confidential - Acme Corp');
 	});
 
 	it('builds the outline without rasterising any slide', async () => {

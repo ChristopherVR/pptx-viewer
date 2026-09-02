@@ -18,8 +18,8 @@
  * PageDown advance, Left / PageUp go back, Home / End jump to the show's first
  * and last slide, Esc exits, and a click on the stage advances.
  */
-import type { PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
-import type { PresentationContextMenuActionId } from 'pptx-viewer-shared';
+import type { PptxCustomShow, PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type { AuthoredSlideRange, PresentationContextMenuActionId } from 'pptx-viewer-shared';
 import {
 	ANIMATION_KEYFRAMES_CSS,
 	DEFAULT_VIEWER_OPTIONS,
@@ -39,6 +39,8 @@ import { useI18n } from 'vue-i18n';
 import { providePresentationElementStates } from '../composables/presentation-element-states';
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
+import type { ActiveCustomShow } from '../composables/usePresentationActionExtras';
+import { usePresentationActionExtras } from '../composables/usePresentationActionExtras';
 import { usePresentationAnimationStyles } from '../composables/usePresentationAnimationStyles';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { SlideAnnotationMap } from '../composables/usePresentationAnnotations';
@@ -79,6 +81,15 @@ const props = withDefaults(
 		presentationProperties?: PptxPresentationProperties;
 		/** Membership of the running custom show, when one is selected. */
 		activeCustomShow?: { slideRIds: string[] } | null;
+		/** Every named custom show, for an on-slide `ppaction://customshow` action's target. */
+		customShows?: readonly PptxCustomShow[];
+		/**
+		 * The `p:showPr/p:sldRg` slide-range restriction, when the deck is
+		 * authored to open into a range rather than the whole deck or a custom
+		 * show. Applied the same way `activeCustomShow` is: a filter on the
+		 * navigable order, not a pre-filtered slide array.
+		 */
+		authoredRange?: AuthoredSlideRange | null;
 		/** File > Options > Advanced > Slide Show behavior flags. */
 		endWithBlackSlide?: boolean;
 		promptKeepInkAnnotations?: boolean;
@@ -124,14 +135,37 @@ const reducedMotion = computed(() => viewerOptions?.value.accessibility.reducedM
 // and is therefore handed back to `nav` as a getter.
 
 /**
+ * The show order's ACTUAL active custom show: the dialog-selected one
+ * (`activeCustomShow` prop) by default, but temporarily overridden while an
+ * on-slide `ppaction://customshow` action is running (see
+ * `usePresentationActionExtras.customShow`). `undefined` means "follow the
+ * prop"; an explicit `null` means "no show" (the whole deck), which the prop
+ * itself cannot express with `undefined` alone once an override is in play.
+ */
+const activeShowOverride = ref<ActiveCustomShow>(undefined);
+const effectiveActiveCustomShow = computed<ActiveCustomShow>(() =>
+	activeShowOverride.value !== undefined ? activeShowOverride.value : props.activeCustomShow,
+);
+
+/**
  * Which slides this show visits and what a press resolves to (hidden slides
  * skipped, custom show honoured). The rule is shared so no binding can present
  * a slide someone deliberately hid from the room.
  */
 const showOrder = usePresentationShowOrder({
 	slides: () => props.slides,
-	activeCustomShow: () => props.activeCustomShow,
+	activeCustomShow: () => effectiveActiveCustomShow.value,
+	authoredRange: () => props.authoredRange,
 });
+
+/**
+ * The wave-4 on-slide action verbs (`lastViewed`, `customShow`, `openFile`,
+ * `openPresentation`, `playMedia`, `oleVerb`). Needs `nav.currentIndex` +
+ * `nav.goTo` for navigation, so it is built once `nav` exists (below) and its
+ * `handleShowEnd` is threaded back into `nav`'s own `onShowEnd` option -
+ * both close over the same mutable refs, so declaration order here matters.
+ */
+let actionExtras: ReturnType<typeof usePresentationActionExtras> | undefined;
 
 const nav = usePresentationNavigation({
 	slides: () => props.slides,
@@ -142,6 +176,17 @@ const nav = usePresentationNavigation({
 	loopContinuously: () => shouldLoopContinuously(props.presentationProperties ?? {}),
 	requestClose: close,
 	onSlideChange: (index) => emit('slide-change', index),
+	onShowEnd: () => actionExtras?.handleShowEnd() ?? false,
+});
+
+actionExtras = usePresentationActionExtras({
+	customShows: () => props.customShows ?? [],
+	currentIndex: nav.currentIndex,
+	activeSlide: () => nav.activeSlide.value,
+	activeShowOverride,
+	firstShowSlide: showOrder.first,
+	goTo: nav.goTo,
+	frameRoot: () => frameRef.value,
 });
 
 // Animation playback: each "next" first reveals the slide's next native-timing
@@ -452,6 +497,13 @@ const actionRunner = {
 		}
 		return window.confirm(`${t('pptx.options.trust.confirmHyperlinks')}\n\n${url}`);
 	},
+	lastViewed: () => actionExtras?.lastViewed(),
+	customShow: (customShowId: string, returnAfter: boolean) =>
+		actionExtras?.customShow(customShowId, returnAfter),
+	openFile: (target: string) => actionExtras?.openFile(target),
+	openPresentation: (target: string) => actionExtras?.openPresentation(target),
+	playMedia: (elementId: string | undefined) => actionExtras?.playMedia(elementId),
+	oleVerb: (verb: number, elementId: string | undefined) => actionExtras?.oleVerb(verb, elementId),
 };
 
 /**
@@ -606,6 +658,7 @@ useTouchGestures({
 				:media-data-urls="mediaDataUrls"
 				:presentation-start-time="presentationStartTime"
 				:active-custom-show="activeCustomShow"
+				:authored-range="authoredRange"
 				@click.stop
 				@move="onToolbarMove"
 				@exit="presenterMode = false"
@@ -620,6 +673,7 @@ useTouchGestures({
 				:audience-open="presenterSession.audienceOpen.value"
 				:snapshot="presenterSession.snapshot.value"
 				:active-custom-show="activeCustomShow"
+				:authored-range="authoredRange"
 				:open-slide-grid-nonce="openSlideGridNonce"
 				@click.stop
 				@move="onToolbarMove"

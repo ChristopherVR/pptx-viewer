@@ -2,12 +2,16 @@ import type {
 	MediaPptxElement,
 	ParsedTableStyleMap,
 	PptxAppProperties,
+	PptxCommentAuthor,
+	PptxCompatibilityWarning,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxCustomShow,
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
+	PptxModernCommentAuthor,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -61,6 +65,10 @@ export interface LoadedPresentation {
 	appProperties?: PptxAppProperties;
 	customProperties: PptxCustomProperty[];
 	customShows: PptxCustomShow[];
+	/** Office 2021 (p188) comment authors, for the `@`-mention typeahead. */
+	modernCommentAuthors: PptxModernCommentAuthor[];
+	/** Legacy `ppt/commentAuthors.xml` authors, mapped into the typeahead too. */
+	commentAuthors: PptxCommentAuthor[];
 	embeddedFonts: PptxEmbeddedFont[];
 	hasDigitalSignatures: boolean;
 	digitalSignatureCount: number;
@@ -93,6 +101,19 @@ export interface LoadedPresentation {
 	notesCanvasSize?: CanvasSize;
 	/** Blob URLs created during the load; revoke them when replacing/destroying. */
 	blobUrls: string[];
+	/**
+	 * Write-protection verifier from `p:modifyVerifier` (`presentation.xml`).
+	 * Feeds `readOnlyRecommendation`: its presence means editing requires a
+	 * password this viewer never asks for.
+	 */
+	modifyVerifier?: PptxModifyVerifier;
+	/**
+	 * Deck-level compatibility warnings (`data.warnings`, distinct from each
+	 * slide's own `warnings`): unmodelled markup, lossy save fallbacks, etc.
+	 * reported by core's `PptxCompatibilityService`. Feeds
+	 * `compatibilityWarningToasts` alongside every slide's `warnings`.
+	 */
+	warnings: PptxCompatibilityWarning[];
 }
 
 export interface LoadPresentationOptions {
@@ -132,6 +153,8 @@ export async function loadPresentation(
 			appProperties: parsed.appProperties,
 			customProperties: parsed.customProperties ?? [],
 			customShows: parsed.customShows ?? [],
+			modernCommentAuthors: parsed.modernCommentAuthors ?? [],
+			commentAuthors: parsed.commentAuthors ?? [],
 			embeddedFonts: parsed.embeddedFonts ?? [],
 			hasDigitalSignatures: parsed.hasDigitalSignatures ?? false,
 			digitalSignatureCount: parsed.digitalSignatureCount ?? 0,
@@ -151,6 +174,8 @@ export async function loadPresentation(
 			notesMaster: parsed.notesMaster,
 			handoutMaster: parsed.handoutMaster,
 			hasMacros: parsed.hasMacros ?? false,
+			modifyVerifier: parsed.modifyVerifier,
+			warnings: parsed.warnings ?? [],
 			slideSize:
 				typeof parsed.widthEmu === 'number' &&
 				typeof parsed.heightEmu === 'number' &&

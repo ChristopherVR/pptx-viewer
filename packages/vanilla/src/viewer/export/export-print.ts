@@ -156,7 +156,12 @@ export async function runPrint(
 		const bodyHtml = buildNotesHtml(images, slideIndices, slides);
 		return commit(buildDocument('Notes Pages', bodyHtml, settings, colorFilter));
 	}
-	const bodyHtml = buildHandoutsHtml(images, slideIndices, settings.slidesPerPage);
+	const bodyHtml = buildHandoutsHtml(
+		images,
+		slideIndices,
+		settings.slidesPerPage,
+		state.handoutMaster,
+	);
 	const title = `Handout ${settings.slidesPerPage} per page`;
 	return commit(buildDocument(title, bodyHtml, settings, colorFilter));
 }

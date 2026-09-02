@@ -1,10 +1,16 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, PptxSlideMaster } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
-import { shallowRef } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 
+import type { UseMasterViewCrudResult } from '../composables/useMasterViewCrud';
 import { useMasterViewWiring } from '../composables/useMasterViewWiring';
 import MasterViewOverlay from './MasterViewOverlay.vue';
+
+/** A no-op CRUD controller: these tests exercise element editing, not the CRUD row. */
+function fakeCrud(): UseMasterViewCrudResult {
+	return { actions: computed(() => []), error: ref(null), run: vi.fn() };
+}
 
 /**
  * The overlay's own affordances, as opposed to the routing rules the composable
@@ -44,6 +50,7 @@ function mountOverlay(canEdit = true) {
 	const wrapper = mount(MasterViewOverlay, {
 		props: {
 			state,
+			crud: fakeCrud(),
 			slideMasters: slideMasters.value,
 			canvasSize: { width: 960, height: 540 },
 			mediaDataUrls: new Map<string, string>(),

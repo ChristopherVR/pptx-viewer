@@ -4,6 +4,7 @@ import { MATERIAL_PRESETS, normalizeHexColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { injectRecentColors } from '../../composables/recent-colors-context';
 import { emuToPt, ptToEmu } from '../../composables/useTextEffects';
 import Text3DBevelSection from './Text3DBevelSection.vue';
 
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const recentColors = injectRecentColors();
 
 const t3d = computed<Text3DStyle | undefined>(() => props.ts?.text3d);
 const hasExtrusion = computed(() =>
@@ -48,6 +50,10 @@ function onDepth(event: Event): void {
 	if (Number.isFinite(v)) {
 		update3d({ extrusionHeight: ptToEmu(Math.max(0, Math.min(100, v))) });
 	}
+}
+
+function onExtrusionColorCommit(event: Event): void {
+	recentColors?.push((event.target as HTMLInputElement).value);
 }
 
 function onMaterial(event: Event): void {
@@ -95,6 +101,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 						:class="COLOR_CLS"
 						:value="normalizeHexColor(t3d?.extrusionColor, '#888888')"
 						@input="update3d({ extrusionColor: ($event.target as HTMLInputElement).value })"
+						@change="onExtrusionColorCommit"
 					/>
 				</label>
 			</div>

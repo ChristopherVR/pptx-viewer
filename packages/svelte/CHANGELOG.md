@@ -7,6 +7,29 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.4.0) - 2026-09-02
+
+### Features
+
+- **svelte:** Effects panel, pattern fills, placeholder prompts, layout scoping and loop-continuously (by @ChristopherVR) ([329357a](https://github.com/ChristopherVR/pptx-viewer/commit/329357a047430720781274ab44d7704db60b83d3))
+- **shared:** Add the pptx.effects.rotateWithShape key and export DEFAULT_FONT_SIZE (by @ChristopherVR) ([2021a28](https://github.com/ChristopherVR/pptx-viewer/commit/2021a28c4442b5769f3faaed1cb7abc27b7316a3))
+
+### Bug Fixes
+
+- **svelte:** Paint open arrowheads as strokes and set the annotation cursor per tool (by @ChristopherVR) ([0b9dcb1](https://github.com/ChristopherVR/pptx-viewer/commit/0b9dcb1b916e9b0e7591656e23d93296f739e39a))
+- **svelte:** Localise the outer-shadow "Rotate with Shape" label (by @ChristopherVR) ([dd4f329](https://github.com/ChristopherVR/pptx-viewer/commit/dd4f32996d3b28cb269bafa200b69d8554147a93))
+- **shared:** Stop eaLnBrk splitting Latin words mid-word (by @ChristopherVR) ([c3eedb9](https://github.com/ChristopherVR/pptx-viewer/commit/c3eedb9e7adaccfcd5fc954518d554218f1050e2))
+- **shared:** Resolve Google webfonts from a bundled catalogue instead of probing the API (by @ChristopherVR) ([43bda70](https://github.com/ChristopherVR/pptx-viewer/commit/43bda70309f0e9b2cd80dc3ae2ec5cdecda41548))
+
+### Refactor
+
+- **svelte:** Repoint onto the wave-2 shared modules (by @ChristopherVR) ([6e1b4ee](https://github.com/ChristopherVR/pptx-viewer/commit/6e1b4eef9d7560d7b7d6f86a183f6a8f84b7b76c))
+- **shared:** Make editor-geometry nudge helpers alias editor-keymap (by @ChristopherVR) ([87cf256](https://github.com/ChristopherVR/pptx-viewer/commit/87cf256d9bf0565dd6b70e264c6a558416d31ef5))
+
+### Testing
+
+- **svelte:** Stub the network in the webfont tests, not probe responses (by @ChristopherVR) ([95a2b29](https://github.com/ChristopherVR/pptx-viewer/commit/95a2b29ea65e68ae0a21335dc98f1792410254e6))
+
 ## [3.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.3.0) - 2026-09-02
 
 ### Features

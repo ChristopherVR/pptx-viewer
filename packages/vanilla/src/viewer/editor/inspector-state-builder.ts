@@ -63,6 +63,7 @@ export function buildInspectorState(
 	selectedTextRange: InlineTextSelection | null = null,
 	mediaDataUrls: Map<string, string> = new Map(),
 	chartPartSelection: ChartPartSelection | null = null,
+	recentColors: readonly string[] = [],
 ): InspectorState {
 	const shape = shapeStyleOf(el);
 	const textAdvanced = el ? textAdvancedStateOf(el) : undefined;
@@ -184,5 +185,6 @@ export function buildInspectorState(
 		tableRowHeights:
 			el?.type === 'table' ? (el.tableData?.rows.map((row) => row.height ?? 32) ?? []) : [],
 		tableElement: el?.type === 'table' ? el : undefined,
+		recentColors,
 	};
 }

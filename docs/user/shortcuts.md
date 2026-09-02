@@ -8,7 +8,7 @@ description: The complete keyboard shortcut reference for editing, navigating, t
 On macOS, use **Cmd** wherever **Ctrl** is listed.
 
 ::: info Shortcuts are context-aware
-Editing shortcuts work in edit mode only and are suppressed while you are typing in a text box, editing a table cell, or using a Draw tab tool, so the keys go to the text instead. Slideshow shortcuts work only while presenting. **Escape** always works.
+Editing shortcuts work in edit mode only and are suppressed while you are typing in a text box, editing a table cell, or using a Draw tab tool, so the keys go to the text instead. Slideshow shortcuts work only while presenting, except **F5** / **Shift+F5**, which start one. **Escape** always works.
 :::
 
 ::: tip In-app reference
@@ -87,7 +87,19 @@ browser rather than doing nothing quietly.
 
 ## Slideshow
 
-Active only while presenting.
+Starting a show works from anywhere in the viewer, including while you are typing, and in a
+read-only viewer too; the rest are active only while presenting.
+
+| Action                            | Shortcut     |
+| --------------------------------- | ------------ |
+| Start the show from the beginning | **F5**       |
+| Start the show from this slide    | **Shift+F5** |
+
+::: warning F5 no longer reloads the page while the viewer has focus
+These are PowerPoint's keys, and the browser's reload key. The viewer claims a plain **F5**
+only when keyboard focus is inside it and no show is running; **Ctrl+F5** and the browser's
+reload button are untouched.
+:::
 
 These match PowerPoint's own slideshow keys. Note the deliberate split: the annotation
 tools are **Ctrl** chords, because PowerPoint gives the bare letters `N`, `P`, `B`, `W`

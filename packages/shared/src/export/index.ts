@@ -25,6 +25,14 @@ export * from './deck-json';
 export * from './canvas-jpeg';
 export * from './gif-encoder';
 export * from './handout-layout';
+// Handout master "chrome": background/header/footer/date/page-number/slide-rect
+// resolution (`handout-master-chrome`) and its HTML markup (`handout-chrome-html`)
+// for the print path, reused by `print-document.ts`.
+export * from './handout-master-chrome';
+export * from './handout-chrome-html';
+// HTML escaping (`escapeHtml`, `safeDataImageSrc`) shared by every print
+// markup builder above and `print-document.ts` itself.
+export * from './html-escape';
 export * from './notes-page-layout';
 export * from './pdf-notes-layout';
 export * from './svg-print';

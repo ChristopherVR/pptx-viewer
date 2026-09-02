@@ -46,6 +46,8 @@ export interface HomeTabSyncState {
 	embeddedFontFamilies?: readonly string[];
 	/** Families registered this session via File > Options > Fonts. */
 	customFontFamilies?: readonly string[];
+	/** B6: the deck's `p:clrMru`, most-recent-first. */
+	recentColors?: readonly string[];
 }
 
 export interface HomeTab {
@@ -168,6 +170,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 			themeFonts,
 			embeddedFontFamilies,
 			customFontFamilies,
+			recentColors,
 		}) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
@@ -181,10 +184,11 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 				themeFonts,
 				embeddedFontFamilies,
 				customFontFamilies,
+				recentColors,
 			});
 			paragraph.update({ canFormat, editable, text });
 			editing.update({ editable });
-			drawing.update({ editable, hasSelection });
+			drawing.update({ editable, hasSelection, recentColors });
 			arrange.update({
 				editable,
 				hasSelection,

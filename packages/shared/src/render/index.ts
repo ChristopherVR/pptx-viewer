@@ -1022,6 +1022,10 @@ export * from './outline-view-edit';
 // group, select-all, slide paging, help) as one shared mapping, so the five
 // bindings cannot disagree about what Ctrl+D or an arrow key does.
 export * from './editor-keymap';
+// Start-a-show keys (F5 / Shift+F5): kept apart from the editor keymap because
+// they must fire on a read-only host and from inside a text field, which the
+// editor gates forbid.
+export * from './slide-show-start-keymap';
 // Slide-sorter keyboard map: the sorter overlay is a second editing surface
 // with its own keys (slide clipboard, duplicate, delete, thumbnail zoom, and an
 // Escape that collapses a multi-selection before it closes).
@@ -1088,6 +1092,8 @@ export * from './element-action-options';
 // Presentation `ppt/tags/*.xml` name/value metadata: flatten + immutable edits.
 export * from './tag-collections';
 export * from './element-accessibility-dom';
+// `[data-element-id="..."]` selector escaping with a safe non-`CSS.escape` fallback.
+export * from './css-escape';
 // Pointer-to-element hit-test: a click on a grouped child selects the GROUP
 // (PowerPoint's rule), with the innermost id kept available for drill-in.
 export * from './element-hit-test';
@@ -1242,6 +1248,7 @@ export * from './backstage-cards';
 export * from './master-page-layout';
 export * from './master-view';
 export * from './master-view-editing';
+export * from './master-view-crud';
 export * from './virtualized-list';
 export * from './document-statistics';
 export * from './used-fonts';
@@ -1256,10 +1263,15 @@ export * from './presentation-setup';
 // Action Setting first, then live content that owns its own click, then
 // click-to-advance.
 export * from './presentation-action';
+// `ppaction://ole?verb=N` can only open the recovered embedding in a browser.
+export * from './presentation-ole-verb';
 // Only action shapes, media transport and links take the pointer while a show
 // runs; the rest of the slide is scenery the click passes through.
 export * from './presentation-hit-test';
 export * from './presentation-show-order';
+// The slide a show opens on: the active slide when the show includes it, else
+// the first show slide after it. Entering on an excluded slide is a parity bug.
+export * from './presentation-entry-slide';
 // The rail / sorter cue for a slide `presentation-show-order` will skip: the
 // neutral marker attribute, the shared slash mark, and the description id that
 // announces the state without touching the tile's accessible name.
@@ -1341,3 +1353,7 @@ export * from './bar-chart-3d-geometry';
 // Inspector option lists + pure patch builders for bar3D shape, radar style,
 // and surface wireframe.
 export * from './chart-subtype-options';
+
+// comment threading, extended hyperlink verbs, MRU colours (wave 4)
+// Recent-colours seed/push/patch for every colour picker's "Recent colours" row.
+export * from './recent-colors';

@@ -158,6 +158,7 @@ export function createInspector(
 		},
 		updateDeck(state) {
 			action.setSlideCount(state.slideCount);
+			action.setCustomShows(state.customShows);
 			elementsTab.update(state);
 			commentsTab.update(state);
 			deckPanel.update(state);

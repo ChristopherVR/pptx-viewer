@@ -11,6 +11,7 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	PptxSlideSize,
+	PptxViewProperties,
 	PptxPresentationProperties,
 	PptxCustomShow,
 	PptxTagCollection,
@@ -75,6 +76,10 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
  * `slideSize` carries Design > Slide Size the same way: omitting the option
  * makes core re-emit the load-time `p:sldSz` verbatim, so a preset or
  * orientation change made in the inspector never reached the written file.
+ *
+ * `viewProperties` carries the View > Grid/Guides/Snap toggles the same way:
+ * omitting it makes core re-emit the load-time `ppt/viewProps.xml` verbatim,
+ * so a toggle flipped after load never reached the written file.
  */
 export async function saveEditorDocument(
 	handler: PptxHandler,
@@ -83,11 +88,13 @@ export async function saveEditorDocument(
 	saveIntent?: DeckSaveIntent | string | null,
 	embedFonts = true,
 	slideSize?: PptxSlideSize,
+	viewProperties?: PptxViewProperties,
 ): Promise<Uint8Array> {
 	const metadata = {
 		...embeddedFontSaveOptions(embedFonts),
 		// Omitted when unknown so a deck that never loaded a size is not given one.
 		...(slideSize ? { slideSize } : {}),
+		...(viewProperties ? { viewProperties } : {}),
 		...(snapshot.sections.length > 0 ? { sections: snapshot.sections } : {}),
 		...(Object.keys(snapshot.headerFooter).length > 0
 			? { headerFooter: snapshot.headerFooter }

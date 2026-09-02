@@ -2,6 +2,7 @@ import type { PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { EditorState } from '../../editor/editor-state.svelte';
 import type { InspectorDeckActions } from '../../state/inspector-deck';
 import TemplateBackgroundSection from './TemplateBackgroundSection.svelte';
 
@@ -52,29 +53,37 @@ function makeDeck(overrides: Partial<InspectorDeckActions> = {}): InspectorDeckA
 	};
 }
 
+function makeEditor(): EditorState {
+	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+	editor.editable = true;
+	return editor;
+}
+
 function render(props: {
 	activeSlide: PptxSlide;
 	slideMasters: readonly PptxSlideMaster[];
 	deck: InspectorDeckActions;
 	canEdit?: boolean;
-}): HTMLElement {
+	editor?: EditorState;
+}): { target: HTMLElement; editor: EditorState } {
+	const editor = props.editor ?? makeEditor();
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(TemplateBackgroundSection, {
 		target,
-		props: { canEdit: true, ...props },
+		props: { canEdit: true, ...props, editor },
 	});
 	flushSync();
 	cleanup = () => {
 		void unmount(instance);
 		target.remove();
 	};
-	return target;
+	return { target, editor };
 }
 
 describe('templateBackgroundSection', () => {
 	it('renders nothing when the slide has no layout or master to edit', () => {
-		const target = render({
+		const { target } = render({
 			activeSlide: { id: 's1', rId: 'rId1', slideNumber: 1, elements: [] } as PptxSlide,
 			slideMasters: [],
 			deck: makeDeck(),
@@ -83,7 +92,7 @@ describe('templateBackgroundSection', () => {
 	});
 
 	it('shows a row per layout and master, labelled from the slide/master', () => {
-		const target = render({
+		const { target } = render({
 			activeSlide: SLIDE_WITH_LAYOUT,
 			slideMasters: [MASTER],
 			deck: makeDeck(),
@@ -94,14 +103,18 @@ describe('templateBackgroundSection', () => {
 
 	it('seeds each colour input from getTemplateBackgroundColor', () => {
 		const deck = makeDeck({ getTemplateBackgroundColor: vi.fn().mockReturnValue('#336699') });
-		const target = render({ activeSlide: SLIDE_WITH_LAYOUT, slideMasters: [MASTER], deck });
+		const { target } = render({ activeSlide: SLIDE_WITH_LAYOUT, slideMasters: [MASTER], deck });
 		const inputs = [...target.querySelectorAll<HTMLInputElement>('input[type="color"]')];
 		expect(inputs[0].value).toBe('#336699');
 	});
 
-	it('commits a colour change to the right path via deck.setTemplateBackground', () => {
+	it('commits a colour change to the right path via deck.setTemplateBackground, and pushes the recent-colours list', () => {
 		const deck = makeDeck();
-		const target = render({ activeSlide: SLIDE_WITH_LAYOUT, slideMasters: [MASTER], deck });
+		const { target, editor } = render({
+			activeSlide: SLIDE_WITH_LAYOUT,
+			slideMasters: [MASTER],
+			deck,
+		});
 		const input = target.querySelector<HTMLInputElement>('input[type="color"]')!;
 		input.value = '#ff0000';
 		input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -109,10 +122,12 @@ describe('templateBackgroundSection', () => {
 			'ppt/slideLayouts/slideLayout1.xml',
 			'#ff0000',
 		);
+		// The shared MRU list normalises hex to upper-case (`normalizeRecentColor`).
+		expect(editor.mruColors).toContain('#FF0000');
 	});
 
 	it('disables the colour inputs when canEdit is false', () => {
-		const target = render({
+		const { target } = render({
 			activeSlide: SLIDE_WITH_LAYOUT,
 			slideMasters: [MASTER],
 			deck: makeDeck(),

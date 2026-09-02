@@ -174,6 +174,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					this.masterXmlMap.set(path, data);
 				}
 
+				// Name from p:cSld/@name (mirrors the layout-level parse below; a
+				// from-scratch master carries none, which is why callers fall
+				// back to a synthesised name rather than assuming one exists).
+				const masterCSldName = (
+					xmlAttr(sldMaster['p:cSld'] as XmlObject | undefined, 'name') ?? ''
+				).trim();
+
 				// Background
 				const bg = (sldMaster['p:cSld'] as XmlObject | undefined)?.['p:bg'] as
 					| XmlObject
@@ -247,6 +254,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				results.push({
 					path,
+					name: masterCSldName.length > 0 ? masterCSldName : undefined,
 					backgroundColor,
 					themePath,
 					layoutPaths: layoutPaths.length > 0 ? layoutPaths : undefined,

@@ -46,6 +46,16 @@ export class EditorPresentationMetadata {
 		this.commit(() => (this.presentationProperties = EditorPresentationMetadata.clone(next)));
 	}
 
+	/**
+	 * Fold a picker's recent-colours list into `presentationProperties.mruColors`
+	 * WITHOUT pushing undo history (wave-4 B6): PowerPoint's colour-picker MRU
+	 * is not an undoable edit, mirroring how `editor.viewProperties` writes back
+	 * the View > Grid/Guides/Snap toggles outside `pushHistory`/`commitChange`.
+	 */
+	setMruColorsSilently(mruColors: readonly string[]): void {
+		this.presentationProperties = { ...this.presentationProperties, mruColors: [...mruColors] };
+	}
+
 	updateHeaderFooter(next: PptxHeaderFooter): void {
 		this.commit(() => (this.headerFooter = EditorPresentationMetadata.clone(next)));
 	}

@@ -190,6 +190,8 @@ export interface RibbonDrawState {
 	tool: DrawTool;
 	color: string;
 	width: number;
+	/** B6: the deck's `p:clrMru`, most-recent-first. */
+	recentColors?: readonly string[];
 }
 
 /** Insert tab handler: build + insert an element of the given kind/shape preset. */
@@ -266,4 +268,6 @@ export interface RibbonSelectionState {
 	embeddedFontFamilies?: readonly string[];
 	/** Families registered this session via File > Options > Fonts. */
 	customFontFamilies?: readonly string[];
+	/** B6: the deck's `p:clrMru`, most-recent-first; feeds every swatch picker's row. */
+	recentColors?: readonly string[];
 }

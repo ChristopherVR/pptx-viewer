@@ -246,7 +246,7 @@ describe('workspace parity panels', () => {
 			document,
 			document.body,
 			createTranslator(),
-			{ getComments: () => [], subscribe: () => () => undefined },
+			{ getComments: () => [], getAuthors: () => [], subscribe: () => () => undefined },
 			{
 				addComment,
 				addCommentReply: vi.fn(),
@@ -260,7 +260,7 @@ describe('workspace parity panels', () => {
 		Array.from(document.querySelectorAll('button'))
 			.find((button) => button.textContent === 'Add Comment')!
 			.click();
-		expect(addComment).toHaveBeenCalledWith('Review this');
+		expect(addComment).toHaveBeenCalledWith('Review this', undefined, []);
 		// The pane is LIVE now: it stays open after an add and clears the draft.
 		expect(document.querySelector('[data-pptx-comments-panel]')).not.toBeNull();
 		expect(draft.value).toBe('');
@@ -277,6 +277,7 @@ describe('workspace parity panels', () => {
 			createTranslator(),
 			{
 				getComments: () => comments,
+				getAuthors: () => [],
 				subscribe: (listener) => {
 					listeners.push(listener);
 					return () => undefined;
@@ -314,6 +315,7 @@ describe('workspace parity panels', () => {
 			createTranslator(),
 			{
 				getComments: () => [{ id: 'c1', text: 'First pass', author: 'Alice', resolved: false }],
+				getAuthors: () => [],
 				subscribe: () => () => undefined,
 			},
 			{
@@ -338,7 +340,7 @@ describe('workspace parity panels', () => {
 		replyBox.value = 'Looks good';
 		replyBox.dispatchEvent(new Event('input'));
 		replyButtons().at(-1)!.click();
-		expect(addCommentReply).toHaveBeenCalledWith('c1', 'Looks good');
+		expect(addCommentReply).toHaveBeenCalledWith('c1', 'Looks good', []);
 	});
 
 	it('creates custom shows and applies safe hyperlinks', () => {

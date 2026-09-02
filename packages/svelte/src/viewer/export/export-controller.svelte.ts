@@ -240,6 +240,7 @@ export class ExportController {
 					openPrintWindow: this.#deps.openPrintWindow,
 					getIncludeHiddenSlides: this.#deps.getIncludeHiddenSlides,
 					getPrintHighQuality: this.#deps.getPrintHighQuality,
+					getHandoutMaster: () => this.#deps.getDeckData?.()?.handoutMaster,
 				},
 				options,
 			);

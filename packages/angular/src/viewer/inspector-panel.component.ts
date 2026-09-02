@@ -58,7 +58,11 @@ import {
 	textStylePatch,
 } from './inspector-helpers';
 import { IsMobileService } from './is-mobile';
+import { LineFormatPanelComponent } from './line-format-panel.component';
 import { MediaPropertiesPanelComponent } from './media-properties-panel.component';
+import { PatternFillPanelComponent } from './pattern-fill-panel.component';
+import { RecentColorsRowComponent } from './recent-colors-row.component';
+import { RecentColorsService } from './recent-colors.service';
 import { ShapeAuthoringPanelComponent } from './shape-authoring-panel.component';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableCellFormattingComponent } from './table-cell-formatting.component';
@@ -75,6 +79,8 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 	imports: [
 		GradientPickerComponent,
 		EffectsPanelComponent,
+		LineFormatPanelComponent,
+		PatternFillPanelComponent,
 		TextAdvancedPanelComponent,
 		TableDataEditorComponent,
 		TablePropertiesComponent,
@@ -91,6 +97,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 		ShapeAuthoringPanelComponent,
 		Text3DPanelComponent,
 		TextWarpGalleryComponent,
+		RecentColorsRowComponent,
 		TranslatePipe,
 		LucideArrowUp,
 		LucideArrowDown,
@@ -223,6 +230,22 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 								(change)="onStrokeColorChange($event)"
 							/>
 						</div>
+						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
+							<span class="pptx-ng-inspector__label">{{ 'pptx.inspector.fill' | translate }}</span>
+							<pptx-recent-colors-row
+								[colors]="recentColors.recent()"
+								(pick)="onFillColorPick($event)"
+							/>
+						</div>
+						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
+							<span class="pptx-ng-inspector__label">{{
+								'pptx.inspector.stroke' | translate
+							}}</span>
+							<pptx-recent-colors-row
+								[colors]="recentColors.recent()"
+								(pick)="onStrokeColorPick($event)"
+							/>
+						</div>
 					}
 				</section>
 			}
@@ -264,6 +287,10 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 								(change)="onFontSizeChange($event)"
 							/>
 						</div>
+						<pptx-recent-colors-row
+							[colors]="recentColors.recent()"
+							(pick)="onTextColorPick($event)"
+						/>
 					}
 
 					<div class="pptx-ng-inspector__row pptx-ng-inspector__row--toggles">
@@ -394,6 +421,22 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 					</summary>
 					<pptx-effects-panel [element]="el()" (patch)="onPatch($event)" />
 				</details>
+
+				<!-- ── Advanced: line format (dash / compound / join / cap) ────── -->
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.line' | translate }}
+					</summary>
+					<pptx-line-format-panel [element]="el()" (patch)="onPatch($event)" />
+				</details>
+
+				<!-- ── Advanced: pattern fill (preset + fg/bg) ─────────────────── -->
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.table.fillPattern' | translate }}
+					</summary>
+					<pptx-pattern-fill-panel [element]="el()" (patch)="onPatch($event)" />
+				</details>
 			}
 
 			<!-- ── Advanced: text (spacing / alignment / direction) ───────────── -->
@@ -456,7 +499,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 
 			<!-- ── Chart data editor ──────────────────────────────────────────── -->
 			@if (chartEl(); as c) {
-				<details class="pptx-ng-inspector__details">
+				<details class="pptx-ng-inspector__details" open>
 					<summary class="pptx-ng-inspector__summary">
 						{{ 'pptx.inspector.chartData' | translate }}
 					</summary>
@@ -780,6 +823,9 @@ export class InspectorPanelComponent {
 	/** Reactive viewport / pointer flags (drives the bottom-sheet layout). */
 	protected readonly mobile = inject(IsMobileService);
 
+	/** "Recent colours" row backing the fill/stroke/text colour pickers below. */
+	protected readonly recentColors = inject(RecentColorsService);
+
 	/**
 	 * Root class list: gains the `is-mobile` modifier under the mobile
 	 * breakpoint so the panel becomes a full-width, touch-sized bottom sheet.
@@ -979,12 +1025,22 @@ export class InspectorPanelComponent {
 		if (!color) {
 			return;
 		}
+		this.commitFillColor(color);
+	}
+
+	/** Recent-colours row pick: commits through the same path as the native picker. */
+	protected onFillColorPick(color: string): void {
+		this.commitFillColor(color);
+	}
+
+	private commitFillColor(color: string): void {
 		const cur = this.el();
 		this.editor.updateElement(
 			this.slideIndex(),
 			cur.id,
 			shapeStylePatch(cur, { fillColor: color }),
 		);
+		this.recentColors.push(color);
 	}
 
 	protected onStrokeColorChange(event: Event): void {
@@ -992,12 +1048,22 @@ export class InspectorPanelComponent {
 		if (!color) {
 			return;
 		}
+		this.commitStrokeColor(color);
+	}
+
+	/** Recent-colours row pick: commits through the same path as the native picker. */
+	protected onStrokeColorPick(color: string): void {
+		this.commitStrokeColor(color);
+	}
+
+	private commitStrokeColor(color: string): void {
 		const cur = this.el();
 		this.editor.updateElement(
 			this.slideIndex(),
 			cur.id,
 			shapeStylePatch(cur, { strokeColor: color }),
 		);
+		this.recentColors.push(color);
 	}
 
 	// ── Text style ───────────────────────────────────────────────────────────
@@ -1007,8 +1073,18 @@ export class InspectorPanelComponent {
 		if (!color) {
 			return;
 		}
+		this.commitTextColor(color);
+	}
+
+	/** Recent-colours row pick: commits through the same path as the native picker. */
+	protected onTextColorPick(color: string): void {
+		this.commitTextColor(color);
+	}
+
+	private commitTextColor(color: string): void {
 		const cur = this.el();
 		this.editor.updateElement(this.slideIndex(), cur.id, textStylePatch(cur, { color }));
+		this.recentColors.push(color);
 	}
 
 	protected onFontSizeChange(event: Event): void {

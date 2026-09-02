@@ -21,6 +21,7 @@ import type { TemplateBackgroundRow } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
 import { LoadContentService } from './load-content.service';
+import { RecentColorsService } from './recent-colors.service';
 
 /** Image types accepted for a slide background picture. */
 const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml';
@@ -208,6 +209,8 @@ export class SlideBackgroundCardComponent {
 	private readonly editor = inject(EditorStateService);
 	private readonly loader = inject(LoadContentService);
 	private readonly translate = inject(TranslateService);
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
 
 	protected readonly imageAccept = BACKGROUND_IMAGE_ACCEPT;
 
@@ -267,10 +270,13 @@ export class SlideBackgroundCardComponent {
 				.map((master) => (master.path === path ? { ...master, backgroundColor } : master)),
 		);
 		this.editor.dirty.set(true);
+		this.recentColors?.push(backgroundColor);
 	}
 
 	protected onColorChange(event: Event): void {
-		this.patch({ backgroundColor: (event.target as HTMLInputElement).value });
+		const backgroundColor = (event.target as HTMLInputElement).value;
+		this.patch({ backgroundColor });
+		this.recentColors?.push(backgroundColor);
 	}
 
 	protected onImagePicked(event: Event): void {

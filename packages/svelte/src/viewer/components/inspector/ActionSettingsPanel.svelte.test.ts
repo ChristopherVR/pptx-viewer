@@ -131,6 +131,90 @@ describe('actionSettingsPanel', () => {
 		expect(updated.actionClick).toBeUndefined();
 	});
 
+	/**
+	 * Wave-4 B7: picking "Custom show" reveals the show picker; picking a show
+	 * commits `customShowId` only once one is chosen (a target-less pick still
+	 * parses back as no action, matching `url`/`slide`).
+	 */
+	it('the custom-show picker commits customShowId once a show is chosen', () => {
+		const el = shapeEl();
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+		editor.setSlides([{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [el] }]);
+		editor.presentationMetadata.set(undefined, undefined, [
+			{ id: 'cs1', name: 'Sub show', slideRIds: ['rId1'] },
+		]);
+		editor.editable = true;
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(ActionSettingsPanel, { target, props: { editor, el } });
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+
+		setValue(selects(target)[0], 'customShow');
+		const showSelect = target.querySelector<HTMLSelectElement>(
+			'[data-testid="pptx-action-custom-show"]',
+		);
+		expect(showSelect).not.toBeNull();
+		expect(editor.slides[0]?.elements?.[0]?.actionClick).toBeUndefined();
+
+		setValue(showSelect!, 'cs1');
+		const updated = editor.slides[0]?.elements?.[0] as PptxElement;
+		expect(updated.actionClick?.action).toContain('id=cs1');
+	});
+
+	/**
+	 * The return-after checkbox commits `returnAfter` alongside the ALREADY
+	 * committed `customShowId` (an element that already carries a customShow
+	 * action, as `pptxActionToElementAction` would hand back after a load).
+	 */
+	it('the return-after checkbox commits returnAfter, preserving customShowId', () => {
+		const el = shapeEl({ actionClick: { action: 'ppaction://customshow?id=cs1' } });
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
+		editor.setSlides([{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [el] }]);
+		editor.presentationMetadata.set(undefined, undefined, [
+			{ id: 'cs1', name: 'Sub show', slideRIds: ['rId1'] },
+		]);
+		editor.editable = true;
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(ActionSettingsPanel, { target, props: { editor, el } });
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+
+		expect(selects(target)[0].value).toBe('customShow');
+		const returnCheckbox = target.querySelector<HTMLInputElement>(
+			'[data-testid="pptx-action-custom-show-return"]',
+		);
+		expect(returnCheckbox).not.toBeNull();
+		returnCheckbox!.checked = true;
+		returnCheckbox!.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		const updated = editor.slides[0]?.elements?.[0] as PptxElement;
+		expect(updated.actionClick?.action).toContain('id=cs1');
+		expect(updated.actionClick?.action).toContain('return=true');
+	});
+
+	it('openFile reuses the same text target field as url', () => {
+		const el = shapeEl();
+		const { target, editor } = mountPanel(el);
+
+		setValue(selects(target)[0], 'openFile');
+		const urlInput = target.querySelector<HTMLInputElement>('input[type="text"]');
+		expect(urlInput).not.toBeNull();
+		setValue(urlInput!, 'C:/decks/appendix.pptx');
+
+		const updated = editor.slides[0]?.elements?.[0] as PptxElement;
+		expect(updated.actionClick?.url).toBe('C:/decks/appendix.pptx');
+		expect(updated.actionClick?.action).toBe('ppaction://hlinkfile');
+	});
+
 	it('disables both triggers in a read-only viewer', () => {
 		const el = shapeEl();
 		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });

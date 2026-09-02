@@ -17,7 +17,15 @@
  * @module angular-viewer/chart-datapoint-marker-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -31,6 +39,7 @@ import { MARKER_SUPPORTED_TYPES, MARKER_SYMBOL_OPTIONS } from '../internal/share
 import { setDataPointMarker } from './chart-data-helpers';
 import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { boolFromEvent, numFromEvent, selectValue, stringFromEvent } from './chart-event-helpers';
+import { RecentColorsService } from './recent-colors.service';
 
 /** Concrete symbols only; '' is the "series default" sentinel, which the
  * presence checkbox already expresses. */
@@ -57,7 +66,7 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 							(change)="onSeries($event)"
 						>
 							@for (s of series(); track $index; let i = $index) {
-								<option [value]="i">{{ s.name }}</option>
+								<option [value]="i" [selected]="i === activeIndex()">{{ s.name }}</option>
 							}
 						</select>
 					</label>
@@ -87,7 +96,9 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 									(change)="onSymbol(ci, $event)"
 								>
 									@for (opt of symbolOptions; track opt.value) {
-										<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+										<option [value]="opt.value" [selected]="opt.value === marker.symbol">
+											{{ opt.labelKey | translate }}
+										</option>
 									}
 								</select>
 								<input
@@ -108,6 +119,7 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 									[disabled]="!canEdit()"
 									[value]="marker.spPr?.fillColor ?? '#4472c4'"
 									(input)="onFill(ci, $event)"
+									(change)="pushRecentColor($event)"
 								/>
 							</div>
 						}
@@ -125,7 +137,21 @@ export class ChartDatapointMarkerOptionsComponent {
 
 	protected readonly symbolOptions = SYMBOL_OPTIONS;
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	private readonly seriesIndex = signal(0);
+
+	/**
+	 * Record the committed (native `change`, not the live-preview `input`)
+	 * colour into the shared "Recent colours" list.
+	 */
+	protected pushRecentColor(event: Event): void {
+		const value = stringFromEvent(event);
+		if (value) {
+			this.recentColors?.push(value);
+		}
+	}
 
 	protected readonly series = computed<PptxChartSeries[]>(
 		() => this.element().chartData?.series ?? [],

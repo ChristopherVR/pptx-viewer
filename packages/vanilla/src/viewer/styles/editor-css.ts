@@ -55,6 +55,10 @@ export const EDITOR_CSS = `
 .pptxv-alignment-guide { position: absolute; z-index: 6; pointer-events: none; background: #00a6ff; }
 .pptxv-alignment-guide.is-h { left: 0; right: 0; height: 1px; }
 .pptxv-alignment-guide.is-v { top: 0; bottom: 0; width: 1px; }
+/* Draggable + double-click-to-remove (View > Guides, editable + not presenting). */
+.pptxv-alignment-guide.is-interactive { pointer-events: auto; }
+.pptxv-alignment-guide.is-interactive.is-h { cursor: row-resize; }
+.pptxv-alignment-guide.is-interactive.is-v { cursor: col-resize; }
 /* Colour swatch control (native <input type=color>, used by the inspector). */
 .pptxv-color {
 	display: inline-flex;

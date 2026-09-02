@@ -67,7 +67,9 @@ const MAX_SPOKES = 8;
 						(change)="onTypeChange($event)"
 					>
 						@for (option of transitionOptions; track option.value) {
-							<option [value]="option.value">{{ option.i18nKey | translate }}</option>
+							<option [value]="option.value" [selected]="option.value === transitionType()">
+								{{ option.i18nKey | translate }}
+							</option>
 						}
 					</select>
 				</label>
@@ -144,7 +146,9 @@ const MAX_SPOKES = 8;
 						(change)="onSpeed($event)"
 					>
 						@for (option of speedOptions; track option.value) {
-							<option [value]="option.value">{{ option.i18nKey | translate }}</option>
+							<option [value]="option.value" [selected]="option.value === speed()">
+								{{ option.i18nKey | translate }}
+							</option>
 						}
 					</select>
 				</label>
@@ -160,7 +164,9 @@ const MAX_SPOKES = 8;
 							(change)="onMorphOption($event)"
 						>
 							@for (option of morphOptions; track option.value) {
-								<option [value]="option.value">{{ option.i18nKey | translate }}</option>
+								<option [value]="option.value" [selected]="option.value === morphOption()">
+									{{ option.i18nKey | translate }}
+								</option>
 							}
 						</select>
 					</label>

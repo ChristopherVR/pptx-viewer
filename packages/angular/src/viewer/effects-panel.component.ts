@@ -18,7 +18,7 @@
  * @module viewer/effects-panel
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -40,6 +40,7 @@ import {
 	updateReflectionPatch,
 } from './effects-helpers';
 import type { EffectsState } from './effects-helpers';
+import { RecentColorsService } from './recent-colors.service';
 
 @Component({
 	selector: 'pptx-effects-panel',
@@ -478,6 +479,9 @@ export class EffectsPanelComponent {
 	 */
 	readonly patch = output<Partial<PptxElement>>();
 
+	/** Optional: absent in a standalone unit test with no viewer-level DI tree. */
+	private readonly recentColors = inject(RecentColorsService, { optional: true });
+
 	/** Derived EffectsState from the current element. */
 	protected readonly state = computed<EffectsState>(() => effectsStateOf(this.element()));
 
@@ -506,6 +510,7 @@ export class EffectsPanelComponent {
 			const val = stringFromEvent(event);
 			if (val) {
 				this.emit(updateOuterShadowPatch(el, { color: val }));
+				this.recentColors?.push(val);
 			}
 			return;
 		}
@@ -550,6 +555,7 @@ export class EffectsPanelComponent {
 			const val = stringFromEvent(event);
 			if (val) {
 				this.emit(updateInnerShadowPatch(el, { color: val }));
+				this.recentColors?.push(val);
 			}
 			return;
 		}
@@ -577,6 +583,7 @@ export class EffectsPanelComponent {
 			const val = stringFromEvent(event);
 			if (val) {
 				this.emit(updateGlowPatch(el, { color: val }));
+				this.recentColors?.push(val);
 			}
 			return;
 		}

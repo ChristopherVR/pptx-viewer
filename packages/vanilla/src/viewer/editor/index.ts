@@ -33,6 +33,12 @@ export type {
 export { createDrawModeController } from './editor-draw-mode';
 export type { EditActions, EditActionsDeps, GeometryPatch } from './editor-edit-ops';
 export { createEditActions } from './editor-edit-ops';
+export type { DeckViewToggleOption } from './editor-view-preferences';
+export {
+	isDeckViewToggleOption,
+	patchViewPropertiesForToggle,
+	seedDeckViewPreferences,
+} from './editor-view-preferences';
 export type { SectionActions } from './editor-section-actions';
 export { createSectionActions } from './editor-section-actions';
 export type { InkActions, InkActionsDeps } from './editor-ink-actions';

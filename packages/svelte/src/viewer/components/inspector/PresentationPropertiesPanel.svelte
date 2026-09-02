@@ -98,8 +98,9 @@
 				canvasSize={effectiveCanvasSize}
 				slideSize={deck.slideSize}
 				{canEdit}
+				hasContent={deck.hasContent}
 				onupdate={(size) => deck.updateCanvasSize(size)}
-				onupdateslidesize={(size) => deck.updateSlideSize(size)}
+				onupdateslidesize={(size, rescaleMode) => deck.updateSlideSize(size, rescaleMode)}
 			/>
 		</div>
 	{/if}
@@ -114,6 +115,7 @@
 		<div class="pptx-svelte-inspector-section">
 			<h4>{t('pptx.slideBackground.templateBackgroundsHeading')}</h4>
 			<TemplateBackgroundSection
+				{editor}
 				{activeSlide}
 				slideMasters={editor.slideMasters}
 				{deck}

@@ -43,6 +43,25 @@ export interface ElementRendererProps {
 	/** Whether inherited layout/master nodes participate in pointer editing. */
 	editTemplateMode?: boolean;
 	/**
+	 * The current selection, forwarded so a delegated view can tell whether
+	 * ITS OWN element is selected (`selectedElementIds?.includes(element.id)`).
+	 * Currently only `ChartView` reads it: a chart's on-canvas value-drag marks
+	 * must be pointer-active only while the chart itself is selected (see
+	 * `render/chart-canvas-drag`'s `CHART_INTERACTIVE_CLASS`), matching React.
+	 * Armed unconditionally instead, the marks' `stopPropagation` on
+	 * pointerdown ate the FIRST click on an unselected chart, so it could never
+	 * be selected by clicking a mark. Absent (undefined) outside the editing
+	 * canvas, which is what keeps thumbnails and the presentation stage inert.
+	 */
+	selectedElementIds?: readonly string[];
+	/**
+	 * Whether THIS element is selected right now, pre-resolved by the
+	 * dispatcher from {@link selectedElementIds} (`ElementRenderer` passes it
+	 * only to `ChartView`, the one delegated view that currently needs it; see
+	 * that field's doc for why). Defaults to `false`.
+	 */
+	selected?: boolean;
+	/**
 	 * True only on the main editing canvas (never presenting, exporting, or a
 	 * thumbnail/preview surface). Gates an empty inherited placeholder's
 	 * greyed-out hint text ("Click to add title") via the shared

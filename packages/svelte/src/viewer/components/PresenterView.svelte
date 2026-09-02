@@ -34,7 +34,12 @@
 		stepPresenterZoom,
 		togglePresenterTimer,
 	} from 'pptx-viewer-shared';
-	import type { CanvasSize, PresentationSnapshot, ShowOrderCustomShow } from 'pptx-viewer-shared';
+	import type {
+		AuthoredSlideRange,
+		CanvasSize,
+		PresentationSnapshot,
+		ShowOrderCustomShow,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { isPresenterPointerTool } from './presenter-console-strip';
@@ -51,6 +56,7 @@
 		startedAt,
 		audienceOpen,
 		activeCustomShow,
+		authoredRange,
 		onmove,
 		onaudience,
 		onswap,
@@ -67,6 +73,8 @@
 		audienceOpen: boolean;
 		/** The custom show playback is restricted to; drives the next-slide preview. */
 		activeCustomShow?: ShowOrderCustomShow | null;
+		/** `p:showPr/p:sldRg`; drives the next-slide preview alongside `activeCustomShow`. */
+		authoredRange?: AuthoredSlideRange | null;
 		/** Step the SHOW, so hidden slides are skipped (the host owns show order). */
 		onmove: (direction: -1 | 1) => void;
 		onaudience: () => void;
@@ -205,6 +213,7 @@
 			{elapsed}
 			{notesSize}
 			{activeCustomShow}
+			{authoredRange}
 			{onmove}
 			onnotessize={setNotesSize}
 		/>

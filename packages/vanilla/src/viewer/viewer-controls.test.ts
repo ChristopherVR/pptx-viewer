@@ -38,6 +38,8 @@ function harness(options: {
 	endWithBlackSlide?: boolean;
 	buildsRemaining?: boolean;
 	loopContinuously?: boolean;
+	/** `p:showPr/p:sldRg`: Set Up Slide Show > "Show slides" > "From"/"To". */
+	showSlidesRange?: { from: number; to: number };
 }): Harness {
 	const store = createStore<ViewerState>({
 		...createInitialViewerState(),
@@ -47,6 +49,13 @@ function harness(options: {
 		presentationProperties: {
 			...createInitialViewerState().presentationProperties,
 			loopContinuously: options.loopContinuously,
+			...(options.showSlidesRange
+				? {
+						showSlidesMode: 'range',
+						showSlidesFrom: options.showSlidesRange.from,
+						showSlidesTo: options.showSlidesRange.to,
+					}
+				: {}),
 		},
 	});
 	let ended = 0;
@@ -197,5 +206,78 @@ describe('viewerControls end of show', () => {
 		controls.prev();
 		expect(store.get().endOfShow).toBeFalsy();
 		expect(ended()).toBe(0);
+	});
+});
+
+describe('viewerControls authored slide range (p:showPr/p:sldRg)', () => {
+	it('confines forward navigation to the authored range', () => {
+		const { store, controls } = harness({
+			deck: slides(false, false, false, false),
+			startIndex: 1,
+			// 1-based: slides 2..3 (0-based indexes 1..2).
+			showSlidesRange: { from: 2, to: 3 },
+		});
+		controls.next();
+		expect(store.get().currentSlide).toBe(2);
+		controls.next();
+		expect(store.get().endOfShow).toBeTruthy();
+	});
+
+	it('"Present From Beginning" lands on the range start, not deck index 0', () => {
+		const { controls } = harness({
+			deck: slides(false, false, false, false),
+			showSlidesRange: { from: 2, to: 3 },
+		});
+		expect(controls.firstShowSlideIndex()).toBe(1);
+	});
+
+	it('firstShowSlideIndex skips a hidden slide 1 with no range authored', () => {
+		const { controls } = harness({ deck: slides(true, false, false) });
+		expect(controls.firstShowSlideIndex()).toBe(1);
+	});
+
+	it('a hidden slide inside the range is still skipped', () => {
+		const { store, controls } = harness({
+			deck: slides(false, true, false, false),
+			startIndex: 0,
+			// 1-based: slides 1..3, but slide 2 (index 1) is hidden.
+			showSlidesRange: { from: 1, to: 3 },
+		});
+		controls.next();
+		expect(store.get().currentSlide).toBe(2);
+	});
+});
+
+describe('viewerControls presentationEntryIndex (entering a show "from current slide")', () => {
+	it('stays on the active slide when the show includes it', () => {
+		const { controls } = harness({
+			deck: slides(false, false, false, false),
+			presenting: false,
+			startIndex: 2,
+			showSlidesRange: { from: 2, to: 3 },
+		});
+		expect(controls.presentationEntryIndex()).toBe(2);
+	});
+
+	it('lands on the nearest show slide when the active slide is outside the range', () => {
+		const { controls } = harness({
+			deck: slides(false, false, false, false),
+			presenting: false,
+			startIndex: 0,
+			// 1-based: slides 2..3.
+			showSlidesRange: { from: 2, to: 3 },
+		});
+		expect(controls.presentationEntryIndex()).toBe(1);
+	});
+
+	it('falls back to the show start when the active slide is past the range', () => {
+		const { controls } = harness({
+			deck: slides(false, false, false, false),
+			presenting: false,
+			startIndex: 3,
+			// 1-based: slides 1..2.
+			showSlidesRange: { from: 1, to: 2 },
+		});
+		expect(controls.presentationEntryIndex()).toBe(0);
 	});
 });

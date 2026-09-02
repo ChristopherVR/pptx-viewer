@@ -9,7 +9,7 @@
 	 * snapshot, so they render on an audience display as well as on the
 	 * presenter's own screen, which is why they are not gated on fullscreen.
 	 */
-	import { presenterConsoleStyleAttr } from 'pptx-viewer-shared';
+	import { presenterConsoleStyleAttr, resolveAuthoredSlideRange } from 'pptx-viewer-shared';
 
 	import type { PresentationContextMenuActionId } from 'pptx-viewer-shared';
 
@@ -50,6 +50,16 @@
 		}
 	}
 	const pointer = $derived(presenterSession.snapshot.pointer);
+	/**
+	 * `p:showPr/p:sldRg`: the deck's authored slide-range restriction, passed to
+	 * `nextPresentedSlide` (via `PresenterView` -> `PresenterNotesRail`) so the
+	 * rail's next-slide preview never names a slide outside the authored range
+	 * (wave-4 B1). Same source as the show controller's own
+	 * `getAuthoredRange`, so the console and the running show agree.
+	 */
+	const authoredRange = $derived(
+		resolveAuthoredSlideRange(loader.presentationProperties, editor.renderedSlides.length),
+	);
 
 	/** Route a chosen right-click-menu action onto this overlay's own handlers. */
 	function onContextMenuAction(id: PresentationContextMenuActionId): void {
@@ -189,6 +199,7 @@
 		activeCustomShow={parityUi.activeCustomShowId
 			? (editor.customShows.find(({ id }) => id === parityUi.activeCustomShowId) ?? null)
 			: null}
+		{authoredRange}
 		onmove={move}
 		onaudience={() =>
 			presenterSession.audienceOpen
