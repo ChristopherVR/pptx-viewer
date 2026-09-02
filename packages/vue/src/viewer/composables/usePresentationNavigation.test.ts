@@ -127,3 +127,26 @@ describe('usePresentationNavigation - loop continuously', () => {
 		expect(nav.showEndScreen.value).toBeFalsy();
 	});
 });
+
+describe('usePresentationNavigation transition direction', () => {
+	it('plays the entering slide transition on a forward step', async () => {
+		const { nav } = setup({
+			slides: [slide('s1'), slide('s2', { transition: { type: 'morph', durationMs: 500 } })],
+		});
+		nav.goTo(1);
+		await vi.waitFor(() => expect(nav.transitionState.value?.transition.type).toBe('morph'));
+		expect(nav.transitionState.value?.outgoing?.id).toBe('s1');
+		expect(nav.transitionState.value?.incoming?.id).toBe('s2');
+	});
+
+	it('replays the leaving slide transition on a backward step', async () => {
+		const { nav } = setup({
+			slides: [slide('s1'), slide('s2', { transition: { type: 'morph', durationMs: 500 } })],
+		});
+		nav.goTo(1);
+		await vi.waitFor(() => expect(nav.transitionState.value?.transition.type).toBe('morph'));
+		nav.goTo(0);
+		await vi.waitFor(() => expect(nav.transitionState.value?.outgoing?.id).toBe('s2'));
+		expect(nav.transitionState.value?.incoming?.id).toBe('s1');
+	});
+});

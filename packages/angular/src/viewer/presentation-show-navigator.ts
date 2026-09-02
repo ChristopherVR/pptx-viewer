@@ -242,14 +242,19 @@ export class PresentationShowNavigator {
 		}
 
 		// Play the incoming slide's transition (if any) over the new slide,
-		// animating the outgoing slide out. Forward navigation only, matching
-		// PowerPoint, which does not replay transitions when stepping back.
+		// animating the outgoing slide out. A backward step replays the LEAVING
+		// slide's transition in reverse instead (PowerPoint: a morph glides its
+		// shapes back to where they came from).
 		const incoming = slides[next];
 		const outgoing = slides[current];
 		const transition =
-			(direction === 'next' || direction === 'first') && incoming?.transition && outgoing
-				? { outgoing, transition: incoming.transition }
-				: null;
+			direction === 'prev'
+				? outgoing?.transition && incoming
+					? { outgoing, transition: outgoing.transition }
+					: null
+				: (direction === 'next' || direction === 'first') && incoming?.transition && outgoing
+					? { outgoing, transition: incoming.transition }
+					: null;
 		this.commit(next, transition);
 	}
 

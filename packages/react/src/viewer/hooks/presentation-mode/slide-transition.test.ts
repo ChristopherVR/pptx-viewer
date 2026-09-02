@@ -147,7 +147,7 @@ describe('executeSlideTransition', () => {
 		expect(deps.presentationTimersRef.current).toHaveLength(1);
 	});
 
-	it('does not mount an overlay for a backward / non-forward move', () => {
+	it('does not mount an overlay when playTransition is false', () => {
 		const deps = createMockDeps({ playTransition: false });
 		executeSlideTransition(1, deps);
 		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
@@ -156,6 +156,40 @@ describe('executeSlideTransition', () => {
 		expect(deps.startSlideAnimations).toHaveBeenCalledWith(1);
 		expect(deps.scheduleAutoAdvanceForSlide).toHaveBeenCalledWith(1);
 		expect(deps.presentationTimersRef.current).toHaveLength(0);
+	});
+
+	it('mounts the overlay for a backward step using the LEAVING slide transition', () => {
+		// Stepping back from slide 2 (index 1, morph) onto slide 1 (index 0,
+		// no transition): the leaving slide's morph replays in reverse.
+		const leaving = createMockSlide({
+			id: 'slide-2',
+			transition: { type: 'morph', durationMs: 500 } as PptxSlide['transition'],
+		});
+		const deps = createMockDeps({
+			slides: [createMockSlide({ id: 'slide-1' }), leaving],
+			currentSlideIndex: 1,
+			reverse: true,
+			playTransition: true,
+		});
+		executeSlideTransition(0, deps);
+		expect(deps.setTransitionOverlay).toHaveBeenCalledWith({
+			outgoingSlideIndex: 1,
+			incomingSlideIndex: 0,
+			transition: { type: 'morph', durationMs: 500 },
+			durationMs: 500,
+		});
+	});
+
+	it('is instant on a backward step when the leaving slide has no transition', () => {
+		const deps = createMockDeps({
+			slides: [createMockSlide({ id: 'slide-1' }), createMockSlide({ id: 'slide-2' })],
+			currentSlideIndex: 1,
+			reverse: true,
+			playTransition: true,
+		});
+		executeSlideTransition(0, deps);
+		expect(deps.setTransitionOverlay).toHaveBeenCalledWith(null);
+		expect(deps.startSlideAnimations).toHaveBeenCalledWith(0);
 	});
 
 	it('does not mount an overlay for an instant (none) transition', () => {

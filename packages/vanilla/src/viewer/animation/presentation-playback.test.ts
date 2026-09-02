@@ -272,4 +272,46 @@ describe('createPresentationPlayback (native-timing controller)', () => {
 		});
 		expect(stageWrap.querySelector('.pptxv-transition-overlay')).toBeNull();
 	});
+
+	it('replays the leaving slide transition on a backward step', () => {
+		const playback = createPresentationPlayback();
+		const stage0 = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage0);
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage: stage0,
+			slide: slideWith([]),
+			slideIndex: 0,
+			presenting: true,
+		});
+
+		// Forward to slide 1, which carries a fade transition.
+		stageWrap.replaceChildren();
+		const stage1 = buildStage(doc, ['b']);
+		stageWrap.appendChild(stage1);
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage: stage1,
+			slide: slideWith([], undefined, { type: 'fade', durationMs: 300 }),
+			slideIndex: 1,
+			presenting: true,
+		});
+
+		// Step back onto slide 0 (no transition of its own): the LEAVING slide's
+		// fade replays in reverse, so an overlay is still mounted.
+		stageWrap.replaceChildren();
+		const stage0b = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage0b);
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage: stage0b,
+			slide: slideWith([]),
+			slideIndex: 0,
+			presenting: true,
+		});
+		expect(stageWrap.querySelector('.pptxv-transition-overlay')).not.toBeNull();
+	});
 });

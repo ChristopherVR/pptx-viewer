@@ -300,7 +300,10 @@ export function createPresentationPlayback(): PresentationPlayback {
 
 			// Play the incoming slide's transition when the slide changed mid-show
 			// (never on the initial enter; only with an outgoing snapshot to animate).
-			const transition = params.slide.transition;
+			// A backward step replays the LEAVING slide's transition in reverse
+			// (PowerPoint: a morph glides its shapes back to where they came from).
+			const goingBack = params.slideIndex < lastIndex;
+			const transition = goingBack ? outgoingSlide?.transition : params.slide.transition;
 			if (
 				!entering &&
 				slideChanged &&

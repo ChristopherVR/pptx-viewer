@@ -208,8 +208,11 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				scheduleAutoAdvanceForSlide: rehearsing ? undefined : scheduleAutoAdvanceForSlide,
 				presentationTimersRef,
 				setTransitionOverlay,
-				// PowerPoint plays a slide's transition only when advancing into it.
-				playTransition: direction === 1,
+				// PowerPoint plays a slide's transition only when advancing into it,
+				// and replays the LEAVING slide's transition in reverse when stepping
+				// back (a morph glides its shapes back to where they came from).
+				playTransition: true,
+				reverse: direction === -1,
 				// Stepping back onto a slide shows it with its builds already played.
 				seedCompleted: direction === -1,
 			});

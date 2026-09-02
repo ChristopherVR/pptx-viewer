@@ -130,6 +130,37 @@ describe('presentationShowNavigator hidden slides', () => {
 	});
 });
 
+describe('presentationShowNavigator transition direction', () => {
+	function deckWithTransitions(): PptxSlide[] {
+		return [
+			{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [] } as PptxSlide,
+			{
+				id: 's2',
+				rId: 'rId2',
+				slideNumber: 2,
+				elements: [],
+				transition: { type: 'morph', durationMs: 500 },
+			} as PptxSlide,
+		];
+	}
+
+	it('plays the incoming slide transition on a forward step', () => {
+		const { navigator } = makeNavigator(deckWithTransitions());
+		navigator.navigate('next');
+		expect(navigator.activeTransition()?.transition.type).toBe('morph');
+		expect(navigator.activeTransition()?.outgoing.id).toBe('s1');
+	});
+
+	it('replays the leaving slide transition on a backward step', () => {
+		const { navigator } = makeNavigator(deckWithTransitions());
+		navigator.goToSlide(1);
+		navigator.navigate('prev');
+		// Stepping back onto slide 1 replays slide 2's morph in reverse.
+		expect(navigator.activeTransition()?.transition.type).toBe('morph');
+		expect(navigator.activeTransition()?.outgoing.id).toBe('s2');
+	});
+});
+
 describe('presentationShowNavigator end of show', () => {
 	it('raises the black end screen by default', () => {
 		const harness = makeNavigator(slides(false));

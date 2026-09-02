@@ -167,7 +167,11 @@ export function usePresentationNavigation(
 		// The playback controller rebuilds itself on the active-slide change (it
 		// watches `activeSlide`), so no explicit reset is needed here.
 		const incoming = options.slides()[index];
-		const transition = incoming?.transition;
+		// Forward steps play the ENTERING slide's transition; a backward step
+		// replays the LEAVING slide's transition in reverse (a morph glides its
+		// shapes back to where they came from).
+		const transition = (index < previousIndex ? options.slides()[previousIndex] : incoming)
+			?.transition;
 		transitionState.value =
 			transition && transition.type && transition.type !== 'none'
 				? { outgoing: options.slides()[previousIndex], incoming, transition }
