@@ -134,6 +134,20 @@ describe('writeCellTextFormatting', () => {
 		expect(rPr['@_b']).toBe('1');
 	});
 
+	it('rounds fractional point sizes to valid OOXML hundredths', () => {
+		const xmlCell: XmlObject = {
+			'a:txBody': {
+				'a:p': { 'a:r': { 'a:rPr': {}, 'a:t': 'Fractional size' } },
+			},
+		};
+
+		writeCellTextFormatting(xmlCell, { fontSize: 10.555 }, ensureArray);
+
+		const paragraph = ensureArray(xmlCell['a:txBody']?.['a:p'])[0];
+		const run = ensureArray(paragraph['a:r'])[0];
+		expect((run['a:rPr'] as XmlObject)['@_sz']).toBe('1056');
+	});
+
 	it('should create a:rPr if missing on runs', () => {
 		const xmlCell: XmlObject = {
 			'a:txBody': {

@@ -116,7 +116,7 @@ function applyRunProperties(
 		hasStyle = true;
 	}
 	if (runProperties['@_sz']) {
-		style.fontSize = Math.round(parseInt(String(runProperties['@_sz']), 10) / 100);
+		style.fontSize = parseInt(String(runProperties['@_sz']), 10) / 100;
 		hasStyle = true;
 	}
 	if (runProperties['a:solidFill']) {

@@ -36,12 +36,15 @@
  * applied and that it is themed at all rather than falling back to the
  * hardcoded accent1 blue.
  */
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
+import JSZip from 'jszip';
 
+import { savePptxViaBackstage } from './save-pptx';
 import { centreOf, openMenuOn } from './support/context-menu';
 import { resetTabSession } from './support/deck';
 
@@ -50,6 +53,13 @@ const fixturePath = resolve(
 );
 
 const LOAD_TIMEOUT_MS = 60_000;
+const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
+interface DeckPayload {
+	name: string;
+	mimeType: string;
+	buffer: Buffer;
+}
 
 /** The hardcoded fallback every unresolved table style used to paint. */
 const BLUE_FALLBACK = { r: 68, g: 114, b: 196 };
@@ -177,13 +187,39 @@ function cellAt(table: TablePaint, row: number, col: number): CellPaint {
 	return found;
 }
 
-async function loadDeck(page: Page): Promise<void> {
+async function loadDeck(page: Page, deck: string | DeckPayload = fixturePath): Promise<void> {
 	await page.setViewportSize({ width: 1600, height: 1000 });
 	await resetTabSession(page);
 	await page.goto('/');
-	await page.locator('#file-input').setInputFiles(fixturePath);
+	await page.locator('#file-input').setInputFiles(deck);
 	await page.locator('[aria-label="Go to slide 5"]').first().waitFor({ timeout: LOAD_TIMEOUT_MS });
 	await page.waitForTimeout(1200);
+}
+
+/**
+ * Change PowerPoint's 12pt first run to an exact 10.5pt OOXML value in memory.
+ * The checked-in fixture stays byte-for-byte PowerPoint authored while this
+ * regression exercises the half-point value that the core parser used to
+ * round to 11pt.
+ */
+async function fractionalTableDeck(): Promise<DeckPayload> {
+	const zip = await JSZip.loadAsync(await readFile(fixturePath));
+	const slidePath = 'ppt/slides/slide4.xml';
+	const slide = zip.file(slidePath);
+	if (!slide) {
+		throw new Error(`${slidePath} is missing from the table styling fixture`);
+	}
+	const xml = await slide.async('string');
+	const authoredRun = '<a:rPr lang="en-US" sz="1200" b="0">';
+	if (!xml.includes(authoredRun)) {
+		throw new Error('the expected 12pt Revenue run is missing from slide 4');
+	}
+	zip.file(slidePath, xml.replace(authoredRun, authoredRun.replace('1200', '1050')));
+	return {
+		name: 'table-fractional-font-size.pptx',
+		mimeType: PPTX_MIME,
+		buffer: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
+	};
 }
 
 async function gotoSlide(page: Page, slideNumber: number): Promise<void> {
@@ -343,6 +379,47 @@ test.describe('table styling', () => {
 		const editedCell = edited.cells.find((candidate) => candidate.text === 'Edited cell');
 		expect(editedCell, 'the edited cell should be rendered').toBeTruthy();
 		expect(editedCell!.fontSize).toBeCloseTo(firstRunSize!, 2);
+	});
+
+	test('preserves a fractional authored font size through edit and save', async ({ page }) => {
+		await loadDeck(page, await fractionalTableDeck());
+		await gotoSlide(page, 4);
+		const original = await measureTable(page);
+		const mixed = original.cells.find((cell) => cell.text.includes('Revenue grew 42%'));
+		expect(mixed, 'the mixed-format cell should be rendered').toBeTruthy();
+		const authoredRun = mixed!.runs.find((run) => run.text.includes('Revenue'));
+		expect(authoredRun, 'the 10.5pt run should be rendered').toBeTruthy();
+		// Browsers render points at 4/3 CSS pixels: 10.5pt is exactly 14px.
+		expect(authoredRun!.fontSize).toBeCloseTo(14, 2);
+
+		const cell = canvasCell(page, 'Revenue grew 42%');
+		const cellBox = await cell.boundingBox();
+		expect(cellBox, 'the mixed-format cell should have a layout box').not.toBeNull();
+		await page.mouse.dblclick(cellBox!.x + cellBox!.width / 2, cellBox!.y + cellBox!.height / 2);
+		const input = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('td input')
+			.first();
+		await expect(input).toBeVisible();
+		await input.fill('Fractional cell');
+		await input.press('Enter');
+		await expect(canvasCell(page, 'Fractional cell')).toBeVisible();
+
+		const edited = await measureTable(page);
+		const editedCell = edited.cells.find((candidate) => candidate.text === 'Fractional cell');
+		expect(editedCell, 'the edited cell should be rendered').toBeTruthy();
+		expect(editedCell!.fontSize).toBeCloseTo(14, 2);
+
+		const download = await savePptxViaBackstage(page);
+		const savedPath = await download.path();
+		expect(savedPath, 'the browser should retain the downloaded PPTX').not.toBeNull();
+		await loadDeck(page, savedPath!);
+		await gotoSlide(page, 4);
+		const reloaded = await measureTable(page);
+		const reloadedCell = reloaded.cells.find((candidate) => candidate.text === 'Fractional cell');
+		expect(reloadedCell, 'the saved edit should survive reloading').toBeTruthy();
+		expect(reloadedCell!.fontSize).toBeCloseTo(14, 2);
 	});
 
 	test('resolves a built-in style GUID the deck does not define', async ({ page }) => {

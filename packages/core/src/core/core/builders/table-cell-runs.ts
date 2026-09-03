@@ -67,7 +67,7 @@ function applyRunProperties(
 	}
 	const size = parseInt(String(runProperties['@_sz'] ?? ''), 10);
 	if (Number.isFinite(size) && size > 0) {
-		run.fontSize = Math.round(size / 100);
+		run.fontSize = size / 100;
 	}
 	if (runProperties['a:solidFill']) {
 		const color = context.parseColor(runProperties['a:solidFill'] as XmlObject);

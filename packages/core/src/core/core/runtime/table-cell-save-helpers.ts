@@ -204,7 +204,7 @@ export function writeCellTextFormatting(
 				rPr['@_u'] = style.underline ? 'sng' : 'none';
 			}
 			if (style.fontSize !== undefined) {
-				rPr['@_sz'] = String(style.fontSize * 100);
+				rPr['@_sz'] = String(Math.round(style.fontSize * 100));
 			}
 			if (style.color) {
 				rPr['a:solidFill'] = {
