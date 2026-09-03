@@ -1,7 +1,8 @@
+// @vitest-environment happy-dom
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { applyStyleToSelectedSegments } from './inline-selection-utils';
+import { applyStyleToSelectedSegments, getInlineEditorSelection } from './inline-selection-utils';
 import type { InlineTextSelection } from './inline-selection-utils';
 
 function seg(text: string, style: Partial<TextStyle> = {}): TextSegment {
@@ -197,5 +198,164 @@ describe('applyStyleToSelectedSegments', () => {
 		expect(newSelection.startOffset).toBe(0);
 		expect(newSelection.endSegIdx).toBe(3);
 		expect(newSelection.endOffset).toBe(2);
+	});
+});
+
+describe('getInlineEditorSelection', () => {
+	function mountEditor(segments: TextSegment[], rendered = segments.map((_, index) => index)) {
+		const editor = document.createElement('div');
+		editor.dataset.inlineEditor = '';
+		for (const index of rendered) {
+			const span = document.createElement('span');
+			span.dataset.segIdx = String(index);
+			span.textContent = segments[index].text;
+			editor.appendChild(span);
+		}
+		document.body.appendChild(editor);
+		return editor;
+	}
+
+	function select(start: Node, startOffset: number, end: Node, endOffset: number): void {
+		const range = document.createRange();
+		range.setStart(start, startOffset);
+		range.setEnd(end, endOffset);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(range);
+	}
+
+	it('moves a boundary at the end of one run to the selected next run', () => {
+		const segments = [seg('First'), seg(' '), seg('item')];
+		const editor = mountEditor(segments);
+		select(editor.childNodes[1].firstChild!, 1, editor.childNodes[2].firstChild!, 4);
+
+		expect(getInlineEditorSelection(segments)).toStrictEqual({
+			startSegIdx: 2,
+			startOffset: 0,
+			endSegIdx: 2,
+			endOffset: 4,
+		});
+		editor.remove();
+	});
+
+	it('moves a boundary at the start of one run to the selected previous run', () => {
+		const segments = [seg('First'), seg(' '), seg('item')];
+		const editor = mountEditor(segments);
+		select(editor.childNodes[0].firstChild!, 0, editor.childNodes[1].firstChild!, 0);
+
+		expect(getInlineEditorSelection(segments)).toStrictEqual({
+			startSegIdx: 0,
+			startOffset: 0,
+			endSegIdx: 0,
+			endOffset: 5,
+		});
+		editor.remove();
+	});
+
+	it('skips non-rendered paragraph separators at a boundary', () => {
+		const segments = [seg('A'), paraBrk(), seg('B')];
+		const editor = mountEditor(segments, [0, 2]);
+		select(editor.childNodes[0].firstChild!, 1, editor.childNodes[1].firstChild!, 1);
+
+		expect(getInlineEditorSelection(segments)).toStrictEqual({
+			startSegIdx: 2,
+			startOffset: 0,
+			endSegIdx: 2,
+			endOffset: 1,
+		});
+		editor.remove();
+	});
+
+	it('skips rendered empty runs at a boundary', () => {
+		const segments = [seg('A'), seg(''), seg(''), seg('B')];
+		const editor = mountEditor(segments);
+		select(editor.childNodes[0].firstChild!, 1, editor.childNodes[3].firstChild!, 1);
+
+		expect(getInlineEditorSelection(segments)).toStrictEqual({
+			startSegIdx: 3,
+			startOffset: 0,
+			endSegIdx: 3,
+			endOffset: 1,
+		});
+		editor.remove();
+	});
+
+	it('normalizes a backwards browser selection at a run boundary', () => {
+		const segments = [seg('First'), seg(' '), seg('item')];
+		const editor = mountEditor(segments);
+		const selection = window.getSelection()!;
+		selection.setBaseAndExtent(
+			editor.childNodes[2].firstChild!,
+			4,
+			editor.childNodes[1].firstChild!,
+			1,
+		);
+
+		expect(getInlineEditorSelection(segments)).toStrictEqual({
+			startSegIdx: 2,
+			startOffset: 0,
+			endSegIdx: 2,
+			endOffset: 4,
+		});
+		editor.remove();
+	});
+
+	it('returns null for a structural range with no selected characters', () => {
+		const segments = [seg('A'), seg(''), seg('B')];
+		const editor = mountEditor(segments);
+		select(editor.childNodes[0].firstChild!, 1, editor.childNodes[2].firstChild!, 0);
+
+		expect(getInlineEditorSelection(segments)).toBeNull();
+		editor.remove();
+	});
+
+	it.each([
+		{ name: 'paragraph separator', segment: paraBrk() },
+		{
+			name: 'display-only bullet marker',
+			segment: { text: '• ', style: {}, bulletInfo: { char: '•' } } as TextSegment,
+		},
+	])('returns null when only a $name is selected', ({ segment }) => {
+		const segments = [seg('A'), segment];
+		const editor = mountEditor(segments);
+		select(
+			editor.childNodes[0].firstChild!,
+			1,
+			editor.childNodes[1].firstChild!,
+			segment.text.length,
+		);
+
+		expect(getInlineEditorSelection(segments)).toBeNull();
+		editor.remove();
+	});
+
+	it('uses the live DOM length after a run grows during editing', () => {
+		const segments = [seg('A'), seg('B')];
+		const editor = mountEditor(segments);
+		editor.childNodes[0].textContent = 'AAAA';
+		select(editor.childNodes[0].firstChild!, 2, editor.childNodes[1].firstChild!, 1);
+
+		expect(getInlineEditorSelection(segments)).toStrictEqual({
+			startSegIdx: 0,
+			startOffset: 2,
+			endSegIdx: 1,
+			endOffset: 1,
+		});
+		editor.remove();
+	});
+
+	it('uses live text typed into an initially empty run', () => {
+		const segments = [seg('')];
+		const editor = mountEditor(segments);
+		editor.childNodes[0].textContent = 'Typed';
+		select(editor.childNodes[0].firstChild!, 0, editor.childNodes[0].firstChild!, 5);
+
+		expect(getInlineEditorSelection(segments)).toStrictEqual({
+			startSegIdx: 0,
+			startOffset: 0,
+			endSegIdx: 0,
+			endOffset: 5,
+		});
+		editor.remove();
 	});
 });

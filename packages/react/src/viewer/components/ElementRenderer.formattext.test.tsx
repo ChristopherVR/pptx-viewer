@@ -90,6 +90,18 @@ function getInlineEditor(): HTMLElement {
 	return editor as HTMLElement;
 }
 
+function selectSegment(editor: HTMLElement, index: number): void {
+	const segment = editor.querySelector<HTMLElement>(`[data-seg-idx="${String(index)}"]`);
+	if (!segment) {
+		throw new Error(`segment ${String(index)} not rendered`);
+	}
+	const range = document.createRange();
+	range.selectNodeContents(segment);
+	const selection = window.getSelection();
+	selection?.removeAllRanges();
+	selection?.addRange(range);
+}
+
 describe('elementRenderer - inline formatting shortcut wiring', () => {
 	it('toggles bold through onFormatText on Ctrl+B while inline editing', () => {
 		const onFormatText = vi.fn<(updates: Partial<TextStyle>) => void>();
@@ -113,6 +125,40 @@ describe('elementRenderer - inline formatting shortcut wiring', () => {
 		expect(onFormatText.mock.calls[0][0]).toStrictEqual({ italic: false });
 		expect(onFormatText.mock.calls[1][0]).toStrictEqual({ underline: true });
 	});
+
+	it.each([
+		{ key: 'b', property: 'bold', firstValue: true, selectedValue: false, expected: true },
+		{ key: 'b', property: 'bold', firstValue: false, selectedValue: true, expected: false },
+		{ key: 'i', property: 'italic', firstValue: true, selectedValue: false, expected: true },
+		{ key: 'i', property: 'italic', firstValue: false, selectedValue: true, expected: false },
+		{ key: 'u', property: 'underline', firstValue: true, selectedValue: false, expected: true },
+		{ key: 'u', property: 'underline', firstValue: false, selectedValue: true, expected: false },
+	] as const)(
+		'toggles $property from the selected non-first run',
+		({ key, property, firstValue, selectedValue, expected }) => {
+			const onFormatText = vi.fn<(updates: Partial<TextStyle>) => void>();
+			mount(
+				makeProps({
+					element: {
+						...makeTextElement(),
+						text: 'Always Target',
+						textSegments: [
+							{ text: 'Always ', style: { [property]: firstValue } },
+							{ text: 'Target', style: { [property]: selectedValue } },
+						],
+					} as PptxElement,
+					onFormatText,
+				}),
+			);
+
+			const editor = getInlineEditor();
+			selectSegment(editor, 1);
+			pressShortcut(editor, key);
+
+			expect(onFormatText).toHaveBeenCalledOnce();
+			expect(onFormatText.mock.calls[0][0]).toStrictEqual({ [property]: expected });
+		},
+	);
 
 	it('is inert when no handler is provided', () => {
 		mount(makeProps({ onFormatText: undefined }));

@@ -6,6 +6,8 @@
  */
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
+export { getInlineEditorSelection } from './inline-editor-selection';
+
 /** Describes which segments (and offsets within them) are selected. */
 export interface InlineTextSelection {
 	startSegIdx: number;
@@ -25,121 +27,6 @@ export function getPendingSelectionRestore(): InlineTextSelection | null {
 	const sel = pendingRestore;
 	pendingRestore = null;
 	return sel;
-}
-
-/**
- * Read the current browser selection and, if it falls within an
- * `[data-inline-editor]` element, return the segment-level range.
- *
- * Returns `null` when there is no selection, the selection is collapsed
- * (just a cursor), or the selection is outside the inline editor.
- */
-export function getInlineEditorSelection(
-	segments: TextSegment[] | undefined,
-): InlineTextSelection | null {
-	if (!segments || segments.length === 0) {
-		return null;
-	}
-
-	const sel = window.getSelection();
-	if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
-		return null;
-	}
-
-	const { anchorNode, anchorOffset, focusNode, focusOffset } = sel;
-	if (!anchorNode || !focusNode) {
-		return null;
-	}
-
-	const editor = findEditorContainer(anchorNode);
-	if (!editor || !editor.contains(focusNode)) {
-		return null;
-	}
-
-	const anchorInfo = getSegmentPosition(editor, anchorNode, anchorOffset, segments);
-	const focusInfo = getSegmentPosition(editor, focusNode, focusOffset, segments);
-	if (!anchorInfo || !focusInfo) {
-		return null;
-	}
-
-	// Normalize so start <= end.
-	const [start, end] =
-		anchorInfo.absOffset <= focusInfo.absOffset ? [anchorInfo, focusInfo] : [focusInfo, anchorInfo];
-
-	return {
-		startSegIdx: start.segIdx,
-		startOffset: start.offsetInSeg,
-		endSegIdx: end.segIdx,
-		endOffset: end.offsetInSeg,
-	};
-}
-
-function findEditorContainer(node: Node): Element | null {
-	const el = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
-	return el?.closest('[data-inline-editor]') ?? null;
-}
-
-function getSegmentPosition(
-	editor: Element,
-	node: Node,
-	offset: number,
-	segments: TextSegment[],
-): { segIdx: number; offsetInSeg: number; absOffset: number } | null {
-	const el = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
-	if (!el) {
-		return null;
-	}
-
-	const segSpan = el.closest('[data-seg-idx]');
-	if (!segSpan || !editor.contains(segSpan)) {
-		return null;
-	}
-
-	const segIdx = parseInt(segSpan.getAttribute('data-seg-idx')!, 10);
-	if (isNaN(segIdx) || segIdx < 0 || segIdx >= segments.length) {
-		return null;
-	}
-
-	const offsetInSeg = getTextOffsetWithin(segSpan, node, offset);
-
-	// Absolute offset = sum of all segment text lengths before this one + offset.
-	let absOffset = 0;
-	for (let i = 0; i < segIdx; i++) {
-		absOffset += segments[i].text.length;
-	}
-	absOffset += offsetInSeg;
-
-	return { segIdx, offsetInSeg, absOffset };
-}
-
-/**
- * Compute the character offset of a DOM position (node + offset) relative to
- * the text content of a container element.
- */
-function getTextOffsetWithin(container: Element, targetNode: Node, targetOffset: number): number {
-	// When the target IS the container (or an element child), offset is a
-	// child-index count, not a character count.
-	if (targetNode === container || targetNode.nodeType === Node.ELEMENT_NODE) {
-		const parent = targetNode === container ? container : targetNode;
-		let count = 0;
-		for (let i = 0; i < targetOffset && i < parent.childNodes.length; i++) {
-			count += (parent.childNodes[i].textContent || '').length;
-		}
-		return count;
-	}
-
-	// Walk text nodes in document order and accumulate lengths until we hit the
-	// target text node.
-	const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-	let charCount = 0;
-	let node: Node | null;
-	while ((node = walker.nextNode())) {
-		if (node === targetNode) {
-			return charCount + targetOffset;
-		}
-		charCount += (node as Text).length;
-	}
-	return charCount;
 }
 
 /**
