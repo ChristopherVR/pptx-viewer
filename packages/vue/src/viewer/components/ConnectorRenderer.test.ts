@@ -124,6 +124,25 @@ describe('connectorRenderer', () => {
 		expect(path.attributes('fill')).toBe('#ff0000');
 		expect(path.attributes('stroke')).toBeUndefined();
 	});
+
+	it('renders connector label model font sizes as CSS pixels', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					text: 'Label',
+					textStyle: { fontSize: 64 },
+					textSegments: [{ text: 'Label', style: { fontSize: 32 } }],
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.get('.pptx-vue-connector-text__block').attributes('style')).toContain(
+			'font-size: 64px',
+		);
+		expect(wrapper.get('.pptx-vue-connector-text__run').attributes('style')).toContain(
+			'font-size: 32px',
+		);
+	});
 });
 
 // ── Bent connector routing ────────────────────────────────────────────────────

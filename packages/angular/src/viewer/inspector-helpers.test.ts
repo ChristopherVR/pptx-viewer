@@ -120,7 +120,7 @@ describe('fontSizeOf', () => {
 
 	it('returns authored fontSize when present', () => {
 		const el = makeText({ textStyle: { fontSize: 24 } } as Partial<PptxElement>);
-		expect(fontSizeOf(el)).toBe(24);
+		expect(fontSizeOf(el)).toBe(18);
 	});
 
 	it('returns 18 for elements without text properties', () => {

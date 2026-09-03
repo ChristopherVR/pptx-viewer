@@ -636,6 +636,34 @@ describe('toolbar - Home tab', () => {
 		expect(html).toContain('>24</span>');
 	});
 
+	it('font size display converts model pixels to exact PowerPoint points', () => {
+		const html = render(
+			React.createElement(HomeSection, {
+				canEdit: true,
+				clipboardPayload: null,
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
+				layoutOptions: [],
+				onInsertSlideFromLayout: vi.fn<() => void>(),
+				selectedElement: {
+					type: 'text',
+					id: 'font-size',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: 'Hello',
+					textStyle: { fontSize: 32 },
+					textSegments: [{ text: 'Hello', style: { fontSize: 48.1 * (96 / 72) } }],
+				} as never,
+				onUpdateTextStyle: vi.fn<() => void>(),
+			}),
+		);
+		expect(html).toContain('>48.1</span>');
+		expect(html).not.toContain('64.133333');
+	});
+
 	it('paste is disabled when no clipboard payload', () => {
 		const html = render(
 			React.createElement(HomeSection, {

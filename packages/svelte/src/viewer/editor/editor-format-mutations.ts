@@ -5,6 +5,8 @@ import {
 	shapeFillChange,
 	shapeOutlineChange,
 	shapeStylePatch,
+	textFontSizePatch,
+	textFontSizePtToPx,
 	textStylePatch,
 } from 'pptx-viewer-shared';
 
@@ -31,7 +33,7 @@ const MIN_FONT = 1,
 	MAX_FONT = 400;
 
 function clampFont(size: number): number {
-	return Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(size)));
+	return Math.min(MAX_FONT, Math.max(MIN_FONT, size));
 }
 
 /** Toggleable boolean text-style flags. */
@@ -45,12 +47,12 @@ export function toggleTextFlagPatch(el: PptxElement, flag: TextFlag): Partial<Pp
 
 /** Set an absolute font size (clamped to a sane range). */
 export function setFontSizePatch(el: PptxElement, size: number): Partial<PptxElement> {
-	return textStylePatch(el, { fontSize: clampFont(size) });
+	return textFontSizePatch(el, textFontSizePtToPx(clampFont(size)));
 }
 
 /** Nudge the font size by `delta` points (clamped). */
 export function adjustFontSizePatch(el: PptxElement, delta: number): Partial<PptxElement> {
-	return textStylePatch(el, { fontSize: clampFont(fontSizeOf(el) + delta) });
+	return setFontSizePatch(el, fontSizeOf(el) + delta);
 }
 
 /** Set the text (foreground) colour. */

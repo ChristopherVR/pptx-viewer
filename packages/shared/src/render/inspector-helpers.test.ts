@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { fontSizeOf } from './inspector-helpers';
+import { fontSizeOf, textFontSizePatch } from './inspector-helpers';
 
 function textElement(fontSize?: number): PptxElement {
 	return {
@@ -28,8 +28,9 @@ function shapeElement(): PptxElement {
 }
 
 describe('fontSizeOf', () => {
-	it('returns the element textStyle.fontSize when set', () => {
-		expect(fontSizeOf(textElement(24))).toBe(24);
+	it('returns the element model size in points when set', () => {
+		expect(fontSizeOf(textElement(24))).toBe(18);
+		expect(fontSizeOf(textElement(48.1 * (96 / 72)))).toBe(48.1);
 	});
 
 	it('falls back to 18 (PowerPoint default text style) when unset', () => {
@@ -42,17 +43,36 @@ describe('fontSizeOf', () => {
 
 	it('prefers the deck presentation default over the 18pt last resort', () => {
 		expect(
-			fontSizeOf(textElement(undefined), { type: 'body', levelStyles: { 0: { fontSize: 24 } } }),
+			fontSizeOf(textElement(undefined), {
+				type: 'body',
+				levelStyles: { 0: { fontSize: 32 } },
+			}),
 		).toBe(24);
 	});
 
 	it('ignores the presentation default when the element sets its own size', () => {
 		expect(
-			fontSizeOf(textElement(30), { type: 'body', levelStyles: { 0: { fontSize: 24 } } }),
+			fontSizeOf(textElement(40), { type: 'body', levelStyles: { 0: { fontSize: 24 } } }),
 		).toBe(30);
 	});
 
 	it('falls back to 18 when the presentation default has no level-0 font size', () => {
 		expect(fontSizeOf(textElement(undefined), { type: 'body', levelStyles: {} })).toBe(18);
+	});
+});
+
+describe('textFontSizePatch', () => {
+	it('updates the element style and every ordinary text run', () => {
+		const element = textElement(16) as Extract<PptxElement, { textStyle?: unknown }>;
+		(element as { textSegments?: unknown }).textSegments = [
+			{ text: 'First', style: { fontSize: 12, bold: true } },
+			{ text: 'Second', style: { fontSize: 20, italic: true } },
+		];
+		const patch = textFontSizePatch(element, 24);
+		expect(patch.textStyle).toMatchObject({ fontSize: 24 });
+		expect(patch.textSegments).toStrictEqual([
+			{ text: 'First', style: { fontSize: 24, bold: true } },
+			{ text: 'Second', style: { fontSize: 24, italic: true } },
+		]);
 	});
 });

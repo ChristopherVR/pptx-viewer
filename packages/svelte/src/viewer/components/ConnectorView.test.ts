@@ -88,6 +88,22 @@ describe('connectorView arrow markers', () => {
 		expect(path?.getAttribute('fill')).toBe('#123456');
 		expect(path?.hasAttribute('stroke')).toBeFalsy();
 	});
+
+	it('renders connector label model font sizes as CSS pixels', () => {
+		const element = {
+			...connector({ strokeColor: '#123456' }),
+			text: 'Label',
+			textStyle: { fontSize: 64 },
+			textSegments: [{ text: 'Label', style: { fontSize: 32 } }],
+		} as PptxElement;
+		const rendered = render(element);
+		expect(
+			rendered.querySelector('.pptx-svelte-connector-text-block')?.getAttribute('style'),
+		).toContain('font-size: 64px');
+		expect(
+			rendered.querySelector('.pptx-svelte-connector-text span')?.getAttribute('style'),
+		).toContain('font-size: 32px');
+	});
 });
 
 /**

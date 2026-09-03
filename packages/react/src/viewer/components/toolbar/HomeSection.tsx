@@ -1,6 +1,11 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-import { COMMON_FONT_SIZES, resolveDefaultFontFamily } from 'pptx-viewer-shared';
+import {
+	COMMON_FONT_SIZES,
+	resolveDefaultFontFamily,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
+} from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -73,7 +78,10 @@ function extractFontInfo(
 
 	return {
 		fontFamily,
-		fontSize: fontSize !== undefined && fontSize !== null ? String(fontSize) : defaults.fontSize,
+		fontSize:
+			fontSize !== undefined && fontSize !== null
+				? String(textFontSizePxToPt(fontSize))
+				: defaults.fontSize,
 	};
 }
 
@@ -247,7 +255,12 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 											type='button'
 											className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 											onClick={() => {
-												p.onUpdateTextStyle?.({ fontSize: s });
+												p.onUpdateTextStyle?.({
+													fontSize:
+														p.selectedElement && hasTextProperties(p.selectedElement)
+															? textFontSizePtToPx(s)
+															: s,
+												});
 												setSizeMenuOpen(false);
 											}}
 										>

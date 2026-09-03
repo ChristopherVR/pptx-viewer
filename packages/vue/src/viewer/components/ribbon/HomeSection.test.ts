@@ -49,19 +49,54 @@ describe('homeSection - font size box (shared fontSizeOf)', () => {
 		expect(wrapper.find('[aria-label="Font size"]').text()).toBe('18');
 	});
 
-	it('shows the element textStyle fontSize when set', () => {
-		const wrapper = mountHome({ selectedElement: textShape({ textStyle: { fontSize: 32 } }) });
-		expect(wrapper.find('[aria-label="Font size"]').text()).toBe('32');
+	it('shows the element model size as exact PowerPoint points', () => {
+		const wrapper = mountHome({
+			selectedElement: textShape({ textStyle: { fontSize: 48.1 * (96 / 72) } }),
+		});
+		expect(wrapper.find('[aria-label="Font size"]').text()).toBe('48.1');
 	});
 
 	it('prefers the first text segment style over the element textStyle', () => {
 		const wrapper = mountHome({
 			selectedElement: textShape({
-				textStyle: { fontSize: 32 },
-				textSegments: [{ text: 'hi', style: { fontSize: 40 } }],
+				textStyle: { fontSize: 32 * (96 / 72) },
+				textSegments: [{ text: 'hi', style: { fontSize: 40 * (96 / 72) } }],
 			}),
 		});
 		expect(wrapper.find('[aria-label="Font size"]').text()).toBe('40');
+	});
+
+	it('converts a point preset back to model pixels', async () => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mountHome({
+			selectedElement: textShape({ textStyle: { fontSize: 16 } }),
+			onUpdateTextStyle,
+		});
+		await wrapper.find('[aria-label="Font size"]').trigger('click');
+		const option = wrapper.findAll('button').find((button) => button.text().trim() === '10');
+		expect(option).toBeDefined();
+		await option!.trigger('click');
+		expect(onUpdateTextStyle.mock.lastCall?.[0]?.fontSize).toBeCloseTo(10 * (96 / 72));
+	});
+
+	it('keeps point units when the shared callback targets a table cell', async () => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mountHome({
+			selectedElement: {
+				type: 'table',
+				id: 'table-cell-font-size',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 40,
+				tableData: { rows: [], columnWidths: [] },
+			} as PptxElement,
+			onUpdateTextStyle,
+		});
+		await wrapper.find('[aria-label="Font size"]').trigger('click');
+		const option = wrapper.findAll('button').find((button) => button.text().trim() === '10');
+		await option!.trigger('click');
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({ fontSize: 10 });
 	});
 
 	it('falls back to 18pt for a non-text element (e.g. an image)', () => {

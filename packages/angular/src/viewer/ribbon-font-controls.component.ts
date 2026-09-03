@@ -16,7 +16,12 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { COMMON_FONT_SIZES } from '../internal/shared';
+import {
+	COMMON_FONT_SIZES,
+	textFontSizePatch,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
+} from '../internal/shared';
 import {
 	buildFontCatalog,
 	resolveDefaultFontFamily,
@@ -38,6 +43,15 @@ import {
  * so it cannot drift from the other bindings' Font control group.
  */
 export const FONT_SIZES = COMMON_FONT_SIZES;
+
+/** Next PowerPoint point-size preset in the requested direction. */
+export function steppedFontSizePt(current: number, direction: 1 | -1): number {
+	const next =
+		direction === 1
+			? FONT_SIZES.find((size) => size > current)
+			: [...FONT_SIZES].reverse().find((size) => size < current);
+	return next ?? (direction === 1 ? FONT_SIZES[FONT_SIZES.length - 1] : FONT_SIZES[0]) ?? current;
+}
 /** Font-colour swatches in the Home/Text colour popover (mirrors React/Vue). */
 const FONT_COLOR_PRESETS = [
 	'#000000',
@@ -129,6 +143,9 @@ const CHANGE_CASE_OPTIONS = [
 				[attr.aria-label]="'pptx.ribbon.fontSize' | translate"
 				(change)="setFontSize($event)"
 			>
+				@if (!fontSizes.includes(curFontSize())) {
+					<option [value]="curFontSize()" selected>{{ curFontSize() }}</option>
+				}
 				@for (s of fontSizes; track s) {
 					<option [value]="s" [selected]="s === curFontSize()">{{ s }}</option>
 				}
@@ -355,7 +372,8 @@ export class RibbonFontControlsComponent {
 	}
 	protected curFontSize(): number {
 		// Mirror React's HomeSection default (24) shown when nothing is selected.
-		return Math.round(this.curStyle()?.fontSize ?? 24);
+		const fontSize = this.curStyle()?.fontSize;
+		return fontSize === undefined ? 24 : textFontSizePxToPt(fontSize);
 	}
 	/** Current font colour of the selection (for the swatch + active-state ring). */
 	protected curColor(): string {
@@ -412,20 +430,18 @@ export class RibbonFontControlsComponent {
 		this.patch({ fontFamily: (event.target as HTMLSelectElement).value });
 	}
 	protected setFontSize(event: Event): void {
-		this.patch({ fontSize: Number((event.target as HTMLSelectElement).value) });
+		this.patchFontSize(textFontSizePtToPx(Number((event.target as HTMLSelectElement).value)));
 	}
 	/** Step the selection's font size up or down through the FONT_SIZES ladder. */
 	protected stepFontSize(direction: 1 | -1): void {
-		const current = this.curFontSize();
-		const sizes = FONT_SIZES;
-		let idx = sizes.findIndex((s) => s >= current);
-		if (idx < 0) {
-			idx = sizes.length - 1;
+		this.patchFontSize(textFontSizePtToPx(steppedFontSizePt(this.curFontSize(), direction)));
+	}
+	private patchFontSize(fontSize: number): void {
+		const element = this.selectedElement();
+		if (!element || !isTextElement(element)) {
+			return;
 		}
-		const next = sizes[Math.min(sizes.length - 1, Math.max(0, idx + direction))];
-		if (next !== undefined) {
-			this.patch({ fontSize: next });
-		}
+		this.editor.updateElement(this.slideIndex(), element.id, textFontSizePatch(element, fontSize));
 	}
 	/** Clear character formatting (bold/italic/underline/strikethrough) on the selection. */
 	protected clearFormatting(): void {

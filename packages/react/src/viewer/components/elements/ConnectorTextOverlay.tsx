@@ -41,7 +41,7 @@ export function ConnectorTextOverlay({
 				className='px-1'
 				style={{
 					fontFamily: connectorTextStyle?.fontFamily ?? 'inherit',
-					fontSize: connectorTextStyle?.fontSize ? `${connectorTextStyle.fontSize}pt` : '10pt',
+					fontSize: connectorTextStyle?.fontSize ? `${connectorTextStyle.fontSize}px` : '10px',
 					color: connectorTextStyle?.color ?? '#000000',
 					fontWeight: connectorTextStyle?.bold ? 'bold' : 'normal',
 					fontStyle: connectorTextStyle?.italic ? 'italic' : 'normal',
@@ -56,7 +56,7 @@ export function ConnectorTextOverlay({
 						key={idx}
 						style={{
 							fontFamily: seg.style?.fontFamily ?? connectorTextStyle?.fontFamily ?? 'inherit',
-							fontSize: seg.style?.fontSize ? `${seg.style.fontSize}pt` : undefined,
+							fontSize: seg.style?.fontSize ? `${seg.style.fontSize}px` : undefined,
 							color: seg.style?.color ?? connectorTextStyle?.color ?? '#000000',
 							fontWeight: seg.style?.bold ? 'bold' : connectorTextStyle?.bold ? 'bold' : 'normal',
 							fontStyle: seg.style?.italic

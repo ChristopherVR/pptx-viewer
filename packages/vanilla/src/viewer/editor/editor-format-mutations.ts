@@ -8,7 +8,12 @@ import type {
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { applyCaseTransformToSegments, remapTextToSegments } from 'pptx-viewer-shared';
+import {
+	applyCaseTransformToSegments,
+	remapTextToSegments,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
+} from 'pptx-viewer-shared';
 
 import { currentInlineEditorText } from './inline-text-editor';
 
@@ -92,13 +97,14 @@ export function canFormatShape(el: PptxElement | undefined): el is PptxElementWi
 export function readTextFormatState(el: PptxElement | undefined): TextFormatState {
 	const ts: TextStyle | undefined = canFormatText(el) ? el.textStyle : undefined;
 	const firstRun = canFormatText(el) ? el.textSegments?.find((s) => s.text)?.style : undefined;
+	const fontSizePx = ts?.fontSize ?? firstRun?.fontSize;
 	return {
 		bold: Boolean(ts?.bold ?? firstRun?.bold),
 		italic: Boolean(ts?.italic ?? firstRun?.italic),
 		underline: Boolean(ts?.underline ?? firstRun?.underline),
 		strikethrough: Boolean(ts?.strikethrough ?? firstRun?.strikethrough),
 		hasTextShadow: Boolean(ts?.textShadowColor ?? firstRun?.textShadowColor),
-		fontSize: ts?.fontSize ?? firstRun?.fontSize ?? DEFAULT_FONT_SIZE,
+		fontSize: fontSizePx === undefined ? DEFAULT_FONT_SIZE : textFontSizePxToPt(fontSizePx),
 		fontFamily: ts?.fontFamily ?? firstRun?.fontFamily,
 		placeholderType: (el as { placeholderType?: string } | undefined)?.placeholderType,
 		color: ts?.color ?? firstRun?.color,
@@ -132,8 +138,8 @@ export function toggleTextProp(el: PptxElement, key: TextToggleKey): Partial<Ppt
 
 /** Set the font size (pt) element-wide, clamped to sane bounds. */
 export function setFontSize(el: PptxElement, size: number): Partial<PptxElement> {
-	const clamped = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(size)));
-	return patchTextStyle(el, { fontSize: clamped });
+	const clamped = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, size));
+	return patchTextStyle(el, { fontSize: textFontSizePtToPx(clamped) });
 }
 
 /** Step the font size by `delta` points from the current effective size. */

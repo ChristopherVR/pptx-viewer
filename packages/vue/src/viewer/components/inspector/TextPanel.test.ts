@@ -29,23 +29,34 @@ describe('textPanel', () => {
 
 	it('renders current font size and color', () => {
 		const wrapper = mount(TextPanel, {
-			props: { element: textEl({ fontSize: 24, color: '#112233', fontFamily: 'Georgia' }) },
+			props: {
+				element: textEl({
+					fontSize: 48.1 * (96 / 72),
+					color: '#112233',
+					fontFamily: 'Georgia',
+				}),
+			},
 		});
-		expect((wrapper.find('input[type="number"]').element as HTMLInputElement).value).toBe('24');
+		const size = wrapper.find('input[type="number"]').element as HTMLInputElement;
+		expect(size.value).toBe('48.1');
+		expect(size.step).toBe('any');
 		expect((wrapper.find('input[type="color"]').element as HTMLInputElement).value).toBe('#112233');
 		expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('Georgia');
 	});
 
 	it('emits a full merged textStyle patch when size changes', async () => {
-		const wrapper = mount(TextPanel, {
-			props: { element: textEl({ bold: true, color: '#000000' }) },
-		});
+		const element = textEl({ bold: true, color: '#000000' });
+		element.textSegments = [{ text: 'Hello', style: { fontSize: 16, italic: true } }];
+		const wrapper = mount(TextPanel, { props: { element } });
 		const num = wrapper.find('input[type="number"]');
-		(num.element as HTMLInputElement).value = '32';
+		(num.element as HTMLInputElement).value = '48.1';
 		await num.trigger('input');
 
 		const patch = wrapper.emitted('update')?.[0]?.[0] as Partial<PptxElement>;
-		expect(patch).toStrictEqual({ textStyle: { bold: true, color: '#000000', fontSize: 32 } });
+		expect(patch.textStyle).toMatchObject({ bold: true, color: '#000000' });
+		expect(patch.textStyle?.fontSize).toBeCloseTo(48.1 * (96 / 72));
+		expect(patch.textSegments?.[0]?.style).toMatchObject({ italic: true });
+		expect(patch.textSegments?.[0]?.style.fontSize).toBeCloseTo(48.1 * (96 / 72));
 	});
 
 	it('toggles bold against current textStyle', async () => {

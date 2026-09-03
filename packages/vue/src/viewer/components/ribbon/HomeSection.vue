@@ -11,7 +11,12 @@ import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxLayoutPreview, TextStyle } from 'pptx-viewer-core';
-import { DEFAULT_FONT_SIZE, fontSizeOf, resolveDefaultFontFamily } from 'pptx-viewer-shared';
+import {
+	DEFAULT_FONT_SIZE,
+	resolveDefaultFontFamily,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
+} from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -75,36 +80,32 @@ const { t } = useI18n();
  * placeholder and its minor font elsewhere. It used to show a hardcoded
  * "Segoe UI", which misreported every themed deck.
  *
- * Font size falls back through shared's `fontSizeOf`, which mirrors this same
- * fix for size: PowerPoint's presentation-level default text style
- * (`p:defaultTextStyle`) is 18pt, so a shape with no explicit size renders at
- * 18pt in real PowerPoint. This box used to show a hardcoded 24pt with no
- * relation to that default (also present, unfixed, in React's own
- * `toolbar/HomeSection.tsx`). `fontSizeOf` is only reached once this
- * component's own segment-level override (finer-grained than what the shared
- * reader itself considers) has had a chance to answer first.
+ * Explicit model font sizes are CSS pixels, while the control displays
+ * PowerPoint points. An element without an explicit size keeps the existing
+ * 18pt presentation fallback.
  */
 function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fontSize: string } {
 	const placeholderType = (element as { placeholderType?: string } | null | undefined)
 		?.placeholderType;
 	const fontFamilyDefault = resolveDefaultFontFamily(placeholderType, props.themeFonts);
 	if (!element) {
-		// `fontSizeOf` requires a real element (it narrows internally via
-		// `hasTextProperties`); with nothing selected there is none to pass, so
-		// this mirrors its own last-resort fallback directly.
 		return { fontFamily: fontFamilyDefault, fontSize: String(DEFAULT_FONT_SIZE) };
 	}
 	if (!hasTextProperties(element)) {
-		return { fontFamily: fontFamilyDefault, fontSize: String(fontSizeOf(element)) };
+		return { fontFamily: fontFamilyDefault, fontSize: String(DEFAULT_FONT_SIZE) };
 	}
 
 	const segStyle = element.textSegments?.[0]?.style;
 	const textStyle = element.textStyle;
 
 	const fontFamily = segStyle?.fontFamily ?? textStyle?.fontFamily ?? fontFamilyDefault;
-	const fontSize = segStyle?.fontSize ?? fontSizeOf(element);
+	const fontSize = segStyle?.fontSize ?? textStyle?.fontSize;
 
-	return { fontFamily, fontSize: String(fontSize) };
+	return {
+		fontFamily,
+		fontSize:
+			fontSize !== undefined ? String(textFontSizePxToPt(fontSize)) : String(DEFAULT_FONT_SIZE),
+	};
 }
 
 const fontInfo = computed(() => extractFontInfo(props.selectedElement));
@@ -142,7 +143,10 @@ function handlePickFont(f: string): void {
 }
 
 function handlePickSize(s: number): void {
-	props.onUpdateTextStyle?.({ fontSize: s });
+	props.onUpdateTextStyle?.({
+		fontSize:
+			props.selectedElement && hasTextProperties(props.selectedElement) ? textFontSizePtToPx(s) : s,
+	});
 	sizeMenu.close();
 }
 </script>

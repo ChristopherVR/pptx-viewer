@@ -23,6 +23,7 @@ import {
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
+import { textFontSizePtToPx } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -167,16 +168,19 @@ function handleIncreaseFontSize(): void {
 	if (!canFormat.value || !props.selectedElement) {
 		return;
 	}
-	const current = effectiveTs.value?.fontSize ?? 18;
-	props.onUpdateTextStyle({ fontSize: current + 2 });
+	const current = effectiveTs.value?.fontSize ?? (isTextEl.value ? textFontSizePtToPx(18) : 18);
+	const delta = isTextEl.value ? textFontSizePtToPx(2) : 2;
+	props.onUpdateTextStyle({ fontSize: current + delta });
 }
 
 function handleDecreaseFontSize(): void {
 	if (!canFormat.value || !props.selectedElement) {
 		return;
 	}
-	const current = effectiveTs.value?.fontSize ?? 18;
-	props.onUpdateTextStyle({ fontSize: Math.max(1, current - 2) });
+	const current = effectiveTs.value?.fontSize ?? (isTextEl.value ? textFontSizePtToPx(18) : 18);
+	const delta = isTextEl.value ? textFontSizePtToPx(2) : 2;
+	const minimum = isTextEl.value ? textFontSizePtToPx(1) : 1;
+	props.onUpdateTextStyle({ fontSize: Math.max(minimum, current - delta) });
 }
 
 function handleClearFormatting(): void {
