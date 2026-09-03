@@ -316,12 +316,12 @@ describe('applyCellTextFormat - run properties', () => {
 		expect(style.underline).toBeUndefined();
 	});
 
-	it('applies font size from run properties (1800 => 18pt)', () => {
+	it('preserves fractional font size from run properties (1050 => 10.5pt)', () => {
 		const tableCell: XmlObject = {
 			'a:txBody': {
 				'a:p': {
 					'a:r': {
-						'a:rPr': { '@_sz': '1800' },
+						'a:rPr': { '@_sz': '1050' },
 						'a:t': 'Sized text',
 					},
 				},
@@ -329,7 +329,7 @@ describe('applyCellTextFormat - run properties', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		applyCellTextFormat(tableCell, style, makeContext());
-		expect(style.fontSize).toBe(18);
+		expect(style.fontSize).toBe(10.5);
 	});
 
 	it('applies text color from run properties', () => {

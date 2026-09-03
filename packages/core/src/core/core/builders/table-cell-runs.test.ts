@@ -48,7 +48,7 @@ describe('extractTableCellTextRuns', () => {
 		// "grew 42%" rendered in the plain style of "Revenue ".
 		const cell = parseCell(
 			'<a:tc><a:txBody><a:bodyPr/><a:p>' +
-				'<a:r><a:rPr lang="en-US" sz="1200"/><a:t>Revenue </a:t></a:r>' +
+				'<a:r><a:rPr lang="en-US" sz="1050"/><a:t>Revenue </a:t></a:r>' +
 				'<a:r><a:rPr lang="en-US" sz="1800" b="1" i="1" u="sng" strike="sngStrike">' +
 				'<a:solidFill><a:srgbClr val="C00000"/></a:solidFill>' +
 				'<a:latin typeface="Georgia"/></a:rPr><a:t>grew 42%</a:t></a:r>' +
@@ -56,7 +56,7 @@ describe('extractTableCellTextRuns', () => {
 		);
 		const runs = extractTableCellTextRuns(cell, context);
 		expect(runs).toHaveLength(2);
-		expect(runs?.[0]).toStrictEqual({ text: 'Revenue ', fontSize: 12 });
+		expect(runs?.[0]).toStrictEqual({ text: 'Revenue ', fontSize: 10.5 });
 		expect(runs?.[1]).toStrictEqual({
 			text: 'grew 42%',
 			bold: true,
