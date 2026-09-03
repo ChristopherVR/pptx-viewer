@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.6.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.6.2) - 2026-09-03
+
+### Bug Fixes
+
+- Use point units in font-size controls ([#205](https://github.com/ChristopherVR/pptx-viewer/issues/205)) (by @Sudhansh6) ([65031d4](https://github.com/ChristopherVR/pptx-viewer/commit/65031d4c92e5c9520a3188986ed7ba7c21af856e))
+- **react,shared:** Toggle shortcuts from selected text ([#207](https://github.com/ChristopherVR/pptx-viewer/issues/207)) (by @Sudhansh6) ([a9d294c](https://github.com/ChristopherVR/pptx-viewer/commit/a9d294c4ebe34f5c03b511f57a7608e7656c5bbb))
+- Preserve table-cell font sizes across renderers ([#208](https://github.com/ChristopherVR/pptx-viewer/issues/208)) (by @Sudhansh6) ([8c2d97d](https://github.com/ChristopherVR/pptx-viewer/commit/8c2d97d81fdaa3781ebd95bdf0fb04af79d42b84))
+
 ## [3.6.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.6.1) - 2026-09-03
 
 ### Bug Fixes

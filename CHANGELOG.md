@@ -10,6 +10,16 @@ dated sections beneath it are generated from
 
 ## 2026-09-03
 
+_Releases: pptx-viewer-core@3.3.3, pptx-react-viewer@3.5.2, pptx-vue-viewer@3.5.2, pptx-angular-viewer@3.6.2, pptx-vanilla-viewer@2.5.2, pptx-svelte-viewer@3.6.2, @christophervr/pptx-viewer@2.5.2_
+
+### Bug Fixes
+
+- Use point units in font-size controls ([#205](https://github.com/ChristopherVR/pptx-viewer/issues/205)) (by @Sudhansh6) ([65031d4](https://github.com/ChristopherVR/pptx-viewer/commit/65031d4c92e5c9520a3188986ed7ba7c21af856e))
+- **react,shared:** Toggle shortcuts from selected text ([#207](https://github.com/ChristopherVR/pptx-viewer/issues/207)) (by @Sudhansh6) ([a9d294c](https://github.com/ChristopherVR/pptx-viewer/commit/a9d294c4ebe34f5c03b511f57a7608e7656c5bbb))
+- Preserve table-cell font sizes across renderers ([#208](https://github.com/ChristopherVR/pptx-viewer/issues/208)) (by @Sudhansh6) ([8c2d97d](https://github.com/ChristopherVR/pptx-viewer/commit/8c2d97d81fdaa3781ebd95bdf0fb04af79d42b84))
+
+## 2026-09-03
+
 _Releases: pptx-viewer-core@3.3.2, pptx-react-viewer@3.5.1, pptx-vue-viewer@3.5.1, pptx-angular-viewer@3.6.1, pptx-vanilla-viewer@2.5.1, pptx-svelte-viewer@3.6.1, @christophervr/pptx-viewer@2.5.1_
 
 ### Bug Fixes

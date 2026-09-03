@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.3.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.3.3) - 2026-09-03
+
+### Bug Fixes
+
+- Preserve table-cell font sizes across renderers ([#208](https://github.com/ChristopherVR/pptx-viewer/issues/208)) (by @Sudhansh6) ([8c2d97d](https://github.com/ChristopherVR/pptx-viewer/commit/8c2d97d81fdaa3781ebd95bdf0fb04af79d42b84))
+
 ## [3.3.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.3.2) - 2026-09-03
 
 ### Bug Fixes
