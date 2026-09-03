@@ -34,7 +34,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { fixture, loadDeckAt, slideStage, thumbnail } from './support/deck';
+import { fixture, loadDeck, loadDeckAt, slideStage, thumbnail } from './support/deck';
 import { acrossFrameworks, splitReference } from './support/parity';
 import { diffTextRuns } from './support/text-run-diff';
 import { measureTextRuns } from './support/text-runs';
@@ -95,6 +95,36 @@ function expectRunParity(results: { framework: { name: string }; value: ElementR
 }
 
 test.describe('cross-binding text layout', () => {
+	test('an unchanged inline edit preserves rich runs and list structure', async ({ page }) => {
+		await loadDeck(page, TEXT_LAYOUT);
+		await slideStage(page).waitFor();
+		await page.waitForTimeout(400);
+		const undo = page.getByRole('button', { name: /^undo/iu }).first();
+		await expect(undo).toBeDisabled();
+
+		const target = page
+			.locator('[data-pptx-viewport] [data-element-id]')
+			.filter({ hasText: 'Alpha Beta' })
+			.first();
+		await target.waitFor();
+		const elementId = await target.getAttribute('data-element-id');
+		expect(elementId).not.toBeNull();
+		const before = (await measureTextRuns(page)).find((element) => element.elementId === elementId);
+		expect(before, 'found the rich-text element before editing').toBeDefined();
+
+		await target.dblclick();
+		const editor = page.locator('[data-inline-editor]');
+		await editor.waitFor();
+		const stageBox = (await slideStage(page).boundingBox())!;
+		await page.mouse.click(stageBox.x + stageBox.width * 0.95, stageBox.y + stageBox.height * 0.95);
+		await expect(editor).toBeHidden();
+
+		const after = (await measureTextRuns(page)).find((element) => element.elementId === elementId);
+		expect(after, 'found the rich-text element after editing').toBeDefined();
+		expect(diffTextRuns([before!], [after!]).join('\n')).toBe('');
+		await expect(undo).toBeDisabled();
+	});
+
 	test('autofit, wrap="none", default fonts and run splitting agree run for run', async ({
 		browser,
 	}, testInfo) => {

@@ -15,6 +15,7 @@ import type {
 	MasterViewWrite,
 } from '../internal/shared';
 import {
+	buildInlineTextCommitPatch,
 	DEFAULT_MASTER_PAGE_SIZE,
 	deleteMasterViewElements,
 	masterViewPseudoSlide,
@@ -166,9 +167,14 @@ export class MasterViewCanvasComponent {
 	}
 
 	protected commitText(event: { id: string; text: string; height?: number }): void {
+		const element = this.pseudoSlide()?.elements.find((candidate) => candidate.id === event.id);
+		const textPatch = buildInlineTextCommitPatch(element, event.text);
+		if (!textPatch && event.height === undefined) {
+			this.editingId.set(null);
+			return;
+		}
 		this.updateMasterElement(event.id, {
-			text: event.text,
-			textSegments: [],
+			...textPatch,
 			// `a:spAutoFit`: see `slide-canvas.component.ts`'s `commitText`.
 			...(event.height !== undefined ? { height: event.height } : {}),
 		});
