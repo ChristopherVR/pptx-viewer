@@ -440,7 +440,11 @@ function renderTable(el: PptxElement, defaults: ReturnType<typeof resolveDefault
 			const bgColor = cell.style?.backgroundColor ?? 'none';
 			const borderColor = cell.style?.borderColor ?? '#CCCCCC';
 			const textColor = cell.style?.color ?? '#000000';
-			const fontSize = cell.style?.fontSize ?? defaults.defaultFontSize;
+			// Table-cell sizes are stored in points, while the SVG viewBox uses CSS pixels.
+			const fontSize =
+				cell.style?.fontSize !== undefined
+					? cell.style.fontSize * (96 / 72)
+					: defaults.defaultFontSize;
 			const bold = cell.style?.bold;
 
 			parts.push(

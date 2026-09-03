@@ -27,6 +27,7 @@
  * ```
  */
 export interface PptxTableCellStyle {
+	/** Font size in points (`a:rPr@sz / 100`). */
 	fontSize?: number;
 	bold?: boolean;
 	italic?: boolean;

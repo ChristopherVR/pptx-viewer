@@ -173,6 +173,7 @@ describe('tableElementProcessor', () => {
 								backgroundColor: '#FF0000',
 								align: 'center',
 								bold: true,
+								fontSize: 14.5,
 							},
 						},
 					],
@@ -185,6 +186,7 @@ describe('tableElementProcessor', () => {
 		expect(result).not.toBeNull();
 		expect(result).toContain('background:#FF0000');
 		expect(result).toContain('text-align:center');
+		expect(result).toContain('font-size:14.5pt');
 	});
 
 	it('should render first row as header by default', async () => {

@@ -265,7 +265,9 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 		css.fontFamily = style.fontFamily;
 	}
 	if (style.fontSize) {
-		css.fontSize = `${style.fontSize}px`;
+		// Table-cell controls and the OOXML save path use PowerPoint points.
+		// Emitting the same number as CSS pixels makes edited cells 25% smaller.
+		css.fontSize = `${style.fontSize}pt`;
 	}
 	if (style.bold) {
 		css.fontWeight = 'bold';

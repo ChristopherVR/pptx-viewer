@@ -75,6 +75,13 @@ describe('programmatic table banding', () => {
 		expect(cellStyles(markup)[2]).toContain('background-color:#00ff00');
 	});
 
+	it('renders fractional cell font sizes in PowerPoint points', () => {
+		const element = insertedTable();
+		element.tableData!.rows[1].cells[0].style = { fontSize: 14.5 };
+		const markup = renderToStaticMarkup(renderTableElement(element, {}));
+		expect(cellStyles(markup)[2]).toContain('font-size:14.5pt');
+	});
+
 	it('floors an unstyled body cell at the dark slide-text colour', () => {
 		const element = insertedTable();
 		element.tableData!.firstRowHeader = false;
