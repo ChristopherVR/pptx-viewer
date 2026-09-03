@@ -222,6 +222,8 @@ function renderBulletMarker(
 		return (
 			<img
 				key={`${elementId}-para-${paraIndex}-bullet-img`}
+				data-pptx-bullet-marker
+				contentEditable={false}
 				src={picture.src}
 				alt={picture.accessibleLabel}
 				style={{
@@ -242,6 +244,8 @@ function renderBulletMarker(
 		<span
 			key={`${elementId}-para-${paraIndex}-bullet`}
 			className='pptx-bullet'
+			data-pptx-bullet-marker
+			contentEditable={false}
 			style={para.bulletStyle as React.CSSProperties}
 			aria-label={picture?.accessibleLabel}
 		>

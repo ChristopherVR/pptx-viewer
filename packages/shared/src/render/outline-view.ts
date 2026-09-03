@@ -34,6 +34,8 @@
 import type { PptxElement, PptxSlide, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { isBulletMarkerSegment } from './bullet-toggle';
+
 // ---------------------------------------------------------------------------
 // DOM contract
 // ---------------------------------------------------------------------------
@@ -256,14 +258,15 @@ function isBulletMarker(segment: TextSegment): boolean {
 	if (!bullet) {
 		return false;
 	}
+	if (bullet.autoNumType) {
+		return bullet.paragraphIndex !== undefined && isBulletMarkerSegment(segment);
+	}
 	const marker = bullet.char
 		? `${bullet.char} `
 		: bullet.imageRelId || bullet.imageDataUrl
 			? '\u{1F4CE} '
-			: bullet.autoNumType
-				? undefined
-				: '• ';
-	return marker ? segment.text === marker : bullet.paragraphIndex !== undefined;
+			: '• ';
+	return segment.text === marker;
 }
 
 function isParagraphSeparator(segment: TextSegment): boolean {

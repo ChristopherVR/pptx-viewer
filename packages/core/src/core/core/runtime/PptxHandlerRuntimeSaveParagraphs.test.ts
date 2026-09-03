@@ -37,6 +37,18 @@ function runProperties(paragraph: XmlObject): XmlObject[] {
 		.filter((rPr): rPr is XmlObject => Boolean(rPr) && typeof rPr === 'object');
 }
 
+/** Literal text from every ordinary run in one built paragraph. */
+function runTexts(paragraph: XmlObject): string[] {
+	const runs = paragraph['a:r'];
+	const list = Array.isArray(runs) ? runs : runs ? [runs] : [];
+	return list.map((run) => {
+		const text = (run as XmlObject)['a:t'];
+		return typeof text === 'string'
+			? text
+			: String((text as XmlObject | undefined)?.['#text'] ?? '');
+	});
+}
+
 describe('createParagraphsFromTextContent: paragraph direction is not flattened onto runs', () => {
 	const runtime = new ParagraphRuntime();
 	const segment = (text: string, style?: TextStyle): TextSegment =>
@@ -167,4 +179,67 @@ describe('createParagraphsFromTextContent: a runless paragraph stays runless', (
 		const [paragraph] = runtime.build('', undefined, [segment('')]);
 		expect(paragraph['a:r']).toBeDefined();
 	});
+});
+
+describe('createParagraphsFromTextContent: auto-number marker detection', () => {
+	const runtime = new ParagraphRuntime();
+
+	it('keeps real paragraph text that carries runtime numbering metadata', () => {
+		const content: TextSegment = {
+			text: 'First item',
+			style: {},
+			bulletInfo: {
+				autoNumType: 'arabicPeriod',
+				autoNumStartAt: 1,
+				paragraphIndex: 0,
+			},
+		};
+
+		const [paragraph] = runtime.build(content.text, undefined, [content]);
+
+		expect(runTexts(paragraph)).toStrictEqual(['First item']);
+		expect((paragraph['a:pPr'] as XmlObject)['a:buAutoNum']).toStrictEqual({
+			'@_type': 'arabicPeriod',
+		});
+	});
+
+	it.each([
+		['1.', { autoNumType: 'arabicPeriod' }],
+		['• ', { autoNumType: 'arabicPeriod' }],
+		[
+			'3)',
+			{
+				autoNumType: 'arabicPeriod',
+				autoNumStartAt: 2,
+				paragraphIndex: 1,
+			},
+		],
+	] as const)('keeps marker-like content %s that was not generated', (text, bulletInfo) => {
+		const content: TextSegment = { text, style: {}, bulletInfo };
+
+		const [paragraph] = runtime.build(content.text, undefined, [content]);
+
+		expect(runTexts(paragraph)).toStrictEqual([text]);
+	});
+
+	it.each([
+		['arabicPeriod', 2, 1, '3.'],
+		['arabicPeriod', 2, 1, '3. '],
+		['hindiNumPeriod', 21, 0, '२१. '],
+	] as const)(
+		'drops only the exact generated %s marker and preserves its content run',
+		(autoNumType, autoNumStartAt, paragraphIndex, markerText) => {
+			const bulletInfo = { autoNumType, autoNumStartAt, paragraphIndex };
+			const [paragraph] = runtime.build(`${markerText}Item`, undefined, [
+				{ text: markerText, style: {}, bulletInfo },
+				{ text: 'Item', style: {} },
+			]);
+
+			expect(runTexts(paragraph)).toStrictEqual(['Item']);
+			expect((paragraph['a:pPr'] as XmlObject)['a:buAutoNum']).toStrictEqual({
+				'@_type': autoNumType,
+				'@_startAt': String(autoNumStartAt),
+			});
+		},
+	);
 });
