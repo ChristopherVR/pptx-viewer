@@ -111,6 +111,10 @@ export function useViewerBuildingBlocksCore(
 	// declared just before `usePresentationSetup`) so both consumers share
 	// this one `useViewerOptions()` call/store instance.
 	const { options: viewerOptions } = useViewerOptions();
+	const { setIsDirty } = state;
+	const markDocumentDirty = useCallback(() => {
+		setIsDirty(true);
+	}, [setIsDirty]);
 
 	const history = useEditorHistory({
 		slides,
@@ -126,6 +130,7 @@ export function useViewerBuildingBlocksCore(
 		maxHistoryEntries: resolveHistoryDepth(viewerOptions),
 		hasActivePointerInteraction,
 		pointerCommitNonce: state.pointerCommitNonce,
+		onDirty: markDocumentDirty,
 		setSlides: state.setSlides,
 		setCanvasSize: state.setCanvasSize,
 		setActiveSlideIndex: state.setActiveSlideIndex,

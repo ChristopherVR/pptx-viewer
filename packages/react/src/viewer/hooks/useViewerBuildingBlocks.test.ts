@@ -12,30 +12,61 @@ import { PptxHandler } from 'pptx-viewer-core';
  * follows the same manual `createRoot` + `act` harness pattern used by
  * `CollaborationProvider.remount.test.tsx`.
  */
-import React, { act } from 'react';
+import React, { act, createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { PowerPointViewerHandle } from '../types';
+import type { UseAutosaveInput } from './useAutosave';
 import { useViewerBuildingBlocks } from './useViewerBuildingBlocks';
 import type { ViewerBuildingBlocksResult } from './useViewerBuildingBlocks';
 
 let fixtureBytes: Uint8Array;
+let twoSlideFixtureBytes: Uint8Array;
+
+const { autosaveInputs } = vi.hoisted(() => ({ autosaveInputs: [] as UseAutosaveInput[] }));
+
+// Expose the dirty gate that the real building-block composition hands to
+// autosave; every other hook in the chain remains production code.
+// oxlint-disable-next-line prefer-ending-with-an-expect
+vi.mock(import('./useAutosave'), () => ({
+	useAutosave: (input: UseAutosaveInput) => {
+		autosaveInputs.push(input);
+		return { autosaveStatus: { state: 'idle' as const }, triggerAutosave: async () => {} };
+	},
+}));
 
 beforeAll(async () => {
-	const { handler, data } = await PptxHandler.create({
+	const oneSlide = await PptxHandler.create({
 		title: 'Building Blocks Fixture',
 		initialSlideCount: 1,
 	});
-	fixtureBytes = await handler.save(data.slides);
+	fixtureBytes = await oneSlide.handler.save(oneSlide.data.slides);
+	oneSlide.handler.dispose();
+
+	const twoSlides = await PptxHandler.create({
+		title: 'Two Slide Building Blocks Fixture',
+		initialSlideCount: 2,
+	});
+	twoSlideFixtureBytes = await twoSlides.handler.save(twoSlides.data.slides);
+	twoSlides.handler.dispose();
 });
 
 let container: HTMLDivElement;
 let root: Root;
 let latest: ViewerBuildingBlocksResult | null = null;
 
-function Harness({ content }: { content: Uint8Array }): React.ReactElement {
-	const result = useViewerBuildingBlocks({ content, canEdit: true });
+function Harness({
+	content,
+	handle,
+	onDirtyChange,
+}: {
+	content: Uint8Array;
+	handle?: React.RefObject<PowerPointViewerHandle | null>;
+	onDirtyChange?: (dirty: boolean) => void;
+}): React.ReactElement {
+	const result = useViewerBuildingBlocks({ content, canEdit: true, handle, onDirtyChange });
 	latest = result;
 	return React.createElement('div', { 'data-testid': 'harness' });
 }
@@ -65,10 +96,19 @@ async function flushUntil(isDone: () => boolean, timeoutMs = 10_000): Promise<vo
 
 beforeEach(() => {
 	latest = null;
+	autosaveInputs.length = 0;
 	container = document.createElement('div');
 	document.body.appendChild(container);
 	root = createRoot(container);
 });
+
+function latestAutosaveDirty(): boolean {
+	const input = autosaveInputs.at(-1);
+	if (!input) {
+		throw new Error('the composition never called useAutosave');
+	}
+	return input.isDirty;
+}
 
 afterEach(() => {
 	act(() => {
@@ -128,5 +168,60 @@ describe('useViewerBuildingBlocks', () => {
 
 		await flushUntil(() => latest?.loading === false);
 		expect(latest?.loading).toBeFalsy();
+	}, 15_000);
+
+	it('reports a committed edit to the host and opens the autosave dirty gate', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		const dirtyChanges: boolean[] = [];
+		await act(async () => {
+			root.render(
+				React.createElement(Harness, {
+					content: fixtureBytes,
+					handle,
+					onDirtyChange: (dirty: boolean) => dirtyChanges.push(dirty),
+				}),
+			);
+		});
+		await flushUntil(() => latest?.loading === false);
+
+		expect(handle.current?.isDirty()).toBeFalsy();
+		expect(latestAutosaveDirty()).toBeFalsy();
+		expect(dirtyChanges).not.toContain(true);
+
+		await act(async () => {
+			handle.current?.addSlide();
+			await Promise.resolve();
+		});
+		await flushUntil(() => handle.current?.isDirty() === true);
+
+		expect(handle.current?.getSlideCount()).toBe(2);
+		expect(handle.current?.isDirty()).toBeTruthy();
+		expect(latestAutosaveDirty()).toBeTruthy();
+		expect(dirtyChanges).toContain(true);
+	}, 15_000);
+
+	it('does not report slide navigation as a document edit', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		const dirtyChanges: boolean[] = [];
+		await act(async () => {
+			root.render(
+				React.createElement(Harness, {
+					content: twoSlideFixtureBytes,
+					handle,
+					onDirtyChange: (dirty: boolean) => dirtyChanges.push(dirty),
+				}),
+			);
+		});
+		await flushUntil(() => latest?.loading === false);
+
+		await act(async () => {
+			handle.current?.goTo(1);
+			await Promise.resolve();
+		});
+		await flushUntil(() => handle.current?.getActiveSlideIndex() === 1);
+
+		expect(handle.current?.isDirty()).toBeFalsy();
+		expect(latestAutosaveDirty()).toBeFalsy();
+		expect(dirtyChanges).not.toContain(true);
 	}, 15_000);
 });
