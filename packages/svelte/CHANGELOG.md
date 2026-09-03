@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.6.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.6.3) - 2026-09-03
+
+### Bug Fixes
+
+- **core:** Preserve fractional table font sizes ([#210](https://github.com/ChristopherVR/pptx-viewer/issues/210)) (by @Sudhansh6) ([3f0c1ba](https://github.com/ChristopherVR/pptx-viewer/commit/3f0c1ba908692715a9c9d745ee58fae4c30d893d))
+
 ## [3.6.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.6.2) - 2026-09-03
 
 ### Bug Fixes

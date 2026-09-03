@@ -10,6 +10,15 @@ dated sections beneath it are generated from
 
 ## 2026-09-03
 
+_Releases: pptx-viewer-core@3.3.4, pptx-react-viewer@3.5.3, pptx-vue-viewer@3.5.3, pptx-angular-viewer@3.6.3, pptx-vanilla-viewer@2.5.3, pptx-svelte-viewer@3.6.3_
+
+### Bug Fixes
+
+- **core:** Preserve fractional table font sizes ([#210](https://github.com/ChristopherVR/pptx-viewer/issues/210)) (by @Sudhansh6) ([3f0c1ba](https://github.com/ChristopherVR/pptx-viewer/commit/3f0c1ba908692715a9c9d745ee58fae4c30d893d))
+- **angular:** Find template elements in inline text edits (by @ChristopherVR) ([fd3b19b](https://github.com/ChristopherVR/pptx-viewer/commit/fd3b19b102817a557a0853187e63c3614e10b600))
+
+## 2026-09-03
+
 _Releases: pptx-viewer-core@3.3.3, pptx-react-viewer@3.5.2, pptx-vue-viewer@3.5.2, pptx-angular-viewer@3.6.2, pptx-vanilla-viewer@2.5.2, pptx-svelte-viewer@3.6.2, @christophervr/pptx-viewer@2.5.2_
 
 ### Bug Fixes
