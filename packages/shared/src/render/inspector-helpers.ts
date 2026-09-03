@@ -9,6 +9,8 @@
 import type { PlaceholderDefaults, PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
+import { textFontSizePxToPt } from './text-format-presets';
+
 const DEFAULT_FILL = '#ffffff';
 const DEFAULT_STROKE = '#000000';
 const DEFAULT_TEXT_COLOR = '#000000';
@@ -63,10 +65,10 @@ export function textColorOf(el: PptxElement): string {
  */
 export function fontSizeOf(el: PptxElement, presentationDefault?: PlaceholderDefaults): number {
 	if (hasTextProperties(el) && el.textStyle?.fontSize !== undefined) {
-		return el.textStyle.fontSize;
+		return textFontSizePxToPt(el.textStyle.fontSize);
 	}
 	const deckDefault = presentationDefault?.levelStyles?.[0]?.fontSize;
-	return deckDefault ?? DEFAULT_FONT_SIZE;
+	return deckDefault === undefined ? DEFAULT_FONT_SIZE : textFontSizePxToPt(deckDefault);
 }
 
 /** Returns whether the element's text is bold (false when absent). */
@@ -139,5 +141,20 @@ export function textStylePatch(el: PptxElement, changes: TextStyleChanges): Part
 			...base,
 			...changes,
 		},
+	} as Partial<PptxElement>;
+}
+
+/** Apply an ordinary-text model pixel size to the element and all of its runs. */
+export function textFontSizePatch(el: PptxElement, fontSize: number): Partial<PptxElement> {
+	const patch = textStylePatch(el, { fontSize });
+	if (!hasTextProperties(el) || !el.textSegments) {
+		return patch;
+	}
+	return {
+		...patch,
+		textSegments: el.textSegments.map((segment) => ({
+			...segment,
+			style: { ...segment.style, fontSize },
+		})),
 	} as Partial<PptxElement>;
 }

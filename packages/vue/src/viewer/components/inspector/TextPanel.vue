@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, PptxTextWarpPreset, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import { textFontSizePatch, textFontSizePtToPx, textFontSizePxToPt } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -77,7 +78,9 @@ const textStyle = computed<TextStyle | undefined>(() =>
 );
 
 const fontFamily = computed<string>(() => textStyle.value?.fontFamily ?? '');
-const fontSize = computed<number>(() => textStyle.value?.fontSize ?? 18);
+const fontSize = computed<number>(() =>
+	textStyle.value?.fontSize !== undefined ? textFontSizePxToPt(textStyle.value.fontSize) : 18,
+);
 const color = computed<string>(() => textStyle.value?.color ?? '#000000');
 const align = computed<AlignValue | undefined>(() => textStyle.value?.align);
 const vAlign = computed<VAlignValue | undefined>(() => textStyle.value?.vAlign);
@@ -93,7 +96,8 @@ function onFontFamily(event: Event): void {
 
 function onFontSize(event: Event): void {
 	const raw = Number.parseFloat((event.target as HTMLInputElement).value);
-	patchTextStyle({ fontSize: Number.isFinite(raw) ? Math.max(1, raw) : 1 });
+	const points = Number.isFinite(raw) ? Math.max(1, raw) : 1;
+	emit('update', textFontSizePatch(props.element, textFontSizePtToPx(points)));
 }
 
 function onColor(event: Event): void {
@@ -172,7 +176,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 						type="number"
 						class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
 						min="1"
-						step="1"
+						step="any"
 						:value="fontSize"
 						@input="onFontSize"
 					/>

@@ -74,3 +74,33 @@ describe('textSection font-colour popover', () => {
 		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeFalsy();
 	});
 });
+
+describe('textSection font-size stepper', () => {
+	it('steps ordinary text by two PowerPoint points in model pixels', async () => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mountSection({
+			selectedElement: textShape({ textStyle: { fontSize: 48.1 * (96 / 72) } }),
+			onUpdateTextStyle,
+		});
+		const increase = wrapper
+			.findAll('button')
+			.find((button) => button.attributes('title') === 'Increase Font Size');
+		expect(increase).toBeDefined();
+		await increase!.trigger('click');
+		expect(onUpdateTextStyle.mock.lastCall?.[0]?.fontSize).toBeCloseTo(50.1 * (96 / 72));
+	});
+
+	it('steps the 18-point fallback in point units when no size is explicit', async () => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mountSection({
+			selectedElement: textShape(),
+			onUpdateTextStyle,
+		});
+		const increase = wrapper
+			.findAll('button')
+			.find((button) => button.attributes('title') === 'Increase Font Size');
+		expect(increase).toBeDefined();
+		await increase!.trigger('click');
+		expect(onUpdateTextStyle.mock.lastCall?.[0]?.fontSize).toBeCloseTo(20 * (96 / 72));
+	});
+});

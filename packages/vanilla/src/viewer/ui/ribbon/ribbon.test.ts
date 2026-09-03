@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
 import type { FindReplaceActions } from '../../editor/editor-find-replace-actions';
+import { readTextFormatState } from '../../editor/editor-format-mutations';
 import { createTranslator } from '../../i18n';
+import { createFontGroup } from './home/font-group';
 import { createRibbon } from './ribbon';
 import type { RibbonHandlers, RibbonInsertHandlers } from './ribbon-types';
 
@@ -375,5 +377,50 @@ describe('createRibbon', () => {
 			// An unrelated View action stays, proving the hide is scoped to that id.
 			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.view.normal')}"]`)).not.toBeNull();
 		});
+	});
+});
+
+describe('home font size', () => {
+	it('shows points and sends a point preset to the format action', () => {
+		const t = createTranslator();
+		const setFontSize = vi.fn();
+		const group = createFontGroup(document, t, {
+			toggleBold: vi.fn(),
+			toggleItalic: vi.fn(),
+			toggleUnderline: vi.fn(),
+			toggleStrikethrough: vi.fn(),
+			toggleTextShadow: vi.fn(),
+			setFontFamily: vi.fn(),
+			setFontSize,
+			changeFontSize: vi.fn(),
+			setTextColor: vi.fn(),
+			setHighlightColor: vi.fn(),
+			setCharacterSpacing: vi.fn(),
+			changeCase: vi.fn(),
+			clearFormatting: vi.fn(),
+		});
+		group.update({
+			canFormat: true,
+			editable: true,
+			text: readTextFormatState({
+				type: 'text',
+				id: 'font-size',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 20,
+				text: 'Hello',
+				textStyle: { fontSize: 48.1 * (96 / 72) },
+			}),
+		});
+
+		const dropdown = group.el.querySelector<HTMLElement>('.pptxv-font-size-dd');
+		expect(dropdown?.querySelector('.pptxv-dropdown-text')?.textContent).toBe('48.1');
+		dropdown?.querySelector<HTMLButtonElement>('.pptxv-dropdown-trigger')?.click();
+		const tenPoint = [
+			...(dropdown?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []),
+		].find((option) => option.textContent === '10');
+		tenPoint?.click();
+		expect(setFontSize).toHaveBeenCalledWith(10);
 	});
 });

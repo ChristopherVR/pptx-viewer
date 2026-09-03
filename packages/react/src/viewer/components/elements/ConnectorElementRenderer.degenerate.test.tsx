@@ -88,4 +88,18 @@ describe('connector with a zero extent on one axis', () => {
 		expect(markup).toContain(`viewBox="0 0 400 ${MIN_ELEMENT_SIZE}"`);
 		expect(markup).toContain('d="M 0 0 L 400 0"');
 	});
+
+	it('renders connector label model font sizes as CSS pixels', () => {
+		const el = {
+			...verticalConnector(),
+			width: 200,
+			text: 'Label',
+			textStyle: { fontSize: 64 },
+			textSegments: [{ text: 'Label', style: { fontSize: 32 } }],
+		} as PptxElement;
+		const markup = render(el);
+		expect(markup).toContain('font-size:64px');
+		expect(markup).toContain('font-size:32px');
+		expect(markup).not.toContain('font-size:64pt');
+	});
 });

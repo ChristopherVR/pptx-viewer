@@ -1,10 +1,5 @@
 // @vitest-environment happy-dom
-/**
- * B6 (wave-4): recent colours. The inspector's TEXT colour picker (surface
- * A3) is a `DebouncedColorInput`, not `ColorPickerRow`, so it did not render
- * a "Recent colours" row at all until this wave; `RecentColorsRow` closes
- * that gap without duplicating the row's markup.
- */
+/** ShapeTextPanels interaction tests, including font size and recent colours. */
 import type { PptxElement } from 'pptx-viewer-core';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -46,7 +41,45 @@ function textElement(): PptxElement {
 	} as PptxElement;
 }
 
-describe('shapeTextPanels text colour recent-colours row (wave-4 B6, A3)', () => {
+describe('shapeTextPanels', () => {
+	it('shows exact point sizes and converts edits back to model pixels', () => {
+		const onUpdateTextStyle = vi.fn();
+		const selectedElement = textElement();
+		selectedElement.textStyle = { color: '#000000', fontSize: 48.1 * (96 / 72) };
+
+		act(() => {
+			root.render(
+				<RecentColorsProvider value={{ recentColors: [], pushColor: () => {} }}>
+					<ShapeTextPanels
+						selectedElement={selectedElement}
+						canEdit
+						onUpdateElement={() => {}}
+						onUpdateElementStyle={() => {}}
+						onUpdateTextStyle={onUpdateTextStyle}
+					/>
+				</RecentColorsProvider>,
+			);
+		});
+
+		const input = container.querySelector(
+			'[data-pptx-text-card] input[type="number"]',
+		) as HTMLInputElement;
+		expect(input.value).toBe('48.1');
+		expect(input.step).toBe('any');
+		expect(onUpdateTextStyle).not.toHaveBeenCalled();
+
+		act(() => {
+			const nativeSetter = Object.getOwnPropertyDescriptor(
+				window.HTMLInputElement.prototype,
+				'value',
+			)!.set!;
+			nativeSetter.call(input, '10.5');
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		const patch = onUpdateTextStyle.mock.lastCall?.[0] as { fontSize?: number } | undefined;
+		expect(patch?.fontSize).toBeCloseTo(10.5 * (96 / 72));
+	});
+
 	it('renders the recent-colours row under the text colour picker', () => {
 		act(() => {
 			root.render(

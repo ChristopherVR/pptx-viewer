@@ -1,5 +1,6 @@
 import type { PptxElement, ShapeStyle, TextStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { textFontSizePtToPx, textFontSizePxToPt } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -97,8 +98,15 @@ export function ShapeTextPanels({
 								className={INPUT}
 								min={6}
 								max={200}
-								value={selectedElement.textStyle?.fontSize ?? 18}
-								onChange={(e) => onUpdateTextStyle({ fontSize: Number(e.target.value) })}
+								step='any'
+								value={
+									selectedElement.textStyle?.fontSize !== undefined
+										? textFontSizePxToPt(selectedElement.textStyle.fontSize)
+										: 18
+								}
+								onChange={(e) =>
+									onUpdateTextStyle({ fontSize: textFontSizePtToPx(Number(e.target.value)) })
+								}
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>

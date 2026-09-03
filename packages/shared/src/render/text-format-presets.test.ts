@@ -6,6 +6,8 @@ import {
 	COMMON_FONT_FAMILIES,
 	COMMON_FONT_SIZES,
 	LINE_SPACING_OPTIONS,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
 } from './text-format-presets';
 
 describe('font preset lists', () => {
@@ -29,6 +31,12 @@ describe('font preset lists', () => {
 		expect(COMMON_FONT_SIZES[COMMON_FONT_SIZES.length - 1]).toBe(96);
 		const sorted = [...COMMON_FONT_SIZES].sort((a, b) => a - b);
 		expect([...COMMON_FONT_SIZES]).toStrictEqual(sorted);
+	});
+
+	it('converts regular-text font sizes between model pixels and control points', () => {
+		expect(textFontSizePxToPt(64)).toBe(48);
+		expect(textFontSizePxToPt(48.1 * (96 / 72))).toBe(48.1);
+		expect(textFontSizePtToPx(10.5)).toBeCloseTo(14);
 	});
 });
 

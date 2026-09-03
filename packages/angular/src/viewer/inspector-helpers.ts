@@ -17,5 +17,6 @@ export {
 	isItalic,
 	isUnderline,
 	shapeStylePatch,
+	textFontSizePatch,
 	textStylePatch,
 } from '../internal/shared';

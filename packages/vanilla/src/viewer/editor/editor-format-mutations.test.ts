@@ -85,16 +85,16 @@ describe('editor-format-mutations text', () => {
 
 	it('sets and steps the font size, clamped', () => {
 		const set = setFontSize(textElement(), 40) as { textStyle: { fontSize?: number } };
-		expect(set.textStyle.fontSize).toBe(40);
+		expect(set.textStyle.fontSize).toBeCloseTo(40 * (96 / 72));
 		const grown = adjustFontSize(textElement(), 4) as { textStyle: { fontSize?: number } };
-		expect(grown.textStyle.fontSize).toBe(22);
+		expect(grown.textStyle.fontSize).toBeCloseTo(17.5 * (96 / 72));
 		const clamped = setFontSize(textElement(), -100) as { textStyle: { fontSize?: number } };
-		expect(clamped.textStyle.fontSize).toBe(1);
+		expect(clamped.textStyle.fontSize).toBeCloseTo(1 * (96 / 72));
 	});
 
 	it('reads the effective format state', () => {
 		const state = readTextFormatState(textElement());
-		expect(state).toMatchObject({ bold: false, italic: false, underline: false, fontSize: 18 });
+		expect(state).toMatchObject({ bold: false, italic: false, underline: false, fontSize: 13.5 });
 	});
 
 	it('sets text colour on style + runs', () => {

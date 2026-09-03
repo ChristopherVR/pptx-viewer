@@ -63,10 +63,10 @@ describe('text format patches', () => {
 	});
 
 	it('sets and adjusts font size (clamped)', () => {
-		expect(setFontSizePatch(textEl(), 32).textStyle).toMatchObject({ fontSize: 32 });
-		expect(setFontSizePatch(textEl(), 0).textStyle).toMatchObject({ fontSize: 1 });
-		expect(adjustFontSizePatch(textEl(), 4).textStyle).toMatchObject({ fontSize: 22 });
-		expect(adjustFontSizePatch(textEl(), -100).textStyle).toMatchObject({ fontSize: 1 });
+		expect(setFontSizePatch(textEl(), 32).textStyle?.fontSize).toBeCloseTo(32 * (96 / 72));
+		expect(setFontSizePatch(textEl(), 0).textStyle?.fontSize).toBeCloseTo(1 * (96 / 72));
+		expect(adjustFontSizePatch(textEl(), 4).textStyle?.fontSize).toBeCloseTo(17.5 * (96 / 72));
+		expect(adjustFontSizePatch(textEl(), -100).textStyle?.fontSize).toBeCloseTo(1 * (96 / 72));
 	});
 
 	it('sets text colour and highlight colour', () => {

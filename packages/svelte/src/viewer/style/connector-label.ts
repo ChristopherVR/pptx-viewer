@@ -20,7 +20,7 @@ export function connectorLabelContainerStyle(textStyle: TextStyle | undefined): 
 export function connectorLabelBlockStyle(textStyle: TextStyle | undefined): CssStyleMap {
 	return {
 		fontFamily: textStyle?.fontFamily ?? 'inherit',
-		fontSize: textStyle?.fontSize ? `${textStyle.fontSize}pt` : '10pt',
+		fontSize: textStyle?.fontSize ? `${textStyle.fontSize}px` : '10px',
 		color: textStyle?.color ?? '#000000',
 		fontWeight: textStyle?.bold ? 'bold' : 'normal',
 		fontStyle: textStyle?.italic ? 'italic' : 'normal',
@@ -42,7 +42,7 @@ export function connectorLabelSegmentStyle(
 		textDecoration: s?.underline ? 'underline' : 'none',
 	};
 	if (s?.fontSize) {
-		style.fontSize = `${s.fontSize}pt`;
+		style.fontSize = `${s.fontSize}px`;
 	}
 	return style;
 }

@@ -35,6 +35,7 @@ import {
 	isElementLocked,
 	rebuildDrawingShapesIfCleared,
 	resolvePalette,
+	textFontSizePtToPx,
 } from '../internal/shared';
 import { ActionSettingsPanelComponent } from './action-settings-panel.component';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
@@ -55,6 +56,7 @@ import {
 	shapeStylePatch,
 	strokeColorOf,
 	textColorOf,
+	textFontSizePatch,
 	textStylePatch,
 } from './inspector-helpers';
 import { IsMobileService } from './is-mobile';
@@ -281,8 +283,9 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 								id="insp-font-size"
 								class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
 								type="number"
-								inputmode="numeric"
+								inputmode="decimal"
 								min="1"
+								step="any"
 								[value]="seed().fontSize"
 								(change)="onFontSizeChange($event)"
 							/>
@@ -1093,7 +1096,11 @@ export class InspectorPanelComponent {
 			return;
 		}
 		const cur = this.el();
-		this.editor.updateElement(this.slideIndex(), cur.id, textStylePatch(cur, { fontSize: val }));
+		this.editor.updateElement(
+			this.slideIndex(),
+			cur.id,
+			textFontSizePatch(cur, textFontSizePtToPx(val)),
+		);
 	}
 
 	protected onBoldToggle(): void {

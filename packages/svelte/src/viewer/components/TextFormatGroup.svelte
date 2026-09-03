@@ -10,7 +10,12 @@
 	 * Disabled (greyed) whenever the selection has no text properties.
 	 */
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { fontSizeOf, isBold, isItalic, isUnderline } from 'pptx-viewer-shared';
+	import {
+		fontSizeOf,
+		isBold,
+		isItalic,
+		isUnderline,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import type { EditorState } from '../editor/editor-state.svelte';
@@ -105,9 +110,10 @@
 		type="number"
 		min="1"
 		max="400"
+		step="any"
 		aria-label={t('pptx.ribbon.fontSize')}
 		title={t('pptx.ribbon.fontSize')}
-		value={Math.round(fontSize)}
+		value={fontSize}
 		onchange={(e) => setSize(e.currentTarget.value)}
 	/>
 	<button

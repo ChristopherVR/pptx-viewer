@@ -50,7 +50,7 @@ const blockStyle = computed<CSSProperties>(() => {
 	const ts = props.textStyle;
 	return {
 		fontFamily: ts?.fontFamily ?? 'inherit',
-		fontSize: ts?.fontSize ? `${ts.fontSize}pt` : '10pt',
+		fontSize: ts?.fontSize ? `${ts.fontSize}px` : '10px',
 		color: ts?.color ?? '#000000',
 		fontWeight: ts?.bold ? 'bold' : 'normal',
 		fontStyle: ts?.italic ? 'italic' : 'normal',
@@ -64,7 +64,7 @@ function segStyle(seg: TextSegment): CSSProperties {
 	const ts = props.textStyle;
 	return {
 		fontFamily: s?.fontFamily ?? ts?.fontFamily ?? 'inherit',
-		fontSize: s?.fontSize ? `${s.fontSize}pt` : undefined,
+		fontSize: s?.fontSize ? `${s.fontSize}px` : undefined,
 		color: s?.color ?? ts?.color ?? '#000000',
 		fontWeight: s?.bold ? 'bold' : ts?.bold ? 'bold' : 'normal',
 		fontStyle: s?.italic ? 'italic' : ts?.italic ? 'italic' : 'normal',

@@ -13,6 +13,22 @@
 import type { ChangeCaseMode } from './text-case-transform';
 
 /**
+ * Regular-text font sizes are stored in slide/CSS pixels in the shared model,
+ * while PowerPoint's font controls and the preset list below use points.
+ */
+export function textFontSizePxToPt(fontSizePx: number): number {
+	// DrawingML stores regular text sizes in hundredths of a point. Normalising
+	// to that precision removes binary floating-point noise without discarding
+	// valid authored values such as 10.5 pt or 48.1 pt.
+	return Math.round(fontSizePx * (72 / 96) * 100) / 100;
+}
+
+/** Convert a PowerPoint font-control value in points to the model's pixels. */
+export function textFontSizePtToPx(fontSizePt: number): number {
+	return fontSizePt * (96 / 72);
+}
+
+/**
  * Font families offered by the Home-tab font dropdown, alphabetically.
  *
  * Covers the families PowerPoint's own list leads with (the Office UI faces,

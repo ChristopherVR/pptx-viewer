@@ -1,6 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
-import { CHARACTER_SPACING_OPTIONS } from 'pptx-viewer-shared';
+import { CHARACTER_SPACING_OPTIONS, textFontSizePtToPx } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -251,8 +251,9 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const current = effectiveTs?.fontSize ?? 18;
-								p.onUpdateTextStyle({ fontSize: current + 2 });
+								const current = effectiveTs?.fontSize ?? (isTextEl ? textFontSizePtToPx(18) : 18);
+								const delta = isTextEl ? textFontSizePtToPx(2) : 2;
+								p.onUpdateTextStyle({ fontSize: current + delta });
 							}}
 							className={gB}
 							title={t('pptx.text.increaseFontSize')}
@@ -267,8 +268,10 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const current = effectiveTs?.fontSize ?? 18;
-								p.onUpdateTextStyle({ fontSize: Math.max(1, current - 2) });
+								const current = effectiveTs?.fontSize ?? (isTextEl ? textFontSizePtToPx(18) : 18);
+								const delta = isTextEl ? textFontSizePtToPx(2) : 2;
+								const minimum = isTextEl ? textFontSizePtToPx(1) : 1;
+								p.onUpdateTextStyle({ fontSize: Math.max(minimum, current - delta) });
 							}}
 							className={gB}
 							title={t('pptx.text.decreaseFontSize')}
