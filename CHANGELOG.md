@@ -8,6 +8,16 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-03
+
+_Releases: pptx-viewer-core@3.3.2, pptx-react-viewer@3.5.1, pptx-vue-viewer@3.5.1, pptx-angular-viewer@3.6.1, pptx-vanilla-viewer@2.5.1, pptx-svelte-viewer@3.6.1, @christophervr/pptx-viewer@2.5.1_
+
+### Bug Fixes
+
+- **react:** Mark building-block edits dirty ([#203](https://github.com/ChristopherVR/pptx-viewer/issues/203)) (by @Sudhansh6) ([ae076d5](https://github.com/ChristopherVR/pptx-viewer/commit/ae076d54e32ef24222a37acb86c13f9ff9906ff8))
+- **core,shared:** Preserve numbered text through edits ([#204](https://github.com/ChristopherVR/pptx-viewer/issues/204)) (by @Sudhansh6) ([9b5e9aa](https://github.com/ChristopherVR/pptx-viewer/commit/9b5e9aa2829cbaaa8a1bac643136fde62b6d634d))
+- **shared:** Preserve paragraph metadata through text edits ([#206](https://github.com/ChristopherVR/pptx-viewer/issues/206)) (by @Sudhansh6) ([f49cbb7](https://github.com/ChristopherVR/pptx-viewer/commit/f49cbb77cb6afe6ee035fde11a7a5927ca972d91))
+
 ## 2026-09-02
 
 _Releases: pptx-viewer-core@3.3.1, pptx-react-viewer@3.5.0, pptx-vue-viewer@3.5.0, pptx-angular-viewer@3.6.0, pptx-vanilla-viewer@2.5.0, pptx-svelte-viewer@3.6.0, @christophervr/pptx-viewer@2.5.0_

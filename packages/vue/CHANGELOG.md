@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.5.1) - 2026-09-03
+
+### Bug Fixes
+
+- **core,shared:** Preserve numbered text through edits ([#204](https://github.com/ChristopherVR/pptx-viewer/issues/204)) (by @Sudhansh6) ([9b5e9aa](https://github.com/ChristopherVR/pptx-viewer/commit/9b5e9aa2829cbaaa8a1bac643136fde62b6d634d))
+- **shared:** Preserve paragraph metadata through text edits ([#206](https://github.com/ChristopherVR/pptx-viewer/issues/206)) (by @Sudhansh6) ([f49cbb7](https://github.com/ChristopherVR/pptx-viewer/commit/f49cbb77cb6afe6ee035fde11a7a5927ca972d91))
+
 ## [3.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.5.0) - 2026-09-02
 
 ### Features
