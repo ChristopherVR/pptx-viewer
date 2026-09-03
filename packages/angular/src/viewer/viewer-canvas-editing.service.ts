@@ -15,7 +15,13 @@
  */
 
 import { inject, Injectable, signal } from '@angular/core';
-import type { InkPptxElement, PptxSlide, PptxTableData, TextStyle } from 'pptx-viewer-core';
+import type {
+	InkPptxElement,
+	PptxElement,
+	PptxSlide,
+	PptxTableData,
+	TextStyle,
+} from 'pptx-viewer-core';
 
 import { buildInlineTextCommitPatch, publishLiveInlineText } from '../internal/shared';
 import { CollaborationService } from './collaboration.service';
@@ -32,6 +38,8 @@ interface CanvasEditingHost {
 	readonly canEdit: () => boolean;
 	readonly activeSlide: () => PptxSlide | undefined;
 	readonly activeSlideIndex: () => number;
+	/** Inherited template (master/layout) elements for the active slide, when editTemplateMode is on. */
+	readonly activeTemplateElements: () => readonly PptxElement[];
 }
 
 @Injectable()
@@ -63,12 +71,24 @@ export class ViewerCanvasEditingService {
 	}
 
 	/**
+	 * Find an element by id on the active slide or, when editTemplateMode has
+	 * it inline-editable, in the separate inherited-template layer (layout-
+	 * / master- prefixed ids never appear in `activeSlide().elements`).
+	 */
+	private findElement(host: CanvasEditingHost, id: string): PptxElement | undefined {
+		return (
+			host.activeSlide()?.elements.find((el) => el.id === id) ??
+			host.activeTemplateElements().find((el) => el.id === id)
+		);
+	}
+
+	/**
 	 * Double-click text edit entry: equations open the equation editor instead
 	 * of the inline text editor (mirrors React's dbl-click-to-edit-equation).
 	 */
 	onTextEditStart(id: string): void {
 		const host = this.requireHost();
-		const element = host.activeSlide()?.elements.find((el) => el.id === id);
+		const element = this.findElement(host, id);
 		const segments = element && 'textSegments' in element ? element.textSegments : undefined;
 		const equation = segments?.find((segment) => segment.equationXml);
 		if (host.canEdit() && equation?.equationXml) {
@@ -84,7 +104,7 @@ export class ViewerCanvasEditingService {
 		if (!host.canEdit()) {
 			return;
 		}
-		const element = host.activeSlide()?.elements.find((el) => el.id === event.id);
+		const element = this.findElement(host, event.id);
 		if (!element) {
 			return;
 		}
@@ -116,7 +136,7 @@ export class ViewerCanvasEditingService {
 		// Push any queued interim frame out first so it cannot land after the
 		// committed text and revert it.
 		this.collab.livePatcher.flush();
-		const element = host.activeSlide()?.elements.find((el) => el.id === event.id);
+		const element = this.findElement(host, event.id);
 		const textPatch = buildInlineTextCommitPatch(element, event.text);
 		if (!textPatch && event.height === undefined) {
 			this.editingId.set(null);

@@ -2411,6 +2411,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			canEdit: () => this.canEdit(),
 			activeSlide: () => this.activeSlide(),
 			activeSlideIndex: () => this.activeSlideIndex(),
+			activeTemplateElements: () => this.activeTemplateElements(),
 		});
 
 		// Hand the collab-cursor controller the accessors it alone needs from the
