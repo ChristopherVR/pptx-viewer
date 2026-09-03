@@ -179,7 +179,7 @@ export class TableElementProcessor implements ElementProcessor {
 			rules.push(`vertical-align:${style.vAlign}`);
 		}
 		if (style?.fontSize) {
-			rules.push(`font-size:${Math.round(style.fontSize)}px`);
+			rules.push(`font-size:${style.fontSize}pt`);
 		}
 		const safeColor = cssColorSafe(style?.color);
 		if (safeColor) {

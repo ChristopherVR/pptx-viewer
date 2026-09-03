@@ -204,6 +204,15 @@ describe('renderTableElement', () => {
 		expect(td.style.backgroundSize).toBe('cover');
 	});
 
+	it('renders fractional cell font sizes in PowerPoint points', () => {
+		const tableData: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Sized', style: { fontSize: 14.5 } }] }],
+		};
+		const td = renderTable(buildTableElement(tableData)).querySelector('td') as HTMLElement;
+		expect(td.style.fontSize).toBe('14.5pt');
+	});
+
 	it('renders an explicit zero cell margin as zero padding, not the base default', () => {
 		// A binding could clobber the shared padding by spreading its own base
 		// style AFTER the computed cell CSS; asserting the exact 0px value (not

@@ -578,9 +578,8 @@ describe('cellRunStyle', () => {
 		expect(cellRunStyle({ color: '#FF0000' })['color']).toBe('#FF0000');
 	});
 
-	it('maps fontSize to font-size in px', () => {
-		// PptxTableCellStyle.fontSize is already in px (converted from EMU by the parser).
-		expect(cellRunStyle({ fontSize: 14 })['font-size']).toBe('14px');
+	it('maps fractional cell font sizes to CSS points', () => {
+		expect(cellRunStyle({ fontSize: 14.5 })['font-size']).toBe('14.5pt');
 	});
 
 	it('does not include layout properties like background-color', () => {

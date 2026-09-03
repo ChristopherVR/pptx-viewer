@@ -133,8 +133,7 @@ export function cellRunStyle(style: PptxTableCellStyle | undefined): StyleMap {
 	}
 	const map: StyleMap = {};
 	if (style.fontSize) {
-		// PptxTableCellStyle.fontSize is already in px (converted from EMU).
-		map['font-size'] = `${style.fontSize}px`;
+		map['font-size'] = `${style.fontSize}pt`;
 	}
 	if (style.bold) {
 		map['font-weight'] = 'bold';

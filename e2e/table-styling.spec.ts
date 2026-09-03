@@ -63,10 +63,17 @@ interface CellPaint {
 	background: string;
 	/** Computed `color`, i.e. what the cell's own text actually paints in. */
 	color: string;
+	fontSize: number;
 	borderTop: string;
 	borderTopWidth: number;
-	/** Per-run spans inside the cell: their text, weight, colour and family. */
-	runs: Array<{ text: string; fontWeight: string; color: string; fontFamily: string }>;
+	/** Per-run spans inside the cell: their text, weight, colour, family and size. */
+	runs: Array<{
+		text: string;
+		fontWeight: string;
+		color: string;
+		fontFamily: string;
+		fontSize: number;
+	}>;
 }
 
 interface TablePaint {
@@ -128,6 +135,7 @@ async function measureTable(page: Page, containing?: string): Promise<TablePaint
 						fontWeight: runStyle.fontWeight,
 						color: runStyle.color,
 						fontFamily: runStyle.fontFamily,
+						fontSize: Number.parseFloat(runStyle.fontSize) || 0,
 					};
 				});
 				cells.push({
@@ -138,6 +146,7 @@ async function measureTable(page: Page, containing?: string): Promise<TablePaint
 					width: rect.width,
 					background: style.backgroundColor,
 					color: style.color,
+					fontSize: Number.parseFloat(style.fontSize) || 0,
 					borderTop: style.borderTopStyle,
 					borderTopWidth: Number.parseFloat(style.borderTopWidth) || 0,
 					runs,
@@ -305,6 +314,35 @@ test.describe('table styling', () => {
 		expect(Number(plain!.fontWeight) || 400).toBeLessThan(700);
 		expect(distance(bold!.color, { r: 192, g: 0, b: 0 })).toBeLessThan(30);
 		expect(bold!.fontFamily).toContain('Georgia');
+	});
+
+	test('keeps the authored font size after editing a rich-text cell', async ({ page }) => {
+		await gotoSlide(page, 4);
+		const original = await measureTable(page);
+		const mixed = original.cells.find((cell) => cell.text.includes('Revenue grew 42%'));
+		expect(mixed, 'the mixed-format cell should be rendered').toBeTruthy();
+		const firstRunSize = mixed!.runs.find((run) => run.text.includes('Revenue'))?.fontSize;
+		expect(firstRunSize).toBeGreaterThan(0);
+		expect(firstRunSize).toBeCloseTo(16, 2);
+
+		const cell = canvasCell(page, 'Revenue grew 42%');
+		const cellBox = await cell.boundingBox();
+		expect(cellBox, 'the mixed-format cell should have a layout box').not.toBeNull();
+		await page.mouse.dblclick(cellBox!.x + cellBox!.width / 2, cellBox!.y + cellBox!.height / 2);
+		const input = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('td input')
+			.first();
+		await expect(input).toBeVisible();
+		await input.fill('Edited cell');
+		await input.press('Enter');
+		await expect(canvasCell(page, 'Edited cell')).toBeVisible();
+
+		const edited = await measureTable(page);
+		const editedCell = edited.cells.find((candidate) => candidate.text === 'Edited cell');
+		expect(editedCell, 'the edited cell should be rendered').toBeTruthy();
+		expect(editedCell!.fontSize).toBeCloseTo(firstRunSize!, 2);
 	});
 
 	test('resolves a built-in style GUID the deck does not define', async ({ page }) => {

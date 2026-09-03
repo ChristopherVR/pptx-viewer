@@ -371,7 +371,7 @@ describe('svgExporter', () => {
 					tableData: {
 						rows: [
 							{
-								cells: [{ text: 'Name', style: { bold: true } }, { text: 'Score' }],
+								cells: [{ text: 'Name', style: { bold: true, fontSize: 12 } }, { text: 'Score' }],
 							},
 							{
 								cells: [{ text: 'Alice' }, { text: '95' }],
@@ -388,6 +388,8 @@ describe('svgExporter', () => {
 		expect(svg).toContain('>Name</text>');
 		expect(svg).toContain('>Alice</text>');
 		expect(svg).toContain('>95</text>');
+		expect(svg).toContain('font-size="16"');
+		expect(svg).toContain('font-size="18"');
 	});
 
 	// ── Group element ────────────────────────────────────────────

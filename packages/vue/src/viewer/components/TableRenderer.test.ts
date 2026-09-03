@@ -171,6 +171,15 @@ describe('tableRenderer', () => {
 		expect(cell.attributes('style')).toContain('background-color: #ff0000');
 	});
 
+	it('renders fractional cell font sizes in PowerPoint points', () => {
+		const sized: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Sized', style: { fontSize: 14.5 } }] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(sized), zIndex: 0 } });
+		expect(wrapper.get('td').attributes('style')).toContain('font-size: 14.5pt');
+	});
+
 	it('defaults body-cell text to the dark slide colour when none is set', () => {
 		// Without this fallback an unstyled cell inherits the dark-UI chrome
 		// `foreground` (near-white) and is invisible on a light table.

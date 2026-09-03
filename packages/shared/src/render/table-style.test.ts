@@ -60,7 +60,7 @@ describe('cellStyleToCss', () => {
 			color: '#FF0000',
 		} as PptxTableCellStyle;
 		const css = cellStyleToCss(style);
-		expect(css.fontSize).toBe('18px');
+		expect(css.fontSize).toBe('18pt');
 		expect(css.fontWeight).toBe('bold');
 		expect(css.fontStyle).toBe('italic');
 		expect(css.textDecorationLine).toBe('underline');
