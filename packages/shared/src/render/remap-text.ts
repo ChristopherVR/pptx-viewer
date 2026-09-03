@@ -97,6 +97,38 @@ function copySegmentMetadata(from: TextSegment, to: TextSegment): TextSegment {
 }
 
 /**
+ * Restore paragraph-scoped metadata on the first remapped run. Core and the
+ * save writer deliberately carry these values on that run only; remapping the
+ * characters must not turn an authored paragraph back into a default one.
+ */
+function restoreParagraphMetadata(
+	from: TextSegment | undefined,
+	segments: TextSegment[],
+): TextSegment[] {
+	if (segments.length === 0) {
+		return segments;
+	}
+	const [first, ...rest] = segments;
+	const restored = { ...first };
+	// `remapParagraph` may itself return a donor segment. Clear its paragraph
+	// fields first so an extra paragraph cannot accidentally inherit metadata
+	// merely because it reused the final paragraph for run styling.
+	delete restored.paragraphLevel;
+	delete restored.paragraphProperties;
+	delete restored.endParaRunProperties;
+	if (from?.paragraphLevel !== undefined) {
+		restored.paragraphLevel = from.paragraphLevel;
+	}
+	if (from?.paragraphProperties !== undefined) {
+		restored.paragraphProperties = from.paragraphProperties;
+	}
+	if (from?.endParaRunProperties !== undefined) {
+		restored.endParaRunProperties = from.endParaRunProperties;
+	}
+	return [restored, ...rest];
+}
+
+/**
  * Strategy:
  * 1. Split both original segments and new text into paragraphs by "\n".
  * 2. Distribute new characters proportionally across segments.
@@ -114,19 +146,26 @@ export function remapTextToSegments(
 		return [{ text: newText, style: fallbackStyle }];
 	}
 
-	// Split original segments into paragraphs by paragraph-break markers.
-	const originalParagraphs: TextSegment[][] = [[]];
+	// Split original segments into paragraphs by paragraph-break markers. Keep
+	// each terminator because an authored empty paragraph has no content run, so
+	// core carries its paragraph metadata on the terminator itself.
+	const originalParagraphs: Array<{ segments: TextSegment[]; terminator?: TextSegment }> = [
+		{ segments: [] },
+	];
 	for (const seg of originalSegments) {
 		if (seg.text === '\n' || seg.isParagraphBreak) {
-			originalParagraphs.push([]);
+			originalParagraphs[originalParagraphs.length - 1].terminator = seg;
+			originalParagraphs.push({ segments: [] });
 		} else {
-			originalParagraphs[originalParagraphs.length - 1].push(seg);
+			originalParagraphs[originalParagraphs.length - 1].segments.push(seg);
 		}
 	}
 
 	const newParagraphTexts = newText.split('\n');
 
-	const firstContentSeg = originalParagraphs.flat().find((s) => s.text.trim().length > 0);
+	const firstContentSeg = originalParagraphs
+		.flatMap((paragraph) => paragraph.segments)
+		.find((s) => s.text.trim().length > 0);
 	const baseFallbackStyle: TextStyle = firstContentSeg?.style
 		? { ...firstContentSeg.style }
 		: fallbackStyle;
@@ -249,19 +288,23 @@ export function remapTextToSegments(
 	}
 
 	const output: TextSegment[] = [];
-	const lastOrigPara = originalParagraphs[originalParagraphs.length - 1];
+	const lastOrigPara = originalParagraphs[originalParagraphs.length - 1]?.segments;
 
 	for (let pi = 0; pi < newParagraphTexts.length; pi++) {
 		if (pi > 0) {
-			const precedingOrigPara = originalParagraphs[pi - 1] ?? [];
+			const precedingOrigPara = originalParagraphs[pi - 1]?.segments ?? [];
 			const breakStyle = precedingOrigPara[0]?.style
 				? { ...precedingOrigPara[0].style }
 				: { ...baseFallbackStyle };
 			output.push({ text: '\n', style: breakStyle, isParagraphBreak: true });
 		}
 
-		const origPara = originalParagraphs[pi] ?? lastOrigPara ?? [];
-		const paraSegments = remapParagraph(newParagraphTexts[pi], origPara);
+		const originalParagraph = originalParagraphs[pi];
+		const origPara = originalParagraph?.segments ?? lastOrigPara ?? [];
+		const paraSegments = restoreParagraphMetadata(
+			originalParagraph?.segments[0] ?? originalParagraph?.terminator,
+			remapParagraph(newParagraphTexts[pi], origPara),
+		);
 		output.push(...paraSegments);
 	}
 

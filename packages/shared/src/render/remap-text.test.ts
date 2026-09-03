@@ -196,6 +196,163 @@ describe('remapTextToSegments', () => {
 		});
 	});
 
+	describe('paragraph metadata preservation', () => {
+		it('keeps paragraph properties, level and end-run properties after a text edit', () => {
+			const paragraphProperties = {
+				paragraphSpacingBefore: 8,
+				paragraphSpacingAfter: 12,
+				lineSpacing: 1.5,
+			};
+			const endParaRunProperties = { '@_sz': '1800' };
+			const original: TextSegment[] = [
+				{
+					text: 'Original',
+					style: { fontSize: 18 },
+					paragraphLevel: 2,
+					paragraphProperties,
+					endParaRunProperties,
+				},
+			];
+
+			const result = remapTextToSegments('Edited', original, {});
+
+			expect(result[0].paragraphLevel).toBe(2);
+			expect(result[0].paragraphProperties).toBe(paragraphProperties);
+			expect(result[0].endParaRunProperties).toBe(endParaRunProperties);
+		});
+
+		it('keeps each paragraph own metadata on its first remapped segment', () => {
+			const firstProperties = { paragraphSpacingAfter: 6 };
+			const secondProperties = { paragraphSpacingBefore: 10 };
+			const original: TextSegment[] = [
+				{
+					text: 'First',
+					style: { bold: true },
+					paragraphProperties: firstProperties,
+				},
+				breakSeg(),
+				{
+					text: 'Second',
+					style: { italic: true },
+					paragraphProperties: secondProperties,
+				},
+			];
+
+			const result = remapTextToSegments('First edited\nSecond edited', original, {});
+			const paragraphs = result.filter((segment) => !segment.isParagraphBreak);
+
+			expect(paragraphs[0].paragraphProperties).toBe(firstProperties);
+			expect(paragraphs[1].paragraphProperties).toBe(secondProperties);
+		});
+
+		it('keeps metadata only on the first run of a remapped paragraph', () => {
+			const paragraphProperties = { paragraphSpacingBefore: 5 };
+			const original: TextSegment[] = [
+				{
+					text: 'Bold',
+					style: { bold: true },
+					paragraphProperties,
+				},
+				seg(' plain', { italic: true }),
+			];
+
+			const result = remapTextToSegments('Bold edited plain', original, {});
+
+			expect(result).toHaveLength(2);
+			expect(result[0].paragraphProperties).toBe(paragraphProperties);
+			expect(result[1].paragraphProperties).toBeUndefined();
+		});
+
+		it('keeps paragraph metadata when all paragraph text is deleted', () => {
+			const paragraphProperties = { paragraphSpacingBefore: 4 };
+			const original: TextSegment[] = [
+				{
+					text: 'Delete me',
+					style: {},
+					paragraphLevel: 1,
+					paragraphProperties,
+				},
+			];
+
+			const result = remapTextToSegments('', original, {});
+
+			expect(result[0].text).toBe('');
+			expect(result[0].paragraphLevel).toBe(1);
+			expect(result[0].paragraphProperties).toBe(paragraphProperties);
+		});
+
+		it('does not impose paragraph metadata policy on a newly appended paragraph', () => {
+			const paragraphProperties = { paragraphSpacingAfter: 9 };
+			const original: TextSegment[] = [
+				{
+					text: 'Existing',
+					style: { bold: true },
+					paragraphLevel: 2,
+					paragraphProperties,
+				},
+			];
+
+			const result = remapTextToSegments('Existing\nNew', original, {});
+			const paragraphs = result.filter((segment) => !segment.isParagraphBreak);
+
+			expect(paragraphs[0].paragraphProperties).toBe(paragraphProperties);
+			expect(paragraphs[1].style.bold).toBeTruthy();
+			expect(paragraphs[1].paragraphLevel).toBeUndefined();
+			expect(paragraphs[1].paragraphProperties).toBeUndefined();
+		});
+
+		it('does not copy marker-carried paragraph metadata to an appended paragraph', () => {
+			const paragraphProperties = { paragraphSpacingAfter: 9 };
+			const original: TextSegment[] = [
+				{
+					text: '1.',
+					style: {},
+					bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+					paragraphLevel: 2,
+					paragraphProperties,
+					endParaRunProperties: { '@_sz': '1800' },
+				},
+				seg('Item'),
+			];
+
+			const result = remapTextToSegments('1.Item\n1.New', original, {});
+			const lastBreakIndex = result.reduce(
+				(index, segment, current) => (segment.isParagraphBreak ? current : index),
+				-1,
+			);
+			const appended = result[lastBreakIndex + 1];
+
+			expect(appended?.bulletInfo).toStrictEqual({
+				autoNumType: 'arabicPeriod',
+				paragraphIndex: 0,
+			});
+			expect(appended?.paragraphLevel).toBeUndefined();
+			expect(appended?.paragraphProperties).toBeUndefined();
+			expect(appended?.endParaRunProperties).toBeUndefined();
+		});
+
+		it('keeps metadata carried by an empty non-final paragraph terminator', () => {
+			const paragraphProperties = { paragraphSpacingAfter: 7 };
+			const endParaRunProperties = { '@_sz': '1400' };
+			const original: TextSegment[] = [
+				{
+					text: '\n',
+					style: { fontSize: 14 },
+					isParagraphBreak: true,
+					paragraphProperties,
+					endParaRunProperties,
+				},
+				seg('After'),
+			];
+
+			const result = remapTextToSegments('\nAfter edit', original, {});
+
+			expect(result[0].text).toBe('');
+			expect(result[0].paragraphProperties).toBe(paragraphProperties);
+			expect(result[0].endParaRunProperties).toBe(endParaRunProperties);
+		});
+	});
+
 	describe('segment metadata preservation', () => {
 		it('preserves equationXml on an untouched commit (click in, click away)', () => {
 			const omml = { 'm:oMath': { 'm:r': { 'm:t': 'x' } } };
