@@ -17,7 +17,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { InkPptxElement, PptxSlide, PptxTableData, TextStyle } from 'pptx-viewer-core';
 
-import { publishLiveInlineText } from '../internal/shared';
+import { buildInlineTextCommitPatch, publishLiveInlineText } from '../internal/shared';
 import { CollaborationService } from './collaboration.service';
 import { EditorStateService } from './editor-state.service';
 import { textStylePatch } from './inspector-helpers';
@@ -110,15 +110,20 @@ export class ViewerCanvasEditingService {
 		);
 	}
 
-	/** Commit an inline text edit: replace the element's text (one history entry). */
+	/** Commit an inline text edit without flattening its rich-text runs. */
 	onTextCommit(event: { id: string; text: string; height?: number }): void {
 		const host = this.requireHost();
 		// Push any queued interim frame out first so it cannot land after the
 		// committed text and revert it.
 		this.collab.livePatcher.flush();
+		const element = host.activeSlide()?.elements.find((el) => el.id === event.id);
+		const textPatch = buildInlineTextCommitPatch(element, event.text);
+		if (!textPatch && event.height === undefined) {
+			this.editingId.set(null);
+			return;
+		}
 		this.editor.updateElement(host.activeSlideIndex(), event.id, {
-			text: event.text,
-			textSegments: [],
+			...textPatch,
 			// `a:spAutoFit`: the shape's new height, already decided by
 			// `slide-canvas.component.ts`'s `commitText` (it holds the live
 			// editor DOM node this needs to measure).

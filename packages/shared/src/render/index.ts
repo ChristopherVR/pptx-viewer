@@ -1318,6 +1318,8 @@ export * from './editor-mutations';
 export * from './editor-gestures';
 // Read a contenteditable inline-edit surface's plain text back out.
 export * from './inline-text-extract';
+// No-op detection plus rich-run preservation for committed inline text.
+export * from './inline-text-commit';
 
 // inspector option lists (wave 2)
 // Stroke/dash pattern picker: the 12 ST_PresetLineDashVal values.
