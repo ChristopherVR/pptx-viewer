@@ -6,7 +6,7 @@
  * parity bug this pins.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { openInlineEditor } from './inline-text-editor';
 
@@ -55,6 +55,88 @@ describe('openInlineEditor caret placement', () => {
 		session.cancel();
 		overlayRoot.remove();
 	});
+
+	it.each([
+		{
+			name: 'ordinary adjacent run',
+			text: 'First item',
+			segments: [
+				{ text: 'First', style: {} },
+				{ text: ' ', style: {} },
+				{ text: 'item', style: {} },
+			],
+			startChild: 1,
+			startOffset: 1,
+			endChild: 2,
+			endOffset: 4,
+			expectedIndex: 2,
+		},
+		{
+			name: 'paragraph separator',
+			text: 'AB',
+			segments: [
+				{ text: 'A', style: {} },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: 'B', style: {} },
+			],
+			startChild: 0,
+			startOffset: 1,
+			endChild: 2,
+			endOffset: 1,
+			expectedIndex: 2,
+		},
+		{
+			name: 'display-only bullet marker',
+			text: 'Item',
+			segments: [
+				{ text: '• ', style: {}, bulletInfo: { char: '•' } },
+				{ text: 'Item', style: {} },
+			],
+			startChild: 0,
+			startOffset: 2,
+			endChild: 1,
+			endOffset: 4,
+			expectedIndex: 1,
+		},
+	] as const)(
+		'reports only selected text after a $name boundary',
+		({ text, segments, startChild, startOffset, endChild, endOffset, expectedIndex }) => {
+			const overlayRoot = document.createElement('div');
+			document.body.appendChild(overlayRoot);
+			const onSelectionChange = vi.fn();
+			const session = openInlineEditor({
+				doc: document,
+				overlayRoot,
+				box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+				scale: 1,
+				element: {
+					...textElement(),
+					text,
+					textSegments: [...segments],
+				} as PptxElement,
+				onCommit: () => {},
+				onSelectionChange,
+				onClose: () => {},
+			});
+			const range = document.createRange();
+			range.setStart(session.el.childNodes[startChild].firstChild!, startOffset);
+			range.setEnd(session.el.childNodes[endChild].firstChild!, endOffset);
+			const selection = window.getSelection()!;
+			selection.removeAllRanges();
+			selection.addRange(range);
+			session.el.dispatchEvent(new PointerEvent('pointerup'));
+
+			expect(onSelectionChange).toHaveBeenCalledWith({
+				startSegIdx: expectedIndex,
+				startOffset: 0,
+				endSegIdx: expectedIndex,
+				endOffset,
+			});
+
+			session.cancel();
+			overlayRoot.remove();
+		},
+	);
 });
 
 describe('openInlineEditor commit ordering', () => {

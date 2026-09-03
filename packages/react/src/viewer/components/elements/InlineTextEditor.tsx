@@ -1,6 +1,6 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { placeCaretAtEnd, readEditableText } from 'pptx-viewer-shared';
+import { getInlineEditorSelection, placeCaretAtEnd, readEditableText } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../../constants';
@@ -175,6 +175,20 @@ export function InlineTextEditor({
 		transformOrigin: warpStyle?.transformOrigin || 'center',
 	};
 
+	const nextInlineStyleValue = (property: 'bold' | 'italic' | 'underline'): boolean => {
+		if (!hasTextProperties(element)) {
+			return true;
+		}
+		// Range formatting is based on the first selected run, not the first run
+		// in the text box. Keep the existing first-run fallback for a collapsed caret.
+		const selection = getInlineEditorSelection(element.textSegments);
+		const segment = selection
+			? element.textSegments?.[selection.startSegIdx]
+			: element.textSegments?.[0];
+		const style = segment?.style ?? element.textStyle;
+		return !style?.[property];
+	};
+
 	return (
 		<div
 			ref={editorRef}
@@ -208,17 +222,15 @@ export function InlineTextEditor({
 					if (key === 'b' || key === 'i' || key === 'u') {
 						e.preventDefault();
 						e.stopPropagation();
-						const seg = hasTextProperties(element) ? element.textSegments?.[0] : undefined;
-						const ts = seg?.style ?? (hasTextProperties(element) ? element.textStyle : undefined);
 						switch (key) {
 							case 'b':
-								onFormatText({ bold: !ts?.bold });
+								onFormatText({ bold: nextInlineStyleValue('bold') });
 								break;
 							case 'i':
-								onFormatText({ italic: !ts?.italic });
+								onFormatText({ italic: nextInlineStyleValue('italic') });
 								break;
 							case 'u':
-								onFormatText({ underline: !ts?.underline });
+								onFormatText({ underline: nextInlineStyleValue('underline') });
 								break;
 						}
 						return;
