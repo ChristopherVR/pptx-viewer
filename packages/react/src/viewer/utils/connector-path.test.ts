@@ -350,9 +350,9 @@ describe('getConnectionSites', () => {
 		expect(top.y).toBe(0);
 	});
 
-	it('right center site is at (width, height/2)', () => {
+	it('right center site (index 3, as in the ECMA-376 rect cxnLst) is at (width, height/2)', () => {
 		const sites = getConnectionSites(200, 100);
-		const right = sites.find((s) => s.index === 1)!;
+		const right = sites.find((s) => s.index === 3)!;
 		expect(right.x).toBe(200);
 		expect(right.y).toBe(50);
 	});
@@ -364,9 +364,9 @@ describe('getConnectionSites', () => {
 		expect(bottom.y).toBe(100);
 	});
 
-	it('left center site is at (0, height/2)', () => {
+	it('left center site (index 1) is at (0, height/2)', () => {
 		const sites = getConnectionSites(200, 100);
-		const left = sites.find((s) => s.index === 3)!;
+		const left = sites.find((s) => s.index === 1)!;
 		expect(left.x).toBe(0);
 		expect(left.y).toBe(50);
 	});
@@ -374,9 +374,9 @@ describe('getConnectionSites', () => {
 	it('handles square dimensions', () => {
 		const sites = getConnectionSites(100, 100);
 		expect(sites[0]).toStrictEqual({ x: 50, y: 0, index: 0 });
-		expect(sites[1]).toStrictEqual({ x: 100, y: 50, index: 1 });
+		expect(sites[1]).toStrictEqual({ x: 0, y: 50, index: 1 });
 		expect(sites[2]).toStrictEqual({ x: 50, y: 100, index: 2 });
-		expect(sites[3]).toStrictEqual({ x: 0, y: 50, index: 3 });
+		expect(sites[3]).toStrictEqual({ x: 100, y: 50, index: 3 });
 	});
 
 	it('indices are sequential 0-3', () => {

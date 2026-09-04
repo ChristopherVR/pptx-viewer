@@ -1,4 +1,5 @@
 import type { MediaBookmark } from 'pptx-viewer-core';
+import { mediaTrimEndMsFromSeconds, mediaTrimEndSeconds } from 'pptx-viewer-shared';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 
 // ==========================================================================
@@ -56,7 +57,8 @@ export function TrimTimeline({
 	const [dragging, setDragging] = useState<'start' | 'end' | null>(null);
 
 	const trimStartSec = trimStartMs / 1000;
-	const trimEndSec = trimEndMs > 0 ? trimEndMs / 1000 : duration;
+	// `trimEndMs` is p14:trim/@end's distance from the clip's tail.
+	const trimEndSec = mediaTrimEndSeconds(duration, trimEndMs);
 	const safeDuration = duration > 0 ? duration : 1;
 
 	const startPct = (trimStartSec / safeDuration) * 100;
@@ -88,7 +90,7 @@ export function TrimTimeline({
 				onTrimChange(Math.max(0, newStart) * 1000, trimEndMs);
 			} else {
 				const newEnd = Math.max(t, trimStartSec + 0.1);
-				onTrimChange(trimStartMs, Math.min(newEnd, duration) * 1000);
+				onTrimChange(trimStartMs, mediaTrimEndMsFromSeconds(duration, newEnd));
 			}
 		};
 

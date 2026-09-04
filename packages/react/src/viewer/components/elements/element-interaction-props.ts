@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { applyHighlightClickStyle, resolveElementHighlightClick } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type { ElementRendererProps } from './element-renderer-types';
@@ -30,6 +31,8 @@ export function getElementInteractionProps({
 	onActionClick,
 }: ElementInteractionOptions): ElementInteractionProps {
 	const hasHoverAction = Boolean(element.actionHover);
+	const highlight = resolveElementHighlightClick(element.actionClick, element.actionHover);
+	const hoverLeaveStyle = highlight.hover?.leaveStyle;
 	return {
 		onKeyDown: (event) => {
 			if (event.key === 'Enter' && isEditableText && canInteract && !isInlineEditing) {
@@ -56,22 +59,19 @@ export function getElementInteractionProps({
 			}
 			event.stopPropagation();
 			event.preventDefault();
-			if (element.actionClick.highlightClick) {
+			if (highlight.click) {
 				const target = event.currentTarget;
-				target.style.filter = 'brightness(1.18)';
-				target.style.outline = '2px solid rgba(59, 130, 246, 0.6)';
+				const { style, clearStyle, durationMs } = highlight.click;
+				applyHighlightClickStyle(target, style);
 				window.setTimeout(() => {
-					target.style.filter = '';
-					target.style.outline = '';
-				}, 320);
+					applyHighlightClickStyle(target, clearStyle);
+				}, durationMs);
 			}
 			onActionClick(element.id, element.actionClick);
 		},
 		onMouseEnter: (event) => {
-			if (element.actionHover?.highlightClick) {
-				const target = event.currentTarget;
-				target.style.filter = 'brightness(1.15)';
-				target.style.outline = '2px solid rgba(59, 130, 246, 0.5)';
+			if (highlight.hover) {
+				applyHighlightClickStyle(event.currentTarget, highlight.hover.enterStyle);
 			}
 			if (
 				isPresentationPassive &&
@@ -83,10 +83,9 @@ export function getElementInteractionProps({
 			}
 		},
 		onMouseLeave:
-			hasHoverAction && element.actionHover?.highlightClick
+			hasHoverAction && hoverLeaveStyle
 				? (event) => {
-						event.currentTarget.style.filter = '';
-						event.currentTarget.style.outline = '';
+						applyHighlightClickStyle(event.currentTarget, hoverLeaveStyle);
 					}
 				: undefined,
 		title:

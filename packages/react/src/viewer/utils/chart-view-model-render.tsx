@@ -260,7 +260,14 @@ export function renderChartViewModel(
 			preserveAspectRatio={preserveAspectRatio}
 		>
 			{vm.areaFill && (
-				<rect x={0} y={0} width={vm.svgWidth} height={vm.svgHeight} fill={vm.areaFill} />
+				<rect
+					x={0}
+					y={0}
+					width={vm.svgWidth}
+					height={vm.svgHeight}
+					rx={vm.areaRadius}
+					fill={vm.areaFill}
+				/>
 			)}
 
 			{vm.title && (
@@ -268,9 +275,10 @@ export function renderChartViewModel(
 					x={vm.titleX}
 					y={vm.titleY}
 					textAnchor='middle'
-					fontSize={12}
-					fontWeight={600}
-					fill='#1e293b'
+					fontSize={vm.titleStyle?.fontSize ?? 12}
+					fontWeight={vm.titleStyle?.fontWeight ?? 600}
+					fontFamily={vm.titleStyle?.fontFamily}
+					fill={vm.titleStyle?.fill ?? '#1e293b'}
 					data-chart-part='title'
 				>
 					{vm.title}

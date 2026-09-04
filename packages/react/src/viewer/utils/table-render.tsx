@@ -14,7 +14,7 @@ import type {
  *   - table-render-data.tsx       - renderTableFromTableData (programmatic tables)
  *   - table-render.tsx            - renderTableElement (XML-based tables)
  */
-import { DEFAULT_FONT_FAMILY, tableContainerCss } from 'pptx-viewer-shared';
+import { canDrillDown, DEFAULT_FONT_FAMILY, tableContainerCss } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -67,7 +67,9 @@ export function renderTableElement(
 	}
 
 	const selectedCell = options?.selectedCell || null;
-	const isEditable = Boolean(options?.editable);
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids selecting/editing this
+	// table's individual cells, even on an otherwise-editable deck.
+	const isEditable = Boolean(options?.editable) && canDrillDown(element);
 	const hasCellSelectionHandler = typeof options?.onSelectCell === 'function';
 
 	// Compute multi-selection highlight rectangle for XML-based tables
@@ -175,7 +177,7 @@ export function renderTableElement(
 											tableEl.tableData?.rows[rowIndex]?.cells[cellIndex]?.style;
 										// Diagonal borders: an explicit per-cell diagonal (from a
 										// tableData override) merged with any inherited from the
-										// applicable table-style sections (a:tl2br / a:bl2tr).
+										// applicable table-style sections (a:tl2br / a:tr2bl).
 										const diag = getCellDiagonalBorders(
 											tdCellOverride,
 											tableEl.tableData,

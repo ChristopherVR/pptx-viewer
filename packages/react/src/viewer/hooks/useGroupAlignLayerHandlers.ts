@@ -7,6 +7,7 @@ import {
 	alignElements,
 	bringForward,
 	bringToFront,
+	canInteractWithElement,
 	distributeElements,
 	groupElements,
 	sendBackward,
@@ -63,6 +64,13 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		if (ids.length < 2 || !activeSlide) {
 			return;
 		}
+		// G10: `a:spLocks/@noGrouping` "SHALL be rejected" for the whole grouping
+		// attempt when it involves a locked shape, not just that one shape - so
+		// this rejects the command outright rather than silently grouping the
+		// rest, mirroring PowerPoint's own refusal.
+		if (!selectedElements.every((el) => canInteractWithElement(el, 'group'))) {
+			return;
+		}
 		// Group within whichever store is being edited (template store while
 		// edit-template mode is on, otherwise slide.elements).
 		const { elements, groupId } = groupElements(ops.activeElements, ids, generateElementId());
@@ -76,6 +84,10 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 
 	const handleUngroupElement = () => {
 		if (!selectedElement || selectedElement.type !== 'group' || !activeSlide) {
+			return;
+		}
+		// G10: `a:grpSpLocks/@noGrouping` forbids ungrouping this specific group.
+		if (!canInteractWithElement(selectedElement, 'group')) {
 			return;
 		}
 		const group = selectedElement as GroupPptxElement;

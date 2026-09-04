@@ -31,8 +31,12 @@ export interface RunRenderContext {
 	fallbackColor: string;
 	/** Find & Replace matches, keyed by source segment index. */
 	findHighlights?: ElementFindHighlights;
-	/** Handler for a followed link; without it a link renders as plain text. */
-	onHyperlinkClick?: (url: string) => void;
+	/**
+	 * Handler for a followed link; without it a link renders as plain text.
+	 * `target` (`a:hlinkClick/@tgtFrame`) is the browser frame/window to open
+	 * into, when the deck authored one; omitted for the default (`_blank`).
+	 */
+	onHyperlinkClick?: (url: string, target?: string) => void;
 	/** The paragraph's resolved BiDi direction, for per-run overrides. */
 	paragraphRtl?: boolean;
 	/** When true, hyperlinks require Ctrl+Click (editing mode). */

@@ -45,6 +45,8 @@ export interface UseSlideNavigationInput {
 	onSetMode: (mode: ViewerMode) => void;
 	onSetActiveSlideIndex: (index: number) => void;
 	onPlayActionSound?: (soundPath: string) => void;
+	/** Stop the current transition sound (`p:sndAc/p:endSnd`). See `slide-transition.ts`. */
+	onStopActionSound?: () => void;
 	loopContinuously?: boolean;
 	/** Whether to use rehearsed auto-advance timings. When false, slides advance only on click. */
 	useTimings?: boolean;
@@ -101,6 +103,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		onSetMode,
 		onSetActiveSlideIndex,
 		onPlayActionSound,
+		onStopActionSound,
 		loopContinuously,
 		useTimings,
 		onAdvancePastLastSlide,
@@ -218,6 +221,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				slides,
 				currentSlideIndex: presentationSlideIndex,
 				onPlayActionSound,
+				onStopActionSound,
 				setPresentationSlideVisible,
 				clearPresentationTimers,
 				setPresentationSlideIndex,
@@ -241,6 +245,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			loopContinuously,
 			onAdvancePastLastSlide,
 			onPlayActionSound,
+			onStopActionSound,
 			onSetActiveSlideIndex,
 			onSetMode,
 			playNextAnimationGroup,
@@ -281,6 +286,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				slides,
 				currentSlideIndex: presentationSlideIndex,
 				onPlayActionSound,
+				onStopActionSound,
 				setPresentationSlideVisible,
 				clearPresentationTimers,
 				setPresentationSlideIndex,
@@ -303,6 +309,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		[
 			clearPresentationTimers,
 			onPlayActionSound,
+			onStopActionSound,
 			onSetActiveSlideIndex,
 			presentationSlideIndex,
 			presentationTimersRef,

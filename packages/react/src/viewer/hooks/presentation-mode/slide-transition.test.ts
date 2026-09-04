@@ -120,6 +120,34 @@ describe('executeSlideTransition', () => {
 		expect(deps.onPlayActionSound).not.toHaveBeenCalled();
 	});
 
+	it('stops the current sound for p:endSndAc (transition.stopSound)', () => {
+		const deps = createMockDeps({
+			onStopActionSound: vi.fn<() => void>(),
+			slides: [
+				createMockSlide(),
+				createMockSlide({
+					transition: { type: 'fade', durationMs: 300, stopSound: true } as PptxSlide['transition'],
+				}),
+			],
+		});
+		executeSlideTransition(1, deps);
+		expect(deps.onStopActionSound).toHaveBeenCalledOnce();
+		expect(deps.onPlayActionSound).not.toHaveBeenCalled();
+	});
+
+	it('plays the transition sound even for an instant (0ms) transition', () => {
+		const deps = createMockDeps({
+			slides: [
+				createMockSlide(),
+				createMockSlide({
+					transition: { type: 'none', soundPath: 'ding.wav' } as PptxSlide['transition'],
+				}),
+			],
+		});
+		executeSlideTransition(1, deps);
+		expect(deps.onPlayActionSound).toHaveBeenCalledWith('ding.wav', { loop: false });
+	});
+
 	it('seeds the incoming slide synchronously with the swap (no final-state flash)', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);

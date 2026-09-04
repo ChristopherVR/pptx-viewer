@@ -30,7 +30,7 @@ export interface CellDiagonalPosition {
 /**
  * Resolve a cell's diagonal borders, combining its explicit per-cell diagonals
  * with any inherited from the applicable table-style sections (`a:tl2br` /
- * `a:bl2tr`). Per-cell diagonals take precedence on each axis. Returns `null`
+ * `a:tr2bl`). Per-cell diagonals take precedence on each axis. Returns `null`
  * when neither the cell nor the style defines a diagonal.
  */
 export function getCellDiagonalBorders(

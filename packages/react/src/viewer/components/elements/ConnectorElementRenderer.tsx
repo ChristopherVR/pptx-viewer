@@ -1,11 +1,10 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { svgLineCap } from 'pptx-viewer-shared';
+import { connectorWrapperTransform, svgLineCap } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_STROKE_COLOR, MIN_ELEMENT_SIZE } from '../../constants';
 import {
 	colorWithOpacity,
-	getElementTransform,
 	getSvgStrokeDasharray,
 	normalizeHexColor,
 	normalizeStrokeDashType,
@@ -116,7 +115,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 					top: el.y,
 					width: boxWidth,
 					height: boxHeight,
-					transform: getElementTransform(el),
+					transform: connectorWrapperTransform(el),
 					transformOrigin: 'center',
 					background: 'transparent',
 					border: 'none',

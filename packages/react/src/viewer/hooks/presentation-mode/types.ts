@@ -67,6 +67,11 @@ export interface UsePresentationModeInput {
 	 * (used for transition sounds flagged with `soundLoop`).
 	 */
 	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
+	/**
+	 * Stop the currently-playing action/transition sound (`p:sndAc/p:endSnd`,
+	 * PowerPoint's transition "Stop Previous Sound").
+	 */
+	onStopActionSound?: () => void;
 	/** Select a pointer tool (Ctrl+L laser, Ctrl+P pen, Ctrl+A arrow, Ctrl+E eraser). */
 	onSetPointerTool?: (tool: PresentationPointerTool | 'arrow') => void;
 	/** Erase the current slide's ink annotations (E). */

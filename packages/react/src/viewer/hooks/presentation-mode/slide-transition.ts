@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { resolveTransitionDurationMs } from 'pptx-viewer-shared';
+import { resolveTransitionDurationMs, resolveTransitionSoundAction } from 'pptx-viewer-shared';
 
 import type { PresentationTransitionOverlayState } from './types';
 import type { SeedSlideAnimationOptions } from './useAnimationPlayback';
@@ -12,6 +12,13 @@ export interface SlideTransitionDeps {
 	slides: PptxSlide[];
 	currentSlideIndex: number;
 	onPlayActionSound?: (soundPath: string, options?: { loop?: boolean }) => void;
+	/**
+	 * Stop whatever transition sound is currently playing (`p:sndAc/p:endSnd`,
+	 * PowerPoint's "Stop Previous Sound"). Distinct from `onPlayActionSound`:
+	 * a transition's sound-action list is one or the other, never both (see
+	 * `resolveTransitionSoundAction`).
+	 */
+	onStopActionSound?: () => void;
 	setPresentationSlideVisible: (visible: boolean) => void;
 	clearPresentationTimers: () => void;
 	setPresentationSlideIndex: (index: number) => void;
@@ -85,10 +92,17 @@ export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransi
 	deps.setPresentationSlideVisible(true);
 	deps.seedSlideAnimations(nextSlideIndex, { completed: deps.seedCompleted });
 
+	// The sound action (`p:sndAc/p:stSnd` or `p:endSnd`) fires the instant the
+	// transition starts, independent of whether it also paints an overlay: an
+	// instant ("None") transition can still carry a "Stop Previous Sound".
+	const soundAction = resolveTransitionSoundAction(transition);
+	if (soundAction.kind === 'play' && deps.onPlayActionSound) {
+		deps.onPlayActionSound(soundAction.soundPath, { loop: soundAction.loop });
+	} else if (soundAction.kind === 'stop' && deps.onStopActionSound) {
+		deps.onStopActionSound();
+	}
+
 	if (durationMs > 0 && transition) {
-		if (transition.soundPath && deps.onPlayActionSound) {
-			deps.onPlayActionSound(transition.soundPath, { loop: transition.soundLoop === true });
-		}
 		deps.setTransitionOverlay({
 			outgoingSlideIndex: deps.currentSlideIndex,
 			incomingSlideIndex: nextSlideIndex,

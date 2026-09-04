@@ -153,8 +153,10 @@ describe('validateTrimRange', () => {
 	});
 
 	it('returns error key when start >= end (and end > 0)', () => {
+		// trimEndMs is a distance from the tail: 5000 off a 10s clip ends at 5s.
 		expect(validateTrimRange(5000, 5000, 10000)).toBe('pptx.media.trimErrorStartAfterEnd');
 		expect(validateTrimRange(6000, 5000, 10000)).toBe('pptx.media.trimErrorStartAfterEnd');
+		expect(validateTrimRange(4000, 5000, 10000)).toBeNull();
 	});
 
 	it('returns error key when start > duration', () => {
@@ -170,7 +172,9 @@ describe('validateTrimRange', () => {
 		expect(validateTrimRange(1000, 5000, 0)).toBeNull();
 	});
 
-	it('returns null when start is 0 and end equals duration', () => {
-		expect(validateTrimRange(0, 10000, 10000)).toBeNull();
+	it('rejects a tail trim that swallows the whole clip', () => {
+		// 10000 off the tail of a 10s clip leaves nothing to play.
+		expect(validateTrimRange(0, 10000, 10000)).toBe('pptx.media.trimErrorStartAfterEnd');
+		expect(validateTrimRange(0, 9000, 10000)).toBeNull();
 	});
 });

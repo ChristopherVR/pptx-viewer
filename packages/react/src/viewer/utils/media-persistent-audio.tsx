@@ -20,23 +20,25 @@ export {
 // ---------------------------------------------------------------------------
 
 /**
- * Build a media fragment URI component (`#t=start,end`) for trimmed media.
- * Times are in milliseconds; the fragment uses seconds.
+ * Build a media fragment URI component (`#t=start`) for a trimmed clip's
+ * start point. Times are in milliseconds; the fragment uses seconds.
+ *
+ * G19/G20: `element.trimEndMs` is `p14:trim/@end`'s own on-the-wire unit,
+ * the DISTANCE in milliseconds from the clip's END (COM-verified; see
+ * `PptxHandlerRuntimeMediaParsingUtils.ts`), not an absolute stop time. The
+ * Media Fragments URI spec only accepts an absolute `end` (`#t=start,end`),
+ * and that absolute position cannot be computed until the browser has
+ * decoded the clip's real duration - which is not known yet at the point
+ * this string is built (it becomes the `src` the browser has not fetched).
+ * An earlier version emitted `trimEndMs` here directly as if it already were
+ * that absolute position, which is exactly backwards. Trim-end enforcement is
+ * `scheduleMediaTrimAndFade`'s job (it waits for `loadedmetadata`), not this
+ * fragment's.
  */
 export function buildTrimFragment(element: MediaPptxElement): string {
 	const start = element.trimStartMs;
-	const end = element.trimEndMs;
-	if (start === undefined && end === undefined) {
+	if (start === undefined || start <= 0) {
 		return '';
 	}
-	const parts: string[] = [];
-	if (start !== undefined && start > 0) {
-		parts.push((start / 1000).toFixed(3));
-	} else {
-		parts.push('');
-	}
-	if (end !== undefined && end > 0) {
-		parts.push((end / 1000).toFixed(3));
-	}
-	return parts.length > 0 ? `#t=${parts.join(',')}` : '';
+	return `#t=${(start / 1000).toFixed(3)}`;
 }

@@ -228,4 +228,20 @@ describe('elementRenderer - on-canvas chart editing wiring', () => {
 		mount(makeProps({ onUpdateSmartArtElement: undefined }));
 		expect(container.querySelector('.pptx-chart-interactive')).toBeNull();
 	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - double-clicking the title still opened the
+	// inline editor on a locked chart.
+	it('does not open the title editor on double-click when noDrilldown is set', () => {
+		const onUpdateSmartArtElement = vi.fn<(id: string, updates: Partial<PptxElement>) => void>();
+		const locked = { ...makeChartElement(), locks: { noDrilldown: true } } as ChartPptxElement;
+		mount(makeProps({ element: locked, onUpdateSmartArtElement }));
+
+		const title = container.querySelector("[data-chart-part='title']")!;
+		act(() => {
+			title.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		});
+
+		expect(container.querySelector('input[type="text"]')).toBeNull();
+	});
 });

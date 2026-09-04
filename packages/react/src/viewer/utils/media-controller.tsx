@@ -1,5 +1,9 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
-import { mediaPlaybackAttributes, registerCrossSlideAudio } from 'pptx-viewer-shared';
+import {
+	mediaPlaybackAttributes,
+	registerCrossSlideAudio,
+	scheduleMediaTrimAndFade,
+} from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -48,29 +52,10 @@ export function PresentationMediaController({
 }: PresentationMediaControllerProps): React.ReactElement {
 	const { t } = useTranslation();
 	const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
-	const fadeTimerRef = useRef<number | null>(null);
-	const trimTimerRef = useRef<number | null>(null);
 	const [isMediaPlaying, setIsMediaPlaying] = useState(false);
 
-	const volume = element.volume ?? 1;
-	const fadeIn = element.fadeInDuration ?? 0;
-	const fadeOut = element.fadeOutDuration ?? 0;
 	const trimStartSec = element.trimStartMs !== undefined ? element.trimStartMs / 1000 : 0;
-	const trimEndSec =
-		element.trimEndMs !== undefined && element.trimEndMs > 0 ? element.trimEndMs / 1000 : 0;
 	const hideWhenNotPlaying = isPresentationMode && element.hideWhenNotPlaying === true;
-
-	// Cleanup timers
-	useEffect(() => {
-		return () => {
-			if (fadeTimerRef.current !== null) {
-				cancelAnimationFrame(fadeTimerRef.current);
-			}
-			if (trimTimerRef.current !== null) {
-				window.clearTimeout(trimTimerRef.current);
-			}
-		};
-	}, []);
 
 	// The clamps that turn authored playback settings into DOM values live in
 	// shared, so all five bindings agree on what `vol="0"` or a 10x rate means.
@@ -126,109 +111,30 @@ export function PresentationMediaController({
 		};
 	}, [onPlayStateChange]);
 
-	// Fade-in effect
-	const applyFadeIn = useCallback((): void => {
-		const el = mediaRef.current;
-		if (!el || fadeIn <= 0) {
-			return;
-		}
-
-		const startTime = performance.now();
-		const durationMs = fadeIn * 1000;
-		el.volume = 0;
-
-		const tick = (): void => {
-			const elapsed = performance.now() - startTime;
-			const progress = Math.min(1, elapsed / durationMs);
-			el.volume = progress * volume;
-			if (progress < 1) {
-				fadeTimerRef.current = requestAnimationFrame(tick);
-			}
-		};
-		fadeTimerRef.current = requestAnimationFrame(tick);
-	}, [fadeIn, volume]);
-
-	// Trim enforcement + fade-out scheduling
-	const handlePlay = useCallback((): void => {
+	// Trim-end stop + fade in/out (G20): shared with the other four bindings so
+	// a trimmed/faded clip behaves identically everywhere, not just here. Only
+	// active in presentation mode, matching the previous React-only behaviour;
+	// re-schedules whenever the authored trim/fade/volume settings change.
+	useEffect(() => {
 		const el = mediaRef.current;
 		if (!el || !isPresentationMode) {
 			return;
 		}
-
-		// Apply trim start
-		if (trimStartSec > 0 && el.currentTime < trimStartSec) {
-			el.currentTime = trimStartSec;
-		}
-
-		// Apply fade-in
-		if (fadeIn > 0) {
-			applyFadeIn();
-		}
-
-		// Schedule trim-end stop + fade-out
-		if (trimEndSec > 0) {
-			const remaining = trimEndSec - el.currentTime;
-			if (remaining > 0) {
-				// Schedule fade-out before trim end
-				const fadeOutStart = Math.max(0, (remaining - fadeOut) * 1000);
-				if (fadeOut > 0) {
-					trimTimerRef.current = window.setTimeout(() => {
-						const fadeStartTime = performance.now();
-						const fadeMs = fadeOut * 1000;
-						const startVol = el.volume;
-						const fadeOutTick = (): void => {
-							const elapsed = performance.now() - fadeStartTime;
-							const progress = Math.min(1, elapsed / fadeMs);
-							el.volume = startVol * (1 - progress);
-							if (progress < 1 && !el.paused) {
-								fadeTimerRef.current = requestAnimationFrame(fadeOutTick);
-							}
-						};
-						fadeTimerRef.current = requestAnimationFrame(fadeOutTick);
-					}, fadeOutStart);
-				}
-
-				// Stop at trim end
-				const stopTimer = window.setTimeout(() => {
-					if (!el.paused) {
-						el.pause();
-						el.currentTime = trimEndSec;
-					}
-				}, remaining * 1000);
-
-				// Store for cleanup
-				const prevTimer = trimTimerRef.current;
-				trimTimerRef.current = stopTimer;
-				if (prevTimer !== null) {
-					window.clearTimeout(prevTimer);
-				}
-			}
-		} else if (fadeOut > 0) {
-			// No trim end but has fade-out; listen for near-end
-			const handleTimeUpdate = (): void => {
-				if (!Number.isFinite(el.duration)) {
-					return;
-				}
-				const timeLeft = el.duration - el.currentTime;
-				if (timeLeft <= fadeOut && timeLeft > 0) {
-					el.removeEventListener('timeupdate', handleTimeUpdate);
-					const fadeStartTime = performance.now();
-					const fadeMs = timeLeft * 1000;
-					const startVol = el.volume;
-					const fadeOutTick = (): void => {
-						const elapsed = performance.now() - fadeStartTime;
-						const progress = Math.min(1, elapsed / fadeMs);
-						el.volume = startVol * (1 - progress);
-						if (progress < 1 && !el.paused) {
-							fadeTimerRef.current = requestAnimationFrame(fadeOutTick);
-						}
-					};
-					fadeTimerRef.current = requestAnimationFrame(fadeOutTick);
-				}
-			};
-			el.addEventListener('timeupdate', handleTimeUpdate);
-		}
-	}, [applyFadeIn, fadeIn, fadeOut, isPresentationMode, trimEndSec, trimStartSec]);
+		return scheduleMediaTrimAndFade(el, {
+			trimStartMs: element.trimStartMs,
+			trimEndMs: element.trimEndMs,
+			fadeInDuration: element.fadeInDuration,
+			fadeOutDuration: element.fadeOutDuration,
+			volume: playbackVolume,
+		});
+	}, [
+		isPresentationMode,
+		element.trimStartMs,
+		element.trimEndMs,
+		element.fadeInDuration,
+		element.fadeOutDuration,
+		playbackVolume,
+	]);
 
 	// Auto-play in presentation mode
 	useEffect(() => {
@@ -283,9 +189,14 @@ export function PresentationMediaController({
 		}
 	}, []);
 
+	// Trim/fade scheduling is now driven entirely by the DOM `play` listener
+	// `scheduleMediaTrimAndFade` attaches above, not this render prop; kept in
+	// the `children` contract (stable no-op) so callers do not need to change.
+	const noopOnPlay = useCallback((): void => {}, []);
+
 	return (
 		<div className='w-full h-full' style={wrapperStyle}>
-			{children({ mediaRef, onPlay: handlePlay, isMediaPlaying })}
+			{children({ mediaRef, onPlay: noopOnPlay, isMediaPlaying })}
 			{/* Subtle close/stop button for full-screen media overlay */}
 			{isFullScreen && isPresentationMode && isMediaPlaying && (
 				<button

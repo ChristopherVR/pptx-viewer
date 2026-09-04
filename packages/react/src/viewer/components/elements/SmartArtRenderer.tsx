@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { updateSmartArtNodeText, setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
 	buildSmartArtA11y,
+	canDrillDown,
 	computeSmartArtElementLayout,
 	flattenNodes,
 	revealedSmartArtNodeCount,
@@ -135,7 +136,9 @@ function SmartArtRendererImpl({
 	const a11y = buildSmartArtA11y(smartArtData);
 	const nodeLabels = new Map(a11y.nodes.map((n) => [n.id, n.label]));
 
-	const editable = canEdit && Boolean(onUpdateElement);
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this SmartArt's
+	// individual nodes for editing.
+	const editable = canEdit && Boolean(onUpdateElement) && canDrillDown(element);
 
 	// Commit an inline node text edit through the host's element-update path,
 	// reusing the same core op the inspector uses (undo/redo + save round-trip).

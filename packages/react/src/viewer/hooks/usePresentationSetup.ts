@@ -160,6 +160,12 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 			setMode(nextMode);
 		},
 		onSetActiveSlideIndex: setActiveSlideIndex,
+		// `p:sndAc/p:endSnd` ("Stop Previous Sound"): silences whatever transition
+		// sound is currently looping. A non-looping transition sound plays through
+		// its own ad hoc `Audio` below rather than this singleton (it finishes on
+		// its own in a few seconds either way), so only the loop case is stoppable
+		// here - matching the common "Loop Until Next Sound... then Stop" pairing.
+		onStopActionSound: () => stopAnimationSound(),
 		onPlayActionSound: (soundPath: string, options?: { loop?: boolean }) => {
 			void (async () => {
 				if (!soundPath) {

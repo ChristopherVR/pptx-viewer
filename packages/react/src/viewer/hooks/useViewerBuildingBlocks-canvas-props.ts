@@ -110,14 +110,14 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 	// Trust Center gate: external http(s) links may require confirmation
 	// before opening (Options > Trust Center > confirm external hyperlinks),
 	// same as `ViewerCanvasArea`'s wiring for the packaged `PowerPointViewer`.
-	const openExternalUrl = (url: string) => {
+	const openExternalUrl = (url: string, target?: string) => {
 		if (
 			shouldConfirmExternalHyperlink(viewerOptions, url) &&
 			!window.confirm(buildHyperlinkConfirmMessage(url))
 		) {
 			return;
 		}
-		safeOpenUrl(url);
+		safeOpenUrl(url, target);
 	};
 
 	const handleActionClick = (elementId: string, action: PptxAction) => {
@@ -138,7 +138,7 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 		}
 	};
 
-	const handleHyperlinkClick = (url: string) => {
+	const handleHyperlinkClick = (url: string, target?: string) => {
 		if (isPpactionUrl(url)) {
 			if (mode === 'present') {
 				const parsed = parsePpactionUrl(url);
@@ -151,7 +151,9 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 			}
 			return;
 		}
-		openExternalUrl(url);
+		// `target` (`a:hlinkClick/@tgtFrame`) only applies to a real hyperlink,
+		// never to the internal ppaction jump handled above.
+		openExternalUrl(url, target);
 	};
 
 	return {

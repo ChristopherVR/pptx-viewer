@@ -94,18 +94,18 @@ describe('rerouteConnectorsForMovedElements', () => {
 	});
 
 	it('reroutes connector when end shape is moved', () => {
-		// s1 at (0,0), 100x100, site 1 (right center) = (100, 50)
-		// s2 moved to (300, 200), 100x100, site 3 (left center) = (300, 250)
+		// s1 at (0,0), 100x100, site 3 (right center) = (100, 50)
+		// s2 moved to (300, 200), 100x100, site 1 (left center) = (300, 250)
 		const elements = [
 			makeShape('s1', 0, 0, 100, 100),
 			makeShape('s2', 300, 200, 100, 100),
-			makeConnector('c1', 100, 50, 200, 200, 's1', 1, 's2', 3),
+			makeConnector('c1', 100, 50, 200, 200, 's1', 3, 's2', 1),
 		];
 
 		const result = rerouteConnectorsForMovedElements(elements, new Set(['s2']));
 		expect(result).toHaveLength(1);
-		// s1 site 1 (right center) = (0+100, 0+50) = (100, 50)
-		// s2 site 3 (left center) = (300+0, 200+50) = (300, 250)
+		// s1 site 3 (right center) = (0+100, 0+50) = (100, 50)
+		// s2 site 1 (left center) = (300+0, 200+50) = (300, 250)
 		expect(result[0].x).toBe(100);
 		expect(result[0].y).toBe(50);
 		expect(result[0].width).toBe(200);
@@ -310,8 +310,8 @@ describe('computeConnectorGeometry', () => {
 
 		const result = computeConnectorGeometry(
 			connector,
-			{ shapeId: 's1', connectionSiteIndex: 1 }, // right center = (100, 50)
-			{ shapeId: 's2', connectionSiteIndex: 3 }, // left center = (200, 250)
+			{ shapeId: 's1', connectionSiteIndex: 3 }, // right center = (100, 50)
+			{ shapeId: 's2', connectionSiteIndex: 1 }, // left center = (200, 250)
 			elementMap,
 		);
 		expect(result).not.toBeNull();
@@ -554,7 +554,7 @@ describe('computeConnectorGeometry', () => {
 
 		const result = computeConnectorGeometry(
 			connector,
-			{ shapeId: 's1', connectionSiteIndex: 1 }, // right center = (100, 50)
+			{ shapeId: 's1', connectionSiteIndex: 3 }, // right center = (100, 50)
 			{ connectionSiteIndex: 0 }, // no shapeId
 			elementMap,
 		);
@@ -588,7 +588,7 @@ describe('computeConnectorGeometry', () => {
 		expect(r0!.width).toBe(250);
 		expect(r0!.height).toBe(200);
 
-		// Site 1: right center = (100+300, 200+200) = (400, 400)
+		// Site 1: left center = (100+0, 200+200) = (100, 400)
 		const r1 = computeConnectorGeometry(
 			connector,
 			{ shapeId: 's', connectionSiteIndex: 1 },
@@ -598,7 +598,7 @@ describe('computeConnectorGeometry', () => {
 		expect(r1).not.toBeNull();
 		expect(r1!.x).toBe(0);
 		expect(r1!.y).toBe(0);
-		expect(r1!.width).toBe(400);
+		expect(r1!.width).toBe(100);
 		expect(r1!.height).toBe(400);
 
 		// Site 2: bottom center = (100+150, 200+400) = (250, 600)
@@ -614,7 +614,7 @@ describe('computeConnectorGeometry', () => {
 		expect(r2!.width).toBe(250);
 		expect(r2!.height).toBe(600);
 
-		// Site 3: left center = (100+0, 200+200) = (100, 400)
+		// Site 3: right center = (100+300, 200+200) = (400, 400)
 		const r3 = computeConnectorGeometry(
 			connector,
 			{ shapeId: 's', connectionSiteIndex: 3 },
@@ -624,7 +624,7 @@ describe('computeConnectorGeometry', () => {
 		expect(r3).not.toBeNull();
 		expect(r3!.x).toBe(0);
 		expect(r3!.y).toBe(0);
-		expect(r3!.width).toBe(100);
+		expect(r3!.width).toBe(400);
 		expect(r3!.height).toBe(400);
 	});
 
@@ -661,8 +661,8 @@ describe('computeConnectorGeometry', () => {
 
 		const result = computeConnectorGeometry(
 			connector,
-			{ shapeId: 's1', connectionSiteIndex: 1 }, // right center: (150000, 215000)
-			{ shapeId: 's2', connectionSiteIndex: 3 }, // left center: (300000, 415000)
+			{ shapeId: 's1', connectionSiteIndex: 3 }, // right center: (150000, 215000)
+			{ shapeId: 's2', connectionSiteIndex: 1 }, // left center: (300000, 415000)
 			elementMap,
 		);
 		expect(result).not.toBeNull();
@@ -784,9 +784,9 @@ describe('integration: reroute and apply', () => {
 			500,
 			300,
 			'a',
-			1, // right center
+			3, // right center
 			'b',
-			3, // left center
+			1, // left center
 		);
 
 		const elements = [shapeA, shapeB, connector];
@@ -819,9 +819,9 @@ describe('integration: reroute and apply', () => {
 			10,
 			10,
 			'a',
-			1, // right center: (300, 200)
+			3, // right center: (300, 200)
 			'b',
-			1, // right center: (300, 200), same
+			3, // right center: (300, 200), same
 		);
 
 		const elements = [shapeA, shapeB, connector];
@@ -865,8 +865,8 @@ describe('integration: reroute and apply', () => {
 		const b = makeShape('b', 200, 0, 100, 100);
 		const c = makeShape('c', 400, 0, 100, 100);
 
-		const cAB = makeConnector('c_ab', 0, 0, 10, 10, 'a', 1, 'b', 3);
-		const cBC = makeConnector('c_bc', 0, 0, 10, 10, 'b', 1, 'c', 3);
+		const cAB = makeConnector('c_ab', 0, 0, 10, 10, 'a', 3, 'b', 1);
+		const cBC = makeConnector('c_bc', 0, 0, 10, 10, 'b', 3, 'c', 1);
 
 		const elements = [a, b, c, cAB, cBC];
 

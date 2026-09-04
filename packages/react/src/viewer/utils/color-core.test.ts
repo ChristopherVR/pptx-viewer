@@ -152,8 +152,10 @@ describe('clampCropValue', () => {
 		expect(clampCropValue(Infinity)).toBe(0);
 	});
 
-	it('should clamp negative values to 0', () => {
-		expect(clampCropValue(-0.5)).toBe(0);
+	it('should keep negative (outward) crops, clamped to -0.95', () => {
+		// A negative `a:srcRect` inset pads the image instead of cropping it.
+		expect(clampCropValue(-0.5)).toBe(-0.5);
+		expect(clampCropValue(-1)).toBe(-0.95);
 	});
 
 	it('should clamp values above 0.95 to 0.95', () => {

@@ -11,6 +11,7 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
+import { canInteractWithElement } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -38,6 +39,9 @@ export function ImageCropSection({
 	if (!isImageLikeElement(selectedElement)) {
 		return null;
 	}
+	// G7: `a:picLocks/@noCrop` forbids cropping this specific picture, even on
+	// an otherwise-editable deck.
+	const croppable = canEdit && canInteractWithElement(selectedElement, 'crop');
 
 	return (
 		<div className='space-y-1.5' data-pptx-image-crop>
@@ -50,7 +54,7 @@ export function ImageCropSection({
 							type='range'
 							min={0}
 							max={MAX_CROP_PERCENT}
-							disabled={!canEdit}
+							disabled={!croppable}
 							className='accent-primary'
 							value={Math.round(clampCropValue(selectedElement[key] as number | undefined) * 100)}
 							onChange={(e) =>
@@ -64,7 +68,7 @@ export function ImageCropSection({
 			})}
 			<button
 				type='button'
-				disabled={!canEdit}
+				disabled={!croppable}
 				className={`${BTN_CLS} w-full`}
 				onClick={() =>
 					onUpdateElement({

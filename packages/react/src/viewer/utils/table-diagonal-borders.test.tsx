@@ -65,10 +65,10 @@ describe('getCellDiagonalBorders', () => {
 		expect(info!.diagDownWidth).toBe(5);
 	});
 
-	it('resolves an up diagonal (bl2tr) from the table style', () => {
+	it('resolves an up diagonal (a:tr2bl) from the table style', () => {
 		const tableStyleMap = {
 			'{DIAG}': {
-				wholeTblBorders: { bl2tr: { width: 2, color: '#00ff00' } },
+				wholeTblBorders: { tr2bl: { width: 2, color: '#00ff00' } },
 			},
 		} as unknown as ParsedTableStyleMap;
 		const info = getCellDiagonalBorders(undefined, makeTableData({ tableStyleId: '{DIAG}' }), POS, {

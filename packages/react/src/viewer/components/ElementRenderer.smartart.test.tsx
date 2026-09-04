@@ -139,4 +139,19 @@ describe('elementRenderer - inline SmartArt editing wiring', () => {
 		doubleClickNode('n1');
 		expect(container.querySelector('textarea')).toBeNull();
 	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - a node was still double-click editable on a
+	// locked SmartArt.
+	it('does not open the node editor on double-click when noDrilldown is set', () => {
+		const onUpdateSmartArtElement = vi.fn<(id: string, updates: Partial<PptxElement>) => void>();
+		const locked = {
+			...makeSmartArtElement(),
+			locks: { noDrilldown: true },
+		} as SmartArtPptxElement;
+		mount(makeProps({ element: locked, onUpdateSmartArtElement }));
+
+		doubleClickNode('n1');
+		expect(container.querySelector('textarea')).toBeNull();
+	});
 });

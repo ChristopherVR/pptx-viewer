@@ -1,4 +1,11 @@
 import type { MediaPptxElement, PptxElement } from 'pptx-viewer-core';
+import {
+	mediaTrimEndAbsoluteMs,
+	mediaTrimEndMsFromAbsoluteMs,
+	trimmedMediaDurationMs,
+	validateMediaTrimRange,
+} from 'pptx-viewer-shared';
+import type { MediaTrimRangeError } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuClock, LuScissors } from 'react-icons/lu';
@@ -72,31 +79,23 @@ export function mmSsToMs(value: string): number | undefined {
 	return seconds * 1000;
 }
 
+const TRIM_ERROR_KEYS: Record<MediaTrimRangeError, string> = {
+	negative: 'pptx.media.trimErrorNegative',
+	startAfterEnd: 'pptx.media.trimErrorStartAfterEnd',
+	beyondDuration: 'pptx.media.trimErrorBeyondDuration',
+};
+
 /**
- * Validate that trim range is valid: end > start (when both are set),
- * and both are non-negative. Returns an error i18n key or null if valid.
+ * Validate a trim range (`trimEndMs` is `p14:trim/@end`'s distance from the
+ * clip's tail; the maths lives in shared). Returns an error i18n key or null.
  */
 export function validateTrimRange(
 	trimStartMs: number,
 	trimEndMs: number,
 	durationMs: number,
 ): string | null {
-	if (trimStartMs < 0) {
-		return 'pptx.media.trimErrorNegative';
-	}
-	if (trimEndMs < 0) {
-		return 'pptx.media.trimErrorNegative';
-	}
-	if (trimEndMs > 0 && trimStartMs >= trimEndMs) {
-		return 'pptx.media.trimErrorStartAfterEnd';
-	}
-	if (durationMs > 0 && trimStartMs > durationMs) {
-		return 'pptx.media.trimErrorBeyondDuration';
-	}
-	if (durationMs > 0 && trimEndMs > durationMs) {
-		return 'pptx.media.trimErrorBeyondDuration';
-	}
-	return null;
+	const error = validateMediaTrimRange(trimStartMs, trimEndMs, durationMs);
+	return error ? TRIM_ERROR_KEYS[error] : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,14 +198,13 @@ export function MediaInspector({
 	const durationMs = durationSeconds * 1000;
 
 	// Auto-calculate trimmed duration
-	const trimmedDuration = useMemo((): string => {
-		const effectiveStart = trimStartMs;
-		const effectiveEnd = trimEndMs > 0 ? trimEndMs : durationMs;
-		if (effectiveEnd <= effectiveStart || durationMs <= 0) {
-			return msToMmSs(durationMs);
-		}
-		return msToMmSs(effectiveEnd - effectiveStart);
-	}, [trimStartMs, trimEndMs, durationMs]);
+	const trimmedDuration = useMemo(
+		(): string => msToMmSs(trimmedMediaDurationMs(trimStartMs, trimEndMs, durationMs)),
+		[trimStartMs, trimEndMs, durationMs],
+	);
+	// The End input shows an absolute clock position; the element stores the
+	// distance from the clip's tail.
+	const trimEndAbsoluteMs = mediaTrimEndAbsoluteMs(durationMs, trimEndMs);
 
 	const validationError = useMemo(
 		() => validateTrimRange(trimStartMs, trimEndMs, durationMs),
@@ -227,10 +225,10 @@ export function MediaInspector({
 	const handleTrimEndChange = useCallback(
 		(ms: number): void => {
 			onUpdateElement({
-				trimEndMs: ms,
+				trimEndMs: durationMs > 0 ? mediaTrimEndMsFromAbsoluteMs(durationMs, ms) : ms,
 			} as Partial<PptxElement>);
 		},
-		[onUpdateElement],
+		[durationMs, onUpdateElement],
 	);
 
 	const handleResetTrim = useCallback((): void => {
@@ -258,7 +256,7 @@ export function MediaInspector({
 				/>
 				<TrimTimeInput
 					label={t('pptx.media.trimEndTime')}
-					valueMs={trimEndMs}
+					valueMs={trimEndAbsoluteMs}
 					maxMs={durationMs}
 					disabled={!canEdit}
 					onChange={handleTrimEndChange}

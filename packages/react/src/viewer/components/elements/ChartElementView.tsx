@@ -6,6 +6,7 @@ import {
 	applyChartBuildReveal,
 	applyChartPartHighlight,
 	beginChartValueDrag,
+	canDrillDown,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
 	resolveChartKind,
@@ -204,7 +205,9 @@ export function ChartElementView({
 	};
 
 	const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-		if (!canEdit) {
+		// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this chart's
+		// individual parts (title, series, data points) for editing.
+		if (!canEdit || !canDrillDown(element)) {
 			return;
 		}
 		const target = e.target as Partial<Element>;

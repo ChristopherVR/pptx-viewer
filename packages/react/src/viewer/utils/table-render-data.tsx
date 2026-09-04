@@ -1,6 +1,11 @@
 import type { TablePptxElement, PptxTableCell } from 'pptx-viewer-core';
 import type { TableCellCss } from 'pptx-viewer-shared';
-import { DEFAULT_FONT_FAMILY, tableCellCss, tableContainerCss } from 'pptx-viewer-shared';
+import {
+	canDrillDown,
+	DEFAULT_FONT_FAMILY,
+	tableCellCss,
+	tableContainerCss,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import { cn } from '../../utils';
@@ -34,7 +39,9 @@ export function renderTableFromTableData(
 	const rowCount = tableData.rows.length;
 	const columnCount = tableData.columnWidths.length;
 	const selectedCell = options?.selectedCell || null;
-	const isEditable = Boolean(options?.editable);
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids selecting/editing this
+	// table's individual cells, even on an otherwise-editable deck.
+	const isEditable = Boolean(options?.editable) && canDrillDown(element);
 	const hasCellSelectionHandler = typeof options?.onSelectCell === 'function';
 	// The band / header / emphasis layer this path used to skip entirely: it
 	// imported `TableStyleContext` as a type and called nothing with it, so a

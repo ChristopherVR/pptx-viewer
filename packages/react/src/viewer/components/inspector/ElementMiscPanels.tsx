@@ -1,6 +1,6 @@
 import type { PptxElement, ShapeStyle, OlePptxElement, GroupPptxElement } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
-import { buildOleObjectNamePatch } from 'pptx-viewer-shared';
+import { buildOleObjectNamePatch, canInteractWithElement } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -31,12 +31,14 @@ export function ConnectorPanel({
 	// `a:headEnd` / `a:tailEnd`, and the previous inline dropdown pair could
 	// only ever write the head type, leaving the two size attributes editable
 	// nowhere in React.
+	// G9: `arrowheadsChangeable` (`a:cxnSpLocks/@noChangeArrowheads`) already
+	// existed on `element-locks.ts` but nothing consulted it here.
 	return (
 		<div className={CARD}>
 			<div className={HEADING}>Connector</div>
 			<ConnectorArrowsSection
 				selectedShapeStyle={selectedElement.shapeStyle}
-				canEdit={canEdit}
+				canEdit={canEdit && canInteractWithElement(selectedElement, 'changeArrowheads')}
 				onUpdateShapeStyle={onUpdateElementStyle}
 			/>
 		</div>
