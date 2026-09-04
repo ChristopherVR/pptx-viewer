@@ -33,6 +33,14 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		element.type === 'image' || element.type === 'picture'
 			? resolveShapeGeometry(element)
 			: undefined;
+	const geometryClipPath = geometry?.kind === 'clipPath' ? geometry.clipPath : undefined;
+	// The authored Crop-to-Shape clip: the fallback when the picture's own
+	// geometry resolves to no clip-path (e.g. roundRect, whose border-radius
+	// already rounds the frame).
+	const cropShapeClipPath =
+		element.type === 'image' || element.type === 'picture'
+			? getCropShapeClipPath(element.cropShape, element.width, element.height)
+			: undefined;
 	// The clip is load-bearing, not cosmetic: a cropped picture is rendered by
 	// scaling the source up and translating the cropped-away part out of the
 	// frame, so without it the discarded region paints over its neighbours.
@@ -42,10 +50,11 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		// The picture's own shape geometry (prstGeom / custGeom) clips the frame,
 		// not the `<img>` - a pixel-space clip on the img would be scaled and
 		// shifted by the crop transform.
-		...(geometry?.kind === 'borderRadius'
-			? { borderRadius: geometry.radius }
-			: geometry?.kind === 'clipPath'
-				? { clipPath: geometry.clipPath }
+		...(geometry?.kind === 'borderRadius' ? { borderRadius: geometry.radius } : {}),
+		...(geometryClipPath
+			? { clipPath: geometryClipPath }
+			: cropShapeClipPath
+				? { clipPath: cropShapeClipPath }
 				: {}),
 	});
 	el.dataset.elementId = element.id;
@@ -56,18 +65,6 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	}
 
 	const fx = getComputedImageStyle(element);
-	// "Crop to Shape": PowerPoint writes it as the picture's own `a:prstGeom`, so
-	// this is a typed clip-path view over `cropShape`, applied to whatever
-	// surface actually paints the bitmap below (plain `<img>` or the tiled fill).
-	// The picture's own geometry mask outranks it: on load `cropShape` is
-	// derived from the same `prstGeom`/custGeom, so both are truthy for every
-	// non-rectangular picture, and the img-level crop clip would be scaled and
-	// shifted by the source-crop transform.
-	const geometryClipPath = geometry?.kind === 'clipPath' ? geometry.clipPath : undefined;
-	const cropShapeClipPath =
-		element.type === 'image' || element.type === 'picture'
-			? getCropShapeClipPath(element.cropShape, element.width, element.height)
-			: undefined;
 
 	// SVG <filter> defs so the `url(#...)` references in `fx.filter` resolve.
 	for (const f of fx.svgFilters) {
@@ -100,9 +97,6 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		if (fx.opacity !== undefined) {
 			tile.style.opacity = String(fx.opacity);
 		}
-		if (!geometryClipPath && cropShapeClipPath) {
-			tile.style.clipPath = cropShapeClipPath;
-		}
 		el.appendChild(tile);
 		if (reflection) {
 			el.appendChild(reflection);
@@ -121,9 +115,6 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	}
 	if (fx.opacity !== undefined) {
 		img.style.opacity = String(fx.opacity);
-	}
-	if (!geometryClipPath && cropShapeClipPath) {
-		img.style.clipPath = cropShapeClipPath;
 	}
 	el.appendChild(img);
 	if (element.type === 'image' || element.type === 'picture') {

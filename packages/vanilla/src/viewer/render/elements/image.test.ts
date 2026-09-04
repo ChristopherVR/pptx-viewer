@@ -59,8 +59,9 @@ describe('renderImageElement source effects', () => {
 			cropShape: 'ellipse',
 		};
 		const node = renderImageElement(element, 0, context()) as HTMLElement;
-		const img = node.querySelector('img') as HTMLImageElement;
-		expect(img.style.clipPath).toContain('path(');
+		// The crop clip rides the stationary FRAME (the img may be transformed
+		// by a source crop, which would scale and shift an img-level clip).
+		expect(node.style.clipPath).toContain('path(');
 	});
 
 	it('applies no clip-path when the picture has no crop shape', () => {
