@@ -104,11 +104,20 @@ describe('buildAngularImageRenderView', () => {
 	});
 
 	it('clips both the image and color wash to the authored crop shape', () => {
+		// The crop clip lives on the stationary frame CONTAINER (the img carries
+		// the source-crop transform, which would scale and shift a pixel-space
+		// clip along with it). The container's clip-path clips the img and the
+		// color wash alike.
 		const view = buildAngularImageRenderView(
 			image({ colorWash: { color: '#336699', opacity: 40 } }, { cropShape: 'ellipse' }),
 		);
-		expect(view.imageStyle['clip-path']).toBeTruthy();
-		expect(view.colorWashStyle?.['clip-path']).toBe(view.imageStyle['clip-path']);
+		expect(view.frameGeometryMask?.['clip-path']).toBeTruthy();
+		// The geometry cascade resolves this plain picture to no border-radius
+		// (no shape geometry), so the crop shape is the fallback clip on the
+		// container.
+		expect(view.frameGeometryMask?.['border-radius']).toBeUndefined();
+		expect(view.imageStyle['clip-path']).toBeUndefined();
+		expect(view.colorWashStyle?.['clip-path']).toBeUndefined();
 	});
 });
 

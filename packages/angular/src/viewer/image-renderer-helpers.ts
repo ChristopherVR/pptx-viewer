@@ -21,10 +21,14 @@ export interface AngularImageRenderView {
 	colorWashStyle: StyleMap | undefined;
 	tilingStyle: StyleMap | undefined;
 	/**
-	 * The picture's own shape geometry as a mask for the stationary frame
-	 * container (see {@link getAngularImageGeometryMask}). `undefined` for
-	 * effectively rectangular pictures, where the frame's overflow clipping
-	 * already expresses the geometry.
+	 * The mask for the picture's stationary frame container: the picture's own
+	 * shape geometry (`p:spPr/a:prstGeom` / `a:custGeom`) - `border-radius` for
+	 * the roundRect family and ellipse presets, a rescaled `clip-path` for
+	 * custGeom and other silhouettes - with the authored Crop-to-Shape clip as
+	 * the fallback. `undefined` for effectively rectangular pictures, where the
+	 * frame's overflow clipping already expresses the geometry. Kept off the
+	 * `<img>`, whose source-crop transform would scale and shift a pixel-space
+	 * clip.
 	 */
 	frameGeometryMask: StyleMap | undefined;
 }
@@ -53,11 +57,38 @@ export function getAngularImageGeometryMask(element: PptxElement): StyleMap | un
 	return geometry.kind === 'clipPath' ? { 'clip-path': geometry.clipPath } : undefined;
 }
 
+/**
+ * The mask for the picture's stationary frame container: the picture's own
+ * shape geometry (see {@link getAngularImageGeometryMask}), with the authored
+ * Crop-to-Shape clip as the fallback when the geometry resolves to no
+ * `clip-path` (e.g. roundRect, whose border-radius already rounds the frame).
+ * The mask must stay off the `<img>`: a cropped picture paints by
+ * transforming that same img, and a pixel-space clip would be scaled and
+ * shifted along with it.
+ */
+export function buildAngularImageContainerMask(element: PptxElement): StyleMap | undefined {
+	if (!isImageLikeElement(element)) {
+		return undefined;
+	}
+	const geometryMask = getAngularImageGeometryMask(element);
+	const cropShapeClipPath = getImageCropShapeClipPath(element);
+	return {
+		...(geometryMask ?? {}),
+		...(geometryMask?.['clip-path'] || !cropShapeClipPath
+			? {}
+			: { 'clip-path': cropShapeClipPath }),
+	};
+}
+
 /** Build the complete shared image-effect view consumed by Angular templates. */
 export function buildAngularImageRenderView(element: PptxElement): AngularImageRenderView {
 	const computed = getComputedImageStyle(element);
 	// The fill/crop fit comes from shared so the `<a:srcRect>` source crop is the
-	// same maths in every binding; `[ngStyle]` accepts its camelCase keys.
+	// same maths in every binding; `[ngStyle]` accepts its camelCase keys. The
+	// geometry/crop mask does NOT ride the `<img>`: a cropped picture paints by
+	// transforming that same img, and a pixel-space clip would be scaled and
+	// shifted along with it - the mask belongs on the frame container (see
+	// `buildAngularImageContainerMask`).
 	const imageStyle: StyleMap = {
 		...getImageFitStyle(element),
 		display: 'block',
@@ -68,15 +99,7 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 	if (computed.opacity !== undefined) {
 		imageStyle.opacity = computed.opacity;
 	}
-	const geometryMask = getAngularImageGeometryMask(element);
-	const cropShapeClipPath = getImageCropShapeClipPath(element);
-	// The picture's own geometry mask outranks the derived crop shape: on load
-	// `cropShape` is derived from the same `prstGeom`/custGeom, so both are
-	// truthy for every non-rectangular picture, and the img-level crop clip
-	// would be scaled and shifted by the source-crop transform.
-	if (!geometryMask?.['clip-path'] && cropShapeClipPath) {
-		imageStyle['clip-path'] = cropShapeClipPath;
-	}
+	const frameGeometryMask = buildAngularImageContainerMask(element);
 
 	const colorWash = getImageColorWashStyle(
 		isImageLikeElement(element) ? element.imageEffects?.colorWash : undefined,
@@ -88,9 +111,6 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 				'pointer-events': 'none',
 				'background-color': colorWash.backgroundColor,
 				opacity: colorWash.opacity,
-				...(!geometryMask?.['clip-path'] && cropShapeClipPath
-					? { 'clip-path': cropShapeClipPath }
-					: {}),
 			}
 		: undefined;
 
@@ -104,9 +124,6 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 				...(tiling as StyleMap),
 				...(computed.filter ? { filter: computed.filter } : {}),
 				...(computed.opacity !== undefined ? { opacity: computed.opacity } : {}),
-				...(!geometryMask?.['clip-path'] && cropShapeClipPath
-					? { 'clip-path': cropShapeClipPath }
-					: {}),
 			}
 		: undefined;
 
@@ -116,6 +133,6 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 		clrChange: getClrChangeParams(element),
 		colorWashStyle,
 		tilingStyle,
-		frameGeometryMask: geometryMask,
+		frameGeometryMask,
 	};
 }
