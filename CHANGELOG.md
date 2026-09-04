@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-04
+
+_Releases: pptx-react-viewer@3.5.4, pptx-vue-viewer@3.5.4, pptx-angular-viewer@3.6.4, pptx-vanilla-viewer@2.5.4, pptx-svelte-viewer@3.6.4_
+
+### Bug Fixes
+
+- **shared,vanilla:** Continue appended numbered paragraphs ([#211](https://github.com/ChristopherVR/pptx-viewer/issues/211)) (by @Sudhansh6) ([1c3a8c5](https://github.com/ChristopherVR/pptx-viewer/commit/1c3a8c5d9511b482b6903a6895ac68aa84b9d577))
+
 ## 2026-09-03
 
 _Releases: pptx-viewer-core@3.3.4, pptx-react-viewer@3.5.3, pptx-vue-viewer@3.5.3, pptx-angular-viewer@3.6.3, pptx-vanilla-viewer@2.5.3, pptx-svelte-viewer@3.6.3_
