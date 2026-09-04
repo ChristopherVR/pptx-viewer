@@ -6,16 +6,26 @@ export type EnsureArrayFn = (value: unknown) => XmlObject[];
 
 /** Data extracted from p:cTn timing node. */
 export interface CtnTimingData {
-	trimStartMs: number | undefined;
-	trimEndMs: number | undefined;
 	loop: boolean;
 	autoPlay: boolean;
 	playAcrossSlides: boolean;
 }
 
-/** Data extracted from the extension list of a media node. */
+/**
+ * Data extracted from a `p14:media` extension (`p:nvPr/p:extLst/p:ext`).
+ *
+ * `trimStartMs`/`trimEndMs` mirror `p14:trim/@st`/`@end` verbatim: decimal
+ * milliseconds per MS-PPTX `CT_MediaTrim`, COM-verified (see
+ * `PptxHandlerRuntimeMediaParsingUtils.test.ts`): `Shape.MediaFormat.EndPoint
+ * = 29596` on a 30034ms clip round-trips through real PowerPoint as
+ * `p14:trim end="438"` (30034 - 29596), so `trimEndMs` is the distance, in
+ * milliseconds, from the END of the clip, NOT an absolute stop time. Callers
+ * that need an absolute stop must subtract it from the clip's real duration
+ * once known (see `packages/shared/src/render/media-trim-fade-scheduler.ts`).
+ */
 export interface MediaExtensionData {
 	trimStartMs: number | undefined;
+	/** Distance, in milliseconds, from the END of the clip. See interface doc. */
 	trimEndMs: number | undefined;
 	fadeInDuration: number | undefined;
 	fadeOutDuration: number | undefined;
@@ -149,21 +159,19 @@ export function requiresBase64DataUrl(mimeType: string): boolean {
 
 /**
  * Parse timing flags from a `p:cTn` node within a `p:cMediaNode`.
+ *
+ * `p:cTn` (`CT_TLCommonTimeNodeData`) has no `st`/`end` attributes; the real
+ * trim data lives in `p14:trim` under `p:nvPr/p:extLst` (see
+ * {@link parseMediaExtensionData}). An earlier version of this function read
+ * `cTn/@_st`/`@_end` as trim overrides, which could only ever match this
+ * codebase's own (wrong-location) writer output, never real PowerPoint XML.
  */
 export function parseCtnMediaTiming(cTn: XmlObject | undefined, mediaTag: string): CtnTimingData {
-	let trimStartMs: number | undefined;
-	let trimEndMs: number | undefined;
 	let loop = false;
 	let autoPlay = false;
 	let playAcrossSlides = false;
 
 	if (cTn) {
-		if (cTn['@_st'] !== undefined) {
-			trimStartMs = parseInt(String(cTn['@_st']));
-		}
-		if (cTn['@_end'] !== undefined) {
-			trimEndMs = parseInt(String(cTn['@_end']));
-		}
 		const repeatCount = cTn['@_repeatCount'];
 		if (repeatCount !== undefined && String(repeatCount) === 'indefinite') {
 			loop = true;
@@ -181,7 +189,7 @@ export function parseCtnMediaTiming(cTn: XmlObject | undefined, mediaTag: string
 		}
 	}
 
-	return { trimStartMs, trimEndMs, loop, autoPlay, playAcrossSlides };
+	return { loop, autoPlay, playAcrossSlides };
 }
 
 /**
@@ -243,19 +251,23 @@ export function parseMediaExtensionData(
 				}
 				const p14Trim = p14Media['p14:trim'] as XmlObject | undefined;
 				if (p14Trim) {
-					// st and end are in microseconds (divide by 1000 for ms)
+					// `st`/`end` are already decimal milliseconds (MS-PPTX
+					// CT_MediaTrim), not microseconds: COM-verified (see the
+					// interface doc above), so no unit conversion happens here.
+					// `parseFloat` (not `parseInt`) keeps the fractional component
+					// real PowerPoint writes, e.g. `end="114730.5312"`.
 					const st = p14Trim['@_st'];
 					if (st !== undefined && trimStartMs === undefined) {
-						const val = parseInt(String(st));
+						const val = parseFloat(String(st));
 						if (Number.isFinite(val)) {
-							trimStartMs = val / 1000;
+							trimStartMs = val;
 						}
 					}
 					const end = p14Trim['@_end'];
 					if (end !== undefined && trimEndMs === undefined) {
-						const val = parseInt(String(end));
+						const val = parseFloat(String(end));
 						if (Number.isFinite(val)) {
-							trimEndMs = val / 1000;
+							trimEndMs = val;
 						}
 					}
 				}

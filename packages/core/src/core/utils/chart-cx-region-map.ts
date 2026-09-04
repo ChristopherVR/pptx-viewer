@@ -1,5 +1,6 @@
 import type { PptxChartRegionMapOptions, XmlObject } from '../types';
-import type { XmlLookupLike } from './chart-cx-parser';
+import type { ColorParserLike, XmlLookupLike } from './chart-cx-parser';
+import { parseCxValueColors } from './chart-cx-value-colors';
 import { cloneXmlObject } from './clone-utils';
 
 const PROJECTIONS = new Set(['mercator', 'miller', 'robinson', 'albers']);
@@ -19,10 +20,12 @@ export function parseCxRegionMapOptions(
 	series: XmlObject,
 	dataNode: XmlObject | undefined,
 	xmlLookup: XmlLookupLike,
+	colorParser?: ColorParserLike,
 ): PptxChartRegionMapOptions | undefined {
 	if (series['@_layoutId'] !== 'regionMap') {
 		return undefined;
 	}
+	const valueColors = parseCxValueColors(series, xmlLookup, colorParser);
 	const layoutPr = xmlLookup.getChildByLocalName(series, 'layoutPr');
 	const labelLayout = xmlLookup.getChildByLocalName(layoutPr, 'regionLabelLayout')?.['@_val'];
 	const geography = xmlLookup.getChildByLocalName(layoutPr, 'geography');
@@ -56,6 +59,10 @@ export function parseCxRegionMapOptions(
 			? { attribution: String(geography['@_attribution']) }
 			: {}),
 		...(geographyCache ? { geographyCache: cloneXmlObject(geographyCache) } : {}),
+		...(valueColors?.valueColors ? { valueColors: valueColors.valueColors } : {}),
+		...(valueColors?.valueColorPositions
+			? { valueColorPositions: valueColors.valueColorPositions }
+			: {}),
 	};
 }
 

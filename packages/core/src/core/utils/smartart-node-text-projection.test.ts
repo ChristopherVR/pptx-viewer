@@ -71,4 +71,50 @@ describe('smartArt node text projection', () => {
 			{ text: 'Plain', style: { bold: true } },
 		]);
 	});
+
+	// G3: `dgm:presLayoutVars/dgm:bulletEnabled` (e.g. "Vertical Bullet List")
+	// auto-bullets a node's subordinate outline levels even though the
+	// layoutDef's item template writes no `a:buChar` of its own.
+	describe('bulletEnabled (dgm:presLayoutVars)', () => {
+		function twoLevelNode(pPrLvl1: Record<string, unknown> = {}): PptxSmartArtNode {
+			return {
+				id: 'n',
+				text: 'Title\nSub point',
+				paragraphs: [
+					{ pPr: {}, items: [{ kind: 'run', run: { text: 'Title' } }] },
+					{
+						pPr: { '@_lvl': '1', ...pPrLvl1 },
+						items: [{ kind: 'run', run: { text: 'Sub point' } }],
+					},
+				],
+			};
+		}
+
+		it('synthesizes a bullet on a level>=1 paragraph with no explicit bullet markup', () => {
+			const segments = projectSmartArtNodeText(twoLevelNode(), {}, { bulletEnabled: true });
+			// segment index 2 is the first segment of the second paragraph
+			// (index 0 = title run, index 1 = paragraph-break marker).
+			const subTitleSegment = segments.find((s) => s.text === 'Sub point');
+			expect(subTitleSegment).toMatchObject({ bulletInfo: { char: '•' }, paragraphLevel: 1 });
+		});
+
+		it('never bullets the level-0 paragraph even when bulletEnabled is true', () => {
+			const segments = projectSmartArtNodeText(twoLevelNode(), {}, { bulletEnabled: true });
+			const titleSegment = segments.find((s) => s.text === 'Title');
+			expect(titleSegment?.bulletInfo).toBeUndefined();
+		});
+
+		it('does not synthesize a bullet when bulletEnabled is false/omitted', () => {
+			const segments = projectSmartArtNodeText(twoLevelNode());
+			const subTitleSegment = segments.find((s) => s.text === 'Sub point');
+			expect(subTitleSegment?.bulletInfo).toBeUndefined();
+		});
+
+		it('an explicit a:buNone still wins over the synthesized bullet', () => {
+			const node = twoLevelNode({ 'a:buNone': '' });
+			const segments = projectSmartArtNodeText(node, {}, { bulletEnabled: true });
+			const subTitleSegment = segments.find((s) => s.text === 'Sub point');
+			expect(subTitleSegment?.bulletInfo).toStrictEqual({ none: true });
+		});
+	});
 });

@@ -68,6 +68,14 @@ describe('resolveNamedRuleOverride', () => {
 		const rules = [{ type: 'w', forName: 'sibTrans', value: 0.1 }];
 		expect(resolveNamedRuleOverride(rules, 'node')).toBeUndefined();
 	});
+
+	// G11: `secFontSz` is `primFontSz`'s sibling (scales the secondary/subordinate
+	// text run) but was missing from OVERRIDE_KEY, so a two-line node template's
+	// subtitle rule silently did nothing.
+	it('resolves secFontSz the same way as primFontSz', () => {
+		const rules = [{ type: 'secFontSz', forName: 'node', value: 10 }];
+		expect(resolveNamedRuleOverride(rules, 'node')).toStrictEqual({ fontSize: 10 });
+	});
 });
 
 describe('applyNamedRuleOverride', () => {

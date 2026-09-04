@@ -162,11 +162,27 @@ assign(['drawing:complexType:CT_Cell3D', 'drawing:element:cell3D'], {
 	preserve: 'unassessed',
 	edit: 'unassessed',
 	serialize: 'unassessed',
-	note: 'Cell 3-D bevel width/height/preset, material, and light-rig fields parse into a typed style. No save-path test was found demonstrating independent re-serialization or round-trip preservation after an edit, so those facets are left unassessed rather than assumed.',
+	note: 'Cell 3-D bevel width/height/preset, material, and light-rig fields parse into a typed style, both per-cell (a:tcPr/a:cell3D) and, since issue G5, at the table-style level (a:tblStyleLst/a:tblStyle/.../a:tcStyle/a:cell3D), resolved per band by the shared cascade the same way fill and borders are. No save-path test was found demonstrating independent re-serialization or round-trip preservation after an edit, so those facets are left unassessed rather than assumed.',
 	evidence: [
 		testEvidence(
 			'src/core/core/builders/table-cell-fill-border-helpers.test.ts',
 			['parses bevel width/height/preset, material, and light rig'],
+			['parse'],
+		),
+		testEvidence(
+			'src/core/core/runtime/table-style-border-parse.test.ts',
+			[
+				'parses material, bevel, and light rig from a:tcStyle/a:cell3D',
+				'returns undefined when a:tcStyle has no a:cell3D',
+			],
+			['parse'],
+		),
+		testEvidence(
+			'src/core/core/runtime/table-style-entry-parse.test.ts',
+			[
+				'parses a whole-table cell3D bevel into wholeTblCell3D',
+				'leaves wholeTblCell3D undefined when no section defines one',
+			],
 			['parse'],
 		),
 	],
@@ -177,13 +193,15 @@ assign(['drawing:complexType:CT_RelativeRect', 'drawing:element:srcRect'], {
 	preserve: 'unassessed',
 	edit: 'native',
 	serialize: 'native',
-	note: 'Picture source-rect crop (including negative insets, issue #132) is typed, independently edited, and re-serialized; srcRect is deleted when no crop values remain. No dedicated round-trip test evidencing preserve was found, so preserve is left unassessed rather than assumed.',
+	note: 'Picture source-rect crop is a signed ST_Percentage: a negative inset (PowerPoint dragging a crop handle outward past the source bitmap) pads the image inside its frame instead of clamping to 0, matching the sibling a:fillRect handling. The sign now survives parse, the render-side clamp (fill-style.ts clampCropValue), the interactive crop-editor patch (image-adjustments.ts), and save, not just parse; srcRect is deleted when no crop values remain. No dedicated round-trip test evidencing preserve was found, so preserve is left unassessed rather than assumed.',
 	evidence: [
 		testEvidence(
 			'src/core/core/runtime/PptxHandlerRuntimeGeometryParsing.test.ts',
 			[
 				'should parse crop from a:srcRect',
 				'should parse partial crop from a:srcRect (only left and right)',
+				'preserves the sign of a negative a:srcRect inset (issue: outward crop was clamped to 0)',
+				'preserves a negative a:srcRect inset (outward crop pads the image; issue G2)',
 			],
 			['parse'],
 		),
@@ -192,6 +210,8 @@ assign(['drawing:complexType:CT_RelativeRect', 'drawing:element:srcRect'], {
 			[
 				'should delete srcRect when no crop values are set',
 				'should set srcRect for valid crop values',
+				'preserves a negative outward-crop inset instead of clamping to 0 (issue G2)',
+				'writes a negative srcRect inset instead of dropping it (issue G2)',
 			],
 			['edit', 'serialize'],
 		),

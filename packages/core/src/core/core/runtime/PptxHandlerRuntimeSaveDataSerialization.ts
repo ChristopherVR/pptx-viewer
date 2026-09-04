@@ -55,6 +55,7 @@ import {
 	applySurfaceWireframeToXml,
 } from '../../utils/chart-subtype-serializer';
 import { applyChartTitleToXml } from '../../utils/chart-title-serializer';
+import { applyChartTitleStyleToXml } from '../../utils/chart-title-style-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { applyChartUpDownBars } from '../../utils/chart-up-down-bars';
 import type { PptxChartWorkbookWrite } from '../../utils/chart-xlsx-writer';
@@ -667,6 +668,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					{ title: chartData.title, hasTitle: chartData.style?.hasTitle },
 					(key) => this.compatibilityService.getXmlLocalName(key),
 				);
+				if (chartData.style) {
+					applyChartTitleStyleToXml(
+						chartRoot,
+						{
+							fontFamily: chartData.style.titleFontFamily,
+							fontSize: chartData.style.titleFontSize,
+							fontBold: chartData.style.titleFontBold,
+							fontColor: chartData.style.titleFontColor,
+							spPr: chartData.style.titleSpPr,
+						},
+						(key) => this.compatibilityService.getXmlLocalName(key),
+						{ prefix: 'c' },
+						(node) => this.parseColor(node),
+					);
+				}
 
 				if (chartData.pivotFormats !== undefined) {
 					applyChartPivotFormats(chartRoot, chartData.pivotFormats, (key) =>

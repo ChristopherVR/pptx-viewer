@@ -105,6 +105,7 @@ function createExtractor(overrides: Record<string, unknown> = {}) {
 		extractReflectionStyle: () => ({}),
 		extractBlurStyle: () => ({}),
 		extractEffectDagStyle: () => ({}),
+		extractFillOverlayStyle: () => ({}),
 		...overrides,
 	});
 }

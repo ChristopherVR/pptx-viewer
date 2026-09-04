@@ -130,22 +130,18 @@ function parsePatternFill(pattFill: XmlObject): ParsedTableStylePattern | undefi
 }
 
 /**
- * Extract the fill of a table style section (`a:wholeTbl`, `a:band1H`,
- * `a:seCell`, ...) from its `a:tcStyle/a:fill` choice. Handles solid (scheme +
- * sRGB), gradient, pattern, and no-fill. Returns `undefined` when the section
- * defines no resolvable fill (including the unresolved `a:fillRef` case).
+ * Resolve an already-unwrapped EG_FillProperties choice node (a `a:tcStyle/
+ * a:fill` wrapper's contents, or `a:tblPr`'s own directly-child fill) into a
+ * {@link ParsedTableStyleFill}. Handles solid (scheme + sRGB), gradient,
+ * pattern, image, and no-fill. Shared by {@link parseTableStyleSectionFill}
+ * (table-style sections) and {@link parseTablePropertiesFill} (`a:tblPr`'s
+ * own fill, issue G6), which differ only in where the choice node sits.
  */
-export function parseTableStyleSectionFill(
-	section: XmlObject | undefined,
+function parseFillChoiceNode(
+	fillWrap: XmlObject | undefined,
 	resolveImagePath?: ResolveTableStyleImagePath,
 ): ParsedTableStyleFill | undefined {
-	if (!section) {
-		return undefined;
-	}
-	const tcStyle = section['a:tcStyle'] as XmlObject | undefined;
-	const fillWrap = tcStyle?.['a:fill'] as XmlObject | undefined;
 	if (!fillWrap) {
-		// `a:fillRef` style-matrix references are not resolvable here.
 		return undefined;
 	}
 	if (fillWrap['a:noFill'] !== undefined) {
@@ -180,6 +176,46 @@ export function parseTableStyleSectionFill(
 		}
 	}
 	return undefined;
+}
+
+/**
+ * Extract the fill of a table style section (`a:wholeTbl`, `a:band1H`,
+ * `a:seCell`, ...) from its `a:tcStyle/a:fill` choice. Returns `undefined`
+ * when the section defines no resolvable fill (including the unresolved
+ * `a:fillRef` case).
+ */
+export function parseTableStyleSectionFill(
+	section: XmlObject | undefined,
+	resolveImagePath?: ResolveTableStyleImagePath,
+): ParsedTableStyleFill | undefined {
+	if (!section) {
+		return undefined;
+	}
+	const tcStyle = section['a:tcStyle'] as XmlObject | undefined;
+	const fillWrap = tcStyle?.['a:fill'] as XmlObject | undefined;
+	if (!fillWrap) {
+		// `a:fillRef` style-matrix references are not resolvable here.
+		return undefined;
+	}
+	return parseFillChoiceNode(fillWrap, resolveImagePath);
+}
+
+/**
+ * Extract `<a:tblPr>`'s OWN fill (`CT_TableProperties` §21.1.3.15's
+ * `EG_FillProperties` group), independent of `a:tblStyleLst`/`a:tblBg`.
+ *
+ * Unlike a table-style section's fill, which nests under `a:tcStyle/a:fill`,
+ * `a:tblPr`'s fill choice (`a:noFill`/`a:solidFill`/`a:gradFill`/
+ * `a:blipFill`/`a:pattFill`) sits directly on `a:tblPr` itself. Real
+ * PowerPoint decks route table appearance through `tableStyleId` instead, so
+ * this is reachable mainly from non-PowerPoint authoring tools or hand-edited
+ * XML (issue G6).
+ */
+export function parseTablePropertiesFill(
+	tblPr: XmlObject | undefined,
+	resolveImagePath?: ResolveTableStyleImagePath,
+): ParsedTableStyleFill | undefined {
+	return parseFillChoiceNode(tblPr, resolveImagePath);
 }
 
 /**

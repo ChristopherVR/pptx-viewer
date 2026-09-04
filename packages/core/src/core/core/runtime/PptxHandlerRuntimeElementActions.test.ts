@@ -469,4 +469,126 @@ describe('serializeSingleAction', () => {
 		const node = cNvPr['a:hlinkClick'] as XmlObject;
 		expect(node['@_action']).toBe('ppaction://customshow?id=3&return=true');
 	});
+
+	// issue G14: CT_Hyperlink/@endSnd ("Stop previous sound") was parsed
+	// nowhere and never written, so it was dropped on any re-serialize.
+	it("writes endSnd as '1' when true", () => {
+		const cNvPr: XmlObject = {};
+		const action: PptxAction = { rId: 'rId1', endSnd: true };
+		serializeSingleAction(cNvPr, 'a:hlinkClick', action, noopResolver);
+		const node = cNvPr['a:hlinkClick'] as XmlObject;
+		expect(node['@_endSnd']).toBe('1');
+	});
+
+	it('does not write endSnd when false or absent', () => {
+		const cNvPr: XmlObject = {};
+		serializeSingleAction(cNvPr, 'a:hlinkClick', { rId: 'rId1', endSnd: false }, noopResolver);
+		expect((cNvPr['a:hlinkClick'] as XmlObject)['@_endSnd']).toBeUndefined();
+		serializeSingleAction(cNvPr, 'a:hlinkClick', { rId: 'rId1' }, noopResolver);
+		expect((cNvPr['a:hlinkClick'] as XmlObject)['@_endSnd']).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// serializeElementActions - "Mark as decorative" (issue G16)
+// ---------------------------------------------------------------------------
+describe('serializeElementActions - decorative extension (issue G16)', () => {
+	it('writes a decorative a:extLst onto p:cNvPr when el.isDecorative is true', () => {
+		const cNvPr: XmlObject = { '@_id': '1', '@_name': 'Picture 1' };
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPr': cNvPr } };
+		const el = {
+			id: 'p1',
+			type: 'picture',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			isDecorative: true,
+		} as unknown as PptxElement;
+		runtime.serializeElementActions(shape, el, () => undefined);
+		const extLst = cNvPr['a:extLst'] as XmlObject;
+		const ext = extLst['a:ext'] as XmlObject;
+		expect(ext['@_uri']).toBe('{C183D7F6-B498-43B3-948B-1728B52AA6E4}');
+		expect((ext['adec:decorative'] as XmlObject)['@_val']).toBe('1');
+	});
+
+	it('leaves p:cNvPr/a:extLst untouched when el.isDecorative is undefined', () => {
+		const existingExtLst: XmlObject = { 'a:ext': { '@_uri': '{OTHER}', 'foo:bar': {} } };
+		const cNvPr: XmlObject = { 'a:extLst': existingExtLst };
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPr': cNvPr } };
+		const el = {
+			id: 'p1',
+			type: 'picture',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+		} as unknown as PptxElement;
+		runtime.serializeElementActions(shape, el, () => undefined);
+		expect(cNvPr['a:extLst']).toStrictEqual(existingExtLst);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// serializeShapeLocks - a:cNvPicPr/@preferRelativeResize (issue G13)
+// ---------------------------------------------------------------------------
+describe('serializeShapeLocks - preferRelativeResize (issue G13)', () => {
+	it('writes preferRelativeResize onto p:cNvPicPr even with no locks at all', () => {
+		const cNvPicPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPicPr': cNvPicPr } };
+		const el = {
+			id: 'p1',
+			type: 'picture',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			preferRelativeResize: false,
+		} as unknown as PptxElement;
+		runtime.serializeShapeLocks(shape, el);
+		expect(cNvPicPr['@_preferRelativeResize']).toBe('0');
+		// No lock data was supplied, so a:picLocks must not appear.
+		expect(cNvPicPr['a:picLocks']).toBeUndefined();
+	});
+
+	it('writes preferRelativeResize alongside a:picLocks when both are present', () => {
+		const cNvPicPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPicPr': cNvPicPr } };
+		const el = {
+			id: 'p1',
+			type: 'picture',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			preferRelativeResize: true,
+			locks: { noMove: true },
+		} as unknown as PptxElement;
+		runtime.serializeShapeLocks(shape, el);
+		expect(cNvPicPr['@_preferRelativeResize']).toBe('1');
+		expect(cNvPicPr['a:picLocks']).toStrictEqual({ '@_noMove': '1' });
+	});
+
+	it('leaves preferRelativeResize untouched when the element leaves it unset', () => {
+		const cNvPicPr: XmlObject = { '@_preferRelativeResize': '0' };
+		const shape: XmlObject = { 'p:nvPicPr': { 'p:cNvPicPr': cNvPicPr } };
+		runtime.serializeShapeLocks(shape, elementWithLocks('image', { noMove: true }));
+		expect(cNvPicPr['@_preferRelativeResize']).toBe('0');
+	});
+
+	it('does not write preferRelativeResize onto a non-picture container', () => {
+		const cNvSpPr: XmlObject = {};
+		const shape: XmlObject = { 'p:nvSpPr': { 'p:cNvSpPr': cNvSpPr } };
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			preferRelativeResize: false,
+		} as unknown as PptxElement;
+		runtime.serializeShapeLocks(shape, el);
+		expect(cNvSpPr['@_preferRelativeResize']).toBeUndefined();
+	});
 });

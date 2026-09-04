@@ -176,6 +176,19 @@ describe('parseDataTable', () => {
 		});
 	});
 
+	it('resolves a theme-font placeholder typeface (+mn-lt) via resolveTypeface', () => {
+		const plotArea: XmlObject = {
+			'c:dTable': {
+				'c:txPr': {
+					'a:p': { 'a:pPr': { 'a:defRPr': { 'a:latin': { '@_typeface': '+mn-lt' } } } },
+				},
+			},
+		};
+		const resolveTypeface = (raw: string) => (raw === '+mn-lt' ? 'Bahnschrift' : raw);
+		const result = parseDataTable(plotArea, xmlLookup, colorParser, resolveTypeface);
+		expect(result?.txPr).toStrictEqual({ fontFamily: 'Bahnschrift' });
+	});
+
 	it('omits txPr when the defRPr carries none of the recognised attributes', () => {
 		const plotArea: XmlObject = {
 			'c:dTable': { 'c:txPr': { 'a:p': { 'a:pPr': { 'a:defRPr': {} } } } },

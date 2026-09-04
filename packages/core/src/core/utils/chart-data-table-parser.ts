@@ -29,12 +29,14 @@ const FLAGS = ['showHorzBorder', 'showVertBorder', 'showOutline', 'showKeys'] as
  * Parse `c:plotArea/c:dTable`. `colorParser` is optional so callers that only
  * need the boolean flags (e.g. layout-reservation checks) can omit it; when
  * provided, `spPr` (border/fill) and `txPr` (cell text defaults) are parsed
- * too.
+ * too. `resolveTypeface` resolves a theme-font placeholder token (`+mn-lt`,
+ * ...) on `txPr`'s typeface to the deck's concrete theme face.
  */
 export function parseDataTable(
 	plotArea: XmlObject,
 	xmlLookup: XmlLookupLike,
 	colorParser?: ColorParserLike,
+	resolveTypeface?: (raw: string) => string,
 ): PptxChartDataTable | undefined {
 	const dTable = xmlLookup.getChildByLocalName(plotArea, 'dTable');
 	if (!dTable) {
@@ -71,6 +73,7 @@ export function parseDataTable(
 			resolveTxPrDefRPr(txPr, xmlLookup),
 			xmlLookup,
 			colorParser,
+			resolveTypeface,
 		);
 		if (textStyle) {
 			result.txPr = textStyle;

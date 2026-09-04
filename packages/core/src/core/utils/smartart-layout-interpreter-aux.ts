@@ -18,17 +18,25 @@
  *                         connector geometry needs the primary arrangement's
  *                         resolved positions; standalone we arrange the points
  *                         linearly (via the `lin` arranger) and link consecutive
- *                         rects with arrowed paths, honouring `linDir`.
+ *                         rects with arrowed paths, honouring `linDir` plus the
+ *                         connector's own `begSty`/`endSty`/`connRout`/`bendPt`/
+ *                         `dim` params (see `smartart-layout-interpreter-conn-path.ts`).
  *
  * Pure geometry; no framework code, no DOM.
  */
 
-import type { PptxSmartArtNode, SmartArtStyle } from '../types';
+import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
+import type {
+	ConnArrowStyle,
+	ConnDimension,
+	ConnRouting,
+} from './smartart-layout-interpreter-conn-path';
+import { connectorEndpoints, connectorPath } from './smartart-layout-interpreter-conn-path';
 import { arrangeLinear } from './smartart-layout-interpreter-linear';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { resolveFlowDirection } from './smartart-layout-interpreter-model';
+import { algorithmParam, resolveFlowDirection } from './smartart-layout-interpreter-model';
 import { rectNode, styleContext } from './smartart-layout-interpreter-render';
 import type {
 	BoundingBox,
@@ -38,71 +46,29 @@ import type {
 } from './smartart-layout-types';
 
 const INSET = 6;
-/** Half-width of the drawn arrowhead wings, in px. */
-const ARROW_WING = 4;
-/** Length of the arrowhead along the connector, in px. */
-const ARROW_HEAD = 7;
 
-/**
- * Build an SVG path for a straight connector from `(x0,y0)` to `(x1,y1)` with a
- * small chevron arrowhead at the target end (indicating flow direction). When
- * the two points coincide only the (degenerate) move is emitted.
- */
-function arrowPath(x0: number, y0: number, x1: number, y1: number): string {
-	const dx = x1 - x0;
-	const dy = y1 - y0;
-	const len = Math.hypot(dx, dy);
-	const line = `M${x0},${y0} L${x1},${y1}`;
-	if (len < 1e-6) {
-		return line;
-	}
-	const ux = dx / len;
-	const uy = dy / len;
-	// Base of the arrowhead, ARROW_HEAD back from the tip along the segment.
-	const bx = x1 - ux * ARROW_HEAD;
-	const by = y1 - uy * ARROW_HEAD;
-	// Perpendicular unit vector for the two wings.
-	const px = -uy;
-	const py = ux;
-	const w1x = bx + px * ARROW_WING;
-	const w1y = by + py * ARROW_WING;
-	const w2x = bx - px * ARROW_WING;
-	const w2y = by - py * ARROW_WING;
-	return `${line} M${w1x},${w1y} L${x1},${y1} L${w2x},${w2y}`;
-}
-
-/** Connection point on a rect's edge facing the next rect for the flow axis. */
-function connectPoints(
-	from: RenderedRectNode,
-	to: RenderedRectNode,
-	horizontal: boolean,
-): { x0: number; y0: number; x1: number; y1: number } {
-	const fromCx = from.x + from.width / 2;
-	const fromCy = from.y + from.height / 2;
-	const toCx = to.x + to.width / 2;
-	const toCy = to.y + to.height / 2;
-	if (horizontal) {
-		// Link the trailing edge of `from` to the leading edge of `to`, following
-		// the geometric order so it works for both forward and reversed flow.
-		const leftFirst = fromCx <= toCx;
-		return leftFirst
-			? { x0: from.x + from.width, y0: fromCy, x1: to.x, y1: toCy }
-			: { x0: from.x, y0: fromCy, x1: to.x + to.width, y1: toCy };
-	}
-	const topFirst = fromCy <= toCy;
-	return topFirst
-		? { x0: fromCx, y0: from.y + from.height, x1: toCx, y1: to.y }
-		: { x0: fromCx, y0: from.y, x1: toCx, y1: to.y + to.height };
+/** Read `begSty`/`endSty`, defaulting to the pre-existing single-arrowhead-at-target behaviour. */
+function arrowStyle(
+	node: PptxSmartArtLayoutNode,
+	type: string,
+	fallback: ConnArrowStyle,
+): ConnArrowStyle {
+	const raw = algorithmParam(node, type);
+	return raw === 'arr' || raw === 'noArr' ? raw : fallback;
 }
 
 /**
- * Execute the `conn` algorithm: arrange the points linearly and draw an arrowed
- * connector between each consecutive pair (N nodes -> N-1 connectors).
+ * Execute the `conn` algorithm: arrange the points linearly and draw a
+ * connector between each consecutive pair (N nodes -> N-1 connectors), honouring
+ * `begSty`/`endSty` (arrowhead presence), `connRout` (straight/bend/curve),
+ * `dim` (facing-edge vs centre-to-centre routing), and `linDir` ordering.
  *
  * Limitation: this is a standalone best-effort pass. A real `conn` node draws
  * against positions computed by the sibling arranger; without that shared
  * geometry we re-run the linear arrangement here. `presLayoutVars` direction is
  * not threaded through this signature, so only `linDir` reversal is honoured.
+ * `bendPt`'s finer corner-routing variants collapse to one fixed midpoint elbow
+ * (see `smartart-layout-interpreter-conn-path.ts`'s module doc).
  */
 export function arrangeConn(
 	plan: ArrangementPlan,
@@ -121,10 +87,21 @@ export function arrangeConn(
 	const rects = base.nodes.filter((node): node is RenderedRectNode => node.kind === 'rect');
 	const horizontal = flow.orientation === 'horizontal';
 
+	const routingRaw = algorithmParam(plan.node, 'connRout');
+	const routing: ConnRouting =
+		routingRaw === 'bend' || routingRaw === 'curve' ? routingRaw : 'stra';
+	const dim: ConnDimension = algorithmParam(plan.node, 'dim') === '2D' ? '2D' : '1D';
+	const begSty = arrowStyle(plan.node, 'begSty', 'noArr');
+	const endSty = arrowStyle(plan.node, 'endSty', 'arr');
+	const centre = { x: box.width / 2, y: box.height / 2 };
+
 	const connectors: RenderedConnector[] = [];
 	for (let i = 0; i < rects.length - 1; i++) {
-		const { x0, y0, x1, y1 } = connectPoints(rects[i], rects[i + 1], horizontal);
-		connectors.push({ key: `${elementId}-conn-${i}`, d: arrowPath(x0, y0, x1, y1) });
+		const { x0, y0, x1, y1 } = connectorEndpoints(rects[i], rects[i + 1], horizontal, dim);
+		connectors.push({
+			key: `${elementId}-conn-${i}`,
+			d: connectorPath(x0, y0, x1, y1, centre, routing, begSty, endSty),
+		});
 	}
 
 	return { ...base, connectors, family: 'process' };

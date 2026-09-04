@@ -24,9 +24,10 @@ import type {
 	ParsedTableStyleFill,
 	ParsedTableStyleMap,
 	ParsedTableStyleText,
+	PptxTableCell3D,
 	XmlObject,
 } from '../../types';
-import { parseTableStyleBorders } from './table-style-border-parse';
+import { parseTableStyleBorders, parseTableStyleSectionCell3D } from './table-style-border-parse';
 import type { ResolveTableStyleImagePath } from './table-style-fill-parse';
 import { parseTableStyleSectionFill, parseTableStyleSectionText } from './table-style-fill-parse';
 
@@ -117,6 +118,7 @@ export function parseTableStyleEntry(
 	const fills: Partial<Record<`${TableStylePartName}Fill`, ParsedTableStyleFill>> = {};
 	const textProps: Partial<Record<`${TableStylePartName}Text`, ParsedTableStyleText>> = {};
 	const borderProps: Partial<Record<`${TableStylePartName}Borders`, ParsedTableStyleBorders>> = {};
+	const cell3DProps: Partial<Record<`${TableStylePartName}Cell3D`, PptxTableCell3D>> = {};
 	for (const name of TABLE_STYLE_PART_SEQUENCE) {
 		const node = section(name);
 		const fill = parseTableStyleSectionFill(node, resolveImagePath);
@@ -127,9 +129,14 @@ export function parseTableStyleEntry(
 		if (text) {
 			textProps[`${name}Text`] = text;
 		}
-		const borders = parseTableStyleBorders(node?.['a:tcStyle'] as XmlObject | undefined);
+		const tcStyle = node?.['a:tcStyle'] as XmlObject | undefined;
+		const borders = parseTableStyleBorders(tcStyle);
 		if (borders) {
 			borderProps[`${name}Borders`] = borders;
+		}
+		const cell3D = parseTableStyleSectionCell3D(tcStyle);
+		if (cell3D) {
+			cell3DProps[`${name}Cell3D`] = cell3D;
 		}
 	}
 
@@ -149,6 +156,7 @@ export function parseTableStyleEntry(
 		...fills,
 		...textProps,
 		...borderProps,
+		...cell3DProps,
 	};
 }
 

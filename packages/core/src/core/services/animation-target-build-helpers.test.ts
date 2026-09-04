@@ -56,6 +56,68 @@ describe('presentationML timing target choices', () => {
 		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
 	});
 
+	it('round-trips a p:subSp sub-shape target (grouped shape animation)', () => {
+		const xml: XmlObject = { 'p:spTgt': { '@_spid': '4', 'p:subSp': { '@_spid': '3' } } };
+		const parsed = parseTimeTargetElement(xml);
+		expect(parsed).toMatchObject({ type: 'shape', shapeId: '4', subShapeId: '3' });
+		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
+	});
+
+	it('removes p:subSp when the model no longer carries a subShapeId', () => {
+		expect(
+			serializeTimeTargetElement({
+				type: 'shape',
+				shapeId: '4',
+				rawXml: { 'p:spTgt': { '@_spid': '4', 'p:subSp': { '@_spid': '3' } } },
+			}),
+		).toStrictEqual({ 'p:spTgt': { '@_spid': '4' } });
+	});
+
+	it('round-trips a p:graphicEl chart series target', () => {
+		const xml: XmlObject = {
+			'p:spTgt': {
+				'@_spid': '9',
+				'p:graphicEl': { 'p:chart': { '@_seriesIdx': '2', '@_bldStep': 'series' } },
+			},
+		};
+		const parsed = parseTimeTargetElement(xml);
+		expect(parsed).toMatchObject({
+			type: 'shape',
+			shapeId: '9',
+			graphicElement: { kind: 'chart', seriesIdx: 2, bldStep: 'series' },
+		});
+		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
+	});
+
+	it('round-trips a p:graphicEl diagram category target', () => {
+		const xml: XmlObject = {
+			'p:spTgt': {
+				'@_spid': '11',
+				'p:graphicEl': { 'p:dgm': { '@_categoryIdx': '0', '@_bldStep': 'category' } },
+			},
+		};
+		const parsed = parseTimeTargetElement(xml);
+		expect(parsed).toMatchObject({
+			type: 'shape',
+			shapeId: '11',
+			graphicElement: { kind: 'dgm', categoryIdx: 0, bldStep: 'category' },
+		});
+		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
+	});
+
+	it('round-trips a p:oleChartEl legacy OLE chart sub-element target', () => {
+		const xml: XmlObject = {
+			'p:spTgt': { '@_spid': '5', 'p:oleChartEl': { '@_type': 'series', '@_lvl': '1' } },
+		};
+		const parsed = parseTimeTargetElement(xml);
+		expect(parsed).toMatchObject({
+			type: 'shape',
+			shapeId: '5',
+			oleChartElement: { subelementType: 'series', level: 1 },
+		});
+		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
+	});
+
 	it('preserves an unmodelled target choice', () => {
 		const xml: XmlObject = { 'p:futureTgt': { '@_id': 'x' } };
 		const parsed = parseTimeTargetElement(xml);

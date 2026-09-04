@@ -36,11 +36,18 @@ export function resolveTxPrDefRPr(
  * Parse an already-resolved `a:defRPr` node's size/bold/italic/font/colour
  * into a flat text style. Returns `undefined` when the node is absent or
  * carries none of the five recognised attributes.
+ *
+ * `resolveTypeface`, when provided, resolves a theme-font placeholder token
+ * (`+mn-lt`, `+mj-lt`, `+mn-ea`, ...) to the deck's concrete theme face,
+ * mirroring the slide-text path's `resolveThemeTypeface`. Without it, a
+ * `+mn-lt` typeface parses through literally, which is not a usable CSS font
+ * name.
  */
 export function parseDefRPrTextStyle(
 	defRPr: XmlObject | undefined,
 	xmlLookup: XmlLookupLike,
 	colorParser: ColorParserLike,
+	resolveTypeface?: (raw: string) => string,
 ): PptxChartLegendTextStyle | undefined {
 	if (!defRPr) {
 		return undefined;
@@ -59,7 +66,8 @@ export function parseDefRPrTextStyle(
 	}
 	const latin = xmlLookup.getChildByLocalName(defRPr, 'latin');
 	if (latin?.['@_typeface']) {
-		style.fontFamily = String(latin['@_typeface']);
+		const raw = String(latin['@_typeface']);
+		style.fontFamily = resolveTypeface ? resolveTypeface(raw) : raw;
 	}
 	const color = colorParser.parseColor(xmlLookup.getChildByLocalName(defRPr, 'solidFill'));
 	if (color) {

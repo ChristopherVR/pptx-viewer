@@ -74,6 +74,37 @@ function parseShapeParagraphs(
 	return paragraphs.length > 0 ? paragraphs : undefined;
 }
 
+/**
+ * Resolve a shape's fill to a single representative hex colour: a solid fill
+ * directly, otherwise a gradient's first stop or a pattern's foreground as an
+ * approximation (this overlay model has no gradient/pattern fill fields of
+ * its own, so a single colour is the closest fit).
+ */
+function resolveShapeFill(
+	spPr: XmlObject | undefined,
+	xml: XmlLookupLike,
+	colors: ColorParserLike,
+): string | undefined {
+	const solid = colors.parseColor(xml.getChildByLocalName(spPr, 'solidFill'));
+	if (solid) {
+		return solid;
+	}
+	const gradFill = xml.getChildByLocalName(spPr, 'gradFill');
+	if (gradFill) {
+		const gsLst = xml.getChildByLocalName(gradFill, 'gsLst');
+		const firstStop = xml.getChildrenArrayByLocalName(gsLst, 'gs')[0];
+		const gradColor = firstStop ? colors.parseColor(firstStop) : undefined;
+		if (gradColor) {
+			return gradColor;
+		}
+	}
+	const pattFill = xml.getChildByLocalName(spPr, 'pattFill');
+	if (pattFill) {
+		return colors.parseColor(xml.getChildByLocalName(pattFill, 'fgClr'));
+	}
+	return undefined;
+}
+
 /** Parse the shape properties (geometry, fill, line) shared by sp / cxnSp / pic. */
 function parseShapeVisuals(
 	shape: XmlObject,
@@ -88,7 +119,7 @@ function parseShapeVisuals(
 	if (prst) {
 		result.prst = String(prst);
 	}
-	const fill = colors.parseColor(xml.getChildByLocalName(spPr, 'solidFill'));
+	const fill = resolveShapeFill(spPr, xml, colors);
 	if (fill) {
 		result.fill = fill;
 	}
@@ -107,29 +138,68 @@ function parseShapeVisuals(
 	return result;
 }
 
-/** Parse the single sp / cxnSp / pic child inside an anchor into a shape record. */
+const DIRECT_KINDS: Array<'sp' | 'cxnSp' | 'pic'> = ['sp', 'cxnSp', 'pic'];
+
+/** Build one flattened overlay shape from a direct sp / cxnSp / pic node. */
+function buildUserShape(
+	shape: XmlObject,
+	kind: 'sp' | 'cxnSp' | 'pic',
+	base: Pick<PptxChartUserShape, 'anchor' | 'from' | 'to' | 'ext'>,
+	xml: XmlLookupLike,
+	colors: ColorParserLike,
+): PptxChartUserShape {
+	const visuals = parseShapeVisuals(shape, kind, xml, colors);
+	const paragraphs = kind === 'pic' ? undefined : parseShapeParagraphs(shape, xml, colors);
+	return {
+		kind,
+		...base,
+		...visuals,
+		...(paragraphs ? { paragraphs } : {}),
+	};
+}
+
+/**
+ * Parse the shape child(ren) inside an anchor into overlay shape records.
+ *
+ * A direct `sp`/`cxnSp`/`pic` child yields exactly one shape. A `grpSp`
+ * (grouped annotation shapes, e.g. a callout built from several drawn
+ * shapes) is flattened: every grouped child becomes its own entry, all
+ * reusing the anchor's own bounding box as an approximation, since the
+ * group's internal `chOff`/`chExt` transform is not applied. A
+ * `graphicFrame` (e.g. a nested chart or table drawn as an annotation) is
+ * out of scope for real content; it registers a single bare placeholder so
+ * the overlay's space is accounted for instead of the whole anchor
+ * silently disappearing.
+ */
 function parseAnchorShape(
 	anchor: XmlObject,
 	base: Pick<PptxChartUserShape, 'anchor' | 'from' | 'to' | 'ext'>,
 	xml: XmlLookupLike,
 	colors: ColorParserLike,
-): PptxChartUserShape | undefined {
-	const kinds: PptxChartUserShape['kind'][] = ['sp', 'cxnSp', 'pic'];
-	for (const kind of kinds) {
+): PptxChartUserShape[] {
+	for (const kind of DIRECT_KINDS) {
 		const shape = xml.getChildByLocalName(anchor, kind);
-		if (!shape) {
-			continue;
+		if (shape) {
+			return [buildUserShape(shape, kind, base, xml, colors)];
 		}
-		const visuals = parseShapeVisuals(shape, kind, xml, colors);
-		const paragraphs = kind === 'pic' ? undefined : parseShapeParagraphs(shape, xml, colors);
-		return {
-			kind,
-			...base,
-			...visuals,
-			...(paragraphs ? { paragraphs } : {}),
-		};
 	}
-	return undefined;
+
+	const group = xml.getChildByLocalName(anchor, 'grpSp');
+	if (group) {
+		const children: PptxChartUserShape[] = [];
+		for (const kind of DIRECT_KINDS) {
+			for (const child of xml.getChildrenArrayByLocalName(group, kind)) {
+				children.push(buildUserShape(child, kind, base, xml, colors));
+			}
+		}
+		return children;
+	}
+
+	if (xml.getChildByLocalName(anchor, 'graphicFrame')) {
+		return [{ kind: 'graphicFrame', ...base }];
+	}
+
+	return [];
 }
 
 /**
@@ -154,19 +224,18 @@ export function parseChartUserShapesDrawing(
 	for (const anchor of xml.getChildrenArrayByLocalName(root, 'relSizeAnchor')) {
 		const from = xml.getChildByLocalName(anchor, 'from');
 		const to = xml.getChildByLocalName(anchor, 'to');
-		const shape = parseAnchorShape(
-			anchor,
-			{
-				anchor: 'rel',
-				from: { x: markerFraction(from, 'x', xml), y: markerFraction(from, 'y', xml) },
-				to: { x: markerFraction(to, 'x', xml), y: markerFraction(to, 'y', xml) },
-			},
-			xml,
-			colors,
+		shapes.push(
+			...parseAnchorShape(
+				anchor,
+				{
+					anchor: 'rel',
+					from: { x: markerFraction(from, 'x', xml), y: markerFraction(from, 'y', xml) },
+					to: { x: markerFraction(to, 'x', xml), y: markerFraction(to, 'y', xml) },
+				},
+				xml,
+				colors,
+			),
 		);
-		if (shape) {
-			shapes.push(shape);
-		}
 	}
 
 	for (const anchor of xml.getChildrenArrayByLocalName(root, 'absSizeAnchor')) {
@@ -174,19 +243,18 @@ export function parseChartUserShapesDrawing(
 		const ext = xml.getChildByLocalName(anchor, 'ext');
 		const cx = Number.parseFloat(String(ext?.['@_cx'] ?? ''));
 		const cy = Number.parseFloat(String(ext?.['@_cy'] ?? ''));
-		const shape = parseAnchorShape(
-			anchor,
-			{
-				anchor: 'abs',
-				from: { x: markerFraction(from, 'x', xml), y: markerFraction(from, 'y', xml) },
-				ext: { cx: Number.isFinite(cx) ? cx : 0, cy: Number.isFinite(cy) ? cy : 0 },
-			},
-			xml,
-			colors,
+		shapes.push(
+			...parseAnchorShape(
+				anchor,
+				{
+					anchor: 'abs',
+					from: { x: markerFraction(from, 'x', xml), y: markerFraction(from, 'y', xml) },
+					ext: { cx: Number.isFinite(cx) ? cx : 0, cy: Number.isFinite(cy) ? cy : 0 },
+				},
+				xml,
+				colors,
+			),
 		);
-		if (shape) {
-			shapes.push(shape);
-		}
 	}
 
 	return shapes.length > 0 ? shapes : undefined;

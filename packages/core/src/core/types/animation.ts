@@ -88,6 +88,34 @@ export type PptxAnimationTrigger =
  */
 export type PptxNativeAnimationKind = 'media';
 
+/**
+ * `p:spTgt/p:graphicEl` (CT_TLGraphicalObjectBuildElement, ECMA-376 S19.5.34):
+ * identifies exactly which series/category/element of a chart or diagram
+ * build a per-stage effect reveals, when a deck authors one effect per stage
+ * instead of a single staged `p:bldGraphic` reveal.
+ */
+export interface PptxAnimationGraphicElementTarget {
+	/** Which graphic kind: `p:dgm` (diagram) or `p:chart`. */
+	kind: 'dgm' | 'chart';
+	/** `@_seriesIdx`, 0-based series index, when the target is series-scoped. */
+	seriesIdx?: number;
+	/** `@_categoryIdx`, 0-based category index, when the target is category-scoped. */
+	categoryIdx?: number;
+	/** `@_bldStep` (ST_TLChartBuildStep): `category` / `categoryEl` / `series` / `seriesEl`. */
+	bldStep?: string;
+}
+
+/**
+ * `p:spTgt/p:oleChartEl` (CT_TLOleChartTargetElement, ECMA-376 S19.5.44):
+ * legacy pre-DrawingML OLE Graph chart sub-element targeting.
+ */
+export interface PptxAnimationOleChartElementTarget {
+	/** `@_type` (ST_TLOleChartSubelementType): entireChart / series / category / ... */
+	subelementType: string;
+	/** `@_lvl`, optional sub-element level. */
+	level?: number;
+}
+
 /** A target selected by `p:tgtEl` in the PresentationML timing model. */
 export type PptxAnimationTarget =
 	| {
@@ -95,6 +123,18 @@ export type PptxAnimationTarget =
 			shapeId: string;
 			/** Whether `p:spTgt/p:bg` limits the effect to the shape background. */
 			backgroundOnly?: boolean;
+			/**
+			 * `p:spTgt/p:subSp/@_spid`: the id of a shape NESTED inside the group
+			 * named by {@link shapeId} (CT_TLSubShapeId, ECMA-376 S19.5.71).
+			 * PowerPoint authors this when a user animates one member of a group
+			 * without ungrouping it: `shapeId` stays the outer group's id for
+			 * round-trip, but this sub-shape is the real playback target.
+			 */
+			subShapeId?: string;
+			/** `p:spTgt/p:graphicEl`: chart/diagram series/category/element target. */
+			graphicElement?: PptxAnimationGraphicElementTarget;
+			/** `p:spTgt/p:oleChartEl`: legacy OLE chart sub-element target. */
+			oleChartElement?: PptxAnimationOleChartElementTarget;
 			rawXml?: XmlObject;
 	  }
 	| { type: 'slide'; rawXml?: XmlObject }
@@ -466,6 +506,46 @@ export interface PptxNativeAnimation {
 	 * PowerPoint that only emit the SMIL-style filter string.
 	 */
 	effectFilter?: PptxAnimationEffectFilter;
+	/**
+	 * This effect's own `p:cTn/@_id` (a raw OOXML time-node id, not a shape
+	 * id). Lets playback resolve a `p:cond/@tn` dependency (see
+	 * {@link AnimationCondition.targetTimeNodeId}) against the SPECIFIC node
+	 * it names rather than assuming it is always the positionally-previous
+	 * effect. Absent when the node carried no `@_id`.
+	 */
+	nodeId?: number;
+	/**
+	 * Interpolation mode for this effect's PRIMARY `p:anim`-family behaviour
+	 * (the same node {@link keyframes}/{@link attrName} were read from), from
+	 * `@_calcmode` (ST_TLAnimateBehaviorCalcMode, ECMA-376 S19.5.2). See
+	 * {@link PptxAttributeAnimation.calcMode} for the per-component version.
+	 */
+	calcMode?: 'discrete' | 'lin' | 'fmla';
+	/**
+	 * `p:cBhvr/@_additive` (ST_TLBehaviorAdditiveType, ECMA-376 S19.5.4):
+	 * controls how this behaviour's value composites with sibling behaviours
+	 * driving the same attribute on the same target. `sum` accumulates
+	 * (e.g. a combined scale+rotate), `repl`/`base`/`none`/`mult` replace or
+	 * otherwise combine. Absent means the OOXML default (`base`).
+	 */
+	cBhvrAdditive?: 'base' | 'sum' | 'repl' | 'mult' | 'none';
+	/**
+	 * `p:cBhvr/@_accumulate` (ST_TLBehaviorAccumulateType): `always` means
+	 * each `p:cTn/@repeatCount` repeat starts from the PREVIOUS repeat's end
+	 * value (e.g. a 3x Spin totals 1080deg instead of replaying 0-360 three
+	 * times); `none` (the OOXML default) resets every repeat.
+	 */
+	cBhvrAccumulate?: 'none' | 'always';
+	/**
+	 * `p:cBhvr/@_xfrmType` (only meaningful on `p:animMotion`): `point`
+	 * (default) or `img`, a legacy compatibility hint. Round-tripped only.
+	 */
+	cBhvrXfrmType?: 'point' | 'img';
+	/**
+	 * `p:cBhvr/@_override` (ST_TLBehaviorOverrideType): `normal` (default) or
+	 * `childStyle`, a legacy compatibility hint. Round-tripped only.
+	 */
+	cBhvrOverride?: 'normal' | 'childStyle';
 }
 
 /**
@@ -535,6 +615,14 @@ export interface PptxAttributeAnimation {
 	durationMs?: number;
 	/** Start offset from this behaviour's nested `p:stCondLst`. */
 	delayMs?: number;
+	/**
+	 * Interpolation mode from this behaviour's own `@_calcmode`
+	 * (ST_TLAnimateBehaviorCalcMode, ECMA-376 S19.5.2): `discrete` snaps to
+	 * each `p:tav` stop with no interpolation, `lin` (the OOXML default)
+	 * interpolates linearly, `fmla` evaluates `p:tav/@fmla` (not consulted at
+	 * playback here; formulas are round-tripped only). Absent means `lin`.
+	 */
+	calcMode?: 'discrete' | 'lin' | 'fmla';
 }
 
 /** Signed HSL channel deltas parsed from `p:animClr/p:by/p:hsl`. */
@@ -615,7 +703,8 @@ export type AnimationConditionEvent =
 	| 'onMouseOut'
 	| 'onNext'
 	| 'onPrev'
-	| 'onStopAudio';
+	| 'onStopAudio'
+	| 'onDblClick';
 
 /**
  * Structured representation of a single OOXML animation condition

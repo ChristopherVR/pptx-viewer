@@ -29,6 +29,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			softEdgeXml: this.buildSoftEdgeXml(shapeStyle),
 			reflectionXml: this.buildReflectionXml(shapeStyle),
 			blurXml: this.buildBlurXml(shapeStyle),
+			fillOverlayXml: this.buildFillOverlayXml(shapeStyle),
 		});
 	}
 }

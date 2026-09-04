@@ -143,6 +143,9 @@ function applyPageSetup(existing: XmlObject | undefined, value: PptxChartPageSet
 	for (const name of ['blackAndWhite', 'draft', 'useFirstPageNumber'] as const) {
 		setAttr(node, name, value[name]);
 	}
+	for (const name of ['paperHeight', 'paperWidth'] as const) {
+		setAttr(node, name, value[name]);
+	}
 	return node;
 }
 

@@ -43,6 +43,7 @@ export interface IPptxColorStyleCodec {
 	extractReflectionStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	extractBlurStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	extractEffectDagStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
+	extractFillOverlayStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	buildGradientFillXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildOuterShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
@@ -51,6 +52,7 @@ export interface IPptxColorStyleCodec {
 	buildSoftEdgeXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildReflectionXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildBlurXml(shapeStyle: ShapeStyle): XmlObject | undefined;
+	buildFillOverlayXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildLineEffectListXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	extractGradientFillColor(gradFill: XmlObject): string | undefined;
 	extractGradientPathType(gradFill: XmlObject): ShapeStyle['fillGradientPathType'];
@@ -260,6 +262,10 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
 		return this.shapeEffectXmlCodec.extractEffectDagStyle(shapeProps);
 	}
 
+	public extractFillOverlayStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
+		return this.shapeEffectXmlCodec.extractFillOverlayStyle(shapeProps);
+	}
+
 	public buildGradientFillXml(shapeStyle: ShapeStyle): XmlObject | undefined {
 		return this.gradientStyleCodec.buildGradientFillXml(shapeStyle);
 	}
@@ -290,6 +296,10 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
 
 	public buildBlurXml(shapeStyle: ShapeStyle): XmlObject | undefined {
 		return this.shapeEffectXmlCodec.buildBlurXml(shapeStyle);
+	}
+
+	public buildFillOverlayXml(shapeStyle: ShapeStyle): XmlObject | undefined {
+		return this.shapeEffectXmlCodec.buildFillOverlayXml(shapeStyle);
 	}
 
 	public buildLineEffectListXml(shapeStyle: ShapeStyle): XmlObject | undefined {

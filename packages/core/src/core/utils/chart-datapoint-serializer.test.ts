@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
 
+import { PptxXmlLookupService } from '../services/PptxXmlLookupService';
 import type { XmlObject } from '../types';
-import { applySeriesDataPointsToXml } from './chart-datapoint-serializer';
+import {
+	applySeriesDataPointsToXml,
+	parseChartDataPointPicture,
+} from './chart-datapoint-serializer';
+
+const lookup = new PptxXmlLookupService();
 
 const getLocalName = (key: string): string => {
 	const colon = key.indexOf(':');
@@ -120,5 +126,46 @@ describe('applySeriesDataPointsToXml', () => {
 		node['c:dPt'] = { 'c:idx': { '@_val': '0' } };
 		applySeriesDataPointsToXml(node, undefined, getLocalName);
 		expect(node['c:dPt']).toBeUndefined();
+	});
+});
+
+// C2-G9 (parse half): c:dPt/c:pictureOptions is a known, intentionally
+// unmodeled preserve-only child of the serializer above; this pure helper
+// parses it (not yet wired into the real c:dPt parser - see its doc comment).
+describe('parseChartDataPointPicture', () => {
+	it('returns undefined when there is no c:pictureOptions', () => {
+		expect(parseChartDataPointPicture({ 'c:idx': { '@_val': '0' } }, lookup)).toBeUndefined();
+	});
+
+	it('parses apply* flags, pictureFormat, and pictureStackUnit', () => {
+		const dPt: XmlObject = {
+			'c:idx': { '@_val': '0' },
+			'c:pictureOptions': {
+				'c:applyToFront': { '@_val': '1' },
+				'c:applyToSides': { '@_val': '0' },
+				'c:pictureFormat': { '@_val': 'stack' },
+				'c:pictureStackUnit': { '@_val': '36' },
+			},
+		};
+		expect(parseChartDataPointPicture(dPt, lookup)).toStrictEqual({
+			applyToFront: true,
+			applyToSides: false,
+			pictureFormat: 'stack',
+			pictureStackUnit: 36,
+		});
+	});
+
+	it('treats a present CT_Boolean element with no @val as true', () => {
+		const dPt: XmlObject = {
+			'c:pictureOptions': { 'c:applyToEnd': {} },
+		};
+		expect(parseChartDataPointPicture(dPt, lookup)?.applyToEnd).toBeTruthy();
+	});
+
+	it('ignores an invalid pictureFormat value', () => {
+		const dPt: XmlObject = {
+			'c:pictureOptions': { 'c:pictureFormat': { '@_val': 'sideways' } },
+		};
+		expect(parseChartDataPointPicture(dPt, lookup)).toBeUndefined();
 	});
 });

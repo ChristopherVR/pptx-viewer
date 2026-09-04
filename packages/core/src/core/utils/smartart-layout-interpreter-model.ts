@@ -115,10 +115,15 @@ function walk(node: PptxSmartArtLayoutNode, visit: (node: PptxSmartArtLayoutNode
  * step is skipped and the blind first-alg behaviour is preserved. Returns
  * `undefined` when nothing is recognised, so the caller keeps the legacy family
  * approximation.
+ *
+ * `presLayoutVars`, when supplied, lets a `func="var"` `dgm:if` (comparing a
+ * `dgm:varLst` variable, e.g. `dir`) decide its branch - see
+ * `smartart-layout-interpreter-flow.ts`'s `WhenContext`.
  */
 export function discoverArrangement(
 	definition: PptxSmartArtLayoutDefinition,
 	nodeCount?: number,
+	presLayoutVars?: PptxSmartArtPresLayoutVars,
 ): ArrangementPlan | undefined {
 	let hierarchy: PptxSmartArtLayoutNode | undefined;
 	let chosen: ArrangementPlan | undefined;
@@ -127,7 +132,7 @@ export function discoverArrangement(
 	let aux: ArrangementPlan | undefined;
 	walk(definition.rootNode, (node) => {
 		if (!chosen && nodeCount !== undefined && node.choose && node.choose.length > 0) {
-			const type = chooseAlgType(node, nodeCount);
+			const type = chooseAlgType(node, nodeCount, { presLayoutVars });
 			const kind = type ? PRIMARY_ALG[type] : undefined;
 			if (kind && STRUCTURAL.has(kind)) {
 				const arranger = node.children?.find((child) => child.algorithm?.type === type) ?? node;

@@ -52,9 +52,11 @@ export function drawTextSegments(
 	const usableH = h - padT - padB;
 
 	// Vertical alignment.
+	// `distributed` / `justified` spread the lines over the box; centring the
+	// block is the closest static approximation for a rasterised preview.
 	const vAlign = bodyStyle?.vAlign ?? 'top';
 	let y: number;
-	if (vAlign === 'middle') {
+	if (vAlign === 'middle' || vAlign === 'distributed' || vAlign === 'justified') {
 		y = padT + (usableH - totalHeight) / 2;
 	} else if (vAlign === 'bottom') {
 		y = h - padB - totalHeight;

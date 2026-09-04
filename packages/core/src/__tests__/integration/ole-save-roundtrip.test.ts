@@ -435,17 +435,165 @@ describe('oLE element save round-trip (CH-H1)', () => {
 			| undefined;
 		expect(oleEl?.isLinked).toBeTruthy();
 		expect(oleEl?.oleFollowColorScheme).toBe('full');
+		// P1-G3: the source authored updateAutomatic="1"; must parse onto the
+		// typed field, not be silently dropped.
+		expect(oleEl?.oleUpdateAutomatic).toBeTruthy();
 
 		loaded.slides[0].isDirty = true;
 		const savedBytes = await handler.save(loaded.slides);
 		const savedZip = await JSZip.loadAsync(savedBytes);
 		const savedSlideXml = await savedZip.file('ppt/slides/slide1.xml')!.async('string');
 		expect(savedSlideXml).toContain('followColorScheme="full"');
+		expect(savedSlideXml).toContain('updateAutomatic="1"');
 
 		const reloaded = await new PptxHandler().load(savedBytes.buffer as ArrayBuffer);
 		const oleEl2 = reloaded.slides[0].elements.find((e) => e.type === 'ole') as
 			| OlePptxElement
 			| undefined;
 		expect(oleEl2?.oleFollowColorScheme).toBe('full');
+		expect(oleEl2?.oleUpdateAutomatic).toBeTruthy();
+	});
+
+	// P1-G3: `p:link/@updateAutomatic` (CT_OleObjectLink, ECMA-376 §19.3.2.4)
+	it('sDK-created linked OLE element defaults to updateAutomatic="0" (the schema default)', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const ole: OlePptxElement = {
+			id: 'ole-linked-default-update',
+			type: 'ole',
+			x: 10,
+			y: 10,
+			width: 200,
+			height: 150,
+			oleProgId: 'Excel.Sheet.12',
+			isLinked: true,
+		};
+		data.slides.push(createSlide('Blank').addElement(ole).build());
+
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		// Regression: this used to hardcode updateAutomatic="1" regardless of
+		// what the caller asked for.
+		expect(slideXml).toContain('updateAutomatic="0"');
+		expect(slideXml).not.toContain('updateAutomatic="1"');
+	});
+
+	it('sDK-created linked OLE element honours an explicit oleUpdateAutomatic:true', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const ole: OlePptxElement = {
+			id: 'ole-linked-explicit-update',
+			type: 'ole',
+			x: 10,
+			y: 10,
+			width: 200,
+			height: 150,
+			oleProgId: 'Excel.Sheet.12',
+			isLinked: true,
+			oleUpdateAutomatic: true,
+		};
+		data.slides.push(createSlide('Blank').addElement(ole).build());
+
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(slideXml).toContain('updateAutomatic="1"');
+	});
+
+	it('preserves updateAutomatic="0" (manual) from rawXml through an unrelated-field edit', async () => {
+		const linkedSlideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+	xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+	xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+	<p:cSld>
+		<p:spTree>
+			<p:nvGrpSpPr>
+				<p:cNvPr id="1" name=""/>
+				<p:cNvGrpSpPr/>
+				<p:nvPr/>
+			</p:nvGrpSpPr>
+			<p:grpSpPr>
+				<a:xfrm>
+					<a:off x="0" y="0"/>
+					<a:ext cx="0" cy="0"/>
+					<a:chOff x="0" y="0"/>
+					<a:chExt cx="0" cy="0"/>
+				</a:xfrm>
+			</p:grpSpPr>
+			<p:graphicFrame>
+				<p:nvGraphicFramePr>
+					<p:cNvPr id="2" name="Linked Sheet"/>
+					<p:cNvGraphicFramePr/>
+					<p:nvPr/>
+				</p:nvGraphicFramePr>
+				<p:xfrm>
+					<a:off x="914400" y="914400"/>
+					<a:ext cx="2286000" cy="1714500"/>
+				</p:xfrm>
+				<a:graphic>
+					<a:graphicData uri="http://schemas.openxmlformats.org/presentationml/2006/ole">
+						<p:oleObj progId="Excel.Sheet.12" showAsIcon="0" imgW="2286000" imgH="1714500">
+							<p:link r:id="rId2" updateAutomatic="0"/>
+							<p:pic>
+								<p:nvPicPr>
+									<p:cNvPr id="0" name="Picture"/>
+									<p:cNvPicPr/>
+									<p:nvPr/>
+								</p:nvPicPr>
+								<p:blipFill>
+									<a:blip/>
+									<a:stretch><a:fillRect/></a:stretch>
+								</p:blipFill>
+								<p:spPr>
+									<a:xfrm>
+										<a:off x="914400" y="914400"/>
+										<a:ext cx="2286000" cy="1714500"/>
+									</a:xfrm>
+									<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+								</p:spPr>
+							</p:pic>
+						</p:oleObj>
+					</a:graphicData>
+				</a:graphic>
+			</p:graphicFrame>
+		</p:spTree>
+	</p:cSld>
+</p:sld>`;
+		const linkedSlideRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+	<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+	<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject" Target="file:///C:/budget.xlsx" TargetMode="External"/>
+</Relationships>`;
+
+		const {
+			handler: srcHandler,
+			data: srcData,
+			createSlide: srcCreateSlide,
+		} = await PresentationBuilder.create();
+		srcData.slides.push(srcCreateSlide('Blank').build());
+		const baseBytes = await srcHandler.save(srcData.slides);
+		const zip = await JSZip.loadAsync(baseBytes);
+		zip.file('ppt/slides/slide1.xml', linkedSlideXml);
+		zip.file('ppt/slides/_rels/slide1.xml.rels', linkedSlideRelsXml);
+		const patchedBytes = await zip.generateAsync({ type: 'uint8array' });
+
+		const handler = new PptxHandler();
+		const loaded = await handler.load(patchedBytes.buffer as ArrayBuffer);
+		const oleEl = loaded.slides[0].elements.find((e) => e.type === 'ole') as
+			| OlePptxElement
+			| undefined;
+		expect(oleEl?.oleUpdateAutomatic).toBeFalsy();
+
+		// Edit an unrelated field (oleName), leaving oleUpdateAutomatic untouched.
+		if (oleEl) {
+			oleEl.oleName = 'Renamed';
+		}
+		loaded.slides[0].isDirty = true;
+		const savedBytes = await handler.save(loaded.slides);
+		const savedZip = await JSZip.loadAsync(savedBytes);
+		const savedSlideXml = await savedZip.file('ppt/slides/slide1.xml')!.async('string');
+		// Regression: manual (updateAutomatic="0") must survive an edit to a
+		// different OLE field, not be silently upgraded to automatic.
+		expect(savedSlideXml).toContain('updateAutomatic="0"');
+		expect(savedSlideXml).not.toContain('updateAutomatic="1"');
 	});
 });

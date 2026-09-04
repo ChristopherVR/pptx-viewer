@@ -16,6 +16,7 @@ import {
 	readGraphicFramePlaceholder,
 	readInheritedTransform,
 } from './graphic-frame-placeholder';
+import { parseOleUpdateAutomatic } from './ole-update-automatic';
 
 /**
  * Recognised `a:graphicData/a:extLst/a:ext` URIs that map to first-class
@@ -576,6 +577,9 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				// ECMA-376 §19.3.1.28): whether a LINKED object's icon recolours
 				// to match the theme. Only meaningful on the `p:link` form.
 				const oleFollowColorScheme = parseOleFollowColorScheme(oleLinkNode);
+				// `p:link/@updateAutomatic` (P1-G3): automatic vs. manual refresh
+				// for a linked object. Only meaningful on the `p:link` form.
+				const oleUpdateAutomatic = parseOleUpdateAutomatic(oleLinkNode);
 
 				const oleRelationshipId = String(
 					oleLinkNode?.['@_r:id'] ||
@@ -643,6 +647,7 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 					oleImgW,
 					oleImgH,
 					oleFollowColorScheme,
+					oleUpdateAutomatic,
 					actionClick,
 					actionHover,
 					...(extensionXml.length > 0 ? { extensionXml } : {}),

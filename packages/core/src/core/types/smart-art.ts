@@ -7,6 +7,7 @@
  */
 
 import type { PptxCustomPathProperties } from './geometry';
+import type { PptxSmartArtChrome } from './smart-art-chrome';
 import type { PptxSmartArtLayoutDefinition } from './smart-art-layout-definition';
 import type { PptxSmartArtNode } from './smart-art-node';
 import type {
@@ -304,27 +305,9 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	textFrameHeight?: number;
 }
 
-/**
- * Background / outline extracted from `dgm:bg` and `dgm:whole`.
- *
- * @example
- * ```ts
- * const chrome: PptxSmartArtChrome = {
- *   backgroundColor: "#F0F0F0",
- *   outlineColor: "#333333",
- *   outlineWidth: 1,
- * };
- * // => satisfies PptxSmartArtChrome
- * ```
- */
-export interface PptxSmartArtChrome {
-	/** Background fill colour (hex). */
-	backgroundColor?: string;
-	/** Outline stroke colour (hex). */
-	outlineColor?: string;
-	/** Outline stroke width in points. */
-	outlineWidth?: number;
-}
+// Chrome types (PptxSmartArtChrome, PptxSmartArtRawBackgroundFill) live in
+// `smart-art-chrome.ts` to keep this file within the per-file line budget.
+export type { PptxSmartArtChrome, PptxSmartArtRawBackgroundFill } from './smart-art-chrome';
 
 /**
  * Presentation layout variables from `dgm:prSet/dgm:presLayoutVars` (data model)

@@ -56,6 +56,21 @@ describe('chart legend entries', () => {
 		]);
 	});
 
+	it('resolves a theme-font placeholder typeface (+mn-lt) via resolveTypeface', () => {
+		const legend: XmlObject = {
+			'c:legendEntry': {
+				'c:idx': { '@_val': '0' },
+				'c:txPr': {
+					'a:p': { 'a:pPr': { 'a:defRPr': { 'a:latin': { '@_typeface': '+mn-lt' } } } },
+				},
+			},
+		};
+		const resolveTypeface = (raw: string) => (raw === '+mn-lt' ? 'Bahnschrift' : raw);
+		expect(parseChartLegendEntries(legend, localName, parseColor, resolveTypeface)).toStrictEqual([
+			{ index: 0, textStyle: { fontFamily: 'Bahnschrift' } },
+		]);
+	});
+
 	it('edits an entry while preserving its extension list', () => {
 		const root: XmlObject = {
 			'c:plotArea': {},

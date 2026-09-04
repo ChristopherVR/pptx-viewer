@@ -153,6 +153,25 @@ describe('pptxActionToElementAction', () => {
 		const result = pptxActionToElementAction(pptxAction, 'click');
 		expect(result).toStrictEqual({ trigger: 'click', type: 'oleVerb', oleVerb: -1 });
 	});
+
+	// issue G15: ppaction://program ("Run program:") had no branch and fell
+	// through to the generic external-URL case, mis-reporting a Run-Program
+	// action as a plain hyperlink.
+	it('returns runProgram with the resolved url for ppaction://program', () => {
+		const pptxAction: PptxAction = { action: 'ppaction://program', url: 'C:\\tools\\launch.exe' };
+		const result = pptxActionToElementAction(pptxAction, 'click');
+		expect(result).toStrictEqual({
+			trigger: 'click',
+			type: 'runProgram',
+			url: 'C:\\tools\\launch.exe',
+		});
+	});
+
+	it('returns runProgram with no url when the relationship did not resolve', () => {
+		const pptxAction: PptxAction = { action: 'ppaction://program' };
+		const result = pptxActionToElementAction(pptxAction, 'click');
+		expect(result).toStrictEqual({ trigger: 'click', type: 'runProgram' });
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -281,6 +300,24 @@ describe('elementActionToPptxAction', () => {
 		expect(result).toStrictEqual({ action: 'ppaction://ole?verb=0' });
 	});
 
+	it('returns runProgram PptxAction carrying the url for relationship resolution (issue G15)', () => {
+		const ea: ElementAction = { trigger: 'click', type: 'runProgram', url: 'launch.exe' };
+		const result = elementActionToPptxAction(ea);
+		expect(result).toStrictEqual({ action: 'ppaction://program', url: 'launch.exe' });
+	});
+
+	it('does NOT corrupt a Run-Program action into a plain url on an unchanged round-trip (issue G15)', () => {
+		// Reproduces the exact regression: open the Action Settings inspector
+		// on a ppaction://program shape and click OK without changing
+		// anything. Before the fix this fell through to the generic 'url'
+		// ElementActionType and the write-back case dropped the action string.
+		const original: PptxAction = { rId: 'rId5', action: 'ppaction://program', url: 'run.bat' };
+		const elementAction = pptxActionToElementAction(original, 'click');
+		expect(elementAction.type).toBe('runProgram');
+		const roundTripped = elementActionToPptxAction(elementAction);
+		expect(roundTripped?.action).toBe('ppaction://program');
+	});
+
 	it('round-trips every new verb through parse then serialize', () => {
 		const cases: PptxAction[] = [
 			{ action: 'ppaction://hlinkshowjump?jump=lastslideviewed' },
@@ -288,6 +325,7 @@ describe('elementActionToPptxAction', () => {
 			{ action: 'ppaction://customshow?id=7' },
 			{ action: 'ppaction://media' },
 			{ action: 'ppaction://ole?verb=2' },
+			{ action: 'ppaction://program' },
 		];
 		for (const original of cases) {
 			const elementAction = pptxActionToElementAction(original, 'click');

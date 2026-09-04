@@ -44,6 +44,7 @@ import {
 	parseSeriesExplosion,
 	parseMarker,
 } from '../../utils/chart-series-detail-parser';
+import { parseChartSpaceFlags } from '../../utils/chart-space-flags';
 import { parseBar3DShapeVal, parseRadarStyleVal } from '../../utils/chart-subtype-values';
 import { parseChartUpDownBars } from '../../utils/chart-up-down-bars';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartColorStyle';
@@ -97,297 +98,351 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 
-		const chartType = this.detectChartType(plotArea);
-		const lineStyleColorAdapter = {
-			parseColor: (n: XmlObject | undefined, p?: string) => this.parseColor(n, p),
-		};
-		const axes = parseChartAxes(
-			plotArea,
-			this.xmlLookupService,
-			lineStyleColorAdapter,
-			(key: string) => this.compatibilityService.getXmlLocalName(key),
-		);
-
-		// A combo chart's plotArea holds several sibling chart-type containers
-		// (e.g. c:barChart + c:lineChart), each with a subset of the series.
-		// Gather ALL of them, not just the first, so every series loads and can
-		// round-trip under the correct container.
-		const chartContainerKeys = Object.keys(plotArea).filter((key) =>
-			this.compatibilityService.getXmlLocalName(key).endsWith('Chart'),
-		);
-		const seriesContainerKey = chartContainerKeys[0];
-
-		// cx: namespace (Office 2016+) charts use plotAreaRegion instead of *Chart
-		if (!seriesContainerKey) {
-			return this.parseCxChart(
-				plotArea,
-				chartType,
-				chartSpace,
-				chartRoot,
-				chartPart.partPath,
-				chartRelationshipId,
-			);
-		}
-
-		const seriesContainer = plotArea[seriesContainerKey] as XmlObject | undefined;
-
-		const { categories, categoryLevels, series } = this.parseAllChartContainers(
-			plotArea,
-			chartContainerKeys,
-			chartType,
-			axes,
-		);
-		const firstSeriesNode = chartContainerKeys
-			.flatMap((key) =>
-				this.xmlLookupService.getChildrenArrayByLocalName(
-					plotArea[key] as XmlObject | undefined,
-					'ser',
-				),
-			)
-			.at(0);
-		const rawDateCategories = axes.some((axis) => axis.axisType === 'dateAx')
-			? parseChartDateCategories(firstSeriesNode, this.xmlLookupService)
-			: undefined;
-		if (series.length === 0) {
-			return undefined;
-		}
-
-		const titleNode = this.xmlLookupService.getChildByLocalName(chartRoot, 'title');
-		const titleTextValues: string[] = [];
-		this.collectLocalTextValues(titleNode, 't', titleTextValues);
-
-		// Extract chart styling
-		const chartStyle = this.extractChartStyle(chartSpace, chartRoot);
-
-		// Extract grouping mode (bar/line/area)
-		let grouping: PptxChartData['grouping'];
-		const groupingNode = this.xmlLookupService.getChildByLocalName(seriesContainer, 'grouping');
-		if (groupingNode?.['@_val']) {
-			const groupingVal = String(groupingNode['@_val']).trim();
-			if (groupingVal === 'stacked') {
-				grouping = 'stacked';
-			} else if (groupingVal === 'percentStacked') {
-				grouping = 'percentStacked';
-			} else {
-				grouping = 'clustered';
-			}
-		}
-
-		// Parse plot-level rendering options carried on the chart-type container:
-		// varyColors (per-point colouring), firstSliceAng/holeSize (pie/doughnut
-		// geometry), gapWidth/overlap (bar spacing). These are read-only for
-		// rendering; save round-trips them via the preserved chart XML.
-		const varyColors = this.parseChartBoolVal(seriesContainer, 'varyColors');
-		const firstSliceAngle = this.parseChartNumberVal(seriesContainer, 'firstSliceAng');
-		const doughnutHoleSize = this.parseChartNumberVal(seriesContainer, 'holeSize');
-		const barGapWidth = this.parseChartNumberVal(seriesContainer, 'gapWidth');
-		const barOverlap = this.parseChartNumberVal(seriesContainer, 'overlap');
-
-		// Scatter presentation mode (c:scatterStyle). PowerPoint writes it on every
-		// scatter chart it authors and defaults it to `lineMarker`, so a missing
-		// element only happens on hand-written XML.
-		const scatterStyleNode = this.xmlLookupService.getChildByLocalName(
-			seriesContainer,
-			'scatterStyle',
-		);
-		const scatterStyleRaw = String(scatterStyleNode?.['@_val'] ?? '').trim();
-		const scatterStyle = SCATTER_STYLES.has(scatterStyleRaw as PptxChartScatterStyle)
-			? (scatterStyleRaw as PptxChartScatterStyle)
-			: undefined;
-
-		// Bar direction (c:barDir): "bar" is a horizontal bar chart, "col" (or an
-		// absent element) a vertical column chart.
-		let barDirection: PptxChartData['barDirection'];
-		const barDirNode = this.xmlLookupService.getChildByLocalName(seriesContainer, 'barDir');
-		if (barDirNode?.['@_val'] !== undefined) {
-			barDirection = String(barDirNode['@_val']).trim() === 'bar' ? 'bar' : 'col';
-		}
-
-		// 3-D bar/column shape (c:bar3DChart/c:shape), bar3D only.
-		const barShape =
-			chartType === 'bar3D'
-				? parseBar3DShapeVal(
-						String(
-							this.xmlLookupService.getChildByLocalName(seriesContainer, 'shape')?.['@_val'] ?? '',
-						).trim(),
-					)
-				: undefined;
-
-		// Radar drawing style (c:radarChart/c:radarStyle), radar only.
-		const radarStyle =
-			chartType === 'radar'
-				? parseRadarStyleVal(
-						String(
-							this.xmlLookupService.getChildByLocalName(seriesContainer, 'radarStyle')?.['@_val'] ??
-								'',
-						).trim(),
-					)
-				: undefined;
-
-		// Surface wireframe flag (c:surfaceChart|surface3DChart/c:wireframe), surface
-		// only. Absent element is left `undefined`; the CT_Boolean schema default of
-		// `true` applies at the consuming (render) site, matching `plotVisibleOnly`.
-		const wireframe =
-			chartType === 'surface' ? this.parseChartBoolVal(seriesContainer, 'wireframe') : undefined;
-
-		// Store the chart part path for round-trip save
-		const chartPartPath = chartPart.partPath;
-
-		// Parse data table (c:dTable), including its border/fill (c:spPr) and
-		// cell-text defaults (c:txPr) so the renderer can honour authored styling.
-		const dataTable = parseDataTable(plotArea, this.xmlLookupService, lineStyleColorAdapter);
-		// Parse drop lines (c:dropLines) and hi-low lines (c:hiLowLines)
-		const dropLines = parseLineStyle(
-			seriesContainer,
-			'dropLines',
-			this.xmlLookupService,
-			lineStyleColorAdapter,
-		);
-		const hiLowLines = parseLineStyle(
-			seriesContainer,
-			'hiLowLines',
-			this.xmlLookupService,
-			lineStyleColorAdapter,
-		);
-		const upDownBars = parseChartUpDownBars(
-			seriesContainer,
-			this.xmlLookupService,
-			lineStyleColorAdapter,
-		);
-
-		// Parse 3D surfaces (c:floor, c:sideWall, c:backWall)
-		const surfaces = chartRoot
-			? parseChart3DSurfaces(chartRoot, this.xmlLookupService, lineStyleColorAdapter)
-			: {};
-
-		// Parse plotVisOnly (c:plotVisOnly) — defaults to true when absent
-		const plotVisibleOnly = this.parsePlotVisOnly(chartRoot);
-
-		// Parse external data source (c:externalData)
-		const externalData = await this.parseChartExternalData(chartSpace, chartPart.partPath);
-
-		// Parse embedded xlsx workbook if available
-		const embeddedWorkbookData = await this.parseEmbeddedWorkbook(externalData);
-		const dateCategories = rawDateCategories
-			? { ...rawDateCategories, date1904: embeddedWorkbookData?.date1904 ?? false }
-			: undefined;
-
-		// Use embedded workbook data as fallback when chart XML data is insufficient
-		let finalCategories = categories;
-		let finalSeries = series;
-		if (embeddedWorkbookData) {
-			// Fall back to embedded workbook categories when chart XML has none
-			if (finalCategories.length === 0 && embeddedWorkbookData.categories.length > 0) {
-				finalCategories = embeddedWorkbookData.categories;
-			}
-			// Fall back to embedded workbook series when all chart XML series have empty values
-			const allSeriesEmpty = finalSeries.every((s) => s.values.length === 0);
-			if (allSeriesEmpty && embeddedWorkbookData.series.length > 0) {
-				finalSeries = finalSeries.map((s, i) => {
-					const wbSeries = embeddedWorkbookData.series[i];
-					if (wbSeries && wbSeries.values.length > 0) {
-						return { ...s, values: wbSeries.values };
-					}
-					return s;
-				});
-			}
-		}
-
-		// Parse pivot source (c:pivotSource)
-		const pivotSource = this.parsePivotSource(chartSpace);
-
-		// Parse Office 2013+ chart color style (chartColorStyle*.xml)
-		const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
-
-		// Parse ofPie options when this is an ofPieChart container.
-		const ofPieOptions =
-			chartType === 'ofPie' ? this.parseOfPieOptions(seriesContainer) : undefined;
-		const bubbleOptions =
-			chartType === 'bubble'
-				? parseBubbleChartOptions(seriesContainer, (key) =>
-						this.compatibilityService.getXmlLocalName(key),
-					)
-				: undefined;
-		// Parse c:bandFmts (per-height-band colour overrides), surface charts only.
-		const bandFmts =
-			chartType === 'surface' && seriesContainer
-				? parseChartBandFmts(seriesContainer, this.xmlLookupService, lineStyleColorAdapter)
-				: undefined;
-
-		// Parse view3D, top-level chrome flags, and raw preservation blobs.
-		const view3D = this.parseView3D(chartRoot);
-		const chartChrome = this.parseChartChrome(chartRoot);
-		const layouts = parseChartLayouts(chartRoot, (key) =>
-			this.compatibilityService.getXmlLocalName(key),
-		);
-		const userShapesXml = this.parseUserShapesXml(chartSpace);
-		const userShapes = await this.parseChartUserShapes(chartSpace, chartPart.partPath);
-		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
-			this.compatibilityService.getXmlLocalName(key),
-		);
+		// `c:clrMapOvr` remaps the 12 scheme-colour aliases (bg1/tx1/accent1...)
+		// for every `a:schemeClr` resolved while parsing THIS chart's own XML,
+		// exactly as a slide/layout `p:clrMapOvr` does for shape colours
+		// (`PptxHandlerRuntimeColorAndEffects.resolveThemeColor` reads whichever
+		// of `currentSlideClrMapOverride`/`currentMasterClrMap` is set). Applied
+		// for the duration of this whole parse (classic AND cx: charts route
+		// through the same colour resolver) and restored in `finally` so it
+		// never leaks into slide shapes parsed after this chart.
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
-		const printSettings = parseChartPrintSettings(chartSpace, (key) =>
-			this.compatibilityService.getXmlLocalName(key),
-		);
-		const protection = parseChartProtection(chartSpace, (key) =>
-			this.compatibilityService.getXmlLocalName(key),
-		);
+		const previousClrMapOverride = this.currentSlideClrMapOverride;
+		if (clrMapOvr) {
+			this.currentSlideClrMapOverride = clrMapOvr;
+		}
+		try {
+			const chartType = this.detectChartType(plotArea);
+			const lineStyleColorAdapter = {
+				parseColor: (n: XmlObject | undefined, p?: string) => this.parseColor(n, p),
+			};
+			// Chart `a:latin/@typeface` may be a theme placeholder token (`+mn-lt`,
+			// `+mj-lt`, ...); resolve it to the deck's concrete theme face the same
+			// way slide text does, so a chart authored with "theme font" (the
+			// PowerPoint default) does not render with an invalid literal CSS name.
+			const resolveTypeface = (raw: string) => this.resolveThemeTypeface(raw) ?? raw;
+			// `c:date1904`/`c:roundedCorners` are chartSpace-root siblings of
+			// `c:chart`, not children of it, so they cannot live in parseChartChrome.
+			const chartSpaceFlags = parseChartSpaceFlags(chartSpace, this.xmlLookupService);
+			const axes = parseChartAxes(
+				plotArea,
+				this.xmlLookupService,
+				lineStyleColorAdapter,
+				(key: string) => this.compatibilityService.getXmlLocalName(key),
+				resolveTypeface,
+			);
 
-		return {
-			chartType,
-			categories: finalCategories,
-			...(categoryLevels ? { categoryLevels } : {}),
-			...(dateCategories ? { dateCategories } : {}),
-			series: finalSeries,
-			title: titleTextValues[0],
-			style: chartStyle,
-			grouping,
-			...(varyColors !== undefined ? { varyColors } : {}),
-			...(firstSliceAngle !== undefined ? { firstSliceAngle } : {}),
-			...(doughnutHoleSize !== undefined ? { doughnutHoleSize } : {}),
-			...(barGapWidth !== undefined ? { barGapWidth } : {}),
-			...(barOverlap !== undefined ? { barOverlap } : {}),
-			...(barDirection !== undefined ? { barDirection } : {}),
-			...(barShape !== undefined ? { barShape } : {}),
-			...(radarStyle !== undefined ? { radarStyle } : {}),
-			...(wireframe !== undefined ? { wireframe } : {}),
-			...(scatterStyle !== undefined ? { scatterStyle } : {}),
-			chartPartPath,
-			chartRelationshipId,
-			...(dataTable ? { dataTable } : {}),
-			...(dropLines ? { dropLines } : {}),
-			...(hiLowLines ? { hiLowLines } : {}),
-			...(upDownBars ? { upDownBars } : {}),
-			...(axes.length > 0 ? { axes } : {}),
-			...(surfaces.floor ? { floor: surfaces.floor } : {}),
-			...(surfaces.sideWall ? { sideWall: surfaces.sideWall } : {}),
-			...(surfaces.backWall ? { backWall: surfaces.backWall } : {}),
-			...(bandFmts ? { bandFmts } : {}),
-			...(externalData ? { externalData } : {}),
-			...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
-			...(plotVisibleOnly !== undefined ? { plotVisibleOnly } : {}),
-			...(pivotSource ? { pivotSource } : {}),
-			...(chartColorStyle?.palette ? { colorPalette: chartColorStyle.palette } : {}),
-			...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
-			...(chartColorStyle
+			// A combo chart's plotArea holds several sibling chart-type containers
+			// (e.g. c:barChart + c:lineChart), each with a subset of the series.
+			// Gather ALL of them, not just the first, so every series loads and can
+			// round-trip under the correct container.
+			const chartContainerKeys = Object.keys(plotArea).filter((key) =>
+				this.compatibilityService.getXmlLocalName(key).endsWith('Chart'),
+			);
+			const seriesContainerKey = chartContainerKeys[0];
+
+			// cx: namespace (Office 2016+) charts use plotAreaRegion instead of *Chart
+			if (!seriesContainerKey) {
+				return this.parseCxChart(
+					plotArea,
+					chartType,
+					chartSpace,
+					chartRoot,
+					chartPart.partPath,
+					chartRelationshipId,
+				);
+			}
+
+			const seriesContainer = plotArea[seriesContainerKey] as XmlObject | undefined;
+
+			const { categories, categoryLevels, series } = this.parseAllChartContainers(
+				plotArea,
+				chartContainerKeys,
+				chartType,
+				axes,
+			);
+			const firstSeriesNode = chartContainerKeys
+				.flatMap((key) =>
+					this.xmlLookupService.getChildrenArrayByLocalName(
+						plotArea[key] as XmlObject | undefined,
+						'ser',
+					),
+				)
+				.at(0);
+			const rawDateCategories = axes.some((axis) => axis.axisType === 'dateAx')
+				? parseChartDateCategories(firstSeriesNode, this.xmlLookupService)
+				: undefined;
+			if (series.length === 0) {
+				return undefined;
+			}
+
+			const titleNode = this.xmlLookupService.getChildByLocalName(chartRoot, 'title');
+			const titleTextValues: string[] = [];
+			this.collectLocalTextValues(titleNode, 't', titleTextValues);
+			const titleText = titleTextValues[0] ?? this.resolveChartLinkedTitleText(titleNode);
+
+			// Extract chart styling
+			const chartStyle = this.extractChartStyle(chartSpace, chartRoot);
+
+			// Extract grouping mode (bar/line/area)
+			let grouping: PptxChartData['grouping'];
+			const groupingNode = this.xmlLookupService.getChildByLocalName(seriesContainer, 'grouping');
+			if (groupingNode?.['@_val']) {
+				const groupingVal = String(groupingNode['@_val']).trim();
+				if (groupingVal === 'stacked') {
+					grouping = 'stacked';
+				} else if (groupingVal === 'percentStacked') {
+					grouping = 'percentStacked';
+				} else {
+					grouping = 'clustered';
+				}
+			}
+
+			// Parse plot-level rendering options carried on the chart-type container:
+			// varyColors (per-point colouring), firstSliceAng/holeSize (pie/doughnut
+			// geometry), gapWidth/overlap (bar spacing). These are read-only for
+			// rendering; save round-trips them via the preserved chart XML.
+			const varyColors = this.parseChartBoolVal(seriesContainer, 'varyColors');
+			const firstSliceAngle = this.parseChartNumberVal(seriesContainer, 'firstSliceAng');
+			const doughnutHoleSize = this.parseChartNumberVal(seriesContainer, 'holeSize');
+			const barGapWidth = this.parseChartNumberVal(seriesContainer, 'gapWidth');
+			const barOverlap = this.parseChartNumberVal(seriesContainer, 'overlap');
+			// c:gapDepth (bar3D/area3D/line3D/surface3D depth along the series
+			// axis). Same read-only-for-rendering treatment as gapWidth/overlap
+			// above: an untouched deck keeps it via the preserved chart XML.
+			const gapDepth = this.parseChartNumberVal(seriesContainer, 'gapDepth');
+
+			// Scatter presentation mode (c:scatterStyle). PowerPoint writes it on every
+			// scatter chart it authors and defaults it to `lineMarker`, so a missing
+			// element only happens on hand-written XML.
+			const scatterStyleNode = this.xmlLookupService.getChildByLocalName(
+				seriesContainer,
+				'scatterStyle',
+			);
+			const scatterStyleRaw = String(scatterStyleNode?.['@_val'] ?? '').trim();
+			const scatterStyle = SCATTER_STYLES.has(scatterStyleRaw as PptxChartScatterStyle)
+				? (scatterStyleRaw as PptxChartScatterStyle)
+				: undefined;
+
+			// Bar direction (c:barDir): "bar" is a horizontal bar chart, "col" (or an
+			// absent element) a vertical column chart.
+			let barDirection: PptxChartData['barDirection'];
+			const barDirNode = this.xmlLookupService.getChildByLocalName(seriesContainer, 'barDir');
+			if (barDirNode?.['@_val'] !== undefined) {
+				barDirection = String(barDirNode['@_val']).trim() === 'bar' ? 'bar' : 'col';
+			}
+
+			// 3-D bar/column shape (c:bar3DChart/c:shape), bar3D only.
+			const barShape =
+				chartType === 'bar3D'
+					? parseBar3DShapeVal(
+							String(
+								this.xmlLookupService.getChildByLocalName(seriesContainer, 'shape')?.['@_val'] ??
+									'',
+							).trim(),
+						)
+					: undefined;
+
+			// Radar drawing style (c:radarChart/c:radarStyle), radar only.
+			const radarStyle =
+				chartType === 'radar'
+					? parseRadarStyleVal(
+							String(
+								this.xmlLookupService.getChildByLocalName(seriesContainer, 'radarStyle')?.[
+									'@_val'
+								] ?? '',
+							).trim(),
+						)
+					: undefined;
+
+			// Surface wireframe flag (c:surfaceChart|surface3DChart/c:wireframe), surface
+			// only. Absent element is left `undefined`; the CT_Boolean schema default of
+			// `true` applies at the consuming (render) site, matching `plotVisibleOnly`.
+			const wireframe =
+				chartType === 'surface' ? this.parseChartBoolVal(seriesContainer, 'wireframe') : undefined;
+
+			// Store the chart part path for round-trip save
+			const chartPartPath = chartPart.partPath;
+
+			// Parse data table (c:dTable), including its border/fill (c:spPr) and
+			// cell-text defaults (c:txPr) so the renderer can honour authored styling.
+			const dataTable = parseDataTable(
+				plotArea,
+				this.xmlLookupService,
+				lineStyleColorAdapter,
+				resolveTypeface,
+			);
+			// Parse drop lines (c:dropLines) and hi-low lines (c:hiLowLines)
+			const dropLines = parseLineStyle(
+				seriesContainer,
+				'dropLines',
+				this.xmlLookupService,
+				lineStyleColorAdapter,
+			);
+			const hiLowLines = parseLineStyle(
+				seriesContainer,
+				'hiLowLines',
+				this.xmlLookupService,
+				lineStyleColorAdapter,
+			);
+			const upDownBars = parseChartUpDownBars(
+				seriesContainer,
+				this.xmlLookupService,
+				lineStyleColorAdapter,
+			);
+
+			// Parse 3D surfaces (c:floor, c:sideWall, c:backWall)
+			const surfaces = chartRoot
+				? parseChart3DSurfaces(chartRoot, this.xmlLookupService, lineStyleColorAdapter)
+				: {};
+
+			// Parse plotVisOnly (c:plotVisOnly): defaults to true when absent
+			const plotVisibleOnly = this.parsePlotVisOnly(chartRoot);
+
+			// Parse external data source (c:externalData)
+			const externalData = await this.parseChartExternalData(chartSpace, chartPart.partPath);
+
+			// Parse embedded xlsx workbook if available
+			const embeddedWorkbookData = await this.parseEmbeddedWorkbook(externalData);
+			// The chart's own `c:date1904` declaration is authoritative over an
+			// embedded workbook's `workbookPr/@date1904`: a chart can have no usable
+			// embedded workbook at all, or its cache can legitimately differ from
+			// the workbook's current setting.
+			const dateCategories = rawDateCategories
 				? {
-						colorStylePartPath: chartColorStyle.partPath,
-						colorStyleOriginalPalette: [...chartColorStyle.palette],
-						colorStyleOriginalMethod: chartColorStyle.method,
+						...rawDateCategories,
+						date1904: chartSpaceFlags.date1904 ?? embeddedWorkbookData?.date1904 ?? false,
 					}
-				: {}),
-			...(ofPieOptions ? { ofPieOptions } : {}),
-			...(bubbleOptions ? { bubbleOptions } : {}),
-			...(view3D ? { view3D } : {}),
-			...(chartChrome ? { chartChrome } : {}),
-			...(layouts ? { layouts } : {}),
-			...(userShapesXml ? { userShapesXml } : {}),
-			...(userShapes ? { userShapes } : {}),
-			...(pivotFormats ? { pivotFormats } : {}),
-			...(clrMapOvr ? { clrMapOvr } : {}),
-			...(printSettings ? { printSettings } : {}),
-			...(protection ? { protection } : {}),
-		};
+				: undefined;
+
+			// Use embedded workbook data as fallback when chart XML data is insufficient
+			let finalCategories = categories;
+			let finalSeries = series;
+			if (embeddedWorkbookData) {
+				// Fall back to embedded workbook categories when chart XML has none
+				if (finalCategories.length === 0 && embeddedWorkbookData.categories.length > 0) {
+					finalCategories = embeddedWorkbookData.categories;
+				}
+				// Fall back to embedded workbook series when all chart XML series have empty values
+				const allSeriesEmpty = finalSeries.every((s) => s.values.length === 0);
+				if (allSeriesEmpty && embeddedWorkbookData.series.length > 0) {
+					finalSeries = finalSeries.map((s, i) => {
+						const wbSeries = embeddedWorkbookData.series[i];
+						if (wbSeries && wbSeries.values.length > 0) {
+							return { ...s, values: wbSeries.values };
+						}
+						return s;
+					});
+				}
+			}
+
+			// Parse pivot source (c:pivotSource)
+			const pivotSource = this.parsePivotSource(chartSpace);
+
+			// Parse Office 2013+ chart color style (chartColorStyle*.xml)
+			const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
+			// Parse Office 2013+ chart style part (style#.xml), a SEPARATE part from
+			// the colour style: it carries the built-in style's per-element
+			// font/line/fill defaults rather than the series colour cycle.
+			const chartStyleDefinition = await this.parseChartStyleDefinitionPart(chartPartPath);
+
+			// Parse ofPie options when this is an ofPieChart container.
+			const ofPieOptions =
+				chartType === 'ofPie' ? this.parseOfPieOptions(seriesContainer) : undefined;
+			const bubbleOptions =
+				chartType === 'bubble'
+					? parseBubbleChartOptions(seriesContainer, (key) =>
+							this.compatibilityService.getXmlLocalName(key),
+						)
+					: undefined;
+			// Parse c:bandFmts (per-height-band colour overrides), surface charts only.
+			const bandFmts =
+				chartType === 'surface' && seriesContainer
+					? parseChartBandFmts(seriesContainer, this.xmlLookupService, lineStyleColorAdapter)
+					: undefined;
+
+			// Parse view3D, top-level chrome flags, and raw preservation blobs.
+			const view3D = this.parseView3D(chartRoot);
+			const chartChrome = this.parseChartChrome(chartRoot);
+			const layouts = parseChartLayouts(chartRoot, (key) =>
+				this.compatibilityService.getXmlLocalName(key),
+			);
+			const userShapesXml = this.parseUserShapesXml(chartSpace);
+			const userShapes = await this.parseChartUserShapes(chartSpace, chartPart.partPath);
+			const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
+				this.compatibilityService.getXmlLocalName(key),
+			);
+			const printSettings = parseChartPrintSettings(chartSpace, (key) =>
+				this.compatibilityService.getXmlLocalName(key),
+			);
+			const protection = parseChartProtection(chartSpace, (key) =>
+				this.compatibilityService.getXmlLocalName(key),
+			);
+
+			return {
+				chartType,
+				categories: finalCategories,
+				...(categoryLevels ? { categoryLevels } : {}),
+				...(dateCategories ? { dateCategories } : {}),
+				series: finalSeries,
+				title: titleText,
+				style: chartStyle,
+				grouping,
+				...(varyColors !== undefined ? { varyColors } : {}),
+				...(firstSliceAngle !== undefined ? { firstSliceAngle } : {}),
+				...(doughnutHoleSize !== undefined ? { doughnutHoleSize } : {}),
+				...(barGapWidth !== undefined ? { barGapWidth } : {}),
+				...(barOverlap !== undefined ? { barOverlap } : {}),
+				...(barDirection !== undefined ? { barDirection } : {}),
+				...(barShape !== undefined ? { barShape } : {}),
+				...(radarStyle !== undefined ? { radarStyle } : {}),
+				...(wireframe !== undefined ? { wireframe } : {}),
+				...(scatterStyle !== undefined ? { scatterStyle } : {}),
+				chartPartPath,
+				chartRelationshipId,
+				...(dataTable ? { dataTable } : {}),
+				...(dropLines ? { dropLines } : {}),
+				...(hiLowLines ? { hiLowLines } : {}),
+				...(upDownBars ? { upDownBars } : {}),
+				...(axes.length > 0 ? { axes } : {}),
+				...(surfaces.floor ? { floor: surfaces.floor } : {}),
+				...(surfaces.sideWall ? { sideWall: surfaces.sideWall } : {}),
+				...(surfaces.backWall ? { backWall: surfaces.backWall } : {}),
+				...(bandFmts ? { bandFmts } : {}),
+				...(externalData ? { externalData } : {}),
+				...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
+				...(plotVisibleOnly !== undefined ? { plotVisibleOnly } : {}),
+				...(pivotSource ? { pivotSource } : {}),
+				...(chartColorStyle?.palette ? { colorPalette: chartColorStyle.palette } : {}),
+				...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
+				...(chartColorStyle
+					? {
+							colorStylePartPath: chartColorStyle.partPath,
+							colorStyleOriginalPalette: [...chartColorStyle.palette],
+							colorStyleOriginalMethod: chartColorStyle.method,
+						}
+					: {}),
+				...(ofPieOptions ? { ofPieOptions } : {}),
+				...(bubbleOptions ? { bubbleOptions } : {}),
+				...(view3D ? { view3D } : {}),
+				...(chartChrome ? { chartChrome } : {}),
+				...(layouts ? { layouts } : {}),
+				...(userShapesXml ? { userShapesXml } : {}),
+				...(userShapes ? { userShapes } : {}),
+				...(pivotFormats ? { pivotFormats } : {}),
+				...(clrMapOvr ? { clrMapOvr } : {}),
+				...(printSettings ? { printSettings } : {}),
+				...(protection ? { protection } : {}),
+				...(chartSpaceFlags.date1904 !== undefined ? { date1904: chartSpaceFlags.date1904 } : {}),
+				...(chartSpaceFlags.roundedCorners !== undefined
+					? { roundedCorners: chartSpaceFlags.roundedCorners }
+					: {}),
+				...(gapDepth !== undefined ? { gapDepth } : {}),
+				...(chartStyleDefinition ? { chartStyleDefinition } : {}),
+			};
+		} finally {
+			this.currentSlideClrMapOverride = previousClrMapOverride;
+		}
 	}
 
 	/**
@@ -479,6 +534,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return { categories, ...(categoryLevels ? { categoryLevels } : {}), series };
+	}
+
+	/**
+	 * Resolve a chart title's text when it was authored as a linked cell
+	 * reference (`c:title/c:tx/c:strRef`, PowerPoint's "Title Linked to Cell")
+	 * rather than rich text (`c:tx/c:rich`). The linked form's cached text
+	 * lives in `c:strRef/c:strCache/c:pt/c:v`, which has no `a:t` run for
+	 * {@link collectLocalTextValues} to find. Reuses the same strCache reader
+	 * series names fall back to ({@link extractChartSeriesName}), since both
+	 * read a `c:tx` node's strRef/strCache shape.
+	 */
+	private resolveChartLinkedTitleText(titleNode: XmlObject | undefined): string | undefined {
+		const titleTx = this.xmlLookupService.getChildByLocalName(titleNode, 'tx');
+		const cached = this.extractChartPointValues(titleTx, false);
+		return cached[0]?.trim() || undefined;
 	}
 
 	/**
@@ -738,14 +808,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		chartPartPath: string,
 		chartRelationshipId: string,
 	): Promise<PptxChartData | undefined> {
-		const result = parseCxChartSeries(plotArea, this.xmlLookupService, chartSpace);
+		const result = parseCxChartSeries(plotArea, this.xmlLookupService, chartSpace, chartRoot, {
+			parseColor: (node, placeholder) => this.parseColor(node, placeholder),
+		});
 		if (!result) {
 			return undefined;
 		}
+		// The ChartEx (`cx:`) series parser may attach a `chartData` override
+		// (axes, title, and any waterfall/histogram-specific fields resolved by
+		// its own sub-parsers) that should win over this function's own
+		// title/style/axes resolution.
+		const cxOverride = result.chartData;
 
 		const titleNode = this.xmlLookupService.getChildByLocalName(chartRoot, 'title');
 		const titleTextValues: string[] = [];
 		this.collectLocalTextValues(titleNode, 't', titleTextValues);
+		const cxTitleText =
+			cxOverride?.title ?? titleTextValues[0] ?? this.resolveChartLinkedTitleText(titleNode);
 		const chartStyle = this.extractChartStyle(chartSpace, chartRoot);
 
 		// Merge hasDataLabels from cx: data labels parsing
@@ -753,7 +832,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			chartStyle.hasDataLabels = true;
 		}
 
-		// Parse plotVisOnly (c:plotVisOnly) — defaults to true when absent
+		// Parse plotVisOnly (c:plotVisOnly): defaults to true when absent
 		const plotVisibleOnly = this.parsePlotVisOnly(chartRoot);
 
 		// Parse external data source (c:externalData)
@@ -767,6 +846,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Parse Office 2013+ chart color style (chartColorStyle*.xml)
 		const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
+		const chartStyleDefinition = await this.parseChartStyleDefinitionPart(chartPartPath);
+		const chartSpaceFlags = parseChartSpaceFlags(chartSpace, this.xmlLookupService);
 
 		// Parse view3D, top-level chrome flags, and raw preservation blobs.
 		const view3D = this.parseView3D(chartRoot);
@@ -792,7 +873,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			categories: result.categories,
 			...(result.categoryLevels ? { categoryLevels: result.categoryLevels } : {}),
 			series: result.series,
-			title: titleTextValues[0],
+			title: cxTitleText,
 			style: chartStyle,
 			chartPartPath,
 			chartRelationshipId,
@@ -818,6 +899,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(clrMapOvr ? { clrMapOvr } : {}),
 			...(printSettings ? { printSettings } : {}),
 			...(protection ? { protection } : {}),
+			...(chartSpaceFlags.date1904 !== undefined ? { date1904: chartSpaceFlags.date1904 } : {}),
+			...(chartSpaceFlags.roundedCorners !== undefined
+				? { roundedCorners: chartSpaceFlags.roundedCorners }
+				: {}),
+			...(chartStyleDefinition ? { chartStyleDefinition } : {}),
+			// Placed last so a ChartEx sub-parser's own override (title, style,
+			// axes, ...) wins over this function's generic resolution above.
+			...(cxOverride ?? {}),
 		};
 	}
 }

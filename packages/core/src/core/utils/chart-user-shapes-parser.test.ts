@@ -132,4 +132,106 @@ describe('parseChartUserShapesDrawing', () => {
 		expect(shape.strokeWidth).toBe(1.5);
 		expect(shape.paragraphs).toBeUndefined();
 	});
+
+	// C2-G10 (parse half): grpSp/graphicFrame anchors used to be silently
+	// dropped (parseAnchorShape only recognised sp/cxnSp/pic), and a fill was
+	// only ever read from a:solidFill.
+	it('flattens a grpSp anchor into one entry per grouped sp/cxnSp/pic child', () => {
+		const xml = createXmlLookup();
+		const drawing: XmlObject = {
+			'c:userShapes': {
+				'cdr:relSizeAnchor': {
+					'cdr:from': { 'cdr:x': 0.1, 'cdr:y': 0.1 },
+					'cdr:to': { 'cdr:x': 0.4, 'cdr:y': 0.4 },
+					'cdr:grpSp': {
+						'cdr:sp': [
+							{ 'cdr:spPr': { 'a:prstGeom': { '@_prst': 'rect' } } },
+							{ 'cdr:spPr': { 'a:prstGeom': { '@_prst': 'ellipse' } } },
+						],
+						'cdr:cxnSp': { 'cdr:spPr': { 'a:ln': { '@_w': '12700' } } },
+					},
+				},
+			},
+		};
+		const shapes = parseChartUserShapesDrawing(drawing, xml, colors);
+		expect(shapes).toHaveLength(3);
+		expect(shapes!.map((s) => s.kind)).toStrictEqual(['sp', 'sp', 'cxnSp']);
+		expect(shapes!.map((s) => s.prst)).toStrictEqual(['rect', 'ellipse', undefined]);
+		// Every flattened child reuses the anchor's own bounding box.
+		for (const shape of shapes!) {
+			expect(shape.from).toStrictEqual({ x: 0.1, y: 0.1 });
+			expect(shape.to).toStrictEqual({ x: 0.4, y: 0.4 });
+		}
+	});
+
+	it('registers a bare placeholder for a graphicFrame anchor instead of dropping it', () => {
+		const xml = createXmlLookup();
+		const drawing: XmlObject = {
+			'c:userShapes': {
+				'cdr:absSizeAnchor': {
+					'cdr:from': { 'cdr:x': 0.2, 'cdr:y': 0.2 },
+					'cdr:ext': { '@_cx': '100000', '@_cy': '50000' },
+					'cdr:graphicFrame': { '@_name': 'Nested Chart' },
+				},
+			},
+		};
+		const shapes = parseChartUserShapesDrawing(drawing, xml, colors);
+		expect(shapes).toStrictEqual([
+			{
+				kind: 'graphicFrame',
+				anchor: 'abs',
+				from: { x: 0.2, y: 0.2 },
+				ext: { cx: 100000, cy: 50000 },
+			},
+		]);
+	});
+
+	it('resolves a gradient fill from its first stop when there is no solid fill', () => {
+		const xml = createXmlLookup();
+		const drawing: XmlObject = {
+			'c:userShapes': {
+				'cdr:relSizeAnchor': {
+					'cdr:from': { 'cdr:x': 0, 'cdr:y': 0 },
+					'cdr:to': { 'cdr:x': 1, 'cdr:y': 1 },
+					'cdr:sp': {
+						'cdr:spPr': {
+							'a:gradFill': {
+								'a:gsLst': {
+									'a:gs': [
+										{ '@_pos': '0', 'a:srgbClr': { '@_val': 'AABBCC' } },
+										{ '@_pos': '100000', 'a:srgbClr': { '@_val': '112233' } },
+									],
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+		const [shape] = parseChartUserShapesDrawing(drawing, xml, colors)!;
+		expect(shape.fill).toBe('#AABBCC');
+	});
+
+	it('resolves a pattern fill from its foreground colour', () => {
+		const xml = createXmlLookup();
+		const drawing: XmlObject = {
+			'c:userShapes': {
+				'cdr:relSizeAnchor': {
+					'cdr:from': { 'cdr:x': 0, 'cdr:y': 0 },
+					'cdr:to': { 'cdr:x': 1, 'cdr:y': 1 },
+					'cdr:sp': {
+						'cdr:spPr': {
+							'a:pattFill': {
+								'@_prst': 'pct50',
+								'a:fgClr': { 'a:srgbClr': { '@_val': '654321' } },
+								'a:bgClr': { 'a:srgbClr': { '@_val': 'FFFFFF' } },
+							},
+						},
+					},
+				},
+			},
+		};
+		const [shape] = parseChartUserShapesDrawing(drawing, xml, colors)!;
+		expect(shape.fill).toBe('#654321');
+	});
 });

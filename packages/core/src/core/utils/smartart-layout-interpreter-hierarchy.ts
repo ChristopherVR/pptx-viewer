@@ -16,16 +16,33 @@
  *     row before wrapping to the next (standard branch only; a hanging column
  *     has no "row" to wrap).
  *
+ * When `presLayoutVars.hierBranch` is ABSENT (a hand-authored/non-Office
+ * layoutDef that never sets it), orientation falls back to the algorithm's
+ * OWN `linDir` param (`dgm:alg[@type=hierChild]/dgm:param[@type=linDir]`),
+ * per base ECMA-376 - `fromL`/`fromR` select a hanging tree growing away from
+ * that edge, matching `hierBranch="r"`/`"l"`. `fromT` (top-down, the default)
+ * needs no fallback: it already IS the standard branch's own layout.
+ * `fromB` (bottom-up) and `secLinDir`/`chAlign` are not modelled - they would
+ * need restructuring `placeStandardTree`'s row layout to flip vertically /
+ * control cross-axis alignment, out of scope for this fallback (Office-authored
+ * layouts always set `presLayoutVars`, so this only affects non-Office content).
+ *
  * Pure geometry; no framework code, no DOM.
  */
 
-import type { PptxSmartArtNode, PptxSmartArtPresLayoutVars, SmartArtStyle } from '../types';
+import type {
+	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
+	PptxSmartArtPresLayoutVars,
+	SmartArtStyle,
+} from '../types';
 import { buildTree, treeDepth } from './smartart-helpers';
 import { placeHangingForest, placeHangingTree } from './smartart-hierarchy-hanging';
 import type { HangDirection, HangingCursor } from './smartart-hierarchy-hanging';
 import { baseContext, effectiveWidth } from './smartart-hierarchy-shared';
 import { placeStandardTree } from './smartart-hierarchy-standard';
 import type { StandardOptions } from './smartart-hierarchy-standard';
+import { algorithmParam } from './smartart-layout-interpreter-model';
 import type {
 	BoundingBox,
 	RenderedConnector,
@@ -39,7 +56,15 @@ const INIT_TAIL_DIRECTION: HangDirection = 'right';
 
 type BranchMode = 'std' | 'init' | 'hanging';
 
-function branchMode(presLayoutVars: PptxSmartArtPresLayoutVars | undefined): BranchMode {
+/** `linDir` values that select a hanging tree when `hierBranch` is absent. */
+function isHangingLinDir(linDir: string | undefined): boolean {
+	return linDir === 'fromL' || linDir === 'fromR';
+}
+
+function branchMode(
+	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
+	linDir: string | undefined,
+): BranchMode {
 	const branch = presLayoutVars?.hierarchyBranch;
 	if (branch === 'l' || branch === 'r' || branch === 'hang') {
 		return 'hanging';
@@ -47,17 +72,29 @@ function branchMode(presLayoutVars: PptxSmartArtPresLayoutVars | undefined): Bra
 	if (branch === 'init') {
 		return 'init';
 	}
+	if (branch === undefined && isHangingLinDir(linDir)) {
+		return 'hanging';
+	}
 	return 'std';
 }
 
-function hangDirection(presLayoutVars: PptxSmartArtPresLayoutVars | undefined): HangDirection {
+function hangDirection(
+	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
+	linDir: string | undefined,
+): HangDirection {
 	switch (presLayoutVars?.hierarchyBranch) {
 		case 'l':
 			return 'left';
 		case 'hang':
 			return 'alternate';
-		default:
+		case 'r':
 			return 'right';
+		default:
+			// Reached only via the `linDir` fallback in `branchMode` (no explicit
+			// `hierBranch`), so `linDir` is `fromL`/`fromR` here: `fromR` grows the
+			// tree leftward (children lead away from the right edge), `fromL`
+			// grows it rightward.
+			return linDir === 'fromR' ? 'left' : 'right';
 	}
 }
 
@@ -83,11 +120,15 @@ export function arrangeHierarchy(
 	elementId: string,
 	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
 	connectorLabels?: Map<string, string>,
+	algorithmNode?: PptxSmartArtLayoutNode,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const roots = buildTree(nodes);
 	const orgChart = presLayoutVars?.orgChart === true;
-	const mode = branchMode(presLayoutVars);
+	// Only consulted when `presLayoutVars.hierBranch` is absent - see the module
+	// doc comment and `branchMode`/`hangDirection`.
+	const linDir = algorithmNode ? algorithmParam(algorithmNode, 'linDir') : undefined;
+	const mode = branchMode(presLayoutVars, linDir);
 
 	if (mode === 'hanging') {
 		const boxW = Math.min(w * 0.42, 160);
@@ -97,7 +138,7 @@ export function arrangeHierarchy(
 		const hc = baseContext(nodes.length, elementId, palette, style, boxW, boxH, connectorLabels);
 		placeHangingForest(hc, roots, INSET + indent, INSET, {
 			orgChart,
-			direction: hangDirection(presLayoutVars),
+			direction: hangDirection(presLayoutVars, linDir),
 			indent,
 			vGap,
 		});

@@ -518,3 +518,129 @@ describe('parseCxChartSeries', () => {
 		});
 	});
 });
+
+// C2-G4: cx:series/cx:spPr colour resolution beyond a literal a:srgbClr, and
+// cx:dataLabels @pos / cx:numFmt (group-level defaults, applied via
+// PptxChartSeries.dataLabelOptions).
+describe('parseCxChartSeries color/data-label extensions (C2-G4)', () => {
+	const colorParser = {
+		parseColor: (node: XmlObject | undefined): string | undefined => {
+			if (!node) {
+				return undefined;
+			}
+			const srgb = node['a:srgbClr'] as XmlObject | undefined;
+			if (srgb) {
+				return `#${srgb['@_val']}`;
+			}
+			const scheme = node['a:schemeClr'] as XmlObject | undefined;
+			if (scheme?.['@_val'] === 'accent2') {
+				return '#4472C4';
+			}
+			return undefined;
+		},
+	};
+
+	function seriesWithFill(fill: XmlObject): XmlObject {
+		return {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'cx:tx': { 'cx:txData': { 'cx:v': 'S' } },
+					'cx:data': { 'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': '1' }] } } },
+					'cx:spPr': fill,
+				},
+			},
+		};
+	}
+
+	it('resolves a:schemeClr via the colorParser when solid fill is a theme colour', () => {
+		const plotArea = seriesWithFill({ 'a:solidFill': { 'a:schemeClr': { '@_val': 'accent2' } } });
+		const result = parseCxChartSeries(plotArea, xmlLookup, undefined, undefined, colorParser);
+		expect(result!.series[0].color).toBe('#4472C4');
+	});
+
+	it('falls back to a gradient fill first stop when there is no solid fill', () => {
+		const plotArea = seriesWithFill({
+			'a:gradFill': {
+				'a:gsLst': {
+					'a:gs': [
+						{ '@_pos': '0', 'a:srgbClr': { '@_val': 'AABBCC' } },
+						{ '@_pos': '100000', 'a:srgbClr': { '@_val': '112233' } },
+					],
+				},
+			},
+		});
+		const result = parseCxChartSeries(plotArea, xmlLookup, undefined, undefined, colorParser);
+		expect(result!.series[0].color).toBe('#AABBCC');
+	});
+
+	it('falls back to a pattern fill foreground when there is no solid or gradient fill', () => {
+		const plotArea = seriesWithFill({
+			'a:pattFill': { 'a:fgClr': { 'a:srgbClr': { '@_val': '654321' } } },
+		});
+		const result = parseCxChartSeries(plotArea, xmlLookup, undefined, undefined, colorParser);
+		expect(result!.series[0].color).toBe('#654321');
+	});
+
+	it('parses cx:dataLabels @pos and cx:numFmt into dataLabelOptions', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'cx:tx': { 'cx:txData': { 'cx:v': 'S' } },
+					'cx:data': { 'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': '1' }] } } },
+					'cx:dataLabels': {
+						'@_pos': 'outEnd',
+						'cx:numFmt': { '@_formatCode': '$#,##0' },
+						'cx:visibility': { '@_value': '1' },
+					},
+				},
+			},
+		};
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result!.series[0].dataLabelOptions).toStrictEqual({
+			position: 'outEnd',
+			numberFormat: '$#,##0',
+		});
+	});
+});
+
+// Chart-level fields (axes, title) this module can also resolve for a cx:
+// chart, spread by the caller onto its PptxChartData result (see the
+// module's own doc comment on parseCxChartSeries).
+describe('parseCxChartSeries chartData (axes/title) wiring', () => {
+	it('is absent from the result when there is no chartRoot and no cx:axis', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'cx:data': { 'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': '1' }] } } },
+				},
+			},
+		};
+		expect(parseCxChartSeries(plotArea, xmlLookup)?.chartData).toBeUndefined();
+	});
+
+	it('populates chartData.axes from cx:axis siblings of cx:plotAreaRegion', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': { 'cx:data': { 'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': '1' }] } } } },
+			},
+			'cx:axis': { '@_id': '0', 'cx:valScaling': {} },
+		};
+		expect(parseCxChartSeries(plotArea, xmlLookup)?.chartData?.axes).toStrictEqual([
+			{ axisType: 'valAx', axisId: 0, tickLblPos: 'none' },
+		]);
+	});
+
+	it('populates chartData.title from cx:title when a chartRoot is supplied', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': { 'cx:data': { 'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': '1' }] } } } },
+			},
+		};
+		const chartRoot: XmlObject = {
+			'cx:title': { 'cx:tx': { 'cx:rich': { 'a:p': { 'a:r': { 'a:t': 'Q3 Sales' } } } } },
+		};
+		expect(parseCxChartSeries(plotArea, xmlLookup, undefined, chartRoot)?.chartData?.title).toBe(
+			'Q3 Sales',
+		);
+	});
+});

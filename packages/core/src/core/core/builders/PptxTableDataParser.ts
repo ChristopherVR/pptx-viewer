@@ -1,4 +1,11 @@
-import type { PptxTableCellStyle, PptxTableData, PptxTableRow, XmlObject } from '../../types';
+import type {
+	ParsedTableStyleFill,
+	PptxTableCellStyle,
+	PptxTableData,
+	PptxTableRow,
+	XmlObject,
+} from '../../types';
+import { parseTablePropertiesFill } from '../runtime/table-style-fill-parse';
 import { applyCell3DStyle } from './table-cell-3d-helpers';
 import {
 	applyCellFillStyle,
@@ -105,6 +112,20 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 			const bandColCycle = this.extractBandCycle(tableProperties, 'bandColCycle');
 			const rtl = tableProperties['@_rtl'] === '1';
 
+			// a:tblPr's OWN fill/effectLst, independent of a:tblStyleLst/a:tblBg
+			// (issue G6). Reachable mainly from non-PowerPoint authoring tools;
+			// real PowerPoint decks route appearance through tableStyleId.
+			const resolveImagePath = this.context.resolveCellImagePath;
+			const tableFill: ParsedTableStyleFill | undefined = parseTablePropertiesFill(
+				tableProperties,
+				resolveImagePath
+					? (rEmbed, rLink) => resolveImagePath(rEmbed, rLink, slidePath)
+					: undefined,
+			);
+			const tableEffects = Boolean(
+				tableProperties['a:effectLst'] || tableProperties['a:effectDag'],
+			);
+
 			return {
 				rows,
 				columnWidths,
@@ -118,6 +139,8 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 				bandRowCycle: bandRowCycle ?? 1,
 				bandColCycle: bandColCycle ?? 1,
 				...(rtl ? { rtl: true } : {}),
+				...(tableFill ? { tableFill } : {}),
+				...(tableEffects ? { tableEffects: true } : {}),
 			};
 		} catch {
 			return undefined;

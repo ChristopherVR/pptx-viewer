@@ -1,3 +1,4 @@
+import { parseTimeTargetElement } from '../../services/animation-target-build-helpers';
 import { resolveSlideTimingNode } from '../../services/slide-transition-envelope';
 import { XmlObject } from '../../types';
 import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
@@ -7,7 +8,6 @@ import {
 	getPathExtensionFromPath,
 	getImageMimeTypeFromPath,
 	parseCtnMediaTiming,
-	parseMediaExtensionData,
 	resolvePlayAcrossSlides,
 } from './PptxHandlerRuntimeMediaParsingUtils';
 
@@ -34,10 +34,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					continue;
 				}
 
-				// Extract target shape ID
+				// Extract target shape ID. Delegates to the shared timing-target
+				// parser (rather than re-reading `p:spTgt/@_spid` here directly)
+				// so a media node targeting a shape NESTED in a group
+				// (`p:spTgt/p:subSp`) resolves to the real leaf shape, exactly
+				// like every other animation target parse (Rule 2 dedupe: this
+				// used to reimplement a narrower version of the same read).
 				const tgtEl = cMediaNode['p:tgtEl'] as XmlObject | undefined;
-				const spTgt = tgtEl?.['p:spTgt'] as XmlObject | undefined;
-				const shapeId = spTgt?.['@_spid'] ? String(spTgt['@_spid']) : undefined;
+				const target = parseTimeTargetElement(tgtEl);
+				const shapeId =
+					target?.type === 'shape' ? (target.subShapeId ?? target.shapeId) : undefined;
 				if (!shapeId) {
 					continue;
 				}
@@ -77,36 +83,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					posterFramePath = this.resolveRelationshipTarget(slidePath, String(posterRId));
 				}
 
-				// Extension list — fade, bookmarks, speed, trim overrides
-				const extData = parseMediaExtensionData(mediaNode, cMediaNode, shapeId, (v: unknown) =>
-					this.ensureArray(v),
-				);
-
-				// Merge trim values: cTn values take priority, ext overrides fill gaps
-				const trimStartMs = timing.trimStartMs ?? extData.trimStartMs;
-				const trimEndMs = timing.trimEndMs ?? extData.trimEndMs;
-
-				// Resolve the p14:media embedded-media relationship so a media
-				// element referenced only via the p14 extension still has a source.
-				const mediaEmbedPath = extData.embedRId
-					? this.resolveRelationshipTarget(slidePath, extData.embedRId)
-					: undefined;
-
+				// `p14:media` (trim/fade/bookmarks/embed) is NOT read here (G18):
+				// real PowerPoint never writes that extension under the TIMING
+				// tree's `p:video`/`p:audio`/`p:cMediaNode`, only under the
+				// picture's own `p:nvPr/p:extLst` (see `parsePicture`, which reads
+				// it directly off `nvPr` and sets those fields on the element).
+				// This map now carries only the genuine `p:cMediaNode`/`p:cTn`
+				// flags: fullScreen, loop, volume, autoPlay, playAcrossSlides,
+				// hideWhenNotPlaying, posterFramePath.
 				result.set(shapeId, {
-					trimStartMs: trimStartMs !== undefined && !isNaN(trimStartMs) ? trimStartMs : undefined,
-					trimEndMs: trimEndMs !== undefined && !isNaN(trimEndMs) ? trimEndMs : undefined,
 					fullScreen: fullScreen || undefined,
 					loop: timing.loop || undefined,
 					posterFramePath,
 					volume,
-					fadeInDuration: extData.fadeInDuration,
-					fadeOutDuration: extData.fadeOutDuration,
 					autoPlay: timing.autoPlay || undefined,
 					playAcrossSlides: playAcrossSlides || undefined,
 					hideWhenNotPlaying: hideWhenNotPlaying || undefined,
-					bookmarks: extData.bookmarks.length > 0 ? extData.bookmarks : undefined,
-					playbackSpeed: extData.playbackSpeed,
-					mediaEmbedPath,
 				});
 			}
 		}
@@ -140,7 +132,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Walk the slide's `p:timing` tree and collect media-specific timing data
 	 * (`p:video` / `p:audio` → `p:cMediaNode`) keyed by target shape ID.
 	 *
-	 * Returns a map of shapeId → { trimStartMs, trimEndMs, fullScreen, loop, posterFramePath }.
+	 * Returns a map of shapeId → { fullScreen, loop, volume, autoPlay,
+	 * playAcrossSlides, hideWhenNotPlaying, posterFramePath }. Trim, fade,
+	 * bookmarks and the `p14:media` embed fallback are NOT sourced from here
+	 * (see the comment inside {@link walkMediaTimingTree}); `parsePicture`
+	 * reads those directly off the picture's own `p:nvPr/p:extLst`.
 	 */
 	protected extractMediaTimingMap(
 		slideXml: XmlObject,

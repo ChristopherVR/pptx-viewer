@@ -6,14 +6,17 @@
  */
 
 import type { PptxChartAxisLabelFormatting } from './chart-axis';
+import type { PptxChartDataPointPicture } from './chart-ex';
 import type { PptxChartPivotFormats } from './chart-pivot-format';
 import type { PptxChartPivotSource } from './chart-pivot-source';
 import type { PptxChartPrintSettings } from './chart-print-settings';
 import type { PptxChartProtection } from './chart-protection';
+import type { PptxChartStyleDefinition } from './chart-style-definition';
 import type { PptxChartUserShape } from './chart-user-shapes';
 import type { XmlObject } from './common';
 
 export type { PptxChartUserShape, PptxChartUserShapeParagraph } from './chart-user-shapes';
+export type { PptxChartStyleDefinition, PptxChartStylePartEntry } from './chart-style-definition';
 
 // ==========================================================================
 // Chart types
@@ -283,6 +286,8 @@ export interface PptxChartDataPoint {
 	marker?: PptxChartMarker;
 	/** Render a bubble-chart point with a 3-D appearance. */
 	bubble3D?: boolean;
+	/** Per-point picture-fill flags (`c:dPt/c:pictureOptions`). */
+	picture?: PptxChartDataPointPicture;
 }
 
 /** Schema values accepted by `c:dLblPos`. */
@@ -312,6 +317,18 @@ export interface PptxChartDataLabel {
 	text?: string;
 	separator?: string;
 	showLeaderLines?: boolean;
+	/**
+	 * Per-label number-format override (`c:dLbl/c:numFmt/@formatCode`), taking
+	 * precedence over the chart-level {@link PptxChartDataLabelOptions.numberFormat}
+	 * and the series' own {@link PptxChartSeries.numberFormat} when set.
+	 */
+	numberFormat?: string;
+	/**
+	 * Manually dragged label position (`c:dLbl/c:layout/c:manualLayout`), the
+	 * same CT_ManualLayout shape used for title/legend/plotArea. `null`
+	 * explicitly clears a drag back to the automatic position.
+	 */
+	layout?: PptxChartManualLayout | null;
 }
 
 /** Axis number format. */
@@ -449,8 +466,28 @@ export interface PptxChartWaterfallOptions {
 	connectorLines?: boolean;
 }
 
+/**
+ * A single breakpoint in a ChartEx colour-by-value scale
+ * (`cx:valueColorPositions/cx:colorPosition`). `kind` selects which of
+ * CT_ColorPosition's union members was authored; `value` is absent for
+ * `min`/`max` (they are implicit endpoints) and required otherwise.
+ */
+export interface PptxCxValueColorPosition {
+	kind: 'min' | 'max' | 'number' | 'percent';
+	value?: number;
+}
+
 /** Office 2016 ChartEx geographic series dimensions and layout options. */
 export interface PptxChartRegionMapOptions {
+	/**
+	 * Colour-by-value gradient stops (`cx:valueColors/cx:colors/cx:color`),
+	 * resolved to hex, 2 or 3 entries (matching PowerPoint's two- and
+	 * three-colour scale UI). Paired index-for-index with
+	 * {@link valueColorPositions} when both are present.
+	 */
+	valueColors?: string[];
+	/** Gradient breakpoints for {@link valueColors} (`cx:valueColorPositions`). */
+	valueColorPositions?: PptxCxValueColorPosition[];
 	/** Optional provider entity identifiers aligned with categories and values. */
 	entityIds?: string[];
 	/** Original `cx:pt/@idx` values for category points. */
@@ -626,6 +663,12 @@ export interface PptxChartDataLabelOptions {
 	 * Omit to let PowerPoint use the type default.
 	 */
 	position?: PptxChartDataLabelPosition;
+	/**
+	 * Chart-level number-format override (`c:dLbls/c:numFmt/@formatCode`),
+	 * applied to every label of the series/chart-type unless a per-point
+	 * {@link PptxChartDataLabel.numberFormat} overrides it.
+	 */
+	numberFormat?: string;
 }
 
 /** Typed text defaults for a single chart legend entry. */
@@ -685,6 +728,18 @@ export interface PptxChartStyle {
 	hasDataLabels?: boolean;
 	/** Chart-level data-label content/position options (when `hasDataLabels`). */
 	dataLabels?: PptxChartDataLabelOptions;
+
+	/**
+	 * Font styling for the chart's own title (`c:title/c:txPr`), edited via
+	 * `applyChartTitleStyleToXml` (chart-title-style-serializer.ts). Distinct
+	 * from an axis title's styling (`PptxChartAxisFormatting.fontFamily` etc.).
+	 */
+	titleFontFamily?: string;
+	titleFontSize?: number;
+	titleFontBold?: boolean;
+	titleFontColor?: string;
+	/** Title text-box fill/border (`c:title/c:spPr`). `null` removes it. */
+	titleSpPr?: PptxChartShapeProps | null;
 }
 
 /**
@@ -1083,4 +1138,40 @@ export interface PptxChartData {
 	 * `attribute → value` map for round-trip fidelity.
 	 */
 	clrMapOvr?: Record<string, string>;
+
+	/**
+	 * Whether the chart's own cached numeric values use the 1904 date epoch
+	 * (`c:chartSpace/c:date1904/@val`). Independent of, and authoritative over,
+	 * any embedded workbook's `workbookPr/@date1904` (a chart can lack an
+	 * embedded workbook entirely, or its cache can legitimately differ from the
+	 * workbook's current setting). Absent when the source XML omits the
+	 * element, in which case the 1900 system applies (the schema default).
+	 */
+	date1904?: boolean;
+
+	/**
+	 * PowerPoint's "Rounded corners" chart-area option
+	 * (`c:chartSpace/c:roundedCorners/@val`, default `false`). Absent when the
+	 * source XML omits the element.
+	 */
+	roundedCorners?: boolean;
+
+	/**
+	 * 3-D chart depth/spacing along the series axis, as a percentage
+	 * (`c:gapDepth/@val`, `ST_GapAmount`, 0 through 500). Legal on
+	 * `bar3D`/`area3D`/`line3D`/`surface` chart-type containers only. Read-only
+	 * for rendering, matching {@link barGapWidth}/{@link barOverlap}: save
+	 * round-trips it via the preserved chart XML rather than a typed edit path.
+	 */
+	gapDepth?: number;
+
+	/**
+	 * Parsed Office 2013+ chart-style part (`ppt/charts/style#.xml`,
+	 * `cs:chartStyle`), providing per-element font/line/fill defaults for
+	 * whichever built-in "Chart Styles" gallery entry ({@link PptxChartStyle.styleId})
+	 * is active. Absent when the chart has no such part (common for
+	 * automation-authored charts, where PowerPoint still implies style 2's
+	 * look via its own bundled defaults).
+	 */
+	chartStyleDefinition?: PptxChartStyleDefinition;
 }

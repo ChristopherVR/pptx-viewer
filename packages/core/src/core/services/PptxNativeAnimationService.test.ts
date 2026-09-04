@@ -1607,6 +1607,117 @@ describe('pptxNativeAnimationService', () => {
 		});
 	});
 
+	describe('sub-shape targeting, cBhvr attrs, calcmode, node id (G1/G4/G5)', () => {
+		it('resolves targetId to the grouped p:subSp shape, not the enclosing group', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'@_presetClass': 'entr',
+										'@_presetID': '1',
+										'p:childTnLst': {
+											'p:animEffect': {
+												'p:cBhvr': {
+													'p:tgtEl': {
+														'p:spTgt': {
+															'@_spid': '4',
+															'p:subSp': { '@_spid': '3' },
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const anim = service.parseNativeAnimations(slideXml)?.[0];
+			expect(anim?.targetId).toBe('3');
+			expect(anim?.target).toMatchObject({ type: 'shape', shapeId: '4', subShapeId: '3' });
+		});
+
+		it('parses p:cBhvr additive/accumulate/xfrmType/override and the effect nodeId', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '7',
+										'@_presetClass': 'emph',
+										'@_presetID': '1',
+										'p:childTnLst': {
+											'p:animRot': {
+												'@_by': '21600000',
+												'p:cBhvr': {
+													'@_additive': 'sum',
+													'@_accumulate': 'always',
+													'@_xfrmType': 'point',
+													'@_override': 'normal',
+													'p:tgtEl': { 'p:spTgt': { '@_spid': 'spin1' } },
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const anim = service.parseNativeAnimations(slideXml)?.[0];
+			expect(anim?.nodeId).toBe(7);
+			expect(anim?.cBhvrAdditive).toBe('sum');
+			expect(anim?.cBhvrAccumulate).toBe('always');
+			expect(anim?.cBhvrXfrmType).toBe('point');
+			expect(anim?.cBhvrOverride).toBe('normal');
+		});
+
+		it('parses p:anim/@_calcmode', () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_presetClass': 'emph',
+										'@_presetID': '1',
+										'p:childTnLst': {
+											'p:anim': {
+												'@_calcmode': 'discrete',
+												'p:cBhvr': {
+													'p:tgtEl': { 'p:spTgt': { '@_spid': 'toggle1' } },
+													'p:attrNameLst': { 'p:attrName': 'style.visibility' },
+												},
+												'p:tavLst': {
+													'p:tav': [
+														{ '@_tm': '0', 'p:val': { 'p:strVal': { '@_val': 'visible' } } },
+														{ '@_tm': '50000', 'p:val': { 'p:strVal': { '@_val': 'hidden' } } },
+													],
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const anim = service.parseNativeAnimations(slideXml)?.[0];
+			expect(anim?.calcMode).toBe('discrete');
+		});
+	});
+
 	// -----------------------------------------------------------------------
 	// Error handling
 	// -----------------------------------------------------------------------

@@ -384,6 +384,28 @@ export interface ShapeStyle {
 	/** Fill overlay tint opacity (0-1), from the overlay fill colour's alpha. */
 	dagFillOverlayOpacity?: number;
 
+	// ── Direct effectLst fillOverlay (CT_EffectList §20.1.8.24) ───────────
+	// `a:fillOverlay` is a legal direct sibling of the other effectLst
+	// primitives (blur/glow/shadow/etc.), distinct from the effectDag form
+	// above (different XML location, so kept in separate fields to avoid
+	// the two colliding when both happen to be present).
+
+	/** Fill overlay blend mode from a direct `a:effectLst/a:fillOverlay/@blend`. */
+	shapeFillOverlayBlend?: 'over' | 'mult' | 'screen' | 'darken' | 'lighten';
+	/**
+	 * Fill overlay tint colour (hex `#RRGGBB`) from a direct
+	 * `a:effectLst/a:fillOverlay`'s `a:solidFill`/`a:gradFill`.
+	 */
+	shapeFillOverlayColor?: string;
+	/** Fill overlay tint opacity (0-1), from the overlay fill colour's alpha. */
+	shapeFillOverlayOpacity?: number;
+	/** Original source `a:fillOverlay` node, preserved for lossless surgical updates. */
+	fillOverlayXml?: XmlObject;
+	/** Resolved source fill-overlay colour used to detect colour edits. */
+	shapeFillOverlayOriginalColor?: string;
+	/** Source fill-overlay opacity used to detect alpha edits. */
+	shapeFillOverlayOriginalOpacity?: number;
+
 	// ── Style references (CT_ShapeStyle §20.1.2.2.36) ─────────────────────
 	// These mirror the `<p:style>` element on a shape. They preserve the
 	// theme matrix indices so PowerPoint's Recolor / Reset / Quick Style

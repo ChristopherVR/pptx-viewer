@@ -86,7 +86,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: 'Typed DrawingML audio-file and Audio CD timing metadata.',
+		note: 'Typed DrawingML audio-file and Audio CD timing metadata. Since issue G17, a linked (`r:link`, TargetMode="External") a:audioFile resolves to the verbatim external URL instead of being joined through the package-relative path resolver into a corrupted, unloadable path; resolution is gated behind the same allowExternalMedia flag pictures already use for external images.',
 		evidence: [
 			testEvidence('src/core/utils/drawing-media-reference.test.ts', [
 				'parses arbitrary element and relationship prefixes',
@@ -97,9 +97,41 @@ assign(
 			testEvidence('src/__tests__/integration/drawing-audio-metadata-roundtrip.test.ts', [
 				'authors and reloads an Audio CD reference without a media relationship',
 			]),
+			testEvidence(
+				'src/core/core/builders/media-data-parser.test.ts',
+				[
+					'marks r:link media as linked only when the relationship is external',
+					'resolves a linked external r:link target to the verbatim URL, not a corrupted archive path',
+					'blocks a linked external r:link target when allowExternalMedia is not granted',
+					'returns the verbatim URL for an external relationship when allowExternalMedia grants it',
+					'never joins an external target through resolvePath, granted or not',
+				],
+				['parse'],
+			),
 		],
 	},
 );
+
+assign(['drawing:complexType:CT_VideoFile', 'drawing:element:videoFile'], {
+	parse: 'native',
+	preserve: 'unassessed',
+	edit: 'unassessed',
+	serialize: 'unassessed',
+	note: 'Typed DrawingML video-file reference (r:link/r:embed). Since issue G17, a linked (r:link, TargetMode="External") a:videoFile resolves to the verbatim external URL: before the fix, `resolveRelationshipTarget` joined every relationship (embedded or external) through the package-relative path resolver, turning `https://example.com/clip.mp4` into a nonsense path like `ppt/slides/https:/example.com/clip.mp4`. isLinked was already computed but never consulted for path resolution. No dedicated save-path test was found demonstrating independent re-serialization of the reference, so preserve/edit/serialize are left unassessed rather than assumed.',
+	evidence: [
+		testEvidence(
+			'src/core/core/builders/media-data-parser.test.ts',
+			[
+				'detects video element from a:videoFile',
+				'resolves video media path from r:link relationship',
+				'prefers r:link over r:embed for video',
+				'resolves a linked external r:link target to the verbatim URL, not a corrupted archive path',
+				'blocks a linked external r:link target when allowExternalMedia is not granted',
+			],
+			['parse'],
+		),
+	],
+});
 
 assign(
 	[

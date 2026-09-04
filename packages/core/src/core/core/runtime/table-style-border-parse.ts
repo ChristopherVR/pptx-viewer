@@ -15,6 +15,7 @@ import type {
 	ParsedTableStyleBorder,
 	ParsedTableStyleBorders,
 	ParsedTableStyleFill,
+	PptxTableCell3D,
 	XmlObject,
 } from '../../types';
 
@@ -32,7 +33,14 @@ export function parseTintShadeVal(value: unknown): number | undefined {
 	return fraction === undefined || fraction === 0 ? undefined : Math.round(fraction * 100_000);
 }
 
-/** The eight `a:tcBdr` child sides, in OOXML order. */
+/**
+ * The eight `a:tcBdr` child sides, in OOXML order (`CT_TableCellBorderStyle`:
+ * left, right, top, bottom, insideH, insideV, tl2br, tr2bl). The anti-diagonal
+ * element is `tr2bl` (confirmed against this repo's own generated schema
+ * inventory); `bl2tr` never appears in real OOXML and is read only as a
+ * lenient legacy alias below (issue G4: this app previously wrote/read that
+ * misspelled key).
+ */
 const BORDER_SIDES = [
 	'left',
 	'right',
@@ -41,7 +49,7 @@ const BORDER_SIDES = [
 	'insideH',
 	'insideV',
 	'tl2br',
-	'bl2tr',
+	'tr2bl',
 ] as const;
 
 /**
@@ -135,11 +143,77 @@ export function parseTableStyleBorders(
 	const result: ParsedTableStyleBorders = {};
 	let has = false;
 	for (const name of BORDER_SIDES) {
-		const border = parseBorderSide(tcBdr[`a:${name}`] as XmlObject | undefined);
+		// `tr2bl` is the real element; accept a legacy `a:bl2tr` node as a
+		// fallback (files this app previously wrote used that misspelled key).
+		const node =
+			(tcBdr[`a:${name}`] as XmlObject | undefined) ??
+			(name === 'tr2bl' ? (tcBdr['a:bl2tr'] as XmlObject | undefined) : undefined);
+		const border = parseBorderSide(node);
 		if (border) {
 			result[name] = border;
 			has = true;
 		}
 	}
 	return has ? result : undefined;
+}
+
+/**
+ * Parse the `a:cell3D` child of a table style section's `a:tcStyle`
+ * (CT_TableStyleCellStyle) into a {@link PptxTableCell3D}. Mirrors the XML
+ * shape `applyCell3DStyle` (`table-cell-3d-helpers.ts`) reads for the
+ * per-cell `a:tcPr/a:cell3D`; this is the table-STYLE-level sibling, which
+ * none of PowerPoint's 74 built-in gallery styles use but a hand-authored or
+ * third-party style can (issue G5).
+ */
+export function parseTableStyleSectionCell3D(
+	tcStyle: XmlObject | undefined,
+): PptxTableCell3D | undefined {
+	const cell3DNode = tcStyle?.['a:cell3D'] as XmlObject | undefined;
+	if (!cell3DNode) {
+		return undefined;
+	}
+
+	const cell3D: PptxTableCell3D = {};
+	let hasStyle = false;
+
+	const material = String(cell3DNode['@_prstMaterial'] || '').trim();
+	if (material) {
+		cell3D.material = material;
+		hasStyle = true;
+	}
+
+	const bevel = cell3DNode['a:bevel'] as XmlObject | undefined;
+	if (bevel) {
+		const bevelWidth = parseInt(String(bevel['@_w'] || '0'), 10);
+		if (bevelWidth > 0) {
+			cell3D.bevelWidth = Math.round(bevelWidth / EMU_PER_PIXEL);
+			hasStyle = true;
+		}
+		const bevelHeight = parseInt(String(bevel['@_h'] || '0'), 10);
+		if (bevelHeight > 0) {
+			cell3D.bevelHeight = Math.round(bevelHeight / EMU_PER_PIXEL);
+			hasStyle = true;
+		}
+		const bevelPreset = String(bevel['@_prst'] || '').trim();
+		if (bevelPreset) {
+			cell3D.bevelPreset = bevelPreset;
+			hasStyle = true;
+		}
+	}
+
+	const lightRig = cell3DNode['a:lightRig'] as XmlObject | undefined;
+	if (lightRig) {
+		const rig = String(lightRig['@_rig'] || '').trim();
+		if (rig) {
+			cell3D.lightRig = rig;
+			hasStyle = true;
+		}
+		const dir = String(lightRig['@_dir'] || '').trim();
+		if (dir) {
+			cell3D.lightRigDirection = dir;
+			hasStyle = true;
+		}
+	}
+
+	return hasStyle ? cell3D : undefined;
 }

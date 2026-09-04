@@ -35,6 +35,8 @@ describe('chartML print settings', () => {
 					'@_horizontalDpi': '600',
 					'@_verticalDpi': '300',
 					'@_copies': '2',
+					'@_paperHeight': '297mm',
+					'@_paperWidth': '210mm',
 				},
 				'x:legacyDrawingHF': { '@_rel:id': 'rIdHeader' },
 				'vendor:extension': { '@_value': 'untouched' },
@@ -66,6 +68,8 @@ describe('chartML print settings', () => {
 			horizontalDpi: 600,
 			verticalDpi: 300,
 			copies: 2,
+			paperHeight: '297mm',
+			paperWidth: '210mm',
 		});
 		expect(parsed.legacyDrawingHeaderFooterRelationshipId).toBe('rIdHeader');
 		expect((parsed.rawXml as XmlObject)['vendor:extension']).toStrictEqual({
@@ -140,6 +144,23 @@ describe('chartML print settings', () => {
 				localName,
 			),
 		).toThrow(/finite/);
+	});
+
+	it('round-trips c:pageSetup/@paperHeight and @paperWidth (custom paper size)', () => {
+		const chartSpace: XmlObject = {
+			'c:printSettings': { 'c:pageSetup': { '@_paperSize': '0' } },
+		};
+		applyChartPrintSettings(
+			chartSpace,
+			{ pageSetup: { paperSize: 0, paperHeight: '11in', paperWidth: '8.5in' } },
+			localName,
+		);
+		const pageSetup = (chartSpace['c:printSettings'] as XmlObject)['c:pageSetup'] as XmlObject;
+		expect(pageSetup['@_paperHeight']).toBe('11in');
+		expect(pageSetup['@_paperWidth']).toBe('8.5in');
+
+		const reparsed = parseChartPrintSettings(chartSpace, localName)!;
+		expect(reparsed.pageSetup).toMatchObject({ paperHeight: '11in', paperWidth: '8.5in' });
 	});
 
 	it('removes the whole container explicitly', () => {

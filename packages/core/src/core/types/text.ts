@@ -228,7 +228,15 @@ export interface TextStyle {
 	 */
 	colorXml?: XmlObject;
 	align?: 'left' | 'center' | 'right' | 'justify' | 'justLow' | 'dist' | 'thaiDist';
-	vAlign?: 'top' | 'middle' | 'bottom';
+	/**
+	 * Vertical text-box anchor (`a:bodyPr/@anchor`, `ST_TextAnchoringType`).
+	 * `distributed`/`justified` (`dist`/`just`) stretch line spacing so the
+	 * paragraph block fills the box's full vertical extent, distinct from true
+	 * centering (`middle`/`ctr`); both approximate to a middle-anchored render
+	 * (see `text-body-layout.ts`) since CSS has no native vertical-justify
+	 * primitive, but round-trip losslessly through parse/save.
+	 */
+	vAlign?: 'top' | 'middle' | 'bottom' | 'distributed' | 'justified';
 	/** Right-to-left paragraph/run direction (`a:pPr/@rtl`, `a:rPr/@rtl`). */
 	rtl?: boolean;
 	/** Body text direction (`a:bodyPr/@vert`).

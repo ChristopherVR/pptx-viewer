@@ -254,7 +254,7 @@ export class PptxEffectDagExtractor implements IPptxEffectDagExtractor {
  * directly, or the first gradient stop (`a:gradFill/a:gsLst/a:gs[0]`) for a
  * gradient overlay. Returns `undefined` when neither carries a colour.
  */
-function fillOverlayColorHost(
+export function fillOverlayColorHost(
 	fillOverlay: XmlObject,
 	context: PptxEffectDagExtractorContext,
 ): XmlObject | undefined {

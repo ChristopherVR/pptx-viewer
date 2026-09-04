@@ -468,6 +468,88 @@ describe('pptxTableDataParser - edge cases', () => {
 });
 
 // ---------------------------------------------------------------------------
+// a:tblPr's OWN fill / effectLst, independent of a:tblStyleLst (issue G6).
+// ---------------------------------------------------------------------------
+
+describe('pptxTableDataParser - a:tblPr own fill/effectLst (issue G6)', () => {
+	it('parses an explicit sRGB a:solidFill directly on a:tblPr', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('X')] }],
+			tblPrAttrs: {
+				'a:solidFill': { 'a:srgbClr': { '@_val': 'FF8800' } },
+			},
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData);
+
+		expect(result!.tableFill).toStrictEqual({ schemeColor: '', color: '#FF8800' });
+	});
+
+	it('parses a theme scheme colour a:solidFill directly on a:tblPr', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('X')] }],
+			tblPrAttrs: {
+				'a:solidFill': { 'a:schemeClr': { '@_val': 'accent2' } },
+			},
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData);
+
+		// parseSolidFillStyle always carries explicit tint/shade keys (even when
+		// undefined), so this does not use toStrictEqual against a bare object.
+		expect(result!.tableFill?.schemeColor).toBe('accent2');
+		expect(result!.tableFill?.tint).toBeUndefined();
+		expect(result!.tableFill?.shade).toBeUndefined();
+	});
+
+	it('flags tableEffects when a:tblPr carries its own a:effectLst', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('X')] }],
+			tblPrAttrs: {
+				'a:effectLst': { 'a:outerShdw': { '@_blurRad': '40000' } },
+			},
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData);
+
+		expect(result!.tableEffects).toBeTruthy();
+	});
+
+	it('leaves tableFill/tableEffects undefined when a:tblPr has neither', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('X')] }],
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData);
+
+		expect(result!.tableFill).toBeUndefined();
+		expect(result!.tableEffects).toBeUndefined();
+	});
+
+	it('does not confuse a:tblPr fill with a:tblStyleLst/wholeTbl fill', () => {
+		// a:tblPr's own fill is independent of the referenced style; parsing it
+		// must not require or consult a tableStyleId at all.
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('X')] }],
+			tblPrAttrs: {
+				'a:tableStyleId': '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}',
+				'a:solidFill': { 'a:srgbClr': { '@_val': '112233' } },
+			},
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData);
+
+		expect(result!.tableStyleId).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
+		expect(result!.tableFill).toStrictEqual({ schemeColor: '', color: '#112233' });
+	});
+});
+
+// ---------------------------------------------------------------------------
 // Cell image fill (a:tcPr/a:blipFill) - threads slidePath through to
 // resolveCellImagePath, end to end through the full parser.
 // ---------------------------------------------------------------------------

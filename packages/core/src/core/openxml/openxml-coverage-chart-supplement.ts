@@ -108,15 +108,25 @@ assign(
 // Chart: userShapes / chart-space clrMapOvr (raw-preservation only, no typed edit path)
 // ---------------------------------------------------------------------------
 assign(['chart:element:userShapes'], {
-	parse: 'passthrough',
+	parse: 'partial',
 	preserve: 'unassessed',
 	edit: 'unassessed',
 	serialize: 'unassessed',
-	note: 'The c:userShapes relationship node is returned verbatim on parse; no typed edit/serialize path was found, so those facets are left unassessed rather than inferred.',
+	note: 'The c:userShapes anchors (cdr:relSizeAnchor/absSizeAnchor around sp/cxnSp/pic/grpSp/graphicFrame) parse into a typed PptxChartUserShape list, not raw verbatim passthrough as previously (incorrectly) claimed here. Issue C2-G10 added grpSp flattening (one entry per grouped sp/cxnSp/pic child, previously the whole group anchor was silently dropped), a placeholder for a graphicFrame anchor (also previously dropped), and gradient/pattern fill resolution (previously solidFill-only, falling back to the first gradient stop or the pattern foreground colour). No typed edit/serialize path exists, so those facets stay unassessed rather than inferred.',
 	evidence: [
 		testEvidence(
 			'src/core/core/runtime/PptxHandlerRuntimeChartChrome.test.ts',
 			['returns the c:userShapes node verbatim when present'],
+			['parse'],
+		),
+		testEvidence(
+			'src/core/utils/chart-user-shapes-parser.test.ts',
+			[
+				'flattens a grpSp anchor into one entry per grouped sp/cxnSp/pic child',
+				'registers a bare placeholder for a graphicFrame anchor instead of dropping it',
+				'resolves a gradient fill from its first stop when there is no solid fill',
+				'resolves a pattern fill from its foreground colour',
+			],
 			['parse'],
 		),
 	],

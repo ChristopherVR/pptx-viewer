@@ -32,6 +32,7 @@ function styledContentNodes(nodes: PptxSmartArtNode[]): PptxSmartArtNode[] {
 export function applyNodeStylesToElements(
 	elements: PptxElement[],
 	nodes: PptxSmartArtNode[],
+	bulletEnabled = false,
 ): PptxElement[] {
 	const contentNodes = styledContentNodes(nodes);
 	if (contentNodes.length === 0) {
@@ -69,7 +70,7 @@ export function applyNodeStylesToElements(
 			textStyle.italic = style.italic;
 		}
 
-		const projectedSegments = projectSmartArtNodeText(node, textStyle);
+		const projectedSegments = projectSmartArtNodeText(node, textStyle, { bulletEnabled });
 		const segments = projectedSegments.map((seg) => ({
 			...seg,
 			style: {

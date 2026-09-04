@@ -34,6 +34,7 @@ export function parseChartAxes(
 	xmlLookup: XmlLookupLike,
 	colorParser: ColorParserLike,
 	getLocalName: (key: string) => string,
+	resolveTypeface?: (raw: string) => string,
 ): PptxChartAxisFormatting[] {
 	const result: PptxChartAxisFormatting[] = [];
 
@@ -46,7 +47,14 @@ export function parseChartAxes(
 
 		const axisNodes = xmlLookup.getChildrenArrayByLocalName(plotArea, localName);
 		for (const axisNode of axisNodes) {
-			const axis = parseSingleAxis(axisNode, axisType, xmlLookup, colorParser, getLocalName);
+			const axis = parseSingleAxis(
+				axisNode,
+				axisType,
+				xmlLookup,
+				colorParser,
+				getLocalName,
+				resolveTypeface,
+			);
 			if (axis) {
 				result.push(axis);
 			}
@@ -62,6 +70,7 @@ function parseSingleAxis(
 	xmlLookup: XmlLookupLike,
 	colorParser: ColorParserLike,
 	getLocalName: (key: string) => string,
+	resolveTypeface?: (raw: string) => string,
 ): PptxChartAxisFormatting | undefined {
 	const result: PptxChartAxisFormatting = { axisType };
 
@@ -107,7 +116,13 @@ function parseSingleAxis(
 	}
 
 	// Font properties from txPr
-	parseTxPr(xmlLookup.getChildByLocalName(axisNode, 'txPr'), xmlLookup, colorParser, result);
+	parseTxPr(
+		xmlLookup.getChildByLocalName(axisNode, 'txPr'),
+		xmlLookup,
+		colorParser,
+		result,
+		resolveTypeface,
+	);
 	Object.assign(result, parseChartAxisLabelFormatting(axisNode, axisType, getLocalName));
 
 	// Axis ID and cross-axis ID
@@ -196,6 +211,7 @@ function parseTxPr(
 	xmlLookup: XmlLookupLike,
 	colorParser: ColorParserLike,
 	target: PptxChartAxisFormatting,
+	resolveTypeface?: (raw: string) => string,
 ): void {
 	if (!txPrNode) {
 		return;
@@ -223,7 +239,8 @@ function parseTxPr(
 
 	const latin = xmlLookup.getChildByLocalName(defRPr, 'latin');
 	if (latin?.['@_typeface']) {
-		target.fontFamily = String(latin['@_typeface']);
+		const raw = String(latin['@_typeface']);
+		target.fontFamily = resolveTypeface ? resolveTypeface(raw) : raw;
 	}
 
 	const solidFill = xmlLookup.getChildByLocalName(defRPr, 'solidFill');

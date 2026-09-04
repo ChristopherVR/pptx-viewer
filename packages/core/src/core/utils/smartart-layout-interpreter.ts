@@ -128,7 +128,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 	if (!layoutDefinition || flat.length === 0) {
 		return undefined;
 	}
-	const plan = discoverArrangement(layoutDefinition, flat.length);
+	const plan = discoverArrangement(layoutDefinition, flat.length, presLayoutVars);
 	if (!plan) {
 		return undefined;
 	}
@@ -146,6 +146,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 			elementId,
 			presLayoutVars,
 			buildConnectorLabels(input.connections),
+			plan.node,
 		);
 	}
 	const arranged = selectArrangedNodes(plan.node, flat);

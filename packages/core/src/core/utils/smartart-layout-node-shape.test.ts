@@ -4,6 +4,8 @@ import type { XmlObject } from '../types';
 import {
 	applySmartArtLayoutNodeShape,
 	parseSmartArtLayoutNodeShape,
+	parseSmartArtLkTxEntry,
+	parseSmartArtLkTxEntryFromLayoutNode,
 } from './smartart-layout-node-shape';
 
 const localName = (key: string): string => key.split(':').pop() ?? key;
@@ -100,6 +102,29 @@ describe('parseSmartArtLayoutNodeShape', () => {
 	it('parses hideGeom="1"', () => {
 		const xml: XmlObject = { 'dgm:shape': { '@_hideGeom': '1' } };
 		expect(parseSmartArtLayoutNodeShape(xml, localName)).toStrictEqual({ hideGeometry: true });
+	});
+});
+
+// G9: `dgm:shape/@lkTxEntry` marks a decorative shape as mirroring its paired
+// content node's text (e.g. the accent bar in "Basic Block List").
+describe('parseSmartArtLkTxEntry / parseSmartArtLkTxEntryFromLayoutNode', () => {
+	it('reads lkTxEntry="1" as true', () => {
+		expect(parseSmartArtLkTxEntry({ '@_lkTxEntry': '1' })).toBeTruthy();
+	});
+
+	it('reads lkTxEntry="0" and an absent attribute as false', () => {
+		expect(parseSmartArtLkTxEntry({ '@_lkTxEntry': '0' })).toBeFalsy();
+		expect(parseSmartArtLkTxEntry({})).toBeFalsy();
+		expect(parseSmartArtLkTxEntry(undefined)).toBeFalsy();
+	});
+
+	it('reads straight off a raw dgm:layoutNode element', () => {
+		const node: XmlObject = { 'dgm:shape': { '@_type': 'rect', '@_lkTxEntry': '1' } };
+		expect(parseSmartArtLkTxEntryFromLayoutNode(node, localName)).toBeTruthy();
+	});
+
+	it('is false for a layoutNode with no dgm:shape at all', () => {
+		expect(parseSmartArtLkTxEntryFromLayoutNode({ '@_name': 'x' }, localName)).toBeFalsy();
 	});
 });
 

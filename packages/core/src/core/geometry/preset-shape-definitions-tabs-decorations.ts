@@ -301,7 +301,11 @@ const plus: PresetShapeGeometryDefinition = {
 		gd('x2', '+- r 0 x1'),
 		gd('y2', '+- b 0 x1'),
 	],
-	rect: { l: 'x1', t: 'x1', r: 'x2', b: 'y2' },
+	// COM-measured at 200x100pt: `t`/`b` (`x1`/`y2`, the horizontal arm's own
+	// band) were already correct, but `l`/`r` are the FULL width, not the
+	// narrower vertical-arm span (`x1`/`x2`) - PowerPoint lays text along the
+	// wide horizontal bar of the cross, not the intersection square.
+	rect: { l: 'l', t: 'x1', r: 'r', b: 'y2' },
 	pathLst: [
 		{
 			commands: [

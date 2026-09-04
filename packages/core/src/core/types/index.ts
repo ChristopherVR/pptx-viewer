@@ -26,6 +26,7 @@ export * from './chart-protection';
 export * from './chart-pivot-source';
 export * from './chart-pivot-format';
 export * from './chart-axis';
+export * from './chart-ex';
 export * from './smart-art';
 export * from './table';
 export * from './transition';

@@ -457,13 +457,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		);
 	}
 
+	/**
+	 * Parse `a:srcRect`'s `l`/`t`/`r`/`b` (ST_Percentage, thousandths of a
+	 * percent) to a fraction. The sign is preserved: PowerPoint legitimately
+	 * writes a negative source-crop inset when a crop is dragged OUTWARD past
+	 * the bitmap's edge (e.g. a photo smaller than its placeholder frame),
+	 * which pads the image inside its frame instead of cropping it. This
+	 * mirrors {@link parseSignedRectFraction}, the sibling used for
+	 * `a:stretch/a:fillRect` (issue #132); the magnitude cap only bounds
+	 * hostile input.
+	 */
 	protected parseCropFraction(value: unknown): number | undefined {
 		const raw = Number.parseInt(String(value ?? ''), 10);
 		if (!Number.isFinite(raw)) {
 			return undefined;
 		}
-		const normalized = Math.max(0, Math.min(100000, raw)) / 100000;
-		return normalized;
+		return Math.max(-1000000, Math.min(1000000, raw)) / 100000;
 	}
 
 	protected readImageCropFromBlipFill(

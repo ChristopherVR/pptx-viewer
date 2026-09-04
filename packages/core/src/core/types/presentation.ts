@@ -383,10 +383,32 @@ export interface PptxPresentationProperties {
 	printProperties?: PptxPresentationPrintProperties | null;
 	/** Most-recently-used colours from the presentation palette. */
 	mruColors?: string[];
-	/** Pen colour for presentation mode annotations (from `p:showPr/p:penClr`). */
+	/**
+	 * Pen colour for presentation mode annotations (from `p:showPr/p:penClr`).
+	 * `p:penClr` is a full `EG_ColorChoice` (P1-G2): a scheme/preset/system
+	 * swatch resolves to a hex string here just like a direct `a:srgbClr`.
+	 */
 	penColor?: string;
+	/**
+	 * The resolved hex value {@link penColor} had at parse time, and the
+	 * original `p:penClr` colour-choice XML node, preserved so a save that
+	 * never touches the pen colour re-emits the original scheme/preset
+	 * reference verbatim instead of flattening it to a baked `a:srgbClr`.
+	 * Internal round-trip bookkeeping; not meant to be set by API callers.
+	 */
+	penColorOriginal?: string;
+	/** @see penColorOriginal */
+	penColorXml?: XmlObject;
 	/** Kiosk auto-restart interval in milliseconds (from `p:kiosk/@restart`). Only meaningful when showType is "kiosk". */
 	kioskRestartTime?: number;
+	/**
+	 * `p:showPr/p:browse/@showScrollbar` (CT_ShowInfoBrowse §19.2.1.10 /
+	 * §19.3.1.43), the "Show scrollbar" checkbox in PowerPoint's Set Up Show
+	 * dialog. Only meaningful when `showType` is `"browsed"`; the schema
+	 * default is `true`. `undefined` means the source authored no explicit
+	 * value (or `showType` is not `"browsed"`).
+	 */
+	showScrollbar?: boolean;
 }
 
 /**

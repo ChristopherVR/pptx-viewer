@@ -1,4 +1,5 @@
 import { PptxElement, XmlObject, TextSegment, TextStyle } from '../../types';
+import { isCNvPrMarkedDecorative } from '../../utils/decorative-extension';
 import {
 	inheritedPlaceholderFieldType,
 	isHeaderFooterPlaceholder,
@@ -341,9 +342,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const opaqueExtLstXml = this.extractOpaqueSpPrExtLst(effectiveSpPr);
 
+			// "Mark as decorative" (`adec:decorative` on `p:cNvPr/a:extLst`).
+			const isDecorative = isCNvPrMarkedDecorative(cNvPrForActions);
+
 			const commonProps = {
 				id,
 				name: elementName || undefined,
+				...(isDecorative !== undefined ? { isDecorative } : {}),
 				placeholderType: placeholderInfo?.type,
 				placeholderSz: placeholderInfo?.sz,
 				placeholderOrient: placeholderInfo?.orient,

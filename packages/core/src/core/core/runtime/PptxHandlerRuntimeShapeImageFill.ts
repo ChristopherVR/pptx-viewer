@@ -223,8 +223,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (normalized === 'b' || normalized === 'bottom') {
 			return 'bottom';
 		}
-		if (normalized === 'dist' || normalized === 'just') {
-			return 'middle';
+		// D1-G5 (D2 audit numbering: text D2-G5): `dist`/`just` are distinct
+		// from true centering (ST_TextAnchoringType, ECMA-376 §20.1.10.2) - keep
+		// them as their own values so save can round-trip the original
+		// attribute instead of silently rewriting it to `ctr`.
+		if (normalized === 'dist') {
+			return 'distributed';
+		}
+		if (normalized === 'just') {
+			return 'justified';
 		}
 		return undefined;
 	}

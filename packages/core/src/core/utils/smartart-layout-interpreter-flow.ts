@@ -22,9 +22,12 @@ import type {
 	PptxSmartArtForEach,
 	PptxSmartArtLayoutNode,
 	PptxSmartArtNode,
-	PptxSmartArtWhen,
 	XmlObject,
 } from '../types';
+import { evaluateWhen } from './smartart-layout-interpreter-when';
+import type { WhenContext } from './smartart-layout-interpreter-when';
+
+export type { WhenContext } from './smartart-layout-interpreter-when';
 
 const localName = (key: string): string => key.split(':').pop() ?? key;
 
@@ -94,52 +97,19 @@ export function selectArrangedNodes(
 	return selected;
 }
 
-/** Parse a numeric branch threshold, or `undefined` when non-numeric. */
-function toNumber(value: string): number | undefined {
-	const parsed = Number(value);
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-/**
- * Evaluate a single `dgm:if` against the node count. Only the count function
- * (`func="cnt"`) is decidable here; every other function (variables, position,
- * depth) returns `undefined` so the caller keeps its blind first-alg behaviour.
- */
-function evaluateWhen(when: PptxSmartArtWhen, nodeCount: number): boolean | undefined {
-	if (when.function !== 'cnt') {
-		return undefined;
-	}
-	const threshold = toNumber(when.value);
-	if (threshold === undefined) {
-		return undefined;
-	}
-	switch (when.operator) {
-		case 'equ':
-			return nodeCount === threshold;
-		case 'neq':
-			return nodeCount !== threshold;
-		case 'gt':
-			return nodeCount > threshold;
-		case 'lt':
-			return nodeCount < threshold;
-		case 'gte':
-			return nodeCount >= threshold;
-		case 'lte':
-			return nodeCount <= threshold;
-		default:
-			return undefined;
-	}
-}
-
 /**
  * Resolve the raw XML of the active `dgm:choose` branch for a node count, or
  * `undefined` when the choose is not decidable (an earlier branch is
  * undecidable) or no branch applies. DiagramML picks the first matching `if` in
  * order, so an undecidable earlier branch forces a bail.
  */
-function activeBranch(choose: PptxSmartArtChoose, nodeCount: number): XmlObject | undefined {
+function activeBranch(
+	choose: PptxSmartArtChoose,
+	nodeCount: number,
+	context: WhenContext,
+): XmlObject | undefined {
 	for (const when of choose.when) {
-		const result = evaluateWhen(when, nodeCount);
+		const result = evaluateWhen(when, nodeCount, context);
 		if (result === undefined) {
 			return undefined;
 		}
@@ -192,16 +162,25 @@ function branchAlgType(raw: XmlObject | undefined): string | undefined {
 }
 
 /**
- * Resolve a count-decidable `dgm:choose` on `node` to the structural algorithm
- * type it selects, or `undefined` when no choose is decidable from the count (in
- * which case the caller keeps the blind first-recognised-alg behaviour).
+ * Resolve a decidable `dgm:choose` on `node` to the structural algorithm type
+ * it selects, or `undefined` when no choose is decidable (in which case the
+ * caller keeps the blind first-recognised-alg behaviour). Decidable on
+ * `func="cnt"` from `nodeCount` alone, or on `func="var"` when `context`
+ * carries `presLayoutVars`; `pos`/`revPos`/`posEven`/`posOdd`/`depth`/
+ * `maxDepth` need a specific point's position, which this whole-diagram
+ * algorithm-selection call site does not have, so they stay undecidable here
+ * (`context` defaults to `{}` for source compatibility with existing callers).
  */
-export function chooseAlgType(node: PptxSmartArtLayoutNode, nodeCount: number): string | undefined {
+export function chooseAlgType(
+	node: PptxSmartArtLayoutNode,
+	nodeCount: number,
+	context: WhenContext = {},
+): string | undefined {
 	if (!node.choose || node.choose.length === 0) {
 		return undefined;
 	}
 	for (const choose of node.choose) {
-		const type = branchAlgType(activeBranch(choose, nodeCount));
+		const type = branchAlgType(activeBranch(choose, nodeCount, context));
 		if (type !== undefined) {
 			return type;
 		}

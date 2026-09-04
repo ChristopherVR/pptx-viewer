@@ -404,6 +404,24 @@ describe('extractAnimationTargetId', () => {
 		expect(extractAnimationTargetId(cTn)).toBe('nestedShape');
 	});
 
+	it('prefers p:subSp/@_spid (grouped sub-shape) over the enclosing group id', () => {
+		const cTn: XmlObject = {
+			'p:childTnLst': {
+				'p:animEffect': {
+					'p:cBhvr': {
+						'p:tgtEl': {
+							'p:spTgt': {
+								'@_spid': '4',
+								'p:subSp': { '@_spid': '3' },
+							},
+						},
+					},
+				},
+			},
+		};
+		expect(extractAnimationTargetId(cTn)).toBe('3');
+	});
+
 	it('returns undefined when no targets exist anywhere', () => {
 		const cTn: XmlObject = {
 			'p:childTnLst': {

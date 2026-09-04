@@ -135,6 +135,12 @@ export function parseChartAxisLabelFormatting(
 				result.labelOffset = offset;
 			}
 		}
+	}
+	// CT_CatAx and CT_SerAx both declare `tickLblSkip`/`tickMarkSkip` (CT_Skip);
+	// CT_DateAx does not (only `auto`/`lblOffset`/time-unit fields), so a
+	// dateAx's tick-skip children must never be read into the typed model or
+	// re-emitted, or the regenerated node becomes schema-invalid.
+	if (axisType === 'catAx' || axisType === 'serAx') {
 		result.tickLabelSkip = parsePositiveInteger(child(node, 'tickLblSkip', localName));
 		result.tickMarkSkip = parsePositiveInteger(child(node, 'tickMarkSkip', localName));
 	}
@@ -224,6 +230,10 @@ export function applyChartAxisLabelFormatting(
 			const offset = chartPercentUnionValue(formatting.labelOffset, LABEL_OFFSET_RANGE);
 			upsertOrdered(node, 'lblOffset', { '@_val': offset }, localName);
 		}
+	}
+	// CT_DateAx has no tickLblSkip/tickMarkSkip (only CT_CatAx and CT_SerAx do);
+	// emitting them there would regenerate a schema-invalid <c:dateAx>.
+	if (formatting.axisType === 'catAx' || formatting.axisType === 'serAx') {
 		for (const [name, value] of [
 			['tickLblSkip', formatting.tickLabelSkip],
 			['tickMarkSkip', formatting.tickMarkSkip],

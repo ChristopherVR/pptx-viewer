@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PptxSmartArtNode, PptxSmartArtPresLayoutVars } from '../types';
+import type {
+	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
+	PptxSmartArtPresLayoutVars,
+} from '../types';
 import { arrangeHierarchy } from './smartart-layout-interpreter-hierarchy';
 import type { BoundingBox, RenderedRectNode, SmartArtLayoutResult } from './smartart-layout-types';
 
@@ -94,6 +98,65 @@ describe('smartArt hierarchy arranger: hierBranch', () => {
 		// But the grandchildren (g1/g2) do NOT land on "std"'s third standard
 		// row - they hang from their own parent instead.
 		expect(byId(init, 'g1').y).not.toBeCloseTo(byId(std, 'g1').y, 0);
+	});
+});
+
+// G7: a hand-authored layoutDef expressing orientation only via the
+// algorithm's own `linDir` (no `presLayoutVars.hierBranch`) should still
+// produce a hanging tree, not fall back to the top-down standard branch.
+describe('smartArt hierarchy arranger: linDir fallback (no presLayoutVars.hierBranch)', () => {
+	function algNode(linDir: string): PptxSmartArtLayoutNode {
+		return { algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: linDir }] } };
+	}
+
+	it('linDir=fromR hangs the tree leftward, same direction as hierBranch="l"', () => {
+		const viaLinDir = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-test',
+			undefined,
+			undefined,
+			algNode('fromR'),
+		);
+		const viaHierBranch = run(DEPTH_THREE_TREE, { hierarchyBranch: 'l' });
+		const linDirDelta = byId(viaLinDir, 'c1').x - byId(viaLinDir, 'm').x;
+		const hierBranchDelta = byId(viaHierBranch, 'c1').x - byId(viaHierBranch, 'm').x;
+		expect(linDirDelta).toBeLessThan(0);
+		expect(Math.sign(linDirDelta)).toBe(Math.sign(hierBranchDelta));
+	});
+
+	it('linDir=fromL hangs the tree rightward, same direction as hierBranch="r"', () => {
+		const viaLinDir = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-test',
+			undefined,
+			undefined,
+			algNode('fromL'),
+		);
+		const delta = byId(viaLinDir, 'c1').x - byId(viaLinDir, 'm').x;
+		expect(delta).toBeGreaterThan(0);
+	});
+
+	it('an explicit presLayoutVars.hierBranch always wins over linDir', () => {
+		const result = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-test',
+			{ hierarchyBranch: 'std' },
+			undefined,
+			algNode('fromR'),
+		);
+		const std = run(DEPTH_THREE_TREE, { hierarchyBranch: 'std' });
+		// Still the standard top-down fan-out: children share the root's row 1
+		// vertical band, not a hanging column beside it.
+		expect(byId(result, 'c1').y).toBeCloseTo(byId(std, 'c1').y, 0);
 	});
 });
 

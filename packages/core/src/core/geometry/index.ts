@@ -40,7 +40,24 @@ export {
 	type PresetSubpathResult,
 } from './preset-shape-evaluator';
 
+export {
+	getPresetConnectionSites,
+	lookupPresetConnectionSites,
+	type EvaluatedPresetConnectionSite,
+} from './preset-connection-sites-table';
+export type {
+	PresetConnectionSiteDefinition,
+	PresetConnectionSiteToken,
+} from './preset-connection-sites-types';
+
 export { customGeometryPathsToSvgSubpaths, type CustomGeometrySubpathSvg } from './custom-geometry';
+
+export {
+	resolveCustomGeometryGuideContext,
+	resolveCustomGeometryToken,
+} from './custom-geometry-guides';
+
+export { applyCustomGeometryGuideOverrides } from './custom-geometry-guide-writeback';
 
 export { getAdjustmentAwareClipPath } from './adjustment-aware-shapes';
 

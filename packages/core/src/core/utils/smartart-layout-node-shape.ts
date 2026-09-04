@@ -55,6 +55,37 @@ function parseHideGeom(shapeEl: XmlObject): boolean | undefined {
 	return raw === '1' || raw === 'true' ? true : undefined;
 }
 
+/**
+ * `dgm:shape/@lkTxEntry` (`CT_Shape`, boolean, default false): marks a
+ * layout's decorative shape (e.g. the accent bar in "Basic Block List") as
+ * mirroring its paired content node's text rather than carrying none of its
+ * own.
+ *
+ * NOT threaded onto {@link PptxSmartArtLayoutNodeShape} (`smart-art-layout-
+ * definition.ts`, a file this module does not own in the current change) -
+ * exposed as a standalone reader over the SAME raw `dgm:shape` element so a
+ * caller that already has it (parsing a `dgm:layoutNode`) can decide whether
+ * to mirror text without a model-shape change. See the module doc comment on
+ * `smartart-layout-node-shape.ts` if/when the typed field lands.
+ */
+export function parseSmartArtLkTxEntry(shapeEl: XmlObject | undefined): boolean {
+	if (!shapeEl) {
+		return false;
+	}
+	const raw = String(shapeEl['@_lkTxEntry'] ?? '')
+		.trim()
+		.toLowerCase();
+	return raw === '1' || raw === 'true';
+}
+
+/** Convenience: read `dgm:shape/@lkTxEntry` straight off a raw `dgm:layoutNode` element. */
+export function parseSmartArtLkTxEntryFromLayoutNode(
+	node: XmlObject,
+	localName: LocalName,
+): boolean {
+	return parseSmartArtLkTxEntry(child(node, 'shape', localName));
+}
+
 function parseAdjustments(
 	shapeEl: XmlObject,
 	localName: LocalName,

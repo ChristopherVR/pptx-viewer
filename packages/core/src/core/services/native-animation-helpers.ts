@@ -432,7 +432,12 @@ export function extractAnimationTargetId(cTn: XmlObject): string | undefined {
 		const targetElement = behavior?.['p:tgtEl'] as XmlObject | undefined;
 		const shapeTarget = targetElement?.['p:spTgt'] as XmlObject | undefined;
 		if (shapeTarget?.['@_spid']) {
-			return String(shapeTarget['@_spid']);
+			// `p:subSp/@_spid` names the actual descendant shape inside the
+			// group when the effect targets one member of a group without
+			// ungrouping it (see `PptxAnimationTarget.subShapeId`); prefer it
+			// over the enclosing group's own id.
+			const subSp = shapeTarget['p:subSp'] as XmlObject | undefined;
+			return String(subSp?.['@_spid'] ?? shapeTarget['@_spid']);
 		}
 	}
 
@@ -677,6 +682,7 @@ const VALID_CONDITION_EVENTS = new Set<string>([
 	'onNext',
 	'onPrev',
 	'onStopAudio',
+	'onDblClick',
 ]);
 
 /**

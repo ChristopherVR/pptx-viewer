@@ -16,7 +16,7 @@ import {
 	roleOf,
 } from './smartart-constraint-solver';
 import type { ArrangementPlan, FlowDirection } from './smartart-layout-interpreter-model';
-import { itemNode } from './smartart-layout-interpreter-model';
+import { algorithmParam, findConstraint, itemNode } from './smartart-layout-interpreter-model';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { styleContext } from './smartart-layout-interpreter-render';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
@@ -116,7 +116,87 @@ export function arrangeLinear(
 	};
 }
 
-/** Execute the `snake` algorithm: a boustrophedon wrapping grid. */
+/** `dgm:param[@type=flowDir]`: which axis fills first (`row`, the default, or `col`). */
+type SnakeFlowDir = 'row' | 'col';
+
+/**
+ * `dgm:param[@type=grDir]`: starting corner + growth axes. `tL` (top-left,
+ * default) grows right/down; `tR` mirrors the column axis, `bL` the row axis,
+ * `bR` both - matching the same four-corner vocabulary PowerPoint's own grid
+ * layouts (picture/table grids) use for "grow direction".
+ */
+type SnakeGrowDir = 'tL' | 'tR' | 'bL' | 'bR';
+
+/** Grid cell counts along the fill axis (`primary`) and the wrap axis (`secondary`). */
+interface SnakeGridDims {
+	cols: number;
+	rows: number;
+}
+
+/**
+ * Resolve the grid's column/row counts. `bkpt="fixed"` (with the `bkPtFixedVal`
+ * constraint giving the fixed line length) breaks to a new row/column after
+ * exactly that many items, honouring `flowDir` for which axis it counts along.
+ * Any other `bkpt` (`bal`/`endCnt`/absent) keeps the existing area-based grid
+ * guess, computed against whichever box dimension is the fill axis.
+ */
+function snakeGridDims(
+	plan: ArrangementPlan,
+	n: number,
+	w: number,
+	h: number,
+	flowDir: SnakeFlowDir,
+): SnakeGridDims {
+	const bkpt = algorithmParam(plan.node, 'bkpt');
+	const fixedVal = findConstraint(plan.node.constraints, 'bkPtFixedVal')?.value;
+	if (bkpt === 'fixed' && typeof fixedVal === 'number' && fixedVal > 0) {
+		const lineLength = Math.max(1, Math.min(n, Math.round(fixedVal)));
+		if (flowDir === 'col') {
+			const rows = lineLength;
+			return { cols: Math.max(1, Math.ceil(n / rows)), rows };
+		}
+		const cols = lineLength;
+		return { cols, rows: Math.max(1, Math.ceil(n / cols)) };
+	}
+	if (flowDir === 'col') {
+		const rows = Math.max(1, Math.round(Math.sqrt(n * Math.max(0.2, h / Math.max(1, w)))));
+		return { cols: Math.max(1, Math.ceil(n / rows)), rows };
+	}
+	const cols = Math.max(1, Math.round(Math.sqrt(n * Math.max(0.2, w / Math.max(1, h)))));
+	return { cols, rows: Math.max(1, Math.ceil(n / cols)) };
+}
+
+/**
+ * Map data-point index `i` to a `(col, row)` grid cell honouring `flowDir` (which
+ * axis is walked first), `contDir` (whether alternate lines reverse - the
+ * boustrophedon "snake" the algorithm is named for - or every line reads the
+ * same direction), and `grDir` (which corner the grid grows from).
+ */
+function snakeCell(
+	i: number,
+	dims: SnakeGridDims,
+	flowDir: SnakeFlowDir,
+	sameDir: boolean,
+	grDir: SnakeGrowDir,
+): { col: number; row: number } {
+	const primaryCount = flowDir === 'col' ? dims.rows : dims.cols;
+	const line = Math.floor(i / primaryCount);
+	let posInLine = i % primaryCount;
+	if (!sameDir && line % 2 === 1) {
+		posInLine = primaryCount - 1 - posInLine;
+	}
+	let col = flowDir === 'col' ? line : posInLine;
+	let row = flowDir === 'col' ? posInLine : line;
+	if (grDir === 'tR' || grDir === 'bR') {
+		col = dims.cols - 1 - col;
+	}
+	if (grDir === 'bL' || grDir === 'bR') {
+		row = dims.rows - 1 - row;
+	}
+	return { col, row };
+}
+
+/** Execute the `snake` algorithm: a grid honouring `grDir`/`flowDir`/`contDir`/`bkpt`. */
 export function arrangeSnake(
 	plan: ArrangementPlan,
 	nodes: PptxSmartArtNode[],
@@ -136,8 +216,15 @@ export function arrangeSnake(
 		['sibSp', 'sp'],
 		0.15,
 	);
-	const cols = Math.max(1, Math.round(Math.sqrt(n * Math.max(0.2, w / Math.max(1, h)))));
-	const rows = Math.max(1, Math.ceil(n / cols));
+	const flowDir: SnakeFlowDir = algorithmParam(plan.node, 'flowDir') === 'col' ? 'col' : 'row';
+	const grDirRaw = algorithmParam(plan.node, 'grDir');
+	const grDir: SnakeGrowDir =
+		grDirRaw === 'tR' || grDirRaw === 'bL' || grDirRaw === 'bR' ? grDirRaw : 'tL';
+	// `contDir` defaults to the pre-existing boustrophedon behaviour (alternate
+	// lines reverse) when absent, so an unauthored diagram renders exactly as
+	// before; only an explicit `sameDir` disables the reversal.
+	const sameDir = algorithmParam(plan.node, 'contDir') === 'sameDir';
+	const { cols, rows } = snakeGridDims(plan, n, w, h, flowDir);
 	const usableW = w - INSET * 2;
 	const usableH = h - INSET * 2;
 	const cellW = usableW / (cols + Math.max(0, cols - 1) * sib);
@@ -145,12 +232,10 @@ export function arrangeSnake(
 	const gapX = sib * cellW;
 	const gapY = sib * cellH;
 	const itemShape = itemNode(plan.node)?.shape;
+	const dims: SnakeGridDims = { cols, rows };
 
 	const renderedNodes: RenderedNode[] = nodes.map((node, i) => {
-		const row = Math.floor(i / cols);
-		const posInRow = i % cols;
-		// Reverse every odd row so the flow snakes back (boustrophedon).
-		const col = row % 2 === 1 ? cols - 1 - posInRow : posInRow;
+		const { col, row } = snakeCell(i, dims, flowDir, sameDir, grDir);
 		return presetBoxNode({
 			key: `${elementId}-snake-${node.id}-${i}`,
 			x: INSET + col * (cellW + gapX),

@@ -1,4 +1,10 @@
 import type { PptxAnimationTarget, PptxGraphicBuild, XmlObject } from '../types';
+import {
+	parseGraphicElement,
+	parseOleChartElement,
+	serializeGraphicElement,
+	serializeOleChartElement,
+} from './animation-target-graphic-el';
 
 function ensureArray(value: unknown): XmlObject[] {
 	if (value === undefined || value === null) {
@@ -21,10 +27,16 @@ export function parseTimeTargetElement(
 	const rawXml = tgtEl;
 	const shape = tgtEl['p:spTgt'] as XmlObject | undefined;
 	if (shape?.['@_spid'] !== undefined) {
+		const subSp = shape['p:subSp'] as XmlObject | undefined;
+		const graphicElement = parseGraphicElement(shape);
+		const oleChartElement = parseOleChartElement(shape);
 		return {
 			type: 'shape',
 			shapeId: String(shape['@_spid']),
 			...(shape['p:bg'] !== undefined ? { backgroundOnly: true } : {}),
+			...(subSp?.['@_spid'] !== undefined ? { subShapeId: String(subSp['@_spid']) } : {}),
+			...(graphicElement ? { graphicElement } : {}),
+			...(oleChartElement ? { oleChartElement } : {}),
 			rawXml,
 		};
 	}
@@ -65,6 +77,16 @@ export function serializeTimeTargetElement(target: PptxAnimationTarget): XmlObje
 			} else if (target.backgroundOnly === false) {
 				delete shape['p:bg'];
 			}
+			if (target.subShapeId !== undefined) {
+				shape['p:subSp'] = {
+					...((shape['p:subSp'] as XmlObject | undefined) ?? {}),
+					'@_spid': target.subShapeId,
+				};
+			} else {
+				delete shape['p:subSp'];
+			}
+			serializeGraphicElement(shape, target.graphicElement);
+			serializeOleChartElement(shape, target.oleChartElement);
 			result['p:spTgt'] = shape;
 			break;
 		}

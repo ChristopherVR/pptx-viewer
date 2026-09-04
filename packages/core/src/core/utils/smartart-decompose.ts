@@ -208,7 +208,12 @@ export function computeSmartArtElementsWithoutCache(
 			connections: smartArtData.connections,
 		});
 		if (interpreted && interpreted.nodes.length > 0) {
-			return interpretedLayoutToElements(interpreted, nodes, containerBounds);
+			return interpretedLayoutToElements(
+				interpreted,
+				nodes,
+				containerBounds,
+				smartArtData.presLayoutVars?.bulletEnabled,
+			);
 		}
 	}
 
@@ -243,7 +248,7 @@ export function computeSmartArtElementsWithoutCache(
 		);
 		if (namedResult) {
 			// Per-node colour / emphasis overrides win over the cycled palette.
-			return applyNodeStylesToElements(namedResult, orderedNodes);
+			return applyNodeStylesToElements(namedResult, orderedNodes, layoutVars?.bulletEnabled);
 		}
 	}
 
@@ -254,7 +259,9 @@ export function computeSmartArtElementsWithoutCache(
 		effectiveThemeMap,
 	);
 	// Per-node colour / emphasis overrides win over the cycled palette.
-	return algorithmic ? applyNodeStylesToElements(algorithmic, orderedNodes) : algorithmic;
+	return algorithmic
+		? applyNodeStylesToElements(algorithmic, orderedNodes, layoutVars?.bulletEnabled)
+		: algorithmic;
 }
 
 // ── Internal helpers ────────────────────────────────────────────────────

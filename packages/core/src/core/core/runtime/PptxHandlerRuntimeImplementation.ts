@@ -92,6 +92,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			extractReflectionStyle: (shapeProps) => this.extractReflectionStyle(shapeProps),
 			extractBlurStyle: (shapeProps) => this.extractBlurStyle(shapeProps),
 			extractEffectDagStyle: (shapeProps) => this.extractEffectDagStyle(shapeProps),
+			extractFillOverlayStyle: (shapeProps) => this.extractFillOverlayStyle(shapeProps),
 		});
 		this.tableDataParser = new PptxTableDataParser({
 			emuPerPx: PptxHandlerRuntime.EMU_PER_PX,
@@ -114,6 +115,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			externalRelsMap: this.externalRelsMap,
 			resolvePath: (base, relative) => this.resolvePath(base, relative),
 			getPathExtension: (pathValue) => this.getPathExtension(pathValue),
+			// Linked (r:link) media shares the picture gate: closed by default.
+			allowExternalMedia: () => this.allowExternalImages === true,
 		});
 		this.graphicFrameParser = new PptxGraphicFrameParser({
 			emuPerPx: PptxHandlerRuntime.EMU_PER_PX,

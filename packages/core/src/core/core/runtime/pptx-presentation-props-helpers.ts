@@ -23,8 +23,22 @@ function parseXmlBoolean(value: unknown, defaultValue: boolean): boolean {
 /**
  * Parse show properties (p:showPr) from presentation properties XML.
  * Returns partial presentation properties with show-related settings.
+ *
+ * @param showPr    The `p:showPr` node.
+ * @param parseColor Optional colour resolver for `p:penClr`, matching the
+ *                   generic `EG_ColorChoice` resolver (`srgbClr` / `schemeClr`
+ *                   / `sysClr` / `prstClr` / `hslClr` / `scrgbClr`) the rest of
+ *                   the codebase uses. Defaults to the legacy `a:srgbClr`-only
+ *                   read when omitted, so existing single-argument call sites
+ *                   (and this module's own tests) keep working; a caller that
+ *                   has a theme-resolving `parseColor` available (the runtime
+ *                   class does) should pass it to also resolve a scheme/preset
+ *                   pen colour (P1-G2).
  */
-export function parseShowProperties(showPr: XmlObject): Partial<PptxPresentationProperties> {
+export function parseShowProperties(
+	showPr: XmlObject,
+	parseColor?: (colorNode: XmlObject) => string | undefined,
+): Partial<PptxPresentationProperties> {
 	const props: Partial<PptxPresentationProperties> = {};
 
 	// Show type
@@ -32,6 +46,14 @@ export function parseShowProperties(showPr: XmlObject): Partial<PptxPresentation
 		props.showType = 'presented';
 	} else if (showPr['p:browse']) {
 		props.showType = 'browsed';
+		const browseNode = showPr['p:browse'] as XmlObject;
+		// P1-G1: `p:browse/@showScrollbar` (schema default true). Only read the
+		// attribute when authored; an absent attribute leaves `showScrollbar`
+		// undefined rather than forcing the spec default, matching this
+		// module's convention elsewhere (see `embedTrueTypeFonts`).
+		if (browseNode?.['@_showScrollbar'] !== undefined) {
+			props.showScrollbar = parseXmlBoolean(browseNode['@_showScrollbar'], true);
+		}
 	} else if (showPr['p:kiosk']) {
 		props.showType = 'kiosk';
 		// Parse kiosk restart interval (in ms)
@@ -56,15 +78,25 @@ export function parseShowProperties(showPr: XmlObject): Partial<PptxPresentation
 		props.advanceMode = 'useTimings';
 	}
 
-	// Pen colour
+	// Pen colour (P1-G2: `p:penClr` is a full `a:CT_Color` / EG_ColorChoice,
+	// not only `a:srgbClr` - a scheme swatch from the Set Up Show dialog's pen
+	// colour picker parsed to `undefined` before this resolver was threaded in).
 	const penClr = showPr['p:penClr'] as XmlObject | undefined;
 	if (penClr) {
-		const srgbClr = penClr['a:srgbClr'] as XmlObject | undefined;
-		if (srgbClr) {
-			const val = String(srgbClr['@_val'] || '').trim();
-			if (val.length > 0) {
-				props.penColor = `#${val}`;
-			}
+		const resolved = parseColor
+			? parseColor(penClr)
+			: (() => {
+					const srgbClr = penClr['a:srgbClr'] as XmlObject | undefined;
+					const val = String(srgbClr?.['@_val'] || '').trim();
+					return val.length > 0 ? `#${val}` : undefined;
+				})();
+		if (resolved) {
+			props.penColor = resolved;
+			// Preserved for save (`rebuildShowProperties`): a scheme/preset
+			// swatch re-emits verbatim when the caller never touches penColor,
+			// instead of being flattened to a baked `a:srgbClr`.
+			props.penColorOriginal = resolved;
+			props.penColorXml = penClr;
 		}
 	}
 

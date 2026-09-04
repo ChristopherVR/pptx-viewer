@@ -166,6 +166,50 @@ describe('applyChartDataLabelsToXml', () => {
 		expect(Object.keys(node).at(-1)).toBe('c:extLst');
 	});
 
+	// C2-G16: c:dLbls/c:numFmt (label-specific number format).
+	it('writes c:numFmt before dLblPos when a numberFormat is set (C2-G16)', () => {
+		const pa = plotAreaWithBar();
+		applyChartDataLabelsToXml(
+			pa,
+			{ hasDataLabels: true, dataLabels: { showValue: true, numberFormat: '$#,##0' } },
+			getLocalName,
+		);
+		const d = dLblsOf(pa);
+		expect(d['c:numFmt']).toStrictEqual({ '@_formatCode': '$#,##0', '@_sourceLinked': '0' });
+		const keys = Object.keys(d).map(getLocalName);
+		expect(keys.indexOf('numFmt')).toBeLessThan(keys.indexOf('showVal'));
+	});
+
+	it('replaces an existing c:numFmt (rather than duplicating it) when numberFormat is set', () => {
+		const pa = plotAreaWithBar();
+		bar(pa)['c:dLbls'] = {
+			'c:numFmt': { '@_formatCode': '0.0', '@_sourceLinked': '0' },
+			'c:showVal': { '@_val': '1' },
+		};
+		applyChartDataLabelsToXml(
+			pa,
+			{ hasDataLabels: true, dataLabels: { showValue: true, numberFormat: '0%' } },
+			getLocalName,
+		);
+		const d = dLblsOf(pa);
+		expect(d['c:numFmt']).toStrictEqual({ '@_formatCode': '0%', '@_sourceLinked': '0' });
+		expect(Object.keys(d).filter((k) => getLocalName(k) === 'numFmt')).toHaveLength(1);
+	});
+
+	it('still preserves an existing c:numFmt when numberFormat is not set (no regression)', () => {
+		const pa = plotAreaWithBar();
+		bar(pa)['c:dLbls'] = {
+			'c:numFmt': { '@_formatCode': '0.0', '@_sourceLinked': '0' },
+			'c:showVal': { '@_val': '1' },
+		};
+		applyChartDataLabelsToXml(
+			pa,
+			{ hasDataLabels: true, dataLabels: { showCategory: true } },
+			getLocalName,
+		);
+		expect(dLblsOf(pa)['c:numFmt']).toStrictEqual({ '@_formatCode': '0.0', '@_sourceLinked': '0' });
+	});
+
 	it('validates dLblPos before serialization', () => {
 		expect(() =>
 			applyChartDataLabelsToXml(

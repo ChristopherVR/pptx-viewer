@@ -258,6 +258,32 @@ assign(
 	},
 );
 
+assign(['drawing:simpleType:ST_TextAnchoringType'], {
+	parse: 'native',
+	preserve: 'unassessed',
+	edit: 'native',
+	serialize: 'native',
+	note: "a:bodyPr/@anchor's dist (distributed) and just (justified) values, previously collapsed into plain centering (ctr) on both parse and re-save, now round-trip as their own typed vAlign values (issue D2-G5) instead of being silently rewritten to ctr on any edit that touches the shape. The shared render layer still lays the two out as vertically centered, not PowerPoint's true inter-line distribution/justification, which is a render-only approximation this manifest does not score. No dedicated round-trip integration test was found, so preserve is left unassessed rather than assumed.",
+	evidence: [
+		testEvidence(
+			'src/core/core/runtime/PptxHandlerRuntimeShapeImageFill.test.ts',
+			[
+				"should return 'distributed' for 'dist', not collapse it to 'middle' (D2-G5)",
+				"should return 'justified' for 'just', not collapse it to 'middle' (D2-G5)",
+			],
+			['parse'],
+		),
+		testEvidence(
+			'src/core/core/runtime/PptxHandlerRuntimeSaveImageEffects.test.ts',
+			[
+				"should map 'distributed' to 'dist' (D2-G5, not collapsed to 'ctr')",
+				"should map 'justified' to 'just' (D2-G5, not collapsed to 'ctr')",
+			],
+			['edit', 'serialize'],
+		),
+	],
+});
+
 export const OPENXML_TEXT_AUTOFIT_PARAGRAPH_BULLET_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>
 > = overrides;

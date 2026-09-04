@@ -1,4 +1,5 @@
 import type { PptxPresentationProperties, XmlObject } from '../../types';
+import { colorsEqual } from '../../utils/color-xml-preservation';
 
 /**
  * `p:showPr` (`CT_ShowProperties`) serialization.
@@ -32,7 +33,8 @@ export function hasShowPropertyEdits(properties: PptxPresentationProperties): bo
 		properties.showSlidesTo !== undefined ||
 		properties.showSlidesCustomShowId !== undefined ||
 		properties.kioskRestartTime !== undefined ||
-		properties.penColor !== undefined
+		properties.penColor !== undefined ||
+		properties.showScrollbar !== undefined
 	);
 }
 
@@ -54,7 +56,20 @@ function applyShowChoice(
 	properties: PptxPresentationProperties,
 ): void {
 	if (properties.showType === 'browsed') {
-		target['p:browse'] = {};
+		// P1-G1: carry over `@showScrollbar` instead of unconditionally emitting
+		// an empty `p:browse` (which silently dropped an authored `false` on
+		// ANY show-property edit, e.g. toggling an unrelated `loopContinuously`,
+		// since PowerPoint's schema default for the attribute is `true`).
+		// Precedence: the caller's typed field, then the existing node's own
+		// attribute (untouched edit), then omitted (schema default applies).
+		const browse: XmlObject = {};
+		const existingBrowse = existing['p:browse'] as XmlObject | undefined;
+		if (properties.showScrollbar !== undefined) {
+			browse['@_showScrollbar'] = properties.showScrollbar ? '1' : '0';
+		} else if (existingBrowse?.['@_showScrollbar'] !== undefined) {
+			browse['@_showScrollbar'] = existingBrowse['@_showScrollbar'];
+		}
+		target['p:browse'] = browse;
 		return;
 	}
 	if (properties.showType === 'kiosk') {
@@ -147,7 +162,17 @@ export function rebuildShowProperties(
 	applyRangeChoice(result, existing, properties);
 
 	if (properties.penColor) {
-		result['p:penClr'] = { 'a:srgbClr': { '@_val': properties.penColor.replace('#', '') } };
+		// P1-G2: re-emit the original scheme/preset/system colour-choice XML
+		// verbatim when the resolved colour is unchanged from what was parsed,
+		// instead of always flattening to a fresh `a:srgbClr` (which would
+		// silently downgrade `<a:schemeClr val="accent2"/>` to a baked RGB hex
+		// on any save, even one that never touched the pen colour).
+		const unchanged =
+			properties.penColorXml !== undefined &&
+			colorsEqual(properties.penColorOriginal, properties.penColor);
+		result['p:penClr'] = unchanged
+			? (properties.penColorXml as XmlObject)
+			: { 'a:srgbClr': { '@_val': properties.penColor.replace('#', '') } };
 	} else if (existing['p:penClr'] !== undefined) {
 		result['p:penClr'] = existing['p:penClr'];
 	}

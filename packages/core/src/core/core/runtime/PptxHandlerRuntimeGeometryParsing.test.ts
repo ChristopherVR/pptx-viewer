@@ -66,13 +66,16 @@ function parseGeometryAdjustments(
 }
 
 // --- Extracted from parseCropFraction ---
+// Signed like its sibling parseSignedRectFraction: a negative a:srcRect
+// inset is a legitimate outward crop (pads the image inside its frame),
+// so the sign is preserved and only the magnitude is bounded (issue #132's
+// reasoning for a:fillRect applies identically here).
 function parseCropFraction(value: unknown): number | undefined {
 	const raw = Number.parseInt(String(value ?? ''), 10);
 	if (!Number.isFinite(raw)) {
 		return undefined;
 	}
-	const normalized = Math.max(0, Math.min(100000, raw)) / 100000;
-	return normalized;
+	return Math.max(-1000000, Math.min(1000000, raw)) / 100000;
 }
 
 // --- Extracted from parseSignedRectFraction ---
@@ -341,16 +344,24 @@ describe('parseCropFraction', () => {
 		expect(parseCropFraction('50000')).toBe(0.5);
 	});
 
-	it('should clamp negative values to 0', () => {
-		expect(parseCropFraction('-5000')).toBe(0);
+	it('preserves the sign of a negative a:srcRect inset (issue: outward crop was clamped to 0)', () => {
+		expect(parseCropFraction('-5000')).toBe(-0.05);
 	});
 
-	it('should clamp values above 100000 to 1', () => {
-		expect(parseCropFraction('200000')).toBe(1);
+	it('caps a negative inset at -10x magnitude to bound hostile input', () => {
+		expect(parseCropFraction('-2000000')).toBe(-10);
+	});
+
+	it('caps values above the 1,000,000 magnitude bound', () => {
+		expect(parseCropFraction('2000000')).toBe(10);
 	});
 
 	it('should handle numeric input (not just strings)', () => {
 		expect(parseCropFraction(25000)).toBe(0.25);
+	});
+
+	it('handles a negative numeric input', () => {
+		expect(parseCropFraction(-25000)).toBe(-0.25);
 	});
 });
 
@@ -408,6 +419,16 @@ describe('readImageCropFromBlipFill', () => {
 			cropRight: 0.05,
 			cropBottom: undefined,
 		});
+	});
+
+	it('preserves a negative a:srcRect inset (outward crop pads the image; issue G2)', () => {
+		const result = readImageCropFromBlipFill({
+			'a:srcRect': { '@_l': '-20000', '@_t': '0', '@_r': '0', '@_b': '0' },
+		});
+		expect(result.cropLeft).toBe(-0.2);
+		expect(result.cropTop).toBe(0);
+		expect(result.cropRight).toBe(0);
+		expect(result.cropBottom).toBe(0);
 	});
 
 	it('maps a:stretch/a:fillRect to the fillRect placement fields, signs preserved', () => {

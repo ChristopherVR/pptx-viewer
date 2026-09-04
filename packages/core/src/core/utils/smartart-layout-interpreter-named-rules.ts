@@ -37,6 +37,14 @@
  * reduce to one uniform role name, so applying this there would be a guess
  * rather than a resolved reference; they keep their existing approximation.
  * Pure geometry; no framework code, no DOM.
+ *
+ * `secFontSz` is `primFontSz`'s sibling: the same numeric-rule mechanism
+ * scaling a node's SECONDARY (subordinate) text run instead of the primary
+ * one. `applyToNode` has only one `fontSize` field to write per rendered node
+ * (the interpreter doesn't model primary/secondary as separate runs), so a
+ * `secFontSz` override is applied identically to `primFontSz` here; the
+ * distinction only matters once a renderer starts drawing primary/secondary
+ * text as separate elements.
  */
 
 import type {
@@ -96,6 +104,7 @@ const OVERRIDE_KEY: Readonly<Record<string, keyof NamedRuleOverride>> = {
 	w: 'width',
 	h: 'height',
 	primFontSz: 'fontSize',
+	secFontSz: 'fontSize',
 };
 
 /**

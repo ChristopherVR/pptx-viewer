@@ -1,5 +1,6 @@
 import type { PptxAttributeAnimation, XmlObject } from '../types';
 import { extractAttrNameFromCBhvr } from './native-animation-attr-name';
+import { normalizeCalcMode } from './native-animation-cbhvr-attrs';
 import { extractStartConditionDelayMs, readTimingAttr } from './native-animation-extended-helpers';
 import { ensureArray, extractKeyframes } from './native-animation-helpers';
 
@@ -28,11 +29,13 @@ export function extractAttributeAnimations(
 
 		const behavior = node['p:cBhvr'] as XmlObject | undefined;
 		const cTn = behavior?.['p:cTn'] as XmlObject | undefined;
+		const calcMode = normalizeCalcMode(node['@_calcmode']);
 		components.push({
 			attrName,
 			keyframes,
 			durationMs: readTimingAttr(cTn?.['@_dur']),
 			delayMs: cTn ? extractStartConditionDelayMs(cTn) : undefined,
+			...(calcMode ? { calcMode } : {}),
 		});
 	}
 

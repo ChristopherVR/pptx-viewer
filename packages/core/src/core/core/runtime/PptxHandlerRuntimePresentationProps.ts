@@ -2,12 +2,21 @@ import { XmlObject } from '../../types';
 import type { PptxPresentationProperties, PptxChartStyle, PptxViewProperties } from '../../types';
 import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
 import { parseChartLegendEntries } from '../../utils/chart-legend-serializer';
+import { parseChartTitleStyle } from '../../utils/chart-title-style-parser';
 import { parseShowProperties } from './pptx-presentation-props-helpers';
 import { findChildByLocalName, parsePrintProperties } from './pptx-print-properties';
 import { parseViewProperties } from './pptx-view-props-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSlideMasters';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Forward declaration - implemented in PptxHandlerRuntimeTextStyleUtils.
+	 * Resolves `+mj-lt` / `+mn-lt` theme font tokens to the theme typeface.
+	 */
+	protected resolveThemeTypeface(_typeface: string | undefined): string | undefined {
+		throw new Error('resolveThemeTypeface not yet initialised');
+	}
+
 	/**
 	 * Parse presentation properties from `presentationPr.xml`.
 	 * Extracts show type, loop, narration, animation, and print settings.
@@ -50,7 +59,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Show properties (p:showPr)
 			const showPr = presProps['p:showPr'] as XmlObject | undefined;
 			if (showPr) {
-				Object.assign(props, parseShowProperties(showPr));
+				Object.assign(
+					props,
+					parseShowProperties(showPr, (node) => this.parseColor(node)),
+				);
 			}
 
 			// Print properties (p:prnPr)
@@ -174,14 +186,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (legend) {
 				style.hasLegend = true;
 				hasStyle = true;
+				// Classic charts nest position in a child (`c:legend/c:legendPos/@val`);
+				// ChartEx (`cx:`) charts put it directly on the element
+				// (`cx:legend/@pos`). Fall back to the attribute when the child lookup
+				// misses so a `cx:legend pos="t"` isn't silently ignored (it used to
+				// always fall through to renderers' `?? 'b'` default).
 				const legendPos = this.xmlLookupService.getChildByLocalName(legend, 'legendPos');
-				if (legendPos?.['@_val']) {
-					style.legendPosition = String(legendPos['@_val']);
+				const legendPosVal = legendPos?.['@_val'] ?? legend['@_pos'];
+				if (legendPosVal) {
+					style.legendPosition = String(legendPosVal);
 				}
 				const entries = parseChartLegendEntries(
 					legend,
 					(key) => this.compatibilityService.getXmlLocalName(key),
 					(node) => this.parseColor(node),
+					(raw) => this.resolveThemeTypeface(raw) ?? raw,
 				);
 				if (entries.length > 0) {
 					style.legendEntries = entries;
@@ -193,6 +212,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (title) {
 				style.hasTitle = true;
 				hasStyle = true;
+				Object.assign(
+					style,
+					parseChartTitleStyle(
+						title,
+						this.xmlLookupService,
+						{ parseColor: (node, placeholder) => this.parseColor(node, placeholder) },
+						(raw) => this.resolveThemeTypeface(raw) ?? raw,
+					),
+				);
 			}
 
 			// Plot area gridlines

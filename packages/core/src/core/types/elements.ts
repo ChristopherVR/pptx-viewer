@@ -34,6 +34,40 @@ import type { PptxSmartArtData } from './smart-art';
 import type { PptxTableData } from './table';
 
 /**
+ * Accessibility metadata from `p:cNvPr/a:extLst`'s "Mark as decorative"
+ * vendor extension (issue G16). PowerPoint's Alt Text pane writes
+ * `a:ext[@uri='{C183D7F6-B498-43B3-948B-1728B52AA6E4}']/adec:decorative
+ * val="1"` when a shape or image is marked decorative; mixed into the
+ * element variants whose `p:cNvPr` that pane covers.
+ */
+export interface PptxAccessibilityProperties {
+	/**
+	 * Whether the element is marked decorative. When true, alt text /
+	 * aria-label / Markdown export should skip describing the element even
+	 * when {@link PptxImageProperties.altText} (or similar) is present.
+	 */
+	isDecorative?: boolean;
+}
+
+/**
+ * `a:cNvPicPr/@preferRelativeResize` (issue G13), a picture-only non-visual
+ * property distinct from `a:picLocks`.
+ */
+export interface PptxPictureNonVisualProperties {
+	/**
+	 * `a:cNvPicPr/@preferRelativeResize` (ST_Boolean, defaults to `true` when
+	 * absent). Controls whether a picture's crop rectangle is reinterpreted
+	 * relative to the picture's ORIGINAL dimensions or its CURRENT
+	 * (already-resized) dimensions when it is resized again after being
+	 * cropped. Parsed and round-tripped for now; not yet wired into
+	 * resize-after-crop arithmetic (this app always uses current-size
+	 * semantics, which only diverges from `preferRelativeResize="0"` on a
+	 * second resize after a crop).
+	 */
+	preferRelativeResize?: boolean;
+}
+
+/**
  * A text box — a plain rectangle containing text, typically with no
  * visible fill or stroke.
  *
@@ -68,7 +102,12 @@ export interface TextPptxElement extends PptxElementBase, PptxTextProperties, Pp
  * ```
  */
 export interface ShapePptxElement
-	extends PptxElementBase, PptxTextProperties, PptxShapeProperties, PptxCustomPathProperties {
+	extends
+		PptxElementBase,
+		PptxTextProperties,
+		PptxShapeProperties,
+		PptxCustomPathProperties,
+		PptxAccessibilityProperties {
 	type: 'shape';
 }
 
@@ -111,7 +150,13 @@ export interface ConnectorPptxElement
  * ```
  */
 export interface ImagePptxElement
-	extends PptxElementBase, PptxShapeProperties, PptxCustomPathProperties, PptxImageProperties {
+	extends
+		PptxElementBase,
+		PptxShapeProperties,
+		PptxCustomPathProperties,
+		PptxImageProperties,
+		PptxAccessibilityProperties,
+		PptxPictureNonVisualProperties {
 	type: 'image';
 }
 
@@ -122,7 +167,13 @@ export interface ImagePptxElement
  * the `type` discriminant for semantic clarity.
  */
 export interface PicturePptxElement
-	extends PptxElementBase, PptxShapeProperties, PptxCustomPathProperties, PptxImageProperties {
+	extends
+		PptxElementBase,
+		PptxShapeProperties,
+		PptxCustomPathProperties,
+		PptxImageProperties,
+		PptxAccessibilityProperties,
+		PptxPictureNonVisualProperties {
 	type: 'picture';
 }
 
@@ -278,6 +329,14 @@ export interface OlePptxElement extends PptxElementBase {
 	 * Only meaningful when {@link isLinked} is `true`. ECMA-376 §19.3.1.28.
 	 */
 	oleFollowColorScheme?: 'none' | 'full' | 'textAndBackground';
+	/**
+	 * `p:link/@updateAutomatic` (`CT_OleObjectLink`, ECMA-376 §19.3.2.4):
+	 * whether a LINKED OLE object refreshes automatically from its source
+	 * (PowerPoint's Edit Links dialog "Automatic" vs. "Manual" radio buttons).
+	 * Only meaningful when {@link isLinked} is `true`. The schema default is
+	 * `false`; `undefined` means the source authored no explicit value.
+	 */
+	oleUpdateAutomatic?: boolean;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }

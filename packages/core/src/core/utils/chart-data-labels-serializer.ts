@@ -28,6 +28,8 @@ export interface ChartDataLabelStyle {
 		separator?: string;
 		showLeaderLines?: boolean;
 		position?: string;
+		/** Label-specific number format (`c:dLbls/c:numFmt/@formatCode`), distinct from the series' own cell format (C2-G16). */
+		numberFormat?: string;
 	};
 }
 
@@ -133,6 +135,9 @@ function buildDLbls(
 	getLocalName: GetLocalName,
 ): XmlObject {
 	const built: XmlObject = {};
+	if (opts.numberFormat !== undefined) {
+		built['c:numFmt'] = { '@_formatCode': opts.numberFormat, '@_sourceLinked': '0' };
+	}
 	if (opts.position) {
 		if (!POSITION_VALUES.has(opts.position)) {
 			throw new RangeError(`Invalid data label position: ${opts.position}`);
@@ -151,7 +156,18 @@ function buildDLbls(
 	if (opts.showLeaderLines !== undefined) {
 		built['c:showLeaderLines'] = boolVal(opts.showLeaderLines);
 	}
-	return ordered(existing, built, getLocalName);
+	// numFmt joins spPr/txPr in the "preserve unless the model overrides it"
+	// group (unlike dLblPos/separator/etc., which MODELED always rewrites):
+	// an untouched chart's label number format must survive editing its show
+	// flags. Only strip the OLD node from the passthrough when a fresh one is
+	// about to replace it, so the two don't both end up in the merged result.
+	const baseExisting =
+		opts.numberFormat === undefined || !existing
+			? existing
+			: (Object.fromEntries(
+					Object.entries(existing).filter(([key]) => getLocalName(key) !== 'numFmt'),
+				) as XmlObject);
+	return ordered(baseExisting, built, getLocalName);
 }
 
 /**

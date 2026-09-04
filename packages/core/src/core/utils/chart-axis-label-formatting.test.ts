@@ -140,6 +140,34 @@ describe('chart axis label formatting', () => {
 		expect(names.indexOf('noMultiLvlLbl')).toBeLessThan(names.indexOf('extLst'));
 	});
 
+	it('parses c:serAx/c:tickLblSkip and c:tickMarkSkip (CT_SerAx also declares CT_Skip)', () => {
+		const node: XmlObject = {
+			'c:tickLblSkip': { '@_val': '2' },
+			'c:tickMarkSkip': { '@_val': '4' },
+		};
+		expect(parseChartAxisLabelFormatting(node, 'serAx', localName)).toStrictEqual({
+			tickLabelSkip: 2,
+			tickMarkSkip: 4,
+		});
+	});
+
+	it('never reads or writes tickLblSkip/tickMarkSkip on a dateAx (CT_DateAx has no CT_Skip)', () => {
+		const node: XmlObject = {
+			'c:tickLblSkip': { '@_val': '2' },
+			'c:tickMarkSkip': { '@_val': '4' },
+		};
+		expect(parseChartAxisLabelFormatting(node, 'dateAx', localName)).toStrictEqual({});
+
+		const written: XmlObject = {};
+		applyChartAxisLabelFormatting(
+			written,
+			{ axisType: 'dateAx', tickLabelSkip: 2, tickMarkSkip: 4 },
+			localName,
+		);
+		expect(written['c:tickLblSkip']).toBeUndefined();
+		expect(written['c:tickMarkSkip']).toBeUndefined();
+	});
+
 	it('writes mutually exclusive crossing controls in schema order', () => {
 		const node: XmlObject = {
 			'c:crossAx': { '@_val': '2' },

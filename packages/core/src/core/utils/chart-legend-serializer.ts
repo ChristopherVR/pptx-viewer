@@ -41,11 +41,16 @@ function child(node: XmlObject | undefined, name: string, getLocalName: GetLocal
 	return key ? (node[key] as XmlObject | undefined) : undefined;
 }
 
-/** Parse indexed legend-entry overrides, including practical text defaults. */
+/**
+ * Parse indexed legend-entry overrides, including practical text defaults.
+ * `resolveTypeface`, when provided, resolves a theme-font placeholder token
+ * (`+mn-lt`, ...) on a per-entry `txPr` typeface to the deck's concrete face.
+ */
 export function parseChartLegendEntries(
 	legend: XmlObject,
 	getLocalName: GetLocalName,
 	parseColor: ParseColor,
+	resolveTypeface?: (raw: string) => string,
 ): PptxChartLegendEntry[] {
 	const key = Object.keys(legend).find((candidate) => getLocalName(candidate) === 'legendEntry');
 	const raw = key ? legend[key] : undefined;
@@ -67,7 +72,7 @@ export function parseChartLegendEntries(
 				child(parent, name, getLocalName),
 		};
 		const defRPr = resolveTxPrDefRPr(child(node, 'txPr', getLocalName), xmlLookup);
-		const style = parseDefRPrTextStyle(defRPr, xmlLookup, { parseColor });
+		const style = parseDefRPrTextStyle(defRPr, xmlLookup, { parseColor }, resolveTypeface);
 		if (style) {
 			entry.textStyle = style;
 		}

@@ -24,8 +24,13 @@ function textVerticalAlignFromDrawingValue(value: unknown): TextStyle['vAlign'] 
 	if (normalized === 'b' || normalized === 'bottom') {
 		return 'bottom';
 	}
-	if (normalized === 'dist' || normalized === 'just') {
-		return 'middle';
+	// D2-G5: `dist`/`just` are distinct ST_TextAnchoringType values, kept apart
+	// from `middle` so save round-trips the original attribute.
+	if (normalized === 'dist') {
+		return 'distributed';
+	}
+	if (normalized === 'just') {
+		return 'justified';
 	}
 	return undefined;
 }
@@ -98,12 +103,12 @@ describe('textVerticalAlignFromDrawingValue', () => {
 		expect(textVerticalAlignFromDrawingValue('bottom')).toBe('bottom');
 	});
 
-	it("should return 'middle' for 'dist' (distributed)", () => {
-		expect(textVerticalAlignFromDrawingValue('dist')).toBe('middle');
+	it("should return 'distributed' for 'dist', not collapse it to 'middle' (D2-G5)", () => {
+		expect(textVerticalAlignFromDrawingValue('dist')).toBe('distributed');
 	});
 
-	it("should return 'middle' for 'just' (justified)", () => {
-		expect(textVerticalAlignFromDrawingValue('just')).toBe('middle');
+	it("should return 'justified' for 'just', not collapse it to 'middle' (D2-G5)", () => {
+		expect(textVerticalAlignFromDrawingValue('just')).toBe('justified');
 	});
 
 	it('should return undefined for unknown value', () => {

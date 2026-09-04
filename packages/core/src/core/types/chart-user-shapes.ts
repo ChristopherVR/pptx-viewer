@@ -37,8 +37,16 @@ export interface PptxChartUserShapeParagraph {
  * `absSizeAnchor` the extent is {@link ext} in EMU.
  */
 export interface PptxChartUserShape {
-	/** Shape kind: text/preset shape, connector, or picture. */
-	kind: 'sp' | 'cxnSp' | 'pic';
+	/**
+	 * Shape kind: text/preset shape, connector, picture, a group of the
+	 * above (`grpSp`, flattened: each grouped child becomes its own entry
+	 * reusing the anchor's own bounding box, an approximation since the
+	 * group's internal chOff/chExt transform is not applied), or a bare
+	 * placeholder for a `graphicFrame` anchor child (deep content such as a
+	 * nested chart or table is out of scope; it only keeps the anchor's
+	 * space accounted for instead of the whole overlay disappearing).
+	 */
+	kind: 'sp' | 'cxnSp' | 'pic' | 'grpSp' | 'graphicFrame';
 	/** Anchor kind that positioned the shape. */
 	anchor: 'rel' | 'abs';
 	/** Top-left corner as chart-relative fractions (0-1). */

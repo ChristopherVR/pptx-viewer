@@ -40,6 +40,7 @@ export interface PptxShapeStyleExtractorContext {
 	extractReflectionStyle: (shapeProps: XmlObject) => Partial<ShapeStyle>;
 	extractBlurStyle: (shapeProps: XmlObject) => Partial<ShapeStyle>;
 	extractEffectDagStyle: (shapeProps: XmlObject) => Partial<ShapeStyle>;
+	extractFillOverlayStyle: (shapeProps: XmlObject) => Partial<ShapeStyle>;
 }
 
 export interface IPptxShapeStyleExtractor {
@@ -196,6 +197,7 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 		Object.assign(style, this.context.extractReflectionStyle(shapeProps));
 		Object.assign(style, this.context.extractBlurStyle(shapeProps));
 		Object.assign(style, this.context.extractEffectDagStyle(shapeProps));
+		Object.assign(style, this.context.extractFillOverlayStyle(shapeProps));
 
 		if (styleNode?.['a:effectRef']) {
 			// An EMPTY `<a:effectLst/>` on `spPr` is PowerPoint's spelling of

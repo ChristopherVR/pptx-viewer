@@ -159,6 +159,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const bgColor = this.parseColor(solidFill);
 			if (bgColor) {
 				chrome.backgroundColor = bgColor;
+			} else {
+				// No solid fill: approximate a gradient/pattern background rather
+				// than silently dropping it (a gradient `dgm:bg` previously loaded
+				// with NO visible background at all). `backgroundFillXml` preserves
+				// the original so `applySmartArtChrome` can re-emit it verbatim on
+				// save instead of flattening it to the approximated solid colour.
+				const approximated = this.approximateSmartArtBackgroundFill(bg);
+				if (approximated) {
+					chrome.backgroundColor = approximated.color;
+					chrome.backgroundFillXml = { localName: approximated.localName, xml: approximated.xml };
+				}
 			}
 		}
 
@@ -178,6 +189,33 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return chrome.backgroundColor || chrome.outlineColor ? chrome : undefined;
+	}
+
+	/**
+	 * Approximate a non-solid `dgm:bg` fill (gradient or pattern) as a single
+	 * display colour, matching the "approximate over drop" precedent used
+	 * elsewhere for SmartArt/shape fills: a gradient's own
+	 * `extractGradientFillColor` blend (the same helper shape/text gradient
+	 * fills already reduce to one colour with), or a pattern's foreground
+	 * colour. Returns `undefined` when `bg` has neither (e.g. a blip/picture
+	 * fill, or `a:noFill`) - still a silent drop, but no worse than before this
+	 * change, and rarer in practice for a diagram background.
+	 */
+	private approximateSmartArtBackgroundFill(
+		bg: XmlObject,
+	): { color: string; localName: 'gradFill' | 'pattFill'; xml: XmlObject } | undefined {
+		const gradFill = this.xmlLookupService.getChildByLocalName(bg, 'gradFill');
+		if (gradFill) {
+			const color = this.colorStyleCodec.extractGradientFillColor(gradFill);
+			return color ? { color, localName: 'gradFill', xml: gradFill } : undefined;
+		}
+		const pattFill = this.xmlLookupService.getChildByLocalName(bg, 'pattFill');
+		if (pattFill) {
+			const fgClr = this.xmlLookupService.getChildByLocalName(pattFill, 'fgClr');
+			const color = fgClr ? this.parseColor(fgClr) : undefined;
+			return color ? { color, localName: 'pattFill', xml: pattFill } : undefined;
+		}
+		return undefined;
 	}
 
 	/**

@@ -73,6 +73,14 @@ describe('parseCondition', () => {
 		expect(result.event).toBe('onStopAudio');
 	});
 
+	it('parses onDblClick event', () => {
+		const result = parseCondition({
+			'@_evt': 'onDblClick',
+			'@_delay': '0',
+		});
+		expect(result.event).toBe('onDblClick');
+	});
+
 	it('ignores invalid event values', () => {
 		const result = parseCondition({
 			'@_evt': 'invalidEvent',

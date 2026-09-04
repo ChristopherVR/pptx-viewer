@@ -168,6 +168,89 @@ assign(
 	},
 );
 
+assign(['presentation:attribute:showScrollbar'], {
+	parse: 'native',
+	preserve: 'unassessed',
+	edit: 'native',
+	serialize: 'native',
+	note: 'p:browse/@showScrollbar (CT_ShowInfoBrowse, default true) now round-trips: previously any unrelated show-property edit unconditionally replaced p:browse with an empty node, silently dropping an authored value (issue P1-G1). Rebuild now preserves the existing attribute when the caller does not set showScrollbar and only writes "0" when explicitly false, omitting the attribute (schema default true applies) otherwise.',
+	evidence: [
+		testEvidence(
+			'src/core/core/runtime/pptx-presentation-props-helpers.test.ts',
+			[
+				'should parse showScrollbar as false from p:browse/@_showScrollbar="0"',
+				'should parse showScrollbar as true when explicitly authored "1"',
+				'should leave showScrollbar undefined when p:browse authors no attribute',
+			],
+			['parse'],
+		),
+		testEvidence(
+			'src/core/core/runtime/pptx-show-properties.test.ts',
+			[
+				'carries the typed showScrollbar onto a freshly-constructed p:browse',
+				'emits "1" for an explicit true',
+				'preserves the existing showScrollbar="0" when an UNRELATED show field is edited',
+				'omits the attribute (schema default true applies) when neither the caller nor the source authored it',
+			],
+			['edit', 'serialize'],
+		),
+	],
+});
+
+assign(['presentation:element:penClr'], {
+	parse: 'native',
+	preserve: 'unassessed',
+	edit: 'native',
+	serialize: 'native',
+	note: "p:penClr (EG_ColorChoice) now resolves through the shared theme-aware colour parser instead of only reading a bare a:srgbClr, so a scheme colour (e.g. accent2) picked as the presenter's pen colour parses correctly instead of silently being dropped (issue P1-G2). An edit that leaves the pen colour unchanged from parse re-emits the original colour XML verbatim (preserving a scheme reference); an actual colour change rebuilds a fresh a:srgbClr.",
+	evidence: [
+		testEvidence(
+			'src/core/core/runtime/pptx-presentation-props-helpers.test.ts',
+			[
+				'should parse pen colour from p:penClr > a:srgbClr',
+				'should not set penColor when p:penClr is absent',
+				'should resolve a scheme/preset pen colour via the injected parseColor resolver',
+				'should still resolve a plain srgbClr pen colour when a resolver is injected',
+			],
+			['parse'],
+		),
+		testEvidence(
+			'src/core/core/runtime/pptx-show-properties.test.ts',
+			[
+				'returns true when penColor is set',
+				're-emits the original scheme colour XML verbatim when penColor is unchanged from parse',
+				'rebuilds a fresh a:srgbClr when the pen colour was actually edited',
+				'rebuilds a fresh a:srgbClr when there is no preserved original (API-authored colour)',
+			],
+			['edit', 'serialize'],
+		),
+	],
+});
+
+assign(['presentation:attribute:updateAutomatic'], {
+	parse: 'native',
+	preserve: 'unassessed',
+	edit: 'native',
+	serialize: 'native',
+	note: 'p:oleObj/p:link/@updateAutomatic (CT_OleObjectLink, spec default false) is now parsed onto OlePptxElement.oleUpdateAutomatic and written from that typed field, instead of the writer unconditionally hardcoding "1" whenever a p:link node was freshly constructed regardless of what the source authored (issue P1-G3).',
+	evidence: [
+		testEvidence(
+			'src/__tests__/integration/ole-save-roundtrip.test.ts',
+			['parses and round-trips `p:link/@followColorScheme` from rawXml'],
+			['parse'],
+		),
+		testEvidence(
+			'src/__tests__/integration/ole-save-roundtrip.test.ts',
+			[
+				'sDK-created linked OLE element defaults to updateAutomatic="0" (the schema default)',
+				'sDK-created linked OLE element honours an explicit oleUpdateAutomatic:true',
+				'preserves updateAutomatic="0" (manual) from rawXml through an unrelated-field edit',
+			],
+			['edit', 'serialize'],
+		),
+	],
+});
+
 export const OPENXML_COLORS_SHOWS_AND_LABELS_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>
 > = overrides;

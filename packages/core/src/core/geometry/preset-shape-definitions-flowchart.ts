@@ -53,8 +53,13 @@ const flowChartProcess: PresetShapeGeometryDefinition = {
 // flowChartDecision — diamond.
 const flowChartDecision: PresetShapeGeometryDefinition = {
 	name: 'flowChartDecision',
-	gdLst: [gd('ir', '*/ wd2 3 4'), gd('ib', '*/ hd2 3 4')],
-	rect: { l: 'wd4', t: 'hd4', r: 'ir', b: 'ib' },
+	// Same mirror bug as `diamond` (see its comment in
+	// preset-shape-definitions-table.ts): `ir`/`ib` used `wd2*3/4`/`hd2*3/4`
+	// (75/37.5 at 200x100pt) instead of mirroring `wd4`/`hd4` off the far edge
+	// (`w - wd4 = 150`, `h - hd4 = 75`), collapsing the rect to a quarter-box.
+	// COM-measured at 200x100pt confirms l=50,t=25,r=150,b=75 (identical to
+	// `diamond`, as expected for the same silhouette).
+	rect: { l: 'wd4', t: 'hd4', r: '+- r 0 wd4', b: '+- b 0 hd4' },
 	pathLst: [
 		{
 			commands: [

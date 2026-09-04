@@ -46,8 +46,18 @@ const FULL_RECT = { l: 'l', t: 't', r: 'r', b: 'b' } as const;
 const round1Rect: PresetShapeGeometryDefinition = {
 	name: 'round1Rect',
 	avLst: { adj: 16667 },
-	gdLst: [gd('a', 'pin 0 adj 50000'), gd('x2', '*/ ss a 100000'), gd('x1', '+- r 0 x2')],
-	rect: FULL_RECT,
+	gdLst: [
+		gd('a', 'pin 0 adj 50000'),
+		gd('x2', '*/ ss a 100000'),
+		gd('x1', '+- r 0 x2'),
+		// COM-measured at 200x100pt: only the affected corner's edge (`r`) gets
+		// inset by the fillet's 45deg touch point (`x2 * (1 - cos45deg)`, same
+		// factor as `roundRect`); `t`/`l`/`b` stay full (PowerPoint does NOT
+		// also inset the top edge here, unlike `round2SameRect` below, where
+		// two corners share the top edge).
+		gd('il', '*/ x2 29289 100000'),
+	],
+	rect: { l: 'l', t: 't', r: '+- r 0 il', b: 'b' },
 	pathLst: [
 		{
 			commands: [
@@ -74,8 +84,14 @@ const round2SameRect: PresetShapeGeometryDefinition = {
 		gd('x2', '+- r 0 x1'),
 		gd('x3', '*/ ss a2 100000'),
 		gd('x4', '+- r 0 x3'),
+		// COM-measured at 200x100pt: both top corners share the top edge, so
+		// `l`/`t`/`r` all inset by the `adj1` corner's fillet factor (same
+		// `(1 - cos45deg)` as `roundRect`); `b` stays full (the bottom corners,
+		// governed by `adj2`, default to square and were not covered by a
+		// second measurement, so `b` is left un-inset rather than guessed).
+		gd('il', '*/ x1 29289 100000'),
 	],
-	rect: FULL_RECT,
+	rect: { l: 'il', t: 'il', r: '+- r 0 il', b: 'b' },
 	pathLst: [
 		{
 			commands: [
@@ -103,8 +119,19 @@ const round2DiagRect: PresetShapeGeometryDefinition = {
 		gd('x2', '*/ ss a2 100000'),
 		gd('x3', '+- r 0 x2'),
 		gd('y2', '+- b 0 x2'),
+		// COM-measured at 200x100pt: the two rounded corners are DIAGONALLY
+		// opposite (top-left via `adj1`, bottom-right via `adj2`), so every edge
+		// borders one of them - PowerPoint insets ALL FOUR edges by the LARGER
+		// of the two corners' fillet factors (`(1 - cos45deg)`, same as
+		// `roundRect`), not just the two edges nominally adjacent to each
+		// corner. At the default (`adj2 = 0`) this reduces to the `adj1` inset,
+		// which is what was measured; `max` keeps it correct if `adj2` grows
+		// past `adj1`.
+		gd('il1', '*/ x1 29289 100000'),
+		gd('il2', '*/ x2 29289 100000'),
+		gd('il', 'max il1 il2'),
 	],
-	rect: FULL_RECT,
+	rect: { l: 'il', t: 'il', r: '+- r 0 il', b: '+- b 0 il' },
 	pathLst: [
 		{
 			commands: [
@@ -131,8 +158,18 @@ const snipRoundRect: PresetShapeGeometryDefinition = {
 		gd('x1', '*/ ss a1 100000'),
 		gd('x2', '*/ ss a2 100000'),
 		gd('x3', '+- r 0 x2'),
+		// COM-measured at 200x100pt: `l`/`t` inset by the SNIPPED top-left
+		// corner's fillet factor (`x1 * (1 - cos45deg)`, the same factor as a
+		// ROUNDED corner elsewhere in this family - not the chamfer's own tight
+		// `leg/2` value, so this is a COM-measured fact rather than a re-derived
+		// one). `r` insets by the ROUNDED top-right corner's `radius/2`
+		// (`x2 * 0.5` - the mathematically tight value for a fillet's 45deg
+		// touch point measured from BOTH adjacent edges, halved since only one
+		// edge, `r`, carries it here). `b` stays full (bottom corners square).
+		gd('ilTL', '*/ x1 29289 100000'),
+		gd('ilTR', '*/ x2 1 2'),
 	],
-	rect: FULL_RECT,
+	rect: { l: 'ilTL', t: 'ilTL', r: '+- r 0 ilTR', b: 'b' },
 	pathLst: [
 		{
 			commands: [
@@ -156,8 +193,18 @@ const snipRoundRect: PresetShapeGeometryDefinition = {
 const snip1Rect: PresetShapeGeometryDefinition = {
 	name: 'snip1Rect',
 	avLst: { adj: 16667 },
-	gdLst: [gd('a', 'pin 0 adj 50000'), gd('x1', '*/ ss a 100000'), gd('dx1', '+- r 0 x1')],
-	rect: FULL_RECT,
+	gdLst: [
+		gd('a', 'pin 0 adj 50000'),
+		gd('x1', '*/ ss a 100000'),
+		gd('dx1', '+- r 0 x1'),
+		// COM-measured at 200x100pt: `t`/`r` (the two edges adjacent to the
+		// snipped top-right corner) inset by exactly HALF the chamfer leg
+		// (`x1/2`) - the mathematically tight value: a rectangle corner at
+		// `(r - d, t + d)` clears the chamfer line `(dx1,t)-(r,x1)` exactly when
+		// `2d = x1`. `l`/`b` stay full (unaffected corners).
+		gd('ins', '*/ x1 1 2'),
+	],
+	rect: { l: 'l', t: 'ins', r: '+- r 0 ins', b: 'b' },
 	pathLst: [
 		{
 			commands: [
@@ -184,8 +231,13 @@ const snip2SameRect: PresetShapeGeometryDefinition = {
 		gd('x2', '+- r 0 x1'),
 		gd('x3', '*/ ss a2 100000'),
 		gd('x4', '+- r 0 x3'),
+		// COM-measured at 200x100pt: both top corners chamfered by `adj1` share
+		// the top edge, so `l`/`t`/`r` all inset by the tight chamfer value
+		// (`x1/2`, see `snip1Rect`); `b` stays full (bottom corners, governed by
+		// `adj2`, default to square).
+		gd('ins', '*/ x1 1 2'),
 	],
-	rect: FULL_RECT,
+	rect: { l: 'ins', t: 'ins', r: '+- r 0 ins', b: 'b' },
 	pathLst: [
 		{
 			commands: [
@@ -214,8 +266,16 @@ const snip2DiagRect: PresetShapeGeometryDefinition = {
 		gd('x4', '+- r 0 x3'),
 		gd('y1', '+- b 0 x3'),
 		gd('y2', '+- b 0 x1'),
+		// COM-measured at 200x100pt: same diagonal-pair pattern as
+		// `round2DiagRect` (see its comment) - the two chamfered corners
+		// (top-right via `adj1`, bottom-left via `adj2`) are diagonally
+		// opposite, so every edge borders one of them and PowerPoint insets ALL
+		// FOUR edges by the LARGER corner's tight chamfer value (`leg/2`).
+		gd('ins1', '*/ x1 1 2'),
+		gd('ins2', '*/ x3 1 2'),
+		gd('ins', 'max ins1 ins2'),
 	],
-	rect: FULL_RECT,
+	rect: { l: 'ins', t: 'ins', r: '+- r 0 ins', b: '+- b 0 ins' },
 	pathLst: [
 		{
 			commands: [

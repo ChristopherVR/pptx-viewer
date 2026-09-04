@@ -60,6 +60,7 @@ export function interpretedLayoutToElements(
 	result: SmartArtLayoutResult,
 	nodes: PptxSmartArtNode[],
 	containerBounds: { x: number; y: number },
+	bulletEnabled = false,
 ): PptxElement[] {
 	const nodeById = new Map(nodes.map((n) => [n.id, n]));
 	const elements: PptxElement[] = [];
@@ -69,7 +70,7 @@ export function interpretedLayoutToElements(
 		const text = node?.text ?? '';
 		const fontSize = rendered.fontSize;
 		const textSegments = node
-			? projectSmartArtNodeText(node, { fontSize: fontSize * (96 / 72) })
+			? projectSmartArtNodeText(node, { fontSize: fontSize * (96 / 72) }, { bulletEnabled })
 			: undefined;
 		// Embed the node id (`sa-interp-<nodeId>`), matching the convention
 		// `resolveShapeModelId` (smartart-fabrication-drawing.ts) already relies

@@ -139,6 +139,31 @@ describe('parseChartAxes', () => {
 		});
 	});
 
+	it('resolves a theme-font placeholder typeface (+mn-lt) via resolveTypeface', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:txPr': {
+					'a:p': { 'a:pPr': { 'a:defRPr': { 'a:latin': { '@_typeface': '+mn-lt' } } } },
+				},
+			},
+		};
+		const resolveTypeface = (raw: string) => (raw === '+mn-lt' ? 'Bahnschrift' : raw);
+		const [axis] = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName, resolveTypeface);
+		expect(axis.fontFamily).toBe('Bahnschrift');
+	});
+
+	it('leaves the raw typeface untouched when no resolveTypeface is provided', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:txPr': {
+					'a:p': { 'a:pPr': { 'a:defRPr': { 'a:latin': { '@_typeface': '+mn-lt' } } } },
+				},
+			},
+		};
+		const [axis] = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		expect(axis.fontFamily).toBe('+mn-lt');
+	});
+
 	it('should return empty array for plotArea without axes', () => {
 		const plotArea: XmlObject = { 'c:barChart': {} };
 		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);

@@ -5,6 +5,7 @@ import type {
 	PptxChartShapeProps,
 	XmlObject,
 } from '../types';
+import { parseChartDataPointPicture } from './chart-datapoint-serializer';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -166,6 +167,11 @@ export function parseSeriesDataPoints(
 			);
 			if (spPr) {
 				result.spPr = spPr;
+			}
+
+			const picture = parseChartDataPointPicture(node, xmlLookup);
+			if (picture) {
+				result.picture = picture;
 			}
 
 			const explosionNode = xmlLookup.getChildByLocalName(node, 'explosion');

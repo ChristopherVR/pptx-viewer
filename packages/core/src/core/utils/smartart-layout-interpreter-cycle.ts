@@ -3,13 +3,16 @@
  *
  * Places the data-model points evenly around a centre, honouring the `stAng`
  * (start angle) and `spanAng` (sweep) algorithm parameters when present, and
- * draws light arc connectors between consecutive points. Pure geometry; no
- * framework code.
+ * draws light arc connectors between consecutive points. When `ctrShpMap`
+ * (`dgm:param[@type=ctrShpMap]`) is `fNode`, the FIRST data point is pulled off
+ * the ring and placed at the box centre instead - PowerPoint's "Radial Cycle"
+ * family layouts use this for a hub node the ring nodes surround. Pure
+ * geometry; no framework code.
  */
 
 import type { PptxSmartArtNode, SmartArtStyle } from '../types';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { itemNode, numericParam } from './smartart-layout-interpreter-model';
+import { algorithmParam, itemNode, numericParam } from './smartart-layout-interpreter-model';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { styleContext } from './smartart-layout-interpreter-render';
 import type {
@@ -39,7 +42,13 @@ export function arrangeCycle(
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
-	const n = nodes.length;
+	// `ctrShpMap="fNode"` pulls the first data point into a hub at the box
+	// centre; every other value (including absent, the common case) puts every
+	// point on the ring, matching the pre-existing behaviour.
+	const hasHub = algorithmParam(plan.node, 'ctrShpMap') === 'fNode' && nodes.length > 0;
+	const hubNode = hasHub ? nodes[0] : undefined;
+	const ringNodes = hasHub ? nodes.slice(1) : nodes;
+	const n = ringNodes.length;
 	const size = Math.min(w, h);
 	const cx = w / 2;
 	const cy = h / 2;
@@ -47,6 +56,9 @@ export function arrangeCycle(
 	const spanDeg = numericParam(plan.node, 'spanAng', 360);
 	const nodeR = Math.max(size * 0.06, Math.min(size * 0.12, 200 / Math.max(1, n)));
 	const radius = Math.max(nodeR, size * 0.5 - nodeR - 4);
+	// The hub sits inside the ring, sized to roughly fill the space the ring
+	// leaves at the centre.
+	const hubR = Math.max(nodeR, radius - nodeR - 4);
 
 	const centre = (index: number): { x: number; y: number } => {
 		const angle = pointAngle(index, n, startDeg, spanDeg);
@@ -54,7 +66,7 @@ export function arrangeCycle(
 	};
 
 	const full = Math.abs(spanDeg) >= 360;
-	const connectorCount = full ? n : Math.max(0, n - 1);
+	const connectorCount = n > 0 ? (full ? n : Math.max(0, n - 1)) : 0;
 	const connectors: RenderedConnector[] = Array.from({ length: connectorCount }, (_, i) => {
 		const from = centre(i);
 		const to = centre((i + 1) % n);
@@ -70,7 +82,7 @@ export function arrangeCycle(
 	});
 
 	const itemShape = itemNode(plan.node)?.shape;
-	const renderedNodes: RenderedNode[] = nodes.map((node, i) => {
+	const renderedNodes: RenderedNode[] = ringNodes.map((node, i) => {
 		const { x, y } = centre(i);
 		return presetBoxNode({
 			key: `${elementId}-cycle-${node.id}-${i}`,
@@ -88,6 +100,25 @@ export function arrangeCycle(
 			fallbackKind: 'circle',
 		});
 	});
+	if (hubNode) {
+		renderedNodes.push(
+			presetBoxNode({
+				key: `${elementId}-cycle-hub-${hubNode.id}`,
+				x: cx - hubR,
+				y: cy - hubR,
+				width: hubR * 2,
+				height: hubR * 2,
+				node: hubNode,
+				index: 0,
+				total: nodes.length,
+				palette,
+				style,
+				ctx,
+				shape: itemShape,
+				fallbackKind: 'circle',
+			}),
+		);
+	}
 
 	return {
 		nodes: renderedNodes,

@@ -7,6 +7,7 @@ import type {
 	PptxElement,
 	TablePptxElement,
 } from '../../types';
+import { oleUpdateAutomaticAttr } from '../builders/ole-update-automatic';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElements';
 import type { SlideShapeCollectors } from './PptxHandlerRuntimeSaveElementWriter';
@@ -240,7 +241,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (el.isLinked) {
 			oleObj['p:link'] = {
 				'@_r:id': embedRelationshipId,
-				'@_updateAutomatic': '1',
+				// P1-G3: schema default is `false` - honour a caller's explicit
+				// choice rather than always fabricating an auto-updating link.
+				'@_updateAutomatic': oleUpdateAutomaticAttr(el),
 				...(el.oleFollowColorScheme !== undefined
 					? { '@_followColorScheme': el.oleFollowColorScheme }
 					: {}),
@@ -335,9 +338,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const existingRid = String(
 					(oleObj['p:embed'] as XmlObject | undefined)?.['@_r:id'] || oleObj['@_r:id'] || '',
 				).trim();
+				// P1-G3: same spec-default reasoning as `createOleGraphicFrameXml`
+				// - converting embed -> link via the API must not silently force
+				// an auto-updating link.
+				const updateAutomatic = oleUpdateAutomaticAttr(el);
 				oleObj['p:link'] = existingRid
-					? { '@_r:id': existingRid, '@_updateAutomatic': '1' }
-					: { '@_updateAutomatic': '1' };
+					? { '@_r:id': existingRid, '@_updateAutomatic': updateAutomatic }
+					: { '@_updateAutomatic': updateAutomatic };
 			}
 			delete oleObj['p:embed'];
 		} else if (el.isLinked === false) {
@@ -354,6 +361,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				linkNode['@_followColorScheme'] = el.oleFollowColorScheme;
 			} else {
 				delete linkNode['@_followColorScheme'];
+			}
+			// P1-G3: `p:link/@updateAutomatic`. Only touched when the typed field
+			// is defined - which parse always populates from an authored source
+			// attribute, so a pure passthrough naturally re-emits the original
+			// value; `undefined` (never authored, or a bare API-fabricated
+			// element) leaves whatever the existing node already carries alone.
+			if (el.oleUpdateAutomatic !== undefined) {
+				linkNode['@_updateAutomatic'] = el.oleUpdateAutomatic ? '1' : '0';
 			}
 		}
 	}

@@ -183,6 +183,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return this.colorStyleCodec.extractEffectDagStyle(shapeProps);
 	}
 
+	protected extractFillOverlayStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
+		return this.colorStyleCodec.extractFillOverlayStyle(shapeProps);
+	}
+
 	protected extractReflectionStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
 		return this.colorStyleCodec.extractReflectionStyle(shapeProps);
 	}

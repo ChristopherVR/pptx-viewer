@@ -21,6 +21,7 @@ import { extractAnimationTarget } from './animation-target-build-helpers';
 import { extractCTnTimingAttrs, extractSeqAttrs } from './animation-timing-attrs';
 import { extractChildKeyframeAttrName } from './native-animation-attr-name';
 import { extractAttributeAnimations } from './native-animation-attribute-components';
+import { extractChildCBhvrAttrs, extractChildCalcMode } from './native-animation-cbhvr-attrs';
 import { extractChildAutoReverseTiming } from './native-animation-child-timing';
 import {
 	extractColorAnimation,
@@ -293,10 +294,18 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			// Preserve p:endCondLst for lossless round-trip
 			const rawEndCondLst = endCondListXml;
 
-			// Extract the target shape ID from child behavior nodes
+			// Extract the target shape ID from child behavior nodes. A shape
+			// target's `subShapeId` (from `p:spTgt/p:subSp`) names the actual
+			// descendant shape inside a group when the effect targets one
+			// member of a group without ungrouping it; it is the real
+			// playback target, so it wins over the enclosing group's own id.
 			const target = extractAnimationTarget(cTn);
 			const targetId =
-				target?.type === 'shape' || target?.type === 'ink' ? target.shapeId : undefined;
+				target?.type === 'shape'
+					? (target.subShapeId ?? target.shapeId)
+					: target?.type === 'ink'
+						? target.shapeId
+						: undefined;
 			const childTnListForFilter = cTn['p:childTnLst'] as XmlObject | undefined;
 			const effectFilter = parseAnimEffectFilter(childTnListForFilter);
 			// A node with no recognised presetClass but a parsed `@filter` still
@@ -335,10 +344,17 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const roundTripAttrs = captureRoundTripCTnAttrs(cTn);
 				const afterEffectFlag = extractAfterEffect(cTn);
 				const timingAttrs = extractCTnTimingAttrs(cTn);
+				const calcMode = extractChildCalcMode(childTnList);
+				const cBhvrAttrs = extractChildCBhvrAttrs(childTnList);
+				const nodeIdRaw = cTn['@_id'];
+				const nodeId = nodeIdRaw !== undefined ? Number.parseInt(String(nodeIdRaw), 10) : undefined;
 
 				animations.push({
 					targetId,
 					target,
+					nodeId: nodeId !== undefined && !Number.isNaN(nodeId) ? nodeId : undefined,
+					calcMode,
+					...cBhvrAttrs,
 					trigger,
 					presetClass: validPresetClass,
 					presetId,

@@ -37,7 +37,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: 'Typed and validated transition speed and sound-action support.',
+		note: 'Typed and validated transition speed and sound-action support. Since issue P2-G7/G8, p:sndAc is also PLAYED (not just round-tripped): a shared decision function resolves p:stSnd (with @loop, "Loop Until Next Sound") to a media URL and starts it, or p:endSnd to stopping the current transition sound, consumed identically by all five bindings.',
 		evidence: [
 			testEvidence('src/__tests__/integration/slide-transition-conformance-roundtrip.test.ts', [
 				'generates and reloads typed speed, timing, and start-sound options',

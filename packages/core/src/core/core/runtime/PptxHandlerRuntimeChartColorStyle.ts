@@ -10,10 +10,51 @@
  */
 
 import { XmlObject } from '../../types';
-import type { PptxChartData } from '../../types';
+import type { PptxChartData, PptxChartStyleDefinition } from '../../types';
+import { parseChartStyleDefinition } from '../../utils/chart-style-definition-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartExternalData';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Parse the Office 2013+ chart-style part (`ppt/charts/style#.xml`)
+	 * referenced from the chart's relationships, sibling to
+	 * {@link parseChartColorStyle}. This is a SEPARATE part/relationship from
+	 * the colour style (`chartColorStyle*.xml`): the colour style cycles
+	 * series colours, this one carries per-element (title, axis, gridline,
+	 * data point, ...) font/line/fill defaults for the active built-in style.
+	 */
+	protected async parseChartStyleDefinitionPart(
+		chartPartPath: string,
+	): Promise<PptxChartStyleDefinition | undefined> {
+		try {
+			const rels = await this.readChartRels(chartPartPath);
+			// Type URI seen in the wild:
+			//   http://schemas.microsoft.com/office/2012/relationships/chartStyle
+			// Deliberately NOT matched by the chartColorStyle lookup above, since
+			// that relationship type is always "chartColorStyle", never bare
+			// "chartStyle".
+			const styleRel = rels.find((r) => r.type.endsWith('/chartStyle'));
+			if (!styleRel) {
+				return undefined;
+			}
+			const stylePath = this.resolveImagePath(chartPartPath, styleRel.target);
+			const styleXml = await this.zip.file(stylePath)?.async('string');
+			if (!styleXml) {
+				return undefined;
+			}
+			const parsed = this.parser.parse(styleXml) as XmlObject;
+			const styleRoot = this.xmlLookupService.getChildByLocalName(parsed, 'chartStyle') ?? parsed;
+			return parseChartStyleDefinition(
+				styleRoot,
+				this.xmlLookupService,
+				(node) => this.resolveChartSchemeColor(node),
+				(fillNode) => this.parseColor(fillNode),
+			);
+		} catch {
+			return undefined;
+		}
+	}
+
 	/**
 	 * Parse the Office 2013+ chart color style part (`chartColorStyle*.xml`)
 	 * referenced from the chart's relationships.

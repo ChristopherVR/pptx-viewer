@@ -172,6 +172,55 @@ describe('parseShowProperties', () => {
 		expect(result2.kioskRestartTime).toBeUndefined();
 	});
 
+	// P1-G1: p:browse/@showScrollbar
+	it('should parse showScrollbar as false from p:browse/@_showScrollbar="0"', () => {
+		const result = parseShowProperties({ 'p:browse': { '@_showScrollbar': '0' } });
+		expect(result.showType).toBe('browsed');
+		expect(result.showScrollbar).toBeFalsy();
+	});
+
+	it('should parse showScrollbar as true when explicitly authored "1"', () => {
+		const result = parseShowProperties({ 'p:browse': { '@_showScrollbar': '1' } });
+		expect(result.showScrollbar).toBeTruthy();
+	});
+
+	it('should leave showScrollbar undefined when p:browse authors no attribute', () => {
+		const result = parseShowProperties({ 'p:browse': {} });
+		expect(result.showScrollbar).toBeUndefined();
+	});
+
+	it('should leave showScrollbar undefined for non-browsed show types', () => {
+		const result = parseShowProperties({ 'p:present': {} });
+		expect(result.showScrollbar).toBeUndefined();
+	});
+
+	// P1-G2: p:penClr non-RGB colour forms via an injected generic resolver
+	it('should resolve a scheme/preset pen colour via the injected parseColor resolver', () => {
+		const schemeNode = { 'p:penClr': { 'a:schemeClr': { '@_val': 'accent2' } } };
+		const result = parseShowProperties(schemeNode, () => '#123456');
+		expect(result.penColor).toBe('#123456');
+		expect(result.penColorOriginal).toBe('#123456');
+		expect(result.penColorXml).toBe(schemeNode['p:penClr']);
+	});
+
+	it('should still resolve a plain srgbClr pen colour when a resolver is injected', () => {
+		const result = parseShowProperties(
+			{ 'p:penClr': { 'a:srgbClr': { '@_val': 'ABCDEF' } } },
+			(node) => {
+				const srgb = node['a:srgbClr'] as { '@_val'?: string } | undefined;
+				return srgb?.['@_val'] ? `#${srgb['@_val']}` : undefined;
+			},
+		);
+		expect(result.penColor).toBe('#ABCDEF');
+	});
+
+	it('should not set penColorOriginal/penColorXml when no pen colour resolves', () => {
+		const result = parseShowProperties({ 'p:penClr': { 'a:schemeClr': { '@_val': 'accent2' } } });
+		expect(result.penColor).toBeUndefined();
+		expect(result.penColorOriginal).toBeUndefined();
+		expect(result.penColorXml).toBeUndefined();
+	});
+
 	it('should handle a fully populated show properties object', () => {
 		const result = parseShowProperties({
 			'p:kiosk': { '@_restart': '600000' },

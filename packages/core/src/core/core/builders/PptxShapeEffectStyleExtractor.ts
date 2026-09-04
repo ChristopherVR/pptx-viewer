@@ -1,5 +1,6 @@
 import type { ShapeStyle, XmlObject } from '../../types';
 import { effectChild } from './effect-list-roundtrip';
+import { extractFillOverlayAttributes } from './effect-style-extractor-fill-overlay';
 import { extractReflectionAttributes } from './effect-style-extractor-reflection';
 import { PRESET_SHADOW_BLUR_MAP, PRESET_SHADOW_OPACITY_MAP } from './effect-style-preset-maps';
 
@@ -35,6 +36,7 @@ export interface PptxShapeEffectStyleExtractorContext {
 	emuPerPx: number;
 	parseColor: (colorNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
 	extractColorOpacity: (colorNode: XmlObject | undefined) => number | undefined;
+	ensureArray: (value: unknown) => XmlObject[];
 }
 
 export interface IPptxShapeEffectStyleExtractor {
@@ -45,6 +47,7 @@ export interface IPptxShapeEffectStyleExtractor {
 	extractSoftEdgeStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	extractReflectionStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	extractBlurStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
+	extractFillOverlayStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 }
 
 export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtractor {
@@ -252,6 +255,15 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 		const blurGrow = growValue === '1' || growValue === 'true' ? true : undefined;
 
 		return { blurRadius, blurGrow };
+	}
+
+	/**
+	 * `a:fillOverlay` as a DIRECT child of the plain `a:effectLst`; see
+	 * {@link extractFillOverlayAttributes} for the full explanation (split into
+	 * its own module to keep this file under the size limit).
+	 */
+	public extractFillOverlayStyle(shapeProps: XmlObject): Partial<ShapeStyle> {
+		return extractFillOverlayAttributes(shapeProps, this.context);
 	}
 }
 

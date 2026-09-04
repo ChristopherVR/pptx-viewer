@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import { PptxMediaDataParser } from './PptxMediaDataParser';
 import type { PptxMediaDataParserContext } from './PptxMediaDataParser';
@@ -83,6 +83,22 @@ describe('pptxMediaDataParser — media type detection', () => {
 		expect(result.mediaReferenceContentType).toBe('audio/flac');
 	});
 
+	// G21: the declared `@contentType` should win over the extension guess.
+	it('prefers the declared audioFile contentType over the extension-guessed MIME type', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = makeSlideRelsMap(slidePath, {
+			rId3: '../media/media1.bin',
+		});
+		const parser = new PptxMediaDataParser(makeContext({ slideRelsMap }));
+		const result = parser.parseMediaData(
+			{ 'a:audioFile': { '@_r:link': 'rId3', '@_contentType': 'audio/mp4' } },
+			slidePath,
+		);
+		// The extension (`.bin`) alone would guess nothing useful; the
+		// declared contentType is the one PowerPoint's UI actually reads.
+		expect(result.mediaMimeType).toBe('audio/mp4');
+	});
+
 	it('parses embedded WAV, QuickTime, and Audio CD choices', () => {
 		const slidePath = 'ppt/slides/slide1.xml';
 		const slideRelsMap = makeSlideRelsMap(slidePath, {
@@ -133,9 +149,40 @@ describe('pptxMediaDataParser — media type detection', () => {
 			rIdExt: 'https://example.com/clip.mp4',
 		});
 		const externalRelsMap = new Map([[slidePath, new Set(['rIdExt'])]]);
-		const parser = new PptxMediaDataParser(makeContext({ slideRelsMap, externalRelsMap }));
+		const parser = new PptxMediaDataParser(
+			makeContext({ slideRelsMap, externalRelsMap, allowExternalMedia: () => true }),
+		);
 		const linked = parser.parseMediaData({ 'a:videoFile': { '@_r:link': 'rIdExt' } }, slidePath);
 		expect(linked).toMatchObject({ mediaType: 'video', isLinked: true });
+	});
+
+	// ---------------------------------------------------------------------------
+	// G17: linked (external) media path resolution
+	// ---------------------------------------------------------------------------
+
+	it('resolves a linked external r:link target to the verbatim URL, not a corrupted archive path', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = makeSlideRelsMap(slidePath, {
+			rIdExt: 'https://cdn.example.com/demo.mp4',
+		});
+		const externalRelsMap = new Map([[slidePath, new Set(['rIdExt'])]]);
+		const parser = new PptxMediaDataParser(
+			makeContext({ slideRelsMap, externalRelsMap, allowExternalMedia: () => true }),
+		);
+		const linked = parser.parseMediaData({ 'a:videoFile': { '@_r:link': 'rIdExt' } }, slidePath);
+		expect(linked.mediaPath).toBe('https://cdn.example.com/demo.mp4');
+	});
+
+	it('blocks a linked external r:link target when allowExternalMedia is not granted', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = makeSlideRelsMap(slidePath, {
+			rIdExt: 'https://cdn.example.com/demo.mp4',
+		});
+		const externalRelsMap = new Map([[slidePath, new Set(['rIdExt'])]]);
+		const parser = new PptxMediaDataParser(makeContext({ slideRelsMap, externalRelsMap }));
+		const linked = parser.parseMediaData({ 'a:videoFile': { '@_r:link': 'rIdExt' } }, slidePath);
+		expect(linked.isLinked).toBeTruthy();
+		expect(linked.mediaPath).toBeUndefined();
 	});
 
 	it('returns unknown when neither video nor audio is present', () => {
@@ -330,5 +377,30 @@ describe('pptxMediaDataParser — resolveRelationshipTarget', () => {
 
 		const result = parser.resolveRelationshipTarget('ppt/slides/slide99.xml', 'rId1');
 		expect(result).toBeUndefined();
+	});
+
+	it('returns the verbatim URL for an external relationship when allowExternalMedia grants it', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = makeSlideRelsMap(slidePath, { rIdExt: 'https://example.com/clip.mp4' });
+		const externalRelsMap = new Map([[slidePath, new Set(['rIdExt'])]]);
+		const parser = new PptxMediaDataParser(
+			makeContext({ slideRelsMap, externalRelsMap, allowExternalMedia: () => true }),
+		);
+
+		const result = parser.resolveRelationshipTarget(slidePath, 'rIdExt');
+		expect(result).toBe('https://example.com/clip.mp4');
+	});
+
+	it('never joins an external target through resolvePath, granted or not', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = makeSlideRelsMap(slidePath, { rIdExt: 'https://example.com/clip.mp4' });
+		const externalRelsMap = new Map([[slidePath, new Set(['rIdExt'])]]);
+		const resolvePath = vi.fn((base: string, relative: string) => `${base}/${relative}`);
+		const parser = new PptxMediaDataParser(
+			makeContext({ slideRelsMap, externalRelsMap, resolvePath, allowExternalMedia: () => true }),
+		);
+
+		parser.resolveRelationshipTarget(slidePath, 'rIdExt');
+		expect(resolvePath).not.toHaveBeenCalled();
 	});
 });

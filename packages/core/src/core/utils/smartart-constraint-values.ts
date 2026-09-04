@@ -4,6 +4,7 @@ export const SMART_ART_CONSTRAINT_TYPES = new Set([
 	'begMarg',
 	'bendDist',
 	'begPad',
+	'bkPtFixedVal',
 	'b',
 	'bMarg',
 	'bOff',

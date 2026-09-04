@@ -20,8 +20,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const actionAttr = String(hlinkNode['@_action'] || '').trim();
 		const tooltipAttr = String(hlinkNode['@_tooltip'] || '').trim();
 		const highlightClickAttr = String(hlinkNode['@_highlightClick'] || '').trim();
+		const endSndAttr = String(hlinkNode['@_endSnd'] || '').trim();
 
-		if (rId.length === 0 && actionAttr.length === 0 && tooltipAttr.length === 0) {
+		if (
+			rId.length === 0 &&
+			actionAttr.length === 0 &&
+			tooltipAttr.length === 0 &&
+			endSndAttr.length === 0
+		) {
 			return undefined;
 		}
 
@@ -37,6 +43,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (highlightClickAttr === '1' || highlightClickAttr === 'true') {
 			action.highlightClick = true;
+		}
+		// CT_Hyperlink/@endSnd (issue G14): PowerPoint's "Stop previous sound".
+		if (endSndAttr === '1' || endSndAttr === 'true') {
+			action.endSnd = true;
 		}
 
 		const sndNode = hlinkNode['a:snd'] as XmlObject | undefined;

@@ -36,6 +36,15 @@ export interface PptxChartPageSetup {
 	horizontalDpi?: number;
 	verticalDpi?: number;
 	copies?: number;
+	/**
+	 * Custom paper height, used when {@link paperSize} is `0`
+	 * (`c:pageSetup/@paperHeight`, ST_PositiveUniversalMeasure, e.g. `"297mm"`).
+	 * Kept as the raw measure string rather than converted, matching how the
+	 * schema stores it.
+	 */
+	paperHeight?: string;
+	/** Custom paper width, used when {@link paperSize} is `0` (`@paperWidth`). */
+	paperWidth?: string;
 	/** Original leaf retained for foreign attributes. */
 	rawXml?: unknown;
 }

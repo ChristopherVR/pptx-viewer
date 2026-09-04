@@ -1,35 +1,24 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject, PptxImageEffects } from '../../types';
+import { buildSrcRectXml, clampCropForSave } from './image-crop-save';
 
 /**
- * The image-effects save module defines its helpers as **protected** methods
- * on the class. To test them in isolation we create a minimal subclass that
- * exposes them.
+ * The image-effects save module defines most of its helpers as **protected**
+ * methods on the class. `clampCropForSave` and the `a:srcRect` builder were
+ * extracted to the pure, directly-importable `image-crop-save.ts` module
+ * (issue G2) to keep this already-large file within budget; test those two
+ * against the REAL implementation below rather than a reimplemented copy.
  *
- * The helpers we care about:
- *   - clampCropForSave(value)
- *   - applyImageCropToBlipFill(blipFill, element)
+ * The remaining helpers we care about here are still reimplemented copies
+ * (they stay class-private for now):
  *   - applyImageEffectsToBlip(blipFill, effects)
  *   - textVerticalAlignToDrawingValue(vAlign)
  *   - textDirectionToDrawingValue(value)
  *   - normalizeTextColumnCount(value)
  *   - normalizeTextLineBreaks(value)
  *   - getTextValueForSave(text, textSegments)
- *
- * Because the full class hierarchy is huge, we extract and test the pure
- * logic by reimplementing the same algorithms (they are self-contained).
  */
-
-// ---------------------------------------------------------------------------
-// clampCropForSave — reimplemented identically to the source
-// ---------------------------------------------------------------------------
-function clampCropForSave(value: unknown): number {
-	if (typeof value !== 'number' || !Number.isFinite(value)) {
-		return 0;
-	}
-	return Math.max(0, Math.min(0.95, value));
-}
 
 describe('clampCropForSave', () => {
 	it('should return 0 for non-number inputs', () => {
@@ -40,8 +29,8 @@ describe('clampCropForSave', () => {
 		expect(clampCropForSave(Infinity)).toBe(0);
 	});
 
-	it('should return 0 for negative values', () => {
-		expect(clampCropForSave(-0.5)).toBe(0);
+	it('preserves a negative outward-crop inset instead of clamping to 0 (issue G2)', () => {
+		expect(clampCropForSave(-0.5)).toBe(-0.5);
 	});
 
 	it('should return the value when within range', () => {
@@ -50,15 +39,20 @@ describe('clampCropForSave', () => {
 		expect(clampCropForSave(0.95)).toBe(0.95);
 	});
 
-	it('should clamp values above 0.95', () => {
+	it('should clamp positive values above 0.95', () => {
 		expect(clampCropForSave(1)).toBe(0.95);
 		expect(clampCropForSave(2)).toBe(0.95);
 	});
+
+	it('should clamp the magnitude of negative values below -0.95', () => {
+		expect(clampCropForSave(-1)).toBe(-0.95);
+		expect(clampCropForSave(-2)).toBe(-0.95);
+	});
 });
 
-// ---------------------------------------------------------------------------
-// applyImageCropToBlipFill — reimplemented from source
-// ---------------------------------------------------------------------------
+// `applyImageCropToBlipFill` itself is a thin protected wrapper (delete
+// a:srcRect / syncPictureShapeTypeWithCropShape / call buildSrcRectXml); the
+// real crop maths lives in `buildSrcRectXml`, tested directly here.
 function applyImageCropToBlipFill(
 	blipFill: XmlObject | undefined,
 	element: {
@@ -71,34 +65,12 @@ function applyImageCropToBlipFill(
 	if (!blipFill) {
 		return;
 	}
-
-	const cropLeft = clampCropForSave(element.cropLeft);
-	const cropTop = clampCropForSave(element.cropTop);
-	const cropRight = clampCropForSave(element.cropRight);
-	const cropBottom = clampCropForSave(element.cropBottom);
-
-	const horizontalCrop = cropLeft + cropRight;
-	const verticalCrop = cropTop + cropBottom;
-	const hasCrop = horizontalCrop > 0.0001 || verticalCrop > 0.0001;
-
-	if (!hasCrop) {
+	const srcRect = buildSrcRectXml(element);
+	if (!srcRect) {
 		delete blipFill['a:srcRect'];
 		return;
 	}
-
-	const safeHorizontalScale = horizontalCrop >= 0.99 ? 0.99 / horizontalCrop : 1;
-	const safeVerticalScale = verticalCrop >= 0.99 ? 0.99 / verticalCrop : 1;
-	const normalizedLeft = clampCropForSave(cropLeft * safeHorizontalScale);
-	const normalizedRight = clampCropForSave(cropRight * safeHorizontalScale);
-	const normalizedTop = clampCropForSave(cropTop * safeVerticalScale);
-	const normalizedBottom = clampCropForSave(cropBottom * safeVerticalScale);
-
-	blipFill['a:srcRect'] = {
-		'@_l': String(Math.round(normalizedLeft * 100000)),
-		'@_t': String(Math.round(normalizedTop * 100000)),
-		'@_r': String(Math.round(normalizedRight * 100000)),
-		'@_b': String(Math.round(normalizedBottom * 100000)),
-	};
+	blipFill['a:srcRect'] = srcRect;
 }
 
 describe('applyImageCropToBlipFill', () => {
@@ -138,6 +110,33 @@ describe('applyImageCropToBlipFill', () => {
 		expect(srcRect['@_t']).toBe(String(Math.round(0.2 * 100000)));
 		expect(srcRect['@_r']).toBe(String(Math.round(0.15 * 100000)));
 		expect(srcRect['@_b']).toBe(String(Math.round(0.05 * 100000)));
+	});
+
+	it('writes a negative srcRect inset instead of dropping it (issue G2)', () => {
+		const blipFill: XmlObject = {};
+		applyImageCropToBlipFill(blipFill, {
+			cropLeft: -0.2,
+			cropTop: 0,
+			cropRight: 0,
+			cropBottom: 0,
+		});
+		const srcRect = blipFill['a:srcRect'] as XmlObject;
+		expect(srcRect).toBeDefined();
+		expect(srcRect['@_l']).toBe(String(Math.round(-0.2 * 100000)));
+	});
+
+	it('keeps srcRect deleted when a negative and positive inset on the same axis cancel out', () => {
+		// Sum-based detection would read -0.2 + 0.2 = 0 as "no crop"; the real
+		// check is per-edge magnitude, so both authored insets must survive.
+		const blipFill: XmlObject = {};
+		applyImageCropToBlipFill(blipFill, {
+			cropLeft: -0.2,
+			cropRight: 0.2,
+		});
+		const srcRect = blipFill['a:srcRect'] as XmlObject;
+		expect(srcRect).toBeDefined();
+		expect(srcRect['@_l']).toBe(String(Math.round(-0.2 * 100000)));
+		expect(srcRect['@_r']).toBe(String(Math.round(0.2 * 100000)));
 	});
 
 	it('should normalize when horizontal crop exceeds 0.99', () => {
@@ -361,7 +360,7 @@ describe('applyImageEffectsToBlip', () => {
 // textVerticalAlignToDrawingValue — reimplemented from source
 // ---------------------------------------------------------------------------
 function textVerticalAlignToDrawingValue(
-	vAlign: 'top' | 'middle' | 'bottom' | undefined,
+	vAlign: 'top' | 'middle' | 'bottom' | 'distributed' | 'justified' | undefined,
 ): string | undefined {
 	if (vAlign === 'top') {
 		return 't';
@@ -371,6 +370,13 @@ function textVerticalAlignToDrawingValue(
 	}
 	if (vAlign === 'bottom') {
 		return 'b';
+	}
+	// D2-G5: round-trip `dist`/`just` instead of collapsing to 'ctr' on save.
+	if (vAlign === 'distributed') {
+		return 'dist';
+	}
+	if (vAlign === 'justified') {
+		return 'just';
 	}
 	return undefined;
 }
@@ -390,6 +396,14 @@ describe('textVerticalAlignToDrawingValue', () => {
 
 	it('should return undefined for unknown values', () => {
 		expect(textVerticalAlignToDrawingValue(undefined)).toBeUndefined();
+	});
+
+	it("should map 'distributed' to 'dist' (D2-G5, not collapsed to 'ctr')", () => {
+		expect(textVerticalAlignToDrawingValue('distributed')).toBe('dist');
+	});
+
+	it("should map 'justified' to 'just' (D2-G5, not collapsed to 'ctr')", () => {
+		expect(textVerticalAlignToDrawingValue('justified')).toBe('just');
 	});
 });
 

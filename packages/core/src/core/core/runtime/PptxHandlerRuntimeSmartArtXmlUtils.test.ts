@@ -170,6 +170,35 @@ function extractSmartArtNodeStyle(point: XmlObject): PptxSmartArtNodeStyle | und
 }
 
 /**
+ * Simplified mirror of the real
+ * PptxHandlerRuntimeSmartArtXmlUtils.approximateSmartArtBackgroundFill: the
+ * production version resolves gradient stops (incl. theme colours, sorted,
+ * first/last averaged) via `colorStyleCodec.extractGradientFillColor`; this
+ * stub only reads a bare `a:srgbClr` off the first stop, matching the
+ * simplified `parseColor` stub this file already uses elsewhere. It exists to
+ * exercise the WIRING (approximate + preserve raw XML only when there is no
+ * solidFill), not to duplicate the codec's own colour-resolution tests.
+ */
+function parseSmartArtBgGradientOrPattern(
+	bg: XmlObject,
+): { color: string; localName: 'gradFill' | 'pattFill'; xml: XmlObject } | undefined {
+	const gradFill = getChildByLocalName(bg, 'gradFill');
+	if (gradFill) {
+		const gsLst = getChildByLocalName(gradFill, 'gsLst');
+		const firstStop = getChildrenArrayByLocalName(gsLst, 'gs')[0];
+		const color = firstStop ? parseColor(firstStop) : null;
+		return color ? { color, localName: 'gradFill', xml: gradFill } : undefined;
+	}
+	const pattFill = getChildByLocalName(bg, 'pattFill');
+	if (pattFill) {
+		const fgClr = getChildByLocalName(pattFill, 'fgClr');
+		const color = fgClr ? parseColor(fgClr) : null;
+		return color ? { color, localName: 'pattFill', xml: pattFill } : undefined;
+	}
+	return undefined;
+}
+
+/**
  * Extracted from PptxHandlerRuntimeSmartArtXmlUtils.parseSmartArtChrome.
  */
 function parseSmartArtChrome(dataModel: XmlObject | undefined): PptxSmartArtChrome | undefined {
@@ -190,6 +219,14 @@ function parseSmartArtChrome(dataModel: XmlObject | undefined): PptxSmartArtChro
 		const bgColor = parseColor(solidFill);
 		if (bgColor) {
 			chrome.backgroundColor = bgColor;
+		} else {
+			// G10: approximate a gradient/pattern background instead of silently
+			// dropping it, preserving the raw fill for round-trip.
+			const approximated = parseSmartArtBgGradientOrPattern(bg);
+			if (approximated) {
+				chrome.backgroundColor = approximated.color;
+				chrome.backgroundFillXml = { localName: approximated.localName, xml: approximated.xml };
+			}
 		}
 	}
 
@@ -315,6 +352,36 @@ describe('parseSmartArtChrome', () => {
 		};
 		const result = parseSmartArtChrome(dataModel);
 		expect(result).toBeUndefined();
+	});
+
+	// G10: `dgm:bg/a:gradFill`/`a:pattFill` approximate to a display colour
+	// (instead of vanishing entirely) and preserve the raw fill for round-trip.
+	it('approximates a gradFill background and preserves the raw fill XML', () => {
+		const gradFillXml: XmlObject = {
+			'a:gsLst': { 'a:gs': [{ '@_pos': '0', 'a:srgbClr': { '@_val': 'FF0000' } }] },
+		};
+		const dataModel: XmlObject = { 'dgm:bg': { 'a:gradFill': gradFillXml } };
+		const result = parseSmartArtChrome(dataModel);
+		expect(result).toBeDefined();
+		expect(result!.backgroundColor).toBe('#FF0000');
+		expect(result!.backgroundFillXml).toStrictEqual({ localName: 'gradFill', xml: gradFillXml });
+	});
+
+	it('approximates a pattFill background from its foreground colour', () => {
+		const pattFillXml: XmlObject = { 'a:fgClr': { 'a:srgbClr': { '@_val': '00FF00' } } };
+		const dataModel: XmlObject = { 'dgm:bg': { 'a:pattFill': pattFillXml } };
+		const result = parseSmartArtChrome(dataModel);
+		expect(result).toBeDefined();
+		expect(result!.backgroundColor).toBe('#00FF00');
+		expect(result!.backgroundFillXml).toStrictEqual({ localName: 'pattFill', xml: pattFillXml });
+	});
+
+	it('leaves backgroundFillXml unset for a plain solidFill background', () => {
+		const dataModel: XmlObject = {
+			'dgm:bg': { 'a:solidFill': { 'a:srgbClr': { '@_val': 'AABBCC' } } },
+		};
+		const result = parseSmartArtChrome(dataModel);
+		expect(result!.backgroundFillXml).toBeUndefined();
 	});
 
 	it('should parse both background and outline', () => {

@@ -79,6 +79,7 @@ function createExtractor(): PptxShapeStyleExtractor {
 		extractReflectionStyle: () => ({}),
 		extractBlurStyle: () => ({}),
 		extractEffectDagStyle: () => ({}),
+		extractFillOverlayStyle: () => ({}),
 	} as unknown as PptxShapeStyleExtractorContext;
 	return new PptxShapeStyleExtractor(context);
 }

@@ -1,8 +1,14 @@
 import { XmlObject, PptxElement } from '../../types';
 import type { MediaPptxElement } from '../../types';
 import { cropShapeForPresetGeometry } from '../../utils/crop-shape-geometry';
+import { isCNvPrMarkedDecorative } from '../../utils/decorative-extension';
 import { parseDrawingMediaReference } from '../../utils/drawing-media-reference';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
+import {
+	resolveExternalOrPackagePath,
+	resolveP14MediaForPicture,
+} from './media-p14-extension-resolve';
+import { parsePreferRelativeResize } from './picture-non-visual-parse';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParsing';
 import { parseShapeLocksFromNode, SHAPE_LOCK_CONTAINERS } from './shape-lock-containers';
 
@@ -88,6 +94,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					mediaMimeType = this.mediaDataParser.getMediaMimeType(mediaPath);
 				}
 
+				// `p14:media` (G18): read off the picture's own `p:nvPr/p:extLst`,
+				// NOT the animation timing tree (see `walkMediaTimingTree` in
+				// `PptxHandlerRuntimeMediaTimingParsing.ts`, which no longer reads
+				// it), falling back to `@r:embed` when the legacy reference above
+				// has no usable path.
+				const p14Media = resolveP14MediaForPicture(
+					nvPr,
+					id,
+					(v: unknown) => this.ensureArray(v),
+					mediaPath,
+					mediaMimeType,
+					(relationshipId) =>
+						this.mediaDataParser.resolveRelationshipTarget(slidePath, relationshipId),
+					(path) => this.mediaDataParser.getMediaMimeType(path),
+				);
+				mediaPath = p14Media.mediaPath;
+				mediaMimeType = p14Media.mediaMimeType;
+
 				// Extract the poster frame from the picture's blipFill
 				let posterFramePath: string | undefined;
 				let posterFrameData: string | undefined;
@@ -142,6 +166,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					audioCdEnd: mediaReference.audioCdEnd,
 					rawMediaReferenceXml: mediaReference.rawXml,
 					isLinked: mediaReference.isLinked,
+					trimStartMs: p14Media.trimStartMs,
+					trimEndMs: p14Media.trimEndMs,
+					fadeInDuration: p14Media.fadeInDuration,
+					fadeOutDuration: p14Media.fadeOutDuration,
+					playbackSpeed: p14Media.playbackSpeed,
+					bookmarks: p14Media.bookmarks,
 					posterFramePath,
 					posterFrameData,
 					...this.readImageCropFromBlipFill(posterBlipFill),
@@ -282,8 +312,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const slideRelsForSvg = this.slideRelsMap.get(slidePath);
 				const svgTarget = slideRelsForSvg?.get(svgRelId);
 				if (svgTarget) {
-					svgPath = this.resolveImagePath(slidePath, svgTarget);
-					if (this.eagerDecodeImages && svgPath) {
+					// G17: a LINKED (TargetMode="External") svgBlip variant is an
+					// absolute URL, not a package-relative path; resolving it
+					// through `resolveImagePath` produces the same nonsense join
+					// the primary blip fix below guards against. Mirror that gate.
+					const resolvedSvg = resolveExternalOrPackagePath(
+						svgTarget,
+						this.allowExternalImages === true,
+						(target) => this.resolveImagePath(slidePath, target),
+					);
+					svgPath = resolvedSvg.path;
+					svgData = resolvedSvg.data;
+					if (!svgData && this.eagerDecodeImages && svgPath) {
 						svgData = await this.getImageData(svgPath);
 					}
 				}
@@ -346,6 +386,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				(picCNvPicPr?.['a:picLocks'] ?? picCNvPicPr?.['a:spLocks']) as XmlObject | undefined,
 			);
 
+			// `a:cNvPicPr/@preferRelativeResize` (issue G13): a picture-only
+			// non-visual property, distinct from `a:picLocks`.
+			const preferRelativeResize = parsePreferRelativeResize(
+				picCNvPicPr?.['@_preferRelativeResize'],
+			);
+
+			// "Mark as decorative" (issue G16): PowerPoint writes
+			// `p:cNvPr/a:extLst/a:ext[@uri='{C183D7F6-...}']/adec:decorative`.
+			const isDecorative = isCNvPrMarkedDecorative(picCNvPr);
+
 			return {
 				id,
 				name: picElementName || undefined,
@@ -387,6 +437,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				actionClick: picActionClick,
 				actionHover: picActionHover,
 				locks: picLocks,
+				...(preferRelativeResize !== undefined ? { preferRelativeResize } : {}),
+				...(isDecorative !== undefined ? { isDecorative } : {}),
 			};
 		} catch (e) {
 			console.warn(`[pptx] Skipping picture element (${id}):`, e);

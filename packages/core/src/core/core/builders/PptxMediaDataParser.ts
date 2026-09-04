@@ -7,6 +7,15 @@ export interface PptxMediaDataParserContext {
 	externalRelsMap: Map<string, Set<string>>;
 	resolvePath: (base: string, relative: string) => string;
 	getPathExtension: (pathValue: string) => string | undefined;
+	/**
+	 * Load H3-style gate for a LINKED (`TargetMode="External"`) media
+	 * relationship: mirrors the `allowExternalImages` gate pictures already use
+	 * (same security surface: a `<video>`/`<audio>` pointed at an
+	 * attacker-controlled URL). Defaults to closed (`false`) when not supplied,
+	 * matching `allowExternalImages`'s own default. Wired by the runtime as
+	 * `() => this.allowExternalImages === true`.
+	 */
+	allowExternalMedia?: () => boolean;
 }
 
 export interface IPptxMediaDataParser {
@@ -47,7 +56,11 @@ export class PptxMediaDataParser implements IPptxMediaDataParser {
 				result.isLinked = reference.isLinked;
 				if (reference.relationshipId) {
 					result.mediaPath = this.resolveRelationshipTarget(slidePath, reference.relationshipId);
-					result.mediaMimeType = this.getMediaMimeType(result.mediaPath);
+					// G21: `a:audioFile/@contentType` (`CT_AudioFile`, ECMA-376
+					// 20.1.3.2) exists precisely to declare the media type when the
+					// target's extension is ambiguous or absent; prefer it over the
+					// extension guess when the deck bothered to declare it.
+					result.mediaMimeType = reference.contentType ?? this.getMediaMimeType(result.mediaPath);
 				}
 			} else {
 				result.mediaType = 'unknown';
@@ -64,6 +77,16 @@ export class PptxMediaDataParser implements IPptxMediaDataParser {
 		const target = relsMap?.get(relationshipId);
 		if (!target) {
 			return undefined;
+		}
+		// G17: a LINKED (`TargetMode="External"`) relationship's `Target` is an
+		// absolute URI (`https://cdn.example.com/demo.mp4`), not a
+		// package-relative path. Routing it through `resolvePath` (a zip-path
+		// joiner) produced nonsense like `ppt/slides/https:/example.com/clip.mp4`
+		// instead of a URL or a real archive entry, so the media silently failed
+		// to load. Gated the same way pictures gate `allowExternalImages`
+		// (same security surface: fetching an attacker-controlled URL).
+		if (this.context.externalRelsMap.get(sourcePath)?.has(relationshipId)) {
+			return this.context.allowExternalMedia?.() === true ? target : undefined;
 		}
 		return this.context.resolvePath(sourcePath, target);
 	}

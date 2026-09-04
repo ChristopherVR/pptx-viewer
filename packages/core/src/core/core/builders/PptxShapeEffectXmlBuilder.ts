@@ -1,5 +1,9 @@
 import type { ShapeStyle, XmlObject } from '../../types';
-import { positiveFixedAngleAttribute, shadowOffsetToDistanceAndDirection } from '../../utils';
+import {
+	buildSrgbColorChoice,
+	positiveFixedAngleAttribute,
+	shadowOffsetToDistanceAndDirection,
+} from '../../utils';
 import {
 	buildBlurXml,
 	buildLineEffectListXml,
@@ -20,6 +24,7 @@ export interface IPptxShapeEffectXmlBuilder {
 	buildSoftEdgeXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildReflectionXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildBlurXml(shapeStyle: ShapeStyle): XmlObject | undefined;
+	buildFillOverlayXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildLineEffectListXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 }
 
@@ -243,6 +248,32 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 
 	public buildBlurXml(shapeStyle: ShapeStyle): XmlObject | undefined {
 		return buildBlurXml(shapeStyle, this.context.emuPerPx);
+	}
+
+	/**
+	 * Build a direct `a:effectLst/a:fillOverlay` (CT_EffectList §20.1.8.24), a
+	 * legal sibling of the other effect primitives, distinct from the
+	 * effectDag/blip forms. Emits a solid-colour overlay; a gradient overlay
+	 * authored in the source file is preserved verbatim by the codec's merge
+	 * (see `PptxShapeEffectXmlCodec.buildFillOverlayXml`) as long as the typed
+	 * colour/opacity were never edited.
+	 */
+	public buildFillOverlayXml(shapeStyle: ShapeStyle): XmlObject | undefined {
+		const color = String(shapeStyle.shapeFillOverlayColor || '').trim();
+		if (color.length === 0 || color === 'transparent') {
+			return undefined;
+		}
+
+		const opacity =
+			typeof shapeStyle.shapeFillOverlayOpacity === 'number' &&
+			Number.isFinite(shapeStyle.shapeFillOverlayOpacity)
+				? this.context.clampUnitInterval(shapeStyle.shapeFillOverlayOpacity)
+				: undefined;
+
+		return {
+			'@_blend': shapeStyle.shapeFillOverlayBlend ?? 'over',
+			'a:solidFill': buildSrgbColorChoice(color, opacity),
+		};
 	}
 
 	/**

@@ -43,6 +43,12 @@ export interface PptxAction {
 	soundRId?: string;
 	/** Resolved media target path for the optional click sound. */
 	soundPath?: string;
+	/**
+	 * `CT_Hyperlink/@endSnd` (ECMA-376 20.1.2.2.23): PowerPoint's Action
+	 * Settings "Stop previous sound" checkbox. Round-tripped for now (issue
+	 * G14); not yet wired into playback.
+	 */
+	endSnd?: boolean;
 }
 
 /**
@@ -75,7 +81,13 @@ export type ElementActionType =
 	/** `ppaction://media` - play (or toggle) the element's own embedded media. */
 	| 'playMedia'
 	/** `ppaction://ole?verb=N` - run a numbered OLE verb on an embedded object. */
-	| 'oleVerb';
+	| 'oleVerb'
+	/**
+	 * `ppaction://program` - PowerPoint's "Run program:" action; the program
+	 * path resolves via the hyperlink's `r:id` relationship, the same shape
+	 * as `hlinkfile` (issue G15).
+	 */
+	| 'runProgram';
 
 /**
  * User-facing action configuration stored on an element.

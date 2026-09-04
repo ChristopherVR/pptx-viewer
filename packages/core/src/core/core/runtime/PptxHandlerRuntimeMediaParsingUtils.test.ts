@@ -216,24 +216,22 @@ describe('parseCtnMediaTiming', () => {
 	it('should return defaults when cTn is undefined', () => {
 		const result = parseCtnMediaTiming(undefined, 'p:video');
 		expect(result).toStrictEqual({
-			trimStartMs: undefined,
-			trimEndMs: undefined,
 			loop: false,
 			autoPlay: false,
 			playAcrossSlides: false,
 		});
 	});
 
-	it('should parse trim start from @_st', () => {
-		const cTn: XmlObject = { '@_st': '5000' };
+	// G18/G19: `p:cTn` (`CT_TLCommonTimeNodeData`) has no `st`/`end`
+	// attributes; a prior version of this parser read them as trim overrides,
+	// which could only ever match this codebase's own wrong-location writer
+	// output, never real PowerPoint XML (the genuine trim data lives in
+	// `p14:trim` under `p:nvPr/p:extLst`, see `parseMediaExtensionData`).
+	it('should ignore @_st/@_end on cTn (not a real CT_TLCommonTimeNodeData attribute)', () => {
+		const cTn: XmlObject = { '@_st': '5000', '@_end': '30000' };
 		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.trimStartMs).toBe(5000);
-	});
-
-	it('should parse trim end from @_end', () => {
-		const cTn: XmlObject = { '@_end': '30000' };
-		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.trimEndMs).toBe(30000);
+		expect(result).not.toHaveProperty('trimStartMs');
+		expect(result).not.toHaveProperty('trimEndMs');
 	});
 
 	it('should detect loop from repeatCount=indefinite', () => {
@@ -274,15 +272,11 @@ describe('parseCtnMediaTiming', () => {
 
 	it('should handle all properties simultaneously', () => {
 		const cTn: XmlObject = {
-			'@_st': '1000',
-			'@_end': '60000',
 			'@_repeatCount': 'indefinite',
 			'@_nodeType': '1',
 			'@_dur': 'indefinite',
 		};
 		const result = parseCtnMediaTiming(cTn, 'p:audio');
-		expect(result.trimStartMs).toBe(1000);
-		expect(result.trimEndMs).toBe(60000);
 		expect(result.loop).toBeTruthy();
 		expect(result.autoPlay).toBeTruthy();
 		expect(result.playAcrossSlides).toBeTruthy();
@@ -313,19 +307,38 @@ describe('parseMediaExtensionData', () => {
 		});
 	});
 
-	it('should parse trim from p14:trim (microseconds to ms)', () => {
+	// G19: `p14:trim/@st`/`@end` are already decimal milliseconds
+	// (`CT_MediaTrim`), COM-verified: `Shape.MediaFormat.EndPoint = 29596` on a
+	// 30034ms clip round-trips through real PowerPoint as `p14:trim
+	// end="438"` (30034 - 29596). No unit conversion, and `end` is a distance
+	// from the tail, not an absolute stop time (see the interface doc).
+	it('should parse p14:trim st/end verbatim, as decimal milliseconds', () => {
 		const mediaNode: XmlObject = {
 			'p:extLst': {
 				'p:ext': {
 					'p14:media': {
-						'p14:trim': { '@_st': '5000000', '@_end': '30000000' },
+						'p14:trim': { '@_st': '18374', '@_end': '438' },
 					},
 				},
 			},
 		};
 		const result = parseMediaExtensionData(mediaNode, {}, 's1', ensureArray);
-		expect(result.trimStartMs).toBe(5000);
-		expect(result.trimEndMs).toBe(30000);
+		expect(result.trimStartMs).toBe(18374);
+		expect(result.trimEndMs).toBe(438);
+	});
+
+	it('should preserve the fractional milliseconds real PowerPoint writes', () => {
+		const mediaNode: XmlObject = {
+			'p:extLst': {
+				'p:ext': {
+					'p14:media': {
+						'p14:trim': { '@_st': '18374', '@_end': '114730.5312' },
+					},
+				},
+			},
+		};
+		const result = parseMediaExtensionData(mediaNode, {}, 's1', ensureArray);
+		expect(result.trimEndMs).toBeCloseTo(114730.5312, 4);
 	});
 
 	it('should parse the p14:media/@r:embed relationship id', () => {
@@ -419,7 +432,7 @@ describe('parseMediaExtensionData', () => {
 			'p:extLst': {
 				'p:ext': {
 					'p14:media': {
-						'p14:trim': { '@_st': '1000000' },
+						'p14:trim': { '@_st': '1000' },
 					},
 				},
 			},

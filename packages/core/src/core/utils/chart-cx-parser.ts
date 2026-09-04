@@ -11,10 +11,13 @@
  * histogram charts.
  */
 
-import type { XmlObject, PptxChartData, PptxChartSeries, PptxChartDataLabel } from '../types';
+import type { XmlObject, PptxChartData, PptxChartSeries } from '../types';
+import { parseCxAxes, resolveCxTitleText } from './chart-cx-axis-parser';
 import { parseCxBoxWhiskerOptions } from './chart-cx-box-whisker';
+import { parseCxDataLabels } from './chart-cx-data-labels';
 import { parseCxHistogramOptions } from './chart-cx-histogram';
 import { parseCxRegionMapOptions } from './chart-cx-region-map';
+import { extractCxSeriesColor } from './chart-cx-series-color';
 import { parseCxTreemapOptions } from './chart-cx-treemap';
 import { parseCxWaterfallOptions } from './chart-cx-waterfall';
 
@@ -28,74 +31,180 @@ export interface XmlLookupLike {
 	): string | number | boolean | undefined;
 }
 
-/** cx:dataLabels visibility flags extracted from cx:series. */
-export interface CxDataLabelVisibility {
-	showVal?: boolean;
-	showCatName?: boolean;
-	showSerName?: boolean;
+/**
+ * Minimal colour-resolver interface, matching the `ColorParserLike` pattern
+ * classic chart parsers (`chart-axis-parser.ts`, `chart-series-detail-parser.ts`)
+ * thread through: resolves a colour-choice wrapper node (`a:solidFill`, a
+ * gradient stop, a pattern's `fgClr`, ...) against the deck's theme.
+ * Optional throughout the cx: parser so callers that only have raw XML (no
+ * theme) keep the original srgbClr-only behaviour.
+ */
+export interface ColorParserLike {
+	parseColor(fillNode: XmlObject | undefined, placeholderColor?: string): string | undefined;
 }
 
 /**
- * Extract a hex color from a cx:spPr > a:solidFill element.
- * Returns a "#RRGGBB" string or undefined.
+ * Parse series data from a cx: namespace plotArea.
+ *
+ * @param chartRoot - The `cx:chart` element (parent of `plotArea`), needed to
+ * resolve the chart-level `cx:title`. Omit when the caller doesn't need
+ * `chartData.title`/`chartData.axes` populated (they simply won't be).
+ * @param colorParser - Resolves theme colours (`a:schemeClr` etc.) for series
+ * fills, axis chrome, and region-map value-color scales; omit to fall back to
+ * literal `a:srgbClr` only.
+ * @returns categories and series arrays, or `undefined` if no series found.
  */
-function extractCxSeriesColor(ser: XmlObject, xmlLookup: XmlLookupLike): string | undefined {
-	const spPr = xmlLookup.getChildByLocalName(ser, 'spPr');
-	if (!spPr) {
-		return undefined;
-	}
-	const solidFill = xmlLookup.getChildByLocalName(spPr, 'solidFill');
-	if (!solidFill) {
-		return undefined;
-	}
-	// Try srgbClr
-	const srgb = xmlLookup.getChildByLocalName(solidFill, 'srgbClr');
-	if (srgb) {
-		const val = String(srgb['@_val'] || '').trim();
-		if (val.length === 6) {
-			return `#${val}`;
-		}
-	}
-	return undefined;
-}
-
-/**
- * Parse cx:dataLabels on a series element.
- */
-function parseCxDataLabels(
-	ser: XmlObject,
+export function parseCxChartSeries(
+	plotArea: XmlObject,
 	xmlLookup: XmlLookupLike,
-): { visibility: CxDataLabelVisibility; labels: PptxChartDataLabel[] } | undefined {
-	const dlNode = xmlLookup.getChildByLocalName(ser, 'dataLabels');
-	if (!dlNode) {
+	chartSpace?: XmlObject,
+	chartRoot?: XmlObject,
+	colorParser?: ColorParserLike,
+):
+	| {
+			categories: string[];
+			categoryLevels?: string[][];
+			series: PptxChartData['series'];
+			hasDataLabels?: boolean;
+			/**
+			 * Chart-level fields this module can also resolve for a cx: chart
+			 * (axes, title): spread onto the caller's `PptxChartData` result.
+			 */
+			chartData?: Partial<PptxChartData>;
+	  }
+	| undefined {
+	const plotRegion = xmlLookup.getChildByLocalName(plotArea, 'plotAreaRegion');
+	if (!plotRegion) {
 		return undefined;
 	}
 
-	const visibility: CxDataLabelVisibility = {};
-
-	// cx:dataLabels may have cx:visibility with @seriesName, @categoryName, @value attributes
-	const visNode = xmlLookup.getChildByLocalName(dlNode, 'visibility');
-	if (visNode) {
-		visibility.showVal = visNode['@_value'] === '1' || visNode['@_value'] === 'true';
-		visibility.showCatName =
-			visNode['@_categoryName'] === '1' || visNode['@_categoryName'] === 'true';
-		visibility.showSerName = visNode['@_seriesName'] === '1' || visNode['@_seriesName'] === 'true';
+	const cxSeriesList = xmlLookup.getChildrenArrayByLocalName(plotRegion, 'series');
+	if (cxSeriesList.length === 0) {
+		return undefined;
 	}
 
-	// Parse individual data label overrides (cx:dataLabel)
-	const labels: PptxChartDataLabel[] = [];
-	const dlItems = xmlLookup.getChildrenArrayByLocalName(dlNode, 'dataLabel');
-	for (const dlItem of dlItems) {
-		const idx = Number.parseInt(String(dlItem['@_idx'] || '0'), 10);
-		labels.push({
-			idx,
-			showVal: visibility.showVal,
-			showCatName: visibility.showCatName,
-			showSerName: visibility.showSerName,
-		});
+	const categories: string[] = [];
+	let categoryLevels: string[][] | undefined;
+	let hasDataLabels = false;
+	const referencedData = indexReferencedChartData(chartSpace, xmlLookup);
+
+	const series: PptxChartData['series'] = cxSeriesList.map((ser, serIndex) => {
+		const dataIdNode = xmlLookup.getChildByLocalName(ser, 'dataId');
+		const dataId = String(dataIdNode?.['@_val'] ?? dataIdNode?.['#text'] ?? '').trim();
+		const dataNode =
+			xmlLookup.getChildByLocalName(ser, 'data') ||
+			(dataId.length > 0 ? referencedData.get(dataId) : undefined);
+
+		// Extract all dimensions
+		const strDims = extractAllStringDimensions(dataNode, xmlLookup);
+		const numDims = extractAllNumericDimensions(dataNode, xmlLookup);
+
+		// Extract category labels from the first strDim (type="cat" or first available)
+		if (serIndex === 0) {
+			const catDimLevels = strDims.get('cat') ?? strDims.values().next().value;
+			if (catDimLevels) {
+				categoryLevels = catDimLevels.map((level) => [...level]);
+				for (const val of catDimLevels[0] ?? []) {
+					if (val) {
+						categories.push(val);
+					}
+				}
+			}
+		}
+
+		// Extract primary numeric values (type="val" or first available)
+		const values = numDims.get('val') ?? numDims.values().next().value ?? [];
+
+		// Series name from tx > txData > v
+		const txNode = xmlLookup.getChildByLocalName(ser, 'tx');
+		const txData = xmlLookup.getChildByLocalName(txNode, 'txData');
+		const serName = String(xmlLookup.getScalarChildByLocalName(txData, 'v') || '').trim();
+
+		// Extract series color (schemeClr/gradFill/pattFill when colorParser is given)
+		const color = extractCxSeriesColor(ser, xmlLookup, colorParser);
+
+		// Parse data labels (visibility, per-point overrides, position/numFmt)
+		const dlResult = parseCxDataLabels(ser, xmlLookup);
+		if (
+			dlResult &&
+			(dlResult.visibility.showVal ||
+				dlResult.visibility.showCatName ||
+				dlResult.visibility.showSerName)
+		) {
+			hasDataLabels = true;
+		}
+
+		const result: PptxChartSeries = {
+			name: serName || `Series ${serIndex + 1}`,
+			values: values.length > 0 ? values : [0],
+		};
+		const boxWhiskerOptions = parseCxBoxWhiskerOptions(ser, xmlLookup);
+		if (boxWhiskerOptions) {
+			result.boxWhiskerOptions = boxWhiskerOptions;
+		}
+		const histogramOptions = parseCxHistogramOptions(ser, xmlLookup);
+		if (histogramOptions) {
+			result.histogramOptions = histogramOptions;
+		}
+		const waterfallOptions = parseCxWaterfallOptions(ser, xmlLookup);
+		if (waterfallOptions) {
+			result.waterfallOptions = waterfallOptions;
+		}
+		const regionMapOptions = parseCxRegionMapOptions(ser, dataNode, xmlLookup, colorParser);
+		if (regionMapOptions) {
+			result.regionMapOptions = regionMapOptions;
+		}
+		const treemapOptions = parseCxTreemapOptions(ser, xmlLookup);
+		if (treemapOptions) {
+			result.treemapOptions = treemapOptions;
+		}
+		if (color) {
+			result.color = color;
+		}
+		if (dlResult && dlResult.labels.length > 0) {
+			result.dataLabels = dlResult.labels;
+		}
+		if (dlResult?.options && Object.keys(dlResult.options).length > 0) {
+			result.dataLabelOptions = dlResult.options;
+		}
+
+		return result;
+	});
+
+	const chartData = buildCxChartData(plotArea, chartRoot, xmlLookup, colorParser);
+
+	return {
+		categories,
+		categoryLevels,
+		series,
+		hasDataLabels,
+		...(chartData ? { chartData } : {}),
+	};
+}
+
+/** Chart-level fields (axes, title) this module can resolve for a cx: chart. */
+function buildCxChartData(
+	plotArea: XmlObject,
+	chartRoot: XmlObject | undefined,
+	xmlLookup: XmlLookupLike,
+	colorParser: ColorParserLike | undefined,
+): Partial<PptxChartData> | undefined {
+	const result: Partial<PptxChartData> = {};
+
+	const axes = parseCxAxes(plotArea, xmlLookup, colorParser);
+	if (axes) {
+		result.axes = axes;
 	}
 
-	return { visibility, labels };
+	const titleText = resolveCxTitleText(
+		xmlLookup.getChildByLocalName(chartRoot, 'title'),
+		xmlLookup,
+	);
+	if (titleText) {
+		result.title = titleText;
+	}
+
+	return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**
@@ -157,121 +266,6 @@ function extractAllStringDimensions(
 	}
 
 	return result;
-}
-
-/**
- * Parse series data from a cx: namespace plotArea.
- *
- * @returns categories and series arrays, or `undefined` if no series found.
- */
-export function parseCxChartSeries(
-	plotArea: XmlObject,
-	xmlLookup: XmlLookupLike,
-	chartSpace?: XmlObject,
-):
-	| {
-			categories: string[];
-			categoryLevels?: string[][];
-			series: PptxChartData['series'];
-			hasDataLabels?: boolean;
-	  }
-	| undefined {
-	const plotRegion = xmlLookup.getChildByLocalName(plotArea, 'plotAreaRegion');
-	if (!plotRegion) {
-		return undefined;
-	}
-
-	const cxSeriesList = xmlLookup.getChildrenArrayByLocalName(plotRegion, 'series');
-	if (cxSeriesList.length === 0) {
-		return undefined;
-	}
-
-	const categories: string[] = [];
-	let categoryLevels: string[][] | undefined;
-	let hasDataLabels = false;
-	const referencedData = indexReferencedChartData(chartSpace, xmlLookup);
-
-	const series: PptxChartData['series'] = cxSeriesList.map((ser, serIndex) => {
-		const dataIdNode = xmlLookup.getChildByLocalName(ser, 'dataId');
-		const dataId = String(dataIdNode?.['@_val'] ?? dataIdNode?.['#text'] ?? '').trim();
-		const dataNode =
-			xmlLookup.getChildByLocalName(ser, 'data') ||
-			(dataId.length > 0 ? referencedData.get(dataId) : undefined);
-
-		// Extract all dimensions
-		const strDims = extractAllStringDimensions(dataNode, xmlLookup);
-		const numDims = extractAllNumericDimensions(dataNode, xmlLookup);
-
-		// Extract category labels from the first strDim (type="cat" or first available)
-		if (serIndex === 0) {
-			const catDimLevels = strDims.get('cat') ?? strDims.values().next().value;
-			if (catDimLevels) {
-				categoryLevels = catDimLevels.map((level) => [...level]);
-				for (const val of catDimLevels[0] ?? []) {
-					if (val) {
-						categories.push(val);
-					}
-				}
-			}
-		}
-
-		// Extract primary numeric values (type="val" or first available)
-		const values = numDims.get('val') ?? numDims.values().next().value ?? [];
-
-		// Series name from tx > txData > v
-		const txNode = xmlLookup.getChildByLocalName(ser, 'tx');
-		const txData = xmlLookup.getChildByLocalName(txNode, 'txData');
-		const serName = String(xmlLookup.getScalarChildByLocalName(txData, 'v') || '').trim();
-
-		// Extract series color
-		const color = extractCxSeriesColor(ser, xmlLookup);
-
-		// Parse data labels
-		const dlResult = parseCxDataLabels(ser, xmlLookup);
-		if (
-			dlResult &&
-			(dlResult.visibility.showVal ||
-				dlResult.visibility.showCatName ||
-				dlResult.visibility.showSerName)
-		) {
-			hasDataLabels = true;
-		}
-
-		const result: PptxChartSeries = {
-			name: serName || `Series ${serIndex + 1}`,
-			values: values.length > 0 ? values : [0],
-		};
-		const boxWhiskerOptions = parseCxBoxWhiskerOptions(ser, xmlLookup);
-		if (boxWhiskerOptions) {
-			result.boxWhiskerOptions = boxWhiskerOptions;
-		}
-		const histogramOptions = parseCxHistogramOptions(ser, xmlLookup);
-		if (histogramOptions) {
-			result.histogramOptions = histogramOptions;
-		}
-		const waterfallOptions = parseCxWaterfallOptions(ser, xmlLookup);
-		if (waterfallOptions) {
-			result.waterfallOptions = waterfallOptions;
-		}
-		const regionMapOptions = parseCxRegionMapOptions(ser, dataNode, xmlLookup);
-		if (regionMapOptions) {
-			result.regionMapOptions = regionMapOptions;
-		}
-		const treemapOptions = parseCxTreemapOptions(ser, xmlLookup);
-		if (treemapOptions) {
-			result.treemapOptions = treemapOptions;
-		}
-		if (color) {
-			result.color = color;
-		}
-		if (dlResult && dlResult.labels.length > 0) {
-			result.dataLabels = dlResult.labels;
-		}
-
-		return result;
-	});
-
-	return { categories, categoryLevels, series, hasDataLabels };
 }
 
 /** Index the schema-standard `cx:chartData/cx:data` table by `@id`. */

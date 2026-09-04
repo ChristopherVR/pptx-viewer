@@ -1,4 +1,5 @@
 import { customGeometryPathsToXml } from '../../geometry/custom-geometry';
+import { applyCustomGeometryGuideOverrides } from '../../geometry/custom-geometry-guide-writeback';
 import { hasShapeProperties } from '../../types';
 import type {
 	XmlObject,
@@ -112,7 +113,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const elWithPaths = el as ShapePptxElement | ImagePptxElement | PicturePptxElement;
 		if (elWithPaths.customGeometryPaths && elWithPaths.customGeometryPaths.length > 0) {
 			delete spPr['a:prstGeom'];
-			spPr['a:custGeom'] = customGeometryPathsToXml(
+			const custGeomXml = customGeometryPathsToXml(
 				elWithPaths.customGeometryPaths,
 				elWithPaths.customGeometryRawData,
 				{
@@ -122,6 +123,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					textRect: elWithPaths.customGeometryTextRect,
 				},
 			);
+			// Edited custGeom adjust handles live in `shapeAdjustments`; write them
+			// back into `a:avLst` so the freeform keeps its dragged handle values.
+			spPr['a:custGeom'] = applyCustomGeometryGuideOverrides(custGeomXml, el.shapeAdjustments);
 		} else if (spPr['a:prstGeom']) {
 			const presetGeometry =
 				el.type === 'connector'

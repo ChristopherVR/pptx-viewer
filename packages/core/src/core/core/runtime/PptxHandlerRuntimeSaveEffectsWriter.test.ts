@@ -81,6 +81,7 @@ function createExtractor(): PptxShapeStyleExtractor {
 		extractReflectionStyle: () => ({}),
 		extractBlurStyle: () => ({}),
 		extractEffectDagStyle: () => ({}),
+		extractFillOverlayStyle: () => ({}),
 	} as unknown as PptxShapeStyleExtractorContext;
 	return new PptxShapeStyleExtractor(context);
 }
@@ -285,6 +286,28 @@ describe('writeShapeEffects - effect list assembly', () => {
 		const dag: XmlObject = { 'a:grayscl': {} };
 		writeShapeEffects(spPr, { effectDagXml: dag }, {});
 		expect(spPr['a:effectDag']).toBe(dag);
+	});
+
+	// D1-G3: direct a:effectLst/a:fillOverlay (distinct from effectDag's form)
+	it('should create effectLst with a direct fillOverlay', () => {
+		const spPr: XmlObject = {};
+		const fillOverlay: XmlObject = { '@_blend': 'mult' };
+		writeShapeEffects(spPr, {}, { fillOverlayXml: fillOverlay });
+		const effectLst = spPr['a:effectLst'] as XmlObject;
+		expect(effectLst['a:fillOverlay']).toBe(fillOverlay);
+	});
+
+	it('should remove fillOverlay from effectLst when shapeFillOverlayColor is set but builder returns undefined', () => {
+		const spPr: XmlObject = {
+			'a:effectLst': {
+				'a:fillOverlay': { '@_blend': 'mult' },
+				'a:glow': { '@_rad': '1000' },
+			},
+		};
+		writeShapeEffects(spPr, { shapeFillOverlayColor: '#FF0000' }, {});
+		const effectLst = spPr['a:effectLst'] as XmlObject;
+		expect(effectLst['a:fillOverlay']).toBeUndefined();
+		expect(effectLst['a:glow']).toBeDefined();
 	});
 });
 

@@ -78,6 +78,15 @@ function integerAttr(node: XmlObject, name: string, min: number, max: number): n
 		: undefined;
 }
 
+/** Read a raw ST_PositiveUniversalMeasure attribute (kept as text, not converted). */
+function measureAttr(node: XmlObject, name: string): string | undefined {
+	const raw = node[`@_${name}`];
+	if (raw === undefined || raw === null || String(raw).trim() === '') {
+		return undefined;
+	}
+	return String(raw);
+}
+
 function parseHeaderFooter(node: XmlObject, localName: LocalName): PptxChartPrintHeaderFooter {
 	const result: PptxChartPrintHeaderFooter = { rawXml: cloneXmlObject(node) };
 	for (const name of HEADER_CHILDREN) {
@@ -134,6 +143,14 @@ function parsePageSetup(node: XmlObject): PptxChartPageSetup {
 	const orientation = String(node['@_orientation'] ?? '');
 	if (ORIENTATIONS.has(orientation)) {
 		result.orientation = orientation as PptxChartPageSetup['orientation'];
+	}
+	const paperHeight = measureAttr(node, 'paperHeight');
+	if (paperHeight !== undefined) {
+		result.paperHeight = paperHeight;
+	}
+	const paperWidth = measureAttr(node, 'paperWidth');
+	if (paperWidth !== undefined) {
+		result.paperWidth = paperWidth;
 	}
 	return result;
 }

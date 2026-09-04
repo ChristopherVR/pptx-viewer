@@ -817,8 +817,16 @@ const moon: PresetShapeGeometryDefinition = {
 		gd('g0', '*/ ss a 100000'),
 		gd('g1', '+- wd2 0 g0'),
 		gd('g2', '*/ g1 1 2'),
+		// `3hd4` is not a real guide (see the `heart` comment above for the same
+		// bug): it silently resolved to 0, making `b` the box's own top edge.
+		// COM-measured at 200x100pt instead: the LEFT edge touches the outer
+		// circle at 45deg (the same `(1 - cos45deg)` inset as `ellipse`); `r`
+		// stays `wd2` (already within tolerance); `t`/`b` sit `g2` above/below
+		// center (a COM-measured approximation, not a closed form: within the
+		// 0.02 tolerance but not an exact match).
+		gd('idx', 'cos wd2 2700000'),
 	],
-	rect: { l: 'g0', t: 'hd4', r: 'wd2', b: '3hd4' },
+	rect: { l: '+- hc 0 idx', t: '+- vc 0 g2', r: 'wd2', b: '+- vc g2 0' },
 	pathLst: [
 		{
 			commands: [
@@ -882,8 +890,17 @@ const mathPlusClean: PresetShapeGeometryDefinition = {
 		gd('y2', '+- vc dy1 0'),
 		gd('x1', '+- hc 0 dx1'),
 		gd('x2', '+- hc dx1 0'),
+		// COM-measured at 200x100pt: `l`/`r` are NOT the live glyph's own arm
+		// span (`x1`/`x2`, which shrinks/grows with `adj1`) - they use a FIXED
+		// fraction based on the spec's max `adj1` (73490), independent of the
+		// live adjustment (matching `mathMinus`/`mathDivide`/`mathEqual`/
+		// `mathNotEqual`, which all measured the identical l/r at this default).
+		// `t`/`b` (`y1`/`y2`) were already correct.
+		gd('dxf', '*/ w 73490 200000'),
+		gd('x1f', '+- hc 0 dxf'),
+		gd('x2f', '+- hc dxf 0'),
 	],
-	rect: { l: 'x1', t: 'y1', r: 'x2', b: 'y2' },
+	rect: { l: 'x1f', t: 'y1', r: 'x2f', b: 'y2' },
 	pathLst: [
 		{
 			commands: [
@@ -916,8 +933,16 @@ const mathMinus: PresetShapeGeometryDefinition = {
 		gd('dy1', '*/ h a1 200000'),
 		gd('y1', '+- vc 0 dy1'),
 		gd('y2', '+- vc dy1 0'),
+		// COM-measured at 200x100pt: `l`/`r` are the FULL width in this shape's
+		// own live-adjustment formula, but PowerPoint's actual text rect insets
+		// by the same fixed `73490`-max fraction as `mathPlus` (measured
+		// identical l/r at this default). `t`/`b` (`y1`/`y2`) were already
+		// correct.
+		gd('dxf', '*/ w 73490 200000'),
+		gd('x1f', '+- hc 0 dxf'),
+		gd('x2f', '+- hc dxf 0'),
 	],
-	rect: { l: 'l', t: 'y1', r: 'r', b: 'y2' },
+	rect: { l: 'x1f', t: 'y1', r: 'x2f', b: 'y2' },
 	pathLst: [
 		{
 			commands: [
@@ -995,8 +1020,14 @@ const mathDivide: PresetShapeGeometryDefinition = {
 		gd('dy2', '*/ h a3 100000'),
 		gd('y3', '+- t dy2 0'),
 		gd('y4', '+- b 0 dy2'),
+		// COM-measured at 200x100pt: same fixed `73490`-max l/r inset as
+		// `mathPlus`/`mathMinus` (measured identical). `t`/`b` (`y1`/`y2`) were
+		// already correct.
+		gd('dxf', '*/ w 73490 200000'),
+		gd('x1f', '+- hc 0 dxf'),
+		gd('x2f', '+- hc dxf 0'),
 	],
-	rect: { l: 'l', t: 'y1', r: 'r', b: 'y2' },
+	rect: { l: 'x1f', t: 'y1', r: 'x2f', b: 'y2' },
 	pathLst: [
 		// horizontal bar
 		{
@@ -1045,8 +1076,21 @@ const mathEqual: PresetShapeGeometryDefinition = {
 		gd('y2', '+- y1 0 dy1'),
 		gd('y3', '+- vc dy2 0'),
 		gd('y4', '+- y3 dy1 0'),
+		// COM-measured at 200x100pt: `l`/`r` use the same fixed `73490`-max
+		// inset as the other math symbols (measured identical). `t`/`b`
+		// (`y2`/`y4`) put the rect around the outer edges of both bars PLUS
+		// their own gap width again, which over-extends past the bars; the
+		// measured vertical inset from center is instead `2.5 * dy2` (COM
+		// measurement, not a closed form derived from the spec text - within
+		// tolerance at this default but not provably exact for other adj2).
+		gd('dxf', '*/ w 73490 200000'),
+		gd('x1f', '+- hc 0 dxf'),
+		gd('x2f', '+- hc dxf 0'),
+		gd('ge', '*/ dy2 5 2'),
+		gd('te', '+- vc 0 ge'),
+		gd('be', '+- vc ge 0'),
 	],
-	rect: { l: 'l', t: 'y2', r: 'r', b: 'y4' },
+	rect: { l: 'x1f', t: 'te', r: 'x2f', b: 'be' },
 	pathLst: [
 		// upper bar
 		{
@@ -1091,8 +1135,16 @@ const mathNotEqual: PresetShapeGeometryDefinition = {
 		gd('x6', '+- hc dx5 0'),
 		gd('y5', '+- vc dy5 0'),
 		gd('y6', '+- vc 0 dy5'),
+		// Same fix as `mathEqual` (see its comment): fixed `73490`-max l/r inset,
+		// `2.5 * dy2` vertical offset from center.
+		gd('dxf', '*/ w 73490 200000'),
+		gd('x1f', '+- hc 0 dxf'),
+		gd('x2f', '+- hc dxf 0'),
+		gd('ge', '*/ dy2 5 2'),
+		gd('te', '+- vc 0 ge'),
+		gd('be', '+- vc ge 0'),
 	],
-	rect: { l: 'l', t: 'y2', r: 'r', b: 'y4' },
+	rect: { l: 'x1f', t: 'te', r: 'x2f', b: 'be' },
 	pathLst: [
 		// upper bar
 		{
@@ -1140,7 +1192,13 @@ const mathNotEqual: PresetShapeGeometryDefinition = {
 // point into element space via guides so the humps line up with the anchors.
 const heart: PresetShapeGeometryDefinition = {
 	name: 'heart',
-	rect: { l: 'wd4', t: 'hd4', r: '3wd4', b: '3hd4' },
+	// `3wd4`/`3hd4` are not real guides: the built-in `wd`/`hd` family only goes
+	// `wd2..wd12`/`hd2..hd12` (division, no multiples), so both silently
+	// resolved to 0 via `resolveOperand`'s "unknown variable -> 0" fallback -
+	// collapsing the rect to a single point at (wd4, hd4). COM-measured at
+	// 200x100pt: l=w/6, t=h/4 (unchanged, `hd4` was already right), r=5w/6,
+	// b=2h/3 - all expressible with the existing `wd6`/`hd3` builtins.
+	rect: { l: 'wd6', t: 'hd4', r: '+- r 0 wd6', b: '+- b 0 hd3' },
 	gdLst: [
 		gd('c1x1', '*/ w 12471 21600'),
 		gd('c1y1', '*/ h -1305 21600'),

@@ -14,8 +14,16 @@ function asObject(value: unknown): XmlObject {
  *
  * Only the fill colour of `dgm:bg/a:solidFill` and the line colour / width of
  * `dgm:whole/a:ln` are written; any other children of those nodes (effects,
- * gradient stops, ext lists) are left untouched. When a node does not yet
- * exist it is created with the minimal structure PowerPoint accepts.
+ * ext lists) are left untouched. When a node does not yet exist it is created
+ * with the minimal structure PowerPoint accepts.
+ *
+ * When `chrome.backgroundFillXml` is set (the background is a gradient or
+ * pattern fill `backgroundColor` only APPROXIMATES - see
+ * `PptxHandlerRuntimeSmartArtXmlUtils.ts`'s parse side), that raw fill is
+ * re-emitted verbatim instead of a solid fill built from the approximated
+ * colour: writing the approximation back would silently and permanently
+ * flatten the original gradient/pattern on every save, even one that never
+ * touched the background.
  *
  * @param dataModel The parsed `dgm:dataModel` object (mutated in place).
  * @param chrome The in-memory chrome to persist, or undefined to no-op.
@@ -29,6 +37,7 @@ export function applySmartArtChrome(
 	if (
 		!chrome ||
 		(!chrome.backgroundColor &&
+			!chrome.backgroundFillXml &&
 			!chrome.outlineColor &&
 			(chrome.outlineWidth === null || chrome.outlineWidth === undefined))
 	) {
@@ -38,8 +47,16 @@ export function applySmartArtChrome(
 	const findKey = (obj: XmlObject, name: string): string | undefined =>
 		Object.keys(obj).find((k) => getLocalName(k) === name);
 
-	// ── Background fill (dgm:bg/a:solidFill/a:srgbClr) ────────────────
-	if (chrome.backgroundColor) {
+	// ── Background fill (dgm:bg/a:solidFill/a:srgbClr, or the preserved
+	// gradient/pattern raw fill) ──────────────────────────────────────
+	if (chrome.backgroundFillXml) {
+		const bgKey = findKey(dataModel, 'bg') ?? 'dgm:bg';
+		const bg = asObject(dataModel[bgKey]);
+		const fillKey =
+			findKey(bg, chrome.backgroundFillXml.localName) ?? `a:${chrome.backgroundFillXml.localName}`;
+		bg[fillKey] = chrome.backgroundFillXml.xml;
+		dataModel[bgKey] = bg;
+	} else if (chrome.backgroundColor) {
 		const hex = chrome.backgroundColor.replace('#', '');
 		const bgKey = findKey(dataModel, 'bg') ?? 'dgm:bg';
 		const bg = asObject(dataModel[bgKey]);

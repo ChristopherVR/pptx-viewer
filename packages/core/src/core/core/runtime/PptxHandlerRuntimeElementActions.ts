@@ -1,5 +1,6 @@
 import { XmlObject, PptxElement } from '../../types';
 import type { PptxAction, PptxShapeLocks } from '../../types';
+import { serializeDecorativeExtension } from '../../utils/decorative-extension';
 import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStyles';
 import {
@@ -39,6 +40,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (action.highlightClick) {
 			node['@_highlightClick'] = '1';
+		}
+		// CT_Hyperlink/@endSnd (issue G14): PowerPoint's "Stop previous sound".
+		if (action.endSnd) {
+			node['@_endSnd'] = '1';
 		}
 		const soundRId = action.soundRId;
 		if (soundRId) {
@@ -128,6 +133,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		this.serializeSingleAction(cNvPr, 'a:hlinkClick', actionClick, resolveHyperlinkRelationshipId);
 		this.serializeSingleAction(cNvPr, 'a:hlinkHover', actionHover, resolveHyperlinkRelationshipId);
+
+		// "Mark as decorative" (issue G16): piggybacks on this call site so the
+		// existing p:cNvPr resolution above is reused rather than requiring a
+		// second edit at the (unowned) element-writer call site.
+		const isDecorative =
+			'isDecorative' in el ? (el.isDecorative as boolean | undefined) : undefined;
+		serializeDecorativeExtension(cNvPr, isDecorative);
 	}
 
 	/**
@@ -158,6 +170,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// `p:cNvSpPr`. The container is only materialised once there is something
 		// to write into it.
 		const existing = resolveLockContainerNode(shape, spec, false);
+
+		// `a:cNvPicPr/@preferRelativeResize` (issue G13): a picture-only
+		// non-visual attribute, not a lock, but it lives on this same
+		// `p:cNvPicPr` container this method already resolves. Piggybacks here
+		// (ahead of the lock-only early return below, since a picture can need
+		// this attribute written with no locks at all) for the same reason the
+		// decorative extension piggybacks on `serializeElementActions`: no
+		// extra call site needed at the (unowned) element-writer.
+		const preferRelativeResize =
+			spec.cNvKey === 'p:cNvPicPr' && 'preferRelativeResize' in el
+				? (el as { preferRelativeResize?: boolean }).preferRelativeResize
+				: undefined;
+		if (preferRelativeResize !== undefined) {
+			const picContainer = existing ?? resolveLockContainerNode(shape, spec, true);
+			if (picContainer) {
+				picContainer['@_preferRelativeResize'] = preferRelativeResize ? '1' : '0';
+			}
+		}
+
 		const next = buildShapeLockNode(locks, spec, existing?.[spec.lockTag] as XmlObject | undefined);
 		if (!next) {
 			if (existing) {

@@ -835,4 +835,127 @@ describe('pptxShapeEffectXmlCodec', () => {
 			expect(outOfRange).toStrictEqual([]);
 		});
 	});
+
+	// ── Direct effectLst fillOverlay (D1-G3) ──
+
+	describe('extractFillOverlayStyle (direct a:effectLst/a:fillOverlay)', () => {
+		it('parses @blend and the a:solidFill colour+opacity of a direct effectLst fillOverlay', () => {
+			const shapeProps: XmlObject = {
+				'a:effectLst': {
+					'a:fillOverlay': {
+						'@_blend': 'mult',
+						'a:solidFill': {
+							'a:srgbClr': { '@_val': 'FF0000', 'a:alpha': { '@_val': '50000' } },
+						},
+					},
+				},
+			};
+			const style = codec.extractFillOverlayStyle(shapeProps);
+			expect(style.shapeFillOverlayBlend).toBe('mult');
+			expect(style.shapeFillOverlayColor).toBe('#FF0000');
+			expect(style.shapeFillOverlayOpacity).toBe(0.5);
+			expect(style.effectListXml).toBeDefined();
+			expect(style.fillOverlayXml).toBeDefined();
+		});
+
+		it('reads the first gradient stop colour when the overlay uses a:gradFill', () => {
+			const shapeProps: XmlObject = {
+				'a:effectLst': {
+					'a:fillOverlay': {
+						'@_blend': 'screen',
+						'a:gradFill': {
+							'a:gsLst': {
+								'a:gs': [
+									{ '@_pos': '0', 'a:srgbClr': { '@_val': '00FF00' } },
+									{ '@_pos': '100000', 'a:srgbClr': { '@_val': '0000FF' } },
+								],
+							},
+						},
+					},
+				},
+			};
+			const style = codec.extractFillOverlayStyle(shapeProps);
+			expect(style.shapeFillOverlayBlend).toBe('screen');
+			expect(style.shapeFillOverlayColor).toBe('#00FF00');
+		});
+
+		it('returns an empty style when effectLst has no fillOverlay child', () => {
+			const style = codec.extractFillOverlayStyle({ 'a:effectLst': { 'a:glow': {} } });
+			expect(style.shapeFillOverlayColor).toBeUndefined();
+			expect(style.shapeFillOverlayBlend).toBeUndefined();
+		});
+
+		it('does not collide with the effectDag fillOverlay fields (distinct property names)', () => {
+			const shapeProps: XmlObject = {
+				'a:effectLst': {
+					'a:fillOverlay': {
+						'@_blend': 'darken',
+						'a:solidFill': { 'a:srgbClr': { '@_val': 'ABCDEF' } },
+					},
+				},
+			};
+			const style = codec.extractFillOverlayStyle(shapeProps);
+			expect(style.shapeFillOverlayColor).toBe('#ABCDEF');
+			expect((style as ShapeStyle).dagFillOverlayColor).toBeUndefined();
+		});
+	});
+
+	describe('buildFillOverlayXml', () => {
+		it('builds a solid-colour a:fillOverlay with @blend and a:solidFill/a:srgbClr', () => {
+			const xml = codec.buildFillOverlayXml({
+				shapeFillOverlayColor: '#112233',
+				shapeFillOverlayBlend: 'mult',
+				shapeFillOverlayOpacity: 0.4,
+			} as ShapeStyle);
+			expect(xml?.['@_blend']).toBe('mult');
+			const solidFill = xml?.['a:solidFill'] as XmlObject;
+			const srgb = solidFill['a:srgbClr'] as XmlObject;
+			expect(srgb['@_val']).toBe('112233');
+			expect((srgb['a:alpha'] as XmlObject)['@_val']).toBe('40000');
+		});
+
+		it('returns undefined when no fill overlay colour is set', () => {
+			expect(codec.buildFillOverlayXml({} as ShapeStyle)).toBeUndefined();
+		});
+
+		it('defaults @blend to "over" when unset', () => {
+			const xml = codec.buildFillOverlayXml({ shapeFillOverlayColor: '#FF00FF' } as ShapeStyle);
+			expect(xml?.['@_blend']).toBe('over');
+		});
+
+		it('preserves the original a:gradFill verbatim when colour/opacity are unchanged from parse', () => {
+			const originalFillOverlay: XmlObject = {
+				'@_blend': 'screen',
+				'a:gradFill': {
+					'a:gsLst': { 'a:gs': [{ '@_pos': '0', 'a:schemeClr': { '@_val': 'accent1' } }] },
+				},
+			};
+			const xml = codec.buildFillOverlayXml({
+				fillOverlayXml: originalFillOverlay,
+				shapeFillOverlayColor: '#theme_accent1',
+				shapeFillOverlayOriginalColor: '#theme_accent1',
+				shapeFillOverlayOpacity: undefined,
+				shapeFillOverlayOriginalOpacity: undefined,
+			} as unknown as ShapeStyle);
+			expect(xml?.['a:gradFill']).toBeDefined();
+			expect(xml?.['a:solidFill']).toBeUndefined();
+		});
+
+		it('replaces the fill with a fresh solidFill when the colour was edited', () => {
+			const originalFillOverlay: XmlObject = {
+				'@_blend': 'screen',
+				'a:gradFill': {
+					'a:gsLst': { 'a:gs': [{ '@_pos': '0', 'a:srgbClr': { '@_val': '000000' } }] },
+				},
+			};
+			const xml = codec.buildFillOverlayXml({
+				fillOverlayXml: originalFillOverlay,
+				shapeFillOverlayColor: '#FFFFFF',
+				shapeFillOverlayOriginalColor: '#000000',
+			} as ShapeStyle);
+			expect(xml?.['a:gradFill']).toBeUndefined();
+			const solidFill = xml?.['a:solidFill'] as XmlObject;
+			expect((solidFill['a:srgbClr'] as XmlObject)['@_val']).toBe('FFFFFF');
+		});
+	});
 });

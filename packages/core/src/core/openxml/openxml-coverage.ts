@@ -1,5 +1,7 @@
 import { OPENXML_ANIMATION_TIMING_COVERAGE } from './openxml-coverage-animation-timing';
+import { OPENXML_ANIMATION_TIMING_SUPPLEMENT_COVERAGE } from './openxml-coverage-animation-timing-supplement';
 import { OPENXML_CHART_DISPLAY_EFFECTS_AND_DIAGRAM_LAYOUTS_COVERAGE } from './openxml-coverage-chart-display-effects-and-diagram-layouts';
+import { OPENXML_CHART_LABELS_SUPPLEMENT_COVERAGE } from './openxml-coverage-chart-labels-supplement';
 import { OPENXML_CHART_SUPPLEMENT_COVERAGE } from './openxml-coverage-chart-supplement';
 import { OPENXML_COLOR_GRADIENT_FILL_COVERAGE } from './openxml-coverage-color-gradient-fill';
 import { OPENXML_COLORS_SHOWS_AND_LABELS_COVERAGE } from './openxml-coverage-colors-shows-and-labels';
@@ -14,9 +16,11 @@ import { OPENXML_LINE_LAYOUT_AND_PIVOT_STRUCTURES_COVERAGE } from './openxml-cov
 import { OPENXML_LINE_STROKE_PROPERTIES_COVERAGE } from './openxml-coverage-line-stroke-properties';
 import { OPENXML_MASTER_TEXT_STYLE_SUPPLEMENT_COVERAGE } from './openxml-coverage-master-text-style-supplement';
 import { OPENXML_PRESENTATION_STRUCTURE_PARTS_COVERAGE } from './openxml-coverage-presentation-structure-parts';
+import { OPENXML_SHAPE_EFFECTS_SUPPLEMENT_COVERAGE } from './openxml-coverage-shape-effects-supplement';
 import { OPENXML_SHAPE_GEOMETRY_CONNECTORS_COVERAGE } from './openxml-coverage-shape-geometry-connectors';
 import { OPENXML_SLIDE_STRUCTURE_PARTS_COVERAGE } from './openxml-coverage-slide-structure-parts';
 import { OPENXML_TABLE_STYLE_PICTURE_FILL_COVERAGE } from './openxml-coverage-table-style-picture-fill';
+import { OPENXML_TABLE_STYLE_SUPPLEMENT_COVERAGE } from './openxml-coverage-table-style-supplement';
 import { OPENXML_TEXT_AUTOFIT_PARAGRAPH_BULLET_COVERAGE } from './openxml-coverage-text-autofit-paragraph-bullet';
 import { OPENXML_TEXT_RUN_HYPERLINK_COVERAGE } from './openxml-coverage-text-run-hyperlink';
 import { OPENXML_THEME_BLIP_TAGS_SUPPLEMENT_COVERAGE } from './openxml-coverage-theme-blip-tags-supplement';
@@ -99,7 +103,9 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 	...OPENXML_LINE_LAYOUT_AND_PIVOT_STRUCTURES_COVERAGE,
 	...OPENXML_LINE_STROKE_PROPERTIES_COVERAGE,
 	...OPENXML_SHAPE_GEOMETRY_CONNECTORS_COVERAGE,
+	...OPENXML_SHAPE_EFFECTS_SUPPLEMENT_COVERAGE,
 	...OPENXML_TABLE_STYLE_PICTURE_FILL_COVERAGE,
+	...OPENXML_TABLE_STYLE_SUPPLEMENT_COVERAGE,
 	...OPENXML_COLOR_GRADIENT_FILL_COVERAGE,
 	...OPENXML_EFFECT_STYLE_3D_THEME_COVERAGE,
 	...OPENXML_TEXT_AUTOFIT_PARAGRAPH_BULLET_COVERAGE,
@@ -108,7 +114,9 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 	...OPENXML_SLIDE_STRUCTURE_PARTS_COVERAGE,
 	...OPENXML_DIAGRAM_SUPPLEMENT_COVERAGE,
 	...OPENXML_CHART_SUPPLEMENT_COVERAGE,
+	...OPENXML_CHART_LABELS_SUPPLEMENT_COVERAGE,
 	...OPENXML_ANIMATION_TIMING_COVERAGE,
+	...OPENXML_ANIMATION_TIMING_SUPPLEMENT_COVERAGE,
 	...OPENXML_THEME_BLIP_TAGS_SUPPLEMENT_COVERAGE,
 	...OPENXML_MASTER_TEXT_STYLE_SUPPLEMENT_COVERAGE,
 	'chart:complexType:CT_ManualLayout': {
@@ -172,11 +180,12 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		preserve: 'passthrough',
 		edit: 'partial',
 		serialize: 'partial',
-		note: 'Index, delete, and common txPr defaults are typed; extensions remain passthrough.',
+		note: 'Index, delete, and common txPr defaults are typed; extensions remain passthrough. Since this wave, a legend entry\'s typeface is also resolved through the theme (a "+mn-lt"/"+mj-lt" placeholder now resolves to the theme\'s actual minor/major Latin font) instead of being returned as the raw placeholder string; this is narrower than a chart-wide theme-font fix, since axis/title/data-label txPr typeface sites are unaffected by this particular change.',
 		evidence: [
 			testEvidence('src/core/utils/chart-legend-entry.test.ts', [
 				'parses delete values and the CT_Boolean default',
 				'edits an entry while preserving its extension list',
+				'resolves a theme-font placeholder typeface (+mn-lt) via resolveTypeface',
 			]),
 		],
 	},

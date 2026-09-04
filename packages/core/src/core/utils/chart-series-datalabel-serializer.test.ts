@@ -146,6 +146,83 @@ describe('applySeriesDataLabelsToXml', () => {
 		expect(Object.keys(node).at(-1)).toBe('c:extLst');
 	});
 
+	// C2-G16: c:dLbl/c:numFmt (per-point number format override).
+	it('writes a per-point numberFormat as c:numFmt (C2-G16)', () => {
+		const ser = seriesNode();
+		applySeriesDataLabelsToXml(ser, [{ idx: 0, showVal: true, numberFormat: '0%' }], getLocalName);
+		const dLbl = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		expect(dLbl['c:numFmt']).toStrictEqual({ '@_formatCode': '0%', '@_sourceLinked': '0' });
+	});
+
+	it('replaces an existing per-point c:numFmt rather than duplicating it', () => {
+		const ser = seriesNode();
+		ser['c:dLbls'] = {
+			'c:dLbl': {
+				'c:idx': { '@_val': '0' },
+				'c:numFmt': { '@_formatCode': '0.0', '@_sourceLinked': '0' },
+				'c:showVal': { '@_val': '1' },
+			},
+		};
+		applySeriesDataLabelsToXml(
+			ser,
+			[{ idx: 0, showVal: true, numberFormat: '$#,##0' }],
+			getLocalName,
+		);
+		const dLbl = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		expect(dLbl['c:numFmt']).toStrictEqual({ '@_formatCode': '$#,##0', '@_sourceLinked': '0' });
+		expect(Object.keys(dLbl).filter((k) => getLocalName(k) === 'numFmt')).toHaveLength(1);
+	});
+
+	it('still preserves an existing per-point c:numFmt when numberFormat is not set', () => {
+		const ser = seriesNode();
+		ser['c:dLbls'] = {
+			'c:dLbl': {
+				'c:idx': { '@_val': '0' },
+				'c:numFmt': { '@_formatCode': '0.0', '@_sourceLinked': '0' },
+				'c:showVal': { '@_val': '0' },
+			},
+		};
+		applySeriesDataLabelsToXml(ser, [{ idx: 0, showVal: true }], getLocalName);
+		const dLbl = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		expect(dLbl['c:numFmt']).toStrictEqual({ '@_formatCode': '0.0', '@_sourceLinked': '0' });
+	});
+
+	// C2-G15: c:dLbl/c:layout/c:manualLayout (a dragged data-label position).
+	it('writes a per-point manual layout as c:layout/c:manualLayout (C2-G15)', () => {
+		const ser = seriesNode();
+		applySeriesDataLabelsToXml(
+			ser,
+			[{ idx: 0, showVal: true, layout: { x: 0.1, y: 0.2 } }],
+			getLocalName,
+		);
+		const dLbl = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		const manual = (dLbl['c:layout'] as XmlObject)['c:manualLayout'] as XmlObject;
+		expect((manual['c:x'] as XmlObject)['@_val']).toBe('0.1');
+		expect((manual['c:y'] as XmlObject)['@_val']).toBe('0.2');
+	});
+
+	it('does not treat a layout-only label (no show flags) as a delete override', () => {
+		const ser = seriesNode();
+		applySeriesDataLabelsToXml(ser, [{ idx: 0, layout: { x: 0.1, y: 0.2 } }], getLocalName);
+		const dLbl = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		expect(dLbl['c:delete']).toBeUndefined();
+		expect(dLbl['c:layout']).toBeDefined();
+	});
+
+	it('removes an existing manual layout when the model sets layout to null', () => {
+		const ser = seriesNode();
+		ser['c:dLbls'] = {
+			'c:dLbl': {
+				'c:idx': { '@_val': '0' },
+				'c:layout': { 'c:manualLayout': { 'c:x': { '@_val': '0.1' } } },
+				'c:showVal': { '@_val': '1' },
+			},
+		};
+		applySeriesDataLabelsToXml(ser, [{ idx: 0, showVal: true, layout: null }], getLocalName);
+		const dLbl = (ser['c:dLbls'] as XmlObject)['c:dLbl'] as XmlObject;
+		expect(dLbl['c:layout']).toBeUndefined();
+	});
+
 	it('validates idx and dLblPos before serialization', () => {
 		expect(() => applySeriesDataLabelsToXml(seriesNode(), [{ idx: -1 }], getLocalName)).toThrow(
 			RangeError,

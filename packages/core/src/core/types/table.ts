@@ -358,6 +358,22 @@ export interface PptxTableData {
 	bandColCycle?: number;
 	/** Right-to-left table layout from `a:tblPr/@rtl`. */
 	rtl?: boolean;
+	/**
+	 * `a:tblPr`'s OWN fill (`CT_TableProperties` §21.1.3.15's
+	 * `EG_FillProperties`), independent of any `a:tblStyleLst`-referenced style
+	 * or that style's `a:tblBg`. Applied as the lowest-priority fill layer,
+	 * beneath the table style's `wholeTbl` fill. Real PowerPoint decks route
+	 * table appearance through `tableStyleId` instead, so this mainly matters
+	 * for non-PowerPoint authoring tools (issue G6).
+	 */
+	tableFill?: ParsedTableStyleFill;
+	/**
+	 * Whether `a:tblPr` carries its own `a:effectLst`/`a:effectDag`,
+	 * independent of the referenced table style. Presence-only: the concrete
+	 * effect is not yet rendered, and the raw XML round-trips separately via
+	 * whatever preserves `a:tblPr`'s unrecognised children (issue G6).
+	 */
+	tableEffects?: boolean;
 }
 
 // ==========================================================================
@@ -490,7 +506,7 @@ export interface ParsedTableStyleText {
  * A single border side within a table style's `a:tcStyle/a:tcBdr`.
  *
  * Corresponds to one of `a:left`, `a:right`, `a:top`, `a:bottom`,
- * `a:insideH`, `a:insideV`, `a:tl2br`, `a:bl2tr` (each a
+ * `a:insideH`, `a:insideV`, `a:tl2br`, `a:tr2bl` (each a
  * `CT_ThemeableLineStyle` wrapping an `a:ln`).
  *
  * @example
@@ -531,8 +547,16 @@ export interface ParsedTableStyleBorders {
 	insideV?: ParsedTableStyleBorder;
 	/** Top-left to bottom-right diagonal. */
 	tl2br?: ParsedTableStyleBorder;
-	/** Bottom-left to top-right diagonal. */
-	bl2tr?: ParsedTableStyleBorder;
+	/**
+	 * Top-right to bottom-left diagonal (`a:tr2bl`, ECMA-376's
+	 * `CT_TableCellBorderStyle` sequence: left/right/top/bottom/insideH/
+	 * insideV/tl2br/tr2bl). The field keeps its historical `bl2tr` spelling
+	 * only in the sense that it names the same geometric anti-diagonal line
+	 * (top-right-to-bottom-left and bottom-left-to-top-right describe one
+	 * undirected diagonal); the parser accepts the real `a:tr2bl` element and,
+	 * leniently, a legacy `a:bl2tr` this app previously wrote (issue G4).
+	 */
+	tr2bl?: ParsedTableStyleBorder;
 }
 
 /**
@@ -602,6 +626,26 @@ export interface ParsedTableStyleEntry {
 	swCellText?: ParsedTableStyleText;
 	neCellText?: ParsedTableStyleText;
 	nwCellText?: ParsedTableStyleText;
+	/**
+	 * Per-role 3D bevel + lighting from `a:tcStyle/a:cell3D` (CT_Cell3D),
+	 * distinct from the per-cell `a:tcPr/a:cell3D` {@link PptxTableCellStyle}
+	 * already supports. None of PowerPoint's 74 built-in gallery styles use
+	 * this (0 hits in the built-in catalogue), so it only matters for a
+	 * hand-authored or third-party table style.
+	 */
+	wholeTblCell3D?: PptxTableCell3D;
+	firstRowCell3D?: PptxTableCell3D;
+	lastRowCell3D?: PptxTableCell3D;
+	firstColCell3D?: PptxTableCell3D;
+	lastColCell3D?: PptxTableCell3D;
+	band1HCell3D?: PptxTableCell3D;
+	band2HCell3D?: PptxTableCell3D;
+	band1VCell3D?: PptxTableCell3D;
+	band2VCell3D?: PptxTableCell3D;
+	seCellCell3D?: PptxTableCell3D;
+	swCellCell3D?: PptxTableCell3D;
+	neCellCell3D?: PptxTableCell3D;
+	nwCellCell3D?: PptxTableCell3D;
 }
 
 /**

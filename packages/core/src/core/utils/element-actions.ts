@@ -94,6 +94,15 @@ export function pptxActionToElementAction(
 		return { trigger, type: 'openFile', ...(pptxAction.url ? { url: pptxAction.url } : {}) };
 	}
 
+	// Run an external program: ppaction://program (target resolved via r:id,
+	// same shape as hlinkfile). Checked before the generic "external URL"
+	// fallback below so a Run-Program action does not get reported as `type:
+	// 'url'` and, if the Action Settings UI round-trips it unchanged, silently
+	// corrupted into a plain hyperlink on save (issue G15).
+	if (actionStr.includes('ppaction://program')) {
+		return { trigger, type: 'runProgram', ...(pptxAction.url ? { url: pptxAction.url } : {}) };
+	}
+
 	// Open another presentation: ppaction://hlinkpres (target resolved via r:id)
 	if (actionStr.includes('hlinkpres')) {
 		return {
@@ -176,6 +185,12 @@ export function elementActionToPptxAction(ea: ElementAction): PptxAction | undef
 		}
 		case 'openFile':
 			action.action = 'ppaction://hlinkfile';
+			if (ea.url) {
+				action.url = ea.url;
+			}
+			break;
+		case 'runProgram':
+			action.action = 'ppaction://program';
 			if (ea.url) {
 				action.url = ea.url;
 			}
