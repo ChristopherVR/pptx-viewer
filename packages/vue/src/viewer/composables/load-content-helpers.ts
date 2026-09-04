@@ -9,6 +9,8 @@ export type {
 	ImagePathElement,
 	TableCellImageRef,
 	TableStyleImageRef,
+	MediaArrayBufferSource,
+	MediaSourceResolution,
 } from 'pptx-viewer-shared';
 export {
 	collectMediaElements,
@@ -19,4 +21,5 @@ export {
 	collectTableStyleImagePaths,
 	applyTableStyleImagePatches,
 	buildInitialGuides,
+	resolveMediaElementSource,
 } from 'pptx-viewer-shared';

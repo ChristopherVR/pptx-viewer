@@ -13,6 +13,7 @@ import type {
 	TableStyleContext,
 } from 'pptx-viewer-shared';
 import {
+	canDrillDown,
 	cellPatternFillCss,
 	cellRunStyle,
 	DEFAULT_FONT_FAMILY,
@@ -338,7 +339,11 @@ function setCellInput(el: Element | ComponentPublicInstance | null): void {
 	cellInputRef.value = el instanceof HTMLInputElement ? el : null;
 }
 
-const editingEnabled = computed(() => props.interactive && (cellEdit?.canEdit() ?? false));
+// G8: `a:graphicFrameLocks/@noDrilldown` forbids selecting/editing this
+// table's individual cells, even on an otherwise-editable deck.
+const editingEnabled = computed(
+	() => props.interactive && (cellEdit?.canEdit() ?? false) && canDrillDown(props.element),
+);
 
 function isEditing(cell: RenderableCell): boolean {
 	const e = editingCell.value;

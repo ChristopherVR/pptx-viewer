@@ -11,6 +11,8 @@
  * Vue panels which do not thread `useTranslation`.
  */
 import type { MediaBookmark } from 'pptx-viewer-core';
+import { trimmedMediaDurationMs, validateMediaTrimRange } from 'pptx-viewer-shared';
+import type { MediaTrimRangeError } from 'pptx-viewer-shared';
 
 /**
  * Format a duration in seconds as `m:ss.d` (tenths of a second), matching the
@@ -84,17 +86,17 @@ export function validateTrimRange(
 	trimEndMs: number,
 	durationMs: number,
 ): string | null {
-	if (trimStartMs < 0 || trimEndMs < 0) {
-		return 'Trim times cannot be negative.';
-	}
-	if (trimEndMs > 0 && trimStartMs >= trimEndMs) {
-		return 'Trim start must be before trim end.';
-	}
-	if (durationMs > 0 && (trimStartMs > durationMs || trimEndMs > durationMs)) {
-		return 'Trim times cannot exceed the clip duration.';
-	}
-	return null;
+	// `trimEndMs` is p14:trim/@end's distance from the clip's tail; the
+	// range maths lives in shared so every binding agrees on it.
+	const error = validateMediaTrimRange(trimStartMs, trimEndMs, durationMs);
+	return error ? TRIM_ERROR_MESSAGES[error] : null;
 }
+
+const TRIM_ERROR_MESSAGES: Record<MediaTrimRangeError, string> = {
+	negative: 'Trim times cannot be negative.',
+	startAfterEnd: 'Trim start must be before trim end.',
+	beyondDuration: 'Trim times cannot exceed the clip duration.',
+};
 
 /** Clamp `value` into the inclusive `[min, max]` range. */
 export function clamp(value: number, min: number, max: number): number {
@@ -116,9 +118,5 @@ export function trimmedDurationLabel(
 	trimEndMs: number,
 	durationMs: number,
 ): string {
-	const effectiveEnd = trimEndMs > 0 ? trimEndMs : durationMs;
-	if (effectiveEnd <= trimStartMs || durationMs <= 0) {
-		return msToMmSs(durationMs);
-	}
-	return msToMmSs(effectiveEnd - trimStartMs);
+	return msToMmSs(trimmedMediaDurationMs(trimStartMs, trimEndMs, durationMs));
 }

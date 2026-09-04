@@ -5,8 +5,14 @@ import { mount } from '@vue/test-utils';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { playAnimationSound, stopAnimationSound } from '../composables/animation-sound';
 import type { CanvasSize } from '../types';
 import PresentationTransitionOverlay from './PresentationTransitionOverlay.vue';
+
+vi.mock(import('../composables/animation-sound'), () => ({
+	playAnimationSound: vi.fn(),
+	stopAnimationSound: vi.fn(),
+}));
 
 /**
  * The SFC's own text. `import.meta.url` is not a file URL under the happy-dom
@@ -371,5 +377,89 @@ describe('presentationTransitionOverlay', () => {
 		// Painted exactly once: not left in the flat layers as well.
 		expect(wrapper.html().match(/Open Integration/gu)).toHaveLength(1);
 		wrapper.unmount();
+	});
+});
+
+describe('presentationTransitionOverlay sound (p:sndAc/p:stSnd, p:endSnd)', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.mocked(playAnimationSound).mockClear();
+		vi.mocked(stopAnimationSound).mockClear();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('resolves the transition sound path through mediaDataUrls and plays it', () => {
+		const wrapper = mount(PresentationTransitionOverlay, {
+			props: {
+				outgoingSlide: makeSlide('out'),
+				incomingSlide: makeSlide('in'),
+				canvasSize,
+				mediaDataUrls: new Map([['ppt/media/media3.wav', 'blob:sound']]),
+				transition: {
+					type: 'fade',
+					durationMs: 300,
+					soundPath: 'ppt/media/media3.wav',
+					soundLoop: true,
+				} as PptxSlideTransition,
+			},
+		});
+		expect(playAnimationSound).toHaveBeenCalledWith('blob:sound', true);
+		wrapper.unmount();
+	});
+
+	it('does not play when the raw archive path has no resolved URL yet', () => {
+		const wrapper = mount(PresentationTransitionOverlay, {
+			props: {
+				outgoingSlide: makeSlide('out'),
+				incomingSlide: makeSlide('in'),
+				canvasSize,
+				mediaDataUrls: new Map<string, string>(),
+				transition: {
+					type: 'fade',
+					durationMs: 300,
+					soundPath: 'ppt/media/media3.wav',
+				} as PptxSlideTransition,
+			},
+		});
+		expect(playAnimationSound).not.toHaveBeenCalled();
+		wrapper.unmount();
+	});
+
+	it('stops the current sound for p:endSndAc (transition.stopSound)', () => {
+		const wrapper = mount(PresentationTransitionOverlay, {
+			props: {
+				outgoingSlide: makeSlide('out'),
+				incomingSlide: makeSlide('in'),
+				canvasSize,
+				mediaDataUrls: new Map<string, string>(),
+				transition: { type: 'fade', durationMs: 300, stopSound: true } as PptxSlideTransition,
+			},
+		});
+		expect(stopAnimationSound).toHaveBeenCalledOnce();
+		expect(playAnimationSound).not.toHaveBeenCalled();
+		wrapper.unmount();
+	});
+
+	it('does NOT stop the sound merely because the overlay unmounts (Loop Until Next Sound)', () => {
+		const wrapper = mount(PresentationTransitionOverlay, {
+			props: {
+				outgoingSlide: makeSlide('out'),
+				incomingSlide: makeSlide('in'),
+				canvasSize,
+				mediaDataUrls: new Map([['a.wav', 'blob:sound']]),
+				transition: {
+					type: 'fade',
+					durationMs: 300,
+					soundPath: 'a.wav',
+					soundLoop: true,
+				} as PptxSlideTransition,
+			},
+		});
+		vi.mocked(stopAnimationSound).mockClear();
+		wrapper.unmount();
+		expect(stopAnimationSound).not.toHaveBeenCalled();
 	});
 });

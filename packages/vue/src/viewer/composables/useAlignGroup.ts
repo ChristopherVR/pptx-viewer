@@ -2,6 +2,7 @@ import { createEditorId } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import {
 	alignElements,
+	canInteractWithElement,
 	distributeElements,
 	groupElements,
 	isTemplateElementId,
@@ -27,9 +28,16 @@ export interface UseAlignGroupInput {
 export function useAlignGroup(input: UseAlignGroupInput) {
 	const { selectedElements, selectedElementIds, activeSlideIndex, slides, pushHistory } = input;
 
-	const canGroup = computed(() => selectedElements.value.length >= 2);
+	const canGroup = computed(
+		() =>
+			selectedElements.value.length >= 2 &&
+			selectedElements.value.every((el) => canInteractWithElement(el, 'group')),
+	);
 	const canUngroup = computed(
-		() => selectedElements.value.length === 1 && selectedElements.value[0]?.type === 'group',
+		() =>
+			selectedElements.value.length === 1 &&
+			selectedElements.value[0]?.type === 'group' &&
+			canInteractWithElement(selectedElements.value[0], 'group'),
 	);
 	const canDistribute = computed(() => selectedElements.value.length >= 3);
 
@@ -72,6 +80,11 @@ export function useAlignGroup(input: UseAlignGroupInput) {
 		if (sel.length < 2 || !slide) {
 			return;
 		}
+		// G10: a:spLocks/@noGrouping rejects the whole attempt if it involves a
+		// locked shape, not just that one shape.
+		if (!sel.every((el) => canInteractWithElement(el, 'group'))) {
+			return;
+		}
 		const { elements, groupId } = groupElements(
 			slide.elements,
 			sel.map((e) => e.id),
@@ -91,6 +104,10 @@ export function useAlignGroup(input: UseAlignGroupInput) {
 		const index = activeSlideIndex.value;
 		const slide = slides.value[index];
 		if (!g || g.type !== 'group' || !slide) {
+			return;
+		}
+		// G10: a:grpSpLocks/@noGrouping forbids ungrouping this specific group.
+		if (!canInteractWithElement(g, 'group')) {
 			return;
 		}
 		// Keep the existing child ids (pass them through as the new ids). The

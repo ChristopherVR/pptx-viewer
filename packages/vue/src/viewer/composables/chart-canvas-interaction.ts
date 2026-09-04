@@ -1,7 +1,12 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
    independent handler-local `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
-import { findChartPartTarget, formatAxisValue, withChartTitle } from 'pptx-viewer-shared';
+import {
+	canDrillDown,
+	findChartPartTarget,
+	formatAxisValue,
+	withChartTitle,
+} from 'pptx-viewer-shared';
 import type { ChartPartRef, ChartViewModel } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, onMounted, onUnmounted, onUpdated, ref, shallowRef, watch } from 'vue';
@@ -82,8 +87,13 @@ export function useChartCanvasInteraction(
 	const titleDraft = ref<string | null>(null);
 	let activeDrag: ActiveValueDrag | null = null;
 
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this chart's
+	// individual parts (title, series, data points) for editing.
 	const canEdit = computed(
-		() => input.interactive() && Boolean(ctx?.canEditChart(input.element().id)),
+		() =>
+			input.interactive() &&
+			Boolean(ctx?.canEditChart(input.element().id)) &&
+			canDrillDown(input.element()),
 	);
 	/** Click-selectable whenever the editable canvas allows chart editing at all. */
 	const selectable = computed(() => input.interactive() && Boolean(ctx?.canSelectCharts()));

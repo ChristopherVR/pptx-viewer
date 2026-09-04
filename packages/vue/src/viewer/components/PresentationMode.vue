@@ -22,10 +22,13 @@ import type { PptxCustomShow, PptxPresentationProperties, PptxSlide } from 'pptx
 import type { AuthoredSlideRange, PresentationContextMenuActionId } from 'pptx-viewer-shared';
 import {
 	ANIMATION_KEYFRAMES_CSS,
+	applyHighlightClickStyle,
 	DEFAULT_VIEWER_OPTIONS,
 	endAudienceDisplay,
+	findHighlightClickTarget,
 	getPresentationContextMenuSections,
 	handlePresentationStageClick,
+	HIGHLIGHT_CLEAR_STYLE,
 	mayLeaveSlideShow,
 	PRESENT_TOOLBAR_METRICS,
 	PRESENTATION_HIT_TEST_CSS,
@@ -33,9 +36,10 @@ import {
 	shouldLoopContinuously,
 	toggleBlackboard,
 } from 'pptx-viewer-shared';
-import { computed, inject, onMounted, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { stopAnimationSound } from '../composables/animation-sound';
 import { providePresentationElementStates } from '../composables/presentation-element-states';
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
@@ -317,6 +321,13 @@ const presentationStartTime = ref<number | null>(null);
 onMounted(() => {
 	presentationStartTime.value = Date.now();
 });
+// A transition sound flagged "Loop Until Next Sound" (`soundLoop`) plays on
+// the shared per-effect singleton across the whole show, independent of any
+// one transition overlay's mount/unmount; it must still stop the instant the
+// show itself ends, or it keeps looping in the editor behind it.
+onBeforeUnmount(() => {
+	stopAnimationSound();
+});
 /**
  * Where the auto-hiding show toolbar sits, read from the shared chrome spec
  * rather than re-typed here: the offset, stacking order and fade are the same
@@ -519,6 +530,18 @@ function onOverlayClick(event: MouseEvent): void {
 	if (annotations.presentationTool.value !== 'none' || presenterMode.value) {
 		return;
 	}
+	// `@highlightClick` ("Highlight click"): a brief flash independent of
+	// whatever the action itself does, so it runs even for a no-op action.
+	const highlightTarget = findHighlightClickTarget(event.target, nav.activeSlide.value);
+	const highlightClick = highlightTarget?.descriptor.click;
+	if (highlightTarget && highlightClick) {
+		const { element } = highlightTarget;
+		const { style, clearStyle, durationMs } = highlightClick;
+		applyHighlightClickStyle(element, style);
+		window.setTimeout(() => {
+			applyHighlightClickStyle(element, clearStyle);
+		}, durationMs);
+	}
 	const outcome = handlePresentationStageClick(
 		event.target,
 		nav.activeSlide.value,
@@ -529,6 +552,40 @@ function onOverlayClick(event: MouseEvent): void {
 		return;
 	}
 	nav.advanceFromClick();
+}
+
+/**
+ * `a:hlinkHover/@highlightClick`: the same brief flash as the click version,
+ * but held for the duration of the hover rather than timed. Tracked
+ * separately from the native-animation hover trigger above (`onFrameHover`),
+ * since a shape can carry one without the other.
+ */
+let highlightedHoverElement: HTMLElement | null = null;
+
+function onFrameHighlightHover(event: MouseEvent): void {
+	const found = findHighlightClickTarget(event.target, nav.activeSlide.value);
+	const nextElement = found?.descriptor.hover ? found.element : null;
+	if (nextElement === highlightedHoverElement) {
+		return;
+	}
+	if (highlightedHoverElement) {
+		applyHighlightClickStyle(highlightedHoverElement, HIGHLIGHT_CLEAR_STYLE);
+	}
+	highlightedHoverElement = nextElement;
+	if (nextElement && found?.descriptor.hover) {
+		applyHighlightClickStyle(nextElement, found.descriptor.hover.enterStyle);
+	}
+}
+
+function onFrameHighlightHoverEnd(event: MouseEvent): void {
+	const related = event.relatedTarget;
+	if (related instanceof Node && frameRef.value?.contains(related)) {
+		return;
+	}
+	if (highlightedHoverElement) {
+		applyHighlightClickStyle(highlightedHoverElement, HIGHLIGHT_CLEAR_STYLE);
+		highlightedHoverElement = null;
+	}
 }
 
 usePresentationKeyboard({
@@ -604,8 +661,18 @@ useTouchGestures({
 				class="pptx-vue-presentation-frame"
 				:style="frameStyle"
 				@click="onFrameClick"
-				@mouseover="onFrameHover"
-				@mouseout="onFrameHoverEnd"
+				@mouseover="
+					(event: MouseEvent) => {
+						onFrameHover(event);
+						onFrameHighlightHover(event);
+					}
+				"
+				@mouseout="
+					(event: MouseEvent) => {
+						onFrameHoverEnd(event);
+						onFrameHighlightHoverEnd(event);
+					}
+				"
 			>
 				<SlideStage
 					:slide="nav.activeSlide.value"

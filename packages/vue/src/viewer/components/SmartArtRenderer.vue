@@ -10,6 +10,7 @@ import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 import {
 	buildChromeStyle,
 	buildSmartArtA11y,
+	canDrillDown,
 	computeDrawingViewBox,
 	projectDrawingShapes,
 	resolvePalette,
@@ -281,7 +282,9 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 // `updateElement`), so undo/redo and save round-trip are identical.
 
 const nodeEdit = injectSmartArtNodeEdit();
-const editable = computed(() => Boolean(nodeEdit?.canEdit()));
+// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this SmartArt's
+// individual nodes for editing.
+const editable = computed(() => Boolean(nodeEdit?.canEdit()) && canDrillDown(props.element));
 
 /**
  * Source node ids in fallback render order (index-aligned with layout nodes).

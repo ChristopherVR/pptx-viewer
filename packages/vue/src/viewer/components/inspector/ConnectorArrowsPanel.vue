@@ -18,6 +18,7 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import type { ConnectorArrowControl } from 'pptx-viewer-shared';
 import {
+	canInteractWithElement,
 	CONNECTOR_ARROW_CONTROLS,
 	connectorArrowPatch,
 	connectorArrowValue,
@@ -39,6 +40,12 @@ const shapeStyle = computed<ShapeStyle | undefined>(() =>
 	hasShapeProperties(props.element) ? props.element.shapeStyle : undefined,
 );
 
+// G9: `arrowheadsChangeable` (`a:cxnSpLocks/@noChangeArrowheads`) already
+// existed on `element-locks.ts` but nothing consulted it here.
+const changeable = computed(
+	() => props.canEdit && canInteractWithElement(props.element, 'changeArrowheads'),
+);
+
 function valueOf(control: ConnectorArrowControl): string {
 	return connectorArrowValue(control, shapeStyle.value);
 }
@@ -54,6 +61,9 @@ function optionLabel(control: ConnectorArrowControl, value: string): string {
  * step and repaints the connector.
  */
 function onChange(control: ConnectorArrowControl, event: Event): void {
+	if (!changeable.value) {
+		return;
+	}
 	const patch = connectorArrowPatch(control, (event.target as HTMLSelectElement).value);
 	emit('update', {
 		shapeStyle: { ...shapeStyle.value, ...patch },
@@ -75,7 +85,7 @@ function onChange(control: ConnectorArrowControl, event: Event): void {
 				:aria-label="t(control.labelKey)"
 				class="pptx-vue-connector-arrow-input w-full bg-muted border border-border rounded px-1.5 py-0.5"
 				:value="valueOf(control)"
-				:disabled="!props.canEdit"
+				:disabled="!changeable"
 				@change="onChange(control, $event)"
 			>
 				<option v-for="value in control.values" :key="value" :value="value">

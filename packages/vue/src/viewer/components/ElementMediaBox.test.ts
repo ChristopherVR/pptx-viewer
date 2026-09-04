@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import type { MediaPptxElement } from 'pptx-viewer-core';
 import { hasPersistentAudio, stopAllPersistentAudio } from 'pptx-viewer-shared';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
 import ElementMediaBox from './ElementMediaBox.vue';
@@ -199,5 +199,35 @@ describe('elementMediaBox unplayable-media fallback', () => {
 		expect(wrapper.find('[data-pptx-media-chrome="play"]').exists()).toBeFalsy();
 		expect(wrapper.find('[data-pptx-media-chrome="missing"]').exists()).toBeTruthy();
 		expect(wrapper.text()).toBe('Media not found');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Trim-end stop + fade (G20): previously React-only; now shared via
+// `scheduleMediaTrimAndFade`. Maths itself is covered directly in
+// `packages/shared/src/render/media-trim-fade-scheduler.test.ts`; this proves
+// the wiring reaches the live <video> element while presenting.
+// ---------------------------------------------------------------------------
+describe('elementMediaBox trim-end + fade wiring', () => {
+	it('stops at duration - trimEndMs (distance from the tail), not at trimEndMs itself', async () => {
+		vi.useFakeTimers();
+		const wrapper = mountMedia(makeMedia({ trimEndMs: 5000 }), {
+			interactive: false,
+			presenting: true,
+		});
+		await nextTick();
+		const video = wrapper.find('video').element;
+		Object.defineProperty(video, 'duration', { value: 20, configurable: true });
+		Object.defineProperty(video, 'paused', { value: false, configurable: true, writable: true });
+		const pauseSpy = vi.spyOn(video, 'pause').mockImplementation(() => {
+			Object.defineProperty(video, 'paused', { value: true, configurable: true });
+		});
+
+		video.dispatchEvent(new Event('play'));
+		await vi.advanceTimersByTimeAsync(15_000);
+
+		expect(pauseSpy).toHaveBeenCalledWith();
+		expect(video.currentTime).toBe(15);
+		vi.useRealTimers();
 	});
 });

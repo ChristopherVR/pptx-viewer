@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
+	applySlideTransitionSound,
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
 	MORPH_CROSSFADE_GROUP_STYLE,
@@ -8,8 +9,9 @@ import {
 	morphOptionToMode,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { playAnimationSound, stopAnimationSound } from '../composables/animation-sound';
 import {
 	resolveSlideTransition,
 	resolveTransitionDurationMs,
@@ -187,6 +189,32 @@ const incomingLayerStyle = computed<CSSProperties>(() => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Sound (`p:sndAc/p:stSnd`/`p:endSnd`)
+// ---------------------------------------------------------------------------
+
+/**
+ * Play or stop this transition's sound action the instant it starts.
+ *
+ * `transition.soundPath` is a raw in-archive path; `mediaDataUrls` is the
+ * same Blob-URL cache the load pipeline pre-populates for it (via
+ * `collectAnimationSoundPaths`, extended to also collect a slide transition's
+ * own sound alongside per-effect animation sounds). Reuses the per-effect
+ * sound singleton (`animation-sound.ts`) so a transition sound and an
+ * animation sound cannot talk over each other, matching PowerPoint's "one
+ * sound plays at a time" behaviour.
+ */
+watch(
+	() => props.transition,
+	(transition) => {
+		applySlideTransitionSound(transition, (soundPath) => props.mediaDataUrls.get(soundPath), {
+			play: playAnimationSound,
+			stop: stopAnimationSound,
+		});
+	},
+	{ immediate: true },
+);
+
+// ---------------------------------------------------------------------------
 // Completion timer
 // ---------------------------------------------------------------------------
 
@@ -209,6 +237,10 @@ onMounted(() => {
 	}, wait);
 });
 
+// NOT stopped here: a "Loop Until Next Sound" transition sound must keep
+// playing across the (much longer) static period between this overlay
+// tearing down and the NEXT transition's own sound action, exactly as
+// PowerPoint does. `PresentationMode.vue` stops it on leaving the show.
 onBeforeUnmount(clearTimer);
 </script>
 

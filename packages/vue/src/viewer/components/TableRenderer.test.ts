@@ -582,6 +582,19 @@ describe('tableRenderer', () => {
 		expect(wrapper.find('input.pptx-vue-table__cell-input').exists()).toBeFalsy();
 	});
 
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - a cell was still double-click editable on a
+	// locked table.
+	it('does not enter edit mode when noDrilldown is set', async () => {
+		const commit = vi.fn();
+		const wrapper = mount(TableRenderer, {
+			props: { element: table(basicGrid, { locks: { noDrilldown: true } }), zIndex: 0 },
+			global: { provide: { [TableCellEditKey as symbol]: { canEdit: () => true, commit } } },
+		});
+		await wrapper.findAll('td')[0].trigger('dblclick');
+		expect(wrapper.find('input.pptx-vue-table__cell-input').exists()).toBeFalsy();
+	});
+
 	it('stops pointerdown propagation from the cell input so the canvas cannot steal focus', async () => {
 		const { wrapper } = mountEditable(basicGrid);
 		await wrapper.findAll('td')[0].trigger('dblclick');

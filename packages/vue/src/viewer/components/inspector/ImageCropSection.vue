@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxElement } from 'pptx-viewer-core';
+import { canInteractWithElement } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -30,6 +31,9 @@ const { t } = useI18n();
 
 const sides = useCropSides();
 
+// G7: `a:picLocks/@noCrop` forbids cropping this specific picture.
+const croppable = computed(() => canInteractWithElement(props.element, 'crop'));
+
 const cropPercents = computed<Record<string, number>>(() => {
 	const el = props.element as unknown as Record<string, number | undefined>;
 	const out: Record<string, number> = {};
@@ -40,11 +44,17 @@ const cropPercents = computed<Record<string, number>>(() => {
 });
 
 function onCrop(key: (typeof sides)[number]['key'], event: Event): void {
+	if (!croppable.value) {
+		return;
+	}
 	const percent = Number((event.target as HTMLInputElement).value);
 	emit('update', { [key]: cropPercentToFraction(percent) } as Partial<PptxElement>);
 }
 
 function onResetCrop(): void {
+	if (!croppable.value) {
+		return;
+	}
 	emit('update', {
 		cropLeft: 0,
 		cropTop: 0,
@@ -96,6 +106,7 @@ function onReplaceImage(event: Event): void {
 				min="0"
 				max="80"
 				step="1"
+				:disabled="!croppable"
 				:value="cropPercents[side.key]"
 				@input="onCrop(side.key, $event)"
 			/>
@@ -107,6 +118,7 @@ function onReplaceImage(event: Event): void {
 		<button
 			type="button"
 			class="pptx-vue-image-crop__reset w-full rounded border border-border bg-muted hover:bg-accent px-2 py-1 transition-colors"
+			:disabled="!croppable"
 			@click="onResetCrop"
 		>
 			{{ t('pptx.image.resetCrop') }}

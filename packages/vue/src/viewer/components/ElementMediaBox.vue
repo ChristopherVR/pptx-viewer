@@ -15,11 +15,12 @@ import {
 	mediaPlaybackAttributes,
 	mediaSurfaceOf,
 	mediaTransportVisible,
+	scheduleMediaTrimAndFade,
 	startMediaAutoplay,
 } from 'pptx-viewer-shared';
-import type { MediaPlaybackSource } from 'pptx-viewer-shared';
+import type { MediaPlaybackSource, MediaTrimFadeSource } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { registerCrossSlideAudio } from '../composables/cross-slide-audio';
@@ -58,6 +59,26 @@ const playbackSource = computed<MediaPlaybackSource>(() =>
 );
 
 /**
+ * Trim-end/fade settings (G20), plus the post-clamp target volume, for
+ * `scheduleMediaTrimAndFade`. Kept separate from `playbackSource` because the
+ * scheduler wants the DOM-facing (clamped) volume, not the raw authored one.
+ */
+const trimFadeSource = computed<MediaTrimFadeSource>(() =>
+	props.element.type === 'media'
+		? {
+				trimStartMs: props.element.trimStartMs,
+				trimEndMs: props.element.trimEndMs,
+				fadeInDuration: props.element.fadeInDuration,
+				fadeOutDuration: props.element.fadeOutDuration,
+				volume: mediaPlaybackAttributes(playbackSource.value).volume,
+			}
+		: {},
+);
+
+/** Cancels the currently-scheduled trim/fade (G20); re-armed on every relevant change. */
+let cancelTrimFade: (() => void) | null = null;
+
+/**
  * Autoplay on the presentation stage: start playback once the element is
  * mounted and `presenting` is on; pause again if the stage is torn down or the
  * element leaves present mode. Delegates the `.play()` + blocked-autoplay
@@ -70,8 +91,10 @@ const playbackSource = computed<MediaPlaybackSource>(() =>
  * volume here while React honoured the deck.
  */
 watch(
-	[mediaEl, () => props.presenting, () => trimStartMs.value, playbackSource],
+	[mediaEl, () => props.presenting, trimFadeSource, playbackSource],
 	([el, presenting]) => {
+		cancelTrimFade?.();
+		cancelTrimFade = null;
 		if (!el) {
 			return;
 		}
@@ -92,12 +115,18 @@ watch(
 				return;
 			}
 			void nextTick(() => startMediaAutoplay(el, { trimStartMs: trimStartMs.value }));
+			// G20: trim-end stop + fade in/out, shared with the other four
+			// bindings so a trimmed/faded clip behaves identically everywhere
+			// (this used to be React-only logic).
+			cancelTrimFade = scheduleMediaTrimAndFade(el, trimFadeSource.value);
 		} else if (!el.paused) {
 			el.pause();
 		}
 	},
 	{ immediate: true },
 );
+
+onBeforeUnmount(() => cancelTrimFade?.());
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),

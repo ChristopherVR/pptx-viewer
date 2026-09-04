@@ -53,8 +53,10 @@ interface MountResult {
 	selection: ReturnType<typeof ref<ChartPartSelection | null>>;
 }
 
-function mountChart(options: { editable?: boolean; withContext?: boolean } = {}): MountResult {
-	const { editable = true, withContext = true } = options;
+function mountChart(
+	options: { editable?: boolean; withContext?: boolean; element?: ChartPptxElement } = {},
+): MountResult {
+	const { editable = true, withContext = true, element = makeChartElement() } = options;
 	const updateElement = vi.fn<(id: string, patch: Partial<PptxElement>) => void>();
 	const selection = ref<ChartPartSelection | null>(null);
 	const ctx: ChartCanvasEditContext = {
@@ -68,7 +70,7 @@ function mountChart(options: { editable?: boolean; withContext?: boolean } = {})
 	};
 	const wrapper = mount(ElementRenderer, {
 		props: {
-			element: makeChartElement() as PptxElement,
+			element: element as PptxElement,
 			mediaDataUrls: new Map<string, string>(),
 			zIndex: 1,
 			interactive: true,
@@ -194,6 +196,20 @@ describe('elementRenderer - on-canvas chart editing wiring', () => {
 		const data = (updates as { chartData: PptxChartData }).chartData;
 		expect(data.title).toBe('FY26 Sales');
 		expect(data.style?.hasTitle).toBeTruthy();
+	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - double-clicking the title still opened the
+	// inline editor on a locked chart.
+	it('does not open the title editor on double-click when noDrilldown is set', async () => {
+		const locked = { ...makeChartElement(), locks: { noDrilldown: true } } as ChartPptxElement;
+		const { wrapper } = mountChart({ element: locked });
+
+		const title = wrapper.element.querySelector("[data-chart-part='title']")!;
+		title.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		await nextTick();
+
+		expect(wrapper.find('input.pptx-vue-chart-title-input').exists()).toBeFalsy();
 	});
 
 	it('is inert when the chart is not editable', () => {

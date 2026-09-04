@@ -11,7 +11,7 @@ function shape(id: string, overrides: Partial<PptxElement> = {}): PptxElement {
 }
 
 /**
- * A connector glued to `a`'s right edge (site 1) and `b`'s left edge (site 3).
+ * A connector glued to `a`'s right edge (site 3) and `b`'s left edge (site 1).
  * With both shapes 100x100 at y=0 and b at x=300, that resolves to a flat line
  * from (100,50) to (300,50).
  */
@@ -24,8 +24,8 @@ function connector(): PptxElement {
 		width: 200,
 		height: 1,
 		shapeStyle: {
-			connectorStartConnection: { shapeId: 'a', connectionSiteIndex: 1 },
-			connectorEndConnection: { shapeId: 'b', connectionSiteIndex: 3 },
+			connectorStartConnection: { shapeId: 'a', connectionSiteIndex: 3 },
+			connectorEndConnection: { shapeId: 'b', connectionSiteIndex: 1 },
 		},
 	} as unknown as PptxElement;
 }

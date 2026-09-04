@@ -16,7 +16,7 @@ import SmartArtRenderer from './SmartArtRenderer.vue';
 /** Mount with an injected node-edit context (commit spy + canEdit gate). */
 function mountEditable(
 	data: PptxSmartArtData,
-	opts: { canEdit?: boolean } = {},
+	opts: { canEdit?: boolean; elementOverrides?: Partial<PptxElement> } = {},
 ): { wrapper: ReturnType<typeof mount>; commit: ReturnType<typeof vi.fn> } {
 	const commit = vi.fn();
 	const ctx: SmartArtNodeEditContext = {
@@ -24,7 +24,7 @@ function mountEditable(
 		commit,
 	};
 	const wrapper = mount(SmartArtRenderer, {
-		props: { element: smartArt(data), zIndex: 0 },
+		props: { element: smartArt(data, opts.elementOverrides), zIndex: 0 },
 		attachTo: document.body,
 		global: { provide: { [SmartArtNodeEditKey as symbol]: ctx } },
 	});
@@ -431,6 +431,17 @@ describe('smartArtRenderer inline node editing', () => {
 		await editor.trigger('keydown', { key: 'Escape' });
 		expect(commit).not.toHaveBeenCalled();
 		expect(wrapper.find('textarea.pptx-vue-smartart-node-editor').exists()).toBeFalsy();
+	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - a node was still double-click editable on a
+	// locked SmartArt.
+	it('does not open the node editor on double-click when noDrilldown is set', async () => {
+		const { wrapper } = mountEditable(data, {
+			canEdit: true,
+			elementOverrides: { locks: { noDrilldown: true } } as Partial<PptxElement>,
+		});
+		expect(wrapper.find('.pptx-vue-smartart-editable').exists()).toBeFalsy();
 	});
 });
 

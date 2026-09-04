@@ -155,6 +155,33 @@ describe('connectorArrowsPanel', () => {
 		expect(selects.every((s) => (s.element as HTMLSelectElement).disabled)).toBeTruthy();
 	});
 
+	// G9 (OpenXML parity audit, D3): a:cxnSpLocks/@noChangeArrowheads already
+	// computed `arrowheadsChangeable` in element-locks.ts but nothing here
+	// consulted it.
+	it('disables every dropdown when the connector locks noChangeArrowheads', () => {
+		const wrapper = mount(ConnectorArrowsPanel, {
+			props: {
+				element: { ...connector(), locks: { noChangeArrowheads: true } } as PptxElement,
+			},
+		});
+		const selects = wrapper.findAll('select');
+		expect(selects).toHaveLength(6);
+		expect(selects.every((s) => (s.element as HTMLSelectElement).disabled)).toBeTruthy();
+	});
+
+	it('ignores a change event on a locked connector (defence in depth)', async () => {
+		const wrapper = mount(ConnectorArrowsPanel, {
+			props: {
+				element: { ...connector(), locks: { noChangeArrowheads: true } } as PptxElement,
+			},
+		});
+		await wrapper
+			.findAll('label.pptx-vue-connector-arrow-field')[0]!
+			.get('select')
+			.setValue('oval');
+		expect(wrapper.emitted('update')).toBeUndefined();
+	});
+
 	it('survives an edit / undo round trip through the real editor operations', async () => {
 		const element = connector({ connectorStartArrow: 'oval' });
 		const slides = shallowRef<PptxSlide[]>([

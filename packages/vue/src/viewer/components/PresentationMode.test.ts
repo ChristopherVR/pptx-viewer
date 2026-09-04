@@ -494,3 +494,62 @@ describe('presentationMode popup toolbar', () => {
 		wrapper.unmount();
 	});
 });
+
+describe('presentationMode @highlightClick flash', () => {
+	function slideWithHighlightShape(): PptxSlide {
+		return {
+			id: 's1',
+			backgroundColor: '#ffffff',
+			elements: [
+				{
+					id: 'shape-1',
+					type: 'shape',
+					x: 10,
+					y: 10,
+					width: 100,
+					height: 50,
+					shapeType: 'rect',
+					actionClick: { action: 'ppaction://noaction', highlightClick: true },
+					actionHover: { action: 'ppaction://noaction', highlightClick: true },
+				},
+			],
+		} as unknown as PptxSlide;
+	}
+
+	it('flashes the shape on click and clears it after the duration', async () => {
+		const wrapper = mountMode([slideWithHighlightShape()]);
+		await nextTick();
+		const shape = document.querySelector<HTMLElement>('[data-element-id="shape-1"]');
+		expect(shape).not.toBeNull();
+		vi.useFakeTimers();
+		shape!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		expect(shape!.style.filter).toBe('brightness(1.18)');
+		// jsdom decomposes the `outline` shorthand into longhand properties, so
+		// the shorthand getter's token order is not guaranteed; assert the
+		// longhand values instead of the reassembled string.
+		expect(shape!.style.outlineWidth).toBe('2px');
+		expect(shape!.style.outlineStyle).toBe('solid');
+		expect(shape!.style.outlineColor).toBe('rgba(59, 130, 246, 0.6)');
+		vi.advanceTimersByTime(320);
+		expect(shape!.style.filter).toBe('');
+		expect(shape!.style.outlineWidth).toBe('');
+		vi.useRealTimers();
+		wrapper.unmount();
+	});
+
+	it('flashes the shape on hover and clears it on mouseout', async () => {
+		const wrapper = mountMode([slideWithHighlightShape()]);
+		await nextTick();
+		const shape = document.querySelector<HTMLElement>('[data-element-id="shape-1"]');
+		expect(shape).not.toBeNull();
+		shape!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+		expect(shape!.style.filter).toBe('brightness(1.15)');
+		expect(shape!.style.outlineColor).toBe('rgba(59, 130, 246, 0.5)');
+		shape!.dispatchEvent(
+			new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }),
+		);
+		expect(shape!.style.filter).toBe('');
+		expect(shape!.style.outlineWidth).toBe('');
+		wrapper.unmount();
+	});
+});

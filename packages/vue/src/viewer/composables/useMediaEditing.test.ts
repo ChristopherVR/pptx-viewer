@@ -35,13 +35,17 @@ describe('useMediaEditing helpers', () => {
 	it('validates trim ranges', () => {
 		expect(validateTrimRange(0, 0, 10000)).toBeNull();
 		expect(validateTrimRange(-1, 0, 10000)).not.toBeNull();
-		expect(validateTrimRange(5000, 3000, 10000)).not.toBeNull();
+		// trimEndMs is a distance from the tail: 3000 on a 10s clip ends at 7s,
+		// which is after a 5s start (valid); 6000 ends at 4s (invalid).
+		expect(validateTrimRange(5000, 3000, 10000)).toBeNull();
+		expect(validateTrimRange(5000, 6000, 10000)).not.toBeNull();
 		expect(validateTrimRange(0, 20000, 10000)).not.toBeNull();
 	});
 
 	it('computes trimmed-duration label', () => {
 		expect(trimmedDurationLabel(0, 0, 60000)).toBe('01:00');
-		expect(trimmedDurationLabel(10000, 40000, 60000)).toBe('00:30');
+		// 10s in, 20s off the tail of a 60s clip: 40s - 10s = 30s.
+		expect(trimmedDurationLabel(10000, 20000, 60000)).toBe('00:30');
 		expect(trimmedDurationLabel(0, 0, 0)).toBe('00:00');
 	});
 

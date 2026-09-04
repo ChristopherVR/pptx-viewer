@@ -10,6 +10,7 @@
  * All state is derived from props; the parent owns trim + playhead values.
  */
 import type { MediaBookmark } from 'pptx-viewer-core';
+import { mediaTrimEndMsFromSeconds, mediaTrimEndSeconds } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, ref } from 'vue';
 
 import { clamp } from '../../composables/useMediaEditing';
@@ -33,7 +34,8 @@ const dragging = ref<'start' | 'end' | null>(null);
 
 const safeDuration = computed(() => (props.duration > 0 ? props.duration : 1));
 const trimStartSec = computed(() => props.trimStartMs / 1000);
-const trimEndSec = computed(() => (props.trimEndMs > 0 ? props.trimEndMs / 1000 : props.duration));
+// `trimEndMs` is p14:trim/@end's distance from the clip's tail.
+const trimEndSec = computed(() => mediaTrimEndSeconds(props.duration, props.trimEndMs));
 
 const startPct = computed(() => (trimStartSec.value / safeDuration.value) * 100);
 const endPct = computed(() => (trimEndSec.value / safeDuration.value) * 100);
@@ -64,7 +66,7 @@ function onPointerMove(event: PointerEvent): void {
 		const newEnd = Math.max(t, trimStartSec.value + 0.1);
 		emit('trim-change', {
 			trimStartMs: props.trimStartMs,
-			trimEndMs: Math.min(newEnd, props.duration) * 1000,
+			trimEndMs: mediaTrimEndMsFromSeconds(props.duration, newEnd),
 		});
 	}
 }
