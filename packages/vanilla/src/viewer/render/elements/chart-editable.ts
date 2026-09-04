@@ -6,6 +6,7 @@ import {
 	applyChartPartHighlight,
 	beginChartValueDrag,
 	buildChartViewModel,
+	canDrillDown,
 	CHART_INTERACTIVE_CLASS,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
@@ -46,7 +47,14 @@ export function attachChartEditing(
 	/** Re-project the chart into `container` from the given (preview) data. */
 	repaint: (chartData: PptxChartData) => void,
 ): void {
-	if (element.type !== 'chart' || !context.interactive || !context.onChartPointChange) {
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this chart's
+	// individual parts (title, series, data points) for editing.
+	if (
+		element.type !== 'chart' ||
+		!context.interactive ||
+		!context.onChartPointChange ||
+		!canDrillDown(element)
+	) {
 		return;
 	}
 	const chart = element as ChartPptxElement;

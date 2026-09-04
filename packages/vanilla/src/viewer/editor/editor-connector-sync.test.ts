@@ -27,8 +27,9 @@ function connector(): PptxElement {
 		width: 200,
 		height: 1,
 		shapeStyle: {
-			connectorStartConnection: { shapeId: 'box-a', connectionSiteIndex: 1 },
-			connectorEndConnection: { shapeId: 'box-b', connectionSiteIndex: 3 },
+			// ECMA-376 `rect` cxnLst order: 0 top, 1 left, 2 bottom, 3 right.
+			connectorStartConnection: { shapeId: 'box-a', connectionSiteIndex: 3 },
+			connectorEndConnection: { shapeId: 'box-b', connectionSiteIndex: 1 },
 		},
 	} as PptxElement;
 }

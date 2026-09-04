@@ -24,7 +24,12 @@ function mount(state: Partial<InspectorState> = {}) {
 	const controls = createConnectorArrowControls(document, translate, {
 		setShapeStyle,
 	} as unknown as InspectorHandlers);
-	controls.update({ canShape: true, isConnector: true, ...state } as InspectorState);
+	controls.update({
+		canShape: true,
+		isConnector: true,
+		arrowheadsChangeable: true,
+		...state,
+	} as InspectorState);
 	const labels = Array.from(controls.el.querySelectorAll('label'));
 	const selectFor = (caption: string): HTMLSelectElement => {
 		const label = labels.find((candidate) => candidate.firstChild?.textContent === caption);
@@ -112,5 +117,15 @@ describe('connector arrow controls', () => {
 		const { controls } = mount({ isConnector: false });
 
 		expect(controls.el.hidden).toBeTruthy();
+	});
+
+	// G9 (OpenXML parity audit, D3): a:cxnSpLocks/@noChangeArrowheads already
+	// computed `arrowheadsChangeable` in element-locks.ts but nothing here
+	// consulted it.
+	it('disables every dropdown when the connector locks noChangeArrowheads', () => {
+		const { labels } = mount({ arrowheadsChangeable: false });
+		const selects = labels.map((label) => label.querySelector('select')!);
+		expect(selects).toHaveLength(6);
+		expect(selects.every((s) => s.disabled)).toBeTruthy();
 	});
 });

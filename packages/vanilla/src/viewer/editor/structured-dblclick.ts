@@ -1,4 +1,5 @@
 import { hasTextProperties } from 'pptx-viewer-core';
+import { canDrillDown } from 'pptx-viewer-shared';
 
 import type { ViewerState } from '../state';
 import { findActiveElement } from './editor-active-elements';
@@ -33,7 +34,9 @@ export function handleStructuredDblClick(options: {
 		(options.event.target instanceof Element
 			? options.event.target.closest<HTMLTableCellElement>('td')
 			: null);
-	if (!cell || element?.type !== 'table' || !options.overlay) {
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids selecting/editing this
+	// table's individual cells, even on an otherwise-editable deck.
+	if (!cell || element?.type !== 'table' || !options.overlay || !canDrillDown(element)) {
 		return { handled: false, tableSession: null };
 	}
 	return {

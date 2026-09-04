@@ -1,5 +1,10 @@
 import type { SmartArtPptxElement } from 'pptx-viewer-core';
-import { computeInlineEditorRect, findSmartArtNodeText, resolvePalette } from 'pptx-viewer-shared';
+import {
+	canDrillDown,
+	computeInlineEditorRect,
+	findSmartArtNodeText,
+	resolvePalette,
+} from 'pptx-viewer-shared';
 
 import { createEl } from '../dom';
 import type { ElementRenderContext } from '../types';
@@ -17,7 +22,13 @@ export function enableSmartArtEditing(
 	context: ElementRenderContext,
 ): void {
 	const data = element.smartArtData;
-	if (!data || (!context.onSmartArtNodeTextChange && !context.onSmartArtNodeFillChange)) {
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this SmartArt's
+	// individual nodes for editing.
+	if (
+		!data ||
+		(!context.onSmartArtNodeTextChange && !context.onSmartArtNodeFillChange) ||
+		!canDrillDown(element)
+	) {
 		return;
 	}
 

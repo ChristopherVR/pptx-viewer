@@ -331,4 +331,19 @@ describe('vanilla chart title double-click rename', () => {
 
 		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
 	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - double-clicking the title still opened the
+	// inline editor on a locked chart.
+	it('does not open the title editor on double-click when noDrilldown is set', () => {
+		const onChartPointChange = vi.fn();
+		const locked = { ...titled, locks: { noDrilldown: true } } as ChartPptxElement;
+		const container = renderChartElement(locked, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const titleNode = container?.querySelector('[data-chart-part="title"]') as SVGElement;
+
+		dblclick(titleNode);
+
+		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
+	});
 });

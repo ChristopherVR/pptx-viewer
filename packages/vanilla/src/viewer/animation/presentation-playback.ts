@@ -1,6 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
 import {
+	applySlideTransitionSound,
 	cancelBuildReveal,
 	playGroup,
 	PresentationAnimationController,
@@ -268,6 +269,12 @@ export function createPresentationPlayback(): PresentationPlayback {
 				currentStage = params.presenting ? params.stage : null;
 				previousStage = params.presenting ? params.stage : null;
 				lastIndex = params.slideIndex;
+				// Leaving the show (never merely a re-render while presenting): a
+				// transition sound flagged "Loop Until Next Sound" must not keep
+				// looping on the shared singleton behind the editor.
+				if (wasPresenting && !params.presenting) {
+					stopAnimationSound();
+				}
 				wasPresenting = params.presenting;
 				return;
 			}
@@ -304,6 +311,18 @@ export function createPresentationPlayback(): PresentationPlayback {
 			// (PowerPoint: a morph glides its shapes back to where they came from).
 			const goingBack = params.slideIndex < lastIndex;
 			const transition = goingBack ? outgoingSlide?.transition : params.slide.transition;
+
+			// The sound action (`p:sndAc/p:stSnd`/`p:endSnd`) fires the instant the
+			// transition starts, independent of whether it also paints an overlay
+			// (an instant "None" transition can still carry a "Stop Previous Sound"),
+			// so this is not gated by `transition.type !== 'none'` below.
+			if (!entering && slideChanged && previousStage) {
+				applySlideTransitionSound(transition, (soundPath) => mediaDataUrls.get(soundPath), {
+					play: playAnimationSound,
+					stop: stopAnimationSound,
+				});
+			}
+
 			if (
 				!entering &&
 				slideChanged &&
@@ -332,6 +351,7 @@ export function createPresentationPlayback(): PresentationPlayback {
 				play: (activeController, group) => {
 					playGroup(activeController, group, ctx);
 				},
+				getSlide: () => params.slide,
 			});
 
 			previousStage = params.stage;

@@ -45,8 +45,8 @@ function createRunBaseNode(doc: Document, run: ParagraphRun): HTMLElement {
 	if (run.hyperlink?.href) {
 		const link = createEl(doc, 'a', 'pptxv-link', run.style);
 		link.setAttribute('href', run.hyperlink.href);
-		link.setAttribute('target', '_blank');
-		link.setAttribute('rel', 'noopener noreferrer');
+		link.setAttribute('target', run.hyperlink.target ?? '_blank');
+		link.setAttribute('rel', run.hyperlink.rel ?? 'noopener noreferrer');
 		if (run.hyperlink.tooltip) {
 			link.setAttribute('title', run.hyperlink.tooltip);
 		}

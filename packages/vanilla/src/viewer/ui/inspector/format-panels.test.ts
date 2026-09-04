@@ -181,10 +181,12 @@ describe('media trim timeline', () => {
 			onTrimChange: vi.fn(),
 			onSeek: vi.fn(),
 		});
+		// `trimEndMs` is p14:trim/@end's distance from the tail (G19): 2000 off
+		// a 10s clip ends at 8s, so the window runs 2s..8s.
 		timeline.update({
 			duration: 10,
 			trimStartMs: 2000,
-			trimEndMs: 8000,
+			trimEndMs: 2000,
 			currentTime: 5,
 			bookmarks: [{ id: 'b1', time: 5, label: 'Mid' }],
 			canEdit: true,
@@ -193,6 +195,9 @@ describe('media trim timeline', () => {
 		const region = timeline.el.querySelector<HTMLElement>('.pptxv-media-timeline-region')!;
 		expect(region.style.left).toBe('20%');
 		expect(region.style.width).toBe('60%');
+		const labels = timeline.el.querySelectorAll<HTMLElement>('.pptxv-media-timeline-time');
+		expect(labels[0]?.textContent).toBe('0:02.0');
+		expect(labels[1]?.textContent).toBe('0:08.0');
 		expect(
 			timeline.el.querySelector<HTMLElement>('.pptxv-media-timeline-playhead')!.style.left,
 		).toBe('50%');

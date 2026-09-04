@@ -304,6 +304,28 @@ describe('renderMediaElement', () => {
 
 			expect(video.volume).toBe(0);
 		});
+
+		// G20: trim-end stop + fade in/out, previously React-only, now shared
+		// via `scheduleMediaTrimAndFade`. The scheduling maths is covered
+		// directly in `media-trim-fade-scheduler.test.ts`; this proves the
+		// wiring reaches the live element while presenting.
+		it('stops at duration - trimEndMs (distance from the tail), not at trimEndMs itself', async () => {
+			vi.useFakeTimers();
+			const video = document.createElement('video');
+			Object.defineProperty(video, 'duration', { value: 20, configurable: true });
+			const pauseSpy = vi.spyOn(video, 'pause').mockImplementation(() => {
+				Object.defineProperty(video, 'paused', { value: true, configurable: true });
+			});
+
+			applyMediaPresentingState(video, true, { trimEndMs: 5000 });
+			Object.defineProperty(video, 'paused', { value: false, configurable: true, writable: true });
+			video.dispatchEvent(new Event('play'));
+			await vi.advanceTimersByTimeAsync(15_000);
+
+			expect(pauseSpy).toHaveBeenCalledWith();
+			expect(video.currentTime).toBe(15);
+			vi.useRealTimers();
+		});
 	});
 
 	describe('cross-slide ("play across slides") audio', () => {

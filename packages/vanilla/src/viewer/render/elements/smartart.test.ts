@@ -221,6 +221,26 @@ describe('renderSmartArtElement', () => {
 		expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
 		node.remove();
 	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - a node was still double-click editable on a
+	// locked SmartArt.
+	it('does not open the node editor on double-click when noDrilldown is set', () => {
+		const onSmartArtNodeTextChange = vi.fn();
+		const element = { ...drawingShapesElement(), locks: { noDrilldown: true } } as PptxElement;
+		const node = renderSmartArtElement(
+			element,
+			0,
+			makeContext(false, { onSmartArtNodeTextChange }),
+		) as HTMLElement;
+		document.body.appendChild(node);
+		const group = node.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+
+		group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+		expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
+		node.remove();
+	});
 });
 
 describe('renderSmartArtElement (opt-in 3D)', () => {

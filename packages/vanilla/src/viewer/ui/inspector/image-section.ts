@@ -225,8 +225,10 @@ export function createImageSection(
 			wash.disabled = !state.isImage;
 			washColor.disabled = !state.isImage;
 			washOpacity.setDisabled(!state.isImage);
+			// G7: `a:picLocks/@noCrop` forbids cropping this specific picture,
+			// even on an otherwise-editable image.
 			for (const c of cropFields) {
-				c.setDisabled(!state.isImage);
+				c.setDisabled(!state.isImage || !state.croppable);
 			}
 		},
 	};

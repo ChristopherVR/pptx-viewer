@@ -213,6 +213,10 @@ export interface InspectorHandlers {
 export interface InspectorState {
 	hasSelection: boolean;
 	isLocked: boolean;
+	/** `a:picLocks/@noCrop`: may the selected picture's crop be adjusted? */
+	croppable: boolean;
+	/** `arrowheadsChangeable` (`element-locks.ts`): may connector arrowheads change? */
+	arrowheadsChangeable: boolean;
 	canShape: boolean;
 	canText: boolean;
 	isImage: boolean;
@@ -245,7 +249,7 @@ export interface InspectorState {
 	strokeOpacity: number;
 	gradientEnabled: boolean;
 	gradient: GradientState;
-	vAlign: 'top' | 'middle' | 'bottom';
+	vAlign: 'top' | 'middle' | 'bottom' | 'distributed' | 'justified';
 	textWrap: 'square' | 'none';
 	autoFitMode: 'shrink' | 'normal' | 'none';
 	characterSpacing: number;

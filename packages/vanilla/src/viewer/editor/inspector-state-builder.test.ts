@@ -64,3 +64,28 @@ describe('buildInspectorState chartHighlightCell', () => {
 		expect(state.chartHighlightCell).toStrictEqual({ seriesIndex: 0, pointIndex: undefined });
 	});
 });
+
+// G7/G9 (OpenXML parity audit, D3): a:picLocks/@noCrop and
+// arrowheadsChangeable were both parsed/computed but nothing in the vanilla
+// inspector consulted them.
+describe('buildInspectorState croppable/arrowheadsChangeable', () => {
+	it('is croppable and arrowheads-changeable by default (no locks)', () => {
+		const state = buildInspectorState({ ...chartElement, type: 'image' } as never);
+		expect(state.croppable).toBeTruthy();
+		expect(state.arrowheadsChangeable).toBeTruthy();
+	});
+
+	it('reports not croppable when a:picLocks/@noCrop is set', () => {
+		const picture = { ...chartElement, type: 'image', locks: { noCrop: true } } as never;
+		expect(buildInspectorState(picture).croppable).toBeFalsy();
+	});
+
+	it('reports arrowheads not changeable when noChangeArrowheads is set', () => {
+		const connector = {
+			...chartElement,
+			type: 'connector',
+			locks: { noChangeArrowheads: true },
+		} as never;
+		expect(buildInspectorState(connector).arrowheadsChangeable).toBeFalsy();
+	});
+});

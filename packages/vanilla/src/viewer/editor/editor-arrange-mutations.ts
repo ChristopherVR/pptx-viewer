@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import type { AlignEdge, DistributeAxis, ElementPosition } from 'pptx-viewer-shared';
 import {
 	alignElements,
+	canInteractWithElement,
 	distributeElements,
 	groupElements,
 	ungroupElements,
@@ -103,6 +104,12 @@ export function groupSelection(
 	ids: readonly string[],
 	groupId: string,
 ): { elements: PptxElement[]; groupId: string | null } {
+	// G10: a:spLocks/@noGrouping rejects the whole attempt if it involves a
+	// locked shape, not just that one shape.
+	const selected = ids.map((id) => elements.find((el) => el.id === id));
+	if (!selected.every((el) => canInteractWithElement(el, 'group'))) {
+		return { elements: [...elements], groupId: null };
+	}
 	return groupElements(elements, ids, groupId);
 }
 
@@ -119,5 +126,10 @@ export function ungroupSelection(
 	childIds: readonly string[],
 	intoTemplate = false,
 ): { elements: PptxElement[]; childIds: string[] } {
+	// G10: a:grpSpLocks/@noGrouping forbids ungrouping this specific group.
+	const group = elements.find((el) => el.id === groupId);
+	if (!canInteractWithElement(group, 'group')) {
+		return { elements: [...elements], childIds: [] };
+	}
 	return ungroupElements(elements, groupId, childIds, { intoTemplate });
 }

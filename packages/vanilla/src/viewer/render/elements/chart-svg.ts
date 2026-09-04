@@ -41,6 +41,7 @@ export function renderChartViewModelSvg(
 				y: 0,
 				width: vm.svgWidth,
 				height: vm.svgHeight,
+				rx: vm.areaRadius,
 				fill: vm.areaFill,
 			}),
 		);
@@ -51,9 +52,10 @@ export function renderChartViewModelSvg(
 			x: vm.titleX,
 			y: vm.titleY,
 			'text-anchor': 'middle',
-			'font-size': 12,
-			'font-weight': 600,
-			fill: '#1e293b',
+			'font-size': vm.titleStyle?.fontSize ?? 12,
+			'font-weight': vm.titleStyle?.fontWeight ?? 600,
+			'font-family': vm.titleStyle?.fontFamily,
+			fill: vm.titleStyle?.fill ?? '#1e293b',
 			'data-chart-part': 'title',
 		});
 		title.textContent = vm.title;

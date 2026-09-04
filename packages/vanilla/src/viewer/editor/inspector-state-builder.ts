@@ -9,6 +9,7 @@ import {
 } from 'pptx-viewer-core';
 import {
 	autoFitModeOf,
+	canInteractWithElement,
 	defaultGradientState,
 	gradientStateOf,
 	hasGradientFill,
@@ -78,6 +79,10 @@ export function buildInspectorState(
 	return {
 		hasSelection: el !== undefined,
 		isLocked: isElementLocked(el),
+		// G7: a:picLocks/@noCrop. G9: arrowheadsChangeable already existed on
+		// element-locks.ts but nothing consulted it in the vanilla inspector.
+		croppable: canInteractWithElement(el, 'crop'),
+		arrowheadsChangeable: canInteractWithElement(el, 'changeArrowheads'),
 		canShape: canFormatShape(el),
 		canText: canFormatText(el),
 		isImage: el !== undefined && isImageLikeElement(el),

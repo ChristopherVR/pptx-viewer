@@ -6,12 +6,14 @@ import {
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
 	mediaFallbackVisual,
+	mediaPlaybackAttributes,
 	mediaSurfaceOf,
 	mediaTransportVisible,
 	registerCrossSlideAudio,
+	scheduleMediaTrimAndFade,
 	startMediaAutoplay,
 } from 'pptx-viewer-shared';
-import type { MediaPlaybackSource } from 'pptx-viewer-shared';
+import type { MediaPlaybackSource, MediaTrimFadeSource } from 'pptx-viewer-shared';
 
 import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
@@ -52,11 +54,22 @@ import type { ElementRenderer } from '../types';
 export function applyMediaPresentingState(
 	el: HTMLMediaElement,
 	presenting: boolean,
-	playback: MediaPlaybackSource & { trimStartMs?: number },
+	playback: MediaPlaybackSource & MediaTrimFadeSource,
 ): void {
 	applyMediaPlaybackAttributes(el, playback);
 	if (presenting) {
 		startMediaAutoplay(el, { trimStartMs: playback.trimStartMs });
+		// G20: trim-end stop + fade in/out, shared with the other four
+		// bindings so a trimmed/faded clip behaves identically everywhere
+		// (this used to be React-only logic). No cleanup is captured: the
+		// vanilla renderer rebuilds the whole stage on every state change (no
+		// persistent element to `watch`), so the previous node - and its
+		// listener - is discarded along with it, exactly like `startMediaAutoplay`'s
+		// own one-shot `.play()` above.
+		scheduleMediaTrimAndFade(el, {
+			...playback,
+			volume: mediaPlaybackAttributes(playback).volume,
+		});
 	} else if (!el.paused) {
 		el.pause();
 	}

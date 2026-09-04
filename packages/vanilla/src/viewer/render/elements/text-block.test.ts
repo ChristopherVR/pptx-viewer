@@ -88,6 +88,32 @@ describe('renderTextBlock picture bullets', () => {
 		expect(block.querySelectorAll('a')).toHaveLength(1);
 	});
 
+	it('honors a:hlinkClick/@tgtFrame, dropping rel for _self', () => {
+		const block = renderTextBlock(
+			document,
+			[
+				paragraph({
+					runs: [
+						{
+							text: 'Same tab',
+							style: {},
+							hyperlink: {
+								url: 'https://example.com',
+								href: 'https://example.com',
+								target: '_self',
+								rel: '',
+							},
+						},
+					],
+				}),
+			],
+			{},
+		);
+		const link = block.querySelector<HTMLAnchorElement>('a.pptxv-link');
+		expect(link?.getAttribute('target')).toBe('_self');
+		expect(link?.getAttribute('rel')).toBe('');
+	});
+
 	it('renders an inline equation run as MathML in its authored position', () => {
 		const block = renderTextBlock(
 			document,

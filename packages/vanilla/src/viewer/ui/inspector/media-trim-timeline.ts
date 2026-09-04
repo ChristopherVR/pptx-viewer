@@ -4,6 +4,7 @@ import {
 	formatMediaTime,
 	mediaTimeFromPointer,
 	mediaTimelineGeometry,
+	mediaTrimEndSeconds,
 	mediaTrimRangeForDrag,
 } from 'pptx-viewer-shared';
 
@@ -114,7 +115,8 @@ export function createMediaTrimTimeline(doc: Document, options: MediaTrimTimelin
 				next.trimEndMs,
 				next.currentTime,
 			);
-			const endSeconds = next.trimEndMs > 0 ? next.trimEndMs / 1000 : next.duration;
+			// `trimEndMs` is p14:trim/@end's distance from the clip's tail.
+			const endSeconds = mediaTrimEndSeconds(next.duration, next.trimEndMs);
 			startLabel.textContent = formatMediaTime(next.trimStartMs / 1000);
 			endLabel.textContent = formatMediaTime(endSeconds);
 			region.style.left = `${geometry.startPercent}%`;

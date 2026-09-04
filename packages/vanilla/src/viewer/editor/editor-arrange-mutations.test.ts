@@ -77,4 +77,26 @@ describe('editor-arrange-mutations group/ungroup', () => {
 		expect(result.groupId).toBeNull();
 		expect(result.elements).toHaveLength(1);
 	});
+
+	// G10 (OpenXML parity audit, D3): a:spLocks/a:grpSpLocks/@noGrouping was
+	// parsed but never checked here.
+	it('rejects the whole grouping attempt when a selected shape carries noGrouping', () => {
+		const locked = { ...box('a', 0, 0), locks: { noGrouping: true } };
+		const elements = [locked, box('b', 20, 20)];
+		const result = groupSelection(elements, ['a', 'b'], 'g1');
+		expect(result.groupId).toBeNull();
+		expect(result.elements).toHaveLength(2);
+	});
+
+	it('refuses to ungroup a group whose own noGrouping lock is set', () => {
+		const lockedGroup = {
+			...box('g', 0, 0),
+			type: 'group' as const,
+			children: [box('a', 0, 0), box('b', 20, 20)],
+			locks: { noGrouping: true },
+		};
+		const result = ungroupSelection([lockedGroup] as PptxElement[], 'g', ['a2', 'b2']);
+		expect(result.childIds).toStrictEqual([]);
+		expect(result.elements).toHaveLength(1);
+	});
 });

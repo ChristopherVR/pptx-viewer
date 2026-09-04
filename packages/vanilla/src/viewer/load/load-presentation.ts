@@ -32,6 +32,7 @@ import {
 	collectMediaElements,
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
+	resolveMediaElementSource,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
 } from 'pptx-viewer-shared';
@@ -215,8 +216,11 @@ export function revokeBlobUrls(urls: Iterable<string>): void {
 	}
 }
 
-/** Resolve audio/video Blob URLs + poster-frame data URLs for media elements. */
-async function resolveMediaUrls(
+/**
+ * Resolve audio/video Blob URLs + poster-frame data URLs for media elements.
+ * Exported for direct testing of the G17 linked/external media path.
+ */
+export async function resolveMediaUrls(
 	handler: PptxHandler,
 	slides: PptxSlide[],
 	blobUrls: string[],
@@ -226,36 +230,20 @@ async function resolveMediaUrls(
 		collectMediaElements(slide.elements, mediaElements);
 	}
 	const urls = new Map<string, string>();
+	// Shared with the other four bindings (G17): a LINKED media element's
+	// `mediaPath` is already the verbatim external URL by the time it reaches
+	// here; `resolveMediaElementSource` hands it straight back instead of an
+	// archive lookup that can only find embedded parts.
 	await Promise.all(
 		mediaElements.map(async (mediaElement) => {
-			const mediaPath = mediaElement.mediaPath;
-			if (!mediaPath) {
+			const resolved = await resolveMediaElementSource(mediaElement, handler);
+			if (resolved.missing || !resolved.mediaPath || !resolved.url) {
 				mediaElement.mediaMissing = true;
 				return;
 			}
-			try {
-				const isAudioVideo =
-					mediaElement.mediaType === 'audio' || mediaElement.mediaType === 'video';
-				if (isAudioVideo) {
-					const arrayBuffer = await handler.getMediaArrayBuffer(mediaPath);
-					if (arrayBuffer) {
-						const mimeType = mediaElement.mediaMimeType || 'application/octet-stream';
-						const blobUrl = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
-						blobUrls.push(blobUrl);
-						urls.set(mediaPath, blobUrl);
-					} else {
-						mediaElement.mediaMissing = true;
-					}
-				} else {
-					const dataUrl = await handler.getImageData(mediaPath);
-					if (dataUrl) {
-						urls.set(mediaPath, dataUrl);
-					} else {
-						mediaElement.mediaMissing = true;
-					}
-				}
-			} catch {
-				mediaElement.mediaMissing = true;
+			urls.set(resolved.mediaPath, resolved.url);
+			if (resolved.isBlobUrl) {
+				blobUrls.push(resolved.url);
 			}
 		}),
 	);

@@ -1,6 +1,11 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { PresentationActionRunner } from 'pptx-viewer-shared';
-import { handlePresentationStageClick, isClickAdvanceAllowed } from 'pptx-viewer-shared';
+import {
+	applyHighlightClickStyle,
+	findHighlightClickTarget,
+	handlePresentationStageClick,
+	isClickAdvanceAllowed,
+} from 'pptx-viewer-shared';
 
 /** Inputs to the swipe/tap advance gate, read from the live viewer state. */
 export interface SwipeAdvanceGateInput {
@@ -49,6 +54,7 @@ export interface PresentationStageClickInput extends SwipeAdvanceGateInput {
  * @returns `true` when the caller should advance the show.
  */
 export function resolvePresentationStageClick(input: PresentationStageClickInput): boolean {
+	applyClickHighlight(input.target, input.currentSlide);
 	const outcome = handlePresentationStageClick(
 		input.target,
 		input.currentSlide,
@@ -59,4 +65,24 @@ export function resolvePresentationStageClick(input: PresentationStageClickInput
 		return false;
 	}
 	return !isSwipeAdvanceBlocked(input);
+}
+
+/**
+ * `@highlightClick` ("Highlight click"): a brief flash independent of
+ * whatever the action itself does, so it runs even for a no-op action.
+ */
+function applyClickHighlight(target: EventTarget | null, slide: PptxSlide | undefined): void {
+	const found = findHighlightClickTarget(target, slide);
+	if (!found?.descriptor.click) {
+		return;
+	}
+	const { element } = found;
+	const { style, clearStyle, durationMs } = found.descriptor.click;
+	applyHighlightClickStyle(element, style);
+	if (typeof setTimeout === 'undefined') {
+		return;
+	}
+	setTimeout(() => {
+		applyHighlightClickStyle(element, clearStyle);
+	}, durationMs);
 }

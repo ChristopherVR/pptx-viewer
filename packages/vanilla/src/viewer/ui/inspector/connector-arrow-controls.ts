@@ -56,7 +56,9 @@ export function createConnectorArrowControls(
 				const current = state.shapeStyle?.[control.styleKey];
 				select.value =
 					typeof current === 'string' && current.length > 0 ? current : control.fallback;
-				select.disabled = !state.canShape;
+				// G9: `arrowheadsChangeable` (`a:cxnSpLocks/@noChangeArrowheads`) was
+				// already computed in `element-locks.ts` but nothing here consulted it.
+				select.disabled = !state.canShape || !state.arrowheadsChangeable;
 			}
 		},
 	};
