@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.5.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.5.5) - 2026-09-04
+
+### Bug Fixes
+
+- Clip pictures by their own shape geometry in every binding ([#202](https://github.com/ChristopherVR/pptx-viewer/issues/202)) (by @nikko82) ([6027607](https://github.com/ChristopherVR/pptx-viewer/commit/6027607329e28591ede5a93af5bf5760d9fc1585))
+
 ## [3.5.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.5.4) - 2026-09-04
 
 ### Bug Fixes

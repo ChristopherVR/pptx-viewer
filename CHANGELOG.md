@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-09-04
 
+_Releases: pptx-vue-viewer@3.5.5, pptx-angular-viewer@3.6.5, pptx-vanilla-viewer@2.5.5, pptx-svelte-viewer@3.6.5_
+
+### Bug Fixes
+
+- Clip pictures by their own shape geometry in every binding ([#202](https://github.com/ChristopherVR/pptx-viewer/issues/202)) (by @nikko82) ([6027607](https://github.com/ChristopherVR/pptx-viewer/commit/6027607329e28591ede5a93af5bf5760d9fc1585))
+
+## 2026-09-04
+
 _Releases: pptx-react-viewer@3.5.4, pptx-vue-viewer@3.5.4, pptx-angular-viewer@3.6.4, pptx-vanilla-viewer@2.5.4, pptx-svelte-viewer@3.6.4_
 
 ### Bug Fixes
