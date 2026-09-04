@@ -111,4 +111,78 @@ describe('element image box', () => {
 
 		expect(wrapper.attributes('style')).not.toContain('clip-path');
 	});
+
+	it('clips a custGeom oval-cut picture on the FRAME, not the img', () => {
+		// Regression: the picture's own shape geometry (an authored oval
+		// custGeom) must clip the stationary frame. A pixel-space clip on the
+		// `<img>` would be scaled and shifted by the source-crop transform, and
+		// the oval rendered past its frame.
+		const element: ImagePptxElement = {
+			type: 'picture',
+			id: 'pic-oval',
+			x: 0,
+			y: 0,
+			width: 756,
+			height: 427,
+			imageData: 'data:image/png;base64,AA==',
+			shapeType: 'custom',
+			pathData: 'M 0 0 L 100 0 L 100 100 Z',
+			pathWidth: 100,
+			pathHeight: 100,
+		} as unknown as ImagePptxElement;
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+		const boxStyle = wrapper.attributes('style') ?? '';
+		const imgStyle = wrapper.get('img').attributes('style') ?? '';
+
+		expect(boxStyle).toContain('clip-path: path(');
+		expect(imgStyle).not.toContain('clip-path');
+	});
+
+	it('rounds an ellipse picture via border-radius on the frame', () => {
+		const element: ImagePptxElement = {
+			type: 'picture',
+			id: 'pic-ellipse',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageData: 'data:image/png;base64,AA==',
+			shapeType: 'ellipse',
+		};
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+
+		expect(wrapper.attributes('style')).toContain('border-radius: 50%');
+	});
+
+	it('prefers the geometry mask over the derived crop shape when both exist', () => {
+		// On load `cropShape` is derived from the picture's own prstGeom, so an
+		// oval custGeom picture carries BOTH a geometry mask and a truthy
+		// cropShape ('ellipse'). The geometry mask wins.
+		const element: ImagePptxElement = {
+			type: 'picture',
+			id: 'pic-both',
+			x: 0,
+			y: 0,
+			width: 756,
+			height: 427,
+			imageData: 'data:image/png;base64,AA==',
+			shapeType: 'custom',
+			pathData: 'M 0 0 L 100 0 L 100 100 Z',
+			pathWidth: 100,
+			pathHeight: 100,
+			cropShape: 'ellipse',
+		} as unknown as ImagePptxElement;
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+
+		expect(wrapper.attributes('style')).toContain('clip-path: path(');
+	});
 });

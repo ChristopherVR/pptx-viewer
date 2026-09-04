@@ -98,6 +98,7 @@ export class ImageRendererComponent {
 	readonly containerStyle = computed(() => ({
 		...getContainerStyle(this.element(), this.zIndex()),
 		overflow: getImageOverflow(this.element()),
+		...(this.view().frameGeometryMask ?? {}),
 	}));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
 	readonly view = computed(() => buildAngularImageRenderView(this.element()));

@@ -8,6 +8,7 @@ import {
 	getImageSrc,
 	getImageTilingStyle,
 	resolveColorChangedImageSource,
+	resolveShapeGeometry,
 } from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl, setSvgAttrs } from '../dom';
@@ -21,12 +22,40 @@ import { renderReflectionOverlay } from './shape-filter-defs';
  */
 export const renderImageElement: ElementRenderer = (element, zIndex, context) => {
 	const doc = context.document;
+	/**
+	 * The mask the picture's own shape geometry (`p:spPr/a:prstGeom` /
+	 * `a:custGeom`) imposes on the stationary frame: `border-radius` for the
+	 * roundRect family and ellipse presets, a rescaled `clip-path` for custGeom
+	 * and other silhouettes. `undefined` for effectively rectangular pictures,
+	 * where the frame's overflow clipping already expresses the geometry.
+	 */
+	const geometry =
+		element.type === 'image' || element.type === 'picture'
+			? resolveShapeGeometry(element)
+			: undefined;
+	const geometryClipPath = geometry?.kind === 'clipPath' ? geometry.clipPath : undefined;
+	// The authored Crop-to-Shape clip: the fallback when the picture's own
+	// geometry resolves to no clip-path (e.g. roundRect, whose border-radius
+	// already rounds the frame).
+	const cropShapeClipPath =
+		element.type === 'image' || element.type === 'picture'
+			? getCropShapeClipPath(element.cropShape, element.width, element.height)
+			: undefined;
 	// The clip is load-bearing, not cosmetic: a cropped picture is rendered by
 	// scaling the source up and translating the cropped-away part out of the
 	// frame, so without it the discarded region paints over its neighbours.
 	const el = createEl(doc, 'div', 'pptxv-element pptxv-image', {
 		...getContainerStyle(element, zIndex),
 		overflow: getImageOverflow(element),
+		// The picture's own shape geometry (prstGeom / custGeom) clips the frame,
+		// not the `<img>` - a pixel-space clip on the img would be scaled and
+		// shifted by the crop transform.
+		...(geometry?.kind === 'borderRadius' ? { borderRadius: geometry.radius } : {}),
+		...(geometryClipPath
+			? { clipPath: geometryClipPath }
+			: cropShapeClipPath
+				? { clipPath: cropShapeClipPath }
+				: {}),
 	});
 	el.dataset.elementId = element.id;
 
@@ -36,13 +65,6 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	}
 
 	const fx = getComputedImageStyle(element);
-	// "Crop to Shape": PowerPoint writes it as the picture's own `a:prstGeom`, so
-	// this is a typed clip-path view over `cropShape`, applied to whatever
-	// surface actually paints the bitmap below (plain `<img>` or the tiled fill).
-	const cropShapeClipPath =
-		element.type === 'image' || element.type === 'picture'
-			? getCropShapeClipPath(element.cropShape, element.width, element.height)
-			: undefined;
 
 	// SVG <filter> defs so the `url(#...)` references in `fx.filter` resolve.
 	for (const f of fx.svgFilters) {
@@ -75,9 +97,6 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		if (fx.opacity !== undefined) {
 			tile.style.opacity = String(fx.opacity);
 		}
-		if (cropShapeClipPath) {
-			tile.style.clipPath = cropShapeClipPath;
-		}
 		el.appendChild(tile);
 		if (reflection) {
 			el.appendChild(reflection);
@@ -96,9 +115,6 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	}
 	if (fx.opacity !== undefined) {
 		img.style.opacity = String(fx.opacity);
-	}
-	if (cropShapeClipPath) {
-		img.style.clipPath = cropShapeClipPath;
 	}
 	el.appendChild(img);
 	if (element.type === 'image' || element.type === 'picture') {

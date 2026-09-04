@@ -14,6 +14,7 @@ import {
 	getImageFitStyle,
 	getImageOverflow,
 	getImageTilingStyle,
+	resolveShapeGeometry,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
@@ -31,12 +32,33 @@ const props = defineProps<{
 	marked?: boolean;
 }>();
 
+/**
+ * The mask the picture's own shape geometry (`p:spPr/a:prstGeom` /
+ * `a:custGeom`) imposes on the stationary container: `border-radius` for the
+ * roundRect family and ellipse presets, a rescaled `clip-path` for custGeom
+ * and other silhouettes. `undefined` for effectively rectangular pictures,
+ * where the frame's overflow clipping already expresses the geometry. Kept
+ * off the `<img>`, whose source-crop transform would scale and shift a
+ * pixel-space clip.
+ */
+const geometryMask = computed<CSSProperties | undefined>(() => {
+	if (!isImageLikeElement(props.element)) {
+		return undefined;
+	}
+	const geometry = resolveShapeGeometry(props.element);
+	if (geometry.kind === 'borderRadius') {
+		return { borderRadius: geometry.radius };
+	}
+	return geometry.kind === 'clipPath' ? { clipPath: geometry.clipPath } : undefined;
+});
+
 // "Crop to Shape" (`element.cropShape`, the picture-format gallery, distinct
 // from `<a:srcRect>` rectangular cropping above): a CSS `clip-path` on the
 // stationary container. Shared's `getCropShapeClipPath` routes through the
 // same adjustment-aware preset cascade every shape uses, so `roundedRect` and
 // `star` render with their real geometry instead of a fixed approximation.
-// Vue had no crop-to-shape support at all before this.
+// Vue had no crop-to-shape support at all before this. The picture's own
+// shape geometry outranks it; the crop shape is the fallback.
 const cropShapeClip = computed<string | undefined>(() =>
 	isImageLikeElement(props.element)
 		? getCropShapeClipPath(props.element.cropShape, props.element.width, props.element.height)
@@ -49,7 +71,8 @@ const cropShapeClip = computed<string | undefined>(() =>
 const containerStyle = computed<CSSProperties>(() => ({
 	...getContainerStyle(props.element, props.zIndex),
 	overflow: getImageOverflow(props.element),
-	clipPath: cropShapeClip.value,
+	...(geometryMask.value ?? {}),
+	clipPath: geometryMask.value?.clipPath ?? cropShapeClip.value,
 }));
 const imageFitStyle = computed<CSSProperties>(
 	() => getImageFitStyle(props.element) as CSSProperties,
