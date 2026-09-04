@@ -3,6 +3,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	canInteractWithElement,
 	getInlineEditorSelection,
+	isBulletMarkerSegment,
 	placeCaretAtEnd,
 	readEditableText,
 	remapTextToSegments,
@@ -11,6 +12,7 @@ import {
 import type { InlineTextSelection } from 'pptx-viewer-shared';
 
 import { createEl, getTextBlockStyle } from '../render';
+import { markInsertedParagraph } from './inline-text-paragraph-marker';
 import type { OverlayBox } from './selection-overlay';
 
 /**
@@ -168,15 +170,37 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	surface.setAttribute('role', 'textbox');
 	surface.setAttribute('aria-multiline', 'true');
 	if (withText?.textSegments?.length) {
-		withText.textSegments.forEach((segment, index) => {
+		const segments = withText.textSegments;
+		segments.forEach((segment, index) => {
 			const span = doc.createElement('span');
 			span.dataset.segIdx = String(index);
-			span.textContent = segment.text;
+			if (isBulletMarkerSegment(segment)) {
+				span.dataset.pptxBulletMarker = '';
+				span.contentEditable = 'false';
+			}
+			const precedingMarker = index > 0 && isBulletMarkerSegment(segments[index - 1]);
+			const carriesList = segment.bulletInfo && !segment.bulletInfo.none;
+			if (
+				segment.text.length === 0 &&
+				index === segments.length - 1 &&
+				(precedingMarker || carriesList)
+			) {
+				// An empty inline span after a non-editable list marker has no caret
+				// position. A display-only BR lets that pending list item receive text.
+				span.dataset.pptxEmptyRun = '';
+				span.appendChild(doc.createElement('br'));
+			} else {
+				span.textContent = segment.text;
+			}
 			surface.appendChild(span);
 		});
 	} else {
 		surface.textContent = initialText;
 	}
+	// Compare commits against the same authored-text projection used on close.
+	// `element.text` can include core-generated bullet markers, while the editor
+	// correctly excludes their display-only spans.
+	const initialEditableText = readEditableText(surface);
 
 	let closed = false;
 	const close = (commitText: string | null): void => {
@@ -189,14 +213,22 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		// still-`[data-inline-editor]`-attributed node from inside that
 		// callback (`EditorOperations.commitInlineText`), and a detached node
 		// reports `offsetWidth: 0`, which would break the measurement.
-		if (commitText !== null && commitText !== initialText) {
+		if (commitText !== null && commitText !== initialEditableText) {
 			options.onCommit(commitText);
 		}
 		surface.remove();
 		options.onClose();
 	};
 
-	surface.addEventListener('input', () => options.onInput?.(readEditableText(surface)));
+	surface.addEventListener('input', (event) => {
+		// Chrome can represent Enter between rich-run spans as a cloned sibling
+		// span. Its placeholder BR disappears as soon as the user types, leaving
+		// no delimiter for commit, so annotate the browser-created span itself.
+		if ((event as InputEvent).inputType === 'insertParagraph') {
+			markInsertedParagraph(doc, surface);
+		}
+		options.onInput?.(readEditableText(surface));
+	});
 	surface.addEventListener('blur', () => close(readEditableText(surface)));
 	surface.addEventListener('keydown', (event) => {
 		// Keep every keystroke local so viewer navigation/editor shortcuts

@@ -8,7 +8,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { openInlineEditor } from './inline-text-editor';
+import { openInlineEditor, readEditableText } from './inline-text-editor';
 
 function textElement(): PptxElement {
 	return {
@@ -137,6 +137,252 @@ describe('openInlineEditor caret placement', () => {
 			overlayRoot.remove();
 		},
 	);
+});
+
+describe('openInlineEditor input handling', () => {
+	it('marks generated list markers as display-only editor content', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onCommit = vi.fn();
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: {
+				...textElement(),
+				text: 'Item',
+				textSegments: [
+					{
+						text: '1. ',
+						style: {},
+						bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+					},
+					{ text: 'Item', style: {} },
+				],
+			} as PptxElement,
+			onCommit,
+			onClose: () => {},
+		});
+
+		const marker = session.el.querySelector<HTMLElement>('[data-seg-idx="0"]');
+		expect(marker?.hasAttribute('data-pptx-bullet-marker')).toBeTruthy();
+		expect(marker?.contentEditable).toBe('false');
+		expect(readEditableText(session.el)).toBe('Item');
+
+		session.commit();
+		expect(onCommit).not.toHaveBeenCalled();
+		overlayRoot.remove();
+	});
+
+	it('gives a final empty list run a caret placeholder without committing it', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onCommit = vi.fn();
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: {
+				...textElement(),
+				text: '1. ',
+				textSegments: [
+					{
+						text: '1. ',
+						style: {},
+						bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+					},
+					{ text: '', style: {} },
+				],
+			} as PptxElement,
+			onCommit,
+			onClose: () => {},
+		});
+
+		expect(session.el.querySelector('[data-pptx-empty-run]')?.firstElementChild?.tagName).toBe(
+			'BR',
+		);
+		expect(readEditableText(session.el)).toBe('');
+		session.commit();
+		expect(onCommit).not.toHaveBeenCalled();
+
+		overlayRoot.remove();
+	});
+
+	it('does not add a caret placeholder to an ordinary empty formatting run', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: {
+				...textElement(),
+				textSegments: [
+					{ text: 'Hello', style: {} },
+					{ text: '', style: { bold: true } },
+					{ text: ' world', style: {} },
+				],
+			} as PptxElement,
+			onCommit: () => {},
+			onClose: () => {},
+		});
+
+		expect(session.el.querySelector('[data-pptx-empty-run]')).toBeNull();
+
+		session.cancel();
+		overlayRoot.remove();
+	});
+
+	it('marks the rich run or paragraph block that Chromium creates for plain Enter', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onInput = vi.fn();
+		const onCommit = vi.fn();
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onInput,
+			onCommit,
+			onClose: () => {},
+		});
+
+		const inserted = document.createElement('span');
+		inserted.dataset.segIdx = '0';
+		inserted.appendChild(document.createElement('br'));
+		session.el.appendChild(inserted);
+		const range = document.createRange();
+		range.setStart(inserted, 0);
+		range.collapse(true);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(range);
+
+		session.el.dispatchEvent(
+			new InputEvent('input', { bubbles: true, inputType: 'insertParagraph' }),
+		);
+
+		expect(inserted.hasAttribute('data-pptx-paragraph-start')).toBeTruthy();
+		expect(readEditableText(session.el)).toBe('TARGET\n');
+		expect(onInput).toHaveBeenLastCalledWith('TARGET\n');
+		inserted.textContent = 'NEXT';
+		expect(readEditableText(session.el)).toBe('TARGET\nNEXT');
+
+		const insertedBlock = document.createElement('div');
+		const nestedRun = document.createElement('span');
+		nestedRun.dataset.segIdx = '0';
+		nestedRun.appendChild(document.createElement('br'));
+		insertedBlock.appendChild(nestedRun);
+		session.el.appendChild(insertedBlock);
+		range.setStart(nestedRun, 0);
+		range.collapse(true);
+		selection.removeAllRanges();
+		selection.addRange(range);
+		session.el.dispatchEvent(
+			new InputEvent('input', { bubbles: true, inputType: 'insertParagraph' }),
+		);
+
+		expect(insertedBlock.hasAttribute('data-pptx-paragraph-start')).toBeTruthy();
+		expect(nestedRun.hasAttribute('data-pptx-paragraph-start')).toBeFalsy();
+		expect(readEditableText(session.el)).toBe('TARGET\nNEXT\n');
+		expect(onInput).toHaveBeenLastCalledWith('TARGET\nNEXT\n');
+		session.commit();
+		expect(onCommit).toHaveBeenCalledWith('TARGET\nNEXT\n');
+
+		overlayRoot.remove();
+	});
+
+	it('marks the leading placeholder when plain Enter splits the start of a rich run', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onInput = vi.fn();
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onInput,
+			onCommit: () => {},
+			onClose: () => {},
+		});
+
+		const originalRun = session.el.querySelector<HTMLElement>('[data-seg-idx="0"]')!;
+		const leading = document.createElement('span');
+		leading.dataset.segIdx = '0';
+		leading.appendChild(document.createElement('br'));
+		session.el.insertBefore(leading, originalRun);
+		const range = document.createRange();
+		range.setStart(originalRun.firstChild!, 0);
+		range.collapse(true);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(range);
+
+		session.el.dispatchEvent(
+			new InputEvent('input', { bubbles: true, inputType: 'insertParagraph' }),
+		);
+
+		expect(leading.hasAttribute('data-pptx-paragraph-start')).toBeTruthy();
+		expect(originalRun.hasAttribute('data-pptx-paragraph-start')).toBeFalsy();
+		expect(readEditableText(session.el)).toBe('\nTARGET');
+		expect(onInput).toHaveBeenLastCalledWith('\nTARGET');
+
+		session.cancel();
+		overlayRoot.remove();
+	});
+
+	it('ignores a display-only marker when locating a leading list placeholder', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onCommit: () => {},
+			onClose: () => {},
+		});
+
+		const originalRun = session.el.querySelector<HTMLElement>('[data-seg-idx="0"]')!;
+		originalRun.dataset.segIdx = '1';
+		const originalBlock = document.createElement('div');
+		session.el.insertBefore(originalBlock, originalRun);
+		originalBlock.appendChild(originalRun);
+		const leadingBlock = document.createElement('div');
+		const marker = document.createElement('span');
+		marker.dataset.segIdx = '0';
+		marker.dataset.pptxBulletMarker = '';
+		marker.textContent = '• ';
+		const leadingRun = document.createElement('span');
+		leadingRun.dataset.segIdx = '1';
+		leadingRun.appendChild(document.createElement('br'));
+		leadingBlock.append(marker, leadingRun);
+		session.el.insertBefore(leadingBlock, originalBlock);
+		const range = document.createRange();
+		range.setStart(originalRun.firstChild!, 0);
+		range.collapse(true);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(range);
+
+		session.el.dispatchEvent(
+			new InputEvent('input', { bubbles: true, inputType: 'insertParagraph' }),
+		);
+
+		expect(leadingBlock.hasAttribute('data-pptx-paragraph-start')).toBeTruthy();
+		expect(originalBlock.hasAttribute('data-pptx-paragraph-start')).toBeFalsy();
+		expect(readEditableText(session.el)).toBe('\nTARGET');
+
+		session.cancel();
+		overlayRoot.remove();
+	});
 });
 
 describe('openInlineEditor commit ordering', () => {

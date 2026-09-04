@@ -34,6 +34,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { savePptxViaBackstage } from './save-pptx';
 import { fixture, loadDeck, loadDeckAt, slideStage, thumbnail } from './support/deck';
 import { acrossFrameworks, splitReference } from './support/parity';
 import { diffTextRuns } from './support/text-run-diff';
@@ -158,6 +159,50 @@ test.describe('cross-binding text layout', () => {
 			runsOfSlide(page, origin, CJK, 2),
 		);
 		expectRunParity(results);
+	});
+
+	test('an appended numbered-list paragraph continues through save and reload', async ({
+		page,
+	}) => {
+		const appendedText = 'Browser appended item';
+		await loadDeck(page, CJK);
+		await thumbnail(page, 5).click();
+		await page.waitForTimeout(600);
+
+		const numberedList = page
+			.locator('[data-pptx-viewport] [data-element-id]')
+			.filter({ hasText: 'Lorem ipsum dolor sit amet' })
+			.first();
+		await numberedList.dblclick();
+		const editor = page.locator('[data-inline-editor]');
+		await editor.waitFor();
+
+		// Shift+Enter is the same multiline insertion gesture in all five
+		// bindings; Angular deliberately reserves plain Enter for commit.
+		await editor.press('Shift+Enter');
+		await page.keyboard.type(appendedText);
+		const stageBox = (await slideStage(page).boundingBox())!;
+		await page.mouse.click(stageBox.x + stageBox.width * 0.97, stageBox.y + stageBox.height * 0.97);
+		await expect(editor).toBeHidden();
+
+		const compactText = async (): Promise<string> =>
+			(await numberedList.innerText()).replace(/\s+/gu, '');
+		await expect.poll(compactText).toContain(`5.${appendedText.replace(/\s+/gu, '')}`);
+
+		const download = await savePptxViaBackstage(page);
+		const savedPath = await download.path();
+		expect(savedPath, 'the browser retained the saved numbered-list deck').not.toBeNull();
+		await loadDeck(page, savedPath!);
+		await thumbnail(page, 5).click();
+		await page.waitForTimeout(600);
+		const afterReload = await page
+			.locator('[data-pptx-viewport] [data-element-id]')
+			.filter({ hasText: appendedText })
+			.first()
+			.innerText()
+			.then((text) => text.replace(/\s+/gu, ''));
+
+		expect(afterReload).toContain(`5.${appendedText.replace(/\s+/gu, '')}`);
 	});
 
 	test('a hyperlink and an inline equation reach the DOM in every binding', async ({

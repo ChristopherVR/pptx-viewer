@@ -12,6 +12,19 @@
  * block-element boundaries into `\n` (contenteditable normalises Enter into
  * nested blocks or `<br>` depending on the browser).
  */
+function hasOnlyCaretPlaceholder(element: HTMLElement): boolean {
+	const content = Array.from(element.childNodes).filter((child) => {
+		if (child.nodeType === 3) {
+			return (child.nodeValue ?? '').length > 0;
+		}
+		return child instanceof HTMLElement && !child.hasAttribute('data-pptx-bullet-marker');
+	});
+	if (content.length !== 1 || !(content[0] instanceof HTMLElement)) {
+		return false;
+	}
+	return content[0].tagName === 'BR' || hasOnlyCaretPlaceholder(content[0]);
+}
+
 export function readEditableText(root: Node): string {
 	let out = '';
 	const walk = (node: Node): void => {
@@ -28,6 +41,25 @@ export function readEditableText(root: Node): string {
 			// mode; excluding the annotated node prevents a semantic bullet from
 			// being committed as literal text (for example, "1.Item").
 			if (child.hasAttribute('data-pptx-bullet-marker')) {
+				continue;
+			}
+			const isAnnotatedParagraph = child.hasAttribute('data-pptx-paragraph-start');
+			if (isAnnotatedParagraph) {
+				out += '\n';
+			}
+			// Chromium leaves a BR placeholder, sometimes below a cloned run span,
+			// until the user types. The annotation already contributed exactly one
+			// paragraph break, so presentation-only markers and that BR add nothing.
+			if (isAnnotatedParagraph && hasOnlyCaretPlaceholder(child)) {
+				continue;
+			}
+			// Vanilla gives the final empty run of a list paragraph a BR solely so
+			// the caret can enter it. It is not authored text and disappears on type.
+			if (
+				child.hasAttribute('data-pptx-empty-run') &&
+				child.childNodes.length === 1 &&
+				child.firstChild?.nodeName === 'BR'
+			) {
 				continue;
 			}
 			if (child.tagName === 'BR') {
