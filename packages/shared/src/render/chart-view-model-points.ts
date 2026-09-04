@@ -223,61 +223,50 @@ export function computeScatterDots(
 // Bubble
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** `c:bubbleScale` / `c:sizeRepresents` inputs to {@link computeBubbleRadius}. */
+export interface BubbleRadiusOptions {
+	/** `c:bubbleScale` (0-300%). PowerPoint's own default, 100, leaves the envelope unscaled. */
+	bubbleScale?: number;
+	/**
+	 * `c:sizeRepresents`. `'area'` (ECMA-376's own default) sizes bubbles so the
+	 * rendered AREA is proportional to the value (radius scales with the square
+	 * root of it); `'w'` sizes so the DIAMETER is proportional (radius scales
+	 * linearly). Defaults to `'w'` here so this raw helper's pre-existing
+	 * 3-argument callers stay byte-identical; `buildBubbles` resolves the
+	 * chart-wide `'area'` default itself before calling in.
+	 */
+	sizeRepresents?: 'area' | 'w';
+}
+
 /**
  * Radius of a bubble given its size value, the max size in the chart, and a
- * median radius derived from the plot area. Mirrors `renderBubbleChart` in
- * React's chart-scatter-bubble.tsx: when no size value is present the bubble
- * uses the median radius; otherwise it scales from 0.5x to 2x the median.
+ * median radius derived from the plot area. When no size value is present the
+ * bubble uses the median radius (scaled by `bubbleScale`); otherwise it scales
+ * from 0.5x to 2x the median, linearly (`sizeRepresents: 'w'`) or by square
+ * root (`'area'`, so the bubble's rendered AREA, not its diameter, tracks the
+ * value).
  */
 export function computeBubbleRadius(
 	sizeVal: number | undefined,
 	maxBubble: number,
 	medianRadius: number,
+	options?: BubbleRadiusOptions,
 ): number {
+	const scale = (options?.bubbleScale ?? 100) / 100;
 	if (sizeVal === undefined) {
-		return medianRadius;
+		return medianRadius * scale;
 	}
-	const denom = maxBubble > 0 ? maxBubble : 1;
-	return medianRadius * 0.5 + (Math.abs(sizeVal) / denom) * medianRadius * 1.5;
+	const denom = maxBubble > 0 ? maxBubble : 1,
+		magnitude = Math.abs(sizeVal),
+		ratio =
+			(options?.sizeRepresents ?? 'w') === 'area'
+				? Math.sqrt(magnitude) / Math.sqrt(denom)
+				: magnitude / denom;
+	return medianRadius * scale * 0.5 + ratio * medianRadius * scale * 1.5;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Radar
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Angle (radians) of the i-th radar spoke; 0 points up (-90°), clockwise. */
-export function radarAngle(index: number, catCount: number): number {
-	const n = Math.max(catCount, 1);
-	return (Math.PI * 2 * index) / n - Math.PI / 2;
-}
-
-export interface RadarPoint {
-	x: number;
-	y: number;
-}
-
-/** Project a series' values onto radar (polar) coordinates around (cx, cy). */
-export function computeRadarPoints(
-	values: ReadonlyArray<number>,
-	maxVal: number,
-	radius: number,
-	cx: number,
-	cy: number,
-	catCount: number,
-): RadarPoint[] {
-	const denom = maxVal > 0 ? maxVal : 1;
-	return values.slice(0, Math.max(catCount, 1)).map((val, i) => {
-		const angle = radarAngle(i, catCount),
-			r = (Math.abs(val) / denom) * radius;
-		return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-	});
-}
-
-/** Points string for a radar gridline ring at radius `rr`. */
-export function radarRingPoints(cx: number, cy: number, rr: number, catCount: number): string {
-	const n = Math.max(catCount, 1);
-	return Array.from({ length: n }, (_, i) => {
-		const angle = radarAngle(i, n);
-		return `${(cx + rr * Math.cos(angle)).toFixed(2)},${(cy + rr * Math.sin(angle)).toFixed(2)}`;
-	}).join(' ');
-}
+// Radar (spider) chart polar-coordinate geometry lives in its own module
+// (`chart-radar-geometry.ts`); re-exported here so this module's existing
+// consumers (and `chart-view-model.ts`'s `export *`) see no change.
+export { computeRadarPoints, radarAngle, radarRingPoints } from './chart-radar-geometry';
+export type { RadarPoint } from './chart-radar-geometry';

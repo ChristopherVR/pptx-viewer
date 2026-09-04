@@ -744,6 +744,27 @@ export function getEffectDagFillOverlay(style: ShapeStyle | undefined): FillOver
 	return { color, blendMode };
 }
 
+/**
+ * Resolve a DIRECT `a:effectLst/a:fillOverlay` (D1-G3: CT_EffectList
+ * §20.1.8.24 lists it as a legal sibling of shadow/glow/blur, not only inside
+ * `a:effectDag`) into the same {@link FillOverlayCss} shape as
+ * {@link getEffectDagFillOverlay}, so both render through one integrator path.
+ * Kept in separate `shapeFillOverlay*` fields (see `ShapeStyle`) since the two
+ * forms come from different XML locations and could theoretically both be
+ * present.
+ */
+export function getShapeFillOverlay(style: ShapeStyle | undefined): FillOverlayCss | undefined {
+	if (!style?.shapeFillOverlayColor || style.shapeFillOverlayColor === 'transparent') {
+		return undefined;
+	}
+	const blendMode = getEffectDagBlendMode(style.shapeFillOverlayBlend) ?? 'normal';
+	const color = colorWithOpacity(
+		normalizeHexColor(style.shapeFillOverlayColor, DEFAULT_SHADOW_COLOR),
+		style.shapeFillOverlayOpacity,
+	);
+	return { color, blendMode };
+}
+
 // ── High-fidelity duotone SVG <filter> markup (secondary path) ─────────────
 
 /** Stable SVG filter id for a DAG duotone effect on a given element. */
@@ -1005,8 +1026,10 @@ export function getComputedEffectStyle(
 	}
 
 	// Fill overlay: paint the tint layer when a colour was parsed; otherwise
-	// fall back to the legacy whole-element blend-mode proxy.
-	const overlay = getEffectDagFillOverlay(style);
+	// fall back to the legacy whole-element blend-mode proxy. The direct
+	// effectLst form (shape-level) is checked second since it is far rarer
+	// than the effectDag form and the two should not both be authored.
+	const overlay = getEffectDagFillOverlay(style) ?? getShapeFillOverlay(style);
 	if (overlay) {
 		result.fillOverlay = overlay;
 	} else {

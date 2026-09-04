@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	computeAutoFitTextStyle,
 	isVerticalTextDirection,
+	resolveVerticalAnchorJustifyContent,
 	toCssTextOrientation,
 	toCssVerticalDirection,
 	toCssWritingMode,
@@ -118,5 +119,51 @@ describe('computeAutoFitTextStyle', () => {
 			autoFitLineSpacingReduction: 0.25,
 		};
 		expect(computeAutoFitTextStyle({ ...base, textStyle: shrink }).lineHeight).toBeUndefined();
+	});
+});
+
+// D2-G5: `a:bodyPr/@anchor="dist"|"just"` round-trips losslessly (core fix)
+// and approximates as a vertical distribution here (render fix).
+describe('resolveVerticalAnchorJustifyContent', () => {
+	it('maps top/middle/bottom/undefined to the existing flex-column values', () => {
+		expect(resolveVerticalAnchorJustifyContent('top', undefined)).toBe('flex-start');
+		expect(resolveVerticalAnchorJustifyContent('middle', undefined)).toBe('center');
+		expect(resolveVerticalAnchorJustifyContent('bottom', undefined)).toBe('flex-end');
+		expect(resolveVerticalAnchorJustifyContent(undefined, undefined)).toBe('flex-start');
+	});
+
+	it('centers a single-paragraph distributed/justified body (nothing to distribute)', () => {
+		expect(resolveVerticalAnchorJustifyContent('distributed', undefined)).toBe('center');
+		expect(resolveVerticalAnchorJustifyContent('justified', [{ text: 'one', style: {} }])).toBe(
+			'center',
+		);
+	});
+
+	it('spreads a multi-paragraph distributed/justified body with space-between', () => {
+		const segments = [
+			{ text: 'first', style: {} },
+			{ text: '\n', style: {} },
+			{ text: 'second', style: {} },
+		];
+		expect(resolveVerticalAnchorJustifyContent('distributed', segments)).toBe('space-between');
+		expect(resolveVerticalAnchorJustifyContent('justified', segments)).toBe('space-between');
+	});
+
+	it('does not split on a soft line break (isLineBreak), only a real paragraph break', () => {
+		const segments = [
+			{ text: 'first', style: {} },
+			{ text: '\n', style: {}, isLineBreak: true },
+			{ text: 'still same paragraph', style: {} },
+		];
+		expect(resolveVerticalAnchorJustifyContent('distributed', segments)).toBe('center');
+	});
+
+	it('treats an explicit isParagraphBreak segment the same as a bare newline', () => {
+		const segments = [
+			{ text: 'first', style: {} },
+			{ text: '', style: {}, isParagraphBreak: true },
+			{ text: 'second', style: {} },
+		];
+		expect(resolveVerticalAnchorJustifyContent('distributed', segments)).toBe('space-between');
 	});
 });

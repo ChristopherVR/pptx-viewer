@@ -6,6 +6,7 @@ import {
 	getAriaRole,
 	getAriaLabel,
 	getAriaRoleDescription,
+	isElementMarkedDecorative,
 	prefersReducedMotion,
 	getReducedMotionStyles,
 } from './accessibility';
@@ -191,6 +192,40 @@ describe('getAriaRole', () => {
 			),
 		).toBe('group');
 	});
+
+	// issue G16: "Mark as decorative" should suppress the semantic role
+	// entirely (the DOM applier pairs this with aria-hidden).
+	it('returns undefined for a decorative image', () => {
+		expect(
+			getAriaRole(makeElement({ id: '1', type: 'image', isDecorative: true } as never)),
+		).toBeUndefined();
+	});
+
+	it('still returns "button" for an actionable element even when decorative', () => {
+		// PowerPoint disables "Mark as decorative" once an action is attached;
+		// actionable must still win if this app ever parses the combination.
+		expect(
+			getAriaRole(makeElement({ id: '1', type: 'image', isDecorative: true } as never), {
+				actionable: true,
+			}),
+		).toBe('button');
+	});
+});
+
+describe('isElementMarkedDecorative', () => {
+	it('returns true only when isDecorative is exactly true', () => {
+		expect(
+			isElementMarkedDecorative(
+				makeElement({ id: '1', type: 'image', isDecorative: true } as never),
+			),
+		).toBeTruthy();
+		expect(
+			isElementMarkedDecorative(
+				makeElement({ id: '1', type: 'image', isDecorative: false } as never),
+			),
+		).toBeFalsy();
+		expect(isElementMarkedDecorative(makeElement({ id: '1', type: 'image' }))).toBeFalsy();
+	});
 });
 
 // ===========================================================================
@@ -308,6 +343,30 @@ describe('getAriaLabel', () => {
 
 	it('falls back to Image label when image has no altText', () => {
 		expect(getAriaLabel(makeElement({ id: '1', type: 'image' }))).toBe('Image');
+	});
+
+	// issue G16: a decorative element gets an empty accessible name even when
+	// it carries alt text, so AT skips describing it entirely.
+	it('returns an empty label for a decorative image, even with alt text', () => {
+		expect(
+			getAriaLabel(
+				makeElement({
+					id: '1',
+					type: 'image',
+					altText: 'A nice photo',
+					isDecorative: true,
+				} as never),
+			),
+		).toBe('');
+	});
+
+	it('still returns the normal label for an actionable element even when decorative', () => {
+		expect(
+			getAriaLabel(
+				makeElement({ id: '1', type: 'image', altText: 'Click me', isDecorative: true } as never),
+				{ actionable: true },
+			),
+		).toBe('Click me');
 	});
 });
 

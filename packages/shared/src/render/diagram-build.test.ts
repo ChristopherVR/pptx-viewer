@@ -52,4 +52,74 @@ describe('revealedSmartArtNodeCount', () => {
 	it('handles an empty node list', () => {
 		expect(revealedSmartArtNodeCount([], { mode: 'byOne', progress: 0.5 })).toBe(0);
 	});
+
+	// G4: `dgm:presLayoutVars.animOne`/`.animLvl` disambiguate a generic
+	// `byOne`/`byLvl` p:bldDgm token per the module doc comment.
+	describe('animOne/animLvl presLayoutVars hint', () => {
+		it('animOne=branch reveals one whole top-level branch per stage', () => {
+			// Two branches under separate roots so branch grouping is observable
+			// (makeNodes()'s single-root tree wouldn't distinguish this from byOne).
+			const twoBranches: PptxSmartArtNode[] = [
+				{ id: 'r1', text: 'r1' },
+				{ id: 'r1a', text: 'r1a', parentId: 'r1' },
+				{ id: 'r2', text: 'r2' },
+				{ id: 'r2a', text: 'r2a', parentId: 'r2' },
+			];
+			expect(
+				revealedSmartArtNodeCount(
+					twoBranches,
+					{ mode: 'byOne', progress: 0.1 },
+					{ animateOne: 'branch' },
+				),
+			).toBe(2);
+			expect(
+				revealedSmartArtNodeCount(
+					twoBranches,
+					{ mode: 'byOne', progress: 1 },
+					{ animateOne: 'branch' },
+				),
+			).toBe(4);
+			// Sanity: without the hint, byOne reveals one node (not one branch).
+			expect(revealedSmartArtNodeCount(twoBranches, { mode: 'byOne', progress: 0.1 })).toBe(1);
+		});
+
+		it('animOne=one/chOne builds the whole diagram as a single object', () => {
+			const nodes = makeNodes();
+			expect(
+				revealedSmartArtNodeCount(nodes, { mode: 'byOne', progress: 0 }, { animateOne: 'one' }),
+			).toBe(nodes.length);
+			expect(
+				revealedSmartArtNodeCount(nodes, { mode: 'byOne', progress: 0 }, { animateOne: 'chOne' }),
+			).toBe(nodes.length);
+		});
+
+		it('animLvl=lvl reveals a whole level per stage under the generic byOne mode', () => {
+			const nodes = makeNodes(); // 3 levels: {r}, {a,b}, {a1,a2}
+			expect(
+				revealedSmartArtNodeCount(
+					nodes,
+					{ mode: 'byOne', progress: 0.1 },
+					{ animationLevel: 'lvl' },
+				),
+			).toBe(1);
+			expect(
+				revealedSmartArtNodeCount(
+					nodes,
+					{ mode: 'byOne', progress: 0.6 },
+					{ animationLevel: 'lvl' },
+				),
+			).toBe(3);
+		});
+
+		it('an explicit lvlAtOnce token is never second-guessed by the hint', () => {
+			const nodes = makeNodes();
+			expect(
+				revealedSmartArtNodeCount(
+					nodes,
+					{ mode: 'byLvlAtOnce', progress: 0.1 },
+					{ animateOne: 'branch' },
+				),
+			).toBe(revealedSmartArtNodeCount(nodes, { mode: 'byLvlAtOnce', progress: 0.1 }));
+		});
+	});
 });

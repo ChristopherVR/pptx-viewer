@@ -67,13 +67,18 @@ export function isUrlSafe(url: string | undefined): boolean {
 }
 
 /**
- * Open a URL in a new browser tab/window with security attributes.
+ * Open a URL in a browser tab/window with security attributes.
  *
  * - Validates the URL against blocked protocols
- * - Opens with `noopener,noreferrer` to prevent reverse-tabnabbing
+ * - Opens with `noopener,noreferrer` unless `target` is `_self` (a same-tab
+ *   navigation has no new browsing context to isolate)
  * - Returns `true` if the URL was opened, `false` if blocked / unavailable
+ *
+ * @param target - `window.open`'s target frame. Defaults to `_blank` (a new
+ *   tab), matching every existing call site; a text-run hyperlink's authored
+ *   `a:hlinkClick/@tgtFrame` (see `resolveHyperlinkTargetAttrs`) overrides it.
  */
-export function safeOpenUrl(url: string): boolean {
+export function safeOpenUrl(url: string, target = '_blank'): boolean {
 	if (!isUrlSafe(url)) {
 		if (typeof console !== 'undefined') {
 			console.warn(`[pptx-viewer] Blocked attempt to open unsafe URL: ${url.slice(0, 100)}`);
@@ -83,7 +88,7 @@ export function safeOpenUrl(url: string): boolean {
 	if (typeof window === 'undefined') {
 		return false;
 	}
-	window.open(url, '_blank', 'noopener,noreferrer');
+	window.open(url, target, target === '_self' ? '' : 'noopener,noreferrer');
 	return true;
 }
 

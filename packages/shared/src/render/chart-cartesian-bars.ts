@@ -13,6 +13,8 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import type { SeriesPlotResult } from './chart-cartesian-plots';
+import { pushClusteredStackedLabels } from './chart-cartesian-stacked-labels';
+import { resolveBarLabelPlacement } from './chart-data-label-anchor';
 import { buildDataLabelText } from './chart-data-label-text';
 import { resolveDataPointFill, resolveVaryColorFill } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
@@ -147,21 +149,33 @@ export function buildBars(
 				if (showLabels) {
 					// c:showVal / c:showCatName / c:showPercent decide what the label
 					// says; the historical raw value is what you get when nothing does.
-					const text = buildDataLabelText({
+					const label = buildDataLabelText({
 						chartData,
 						series: series[si],
 						pointIndex: sourceIndex,
 						value: val,
 					});
-					if (text !== undefined) {
+					if (label !== undefined) {
+						// c:dLblPos (ctr/inBase/inEnd/outEnd) decides where on the bar the
+						// label sits; a per-point c:dLbl/c:layout drag shifts it further.
+						const anchor = resolveBarLabelPlacement(
+							chartData,
+							series[si],
+							sourceIndex,
+							{ x, y, width: singleBarWidth, height: h },
+							val,
+							'vertical',
+							{ width: layout.svgWidth, height: layout.svgHeight },
+						);
 						dataLabels.push({
 							kind: 'text',
-							x: x + singleBarWidth / 2,
-							y: val >= 0 ? y - 4 : y + h + 10,
-							text,
+							x: anchor.x,
+							y: anchor.y,
+							text: label.text,
 							fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-							fill: '#334155',
-							textAnchor: 'middle',
+							fill: label.color ?? '#334155',
+							textAnchor: anchor.textAnchor,
+							...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
 						});
 					}
 				}
@@ -282,59 +296,4 @@ export function buildBars(
 		}
 	}
 	return { primitives, dataLabels };
-}
-
-/**
- * Push the abs-value stacked data labels matching the original cartesian builder:
- * one label per (category x series) at the bar mid, only when data labels are on.
- * The original builder emitted clustered-style labels for stacked too, so this
- * reproduces that exact output for byte-identity.
- */
-function pushClusteredStackedLabels(
-	chartData: PptxChartData,
-	series: ReadonlyArray<PptxChartSeries>,
-	sourceIndices: ReadonlyArray<number>,
-	catCount: number,
-	layout: PlotLayout,
-	range: ValueRange,
-	dataLabels: SvgText[],
-): void {
-	const barGroupWidth = layout.plotWidth / catCount,
-		seriesCount = Math.max(series.length, 1),
-		singleBarWidth = (barGroupWidth * 0.7) / seriesCount,
-		groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
-
-	for (let ci = 0; ci < catCount; ci++) {
-		const sourceIndex = sourceIndices[ci] ?? ci;
-		for (let si = 0; si < series.length; si++) {
-			const val = series[si].values[sourceIndex] ?? 0,
-				x =
-					layout.plotLeft +
-					barGroupWidth * ci +
-					groupOffset +
-					singleBarWidth * si +
-					singleBarWidth / 2,
-				zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom),
-				valY = valueToY(val, range, layout.plotTop, layout.plotBottom),
-				labelY = val >= 0 ? Math.min(zeroY, valY) - 4 : Math.max(zeroY, valY) + 10,
-				text = buildDataLabelText({
-					chartData,
-					series: series[si],
-					pointIndex: sourceIndex,
-					value: val,
-				});
-			if (text === undefined) {
-				continue;
-			}
-			dataLabels.push({
-				kind: 'text',
-				x,
-				y: labelY,
-				text,
-				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-				fill: '#334155',
-				textAnchor: 'middle',
-			});
-		}
-	}
 }

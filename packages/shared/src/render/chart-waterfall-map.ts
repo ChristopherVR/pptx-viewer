@@ -21,7 +21,10 @@ import type { PptxChartData, PptxChartRegionMapOptions, PptxElement } from 'pptx
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import {
 	buildRegionMapEntries,
+	buildValueColorScale,
 	formatRegionMapValue,
+	lerpColor,
+	resolveValueColorStops,
 	shouldRenderRegionLabel,
 } from './chart-region-map-data';
 import type { ChartViewModel, SvgLine, SvgPath, SvgRect, SvgText } from './chart-view-model';
@@ -258,24 +261,6 @@ export function resolveRegionCode(label: string): string | undefined {
 // ─────────────────────────────────────────────────────────────────────────────
 // RegionMap: colour scale helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Interpolate between two hex colours by ratio t in [0..1]. */
-function lerpColor(a: string, b: string, t: number): string {
-	const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-	const ha = a.replace('#', '');
-	const hb = b.replace('#', '');
-	const r1 = parseInt(ha.substring(0, 2), 16);
-	const g1 = parseInt(ha.substring(2, 4), 16);
-	const b1 = parseInt(ha.substring(4, 6), 16);
-	const r2 = parseInt(hb.substring(0, 2), 16);
-	const g2 = parseInt(hb.substring(2, 4), 16);
-	const b2 = parseInt(hb.substring(4, 6), 16);
-	const r = clamp(r1 + (r2 - r1) * t);
-	const g = clamp(g1 + (g2 - g1) * t);
-	const bl = clamp(b1 + (b2 - b1) * t);
-	const toHex = (n: number) => n.toString(16).padStart(2, '0');
-	return `#${toHex(r)}${toHex(g)}${toHex(bl)}`;
-}
 
 /**
  * 3-stop sequential colour scale: light (#dbeafe) → mid (#3b82f6) → dark (#1e3a5f).
@@ -529,6 +514,17 @@ export function buildRegionMapViewModel(
 	const finiteVals = values.filter((v) => Number.isFinite(v));
 	const minVal = finiteVals.length > 0 ? Math.min(...finiteVals) : 0;
 	const maxVal = finiteVals.length > 0 ? Math.max(...finiteVals) : 1;
+	// cx:valueColors/cx:valueColorPositions: a chart-authored 2-3 stop
+	// gradient the region-map colours by value, instead of the fixed
+	// blue sequential scale. Falls back to that scale when the chart
+	// authors no value-color gradient (the common case).
+	const valueColorStops = resolveValueColorStops(
+		options?.valueColors,
+		options?.valueColorPositions,
+		minVal,
+		maxVal,
+	);
+	const colorScale = valueColorStops ? buildValueColorScale(valueColorStops) : sequentialColorScale;
 
 	// Build region → value lookup.
 	const regionValueMap = new Map<string, { value: number; label: string; sourceIndex: number }>();
@@ -596,7 +592,7 @@ export function buildRegionMapViewModel(
 
 		if (entry !== undefined) {
 			const t = normalizeValue(entry.value, minVal, maxVal);
-			fill = sequentialColorScale(t);
+			fill = colorScale(t);
 		}
 
 		// Embed the transform in the path's d attribute via a manual coordinate
@@ -671,7 +667,7 @@ export function buildRegionMapViewModel(
 			// otherwise leave hairline gaps once the slide's zoom transform lands.
 			w: barW / REGION_LEGEND_BANDS + 0.5,
 			h: 8,
-			fill: sequentialColorScale((band + 0.5) / REGION_LEGEND_BANDS),
+			fill: colorScale((band + 0.5) / REGION_LEGEND_BANDS),
 		} satisfies SvgRect);
 	}
 

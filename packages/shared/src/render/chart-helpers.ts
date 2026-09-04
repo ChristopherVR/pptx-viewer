@@ -6,6 +6,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import { niceValueAxisBounds } from './chart-axis-nice';
+import { reserveLegendSpace } from './chart-legend-placement';
 import { formatChartNumber } from './chart-number-format';
 
 /**
@@ -340,15 +341,14 @@ export function computeLayout(
 		plotTop += 20;
 	}
 	if (style?.hasLegend) {
-		if (legendPos === 'b') {
-			plotBottom -= 20;
-		} else if (legendPos === 't') {
-			plotTop += 20;
-		} else if (legendPos === 'r') {
-			plotRight -= 80;
-		} else if (legendPos === 'l') {
-			plotLeft += 80;
-		}
+		// `tr` (top-right corner) overlays the plot per PowerPoint's own
+		// quick-layout behaviour: no band is reserved for it.
+		({ plotLeft, plotTop, plotRight, plotBottom } = reserveLegendSpace(legendPos, {
+			plotLeft,
+			plotTop,
+			plotRight,
+			plotBottom,
+		}));
 	}
 
 	// Reserve space for a secondary value axis on the right.

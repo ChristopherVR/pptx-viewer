@@ -1,4 +1,4 @@
-import type { PptxChartData, PptxChartSeries, PptxElement } from 'pptx-viewer-core';
+import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import {
 	computeLayoutOptions,
@@ -9,9 +9,9 @@ import {
 } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
+import { appendBarLabels, appendLineSeries } from './chart-combo-series';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
-import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
@@ -19,8 +19,6 @@ import { computeAxisTitlePrimitives, computeTrendlinePrimitives } from './chart-
 import type {
 	ChartViewModel,
 	PlotLayout,
-	SvgCircle,
-	SvgPolyline,
 	SvgPrimitive,
 	SvgText,
 	ValueRange,
@@ -31,9 +29,6 @@ import {
 	buildZeroLine,
 	computeBarRects,
 	computePlotLayout,
-	formatAxisValue,
-	seriesColor,
-	valueToY,
 } from './chart-view-model';
 
 function rangeForSeries(
@@ -186,57 +181,19 @@ export function buildComboViewModel(
 	const barGroupWidth = layout.plotWidth / catCount;
 	chartData.series.slice(1).forEach((series, offset) => {
 		const seriesIndex = offset + 1;
-		if (series.values.length === 0) {
-			return;
-		}
 		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);
-		const fill = seriesColor(series, seriesIndex, chartData.colorPalette);
-		const points = sourceIndices.map((sourceIndex, displayIndex) => {
-			const value = series.values[sourceIndex] ?? 0;
-			return {
-				x:
-					horizontalAxis.xPositions?.[displayIndex] ??
-					layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2,
-				y: valueToY(value, range, layout.plotTop, layout.plotBottom),
-				sourceIndex,
-				value,
-			};
-		});
-		primitives.push({
-			kind: 'polyline',
-			points: points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' '),
-			stroke: fill,
-			strokeWidth: 2.4,
-			fill: 'none',
-		} satisfies SvgPolyline);
-		primitives.push(
-			...points.map(
-				(point) =>
-					({
-						kind: 'circle',
-						cx: point.x,
-						cy: point.y,
-						r: 2.5,
-						fill,
-						part: { role: 'dataPoint', seriesIndex, pointIndex: point.sourceIndex },
-					}) satisfies SvgCircle,
-			),
+		appendLineSeries(
+			series,
+			seriesIndex,
+			chartData,
+			layout,
+			range,
+			barGroupWidth,
+			sourceIndices,
+			primitives,
+			dataLabels,
+			horizontalAxis.xPositions,
 		);
-		if (chartData.style?.hasDataLabels) {
-			points.forEach((point) => {
-				if (point) {
-					dataLabels.push({
-						kind: 'text',
-						x: point.x,
-						y: point.y - 7,
-						text: formatAxisValue(point.value, series.numberFormat),
-						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-						fill: '#334155',
-						textAnchor: 'middle',
-					});
-				}
-			});
-		}
 	});
 	primitives.push(...horizontalAxis.tickMarks);
 	const displayChartData = horizontalAxis.displayChartData;
@@ -289,38 +246,4 @@ export function buildComboViewModel(
 		overlays: overlays.length > 0 ? overlays : undefined,
 		dataTable: dataTablePrimitives.length > 0 ? dataTablePrimitives : undefined,
 	};
-}
-
-function appendBarLabels(
-	series: PptxChartSeries,
-	chartData: PptxChartData,
-	layout: PlotLayout,
-	catCount: number,
-	range: ValueRange,
-	sourceIndices: ReadonlyArray<number>,
-	labels: SvgText[],
-	xPositions?: ReadonlyArray<number>,
-): void {
-	if (!chartData.style?.hasDataLabels) {
-		return;
-	}
-	const groupWidth = layout.plotWidth / catCount;
-	const barWidth = groupWidth * 0.7;
-	const offset = (groupWidth - barWidth) / 2;
-	sourceIndices.forEach((sourceIndex, displayIndex) => {
-		const value = series.values[sourceIndex] ?? 0;
-		const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-		const valueY = valueToY(value, range, layout.plotTop, layout.plotBottom);
-		labels.push({
-			kind: 'text',
-			x:
-				xPositions?.[displayIndex] ??
-				layout.plotLeft + groupWidth * displayIndex + offset + barWidth / 2,
-			y: value >= 0 ? Math.min(zeroY, valueY) - 4 : Math.max(zeroY, valueY) + 10,
-			text: formatAxisValue(value, series.numberFormat),
-			fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-			fill: '#334155',
-			textAnchor: 'middle',
-		});
-	});
 }

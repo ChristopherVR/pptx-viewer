@@ -70,9 +70,9 @@ describe('collectConnectorSiteCandidates', () => {
 		expect(sites).toHaveLength(4);
 		expect(sites.map((s) => [s.x, s.y])).toStrictEqual([
 			[50, 0],
-			[100, 25],
-			[50, 50],
 			[0, 25],
+			[50, 50],
+			[100, 25],
 		]);
 	});
 
@@ -94,7 +94,7 @@ describe('findConnectorSiteNear', () => {
 	]);
 
 	it('snaps to the nearest site inside the radius', () => {
-		expect(findConnectorSiteNear(sites, 104, 27, 14)).toMatchObject({ siteIndex: 1 });
+		expect(findConnectorSiteNear(sites, 104, 27, 14)).toMatchObject({ siteIndex: 3 });
 	});
 
 	it('returns null outside the radius, which is what detaches an end', () => {
@@ -137,12 +137,12 @@ describe('resolveConnectorEndpointUpdate', () => {
 
 	it('resolves the untouched end through ITS binding, so a bound far end is not lost', () => {
 		const bound = connector({
-			shapeStyle: { connectorStartConnection: { shapeId: '9', connectionSiteIndex: 3 } },
+			shapeStyle: { connectorStartConnection: { shapeId: '9', connectionSiteIndex: 1 } },
 		});
 		const update = resolveConnectorEndpointUpdate(bound, elements, 'end', { x: 0, y: 0 }, null);
-		// Site 3 of the target is its left-centre: (300, 225).
+		// Site 1 of the target is its left-centre: (300, 225).
 		expect(update).toMatchObject({ x: 0, y: 0, width: 300, height: 225 });
-		expect(update.startConnection).toStrictEqual({ shapeId: '9', connectionSiteIndex: 3 });
+		expect(update.startConnection).toStrictEqual({ shapeId: '9', connectionSiteIndex: 1 });
 	});
 });
 

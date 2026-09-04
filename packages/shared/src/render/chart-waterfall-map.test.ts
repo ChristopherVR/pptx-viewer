@@ -484,6 +484,41 @@ describe('buildRegionMapViewModel — ChartEx geography options', () => {
 	});
 });
 
+describe('buildRegionMapViewModel cx:valueColors gradient', () => {
+	it('colours matched regions along the authored gradient instead of the default blue scale', () => {
+		const el = makeElement(600, 400);
+		// `valueColors`/`valueColorPositions` are wave-agreed core fields not yet
+		// on `PptxChartRegionMapOptions` in `packages/core/dist`; bridge them the
+		// same way `chart-waterfall-map.ts` does internally.
+		const data: PptxChartData = {
+			chartType: 'regionMap',
+			categories: ['US', 'AU'],
+			series: [
+				{
+					name: 'Values',
+					values: [0, 100],
+					regionMapOptions: {
+						valueColors: ['#000000', '#ffffff'],
+					} as PptxChartData['series'][0]['regionMapOptions'],
+				},
+			],
+		};
+		const vm = buildRegionMapViewModel(el, data, data.categories);
+		const paths = vm.primitives.filter(
+			(primitive) => primitive.kind === 'path' && primitive.part?.role === 'dataPoint',
+		);
+		expect(paths).toHaveLength(2);
+		const fills = paths.map((path) => (path.kind === 'path' ? path.fill : undefined));
+		// Min value (0) gets the first stop, max value (100) gets the last.
+		expect(fills).toContain('#000000');
+		expect(fills).toContain('#ffffff');
+		// Neither region gets the DEFAULT sequential-scale blue.
+		expect(
+			fills.some((fill) => fill === sequentialColorScale(0) || fill === sequentialColorScale(1)),
+		).toBeFalsy();
+	});
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // buildRegionMapViewModel — edge cases
 // ─────────────────────────────────────────────────────────────────────────────

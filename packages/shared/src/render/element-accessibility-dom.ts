@@ -1,6 +1,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { getAriaLabel, getAriaRole, getAriaRoleDescription } from './accessibility';
+import {
+	getAriaLabel,
+	getAriaRole,
+	getAriaRoleDescription,
+	isElementMarkedDecorative,
+} from './accessibility';
 import { elementIdSelector } from './css-escape';
 import { isElementActionable } from './element-actionability';
 import { PRESENTATION_STAGE_ATTRIBUTE } from './presentation-hit-test';
@@ -66,12 +71,21 @@ export function applyRenderedElementAccessibility(
 		} else {
 			node.removeAttribute('role');
 		}
-		node.setAttribute('aria-label', getAriaLabel(element));
+		node.setAttribute('aria-label', getAriaLabel(element, { actionable }));
 		const roleDescription = getAriaRoleDescription(element);
 		if (roleDescription) {
 			node.setAttribute('aria-roledescription', roleDescription);
 		} else {
 			node.removeAttribute('aria-roledescription');
+		}
+		// "Mark as decorative" (issue G16): skip the element entirely for
+		// assistive tech, matching PowerPoint's own behaviour. Actionable wins
+		// (PowerPoint disables the decorative flag once an action is
+		// attached), so a decorative-but-clickable shape stays announced.
+		if (!actionable && isElementMarkedDecorative(element)) {
+			node.setAttribute('aria-hidden', 'true');
+		} else {
+			node.removeAttribute('aria-hidden');
 		}
 		applied += 1;
 	}

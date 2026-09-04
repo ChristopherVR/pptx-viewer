@@ -88,6 +88,51 @@ describe('applyRenderedElementAccessibility', () => {
 		expect(stage.hasAttribute('data-pptx-presenting')).toBeFalsy();
 	});
 
+	// issue G16: "Mark as decorative" should hide the element from assistive
+	// tech (aria-hidden) with no role and an empty accessible name.
+	it('marks a decorative picture aria-hidden with an empty label and no role', () => {
+		const stage = document.createElement('div');
+		stage.innerHTML = '<div data-element-id="deco"></div>';
+		const elements = [
+			{ ...base, id: 'deco', type: 'image', altText: 'Border flourish', isDecorative: true },
+		] as PptxElement[];
+		applyRenderedElementAccessibility(stage, elements);
+		const node = stage.querySelector('[data-element-id="deco"]');
+		expect(node?.getAttribute('aria-hidden')).toBe('true');
+		expect(node?.getAttribute('aria-label')).toBe('');
+		expect(node?.hasAttribute('role')).toBeFalsy();
+	});
+
+	it('keeps a decorative-but-actionable element fully announced (actionable wins)', () => {
+		const stage = document.createElement('div');
+		stage.innerHTML = '<div data-element-id="cta"></div>';
+		const elements = [
+			{
+				...base,
+				id: 'cta',
+				type: 'image',
+				altText: 'Click me',
+				isDecorative: true,
+				actionClick: { url: 'https://example.com' },
+			},
+		] as PptxElement[];
+		applyRenderedElementAccessibility(stage, elements);
+		const node = stage.querySelector('[data-element-id="cta"]');
+		expect(node?.hasAttribute('aria-hidden')).toBeFalsy();
+		expect(node?.getAttribute('role')).toBe('button');
+		expect(node?.getAttribute('aria-label')).toBe('Click me');
+	});
+
+	it('clears a stale aria-hidden when a previously-decorative element updates', () => {
+		const stage = document.createElement('div');
+		stage.innerHTML = '<div data-element-id="art" aria-hidden="true"></div>';
+		const elements = [
+			{ ...base, id: 'art', type: 'image', altText: 'Now meaningful' },
+		] as PptxElement[];
+		applyRenderedElementAccessibility(stage, elements);
+		expect(stage.querySelector('[data-element-id="art"]')?.hasAttribute('aria-hidden')).toBeFalsy();
+	});
+
 	it('includes nested group children', () => {
 		const stage = document.createElement('div');
 		stage.innerHTML = '<div data-element-id="group"><div data-element-id="child"></div></div>';

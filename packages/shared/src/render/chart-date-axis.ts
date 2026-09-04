@@ -1,6 +1,7 @@
 import type { PptxChartAxisFormatting, PptxChartData } from 'pptx-viewer-core';
 
 import { chartAxisTextStyle, chartLineStyle } from './chart-axis-style';
+import { formatDate } from './chart-date-format';
 import type { PlotLayout, SvgLine, SvgText } from './chart-view-model';
 
 const DAY_MS = 86_400_000;
@@ -39,22 +40,6 @@ function addUnit(date: Date, amount: number, unit: 'days' | 'months' | 'years'):
 		next.setUTCFullYear(next.getUTCFullYear() + amount);
 	}
 	return next;
-}
-
-function formatDate(date: Date, unit: 'days' | 'months' | 'years', format?: string): string {
-	const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-	const year = String(date.getUTCFullYear());
-	const day = String(date.getUTCDate());
-	if (format?.toLowerCase().includes('yyyy')) {
-		return format.toLowerCase().includes('d') ? `${day} ${month} ${year}` : `${month} ${year}`;
-	}
-	if (unit === 'years') {
-		return year;
-	}
-	if (unit === 'months') {
-		return `${month} ${year}`;
-	}
-	return `${day} ${month}`;
 }
 
 function tickLine(

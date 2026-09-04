@@ -25,6 +25,7 @@
  */
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
+import { formatChartNumberWithColor } from './chart-number-format';
 import { formatAxisValue } from './chart-view-model';
 
 /** The label content flags, after the three-level cascade has been applied. */
@@ -120,21 +121,49 @@ export interface DataLabelTextParams {
 	percentBase?: number;
 }
 
+/** A built data label: its text, and the `[Red]`/`[Blue]` colour it carries, if any. */
+export interface DataLabelTextResult {
+	text: string;
+	/**
+	 * A colour from the resolved number-format's `[Red]`/`[Blue]`/etc. section
+	 * (see `chart-number-format.ts`). Only set when the label renders AS the
+	 * formatted value with no other combined component: a joined "Category,
+	 * -42" label has no way to tint just the number in one flat `<text>`
+	 * element, so the caller's own default colour applies there instead.
+	 */
+	color?: string;
+}
+
 /**
  * Build the text of one data label, or `undefined` when the label is deleted or
  * resolves to nothing. Pure: the caller decides where to draw it.
  */
-export function buildDataLabelText(params: DataLabelTextParams): string | undefined {
+export function buildDataLabelText(params: DataLabelTextParams): DataLabelTextResult | undefined {
 	const { chartData, series, pointIndex, value, percentBase } = params;
 	const content = resolveDataLabelContent(chartData, series, pointIndex);
 	if (content.deleted) {
 		return undefined;
 	}
 	if (content.customText !== undefined) {
-		return content.customText;
+		return { text: content.customText };
 	}
 
+	// c:dLbl/c:numFmt > c:ser/c:dLbls/c:numFmt (series level) >
+	// c:*Chart/c:dLbls/c:numFmt (chart-type level) > the series' own cell
+	// format: the same point > series > chart-type cascade the content flags
+	// above use. A label may show a different (typically more compact) format
+	// than the axis/series it belongs to.
+	const point = series.dataLabels?.find((label) => label.idx === pointIndex);
+	const seriesLevelOptions = series.dataLabelOptions;
+	const chartLevelOptions = chartData.style?.dataLabels;
+	const numberFormat =
+		point?.numberFormat ??
+		seriesLevelOptions?.numberFormat ??
+		chartLevelOptions?.numberFormat ??
+		series.numberFormat;
+
 	const parts: string[] = [];
+	let valueColor: string | undefined;
 	// PowerPoint's own component order, matching the Format Data Labels list.
 	if (content.showSeriesName && series.name.length > 0) {
 		parts.push(series.name);
@@ -146,7 +175,9 @@ export function buildDataLabelText(params: DataLabelTextParams): string | undefi
 		}
 	}
 	if (content.showValue) {
-		parts.push(formatAxisValue(value, series.numberFormat));
+		const formatted = formatChartNumberWithColor(value, numberFormat);
+		parts.push(formatted?.text ?? formatAxisValue(value, numberFormat));
+		valueColor = formatted?.color;
 	}
 	if (content.showPercent) {
 		const base = percentBase ?? series.values.reduce((total, entry) => total + Math.abs(entry), 0);
@@ -160,5 +191,8 @@ export function buildDataLabelText(params: DataLabelTextParams): string | undefi
 	}
 
 	const text = parts.join(content.separator);
-	return text.length > 0 ? text : undefined;
+	if (text.length === 0) {
+		return undefined;
+	}
+	return { text, color: parts.length === 1 && content.showValue ? valueColor : undefined };
 }

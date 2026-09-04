@@ -33,6 +33,7 @@ import { getPatternSvg, normalizeHexColor } from './fill-style';
 import type { CellBorderPosition } from './table-style-borders';
 import { resolveCellBorderCss, resolveStyleDiagonalBorders } from './table-style-borders';
 import { getBuiltinTableStyle } from './table-style-builtins';
+import { resolveTableStyleCell3D } from './table-style-cell3d';
 import {
 	applyStyleFill,
 	applyStyleText,
@@ -42,6 +43,7 @@ import {
 import { cellImageFillCss } from './table-style-image';
 
 export { resolveStyleDiagonalBorders } from './table-style-borders';
+export { resolveTableStyleCell3D } from './table-style-cell3d';
 export { cell3DBevelCss, resolveFontRefIdx } from './table-style-fill';
 export { cellImageFillCss } from './table-style-image';
 export type { CellImageFillCss } from './table-style-image';
@@ -542,7 +544,15 @@ export function getTableCellBandStyle(
 	const style: TableCellCss = {};
 	let applied = false;
 
-	// ── Whole-table fill (lowest priority layer). ──
+	// ── a:tblPr's OWN fill (issue G6), the lowest priority layer of all:
+	// independent of a:tblStyleLst, beneath even the style's wholeTbl fill. ──
+	if (tableData.tableFill) {
+		if (applyStyleFill(tableData.tableFill, colorScheme, style, '')) {
+			applied = true;
+		}
+	}
+
+	// ── Whole-table fill (from the referenced table style). ──
 	if (styleEntry?.wholeTblFill) {
 		if (applyStyleFill(styleEntry.wholeTblFill, colorScheme, style, '')) {
 			applied = true;
@@ -665,6 +675,21 @@ export function getTableCellBandStyle(
 	// ── Top corner cells (neCell, nwCell): highest precedence of all. ──
 	applyPart(atTop && atRight, styleEntry?.neCellFill, styleEntry?.neCellText);
 	applyPart(atTop && atLeft, styleEntry?.nwCellFill, styleEntry?.nwCellText);
+
+	// ── 3D bevel (a:tcStyle/a:cell3D): resolved in its own module so this
+	// already-oversized file doesn't grow further (issue G5). A per-cell
+	// explicit a:tcPr/a:cell3D (applied by cellStyleToCss) still wins, since
+	// that call happens after this lower layer in table-cell-css.ts. ──
+	const styleCell3D = resolveTableStyleCell3D(styleEntry, tableData, {
+		rowIndex,
+		cellIndex,
+		rowCount,
+		columnCount,
+	});
+	if (styleCell3D) {
+		Object.assign(style, cell3DBevelCss(styleCell3D));
+		applied = true;
+	}
 
 	// ── Table-style borders (issue #71). ──
 	// Resolve gridlines/edges the cell inherits from the table style and let

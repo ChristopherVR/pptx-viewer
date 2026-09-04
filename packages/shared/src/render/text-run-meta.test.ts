@@ -44,7 +44,32 @@ describe('resolveRunHyperlink', () => {
 			url: 'https://example.com/a',
 			href: 'https://example.com/a',
 			tooltip: 'Docs',
+			target: '_blank',
+			rel: 'noopener noreferrer',
 		});
+	});
+
+	it('maps a:hlinkClick/@tgtFrame onto the anchor target, dropping rel for _self', () => {
+		expect(
+			resolveRunHyperlink({
+				hyperlink: 'https://example.com/a',
+				hyperlinkTargetFrame: '_self',
+			}),
+		).toStrictEqual({
+			url: 'https://example.com/a',
+			href: 'https://example.com/a',
+			target: '_self',
+			rel: '',
+		});
+	});
+
+	it('keeps noopener/noreferrer for a named (non-_self) tgtFrame', () => {
+		const link = resolveRunHyperlink({
+			hyperlink: 'https://example.com/a',
+			hyperlinkTargetFrame: 'contentFrame',
+		});
+		expect(link?.target).toBe('contentFrame');
+		expect(link?.rel).toBe('noopener noreferrer');
 	});
 
 	it('keeps an unsafe target out of the href but still reports the url', () => {
@@ -70,6 +95,8 @@ describe('resolveRunHyperlink', () => {
 			url: 'https://example.com/h',
 			href: 'https://example.com/h',
 			onHover: true,
+			target: '_blank',
+			rel: 'noopener noreferrer',
 		});
 	});
 

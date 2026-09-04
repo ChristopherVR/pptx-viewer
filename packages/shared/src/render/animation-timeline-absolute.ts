@@ -111,6 +111,34 @@ function clamp01(value: number): number {
 	return Math.max(0, Math.min(1, value));
 }
 
+/**
+ * Expand SORTED stops into a "hold, then snap" sequence so a `p:anim/@_calcmode
+ * ="discrete"` ramp (ECMA-376 S19.5.2 ST_TLAnimateBehaviorCalcMode) snaps to
+ * each stop's value with no interpolation, instead of the CSS default of
+ * linearly tweening between adjacent stops.
+ *
+ * For each pair of adjacent stops, an extra entry is inserted a hair (0.01
+ * percentage points) before the next stop's own percentage, carrying the
+ * PREVIOUS stop's value: the value then holds flat across the whole interval
+ * and snaps to the new value only in that last sliver, which reads as
+ * instantaneous at normal playback speeds without requiring a `steps()`
+ * timing function (which divides the animation's total duration evenly and
+ * cannot reproduce irregularly-spaced `p:tav/@_tm` stops).
+ */
+function toDiscreteStops<T extends { pct: number }>(stops: readonly T[]): T[] {
+	if (stops.length === 0) {
+		return [];
+	}
+	const out: T[] = [stops[0]];
+	for (let i = 1; i < stops.length; i++) {
+		const previous = stops[i - 1];
+		const holdPct = Math.max(previous.pct, stops[i].pct - 0.01);
+		out.push({ ...previous, pct: holdPct });
+		out.push(stops[i]);
+	}
+	return out;
+}
+
 /** `p:attrName` values known to name an opacity attribute. */
 const KNOWN_OPACITY_ATTR_NAMES: ReadonlySet<string> = new Set(['style.opacity', 'opacity']);
 
@@ -135,7 +163,7 @@ const KNOWN_OPACITY_ATTR_NAMES: ReadonlySet<string> = new Set(['style.opacity', 
  * caller keeps its existing (2-stop, canned) behaviour, so nothing regresses.
  */
 export function buildOpacityTavKeyframe(
-	anim: Pick<PptxNativeAnimation, 'keyframes' | 'presetClass' | 'attrName'>,
+	anim: Pick<PptxNativeAnimation, 'keyframes' | 'presetClass' | 'attrName' | 'calcMode'>,
 	namePrefix: string,
 	uid: number,
 ): { keyframeName: string; css: string } | undefined {
@@ -166,9 +194,12 @@ export function buildOpacityTavKeyframe(
 		stops.push({ pct: clamp01(kf.tm / 100000) * 100, opacity });
 	}
 	stops.sort((a, b) => a.pct - b.pct);
+	const renderedStops = anim.calcMode === 'discrete' ? toDiscreteStops(stops) : stops;
 
 	const name = `${namePrefix}-${uid}`;
-	const lines = stops.map((s) => `\t${Number(s.pct.toFixed(2))}% { opacity: ${s.opacity}; }`);
+	const lines = renderedStops.map(
+		(s) => `\t${Number(s.pct.toFixed(2))}% { opacity: ${s.opacity}; }`,
+	);
 	return { keyframeName: name, css: `@keyframes ${name} {\n${lines.join('\n')}\n}` };
 }
 
@@ -207,7 +238,7 @@ const HEX_COLOR_RE = /^#[0-9a-f]{6}$/iu;
  * whichever OOXML behaviour authored it.
  */
 export function buildColorTavKeyframe(
-	anim: Pick<PptxNativeAnimation, 'keyframes' | 'attrName' | 'colorAnimation'>,
+	anim: Pick<PptxNativeAnimation, 'keyframes' | 'attrName' | 'colorAnimation' | 'calcMode'>,
 	namePrefix: string,
 	uid: number,
 ): { keyframeName: string; css: string } | undefined {
@@ -237,10 +268,11 @@ export function buildColorTavKeyframe(
 		stops.push({ pct: clamp01(kf.tm / 100000) * 100, color: color.toLowerCase() });
 	}
 	stops.sort((a, b) => a.pct - b.pct);
+	const renderedStops = anim.calcMode === 'discrete' ? toDiscreteStops(stops) : stops;
 
 	const cssProperties = resolveCssProperties(anim.attrName);
 	const name = `${namePrefix}-${uid}`;
-	const lines = stops.map((s) => {
+	const lines = renderedStops.map((s) => {
 		const decls = cssProperties.map((prop) => `${prop}: ${s.color};`).join(' ');
 		return `\t${Number(s.pct.toFixed(2))}% { ${decls} }`;
 	});

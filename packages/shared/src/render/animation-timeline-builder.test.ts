@@ -187,6 +187,34 @@ describe('buildTimeline', () => {
 	});
 
 	// -------------------------------------------------------------------
+	// G13: p:cond/@tn dependency on a SPECIFIC, non-adjacent earlier node
+	// -------------------------------------------------------------------
+	it('schedules a p:cond/@tn dependency off the referenced node, not the positionally-previous step', () => {
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', trigger: 'onClick', nodeId: 1, delayMs: 0, durationMs: 1000 }),
+			// A short "withPrevious" sibling that finishes long before el1: without
+			// the fix, el3 (below) would incorrectly chain off THIS step instead of
+			// the el1 node its own `p:cond/@tn` actually names.
+			makeAnim({
+				targetId: 'el2',
+				trigger: 'withPrevious',
+				nodeId: 2,
+				delayMs: 0,
+				durationMs: 200,
+			}),
+			makeAnim({
+				targetId: 'el3',
+				nodeId: 3,
+				startConditions: [{ event: 'onEnd', targetTimeNodeId: 1 }],
+			}),
+		]);
+		const steps = result.clickGroups[0].steps;
+		expect(steps).toHaveLength(3);
+		// Correct: el1 ends at 0 + 1000 = 1000, NOT el2's 0 + 200 = 200.
+		expect(steps[2].delayMs).toBe(1000);
+	});
+
+	// -------------------------------------------------------------------
 	// First animation starts implicit click-group regardless of trigger
 	// -------------------------------------------------------------------
 	it('creates implicit click-group for first withPrevious animation', () => {

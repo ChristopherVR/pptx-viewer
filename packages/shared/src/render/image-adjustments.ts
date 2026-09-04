@@ -85,12 +85,16 @@ export function imageCropStateOf(el: PptxElement): ImageCropState {
 	};
 }
 
-/** Clamp a crop fraction to the sane `[0, 0.9]` range (never crop past 90% of an edge). */
+/**
+ * Clamp a crop fraction to `[-0.9, 0.9]`: never crop (or pad, for a signed
+ * `a:srcRect` outward crop) past 90% of an edge. Sign is preserved so a
+ * handle drag cannot destroy an authored negative crop.
+ */
 function clampCropFraction(value: number): number {
 	if (!Number.isFinite(value)) {
 		return 0;
 	}
-	return Math.min(0.9, Math.max(0, value));
+	return Math.min(0.9, Math.max(-0.9, value));
 }
 
 /**

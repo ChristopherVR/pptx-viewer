@@ -18,6 +18,7 @@
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { isPpactionUrl, resolveHyperlinkHref } from './hyperlink-security';
+import { resolveHyperlinkTargetAttrs } from './hyperlink-target';
 import { sanitizeMathMl } from './mathml-sanitize';
 import { convertOmmlToMathMl } from './omml-to-mathml';
 import type { OmmlNode } from './omml-to-mathml';
@@ -40,6 +41,14 @@ export interface RunHyperlink {
 	href?: string;
 	/** `a:hlinkClick/@tooltip`, for the anchor's `title`. */
 	tooltip?: string;
+	/**
+	 * `<a target>` for a real (non-`ppaction://`) hyperlink, from
+	 * `a:hlinkClick/@tgtFrame` when authored, else `_blank` (every binding's
+	 * pre-existing hardcoded default). Only meaningful alongside {@link href}.
+	 */
+	target?: string;
+	/** `<a rel>` paired with {@link target} (see `resolveHyperlinkTargetAttrs`). */
+	rel?: string;
 	/** Resolved target slide for an internal slide jump. */
 	targetSlideIndex?: number;
 	/**
@@ -82,6 +91,9 @@ export function resolveRunHyperlink(style: TextStyle | undefined): RunHyperlink 
 	const href = resolveHyperlinkHref(raw);
 	if (href !== undefined) {
 		link.href = href;
+		const targetAttrs = resolveHyperlinkTargetAttrs(style?.hyperlinkTargetFrame);
+		link.target = targetAttrs.target;
+		link.rel = targetAttrs.rel;
 	}
 	if (style?.hyperlinkTooltip) {
 		link.tooltip = style.hyperlinkTooltip;

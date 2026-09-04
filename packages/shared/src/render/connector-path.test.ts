@@ -5,7 +5,9 @@ import {
 	buildConnectorGeometry,
 	buildConnectorPathD,
 	buildDashArray,
+	buildWrapperStyle,
 	connectorHitStrokeWidth,
+	connectorWrapperTransform,
 	markerPath,
 } from './connector-path';
 
@@ -209,5 +211,65 @@ describe('buildConnectorPathD: bent/curved routing', () => {
 			1,
 		);
 		expect(geo.pathD).toBe('M0,0 L68.5,0 L68.5,89 L137,89');
+	});
+});
+
+// G0: a connector's flip is baked into its endpoints (x1/y1/x2/y2 swap
+// above), so the wrapper transform must carry rotation only. Re-applying the
+// flip as scaleX(-1)/scaleY(-1) on the wrapper would cancel the endpoint
+// swap back out (this is exactly what React's ConnectorElementRenderer did
+// by using the generic getElementTransform, which includes flip, before this
+// fix routed it through connectorWrapperTransform instead).
+describe('connectorWrapperTransform', () => {
+	it('omits scale for a flipped bentConnector2, carrying rotation only', () => {
+		const el = {
+			id: 'c5',
+			type: 'connector',
+			shapeType: 'bentConnector2',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			flipHorizontal: true,
+			rotation: 30,
+		} as PptxElement;
+		const transform = connectorWrapperTransform(el);
+		expect(transform).toBe('rotate(30deg)');
+		expect(transform).not.toContain('scale');
+	});
+
+	it('is undefined for an unrotated connector regardless of flip', () => {
+		const el = {
+			id: 'c6',
+			type: 'connector',
+			shapeType: 'straightConnector1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			flipHorizontal: true,
+			flipVertical: true,
+		} as PptxElement;
+		expect(connectorWrapperTransform(el)).toBeUndefined();
+	});
+});
+
+describe('buildWrapperStyle', () => {
+	it('never emits a scale transform for a flipped connector', () => {
+		const el = {
+			id: 'c7',
+			type: 'connector',
+			shapeType: 'bentConnector2',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			flipHorizontal: true,
+			flipVertical: true,
+			rotation: 45,
+		} as PptxElement;
+		const style = buildWrapperStyle(el, 2);
+		expect(style).toContain('transform:rotate(45deg)');
+		expect(style).not.toContain('scale');
 	});
 });

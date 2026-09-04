@@ -176,6 +176,33 @@ export function manualLegendAnchor(
 }
 
 /**
+ * Shift a data label's automatic anchor point to its author-dragged position
+ * from `c:dLbl/c:layout/c:manualLayout` when the label declares one.
+ *
+ * A per-label manual layout has no natural "auto rect": PowerPoint records a
+ * drag as an offset from wherever the label would otherwise sit, so this
+ * treats the automatic point as a nominal 1x1 rect and reuses
+ * `resolveManualLayoutRect`'s edge/factor arithmetic unchanged. A label with no
+ * `layout` (the overwhelming majority) returns `point` unmodified.
+ */
+export function applyLabelManualLayout(
+	layout: PptxChartManualLayout | null | undefined,
+	frame: ChartFrameSize,
+	point: ChartAnchorPoint,
+): ChartAnchorPoint {
+	if (!hasManualLayoutFields(layout)) {
+		return point;
+	}
+	const rect = resolveManualLayoutRect(layout, frame, {
+		x: point.x,
+		y: point.y,
+		width: 1,
+		height: 1,
+	});
+	return rect ? { x: rect.x, y: rect.y } : point;
+}
+
+/**
  * Offset from the chart element's pixel space to a view-model's SVG space.
  *
  * Cartesian view-models use the element box as their viewBox (no offset);

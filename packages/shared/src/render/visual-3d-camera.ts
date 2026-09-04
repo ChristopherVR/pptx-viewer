@@ -68,6 +68,11 @@ const CAMERA_PRESET_MAP: Record<string, CameraPresetConfig> = {
 	perspectiveRelaxedModerately: { perspective: '1400px', rotateX: -5, rotateY: 0, rotateZ: 0 },
 	isometricLeftDown: { perspective: '1200px', rotateX: -35, rotateY: 45, rotateZ: 0 },
 	isometricRightUp: { perspective: '1200px', rotateX: -35, rotateY: -45, rotateZ: 0 },
+	// The other diagonal of the same isometric cube: LeftUp/RightDown mirror
+	// LeftDown/RightUp around the X axis (positive tilt instead of negative),
+	// matching how the Top/Bottom pair already flips sign on rotateX.
+	isometricLeftUp: { perspective: '1200px', rotateX: 35, rotateY: 45, rotateZ: 0 },
+	isometricRightDown: { perspective: '1200px', rotateX: 35, rotateY: -45, rotateZ: 0 },
 	isometricTopUp: { perspective: '1200px', rotateX: -55, rotateY: 0, rotateZ: 45 },
 	isometricTopDown: { perspective: '1200px', rotateX: -55, rotateY: 0, rotateZ: -45 },
 	isometricBottomUp: { perspective: '1200px', rotateX: 55, rotateY: 0, rotateZ: 45 },
@@ -92,6 +97,31 @@ const CAMERA_PRESET_MAP: Record<string, CameraPresetConfig> = {
 	obliqueBottomLeft: { perspective: '900px', rotateX: 20, rotateY: 20, rotateZ: 0 },
 	obliqueBottom: { perspective: '900px', rotateX: 25, rotateY: 0, rotateZ: 0 },
 	obliqueBottomRight: { perspective: '900px', rotateX: 20, rotateY: -20, rotateZ: 0 },
+	// Pre-2007 (legacy) WordArt/AutoShape 3-D camera names. Schema-legal but not
+	// exposed in the modern "3-D Rotation" gallery; they only surface via files
+	// round-tripped from legacy Office or hand-authored XML. No exact modern
+	// equivalent exists, so these approximate the named position with the same
+	// rotation magnitudes as the modern `oblique*`/`perspective*` families
+	// (legacy oblique = same angles as modern oblique; legacy perspective =
+	// the same position amplified, for a visibly stronger depth cue).
+	legacyObliqueTopLeft: { perspective: '900px', rotateX: -20, rotateY: 20, rotateZ: 0 },
+	legacyObliqueTop: { perspective: '900px', rotateX: -25, rotateY: 0, rotateZ: 0 },
+	legacyObliqueTopRight: { perspective: '900px', rotateX: -20, rotateY: -20, rotateZ: 0 },
+	legacyObliqueLeft: { perspective: '900px', rotateX: 0, rotateY: 25, rotateZ: 0 },
+	legacyObliqueFront: { perspective: '900px', rotateX: 0, rotateY: 0, rotateZ: 0 },
+	legacyObliqueRight: { perspective: '900px', rotateX: 0, rotateY: -25, rotateZ: 0 },
+	legacyObliqueBottomLeft: { perspective: '900px', rotateX: 20, rotateY: 20, rotateZ: 0 },
+	legacyObliqueBottom: { perspective: '900px', rotateX: 25, rotateY: 0, rotateZ: 0 },
+	legacyObliqueBottomRight: { perspective: '900px', rotateX: 20, rotateY: -20, rotateZ: 0 },
+	legacyPerspectiveTopLeft: { perspective: '700px', rotateX: -30, rotateY: 30, rotateZ: 0 },
+	legacyPerspectiveTop: { perspective: '700px', rotateX: -35, rotateY: 0, rotateZ: 0 },
+	legacyPerspectiveTopRight: { perspective: '700px', rotateX: -30, rotateY: -30, rotateZ: 0 },
+	legacyPerspectiveLeft: { perspective: '700px', rotateX: 0, rotateY: 35, rotateZ: 0 },
+	legacyPerspectiveFront: { perspective: '700px', rotateX: 0, rotateY: 0, rotateZ: 0 },
+	legacyPerspectiveRight: { perspective: '700px', rotateX: 0, rotateY: -35, rotateZ: 0 },
+	legacyPerspectiveBottomLeft: { perspective: '700px', rotateX: 30, rotateY: 30, rotateZ: 0 },
+	legacyPerspectiveBottom: { perspective: '700px', rotateX: 35, rotateY: 0, rotateZ: 0 },
+	legacyPerspectiveBottomRight: { perspective: '700px', rotateX: 30, rotateY: -30, rotateZ: 0 },
 };
 
 /** Resolved camera transform produced by {@link getCameraTransform}. */

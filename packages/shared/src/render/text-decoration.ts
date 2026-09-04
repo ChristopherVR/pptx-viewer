@@ -73,6 +73,20 @@ export function resolveUnderlineDecorationStyle(
 		case 'sng':
 			return { textDecorationStyle: 'solid', textDecorationThickness: '1px' };
 
+		// D2-G3: `words` underlines only the non-whitespace characters, leaving
+		// inter-word spaces unmarked (ST_TextUnderlineType, ECMA-376 §20.1.10.64),
+		// distinct from `sng`'s continuous line. A single `text-decoration` on
+		// the whole run cannot skip spaces (CSS's `text-decoration-skip: spaces`
+		// never shipped in Chromium, the app's target runtime - see the
+		// `hanging-punctuation` precedent in `kinsoku-styles.ts`), so this falls
+		// back to the same continuous solid underline as `sng` rather than
+		// silently drawing nothing (the previous `default: undefined` behaviour).
+		// A binding wanting the true per-word gap needs to split the run into
+		// per-word pieces before applying this decoration - see
+		// {@link splitWordsForUnderline}.
+		case 'words':
+			return { textDecorationStyle: 'solid', textDecorationThickness: '1px' };
+
 		// Double
 		case 'dbl':
 			return { textDecorationStyle: 'double', textDecorationThickness: '1px' };
@@ -194,4 +208,47 @@ export function resolveUnderlineLineDecoration(
 		}
 	}
 	return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** One word-or-whitespace piece of a run's text, for `u="words"` rendering. */
+export interface UnderlineWordPiece {
+	text: string;
+	/** Whether this piece should carry the underline decoration. */
+	underline: boolean;
+}
+
+/**
+ * Split `text` into alternating word / whitespace pieces so a binding can
+ * render `a:rPr/@u="words"` (D2-G3) as true per-word underlines with a gap
+ * under the spaces between them, by wrapping each `underline: true` piece in
+ * its own `<span>` and leaving whitespace pieces undecorated.
+ *
+ * Not wired into any binding's run renderer yet (that lives in each binding's
+ * per-run render path / `paragraph-run-build.ts`, outside this module's
+ * scope): {@link resolveUnderlineDecorationStyle}'s `'words'` case is the
+ * currently-active fallback (a single continuous underline). This helper
+ * exists so that wiring is a matter of calling it and mapping the result to
+ * spans, not inventing the split logic per binding.
+ *
+ * @param text Run text to split. Whitespace here means ASCII/Unicode spaces
+ *             and tabs; a run already split into `tabLines` should call this
+ *             per tab-stop segment, not on the raw unsplit text.
+ */
+export function splitWordsForUnderline(text: string): UnderlineWordPiece[] {
+	if (!text) {
+		return [];
+	}
+	const pieces: UnderlineWordPiece[] = [];
+	// Alternates between "run of whitespace" and "run of non-whitespace"
+	// matches, in text order (String.split with a capturing group interleaves
+	// the delimiters, so a manual matchAll keeps this a single linear pass).
+	const matches = text.matchAll(/(\s+)|(\S+)/gu);
+	for (const match of matches) {
+		if (match[1] !== undefined) {
+			pieces.push({ text: match[1], underline: false });
+		} else if (match[2] !== undefined) {
+			pieces.push({ text: match[2], underline: true });
+		}
+	}
+	return pieces;
 }

@@ -15,10 +15,12 @@ import {
 	computeValueRangeForChart,
 	splitSeriesByAxis,
 } from './chart-axis';
+import { buildAreas } from './chart-cartesian-area';
 import { buildCartesianAxes } from './chart-cartesian-axes';
 import { buildBars } from './chart-cartesian-bars';
-import { buildAreas, buildLines } from './chart-cartesian-line-area';
-import { buildBubbles, buildScatter } from './chart-cartesian-plots';
+import { buildBubbles } from './chart-cartesian-bubbles';
+import { buildLines } from './chart-cartesian-line-area';
+import { buildScatter } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeHelperLinePrimitives } from './chart-helper-lines';

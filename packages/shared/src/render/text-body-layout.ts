@@ -29,6 +29,7 @@ import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import { getKinsokuLineBreakStyles } from './kinsoku-styles';
+import { resolveVerticalAnchorJustifyContent } from './text-style-helpers';
 
 /** A neutral CSS record: camelCase property names, plain CSS values. */
 export type TextBodyLayoutStyle = Record<string, string | number>;
@@ -187,8 +188,7 @@ export function buildTextBodyLayoutStyle(element: PptxElement): TextBodyLayoutSt
 	} else {
 		style.display = 'flex';
 		style.flexDirection = 'column';
-		style.justifyContent =
-			ts?.vAlign === 'middle' ? 'center' : ts?.vAlign === 'bottom' ? 'flex-end' : 'flex-start';
+		style.justifyContent = resolveVerticalAnchorJustifyContent(ts?.vAlign, element.textSegments);
 	}
 
 	// `a:bodyPr/@anchorCtr="1"`: "determine the smallest possible bounding box

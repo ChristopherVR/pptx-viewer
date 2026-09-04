@@ -2,6 +2,7 @@ import type { PptxElement, PptxShapeLocks } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	canDrillDown,
 	canInteractWithElement,
 	elementLockTogglePatch,
 	filterInteractableIds,
@@ -72,6 +73,12 @@ describe('resolveElementInteractivity', () => {
 		expect(
 			resolveElementInteractivity(shape('a', { noChangeShapeType: true })).shapeTypeChangeable,
 		).toBeFalsy();
+		// G7: a:picLocks/@noCrop.
+		expect(resolveElementInteractivity(shape('a', { noCrop: true })).croppable).toBeFalsy();
+		// G8: a:graphicFrameLocks/@noDrilldown.
+		expect(
+			resolveElementInteractivity(shape('a', { noDrilldown: true })).drilldownable,
+		).toBeFalsy();
 	});
 
 	it('ignores txBox, which rides on the same node but is not a lock', () => {
@@ -87,6 +94,15 @@ describe('canInteractWithElement', () => {
 		expect(canInteractWithElement(locked, 'resize')).toBeTruthy();
 		expect(isElementInteractionLocked(locked, 'move')).toBeTruthy();
 		expect(isElementInteractionLocked(locked, 'select')).toBeFalsy();
+	});
+});
+
+describe('canDrillDown', () => {
+	it('gates the shared drill-down entry point on a:graphicFrameLocks/@noDrilldown', () => {
+		const table = shape('t', { noDrilldown: true });
+		expect(canDrillDown(table)).toBeFalsy();
+		expect(canDrillDown(shape('t2'))).toBeTruthy();
+		expect(canDrillDown(undefined)).toBeTruthy();
 	});
 });
 

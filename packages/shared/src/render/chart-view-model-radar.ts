@@ -12,8 +12,8 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
+import { computeRadarPoints, radarAngle, radarRingPoints } from './chart-radar-geometry';
 import { buildLegend, computePlotLayout } from './chart-view-model-layout';
-import { computeRadarPoints, radarAngle, radarRingPoints } from './chart-view-model-points';
 import { buildMarkTooltip, formatAxisValue, seriesColor } from './chart-view-model-scale';
 import type {
 	ChartViewModel,

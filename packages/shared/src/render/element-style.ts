@@ -86,6 +86,13 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CssStyleMap 
 	if (el.hidden) {
 		style['display'] = 'none';
 	}
+	if (el.type === 'group') {
+		// `p:animMotion/@origin="parent"` scales a motion path against the
+		// enclosing group's box (see `animation-transform-keyframes.ts`); the
+		// custom properties inherit down to every child of the group.
+		style['--pptx-parent-w'] = px(painted.width);
+		style['--pptx-parent-h'] = px(painted.height);
+	}
 	return style;
 }
 
@@ -269,7 +276,16 @@ export function fitTransformsFromInsets(insets: ImageFitInsets): {
 	let cropTop = insets.cropTop;
 	let cropRight = insets.cropRight;
 	let cropBottom = insets.cropBottom;
-	if (cropLeft + cropRight > 0.0001 || cropTop + cropBottom > 0.0001) {
+	// Magnitude, not the signed sum: a negative `a:srcRect` inset (an outward
+	// crop that pads the image inside its frame) can sum near zero against a
+	// zero/positive opposite edge yet still be an authored crop that must
+	// produce a transform, not be silently skipped as "no crop".
+	const hasCrop =
+		Math.abs(cropLeft) > 0.0001 ||
+		Math.abs(cropRight) > 0.0001 ||
+		Math.abs(cropTop) > 0.0001 ||
+		Math.abs(cropBottom) > 0.0001;
+	if (hasCrop) {
 		// A crop that swallows (almost) the whole source would divide by ~0
 		// below, so the pair is rescaled to leave a 1% sliver rather than
 		// producing Infinity.

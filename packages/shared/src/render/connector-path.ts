@@ -272,6 +272,22 @@ export function buildConnectorPathD(
 }
 
 /**
+ * The connector wrapper's CSS `transform` value: rotation only, never flip.
+ *
+ * A connector's `flipHorizontal`/`flipVertical` is already baked into its
+ * endpoints (`buildConnectorGeometry`'s `x1/y1/x2/y2`, which swap per flip
+ * flag), so re-applying the flip as a `scaleX(-1)`/`scaleY(-1)` on the
+ * wrapper would cancel it back out. Every binding must build its wrapper
+ * transform through this one function rather than the general-purpose
+ * `getElementTransform` (which DOES include flip, for every other element
+ * type) or the flip cancels silently; see CLAUDE.md Rule 2 and the G0 fix in
+ * the OpenXML parity audit.
+ */
+export function connectorWrapperTransform(element: PptxElement): string | undefined {
+	return element.rotation ? `rotate(${element.rotation}deg)` : undefined;
+}
+
+/**
  * Build the inline `style` string for the connector wrapper `<div>`.
  * Position, size, z-index, rotation, opacity, and visibility.
  */
@@ -286,9 +302,9 @@ export function buildWrapperStyle(element: PptxElement, zIndex: number): string 
 		'pointer-events:none',
 		'overflow:visible',
 	];
-	if (element.rotation) {
-		// Flip is handled via endpoints; only rotation goes on the transform.
-		parts.push(`transform:rotate(${element.rotation}deg)`);
+	const transform = connectorWrapperTransform(element);
+	if (transform) {
+		parts.push(`transform:${transform}`);
 	}
 	if (typeof element.opacity === 'number') {
 		parts.push(`opacity:${element.opacity}`);

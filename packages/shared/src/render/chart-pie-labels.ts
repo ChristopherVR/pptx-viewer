@@ -33,13 +33,14 @@ export interface PieLabelParams {
 	/** Series `c:numFmt` / cache format code applied to each label value. */
 	numberFormat?: string;
 	/**
-	 * Resolves the TEXT of the label at `pointIndex`, so `c:showPercent` /
+	 * Resolves the TEXT (and, for a value-only label, its `[Red]`/`[Blue]`
+	 * number-format colour) of the label at `pointIndex`, so `c:showPercent` /
 	 * `c:showCatName` / `c:separator` can be honoured (see
 	 * `chart-data-label-text`). Returning `undefined` suppresses that one label
 	 * (a `c:dLbl/c:delete`). Omit to print the formatted value, which is what
 	 * this module did before the content flags were wired up.
 	 */
-	labelText?: (pointIndex: number, value: number) => string | undefined;
+	labelText?: (pointIndex: number, value: number) => { text: string; color?: string } | undefined;
 }
 
 export interface PieLabelResult {
@@ -69,10 +70,11 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		if (val === undefined) {
 			return;
 		}
-		const text = labelText ? labelText(i, val) : formatAxisValue(val, numberFormat);
-		if (text === undefined) {
+		const resolved = labelText ? labelText(i, val) : { text: formatAxisValue(val, numberFormat) };
+		if (resolved === undefined) {
 			return;
 		}
+		const { text, color } = resolved;
 		if (!outside) {
 			labels.push({
 				kind: 'text',
@@ -80,7 +82,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 				y: slice.labelY,
 				text,
 				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-				fill: '#ffffff',
+				fill: color ?? '#ffffff',
 				textAnchor: 'middle',
 				fontWeight: 'bold',
 				dominantBaseline: 'central',
@@ -102,7 +104,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 			y: labelY,
 			text,
 			fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-			fill: '#334155',
+			fill: color ?? '#334155',
 			textAnchor: anchor,
 			dominantBaseline: 'central',
 		});

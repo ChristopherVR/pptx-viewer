@@ -37,6 +37,10 @@ import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { getP14TransitionAnimations } from './p14-transition-css';
 import { getCinematicTransitionAnimations } from './slide-transition-cinematic';
 import {
+	resolveCheckerTransition,
+	resolveZoomTransition,
+} from './slide-transition-directional-shapes';
+import {
 	DEFAULT_MORPH_DURATION_MS,
 	DEFAULT_TRANSITION_DURATION_MS,
 	EASE,
@@ -45,6 +49,7 @@ import {
 	resolveDirection,
 	resolveDirection8,
 	resolveOrientation,
+	resolveWheelSpokeCount,
 	TRANSITION_SPEED_DURATION_MS,
 } from './slide-transition-types';
 import type {
@@ -52,6 +57,7 @@ import type {
 	ResolvedDirection8,
 	SlideTransitionAnimations,
 } from './slide-transition-types';
+import { wheelKeyframeName } from './slide-transition-wheel-keyframes';
 
 /**
  * Map a {@link PptxTransitionType} (+ duration/direction/orient/spokes) to the
@@ -67,9 +73,6 @@ export function getSlideTransitionAnimations(
 	spokes?: number | undefined,
 ): SlideTransitionAnimations {
 	const dur = `${durationMs}ms`;
-	// `spokes` is reserved for future wheel spoke-count support; forwarded only
-	// through recursive calls (random / pull aliases).
-	void spokes;
 
 	// Prefer the faithful Office 2010 (p14) keyframe set for the exotic / 3-D
 	// transition family (conveyor/doors/ferris/flash/flythrough/gallery/glitter/
@@ -248,19 +251,17 @@ export function getSlideTransitionAnimations(
 				incoming: `pptx-tr-wedge-in ${dur} ${EASE} forwards`,
 				outgoingOnTop: false,
 			};
-		case 'wheel':
+		case 'wheel': {
+			const spokeCount = resolveWheelSpokeCount(spokes);
 			return {
 				outgoing: 'none',
-				incoming: `pptx-tr-wheel-in ${dur} ${EASE} forwards`,
+				incoming: `${wheelKeyframeName(spokeCount)} ${dur} ${EASE} forwards`,
 				outgoingOnTop: false,
 			};
+		}
 
 		case 'zoom':
-			return {
-				outgoing: `pptx-tr-zoom-out ${dur} ${EASE} forwards`,
-				incoming: `pptx-tr-zoom-in ${dur} ${EASE} forwards`,
-				outgoingOnTop: true,
-			};
+			return resolveZoomTransition(direction, dur);
 
 		case 'blinds': {
 			const o = resolveOrientation(direction, orient);
@@ -275,11 +276,7 @@ export function getSlideTransitionAnimations(
 		}
 
 		case 'checker':
-			return {
-				outgoing: `pptx-tr-fade-out ${dur} ${EASE} forwards`,
-				incoming: `pptx-tr-checker-in ${dur} ${EASE} forwards`,
-				outgoingOnTop: true,
-			};
+			return resolveCheckerTransition(direction, orient, dur);
 
 		case 'comb': {
 			const o = resolveOrientation(direction, orient);

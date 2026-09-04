@@ -7,6 +7,8 @@ export {
 	applyTableCellImagePatches,
 	buildInitialGuides,
 } from './load-content-helpers';
+export type { MediaArrayBufferSource, MediaSourceResolution } from './media-element-source';
+export { resolveMediaElementSource } from './media-element-source';
 export type { TableStyleImageRef } from './table-style-image-paths';
 export {
 	collectTableStyleImagePaths,

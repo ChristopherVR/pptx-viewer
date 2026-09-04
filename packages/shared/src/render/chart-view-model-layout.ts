@@ -13,6 +13,7 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import { chartFontPx, DEFAULT_CHART_TEXT_PX } from './chart-font';
+import { reserveLegendSpace, resolveLegendPlacement } from './chart-legend-placement';
 import { manualLayoutOf, resolveManualLayoutRect } from './chart-manual-layout';
 import { formatAxisValue, seriesColor, valueToY } from './chart-view-model-scale';
 import type { ValueRange } from './chart-view-model-scale';
@@ -79,15 +80,14 @@ export function computePlotLayout(
 		plotTop += 20;
 	}
 	if (style?.hasLegend) {
-		if (legendPos === 'b') {
-			plotBottom -= 20;
-		} else if (legendPos === 't') {
-			plotTop += 20;
-		} else if (legendPos === 'r') {
-			plotRight -= 80;
-		} else if (legendPos === 'l') {
-			plotLeft += 80;
-		}
+		// `tr` (top-right corner) overlays the plot per PowerPoint's own
+		// quick-layout behaviour: no band is reserved for it, unlike b/t/l/r.
+		({ plotLeft, plotTop, plotRight, plotBottom } = reserveLegendSpace(legendPos, {
+			plotLeft,
+			plotTop,
+			plotRight,
+			plotBottom,
+		}));
 	}
 
 	// Secondary value axis on the right.
@@ -274,15 +274,19 @@ export function buildLegend(
 		legendY = svgHeight - 8,
 		legendAnchor: 'start' | 'middle' | 'end' = 'middle';
 
-	if (legendPos === 'r') {
+	// `tr` shares `'r'`'s coordinates (a right-aligned column starting at
+	// plotTop): that is already "top-right corner"; it just does not reserve
+	// plot-area space the way a reserved `'r'` legend does (see computePlotLayout).
+	const side = resolveLegendPlacement(legendPos).side;
+	if (side === 'r') {
 		legendX = svgWidth - 75;
 		legendY = plotTop;
 		legendAnchor = 'start';
-	} else if (legendPos === 'l') {
+	} else if (side === 'l') {
 		legendX = 4;
 		legendY = plotTop;
 		legendAnchor = 'start';
-	} else if (legendPos === 't') {
+	} else if (side === 't') {
 		legendY = 28;
 	}
 

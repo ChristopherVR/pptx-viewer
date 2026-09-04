@@ -22,6 +22,7 @@
 
 import { P14_TRANSITION_KEYFRAMES_ALL } from './p14-transition-keyframes';
 import { CINEMATIC_TRANSITION_KEYFRAMES } from './slide-transition-cinematic';
+import { WHEEL_MASK_KEYFRAMES } from './slide-transition-wheel-keyframes';
 import { WIPE_MASK_KEYFRAMES } from './slide-transition-wipe-keyframes';
 
 const CORE_SLIDE_TRANSITION_KEYFRAMES = `
@@ -202,6 +203,16 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 	from { transform: scale(1); opacity: 1; }
 	to   { transform: scale(2); opacity: 0; }
 }
+/* Zoom, dir="out": the outgoing slide shrinks away instead of growing past the
+ * viewer, and the incoming slide starts oversized and settles into place. */
+@keyframes pptx-tr-zoom-out-rev {
+	from { transform: scale(1); opacity: 1; }
+	to   { transform: scale(0); opacity: 0; }
+}
+@keyframes pptx-tr-zoom-in-rev {
+	from { transform: scale(2); opacity: 0; }
+	to   { transform: scale(1); opacity: 1; }
+}
 
 /* ── Blinds ─────────────────────────────────────────────────────────── */
 @keyframes pptx-tr-blinds-h {
@@ -213,10 +224,16 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 	to   { clip-path: inset(0); }
 }
 
-/* ── Checker (approximate with dissolve + contrast) ─────────────────── */
-@keyframes pptx-tr-checker-in {
-	from { opacity: 0; filter: contrast(2) blur(2px); }
-	to   { opacity: 1; filter: contrast(1) blur(0); }
+/* ── Checker (approximate with dissolve + contrast, directional sweep) ── */
+@keyframes pptx-tr-checker-in-h {
+	from { opacity: 0; filter: contrast(2) blur(2px); clip-path: inset(0 100% 0 0); }
+	50%  { opacity: 0.6; filter: contrast(1.4) blur(1px); }
+	to   { opacity: 1; filter: contrast(1) blur(0); clip-path: inset(0); }
+}
+@keyframes pptx-tr-checker-in-v {
+	from { opacity: 0; filter: contrast(2) blur(2px); clip-path: inset(100% 0 0 0); }
+	50%  { opacity: 0.6; filter: contrast(1.4) blur(1px); }
+	to   { opacity: 1; filter: contrast(1) blur(0); clip-path: inset(0); }
 }
 
 /* ── Comb ───────────────────────────────────────────────────────────── */
@@ -263,11 +280,6 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 	to   { transform: rotate(0deg) scale(1); opacity: 1; }
 }
 
-/* ── Wheel ──────────────────────────────────────────────────────────── */
-@keyframes pptx-tr-wheel-in {
-	from { clip-path: circle(0% at 50% 50%); transform: rotate(-180deg); }
-	to   { clip-path: circle(75% at 50% 50%); transform: rotate(0deg); }
-}
 `;
 
 /**
@@ -275,7 +287,7 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
  * faithful Office 2010 (`p14`) keyframes, so both the classic and exotic / 3-D
  * transitions animate wherever this single string is injected.
  */
-export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${WIPE_MASK_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}`;
+export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${WIPE_MASK_KEYFRAMES}\n${WHEEL_MASK_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}`;
 
 /**
  * Alias of {@link SLIDE_TRANSITION_KEYFRAMES} under the `_CSS` name the Vue

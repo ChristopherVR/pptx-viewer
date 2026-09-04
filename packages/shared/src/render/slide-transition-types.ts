@@ -159,3 +159,21 @@ export const TRANSITION_SPEED_DURATION_MS: Readonly<Record<string, number>> = {
 
 /** Easing applied to every transition animation. */
 export const EASE = 'ease-in-out';
+
+/**
+ * `p:wheel/@spokes` (CT_WheelTransition): PowerPoint's Wheel dialog offers
+ * exactly these five spoke counts. Any other authored value (or absence, the
+ * schema default) snaps to the nearest one so the keyframe lookup always
+ * resolves to a real `pptx-tr-wheel-in-N` block.
+ */
+export const WHEEL_SPOKE_COUNTS: readonly number[] = [1, 2, 3, 4, 8];
+
+/** Resolve an authored `spokes` count to the nearest PowerPoint-offered value. */
+export function resolveWheelSpokeCount(spokes: number | undefined): number {
+	if (spokes === undefined || !Number.isFinite(spokes) || spokes <= 0) {
+		return 1;
+	}
+	return WHEEL_SPOKE_COUNTS.reduce((closest, candidate) =>
+		Math.abs(candidate - spokes) < Math.abs(closest - spokes) ? candidate : closest,
+	);
+}

@@ -13,14 +13,20 @@
  *
  * @module chart-horizontal-bars
  */
-import type { PptxChartData, PptxChartSeries, PptxElement } from 'pptx-viewer-core';
+import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { computeValueRangeForChart } from './chart-axis-range';
-import { resolveDataPointFill, resolveVaryColorFill } from './chart-datapoint-style';
-import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
+import { resolveBarLabelPlacement } from './chart-data-label-anchor';
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import {
+	barFill,
+	buildSideCategoryLabels,
+	buildTransposedValueAxis,
+	categoryTotals,
+	valueToX,
+} from './chart-horizontal-bars-helpers';
 import type {
 	ChartViewModel,
-	PlotLayout,
 	SvgLine,
 	SvgPrimitive,
 	SvgRect,
@@ -28,108 +34,15 @@ import type {
 	ValueRange,
 } from './chart-view-model';
 import {
-	AXIS_LABEL_COLOR,
-	GRIDLINE_COLOR,
 	ZERO_LINE_COLOR,
-	axisTickValues,
 	buildLegend,
 	buildMarkTooltip,
 	computePlotLayout,
 	computeStackedValueRange,
 	formatAxisValue,
-	paletteColor,
-	seriesColor,
 } from './chart-view-model';
 
-/** Map a value onto the horizontal (x) axis: min at the left, max at the right. */
-export function valueToX(val: number, range: ValueRange, leftX: number, rightX: number): number {
-	const usable = rightX - leftX;
-	let ratio: number;
-	if (range.logScale && range.logBase) {
-		const base = range.logBase,
-			clampedVal = Math.max(val, range.min),
-			logVal = Math.log(clampedVal) / Math.log(base),
-			logMin = Math.log(range.min) / Math.log(base);
-		ratio = (logVal - logMin) / range.span;
-	} else {
-		ratio = (val - range.min) / range.span;
-	}
-	return range.reverseOrder ? rightX - ratio * usable : leftX + ratio * usable;
-}
-
-/** Vertical value gridlines + bottom tick labels (the transposed value axis). */
-function buildTransposedValueAxis(
-	range: ValueRange,
-	layout: PlotLayout,
-): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
-	const gridlines: SvgLine[] = [],
-		axisLabels: SvgText[] = [];
-	for (const val of axisTickValues(range)) {
-		const x = valueToX(val, range, layout.plotLeft, layout.plotRight);
-		gridlines.push({
-			kind: 'line',
-			x1: x,
-			y1: layout.plotTop,
-			x2: x,
-			y2: layout.plotBottom,
-			stroke: GRIDLINE_COLOR,
-			strokeWidth: 1,
-		});
-		axisLabels.push({
-			kind: 'text',
-			x,
-			y: layout.plotBottom + 12,
-			text: formatAxisValue(val),
-			fontSize: DEFAULT_CHART_TEXT_PX,
-			fill: AXIS_LABEL_COLOR,
-			textAnchor: 'middle',
-		});
-	}
-	return { gridlines, axisLabels };
-}
-
-/** Left-anchored category labels, one per band, centred on the band. */
-function buildSideCategoryLabels(
-	categoryLabels: ReadonlyArray<string>,
-	layout: PlotLayout,
-): SvgText[] {
-	const catCount = Math.max(categoryLabels.length, 1),
-		band = layout.plotHeight / catCount;
-	return categoryLabels.map((label, i) => ({
-		kind: 'text' as const,
-		x: layout.plotLeft - 4,
-		y: layout.plotTop + band * (i + 0.5),
-		text: label,
-		fontSize: DEFAULT_CHART_TEXT_PX,
-		fill: AXIS_LABEL_COLOR,
-		textAnchor: 'end' as const,
-		dominantBaseline: 'central',
-	}));
-}
-
-/** Per-category absolute totals (for percentStacked normalisation). */
-function categoryTotals(series: ReadonlyArray<PptxChartSeries>, catCount: number): number[] {
-	return Array.from({ length: catCount }, (_, ci) =>
-		series.reduce((sum, s) => sum + Math.abs(s.values[ci] ?? 0), 0),
-	);
-}
-
-/** Resolve the fill for one bar, honouring dPt overrides and varyColors. */
-function barFill(
-	chartData: PptxChartData,
-	series: PptxChartSeries,
-	seriesIndex: number,
-	pointIndex: number,
-): string {
-	const palette = chartData.colorPalette;
-	if (chartData.varyColors === true && chartData.series.length === 1) {
-		return resolveVaryColorFill(series, pointIndex, paletteColor(pointIndex, palette));
-	}
-	return (
-		resolveDataPointFill(series, pointIndex, paletteColor(seriesIndex, palette)) ??
-		seriesColor(series, seriesIndex, palette)
-	);
-}
+export { valueToX } from './chart-horizontal-bars-helpers';
 
 /**
  * Build the full horizontal-bar view-model. Mirrors the column engine's
@@ -205,14 +118,25 @@ export function buildHorizontalBarViewModel(
 					),
 				} satisfies SvgRect);
 				if (showLabels) {
+					// c:dLblPos (ctr/inBase/inEnd/outEnd) decides where on the bar the
+					// label sits; a per-point c:dLbl/c:layout drag shifts it further.
+					const anchor = resolveBarLabelPlacement(
+						chartData,
+						series[si],
+						ci,
+						{ x, y, width: w, height: singleBarHeight },
+						val,
+						'horizontal',
+						{ width: layout.svgWidth, height: layout.svgHeight },
+					);
 					dataLabels.push({
 						kind: 'text',
-						x: val >= 0 ? x + w + 4 : x - 4,
-						y: y + singleBarHeight / 2,
+						x: anchor.x,
+						y: anchor.y,
 						text: formatAxisValue(val, series[si].numberFormat),
 						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 						fill: '#334155',
-						textAnchor: val >= 0 ? 'start' : 'end',
+						textAnchor: anchor.textAnchor,
 						dominantBaseline: 'central',
 					});
 				}
@@ -258,19 +182,41 @@ export function buildHorizontalBarViewModel(
 					),
 				} satisfies SvgRect);
 				if (showLabels && Math.abs(val) > 0) {
-					dataLabels.push({
-						kind: 'text',
-						x: x + w / 2,
-						y: y + barH / 2,
-						text: isPercent
-							? `${Math.round(val)}%`
-							: formatAxisValue(rawVal, series[si].numberFormat),
-						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-						fill: isPercent ? '#ffffff' : '#334155',
-						textAnchor: 'middle',
-						dominantBaseline: 'central',
-						...(isPercent ? { fontWeight: 'bold' as const } : {}),
-					});
+					if (isPercent) {
+						// A percentStacked segment's label is always centred in the
+						// segment (PowerPoint's own convention); dLblPos does not apply.
+						dataLabels.push({
+							kind: 'text',
+							x: x + w / 2,
+							y: y + barH / 2,
+							text: `${Math.round(val)}%`,
+							fontSize: DEFAULT_CHART_DATA_LABEL_PX,
+							fill: '#ffffff',
+							textAnchor: 'middle',
+							dominantBaseline: 'central',
+							fontWeight: 'bold',
+						});
+					} else {
+						const anchor = resolveBarLabelPlacement(
+							chartData,
+							series[si],
+							ci,
+							{ x, y, width: w, height: barH },
+							rawVal,
+							'horizontal',
+							{ width: layout.svgWidth, height: layout.svgHeight },
+						);
+						dataLabels.push({
+							kind: 'text',
+							x: anchor.x,
+							y: anchor.y,
+							text: formatAxisValue(rawVal, series[si].numberFormat),
+							fontSize: DEFAULT_CHART_DATA_LABEL_PX,
+							fill: '#334155',
+							textAnchor: anchor.textAnchor,
+							dominantBaseline: 'central',
+						});
+					}
 				}
 				if (isNeg) {
 					negRunning += val;

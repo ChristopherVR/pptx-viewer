@@ -9,6 +9,7 @@
 
 import type { PptxChartLegendTextStyle } from 'pptx-viewer-core';
 
+import type { ChartTitleTextStyle } from './chart-title-style';
 import type { ValueRange } from './chart-view-model-scale';
 
 /** Bounding-box of the chart's usable plot area in SVG coordinates. */
@@ -237,6 +238,18 @@ export interface ChartViewModel {
 	 * NOTHING should be painted behind it. See `chart-area-fill.ts`.
 	 */
 	areaFill?: string;
+	/**
+	 * SVG `rx`/`ry` corner radius for the chart-area rect, when
+	 * `c:chartSpace/c:roundedCorners` is set. `undefined` (square corners) is
+	 * the default PowerPoint uses for a chart with no fill at all, so a
+	 * projector should omit the attribute rather than pass `0`.
+	 */
+	areaRadius?: number;
+	/**
+	 * Font the title is drawn with (`c:title` run properties, then the chart
+	 * style part, then the viewer defaults). See `chart-title-style.ts`.
+	 */
+	titleStyle?: ChartTitleTextStyle;
 	/**
 	 * SVG `fill` for the plot-area rect, resolved from `c:plotArea/c:spPr`.
 	 * `undefined` means paint nothing and let the chart area show through.

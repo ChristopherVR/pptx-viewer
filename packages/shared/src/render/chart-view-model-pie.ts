@@ -15,6 +15,7 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { DEFAULT_CHART_AREA_FILL } from './chart-area-fill';
 import { buildDataLabelText } from './chart-data-label-text';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
+import { resolveLegendPlacement } from './chart-legend-placement';
 import { buildPieDataLabels } from './chart-pie-labels';
 import { computePieLayout, computePieSlices } from './chart-view-model-points';
 import { buildMarkTooltip, paletteColor } from './chart-view-model-scale';
@@ -161,13 +162,21 @@ export function buildPieViewModel(
 				? resolveVaryColorFill(pieSeries, i, paletteColor(i, chartData.colorPalette))
 				: paletteColor(i, chartData.colorPalette),
 			label,
-		})),
-		legendX = svgWidth / 2;
+		}));
+	let legendX = svgWidth / 2;
 	let legendY = svgHeight - 8;
-	const legendAnchor: 'start' | 'middle' | 'end' = 'middle';
+	let legendAnchor: 'start' | 'middle' | 'end' = 'middle';
 
 	if (legendPos === 't') {
 		legendY = chartData.style?.hasTitle ? 24 : 8;
+	} else if (resolveLegendPlacement(legendPos).overlaysPlot) {
+		// `tr`: a right-aligned column starting near the top rather than the
+		// automatic bottom-centred row, matching PowerPoint's own quick-layout
+		// behaviour and the same 'start'-anchored vertical stack `'r'` uses
+		// elsewhere in this engine (see chart-view-model-layout.ts's buildLegend).
+		legendX = svgWidth - 75;
+		legendY = chartData.style?.hasTitle ? 24 : 8;
+		legendAnchor = 'start';
 	}
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;

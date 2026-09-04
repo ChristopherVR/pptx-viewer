@@ -14,7 +14,8 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildScatter, buildBubbles } from './chart-cartesian-plots';
+import { buildBubbles } from './chart-cartesian-bubbles';
+import { buildScatter } from './chart-cartesian-plots';
 import { buildChartViewModel } from './chart-view-model';
 import type { PlotLayout, ValueRange } from './chart-view-model';
 

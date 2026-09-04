@@ -118,6 +118,27 @@ describe('segmentStyleToCss run properties', () => {
 		expect(withPanose.fontFamily).toBe('"CustomSerifFont", "Times New Roman", "Georgia", serif');
 	});
 
+	// D2-G2: theme `a:font/@script` per-script fonts, precomputed at parse time
+	// into `scriptFallbackFont` (a whole-run approximation of the full
+	// per-character `byScript` routing) but never consumed by any renderer.
+	describe('scriptFallbackFont (D2-G2)', () => {
+		it('falls back to scriptFallbackFont when the run authors no font of its own', () => {
+			const result = segmentStyleToCss(seg({ scriptFallbackFont: 'PMingLiU' }));
+			expect(result.fontFamily).toBe('"PMingLiU", sans-serif');
+		});
+
+		it('never overrides an explicitly authored fontFamily', () => {
+			const result = segmentStyleToCss(
+				seg({ fontFamily: 'Calibri', scriptFallbackFont: 'PMingLiU' }),
+			);
+			expect(result.fontFamily).not.toContain('PMingLiU');
+		});
+
+		it('leaves fontFamily undeclared (inherits the body font) when neither is authored', () => {
+			expect(segmentStyleToCss(seg({ fontSize: 16 })).fontFamily).toBeUndefined();
+		});
+	});
+
 	it('adds no keys beyond the always-declared weight and slant', () => {
 		expect(segmentStyleToCss(seg({ fontSize: 16 }))).toStrictEqual({
 			fontSize: '16px',

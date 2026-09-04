@@ -10,7 +10,11 @@
  * @module render/connector-sites
  */
 
-import { createBuiltinVariables, resolveCoordinate } from 'pptx-viewer-core';
+import {
+	createBuiltinVariables,
+	getPresetConnectionSites,
+	resolveCoordinate,
+} from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 /** A single connection site on a shape's bounding box (element-local coords). */
@@ -28,11 +32,15 @@ export interface ConnectionSite {
  * unknown (preset shapes without a parsed `a:cxnLst`).
  */
 export function getConnectionSites(width: number, height: number): ConnectionSite[] {
+	// Same order as ECMA-376's `rect` cxnLst (top, left, bottom, right) so a
+	// site index means the same thing whether or not the preset table knows
+	// the shape. The old clockwise order (1 = right, 3 = left) disagreed with
+	// PowerPoint for every rectangular preset.
 	return [
 		{ x: width / 2, y: 0, index: 0 }, // top center
-		{ x: width, y: height / 2, index: 1 }, // right center
+		{ x: 0, y: height / 2, index: 1 }, // left center
 		{ x: width / 2, y: height, index: 2 }, // bottom center
-		{ x: 0, y: height / 2, index: 3 }, // left center
+		{ x: width, y: height / 2, index: 3 }, // right center
 	];
 }
 
@@ -41,6 +49,8 @@ interface ShapeGeometryFields {
 	customGeometryConnectionSites?: Array<{ posX?: string; posY?: string; ang?: string }>;
 	pathWidth?: number;
 	pathHeight?: number;
+	shapeType?: string;
+	shapeAdjustments?: Record<string, number>;
 }
 
 /** The frame fields that place a connection site on the slide. */
@@ -109,25 +119,46 @@ export function getShapeConnectionSites(shape: PptxElement): ConnectionSite[] {
  * unflipped box: what `a:cxnLst` literally describes, before the frame
  * transform. For callers that draw inside the shape's own (already
  * transformed) coordinate system.
+ *
+ * Resolution order: an authored `a:custGeom/a:cxnLst` wins when present (each
+ * `a:pos` formula evaluated against the shape's own path coordinate space and
+ * scaled to the element's pixel box). Otherwise a PRESET shape consults
+ * {@link getPresetConnectionSites} (ECMA-376's own `cxnLst` for that preset,
+ * evaluated with the shape's `a:avLst` adjustments), so a
+ * `triangle`/`chevron`/`pentagon`/... attaches near its real sites instead of
+ * collapsing to an edge midpoint. Shapes with no known sites at all fall back
+ * to the four edge midpoints.
  */
 export function getUnrotatedShapeConnectionSites(shape: PptxElement): ConnectionSite[] {
 	const geo = shape as PptxElement & ShapeGeometryFields;
 	const cxn = geo.customGeometryConnectionSites;
-	if (!cxn || cxn.length === 0) {
-		return getConnectionSites(shape.width, shape.height);
+	if (cxn && cxn.length > 0) {
+		// Path coordinate space the `a:pos` formulas are expressed in. Fall back
+		// to the element's pixel dimensions (scale factor 1) when unavailable.
+		const pathW = geo.pathWidth && geo.pathWidth > 0 ? geo.pathWidth : shape.width;
+		const pathH = geo.pathHeight && geo.pathHeight > 0 ? geo.pathHeight : shape.height;
+		const vars = createBuiltinVariables({ w: pathW, h: pathH });
+		const scaleX = pathW > 0 ? shape.width / pathW : 1;
+		const scaleY = pathH > 0 ? shape.height / pathH : 1;
+
+		return cxn.map((site, index) => ({
+			x: resolveCoordinate(site.posX, vars) * scaleX,
+			y: resolveCoordinate(site.posY, vars) * scaleY,
+			index,
+		}));
 	}
 
-	// Path coordinate space the `a:pos` formulas are expressed in. Fall back to
-	// the element's pixel dimensions (scale factor 1) when unavailable.
-	const pathW = geo.pathWidth && geo.pathWidth > 0 ? geo.pathWidth : shape.width;
-	const pathH = geo.pathHeight && geo.pathHeight > 0 ? geo.pathHeight : shape.height;
-	const vars = createBuiltinVariables({ w: pathW, h: pathH });
-	const scaleX = pathW > 0 ? shape.width / pathW : 1;
-	const scaleY = pathH > 0 ? shape.height / pathH : 1;
+	if (geo.shapeType) {
+		const presetSites = getPresetConnectionSites(
+			geo.shapeType,
+			shape.width,
+			shape.height,
+			geo.shapeAdjustments,
+		);
+		if (presetSites && presetSites.length > 0) {
+			return presetSites.map((site, index) => ({ x: site.x, y: site.y, index }));
+		}
+	}
 
-	return cxn.map((site, index) => ({
-		x: resolveCoordinate(site.posX, vars) * scaleX,
-		y: resolveCoordinate(site.posY, vars) * scaleY,
-		index,
-	}));
+	return getConnectionSites(shape.width, shape.height);
 }

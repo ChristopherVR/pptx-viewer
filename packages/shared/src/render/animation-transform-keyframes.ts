@@ -20,9 +20,21 @@ export interface TransformKeyframePrefixes {
 	transform: string;
 }
 
-function slideOffset(percent: number, axis: 'w' | 'h'): string {
+/**
+ * `p:animMotion/@_origin` (ST_TLAnimateMotionBehaviorOrigin, ECMA-376
+ * S19.5.7): `layout` (the default) scales the path's percentage coordinates
+ * against the SLIDE; `parent` scales them against the immediate PARENT
+ * GROUP's box when the animated shape sits inside a group. A binding that
+ * renders a grouped shape sets `--pptx-parent-w`/`--pptx-parent-h` (in px) on
+ * that shape (or an ancestor it inherits from) to the group's own rendered
+ * size; until a binding sets it, this falls back to the same default canvas
+ * size `--pptx-slide-w`/`-h` uses, matching this module's existing
+ * unset-custom-property behaviour rather than silently using the wrong box.
+ */
+function slideOffset(percent: number, axis: 'w' | 'h', origin: string | undefined): string {
 	const fallback = axis === 'w' ? '1280px' : '720px';
-	return `calc(var(--pptx-slide-${axis}, ${fallback}) * ${(percent / 100).toFixed(4)})`;
+	const varName = origin === 'parent' ? `--pptx-parent-${axis}` : `--pptx-slide-${axis}`;
+	return `calc(var(${varName}, ${fallback}) * ${(percent / 100).toFixed(4)})`;
 }
 
 function hasRotation(anim: PptxNativeAnimation): boolean {
@@ -190,11 +202,16 @@ export function buildTransformKeyframes(
 
 		const transforms: string[] = [];
 		if (points.length > 0) {
-			transforms.push(`translate(${slideOffset(point.x, 'w')}, ${slideOffset(point.y, 'h')})`);
+			transforms.push(
+				`translate(${slideOffset(point.x, 'w', anim.motionOrigin)}, ${slideOffset(point.y, 'h', anim.motionOrigin)})`,
+			);
 		}
 		if (attributeState?.translateX !== undefined || attributeState?.translateY !== undefined) {
+			// `p:animMotion/@_origin` only governs a MOTION PATH's coordinates
+			// (ECMA-376 S19.5.7); a generic `ppt_x`/`ppt_y` attribute ramp has no
+			// such attribute, so it keeps resolving against the slide.
 			transforms.push(
-				`translate(${slideOffset(attributeState.translateX ?? 0, 'w')}, ${slideOffset(attributeState.translateY ?? 0, 'h')})`,
+				`translate(${slideOffset(attributeState.translateX ?? 0, 'w', undefined)}, ${slideOffset(attributeState.translateY ?? 0, 'h', undefined)})`,
 			);
 		}
 		if (

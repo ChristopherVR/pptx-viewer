@@ -83,15 +83,22 @@ export function colorWithOpacity(color: string, opacity: number | undefined): st
 }
 
 /**
- * Clamps an image crop value (fractional 0-1) to a safe range. Returns 0 for
- * non-finite or missing values, and caps at 0.95 to prevent the image from
- * being fully cropped away.
+ * Clamps an image crop value (fractional, roughly -1..1) to a safe magnitude
+ * while preserving sign. Returns 0 for non-finite or missing values, and caps
+ * the magnitude at 0.95 to prevent the image from being fully cropped away.
+ *
+ * A negative value is a legitimate `a:srcRect` outward crop (PowerPoint pads
+ * the image inside its frame rather than cropping it, e.g. a photo smaller
+ * than its placeholder), so the sign must survive here the same way it does
+ * for the sibling `a:fillRect` insets (issue #132); dropping it via
+ * `Math.max(0, ...)` silently turned every negative inset into "no crop".
  */
 export function clampCropValue(value: number | undefined): number {
 	if (typeof value !== 'number' || !Number.isFinite(value)) {
 		return 0;
 	}
-	return Math.max(0, Math.min(0.95, value));
+	const magnitude = Math.min(0.95, Math.abs(value));
+	return value < 0 ? -magnitude : magnitude;
 }
 
 /**

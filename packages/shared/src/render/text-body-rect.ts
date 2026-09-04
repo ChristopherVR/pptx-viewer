@@ -46,11 +46,12 @@ const MIN_INSET_PX = 0.5;
  *
  * A rectangle that leaves less than this in either axis cannot hold a glyph, so
  * honouring it would make the body's text invisible rather than inset. Several
- * preset `rect` entries in the core table are degenerate (`heart`, `moon` and
- * `leftBrace` all evaluate to a zero-width or zero-height rectangle at 200x100,
- * and `pentagon`'s bottom edge comes out NEGATIVE), so this guard backs up the
- * allowlist below: a datum that turns bad at some other aspect ratio is dropped
- * rather than blanking a shape's text.
+ * preset `rect` entries in the core table were degenerate before the G1 fixes
+ * (`heart`, `moon` and `pentagon` collapsed to zero-width/negative rectangles
+ * at 200x100pt via broken guide references; see `VERIFIED_TEXT_RECT_PRESETS`'s
+ * doc comment), and `leftBrace` remains unverified/unfixed, so this guard
+ * backs up the allowlist below: a datum that turns bad at some other aspect
+ * ratio is dropped rather than blanking a shape's text.
  */
 const MIN_CONTENT_PX = 8;
 
@@ -65,17 +66,32 @@ const CACHE_LIMIT = 512;
  * ever checked it. Measuring PowerPoint directly (a deck of one shape per
  * preset, opened through COM, with `TextFrame.TextRange.Bound*` read off
  * single-glyph and wrapped-text probes at zero body insets on a 200x100pt box)
- * put 65 of 194 preset rects within 0.02 of PowerPoint and found **117 that
- * disagree**, several catastrophically: `pentagon` evaluates to a NEGATIVE
- * bottom edge, `heart` and `moon` collapse to zero, `plus` and `mathMultiply`
- * come out transposed, `flowChartDecision` and `diamond` return a quarter-size
- * box, and the whole ellipse and rounded-rect families report the full bounding
- * box where PowerPoint insets by 0.1464 and 0.0244 respectively.
+ * originally put 65 of 194 preset rects within 0.02 of PowerPoint and found
+ * **117 that disagree**, several catastrophically: `pentagon` evaluated to a
+ * NEGATIVE bottom edge, `heart` and `moon` collapsed to zero (both referenced
+ * a `3wd4`/`3hd4` guide that does not exist: the built-in `wd`/`hd` family is
+ * division-only, `wd2..wd12`/`hd2..hd12`, with no multiples), `flowChartDecision`
+ * and `diamond` returned a quarter-size box (mirroring bug: `r`/`b` reused the
+ * CENTER guide instead of the far-edge mirror of `l`/`t`), and the whole
+ * ellipse and rounded-rect families reported the full bounding box where
+ * PowerPoint insets by 0.1464 and 0.0244 respectively. A follow-up pass
+ * (2026-09, gap G1) re-derived and re-measured `ellipse`, `roundRect`,
+ * `diamond`, `pentagon`, `heart`, `moon`, `plus`, the whole `round*Rect`/
+ * `snip*Rect` family, `flowChartDecision`, `triangle`, `rtTriangle`, `hexagon`
+ * and the `math*` symbols (all now on this list); `mathMultiply` was
+ * investigated but no formula reproduced its measured (asymmetric, non-45deg)
+ * rect within tolerance, so it stays off the list. `parallelogram` and
+ * `trapezoid` were measured but NOT fixed: their insets don't match the
+ * "largest inscribed rectangle" optimum a plain skew analysis predicts (the
+ * measured insets are uniform on all 4 sides, including the un-skewed top/
+ * bottom edges, at a fraction that isn't `x3`-derived in any single-adjustment
+ * probe tried), so a second measurement at a non-default `adj` is needed
+ * before guessing further.
  *
  * So the rectangle is honoured only for the presets on this list. That is not
- * timidity: consuming the other 117 would move text on very common shapes to
+ * timidity: consuming an unverified preset would move text on common shapes to
  * measurably WRONG places, which is worse than the (also wrong) full box they
- * use today. The remaining entries belong to whoever owns
+ * use otherwise. The remaining entries belong to whoever owns
  * `packages/core/src/core/geometry`; as each is corrected against the same
  * measurement it can simply be added here.
  *
@@ -155,6 +171,30 @@ const VERIFIED_TEXT_RECT_PRESETS: ReadonlySet<string> = new Set([
 	'curvedconnector3',
 	'curvedconnector4',
 	'curvedconnector5',
+	// G1 follow-up (2026-09): re-derived and COM-re-measured.
+	'ellipse',
+	'roundrect',
+	'diamond',
+	'pentagon',
+	'heart',
+	'moon',
+	'plus',
+	'triangle',
+	'rttriangle',
+	'hexagon',
+	'flowchartdecision',
+	'mathplus',
+	'mathminus',
+	'mathdivide',
+	'mathequal',
+	'mathnotequal',
+	'round1rect',
+	'round2samerect',
+	'round2diagrect',
+	'sniproundrect',
+	'snip1rect',
+	'snip2samerect',
+	'snip2diagrect',
 ]);
 
 /**

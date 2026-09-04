@@ -17,6 +17,7 @@ import type {
 import { guideEmuToPx } from 'pptx-viewer-core';
 
 import { walkAndPatchElements } from './element-patch-walker';
+import { isExternalUrl } from './is-external-url';
 
 export interface GuideEntry {
 	id: string;
@@ -49,9 +50,10 @@ export function collectMediaElements(elements: PptxElement[], collector: MediaPp
 
 /**
  * Collect every unique `p:stSnd` sound archive path referenced by a native
- * animation across all slides, so a binding's media-resolution pass can
- * pre-populate its `mediaDataUrls` map with them the same way it does for
- * embedded media elements.
+ * animation OR a slide transition (`p:transition/p:sndAc/p:stSnd`) across all
+ * slides, so a binding's media-resolution pass can pre-populate its
+ * `mediaDataUrls` map with them the same way it does for embedded media
+ * elements.
  *
  * `PptxNativeAnimation.soundPath` is only ever set for a sound that ALSO
  * happens to back a visible `p:audio`/`p:video` element (already covered by
@@ -60,6 +62,14 @@ export function collectMediaElements(elements: PptxElement[], collector: MediaPp
  * this, that second case had no entry in `mediaDataUrls`, so a binding whose
  * action-sound playback only does a map lookup (rather than fetching on
  * demand) silently failed to play it.
+ *
+ * `slide.transition?.soundPath` (the Transitions ribbon's own Sound picker,
+ * a distinct construct from an animation effect's sound) needs the exact
+ * same pre-resolution: without it, a transition's sound path is a raw
+ * in-archive path (e.g. `ppt/media/media3.wav`) that a binding's
+ * `new Audio(soundPath)` cannot fetch directly, which is how Angular's
+ * transition-sound playback 404'd and Vue/Svelte/Vanilla never played
+ * transition sound at all (see `slide-transition-sound-playback.ts`).
  */
 export function collectAnimationSoundPaths(slides: readonly PptxSlide[]): string[] {
 	const paths = new Set<string>();
@@ -68,6 +78,10 @@ export function collectAnimationSoundPaths(slides: readonly PptxSlide[]): string
 			if (anim.soundPath && !isExternalUrl(anim.soundPath)) {
 				paths.add(anim.soundPath);
 			}
+		}
+		const transitionSoundPath = slide.transition?.soundPath;
+		if (transitionSoundPath && !isExternalUrl(transitionSoundPath)) {
+			paths.add(transitionSoundPath);
 		}
 	}
 	return [...paths];
@@ -254,15 +268,6 @@ export function applyTableCellImagePatches(
 		});
 		return { ...table, tableData: { ...tableData, rows: newRows } };
 	});
-}
-
-function isExternalUrl(path: string): boolean {
-	return (
-		path.startsWith('http://') ||
-		path.startsWith('https://') ||
-		path.startsWith('data:') ||
-		path.startsWith('blob:')
-	);
 }
 
 /**

@@ -208,6 +208,45 @@ describe('getSlideTransitionAnimations', () => {
 		);
 	});
 
+	it('resolves p:checker/@dir vertical vs horizontal to distinct keyframes (G10)', () => {
+		expect(getSlideTransitionAnimations('checker', 400, undefined, 'horz').incoming).toContain(
+			'pptx-tr-checker-in-h',
+		);
+		expect(getSlideTransitionAnimations('checker', 400, undefined, 'vert').incoming).toContain(
+			'pptx-tr-checker-in-v',
+		);
+	});
+
+	it('resolves p:zoom/@dir="out" to the reversed zoom keyframes (G11)', () => {
+		const zoomIn = getSlideTransitionAnimations('zoom', 400, undefined);
+		expect(zoomIn.incoming).toContain('pptx-tr-zoom-in ');
+		expect(zoomIn.outgoing).toContain('pptx-tr-zoom-out ');
+
+		const zoomOut = getSlideTransitionAnimations('zoom', 400, 'out');
+		expect(zoomOut.incoming).toContain('pptx-tr-zoom-in-rev');
+		expect(zoomOut.outgoing).toContain('pptx-tr-zoom-out-rev');
+	});
+
+	it('resolves p:wheel/@spokes to the matching N-spoke keyframe (G9)', () => {
+		expect(getSlideTransitionAnimations('wheel', 400, undefined, undefined, 1).incoming).toContain(
+			'pptx-tr-wheel-in-1 ',
+		);
+		expect(getSlideTransitionAnimations('wheel', 400, undefined, undefined, 4).incoming).toContain(
+			'pptx-tr-wheel-in-4 ',
+		);
+		expect(getSlideTransitionAnimations('wheel', 400, undefined, undefined, 8).incoming).toContain(
+			'pptx-tr-wheel-in-8 ',
+		);
+		// An unauthored/unsupported spoke count snaps to the nearest offered one
+		// (a tie between 4 and 8 keeps the smaller, earlier candidate).
+		expect(getSlideTransitionAnimations('wheel', 400, undefined, undefined, 6).incoming).toContain(
+			'pptx-tr-wheel-in-4 ',
+		);
+		expect(getSlideTransitionAnimations('wheel', 400, undefined).incoming).toContain(
+			'pptx-tr-wheel-in-1 ',
+		);
+	});
+
 	it('resolves diagonal strips, defaulting to lu', () => {
 		expect(getSlideTransitionAnimations('strips', 400, 'rd').incoming).toContain(
 			'pptx-tr-strips-rd',

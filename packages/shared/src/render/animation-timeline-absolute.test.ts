@@ -124,6 +124,24 @@ describe('buildOpacityTavKeyframe', () => {
 		expect(buildOpacityTavKeyframe(anim, 'pptx-tl-tav', 9)).toBeUndefined();
 	});
 
+	it('calcMode "discrete" snaps to each stop instead of interpolating (G5)', () => {
+		const anim = {
+			...emph,
+			calcMode: 'discrete' as const,
+			keyframes: [
+				{ tm: 0, value: 1, valueType: 'flt' as const },
+				{ tm: 50000, value: 0, valueType: 'flt' as const },
+			],
+		};
+		const result = buildOpacityTavKeyframe(anim, 'pptx-tl-tav', 20);
+		// A hold-then-snap sequence: value 1 holds right up to (but not through)
+		// 50%, then instantly becomes 0 exactly at 50%, rather than a straight
+		// linear tween from 1 to 0 across that span.
+		expect(result?.css).toContain('0% { opacity: 1; }');
+		expect(result?.css).toContain('49.99% { opacity: 1; }');
+		expect(result?.css).toContain('50% { opacity: 0; }');
+	});
+
 	it('returns undefined with fewer than two keyframes', () => {
 		const anim = { ...emph, keyframes: [{ tm: 0, value: 1, valueType: 'flt' as const }] };
 		expect(buildOpacityTavKeyframe(anim, 'pptx-tl-tav', 10)).toBeUndefined();
@@ -213,6 +231,20 @@ describe('buildColorTavKeyframe', () => {
 		expect(result?.css).toContain('0% { fill: #ff0000;');
 		expect(result?.css).toContain('50% { fill: #00ff00;');
 		expect(result?.css).toContain('100% { fill: #0000ff;');
+	});
+
+	it('calcMode "discrete" holds each colour stop instead of tweening (G5)', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			calcMode: 'discrete' as const,
+			keyframes: [
+				{ tm: 0, value: '#ff0000', valueType: 'clr' as const },
+				{ tm: 50000, value: '#0000ff', valueType: 'clr' as const },
+			],
+		};
+		const result = buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 9);
+		expect(result?.css).toContain('49.99% { fill: #ff0000;');
+		expect(result?.css).toContain('50% { fill: #0000ff;');
 	});
 
 	it('maps stroke.color to the stroke/border-color properties', () => {

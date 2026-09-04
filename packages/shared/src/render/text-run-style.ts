@@ -183,6 +183,18 @@ export function segmentStyleToCss(
 		// the same font WITH panose immediately afterwards and painted a
 		// different fallback face.
 		style.fontFamily = getSubstituteFontFamily(s.fontFamily, parsePanoseString(s.latinFontPanose));
+	} else if (s.scriptFallbackFont) {
+		// D2-G2: a theme can name a script-specific typeface
+		// (`<a:font script="Hans" typeface="..."/>`) that outranks the generic
+		// `a:ea`/`a:cs` face for a run whose text is dominantly that script.
+		// Core precomputes this whole-run fallback at parse time
+		// (`resolveScriptFallbackFont`) but never applied it; wiring it in here
+		// only fires when the run authors NO font of its own (an explicit
+		// `a:latin`/`a:ea`/`a:cs` on the run always wins), so it never overrides
+		// an intentional authored choice - a cheaper whole-run approximation of
+		// full per-character `byScript` routing, which fixes the common case (a
+		// run entirely in one non-Latin script).
+		style.fontFamily = getSubstituteFontFamily(s.scriptFallbackFont);
 	}
 	// Super/subscript (`a:rPr/@baseline`) shifts the run and shrinks the glyph.
 	const baselineShift =

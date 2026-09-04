@@ -101,9 +101,11 @@ describe('imageAdjustmentsPatch', () => {
 });
 
 describe('imageCropPatch', () => {
-	it('clamps crop values to the [0, 0.9] range', () => {
-		const patch = imageCropPatch(image(), { cropLeft: 1.5, cropTop: -0.2 });
-		expect(patch).toStrictEqual({ cropLeft: 0.9, cropTop: 0 });
+	it('clamps crop values to the signed [-0.9, 0.9] range', () => {
+		// A negative inset is a real `a:srcRect` outward crop (padding), so the
+		// sign survives; only the magnitude is capped.
+		const patch = imageCropPatch(image(), { cropLeft: 1.5, cropTop: -0.2, cropRight: -2 });
+		expect(patch).toStrictEqual({ cropLeft: 0.9, cropTop: -0.2, cropRight: -0.9 });
 	});
 
 	it('treats non-finite input as 0', () => {

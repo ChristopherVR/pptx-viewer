@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveUnderlineDecorationStyle, resolveUnderlineLineDecoration } from './text-decoration';
+import {
+	resolveUnderlineDecorationStyle,
+	resolveUnderlineLineDecoration,
+	splitWordsForUnderline,
+} from './text-decoration';
 
 describe('resolveUnderlineDecorationStyle', () => {
 	it('double strike wins over the underline style', () => {
@@ -41,6 +45,52 @@ describe('resolveUnderlineDecorationStyle', () => {
 			textDecorationThickness: '2px',
 			textUnderlineOffset: '1px',
 		});
+	});
+
+	// D2-G3: `u="words"` used to hit the `default: undefined` branch (no
+	// explicit style/thickness declared at all); it must now resolve to an
+	// intentional single continuous underline rather than an incidental one.
+	it("maps 'words' (underline words only) to a single continuous underline as the fallback", () => {
+		expect(resolveUnderlineDecorationStyle(false, 'words')).toStrictEqual({
+			textDecorationStyle: 'solid',
+			textDecorationThickness: '1px',
+		});
+	});
+});
+
+describe('splitWordsForUnderline', () => {
+	it('returns an empty array for empty text', () => {
+		expect(splitWordsForUnderline('')).toStrictEqual([]);
+	});
+
+	it('splits into alternating word/whitespace pieces, marking only words for underline', () => {
+		expect(splitWordsForUnderline('Two Words')).toStrictEqual([
+			{ text: 'Two', underline: true },
+			{ text: ' ', underline: false },
+			{ text: 'Words', underline: true },
+		]);
+	});
+
+	it('handles a single word with no whitespace', () => {
+		expect(splitWordsForUnderline('Word')).toStrictEqual([{ text: 'Word', underline: true }]);
+	});
+
+	it('handles multiple spaces and leading/trailing whitespace as their own pieces', () => {
+		expect(splitWordsForUnderline('  a  b  ')).toStrictEqual([
+			{ text: '  ', underline: false },
+			{ text: 'a', underline: true },
+			{ text: '  ', underline: false },
+			{ text: 'b', underline: true },
+			{ text: '  ', underline: false },
+		]);
+	});
+
+	it('treats a tab as whitespace (not underlined)', () => {
+		expect(splitWordsForUnderline('a\tb')).toStrictEqual([
+			{ text: 'a', underline: true },
+			{ text: '\t', underline: false },
+			{ text: 'b', underline: true },
+		]);
 	});
 });
 

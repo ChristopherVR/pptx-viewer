@@ -197,6 +197,26 @@ describe('pie explosion (#97)', () => {
 	});
 });
 
+describe('pie legendPos="tr"', () => {
+	it('positions the legend in the top-right corner instead of the bottom-centre default', () => {
+		const data: PptxChartData = {
+			chartType: 'pie',
+			categories: ['A', 'B'],
+			series: [{ name: 'S', values: [60, 40] }],
+			style: { hasLegend: true, legendPosition: 'tr' },
+		};
+		const bottomDefault: PptxChartData = {
+			...data,
+			style: { hasLegend: true, legendPosition: 'b' },
+		};
+		const vmTr = buildChartViewModel(chartElement(data));
+		const vmBottom = buildChartViewModel(chartElement(bottomDefault));
+		expect(vmTr.legendAnchor).toBe('start');
+		expect(vmTr.legendY).toBeLessThan(vmBottom.legendY);
+		expect(vmTr.legendX).toBeGreaterThan(vmBottom.legendX);
+	});
+});
+
 describe('pie firstSliceAng (#97)', () => {
 	it('rotates the slices when firstSliceAngle differs', () => {
 		const base: PptxChartData = {

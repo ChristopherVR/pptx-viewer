@@ -14,7 +14,7 @@
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { applyChart3DDepth } from './chart-3d-depth';
-import { chartAreaFill, plotAreaFill } from './chart-area-fill';
+import { chartAreaCornerRadius, chartAreaFill, plotAreaFill } from './chart-area-fill';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
@@ -22,6 +22,7 @@ import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sun
 import { applyLegendEntryOverrides } from './chart-legend-entries';
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
+import { resolveChartTitleTextStyle } from './chart-title-style';
 import { buildChartUserShapeOverlay } from './chart-user-shape-overlay';
 import { resolveChartKind } from './chart-view-model-kinds';
 import type { SupportedChartKind } from './chart-view-model-kinds';
@@ -135,6 +136,8 @@ function withChartAreaFill(vm: ChartViewModel, chartData: PptxChartData): ChartV
 	return {
 		...vm,
 		areaFill: chartAreaFill(chartData),
+		areaRadius: chartAreaCornerRadius(chartData),
+		titleStyle: resolveChartTitleTextStyle(chartData),
 		plotFill: plotAreaFill(chartData),
 	};
 }

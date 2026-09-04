@@ -42,3 +42,20 @@ export function chartAreaFill(chartData: PptxChartData | undefined): string | un
 export function plotAreaFill(chartData: PptxChartData | undefined): string | undefined {
 	return resolve(chartData?.style?.plotAreaFill, undefined);
 }
+
+/**
+ * PowerPoint's own "Rounded corners" checkbox radius (Format Chart Area),
+ * approximated as a fixed slide-px value close to its rendered look; there is
+ * no authored radius value in `c:roundedCorners` (it is a plain boolean), so
+ * every rounded chart gets the same corner.
+ */
+const ROUNDED_CORNERS_RADIUS_PX = 8;
+
+/**
+ * SVG `rx`/`ry` corner radius for the chart-area rect when
+ * `c:chartSpace/c:roundedCorners` is set, or `undefined` (square corners)
+ * otherwise.
+ */
+export function chartAreaCornerRadius(chartData: PptxChartData | undefined): number | undefined {
+	return chartData?.roundedCorners === true ? ROUNDED_CORNERS_RADIUS_PX : undefined;
+}

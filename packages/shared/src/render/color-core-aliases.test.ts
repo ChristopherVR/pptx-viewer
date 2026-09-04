@@ -97,10 +97,15 @@ describe('clampCropValue', () => {
 		expect(clampCropValue(Infinity)).toBe(0);
 	});
 
-	it('clamps to the [0, 0.95] range', () => {
-		expect(clampCropValue(-0.5)).toBe(0);
+	it('clamps magnitude to 0.95 while preserving sign', () => {
 		expect(clampCropValue(1)).toBe(0.95);
 		expect(clampCropValue(0.5)).toBe(0.5);
+		expect(clampCropValue(-1)).toBe(-0.95);
+	});
+
+	it('preserves a negative outward-crop inset instead of clamping to 0 (issue G2)', () => {
+		expect(clampCropValue(-0.5)).toBe(-0.5);
+		expect(clampCropValue(-0.2)).toBe(-0.2);
 	});
 });
 

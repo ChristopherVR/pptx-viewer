@@ -125,6 +125,21 @@ describe('safeOpenUrl', () => {
 		expect(result).toBeFalsy();
 		expect(window.open).not.toHaveBeenCalled();
 	});
+
+	it('opens into a named target (a:hlinkClick/@tgtFrame) with noopener noreferrer', () => {
+		const result = safeOpenUrl('https://example.com', 'contentFrame');
+		expect(result).toBeTruthy();
+		expect(window.open).toHaveBeenCalledWith(
+			'https://example.com',
+			'contentFrame',
+			'noopener,noreferrer',
+		);
+	});
+
+	it('drops noopener/noreferrer for @tgtFrame="_self" (same-tab navigation)', () => {
+		safeOpenUrl('https://example.com', '_self');
+		expect(window.open).toHaveBeenCalledWith('https://example.com', '_self', '');
+	});
 });
 
 describe('clampSlideIndex', () => {

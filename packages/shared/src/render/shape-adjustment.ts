@@ -17,6 +17,7 @@ import type { PptxElement, PptxElementWithShapeStyle } from 'pptx-viewer-core';
 import { getShapeType, hasShapeProperties } from 'pptx-viewer-core';
 
 import { canInteractWithElement } from './element-locks';
+import { deriveCustomGeometryAdjustmentHandles } from './shape-adjustment-custom-geometry';
 import { derivePresetAdjustmentHandles } from './shape-adjustment-handles';
 import type { AdjustmentAxisSolver } from './shape-adjustment-model';
 import { solveShapeAdjustmentValue, solveShapeAdjustments } from './shape-adjustment-solver';
@@ -98,14 +99,37 @@ interface AdjustableShapeFields {
 	customGeometryPaths?: unknown[];
 }
 
+/** Map a `DerivedAdjustmentHandle` onto the descriptor shape a binding renders. */
+function toDescriptor(handle: {
+	key: string;
+	x: number;
+	y: number;
+	value: number;
+	cursor: string;
+	solvers: AdjustmentAxisSolver[];
+}): ShapeAdjustmentHandleDescriptor {
+	return {
+		key: handle.key,
+		left: handle.x,
+		top: handle.y,
+		value: handle.value,
+		cursor: handle.cursor,
+		solvers: handle.solvers,
+	};
+}
+
 /**
- * Every adjustment handle `element` offers, in `a:avLst` declaration order.
+ * Every adjustment handle `element` offers, in `a:avLst`/`a:ahLst`
+ * declaration order.
  *
- * Empty when the element has no adjustable parameter, when it draws its own
- * `a:custGeom` (the preset table then describes geometry nobody paints), or
- * when its `a:spLocks/@noAdjustHandles` forbids the affordance. The lock check
- * lives HERE rather than at each binding's overlay, so a locked shape hides its
- * amber diamonds in all five without five separate guards.
+ * A `a:custGeom` shape with its own `a:ahXY`/`a:ahPolar` gets its handles from
+ * {@link deriveCustomGeometryAdjustmentHandles} (evaluated off its OWN
+ * `a:gdLst`, not the preset table, which would describe geometry nobody
+ * paints for a freeform shape); a preset shape gets them from
+ * `derivePresetAdjustmentHandles`. Empty when neither applies, or when the
+ * element's `a:spLocks/@noAdjustHandles` forbids the affordance. The lock
+ * check lives HERE rather than at each binding's overlay, so a locked shape
+ * hides its amber diamonds in all five without five separate guards.
  */
 export function getShapeAdjustmentHandleDescriptors(
 	element: PptxElement,
@@ -118,7 +142,7 @@ export function getShapeAdjustmentHandleDescriptors(
 	}
 	const shape = element as PptxElement & AdjustableShapeFields;
 	if (shape.customGeometryPaths && shape.customGeometryPaths.length > 0) {
-		return [];
+		return deriveCustomGeometryAdjustmentHandles(element).map(toDescriptor);
 	}
 
 	// Normalised before the lookup, never raw: a deck spells the preset
@@ -129,14 +153,7 @@ export function getShapeAdjustmentHandleDescriptors(
 		element.width,
 		element.height,
 		shape.shapeAdjustments ?? {},
-	).map((handle) => ({
-		key: handle.key,
-		left: handle.x,
-		top: handle.y,
-		value: handle.value,
-		cursor: handle.cursor,
-		solvers: handle.solvers,
-	}));
+	).map(toDescriptor);
 }
 
 /**

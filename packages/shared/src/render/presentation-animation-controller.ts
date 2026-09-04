@@ -51,6 +51,7 @@ import type { TextBuildSegmentCounts } from './animation-timeline-text-build';
 import { expandTextRangeAnimations } from './animation-timeline-text-range';
 import type { ElementAnimationState, TimelineClickGroup } from './animation-timeline-types';
 import { motionPathNativeAnimations } from './motion-path-authoring';
+import { flattenSlideElements } from './presentation-action';
 
 /**
  * Options accepted by {@link PresentationAnimationController.computeStates} and
@@ -136,7 +137,9 @@ export class PresentationAnimationController {
 
 		const engine = TimelineEngine.fromAnimations(expandedAnims);
 
-		const elementIds: string[] = slide.elements.map((element) => element.id);
+		// Animations may target a shape nested inside a group (`p:grpSp`), so
+		// track every descendant id, not just the top-level elements.
+		const elementIds: string[] = flattenSlideElements(slide.elements).map((element) => element.id);
 		for (const anim of expandedAnims) {
 			const targetId = resolveAnimationTargetId(anim);
 			if (targetId.includes(TEXT_BUILD_ID_SEP)) {

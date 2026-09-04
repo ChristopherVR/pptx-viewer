@@ -86,6 +86,8 @@ export * from './equation-compile';
 export * from './chart-helpers';
 export * from './chart-area-fill';
 export * from './chart-font';
+export * from './chart-style-defaults';
+export * from './chart-title-style';
 export * from './chart-number-format';
 export * from './chart-trendlines';
 export * from './chart-axis';
@@ -96,6 +98,9 @@ export * from './chart-sparkline';
 // every binding's chart projector so `LEGEND_ITEM_WIDTH` and the placement
 // formula are fixed once instead of five times.
 export * from './chart-legend-layout';
+// `c:legendPos` -> plot-area reservation + placement side, incl. the `tr`
+// (top-right corner) overlay every legend-placement call site used to miss.
+export * from './chart-legend-placement';
 // Pure option lists + chart-type capability Sets for the chart inspector
 // controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
 // gridline/combo selectors), shared by every binding's chart editor.
@@ -116,6 +121,10 @@ export * from './chart-data-grid-ops';
 // What a data label SAYS: the c:showVal / c:showCatName / c:showSerName /
 // c:showPercent / c:separator cascade (per-point -> series -> chart-type).
 export * from './chart-data-label-text';
+// WHERE a data label sits: c:dLblPos -> pixel anchor for bar/column (ctr/
+// inBase/inEnd/outEnd) and line/scatter/bubble (t/b/l/r/ctr) labels, plus the
+// per-point c:dLbl/c:layout manual-drag offset applied on top of it.
+export * from './chart-data-label-anchor';
 // Direct on-canvas chart editing, framework-neutral half: the value-drag state
 // machine, the hit-target stylesheet and the selected-part highlight.
 export * from './chart-canvas-drag';
@@ -408,6 +417,10 @@ export * from './grid-spacing';
 // locked shape behaves the same in all five bindings (it used to be honoured in
 // React alone, while Vue and Angular shipped a Lock button that locked nothing).
 export * from './element-locks';
+// `@highlightClick` (Action Settings "Highlight click"): the brief flash a
+// shape gets on click/hover, decided once here so all five bindings render
+// the identical style instead of only React drawing it.
+export * from './element-highlight-click';
 export * from './selection-handle-visibility';
 export * from './selection-transform';
 // Element CSS-style builders: absolute container style (position/transform/
@@ -601,6 +614,10 @@ export * from './shape-adjustment-model';
 export * from './shape-adjustment-probe';
 export * from './shape-adjustment-solver';
 export * from './hyperlink-security';
+// `a:hlinkClick/@tgtFrame`: the `target`/`rel` a hyperlink `<a>` should carry,
+// decided once so a deck's authored frame name (not just the hardcoded
+// `_blank`) reaches every binding's anchor.
+export * from './hyperlink-target';
 // Real-time collaboration presence: pure validators + sanitisers for inbound
 // Yjs awareness data (room id, username/colour/avatar, cursor clamping, stale
 // drop), deterministic per-user colour, mixed-content (ws:// from https)
@@ -1171,11 +1188,16 @@ export * from './smartart-reflow-element';
 // + swallowed autoplay-blocked rejection) each binding calls when present mode
 // makes a media element's slide the live surface.
 export * from './media-playback';
+// Trim-end stop + fade in/out scheduling (G20): split out of media-playback.ts
+// (file-size cap) so every binding's presenting-mode media player can share
+// the same `p14:trim`/`p14:fade` enforcement React alone used to implement.
+export * from './media-trim-fade-scheduler';
 // Cross-slide ("play across slides") audio survives slide unmount via the
 // document-level persistent-audio manager, and a running show pauses its
 // media + auto-advance while the tab is hidden.
 export * from './media-persistent-audio';
 export * from './presentation-visibility';
+export * from './media-trim-range';
 export * from './media-trim-timeline';
 export * from './summary-zoom';
 
@@ -1301,6 +1323,9 @@ export * from './color-units';
 // Cross-slide ("play across slides") audio registration, split out of
 // `media-playback.ts` purely to stay under the file-size cap.
 export * from './cross-slide-audio';
+// Slide-transition sound playback (`p:sndAc/p:stSnd`/`p:endSnd`), distinct
+// from `slide-transition-sound.ts`'s authoring picker.
+export * from './slide-transition-sound-playback';
 // Presentation ink-annotation overlay pure helpers (stroke path + cursor).
 export * from './annotation-overlay';
 

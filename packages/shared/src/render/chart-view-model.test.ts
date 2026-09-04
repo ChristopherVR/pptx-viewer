@@ -12,6 +12,7 @@ import type { PlotLayout, ValueRange } from './chart-view-model';
 import {
 	buildChartViewModel,
 	buildFallbackViewModel,
+	buildLegend,
 	chartPreserveAspectRatio,
 	computeBarRects,
 	computeBubbleRadius,
@@ -233,6 +234,34 @@ describe('computePlotLayout', () => {
 		const layout = computePlotLayout(400, 300, baseData, true);
 		expect(layout.plotWidth).toBeGreaterThan(0);
 		expect(layout.plotHeight).toBeGreaterThan(0);
+	});
+
+	it('c:legendPos="tr" overlays the plot (no reserved band), unlike "r"', () => {
+		const withTr = computePlotLayout(
+			400,
+			300,
+			{ ...baseData, style: { hasLegend: true, legendPosition: 'tr' } },
+			true,
+		);
+		const withR = computePlotLayout(
+			400,
+			300,
+			{ ...baseData, style: { hasLegend: true, legendPosition: 'r' } },
+			true,
+		);
+		const withoutLegend = computePlotLayout(400, 300, baseData, true);
+		expect(withTr.plotRight).toBe(withoutLegend.plotRight);
+		expect(withR.plotRight).toBeLessThan(withoutLegend.plotRight);
+	});
+});
+
+describe('buildLegend', () => {
+	it('c:legendPos="tr" positions like "r" (top-right corner, vertical stack)', () => {
+		const series: PptxChartData['series'] = [{ name: 'A', values: [1] }];
+		const tr = buildLegend(series, undefined, 400, 'tr', 300, 20);
+		const r = buildLegend(series, undefined, 400, 'r', 300, 20);
+		expect(tr).toStrictEqual(r);
+		expect(tr.legendAnchor).toBe('start');
 	});
 });
 

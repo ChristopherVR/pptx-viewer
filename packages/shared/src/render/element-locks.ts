@@ -37,7 +37,9 @@ export type ElementInteraction =
 	| 'adjustHandle'
 	| 'editPoints'
 	| 'changeArrowheads'
-	| 'changeShapeType';
+	| 'changeShapeType'
+	| 'crop'
+	| 'drilldown';
 
 /**
  * What the user may still do to an element, after its locks are applied.
@@ -70,6 +72,16 @@ export interface ElementInteractivity {
 	arrowheadsChangeable: boolean;
 	/** May be swapped to a different preset geometry. */
 	shapeTypeChangeable: boolean;
+	/** May have its `a:srcRect` crop adjusted (`a:picLocks/@noCrop`). */
+	croppable: boolean;
+	/**
+	 * May have its individual parts selected/edited (a table cell, a chart
+	 * series, a SmartArt node, an embedded OLE object): governed solely by
+	 * `a:graphicFrameLocks/@noDrilldown`, so this is only ever `false` for a
+	 * graphic-frame element (table/chart/smartArt/ole/media); every other
+	 * element type is vacuously drilldownable since it has no "parts".
+	 */
+	drilldownable: boolean;
 }
 
 /** Nothing is locked: what an element with no `a:spLocks` resolves to. */
@@ -85,6 +97,8 @@ const FULLY_INTERACTIVE: ElementInteractivity = {
 	pointsEditable: true,
 	arrowheadsChangeable: true,
 	shapeTypeChangeable: true,
+	croppable: true,
+	drilldownable: true,
 };
 
 /** Everything is locked: what `noSelect` resolves to. */
@@ -100,6 +114,8 @@ const FULLY_LOCKED: ElementInteractivity = {
 	pointsEditable: false,
 	arrowheadsChangeable: false,
 	shapeTypeChangeable: false,
+	croppable: false,
+	drilldownable: false,
 };
 
 /**
@@ -143,6 +159,8 @@ export function resolveElementInteractivity(
 		pointsEditable: locks.noEditPoints !== true,
 		arrowheadsChangeable: locks.noChangeArrowheads !== true,
 		shapeTypeChangeable: locks.noChangeShapeType !== true,
+		croppable: locks.noCrop !== true,
+		drilldownable: locks.noDrilldown !== true,
 	};
 }
 
@@ -159,6 +177,8 @@ const INTERACTION_FIELD: Readonly<Record<ElementInteraction, keyof ElementIntera
 	editPoints: 'pointsEditable',
 	changeArrowheads: 'arrowheadsChangeable',
 	changeShapeType: 'shapeTypeChangeable',
+	crop: 'croppable',
+	drilldown: 'drilldownable',
 };
 
 /**
@@ -173,6 +193,20 @@ export function canInteractWithElement(
 	interaction: ElementInteraction,
 ): boolean {
 	return resolveElementInteractivity(element)[INTERACTION_FIELD[interaction]];
+}
+
+/**
+ * May a graphic frame's individual parts be entered for editing?
+ *
+ * The single shared gate for every drill-down entry point PowerPoint's
+ * `a:graphicFrameLocks/@noDrilldown` covers: a table cell double-click, a
+ * chart series edit, an OLE double-click activation, a SmartArt node edit.
+ * Each binding calls this ONE function at its entry point rather than
+ * re-deriving `locks.noDrilldown` by hand, which is how G8's four-entry-point
+ * x five-binding surface stays a single decision instead of twenty.
+ */
+export function canDrillDown(element: PptxElement | null | undefined): boolean {
+	return canInteractWithElement(element, 'drilldown');
 }
 
 /** The negation of {@link canInteractWithElement}, for readability at guards. */

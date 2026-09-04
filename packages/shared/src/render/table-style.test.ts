@@ -216,7 +216,7 @@ describe('getDiagonalBorders', () => {
 	});
 });
 
-describe('getCellDiagonalBorders - style-inherited diagonals (issue: table-style tl2br/bl2tr)', () => {
+describe('getCellDiagonalBorders - style-inherited diagonals (issue: table-style tl2br/tr2bl)', () => {
 	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-0000000000D1}';
 
 	function styledTable(overrides: Partial<PptxTableData> = {}): PptxTableData {
@@ -228,13 +228,13 @@ describe('getCellDiagonalBorders - style-inherited diagonals (issue: table-style
 		} as unknown as PptxTableData;
 	}
 
-	it('renders a whole-table tl2br/bl2tr diagonal for a cell', () => {
+	it('renders a whole-table tl2br/tr2bl diagonal for a cell', () => {
 		const map: ParsedTableStyleMap = {
 			[STYLE_ID]: {
 				styleId: STYLE_ID,
 				wholeTblBorders: {
 					tl2br: { width: 2, color: '#FF0000' },
-					bl2tr: { width: 1, color: '#0000FF' },
+					tr2bl: { width: 1, color: '#0000FF' },
 				},
 			},
 		};

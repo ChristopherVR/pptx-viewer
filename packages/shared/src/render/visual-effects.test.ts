@@ -15,6 +15,7 @@ import {
 	getInnerShadowCss,
 	getMultiLayerShadowCss,
 	getOuterShadowCss,
+	getShapeFillOverlay,
 	getSoftEdgeSvgFilter,
 } from './visual-effects';
 
@@ -480,6 +481,46 @@ describe('getEffectDagFillOverlay', () => {
 				dagFillOverlayBlend: 'screen',
 			}),
 		).toStrictEqual({ color: 'rgba(18, 52, 86, 0.25)', blendMode: 'screen' });
+	});
+});
+
+// ── direct effectLst fillOverlay tint (D1-G3) ───────────────────────────────
+
+describe('getShapeFillOverlay', () => {
+	it('returns undefined without an overlay colour', () => {
+		expect(getShapeFillOverlay(undefined)).toBeUndefined();
+		expect(getShapeFillOverlay({})).toBeUndefined();
+		expect(getShapeFillOverlay({ shapeFillOverlayColor: 'transparent' })).toBeUndefined();
+	});
+
+	it("maps the 'mult' blend to CSS multiply and carries opacity", () => {
+		expect(
+			getShapeFillOverlay({
+				shapeFillOverlayColor: '#ff0000',
+				shapeFillOverlayOpacity: 0.5,
+				shapeFillOverlayBlend: 'mult',
+			} as ShapeStyle),
+		).toStrictEqual({ color: 'rgba(255, 0, 0, 0.5)', blendMode: 'multiply' });
+	});
+
+	it('getComputedEffectStyle paints a direct effectLst fillOverlay when no DAG overlay is present', () => {
+		const result = getComputedEffectStyle(
+			shape({ shapeFillOverlayColor: '#00ff00', shapeFillOverlayBlend: 'screen' } as ShapeStyle),
+		);
+		expect(result.fillOverlay).toStrictEqual({ color: '#00ff00', blendMode: 'screen' });
+		expect(result.mixBlendMode).toBeUndefined();
+	});
+
+	it('getComputedEffectStyle prefers the DAG overlay when both forms are somehow present', () => {
+		const result = getComputedEffectStyle(
+			shape({
+				dagFillOverlayColor: '#0000ff',
+				dagFillOverlayBlend: 'darken',
+				shapeFillOverlayColor: '#00ff00',
+				shapeFillOverlayBlend: 'screen',
+			} as ShapeStyle),
+		);
+		expect(result.fillOverlay).toStrictEqual({ color: '#0000ff', blendMode: 'darken' });
 	});
 });
 

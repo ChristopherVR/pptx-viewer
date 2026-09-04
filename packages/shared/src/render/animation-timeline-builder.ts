@@ -216,6 +216,15 @@ export function buildTimeline(
 	 */
 	let subGroupIndex: number | undefined;
 	let subGroupStartMs = 0;
+	/**
+	 * Maps each effect's own `p:cTn/@_id` ({@link PptxNativeAnimation.nodeId})
+	 * to the {@link TimelineStep} built for it, so a LATER effect whose
+	 * `p:cond/@_tn` (`dependsOnTimeNodeId`) names an EARLIER, non-adjacent node
+	 * can schedule off that node's real computed end time instead of assuming
+	 * it is always the positionally-previous step (ECMA-376 S19.5.28
+	 * CT_TLTimeCondition; see `animation-advanced-triggers`).
+	 */
+	const stepsByNodeId = new Map<number, TimelineStep>();
 
 	for (const anim of regularAnims) {
 		const expandedSteps = expandIterateAnimation(anim);
@@ -380,6 +389,17 @@ export function buildTimeline(
 
 			// Compute delay relative to start of this click-group
 			const prevStep = currentGroup.length > 0 ? currentGroup[currentGroup.length - 1] : undefined;
+			// A `p:cond/@_tn` dependency on a SPECIFIC, non-adjacent earlier node
+			// (e.g. "start after effect #3", not just "after the previous effect")
+			// schedules off that node's own computed end, not positional adjacency.
+			// Absent when the dependency targets a node this pass hasn't built yet
+			// (forward references are not valid OOXML) or a node outside the
+			// click-group step model (e.g. a `kind: 'media'` audio/video node,
+			// which never becomes a TimelineStep here; see `animation-media-playback`).
+			const dependencyStep =
+				effective.dependsOnTimeNodeId !== undefined
+					? stepsByNodeId.get(effective.dependsOnTimeNodeId)
+					: undefined;
 			let delayMs: number;
 			if (singleAnim.parGroupIndex !== undefined) {
 				if (singleAnim.parGroupIndex !== subGroupIndex) {
@@ -398,6 +418,11 @@ export function buildTimeline(
 				// Siblings of one wrapper are simultaneous in OOXML: each `@delay` is
 				// an offset from the wrapper, never a chain off the previous effect.
 				delayMs = subGroupStartMs + animDelay + triggerDelay;
+			} else if (dependencyStep) {
+				delayMs =
+					trigger === 'withPrevious'
+						? dependencyStep.delayMs + animDelay + triggerDelay
+						: dependencyStep.delayMs + dependencyStep.durationMs + animDelay + triggerDelay;
 			} else if (trigger === 'withPrevious' && prevStep) {
 				delayMs = prevStep.delayMs + animDelay + triggerDelay;
 			} else if ((trigger === 'afterPrevious' || trigger === 'afterDelay') && prevStep) {
@@ -451,6 +476,9 @@ export function buildTimeline(
 				seqPrevAction: singleAnim.seqPrevAction,
 				exclGroupId: singleAnim.exclGroupId,
 			};
+			if (singleAnim.nodeId !== undefined) {
+				stepsByNodeId.set(singleAnim.nodeId, step);
+			}
 			const previousParallelStep = currentGroup[currentGroup.length - 1];
 			if (
 				singleAnim.parGroupIndex !== undefined &&

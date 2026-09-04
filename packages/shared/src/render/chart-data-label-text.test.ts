@@ -63,7 +63,8 @@ describe('resolveDataLabelContent', () => {
 describe('buildDataLabelText', () => {
 	it('prints the raw value when no content flag is set (historical behaviour)', () => {
 		expect(
-			buildDataLabelText({ chartData: chart(), series: shareSeries, pointIndex: 0, value: 40 }),
+			buildDataLabelText({ chartData: chart(), series: shareSeries, pointIndex: 0, value: 40 })
+				?.text,
 		).toBe('40');
 	});
 
@@ -72,7 +73,7 @@ describe('buildDataLabelText', () => {
 			...shareSeries,
 			dataLabelOptions: { showValue: false, showPercent: true },
 		};
-		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 0, value: 40 })).toBe(
+		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 0, value: 40 })?.text).toBe(
 			'40%',
 		);
 	});
@@ -87,7 +88,7 @@ describe('buildDataLabelText', () => {
 				separator: ', ',
 			},
 		};
-		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 1, value: 25 })).toBe(
+		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 1, value: 25 })?.text).toBe(
 			'Partner, 25%',
 		);
 	});
@@ -104,7 +105,7 @@ describe('buildDataLabelText', () => {
 				pointIndex: 0,
 				value: 40,
 				percentBase: 200,
-			}),
+			})?.text,
 		).toBe('20%');
 	});
 
@@ -119,8 +120,74 @@ describe('buildDataLabelText', () => {
 		expect(
 			buildDataLabelText({ chartData: chart(), series, pointIndex: 0, value: 40 }),
 		).toBeUndefined();
-		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 1, value: 25 })).toBe(
+		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 1, value: 25 })?.text).toBe(
 			'Hand typed',
+		);
+	});
+
+	it('carries a [Red]/[Blue] number-format colour when the label is JUST the value', () => {
+		const series: PptxChartSeries = { ...shareSeries, numberFormat: '#,##0;[Red]-#,##0' };
+		const result = buildDataLabelText({ chartData: chart(), series, pointIndex: 0, value: -5 });
+		expect(result).toStrictEqual({ text: '-5', color: '#FF0000' });
+	});
+
+	it('drops the number-format colour once another component joins the value', () => {
+		const series: PptxChartSeries = {
+			...shareSeries,
+			numberFormat: '#,##0;[Red]-#,##0',
+			dataLabelOptions: { showValue: true, showCategory: true },
+		};
+		const result = buildDataLabelText({ chartData: chart(), series, pointIndex: 0, value: -5 });
+		expect(result?.text).toBe('Direct, -5');
+		expect(result?.color).toBeUndefined();
+	});
+
+	it('a per-point c:dLbl/c:numFmt overrides the series number format', () => {
+		// `numberFormat` on a per-point `c:dLbl` is a wave-agreed core field not
+		// yet on `PptxChartDataLabel` in `packages/core/dist`; bridge it here the
+		// same way `chart-data-label-text.ts` does internally.
+		const series: PptxChartSeries = {
+			...shareSeries,
+			numberFormat: '0.00',
+			dataLabels: [{ idx: 0, numberFormat: '0%' }] as unknown as PptxChartSeries['dataLabels'],
+		};
+		expect(
+			buildDataLabelText({ chartData: chart(), series, pointIndex: 0, value: 0.4 })?.text,
+		).toBe('40%');
+	});
+
+	it('a series-level c:ser/c:dLbls/c:numFmt wins over the chart-type level and the series format', () => {
+		const data = chart({
+			style: {
+				hasDataLabels: true,
+				dataLabels: { numberFormat: '0.0%' } as unknown as NonNullable<
+					PptxChartData['style']
+				>['dataLabels'],
+			},
+		});
+		const series: PptxChartSeries = {
+			...shareSeries,
+			numberFormat: '0.00',
+			dataLabelOptions: { numberFormat: '0%' } as unknown as PptxChartSeries['dataLabelOptions'],
+		};
+		expect(buildDataLabelText({ chartData: data, series, pointIndex: 0, value: 0.4 })?.text).toBe(
+			'40%',
+		);
+	});
+
+	it('a chart-type-level c:dLbls/c:numFmt wins over the series format', () => {
+		// Same bridge as above, at the chart-type (`c:*Chart/c:dLbls`) level.
+		const data = chart({
+			style: {
+				hasDataLabels: true,
+				dataLabels: { numberFormat: '0%' } as unknown as NonNullable<
+					PptxChartData['style']
+				>['dataLabels'],
+			},
+		});
+		const series: PptxChartSeries = { ...shareSeries, numberFormat: '0.00' };
+		expect(buildDataLabelText({ chartData: data, series, pointIndex: 0, value: 0.4 })?.text).toBe(
+			'40%',
 		);
 	});
 });

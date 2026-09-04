@@ -53,6 +53,24 @@ describe('getContainerStyle degenerate boxes', () => {
 			height: 12,
 		});
 	});
+
+	it('publishes a group box as --pptx-parent-w/-h for origin="parent" motion paths', () => {
+		const group: PptxElement = {
+			id: 'g1',
+			type: 'group',
+			x: 10,
+			y: 20,
+			width: 300,
+			height: 150,
+			children: [],
+		};
+		const style = getContainerStyle(group, 1);
+		expect(style['--pptx-parent-w']).toBe('300px');
+		expect(style['--pptx-parent-h']).toBe('150px');
+		expect(
+			getContainerStyle(picture({ width: 400, height: 300 }), 3)['--pptx-parent-w'],
+		).toBeUndefined();
+	});
 });
 
 describe('getImageSrc', () => {
@@ -149,6 +167,25 @@ describe('getImageFitStyle', () => {
 		);
 		// Surviving width 0.393 -> scale 2.544529, offset -0.038/0.393 = -9.67%.
 		expect(style['transform']).toBe('translate(-9.67%, -20.63%) scale(2.544529, 1.206273)');
+	});
+
+	it('pads the image instead of cropping it for a negative a:srcRect inset (issue G2)', () => {
+		// A negative left crop is an outward crop dragged past the source
+		// bitmap's edge (e.g. a photo smaller than its placeholder): the image
+		// must shrink (scale < 1) and shift right, leaving visible padding on
+		// the left, not clip further in.
+		const style = getImageFitStyle(picture({ cropLeft: -0.2 } as Partial<PptxElement>));
+		expect(style['transform']).toBe('translate(16.67%, 0%) scale(0.833333, 1)');
+	});
+
+	it('applies a negative crop on one edge even when the opposite edge cancels the sum', () => {
+		// cropLeft + cropRight sums to 0 here; a sum-based "has crop" check
+		// would wrongly treat this as uncropped and skip the transform.
+		const style = getImageFitStyle(
+			picture({ cropLeft: -0.2, cropRight: 0.2 } as Partial<PptxElement>),
+		);
+		expect(String(style['transform'])).not.toBe('');
+		expect(style['transform']).toBeDefined();
 	});
 
 	it('leaves a sliver rather than dividing by zero on a total crop', () => {

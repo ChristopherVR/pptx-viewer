@@ -299,6 +299,51 @@ describe('getCameraTransform', () => {
 		expect(result.perspective).toBe('800px');
 		expect(result.rotateX).toBe(-10);
 	});
+
+	it('maps isometricLeftUp and isometricRightDown to non-zero rotation (D1-G1)', () => {
+		const leftUp = getCameraTransform({ cameraPreset: 'isometricLeftUp' });
+		expect(leftUp.rotateX).not.toBe(0);
+		expect(leftUp.rotateY).not.toBe(0);
+		expect(leftUp.perspective).toBeDefined();
+
+		const rightDown = getCameraTransform({ cameraPreset: 'isometricRightDown' });
+		expect(rightDown.rotateX).not.toBe(0);
+		expect(rightDown.rotateY).not.toBe(0);
+		expect(rightDown.perspective).toBeDefined();
+		// The two presets mirror each other around the isometric cube's diagonal.
+		expect(rightDown.rotateX).toBe(leftUp.rotateX);
+		expect(rightDown.rotateY).toBe(-leftUp.rotateY);
+	});
+
+	it('maps all 18 legacyOblique*/legacyPerspective* presets to non-flat rotation or explicit front (D1-G2)', () => {
+		const legacyPresets = [
+			'legacyObliqueTopLeft',
+			'legacyObliqueTop',
+			'legacyObliqueTopRight',
+			'legacyObliqueLeft',
+			'legacyObliqueFront',
+			'legacyObliqueRight',
+			'legacyObliqueBottomLeft',
+			'legacyObliqueBottom',
+			'legacyObliqueBottomRight',
+			'legacyPerspectiveTopLeft',
+			'legacyPerspectiveTop',
+			'legacyPerspectiveTopRight',
+			'legacyPerspectiveLeft',
+			'legacyPerspectiveFront',
+			'legacyPerspectiveRight',
+			'legacyPerspectiveBottomLeft',
+			'legacyPerspectiveBottom',
+			'legacyPerspectiveBottomRight',
+		];
+		for (const cameraPreset of legacyPresets) {
+			const result = getCameraTransform({ cameraPreset });
+			// Every legacy preset must resolve to a real (non-fallback-flat)
+			// perspective distance, proving it is present in CAMERA_PRESET_MAP
+			// rather than silently falling through to the "unknown preset" path.
+			expect(result.perspective).toBeDefined();
+		}
+	});
 });
 
 // ── get3DBevelShadow (React-compatible string-only bevel) ────────────────

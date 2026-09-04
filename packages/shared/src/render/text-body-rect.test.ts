@@ -50,13 +50,12 @@ describe('resolveTextBodyRectPadding', () => {
 		});
 	});
 
-	// The core table's `rect` for these was never read by anything and does not
-	// match PowerPoint (`diamond` evaluates to a quarter-size box, `heart` to a
-	// zero-size one, `pentagon` to a negative bottom edge). Honouring them would
-	// put text in a measurably wrong place, so they stay on the full box until
-	// the geometry table is corrected.
+	// `diamond`/`heart`/`pentagon`/`ellipse`/`plus` were fixed and COM-verified
+	// under gap G1 (see `VERIFIED_TEXT_RECT_PRESETS`'s doc comment) and now
+	// contribute real padding; `star5` (and most other star/ribbon/scroll
+	// presets) remain unverified and stay on the full box.
 	it('ignores the text rectangle of presets not verified against PowerPoint', () => {
-		for (const shapeType of ['diamond', 'heart', 'pentagon', 'ellipse', 'star5', 'plus']) {
+		for (const shapeType of ['star5']) {
 			expect(resolveTextBodyRectPadding(shape({ shapeType }))).toStrictEqual({
 				left: 0,
 				top: 0,
@@ -64,6 +63,50 @@ describe('resolveTextBodyRectPadding', () => {
 				bottom: 0,
 			});
 		}
+	});
+
+	// G1 follow-up: the core table's `rect` for these is now corrected and
+	// COM-verified (200x100pt reference box), so `buildTextBlockStyle` honours
+	// it via `VERIFIED_TEXT_RECT_PRESETS`.
+	it('insets an ellipse by (1 - cos45deg)/2 of each dimension (~14.6%)', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'ellipse' }));
+		expect(padding.left).toBeCloseTo(29.29, 1);
+		expect(padding.top).toBeCloseTo(14.64, 1);
+		expect(padding.right).toBeCloseTo(29.29, 1);
+		expect(padding.bottom).toBeCloseTo(14.64, 1);
+	});
+
+	it('insets a diamond to the box quarter-to-3-quarter span', () => {
+		expect(resolveTextBodyRectPadding(shape({ shapeType: 'diamond' }))).toStrictEqual({
+			left: 50,
+			top: 25,
+			right: 50,
+			bottom: 25,
+		});
+	});
+
+	it('insets a heart using the wd6/hd3 builtins instead of the undefined 3wd4/3hd4 guides', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'heart' }));
+		expect(padding.left).toBeCloseTo(33.33, 1);
+		expect(padding.top).toBe(25);
+		expect(padding.right).toBeCloseTo(33.33, 1);
+		expect(padding.bottom).toBeCloseTo(33.33, 1);
+	});
+
+	it('insets a pentagon without a negative bottom edge', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'pentagon' }));
+		expect(padding.bottom).toBe(0);
+		expect(padding.left).toBeCloseTo(38.2, 1);
+		expect(padding.top).toBeCloseTo(23.61, 1);
+	});
+
+	it('insets plus to the wide horizontal arm, not the narrow intersection square', () => {
+		expect(resolveTextBodyRectPadding(shape({ shapeType: 'plus' }))).toStrictEqual({
+			left: 0,
+			top: 25,
+			right: 0,
+			bottom: 25,
+		});
 	});
 
 	it('ignores a shape with no geometry or a degenerate box', () => {

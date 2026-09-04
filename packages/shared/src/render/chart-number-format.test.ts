@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { formatChartNumber } from './chart-number-format';
+import { formatChartNumber, formatChartNumberWithColor } from './chart-number-format';
 
 describe('formatChartNumber', () => {
 	it('renders a percentage format against the cached fraction', () => {
@@ -71,5 +71,36 @@ describe('formatChartNumber', () => {
 		expect(formatChartNumber(1.5, '@')).toBeUndefined();
 		expect(formatChartNumber(1.5, 'yyyy-mm-dd')).toBeUndefined();
 		expect(formatChartNumber(Number.NaN, '0%')).toBeUndefined();
+	});
+});
+
+describe('formatChartNumberWithColor', () => {
+	it('surfaces the [Red] section colour for a negative value', () => {
+		expect(formatChartNumberWithColor(-42, '#,##0;[Red]-#,##0')).toStrictEqual({
+			text: '-42',
+			color: '#FF0000',
+		});
+	});
+
+	it('a positive value uses the (uncoloured) positive section', () => {
+		expect(formatChartNumberWithColor(42, '#,##0;[Red]-#,##0')).toStrictEqual({
+			text: '42',
+			color: undefined,
+		});
+	});
+
+	it('recognises every ECMA-376 18.8.30 named colour, case-insensitively', () => {
+		expect(formatChartNumberWithColor(1, '[Blue]0')?.color).toBe('#0000FF');
+		expect(formatChartNumberWithColor(1, '[GREEN]0')?.color).toBe('#00FF00');
+	});
+
+	it('ignores an unrecognised bracket token instead of crashing', () => {
+		const result = formatChartNumberWithColor(1234, '[Color3]#,##0');
+		expect(result?.text).toBe('1,234');
+		expect(result?.color).toBeUndefined();
+	});
+
+	it('formatChartNumber keeps returning a bare string (sibling-function contract)', () => {
+		expect(formatChartNumber(-42, '#,##0;[Red]-#,##0')).toBe('-42');
 	});
 });

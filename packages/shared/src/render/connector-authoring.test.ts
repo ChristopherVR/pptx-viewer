@@ -90,8 +90,8 @@ describe('authorConnectorBetweenSites', () => {
 
 	it('keeps a purely horizontal connector paintable with a 1px height', () => {
 		const authored = authorConnectorBetweenSites(
-			{ element: rect('a', 0, 0), siteIndex: 1 }, // right-centre => (100, 50)
-			{ element: rect('b', 200, 0), siteIndex: 3 }, // left-centre  => (200, 50)
+			{ element: rect('a', 0, 0), siteIndex: 3 }, // right-centre => (100, 50)
+			{ element: rect('b', 200, 0), siteIndex: 1 }, // left-centre  => (200, 50)
 		);
 		expect(authored?.height).toBe(1);
 		expect(authored?.width).toBe(100);

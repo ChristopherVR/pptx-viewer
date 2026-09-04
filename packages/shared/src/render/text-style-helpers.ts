@@ -7,7 +7,7 @@
  * unions of CSS keyword values), never a framework's `CSSProperties` type, so
  * each binding can assign or cast the results into its own style object.
  */
-import type { TextStyle } from 'pptx-viewer-core';
+import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { proportionalLineHeight } from './text-line-height';
 
@@ -94,6 +94,56 @@ export function toCssVerticalDirection(
 		return 'rtl';
 	}
 	return undefined;
+}
+
+/**
+ * Count how many paragraphs `segments` group into (paragraph breaks are
+ * `isParagraphBreak` segments, post-edit, or a bare `"\n"` text segment on
+ * the slide-load path; a soft line break, `isLineBreak`, does not split a
+ * paragraph). Mirrors `text-paragraphs.ts`'s own grouping predicate; kept
+ * deliberately cheap (no bullet/run resolution) since the only thing callers
+ * need is the count.
+ */
+function countParagraphs(segments: readonly TextSegment[] | undefined): number {
+	if (!segments || segments.length === 0) {
+		return 1;
+	}
+	let count = 1;
+	for (const seg of segments) {
+		if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
+			count += 1;
+		}
+	}
+	return count;
+}
+
+/**
+ * Resolve `a:bodyPr/@anchor` to a CSS `justify-content` value for the flex
+ * column {@link buildTextBodyLayoutStyle} lays paragraphs out in (D2-G5:
+ * ECMA-376 §20.1.10.2 `ST_TextAnchoringType`).
+ *
+ * `distributed`/`justified` (`dist`/`just`) stretch paragraph spacing so the
+ * text block fills the box's full vertical extent - CSS has no vertical
+ * justify-text primitive, so this approximates: `space-between` spreads
+ * multiple paragraphs across the box (the closest a flex column gets to
+ * "distribute"), and a single paragraph (nothing to distribute) falls back to
+ * centering, matching PowerPoint's own behaviour for a one-paragraph
+ * distributed body.
+ */
+export function resolveVerticalAnchorJustifyContent(
+	vAlign: TextStyle['vAlign'] | undefined,
+	textSegments: readonly TextSegment[] | undefined,
+): string {
+	if (vAlign === 'distributed' || vAlign === 'justified') {
+		return countParagraphs(textSegments) > 1 ? 'space-between' : 'center';
+	}
+	if (vAlign === 'middle') {
+		return 'center';
+	}
+	if (vAlign === 'bottom') {
+		return 'flex-end';
+	}
+	return 'flex-start';
 }
 
 /** Whether a `textDirection` value represents any vertical writing mode. */
