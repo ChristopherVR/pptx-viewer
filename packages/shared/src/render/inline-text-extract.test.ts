@@ -58,6 +58,57 @@ describe('readEditableText', () => {
 		).toBe('First\nSecond');
 	});
 
+	it('keeps an annotated rich-run paragraph after its placeholder is replaced', () => {
+		expect(
+			readEditableText(
+				elementFromHtml(
+					'<span data-seg-idx="0">First</span><span data-seg-idx="0" data-pptx-paragraph-start>Second</span>',
+				),
+			),
+		).toBe('First\nSecond');
+		expect(
+			readEditableText(
+				elementFromHtml(
+					'<span data-seg-idx="0">First</span><span data-seg-idx="0" data-pptx-paragraph-start><br></span>',
+				),
+			),
+		).toBe('First\n');
+	});
+
+	it('counts consecutive annotated empty paragraphs exactly once', () => {
+		expect(
+			readEditableText(
+				elementFromHtml(
+					'<span>First</span><span data-pptx-paragraph-start><br></span><span data-pptx-paragraph-start><br></span>',
+				),
+			),
+		).toBe('First\n\n');
+		expect(
+			readEditableText(
+				elementFromHtml(
+					'<div>First</div><div data-pptx-paragraph-start><span data-seg-idx="0"><br></span></div>',
+				),
+			),
+		).toBe('First\n');
+	});
+
+	it('keeps an unannotated authored soft line break', () => {
+		expect(readEditableText(elementFromHtml('<div><span data-seg-idx="0"><br></span></div>'))).toBe(
+			'\n',
+		);
+	});
+
+	it('ignores an empty-run caret placeholder but reads replacement text', () => {
+		expect(
+			readEditableText(elementFromHtml('<span>First</span><span data-pptx-empty-run><br></span>')),
+		).toBe('First');
+		expect(
+			readEditableText(
+				elementFromHtml('<span>First</span><span data-pptx-empty-run>Second</span>'),
+			),
+		).toBe('FirstSecond');
+	});
+
 	it('does not prefix a newline for the very first block', () => {
 		expect(readEditableText(elementFromHtml('<div>only</div>'))).toBe('only');
 	});

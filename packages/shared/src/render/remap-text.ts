@@ -5,45 +5,8 @@
  */
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
-import { resolveParagraphBullet } from './bullet-list';
 import { isBulletMarkerSegment } from './bullet-toggle';
-
-/**
- * Remove marker text from editor surfaces that seed it as ordinary text.
- * Depending on the binding, the gap can be CSS (`"1.Item"`) or the parsed
- * marker's trailing space (`"1. Item"`). React instead annotates its rendered
- * marker so `readEditableText` can exclude it at the DOM boundary.
- */
-function withoutRenderedBulletPrefix(
-	text: string,
-	originalSegments: readonly TextSegment[],
-	dedicatedMarker: TextSegment | undefined,
-): string {
-	if (!dedicatedMarker) {
-		return text;
-	}
-	const resolved = resolveParagraphBullet(dedicatedMarker);
-	if (!resolved || !text.startsWith(resolved.marker)) {
-		return text;
-	}
-
-	const withoutMarker = text.slice(resolved.marker.length);
-	const originalContent = originalSegments
-		.slice(1)
-		.map((segment) => segment.text)
-		.join('');
-	// Empty list paragraphs do not render a marker, so marker-like text typed
-	// into them is authored content and must not be stripped.
-	if (originalContent.trim().length === 0) {
-		return text;
-	}
-	const originalLeadingSpaces = originalContent.length - originalContent.trimStart().length;
-	const editedLeadingSpaces = withoutMarker.length - withoutMarker.trimStart().length;
-	if (editedLeadingSpaces > originalLeadingSpaces) {
-		return withoutMarker.slice(1);
-	}
-	return withoutMarker;
-}
+import { continueAutoNumberedParagraph, withoutRenderedBulletPrefix } from './remap-text-bullets';
 
 /**
  * Whether an original segment is ATOMIC: its rendered text is not what is
@@ -301,10 +264,17 @@ export function remapTextToSegments(
 
 		const originalParagraph = originalParagraphs[pi];
 		const origPara = originalParagraph?.segments ?? lastOrigPara ?? [];
-		const paraSegments = restoreParagraphMetadata(
+		let paraSegments = restoreParagraphMetadata(
 			originalParagraph?.segments[0] ?? originalParagraph?.terminator,
 			remapParagraph(newParagraphTexts[pi], origPara),
 		);
+		if (!originalParagraph) {
+			paraSegments = continueAutoNumberedParagraph(
+				paraSegments,
+				lastOrigPara ?? [],
+				pi - originalParagraphs.length + 1,
+			);
+		}
 		output.push(...paraSegments);
 	}
 

@@ -194,6 +194,103 @@ describe('remapTextToSegments', () => {
 
 			expect(result.map((segment) => segment.text)).toStrictEqual(['1.', '1.Item']);
 		});
+
+		it('continues a numbered list when a new paragraph is appended', () => {
+			const original: TextSegment[] = [
+				{
+					text: '1. ',
+					style: { color: '#4472C4' },
+					bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+				},
+				seg('First item', { bold: true }),
+			];
+			const before = structuredClone(original);
+
+			const result = remapTextToSegments('First item\nSecond item', original, {});
+			const appended = result.slice(result.findIndex((segment) => segment.isParagraphBreak) + 1);
+
+			expect(appended.map((segment) => segment.text)).toStrictEqual(['2. ', 'Second item']);
+			expect(appended[0].bulletInfo).toStrictEqual({
+				autoNumType: 'arabicPeriod',
+				paragraphIndex: 1,
+			});
+			expect(appended[1].style.bold).toBeTruthy();
+			expect(original).toStrictEqual(before);
+		});
+
+		it('continues multiple appended paragraphs from a custom numbered-list start', () => {
+			const original: TextSegment[] = [
+				{
+					text: 'd)',
+					style: {},
+					bulletInfo: {
+						autoNumType: 'alphaLcParenR',
+						autoNumStartAt: 3,
+						paragraphIndex: 1,
+					},
+				},
+				seg('Fourth'),
+			];
+
+			const result = remapTextToSegments('Fourth\nFifth\nSixth', original, {});
+			const markers = result.filter((segment) => segment.bulletInfo?.autoNumType);
+
+			expect(markers.map((segment) => segment.text)).toStrictEqual(['d)', 'e)', 'f)']);
+			expect(markers.map((segment) => segment.bulletInfo?.paragraphIndex)).toStrictEqual([1, 2, 3]);
+		});
+
+		it('continues numbering when bulletInfo is carried by the content run', () => {
+			const original: TextSegment[] = [
+				{
+					text: 'First',
+					style: {},
+					bulletInfo: { autoNumType: 'romanUcPeriod', paragraphIndex: 0 },
+				},
+			];
+
+			const result = remapTextToSegments('First\nSecond', original, {});
+			const appended = result.at(-1);
+
+			expect(appended?.text).toBe('Second');
+			expect(appended?.bulletInfo).toStrictEqual({
+				autoNumType: 'romanUcPeriod',
+				paragraphIndex: 1,
+			});
+		});
+
+		it.each([
+			['a character bullet', '• ', { char: '•' }],
+			[
+				'a picture bullet',
+				'• ',
+				{ imageDataUrl: 'data:image/png;base64,AA==', imageRelId: 'rId7' },
+			],
+			['an auto-number without a runtime paragraph index', '1.', { autoNumType: 'arabicPeriod' }],
+		] as const)('does not invent a numbered sequence for %s', (_name, marker, bulletInfo) => {
+			const original: TextSegment[] = [{ text: marker, style: {}, bulletInfo }, seg('First')];
+
+			const result = remapTextToSegments(`First\nSecond`, original, {});
+			const appended = result.slice(result.findIndex((segment) => segment.isParagraphBreak) + 1);
+			const appendedBullet = appended.find((segment) => segment.bulletInfo)?.bulletInfo;
+
+			expect(appendedBullet).toStrictEqual(bulletInfo);
+			expect(appendedBullet?.paragraphIndex).toBeUndefined();
+		});
+
+		it('advances an empty appended paragraph before it receives text', () => {
+			const original: TextSegment[] = [
+				{
+					text: '1.',
+					style: {},
+					bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+				},
+				seg('First'),
+			];
+			const result = remapTextToSegments('First\n', original, {});
+			const appended = result.slice(result.findIndex((segment) => segment.isParagraphBreak) + 1);
+
+			expect(appended[0].bulletInfo?.paragraphIndex).toBe(1);
+		});
 	});
 
 	describe('paragraph metadata preservation', () => {
@@ -301,7 +398,7 @@ describe('remapTextToSegments', () => {
 			expect(paragraphs[1].paragraphProperties).toBeUndefined();
 		});
 
-		it('does not copy marker-carried paragraph metadata to an appended paragraph', () => {
+		it('continues a marker and list level without copying unrelated paragraph metadata', () => {
 			const paragraphProperties = { paragraphSpacingAfter: 9 };
 			const original: TextSegment[] = [
 				{
@@ -324,9 +421,10 @@ describe('remapTextToSegments', () => {
 
 			expect(appended?.bulletInfo).toStrictEqual({
 				autoNumType: 'arabicPeriod',
-				paragraphIndex: 0,
+				paragraphIndex: 1,
 			});
-			expect(appended?.paragraphLevel).toBeUndefined();
+			expect(appended?.text).toBe('2.');
+			expect(appended?.paragraphLevel).toBe(2);
 			expect(appended?.paragraphProperties).toBeUndefined();
 			expect(appended?.endParaRunProperties).toBeUndefined();
 		});
