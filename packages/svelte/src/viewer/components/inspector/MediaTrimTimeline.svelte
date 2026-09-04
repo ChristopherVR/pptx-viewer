@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { MediaBookmark } from 'pptx-viewer-core';
+	import { mediaTimelineGeometry, mediaTrimEndSeconds, mediaTrimRangeForDrag } from 'pptx-viewer-shared';
 
 	const { duration, startMs, endMs, currentTime, bookmarks, onchange, onseek }: { duration: number; startMs: number; endMs?: number; currentTime: number; bookmarks: MediaBookmark[]; onchange: (startMs: number, endMs: number) => void; onseek: (seconds: number) => void } = $props();
 	// eslint-disable-next-line prefer-const
@@ -7,7 +8,11 @@
 	// eslint-disable-next-line prefer-const
 	let dragging = $state<'start' | 'end' | null>(null);
 	const safeDuration = $derived(Math.max(duration, 0.1));
-	const effectiveEnd = $derived(endMs && endMs > 0 ? endMs : duration * 1000);
+	// `endMs` is p14:trim/@end's distance from the clip's tail; the shared
+	// helpers convert to and from the absolute position the scrubber draws.
+	const trimEndMs = $derived(endMs ?? 0);
+	const effectiveEndSeconds = $derived(mediaTrimEndSeconds(duration, trimEndMs));
+	const geometry = $derived(mediaTimelineGeometry(duration, startMs, trimEndMs, currentTime));
 
 	function timeAt(clientX: number): number {
 		const rect = bar?.getBoundingClientRect();
@@ -20,12 +25,8 @@
 		if (!dragging) {
 			return;
 		}
-		const ms = timeAt(event.clientX) * 1000;
-		if (dragging === 'start') {
-			onchange(Math.max(0, Math.min(ms, effectiveEnd - 100)), effectiveEnd);
-		} else {
-			onchange(startMs, Math.min(duration * 1000, Math.max(ms, startMs + 100)));
-		}
+		const range = mediaTrimRangeForDrag(dragging, timeAt(event.clientX), duration, startMs, trimEndMs);
+		onchange(range.trimStartMs, range.trimEndMs);
 	}
 	function keySeek(event: KeyboardEvent): void {
 		if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
@@ -37,12 +38,12 @@
 </script>
 
 <svelte:window onpointermove={move} onpointerup={() => (dragging = null)} />
-<div class="times"><span>{(startMs / 1000).toFixed(1)}s</span><span>{(effectiveEnd / 1000).toFixed(1)}s</span></div>
+<div class="times"><span>{(startMs / 1000).toFixed(1)}s</span><span>{effectiveEndSeconds.toFixed(1)}s</span></div>
 <div class="timeline" bind:this={bar} role="slider" aria-label="Media trim timeline" aria-valuemin="0" aria-valuemax={duration} aria-valuenow={currentTime} tabindex="0" onclick={(event) => onseek(timeAt(event.clientX))} onkeydown={keySeek}>
-	<div class="range" style={`left:${startMs / 1000 / safeDuration * 100}%;right:${100 - effectiveEnd / 1000 / safeDuration * 100}%`}></div>
-	<div class="playhead" style={`left:${currentTime / safeDuration * 100}%`}></div>
-	<button type="button" class="handle start" aria-label="Trim start" style={`left:${startMs / 1000 / safeDuration * 100}%`} data-pptx-compact onpointerdown={(event) => { event.stopPropagation(); dragging = 'start'; }}></button>
-	<button type="button" class="handle end" aria-label="Trim end" style={`left:${effectiveEnd / 1000 / safeDuration * 100}%`} data-pptx-compact onpointerdown={(event) => { event.stopPropagation(); dragging = 'end'; }}></button>
+	<div class="range" style={`left:${geometry.startPercent}%;right:${100 - geometry.endPercent}%`}></div>
+	<div class="playhead" style={`left:${geometry.playheadPercent}%`}></div>
+	<button type="button" class="handle start" aria-label="Trim start" style={`left:${geometry.startPercent}%`} data-pptx-compact onpointerdown={(event) => { event.stopPropagation(); dragging = 'start'; }}></button>
+	<button type="button" class="handle end" aria-label="Trim end" style={`left:${geometry.endPercent}%`} data-pptx-compact onpointerdown={(event) => { event.stopPropagation(); dragging = 'end'; }}></button>
 	{#each bookmarks as bookmark}<button type="button" class="bookmark" title={bookmark.label} aria-label={bookmark.label} style={`left:${bookmark.time / safeDuration * 100}%`} data-pptx-compact onclick={(event) => { event.stopPropagation(); onseek(bookmark.time); }}></button>{/each}
 </div>
 

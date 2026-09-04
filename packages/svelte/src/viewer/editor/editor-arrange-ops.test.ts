@@ -78,4 +78,26 @@ describe('editor-arrange-ops group/ungroup', () => {
 		const slides = [slide([el('a', 0, 0)])];
 		expect(ungroupOnSlide(slides, 0, 'a')).toBeNull();
 	});
+
+	// G10 (OpenXML parity audit, D3): a:spLocks/a:grpSpLocks/@noGrouping was
+	// parsed but never checked here.
+	it('rejects the whole grouping attempt when a selected shape carries noGrouping', () => {
+		const locked = { ...el('a', 0, 0), locks: { noGrouping: true } };
+		const slides = [slide([locked, el('b', 20, 20)])];
+		expect(groupSelectedOnSlide(slides, 0, ['a', 'b'])).toBeNull();
+	});
+
+	it('refuses to ungroup a group whose own noGrouping lock is set', () => {
+		const slides = [slide([el('a', 0, 0), el('b', 20, 20)])];
+		const grouped = groupSelectedOnSlide(slides, 0, ['a', 'b'])!;
+		const lockedSlides: PptxSlide[] = [
+			{
+				...grouped.slides[0],
+				elements: grouped.slides[0].elements.map((e) =>
+					e.id === grouped.groupId ? { ...e, locks: { noGrouping: true } } : e,
+				),
+			},
+		];
+		expect(ungroupOnSlide(lockedSlides, 0, grouped.groupId)).toBeNull();
+	});
 });

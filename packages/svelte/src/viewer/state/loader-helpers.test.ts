@@ -1,7 +1,7 @@
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type { MediaPptxElement, PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
 
-import { resolveLazyImages } from './loader-helpers';
+import { resolveLazyImages, resolveMediaUrls } from './loader-helpers';
 
 /** Minimal `PptxHandler` stub: only `getImageData` is exercised here. */
 function handlerResolvingTo(urls: Record<string, string>): PptxHandler {
@@ -56,5 +56,54 @@ describe('resolveLazyImages (shared applyImagePathPatches repoint)', () => {
 		const resolved = await resolveLazyImages(handler, slides);
 
 		expect(resolved).toBe(slides);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// resolveMediaUrls (G17: linked/external media source resolution)
+// ---------------------------------------------------------------------------
+describe('resolveMediaUrls', () => {
+	function mediaElement(overrides: Partial<MediaPptxElement> = {}): MediaPptxElement {
+		return {
+			id: 'm1',
+			type: 'media',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			mediaType: 'video',
+			...overrides,
+		} as MediaPptxElement;
+	}
+
+	// G17: a LINKED (TargetMode="External") element's mediaPath is already the
+	// verbatim URL by the time it reaches here; it must play directly from
+	// that URL, never be marked mediaMissing from a failed archive lookup.
+	it('hands an external mediaPath straight to the URL map without touching the handler', async () => {
+		const getMediaArrayBuffer = vi.fn(async () => undefined);
+		const handler = { getMediaArrayBuffer, getImageData: vi.fn() } as unknown as PptxHandler;
+		const media = mediaElement({ mediaPath: 'https://cdn.example.com/demo.mp4' });
+		const slide: PptxSlide = { id: 's1', elements: [media] } as unknown as PptxSlide;
+
+		const result = await resolveMediaUrls(handler, [slide]);
+
+		expect(result.urls.get('https://cdn.example.com/demo.mp4')).toBe(
+			'https://cdn.example.com/demo.mp4',
+		);
+		expect(media.mediaMissing).not.toBeTruthy();
+		expect(getMediaArrayBuffer).not.toHaveBeenCalled();
+	});
+
+	it('marks an embedded element missing when the archive lookup fails', async () => {
+		const handler = {
+			getMediaArrayBuffer: vi.fn(async () => undefined),
+			getImageData: vi.fn(),
+		} as unknown as PptxHandler;
+		const media = mediaElement({ mediaPath: 'ppt/media/missing.mp4' });
+		const slide: PptxSlide = { id: 's1', elements: [media] } as unknown as PptxSlide;
+
+		await resolveMediaUrls(handler, [slide]);
+
+		expect(media.mediaMissing).toBeTruthy();
 	});
 });

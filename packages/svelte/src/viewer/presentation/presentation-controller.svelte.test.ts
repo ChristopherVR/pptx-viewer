@@ -2,6 +2,7 @@ import type { PptxElement, PptxNativeAnimation, PptxSlide } from 'pptx-viewer-co
 import { hasPersistentAudio, registerPersistentAudio } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
+import * as animationSound from './animation-sound';
 import { PresentationController } from './presentation-controller.svelte';
 
 /**
@@ -214,6 +215,22 @@ describe('presentationController (native-timing)', () => {
 		expect(hasPersistentAudio('bg-track')).toBeFalsy();
 		expect(document.querySelectorAll('[data-pptx-persistent-audio]')).toHaveLength(0);
 	});
+
+	it('stop() also silences a "Loop Until Next Sound" transition sound', () => {
+		// Otherwise a looping p:sndAc/p:stSnd keeps playing on the shared
+		// per-effect singleton behind the editor after the show ends.
+		const stopAnimationSoundSpy = vi.spyOn(animationSound, 'stopAnimationSound');
+		const deck = new Deck();
+		deck.slides = [slide('s1')];
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate: () => {},
+		});
+		controller.start();
+		controller.stop();
+		expect(stopAnimationSoundSpy).toHaveBeenCalledWith();
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -351,5 +368,56 @@ describe('presentationController loop continuously', () => {
 		controller.advance();
 		expect(deck.index).toBe(1);
 		expect(controller.endOfShowVisible).toBeTruthy();
+	});
+});
+
+describe('presentationController @highlightClick flash', () => {
+	function actionShape(id: string, highlightClick: boolean): PptxElement {
+		return {
+			type: 'shape',
+			id,
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			actionClick: { action: 'ppaction://noaction', highlightClick },
+		} as unknown as PptxElement;
+	}
+
+	function stageTarget(elementId: string): HTMLElement {
+		const el = document.createElement('div');
+		el.dataset.elementId = elementId;
+		document.body.appendChild(el);
+		return el;
+	}
+
+	it('flashes the clicked element and clears it after the duration', () => {
+		vi.useFakeTimers();
+		const deck = new Deck();
+		deck.slides = [slide('s1', { elements: [actionShape('el-1', true)] })];
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate: () => {},
+		});
+		const target = stageTarget('el-1');
+		controller.handleStageClick(target);
+		expect(target.style.filter).toBe('brightness(1.18)');
+		vi.advanceTimersByTime(320);
+		expect(target.style.filter).toBe('');
+		vi.useRealTimers();
+	});
+
+	it('does not flash when the action carries no highlightClick', () => {
+		const deck = new Deck();
+		deck.slides = [slide('s1', { elements: [actionShape('el-1', false)] })];
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate: () => {},
+		});
+		const target = stageTarget('el-1');
+		controller.handleStageClick(target);
+		expect(target.style.filter).toBe('');
 	});
 });

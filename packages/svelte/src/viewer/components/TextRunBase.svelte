@@ -49,8 +49,8 @@
 	>{:else if run.hyperlink?.href}<a
 		class="pptx-svelte-link"
 		href={run.hyperlink.href}
-		target="_blank"
-		rel="noopener noreferrer"
+		target={run.hyperlink.target ?? '_blank'}
+		rel={run.hyperlink.rel ?? 'noopener noreferrer'}
 		title={run.hyperlink.tooltip}
 		style={styleToString(run.style)}
 		onclick={onHyperlinkClick}><TextRunContent {run} /></a

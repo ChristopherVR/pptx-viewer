@@ -2,9 +2,10 @@ import type { PptxElement, PptxTableCell, PptxTableData } from 'pptx-viewer-core
 import type { CellTextRun } from 'pptx-viewer-shared';
 import { DEFAULT_FONT_FAMILY } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ElementRenderer from './ElementRenderer.svelte';
+import type { ElementRendererProps } from './props';
 
 /**
  * TableView tests: mount the dispatcher with fabricated table elements and
@@ -15,12 +16,12 @@ import ElementRenderer from './ElementRenderer.svelte';
 
 let cleanup: (() => void) | undefined;
 
-function mountEl(element: PptxElement): HTMLElement {
+function mountEl(element: PptxElement, extra: Partial<ElementRendererProps> = {}): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ElementRenderer, {
 		target,
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 3 },
+		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 3, ...extra },
 	});
 	flushSync();
 	cleanup = () => {
@@ -221,5 +222,29 @@ describe('tableView', () => {
 		const td = mountEl(buildTableElement(tableData)).querySelector('td') as HTMLElement;
 		expect(td.style.paddingLeft).toBe('0px');
 		expect(td.style.paddingTop).toBe('0px');
+	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - a cell was still double-click editable on a
+	// locked table.
+	describe('cell drilldown with a:graphicFrameLocks/@noDrilldown', () => {
+		it('does not enter cell-edit mode on double-click when noDrilldown is set', () => {
+			const ontablecellcommit = vi.fn();
+			const element = { ...buildTableElement(), locks: { noDrilldown: true } } as PptxElement;
+			const target = mountEl(element, { interactive: true, ontablecellcommit });
+			const td = target.querySelector('td')!;
+			td.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+			flushSync();
+			expect(target.querySelector('input')).toBeNull();
+		});
+
+		it('enters cell-edit mode on double-click on an unlocked table', () => {
+			const ontablecellcommit = vi.fn();
+			const target = mountEl(buildTableElement(), { interactive: true, ontablecellcommit });
+			const td = target.querySelector('td')!;
+			td.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+			flushSync();
+			expect(target.querySelector('input')).not.toBeNull();
+		});
 	});
 });

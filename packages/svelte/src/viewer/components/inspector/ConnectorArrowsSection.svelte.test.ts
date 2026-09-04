@@ -48,7 +48,11 @@ function render(element: PptxElement): { editor: EditorState; target: HTMLElemen
 	document.body.appendChild(target);
 	const instance = mount(ConnectorArrowsSection, {
 		target,
-		props: { editor, style: element.type === 'connector' ? element.shapeStyle : undefined },
+		props: {
+			editor,
+			style: element.type === 'connector' ? element.shapeStyle : undefined,
+			el: element,
+		},
 	});
 	cleanup = () => {
 		void unmount(instance);
@@ -157,5 +161,32 @@ describe('connectorArrowsSection', () => {
 			cleanup?.();
 			cleanup = undefined;
 		}
+	});
+
+	// G9 (OpenXML parity audit, D3): a:cxnSpLocks/@noChangeArrowheads already
+	// computed `arrowheadsChangeable` in element-locks.ts but nothing here
+	// consulted it.
+	it('disables every dropdown when the connector locks noChangeArrowheads', () => {
+		const locked = {
+			...connector(),
+			locks: { noChangeArrowheads: true },
+		} as PptxElement;
+		const { target } = render(locked);
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		expect(selects).toHaveLength(6);
+		expect(selects.every((s) => s.disabled)).toBeTruthy();
+	});
+
+	it('ignores a change event on a locked connector (defence in depth)', () => {
+		const locked = {
+			...connector({ connectorStartArrow: 'triangle' }),
+			locks: { noChangeArrowheads: true },
+		} as PptxElement;
+		const { editor, target } = render(locked);
+		const select = selectFor(target, 'Start Arrow');
+		select.value = 'oval';
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		expect(styleOf(editor)?.connectorStartArrow).toBe('triangle');
 	});
 });

@@ -1,8 +1,11 @@
 import type { PptxCustomShow, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
+	applyHighlightClickStyle,
+	findHighlightClickTarget,
 	firstShowSlideIndex,
 	handlePresentationStageClick,
 	hasShowSlideAfter,
+	HIGHLIGHT_CLEAR_STYLE,
 	isClickAdvanceAllowed,
 	lastShowSlideIndex,
 	nextShowSlideIndex,
@@ -16,6 +19,7 @@ import type { AuthoredSlideRange, ElementAnimationState } from 'pptx-viewer-shar
 import type { CustomShowReturnState } from './action-runner-callbacks';
 import { buildWaveFourActionCallbacks } from './action-runner-callbacks';
 import { AnimationPlayback } from './animation-playback.svelte';
+import { stopAnimationSound } from './animation-sound';
 import { ensurePresentationKeyframes } from './keyframes';
 
 /**
@@ -143,6 +147,55 @@ export class PresentationController {
 		return this.#deps.getSlides()[this.#deps.getCurrentIndex()];
 	}
 
+	/** The element currently flashed by `a:hlinkHover/@highlightClick`, if any. */
+	#highlightedHoverElement: HTMLElement | null = null;
+
+	/**
+	 * `@highlightClick` ("Highlight click"): a brief flash independent of
+	 * whatever the action itself does, so it runs even for a no-op action.
+	 */
+	#applyClickHighlight(target: unknown): void {
+		const found = findHighlightClickTarget(target, this.#currentSlide());
+		if (!found?.descriptor.click) {
+			return;
+		}
+		const { element } = found;
+		const { style, clearStyle, durationMs } = found.descriptor.click;
+		applyHighlightClickStyle(element, style);
+		setTimeout(() => {
+			applyHighlightClickStyle(element, clearStyle);
+		}, durationMs);
+	}
+
+	/**
+	 * `a:hlinkHover/@highlightClick`: the same flash as the click version, held
+	 * for the duration of the hover rather than timed. Called from
+	 * `attachPresentationTriggerListeners`'s `mouseover`, alongside (but
+	 * independent of) the native-animation hover trigger it already drives.
+	 */
+	applyHoverHighlight(target: unknown): void {
+		const found = findHighlightClickTarget(target, this.#currentSlide());
+		const nextElement = found?.descriptor.hover ? found.element : null;
+		if (nextElement === this.#highlightedHoverElement) {
+			return;
+		}
+		if (this.#highlightedHoverElement) {
+			applyHighlightClickStyle(this.#highlightedHoverElement, HIGHLIGHT_CLEAR_STYLE);
+		}
+		this.#highlightedHoverElement = nextElement;
+		if (nextElement && found?.descriptor.hover) {
+			applyHighlightClickStyle(nextElement, found.descriptor.hover.enterStyle);
+		}
+	}
+
+	/** Clear whatever `applyHoverHighlight` last set, on leaving the stage. */
+	clearHoverHighlight(): void {
+		if (this.#highlightedHoverElement) {
+			applyHighlightClickStyle(this.#highlightedHoverElement, HIGHLIGHT_CLEAR_STYLE);
+			this.#highlightedHoverElement = null;
+		}
+	}
+
 	/**
 	 * The deck indexes this show visits: the selected custom show's membership
 	 * (or the whole deck), minus every slide the author hid.
@@ -217,6 +270,7 @@ export class PresentationController {
 	 * the NEXT slide on every click instead of to the one that was clicked.
 	 */
 	handleStageClick(target: unknown): void {
+		this.#applyClickHighlight(target);
 		const outcome = handlePresentationStageClick(
 			target,
 			this.#currentSlide(),
@@ -397,8 +451,11 @@ export class PresentationController {
 		this.#endOfShow = false;
 		// Presentation EXIT (never a slide change, which goes through
 		// `onSlideChange`): cross-slide "play across slides" audio ends with the
-		// show it belongs to.
+		// show it belongs to, and so does a transition sound flagged "Loop Until
+		// Next Sound" (it otherwise keeps looping on the shared per-effect
+		// singleton behind the editor).
 		stopAllPersistentAudio();
+		stopAnimationSound();
 	}
 
 	/**

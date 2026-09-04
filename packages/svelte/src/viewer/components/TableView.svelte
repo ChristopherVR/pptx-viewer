@@ -8,6 +8,8 @@
 	 * pattern fills, diagonal borders (SVG overlay), and rich per-run text.
 	 * All style resolution lives in `render/table-view.ts` + shared helpers.
 	 */
+	import { canDrillDown } from 'pptx-viewer-shared';
+
 	import { buildTableRows, columnWidthStyles, tableRootStyle } from '../render';
 	import { getContainerStyle, styleToString } from '../style';
 	import { useTableStyleContext } from '../state/render-context';
@@ -55,7 +57,9 @@
 	let draft = $state('');
 
 	function begin(cell: (typeof rows)[number]['cells'][number], event: MouseEvent): void {
-		if (!interactive || !ontablecellcommit) {
+		// G8: `a:graphicFrameLocks/@noDrilldown` forbids selecting/editing this
+		// table's individual cells, even on an otherwise-editable deck.
+		if (!interactive || !ontablecellcommit || !canDrillDown(element)) {
 			return;
 		}
 		event.preventDefault();

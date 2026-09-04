@@ -10,6 +10,8 @@ function makeController(overrides: Partial<TriggerController> = {}): TriggerCont
 		handleInteractiveShapeClick: vi.fn<(id: string) => boolean>(() => true),
 		handleHoverStart: vi.fn<(id: string) => boolean>(() => true),
 		handleHoverEnd: vi.fn<(id: string) => void>(),
+		applyHoverHighlight: vi.fn<(target: unknown) => void>(),
+		clearHoverHighlight: vi.fn<() => void>(),
 		...overrides,
 	};
 }
@@ -67,6 +69,22 @@ describe('attachPresentationTriggerListeners', () => {
 		// Leaving the stage subtree (relatedTarget outside root) ends the sequence.
 		root.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
 		expect(controller.handleHoverEnd).toHaveBeenCalledWith('el-h');
+	});
+
+	it('applies the hover highlight independently of an onHover animation trigger', () => {
+		// No hoverTriggerShapeIds entry: the shape has no `onHover` build, only
+		// `a:hlinkHover/@highlightClick` - which is a separate concern the
+		// controller's applyHoverHighlight resolves on its own.
+		const controller = makeController();
+		const { root, shape } = makeStage('el-h');
+		attachPresentationTriggerListeners(root, controller);
+
+		shape.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+		expect(controller.applyHoverHighlight).toHaveBeenCalledWith(shape);
+		expect(controller.handleHoverStart).not.toHaveBeenCalled();
+
+		root.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+		expect(controller.clearHoverHighlight).toHaveBeenCalledOnce();
 	});
 
 	it('removes its listeners on cleanup', () => {

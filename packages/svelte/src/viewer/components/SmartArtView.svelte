@@ -21,6 +21,7 @@
 		smartArtChromeStyle,
 	} from '../render';
 	import {
+		canDrillDown,
 		computeInlineEditorRect,
 		findSmartArtNodeText,
 		resolvePalette,
@@ -58,7 +59,9 @@
 	}
 
 	function openEditor(event: MouseEvent, nodeId: string | undefined): void {
-		if (!nodeId || !smartArt?.smartArtData || !onsmartartnodecommit) {return;}
+		// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this
+		// SmartArt's individual nodes for editing.
+		if (!nodeId || !smartArt?.smartArtData || !onsmartartnodecommit || !canDrillDown(smartArt)) {return;}
 		const rect = nodeRect(event.currentTarget as SVGGElement);
 		if (!rect) {return;}
 		event.stopPropagation();

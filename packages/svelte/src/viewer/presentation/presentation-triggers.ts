@@ -8,6 +8,8 @@ export type TriggerController = Pick<
 	| 'handleInteractiveShapeClick'
 	| 'handleHoverStart'
 	| 'handleHoverEnd'
+	| 'applyHoverHighlight'
+	| 'clearHoverHighlight'
 >;
 
 /** The nearest `[data-element-id]` ancestor of an event target, if any. */
@@ -52,6 +54,9 @@ export function attachPresentationTriggerListeners(
 	const onOver = (event: MouseEvent): void => {
 		const id = closestElementId(event.target);
 		const triggerId = id && controller.hoverTriggerShapeIds.has(id) ? id : undefined;
+		// `a:hlinkHover/@highlightClick`: independent of the onHover animation
+		// trigger above (a shape can carry one flag without the other).
+		controller.applyHoverHighlight(event.target);
 		if (triggerId === currentHoverTriggerId) {
 			return;
 		}
@@ -70,6 +75,7 @@ export function attachPresentationTriggerListeners(
 		if (related instanceof Node && root.contains(related)) {
 			return;
 		}
+		controller.clearHoverHighlight();
 		if (currentHoverTriggerId) {
 			controller.handleHoverEnd(currentHoverTriggerId);
 			currentHoverTriggerId = undefined;

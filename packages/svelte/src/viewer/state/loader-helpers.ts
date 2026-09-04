@@ -9,6 +9,7 @@ import {
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
+	resolveMediaElementSource,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
 } from 'pptx-viewer-shared';
@@ -51,36 +52,20 @@ export async function resolveMediaUrls(
 	}
 	const urls = new Map<string, string>();
 	const blobUrls: string[] = [];
+	// Shared with the other four bindings (G17): a LINKED media element's
+	// `mediaPath` is already the verbatim external URL by the time it reaches
+	// here; `resolveMediaElementSource` hands it straight back instead of an
+	// archive lookup that can only find embedded parts.
 	await Promise.all(
 		mediaElements.map(async (mediaElement) => {
-			const mediaPath = mediaElement.mediaPath;
-			if (!mediaPath) {
+			const resolved = await resolveMediaElementSource(mediaElement, handler);
+			if (resolved.missing || !resolved.mediaPath || !resolved.url) {
 				mediaElement.mediaMissing = true;
 				return;
 			}
-			try {
-				const isAudioVideo =
-					mediaElement.mediaType === 'audio' || mediaElement.mediaType === 'video';
-				if (isAudioVideo) {
-					const arrayBuffer = await handler.getMediaArrayBuffer(mediaPath);
-					if (arrayBuffer) {
-						const mimeType = mediaElement.mediaMimeType || 'application/octet-stream';
-						const blobUrl = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
-						blobUrls.push(blobUrl);
-						urls.set(mediaPath, blobUrl);
-					} else {
-						mediaElement.mediaMissing = true;
-					}
-				} else {
-					const dataUrl = await handler.getImageData(mediaPath);
-					if (dataUrl) {
-						urls.set(mediaPath, dataUrl);
-					} else {
-						mediaElement.mediaMissing = true;
-					}
-				}
-			} catch {
-				mediaElement.mediaMissing = true;
+			urls.set(resolved.mediaPath, resolved.url);
+			if (resolved.isBlobUrl) {
+				blobUrls.push(resolved.url);
 			}
 		}),
 	);

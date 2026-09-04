@@ -16,6 +16,7 @@
 	 */
 	import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 	import {
+		applySlideTransitionSound,
 		buildMorphScopedCss,
 		buildMorphTransitionPlan,
 		MORPH_CROSSFADE_GROUP_CSS_TEXT,
@@ -27,6 +28,7 @@
 	import type { CanvasSize, CssStyleMap } from 'pptx-viewer-shared';
 	import { onDestroy, onMount } from 'svelte';
 
+	import { playAnimationSound, stopAnimationSound } from './animation-sound';
 	import SlideStage from '../components/SlideStage.svelte';
 	import { styleToString } from '../style';
 
@@ -147,6 +149,27 @@
 		styleToString(layerStyle(morphPlan ? 'none' : animations.incoming, morphPlan ? 1 : animations.outgoingOnTop ? 1 : 2)),
 	);
 	const liftedStyle = styleToString(layerStyle('none', 3));
+
+	/**
+	 * Play or stop this transition's sound action (`p:sndAc/p:stSnd`/`p:endSnd`)
+	 * the instant it starts. `transition.soundPath` is a raw in-archive path;
+	 * `mediaDataUrls` is the same Blob-URL cache the load pipeline
+	 * pre-populates for it (`collectAnimationSoundPaths`, extended to also
+	 * collect a slide transition's own sound). Reuses the per-effect sound
+	 * singleton (`animation-sound.ts`) so a transition sound and an animation
+	 * sound cannot talk over each other, matching PowerPoint's "one sound
+	 * plays at a time" behaviour. NOT stopped on this component's own
+	 * destroy: a "Loop Until Next Sound" sound must keep playing across the
+	 * static period between this overlay tearing down and the next
+	 * transition's own sound action; the presentation controller stops it on
+	 * leaving the show.
+	 */
+	$effect(() => {
+		applySlideTransitionSound(transition, (soundPath) => mediaDataUrls.get(soundPath), {
+			play: playAnimationSound,
+			stop: stopAnimationSound,
+		});
+	});
 
 	let timer: ReturnType<typeof setTimeout> | null = null;
 

@@ -154,4 +154,23 @@ describe('imageSection', () => {
 		expect(el.cropLeft).toBeCloseTo(0.1);
 		expect(el.cropRight).toBeCloseTo(0.9);
 	});
+
+	// G7 (OpenXML parity audit, D3): a:picLocks/@noCrop was parsed and
+	// round-tripped but never enforced.
+	it('disables the crop inputs and ignores edits when noCrop is set', () => {
+		const editor = makeEditor(imageEl({ locks: { noCrop: true } }));
+		const { target } = mountSection(editor, currentEl(editor));
+		const cropInputs = Array.from(
+			target.querySelectorAll<HTMLInputElement>('input[type="number"]'),
+		);
+		expect(cropInputs).toHaveLength(4);
+		for (const input of cropInputs) {
+			expect(input.disabled).toBeTruthy();
+		}
+		const [left] = cropInputs;
+		left!.value = '10';
+		left!.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+		expect((currentEl(editor) as ImageShape).cropLeft).toBeUndefined();
+	});
 });

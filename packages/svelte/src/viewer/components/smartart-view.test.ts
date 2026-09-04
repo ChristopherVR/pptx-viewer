@@ -182,6 +182,20 @@ describe('smartArtView', () => {
 		flushSync();
 		expect(onsmartartnodecommit).toHaveBeenCalledWith('sa-1', 'n1', 'Changed');
 	});
+
+	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+	// parsed but never enforced - a node was still double-click editable on a
+	// locked SmartArt.
+	it('does not open the node editor on double-click when noDrilldown is set', () => {
+		const onsmartartnodecommit = vi.fn();
+		const locked = { ...drawingShapesElement(), locks: { noDrilldown: true } };
+		const target = mountEl(locked, 3, { interactive: true, onsmartartnodecommit });
+		const group = target.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+
+		group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		flushSync();
+		expect(target.querySelector('.pptx-svelte-smartart-editor')).toBeNull();
+	});
 });
 
 // Regression: `colorsDef @meth="span"` ("Colorful Range" quick styles) was

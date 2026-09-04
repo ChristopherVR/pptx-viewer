@@ -5,7 +5,13 @@ import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { playAnimationSound, stopAnimationSound } from './animation-sound';
 import PresentationTransitionOverlay from './PresentationTransitionOverlay.svelte';
+
+vi.mock(import('./animation-sound'), () => ({
+	playAnimationSound: vi.fn(),
+	stopAnimationSound: vi.fn(),
+}));
 
 /**
  * What a viewer actually SEES during a slide change.
@@ -300,5 +306,77 @@ describe('presentationTransitionOverlay', () => {
 			/inset:\s*0|width:\s*100%/u,
 		);
 		expect(layerRule).not.toMatch(/top:\s*0;\s*\n?\s*left:\s*0;/u);
+	});
+});
+
+describe('presentationTransitionOverlay sound (p:sndAc/p:stSnd, p:endSnd)', () => {
+	afterEach(() => {
+		vi.mocked(playAnimationSound).mockClear();
+		vi.mocked(stopAnimationSound).mockClear();
+	});
+
+	function mountWithTransition(
+		transition: PptxSlideTransition,
+		mediaDataUrls: Map<string, string>,
+	) {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(PresentationTransitionOverlay, {
+			target,
+			props: {
+				outgoingSlide: makeSlide('out'),
+				incomingSlide: makeSlide('in'),
+				canvasSize,
+				mediaDataUrls,
+				transition,
+				ondone: vi.fn(),
+			},
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+	}
+
+	it('resolves the transition sound path through mediaDataUrls and plays it', () => {
+		mountWithTransition(
+			{
+				type: 'fade',
+				durationMs: 300,
+				soundPath: 'ppt/media/media3.wav',
+				soundLoop: true,
+			} as PptxSlideTransition,
+			new Map([['ppt/media/media3.wav', 'blob:sound']]),
+		);
+		expect(playAnimationSound).toHaveBeenCalledWith('blob:sound', true);
+	});
+
+	it('does not play when the raw archive path has no resolved URL yet', () => {
+		mountWithTransition(
+			{ type: 'fade', durationMs: 300, soundPath: 'ppt/media/media3.wav' } as PptxSlideTransition,
+			new Map(),
+		);
+		expect(playAnimationSound).not.toHaveBeenCalled();
+	});
+
+	it('stops the current sound for p:endSndAc (transition.stopSound)', () => {
+		mountWithTransition(
+			{ type: 'fade', durationMs: 300, stopSound: true } as PptxSlideTransition,
+			new Map(),
+		);
+		expect(stopAnimationSound).toHaveBeenCalledOnce();
+		expect(playAnimationSound).not.toHaveBeenCalled();
+	});
+
+	it('does NOT stop the sound merely because the overlay unmounts (Loop Until Next Sound)', () => {
+		mountWithTransition(
+			{ type: 'fade', durationMs: 300, soundPath: 'a.wav', soundLoop: true } as PptxSlideTransition,
+			new Map([['a.wav', 'blob:sound']]),
+		);
+		vi.mocked(stopAnimationSound).mockClear();
+		cleanup?.();
+		cleanup = undefined;
+		expect(stopAnimationSound).not.toHaveBeenCalled();
 	});
 });

@@ -7,6 +7,7 @@
 	 */
 	import type { PptxElement } from 'pptx-viewer-core';
 	import {
+		canInteractWithElement,
 		imageAdjustmentsPatch,
 		imageAdjustmentsStateOf,
 		imageCropPatch,
@@ -23,6 +24,8 @@
 
 	const adjustments = $derived(imageAdjustmentsStateOf(el));
 	const crop = $derived(imageCropStateOf(el));
+	// G7: `a:picLocks/@noCrop` forbids cropping this specific picture.
+	const croppable = $derived(canInteractWithElement(el, 'crop'));
 	const effects = $derived('imageEffects' in el ? el.imageEffects : undefined);
 	function setEffects(next: Record<string, unknown>): void {
 		editor.patchSelected({ imageEffects: { ...effects, ...next } } as Partial<PptxElement>);
@@ -42,6 +45,9 @@
 		editor.patchSelected(imageAdjustmentsPatch(el, { saturation: Number(value) }));
 	}
 	function setCrop(edge: 'cropLeft' | 'cropTop' | 'cropRight' | 'cropBottom', value: string): void {
+		if (!croppable) {
+			return;
+		}
 		const n = Number(value);
 		if (Number.isFinite(n)) {
 			editor.patchSelected(imageCropPatch(el, { [edge]: n / 100 }));
@@ -106,6 +112,7 @@
 			type="number"
 			min="0"
 			max="90"
+			disabled={!croppable}
 			value={Math.round(crop.cropLeft * 100)}
 			onchange={(e) => setCrop('cropLeft', e.currentTarget.value)}
 		/>
@@ -116,6 +123,7 @@
 			type="number"
 			min="0"
 			max="90"
+			disabled={!croppable}
 			value={Math.round(crop.cropTop * 100)}
 			onchange={(e) => setCrop('cropTop', e.currentTarget.value)}
 		/>
@@ -126,6 +134,7 @@
 			type="number"
 			min="0"
 			max="90"
+			disabled={!croppable}
 			value={Math.round(crop.cropRight * 100)}
 			onchange={(e) => setCrop('cropRight', e.currentTarget.value)}
 		/>
@@ -136,6 +145,7 @@
 			type="number"
 			min="0"
 			max="90"
+			disabled={!croppable}
 			value={Math.round(crop.cropBottom * 100)}
 			onchange={(e) => setCrop('cropBottom', e.currentTarget.value)}
 		/>

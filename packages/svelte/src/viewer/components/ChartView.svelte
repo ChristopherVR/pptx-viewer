@@ -12,7 +12,7 @@
 	 * `pptx-viewer-shared`; this SFC only emits SVG.
 	 */
 	import type { ChartPptxElement } from 'pptx-viewer-core';
-	import { applyChartBuildReveal } from 'pptx-viewer-shared';
+	import { applyChartBuildReveal, canDrillDown } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildChartView, buildLegendItems, partAttrs } from '../render';
@@ -30,7 +30,11 @@
 	 */
 	let rootEl = $state<HTMLElement | null>(null);
 	let titleInputEl = $state<HTMLInputElement | null>(null);
-	const editable = $derived(interactive && Boolean(onchartpointcommit) && element.type === 'chart');
+	// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this chart's
+	// individual parts (title, series, data points) for editing.
+	const editable = $derived(
+		interactive && Boolean(onchartpointcommit) && element.type === 'chart' && canDrillDown(element),
+	);
 	/**
 	 * The marks are pointer-armed (`pptx-chart-interactive`) only while the
 	 * chart itself is SELECTED, matching React (`render/chart-canvas-drag`'s
@@ -118,7 +122,14 @@
 			>
 				<!-- Absent when the deck declares `<a:noFill/>` on `c:chartSpace`. -->
 				{#if vm.areaFill}
-					<rect x="0" y="0" width={vm.svgWidth} height={vm.svgHeight} fill={vm.areaFill} />
+					<rect
+						x="0"
+						y="0"
+						width={vm.svgWidth}
+						height={vm.svgHeight}
+						rx={vm.areaRadius}
+						fill={vm.areaFill}
+					/>
 				{/if}
 
 				{#if vm.title}
@@ -126,9 +137,10 @@
 						x={vm.titleX}
 						y={vm.titleY}
 						text-anchor="middle"
-						font-size="12"
-						font-weight="600"
-						fill="#1e293b"
+						font-size={vm.titleStyle?.fontSize ?? 12}
+						font-weight={vm.titleStyle?.fontWeight ?? 600}
+						font-family={vm.titleStyle?.fontFamily}
+						fill={vm.titleStyle?.fill ?? '#1e293b'}
 						data-chart-part="title"
 					>{vm.title}</text>
 				{/if}

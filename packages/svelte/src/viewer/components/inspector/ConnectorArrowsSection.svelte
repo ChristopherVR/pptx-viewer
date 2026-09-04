@@ -17,6 +17,7 @@
 	import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 	import type { ConnectorArrowControl } from 'pptx-viewer-shared';
 	import {
+		canInteractWithElement,
 		CONNECTOR_ARROW_CONTROLS,
 		connectorArrowPatch,
 		connectorArrowValue,
@@ -26,10 +27,21 @@
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 
-	const { editor, style }: { editor: EditorState; style: ShapeStyle | undefined } = $props();
+	const {
+		editor,
+		style,
+		el,
+	}: { editor: EditorState; style: ShapeStyle | undefined; el?: PptxElement } = $props();
 	const t = useTranslator();
 
+	// G9: `arrowheadsChangeable` (`a:cxnSpLocks/@noChangeArrowheads`) already
+	// existed on `element-locks.ts` but nothing here consulted it.
+	const changeable = $derived(canInteractWithElement(el, 'changeArrowheads'));
+
 	function onChange(control: ConnectorArrowControl, raw: string): void {
+		if (!changeable) {
+			return;
+		}
 		editor.patchSelected({
 			shapeStyle: { ...style, ...connectorArrowPatch(control, raw) },
 		} as Partial<PptxElement>);
@@ -42,6 +54,7 @@
 			>{t(control.labelKey)}<select
 				aria-label={t(control.labelKey)}
 				value={connectorArrowValue(control, style)}
+				disabled={!changeable}
 				onchange={(event) => onChange(control, event.currentTarget.value)}
 				>{#each control.values as value (value)}<option {value}
 						>{schemaLabel(control.optionLabelKeys, value, t)}</option
