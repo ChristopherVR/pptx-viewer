@@ -38,6 +38,10 @@ export interface TextRun {
 	href?: string;
 	/** Hyperlink tooltip / title text. */
 	tooltip?: string;
+	/** `<a target>`, from `a:hlinkClick/@tgtFrame` when authored, else `_blank`. */
+	target?: string;
+	/** `<a rel>` paired with {@link target}. */
+	rel?: string;
 	/** Parsed OMML for an inline equation run (rendered as MathML). */
 	equationXml?: Record<string, unknown>;
 	/** Optional equation number for numbered equations. */
@@ -127,6 +131,8 @@ export function buildAngularParagraphs(
 			if (run.hyperlink?.href) {
 				out.href = run.hyperlink.href;
 				out.tooltip = run.hyperlink.tooltip;
+				out.target = run.hyperlink.target ?? '_blank';
+				out.rel = run.hyperlink.rel ?? 'noopener noreferrer';
 			}
 			if (run.equation) {
 				out.equationXml = run.equation.xml;

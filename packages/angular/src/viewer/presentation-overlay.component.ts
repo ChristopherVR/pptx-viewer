@@ -27,7 +27,13 @@ import type {
 	PresentationContextMenuActionId,
 	ShowOrderCustomShow,
 } from '../internal/shared';
-import { annotationOverlayZIndex, mayLeaveSlideShow } from '../internal/shared';
+import {
+	annotationOverlayZIndex,
+	applyHighlightClickStyle,
+	findHighlightClickTarget,
+	HIGHLIGHT_CLEAR_STYLE,
+	mayLeaveSlideShow,
+} from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
@@ -481,10 +487,47 @@ export class PresentationOverlayComponent implements OnInit {
 	 */
 	protected onStageHover(event: MouseEvent): void {
 		this.stageAnimator.handleHover(event);
+		this.applyHoverHighlight(event);
 	}
 
 	protected onStageHoverEnd(event: MouseEvent): void {
 		this.stageAnimator.handleHoverEnd(event);
+		this.clearHoverHighlightUnlessWithin(event);
+	}
+
+	/** The element currently flashed by `a:hlinkHover/@highlightClick`, if any. */
+	private highlightedHoverElement: HTMLElement | null = null;
+
+	/**
+	 * `a:hlinkHover/@highlightClick`: the same flash as the click version, held
+	 * for the duration of the hover rather than timed. Tracked separately from
+	 * `stageAnimator`'s native-animation hover trigger above, since a shape can
+	 * carry one without the other.
+	 */
+	private applyHoverHighlight(event: MouseEvent): void {
+		const found = findHighlightClickTarget(event.target, this.currentSlide());
+		const nextElement = found?.descriptor.hover ? found.element : null;
+		if (nextElement === this.highlightedHoverElement) {
+			return;
+		}
+		if (this.highlightedHoverElement) {
+			applyHighlightClickStyle(this.highlightedHoverElement, HIGHLIGHT_CLEAR_STYLE);
+		}
+		this.highlightedHoverElement = nextElement;
+		if (nextElement && found?.descriptor.hover) {
+			applyHighlightClickStyle(nextElement, found.descriptor.hover.enterStyle);
+		}
+	}
+
+	private clearHoverHighlightUnlessWithin(event: MouseEvent): void {
+		const related = event.relatedTarget;
+		if (related instanceof Node && this.stageRef()?.nativeElement.contains(related)) {
+			return;
+		}
+		if (this.highlightedHoverElement) {
+			applyHighlightClickStyle(this.highlightedHoverElement, HIGHLIGHT_CLEAR_STYLE);
+			this.highlightedHoverElement = null;
+		}
 	}
 
 	/** Viewport dimensions, updated on resize. */

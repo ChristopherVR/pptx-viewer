@@ -13,6 +13,7 @@ import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-co
 
 import type { CanvasSize, MorphTransitionPlan } from '../internal/shared';
 import {
+	applySlideTransitionSound,
 	buildMorphScopedCss,
 	buildMorphTransitionPlan,
 	MORPH_CROSSFADE_GROUP_STYLE,
@@ -20,6 +21,7 @@ import {
 	morphOptionToMode,
 	visibleTemplateElements as filterVisibleTemplateElements,
 } from '../internal/shared';
+import { playAnimationSound, stopAnimationSound } from './animation-sound';
 import type { StyleMap } from './element-style';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import {
@@ -344,8 +346,6 @@ export class PresentationTransitionOverlayComponent {
 	private readonly destroyRef = inject(DestroyRef);
 	/** Active completion timer handle, so re-running re-arms cleanly. */
 	private completeTimer: ReturnType<typeof setTimeout> | null = null;
-	/** Active transition-sound element, paused on teardown. */
-	private audio: HTMLAudioElement | null = null;
 	/** Whether `complete` has already fired for the current run. */
 	private fired = false;
 
@@ -356,8 +356,7 @@ export class PresentationTransitionOverlayComponent {
 		// resolved duration changes.
 		effect(() => {
 			const ms = this.resolvedDurationMs();
-			const soundPath = this.transition().soundPath;
-			this.playSound(soundPath);
+			this.applyTransitionSound(this.transition());
 			this.armCompletion(ms);
 		});
 
@@ -382,7 +381,7 @@ export class PresentationTransitionOverlayComponent {
 
 		this.destroyRef.onDestroy(() => {
 			this.clearTimer();
-			this.stopSound();
+			stopAnimationSound();
 			this.applyMorphStyle(null);
 		});
 	}
@@ -568,22 +567,24 @@ export class PresentationTransitionOverlayComponent {
 		}
 	}
 
-	private playSound(soundPath: string | undefined): void {
-		this.stopSound();
-		if (!soundPath || typeof Audio === 'undefined') {
-			return;
-		}
-		const audio = new Audio(soundPath);
-		this.audio = audio;
-		// Browser autoplay policy may reject; ignore silently.
-		void audio.play().catch(() => {});
-	}
-
-	private stopSound(): void {
-		if (this.audio) {
-			this.audio.pause();
-			this.audio.src = '';
-			this.audio = null;
-		}
+	/**
+	 * Play or stop this transition's sound action (`p:sndAc/p:stSnd`/`p:endSnd`).
+	 *
+	 * `transition.soundPath` is a raw in-archive path (e.g. `ppt/media/media3.wav`)
+	 * that a bare `Audio` element constructed straight from it cannot fetch; it
+	 * must be resolved through `mediaDataUrls()`, the same Blob-URL cache
+	 * `load-content.service.ts`
+	 * pre-populates via `collectAnimationSoundPaths` (extended to also collect
+	 * `slide.transition?.soundPath` alongside per-effect animation sounds).
+	 * Reuses the shared per-effect sound singleton (`animation-sound.ts`) rather
+	 * than a private `Audio` element, so a transition sound and an animation
+	 * sound cannot talk over each other, matching PowerPoint's "one sound plays
+	 * at a time" behaviour.
+	 */
+	private applyTransitionSound(transition: PptxSlideTransition): void {
+		applySlideTransitionSound(transition, (soundPath) => this.mediaDataUrls().get(soundPath), {
+			play: playAnimationSound,
+			stop: stopAnimationSound,
+		});
 	}
 }

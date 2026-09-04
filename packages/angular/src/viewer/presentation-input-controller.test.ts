@@ -178,3 +178,31 @@ describe('presentationInputController show-runner verbs', () => {
 		openSpy.mockRestore();
 	});
 });
+
+describe('presentationInputController @highlightClick flash', () => {
+	it('flashes the clicked element and clears it after the duration', () => {
+		vi.useFakeTimers();
+		const slide = slideWithAction({ action: 'ppaction://noaction' });
+		(slide.elements[0] as unknown as Record<string, unknown>).actionClick = {
+			action: 'ppaction://noaction',
+			highlightClick: true,
+		};
+		const { controller } = makeController(slide);
+		const target = stageClickTarget('el-1');
+		controller.handleBodyClick({ button: 0, target } as unknown as MouseEvent);
+		expect(target.style.filter).toBe('brightness(1.18)');
+		expect(target.style.outlineWidth).toBe('2px');
+		vi.advanceTimersByTime(320);
+		expect(target.style.filter).toBe('');
+		expect(target.style.outlineWidth).toBe('');
+		vi.useRealTimers();
+	});
+
+	it('does not flash when the action carries no highlightClick', () => {
+		const slide = slideWithAction({ action: 'ppaction://noaction' });
+		const { controller } = makeController(slide);
+		const target = stageClickTarget('el-1');
+		controller.handleBodyClick({ button: 0, target } as unknown as MouseEvent);
+		expect(target.style.filter).toBe('');
+	});
+});

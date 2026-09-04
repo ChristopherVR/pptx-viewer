@@ -23,7 +23,7 @@ function boxShape(id: string, x: number, y: number): PptxElement {
 	return { type: 'shape', id, name: id, x, y, width: 100, height: 50 } as PptxElement;
 }
 
-/** Connector from `a`'s right-centre (site 1) to `b`'s left-centre (site 3). */
+/** Connector from `a`'s right-centre (site 3) to `b`'s left-centre (site 1). */
 function boundConnector(): PptxElement {
 	return {
 		type: 'connector',
@@ -34,8 +34,8 @@ function boundConnector(): PptxElement {
 		width: 200,
 		height: 1,
 		shapeStyle: {
-			connectorStartConnection: { shapeId: 'a', connectionSiteIndex: 1 },
-			connectorEndConnection: { shapeId: 'b', connectionSiteIndex: 3 },
+			connectorStartConnection: { shapeId: 'a', connectionSiteIndex: 3 },
+			connectorEndConnection: { shapeId: 'b', connectionSiteIndex: 1 },
 		},
 	} as unknown as PptxElement;
 }

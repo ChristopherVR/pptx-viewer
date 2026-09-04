@@ -6,6 +6,7 @@ import { getOleObjectTypeLabel } from 'pptx-viewer-core';
 import type { ConnectorArrowControl } from '../internal/shared';
 import {
 	buildOleObjectNamePatch,
+	canInteractWithElement,
 	CONNECTOR_ARROW_CONTROLS,
 	CONNECTOR_ARROW_SIZE_VALUES,
 	connectorArrowPatch,
@@ -75,6 +76,7 @@ export function connectorStylePatch(
 							<span>{{ control.labelKey | translate }}</span>
 							<select
 								[attr.aria-label]="control.labelKey | translate"
+								[disabled]="!arrowsChangeable()"
 								(change)="onArrow(control, $event)"
 							>
 								@for (value of control.values; track value) {
@@ -216,6 +218,13 @@ export class ElementMiscPropertiesComponent {
 		this.element().type === 'ole' ? (this.element() as OlePptxElement) : undefined,
 	);
 	protected readonly oleType = computed(() => getOleObjectTypeLabel(this.ole()?.oleObjectType));
+	/**
+	 * G9: `arrowheadsChangeable` (`a:cxnSpLocks/@noChangeArrowheads`) already
+	 * existed on `element-locks.ts` but nothing here consulted it.
+	 */
+	protected readonly arrowsChangeable = computed(() =>
+		canInteractWithElement(this.element(), 'changeArrowheads'),
+	);
 
 	/**
 	 * A browser cannot run the native application that owns an embedded OLE
@@ -243,6 +252,9 @@ export class ElementMiscPropertiesComponent {
 		return connectorArrowValue(control, (this.element() as { shapeStyle?: ShapeStyle }).shapeStyle);
 	}
 	protected onArrow(control: ConnectorArrowControl, event: Event): void {
+		if (!this.arrowsChangeable()) {
+			return;
+		}
 		this.updateStyle(connectorArrowPatch(control, (event.target as HTMLSelectElement).value));
 	}
 	protected onConnectorType(event: Event): void {

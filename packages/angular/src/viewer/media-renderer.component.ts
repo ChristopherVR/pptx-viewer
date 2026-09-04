@@ -17,6 +17,7 @@ import {
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
 	mediaTransportVisible,
+	scheduleMediaTrimAndFade,
 	startMediaAutoplay,
 } from '../internal/shared';
 import type { MediaFallbackVisual, MediaSurface } from '../internal/shared';
@@ -283,7 +284,7 @@ export class MediaRendererComponent {
 		// so the template cannot bind them the way it binds `loop`, and until this
 		// they were simply dropped: `solution-explorer.pptx` slide 2 declares
 		// `vol="0"` and Angular played it at full volume.
-		effect(() => {
+		effect((onCleanup) => {
 			const el = this.mediaElRef()?.nativeElement;
 			const presenting = this.presenting();
 			this.mediaSrc();
@@ -307,6 +308,12 @@ export class MediaRendererComponent {
 					return;
 				}
 				startMediaAutoplay(el, { trimStartMs: media?.trimStartMs });
+				// G20: trim-end stop + fade in/out, shared with the other four
+				// bindings so a trimmed/faded clip behaves identically everywhere
+				// (this used to be React-only logic).
+				if (media) {
+					onCleanup(scheduleMediaTrimAndFade(el, media));
+				}
 			} else if (!el.paused) {
 				el.pause();
 			}

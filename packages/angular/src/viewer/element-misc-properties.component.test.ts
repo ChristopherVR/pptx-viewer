@@ -174,6 +174,50 @@ function fireOleNameInput(component: ElementMiscPropertiesComponent, value: stri
 	} as unknown as Event);
 }
 
+// G9 (OpenXML parity audit, D3): a:cxnSpLocks/@noChangeArrowheads already
+// computed `arrowheadsChangeable` in element-locks.ts but nothing here
+// consulted it.
+describe('elementMiscPropertiesComponent connector arrowhead locks', () => {
+	function connectorEl(overrides: Partial<PptxElement> = {}): PptxElement {
+		return {
+			id: 'c1',
+			type: 'connector',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			shapeType: 'straightConnector1',
+			...overrides,
+		} as unknown as PptxElement;
+	}
+
+	it('reports arrowheads not changeable when noChangeArrowheads is set', () => {
+		const { component } = createMiscPropertiesComponent(
+			connectorEl({ locks: { noChangeArrowheads: true } } as Partial<PptxElement>),
+		);
+		expect(component['arrowsChangeable']()).toBeFalsy();
+	});
+
+	it('ignores an arrow-change event on a locked connector', () => {
+		const { component, emitted } = createMiscPropertiesComponent(
+			connectorEl({ locks: { noChangeArrowheads: true } } as Partial<PptxElement>),
+		);
+		const select = document.createElement('select');
+		select.value = 'oval';
+		component['onArrow'](CONNECTOR_ARROW_CONTROLS[0]!, { target: select } as unknown as Event);
+		expect(emitted).toStrictEqual([]);
+	});
+
+	it('accepts an arrow-change event on an unlocked connector', () => {
+		const { component, emitted } = createMiscPropertiesComponent(connectorEl());
+		expect(component['arrowsChangeable']()).toBeTruthy();
+		const select = document.createElement('select');
+		select.value = 'oval';
+		component['onArrow'](CONNECTOR_ARROW_CONTROLS[0]!, { target: select } as unknown as Event);
+		expect(emitted).toHaveLength(1);
+	});
+});
+
 describe('elementMiscPropertiesComponent OLE object name', () => {
 	it('emits a trimmed oleName patch on input, via the shared patch builder', () => {
 		const { component, emitted } = createMiscPropertiesComponent(makeOle());

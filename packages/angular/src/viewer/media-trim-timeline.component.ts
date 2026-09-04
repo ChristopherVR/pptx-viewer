@@ -15,6 +15,7 @@ import {
 	formatMediaTime,
 	mediaTimelineGeometry,
 	mediaTimeFromPointer,
+	mediaTrimEndSeconds,
 	mediaTrimRangeForDrag,
 } from '../internal/shared';
 import type { MediaTrimHandle, MediaTrimRange } from '../internal/shared';
@@ -147,8 +148,9 @@ export class MediaTrimTimelineComponent {
 		),
 	);
 	protected readonly startLabel = computed(() => formatMediaTime(this.trimStartMs() / 1000));
+	// `trimEndMs` is p14:trim/@end's distance from the clip's tail.
 	protected readonly endLabel = computed(() =>
-		formatMediaTime(this.trimEndMs() > 0 ? this.trimEndMs() / 1000 : this.duration()),
+		formatMediaTime(mediaTrimEndSeconds(this.duration(), this.trimEndMs())),
 	);
 
 	protected beginDrag(handle: MediaTrimHandle, event: PointerEvent): void {

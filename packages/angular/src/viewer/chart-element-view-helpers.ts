@@ -18,9 +18,35 @@
  */
 import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { ensureChartInteractionStyles as ensureSharedChartInteractionStyles } from '../internal/shared';
+import {
+	canDrillDown,
+	ensureChartInteractionStyles as ensureSharedChartInteractionStyles,
+} from '../internal/shared';
 import type { ChartValueDragState } from '../internal/shared';
 import { findOwningSlideIndex } from './smart-art-inline-edit';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Direct part-editing gate
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * May this chart's individual parts (title, series, data points) be entered
+ * for direct on-canvas editing?
+ *
+ * Pure so it is unit-testable without a full Angular injection context:
+ * `ChartElementViewComponent`'s constructor runs an `effect()` that needs a
+ * `ChangeDetectionScheduler` this package's TestBed-free suite doesn't
+ * provide. G8: `a:graphicFrameLocks/@noDrilldown` forbids the drill-down,
+ * even when the chart is otherwise selected + editable.
+ */
+export function chartCanEditParts(
+	editable: boolean,
+	isSelected: boolean,
+	hasEditor: boolean,
+	element: PptxElement,
+): boolean {
+	return editable && isSelected && hasEditor && canDrillDown(element);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Value-drag commit gate

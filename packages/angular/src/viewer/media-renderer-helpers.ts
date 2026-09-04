@@ -55,26 +55,25 @@ export function resolveMediaSrc(
 }
 
 /**
- * Build a media-fragment URI component (`#t=start,end`) for trimmed media.
- * Times are stored in milliseconds; the fragment uses seconds. Mirrors React's
- * `buildTrimFragment`.
+ * Build a media-fragment URI component (`#t=start`) for a trimmed clip's
+ * start point. Times are stored in milliseconds; the fragment uses seconds.
+ * Mirrors React's `buildTrimFragment`.
+ *
+ * G19/G20: `el.trimEndMs` is `p14:trim/@end`'s own on-the-wire unit, the
+ * DISTANCE in milliseconds from the clip's END (COM-verified; see
+ * `PptxHandlerRuntimeMediaParsingUtils.ts`), not an absolute stop time. The
+ * Media Fragments URI spec only accepts an absolute `end`, which cannot be
+ * computed here (the clip's real duration is unknown before the browser
+ * fetches this very `src`). An earlier version emitted `trimEndMs` directly
+ * as if it already were that absolute position - exactly backwards. Trim-end
+ * enforcement is `scheduleMediaTrimAndFade`'s job, not this fragment's.
  */
 export function buildTrimFragment(el: MediaPptxElement): string {
 	const start = el.trimStartMs;
-	const end = el.trimEndMs;
-	if (start === undefined && end === undefined) {
+	if (start === undefined || start <= 0) {
 		return '';
 	}
-	const parts: string[] = [];
-	if (start !== undefined && start > 0) {
-		parts.push((start / 1000).toFixed(3));
-	} else {
-		parts.push('');
-	}
-	if (end !== undefined && end > 0) {
-		parts.push((end / 1000).toFixed(3));
-	}
-	return parts.length > 0 ? `#t=${parts.join(',')}` : '';
+	return `#t=${(start / 1000).toFixed(3)}`;
 }
 
 /** A caption track resolved to a `<track>`-ready `src`. */

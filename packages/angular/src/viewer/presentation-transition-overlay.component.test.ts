@@ -332,3 +332,30 @@ describe('morphCrossfadeGroupSlides', () => {
 		expect(OVERLAY_SOURCE).toContain('[ngStyle]="group.incomingStyle"');
 	});
 });
+
+describe('presentationTransitionOverlayComponent transition sound (p:sndAc)', () => {
+	// No TestBed in this package (effects need a scheduler flush this project's
+	// vitest config does not provide), matching the morph-CSS assertions above:
+	// the wiring is asserted as source, and the primitives it delegates to
+	// (`resolveTransitionSoundAction`/`applySlideTransitionSound`,
+	// `playAnimationSound`/`stopAnimationSound`) are unit-tested in
+	// `slide-transition-sound-playback.test.ts` and `animation-sound.test.ts`.
+
+	it('resolves the raw archive soundPath through mediaDataUrls() instead of handing it to Audio directly', () => {
+		// The regression this closes: the old code was
+		// `new Audio(this.transition().soundPath)`, which 404s because a
+		// `ppt/media/media3.wav` archive path is not a fetchable browser URL.
+		expect(OVERLAY_SOURCE).not.toContain('new Audio(');
+		expect(OVERLAY_SOURCE).toContain('this.mediaDataUrls().get(soundPath)');
+	});
+
+	it('plays/stops through the shared per-effect sound singleton, not a private Audio element', () => {
+		expect(OVERLAY_SOURCE).toContain('applySlideTransitionSound(');
+		expect(OVERLAY_SOURCE).toContain('play: playAnimationSound');
+		expect(OVERLAY_SOURCE).toContain('stop: stopAnimationSound');
+	});
+
+	it('stops the transition sound on teardown', () => {
+		expect(OVERLAY_SOURCE).toContain('stopAnimationSound();');
+	});
+});

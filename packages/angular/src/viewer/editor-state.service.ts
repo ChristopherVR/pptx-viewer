@@ -46,6 +46,7 @@ import {
 	setElementPosition,
 	updateElementById,
 } from './element-operations';
+import { canGroupSelected, canUngroupGroup } from './group-lock-guard';
 import { groupElements, ungroupElements } from './group-ops';
 import { LoadContentService } from './load-content.service';
 import { partitionSlides, slidesWithReappliedLayout } from './template-mode';
@@ -599,6 +600,11 @@ export class EditorStateService {
 		if (!slide) {
 			return;
 		}
+		// G10: a:spLocks/@noGrouping rejects the whole attempt if it involves a
+		// locked shape, not just that one shape.
+		if (!canGroupSelected(slide.elements, ids)) {
+			return;
+		}
 		const { elements, groupId } = groupElements(slide.elements, ids, this.newId());
 		if (!groupId) {
 			return;
@@ -623,6 +629,10 @@ export class EditorStateService {
 		}
 		const group = slide.elements.find((el) => el.id === ids[0]);
 		if (!group || group.type !== 'group') {
+			return;
+		}
+		// G10: a:grpSpLocks/@noGrouping forbids ungrouping this specific group.
+		if (!canUngroupGroup(group)) {
 			return;
 		}
 		// A template group's children must keep a template id prefix or later

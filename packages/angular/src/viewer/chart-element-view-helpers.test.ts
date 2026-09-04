@@ -25,6 +25,7 @@ import {
 	withChartTitle,
 } from '../internal/shared';
 import {
+	chartCanEditParts,
 	chartDragCommitData,
 	commitChartElementData,
 	ensureChartInteractionStyles,
@@ -311,5 +312,27 @@ describe('ensureChartInteractionStyles', () => {
 		const ngStyles = document.head.querySelectorAll('#pptx-ng-chart-interaction-styles');
 		expect(ngStyles).toHaveLength(1);
 		expect(ngStyles[0].textContent).toContain('pptx-ng-chart-drag-badge');
+	});
+});
+
+// ==========================================================================
+// Direct part-editing gate (G8, OpenXML parity audit D3)
+// ==========================================================================
+
+describe('chartCanEditParts', () => {
+	it('is false when a:graphicFrameLocks/@noDrilldown is set, even selected + editable', () => {
+		const locked = { ...makeChartElement(), locks: { noDrilldown: true } } as ChartPptxElement;
+		expect(chartCanEditParts(true, true, true, locked)).toBeFalsy();
+	});
+
+	it('is true for a selected, editable, unlocked chart with a commit channel', () => {
+		expect(chartCanEditParts(true, true, true, makeChartElement())).toBeTruthy();
+	});
+
+	it('still requires selected + editable + an editor, unlocked or not', () => {
+		const chart = makeChartElement();
+		expect(chartCanEditParts(false, true, true, chart)).toBeFalsy();
+		expect(chartCanEditParts(true, false, true, chart)).toBeFalsy();
+		expect(chartCanEditParts(true, true, false, chart)).toBeFalsy();
 	});
 });

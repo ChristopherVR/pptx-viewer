@@ -46,7 +46,12 @@ import {
 	styleShadowFilter,
 } from './smart-art-drawing';
 import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
-import { beginNodeEdit, commitNodeText, findOwningSlideIndex } from './smart-art-inline-edit';
+import {
+	beginNodeEdit,
+	canEditSmartArtNodes,
+	commitNodeText,
+	findOwningSlideIndex,
+} from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
 import {
 	layoutConnectorPaints,
@@ -144,7 +149,9 @@ export class SmartArtRendererComponent {
 	private editSettled = false;
 
 	/** Whether node double-click / Enter enters inline edit (editable + has editor). */
-	readonly canEditNodes = computed(() => this.editable() && this.editor !== null);
+	readonly canEditNodes = computed(() =>
+		canEditSmartArtNodes(this.editable(), this.editor !== null, this.element()),
+	);
 
 	constructor() {
 		inject(DestroyRef).onDestroy(() => this.cancelPendingHide());

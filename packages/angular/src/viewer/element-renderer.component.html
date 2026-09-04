@@ -570,8 +570,8 @@
 		<a
 			class="pptx-ng-link"
 			[href]="run.href"
-			target="_blank"
-			rel="noopener noreferrer"
+			[attr.target]="run.target ?? '_blank'"
+			[attr.rel]="run.rel ?? 'noopener noreferrer'"
 			[attr.title]="run.tooltip ?? null"
 			[ngStyle]="run.style"
 			(click)="onHyperlinkClick($event, run.href)"

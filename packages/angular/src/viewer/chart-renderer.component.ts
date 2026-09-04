@@ -55,6 +55,7 @@ const LEGEND_SWATCH_SIZE = 10;
 					y="0"
 					[attr.width]="vm().svgWidth"
 					[attr.height]="vm().svgHeight"
+					[attr.rx]="vm().areaRadius"
 					[attr.fill]="vm().areaFill"
 				/>
 			}
@@ -65,9 +66,10 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.x]="vm().titleX"
 					[attr.y]="vm().titleY"
 					text-anchor="middle"
-					font-size="12"
-					font-weight="600"
-					fill="#1e293b"
+					[attr.font-size]="vm().titleStyle?.fontSize ?? 12"
+					[attr.font-weight]="vm().titleStyle?.fontWeight ?? 600"
+					[attr.font-family]="vm().titleStyle?.fontFamily"
+					[attr.fill]="vm().titleStyle?.fill ?? '#1e293b'"
 					data-chart-part="title"
 				>
 					{{ vm().title }}

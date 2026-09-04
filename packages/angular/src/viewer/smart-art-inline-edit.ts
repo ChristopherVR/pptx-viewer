@@ -21,8 +21,21 @@
 import type { PptxElement, PptxSlide, PptxSmartArtData } from 'pptx-viewer-core';
 
 import type { RenderedNode } from '../internal/shared';
-import { isTemplateElementId } from '../internal/shared';
+import { canDrillDown, isTemplateElementId } from '../internal/shared';
 import { updateSmartArtNodeText } from './editor-insert';
+
+/**
+ * May a node on this SmartArt be entered for inline double-click/Enter
+ * editing? G8: `a:graphicFrameLocks/@noDrilldown` forbids the drill-down,
+ * even when the diagram is otherwise editable with a commit channel.
+ */
+export function canEditSmartArtNodes(
+	editable: boolean,
+	hasEditor: boolean,
+	element: PptxElement,
+): boolean {
+	return editable && hasEditor && canDrillDown(element);
+}
 
 /**
  * An axis-aligned box in element-local (viewBox) pixel coordinates, used to

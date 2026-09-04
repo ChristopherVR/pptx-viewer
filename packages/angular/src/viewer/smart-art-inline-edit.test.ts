@@ -17,6 +17,7 @@ import type { RenderedNode } from '../internal/shared';
 import { DEFAULT_PALETTE } from './smart-art-drawing';
 import {
 	beginNodeEdit,
+	canEditSmartArtNodes,
 	commitNodeText,
 	findOwningSlideIndex,
 	findSlideIndexByElementId,
@@ -304,5 +305,42 @@ describe('beginNodeEdit with a caller-resolved node id', () => {
 	it('still falls back to the key parse when no id is supplied', () => {
 		const [rect] = layoutNodes([node('1', 'Alpha')], 'list');
 		expect(beginNodeEdit(rect, ELEMENT_ID, undefined, null)?.nodeId).toBe('1');
+	});
+});
+
+// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
+// computed but nothing consulted it before entering SmartArt node edit mode.
+describe('canEditSmartArtNodes', () => {
+	function smartArtElement(overrides: Partial<PptxElement> = {}): PptxElement {
+		return {
+			id: ELEMENT_ID,
+			type: 'smartArt',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 300,
+			smartArtData: smartArtData([node('1', 'Alpha')]),
+			...overrides,
+		} as PptxElement;
+	}
+
+	it('is false when noDrilldown is set, even editable with a commit channel', () => {
+		expect(
+			canEditSmartArtNodes(
+				true,
+				true,
+				smartArtElement({ locks: { noDrilldown: true } } as Partial<PptxElement>),
+			),
+		).toBeFalsy();
+	});
+
+	it('is true for an editable, unlocked diagram with a commit channel', () => {
+		expect(canEditSmartArtNodes(true, true, smartArtElement())).toBeTruthy();
+	});
+
+	it('still requires editable + an editor, unlocked or not', () => {
+		const el = smartArtElement();
+		expect(canEditSmartArtNodes(false, true, el)).toBeFalsy();
+		expect(canEditSmartArtNodes(true, false, el)).toBeFalsy();
 	});
 });

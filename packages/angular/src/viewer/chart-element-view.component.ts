@@ -40,6 +40,7 @@ import { AreaChart3DService } from './area-chart-3d.service';
 import { BarChart3DRendererComponent } from './bar-chart-3d-renderer.component';
 import { BarChart3DService } from './bar-chart-3d.service';
 import {
+	chartCanEditParts,
 	chartDragCommitData,
 	commitChartElementData,
 	ensureChartInteractionStyles,
@@ -214,8 +215,8 @@ export class ChartElementViewComponent {
 	);
 
 	/** Direct part editing is active: selected + editable + a commit channel. */
-	protected readonly canEdit = computed(
-		() => this.editable() && this.isSelected() && this.editor !== null,
+	protected readonly canEdit = computed(() =>
+		chartCanEditParts(this.editable(), this.isSelected(), this.editor !== null, this.element()),
 	);
 
 	/** VM of the COMMITTED data: drag geometry must not rescale mid-drag. */

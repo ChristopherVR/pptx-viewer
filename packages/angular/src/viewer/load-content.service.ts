@@ -42,6 +42,7 @@ import {
 	collectMediaElements,
 	describeFontEmbedding,
 	embeddedFontSaveOptions,
+	resolveMediaElementSource,
 	resolveSlideSizeSelection,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
@@ -358,37 +359,21 @@ export class LoadContentService {
 			}
 			this.revokeBlobUrls(Array.from(this.mediaDataUrls().values()));
 			const nextMediaUrls = new Map<string, string>();
+			// Shared with the other four bindings (G17): a LINKED media
+			// element's `mediaPath` is already the verbatim external URL by the
+			// time it reaches here; `resolveMediaElementSource` hands it
+			// straight back instead of an archive lookup that can only find
+			// embedded parts.
 			await Promise.all(
 				mediaElements.map(async (mediaElement) => {
-					const mediaPath = mediaElement.mediaPath;
-					if (!mediaPath) {
+					const resolved = await resolveMediaElementSource(mediaElement, newHandler);
+					if (resolved.missing || !resolved.mediaPath || !resolved.url) {
 						mediaElement.mediaMissing = true;
 						return;
 					}
-					try {
-						const isAudioVideo =
-							mediaElement.mediaType === 'audio' || mediaElement.mediaType === 'video';
-						if (isAudioVideo) {
-							const arrayBuffer = await newHandler.getMediaArrayBuffer(mediaPath);
-							if (arrayBuffer) {
-								const mimeType = mediaElement.mediaMimeType || 'application/octet-stream';
-								const blob = new Blob([arrayBuffer], { type: mimeType });
-								const blobUrl = URL.createObjectURL(blob);
-								loadBlobUrls.push(blobUrl);
-								nextMediaUrls.set(mediaPath, blobUrl);
-							} else {
-								mediaElement.mediaMissing = true;
-							}
-						} else {
-							const dataUrl = await newHandler.getImageData(mediaPath);
-							if (dataUrl) {
-								nextMediaUrls.set(mediaPath, dataUrl);
-							} else {
-								mediaElement.mediaMissing = true;
-							}
-						}
-					} catch {
-						mediaElement.mediaMissing = true;
+					nextMediaUrls.set(resolved.mediaPath, resolved.url);
+					if (resolved.isBlobUrl) {
+						loadBlobUrls.push(resolved.url);
 					}
 				}),
 			);

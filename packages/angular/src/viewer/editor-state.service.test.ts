@@ -262,4 +262,44 @@ describe('editorStateService', () => {
 		svc.paste(0);
 		expect(svc.slides()[0].elements).toHaveLength(3);
 	});
+
+	// G10 (OpenXML parity audit, D3): a:spLocks/a:grpSpLocks/@noGrouping was
+	// parsed but never checked by groupSelected/ungroupSelected.
+	it('rejects grouping when a selected shape carries noGrouping', () => {
+		const locked = { ...element('a'), locks: { noGrouping: true } };
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [locked, element('b', 200)])]);
+		svc.select(['a', 'b']);
+		svc.groupSelected(0);
+		expect(svc.slides()[0].elements.map((el) => el.type)).toStrictEqual(['shape', 'shape']);
+		expect(svc.dirty()).toBeFalsy();
+	});
+
+	it('groups an unlocked selection normally', () => {
+		const svc = service();
+		svc.select(['a', 'b']);
+		svc.groupSelected(0);
+		expect(svc.slides()[0].elements.some((el) => el.type === 'group')).toBeTruthy();
+	});
+
+	it('refuses to ungroup a group whose own noGrouping lock is set', () => {
+		const locked = {
+			...group('g', [element('c1'), element('c2', 200)]),
+			locks: { noGrouping: true },
+		};
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [locked])]);
+		svc.select(['g']);
+		svc.ungroupSelected(0);
+		expect(svc.slides()[0].elements).toStrictEqual([locked]);
+		expect(svc.dirty()).toBeFalsy();
+	});
+
+	it('ungroups an unlocked group normally', () => {
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [group('g', [element('c1'), element('c2', 200)])])]);
+		svc.select(['g']);
+		svc.ungroupSelected(0);
+		expect(svc.slides()[0].elements.some((el) => el.type === 'group')).toBeFalsy();
+	});
 });

@@ -16,7 +16,7 @@ import {
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import type { TableStyleContext } from '../internal/shared';
-import { DEFAULT_FONT_FAMILY, tableContainerCss } from '../internal/shared';
+import { canDrillDown, DEFAULT_FONT_FAMILY, tableContainerCss } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { LoadContentService } from './load-content.service';
 import { buildColStyles, buildTableViewModel } from './table-renderer-helpers';
@@ -35,6 +35,21 @@ export interface TableCellCommit {
 interface EditingCell {
 	rowIndex: number;
 	colIndex: number;
+}
+
+/**
+ * May this table's individual cells be selected/edited at all?
+ *
+ * Pure (no DI, no signals) so it is unit-testable without a full Angular
+ * injection context: `TableRendererComponent`'s constructor runs an
+ * `effect()` that needs a `ChangeDetectionScheduler` this package's
+ * TestBed-free suite doesn't provide (see `ribbon-home-section.component.ts`'s
+ * `performResetSlide` for the same extraction pattern). G8: `a:
+ * graphicFrameLocks/@noDrilldown` forbids selecting/editing this table's
+ * individual cells, even on an otherwise-editable deck.
+ */
+export function canDrillDownIntoTable(editable: boolean, element: PptxElement): boolean {
+	return editable && canDrillDown(element);
 }
 
 /**
@@ -188,7 +203,7 @@ export class TableRendererComponent {
 
 	/** Single click selects the cell; Shift+Click extends a rectangular range. */
 	onCellClick(event: MouseEvent, rowIndex: number, colIndex: number): void {
-		if (!this.editable() || !this.selectionSvc) {
+		if (!canDrillDownIntoTable(this.editable(), this.element()) || !this.selectionSvc) {
 			return;
 		}
 		event.stopPropagation();
@@ -203,7 +218,7 @@ export class TableRendererComponent {
 
 	/** Double-click on a cell enters inline edit mode. */
 	onCellDblClick(event: Event, rowIndex: number, colIndex: number): void {
-		if (!this.editable()) {
+		if (!canDrillDownIntoTable(this.editable(), this.element())) {
 			return;
 		}
 		event.stopPropagation();

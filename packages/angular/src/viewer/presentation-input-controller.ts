@@ -19,8 +19,10 @@ import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
 	acceptsPresentationInput,
+	applyHighlightClickStyle,
 	createPresentationKeyBuffer,
 	createWheelStepBuffer,
+	findHighlightClickTarget,
 	mapPresentationKey,
 	mapPresentationWheel,
 	openUrlInNewTab,
@@ -194,6 +196,7 @@ export class PresentationInputController {
 				return;
 			}
 		}
+		this.applyClickHighlight(event.target);
 		// An on-slide Action Setting (`a:hlinkClick`) outranks the advance:
 		// PowerPoint follows the shape's link and leaves the show where the link
 		// lands, rather than ALSO stepping to the next slide.
@@ -201,6 +204,26 @@ export class PresentationInputController {
 			return;
 		}
 		this.advanceFromClick();
+	}
+
+	/**
+	 * `@highlightClick` ("Highlight click"): a brief flash independent of
+	 * whatever the action itself does, so it runs even for a no-op action.
+	 */
+	private applyClickHighlight(target: EventTarget | null): void {
+		const found = findHighlightClickTarget(target, this.deps.currentSlide());
+		if (!found?.descriptor.click) {
+			return;
+		}
+		const { element } = found;
+		const { style, clearStyle, durationMs } = found.descriptor.click;
+		applyHighlightClickStyle(element, style);
+		if (typeof setTimeout === 'undefined') {
+			return;
+		}
+		setTimeout(() => {
+			applyHighlightClickStyle(element, clearStyle);
+		}, durationMs);
 	}
 
 	/**

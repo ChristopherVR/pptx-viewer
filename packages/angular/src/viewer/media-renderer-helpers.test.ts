@@ -69,14 +69,18 @@ describe('buildTrimFragment', () => {
 		expect(buildTrimFragment(mediaEl())).toBe('');
 	});
 
-	it('encodes start and end in seconds', () => {
-		expect(buildTrimFragment(mediaEl({ trimStartMs: 1500, trimEndMs: 4200 }))).toBe(
-			'#t=1.500,4.200',
-		);
+	it('encodes only the start point, in seconds', () => {
+		expect(buildTrimFragment(mediaEl({ trimStartMs: 1500 }))).toBe('#t=1.500');
 	});
 
-	it('encodes an open-ended start with a leading empty part', () => {
-		expect(buildTrimFragment(mediaEl({ trimEndMs: 3000 }))).toBe('#t=,3.000');
+	// G19/G20: trimEndMs is a distance-from-the-tail value, not an absolute
+	// stop time, and the Media Fragments URI spec only accepts an absolute
+	// end; it can never be expressed here without the clip's real duration.
+	// The fragment must never include an `end` component; trim-end
+	// enforcement is `scheduleMediaTrimAndFade`'s job.
+	it('never includes an end component, even when trimEndMs is set', () => {
+		expect(buildTrimFragment(mediaEl({ trimStartMs: 1500, trimEndMs: 4200 }))).toBe('#t=1.500');
+		expect(buildTrimFragment(mediaEl({ trimEndMs: 3000 }))).toBe('');
 	});
 });
 
