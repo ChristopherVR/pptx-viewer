@@ -60,6 +60,21 @@ describe('applySeriesDataPointsToXml', () => {
 		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('ABCDEF');
 	});
 
+	it('writes stroke width and dash style into c:dPt/c:spPr (not just fill colour)', () => {
+		const node = seriesNode();
+		applySeriesDataPointsToXml(
+			node,
+			[{ idx: 0, spPr: { strokeColor: '#ABCDEF', strokeWidth: 1.5, strokeDashStyle: 'sysDot' } }],
+			getLocalName,
+		);
+		const dpt = node['c:dPt'] as XmlObject;
+		const ln = (dpt['c:spPr'] as XmlObject)['a:ln'] as XmlObject;
+		expect(ln['@_w']).toBe(String(Math.round(1.5 * 12700)));
+		expect((ln['a:prstDash'] as XmlObject)['@_val']).toBe('sysDot');
+		const fill = ln['a:solidFill'] as XmlObject;
+		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('ABCDEF');
+	});
+
 	it('writes marker and bubble3D in CT_DPt schema order while preserving extensions', () => {
 		const node = seriesNode();
 		node['c:dPt'] = {

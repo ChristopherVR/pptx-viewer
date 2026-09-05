@@ -79,6 +79,22 @@ export interface PptxActiveXControl {
 	name?: string;
 	/** Shape ID this control is linked to (from @spid). */
 	shapeId?: string;
+	/**
+	 * `p:control/@showAsIcon` (CT_Control, ECMA-376 S19.3.1.2): whether the
+	 * control renders as its static icon rather than its live appearance.
+	 * `undefined` when the source authored no explicit value (schema default
+	 * `false`).
+	 */
+	showAsIcon?: boolean;
+	/**
+	 * `p:control/@imgW` in EMU (ST_PositiveCoordinate32): the width the host
+	 * reserves for the control's icon/preview image. Distinct from
+	 * {@link width}, which is the fallback `p:pic`'s own `a:ext/@cx` in px;
+	 * `imgW`/`imgH` are direct attributes on `p:control` itself.
+	 */
+	imgWidthEmu?: number;
+	/** `p:control/@imgH` in EMU (ST_PositiveCoordinate32). @see imgWidthEmu */
+	imgHeightEmu?: number;
 	/** X position (px) of the control's fallback picture, if present. */
 	x?: number;
 	/** Y position (px) of the control's fallback picture, if present. */
@@ -547,6 +563,35 @@ export interface PptxPhotoAlbum {
 	layout?: string;
 	/** Frame style applied to each photo (e.g. "frameStyle1"). */
 	frame?: string;
+	/**
+	 * `p:photoAlbum/@isPhoto` (ECMA-376 S19.2.1.27, CT_PhotoAlbum): whether
+	 * the pictures placed by the album wizard are real photographs, as
+	 * opposed to clip art or other embedded images. `undefined` when the
+	 * source authored no explicit value (schema default `false`); this is a
+	 * purely declarative wizard-provenance flag, not something this library
+	 * gates any layout/frame behaviour on.
+	 */
+	isPhoto?: boolean;
+}
+
+/**
+ * A recognizer-owned `p:smartTags` reference from `presentation.xml`
+ * (CT_SmartTags, ECMA-376 S19.2.1.42): a bare relationship id pointing at a
+ * legacy Office "Smart Tags" recognizer part, distinct from the
+ * user-authored `p:tags` construct (see {@link PptxTagCollection}).
+ *
+ * This library has no data model for recognizer part CONTENT (there is no
+ * way to create, inspect, or edit one through the public API), so this type
+ * only captures enough to preserve an authored reference losslessly: the
+ * relationship id and, when resolvable, the target part path.
+ */
+export interface PptxSmartTagsReference {
+	/** Relationship id from `p:smartTags/@r:id`. */
+	relId: string;
+	/** Resolved ZIP path of the referenced recognizer part, when resolvable. */
+	targetPath?: string;
+	/** Raw `p:smartTags` XML retained for lossless round-trip. */
+	rawXml?: XmlObject;
 }
 
 /**
@@ -613,6 +658,13 @@ export interface PptxData {
 	themeOptions?: PptxThemeOption[];
 	/** Parsed table style definitions from `ppt/tableStyles.xml`. */
 	tableStyleMap?: ParsedTableStyleMap;
+	/**
+	 * The current default table style GUID (`ppt/tableStyles.xml`'s
+	 * `a:tblStyleLst/@def`): the style PowerPoint applies to a newly inserted
+	 * table. Matches `PptxSaveOptions.tableStylesDefaultId` so a save call
+	 * that omits it can fall back to what was loaded.
+	 */
+	tableStylesDefaultId?: string;
 	/** Whether the presentation is password-protected. */
 	isPasswordProtected?: boolean;
 	/** Embedded font data (name + binary data URL) extracted from the presentation. */
@@ -672,6 +724,14 @@ export interface PptxData {
 	modifyVerifier?: PptxModifyVerifier;
 	/** Photo album metadata from `p:photoAlbum` in `presentation.xml`. */
 	photoAlbum?: PptxPhotoAlbum;
+	/**
+	 * Legacy Smart Tags recognizer reference from `p:smartTags` in
+	 * `presentation.xml`. Read-only: there is no data model for the
+	 * recognizer part's own content, so this exists to make the reference
+	 * inspectable and to prove it survives a save (the owning part and its
+	 * relationship are preserved passively, like any other unmodelled part).
+	 */
+	smartTags?: PptxSmartTagsReference;
 	/** East Asian line-break settings from `p:kinsoku` in `presentation.xml`. */
 	kinsoku?: PptxKinsoku;
 	/** Custom XML data parts from `customXml/` in the OPC package. */

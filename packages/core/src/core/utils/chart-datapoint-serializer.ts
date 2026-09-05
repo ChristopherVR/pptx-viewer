@@ -13,9 +13,9 @@
 
 import type { PptxChartDataPoint, XmlObject } from '../types';
 import type { ResolveChartColor } from './chart-color-choice';
-import { writeChartColorChoice } from './chart-color-choice';
 import { buildDptPictureOptions } from './chart-datapoint-picture';
 import { buildChartMarkerXml } from './chart-marker-serializer';
+import { writeChartShapeProps } from './chart-shape-props-writer';
 
 export {
 	parseChartDataPointPicture,
@@ -50,7 +50,14 @@ function ensureArray<T>(v: T | T[] | undefined): T[] {
 	return Array.isArray(v) ? v : [v];
 }
 
-/** Build/merge the `c:spPr` for a data point from its modeled fill colour. */
+/**
+ * Build/merge the `c:spPr` for a data point from its modeled shape props.
+ * Delegates to the shared {@link writeChartShapeProps} writer so a stroke
+ * width or dash-style edit is not silently dropped: the ad-hoc writer this
+ * replaced only ever re-emitted `fillColor`, even though
+ * `parseShapeProps` (chart-series-detail-parser.ts) has always read the full
+ * fill/stroke-colour/width/dash shape back out of an authored `c:dPt/c:spPr`.
+ */
 function buildDptSpPr(
 	existing: XmlObject | undefined,
 	dp: PptxChartDataPoint,
@@ -58,17 +65,10 @@ function buildDptSpPr(
 	resolveColor?: ResolveChartColor,
 ): XmlObject | undefined {
 	const props = dp.spPr;
-	if (!props || !props.fillColor) {
+	if (!props) {
 		return existing;
 	}
-	const spPr: XmlObject = existing ? { ...existing } : {};
-	const fillKey = findKey(spPr, 'solidFill', getLocalName) ?? 'a:solidFill';
-	const noFillKey = findKey(spPr, 'noFill', getLocalName);
-	if (noFillKey) {
-		delete spPr[noFillKey];
-	}
-	writeChartColorChoice(spPr, fillKey, props.fillColor, resolveColor);
-	return spPr;
+	return writeChartShapeProps(existing, props, getLocalName, resolveColor);
 }
 
 /** Local names this serializer owns; everything else on the existing node is preserved. */

@@ -216,6 +216,13 @@ export interface TablePptxElement extends PptxElementBase {
 	/** Parsed table cell data for editing. */
 	tableData?: PptxTableData;
 	/**
+	 * Accessibility description from `p:nvGraphicFramePr/p:cNvPr/@descr`, the
+	 * same non-visual-properties attribute a picture's alt text comes from.
+	 */
+	altText?: string;
+	/** Accessibility title from `p:nvGraphicFramePr/p:cNvPr/@title`. */
+	title?: string;
+	/**
 	 * Unrecognised extensions captured from `a:graphicData/a:extLst` so they
 	 * round-trip losslessly. See {@link PptxGraphicFrameExtension}.
 	 */
@@ -231,6 +238,10 @@ export interface TablePptxElement extends PptxElementBase {
 export interface ChartPptxElement extends PptxElementBase {
 	type: 'chart';
 	chartData?: PptxChartData;
+	/** Accessibility description from `p:nvGraphicFramePr/p:cNvPr/@descr`. */
+	altText?: string;
+	/** Accessibility title from `p:nvGraphicFramePr/p:cNvPr/@title`. */
+	title?: string;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }
@@ -249,6 +260,10 @@ export interface ChartPptxElement extends PptxElementBase {
 export interface SmartArtPptxElement extends PptxElementBase {
 	type: 'smartArt';
 	smartArtData?: PptxSmartArtData;
+	/** Accessibility description from `p:nvGraphicFramePr/p:cNvPr/@descr`. */
+	altText?: string;
+	/** Accessibility title from `p:nvGraphicFramePr/p:cNvPr/@title`. */
+	title?: string;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }
@@ -337,6 +352,10 @@ export interface OlePptxElement extends PptxElementBase {
 	 * `false`; `undefined` means the source authored no explicit value.
 	 */
 	oleUpdateAutomatic?: boolean;
+	/** Accessibility description from `p:nvGraphicFramePr/p:cNvPr/@descr`. */
+	altText?: string;
+	/** Accessibility title from `p:nvGraphicFramePr/p:cNvPr/@title`. */
+	title?: string;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }
@@ -429,6 +448,15 @@ export interface MediaPptxElement extends PptxElementBase {
 	 * (`r:embed`). Defaults to embedded when undefined.
 	 */
 	isLinked?: boolean;
+	/**
+	 * Accessibility description from `p:nvGraphicFramePr/p:cNvPr/@descr`.
+	 * Only populated for the `p:graphicFrame`-shaped (SDK-created) media
+	 * form; a `p:pic`-shaped media element's alt text is not currently
+	 * parsed (see `PptxHandlerRuntimePictureParsing.ts`).
+	 */
+	altText?: string;
+	/** Accessibility title from `p:nvGraphicFramePr/p:cNvPr/@title`. Same scope note as {@link altText}. */
+	title?: string;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }

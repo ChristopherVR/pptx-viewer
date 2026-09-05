@@ -16,6 +16,7 @@
  */
 
 import type { PptxChartDataLabel, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
 import type { GetLocalName } from './chart-series-datalabel-build';
 import { buildDLbl, findKey } from './chart-series-datalabel-build';
 
@@ -57,6 +58,7 @@ export function applySeriesDataLabelsToXml(
 	seriesNode: XmlObject,
 	dataLabels: PptxChartDataLabel[] | undefined,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): void {
 	const dLblsKey = findKey(seriesNode, 'dLbls', getLocalName);
 	const labels = dataLabels ?? [];
@@ -96,7 +98,7 @@ export function applySeriesDataLabelsToXml(
 
 	const built = [...labels]
 		.sort((a, b) => a.idx - b.idx)
-		.map((label) => buildDLbl(existingByIdx.get(label.idx), label, getLocalName));
+		.map((label) => buildDLbl(existingByIdx.get(label.idx), label, getLocalName, resolveColor));
 
 	// Rebuild the c:dLbls: c:dLbl* first, then preserved group settings in order.
 	const newDLbls: XmlObject = {};

@@ -102,6 +102,9 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	svgData: 'scalar',
 	svgPath: 'scalar',
 	altText: 'scalar',
+	// Graphic-frame accessibility title (table/chart/smartArt/ole/media): see
+	// `PptxGraphicFrameParser.ts`'s `frameTitle`.
+	title: 'scalar',
 	isDecorative: 'scalar',
 	preferRelativeResize: 'scalar',
 	oleUpdateAutomatic: 'scalar',

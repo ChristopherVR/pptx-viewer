@@ -30,7 +30,7 @@ import type { ChartPptxElement } from '../../types/elements';
 /**
  * Ensure the element has initialised `chartData`. Throws if missing.
  */
-function ensureChartData(
+export function ensureChartData(
 	element: ChartPptxElement,
 ): asserts element is ChartPptxElement & { chartData: NonNullable<ChartPptxElement['chartData']> } {
 	if (!element.chartData) {
@@ -43,7 +43,7 @@ function ensureChartData(
 /**
  * Validate that a series index is within range. Throws if out of bounds.
  */
-function validateSeriesIndex(element: ChartPptxElement, seriesIndex: number): void {
+export function validateSeriesIndex(element: ChartPptxElement, seriesIndex: number): void {
 	ensureChartData(element);
 	if (seriesIndex < 0 || seriesIndex >= element.chartData.series.length) {
 		throw new RangeError(
@@ -765,7 +765,7 @@ export function setChartSeriesChartType(
 // ---------------------------------------------------------------------------
 
 /** Find (or create) the `c:dPt` override for `pointIndex` in a series. */
-function ensureDataPoint(
+export function ensureDataPoint(
 	series: { dataPoints?: PptxChartDataPoint[] },
 	pointIndex: number,
 ): PptxChartDataPoint {
@@ -921,6 +921,17 @@ export interface ChartDataPointLabelEdit {
 	position?: PptxChartDataLabel['position'];
 	/** Custom label text override (`c:tx`). Pass `''` to clear it. */
 	text?: string;
+	/**
+	 * This label's own shape formatting (`c:dLbl/c:spPr`: fill/line colour,
+	 * width, dash style). Pass `null` to remove it, merging into the existing
+	 * override when both are set.
+	 */
+	spPr?: PptxChartShapeProps | null;
+	/**
+	 * This label's own font (`c:dLbl/c:txPr`). Pass `null` to remove it,
+	 * merging into the existing override when both are set.
+	 */
+	txPr?: PptxChartDataLabel['txPr'] | null;
 }
 
 /** Map a {@link ChartDataPointLabelEdit} onto an existing/new label override. */
@@ -945,6 +956,12 @@ function applyLabelEdit(label: PptxChartDataLabel, edit: ChartDataPointLabelEdit
 	}
 	if (edit.text !== undefined) {
 		label.text = edit.text === '' ? undefined : edit.text;
+	}
+	if (edit.spPr !== undefined) {
+		label.spPr = edit.spPr === null ? undefined : { ...(label.spPr ?? {}), ...edit.spPr };
+	}
+	if (edit.txPr !== undefined) {
+		label.txPr = edit.txPr === null ? undefined : { ...(label.txPr ?? {}), ...edit.txPr };
 	}
 }
 
@@ -998,7 +1015,7 @@ export function setChartDataPointLabel(
 }
 
 /** Drop a `c:dPt` override that no longer carries any formatting. */
-function removeEmptyDataPoint(
+export function removeEmptyDataPoint(
 	series: { dataPoints?: PptxChartDataPoint[] },
 	pointIndex: number,
 ): void {
@@ -1013,6 +1030,7 @@ function removeEmptyDataPoint(
 		dp.spPr === undefined &&
 		dp.explosion === undefined &&
 		dp.invertIfNegative === undefined &&
+		dp.bubble3D === undefined &&
 		dp.marker === undefined;
 	if (empty) {
 		series.dataPoints = series.dataPoints.filter((p) => p.idx !== pointIndex);

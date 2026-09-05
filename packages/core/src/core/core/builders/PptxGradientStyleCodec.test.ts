@@ -90,6 +90,26 @@ describe('pptxGradientStyleCodec', () => {
 			expect(schemeClr['a:shade']).toStrictEqual({ '@_val': '80000' });
 		});
 
+		it('captures a typed colorRef for a plain schemeClr stop', () => {
+			const gradFill: XmlObject = {
+				'a:gsLst': {
+					'a:gs': [{ '@_pos': '0', 'a:schemeClr': { '@_val': 'accent3' } }],
+				},
+			};
+			const stops = codec.extractGradientStops(gradFill);
+			expect(stops[0].colorRef).toStrictEqual({ scheme: 'accent3' });
+		});
+
+		it('does not set colorRef for an sRGB stop', () => {
+			const gradFill: XmlObject = {
+				'a:gsLst': {
+					'a:gs': [{ '@_pos': '0', 'a:srgbClr': { '@_val': 'FF0000' } }],
+				},
+			};
+			const stops = codec.extractGradientStops(gradFill);
+			expect(stops[0].colorRef).toBeUndefined();
+		});
+
 		it('should preserve originalColorXml for sRGB colors', () => {
 			const gradFill: XmlObject = {
 				'a:gsLst': {
@@ -141,6 +161,30 @@ describe('pptxGradientStyleCodec', () => {
 			// Second stop should use sRGB fallback
 			expect(gsArray[1]['a:srgbClr']).toBeDefined();
 			expect((gsArray[1]['a:srgbClr'] as XmlObject)['@_val']).toBe('0000FF');
+		});
+
+		it('a typed colorRef wins over originalColorXml and the resolved hex', () => {
+			const shapeStyle: ShapeStyle = {
+				fillGradientStops: [
+					{
+						color: '#4472C4',
+						position: 0,
+						// A stale preserved srgbClr node: the ref must still win.
+						originalColorXml: { 'a:srgbClr': { '@_val': '4472C4' } },
+						colorRef: { scheme: 'accent1', lumMod: 0.6, lumOff: 0.4 },
+					},
+				],
+				fillGradientType: 'linear',
+				fillGradientAngle: 0,
+			};
+			const xml = codec.buildGradientFillXml(shapeStyle);
+			const gsArray = ((xml as XmlObject)['a:gsLst'] as XmlObject)['a:gs'] as XmlObject[];
+			expect(gsArray[0]['a:schemeClr']).toStrictEqual({
+				'@_val': 'accent1',
+				'a:lumMod': { '@_val': '60000' },
+				'a:lumOff': { '@_val': '40000' },
+			});
+			expect(gsArray[0]['a:srgbClr']).toBeUndefined();
 		});
 
 		it('should round-trip gradient stops preserving scheme colors', () => {

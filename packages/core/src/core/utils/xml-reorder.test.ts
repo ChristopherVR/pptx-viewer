@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
 	BLIP_FILL_ORDER,
 	EFFECT_LST_ORDER,
+	PRESENTATION_CHILD_ORDER,
 	SP_PR_ORDER,
 	TC_PR_BORDERS_ORDER,
 	reorderObjectKeys,
+	reorderObjectKeysByLocalName,
 } from './xml-reorder';
 
 describe('reorderObjectKeys', () => {
@@ -117,5 +119,39 @@ describe('reorderObjectKeys', () => {
 		};
 		const result = reorderObjectKeys(input, BLIP_FILL_ORDER);
 		expect(Object.keys(result)).toStrictEqual(['a:blip', 'a:srcRect', 'a:stretch']);
+	});
+});
+
+describe('reorderObjectKeysByLocalName', () => {
+	it('puts a foreign-prefixed child in schema order among p: siblings', () => {
+		const input = {
+			'@_xmlns:x': 'http://schemas.openxmlformats.org/presentationml/2006/main',
+			'p:sldIdLst': {},
+			'p:defaultTextStyle': {},
+			'p:extLst': {},
+			'x:kinsoku': { '@_vendor': 'keep' },
+			'p:embeddedFontLst': {},
+		};
+		const result = reorderObjectKeysByLocalName(input, PRESENTATION_CHILD_ORDER);
+		expect(Object.keys(result)).toStrictEqual([
+			'p:sldIdLst',
+			'p:embeddedFontLst',
+			'x:kinsoku',
+			'p:defaultTextStyle',
+			'p:extLst',
+			'@_xmlns:x',
+		]);
+	});
+
+	it('keeps unknown children in insertion order after the recognised ones and drops undefined values', () => {
+		const input = {
+			'p:extLst': {},
+			'q:unknown': {},
+			'p:sldSz': undefined,
+			'r:other': {},
+			'p:sldIdLst': {},
+		};
+		const result = reorderObjectKeysByLocalName(input, PRESENTATION_CHILD_ORDER);
+		expect(Object.keys(result)).toStrictEqual(['p:sldIdLst', 'p:extLst', 'q:unknown', 'r:other']);
 	});
 });

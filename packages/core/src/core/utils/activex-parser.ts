@@ -120,6 +120,25 @@ export function parseActiveXControlsFromSlide(slideXml: XmlObject): PptxActiveXC
 
 			const name = entry['@_name'] ? String(entry['@_name']).trim() : undefined;
 			const shapeId = entry['@_spid'] ? String(entry['@_spid']).trim() : undefined;
+			const showAsIconRaw = entry['@_showAsIcon'];
+			// Conditionally-spread (not always-present-as-undefined), matching
+			// `extractControlFallback`'s convention: several existing callers
+			// compare parsed controls with `toStrictEqual`, which treats an
+			// explicit `{ key: undefined }` as different from an absent key.
+			const iconFields: Partial<
+				Pick<PptxActiveXControl, 'showAsIcon' | 'imgWidthEmu' | 'imgHeightEmu'>
+			> = {};
+			if (showAsIconRaw !== undefined) {
+				iconFields.showAsIcon = String(showAsIconRaw) === '1' || String(showAsIconRaw) === 'true';
+			}
+			const imgWidthEmu = numAttr(entry, '@_imgW');
+			if (imgWidthEmu !== undefined) {
+				iconFields.imgWidthEmu = imgWidthEmu;
+			}
+			const imgHeightEmu = numAttr(entry, '@_imgH');
+			if (imgHeightEmu !== undefined) {
+				iconFields.imgHeightEmu = imgHeightEmu;
+			}
 			const fallback = extractControlFallback(entry);
 
 			// Dedupe controls that appear in both the choice and fallback branches;
@@ -131,13 +150,27 @@ export function parseActiveXControlsFromSlide(slideXml: XmlObject): PptxActiveXC
 				}
 				const existingIndex = results.findIndex((c) => `${c.relId}|${c.shapeId ?? ''}` === key);
 				if (existingIndex >= 0) {
-					results[existingIndex] = { relId, name, shapeId, ...fallback, rawXml: entry };
+					results[existingIndex] = {
+						relId,
+						name,
+						shapeId,
+						...iconFields,
+						...fallback,
+						rawXml: entry,
+					};
 					continue;
 				}
 			}
 			seen.add(key);
 
-			results.push({ relId, name, shapeId, ...fallback, rawXml: entry });
+			results.push({
+				relId,
+				name,
+				shapeId,
+				...iconFields,
+				...fallback,
+				rawXml: entry,
+			});
 		}
 		return results;
 	} catch (e) {

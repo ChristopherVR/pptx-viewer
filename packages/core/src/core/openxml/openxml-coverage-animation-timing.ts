@@ -170,7 +170,7 @@ assign(['presentation:element:bldDgm'], {
 	preserve: 'unassessed',
 	edit: 'unassessed',
 	serialize: 'unassessed',
-	note: 'The top-level p:bldDgm entry (whole-diagram build, distinct from the nested a:bldDgm inside bldSub) is parsed with typed defaults; no dedicated writer test was found, so preserve/edit/serialize are left unassessed rather than inferred.',
+	note: 'The top-level p:bldDgm entry (whole-diagram build, distinct from the nested a:bldDgm inside bldSub) is parsed with typed defaults; no dedicated writer test was found, so preserve/edit/serialize are left unassessed rather than inferred. Render-side, the per-index SmartArt build reveal this entry (and the nested a:bldDgm above) drives is now native: see the p:graphicEl note in openxml-coverage-animation-timing-supplement.ts for the shared diagram-reveal-descriptor.ts / e2e coverage.',
 	evidence: [
 		testEvidence(
 			'src/core/services/native-animation-extended-helpers.test.ts',

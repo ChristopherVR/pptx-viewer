@@ -173,6 +173,24 @@ describe('applyLineProperties — stroke color', () => {
 		applyLineProperties(lineNode, style, makeContext());
 		expect(style.strokeColor).toBe('#112233');
 	});
+
+	it('captures a typed strokeColorRef for a plain schemeClr outline', () => {
+		const lineNode: XmlObject = {
+			'a:solidFill': { 'a:schemeClr': { '@_val': 'accent2' } },
+		};
+		const style = makeStyle();
+		applyLineProperties(lineNode, style, makeContext());
+		expect(style.strokeColorRef).toStrictEqual({ scheme: 'accent2' });
+	});
+
+	it('does not set strokeColorRef for a plain srgbClr outline', () => {
+		const lineNode: XmlObject = {
+			'a:solidFill': { 'a:srgbClr': { '@_val': '0000FF' } },
+		};
+		const style = makeStyle();
+		applyLineProperties(lineNode, style, makeContext());
+		expect(style.strokeColorRef).toBeUndefined();
+	});
 });
 
 // ---------------------------------------------------------------------------

@@ -13,9 +13,11 @@
  * @module utils/theme-switching
  */
 
+import { resolveThemeColorRef } from '../color/theme-color-ref';
 import type {
 	PptxSlide,
 	PptxElement,
+	PptxThemeColorRef,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	ShapeStyle,
@@ -87,6 +89,32 @@ function remapColor(color: string | undefined, remap: Map<string, string>): stri
 	return remapped ?? color;
 }
 
+/**
+ * Re-resolve a colour that may carry a typed theme reference.
+ *
+ * A ref (set when the colour was picked from the theme palette; see
+ * `themeColorRefFromColorChoice`) is authoritative: resolving it directly
+ * against the NEW colour map reproduces exactly what PowerPoint would show,
+ * including any `lumMod`/`lumOff`/`tint`/`shade` variant, whereas the
+ * hex-remap table below only catches a colour that happens to equal one of
+ * the twelve base scheme slots. Falls back to the hex remap when there is no
+ * ref (a plain sRGB colour, or a colour kind a ref cannot express).
+ */
+function remapColorWithRef(
+	color: string | undefined,
+	ref: PptxThemeColorRef | undefined,
+	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
+): string | undefined {
+	if (ref) {
+		const resolved = resolveThemeColorRef(ref, newColorMap);
+		if (resolved) {
+			return resolved;
+		}
+	}
+	return remapColor(color, remap);
+}
+
 // ---------------------------------------------------------------------------
 // ShapeStyle colour re-resolution
 // ---------------------------------------------------------------------------
@@ -97,6 +125,7 @@ function remapColor(color: string | undefined, remap: Map<string, string>): stri
 function remapShapeStyleColors(
 	style: ShapeStyle | undefined,
 	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
 ): ShapeStyle | undefined {
 	if (!style) {
 		return style;
@@ -104,9 +133,21 @@ function remapShapeStyleColors(
 
 	const patched = { ...style };
 
-	// Fill colours
-	patched.fillColor = remapColor(patched.fillColor, remap);
-	patched.strokeColor = remapColor(patched.strokeColor, remap);
+	// Fill colours: a `*ColorRef` re-resolves against the new theme directly
+	// (see `remapColorWithRef`) and stays on the patched style so a later save
+	// still emits `<a:schemeClr>` rather than freezing today's hex.
+	patched.fillColor = remapColorWithRef(
+		patched.fillColor,
+		patched.fillColorRef,
+		remap,
+		newColorMap,
+	);
+	patched.strokeColor = remapColorWithRef(
+		patched.strokeColor,
+		patched.strokeColorRef,
+		remap,
+		newColorMap,
+	);
 
 	// Shadow
 	patched.shadowColor = remapColor(patched.shadowColor, remap);
@@ -124,7 +165,7 @@ function remapShapeStyleColors(
 	if (patched.fillGradientStops) {
 		patched.fillGradientStops = patched.fillGradientStops.map((stop) => ({
 			...stop,
-			color: remapColor(stop.color, remap) ?? stop.color,
+			color: remapColorWithRef(stop.color, stop.colorRef, remap, newColorMap) ?? stop.color,
 		}));
 
 		// Rebuild gradient CSS if stops changed
@@ -167,13 +208,14 @@ function buildSimpleGradientCss(
 function remapTextStyleColors(
 	style: TextStyle | undefined,
 	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
 ): TextStyle | undefined {
 	if (!style) {
 		return style;
 	}
 
 	const patched = { ...style };
-	patched.color = remapColor(patched.color, remap);
+	patched.color = remapColorWithRef(patched.color, patched.colorRef, remap, newColorMap);
 	patched.underlineColor = remapColor(patched.underlineColor, remap);
 	patched.highlightColor = remapColor(patched.highlightColor, remap);
 	patched.textOutlineColor = remapColor(patched.textOutlineColor, remap);
@@ -197,19 +239,34 @@ function remapTextStyleColors(
 function remapTextSegments(
 	segments: TextSegment[] | undefined,
 	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
 ): TextSegment[] | undefined {
 	if (!segments) {
 		return segments;
 	}
 
 	return segments.map((seg) => {
-		if (!seg.style) {
+		const remappedStyle = seg.style
+			? (remapTextStyleColors(seg.style, remap, newColorMap) ?? seg.style)
+			: seg.style;
+		const remappedBullet = seg.bulletInfo
+			? {
+					...seg.bulletInfo,
+					color: remapColorWithRef(
+						seg.bulletInfo.color,
+						seg.bulletInfo.colorRef,
+						remap,
+						newColorMap,
+					),
+				}
+			: seg.bulletInfo;
+		if (remappedStyle === seg.style && remappedBullet === seg.bulletInfo) {
 			return seg;
 		}
-		const remapped = remapTextStyleColors(seg.style, remap);
 		return {
 			...seg,
-			style: remapped ?? seg.style,
+			style: remappedStyle,
+			bulletInfo: remappedBullet,
 		};
 	});
 }
@@ -222,36 +279,50 @@ function remapTextSegments(
  * Re-resolve all theme-derived colours in a single element.
  * Handles all element types including nested group children.
  */
-function remapElementColors(element: PptxElement, remap: Map<string, string>): PptxElement {
+function remapElementColors(
+	element: PptxElement,
+	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
+): PptxElement {
 	const patched = { ...element } as Record<string, unknown>;
 
 	// ShapeStyle (present on shape, text, connector, image elements)
 	if ('shapeStyle' in element && element.shapeStyle) {
-		patched.shapeStyle = remapShapeStyleColors(element.shapeStyle as ShapeStyle, remap);
+		patched.shapeStyle = remapShapeStyleColors(
+			element.shapeStyle as ShapeStyle,
+			remap,
+			newColorMap,
+		);
 	}
 
 	// TextStyle (present on text, shape, connector elements)
 	if ('textStyle' in element && element.textStyle) {
-		patched.textStyle = remapTextStyleColors(element.textStyle as TextStyle, remap);
+		patched.textStyle = remapTextStyleColors(element.textStyle as TextStyle, remap, newColorMap);
 	}
 
 	// Text segments (present on text, shape, connector elements)
 	if ('textSegments' in element && element.textSegments) {
-		patched.textSegments = remapTextSegments(element.textSegments as TextSegment[], remap);
+		patched.textSegments = remapTextSegments(
+			element.textSegments as TextSegment[],
+			remap,
+			newColorMap,
+		);
 	}
 
 	// Group children — recurse
 	if (element.type === 'group' && element.children) {
-		patched.children = element.children.map((child) => remapElementColors(child, remap));
+		patched.children = element.children.map((child) =>
+			remapElementColors(child, remap, newColorMap),
+		);
 		// Group fill
 		if (element.groupFill) {
-			patched.groupFill = remapShapeStyleColors(element.groupFill, remap);
+			patched.groupFill = remapShapeStyleColors(element.groupFill, remap, newColorMap);
 		}
 	}
 
 	// Table cells
 	if (element.type === 'table' && element.tableData) {
-		patched.tableData = remapTableColors(element.tableData, remap);
+		patched.tableData = remapTableColors(element.tableData, remap, newColorMap);
 	}
 
 	return patched as unknown as PptxElement;
@@ -263,13 +334,19 @@ function remapElementColors(element: PptxElement, remap: Map<string, string>): P
 function remapCellStyleColors(
 	style: PptxTableCellStyle | undefined,
 	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
 ): PptxTableCellStyle | undefined {
 	if (!style) {
 		return style;
 	}
 	const patched = { ...style };
-	patched.color = remapColor(patched.color, remap);
-	patched.backgroundColor = remapColor(patched.backgroundColor, remap);
+	patched.color = remapColorWithRef(patched.color, patched.colorRef, remap, newColorMap);
+	patched.backgroundColor = remapColorWithRef(
+		patched.backgroundColor,
+		patched.backgroundColorRef,
+		remap,
+		newColorMap,
+	);
 	patched.borderColor = remapColor(patched.borderColor, remap);
 	patched.borderTopColor = remapColor(patched.borderTopColor, remap);
 	patched.borderBottomColor = remapColor(patched.borderBottomColor, remap);
@@ -283,14 +360,18 @@ function remapCellStyleColors(
 /**
  * Re-resolve colours in table data (cell fills, text, borders).
  */
-function remapTableColors(tableData: PptxTableData, remap: Map<string, string>): PptxTableData {
+function remapTableColors(
+	tableData: PptxTableData,
+	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
+): PptxTableData {
 	return {
 		...tableData,
 		rows: tableData.rows.map((row: PptxTableRow): PptxTableRow => ({
 			...row,
 			cells: row.cells.map((cell: PptxTableCell): PptxTableCell => ({
 				...cell,
-				style: remapCellStyleColors(cell.style, remap),
+				style: remapCellStyleColors(cell.style, remap, newColorMap),
 			})),
 		})),
 	};
@@ -303,7 +384,11 @@ function remapTableColors(tableData: PptxTableData, remap: Map<string, string>):
 /**
  * Re-resolve all theme-derived colours in a slide.
  */
-function remapSlideColors(slide: PptxSlide, remap: Map<string, string>): PptxSlide {
+function remapSlideColors(
+	slide: PptxSlide,
+	remap: Map<string, string>,
+	newColorMap: Readonly<Record<string, string>>,
+): PptxSlide {
 	const patched = { ...slide };
 
 	// Slide background
@@ -313,7 +398,7 @@ function remapSlideColors(slide: PptxSlide, remap: Map<string, string>): PptxSli
 
 	// Slide elements
 	if (patched.elements) {
-		patched.elements = patched.elements.map((el) => remapElementColors(el, remap));
+		patched.elements = patched.elements.map((el) => remapElementColors(el, remap, newColorMap));
 	}
 
 	return patched;
@@ -380,7 +465,7 @@ export function reResolveSlideColors(
 		return slides;
 	}
 
-	return slides.map((slide) => remapSlideColors(slide, remap));
+	return slides.map((slide) => remapSlideColors(slide, remap, newMap));
 }
 
 /**
@@ -408,7 +493,7 @@ export function reResolveElementColors(
 	if (remap.size === 0) {
 		return elements;
 	}
-	return elements.map((el) => remapElementColors(el, remap));
+	return elements.map((el) => remapElementColors(el, remap, newMap));
 }
 
 /**

@@ -259,15 +259,16 @@ assign(['chart:element:tx', 'chart:element:rich', 'chart:complexType:CT_Tx'], {
 // Chart: element counterparts of the already-typed up/down-bars complexTypes
 // ---------------------------------------------------------------------------
 assign(['chart:element:upDownBars', 'chart:element:upBars', 'chart:element:downBars'], {
-	parse: 'partial',
-	preserve: 'passthrough',
-	edit: 'partial',
-	serialize: 'partial',
-	note: 'Element counterparts of the already-typed CT_UpDownBars/CT_UpDownBar complexTypes; gap width and common shape properties are typed, extensions are passthrough.',
+	parse: 'native',
+	preserve: 'native',
+	edit: 'native',
+	serialize: 'native',
+	note: "Element counterparts of the already-typed CT_UpDownBars/CT_UpDownBar complexTypes. Verified native during wave 3 (W3-D1): gap width (via the ST_GapAmount union helper, rejecting the percent-literal member PowerPoint treats as fatal) and both up/down bars' fill+stroke shape properties round-trip through parse (chart-up-down-bars.ts parseChartUpDownBars) and serialize (applyChartUpDownBars), with unmodeled children preserved via spread.",
 	evidence: [
 		testEvidence('src/core/utils/chart-up-down-bars.test.ts', [
 			'parses gap width and both shape-property branches',
 			'updates formatting while preserving unsupported children',
+			'emits the numeric member of ST_GapAmount, never the percent literal',
 		]),
 	],
 });
@@ -276,11 +277,11 @@ assign(['chart:element:upDownBars', 'chart:element:upBars', 'chart:element:downB
 // Chart: hi-low/drop lines preserved structurally through combo-chart splitting
 // ---------------------------------------------------------------------------
 assign(['chart:element:hiLowLines', 'chart:element:dropLines'], {
-	parse: 'passthrough',
-	preserve: 'passthrough',
-	edit: 'unassessed',
-	serialize: 'passthrough',
-	note: 'Treated as opaque per-container XML fragments that survive combo-chart consolidate/re-split; no independently typed field model was found, so edit is left unassessed rather than inferred.',
+	parse: 'native',
+	preserve: 'native',
+	edit: 'native',
+	serialize: 'native',
+	note: 'CT_ChartLines\' colour/width/dash line style is typed (chart-advanced-parser.ts parseLineStyle) into a flat PptxChartLineStyle, and survives combo-chart consolidate/re-split as an opaque XML fragment when untouched. Since wave 3 (W3-D1), a write-back path also exists (chart-line-style-serializer.ts applyChartLineStyle), closing the previous edit: unassessed gap where the parsed style silently never reached save: undefined is a no-op, null removes the element, and an empty object inserts/keeps the bare element (PowerPoint treats mere presence as "show this helper line" independent of spPr).',
 	evidence: [
 		testEvidence(
 			'src/core/utils/chart-combo-serializer.test.ts',
@@ -291,6 +292,15 @@ assign(['chart:element:hiLowLines', 'chart:element:dropLines'], {
 			'src/core/utils/chart-combo-serializer.test.ts',
 			['restores the line container keeps its OWN marker / dropLines / hiLowLines'],
 			['serialize'],
+		),
+		testEvidence(
+			'src/core/utils/chart-line-style-serializer.test.ts',
+			[
+				'inserts c:dropLines in schema order (after ser/dLbls, before hiLowLines/marker)',
+				'updates an existing c:dropLines in place, preserving unmodeled children',
+				'removes an existing c:hiLowLines when the style is explicitly null',
+			],
+			['edit', 'serialize'],
 		),
 	],
 });

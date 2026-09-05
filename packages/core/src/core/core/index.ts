@@ -36,3 +36,22 @@ export {
 	rebuildTableStructureInRawXml,
 } from './runtime/table-structural-ops';
 export { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from './runtime/table-style-defaults';
+
+// Table-STYLE (ppt/tableStyles.xml) editing: create/delete a style entry on
+// a ParsedTableStyleMap, and the section-name vocabulary + GUID normaliser
+// needed to target one of the 13 CT_TableStyle parts (W3-E). Save-time
+// section merge (`applyTableStyleEntryToNode`) is an internal writer detail,
+// not part of this public surface: a consumer edits the typed map with these
+// helpers, then passes it (plus `tableStylesDefaultId`/`tableStylesToDelete`)
+// to `handler.save()`.
+export {
+	addTableStyleToMap,
+	createTableStyleEntry,
+	deleteTableStyleFromMap,
+	generateTableStyleGuid,
+} from './runtime/table-style-editor';
+export {
+	normalizeTableStyleGuid,
+	TABLE_STYLE_PART_SEQUENCE,
+	type TableStylePartName,
+} from './runtime/table-style-entry-parse';

@@ -18,6 +18,7 @@ import type {
 	PptxChartTreemapOptions,
 	PptxChartWaterfallOptions,
 } from '../../types/chart';
+import type { PptxThemeColorRef } from '../../types/color-ref';
 import type { StrokeDashType, ConnectorArrowType } from '../../types/common';
 import type { PptxTransitionType } from '../../types/transition';
 
@@ -39,7 +40,19 @@ export interface ElementPosition {
 // ---------------------------------------------------------------------------
 
 export type FillInput =
-	| { type: 'solid'; color: string; opacity?: number }
+	| {
+			type: 'solid';
+			color: string;
+			opacity?: number;
+			/**
+			 * A theme colour to use instead of a plain hex. When set, the shape
+			 * saves as `<a:schemeClr>` (e.g. `{ scheme: 'accent1', lumMod: 0.8 }`
+			 * for "Accent 1, Lighter 80%") so it keeps following the theme after a
+			 * later theme change; `color` still supplies the immediate resolved
+			 * hex for renderers that read it directly.
+			 */
+			themeColorRef?: PptxThemeColorRef;
+	  }
 	| {
 			type: 'gradient';
 			/**
@@ -64,6 +77,8 @@ export interface StrokeInput {
 	opacity?: number;
 	join?: 'round' | 'bevel' | 'miter';
 	cap?: 'flat' | 'rnd' | 'sq';
+	/** A theme colour for the outline; see {@link FillInput}'s `themeColorRef`. */
+	themeColorRef?: PptxThemeColorRef;
 }
 
 export interface ShadowInput {
@@ -86,6 +101,8 @@ export interface TextStyleInput {
 	underline?: boolean;
 	strikethrough?: boolean;
 	color?: string;
+	/** A theme colour for the run; see {@link FillInput}'s `themeColorRef`. */
+	themeColorRef?: PptxThemeColorRef;
 	alignment?: 'left' | 'center' | 'right' | 'justify';
 	verticalAlignment?: 'top' | 'middle' | 'bottom';
 	lineSpacing?: number;

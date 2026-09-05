@@ -156,6 +156,30 @@ describe('applySeriesErrBarsToXml', () => {
 		expect(line['a:solidFill']).toStrictEqual({ 'a:srgbClr': { '@_val': '123456' } });
 	});
 
+	it('writes an explicit line width and dash style (not just colour)', () => {
+		const node = seriesNode();
+		applySeriesErrBarsToXml(
+			node,
+			[
+				{
+					direction: 'y',
+					barType: 'both',
+					valType: 'fixedVal',
+					val: 2,
+					color: '#654321',
+					width: 2.25,
+					dashStyle: 'lgDash',
+				},
+			],
+			getLocalName,
+		);
+		const bars = errBarsOf(node);
+		const line = (bars['c:spPr'] as XmlObject)['a:ln'] as XmlObject;
+		expect(line['@_w']).toBe(String(Math.round(2.25 * 12700)));
+		expect((line['a:prstDash'] as XmlObject)['@_val']).toBe('lgDash');
+		expect(line['a:solidFill']).toStrictEqual({ 'a:srgbClr': { '@_val': '654321' } });
+	});
+
 	it('rejects non-finite values', () => {
 		expect(() =>
 			applySeriesErrBarsToXml(

@@ -192,6 +192,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Parse `ppt/tableStyles.xml` into a map of style GUID → style entry.
 	 */
 	protected async parseTableStyles(): Promise<ParsedTableStyleMap | undefined> {
+		this.loadedTableStylesDefaultId = undefined;
 		const xmlStr = await this.zip.file(TABLE_STYLES_PART_PATH)?.async('string');
 		if (!xmlStr) {
 			return undefined;
@@ -205,6 +206,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				(value) => this.ensureArray(value),
 				resolveImagePath,
 			);
+			// Side channel (see `loadedTableStylesDefaultId`'s docblock): the
+			// list can carry a `@def` GUID even when `map` ends up empty (e.g.
+			// the def points at a style that failed to parse), so this is set
+			// unconditionally rather than only inside the `result.map` branch.
+			this.loadedTableStylesDefaultId = result?.defaultStyleId;
 			if (!result || Object.keys(result.map).length === 0) {
 				return undefined;
 			}

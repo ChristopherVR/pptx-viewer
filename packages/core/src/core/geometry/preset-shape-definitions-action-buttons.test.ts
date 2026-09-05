@@ -71,10 +71,15 @@ describe('preset shape geometry — action buttons', () => {
 		}
 	});
 
-	it('default adj is 6250 (1/16 of ss)', () => {
+	it('has NO adjustable guides (COM-verified: Shape.Adjustments.Count is 0)', () => {
+		// The 6250 (1/16 of ss) inset is a fixed literal fraction baked into
+		// `x1`'s formula, not an `adj`-driven guide: PowerPoint reports zero
+		// adjustment handles for every actionButton* AutoShape, so an
+		// `<a:avLst>` here would author a guide name PowerPoint's own preset
+		// does not recognise (see `preset-adjustment-validation.ts`).
 		for (const name of REQUIRED_SHAPES) {
 			const def = ACTION_BUTTON_PRESET_DEFINITIONS[name];
-			expect(def?.avLst?.adj).toBe(6250);
+			expect(def?.avLst).toBeUndefined();
 		}
 	});
 

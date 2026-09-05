@@ -73,6 +73,19 @@ describe('applySeriesTrendlinesToXml', () => {
 		expect((ln['a:solidFill'] as XmlObject)['a:srgbClr']).toStrictEqual({ '@_val': 'FF0000' });
 	});
 
+	it('writes line width and dash style into spPr (not just colour)', () => {
+		const node = seriesNode();
+		applySeriesTrendlinesToXml(
+			node,
+			[{ trendlineType: 'linear', color: '#ff0000', lineWidth: 3, lineDashStyle: 'dash' }],
+			getLocalName,
+		);
+		const ln = (trendlineOf(node)['c:spPr'] as XmlObject)['a:ln'] as XmlObject;
+		expect(ln['@_w']).toBe(String(Math.round(3 * 12700)));
+		expect((ln['a:prstDash'] as XmlObject)['@_val']).toBe('dash');
+		expect((ln['a:solidFill'] as XmlObject)['a:srgbClr']).toStrictEqual({ '@_val': 'FF0000' });
+	});
+
 	it('removes all trendlines when given an empty array', () => {
 		const node = seriesNode();
 		applySeriesTrendlinesToXml(node, [{ trendlineType: 'linear' }], getLocalName);

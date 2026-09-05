@@ -303,7 +303,14 @@ export function extractKeyframes(
 	return out.length > 0 ? out : undefined;
 }
 
-function decodeKeyframeValue(
+/**
+ * Decode a CT_TLAnimVariant-shaped value wrapper (`p:val` on a `p:tav`
+ * keyframe, or `p:to`/`p:from`/`p:by` on a `p:set`/`p:anim` behaviour): one
+ * of `p:strVal`/`p:boolVal`/`p:intVal`/`p:fltVal`/`p:clrVal`. Exported so
+ * `native-animation-set-components.ts` can decode a `p:set`'s `p:to` the
+ * same way {@link extractKeyframes} decodes a `p:tav`'s `p:val`.
+ */
+export function decodeKeyframeValue(
 	valNode: XmlObject,
 ): { value: string | boolean | number; valueType: 'str' | 'bool' | 'int' | 'flt' | 'clr' } | null {
 	const strVal = valNode['p:strVal'] as XmlObject | undefined;

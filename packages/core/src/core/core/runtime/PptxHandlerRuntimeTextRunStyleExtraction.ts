@@ -1,3 +1,4 @@
+import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import { TextStyle, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
@@ -276,6 +277,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const colorXml = extractColorChoiceXml(solidFill);
 			if (colorXml) {
 				style.colorXml = colorXml;
+			}
+			const colorRef = themeColorRefFromColorChoice(solidFill);
+			if (colorRef) {
+				style.colorRef = colorRef;
 			}
 		}
 

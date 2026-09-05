@@ -12,9 +12,18 @@
  *
  * Geometry: outer rectangle covering the full bounds, plus an inner inset
  * rectangle (the bevel "well"). The inset is `ss / 16` — i.e. one sixteenth
- * of the shorter side, encoded as `adj = 6250` in the canonical 100000-based
- * OOXML adjustment scale. Diagonal lines from each outer corner to the
- * matching inner corner ensure a stroked outline reads as a true bevel.
+ * of the shorter side, i.e. the fixed literal fraction `6250` in the
+ * canonical 100000-based OOXML scale. COM-verified 2026-09-05
+ * (`Shape.Adjustments.Count` reads 0 for every `actionButton*` AutoShape at
+ * any size): unlike `roundRect`/`octagon`/etc., this fraction is NOT an
+ * adjustable guide in real PowerPoint - the 12 `actionButton*` presets ship
+ * with an EMPTY `avLst`, so a saved file that carries an `<a:gd name="adj"
+ * .../>` for one of them is authoring a guide name PowerPoint's own preset
+ * geometry does not recognise (the same corruption class documented in
+ * `preset-adjustment-validation.ts`: an unrecognised guide name on a preset
+ * that HAS real guides makes PowerPoint refuse to open the file). Diagonal
+ * lines from each outer corner to the matching inner corner ensure a
+ * stroked outline reads as a true bevel.
  *
  * All twelve shapes use identical geometry: a single helper, `buildActionButton`,
  * stamps each definition with the right `name` so the table stays a one-line
@@ -40,19 +49,15 @@ function gd(name: string, formula: string): { name: string; formula: string; arg
  * share the same outer-rectangle + inner-inset + diagonal-bevel geometry — the
  * only thing that varies is `name`.
  *
- * The default `adj` is 6250 (1/16 of ss in OOXML's 100000-based percent scale).
- * The `pin 0 adj 50000` clamp mirrors the ECMA reference range.
+ * The inset is a FIXED `ss * 6250 / 100000` (1/16 of `ss`) - not an
+ * adjustable guide (`Shape.Adjustments.Count` is COM-verified 0 for this
+ * family), so there is no `adj`/`avLst` here at all, and `x1` is derived
+ * directly from the literal fraction rather than a `pin`-clamped `adj`.
  */
 function buildActionButton(name: string): PresetShapeGeometryDefinition {
 	return {
 		name,
-		avLst: { adj: 6250 },
-		gdLst: [
-			gd('a', 'pin 0 adj 50000'),
-			gd('x1', '*/ ss a 100000'),
-			gd('x2', '+- r 0 x1'),
-			gd('y2', '+- b 0 x1'),
-		],
+		gdLst: [gd('x1', '*/ ss 6250 100000'), gd('x2', '+- r 0 x1'), gd('y2', '+- b 0 x1')],
 		rect: { l: 'x1', t: 'x1', r: 'x2', b: 'y2' },
 		pathLst: [
 			// Outer rectangle (the button face).

@@ -47,7 +47,7 @@ assign(
 		preserve: 'native',
 		edit: 'partial',
 		serialize: 'partial',
-		note: 'Common trendline and label fields are typed; rich shape and text content is preserved.',
+		note: "Common trendline and label fields (layout/numFmt) are typed; the trendline label's own rich text/shape content is preserved but not independently modeled, so the group stays partial. Since wave 3 (W3-D1), the trendline's OWN line styling is a real fix, not just an addition: the colour parse path is corrected to read c:spPr/a:ln/a:solidFill (it previously read the wrong path; COM-verified against real PowerPoint), and lineWidth/lineDashStyle are newly typed and round-trip through parse and serialize alongside colour.",
 		evidence: [
 			testEvidence(
 				'src/core/utils/chart-advanced-parser.test.ts',
@@ -58,6 +58,13 @@ assign(
 				'src/core/utils/chart-trendline-serializer.test.ts',
 				['writes a typed label in schema order and preserves unmodeled label content'],
 				['preserve', 'edit', 'serialize'],
+			),
+			testEvidence(
+				'src/core/core/runtime/PptxHandlerRuntimeChartFormattingEdit.test.ts',
+				[
+					'round-trips dPt/marker spPr, trendline/errBars width+dash, dLbl spPr+txPr, dropLines/hiLowLines',
+				],
+				['parse', 'edit', 'serialize'],
 			),
 		],
 	},
@@ -98,11 +105,11 @@ assign(
 );
 
 assign(['chart:complexType:CT_ErrBars', 'chart:element:errBars'], {
-	parse: 'partial',
+	parse: 'native',
 	preserve: 'native',
-	edit: 'partial',
-	serialize: 'partial',
-	note: 'Common error-bar options and line color are typed; uncommon shape metadata is preserved.',
+	edit: 'native',
+	serialize: 'native',
+	note: 'Direction/barType/valType/noEndCap/val/custom plus-minus values and line colour are typed. Since wave 3 (W3-D1), line width and dash style are also typed and round-trip via the shared writeChartShapeProps writer (chart-errbars-serializer.ts), replacing the single-colour-only writer that previously silently dropped a width or dash edit; only the extension list remains passthrough, which is standard.',
 	evidence: [
 		testEvidence(
 			'src/core/utils/chart-advanced-parser.test.ts',
@@ -113,6 +120,13 @@ assign(['chart:complexType:CT_ErrBars', 'chart:element:errBars'], {
 			'src/core/utils/chart-errbars-serializer.test.ts',
 			['edits end caps and line color while preserving extensions'],
 			['preserve', 'edit', 'serialize'],
+		),
+		testEvidence(
+			'src/core/core/runtime/PptxHandlerRuntimeChartFormattingEdit.test.ts',
+			[
+				'round-trips dPt/marker spPr, trendline/errBars width+dash, dLbl spPr+txPr, dropLines/hiLowLines',
+			],
+			['parse', 'edit', 'serialize'],
 		),
 	],
 });

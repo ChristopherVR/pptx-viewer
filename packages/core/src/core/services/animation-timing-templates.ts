@@ -60,11 +60,14 @@ export function extractBldPTemplates(bldP: XmlObject): PptxTimingTemplate[] {
  * XmlObject, spreading each entry's preserved `rawXml` first so unmodelled
  * attributes/children on `p:tmpl` survive.
  *
- * Not wired into the active OOXML writer: the surgical timing writer
- * (`animation-timing-surgical.ts`) clones and never touches `p:bldLst`, so
- * an existing `p:tmplLst` already round-trips byte-identically through that
- * path. This serializer exists for typed-model completeness and testing,
- * mirroring `serializeGraphicBuild` in `animation-target-build-helpers.ts`.
+ * The surgical timing writer (`animation-timing-surgical.ts`) clones and
+ * never touches `p:bldLst`, so an existing `p:tmplLst` already round-trips
+ * byte-identically through that path when a slide already has a `p:timing`
+ * tree. This serializer is wired into the OTHER writer,
+ * `animation-write-sequence-builders.ts`'s `buildBuildListXml`, which runs
+ * the full-rebuild path (no prior `p:timing` on the slide): it re-emits
+ * `PptxElementAnimation.buildTemplates` so that path does not silently drop
+ * a per-build-level timing default carried over from a loaded animation.
  */
 export function serializeBldPTemplates(templates: PptxTimingTemplate[]): XmlObject | undefined {
 	if (templates.length === 0) {

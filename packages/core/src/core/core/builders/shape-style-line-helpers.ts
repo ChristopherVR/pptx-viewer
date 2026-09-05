@@ -1,3 +1,4 @@
+import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { parseDrawingLineDash } from '../../utils/drawing-line-dash';
@@ -75,6 +76,10 @@ function applyStrokeColor(
 		const strokeColorXml = extractColorChoiceXml(lineFill);
 		if (strokeColorXml) {
 			style.strokeColorXml = strokeColorXml;
+		}
+		const strokeColorRef = themeColorRefFromColorChoice(lineFill);
+		if (strokeColorRef) {
+			style.strokeColorRef = strokeColorRef;
 		}
 	} else if (lineNode['a:gradFill']) {
 		// Preserve the whole gradient node so save can re-emit a single

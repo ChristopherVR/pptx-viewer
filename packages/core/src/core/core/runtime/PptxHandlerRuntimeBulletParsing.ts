@@ -1,3 +1,4 @@
+import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import { BulletInfo, XmlObject } from '../../types';
 import type { PlaceholderTextLevelStyle } from '../../types';
 import { formatAutoNumberMarker } from '../../utils/auto-number-format';
@@ -113,11 +114,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const buClr = resolvedBulletProps['a:buClr'] as XmlObject | undefined;
 		let color: string | undefined;
 		let colorXml: XmlObject | undefined;
+		let colorRef: BulletInfo['colorRef'];
 		if (buClr) {
 			// Preserve scheme/sys/prst/srgb identity (themed bullet colours)
 			// instead of extracting only `a:srgbClr/@_val`.
 			color = this.parseColor(buClr);
 			colorXml = extractColorChoiceXml(buClr);
+			colorRef = themeColorRefFromColorChoice(buClr);
 		}
 		const colorInherit = resolvedBulletProps['a:buClrTx'] !== undefined;
 
@@ -133,6 +136,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePts,
 				color,
 				...(colorXml ? { colorXml } : {}),
+				...(colorRef ? { colorRef } : {}),
 				...(fontInherit ? { fontInherit: true } : {}),
 				...(colorInherit ? { colorInherit: true } : {}),
 				...(sizeInherit ? { sizeInherit: true } : {}),
@@ -154,6 +158,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePts,
 				color,
 				...(colorXml ? { colorXml } : {}),
+				...(colorRef ? { colorRef } : {}),
 				...(fontInherit ? { fontInherit: true } : {}),
 				...(colorInherit ? { colorInherit: true } : {}),
 				...(sizeInherit ? { sizeInherit: true } : {}),
@@ -200,6 +205,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					sizePts,
 					color,
 					...(colorXml ? { colorXml } : {}),
+					...(colorRef ? { colorRef } : {}),
 				};
 			}
 			// buBlip without a resolvable rel/path — still preserve the subtree.
@@ -210,6 +216,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePts,
 				color,
 				...(colorXml ? { colorXml } : {}),
+				...(colorRef ? { colorRef } : {}),
 			};
 		}
 

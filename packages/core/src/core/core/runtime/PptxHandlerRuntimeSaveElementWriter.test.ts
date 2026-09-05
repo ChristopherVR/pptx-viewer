@@ -103,14 +103,14 @@ describe.runIf(existsSync(fixturePath(LINKED_TEXTBOX)))('applyNameToCnvPr', () =
 
 describe.runIf(existsSync(fixturePath(CHART_GALLERY)))('applyNameToCnvPr (no collateral)', () => {
 	it('leaves an authored name alone when the model carries none', async () => {
-		// Charts, SmartArt and other graphic frames parse without populating
-		// `name` while their markup carries a real one (35 such elements across
-		// the fixture corpus), so `undefined` must mean "no opinion", never
-		// "blank it".
+		// Graphic frames now parse their authored `name`, but a model that
+		// carries none (an SDK-built element, or one whose name a caller
+		// dropped) must still mean "no opinion", never "blank it".
 		const { handler, data } = await loadFixture(CHART_GALLERY);
 		const chart = data.slides[0].elements.find((el) => el.type === 'chart');
 		expect(chart).toBeDefined();
-		expect(chart!.name).toBeUndefined();
+		expect(chart!.name).toBe('Chart 1');
+		delete chart!.name;
 
 		for (const slide of data.slides) {
 			slide.isDirty = true;

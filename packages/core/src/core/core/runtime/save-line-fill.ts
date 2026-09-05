@@ -1,5 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
-import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { serializeColorChoiceWithRef } from '../../utils/color-xml-preservation';
 import type { FillChoiceElement } from './fill-choice-group';
 import { setFillChoice } from './fill-choice-group';
 
@@ -101,7 +101,8 @@ export function writeLineFill(
 	setOrderedLineFill(
 		lineNode,
 		'a:solidFill',
-		serializeColorChoice(
+		serializeColorChoiceWithRef(
+			shapeStyle.strokeColorRef,
 			shapeStyle.strokeColorXml,
 			resolvedStrokeOriginal,
 			shapeStyle.strokeColor ?? '#000000',

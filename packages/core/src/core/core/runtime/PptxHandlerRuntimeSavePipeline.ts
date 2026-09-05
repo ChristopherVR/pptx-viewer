@@ -245,7 +245,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// #90) so an unmodified load -> save round-trips the typed viewProps and
 		// edits still persist when the caller does not override them.
 		await this.applyViewPropertiesPart(options?.viewProperties ?? this.loadedViewProperties);
-		await this.applyTableStylesPart(options?.tableStyles);
+		await this.applyTableStylesPart(
+			options?.tableStyles,
+			options?.tableStylesDefaultId,
+			options?.tableStylesToDelete,
+		);
 
 		await this.documentPropertiesUpdater.updateOnSave(slides, {
 			coreProperties: options?.coreProperties,

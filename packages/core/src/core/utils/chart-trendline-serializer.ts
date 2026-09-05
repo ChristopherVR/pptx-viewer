@@ -12,7 +12,7 @@
 
 import type { PptxChartTrendline, XmlObject } from '../types';
 import type { ResolveChartColor } from './chart-color-choice';
-import { writeChartColorChoice } from './chart-color-choice';
+import { writeChartShapeProps } from './chart-shape-props-writer';
 import { buildTrendlineLabel } from './chart-trendline-label';
 
 type GetLocalName = (key: string) => string;
@@ -59,29 +59,27 @@ function validateTrendline(t: PptxChartTrendline): void {
 	assertFinite(t.intercept, 'trendline intercept');
 }
 
-/** Merge a trendline colour into an existing `c:spPr` (preserving other line props). */
+/**
+ * Merge a trendline colour/width/dash into an existing `c:spPr` (preserving
+ * other line props). Delegates to the shared {@link writeChartShapeProps}
+ * writer so a width or dash edit is not silently dropped the way the
+ * colour-only writer this replaced would drop it.
+ */
 function buildSpPr(
 	existing: XmlObject | undefined,
-	color: string | undefined,
+	t: PptxChartTrendline,
 	getLocalName: GetLocalName,
 	resolveColor?: ResolveChartColor,
 ): XmlObject | undefined {
-	if (!color) {
+	if (!t.color && t.lineWidth === undefined && !t.lineDashStyle) {
 		return existing;
 	}
-	const spPr: XmlObject = existing ? { ...existing } : {};
-	const lnKey = findKey(spPr, 'ln', getLocalName) ?? 'a:ln';
-	const existingLn = (spPr[lnKey] as XmlObject | undefined) ?? {};
-	const fillKey = findKey(existingLn, 'solidFill', getLocalName) ?? 'a:solidFill';
-	// Drop any other fill style on the line so the chosen colour wins.
-	const noFillKey = findKey(existingLn, 'noFill', getLocalName);
-	const ln: XmlObject = { ...existingLn };
-	if (noFillKey) {
-		delete ln[noFillKey];
-	}
-	writeChartColorChoice(ln, fillKey, color, resolveColor);
-	spPr[lnKey] = ln;
-	return spPr;
+	return writeChartShapeProps(
+		existing,
+		{ strokeColor: t.color, strokeWidth: t.lineWidth, strokeDashStyle: t.lineDashStyle },
+		getLocalName,
+		resolveColor,
+	);
 }
 
 /** Build a single `c:trendline` node in schema order, preserving unmodeled children. */
@@ -102,7 +100,7 @@ function buildTrendline(
 	}
 	const spPr = buildSpPr(
 		existing ? (existing[findKey(existing, 'spPr', getLocalName) ?? ''] as XmlObject) : undefined,
-		t.color,
+		t,
 		getLocalName,
 		resolveColor,
 	);

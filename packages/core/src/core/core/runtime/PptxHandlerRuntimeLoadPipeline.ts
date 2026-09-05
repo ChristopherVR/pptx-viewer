@@ -13,6 +13,7 @@ import type { PptxSection, PptxLayoutOption } from '../../types';
 import { parseEmbeddedFontList } from '../../utils/embedded-font-list';
 import { parsePresentationDrawingGuides } from '../../utils/guide-utils';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
+import { parsePresentationSmartTags } from '../../utils/smart-tags-parser';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { PptxLoadDataBuilder } from '../builders';
 import type { PptxHandlerLoadOptions } from '../types';
@@ -38,6 +39,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.loadedViewProperties = viewProperties;
 		const customShows = this.parseCustomShows();
 		const tableStyleMap = await this.parseTableStyles();
+		const tableStylesDefaultId = this.loadedTableStylesDefaultId;
 		const embeddedFontList = parseEmbeddedFontList(this.presentationData);
 		const embeddedFonts = await this.getEmbeddedFonts(embeddedFontList);
 		// Preserve for automatic re-embedding during save
@@ -68,6 +70,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const photoAlbum = this.extractPhotoAlbum();
 		const modifyVerifier = this.extractModifyVerifier();
 		const kinsoku = this.extractKinsoku();
+		const smartTags = await parsePresentationSmartTags(
+			this.zip,
+			(xml) => this.parser.parse(xml) as XmlObject,
+			this.presentationData,
+		);
 		const customerData = await this.parsePresentationCustomerData();
 		this.thumbnailData = (await this.parseThumbnail()) ?? null;
 		const embedTrueTypeFonts = this.extractEmbedTrueTypeFonts();
@@ -97,6 +104,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.withTheme(this.buildThemeObject())
 			.withThemeOptions(themeOptions.length > 0 ? themeOptions : undefined)
 			.withTableStyleMap(tableStyleMap)
+			.withTableStylesDefaultId(tableStylesDefaultId)
 			.withEmbeddedFonts(embeddedFonts.length > 0 ? embeddedFonts : undefined)
 			.withEmbeddedFontList(embeddedFontList)
 			.withMruColors(presentationProperties?.mruColors)
@@ -118,6 +126,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			.withPhotoAlbum(photoAlbum)
 			.withKinsoku(kinsoku)
 			.withModifyVerifier(modifyVerifier)
+			.withSmartTags(smartTags)
 			.withCustomXmlParts(this.customXmlParts.length > 0 ? this.customXmlParts : undefined)
 			.withCustomerData(customerData.length > 0 ? customerData : undefined)
 			.withSlideSizeType(this.rawSlideSizeType)
@@ -265,6 +274,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.loadedEmbeddedFonts = [];
 		this.loadedEmbeddedFontList = undefined;
 		this.loadedViewProperties = undefined;
+		this.loadedTableStylesDefaultId = undefined;
 		this.orderedSlidePaths = [];
 		// Release the ZIP archive — this is typically the largest allocation
 		// (the entire PPTX file contents live here). The handler is unusable

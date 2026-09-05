@@ -355,6 +355,18 @@ describe('applyBulletProperties', () => {
 		});
 	});
 
+	it('a bullet colorRef wins over color/colorXml', () => {
+		const props: XmlObject = {};
+		applyBulletProperties(props, {
+			color: '#4472C4',
+			colorXml: { 'a:srgbClr': { '@_val': '4472C4' } },
+			colorRef: { scheme: 'accent1', lumMod: 0.75 },
+		});
+		expect(props['a:buClr']).toStrictEqual({
+			'a:schemeClr': { '@_val': 'accent1', 'a:lumMod': { '@_val': '75000' } },
+		});
+	});
+
 	it('should set bullet char', () => {
 		const props: XmlObject = {};
 		applyBulletProperties(props, { char: '\u2022' });

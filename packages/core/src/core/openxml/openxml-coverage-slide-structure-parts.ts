@@ -87,7 +87,7 @@ assign(['presentation:element:graphicFrame'], {
 	preserve: 'native',
 	edit: 'partial',
 	serialize: 'native',
-	note: 'Graphic frames (tables, charts, OLE, SmartArt) are typed on parse and keep document order across a save; edit is assessed only for its lock sub-feature (`graphicFrameLocks`), not general frame-content editing.',
+	note: "Graphic frames (tables, charts, OLE, SmartArt) are typed on parse and keep document order across a save; edit is assessed for its lock sub-feature (`graphicFrameLocks`) and, since wave 3 (W3-H), for `name`/`shapeId`: p:nvGraphicFramePr/p:cNvPr's `@name`/`@id` are now parsed onto the frame (PptxGraphicFrameParser.ts), so renaming a chart/table/SmartArt/OLE frame through the model survives a save and reload instead of reverting to the file's original name on reopen. Not assessed for general frame-CONTENT editing (that is covered by the table/chart/SmartArt-specific manifest entries). `altText` on graphic-frame element types is still open (see limitations).",
 	evidence: [
 		testEvidence(
 			'src/core/core/builders/PptxGraphicFrameParser.test.ts',
@@ -101,7 +101,10 @@ assign(['presentation:element:graphicFrame'], {
 		),
 		testEvidence(
 			'src/__tests__/integration/graphic-frame-locks-roundtrip.test.ts',
-			['persists a lock added to a chart through the model'],
+			[
+				'persists a lock added to a chart through the model',
+				'moves, resizes, and renames a graphic frame through the model',
+			],
 			['edit'],
 		),
 	],

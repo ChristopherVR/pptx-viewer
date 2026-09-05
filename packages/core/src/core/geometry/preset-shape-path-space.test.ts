@@ -202,12 +202,17 @@ describe('sun', () => {
 		expect(subpaths(200, 100, 90000)[0].d).toBe(subpaths(200, 100, 46875)[0].d);
 	});
 
-	it('keeps the text rect on the disc', () => {
+	it("keeps the text rect inscribed in the disc, not the disc's full bounds", () => {
+		// COM-measured 2026-09-05 (200x100pt): l=64.65, t=32.32, r=135.27,
+		// b=67.68 - the disc's OWN 45deg-inscribed rectangle (same
+		// construction as `ellipse`'s text rect against its bounding
+		// ellipse), not the disc's full extent (l=50, t=25, r=150, b=75 -
+		// off by ~35% of the box, the previous, unverified value here).
 		const rect = evaluatePresetShape('sun', 200, 100)?.textRect;
-		expect(rect!.l).toBeCloseTo(50, 0);
-		expect(rect!.r).toBeCloseTo(150, 0);
-		expect(rect!.t).toBeCloseTo(25, 0);
-		expect(rect!.b).toBeCloseTo(75, 0);
+		expect(rect!.l).toBeCloseTo(64.65, 0);
+		expect(rect!.r).toBeCloseTo(135.27, 0);
+		expect(rect!.t).toBeCloseTo(32.32, 0);
+		expect(rect!.b).toBeCloseTo(67.68, 0);
 	});
 });
 

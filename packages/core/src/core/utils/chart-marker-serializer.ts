@@ -12,7 +12,7 @@
 
 import type { PptxChartMarker, XmlObject } from '../types';
 import type { ResolveChartColor } from './chart-color-choice';
-import { writeChartColorChoice } from './chart-color-choice';
+import { writeChartShapeProps } from './chart-shape-props-writer';
 
 type GetLocalName = (key: string) => string;
 
@@ -55,7 +55,13 @@ function insertOrdered(
 	}
 }
 
-/** Build the `c:spPr` (fill + line) for a marker from its modeled shape props. */
+/**
+ * Build the `c:spPr` (fill + line) for a marker from its modeled shape props.
+ * Delegates to the shared {@link writeChartShapeProps} writer so stroke width
+ * and dash style (not just fill/stroke colour) round-trip through an edit,
+ * matching what {@link import('./chart-series-detail-parser').parseShapeProps}
+ * already reads back out of an authored `c:marker/c:spPr`.
+ */
 function buildMarkerSpPr(
 	existing: XmlObject | undefined,
 	marker: PptxChartMarker,
@@ -66,23 +72,7 @@ function buildMarkerSpPr(
 	if (!props) {
 		return existing;
 	}
-	const spPr: XmlObject = existing ? { ...existing } : {};
-	if (props.fillColor) {
-		const fillKey = findKey(spPr, 'solidFill', getLocalName) ?? 'a:solidFill';
-		const noFillKey = findKey(spPr, 'noFill', getLocalName);
-		if (noFillKey) {
-			delete spPr[noFillKey];
-		}
-		writeChartColorChoice(spPr, fillKey, props.fillColor, resolveColor);
-	}
-	if (props.strokeColor) {
-		const lnKey = findKey(spPr, 'ln', getLocalName) ?? 'a:ln';
-		const ln: XmlObject = { ...((spPr[lnKey] as XmlObject | undefined) ?? {}) };
-		const lnFillKey = findKey(ln, 'solidFill', getLocalName) ?? 'a:solidFill';
-		writeChartColorChoice(ln, lnFillKey, props.strokeColor, resolveColor);
-		spPr[lnKey] = ln;
-	}
-	return spPr;
+	return writeChartShapeProps(existing, props, getLocalName, resolveColor);
 }
 
 /** Build a `c:marker` node in schema order, reusing unmodeled children when present. */

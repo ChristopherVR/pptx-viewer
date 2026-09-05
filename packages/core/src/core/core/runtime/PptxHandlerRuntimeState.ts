@@ -376,6 +376,14 @@ export class PptxHandlerRuntime {
 	 */
 	protected loadedViewProperties: PptxViewProperties | undefined;
 
+	/**
+	 * The `@def` GUID from `ppt/tableStyles.xml`'s `a:tblStyleLst`, set as a
+	 * side effect of `parseTableStyles()` (that method's own return stays
+	 * `ParsedTableStyleMap | undefined` for existing callers). Surfaced on
+	 * `PptxData.tableStylesDefaultId` by the load pipeline.
+	 */
+	protected loadedTableStylesDefaultId: string | undefined;
+
 	/** Map of comment author IDs to display names (from `ppt/commentAuthors.xml`). */
 	protected commentAuthorMap: Map<string, string> = new Map();
 

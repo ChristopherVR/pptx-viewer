@@ -108,6 +108,12 @@ function extractPhotoAlbum(presentationData: XmlObject | undefined): PptxPhotoAl
 		}
 	}
 
+	const isPhotoRaw = photoAlbum['@_isPhoto'];
+	if (isPhotoRaw !== undefined) {
+		result.isPhoto = String(isPhotoRaw) === '1' || String(isPhotoRaw) === 'true';
+		hasProps = true;
+	}
+
 	return hasProps ? result : {};
 }
 
@@ -313,6 +319,22 @@ describe('extractPhotoAlbum', () => {
 		};
 		const result = extractPhotoAlbum(data)!;
 		expect(result.layout).toBeUndefined();
+	});
+
+	it('should parse isPhoto flag', () => {
+		const data: XmlObject = {
+			'p:presentation': { 'p:photoAlbum': { '@_isPhoto': '1' } },
+		};
+		const result = extractPhotoAlbum(data)!;
+		expect(result.isPhoto).toBeTruthy();
+	});
+
+	it('should parse isPhoto as false for 0', () => {
+		const data: XmlObject = {
+			'p:presentation': { 'p:photoAlbum': { '@_isPhoto': '0' } },
+		};
+		const result = extractPhotoAlbum(data)!;
+		expect(result.isPhoto).toBeFalsy();
 	});
 });
 

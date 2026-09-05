@@ -1,5 +1,5 @@
 import { XmlObject, TextStyle } from '../../types';
-import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { serializeColorChoiceWithRef } from '../../utils/color-xml-preservation';
 import { createRunStyleGate } from './authored-run-style';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSlideUtils';
 import { buildTextRunEffectListXml } from './text-run-effect-xml-builder';
@@ -231,7 +231,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['a:noFill'] = {};
 		} else if (ownsFill && style.color) {
 			const resolvedOriginalColor = style.colorXml ? this.parseColor(style.colorXml) : undefined;
-			runProps['a:solidFill'] = serializeColorChoice(
+			runProps['a:solidFill'] = serializeColorChoiceWithRef(
+				style.colorRef,
 				style.colorXml,
 				resolvedOriginalColor,
 				style.color,
@@ -320,7 +321,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const resolvedHighlight = style.highlightColorXml
 				? this.parseColor(style.highlightColorXml)
 				: undefined;
-			runProps['a:highlight'] = serializeColorChoice(
+			runProps['a:highlight'] = serializeColorChoiceWithRef(
+				undefined,
 				style.highlightColorXml,
 				resolvedHighlight,
 				style.highlightColor,

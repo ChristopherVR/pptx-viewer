@@ -456,9 +456,34 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				this.context.inspectGraphicFrameCompatibility(type, slidePath, id);
 			}
 
+			// `p:nvGraphicFramePr/p:cNvPr`: the same non-visual-properties
+			// container a `p:sp` carries. Reading `@name`/`@id` here is what
+			// makes a table/chart/SmartArt/OLE/media rename or native-id lookup
+			// round-trip: the generic element writer (`applyNameToCnvPr`,
+			// `applyShapeIdToCnvPr`) already writes both back for every
+			// `p:nvGraphicFramePr`-shaped element, but nothing read them on
+			// parse, so a renamed frame reverted to its original name (and
+			// `element.shapeId` was always undefined) after a save/reload.
+			const cNvPr = (frame['p:nvGraphicFramePr'] as XmlObject | undefined)?.['p:cNvPr'] as
+				| XmlObject
+				| undefined;
+			const frameName = cNvPr?.['@_name'] !== undefined ? String(cNvPr['@_name']) : undefined;
+			const frameShapeId = cNvPr?.['@_id'] !== undefined ? String(cNvPr['@_id']) : undefined;
+			// `p:nvGraphicFramePr/p:cNvPr/@descr` / `@title`: the same alt-text
+			// attributes a picture's `p:cNvPr` carries (see
+			// `PptxHandlerRuntimePictureParsing.ts`'s `altTextRaw`), but nothing
+			// read them for a table/chart/SmartArt/OLE/media graphic frame, so
+			// accessibility text authored on those element types was silently
+			// dropped on load. Attached below only to the element types that
+			// declare the fields (table, chart, smartArt, ole, media).
+			const frameAltText = String(cNvPr?.['@_descr'] || '').trim() || undefined;
+			const frameTitle = String(cNvPr?.['@_title'] || '').trim() || undefined;
+
 			const baseElement = {
 				id,
 				type,
+				...(frameName !== undefined ? { name: frameName } : {}),
+				...(frameShapeId !== undefined ? { shapeId: frameShapeId } : {}),
 				x: Math.round(parseInt(String(offset['@_x'] || '0'), 10) / this.context.emuPerPx),
 				y: Math.round(parseInt(String(offset['@_y'] || '0'), 10) / this.context.emuPerPx),
 				width: Math.round(parseInt(String(extent['@_cx'] || '0'), 10) / this.context.emuPerPx),
@@ -509,6 +534,8 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 							}
 						: {}),
 					tableData,
+					...(frameAltText !== undefined ? { altText: frameAltText } : {}),
+					...(frameTitle !== undefined ? { title: frameTitle } : {}),
 					...(extensionXml.length > 0 ? { extensionXml } : {}),
 				} as TablePptxElement;
 			}
@@ -552,6 +579,8 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 					...baseElement,
 					...mediaInfo,
 					...p14Media,
+					...(frameAltText !== undefined ? { altText: frameAltText } : {}),
+					...(frameTitle !== undefined ? { title: frameTitle } : {}),
 					...(extensionXml.length > 0 ? { extensionXml } : {}),
 				} as MediaPptxElement;
 			}
@@ -636,9 +665,6 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				const targetExt = inferOleExtensionFromTarget(oleTarget);
 				const oleFileExtension = targetExt ?? detectedExt;
 
-				const cNvPr = (frame?.['p:nvGraphicFramePr'] as XmlObject | undefined)?.['p:cNvPr'] as
-					| XmlObject
-					| undefined;
 				const slideRelationships = slidePath ? this.context.slideRelsMap.get(slidePath) : undefined;
 				const { actionClick, actionHover } = this.context.parseElementActions(
 					cNvPr,
@@ -664,12 +690,20 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 					oleUpdateAutomatic,
 					actionClick,
 					actionHover,
+					...(frameAltText !== undefined ? { altText: frameAltText } : {}),
+					...(frameTitle !== undefined ? { title: frameTitle } : {}),
 					...(extensionXml.length > 0 ? { extensionXml } : {}),
 				} as OlePptxElement;
 			}
 
+			// Whatever remains here is 'chart' / 'smartArt' (their own typed data
+			// is enriched later by the caller from the related chart/diagram
+			// part) or 'unknown'; both ChartPptxElement and SmartArtPptxElement
+			// declare altText/title, so it's safe to attach unconditionally.
 			return {
 				...baseElement,
+				...(frameAltText !== undefined ? { altText: frameAltText } : {}),
+				...(frameTitle !== undefined ? { title: frameTitle } : {}),
 				...(extensionXml.length > 0 ? { extensionXml } : {}),
 			} as PptxElement;
 		} catch {

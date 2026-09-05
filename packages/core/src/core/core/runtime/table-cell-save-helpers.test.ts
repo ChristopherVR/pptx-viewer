@@ -206,6 +206,16 @@ describe('writeCellFill', () => {
 		expect(tcPr['a:pattFill']).toBeUndefined();
 	});
 
+	it('a backgroundColorRef wins over backgroundColor/backgroundColorXml', () => {
+		const tcPr: XmlObject = {};
+		writeCellFill(tcPr, {
+			backgroundColor: '#4472C4',
+			backgroundColorXml: { 'a:srgbClr': { '@_val': '4472C4' } },
+			backgroundColorRef: { scheme: 'accent1' },
+		});
+		expect(tcPr['a:solidFill']).toStrictEqual({ 'a:schemeClr': { '@_val': 'accent1' } });
+	});
+
 	// A previously image-filled cell (`a:blipFill`) edited to a different fill
 	// mode must not leave the stray `a:blipFill` behind: two mutually exclusive
 	// fill children (e.g. `a:blipFill` + the newly-written `a:solidFill`) in the

@@ -12,6 +12,7 @@ import type { PptxChartPivotSource } from './chart-pivot-source';
 import type { PptxChartPrintSettings } from './chart-print-settings';
 import type { PptxChartProtection } from './chart-protection';
 import type { PptxChartStyleDefinition } from './chart-style-definition';
+import type { PptxChartTitleRun } from './chart-title';
 import type { PptxChartUserShape } from './chart-user-shapes';
 import type { XmlObject } from './common';
 
@@ -126,6 +127,10 @@ export interface PptxChartTrendline {
 	displayRSq?: boolean;
 	displayEq?: boolean;
 	color?: string;
+	/** Trendline width in points (`c:trendline/c:spPr/a:ln/@w`, EMU / 12700). */
+	lineWidth?: number;
+	/** Trendline dash style (`c:trendline/c:spPr/a:ln/a:prstDash/@val`). */
+	lineDashStyle?: string;
 	label?: PptxChartTrendlineLabel | null;
 }
 
@@ -174,6 +179,10 @@ export interface PptxChartErrBars {
 	customMinus?: number[];
 	noEndCap?: boolean;
 	color?: string;
+	/** Error-bar line width in points (`c:errBars/c:spPr/a:ln/@w`, EMU / 12700). */
+	width?: number;
+	/** Error-bar line dash style (`c:errBars/c:spPr/a:ln/a:prstDash/@val`). */
+	dashStyle?: string;
 }
 
 /**
@@ -337,6 +346,12 @@ export interface PptxChartDataLabel {
 	 * `.../a:p/a:pPr/a:defRPr` default-run-property style.
 	 */
 	txPr?: PptxChartLegendTextStyle;
+	/**
+	 * This label's own shape formatting (`c:dLbl/c:spPr`): fill/line colour,
+	 * width, and dash style for the label's callout box, taking precedence
+	 * over any chart/series-level default when set.
+	 */
+	spPr?: PptxChartShapeProps;
 }
 
 /** Axis number format. */
@@ -942,6 +957,16 @@ export interface PptxChartDateCategories {
  */
 export interface PptxChartData {
 	title?: string;
+	/**
+	 * Rich-text runs of the title, parsed from `c:title/c:tx/c:rich` (issue:
+	 * chart title rich text). Lossless multi-run alternative to the flat
+	 * {@link title}: when present, the writer serialises every run's own
+	 * bold/italic/size/color; when absent, save falls back to the flat
+	 * `title` path as before. Only populated for a classic (`c:`) chart's
+	 * rich (typed) title, not a ChartEx (`cx:`) title or one authored as a
+	 * linked-cell reference.
+	 */
+	titleRuns?: PptxChartTitleRun[];
 	chartType: PptxChartType;
 	categories: string[];
 	/**
@@ -1033,8 +1058,10 @@ export interface PptxChartData {
 	chartRelationshipId?: string;
 	/** `null` explicitly removes an existing ChartML data table. */
 	dataTable?: PptxChartDataTable | null;
-	dropLines?: PptxChartLineStyle;
-	hiLowLines?: PptxChartLineStyle;
+	/** `null` explicitly removes an existing `c:dropLines` element. */
+	dropLines?: PptxChartLineStyle | null;
+	/** `null` explicitly removes an existing `c:hiLowLines` element. */
+	hiLowLines?: PptxChartLineStyle | null;
 	/** `null` explicitly removes an existing up/down-bars container. */
 	upDownBars?: PptxChartUpDownBars | null;
 	axes?: PptxChartAxisFormatting[];
@@ -1160,10 +1187,13 @@ export interface PptxChartData {
 
 	/**
 	 * Color-map override (`c:clrMapOvr`) carrying 12 attributes that
-	 * remap theme colour roles for this chart only. Preserved as a flat
-	 * `attribute → value` map for round-trip fidelity.
+	 * remap theme colour roles for this chart only. Modeled as a flat
+	 * `attribute -> value` map (e.g. `{ bg1: 'lt1', accent1: 'accent2' }`)
+	 * so unknown/future attributes round-trip without code changes.
+	 * `null` explicitly removes an existing `c:clrMapOvr`; an empty object
+	 * is treated the same as `null` on save.
 	 */
-	clrMapOvr?: Record<string, string>;
+	clrMapOvr?: Record<string, string> | null;
 
 	/**
 	 * Whether the chart's own cached numeric values use the 1904 date epoch

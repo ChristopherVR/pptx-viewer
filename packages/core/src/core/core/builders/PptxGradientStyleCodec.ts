@@ -1,3 +1,4 @@
+import { themeColorRefFromColorChoice, themeColorRefToXml } from '../../color/theme-color-ref';
 import type { ShapeStyle, XmlObject } from '../../types';
 import { ooxmlGradientAngleToCssDegrees } from '../../utils/gradient-angle';
 import { drawingChild, drawingChildren, mergeDrawingFillXml } from './drawing-fill-xml';
@@ -122,12 +123,17 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 
 			// Preserve original color XML for round-trip (scheme colors + transforms)
 			const originalColorXml = this.extractColorSubNode(stop);
+			// `stop` (the `a:gs` node) carries its colour choice as a direct
+			// child, the same shape `themeColorRefFromColorChoice` expects from
+			// an `a:solidFill` wrapper, so it can be passed straight through.
+			const colorRef = themeColorRefFromColorChoice(stop);
 
 			stops.push({
 				color,
 				position,
 				opacity,
 				...(originalColorXml ? { originalColorXml } : {}),
+				...(colorRef ? { colorRef } : {}),
 			});
 		});
 		return stops;
@@ -335,6 +341,18 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 				const positionRaw =
 					typeof stop.position === 'number' && Number.isFinite(stop.position) ? stop.position : 0;
 				const position = Math.round(this.context.clampUnitInterval(positionRaw / 100) * 100000);
+
+				// A typed theme ref wins over everything else: it keeps this stop
+				// following the theme palette after a later theme change, which a
+				// re-emitted `a:srgbClr` (or even a preserved `a:schemeClr` that
+				// happens to still resolve to the same hex) cannot express.
+				if (stop.colorRef) {
+					const refStopXml: XmlObject = {
+						'@_pos': String(position),
+						'a:schemeClr': themeColorRefToXml(stop.colorRef),
+					};
+					return refStopXml;
+				}
 
 				// Prefer original color XML to preserve scheme colors and transforms
 				if (

@@ -66,6 +66,38 @@ describe('parseActiveXControlsFromSlide', () => {
 		});
 	});
 
+	it('parses showAsIcon/imgW/imgH from a p:control', () => {
+		const controls = parseActiveXControlsFromSlide(
+			slideWithControls({
+				'p:control': {
+					'@_r:id': 'rId5',
+					'@_name': 'IconControl',
+					'@_showAsIcon': '1',
+					'@_imgW': '914400',
+					'@_imgH': '457200',
+				},
+			}),
+		);
+		expect(controls).toHaveLength(1);
+		expect(controls[0]).toMatchObject({
+			relId: 'rId5',
+			showAsIcon: true,
+			imgWidthEmu: 914400,
+			imgHeightEmu: 457200,
+		});
+	});
+
+	it('leaves showAsIcon/imgW/imgH undefined when absent', () => {
+		const controls = parseActiveXControlsFromSlide(
+			slideWithControls({
+				'p:control': { '@_r:id': 'rId5' },
+			}),
+		);
+		expect(controls[0].showAsIcon).toBeUndefined();
+		expect(controls[0].imgWidthEmu).toBeUndefined();
+		expect(controls[0].imgHeightEmu).toBeUndefined();
+	});
+
 	it('dedupes a control present in both choice and fallback, keeping the preview', () => {
 		const controls = parseActiveXControlsFromSlide(
 			slideWithControls({

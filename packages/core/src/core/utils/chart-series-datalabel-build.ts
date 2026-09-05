@@ -9,7 +9,10 @@
  */
 
 import type { PptxChartDataLabel, XmlObject } from '../types';
+import type { ResolveChartColor } from './chart-color-choice';
+import { buildDefRPrTextProperties } from './chart-def-rpr-style';
 import { applyChartManualLayout } from './chart-layout';
+import { writeChartShapeProps } from './chart-shape-props-writer';
 
 /** Resolve a possibly-prefixed XML key to its local name. */
 export type GetLocalName = (key: string) => string;
@@ -73,6 +76,7 @@ export function buildDLbl(
 	existing: XmlObject | undefined,
 	label: PptxChartDataLabel,
 	getLocalName: GetLocalName,
+	resolveColor?: ResolveChartColor,
 ): XmlObject {
 	if (!Number.isInteger(label.idx) || label.idx < 0 || label.idx > 0xffffffff) {
 		throw new RangeError('data label idx must be an unsigned 32-bit integer');
@@ -109,7 +113,9 @@ export function buildDLbl(
 		label.separator !== undefined ||
 		label.showLeaderLines !== undefined ||
 		label.numberFormat !== undefined ||
-		label.layout !== undefined;
+		label.layout !== undefined ||
+		label.txPr !== undefined ||
+		label.spPr !== undefined;
 	if (label.deleted === true || (!hasContent && label.deleted === undefined)) {
 		node['c:delete'] = { '@_val': '1' };
 		return mergeOrdered(existing, node, replaced, getLocalName);
@@ -153,6 +159,12 @@ export function buildDLbl(
 			if (local === 'numFmt' && label.numberFormat !== undefined) {
 				continue;
 			}
+			if (local === 'spPr' && label.spPr !== undefined) {
+				continue;
+			}
+			if (local === 'txPr' && label.txPr !== undefined) {
+				continue;
+			}
 			const k = findKey(existing, local, getLocalName);
 			if (k) {
 				node[k] = existing[k];
@@ -162,6 +174,32 @@ export function buildDLbl(
 	if (label.numberFormat !== undefined) {
 		replaced.add('numFmt');
 		node['c:numFmt'] = { '@_formatCode': label.numberFormat, '@_sourceLinked': '0' };
+	}
+	if (label.spPr !== undefined) {
+		replaced.add('spPr');
+		const existingSpPr = existing
+			? (existing[findKey(existing, 'spPr', getLocalName) ?? ''] as XmlObject | undefined)
+			: undefined;
+		node['c:spPr'] = writeChartShapeProps(existingSpPr, label.spPr, getLocalName, resolveColor);
+	}
+	if (label.txPr !== undefined) {
+		replaced.add('txPr');
+		const existingTxPr = existing
+			? (existing[findKey(existing, 'txPr', getLocalName) ?? ''] as XmlObject | undefined)
+			: undefined;
+		const paragraph = existingTxPr
+			? (existingTxPr[findKey(existingTxPr, 'p', getLocalName) ?? ''] as XmlObject | undefined)
+			: undefined;
+		const pPr = paragraph
+			? (paragraph[findKey(paragraph, 'pPr', getLocalName) ?? ''] as XmlObject | undefined)
+			: undefined;
+		const authoredDefRPr = pPr
+			? (pPr[findKey(pPr, 'defRPr', getLocalName) ?? ''] as XmlObject | undefined)
+			: undefined;
+		const txPr = buildDefRPrTextProperties(label.txPr, authoredDefRPr, resolveColor);
+		if (txPr) {
+			node['c:txPr'] = txPr;
+		}
 	}
 
 	if (label.position !== undefined) {

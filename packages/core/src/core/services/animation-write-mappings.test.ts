@@ -165,6 +165,19 @@ describe('pRESET_TO_OOXML', () => {
 			expect(PRESET_TO_OOXML['sinkDown'].presetClass).toBe('exit');
 			expect(PRESET_TO_OOXML['sinkDown'].presetId).toBe(37);
 		});
+
+		it('should map "peekOutDown" to exit, presetId 12, defaultSubtype 4 (Peek Out, verified via COM)', () => {
+			expect(PRESET_TO_OOXML['peekOutDown']).toStrictEqual({
+				presetClass: 'exit',
+				presetId: 12,
+				defaultSubtype: 4,
+			});
+		});
+
+		it('does not collide with the pre-existing (different-id) "peekOut" entry', () => {
+			expect(PRESET_TO_OOXML['peekOut'].presetId).toBe(16);
+			expect(PRESET_TO_OOXML['peekOutDown'].presetId).toBe(12);
+		});
 	});
 
 	// ---- Emphasis effects ----
@@ -276,13 +289,21 @@ describe('pRESET_TO_OOXML', () => {
 			expect(Object.keys(PRESET_TO_OOXML).length).toBeGreaterThanOrEqual(37 * 4);
 		});
 
-		it('should cover the full PowerPoint preset library (>=60 per class)', () => {
+		it('should cover the full PowerPoint preset library (>=60 entr/exit, >=30 emph)', () => {
 			const entr = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'entr');
 			const exit = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'exit');
 			const emph = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'emph');
 			expect(entr.length).toBeGreaterThanOrEqual(60);
 			expect(exit.length).toBeGreaterThanOrEqual(60);
-			expect(emph.length).toBeGreaterThanOrEqual(60);
+			// The emphasis threshold was previously >=60, based on ids 1-64 filled
+			// by sequentially GUESSING a name per id with zero verification (see
+			// the header comment on `PRESET_TO_OOXML`'s "Emphasis effects"
+			// section). A COM + UI-Automation ground-truth pass (this fix) proved
+			// the real PowerPoint emphasis catalogue tops out at id 41 (33
+			// distinct real ids, several with more than one alias, e.g. `pulse`/
+			// `flashBulb`/`bounce` all at emph.26): >=30 reflects that verified
+			// reality instead of re-asserting a fabricated count.
+			expect(emph.length).toBeGreaterThanOrEqual(30);
 		});
 	});
 });
@@ -353,6 +374,11 @@ describe('oOXML_TO_PRESET reverse lookups', () => {
 
 	it('oOXML_TO_PRESET_EXIT maps id 1 back to "disappear"', () => {
 		expect(OOXML_TO_PRESET_EXIT[1]).toBe('disappear');
+	});
+
+	it('oOXML_TO_PRESET_EXIT maps id 12 back to "peekOutDown" (Peek Out, verified via COM)', () => {
+		expect(OOXML_TO_PRESET_EXIT[12]).toBe('peekOutDown');
+		expect(ooxmlToPresetName({ presetClass: 'exit', presetId: 12 })).toBe('peekOutDown');
 	});
 
 	it('oOXML_TO_PRESET_EMPH disambiguates aliased ids to canonical names', () => {

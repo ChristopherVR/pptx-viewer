@@ -48,6 +48,7 @@ import {
 	extractAfterEffect,
 	parseTimingPercentFraction,
 } from './native-animation-helpers';
+import { extractSetAnimations } from './native-animation-set-components';
 import { resolveSlideTimingNode } from './slide-transition-envelope';
 
 /**
@@ -340,6 +341,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const keyframes = extractChildKeyframes(childTnList);
 				const keyframeAttrName = extractChildKeyframeAttrName(childTnList);
 				const attributeAnimations = extractAttributeAnimations(childTnList);
+				const setAnimations = extractSetAnimations(childTnList);
 				// Round-trip surface for cTn attrs that don't have a typed home.
 				const roundTripAttrs = captureRoundTripCTnAttrs(cTn);
 				const afterEffectFlag = extractAfterEffect(cTn);
@@ -392,6 +394,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					keyframes: keyframes ?? undefined,
 					attrName: keyframeAttrName,
 					attributeAnimations,
+					setAnimations,
 					repeatCount: repeatInfo.repeatCount,
 					autoReverse: repeatInfo.autoReverse ?? childAutoReverseTiming?.autoReverse,
 					soundRId: soundInfo.soundRId,

@@ -38,7 +38,7 @@ assign(['presentation:element:graphicEl'], {
 	preserve: 'unassessed',
 	edit: 'native',
 	serialize: 'native',
-	note: "p:tgtEl/p:graphicEl (targeting a chart series or diagram category from an animation) now round-trips through the typed animation target (issue P2-G2). Since wave 2 (W2-B), render-side resolution of the reveal against the target's authored series/category index is native for CHARTS: packages/shared's chart-reveal-descriptor.ts derives the reveal directly from which authored graphicEl-carrying steps have fired, in whatever order PowerPoint's own 'Reverse Order' authored them, and chart-build.ts's resolveRevealedChartData consumes it in place of the old click-count proxy whenever every fired step for a chart carries index data (falling back to the progress-based reveal for a mixed or un-indexed deck). The diagram (p:bldDgm) counterpart of this same per-index reveal is still absent. Render has no tracked facet in this manifest either way; see limitations.",
+	note: "p:tgtEl/p:graphicEl (targeting a chart series or diagram category from an animation) now round-trips through the typed animation target (issue P2-G2). Since wave 2 (W2-B), render-side resolution of the reveal against the target's authored series/category index is native for CHARTS: packages/shared's chart-reveal-descriptor.ts derives the reveal directly from which authored graphicEl-carrying steps have fired, in whatever order PowerPoint's own 'Reverse Order' authored them, and chart-build.ts's resolveRevealedChartData consumes it in place of the old click-count proxy whenever every fired step for a chart carries index data (falling back to the progress-based reveal for a mixed or un-indexed deck). The diagram (p:bldDgm) counterpart of this same per-index reveal is now also native: packages/shared's diagram-reveal-descriptor.ts (resolveDiagramRevealDescriptor, collectDiagramBuildInfo) plus diagram-drawing-shape-reveal.ts derive the SmartArt build reveal from p:bldDgm/p:bldSub/a:bldDgm and each shape's p:graphicEl/a:dgm/@id + @bldStep, wired into all five bindings and covered by e2e/smartart-build-reveal.spec.ts. Render has no tracked facet in this manifest either way; see limitations.",
 	evidence: [
 		testEvidence(
 			'src/core/services/animation-target-build-helpers.test.ts',
@@ -114,15 +114,15 @@ assign(['presentation:attribute:calcmode'], {
 });
 
 assign(['presentation:attribute:evt', 'presentation:simpleType:ST_TLTriggerEvent'], {
-	parse: 'partial',
+	parse: 'native',
 	preserve: 'unassessed',
 	edit: 'unassessed',
 	serialize: 'unassessed',
-	note: 'p:cond/@evt (the trigger-condition event domain) recognises onClick/onNext/onPrev/begin/end and, since issue P2-G6, onDblClick as well. Graded partial: not every ST_TLTriggerEvent value PowerPoint can author (e.g. onMouseOver/onMouseOut from the "Timing" advanced triggers) is recognised.',
+	note: 'p:cond/@evt (the trigger-condition event domain) recognises all 11 ST_TLTriggerEvent values PowerPoint can author: onBegin/onEnd/begin/end, onClick/onDblClick, onMouseOver/onMouseOut, onNext/onPrev, and onStopAudio (VALID_CONDITION_EVENTS in native-animation-helpers.ts). W3 confirmed this is already fully native; the previous "partial, onMouseOver/onMouseOut missing" note was stale.',
 	evidence: [
 		testEvidence(
 			'src/core/services/animation-condition-parsing.test.ts',
-			['parses onDblClick event'],
+			['parses onMouseOver event', 'parses onMouseOut event', 'parses onDblClick event'],
 			['parse'],
 		),
 	],

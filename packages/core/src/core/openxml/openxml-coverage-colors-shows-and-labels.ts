@@ -26,11 +26,11 @@ assign(['drawing:complexType:CT_SRgbColor', 'drawing:element:srgbClr'], {
 });
 
 assign(['drawing:complexType:CT_SchemeColor', 'drawing:element:schemeClr'], {
-	parse: 'partial',
-	preserve: 'passthrough',
-	edit: 'partial',
-	serialize: 'partial',
-	note: 'Theme resolution and transforms are supported; edits serialize as canonical sRGB.',
+	parse: 'native',
+	preserve: 'native',
+	edit: 'native',
+	serialize: 'native',
+	note: "Theme resolution and transforms are supported. Since wave 3 (W3-G1), a typed PptxThemeColorRef (color/theme-color-ref.ts) makes editing through a *ColorRef field (ShapeStyle.fillColorRef/strokeColorRef, a gradient stop's colorRef, a text run's colorRef, a bullet's colorRef, table cell refs) 'ref wins' on save: it writes back as a real <a:schemeClr val><a:tint/a:shade/a:lumMod/a:lumOff/a:alpha> chain (schema-ordered) instead of collapsing to canonical sRGB, and a ref re-resolves to the new theme's hex when the deck's theme is switched. The OLD behaviour this superseded (an edit through the plain hex colour field, not a *ColorRef, still drops the scheme reference and emits srgb) remains for that separate, still-supported plain-hex edit path; accepted by the SDK and MCP update_element_style/update_element.",
 	evidence: [
 		testEvidence('src/core/color/color-parser-spec.test.ts', [
 			'applies transforms on scheme color',
@@ -38,6 +38,15 @@ assign(['drawing:complexType:CT_SchemeColor', 'drawing:element:schemeClr'], {
 		testEvidence('src/core/utils/color-xml-preservation.test.ts', [
 			'round-trips: parse a:schemeClr → save → re-parse yields same XML',
 		]),
+		testEvidence(
+			'src/__tests__/integration/theme-color-ref-roundtrip.test.ts',
+			[
+				'saves shape fill/stroke refs as a:schemeClr and re-parses the same ref',
+				'saves a text run colorRef and a bullet colorRef as a:schemeClr',
+				're-resolves a fillColorRef to the new theme hex on a theme switch',
+			],
+			['parse', 'preserve', 'edit', 'serialize'],
+		),
 	],
 });
 
@@ -110,7 +119,7 @@ assign(
 		preserve: 'native',
 		edit: 'partial',
 		serialize: 'partial',
-		note: "Common data-label options are typed; the label's own rich-text body (c:tx/c:rich), layout, and shape properties are preserved. Since wave 2 (W2-C/W2-C2, issue C2-G1's data-label half), c:dLbls/c:txPr (group-level) and c:dLbl/c:txPr (per-point) DEFAULT run font is also typed, not just preserved: font family/size/bold/colour parse into options.txPr, with a theme-font placeholder (+mn-lt/+mj-lt) resolved through resolveTypeface the same way axis/title/legend text already is; a chart with no colorParser passed still round-trips byte-identical (txPr stays undefined rather than partially populated).",
+		note: "Common data-label options are typed; the label's own custom text override (c:tx/c:rich) is a flat string, so its own multi-run rich formatting is not independently modeled. Since wave 2 (W2-C/W2-C2, issue C2-G1's data-label half), c:dLbls/c:txPr (group-level) and c:dLbl/c:txPr (per-point) DEFAULT run font is also typed, not just preserved: font family/size/bold/colour parse into options.txPr, with a theme-font placeholder (+mn-lt/+mj-lt) resolved through resolveTypeface the same way axis/title/legend text already is; a chart with no colorParser passed still round-trips byte-identical (txPr stays undefined rather than partially populated). Since wave 3 (W3-D1), the per-point c:dLbl/c:spPr is also newly typed and written (previously preserved-only, chart-series-datalabel-build.ts buildDLbl), c:dLbl/c:txPr is now genuinely serialised back (not just parsed), and the hasContent gate that decides whether an empty-looking label override becomes a c:delete now also checks label.spPr/label.txPr, so setting only fill/stroke or font on a label no longer collapses it to a delete override.",
 		evidence: [
 			testEvidence(
 				'src/core/utils/chart-data-label-parser.test.ts',
@@ -127,6 +136,13 @@ assign(
 				'src/core/utils/chart-data-labels-serializer.test.ts',
 				['preserves dLbl overrides, unknown children, leader lines, and extLst'],
 				['preserve', 'edit', 'serialize'],
+			),
+			testEvidence(
+				'src/core/core/runtime/PptxHandlerRuntimeChartFormattingEdit.test.ts',
+				[
+					'round-trips dPt/marker spPr, trendline/errBars width+dash, dLbl spPr+txPr, dropLines/hiLowLines',
+				],
+				['parse', 'edit', 'serialize'],
 			),
 		],
 	},

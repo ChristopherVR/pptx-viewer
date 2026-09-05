@@ -19,6 +19,7 @@
 // Shape styling (fill, stroke, effects, connectors)
 // ==========================================================================
 
+import type { PptxThemeColorRef } from './color-ref';
 import type {
 	ConnectorArrowType,
 	ConnectorConnectionPoint,
@@ -83,6 +84,15 @@ export interface ShapeStyle {
 	 * back to canonical `<a:srgbClr>`.
 	 */
 	fillColorXml?: XmlObject;
+	/**
+	 * Typed theme colour reference for the fill, set when {@link fillColorXml}
+	 * is a plain `a:schemeClr` (see `themeColorRefFromColorChoice`). When
+	 * present it WINS on save: the writer emits `<a:schemeClr>` from this ref
+	 * instead of the resolved {@link fillColor}, so the fill keeps following
+	 * the theme palette after a later theme change. `undefined` means the fill
+	 * is a plain hex (or a colour kind a ref cannot express).
+	 */
+	fillColorRef?: PptxThemeColorRef;
 	fillGradient?: string;
 	/** Original `gradFill` XML retained for unknown-child and extension round-tripping. */
 	fillGradientXml?: XmlObject;
@@ -117,6 +127,12 @@ export interface ShapeStyle {
 		opacity?: number;
 		/** Raw XML colour node preserved for round-trip (e.g. a:schemeClr with transforms). */
 		originalColorXml?: XmlObject;
+		/**
+		 * Typed theme colour reference for this stop, set when
+		 * {@link originalColorXml} is a plain `a:schemeClr`. Wins on save, same
+		 * as {@link ShapeStyle.fillColorRef}.
+		 */
+		colorRef?: PptxThemeColorRef;
 	}>;
 	fillGradientAngle?: number;
 	fillGradientType?: 'linear' | 'radial';
@@ -150,6 +166,12 @@ export interface ShapeStyle {
 	 * round-trip serialisation. See {@link fillColorXml} for the rationale.
 	 */
 	strokeColorXml?: XmlObject;
+	/**
+	 * Typed theme colour reference for the outline, mirroring
+	 * {@link fillColorRef}: set when {@link strokeColorXml} is a plain
+	 * `a:schemeClr`, and wins on save.
+	 */
+	strokeColorRef?: PptxThemeColorRef;
 	/**
 	 * Kind of fill painted on the outline (`a:ln` child). Distinguishes a solid
 	 * outline from a gradient/pattern/none outline so save can emit the correct

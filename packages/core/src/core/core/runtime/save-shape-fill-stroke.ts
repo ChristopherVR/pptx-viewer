@@ -1,5 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
-import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { serializeColorChoiceWithRef } from '../../utils/color-xml-preservation';
 import { applyDrawingLineDash } from '../../utils/drawing-line-dash';
 import { mergeDrawingFillXml } from '../builders/drawing-fill-xml';
 import type { ShapeStyleGate } from './authored-shape-style';
@@ -174,7 +174,8 @@ export function writeShapeFill(
 		setFillChoice(
 			spPr,
 			'a:solidFill',
-			serializeColorChoice(
+			serializeColorChoiceWithRef(
+				shapeStyle.fillColorRef,
 				shapeStyle.fillColorXml,
 				resolvedOriginal,
 				fillColor,

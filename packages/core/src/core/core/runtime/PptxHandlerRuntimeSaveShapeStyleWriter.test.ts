@@ -381,3 +381,54 @@ describe('applyFillAndStroke - line join, cap, compound, alignment', () => {
 		expect(ln['a:effectLst']).toBe(lineEffect);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Theme colour refs win over a preserved/canonical colour choice on save
+// ---------------------------------------------------------------------------
+describe('applyFillAndStroke - fillColorRef / strokeColorRef win on save', () => {
+	it('emits a:schemeClr from fillColorRef even when fillColorXml is a plain srgbClr', () => {
+		const spPr: XmlObject = {};
+		apply(spPr, {
+			fillMode: 'solid',
+			fillColor: '#4472C4',
+			fillColorXml: { 'a:srgbClr': { '@_val': '4472C4' } },
+			fillColorRef: { scheme: 'accent1', lumMod: 0.6, lumOff: 0.4 },
+		});
+		expect(spPr['a:solidFill']).toStrictEqual({
+			'a:schemeClr': {
+				'@_val': 'accent1',
+				'a:lumMod': { '@_val': '60000' },
+				'a:lumOff': { '@_val': '40000' },
+			},
+		});
+	});
+
+	it('falls back to the existing hex/XML path when no fillColorRef is set', () => {
+		const spPr: XmlObject = {};
+		apply(spPr, { fillMode: 'solid', fillColor: '#FF0000' });
+		expect(spPr['a:solidFill']).toStrictEqual({ 'a:srgbClr': { '@_val': 'FF0000' } });
+	});
+
+	it('emits a:schemeClr from strokeColorRef for the outline', () => {
+		const spPr: XmlObject = {};
+		apply(spPr, {
+			strokeColor: '#ED7D31',
+			strokeColorRef: { scheme: 'accent2' },
+		});
+		const ln = spPr['a:ln'] as XmlObject;
+		expect(ln['a:solidFill']).toStrictEqual({ 'a:schemeClr': { '@_val': 'accent2' } });
+	});
+
+	it('folds fillOpacity into the ref alpha when the ref has no alpha of its own', () => {
+		const spPr: XmlObject = {};
+		apply(spPr, {
+			fillMode: 'solid',
+			fillColor: '#4472C4',
+			fillColorRef: { scheme: 'accent1' },
+			fillOpacity: 0.5,
+		});
+		expect(spPr['a:solidFill']).toStrictEqual({
+			'a:schemeClr': { '@_val': 'accent1', 'a:alpha': { '@_val': '50000' } },
+		});
+	});
+});

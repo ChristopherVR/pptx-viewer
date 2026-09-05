@@ -1,5 +1,5 @@
 import type { PptxTableCellStyle, XmlObject } from '../../types';
-import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { serializeColorChoiceWithRef } from '../../utils/color-xml-preservation';
 
 /**
  * Optional callback to resolve a preserved colour-choice XML node back to a
@@ -111,7 +111,8 @@ export function writeCellFill(
 			style.backgroundColorXml && resolveColorXml
 				? resolveColorXml(style.backgroundColorXml)
 				: undefined;
-		tcPr['a:solidFill'] = serializeColorChoice(
+		tcPr['a:solidFill'] = serializeColorChoiceWithRef(
+			style.backgroundColorRef,
 			style.backgroundColorXml,
 			resolvedOriginal,
 			style.backgroundColor,

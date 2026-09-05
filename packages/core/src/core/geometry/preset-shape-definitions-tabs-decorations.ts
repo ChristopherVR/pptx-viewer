@@ -20,9 +20,12 @@
  *  • `plus`         – plus sign (cross). `adj1` is the stroke thickness as a
  *    fraction of `ss` / 2 (default 25000).
  *  • `gear6`        – six-toothed gear; `adj1` is the tooth depth as a
- *    fraction of `ss / 2` (default 15000).
+ *    fraction of `ss / 2` (default 15000), `adj2` is a second guide (default
+ *    3526, COM-verified: `Shape.Adjustments.Count` is 2, not 1) not yet
+ *    wired into the rendered path - see the doc comment on `buildGearN`.
  *  • `gear9`        – nine-toothed gear; same adjust semantics as `gear6`
- *    (default 10000 — teeth are smaller because there are more of them).
+ *    (`adj1` default 10000; teeth are smaller because there are more of
+ *    them; `adj2` default 1763).
  *  • `funnel`       – V-shape narrowing downward; no `avLst`.
  *  • `mathFunction` – math function notation glyph. The ECMA reference does
  *    not enumerate this preset; we emit a stylised cursive-`f` silhouette as
@@ -333,15 +336,31 @@ const plus: PresetShapeGeometryDefinition = {
 
 /**
  * Build an N-toothed gear definition. Outer tooth tips lie on the bounding
- * ellipse `(wd2, hd2)`; inner valleys lie on `((1 - adj/50000) * wd2, …)`
- * giving a tooth depth proportional to `adj` (1/100000 of `ss / 2`).
+ * ellipse `(wd2, hd2)`; inner valleys lie on `((1 - adj1/50000) * wd2, …)`
+ * giving a tooth depth proportional to `adj1` (1/100000 of `ss / 2`).
+ *
+ * COM-verified 2026-09-05 (`Shape.Adjustments.Count` reads 2, not 1, for
+ * both `gear6` and `gear9`): real PowerPoint names the tooth-depth guide
+ * `adj1` (this repo's previous single `adj` - same meaning, same default,
+ * renamed to match) and defines a SECOND guide, `adj2` (default `3526` for
+ * `gear6`, `1763` for `gear9` - a small `ss`-relative fraction, almost
+ * certainly the tooth-corner fillet radius PowerPoint's own gear clip art
+ * visibly has). `adj2` is validated/round-tripped correctly (via the shared
+ * `avLst` table `preset-adjustment-validation.ts` reads) but is NOT YET
+ * wired into the path below, which still renders sharp (unfilleted) tooth
+ * corners - see the module doc for the open follow-up.
  *
  * The trig table is precomputed so the gdLst stores numeric literals (avoids
  * the evaluator's lack of fractional-angle constants for non-cardinal
  * orientations). Each tooth contributes 4 vertices: outer-leading,
  * outer-trailing, valley-leading, valley-trailing.
  */
-function buildGearN(n: number, defaultAdj: number): PresetShapeGeometryDefinition {
+function buildGearN(
+	n: number,
+	defaultAdj1: number,
+	defaultAdj2: number,
+	maxAdj2: number,
+): PresetShapeGeometryDefinition {
 	// 4N vertices around the gear: each tooth = [out-start, out-end, valley-end].
 	// For simplicity we model the tooth as a trapezoid whose top sits on the
 	// outer ellipse at angles ±halfTooth, and whose feet touch the inner
@@ -367,7 +386,10 @@ function buildGearN(n: number, defaultAdj: number): PresetShapeGeometryDefinitio
 		});
 	}
 	const gdLst: ReturnType<typeof gd>[] = [
-		gd('a', `pin 0 adj 50000`),
+		// The 20000 pin ceiling is COM-verified (transcribed from the spec-exact
+		// `adj1`/`adj2` connection-sites gdLst for this preset, which shares the
+		// same `avLst`): real PowerPoint caps tooth depth at 20000, not 50000.
+		gd('a', `pin 0 adj1 20000`),
 		gd('iwd2', '*/ wd2 a 50000'),
 		gd('ihd2', '*/ hd2 a 50000'),
 		// Inner radii: outer minus tooth depth.
@@ -375,6 +397,12 @@ function buildGearN(n: number, defaultAdj: number): PresetShapeGeometryDefinitio
 		gd('ohd2', 'val hd2'),
 		gd('inwd2', '+- wd2 0 iwd2'),
 		gd('inhd2', '+- hd2 0 ihd2'),
+		// adj2 (fillet radius) is validated and round-tripped but not yet
+		// consumed by the path below; kept as a named guide, pinned to the
+		// spec-exact per-shape ceiling, so a value authored by another tool
+		// survives evaluation without being an "undefined guide resolves to 0"
+		// trap.
+		gd('a2', `pin 0 adj2 ${maxAdj2}`),
 	];
 	const commands: PresetShapeGeometryDefinition['pathLst'][number]['commands'] = [];
 	// Walk the vertices: every 4 vertices form one tooth (top-left, top-right,
@@ -400,15 +428,15 @@ function buildGearN(n: number, defaultAdj: number): PresetShapeGeometryDefinitio
 	commands.push({ kind: 'close' });
 	return {
 		name: `gear${n}`,
-		avLst: { adj: defaultAdj },
+		avLst: { adj1: defaultAdj1, adj2: defaultAdj2 },
 		gdLst,
 		rect: FULL_RECT,
 		pathLst: [{ commands }],
 	};
 }
 
-const gear6 = buildGearN(6, 15000);
-const gear9 = buildGearN(9, 10000);
+const gear6 = buildGearN(6, 15000, 3526, 5358);
+const gear9 = buildGearN(9, 10000, 1763, 2679);
 
 // ---------------------------------------------------------------------------
 // Funnel + math function + non-isosceles trapezoid

@@ -516,6 +516,9 @@ describe('pptxTableDataParser - a:tblPr own fill/effectLst (issue G6)', () => {
 		const result = parser.parseTableData(graphicData);
 
 		expect(result!.tableEffects).toBeTruthy();
+		expect(result!.tableEffects).toStrictEqual([
+			{ kind: 'outerShdw', xml: { '@_blurRad': '40000' } },
+		]);
 	});
 
 	it('leaves tableFill/tableEffects undefined when a:tblPr has neither', () => {

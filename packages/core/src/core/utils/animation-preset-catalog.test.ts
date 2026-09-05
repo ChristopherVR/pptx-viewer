@@ -26,8 +26,17 @@ describe('animation preset catalog', () => {
 		expect(EXIT_PRESETS.every((p) => p.category === 'exit')).toBeTruthy();
 	});
 
-	it('has at least 60 emphasis presets', () => {
-		expect(EMPHASIS_PRESETS.length).toBeGreaterThanOrEqual(60);
+	it('has at least 30 emphasis presets', () => {
+		// Previously asserted >=60, based on ids 1-64 filled by sequentially
+		// GUESSING a label per id with zero verification (Spin Slow/Fast,
+		// Wobble, Jiggle, Heartbeat, Rainbow, Bob, etc. were never real
+		// PowerPoint emphasis effects). A COM + UI-Automation ground-truth pass
+		// enumerated the ENTIRE "Add Emphasis Effect" dialog (all 26 items
+		// across its Basic/3D/Subtle/Moderate/Exciting groups) and found the
+		// real catalogue tops out at id 41 (33 distinct ids); >=30 reflects
+		// that verified reality. See `animation-emphasis-ground-truth.ts` in
+		// `pptx-viewer-shared` for the raw evidence.
+		expect(EMPHASIS_PRESETS.length).toBeGreaterThanOrEqual(30);
 		expect(EMPHASIS_PRESETS.every((p) => p.category === 'emphasis')).toBeTruthy();
 	});
 

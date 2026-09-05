@@ -101,7 +101,20 @@ export interface PptxAnimationGraphicElementTarget {
 	seriesIdx?: number;
 	/** `@_categoryIdx`, 0-based category index, when the target is category-scoped. */
 	categoryIdx?: number;
-	/** `@_bldStep` (ST_TLChartBuildStep): `category` / `categoryEl` / `series` / `seriesEl`. */
+	/**
+	 * `p:dgm/@_id` (CT_TLBuildDiagram, ECMA-376 S19.5.10): the diagram DATA MODEL
+	 * point id (`dgm:pt/@modelId`) this per-stage effect reveals, when a
+	 * `p:bldDgm` build authors one effect per node instead of a single staged
+	 * reveal. `dgm`-kind targets only; a `chart`-kind target never carries this.
+	 * Matches `PptxSmartArtNode.id` (parsed from the same `@modelId`), so a
+	 * diagram renderer can reveal the exact authored node.
+	 */
+	id?: string;
+	/**
+	 * `@_bldStep`: `ST_TLChartBuildStep` (`category` / `categoryEl` / `series` /
+	 * `seriesEl`) for a `chart`-kind target, or `ST_TLDiagramBuildStep`
+	 * (`sp` / `bg`) for a `dgm`-kind target.
+	 */
 	bldStep?: string;
 }
 
@@ -546,6 +559,35 @@ export interface PptxNativeAnimation {
 	 * `childStyle`, a legacy compatibility hint. Round-tripped only.
 	 */
 	cBhvrOverride?: 'normal' | 'childStyle';
+	/**
+	 * `p:set` discrete attribute assignments composed alongside this effect
+	 * (ECMA-376 S19.5.79 CT_TLSetBehavior): an instantaneous (non-interpolated)
+	 * value change, as opposed to {@link attributeAnimations}'s `p:anim`
+	 * keyframe ramps. PowerPoint authors several font-style emphasis effects
+	 * this way (Bold Reveal, Underline, Bold Flash, Change Font Size), since
+	 * "on/off" or "size N" has nothing to interpolate. Not yet consulted by
+	 * shared playback (round-trip/typed-model only so far).
+	 */
+	setAnimations?: PptxSetAnimation[];
+}
+
+/**
+ * One `p:set` discrete (non-interpolated) attribute assignment composed
+ * alongside an authored effect. See {@link PptxNativeAnimation.setAnimations}.
+ *
+ * @see ECMA-376 S19.5.79 CT_TLSetBehavior
+ */
+export interface PptxSetAnimation {
+	/** Lowercased target attribute from `p:cBhvr/p:attrNameLst/p:attrName`. */
+	attrName: string;
+	/** Decoded value from `p:to` (same variant shape as a `p:tav/p:val`). */
+	value: string | boolean | number;
+	/** Discriminant indicating which `p:to` child carried the value. */
+	valueType: 'str' | 'bool' | 'int' | 'flt' | 'clr';
+	/** Duration from this behaviour's nested `p:cTn/@dur`. */
+	durationMs?: number;
+	/** Start offset from this behaviour's nested `p:stCondLst`. */
+	delayMs?: number;
 }
 
 /**
@@ -850,6 +892,16 @@ export interface PptxElementAnimation {
 	 * OOXML equivalent and is not required for playback.
 	 */
 	soundFileName?: string;
+	/**
+	 * Per-build-level timing template(s) from the {@link sequence}'s own
+	 * `p:bldP/p:tmplLst` (ECMA-376 §19.5.84), carried over from the loaded
+	 * `PptxNativeAnimation.buildTemplates` this element animation was derived
+	 * from so a full timing-tree rebuild (`PptxAnimationWriteService`'s
+	 * `buildTimingXml`, when the slide had no prior `p:timing`) can re-emit
+	 * them instead of silently dropping the deck's authored per-level
+	 * defaults. Absent when {@link sequence} carries no such template.
+	 */
+	buildTemplates?: PptxTimingTemplate[];
 }
 
 /**

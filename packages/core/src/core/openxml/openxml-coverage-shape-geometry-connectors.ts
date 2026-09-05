@@ -109,7 +109,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: "Adjustment guide lists and formulas parse into a typed model, including deferral of geometry-dependent and cross-referencing formulas; all guide-formula operators are evaluated, including the pin clamp and ?: conditional. Since wave 2 (W2-J), a preset shape's shapeAdjustments are also validated against that preset's real ECMA-376 avLst guide names before being serialized into a:avLst/a:gd (geometry/preset-adjustment-validation.ts, filterValidShapeAdjustmentEntries, wired into PptxHandlerRuntimeSaveElementEmbedding.applyGeometryUpdate and TextShapeXmlFactory.ts): an unrecognised guide name used to reach the saved XML unfiltered and produce a file real PowerPoint refuses to open (0x80070570), COM-verified before and after the fix, and now emits an SAVE_SHAPE_ADJUSTMENT_INVALID_GUIDE warning and is dropped instead. That filter is only as correct as this project's own avLst table: the table disagrees with PowerPoint's real guides for the 12 action-button presets (real: 0 guides, table: adj) and gear6/gear9 (real: 2 guides, table: 1), so shapeAdjustments on those specific presets can still corrupt a save until a COM audit of the table itself lands.",
+		note: "Adjustment guide lists and formulas parse into a typed model, including deferral of geometry-dependent and cross-referencing formulas; all guide-formula operators are evaluated, including the pin clamp and ?: conditional. Since wave 2 (W2-J), a preset shape's shapeAdjustments are also validated against that preset's real ECMA-376 avLst guide names before being serialized into a:avLst/a:gd (geometry/preset-adjustment-validation.ts, filterValidShapeAdjustmentEntries, wired into PptxHandlerRuntimeSaveElementEmbedding.applyGeometryUpdate and TextShapeXmlFactory.ts): an unrecognised guide name used to reach the saved XML unfiltered and produce a file real PowerPoint refuses to open (0x80070570), COM-verified before and after the fix, and now emits an SAVE_SHAPE_ADJUSTMENT_INVALID_GUIDE warning and is dropped instead. Since wave 3 (W3-F), the table itself is now COM-verified against real PowerPoint for every preset (geometry/com-avlst-ground-truth.ts COM_AVLST_GROUND_TRUTH plus a diffing test): the 12 action-button presets now carry an empty avLst (PowerPoint: 0 guides; the table used to list adj) and gear6/gear9 now carry the correct 2-guide avLst (adj1/adj2; the table used to list only adj1/adj), closing the corruption gap the wave-2 caveat described. One follow-up remains: gear6/gear9's adj2 (fillet radius) is validated and round-trips correctly as a named guide, but is not yet consumed by the tooth path itself (preset-shape-definitions-tabs-decorations.ts), so an authored adj2 has no visible rendering effect yet; this is a render-layer gap, not a round-trip one.",
 		evidence: [
 			testEvidence(
 				'src/core/core/runtime/PptxHandlerRuntimeGeometryParsing.test.ts',
@@ -138,6 +138,11 @@ assign(
 					'passes entries through unfiltered for a preset the table does not resolve',
 				],
 				['edit', 'serialize'],
+			),
+			testEvidence(
+				'src/core/geometry/com-avlst-ground-truth.test.ts',
+				['has exactly the COM-verified guide count/names/defaults'],
+				['parse'],
 			),
 		],
 	},

@@ -1,3 +1,4 @@
+import { themeColorRefToSolidFillWithOpacity } from '../../color/theme-color-ref';
 import { XmlObject, TextStyle } from '../../types';
 import type { BulletInfo } from '../../types';
 import type { ParagraphChild } from './paragraph-child-assembly';
@@ -202,6 +203,10 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 	// parsed model captured the marker.
 	if (bulletInfo.colorInherit) {
 		paragraphProps['a:buClrTx'] = {};
+	} else if (bulletInfo.colorRef) {
+		// A typed theme ref wins: keeps the bullet following the theme palette
+		// after a later theme change instead of freezing today's sRGB/schemeClr.
+		paragraphProps['a:buClr'] = themeColorRefToSolidFillWithOpacity(bulletInfo.colorRef);
 	} else if (bulletInfo.colorXml) {
 		// Re-emit the original colour-choice node (a:schemeClr / a:sysClr /
 		// a:prstClr / a:srgbClr plus any colour transforms) verbatim so themed

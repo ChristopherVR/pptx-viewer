@@ -68,6 +68,11 @@ export type {
 	ChartGridlineStyleEdit,
 	ChartDataPointLabelEdit,
 } from './chart-operations';
+export {
+	setChartDataPointStyle,
+	setChartHelperLine,
+	setChartColorMapOverride,
+} from './chart-formatting-operations';
 
 // Chart drawing-overlay (c:userShapes) operations
 export {

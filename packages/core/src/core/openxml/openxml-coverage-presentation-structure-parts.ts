@@ -77,16 +77,26 @@ assign(
 		'presentation:simpleType:ST_PhotoAlbumLayout',
 	],
 	{
-		parse: 'partial',
-		preserve: 'unassessed',
-		edit: 'unassessed',
-		serialize: 'unassessed',
-		note: '`p:photoAlbum` fields (bw, showCaptions, layout, frame) are parsed into a typed model. Only the parse path has direct test coverage; no round-trip or edit test was found, so the other facets stay unassessed.',
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: '`p:photoAlbum` fields (bw, showCaptions, layout, frame, and `@isPhoto`) are parsed into a typed model. Since wave 3 (W3-H), `@isPhoto` round-trips through a full load/save/reload cycle (including writing an explicit `isPhoto="0"` for an authored false, not just omitting the attribute), and CT_Presentation\'s schema-ordered re-emit (utils/xml-reorder.ts reorderObjectKeysByLocalName, used by PptxPresentationSaveBuilder.ts) inserts a freshly-introduced p:photoAlbum in its correct schema position instead of appending it after p:extLst, which real PowerPoint\'s schema validator rejects (CT_ExtensionListModify must stay last).',
 		evidence: [
 			testEvidence(
 				'src/core/core/runtime/PptxHandlerRuntimePresentationStructure.test.ts',
 				['should parse bw flag', 'should parse layout string', 'should parse frame string'],
 				['parse'],
+			),
+			testEvidence(
+				'src/__tests__/integration/presentation-partial-constructs-roundtrip.test.ts',
+				[
+					'parses, preserves, and re-serializes isPhoto through a full load/save/reload cycle',
+					'writes isPhoto="0" for an explicit false value',
+					'inserts freshly-introduced photoAlbum and modifyVerifier in schema order',
+					'keeps an existing p:extLst (CT_ExtensionListModify) last when photoAlbum is freshly introduced',
+				],
+				['parse', 'preserve', 'edit', 'serialize'],
 			),
 		],
 	},
@@ -99,11 +109,11 @@ assign(
 		'presentation:complexType:CT_ExtensionListModify',
 	],
 	{
-		parse: 'partial',
-		preserve: 'unassessed',
-		edit: 'unassessed',
-		serialize: 'unassessed',
-		note: '`p:modifyVerifier` write-protection fields (algorithm, hash, salt, spin count/value, crypto provider) are parsed into a typed model. Only parse has direct test coverage; no round-trip test exercising PptxPresentationSaveBuilder writer was found.',
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: "`p:modifyVerifier` write-protection fields (algorithm, hash, salt, spin count/value, crypto provider) are parsed into a typed model. Since wave 3 (W3-H), it round-trips through PptxPresentationSaveBuilder.ts (a full verifier survives save/reload, and setting it to null explicitly removes it), and CT_Presentation's schema-ordered re-emit (utils/xml-reorder.ts reorderObjectKeysByLocalName) inserts a freshly-introduced p:modifyVerifier in its correct schema position rather than appending it after p:extLst, which real PowerPoint's schema validator rejects.",
 		evidence: [
 			testEvidence(
 				'src/core/core/runtime/PptxHandlerRuntimePresentationStructure.test.ts',
@@ -113,6 +123,15 @@ assign(
 					'should parse cryptographic provider details',
 				],
 				['parse'],
+			),
+			testEvidence(
+				'src/__tests__/integration/presentation-partial-constructs-roundtrip.test.ts',
+				[
+					'round-trips a full write-protection verifier through save/reload',
+					'removes the verifier when explicitly set to null',
+					'inserts freshly-introduced photoAlbum and modifyVerifier in schema order',
+				],
+				['parse', 'preserve', 'edit', 'serialize'],
 			),
 		],
 	},

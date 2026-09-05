@@ -17,6 +17,7 @@ import {
 } from '../../utils/chart-axis-title-serializer';
 import { applyChartBandFmts } from '../../utils/chart-band-fmts';
 import { applyBubbleChartOptions } from '../../utils/chart-bubble-options';
+import { applyChartColorMapOverride } from '../../utils/chart-color-map-override';
 import { applyChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import {
 	applyComboSeriesTypesToXml,
@@ -41,6 +42,7 @@ import { applyChartDateAxisUnits } from '../../utils/chart-date-axis';
 import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
 import { applyChartLayouts } from '../../utils/chart-layout';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
+import { applyChartLineStyle } from '../../utils/chart-line-style-serializer';
 import { applySeriesMarkerToXml } from '../../utils/chart-marker-serializer';
 import { applyChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { applyChartPivotSource } from '../../utils/chart-pivot-source';
@@ -78,6 +80,7 @@ import {
 	serializeTablePropertyFlags,
 } from './save-table-merge-helpers';
 import { rebuildTableXmlFromData } from './table-structural-ops';
+import { writeTablePropertiesOwnFillAndEffects } from './table-tblpr-save';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -99,6 +102,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			// ── Serialize table-level properties (tblPr) ──────────────
 			serializeTablePropertyFlags(tbl, tableData);
+			// a:tblPr's OWN fill/effectLst (issue G6 write-side): parsed by
+			// PptxTableDataParser into tableFill/tableEffects but otherwise
+			// never re-emitted, so an in-memory edit to either field was
+			// silently dropped on save.
+			writeTablePropertiesOwnFillAndEffects((tbl as XmlObject)['a:tblPr'] as XmlObject, tableData);
 
 			// ── Detect structural changes (row/column count mismatch) ──
 			const xmlRows = this.ensureArray(tbl['a:tr']);
@@ -478,8 +486,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// Per-data-point label overrides (c:dLbl inside c:ser's c:dLbls).
 					// Undefined = passthrough.
 					if (seriesData.dataLabels !== undefined) {
-						applySeriesDataLabelsToXml(seriesNode, seriesData.dataLabels, (key) =>
-							this.compatibilityService.getXmlLocalName(key),
+						applySeriesDataLabelsToXml(
+							seriesNode,
+							seriesData.dataLabels,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
 						);
 					}
 
@@ -580,6 +591,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					);
 				}
 
+				// Colour-map override (c:clrMapOvr): previously parsed but never
+				// written back on save (see openxml-coverage-chart-labels-
+				// supplement.ts's `edit: unassessed` note).
+				if (chartData.clrMapOvr !== undefined) {
+					applyChartColorMapOverride(chartSpace, chartData.clrMapOvr, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+
 				// Update plotVisOnly (c:plotVisOnly)
 				if (chartData.plotVisibleOnly !== undefined) {
 					const plotVisOnlyNode = this.xmlLookupService.getChildByLocalName(
@@ -616,6 +636,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						(key) => this.compatibilityService.getXmlLocalName(key),
 						(node) => this.parseColor(node),
 					);
+				}
+
+				// Drop lines / hi-low lines (c:dropLines, c:hiLowLines): legal on
+				// line and stock chart-type containers. Previously parsed
+				// (parseLineStyle) but never written back on save (see
+				// openxml-coverage-chart-supplement.ts's `edit: unassessed` note).
+				if (
+					(chartData.dropLines !== undefined || chartData.hiLowLines !== undefined) &&
+					(chartData.chartType === 'line' ||
+						chartData.chartType === 'stock' ||
+						chartData.chartType === 'combo')
+				) {
+					if (chartData.dropLines !== undefined) {
+						applyChartLineStyle(
+							chartTypeContainer,
+							'dropLines',
+							chartData.dropLines,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
+						);
+					}
+					if (chartData.hiLowLines !== undefined) {
+						applyChartLineStyle(
+							chartTypeContainer,
+							'hiLowLines',
+							chartData.hiLowLines,
+							(key) => this.compatibilityService.getXmlLocalName(key),
+							(node) => this.parseColor(node),
+						);
+					}
 				}
 
 				if (chartData.bandFmts !== undefined && chartData.chartType === 'surface') {
@@ -676,7 +726,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// added or removed title decides.
 				applyChartTitleToXml(
 					chartRoot,
-					{ title: chartData.title, hasTitle: chartData.style?.hasTitle },
+					{
+						title: chartData.title,
+						hasTitle: chartData.style?.hasTitle,
+						titleRuns: chartData.titleRuns,
+					},
 					(key) => this.compatibilityService.getXmlLocalName(key),
 				);
 				if (chartData.style) {

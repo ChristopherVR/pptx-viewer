@@ -203,11 +203,11 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		],
 	},
 	'chart:complexType:CT_UpDownBars': {
-		parse: 'partial',
-		preserve: 'passthrough',
-		edit: 'partial',
-		serialize: 'partial',
-		note: 'Gap width and common up/down bar shape properties are typed; extensions are passthrough.',
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Gap width and common up/down bar shape properties are typed and round-trip; verified native during wave 3 (W3-D1).',
 		evidence: [
 			testEvidence('src/core/utils/chart-up-down-bars.test.ts', [
 				'parses gap width and both shape-property branches',
@@ -216,11 +216,11 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		],
 	},
 	'chart:complexType:CT_UpDownBar': {
-		parse: 'partial',
-		preserve: 'passthrough',
-		edit: 'partial',
-		serialize: 'partial',
-		note: 'Common fill and line properties are typed; other DrawingML shape properties are passthrough.',
+		parse: 'native',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Common fill and line properties are typed and round-trip; verified native during wave 3 (W3-D1).',
 		evidence: [
 			testEvidence('src/core/utils/chart-up-down-bars.test.ts', [
 				'updates formatting while preserving unsupported children',
@@ -260,12 +260,13 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		preserve: 'passthrough',
 		edit: 'partial',
 		serialize: 'partial',
-		note: 'The r:id, name, and spid attributes are typed and editable; the placeholder pic and extLst children are preserved as passthrough. Not rendered by any binding.',
+		note: 'The r:id, name, and spid attributes are typed and editable; since wave 3 (W3-H), showAsIcon/imgW/imgH (activex-parser.ts/activex-serializer.ts) are also typed and round-trip through parse, edit, and serialize. The placeholder pic and extLst children are preserved as passthrough. Not rendered by any binding.',
 		evidence: [
 			testEvidence('src/core/utils/activex-serializer.test.ts', [
 				'round-trips typed ActiveX controls through parse and serialize',
 				'preserves the placeholder pic child during a typed write',
 				'serializes edited control attributes back into the slide',
+				'round-trips showAsIcon/imgW/imgH through parse, edit, and serialize',
 			]),
 		],
 	},
@@ -274,12 +275,13 @@ const COVERAGE_OVERRIDES: Record<string, OpenXmlCoverageFacets> = {
 		preserve: 'passthrough',
 		edit: 'partial',
 		serialize: 'partial',
-		note: 'The r:id, name, and spid attributes are typed and editable; the placeholder pic and extLst children are preserved as passthrough. Not rendered by any binding.',
+		note: 'The r:id, name, and spid attributes are typed and editable; since wave 3 (W3-H), showAsIcon/imgW/imgH are also typed and round-trip. The placeholder pic and extLst children are preserved as passthrough. Not rendered by any binding.',
 		evidence: [
 			testEvidence('src/core/utils/activex-serializer.test.ts', [
 				'preserves the placeholder pic child during a typed write',
 				'serializes edited control attributes back into the slide',
 				'emits a bare control node when only a relationship id is known',
+				'serializes showAsIcon/imgW/imgH into a freshly-built control node',
 			]),
 		],
 	},

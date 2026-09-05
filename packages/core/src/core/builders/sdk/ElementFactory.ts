@@ -73,6 +73,7 @@ function mapFillToShapeStyle(fill?: FillInput): Partial<ShapeStyle> {
 				fillMode: 'solid',
 				fillColor: fill.color,
 				fillOpacity: fill.opacity,
+				...(fill.themeColorRef ? { fillColorRef: fill.themeColorRef } : {}),
 			};
 		case 'gradient':
 			return {
@@ -115,6 +116,7 @@ function mapStrokeToShapeStyle(stroke?: StrokeInput): Partial<ShapeStyle> {
 		strokeOpacity: stroke.opacity,
 		lineJoin: stroke.join,
 		lineCap: stroke.cap,
+		...(stroke.themeColorRef ? { strokeColorRef: stroke.themeColorRef } : {}),
 	};
 }
 
@@ -169,6 +171,9 @@ function mapTextStyleInput(opts?: Partial<TextStyleInput>): Partial<TextStyle> {
 	}
 	if (opts.color !== undefined) {
 		ts.color = opts.color;
+	}
+	if (opts.themeColorRef !== undefined) {
+		ts.colorRef = opts.themeColorRef;
 	}
 	if (opts.alignment !== undefined) {
 		ts.align = opts.alignment;

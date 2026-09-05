@@ -113,4 +113,118 @@ describe('applyChartTitleToXml', () => {
 		)['r'] as XmlObject;
 		expect(run['t']).toStrictEqual({ '#text': 'New', '@_xml:space': 'preserve' });
 	});
+
+	describe('titleRuns (multi-run rich text)', () => {
+		it('writes one run per titleRuns entry, each with its own rPr', () => {
+			const chart = chartWithoutTitle();
+			applyChartTitleToXml(
+				chart,
+				{
+					// `title` matches `titleRuns[0].text`, the flat first-run-only
+					// convention the parser always produces.
+					title: 'Bold',
+					titleRuns: [
+						{ text: 'Bold', bold: true, color: '#FF0000', fontSize: 18 },
+						{ text: 'Plain' },
+					],
+				},
+				local,
+			);
+			const rich = (((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject)[
+				'a:p'
+			] as XmlObject;
+			const runs = rich['a:r'] as XmlObject[];
+			expect(runs).toHaveLength(2);
+			expect(runs[0]).toStrictEqual({
+				'a:rPr': {
+					'@_b': '1',
+					'@_sz': '1800',
+					'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } },
+				},
+				'a:t': 'Bold',
+			});
+			expect(runs[1]).toStrictEqual({ 'a:t': 'Plain' });
+		});
+
+		it('replaces an existing rich body wholesale rather than patching only the first run', () => {
+			const chart: XmlObject = {
+				'c:title': {
+					'c:tx': { 'c:rich': { 'a:p': { 'a:r': { 'a:t': 'Old' } } } },
+					'c:overlay': { '@_val': '0' },
+				},
+				'c:autoTitleDeleted': { '@_val': '0' },
+				'c:plotArea': {},
+			};
+			applyChartTitleToXml(chart, { title: 'A', titleRuns: [{ text: 'A' }, { text: 'B' }] }, local);
+			const rich = (((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject)[
+				'a:p'
+			] as XmlObject;
+			expect(rich['a:r']).toStrictEqual([{ 'a:t': 'A' }, { 'a:t': 'B' }]);
+		});
+
+		it('ignores titleRuns for a ChartEx (cx) title', () => {
+			const chart: XmlObject = { 'cx:plotArea': {} };
+			applyChartTitleToXml(
+				chart,
+				{ title: 'Funnel', titleRuns: [{ text: 'Fun' }, { text: 'nel' }] },
+				local,
+				{ prefix: 'cx' },
+			);
+			expect(chart['cx:title']).toStrictEqual({
+				'cx:tx': { 'cx:rich': { 'a:p': { 'a:r': { 'a:t': 'Funnel' } } } },
+			});
+		});
+
+		it('leaves an untouched title (matching run texts) byte-structurally alone, preserving a:schemeClr', () => {
+			// Regression: rebuilding from PptxChartTitleRun's narrow shape always
+			// emits a literal a:srgbClr, which would silently downgrade an
+			// authored theme colour on every save even when nothing changed.
+			const chart: XmlObject = {
+				'c:title': {
+					'c:tx': {
+						'c:rich': {
+							'a:p': {
+								'a:r': [
+									{
+										'a:rPr': { 'a:solidFill': { 'a:schemeClr': { '@_val': 'accent2' } } },
+										'a:t': 'Q4',
+									},
+									{ 'a:t': ' Sales' },
+								],
+							},
+						},
+					},
+					'c:overlay': { '@_val': '0' },
+				},
+				'c:autoTitleDeleted': { '@_val': '0' },
+				'c:plotArea': {},
+			};
+			const before = JSON.stringify(chart['c:title']);
+			applyChartTitleToXml(
+				chart,
+				{ title: 'Q4', titleRuns: [{ text: 'Q4' }, { text: ' Sales' }] },
+				local,
+			);
+			expect(JSON.stringify(chart['c:title'])).toBe(before);
+		});
+
+		it('falls back to the flat title when it has diverged from the (stale) titleRuns text', () => {
+			// Simulates a caller that edited `title` directly without touching
+			// `titleRuns`, the exact shape every pre-existing chart-title
+			// consumer's edit takes: the stale runs must NOT win.
+			const chart: XmlObject = {
+				'c:title': {
+					'c:tx': { 'c:rich': { 'a:p': { 'a:r': { 'a:t': 'Before' } } } },
+					'c:overlay': { '@_val': '0' },
+				},
+				'c:autoTitleDeleted': { '@_val': '0' },
+				'c:plotArea': {},
+			};
+			applyChartTitleToXml(chart, { title: 'After', titleRuns: [{ text: 'Before' }] }, local);
+			const rich = (((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject)[
+				'a:p'
+			] as XmlObject;
+			expect(rich['a:r']).toStrictEqual({ 'a:t': 'After' });
+		});
+	});
 });

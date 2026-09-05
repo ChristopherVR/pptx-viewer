@@ -135,6 +135,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
+		const isPhotoRaw = photoAlbum['@_isPhoto'];
+		if (isPhotoRaw !== undefined) {
+			result.isPhoto = String(isPhotoRaw) === '1' || String(isPhotoRaw) === 'true';
+			hasProps = true;
+		}
+
 		return hasProps ? result : {};
 	}
 

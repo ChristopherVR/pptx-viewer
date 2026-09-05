@@ -151,12 +151,21 @@ assign(['presentation:attribute:embedTrueTypeFonts'], {
 });
 
 assign(['presentation:element:smartTags', 'presentation:complexType:CT_SmartTags'], {
-	parse: 'unassessed',
+	parse: 'native',
 	preserve: 'native',
 	edit: 'unsupported',
-	serialize: 'unassessed',
-	note: "`p:smartTags` (CT_SmartTags, a bare `@r:id` child of `p:presentation`) points at a smart-tag RECOGNIZER part (`p:smartTagLst`/`p:smartTagType`) - a distinct, legacy Office feature unrelated to the user-defined `p:tags` construct (see `presentation:element:tags` for that one, now fully authored). This codebase has no data model for recognizer content at all, so there is no way to create or edit one through the public API; only preserve is promoted. An element already authored by a real generator survives a no-edit save because the owning part's XML is mutated in place and re-emitted wholesale, not because anything models the element.",
+	serialize: 'native',
+	note: "`p:smartTags` (CT_SmartTags, a bare `@r:id` child of `p:presentation`) points at a smart-tag RECOGNIZER part (`p:smartTagLst`/`p:smartTagType`) - a distinct, legacy Office feature unrelated to the user-defined `p:tags` construct (see `presentation:element:tags` for that one, now fully authored). Since wave 3 (W3-H), a dedicated parser exists (utils/smart-tags-parser.ts parsePresentationSmartTags, wired into PptxHandlerRuntimeLoadPipeline.ts) that extracts the relationship id and, when resolvable against presentation.xml.rels, the target part path, into a typed PptxSmartTagsReference (data.smartTags), and this round-trips through a full load/save/reload cycle including the relationship and target part. This codebase still has no data model for recognizer PART CONTENT itself (the target part's own p:smartTagLst/p:smartTagType schema), so there is no way to create or edit one through the public API; the element, relationship, and part survive an untouched save because the owning presentation.xml object is mutated in place, not because anything models the recognizer content.",
 	evidence: [
+		testEvidence(
+			'src/__tests__/integration/presentation-partial-constructs-roundtrip.test.ts',
+			[
+				'parses the relationship id and resolves the target part',
+				'preserves the element, relationship, and target part through a no-edit save',
+				'returns undefined when the presentation has no p:smartTags',
+			],
+			['parse', 'preserve', 'serialize'],
+		),
 		testEvidence(
 			'src/__tests__/integration/smarttags-and-tags-reference.test.ts',
 			['preserves an authored <p:smartTags r:id=".."/> through a no-edit round trip'],

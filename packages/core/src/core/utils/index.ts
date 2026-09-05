@@ -47,6 +47,7 @@ export {
 	colorsEqual,
 	buildSrgbColorChoice,
 	serializeColorChoice,
+	serializeColorChoiceWithRef,
 } from './color-xml-preservation';
 
 export {
@@ -336,11 +337,11 @@ export { parseDataTable } from './chart-data-table-parser';
 
 export {
 	parseSeriesDataPoints,
-	parseSeriesDataLabels,
 	parseSeriesExplosion,
 	parseMarker,
 	parseShapeProps,
 } from './chart-series-detail-parser';
+export { parseSeriesDataLabels, parseChartDataLabelOptions } from './chart-data-label-parser';
 
 export { parseChartAxes, parseChart3DSurfaces } from './chart-axis-parser';
 
@@ -411,6 +412,8 @@ export { parseActiveXControlsFromSlide } from './activex-parser';
 export { applyActiveXControlsToSlide, buildActiveXControlNode } from './activex-serializer';
 
 export { parseKinsoku, applyKinsokuToXml } from './kinsoku-parser';
+
+export { parsePresentationSmartTags } from './smart-tags-parser';
 
 export {
 	isHeaderFooterPlaceholder,
@@ -542,10 +545,12 @@ export { resolveLayoutDisplayName, type LayoutDisplayNameInput } from './layout-
 
 export {
 	reorderObjectKeys,
+	reorderObjectKeysByLocalName,
 	EFFECT_LST_ORDER,
 	SP_PR_ORDER,
 	TC_PR_BORDERS_ORDER,
 	BLIP_FILL_ORDER,
+	PRESENTATION_CHILD_ORDER,
 } from './xml-reorder';
 
 export {

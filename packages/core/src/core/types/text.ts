@@ -11,6 +11,7 @@
 // Text types: TextStyle, BulletInfo, TextSegment
 // ==========================================================================
 
+import type { PptxThemeColorRef } from './color-ref';
 import type { UnderlineStyle, XmlObject } from './common';
 import type { EffectDagContainer } from './effect-dag';
 import type { Pptx3DScene, PptxTextWarpPreset, Text3DStyle } from './three-d';
@@ -227,6 +228,15 @@ export interface TextStyle {
 	 * verbatim when the resolved {@link color} still matches this node.
 	 */
 	colorXml?: XmlObject;
+	/**
+	 * Typed theme colour reference for the run's text colour, set when
+	 * {@link colorXml} is a plain `a:schemeClr` (see
+	 * `themeColorRefFromColorChoice`). When present it WINS on save: the
+	 * writer emits `<a:schemeClr>` from this ref instead of the resolved
+	 * {@link color}, so the text keeps following the theme palette after a
+	 * later theme change.
+	 */
+	colorRef?: PptxThemeColorRef;
 	align?: 'left' | 'center' | 'right' | 'justify' | 'justLow' | 'dist' | 'thaiDist';
 	/**
 	 * Vertical text-box anchor (`a:bodyPr/@anchor`, `ST_TextAnchoringType`).
@@ -697,6 +707,12 @@ export interface BulletInfo {
 	 * identity rather than being flattened to `<a:srgbClr/>` on save.
 	 */
 	colorXml?: XmlObject;
+	/**
+	 * Typed theme colour reference for the bullet colour, set when
+	 * {@link colorXml} is a plain `a:schemeClr`. Wins on save, same as
+	 * {@link TextStyle.colorRef}.
+	 */
+	colorRef?: PptxThemeColorRef;
 	/** True when `a:buNone` explicitly suppresses bullets. */
 	none?: boolean;
 	/** Picture bullet: relationship ID from `a:buBlip` → `a:blip[@r:embed]`. */

@@ -43,6 +43,25 @@ describe('applySeriesMarkerToXml', () => {
 		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('FF0000');
 	});
 
+	it('writes the marker stroke width and dash style into spPr (not just fill colour)', () => {
+		const node = seriesNode();
+		applySeriesMarkerToXml(
+			node,
+			{
+				symbol: 'diamond',
+				spPr: { strokeColor: '#00FF00', strokeWidth: 2, strokeDashStyle: 'dash' },
+			},
+			getLocalName,
+		);
+		const marker = node['c:marker'] as XmlObject;
+		const spPr = marker['c:spPr'] as XmlObject;
+		const ln = spPr['a:ln'] as XmlObject;
+		expect(ln['@_w']).toBe(String(Math.round(2 * 12700)));
+		expect((ln['a:prstDash'] as XmlObject)['@_val']).toBe('dash');
+		const fill = ln['a:solidFill'] as XmlObject;
+		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('00FF00');
+	});
+
 	it('updates an existing marker in place', () => {
 		const node = seriesNode();
 		node['c:marker'] = {

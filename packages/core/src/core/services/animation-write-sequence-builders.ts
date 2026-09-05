@@ -1,4 +1,5 @@
 import type { PptxElementAnimation, XmlObject } from '../types';
+import { serializeBldPTemplates } from './animation-timing-templates';
 import { buildSingleEffectNode, buildMotionPathNode } from './animation-write-node-builders';
 
 /**
@@ -70,11 +71,21 @@ export function buildBuildListXml(animations: PptxElementAnimation[]): XmlObject
 		const bldType =
 			anim.sequence === 'byParagraph' ? 'p' : anim.sequence === 'byWord' ? 'word' : 'char';
 
-		bldPNodes.push({
+		const bldPNode: XmlObject = {
 			'@_spid': anim.elementId,
 			'@_grpId': '0',
 			'@_build': bldType,
-		});
+		};
+		// Re-emit the loaded per-build-level `p:tmplLst` (issue: "buildTemplates
+		// write wiring") so a full timing-tree rebuild does not silently drop it;
+		// `serializeBldPTemplates` mirrors what `extractBldPTemplates` parses.
+		if (anim.buildTemplates && anim.buildTemplates.length > 0) {
+			const tmplLst = serializeBldPTemplates(anim.buildTemplates);
+			if (tmplLst) {
+				bldPNode['p:tmplLst'] = tmplLst;
+			}
+		}
+		bldPNodes.push(bldPNode);
 	}
 
 	if (bldPNodes.length === 0) {

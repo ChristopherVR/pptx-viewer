@@ -101,15 +101,15 @@ export const MISC_TEXT_RECTS_B: Record<string, PresetTextRectDefinition> = {
 	},
 
 	// `sun` is deliberately NOT overridden here. `preset-shape-definitions-misc.ts`
-	// already carries a hand-derived `rect` (`discL`/`discT`/`discR`/`discB`,
-	// the central disc's own extents) with a comment citing real PowerPoint
-	// behaviour ("keeps the text rect on the disc",
-	// `preset-shape-path-space.test.ts`), which disagrees with the raw ECMA
-	// `<rect l="x9" t="y9" r="x8" b="y8"/>` (a g0/g7/g8/g9 fraction chain) this
-	// file would otherwise transcribe verbatim. Since that existing value is
-	// already deliberate and tested, this override intentionally defers to it
-	// rather than silently replacing a considered fix with an unverified spec
-	// literal.
+	// carries its own hand-derived `rect` (`trl`/`trt`/`trr`/`trb` - the DISC's
+	// own 45deg-inscribed rectangle, not the disc's full bounds), COM-verified
+	// 2026-09-05 at two aspect ratios (200x100pt: l=64.65, t=32.32, r=135.27,
+	// b=67.68; 160x120pt: l=51.72, t=38.79, r=108.22, b=81.21, both within
+	// 0.1% of the box), which disagrees with the raw ECMA `<rect l="x9" t="y9"
+	// r="x8" b="y8"/>` (a g0/g7/g8/g9 fraction chain) this file would
+	// otherwise transcribe verbatim. Since that existing value is already
+	// COM-verified, this override intentionally defers to it rather than
+	// silently replacing a measured fix with an unverified spec literal.
 
 	teardrop: {
 		gdLst: [

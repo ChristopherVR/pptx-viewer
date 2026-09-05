@@ -95,15 +95,22 @@ assign(
 		'chart:element:dPt',
 	],
 	{
-		parse: 'partial',
+		parse: 'native',
 		preserve: 'native',
-		edit: 'partial',
-		serialize: 'partial',
-		note: 'Marker and data-point fields are typed while shape, picture, and extension payloads remain losslessly preserved.',
+		edit: 'native',
+		serialize: 'native',
+		note: 'Marker and data-point fields are typed, and extension payloads remain losslessly preserved. Since wave 3 (W3-D1), c:dPt/c:spPr and c:marker/c:spPr stroke width and dash style (previously dropped on save even though colour round-tripped) are typed and verified load -> edit -> save -> re-parse.',
 		evidence: [
 			testEvidence('src/__tests__/integration/chart-marker-datapoint-roundtrip.test.ts', [
 				'generates, parses, edits, and dirty-saves marker and bubble properties',
 			]),
+			testEvidence(
+				'src/core/core/runtime/PptxHandlerRuntimeChartFormattingEdit.test.ts',
+				[
+					'round-trips dPt/marker spPr, trendline/errBars width+dash, dLbl spPr+txPr, dropLines/hiLowLines',
+				],
+				['parse', 'edit', 'serialize'],
+			),
 		],
 	},
 );

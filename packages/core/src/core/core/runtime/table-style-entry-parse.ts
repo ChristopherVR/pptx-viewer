@@ -24,10 +24,15 @@ import type {
 	ParsedTableStyleFill,
 	ParsedTableStyleMap,
 	ParsedTableStyleText,
+	ParsedTableFillRef,
 	PptxTableCell3D,
 	XmlObject,
 } from '../../types';
-import { parseTableStyleBorders, parseTableStyleSectionCell3D } from './table-style-border-parse';
+import {
+	parseSolidFillStyle,
+	parseTableStyleBorders,
+	parseTableStyleSectionCell3D,
+} from './table-style-border-parse';
 import type { ResolveTableStyleImagePath } from './table-style-fill-parse';
 import { parseTableStyleSectionFill, parseTableStyleSectionText } from './table-style-fill-parse';
 
@@ -91,13 +96,45 @@ export function parseTableBackground(
 	const schemeColor = schemeClr ? String(schemeClr['@_val'] || '').trim() || undefined : undefined;
 	const fill = schemeColor ? { schemeColor } : undefined;
 	const hasEffectLst = Boolean(tblBg['a:effectLst']);
-	if (!fill && !hasEffectLst) {
+	// `a:fillRef` is `a:fill`'s choice sibling in CT_TableBackgroundStyle: a
+	// style-matrix index (`@idx`) plus an optional colour-transform child,
+	// rather than an inline fill choice. Only present when `a:fill` is not.
+	const fillRefNode = fillNode ? undefined : (tblBg['a:fillRef'] as XmlObject | undefined);
+	const fillRef = parseTableBackgroundFillRef(fillRefNode);
+	if (!fill && !hasEffectLst && !fillRef) {
 		return undefined;
 	}
 	return {
 		...(fill ? { fill } : {}),
+		...(fillRef ? { fillRef } : {}),
 		...(hasEffectLst ? { hasEffectLst } : {}),
 	};
+}
+
+/** Parse `a:tblBg/a:fillRef` (CT_StyleMatrixReference) into a {@link ParsedTableFillRef}. */
+function parseTableBackgroundFillRef(
+	fillRefNode: XmlObject | undefined,
+): ParsedTableFillRef | undefined {
+	if (!fillRefNode) {
+		return undefined;
+	}
+	const idx = parseInt(String(fillRefNode['@_idx'] ?? ''), 10);
+	if (!Number.isFinite(idx)) {
+		return undefined;
+	}
+	const schemeClr = fillRefNode['a:schemeClr'] as XmlObject | undefined;
+	const color = parseSolidFillStyle(fillRefNode);
+	const srgb = fillRefNode['a:srgbClr'] as XmlObject | undefined;
+	if (color) {
+		return { idx, color };
+	}
+	if (!schemeClr && srgb) {
+		const hex = String(srgb['@_val'] || '').trim();
+		if (hex) {
+			return { idx, color: { schemeColor: '', color: hex.startsWith('#') ? hex : `#${hex}` } };
+		}
+	}
+	return { idx };
 }
 
 /** Parse a single `<a:tblStyle>` node. Returns `undefined` without a styleId. */

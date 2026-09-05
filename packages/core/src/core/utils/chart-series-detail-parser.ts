@@ -214,5 +214,3 @@ export function parseSeriesExplosion(
 	const explosionNode = xmlLookup.getChildByLocalName(seriesNode, 'explosion');
 	return safeInt(explosionNode?.['@_val']);
 }
-
-export { parseSeriesDataLabels } from './chart-data-label-parser';

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../types';
+import { parseSeriesDataLabels } from './chart-data-label-parser';
 import {
 	parseSeriesDataPoints,
-	parseSeriesDataLabels,
 	parseSeriesExplosion,
 	parseMarker,
 	parseShapeProps,

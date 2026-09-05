@@ -109,16 +109,25 @@ assign(['chart:element:gapDepth'], {
 });
 
 assign(['chart:element:clrMapOvr'], {
-	parse: 'partial',
-	preserve: 'unassessed',
-	edit: 'unassessed',
-	serialize: 'unassessed',
-	note: 'Chart-space clrMapOvr is flattened into a plain string map for colour resolution on parse; no typed edit/serialize path was found, so those facets are left unassessed rather than inferred.',
+	parse: 'native',
+	preserve: 'native',
+	edit: 'native',
+	serialize: 'native',
+	note: 'Chart-space clrMapOvr is flattened into a plain string map for colour resolution on parse. Since wave 3 (W3-D1), a write-back path exists (chart-color-map-override.ts applyChartColorMapOverride), wired into PptxHandlerRuntimeSaveDataSerialization.ts and exposed as the MCP tool set_chart_color_map_override: the map can be applied, replaced, or removed (undefined is a no-op, null/empty removes the element), inserted before c:chart per CT_ChartSpace schema order.',
 	evidence: [
 		testEvidence(
 			'src/core/core/runtime/PptxHandlerRuntimeChartChrome.test.ts',
 			['flattens all 12 attribute slots into a string map'],
 			['parse'],
+		),
+		testEvidence(
+			'src/core/utils/chart-color-map-override.test.ts',
+			[
+				'inserts c:clrMapOvr before c:chart with the mapped attributes',
+				'replaces an existing c:clrMapOvr in place',
+				'removes an existing c:clrMapOvr when the value is null',
+			],
+			['preserve', 'edit', 'serialize'],
 		),
 	],
 });

@@ -14,6 +14,7 @@ import { flattenElementsDeep } from '../utils/flatten-elements';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import { loadSlideSynchronization } from '../utils/slide-synchronization';
 import { loadLegacyVmlDrawings } from '../utils/vml-drawing-loader';
+import { mergeNativeBuildTemplatesIntoEditorAnimations } from './animation-build-template-merge';
 import { mergeNativeSoundIntoEditorAnimations } from './animation-sound-merge';
 import { reconcileAnimationTargets } from './animation-target-reconcile';
 import { computeAnimationTimelineOrder } from './animation-timeline-anchors';
@@ -319,6 +320,10 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			// would delete a deck's own effect sound the first time the user edits
 			// any other field on that effect via the animation panel.
 			mergeNativeSoundIntoEditorAnimations(nativeAnimations, animations);
+			// See `animation-build-template-merge`: seeds a loaded per-build-level
+			// `p:tmplLst` onto the editor list so a full timing-tree rebuild (no
+			// prior `p:timing` on the slide) can re-emit it via `buildBuildListXml`.
+			mergeNativeBuildTemplatesIntoEditorAnimations(nativeAnimations, animations);
 
 			// PowerPoint's Selection Pane eye toggle lives on `p:cNvPr/@hidden`.
 			// Lift it onto the model here rather than in each per-type parser: they

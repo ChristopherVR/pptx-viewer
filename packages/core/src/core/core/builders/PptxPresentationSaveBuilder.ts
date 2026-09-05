@@ -15,6 +15,7 @@ import { applyKinsokuToXml } from '../../utils/kinsoku-parser';
 import { applyPresentationDefaultTextStyle } from '../../utils/master-text-style-writer';
 import { applyCustomShows, applySections } from '../../utils/presentation-collections';
 import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
+import { PRESENTATION_CHILD_ORDER, reorderObjectKeysByLocalName } from '../../utils/xml-reorder';
 
 export interface PptxPresentationSaveBuilderOptions {
 	headerFooter?: PptxHeaderFooter;
@@ -99,7 +100,23 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 			applyPresentationDefaultTextStyle(presentation, init.options.defaultTextStyle);
 		}
 
-		init.presentationData[rootKey ?? 'p:presentation'] = presentation;
+		// Every mutation above (and any earlier surgical edit that assigned a
+		// key directly, e.g. `presentation['p:photoAlbum'] = pa`) can only
+		// APPEND a freshly-introduced child at the end of the object's key
+		// order. CT_Presentation (S19.2.1.26) is a strict `xsd:sequence`, so a
+		// child introduced after `p:extLst` (or after any later sibling) is
+		// schema-invalid and can trigger PowerPoint's repair dialog. Re-assert
+		// the canonical order unconditionally as the final step: for a file
+		// whose children were already correctly ordered this is a no-op
+		// (the reorder only reshuffles, never drops or renames), and
+		// for one where an edit above just introduced or repositioned a child,
+		// it puts every recognised child back in schema order. Unknown keys
+		// (attributes, and any child this table does not know about) keep
+		// their original relative order, appended after the recognised ones.
+		init.presentationData[rootKey ?? 'p:presentation'] = reorderObjectKeysByLocalName(
+			presentation,
+			PRESENTATION_CHILD_ORDER,
+		);
 		return init.presentationData;
 	}
 
@@ -176,6 +193,9 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 		}
 		if (photoAlbum.frame !== undefined) {
 			pa['@_frame'] = photoAlbum.frame;
+		}
+		if (photoAlbum.isPhoto !== undefined) {
+			pa['@_isPhoto'] = photoAlbum.isPhoto ? '1' : '0';
 		}
 
 		presentation['p:photoAlbum'] = pa;

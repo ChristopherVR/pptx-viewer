@@ -5,6 +5,7 @@ import type {
 	PptxTableRow,
 	XmlObject,
 } from '../../types';
+import { parseTableEffectChain } from '../runtime/table-style-effect-parse';
 import { parseTablePropertiesFill } from '../runtime/table-style-fill-parse';
 import { applyCell3DStyle } from './table-cell-3d-helpers';
 import {
@@ -122,9 +123,15 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 					? (rEmbed, rLink) => resolveImagePath(rEmbed, rLink, slidePath)
 					: undefined,
 			);
-			const tableEffects = Boolean(
-				tableProperties['a:effectLst'] || tableProperties['a:effectDag'],
-			);
+			// `a:effectDag` leaves are opaque here (see
+			// table-style-effect-parse.ts docblock): recorded as a single
+			// pass-through node rather than decomposed, since decomposing the
+			// DAG's own nested `a:effect` containers is out of scope for a
+			// construct this rare on a table root.
+			const effectDag = tableProperties['a:effectDag'] as XmlObject | undefined;
+			const tableEffects =
+				parseTableEffectChain(tableProperties['a:effectLst'] as XmlObject | undefined) ??
+				(effectDag ? [{ kind: 'effectDag', xml: effectDag }] : undefined);
 
 			return {
 				rows,
@@ -140,7 +147,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 				bandColCycle: bandColCycle ?? 1,
 				...(rtl ? { rtl: true } : {}),
 				...(tableFill ? { tableFill } : {}),
-				...(tableEffects ? { tableEffects: true } : {}),
+				...(tableEffects ? { tableEffects } : {}),
 			};
 		} catch {
 			return undefined;

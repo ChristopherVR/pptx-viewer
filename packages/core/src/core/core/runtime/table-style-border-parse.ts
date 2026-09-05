@@ -75,7 +75,15 @@ export function parseSolidFillStyle(
 	const tint = tintRaw ? parseTintShadeVal(tintRaw['@_val']) : undefined;
 	const shadeRaw = schemeClr['a:shade'] as XmlObject | undefined;
 	const shade = shadeRaw ? parseTintShadeVal(shadeRaw['@_val']) : undefined;
-	return { schemeColor, tint, shade };
+	// Omit tint/shade entirely rather than setting them to `undefined`
+	// (matches the sibling `parseColorChoiceFill` in table-style-fill-parse.ts)
+	// so a whole-object `toStrictEqual` comparison isn't tripped by a key that
+	// is present-but-undefined versus simply absent (W3-E).
+	return {
+		schemeColor,
+		...(tint !== undefined ? { tint } : {}),
+		...(shade !== undefined ? { shade } : {}),
+	};
 }
 
 /** Parse a single `a:tcBdr` side (`a:left`, `a:top`, ...) into a border. */

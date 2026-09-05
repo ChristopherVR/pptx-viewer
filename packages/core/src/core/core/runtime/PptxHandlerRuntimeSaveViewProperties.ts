@@ -15,47 +15,20 @@
  * - {@link applyTableStylesPart} merges the typed
  *   {@link ParsedTableStyleMap} edits onto the existing
  *   `<a:tblStyleLst>` XML so unmodelled fields and the `def` attribute
- *   round-trip losslessly. When the source archive has no
- *   `ppt/tableStyles.xml`, the writer is a no-op.
+ *   round-trip losslessly, creates a brand-new `<a:tblStyle>` node for any
+ *   GUID in the map the archive did not already have, optionally deletes
+ *   styles named in `tableStylesToDelete`, and optionally repoints `@def`.
+ *   The per-section fill/text/border/cell3D/background merge itself lives in
+ *   `table-style-save.ts` (W3-E: all 13 `CT_TableStyle` parts, not just the
+ *   9 non-corner ones this writer used to cover). When the source archive
+ *   has no `ppt/tableStyles.xml`, the writer is a no-op.
  */
 
-import type {
-	XmlObject,
-	PptxViewProperties,
-	ParsedTableStyleMap,
-	ParsedTableStyleEntry,
-	ParsedTableStyleFill,
-	ParsedTableStyleText,
-} from '../../types';
+import type { XmlObject, PptxViewProperties, ParsedTableStyleMap } from '../../types';
 import { safeResolveZipPath } from '../../utils/safe-path';
 import { buildViewPropertiesXml } from './pptx-view-props-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveHandoutMaster';
-
-/** Section keys on `a:tblStyle` whose fills round-trip through the typed map. */
-const FILL_SECTIONS: Array<{ xmlKey: string; entryKey: keyof ParsedTableStyleEntry }> = [
-	{ xmlKey: 'a:wholeTbl', entryKey: 'wholeTblFill' },
-	{ xmlKey: 'a:band1H', entryKey: 'band1HFill' },
-	{ xmlKey: 'a:band2H', entryKey: 'band2HFill' },
-	{ xmlKey: 'a:band1V', entryKey: 'band1VFill' },
-	{ xmlKey: 'a:band2V', entryKey: 'band2VFill' },
-	{ xmlKey: 'a:firstRow', entryKey: 'firstRowFill' },
-	{ xmlKey: 'a:lastRow', entryKey: 'lastRowFill' },
-	{ xmlKey: 'a:firstCol', entryKey: 'firstColFill' },
-	{ xmlKey: 'a:lastCol', entryKey: 'lastColFill' },
-];
-
-/** Section keys on `a:tblStyle` whose text styles round-trip through the typed map. */
-const TEXT_SECTIONS: Array<{ xmlKey: string; entryKey: keyof ParsedTableStyleEntry }> = [
-	{ xmlKey: 'a:wholeTbl', entryKey: 'wholeTblText' },
-	{ xmlKey: 'a:firstRow', entryKey: 'firstRowText' },
-	{ xmlKey: 'a:lastRow', entryKey: 'lastRowText' },
-	{ xmlKey: 'a:firstCol', entryKey: 'firstColText' },
-	{ xmlKey: 'a:lastCol', entryKey: 'lastColText' },
-	{ xmlKey: 'a:band1H', entryKey: 'band1HText' },
-	{ xmlKey: 'a:band2H', entryKey: 'band2HText' },
-	{ xmlKey: 'a:band1V', entryKey: 'band1VText' },
-	{ xmlKey: 'a:band2V', entryKey: 'band2VText' },
-];
+import { applyTableStyleEntryToNode } from './table-style-save';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -123,21 +96,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Merge edits from a {@link ParsedTableStyleMap} onto the existing
 	 * `ppt/tableStyles.xml`. Preserves the `<a:tblStyleLst @def>` GUID
-	 * and any unmodelled section attributes / children. No-op when the
-	 * source archive has no `ppt/tableStyles.xml` or no styles were
-	 * passed via save options.
+	 * (unless {@link defaultStyleId} overrides it) and any unmodelled section
+	 * attributes / children. A GUID in `tableStyles` that the archive does not
+	 * already have becomes a brand-new `<a:tblStyle styleId="...">` node
+	 * (`create_table_style`); a GUID in {@link deleteStyleIds} is removed
+	 * (`delete_table_style`), unless it is also the (resulting) default. No-op
+	 * entirely when the source archive has no `ppt/tableStyles.xml`, or when
+	 * none of the three parameters carry anything to do.
 	 */
 	protected async applyTableStylesPart(
 		tableStyles: ParsedTableStyleMap | undefined,
+		defaultStyleId?: string,
+		deleteStyleIds?: string[],
 	): Promise<void> {
-		if (!tableStyles || Object.keys(tableStyles).length === 0) {
+		const hasEdits = Boolean(tableStyles && Object.keys(tableStyles).length > 0);
+		const hasDefault = Boolean(defaultStyleId);
+		const hasDeletes = Boolean(deleteStyleIds && deleteStyleIds.length > 0);
+		if (!hasEdits && !hasDefault && !hasDeletes) {
 			return;
 		}
 
 		const path = 'ppt/tableStyles.xml';
 		const xmlStr = await this.zip.file(path)?.async('string');
 		if (!xmlStr) {
-			// Don't invent a new part — content types / rels would also need updating.
+			// Don't invent the PART itself: content types / rels would also
+			// need updating; a caller with no tableStyles.xml at all gets a
+			// no-op rather than a half-wired new part.
 			return;
 		}
 
@@ -154,11 +138,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const styleNodes = this.ensureArray(styleLst['a:tblStyle']);
-		if (styleNodes.length === 0) {
-			return;
-		}
 
-		// Build a quick lookup from normalised GUID -> XML node.
 		const byGuid = new Map<string, XmlObject>();
 		for (const node of styleNodes) {
 			const rawId = String((node as XmlObject)['@_styleId'] || '').trim();
@@ -167,136 +147,44 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		for (const [guid, entry] of Object.entries(tableStyles)) {
-			const target = byGuid.get(this.normalizeTableStyleGuid(guid));
-			if (!target) {
-				continue;
+		if (hasEdits) {
+			for (const [guid, entry] of Object.entries(tableStyles as ParsedTableStyleMap)) {
+				const normalizedGuid = this.normalizeTableStyleGuid(guid);
+				let target = byGuid.get(normalizedGuid);
+				if (!target) {
+					// No existing node for this GUID: create one (issue: a
+					// caller-created style previously had no serialize path at
+					// all, so `create_table_style` could never actually persist).
+					target = { '@_styleId': normalizedGuid };
+					styleNodes.push(target);
+					byGuid.set(normalizedGuid, target);
+				}
+				if (entry.styleName !== undefined) {
+					target['@_styleName'] = entry.styleName;
+				}
+				applyTableStyleEntryToNode(target, entry);
 			}
-			if (entry.styleName !== undefined) {
-				target['@_styleName'] = entry.styleName;
-			}
-			applyTableStyleEntryToNode(target, entry);
 		}
 
-		// Preserve the `def` attribute and any other tblStyleLst-level
-		// attributes via the round-tripped object (parser captures them
-		// on `styleLst`).
+		let finalStyleNodes = styleNodes;
+		if (hasDeletes) {
+			const toDelete = new Set(
+				(deleteStyleIds as string[]).map((id) => this.normalizeTableStyleGuid(id)),
+			);
+			const protectedId = this.normalizeTableStyleGuid(
+				defaultStyleId || String(styleLst['@_def'] || ''),
+			);
+			finalStyleNodes = styleNodes.filter((node) => {
+				const id = this.normalizeTableStyleGuid(String((node as XmlObject)['@_styleId'] || ''));
+				return id === protectedId || !toDelete.has(id);
+			});
+		}
+		styleLst['a:tblStyle'] = finalStyleNodes;
+
+		if (hasDefault) {
+			styleLst['@_def'] = this.normalizeTableStyleGuid(defaultStyleId as string);
+		}
+
 		this.zip.file(path, this.builder.build(parsed));
 	}
-}
-
-/**
- * Apply parsed fill/text edits onto a single `a:tblStyle` XML node.
- * Exported for unit testing.
- */
-export function applyTableStyleEntryToNode(
-	styleNode: XmlObject,
-	entry: ParsedTableStyleEntry,
-): void {
-	for (const { xmlKey, entryKey } of FILL_SECTIONS) {
-		const fill = entry[entryKey] as ParsedTableStyleFill | undefined;
-		if (!fill) {
-			continue;
-		}
-		applyFillToSection(styleNode, xmlKey, fill);
-	}
-
-	for (const { xmlKey, entryKey } of TEXT_SECTIONS) {
-		const text = entry[entryKey] as ParsedTableStyleText | undefined;
-		if (!text) {
-			continue;
-		}
-		applyTextToSection(styleNode, xmlKey, text);
-	}
-}
-
-function applyFillToSection(
-	styleNode: XmlObject,
-	sectionKey: string,
-	fill: ParsedTableStyleFill,
-): void {
-	const section = ensureSection(styleNode, sectionKey);
-	const tcStyle = ensureChild(section, 'a:tcStyle');
-	const fillNode = ensureChild(tcStyle, 'a:fill');
-	const solidFill = ensureChild(fillNode, 'a:solidFill');
-
-	const schemeClr: XmlObject = { '@_val': fill.schemeColor };
-	if (fill.tint !== undefined) {
-		schemeClr['a:tint'] = { '@_val': String(fill.tint) };
-	}
-	if (fill.shade !== undefined) {
-		schemeClr['a:shade'] = { '@_val': String(fill.shade) };
-	}
-
-	// Replace any existing colour choice — solidFill is a choice element,
-	// so we drop sibling fill choices to avoid producing invalid XML.
-	for (const key of Object.keys(solidFill)) {
-		delete solidFill[key];
-	}
-	solidFill['a:schemeClr'] = schemeClr;
-}
-
-function applyTextToSection(
-	styleNode: XmlObject,
-	sectionKey: string,
-	text: ParsedTableStyleText,
-): void {
-	const section = ensureSection(styleNode, sectionKey);
-	const tcTxStyle = ensureChild(section, 'a:tcTxStyle');
-
-	if (text.bold !== undefined) {
-		if (text.bold) {
-			tcTxStyle['@_b'] = 'on';
-		} else {
-			delete tcTxStyle['@_b'];
-		}
-	}
-	if (text.italic !== undefined) {
-		if (text.italic) {
-			tcTxStyle['@_i'] = 'on';
-		} else {
-			delete tcTxStyle['@_i'];
-		}
-	}
-	if (text.fontSchemeColor !== undefined) {
-		const schemeClr: XmlObject = { '@_val': text.fontSchemeColor };
-		if (text.fontTint !== undefined) {
-			schemeClr['a:tint'] = { '@_val': String(text.fontTint) };
-		}
-		if (text.fontShade !== undefined) {
-			schemeClr['a:shade'] = { '@_val': String(text.fontShade) };
-		}
-		// Drop any other colour choice on the txStyle node.
-		delete tcTxStyle['a:srgbClr'];
-		delete tcTxStyle['a:sysClr'];
-		tcTxStyle['a:schemeClr'] = schemeClr;
-	}
-}
-
-function ensureSection(styleNode: XmlObject, sectionKey: string): XmlObject {
-	const existing = styleNode[sectionKey];
-	// Some parsers represent repeated keys as arrays. tblStyle sections
-	// only ever appear once each in a valid file, so unwrap if needed.
-	if (Array.isArray(existing) && existing.length > 0) {
-		return existing[0] as XmlObject;
-	}
-	if (existing && typeof existing === 'object') {
-		return existing as XmlObject;
-	}
-	const created: XmlObject = {};
-	styleNode[sectionKey] = created;
-	return created;
-}
-
-function ensureChild(parent: XmlObject, key: string): XmlObject {
-	const existing = parent[key];
-	if (Array.isArray(existing) && existing.length > 0) {
-		return existing[0] as XmlObject;
-	}
-	if (existing && typeof existing === 'object') {
-		return existing as XmlObject;
-	}
-	const created: XmlObject = {};
-	parent[key] = created;
-	return created;
 }

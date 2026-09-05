@@ -25,6 +25,16 @@ export type { HslColor } from './color-primitives';
 export { applyDrawingColorTransforms } from './color-transforms';
 
 export {
+	isThemeColorSchemeName,
+	themeColorRefToXml,
+	themeColorRefToSolidFill,
+	themeColorRefToSolidFillWithOpacity,
+	themeColorRefFromSchemeClr,
+	themeColorRefFromColorChoice,
+	resolveThemeColorRef,
+} from './theme-color-ref';
+
+export {
 	parseDrawingColorChoice,
 	parseDrawingColor,
 	parseDrawingColorOpacity,

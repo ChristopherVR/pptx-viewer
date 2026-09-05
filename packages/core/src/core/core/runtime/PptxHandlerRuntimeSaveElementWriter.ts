@@ -389,6 +389,52 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Write a graphic-frame element's (table/chart/smartArt/ole/media)
+	 * accessibility text back to `p:nvGraphicFramePr/p:cNvPr/@descr` / `@title`.
+	 *
+	 * Mirrors `applyImageProperties`'s alt-text handling for pictures
+	 * (`p:nvPicPr/p:cNvPr/@descr`), which never covered a graphic frame:
+	 * `PptxGraphicFrameParser.ts` now parses `altText`/`title` on these five
+	 * element types, so an edit to either field needs a write-side mirror or
+	 * it is silently dropped on save. `undefined` means "the model has no
+	 * opinion" (left untouched, same as `applyNameToCnvPr`'s `name`); an
+	 * explicit empty string clears the attribute.
+	 */
+	protected applyGraphicFrameAltTextToCnvPr(shape: XmlObject, el: PptxElement): void {
+		if (
+			el.type !== 'table' &&
+			el.type !== 'chart' &&
+			el.type !== 'smartArt' &&
+			el.type !== 'ole' &&
+			el.type !== 'media'
+		) {
+			return;
+		}
+		const cNvPr = (shape['p:nvGraphicFramePr'] as XmlObject | undefined)?.['p:cNvPr'] as
+			| XmlObject
+			| undefined;
+		if (!cNvPr) {
+			return;
+		}
+		if (el.altText !== undefined) {
+			const trimmed = el.altText.trim();
+			if (trimmed.length > 0) {
+				cNvPr['@_descr'] = trimmed;
+			} else {
+				delete cNvPr['@_descr'];
+			}
+		}
+		if (el.title !== undefined) {
+			const trimmed = el.title.trim();
+			if (trimmed.length > 0) {
+				cNvPr['@_title'] = trimmed;
+			} else {
+				delete cNvPr['@_title'];
+			}
+		}
+	}
+
+	/**
 	 * Process a single slide element during save. Handles embedding,
 	 * transforms, geometry, styles, text, and sorts into collectors.
 	 */
@@ -641,6 +687,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// below so a hidden or renamed inherited layout/master shape persists too.
 		this.applyHiddenToCnvPr(shape, el);
 		this.applyNameToCnvPr(shape, el);
+		this.applyGraphicFrameAltTextToCnvPr(shape, el);
 
 		// Template elements
 		if (this.isOwnTemplateElement(el, ctx)) {

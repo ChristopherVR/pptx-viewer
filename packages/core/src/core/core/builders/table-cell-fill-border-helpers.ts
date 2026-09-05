@@ -1,3 +1,4 @@
+import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import type { PptxTableCellStyle, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 
@@ -64,6 +65,10 @@ export function applyCellFillStyle(
 			const bgColorXml = extractColorChoiceXml(solidFillNode);
 			if (bgColorXml) {
 				style.backgroundColorXml = bgColorXml;
+			}
+			const bgColorRef = themeColorRefFromColorChoice(solidFillNode);
+			if (bgColorRef) {
+				style.backgroundColorRef = bgColorRef;
 			}
 			hasStyle = true;
 		}

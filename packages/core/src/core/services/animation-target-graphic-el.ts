@@ -37,6 +37,9 @@ export function parseGraphicElement(
 		kind: dgm ? 'dgm' : 'chart',
 		...(seriesIdx !== undefined && !Number.isNaN(seriesIdx) ? { seriesIdx } : {}),
 		...(categoryIdx !== undefined && !Number.isNaN(categoryIdx) ? { categoryIdx } : {}),
+		// `p:dgm/@id` (CT_TLBuildDiagram): the diagram data-model point id this
+		// effect reveals. Chart targets never carry this attribute.
+		...(dgm && node['@_id'] !== undefined ? { id: String(node['@_id']) } : {}),
 		...(node['@_bldStep'] !== undefined ? { bldStep: String(node['@_bldStep']) } : {}),
 	};
 }
@@ -65,13 +68,14 @@ export function serializeGraphicElement(
 		delete shape['p:graphicEl'];
 		return;
 	}
-	const { kind, seriesIdx, categoryIdx, bldStep } = graphicElement;
+	const { kind, seriesIdx, categoryIdx, id, bldStep } = graphicElement;
 	const nodeKey = kind === 'dgm' ? 'p:dgm' : 'p:chart';
 	const existingGraphicEl = (shape['p:graphicEl'] as XmlObject | undefined) ?? {};
 	const node: XmlObject = {
 		...((existingGraphicEl[nodeKey] as XmlObject | undefined) ?? {}),
 		...(seriesIdx !== undefined ? { '@_seriesIdx': String(seriesIdx) } : {}),
 		...(categoryIdx !== undefined ? { '@_categoryIdx': String(categoryIdx) } : {}),
+		...(kind === 'dgm' && id !== undefined ? { '@_id': id } : {}),
 		...(bldStep !== undefined ? { '@_bldStep': bldStep } : {}),
 	};
 	shape['p:graphicEl'] = {

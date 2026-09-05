@@ -86,4 +86,36 @@ describe('activex control serialization', () => {
 		const node = buildActiveXControlNode({ relId: 'rId7' });
 		expect(node).toStrictEqual({ '@_r:id': 'rId7' });
 	});
+
+	it('round-trips showAsIcon/imgW/imgH through parse, edit, and serialize', () => {
+		const slide = synthSlide();
+		const parsed = parseActiveXControlsFromSlide(slide);
+		parsed[0].showAsIcon = true;
+		parsed[0].imgWidthEmu = 1828800;
+		parsed[0].imgHeightEmu = 914400;
+		applyActiveXControlsToSlide(slide, parsed);
+
+		const reparsed = parseActiveXControlsFromSlide(slide);
+		expect(reparsed[0]).toMatchObject({
+			relId: 'rId2',
+			showAsIcon: true,
+			imgWidthEmu: 1828800,
+			imgHeightEmu: 914400,
+		});
+	});
+
+	it('serializes showAsIcon/imgW/imgH into a freshly-built control node', () => {
+		const node = buildActiveXControlNode({
+			relId: 'rId7',
+			showAsIcon: false,
+			imgWidthEmu: 500,
+			imgHeightEmu: 250,
+		});
+		expect(node).toMatchObject({
+			'@_r:id': 'rId7',
+			'@_showAsIcon': '0',
+			'@_imgW': '500',
+			'@_imgH': '250',
+		});
+	});
 });

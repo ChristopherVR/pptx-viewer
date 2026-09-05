@@ -88,9 +88,13 @@ describe('preset shape geometry — tabs / gears / decorations', () => {
 		expect(gear9?.pathLst[0]?.commands).toHaveLength(9 * 4 + 1);
 	});
 
-	it('gear shapes expose tooth-depth adj defaults', () => {
-		expect(TABS_DECORATIONS_PRESET_DEFINITIONS.gear6?.avLst?.adj).toBe(15000);
-		expect(TABS_DECORATIONS_PRESET_DEFINITIONS.gear9?.avLst?.adj).toBe(10000);
+	it('gear shapes expose both adj1 (tooth depth) and adj2 defaults (COM-verified: Adjustments.Count is 2)', () => {
+		expect(TABS_DECORATIONS_PRESET_DEFINITIONS.gear6?.avLst?.adj1).toBe(15000);
+		expect(TABS_DECORATIONS_PRESET_DEFINITIONS.gear6?.avLst?.adj2).toBe(3526);
+		expect(TABS_DECORATIONS_PRESET_DEFINITIONS.gear9?.avLst?.adj1).toBe(10000);
+		expect(TABS_DECORATIONS_PRESET_DEFINITIONS.gear9?.avLst?.adj2).toBe(1763);
+		expect(Object.keys(TABS_DECORATIONS_PRESET_DEFINITIONS.gear6?.avLst ?? {})).toHaveLength(2);
+		expect(Object.keys(TABS_DECORATIONS_PRESET_DEFINITIONS.gear9?.avLst ?? {})).toHaveLength(2);
 	});
 
 	it('funnel has no avLst and exposes a closed V silhouette', () => {

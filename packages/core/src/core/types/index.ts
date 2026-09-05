@@ -14,6 +14,7 @@
 // ==========================================================================
 
 export * from './common';
+export * from './color-ref';
 export * from './three-d';
 export * from './text';
 export * from './shape-style';
@@ -21,6 +22,7 @@ export * from './image';
 export * from './effect-dag';
 export * from './geometry';
 export * from './chart';
+export * from './chart-title';
 export * from './chart-print-settings';
 export * from './chart-protection';
 export * from './chart-pivot-source';
@@ -29,6 +31,7 @@ export * from './chart-axis';
 export * from './chart-ex';
 export * from './smart-art';
 export * from './table';
+export * from './table-style-edit';
 export * from './transition';
 export * from './animation';
 export * from './media';

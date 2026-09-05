@@ -160,7 +160,7 @@ assign(['diagram:attribute:coherent3DOff'], {
 	preserve: 'unassessed',
 	edit: 'unassessed',
 	serialize: 'unassessed',
-	note: 'Since wave 2 (W2-E), dgm:prSet/@coherent3DOff is resolved per data-model point (via its presOf-linked pres point, the same pattern styleRole already uses) into PptxSmartArtNode.coherent3DOff (core/utils/smartart-node-style-role.ts, resolveSmartArtNodeCoherent3DOff). It has no rendering consumer: no scene3d/sp3d SmartArt renderer exists in this project, so disabling the coherent-3D shape variation has nothing to disable yet, and no editor writes the attribute independently, so preserve/edit/serialize are left unassessed rather than assumed.',
+	note: 'Since wave 2 (W2-E), dgm:prSet/@coherent3DOff is resolved per data-model point (via its presOf-linked pres point, the same pattern styleRole already uses) into PptxSmartArtNode.coherent3DOff (core/utils/smartart-node-style-role.ts, resolveSmartArtNodeCoherent3DOff). Since wave 3 (W3-C), it now has a rendering consumer: the opt-in smartArt3D renderer (packages/shared/src/render/smartart-3d-model.ts) collects flagged node ids into SmartArt3DModelOptions.coherent3DOffNodeIds and skips the deterministic per-node bevel-variation multiplier for those nodes, giving them the plain un-varied bevel PowerPoint uses when coherent 3D is turned off. No editor writes the attribute independently, so preserve/edit/serialize are left unassessed rather than assumed.',
 	evidence: [
 		testEvidence(
 			'src/core/utils/smartart-node-style-role.test.ts',

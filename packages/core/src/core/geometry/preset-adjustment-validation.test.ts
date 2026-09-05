@@ -67,4 +67,25 @@ describe('filterValidShapeAdjustmentEntries', () => {
 	it('returns an empty array when no adjustments are supplied', () => {
 		expect(filterValidShapeAdjustmentEntries('homePlate', undefined)).toStrictEqual([]);
 	});
+
+	it('drops a bogus `adj` for actionButtonHome (COM-verified: 0 real guides)', () => {
+		// W3-F: this repo previously modelled a nonexistent `adj: 6250` for the
+		// whole actionButton* family, which this filter would have serialized
+		// straight into the corruption class documented above the module.
+		const entries = filterValidShapeAdjustmentEntries('actionButtonHome', { adj: 6250 });
+		expect(entries).toStrictEqual([]);
+	});
+
+	it('keeps a correct adj1/adj2 pair for gear6 (COM-verified: 2 real guides)', () => {
+		const entries = filterValidShapeAdjustmentEntries('gear6', { adj1: 20000, adj2: 4000 });
+		expect(entries).toStrictEqual([
+			['adj1', 20000],
+			['adj2', 4000],
+		]);
+	});
+
+	it('drops a stray `adj` for gear9 (its real guides are adj1/adj2, not adj)', () => {
+		const entries = filterValidShapeAdjustmentEntries('gear9', { adj: 10000 });
+		expect(entries).toStrictEqual([]);
+	});
 });

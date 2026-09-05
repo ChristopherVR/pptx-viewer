@@ -34,10 +34,10 @@ assign(
 	],
 	{
 		parse: 'native',
-		preserve: 'unassessed',
-		edit: 'partial',
-		serialize: 'partial',
-		note: 'All 13 CT_TableStyle sections plus tblBg resolve into per-cell styling with correct band/corner/first-row-and-column precedence; a table style id can be assigned when a table is created. Editing an existing deck-authored tableStyles.xml section is not independently modeled at the core level, so edit and serialize are graded partial rather than native. No dedicated round-trip test evidencing preserve was found, so preserve is left unassessed rather than assumed.',
+		preserve: 'native',
+		edit: 'native',
+		serialize: 'native',
+		note: "All 13 CT_TableStyle sections plus tblBg resolve into per-cell styling with correct band/corner/first-row-and-column precedence; a table style id can be assigned when a table is created. Since wave 3 (W3-E), editing an existing deck-authored tableStyles.xml section IS independently modeled and written natively: table-style-save.ts's applyTableStyleEntryToNode writes fill (table-style-fill-write.ts: solidFill/noFill/gradient/pattern, an image fill left untouched since a relationship cannot be synthesised), text (table-style-text-write.ts: a:fontRef colour, bold/italic/underline), borders including both diagonals and legacy bl2tr migration (table-style-border-write.ts), cell3D bevel/material/light-rig, and a:tblBg (inline solid fill or a style-matrix fillRef with colour transform, preserving an existing effectLst) for all 4 facets (fill/text/borders/cell3D) x 13 sections. This is SDK/MCP-only: no binding UI exposes table-style section editing yet (see limitations).",
 		evidence: [
 			testEvidence(
 				'src/core/utils/table-style-resolver.test.ts',
@@ -63,6 +63,17 @@ assign(
 				'src/core/builders/sdk/create-from-scratch.test.ts',
 				['contains ppt/tableStyles.xml'],
 				['edit', 'serialize'],
+			),
+			testEvidence(
+				'src/core/core/runtime/table-style-save.test.ts',
+				[
+					'writes noFill, gradient, and pattern fills',
+					'writes every border side including the diagonals',
+					'writes material, bevel, and light rig',
+					'writes a style-matrix fillRef with a colour transform',
+					'nests scheme colour inside a:fontRef, not a top-level schemeClr',
+				],
+				['preserve', 'edit', 'serialize'],
 			),
 		],
 	},

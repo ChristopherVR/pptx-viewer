@@ -6,6 +6,7 @@ import type {
 } from '../types';
 import { parseDefRPrTextStyle, resolveTxPrDefRPr } from './chart-def-rpr-style';
 import { parseChartManualLayout } from './chart-layout';
+import { parseShapeProps } from './chart-series-detail-parser';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -243,6 +244,14 @@ export function parseSeriesDataLabels(
 			);
 			if (txPrStyle) {
 				result.txPr = txPrStyle;
+			}
+			const spPr = parseShapeProps(
+				xmlLookup.getChildByLocalName(node, 'spPr'),
+				xmlLookup,
+				colorParser,
+			);
+			if (spPr) {
+				result.spPr = spPr;
 			}
 		}
 		return [result];

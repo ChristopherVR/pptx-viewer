@@ -186,6 +186,46 @@ describe('graphic-frame + nested-group lock round-trip', () => {
 		});
 	});
 
+	it('moves, resizes, and renames a graphic frame through the model', async () => {
+		// General graphic-frame editing (position/size/name/locks), not just
+		// the `graphicFrameLocks` sub-feature: `presentation:element:graphicFrame`
+		// was graded edit:"partial" because only the lock facet had a test,
+		// even though the generic element writer (`applyTransform`,
+		// `applyNameToCnvPr`, `serializeShapeLocks`) already handles every
+		// `p:nvGraphicFramePr`-shaped element the same way it handles a
+		// `p:sp`. This proves that generic path for a chart's `p:xfrm`,
+		// `p:cNvPr/@name`, and `a:graphicFrameLocks` together.
+		const bytes = await deckWithSlideXml(CHART_FRAME);
+		const handler = new PptxHandler();
+		const loaded = await handler.load(bytes.buffer as ArrayBuffer);
+		const chart = findByType(loaded.slides[0].elements, 'chart')!;
+
+		chart.x = 50; // px
+		chart.y = 10;
+		chart.width = 300;
+		chart.height = 200;
+		chart.name = 'Renamed Chart';
+		chart.locks = { ...chart.locks, noMove: true };
+
+		const saved = await handler.save(loaded.slides);
+		const xml = await slideXmlOf(saved);
+		expect(xml).toContain('name="Renamed Chart"');
+		expect(xml).toMatch(/<a:graphicFrameLocks[^>]*noMove="1"/u);
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedChart = findByType(reloaded.slides[0].elements, 'chart')!;
+		expect(reloadedChart.name).toBe('Renamed Chart');
+		expect(reloadedChart.x).toBeCloseTo(50, 0);
+		expect(reloadedChart.y).toBeCloseTo(10, 0);
+		expect(reloadedChart.width).toBeCloseTo(300, 0);
+		expect(reloadedChart.height).toBeCloseTo(200, 0);
+		expect(reloadedChart.locks).toMatchObject({
+			noMove: true,
+			noSelect: true,
+			noChangeAspect: true,
+		});
+	});
+
 	it('persists a lock added to a chart through the model', async () => {
 		const bytes = await deckWithSlideXml(CHART_FRAME);
 		const handler = new PptxHandler();

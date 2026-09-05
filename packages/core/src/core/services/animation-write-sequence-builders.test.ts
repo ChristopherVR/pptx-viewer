@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import type { PptxElementAnimation, XmlObject } from '../types';
+import type { PptxElementAnimation, PptxTimingTemplate, XmlObject } from '../types';
+import { extractBldPTemplates } from './animation-timing-templates';
 import {
 	buildEffectNodesForAnimation,
 	buildBuildListXml,
@@ -163,6 +164,37 @@ describe('buildBuildListXml', () => {
 
 	it('returns undefined for an empty animations array', () => {
 		expect(buildBuildListXml([])).toBeUndefined();
+	});
+
+	it('re-emits buildTemplates as p:tmplLst, round-tripping through extractBldPTemplates', () => {
+		const buildTemplates: PptxTimingTemplate[] = [
+			{
+				level: 1,
+				timeNodeList: { 'p:par': { 'p:cTn': { '@_id': '9', '@_presetID': '1' } } },
+				rawXml: { '@_lvl': '1' },
+			},
+		];
+		const animations: PptxElementAnimation[] = [
+			{ elementId: 'sp1', sequence: 'byParagraph', buildTemplates },
+		];
+		const result = buildBuildListXml(animations)!;
+		const bldP = result['p:bldP'] as XmlObject;
+		expect(bldP['p:tmplLst']).toBeDefined();
+
+		// Round-trip: parsing what was just written must reproduce the level and
+		// timeNodeList this bldP was given (proving the writer's `serializeBldPTemplates`
+		// call agrees with the parser's `extractBldPTemplates`, not just that SOME XML came out).
+		const reparsed = extractBldPTemplates(bldP);
+		expect(reparsed).toHaveLength(1);
+		expect(reparsed[0]?.level).toBe(1);
+		expect(reparsed[0]?.timeNodeList).toStrictEqual(buildTemplates[0]!.timeNodeList);
+	});
+
+	it('omits p:tmplLst when buildTemplates is absent', () => {
+		const animations: PptxElementAnimation[] = [{ elementId: 'sp1', sequence: 'byParagraph' }];
+		const result = buildBuildListXml(animations)!;
+		const bldP = result['p:bldP'] as XmlObject;
+		expect(bldP['p:tmplLst']).toBeUndefined();
 	});
 });
 

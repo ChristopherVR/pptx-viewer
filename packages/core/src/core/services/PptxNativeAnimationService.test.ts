@@ -978,6 +978,104 @@ describe('pptxNativeAnimationService', () => {
 			expect(result![0].colorAnimation!.toColor).toBe('#0000FF');
 		});
 
+		// emph.15 "Bold Reveal" (COM-recorded shape: presetId 15, attrName
+		// 'style.fontweight', a single `p:set` child - no `p:anim`/`p:animClr`
+		// at all - see packages/shared/src/render/animation-emphasis-ground-truth-early.ts).
+		it("parses a p:set discrete attribute assignment (emph.15 'Bold Reveal')", () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'@_presetID': '15',
+										'@_presetClass': 'emph',
+										'@_dur': '1',
+										'p:childTnLst': {
+											'p:set': {
+												'p:cBhvr': {
+													'p:cTn': { '@_id': '3', '@_dur': '1' },
+													'p:tgtEl': { 'p:spTgt': { '@_spid': 'boldShape' } },
+													'p:attrNameLst': { 'p:attrName': 'style.fontWeight' },
+												},
+												'p:to': { 'p:strVal': { '@_val': 'bold' } },
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result).toBeDefined();
+			expect(result![0].targetId).toBe('boldShape');
+			expect(result![0].presetClass).toBe('emph');
+			expect(result![0].setAnimations).toStrictEqual([
+				{
+					attrName: 'style.fontweight',
+					value: 'bold',
+					valueType: 'str',
+					durationMs: 1,
+					delayMs: undefined,
+				},
+			]);
+		});
+
+		// emph.18 "Underline" (BrushOnUnderline): the same shape, a boolean
+		// p:to this time, proving the value-type discrimination, not just the
+		// string case.
+		it("parses a boolean p:to value (emph.18 'Underline')", () => {
+			const slideXml = buildSlideXmlWithTiming({
+				'p:tnLst': {
+					'p:par': {
+						'p:cTn': {
+							'@_id': '1',
+							'@_dur': 'indefinite',
+							'@_nodeType': 'tmRoot',
+							'p:childTnLst': {
+								'p:par': {
+									'p:cTn': {
+										'@_id': '2',
+										'@_presetID': '18',
+										'@_presetClass': 'emph',
+										'@_dur': '1',
+										'p:childTnLst': {
+											'p:set': {
+												'p:cBhvr': {
+													'p:tgtEl': { 'p:spTgt': { '@_spid': 'underlineShape' } },
+													'p:attrNameLst': {
+														'p:attrName': 'style.textDecorationUnderline',
+													},
+												},
+												'p:to': { 'p:boolVal': { '@_val': '1' } },
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const result = service.parseNativeAnimations(slideXml);
+			expect(result![0].setAnimations).toStrictEqual([
+				{
+					attrName: 'style.textdecorationunderline',
+					value: true,
+					valueType: 'bool',
+					durationMs: undefined,
+					delayMs: undefined,
+				},
+			]);
+		});
+
 		it('preserves signed HSL deltas and every sibling p:animClr behaviour', () => {
 			const colorBehaviour = (targetAttribute: string, h: string, s: string, l: string) => ({
 				'@_clrSpc': 'hsl',

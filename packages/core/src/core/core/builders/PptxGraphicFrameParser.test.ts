@@ -267,3 +267,70 @@ describe('pptxGraphicFrameParser table dimensions', () => {
 		expect(result.height).toBe(180);
 	});
 });
+
+describe('pptxGraphicFrameParser name/shapeId', () => {
+	/**
+	 * `p:nvGraphicFramePr/p:cNvPr` is the same non-visual-properties container
+	 * a `p:sp` carries. The generic save-side writer (`applyNameToCnvPr`,
+	 * `applyShapeIdToCnvPr`) already reads/writes it for every
+	 * `p:nvGraphicFramePr`-shaped element, but until now nothing populated
+	 * `element.name` / `element.shapeId` on PARSE, so a table/chart/SmartArt
+	 * rename reverted after a save/reload and `element.shapeId` was always
+	 * undefined for these types.
+	 */
+	it('parses name and shapeId from p:cNvPr for a table frame', () => {
+		const parser = makeParser({ parseTableData: () => ({ rows: [], columnWidths: [] }) });
+		const frame: XmlObject = {
+			'p:nvGraphicFramePr': {
+				'p:cNvPr': { '@_id': '4', '@_name': 'Sales Table' },
+				'p:cNvGraphicFramePr': {},
+				'p:nvPr': {},
+			},
+			'p:xfrm': {
+				'a:off': { '@_x': '0', '@_y': '0' },
+				'a:ext': { '@_cx': '2286000', '@_cy': '1714500' },
+			},
+			'a:graphic': { 'a:graphicData': { 'a:tbl': {} } },
+		};
+
+		const result = parser.parseGraphicFrame(frame, 'table-3') as TablePptxElement;
+		expect(result.name).toBe('Sales Table');
+		expect(result.shapeId).toBe('4');
+	});
+
+	it('parses name and shapeId from p:cNvPr for a chart frame', () => {
+		const parser = makeParser();
+		const frame: XmlObject = {
+			'p:nvGraphicFramePr': {
+				'p:cNvPr': { '@_id': '9', '@_name': 'Quarterly Chart' },
+				'p:cNvGraphicFramePr': {},
+				'p:nvPr': {},
+			},
+			'p:xfrm': {
+				'a:off': { '@_x': '0', '@_y': '0' },
+				'a:ext': { '@_cx': '2286000', '@_cy': '1714500' },
+			},
+			'a:graphic': { 'a:graphicData': { 'c:chart': {} } },
+		};
+
+		const result = parser.parseGraphicFrame(frame, 'chart-1') as XmlObject;
+		expect(result.name).toBe('Quarterly Chart');
+		expect(result.shapeId).toBe('9');
+	});
+
+	it('leaves name/shapeId undefined when p:cNvPr carries neither attribute', () => {
+		const parser = makeParser({ parseTableData: () => ({ rows: [], columnWidths: [] }) });
+		const frame: XmlObject = {
+			'p:nvGraphicFramePr': { 'p:cNvPr': {}, 'p:cNvGraphicFramePr': {}, 'p:nvPr': {} },
+			'p:xfrm': {
+				'a:off': { '@_x': '0', '@_y': '0' },
+				'a:ext': { '@_cx': '2286000', '@_cy': '1714500' },
+			},
+			'a:graphic': { 'a:graphicData': { 'a:tbl': {} } },
+		};
+
+		const result = parser.parseGraphicFrame(frame, 'table-4') as TablePptxElement;
+		expect(result.name).toBeUndefined();
+		expect(result.shapeId).toBeUndefined();
+	});
+});

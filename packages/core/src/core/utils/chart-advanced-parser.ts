@@ -121,9 +121,18 @@ export function parseSeriesTrendlines(
 			}
 
 			const spPr = xmlLookup.getChildByLocalName(node, 'spPr');
-			const lineColor = colorParser.parseColor(xmlLookup.getChildByLocalName(spPr, 'solidFill'));
+			const ln = xmlLookup.getChildByLocalName(spPr, 'ln');
+			const lineColor = colorParser.parseColor(xmlLookup.getChildByLocalName(ln, 'solidFill'));
 			if (lineColor) {
 				result.color = lineColor;
+			}
+			const widthEmu = safeInt(ln?.['@_w']);
+			if (widthEmu !== undefined) {
+				result.lineWidth = widthEmu / 12700;
+			}
+			const prstDash = xmlLookup.getChildByLocalName(ln, 'prstDash');
+			if (prstDash?.['@_val']) {
+				result.lineDashStyle = String(prstDash['@_val']);
 			}
 			const labelNode = xmlLookup.getChildByLocalName(node, 'trendlineLbl');
 			if (labelNode) {
@@ -193,11 +202,18 @@ export function parseSeriesErrBars(
 				}
 			}
 			const spPr = xmlLookup.getChildByLocalName(node, 'spPr');
-			const lineColor = colorParser?.parseColor(
-				xmlLookup.getChildByLocalName(xmlLookup.getChildByLocalName(spPr, 'ln'), 'solidFill'),
-			);
+			const ln = xmlLookup.getChildByLocalName(spPr, 'ln');
+			const lineColor = colorParser?.parseColor(xmlLookup.getChildByLocalName(ln, 'solidFill'));
 			if (lineColor) {
 				result.color = lineColor;
+			}
+			const widthEmu = safeInt(ln?.['@_w']);
+			if (widthEmu !== undefined) {
+				result.width = widthEmu / 12700;
+			}
+			const prstDash = xmlLookup.getChildByLocalName(ln, 'prstDash');
+			if (prstDash?.['@_val']) {
+				result.dashStyle = String(prstDash['@_val']);
 			}
 
 			return result;

@@ -12,7 +12,7 @@
 
 import type { PptxChartErrBars, XmlObject } from '../types';
 import type { ResolveChartColor } from './chart-color-choice';
-import { writeChartColorChoice } from './chart-color-choice';
+import { writeChartShapeProps } from './chart-shape-props-writer';
 
 type GetLocalName = (key: string) => string;
 
@@ -38,19 +38,25 @@ function validateErrBars(e: PptxChartErrBars): void {
 	}
 }
 
+/**
+ * Build the error bar's `c:spPr/a:ln` from its modeled line colour/width/dash.
+ * Delegates to the shared {@link writeChartShapeProps} writer (only its line
+ * half applies here, an error bar has no fill) so a width or dash edit is not
+ * silently dropped the way the single-colour writer this replaced would drop
+ * it.
+ */
 function buildSpPr(
 	existing: XmlObject | undefined,
-	color: string,
+	e: PptxChartErrBars,
 	getLocalName: GetLocalName,
 	resolveColor?: ResolveChartColor,
-) {
-	const spPr: XmlObject = existing ? { ...existing } : {};
-	const lnKey = findKey(spPr, 'ln', getLocalName) ?? 'a:ln';
-	const ln = { ...((spPr[lnKey] as XmlObject | undefined) ?? {}) };
-	const fillKey = findKey(ln, 'solidFill', getLocalName) ?? 'a:solidFill';
-	writeChartColorChoice(ln, fillKey, color, resolveColor);
-	spPr[lnKey] = ln;
-	return spPr;
+): XmlObject {
+	return writeChartShapeProps(
+		existing,
+		{ strokeColor: e.color, strokeWidth: e.width, strokeDashStyle: e.dashStyle },
+		getLocalName,
+		resolveColor,
+	);
 }
 
 /** Build a `c:numLit` cache for custom error-bar values. */
@@ -97,8 +103,8 @@ function buildErrBars(
 
 	const spPrKey = existing ? findKey(existing, 'spPr', getLocalName) : undefined;
 	const existingSpPr = spPrKey ? (existing?.[spPrKey] as XmlObject) : undefined;
-	if (e.color) {
-		node['c:spPr'] = buildSpPr(existingSpPr, e.color, getLocalName, resolveColor);
+	if (e.color || e.width !== undefined || e.dashStyle) {
+		node['c:spPr'] = buildSpPr(existingSpPr, e, getLocalName, resolveColor);
 	} else if (existingSpPr) {
 		node['c:spPr'] = existingSpPr;
 	}

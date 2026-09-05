@@ -12,14 +12,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import type { XmlObject, PptxViewProperties, ParsedTableStyleMap } from '../../types';
 import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
-import { applyTableStyleEntryToNode } from './PptxHandlerRuntimeSaveViewProperties';
 
 interface RuntimeWithProtected {
 	zip: JSZip;
 	parser: { parse(xml: string): XmlObject };
 	builder: { build(obj: XmlObject): string };
 	applyViewPropertiesPart(props: PptxViewProperties | undefined): Promise<void>;
-	applyTableStylesPart(styles: ParsedTableStyleMap | undefined): Promise<void>;
+	applyTableStylesPart(
+		styles: ParsedTableStyleMap | undefined,
+		defaultStyleId?: string,
+		deleteStyleIds?: string[],
+	): Promise<void>;
 }
 
 function createRuntime(): RuntimeWithProtected {
@@ -257,74 +260,78 @@ describe('applyTableStylesPart', () => {
 		const written = await runtime.zip.file('ppt/tableStyles.xml')?.async('string');
 		expect(written).toContain('val="accent3"');
 	});
-});
 
-describe('applyTableStyleEntryToNode (pure)', () => {
-	it('inserts new sections when missing on the style node', () => {
-		const node: XmlObject = { '@_styleId': '{X}' };
-		applyTableStyleEntryToNode(node, {
-			styleId: '{X}',
-			firstRowFill: { schemeColor: 'accent1', shade: 50000 },
-			firstRowText: { italic: true },
+	// The pure per-node section merge (fill/text/borders/cell3D/tblBg, all 13
+	// CT_TableStyle parts) is covered directly in `table-style-save.test.ts`.
+	// These cases exercise the archive-level behaviours only reachable through
+	// the full `applyTableStylesPart` writer: creating a style the archive
+	// didn't have, deleting one, and repointing `@def` (W3-E).
+
+	it('creates a brand-new a:tblStyle node for a GUID the archive does not have', async () => {
+		runtime.zip.file('ppt/tableStyles.xml', SOURCE_STYLES);
+
+		await runtime.applyTableStylesPart({
+			'{NEW-GUID}': {
+				styleId: '{NEW-GUID}',
+				styleName: 'My Custom Style',
+				wholeTblFill: { schemeColor: 'accent4' },
+			},
 		});
 
-		const firstRow = node['a:firstRow'] as XmlObject;
-		expect(firstRow).toBeDefined();
-		const schemeClr = firstRow['a:tcStyle']?.['a:fill']?.['a:solidFill']?.['a:schemeClr'] as
-			| XmlObject
-			| undefined;
-		expect(schemeClr?.['@_val']).toBe('accent1');
-		expect(schemeClr?.['a:shade']?.['@_val']).toBe('50000');
-		expect(firstRow['a:tcTxStyle']?.['@_i']).toBe('on');
+		const written = await runtime.zip.file('ppt/tableStyles.xml')?.async('string');
+		expect(written).toContain('styleId="{NEW-GUID}"');
+		expect(written).toContain('styleName="My Custom Style"');
+		expect(written).toContain('val="accent4"');
+		// The original style is untouched.
+		expect(written).toContain('styleId="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"');
 	});
 
-	it('does not overwrite sections that have no edits', () => {
-		const node: XmlObject = {
-			'@_styleId': '{X}',
-			'a:wholeTbl': {
-				'a:tcStyle': {
-					'a:fill': {
-						'a:solidFill': { 'a:schemeClr': { '@_val': 'accent5' } },
-					},
-				},
-			},
-		};
+	it('deletes a non-default style named in deleteStyleIds', async () => {
+		const TWO_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:tblStyleLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}">
+	<a:tblStyle styleId="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" styleName="Medium Style 2 - Accent 1"/>
+	<a:tblStyle styleId="{EXTRA-STYLE}" styleName="Extra"/>
+</a:tblStyleLst>`;
+		runtime.zip.file('ppt/tableStyles.xml', TWO_STYLES);
 
-		applyTableStyleEntryToNode(node, {
-			styleId: '{X}',
-			firstRowFill: { schemeColor: 'accent1' },
-		});
+		await runtime.applyTableStylesPart(undefined, undefined, ['{EXTRA-STYLE}']);
 
-		const wholeTbl = node['a:wholeTbl'] as XmlObject;
-		expect(
-			(wholeTbl['a:tcStyle'] as XmlObject)['a:fill']?.['a:solidFill']?.['a:schemeClr']?.['@_val'],
-		).toBe('accent5');
+		const written = await runtime.zip.file('ppt/tableStyles.xml')?.async('string');
+		expect(written).not.toContain('styleId="{EXTRA-STYLE}"');
+		expect(written).toContain('styleId="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"');
 	});
 
-	it('replaces existing colour choice on a fill (solidFill is a choice)', () => {
-		const node: XmlObject = {
-			'@_styleId': '{X}',
-			'a:wholeTbl': {
-				'a:tcStyle': {
-					'a:fill': {
-						'a:solidFill': {
-							'a:srgbClr': { '@_val': 'FF0000' },
-						},
-					},
-				},
-			},
-		};
+	it('refuses to delete the (resulting) default style', async () => {
+		runtime.zip.file('ppt/tableStyles.xml', SOURCE_STYLES);
 
-		applyTableStyleEntryToNode(node, {
-			styleId: '{X}',
-			wholeTblFill: { schemeColor: 'accent2', tint: 25000 },
-		});
+		await runtime.applyTableStylesPart(undefined, undefined, [
+			'{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}',
+		]);
 
-		const solidFill = (node['a:wholeTbl'] as XmlObject)['a:tcStyle']?.['a:fill']?.[
-			'a:solidFill'
-		] as XmlObject;
-		expect(solidFill['a:srgbClr']).toBeUndefined();
-		expect(solidFill['a:schemeClr']?.['@_val']).toBe('accent2');
-		expect(solidFill['a:schemeClr']?.['a:tint']?.['@_val']).toBe('25000');
+		// def points at that same GUID in SOURCE_STYLES, so the delete is a no-op.
+		const written = await runtime.zip.file('ppt/tableStyles.xml')?.async('string');
+		expect(written).toContain('styleId="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"');
+	});
+
+	it('repoints @def to a new default style id', async () => {
+		runtime.zip.file('ppt/tableStyles.xml', SOURCE_STYLES);
+
+		await runtime.applyTableStylesPart(
+			{ '{NEW-DEFAULT}': { styleId: '{NEW-DEFAULT}', styleName: 'New Default' } },
+			'{NEW-DEFAULT}',
+		);
+
+		const written = await runtime.zip.file('ppt/tableStyles.xml')?.async('string');
+		expect(written).toContain('def="{NEW-DEFAULT}"');
+		expect(written).toContain('styleId="{NEW-DEFAULT}"');
+	});
+
+	it('normalises the default id and does nothing else when only setting @def', async () => {
+		runtime.zip.file('ppt/tableStyles.xml', SOURCE_STYLES);
+
+		await runtime.applyTableStylesPart(undefined, '5c22544a-7ee6-4342-b048-85bdc9fd1c3a');
+
+		const written = await runtime.zip.file('ppt/tableStyles.xml')?.async('string');
+		expect(written).toContain('def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"');
 	});
 });

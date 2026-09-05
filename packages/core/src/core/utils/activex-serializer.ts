@@ -2,10 +2,11 @@ import type { XmlObject, PptxActiveXControl } from '../types';
 
 /**
  * Build a single `<p:control>` node (CT_Control, ISO/IEC 29500-1 §19.3.1.2)
- * from the typed model. Typed attributes (`r:id`, `name`, `spid`) are written
- * from the model so edits round-trip; any unmodeled children (the placeholder
- * `<p:pic>`, `<p:extLst>`) and extra attributes carried on `rawXml` are
- * preserved verbatim for a lossless save.
+ * from the typed model. Typed attributes (`r:id`, `name`, `spid`,
+ * `showAsIcon`, `imgW`, `imgH`) are written from the model so edits
+ * round-trip; any unmodeled children (the placeholder `<p:pic>`,
+ * `<p:extLst>`) and extra attributes carried on `rawXml` are preserved
+ * verbatim for a lossless save.
  */
 export function buildActiveXControlNode(control: PptxActiveXControl): XmlObject {
 	const node: XmlObject = control.rawXml ? { ...control.rawXml } : {};
@@ -19,6 +20,15 @@ export function buildActiveXControlNode(control: PptxActiveXControl): XmlObject 
 		node['@_spid'] = control.shapeId;
 	} else {
 		delete node['@_spid'];
+	}
+	if (control.showAsIcon !== undefined) {
+		node['@_showAsIcon'] = control.showAsIcon ? '1' : '0';
+	}
+	if (control.imgWidthEmu !== undefined) {
+		node['@_imgW'] = String(Math.round(control.imgWidthEmu));
+	}
+	if (control.imgHeightEmu !== undefined) {
+		node['@_imgH'] = String(Math.round(control.imgHeightEmu));
 	}
 	return node;
 }

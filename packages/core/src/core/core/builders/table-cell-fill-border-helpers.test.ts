@@ -78,6 +78,24 @@ describe('applyCellFillStyle - solid fill', () => {
 		const result = applyCellFillStyle(undefined, style, makeContext());
 		expect(result).toBeFalsy();
 	});
+
+	it('captures a typed backgroundColorRef for a plain schemeClr fill', () => {
+		const cellProps: XmlObject = {
+			'a:solidFill': { 'a:schemeClr': { '@_val': 'accent4', 'a:shade': { '@_val': '80000' } } },
+		};
+		const style: PptxTableCellStyle = {};
+		const context = makeContext({
+			parseColor: (colorNode) => {
+				const scheme = (colorNode as XmlObject | undefined)?.['a:schemeClr'] as
+					| XmlObject
+					| undefined;
+				return scheme ? '#theme' : undefined;
+			},
+		});
+		const result = applyCellFillStyle(cellProps, style, context);
+		expect(result).toBeTruthy();
+		expect(style.backgroundColorRef).toStrictEqual({ scheme: 'accent4', shade: 0.8 });
+	});
 });
 
 // ---------------------------------------------------------------------------

@@ -781,8 +781,23 @@ const sun: PresetShapeGeometryDefinition = {
 		gd('aL', '+- hc 0 apx'),
 		gd('aB', '+- vc apy 0'),
 		gd('aT', '+- vc 0 apy'),
+		// Text rect: COM-measured at 200x100pt (l=64.65, t=32.32, r=135.27,
+		// b=67.68) and confirmed at a second aspect ratio, 160x120pt
+		// (l=51.72, t=38.79, r=108.22, b=81.21). Both match the disc's OWN
+		// inscribed axis-aligned rectangle (touching the disc ellipse at
+		// 45deg, same construction `ellipse`'s own text rect uses against the
+		// full bounding ellipse) to within 0.1% of the box - NOT the disc's
+		// full bounds (`discL`/`discT`/`discR`/`discB`, off by ~35% of the
+		// box at the default adjustment, since the disc is a lot bigger than
+		// the square PowerPoint actually reserves for text inside it).
+		gd('trdx', 'cos drx 2700000'),
+		gd('trdy', 'sin dry 2700000'),
+		gd('trl', '+- hc 0 trdx'),
+		gd('trr', '+- hc trdx 0'),
+		gd('trt', '+- vc 0 trdy'),
+		gd('trb', '+- vc trdy 0'),
 	],
-	rect: { l: 'discL', t: 'discT', r: 'discR', b: 'discB' },
+	rect: { l: 'trl', t: 'trt', r: 'trr', b: 'trb' },
 	pathLst: [
 		// Central ellipse.
 		{

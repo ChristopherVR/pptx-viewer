@@ -37,11 +37,11 @@ assign(['drawing:element:tr2bl', 'drawing:element:tl2br'], {
 });
 
 assign(['drawing:complexType:CT_TableProperties'], {
-	parse: 'partial',
-	preserve: 'unassessed',
-	edit: 'unassessed',
-	serialize: 'unassessed',
-	note: 'a:tblPr carries the row/col emphasis flags and tableStyleId natively; since issue G6 its OWN fill (EG_FillProperties: solid/gradient/pattern/noFill, independent of a:tblStyleLst/a:tblBg) is also parsed onto the table root. Its own a:effectLst is recorded only as a boolean tableEffects flag, not decomposed into a typed effect chain, so parse is graded partial; no editor mutates either field independently of the raw passthrough, so preserve/edit/serialize are left unassessed rather than assumed.',
+	parse: 'native',
+	preserve: 'native',
+	edit: 'native',
+	serialize: 'native',
+	note: "a:tblPr carries the row/col emphasis flags and tableStyleId natively; since issue G6 its OWN fill (EG_FillProperties: solid/gradient/pattern/noFill, independent of a:tblStyleLst/a:tblBg) is also parsed onto the table root. Its own a:effectLst is now decomposed into a typed effect chain (table-style-effect-parse.ts parseTableEffectChain/writeTableEffectChain), not just a boolean flag. Since wave 3 (W3-E, issue G6's write side), a write-back path also exists (table-tblpr-save.ts writeTablePropertiesOwnFillAndEffects, wired into PptxHandlerRuntimeSaveDataSerialization.ts's serializeTableDataToXml): editing tableFill/tableEffects on the in-memory model now survives a save instead of being silently dropped, closing the caveat that a loaded table's own tblPr fill/effects were parsed but never re-emitted. An image (a:blipFill) fill and an opaque a:effectDag chain remain write-side no-ops (a relationship cannot be synthesised without archive access; the DAG was never decomposed on parse), and preserve-on-absent means an untouched table survives unmodified either way.",
 	evidence: [
 		testEvidence(
 			'src/core/core/builders/table-data-parser.test.ts',
@@ -53,6 +53,15 @@ assign(['drawing:complexType:CT_TableProperties'], {
 				'does not confuse a:tblPr fill with a:tblStyleLst/wholeTbl fill',
 			],
 			['parse'],
+		),
+		testEvidence(
+			'src/core/core/runtime/table-tblpr-save.test.ts',
+			[
+				're-parses the edited own fill',
+				're-parses the edited own effect chain',
+				'keeps reproducing the same fill/effects on a further save with no explicit edit',
+			],
+			['preserve', 'edit', 'serialize'],
 		),
 	],
 });

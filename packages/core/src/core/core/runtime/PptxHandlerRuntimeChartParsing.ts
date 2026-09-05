@@ -30,7 +30,10 @@ import {
 	isLineDrawnChartType,
 } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
-import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
+import {
+	parseChartDataLabelOptions,
+	parseSeriesDataLabels,
+} from '../../utils/chart-data-label-parser';
 import { parseDataTable } from '../../utils/chart-data-table-parser';
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
 import { parseChartLayouts } from '../../utils/chart-layout';
@@ -40,12 +43,12 @@ import { parseChartProtection } from '../../utils/chart-protection';
 import { resolveChartContainerValueAxisId } from '../../utils/chart-series-axis';
 import {
 	parseSeriesDataPoints,
-	parseSeriesDataLabels,
 	parseSeriesExplosion,
 	parseMarker,
 } from '../../utils/chart-series-detail-parser';
 import { parseChartSpaceFlags } from '../../utils/chart-space-flags';
 import { parseBar3DShapeVal, parseRadarStyleVal } from '../../utils/chart-subtype-values';
+import { parseChartTitleRuns } from '../../utils/chart-title-runs-parser';
 import { parseChartUpDownBars } from '../../utils/chart-up-down-bars';
 import { resolveDataPointPictureImages } from './chart-datapoint-picture-resolver';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartColorStyle';
@@ -181,6 +184,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const titleTextValues: string[] = [];
 			this.collectLocalTextValues(titleNode, 't', titleTextValues);
 			const titleText = titleTextValues[0] ?? this.resolveChartLinkedTitleText(titleNode);
+			// Lossless multi-run alternative to `titleText` (issue: chart title
+			// rich text): `undefined` when the title has no rich body (empty/auto
+			// title, or a linked-cell reference), so callers keep using the flat
+			// text in that case.
+			const titleRuns = parseChartTitleRuns(titleNode, this.xmlLookupService, {
+				parseColor: (node, placeholder) => this.parseColor(node, placeholder),
+			});
 
 			// Extract chart styling
 			const chartStyle = this.extractChartStyle(chartSpace, chartRoot);
@@ -403,6 +413,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(dateCategories ? { dateCategories } : {}),
 				series: finalSeries,
 				title: titleText,
+				...(titleRuns ? { titleRuns } : {}),
 				style: chartStyle,
 				grouping,
 				...(varyColors !== undefined ? { varyColors } : {}),

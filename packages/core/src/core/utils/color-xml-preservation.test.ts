@@ -6,6 +6,7 @@ import {
 	colorsEqual,
 	extractColorChoiceXml,
 	serializeColorChoice,
+	serializeColorChoiceWithRef,
 } from './color-xml-preservation';
 
 describe('extractColorChoiceXml', () => {
@@ -184,5 +185,46 @@ describe('serializeColorChoice', () => {
 		const emitted = serializeColorChoice(original, resolvedHex, inMemoryHex);
 		// User edited the colour — preserve the edit, emit canonical srgb.
 		expect(emitted).toStrictEqual({ 'a:srgbClr': { '@_val': 'FF0000' } });
+	});
+});
+
+describe('serializeColorChoiceWithRef', () => {
+	it('a ref wins even when a preserved srgbClr node is present', () => {
+		const originalSrgb: XmlObject = { 'a:srgbClr': { '@_val': '0070C0' } };
+		const result = serializeColorChoiceWithRef(
+			{ scheme: 'accent1', lumMod: 0.6, lumOff: 0.4 },
+			originalSrgb,
+			'#0070C0',
+			'#0070C0',
+		);
+		expect(result).toStrictEqual({
+			'a:schemeClr': {
+				'@_val': 'accent1',
+				'a:lumMod': { '@_val': '60000' },
+				'a:lumOff': { '@_val': '40000' },
+			},
+		});
+	});
+
+	it('folds an opacity fraction into the ref alpha', () => {
+		const result = serializeColorChoiceWithRef(
+			{ scheme: 'accent1' },
+			undefined,
+			undefined,
+			'#4472C4',
+			0.5,
+		);
+		expect(result).toStrictEqual({
+			'a:schemeClr': { '@_val': 'accent1', 'a:alpha': { '@_val': '50000' } },
+		});
+	});
+
+	it('falls through to serializeColorChoice when no ref is present', () => {
+		const originalSchemeClr: XmlObject = {
+			'a:schemeClr': { '@_val': 'accent1', 'a:lumMod': { '@_val': '75000' } },
+		};
+		const withRef = serializeColorChoiceWithRef(undefined, originalSchemeClr, '#0070C0', '#0070C0');
+		const withoutRef = serializeColorChoice(originalSchemeClr, '#0070C0', '#0070C0');
+		expect(withRef).toStrictEqual(withoutRef);
 	});
 });

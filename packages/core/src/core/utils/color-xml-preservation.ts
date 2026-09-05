@@ -17,7 +17,8 @@
  * @module color-xml-preservation
  */
 
-import type { XmlObject } from '../types';
+import { themeColorRefToSolidFillWithOpacity } from '../color/theme-color-ref';
+import type { PptxThemeColorRef, XmlObject } from '../types';
 
 /**
  * Recognised top-level colour choice element names (CT_Color / EG_ColorChoice).
@@ -133,4 +134,27 @@ export function serializeColorChoice(
 		}
 	}
 	return buildSrgbColorChoice(fallbackHex, opacity);
+}
+
+/**
+ * Like {@link serializeColorChoice}, but a typed theme colour reference
+ * (`ref`) wins over everything else: a colour picked from the theme palette
+ * is stored as `<a:schemeClr val="accent1"><a:lumMod/>...</a:schemeClr>`
+ * instead of a canonical `<a:srgbClr>`, so it keeps following the theme
+ * after a later theme change. A hex edit that cleared the ref (or a colour
+ * kind a ref cannot express) falls through to the existing XML-preservation
+ * behaviour unchanged.
+ */
+export function serializeColorChoiceWithRef(
+	ref: PptxThemeColorRef | undefined,
+	originalColorXml: XmlObject | undefined,
+	currentResolvedHex: string | undefined,
+	fallbackHex: string,
+	opacity?: number,
+	options: SerializeColorOptions = {},
+): XmlObject {
+	if (ref) {
+		return themeColorRefToSolidFillWithOpacity(ref, opacity);
+	}
+	return serializeColorChoice(originalColorXml, currentResolvedHex, fallbackHex, opacity, options);
 }

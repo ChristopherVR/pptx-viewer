@@ -37,6 +37,56 @@ export function reorderObjectKeys(obj: XmlObject, schemaOrder: readonly string[]
 	return result;
 }
 
+/** The part of an element key after its namespace prefix (`x:kinsoku` -> `kinsoku`). */
+function elementLocalName(key: string): string | undefined {
+	if (key.startsWith('@_') || key.startsWith('#') || key.startsWith('?')) {
+		return undefined;
+	}
+	const colon = key.indexOf(':');
+	return colon === -1 ? key : key.slice(colon + 1);
+}
+
+/**
+ * Like {@link reorderObjectKeys}, but a child matches a `schemaOrder` entry by
+ * LOCAL NAME, so a part that binds the PresentationML namespace to a prefix
+ * other than `p:` (or mixes prefixes, e.g. an `x:kinsoku` among `p:` siblings)
+ * is still put in schema order instead of having its foreign-prefixed children
+ * pushed to the end. Attributes and text nodes are never reordered.
+ */
+export function reorderObjectKeysByLocalName(
+	obj: XmlObject,
+	schemaOrder: readonly string[],
+): XmlObject {
+	const rank = new Map<string, number>();
+	schemaOrder.forEach((key, index) => {
+		const local = elementLocalName(key);
+		if (local !== undefined && !rank.has(local)) {
+			rank.set(local, index);
+		}
+	});
+	const recognised: Array<{ key: string; rank: number }> = [];
+	const rest: string[] = [];
+	for (const key of Object.keys(obj)) {
+		if (obj[key] === undefined) {
+			continue;
+		}
+		const local = elementLocalName(key);
+		const position = local === undefined ? undefined : rank.get(local);
+		if (position === undefined) {
+			rest.push(key);
+		} else {
+			recognised.push({ key, rank: position });
+		}
+	}
+	// Stable sort: two prefixes for the same local name keep insertion order.
+	recognised.sort((a, b) => a.rank - b.rank);
+	const result: XmlObject = {};
+	for (const key of [...recognised.map((entry) => entry.key), ...rest]) {
+		result[key] = obj[key];
+	}
+	return result;
+}
+
 /** Child order for `a:effectLst` (CT_EffectList §20.1.8.20) — alphabetical. */
 export const EFFECT_LST_ORDER: readonly string[] = [
 	'a:blur',
@@ -97,6 +147,33 @@ export const TC_PR_BORDERS_ORDER: readonly string[] = [
 
 /** Child order for `a:blipFill` (CT_BlipFillProperties). */
 export const BLIP_FILL_ORDER: readonly string[] = ['a:blip', 'a:srcRect', 'a:tile', 'a:stretch'];
+
+/**
+ * Child order for `p:presentation` (CT_Presentation, ECMA-376 S19.2.1.26).
+ * `reorderObjectKeys` pushes any key not in this list (attributes, and
+ * genuinely unknown extension children) after the recognised ones, in their
+ * original relative order; `@_`-prefixed attribute keys always serialize as
+ * attributes on the opening tag regardless of their position in the object,
+ * so this only affects the sequence of CHILD ELEMENTS, which is what the
+ * schema actually constrains.
+ */
+export const PRESENTATION_CHILD_ORDER: readonly string[] = [
+	'p:sldMasterIdLst',
+	'p:notesMasterIdLst',
+	'p:handoutMasterIdLst',
+	'p:sldIdLst',
+	'p:sldSz',
+	'p:notesSz',
+	'p:smartTags',
+	'p:embeddedFontLst',
+	'p:custShowLst',
+	'p:photoAlbum',
+	'p:custDataLst',
+	'p:kinsoku',
+	'p:defaultTextStyle',
+	'p:modifyVerifier',
+	'p:extLst',
+];
 
 /**
  * Child order for `<p:style>` (CT_ShapeStyle §20.1.2.2.36):

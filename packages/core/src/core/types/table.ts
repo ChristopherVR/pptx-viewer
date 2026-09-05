@@ -9,6 +9,9 @@
 // Table types: cells, rows, data, and table style map
 // ==========================================================================
 
+import type { PptxThemeColorRef } from './color-ref';
+import type { ParsedTableStyleEffect } from './table-style-edit';
+
 /**
  * Per-cell visual style for a table cell.
  *
@@ -45,6 +48,14 @@ export interface PptxTableCellStyle {
 	 * future expansion alongside the run-properties round-trip path.
 	 */
 	colorXml?: import('./common').XmlObject;
+	/**
+	 * Typed theme colour reference for the cell text colour, set when
+	 * {@link colorXml} is a plain `a:schemeClr`. Wins on save, mirroring
+	 * `TextStyle.colorRef`. Distinct from {@link ParsedTableStyleFill.schemeColor},
+	 * which describes a `ppt/tableStyles.xml` section fill rather than an
+	 * individual cell override.
+	 */
+	colorRef?: PptxThemeColorRef;
 	backgroundColor?: string;
 	/**
 	 * Raw XML colour-choice node preserved from cell `a:tcPr/a:solidFill` for
@@ -52,6 +63,12 @@ export interface PptxTableCellStyle {
 	 * {@link backgroundColor} still matches the original colour.
 	 */
 	backgroundColorXml?: import('./common').XmlObject;
+	/**
+	 * Typed theme colour reference for the cell fill, set when
+	 * {@link backgroundColorXml} is a plain `a:schemeClr`. Wins on save,
+	 * mirroring `ShapeStyle.fillColorRef`.
+	 */
+	backgroundColorRef?: PptxThemeColorRef;
 	borderColor?: string;
 	/** Top border width in px. */
 	borderTopWidth?: number;
@@ -368,12 +385,14 @@ export interface PptxTableData {
 	 */
 	tableFill?: ParsedTableStyleFill;
 	/**
-	 * Whether `a:tblPr` carries its own `a:effectLst`/`a:effectDag`,
-	 * independent of the referenced table style. Presence-only: the concrete
-	 * effect is not yet rendered, and the raw XML round-trips separately via
-	 * whatever preserves `a:tblPr`'s unrecognised children (issue G6).
+	 * `a:tblPr`'s own `a:effectLst` (or `a:effectDag`) effect chain,
+	 * independent of the referenced table style, decomposed into a typed
+	 * sequence of {@link ParsedTableStyleEffect} nodes (issue G6). Each node
+	 * keeps its own XML verbatim for lossless round-trip; empty array is
+	 * normalised to `undefined` by the parser so `tableEffects` is only ever
+	 * present when there is at least one effect.
 	 */
-	tableEffects?: boolean;
+	tableEffects?: ParsedTableStyleEffect[];
 }
 
 // ==========================================================================
@@ -562,13 +581,20 @@ export interface ParsedTableStyleBorders {
 /**
  * Table background style (CT_TableBackgroundStyle, ECMA-376 §21.1.3.7).
  *
- * Corresponds to the `<a:tblBg>` child of `<a:tblStyle>`. Currently
- * captures only the resolved scheme-fill colour (verbatim XML for fill
- * / effect references is preserved separately by the save path).
+ * Corresponds to the `<a:tblBg>` child of `<a:tblStyle>`. Captures the
+ * resolved scheme-fill colour, an unresolved style-matrix `a:fillRef`, and a
+ * presence flag for effects (verbatim XML for the effect list is preserved
+ * separately by the save path).
  */
 export interface ParsedTableBackground {
 	/** Solid fill (resolved from `a:fill > a:solidFill > a:schemeClr`). */
 	fill?: ParsedTableStyleFill;
+	/**
+	 * Style-matrix fill reference (`<a:fillRef idx="N">...</a:fillRef>`),
+	 * mutually exclusive with {@link fill} (`a:fill` is the choice sibling of
+	 * `a:fillRef` in `CT_TableBackgroundStyle`).
+	 */
+	fillRef?: import('./table-style-edit').ParsedTableFillRef;
 	/** Has an `a:effectLst` child that should be round-tripped. */
 	hasEffectLst?: boolean;
 }

@@ -171,6 +171,24 @@ export interface PptxHandlerSaveOptions {
 	 */
 	tableStyles?: ParsedTableStyleMap;
 	/**
+	 * Set `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>` to this style GUID
+	 * (normalised to uppercase-with-braces). `undefined` preserves the
+	 * existing default; there is no removal form (`@def` is required by the
+	 * schema and PowerPoint always points it at a real style). No-op when the
+	 * archive has no `ppt/tableStyles.xml`, same as {@link tableStyles}.
+	 */
+	tableStylesDefaultId?: string;
+	/**
+	 * Style GUIDs to remove from `ppt/tableStyles.xml` entirely, kept as a
+	 * separate opt-in list rather than inferred from omission on
+	 * {@link tableStyles}: that map is documented as safe to pass a PARTIAL
+	 * edit (only the entries a caller actually touched), so treating every
+	 * GUID missing from it as "delete this" would silently destroy untouched
+	 * styles on an ordinary targeted edit. A GUID here that is also the
+	 * current (or newly requested) default is left in place and skipped.
+	 */
+	tableStylesToDelete?: string[];
+	/**
 	 * Target output format.
 	 * - `'pptx'` (default): Standard presentation.
 	 * - `'ppsx'`: Slide-show file (opens in presentation mode).

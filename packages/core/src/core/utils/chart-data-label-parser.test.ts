@@ -230,5 +230,30 @@ describe('chartML data label parsing', () => {
 				color: '#112233',
 			});
 		});
+
+		it("parses a per-point c:dLbl/c:spPr into that label's own spPr", () => {
+			const series: XmlObject = {
+				'c:dLbls': {
+					'c:dLbl': {
+						'c:idx': { '@_val': '0' },
+						'c:spPr': {
+							'a:solidFill': { 'a:srgbClr': { '@_val': 'AABBCC' } },
+							'a:ln': {
+								'@_w': '12700',
+								'a:solidFill': { 'a:srgbClr': { '@_val': '445566' } },
+								'a:prstDash': { '@_val': 'dash' },
+							},
+						},
+					},
+				},
+			};
+			const [label] = parseSeriesDataLabels(series, lookup, colorParser);
+			expect(label.spPr).toStrictEqual({
+				fillColor: '#AABBCC',
+				strokeColor: '#445566',
+				strokeWidth: 1,
+				strokeDashStyle: 'dash',
+			});
+		});
 	});
 });

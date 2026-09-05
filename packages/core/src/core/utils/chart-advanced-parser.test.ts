@@ -144,19 +144,30 @@ describe('parseSeriesTrendlines', () => {
 		expect(result[0].trendlineType).toBe('linear');
 	});
 
-	it('parses trendline color from spPr', () => {
+	it('parses trendline color, width, and dash style from spPr/a:ln (COM-verified shape)', () => {
+		// PowerPoint authors a trendline's line styling under `c:spPr/a:ln`, not a
+		// direct `c:spPr/a:solidFill` (verified via COM: Trendlines().Add +
+		// Format.Line.ForeColor/Weight/DashStyle + SaveAs produced
+		// `c:spPr><a:ln w="38100"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>
+		// <a:prstDash val="dash"/></a:ln>`).
 		const seriesNode: XmlObject = {
 			'c:trendline': {
 				'c:trendlineType': { '@_val': 'linear' },
 				'c:spPr': {
-					'a:solidFill': {
-						'a:srgbClr': { '@_val': 'FF0000' },
+					'a:ln': {
+						'@_w': '38100',
+						'a:solidFill': {
+							'a:srgbClr': { '@_val': 'FF0000' },
+						},
+						'a:prstDash': { '@_val': 'dash' },
 					},
 				},
 			},
 		};
 		const result = parseSeriesTrendlines(seriesNode, xmlLookup, colorParser);
 		expect(result[0].color).toBe('#FF0000');
+		expect(result[0].lineWidth).toBe(3);
+		expect(result[0].lineDashStyle).toBe('dash');
 	});
 
 	it('parses name, explicit false booleans, and typed label properties', () => {

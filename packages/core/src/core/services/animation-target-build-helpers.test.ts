@@ -105,6 +105,56 @@ describe('presentationML timing target choices', () => {
 		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
 	});
 
+	it('round-trips a p:graphicEl diagram node-id target (p:bldDgm per-node build)', () => {
+		const xml: XmlObject = {
+			'p:spTgt': {
+				'@_spid': '12',
+				'p:graphicEl': {
+					'p:dgm': { '@_id': '{11111111-2222-3333-4444-555555555555}', '@_bldStep': 'sp' },
+				},
+			},
+		};
+		const parsed = parseTimeTargetElement(xml);
+		expect(parsed).toMatchObject({
+			type: 'shape',
+			shapeId: '12',
+			graphicElement: {
+				kind: 'dgm',
+				id: '{11111111-2222-3333-4444-555555555555}',
+				bldStep: 'sp',
+			},
+		});
+		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
+	});
+
+	it('round-trips a p:graphicEl diagram background build step', () => {
+		const xml: XmlObject = {
+			'p:spTgt': { '@_spid': '13', 'p:graphicEl': { 'p:dgm': { '@_bldStep': 'bg' } } },
+		};
+		const parsed = parseTimeTargetElement(xml);
+		expect(parsed).toMatchObject({
+			type: 'shape',
+			shapeId: '13',
+			graphicElement: { kind: 'dgm', bldStep: 'bg' },
+		});
+		expect(serializeTimeTargetElement(parsed!)).toStrictEqual(xml);
+	});
+
+	it('never writes @_id for a chart-kind graphicEl target', () => {
+		expect(
+			serializeTimeTargetElement({
+				type: 'shape',
+				shapeId: '14',
+				graphicElement: { kind: 'chart', seriesIdx: 1, id: 'ignored', bldStep: 'series' },
+			}),
+		).toStrictEqual({
+			'p:spTgt': {
+				'@_spid': '14',
+				'p:graphicEl': { 'p:chart': { '@_seriesIdx': '1', '@_bldStep': 'series' } },
+			},
+		});
+	});
+
 	it('round-trips a p:oleChartEl legacy OLE chart sub-element target', () => {
 		const xml: XmlObject = {
 			'p:spTgt': { '@_spid': '5', 'p:oleChartEl': { '@_type': 'series', '@_lvl': '1' } },

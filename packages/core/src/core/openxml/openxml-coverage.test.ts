@@ -79,10 +79,10 @@ describe('open XML schema coverage inventory', () => {
 			serialize: 'partial',
 		});
 		expect(findOpenXmlCoverage('chart:complexType:CT_UpDownBars')).toMatchObject({
-			parse: 'partial',
-			preserve: 'passthrough',
-			edit: 'partial',
-			serialize: 'partial',
+			parse: 'native',
+			preserve: 'native',
+			edit: 'native',
+			serialize: 'native',
 		});
 		expect(findOpenXmlCoverage('presentation:complexType:CT_ControlList')).toMatchObject({
 			parse: 'native',
@@ -229,10 +229,10 @@ describe('open XML schema coverage inventory', () => {
 			serialize: 'partial',
 		});
 		expect(findOpenXmlCoverage('chart:complexType:CT_DPt')).toMatchObject({
-			parse: 'partial',
+			parse: 'native',
 			preserve: 'native',
-			edit: 'partial',
-			serialize: 'partial',
+			edit: 'native',
+			serialize: 'native',
 		});
 		expect(findOpenXmlCoverage('chart:complexType:CT_PrintSettings')).toMatchObject({
 			parse: 'native',
@@ -292,9 +292,9 @@ describe('open XML schema coverage inventory', () => {
 				0,
 			),
 		).toBe(OPENXML_COVERAGE.length * 4);
-		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(294);
-		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(491);
-		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(599);
+		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(291);
+		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(481);
+		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(578);
 		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(134);
 	});
 

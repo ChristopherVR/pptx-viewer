@@ -1,3 +1,4 @@
+import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import {
@@ -75,6 +76,10 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			const solidFillColorXml = extractColorChoiceXml(solidFill);
 			if (solidFillColorXml) {
 				style.fillColorXml = solidFillColorXml;
+			}
+			const solidFillColorRef = themeColorRefFromColorChoice(solidFill);
+			if (solidFillColorRef) {
+				style.fillColorRef = solidFillColorRef;
 			}
 		} else if (gradFill) {
 			style.fillMode = 'gradient';

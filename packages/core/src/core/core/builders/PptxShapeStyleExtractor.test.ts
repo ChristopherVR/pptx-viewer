@@ -141,6 +141,26 @@ describe('pptxShapeStyleExtractor', () => {
 			expect(style.fillColor).toBe('#0000FF');
 			expect(style.fillOpacity).toBe(0.5);
 		});
+
+		it('captures a typed fillColorRef for a plain schemeClr fill', () => {
+			const spPr: XmlObject = {
+				'a:solidFill': {
+					'a:schemeClr': {
+						'@_val': 'accent1',
+						'a:lumMod': { '@_val': '60000' },
+						'a:lumOff': { '@_val': '40000' },
+					},
+				},
+			};
+			const style = extractor.extractShapeStyle(spPr);
+			expect(style.fillColorRef).toStrictEqual({ scheme: 'accent1', lumMod: 0.6, lumOff: 0.4 });
+		});
+
+		it('does not set fillColorRef for a plain srgbClr fill', () => {
+			const spPr: XmlObject = { 'a:solidFill': { 'a:srgbClr': { '@_val': 'FF6600' } } };
+			const style = extractor.extractShapeStyle(spPr);
+			expect(style.fillColorRef).toBeUndefined();
+		});
 	});
 
 	// ── Gradient fill ────────────────────────────────────────────────────
