@@ -139,3 +139,50 @@ test.describe('staged SmartArt (p:bldDgm) per-node build playback', () => {
 		await expect.poll(() => revealedNodeCount(page, 'Gamma')).toBeGreaterThan(0);
 	});
 });
+
+/**
+ * The fixture's main sequence is `p:seq/@nextAc="seek"` and each step fades in
+ * over 500ms (`p:animEffect/p:cTn/@dur`). A second click that lands inside that
+ * window must FINISH the running step, not start the next one: PowerPoint
+ * treats it as "skip to the end of this effect". Only React did this until the
+ * shared `advanceMainSequence` landed; the other four bindings skipped a step.
+ */
+test.describe('p:seq/@nextAc="seek": a click during a running step fast-forwards it', () => {
+	test('a rapid second click finishes Gamma without revealing Beta', async ({ page }) => {
+		await openInPresentMode(page);
+		await expect.poll(() => revealedNodeCount(page, 'Gamma')).toBe(0);
+
+		// Two presses back to back. The second must land inside the 500ms fade:
+		// measure with the page's own clock and skip (never fail) if the runner
+		// was too slow for the precondition to hold.
+		const startedAt = await page.evaluate(() => performance.now());
+		await page.keyboard.press('PageDown');
+		await page.keyboard.press('PageDown');
+		const elapsedMs = (await page.evaluate(() => performance.now())) - startedAt;
+		test.skip(elapsedMs > 400, `presses took ${elapsedMs}ms, outside the seek window`);
+
+		// Gamma is revealed and its fade has been finished in place.
+		await expect.poll(() => revealedNodeCount(page, 'Gamma')).toBeGreaterThan(0);
+		await expect
+			.poll(() =>
+				page
+					.locator(SHOW_STAGE)
+					.first()
+					.evaluate(
+						(stage) =>
+							stage.getAnimations({ subtree: true }).filter((a) => a.playState === 'running')
+								.length,
+					),
+			)
+			.toBe(0);
+		// Well past the fade: the second click was a seek, so Beta is still pending.
+		await page.waitForTimeout(700);
+		expect(await revealedNodeCount(page, 'Beta')).toBe(0);
+		expect(await revealedNodeCount(page, 'Alpha')).toBe(0);
+
+		// The next (settled) click is the one that reveals Beta.
+		await advance(page);
+		await expect.poll(() => revealedNodeCount(page, 'Beta')).toBeGreaterThan(0);
+		await expect.poll(() => revealedNodeCount(page, 'Alpha')).toBe(0);
+	});
+});
