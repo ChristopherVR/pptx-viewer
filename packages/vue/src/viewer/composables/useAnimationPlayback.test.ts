@@ -209,6 +209,39 @@ describe('useAnimationPlayback: shared engine wiring', () => {
 		expect(result.isComplete.value).toBeTruthy();
 		stop();
 	});
+
+	it('a second advance inside a nextAc="seek" group fast-forwards it instead of skipping ahead', () => {
+		const seekAnim = (targetId: string): PptxNativeAnimation =>
+			({
+				targetId,
+				presetClass: 'entr',
+				trigger: 'onClick',
+				durationMs: 5000,
+				seqNextAction: 'seek',
+			}) as unknown as PptxNativeAnimation;
+		const { result, stop } = runPlayback(() =>
+			useAnimationPlayback({
+				slide: () =>
+					slideWith([shapeElement('a'), shapeElement('b')], [seekAnim('a'), seekAnim('b')]),
+			}),
+		);
+
+		expect(result.advance()).toBeTruthy();
+		expect(result.presentationElementStates.value.get('a')?.cssAnimation).toBeTruthy();
+
+		// Mid-flight: the click is consumed by finishing `a`, and `b` stays hidden.
+		expect(result.advance()).toBeTruthy();
+		expect(result.presentationElementStates.value.get('a')?.visible).toBeTruthy();
+		expect(result.presentationElementStates.value.get('a')?.cssAnimation).toBeUndefined();
+		expect(result.presentationElementStates.value.get('b')?.visible).toBeFalsy();
+		expect(result.isComplete.value).toBeFalsy();
+
+		// Settled: the next click starts group two.
+		expect(result.advance()).toBeTruthy();
+		expect(result.presentationElementStates.value.get('b')?.visible).toBeTruthy();
+		expect(result.isComplete.value).toBeTruthy();
+		stop();
+	});
 });
 
 // ---------------------------------------------------------------------------

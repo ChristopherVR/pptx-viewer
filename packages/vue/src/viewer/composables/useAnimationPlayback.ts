@@ -27,7 +27,9 @@
 
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
-	cancelBuildReveal,
+	advanceMainSequence,
+	clearPlaybackTimers,
+	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
 	resolveMediaTimeNodeElementIds,
@@ -104,6 +106,12 @@ export function useAnimationPlayback(
 	let controller: PresentationAnimationController | null = null;
 	const timers: number[] = [];
 	const buildHandle: BuildRafHandle = { current: null };
+	/**
+	 * The click-group the last presenter click started, so a second click while
+	 * it is still mid-flight fast-forwards it (`p:seq/@nextAc="seek"`) instead
+	 * of skipping to the next group. Owned here, mutated by the shared helpers.
+	 */
+	const activeGroup = createActiveAnimationGroup();
 
 	const ctx: PlaybackContext = {
 		setStates: (updater) => {
@@ -120,11 +128,7 @@ export function useAnimationPlayback(
 	const animationsEnabled = (): boolean => toValue(options.showWithAnimation) !== false;
 
 	function clearTimers(): void {
-		for (const timer of timers) {
-			window.clearTimeout(timer);
-		}
-		timers.length = 0;
-		cancelBuildReveal(buildHandle);
+		clearPlaybackTimers(ctx, activeGroup);
 	}
 
 	function syncComplete(): void {
@@ -201,17 +205,14 @@ export function useAnimationPlayback(
 	}
 
 	function advance(): boolean {
-		if (!animationsEnabled() || !controller || !controller.hasMoreSteps()) {
+		if (!animationsEnabled()) {
 			return false;
 		}
-		const group = controller.advance();
-		if (!group) {
-			return false;
-		}
-		playGroup(controller, group, ctx);
-		scheduleAutoAdvanceChain(controller, ctx);
+		// Seek-or-advance (`p:seq/@nextAc="seek"`) plus the auto-advance chain
+		// live in shared, so the branch is identical in all five bindings.
+		const consumed = advanceMainSequence(controller, ctx, activeGroup);
 		syncComplete();
-		return true;
+		return consumed;
 	}
 
 	function handleInteractiveShapeClick(shapeId: string): boolean {
