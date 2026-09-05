@@ -329,6 +329,14 @@ export interface PptxChartDataLabel {
 	 * explicitly clears a drag back to the automatic position.
 	 */
 	layout?: PptxChartManualLayout | null;
+	/**
+	 * This label's own font (`c:dLbl/c:txPr/a:p/a:pPr/a:defRPr`, or ChartEx
+	 * `cx:dataLabel/cx:txPr`), taking precedence over the chart/series-level
+	 * {@link PptxChartDataLabelOptions.txPr} when set. Reuses the legend
+	 * entry's flat text-style shape since both are the same
+	 * `.../a:p/a:pPr/a:defRPr` default-run-property style.
+	 */
+	txPr?: PptxChartLegendTextStyle;
 }
 
 /** Axis number format. */
@@ -345,6 +353,16 @@ export interface PptxChartDisplayUnitsLabel {
 	layout?: PptxChartManualLayout | null;
 	/** Label shape formatting. `null` removes `c:spPr`. */
 	spPr?: PptxChartShapeProps | null;
+	/**
+	 * The label's own run font, when it carries a distinct `txPr` from the
+	 * axis's own (ChartEx `cx:unitsLabel/cx:txPr`; classic `c:dispUnitsLbl`
+	 * has no equivalent child, so this is only ever populated from a ChartEx
+	 * axis).
+	 */
+	fontFamily?: string;
+	fontSize?: number;
+	fontBold?: boolean;
+	fontColor?: string;
 }
 
 /** Axis formatting for category, value, or date axes. */
@@ -669,6 +687,14 @@ export interface PptxChartDataLabelOptions {
 	 * {@link PptxChartDataLabel.numberFormat} overrides it.
 	 */
 	numberFormat?: string;
+	/**
+	 * Default font for every label at this level (`c:dLbls/c:txPr`, or
+	 * ChartEx `cx:dataLabels/cx:txPr`), overridden by a per-point
+	 * {@link PptxChartDataLabel.txPr} when set. `c:dLbls` at the chart-type
+	 * level and the series level cascade the same way the show flags do
+	 * (point > series > chart-type).
+	 */
+	txPr?: PptxChartLegendTextStyle;
 }
 
 /** Typed text defaults for a single chart legend entry. */

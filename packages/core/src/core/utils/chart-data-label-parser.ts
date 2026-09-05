@@ -4,12 +4,17 @@ import type {
 	PptxChartDataLabelOptions,
 	XmlObject,
 } from '../types';
+import { parseDefRPrTextStyle, resolveTxPrDefRPr } from './chart-def-rpr-style';
 import { parseChartManualLayout } from './chart-layout';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
 	getChildrenArrayByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject[];
 	getScalarChildByLocalName?: (parent: XmlObject | undefined, name: string) => string | undefined;
+}
+
+interface ColorParserLike {
+	parseColor: (fillNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
 }
 
 const POSITIONS = new Set<PptxChartDataLabelPosition>([
@@ -163,6 +168,8 @@ function showsDataLabelsRange(dLblNode: XmlObject, xmlLookup: XmlLookupLike): bo
 export function parseSeriesDataLabels(
 	seriesNode: XmlObject,
 	xmlLookup: XmlLookupLike,
+	colorParser?: ColorParserLike,
+	resolveTypeface?: (raw: string) => string,
 ): PptxChartDataLabel[] {
 	const group = xmlLookup.getChildByLocalName(seriesNode, 'dLbls');
 	const nodes = group
@@ -227,6 +234,17 @@ export function parseSeriesDataLabels(
 		if (layout) {
 			result.layout = layout;
 		}
+		if (colorParser) {
+			const txPrStyle = parseDefRPrTextStyle(
+				resolveTxPrDefRPr(xmlLookup.getChildByLocalName(node, 'txPr'), xmlLookup),
+				xmlLookup,
+				colorParser,
+				resolveTypeface,
+			);
+			if (txPrStyle) {
+				result.txPr = txPrStyle;
+			}
+		}
 		return [result];
 	});
 }
@@ -235,6 +253,8 @@ export function parseSeriesDataLabels(
 export function parseChartDataLabelOptions(
 	group: XmlObject,
 	xmlLookup: XmlLookupLike,
+	colorParser?: ColorParserLike,
+	resolveTypeface?: (raw: string) => string,
 ): PptxChartDataLabelOptions {
 	const result: PptxChartDataLabelOptions = {};
 	const fields = [
@@ -263,6 +283,17 @@ export function parseChartDataLabelOptions(
 	const numberFormat = numberFormatCode(group, xmlLookup);
 	if (numberFormat !== undefined) {
 		result.numberFormat = numberFormat;
+	}
+	if (colorParser) {
+		const txPrStyle = parseDefRPrTextStyle(
+			resolveTxPrDefRPr(xmlLookup.getChildByLocalName(group, 'txPr'), xmlLookup),
+			xmlLookup,
+			colorParser,
+			resolveTypeface,
+		);
+		if (txPrStyle) {
+			result.txPr = txPrStyle;
+		}
 	}
 	return result;
 }

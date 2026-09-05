@@ -45,12 +45,23 @@ export const QUAD_CONNECTION_SITES: Record<string, PresetConnectionSiteDefinitio
 
 	triangle: {
 		avLst: { adj: 50000 },
-		gdLst: [gd('a', 'pin 0 adj 100000'), gd('x1', '*/ w a 200000'), gd('x3', '+- x1 wd2 0')],
+		gdLst: [
+			gd('a', 'pin 0 adj 100000'),
+			gd('x1', '*/ w a 200000'),
+			gd('x2', '*/ w a 100000'),
+			gd('x3', '+- x1 wd2 0'),
+		],
+		// The apex (top vertex, and the point directly below it on the bottom
+		// edge) sits at x2, the FULL apex offset; x1 (half of x2) is only the
+		// x-coordinate of the left slanted edge's midpoint. A prior transcription
+		// used x1 for the apex too, which collapses to w/4 (not the horizontal
+		// center) at the default adj=50000 - fixed by adding x2 here, verbatim
+		// per ECMA-376.
 		sites: [
-			cxn('3cd4', 'x1', 't'),
+			cxn('3cd4', 'x2', 't'),
 			cxn('cd2', 'x1', 'vc'),
 			cxn('cd4', 'l', 'b'),
-			cxn('cd4', 'x1', 'b'),
+			cxn('cd4', 'x2', 'b'),
 			cxn('cd4', 'r', 'b'),
 			cxn('0', 'x3', 'vc'),
 		],
@@ -67,11 +78,6 @@ export const QUAD_CONNECTION_SITES: Record<string, PresetConnectionSiteDefinitio
 			cxn('0', 'hc', 'vc'),
 		],
 	},
-
-	// Note: `triangle`'s `x1` here is the cxnLst-local `*/ w a 200000` variant
-	// (the apex position halved), distinct from the `pathLst` table's own `x1`
-	// (`*/ w a 100000`, the full apex offset) - both are the spec's own names,
-	// scoped independently per `presetShapeDefinition`, so there is no clash.
 
 	parallelogram: {
 		avLst: { adj: 25000 },

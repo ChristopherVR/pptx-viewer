@@ -103,10 +103,37 @@ describe('parseSmartArtLayoutNodeShape', () => {
 		const xml: XmlObject = { 'dgm:shape': { '@_hideGeom': '1' } };
 		expect(parseSmartArtLayoutNodeShape(xml, localName)).toStrictEqual({ hideGeometry: true });
 	});
+
+	// G9: `dgm:shape/@lkTxEntry` is now threaded onto the typed model (not just
+	// the standalone raw-XML reader below), so it survives parse -> edit ->
+	// serialize like every other `dgm:shape` field.
+	it('parses lkTxEntry="1" onto the typed model', () => {
+		const xml: XmlObject = { 'dgm:shape': { '@_type': 'rect', '@_lkTxEntry': '1' } };
+		expect(parseSmartArtLayoutNodeShape(xml, localName)).toStrictEqual({
+			presetGeometry: 'rect',
+			lkTxEntry: true,
+		});
+	});
+
+	it('omits lkTxEntry from the typed model when absent or "0"', () => {
+		expect(
+			parseSmartArtLayoutNodeShape({ 'dgm:shape': { '@_type': 'rect' } }, localName),
+		).toStrictEqual({ presetGeometry: 'rect' });
+		expect(
+			parseSmartArtLayoutNodeShape(
+				{ 'dgm:shape': { '@_type': 'rect', '@_lkTxEntry': '0' } },
+				localName,
+			),
+		).toStrictEqual({ presetGeometry: 'rect' });
+	});
 });
 
 // G9: `dgm:shape/@lkTxEntry` marks a decorative shape as mirroring its paired
-// content node's text (e.g. the accent bar in "Basic Block List").
+// content node's text. A COM sweep of all 176 built-in Office SmartArt
+// gallery layouts found none that author this attribute (see the doc comment
+// on `parseSmartArtLkTxEntry`); it is consumed at
+// `smartart-layout-interpreter-pyramid.ts`'s `arrangePyramid` for a
+// hand-authored/third-party layoutDef that does set it.
 describe('parseSmartArtLkTxEntry / parseSmartArtLkTxEntryFromLayoutNode', () => {
 	it('reads lkTxEntry="1" as true', () => {
 		expect(parseSmartArtLkTxEntry({ '@_lkTxEntry': '1' })).toBeTruthy();
@@ -166,5 +193,22 @@ describe('applySmartArtLayoutNodeShape', () => {
 		const target: XmlObject = { 'dgm:shape': { '@_type': 'trapezoid' } };
 		applySmartArtLayoutNodeShape(target, parsed, localName);
 		expect(target['dgm:shape']).toStrictEqual({ '@_type': 'trapezoid' });
+	});
+
+	it('writes @lkTxEntry="1" back and removes it when cleared', () => {
+		const xml: XmlObject = { 'dgm:shape': { '@_type': 'rect' } };
+		applySmartArtLayoutNodeShape(xml, { presetGeometry: 'rect', lkTxEntry: true }, localName);
+		expect(xml['dgm:shape']).toStrictEqual({ '@_type': 'rect', '@_lkTxEntry': '1' });
+
+		applySmartArtLayoutNodeShape(xml, { presetGeometry: 'rect' }, localName);
+		expect(xml['dgm:shape']).toStrictEqual({ '@_type': 'rect' });
+	});
+
+	it('round-trips a parsed lkTxEntry shape unchanged', () => {
+		const original: XmlObject = { 'dgm:shape': { '@_type': 'rect', '@_lkTxEntry': '1' } };
+		const parsed = parseSmartArtLayoutNodeShape(original, localName);
+		const target: XmlObject = { 'dgm:shape': { '@_type': 'rect', '@_lkTxEntry': '1' } };
+		applySmartArtLayoutNodeShape(target, parsed, localName);
+		expect(target['dgm:shape']).toStrictEqual({ '@_type': 'rect', '@_lkTxEntry': '1' });
 	});
 });

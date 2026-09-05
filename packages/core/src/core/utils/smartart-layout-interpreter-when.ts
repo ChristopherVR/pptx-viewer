@@ -20,10 +20,14 @@ function toNumber(value: string): number | undefined {
  * Extra evaluation context beyond the node count, letting {@link evaluateWhen}
  * decide the `func` values ECMA-376 defines against a specific point's
  * position/depth or the diagram's own `presLayoutVars`, when a caller has that
- * context available. Every field is optional: `chooseAlgType`'s own call site
- * (deciding the whole diagram's structural algorithm, not one point) only ever
- * has `presLayoutVars` to offer, so `pos`/`revPos`/`posEven`/`posOdd`/`depth`/
- * `maxDepth` stay undecidable there exactly as before - no regression.
+ * context available. Every field is optional: `discoverArrangement`
+ * (`smartart-layout-interpreter-model.ts`) supplies the declaring layout
+ * node's own tree location (position among siblings, sibling count, depth,
+ * the tree's max depth) for every `choose` it walks, so `pos`/`revPos`/
+ * `posEven`/`posOdd`/`depth`/`maxDepth` are decidable in production, not just
+ * in unit tests. A caller with no tree location to offer (e.g. a bare
+ * `chooseAlgType` call from a test) simply omits these fields and those
+ * functions stay undecidable, exactly as before - no regression.
  */
 export interface WhenContext {
 	/** 1-based ordinal position of the point being evaluated, for `pos`/`revPos`/`posEven`/`posOdd`. */

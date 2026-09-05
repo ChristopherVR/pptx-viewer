@@ -110,13 +110,16 @@ assign(
 		preserve: 'native',
 		edit: 'partial',
 		serialize: 'partial',
-		note: 'Common data-label options are typed; rich text, layout, and shape properties are preserved.',
+		note: "Common data-label options are typed; the label's own rich-text body (c:tx/c:rich), layout, and shape properties are preserved. Since wave 2 (W2-C/W2-C2, issue C2-G1's data-label half), c:dLbls/c:txPr (group-level) and c:dLbl/c:txPr (per-point) DEFAULT run font is also typed, not just preserved: font family/size/bold/colour parse into options.txPr, with a theme-font placeholder (+mn-lt/+mj-lt) resolved through resolveTypeface the same way axis/title/legend text already is; a chart with no colorParser passed still round-trips byte-identical (txPr stays undefined rather than partially populated).",
 		evidence: [
 			testEvidence(
 				'src/core/utils/chart-data-label-parser.test.ts',
 				[
 					'parses common CT_DLbl fields and XML boolean lexical forms',
 					'parses common CT_DLbls options',
+					'parses c:dLbls/c:txPr into the group-level options.txPr',
+					'resolves a theme-font placeholder via resolveTypeface',
+					"parses a per-point c:dLbl/c:txPr into that label's own txPr",
 				],
 				['parse'],
 			),

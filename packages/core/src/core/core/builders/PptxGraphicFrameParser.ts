@@ -9,6 +9,7 @@ import type {
 	XmlObject,
 } from '../../types';
 import { detectOleObjectType, inferOleExtensionFromTarget } from '../../utils/ole-utils';
+import { resolveP14MediaForGraphicFrame } from '../runtime/media-p14-extension-resolve';
 import { parseShapeLocksFromNode, SHAPE_LOCK_CONTAINERS } from '../runtime/shape-lock-containers';
 import type { GraphicFramePlaceholder } from './graphic-frame-placeholder';
 import {
@@ -535,9 +536,22 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 
 			if (type === 'media' && graphicData && slidePath) {
 				const mediaInfo = this.context.parseMediaData(graphicData, slidePath);
+				// A freshly-inserted (never round-tripped) media element is written
+				// as this `p:graphicFrame` shape with its trim/fade/speed/bookmarks
+				// on `p:nvGraphicFramePr/p:nvPr/p:extLst` (see
+				// `buildMediaP14Extensions`); a `p:pic`-shaped media (real
+				// PowerPoint's own poster-frame form) is handled by the picture
+				// parser's `resolveP14MediaForPicture` instead.
+				const nvPr = (frame['p:nvGraphicFramePr'] as XmlObject | undefined)?.['p:nvPr'] as
+					| XmlObject
+					| undefined;
+				const p14Media = resolveP14MediaForGraphicFrame(nvPr, id, (value) =>
+					ensureArrayLike(value as XmlObject | XmlObject[] | undefined),
+				);
 				return {
 					...baseElement,
 					...mediaInfo,
+					...p14Media,
 					...(extensionXml.length > 0 ? { extensionXml } : {}),
 				} as MediaPptxElement;
 			}

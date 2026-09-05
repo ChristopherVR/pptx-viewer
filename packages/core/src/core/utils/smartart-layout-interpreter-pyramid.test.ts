@@ -95,3 +95,164 @@ describe('arrangePyramid pyraAcctPos', () => {
 		expect(accent0.x + accent0.width).toBeLessThanOrEqual(bandLeftEdge);
 	});
 });
+
+// G9: `dgm:shape/@lkTxEntry` on the named level node keeps the decorative
+// band's own text (mirroring its paired content node) instead of always
+// going blank once `pyraAcctPos` moves text to the accent box.
+describe('arrangePyramid lkTxEntry', () => {
+	it('blanks the band when the level node has no lkTxEntry (pre-existing behaviour)', () => {
+		const plan = planFor({
+			algorithm: {
+				type: 'pyra',
+				parameters: [
+					{ type: 'pyraAcctPos', value: 'aft' },
+					{ type: 'pyraLvlNode', value: 'level' },
+				],
+			},
+			children: [{ name: 'level' }],
+		});
+		const result = arrangePyramid(
+			plan,
+			nodes(1),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const band = result.nodes.find((node) => node.kind === 'polygon');
+		expect(band?.nodeId).toBeUndefined();
+		expect(band?.text).toBe('');
+	});
+
+	it('keeps the band\'s own text when the named level node declares lkTxEntry="1"', () => {
+		const plan = planFor({
+			algorithm: {
+				type: 'pyra',
+				parameters: [
+					{ type: 'pyraAcctPos', value: 'aft' },
+					{ type: 'pyraLvlNode', value: 'level' },
+				],
+			},
+			children: [{ name: 'level', shape: { lkTxEntry: true } }],
+		});
+		const result = arrangePyramid(
+			plan,
+			nodes(1),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const band = result.nodes.find((node) => node.kind === 'polygon');
+		expect(band?.nodeId).toBe('n0');
+		expect(band?.text).not.toBe('');
+		// The accent box still renders too - lkTxEntry mirrors the text, it
+		// doesn't remove the accent box.
+		expect(result.nodes.filter((node) => node.kind === 'rect')).toHaveLength(1);
+	});
+});
+
+// pyraLvlNode: the arranger's `dgm:param[@type=pyraLvlNode]` names a nested
+// layoutNode as the band's own shape; that node's own w/h constraint ratio
+// should size the rendered band within its slot.
+describe('arrangePyramid pyraLvlNode', () => {
+	function planWithLevelNode(
+		levelConstraints: PptxSmartArtLayoutNode['constraints'],
+	): ArrangementPlan {
+		return planFor({
+			algorithm: { type: 'pyra', parameters: [{ type: 'pyraLvlNode', value: 'level' }] },
+			children: [{ name: 'level', constraints: levelConstraints }],
+		});
+	}
+
+	it('shrinks the band to a sub-1 literal `val` ratio declared on the named level node', () => {
+		const full = arrangePyramid(
+			planFor({ algorithm: { type: 'pyra' } }),
+			nodes(2),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const shrunk = arrangePyramid(
+			planWithLevelNode([{ type: 'h', value: 0.5 }]),
+			nodes(2),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const fullBand = full.nodes[0];
+		const shrunkBand = shrunk.nodes[0];
+		if (fullBand.kind !== 'polygon' || shrunkBand.kind !== 'polygon') {
+			throw new Error('expected polygon bands');
+		}
+		const heightOf = (points: string): number => {
+			const ys = points
+				.trim()
+				.split(/\s+/u)
+				.map((pair) => Number(pair.split(',')[1]));
+			return Math.max(...ys) - Math.min(...ys);
+		};
+		expect(heightOf(shrunkBand.points)).toBeLessThan(heightOf(fullBand.points));
+	});
+
+	it('honours a `fact` ratio on the named level node for width too', () => {
+		const shrunk = arrangePyramid(
+			planWithLevelNode([{ type: 'w', factor: 0.5 }]),
+			nodes(1),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const full = arrangePyramid(
+			planFor({ algorithm: { type: 'pyra' } }),
+			nodes(1),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const widthOf = (points: string): number => {
+			const xs = points
+				.trim()
+				.split(/\s+/u)
+				.map((pair) => Number(pair.split(',')[0]));
+			return Math.max(...xs) - Math.min(...xs);
+		};
+		const shrunkBand = shrunk.nodes[0];
+		const fullBand = full.nodes[0];
+		if (shrunkBand.kind !== 'polygon' || fullBand.kind !== 'polygon') {
+			throw new Error('expected polygon bands');
+		}
+		expect(widthOf(shrunkBand.points)).toBeLessThan(widthOf(fullBand.points));
+	});
+
+	// COM-verified: real "Basic Pyramid" (ppt/diagrams/layout1.xml) declares
+	// `pyraLvlNode val="level"` with the level node's own `w val="1"` / `h
+	// val="500"` - neither qualifies as a sub-1 ratio, so output must be
+	// byte-identical to the no-pyraLvlNode case (no regression).
+	it('is a no-op for real "Basic Pyramid" values (w=1, h=500, not ratios)', () => {
+		const basicPyramid = arrangePyramid(
+			planWithLevelNode([
+				{ type: 'w', value: 1 },
+				{ type: 'h', value: 500 },
+			]),
+			nodes(3),
+			{ width: 300, height: 300 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const noParam = arrangePyramid(
+			planFor({ algorithm: { type: 'pyra' } }),
+			nodes(3),
+			{ width: 300, height: 300 },
+			['#fff'],
+			'flat',
+			'e',
+		);
+		expect(basicPyramid.nodes).toStrictEqual(noParam.nodes);
+	});
+});

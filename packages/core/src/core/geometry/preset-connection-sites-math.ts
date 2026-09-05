@@ -1,0 +1,185 @@
+/**
+ * Connection sites for the equation-symbol presets: `mathDivide`, `mathEqual`,
+ * `mathMinus`, `mathMultiply`, `mathNotEqual`, `mathPlus`.
+ *
+ * See `preset-connection-sites-quads.ts` for the provenance note; same source
+ * (`presetShapeDefinitions.xml`), same transcription method.
+ *
+ * @module render/preset-connection-sites-math
+ */
+import type { PresetConnectionSiteDefinition } from './preset-connection-sites-types';
+import { cxn, gd } from './preset-connection-sites-types';
+
+export const MATH_SYMBOL_CONNECTION_SITES: Record<string, PresetConnectionSiteDefinition> = {
+	mathDivide: {
+		avLst: { adj3: 11760, adj1: 23520, adj2: 5880 },
+		gdLst: [
+			gd('a1', 'pin 1000 adj1 36745'),
+			gd('ma1', '+- 0 0 a1'),
+			gd('ma3h', '+/ 73490 ma1 4'),
+			gd('ma3w', '*/ 36745 w h'),
+			gd('maxAdj3', 'min ma3h ma3w'),
+			gd('a3', 'pin 1000 adj3 maxAdj3'),
+			gd('m4a3', '*/ -4 a3 1'),
+			gd('maxAdj2', '+- 73490 m4a3 a1'),
+			gd('a2', 'pin 0 adj2 maxAdj2'),
+			gd('dy1', '*/ h a1 200000'),
+			gd('yg', '*/ h a2 100000'),
+			gd('rad', '*/ h a3 100000'),
+			gd('dx1', '*/ w 73490 200000'),
+			gd('y3', '+- vc 0 dy1'),
+			gd('a', '+- yg rad 0'),
+			gd('y2', '+- y3 0 a'),
+			gd('y1', '+- y2 0 rad'),
+			gd('y5', '+- b 0 y1'),
+			gd('x1', '+- hc 0 dx1'),
+			gd('x3', '+- hc dx1 0'),
+		],
+		sites: [
+			cxn('0', 'x3', 'vc'),
+			cxn('cd4', 'hc', 'y5'),
+			cxn('cd2', 'x1', 'vc'),
+			cxn('3cd4', 'hc', 'y1'),
+		],
+	},
+
+	mathEqual: {
+		avLst: { adj1: 23520, adj2: 11760 },
+		gdLst: [
+			gd('a1', 'pin 0 adj1 36745'),
+			gd('2a1', '*/ a1 2 1'),
+			gd('mAdj2', '+- 100000 0 2a1'),
+			gd('a2', 'pin 0 adj2 mAdj2'),
+			gd('dy1', '*/ h a1 100000'),
+			gd('dy2', '*/ h a2 200000'),
+			gd('dx1', '*/ w 73490 200000'),
+			gd('y2', '+- vc 0 dy2'),
+			gd('y3', '+- vc dy2 0'),
+			gd('y1', '+- y2 0 dy1'),
+			gd('y4', '+- y3 dy1 0'),
+			gd('x1', '+- hc 0 dx1'),
+			gd('x2', '+- hc dx1 0'),
+			gd('yC1', '+/ y1 y2 2'),
+			gd('yC2', '+/ y3 y4 2'),
+		],
+		sites: [
+			cxn('0', 'x2', 'yC1'),
+			cxn('0', 'x2', 'yC2'),
+			cxn('cd4', 'hc', 'y4'),
+			cxn('cd2', 'x1', 'yC1'),
+			cxn('cd2', 'x1', 'yC2'),
+			cxn('3cd4', 'hc', 'y1'),
+		],
+	},
+
+	mathMinus: {
+		avLst: { adj1: 23520 },
+		gdLst: [
+			gd('a1', 'pin 0 adj1 100000'),
+			gd('dy1', '*/ h a1 200000'),
+			gd('dx1', '*/ w 73490 200000'),
+			gd('y1', '+- vc 0 dy1'),
+			gd('y2', '+- vc dy1 0'),
+			gd('x1', '+- hc 0 dx1'),
+			gd('x2', '+- hc dx1 0'),
+		],
+		sites: [
+			cxn('0', 'x2', 'vc'),
+			cxn('cd4', 'hc', 'y2'),
+			cxn('cd2', 'x1', 'vc'),
+			cxn('3cd4', 'hc', 'y1'),
+		],
+	},
+
+	mathMultiply: {
+		gdLst: [
+			gd('a', 'at2 w h'),
+			gd('sa', 'sin 1 a'),
+			gd('ca', 'cos 1 a'),
+			gd('dl', 'mod w h 0'),
+			gd('rw', '*/ dl 51965 100000'),
+			gd('lM', '+- dl 0 rw'),
+			gd('xM', '*/ ca lM 2'),
+			gd('yM', '*/ sa lM 2'),
+			gd('xC2', '+- r 0 xM'),
+			gd('yC3', '+- b 0 yM'),
+		],
+		sites: [
+			cxn('cd2', 'xM', 'yM'),
+			cxn('3cd4', 'xC2', 'yM'),
+			cxn('0', 'xC2', 'yC3'),
+			cxn('cd4', 'xM', 'yC3'),
+		],
+	},
+
+	mathNotEqual: {
+		avLst: { adj1: 23520, adj3: 11760, adj2: 6600000 },
+		gdLst: [
+			gd('a1', 'pin 0 adj1 50000'),
+			gd('crAng', 'pin 4200000 adj2 6600000'),
+			gd('2a1', '*/ a1 2 1'),
+			gd('maxAdj3', '+- 100000 0 2a1'),
+			gd('a3', 'pin 0 adj3 maxAdj3'),
+			gd('dy1', '*/ h a1 100000'),
+			gd('dy2', '*/ h a3 200000'),
+			gd('dx1', '*/ w 73490 200000'),
+			gd('x1', '+- hc 0 dx1'),
+			gd('x8', '+- hc dx1 0'),
+			gd('y2', '+- vc 0 dy2'),
+			gd('y3', '+- vc dy2 0'),
+			gd('y1', '+- y2 0 dy1'),
+			gd('y4', '+- y3 dy1 0'),
+			gd('cadj2', '+- crAng 0 cd4'),
+			gd('xadj2', 'tan hd2 cadj2'),
+			gd('len', 'mod xadj2 hd2 0'),
+			gd('bhw', '*/ len dy1 hd2'),
+			gd('bhw2', '*/ bhw 1 2'),
+			gd('x7', '+- hc xadj2 bhw2'),
+			gd('rx7', '+- x7 bhw 0'),
+			gd('dx7', '*/ dy1 hd2 len'),
+			gd('rxt', '+- x7 dx7 0'),
+			gd('lxt', '+- rx7 0 dx7'),
+			gd('rx', '?: cadj2 rxt rx7'),
+			gd('lx', '?: cadj2 x7 lxt'),
+			gd('dy3', '*/ dy1 xadj2 len'),
+			gd('dy4', '+- 0 0 dy3'),
+			gd('ry', '?: cadj2 dy3 t'),
+			gd('ly', '?: cadj2 t dy4'),
+			gd('dlx', '+- w 0 rx'),
+			gd('drx', '+- w 0 lx'),
+			gd('dly', '+- h 0 ry'),
+			gd('dry', '+- h 0 ly'),
+			gd('xC1', '+/ rx lx 2'),
+			gd('xC2', '+/ drx dlx 2'),
+			gd('yC1', '+/ ry ly 2'),
+			gd('yC2', '+/ y1 y2 2'),
+			gd('yC3', '+/ y3 y4 2'),
+			gd('yC4', '+/ dry dly 2'),
+		],
+		sites: [
+			cxn('0', 'x8', 'yC2'),
+			cxn('0', 'x8', 'yC3'),
+			cxn('cd4', 'xC2', 'yC4'),
+			cxn('cd2', 'x1', 'yC2'),
+			cxn('cd2', 'x1', 'yC3'),
+			cxn('3cd4', 'xC1', 'yC1'),
+		],
+	},
+
+	mathPlus: {
+		gdLst: [
+			gd('dx1', '*/ w 73490 200000'),
+			gd('dy1', '*/ h 73490 200000'),
+			gd('x1', '+- hc 0 dx1'),
+			gd('x4', '+- hc dx1 0'),
+			gd('y1', '+- vc 0 dy1'),
+			gd('y4', '+- vc dy1 0'),
+		],
+		sites: [
+			cxn('0', 'x4', 'vc'),
+			cxn('cd4', 'hc', 'y4'),
+			cxn('cd2', 'x1', 'vc'),
+			cxn('3cd4', 'hc', 'y1'),
+		],
+	},
+};

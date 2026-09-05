@@ -50,6 +50,24 @@ function presPointRole(pt: XmlObject, localName: LocalName): PresPointRole | und
 	return { styleRole, isPrimary: presName === 'node' };
 }
 
+/** Index every `pres`-type point by its `modelId`, or `undefined` when there are none. */
+function indexPresPoints(points: XmlObject[]): Map<string, XmlObject> | undefined {
+	const presPointsById = new Map<string, XmlObject>();
+	for (const pt of points) {
+		if (!pt || typeof pt !== 'object') {
+			continue;
+		}
+		if (String(pt['@_type'] ?? '').trim() !== 'pres') {
+			continue;
+		}
+		const id = String(pt['@_modelId'] ?? '').trim();
+		if (id) {
+			presPointsById.set(id, pt);
+		}
+	}
+	return presPointsById.size > 0 ? presPointsById : undefined;
+}
+
 /**
  * Resolve `contentNodeId -> presStyleLbl` for every content point that has a
  * `presOf` association with a `styleLbl`-carrying presentation point.
@@ -64,20 +82,8 @@ export function resolveSmartArtNodeStyleRoles(
 	connections: PptxSmartArtConnection[],
 	localName: LocalName,
 ): Map<string, string> {
-	const presPointsById = new Map<string, XmlObject>();
-	for (const pt of points) {
-		if (!pt || typeof pt !== 'object') {
-			continue;
-		}
-		if (String(pt['@_type'] ?? '').trim() !== 'pres') {
-			continue;
-		}
-		const id = String(pt['@_modelId'] ?? '').trim();
-		if (id) {
-			presPointsById.set(id, pt);
-		}
-	}
-	if (presPointsById.size === 0) {
+	const presPointsById = indexPresPoints(points);
+	if (!presPointsById) {
 		return new Map();
 	}
 
@@ -109,4 +115,47 @@ export function resolveSmartArtNodeStyleRoles(
 		}
 	}
 	return roleByNodeId;
+}
+
+/**
+ * Resolve the set of content node ids whose presentation point declares
+ * `dgm:prSet/@coherent3DOff="1"` (`CT_ElemPropSet`): PowerPoint lets a
+ * SmartArt author break one node out of the diagram's overall coherent-3D
+ * scene rotation (used with `dgm:scene3d`/`dgm:sp3d` bevel quick styles). See
+ * `smartart-effect-intensity.ts`'s theme-resolved style refs, which honour
+ * this flag when applying a quick style's `scene3d`/`sp3d` variation.
+ *
+ * Mirrors {@link resolveSmartArtNodeStyleRoles}'s presOf resolution (a
+ * content point carries no attributes of its own; PowerPoint always writes
+ * this on the presentation point instead), kept as a separate pass so the
+ * (far more common) style-role resolution never pays for it.
+ */
+export function resolveSmartArtNodeCoherent3DOff(
+	points: XmlObject[],
+	connections: PptxSmartArtConnection[],
+	localName: LocalName,
+): Set<string> {
+	const presPointsById = indexPresPoints(points);
+	if (!presPointsById) {
+		return new Set();
+	}
+
+	const nodeIds = new Set<string>();
+	for (const connection of connections) {
+		if (connection.type !== 'presOf') {
+			continue;
+		}
+		const presPoint = presPointsById.get(connection.destId);
+		if (!presPoint) {
+			continue;
+		}
+		const prSet = child(presPoint, 'prSet', localName);
+		const raw = String(prSet?.['@_coherent3DOff'] ?? '')
+			.trim()
+			.toLowerCase();
+		if (raw === '1' || raw === 'true') {
+			nodeIds.add(connection.sourceId);
+		}
+	}
+	return nodeIds;
 }

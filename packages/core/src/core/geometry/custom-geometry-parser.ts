@@ -69,6 +69,47 @@ function parseSegments(
 	return segments;
 }
 
+/**
+ * Build structured `CustomGeometryPath[]` from already-parsed `a:path` nodes
+ * against an already-resolved guide variable context.
+ *
+ * Factored out of {@link parseStructuredCustomGeometry} so a LIVE re-evaluation
+ * (a `shapeAdjustments` drag in progress, before it commits) can reuse the
+ * exact same per-path/per-segment logic against a variable context built from
+ * OVERRIDDEN guide values instead of the `a:avLst` defaults; see
+ * `custom-geometry-live-eval.ts`.
+ *
+ * @param pathNodes      The `a:pathLst/a:path` nodes.
+ * @param contextWidth   Fallback coordinate-space width for a path with no own `@w`.
+ * @param contextHeight  Fallback coordinate-space height for a path with no own `@h`.
+ * @param variables      Fully resolved guide variable context (builtins + adjustments + guides).
+ * @param ensureArray    Helper to normalize XML nodes to arrays.
+ */
+export function buildCustomGeometryPathsFromNodes(
+	pathNodes: XmlObject[],
+	contextWidth: number,
+	contextHeight: number,
+	variables: Map<string, number>,
+	ensureArray: EnsureArray,
+): CustomGeometryPath[] {
+	return pathNodes.map((path) => {
+		const fill = String(path['@_fill'] ?? '');
+		const fillMode = ['norm', 'lighten', 'lightenLess', 'darken', 'darkenLess', 'none'].includes(
+			fill,
+		)
+			? (fill as CustomGeometryPath['fillMode'])
+			: undefined;
+		return {
+			width: Number(path['@_w']) || contextWidth,
+			height: Number(path['@_h']) || contextHeight,
+			segments: parseSegments(path, variables, ensureArray),
+			fillMode,
+			stroke: parseBoolean(path['@_stroke']),
+			extrusionOk: parseBoolean(path['@_extrusionOk']),
+		};
+	});
+}
+
 /** Parse formula-backed DrawingML custom paths without lossy SVG conversion. */
 export function parseStructuredCustomGeometry(
 	custGeom: XmlObject,
@@ -93,20 +134,11 @@ export function parseStructuredCustomGeometry(
 	const contextHeight = Number(firstPath['@_h']) || shapeHeight;
 	const variables = evaluateGuides(guides, { w: contextWidth, h: contextHeight }, adjustments);
 
-	return pathNodes.map((path) => {
-		const fill = String(path['@_fill'] ?? '');
-		const fillMode = ['norm', 'lighten', 'lightenLess', 'darken', 'darkenLess', 'none'].includes(
-			fill,
-		)
-			? (fill as CustomGeometryPath['fillMode'])
-			: undefined;
-		return {
-			width: Number(path['@_w']) || contextWidth,
-			height: Number(path['@_h']) || contextHeight,
-			segments: parseSegments(path, variables, ensureArray),
-			fillMode,
-			stroke: parseBoolean(path['@_stroke']),
-			extrusionOk: parseBoolean(path['@_extrusionOk']),
-		};
-	});
+	return buildCustomGeometryPathsFromNodes(
+		pathNodes,
+		contextWidth,
+		contextHeight,
+		variables,
+		ensureArray,
+	);
 }

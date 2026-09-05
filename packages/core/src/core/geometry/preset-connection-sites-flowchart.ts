@@ -149,4 +149,26 @@ export const FLOWCHART_CONNECTION_SITES: Record<string, PresetConnectionSiteDefi
 			cxn('0', 'r', 'vc'),
 		],
 	},
+
+	flowChartInputOutput: {
+		gdLst: [gd('x3', '*/ w 2 5'), gd('x4', '*/ w 3 5'), gd('x6', '*/ w 9 10')],
+		sites: [
+			cxn('3cd4', 'x4', 't'),
+			cxn('3cd4', 'hc', 't'),
+			cxn('cd2', 'wd10', 'vc'),
+			cxn('cd4', 'x3', 'b'),
+			cxn('cd4', 'hc', 'b'),
+			cxn('0', 'x6', 'vc'),
+		],
+	},
+
+	flowChartOfflineStorage: {
+		gdLst: [gd('x4', '*/ w 3 4')],
+		sites: [
+			cxn('0', 'x4', 'vc'),
+			cxn('cd4', 'hc', 'b'),
+			cxn('cd2', 'wd4', 'vc'),
+			cxn('3cd4', 'hc', 't'),
+		],
+	},
 };

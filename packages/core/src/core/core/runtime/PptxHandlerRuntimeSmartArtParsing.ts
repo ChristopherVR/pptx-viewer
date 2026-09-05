@@ -8,11 +8,6 @@ import type {
 import type { DiagramRelationshipIds } from '../../utils/diagram-relationship-ids';
 import { collectSmartArtTransitionText } from '../../utils/smartart-connector-labels';
 import { parseSmartArtConnection } from '../../utils/smartart-data-model-attributes';
-import {
-	parseSmartArtDefinitionMetadata,
-	parseSmartArtQuickStyleLabels,
-} from '../../utils/smartart-definition-metadata';
-import { resolveSmartArtEffectIntensity } from '../../utils/smartart-effect-intensity';
 import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 import {
@@ -21,6 +16,7 @@ import {
 	extractDrawingShapeTextStyle,
 } from './smartart-drawing-shape-style';
 import type { DrawingShapeStyleDeps } from './smartart-drawing-shape-style';
+import { buildSmartArtQuickStyle } from './smartart-style-label-refs';
 import { parseSmartArtTextParagraphs, smartArtParagraphsText } from './smartart-text-paragraphs';
 import { resolveSmartArtTextStyles } from './smartart-text-style-resolution';
 
@@ -123,17 +119,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const localName = (key: string) => this.compatibilityService.getXmlLocalName(key);
-			const metadata = parseSmartArtDefinitionMetadata(styleDef, localName);
-			const labels = parseSmartArtQuickStyleLabels(styleDef, localName);
-			const name =
-				metadata.titles?.[0]?.value ||
-				String(styleDef['@_title'] || styleDef['@_uniqueId'] || '').trim() ||
-				undefined;
-
 			const styleLbls = this.xmlLookupService.getChildrenArrayByLocalName(styleDef, 'styleLbl');
-			const effectIntensity = resolveSmartArtEffectIntensity(styleLbls, localName);
-
-			return { ...metadata, name, effectIntensity, labels };
+			// G13: theme-resolved fill/line/effect/font per label, instead of only
+			// the coarse subtle/moderate/intense enum.
+			return buildSmartArtQuickStyle(styleDef, localName, styleLbls, {
+				resolveThemeFillRef: this.resolveThemeFillRef.bind(this),
+				resolveThemeLineRef: this.resolveThemeLineRef.bind(this),
+				resolveThemeEffectRef: this.resolveThemeEffectRef.bind(this),
+				resolveThemeTypeface: this.resolveThemeTypeface.bind(this),
+			});
 		} catch {
 			return undefined;
 		}

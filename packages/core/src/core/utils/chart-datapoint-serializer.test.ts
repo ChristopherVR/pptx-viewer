@@ -5,6 +5,7 @@ import type { XmlObject } from '../types';
 import {
 	applySeriesDataPointsToXml,
 	parseChartDataPointPicture,
+	parseChartDataPointPictureBlipRel,
 } from './chart-datapoint-serializer';
 
 const lookup = new PptxXmlLookupService();
@@ -100,6 +101,46 @@ describe('applySeriesDataPointsToXml', () => {
 		expect(dpt['c:pictureOptions']).toStrictEqual({ passthrough: true });
 	});
 
+	// C2-G9 (save half): an independent write path for c:dPt/c:pictureOptions,
+	// distinct from the raw-XML passthrough an untouched point still uses (see
+	// the preceding test).
+	it('rebuilds c:pictureOptions from the typed model once dp.picture is set', () => {
+		const node = seriesNode();
+		node['c:dPt'] = {
+			'c:idx': { '@_val': '0' },
+			'c:pictureOptions': { 'c:pictureFormat': { '@_val': 'stretch' } },
+		};
+		applySeriesDataPointsToXml(
+			node,
+			[{ idx: 0, picture: { pictureFormat: 'stack', pictureStackUnit: 36, applyToFront: true } }],
+			getLocalName,
+		);
+		const dpt = node['c:dPt'] as XmlObject;
+		expect(dpt['c:pictureOptions']).toStrictEqual({
+			'c:applyToFront': { '@_val': '1' },
+			'c:pictureFormat': { '@_val': 'stack' },
+			'c:pictureStackUnit': { '@_val': '36' },
+		});
+	});
+
+	it('removes c:pictureOptions when dp.picture is an empty object', () => {
+		const node = seriesNode();
+		node['c:dPt'] = {
+			'c:idx': { '@_val': '0' },
+			'c:pictureOptions': { 'c:pictureFormat': { '@_val': 'stretch' } },
+		};
+		applySeriesDataPointsToXml(node, [{ idx: 0, picture: {} }], getLocalName);
+		const dpt = node['c:dPt'] as XmlObject;
+		expect(dpt['c:pictureOptions']).toBeUndefined();
+	});
+
+	it('leaves c:pictureOptions absent for a freshly-created point with no picture', () => {
+		const node = seriesNode();
+		applySeriesDataPointsToXml(node, [{ idx: 0, explosion: 5 }], getLocalName);
+		const dpt = node['c:dPt'] as XmlObject;
+		expect(dpt['c:pictureOptions']).toBeUndefined();
+	});
+
 	it('rejects invalid unsigned values and marker sizes', () => {
 		for (const point of [
 			{ idx: -1 },
@@ -129,9 +170,7 @@ describe('applySeriesDataPointsToXml', () => {
 	});
 });
 
-// C2-G9 (parse half): c:dPt/c:pictureOptions is a known, intentionally
-// unmodeled preserve-only child of the serializer above; this pure helper
-// parses it (not yet wired into the real c:dPt parser - see its doc comment).
+// C2-G9 (parse half): c:dPt/c:pictureOptions per-point picture-fill flags.
 describe('parseChartDataPointPicture', () => {
 	it('returns undefined when there is no c:pictureOptions', () => {
 		expect(parseChartDataPointPicture({ 'c:idx': { '@_val': '0' } }, lookup)).toBeUndefined();
@@ -167,5 +206,29 @@ describe('parseChartDataPointPicture', () => {
 			'c:pictureOptions': { 'c:pictureFormat': { '@_val': 'sideways' } },
 		};
 		expect(parseChartDataPointPicture(dPt, lookup)).toBeUndefined();
+	});
+});
+
+// C2-G9 (render half): the r:embed/r:link relationship id the runtime
+// resolves into PptxChartDataPointPicture.imageUrl in a follow-up pass.
+describe('parseChartDataPointPictureBlipRel', () => {
+	it('returns undefined when the point has no picture fill', () => {
+		expect(
+			parseChartDataPointPictureBlipRel({ 'c:idx': { '@_val': '0' } }, lookup),
+		).toBeUndefined();
+	});
+
+	it('extracts r:embed from c:spPr/a:blipFill/a:blip', () => {
+		const dPt: XmlObject = {
+			'c:spPr': { 'a:blipFill': { 'a:blip': { '@_r:embed': 'rId5' } } },
+		};
+		expect(parseChartDataPointPictureBlipRel(dPt, lookup)).toBe('rId5');
+	});
+
+	it('falls back to r:link for a linked (not embedded) picture', () => {
+		const dPt: XmlObject = {
+			'c:spPr': { 'a:blipFill': { 'a:blip': { '@_r:link': 'rId9' } } },
+		};
+		expect(parseChartDataPointPictureBlipRel(dPt, lookup)).toBe('rId9');
 	});
 });

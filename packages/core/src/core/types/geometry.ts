@@ -142,6 +142,16 @@ export interface CustomGeometryRawData {
 	cxnLstXml?: unknown;
 	/** Raw `a:rect` XML content (text rectangle). */
 	rectXml?: unknown;
+	/**
+	 * Raw `a:pathLst` XML content: every `a:path`'s formula-bearing `a:pt`
+	 * x/y attributes, `a:arcTo` params, `a:close`, and per-path `@w`/`@h`/
+	 * `@fill`/`@stroke`/`@extrusionOk`, preserved verbatim (not the
+	 * parse-time-resolved numbers in `customGeometryPaths`). Lets a live
+	 * `shapeAdjustments` drag re-evaluate the outline against the CURRENT
+	 * guide values instead of the ones baked in at parse time; see
+	 * `geometry/custom-geometry-live-eval.ts`.
+	 */
+	pathLstXml?: unknown;
 }
 
 // ==========================================================================

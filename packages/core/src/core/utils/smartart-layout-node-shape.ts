@@ -57,16 +57,21 @@ function parseHideGeom(shapeEl: XmlObject): boolean | undefined {
 
 /**
  * `dgm:shape/@lkTxEntry` (`CT_Shape`, boolean, default false): marks a
- * layout's decorative shape (e.g. the accent bar in "Basic Block List") as
- * mirroring its paired content node's text rather than carrying none of its
- * own.
+ * layout's decorative shape as mirroring its paired content node's text
+ * rather than carrying none of its own.
  *
- * NOT threaded onto {@link PptxSmartArtLayoutNodeShape} (`smart-art-layout-
- * definition.ts`, a file this module does not own in the current change) -
- * exposed as a standalone reader over the SAME raw `dgm:shape` element so a
- * caller that already has it (parsing a `dgm:layoutNode`) can decide whether
- * to mirror text without a model-shape change. See the module doc comment on
- * `smartart-layout-node-shape.ts` if/when the typed field lands.
+ * A sweep of all 176 built-in Office SmartArt gallery layouts (COM-probed;
+ * see the G9 audit) found none that actually author this attribute - the
+ * decorative-vs-content-shape split Office's own gallery layouts use (e.g.
+ * "Basic Pyramid"'s separate `acctBkgd`/`acctTx` nodes, or the accent-box
+ * split this interpreter's own `pyraAcctPos` support produces) does not rely
+ * on it. It is nonetheless part of the schema and consumed at the one place
+ * this interpreter already synthesizes a blank decorative shape:
+ * `smartart-layout-interpreter-pyramid.ts`'s `arrangePyramid`, for a
+ * hand-authored/third-party layoutDef that does set it. Threaded onto
+ * {@link PptxSmartArtLayoutNodeShape} (`smart-art-layout-definition.ts`) for
+ * parse/serialize round-trip; this standalone reader remains for a caller
+ * working directly off raw XML.
  */
 export function parseSmartArtLkTxEntry(shapeEl: XmlObject | undefined): boolean {
 	if (!shapeEl) {
@@ -113,13 +118,15 @@ export function parseSmartArtLayoutNodeShape(
 	const presetGeometry = String(shapeEl['@_type'] ?? '').trim() || undefined;
 	const hideGeometry = parseHideGeom(shapeEl);
 	const adjustments = parseAdjustments(shapeEl, localName);
-	if (!presetGeometry && !hideGeometry && !adjustments) {
+	const lkTxEntry = parseSmartArtLkTxEntry(shapeEl) || undefined;
+	if (!presetGeometry && !hideGeometry && !adjustments && !lkTxEntry) {
 		return undefined;
 	}
 	return {
 		...(presetGeometry ? { presetGeometry } : {}),
 		...(adjustments ? { adjustments } : {}),
 		...(hideGeometry ? { hideGeometry } : {}),
+		...(lkTxEntry ? { lkTxEntry } : {}),
 	};
 }
 
@@ -148,6 +155,11 @@ export function applySmartArtLayoutNodeShape(
 		el['@_hideGeom'] = '1';
 	} else {
 		delete el['@_hideGeom'];
+	}
+	if (value.lkTxEntry) {
+		el['@_lkTxEntry'] = '1';
+	} else {
+		delete el['@_lkTxEntry'];
 	}
 	if (value.adjustments && value.adjustments.length > 0) {
 		const adjLstKey =

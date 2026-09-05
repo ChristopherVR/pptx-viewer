@@ -53,11 +53,11 @@ assign(['chart:element:roundedCorners'], {
 });
 
 assign(['chart:complexType:CT_PictureOptions', 'chart:element:pictureOptions'], {
-	parse: 'partial',
-	preserve: 'unassessed',
-	edit: 'unassessed',
-	serialize: 'unassessed',
-	note: 'c:dPt/c:pictureOptions now parses into a typed PptxChartDataPointPicture (the apply* placement flags, pictureFormat, and pictureStackUnit), instead of being invisible to the typed model. Rendering the picture-fill effect itself and an independent re-serialization path from the typed field are not yet implemented (issue C2-G9 remains a parse-only fix), so parse is graded partial and preserve/edit/serialize stay unassessed.',
+	parse: 'native',
+	preserve: 'native',
+	edit: 'native',
+	serialize: 'native',
+	note: "c:dPt/c:pictureOptions parses into a typed PptxChartDataPointPicture (the apply* placement flags, pictureFormat, pictureStackUnit), and since wave 2 (W2-C/W2-C2, issue C2-G9's follow-through) that model is complete on every facet: parse also resolves the sibling c:spPr/a:blipFill/a:blip's r:embed/r:link into an actual image URL (core/core/runtime/chart-datapoint-picture-resolver.ts), and an independent typed write path (core/utils/chart-datapoint-picture.ts buildDptPictureOptions) rebuilds, removes, or leaves c:pictureOptions exactly as it was (picture: undefined preserves the existing subtree verbatim, the same 'typed edit wins once touched' convention this codebase uses elsewhere for dPt fills). The picture-fill effect itself is also now painted (ChartViewModel.defs + applyDataPointPictureFills in packages/shared, all five bindings), though render has no facet of its own in this manifest.",
 	evidence: [
 		testEvidence(
 			'src/core/utils/chart-datapoint-serializer.test.ts',
@@ -65,7 +65,59 @@ assign(['chart:complexType:CT_PictureOptions', 'chart:element:pictureOptions'], 
 				'returns undefined when there is no c:pictureOptions',
 				'parses apply* flags, pictureFormat, and pictureStackUnit',
 				'ignores an invalid pictureFormat value',
+				'rebuilds c:pictureOptions from the typed model once dp.picture is set',
+				'removes c:pictureOptions when dp.picture is an empty object',
+				'leaves c:pictureOptions absent for a freshly-created point with no picture',
 			],
+			['parse', 'edit', 'serialize'],
+		),
+		testEvidence(
+			'src/core/utils/chart-datapoint-serializer.test.ts',
+			['writes marker and bubble3D in CT_DPt schema order while preserving extensions'],
+			['preserve'],
+		),
+		testEvidence(
+			'src/core/core/runtime/PptxHandlerRuntimeChartParsing.test.ts',
+			['parses the flags and resolves the sibling blipFill to a data: URL'],
+			['parse'],
+		),
+	],
+});
+
+assign(['chart:element:gapDepth'], {
+	parse: 'native',
+	preserve: 'unassessed',
+	edit: 'native',
+	serialize: 'native',
+	note: "c:gapDepth (bar3D/area3D/line3D/surface3D depth along the series axis) is parsed onto the typed chart model (PptxHandlerRuntimeChartParsing.ts) and, since wave 2 (W2-C), independently editable and re-serialized (chart-subtype-serializer.ts applyGapDepthToXml, wired from PptxHandlerRuntimeSaveDataSerialization.ts): inserted after c:gapWidth and before c:shape/c:axId, replaced in place, or removed when cleared. No dedicated round-trip test was found for an untouched chart's c:gapDepth surviving byte-for-byte, so preserve stays unassessed rather than assumed.",
+	evidence: [
+		testEvidence(
+			'src/core/utils/chart-subtype-serializer.test.ts',
+			[
+				'inserts c:gapDepth after c:gapWidth and before c:shape/c:axId on a bar3DChart',
+				'replaces an existing c:gapDepth value in place',
+				'removes c:gapDepth when given undefined',
+			],
+			['edit', 'serialize'],
+		),
+		testEvidence(
+			'src/__tests__/integration/chart-subtype-roundtrip.test.ts',
+			['parses c:gapDepth, edits it, and round-trips it through the typed field'],
+			['parse', 'edit', 'serialize'],
+		),
+	],
+});
+
+assign(['chart:element:clrMapOvr'], {
+	parse: 'partial',
+	preserve: 'unassessed',
+	edit: 'unassessed',
+	serialize: 'unassessed',
+	note: 'Chart-space clrMapOvr is flattened into a plain string map for colour resolution on parse; no typed edit/serialize path was found, so those facets are left unassessed rather than inferred.',
+	evidence: [
+		testEvidence(
+			'src/core/core/runtime/PptxHandlerRuntimeChartChrome.test.ts',
+			['flattens all 12 attribute slots into a string map'],
 			['parse'],
 		),
 	],

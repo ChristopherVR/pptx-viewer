@@ -168,4 +168,67 @@ describe('chartML data label parsing', () => {
 			expect(label.text).toBe('Manual override');
 		});
 	});
+
+	// C2-G1 (data-label half): c:dLbls/c:txPr and c:dLbl/c:txPr font, theme-resolved
+	// the same way axis/title/legend text already is.
+	describe('c:txPr font (theme resolution)', () => {
+		const colorParser = {
+			parseColor: (node: XmlObject | undefined) => {
+				const srgb = node?.['a:srgbClr'] as XmlObject | undefined;
+				return srgb?.['@_val'] ? `#${srgb['@_val']}` : undefined;
+			},
+		};
+		const txPr: XmlObject = {
+			'a:p': {
+				'a:pPr': {
+					'a:defRPr': {
+						'@_sz': '900',
+						'@_b': '1',
+						'a:latin': { '@_typeface': 'Calibri' },
+						'a:solidFill': { 'a:srgbClr': { '@_val': '112233' } },
+					},
+				},
+			},
+		};
+
+		it('is absent when no colorParser is given, so untouched charts round-trip byte-identical', () => {
+			expect(parseChartDataLabelOptions({ 'c:txPr': txPr }, lookup).txPr).toBeUndefined();
+		});
+
+		it('parses c:dLbls/c:txPr into the group-level options.txPr', () => {
+			const result = parseChartDataLabelOptions({ 'c:txPr': txPr }, lookup, colorParser);
+			expect(result.txPr).toStrictEqual({
+				fontSize: 9,
+				bold: true,
+				fontFamily: 'Calibri',
+				color: '#112233',
+			});
+		});
+
+		it('resolves a theme-font placeholder via resolveTypeface', () => {
+			const placeholderTxPr: XmlObject = {
+				'a:p': { 'a:pPr': { 'a:defRPr': { 'a:latin': { '@_typeface': '+mn-lt' } } } },
+			};
+			const result = parseChartDataLabelOptions(
+				{ 'c:txPr': placeholderTxPr },
+				lookup,
+				colorParser,
+				() => 'Bahnschrift',
+			);
+			expect(result.txPr).toStrictEqual({ fontFamily: 'Bahnschrift' });
+		});
+
+		it("parses a per-point c:dLbl/c:txPr into that label's own txPr", () => {
+			const series: XmlObject = {
+				'c:dLbls': { 'c:dLbl': { 'c:idx': { '@_val': '0' }, 'c:txPr': txPr } },
+			};
+			const [label] = parseSeriesDataLabels(series, lookup, colorParser);
+			expect(label.txPr).toStrictEqual({
+				fontSize: 9,
+				bold: true,
+				fontFamily: 'Calibri',
+				color: '#112233',
+			});
+		});
+	});
 });

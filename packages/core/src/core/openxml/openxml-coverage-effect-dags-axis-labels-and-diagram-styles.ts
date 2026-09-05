@@ -88,12 +88,21 @@ assign(
 		preserve: 'native',
 		edit: 'partial',
 		serialize: 'partial',
-		note: 'Style and color-definition metadata are typed; complex style and color-choice payloads are preserved.',
+		note: "Style and color-definition metadata are typed; complex style and color-choice payloads are preserved. Since wave 2 (W2-E), a quick-style label's own a:lnRef/a:fillRef/a:effectRef/a:fontRef are additionally resolved against the theme's fmtScheme and font scheme (core/core/runtime/smartart-style-label-refs.ts, buildSmartArtQuickStyle), reusing the same theme-ref resolvers an ordinary shape's p:style already goes through, instead of only the coarse subtle/moderate/intense enum a style label previously fell back to. scene3d/sp3d (and so dgm:prSet/@coherent3DOff, which only matters when a coherent-3D variation is applied) are deliberately not resolved here: no renderer in this project consumes a quick style's scene3d/sp3d, so that summary field would be dead data.",
 		evidence: [
 			testEvidence('src/__tests__/integration/smartart-style-definition-save.test.ts', [
 				'round-trips typed quick-style edits without replacing the style payload',
 				'round-trips typed color-definition metadata and retains color choices',
 			]),
+			testEvidence(
+				'src/core/core/runtime/smartart-style-label-refs.test.ts',
+				[
+					'resolves fillRef/lnRef/effectRef/fontRef onto the matching label',
+					'leaves a label with no dgm:style refs untouched (no resolvedStyle)',
+					'matches labels to their raw dgm:style by name, not position',
+				],
+				['parse'],
+			),
 		],
 	},
 );

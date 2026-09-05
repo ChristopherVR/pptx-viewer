@@ -6,8 +6,18 @@ import {
 } from './preset-connection-sites-table';
 
 describe('getPresetConnectionSites', () => {
-	it('returns undefined for a preset with no transcribed cxnLst (falls back to 4-cardinal elsewhere)', () => {
-		expect(getPresetConnectionSites('wedgeRoundRectCallout', 200, 100)).toBeUndefined();
+	it('returns undefined for a preset whose ECMA cxnLst genuinely has no entries (straightConnector1: connectors attach by endpoint, not cxnLst)', () => {
+		expect(getPresetConnectionSites('straightConnector1', 200, 100)).toBeUndefined();
+	});
+
+	it('wedgeRoundRectCallout: resolves the callout pointer-tip site (idx 4) in addition to the 4 cardinals', () => {
+		// adj1=-20833, adj2=62500 (defaults): dxPos = w*adj1/100000, dyPos = h*adj2/100000
+		const sites = getPresetConnectionSites('wedgeRoundRectCallout', 200, 100);
+		expect(sites).toHaveLength(5);
+		expect(sites?.[4]).toStrictEqual({
+			x: 100 + (200 * -20833) / 100000,
+			y: 50 + (100 * 62500) / 100000,
+		});
 	});
 
 	it('rect: matches the ECMA cxnLst order (top, left, bottom, right)', () => {
@@ -26,6 +36,16 @@ describe('getPresetConnectionSites', () => {
 		expect(sites?.[0]).toStrictEqual({ x: 0, y: 0 }); // top site at x1, t
 		// x3 = x1 + w/2 = 0 + 100 = 100
 		expect(sites?.[5]).toStrictEqual({ x: 100, y: 50 }); // right-vertex site
+	});
+
+	it('triangle: the apex site (idx 0) and the bottom-mid site (idx 3) use x2 (the full apex offset), not x1 (half)', () => {
+		// default adj=50000 -> a=50000 -> x2 = w*a/100000 = 100 (horizontal
+		// center, since the default triangle is isosceles). A prior
+		// transcription used x1 (=50, a quarter of the width) for these two
+		// sites, which put the apex off-center even for a symmetric triangle.
+		const sites = getPresetConnectionSites('triangle', 200, 100);
+		expect(sites?.[0]).toStrictEqual({ x: 100, y: 0 }); // apex, horizontally centered
+		expect(sites?.[3]).toStrictEqual({ x: 100, y: 100 }); // directly below the apex
 	});
 
 	it('ellipse: the 45-degree inscribed corners (il/it/ir/ib) differ from the bounding-box corners', () => {

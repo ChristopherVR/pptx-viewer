@@ -1,10 +1,25 @@
 /** Generate Office 2016+ ChartEx XML for SDK-created extended charts. */
 
 import type { PptxChartData, PptxChartSeries, XmlObject } from '../types';
+import { buildChartExLegend } from './chart-cx-legend';
+import { isXmlNode } from './xml-access';
+
+// Re-exported (not just imported above) so `chart-cx-update.ts`'s existing
+// `from './chart-cx-generator'` import keeps working after this module split
+// `buildChartExLegend` out into its own file to stay within the ~300-LOC limit.
+export { buildChartExLegend } from './chart-cx-legend';
 
 const NS_CX = 'http://schemas.microsoft.com/office/drawing/2014/chartex';
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 const NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+/**
+ * ChartEx reuses the classic (2006) DrawingML chart namespace for its
+ * `c:userShapes` drawing-overlay reference (`cx:chartSpace/c:userShapes/@r:id`,
+ * see `PptxHandlerRuntimeSaveDataSerialization.saveChartAcrossFamilies`'s
+ * in-place update branch, which mutates that same element on a real
+ * ChartEx `chartSpace`), rather than defining its own `cx:` element for it.
+ */
+const NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
 
 function points(values: Array<string | number>): XmlObject[] {
 	return values.map((value, index) => ({ '@_idx': String(index), '#text': String(value) }));
@@ -256,29 +271,29 @@ export function buildChartExSpaceXml(chartData: PptxChartData): XmlObject {
 	if (chartData.style?.hasLegend) {
 		chart['cx:legend'] = buildChartExLegend(chartData.style.legendPosition);
 	}
-	return {
-		'cx:chartSpace': {
-			'@_xmlns:cx': NS_CX,
-			'@_xmlns:a': NS_A,
-			'@_xmlns:r': NS_R,
-			'cx:chartData': {
-				'cx:data': chartData.series.map((series, index) =>
-					buildChartExData(chartData, series, index),
-				),
-			},
-			'cx:chart': chart,
+	const chartSpace: XmlObject = {
+		'@_xmlns:cx': NS_CX,
+		'@_xmlns:a': NS_A,
+		'@_xmlns:r': NS_R,
+		'cx:chartData': {
+			'cx:data': chartData.series.map((series, index) =>
+				buildChartExData(chartData, series, index),
+			),
 		},
+		'cx:chart': chart,
 	};
-}
-
-/**
- * A `cx:legend` node. ChartEx positions are `ST_SidePos` (`t`, `b`, `l`, `r`),
- * so the 2006 corner value `tr` folds onto the right edge.
- */
-export function buildChartExLegend(legendPosition: string | undefined): XmlObject {
-	const pos =
-		legendPosition === 't' || legendPosition === 'b' || legendPosition === 'l'
-			? legendPosition
-			: 'r';
-	return { '@_pos': pos, '@_align': 'ctr', '@_overlay': '0' };
+	// A ChartEx type change rebuilds `cx:chart`/`cx:chartData` from the typed
+	// model alone, which has no representation for the drawing-overlay part
+	// (a SEPARATE `ppt/drawings/drawingN.xml` this function never touches).
+	// Re-emitting the preserved raw `c:userShapes` reference (see
+	// `PptxChartData.userShapesXml`'s doc comment) keeps it pointed at the
+	// SAME drawing part, so the overlay survives a type change alone. An
+	// overlay EDITED in the same save still needs `syncChartUserShapesToXml`
+	// run against this tree before writing, which needs zip/relationship
+	// access this pure generator does not have (a runtime-side follow-up).
+	if (isXmlNode(chartData.userShapesXml)) {
+		chartSpace['@_xmlns:c'] = NS_C;
+		chartSpace['c:userShapes'] = chartData.userShapesXml;
+	}
+	return { 'cx:chartSpace': chartSpace };
 }

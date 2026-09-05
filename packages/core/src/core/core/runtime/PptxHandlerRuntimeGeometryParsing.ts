@@ -212,6 +212,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (isNonEmpty(rect)) {
 			result.rectXml = rect;
 		}
+		// Preserved verbatim (formula strings intact) so a live `shapeAdjustments`
+		// override can re-evaluate the outline via `evaluateCustomGeometryPathData`
+		// instead of only ever repainting the numbers frozen at parse time by
+		// `buildStructuredCustomGeometryPaths`/`parseCustomGeometry`.
+		const pathLst = custGeom['a:pathLst'];
+		if (isNonEmpty(pathLst)) {
+			result.pathLstXml = pathLst;
+		}
 		return Object.keys(result).length > 0 ? result : undefined;
 	}
 

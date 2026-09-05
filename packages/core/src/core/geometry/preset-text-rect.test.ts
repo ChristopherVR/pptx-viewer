@@ -81,15 +81,15 @@ describe('preset text rect (gap G1): COM-measured ground truth at 200x100pt', ()
 		expectRect('snipRoundRect', { l: 4.88, t: 4.88, r: 191.63, b: 100 });
 	});
 
-	// mathMultiply: investigated but NOT fixed. The measured rect (l=42.78,
-	// t=13.5, r=157.15, b=86.5) is asymmetric between axes in a way this
-	// evaluator's `at2 w h`-rotated approximation doesn't reproduce, and no
-	// simple reformulation tried matched within tolerance. It intentionally
-	// stays OFF `VERIFIED_TEXT_RECT_PRESETS`; this test documents the current
-	// (still-wrong) output so a future fix has a clear "was" baseline.
-	it('mathMultiply remains unverified (documents current output, not correctness)', () => {
-		const evaluated = evaluatePresetShape('mathMultiply', W, H);
-		expect(evaluated?.textRect).toBeDefined();
+	// mathMultiply: a previous pass tried re-deriving this rect from the
+	// path's own guides and gave up as not matching within tolerance. The
+	// ECMA-376 `<a:rect>` element for this preset is its OWN dedicated
+	// formula (not reused from the path), transcribed verbatim in
+	// `preset-text-rect-quads.ts` and consulted by `preset-shape-evaluator.ts`
+	// ahead of this table's `def.rect`; it matches the measured ground truth
+	// (l=42.78, t=13.5, r=157.15, b=86.5) within the usual 0.02 tolerance.
+	it('mathMultiply: the ECMA rect formula matches the measured ground truth', () => {
+		expectRect('mathMultiply', { l: 42.78, t: 13.5, r: 157.15, b: 86.5 });
 	});
 });
 
@@ -139,5 +139,78 @@ describe('preset text rect: additional G1 fixes (triangle family, hexagon, round
 	it('mathEqual/mathNotEqual share the same horizontal inset plus a 2.5x-gap vertical inset', () => {
 		expectRect('mathEqual', { l: 26.51, t: 20.6, r: 173.38, b: 79.4 });
 		expectRect('mathNotEqual', { l: 26.51, t: 20.6, r: 173.38, b: 79.4 });
+	});
+
+	// parallelogram/trapezoid: a previous pass measured these (see
+	// `preset-text-rect-measurements.md` in the wave-2 scratchpad) but could
+	// not reproduce them from a "largest inscribed rectangle" re-derivation
+	// off the path's own skew guide (`x3`/`x1`). The ECMA `<a:rect>` element
+	// for both is its own dedicated q1/q2 scale-factor formula (not reused
+	// from the path), transcribed verbatim in `preset-text-rect-quads.ts`; it
+	// matches the measured ground truth within the usual 0.02 tolerance,
+	// including the "uniform inset on all 4 sides" fact the prior pass could
+	// not otherwise explain.
+	it('parallelogram: the ECMA rect formula matches the measured ground truth (uniform 4-side inset)', () => {
+		expectRect('parallelogram', { l: 27.08, t: 13.54, r: 172.83, b: 86.46 });
+	});
+
+	it('trapezoid: the ECMA rect formula matches the measured ground truth (bottom edge stays full-width)', () => {
+		expectRect('trapezoid', { l: 16.67, t: 8.33, r: 183.29, b: 100 });
+	});
+});
+
+// Wave 2 follow-up (2026-09): every remaining ECMA-transcribed preset in
+// preset-text-rect-table.ts (93 total, incl. the three above) was COM-measured
+// and matched within tolerance; see preset-text-rect-w2-measured.json in the
+// wave scratchpad for the full set. This block pins a representative sample
+// spanning every family the table covers, so a mistranscription in any of
+// them regresses here.
+describe('preset text rect: wave 2 ECMA-transcribed presets, COM-verified', () => {
+	it('leftRightArrow rect sits between the two arrowhead bases', () => {
+		expectRect('leftRightArrow', { l: 25, t: 25, r: 175, b: 75 });
+	});
+
+	it('bracePair insets uniformly by the fillet touch point on all four sides', () => {
+		expectRect('bracePair', { l: 10.77, t: 10.77, r: 189.15, b: 97.56 });
+	});
+
+	it('wedgeRoundRectCallout insets like a roundRect, ignoring the callout tail', () => {
+		expectRect('wedgeRoundRectCallout', { l: 4.88, t: 4.88, r: 195.01, b: 95.12 });
+	});
+
+	it('circularArrow insets to the ring, not the tail/head extensions', () => {
+		expectRect('circularArrow', { l: 33.71, t: 19.06, r: 166.21, b: 80.94 });
+	});
+
+	it('flowChartMagneticDisk insets top/bottom to the drum band, full width', () => {
+		expectRect('flowChartMagneticDisk', { l: 0, t: 33.33, r: 200, b: 83.33 });
+	});
+
+	it('cloud insets by its fixed 21600-unit puff fractions', () => {
+		expectRect('cloud', { l: 27.56, t: 15.1, r: 158.19, b: 80.26 });
+	});
+
+	it("pie uses the corrected (non-verbatim) idx/idy inset, not the spec's broken t/r swap", () => {
+		expectRect('pie', { l: 29.29, t: 14.64, r: 170.66, b: 85.36 });
+	});
+
+	it('heptagon insets by its hf/vf-corrected vertex projection', () => {
+		expectRect('heptagon', { l: 19.81, t: 19.81, r: 180.18, b: 80.19 });
+	});
+
+	it('ellipseRibbon insets to the band under its scalloped fold', () => {
+		expectRect('ellipseRibbon', { l: 50, t: 25, r: 150, b: 96.88 });
+	});
+
+	it('star8 insets to its inner vertex span', () => {
+		expectRect('star8', { l: 30.71, t: 15.35, r: 169.21, b: 84.65 });
+	});
+
+	it('cornerTabs insets by its mod-based corner fraction', () => {
+		expectRect('cornerTabs', { l: 11.18, t: 11.18, r: 188.81, b: 88.82 });
+	});
+
+	it('nonIsoscelesTrapezoid insets each side independently off adj1/adj2', () => {
+		expectRect('nonIsoscelesTrapezoid', { l: 16.67, t: 8.33, r: 183.29, b: 100 });
 	});
 });

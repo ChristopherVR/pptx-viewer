@@ -16,11 +16,12 @@ export type PptxChartPictureFormat = 'stretch' | 'stack' | 'stackScale';
  * "Picture or texture fill" with "Stack"/"Stretch" semantics on a bar/column
  * data point, distinct from the point's plain `c:spPr` solid/gradient fill.
  *
- * The picture itself lives in the sibling `c:spPr/a:blipFill` and is
- * intentionally not modeled here: resolving its `r:embed`/`r:link` needs the
- * runtime's relationship map, which the pure-parse helper that populates this
- * type (`parseChartDataPointPicture` in `utils/chart-datapoint-serializer.ts`)
- * does not have access to.
+ * The flags parse purely (`parseChartDataPointPicture` in
+ * `utils/chart-datapoint-serializer.ts`); {@link imageUrl} is a separate,
+ * later addition populated by the runtime (`PptxHandlerRuntimeChartParsing.ts`)
+ * once the sibling `c:spPr/a:blipFill/a:blip`'s `r:embed`/`r:link` is resolved
+ * against the chart part's relationships, since that resolution needs zip/file
+ * access the pure parser does not have.
  */
 export interface PptxChartDataPointPicture {
 	/** Apply the picture to the front face of a 3-D bar/column (`c:applyToFront`). */
@@ -33,4 +34,11 @@ export interface PptxChartDataPointPicture {
 	pictureFormat?: PptxChartPictureFormat;
 	/** Height, in points, of one repeated picture tile for "stack"/"stackScale" (`c:pictureStackUnit/@val`). */
 	pictureStackUnit?: number;
+	/**
+	 * Resolved picture source (a `data:`/`blob:` URL) for the point's sibling
+	 * `c:spPr/a:blipFill/a:blip`. Populated by the runtime after relationship
+	 * resolution (C2-G9 render half); absent until then, and absent entirely
+	 * when the point has no picture fill or the image could not be resolved.
+	 */
+	imageUrl?: string;
 }

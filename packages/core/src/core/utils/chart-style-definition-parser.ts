@@ -89,6 +89,18 @@ function parsePart(
 	if (fillColor) {
 		entry.fillColor = fillColor;
 	}
+	// `cs:lnRef` names a theme line-style matrix INDEX, which this parser
+	// (deliberately, per the type's own doc comment) does not resolve; the
+	// directly-authored case is `cs:spPr/a:ln/@w`, a style entry's own
+	// explicit width override, which every style-part sample this codebase
+	// has seen for `dataPoint`/`dataPointLine` carries alongside the index
+	// reference (C2 wave-1 skip: `lineWidth` was typed but never populated).
+	const spPr = xmlLookup.getChildByLocalName(part, 'spPr');
+	const ln = xmlLookup.getChildByLocalName(spPr, 'ln');
+	const width = Number.parseInt(String(ln?.['@_w'] ?? ''), 10);
+	if (Number.isFinite(width) && width > 0) {
+		entry.lineWidth = width / 12700;
+	}
 
 	return Object.keys(entry).length > 0 ? entry : undefined;
 }

@@ -167,9 +167,12 @@ function branchAlgType(raw: XmlObject | undefined): string | undefined {
  * caller keeps the blind first-recognised-alg behaviour). Decidable on
  * `func="cnt"` from `nodeCount` alone, or on `func="var"` when `context`
  * carries `presLayoutVars`; `pos`/`revPos`/`posEven`/`posOdd`/`depth`/
- * `maxDepth` need a specific point's position, which this whole-diagram
- * algorithm-selection call site does not have, so they stay undecidable here
- * (`context` defaults to `{}` for source compatibility with existing callers).
+ * `maxDepth` are decidable too when `context` supplies the declaring layout
+ * node's own tree location (`discoverArrangement` in
+ * `smartart-layout-interpreter-model.ts` now supplies it for every `choose`
+ * it walks). `context` defaults to `{}` for source compatibility with
+ * existing callers that don't have a tree location to offer (in which case
+ * those functions stay undecidable, exactly as before).
  */
 export function chooseAlgType(
 	node: PptxSmartArtLayoutNode,

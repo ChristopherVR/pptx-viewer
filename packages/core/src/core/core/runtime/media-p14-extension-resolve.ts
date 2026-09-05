@@ -1,4 +1,4 @@
-import type { MediaBookmark, XmlObject } from '../../types';
+import type { MediaBookmark, MediaPptxElement, XmlObject } from '../../types';
 import { parseMediaExtensionData } from './PptxHandlerRuntimeMediaParsingUtils';
 import type { EnsureArrayFn } from './PptxHandlerRuntimeMediaParsingUtils';
 
@@ -63,6 +63,42 @@ export function resolveP14MediaForPicture(
 		playbackSpeed: mediaExt?.playbackSpeed,
 		bookmarks:
 			mediaExt?.bookmarks && mediaExt.bookmarks.length > 0 ? mediaExt.bookmarks : undefined,
+	};
+}
+
+/**
+ * The `p14:media`/`p14:bmkLst` fields for a media element authored as a
+ * `p:graphicFrame` (`a:videoFile`/`a:audioFile`), as opposed to a `p:pic`
+ * (`resolveP14MediaForPicture` above).
+ *
+ * A freshly-inserted (never round-tripped) media element is always written
+ * this shape by `MediaGraphicFrameXmlFactory`/`buildMediaP14Extensions`, so
+ * without this the trim/fade/speed/bookmarks the SAVE writer had just
+ * synthesised onto `p:nvGraphicFramePr/p:nvPr/p:extLst` were unreadable on
+ * the very next load: `PptxGraphicFrameParser`'s media branch never looked at
+ * `p:nvPr` at all, only `resolveP14MediaForPicture`'s `p:pic` counterpart did.
+ * Only the fields actually present are returned, so a caller can spread the
+ * result over an already-built `Partial<MediaPptxElement>` without
+ * clobbering it with `undefined`.
+ */
+export function resolveP14MediaForGraphicFrame(
+	nvPr: XmlObject | undefined,
+	shapeId: string,
+	ensureArray: EnsureArrayFn,
+): Partial<MediaPptxElement> {
+	if (!nvPr) {
+		return {};
+	}
+	const mediaExt = parseMediaExtensionData(nvPr, {}, shapeId, ensureArray);
+	return {
+		...(mediaExt.trimStartMs !== undefined ? { trimStartMs: mediaExt.trimStartMs } : {}),
+		...(mediaExt.trimEndMs !== undefined ? { trimEndMs: mediaExt.trimEndMs } : {}),
+		...(mediaExt.fadeInDuration !== undefined ? { fadeInDuration: mediaExt.fadeInDuration } : {}),
+		...(mediaExt.fadeOutDuration !== undefined
+			? { fadeOutDuration: mediaExt.fadeOutDuration }
+			: {}),
+		...(mediaExt.playbackSpeed !== undefined ? { playbackSpeed: mediaExt.playbackSpeed } : {}),
+		...(mediaExt.bookmarks.length > 0 ? { bookmarks: mediaExt.bookmarks } : {}),
 	};
 }
 

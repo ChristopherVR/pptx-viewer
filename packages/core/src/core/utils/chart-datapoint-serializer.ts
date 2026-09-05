@@ -11,15 +11,16 @@
  * @module utils/chart-datapoint-serializer
  */
 
-import type {
-	PptxChartDataPoint,
-	PptxChartDataPointPicture,
-	PptxChartPictureFormat,
-	XmlObject,
-} from '../types';
+import type { PptxChartDataPoint, XmlObject } from '../types';
 import type { ResolveChartColor } from './chart-color-choice';
 import { writeChartColorChoice } from './chart-color-choice';
+import { buildDptPictureOptions } from './chart-datapoint-picture';
 import { buildChartMarkerXml } from './chart-marker-serializer';
+
+export {
+	parseChartDataPointPicture,
+	parseChartDataPointPictureBlipRel,
+} from './chart-datapoint-picture';
 
 type GetLocalName = (key: string) => string;
 
@@ -49,76 +50,6 @@ function ensureArray<T>(v: T | T[] | undefined): T[] {
 	return Array.isArray(v) ? v : [v];
 }
 
-interface PictureOptionsXmlLookupLike {
-	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
-}
-
-const PICTURE_FORMATS = new Set<PptxChartPictureFormat>(['stretch', 'stack', 'stackScale']);
-
-/** CT_Boolean: an element present without a `val` attribute defaults to true. */
-function ctBoolean(node: XmlObject | undefined): boolean | undefined {
-	if (!node) {
-		return undefined;
-	}
-	const value = node['@_val'];
-	if (value === undefined) {
-		return true;
-	}
-	const normalized = String(value);
-	if (normalized === 'true' || normalized === '1') {
-		return true;
-	}
-	if (normalized === 'false' || normalized === '0') {
-		return false;
-	}
-	return undefined;
-}
-
-/**
- * Parse `c:dPt/c:pictureOptions` (per-point picture-fill flags): PowerPoint's
- * "Picture or texture fill" with "Stack"/"Stretch" on a bar/column data
- * point (C2-G9, parse half). The picture itself (`c:spPr/a:blipFill`) is not
- * resolved here; see {@link PptxChartDataPointPicture}'s doc comment.
- *
- * Pure parse helper, not yet wired into the actual `c:dPt` parser
- * (`chart-series-detail-parser.ts`'s `parseSeriesDataPoints`, owned by a
- * different agent for this wave): call this from there with the `c:dPt` node
- * and attach a non-undefined result to `PptxChartDataPoint.picture`.
- */
-export function parseChartDataPointPicture(
-	dPtNode: XmlObject,
-	xmlLookup: PictureOptionsXmlLookupLike,
-): PptxChartDataPointPicture | undefined {
-	const pictureOptions = xmlLookup.getChildByLocalName(dPtNode, 'pictureOptions');
-	if (!pictureOptions) {
-		return undefined;
-	}
-	const result: PptxChartDataPointPicture = {};
-	const applyToFront = ctBoolean(xmlLookup.getChildByLocalName(pictureOptions, 'applyToFront'));
-	if (applyToFront !== undefined) {
-		result.applyToFront = applyToFront;
-	}
-	const applyToSides = ctBoolean(xmlLookup.getChildByLocalName(pictureOptions, 'applyToSides'));
-	if (applyToSides !== undefined) {
-		result.applyToSides = applyToSides;
-	}
-	const applyToEnd = ctBoolean(xmlLookup.getChildByLocalName(pictureOptions, 'applyToEnd'));
-	if (applyToEnd !== undefined) {
-		result.applyToEnd = applyToEnd;
-	}
-	const pictureFormatNode = xmlLookup.getChildByLocalName(pictureOptions, 'pictureFormat');
-	const formatRaw = String(pictureFormatNode?.['@_val'] ?? '').trim();
-	if (PICTURE_FORMATS.has(formatRaw as PptxChartPictureFormat)) {
-		result.pictureFormat = formatRaw as PptxChartPictureFormat;
-	}
-	const stackUnitNode = xmlLookup.getChildByLocalName(pictureOptions, 'pictureStackUnit');
-	const stackUnit = Number.parseFloat(String(stackUnitNode?.['@_val'] ?? ''));
-	if (Number.isFinite(stackUnit)) {
-		result.pictureStackUnit = stackUnit;
-	}
-	return Object.keys(result).length > 0 ? result : undefined;
-}
-
 /** Build/merge the `c:spPr` for a data point from its modeled fill colour. */
 function buildDptSpPr(
 	existing: XmlObject | undefined,
@@ -141,7 +72,15 @@ function buildDptSpPr(
 }
 
 /** Local names this serializer owns; everything else on the existing node is preserved. */
-const MODELED = new Set(['idx', 'invertIfNegative', 'marker', 'bubble3D', 'explosion', 'spPr']);
+const MODELED = new Set([
+	'idx',
+	'invertIfNegative',
+	'marker',
+	'bubble3D',
+	'explosion',
+	'spPr',
+	'pictureOptions',
+]);
 
 function assertDataPoint(dp: PptxChartDataPoint): void {
 	if (!Number.isInteger(dp.idx) || dp.idx < 0 || dp.idx > 0xffffffff) {
@@ -194,7 +133,14 @@ function buildDataPoint(
 	if (spPr) {
 		node['c:spPr'] = spPr;
 	}
-	// Preserve children the model does not capture (e.g. pictureOptions and extLst).
+	const existingPictureOptions = existing
+		? (existing[findKey(existing, 'pictureOptions', getLocalName) ?? ''] as XmlObject | undefined)
+		: undefined;
+	const pictureOptions = buildDptPictureOptions(existingPictureOptions, dp.picture);
+	if (pictureOptions) {
+		node['c:pictureOptions'] = pictureOptions;
+	}
+	// Preserve children the model does not capture (e.g. extLst).
 	if (existing) {
 		for (const key of Object.keys(existing)) {
 			if (key.startsWith('@_') || key === '#text') {

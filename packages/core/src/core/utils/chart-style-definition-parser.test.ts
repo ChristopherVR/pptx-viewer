@@ -63,6 +63,26 @@ describe('parseChartStyleDefinition', () => {
 		expect(result?.chartArea).toStrictEqual({ fillColor: '#bg1' });
 	});
 
+	it('parses a directly-authored cs:spPr/a:ln/@w as lineWidth (C2 wave-1 skip)', () => {
+		const styleRoot: XmlObject = {
+			'cs:dataPointLine': {
+				'cs:lnRef': { '@_idx': '2', 'a:schemeClr': { '@_val': 'accent1' } },
+				'cs:spPr': { 'a:ln': { '@_w': '28575' } },
+			},
+		};
+		const result = parseChartStyleDefinition(styleRoot, xmlLookup, resolveSchemeColor, parseColor);
+		expect(result?.dataPointLine).toStrictEqual({ lineColor: '#accent1', lineWidth: 2.25 });
+	});
+
+	it('ignores cs:spPr/a:ln with no @w or a non-positive width', () => {
+		const styleRoot: XmlObject = {
+			'cs:dataPoint': { 'cs:spPr': { 'a:ln': {} } },
+		};
+		expect(
+			parseChartStyleDefinition(styleRoot, xmlLookup, resolveSchemeColor, parseColor),
+		).toBeUndefined();
+	});
+
 	it('returns undefined when none of the known parts are present', () => {
 		expect(
 			parseChartStyleDefinition(

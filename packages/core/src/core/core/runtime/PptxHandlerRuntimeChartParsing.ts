@@ -47,6 +47,7 @@ import {
 import { parseChartSpaceFlags } from '../../utils/chart-space-flags';
 import { parseBar3DShapeVal, parseRadarStyleVal } from '../../utils/chart-subtype-values';
 import { parseChartUpDownBars } from '../../utils/chart-up-down-bars';
+import { resolveDataPointPictureImages } from './chart-datapoint-picture-resolver';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartColorStyle';
 
 /** `ST_ScatterStyle` tokens, used to reject anything else in `c:scatterStyle/@val`. */
@@ -334,6 +335,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						return s;
 					});
 				}
+			}
+
+			// Resolve any c:dPt/c:pictureOptions picture fill to an actual image URL
+			// (C2-G9 render half). Cheap early-exit: only re-walks the raw c:dPt
+			// nodes when at least one data point actually carries picture flags.
+			if (finalSeries.some((s) => s.dataPoints?.some((dp) => dp.picture))) {
+				await resolveDataPointPictureImages(
+					this.xmlLookupService,
+					this.readChartRels.bind(this),
+					this.resolveImagePath.bind(this),
+					this.getImageData.bind(this),
+					plotArea,
+					chartContainerKeys,
+					finalSeries,
+					chartPartPath,
+				);
 			}
 
 			// Parse pivot source (c:pivotSource)
@@ -703,8 +720,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				colorAdapter,
 			);
 
-			// Parse individual data labels (c:dLbl)
-			const dataLabels = parseSeriesDataLabels(seriesNode, this.xmlLookupService);
+			// Parse individual data labels (c:dLbl), including a per-label font
+			// override (`c:dLbl/c:txPr`) resolved through the theme the same way
+			// axis/title/legend text already is (C2-G1 data-label half).
+			const dataLabels = parseSeriesDataLabels(
+				seriesNode,
+				this.xmlLookupService,
+				colorAdapter,
+				(raw) => this.resolveThemeTypeface(raw) ?? raw,
+			);
 
 			// Parse series-level explosion (c:explosion for pie)
 			const explosion = parseSeriesExplosion(seriesNode, this.xmlLookupService);
@@ -726,7 +750,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// is the group that decides whether a pie shows percentages.
 			const seriesDataLabelGroup = this.xmlLookupService.getChildByLocalName(seriesNode, 'dLbls');
 			const dataLabelOptions = seriesDataLabelGroup
-				? parseChartDataLabelOptions(seriesDataLabelGroup, this.xmlLookupService)
+				? parseChartDataLabelOptions(
+						seriesDataLabelGroup,
+						this.xmlLookupService,
+						colorAdapter,
+						(raw) => this.resolveThemeTypeface(raw) ?? raw,
+					)
 				: undefined;
 
 			// `c:ser/c:spPr/a:ln/a:noFill`: how PowerPoint expresses a marker-only
@@ -808,9 +837,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		chartPartPath: string,
 		chartRelationshipId: string,
 	): Promise<PptxChartData | undefined> {
-		const result = parseCxChartSeries(plotArea, this.xmlLookupService, chartSpace, chartRoot, {
-			parseColor: (node, placeholder) => this.parseColor(node, placeholder),
-		});
+		const result = parseCxChartSeries(
+			plotArea,
+			this.xmlLookupService,
+			chartSpace,
+			chartRoot,
+			{ parseColor: (node, placeholder) => this.parseColor(node, placeholder) },
+			(raw) => this.resolveThemeTypeface(raw) ?? raw,
+		);
 		if (!result) {
 			return undefined;
 		}

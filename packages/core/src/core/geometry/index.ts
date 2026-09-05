@@ -40,6 +40,8 @@ export {
 	type PresetSubpathResult,
 } from './preset-shape-evaluator';
 
+export { filterValidShapeAdjustmentEntries } from './preset-adjustment-validation';
+
 export {
 	getPresetConnectionSites,
 	lookupPresetConnectionSites,
@@ -50,6 +52,9 @@ export type {
 	PresetConnectionSiteToken,
 } from './preset-connection-sites-types';
 
+export { getPresetTextRect, lookupPresetTextRectOverride } from './preset-text-rect-table';
+export type { PresetTextRectDefinition } from './preset-text-rect-types';
+
 export { customGeometryPathsToSvgSubpaths, type CustomGeometrySubpathSvg } from './custom-geometry';
 
 export {
@@ -58,6 +63,11 @@ export {
 } from './custom-geometry-guides';
 
 export { applyCustomGeometryGuideOverrides } from './custom-geometry-guide-writeback';
+
+export {
+	evaluateCustomGeometryPathData,
+	evaluateCustomGeometryPaths,
+} from './custom-geometry-live-eval';
 
 export { getAdjustmentAwareClipPath } from './adjustment-aware-shapes';
 
@@ -98,7 +108,10 @@ export {
 	ooxmlArcToSvg,
 } from './guide-formula';
 export type { GeometryGuide, GeometryContext } from './guide-formula';
-export { parseStructuredCustomGeometry } from './custom-geometry-parser';
+export {
+	parseStructuredCustomGeometry,
+	buildCustomGeometryPathsFromNodes,
+} from './custom-geometry-parser';
 
 export { orderedXmlKey, stripXmlOrderSuffix } from './custom-geometry-command-order';
 

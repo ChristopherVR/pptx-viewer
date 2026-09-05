@@ -255,7 +255,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (chartDLbls && !style.dataLabels) {
 						const deleted = this.xmlLookupService.getChildByLocalName(chartDLbls, 'delete');
 						style.hasDataLabels = !(deleted?.['@_val'] === '1' || deleted?.['@_val'] === 'true');
-						style.dataLabels = parseChartDataLabelOptions(chartDLbls, this.xmlLookupService);
+						style.dataLabels = parseChartDataLabelOptions(
+							chartDLbls,
+							this.xmlLookupService,
+							{ parseColor: (node, placeholder) => this.parseColor(node, placeholder) },
+							(raw) => this.resolveThemeTypeface(raw) ?? raw,
+						);
 						hasStyle = true;
 					}
 

@@ -9,10 +9,13 @@
  * `PptxChartDataLabelOptions.position`) already populated by classic chart
  * parsing, so the shared render layer needs no cx-specific branch once G3
  * (bar/line label placement honouring `position`) lands. `cx:numFmt` maps
- * onto the equally shared `numberFormat` field. `cx:dataLabels/cx:txPr` is
- * intentionally not modeled: classic charts don't type-model per-label txPr
- * styling either (it round-trips as an opaque preserved node), so this
- * keeps parity rather than inventing a one-sided field.
+ * onto the equally shared `numberFormat` field. `cx:dataLabels/cx:txPr` /
+ * `cx:dataLabel/cx:txPr` (font size/colour/bold, wave-1 skip) map onto the
+ * `txPr` field classic `c:dLbls`/`c:dLbl` now populate the same way
+ * (`chart-data-label-parser.ts`): both shapes are the identical
+ * `.../a:p/a:pPr/a:defRPr` DrawingML text-properties body, so this reuses
+ * `chart-def-rpr-style.ts`'s resolver instead of hand-rolling a cx-specific
+ * one (CLAUDE.md Rule 2).
  *
  * @module utils/chart-cx-data-labels
  */
@@ -24,6 +27,11 @@ import type {
 	XmlObject,
 } from '../types';
 import type { XmlLookupLike } from './chart-cx-parser';
+import { parseDefRPrTextStyle, resolveTxPrDefRPr } from './chart-def-rpr-style';
+
+interface ColorParserLike {
+	parseColor: (fillNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
+}
 
 const CX_LABEL_POSITIONS = new Set<PptxChartDataLabelPosition>([
 	'bestFit',
@@ -60,6 +68,8 @@ export interface CxDataLabelVisibility {
 export function parseCxDataLabels(
 	ser: XmlObject,
 	xmlLookup: XmlLookupLike,
+	colorParser?: ColorParserLike,
+	resolveTypeface?: (raw: string) => string,
 ):
 	| {
 			visibility: CxDataLabelVisibility;
@@ -94,6 +104,17 @@ export function parseCxDataLabels(
 	if (groupNumberFormat) {
 		options.numberFormat = groupNumberFormat;
 	}
+	if (colorParser) {
+		const groupTxPr = parseDefRPrTextStyle(
+			resolveTxPrDefRPr(xmlLookup.getChildByLocalName(dlNode, 'txPr'), xmlLookup),
+			xmlLookup,
+			colorParser,
+			resolveTypeface,
+		);
+		if (groupTxPr) {
+			options.txPr = groupTxPr;
+		}
+	}
 
 	// Parse individual data label overrides (cx:dataLabel)
 	const labels: PptxChartDataLabel[] = [];
@@ -113,6 +134,17 @@ export function parseCxDataLabels(
 		const itemNumberFormat = cxNumberFormat(dlItem, xmlLookup);
 		if (itemNumberFormat) {
 			label.numberFormat = itemNumberFormat;
+		}
+		if (colorParser) {
+			const itemTxPr = parseDefRPrTextStyle(
+				resolveTxPrDefRPr(xmlLookup.getChildByLocalName(dlItem, 'txPr'), xmlLookup),
+				xmlLookup,
+				colorParser,
+				resolveTypeface,
+			);
+			if (itemTxPr) {
+				label.txPr = itemTxPr;
+			}
 		}
 		labels.push(label);
 	}

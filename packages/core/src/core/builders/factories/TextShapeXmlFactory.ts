@@ -1,3 +1,4 @@
+import { filterValidShapeAdjustmentEntries } from '../../geometry/preset-adjustment-validation';
 import type { XmlObject } from '../../types';
 import type {
 	ITextShapeXmlFactory,
@@ -36,10 +37,16 @@ export class TextShapeXmlFactory implements ITextShapeXmlFactory {
 		const isTextBox = element.locks?.txBox ?? isText;
 		const name = isText ? 'TextBox' : 'Rectangle';
 		const geometry = this.context.normalizePresetGeometry(element.shapeType);
-		// Build a:avLst (adjustment values list) for shapes with custom guide values
-		const adjustmentEntries = Object.entries(element.shapeAdjustments || {}).filter(
-			([key, value]) => key.trim().length > 0 && Number.isFinite(value),
-		);
+		// Build a:avLst (adjustment values list) for shapes with custom guide
+		// values. Filtered to the resolved preset's real ECMA-376 guide names:
+		// an unrecognised `<a:gd>` name (e.g. `adj1` on `homePlate`, which only
+		// defines `adj`) makes PowerPoint refuse to open the file even though
+		// the XML is otherwise schema-valid (COM-verified) - see
+		// `filterValidShapeAdjustmentEntries`. This mirrors the same filtering
+		// `applyGeometryUpdate` re-applies at save time, which is the ultimate
+		// authority for what reaches the file; keeping both in sync avoids a
+		// misleading in-memory shape that looks different from what gets saved.
+		const adjustmentEntries = filterValidShapeAdjustmentEntries(geometry, element.shapeAdjustments);
 		const avLst =
 			adjustmentEntries.length > 0
 				? {

@@ -39,6 +39,10 @@ export type UnderlineStyle =
 	| 'wavy'
 	| 'wavyHeavy'
 	| 'wavyDbl'
+	// D2-G3: underlines only the non-whitespace characters of the run, leaving
+	// inter-word spaces unmarked. Already parsed into this field (via a raw
+	// `as UnderlineStyle` cast) before this literal was declared here.
+	| 'words'
 	| 'none';
 
 /**

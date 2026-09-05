@@ -63,6 +63,46 @@ export function parseSmartArtQuickStyleLabels(
 	return labels.length > 0 ? labels : undefined;
 }
 
+/** A `dgm:styleLbl/dgm:style`'s raw `a:*Ref` children (`CT_ShapeStyle`), before theme resolution. */
+export interface SmartArtStyleLabelRefs {
+	lnRef?: XmlObject;
+	fillRef?: XmlObject;
+	effectRef?: XmlObject;
+	fontRef?: XmlObject;
+}
+
+/**
+ * Parse a `dgm:styleLbl`'s `dgm:style/a:lnRef|a:fillRef|a:effectRef|a:fontRef`
+ * raw XML (G13: the same `CT_ShapeStyle` an ordinary shape's `p:style` uses),
+ * or `undefined` when the label carries no `dgm:style` refs at all. Kept raw
+ * (not resolved here) because resolving against the theme's `fmtScheme`
+ * needs the runtime's theme-loaded state (`this.themeFormatScheme`), which
+ * this pure module has no access to - see
+ * `PptxHandlerRuntimeSmartArtParsing.ts`'s `resolveSmartArtStyleLabelRefs`.
+ */
+export function parseSmartArtStyleLabelRefs(
+	styleLbl: XmlObject,
+	localName: LocalName,
+): SmartArtStyleLabelRefs | undefined {
+	const style = child(styleLbl, 'style', localName);
+	if (!style) {
+		return undefined;
+	}
+	const lnRef = child(style, 'lnRef', localName);
+	const fillRef = child(style, 'fillRef', localName);
+	const effectRef = child(style, 'effectRef', localName);
+	const fontRef = child(style, 'fontRef', localName);
+	if (!lnRef && !fillRef && !effectRef && !fontRef) {
+		return undefined;
+	}
+	return {
+		...(lnRef ? { lnRef } : {}),
+		...(fillRef ? { fillRef } : {}),
+		...(effectRef ? { effectRef } : {}),
+		...(fontRef ? { fontRef } : {}),
+	};
+}
+
 function parseColorList(
 	node: XmlObject,
 	name: string,

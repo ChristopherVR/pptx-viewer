@@ -38,7 +38,7 @@ assign(['presentation:element:graphicEl'], {
 	preserve: 'unassessed',
 	edit: 'native',
 	serialize: 'native',
-	note: "p:tgtEl/p:graphicEl (targeting a chart series or diagram category from an animation) now round-trips through the typed animation target (issue P2-G2). Render-side resolution of the reveal against the target's authored series/category index remains partial, not fully wired to the click-count-based reveal stage this manifest does not score (render has no tracked facet); see limitations.",
+	note: "p:tgtEl/p:graphicEl (targeting a chart series or diagram category from an animation) now round-trips through the typed animation target (issue P2-G2). Since wave 2 (W2-B), render-side resolution of the reveal against the target's authored series/category index is native for CHARTS: packages/shared's chart-reveal-descriptor.ts derives the reveal directly from which authored graphicEl-carrying steps have fired, in whatever order PowerPoint's own 'Reverse Order' authored them, and chart-build.ts's resolveRevealedChartData consumes it in place of the old click-count proxy whenever every fired step for a chart carries index data (falling back to the progress-based reveal for a mixed or un-indexed deck). The diagram (p:bldDgm) counterpart of this same per-index reveal is still absent. Render has no tracked facet in this manifest either way; see limitations.",
 	evidence: [
 		testEvidence(
 			'src/core/services/animation-target-build-helpers.test.ts',

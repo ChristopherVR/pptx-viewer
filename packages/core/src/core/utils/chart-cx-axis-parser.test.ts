@@ -131,6 +131,57 @@ describe('parseCxAxes (C2-G7)', () => {
 		expect(axis.fontBold).toBeTruthy();
 		expect(axis.fontColor).toBe('#FF0000');
 	});
+
+	it('parses cx:units/@unit onto the same custom-divisor bucket classic c:dispUnits uses (C1)', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {},
+			'cx:axis': {
+				'@_id': '3',
+				'cx:valScaling': {},
+				'cx:units': { '@_unit': '1000' },
+			},
+		};
+		const [axis] = parseCxAxes(plotArea, xmlLookup)!;
+		expect(axis.displayUnits).toBe('custom');
+		expect(axis.displayUnitsValue).toBe(1000);
+		expect(axis.displayUnitsLabel).toBeUndefined();
+	});
+
+	it('parses cx:unitsLabel text and cx:txPr font onto displayUnitsLabel (C1)', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {},
+			'cx:axis': {
+				'@_id': '4',
+				'cx:valScaling': {},
+				'cx:units': {
+					'@_unit': '1000000',
+					'cx:unitsLabel': {
+						'cx:tx': { 'cx:rich': { 'a:p': { 'a:r': { 'a:t': 'Millions' } } } },
+						'cx:txPr': {
+							'a:p': { 'a:pPr': { 'a:defRPr': { '@_sz': '800', '@_b': '1' } } },
+						},
+					},
+				},
+			},
+		};
+		const [axis] = parseCxAxes(plotArea, xmlLookup)!;
+		expect(axis.displayUnits).toBe('custom');
+		expect(axis.displayUnitsValue).toBe(1000000);
+		expect(axis.displayUnitsLabel).toStrictEqual({
+			text: 'Millions',
+			fontSize: 8,
+			fontBold: true,
+		});
+	});
+
+	it('ignores cx:units with a non-positive or missing @unit', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {},
+			'cx:axis': { '@_id': '5', 'cx:valScaling': {}, 'cx:units': { '@_unit': '0' } },
+		};
+		const [axis] = parseCxAxes(plotArea, xmlLookup)!;
+		expect(axis.displayUnits).toBeUndefined();
+	});
 });
 
 describe('resolveCxTitleText', () => {

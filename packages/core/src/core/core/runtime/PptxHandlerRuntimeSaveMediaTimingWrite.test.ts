@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
+import { PresentationBuilder } from '../../builders/sdk/PresentationBuilder';
 import { PptxHandler } from '../../PptxHandler';
 import type { XmlObject, MediaPptxElement, PptxElement } from '../../types';
 
@@ -435,5 +436,66 @@ describe('writeMediaP14Extension (G18 round-trip)', () => {
 		expect(reloadedVideo?.fadeOutDuration).toBe(3);
 		expect(reloadedVideo?.playbackSpeed).toBe(1.5);
 		expect(reloadedVideo?.bookmarks?.[0]).toMatchObject({ time: 5, label: 'Intro' });
+	});
+});
+
+describe('fresh media p14 extension (no rawXml)', () => {
+	/**
+	 * `writeMediaP14Extension` only merges trim/fade/speed/bookmarks onto an
+	 * EXISTING `p:nvPicPr/p:nvPr/p:extLst` a round-tripped picture already
+	 * carries: a media element inserted via the SDK in the same session has no
+	 * `rawXml` at all, so it used to lose its trim on save and only round-trip
+	 * correctly starting from the NEXT load. `MediaGraphicFrameXmlFactory` now
+	 * synthesises the same extension straight from the typed fields
+	 * (`buildFreshMediaNvPr`) when there is no rawXml to merge into, so a
+	 * freshly inserted, freshly trimmed clip survives its very first save.
+	 */
+	it('round-trips trim set on a freshly inserted media element with no rawXml', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const slide = createSlide('Blank').build();
+		const media: MediaPptxElement = {
+			id: 'video-fresh-1',
+			type: 'media',
+			x: 20,
+			y: 30,
+			width: 320,
+			height: 180,
+			mediaType: 'video',
+			// A minimal (invalid as a real MP4, irrelevant here) base64 payload:
+			// the embedding path only needs a decodable data URL to allocate a
+			// media part and a relationship id.
+			mediaData: 'data:video/mp4;base64,AAAAGGZ0eXBpc29t',
+		} as MediaPptxElement;
+		slide.elements.push(media);
+		data.slides.push(slide);
+
+		// Insert, then set trim, in the same in-memory session: `media.rawXml`
+		// is never populated without a load, so this element never has one.
+		expect(media.rawXml).toBeUndefined();
+		media.trimStartMs = 1000;
+		media.trimEndMs = 5000;
+
+		const saved = await handler.save(data.slides);
+		const savedZip = await JSZip.loadAsync(saved);
+		const slidePaths = Object.keys(savedZip.files).filter((name) =>
+			/^ppt\/slides\/slide\d+\.xml$/u.test(name),
+		);
+		const slideXml = await savedZip.file(slidePaths[0])!.async('string');
+
+		expect(slideXml).toContain('uri="{DAA4B4D4-6D71-4841-9C94-3DE7FCFB9230}"');
+		expect(slideXml).toMatch(/<p14:trim st="1000" end="5000">/u);
+		// The embed relationship id is synthesised too, not left blank, so the
+		// extension resolves the media on its very first save.
+		expect(slideXml).toMatch(/<p14:media r:embed="rId\d+">/u);
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedVideo = reloaded.slides
+			.flatMap((s) => s.elements)
+			.find(
+				(element): element is MediaPptxElement =>
+					element.type === 'media' && element.mediaType === 'video',
+			);
+		expect(reloadedVideo?.trimStartMs).toBe(1000);
+		expect(reloadedVideo?.trimEndMs).toBe(5000);
 	});
 });

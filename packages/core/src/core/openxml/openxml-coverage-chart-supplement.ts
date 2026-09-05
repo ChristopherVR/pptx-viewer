@@ -105,14 +105,14 @@ assign(
 );
 
 // ---------------------------------------------------------------------------
-// Chart: userShapes / chart-space clrMapOvr (raw-preservation only, no typed edit path)
+// Chart: userShapes overlay anchors (sp/cxnSp editable since W2-D; pic/grpSp/graphicFrame preserve-only)
 // ---------------------------------------------------------------------------
 assign(['chart:element:userShapes'], {
 	parse: 'partial',
 	preserve: 'unassessed',
-	edit: 'unassessed',
-	serialize: 'unassessed',
-	note: 'The c:userShapes anchors (cdr:relSizeAnchor/absSizeAnchor around sp/cxnSp/pic/grpSp/graphicFrame) parse into a typed PptxChartUserShape list, not raw verbatim passthrough as previously (incorrectly) claimed here. Issue C2-G10 added grpSp flattening (one entry per grouped sp/cxnSp/pic child, previously the whole group anchor was silently dropped), a placeholder for a graphicFrame anchor (also previously dropped), and gradient/pattern fill resolution (previously solidFill-only, falling back to the first gradient stop or the pattern foreground colour). No typed edit/serialize path exists, so those facets stay unassessed rather than inferred.',
+	edit: 'partial',
+	serialize: 'partial',
+	note: "The c:userShapes anchors (cdr:relSizeAnchor/absSizeAnchor around sp/cxnSp/pic/grpSp/graphicFrame) parse into a typed PptxChartUserShape list, not raw verbatim passthrough as previously (incorrectly) claimed here. Issue C2-G10 added grpSp flattening (one entry per grouped sp/cxnSp/pic child, previously the whole group anchor was silently dropped), a placeholder for a graphicFrame anchor (also previously dropped), and gradient/pattern fill resolution (previously solidFill-only, falling back to the first gradient stop or the pattern foreground colour). Since wave 2 (W2-D), sp/cxnSp overlay shapes are also independently editable: the SDK (addChartUserShape/updateChartUserShape/removeChartUserShape, core/builders/sdk/chart-user-shape-operations.ts), a chart-user-shapes-serializer.ts writer, and PptxHandlerRuntimeChartUserShapes.syncChartUserShapesToXml reconcile the typed list back into ppt/drawings/drawingN.xml, fabricating a fresh drawing part, relationship, and content-type override the first time a bare chart gets an overlay; a ChartEx (cx:chartSpace) chart keeps its overlay through both its in-place update path and a full type-change regenerate. Graded partial, not native: a pic/grpSp/graphicFrame entry has no reconstructable picture reference or nested graphic content in the flattened render model, so it is re-emitted as a plain fill/stroke rectangle placeholder rather than round-tripped, and only when the overlay array is actually edited (an untouched overlay of any kind is left exactly as authored, per syncChartUserShapesToXml's dirty-check no-op, though no dedicated byte-identical round-trip test was found evidencing that specific claim, so preserve stays unassessed rather than assumed).",
 	evidence: [
 		testEvidence(
 			'src/core/core/runtime/PptxHandlerRuntimeChartChrome.test.ts',
@@ -129,20 +129,30 @@ assign(['chart:element:userShapes'], {
 			],
 			['parse'],
 		),
-	],
-});
-
-assign(['chart:element:clrMapOvr'], {
-	parse: 'partial',
-	preserve: 'unassessed',
-	edit: 'unassessed',
-	serialize: 'unassessed',
-	note: 'Chart-space clrMapOvr is flattened into a plain string map for colour resolution on parse; no typed edit/serialize path was found, so those facets are left unassessed rather than inferred.',
-	evidence: [
 		testEvidence(
-			'src/core/core/runtime/PptxHandlerRuntimeChartChrome.test.ts',
-			['flattens all 12 attribute slots into a string map'],
-			['parse'],
+			'src/core/builders/sdk/chart-user-shape-operations.test.ts',
+			[
+				'addChartUserShape appends a shape, preserving the existing list',
+				'removeChartUserShape drops the shape at the given index',
+			],
+			['edit'],
+		),
+		testEvidence(
+			'src/core/utils/chart-user-shapes-serializer.test.ts',
+			[
+				'round-trips a relSizeAnchor text box through parse -> serialize -> parse',
+				'serializes a pic overlay as a fill-only placeholder rectangle (no text, no picture ref)',
+			],
+			['serialize'],
+		),
+		testEvidence(
+			'src/__tests__/integration/chart-user-shapes-roundtrip.test.ts',
+			[
+				'fabricates a new drawing part, relationship, and content-type override for a chart that never had one',
+				'reaches a ChartEx (cx:chartSpace) chart via the in-place update branch',
+				'keeps the overlay when a ChartEx type change routes through the full-regenerate branch',
+			],
+			['edit', 'serialize'],
 		),
 	],
 });

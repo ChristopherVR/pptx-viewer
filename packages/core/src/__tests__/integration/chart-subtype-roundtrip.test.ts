@@ -79,6 +79,30 @@ describe('bar3D shape integration', () => {
 		expect(roundTrip.series[0].shape).toBe('box');
 	});
 
+	it('parses c:gapDepth, edits it, and round-trips it through the typed field', async () => {
+		const chartXml = chartSpace(
+			`<c:plotArea><c:layout/><c:bar3DChart><c:barDir val="col"/><c:grouping val="clustered"/>${series(
+				'Sales',
+				'10',
+			)}<c:gapWidth val="150"/><c:gapDepth val="120"/><c:shape val="box"/><c:axId val="10"/><c:axId val="20"/><c:axId val="30"/></c:bar3DChart></c:plotArea>`,
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildDeck(chartXml));
+		const chart = chartElement(data).chartData!;
+		expect(chart.gapDepth).toBe(120);
+
+		chart.gapDepth = 45;
+		data.slides[0].isDirty = true;
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const savedXml = await zip.file('ppt/charts/chart1.xml')!.async('string');
+		expect(savedXml).toContain('<c:gapDepth val="45"');
+		expect(savedXml).not.toContain('<c:gapDepth val="120"');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		expect(chartElement(reloaded).chartData!.gapDepth).toBe(45);
+	});
+
 	it('leaves barShape/series shape undefined for a plain (2D) bar chart', async () => {
 		const chartXml = chartSpace(
 			`<c:plotArea><c:layout/><c:barChart><c:barDir val="col"/><c:grouping val="clustered"/>${series(

@@ -74,6 +74,14 @@ export interface PptxSmartArtLayoutNodeShape {
 	adjustments?: PptxSmartArtShapeAdjustment[];
 	/** `dgm:shape/@hideGeom`: the shape is present only to size text, never painted. */
 	hideGeometry?: boolean;
+	/**
+	 * `dgm:shape/@lkTxEntry` (CT_Shape, boolean, default false): this node is a
+	 * decorative shape that should mirror its paired content node's text
+	 * rather than always rendering blank. See `smartart-layout-interpreter-
+	 * pyramid.ts`'s `arrangePyramid`, the interpreter's one existing
+	 * synthesized-decorative-shape call site.
+	 */
+	lkTxEntry?: boolean;
 }
 
 /** Identity and ordering metadata from DiagramML CT_LayoutNode. */

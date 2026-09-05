@@ -14,6 +14,7 @@ import { evaluateFormula, parseFormula, resolveOperand } from './guide-formula-e
 import { ooxmlArcToSvg } from './guide-formula-paths';
 import type { PresetShapeGeometryDefinition } from './preset-shape-definitions-table';
 import { PRESET_SHAPE_GEOMETRY_TABLE } from './preset-shape-definitions-table';
+import { getPresetTextRect } from './preset-text-rect-table';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -273,8 +274,15 @@ export function evaluatePresetShape(
 	// opt out of fill; a mixed shape keeps its fill.
 	const fillNone = paths.length > 0 && paths.every((p) => p.fill === 'none');
 
-	let textRect: PresetShapeEvaluationResult['textRect'];
-	if (def.rect) {
+	// preset-text-rect-table.ts: an ECMA-verbatim `<a:rect>` override, tried
+	// before this table's own (pre-COM-verification, gap G1) `def.rect`.
+	let textRect: PresetShapeEvaluationResult['textRect'] = getPresetTextRect(
+		name,
+		w,
+		h,
+		adjustments,
+	);
+	if (!textRect && def.rect) {
 		// rect tokens may themselves be inline formula strings (rare) or guide
 		// references — handle both via parseFormula → evaluateFormula when the
 		// string contains whitespace, otherwise resolveToken.

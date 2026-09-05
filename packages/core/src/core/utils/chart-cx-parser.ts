@@ -52,6 +52,10 @@ export interface ColorParserLike {
  * @param colorParser - Resolves theme colours (`a:schemeClr` etc.) for series
  * fills, axis chrome, and region-map value-color scales; omit to fall back to
  * literal `a:srgbClr` only.
+ * @param resolveTypeface - Resolves a theme-font placeholder token
+ * (`+mn-lt`, `+mj-lt`, ...) on axis/data-label `cx:txPr` fonts to the deck's
+ * concrete theme face (C2-G1 data-label/axis half); omit to keep a literal
+ * placeholder token as-is.
  * @returns categories and series arrays, or `undefined` if no series found.
  */
 export function parseCxChartSeries(
@@ -60,6 +64,7 @@ export function parseCxChartSeries(
 	chartSpace?: XmlObject,
 	chartRoot?: XmlObject,
 	colorParser?: ColorParserLike,
+	resolveTypeface?: (raw: string) => string,
 ):
 	| {
 			categories: string[];
@@ -123,8 +128,8 @@ export function parseCxChartSeries(
 		// Extract series color (schemeClr/gradFill/pattFill when colorParser is given)
 		const color = extractCxSeriesColor(ser, xmlLookup, colorParser);
 
-		// Parse data labels (visibility, per-point overrides, position/numFmt)
-		const dlResult = parseCxDataLabels(ser, xmlLookup);
+		// Parse data labels (visibility, per-point overrides, position/numFmt/txPr)
+		const dlResult = parseCxDataLabels(ser, xmlLookup, colorParser, resolveTypeface);
 		if (
 			dlResult &&
 			(dlResult.visibility.showVal ||
@@ -171,7 +176,7 @@ export function parseCxChartSeries(
 		return result;
 	});
 
-	const chartData = buildCxChartData(plotArea, chartRoot, xmlLookup, colorParser);
+	const chartData = buildCxChartData(plotArea, chartRoot, xmlLookup, colorParser, resolveTypeface);
 
 	return {
 		categories,
@@ -188,10 +193,11 @@ function buildCxChartData(
 	chartRoot: XmlObject | undefined,
 	xmlLookup: XmlLookupLike,
 	colorParser: ColorParserLike | undefined,
+	resolveTypeface?: (raw: string) => string,
 ): Partial<PptxChartData> | undefined {
 	const result: Partial<PptxChartData> = {};
 
-	const axes = parseCxAxes(plotArea, xmlLookup, colorParser);
+	const axes = parseCxAxes(plotArea, xmlLookup, colorParser, resolveTypeface);
 	if (axes) {
 		result.axes = axes;
 	}

@@ -193,3 +193,83 @@ describe('classic chart chartSpace-level and chart-style-part parsing', () => {
 		});
 	});
 });
+
+// C2-G9 (render half): a data point's c:pictureOptions picture fill resolves
+// to an actual image URL via the chart part's relationships, not just the
+// bare stack/stretch flags.
+const CHART_XML_WITH_DPT_PICTURE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+ xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+ <c:chart>
+  <c:plotArea>
+   <c:barChart>
+    <c:barDir val="col"/>
+    <c:grouping val="clustered"/>
+    <c:ser>
+     <c:idx val="0"/><c:order val="0"/>
+     <c:dPt>
+      <c:idx val="0"/>
+      <c:spPr><a:blipFill><a:blip r:embed="rIdImg"/></a:blipFill></c:spPr>
+      <c:pictureOptions><c:pictureFormat val="stack"/><c:pictureStackUnit val="36"/></c:pictureOptions>
+     </c:dPt>
+     <c:cat><c:strRef><c:strCache><c:pt idx="0"><c:v>Q1</c:v></c:pt></c:strCache></c:strRef></c:cat>
+     <c:val><c:numRef><c:numCache><c:pt idx="0"><c:v>10</c:v></c:pt></c:numCache></c:numRef></c:val>
+    </c:ser>
+   </c:barChart>
+   <c:catAx><c:axId val="1"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:crossAx val="2"/></c:catAx>
+   <c:valAx><c:axId val="2"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:crossAx val="1"/></c:valAx>
+  </c:plotArea>
+ </c:chart>
+</c:chartSpace>`;
+
+const CHART_RELS_XML_WITH_IMAGE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+ <Relationship Id="rIdImg" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
+</Relationships>`;
+
+// A minimal (67-byte) valid 1x1 transparent PNG.
+const TINY_PNG_BASE64 =
+	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+async function buildDeckWithDataPointPicture(): Promise<ArrayBuffer> {
+	const { handler, data, createSlide } = await PresentationBuilder.create();
+	data.slides.push(createSlide('Blank').build());
+	const zip = await JSZip.loadAsync(await handler.save(data.slides));
+	zip.file('ppt/slides/slide1.xml', SLIDE_XML);
+	zip.file('ppt/slides/_rels/slide1.xml.rels', SLIDE_RELS_XML);
+	zip.file('ppt/charts/chart1.xml', CHART_XML_WITH_DPT_PICTURE);
+	zip.file('ppt/charts/_rels/chart1.xml.rels', CHART_RELS_XML_WITH_IMAGE);
+	zip.file('ppt/media/image1.png', Buffer.from(TINY_PNG_BASE64, 'base64'));
+	return toArrayBuffer(await zip.generateAsync({ type: 'uint8array' }));
+}
+
+describe('c2-G9: c:dPt/c:pictureOptions picture fill resolves to an image URL', () => {
+	it('parses the flags and resolves the sibling blipFill to a data: URL', async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildDeckWithDataPointPicture());
+		const element = data.slides[0].elements.find(
+			(candidate) => candidate.type === 'chart',
+		) as ChartPptxElement;
+		const dataPoint = element.chartData!.series[0].dataPoints?.find((dp) => dp.idx === 0);
+
+		expect(dataPoint?.picture).toBeDefined();
+		expect(dataPoint?.picture?.pictureFormat).toBe('stack');
+		expect(dataPoint?.picture?.pictureStackUnit).toBe(36);
+		// PptxHandlerRuntimeMediaData resolves to a blob: URL when the test
+		// environment supports Blob URLs, otherwise a base64 data: URI; either
+		// way it must be an actual resolved image, not the bare relationship id.
+		expect(dataPoint?.picture?.imageUrl).toMatch(/^(blob:|data:image\/png;base64,)/u);
+	});
+
+	it('does not attempt relationship resolution when no point has a picture fill', async () => {
+		// Regression guard for the cheap early-exit: a normal chart (no
+		// pictureOptions anywhere) must still load without touching chart rels.
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildDeck());
+		const element = data.slides[0].elements.find(
+			(candidate) => candidate.type === 'chart',
+		) as ChartPptxElement;
+		expect(element.chartData!.series[0].dataPoints ?? []).toHaveLength(0);
+	});
+});

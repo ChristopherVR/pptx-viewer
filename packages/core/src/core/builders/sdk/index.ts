@@ -69,6 +69,14 @@ export type {
 	ChartDataPointLabelEdit,
 } from './chart-operations';
 
+// Chart drawing-overlay (c:userShapes) operations
+export {
+	listChartUserShapes,
+	addChartUserShape,
+	updateChartUserShape,
+	removeChartUserShape,
+} from './chart-user-shape-operations';
+
 // Layout operations
 export {
 	createLayout,

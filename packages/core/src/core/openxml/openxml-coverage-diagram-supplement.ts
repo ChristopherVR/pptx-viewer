@@ -133,5 +133,46 @@ assign(['diagram:simpleType:ST_HueDir', 'diagram:simpleType:ST_ClrAppMethod'], {
 	],
 });
 
+assign(['diagram:attribute:lkTxEntry'], {
+	parse: 'native',
+	preserve: 'native',
+	edit: 'native',
+	serialize: 'native',
+	note: "Since wave 2 (W2-E), dgm:shape/@lkTxEntry (the 'link text entry' flag marking a layout's decorative shape as mirroring its paired content node's text) is fully typed, editable, and re-serialized (smartart-layout-node-shape.ts: parseSmartArtLkTxEntry / parseSmartArtLkTxEntryFromLayoutNode for read, a surgical merge for write that preserves unrelated dgm:shape attributes). The layout interpreter now honours it too: a pyramid's decorative level-node band keeps its own text instead of going blank when lkTxEntry is set (smartart-layout-interpreter-pyramid.ts). A COM sweep of all 176 built-in Office SmartArt gallery layouts found none that actually author this attribute, so the path is exercised only by hand-built fixtures, not real-world decks.",
+	evidence: [
+		testEvidence(
+			'src/core/utils/smartart-layout-node-shape.test.ts',
+			[
+				'parses lkTxEntry="1" onto the typed model',
+				'omits lkTxEntry from the typed model when absent or "0"',
+				'reads lkTxEntry="1" as true',
+				'reads lkTxEntry="0" and an absent attribute as false',
+				'writes @lkTxEntry="1" back and removes it when cleared',
+				'round-trips a parsed lkTxEntry shape unchanged',
+			],
+			['parse', 'preserve', 'edit', 'serialize'],
+		),
+	],
+});
+
+assign(['diagram:attribute:coherent3DOff'], {
+	parse: 'native',
+	preserve: 'unassessed',
+	edit: 'unassessed',
+	serialize: 'unassessed',
+	note: 'Since wave 2 (W2-E), dgm:prSet/@coherent3DOff is resolved per data-model point (via its presOf-linked pres point, the same pattern styleRole already uses) into PptxSmartArtNode.coherent3DOff (core/utils/smartart-node-style-role.ts, resolveSmartArtNodeCoherent3DOff). It has no rendering consumer: no scene3d/sp3d SmartArt renderer exists in this project, so disabling the coherent-3D shape variation has nothing to disable yet, and no editor writes the attribute independently, so preserve/edit/serialize are left unassessed rather than assumed.',
+	evidence: [
+		testEvidence(
+			'src/core/utils/smartart-node-style-role.test.ts',
+			[
+				'resolves coherent3DOff="1" from the presOf-linked pres point',
+				'treats an absent attribute or "0" as not set',
+				'returns an empty set when there are no pres points',
+			],
+			['parse'],
+		),
+	],
+});
+
 export const OPENXML_DIAGRAM_SUPPLEMENT_COVERAGE: Readonly<Record<string, OpenXmlCoverageFacets>> =
 	overrides;

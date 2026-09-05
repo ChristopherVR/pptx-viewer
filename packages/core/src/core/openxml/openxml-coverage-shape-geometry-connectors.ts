@@ -109,7 +109,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: 'Adjustment guide lists and formulas parse into a typed model, including deferral of geometry-dependent and cross-referencing formulas; all guide-formula operators are evaluated, including the pin clamp and ?: conditional.',
+		note: "Adjustment guide lists and formulas parse into a typed model, including deferral of geometry-dependent and cross-referencing formulas; all guide-formula operators are evaluated, including the pin clamp and ?: conditional. Since wave 2 (W2-J), a preset shape's shapeAdjustments are also validated against that preset's real ECMA-376 avLst guide names before being serialized into a:avLst/a:gd (geometry/preset-adjustment-validation.ts, filterValidShapeAdjustmentEntries, wired into PptxHandlerRuntimeSaveElementEmbedding.applyGeometryUpdate and TextShapeXmlFactory.ts): an unrecognised guide name used to reach the saved XML unfiltered and produce a file real PowerPoint refuses to open (0x80070570), COM-verified before and after the fix, and now emits an SAVE_SHAPE_ADJUSTMENT_INVALID_GUIDE warning and is dropped instead. That filter is only as correct as this project's own avLst table: the table disagrees with PowerPoint's real guides for the 12 action-button presets (real: 0 guides, table: adj) and gear6/gear9 (real: 2 guides, table: 1), so shapeAdjustments on those specific presets can still corrupt a save until a COM audit of the table itself lands.",
 		evidence: [
 			testEvidence(
 				'src/core/core/runtime/PptxHandlerRuntimeGeometryParsing.test.ts',
@@ -130,6 +130,15 @@ assign(
 				['preserves interleaved commands through parse, model, serialize, and reload'],
 				['preserve', 'serialize'],
 			),
+			testEvidence(
+				'src/core/geometry/preset-adjustment-validation.test.ts',
+				[
+					'drops a guide name that is not a real handle for the resolved preset',
+					'drops every entry for a preset with zero real adjustment guides (rect)',
+					'passes entries through unfiltered for a preset the table does not resolve',
+				],
+				['edit', 'serialize'],
+			),
 		],
 	},
 );
@@ -145,6 +154,7 @@ assign(
 		'drawing:complexType:CT_Path2DCubicBezierTo',
 		'drawing:complexType:CT_Path2DClose',
 		'drawing:element:rect',
+		'drawing:element:pathLst',
 		'drawing:element:moveTo',
 		'drawing:element:lnTo',
 		'drawing:element:arcTo',
@@ -157,7 +167,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: 'Every CT_Path2D command type (move, line, arc, quadratic and cubic Bezier, close) and the custGeom text rect round-trip through the typed path model with command order preserved. A rendering-only edge case (an arcTo sweep of 360 degrees or more collapsing to its mod-360 remainder in the SVG conversion, no shipped preset triggers it) affects packages/shared rendering, not this round-trip.',
+		note: "Every CT_Path2D command type (move, line, arc, quadratic and cubic Bezier, close) and the custGeom text rect round-trip through the typed path model with command order preserved. A rendering-only edge case (an arcTo sweep of 360 degrees or more collapsing to its mod-360 remainder in the SVG conversion, no shipped preset triggers it) affects packages/shared rendering, not this round-trip. Since wave 2 (W2-G), a:pathLst's own formula-bearing XML is also preserved verbatim (CustomGeometryRawData.pathLstXml) and re-derived on save from a live re-evaluation against the CURRENT shapeAdjustments/a:gdLst overrides (geometry/custom-geometry-live-eval.ts: evaluateCustomGeometryPaths, resolveSaveTimeCustomGeometryPaths), instead of only ever emitting the numbers frozen at parse time, so a saved custGeom's a:pathLst coordinates stay consistent with the a:avLst it commits in the same save.",
 		evidence: [
 			testEvidence(
 				'src/core/geometry/custom-geometry-command-order.test.ts',
@@ -176,6 +186,23 @@ assign(
 					'extracts both control points from quadBezTo',
 				],
 				['parse', 'serialize'],
+			),
+			testEvidence(
+				'src/core/geometry/custom-geometry-live-eval.test.ts',
+				[
+					're-evaluates the outline live against an in-progress shapeAdjustments override',
+					're-evaluates structured per-sub-path segments against an override',
+				],
+				['edit'],
+			),
+			testEvidence(
+				'src/__tests__/integration/custom-geometry-live-eval-parity.test.ts',
+				[
+					'preserves a:pathLst raw XML on customGeometryRawData alongside avLst/gdLst',
+					're-derives the outline at a live adj1 override the parsed pathData never saw',
+					'saves a:pathLst coordinates that match the a:avLst it commits (single source of truth)',
+				],
+				['parse', 'preserve', 'edit', 'serialize'],
 			),
 		],
 	},
@@ -207,29 +234,6 @@ assign(
 				'src/core/builders/factories/connector-xml-factory-spec.test.ts',
 				['should set connection points for stCxn and endCxn'],
 				['edit', 'serialize'],
-			),
-		],
-	},
-);
-
-assign(
-	[
-		'drawing:complexType:CT_ConnectionSiteList',
-		'drawing:complexType:CT_ConnectionSite',
-		'drawing:element:cxn',
-		'drawing:element:cxnLst',
-	],
-	{
-		parse: 'passthrough',
-		preserve: 'native',
-		edit: 'passthrough',
-		serialize: 'passthrough',
-		note: 'A custGeom-authored connection-site list is preserved verbatim through parse, model, and reload; it is not decomposed into a typed, independently editable field the way path commands are.',
-		evidence: [
-			testEvidence(
-				'src/core/geometry/custom-geometry.test.ts',
-				['preserves raw adjustment, guide, handle, connection, and text-rect data'],
-				['parse', 'preserve', 'edit', 'serialize'],
 			),
 		],
 	},

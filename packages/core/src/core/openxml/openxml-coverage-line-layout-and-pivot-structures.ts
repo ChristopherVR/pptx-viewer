@@ -119,7 +119,7 @@ assign(
 		preserve: 'native',
 		edit: 'partial',
 		serialize: 'partial',
-		note: 'Iterator and condition data is typed; nested layout actions and enum unions remain raw.',
+		note: "Iterator and condition data is typed; nested layout actions and enum unions remain raw. All 8 documented ST_FunctionType/ST_FunctionValue values (cnt, var, pos, revPos, posEven, posOdd, depth, maxDepth) are implemented in the layout interpreter's dgm:if evaluator; since wave 2 (W2-E), the real discoverArrangement call site also supplies a visited dgm:choose node's sibling position, sibling count, depth, and the tree's max depth (core/utils/smartart-layout-interpreter-tree-location.ts, walkWithTreeLocation/treeMaxDepth), so pos/revPos/posEven/posOdd/depth/maxDepth are actually decidable in production, not just cnt/var as before. This is an interpreter-reachability improvement with no facet of its own in this manifest, which continues to grade only how the choose/forEach/if XML itself is typed.",
 		evidence: [
 			testEvidence('src/core/utils/smartart-layout-definition.test.ts', [
 				'parses CT_DiagramDefinition and recursive CT_LayoutNode with arbitrary prefixes',
@@ -127,6 +127,16 @@ assign(
 				'creates and removes typed forEach and choose branches',
 				'rejects invalid required values and unsigned integer facets',
 			]),
+			testEvidence(
+				'src/core/utils/smartart-layout-interpreter-model.test.ts',
+				[
+					"decides a choose branch from the declaring node's own sibling position",
+					'decides func="revPos" from the sibling count and position',
+					'decides func="depth" from the declaring node\\\'s distance from the root',
+					'decides func="maxDepth" from the whole tree\\\'s deepest node',
+				],
+				['parse', 'edit'],
+			),
 		],
 	},
 );

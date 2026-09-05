@@ -206,6 +206,12 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 		expect(style.underlineStyle).toBe('wavyHeavy');
 	});
 
+	it('parses @_u="words" (D2-G3: underline the words, not the inter-word spaces)', () => {
+		const style = parseRunPropertyAttributes({ '@_u': 'words' });
+		expect(style.underline).toBeTruthy();
+		expect(style.underlineStyle).toBe('words');
+	});
+
 	it('parses @_u="wavyDbl"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'wavyDbl' });
 		expect(style.underline).toBeTruthy();

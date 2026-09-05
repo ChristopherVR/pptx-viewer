@@ -292,10 +292,10 @@ describe('open XML schema coverage inventory', () => {
 				0,
 			),
 		).toBe(OPENXML_COVERAGE.length * 4);
-		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(296);
+		expect(listUnassessedOpenXmlCoverage('chart')).toHaveLength(294);
 		expect(listUnassessedOpenXmlCoverage('presentation')).toHaveLength(491);
-		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(600);
-		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(135);
+		expect(listUnassessedOpenXmlCoverage('drawing')).toHaveLength(599);
+		expect(listUnassessedOpenXmlCoverage('diagram')).toHaveLength(134);
 	});
 
 	it('keeps assessed capabilities documented and monotonic', () => {

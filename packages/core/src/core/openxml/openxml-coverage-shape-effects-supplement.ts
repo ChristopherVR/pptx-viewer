@@ -43,6 +43,29 @@ assign(['drawing:element:fillOverlay'], {
 	],
 });
 
+assign(
+	[
+		'drawing:complexType:CT_ConnectionSiteList',
+		'drawing:complexType:CT_ConnectionSite',
+		'drawing:element:cxn',
+		'drawing:element:cxnLst',
+	],
+	{
+		parse: 'passthrough',
+		preserve: 'native',
+		edit: 'passthrough',
+		serialize: 'passthrough',
+		note: 'A custGeom-authored connection-site list is preserved verbatim through parse, model, and reload; it is not decomposed into a typed, independently editable field the way path commands are.',
+		evidence: [
+			testEvidence(
+				'src/core/geometry/custom-geometry.test.ts',
+				['preserves raw adjustment, guide, handle, connection, and text-rect data'],
+				['parse', 'preserve', 'edit', 'serialize'],
+			),
+		],
+	},
+);
+
 export const OPENXML_SHAPE_EFFECTS_SUPPLEMENT_COVERAGE: Readonly<
 	Record<string, OpenXmlCoverageFacets>
 > = overrides;

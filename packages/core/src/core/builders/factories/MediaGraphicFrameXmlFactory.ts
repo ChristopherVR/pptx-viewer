@@ -1,3 +1,4 @@
+import { buildFreshMediaNvPr } from '../../core/runtime/media-p14-extension-write';
 import type { XmlObject } from '../../types';
 import type {
 	MediaGraphicFrameXmlFactoryInit,
@@ -48,7 +49,13 @@ export class MediaGraphicFrameXmlFactory implements IMediaGraphicFrameXmlFactory
 					'@_name': `${mediaName} ${mediaId}`,
 				},
 				'p:cNvGraphicFramePr': {},
-				'p:nvPr': {},
+				// A freshly inserted (never round-tripped) media element has no
+				// `rawXml` for `writeMediaP14Extension` to merge trim/fade/speed/
+				// bookmarks into, so this synthesises the same `p14:media`/
+				// `p14:bmkLst` extension from the typed fields directly here,
+				// including the embed relationship id, so it round-trips on the
+				// very first save rather than only from the next load onward.
+				'p:nvPr': buildFreshMediaNvPr(element, relationshipId),
 			},
 			'p:xfrm': {
 				'a:off': {

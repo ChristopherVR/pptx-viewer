@@ -11,19 +11,62 @@
  */
 import { evaluateGuides } from './guide-formula-api';
 import { resolveOperand } from './guide-formula-eval';
+import { ACTION_BUTTON_CONNECTION_SITES } from './preset-connection-sites-action-buttons';
 import { ARROW_CONNECTION_SITES } from './preset-connection-sites-arrows';
+import { CURVED_ARROW_CONNECTION_SITES } from './preset-connection-sites-arrows-curved';
+import { MISC_ARROW_CONNECTION_SITES } from './preset-connection-sites-arrows-misc';
+import { BASIC_SHAPE_CONNECTION_SITES_A } from './preset-connection-sites-basic-a';
+import { BASIC_SHAPE_CONNECTION_SITES_B } from './preset-connection-sites-basic-b';
+import { BRACE_CONNECTION_SITES } from './preset-connection-sites-braces';
+import { ARROW_CALLOUT_CONNECTION_SITES } from './preset-connection-sites-callouts-arrow';
+import { CALLOUT_CONNECTION_SITES } from './preset-connection-sites-callouts-basic';
+import { CIRCULAR_ARROW_CONNECTION_SITES } from './preset-connection-sites-circular-arrow';
 import { FLOWCHART_CONNECTION_SITES } from './preset-connection-sites-flowchart';
+import { GEAR9_CONNECTION_SITES } from './preset-connection-sites-gear9';
+import { LEFT_CIRCULAR_ARROW_CONNECTION_SITES } from './preset-connection-sites-left-circular-arrow';
+import { LEFT_RIGHT_CIRCULAR_ARROW_CONNECTION_SITES } from './preset-connection-sites-left-right-circular-arrow';
+import { MATH_SYMBOL_CONNECTION_SITES } from './preset-connection-sites-math';
+import { MISC_SHAPE_CONNECTION_SITES } from './preset-connection-sites-misc';
 import { POLYGON_CONNECTION_SITES } from './preset-connection-sites-polygons';
 import { QUAD_CONNECTION_SITES } from './preset-connection-sites-quads';
+import { RECT_VARIANT_CONNECTION_SITES } from './preset-connection-sites-rects';
+import { RIBBON_CONNECTION_SITES } from './preset-connection-sites-ribbons';
+import { STAR_CONNECTION_SITES } from './preset-connection-sites-stars';
+import { TAB_CONNECTION_SITES } from './preset-connection-sites-tabs';
 import type { PresetConnectionSiteDefinition } from './preset-connection-sites-types';
 import { normalizeStShapeType } from './preset-geometry-names';
 
-/** Every preset this repo carries an ECMA `cxnLst` transcription for. */
+/**
+ * Every preset this repo carries an ECMA `cxnLst` transcription for. 174 of
+ * ECMA-376's 187 preset shapes are covered (53 by wave 1, 121 more here);
+ * the 13 gap remains only for presets whose `presetShapeDefinitions.xml`
+ * entry has no `<cxnLst>` at all (the `*Connector*` line shapes, `chartPlus`/
+ * `chartStar`/`chartX`, and `funnel`), which fall back to the 4 cardinal
+ * edge midpoints intentionally, not by omission.
+ */
 const PRESET_CONNECTION_SITES: Record<string, PresetConnectionSiteDefinition> = {
 	...QUAD_CONNECTION_SITES,
 	...POLYGON_CONNECTION_SITES,
 	...ARROW_CONNECTION_SITES,
 	...FLOWCHART_CONNECTION_SITES,
+	...CALLOUT_CONNECTION_SITES,
+	...ARROW_CALLOUT_CONNECTION_SITES,
+	...ACTION_BUTTON_CONNECTION_SITES,
+	...CURVED_ARROW_CONNECTION_SITES,
+	...MISC_ARROW_CONNECTION_SITES,
+	...CIRCULAR_ARROW_CONNECTION_SITES,
+	...LEFT_CIRCULAR_ARROW_CONNECTION_SITES,
+	...LEFT_RIGHT_CIRCULAR_ARROW_CONNECTION_SITES,
+	...STAR_CONNECTION_SITES,
+	...RECT_VARIANT_CONNECTION_SITES,
+	...BRACE_CONNECTION_SITES,
+	...MATH_SYMBOL_CONNECTION_SITES,
+	...RIBBON_CONNECTION_SITES,
+	...TAB_CONNECTION_SITES,
+	...BASIC_SHAPE_CONNECTION_SITES_A,
+	...BASIC_SHAPE_CONNECTION_SITES_B,
+	...GEAR9_CONNECTION_SITES,
+	...MISC_SHAPE_CONNECTION_SITES,
 };
 
 /** A preset connection site evaluated to pixel coordinates in the shape's own box. */

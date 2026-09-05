@@ -50,6 +50,7 @@ import { writeSeriesColorToSpPr } from '../../utils/chart-series-color-serialize
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
 import {
 	applyBar3DShapeToXml,
+	applyGapDepthToXml,
 	applyRadarStyleToXml,
 	applySeriesBar3DShapeToXml,
 	applySurfaceWireframeToXml,
@@ -68,7 +69,7 @@ import {
 	switchChartPartFamily,
 	targetChartPartFamily,
 } from './chart-part-family-switch';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartUserShapes';
 import {
 	buildChartPoints,
 	replaceFirstTextValueInTree,
@@ -632,6 +633,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.compatibilityService.getXmlLocalName(key),
 					);
 				}
+				if (
+					chartData.gapDepth !== undefined &&
+					(chartData.chartType === 'bar3D' ||
+						chartData.chartType === 'area3D' ||
+						chartData.chartType === 'line3D')
+				) {
+					applyGapDepthToXml(chartTypeContainer, containerLocalName, chartData.gapDepth, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
 				if (chartData.radarStyle !== undefined && chartData.chartType === 'radar') {
 					applyRadarStyleToXml(
 						chartTypeContainer,
@@ -857,6 +868,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				}
 
+				// Drawing-overlay shapes (c:userShapes): reconciled against disk
+				// only when `chartData.userShapes` carries an actual edit signal;
+				// see `PptxHandlerRuntimeChartUserShapes` for the dirty contract.
+				await this.syncChartUserShapesToXml(chartSpace, chartData, chartPartPath);
+
 				// Write updated chart XML back
 				this.zip.file(chartPartPath, this.builder.build(chartXmlData));
 
@@ -911,10 +927,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			canGenerateChartEx(chartData) &&
 			chartExLayoutChanged(chartSpace, chartData, getLocalName)
 		) {
-			this.zip.file(chartData.chartPartPath, this.builder.build(buildChartExSpaceXml(chartData)));
+			// The regenerated tree carries the preserved `c:userShapes` reference
+			// (`chartData.userShapesXml`); syncing against it as well lets an
+			// overlay edit made in the SAME save as the type change land too.
+			const regenerated = buildChartExSpaceXml(chartData);
+			const regeneratedSpace = regenerated['cx:chartSpace'] as XmlObject | undefined;
+			if (regeneratedSpace) {
+				await this.syncChartUserShapesToXml(regeneratedSpace, chartData, chartData.chartPartPath);
+			}
+			this.zip.file(chartData.chartPartPath, this.builder.build(regenerated));
 			return true;
 		}
 		if (applyChartExUpdate(chartSpace, chartData, getLocalName)) {
+			// ChartEx's drawing-overlay part is the same `cdr:`-namespaced part
+			// classic charts use, referenced the same way (`c:userShapes/@_r:id`
+			// on the chart space); this in-place update path mutates the existing
+			// `chartSpace` object, so the same sync used by classic charts works.
+			await this.syncChartUserShapesToXml(chartSpace, chartData, chartData.chartPartPath);
 			this.zip.file(chartData.chartPartPath, this.builder.build(chartXmlData));
 		}
 		return true;

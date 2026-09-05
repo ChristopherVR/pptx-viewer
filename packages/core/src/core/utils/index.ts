@@ -182,7 +182,10 @@ export { interpretSmartArtLayout, type InterpretLayoutInput } from './smartart-l
 export { parseSmartArtPointCustomLayout } from './smartart-data-model-attributes';
 export { interpretedLayoutToElements } from './smartart-interpreter-drawing-bridge';
 export { applySmartArtRoleColors, type SmartArtColorRoleMap } from './smartart-node-role-colors';
-export { resolveSmartArtNodeStyleRoles } from './smartart-node-style-role';
+export {
+	resolveSmartArtNodeCoherent3DOff,
+	resolveSmartArtNodeStyleRoles,
+} from './smartart-node-style-role';
 export {
 	resolveSmartArtEffectIntensity,
 	type SmartArtEffectIntensity,
@@ -477,9 +480,11 @@ export {
 	parseSmartArtColorStyleLabels,
 	parseSmartArtDefinitionMetadata,
 	parseSmartArtQuickStyleLabels,
+	parseSmartArtStyleLabelRefs,
 	validateSmartArtColorStyleLabels,
 	validateSmartArtDefinitionMetadata,
 } from './smartart-definition-metadata';
+export type { SmartArtStyleLabelRefs } from './smartart-definition-metadata';
 
 export {
 	checkPresentation,

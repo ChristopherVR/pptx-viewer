@@ -1,7 +1,10 @@
 import { XmlObject } from '../../types';
 import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../../types';
 import { parseDiagramRelationshipIds, parseSmartArtLayoutDefinition } from '../../utils';
-import { resolveSmartArtNodeStyleRoles } from '../../utils/smartart-node-style-role';
+import {
+	resolveSmartArtNodeCoherent3DOff,
+	resolveSmartArtNodeStyleRoles,
+} from '../../utils/smartart-node-style-role';
 import { parseSmartArtPresLayoutVars } from '../../utils/smartart-pres-layout-vars';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
@@ -56,8 +59,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// connection, so the renderer can pick that role's own colour list
 		// instead of a generic cycled palette. Needs the FULL (unfiltered)
 		// `points` array: `pres` points are excluded from `isContentPoint`.
-		const styleRoleByNodeId = resolveSmartArtNodeStyleRoles(points, parsedConnections, (key) =>
-			this.compatibilityService.getXmlLocalName(key),
+		const localName = (key: string) => this.compatibilityService.getXmlLocalName(key);
+		const styleRoleByNodeId = resolveSmartArtNodeStyleRoles(points, parsedConnections, localName);
+		// G12: nodes opting out of the coherent-3D scene rotation via their
+		// presentation point's `prSet/@coherent3DOff`.
+		const coherent3DOffNodeIds = resolveSmartArtNodeCoherent3DOff(
+			points,
+			parsedConnections,
+			localName,
 		);
 
 		// ── Parse nodes ──────────────────────────────────────────────────
@@ -100,6 +109,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					parentId: parentByNodeId.get(pointId),
 					nodeType,
 					styleRole: styleRoleByNodeId.get(pointId),
+					coherent3DOff: coherent3DOffNodeIds.has(pointId) || undefined,
 					runs,
 					paragraphs,
 					style,

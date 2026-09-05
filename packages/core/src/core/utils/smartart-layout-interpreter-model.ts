@@ -29,6 +29,7 @@ import type {
 	PptxSmartArtPresLayoutVars,
 } from '../types';
 import { chooseAlgType } from './smartart-layout-interpreter-flow';
+import { treeMaxDepth, walkWithTreeLocation } from './smartart-layout-interpreter-tree-location';
 
 /** Arrangement families the interpreter can execute. */
 export type ArrangementKind =
@@ -87,14 +88,6 @@ function isMeaningfulAux(node: PptxSmartArtLayoutNode): boolean {
 	return (node.constraints?.length ?? 0) > 0 || (node.children?.length ?? 0) > 0;
 }
 
-/** Depth-first walk of the flattened layout-node tree. */
-function walk(node: PptxSmartArtLayoutNode, visit: (node: PptxSmartArtLayoutNode) => void): void {
-	visit(node);
-	for (const child of node.children ?? []) {
-		walk(child, visit);
-	}
-}
-
 /**
  * Determine which arrangement algorithm drives the diagram.
  *
@@ -116,9 +109,12 @@ function walk(node: PptxSmartArtLayoutNode, visit: (node: PptxSmartArtLayoutNode
  * `undefined` when nothing is recognised, so the caller keeps the legacy family
  * approximation.
  *
- * `presLayoutVars`, when supplied, lets a `func="var"` `dgm:if` (comparing a
- * `dgm:varLst` variable, e.g. `dir`) decide its branch - see
- * `smartart-layout-interpreter-flow.ts`'s `WhenContext`.
+ * `presLayoutVars`, when supplied, lets a `func="var"` `dgm:if` decide its
+ * branch (see `smartart-layout-interpreter-flow.ts`'s `WhenContext`). Every
+ * `dgm:choose` visited is also given its declaring node's sibling position
+ * (1-based), sibling count, depth, and the tree's max depth, so `"pos"`/
+ * `"revPos"`/`"posEven"`/`"posOdd"`/`"depth"`/`"maxDepth"` are decidable
+ * here too, not just `"cnt"`/`"var"` (previously the only two reachable).
  */
 export function discoverArrangement(
 	definition: PptxSmartArtLayoutDefinition,
@@ -130,9 +126,16 @@ export function discoverArrangement(
 	let compositeSlot: PptxSmartArtLayoutNode | undefined;
 	let structural: ArrangementPlan | undefined;
 	let aux: ArrangementPlan | undefined;
-	walk(definition.rootNode, (node) => {
+	const maxDepth = treeMaxDepth(definition.rootNode);
+	walkWithTreeLocation(definition.rootNode, (node, location) => {
 		if (!chosen && nodeCount !== undefined && node.choose && node.choose.length > 0) {
-			const type = chooseAlgType(node, nodeCount, { presLayoutVars });
+			const type = chooseAlgType(node, nodeCount, {
+				presLayoutVars,
+				position: location.position,
+				total: location.total,
+				depth: location.depth,
+				maxDepth,
+			});
 			const kind = type ? PRIMARY_ALG[type] : undefined;
 			if (kind && STRUCTURAL.has(kind)) {
 				const arranger = node.children?.find((child) => child.algorithm?.type === type) ?? node;

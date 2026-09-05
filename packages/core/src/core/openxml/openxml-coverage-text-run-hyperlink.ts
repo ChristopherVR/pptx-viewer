@@ -27,7 +27,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: 'Run/default/end-paragraph character properties (size, bold, italic, underline plus style, strikethrough plus type, caps, baseline, spacing, kerning, language, rtl) and the per-script typeface elements (latin/ea/cs/sym) are fully typed and round-trip in core. A separate, already-documented gap is that the shared render layer only applies the per-script split in the React binding; that render gap does not affect core parse/serialize.',
+		note: 'Run/default/end-paragraph character properties (size, bold, italic, underline plus style, strikethrough plus type, caps, baseline, spacing, kerning, language, rtl) and the per-script typeface elements (latin/ea/cs/sym) are fully typed and round-trip in core. The render-layer gap this note used to describe (the per-script split only applying in the React binding) is closed: shared `text-script-fonts.ts` (`resolveScriptFontSet`/`splitRunByScriptFont`, driven by real Unicode-script segmentation, not a whole-run override) now backs the paragraph builder every binding renders through, so react, vue, angular, svelte, and vanilla all render latin/ea/cs/sym per detected script run. That render behaviour still has no facet in this manifest, which continues to track core parse/serialize only.',
 		evidence: [
 			testEvidence(
 				'src/core/utils/text-run-properties-parser.test.ts',

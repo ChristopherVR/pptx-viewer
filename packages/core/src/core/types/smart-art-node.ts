@@ -207,6 +207,13 @@ export interface PptxSmartArtNode {
 	 */
 	styleRole?: string;
 	/**
+	 * `dgm:prSet/@coherent3DOff` (`CT_ElemPropSet`) resolved from the node's
+	 * paired presentation point: when true, this node opts out of the
+	 * diagram's overall coherent-3D scene rotation (a `dgm:scene3d`/`dgm:sp3d`
+	 * quick-style variation) applied to every other node.
+	 */
+	coherent3DOff?: boolean;
+	/**
 	 * Per-run text + run-properties for the node's first paragraph, captured at
 	 * parse time. When the joined run text still equals {@link text} (the node
 	 * was not edited, or was edited only in ways that preserve the run split),

@@ -1,5 +1,6 @@
-import { customGeometryPathsToXml } from '../../geometry/custom-geometry';
 import { applyCustomGeometryGuideOverrides } from '../../geometry/custom-geometry-guide-writeback';
+import { buildSaveTimeCustomGeometryXml } from '../../geometry/custom-geometry-live-eval';
+import { filterValidShapeAdjustmentEntries } from '../../geometry/preset-adjustment-validation';
 import { hasShapeProperties } from '../../types';
 import type {
 	XmlObject,
@@ -113,16 +114,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const elWithPaths = el as ShapePptxElement | ImagePptxElement | PicturePptxElement;
 		if (elWithPaths.customGeometryPaths && elWithPaths.customGeometryPaths.length > 0) {
 			delete spPr['a:prstGeom'];
-			const custGeomXml = customGeometryPathsToXml(
-				elWithPaths.customGeometryPaths,
-				elWithPaths.customGeometryRawData,
-				{
-					adjustHandlesXY: elWithPaths.customGeometryAdjustHandlesXY,
-					adjustHandlesPolar: elWithPaths.customGeometryAdjustHandlesPolar,
-					connectionSites: elWithPaths.customGeometryConnectionSites,
-					textRect: elWithPaths.customGeometryTextRect,
-				},
-			);
+			// Re-derives a:pathLst from raw XML at the current shapeAdjustments so
+			// it agrees with the a:avLst write below; see buildSaveTimeCustomGeometryXml.
+			const custGeomXml = buildSaveTimeCustomGeometryXml(elWithPaths, el.shapeAdjustments);
 			// Edited custGeom adjust handles live in `shapeAdjustments`; write them
 			// back into `a:avLst` so the freeform keeps its dragged handle values.
 			spPr['a:custGeom'] = applyCustomGeometryGuideOverrides(custGeomXml, el.shapeAdjustments);
@@ -134,9 +128,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const prstGeom = spPr['a:prstGeom'] as XmlObject;
 			prstGeom['@_prst'] = presetGeometry;
 			if (el.shapeAdjustments) {
-				const entries = Object.entries(el.shapeAdjustments).filter(
-					([name, value]) => name.trim().length > 0 && Number.isFinite(value),
-				);
+				// A `<a:gd>` name PowerPoint doesn't recognise for the RESOLVED preset
+				// (e.g. `adj1` on `homePlate`, which only defines `adj`) makes the
+				// whole file unopenable ("The file or directory is corrupted and
+				// unreadable", 0x80070570), COM-verified, even though the XML is
+				// otherwise schema-valid. `shapeAdjustments` is caller-supplied
+				// (`ShapeBuilder.adjustments()` takes an arbitrary record with no
+				// guardrails), so it must be filtered to this preset's real guide
+				// names before it reaches the saved file; see
+				// `filterValidShapeAdjustmentEntries` for the COM evidence.
+				const entries = filterValidShapeAdjustmentEntries(presetGeometry, el.shapeAdjustments);
+				if (entries.length < Object.keys(el.shapeAdjustments).length) {
+					this.compatibilityService.reportWarning({
+						code: 'SAVE_SHAPE_ADJUSTMENT_INVALID_GUIDE',
+						message: `Shape '${el.id}' (preset '${presetGeometry}') had one or more shapeAdjustments keys that are not valid adjustment guides for this preset; they were dropped to avoid producing a file PowerPoint cannot open.`,
+						scope: 'element',
+						elementId: el.id,
+					});
+				}
 				if (entries.length > 0) {
 					prstGeom['a:avLst'] = {
 						'a:gd': entries.map(([name, value]) => ({

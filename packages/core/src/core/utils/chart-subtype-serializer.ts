@@ -57,6 +57,27 @@ export function applyBar3DShapeToXml(
 }
 
 /**
+ * Apply `c:gapDepth` (bar3D/area3D/line3D depth along the series axis, C1-G7
+ * wave-1 skip: parse/type landed, but the typed value was never written back
+ * on save) onto the chart-type container and reorder it back into ECMA-376
+ * sequence. `undefined` removes the element.
+ */
+export function applyGapDepthToXml(
+	chartTypeContainer: XmlObject,
+	containerLocalName: string,
+	gapDepth: number | undefined,
+	getLocalName: GetLocalName,
+): void {
+	upsertValChild(
+		chartTypeContainer,
+		'gapDepth',
+		gapDepth === undefined ? undefined : String(gapDepth),
+		getLocalName,
+	);
+	orderChartContainerChildren(chartTypeContainer, containerLocalName, getLocalName);
+}
+
+/**
  * Apply `c:radarChart/c:radarStyle` onto the chart-type container and
  * reorder it back into ECMA-376 sequence. `undefined` removes the element
  * (radar's schema treats it as a required leading child, so this should only

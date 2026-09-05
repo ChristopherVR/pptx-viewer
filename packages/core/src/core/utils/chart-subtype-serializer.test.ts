@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { XmlObject } from '../types';
 import {
 	applyBar3DShapeToXml,
+	applyGapDepthToXml,
 	applyRadarStyleToXml,
 	applySeriesBar3DShapeToXml,
 	applySurfaceWireframeToXml,
@@ -114,5 +115,39 @@ describe('applySeriesBar3DShapeToXml', () => {
 		const seriesNode: XmlObject = { 'c:shape': { '@_val': 'box' } };
 		applySeriesBar3DShapeToXml(seriesNode, undefined, getLocalName);
 		expect(seriesNode['c:shape']).toBeUndefined();
+	});
+});
+
+describe('applyGapDepthToXml (C1-G7 wave-1 skip: gapDepth save round-trip)', () => {
+	it('inserts c:gapDepth after c:gapWidth and before c:shape/c:axId on a bar3DChart', () => {
+		const container: XmlObject = {
+			'c:barDir': { '@_val': 'col' },
+			'c:grouping': { '@_val': 'clustered' },
+			'c:ser': {},
+			'c:gapWidth': { '@_val': '150' },
+			'c:axId': [{ '@_val': '1' }, { '@_val': '2' }],
+		};
+		applyGapDepthToXml(container, 'bar3DChart', 200, getLocalName);
+		expect(Object.keys(container)).toStrictEqual([
+			'c:barDir',
+			'c:grouping',
+			'c:ser',
+			'c:gapWidth',
+			'c:gapDepth',
+			'c:axId',
+		]);
+		expect(container['c:gapDepth']).toStrictEqual({ '@_val': '200' });
+	});
+
+	it('replaces an existing c:gapDepth value in place', () => {
+		const container: XmlObject = { 'c:gapDepth': { '@_val': '100' } };
+		applyGapDepthToXml(container, 'bar3DChart', 50, getLocalName);
+		expect(container['c:gapDepth']).toStrictEqual({ '@_val': '50' });
+	});
+
+	it('removes c:gapDepth when given undefined', () => {
+		const container: XmlObject = { 'c:gapDepth': { '@_val': '100' } };
+		applyGapDepthToXml(container, 'bar3DChart', undefined, getLocalName);
+		expect(container['c:gapDepth']).toBeUndefined();
 	});
 });
