@@ -1362,6 +1362,10 @@ export * from './annotation-overlay';
 // that drives a running slide show, extracted from four near-identical
 // per-binding copies (Vue/Angular/Svelte/Vanilla `*animation-playback-helpers`).
 export * from './animation-playback-engine';
+// `p:seq/@nextAc="seek"`: a click during a mid-flight group fast-forwards it
+// instead of starting the next one; `advanceMainSequence` is every binding's
+// single "next click" entry point.
+export * from './animation-playback-seek';
 // Shift-to-lock-aspect resize + arrow-key nudge math for the editing overlay.
 export * from './editor-geometry';
 // Pure, immutable PptxSlide[] mutations (CRUD/z-order/notes) the editor

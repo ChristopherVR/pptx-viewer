@@ -1,5 +1,5 @@
 /**
- * `animation-sequence-gating` — pure decision functions for the `p:seq`
+ * `animation-sequence-gating`: pure decision functions for the `p:seq`
  * `@concurrent` / `@nextAc` / `@prevAc` attributes (ECMA-376 S19.5.60,
  * captured onto every {@link TimelineClickGroup} in the sequence they
  * govern) and the per-effect `p:cTn/@restart` attribute (ECMA-376 S19.5.27,

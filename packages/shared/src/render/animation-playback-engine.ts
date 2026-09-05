@@ -28,14 +28,10 @@
  * host override takes priority over `playSound` when set, matching the
  * pre-extraction behaviour of `ctx.onPlayActionSound ?? playAnimationSound`).
  *
- * React's `presentation-mode/animation-helpers.ts` additionally implements a
- * "seek" nuance this module intentionally does NOT include yet: a second
- * advance while a `p:seq/@nextAc="seek"` group is still mid-flight fast-forwards
- * it to its authored end state (`shouldSeekAnimationGroup`,
- * `finishDomAnimationsForGroup`, `finishAnimationGroupSteps`) instead of playing
- * the next group. Only React has this; Vue/Angular/Svelte/Vanilla currently just
- * advance immediately regardless of `seqNextAction`. See the extraction report
- * for how a later wave can port that nuance in here too.
+ * The `p:seq/@nextAc="seek"` nuance (a second advance while a group is still
+ * mid-flight fast-forwards it to its authored end state instead of playing the
+ * next group) lives in the sibling `animation-playback-seek`, whose
+ * `advanceMainSequence` is the "next click" entry point every binding uses.
  *
  * @module render/animation-playback-engine
  */
