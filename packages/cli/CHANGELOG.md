@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.6.0) - 2026-09-05
+
+### Features
+
+- **react:** Map the 2026-09 OpenXML parity wave onto the react viewer (by @ChristopherVR) ([671cd01](https://github.com/ChristopherVR/pptx-viewer/commit/671cd013bc2392f853a51cb1c52d9616a3836f4a))
+- **react:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([6d20950](https://github.com/ChristopherVR/pptx-viewer/commit/6d20950f3e6949c5964090f1a63a6e5b5d1a89f9))
+
 ## [2.5.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.5.2) - 2026-09-03
 
 ### Bug Fixes

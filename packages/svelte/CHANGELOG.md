@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.7.0) - 2026-09-05
+
+### Features
+
+- **core:** Close ECMA-376 parse/serialize gaps from the 2026-09 parity audit (by @ChristopherVR) ([91ddcb7](https://github.com/ChristopherVR/pptx-viewer/commit/91ddcb7a53f67c7f52a9b9c16f00365d5f2f73ef))
+- **shared:** Render-side parity for the 2026-09 OpenXML audit gaps (by @ChristopherVR) ([266f255](https://github.com/ChristopherVR/pptx-viewer/commit/266f2558e8a431e50fb7c866d1de97aae3b06ec2))
+- **svelte:** Map the 2026-09 OpenXML parity wave onto the svelte viewer (by @ChristopherVR) ([72f85f8](https://github.com/ChristopherVR/pptx-viewer/commit/72f85f8d00c04bb00e7d3088bc99053167fe699c))
+- **core:** Close the remaining OpenXML parity gaps (wave 2) (by @ChristopherVR) ([59fecbf](https://github.com/ChristopherVR/pptx-viewer/commit/59fecbff7c44809640a3ea75d92491f3c93d67d1))
+- **shared:** Framework-neutral logic for the wave-2 OpenXML gaps (by @ChristopherVR) ([9ab1d92](https://github.com/ChristopherVR/pptx-viewer/commit/9ab1d926fb56d3efaa3031f9f7beca09e85aa9a3))
+- **svelte:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([14d5ed7](https://github.com/ChristopherVR/pptx-viewer/commit/14d5ed78c5753589c35077531b66967fcd8eccce))
+
+### Testing
+
+- **core:** Declare the wave-2 e2e fixtures in the corpus manifest (by @ChristopherVR) ([593d3ba](https://github.com/ChristopherVR/pptx-viewer/commit/593d3ba1a807e3e712b41c372bd5f7c65ea396bc))
+
 ## [3.6.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.6.5) - 2026-09-04
 
 ### Bug Fixes

@@ -7,6 +7,25 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.6.0) - 2026-09-05
+
+### Features
+
+- **core:** Close ECMA-376 parse/serialize gaps from the 2026-09 parity audit (by @ChristopherVR) ([91ddcb7](https://github.com/ChristopherVR/pptx-viewer/commit/91ddcb7a53f67c7f52a9b9c16f00365d5f2f73ef))
+- **shared:** Render-side parity for the 2026-09 OpenXML audit gaps (by @ChristopherVR) ([266f255](https://github.com/ChristopherVR/pptx-viewer/commit/266f2558e8a431e50fb7c866d1de97aae3b06ec2))
+- **react:** Map the 2026-09 OpenXML parity wave onto the react viewer (by @ChristopherVR) ([671cd01](https://github.com/ChristopherVR/pptx-viewer/commit/671cd013bc2392f853a51cb1c52d9616a3836f4a))
+- **core:** Close the remaining OpenXML parity gaps (wave 2) (by @ChristopherVR) ([59fecbf](https://github.com/ChristopherVR/pptx-viewer/commit/59fecbff7c44809640a3ea75d92491f3c93d67d1))
+- **shared:** Framework-neutral logic for the wave-2 OpenXML gaps (by @ChristopherVR) ([9ab1d92](https://github.com/ChristopherVR/pptx-viewer/commit/9ab1d926fb56d3efaa3031f9f7beca09e85aa9a3))
+- **react:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([6d20950](https://github.com/ChristopherVR/pptx-viewer/commit/6d20950f3e6949c5964090f1a63a6e5b5d1a89f9))
+
+### Bug Fixes
+
+- Clip pictures by their own shape geometry in every binding ([#202](https://github.com/ChristopherVR/pptx-viewer/issues/202)) (by @nikko82) ([6027607](https://github.com/ChristopherVR/pptx-viewer/commit/6027607329e28591ede5a93af5bf5760d9fc1585))
+
+### Testing
+
+- **core:** Declare the wave-2 e2e fixtures in the corpus manifest (by @ChristopherVR) ([593d3ba](https://github.com/ChristopherVR/pptx-viewer/commit/593d3ba1a807e3e712b41c372bd5f7c65ea396bc))
+
 ## [3.5.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.5.4) - 2026-09-04
 
 ### Bug Fixes

@@ -8,6 +8,38 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-05
+
+_Releases: pptx-viewer-core@3.4.0, pptx-react-viewer@3.6.0, pptx-vue-viewer@3.6.0, pptx-angular-viewer@3.7.0, pptx-vanilla-viewer@2.6.0, pptx-svelte-viewer@3.7.0, pptx-viewer-mcp@2.2.0, @christophervr/pptx-viewer@2.6.0_
+
+### Features
+
+- **core:** Close ECMA-376 parse/serialize gaps from the 2026-09 parity audit (by @ChristopherVR) ([91ddcb7](https://github.com/ChristopherVR/pptx-viewer/commit/91ddcb7a53f67c7f52a9b9c16f00365d5f2f73ef))
+- **shared:** Render-side parity for the 2026-09 OpenXML audit gaps (by @ChristopherVR) ([266f255](https://github.com/ChristopherVR/pptx-viewer/commit/266f2558e8a431e50fb7c866d1de97aae3b06ec2))
+- **react:** Map the 2026-09 OpenXML parity wave onto the react viewer (by @ChristopherVR) ([671cd01](https://github.com/ChristopherVR/pptx-viewer/commit/671cd013bc2392f853a51cb1c52d9616a3836f4a))
+- **vue:** Map the 2026-09 OpenXML parity wave onto the vue viewer (by @ChristopherVR) ([3fb4350](https://github.com/ChristopherVR/pptx-viewer/commit/3fb4350790534aa869effae0278b9c3f7fa6bc46))
+- **angular:** Map the 2026-09 OpenXML parity wave onto the angular viewer (by @ChristopherVR) ([a8635a5](https://github.com/ChristopherVR/pptx-viewer/commit/a8635a53fe5d1a868c52cca7a11232c290eb5be7))
+- **svelte:** Map the 2026-09 OpenXML parity wave onto the svelte viewer (by @ChristopherVR) ([72f85f8](https://github.com/ChristopherVR/pptx-viewer/commit/72f85f8d00c04bb00e7d3088bc99053167fe699c))
+- **vanilla:** Map the 2026-09 OpenXML parity wave onto the vanilla viewer (by @ChristopherVR) ([d582fef](https://github.com/ChristopherVR/pptx-viewer/commit/d582fef80f5440218282dc14b52a0fd897453f9f))
+- **core:** Close the remaining OpenXML parity gaps (wave 2) (by @ChristopherVR) ([59fecbf](https://github.com/ChristopherVR/pptx-viewer/commit/59fecbff7c44809640a3ea75d92491f3c93d67d1))
+- **shared:** Framework-neutral logic for the wave-2 OpenXML gaps (by @ChristopherVR) ([9ab1d92](https://github.com/ChristopherVR/pptx-viewer/commit/9ab1d926fb56d3efaa3031f9f7beca09e85aa9a3))
+- **react:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([6d20950](https://github.com/ChristopherVR/pptx-viewer/commit/6d20950f3e6949c5964090f1a63a6e5b5d1a89f9))
+- **vue:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([165a69e](https://github.com/ChristopherVR/pptx-viewer/commit/165a69e0d245b1bb87519be39d354d1fd8b2d399))
+- **angular:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([a8c1143](https://github.com/ChristopherVR/pptx-viewer/commit/a8c114329602f8ba790ac150fa262783febd6cc1))
+- **svelte:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([14d5ed7](https://github.com/ChristopherVR/pptx-viewer/commit/14d5ed78c5753589c35077531b66967fcd8eccce))
+- **vanilla:** Wire the wave-2 OpenXML parity features (by @ChristopherVR) ([2f247b2](https://github.com/ChristopherVR/pptx-viewer/commit/2f247b299ecaf1eb732a7d86c4fff9133b5a6f59))
+- **tools:** Chart userShapes MCP tools (by @ChristopherVR) ([bf851eb](https://github.com/ChristopherVR/pptx-viewer/commit/bf851eb9fd29bfbe447157d8b1e7340644d5d921))
+
+### Documentation
+
+- Record the remaining OpenXML gaps after the 2026-09 parity wave (by @ChristopherVR) ([d06575b](https://github.com/ChristopherVR/pptx-viewer/commit/d06575bf4b0c3ca9b1a79876cacf25ef90167bcb))
+- Update limitations and MCP tool counts for the wave-2 parity work (by @ChristopherVR) ([50cfc59](https://github.com/ChristopherVR/pptx-viewer/commit/50cfc59edde8663610ab6959b7e9deb837ffa5b4))
+
+### Testing
+
+- **e2e:** Parity specs for u=words, text insets, connection sites, noGrp, a11y (by @ChristopherVR) ([856ef2f](https://github.com/ChristopherVR/pptx-viewer/commit/856ef2f78a5ca811f75443d3bf98776c146e4041))
+- **core:** Declare the wave-2 e2e fixtures in the corpus manifest (by @ChristopherVR) ([593d3ba](https://github.com/ChristopherVR/pptx-viewer/commit/593d3ba1a807e3e712b41c372bd5f7c65ea396bc))
+
 ## 2026-09-04
 
 _Releases: pptx-vue-viewer@3.5.5, pptx-angular-viewer@3.6.5, pptx-vanilla-viewer@2.5.5, pptx-svelte-viewer@3.6.5_

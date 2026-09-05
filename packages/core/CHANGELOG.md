@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.4.0) - 2026-09-05
+
+### Features
+
+- **core:** Close ECMA-376 parse/serialize gaps from the 2026-09 parity audit (by @ChristopherVR) ([91ddcb7](https://github.com/ChristopherVR/pptx-viewer/commit/91ddcb7a53f67c7f52a9b9c16f00365d5f2f73ef))
+- **core:** Close the remaining OpenXML parity gaps (wave 2) (by @ChristopherVR) ([59fecbf](https://github.com/ChristopherVR/pptx-viewer/commit/59fecbff7c44809640a3ea75d92491f3c93d67d1))
+
+### Bug Fixes
+
+- Clip pictures by their own shape geometry in every binding ([#202](https://github.com/ChristopherVR/pptx-viewer/issues/202)) (by @nikko82) ([6027607](https://github.com/ChristopherVR/pptx-viewer/commit/6027607329e28591ede5a93af5bf5760d9fc1585))
+
+### Testing
+
+- **core:** Declare the wave-2 e2e fixtures in the corpus manifest (by @ChristopherVR) ([593d3ba](https://github.com/ChristopherVR/pptx-viewer/commit/593d3ba1a807e3e712b41c372bd5f7c65ea396bc))
+
 ## [3.3.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.3.4) - 2026-09-03
 
 ### Bug Fixes
