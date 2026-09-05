@@ -5,6 +5,7 @@ import {
 	isTemplateElementId,
 	makeStoreAwareId,
 	reassignDescendantIds,
+	resolveThemeColorRef,
 	ungroupElements as ungroupElementInArray,
 } from 'pptx-viewer-core';
 import type {
@@ -14,6 +15,7 @@ import type {
 	ImagePptxElement,
 	PptxElementWithText,
 	PptxElementAnimation,
+	PptxThemeColorRef,
 } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
@@ -240,6 +242,13 @@ export interface UpdateElementParams {
 	fontSize?: number;
 	fontFamily?: string;
 	fontColor?: string;
+	/**
+	 * A theme colour for the run text (`{ scheme: 'accent1', lumMod: 0.8 }`).
+	 * Wins on save (`<a:schemeClr>` instead of a canonical `<a:srgbClr>`), and
+	 * resolves `fontColor` immediately when `fontColor` was not also given.
+	 * Passing `fontColor` alone clears a previously-set text theme colour.
+	 */
+	fontThemeColor?: PptxThemeColorRef;
 	bold?: boolean;
 	italic?: boolean;
 	underline?: boolean;
@@ -315,8 +324,17 @@ export function updateElement(
 		if (params.fontFamily !== undefined) {
 			textEl.textStyle.fontFamily = params.fontFamily;
 		}
-		if (params.fontColor !== undefined) {
+		if (params.fontThemeColor !== undefined) {
+			textEl.textStyle.colorRef = params.fontThemeColor;
+			const resolved = resolveThemeColorRef(params.fontThemeColor, ctx.pptxData.themeColorMap);
+			if (params.fontColor !== undefined) {
+				textEl.textStyle.color = params.fontColor;
+			} else if (resolved) {
+				textEl.textStyle.color = resolved;
+			}
+		} else if (params.fontColor !== undefined) {
 			textEl.textStyle.color = params.fontColor;
+			textEl.textStyle.colorRef = undefined;
 		}
 		if (params.bold !== undefined) {
 			textEl.textStyle.bold = params.bold;

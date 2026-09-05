@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import * as schemas from '../schemas/index.js';
+import * as chartFormattingTools from '../tools/chart-formatting-tools.js';
 import * as chartTools from '../tools/chart-tools.js';
 import * as chartUserShapeTools from '../tools/chart-user-shape-tools.js';
 import * as contentTools from '../tools/content-tools.js';
@@ -18,6 +19,7 @@ import * as sectionTools from '../tools/section-tools.js';
 import * as slideTools from '../tools/slide-tools.js';
 import * as smartartTools from '../tools/smartart-tools.js';
 import * as styleTools from '../tools/style-tools.js';
+import * as tableStyleTools from '../tools/table-style-tools.js';
 import * as tableTools from '../tools/table-tools.js';
 import * as templateTools from '../tools/template-tools.js';
 import * as themeTools from '../tools/theme-tools.js';
@@ -456,6 +458,74 @@ export function createServer(): McpServer {
 		},
 	);
 
+	// ── Table style tools (ppt/tableStyles.xml) ────────────────────────────
+
+	server.registerTool(
+		'set_table_style_section',
+		{
+			description:
+				'Patch the fill, text, borders, or cell3D of one section (wholeTbl, banding, first/last row/col, or a corner cell) of an existing loaded table style',
+			inputSchema: schemas.SetTableStyleSectionSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				tableStyleTools.setTableStyleSection(ctx, params),
+			);
+			return {
+				content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+			};
+		},
+	);
+
+	server.registerTool(
+		'create_table_style',
+		{
+			description:
+				'Create a new table style (optionally cloned from an existing one) and optionally set it as the default',
+			inputSchema: schemas.CreateTableStyleSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				tableStyleTools.createTableStyle(ctx, params),
+			);
+			return {
+				content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+			};
+		},
+	);
+
+	server.registerTool(
+		'delete_table_style',
+		{
+			description: 'Remove a table style from the presentation',
+			inputSchema: schemas.DeleteTableStyleSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				tableStyleTools.deleteTableStyle(ctx, params),
+			);
+			return {
+				content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+			};
+		},
+	);
+
+	server.registerTool(
+		'assign_table_style',
+		{
+			description: 'Assign a table style (and row/column emphasis flags) to an existing table',
+			inputSchema: schemas.AssignTableStyleSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				tableStyleTools.assignTableStyle(ctx, params),
+			);
+			return {
+				content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+			};
+		},
+	);
+
 	// ── Style tools ─────────────────────────────────────────────────────────
 
 	server.registerTool(
@@ -711,6 +781,81 @@ export function createServer(): McpServer {
 		async (params) => {
 			const result = await runMcpTool(params.filePath, (ctx) =>
 				chartTools.createChart(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'format_chart_data_point',
+		{
+			description:
+				'Set per-data-point chart formatting: fill/stroke colour, stroke width, dash style (c:dPt/c:spPr), explosion, and marker override',
+			inputSchema: schemas.FormatChartDataPointSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartFormattingTools.formatChartDataPoint(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'format_chart_data_label',
+		{
+			description:
+				"Set a per-data-point data-label override (c:dLbl): show flags, position, custom text, and the label's own fill/line formatting (c:spPr) and font (c:txPr)",
+			inputSchema: schemas.FormatChartDataLabelSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartFormattingTools.formatChartDataLabel(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'format_chart_series',
+		{
+			description:
+				'Set a chart series marker (c:marker), trendline (c:trendline, incl. line width/dash), or error bars (c:errBars, incl. line width/dash)',
+			inputSchema: schemas.FormatChartSeriesSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartFormattingTools.formatChartSeries(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'set_chart_helper_line',
+		{
+			description:
+				'Set or remove a chart-level helper line on a line/stock/combo chart: c:dropLines or c:hiLowLines',
+			inputSchema: schemas.SetChartHelperLineSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartFormattingTools.setChartHelperLineT(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'set_chart_color_map_override',
+		{
+			description:
+				"Set or remove a chart's theme colour-map override (c:clrMapOvr), remapping theme colour roles for this chart only",
+			inputSchema: schemas.SetChartColorMapOverrideSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartFormattingTools.setChartColorMapOverrideT(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},

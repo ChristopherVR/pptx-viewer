@@ -43,6 +43,37 @@ describe('updateElementStyle', () => {
 		expect(ss.strokeOpacity).toBe(0.8);
 	});
 
+	it('sets fillColorRef/strokeColorRef and resolves the hex from themeColorMap', () => {
+		const data = makeStylePresentation();
+		data.themeColorMap = { accent1: '#4472C4', accent2: '#ED7D31' };
+		const c = ctx(data);
+		updateElementStyle(c, {
+			slideIndex: 0,
+			elementId: 'shape-0',
+			// lumMod 0.2 / lumOff 0.8 is PowerPoint's "Lighter 80%" row.
+			fillThemeColor: { scheme: 'accent1', lumMod: 0.2, lumOff: 0.8 },
+			strokeThemeColor: { scheme: 'accent2' },
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'shape-0');
+		const ss = (el as { shapeStyle?: ShapeStyle }).shapeStyle!;
+		expect(ss.fillColorRef).toStrictEqual({ scheme: 'accent1', lumMod: 0.2, lumOff: 0.8 });
+		expect(ss.strokeColorRef).toStrictEqual({ scheme: 'accent2' });
+		// Resolved immediately against the theme map (no explicit fillColor given).
+		expect(ss.fillColor?.toLowerCase()).toBe('#dae3f3');
+		expect(ss.strokeColor?.toLowerCase()).toBe('#ed7d31');
+	});
+
+	it('a plain fillColor with no theme colour clears a previously-set ref', () => {
+		const c = ctx();
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'shape-0') as {
+			shapeStyle?: ShapeStyle;
+		};
+		el.shapeStyle!.fillColorRef = { scheme: 'accent1' };
+		updateElementStyle(c, { slideIndex: 0, elementId: 'shape-0', fillColor: '#123456' });
+		expect(el.shapeStyle!.fillColor).toBe('#123456');
+		expect(el.shapeStyle!.fillColorRef).toBeUndefined();
+	});
+
 	it('updates shadow properties', () => {
 		const c = ctx();
 		updateElementStyle(c, {

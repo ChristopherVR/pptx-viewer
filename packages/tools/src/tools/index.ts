@@ -61,6 +61,19 @@ export type {
 export { updateTableCells, manageTableStructure } from './table-tools.js';
 export type { UpdateTableCellsParams, ManageTableStructureParams } from './table-tools.js';
 
+export {
+	setTableStyleSection,
+	createTableStyle,
+	deleteTableStyle,
+	assignTableStyle,
+} from './table-style-tools.js';
+export type {
+	SetTableStyleSectionParams,
+	CreateTableStyleParams,
+	DeleteTableStyleParams,
+	AssignTableStyleParams,
+} from './table-style-tools.js';
+
 export { updateElementStyle, runAccessibilityCheck } from './style-tools.js';
 export type {
 	UpdateElementStyleParams,
@@ -112,6 +125,21 @@ export type {
 	CreateChartParams,
 	CreateChartResult,
 } from './chart-tools.js';
+
+export {
+	formatChartDataPoint,
+	formatChartDataLabel,
+	formatChartSeries,
+	setChartHelperLineT,
+	setChartColorMapOverrideT,
+} from './chart-formatting-tools.js';
+export type {
+	FormatChartDataPointParams,
+	FormatChartDataLabelParams,
+	FormatChartSeriesParams,
+	SetChartHelperLineParams,
+	SetChartColorMapOverrideParams,
+} from './chart-formatting-tools.js';
 
 export {
 	listChartUserShapesT,

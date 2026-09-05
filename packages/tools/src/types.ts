@@ -15,6 +15,22 @@ export interface ToolContext {
 }
 
 /**
+ * Save-time instructions that don't live on `pptxData` itself and so cannot
+ * be expressed as a model mutation: today, only `ppt/tableStyles.xml`'s
+ * archive-level "repoint the default style" / "delete a style" operations
+ * (`set_default_table_style`, `delete_table_style`). Mirrors the same-named
+ * fields on `pptx-viewer-core`'s save options structurally (not imported, so
+ * a tool result stays independent of the core package's internal type
+ * export surface).
+ */
+export interface TableStyleSaveOptions {
+	/** GUID to set as `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>`. */
+	tableStylesDefaultId?: string;
+	/** GUIDs to remove from `ppt/tableStyles.xml` entirely. */
+	tableStylesToDelete?: string[];
+}
+
+/**
  * Every tool function returns this.
  * The consumer decides what to do with the mutated pptxData.
  */
@@ -25,6 +41,12 @@ export interface ToolResult<T = unknown> {
 	result: T;
 	/** Whether pptxData was modified (signals need to save). */
 	dirty: boolean;
+	/**
+	 * Extra `handler.save()` instructions this result requires beyond the
+	 * ordinary `pptxData` mutation, merged in by `savePresentation` /
+	 * `executeToolWithContext`. See {@link TableStyleSaveOptions}.
+	 */
+	saveOptions?: TableStyleSaveOptions;
 }
 
 export type { PptxData, PptxSlide, PptxElement };

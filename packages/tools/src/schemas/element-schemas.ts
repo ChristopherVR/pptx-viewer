@@ -1,5 +1,39 @@
 import { z } from 'zod';
 
+/**
+ * A theme colour reference (the typed counterpart of `<a:schemeClr>`): a
+ * scheme slot plus PowerPoint's luminance/tint/shade variants, e.g.
+ * `{ scheme: 'accent1', lumMod: 0.6, lumOff: 0.4 }` for "Accent 1, Lighter
+ * 40%". Mirrors `PptxThemeColorRef` from `pptx-viewer-core`. Every transform
+ * is a 0..1 fraction.
+ */
+const ThemeColorRefSchema = z.object({
+	scheme: z.enum([
+		'dk1',
+		'lt1',
+		'dk2',
+		'lt2',
+		'accent1',
+		'accent2',
+		'accent3',
+		'accent4',
+		'accent5',
+		'accent6',
+		'hlink',
+		'folHlink',
+		'bg1',
+		'tx1',
+		'bg2',
+		'tx2',
+		'phClr',
+	]),
+	lumMod: z.number().optional().describe('Multiply HSL luminance (0..1)'),
+	lumOff: z.number().optional().describe('Add to HSL luminance after lumMod (0..1)'),
+	tint: z.number().optional().describe('Blend towards white (0..1)'),
+	shade: z.number().optional().describe('Blend towards black (0..1)'),
+	alpha: z.number().optional().describe('Opacity fraction, 1 = opaque'),
+});
+
 export const AddElementSchema = z.object({
 	filePath: z.string().describe('Path to the PPTX file'),
 	slideIndex: z.number().int().min(0).describe('Zero-based slide index'),
@@ -45,6 +79,12 @@ export const UpdateElementSchema = z.object({
 	fontSize: z.number().optional(),
 	fontFamily: z.string().optional(),
 	fontColor: z.string().optional(),
+	/**
+	 * A theme colour for the run text. Wins on save; resolves `fontColor`
+	 * immediately when `fontColor` was not also given. Passing `fontColor`
+	 * alone clears a previously-set text theme colour.
+	 */
+	fontThemeColor: ThemeColorRefSchema.optional(),
 	bold: z.boolean().optional(),
 	italic: z.boolean().optional(),
 	underline: z.boolean().optional(),

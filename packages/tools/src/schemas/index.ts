@@ -2,6 +2,7 @@ export * from './slide-schemas.js';
 export * from './element-schemas.js';
 export * from './table-style-schemas.js';
 export * from './theme-schemas.js';
+export * from './chart-formatting-schemas.js';
 export * from './chart-schemas.js';
 export * from './chart-user-shape-schemas.js';
 export * from './smartart-schemas.js';

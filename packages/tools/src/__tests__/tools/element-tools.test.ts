@@ -175,6 +175,37 @@ describe('updateElement', () => {
 			'not found',
 		);
 	});
+
+	it('sets fontThemeColor and resolves fontColor from themeColorMap', () => {
+		const data = makeTestPresentation();
+		data.themeColorMap = { accent3: '#A5A5A5' };
+		const c = ctx(data);
+		updateElement(c, {
+			slideIndex: 0,
+			elementId: 'el-0',
+			fontThemeColor: { scheme: 'accent3' },
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0') as {
+			textStyle?: { color?: string; colorRef?: unknown };
+		};
+		expect(el.textStyle?.colorRef).toStrictEqual({ scheme: 'accent3' });
+		expect(el.textStyle?.color?.toLowerCase()).toBe('#a5a5a5');
+	});
+
+	it('a plain fontColor with no theme colour clears a previously-set text colorRef', () => {
+		const c = ctx();
+		updateElement(c, {
+			slideIndex: 0,
+			elementId: 'el-0',
+			fontThemeColor: { scheme: 'accent1' },
+		});
+		updateElement(c, { slideIndex: 0, elementId: 'el-0', fontColor: '#123456' });
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0') as {
+			textStyle?: { color?: string; colorRef?: unknown };
+		};
+		expect(el.textStyle?.color).toBe('#123456');
+		expect(el.textStyle?.colorRef).toBeUndefined();
+	});
 });
 
 // ── renameElement ─────────────────────────────────────────────────────────────

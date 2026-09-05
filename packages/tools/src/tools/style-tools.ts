@@ -1,5 +1,10 @@
-import { hasTextProperties } from 'pptx-viewer-core';
-import type { ImagePptxElement, PptxElementWithText, ShapeStyle } from 'pptx-viewer-core';
+import { hasTextProperties, resolveThemeColorRef } from 'pptx-viewer-core';
+import type {
+	ImagePptxElement,
+	PptxElementWithText,
+	PptxThemeColorRef,
+	ShapeStyle,
+} from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
 import { validateSlideIndex } from './helpers.js';
@@ -11,6 +16,16 @@ export interface UpdateElementStyleParams {
 	elementId: string;
 	// fill
 	fillColor?: string;
+	/**
+	 * A theme colour for the fill (`{ scheme: 'accent1', lumMod: 0.8 }`).
+	 * Wins on save: the shape is written as `<a:schemeClr>` instead of a
+	 * canonical `<a:srgbClr>`, so it keeps following the theme after a later
+	 * theme change. Also resolves `fillColor` immediately (against the
+	 * deck's `themeColorMap`) when `fillColor` was not explicitly given.
+	 * Passing `fillColor` alone (no `fillThemeColor`) clears any previously
+	 * set fill theme colour, matching a user typing a custom hex.
+	 */
+	fillThemeColor?: PptxThemeColorRef;
 	fillMode?: ShapeStyle['fillMode'];
 	fillGradientStops?: Array<{ color: string; position: number; opacity?: number }>;
 	fillGradientAngle?: number;
@@ -18,6 +33,8 @@ export interface UpdateElementStyleParams {
 	fillOpacity?: number;
 	// stroke
 	strokeColor?: string;
+	/** A theme colour for the outline; see {@link fillThemeColor}. */
+	strokeThemeColor?: PptxThemeColorRef;
 	strokeWidth?: number;
 	strokeDash?: ShapeStyle['strokeDash'];
 	strokeOpacity?: number;
@@ -65,8 +82,22 @@ export function updateElementStyle(
 		}
 		const ss = el.shapeStyle as ShapeStyle;
 
-		if (params.fillColor !== undefined) {
+		if (params.fillThemeColor !== undefined) {
+			ss.fillColorRef = params.fillThemeColor;
+			// Resolve immediately so renderers reading the plain hex field see the
+			// theme colour right away; an explicit `fillColor` still wins when the
+			// caller supplied both.
+			const resolved = resolveThemeColorRef(params.fillThemeColor, ctx.pptxData.themeColorMap);
+			if (params.fillColor !== undefined) {
+				ss.fillColor = params.fillColor;
+			} else if (resolved) {
+				ss.fillColor = resolved;
+			}
+		} else if (params.fillColor !== undefined) {
+			// A plain hex edit with no theme colour clears any ref this shape
+			// previously carried (matches a user typing a custom colour).
 			ss.fillColor = params.fillColor;
+			ss.fillColorRef = undefined;
 		}
 		if (params.fillMode !== undefined) {
 			ss.fillMode = params.fillMode;
@@ -83,8 +114,17 @@ export function updateElementStyle(
 		if (params.fillOpacity !== undefined) {
 			ss.fillOpacity = params.fillOpacity;
 		}
-		if (params.strokeColor !== undefined) {
+		if (params.strokeThemeColor !== undefined) {
+			ss.strokeColorRef = params.strokeThemeColor;
+			const resolved = resolveThemeColorRef(params.strokeThemeColor, ctx.pptxData.themeColorMap);
+			if (params.strokeColor !== undefined) {
+				ss.strokeColor = params.strokeColor;
+			} else if (resolved) {
+				ss.strokeColor = resolved;
+			}
+		} else if (params.strokeColor !== undefined) {
 			ss.strokeColor = params.strokeColor;
+			ss.strokeColorRef = undefined;
 		}
 		if (params.strokeWidth !== undefined) {
 			ss.strokeWidth = params.strokeWidth;

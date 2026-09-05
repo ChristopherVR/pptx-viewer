@@ -1,7 +1,7 @@
 import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxData } from 'pptx-viewer-core';
 
-import type { ExecutionContext, ToolContext, ToolResult } from './types.js';
+import type { ExecutionContext, TableStyleSaveOptions, ToolContext, ToolResult } from './types.js';
 
 const PPTX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
@@ -44,12 +44,19 @@ export async function savePresentation(
 	pptxData: PptxData,
 	rawBytes: Uint8Array,
 	execCtx: ExecutionContext,
+	tableStyleSaveOptions?: TableStyleSaveOptions,
 ): Promise<{ savedToDisk: boolean; routedThroughCollaboration: boolean }> {
 	// Serialize to bytes (re-load original to preserve package relationships)
 	const handler = new PptxHandler();
 	await handler.load(rawBytes.buffer as ArrayBuffer);
 	const outputBytes = await handler.save(pptxData.slides, {
 		headerFooter: pptxData.headerFooter,
+		// `pptxData.tableStyleMap` carries any in-memory table-style edits a
+		// tool made (e.g. `set_table_style_section`, `create_table_style`);
+		// without forwarding it here those edits were silently dropped on
+		// save even though the core save pipeline already supports them.
+		tableStyles: pptxData.tableStyleMap,
+		...tableStyleSaveOptions,
 	});
 
 	// Collaboration mode: hydrate Y.Doc so peers receive the change
@@ -102,7 +109,13 @@ export async function executeToolWithContext<T>(
 	const toolResult = await toolFn({ pptxData });
 
 	if (toolResult.dirty) {
-		const saveResult = await savePresentation(filePath, toolResult.pptxData, rawBytes, execCtx);
+		const saveResult = await savePresentation(
+			filePath,
+			toolResult.pptxData,
+			rawBytes,
+			execCtx,
+			toolResult.saveOptions,
+		);
 		return { ...toolResult.result, ...saveResult };
 	}
 
