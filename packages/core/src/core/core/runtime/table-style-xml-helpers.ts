@@ -26,6 +26,46 @@ export function ensureChild(parent: XmlObject, key: string): XmlObject {
 	return created;
 }
 
+/**
+ * Structural equality of two parsed table-style facets (a fill, a text style,
+ * one border side, a cell3D), insensitive to key order and to `undefined`
+ * members. The writers use it to leave an XML node alone when the typed value
+ * the caller hands back still describes that node: a typed edit to ONE facet
+ * of ONE section must not re-emit every other facet lossily (the parse side
+ * rounds `a:ln/@w` to whole pixels and drops `cmpd`/`cap`/`algn`, so a
+ * rebuilt border would silently change an untouched 1pt line to 9525 EMU).
+ */
+export function facetEquals(a: unknown, b: unknown): boolean {
+	return canonicalJson(a) === canonicalJson(b);
+}
+
+function canonicalJson(value: unknown): string {
+	if (Array.isArray(value)) {
+		return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+	}
+	if (value && typeof value === 'object') {
+		const record = value as Record<string, unknown>;
+		const keys = Object.keys(record)
+			.filter((key) => record[key] !== undefined)
+			.sort();
+		return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`;
+	}
+	return JSON.stringify(value) ?? 'undefined';
+}
+
+/**
+ * The `EG_ColorChoice` element names (§20.1.2.3) a colour-bearing DrawingML
+ * node may carry, used to clear a node's colour before writing a new one.
+ */
+export const COLOR_CHOICE_KEYS: readonly string[] = [
+	'a:scrgbClr',
+	'a:srgbClr',
+	'a:hslClr',
+	'a:sysClr',
+	'a:schemeClr',
+	'a:prstClr',
+];
+
 /** Build an `a:schemeClr`/`a:srgbClr` colour-choice XML node for a resolved fill. */
 export function colorChoiceXml(fill: ParsedTableStyleFill): XmlObject {
 	if (fill.schemeColor) {

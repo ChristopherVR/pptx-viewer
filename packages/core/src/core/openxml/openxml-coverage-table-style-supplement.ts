@@ -63,6 +63,15 @@ assign(['drawing:complexType:CT_TableProperties'], {
 			],
 			['preserve', 'edit', 'serialize'],
 		),
+		testEvidence(
+			'src/__tests__/integration/table-tblpr-fill-effects-roundtrip.test.ts',
+			[
+				'parses the own solidFill and effectLst off a:tblPr',
+				're-emits the own fill/effectLst after an unrelated edit (band-row toggle)',
+				'round-trips an in-memory edit to the own fill colour',
+			],
+			['parse', 'preserve', 'edit', 'serialize'],
+		),
 	],
 });
 

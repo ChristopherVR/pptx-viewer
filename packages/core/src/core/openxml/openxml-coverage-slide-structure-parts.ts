@@ -87,7 +87,7 @@ assign(['presentation:element:graphicFrame'], {
 	preserve: 'native',
 	edit: 'partial',
 	serialize: 'native',
-	note: "Graphic frames (tables, charts, OLE, SmartArt) are typed on parse and keep document order across a save; edit is assessed for its lock sub-feature (`graphicFrameLocks`) and, since wave 3 (W3-H), for `name`/`shapeId`: p:nvGraphicFramePr/p:cNvPr's `@name`/`@id` are now parsed onto the frame (PptxGraphicFrameParser.ts), so renaming a chart/table/SmartArt/OLE frame through the model survives a save and reload instead of reverting to the file's original name on reopen. Not assessed for general frame-CONTENT editing (that is covered by the table/chart/SmartArt-specific manifest entries). `altText` on graphic-frame element types is still open (see limitations).",
+	note: "Graphic frames (tables, charts, OLE, SmartArt) are typed on parse and keep document order across a save; edit is assessed for its lock sub-feature (`graphicFrameLocks`) and, since wave 3 (W3-H), for `name`/`shapeId`: p:nvGraphicFramePr/p:cNvPr's `@name`/`@id` are now parsed onto the frame (PptxGraphicFrameParser.ts), so renaming a chart/table/SmartArt/OLE frame through the model survives a save and reload instead of reverting to the file's original name on reopen. Not assessed for general frame-CONTENT editing (that is covered by the table/chart/SmartArt-specific manifest entries). Since wave 4, `p:nvGraphicFramePr/p:cNvPr`'s `@descr`/`@title` (the frame's alt text) also has a save-side writer (`applyGraphicFrameAltTextToCnvPr` in `PptxHandlerRuntimeSaveElementWriter.ts`), closing the old parse-only gap for table/chart/SmartArt/OLE/media frames; the MCP `update_element`/`update_element_style` tools accept `altText` for the same six element kinds (`applyElementAltText`, `packages/tools/src/tools/style-tools.ts`). A plain shape or text box still has no `altText` field on its core type at all (see limitations).",
 	evidence: [
 		testEvidence(
 			'src/core/core/builders/PptxGraphicFrameParser.test.ts',
@@ -106,6 +106,17 @@ assign(['presentation:element:graphicFrame'], {
 				'moves, resizes, and renames a graphic frame through the model',
 			],
 			['edit'],
+		),
+		testEvidence(
+			'src/__tests__/integration/graphic-frame-alt-text-roundtrip.test.ts',
+			[
+				'parses altText and title from a table graphic frame',
+				'round-trips an edit to altText/title on a table through save -> reload',
+				'clears altText when set to an empty string',
+				'leaves altText/title untouched when the model has no opinion (undefined)',
+				'round-trips altText/title set on a chart element built via the SDK',
+			],
+			['parse', 'edit', 'serialize'],
 		),
 	],
 });

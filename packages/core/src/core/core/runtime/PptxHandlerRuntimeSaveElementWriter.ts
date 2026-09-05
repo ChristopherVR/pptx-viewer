@@ -389,14 +389,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * Write a graphic-frame element's (table/chart/smartArt/ole/media)
-	 * accessibility text back to `p:nvGraphicFramePr/p:cNvPr/@descr` / `@title`.
+	 * Write an element's accessibility text back to `p:cNvPr/@descr` /
+	 * `@title`. Originally covered only the five graphic-frame kinds
+	 * (table/chart/smartArt/ole/media, via `p:nvGraphicFramePr/p:cNvPr`);
+	 * `text`/`shape`/`connector` (`p:nvSpPr` / `p:nvCxnSpPr`) parse the same
+	 * pair now (`PptxHandlerRuntimeShapeParsing.ts`, `PptxConnectorParser.ts`),
+	 * so this uses the same generic `p:cNvPr` lookup `applyNameToCnvPr` /
+	 * `applyHiddenToCnvPr` use rather than a container hard-coded to graphic
+	 * frames.
 	 *
 	 * Mirrors `applyImageProperties`'s alt-text handling for pictures
-	 * (`p:nvPicPr/p:cNvPr/@descr`), which never covered a graphic frame:
-	 * `PptxGraphicFrameParser.ts` now parses `altText`/`title` on these five
-	 * element types, so an edit to either field needs a write-side mirror or
-	 * it is silently dropped on save. `undefined` means "the model has no
+	 * (`p:nvPicPr/p:cNvPr/@descr`). `undefined` means "the model has no
 	 * opinion" (left untouched, same as `applyNameToCnvPr`'s `name`); an
 	 * explicit empty string clears the attribute.
 	 */
@@ -406,13 +409,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			el.type !== 'chart' &&
 			el.type !== 'smartArt' &&
 			el.type !== 'ole' &&
-			el.type !== 'media'
+			el.type !== 'media' &&
+			el.type !== 'text' &&
+			el.type !== 'shape' &&
+			el.type !== 'connector'
 		) {
 			return;
 		}
-		const cNvPr = (shape['p:nvGraphicFramePr'] as XmlObject | undefined)?.['p:cNvPr'] as
-			| XmlObject
-			| undefined;
+		let cNvPr: XmlObject | undefined;
+		for (const nvKey of PptxHandlerRuntime.NV_CONTAINERS) {
+			const nv = shape[nvKey] as XmlObject | undefined;
+			const candidate = nv?.['p:cNvPr'] as XmlObject | undefined;
+			if (candidate) {
+				cNvPr = candidate;
+				break;
+			}
+		}
 		if (!cNvPr) {
 			return;
 		}

@@ -11,6 +11,7 @@
  */
 
 import type { PptxChartTitleRun, XmlObject } from '../types';
+import { distributeTitleRunsText } from './chart-title-run-alignment';
 
 type GetLocalName = (key: string) => string;
 type XmlValue = XmlObject[string];
@@ -30,6 +31,17 @@ export interface ChartTitleModel {
 	 * so a consumer that ignores `titleRuns` keeps working. `prefix: 'cx'`
 	 * ignores this field: ChartEx titles are out of scope (see the module
 	 * doc on `chart-title-runs-parser.ts`).
+	 *
+	 * When {@link title} has diverged from this array's first run (a caller
+	 * edited the flat text without updating `titleRuns`, the shape every
+	 * pre-existing consumer's edit takes) and this array has more than one
+	 * run, the edit is realigned onto the existing runs by text position
+	 * (`distributeTitleRunsText`) rather than discarded: an appended suffix
+	 * lands on the last run, an edit confined to one run only changes that
+	 * run, and every other run's text and style survive untouched. Only when
+	 * no such alignment exists (an unrelated rewrite) does it fall back to
+	 * patching just the first run in place, leaving the rest of this stale
+	 * array's text as authored.
 	 */
 	titleRuns?: PptxChartTitleRun[];
 }
@@ -253,6 +265,32 @@ export function applyChartTitleToXml(
 		prefix === 'c' && model.titleRuns && model.titleRuns.length > 0 && !runsStale
 			? model.titleRuns
 			: undefined;
+
+	// A stale MULTI-run title (more than one differently-styled run) is not
+	// necessarily an unrelated rewrite: when the edited `title` still contains
+	// every other run's text in order (an append, an insertion, or a rewrite
+	// confined to one run), realign the runs onto it instead of falling
+	// through to the single-run patch below, which would otherwise leave
+	// every run after the first with its now-orphaned stale text (see
+	// `distributeTitleRunsText`'s doc). A single-run title keeps the existing
+	// single-run in-place patch unchanged.
+	const staleRuns = model.titleRuns;
+	if (
+		prefix === 'c' &&
+		runsStale &&
+		model.title !== undefined &&
+		staleRuns &&
+		staleRuns.length > 1
+	) {
+		const newTitle = model.title;
+		const distributed = distributeTitleRunsText(
+			staleRuns.map((run) => run.text),
+			newTitle,
+		);
+		if (distributed) {
+			runs = staleRuns.map((run, index) => ({ ...run, text: distributed[index] ?? '' }));
+		}
+	}
 
 	let titleNode = existingKey ? (chartRoot[existingKey] as XmlObject | undefined) : undefined;
 

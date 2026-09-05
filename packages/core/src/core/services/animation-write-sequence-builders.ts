@@ -58,34 +58,56 @@ export function buildEffectNodesForAnimation(
 }
 
 /**
+ * Build a single `p:bldP` node (CT_TLBuildParagraph) from an editor
+ * animation's build-related fields (`sequence`, `buildTemplates`).
+ *
+ * Returns `undefined` when the animation has no paragraph-level build
+ * (`sequence` unset or `"asOne"`), mirroring PowerPoint: a shape with no text
+ * build gets no `p:bldP` entry at all.
+ *
+ * Shared by both write paths: the full-rebuild path
+ * ({@link buildBuildListXml}) calls it once per animation to compose a fresh
+ * `p:bldLst`, and the surgical path (`animation-timing-build-surgical.ts`)
+ * calls it to re-derive one `p:bldP` entry in place when a slide already has
+ * a `p:timing` tree, so an edited `sequence` or `buildTemplates` is not
+ * silently dropped there too.
+ */
+export function buildBldPNode(anim: PptxElementAnimation): XmlObject | undefined {
+	if (!anim.sequence || anim.sequence === 'asOne') {
+		return undefined;
+	}
+
+	const bldType =
+		anim.sequence === 'byParagraph' ? 'p' : anim.sequence === 'byWord' ? 'word' : 'char';
+
+	const bldPNode: XmlObject = {
+		'@_spid': anim.elementId,
+		'@_grpId': '0',
+		'@_build': bldType,
+	};
+	// Re-emit the loaded per-build-level `p:tmplLst` (issue: "buildTemplates
+	// write wiring") so a full timing-tree rebuild does not silently drop it;
+	// `serializeBldPTemplates` mirrors what `extractBldPTemplates` parses.
+	if (anim.buildTemplates && anim.buildTemplates.length > 0) {
+		const tmplLst = serializeBldPTemplates(anim.buildTemplates);
+		if (tmplLst) {
+			bldPNode['p:tmplLst'] = tmplLst;
+		}
+	}
+	return bldPNode;
+}
+
+/**
  * Build the p:bldLst node for paragraph-level animation sequencing.
  */
 export function buildBuildListXml(animations: PptxElementAnimation[]): XmlObject | undefined {
 	const bldPNodes: XmlObject[] = [];
 
 	for (const anim of animations) {
-		if (!anim.sequence || anim.sequence === 'asOne') {
-			continue;
+		const bldPNode = buildBldPNode(anim);
+		if (bldPNode) {
+			bldPNodes.push(bldPNode);
 		}
-
-		const bldType =
-			anim.sequence === 'byParagraph' ? 'p' : anim.sequence === 'byWord' ? 'word' : 'char';
-
-		const bldPNode: XmlObject = {
-			'@_spid': anim.elementId,
-			'@_grpId': '0',
-			'@_build': bldType,
-		};
-		// Re-emit the loaded per-build-level `p:tmplLst` (issue: "buildTemplates
-		// write wiring") so a full timing-tree rebuild does not silently drop it;
-		// `serializeBldPTemplates` mirrors what `extractBldPTemplates` parses.
-		if (anim.buildTemplates && anim.buildTemplates.length > 0) {
-			const tmplLst = serializeBldPTemplates(anim.buildTemplates);
-			if (tmplLst) {
-				bldPNode['p:tmplLst'] = tmplLst;
-			}
-		}
-		bldPNodes.push(bldPNode);
 	}
 
 	if (bldPNodes.length === 0) {

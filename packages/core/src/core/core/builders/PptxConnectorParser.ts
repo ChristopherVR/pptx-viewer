@@ -139,6 +139,12 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 			// Extract element name from cNvPr/@name (used for morph !! matching)
 			const connElementName = cNvPr?.['@_name'] ? String(cNvPr['@_name']).trim() : undefined;
 
+			// Accessibility description/title from `p:cNvPr/@descr` / `@title`,
+			// the same attributes a plain shape/text box now parses (see
+			// `PptxHandlerRuntimeShapeParsing.ts`) and a graphic frame already did.
+			const connAltText = String(cNvPr?.['@_descr'] || '').trim() || undefined;
+			const connTitle = String(cNvPr?.['@_title'] || '').trim() || undefined;
+
 			const locks = this.context.parseShapeLocks(
 				(cNvConnectionShapeProperties?.['a:cxnSpLocks'] ??
 					cNvConnectionShapeProperties?.['a:spLocks']) as XmlObject | undefined,
@@ -151,6 +157,8 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 			return {
 				id,
 				name: connElementName || undefined,
+				altText: connAltText,
+				title: connTitle,
 				type: 'connector',
 				x: Math.round(parseInt(String(offset['@_x'] || '0'), 10) / this.context.emuPerPx),
 				y: Math.round(parseInt(String(offset['@_y'] || '0'), 10) / this.context.emuPerPx),

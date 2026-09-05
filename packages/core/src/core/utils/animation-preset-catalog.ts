@@ -780,8 +780,7 @@ export const EXIT_PRESETS: AnimationPresetInfo[] = [
 		// Verified via COM: `msoAnimEffectFlashOnce` with `Effect.Exit = True`
 		// serializes as presetID 11 (no filter, matching entr.11); Flash Bulb
 		// cannot be made an exit effect at all (`Effect.Exit = True` throws
-		// for it). exit.12's real identity is unverified; its "Flash Once"
-		// label is a newly surfaced, out-of-scope duplicate left unresolved.
+		// for it).
 		presetId: 'exit.11',
 		label: 'Flash Once',
 		category: 'exit',
@@ -790,12 +789,22 @@ export const EXIT_PRESETS: AnimationPresetInfo[] = [
 		hasTextBuild: false,
 	},
 	{
+		// Verified via COM (this repo's own PowerShell automation): `AddEffect`
+		// with the Peek In `MsoAnimEffect` constant then `Effect.Exit = True`
+		// re-emits `presetID="12" presetSubtype="4"` with a child
+		// `p:animEffect[@filter="wipe(down)"]`, matching
+		// `pptx-viewer-shared`'s `animation-preset-ground-truth.ts`
+		// (`row('exit', 12, { sub: 4, filter: 'wipe(down)' })`) exactly. exit.12
+		// IS "Peek Out", the exit-gallery counterpart of entr.12's "Peek In"
+		// above; this label previously duplicated "Flash Once" as an
+		// out-of-scope, unresolved placeholder.
 		presetId: 'exit.12',
-		label: 'Flash Once',
+		label: 'Peek Out',
 		category: 'exit',
-		defaultDurationMs: 300,
-		hasDirection: false,
-		hasTextBuild: false,
+		defaultDurationMs: 500,
+		hasDirection: true,
+		directions: DIRECTIONS_4WAY_OUT,
+		hasTextBuild: true,
 	},
 	{
 		presetId: 'exit.13',

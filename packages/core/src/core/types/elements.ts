@@ -50,6 +50,22 @@ export interface PptxAccessibilityProperties {
 }
 
 /**
+ * Accessibility description/title from `p:cNvPr/@descr` / `@title` on a
+ * plain shape, text box or connector (`p:sp` / `p:cxnSp`). The same pair of
+ * attributes already round-trips for a graphic frame (see
+ * {@link TablePptxElement.altText}) and, `descr` only, for a picture
+ * ({@link PptxImageProperties.altText}); this mixin extends it to the three
+ * element kinds whose PowerPoint Alt Text pane data was previously dropped
+ * on load because neither field existed on the model.
+ */
+export interface PptxNonVisualDescription {
+	/** `p:cNvPr/@descr`. */
+	altText?: string;
+	/** `p:cNvPr/@title`. */
+	title?: string;
+}
+
+/**
  * `a:cNvPicPr/@preferRelativeResize` (issue G13), a picture-only non-visual
  * property distinct from `a:picLocks`.
  */
@@ -82,7 +98,8 @@ export interface PptxPictureNonVisualProperties {
  * // => satisfies TextPptxElement
  * ```
  */
-export interface TextPptxElement extends PptxElementBase, PptxTextProperties, PptxShapeProperties {
+export interface TextPptxElement
+	extends PptxElementBase, PptxTextProperties, PptxShapeProperties, PptxNonVisualDescription {
 	type: 'text';
 }
 
@@ -107,7 +124,8 @@ export interface ShapePptxElement
 		PptxTextProperties,
 		PptxShapeProperties,
 		PptxCustomPathProperties,
-		PptxAccessibilityProperties {
+		PptxAccessibilityProperties,
+		PptxNonVisualDescription {
 	type: 'shape';
 }
 
@@ -131,7 +149,7 @@ export interface ShapePptxElement
  * ```
  */
 export interface ConnectorPptxElement
-	extends PptxElementBase, PptxTextProperties, PptxShapeProperties {
+	extends PptxElementBase, PptxTextProperties, PptxShapeProperties, PptxNonVisualDescription {
 	type: 'connector';
 }
 

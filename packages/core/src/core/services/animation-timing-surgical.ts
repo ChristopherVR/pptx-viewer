@@ -18,6 +18,7 @@
  * @module services/animation-timing-surgical
  */
 import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
+import { reconcileBuildList } from './animation-timing-build-surgical';
 import {
 	effectOwnershipKey,
 	readOwnedEffectKeys,
@@ -232,5 +233,12 @@ export function surgicallyUpdateTimingTree(
 
 	reorderOwnedGroups(rawTiming, orderByKey);
 	writeOwnedEffectKeys(rawTiming, ownedNow);
+	// Re-derive `p:bldLst/p:bldP` for any animation whose `sequence` field the
+	// editor has set: everything else about this tree is patched in place
+	// above, but a build's paragraph-level timing lives in a sibling of
+	// `p:tnLst` that the effect-node patching never visits. See
+	// `animation-timing-build-surgical` for why an untouched animation's
+	// `p:bldP` is never rewritten.
+	reconcileBuildList(rawTiming, animations);
 	return rawTiming;
 }

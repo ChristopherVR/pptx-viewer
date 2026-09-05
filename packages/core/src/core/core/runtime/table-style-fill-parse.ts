@@ -262,7 +262,12 @@ export function parseTableStyleSectionText(
 		hasProps = true;
 	}
 
-	const schemeClr = (fontRef?.['a:schemeClr'] ?? tcTxStyle['a:schemeClr']) as XmlObject | undefined;
+	// `CT_TableStyleTextStyle`'s own colour child is the text colour PowerPoint
+	// applies (its built-in styles pair a placeholder `a:prstClr black` inside
+	// `a:fontRef` with the real `a:schemeClr` beside it). A colour nested inside
+	// `a:fontRef` is read only as a fallback, for files an earlier writer of this
+	// library produced.
+	const schemeClr = (tcTxStyle['a:schemeClr'] ?? fontRef?.['a:schemeClr']) as XmlObject | undefined;
 	if (schemeClr) {
 		const val = String(schemeClr['@_val'] || '').trim();
 		if (val) {
@@ -278,7 +283,7 @@ export function parseTableStyleSectionText(
 			}
 		}
 	} else {
-		const srgb = (fontRef?.['a:srgbClr'] ?? tcTxStyle['a:srgbClr']) as XmlObject | undefined;
+		const srgb = (tcTxStyle['a:srgbClr'] ?? fontRef?.['a:srgbClr']) as XmlObject | undefined;
 		const hex = toHex(srgb?.['@_val']);
 		if (hex) {
 			result.fontColor = hex;

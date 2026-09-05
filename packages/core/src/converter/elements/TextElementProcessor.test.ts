@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import type { PptxElement } from '../../core';
 import type { MediaContext } from '../media-context';
+import { renderShapeToDataUrl } from '../ShapeImageRenderer';
 import { TextSegmentRenderer } from '../TextSegmentRenderer';
 import type { ElementProcessorContext } from './ElementProcessor';
 import { TextElementProcessor } from './TextElementProcessor';
@@ -223,6 +224,33 @@ describe('textElementProcessor', () => {
 
 		const result = await processor.process(el, ctx);
 		expect(result).toContain('![Shape fill]');
+	});
+
+	it('uses the shape altText as the rendered shape image alt attribute', async () => {
+		const el = makeTextElement({
+			text: '',
+			textSegments: [],
+			shapeStyle: { fillColor: '#ff0000' },
+			altText: 'A red rectangle',
+		});
+		vi.mocked(renderShapeToDataUrl).mockReturnValueOnce('data:image/png;base64,shapeimg');
+
+		const ctx = makeCtx();
+		const result = await processor.process(el, ctx);
+		expect(result).toContain('alt="A red rectangle"');
+	});
+
+	it('falls back to a generic "Shape" alt when no altText is set', async () => {
+		const el = makeTextElement({
+			text: '',
+			textSegments: [],
+			shapeStyle: { fillColor: '#ff0000' },
+		});
+		vi.mocked(renderShapeToDataUrl).mockReturnValueOnce('data:image/png;base64,shapeimg');
+
+		const ctx = makeCtx();
+		const result = await processor.process(el, ctx);
+		expect(result).toContain('alt="Shape"');
 	});
 
 	it('extracts picture bullet images', async () => {

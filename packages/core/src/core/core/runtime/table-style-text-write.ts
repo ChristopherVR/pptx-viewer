@@ -6,15 +6,28 @@
  * @module table-style-text-write
  */
 import type { ParsedTableStyleText, XmlObject } from '../../types';
-import { colorChoiceXml, ensureChild } from './table-style-xml-helpers';
+import { reorderObjectKeys } from '../../utils/xml-reorder';
+import { COLOR_CHOICE_KEYS, colorChoiceXml, ensureChild } from './table-style-xml-helpers';
+
+/** `CT_TableStyleTextStyle` child order (§21.1.3.15): font choice, colour choice, extLst. */
+const TC_TX_STYLE_ORDER: readonly string[] = [
+	'a:font',
+	'a:fontRef',
+	...COLOR_CHOICE_KEYS,
+	'a:extLst',
+];
 
 /**
- * Write bold/italic/underline, typeface, and font-collection colour onto a
- * table-style section's `a:tcTxStyle`. Colour (and idx) live nested inside
- * `a:fontRef` (`CT_FontReference`, the same idx+EG_ColorChoice shape used by
- * `a:fillRef`/`a:lnRef`/`a:effectRef` elsewhere in OOXML). A legacy top-level
- * `a:schemeClr`/`a:srgbClr` the parser leniently also reads is never written
- * by this module.
+ * Write bold/italic/underline, typeface, and text colour onto a table-style
+ * section's `a:tcTxStyle`. The colour is `CT_TableStyleTextStyle`'s OWN
+ * `EG_ColorChoice` child, a sibling of `a:fontRef`: that is where PowerPoint
+ * writes it (`<a:fontRef idx="minor"><a:prstClr val="black"/></a:fontRef>
+ * <a:schemeClr val="lt1"/>` is a white header on every built-in style) and
+ * where it reads it from. `a:fontRef` itself only carries the font-collection
+ * index; whatever colour PowerPoint left inside it is preserved untouched. An
+ * earlier version of this writer nested the colour inside `a:fontRef` and
+ * deleted the top-level one, which PowerPoint ignores: the edited colour
+ * never showed up in PowerPoint.
  */
 export function writeTableStyleSectionText(section: XmlObject, text: ParsedTableStyleText): void {
 	const tcTxStyle = ensureChild(section, 'a:tcTxStyle');
@@ -45,29 +58,35 @@ export function writeTableStyleSectionText(section: XmlObject, text: ParsedTable
 		}
 	}
 
-	if (
-		text.fontRefIdx !== undefined ||
-		text.fontSchemeColor !== undefined ||
-		text.fontColor !== undefined
-	) {
+	if (text.fontRefIdx !== undefined) {
+		ensureChild(tcTxStyle, 'a:fontRef')['@_idx'] = text.fontRefIdx;
+	}
+	if (text.fontSchemeColor !== undefined || text.fontColor !== undefined) {
 		const fontRef = ensureChild(tcTxStyle, 'a:fontRef');
-		if (text.fontRefIdx !== undefined) {
-			fontRef['@_idx'] = text.fontRefIdx;
-		} else if (!fontRef['@_idx']) {
+		if (!fontRef['@_idx']) {
 			fontRef['@_idx'] = 'minor';
 		}
-		delete tcTxStyle['a:schemeClr'];
-		delete tcTxStyle['a:srgbClr'];
-		if (text.fontSchemeColor !== undefined) {
-			delete fontRef['a:srgbClr'];
-			fontRef['a:schemeClr'] = colorChoiceXml({
-				schemeColor: text.fontSchemeColor,
-				tint: text.fontTint,
-				shade: text.fontShade,
-			})['a:schemeClr'];
-		} else if (text.fontColor !== undefined) {
-			delete fontRef['a:schemeClr'];
-			fontRef['a:srgbClr'] = { '@_val': text.fontColor.replace('#', '') };
+		// A scheme/sRGB colour the earlier writer nested inside `a:fontRef` is
+		// the one being replaced; PowerPoint's own `a:prstClr` there stays.
+		delete fontRef['a:schemeClr'];
+		delete fontRef['a:srgbClr'];
+		for (const key of COLOR_CHOICE_KEYS) {
+			delete tcTxStyle[key];
 		}
+		Object.assign(
+			tcTxStyle,
+			text.fontSchemeColor !== undefined
+				? colorChoiceXml({
+						schemeColor: text.fontSchemeColor,
+						tint: text.fontTint,
+						shade: text.fontShade,
+					})
+				: { 'a:srgbClr': { '@_val': text.fontColor?.replace('#', '') } },
+		);
 	}
+	const ordered = reorderObjectKeys(tcTxStyle, TC_TX_STYLE_ORDER);
+	for (const key of Object.keys(tcTxStyle)) {
+		delete tcTxStyle[key];
+	}
+	Object.assign(tcTxStyle, ordered);
 }

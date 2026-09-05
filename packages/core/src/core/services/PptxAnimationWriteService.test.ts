@@ -35,9 +35,10 @@ describe('pptxAnimationWriteService', () => {
 
 		// The read side now models p:bldP/p:tmplLst (PptxTimingTemplate); this
 		// guards that a p:bldLst carrying one still round-trips byte-identically
-		// through a real surgical update elsewhere in the tree. The surgical
-		// writer never reads or rewrites p:bldLst, so it must come back
-		// untouched even though an edit elsewhere in the tree DOES land.
+		// through a real surgical update elsewhere in the tree. `sp1` here has
+		// no `sequence` opinion (see `animation-timing-build-surgical.test.ts`
+		// for the case where it does), so its `p:bldP` must come back untouched
+		// even though an edit elsewhere in the tree DOES land.
 		it('preserves an existing p:bldLst/p:tmplLst verbatim through a surgical update', () => {
 			const service = createService();
 			const bldLst: XmlObject = {

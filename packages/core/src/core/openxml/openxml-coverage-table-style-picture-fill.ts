@@ -37,7 +37,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: "All 13 CT_TableStyle sections plus tblBg resolve into per-cell styling with correct band/corner/first-row-and-column precedence; a table style id can be assigned when a table is created. Since wave 3 (W3-E), editing an existing deck-authored tableStyles.xml section IS independently modeled and written natively: table-style-save.ts's applyTableStyleEntryToNode writes fill (table-style-fill-write.ts: solidFill/noFill/gradient/pattern, an image fill left untouched since a relationship cannot be synthesised), text (table-style-text-write.ts: a:fontRef colour, bold/italic/underline), borders including both diagonals and legacy bl2tr migration (table-style-border-write.ts), cell3D bevel/material/light-rig, and a:tblBg (inline solid fill or a style-matrix fillRef with colour transform, preserving an existing effectLst) for all 4 facets (fill/text/borders/cell3D) x 13 sections. This is SDK/MCP-only: no binding UI exposes table-style section editing yet (see limitations).",
+		note: "All 13 CT_TableStyle sections plus tblBg resolve into per-cell styling with correct band/corner/first-row-and-column precedence; a table style id can be assigned when a table is created. Since wave 3 (W3-E), editing an existing deck-authored tableStyles.xml section IS independently modeled and written natively: table-style-save.ts's applyTableStyleEntryToNode writes fill (table-style-fill-write.ts: solidFill/noFill/gradient/pattern, an image fill left untouched since a relationship cannot be synthesised), text (table-style-text-write.ts: a:fontRef colour, bold/italic/underline), borders including both diagonals and legacy bl2tr migration (table-style-border-write.ts), cell3D bevel/material/light-rig, and a:tblBg (inline solid fill or a style-matrix fillRef with colour transform, preserving an existing effectLst) for all 4 facets (fill/text/borders/cell3D) x 13 sections. Since wave 4 (W4-E/E2) every binding's inspector also exposes an Edit style... panel over the same writer (shared table-style-editor-*.ts and table-style-map-edits.ts), with edits rendering live and persisting on save.",
 		evidence: [
 			testEvidence(
 				'src/core/utils/table-style-resolver.test.ts',
@@ -71,9 +71,15 @@ assign(
 					'writes every border side including the diagonals',
 					'writes material, bevel, and light rig',
 					'writes a style-matrix fillRef with a colour transform',
-					'nests scheme colour inside a:fontRef, not a top-level schemeClr',
+					"writes the scheme colour as a:tcTxStyle's own child beside a:fontRef, as PowerPoint does",
+					'leaves an untouched facet byte-for-byte: a fill edit does not re-emit borders or text',
 				],
 				['preserve', 'edit', 'serialize'],
+			),
+			testEvidence(
+				'src/__tests__/integration/table-styles-default-id-preserved-on-save.test.ts',
+				['keeps the previously-set default GUID across a later, unrelated table-style edit'],
+				['preserve', 'serialize'],
 			),
 		],
 	},

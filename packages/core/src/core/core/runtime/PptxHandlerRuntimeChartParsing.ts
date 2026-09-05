@@ -396,8 +396,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 			const userShapesXml = this.parseUserShapesXml(chartSpace);
 			const userShapes = await this.parseChartUserShapes(chartSpace, chartPart.partPath);
-			const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
-				this.compatibilityService.getXmlLocalName(key),
+			const pivotFormats = parseChartPivotFormats(
+				chartRoot,
+				(key) => this.compatibilityService.getXmlLocalName(key),
+				{ parseColor: (node, placeholder) => this.parseColor(node, placeholder) },
 			);
 			const printSettings = parseChartPrintSettings(chartSpace, (key) =>
 				this.compatibilityService.getXmlLocalName(key),
@@ -902,8 +904,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		);
 		const userShapesXml = this.parseUserShapesXml(chartSpace);
 		const userShapes = await this.parseChartUserShapes(chartSpace, chartPartPath);
-		const pivotFormats = parseChartPivotFormats(chartRoot, (key) =>
-			this.compatibilityService.getXmlLocalName(key),
+		const pivotFormats = parseChartPivotFormats(
+			chartRoot,
+			(key) => this.compatibilityService.getXmlLocalName(key),
+			{ parseColor: (node, placeholder) => this.parseColor(node, placeholder) },
 		);
 		const clrMapOvr = this.parseClrMapOvr(chartSpace);
 		const printSettings = parseChartPrintSettings(chartSpace, (key) =>

@@ -750,8 +750,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 
 				if (chartData.pivotFormats !== undefined) {
-					applyChartPivotFormats(chartRoot, chartData.pivotFormats, (key) =>
-						this.compatibilityService.getXmlLocalName(key),
+					applyChartPivotFormats(
+						chartRoot,
+						chartData.pivotFormats,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+						{ parseColor: (node) => this.parseColor(node) },
 					);
 				}
 

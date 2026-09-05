@@ -80,6 +80,11 @@ export {
 	addChartUserShape,
 	updateChartUserShape,
 	removeChartUserShape,
+	getChartUserShapeAtPath,
+	updateChartUserShapeAtPath,
+	removeChartUserShapeAtPath,
+	addChartUserShapeGroupChild,
+	type ChartUserShapePath,
 } from './chart-user-shape-operations';
 
 // Layout operations

@@ -4,13 +4,24 @@
  * The chart part's `c:userShapes/@r:id` points at a separate drawing part
  * (`ppt/drawings/drawingN.xml`) whose root is a `c:userShapes` element holding
  * `cdr:relSizeAnchor` / `cdr:absSizeAnchor` wrappers around `sp` / `pic` /
- * `cxnSp` shapes. This module projects that drawing tree into the renderable
- * {@link PptxChartUserShape} model consumed by the shared chart overlay engine.
+ * `cxnSp` / `grpSp` shapes. This module projects that drawing tree into the
+ * renderable {@link PptxChartUserShape} model consumed by the shared chart
+ * overlay engine. A `grpSp` anchor keeps its nested structure (its own
+ * transform plus children, arbitrarily nested); {@link flattenChartUserShapes}
+ * projects that structure into a flat, render-ready leaf list for consumers
+ * that only want positioned shapes.
  *
  * @module chart-user-shapes-parser
  */
 
-import type { PptxChartUserShape, PptxChartUserShapeParagraph, XmlObject } from '../types';
+import type {
+	PptxChartUserShape,
+	PptxChartUserShapeGroupChild,
+	PptxChartUserShapeGroupTransform,
+	PptxChartUserShapeParagraph,
+	XmlObject,
+} from '../types';
+import { cloneXmlObject } from './clone-utils';
 
 interface XmlLookupLike {
 	getChildByLocalName(parent: XmlObject | undefined, name: string): XmlObject | undefined;
@@ -150,12 +161,136 @@ function buildUserShape(
 ): PptxChartUserShape {
 	const visuals = parseShapeVisuals(shape, kind, xml, colors);
 	const paragraphs = kind === 'pic' ? undefined : parseShapeParagraphs(shape, xml, colors);
+	// A `pic` has no reconstructable typed representation (its blip
+	// reference), so the raw node is kept for verbatim re-emission; see
+	// `PptxChartUserShape.rawXml`'s doc.
+	const rawXml = kind === 'pic' ? cloneXmlObject(shape) : undefined;
 	return {
 		kind,
 		...base,
 		...visuals,
 		...(paragraphs ? { paragraphs } : {}),
+		...(rawXml ? { rawXml } : {}),
 	};
+}
+
+/** Parse one `a:off`/`a:ext`-shaped pair of nodes into EMU numbers. */
+function parseOffExt(
+	offNode: XmlObject | undefined,
+	extNode: XmlObject | undefined,
+): { off: { x: number; y: number }; ext: { cx: number; cy: number } } {
+	const num = (node: XmlObject | undefined, attr: string): number => {
+		const raw = Number.parseFloat(String(node?.[attr] ?? ''));
+		return Number.isFinite(raw) ? raw : 0;
+	};
+	return {
+		off: { x: num(offNode, '@_x'), y: num(offNode, '@_y') },
+		ext: { cx: num(extNode, '@_cx'), cy: num(extNode, '@_cy') },
+	};
+}
+
+/**
+ * Parse a `grpSp`'s own `cdr:grpSpPr/a:xfrm`: its position/size in its
+ * parent's coordinate space ({@link PptxChartUserShapeGroupTransform.off}/
+ * `ext`) and the coordinate space its children are expressed in
+ * (`chOff`/`chExt`).
+ */
+function parseGroupTransform(
+	group: XmlObject,
+	xml: XmlLookupLike,
+): PptxChartUserShapeGroupTransform {
+	const grpSpPr = xml.getChildByLocalName(group, 'grpSpPr');
+	const xfrm = xml.getChildByLocalName(grpSpPr, 'xfrm');
+	const { off, ext } = parseOffExt(
+		xml.getChildByLocalName(xfrm, 'off'),
+		xml.getChildByLocalName(xfrm, 'ext'),
+	);
+	const { off: chOff, ext: chExt } = parseOffExt(
+		xml.getChildByLocalName(xfrm, 'chOff'),
+		xml.getChildByLocalName(xfrm, 'chExt'),
+	);
+	return { off, ext, chOff, chExt };
+}
+
+/**
+ * Parse a group child's own `a:xfrm` (position within the parent group's
+ * child coordinate space). Direct shapes (`sp`/`cxnSp`/`pic`) carry it under
+ * their `spPr`; a `graphicFrame` carries it directly.
+ */
+function parseChildOffExt(
+	shape: XmlObject,
+	xml: XmlLookupLike,
+): { off: { x: number; y: number }; ext: { cx: number; cy: number } } {
+	const spPr = xml.getChildByLocalName(shape, 'spPr');
+	const xfrm = xml.getChildByLocalName(spPr, 'xfrm') ?? xml.getChildByLocalName(shape, 'xfrm');
+	return parseOffExt(xml.getChildByLocalName(xfrm, 'off'), xml.getChildByLocalName(xfrm, 'ext'));
+}
+
+/** Build one grouped `sp`/`cxnSp`/`pic` child, positioned in its parent's child coordinate space. */
+function buildGroupChild(
+	shape: XmlObject,
+	kind: 'sp' | 'cxnSp' | 'pic',
+	xml: XmlLookupLike,
+	colors: ColorParserLike,
+): PptxChartUserShapeGroupChild {
+	const visuals = parseShapeVisuals(shape, kind, xml, colors);
+	const paragraphs = kind === 'pic' ? undefined : parseShapeParagraphs(shape, xml, colors);
+	const rawXml = kind === 'pic' ? cloneXmlObject(shape) : undefined;
+	const { off, ext } = parseChildOffExt(shape, xml);
+	return {
+		kind,
+		off,
+		ext,
+		...visuals,
+		...(paragraphs ? { paragraphs } : {}),
+		...(rawXml ? { rawXml } : {}),
+	};
+}
+
+/** Build a nested `grpSp` child, recursing into its own children. */
+function buildNestedGroupChild(
+	group: XmlObject,
+	xml: XmlLookupLike,
+	colors: ColorParserLike,
+): PptxChartUserShapeGroupChild {
+	const transform = parseGroupTransform(group, xml);
+	return {
+		kind: 'grpSp',
+		off: transform.off,
+		ext: transform.ext,
+		transform,
+		children: parseGroupChildren(group, xml, colors),
+		// Verbatim source for byte-identical re-emission while untouched; see
+		// `PptxChartUserShape.rawXml`'s doc (same contract one level up).
+		rawXml: cloneXmlObject(group),
+	};
+}
+
+/** Parse every child of a `grpSp` (`sp`/`cxnSp`/`pic`/nested `grpSp`/`graphicFrame`), in kind order. */
+function parseGroupChildren(
+	group: XmlObject,
+	xml: XmlLookupLike,
+	colors: ColorParserLike,
+): PptxChartUserShapeGroupChild[] {
+	const children: PptxChartUserShapeGroupChild[] = [];
+	for (const kind of DIRECT_KINDS) {
+		for (const child of xml.getChildrenArrayByLocalName(group, kind)) {
+			children.push(buildGroupChild(child, kind, xml, colors));
+		}
+	}
+	for (const nested of xml.getChildrenArrayByLocalName(group, 'grpSp')) {
+		children.push(buildNestedGroupChild(nested, xml, colors));
+	}
+	for (const graphicFrame of xml.getChildrenArrayByLocalName(group, 'graphicFrame')) {
+		const { off, ext } = parseChildOffExt(graphicFrame, xml);
+		children.push({
+			kind: 'graphicFrame',
+			off,
+			ext,
+			rawXml: cloneXmlObject(graphicFrame),
+		});
+	}
+	return children;
 }
 
 /**
@@ -163,13 +298,12 @@ function buildUserShape(
  *
  * A direct `sp`/`cxnSp`/`pic` child yields exactly one shape. A `grpSp`
  * (grouped annotation shapes, e.g. a callout built from several drawn
- * shapes) is flattened: every grouped child becomes its own entry, all
- * reusing the anchor's own bounding box as an approximation, since the
- * group's internal `chOff`/`chExt` transform is not applied. A
- * `graphicFrame` (e.g. a nested chart or table drawn as an annotation) is
- * out of scope for real content; it registers a single bare placeholder so
- * the overlay's space is accounted for instead of the whole anchor
- * silently disappearing.
+ * shapes) yields one `grpSp` entry carrying the group's own transform and
+ * its (arbitrarily nested) children; use {@link flattenChartUserShapes} to
+ * project that into a flat, positioned leaf list. A `graphicFrame` (e.g. a
+ * nested chart or table drawn as an annotation) is out of scope for real
+ * content; it registers a single bare placeholder so the overlay's space is
+ * accounted for instead of the whole anchor silently disappearing.
  */
 function parseAnchorShape(
 	anchor: XmlObject,
@@ -186,17 +320,28 @@ function parseAnchorShape(
 
 	const group = xml.getChildByLocalName(anchor, 'grpSp');
 	if (group) {
-		const children: PptxChartUserShape[] = [];
-		for (const kind of DIRECT_KINDS) {
-			for (const child of xml.getChildrenArrayByLocalName(group, kind)) {
-				children.push(buildUserShape(child, kind, base, xml, colors));
-			}
-		}
-		return children;
+		const transform = parseGroupTransform(group, xml);
+		return [
+			{
+				kind: 'grpSp',
+				...base,
+				transform,
+				children: parseGroupChildren(group, xml, colors),
+				// Verbatim source for byte-identical re-emission while untouched;
+				// see `PptxChartUserShape.rawXml`'s doc.
+				rawXml: cloneXmlObject(group),
+			},
+		];
 	}
 
-	if (xml.getChildByLocalName(anchor, 'graphicFrame')) {
-		return [{ kind: 'graphicFrame', ...base }];
+	const graphicFrame = xml.getChildByLocalName(anchor, 'graphicFrame');
+	if (graphicFrame) {
+		// Deep content (a nested chart or table) is out of scope for the typed
+		// model, but the raw node is kept so the serializer can re-emit it
+		// verbatim instead of dropping it to a bare placeholder; see
+		// `PptxChartUserShape.rawXml`'s doc.
+		const rawXml = cloneXmlObject(graphicFrame);
+		return [{ kind: 'graphicFrame', ...base, ...(rawXml ? { rawXml } : {}) }];
 	}
 
 	return [];
@@ -258,4 +403,142 @@ export function parseChartUserShapesDrawing(
 	}
 
 	return shapes.length > 0 ? shapes : undefined;
+}
+
+/** A leaf overlay shape produced by {@link flattenChartUserShapes}: never `grpSp`. */
+type FlattenedChartUserShape = Omit<PptxChartUserShape, 'kind' | 'transform' | 'children'> & {
+	kind: Exclude<PptxChartUserShape['kind'], 'grpSp'>;
+};
+
+/**
+ * Map a child's position (in its parent group's `chOff`/`chExt` coordinate
+ * space) into a fraction of the group's own box: `(childOff - chOff) /
+ * chExt`. The group's own box, in turn, is defined to span the FULL bounding
+ * box of whatever anchored it (the enclosing `relSizeAnchor`/`absSizeAnchor`,
+ * or an enclosing group's own box), so this fraction composes directly with
+ * an ancestor fraction by multiplication, regardless of how many `off`/`ext`
+ * unit choices the original authoring tool used at each nesting level (they
+ * cancel out; only the `chOff`/`chExt` ratio at each level matters).
+ */
+function childFraction(
+	childOff: { x: number; y: number },
+	childExt: { cx: number; cy: number },
+	chOff: { x: number; y: number },
+	chExt: { cx: number; cy: number },
+): { x: number; y: number; w: number; h: number } {
+	const safeDiv = (num: number, den: number): number => (den !== 0 ? num / den : 0);
+	return {
+		x: safeDiv(childOff.x - chOff.x, chExt.cx),
+		y: safeDiv(childOff.y - chOff.y, chExt.cy),
+		w: safeDiv(childExt.cx, chExt.cx),
+		h: safeDiv(childExt.cy, chExt.cy),
+	};
+}
+
+/**
+ * Flatten a chart's overlay shapes into a leaf list ready for rendering: a
+ * `grpSp` entry is expanded into its grouped children with the group's
+ * transform (`chOff`/`chExt` vs. each child's own `off`/`ext`) already
+ * applied to their position, so a consumer that only draws positioned shapes
+ * never needs to know about groups at all. Non-group entries pass through
+ * unchanged.
+ *
+ * The cumulative position/size is resolved as a fraction of the outermost
+ * anchor's own box (see {@link childFraction}), which composes correctly
+ * across arbitrary nesting depth. For a `relSizeAnchor` this maps exactly
+ * onto `from`/`to`. For an `absSizeAnchor` it is a documented approximation:
+ * the fraction maps exactly onto the anchor's absolute EMU `ext` (size), but
+ * the anchor's `from` (a fraction of the whole chart) cannot be shifted by a
+ * group child's offset without knowing the chart's live pixel size, which
+ * this pure function does not have; such a leaf keeps the anchor's own
+ * `from` unshifted; only its size is corrected.
+ *
+ * @param shapes - The chart's `userShapes` list, as parsed/edited.
+ * @returns A flat list of leaf shapes (never `kind: 'grpSp'`), in the same
+ *   relative order as `shapes`.
+ */
+export function flattenChartUserShapes(
+	shapes: ReadonlyArray<PptxChartUserShape> | undefined,
+): FlattenedChartUserShape[] {
+	if (!shapes) {
+		return [];
+	}
+
+	/** Walk a group's children, returning each leaf's box as a fraction of the group's OWN box. */
+	function resolveGroupLeaves(
+		children: readonly PptxChartUserShapeGroupChild[],
+		chOff: { x: number; y: number },
+		chExt: { cx: number; cy: number },
+	): Array<{
+		box: { x: number; y: number; w: number; h: number };
+		child: PptxChartUserShapeGroupChild;
+	}> {
+		return children.flatMap((child) => {
+			const frac = childFraction(child.off, child.ext, chOff, chExt);
+			if (child.kind === 'grpSp') {
+				if (!child.transform || !child.children) {
+					return [];
+				}
+				const nested = resolveGroupLeaves(
+					child.children,
+					child.transform.chOff,
+					child.transform.chExt,
+				);
+				return nested.map(({ box, child: leaf }) => ({
+					box: {
+						x: frac.x + box.x * frac.w,
+						y: frac.y + box.y * frac.h,
+						w: box.w * frac.w,
+						h: box.h * frac.h,
+					},
+					child: leaf,
+				}));
+			}
+			return [{ box: frac, child }];
+		});
+	}
+
+	return shapes.flatMap((shape) => {
+		if (shape.kind !== 'grpSp') {
+			return [shape as FlattenedChartUserShape];
+		}
+		if (!shape.transform || !shape.children) {
+			return [];
+		}
+		const leaves = resolveGroupLeaves(shape.children, shape.transform.chOff, shape.transform.chExt);
+		return leaves.map(({ box, child }) => {
+			const {
+				kind,
+				off: _off,
+				ext: _ext,
+				rawXml,
+				transform: _transform,
+				children: _children,
+				...visuals
+			} = child;
+			if (shape.anchor === 'rel') {
+				const width = (shape.to?.x ?? shape.from.x) - shape.from.x;
+				const height = (shape.to?.y ?? shape.from.y) - shape.from.y;
+				const from = { x: shape.from.x + box.x * width, y: shape.from.y + box.y * height };
+				const to = { x: from.x + box.w * width, y: from.y + box.h * height };
+				return {
+					kind,
+					anchor: 'rel',
+					from,
+					to,
+					...(rawXml ? { rawXml } : {}),
+					...visuals,
+				} as FlattenedChartUserShape;
+			}
+			const ext = shape.ext ?? { cx: 0, cy: 0 };
+			return {
+				kind,
+				anchor: 'abs',
+				from: shape.from,
+				ext: { cx: box.w * ext.cx, cy: box.h * ext.cy },
+				...(rawXml ? { rawXml } : {}),
+				...visuals,
+			} as FlattenedChartUserShape;
+		});
+	});
 }

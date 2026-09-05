@@ -226,5 +226,114 @@ describe('applyChartTitleToXml', () => {
 			] as XmlObject;
 			expect(rich['a:r']).toStrictEqual({ 'a:t': 'After' });
 		});
+
+		// W5-E: a stale MULTI-run title (titleRuns not updated alongside a flat
+		// `title` edit) is realigned onto the new text by position instead of
+		// always falling back to the coarse single-run patch, which otherwise
+		// leaves every run after the first with its now-orphaned stale text.
+		describe('realigning a stale multi-run title (W5-E)', () => {
+			function twoRunTitle(firstBold = true): XmlObject {
+				return {
+					'c:title': {
+						'c:tx': {
+							'c:rich': {
+								'a:p': {
+									'a:r': [
+										{
+											...(firstBold ? { 'a:rPr': { '@_b': '1' } } : {}),
+											'a:t': 'Revenue',
+										},
+										{ 'a:t': ' Growth' },
+									],
+								},
+							},
+						},
+						'c:overlay': { '@_val': '0' },
+					},
+					'c:autoTitleDeleted': { '@_val': '0' },
+					'c:plotArea': {},
+				};
+			}
+
+			it('appends unmatched trailing text to the last run, keeping every run', () => {
+				const chart = twoRunTitle();
+				applyChartTitleToXml(
+					chart,
+					{
+						title: 'Revenue Growth 2024',
+						titleRuns: [{ text: 'Revenue', bold: true }, { text: ' Growth' }],
+					},
+					local,
+				);
+				const rich = (
+					((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject
+				)['a:p'] as XmlObject;
+				const runs = rich['a:r'] as XmlObject[];
+				expect(runs).toStrictEqual([
+					{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Revenue' },
+					{ 'a:t': ' Growth 2024' },
+				]);
+			});
+
+			it('confines an edit to the run whose text changed, leaving the others untouched', () => {
+				const chart: XmlObject = {
+					'c:title': {
+						'c:tx': {
+							'c:rich': {
+								'a:p': {
+									'a:r': [
+										{ 'a:t': 'Revenue ' },
+										{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Growth' },
+										{ 'a:t': ' Report' },
+									],
+								},
+							},
+						},
+						'c:overlay': { '@_val': '0' },
+					},
+					'c:autoTitleDeleted': { '@_val': '0' },
+					'c:plotArea': {},
+				};
+				applyChartTitleToXml(
+					chart,
+					{
+						title: 'Revenue Increase Report',
+						titleRuns: [{ text: 'Revenue ' }, { text: 'Growth', bold: true }, { text: ' Report' }],
+					},
+					local,
+				);
+				const rich = (
+					((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject
+				)['a:p'] as XmlObject;
+				const runs = rich['a:r'] as XmlObject[];
+				expect(runs).toStrictEqual([
+					{ 'a:t': 'Revenue ' },
+					{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Increase' },
+					{ 'a:t': ' Report' },
+				]);
+			});
+
+			it("falls back to patching only the first run for an unrelated rewrite (today's collapse, unchanged)", () => {
+				const chart = twoRunTitle();
+				applyChartTitleToXml(
+					chart,
+					{
+						title: 'Completely Different Title',
+						titleRuns: [{ text: 'Revenue', bold: true }, { text: ' Growth' }],
+					},
+					local,
+				);
+				const rich = (
+					((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject
+				)['a:p'] as XmlObject;
+				// No alignment survives: the pre-existing single-run patch fallback
+				// wins, exactly as it did before this fix. The second run's text is
+				// now stale (matches pre-fix behaviour byte-for-byte).
+				expect(rich['a:r']).toStrictEqual([
+					{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Completely Different Title' },
+					{ 'a:t': ' Growth' },
+				]);
+			});
+		});
 	});
 });

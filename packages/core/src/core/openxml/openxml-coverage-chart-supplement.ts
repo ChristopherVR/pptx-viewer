@@ -105,14 +105,14 @@ assign(
 );
 
 // ---------------------------------------------------------------------------
-// Chart: userShapes overlay anchors (sp/cxnSp editable since W2-D; pic/grpSp/graphicFrame preserve-only)
+// Chart: userShapes overlay anchors (sp/cxnSp editable since W2-D; grpSp typed+editable since W5-I; pic/graphicFrame preserve-only)
 // ---------------------------------------------------------------------------
 assign(['chart:element:userShapes'], {
 	parse: 'partial',
 	preserve: 'unassessed',
 	edit: 'partial',
 	serialize: 'partial',
-	note: "The c:userShapes anchors (cdr:relSizeAnchor/absSizeAnchor around sp/cxnSp/pic/grpSp/graphicFrame) parse into a typed PptxChartUserShape list, not raw verbatim passthrough as previously (incorrectly) claimed here. Issue C2-G10 added grpSp flattening (one entry per grouped sp/cxnSp/pic child, previously the whole group anchor was silently dropped), a placeholder for a graphicFrame anchor (also previously dropped), and gradient/pattern fill resolution (previously solidFill-only, falling back to the first gradient stop or the pattern foreground colour). Since wave 2 (W2-D), sp/cxnSp overlay shapes are also independently editable: the SDK (addChartUserShape/updateChartUserShape/removeChartUserShape, core/builders/sdk/chart-user-shape-operations.ts), a chart-user-shapes-serializer.ts writer, and PptxHandlerRuntimeChartUserShapes.syncChartUserShapesToXml reconcile the typed list back into ppt/drawings/drawingN.xml, fabricating a fresh drawing part, relationship, and content-type override the first time a bare chart gets an overlay; a ChartEx (cx:chartSpace) chart keeps its overlay through both its in-place update path and a full type-change regenerate. Graded partial, not native: a pic/grpSp/graphicFrame entry has no reconstructable picture reference or nested graphic content in the flattened render model, so it is re-emitted as a plain fill/stroke rectangle placeholder rather than round-tripped, and only when the overlay array is actually edited (an untouched overlay of any kind is left exactly as authored, per syncChartUserShapesToXml's dirty-check no-op, though no dedicated byte-identical round-trip test was found evidencing that specific claim, so preserve stays unassessed rather than assumed).",
+	note: "The c:userShapes anchors (cdr:relSizeAnchor/absSizeAnchor around sp/cxnSp/pic/grpSp/graphicFrame) parse into a typed PptxChartUserShape list, not raw verbatim passthrough as previously (incorrectly) claimed here. Issue C2-G10 added a placeholder for a graphicFrame anchor (previously dropped) and gradient/pattern fill resolution (previously solidFill-only, falling back to the first gradient stop or the pattern foreground colour). Since wave 2 (W2-D), sp/cxnSp overlay shapes are also independently editable: the SDK (addChartUserShape/updateChartUserShape/removeChartUserShape, core/builders/sdk/chart-user-shape-operations.ts), a chart-user-shapes-serializer.ts writer, and PptxHandlerRuntimeChartUserShapes.syncChartUserShapesToXml reconcile the typed list back into ppt/drawings/drawingN.xml, fabricating a fresh drawing part, relationship, and content-type override the first time a bare chart gets an overlay; a ChartEx (cx:chartSpace) chart keeps its overlay through both its in-place update path and a full type-change regenerate. Since wave 4 (W4-D), a pic or graphicFrame anchor keeps its verbatim source node as `rawXml` alongside its resolved typed fields, and the serializer re-emits that rawXml unchanged even when a sibling shape elsewhere in the same overlay array is added or edited. Since wave 5 (W5-I), a grpSp anchor is no longer flattened lossily: it parses into a single `group` entry carrying its own cdr:grpSpPr transform plus a typed `children` list (recursively, so a group inside a group survives), keeps its rawXml for byte-identical passthrough while untouched, and is rebuilt from the typed transform/children once an SDK path edit (getChartUserShapeAtPath/updateChartUserShapeAtPath/removeChartUserShapeAtPath/addChartUserShapeGroupChild, addressed by a ChartUserShapePath index list) clears that rawXml; renderers that need flat leaves call flattenChartUserShapes, which applies the group transform to each leaf position. Graded partial, not native: the bindings' inspector still exposes no UI for editing a grouped child (SDK only), an absSizeAnchor's position is approximated against the chart extents when flattened, and a pic anchor with no rawXml at all (authored purely through the typed model) still re-emits as a plain fill/stroke rectangle placeholder, since there is no picture relationship to synthesise from typed fields alone. Preserve stays unassessed: the grpSp passthrough test is the only byte-identical evidence, and it covers one anchor kind rather than the whole overlay part.",
 	evidence: [
 		testEvidence(
 			'src/core/core/runtime/PptxHandlerRuntimeChartChrome.test.ts',
@@ -122,8 +122,11 @@ assign(['chart:element:userShapes'], {
 		testEvidence(
 			'src/core/utils/chart-user-shapes-parser.test.ts',
 			[
-				'flattens a grpSp anchor into one entry per grouped sp/cxnSp/pic child',
-				'registers a bare placeholder for a graphicFrame anchor instead of dropping it',
+				'parses a grpSp anchor into a single entry with its own transform and children',
+				'parses a grpSp nested inside another grpSp, recursively',
+				'flattenChartUserShapes applies the group transform to leaf positions',
+				'registers a placeholder carrying rawXml for a graphicFrame anchor instead of dropping it',
+				'keeps a pic anchor child as rawXml alongside its resolved visuals',
 				'resolves a gradient fill from its first stop when there is no solid fill',
 				'resolves a pattern fill from its foreground colour',
 			],
@@ -141,7 +144,9 @@ assign(['chart:element:userShapes'], {
 			'src/core/utils/chart-user-shapes-serializer.test.ts',
 			[
 				'round-trips a relSizeAnchor text box through parse -> serialize -> parse',
-				'serializes a pic overlay as a fill-only placeholder rectangle (no text, no picture ref)',
+				're-emits a pic overlay verbatim from rawXml, unchanged by an edit elsewhere in the array',
+				're-emits a graphicFrame overlay verbatim from rawXml',
+				'falls back to a placeholder rectangle for a rawXml-less pic (no source markup to fall back to)',
 			],
 			['serialize'],
 		),

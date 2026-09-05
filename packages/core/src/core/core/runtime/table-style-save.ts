@@ -31,15 +31,17 @@ import type {
 	XmlObject,
 } from '../../types';
 import { reorderObjectKeys } from '../../utils/xml-reorder';
+import { parseTableStyleBorders, parseTableStyleSectionCell3D } from './table-style-border-parse';
 import {
 	writeTableStyleSectionBorders,
 	writeTableStyleSectionCell3D,
 } from './table-style-border-write';
-import { TABLE_STYLE_PART_SEQUENCE } from './table-style-entry-parse';
+import { TABLE_STYLE_PART_SEQUENCE, parseTableBackground } from './table-style-entry-parse';
 import type { TableStylePartName } from './table-style-entry-parse';
+import { parseTableStyleSectionFill, parseTableStyleSectionText } from './table-style-fill-parse';
 import { writeTableBackground, writeTableStyleSectionFill } from './table-style-fill-write';
 import { writeTableStyleSectionText } from './table-style-text-write';
-import { ensureChild } from './table-style-xml-helpers';
+import { ensureChild, facetEquals } from './table-style-xml-helpers';
 
 /** `CT_TableStyleCellStyle` child order (§21.1.3.14): border, fill choice, cell3D. */
 const TC_STYLE_ORDER: readonly string[] = ['a:tcBdr', 'a:fill', 'a:cell3D'];
@@ -63,21 +65,37 @@ export function applyTableStyleEntryToNode(
 	styleNode: XmlObject,
 	entry: ParsedTableStyleEntry,
 ): void {
+	let touched = false;
 	for (const name of TABLE_STYLE_PART_SEQUENCE) {
-		const fill = sectionFill(entry, name);
-		const text = sectionText(entry, name);
-		const borders = sectionBorders(entry, name);
-		const cell3D = sectionCell3D(entry, name);
+		const xmlKey = `a:${name}`;
+		const existing = styleNode[xmlKey];
+		const existingSection =
+			existing && typeof existing === 'object' && !Array.isArray(existing)
+				? (existing as XmlObject)
+				: undefined;
+		const existingTcStyle = existingSection?.['a:tcStyle'] as XmlObject | undefined;
+		// A facet whose typed value still describes the node it was parsed from
+		// is left alone: the entry a caller hands back is the WHOLE parsed style,
+		// not a diff, so without this every save after one fill edit would
+		// re-emit (and round) every border, text colour and gradient of every
+		// section of that style.
+		const fill = unchanged(sectionFill(entry, name), parseTableStyleSectionFill(existingSection));
+		const text = unchanged(sectionText(entry, name), parseTableStyleSectionText(existingSection));
+		const borders = unchanged(sectionBorders(entry, name), parseTableStyleBorders(existingTcStyle));
+		const cell3D = unchanged(
+			sectionCell3D(entry, name),
+			parseTableStyleSectionCell3D(existingTcStyle),
+		);
 		if (!fill && !text && !borders && !cell3D) {
 			continue;
 		}
-		const xmlKey = `a:${name}`;
+		touched = true;
 		const section = ensureChild(styleNode, xmlKey);
 		if (fill) {
 			writeTableStyleSectionFill(section, fill);
 		}
 		if (borders) {
-			writeTableStyleSectionBorders(section, borders);
+			writeTableStyleSectionBorders(section, borders, parseTableStyleBorders(existingTcStyle));
 		}
 		if (cell3D) {
 			writeTableStyleSectionCell3D(section, cell3D);
@@ -92,8 +110,17 @@ export function applyTableStyleEntryToNode(
 		styleNode[xmlKey] = reorderObjectKeys(section, PART_ORDER);
 	}
 
-	if (entry.tableBackground) {
-		writeTableBackground(styleNode, entry.tableBackground);
+	const background = unchanged(
+		entry.tableBackground,
+		parseTableBackground(styleNode['a:tblBg'] as XmlObject | undefined),
+	);
+	if (background) {
+		touched = true;
+		writeTableBackground(styleNode, background);
+	}
+	if (!touched) {
+		// Nothing to write: leave the node's key order exactly as parsed.
+		return;
 	}
 
 	const reordered = reorderObjectKeys(styleNode, STYLE_NODE_CHILD_ORDER);
@@ -103,6 +130,14 @@ export function applyTableStyleEntryToNode(
 	for (const key of Object.keys(reordered)) {
 		styleNode[key] = reordered[key];
 	}
+}
+
+/** `next` when it differs from what the node already parses to, else nothing to write. */
+function unchanged<T>(next: T | undefined, current: T | undefined): T | undefined {
+	if (next === undefined) {
+		return undefined;
+	}
+	return facetEquals(next, current) ? undefined : next;
 }
 
 // ── Typed section-facet lookups on ParsedTableStyleEntry ────────────────────

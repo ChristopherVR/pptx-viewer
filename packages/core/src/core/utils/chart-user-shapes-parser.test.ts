@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../types';
-import { parseChartUserShapesDrawing } from './chart-user-shapes-parser';
+import { flattenChartUserShapes, parseChartUserShapesDrawing } from './chart-user-shapes-parser';
 
 const PREFIXES = ['cdr:', 'c:', 'a:', 'xdr:', ''];
 
@@ -136,7 +136,14 @@ describe('parseChartUserShapesDrawing', () => {
 	// C2-G10 (parse half): grpSp/graphicFrame anchors used to be silently
 	// dropped (parseAnchorShape only recognised sp/cxnSp/pic), and a fill was
 	// only ever read from a:solidFill.
-	it('flattens a grpSp anchor into one entry per grouped sp/cxnSp/pic child', () => {
+	//
+	// W5-I: a grpSp anchor used to be flattened at parse time (every grouped
+	// child reusing the anchor's own bounding box, losing the group's own
+	// chOff/chExt transform). It now parses into ONE `grpSp` entry carrying
+	// the group's own transform and its children, nested arbitrarily;
+	// `flattenChartUserShapes` (tested below) projects that into positioned
+	// leaves for renderers that only want a flat list.
+	it('parses a grpSp anchor into a single entry with its own transform and children', () => {
 		const xml = createXmlLookup();
 		const drawing: XmlObject = {
 			'c:userShapes': {
@@ -144,27 +151,199 @@ describe('parseChartUserShapesDrawing', () => {
 					'cdr:from': { 'cdr:x': 0.1, 'cdr:y': 0.1 },
 					'cdr:to': { 'cdr:x': 0.4, 'cdr:y': 0.4 },
 					'cdr:grpSp': {
+						'cdr:grpSpPr': {
+							'a:xfrm': {
+								'a:off': { '@_x': '0', '@_y': '0' },
+								'a:ext': { '@_cx': '1000000', '@_cy': '1000000' },
+								'a:chOff': { '@_x': '0', '@_y': '0' },
+								'a:chExt': { '@_cx': '1000000', '@_cy': '1000000' },
+							},
+						},
 						'cdr:sp': [
-							{ 'cdr:spPr': { 'a:prstGeom': { '@_prst': 'rect' } } },
-							{ 'cdr:spPr': { 'a:prstGeom': { '@_prst': 'ellipse' } } },
+							{
+								'cdr:spPr': {
+									'a:xfrm': {
+										'a:off': { '@_x': '0', '@_y': '0' },
+										'a:ext': { '@_cx': '500000', '@_cy': '1000000' },
+									},
+									'a:prstGeom': { '@_prst': 'rect' },
+								},
+							},
+							{
+								'cdr:spPr': {
+									'a:xfrm': {
+										'a:off': { '@_x': '500000', '@_y': '0' },
+										'a:ext': { '@_cx': '500000', '@_cy': '1000000' },
+									},
+									'a:prstGeom': { '@_prst': 'ellipse' },
+								},
+							},
 						],
-						'cdr:cxnSp': { 'cdr:spPr': { 'a:ln': { '@_w': '12700' } } },
+						'cdr:cxnSp': {
+							'cdr:spPr': {
+								'a:xfrm': {
+									'a:off': { '@_x': '0', '@_y': '0' },
+									'a:ext': { '@_cx': '1000000', '@_cy': '1000000' },
+								},
+								'a:ln': { '@_w': '12700' },
+							},
+						},
 					},
 				},
 			},
 		};
 		const shapes = parseChartUserShapesDrawing(drawing, xml, colors);
-		expect(shapes).toHaveLength(3);
-		expect(shapes!.map((s) => s.kind)).toStrictEqual(['sp', 'sp', 'cxnSp']);
-		expect(shapes!.map((s) => s.prst)).toStrictEqual(['rect', 'ellipse', undefined]);
-		// Every flattened child reuses the anchor's own bounding box.
-		for (const shape of shapes!) {
-			expect(shape.from).toStrictEqual({ x: 0.1, y: 0.1 });
-			expect(shape.to).toStrictEqual({ x: 0.4, y: 0.4 });
-		}
+		expect(shapes).toHaveLength(1);
+		const shape = shapes![0];
+		expect(shape.kind).toBe('grpSp');
+		expect(shape.anchor).toBe('rel');
+		expect(shape.from).toStrictEqual({ x: 0.1, y: 0.1 });
+		expect(shape.to).toStrictEqual({ x: 0.4, y: 0.4 });
+		expect(shape.transform).toStrictEqual({
+			off: { x: 0, y: 0 },
+			ext: { cx: 1000000, cy: 1000000 },
+			chOff: { x: 0, y: 0 },
+			chExt: { cx: 1000000, cy: 1000000 },
+		});
+		expect(shape.children).toHaveLength(3);
+		expect(shape.children!.map((c) => c.kind)).toStrictEqual(['sp', 'sp', 'cxnSp']);
+		expect(shape.children!.map((c) => c.prst)).toStrictEqual(['rect', 'ellipse', undefined]);
+		expect(shape.children![0].off).toStrictEqual({ x: 0, y: 0 });
+		expect(shape.children![0].ext).toStrictEqual({ cx: 500000, cy: 1000000 });
+		expect(shape.children![1].off).toStrictEqual({ x: 500000, y: 0 });
+		expect(shape.rawXml).toBeDefined();
 	});
 
-	it('registers a bare placeholder for a graphicFrame anchor instead of dropping it', () => {
+	it('parses a grpSp nested inside another grpSp, recursively', () => {
+		const xml = createXmlLookup();
+		const innerGroup: XmlObject = {
+			'cdr:grpSpPr': {
+				'a:xfrm': {
+					'a:off': { '@_x': '0', '@_y': '0' },
+					'a:ext': { '@_cx': '500000', '@_cy': '1000000' },
+					'a:chOff': { '@_x': '0', '@_y': '0' },
+					'a:chExt': { '@_cx': '500000', '@_cy': '1000000' },
+				},
+			},
+			'cdr:sp': {
+				'cdr:spPr': {
+					'a:xfrm': {
+						'a:off': { '@_x': '0', '@_y': '0' },
+						'a:ext': { '@_cx': '500000', '@_cy': '1000000' },
+					},
+					'a:prstGeom': { '@_prst': 'triangle' },
+				},
+			},
+		};
+		const drawing: XmlObject = {
+			'c:userShapes': {
+				'cdr:relSizeAnchor': {
+					'cdr:from': { 'cdr:x': 0, 'cdr:y': 0 },
+					'cdr:to': { 'cdr:x': 1, 'cdr:y': 1 },
+					'cdr:grpSp': {
+						'cdr:grpSpPr': {
+							'a:xfrm': {
+								'a:off': { '@_x': '0', '@_y': '0' },
+								'a:ext': { '@_cx': '1000000', '@_cy': '1000000' },
+								'a:chOff': { '@_x': '0', '@_y': '0' },
+								'a:chExt': { '@_cx': '1000000', '@_cy': '1000000' },
+							},
+						},
+						'cdr:grpSp': innerGroup,
+					},
+				},
+			},
+		};
+		const shapes = parseChartUserShapesDrawing(drawing, xml, colors);
+		const outer = shapes![0];
+		expect(outer.children).toHaveLength(1);
+		const nested = outer.children![0];
+		expect(nested.kind).toBe('grpSp');
+		expect(nested.transform).toStrictEqual({
+			off: { x: 0, y: 0 },
+			ext: { cx: 500000, cy: 1000000 },
+			chOff: { x: 0, y: 0 },
+			chExt: { cx: 500000, cy: 1000000 },
+		});
+		expect(nested.children).toHaveLength(1);
+		expect(nested.children![0].kind).toBe('sp');
+		expect(nested.children![0].prst).toBe('triangle');
+		expect(nested.rawXml).toBeDefined();
+	});
+
+	it('flattenChartUserShapes applies the group transform to leaf positions', () => {
+		const xml = createXmlLookup();
+		const drawing: XmlObject = {
+			'c:userShapes': {
+				'cdr:relSizeAnchor': {
+					'cdr:from': { 'cdr:x': 0.1, 'cdr:y': 0.1 },
+					'cdr:to': { 'cdr:x': 0.4, 'cdr:y': 0.4 },
+					'cdr:grpSp': {
+						'cdr:grpSpPr': {
+							'a:xfrm': {
+								'a:off': { '@_x': '0', '@_y': '0' },
+								'a:ext': { '@_cx': '1000000', '@_cy': '1000000' },
+								'a:chOff': { '@_x': '0', '@_y': '0' },
+								'a:chExt': { '@_cx': '1000000', '@_cy': '1000000' },
+							},
+						},
+						'cdr:sp': [
+							{
+								'cdr:spPr': {
+									'a:xfrm': {
+										'a:off': { '@_x': '0', '@_y': '0' },
+										'a:ext': { '@_cx': '500000', '@_cy': '1000000' },
+									},
+									'a:prstGeom': { '@_prst': 'rect' },
+								},
+							},
+							{
+								'cdr:spPr': {
+									'a:xfrm': {
+										'a:off': { '@_x': '500000', '@_y': '0' },
+										'a:ext': { '@_cx': '500000', '@_cy': '1000000' },
+									},
+									'a:prstGeom': { '@_prst': 'ellipse' },
+								},
+							},
+						],
+					},
+				},
+			},
+		};
+		const shapes = parseChartUserShapesDrawing(drawing, xml, colors);
+		const flattened = flattenChartUserShapes(shapes);
+		expect(flattened).toHaveLength(2);
+		expect(flattened.every((leaf) => leaf.kind !== 'grpSp')).toBeTruthy();
+		expect(flattened[0]).toMatchObject({
+			kind: 'sp',
+			anchor: 'rel',
+			from: { x: 0.1, y: 0.1 },
+			to: { x: 0.25, y: 0.4 },
+			prst: 'rect',
+		});
+		expect(flattened[1]).toMatchObject({
+			kind: 'sp',
+			anchor: 'rel',
+			from: { x: 0.25, y: 0.1 },
+			to: { x: 0.4, y: 0.4 },
+			prst: 'ellipse',
+		});
+	});
+
+	it('flattenChartUserShapes passes non-group shapes through unchanged', () => {
+		const shape = {
+			kind: 'sp' as const,
+			anchor: 'rel' as const,
+			from: { x: 0, y: 0 },
+			to: { x: 0.2, y: 0.2 },
+			prst: 'rect',
+		};
+		expect(flattenChartUserShapes([shape])).toStrictEqual([shape]);
+		expect(flattenChartUserShapes(undefined)).toStrictEqual([]);
+	});
+
+	it('registers a placeholder carrying rawXml for a graphicFrame anchor instead of dropping it', () => {
 		const xml = createXmlLookup();
 		const drawing: XmlObject = {
 			'c:userShapes': {
@@ -182,8 +361,39 @@ describe('parseChartUserShapesDrawing', () => {
 				anchor: 'abs',
 				from: { x: 0.2, y: 0.2 },
 				ext: { cx: 100000, cy: 50000 },
+				rawXml: { '@_name': 'Nested Chart' },
 			},
 		]);
+	});
+
+	// W4-D: a `pic` anchor keeps its verbatim source node as `rawXml` (the
+	// blip reference has no typed representation), so the serializer can
+	// re-emit it unchanged instead of a lossy rectangle placeholder.
+	it('keeps a pic anchor child as rawXml alongside its resolved visuals', () => {
+		const xml = createXmlLookup();
+		const picNode: XmlObject = {
+			'cdr:blipFill': { 'a:blip': { '@_r:embed': 'rId1' } },
+			'cdr:spPr': {
+				'a:prstGeom': { '@_prst': 'rect' },
+				'a:ln': { '@_w': '9525', 'a:solidFill': { 'a:srgbClr': { '@_val': '000000' } } },
+			},
+		};
+		const drawing: XmlObject = {
+			'c:userShapes': {
+				'cdr:relSizeAnchor': {
+					'cdr:from': { 'cdr:x': 0.05, 'cdr:y': 0.05 },
+					'cdr:to': { 'cdr:x': 0.3, 'cdr:y': 0.3 },
+					'cdr:pic': picNode,
+				},
+			},
+		};
+		const shapes = parseChartUserShapesDrawing(drawing, xml, colors);
+		expect(shapes).toHaveLength(1);
+		const shape = shapes![0];
+		expect(shape.kind).toBe('pic');
+		expect(shape.stroke).toBe('#000000');
+		expect(shape.rawXml).toStrictEqual(picNode);
+		expect(shape.rawXml).not.toBe(picNode); // cloned, not shared by reference
 	});
 
 	it('resolves a gradient fill from its first stop when there is no solid fill', () => {

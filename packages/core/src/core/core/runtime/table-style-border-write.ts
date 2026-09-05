@@ -12,7 +12,7 @@ import type {
 	XmlObject,
 } from '../../types';
 import { reorderObjectKeys } from '../../utils/xml-reorder';
-import { colorChoiceXml, ensureChild } from './table-style-xml-helpers';
+import { colorChoiceXml, ensureChild, facetEquals } from './table-style-xml-helpers';
 
 /** EMU per CSS pixel (96 DPI). Matches the border/cell3D parse side. */
 const EMU_PER_PIXEL = 9525;
@@ -29,13 +29,52 @@ const BORDER_SIDE_ORDER: readonly string[] = [
 	'a:tr2bl',
 ];
 
-function borderSideXml(border: ParsedTableStyleBorder): XmlObject {
-	const ln: XmlObject = {};
+/** `CT_LineProperties` child order (§20.1.2.2.24): fill choice, dash, join, head/tail ends. */
+const LN_CHILD_ORDER: readonly string[] = [
+	'a:noFill',
+	'a:solidFill',
+	'a:gradFill',
+	'a:pattFill',
+	'a:prstDash',
+	'a:custDash',
+	'a:round',
+	'a:bevel',
+	'a:miter',
+	'a:headEnd',
+	'a:tailEnd',
+	'a:extLst',
+];
+
+const LN_FILL_KEYS: readonly string[] = ['a:noFill', 'a:solidFill', 'a:gradFill', 'a:pattFill'];
+
+/**
+ * Merge one border side onto its existing `a:ln` (or a fresh one). The parse
+ * side rounds `@w` to whole CSS pixels, so a width that still rounds to the
+ * node's own EMU value is NOT rewritten: a deck-authored 12700 EMU (1pt) line
+ * stays 12700, not 9525. Attributes the typed model does not carry (`cmpd`,
+ * `cap`, `algn`) and children it does not model (join, line ends) survive.
+ */
+function mergeBorderSideXml(border: ParsedTableStyleBorder, existingSide: unknown): XmlObject {
+	const existing =
+		existingSide && typeof existingSide === 'object' && !Array.isArray(existingSide)
+			? (existingSide as XmlObject)
+			: {};
+	// `ln`/`lnRef` are a choice: a concrete line replaces a style-matrix reference.
+	delete existing['a:lnRef'];
+	const ln = ensureChild(existing, 'a:ln');
 	if (border.width !== undefined) {
-		ln['@_w'] = String(Math.round(border.width * EMU_PER_PIXEL));
+		const currentEmu = parseInt(String(ln['@_w'] || '0'), 10);
+		if (currentEmu <= 0 || Math.max(1, Math.round(currentEmu / EMU_PER_PIXEL)) !== border.width) {
+			ln['@_w'] = String(Math.round(border.width * EMU_PER_PIXEL));
+		}
 	}
 	if (border.dash) {
 		ln['a:prstDash'] = { '@_val': border.dash };
+	} else {
+		delete ln['a:prstDash'];
+	}
+	for (const key of LN_FILL_KEYS) {
+		delete ln[key];
 	}
 	if (border.noFill) {
 		ln['a:noFill'] = {};
@@ -44,18 +83,22 @@ function borderSideXml(border: ParsedTableStyleBorder): XmlObject {
 	} else if (border.color) {
 		ln['a:solidFill'] = { 'a:srgbClr': { '@_val': border.color.replace('#', '') } };
 	}
-	return { 'a:ln': ln };
+	existing['a:ln'] = reorderObjectKeys(ln, LN_CHILD_ORDER);
+	return existing;
 }
 
 /**
  * Write every present side of a table-style section's `a:tcStyle/a:tcBdr`
  * (including the `tl2br`/`tr2bl` diagonals). Sides not present on `borders`
  * are left untouched, matching every other section-facet writer's merge
- * semantics.
+ * semantics; so is a side whose typed value still equals what the node parses
+ * to (`current`), which keeps an edit to one side from re-emitting the other
+ * seven.
  */
 export function writeTableStyleSectionBorders(
 	section: XmlObject,
 	borders: ParsedTableStyleBorders,
+	current?: ParsedTableStyleBorders,
 ): void {
 	const tcStyle = ensureChild(section, 'a:tcStyle');
 	const tcBdr = ensureChild(tcStyle, 'a:tcBdr');
@@ -76,10 +119,11 @@ export function writeTableStyleSectionBorders(
 	];
 	for (const [key, xmlKey] of sides) {
 		const border = borders[key];
-		if (!border) {
+		if (!border || (current?.[key] && facetEquals(border, current[key]))) {
 			continue;
 		}
-		tcBdr[xmlKey] = borderSideXml(border);
+		const existingSide = tcBdr[xmlKey] ?? (key === 'tr2bl' ? tcBdr['a:bl2tr'] : undefined);
+		tcBdr[xmlKey] = mergeBorderSideXml(border, existingSide);
 	}
 	tcStyle['a:tcBdr'] = reorderObjectKeys(tcBdr, BORDER_SIDE_ORDER);
 }

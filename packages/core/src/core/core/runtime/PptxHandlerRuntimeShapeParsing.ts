@@ -318,6 +318,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				? String(cNvPrForActions['@_name']).trim()
 				: undefined;
 
+			// Accessibility description/title from `p:cNvPr/@descr` / `@title` --
+			// the same attributes a picture's alt text (descr only) and a graphic
+			// frame's altText/title come from (see `PptxGraphicFrameParser.ts`).
+			// A plain shape / text box had neither parsed, so PowerPoint's
+			// Accessibility pane text for one was silently dropped on load.
+			const shapeAltText = String(cNvPrForActions?.['@_descr'] || '').trim() || undefined;
+			const shapeTitle = String(cNvPrForActions?.['@_title'] || '').trim() || undefined;
+
 			// Parse shape lock attributes with inheritance
 			const cNvSpPr = (shape?.['p:nvSpPr'] as XmlObject | undefined)?.['p:cNvSpPr'] as
 				| XmlObject
@@ -348,6 +356,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const commonProps = {
 				id,
 				name: elementName || undefined,
+				altText: shapeAltText,
+				title: shapeTitle,
 				...(isDecorative !== undefined ? { isDecorative } : {}),
 				placeholderType: placeholderInfo?.type,
 				placeholderSz: placeholderInfo?.sz,

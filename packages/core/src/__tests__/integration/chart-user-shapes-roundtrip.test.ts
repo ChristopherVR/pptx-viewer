@@ -4,10 +4,11 @@ import { describe, expect, it } from 'vitest';
 import {
 	addChartUserShape,
 	removeChartUserShape,
+	updateChartUserShapeAtPath,
 } from '../../core/builders/sdk/chart-user-shape-operations';
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
 import { PptxHandler } from '../../core/PptxHandler';
-import type { ChartPptxElement, PptxChartUserShape, PptxData } from '../../core/types';
+import type { ChartPptxElement, PptxChartUserShape, PptxData, XmlObject } from '../../core/types';
 
 /**
  * A brand-new SDK-created chart is written whole in one shot
@@ -303,5 +304,130 @@ describe('chart c:userShapes overlay round-trip (C2-G10 edit/serialize follow-up
 				paragraphs: [{ text: 'Peak' }],
 			},
 		]);
+	});
+
+	// W4-D: a `pic` overlay anchor's rawXml must survive being edited
+	// alongside (not itself edited: no editor exists for it), matching the
+	// limitations row's exact scenario ("if the overlay array is edited at
+	// all it is re-emitted as a plain fill/stroke rectangle").
+	it('preserves a pic overlay anchor verbatim when a sibling sp shape is added', async () => {
+		const { handler, data, chart } = await buildAndReloadBareChart();
+		const picRawXml: XmlObject = {
+			'cdr:blipFill': { 'a:blip': { '@_r:embed': 'rId2' } },
+		};
+		const picShape: PptxChartUserShape = {
+			kind: 'pic',
+			anchor: 'rel',
+			from: { x: 0.05, y: 0.05 },
+			to: { x: 0.25, y: 0.25 },
+			rawXml: picRawXml,
+		};
+		addChartUserShape(chart, picShape);
+		const savedOnce = await handler.save(data.slides);
+
+		const reloadHandler = new PptxHandler();
+		const reloaded = await reloadHandler.load(savedOnce.buffer as ArrayBuffer);
+		const reloadedChart = reloaded.slides[0].elements.find(
+			(element) => element.type === 'chart',
+		) as ChartPptxElement;
+		expect(reloadedChart.chartData!.userShapes).toStrictEqual([picShape]);
+
+		// Add a second, editable sp shape: this forces the whole overlay array
+		// to be re-serialized. The pic anchor must come back byte-equivalent.
+		addChartUserShape(reloadedChart, {
+			kind: 'sp',
+			anchor: 'rel',
+			from: { x: 0.5, y: 0.5 },
+			to: { x: 0.7, y: 0.7 },
+			prst: 'rect',
+			fill: '#00FF00',
+		});
+		const savedTwice = await reloadHandler.save(reloaded.slides);
+
+		const finalHandler = new PptxHandler();
+		const finalData = await finalHandler.load(savedTwice.buffer as ArrayBuffer);
+		const finalChart = finalData.slides[0].elements.find(
+			(element) => element.type === 'chart',
+		) as ChartPptxElement;
+		expect(finalChart.chartData!.userShapes).toStrictEqual([
+			picShape,
+			{
+				kind: 'sp',
+				anchor: 'rel',
+				from: { x: 0.5, y: 0.5 },
+				to: { x: 0.7, y: 0.7 },
+				prst: 'rect',
+				fill: '#00FF00',
+			},
+		]);
+	});
+
+	// W5-I: a `cdr:grpSp` anchor's own transform + nested children survive a
+	// full save/reload cycle, and moving a child inside the group (via the
+	// path-based SDK op) regenerates the group with its new geometry while
+	// preserving the group's own transform, instead of the old flatten-at-parse
+	// behaviour which lost the group entirely on the next save.
+	it('round-trips a grpSp overlay and lets a nested child be moved after reload', async () => {
+		const { handler, data, chart } = await buildAndReloadBareChart();
+		const groupShape: PptxChartUserShape = {
+			kind: 'grpSp',
+			anchor: 'rel',
+			from: { x: 0.1, y: 0.1 },
+			to: { x: 0.5, y: 0.5 },
+			transform: {
+				off: { x: 0, y: 0 },
+				ext: { cx: 1000000, cy: 1000000 },
+				chOff: { x: 0, y: 0 },
+				chExt: { cx: 1000000, cy: 1000000 },
+			},
+			children: [
+				{ kind: 'sp', off: { x: 0, y: 0 }, ext: { cx: 500000, cy: 1000000 }, prst: 'rect' },
+				{ kind: 'sp', off: { x: 500000, y: 0 }, ext: { cx: 500000, cy: 1000000 }, prst: 'ellipse' },
+			],
+		};
+		addChartUserShape(chart, groupShape);
+		const saved = await handler.save(data.slides);
+
+		const reloadHandler = new PptxHandler();
+		const reloaded = await reloadHandler.load(saved.buffer as ArrayBuffer);
+		const reloadedChart = reloaded.slides[0].elements.find(
+			(element) => element.type === 'chart',
+		) as ChartPptxElement;
+		expect(reloadedChart.chartData!.userShapes).toHaveLength(1);
+		const reloadedGroup = reloadedChart.chartData!.userShapes![0];
+		expect(reloadedGroup.kind).toBe('grpSp');
+		expect(reloadedGroup.transform).toStrictEqual(groupShape.transform);
+		expect(reloadedGroup.children).toHaveLength(2);
+		// Any grpSp found on disk gets a fresh rawXml for byte-identical
+		// passthrough on the NEXT untouched save (see the parser's doc).
+		expect(reloadedGroup.rawXml).toBeDefined();
+
+		// Move the second child; this must clear the group's cached rawXml so
+		// the save pipeline regenerates it instead of re-emitting it unchanged.
+		updateChartUserShapeAtPath(reloadedChart, [0, 1], { off: { x: 800000, y: 100000 } });
+		const savedTwice = await reloadHandler.save(reloaded.slides);
+
+		const finalHandler = new PptxHandler();
+		const finalData = await finalHandler.load(savedTwice.buffer as ArrayBuffer);
+		const finalChart = finalData.slides[0].elements.find(
+			(element) => element.type === 'chart',
+		) as ChartPptxElement;
+		const finalGroup = finalChart.chartData!.userShapes![0];
+		expect(finalGroup.kind).toBe('grpSp');
+		// The group's own transform survived the child edit.
+		expect(finalGroup.transform).toStrictEqual(groupShape.transform);
+		expect(finalGroup.children).toHaveLength(2);
+		expect(finalGroup.children![0]).toMatchObject({ prst: 'rect', off: { x: 0, y: 0 } });
+		expect(finalGroup.children![1]).toMatchObject({
+			prst: 'ellipse',
+			off: { x: 800000, y: 100000 },
+		});
+
+		// Exactly one drawing part: the edit overwrote it in place.
+		const zip = await JSZip.loadAsync(savedTwice);
+		const drawingParts = Object.keys(zip.files).filter((name) =>
+			/^ppt\/drawings\/drawing\d+\.xml$/u.test(name),
+		);
+		expect(drawingParts).toHaveLength(1);
 	});
 });

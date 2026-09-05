@@ -40,6 +40,7 @@ export class TextElementProcessor implements ElementProcessor {
 					ctx,
 					textElement.textSegments,
 					textElement.textStyle,
+					textElement.altText,
 				);
 				if (compositeImage) {
 					parts.push(compositeImage);
@@ -95,7 +96,13 @@ export class TextElementProcessor implements ElementProcessor {
 
 		// If still no content, try rendering the shape's visual styling as an image.
 		if (parts.length === 0) {
-			const shapeImage = await this.renderShapeAsImage(element, ctx, undefined, undefined);
+			const shapeImage = await this.renderShapeAsImage(
+				element,
+				ctx,
+				undefined,
+				undefined,
+				textElement.altText,
+			);
 			if (shapeImage) {
 				parts.push(shapeImage);
 			}
@@ -161,12 +168,19 @@ export class TextElementProcessor implements ElementProcessor {
 	/**
 	 * Renders a shape with visible fill/stroke (optionally with text)
 	 * to a PNG image so it appears in the markdown output.
+	 *
+	 * `altText` mirrors `ImageElementProcessor`'s handling of a picture's own
+	 * `altText`: a shape/text box/connector now parses accessibility text
+	 * from `p:cNvPr/@descr` (see `PptxNonVisualDescription`), so a rendered
+	 * shape gets the same author-provided description instead of the
+	 * generic "Shape" fallback whenever one is present.
 	 */
 	private async renderShapeAsImage(
 		element: PptxElement,
 		ctx: ElementProcessorContext,
 		textSegments: TextSegment[] | undefined,
 		textStyle: TextStyle | undefined,
+		altText?: string,
 	): Promise<string | null> {
 		const shape = element as unknown as {
 			shapeStyle?: ShapeStyle;
@@ -180,6 +194,8 @@ export class TextElementProcessor implements ElementProcessor {
 		if (!shape.shapeStyle || !shape.width || !shape.height) {
 			return null;
 		}
+
+		const alt = altText?.trim() || 'Shape';
 
 		try {
 			const dataUrl = renderShapeToDataUrl({
@@ -198,14 +214,15 @@ export class TextElementProcessor implements ElementProcessor {
 			}
 
 			const imgPath = await ctx.mediaContext.saveImage(dataUrl, `slide${ctx.slideNumber}-shape`);
+			const safeAlt = escapeHtml(alt);
 			if (ctx.semanticMode) {
-				return `![Shape](${imgPath})`;
+				return `![${safeAlt}](${imgPath})`;
 			}
 			if (ctx.layoutScale) {
-				return `<img src="${escapeHtml(imgPath)}" alt="Shape" style="max-width:100%;height:auto">`;
+				return `<img src="${escapeHtml(imgPath)}" alt="${safeAlt}" style="max-width:100%;height:auto">`;
 			}
 			const dims = this.computeDisplaySize(shape.width, shape.height);
-			return `<img src="${escapeHtml(imgPath)}" alt="Shape" width="${dims.w}" height="${dims.h}">`;
+			return `<img src="${escapeHtml(imgPath)}" alt="${safeAlt}" width="${dims.w}" height="${dims.h}">`;
 		} catch {
 			return null;
 		}

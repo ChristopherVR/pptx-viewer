@@ -196,7 +196,7 @@ assign(
 		preserve: 'native',
 		edit: 'unassessed',
 		serialize: 'partial',
-		note: 'A TEXT bldP/p:tmplLst is typed (level + preserved nested p:tnLst per p:tmpl) and attached to the matching animation as PptxTimingTemplate[]. It round-trips verbatim through an untouched file and through a real surgical timing edit elsewhere in the tree, because the writer never reads or rewrites p:bldLst. A dedicated serializer exists and is unit-tested, but is not wired into the live writer (no authoring UI mutates templates), so serialize is partial and edit is left unassessed rather than inferred.',
+		note: 'A TEXT bldP/p:tmplLst is typed (level + preserved nested p:tnLst per p:tmpl) and attached to the matching animation as PptxTimingTemplate[]. It round-trips verbatim through an untouched file and through a real surgical timing edit elsewhere in the tree, because the surgical writer path (animation-timing-surgical.ts, used whenever the slide already has a p:timing tree) never reads or rewrites p:bldLst at all. The OTHER writer path, the full timing-tree rebuild taken when a slide has no prior p:timing (buildBuildListXml + serializeBldPTemplates), DOES re-emit a preserved buildTemplates entry as p:tmplLst/p:tmpl with its nested p:tnLst intact; this was already unit-tested and is now also proven end to end through PptxHandler.save/.load (wave 4). Serialize stays partial, not native, because that coverage is one-sided: the full-rebuild path writes templates correctly, but the surgical path (taken by any deck that already has authored effects, i.e. most real files) never touches p:bldLst, so editing an already-authored build from the panel does not regenerate its templates to match the edit. No authoring UI mutates template content itself, so edit is left unassessed rather than inferred.',
 		evidence: [
 			testEvidence(
 				'src/core/services/animation-timing-templates.test.ts',
@@ -224,6 +224,13 @@ assign(
 				'src/core/services/PptxAnimationWriteService.test.ts',
 				['preserves an existing p:bldLst/p:tmplLst verbatim through a surgical update'],
 				['preserve'],
+			),
+			testEvidence(
+				'src/__tests__/integration/animation-build-templates-full-rebuild.test.ts',
+				[
+					're-emits a preserved buildTemplates entry as p:tmplLst/p:tmpl[@lvl] with its nested p:tnLst',
+				],
+				['serialize'],
 			),
 		],
 	},

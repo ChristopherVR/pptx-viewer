@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { XmlObject } from '../../types';
+import type { ParsedTableStyleEntry, XmlObject } from '../../types';
+import { parseTableStyleEntry } from './table-style-entry-parse';
 import { applyTableStyleEntryToNode } from './table-style-save';
 
 describe('applyTableStyleEntryToNode - fill (pure)', () => {
@@ -208,6 +209,81 @@ describe('applyTableStyleEntryToNode - borders (W3-E)', () => {
 	});
 });
 
+describe('applyTableStyleEntryToNode - untouched facets survive (facet diff)', () => {
+	/** PowerPoint's own "No Style, Table Grid" wholeTbl, as fast-xml-parser parses it. */
+	function tableGridWholeTbl(): XmlObject {
+		const side = () => ({
+			'a:ln': {
+				'@_w': '12700',
+				'@_cmpd': 'sng',
+				'a:solidFill': { 'a:schemeClr': { '@_val': 'tx1' } },
+			},
+		});
+		return {
+			'a:tcTxStyle': {
+				'a:fontRef': { '@_idx': 'minor', 'a:scrgbClr': { '@_r': '0', '@_g': '0', '@_b': '0' } },
+				'a:schemeClr': { '@_val': 'tx1' },
+			},
+			'a:tcStyle': {
+				'a:tcBdr': {
+					'a:left': side(),
+					'a:right': side(),
+					'a:top': side(),
+					'a:bottom': side(),
+					'a:insideH': side(),
+					'a:insideV': side(),
+				},
+				'a:fill': { 'a:noFill': {} },
+			},
+		};
+	}
+
+	it('leaves an untouched facet byte-for-byte: a fill edit does not re-emit borders or text', () => {
+		const node: XmlObject = { '@_styleId': '{X}', 'a:wholeTbl': tableGridWholeTbl() };
+		const before = JSON.stringify(node);
+		// The entry a caller hands back is the WHOLE parsed style with one fill changed.
+		const parsed = parseTableStyleEntry(node) as ParsedTableStyleEntry;
+		applyTableStyleEntryToNode(node, {
+			...parsed,
+			wholeTblFill: { schemeColor: '', color: '#ff00ff' },
+		});
+		const wholeTbl = node['a:wholeTbl'] as XmlObject;
+		const tcStyle = wholeTbl['a:tcStyle'] as XmlObject;
+		expect(tcStyle['a:fill']?.['a:solidFill']?.['a:srgbClr']?.['@_val']).toBe('ff00ff');
+		// Borders: still 1pt (12700 EMU, not the pixel-rounded 9525) with `cmpd` intact.
+		expect(tcStyle['a:tcBdr']?.['a:left']?.['a:ln']?.['@_w']).toBe('12700');
+		expect(tcStyle['a:tcBdr']?.['a:left']?.['a:ln']?.['@_cmpd']).toBe('sng');
+		// Text: PowerPoint's fontRef placeholder and top-level colour both untouched.
+		expect(JSON.stringify(wholeTbl['a:tcTxStyle'])).toBe(
+			JSON.stringify((JSON.parse(before) as XmlObject)['a:wholeTbl']?.['a:tcTxStyle']),
+		);
+	});
+
+	it('is a no-op when the entry still describes the node exactly', () => {
+		const node: XmlObject = { '@_styleId': '{X}', 'a:wholeTbl': tableGridWholeTbl() };
+		const before = JSON.stringify(node);
+		applyTableStyleEntryToNode(node, parseTableStyleEntry(node) as ParsedTableStyleEntry);
+		expect(JSON.stringify(node)).toBe(before);
+	});
+
+	it("keeps a changed side's unmodelled line attributes when merging the new fill", () => {
+		const node: XmlObject = { '@_styleId': '{X}', 'a:wholeTbl': tableGridWholeTbl() };
+		const parsed = parseTableStyleEntry(node) as ParsedTableStyleEntry;
+		applyTableStyleEntryToNode(node, {
+			...parsed,
+			wholeTblBorders: {
+				...parsed.wholeTblBorders,
+				top: { width: 1, fill: { schemeColor: 'accent1' } },
+			},
+		});
+		const tcBdr = (node['a:wholeTbl'] as XmlObject)['a:tcStyle']?.['a:tcBdr'] as XmlObject;
+		expect(tcBdr['a:top']?.['a:ln']?.['a:solidFill']?.['a:schemeClr']?.['@_val']).toBe('accent1');
+		expect(tcBdr['a:top']?.['a:ln']?.['@_w']).toBe('12700');
+		expect(tcBdr['a:top']?.['a:ln']?.['@_cmpd']).toBe('sng');
+		expect(tcBdr['a:bottom']?.['a:ln']?.['a:solidFill']?.['a:schemeClr']?.['@_val']).toBe('tx1');
+	});
+});
+
 describe('applyTableStyleEntryToNode - cell3D (W3-E, issue G5)', () => {
 	it('writes material, bevel, and light rig', () => {
 		const node: XmlObject = { '@_styleId': '{X}' };
@@ -271,28 +347,56 @@ describe('applyTableStyleEntryToNode - tblBg (W3-E)', () => {
 	});
 });
 
-describe('applyTableStyleEntryToNode - text fontRef colour (W3-E)', () => {
-	it('nests scheme colour inside a:fontRef, not a top-level schemeClr', () => {
+describe('applyTableStyleEntryToNode - text colour placement', () => {
+	it("writes the scheme colour as a:tcTxStyle's own child beside a:fontRef, as PowerPoint does", () => {
 		const node: XmlObject = { '@_styleId': '{X}' };
 		applyTableStyleEntryToNode(node, {
 			styleId: '{X}',
 			lastRowText: { fontSchemeColor: 'lt1', fontRefIdx: 'minor' },
 		});
 		const tcTxStyle = (node['a:lastRow'] as XmlObject)['a:tcTxStyle'] as XmlObject;
-		expect(tcTxStyle['a:schemeClr']).toBeUndefined();
 		expect(tcTxStyle['a:fontRef']?.['@_idx']).toBe('minor');
-		expect(tcTxStyle['a:fontRef']?.['a:schemeClr']?.['@_val']).toBe('lt1');
+		expect(tcTxStyle['a:fontRef']?.['a:schemeClr']).toBeUndefined();
+		expect(tcTxStyle['a:schemeClr']?.['@_val']).toBe('lt1');
+		expect(Object.keys(tcTxStyle).indexOf('a:fontRef')).toBeLessThan(
+			Object.keys(tcTxStyle).indexOf('a:schemeClr'),
+		);
 	});
 
-	it('writes explicit sRGB font colour under a:fontRef', () => {
-		const node: XmlObject = { '@_styleId': '{X}' };
+	it("writes an explicit sRGB colour at the top level and keeps PowerPoint's fontRef prstClr", () => {
+		const node: XmlObject = {
+			'@_styleId': '{X}',
+			'a:lastCol': {
+				'a:tcTxStyle': {
+					'a:fontRef': { '@_idx': 'minor', 'a:prstClr': { '@_val': 'black' } },
+					'a:schemeClr': { '@_val': 'dk1' },
+				},
+			},
+		};
 		applyTableStyleEntryToNode(node, {
 			styleId: '{X}',
-			lastColText: { fontColor: '#FF0000' },
+			lastColText: { fontRefIdx: 'minor', fontColor: '#FF0000' },
 		});
 		const tcTxStyle = (node['a:lastCol'] as XmlObject)['a:tcTxStyle'] as XmlObject;
-		expect(tcTxStyle['a:fontRef']?.['@_idx']).toBe('minor');
-		expect(tcTxStyle['a:fontRef']?.['a:srgbClr']?.['@_val']).toBe('FF0000');
+		expect(tcTxStyle['a:fontRef']?.['a:prstClr']?.['@_val']).toBe('black');
+		expect(tcTxStyle['a:schemeClr']).toBeUndefined();
+		expect(tcTxStyle['a:srgbClr']?.['@_val']).toBe('FF0000');
+	});
+
+	it('drops a colour an earlier writer nested inside a:fontRef when a new colour is written', () => {
+		const node: XmlObject = {
+			'@_styleId': '{X}',
+			'a:firstRow': {
+				'a:tcTxStyle': { 'a:fontRef': { '@_idx': 'minor', 'a:schemeClr': { '@_val': 'lt1' } } },
+			},
+		};
+		applyTableStyleEntryToNode(node, {
+			styleId: '{X}',
+			firstRowText: { fontRefIdx: 'minor', fontSchemeColor: 'accent2' },
+		});
+		const tcTxStyle = (node['a:firstRow'] as XmlObject)['a:tcTxStyle'] as XmlObject;
+		expect(tcTxStyle['a:fontRef']?.['a:schemeClr']).toBeUndefined();
+		expect(tcTxStyle['a:schemeClr']?.['@_val']).toBe('accent2');
 	});
 
 	it('sets and clears underline explicitly', () => {

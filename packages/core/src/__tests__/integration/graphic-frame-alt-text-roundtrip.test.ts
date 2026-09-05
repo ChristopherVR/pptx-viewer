@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
 import { PptxHandler } from '../../core/PptxHandler';
-import type { PptxElement } from '../../core/types/elements';
+import type { PptxElement, SmartArtPptxElement } from '../../core/types/elements';
 
 /**
  * `p:nvGraphicFramePr/p:cNvPr/@descr` (alt text) and `@title` on a
@@ -172,5 +172,72 @@ describe('graphic-frame altText/title round-trip', () => {
 		const xml = await slideXmlOf(saved);
 		expect(xml).toContain('descr="Quarterly sales figures"');
 		expect(xml).toContain('title="Sales"');
+	});
+
+	it('round-trips altText/title set on a chart element built via the SDK', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create({
+			initialSlideCount: 0,
+		});
+		const slide = createSlide('Blank')
+			.addChart(
+				'bar',
+				{ series: [{ name: 'Revenue', values: [1, 2, 3] }], categories: ['Jan', 'Feb', 'Mar'] },
+				{ x: 50, y: 50, width: 400, height: 300 },
+			)
+			.build();
+		data.slides.push(slide);
+		const seed = await handler.save(data.slides);
+
+		const loadHandler = new PptxHandler();
+		const loaded = await loadHandler.load(seed.buffer as ArrayBuffer);
+		const chart = findByType(loaded.slides[0].elements, 'chart');
+		if (chart?.type !== 'chart') {
+			throw new Error('chart not found');
+		}
+		chart.altText = 'Bar chart of quarterly revenue';
+		chart.title = 'Revenue chart';
+
+		const saved = await loadHandler.save(loaded.slides);
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedChart = findByType(reloaded.slides[0].elements, 'chart');
+		expect(reloadedChart?.type === 'chart' && reloadedChart.altText).toBe(
+			'Bar chart of quarterly revenue',
+		);
+		expect(reloadedChart?.type === 'chart' && reloadedChart.title).toBe('Revenue chart');
+	});
+
+	it('round-trips altText/title set on a smartArt element', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		data.slides.push(createSlide('Blank').build());
+		data.slides[0].elements.push({
+			id: 'smartart-1',
+			type: 'smartArt',
+			x: 20,
+			y: 30,
+			width: 400,
+			height: 300,
+			smartArtData: {
+				layout: 'orgChart',
+				nodes: [{ id: 'n1', text: 'Root' }],
+			},
+		} as SmartArtPptxElement as PptxElement);
+		const seed = await handler.save(data.slides);
+
+		const loadHandler = new PptxHandler();
+		const loaded = await loadHandler.load(seed.buffer as ArrayBuffer);
+		const smartArt = findByType(loaded.slides[0].elements, 'smartArt');
+		if (smartArt?.type !== 'smartArt') {
+			throw new Error('smartArt not found');
+		}
+		smartArt.altText = 'Organisation chart';
+		smartArt.title = 'Org chart';
+
+		const saved = await loadHandler.save(loaded.slides);
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedSmartArt = findByType(reloaded.slides[0].elements, 'smartArt');
+		expect(reloadedSmartArt?.type === 'smartArt' && reloadedSmartArt.altText).toBe(
+			'Organisation chart',
+		);
+		expect(reloadedSmartArt?.type === 'smartArt' && reloadedSmartArt.title).toBe('Org chart');
 	});
 });

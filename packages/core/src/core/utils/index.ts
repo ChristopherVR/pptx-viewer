@@ -347,6 +347,8 @@ export { parseChartAxes, parseChart3DSurfaces } from './chart-axis-parser';
 
 export { parseCxChartSeries } from './chart-cx-parser';
 
+export { flattenChartUserShapes } from './chart-user-shapes-parser';
+
 export { parseEmbeddedXlsx } from './chart-xlsx-parser';
 
 export {

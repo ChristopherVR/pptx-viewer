@@ -16,7 +16,12 @@ import type { PptxChartTitleRun } from './chart-title';
 import type { PptxChartUserShape } from './chart-user-shapes';
 import type { XmlObject } from './common';
 
-export type { PptxChartUserShape, PptxChartUserShapeParagraph } from './chart-user-shapes';
+export type {
+	PptxChartUserShape,
+	PptxChartUserShapeGroupChild,
+	PptxChartUserShapeGroupTransform,
+	PptxChartUserShapeParagraph,
+} from './chart-user-shapes';
 export type { PptxChartStyleDefinition, PptxChartStylePartEntry } from './chart-style-definition';
 
 // ==========================================================================
