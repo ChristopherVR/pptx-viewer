@@ -1,4 +1,4 @@
-import type { ShapeStyle, StrokeDashType } from 'pptx-viewer-core';
+import type { PptxThemeColorRef, ShapeStyle, StrokeDashType } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -21,7 +21,7 @@ export interface StrokeEffectsSectionProps {
 	style: ShapeStyle | undefined;
 	isLine: boolean;
 	onUpdateShapeStyle: (updates: Partial<ShapeStyle>) => void;
-	onSetStrokeColor: (color: string) => void;
+	onSetStrokeColor: (color: string, ref?: PptxThemeColorRef) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,6 +43,7 @@ export function StrokeEffectsSection({
 				label={t('pptx.inspector.stroke')}
 				prefix='stroke'
 				value={normalizeHexColor(style?.strokeColor, DEFAULT_STROKE_COLOR)}
+				selectedRef={style?.strokeColorRef}
 				onChange={onSetStrokeColor}
 			/>
 

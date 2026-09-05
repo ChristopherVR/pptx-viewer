@@ -1,6 +1,10 @@
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement, TextStyle } from 'pptx-viewer-core';
-import { CHARACTER_SPACING_OPTIONS, textFontSizePtToPx } from 'pptx-viewer-shared';
+import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
+import {
+	CHARACTER_SPACING_OPTIONS,
+	OFFICE_COLOR_SWATCHES,
+	textFontSizePtToPx,
+} from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,6 +22,7 @@ import type { TableCellEditorState } from '../../types';
 import type { ChangeCaseMode } from '../../utils/text-case-transform';
 import { useRecentColors } from '../inspector/RecentColorsContext';
 import { RecentColorsRow } from '../inspector/RecentColorsRow';
+import { ThemeColorSwatchGrid } from '../inspector/ThemeColorSwatchGrid';
 import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
 import { RibbonMenu } from './RibbonMenu';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
@@ -50,19 +55,6 @@ function getEffectiveTextStyle(
 	}
 	return undefined;
 }
-
-const FONT_COLOR_PRESETS = [
-	'#000000',
-	'#ffffff',
-	'#ff0000',
-	'#00aa00',
-	'#0000ff',
-	'#ff8800',
-	'#8800cc',
-	'#00cccc',
-	'#ff69b4',
-	'#808080',
-];
 
 const HIGHLIGHT_COLOR_PRESETS = [
 	'#ffff00',
@@ -103,6 +95,12 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 				'#000000')
 			: (effectiveTs?.color ?? '#000000');
 
+	const currentColorThemeRef: PptxThemeColorRef | undefined =
+		isTextEl && p.selectedElement && hasTextProperties(p.selectedElement)
+			? (p.selectedElement.textSegments?.[0]?.style?.colorRef ??
+				p.selectedElement.textStyle?.colorRef)
+			: undefined;
+
 	const currentHighlight =
 		isTextEl && p.selectedElement && hasTextProperties(p.selectedElement)
 			? (p.selectedElement.textSegments?.[0]?.style?.highlightColor ??
@@ -118,11 +116,11 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 	const highlightMenuRef = useRef<HTMLDivElement>(null);
 	const { pushColor } = useRecentColors();
 	const handleColorChange = useCallback(
-		(color: string) => {
+		(color: string, ref?: PptxThemeColorRef) => {
 			if (!canFormat) {
 				return;
 			}
-			p.onUpdateTextStyle({ color });
+			p.onUpdateTextStyle({ color, colorRef: ref });
 			pushColor(color);
 		},
 		[canFormat, p, pushColor],
@@ -446,22 +444,33 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 							/>
 						</button>
 						<RibbonMenu anchorRef={fontColorRef} className='hidden group-hover:block pt-1'>
-							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36'>
+							<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-48'>
+								<ThemeColorSwatchGrid
+									prefix='font-color'
+									disabled={!canMut}
+									selectedRef={currentColorThemeRef}
+									selectedHex={currentColor}
+									onPick={(c) => handleColorChange(c.hex, c.ref)}
+								/>
+								<div className='text-[10px] text-muted-foreground mt-1 mb-1'>
+									{t('pptx.colorPicker.standardColors')}
+								</div>
 								<div className='grid grid-cols-5 gap-1.5 mb-2'>
-									{FONT_COLOR_PRESETS.map((c) => (
+									{OFFICE_COLOR_SWATCHES.map((c) => (
 										<button
-											key={c}
+											key={c.hex}
 											type='button'
-											aria-label={c}
+											aria-label={c.label}
+											title={c.label}
 											data-pptx-compact
 											className={`w-5 h-5 rounded-full border transition-transform hover:scale-125 ${
-												currentColor?.toLowerCase() === c
+												currentColor?.toLowerCase() === c.hex
 													? 'border-primary ring-1 ring-primary'
 													: 'border-border'
 											}`}
-											style={{ backgroundColor: c }}
+											style={{ backgroundColor: c.hex }}
 											onMouseDown={(e) => e.preventDefault()}
-											onClick={() => handleColorChange(c)}
+											onClick={() => handleColorChange(c.hex)}
 										/>
 									))}
 								</div>

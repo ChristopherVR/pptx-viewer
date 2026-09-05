@@ -19,6 +19,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { updateSmartArtNodeText } from 'pptx-viewer-core';
 import {
 	buildSmartArt3DModel,
+	collectCoherent3DOffNodeIds,
 	computeSmartArtElementLayout,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
@@ -125,6 +126,7 @@ export function SmartArt3DRenderer({
 		return buildSmartArt3DModel(layoutResult, {
 			background: chrome?.backgroundColor,
 			spatial: true,
+			coherent3DOffNodeIds: collectCoherent3DOffNodeIds(nodes),
 		});
 	}, [element]);
 

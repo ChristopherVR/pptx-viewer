@@ -1,13 +1,15 @@
+import type { PptxThemeColorRef } from 'pptx-viewer-core';
+import { OFFICE_COLOR_SWATCHES } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPipette } from 'react-icons/lu';
 
-import { THEME_COLOR_SWATCHES } from '../../constants';
 import { normalizeHexColor, openNativeEyeDropper } from '../../utils';
 import { SEL, RNG, SWATCH, DIS, LBL, COL2 } from './FillStrokeHelpers';
 import type { GradientStop } from './FillStrokeHelpers';
 import { useRecentColors } from './RecentColorsContext';
 import { RecentColorsRow } from './RecentColorsRow';
+import { ThemeColorSwatchGrid } from './ThemeColorSwatchGrid';
 
 // ---------------------------------------------------------------------------
 // SelectRow
@@ -52,32 +54,42 @@ export function SelectRow({
 // ---------------------------------------------------------------------------
 
 /**
- * Color picker + theme swatches + recent colors + eyedropper.
+ * Color picker + theme colours + standard colours + recent colors + eyedropper.
  *
  * The recent-colours row is sourced from {@link useRecentColors} (context),
  * not a prop: every caller used to have to thread its own `recentColors`
  * array down from the loaded deck, and one of the two calls (the fill
  * colour's own row) simply never did, so its row silently rendered nothing.
- * Every commit here (typed colour, theme swatch, recent swatch, eyedropper)
- * also pushes the pick back into that same shared list.
+ * Every commit here (typed colour, theme swatch, standard swatch, recent
+ * swatch, eyedropper) also pushes the resolved hex back into that same
+ * shared list.
+ *
+ * Clicking a {@link ThemeColorSwatchGrid} swatch commits BOTH the resolved
+ * hex and its `PptxThemeColorRef`, so the colour keeps following the theme
+ * after a later theme change; every other commit path (native picker,
+ * standard swatch, recent swatch, eyedropper) clears the ref, since none of
+ * those carry a theme identity.
  */
 export function ColorPickerRow({
 	label,
 	value,
+	selectedRef,
 	disabled,
 	prefix,
 	onChange,
 }: {
 	label: string;
 	value: string;
+	/** The element's current theme ref, if any (highlights the matching theme swatch). */
+	selectedRef?: PptxThemeColorRef;
 	disabled?: boolean;
 	prefix: string;
-	onChange: (c: string) => void;
+	onChange: (c: string, ref?: PptxThemeColorRef) => void;
 }): React.ReactElement {
 	const { t } = useTranslation();
 	const { pushColor } = useRecentColors();
-	const commit = (color: string): void => {
-		onChange(color);
+	const commit = (color: string, ref?: PptxThemeColorRef): void => {
+		onChange(color, ref);
 		pushColor(color);
 	};
 	const handleEyedropper = async (): Promise<void> => {
@@ -111,20 +123,32 @@ export function ColorPickerRow({
 					<LuPipette className='w-3.5 h-3.5' />
 				</button>
 			</div>
-			<div className='mt-1 flex flex-wrap gap-1'>
-				{THEME_COLOR_SWATCHES.map((c) => (
-					<button
-						key={`${prefix}-theme-${c}`}
-						type='button'
-						className={`${SWATCH} ${DIS}`}
-						style={{ backgroundColor: c }}
-						title={`${label} ${c}`}
-						aria-label={`${label} ${c}`}
-						data-pptx-compact
-						disabled={disabled}
-						onClick={() => commit(c)}
-					/>
-				))}
+			<ThemeColorSwatchGrid
+				prefix={prefix}
+				disabled={disabled}
+				selectedRef={selectedRef}
+				selectedHex={value}
+				onPick={(c) => commit(c.hex, c.ref)}
+			/>
+			<div className='mt-1'>
+				<div className='text-[10px] text-muted-foreground mb-1'>
+					{t('pptx.colorPicker.standardColors')}
+				</div>
+				<div className='flex flex-wrap gap-1'>
+					{OFFICE_COLOR_SWATCHES.map((c) => (
+						<button
+							key={`${prefix}-standard-${c.hex}`}
+							type='button'
+							className={`${SWATCH} ${DIS}`}
+							style={{ backgroundColor: c.hex }}
+							title={`${label} ${c.label}`}
+							aria-label={`${label} ${c.label}`}
+							data-pptx-compact
+							disabled={disabled}
+							onClick={() => commit(c.hex)}
+						/>
+					))}
+				</div>
 			</div>
 			<RecentColorsRow prefix={prefix} disabled={disabled} onCommit={commit} />
 		</label>
@@ -135,7 +159,12 @@ export function ColorPickerRow({
 // GradientStopRow
 // ---------------------------------------------------------------------------
 
-/** A single gradient stop row. */
+/**
+ * A single gradient stop row. The theme colour grid sits below the native
+ * colour input, same "swatch commits hex + ref, native input clears it"
+ * contract as {@link ColorPickerRow}: picking a theme swatch keeps this stop
+ * following the deck's theme after a later theme change.
+ */
 export function GradientStopRow({
 	stop,
 	index,
@@ -163,7 +192,7 @@ export function GradientStopRow({
 					value={normalizeHexColor(stop.color, '#3b82f6')}
 					onChange={(e) => {
 						const hex = normalizeHexColor(e.target.value, '#3b82f6');
-						patchStop({ color: hex });
+						patchStop({ color: hex, colorRef: undefined });
 						pushColor(hex);
 					}}
 					className='h-7 w-10 rounded border border-border bg-muted'
@@ -185,6 +214,15 @@ export function GradientStopRow({
 					{t('pptx.comments.remove')}
 				</button>
 			</div>
+			<ThemeColorSwatchGrid
+				prefix={`gradient-stop-${index}`}
+				selectedRef={stop.colorRef}
+				selectedHex={stop.color}
+				onPick={(c) => {
+					patchStop({ color: c.hex, colorRef: c.ref });
+					pushColor(c.hex);
+				}}
+			/>
 			<div className='grid grid-cols-[auto,1fr,auto] items-center gap-2 pl-1'>
 				<span className='text-[10px] text-muted-foreground w-10 text-center'>Opacity</span>
 				<input

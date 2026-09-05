@@ -40,10 +40,25 @@ export function renderTabbedLine(
 	 * repeating it here an underlined tabbed line loses its underline outright.
 	 */
 	nestedStyle?: React.CSSProperties,
+	/**
+	 * `a:rPr/@u="words"`: shared then splits each tab piece into per-word/gap
+	 * sub-pieces (`TabbedRunPiece.words`), rendered here as SIBLING spans in
+	 * place of the piece's single span. They cannot nest inside it: the piece
+	 * span carries the run's decoration (see `nestedStyle`) and CSS draws an
+	 * ancestor's underline through every inline descendant, so a nested gap
+	 * could never lose it.
+	 */
+	underlineWords = false,
 ): React.ReactNode {
 	// `line` never contains `\n` (the caller already split on it), so shared's
 	// per-line split always yields exactly one entry here.
-	const [lineLayout] = buildRunTabLines(line, ctx, nestedStyle as RunStyle | undefined);
+	const [lineLayout] = buildRunTabLines(
+		line,
+		ctx,
+		nestedStyle as RunStyle | undefined,
+		undefined,
+		underlineWords,
+	);
 	return (
 		<span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
 			{lineLayout.pieces.map((piece, i) => {
@@ -55,7 +70,15 @@ export function renderTabbedLine(
 								{piece.leaderText}
 							</span>
 						) : null}
-						<span style={piece.style as React.CSSProperties}>{renderPiece(piece.text, key)}</span>
+						{piece.words ? (
+							piece.words.map((word, w) => (
+								<span key={`${key}-w${w}`} style={word.style as React.CSSProperties}>
+									{renderPiece(word.text, `${key}-w${w}`)}
+								</span>
+							))
+						) : (
+							<span style={piece.style as React.CSSProperties}>{renderPiece(piece.text, key)}</span>
+						)}
 					</React.Fragment>
 				);
 			})}

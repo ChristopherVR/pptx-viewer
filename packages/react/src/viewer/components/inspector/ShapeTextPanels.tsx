@@ -11,6 +11,7 @@ import { FillStrokeProperties } from './FillStrokeProperties';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
 import { RecentColorsRow } from './RecentColorsRow';
 import { TextAdvancedSections } from './TextAdvancedSections';
+import { ThemeColorSwatchGrid } from './ThemeColorSwatchGrid';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -79,8 +80,12 @@ export function ShapeTextPanels({
 						)}
 						canEdit={canEdit}
 						onUpdateShapeStyle={onUpdateElementStyle}
-						onSetFillColor={(hex) => onUpdateElementStyle({ fillColor: hex, fillMode: 'solid' })}
-						onSetStrokeColor={(hex) => onUpdateElementStyle({ strokeColor: hex })}
+						onSetFillColor={(hex, ref) =>
+							onUpdateElementStyle({ fillColor: hex, fillMode: 'solid', fillColorRef: ref })
+						}
+						onSetStrokeColor={(hex, ref) =>
+							onUpdateElementStyle({ strokeColor: hex, strokeColorRef: ref })
+						}
 					/>
 				</div>
 			)}
@@ -116,14 +121,23 @@ export function ShapeTextPanels({
 								ariaLabel='Text Color'
 								value={normalizeHexColor(selectedElement.textStyle?.color, '#000000')}
 								className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
-								onCommit={(hex) => onUpdateTextStyle({ color: hex })}
+								onCommit={(hex) => onUpdateTextStyle({ color: hex, colorRef: undefined })}
 							/>
 						</label>
+						<div className='col-span-2'>
+							<ThemeColorSwatchGrid
+								prefix='text-color'
+								disabled={!canEdit}
+								selectedRef={selectedElement.textStyle?.colorRef}
+								selectedHex={selectedElement.textStyle?.color}
+								onPick={(c) => onUpdateTextStyle({ color: c.hex, colorRef: c.ref })}
+							/>
+						</div>
 						<div className='col-span-2'>
 							<RecentColorsRow
 								prefix='text-color'
 								disabled={!canEdit}
-								onCommit={(hex) => onUpdateTextStyle({ color: hex })}
+								onCommit={(hex) => onUpdateTextStyle({ color: hex, colorRef: undefined })}
 							/>
 						</div>
 						<div className='flex gap-1 col-span-2'>

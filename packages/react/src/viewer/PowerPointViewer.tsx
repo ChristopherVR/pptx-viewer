@@ -1,4 +1,5 @@
 import type { PptxElement, PptxSaveFormat, PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import { buildThemeColorMap } from 'pptx-viewer-core';
 /**
  * PowerPoint Viewer Plugin: Top-level Orchestrator Component.
  *
@@ -86,6 +87,7 @@ import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { SurfaceChart3DContext } from './components/elements/surface-chart-3d-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { RecentColorsProvider } from './components/inspector/RecentColorsContext';
+import { ThemeColorMapProvider } from './components/inspector/ThemeColorMapContext';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { ReadOnlyBanner } from './components/ReadOnlyBanner';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -422,6 +424,16 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const recentColorsValue = useMemo(
 			() => ({ recentColors: state.recentColors, pushColor }),
 			[state.recentColors, pushColor],
+		);
+
+		// ── Theme colour map ──────────────────────────────────────────
+		// Same cross-branch rationale as `recentColorsValue` above: the
+		// provider must sit above both `ViewerToolbarSection` (ribbon font
+		// colour) and `ViewerMainContent` (inspector fill/stroke/text/table
+		// colour pickers).
+		const themeColorMapValue = useMemo(
+			() => (state.theme?.colorScheme ? buildThemeColorMap(state.theme.colorScheme) : undefined),
+			[state.theme?.colorScheme],
 		);
 
 		// ── Settings dialog (General tab) ────────────────────────────
@@ -1077,155 +1089,157 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					) : error ? (
 						<ErrorState error={error} />
 					) : (
-						<RecentColorsProvider value={recentColorsValue}>
-							{mode !== 'present' && (
-								<ViewerToolbarSection
+						<ThemeColorMapProvider value={themeColorMapValue}>
+							<RecentColorsProvider value={recentColorsValue}>
+								{mode !== 'present' && (
+									<ViewerToolbarSection
+										mode={mode}
+										canEdit={canEdit}
+										state={state}
+										selectedElement={selectedElement}
+										activeSlide={activeSlide}
+										activeSlideIndex={activeSlideIndex}
+										zoom={zoom}
+										history={history}
+										findReplace={editorOps.findReplace}
+										manipulation={editorOps.manipulation}
+										insertHandlers={editorOps.insertHandlers}
+										exportHandlers={exportHandlers}
+										printHandlers={printHandlers}
+										propertyHandlers={propertyHandlers}
+										dialogs={dialogs}
+										slideOps={editorOps.slideOps}
+										sectionOps={editorOps.sectionOps}
+										onApplyLayout={(path) => void layoutSwitching.applyLayout(path)}
+										loadLayoutPreviews={layoutSwitching.loadLayoutPreviews}
+										customFontFamilies={customFontFamilies}
+										ops={editorOps.ops}
+										onSetMode={handleSetMode}
+										onPresentFromBeginning={presentation.enterPresentModeFromBeginning}
+										onEnterPresenterView={handleEnterPresenterView}
+										onEnterRehearsalMode={handleEnterRehearsalMode}
+										onOpenSettings={() => setIsSettingsOpen(true)}
+										onOpenHeaderFooter={() => setIsHeaderFooterOpen(true)}
+										onOpenShareDialog={() => setIsShareDialogOpen(true)}
+										onOpenFile={handleOpenFile}
+										onOpenRecentFile={handleOpenRecentFile}
+										fileName={fileName}
+										autosaveStatus={autosaveStatus}
+										autosaveEnabled={autosaveActivation.active}
+										onToggleAutosave={() => {
+											// Inert when the host passed `autosave={false}`: a preference
+											// cannot exceed the policy, so the switch must not move.
+											if (autosaveActivation.toggleAvailable) {
+												setAutosaveEnabled((p) => !p);
+											}
+										}}
+										hiddenActions={hiddenActions}
+										recentPresentationsCount={viewerOptions.advanced.recentPresentationsCount}
+										aiEnabled={Boolean(ai)}
+										isAiPanelOpen={aiPanel.isOpen}
+										onToggleAiPanel={aiPanel.toggle}
+										isProtectedView={isProtectedView}
+										onEnableEditing={hostCanEdit ? handleEnableEditing : undefined}
+										onSetSnapToGrid={viewPreferencesSync.handleSetSnapToGrid}
+										onSetSnapToShape={viewPreferencesSync.handleSetSnapToShape}
+										onSetShowGuides={viewPreferencesSync.handleSetShowGuides}
+									/>
+								)}
+
+								{mode !== 'present' && readOnlyRec.bannerVisible && (
+									<ReadOnlyBanner
+										recommendation={readOnlyRec.recommendation}
+										onEditAnyway={readOnlyRec.editAnyway}
+										onDismiss={readOnlyRec.dismiss}
+									/>
+								)}
+
+								<ViewerMainContent
 									mode={mode}
 									canEdit={canEdit}
-									state={state}
-									selectedElement={selectedElement}
+									slides={slides}
 									activeSlide={activeSlide}
+									masterPseudoSlide={masterPseudoSlide}
 									activeSlideIndex={activeSlideIndex}
-									zoom={zoom}
-									history={history}
-									findReplace={editorOps.findReplace}
-									manipulation={editorOps.manipulation}
-									insertHandlers={editorOps.insertHandlers}
-									exportHandlers={exportHandlers}
-									printHandlers={printHandlers}
-									propertyHandlers={propertyHandlers}
+									canvasSize={canvasSize}
+									gridSpacingPx={gridSpacingPx}
+									slideSectionGroups={slideSectionGroups}
+									showSlidesPane={showSlidesPane}
+									showMasterPane={showMasterPane}
+									selectedElement={selectedElement}
+									state={state}
+									editorOps={editorOps}
 									dialogs={dialogs}
-									slideOps={editorOps.slideOps}
-									sectionOps={editorOps.sectionOps}
-									onApplyLayout={(path) => void layoutSwitching.applyLayout(path)}
-									loadLayoutPreviews={layoutSwitching.loadLayoutPreviews}
-									customFontFamilies={customFontFamilies}
-									ops={editorOps.ops}
-									onSetMode={handleSetMode}
-									onPresentFromBeginning={presentation.enterPresentModeFromBeginning}
-									onEnterPresenterView={handleEnterPresenterView}
-									onEnterRehearsalMode={handleEnterRehearsalMode}
-									onOpenSettings={() => setIsSettingsOpen(true)}
-									onOpenHeaderFooter={() => setIsHeaderFooterOpen(true)}
-									onOpenShareDialog={() => setIsShareDialogOpen(true)}
-									onOpenFile={handleOpenFile}
-									onOpenRecentFile={handleOpenRecentFile}
-									fileName={fileName}
-									autosaveStatus={autosaveStatus}
-									autosaveEnabled={autosaveActivation.active}
-									onToggleAutosave={() => {
-										// Inert when the host passed `autosave={false}`: a preference
-										// cannot exceed the policy, so the switch must not move.
-										if (autosaveActivation.toggleAvailable) {
-											setAutosaveEnabled((p) => !p);
-										}
-									}}
+									presentation={presentation}
+									annotations={annotations}
+									propertyHandlers={propertyHandlers}
+									themeHandlers={themeHandlers}
+									history={history}
+									comments={editorOps.comments}
+									masterViewCrud={masterViewCrud}
+									zoom={zoom}
+									isMobile={isMobile}
+									isTouchDevice={isTouchDevice}
+									onEndPresentation={() => handleSetMode('edit')}
+									leftPanelWidth={isMobile ? undefined : resizablePanels.leftWidth}
+									onResizeLeft={isMobile ? undefined : resizablePanels.onResizeLeft}
+									rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
+									onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
 									hiddenActions={hiddenActions}
-									recentPresentationsCount={viewerOptions.advanced.recentPresentationsCount}
-									aiEnabled={Boolean(ai)}
-									isAiPanelOpen={aiPanel.isOpen}
-									onToggleAiPanel={aiPanel.toggle}
-									isProtectedView={isProtectedView}
-									onEnableEditing={hostCanEdit ? handleEnableEditing : undefined}
-									onSetSnapToGrid={viewPreferencesSync.handleSetSnapToGrid}
-									onSetSnapToShape={viewPreferencesSync.handleSetSnapToShape}
-									onSetShowGuides={viewPreferencesSync.handleSetShowGuides}
+									aiConfig={ai}
+									aiBridge={ai ? aiBridge : undefined}
+									aiPanel={ai ? aiPanel : undefined}
 								/>
-							)}
 
-							{mode !== 'present' && readOnlyRec.bannerVisible && (
-								<ReadOnlyBanner
-									recommendation={readOnlyRec.recommendation}
-									onEditAnyway={readOnlyRec.editAnyway}
-									onDismiss={readOnlyRec.dismiss}
-								/>
-							)}
-
-							<ViewerMainContent
-								mode={mode}
-								canEdit={canEdit}
-								slides={slides}
-								activeSlide={activeSlide}
-								masterPseudoSlide={masterPseudoSlide}
-								activeSlideIndex={activeSlideIndex}
-								canvasSize={canvasSize}
-								gridSpacingPx={gridSpacingPx}
-								slideSectionGroups={slideSectionGroups}
-								showSlidesPane={showSlidesPane}
-								showMasterPane={showMasterPane}
-								selectedElement={selectedElement}
-								state={state}
-								editorOps={editorOps}
-								dialogs={dialogs}
-								presentation={presentation}
-								annotations={annotations}
-								propertyHandlers={propertyHandlers}
-								themeHandlers={themeHandlers}
-								history={history}
-								comments={editorOps.comments}
-								masterViewCrud={masterViewCrud}
-								zoom={zoom}
-								isMobile={isMobile}
-								isTouchDevice={isTouchDevice}
-								onEndPresentation={() => handleSetMode('edit')}
-								leftPanelWidth={isMobile ? undefined : resizablePanels.leftWidth}
-								onResizeLeft={isMobile ? undefined : resizablePanels.onResizeLeft}
-								rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
-								onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
-								hiddenActions={hiddenActions}
-								aiConfig={ai}
-								aiBridge={ai ? aiBridge : undefined}
-								aiPanel={ai ? aiPanel : undefined}
-							/>
-
-							{/* Keep the bottom panels mounted while the notes panel is expanded:
+								{/* Keep the bottom panels mounted while the notes panel is expanded:
 				    focusing the notes textbox opens the virtual keyboard, and
 				    unmounting on `isVirtualKeyboardOpen` would yank the textbox the
 				    user just tapped out from under them. When notes is collapsed we
 				    still hide the strip on keyboard-open to free room for canvas
 				    inline editing. */}
-							{mode !== 'present' && (!isVirtualKeyboardOpen || !state.isSlideNotesCollapsed) && (
-								<ViewerBottomPanels
-									activeSlide={activeSlide}
-									allSlides={slides}
-									isSlideNotesCollapsed={state.isSlideNotesCollapsed}
-									canEdit={canEdit}
-									slideCount={slides.length}
-									activeSlideIndex={activeSlideIndex}
-									isDirty={state.isDirty}
-									autosaveStatus={autosaveStatus}
-									onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
-									onUpdateNotes={propertyHandlers.handleUpdateNotes}
-									collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
-									notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
-									onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
-									scale={zoom.scale}
-									onZoomIn={zoom.handleZoomIn}
-									onZoomOut={zoom.handleZoomOut}
-									onZoomToFit={zoom.handleZoomToFit}
-									mode={mode}
-									onSetMode={handleSetMode}
-									onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
-									hideStatusBar={isMobile}
-									hiddenActions={hiddenActions}
-									notesStyle={state.notesMaster?.notesStyle}
-								/>
-							)}
+								{mode !== 'present' && (!isVirtualKeyboardOpen || !state.isSlideNotesCollapsed) && (
+									<ViewerBottomPanels
+										activeSlide={activeSlide}
+										allSlides={slides}
+										isSlideNotesCollapsed={state.isSlideNotesCollapsed}
+										canEdit={canEdit}
+										slideCount={slides.length}
+										activeSlideIndex={activeSlideIndex}
+										isDirty={state.isDirty}
+										autosaveStatus={autosaveStatus}
+										onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
+										onUpdateNotes={propertyHandlers.handleUpdateNotes}
+										collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
+										notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
+										onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
+										scale={zoom.scale}
+										onZoomIn={zoom.handleZoomIn}
+										onZoomOut={zoom.handleZoomOut}
+										onZoomToFit={zoom.handleZoomToFit}
+										mode={mode}
+										onSetMode={handleSetMode}
+										onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
+										hideStatusBar={isMobile}
+										hiddenActions={hiddenActions}
+										notesStyle={state.notesMaster?.notesStyle}
+									/>
+								)}
 
-							{mode !== 'present' && isMobile && (
-								<MobileChromeOverlay
-									state={state}
-									editorOps={editorOps}
-									presentation={presentation}
-									slides={slides}
-									activeSlideIndex={activeSlideIndex}
-									canvasSize={canvasSize}
-									slideSectionGroups={slideSectionGroups}
-									canEdit={canEdit}
-									commentCount={activeSlide?.comments?.length ?? 0}
-								/>
-							)}
-						</RecentColorsProvider>
+								{mode !== 'present' && isMobile && (
+									<MobileChromeOverlay
+										state={state}
+										editorOps={editorOps}
+										presentation={presentation}
+										slides={slides}
+										activeSlideIndex={activeSlideIndex}
+										canvasSize={canvasSize}
+										slideSectionGroups={slideSectionGroups}
+										canEdit={canEdit}
+										commentCount={activeSlide?.comments?.length ?? 0}
+									/>
+								)}
+							</RecentColorsProvider>
+						</ThemeColorMapProvider>
 					)}
 				</div>
 

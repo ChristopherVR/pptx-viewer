@@ -131,6 +131,7 @@ export function FillStrokeProperties({
 					label={t('pptx.fill.fill')}
 					prefix='fill'
 					value={normalizeHexColor(style?.fillColor, DEFAULT_FILL_COLOR)}
+					selectedRef={style?.fillColorRef}
 					disabled={line}
 					onChange={onSetFillColor}
 				/>

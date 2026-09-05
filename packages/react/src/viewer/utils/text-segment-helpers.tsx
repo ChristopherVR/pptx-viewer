@@ -170,7 +170,14 @@ export function renderSegmentContent(
 			return (
 				<React.Fragment key={lineKey}>
 					{tabContext && line.includes('\t')
-						? renderTabbedLine(line, tabContext, lineKey, renderLeaf, metric?.nestedStyle)
+						? renderTabbedLine(
+								line,
+								tabContext,
+								lineKey,
+								renderLeaf,
+								metric?.nestedStyle,
+								isUnderlineWords,
+							)
 						: renderLeaf(line, lineKey)}
 					{lineIndex < lines.length - 1 ? <br /> : null}
 				</React.Fragment>

@@ -14,7 +14,6 @@ import {
 	svgGradientFillRef,
 	svgLineCap,
 } from 'pptx-viewer-shared';
-import type { SvgGradientDef } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -26,35 +25,8 @@ import {
 } from './connector-path';
 import { getShapeType } from './shape-types';
 import { normalizeStrokeDashType, getSvgStrokeDasharray } from './style';
+import { renderSvgGradientDefs } from './svg-gradient-defs';
 import { renderCustomGeometryVector } from './vector-subpath-render';
-
-function renderGradientDefs(gradient: SvgGradientDef | undefined): React.ReactNode {
-	if (!gradient) {
-		return null;
-	}
-	const stops = gradient.stops.map((stop, index) => (
-		<stop key={index} offset={stop.offset} stopColor={stop.color} stopOpacity={stop.opacity} />
-	));
-	return (
-		<defs>
-			{gradient.kind === 'radial' ? (
-				<radialGradient id={gradient.id} cx={gradient.cx} cy={gradient.cy} r={gradient.r}>
-					{stops}
-				</radialGradient>
-			) : (
-				<linearGradient
-					id={gradient.id}
-					x1={gradient.x1}
-					y1={gradient.y1}
-					x2={gradient.x2}
-					y2={gradient.y2}
-				>
-					{stops}
-				</linearGradient>
-			)}
-		</defs>
-	);
-}
 
 export function renderVectorShape(
 	element: PptxElement,
@@ -227,7 +199,7 @@ export function renderVectorShape(
 						overflow: 'visible',
 					}}
 				>
-					{animatesFill ? null : renderGradientDefs(gradient)}
+					{animatesFill ? null : renderSvgGradientDefs(gradient)}
 					<path
 						d={geometry.d}
 						fill={hasFill ? (animatesFill ? 'inherit' : (gradientPaint ?? fillPaint)) : 'none'}

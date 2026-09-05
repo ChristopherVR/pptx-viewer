@@ -92,7 +92,13 @@ describe('pRESET_TO_OOXML', () => {
 				// entr.11 (Flash Once, verified via COM) carries three legacy
 				// aliases (`flashIn`, `flashOnceIn`, `flashBulbIn`) rather than
 				// the usual two, so it gets a wider allowance than the rest.
-				const allowance = cls === 'entr' && id === 11 ? 3 : 2;
+				// emph.26 (Pulse, verified via COM + UI Automation to be the SAME
+				// preset as Flash Bulb) similarly carries three: `pulse`
+				// (canonical, the modern ribbon name), `flashBulb` (the older
+				// `MsoAnimEffect` name for the same effect), and the pre-existing,
+				// unverified `bounce` alias (PowerPoint has no real "Bounce"
+				// emphasis effect; see `animation-write-mappings.ts`).
+				const allowance = (cls === 'entr' && id === 11) || (cls === 'emph' && id === 26) ? 3 : 2;
 				expect(
 					names.length,
 					`${cls} presetId=${id} is mapped by multiple presets: ${names.join(', ')}`,

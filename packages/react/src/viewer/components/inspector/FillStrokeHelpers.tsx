@@ -1,4 +1,4 @@
-import type { ShapeStyle, PptxElement } from 'pptx-viewer-core';
+import type { PptxThemeColorRef, ShapeStyle, PptxElement } from 'pptx-viewer-core';
 
 import { SHADOW_EFFECT_CONFIGS } from './fill-stroke-effect-configs';
 import { VISUAL_EFFECT_CONFIGS } from './fill-stroke-visual-configs';
@@ -17,11 +17,12 @@ export interface FillStrokePropertiesProps {
 		color: string;
 		position: number;
 		opacity?: number;
+		colorRef?: PptxThemeColorRef;
 	}>;
 	canEdit: boolean;
 	onUpdateShapeStyle: (updates: Partial<ShapeStyle>) => void;
-	onSetFillColor: (color: string) => void;
-	onSetStrokeColor: (color: string) => void;
+	onSetFillColor: (color: string, ref?: PptxThemeColorRef) => void;
+	onSetStrokeColor: (color: string, ref?: PptxThemeColorRef) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,7 @@ export type GradientStop = {
 	color: string;
 	position: number;
 	opacity?: number;
+	colorRef?: PptxThemeColorRef;
 };
 
 export const isLineish = (el: PptxElement, st: string | undefined): boolean =>

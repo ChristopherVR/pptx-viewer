@@ -12,6 +12,7 @@ import {
 	computeSplitCell,
 } from './table-cell-merge-helpers';
 import { TableCellAdvancedFill } from './TableCellAdvancedFill';
+import { TableCellColorField } from './TableCellColorField';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -82,24 +83,26 @@ export function TableCellFormattingPanel({
 
 				{/* Colors */}
 				<div className='grid grid-cols-2 gap-1.5'>
-					<label className='flex flex-col gap-1'>
-						<span className='text-muted-foreground'>{t('pptx.table.color')}</span>
-						<DebouncedColorInput
-							disabled={!canEdit}
-							value={normalizeHexColor(cs.color, '#000000')}
-							className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
-							onCommit={(hex) => updateCellStyle({ color: hex })}
-						/>
-					</label>
-					<label className='flex flex-col gap-1'>
-						<span className='text-muted-foreground'>{t('pptx.table.background')}</span>
-						<DebouncedColorInput
-							disabled={!canEdit}
-							value={normalizeHexColor(cs.backgroundColor, '#ffffff')}
-							className='w-full h-7 rounded border border-border bg-transparent cursor-pointer'
-							onCommit={(hex) => updateCellStyle({ backgroundColor: hex })}
-						/>
-					</label>
+					<TableCellColorField
+						label={t('pptx.table.color')}
+						prefix='table-cell-text'
+						value={cs.color}
+						fallback='#000000'
+						selectedRef={cs.colorRef}
+						disabled={!canEdit}
+						onCommit={(hex, ref) => updateCellStyle({ color: hex, colorRef: ref })}
+					/>
+					<TableCellColorField
+						label={t('pptx.table.background')}
+						prefix='table-cell-bg'
+						value={cs.backgroundColor}
+						fallback='#ffffff'
+						selectedRef={cs.backgroundColorRef}
+						disabled={!canEdit}
+						onCommit={(hex, ref) =>
+							updateCellStyle({ backgroundColor: hex, backgroundColorRef: ref })
+						}
+					/>
 				</div>
 
 				{/* Advanced Cell Fill & Margins */}

@@ -33,6 +33,15 @@ function renderOutlinePaint(paint: StrokeOutlinePaint): React.ReactElement {
 			</pattern>
 		);
 	}
+	if (paint.kind === 'rectPath') {
+		// A freeform `a:path type="rect"` gradient: the nested-rectangle band
+		// field stretched over the shape's bounding box.
+		return (
+			<pattern id={paint.id} patternUnits='objectBoundingBox' width={1} height={1}>
+				<image href={paint.href} x={0} y={0} width={1} height={1} preserveAspectRatio='none' />
+			</pattern>
+		);
+	}
 	const stops = paint.stops.map((stop, idx) => (
 		<stop
 			key={idx}

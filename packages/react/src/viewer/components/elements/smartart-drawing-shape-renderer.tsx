@@ -2,7 +2,7 @@ import type { PptxSmartArtDrawingShape, PptxSmartArtNode, SmartArtStyle } from '
 import {
 	computeDrawingViewBox,
 	projectDrawingShapes,
-	resolveDrawingShapeNodeId,
+	resolveRevealedDrawingShapeNodeIds,
 	styleShadowFilter,
 } from 'pptx-viewer-shared';
 import type { RenderedShape } from 'pptx-viewer-shared';
@@ -20,8 +20,18 @@ import {
 interface DrawingShapeRendererProps {
 	/** Unique element ID for generating stable React keys. */
 	elementId: string;
-	/** Pre-computed drawing shapes from PowerPoint's layout engine. */
+	/**
+	 * Pre-computed drawing shapes from PowerPoint's layout engine to draw: the
+	 * REVEALED subset during a staged `p:bldDgm` build, the whole list otherwise.
+	 */
 	shapes: PptxSmartArtDrawingShape[];
+	/**
+	 * The FULL cached shape list `shapes` was taken from. The view box comes
+	 * from it so a partial build does not rescale the diagram, and node ids are
+	 * resolved over it so a partially revealed shape keeps its own node's id
+	 * (matches Vue / Angular / Svelte / Vanilla). Defaults to `shapes`.
+	 */
+	allShapes?: readonly PptxSmartArtDrawingShape[];
 	/** Resolved SmartArt style (controls shadow, stroke). */
 	style: SmartArtStyle;
 	/** Resolved colour palette. */
@@ -108,13 +118,15 @@ function shapeBody(shape: RenderedShape): React.ReactElement {
 export function DrawingShapeRenderer({
 	elementId,
 	shapes,
+	allShapes = shapes,
 	style,
 	palette,
 	nodes,
 	nodeLabels,
 }: DrawingShapeRendererProps): React.ReactElement {
-	const viewBox = computeDrawingViewBox(shapes);
+	const viewBox = computeDrawingViewBox(allShapes);
 	const rendered = projectDrawingShapes(elementId, shapes, viewBox, palette, style);
+	const nodeIds = nodes ? resolveRevealedDrawingShapeNodeIds(allShapes, shapes, nodes) : undefined;
 	const shadow = styleShadowFilter(style);
 
 	return (
@@ -125,7 +137,7 @@ export function DrawingShapeRenderer({
 			data-testid='smartart-drawing-shapes'
 		>
 			{rendered.map((shape, i) => {
-				const nodeId = nodes ? resolveDrawingShapeNodeId(shapes[i]!, i, shapes, nodes) : undefined;
+				const nodeId = nodeIds?.[i];
 				const nodeLabel = nodeId ? nodeLabels?.get(nodeId) : undefined;
 				const groupProps = nodeId
 					? smartArtNodeGroupProps(nodeId, shadow, nodeLabel)

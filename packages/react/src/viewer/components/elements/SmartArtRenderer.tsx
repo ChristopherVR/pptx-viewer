@@ -5,7 +5,8 @@ import {
 	canDrillDown,
 	computeSmartArtElementLayout,
 	flattenNodes,
-	revealedSmartArtNodeCount,
+	resolveRevealedDrawingShapes,
+	resolveRevealedSmartArtNodes,
 	shouldCommitSmartArtNodeText,
 	rebuildDrawingShapesIfCleared,
 } from 'pptx-viewer-shared';
@@ -104,19 +105,17 @@ function SmartArtRendererImpl({
 	const { nodes, drawingShapes, chrome } = smartArtData;
 
 	// Staged diagram build (p:bldDgm): reveal only the leading nodes / shapes for
-	// the current playback progress. Non-diagram / absent state reveals all.
-	const diagramBuild = animationState?.build?.kind === 'diagram' ? animationState.build : undefined;
-	const shownNodeCount = diagramBuild
-		? revealedSmartArtNodeCount(nodes, diagramBuild)
-		: nodes.length;
-	const isPartialBuild = diagramBuild !== undefined && shownNodeCount < nodes.length;
-	const revealedNodes = isPartialBuild ? nodes.slice(0, shownNodeCount) : nodes;
+	// the current playback progress, preferring the AUTHORED per-node
+	// `p:graphicEl/@id` reveal set (animationState.diagramReveal) over the
+	// click-count estimate when available. Non-diagram / absent state reveals all.
+	const { nodes: revealedNodes } = resolveRevealedSmartArtNodes(
+		nodes,
+		animationState,
+		smartArtData.presLayoutVars,
+	);
 	const revealedShapes =
-		isPartialBuild && drawingShapes && drawingShapes.length > 0
-			? drawingShapes.slice(
-					0,
-					Math.ceil((shownNodeCount / Math.max(nodes.length, 1)) * drawingShapes.length),
-				)
+		drawingShapes && drawingShapes.length > 0
+			? resolveRevealedDrawingShapes(drawingShapes, nodes, animationState)
 			: drawingShapes;
 
 	if (nodes.length === 0) {
@@ -187,6 +186,7 @@ function SmartArtRendererImpl({
 			<DrawingShapeRenderer
 				elementId={element.id}
 				shapes={revealedShapes}
+				allShapes={drawingShapes}
 				style={style}
 				palette={palette}
 				nodes={nodes}
@@ -275,6 +275,41 @@ function arePropsEqual(prev: SmartArtRendererProps, next: SmartArtRendererProps)
 		prevBuild?.progress !== nextBuild?.progress
 	) {
 		return false;
+	}
+	// The authored per-node reveal set (`p:graphicEl/@id`) arrives WITHOUT a
+	// `build` descriptor before the first click (nothing has fired yet, so the
+	// engine hands out an empty node set and no active step). Comparing `build`
+	// alone kept the fully-populated first render on screen behind the hidden
+	// wrapper, so the show stage still carried every node in the DOM.
+	return sameDiagramReveal(prev.animationState?.diagramReveal, next.animationState?.diagramReveal);
+}
+
+/**
+ * Structural equality for two reveal descriptors: the engine allocates a fresh
+ * descriptor on every state snapshot, so identity alone would defeat the memo.
+ */
+function sameDiagramReveal(
+	prev: ElementAnimationState['diagramReveal'],
+	next: ElementAnimationState['diagramReveal'],
+): boolean {
+	if (prev === next) {
+		return true;
+	}
+	if (!prev || !next) {
+		return false;
+	}
+	if (prev.mode !== next.mode || prev.descriptor.background !== next.descriptor.background) {
+		return false;
+	}
+	const prevIds = prev.descriptor.nodeIds;
+	const nextIds = next.descriptor.nodeIds;
+	if (prevIds.size !== nextIds.size) {
+		return false;
+	}
+	for (const id of prevIds) {
+		if (!nextIds.has(id)) {
+			return false;
+		}
 	}
 	return true;
 }

@@ -25,6 +25,7 @@ import React from 'react';
 
 import { colorWithOpacity } from './color';
 import { getCompoundLineOffsets, getCompoundLineWidths } from './connector-path';
+import { renderSvgGradientDefs } from './svg-gradient-defs';
 
 /** Line-join / miter styling derived from a shape's `a:ln` join settings. */
 function joinStyle(shapeStyle: ShapeStyle | undefined): {
@@ -95,40 +96,6 @@ function strokeStrands(d: string, keyBase: string, ctx: StrokeStyleContext): Rea
 			style={offset !== 0 ? { transform: `translate(0, ${offset}px)` } : undefined}
 		/>
 	));
-}
-
-/** Emit the `<defs>` paint server for a gradient fill, when there is one. */
-function gradientDefs(gradient: SvgGradientDef | undefined): React.ReactNode {
-	if (!gradient) {
-		return null;
-	}
-	const stops = gradient.stops.map((stop, idx) => (
-		<stop
-			key={idx}
-			offset={stop.offset}
-			stopColor={stop.color}
-			stopOpacity={typeof stop.opacity === 'number' ? stop.opacity : undefined}
-		/>
-	));
-	return (
-		<defs>
-			{gradient.kind === 'radial' ? (
-				<radialGradient id={gradient.id} cx={gradient.cx} cy={gradient.cy} r={gradient.r}>
-					{stops}
-				</radialGradient>
-			) : (
-				<linearGradient
-					id={gradient.id}
-					x1={gradient.x1}
-					y1={gradient.y1}
-					x2={gradient.x2}
-					y2={gradient.y2}
-				>
-					{stops}
-				</linearGradient>
-			)}
-		</defs>
-	);
 }
 
 /**
@@ -228,7 +195,7 @@ export function renderCustomGeometryVector(
 			className='w-full h-full pointer-events-none'
 			preserveAspectRatio='none'
 		>
-			{animatesFill ? null : gradientDefs(gradient)}
+			{animatesFill ? null : renderSvgGradientDefs(gradient)}
 			{nodes}
 		</svg>
 	);

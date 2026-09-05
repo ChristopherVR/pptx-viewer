@@ -8,6 +8,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RecentColorsProvider } from './RecentColorsContext';
 import { ShapeTextPanels } from './ShapeTextPanels';
+import { ThemeColorMapProvider } from './ThemeColorMapContext';
+
+const OFFICE_THEME = {
+	dk1: '#000000',
+	lt1: '#FFFFFF',
+	dk2: '#44546A',
+	lt2: '#E7E6E6',
+	accent1: '#4472C4',
+	accent2: '#ED7D31',
+	accent3: '#A5A5A5',
+	accent4: '#FFC000',
+	accent5: '#5B9BD5',
+	accent6: '#70AD47',
+	bg1: '#FFFFFF',
+	tx1: '#000000',
+	bg2: '#E7E6E6',
+	tx2: '#44546A',
+};
 
 vi.mock(import('react-i18next'), () => ({
 	useTranslation: () => ({ t: (key: string, fallback?: string) => fallback ?? key }),
@@ -138,6 +156,58 @@ describe('shapeTextPanels', () => {
 		act(() => swatch.click());
 		expect(onUpdateTextStyle).toHaveBeenCalledWith({ color: '#112233' });
 		expect(pushColor).toHaveBeenCalledWith('#112233');
+	});
+
+	it('clicking a theme colour swatch commits both the hex AND the ref', () => {
+		const onUpdateTextStyle = vi.fn();
+		act(() => {
+			root.render(
+				<ThemeColorMapProvider value={OFFICE_THEME}>
+					<RecentColorsProvider value={{ recentColors: [], pushColor: () => {} }}>
+						<ShapeTextPanels
+							selectedElement={textElement()}
+							canEdit
+							onUpdateElement={() => {}}
+							onUpdateElementStyle={() => {}}
+							onUpdateTextStyle={onUpdateTextStyle}
+						/>
+					</RecentColorsProvider>
+				</ThemeColorMapProvider>,
+			);
+		});
+		const swatch = container.querySelector(
+			'[data-pptx-text-card] button[title="Accent 1"]',
+		) as HTMLButtonElement;
+		expect(swatch).not.toBeNull();
+		act(() => swatch.click());
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({
+			color: '#4472c4',
+			colorRef: { scheme: 'accent1' },
+		});
+	});
+
+	it('picking a recent swatch after a theme pick clears the stored ref', () => {
+		const onUpdateTextStyle = vi.fn();
+		act(() => {
+			root.render(
+				<ThemeColorMapProvider value={OFFICE_THEME}>
+					<RecentColorsProvider value={{ recentColors: ['#112233'], pushColor: () => {} }}>
+						<ShapeTextPanels
+							selectedElement={textElement()}
+							canEdit
+							onUpdateElement={() => {}}
+							onUpdateElementStyle={() => {}}
+							onUpdateTextStyle={onUpdateTextStyle}
+						/>
+					</RecentColorsProvider>
+				</ThemeColorMapProvider>,
+			);
+		});
+		const swatch = container.querySelector(
+			'[data-pptx-text-card] [data-testid="pptx-color-recent"] button[data-pptx-compact]',
+		) as HTMLButtonElement;
+		act(() => swatch.click());
+		expect(onUpdateTextStyle).toHaveBeenCalledWith({ color: '#112233', colorRef: undefined });
 	});
 
 	it('picking the native text colour input pushes it into the recent list', () => {

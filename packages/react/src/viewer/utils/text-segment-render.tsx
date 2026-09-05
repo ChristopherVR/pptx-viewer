@@ -224,9 +224,19 @@ export function renderParagraphRun(
 	// `nestedStyle` above) is what a WORD piece's own span will redeclare; the
 	// run's OWN span has the underline stripped so it does not draw it through
 	// the whitespace pieces it CSS-parents (see `renderUnderlineWords`).
+	//
+	// A ruby run is the one shape shared has ALREADY stripped: its base text stays
+	// one run, so `run.style` carries no underline and `nestedStyle` is empty;
+	// the decoration a word must redeclare rides `run.underlineWordPieces`
+	// instead (the same field Vue/Angular/Svelte/Vanilla render directly).
 	const isUnderlineWords =
 		Boolean(segmentStyle.underline) && segmentStyle.underlineStyle === 'words';
-	const wordDecoration = isUnderlineWords ? nestedStyle : undefined;
+	const wordDecoration = isUnderlineWords
+		? (nestedStyle ??
+			(run.underlineWordPieces?.find((piece) => piece.style)?.style as
+				| React.CSSProperties
+				| undefined))
+		: undefined;
 	if (isUnderlineWords) {
 		const stripped = stripUnderlineDecoration(spanStyle as RunStyle);
 		spanStyle.textDecoration = stripped.textDecoration as string | undefined;

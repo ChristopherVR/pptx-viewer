@@ -1,4 +1,5 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { hasShapeProperties } from 'pptx-viewer-core';
 import { shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +34,10 @@ const TOP_SHAPES = SHAPE_PRESETS.slice(0, 12);
 export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 	const { t } = useTranslation();
 	const { pushColor } = useRecentColors();
+	const selectedShapeStyle: ShapeStyle | undefined =
+		p.selectedElement && hasShapeProperties(p.selectedElement)
+			? p.selectedElement.shapeStyle
+			: undefined;
 	const [shapesOpen, setShapesOpen] = useState(false);
 	const [arrangeOpen, setArrangeOpen] = useState(false);
 	const [fillOpen, setFillOpen] = useState(false);
@@ -206,8 +211,10 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						onToggle={() => setFillOpen((v) => !v)}
 						disabled={!p.canEdit || !p.selectedElement}
 						swatchAriaLabel='Fill colour'
-						onApply={(c) => {
-							p.onUpdateElementStyle?.(shapeFillChange(c));
+						selectedRef={selectedShapeStyle?.fillColorRef}
+						selectedHex={selectedShapeStyle?.fillColor}
+						onApply={(c, ref) => {
+							p.onUpdateElementStyle?.(shapeFillChange(c, ref));
 							pushColor(c);
 						}}
 						onClose={() => setFillOpen(false)}
@@ -223,8 +230,10 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						onToggle={() => setOutlineOpen((v) => !v)}
 						disabled={!p.canEdit || !p.selectedElement}
 						swatchAriaLabel='Outline colour'
-						onApply={(c) => {
-							p.onUpdateElementStyle?.(shapeOutlineChange(c));
+						selectedRef={selectedShapeStyle?.strokeColorRef}
+						selectedHex={selectedShapeStyle?.strokeColor}
+						onApply={(c, ref) => {
+							p.onUpdateElementStyle?.(shapeOutlineChange(c, ref));
 							pushColor(c);
 						}}
 						onClose={() => setOutlineOpen(false)}

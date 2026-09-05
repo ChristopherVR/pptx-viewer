@@ -1,21 +1,14 @@
 /**
- * Theme colour swatches and font-family options.
+ * Font-family options.
+ *
+ * The old hard-coded `THEME_COLOR_SWATCHES` (a fixed 12-hex Office default
+ * palette) lived here; colour pickers now render the deck's REAL theme
+ * palette via `ThemeColorSwatchGrid` (`pptx-viewer-shared`'s
+ * `buildThemeColorSwatchGrid`, fed by `ThemeColorMapContext`), which follows
+ * whatever theme is actually loaded instead of a fixed guess, and the
+ * "Standard Colors" row now comes from `pptx-viewer-shared`'s
+ * `OFFICE_COLOR_SWATCHES` so every binding shows the same set.
  */
-
-export const THEME_COLOR_SWATCHES: string[] = [
-	'#000000',
-	'#FFFFFF',
-	'#1F497D',
-	'#EEECE1',
-	'#4472C4',
-	'#ED7D31',
-	'#A5A5A5',
-	'#FFC000',
-	'#5B9BD5',
-	'#70AD47',
-	'#0563C1',
-	'#954F72',
-];
 
 export const FONT_FAMILY_OPTIONS: string[] = [
 	'Calibri',

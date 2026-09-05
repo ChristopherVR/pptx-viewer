@@ -117,6 +117,9 @@ export function finishAnimationGroupSteps(
 				visible: step.presetClass !== 'exit' && !step.hideAfterEffect,
 				cssAnimation: step.holdEndState ? step.cssAnimation : undefined,
 				build: completedStates?.get(step.elementId)?.build ?? currentState.build,
+				chartReveal: completedStates?.get(step.elementId)?.chartReveal ?? currentState.chartReveal,
+				diagramReveal:
+					completedStates?.get(step.elementId)?.diagramReveal ?? currentState.diagramReveal,
 				animatesFill: holdsAnimatedPaint && step.colorTargets?.includes('fill') ? true : undefined,
 				animatesStroke:
 					holdsAnimatedPaint && step.colorTargets?.includes('stroke') ? true : undefined,
