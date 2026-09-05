@@ -1,4 +1,5 @@
 import type {
+	ParsedTableStyleMap,
 	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSlideTransition,
@@ -117,6 +118,14 @@ export interface ChromeCallbackDeps {
 	setDrawColor(color: string): void;
 	/** Set the pen/highlighter stroke width (Draw tab). */
 	setDrawWidth(width: number): void;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, for the table properties
+	 * panel's "Edit style...". `undefined` means the deck has no table styles
+	 * part; the button then simply does not render.
+	 */
+	getTableStyleMap(): ParsedTableStyleMap | undefined;
+	/** The current theme colour map (scheme key -> hex), for resolving scheme-based table style colours. */
+	getThemeColorMap(): Record<string, string> | undefined;
 }
 
 /**
@@ -246,6 +255,10 @@ export function buildChromeCallbacks(
 		applyThemeEdit: (payload) => deps.getEditActions().applyThemeEdit(payload),
 		updateTagCollections: (next) => deps.getEditActions().updateTagCollections(next),
 		updateActiveSlide: (patch) => deps.getEditActions().updateActiveSlide(patch),
+		getTableStyleMap: () => deps.getTableStyleMap(),
+		getThemeColorMap: () => deps.getThemeColorMap(),
+		updateTableStyleMap: (nextMap) => deps.getEditActions().updateTableStyleMap(nextMap),
+		deleteTableStyle: (styleId) => deps.getEditActions().deleteTableStyle(styleId),
 		setTemplateBackground: (path, backgroundColor) =>
 			deps.getEditActions().setTemplateBackground(path, backgroundColor),
 		getTemplateBackgroundColor: (path) => deps.getEditActions().getTemplateBackgroundColor(path),
@@ -299,6 +312,7 @@ export function buildChromeCallbacks(
 		resetImage: () => deps.getEditActions().resetSelectedImage(),
 		setElementAction: (trigger, action) => deps.getEditActions().setElementAction(trigger, action),
 		setAltText: (text) => deps.getEditActions().setAltText(text),
+		setTitle: (text) => deps.getEditActions().setTitle(text),
 		setOleName: (name) => deps.getEditActions().setOleName(name),
 		setChartData: (data) => deps.getEditActions().setChartData(data),
 		setMediaProperties: (patch) => deps.getEditActions().setMediaProperties(patch),

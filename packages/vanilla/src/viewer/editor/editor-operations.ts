@@ -20,12 +20,12 @@ import { duplicateElement } from 'pptx-viewer-core';
 import type { ElementBoxPatch } from 'pptx-viewer-shared';
 import {
 	applyFormatToElement,
+	buildDeckSaveOptions,
 	buildSaveSlides,
 	cloneSlides,
 	cloneTemplateElementsBySlideId,
 	copyFormatFromElement,
 	EditorHistory,
-	embeddedFontSaveOptions,
 	resolveSlideSizeSelection,
 	saveDeckWithPassword,
 	updateSlideNotes,
@@ -444,11 +444,11 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			const bytes = await saveDeckWithPassword(
 				handler,
 				buildSaveSlides(state.slides, state.templateElementsBySlideId),
-				{
-					sections: state.sections.length > 0 ? state.sections : undefined,
+				buildDeckSaveOptions({
+					sections: state.sections,
 					coreProperties: state.coreProperties,
 					appProperties: state.appProperties,
-					customProperties: state.customProperties.length > 0 ? state.customProperties : undefined,
+					customProperties: state.customProperties,
 					headerFooter: state.headerFooter,
 					presentationProperties: state.presentationProperties,
 					// Deck view preferences (grid/snap/guide toggles, `p:viewPr`): without
@@ -457,11 +457,14 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					// saved file (see `viewPropertiesPatchFromPreferences` write-back in
 					// `editor-edit-ops.ts`'s `toggleViewOption`).
 					viewProperties: state.viewProperties,
-					customShows: state.customShows.length ? state.customShows : undefined,
-					tags: state.tagCollections.length > 0 ? state.tagCollections : undefined,
+					customShows: state.customShows,
+					tagCollections: state.tagCollections,
 					slideMasters: state.slideMasters,
 					notesMaster: state.notesMaster,
 					handoutMaster: state.handoutMaster,
+					tableStyleMap: state.tableStyleMap,
+					tableStylesDefaultId: state.tableStylesDefaultId,
+					tableStylesToDelete: state.tableStylesToDelete,
 					outputFormat: format,
 					// Design > Slide Size. Omitting the option makes core re-emit the
 					// load-time `p:sldSz` verbatim, so a preset or orientation pick made
@@ -476,8 +479,8 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					// File > Fonts > "Embed fonts in the file": off strips the deck's
 					// embedded font data from the written package. The toggle reached
 					// no save call at all before this, so it changed nothing.
-					...embeddedFontSaveOptions(state.embedFonts),
-				},
+					embedFonts: state.embedFonts,
+				}),
 				{
 					password: state.presentationPassword,
 					passwordProtected: state.presentationPassword !== null,

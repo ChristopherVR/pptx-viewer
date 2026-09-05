@@ -1,4 +1,4 @@
-import type { PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import { readRibbonTransitionDraft, safeOpenUrl, toggleBlackboard } from 'pptx-viewer-shared';
 import type {
 	PresentationPointerState,
@@ -638,6 +638,13 @@ export interface ChromeHost {
 	 * Documents" (0-50), read fresh whenever the Recent list loads.
 	 */
 	getRecentPresentationsCount(): number;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, for the table properties
+	 * panel's "Edit style...".
+	 */
+	getTableStyleMap(): ParsedTableStyleMap | undefined;
+	/** The current theme colour map (scheme key -> hex), for resolving scheme-based table style colours. */
+	getThemeColorMap(): Record<string, string> | undefined;
 	toggleTemplateEditing(): void;
 	toggleMasterNavigation(): void;
 	selectElements(ids: string[]): void;
@@ -719,6 +726,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openVersionHistory: () => host.openVersionHistory(),
 		getChartFollowDataPoint: () => host.getChartFollowDataPoint(),
 		getRecentPresentationsCount: () => host.getRecentPresentationsCount(),
+		getTableStyleMap: () => host.getTableStyleMap(),
+		getThemeColorMap: () => host.getThemeColorMap(),
 		toggleTemplateEditing: () => host.toggleTemplateEditing(),
 		toggleMasterNavigation: () => host.toggleMasterNavigation(),
 		toggleInspector: () => host.store.set({ inspectorOpen: !host.store.get().inspectorOpen }),

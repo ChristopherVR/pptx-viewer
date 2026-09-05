@@ -5,6 +5,8 @@ import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import type { NumberFieldHandle } from '../controls';
 import { makeNumberField } from '../controls';
+import type { TableStyleEditorDeps } from '../table-style-editor';
+import { createTableStyleEditor } from '../table-style-editor';
 import type { CheckboxFieldHandle } from './controls-extra';
 import { makeCheckboxField } from './controls-extra';
 import { createTableCellFillControls } from './table-cell-fill-controls';
@@ -20,12 +22,17 @@ export interface TableSection {
 /**
  * The Table section: table-level flags (header row / banded rows) and a
  * uniform cell styling, and formatting for the active table cell.
+ *
+ * `styleEditorDeps` is optional: when the host has not wired the
+ * table-style-DEFINITION-editor feature through (see `table-style-editor.ts`'s
+ * docblock), the "Edit style..." button simply is not rendered.
  */
 export function createTableSection(
 	doc: Document,
 	t: Translator,
 	section: (label: string) => HTMLElement,
 	handlers: InspectorHandlers,
+	styleEditorDeps?: TableStyleEditorDeps,
 ): TableSection {
 	const el = section(t('pptx.inspector.table'));
 
@@ -122,6 +129,10 @@ export function createTableSection(
 	);
 	border.addEventListener('change', () => handlers.pushRecentColor(border.value));
 	el.append(styleId, background, border);
+	const styleEditor = styleEditorDeps ? createTableStyleEditor(doc, t, styleEditorDeps) : undefined;
+	if (styleEditor) {
+		el.appendChild(styleEditor.el);
+	}
 	const cellFormatting = createTableCellFormatting(doc, t, handlers);
 	const cellFill = createTableCellFillControls(doc, t, handlers);
 	const structure = createTableStructureControls(doc, t, handlers);
@@ -166,6 +177,7 @@ export function createTableSection(
 			styleId.disabled = !state.isTable;
 			background.disabled = !state.isTable;
 			border.disabled = !state.isTable;
+			styleEditor?.update(state.isTable ? state.tableStyleId : undefined, state.isTable);
 			for (const c of numberFields) {
 				c.setDisabled(!state.isTable);
 			}

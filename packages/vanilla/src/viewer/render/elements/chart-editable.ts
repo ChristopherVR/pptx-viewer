@@ -2,18 +2,22 @@
    an imperative DOM-builder with many independent `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import {
+	advanceChartMarkDrag,
 	advanceChartValueDrag,
 	applyChartPartHighlight,
+	beginChartMarkDrag,
 	beginChartValueDrag,
+	buildChartMarkDragGeometry,
 	buildChartViewModel,
 	canDrillDown,
 	CHART_INTERACTIVE_CLASS,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
 	formatAxisValue,
+	resolveChartKind,
 	withChartTitle,
 } from 'pptx-viewer-shared';
-import type { ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
+import type { ChartMarkDragState, ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
 
 import type { ElementRenderContext } from '../types';
 
@@ -75,6 +79,10 @@ export function attachChartEditing(
 	container.classList.add(CHART_INTERACTIVE_CLASS);
 
 	let active: ChartValueDragState | null = null;
+	// Pie/doughnut slice, radar vertex, or stacked segment drag: no single
+	// vertical value axis, so it runs through a parallel state machine, never
+	// alongside `active`.
+	let activeMark: ChartMarkDragState | null = null;
 	// Seed from the persisted selection (survives a stage rebuild triggered by
 	// an unrelated edit, e.g. a value typed into the inspector grid), not just
 	// from an in-progress gesture on THIS render's container.
@@ -113,6 +121,20 @@ export function attachChartEditing(
 	 * drag must not depend on it.
 	 */
 	const onMove = (event: PointerEvent): void => {
+		if (activeMark) {
+			const rect = container.querySelector('svg')?.getBoundingClientRect();
+			if (!rect) {
+				return;
+			}
+			const step = advanceChartMarkDrag(activeMark, event.clientX, event.clientY, rect);
+			if (!step) {
+				return;
+			}
+			repaint(step.chartData);
+			applyChartPartHighlight(container, selected);
+			showBadge(formatAxisValue(step.value));
+			return;
+		}
 		if (!active) {
 			return;
 		}
@@ -127,26 +149,35 @@ export function attachChartEditing(
 	};
 
 	const onUp = (): void => {
-		if (active) {
+		if (active || activeMark) {
 			end(true);
 		}
 	};
 
 	function end(commit: boolean): void {
 		const finished = active;
+		const finishedMark = activeMark;
 		active = null;
+		activeMark = null;
 		const view = container.ownerDocument.defaultView;
 		view?.removeEventListener('keydown', onKeydown);
 		view?.removeEventListener('pointermove', onMove);
 		view?.removeEventListener('pointerup', onUp);
 		clearBadge();
-		if (commit && finished?.moved && finished.lastData) {
-			// The commit re-renders the stage from the editor's own state, so no
-			// local repaint is needed (and doing one would flash the preview).
-			context.onChartPointChange?.(element, finished.lastData);
-			return;
+		if (commit) {
+			const lastData = finished?.moved
+				? finished.lastData
+				: finishedMark?.moved
+					? finishedMark.lastData
+					: null;
+			if (lastData) {
+				// The commit re-renders the stage from the editor's own state, so no
+				// local repaint is needed (and doing one would flash the preview).
+				context.onChartPointChange?.(element, lastData);
+				return;
+			}
 		}
-		if (finished?.moved && chart.chartData) {
+		if ((finished?.moved || finishedMark?.moved) && chart.chartData) {
 			// Cancelled: put the committed data back on screen.
 			repaint(chart.chartData);
 			applyChartPartHighlight(container, selected);
@@ -230,13 +261,47 @@ export function attachChartEditing(
 		context.onChartPartSelect?.(element, part);
 		// Built from the COMMITTED data so the axis cannot rescale under the
 		// pointer mid-drag and carry the mark away from the cursor.
-		const started = beginChartValueDrag({
-			part,
-			viewModel: buildChartViewModel(chart),
-			chartData: chart.chartData,
-			clientY: event.clientY,
-		});
-		if (!started) {
+		const vm = buildChartViewModel(chart);
+		let captured = false;
+		// Pie/doughnut/radar/stacked marks: try the angle/radial/segment drag first.
+		const chartKind = resolveChartKind(chart.chartData.chartType ?? 'bar');
+		if (part.pointIndex !== undefined && chartKind !== 'unsupported') {
+			const markGeometry = buildChartMarkDragGeometry({
+				kind: chartKind,
+				element: chart,
+				chartData: chart.chartData,
+				categoryLabels: chart.chartData.categories,
+				seriesIndex: part.seriesIndex,
+				pointIndex: part.pointIndex,
+			});
+			const startedMark = beginChartMarkDrag({
+				part,
+				geometry: markGeometry,
+				chartData: chart.chartData,
+				svgWidth: vm.svgWidth,
+				svgHeight: vm.svgHeight,
+				clientX: event.clientX,
+				clientY: event.clientY,
+			});
+			if (startedMark) {
+				activeMark = startedMark;
+				captured = true;
+			}
+		}
+		// Clustered bar/line/scatter/bubble: the existing vertical value-axis drag.
+		if (!captured) {
+			const started = beginChartValueDrag({
+				part,
+				viewModel: vm,
+				chartData: chart.chartData,
+				clientY: event.clientY,
+			});
+			if (started) {
+				active = started;
+				captured = true;
+			}
+		}
+		if (!captured) {
 			return;
 		}
 		event.preventDefault();
@@ -245,7 +310,6 @@ export function attachChartEditing(
 		} catch {
 			// Non-fatal: the drag still works while the pointer stays over the chart.
 		}
-		active = started;
 		const view = container.ownerDocument.defaultView;
 		view?.addEventListener('keydown', onKeydown);
 		view?.addEventListener('pointermove', onMove);

@@ -82,6 +82,7 @@ function deckDataFromState(state: ViewerState): PptxData {
 		handoutMaster: state.handoutMaster,
 		hasMacros: state.hasMacros,
 		tableStyleMap: state.tableStyleMap,
+		tableStylesDefaultId: state.tableStylesDefaultId,
 		tags: state.tagCollections,
 		theme:
 			state.colorScheme || state.fontScheme || state.themeName

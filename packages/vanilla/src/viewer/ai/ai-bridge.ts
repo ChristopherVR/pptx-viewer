@@ -19,7 +19,7 @@ import type {
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
-import { applyElementUpdate } from 'pptx-viewer-shared/ai';
+import { applyElementUpdate, deckDataFieldChanged } from 'pptx-viewer-shared/ai';
 
 import type { EditorController } from '../editor';
 import type { Store, ViewerState } from '../state';
@@ -78,10 +78,14 @@ export function createVanillaAiBridge(deps: VanillaAiBridgeDeps): PptxAiBridge {
 			customProperties: state.customProperties,
 			coreProperties: state.coreProperties,
 			appProperties: state.appProperties,
+			viewProperties: state.viewProperties,
+			tableStyleMap: state.tableStyleMap,
+			tableStylesDefaultId: state.tableStylesDefaultId,
+			tags: state.tagCollections,
 		} satisfies Partial<PptxData> as PptxData;
 	};
 
-	const differs = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
+	const differs = deckDataFieldChanged;
 
 	return {
 		getDeckMeta(): PptxAiDeckMeta {
@@ -154,6 +158,24 @@ export function createVanillaAiBridge(deps: VanillaAiBridgeDeps): PptxAiBridge {
 				differs(before.customProperties, nextCustom)
 			) {
 				editor.updateDocumentProperties(nextCore ?? {}, nextApp ?? {}, nextCustom);
+			}
+			if (differs(before.viewProperties, after.viewProperties)) {
+				// Not undo-tracked, mirroring the manual View > Grid/Guides/Snap
+				// toggle (view preferences live outside the undo history).
+				store.set({ viewProperties: after.viewProperties });
+			}
+			if (differs(before.tableStyleMap, after.tableStyleMap)) {
+				editor.getEditActions().updateTableStyleMap(after.tableStyleMap ?? {});
+			}
+			if (differs(before.tableStylesDefaultId, after.tableStylesDefaultId)) {
+				// No manual UI sets this in the vanilla binding yet (a pre-existing
+				// gap, not introduced here), so there is no dedicated editor action;
+				// commit it the same way `viewProperties` does, outside undo history.
+				store.set({ tableStylesDefaultId: after.tableStylesDefaultId });
+			}
+			const nextTags = after.tags ?? before.tags ?? [];
+			if (differs(before.tags, nextTags)) {
+				editor.getEditActions().updateTagCollections(nextTags);
 			}
 		},
 

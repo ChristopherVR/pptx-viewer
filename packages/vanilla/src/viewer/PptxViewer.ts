@@ -1,8 +1,14 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (many independent short-lived `const`s per handler/method); merging them
    isn't a style choice here. */
-import { cloneSlide, setSmartArtNodeStyle, updateSmartArtNodeText } from 'pptx-viewer-core';
+import {
+	buildThemeColorMap,
+	cloneSlide,
+	setSmartArtNodeStyle,
+	updateSmartArtNodeText,
+} from 'pptx-viewer-core';
 import type {
+	ParsedTableStyleMap,
 	PptxElement,
 	PptxHandler,
 	PptxSaveFormat,
@@ -18,6 +24,7 @@ import type {
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 import {
+	buildDeckSaveOptions,
 	buildPresentationAudienceUrl,
 	buildUserFontFaceStyles,
 	clearPresentationDeck,
@@ -55,6 +62,7 @@ import {
 	resolveAuthoredSlideRange,
 	resolveExpiredAutosaveSnapshots,
 	resolveImageResolutionScale,
+	resolveSlideSizeSelection,
 	shouldClearAutosaveCacheOnClose,
 	shouldConfirmExternalHyperlink,
 	shouldDiscardAutosaveOnSuccessfulSave,
@@ -529,6 +537,35 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			store: this.store,
 			options,
 			getHandler: () => this.loading.getHandler(),
+			// Session-level save options (view properties, table styles, tags, deck
+			// properties, ...), built the same way as `editor.save`, so an owner's
+			// write-back file no longer drops every session-level edit outside
+			// `slides`.
+			getSaveOptions: () => {
+				const state = this.store.get();
+				return buildDeckSaveOptions({
+					headerFooter: state.headerFooter,
+					presentationProperties: state.presentationProperties,
+					viewProperties: state.viewProperties,
+					customShows: state.customShows,
+					sections: state.sections,
+					coreProperties: state.coreProperties,
+					appProperties: state.appProperties,
+					customProperties: state.customProperties,
+					tagCollections: state.tagCollections,
+					slideMasters: state.slideMasters,
+					notesMaster: state.notesMaster,
+					handoutMaster: state.handoutMaster,
+					slideSize: resolveSlideSizeSelection({
+						current: state.slideSize,
+						canvas: state.canvasSize,
+					}).size,
+					tableStyleMap: state.tableStyleMap,
+					tableStylesDefaultId: state.tableStylesDefaultId,
+					tableStylesToDelete: state.tableStylesToDelete,
+					embedFonts: state.embedFonts,
+				});
+			},
 			getChrome: () => this.lifecycle.chrome,
 			getTranslator: () => this.t,
 			getScale: () => this.renderer.effectiveScale(),
@@ -1524,6 +1561,20 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	getChartFollowDataPoint(): boolean {
 		const controller = this.optionsController as ViewerOptionsController | undefined;
 		return controller?.getOptions().advanced.chartPropertiesFollowDataPoint ?? true;
+	}
+
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, for the table properties
+	 * panel's "Edit style...".
+	 */
+	getTableStyleMap(): ParsedTableStyleMap | undefined {
+		return this.store.get().tableStyleMap;
+	}
+
+	/** The current theme colour map (scheme key -> hex), for resolving scheme-based table style colours. */
+	getThemeColorMap(): Record<string, string> | undefined {
+		const colorScheme = this.store.get().colorScheme;
+		return colorScheme ? buildThemeColorMap(colorScheme) : undefined;
 	}
 
 	/**

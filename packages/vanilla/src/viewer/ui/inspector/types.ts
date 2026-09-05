@@ -3,6 +3,7 @@ import type {
 	PptxImageEffects,
 	PptxChartData,
 	MediaPptxElement,
+	ParsedTableStyleMap,
 	PptxComment,
 	PptxCommentMention,
 	PptxCustomShow,
@@ -69,6 +70,18 @@ export interface InspectorHandlers {
 	}): void;
 	/** Replace the deck's `ppt/tags/*.xml` collections (TAGS card). */
 	updateTagCollections(next: PptxTagCollection[]): void;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, for the table properties
+	 * panel's "Edit style...". `undefined` means the host has not wired the
+	 * table-style-editor feature through; the button then simply does not render.
+	 */
+	getTableStyleMap(): ParsedTableStyleMap | undefined;
+	/** The current theme colour map (scheme key -> hex), for resolving scheme-based table style colours. */
+	getThemeColorMap(): Record<string, string> | undefined;
+	/** Commit a full replacement style map (section edit, create, or delete already applied). */
+	updateTableStyleMap(nextMap: ParsedTableStyleMap): void;
+	/** Record a styleId for save-time removal from `ppt/tableStyles.xml`. */
+	deleteTableStyle(styleId: string): void;
 	/** Patch the active slide (THEME OVERRIDE card). */
 	updateActiveSlide(patch: Partial<PptxSlide>): void;
 	/**
@@ -163,6 +176,13 @@ export interface InspectorHandlers {
 	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
 	/** Set the selected element's accessibility description (Alt Text field). */
 	setAltText(text: string): void;
+	/**
+	 * Set the selected element's accessibility title (`p:cNvPr/@title`).
+	 * Applies to a plain shape/text box/connector and every graphic-frame
+	 * kind (table/chart/smartArt/ole/media), not a picture (which has no
+	 * title field). See {@link PptxNonVisualDescription}.
+	 */
+	setTitle(text: string): void;
 	/**
 	 * Set the selected OLE element's Object Name (`p:oleObj/@name`, ECMA-376
 	 * SS13.3.4). A browser cannot run the native application an embedded OLE
@@ -294,6 +314,15 @@ export interface InspectorState {
 	actionHover?: ElementAction;
 	/** The selected element's alt text (accessibility description), if any. */
 	altText: string;
+	/** The selected element's accessibility title (`p:cNvPr/@title`), if any. */
+	title: string;
+	/**
+	 * Whether the selection is a plain shape, text box or connector: gates the
+	 * Accessibility section's own alt-text/title editor (a picture's alt text
+	 * has its own field in the Image section; a graphic frame has no editor
+	 * of its own yet).
+	 */
+	isTextShapeOrConnector: boolean;
 	chartData?: PptxChartData;
 	/**
 	 * The on-canvas chart part selection, scoped to the selected chart element:

@@ -210,6 +210,8 @@ export function createLoadingController(deps: LoadingControllerDeps): LoadingCon
 				themeName: loaded.themeName,
 				tagCollections: loaded.tagCollections,
 				tableStyleMap: loaded.tableStyleMap,
+				tableStylesDefaultId: loaded.tableStylesDefaultId,
+				tableStylesToDelete: [],
 				currentSlide: clampSlideIndex(options.initialSlide ?? 0, partition.slides.length),
 				loading: false,
 			});

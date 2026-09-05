@@ -7,6 +7,7 @@ import {
 	CHART_GROUPING_LABEL_KEYS,
 	CHART_TYPE_LABEL_KEYS,
 	CHART_TYPE_OPTIONS,
+	collapseChartTitleRunsForEdit,
 	patchChartData as sharedPatchChartData,
 } from 'pptx-viewer-shared';
 
@@ -129,9 +130,12 @@ export function createChartSection(
 			selectedType === current.chartType
 				? current
 				: sharedPatchChartData(current, { chartType: selectedType });
+		// A multi-run title collapses to one run in its dominant style so an
+		// edit does not leave another, now-stale run's text trailing the new
+		// title; see `collapseChartTitleRunsForEdit`'s doc.
 		handlers.setChartData({
 			...base,
-			title: title.control.value,
+			...collapseChartTitleRunsForEdit(base, title.control.value),
 			grouping: grouping.control.value as PptxChartData['grouping'],
 			style: {
 				...base.style,

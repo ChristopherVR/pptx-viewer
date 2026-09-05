@@ -1,5 +1,9 @@
+import { tableStyleAssignmentUpdate } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import type { TableStyleEditorDeps } from '../table-style-editor';
+import { createAccessibilitySection } from './accessibility-section';
 import { createActionSection } from './action-section';
 import { createAnimationPanel } from './animation-panel';
 import { createChartSection } from './chart-section';
@@ -118,13 +122,24 @@ export function createInspector(
 	const text = createTextSection(doc, t, section, handlers);
 	const text3d = createText3DSection(doc, t, section, handlers);
 	const image = createImageSection(doc, t, section, handlers);
+	const accessibility = createAccessibilitySection(doc, t, section, handlers);
 	// The cell-text spreadsheet sits ABOVE the table's styling section, matching
 	// React's inspector order. It builds its own <section> (rather than using the
 	// `section()` factory) because it needs an aria-labelled landmark, so it is
 	// appended to the body by hand at exactly this point.
 	const tableDataGrid = createTableDataGrid(doc, t, handlers);
 	body.appendChild(tableDataGrid.el);
-	const table = createTableSection(doc, t, section, handlers);
+	// `handlers` already carries everything `TableStyleEditorDeps` needs
+	// (getTableStyleMap/getThemeColorMap/updateTableStyleMap/deleteTableStyle),
+	// so there is no need to thread a second deps object down from `ChromeOptions`.
+	const styleEditorDeps: TableStyleEditorDeps = {
+		getTableStyleMap: () => handlers.getTableStyleMap(),
+		getThemeColorMap: () => handlers.getThemeColorMap(),
+		onStyleMapChange: (map) => handlers.updateTableStyleMap(map),
+		onDeleteStyle: (id) => handlers.deleteTableStyle(id),
+		onAssignStyle: (styleId) => handlers.setTableOptions(tableStyleAssignmentUpdate(styleId)),
+	};
+	const table = createTableSection(doc, t, section, handlers, styleEditorDeps);
 	const smartArt = createSmartArtSection(doc, t, section, handlers);
 	const action = createActionSection(doc, t, section, handlers);
 	const chart = createChartSection(doc, t, section, handlers);
@@ -138,6 +153,7 @@ export function createInspector(
 		text,
 		text3d,
 		image,
+		accessibility,
 		tableDataGrid,
 		table,
 		smartArt,

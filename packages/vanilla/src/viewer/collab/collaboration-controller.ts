@@ -82,6 +82,7 @@ export function createCollaborationController(
 	const writeBack = createWriteBackScheduler({
 		getYDoc: () => currentYDoc,
 		getHandler: deps.getHandler,
+		getSaveOptions: deps.getSaveOptions,
 	});
 
 	const slidesSync: SlidesSync = createSlidesSync(store, (config) => writeBack.schedule(config));

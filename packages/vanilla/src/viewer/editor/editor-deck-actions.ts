@@ -1,4 +1,5 @@
 import type {
+	ParsedTableStyleMap,
 	PptxData,
 	PptxHandler,
 	PptxPresentationProperties,
@@ -10,6 +11,8 @@ import type {
 import { applyThemeToData, reResolveElementColors } from 'pptx-viewer-core';
 import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import {
+	applyTableStyleDelete,
+	applyTableStyleMapChange,
 	resolveSlideSizeSelection,
 	scaleSlidesForSizeChange,
 	slideSizeToCanvasPx,
@@ -66,6 +69,10 @@ export interface DeckActions {
 	 * `scaleSlidesForSizeChange`.
 	 */
 	applySlideSizeRescale(size: SlideSizeEmu, mode: SlideSizeRescaleMode): void;
+	/** Commit a full replacement style map (section edit, create, or delete already applied). */
+	updateTableStyleMap(nextMap: ParsedTableStyleMap): void;
+	/** Record a styleId for save-time removal from `ppt/tableStyles.xml`. */
+	deleteTableStyle(styleId: string): void;
 }
 
 export interface DeckActionsDeps {
@@ -236,6 +243,41 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 				slides: scaleSlidesForSizeChange(state.slides, oldSize, size, mode),
 				slideSize: { ...size },
 				canvasSize: slideSizeToCanvasPx(size),
+			});
+			ops.commitChange();
+		},
+
+		updateTableStyleMap(nextMap) {
+			const state = store.get();
+			if (!state.editable) {
+				return;
+			}
+			// Table style DEFINITIONS live outside the slide tree (like tags), so
+			// there is nothing for the history snapshot to restore; commitChange
+			// still marks the deck dirty so the change reaches the next save.
+			const result = applyTableStyleMapChange(
+				{ tableStyleMap: state.tableStyleMap, tableStylesToDelete: state.tableStylesToDelete },
+				nextMap,
+			);
+			store.set({
+				tableStyleMap: result.tableStyleMap,
+				tableStylesToDelete: result.tableStylesToDelete,
+			});
+			ops.commitChange();
+		},
+
+		deleteTableStyle(styleId) {
+			const state = store.get();
+			if (!state.editable) {
+				return;
+			}
+			const result = applyTableStyleDelete(
+				{ tableStyleMap: state.tableStyleMap, tableStylesToDelete: state.tableStylesToDelete },
+				styleId,
+			);
+			store.set({
+				tableStyleMap: result.tableStyleMap,
+				tableStylesToDelete: result.tableStylesToDelete,
 			});
 			ops.commitChange();
 		},

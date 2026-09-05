@@ -484,3 +484,25 @@ describe('createInspectorActions toggleElementLock', () => {
 		expect((selectedEl(store) as { locks?: unknown }).locks).toBeUndefined();
 	});
 });
+
+describe('createInspectorActions setAltText / setTitle', () => {
+	it('writes altText onto a text element (a base-element field, not image-only)', () => {
+		const { store, actions } = buildActions(textElement());
+		actions.setAltText('A red rectangle');
+		expect((selectedEl(store) as { altText?: string }).altText).toBe('A red rectangle');
+	});
+
+	it('writes title onto a text element', () => {
+		const { store, actions } = buildActions(textElement());
+		actions.setTitle('Callout');
+		expect((selectedEl(store) as { title?: string }).title).toBe('Callout');
+	});
+
+	it('setTitle is undoable', () => {
+		const { store, ops, actions } = buildActions(textElement());
+		actions.setTitle('Callout');
+		expect((selectedEl(store) as { title?: string }).title).toBe('Callout');
+		ops.undo();
+		expect((selectedEl(store) as { title?: string }).title).toBeUndefined();
+	});
+});

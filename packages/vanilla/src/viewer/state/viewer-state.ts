@@ -164,6 +164,14 @@ export interface ViewerState {
 	tagCollections: PptxTagCollection[];
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
+	/** `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>` default style GUID. */
+	tableStylesDefaultId?: string;
+	/**
+	 * Style GUIDs deleted from `tableStyleMap` via the table style editor,
+	 * pending removal from `ppt/tableStyles.xml` on the next save. See
+	 * `tableStyleSaveOptions` / `applyTableStyleDelete` in `pptx-viewer-shared`.
+	 */
+	tableStylesToDelete: string[];
 	/** Zero-based index of the visible slide. */
 	currentSlide: number;
 	/** Requested zoom (explicit factor or fit-to-viewport). */
@@ -322,6 +330,8 @@ export function createInitialViewerState(): ViewerState {
 		themeName: undefined,
 		tagCollections: [],
 		tableStyleMap: undefined,
+		tableStylesDefaultId: undefined,
+		tableStylesToDelete: [],
 		currentSlide: 0,
 		zoom: 'fit',
 		loading: false,

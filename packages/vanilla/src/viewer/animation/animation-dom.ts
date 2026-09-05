@@ -1,9 +1,38 @@
 import {
 	ANIMATION_KEYFRAMES_CSS,
+	buildTextStyleOverrideCss,
 	PRESENTATION_HIT_TEST_CSS,
 	SLIDE_TRANSITION_KEYFRAMES_CSS,
 } from 'pptx-viewer-shared';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
+
+/** Marker attribute on the `<style>` child a text-style override patches in place. */
+const TEXT_STYLE_OVERRIDE_ATTR = 'data-pptx-text-style-override';
+
+/**
+ * Create/update/remove `el`'s scoped font-style-emphasis override `<style>`
+ * child (Bold Flash, Bold Reveal, Underline, Change Font Style/Size), which
+ * OVERRIDES the runs' own inline bold/italic/underline/size since plain CSS
+ * inheritance cannot reach them. See `animation-text-style-css.ts`.
+ */
+function applyTextStyleOverride(
+	el: HTMLElement,
+	id: string,
+	state: ElementAnimationState | undefined,
+): void {
+	const css = buildTextStyleOverrideCss(id, state?.textStyle);
+	let styleTag = el.querySelector<HTMLStyleElement>(`:scope > style[${TEXT_STYLE_OVERRIDE_ATTR}]`);
+	if (!css) {
+		styleTag?.remove();
+		return;
+	}
+	if (!styleTag) {
+		styleTag = el.ownerDocument.createElement('style');
+		styleTag.setAttribute(TEXT_STYLE_OVERRIDE_ATTR, '');
+		el.prepend(styleTag);
+	}
+	styleTag.textContent = css;
+}
 
 /** `<style>` id for the once-per-document static presentation keyframe block. */
 const KEYFRAMES_ELEMENT_ID = 'pptx-vanilla-presentation-keyframes';
@@ -78,6 +107,7 @@ export function applyElementAnimationStyles(
 		el.style.visibility = state?.visible === false ? 'hidden' : '';
 		el.style.cursor =
 			interactiveTriggerShapeIds.has(id) || hoverTriggerShapeIds.has(id) ? 'pointer' : '';
+		applyTextStyleOverride(el, id, state);
 	});
 
 	// Staged text builds render one span per paragraph / word / letter, keyed

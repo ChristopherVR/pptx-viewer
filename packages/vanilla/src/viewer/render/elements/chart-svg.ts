@@ -69,7 +69,21 @@ export function renderChartViewModelSvg(
 			fill: vm.titleStyle?.fill ?? '#1e293b',
 			'data-chart-part': 'title',
 		});
-		title.textContent = vm.title;
+		if (vm.titleRunSpans && vm.titleRunSpans.length > 0) {
+			for (const run of vm.titleRunSpans) {
+				const tspan = createSvgEl(doc, 'tspan', {
+					'font-size': run.fontSize,
+					'font-weight': run.fontWeight,
+					'font-style': run.fontStyle,
+					'font-family': run.fontFamily,
+					fill: run.fill,
+				});
+				tspan.textContent = run.text;
+				title.appendChild(tspan);
+			}
+		} else {
+			title.textContent = vm.title;
+		}
 		svg.appendChild(title);
 	}
 

@@ -28,11 +28,18 @@ function fakeEditor(store: Store<ViewerState>) {
 		updateDocumentProperties: vi.fn((core, app, custom) =>
 			store.set({ coreProperties: core, appProperties: app, customProperties: custom }),
 		),
+		updateTableStyleMap: vi.fn((map) => store.set({ tableStyleMap: map })),
+		updateTagCollections: vi.fn((tags) => store.set({ tagCollections: tags })),
 	};
 	const editor = {
 		commitSlides: calls.commitSlides,
 		selectElements: vi.fn(),
-		getEditActions: () => ({ updateCanvasSize: calls.updateCanvasSize }) as unknown as EditActions,
+		getEditActions: () =>
+			({
+				updateCanvasSize: calls.updateCanvasSize,
+				updateTableStyleMap: calls.updateTableStyleMap,
+				updateTagCollections: calls.updateTagCollections,
+			}) as unknown as EditActions,
 		updateSections: calls.updateSections,
 		updatePresentationProperties: calls.updatePresentationProperties,
 		updateDocumentProperties: calls.updateDocumentProperties,
@@ -187,5 +194,58 @@ describe('vanilla AI bridge deck seam', () => {
 			shapeStyle?: { fillColor?: string };
 		};
 		expect(el.shapeStyle?.fillColor).toBe('#00ff00');
+	});
+
+	// viewProperties/tableStyleMap/tableStylesDefaultId/tags were missing from
+	// this seam entirely: the main Save/Export path (`editor.save`) persists
+	// them, but an MCP deck tool operating on `getDeckData()`/`applyDeckData()`
+	// could not see or commit them.
+	it('getDeckData exposes viewProperties/tableStyleMap/tableStylesDefaultId/tags', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			editable: true,
+			viewProperties: { showComments: true },
+			tableStyleMap: { '{guid}': { styleId: '{guid}', styleName: 'Style' } },
+			tableStylesDefaultId: '{guid}',
+			tagCollections: [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] }],
+		});
+		const { editor } = fakeEditor(store);
+		const bridge = createVanillaAiBridge({
+			store,
+			editor,
+			goToSlide: vi.fn(),
+			ensureEditable: vi.fn(),
+			getHandler: () => null,
+			applyThemeUpdates: vi.fn(),
+		});
+
+		const data = bridge.getDeckData?.();
+		expect(data?.viewProperties).toStrictEqual({ showComments: true });
+		expect(data?.tableStyleMap).toStrictEqual({
+			'{guid}': { styleId: '{guid}', styleName: 'Style' },
+		});
+		expect(data?.tableStylesDefaultId).toBe('{guid}');
+		expect(data?.tags).toStrictEqual([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] },
+		]);
+	});
+
+	it('applyDeckData commits a changed viewProperties/tableStyleMap/tags', () => {
+		const { store, bridge, calls } = setup();
+
+		bridge.applyDeckData?.((data) => {
+			data.viewProperties = { showComments: false };
+			data.tableStyleMap = { '{new}': { styleId: '{new}', styleName: 'New' } };
+			data.tags = [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] }];
+			return data;
+		}, 'metadata');
+
+		expect(store.get().viewProperties).toStrictEqual({ showComments: false });
+		expect(calls.updateTableStyleMap).toHaveBeenCalledWith({
+			'{new}': { styleId: '{new}', styleName: 'New' },
+		});
+		expect(calls.updateTagCollections).toHaveBeenCalledWith([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] },
+		]);
 	});
 });

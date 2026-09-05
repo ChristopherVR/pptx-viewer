@@ -1,4 +1,4 @@
-import type { PptxHandler } from 'pptx-viewer-core';
+import type { PptxHandler, PptxHandlerSaveOptions } from 'pptx-viewer-core';
 import type {
 	AutosaveActivation,
 	CollabLoadOrigin,
@@ -26,6 +26,13 @@ export interface SessionControllersDeps {
 	store: Store<ViewerState>;
 	options: PptxViewerOptions;
 	getHandler: () => PptxHandler | null;
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path
+	 * (`buildDeckSaveOptions`). Without this the elected-writer write-back
+	 * dropped every session-level edit outside `slides`.
+	 */
+	getSaveOptions?: () => PptxHandlerSaveOptions;
 	getChrome: () => ViewerChrome;
 	getTranslator: () => Translator;
 	getScale: () => number;
@@ -147,6 +154,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 	const collaboration: CollaborationController = createCollaborationController({
 		store: deps.store,
 		getHandler: deps.getHandler,
+		getSaveOptions: deps.getSaveOptions,
 		setEditable: deps.setEditable,
 		onStatusChange: (status) => {
 			options.onCollaborationStatus?.(status);

@@ -7,7 +7,7 @@
  * a live, already-loaded `PptxHandler` instance for the session, so this
  * re-serializes directly through it instead of reloading from scratch.
  */
-import type { PptxHandler } from 'pptx-viewer-core';
+import type { PptxHandler, PptxHandlerSaveOptions } from 'pptx-viewer-core';
 import type { CollaborationConfig, YDocLike } from 'pptx-viewer-shared';
 import { readSlidesFromYDoc } from 'pptx-viewer-shared';
 
@@ -16,6 +16,14 @@ const DEFAULT_DEBOUNCE_MS = 5_000;
 export interface WriteBackDeps {
 	getYDoc: () => YDocLike | null;
 	getHandler: () => PptxHandler | null;
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path
+	 * (`buildDeckSaveOptions`). Without this the write-back called
+	 * `handler.save(slides)` with NO options, so an owner's write-back file
+	 * dropped every session-level edit outside `slides`.
+	 */
+	getSaveOptions?: () => PptxHandlerSaveOptions;
 }
 
 export interface WriteBackScheduler {
@@ -47,7 +55,7 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 				return;
 			}
 			void handler
-				.save(readSlidesFromYDoc(ydoc))
+				.save(readSlidesFromYDoc(ydoc), deps.getSaveOptions?.())
 				.then((bytes) => config.onWriteBack?.(bytes))
 				.catch(() => {
 					/* non-fatal: host can retry on the next change */

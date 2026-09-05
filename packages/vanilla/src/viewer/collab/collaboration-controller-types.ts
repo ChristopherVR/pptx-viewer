@@ -4,7 +4,7 @@
  * stays within the repo's 300 LOC ceiling. Types only, no runtime code.
  */
 
-import type { PptxHandler } from 'pptx-viewer-core';
+import type { PptxHandler, PptxHandlerSaveOptions } from 'pptx-viewer-core';
 import type {
 	CollabLoadOrigin,
 	CollaborationConfig,
@@ -18,6 +18,13 @@ export interface CollaborationControllerDeps {
 	store: Store<ViewerState>;
 	/** Live core handler (owner-role write-back re-serializes through it). */
 	getHandler: () => PptxHandler | null;
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path
+	 * (`buildDeckSaveOptions`). Without this the elected-writer write-back
+	 * dropped every session-level edit outside `slides`.
+	 */
+	getSaveOptions?: () => PptxHandlerSaveOptions;
 	/** Enforce the read-only `viewer` role by disabling editing. */
 	setEditable: (editable: boolean) => void;
 	/** Notified on every connection-status transition. */

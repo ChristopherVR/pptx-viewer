@@ -50,7 +50,13 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 				// canvas kept painting the string it was loaded with until some other
 				// edit happened to force a repaint.
 				state.headerFooter !== previous.headerFooter ||
-				state.customProperties !== previous.customProperties) &&
+				state.customProperties !== previous.customProperties ||
+				// A table style DEFINITION edit ("Edit style...") repaints every
+				// table using that style; without this the map changed under the
+				// renderer's feet but nothing scheduled the next paint (unlike the
+				// other four bindings' reactive frameworks, this store's listener
+				// IS the reactivity: a change unlisted here simply never repaints).
+				state.tableStyleMap !== previous.tableStyleMap) &&
 				!state.interactionActive) ||
 			(previous.interactionActive && !state.interactionActive)
 		) {
@@ -72,6 +78,7 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 			state.handoutSlidesPerPage !== previous.handoutSlidesPerPage ||
 			state.headerFooter !== previous.headerFooter ||
 			state.customProperties !== previous.customProperties ||
+			state.tableStyleMap !== previous.tableStyleMap ||
 			// A chart arms its on-canvas mark hit-testing only while selected (B3),
 			// so a chart entering/leaving the selection re-renders the stage to
 			// re-arm it. Only a chart: rebuilding on every selection change would

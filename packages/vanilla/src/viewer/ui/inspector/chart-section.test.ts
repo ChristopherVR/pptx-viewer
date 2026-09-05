@@ -201,3 +201,35 @@ describe('chart section canvas-click selection surfacing', () => {
 		expect(section.el.querySelector('.pptxv-chart-grid-cell-highlight')).toBeNull();
 	});
 });
+
+// W4-D: a multi-run title collapses to one run in the dominant style instead
+// of leaving a stale second run's text behind.
+describe('chart section title field', () => {
+	it('collapses a multi-run title to one run in the dominant style on commit', () => {
+		const setChartData = vi.fn();
+		const section = createChartSection(document, (key) => key, sectionFactory(), {
+			setChartData,
+		} as unknown as InspectorHandlers);
+		section.update({
+			isChart: true,
+			chartData: chart({
+				title: 'Sales Q1',
+				titleRuns: [
+					{ text: 'Sales ', bold: true },
+					{ text: 'Q1 Numbers', italic: true, color: '#FF0000' },
+				],
+			}),
+		} as InspectorState);
+
+		const labels = Array.from(section.el.querySelectorAll('label'));
+		const titleLabel = labels.find((label) => label.textContent?.startsWith('pptx.chart.title'))!;
+		const titleInput = titleLabel.querySelector('input')!;
+		titleInput.value = 'New Title';
+		titleInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+		expect(setChartData).toHaveBeenCalledOnce();
+		const next = setChartData.mock.calls[0][0] as PptxChartData;
+		expect(next.title).toBe('New Title');
+		expect(next.titleRuns).toStrictEqual([{ text: 'New Title', italic: true, color: '#FF0000' }]);
+	});
+});

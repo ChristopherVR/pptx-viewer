@@ -93,6 +93,8 @@ export interface InspectorActions {
 	setElementAction(trigger: 'click' | 'hover', action: ElementAction): void;
 	/** Set the selection's accessibility description (inspector Alt Text field). */
 	setAltText(text: string): void;
+	/** Set the selection's accessibility title (inspector Title field). */
+	setTitle(text: string): void;
 	/** Set the selected OLE element's Object Name (`p:oleObj/@name`). */
 	setOleName(name: string): void;
 	setChartData(data: PptxChartData): void;
@@ -198,6 +200,10 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 		// `altText` is a base-element field, so this works for every element type
 		// the accessibility checker can complain about, not just pictures.
 		setAltText: (text) => applyToSelected(() => ({ altText: text })),
+		// `title` similarly applies to every element kind that models it (a plain
+		// shape/text box/connector and every graphic-frame kind); a picture has
+		// no title field, so this is a no-op there (the field is hidden in the UI).
+		setTitle: (text) => applyToSelected(() => ({ title: text })),
 		setOleName: (name) =>
 			applyToSelected((el) => (el.type === 'ole' ? buildOleObjectNamePatch(name) : {})),
 		setChartData: (data) =>

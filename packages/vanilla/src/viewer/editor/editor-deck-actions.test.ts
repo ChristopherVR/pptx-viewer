@@ -216,4 +216,63 @@ describe('editor deck actions (no-selection inspector)', () => {
 			).toBeUndefined();
 		});
 	});
+
+	describe('table style DEFINITION editor ("Edit style...")', () => {
+		it('updateTableStyleMap replaces the map the renderer reads and marks the deck dirty', () => {
+			const { store, actions } = setup();
+			store.set({ tableStyleMap: { a: { styleId: 'a', styleName: 'a' } } });
+
+			const nextMap = {
+				a: { styleId: 'a', styleName: 'a' },
+				b: { styleId: 'b', styleName: 'b' },
+			};
+			actions.updateTableStyleMap(nextMap);
+
+			expect(store.get().tableStyleMap).toStrictEqual(nextMap);
+			expect(store.get().tableStylesToDelete).toStrictEqual([]);
+			expect(store.get().dirty).toBeTruthy();
+		});
+
+		it('updateTableStyleMap drops a pending delete when the id reappears', () => {
+			const { store, actions } = setup();
+			store.set({
+				tableStyleMap: { a: { styleId: 'a', styleName: 'a' } },
+				tableStylesToDelete: ['b'],
+			});
+
+			actions.updateTableStyleMap({
+				a: { styleId: 'a', styleName: 'a' },
+				b: { styleId: 'b', styleName: 'b' },
+			});
+
+			expect(store.get().tableStylesToDelete).toStrictEqual([]);
+		});
+
+		it('deleteTableStyle removes the entry and records the id for save-time deletion', () => {
+			const { store, actions } = setup();
+			store.set({
+				tableStyleMap: {
+					a: { styleId: 'a', styleName: 'a' },
+					b: { styleId: 'b', styleName: 'b' },
+				},
+			});
+
+			actions.deleteTableStyle('a');
+
+			expect(store.get().tableStyleMap).toStrictEqual({ b: { styleId: 'b', styleName: 'b' } });
+			expect(store.get().tableStylesToDelete).toStrictEqual(['a']);
+			expect(store.get().dirty).toBeTruthy();
+		});
+
+		it('ignores table style edits while not editable', () => {
+			const { store, actions } = setup({ editable: false });
+			const before = store.get().tableStyleMap;
+
+			actions.updateTableStyleMap({ a: { styleId: 'a', styleName: 'a' } });
+			actions.deleteTableStyle('a');
+
+			expect(store.get().tableStyleMap).toBe(before);
+			expect(store.get().dirty).toBeFalsy();
+		});
+	});
 });

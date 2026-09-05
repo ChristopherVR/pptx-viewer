@@ -93,6 +93,8 @@ export interface LoadedPresentation {
 	tagCollections: PptxTagCollection[];
 	/** Parsed presentation table styles keyed by style id. */
 	tableStyleMap?: ParsedTableStyleMap;
+	/** `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>` default style GUID. */
+	tableStylesDefaultId?: string;
 	slideMasters: PptxSlideMaster[];
 	/** Theme parts discovered in the package (inspector THEME card). */
 	themeOptions: PptxThemeOption[];
@@ -170,6 +172,7 @@ export async function loadPresentation(
 			themeName: parsed.theme?.name,
 			tagCollections: parsed.tags ?? [],
 			tableStyleMap,
+			tableStylesDefaultId: parsed.tableStylesDefaultId,
 			slideMasters: parsed.slideMasters ?? [],
 			themeOptions: parsed.themeOptions ?? [],
 			notesMaster: parsed.notesMaster,
