@@ -40,6 +40,8 @@ export interface ElementManipulationHandlers {
 	handleAlignElements: (align: string) => void;
 	handleDistributeElements: (axis: string) => void;
 	canDistribute: boolean;
+	/** Whether every currently selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	handleMoveLayer: (direction: string) => void;
 	handleMoveLayerToEdge: (direction: string) => void;
 	handleMergeShapes: (operation: MergeShapeOperation) => void;
@@ -62,6 +64,8 @@ export interface GroupAlignLayerHandlers {
 	handleAlignElements: (align: string) => void;
 	handleDistributeElements: (axis: string) => void;
 	canDistribute: boolean;
+	/** Whether every currently selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	handleMoveLayer: (direction: string) => void;
 	handleMoveLayerToEdge: (direction: string) => void;
 	handleMergeShapes: (operation: MergeShapeOperation) => void;

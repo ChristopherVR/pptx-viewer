@@ -300,6 +300,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						selectedElement={selectedElement}
 						tableEditorState={state.tableEditorState}
 						hasMultiSelection={state.effectiveSelectedIds.length > 1}
+						selectionGroupable={manipulation.selectionGroupable}
 						onAction={manipulation.handleContextMenuAction}
 						onInsertTableRow={tableOps.handleInsertTableRow}
 						onDeleteTableRow={tableOps.handleDeleteTableRow}

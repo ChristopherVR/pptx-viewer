@@ -259,6 +259,31 @@ export function renderChartViewModel(
 			viewBox={`0 0 ${vm.svgWidth} ${vm.svgHeight}`}
 			preserveAspectRatio={preserveAspectRatio}
 		>
+			{vm.defs && vm.defs.length > 0 && (
+				<defs>
+					{vm.defs.map((def, i) => (
+						<pattern
+							key={`${elementId}-def-${i}`}
+							id={def.id}
+							patternUnits={def.patternUnits}
+							x={def.x}
+							y={def.y}
+							width={def.width}
+							height={def.height}
+						>
+							<image
+								href={def.href}
+								x={0}
+								y={0}
+								width={def.width}
+								height={def.height}
+								preserveAspectRatio={def.preserveAspectRatio}
+							/>
+						</pattern>
+					))}
+				</defs>
+			)}
+
 			{vm.areaFill && (
 				<rect
 					x={0}

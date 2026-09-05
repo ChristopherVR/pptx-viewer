@@ -240,3 +240,32 @@ describe('renderChartViewModel: c:legendEntry deletion (real chart pipeline)', (
 		expect(html).not.toContain('>Cost</text>');
 	});
 });
+
+// C2-G9 (render half): a data point's c:dPt/c:pictureOptions picture fill
+// reaches the SVG as a <pattern>/<image> def and a fill="url(#...)" bar rect.
+describe('renderChartViewModel: c:dPt/c:pictureOptions picture fill (real chart pipeline)', () => {
+	it('renders a <pattern>/<image> def and points the bar fill at it', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			categories: ['Q1', 'Q2'],
+			series: [
+				{
+					name: 'Revenue',
+					values: [100, 150],
+					dataPoints: [
+						{
+							idx: 0,
+							picture: { imageUrl: 'data:image/png;base64,AAA', pictureFormat: 'stretch' },
+						},
+					],
+				},
+			],
+		});
+		const vm = buildChartViewModel(element);
+		expect(vm.defs).toHaveLength(1);
+		const html = renderToStaticMarkup(renderChartViewModel('c1', vm));
+		expect(html).toContain('<pattern');
+		expect(html).toContain('<image');
+		expect(html).toContain(`fill="url(#${vm.defs?.[0].id})"`);
+	});
+});

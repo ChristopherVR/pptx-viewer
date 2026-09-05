@@ -2,7 +2,7 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	getGroupChildParentFill,
 	isHollowShapeElement,
-	isElementActionable,
+	resolveElementAriaAttributes,
 	isElementRendered,
 	inlineElementPointerEvents,
 	LINK_TOOLTIP_HOST_CLASS,
@@ -22,7 +22,6 @@ import {
 	isEditableTextElement,
 	renderVectorShape,
 } from '../utils';
-import { getAriaRole, getAriaLabel, getAriaRoleDescription } from '../utils/accessibility';
 import { build3DExtrusionData } from '../utils/shape-visual-3d';
 import { ActionAffordances, useActionAffordance } from './elements/ActionAffordance';
 import { ConnectorElementRenderer } from './elements/ConnectorElementRenderer';
@@ -192,11 +191,12 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		// The actionable rule itself lives in shared, so the four non-React
 		// bindings (which classify in a post-render DOM pass) reach the same
 		// verdict for the same deck instead of re-deriving it, or not at all.
-		const isActionable = isElementActionable(el, {
+		const aria = resolveElementAriaAttributes(el, {
 			hasActionHandler: Boolean(onActionClick),
 			hasHyperlinkHandler: Boolean(onHyperlinkClick),
 			hasZoomHandler: Boolean(onZoomClick),
 		});
+		const isActionable = aria.actionable;
 
 		// Selection / hover affordance. Drawn as an `outline` inset by 1px so it
 		// lands exactly where the old 1px border did WITHOUT participating in
@@ -222,9 +222,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const isFullscreenMedia =
 			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
 
-		const ariaRole = getAriaRole(el, { actionable: isActionable });
-		const ariaLabel = getAriaLabel(el);
-		const ariaRoleDescription = getAriaRoleDescription(el);
 		const isFocusable = effectiveCanInteract || isActionable;
 		const interactionProps = getElementInteractionProps({
 			element: el,
@@ -246,9 +243,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				// `StaticElementRenderer` and the four non-React bindings' DOM pass
 				// stamp the same attribute.
 				data-pptx-action={isActionable ? 'click' : undefined}
-				role={ariaRole}
-				aria-label={ariaLabel}
-				aria-roledescription={ariaRoleDescription}
+				role={aria.role}
+				aria-label={aria.label}
+				aria-roledescription={aria.roleDescription}
+				aria-hidden={aria.hidden ? true : undefined}
 				aria-selected={isSelected ? true : undefined}
 				tabIndex={isFocusable ? 0 : -1}
 				className={cn(

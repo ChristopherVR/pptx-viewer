@@ -34,6 +34,7 @@ function baseProps(overrides: Partial<ShapeArrangeExtrasProps> = {}): ShapeArran
 		canEdit: true,
 		selectedElement: null,
 		selectedCount: 0,
+		selectionGroupable: true,
 		onGroupElements: () => {},
 		onUngroupElement: () => {},
 		onUpdateElementStyle: () => {},
@@ -64,6 +65,17 @@ describe('shapeArrangeExtras', () => {
 		expect((buttons2[0] as HTMLButtonElement).disabled).toBeFalsy();
 	});
 
+	it('disables Group when a:spLocks/@noGrp locks a selected element even with two selected', () => {
+		act(
+			() =>
+				void root.render(
+					<ShapeArrangeExtras {...baseProps({ selectedCount: 2, selectionGroupable: false })} />,
+				),
+		);
+		const buttons = container.querySelectorAll('button');
+		expect((buttons[0] as HTMLButtonElement).disabled).toBeTruthy();
+	});
+
 	it('enables Ungroup only when the selection is a group element', () => {
 		act(
 			() =>
@@ -78,6 +90,21 @@ describe('shapeArrangeExtras', () => {
 		act(() => root.render(<ShapeArrangeExtras {...baseProps({ selectedElement: group })} />));
 		const buttons2 = container.querySelectorAll('button');
 		expect((buttons2[1] as HTMLButtonElement).disabled).toBeFalsy();
+	});
+
+	it('disables Ungroup when a:grpSpLocks/@noGrp is set on the group itself', () => {
+		const lockedGroup = {
+			id: 'g1',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			locks: { noGrouping: true },
+		} as PptxElement;
+		act(() => root.render(<ShapeArrangeExtras {...baseProps({ selectedElement: lockedGroup })} />));
+		const buttons = container.querySelectorAll('button');
+		expect((buttons[1] as HTMLButtonElement).disabled).toBeTruthy();
 	});
 
 	it('defaults the stroke-width spinner to 1 for a shape with no strokeWidth set', () => {

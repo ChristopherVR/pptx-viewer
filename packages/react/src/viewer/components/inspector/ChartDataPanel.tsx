@@ -51,6 +51,7 @@ import { ChartSeriesColorOptions } from './ChartSeriesColorOptions';
 import { ChartSubtypeOptions } from './ChartSubtypeOptions';
 import { ChartTrendlineOptions } from './ChartTrendlineOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
+import { ChartUserShapeOptions } from './ChartUserShapeOptions';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -446,6 +447,12 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				canEdit={canEdit}
 				onSetColor={setSeriesColor}
 				onToggleSecondaryAxis={toggleSecondaryAxis}
+			/>
+
+			<ChartUserShapeOptions
+				chartData={chartData}
+				canEdit={canEdit}
+				onUpdateChartData={updateChartData}
 			/>
 
 			<ChartDataGrid

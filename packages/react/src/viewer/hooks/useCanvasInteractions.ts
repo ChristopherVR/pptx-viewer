@@ -5,6 +5,7 @@ import {
 	canInteractWithElement,
 	filterInteractableIds,
 	resolveInlineEditAutoFitHeight,
+	resolveInlineEditNormAutofitShrink,
 } from 'pptx-viewer-shared';
 /** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
 import { useRef } from 'react';
@@ -151,10 +152,25 @@ export function useCanvasInteractions(
 			// snapshot.
 			const editorEl = document.querySelector<HTMLElement>('[data-inline-editor]');
 			const newHeight = resolveInlineEditAutoFitHeight(el.textStyle, el.height, editorEl);
+			// `a:normAutofit` ("Shrink text on overflow"): recompute the font
+			// scale/line-spacing reduction so the (possibly now longer or
+			// shorter) text still fits the shape, the way PowerPoint does.
+			// Mutually exclusive with the `spAutoFit` resize above (both read
+			// `autoFitMode`, only one of the two modes is ever set).
+			const shrink = resolveInlineEditNormAutofitShrink(el.textStyle, el.height, editorEl);
 			ops.updateElementById(editId, {
 				text: committedText,
 				textSegments: newSegments,
 				...(newHeight !== undefined ? { height: newHeight } : {}),
+				...(shrink !== 'unchanged'
+					? {
+							textStyle: {
+								...el.textStyle,
+								autoFitFontScale: shrink.fontScale,
+								autoFitLineSpacingReduction: shrink.lnSpcReduction,
+							},
+						}
+					: {}),
 			} as Partial<PptxElement>);
 			history.markDirty();
 		}

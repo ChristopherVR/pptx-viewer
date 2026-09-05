@@ -1694,6 +1694,7 @@ describe('toolbar - Arrange tab', () => {
 		canEdit: true,
 		selectedElement: { type: 'shape', id: 'test', x: 0, y: 0, width: 100, height: 100 } as never,
 		selectedCount: 1,
+		selectionGroupable: true,
 		onAlignElements: vi.fn<() => void>(),
 		onFlip: vi.fn<() => void>(),
 		onMoveLayer: vi.fn<() => void>(),

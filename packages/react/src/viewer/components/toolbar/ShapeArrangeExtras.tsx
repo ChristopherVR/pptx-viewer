@@ -16,6 +16,8 @@ export interface ShapeArrangeExtrasProps {
 	selectedElement: PptxElement | null;
 	/** How many elements the multi-select currently holds; Group needs two. */
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	onGroupElements: () => void;
 	onUngroupElement: () => void;
 	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
@@ -34,7 +36,7 @@ export interface ShapeArrangeExtrasProps {
  */
 export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactElement {
 	const { t } = useTranslation();
-	const canGroup = canGroupSelection(p.canEdit, p.selectedCount);
+	const canGroup = canGroupSelection(p.canEdit, p.selectedCount, p.selectionGroupable);
 	const canUngroup = canUngroupSelection(p.canEdit, p.selectedElement);
 	const canStrokeWidth = canSetStrokeWidth(p.canEdit, p.selectedElement);
 	const strokeWidth = strokeWidthOf(p.selectedElement);

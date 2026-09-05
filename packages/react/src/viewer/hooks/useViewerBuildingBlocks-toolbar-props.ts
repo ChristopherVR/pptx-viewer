@@ -220,6 +220,7 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onUngroupElement: manipulation.handleUngroupElement,
 		onUpdateElementStyle: ops.updateSelectedShapeStyle,
 		selectedCount: s.selectedElementIds.length > 0 ? s.selectedElementIds.length : selectionSize,
+		selectionGroupable: manipulation.selectionGroupable,
 		onOpenHyperlinkDialog: () => dialogs.setIsHyperlinkDialogOpen(true),
 		onDuplicate: manipulation.handleDuplicate,
 		onDelete: manipulation.handleDelete,

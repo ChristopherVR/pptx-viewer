@@ -8,8 +8,9 @@ import {
 	resolveFontKerning,
 	resolveMetricTrackingPx,
 	resolveScriptFontSet,
+	stripUnderlineDecoration,
 } from 'pptx-viewer-shared';
-import type { ParagraphRun } from 'pptx-viewer-shared';
+import type { ParagraphRun, RunStyle } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
@@ -218,6 +219,23 @@ export function renderParagraphRun(
 		spanStyle.unicodeBidi = runRtl !== ctx.paragraphRtl ? 'bidi-override' : 'embed';
 	}
 
+	// D2-G3: `a:rPr/@u="words"` underlines only the words, leaving inter-word
+	// spaces unmarked. `wordDecoration` (this run's decoration, exactly as
+	// `nestedStyle` above) is what a WORD piece's own span will redeclare; the
+	// run's OWN span has the underline stripped so it does not draw it through
+	// the whitespace pieces it CSS-parents (see `renderUnderlineWords`).
+	const isUnderlineWords =
+		Boolean(segmentStyle.underline) && segmentStyle.underlineStyle === 'words';
+	const wordDecoration = isUnderlineWords ? nestedStyle : undefined;
+	if (isUnderlineWords) {
+		const stripped = stripUnderlineDecoration(spanStyle as RunStyle);
+		spanStyle.textDecoration = stripped.textDecoration as string | undefined;
+		delete spanStyle.textDecorationStyle;
+		delete (spanStyle as Record<string, unknown>).textDecorationThickness;
+		delete (spanStyle as Record<string, unknown>).textUnderlineOffset;
+		delete spanStyle.textDecorationColor;
+	}
+
 	const baseContent = renderSegmentContent(
 		element.id,
 		segmentIndex,
@@ -236,6 +254,8 @@ export function renderParagraphRun(
 			Boolean(segmentStyle.italic),
 		),
 		metricContext,
+		isUnderlineWords,
+		wordDecoration,
 	);
 
 	const spanNode = (

@@ -12,6 +12,8 @@ export interface ArrangeSectionProps {
 	selectedElement: PptxElement | null;
 	/** How many elements the multi-select currently holds. */
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	onAlignElements: (align: string) => void;
 	onDistributeElements: (axis: string) => void;
 	canDistribute: boolean;
@@ -107,6 +109,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					canEdit={p.canEdit}
 					selectedElement={p.selectedElement}
 					selectedCount={p.selectedCount}
+					selectionGroupable={p.selectionGroupable}
 					onGroupElements={p.onGroupElements}
 					onUngroupElement={p.onUngroupElement}
 					onUpdateElementStyle={p.onUpdateElementStyle}

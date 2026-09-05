@@ -36,6 +36,7 @@ export function contextMenuContext(props: ContextMenuProps): ContextMenuContext 
 		elementType: props.selectedElement?.type ?? null,
 		table: tableCell(props),
 		hasMultiSelection: Boolean(props.hasMultiSelection),
+		selectionGroupable: props.selectionGroupable,
 		// Both AI entries appear together or not at all, so a viewer that wired
 		// only one of them does not produce a menu the other bindings cannot match.
 		aiEnabled: Boolean(props.onAskAi) && Boolean(props.onFixAi),

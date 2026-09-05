@@ -12,6 +12,8 @@ export interface ContextMenuProps {
 	selectedElement: PptxElement | null;
 	tableEditorState: TableCellEditorState | null;
 	hasMultiSelection?: boolean;
+	/** Whether `a:spLocks`/`a:grpSpLocks` `@noGrp` allow Group/Ungroup right now. */
+	selectionGroupable?: boolean;
 	onAction: (action: ElementContextMenuAction) => void;
 	onInsertTableRow: (position: 'above' | 'below') => void;
 	onDeleteTableRow: () => void;

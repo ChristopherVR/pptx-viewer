@@ -169,6 +169,12 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 
 	const canDistribute = selectedElements.length >= 3;
 
+	// G10: drives the ribbon's Group button disabled state, mirroring the same
+	// `a:spLocks/@noGrp` guard `handleGroupElements` enforces on the command
+	// itself, so a locked selection reads as disabled instead of a click that
+	// silently does nothing.
+	const selectionGroupable = selectedElements.every((el) => canInteractWithElement(el, 'group'));
+
 	const handleMoveLayer = (direction: string) => {
 		if (!selectedElement || !activeSlide) {
 			return;
@@ -212,6 +218,7 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		handleAlignElements,
 		handleDistributeElements,
 		canDistribute,
+		selectionGroupable,
 		handleMoveLayer,
 		handleMoveLayerToEdge,
 		handleMergeShapes,

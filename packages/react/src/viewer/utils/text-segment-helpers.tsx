@@ -10,6 +10,7 @@ import React from 'react';
 
 import { convertOmmlToMathMl } from './omml-to-mathml';
 import type { OmmlNode } from './omml-to-mathml';
+import { makeSegmentPieceRenderer } from './text-segment-underline-words';
 import { renderTabbedLine } from './text-tab-layout';
 import type { TabRenderContext } from './text-tab-layout';
 
@@ -144,28 +145,33 @@ export function renderSegmentContent(
 	tabContext?: TabRenderContext,
 	/** When present, each word gets the tracking PowerPoint measured it at. */
 	metric?: MetricTextContext,
+	/**
+	 * D2-G3: true for an `a:rPr/@u="words"` run. Every leaf render below routes
+	 * through `renderUnderlineWords` (see `text-segment-underline-words.tsx`),
+	 * which is a no-op unless this is set.
+	 */
+	isUnderlineWords = false,
+	/** The decoration a WORD piece's own span redeclares; see the module doc. */
+	wordDecoration?: React.CSSProperties,
 ): React.ReactNode {
 	const segHl = findHighlights?.get(segmentIndex);
+	const renderLeaf = makeSegmentPieceRenderer(
+		needsScriptFonts,
+		scriptFonts,
+		baseFontFamily,
+		isUnderlineWords,
+		wordDecoration,
+		metric,
+	);
 	if (!segHl || segHl.length === 0) {
 		// Fast path: no highlights, render lines with script-aware fonts.
 		return lines.map((line: string, lineIndex: number) => {
 			const lineKey = `${elementId}-seg-${segmentIndex}-line-${lineIndex}`;
-			const renderPiece = (text: string, key: string): React.ReactNode =>
-				renderMetricPieces(text, metric, key, (pieceText, pieceKey) =>
-					renderScriptAwareText(
-						pieceText,
-						needsScriptFonts,
-						scriptFonts,
-						baseFontFamily,
-						pieceKey,
-						metric?.nestedStyle,
-					),
-				);
 			return (
 				<React.Fragment key={lineKey}>
 					{tabContext && line.includes('\t')
-						? renderTabbedLine(line, tabContext, lineKey, renderPiece, metric?.nestedStyle)
-						: renderPiece(line, lineKey)}
+						? renderTabbedLine(line, tabContext, lineKey, renderLeaf, metric?.nestedStyle)
+						: renderLeaf(line, lineKey)}
 					{lineIndex < lines.length - 1 ? <br /> : null}
 				</React.Fragment>
 			);
@@ -202,17 +208,6 @@ export function renderSegmentContent(
 			isCurrent: false,
 		});
 	}
-	const renderChunk = (text: string, key: string): React.ReactNode =>
-		renderMetricPieces(text, metric, key, (pieceText, pieceKey) =>
-			renderScriptAwareText(
-				pieceText,
-				needsScriptFonts,
-				scriptFonts,
-				baseFontFamily,
-				pieceKey,
-				metric?.nestedStyle,
-			),
-		);
 	return chunks.map((chunk, ci) => {
 		const chunkKey = `${elementId}-seg-${segmentIndex}-hl-${ci}`;
 		return chunk.highlighted ? (
@@ -225,10 +220,10 @@ export function renderSegmentContent(
 					borderRadius: 2,
 				}}
 			>
-				{renderChunk(chunk.text, chunkKey)}
+				{renderLeaf(chunk.text, chunkKey)}
 			</mark>
 		) : (
-			<React.Fragment key={chunkKey}>{renderChunk(chunk.text, chunkKey)}</React.Fragment>
+			<React.Fragment key={chunkKey}>{renderLeaf(chunk.text, chunkKey)}</React.Fragment>
 		);
 	});
 }

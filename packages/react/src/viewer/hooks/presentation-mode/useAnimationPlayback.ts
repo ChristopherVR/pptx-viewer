@@ -4,6 +4,7 @@ import {
 	cancelBuildReveal,
 	PresentationAnimationController,
 	playGroup,
+	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
 import { useRef, useState, useCallback, useEffect } from 'react';
@@ -115,6 +116,14 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	/** Whether the active slide was seeded as fully built (backward entry). */
 	const seededCompletedRef = useRef(false);
 	/**
+	 * Maps a `p:audio`/`p:video` animation's own timing-tree node id to the
+	 * element id it plays, for the active slide (see
+	 * `resolveMediaTimeNodeElementIds`). Lets `applyAnimationGroupSteps` gate a
+	 * `p:cond/@evt="onStopAudio"` step on the REAL media element's `ended`
+	 * event instead of only its estimated `delayMs`.
+	 */
+	const mediaTimeNodeElementIdsRef = useRef<ReadonlyMap<number, string>>(new Map());
+	/**
 	 * Whether the last seed REQUESTED completed entry (even when the slide had
 	 * no builds): a completed entry never starts playback of any kind.
 	 */
@@ -139,6 +148,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			onPlayActionSound,
 			playSound: playAnimationSound,
 			stopSound: stopAnimationSound,
+			mediaTimeNodeElementIds: mediaTimeNodeElementIdsRef.current,
 		};
 	}, [onPlayActionSound]);
 
@@ -178,6 +188,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			const slide = slides[slideIndex];
 			if (!slide) {
 				controllerRef.current = null;
+				mediaTimeNodeElementIdsRef.current = new Map();
 				setPresentationElementStates(new Map());
 				setPresentationKeyframesCss('');
 				setInteractiveTriggerShapeIds(new Set());
@@ -190,6 +201,9 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			// trigger-shape id sets, and the full tracked element id list.
 			const controller = PresentationAnimationController.fromSlide(slide);
 			controllerRef.current = controller;
+			mediaTimeNodeElementIdsRef.current = resolveMediaTimeNodeElementIds(
+				slide.nativeAnimations ?? [],
+			);
 			setPresentationKeyframesCss(controller.keyframesCss);
 
 			// Expose interactive and hover trigger shape IDs for cursor styling

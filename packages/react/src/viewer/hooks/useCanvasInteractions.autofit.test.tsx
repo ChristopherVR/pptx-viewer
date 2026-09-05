@@ -225,3 +225,70 @@ describe('useCanvasInteractions - spAutoFit editor resize', () => {
 		expect(updates.height).toBeUndefined();
 	});
 });
+
+/**
+ * Regression test for the `a:normAutofit` ("Shrink text on overflow") editor
+ * behaviour: typing past capacity in a normAutofit box must recompute
+ * `autoFitFontScale`/`autoFitLineSpacingReduction`, not just leave the last
+ * authored (or default) values in place. Runs through the same real-hook,
+ * real-DOM harness as the `spAutoFit` suite above.
+ */
+describe('useCanvasInteractions - normAutofit editor font shrink', () => {
+	it('shrinks fontScale/lnSpcReduction on commit when the text overflows the box', () => {
+		// happy-dom's stubbed scrollHeight cannot vary per candidate step, so
+		// every rung in the staircase measures as "still overflowing" and the
+		// decision lands on the smallest (floor) rung.
+		stubScrollHeight(400);
+		const updateElementById = vi.fn<(elementId: string, updates: Partial<PptxElement>) => void>();
+		mount({
+			element: makeTextElement({ height: 40, textStyle: { autoFitMode: 'normal' } }),
+			inlineEditingText: 'A very long line of text that overflows the shrink-to-fit box',
+			updateElementById,
+		});
+
+		act(() => {
+			getInlineEditor().dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+		});
+
+		expect(updateElementById).toHaveBeenCalledOnce();
+		const [, updates] = updateElementById.mock.calls[0];
+		expect(updates.textStyle).toMatchObject({
+			autoFitFontScale: 0.25,
+			autoFitLineSpacingReduction: 0.2,
+		});
+	});
+
+	it('does not touch textStyle for spAutoFit (shape-resize mode)', () => {
+		stubScrollHeight(250);
+		const updateElementById = vi.fn<(elementId: string, updates: Partial<PptxElement>) => void>();
+		mount({
+			element: makeTextElement({ height: 40 }),
+			inlineEditingText: 'A much longer line of text that wraps to several lines',
+			updateElementById,
+		});
+
+		act(() => {
+			getInlineEditor().dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+		});
+
+		const [, updates] = updateElementById.mock.calls[0];
+		expect(updates.textStyle).toBeUndefined();
+	});
+
+	it('leaves textStyle alone when the (stubbed) content already fits the box', () => {
+		stubScrollHeight(10);
+		const updateElementById = vi.fn<(elementId: string, updates: Partial<PptxElement>) => void>();
+		mount({
+			element: makeTextElement({ height: 40, textStyle: { autoFitMode: 'normal' } }),
+			inlineEditingText: 'Short',
+			updateElementById,
+		});
+
+		act(() => {
+			getInlineEditor().dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+		});
+
+		const [, updates] = updateElementById.mock.calls[0];
+		expect(updates.textStyle).toBeUndefined();
+	});
+});

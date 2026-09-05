@@ -655,6 +655,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				selectedCount={
 					s.selectedElementIds.length > 0 ? s.selectedElementIds.length : selectedElement ? 1 : 0
 				}
+				selectionGroupable={manipulation.selectionGroupable}
 				onOpenHyperlinkDialog={() => dialogs.setIsHyperlinkDialogOpen(true)}
 				onDuplicate={manipulation.handleDuplicate}
 				onDelete={manipulation.handleDelete}

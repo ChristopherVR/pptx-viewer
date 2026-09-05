@@ -283,6 +283,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							canEdit={p.canEdit}
 							selectedElement={p.selectedElement}
 							selectedCount={p.selectedCount}
+							selectionGroupable={p.selectionGroupable}
 							onAlignElements={p.onAlignElements}
 							onDistributeElements={p.onDistributeElements}
 							canDistribute={p.canDistribute}

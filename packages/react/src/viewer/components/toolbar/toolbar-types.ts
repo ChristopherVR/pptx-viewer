@@ -133,6 +133,8 @@ export interface ToolbarProps {
 	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
 	/** How many elements the multi-select currently holds. */
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	/** Open the hyperlink editor for the current selection. */
 	onOpenHyperlinkDialog: () => void;
 	onDuplicate: () => void;
