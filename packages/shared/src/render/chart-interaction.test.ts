@@ -8,6 +8,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	buildChartMarkDragGeometry,
 	CHART_PART_ATTR,
 	CHART_PART_POINT_ATTR,
 	CHART_PART_SERIES_ATTR,
@@ -17,7 +18,9 @@ import {
 	dragValueForPart,
 	findChartPartTarget,
 	isSameChartPart,
+	resolveChartDragValue,
 	roundDragValue,
+	shareToValue,
 	valueFromY,
 	withChartPointValue,
 	withChartTitle,
@@ -215,6 +218,23 @@ describe('withChartTitle', () => {
 		expect(next.title).toBe('');
 		expect(next.style?.hasTitle).toBeFalsy();
 	});
+
+	// W4-D: the on-canvas title editor shares the same dominant-style collapse
+	// rule as every binding's inspector title field (`collapseChartTitleRunsForEdit`).
+	it('collapses a multi-run title to one run in the dominant style', () => {
+		const next = withChartTitle(
+			{
+				...baseData,
+				titleRuns: [
+					{ text: 'Sales ', bold: true },
+					{ text: 'Q1 2026', italic: true, color: '#FF0000' },
+				],
+			},
+			'New Title',
+		);
+		expect(next.title).toBe('New Title');
+		expect(next.titleRuns).toStrictEqual([{ text: 'New Title', italic: true, color: '#FF0000' }]);
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -314,5 +334,117 @@ describe('view-model part tagging', () => {
 		expect(slices).toHaveLength(3);
 		expect(slices[2].part).toStrictEqual({ role: 'dataPoint', seriesIndex: 0, pointIndex: 2 });
 		expect(vm.valueDrag).toBeUndefined();
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Non-cartesian mark drag: pie/doughnut, radar, stacked segment dispatch
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('shareToValue', () => {
+	it('solves share = value / (value + otherAbsSum) for value', () => {
+		// A 50% share against 10 other units means the part itself is also 10.
+		expect(shareToValue(0.5, 10)).toBeCloseTo(10, 8);
+		// A 25% share against 30 other units: value = 0.25/0.75 * 30 = 10.
+		expect(shareToValue(0.25, 30)).toBeCloseTo(10, 8);
+	});
+
+	it('returns 0 for a zero (or negative) share', () => {
+		expect(shareToValue(0, 10)).toBe(0);
+		expect(shareToValue(-1, 10)).toBe(0);
+	});
+
+	it('falls back to a finite ratio when there is nothing else to renormalise against', () => {
+		expect(Number.isFinite(shareToValue(0.9, 0))).toBeTruthy();
+		expect(shareToValue(0.9, 0)).toBeGreaterThan(0);
+	});
+});
+
+describe('buildChartMarkDragGeometry / resolveChartDragValue', () => {
+	it('dispatches a pie kind to the pie geometry/value functions', () => {
+		const pieData: PptxChartData = {
+				chartType: 'pie',
+				categories: ['A', 'B'],
+				series: [{ name: 'S', values: [10, 10] }],
+			},
+			geometry = buildChartMarkDragGeometry({
+				kind: 'pie',
+				element: { width: 300, height: 300 },
+				chartData: pieData,
+				categoryLabels: ['A', 'B'],
+				seriesIndex: 0,
+				pointIndex: 0,
+			});
+		expect(geometry?.kind).toBe('pie');
+		expect(
+			resolveChartDragValue(geometry!, { x: geometry!.cx, y: geometry!.cy - 10 }),
+		).toBeGreaterThanOrEqual(0);
+	});
+
+	it('dispatches a radar kind to the radar geometry/value functions', () => {
+		const radarData: PptxChartData = {
+				chartType: 'radar',
+				categories: ['A', 'B', 'C'],
+				series: [{ name: 'S', values: [5, 5, 5] }],
+			},
+			geometry = buildChartMarkDragGeometry({
+				kind: 'radar',
+				element: { width: 300, height: 300 },
+				chartData: radarData,
+				categoryLabels: ['A', 'B', 'C'],
+				seriesIndex: 0,
+				pointIndex: 0,
+			});
+		expect(geometry?.kind).toBe('radar');
+		expect(resolveChartDragValue(geometry!, { x: geometry!.cx, y: geometry!.cy })).toBe(0);
+	});
+
+	it('dispatches a bar kind with stacked grouping to the stacked geometry/value functions', () => {
+		const stackedData: PptxChartData = {
+				chartType: 'bar',
+				grouping: 'stacked',
+				categories: ['Q1'],
+				series: [
+					{ name: 'A', values: [10] },
+					{ name: 'B', values: [20] },
+				],
+			},
+			geometry = buildChartMarkDragGeometry({
+				kind: 'bar',
+				element: { width: 300, height: 300 },
+				chartData: stackedData,
+				categoryLabels: ['Q1'],
+				seriesIndex: 1,
+				pointIndex: 0,
+			});
+		expect(geometry?.kind).toBe('stackedSegment');
+	});
+
+	it('returns null for a kind/part combination with no drag meaning', () => {
+		const clustered: PptxChartData = {
+			chartType: 'bar',
+			categories: ['Q1'],
+			series: [{ name: 'A', values: [10] }],
+		};
+		expect(
+			buildChartMarkDragGeometry({
+				kind: 'bar',
+				element: { width: 300, height: 300 },
+				chartData: clustered,
+				categoryLabels: ['Q1'],
+				seriesIndex: 0,
+				pointIndex: 0,
+			}),
+		).toBeNull();
+		expect(
+			buildChartMarkDragGeometry({
+				kind: 'scatter',
+				element: { width: 300, height: 300 },
+				chartData: clustered,
+				categoryLabels: ['Q1'],
+				seriesIndex: 0,
+				pointIndex: 0,
+			}),
+		).toBeNull();
 	});
 });

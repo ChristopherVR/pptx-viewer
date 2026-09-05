@@ -22,6 +22,8 @@ import { getEffectKeyframes } from './animation-keyframes';
 import { isMediaCommandAnimation, buildStepCommand } from './animation-media-commands';
 import { canComposeParallelSteps, composeParallelSteps } from './animation-parallel-composition';
 import { resolveAnimationTargetId } from './animation-target-id';
+import { buildTextStyleHoldKeyframe } from './animation-text-style-css';
+import { resolveTextStyleAnimation } from './animation-text-style-resolve';
 import { buildColorTavKeyframe, buildOpacityTavKeyframe } from './animation-timeline-absolute';
 import {
 	resolveEffect,
@@ -128,6 +130,15 @@ function fallbackEffectForClass(
 		return 'pulse';
 	}
 	return undefined;
+}
+
+/**
+ * An emphasis whose visible work is entirely a `p:set`/`p:anim` text-style
+ * change (no mapped preset effect, no transform). Such a step must not fall
+ * through to the neutral `pulse` safety net.
+ */
+function isTextStyleOnlyEmphasis(anim: PptxNativeAnimation): boolean {
+	return anim.presetClass === 'emph' && resolveTextStyleAnimation(anim) !== undefined;
 }
 
 // ==========================================================================
@@ -291,11 +302,18 @@ export function buildTimeline(
 			// sequenced so the playback layer can act on it at the right time.
 			const isCommand = !effect && !dynamic && isMediaCommandAnimation(singleAnim);
 			if (!effect && !dynamic && !isCommand) {
-				// Unmapped preset: fall back so an entrance is still hidden until
-				// its start and an exit still hides, rather than being dropped.
-				effect = fallbackEffectForClass(singleAnim.presetClass);
-				if (!effect) {
-					continue;
+				if (isTextStyleOnlyEmphasis(singleAnim)) {
+					// Bold Reveal / Underline / Style Emphasis: the `textStyle`
+					// override is the whole effect, so hold the element still
+					// instead of layering the neutral pulse on top of it.
+					dynamic = buildTextStyleHoldKeyframe(dynamicUid++);
+				} else {
+					// Unmapped preset: fall back so an entrance is still hidden until
+					// its start and an exit still hides, rather than being dropped.
+					effect = fallbackEffectForClass(singleAnim.presetClass);
+					if (!effect) {
+						continue;
+					}
 				}
 			}
 
@@ -469,6 +487,7 @@ export function buildTimeline(
 				build: isCommand ? undefined : resolveStepBuildDescriptor(singleAnim),
 				graphicElement: isCommand ? undefined : extractStepGraphicElement(singleAnim),
 				colorTargets: isCommand ? undefined : stepColorTargets(singleAnim, tavColorApplied),
+				textStyle: isCommand ? undefined : resolveTextStyleAnimation(singleAnim),
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
@@ -653,10 +672,14 @@ function buildSequenceGroups(
 			// command was dropped in silence.
 			const isCommand = !effect && !dynamic && isMediaCommandAnimation(anim);
 			if (!effect && !dynamic && !isCommand) {
-				// Same unmapped-preset safety net as the main timeline loop.
-				effect = fallbackEffectForClass(anim.presetClass);
-				if (!effect) {
-					continue;
+				if (isTextStyleOnlyEmphasis(anim)) {
+					dynamic = buildTextStyleHoldKeyframe(dynamicUid++);
+				} else {
+					// Same unmapped-preset safety net as the main timeline loop.
+					effect = fallbackEffectForClass(anim.presetClass);
+					if (!effect) {
+						continue;
+					}
 				}
 			}
 
@@ -754,6 +777,7 @@ function buildSequenceGroups(
 				build: isCommand ? undefined : resolveStepBuildDescriptor(anim),
 				graphicElement: isCommand ? undefined : extractStepGraphicElement(anim),
 				colorTargets: isCommand ? undefined : stepColorTargets(anim, tavColorApplied),
+				textStyle: isCommand ? undefined : resolveTextStyleAnimation(anim),
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,

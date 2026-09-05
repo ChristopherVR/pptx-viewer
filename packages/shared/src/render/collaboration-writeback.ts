@@ -16,7 +16,7 @@
  * not a duplicate of this one.
  */
 import { PptxHandler } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 
 import type { CollaborationConfig } from '../types';
 import type { YDocLike } from './collaboration-sync';
@@ -41,6 +41,19 @@ export interface WriteBackDeps {
 		slides: PptxSlide[],
 		templateElements: Record<string, PptxElement[]>,
 	) => PptxSlide[];
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...) to persist alongside the Y.Doc slides, built the same
+	 * way as the binding's own Save/Export path (`buildDeckSaveOptions` in
+	 * `render/deck-save-options`). Without this the write-back reloaded the
+	 * source bytes and called `handler.save(merged)` with NO options, so an
+	 * owner's write-back file silently dropped every session-level edit that
+	 * lives outside `slides` (table style edits, view toggles, tags, deck
+	 * properties, ...) even though those edits were visible on screen and
+	 * would have been saved by a manual Ctrl+S. Omitted for a binding that has
+	 * not wired it yet, which reproduces the pre-existing (options-less) save.
+	 */
+	getSaveOptions?: () => PptxHandlerSaveOptions | undefined;
 }
 
 export interface WriteBackScheduler {
@@ -83,7 +96,7 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 				const merged = deps.mergeTemplateElements
 					? deps.mergeTemplateElements(slides, deps.getTemplateElements?.() ?? {})
 					: slides;
-				const bytes = await handler.save(merged);
+				const bytes = await handler.save(merged, deps.getSaveOptions?.());
 				config.onWriteBack(bytes);
 			} catch {
 				/* non-fatal */

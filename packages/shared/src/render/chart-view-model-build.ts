@@ -23,6 +23,7 @@ import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sun
 import { applyLegendEntryOverrides } from './chart-legend-entries';
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
+import { resolveChartTitleRunSpans } from './chart-title-runs';
 import { resolveChartTitleTextStyle } from './chart-title-style';
 import { buildChartUserShapeOverlay } from './chart-user-shape-overlay';
 import { resolveChartKind } from './chart-view-model-kinds';
@@ -157,11 +158,13 @@ function withLegendEntries(vm: ChartViewModel, chartData: PptxChartData): ChartV
  * declares `<a:noFill/>` gets `areaFill: undefined` and no rect at all.
  */
 function withChartAreaFill(vm: ChartViewModel, chartData: PptxChartData): ChartViewModel {
+	const titleRunSpans = resolveChartTitleRunSpans(chartData);
 	return {
 		...vm,
 		areaFill: chartAreaFill(chartData),
 		areaRadius: chartAreaCornerRadius(chartData),
 		titleStyle: resolveChartTitleTextStyle(chartData),
+		...(titleRunSpans ? { titleRunSpans } : {}),
 		plotFill: plotAreaFill(chartData),
 	};
 }

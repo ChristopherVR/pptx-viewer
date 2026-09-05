@@ -414,17 +414,30 @@ describe('animation preset table cross-consistency', () => {
 			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('shrinkOut');
 		});
 
-		// exit.11 (Flash Once) is not covered by playback (no dedicated
-		// keyframe distinct from the entrance flash), but authoring and the
-		// catalog now agree with each other.
-		it('exit.11 (Flash Once): authoring and catalog agree, not covered by playback', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[11]).toBeUndefined();
+		// exit.11 (Flash Once) now has its own dedicated `flashOnceOut`
+		// keyframe (a `style.visibility` flicker ending hidden), so all three
+		// tables agree.
+		it('exit.11 (Flash Once): authoring, catalog, and playback all agree', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[11]).toBe('flashOnceOut');
 
 			const fromAuthoring = ooxmlToPresetName({ presetClass: 'exit', presetId: 11 });
 			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'flashonce')).toBeTruthy();
 
 			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'exit', presetId: 11 });
 			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'flashonce')).toBeTruthy();
+		});
+
+		// exit.12 (Peek Out, presetSubtype 4 / bottom edge) now has its own
+		// dedicated `peekOutDown` keyframe, verified via COM (this repo's own
+		// PowerShell automation): all three tables agree.
+		it('exit.12 (Peek Out): authoring, catalog, and playback all agree', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[12]).toBe('peekOutDown');
+
+			const fromAuthoring = ooxmlToPresetName({ presetClass: 'exit', presetId: 12 });
+			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'peek')).toBeTruthy();
+
+			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'exit', presetId: 12 });
+			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'peek')).toBeTruthy();
 		});
 	});
 

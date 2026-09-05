@@ -29,6 +29,7 @@ export type ExitShapeEffectName =
 	| 'plusOut'
 	| 'wedgeOut'
 	| 'peekOut'
+	| 'peekOutDown'
 	| 'splitOut';
 
 export const EXIT_SHAPE_KEYFRAME_DEFINITIONS: Record<ExitShapeEffectName, string> = {
@@ -71,6 +72,19 @@ export const EXIT_SHAPE_KEYFRAME_DEFINITIONS: Record<ExitShapeEffectName, string
 	// no dedicated exit keyframe before this pass. Collapses back toward the
 	// same bottom-origin edge Peek In reveals from.
 	peekOut: `@keyframes pptx-peekOut {
+	from { ${maskEdgeDecl('bottom', 'shown')} opacity: 1; }
+	to { ${maskEdgeDecl('bottom', 'hidden')} opacity: 0; }
+}`,
+	// Peek Out (exit.12), verified via COM (this repo's own PowerShell
+	// automation): `AddEffect` with the Peek In `MsoAnimEffect` constant then
+	// `Effect.Exit = True` re-emits `presetID="12" presetSubtype="4"` with a
+	// child `p:animEffect[@filter="wipe(down)"]` - a DIFFERENT, distinct
+	// preset id from exit.16 above (whose own "Peek Out" naming is a
+	// pre-existing, out-of-scope mismatch; see that entry's note), so this
+	// gets its own non-colliding keyframe name. `presetSubtype="4"` is the
+	// bottom-edge bit (matching entr.12's `peekIn`, also bottom-origin), so
+	// this reuses the identical mask technique.
+	peekOutDown: `@keyframes pptx-peekOutDown {
 	from { ${maskEdgeDecl('bottom', 'shown')} opacity: 1; }
 	to { ${maskEdgeDecl('bottom', 'hidden')} opacity: 0; }
 }`,

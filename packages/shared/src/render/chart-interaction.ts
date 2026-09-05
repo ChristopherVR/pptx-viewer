@@ -17,7 +17,19 @@
  */
 import type { PptxChartData } from 'pptx-viewer-core';
 
-import type { ChartPartRef, ChartValueDrag, ValueRange } from './chart-view-model';
+import { buildPieDragGeometry, resolvePieDragValue } from './chart-interaction-pie';
+import type { PieDragGeometry } from './chart-interaction-pie';
+import { buildRadarDragGeometry, resolveRadarDragValue } from './chart-interaction-radar';
+import type { RadarDragGeometry } from './chart-interaction-radar';
+import { buildStackedDragGeometry, resolveStackedDragValue } from './chart-interaction-stacked';
+import type { StackedDragGeometry } from './chart-interaction-stacked';
+import { collapseChartTitleRunsForEdit } from './chart-title-runs';
+import type {
+	ChartPartRef,
+	ChartValueDrag,
+	SupportedChartKind,
+	ValueRange,
+} from './chart-view-model';
 import { valueToY } from './chart-view-model';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -135,6 +147,24 @@ export function roundDragValue(value: number, range: ValueRange): number {
 	return Number.parseFloat(rounded.toPrecision(12));
 }
 
+/**
+ * Convert a target SHARE (0..1, exclusive) of a whole back to an absolute
+ * value, holding every other part's absolute value (`otherAbsSum`) fixed:
+ * `share = value / (value + otherAbsSum)` solved for `value`. Used by both a
+ * dragged pie/doughnut slice's angle share and a dragged percentStacked
+ * segment's percent share, so the two renormalise identically. `share` is
+ * clamped short of 1 so a lone part (no others to renormalise against) still
+ * returns a finite, monotonically increasing value instead of Infinity.
+ */
+export function shareToValue(share: number, otherAbsSum: number): number {
+	const clamped = Math.min(Math.max(share, 0), 0.999999);
+	if (clamped <= 0) {
+		return 0;
+	}
+	const ratio = clamped / (1 - clamped);
+	return otherAbsSum > 0 ? ratio * otherAbsSum : ratio;
+}
+
 /** The value range a series maps against (secondary when axis-mapped there). */
 function rangeForSeries(drag: ChartValueDrag, seriesIndex: number): ValueRange {
 	const useSecondary =
@@ -199,7 +229,78 @@ export function withChartTitle(chartData: PptxChartData, title: string): PptxCha
 	const trimmed = title.trim();
 	return {
 		...chartData,
-		title: trimmed,
+		// A multi-run title collapses to one run in its dominant style so this
+		// edit does not leave another, now-stale run's text trailing the new
+		// title; see `collapseChartTitleRunsForEdit`'s doc.
+		...collapseChartTitleRunsForEdit(chartData, trimmed),
 		style: { ...chartData.style, hasTitle: trimmed.length > 0 },
 	};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Non-cartesian mark drag (pie/doughnut slice, radar vertex, stacked segment)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Drag geometry for a mark kind `ChartValueDrag` cannot describe (no single
+ * vertical value axis): a pie/doughnut slice, a radar vertex, or one segment
+ * of a stacked/percentStacked bar/line/area. `kind` is a discriminant, not the
+ * chart's own `SupportedChartKind` (`bar`/`line`/`area` all resolve to
+ * `'stackedSegment'` since they share the same running-sum math).
+ */
+export type ChartMarkDragGeometry =
+	| ({ kind: 'pie' } & PieDragGeometry)
+	| ({ kind: 'radar' } & RadarDragGeometry)
+	| ({ kind: 'stackedSegment' } & StackedDragGeometry);
+
+/**
+ * Resolve a mark drag's geometry for the given chart kind and part, or `null`
+ * when that kind/part combination has no drag meaning (e.g. a clustered bar,
+ * which uses `ChartValueDrag`/`dragValueForPart` instead).
+ */
+export function buildChartMarkDragGeometry(params: {
+	kind: SupportedChartKind;
+	element: { width: number; height: number };
+	chartData: PptxChartData;
+	categoryLabels: ReadonlyArray<string>;
+	seriesIndex: number;
+	pointIndex: number;
+}): ChartMarkDragGeometry | null {
+	const { kind, element, chartData, categoryLabels, seriesIndex, pointIndex } = params;
+	if (kind === 'pie' || kind === 'doughnut') {
+		const geometry = buildPieDragGeometry(element, chartData, pointIndex);
+		return geometry ? { kind: 'pie', ...geometry } : null;
+	}
+	if (kind === 'radar') {
+		const geometry = buildRadarDragGeometry(element, chartData, categoryLabels, pointIndex);
+		return geometry ? { kind: 'radar', ...geometry } : null;
+	}
+	if (kind === 'bar' || kind === 'line' || kind === 'area') {
+		const geometry = buildStackedDragGeometry(element, chartData, seriesIndex, pointIndex);
+		return geometry ? { kind: 'stackedSegment', ...geometry } : null;
+	}
+	return null;
+}
+
+/**
+ * New value for a dragged mark, dispatched by the geometry's own `kind`. This
+ * is the single entry point every binding's pointer handler calls; each kind's
+ * actual math lives in its own `chart-interaction-*.ts` sibling.
+ */
+export function resolveChartDragValue(
+	geometry: ChartMarkDragGeometry,
+	pointer: { x: number; y: number },
+): number {
+	switch (geometry.kind) {
+		case 'pie':
+			return resolvePieDragValue(geometry, pointer.x, pointer.y);
+		case 'radar':
+			return resolveRadarDragValue(geometry, pointer.x, pointer.y);
+		case 'stackedSegment':
+			return resolveStackedDragValue(geometry, pointer.y);
+		default: {
+			const exhaustive: never = geometry;
+			return exhaustive;
+		}
+	}
 }

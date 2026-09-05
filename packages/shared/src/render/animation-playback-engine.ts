@@ -38,6 +38,7 @@
 
 import { wireMediaEndedSteps } from './animation-media-end-gating';
 import { executeMediaCommandInDom } from './animation-media-playback';
+import { mergeTextStyleOnStart, resolveTextStyleOnCleanup } from './animation-text-style-state';
 import type { ElementAnimationState, TimelineClickGroup } from './animation-timeline-types';
 import { PresentationAnimationController } from './presentation-animation-controller';
 import type { PresentationStatesOptions } from './presentation-animation-controller';
@@ -98,7 +99,10 @@ export interface PlaybackContext {
 // ---------------------------------------------------------------------------
 
 /** The staged-build fields of a state, carried across the step writes below. */
-type BuildStateFields = Pick<ElementAnimationState, 'build' | 'chartReveal' | 'diagramReveal'>;
+type BuildStateFields = Pick<
+	ElementAnimationState,
+	'build' | 'chartReveal' | 'diagramReveal' | 'textStyle'
+>;
 
 /**
  * The staged-build reveal a state already holds. A `p:bldChart` / `p:bldDgm`
@@ -121,6 +125,9 @@ function carryBuildState(state: ElementAnimationState | undefined): BuildStateFi
 	}
 	if (state.diagramReveal) {
 		carried.diagramReveal = state.diagramReveal;
+	}
+	if (state.textStyle) {
+		carried.textStyle = state.textStyle;
 	}
 	return carried;
 }
@@ -171,12 +178,14 @@ export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: Playbac
 			}
 			const current = next.get(step.elementId);
 			const shouldBeVisible = step.presetClass === 'exit' ? (current?.visible ?? true) : true;
+			const carried = carryBuildState(current);
 			next.set(step.elementId, {
-				...carryBuildState(current),
+				...carried,
 				visible: shouldBeVisible,
 				cssAnimation: step.cssAnimation,
 				animatesFill: step.colorTargets?.includes('fill') ? true : undefined,
 				animatesStroke: step.colorTargets?.includes('stroke') ? true : undefined,
+				textStyle: mergeTextStyleOnStart(carried.textStyle, step.textStyle),
 			});
 		}
 		return next;
@@ -200,11 +209,18 @@ export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: Playbac
 							? false
 							: (current?.visible ?? true);
 					// `p:cTn/@fill="hold"`/`"freeze"`: keep the CSS animation attached so
-					// its final frame persists instead of reverting on cleanup.
+					// its final frame persists instead of reverting on cleanup. A
+					// font-style emphasis's text-style override follows the SAME flag.
+					const carried = carryBuildState(current);
 					next.set(step.elementId, {
-						...carryBuildState(current),
+						...carried,
 						visible: visibleAfter,
 						cssAnimation: step.holdEndState ? step.cssAnimation : undefined,
+						textStyle: resolveTextStyleOnCleanup(
+							carried.textStyle,
+							step.textStyle,
+							step.holdEndState,
+						),
 					});
 					return next;
 				});

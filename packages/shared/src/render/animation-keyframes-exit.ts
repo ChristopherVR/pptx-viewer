@@ -72,4 +72,17 @@ export const EXIT_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	99% { opacity: 1; }
 	100% { opacity: 0; }
 }`,
+	// Flash Once (exit.11), verified via COM: `msoAnimEffectFlashOnce` with
+	// `Effect.Exit = True` serializes as presetID 11 with no `@filter` (the
+	// exit-gallery counterpart of entr.11's `flashIn`, which also carries no
+	// filter). The real authored effect is a `style.visibility` set pair
+	// (hidden/visible flashed a few times); this mirrors `flashIn`'s opacity
+	// flicker but ends HIDDEN rather than visible, since this is an exit.
+	flashOnceOut: `@keyframes pptx-flashOnceOut {
+	0% { opacity: 1; }
+	25% { opacity: 0; }
+	50% { opacity: 1; }
+	75% { opacity: 0; }
+	100% { opacity: 0; }
+}`,
 };

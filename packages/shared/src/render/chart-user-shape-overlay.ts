@@ -8,15 +8,25 @@
  * `absSizeAnchor` extents are EMU converted to pixels. Rendered last so the
  * overlay sits above the data marks.
  *
+ * A `grpSp` entry (grouped annotation shapes with their own nested
+ * transform) is expanded into positioned leaves via core's
+ * `flattenChartUserShapes` before projecting, so this module never has to
+ * know about groups itself.
+ *
  * @module chart-user-shape-overlay
  */
 
 import type { PptxChartData } from 'pptx-viewer-core';
+import { flattenChartUserShapes } from 'pptx-viewer-core';
 
 import { DEFAULT_CHART_TEXT_PX, chartFontPx } from './chart-font';
 import type { SvgLine, SvgPolygon, SvgPrimitive, SvgText } from './chart-view-model';
 
-type UserShape = NonNullable<PptxChartData['userShapes']>[number];
+/** The raw, un-flattened overlay model as parsed/edited (may contain `grpSp` entries). */
+type RawUserShape = NonNullable<PptxChartData['userShapes']>[number];
+
+/** A leaf overlay shape (never `grpSp`), after `flattenChartUserShapes` applies any group transform. */
+type UserShape = ReturnType<typeof flattenChartUserShapes>[number];
 
 /** EMU per CSS pixel at 96 DPI, mirroring core's `EMU_PER_PIXEL`. */
 const EMU_PER_PIXEL = 9525;
@@ -126,12 +136,13 @@ function projectShape(shape: UserShape, svgWidth: number, svgHeight: number): Sv
  * @returns Overlay primitives, or an empty array when there are none.
  */
 export function buildChartUserShapeOverlay(
-	userShapes: ReadonlyArray<UserShape> | undefined,
+	userShapes: ReadonlyArray<RawUserShape> | undefined,
 	svgWidth: number,
 	svgHeight: number,
 ): SvgPrimitive[] {
 	if (!userShapes || userShapes.length === 0) {
 		return [];
 	}
-	return userShapes.flatMap((shape) => projectShape(shape, svgWidth, svgHeight));
+	const leaves = flattenChartUserShapes(userShapes);
+	return leaves.flatMap((shape) => projectShape(shape, svgWidth, svgHeight));
 }

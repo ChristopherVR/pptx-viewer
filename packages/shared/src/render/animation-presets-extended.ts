@@ -99,8 +99,10 @@ export const EXTENDED_ENTR_PRESETS: Partial<Record<number, EffectName>> = {
  * Split) had no dedicated exit keyframe at all before this pass, unlike their
  * entrance counterparts; the new `peekOut`/`splitOut` keyframes in
  * `animation-keyframes-exit-shapes.ts` reuse the same mask-reveal technique
- * in reverse. exit.11 and exit.12 are intentionally NOT in this table: see
- * the leading comment on `PRESET_ID_TO_EFFECT.exit` in `animation-presets.ts`.
+ * in reverse. exit.11 and exit.12 are intentionally NOT in this table: both
+ * now have dedicated playback keyframes (`flashOnceOut`, `peekOutDown`)
+ * wired directly in `animation-presets-exit.ts` alongside this pass's other
+ * directly-verified ids, rather than through this extended table.
  */
 export const EXTENDED_EXIT_PRESETS: Partial<Record<number, EffectName>> = {
 	7: 'flyOutBottom', // Crawl Out

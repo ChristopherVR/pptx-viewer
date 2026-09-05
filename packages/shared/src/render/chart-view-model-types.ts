@@ -10,6 +10,7 @@
 import type { PptxChartLegendTextStyle } from 'pptx-viewer-core';
 
 import type { ChartSvgDef } from './chart-svg-def-types';
+import type { ChartTitleRunSpan } from './chart-title-runs';
 import type { ChartTitleTextStyle } from './chart-title-style';
 import type { ValueRange } from './chart-view-model-scale';
 
@@ -253,6 +254,14 @@ export interface ChartViewModel {
 	 * style part, then the viewer defaults). See `chart-title-style.ts`.
 	 */
 	titleStyle?: ChartTitleTextStyle;
+	/**
+	 * Per-run `<tspan>` descriptors for a title with typed rich text
+	 * (`c:title/c:tx/c:rich`, `PptxChartData.titleRuns`). Present only when the
+	 * title carries typed runs; a projector should draw these INSTEAD of a
+	 * single flat `vm.title` text node when set, and fall back to `title` /
+	 * `titleStyle` otherwise. See `chart-title-runs.ts`.
+	 */
+	titleRunSpans?: ChartTitleRunSpan[];
 	/**
 	 * SVG `fill` for the plot-area rect, resolved from `c:plotArea/c:spPr`.
 	 * `undefined` means paint nothing and let the chart area show through.

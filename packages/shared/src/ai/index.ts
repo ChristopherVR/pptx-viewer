@@ -14,6 +14,8 @@
 export { isAiAvailable, loadAiSdk, resetAiSdkCache } from './loader';
 export type { AiSdkModule } from './loader';
 
+export { deckDataFieldChanged } from './deck-data-diff';
+
 export { resolveChatTransport } from './config';
 export type {
 	PptxAiConfig,

@@ -89,16 +89,9 @@ describe('animation preset playback matches COM ground truth (ids 1-26)', () => 
 		expect(actual, `${row.presetClass}.${row.presetId} playback effect`).toBe(expected);
 	});
 
-	it('every ground-truth row resolves to SOME playback effect, except the two documented gaps', () => {
+	it('every ground-truth row resolves to SOME playback effect', () => {
 		for (const row of ANIMATION_PRESET_GROUND_TRUTH) {
 			const effect = PRESET_ID_TO_EFFECT[row.presetClass][row.presetId];
-			// exit.11/exit.12 are the two deliberate, documented omissions in
-			// this band (see the note on PRESET_ID_TO_EFFECT.exit's leading
-			// comment in animation-presets.ts).
-			if (row.presetClass === 'exit' && (row.presetId === 11 || row.presetId === 12)) {
-				expect(effect).toBeUndefined();
-				continue;
-			}
 			expect(
 				effect,
 				`${row.presetClass}.${row.presetId} should have a playback effect`,

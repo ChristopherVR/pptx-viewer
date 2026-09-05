@@ -40,6 +40,50 @@ describe('buildChartUserShapeOverlay', () => {
 		expect(text.fontWeight).toBe('bold');
 	});
 
+	// W5-I: a `grpSp` entry (grouped annotation shapes with their own nested
+	// transform) must be flattened via core's `flattenChartUserShapes` before
+	// projecting; before this switch the renderer had no `from`/`to`/`ext` to
+	// read off a `grpSp` entry directly and would have rendered nothing.
+	it('flattens a grpSp entry and projects its children at their transformed positions', () => {
+		const shapes: UserShape[] = [
+			{
+				kind: 'grpSp',
+				anchor: 'rel',
+				from: { x: 0, y: 0 },
+				to: { x: 1, y: 1 },
+				transform: {
+					off: { x: 0, y: 0 },
+					ext: { cx: 1000000, cy: 1000000 },
+					chOff: { x: 0, y: 0 },
+					chExt: { cx: 1000000, cy: 1000000 },
+				},
+				children: [
+					{
+						kind: 'sp',
+						off: { x: 0, y: 0 },
+						ext: { cx: 500000, cy: 1000000 },
+						fill: '#FF0000',
+					},
+					{
+						kind: 'sp',
+						off: { x: 500000, y: 0 },
+						ext: { cx: 500000, cy: 1000000 },
+						fill: '#00FF00',
+					},
+				],
+			},
+		];
+		const prims = buildChartUserShapeOverlay(shapes, 400, 300);
+		const polygons = prims.filter((p) => p.kind === 'polygon') as SvgPolygon[];
+		expect(polygons).toHaveLength(2);
+		// Left half: from (0,0) to (0.5,1) of the 400x300 area.
+		expect(polygons[0].points).toBe('0,0 200,0 200,300 0,300');
+		expect(polygons[0].fill).toBe('#FF0000');
+		// Right half: from (0.5,0) to (1,1).
+		expect(polygons[1].points).toBe('200,0 400,0 400,300 200,300');
+		expect(polygons[1].fill).toBe('#00FF00');
+	});
+
 	it('projects an absSizeAnchor connector into a diagonal line', () => {
 		const shapes: UserShape[] = [
 			{

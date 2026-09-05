@@ -211,8 +211,29 @@ export {
 	dragAnchorViewY,
 	withChartPointValue,
 	withChartTitle,
+	shareToValue,
+	buildChartMarkDragGeometry,
+	resolveChartDragValue,
 } from './chart-interaction';
-export type { ChartPartElement } from './chart-interaction';
+export type { ChartPartElement, ChartMarkDragGeometry } from './chart-interaction';
+// Direct on-canvas chart editing for pie/doughnut/radar/stacked marks: the
+// per-kind drag geometry builders + the pointer/state-machine glue.
+export { buildPieDragGeometry, resolvePieDragValue } from './chart-interaction-pie';
+export type { PieDragGeometry } from './chart-interaction-pie';
+export { buildRadarDragGeometry, resolveRadarDragValue } from './chart-interaction-radar';
+export type { RadarDragGeometry } from './chart-interaction-radar';
+export { buildStackedDragGeometry, resolveStackedDragValue } from './chart-interaction-stacked';
+export type { StackedDragGeometry } from './chart-interaction-stacked';
+export {
+	clientPointToViewBox,
+	beginChartMarkDrag,
+	advanceChartMarkDrag,
+} from './chart-interaction-mark-drag';
+export type {
+	ChartClientRect,
+	ChartMarkDragState,
+	ChartMarkDragStep,
+} from './chart-interaction-mark-drag';
 // Enriched cartesian builder (log axis / display units / secondary value axis /
 // percentStacked / overlays) + its value-axis gridline/label primitive builders.
 export { buildCartesianViewModel } from './chart-cartesian';
@@ -298,6 +319,13 @@ export * from './animation-playback';
 // injection, audio playback, and file reading stay in each binding.
 export * from './animation-timeline-types';
 export * from './animation-presets';
+// Discrete `p:set`/boolean-`p:anim` font-style emphasis resolution (Bold
+// Flash, Bold Reveal, Underline, Change Font Style/Size) + the CSS override +
+// playback-state carry helpers a binding's text renderer and the playback
+// engine consume.
+export * from './animation-text-style-resolve';
+export * from './animation-text-style-css';
+export * from './animation-text-style-state';
 // `p:animEffect/@filter` fallback resolution, consulted by `resolveEffect`
 // only when `presetId` is absent/unmapped (see `animation-timeline-helpers`).
 export * from './animation-filter-effects';
@@ -1136,6 +1164,11 @@ export * from './element-action-options';
 export * from './tag-collections';
 export * from './element-accessibility-dom';
 export * from './element-aria-attributes';
+// Which element kinds model an alt-text / title accessibility field
+// (`p:cNvPr/@descr` / `@title`), and a pure descriptor every binding's
+// inspector uses to decide whether to show those editors for the selected
+// element and what value to bind them to.
+export * from './element-non-visual-description';
 // `[data-element-id="..."]` selector escaping with a safe non-`CSS.escape` fallback.
 export * from './css-escape';
 // Pointer-to-element hit-test: a click on a grouped child selects the GROUP
@@ -1309,6 +1342,9 @@ export * from './password-protection';
 // One decision for all five bindings: a captured password means the deck is
 // serialised through `saveEncrypted` (OLE2 container), never `save` (ZIP).
 export * from './deck-save-encryption';
+// The one `PptxHandlerSaveOptions` assembler for every binding's main save
+// path, so the five hand-rolled option objects can no longer drift apart.
+export * from './deck-save-options';
 export * from './viewer-preferences';
 export * from './presentation-setup';
 // PowerPoint's precedence for a click during a running show: an on-slide
@@ -1418,3 +1454,19 @@ export * from './chart-subtype-options';
 // comment threading, extended hyperlink verbs, MRU colours (wave 4)
 // Recent-colours seed/push/patch for every colour picker's "Recent colours" row.
 export * from './recent-colors';
+
+// Table style (a:tblStyleLst) DEFINITION editor: the 14-part picker list
+// (13 CT_TableStyle sections + the synthetic background part), the pure
+// describe/apply decision functions every binding's "Edit style..." panel maps
+// onto its own template.
+export * from './table-style-editor-parts';
+export * from './table-style-editor-descriptor';
+export * from './table-style-editor-edit';
+// W4-E2: pure state-transition helpers threading the table style editor's
+// edits into a binding's mutable viewer state, plus the save-options picker
+// every `handler.save(...)` call site uses to forward them.
+export * from './table-style-map-edits';
+
+// W4-D: chart title rich-text per-run render spans + the flat-text-edit
+// collapse rule every binding's title inspector field uses.
+export * from './chart-title-runs';

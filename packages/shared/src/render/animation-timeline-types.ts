@@ -12,6 +12,8 @@
 
 import type { AnimationConditionEvent, PptxAnimationTrigger } from 'pptx-viewer-core';
 
+import type { TextStyleAnimationDescriptor } from './animation-text-style-resolve';
+
 // ==========================================================================
 // Effect name type (catalog of CSS keyframe short-names)
 // ==========================================================================
@@ -128,6 +130,12 @@ export type EffectName =
 	| 'rotateOut'
 	| 'centerRevolveOut'
 	| 'dropOut'
+	// exit.11 (Flash Once) and exit.12 (Peek Out, presetSubtype 4 / bottom
+	// edge, distinct from exit.16's own "Peek Out" naming mismatch - see the
+	// note on `peekOutDown`'s keyframe): the last two of the 68 exit preset
+	// ids to gain a dedicated playback keyframe.
+	| 'flashOnceOut'
+	| 'peekOutDown'
 	| 'pulse'
 	| 'blink'
 	| 'shimmer'
@@ -436,6 +444,17 @@ export interface TimelineStep {
 	dependsOnTimeNodeId?: number;
 	/** The event of the time-node dependency above, when present. */
 	dependsOnEvent?: AnimationConditionEvent;
+	/**
+	 * Discrete font-style / colour / size override this step's effect composes
+	 * via `p:set` siblings and/or a `style.fontsize`/boolean `p:anim` ramp (Bold
+	 * Flash, Bold Reveal, Underline, Brush On Underline, Change Font Style,
+	 * Change Font Size), resolved by `resolveTextStyleAnimation`
+	 * (`animation-text-style-resolve.ts`). Absent for every effect that carries
+	 * none of those attrs, so existing renderers are unaffected. See
+	 * {@link ElementAnimationState.textStyle} for how the playback engine
+	 * carries this through step start / cleanup.
+	 */
+	textStyle?: TextStyleAnimationDescriptor;
 }
 
 /** A group of animation steps that play on a single click/advance action. */
@@ -548,6 +567,18 @@ export interface ElementAnimationState {
 	 * `stroke: inherit`. Absent/false means no active stroke-colour animation.
 	 */
 	animatesStroke?: boolean;
+	/**
+	 * Active discrete font-style / colour / size override (see
+	 * {@link TimelineStep.textStyle}) a font-style emphasis effect currently
+	 * applies to this element's text, OVERRIDING the runs' own inline
+	 * bold/italic/underline/size/colour. `animation-playback-engine.ts` writes
+	 * this on step start and again on cleanup (held in full when the effect's
+	 * `p:cTn/@fill` holds its end state, otherwise reverted); a text renderer
+	 * maps it onto its run markup via `buildTextStyleOverrideCss`
+	 * (`animation-text-style-css.ts`). Absent means no font-style emphasis
+	 * effect is currently active on this element.
+	 */
+	textStyle?: TextStyleAnimationDescriptor;
 }
 
 /**

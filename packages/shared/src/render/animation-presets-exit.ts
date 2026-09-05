@@ -12,10 +12,21 @@ import type { EffectName } from './animation-timeline-types';
 
 /** OOXML exit `p:cTn/@presetId` -> playback effect name. */
 export const EXIT_PRESETS: Record<number, EffectName> = {
-	// exit.11 (Flash Once) and exit.12 are the only two of the 68 exit IDs
-	// deliberately left unmapped after this pass; see the module doc on
-	// `animation-presets-extended.ts` for why (exit.12 has no authoring
-	// identity at all today and would collide with exit.16's Peek Out).
+	// exit.11 (Flash Once), verified via COM: `msoAnimEffectFlashOnce` with
+	// `Effect.Exit = True` serializes as presetID 11 with no `@filter`,
+	// matching entr.11's `flashIn`. Plays via its own `flashOnceOut` keyframe
+	// (a `style.visibility` flicker ending hidden) rather than the entrance
+	// keyframe played backwards, since PowerPoint's own authored effect is a
+	// discrete visibility toggle pair, not a smooth opacity ramp.
+	11: 'flashOnceOut',
+	// exit.12 (Peek Out, presetSubtype 4 / bottom edge), verified via COM
+	// (this repo's own PowerShell automation): `AddEffect` with the Peek In
+	// `MsoAnimEffect` constant then `Effect.Exit = True` re-emits
+	// `presetID="12"` with `filter="wipe(down)"`. Named `peekOutDown` (not
+	// `peekOut`) because that name is already bound to exit.16's own
+	// (pre-existing, out-of-scope) "Peek Out" mismatch; see
+	// `animation-keyframes-exit-shapes.ts`'s note on both keyframes.
+	12: 'peekOutDown',
 	1: 'disappear',
 	2: 'flyOutBottom',
 	// exit.6 = Circle, confirmed via COM (`msoAnimEffectCircle` with

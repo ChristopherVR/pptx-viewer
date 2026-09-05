@@ -1130,4 +1130,44 @@ describe('buildTimeline', () => {
 			expect(seqGroups?.[0].steps[0].hideAfterEffect).toBeTruthy();
 		});
 	});
+
+	// -------------------------------------------------------------------
+	// Text-style-only emphasis (Bold Reveal, Underline, Style Emphasis)
+	// -------------------------------------------------------------------
+	describe('text-style-only emphasis', () => {
+		const boldReveal = (overrides: Partial<PptxNativeAnimation> = {}) =>
+			makeAnim({
+				presetClass: 'emph',
+				presetId: 15,
+				setAnimations: [{ attrName: 'style.fontweight', value: 'bold', valueType: 'str' }],
+				...overrides,
+			});
+
+		it('holds the element still instead of playing the neutral pulse fallback', () => {
+			const result = buildTimeline([boldReveal()]);
+			const step = result.clickGroups[0].steps[0];
+			expect(step.textStyle).toStrictEqual({ bold: true });
+			expect(step.cssAnimation).not.toContain('pptx-pulse');
+			expect(step.cssAnimation).toContain('pptx-tl-textstyle-hold-');
+			expect(result.keyframesCss).toContain('@keyframes pptx-tl-textstyle-hold-');
+		});
+
+		it('keeps the mapped preset effect when the emphasis also has one', () => {
+			// emph.6 (grow/shrink) carries its own preset; the hold must not replace it.
+			const result = buildTimeline([boldReveal({ presetId: 6 })]);
+			const step = result.clickGroups[0].steps[0];
+			expect(step.textStyle).toStrictEqual({ bold: true });
+			expect(step.cssAnimation).not.toContain('pptx-tl-textstyle-hold-');
+		});
+
+		it('applies the same hold to an interactive-sequence step', () => {
+			const result = buildTimeline([
+				boldReveal({ targetId: 'shape1', triggerShapeId: 'trigger1', trigger: 'onShapeClick' }),
+			]);
+			const step = result.interactiveSequences.get('trigger1')?.[0].steps[0];
+			expect(step?.textStyle).toStrictEqual({ bold: true });
+			expect(step?.cssAnimation).not.toContain('pptx-pulse');
+			expect(step?.cssAnimation).toContain('pptx-tl-textstyle-hold-');
+		});
+	});
 });
