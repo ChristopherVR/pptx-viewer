@@ -1,22 +1,19 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { PlaybackContext } from 'pptx-viewer-shared';
 import {
+	advanceMainSequence,
 	cancelBuildReveal,
+	clearPlaybackTimers,
+	createActiveAnimationGroup,
 	PresentationAnimationController,
 	playGroup,
 	resolveMediaTimeNodeElementIds,
-	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 import type { PresentationAnimationRuntime } from '../../types';
 import { playAnimationSound, stopAnimationSound } from '../../utils/animation-sound';
-import type { ElementAnimationState, TimelineClickGroup } from '../../utils/animation-timeline';
-import {
-	finishAnimationGroupSteps,
-	finishDomAnimationsForGroup,
-	shouldSeekAnimationGroup,
-} from './animation-helpers';
+import type { ElementAnimationState } from '../../utils/animation-timeline';
 import {
 	scheduleEntranceAnimationTimers,
 	scheduleOpeningAutoPlayGroup,
@@ -110,9 +107,12 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	const controllerRef = useRef<PresentationAnimationController | null>(null);
 	/** In-flight requestAnimationFrame id for the active staged-build reveal. */
 	const buildRafRef = useRef<number | null>(null);
-	/** Main-timeline group whose authored active window has not elapsed yet. */
-	const activeAnimationGroupRef = useRef<TimelineClickGroup | null>(null);
-	const activeAnimationEndAtRef = useRef(0);
+	/**
+	 * Main-timeline group whose authored active window has not elapsed yet: the
+	 * shared `advanceMainSequence` seeks it on a second click when the deck says
+	 * `p:seq/@nextAc="seek"`. Mutated in place by the shared helpers.
+	 */
+	const activeAnimationGroupRef = useRef(createActiveAnimationGroup());
 	/** Whether the active slide was seeded as fully built (backward entry). */
 	const seededCompletedRef = useRef(false);
 	/**
@@ -135,9 +135,9 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	// The click-group step application, staged-build RAF loop, and auto-advance
 	// chain live in the shared `animation-playback-engine`; this hook only
 	// supplies the React state setters, timer bookkeeping, and sound callbacks
-	// the engine needs. Built fresh per call so `ctx.timers` always mutates the
-	// CURRENT `presentationTimersRef.current` array (never a stale one from
-	// before a `clearPresentationTimers` reset).
+	// the engine needs. `ctx.timers` IS `presentationTimersRef.current`, which is
+	// only ever cleared in place (`clearPlaybackTimers`), never reassigned, so
+	// a context built before a clear stays valid afterwards.
 	// -----------------------------------------------------------------------
 
 	const buildPlaybackContext = useCallback((): PlaybackContext => {
@@ -164,19 +164,8 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	// -----------------------------------------------------------------------
 
 	const clearPresentationTimers = useCallback(() => {
-		presentationTimersRef.current.forEach((timer) => {
-			window.clearTimeout(timer);
-		});
-		presentationTimersRef.current = [];
-		cancelBuildReveal(buildRafRef);
-		activeAnimationGroupRef.current = null;
-		activeAnimationEndAtRef.current = 0;
-	}, []);
-
-	const markAnimationGroupActive = useCallback((group: TimelineClickGroup) => {
-		activeAnimationGroupRef.current = group;
-		activeAnimationEndAtRef.current = performance.now() + Math.max(0, group.totalDurationMs);
-	}, []);
+		clearPlaybackTimers(buildPlaybackContext(), activeAnimationGroupRef.current);
+	}, [buildPlaybackContext]);
 
 	// -----------------------------------------------------------------------
 	// Slide timeline reset
@@ -223,39 +212,14 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 		if (!animationsEnabled) {
 			return false;
 		}
-		const controller = controllerRef.current;
-		const activeGroup = activeAnimationGroupRef.current;
-		if (
-			controller &&
-			controller.hasMoreSteps() &&
-			shouldSeekAnimationGroup(activeGroup, activeAnimationEndAtRef.current, performance.now())
-		) {
-			finishDomAnimationsForGroup(activeGroup);
-			const buildIds = PresentationAnimationController.collectBuildStepIds(activeGroup);
-			const completedStates = controller.computeStatesFor(buildIds);
-			clearPresentationTimers();
-			finishAnimationGroupSteps(activeGroup, setPresentationElementStates, completedStates);
-			scheduleAutoAdvanceChain(controller, buildPlaybackContext());
-			return true;
-		}
-		if (!controller || !controller.hasMoreSteps()) {
-			return false;
-		}
-
-		const group = controller.advance();
-		if (!group) {
-			return false;
-		}
-
-		const ctx = buildPlaybackContext();
-		playGroup(controller, group, ctx);
-		markAnimationGroupActive(group);
-
-		// Schedule auto-advance for consecutive non-click groups
-		scheduleAutoAdvanceChain(controller, ctx);
-
-		return true;
-	}, [animationsEnabled, buildPlaybackContext, clearPresentationTimers, markAnimationGroupActive]);
+		// Seek-or-advance (`p:seq/@nextAc="seek"`) plus the auto-advance chain
+		// live in shared, so the branch is identical in all five bindings.
+		return advanceMainSequence(
+			controllerRef.current,
+			buildPlaybackContext(),
+			activeAnimationGroupRef.current,
+		);
+	}, [animationsEnabled, buildPlaybackContext]);
 
 	// -----------------------------------------------------------------------
 	// Interactive shape-click animation
