@@ -9,6 +9,11 @@ export const translations = {
 	'pptx.accessibility.error': 'Fehler: ',
 	'pptx.accessibility.warning': 'Warnung: ',
 	'pptx.accessibility.info': 'Info:',
+	'pptx.elementAccessibility.altText': 'Alt-Text',
+	'pptx.elementAccessibility.altTextPlaceholder':
+		'Beschreiben Sie dieses Element für die Barrierefreiheit',
+	'pptx.elementAccessibility.title': 'Titel',
+	'pptx.elementAccessibility.titlePlaceholder': 'Barrierefreiheitstitel (optional)',
 	'pptx.headerFooter.title': 'Kopf- und Fußzeile',
 	'pptx.headerFooter.close': 'Schließen',
 	'pptx.headerFooter.dateAndTime': 'Datum und Uhrzeit',
