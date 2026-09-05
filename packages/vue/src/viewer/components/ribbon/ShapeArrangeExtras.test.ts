@@ -30,9 +30,11 @@ function mountExtras(props: {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
 	selectedCount: number;
+	selectionGroupable?: boolean;
 }) {
 	return mount(ShapeArrangeExtras, {
 		props: {
+			selectionGroupable: true,
 			...props,
 			onGroupElements: vi.fn(),
 			onUngroupElement: vi.fn(),
@@ -58,12 +60,28 @@ describe('shapeArrangeExtras - group/ungroup gating', () => {
 		expect(wrapper.get('button[title="Ungroup"]').attributes('disabled')).toBeDefined();
 	});
 
+	it('disables Group when a:spLocks/@noGrp locks a selected element even with two selected', () => {
+		const wrapper = mountExtras({
+			canEdit: true,
+			selectedElement: null,
+			selectedCount: 2,
+			selectionGroupable: false,
+		});
+		expect(wrapper.get('button[title="Group"]').attributes('disabled')).toBeDefined();
+	});
+
 	it('enables Ungroup only when the selection is a group', () => {
 		const notGroup = mountExtras({ canEdit: true, selectedElement: shapeEl(), selectedCount: 1 });
 		expect(notGroup.get('button[title="Ungroup"]').attributes('disabled')).toBeDefined();
 
 		const isGroup = mountExtras({ canEdit: true, selectedElement: groupEl(), selectedCount: 1 });
 		expect(isGroup.get('button[title="Ungroup"]').attributes('disabled')).toBeUndefined();
+	});
+
+	it('disables Ungroup when a:grpSpLocks/@noGrp is set on the group itself', () => {
+		const lockedGroup = { ...groupEl(), locks: { noGrouping: true } } as PptxElement;
+		const wrapper = mountExtras({ canEdit: true, selectedElement: lockedGroup, selectedCount: 1 });
+		expect(wrapper.get('button[title="Ungroup"]').attributes('disabled')).toBeDefined();
 	});
 });
 

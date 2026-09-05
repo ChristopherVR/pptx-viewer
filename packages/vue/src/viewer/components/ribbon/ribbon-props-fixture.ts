@@ -23,6 +23,7 @@ export function createRibbonPropsFixture(overrides: Partial<RibbonProps> = {}): 
 		findReplaceOpen: false,
 		selectedElement: null,
 		selectedCount: 0,
+		selectionGroupable: true,
 		editTemplateMode: false,
 		newShapeType: 'rect',
 		activeTool: 'select',

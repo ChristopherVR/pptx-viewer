@@ -40,6 +40,16 @@ export function useAlignGroup(input: UseAlignGroupInput) {
 			canInteractWithElement(selectedElements.value[0], 'group'),
 	);
 	const canDistribute = computed(() => selectedElements.value.length >= 3);
+	/**
+	 * Lock-only half of `canGroup`/`canUngroup`, with no selection-count or
+	 * element-type condition. Drives the context menu's Group/Ungroup disabled
+	 * state (`context-menu-commands.ts`'s `selectionGroupable`), which needs to
+	 * disable Ungroup on a locked SINGLE group, where `canGroup` alone would
+	 * read false purely for having fewer than two selected elements.
+	 */
+	const selectionGroupable = computed(() =>
+		selectedElements.value.every((el) => canInteractWithElement(el, 'group')),
+	);
 
 	/** Apply a {id → {x?,y?}} position map to the active slide as one history entry. */
 	function applyPositionMap(map: Map<string, { x?: number; y?: number }>): void {
@@ -124,5 +134,14 @@ export function useAlignGroup(input: UseAlignGroupInput) {
 		selectedElementIds.value = appliedIds;
 	}
 
-	return { canGroup, canUngroup, canDistribute, onAlign, onDistribute, onGroup, onUngroup };
+	return {
+		canGroup,
+		canUngroup,
+		canDistribute,
+		selectionGroupable,
+		onAlign,
+		onDistribute,
+		onGroup,
+		onUngroup,
+	};
 }

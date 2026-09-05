@@ -22,6 +22,7 @@ function mountArrange(overrides: Record<string, unknown> = {}) {
 			canEdit: true,
 			selectedElement: shape(),
 			selectedCount: 1,
+			selectionGroupable: true,
 			onAlignElements: vi.fn(),
 			onDistributeElements: vi.fn(),
 			canDistribute: false,

@@ -88,6 +88,28 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 		:viewBox="`0 0 ${vm.svgWidth} ${vm.svgHeight}`"
 		:preserveAspectRatio="preserveAspectRatio"
 	>
+		<defs v-if="vm.defs && vm.defs.length > 0">
+			<pattern
+				v-for="(def, i) in vm.defs"
+				:key="`${elementId}-def-${i}`"
+				:id="def.id"
+				:patternUnits="def.patternUnits"
+				:x="def.x"
+				:y="def.y"
+				:width="def.width"
+				:height="def.height"
+			>
+				<image
+					:href="def.href"
+					:x="0"
+					:y="0"
+					:width="def.width"
+					:height="def.height"
+					:preserveAspectRatio="def.preserveAspectRatio"
+				/>
+			</pattern>
+		</defs>
+
 		<rect
 			v-if="vm.areaFill"
 			:x="0"

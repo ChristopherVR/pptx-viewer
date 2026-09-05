@@ -22,6 +22,7 @@ import ChartErrorBarOptions from './ChartErrorBarOptions.vue';
 import ChartMarkerOptions from './ChartMarkerOptions.vue';
 import ChartSubtypeOptions from './ChartSubtypeOptions.vue';
 import ChartTrendlineOptions from './ChartTrendlineOptions.vue';
+import ChartUserShapeOptions from './ChartUserShapeOptions.vue';
 
 /**
  * ChartPanel: inspector panel for chart elements, at full parity with the React
@@ -273,6 +274,8 @@ const CONTROL =
 					</button>
 				</div>
 			</div>
+
+			<ChartUserShapeOptions :chart-data="chartData" @update-chart-data="editing.patchChartData" />
 
 			<ChartDataGrid
 				:series="series"

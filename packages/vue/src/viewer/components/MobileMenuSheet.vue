@@ -163,6 +163,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:can-edit="props.canEdit"
 						:selected-element="props.selectedElement"
 						:selected-count="props.selectedCount"
+						:selection-groupable="props.selectionGroupable"
 						:on-align-elements="props.onAlignElements"
 						:on-distribute-elements="props.onDistributeElements"
 						:can-distribute="props.canDistribute"

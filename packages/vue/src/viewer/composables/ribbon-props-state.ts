@@ -1,4 +1,4 @@
-import { templateSchemeFromTheme } from 'pptx-viewer-shared';
+import { canInteractWithElement, templateSchemeFromTheme } from 'pptx-viewer-shared';
 
 import type { UseRibbonPropsInput } from './ribbon-props-types';
 
@@ -28,6 +28,13 @@ export function buildRibbonPropsState(input: UseRibbonPropsInput) {
 		findReplaceOpen: input.findOpen.value,
 		selectedElement: input.selectedElements.value[0] ?? null,
 		selectedCount: input.selectedElements.value.length,
+		// G10: drives the ribbon's Group button (and, via the shared context-menu
+		// builder, the right-click menu's Group/Ungroup entries); mirrors the
+		// `a:spLocks/@noGrp` guard `useAlignGroup`'s `onGroup`/`onUngroup` already
+		// enforce on the commands themselves.
+		selectionGroupable: input.selectedElements.value.every((el) =>
+			canInteractWithElement(el, 'group'),
+		),
 		tableEditorState: input.activeTableSelection.value,
 		editTemplateMode: input.editTemplateMode.value,
 		newShapeType: input.newShapeType.value,

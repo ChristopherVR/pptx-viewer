@@ -30,6 +30,7 @@ import {
 	cancelBuildReveal,
 	playGroup,
 	PresentationAnimationController,
+	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
 import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
@@ -147,6 +148,7 @@ export function useAnimationPlayback(
 		const slide = toValue(options.slide);
 		if (!slide || !animationsEnabled()) {
 			controller = null;
+			ctx.mediaTimeNodeElementIds = new Map();
 			presentationElementStates.value = new Map();
 			presentationKeyframesCss.value = '';
 			interactiveTriggerShapeIds.value = new Set();
@@ -159,6 +161,9 @@ export function useAnimationPlayback(
 		// animations) and derives keyframes CSS, trigger-shape ids, and the full
 		// tracked element id list.
 		controller = PresentationAnimationController.fromSlide(slide);
+		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
+		// element's `ended` event instead of only its estimated `delayMs`.
+		ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);
 		presentationKeyframesCss.value = controller.keyframesCss;
 		interactiveTriggerShapeIds.value = controller.interactiveTriggerShapeIds;
 		hoverTriggerShapeIds.value = controller.hoverTriggerShapeIds;

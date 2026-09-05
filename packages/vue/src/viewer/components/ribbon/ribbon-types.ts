@@ -141,6 +141,8 @@ export interface RibbonProps {
 	selectedElement: PptxElement | null;
 	/** How many elements the multi-select holds; Group needs two. */
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	tableEditorState?: TableCellEditorState | null;
 	editTemplateMode: boolean;
 	newShapeType: SupportedShapeType;

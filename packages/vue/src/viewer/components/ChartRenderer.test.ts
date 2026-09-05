@@ -44,6 +44,48 @@ describe('chartRenderer', () => {
 		expect(bars).toHaveLength(6);
 	});
 
+	it('reveals only the authored p:graphicEl series via animationState.chartReveal', () => {
+		// A reverse-order series build fires seriesIdx 1 ("Cost") first: the
+		// reveal must be exactly {1}, not a forward-count guess.
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(data('bar')),
+				zIndex: 1,
+				animationState: {
+					visible: true,
+					cssAnimation: undefined,
+					chartReveal: {
+						mode: 'bySeries',
+						descriptor: {
+							background: true,
+							series: new Set([1]),
+							categories: new Set(),
+							points: [],
+						},
+					},
+				},
+			},
+		});
+		const bars = wrapper.findAll('rect').filter((r) => r.attributes('rx') === '1');
+		expect(bars).toHaveLength(3);
+	});
+
+	it('falls back to count-based reveal (animationState.build) when chartReveal is absent', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(data('bar')),
+				zIndex: 1,
+				animationState: {
+					visible: true,
+					cssAnimation: undefined,
+					build: { kind: 'chart', mode: 'bySeries', progress: 0.1 },
+				},
+			},
+		});
+		const bars = wrapper.findAll('rect').filter((r) => r.attributes('rx') === '1');
+		expect(bars).toHaveLength(3);
+	});
+
 	it('renders a rect per data point for a column (bar3D maps to bar) chart', () => {
 		const wrapper = mount(ChartRenderer, {
 			props: { element: chartElement(data('bar3D')), zIndex: 0 },
@@ -414,5 +456,44 @@ describe('chartRenderer: interactive marks on the formerly bespoke kinds', () =>
 			},
 		});
 		expect(wrapper.html()).toContain('United States: 10');
+	});
+});
+
+// C2-G9 (render half): a data point's c:dPt/c:pictureOptions picture fill
+// reaches the SVG as a <pattern>/<image> def and a fill="url(#...)" bar rect.
+describe('chartRenderer: c:dPt/c:pictureOptions picture fill', () => {
+	it('renders a <pattern>/<image> def and points the bar fill at it', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('bar', {
+						series: [
+							{
+								name: 'Revenue',
+								values: [10, 20, 30],
+								dataPoints: [
+									{
+										idx: 0,
+										picture: {
+											imageUrl: 'data:image/png;base64,AAA',
+											pictureFormat: 'stretch',
+										},
+									},
+								],
+							},
+						],
+					}),
+				),
+				zIndex: 1,
+			},
+		});
+		const pattern = wrapper.find('pattern');
+		expect(pattern.exists()).toBeTruthy();
+		expect(wrapper.find('image').exists()).toBeTruthy();
+		const patternId = pattern.attributes('id');
+		const filledRect = wrapper
+			.findAll('rect')
+			.find((r) => r.attributes('fill') === `url(#${patternId})`);
+		expect(filledRect).toBeDefined();
 	});
 });

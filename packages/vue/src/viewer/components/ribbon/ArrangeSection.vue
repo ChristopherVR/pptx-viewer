@@ -26,6 +26,8 @@ interface Props {
 	selectedElement: PptxElement | null;
 	/** How many elements the multi-select currently holds; Group needs two. */
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	onAlignElements: (align: string) => void;
 	onDistributeElements: (axis: string) => void;
 	canDistribute: boolean;
@@ -118,6 +120,7 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 		:can-edit="props.canEdit"
 		:selected-element="props.selectedElement"
 		:selected-count="props.selectedCount"
+		:selection-groupable="props.selectionGroupable"
 		:on-group-elements="props.onGroupElements"
 		:on-ungroup-element="props.onUngroupElement"
 		:on-update-element-style="props.onUpdateElementStyle"

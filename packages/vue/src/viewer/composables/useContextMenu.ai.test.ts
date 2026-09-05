@@ -35,6 +35,7 @@ function setup(aiEnabled: boolean, handlers: { onAskAi: () => void; onFixAi: () 
 					tableSelection: ref(null),
 					hasClipboard: computed(() => false),
 					canGroup: computed(() => false),
+					selectionGroupable: computed(() => true),
 					editTemplateMode: ref(false),
 					selectedElementIds: ref<string[]>(['shape-1']),
 					inlineEditingElementId: ref<string | null>(null),

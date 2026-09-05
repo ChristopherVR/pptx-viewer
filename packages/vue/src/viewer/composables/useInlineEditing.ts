@@ -6,6 +6,7 @@ import {
 	canInteractWithElement,
 	publishLiveInlineText,
 	resolveInlineEditAutoFitHeight,
+	resolveInlineEditNormAutofitShrink,
 	setCellText,
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
@@ -156,10 +157,28 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 				(el as { height?: number }).height ?? 0,
 				editorEl,
 			);
+			// `a:normAutofit` ("Shrink text on overflow"): recompute the font
+			// scale/line-spacing reduction so the (possibly now longer or
+			// shorter) text still fits the shape, the way PowerPoint does.
+			// Mutually exclusive with the `spAutoFit` resize above.
+			const shrink = resolveInlineEditNormAutofitShrink(
+				el.textStyle as TextStyle | undefined,
+				(el as { height?: number }).height ?? 0,
+				editorEl,
+			);
 			ops.updateElement(id, {
 				text,
 				textSegments: segments,
 				...(newHeight !== undefined ? { height: newHeight } : {}),
+				...(shrink !== 'unchanged'
+					? {
+							textStyle: {
+								...(el.textStyle as TextStyle | undefined),
+								autoFitFontScale: shrink.fontScale,
+								autoFitLineSpacingReduction: shrink.lnSpcReduction,
+							},
+						}
+					: {}),
 			} as Partial<PptxElement>);
 		}
 	}

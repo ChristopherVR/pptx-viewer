@@ -708,14 +708,22 @@ const {
 });
 
 // -- Align / distribute / group ----------------------------------------
-const { canGroup, canUngroup, canDistribute, onAlign, onDistribute, onGroup, onUngroup } =
-	useAlignGroup({
-		selectedElements,
-		selectedElementIds,
-		activeSlideIndex,
-		slides,
-		pushHistory: history.pushHistory,
-	});
+const {
+	canGroup,
+	canUngroup,
+	canDistribute,
+	selectionGroupable,
+	onAlign,
+	onDistribute,
+	onGroup,
+	onUngroup,
+} = useAlignGroup({
+	selectedElements,
+	selectedElementIds,
+	activeSlideIndex,
+	slides,
+	pushHistory: history.pushHistory,
+});
 
 // -- Element context menu (right-click / long-press) -------------------
 const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useContextMenu({
@@ -724,6 +732,7 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	tableSelection,
 	hasClipboard: clipboard.hasClipboard,
 	canGroup,
+	selectionGroupable,
 	editTemplateMode,
 	selectedElementIds,
 	inlineEditingElementId: inlineEdit.inlineEditingElementId,

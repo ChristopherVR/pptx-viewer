@@ -28,6 +28,8 @@ interface Props {
 	selectedElement: PptxElement | null;
 	/** How many elements the multi-select currently holds; Group needs two. */
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	onGroupElements: () => void;
 	onUngroupElement: () => void;
 	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
@@ -36,7 +38,9 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 
-const canGroup = computed(() => canGroupSelection(props.canEdit, props.selectedCount));
+const canGroup = computed(() =>
+	canGroupSelection(props.canEdit, props.selectedCount, props.selectionGroupable),
+);
 const canUngroup = computed(() => canUngroupSelection(props.canEdit, props.selectedElement));
 // `canSetStrokeWidth` also requires `canEdit`, which this control does not
 // gate on (the spinner is disabled by `!props.canEdit || !isShape` below, same

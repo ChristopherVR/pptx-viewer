@@ -118,3 +118,71 @@ describe('commitInlineEdit - spAutoFit editor resize', () => {
 		expect(updateElement.mock.calls[0][1]).not.toHaveProperty('height');
 	});
 });
+
+/**
+ * Regression test for the `a:normAutofit` ("Shrink text on overflow") editor
+ * behaviour: typing past capacity must recompute
+ * `autoFitFontScale`/`autoFitLineSpacingReduction`, not leave the stale
+ * authored value on the element forever.
+ */
+describe('commitInlineEdit - normAutofit editor font shrink', () => {
+	it('shrinks fontScale/lnSpcReduction on commit when the text overflows the box', () => {
+		mountEditorNode();
+		// jsdom's stubbed scrollHeight cannot vary per candidate step, so every
+		// rung in the staircase measures as "still overflowing" and the
+		// decision lands on the smallest (floor) rung.
+		stubScrollHeight(400);
+		const element = makeElement({ autoFitMode: 'normal' });
+		const updateElement = vi.fn();
+		const editing = useInlineEditing({
+			canEdit: () => true,
+			findActiveElement: (id) => (id === element.id ? element : undefined),
+			ops: { updateElement } as unknown as EditorOperations,
+		});
+
+		editing.enterInlineEdit(element.id);
+		editing.updateInlineText('A very long line of text that overflows the shrink-to-fit box');
+		editing.commitInlineEdit();
+
+		expect(updateElement).toHaveBeenCalledOnce();
+		expect(updateElement.mock.calls[0][1]).toMatchObject({
+			textStyle: { autoFitFontScale: 0.25, autoFitLineSpacingReduction: 0.2 },
+		});
+	});
+
+	it('does not touch textStyle for spAutoFit (shape-resize mode)', () => {
+		mountEditorNode();
+		stubScrollHeight(250);
+		const element = makeElement();
+		const updateElement = vi.fn();
+		const editing = useInlineEditing({
+			canEdit: () => true,
+			findActiveElement: (id) => (id === element.id ? element : undefined),
+			ops: { updateElement } as unknown as EditorOperations,
+		});
+
+		editing.enterInlineEdit(element.id);
+		editing.updateInlineText('A much longer line of text that wraps to several lines');
+		editing.commitInlineEdit();
+
+		expect(updateElement.mock.calls[0][1]).not.toHaveProperty('textStyle');
+	});
+
+	it('leaves textStyle alone when the (stubbed) content already fits the box', () => {
+		mountEditorNode();
+		stubScrollHeight(10);
+		const element = makeElement({ autoFitMode: 'normal' });
+		const updateElement = vi.fn();
+		const editing = useInlineEditing({
+			canEdit: () => true,
+			findActiveElement: (id) => (id === element.id ? element : undefined),
+			ops: { updateElement } as unknown as EditorOperations,
+		});
+
+		editing.enterInlineEdit(element.id);
+		editing.updateInlineText('Short');
+		editing.commitInlineEdit();
+
+		expect(updateElement.mock.calls[0][1]).not.toHaveProperty('textStyle');
+	});
+});

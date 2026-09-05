@@ -42,6 +42,8 @@ export interface UseContextMenuInput {
 	 * how React decides it too.
 	 */
 	canGroup: ComputedRef<boolean>;
+	/** Lock-only half of Group/Ungroup gating (`a:spLocks`/`a:grpSpLocks` `@noGrp`); disables, not hides. */
+	selectionGroupable: ComputedRef<boolean>;
 	editTemplateMode: Ref<boolean>;
 	selectedElementIds: Ref<string[]>;
 	/**
@@ -88,6 +90,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		tableSelection,
 		hasClipboard,
 		canGroup,
+		selectionGroupable,
 		editTemplateMode,
 		selectedElementIds,
 		inlineEditingElementId,
@@ -153,6 +156,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			elementType: contextElement.value?.type ?? null,
 			table: tbl ? { hasMultiCellSelection: tbl.hasMulti, isMergedCell: tbl.isMerged } : null,
 			hasMultiSelection: canGroup.value,
+			selectionGroupable: selectionGroupable.value,
 			aiEnabled: aiEnabled?.(),
 			hasClipboard: hasClipboard.value,
 		});

@@ -2,10 +2,10 @@
 import type { PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
 import type { ChartViewModel, ElementAnimationState } from 'pptx-viewer-shared';
 import {
-	applyChartBuildReveal,
 	chartPlaceholderLabel,
 	chartPreserveAspectRatio,
 	resolveChartKind,
+	resolveRevealedChartData,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
@@ -55,8 +55,9 @@ const props = defineProps<{
 	marked?: boolean;
 	/**
 	 * Native-animation playback state. When it carries a staged chart build
-	 * (`build.kind === 'chart'`) the chart reveals its series / categories / cells
-	 * progressively via the shared `applyChartBuildReveal`.
+	 * (`build.kind === 'chart'`, or the authored-index `chartReveal`) the chart
+	 * reveals its series / categories / cells progressively via the shared
+	 * `resolveRevealedChartData`.
 	 */
 	animationState?: ElementAnimationState;
 }>();
@@ -92,12 +93,6 @@ const {
 	buildViewModel: buildVueChartViewModel,
 });
 
-/** Staged chart-build descriptor, when an active native animation reveals one. */
-const chartBuild = computed(() => {
-	const build = props.animationState?.build;
-	return build?.kind === 'chart' ? build : undefined;
-});
-
 /**
  * The chart element with its data trimmed to the stages revealed at the current
  * build progress (drag preview wins first). Whole-chart / no-build renders return
@@ -105,11 +100,10 @@ const chartBuild = computed(() => {
  */
 const revealedElement = computed<PptxElement>(() => {
 	const el = renderedElement.value;
-	const build = chartBuild.value;
-	if (!build || el.type !== 'chart' || !el.chartData) {
+	if (el.type !== 'chart' || !el.chartData) {
 		return el;
 	}
-	const revealed = applyChartBuildReveal(el.chartData, build);
+	const revealed = resolveRevealedChartData(el.chartData, props.animationState);
 	return revealed === el.chartData ? el : { ...el, chartData: revealed };
 });
 

@@ -68,6 +68,7 @@ function setup(overrides: Partial<UseContextMenuInput> = {}): UseContextMenuResu
 					tableSelection: ref(null),
 					hasClipboard: computed(() => true),
 					canGroup: computed(() => false),
+					selectionGroupable: computed(() => true),
 					editTemplateMode: ref(false),
 					selectedElementIds: ref<string[]>([SHAPE.id]),
 					inlineEditingElementId: ref<string | null>(null),
@@ -116,6 +117,26 @@ describe('useContextMenu command set', () => {
 		const multi = setup({ canGroup: computed(() => true) });
 		expect(commandIds(multi)).toContain('group');
 		expect(multi.contextItems.value.find((item) => item.id === 'group')?.disabled).toBeFalsy();
+	});
+
+	it('disables Group/Ungroup when a:spLocks/a:grpSpLocks reject grouping', () => {
+		const multiLocked = setup({
+			canGroup: computed(() => true),
+			selectionGroupable: computed(() => false),
+		});
+		expect(
+			multiLocked.contextItems.value.find((item) => item.id === 'group')?.disabled,
+		).toBeTruthy();
+
+		const groupLocked = setup({
+			findActiveElement: (id) => (id === GROUP.id ? GROUP : undefined),
+			selectedElementIds: ref<string[]>([GROUP.id]),
+			selectionGroupable: computed(() => false),
+		});
+		groupLocked.contextMenu.value = { open: true, x: 0, y: 0, elementId: GROUP.id };
+		expect(
+			groupLocked.contextItems.value.find((item) => item.id === 'ungroup')?.disabled,
+		).toBeTruthy();
 	});
 
 	it('greys Paste out when the clipboard is empty', () => {
