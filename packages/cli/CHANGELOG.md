@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.8.0) - 2026-09-05
+
+### Features
+
+- **react:** Parity wave 4/5 (accessibility, table styles, chart runs, save options) (by @ChristopherVR) ([e2847a4](https://github.com/ChristopherVR/pptx-viewer/commit/e2847a44705378215e7609864fd4491921b574d3))
+
 ## [2.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.7.0) - 2026-09-05
 
 ### Features

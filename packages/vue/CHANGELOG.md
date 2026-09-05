@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.8.0) - 2026-09-05
+
+### Features
+
+- **core:** Openxml parity wave 4/5 (table styles, userShapes, alt text, bldLst) (by @ChristopherVR) ([bfd2af8](https://github.com/ChristopherVR/pptx-viewer/commit/bfd2af899ea78a50e88762a3278756b9c7bcf8b5))
+- **shared:** Parity wave 4/5 decision modules for all five bindings (by @ChristopherVR) ([16c6147](https://github.com/ChristopherVR/pptx-viewer/commit/16c61473d8ac16c396a1fab347afb9ab98879b6b))
+- **vue:** Parity wave 4/5 (accessibility, table styles, chart runs, save options) (by @ChristopherVR) ([0180324](https://github.com/ChristopherVR/pptx-viewer/commit/01803247ea0067923fe6345793530050ea08b6f4))
+
 ## [3.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.7.0) - 2026-09-05
 
 ### Features

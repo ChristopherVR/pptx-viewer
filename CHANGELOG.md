@@ -10,6 +10,31 @@ dated sections beneath it are generated from
 
 ## 2026-09-05
 
+_Releases: pptx-viewer-core@3.6.0, pptx-react-viewer@3.8.0, pptx-vue-viewer@3.8.0, pptx-angular-viewer@3.9.0, pptx-vanilla-viewer@2.8.0, pptx-svelte-viewer@3.9.0, pptx-viewer-mcp@2.4.0, @christophervr/pptx-viewer@2.8.0_
+
+### Features
+
+- **core:** Openxml parity wave 4/5 (table styles, userShapes, alt text, bldLst) (by @ChristopherVR) ([bfd2af8](https://github.com/ChristopherVR/pptx-viewer/commit/bfd2af899ea78a50e88762a3278756b9c7bcf8b5))
+- **tools:** Alt text and title on shape, text and connector elements (by @ChristopherVR) ([781992b](https://github.com/ChristopherVR/pptx-viewer/commit/781992be91fb9d07f10e6dcd1bd8aa431a6114d1))
+- **shared:** Parity wave 4/5 decision modules for all five bindings (by @ChristopherVR) ([16c6147](https://github.com/ChristopherVR/pptx-viewer/commit/16c61473d8ac16c396a1fab347afb9ab98879b6b))
+- **locales:** De/es/fr strings for accessibility, table style and animation keys (by @ChristopherVR) ([d64d590](https://github.com/ChristopherVR/pptx-viewer/commit/d64d590ff484e9d1a46ea3d77a8d7fc3b8f3d508))
+- **react:** Parity wave 4/5 (accessibility, table styles, chart runs, save options) (by @ChristopherVR) ([e2847a4](https://github.com/ChristopherVR/pptx-viewer/commit/e2847a44705378215e7609864fd4491921b574d3))
+- **vue:** Parity wave 4/5 (accessibility, table styles, chart runs, save options) (by @ChristopherVR) ([0180324](https://github.com/ChristopherVR/pptx-viewer/commit/01803247ea0067923fe6345793530050ea08b6f4))
+- **angular:** Parity wave 4/5 (accessibility, table styles, chart runs, save options) (by @ChristopherVR) ([b33ee41](https://github.com/ChristopherVR/pptx-viewer/commit/b33ee418701416889e81504c3bf292c38f754402))
+- **svelte:** Parity wave 4/5 (accessibility, table styles, chart runs, save options) (by @ChristopherVR) ([01f5a2e](https://github.com/ChristopherVR/pptx-viewer/commit/01f5a2e8cd25d2a6c6a57c8d1aac5713bed0281d))
+- **vanilla:** Parity wave 4/5 (accessibility, table styles, chart runs, save options) (by @ChristopherVR) ([c3b380d](https://github.com/ChristopherVR/pptx-viewer/commit/c3b380ddb414a11e1a4b3fd98c6b2347ec4f3589))
+
+### Documentation
+
+- Wave 4/5 parity status in limitations (by @ChristopherVR) ([1cdd67b](https://github.com/ChristopherVR/pptx-viewer/commit/1cdd67b8ec3981071cca5b238aac050246c6e873))
+
+### Testing
+
+- **e2e:** Wave 4/5 cross-binding specs (by @ChristopherVR) ([8d20b54](https://github.com/ChristopherVR/pptx-viewer/commit/8d20b548ecba51c7ab22425f6a46efd855509ef3))
+- **e2e:** Pin element alt text and title across all five bindings (by @ChristopherVR) ([e527ee9](https://github.com/ChristopherVR/pptx-viewer/commit/e527ee9e57d6b90c56594ecd47ed4a4205222737))
+
+## 2026-09-05
+
 _Releases: pptx-viewer-core@3.5.0, pptx-react-viewer@3.7.0, pptx-vue-viewer@3.7.0, pptx-angular-viewer@3.8.0, pptx-vanilla-viewer@2.7.0, pptx-svelte-viewer@3.8.0, pptx-viewer-mcp@2.3.0, @christophervr/pptx-viewer@2.7.0_
 
 ### Features

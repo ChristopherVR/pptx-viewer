@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.4.0) - 2026-09-05
+
+### Features
+
+- **tools:** Alt text and title on shape, text and connector elements (by @ChristopherVR) ([781992b](https://github.com/ChristopherVR/pptx-viewer/commit/781992be91fb9d07f10e6dcd1bd8aa431a6114d1))
+
 ## [2.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.3.0) - 2026-09-05
 
 ### Features
