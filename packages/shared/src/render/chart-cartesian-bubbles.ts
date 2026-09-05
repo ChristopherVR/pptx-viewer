@@ -11,7 +11,11 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { elementFrame, seriesXValues, xyMarkTooltip } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
-import { buildDataLabelText } from './chart-data-label-text';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 import { resolveDataPointFill } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { PlotLayout, SvgCircle, SvgPrimitive, SvgText, ValueRange } from './chart-view-model';
@@ -123,6 +127,7 @@ export function buildBubbles(
 					fill: label.color ?? '#334155',
 					textAnchor: anchor.textAnchor,
 					...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
+					...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, vi)),
 				});
 			});
 		}

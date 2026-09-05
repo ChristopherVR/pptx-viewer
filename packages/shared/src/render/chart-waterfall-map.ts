@@ -18,6 +18,8 @@
 
 import type { PptxChartData, PptxChartRegionMapOptions, PptxElement } from 'pptx-viewer-core';
 
+import { findValueAxis, buildValueAxisGridlinesAndLabels } from './chart-cx-axis-units';
+import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import {
 	buildRegionMapEntries,
@@ -29,7 +31,6 @@ import {
 } from './chart-region-map-data';
 import type { ChartViewModel, SvgLine, SvgPath, SvgRect, SvgText } from './chart-view-model';
 import {
-	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
 	buildCategoryLabels,
@@ -117,6 +118,9 @@ export function buildWaterfallViewModel(
 				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: '#334155',
 				textAnchor: 'middle',
+				...(series
+					? dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, sourceIndex))
+					: {}),
 			} satisfies SvgText);
 		}
 
@@ -136,7 +140,11 @@ export function buildWaterfallViewModel(
 		}
 	}
 
-	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
+	const { gridlines, axisLabels } = buildValueAxisGridlinesAndLabels(
+		range,
+		layout,
+		findValueAxis(chartData.axes),
+	);
 	const zeroLine = buildZeroLine(range, layout);
 	const catLabels = buildCategoryLabels(categoryLabels, layout, 'bar');
 

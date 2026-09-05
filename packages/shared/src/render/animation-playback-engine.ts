@@ -15,6 +15,9 @@
  *  - the requestAnimationFrame loop that ramps a staged chart / SmartArt build's
  *    `progress` 0 -> 1 (`p:bldChart` / `p:bldDgm`);
  *  - the auto-advance chain for consecutive withPrevious / afterPrevious groups.
+ *  - (via the sibling `animation-media-end-gating`, kept separate for this
+ *    file's line budget) wiring an `onStopAudio`-gated step to its REAL
+ *    `<audio>`/`<video>` element's `ended` event.
  *
  * Only `window.setTimeout` / `requestAnimationFrame` / `cancelAnimationFrame` /
  * `performance.now` (all present in jsdom) and DOM lookups scoped through the
@@ -37,6 +40,7 @@
  * @module render/animation-playback-engine
  */
 
+import { wireMediaEndedSteps } from './animation-media-end-gating';
 import { executeMediaCommandInDom } from './animation-media-playback';
 import type { ElementAnimationState, TimelineClickGroup } from './animation-timeline-types';
 import { PresentationAnimationController } from './presentation-animation-controller';
@@ -83,6 +87,14 @@ export interface PlaybackContext {
 	stopSound: () => void;
 	/** Root element to scope media-command target lookups to (the slide stage). */
 	frameRoot?: () => HTMLElement | null;
+	/**
+	 * Maps a `p:audio`/`p:video` animation's OWN timing-tree node id to the
+	 * element id it plays (`animation-media-end-gating`'s
+	 * `resolveMediaTimeNodeElementIds`), so an `onStopAudio`-gated step can
+	 * find the real DOM element for its `ended` event. Absent: falls back to
+	 * the `delayMs` estimate alone (matches every binding before this existed).
+	 */
+	mediaTimeNodeElementIds?: ReadonlyMap<number, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,8 +105,16 @@ export interface PlaybackContext {
  * Apply a click-group's steps onto the element-state map: fire sound / media
  * commands, set each step's initial visibility + CSS animation, then schedule
  * cleanup timers to clear the animation (and hide exits) once each step ends.
+ *
+ * An `onStopAudio`-gated step also gets a real `ended` listener wired via
+ * `wireMediaEndedSteps` (`animation-media-end-gating`), which corrects the
+ * fallback estimate below once the actual media element finishes; the
+ * fallback still fires unconditionally, so no-real-media contexts
+ * (export/headless) are unaffected.
  */
 export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: PlaybackContext): void {
+	wireMediaEndedSteps(group, ctx);
+
 	// Sound + media-playback side effects.
 	for (const step of group.steps) {
 		if (step.command) {

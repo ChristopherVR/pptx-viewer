@@ -11,6 +11,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { computeRadarPoints, radarAngle, radarRingPoints } from './chart-radar-geometry';
 import { buildLegend, computePlotLayout } from './chart-view-model-layout';
@@ -147,6 +148,7 @@ export function buildRadarViewModel(
 					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 					fill: '#334155',
 					textAnchor: 'middle',
+					...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, vi)),
 				});
 			});
 		}

@@ -12,7 +12,11 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
-import { buildDataLabelText } from './chart-data-label-text';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 import { resolveDataPointFill, resolveDataPointMarker } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { smoothLinePath } from './chart-line-path';
@@ -238,6 +242,7 @@ export function buildScatter(
 					fill: label.color ?? '#334155',
 					textAnchor: anchor.textAnchor,
 					...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
+					...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, vi)),
 				});
 			});
 		}

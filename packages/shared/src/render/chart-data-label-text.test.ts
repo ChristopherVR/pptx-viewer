@@ -1,7 +1,12 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildDataLabelText, resolveDataLabelContent } from './chart-data-label-text';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelContent,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 
 function chart(overrides: Partial<PptxChartData> = {}): PptxChartData {
 	return {
@@ -189,5 +194,78 @@ describe('buildDataLabelText', () => {
 		expect(buildDataLabelText({ chartData: data, series, pointIndex: 0, value: 0.4 })?.text).toBe(
 			'40%',
 		);
+	});
+});
+
+// C2-G1 (data-label half): c:dLbl / c:ser.dLbls / c:*Chart.dLbls txPr cascade,
+// mirroring the numFmt cascade above.
+describe('resolveDataLabelTextStyle', () => {
+	it('returns undefined when nothing at any level authored a font', () => {
+		expect(resolveDataLabelTextStyle(chart(), shareSeries, 0)).toBeUndefined();
+	});
+
+	it('falls back to the chart-type-level c:dLbls/c:txPr', () => {
+		const data = chart({ style: { hasDataLabels: true, dataLabels: { txPr: { fontSize: 8 } } } });
+		expect(resolveDataLabelTextStyle(data, shareSeries, 0)).toStrictEqual({ fontSize: 8 });
+	});
+
+	it('lets the series-level c:ser/c:dLbls/c:txPr win over the chart-type level', () => {
+		const data = chart({ style: { hasDataLabels: true, dataLabels: { txPr: { fontSize: 8 } } } });
+		const series: PptxChartSeries = {
+			...shareSeries,
+			dataLabelOptions: { txPr: { fontSize: 10 } },
+		};
+		expect(resolveDataLabelTextStyle(data, series, 0)).toStrictEqual({ fontSize: 10 });
+	});
+
+	it('lets a per-point c:dLbl/c:txPr win over the series and chart-type levels', () => {
+		const data = chart({ style: { hasDataLabels: true, dataLabels: { txPr: { fontSize: 8 } } } });
+		const series: PptxChartSeries = {
+			...shareSeries,
+			dataLabelOptions: { txPr: { fontSize: 10 } },
+			dataLabels: [{ idx: 0, txPr: { fontSize: 14, bold: true } }],
+		};
+		expect(resolveDataLabelTextStyle(data, series, 0)).toStrictEqual({ fontSize: 14, bold: true });
+	});
+});
+
+// C2-G1 (data-label half): resolveDataLabelTextStyle's font, converted to the
+// SvgText fields every non-pie emitter (bar/column, line/area/scatter/bubble,
+// radar, stock close, ChartEx histogram/waterfall/box-whisker/funnel/
+// treemap/sunburst) needs to actually draw with it.
+describe('dataLabelFontOverride', () => {
+	it('returns an empty override for undefined (a chart with no authored font)', () => {
+		expect(dataLabelFontOverride(undefined)).toStrictEqual({});
+	});
+
+	it('converts fontSize from points to px', () => {
+		expect(dataLabelFontOverride({ fontSize: 12 })).toStrictEqual({ fontSize: 16 });
+	});
+
+	it('maps bold/italic to the CSS-shaped fontWeight/fontStyle', () => {
+		expect(dataLabelFontOverride({ bold: true, italic: true })).toStrictEqual({
+			fontWeight: 'bold',
+			fontStyle: 'italic',
+		});
+	});
+
+	it('honours an explicit false, not just a set bold/italic', () => {
+		expect(dataLabelFontOverride({ bold: false, italic: false })).toStrictEqual({
+			fontWeight: 'normal',
+			fontStyle: 'normal',
+		});
+	});
+
+	it('maps color to fill and fontFamily through unchanged', () => {
+		expect(dataLabelFontOverride({ color: '#FF0000', fontFamily: 'Calibri' })).toStrictEqual({
+			fill: '#FF0000',
+			fontFamily: 'Calibri',
+		});
+	});
+
+	it('omits every field the source txPr left unset', () => {
+		expect(dataLabelFontOverride({ fontFamily: 'Calibri' })).toStrictEqual({
+			fontFamily: 'Calibri',
+		});
 	});
 });

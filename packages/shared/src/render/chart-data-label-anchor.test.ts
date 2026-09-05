@@ -162,3 +162,26 @@ describe('resolveMarkerLabelPlacement: manual layout offset', () => {
 		expect(placed.y).toBeCloseTo(auto.y, 5);
 	});
 });
+
+describe('resolveMarkerLabelPlacement: defaultPosition (stock close label)', () => {
+	const point = { x: 50, y: 50 };
+	const frame = { width: 400, height: 300 };
+
+	it('uses defaultPosition when nothing at any cascade level authored a c:dLblPos', () => {
+		const data = chart({});
+		const placed = resolveMarkerLabelPlacement(data, data.series[0], 0, point, frame, 6, 'r');
+		expect(placed).toStrictEqual(resolveMarkerLabelAnchor('r', point, 6));
+	});
+
+	it('lets an authored c:dLblPos win over defaultPosition', () => {
+		const data = chart({ dataLabelOptions: { position: 'b' } });
+		const placed = resolveMarkerLabelPlacement(data, data.series[0], 0, point, frame, 6, 'r');
+		expect(placed.textAnchor).toBe(resolveMarkerLabelAnchor('b', point, 6).textAnchor);
+	});
+
+	it('keeps the historical "above the point" default when defaultPosition is omitted', () => {
+		const data = chart({});
+		const placed = resolveMarkerLabelPlacement(data, data.series[0], 0, point, frame);
+		expect(placed).toStrictEqual(resolveMarkerLabelAnchor(undefined, point, 7));
+	});
+});

@@ -10,7 +10,11 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { pushMarker } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
-import { buildDataLabelText } from './chart-data-label-text';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 import { resolveDataPointFill } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { computeStackedSeriesPlots } from './chart-stacked-series';
@@ -157,14 +161,33 @@ export function buildAreas(
 					if (val === 0) {
 						return;
 					}
+					// Centre on the VISIBLE segment (the filled band between this
+					// series' running-sum top and its own base), matching
+					// PowerPoint's own percentStacked convention and stacked bar's
+					// `y + h/2` placement, rather than a fixed offset above the top
+					// line: at extreme category skews a thin band's label used to
+					// float noticeably off the band it names.
+					const baseVal = plot?.base[displayIndex] ?? 0,
+						topVal = plot?.cumulative[displayIndex] ?? val,
+						baseY = valueToY(baseVal, range, layout.plotTop, layout.plotBottom),
+						topY = valueToY(topVal, range, layout.plotTop, layout.plotBottom);
 					dataLabels.push({
 						kind: 'text',
 						x: pt.x,
-						y: pt.y - 6,
+						y: (baseY + topY) / 2,
 						text: `${Math.round(val)}%`,
 						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-						fill: '#334155',
+						fill: '#ffffff',
 						textAnchor: 'middle',
+						dominantBaseline: 'central',
+						fontWeight: 'bold',
+						...dataLabelFontOverride(
+							resolveDataLabelTextStyle(
+								chartData,
+								series,
+								sourceIndices[displayIndex] ?? displayIndex,
+							),
+						),
 					});
 					return;
 				}
@@ -191,6 +214,7 @@ export function buildAreas(
 					fill: label.color ?? '#334155',
 					textAnchor: anchor.textAnchor,
 					...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
+					...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, pointIndex)),
 				});
 			});
 		}

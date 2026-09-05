@@ -34,10 +34,16 @@
  * colour), and the common case for both bug classes - shading/bevel highlights,
  * `smileyFace`'s eyes - is a solid theme colour.
  */
-import type { CustomGeometryPath, CustomGeometrySubpathSvg, PptxElement } from 'pptx-viewer-core';
+import type {
+	CustomGeometryPath,
+	CustomGeometryRawData,
+	CustomGeometrySubpathSvg,
+	PptxElement,
+} from 'pptx-viewer-core';
 import {
 	MIN_ELEMENT_SIZE,
 	customGeometryPathsToSvgSubpaths,
+	evaluateCustomGeometryPaths,
 	evaluatePresetShape,
 	hasShapeProperties,
 } from 'pptx-viewer-core';
@@ -89,6 +95,7 @@ interface SubpathCapableElement {
 	pathWidth?: number;
 	pathHeight?: number;
 	customGeometryPaths?: CustomGeometryPath[];
+	customGeometryRawData?: CustomGeometryRawData;
 	shapeType?: string;
 	shapeAdjustments?: Record<string, number>;
 }
@@ -124,7 +131,17 @@ function getSubpathGeometry(element: PptxElement): SubpathGeometry | undefined {
 	// carry per-sub-path `@fill`/`@stroke`; a freeform with only aggregate
 	// `pathData` (no structured paths) has no per-sub-path intent to honour.
 	if (slots.pathData && slots.pathWidth && slots.pathHeight) {
-		const structured = slots.customGeometryPaths;
+		// Live-evaluate the raw `a:pathLst` against the current adjust values so a
+		// mid-drag `a:ahXY`/`a:ahPolar` reshape moves the per-sub-path overlay
+		// with the clip path; falls back to the parse-time paths when the raw
+		// XML is missing (older data) or the guide list cannot be evaluated.
+		const structured =
+			evaluateCustomGeometryPaths(
+				slots.customGeometryRawData,
+				slots.pathWidth,
+				slots.pathHeight,
+				slots.shapeAdjustments,
+			) ?? slots.customGeometryPaths;
 		if (!structured || structured.length === 0) {
 			return undefined;
 		}

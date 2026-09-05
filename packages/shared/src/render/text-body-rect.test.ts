@@ -50,12 +50,13 @@ describe('resolveTextBodyRectPadding', () => {
 		});
 	});
 
-	// `diamond`/`heart`/`pentagon`/`ellipse`/`plus` were fixed and COM-verified
-	// under gap G1 (see `VERIFIED_TEXT_RECT_PRESETS`'s doc comment) and now
-	// contribute real padding; `star5` (and most other star/ribbon/scroll
-	// presets) remain unverified and stay on the full box.
+	// Wave 2 COM-verified every remaining ECMA-transcribed preset (stars,
+	// ribbons, scrolls, gears, etc.) EXCEPT `sun`: its pre-existing hand-derived
+	// `rect` was measured to be wrong too (see `VERIFIED_TEXT_RECT_PRESETS`'s
+	// doc comment), so it deliberately stays off the allowlist and on the full
+	// box until a correct formula is found.
 	it('ignores the text rectangle of presets not verified against PowerPoint', () => {
-		for (const shapeType of ['star5']) {
+		for (const shapeType of ['sun']) {
 			expect(resolveTextBodyRectPadding(shape({ shapeType }))).toStrictEqual({
 				left: 0,
 				top: 0,
@@ -63,6 +64,56 @@ describe('resolveTextBodyRectPadding', () => {
 				bottom: 0,
 			});
 		}
+	});
+
+	// Wave 2 follow-up: a representative sample of the newly COM-verified
+	// ECMA-transcribed presets, pinned to their measured 200x100pt values
+	// (preset-text-rect-w2-measured.json in the wave scratchpad).
+	it('insets a 5-pointed star to its inner vertex span', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'star5' }));
+		expect(padding.left).toBeCloseTo(61.8, 1);
+		expect(padding.top).toBeCloseTo(38.2, 1);
+		expect(padding.right).toBeCloseTo(61.8, 1);
+	});
+
+	it('insets homePlate to the mid-point between the notch and the far edge', () => {
+		expect(resolveTextBodyRectPadding(shape({ shapeType: 'homePlate' }))).toStrictEqual({
+			left: 0,
+			top: 0,
+			right: 25,
+			bottom: 0,
+		});
+	});
+
+	it('insets a ribbon to the band under its fold', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'ribbon' }));
+		expect(padding.left).toBeCloseTo(50, 1);
+		expect(padding.top).toBeCloseTo(16.67, 1);
+		expect(padding.right).toBeCloseTo(50, 1);
+		expect(padding.bottom).toBe(0);
+	});
+
+	it('insets gear6 to the tooth-root span', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'gear6' }));
+		expect(padding.left).toBeCloseTo(39.71, 1);
+		expect(padding.top).toBeCloseTo(25.33, 1);
+	});
+
+	it('insets bracePair to the mid-point of the fillet on all four sides', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'bracePair' }));
+		expect(padding.left).toBeCloseTo(10.77, 1);
+		expect(padding.top).toBeCloseTo(10.77, 1);
+		expect(padding.right).toBeCloseTo(10.77, 1);
+		expect(padding.bottom).toBeCloseTo(2.44, 1);
+	});
+
+	it('leaves an action button on its full bounding box (a trivial, verified full-box rect)', () => {
+		expect(resolveTextBodyRectPadding(shape({ shapeType: 'actionButtonHome' }))).toStrictEqual({
+			left: 0,
+			top: 0,
+			right: 0,
+			bottom: 0,
+		});
 	});
 
 	// G1 follow-up: the core table's `rect` for these is now corrected and

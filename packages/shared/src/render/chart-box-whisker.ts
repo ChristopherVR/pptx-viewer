@@ -2,6 +2,7 @@ import type { PptxChartBoxWhiskerOptions, PptxChartData, PptxElement } from 'ppt
 
 import { computeBoxStats } from './chart-box-whisker-stats';
 import type { BoxStats } from './chart-box-whisker-stats';
+import { buildValueAxisGridlinesAndLabels, findValueAxis } from './chart-cx-axis-units';
 import { distributionRange } from './chart-distribution-range';
 import type {
 	ChartViewModel,
@@ -15,7 +16,6 @@ import type {
 } from './chart-view-model';
 import {
 	buildCategoryLabels,
-	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
 	computePlotLayout,
@@ -236,7 +236,11 @@ export function buildBoxWhiskerViewModel(
 		...whiskerPrimitives(geometry),
 		...optionPrimitives(geometry, options, index),
 	]);
-	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
+	const { gridlines, axisLabels } = buildValueAxisGridlinesAndLabels(
+		range,
+		layout,
+		findValueAxis(chartData.axes),
+	);
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
 		chartData.colorPalette,

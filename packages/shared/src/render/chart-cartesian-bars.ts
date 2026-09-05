@@ -12,10 +12,15 @@
  */
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
+import { buildPercentStackedBars } from './chart-cartesian-percent-stacked';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { pushClusteredStackedLabels } from './chart-cartesian-stacked-labels';
 import { resolveBarLabelPlacement } from './chart-data-label-anchor';
-import { buildDataLabelText } from './chart-data-label-text';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 import { resolveDataPointFill, resolveVaryColorFill } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { PlotLayout, SvgPrimitive, SvgRect, SvgText, ValueRange } from './chart-view-model';
@@ -26,13 +31,6 @@ import {
 	seriesColor,
 	valueToY,
 } from './chart-view-model';
-
-/** Per-category absolute totals (for percentStacked normalisation). */
-function categoryTotals(series: ReadonlyArray<PptxChartSeries>, catCount: number): number[] {
-	return Array.from({ length: catCount }, (_, ci) =>
-		series.reduce((sum, s) => sum + Math.abs(s.values[ci] ?? 0), 0),
-	);
-}
 
 /**
  * Blend a `#RRGGBB` colour halfway toward white. Returns the input unchanged
@@ -176,6 +174,9 @@ export function buildBars(
 							fill: label.color ?? '#334155',
 							textAnchor: anchor.textAnchor,
 							...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
+							...dataLabelFontOverride(
+								resolveDataLabelTextStyle(chartData, series[si], sourceIndex),
+							),
 						});
 					}
 				}
@@ -229,71 +230,15 @@ export function buildBars(
 	}
 
 	// percentStacked: normalise each category to 100% with in-bar percent labels.
-	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
-	const barGroupWidth = layout.plotWidth / Math.max(catCount, 1),
-		barW = barGroupWidth * 0.6,
-		barOffset = (barGroupWidth - barW) / 2,
-		displaySeries = series.map((entry) => ({
-			...entry,
-			values: sourceIndices.map((sourceIndex) => entry.values[sourceIndex] ?? 0),
-		})),
-		totals = categoryTotals(displaySeries, catCount);
-
-	for (let ci = 0; ci < catCount; ci++) {
-		let posRunning = 0,
-			negRunning = 0;
-		const catTotal = totals[ci] || 1;
-
-		for (let si = 0; si < series.length; si++) {
-			const sourceIndex = sourceIndices[ci] ?? ci,
-				rawVal = series[si].values[sourceIndex] ?? 0,
-				val = catTotal > 0 ? (rawVal / catTotal) * 100 : 0,
-				isNeg = val < 0,
-				base = isNeg ? negRunning : posRunning,
-				top = base + val,
-				x = layout.plotLeft + barGroupWidth * ci + barOffset,
-				baseY = valueToY(base, primaryRange, layout.plotTop, layout.plotBottom),
-				topY = valueToY(top, primaryRange, layout.plotTop, layout.plotBottom),
-				y = Math.min(baseY, topY),
-				h = Math.max(Math.abs(baseY - topY), 0.5),
-				pctBaseFill =
-					resolveDataPointFill(series[si], sourceIndex, paletteColor(si, palette)) ??
-					seriesColor(series[si], si, palette);
-			primitives.push({
-				kind: 'rect',
-				x,
-				y,
-				w: barW,
-				h,
-				fill: invertNegativeFill(series[si], sourceIndex, rawVal, pctBaseFill),
-				part: { role: 'dataPoint', seriesIndex: si, pointIndex: sourceIndex },
-				title: buildMarkTooltip(
-					series[si].name,
-					chartData.categories[sourceIndex],
-					rawVal,
-					series[si].numberFormat,
-				),
-			} satisfies SvgRect);
-
-			if (showLabels && Math.abs(val) > 0) {
-				dataLabels.push({
-					kind: 'text',
-					x: x + barW / 2,
-					y: y + h / 2 + 3,
-					text: `${Math.round(val)}%`,
-					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-					fill: '#ffffff',
-					textAnchor: 'middle',
-					fontWeight: 'bold',
-				});
-			}
-
-			if (isNeg) {
-				negRunning += val;
-			} else {
-				posRunning += val;
-			}
-		}
-	}
-	return { primitives, dataLabels };
+	// Split into its own module (`chart-cartesian-percent-stacked.ts`) to keep
+	// this file within the repo's ~300-LOC limit; `invertNegativeFill` is
+	// injected since it is this file's own helper.
+	return buildPercentStackedBars(
+		chartData,
+		catCount,
+		layout,
+		primaryRange,
+		sourceIndices,
+		invertNegativeFill,
+	);
 }

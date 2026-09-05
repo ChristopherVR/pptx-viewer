@@ -17,6 +17,7 @@ import { applyChart3DDepth } from './chart-3d-depth';
 import { chartAreaCornerRadius, chartAreaFill, plotAreaFill } from './chart-area-fill';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { applyDataPointPictureFills } from './chart-datapoint-picture-fills';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import { applyLegendEntryOverrides } from './chart-legend-entries';
@@ -105,15 +106,38 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 function finishViewModel(
 	vm: ChartViewModel,
 	chartData: PptxChartData,
-	frame: { width: number; height: number },
+	frame: { id: string; width: number; height: number },
 ): ChartViewModel {
 	return withLegendEntries(
 		withChartAreaFill(
-			withUserShapeOverlay(withManualLayouts(vm, chartData, frame), chartData),
+			withDataPointPictureFills(
+				withUserShapeOverlay(withManualLayouts(vm, chartData, frame), chartData),
+				chartData,
+				frame.id,
+			),
 			chartData,
 		),
 		chartData,
 	);
+}
+
+/**
+ * Rewrite data-point rects with a `c:dPt/c:pictureOptions` picture fill to
+ * `url(#...)` and attach the `<pattern>` defs a binding must render for it
+ * (C2-G9 render half). Runs after the user-shape overlay so overlay
+ * primitives (which carry no `part`) are never mistaken for data points, and
+ * before the legend/area-fill passes since those don't touch `primitives`.
+ */
+function withDataPointPictureFills(
+	vm: ChartViewModel,
+	chartData: PptxChartData,
+	elementId: string,
+): ChartViewModel {
+	const { primitives, defs } = applyDataPointPictureFills(chartData, elementId, vm.primitives);
+	if (defs.length === 0) {
+		return vm;
+	}
+	return { ...vm, primitives, defs: [...(vm.defs ?? []), ...defs] };
 }
 
 /**

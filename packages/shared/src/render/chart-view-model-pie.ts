@@ -13,7 +13,7 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { DEFAULT_CHART_AREA_FILL } from './chart-area-fill';
-import { buildDataLabelText } from './chart-data-label-text';
+import { buildDataLabelText, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { resolveLegendPlacement } from './chart-legend-placement';
 import { buildPieDataLabels } from './chart-pie-labels';
@@ -140,15 +140,32 @@ export function buildPieViewModel(
 				showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
 				numberFormat: chartData.series[0]?.numberFormat,
 				labelText: pieSeries
-					? (pointIndex, value) =>
-							buildDataLabelText({
+					? (pointIndex, value) => {
+							const built = buildDataLabelText({
 								chartData,
 								series: pieSeries,
 								pointIndex,
 								value,
 								percentBase,
-							})
+							});
+							if (!built) {
+								return undefined;
+							}
+							const style = resolveDataLabelTextStyle(chartData, pieSeries, pointIndex);
+							return {
+								...built,
+								...(style?.fontFamily ? { fontFamily: style.fontFamily } : {}),
+								...(style?.fontSize !== undefined ? { fontSize: style.fontSize } : {}),
+								...(style?.bold !== undefined ? { bold: style.bold } : {}),
+							};
+						}
 					: undefined,
+				layoutFor: pieSeries
+					? (pointIndex) => pieSeries.dataLabels?.find((label) => label.idx === pointIndex)?.layout
+					: undefined,
+				frame: { width: element.width, height: element.height },
+				svgWidth,
+				svgHeight,
 			});
 		dataLabels.push(...labelResult.labels);
 		primitives.push(...labelResult.leaderLines);

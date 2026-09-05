@@ -23,7 +23,7 @@ import {
 	buildVerticalAxisLine,
 	buildVerticalTickMark,
 } from './chart-axis-primitives';
-import { chartAxisTextStyle } from './chart-axis-style';
+import { chartAxisTextStyle, unitsLabelTextStyle } from './chart-axis-style';
 import type { PlotLayout, SvgLine, SvgText, ValueRange } from './chart-view-model';
 import { formatAxisValue, valueToY } from './chart-view-model';
 
@@ -164,7 +164,7 @@ export function buildPrimaryAxis(
 				x: labelX,
 				y: midY,
 				text: unitLabel,
-				...chartAxisTextStyle(axis),
+				...unitsLabelTextStyle(axis, chartAxisTextStyle(axis)),
 				textAnchor: 'middle',
 				transform: `rotate(-90, ${labelX}, ${midY})`,
 			});
@@ -288,7 +288,7 @@ export function buildSecondaryAxis(
 				x: labelX,
 				y: midY,
 				text: unitLabel,
-				...captionStyle,
+				...unitsLabelTextStyle(axis, captionStyle),
 				textAnchor: 'middle',
 				transform: `rotate(-90, ${labelX}, ${midY})`,
 			});

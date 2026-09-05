@@ -23,9 +23,11 @@
  *
  * @module chart-data-label-text
  */
-import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartLegendTextStyle, PptxChartSeries } from 'pptx-viewer-core';
 
+import { chartFontPx } from './chart-font';
 import { formatChartNumberWithColor } from './chart-number-format';
+import type { SvgText } from './chart-view-model';
 import { formatAxisValue } from './chart-view-model';
 
 /** The label content flags, after the three-level cascade has been applied. */
@@ -195,4 +197,48 @@ export function buildDataLabelText(params: DataLabelTextParams): DataLabelTextRe
 		return undefined;
 	}
 	return { text, color: parts.length === 1 && content.showValue ? valueColor : undefined };
+}
+
+/**
+ * Resolve one label's own font (`c:dLbl`/`c:dLbls`/`c:ser`-`c:dLbls`/
+ * ChartEx `cx:dataLabel`/`cx:dataLabels` `txPr`, C2-G1 data-label half),
+ * following the same point > series > chart-type cascade the content flags
+ * and number format already use. Returns `undefined` when nothing at any
+ * level authored a font, so an untouched chart keeps whatever fixed default
+ * the caller already draws with.
+ */
+export function resolveDataLabelTextStyle(
+	chartData: PptxChartData,
+	series: PptxChartSeries,
+	pointIndex: number,
+): PptxChartLegendTextStyle | undefined {
+	const point = series.dataLabels?.find((label) => label.idx === pointIndex);
+	return point?.txPr ?? series.dataLabelOptions?.txPr ?? chartData.style?.dataLabels?.txPr;
+}
+
+/**
+ * Convert a resolved data-label font ({@link resolveDataLabelTextStyle}) into
+ * the `SvgText` fields it overrides, in the units `SvgText` expects (px, not
+ * points; `bold`/`italic` as the CSS-shaped `fontWeight`/`fontStyle`).
+ *
+ * Every field is independent and omitted when the source `txPr` (classic
+ * `c:dLbls`/`c:dLbl`, or ChartEx `cx:dataLabels`/`cx:dataLabel`, which core
+ * parses onto this SAME `txPr` field, see this module's header) didn't set
+ * it, so a caller spreads the result over its own fixed label defaults
+ * without clobbering fields the source left alone. Returns `{}` (a no-op
+ * spread) for `undefined`, so every call site can use this unconditionally.
+ */
+export function dataLabelFontOverride(
+	style: PptxChartLegendTextStyle | undefined,
+): Partial<Pick<SvgText, 'fontFamily' | 'fontSize' | 'fontWeight' | 'fontStyle' | 'fill'>> {
+	if (!style) {
+		return {};
+	}
+	return {
+		...(style.fontFamily ? { fontFamily: style.fontFamily } : {}),
+		...(style.fontSize !== undefined ? { fontSize: chartFontPx(style.fontSize) } : {}),
+		...(style.bold !== undefined ? { fontWeight: style.bold ? 'bold' : 'normal' } : {}),
+		...(style.italic !== undefined ? { fontStyle: style.italic ? 'italic' : 'normal' } : {}),
+		...(style.color ? { fill: style.color } : {}),
+	};
 }

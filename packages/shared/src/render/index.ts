@@ -21,6 +21,7 @@
  *               recalculation when connected shapes move + connection sites).
  */
 export * from './hollow-shape-hit-test';
+export * from './custom-geometry-live-path';
 export * from './shape-geometry';
 export * from './wheel-intent';
 export * from './shape-geometry-cascade';
@@ -92,6 +93,7 @@ export * from './chart-number-format';
 export * from './chart-trendlines';
 export * from './chart-axis';
 export * from './chart-palette';
+export * from './chart-datapoint-picture-fills';
 export * from './chart-datapoint-style';
 export * from './chart-sparkline';
 // Legend swatch/label placement (horizontal row vs. vertical stack), shared by
@@ -128,6 +130,9 @@ export * from './chart-data-label-anchor';
 // Direct on-canvas chart editing, framework-neutral half: the value-drag state
 // machine, the hit-target stylesheet and the selected-part highlight.
 export * from './chart-canvas-drag';
+// Chart drawing-overlay (c:userShapes) inspector editing: descriptor list,
+// default text-box factory, pixel<->fraction anchor conversion, validation.
+export * from './chart-user-shape-edit';
 // SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
 // / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
 // `paletteColor` duplicate (with deliberately different signatures) the ones in
@@ -182,6 +187,8 @@ export type {
 	RadarPoint,
 	SupportedChartKind,
 	PlotLayoutOptions,
+	ChartSvgDef,
+	ChartSvgPatternDef,
 } from './chart-view-model';
 // `c:manualLayout` (CT_ManualLayout) conversion: the pure edge / factor
 // fraction-to-pixel resolver the chart engine uses to honour a hand-placed
@@ -210,7 +217,9 @@ export type { ChartPartElement } from './chart-interaction';
 // percentStacked / overlays) + its value-axis gridline/label primitive builders.
 export { buildCartesianViewModel } from './chart-cartesian';
 export { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
+export { buildValueAxisGridlinesAndLabels, findValueAxis } from './chart-cx-axis-units';
 export { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+export { buildStockCloseLabel } from './chart-stock-close-label';
 export { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
 export {
 	buildFunnelViewModel,
@@ -305,6 +314,10 @@ export * from './animation-build';
 // Staged chart / SmartArt reveal projection: trim chart data / count revealed
 // diagram nodes for the current build progress.
 export * from './chart-build';
+// Authored-index (`p:graphicEl` seriesIdx/categoryIdx/bldStep) chart reveal,
+// consumed by `TimelineEngine` in place of `chart-build`'s count-based path
+// whenever every fired chart-build step for a chart carries index data.
+export * from './chart-reveal-descriptor';
 export * from './diagram-build';
 export * from './animation-timeline-helpers';
 // Absolute `p:animRot`/`p:animScale` `from`/`to` keyframes, plus `p:tavLst`
@@ -319,6 +332,10 @@ export * from './animation-fill-repeat';
 // Compound / simultaneous OOXML start+end condition evaluation (p:stCondLst /
 // p:endCondLst OR-sets), consumed by the sequencer + timeline builder.
 export * from './animation-advanced-triggers';
+// Real `<audio>`/`<video>` `ended`-event gating for `p:cond/@evt="onStopAudio"`
+// (targeting a specific media time node), consumed by `animation-playback-engine`
+// and each binding's presentation-mode media playback.
+export * from './animation-media-end-gating';
 export * from './animation-timeline-text-build';
 // `p:bldP/@bldLvl` paragraph grouping for a by-paragraph text build, consumed
 // by `animation-timeline-text-build`.
@@ -561,6 +578,11 @@ export * from './paragraph-strut';
 // text editor commit handler calls, so typing into an autofit box grows or
 // shrinks the box exactly once, not five slightly different ways.
 export * from './shape-autofit-resize';
+// `a:normAutofit` editor-time text shrink: the pure fontScale/lnSpcReduction
+// decision plus the shared DOM measurement, so typing past capacity in a
+// shrink-to-fit box recomputes the same way in all five bindings.
+export * from './text-autofit-shrink';
+export * from './text-autofit-shrink-measure';
 export * from './morph-plan';
 export * from './text-advanced';
 export * from './text-theme';
@@ -1111,6 +1133,7 @@ export * from './element-action-options';
 // Presentation `ppt/tags/*.xml` name/value metadata: flatten + immutable edits.
 export * from './tag-collections';
 export * from './element-accessibility-dom';
+export * from './element-aria-attributes';
 // `[data-element-id="..."]` selector escaping with a safe non-`CSS.escape` fallback.
 export * from './css-escape';
 // Pointer-to-element hit-test: a click on a grouped child selects the GROUP

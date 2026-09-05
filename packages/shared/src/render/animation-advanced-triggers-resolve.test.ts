@@ -68,6 +68,27 @@ describe('resolveEffectiveStartCondition', () => {
 		expect(result.dependsOnTimeNodeId).toBe(3);
 	});
 
+	// G13: `onStopAudio` targeting a SPECIFIC audio time node (PowerPoint's
+	// "After Previous" + "Play Audio" combination) chains sequencing exactly
+	// like `onEnd`, but `dependsOnEvent` stays 'onStopAudio' so
+	// `animation-media-end-gating` can gate on the real `<audio>` `ended`
+	// event instead of the computed delay.
+	it('sequences after a SPECIFIC onStopAudio time-node dependency', () => {
+		const conds: AnimationCondition[] = [{ event: 'onStopAudio', delay: 0, targetTimeNodeId: 11 }];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.trigger).toBe('afterPrevious');
+		expect(result.dependsOnTimeNodeId).toBe(11);
+		expect(result.dependsOnEvent).toBe('onStopAudio');
+		expect(result.requiresInteraction).toBeFalsy();
+	});
+
+	it('falls back to the plain-delay bucket for an onStopAudio with no @tn (implicit "any audio")', () => {
+		const conds: AnimationCondition[] = [{ event: 'onStopAudio', delay: 0 }];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.dependsOnTimeNodeId).toBeUndefined();
+		expect(result.dependsOnEvent).toBeUndefined();
+	});
+
 	it('prefers the time-node dependency when both a click and a tn-end exist', () => {
 		const conds: AnimationCondition[] = [
 			{ event: 'onClick', delay: 0 },

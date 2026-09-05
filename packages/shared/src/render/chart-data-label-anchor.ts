@@ -212,6 +212,13 @@ export function resolveBarLabelPlacement(
  * Full per-point placement pipeline for a line/area/scatter/bubble marker
  * label: resolve `c:dLblPos`, anchor it against the marker point, then shift
  * by any per-point `c:dLbl/c:layout` manual drag.
+ *
+ * @param defaultPosition - Position to use when nothing at any cascade level
+ * authored a `c:dLblPos`. Line/scatter/bubble markers keep the historical
+ * "above the point" default (`resolveMarkerLabelAnchor`'s own fallback
+ * branch); a stock chart's close label defaults to `'r'` (right of the tick,
+ * PowerPoint's own placement) instead, so this only needs to be passed by
+ * callers wanting a different default.
  */
 export function resolveMarkerLabelPlacement(
 	chartData: PptxChartData,
@@ -220,12 +227,14 @@ export function resolveMarkerLabelPlacement(
 	point: ChartAnchorPoint,
 	frame: ChartFrameSize,
 	offset = 7,
+	defaultPosition?: PptxChartDataLabelPosition,
 ): LabelAnchor {
 	const override = findPointLabel(series, pointIndex),
 		position =
 			override?.position ??
 			series.dataLabelOptions?.position ??
-			chartData.style?.dataLabels?.position,
+			chartData.style?.dataLabels?.position ??
+			defaultPosition,
 		anchor = resolveMarkerLabelAnchor(position, point, offset),
 		shifted = applyLabelManualLayout(override?.layout, frame, anchor);
 	return { ...anchor, x: shifted.x, y: shifted.y };

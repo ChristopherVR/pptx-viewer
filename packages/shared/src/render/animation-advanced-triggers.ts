@@ -43,12 +43,23 @@ const HOVER_EVENTS: ReadonlySet<AnimationConditionEvent> = new Set(['onMouseOver
  * Events that chain a node off another time node's lifecycle (begin/end).
  * These are the "after preceding effect(s)" conditions and always carry a
  * `targetTimeNodeId` (`@_tn`) pointing at the node they wait on.
+ *
+ * `onStopAudio` (ECMA-376 S19.5.28) is included here when it carries a `@_tn`:
+ * PowerPoint's "After Previous" + "Play Audio" combination authors it against
+ * the SPECIFIC audio time node it waits on, exactly like `onEnd`, so it
+ * chains sequencing the same way. `dependsOnEvent` on the resulting
+ * {@link EffectiveStartCondition} distinguishes it from a plain `onEnd` for
+ * `animation-media-end-gating`'s real `<audio>`/`<video>` `ended`-event
+ * gating; an `onStopAudio` condition with NO `@_tn` (waits on "whichever
+ * audio is currently playing", not a specific node) falls through to the
+ * plain-delay bucket below, unchanged from before.
  */
 const TIMENODE_EVENTS: ReadonlySet<AnimationConditionEvent> = new Set([
 	'onBegin',
 	'onEnd',
 	'begin',
 	'end',
+	'onStopAudio',
 ]);
 
 /**

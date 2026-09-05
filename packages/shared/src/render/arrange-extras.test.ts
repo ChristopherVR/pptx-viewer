@@ -22,7 +22,7 @@ function shape(strokeWidth?: number): PptxElement {
 	} as PptxElement;
 }
 
-function group(): PptxElement {
+function group(locks?: PptxElement['locks']): PptxElement {
 	return {
 		type: 'group',
 		id: 'g1',
@@ -31,6 +31,7 @@ function group(): PptxElement {
 		width: 10,
 		height: 10,
 		elements: [],
+		locks,
 	} as unknown as PptxElement;
 }
 
@@ -40,6 +41,15 @@ describe('canGroupSelection', () => {
 		expect(canGroupSelection(true, 1)).toBeFalsy();
 		expect(canGroupSelection(false, 2)).toBeFalsy();
 	});
+
+	it('defaults selectionGroupable to true when the caller has no elements to check', () => {
+		expect(canGroupSelection(true, 2)).toBeTruthy();
+	});
+
+	it('rejects the whole attempt when a:spLocks/@noGrp locks any selected element', () => {
+		expect(canGroupSelection(true, 2, false)).toBeFalsy();
+		expect(canGroupSelection(true, 2, true)).toBeTruthy();
+	});
 });
 
 describe('canUngroupSelection', () => {
@@ -48,6 +58,11 @@ describe('canUngroupSelection', () => {
 		expect(canUngroupSelection(true, shape())).toBeFalsy();
 		expect(canUngroupSelection(true, null)).toBeFalsy();
 		expect(canUngroupSelection(false, group())).toBeFalsy();
+	});
+
+	it('rejects ungrouping when a:grpSpLocks/@noGrp is set on the group itself', () => {
+		expect(canUngroupSelection(true, group({ noGrouping: true }))).toBeFalsy();
+		expect(canUngroupSelection(true, group({ noGrouping: false }))).toBeTruthy();
 	});
 });
 

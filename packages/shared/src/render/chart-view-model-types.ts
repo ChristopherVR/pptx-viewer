@@ -9,8 +9,11 @@
 
 import type { PptxChartLegendTextStyle } from 'pptx-viewer-core';
 
+import type { ChartSvgDef } from './chart-svg-def-types';
 import type { ChartTitleTextStyle } from './chart-title-style';
 import type { ValueRange } from './chart-view-model-scale';
+
+export type { ChartSvgDef, ChartSvgPatternDef } from './chart-svg-def-types';
 
 /** Bounding-box of the chart's usable plot area in SVG coordinates. */
 export interface PlotLayout {
@@ -279,4 +282,12 @@ export interface ChartViewModel {
 	 * when the chart has no overlay.
 	 */
 	userShapes?: SvgPrimitive[];
+	/**
+	 * `<defs>` a binding must render before `primitives`, so a primitive's
+	 * `fill: 'url(#id)'` resolves. Currently populated only by data-point
+	 * picture fills (`c:dPt/c:pictureOptions`, C2-G9); absent when the chart
+	 * has none, so a projector that ignores this field paints exactly as
+	 * before.
+	 */
+	defs?: ChartSvgDef[];
 }

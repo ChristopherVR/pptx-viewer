@@ -227,4 +227,17 @@ export const translations = {
 	'pptx.chart.bar3DShapeLabel': 'Säulenform',
 	'pptx.chart.radarStyleLabel': 'Netzstil',
 	'pptx.chart.surfaceWireframeLabel': 'Oberfläche',
+	'pptx.chart.userShapes': 'Überlagerte Formen',
+	'pptx.chart.userShapesEmpty': 'Dieses Diagramm hat keine überlagerten Formen.',
+	'pptx.chart.userShapeAddTextBox': 'Textfeld hinzufügen',
+	'pptx.chart.userShapeDelete': 'Überlagerte Form löschen',
+	'pptx.chart.userShapeFrom': 'Von',
+	'pptx.chart.userShapeTo': 'Bis',
+	'pptx.chart.userShapeNotEditable':
+		'Dieser Formtyp kann hier angezeigt, aber nicht bearbeitet werden.',
+	'pptx.chart.userShapeKindSp': 'Form',
+	'pptx.chart.userShapeKindCxnSp': 'Verbinder',
+	'pptx.chart.userShapeKindPic': 'Bild',
+	'pptx.chart.userShapeKindGrpSp': 'Gruppe',
+	'pptx.chart.userShapeKindGraphicFrame': 'Eingebettetes Objekt',
 } as const;

@@ -22,6 +22,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
 import type { ChartViewModel, SvgPath, SvgPrimitive, SvgText } from './chart-view-model';
 import { computePlotLayout, formatAxisValue, paletteColor } from './chart-view-model';
@@ -163,7 +164,8 @@ export function buildFunnelViewModel(
 			strokeWidth: 1,
 		} satisfies SvgPath);
 	}
-	for (const seg of segments) {
+	const funnelSeries = chartData.series[0];
+	segments.forEach((seg, i) => {
 		dataLabels.push({
 			kind: 'text',
 			x: seg.labelX,
@@ -173,8 +175,11 @@ export function buildFunnelViewModel(
 			fill: '#ffffff',
 			textAnchor: 'middle',
 			fontWeight: 'bold',
+			...(funnelSeries
+				? dataLabelFontOverride(resolveDataLabelTextStyle(chartData, funnelSeries, i))
+				: {}),
 		});
-	}
+	});
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
 

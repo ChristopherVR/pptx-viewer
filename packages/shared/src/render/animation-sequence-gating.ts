@@ -152,6 +152,15 @@ export interface StepApplicationState {
 	activeSteps: Map<string, TimelineStep>;
 	revealedElements: Set<string>;
 	exitedElements: Set<string>;
+	/**
+	 * Cumulative history (oldest first) of fired chart-build steps per element,
+	 * unlike {@link activeSteps} which only ever keeps the latest. Consumed by
+	 * `chart-reveal-descriptor`'s `resolveChartRevealDescriptor` to derive the
+	 * AUTHORED reveal set regardless of the order stages actually fired in.
+	 * Optional: a caller that never surfaces chart reveal state (tests, or a
+	 * consumer that only needs `activeSteps`) may omit it.
+	 */
+	chartRevealHistory?: Map<string, TimelineStep[]>;
 }
 
 /**
@@ -187,6 +196,11 @@ export function applyRestartGatedStep(
 	state.activeAnimations.set(step.elementId, step.cssAnimation);
 	if (step.build || step.colorTargets) {
 		state.activeSteps.set(step.elementId, step);
+	}
+	if (step.build?.kind === 'chart') {
+		const history = state.chartRevealHistory?.get(step.elementId) ?? [];
+		history.push(step);
+		state.chartRevealHistory?.set(step.elementId, history);
 	}
 	if (step.presetClass === 'entr') {
 		state.revealedElements.add(step.elementId);

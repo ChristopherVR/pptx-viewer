@@ -24,7 +24,9 @@ import type {
 	TimelineClickGroup,
 	TimelineStep,
 	ElementAnimationState,
+	ChartBuildMode,
 } from './animation-timeline-types';
+import { collectChartBuildInfo, resolveChartRevealDescriptor } from './chart-reveal-descriptor';
 
 /**
  * Options for {@link TimelineEngine.getElementStates}. Re-exported alias of
@@ -54,6 +56,24 @@ export class TimelineEngine {
 	 * `animatesStroke` on {@link ElementAnimationState}.
 	 */
 	private readonly activeSteps: Map<string, TimelineStep>;
+	/**
+	 * Cumulative (oldest-first) history of fired chart-build steps per element,
+	 * keyed by elementId. See {@link StepApplicationState.chartRevealHistory}
+	 * (`animation-sequence-gating`) for why this is separate from
+	 * {@link activeSteps}: a per-series/per-category build fires ONE step per
+	 * stage against the SAME chart elementId, so only a full history (not just
+	 * the latest) lets `getElementStates` derive the authored reveal set.
+	 */
+	private readonly chartRevealHistory: Map<string, TimelineStep[]>;
+	/**
+	 * Each chart element's static build mode + `animateBackground` flag,
+	 * collected once from the timeline (authored constants, not playback
+	 * state). See `chart-reveal-descriptor`'s `collectChartBuildInfo`.
+	 */
+	private readonly chartBuildInfo: ReadonlyMap<
+		string,
+		{ mode: ChartBuildMode; animateBackground: boolean }
+	>;
 	/**
 	 * Set of element IDs whose entrance animation has played.
 	 * These elements become visible.
@@ -107,6 +127,8 @@ export class TimelineEngine {
 		this.currentGroupIndex = -1;
 		this.activeAnimations = new Map();
 		this.activeSteps = new Map();
+		this.chartRevealHistory = new Map();
+		this.chartBuildInfo = collectChartBuildInfo(timeline);
 		this.revealedElements = new Set();
 		this.exitedElements = new Set();
 		this.interactiveGroupIndexes = new Map();
@@ -288,6 +310,16 @@ export class TimelineEngine {
 				cssAnimation: this.activeAnimations.get(id),
 			};
 			applyStepBuildMetadata(state, this.activeSteps.get(id), options);
+			const chartInfo = this.chartBuildInfo.get(id);
+			if (chartInfo) {
+				const descriptor = resolveChartRevealDescriptor(
+					this.chartRevealHistory.get(id) ?? [],
+					chartInfo.animateBackground,
+				);
+				if (descriptor) {
+					state.chartReveal = { mode: chartInfo.mode, descriptor };
+				}
+			}
 			states.set(id, state);
 		}
 		return states;
@@ -426,6 +458,11 @@ export class TimelineEngine {
 				if (step.build || step.colorTargets) {
 					this.activeSteps.set(step.elementId, step);
 				}
+				if (step.build?.kind === 'chart') {
+					const history = this.chartRevealHistory.get(step.elementId) ?? [];
+					history.push(step);
+					this.chartRevealHistory.set(step.elementId, history);
+				}
 				if (step.presetClass === 'entr') {
 					this.revealedElements.add(step.elementId);
 				}
@@ -444,6 +481,7 @@ export class TimelineEngine {
 		this.currentGroupIndex = -1;
 		this.activeAnimations.clear();
 		this.activeSteps.clear();
+		this.chartRevealHistory.clear();
 		this.revealedElements.clear();
 		this.exitedElements.clear();
 		this.interactiveGroupIndexes.clear();
@@ -482,6 +520,7 @@ export class TimelineEngine {
 				activeSteps: this.activeSteps,
 				revealedElements: this.revealedElements,
 				exitedElements: this.exitedElements,
+				chartRevealHistory: this.chartRevealHistory,
 			});
 			if (!applied) {
 				appliedSteps ??= group.steps.slice(0, i);

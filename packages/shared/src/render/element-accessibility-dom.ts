@@ -1,13 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 
-import {
-	getAriaLabel,
-	getAriaRole,
-	getAriaRoleDescription,
-	isElementMarkedDecorative,
-} from './accessibility';
 import { elementIdSelector } from './css-escape';
-import { isElementActionable } from './element-actionability';
+import { resolveElementAriaAttributes } from './element-aria-attributes';
 import { PRESENTATION_STAGE_ATTRIBUTE } from './presentation-hit-test';
 
 /** Options for {@link applyRenderedElementAccessibility}. */
@@ -52,37 +46,33 @@ export function applyRenderedElementAccessibility(
 			continue;
 		}
 		// Actionable elements (click/hover action, text hyperlink, zoom tile) are
-		// announced as buttons, matching React's element renderer.
-		const actionable = isElementActionable(element);
+		// announced as buttons, matching React's element renderer. The whole
+		// attribute set is decided once in `resolveElementAriaAttributes` so this
+		// DOM pass and React's JSX cannot disagree.
+		const aria = resolveElementAriaAttributes(element);
 		// `data-pptx-action` is the neutral marker
 		// `PRESENTATION_INERT_CLICK_SELECTOR` keys off: an element that owns its
 		// own click must never ALSO step the slide show on. Only React stamped it
 		// (and only on its static renderer), so on a deck whose navigation is
 		// on-slide action shapes every other binding advanced the show instead of
 		// following the link.
-		if (actionable) {
+		if (aria.actionable) {
 			node.setAttribute('data-pptx-action', 'click');
 		} else {
 			node.removeAttribute('data-pptx-action');
 		}
-		const role = getAriaRole(element, { actionable });
-		if (role) {
-			node.setAttribute('role', role);
+		if (aria.role) {
+			node.setAttribute('role', aria.role);
 		} else {
 			node.removeAttribute('role');
 		}
-		node.setAttribute('aria-label', getAriaLabel(element, { actionable }));
-		const roleDescription = getAriaRoleDescription(element);
-		if (roleDescription) {
-			node.setAttribute('aria-roledescription', roleDescription);
+		node.setAttribute('aria-label', aria.label);
+		if (aria.roleDescription) {
+			node.setAttribute('aria-roledescription', aria.roleDescription);
 		} else {
 			node.removeAttribute('aria-roledescription');
 		}
-		// "Mark as decorative" (issue G16): skip the element entirely for
-		// assistive tech, matching PowerPoint's own behaviour. Actionable wins
-		// (PowerPoint disables the decorative flag once an action is
-		// attached), so a decorative-but-clickable shape stays announced.
-		if (!actionable && isElementMarkedDecorative(element)) {
+		if (aria.hidden) {
 			node.setAttribute('aria-hidden', 'true');
 		} else {
 			node.removeAttribute('aria-hidden');

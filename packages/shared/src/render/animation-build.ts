@@ -94,7 +94,9 @@ export function resolveStepBuildDescriptor(
 	if (graphic && graphic.mode === 'sub') {
 		if (graphic.kind === 'chart') {
 			const mode = resolveChartBuildMode(graphic.build);
-			return mode === 'asOne' ? undefined : { kind: 'chart', mode };
+			return mode === 'asOne'
+				? undefined
+				: { kind: 'chart', mode, animateBackground: graphic.animateBackground };
 		}
 		const mode = resolveDiagramBuildMode(graphic.build);
 		return mode === 'asOne' ? undefined : { kind: 'diagram', mode };

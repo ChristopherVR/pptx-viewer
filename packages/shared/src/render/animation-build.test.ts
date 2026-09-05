@@ -72,6 +72,24 @@ describe('resolveStepBuildDescriptor', () => {
 		expect(resolveStepBuildDescriptor(anim)).toStrictEqual({
 			kind: 'chart',
 			mode: 'byCategory',
+			animateBackground: true,
+		});
+	});
+
+	it('carries animateBackground=false through to the descriptor', () => {
+		const anim: PptxNativeAnimation = {
+			targetId: 'chart_1',
+			graphicBuildProperties: {
+				mode: 'sub',
+				kind: 'chart',
+				build: 'series',
+				animateBackground: false,
+			},
+		};
+		expect(resolveStepBuildDescriptor(anim)).toStrictEqual({
+			kind: 'chart',
+			mode: 'bySeries',
+			animateBackground: false,
 		});
 	});
 

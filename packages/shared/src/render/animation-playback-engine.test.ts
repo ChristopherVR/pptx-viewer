@@ -138,6 +138,56 @@ describe('applyAnimationGroupSteps', () => {
 		applyAnimationGroupSteps(group([step({ elementId: 'a', stopSound: true })]), ctx);
 		expect(ctx.stopSound).toHaveBeenCalledWith();
 	});
+
+	// G13: an `onStopAudio`-gated step should start from the REAL media
+	// element's `ended` event, not only the estimated `delayMs` baked into its
+	// cssAnimation at build time.
+	describe('onStopAudio real-media-ended gating', () => {
+		it('re-applies the gated step with delay=0 when the real media element fires ended', () => {
+			const root = document.createElement('div');
+			const audio = document.createElement('audio');
+			audio.dataset['elementId'] = 'audio1';
+			root.appendChild(audio);
+
+			const { ctx, latest } = makeContext();
+			ctx.frameRoot = () => root;
+			ctx.mediaTimeNodeElementIds = new Map([[9, 'audio1']]);
+
+			applyAnimationGroupSteps(
+				group([
+					step({
+						elementId: 'el1',
+						cssAnimation: 'pptx-fadeIn 500ms ease 4000ms 1 normal both',
+						dependsOnEvent: 'onStopAudio',
+						dependsOnTimeNodeId: 9,
+					}),
+				]),
+				ctx,
+			);
+			// The estimate-based fallback already applied the step with its
+			// (stale) 4000ms delay baked in - unaffected by the real listener.
+			expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 4000ms 1 normal both');
+
+			audio.dispatchEvent(new Event('ended'));
+			// The real event corrects it to start NOW (delay zeroed).
+			expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 0ms 1 normal both');
+		});
+
+		it('does nothing when no mediaTimeNodeElementIds map is provided (fallback-only, matches pre-existing behaviour)', () => {
+			const { ctx, latest } = makeContext();
+			applyAnimationGroupSteps(
+				group([
+					step({
+						elementId: 'el1',
+						dependsOnEvent: 'onStopAudio',
+						dependsOnTimeNodeId: 9,
+					}),
+				]),
+				ctx,
+			);
+			expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 0ms 1 both');
+		});
+	});
 });
 
 describe('cancelBuildReveal', () => {

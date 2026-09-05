@@ -27,11 +27,15 @@ describe('getUnrotatedShapeConnectionSites', () => {
 	});
 
 	it('resolves a non-rectangular preset (triangle) to its real ECMA cxnLst sites, not the bounding-box fallback', () => {
-		// adj defaults to 50000 -> a=50000 -> x1 = w*a/200000 = 200*50000/200000 = 50
+		// adj defaults to 50000 -> a=50000 -> x2 = w*a/100000 = 200*50000/100000 = 100
 		const sites = getUnrotatedShapeConnectionSites(
-			makeShape({ shapeType: 'triangle' } as Partial<PptxElement>),
+			makeShape({
+				shapeType: 'triangle',
+				shapeAdjustments: { adj: 25000 },
+			} as Partial<PptxElement>),
 		);
-		// index 0 is the apex (x1, t): x1=50, distinct from the cardinal hc=100.
+		// index 0 is the apex (x2, t) per the ECMA cxnLst; with adj=25000 that is
+		// x2 = 200*25000/100000 = 50, distinct from the cardinal hc=100.
 		expect(sites[0]).toStrictEqual({ x: 50, y: 0, index: 0 });
 	});
 
@@ -54,9 +58,10 @@ describe('getUnrotatedShapeConnectionSites', () => {
 		expect(sites).toStrictEqual([{ x: 10, y: 20, index: 0 }]);
 	});
 
-	it('falls back to the generic 4-cardinal box for a preset with no transcribed cxnLst', () => {
+	it('falls back to the generic 4-cardinal box for a preset whose spec entry has no cxnLst', () => {
+		// `chartPlus` is one of the 13 presets ECMA-376 defines without a cxnLst.
 		const sites = getUnrotatedShapeConnectionSites(
-			makeShape({ shapeType: 'wedgeRoundRectCallout' } as Partial<PptxElement>),
+			makeShape({ shapeType: 'chartPlus' } as Partial<PptxElement>),
 		);
 		expect(sites).toStrictEqual([
 			{ x: 100, y: 0, index: 0 }, // top

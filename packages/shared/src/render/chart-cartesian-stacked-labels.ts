@@ -8,7 +8,11 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import { resolveBarLabelPlacement } from './chart-data-label-anchor';
-import { buildDataLabelText } from './chart-data-label-text';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { PlotLayout, SvgText, ValueRange } from './chart-view-model';
 import { valueToY } from './chart-view-model';
@@ -70,6 +74,7 @@ export function pushClusteredStackedLabels(
 				fill: label.color ?? '#334155',
 				textAnchor: anchor.textAnchor,
 				...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
+				...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series[si], sourceIndex)),
 			});
 		}
 	}

@@ -1,5 +1,6 @@
 import type { PptxChartData, PptxChartParentLabelLayout, PptxChartSeries } from 'pptx-viewer-core';
 
+import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import type { SvgRect, SvgText } from './chart-view-model';
 import { paletteColor } from './chart-view-model';
 
@@ -121,9 +122,10 @@ function splitNodes(nodes: TreemapNode[], box: TreemapBox): Array<[TreemapNode, 
 function renderNodes(
 	nodes: TreemapNode[],
 	box: TreemapBox,
-	colorPalette: readonly string[] | undefined,
+	chartData: PptxChartData,
 	primitives: TreemapPrimitive[],
 ): void {
+	const colorPalette = chartData.colorPalette;
 	for (const [node, allocation] of splitNodes(nodes, box)) {
 		const cell = {
 			x: allocation.x + 1,
@@ -149,7 +151,7 @@ function renderNodes(
 			renderNodes(
 				node.children,
 				{ ...cell, y: cell.y + bannerHeight, h: Math.max(cell.h - bannerHeight, 1) },
-				colorPalette,
+				chartData,
 				primitives,
 			);
 			continue;
@@ -167,6 +169,7 @@ function renderNodes(
 			},
 		});
 		if (cell.w > 30 && cell.h > 14) {
+			const leafSeries = chartData.series[node.seriesIndex!];
 			primitives.push({
 				kind: 'text',
 				x: cell.x + cell.w / 2,
@@ -177,6 +180,11 @@ function renderNodes(
 				textAnchor: 'middle',
 				fontWeight: 'bold',
 				dominantBaseline: 'central',
+				...(leafSeries
+					? dataLabelFontOverride(
+							resolveDataLabelTextStyle(chartData, leafSeries, node.pointIndex!),
+						)
+					: {}),
 			});
 		}
 	}
@@ -221,6 +229,6 @@ export function buildHierarchicalTreemapPrimitives(
 		aggregate(root);
 	}
 	const primitives: TreemapPrimitive[] = [];
-	renderNodes(roots, box, chartData.colorPalette, primitives);
+	renderNodes(roots, box, chartData, primitives);
 	return primitives;
 }

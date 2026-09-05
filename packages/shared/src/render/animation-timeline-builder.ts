@@ -38,6 +38,7 @@ import type {
 	AnimationTimeline,
 } from './animation-timeline-types';
 import { hasAuthoredTransform } from './animation-transform-keyframes';
+import { extractStepGraphicElement } from './chart-reveal-descriptor';
 
 // ==========================================================================
 // Unmapped-preset safety net
@@ -466,6 +467,7 @@ export function buildTimeline(
 				stopSound: singleAnim.stopSound,
 				command: isCommand ? buildStepCommand(singleAnim) : undefined,
 				build: isCommand ? undefined : resolveStepBuildDescriptor(singleAnim),
+				graphicElement: isCommand ? undefined : extractStepGraphicElement(singleAnim),
 				colorTargets: isCommand ? undefined : stepColorTargets(singleAnim, tavColorApplied),
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
@@ -475,6 +477,8 @@ export function buildTimeline(
 				seqNextAction: singleAnim.seqNextAction,
 				seqPrevAction: singleAnim.seqPrevAction,
 				exclGroupId: singleAnim.exclGroupId,
+				dependsOnTimeNodeId: effective.dependsOnTimeNodeId,
+				dependsOnEvent: effective.dependsOnEvent,
 			};
 			if (singleAnim.nodeId !== undefined) {
 				stepsByNodeId.set(singleAnim.nodeId, step);
@@ -748,6 +752,7 @@ function buildSequenceGroups(
 				stopSound: anim.stopSound,
 				command: isCommand ? buildStepCommand(anim) : undefined,
 				build: isCommand ? undefined : resolveStepBuildDescriptor(anim),
+				graphicElement: isCommand ? undefined : extractStepGraphicElement(anim),
 				colorTargets: isCommand ? undefined : stepColorTargets(anim, tavColorApplied),
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,

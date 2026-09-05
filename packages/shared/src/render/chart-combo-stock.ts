@@ -29,7 +29,6 @@ import { computeLayoutOptions, computeValueRangeForChart } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis } from './chart-axis-render';
 import { computeDataTablePrimitives } from './chart-data-table-render';
-import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
@@ -38,6 +37,7 @@ import {
 	computeErrorBarPrimitives,
 	computeTrendlinePrimitives,
 } from './chart-overlays';
+import { buildStockCloseLabel } from './chart-stock-close-label';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -52,7 +52,6 @@ import {
 	buildLegend,
 	buildZeroLine,
 	computePlotLayout,
-	formatAxisValue,
 	valueToY,
 } from './chart-view-model';
 
@@ -220,15 +219,21 @@ export function buildStockViewModel(
 			} satisfies SvgRect);
 
 			if (chartData.style?.hasDataLabels) {
-				dataLabels.push({
-					kind: 'text',
-					x: cx,
-					y: highY - 4,
-					text: formatAxisValue(close),
-					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-					fill: '#334155',
-					textAnchor: 'middle',
-				} satisfies SvgText);
+				const closeLabel = buildStockCloseLabel(
+					chartData,
+					closeSeries,
+					sourceIndex,
+					close,
+					cx,
+					closeY,
+					{
+						width: layout.svgWidth,
+						height: layout.svgHeight,
+					},
+				);
+				if (closeLabel) {
+					dataLabels.push(closeLabel);
+				}
 			}
 		}
 	}

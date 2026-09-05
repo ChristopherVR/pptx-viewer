@@ -842,6 +842,7 @@ describe('buildTimeline', () => {
 		expect(result.clickGroups[0].steps[0].build).toStrictEqual({
 			kind: 'chart',
 			mode: 'bySeries',
+			animateBackground: true,
 		});
 	});
 
@@ -856,6 +857,45 @@ describe('buildTimeline', () => {
 	it('leaves build undefined for a whole-element (asOne) build', () => {
 		const result = buildTimeline([makeAnim({ targetId: 'el1', smartArtBuild: 'whole' })]);
 		expect(result.clickGroups[0].steps[0].build).toBeUndefined();
+	});
+
+	it('attaches p:spTgt/p:graphicEl seriesIdx/categoryIdx/bldStep to the step', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'chart1',
+				target: {
+					type: 'shape',
+					shapeId: 'chart1',
+					graphicElement: { kind: 'chart', seriesIdx: 2, bldStep: 'series' },
+				},
+			}),
+		]);
+		expect(result.clickGroups[0].steps[0].graphicElement).toStrictEqual({
+			seriesIdx: 2,
+			categoryIdx: undefined,
+			bldStep: 'series',
+		});
+	});
+
+	it('leaves graphicElement undefined when the target carries none', () => {
+		const result = buildTimeline([makeAnim({ targetId: 'chart1' })]);
+		expect(result.clickGroups[0].steps[0].graphicElement).toBeUndefined();
+	});
+
+	// G13: a step's `p:cond/@tn` dependency reaches the step so a binding can
+	// gate an `onStopAudio` effect on the real media element's `ended` event
+	// (see `animation-media-end-gating`) instead of only the computed delay.
+	it('attaches dependsOnTimeNodeId/dependsOnEvent for an onStopAudio(@tn) condition', () => {
+		const result = buildTimeline([
+			makeAnim({ nodeId: 1, targetId: 'audio1', kind: 'media' }),
+			makeAnim({
+				targetId: 'el1',
+				startConditions: [{ event: 'onStopAudio', delay: 0, targetTimeNodeId: 1 }],
+			}),
+		]);
+		const dependentStep = result.clickGroups[0].steps.find((s) => s.elementId === 'el1');
+		expect(dependentStep?.dependsOnTimeNodeId).toBe(1);
+		expect(dependentStep?.dependsOnEvent).toBe('onStopAudio');
 	});
 
 	// -------------------------------------------------------------------

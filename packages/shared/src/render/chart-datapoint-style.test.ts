@@ -5,6 +5,7 @@ import {
 	resolveDataPointExplosion,
 	resolveDataPointFill,
 	resolveDataPointMarker,
+	resolveDataPointPictureFill,
 	upsertDataPoint,
 } from './chart-datapoint-style';
 
@@ -145,6 +146,58 @@ describe('chart-datapoint-style', () => {
 				marker: { symbol: 'star' as const },
 			});
 			expect(findDataPoint({ dataPoints }, 1)?.marker?.symbol).toBe('star');
+		});
+	});
+
+	// C2-G9 (render half): the picture-fill pattern descriptor a binding needs
+	// to paint a data point's c:dPt/c:pictureOptions picture fill.
+	describe('resolveDataPointPictureFill', () => {
+		it('returns undefined when the point has no picture', () => {
+			expect(resolveDataPointPictureFill(series, 1, 0)).toBeUndefined();
+		});
+
+		it('returns undefined when the point has picture flags but no resolved imageUrl', () => {
+			const withPicture = {
+				...series,
+				dataPoints: [
+					...series.dataPoints,
+					{ idx: 4, picture: { pictureFormat: 'stack' as const } },
+				],
+			};
+			expect(resolveDataPointPictureFill(withPicture, 4, 0)).toBeUndefined();
+		});
+
+		it('defaults to stretch with no tileHeightPx when pictureFormat is absent', () => {
+			const withPicture = {
+				...series,
+				dataPoints: [...series.dataPoints, { idx: 4, picture: { imageUrl: 'data:image/png;x' } }],
+			};
+			const fill = resolveDataPointPictureFill(withPicture, 4, 2);
+			expect(fill).toStrictEqual({
+				patternId: 'chart-dpt-pic-2-4',
+				imageUrl: 'data:image/png;x',
+				format: 'stretch',
+			});
+		});
+
+		it('converts pictureStackUnit (points) to tileHeightPx for stack/stackScale', () => {
+			const withPicture = {
+				...series,
+				dataPoints: [
+					...series.dataPoints,
+					{
+						idx: 4,
+						picture: {
+							imageUrl: 'data:image/png;x',
+							pictureFormat: 'stack' as const,
+							pictureStackUnit: 36,
+						},
+					},
+				],
+			};
+			const fill = resolveDataPointPictureFill(withPicture, 4, 0);
+			expect(fill?.format).toBe('stack');
+			expect(fill?.tileHeightPx).toBeCloseTo(36 * (4 / 3), 5);
 		});
 	});
 });

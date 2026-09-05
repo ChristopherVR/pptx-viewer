@@ -78,6 +78,13 @@ export interface ContextMenuContext {
 	table?: ContextMenuTableContext | null;
 	/** Two or more elements are selected, so they can be grouped. */
 	hasMultiSelection?: boolean;
+	/**
+	 * `a:spLocks/@noGrp` on any selected element (Group) or `a:grpSpLocks/@noGrp`
+	 * on the right-clicked group itself (Ungroup) rejects the whole attempt.
+	 * Omit when the binding has not computed it yet; the entry is then offered
+	 * enabled, same as before this field existed.
+	 */
+	selectionGroupable?: boolean;
 	/** The AI assistant is configured by the host. */
 	aiEnabled?: boolean;
 	/**
@@ -160,7 +167,9 @@ function tableEntries(table: ContextMenuTableContext | null | undefined): Contex
  * present, permanently greyed Group is noise on a single shape.
  */
 export function buildContextMenuEntries(context: ContextMenuContext = {}): ContextMenuEntry[] {
-	const { elementType, table, hasMultiSelection, aiEnabled, hasClipboard } = context;
+	const { elementType, table, hasMultiSelection, aiEnabled, hasClipboard, selectionGroupable } =
+		context;
+	const lockedOut = selectionGroupable === false;
 	const entries: ContextMenuEntry[] = [
 		entry('copy'),
 		entry('cut'),
@@ -177,10 +186,17 @@ export function buildContextMenuEntries(context: ContextMenuContext = {}): Conte
 	entries.push(entry('comment', { separatorBefore: true }), entry('hyperlink'));
 	entries.push(...tableEntries(table));
 	if (hasMultiSelection) {
-		entries.push(entry('group', { separatorBefore: true }));
+		entries.push(
+			entry('group', { separatorBefore: true, ...(lockedOut ? { disabled: true } : {}) }),
+		);
 	}
 	if (elementType === 'group') {
-		entries.push(entry('ungroup', { separatorBefore: !hasMultiSelection }));
+		entries.push(
+			entry('ungroup', {
+				separatorBefore: !hasMultiSelection,
+				...(lockedOut ? { disabled: true } : {}),
+			}),
+		);
 	}
 	entries.push(
 		entry('delete', {

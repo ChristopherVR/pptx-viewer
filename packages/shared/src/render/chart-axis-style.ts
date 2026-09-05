@@ -1,4 +1,8 @@
-import type { PptxChartAxisFormatting, PptxChartShapeProps } from 'pptx-viewer-core';
+import type {
+	PptxChartAxisFormatting,
+	PptxChartDisplayUnitsLabel,
+	PptxChartShapeProps,
+} from 'pptx-viewer-core';
 
 import { DEFAULT_CHART_TEXT_PX, chartFontPx } from './chart-font';
 import type { SvgLine, SvgText } from './chart-view-model';
@@ -34,6 +38,31 @@ export function chartAxisTextStyle(
 		fill: axis?.fontColor ?? DEFAULT_COLOR,
 		...(axis?.fontBold !== undefined ? { fontWeight: axis.fontBold ? 'bold' : 'normal' } : {}),
 		...(axis?.fontFamily ? { fontFamily: axis.fontFamily } : {}),
+	};
+}
+
+/**
+ * Text style for a display-units caption (`c:dispUnitsLbl` /
+ * ChartEx `cx:unitsLabel`), starting from the axis's own text style and
+ * overriding with the label's distinct `txPr` when one was parsed (only a
+ * ChartEx `cx:unitsLabel/cx:txPr` populates these fields today; classic
+ * `c:dispUnitsLbl` has no run-font child of its own).
+ */
+export function unitsLabelTextStyle(
+	axis: PptxChartAxisFormatting | undefined,
+	baseStyle: Pick<SvgText, 'fontSize' | 'fill' | 'fontWeight' | 'fontFamily'>,
+): Pick<SvgText, 'fontSize' | 'fill' | 'fontWeight' | 'fontFamily'> {
+	const label = axis?.displayUnitsLabel;
+	if (typeof label !== 'object' || label === null) {
+		return baseStyle;
+	}
+	const { fontFamily, fontSize, fontBold, fontColor } = label as PptxChartDisplayUnitsLabel;
+	return {
+		...baseStyle,
+		...(fontSize !== undefined ? { fontSize: chartFontPx(fontSize) } : {}),
+		...(fontColor ? { fill: fontColor } : {}),
+		...(fontBold !== undefined ? { fontWeight: fontBold ? 'bold' : 'normal' } : {}),
+		...(fontFamily ? { fontFamily } : {}),
 	};
 }
 

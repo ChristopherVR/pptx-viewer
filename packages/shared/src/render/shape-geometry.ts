@@ -41,6 +41,8 @@ import {
 	getShapeClipPathFromPreset,
 } from 'pptx-viewer-core';
 
+import { resolveLiveCustomGeometryPath } from './custom-geometry-live-path';
+
 /**
  * Resolve the best available CSS `clip-path` value for a shape type at a given
  * pixel size. Implements the priority cascade described in the module
@@ -193,16 +195,16 @@ export function getResolvedShapeClipPath(
 ): string | undefined {
 	const w = typeof width === 'number' ? width : element.width;
 	const h = typeof height === 'number' ? height : element.height;
-	const custom = element as {
-		pathData?: string;
-		pathWidth?: number;
-		pathHeight?: number;
-	};
-	if (custom.pathData && custom.pathWidth && custom.pathHeight) {
+	// Re-evaluated against the element's CURRENT `shapeAdjustments` when raw
+	// geometry XML survived parse, so a drag on an `a:ahXY`/`a:ahPolar` handle
+	// reshapes the clip-path live instead of only after it commits and the
+	// file is saved and reloaded (see `./custom-geometry-live-path`).
+	const live = resolveLiveCustomGeometryPath(element);
+	if (live) {
 		const customClip = buildCustomGeometryClipPath(
-			custom.pathData,
-			custom.pathWidth,
-			custom.pathHeight,
+			live.pathData,
+			live.pathWidth,
+			live.pathHeight,
 			w,
 			h,
 		);

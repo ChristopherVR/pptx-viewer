@@ -43,6 +43,20 @@ describe('buildContextMenuEntries', () => {
 		expect(group?.disabled).toBeUndefined();
 	});
 
+	it('disables Group and Ungroup when a:spLocks/a:grpSpLocks reject grouping', () => {
+		const group = buildContextMenuEntries({
+			hasMultiSelection: true,
+			selectionGroupable: false,
+		}).find((item) => item.id === 'group');
+		expect(group?.disabled).toBeTruthy();
+
+		const ungroup = buildContextMenuEntries({
+			elementType: 'group',
+			selectionGroupable: false,
+		}).find((item) => item.id === 'ungroup');
+		expect(ungroup?.disabled).toBeTruthy();
+	});
+
 	it('adds the AI entries only when the host configured an assistant', () => {
 		expect(ids({})).not.toContain('ai-ask');
 		expect(ids({ aiEnabled: true })).toContain('ai-ask');

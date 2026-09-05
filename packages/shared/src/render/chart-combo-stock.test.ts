@@ -863,6 +863,69 @@ describe('buildStockViewModel', () => {
 		expect(vm.dataLabels[0].text).toBe('103');
 	});
 
+	// limitations.md "Stock/candlestick 'close' label": the close series' own
+	// dLblPos/numberFormat/manual-layout cascade must be honoured, not a fixed
+	// "above the high" placement with the series' raw cell format.
+	it('defaults the close label to the right of the close tick (textAnchor start)', () => {
+		const chartData: PptxChartData = {
+			chartType: 'stock',
+			categories: ['D1'],
+			series: [
+				{ name: 'High', values: [110] },
+				{ name: 'Low', values: [90] },
+				{ name: 'Close', values: [103] },
+			],
+			style: { hasDataLabels: true },
+		};
+		const vm = buildStockViewModel(makeElement(), chartData, ['D1']);
+		expect(vm.dataLabels[0].textAnchor).toBe('start');
+	});
+
+	it("honours the close series' own c:dLblPos override (e.g. 'b')", () => {
+		const chartData: PptxChartData = {
+			chartType: 'stock',
+			categories: ['D1'],
+			series: [
+				{ name: 'High', values: [110] },
+				{ name: 'Low', values: [90] },
+				{ name: 'Close', values: [103], dataLabelOptions: { position: 'b' } },
+			],
+			style: { hasDataLabels: true },
+		};
+		const vm = buildStockViewModel(makeElement(), chartData, ['D1']);
+		expect(vm.dataLabels[0].textAnchor).toBe('middle');
+	});
+
+	it("honours the close series' own numberFormat override", () => {
+		const chartData: PptxChartData = {
+			chartType: 'stock',
+			categories: ['D1'],
+			series: [
+				{ name: 'High', values: [110] },
+				{ name: 'Low', values: [90] },
+				{ name: 'Close', values: [103.4], numberFormat: '0.00' },
+			],
+			style: { hasDataLabels: true },
+		};
+		const vm = buildStockViewModel(makeElement(), chartData, ['D1']);
+		expect(vm.dataLabels[0].text).toBe('103.40');
+	});
+
+	it('suppresses the close label when c:dLbl/c:delete is set for that point', () => {
+		const chartData: PptxChartData = {
+			chartType: 'stock',
+			categories: ['D1'],
+			series: [
+				{ name: 'High', values: [110] },
+				{ name: 'Low', values: [90] },
+				{ name: 'Close', values: [103], dataLabels: [{ idx: 0, deleted: true }] },
+			],
+			style: { hasDataLabels: true },
+		};
+		const vm = buildStockViewModel(makeElement(), chartData, ['D1']);
+		expect(vm.dataLabels).toHaveLength(0);
+	});
+
 	it('produces no data labels when hasDataLabels is not set', () => {
 		const chartData: PptxChartData = {
 			chartType: 'stock',

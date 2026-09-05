@@ -10,7 +10,7 @@
  * @module render/animation-timeline-types
  */
 
-import type { PptxAnimationTrigger } from 'pptx-viewer-core';
+import type { AnimationConditionEvent, PptxAnimationTrigger } from 'pptx-viewer-core';
 
 // ==========================================================================
 // Effect name type (catalog of CSS keyframe short-names)
@@ -120,10 +120,67 @@ export type DiagramBuildMode = 'asOne' | 'byOne' | 'byLvl' | 'byLvlAtOnce';
  * only the graphic KIND + normalized MODE; the per-tick reveal fraction is
  * computed separately (see {@link ElementBuildState.progress}) because it is a
  * function of playback time, not of the parsed animation.
+ *
+ * The chart variant's `animateBackground` mirrors `a:bldChart/@animBg`
+ * (default `true`): whether the chart's background/axes/gridlines/legend
+ * arrive WITH the first revealed stage (`true`, the default) or are shown
+ * throughout regardless of build progress (`false`). See
+ * `chart-reveal-descriptor`'s `resolveChartRevealDescriptor`.
  */
 export type StepBuildDescriptor =
-	| { kind: 'chart'; mode: ChartBuildMode }
+	| { kind: 'chart'; mode: ChartBuildMode; animateBackground?: boolean }
 	| { kind: 'diagram'; mode: DiagramBuildMode };
+
+/**
+ * `p:spTgt/p:graphicEl` (CT_TLGraphicalObjectBuildElement, ECMA-376 S19.5.34)
+ * index data carried by a {@link TimelineStep}'s source animation target, when
+ * a deck authors one effect per chart series/category/element instead of a
+ * single `p:bldGraphic` staged reveal. Only `seriesIdx` set means "whole
+ * series"; only `categoryIdx` set means "whole category"; both set means a
+ * single (series, category) cell. See `chart-reveal-descriptor`.
+ */
+export interface TimelineStepGraphicElement {
+	seriesIdx?: number;
+	categoryIdx?: number;
+	bldStep?: string;
+}
+
+/**
+ * One authored `p:graphicEl` reveal unit resolved onto a chart, per
+ * `TimelineStepGraphicElement`'s "both indices set" case: a single (series,
+ * category) cell revealed by a `bldStep="seriesEl"`/`"categoryEl"` effect.
+ */
+export interface ChartRevealPoint {
+	seriesIdx: number;
+	categoryIdx: number;
+}
+
+/**
+ * Playback-time chart reveal state derived from AUTHORED `p:graphicEl`
+ * indices (see `chart-reveal-descriptor`'s `resolveChartRevealDescriptor`),
+ * rather than from click-count/time progress. Present on
+ * {@link ElementAnimationState.chartReveal} only when every fired
+ * chart-build step for the element carried index data; a renderer prefers
+ * this over the progress-based `build`/`ElementBuildState` path when present,
+ * since it reflects the real authored reveal set (correct even for a
+ * reversed-order or gapped chart build), and falls back to `build` when
+ * absent.
+ */
+export interface ChartRevealDescriptor {
+	/**
+	 * Whether the chart's background/axes/gridlines/legend should currently be
+	 * visible: always `true` when the chart's `animateBackground` is `false`
+	 * ("shown throughout"), otherwise `true` from the first revealed stage
+	 * onward.
+	 */
+	background: boolean;
+	/** Whole series revealed by a `bldStep="series"` effect. */
+	series: ReadonlySet<number>;
+	/** Whole categories revealed by a `bldStep="category"` effect. */
+	categories: ReadonlySet<number>;
+	/** Individual cells revealed by a `bldStep="seriesEl"`/`"categoryEl"` effect. */
+	points: readonly ChartRevealPoint[];
+}
 
 /**
  * Playback-time staged-build state surfaced on {@link ElementAnimationState}.
@@ -211,6 +268,13 @@ export interface TimelineStep {
 	 */
 	build?: StepBuildDescriptor;
 	/**
+	 * `p:spTgt/p:graphicEl` index data from this step's source animation
+	 * target, when present (a per-series/per-category chart or diagram build
+	 * effect). See {@link TimelineStepGraphicElement} and
+	 * `chart-reveal-descriptor`.
+	 */
+	graphicElement?: TimelineStepGraphicElement;
+	/**
 	 * Shape paint targets of an active `p:animClr` color animation on this step,
 	 * if any. Lets a vector renderer set `fill: inherit` / `stroke: inherit` on
 	 * the painted path so the wrapper-level colour keyframes cascade through.
@@ -274,6 +338,24 @@ export interface TimelineStep {
 	 * exclusive container.
 	 */
 	exclGroupId?: number;
+	/**
+	 * `p:cond/@tn` (ECMA-376 S19.5.28) this step's start condition depends on, a
+	 * SPECIFIC time node id rather than a positional "the previous step". Only
+	 * `dependsOnEvent === 'onStopAudio'` is consumed at playback today (see
+	 * `animation-media-end-gating`'s `findMediaEndGatedSteps`): the referenced
+	 * node's already-computed `delayMs`/`durationMs` fed into THIS step's own
+	 * `delayMs` at build time (`animation-timeline-builder`) is only an
+	 * ESTIMATE for a media node, since the real clip's playback duration is not
+	 * knowable ahead of time (trimmed, or simply variable-length audio); a
+	 * binding wires the referenced `<audio>`/`<video>` element's real `ended`
+	 * event to start this step immediately instead, falling back to the
+	 * estimate when no such element exists (export/headless). Other
+	 * `dependsOnEvent` values (`onBegin`/`onEnd`) already resolve correctly via
+	 * the computed delay alone, since a non-media node's `durationMs` is exact.
+	 */
+	dependsOnTimeNodeId?: number;
+	/** The event of the time-node dependency above, when present. */
+	dependsOnEvent?: AnimationConditionEvent;
 }
 
 /** A group of animation steps that play on a single click/advance action. */
@@ -358,6 +440,13 @@ export interface ElementAnimationState {
 	 * whole-element entrances, so existing renderers are unaffected.
 	 */
 	build?: ElementBuildState;
+	/**
+	 * Authored-index chart reveal state (see {@link ChartRevealDescriptor}),
+	 * present only when every fired chart-build step for this element carried
+	 * `p:graphicEl` index data. A chart renderer prefers this over `build` when
+	 * present; `chart-build`'s `resolveRevealedChartData` picks between the two.
+	 */
+	chartReveal?: { mode: ChartBuildMode; descriptor: ChartRevealDescriptor };
 	/**
 	 * True when an active `p:animClr` color animation targets this shape's fill.
 	 * A vector renderer should then paint the fill with `fill: inherit` so the

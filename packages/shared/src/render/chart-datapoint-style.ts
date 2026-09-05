@@ -12,7 +12,9 @@
  * @module chart-datapoint-style
  */
 
-import type { PptxChartMarkerSymbol } from 'pptx-viewer-core';
+import type { PptxChartDataPointPicture, PptxChartMarkerSymbol } from 'pptx-viewer-core';
+
+import { chartFontPx } from './chart-font';
 
 /** Minimal shape props subset needed to resolve a point fill. */
 interface PointShapeProps {
@@ -32,6 +34,7 @@ export interface ChartDataPointLike {
 	spPr?: PointShapeProps;
 	explosion?: number;
 	marker?: ChartMarkerLike;
+	picture?: PptxChartDataPointPicture;
 }
 
 /** Minimal series shape consumed here (mirrors `PptxChartSeries`). */
@@ -152,4 +155,54 @@ export function upsertDataPoint<P extends ChartDataPointLike>(
 		next.push(point);
 	}
 	return next;
+}
+
+/**
+ * An SVG `<pattern>` a binding must render into its chart's `<defs>` to paint
+ * a data point's picture fill (`c:dPt/c:pictureOptions`, C2-G9 render half).
+ * Pure decision function (CLAUDE.md Rule 2): every field a binding needs to
+ * build the pattern element and point the rect's `fill` at it, with no
+ * chart-type-specific logic left for the binding to reimplement.
+ */
+export interface DataPointPictureFill {
+	/** Unique id for this point's `<pattern>` element; also its `fill="url(#...)"` target. */
+	patternId: string;
+	imageUrl: string;
+	/** `stretch` fills the whole rect with one scaled copy; `stack`/`stackScale` tile it. */
+	format: NonNullable<PptxChartDataPointPicture['pictureFormat']>;
+	/**
+	 * Height (px) of one repeated tile for `stack`/`stackScale`
+	 * (`c:pictureStackUnit`, converted from points). `undefined` for `stretch`,
+	 * where the image covers the whole rect and stacking is meaningless.
+	 */
+	tileHeightPx?: number;
+}
+
+/** PowerPoint's own default picture-fill format when `c:pictureFormat` is absent. */
+const DEFAULT_PICTURE_FORMAT: NonNullable<PptxChartDataPointPicture['pictureFormat']> = 'stretch';
+
+/**
+ * Resolve a data point's picture-fill pattern descriptor from its
+ * {@link ChartDataPointLike.picture}, or `undefined` when the point has no
+ * picture fill or the runtime could not resolve its image
+ * ({@link PptxChartDataPointPicture.imageUrl} absent).
+ */
+export function resolveDataPointPictureFill(
+	series: ChartSeriesLike,
+	pointIndex: number,
+	seriesIndex: number,
+): DataPointPictureFill | undefined {
+	const picture = findDataPoint(series, pointIndex)?.picture;
+	if (!picture?.imageUrl) {
+		return undefined;
+	}
+	const format = picture.pictureFormat ?? DEFAULT_PICTURE_FORMAT;
+	return {
+		patternId: `chart-dpt-pic-${seriesIndex}-${pointIndex}`,
+		imageUrl: picture.imageUrl,
+		format,
+		...(format !== 'stretch' && picture.pictureStackUnit !== undefined
+			? { tileHeightPx: chartFontPx(picture.pictureStackUnit) }
+			: {}),
+	};
 }

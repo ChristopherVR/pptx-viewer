@@ -17,6 +17,7 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { computeValueRangeForChart } from './chart-axis-range';
 import { resolveBarLabelPlacement } from './chart-data-label-anchor';
+import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import {
 	barFill,
@@ -138,6 +139,7 @@ export function buildHorizontalBarViewModel(
 						fill: '#334155',
 						textAnchor: anchor.textAnchor,
 						dominantBaseline: 'central',
+						...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series[si], ci)),
 					});
 				}
 			}
@@ -195,6 +197,7 @@ export function buildHorizontalBarViewModel(
 							textAnchor: 'middle',
 							dominantBaseline: 'central',
 							fontWeight: 'bold',
+							...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series[si], ci)),
 						});
 					} else {
 						const anchor = resolveBarLabelPlacement(
@@ -215,6 +218,7 @@ export function buildHorizontalBarViewModel(
 							fill: '#334155',
 							textAnchor: anchor.textAnchor,
 							dominantBaseline: 'central',
+							...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series[si], ci)),
 						});
 					}
 				}

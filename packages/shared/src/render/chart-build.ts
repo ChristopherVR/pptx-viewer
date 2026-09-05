@@ -9,13 +9,23 @@
  * per-kind knowledge here. `asOne` (or a fully-revealed build) returns the input
  * unchanged so the common whole-chart path stays allocation-free.
  *
+ * `applyChartRevealDescriptor` is the authored-index counterpart, consumed
+ * instead of `applyChartBuildReveal` whenever a `ChartRevealDescriptor` (see
+ * `chart-reveal-descriptor`) is available; `resolveRevealedChartData` is the
+ * single entry point every binding's chart renderer should call, since it
+ * picks between the two.
+ *
  * @module render/chart-build
  */
 
 import type { PptxChartData } from 'pptx-viewer-core';
 
 import { revealedStageCount } from './animation-build';
-import type { ChartBuildMode } from './animation-timeline-types';
+import type {
+	ChartBuildMode,
+	ChartRevealDescriptor,
+	ElementAnimationState,
+} from './animation-timeline-types';
 
 /** The chart variant of a playback-time build state. */
 export interface ChartBuildState {
@@ -92,4 +102,71 @@ export function applyChartBuildReveal(
 			return { ...s, values: s.values.slice(0, visibleInSeries) };
 		}),
 	};
+}
+
+/**
+ * Project a chart's data down to the AUTHORED reveal set named by a
+ * {@link ChartRevealDescriptor} (see `chart-reveal-descriptor`), rather than a
+ * click-count estimate. Correct for a reversed-order or gapped chart build,
+ * where {@link applyChartBuildReveal}'s forward-prefix assumption is not.
+ *
+ *  - `bySeries`   keeps only the series named in `descriptor.series` (a Set,
+ *                 so reveal order does not matter).
+ *  - `byCategory` / `byElement` keep every series (the shared category axis
+ *                 stays stable) but trim each series's values to the
+ *                 categories revealed for it: `descriptor.categories` (a
+ *                 whole-category reveal, applies to every series) unioned
+ *                 with any `descriptor.points` naming that specific series.
+ *  - `asOne`      returns `chartData` unchanged.
+ */
+export function applyChartRevealDescriptor(
+	chartData: PptxChartData,
+	mode: ChartBuildMode,
+	descriptor: ChartRevealDescriptor,
+): PptxChartData {
+	const { series } = chartData;
+	if (mode === 'asOne' || series.length === 0) {
+		return chartData;
+	}
+
+	if (mode === 'bySeries') {
+		return { ...chartData, series: series.filter((_, si) => descriptor.series.has(si)) };
+	}
+
+	return {
+		...chartData,
+		series: series.map((s, si) => {
+			const revealedCategories = new Set(descriptor.categories);
+			for (const point of descriptor.points) {
+				if (point.seriesIdx === si) {
+					revealedCategories.add(point.categoryIdx);
+				}
+			}
+			if (revealedCategories.size === 0) {
+				return { ...s, values: [] };
+			}
+			return { ...s, values: s.values.filter((_, ci) => revealedCategories.has(ci)) };
+		}),
+	};
+}
+
+/**
+ * Resolve the chart data revealed at the current playback state, preferring
+ * the authored-index {@link ChartRevealDescriptor} (`state.chartReveal`) over
+ * the count-based `state.build` when both are available, and returning
+ * `chartData` unchanged when neither applies. Every binding's chart element
+ * renderer calls this in place of calling `applyChartBuildReveal` directly.
+ */
+export function resolveRevealedChartData(
+	chartData: PptxChartData,
+	state: Pick<ElementAnimationState, 'build' | 'chartReveal'> | undefined,
+): PptxChartData {
+	if (state?.chartReveal) {
+		const { mode, descriptor } = state.chartReveal;
+		return applyChartRevealDescriptor(chartData, mode, descriptor);
+	}
+	if (state?.build?.kind === 'chart') {
+		return applyChartBuildReveal(chartData, state.build);
+	}
+	return chartData;
 }

@@ -27,6 +27,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { evaluatePresetShape } from 'pptx-viewer-core';
 
+import { VERIFIED_TEXT_RECT_PRESETS } from './verified-text-rect-presets';
+
 /** Extra padding, in px, contributed by the geometry's text rectangle. */
 export interface TextBodyRectPadding {
 	left: number;
@@ -57,145 +59,6 @@ const MIN_CONTENT_PX = 8;
 
 /** Cache size beyond which the memo is dropped wholesale (bounded, not LRU). */
 const CACHE_LIMIT = 512;
-
-/**
- * Preset names whose `rect` in core's geometry table is VERIFIED against
- * PowerPoint, lower-cased.
- *
- * Nothing had ever read `PresetShapeGeometryDefinition.rect`, so nothing had
- * ever checked it. Measuring PowerPoint directly (a deck of one shape per
- * preset, opened through COM, with `TextFrame.TextRange.Bound*` read off
- * single-glyph and wrapped-text probes at zero body insets on a 200x100pt box)
- * originally put 65 of 194 preset rects within 0.02 of PowerPoint and found
- * **117 that disagree**, several catastrophically: `pentagon` evaluated to a
- * NEGATIVE bottom edge, `heart` and `moon` collapsed to zero (both referenced
- * a `3wd4`/`3hd4` guide that does not exist: the built-in `wd`/`hd` family is
- * division-only, `wd2..wd12`/`hd2..hd12`, with no multiples), `flowChartDecision`
- * and `diamond` returned a quarter-size box (mirroring bug: `r`/`b` reused the
- * CENTER guide instead of the far-edge mirror of `l`/`t`), and the whole
- * ellipse and rounded-rect families reported the full bounding box where
- * PowerPoint insets by 0.1464 and 0.0244 respectively. A follow-up pass
- * (2026-09, gap G1) re-derived and re-measured `ellipse`, `roundRect`,
- * `diamond`, `pentagon`, `heart`, `moon`, `plus`, the whole `round*Rect`/
- * `snip*Rect` family, `flowChartDecision`, `triangle`, `rtTriangle`, `hexagon`
- * and the `math*` symbols (all now on this list); `mathMultiply` was
- * investigated but no formula reproduced its measured (asymmetric, non-45deg)
- * rect within tolerance, so it stays off the list. `parallelogram` and
- * `trapezoid` were measured but NOT fixed: their insets don't match the
- * "largest inscribed rectangle" optimum a plain skew analysis predicts (the
- * measured insets are uniform on all 4 sides, including the un-skewed top/
- * bottom edges, at a fraction that isn't `x3`-derived in any single-adjustment
- * probe tried), so a second measurement at a non-default `adj` is needed
- * before guessing further.
- *
- * So the rectangle is honoured only for the presets on this list. That is not
- * timidity: consuming an unverified preset would move text on common shapes to
- * measurably WRONG places, which is worse than the (also wrong) full box they
- * use otherwise. The remaining entries belong to whoever owns
- * `packages/core/src/core/geometry`; as each is corrected against the same
- * measurement it can simply be added here.
- *
- * Lower-cased raw preset names, deliberately NOT `getShapeType`: that
- * normaliser folds whole families together (`can` -> `cylinder`,
- * `oval` -> `ellipse`), and this is a per-PRESET fact, keyed the way core's own
- * `lookupPresetShape` keys it.
- */
-const VERIFIED_TEXT_RECT_PRESETS: ReadonlySet<string> = new Set([
-	// Straight and bent arrows.
-	'rightarrow',
-	'leftarrow',
-	'uparrow',
-	'downarrow',
-	'updownarrow',
-	'bentarrow',
-	'bentuparrow',
-	'uturnarrow',
-	'stripedrightarrow',
-	'notchedrightarrow',
-	'swoosharrow',
-	'curvedrightarrow',
-	'curvedleftarrow',
-	'curveduparrow',
-	'curveddownarrow',
-	'chevron',
-	// Basic shapes with a real inset.
-	'rect',
-	'octagon',
-	'arc',
-	'bevel',
-	'can',
-	'cube',
-	'frame',
-	'corner',
-	'funnel',
-	// Flowchart symbols.
-	'flowchartprocess',
-	'flowchartpredefinedprocess',
-	'flowchartinternalstorage',
-	'flowchartdocument',
-	'flowchartterminator',
-	'flowchartpreparation',
-	'flowchartmanualinput',
-	'flowchartmanualoperation',
-	'flowchartoffpageconnector',
-	'flowchartpunchedcard',
-	'flowchartextract',
-	'flowchartmerge',
-	'flowchartonlinestorage',
-	'flowchartdisplay',
-	'flowchartinputoutput',
-	'flowchartofflinestorage',
-	// Callouts.
-	'wedgerectcallout',
-	'cloudcallout',
-	'quadarrowcallout',
-	'callout1',
-	'callout2',
-	'callout3',
-	'bordercallout1',
-	'bordercallout2',
-	'bordercallout3',
-	'accentcallout1',
-	'accentcallout2',
-	'accentcallout3',
-	'accentbordercallout1',
-	'accentbordercallout2',
-	'accentbordercallout3',
-	// Connectors (all full-box, listed so the set matches the measurement).
-	'straightconnector1',
-	'bentconnector2',
-	'bentconnector3',
-	'bentconnector4',
-	'bentconnector5',
-	'curvedconnector2',
-	'curvedconnector3',
-	'curvedconnector4',
-	'curvedconnector5',
-	// G1 follow-up (2026-09): re-derived and COM-re-measured.
-	'ellipse',
-	'roundrect',
-	'diamond',
-	'pentagon',
-	'heart',
-	'moon',
-	'plus',
-	'triangle',
-	'rttriangle',
-	'hexagon',
-	'flowchartdecision',
-	'mathplus',
-	'mathminus',
-	'mathdivide',
-	'mathequal',
-	'mathnotequal',
-	'round1rect',
-	'round2samerect',
-	'round2diagrect',
-	'sniproundrect',
-	'snip1rect',
-	'snip2samerect',
-	'snip2diagrect',
-]);
 
 /**
  * Memo for `evaluatePresetShape`, which walks the preset's whole `gdLst` and

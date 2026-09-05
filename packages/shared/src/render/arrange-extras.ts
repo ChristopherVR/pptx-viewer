@@ -15,22 +15,47 @@
  * gates Group/Ungroup on selection count alone, with no `canEdit` check; see
  * the module doc in the fix report for the discrepancy.
  *
+ * Both gates also fold in `a:spLocks`/`a:grpSpLocks`'s `@noGrp` (surfaced by
+ * `element-locks.ts`'s `groupable` field): PowerPoint rejects the WHOLE
+ * grouping attempt when it involves a locked shape, and refuses to ungroup a
+ * group whose own `a:grpSpLocks/@noGrp` is set. The group/ungroup COMMANDS
+ * already enforced this per binding; only the ribbon/toolbar/context-menu
+ * button state did not, which let a user click an enabled button that then
+ * silently did nothing.
+ *
  * @module render/arrange-extras
  */
 import { hasShapeProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { canInteractWithElement } from './element-locks';
+
 /** Outline thickness the renderer assumes when the shape declares none. */
 export const DEFAULT_STROKE_WIDTH = 1;
 
-/** Grouping needs an editable deck and at least two selected elements. */
-export function canGroupSelection(canEdit: boolean, selectedCount: number): boolean {
-	return canEdit && selectedCount >= 2;
+/**
+ * Grouping needs an editable deck, at least two selected elements, and (when
+ * the caller can supply it) none of those elements locked against grouping.
+ *
+ * `selectionGroupable` defaults to `true` so callers that only know the
+ * selection count (not yet the elements themselves) keep their previous
+ * behaviour; a caller that HAS the selected elements should pass
+ * `selectedElements.every((el) => canInteractWithElement(el, 'group'))`.
+ */
+export function canGroupSelection(
+	canEdit: boolean,
+	selectedCount: number,
+	selectionGroupable = true,
+): boolean {
+	return canEdit && selectedCount >= 2 && selectionGroupable;
 }
 
-/** Ungrouping needs an editable deck and a selection that IS a group. */
+/**
+ * Ungrouping needs an editable deck, a selection that IS a group, and that
+ * group's own `a:grpSpLocks/@noGrp` allowing it.
+ */
 export function canUngroupSelection(canEdit: boolean, element: PptxElement | null): boolean {
-	return canEdit && element?.type === 'group';
+	return canEdit && element?.type === 'group' && canInteractWithElement(element, 'group');
 }
 
 /** An outline width only exists on an element that carries shape properties. */

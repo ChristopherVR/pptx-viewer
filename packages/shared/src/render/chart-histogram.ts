@@ -1,5 +1,7 @@
 import type { PptxChartData, PptxChartHistogramOptions, PptxElement } from 'pptx-viewer-core';
 
+import { buildValueAxisGridlinesAndLabels, findValueAxis } from './chart-cx-axis-units';
+import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { distributionRange } from './chart-distribution-range';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { buildParetoAxis, buildParetoPrimitives, orderParetoEntries } from './chart-pareto';
@@ -14,7 +16,6 @@ import type {
 } from './chart-view-model';
 import {
 	buildCategoryLabels,
-	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
 	computePlotLayout,
@@ -219,9 +220,22 @@ export function buildHistogramViewModel(
 				fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 				fill: DATA_LABEL_COLOR,
 				textAnchor: 'middle',
+				...(series
+					? dataLabelFontOverride(
+							resolveDataLabelTextStyle(
+								chartData,
+								series,
+								entries[index]?.sourcePointIndex ?? index,
+							),
+						)
+					: {}),
 			}))
 		: [];
-	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
+	const { gridlines, axisLabels } = buildValueAxisGridlinesAndLabels(
+		range,
+		layout,
+		findValueAxis(chartData.axes),
+	);
 	const paretoAxis = paretoIndex >= 0 ? buildParetoAxis(layout) : undefined;
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,

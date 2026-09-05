@@ -17,6 +17,7 @@ describe('resolveChartStyleDefaults', () => {
 			gridlineColor: undefined,
 			chartAreaFillColor: undefined,
 			plotAreaFillColor: undefined,
+			seriesLineWidthPt: undefined,
 		});
 	});
 
@@ -79,5 +80,19 @@ describe('resolveChartStyleDefaults', () => {
 		expect(result.titleTextPx).toBeCloseTo(chartFontPx(20), 5);
 		expect(result.bodyTextPx).toBe(DEFAULT_CHART_TEXT_PX);
 		expect(result.dataLabelTextPx).toBe(DEFAULT_CHART_DATA_LABEL_PX);
+	});
+
+	it('resolves seriesLineWidthPt from dataPointLine, falling back to dataPoint (C2 wave-1 skip)', () => {
+		expect(
+			resolveChartStyleDefaults({
+				chartStyleDefinition: { dataPointLine: { lineWidth: 2.25 } },
+			}).seriesLineWidthPt,
+		).toBe(2.25);
+		expect(
+			resolveChartStyleDefaults({
+				chartStyleDefinition: { dataPoint: { lineWidth: 1.5 } },
+			}).seriesLineWidthPt,
+		).toBe(1.5);
+		expect(resolveChartStyleDefaults(undefined).seriesLineWidthPt).toBeUndefined();
 	});
 });

@@ -217,7 +217,15 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		// Vue/Svelte/Vanilla with no binding change: they already render one span
 		// per run.
 		let charStart = 0;
-		for (const piece of splitStyledRun(text, style, runFont, authoredLetterSpacingPx(seg.style))) {
+		// `u="words"`: word/gap pieces so only the words carry the underline.
+		const underlineWords = seg.style?.underline === true && seg.style?.underlineStyle === 'words';
+		for (const piece of splitStyledRun(
+			text,
+			style,
+			runFont,
+			authoredLetterSpacingPx(seg.style),
+			underlineWords,
+		)) {
 			const run: BuiltRun = { ...piece, segmentIndex, charStart };
 			if (hyperlink) {
 				run.hyperlink = hyperlink;

@@ -662,6 +662,117 @@ describe('completeAll', () => {
 	});
 });
 
+describe('p:graphicEl chart reveal (getElementStates.chartReveal)', () => {
+	/** One per-series chart-build step, mirroring what `buildTimeline` emits for a `p:par` targeting `p:graphicEl/p:chart[@seriesIdx]`. */
+	function chartStep(seriesIdx: number): TimelineStep {
+		return makeStep({
+			elementId: 'chart1',
+			build: { kind: 'chart', mode: 'bySeries', animateBackground: true },
+			graphicElement: { seriesIdx, bldStep: 'series' },
+		});
+	}
+
+	it('derives the authored series set from fired steps, in REVERSE authoring order', () => {
+		// PowerPoint's "Enter by Series, Reverse Order" authors one `p:par` per
+		// series but fires seriesIdx 2 first, then 1, then 0. A click-count-based
+		// reveal would show series [0], [0,1] after two clicks; the authored set
+		// must instead be {2}, then {2,1}.
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([chartStep(2)]),
+					makeGroup([chartStep(1)]),
+					makeGroup([chartStep(0)]),
+				],
+			}),
+		);
+
+		engine.advance();
+		let state = engine.getElementStates(['chart1']).get('chart1');
+		expect(state?.chartReveal?.descriptor.series).toStrictEqual(new Set([2]));
+		expect(state?.chartReveal?.mode).toBe('bySeries');
+
+		engine.advance();
+		state = engine.getElementStates(['chart1']).get('chart1');
+		expect(state?.chartReveal?.descriptor.series).toStrictEqual(new Set([2, 1]));
+
+		engine.advance();
+		state = engine.getElementStates(['chart1']).get('chart1');
+		expect(state?.chartReveal?.descriptor.series).toStrictEqual(new Set([2, 1, 0]));
+	});
+
+	it('background reveal follows animateBackground: shown WITH the first stage by default', () => {
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([chartStep(0)])] }));
+		expect(
+			engine.getElementStates(['chart1']).get('chart1')?.chartReveal?.descriptor.background,
+		).toBeFalsy();
+		engine.advance();
+		expect(
+			engine.getElementStates(['chart1']).get('chart1')?.chartReveal?.descriptor.background,
+		).toBeTruthy();
+	});
+
+	it('background is shown throughout when animateBackground is false', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([
+						makeStep({
+							elementId: 'chart1',
+							build: { kind: 'chart', mode: 'bySeries', animateBackground: false },
+							graphicElement: { seriesIdx: 0, bldStep: 'series' },
+						}),
+					]),
+				],
+			}),
+		);
+		// Before the first click: no data revealed yet, but the background is
+		// authored to show throughout regardless of build progress.
+		expect(
+			engine.getElementStates(['chart1']).get('chart1')?.chartReveal?.descriptor.background,
+		).toBeTruthy();
+	});
+
+	it('leaves chartReveal undefined for a chart whose build has no graphicEl index data', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([
+						makeStep({ elementId: 'chart1', build: { kind: 'chart', mode: 'bySeries' } }),
+					]),
+				],
+			}),
+		);
+		engine.advance();
+		expect(engine.getElementStates(['chart1']).get('chart1')?.chartReveal).toBeUndefined();
+	});
+
+	it('completeAll reveals the full authored series set', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([chartStep(2)]),
+					makeGroup([chartStep(1)]),
+					makeGroup([chartStep(0)]),
+				],
+			}),
+		);
+		engine.completeAll();
+		expect(
+			engine.getElementStates(['chart1']).get('chart1')?.chartReveal?.descriptor.series,
+		).toStrictEqual(new Set([2, 1, 0]));
+	});
+
+	it('reset clears the accumulated chart reveal history', () => {
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([chartStep(0)])] }));
+		engine.advance();
+		engine.reset();
+		expect(
+			engine.getElementStates(['chart1']).get('chart1')?.chartReveal?.descriptor.series.size,
+		).toBe(0);
+	});
+});
+
 describe('p:excl exclusivity (exclGroupId)', () => {
 	it('stops the previous holder of the same exclGroupId when a new one starts', () => {
 		const engine = new TimelineEngine(

@@ -17,12 +17,17 @@ import { resolveBlankDisplay, visibleRuns } from './chart-blank-display';
 import { pushMarker } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
-import { buildDataLabelText } from './chart-data-label-text';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 import { resolveDataPointFill } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { smoothLinePath } from './chart-line-path';
 import { computeStackedSeriesPlots } from './chart-stacked-series';
 import type { LineAreaStacking } from './chart-stacked-series';
+import { resolveChartStyleDefaults } from './chart-style-defaults';
 import type {
 	ChartPartRef,
 	PlotLayout,
@@ -38,6 +43,9 @@ import {
 	linePointsToSvgString,
 	seriesColor,
 } from './chart-view-model';
+
+/** PowerPoint's own default line-chart series stroke width when nothing overrides it. */
+const DEFAULT_LINE_STROKE_WIDTH = 2.4;
 
 /**
  * Build line-chart primitives, honouring a secondary value range per series
@@ -65,6 +73,13 @@ export function buildLines(
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [],
 		dataLabels: SvgText[] = [],
+		// C2 wave-1 skip: the chart-style number (`c:style`/`c14:style`) drives
+		// the default series line width via its `cs:dataPointLine`/`cs:dataPoint`
+		// entry when one is directly authored; falls back to the historical
+		// fixed default so an untouched chart with no style part renders
+		// byte-identical.
+		lineStrokeWidth =
+			resolveChartStyleDefaults(chartData).seriesLineWidthPt ?? DEFAULT_LINE_STROKE_WIDTH,
 		showLabels = chartData.style?.hasDataLabels,
 		isStackedMode = stacking !== 'clustered',
 		isPercent = stacking === 'percentStacked',
@@ -122,7 +137,7 @@ export function buildLines(
 							kind: 'path',
 							d: smoothLinePath(pts),
 							stroke: c,
-							strokeWidth: 2.4,
+							strokeWidth: lineStrokeWidth,
 							fill: 'none',
 							part: seriesPart,
 						} satisfies SvgPath)
@@ -130,7 +145,7 @@ export function buildLines(
 							kind: 'polyline',
 							points: linePointsToSvgString(pts),
 							stroke: c,
-							strokeWidth: 2.4,
+							strokeWidth: lineStrokeWidth,
 							fill: 'none',
 							part: seriesPart,
 						} satisfies SvgPolyline),
@@ -145,7 +160,7 @@ export function buildLines(
 					kind: 'polyline',
 					points: linePointsToSvgString(run.map((i) => pts[i])),
 					stroke: c,
-					strokeWidth: 2.4,
+					strokeWidth: lineStrokeWidth,
 					fill: 'none',
 					part: seriesPart,
 				} satisfies SvgPolyline);
@@ -197,6 +212,13 @@ export function buildLines(
 						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 						fill: '#334155',
 						textAnchor: 'middle',
+						...dataLabelFontOverride(
+							resolveDataLabelTextStyle(
+								chartData,
+								series,
+								sourceIndices[displayIndex] ?? displayIndex,
+							),
+						),
 					});
 					return;
 				}
@@ -225,6 +247,7 @@ export function buildLines(
 					fill: label.color ?? '#334155',
 					textAnchor: anchor.textAnchor,
 					...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
+					...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, pointIndex)),
 				});
 			});
 		}

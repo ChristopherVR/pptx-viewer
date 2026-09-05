@@ -25,6 +25,7 @@ interface ChartStylePartEntryLike {
 	italic?: boolean;
 	color?: string;
 	lineColor?: string;
+	lineWidth?: number;
 	fillColor?: string;
 }
 
@@ -85,6 +86,16 @@ export interface ChartStyleDefaults {
 	chartAreaFillColor: string | undefined;
 	/** Plot-area (inner panel) fill, when the style part names one. */
 	plotAreaFillColor: string | undefined;
+	/**
+	 * Default series line/marker stroke width (points), when the active chart
+	 * style's `cs:dataPointLine`/`cs:dataPoint` names a directly-authored
+	 * `cs:spPr/a:ln/@w` (C2 wave-1 skip: the built-in style number driving
+	 * default series line widths). Most built-in styles reference a theme
+	 * line-style matrix index instead of authoring a literal width, which this
+	 * resolver does not follow (see `PptxChartStylePartEntry.lineWidth`'s doc
+	 * comment); `undefined` means "use the renderer's own fixed default".
+	 */
+	seriesLineWidthPt: number | undefined;
 }
 
 function sizePx(entry: ChartStylePartEntryLike | undefined, fallbackPx: number): number {
@@ -122,5 +133,6 @@ export function resolveChartStyleDefaults(
 		gridlineColor: def?.gridlineMajor?.lineColor ?? def?.gridlineMinor?.lineColor,
 		chartAreaFillColor: def?.chartArea?.fillColor,
 		plotAreaFillColor: def?.plotArea?.fillColor,
+		seriesLineWidthPt: def?.dataPointLine?.lineWidth ?? def?.dataPoint?.lineWidth,
 	};
 }
