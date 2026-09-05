@@ -1,7 +1,9 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
 import {
-	cancelBuildReveal,
+	advanceMainSequence,
+	clearPlaybackTimers,
+	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
 	resolveMediaTimeNodeElementIds,
@@ -60,6 +62,12 @@ export class AnimationPlayback {
 	#controller: PresentationAnimationController | null = null;
 	readonly #timers: number[] = [];
 	readonly #buildHandle: BuildRafHandle = { current: null };
+	/**
+	 * The click-group the last presenter click started, so a second click while
+	 * it is still mid-flight fast-forwards it (`p:seq/@nextAc="seek"`) instead
+	 * of skipping to the next group. Owned here, mutated by the shared helpers.
+	 */
+	readonly #activeGroup = createActiveAnimationGroup();
 	readonly #ctx: PlaybackContext;
 
 	constructor(deps: AnimationPlaybackDeps) {
@@ -112,11 +120,7 @@ export class AnimationPlayback {
 
 	/** Clear all pending timers + the in-flight staged-build RAF. */
 	clearTimers(): void {
-		for (const timer of this.#timers) {
-			window.clearTimeout(timer);
-		}
-		this.#timers.length = 0;
-		cancelBuildReveal(this.#buildHandle);
+		clearPlaybackTimers(this.#ctx, this.#activeGroup);
 	}
 
 	/**
@@ -198,17 +202,14 @@ export class AnimationPlayback {
 	 * through to slide navigation).
 	 */
 	advance(): boolean {
-		if (!this.#animationsEnabled() || !this.#controller || !this.#controller.hasMoreSteps()) {
+		if (!this.#animationsEnabled()) {
 			return false;
 		}
-		const group = this.#controller.advance();
-		if (!group) {
-			return false;
-		}
-		playGroup(this.#controller, group, this.#ctx);
-		scheduleAutoAdvanceChain(this.#controller, this.#ctx);
+		// Seek-or-advance (`p:seq/@nextAc="seek"`) plus the auto-advance chain
+		// live in shared, so the branch is identical in all five bindings.
+		const consumed = advanceMainSequence(this.#controller, this.#ctx, this.#activeGroup);
 		this.#syncComplete();
-		return true;
+		return consumed;
 	}
 
 	/** Play an interactive shape's sequence; `true` when it triggered one. */

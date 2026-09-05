@@ -72,6 +72,37 @@ describe('animationPlayback (native-timing controller)', () => {
 		expect(pb.advance()).toBeFalsy();
 	});
 
+	it('a second advance inside a nextAc="seek" group fast-forwards it instead of skipping ahead', () => {
+		const seekAnim = (targetId: string): PptxNativeAnimation =>
+			({
+				targetId,
+				presetClass: 'entr',
+				trigger: 'onClick',
+				durationMs: 5000,
+				seqNextAction: 'seek',
+			}) as unknown as PptxNativeAnimation;
+		const pb = new AnimationPlayback({
+			getSlide: () =>
+				slideWith([shapeElement('e1'), shapeElement('e2')], [seekAnim('e1'), seekAnim('e2')]),
+		});
+		pb.reset();
+
+		expect(pb.advance()).toBeTruthy();
+		expect(pb.elementStates.get('e1')?.cssAnimation).toBeTruthy();
+
+		// Mid-flight: the click is consumed by finishing e1, and e2 stays hidden.
+		expect(pb.advance()).toBeTruthy();
+		expect(pb.elementStates.get('e1')?.visible).toBeTruthy();
+		expect(pb.elementStates.get('e1')?.cssAnimation).toBeUndefined();
+		expect(pb.elementStates.get('e2')?.visible).toBeFalsy();
+		expect(pb.isComplete).toBeFalsy();
+
+		// Settled: the next click starts group two.
+		expect(pb.advance()).toBeTruthy();
+		expect(pb.elementStates.get('e2')?.visible).toBeTruthy();
+		expect(pb.isComplete).toBeTruthy();
+	});
+
 	it('exposes keyframes CSS and empty trigger sets for a plain slide', () => {
 		const pb = new AnimationPlayback({
 			getSlide: () => slideWith([shapeElement('e1')], [entranceAnim('e1')]),
