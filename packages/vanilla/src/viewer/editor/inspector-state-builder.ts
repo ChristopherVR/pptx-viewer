@@ -1,7 +1,7 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (many independent short-lived `const`s deriving one inspector field each);
    merging them isn't a style choice here. */
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxThemeColorRef } from 'pptx-viewer-core';
 import {
 	hasShapeProperties,
 	isImageLikeElement,
@@ -29,7 +29,9 @@ import { canFormatShape, canFormatText } from './editor-format-mutations';
 /** Read the shape fill/stroke for the inspector (undefined/0 when not a shape). */
 function shapeStyleOf(el: PptxElement | undefined): {
 	fillColor: string | undefined;
+	fillColorRef: PptxThemeColorRef | undefined;
 	strokeColor: string | undefined;
+	strokeColorRef: PptxThemeColorRef | undefined;
 	strokeWidth: number;
 	fillOpacity: number;
 	strokeOpacity: number;
@@ -37,7 +39,9 @@ function shapeStyleOf(el: PptxElement | undefined): {
 	if (el && hasShapeProperties(el)) {
 		return {
 			fillColor: el.shapeStyle?.fillColor,
+			fillColorRef: el.shapeStyle?.fillColorRef,
 			strokeColor: el.shapeStyle?.strokeColor,
+			strokeColorRef: el.shapeStyle?.strokeColorRef,
 			strokeWidth: el.shapeStyle?.strokeWidth ?? 0,
 			fillOpacity: el.shapeStyle?.fillOpacity ?? 1,
 			strokeOpacity: el.shapeStyle?.strokeOpacity ?? 1,
@@ -45,7 +49,9 @@ function shapeStyleOf(el: PptxElement | undefined): {
 	}
 	return {
 		fillColor: undefined,
+		fillColorRef: undefined,
 		strokeColor: undefined,
+		strokeColorRef: undefined,
 		strokeWidth: 0,
 		fillOpacity: 1,
 		strokeOpacity: 1,
@@ -65,6 +71,7 @@ export function buildInspectorState(
 	mediaDataUrls: Map<string, string> = new Map(),
 	chartPartSelection: ChartPartSelection | null = null,
 	recentColors: readonly string[] = [],
+	themeColorMap: Record<string, string> | undefined = undefined,
 ): InspectorState {
 	const shape = shapeStyleOf(el);
 	const textAdvanced = el ? textAdvancedStateOf(el) : undefined;
@@ -105,7 +112,9 @@ export function buildInspectorState(
 		height: el?.height ?? 0,
 		rotation: el?.rotation ?? 0,
 		fillColor: shape.fillColor,
+		fillColorRef: shape.fillColorRef,
 		strokeColor: shape.strokeColor,
+		strokeColorRef: shape.strokeColorRef,
 		strokeWidth: shape.strokeWidth,
 		shapeStyle: el && hasShapeProperties(el) ? el.shapeStyle : undefined,
 		shapeType: el?.type === 'shape' ? el.shapeType : undefined,
@@ -191,5 +200,6 @@ export function buildInspectorState(
 			el?.type === 'table' ? (el.tableData?.rows.map((row) => row.height ?? 32) ?? []) : [],
 		tableElement: el?.type === 'table' ? el : undefined,
 		recentColors,
+		themeColorMap,
 	};
 }

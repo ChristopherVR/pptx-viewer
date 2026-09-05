@@ -105,6 +105,26 @@ describe('editor-format-mutations text', () => {
 		expect(patch.textStyle.color).toBe('#ff0000');
 		expect(patch.textSegments[0].style.color).toBe('#ff0000');
 	});
+
+	it('a theme-swatch pick sets colourRef alongside colour on style + runs (W3-G2)', () => {
+		const ref = { scheme: 'accent1' as const };
+		const patch = setTextColor(textElement(), '#4472c4', ref) as {
+			textStyle: { color?: string; colorRef?: unknown };
+			textSegments: Array<{ style: { color?: string; colorRef?: unknown } }>;
+		};
+		expect(patch.textStyle.color).toBe('#4472c4');
+		expect(patch.textStyle.colorRef).toStrictEqual(ref);
+		expect(patch.textSegments[0].style.colorRef).toStrictEqual(ref);
+	});
+
+	it('a plain hex pick (no ref) clears a previously-stored colourRef', () => {
+		const el = textElement() as { textStyle?: { colorRef?: unknown } };
+		el.textStyle = { ...el.textStyle, colorRef: { scheme: 'accent1' } };
+		const patch = setTextColor(el as PptxElement, '#ff0000') as {
+			textStyle: { colorRef?: unknown };
+		};
+		expect(patch.textStyle.colorRef).toBeUndefined();
+	});
 });
 
 describe('editor-format-mutations extras', () => {

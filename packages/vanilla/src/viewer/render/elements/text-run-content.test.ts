@@ -124,3 +124,51 @@ describe('renderTextBlock - reflection (a:rPr/a:effectLst/a:reflection)', () => 
 		expect(block.querySelector('.pptxv-text-reflection')).toBeFalsy();
 	});
 });
+
+/**
+ * `a:rPr/@u="words"` underlines only the words. The ordinary per-word split
+ * already emits sibling runs, but a tab-separated piece and a ruby base text
+ * each stay ONE piece, so shared hands the word/gap breakdown over as
+ * `piece.words` / `run.underlineWordPieces` and the renderer honours it.
+ */
+describe('renderTextBlock - u="words" on tab pieces and ruby runs', () => {
+	const wordsStyle = {
+		fontFamily: 'Arial',
+		fontSize: 16,
+		underline: true,
+		underlineStyle: 'words',
+	};
+
+	it('renders a tab piece as one span per word with no underline under the gap', () => {
+		const seg = { text: 'Hello World\t12', style: wordsStyle } as unknown as TextSegment;
+		const el = {
+			...element({ textStyle: { tabStops: [{ position: 300, align: 'r' }] } }),
+			textSegments: [seg],
+		} as PptxElement;
+		const block = renderTextBlock(document, buildParagraphs(el), {});
+		const spans = [...block.querySelectorAll('span')];
+		expect(spans.find((s) => s.textContent === 'Hello World')).toBeUndefined();
+		const hello = spans.find((s) => s.textContent === 'Hello');
+		expect(hello?.style.textDecoration).toContain('underline');
+		expect(hello?.style.display).toBe('inline-block');
+		const gap = spans.find((s) => s.textContent === ' ');
+		expect(gap).toBeDefined();
+		expect(gap?.style.textDecoration ?? '').not.toContain('underline');
+	});
+
+	it('renders a ruby base text word by word, the ruby element itself undecorated', () => {
+		const seg = {
+			text: 'two words',
+			rubyText: 'reading',
+			style: wordsStyle,
+		} as unknown as TextSegment;
+		const el = { ...element(), textSegments: [seg] } as PptxElement;
+		const block = renderTextBlock(document, buildParagraphs(el), {});
+		const ruby = block.querySelector('ruby');
+		expect(ruby).toBeTruthy();
+		expect(ruby?.style.textDecoration ?? '').not.toContain('underline');
+		const word = [...(ruby?.querySelectorAll('span') ?? [])].find((s) => s.textContent === 'two');
+		expect(word?.style.textDecoration).toContain('underline');
+		expect(ruby?.textContent).toContain('two words');
+	});
+});

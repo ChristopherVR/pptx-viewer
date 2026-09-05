@@ -1,4 +1,4 @@
-import type { TextStyle } from 'pptx-viewer-core';
+import type { PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -41,7 +41,7 @@ export interface TextActions {
 	changeFontSize(delta: number): void;
 	setFontSize(size: number): void;
 	setFontFamily(family: string): void;
-	setTextColor(color: string): void;
+	setTextColor(color: string, ref?: PptxThemeColorRef): void;
 	setHighlightColor(color: string): void;
 	setCharacterSpacing(value: number): void;
 	changeCase(mode: ChangeCaseMode): void;
@@ -69,9 +69,9 @@ export function createTextActions(
 		changeFontSize: (delta) => applyToSelected((el) => adjustFontSize(el, delta)),
 		setFontSize: (size) => applyToSelected((el) => setFontSize(el, size)),
 		setFontFamily: (family) => applyToSelected((el) => setFontFamily(el, family)),
-		setTextColor: (color) => {
+		setTextColor: (color, ref) => {
 			recordRecentColor(store, color);
-			applyToSelected((el) => setTextColor(el, color));
+			applyToSelected((el) => setTextColor(el, color, ref));
 		},
 		setHighlightColor: (color) => {
 			recordRecentColor(store, color);

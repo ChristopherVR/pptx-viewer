@@ -4,10 +4,11 @@ import { createEl } from '../dom';
 
 /**
  * Append a run's text content into `host`, honouring shared's per-script font
- * split (`run.scriptRuns`) and measured tab-stop layout (`run.tabLines`) when
- * either is present.
+ * split (`run.scriptRuns`), measured tab-stop layout (`run.tabLines`) and
+ * `u="words"` per-word underline pieces (`run.underlineWordPieces`, a ruby
+ * run; `piece.words`, a tab piece) when any is present.
  *
- * Both descriptors come from `pptx-viewer-shared`'s `buildParagraphs` (the
+ * The descriptors come from `pptx-viewer-shared`'s `buildParagraphs` (the
  * per-script split was React-only before this helper existed: CJK, Arabic,
  * Hebrew and Thai text rendered in the wrong typeface here; the tab layout was
  * likewise React-only, so a TOC-style row lost its leader dots and right-
@@ -19,8 +20,9 @@ export function appendRunContent(doc: Document, host: HTMLElement, run: Paragrap
 		appendTabLines(doc, host, run.tabLines);
 		return;
 	}
-	if (run.scriptRuns) {
-		appendScriptRuns(doc, host, run.scriptRuns);
+	const pieces = run.scriptRuns ?? run.underlineWordPieces;
+	if (pieces) {
+		appendStyledPieces(doc, host, pieces);
 		return;
 	}
 	host.appendChild(doc.createTextNode(run.text));
@@ -43,9 +45,12 @@ function appendTabLines(
 				leader.textContent = piece.leaderText ?? '';
 				lineHost.appendChild(leader);
 			}
-			const textSpan = createEl(doc, 'span', undefined, piece.style);
-			textSpan.textContent = piece.text;
-			lineHost.appendChild(textSpan);
+			// `u="words"`: one sibling span per word/gap in place of the piece span.
+			for (const word of piece.words ?? [piece]) {
+				const textSpan = createEl(doc, 'span', undefined, word.style);
+				textSpan.textContent = word.text;
+				lineHost.appendChild(textSpan);
+			}
 		}
 		host.appendChild(lineHost);
 		if (li < lines.length - 1) {
@@ -54,7 +59,7 @@ function appendTabLines(
 	});
 }
 
-function appendScriptRuns(
+function appendStyledPieces(
 	doc: Document,
 	host: HTMLElement,
 	pieces: NonNullable<ParagraphRun['scriptRuns']>,

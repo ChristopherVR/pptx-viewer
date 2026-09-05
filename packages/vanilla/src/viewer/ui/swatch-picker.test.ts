@@ -143,3 +143,118 @@ describe('makeSwatchPicker', () => {
 		).toBeTruthy();
 	});
 });
+
+const OFFICE_THEME: Record<string, string> = {
+	dk1: '#000000',
+	lt1: '#ffffff',
+	dk2: '#44546a',
+	lt2: '#e7e6e6',
+	accent1: '#4472c4',
+	accent2: '#ed7d31',
+	accent3: '#a5a5a5',
+	accent4: '#ffc000',
+	accent5: '#5b9bd5',
+	accent6: '#70ad47',
+	bg1: '#ffffff',
+	tx1: '#000000',
+	bg2: '#e7e6e6',
+	tx2: '#44546a',
+};
+
+describe('makeSwatchPicker theme colour grid (W3-G2)', () => {
+	it('renders no theme grid at all when onSelectTheme is not provided (highlight colour)', () => {
+		const t = createTranslator();
+		const picker = makeSwatchPicker(document, t, {
+			label: 'Highlight',
+			icon: 'highlight',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#ffff00',
+			onSelect: vi.fn(),
+		});
+		picker.setThemeColorMap(OFFICE_THEME);
+		expect(picker.el.querySelector('.pptxv-theme-swatch-grid')).toBeNull();
+	});
+
+	it('shows the theme grid once a theme is set, and hides it again when cleared', () => {
+		const t = createTranslator();
+		const picker = makeSwatchPicker(document, t, {
+			label: 'Font colour',
+			icon: 'font-color',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#000000',
+			onSelect: vi.fn(),
+			onSelectTheme: vi.fn(),
+		});
+		const grid = picker.el.querySelector<HTMLElement>('.pptxv-theme-swatch-grid')!;
+		expect(grid.hidden).toBeTruthy();
+
+		picker.setThemeColorMap(OFFICE_THEME);
+		expect(grid.hidden).toBeFalsy();
+
+		picker.setThemeColorMap(undefined);
+		expect(grid.hidden).toBeTruthy();
+	});
+
+	it('clicking a theme swatch fires onSelectTheme with both hex and ref, and closes the menu', () => {
+		const onSelectTheme = vi.fn();
+		const t = createTranslator();
+		const picker = makeSwatchPicker(document, t, {
+			label: 'Font colour',
+			icon: 'font-color',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#000000',
+			onSelect: vi.fn(),
+			onSelectTheme,
+		});
+		picker.setThemeColorMap(OFFICE_THEME);
+		const menu = picker.el.querySelector<HTMLElement>('.pptxv-swatch-menu')!;
+		picker.el.querySelector<HTMLButtonElement>('.pptxv-dropdown-trigger')!.click();
+		expect(menu.hidden).toBeFalsy();
+
+		picker.el.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!.click();
+		expect(onSelectTheme).toHaveBeenCalledExactlyOnceWith({
+			hex: '#ed7d31',
+			ref: { scheme: 'accent2' },
+		});
+		expect(menu.hidden).toBeTruthy();
+	});
+
+	it('shows a "Standard Colors" label above the flat swatch row only when onSelectTheme is provided', () => {
+		const t = createTranslator();
+		const withTheme = makeSwatchPicker(document, t, {
+			label: 'Font colour',
+			icon: 'font-color',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#000000',
+			onSelect: vi.fn(),
+			onSelectTheme: vi.fn(),
+		});
+		expect(withTheme.el.querySelector('.pptxv-swatch-standard-label')).not.toBeNull();
+
+		const withoutTheme = makeSwatchPicker(document, t, {
+			label: 'Highlight',
+			icon: 'highlight',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#ffff00',
+			onSelect: vi.fn(),
+		});
+		expect(withoutTheme.el.querySelector('.pptxv-swatch-standard-label')).toBeNull();
+	});
+
+	it('setSelectedRef highlights the matching theme swatch', () => {
+		const t = createTranslator();
+		const picker = makeSwatchPicker(document, t, {
+			label: 'Font colour',
+			icon: 'font-color',
+			swatches: OFFICE_STANDARD_SWATCHES,
+			fallback: '#000000',
+			onSelect: vi.fn(),
+			onSelectTheme: vi.fn(),
+		});
+		picker.setThemeColorMap(OFFICE_THEME);
+		picker.setSelectedRef({ scheme: 'accent2' });
+
+		const swatch = picker.el.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!;
+		expect(swatch.classList.contains('is-selected')).toBeTruthy();
+	});
+});

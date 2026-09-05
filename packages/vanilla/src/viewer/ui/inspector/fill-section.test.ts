@@ -3,6 +3,23 @@ import { describe, expect, it, vi } from 'vitest';
 import { createFillSection } from './fill-section';
 import type { InspectorHandlers, InspectorState } from './types';
 
+const OFFICE_THEME: Record<string, string> = {
+	dk1: '#000000',
+	lt1: '#ffffff',
+	dk2: '#44546a',
+	lt2: '#e7e6e6',
+	accent1: '#4472c4',
+	accent2: '#ed7d31',
+	accent3: '#a5a5a5',
+	accent4: '#ffc000',
+	accent5: '#5b9bd5',
+	accent6: '#70ad47',
+	bg1: '#ffffff',
+	tx1: '#000000',
+	bg2: '#e7e6e6',
+	tx2: '#44546a',
+};
+
 function baseState(overrides: Partial<InspectorState> = {}): InspectorState {
 	return {
 		hasSelection: true,
@@ -15,6 +32,7 @@ function baseState(overrides: Partial<InspectorState> = {}): InspectorState {
 		gradientEnabled: false,
 		gradient: { type: 'linear', angle: 90, stops: [] },
 		shapeStyle: undefined,
+		themeColorMap: undefined,
 		...overrides,
 	} as unknown as InspectorState;
 }
@@ -163,5 +181,127 @@ describe('createFillSection recent-colours rows', () => {
 		for (const row of section.el.querySelectorAll('[data-testid="pptx-color-recent"]')) {
 			expect(row.querySelector<HTMLButtonElement>('.pptxv-swatch')!.disabled).toBeTruthy();
 		}
+	});
+});
+
+describe('createFillSection theme colour swatch grid (W3-G2)', () => {
+	it('renders one theme-swatch grid per picker, hidden until a theme is loaded', () => {
+		const { section } = mount();
+		section.update(baseState());
+
+		const grids = section.el.querySelectorAll('.pptxv-theme-swatch-grid');
+		expect(grids).toHaveLength(2);
+		for (const grid of grids) {
+			expect((grid as HTMLElement).hidden).toBeTruthy();
+		}
+
+		section.update(baseState({ themeColorMap: OFFICE_THEME }));
+		for (const grid of section.el.querySelectorAll('.pptxv-theme-swatch-grid')) {
+			expect((grid as HTMLElement).hidden).toBeFalsy();
+		}
+	});
+
+	it('clicking a theme swatch commits both the hex and the ref, per picker', () => {
+		const { section, handlers } = mount();
+		section.update(baseState({ themeColorMap: OFFICE_THEME }));
+
+		const [fillGrid, strokeGrid] = Array.from(
+			section.el.querySelectorAll<HTMLElement>('.pptxv-theme-swatch-grid'),
+		);
+		fillGrid.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!.click();
+		expect(handlers.setShapeFill).toHaveBeenCalledExactlyOnceWith('#ed7d31', { scheme: 'accent2' });
+		expect(handlers.setShapeStroke).not.toHaveBeenCalled();
+
+		strokeGrid.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!.click();
+		expect(handlers.setShapeStroke).toHaveBeenCalledExactlyOnceWith('#ed7d31', {
+			scheme: 'accent2',
+		});
+	});
+
+	it('disables both grids when the shape cannot be formatted', () => {
+		const { section } = mount();
+		section.update(baseState({ canShape: false, themeColorMap: OFFICE_THEME }));
+
+		for (const grid of section.el.querySelectorAll('.pptxv-theme-swatch-grid')) {
+			expect(
+				grid.querySelector<HTMLButtonElement>('.pptxv-theme-swatch-grid-swatch')!.disabled,
+			).toBeTruthy();
+		}
+	});
+});
+
+describe('createFillSection gradient stop theme colour grid', () => {
+	function gradientState(): Partial<InspectorState> {
+		return {
+			gradientEnabled: true,
+			gradient: {
+				type: 'linear',
+				angle: 90,
+				stops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#ed7d31', position: 100, colorRef: { scheme: 'accent2' } },
+				],
+			},
+			themeColorMap: OFFICE_THEME,
+		};
+	}
+
+	it('renders one theme-swatch grid per gradient stop, hidden until a theme is loaded', () => {
+		const { section } = mount();
+		section.update(baseState({ ...gradientState(), themeColorMap: undefined }));
+		const grids = section.el.querySelectorAll(
+			'.pptxv-inspector-gradient-stops .pptxv-theme-swatch-grid',
+		);
+		expect(grids).toHaveLength(2);
+		for (const grid of grids) {
+			expect((grid as HTMLElement).hidden).toBeTruthy();
+		}
+
+		section.update(baseState(gradientState()));
+		for (const grid of section.el.querySelectorAll(
+			'.pptxv-inspector-gradient-stops .pptxv-theme-swatch-grid',
+		)) {
+			expect((grid as HTMLElement).hidden).toBeFalsy();
+		}
+	});
+
+	it('clicking a theme swatch commits both hex and ref for the right stop index', () => {
+		const { section, handlers } = mount();
+		section.update(baseState(gradientState()));
+
+		const grids = section.el.querySelectorAll<HTMLElement>(
+			'.pptxv-inspector-gradient-stops .pptxv-theme-swatch-grid',
+		);
+		grids[0].querySelector<HTMLButtonElement>('button[title="Accent 2"]')!.click();
+		expect(handlers.updateGradientStop).toHaveBeenCalledExactlyOnceWith(0, {
+			color: '#ed7d31',
+			colorRef: { scheme: 'accent2' },
+		});
+	});
+
+	it("highlights the stop's stored theme ref", () => {
+		const { section } = mount();
+		section.update(baseState(gradientState()));
+
+		const grids = section.el.querySelectorAll<HTMLElement>(
+			'.pptxv-inspector-gradient-stops .pptxv-theme-swatch-grid',
+		);
+		const swatch = grids[1].querySelector<HTMLButtonElement>('button[title="Accent 2"]')!;
+		expect(swatch.classList.contains('is-selected')).toBeTruthy();
+	});
+
+	it("the native colour input clears the stop's ref", () => {
+		const { section, handlers } = mount();
+		section.update(baseState(gradientState()));
+
+		const colorInputs = section.el.querySelectorAll<HTMLInputElement>(
+			'.pptxv-inspector-gradient-stops input[type="color"]',
+		);
+		colorInputs[1].value = '#00ff00';
+		colorInputs[1].dispatchEvent(new Event('input'));
+		expect(handlers.updateGradientStop).toHaveBeenCalledExactlyOnceWith(1, {
+			color: '#00ff00',
+			colorRef: undefined,
+		});
 	});
 });

@@ -272,4 +272,6 @@ export interface RibbonSelectionState {
 	customFontFamilies?: readonly string[];
 	/** B6: the deck's `p:clrMru`, most-recent-first; feeds every swatch picker's row. */
 	recentColors?: readonly string[];
+	/** The deck's resolved theme colour map, feeding the font-colour "Theme Colors" grid. */
+	themeColorMap?: Record<string, string>;
 }

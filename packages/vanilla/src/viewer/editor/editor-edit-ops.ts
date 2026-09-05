@@ -96,8 +96,8 @@ export interface EditActions
 	// Slide-level review comments, shared by desktop and mobile chrome.
 	comments: CommentActions;
 	toggleFormatPainter(): void;
-	setShapeFill(color: string): void;
-	setShapeStroke(color: string): void;
+	setShapeFill(color: string, ref?: import('pptx-viewer-core').PptxThemeColorRef): void;
+	setShapeStroke(color: string, ref?: import('pptx-viewer-core').PptxThemeColorRef): void;
 	setShapeStrokeWidth(width: number): void;
 	setShapeStyle(patch: Partial<import('pptx-viewer-core').ShapeStyle>): void;
 	setShapeType(shapeType: string): void;
@@ -207,13 +207,13 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		// active gradient/pattern mode (mirrors the React/Vue "Fill & Stroke" panel).
 		// The patch itself comes from the shared `shapeFillChange`/`shapeOutlineChange`
 		// decision functions so the two keys can't drift from the other bindings.
-		setShapeFill: (color) => {
+		setShapeFill: (color, ref) => {
 			recordRecentColor(store, color);
-			applyToSelected((el) => patchShapeStyle(el, shapeFillChange(color)));
+			applyToSelected((el) => patchShapeStyle(el, shapeFillChange(color, ref)));
 		},
-		setShapeStroke: (color) => {
+		setShapeStroke: (color, ref) => {
 			recordRecentColor(store, color);
-			applyToSelected((el) => patchShapeStyle(el, shapeOutlineChange(color)));
+			applyToSelected((el) => patchShapeStyle(el, shapeOutlineChange(color, ref)));
 		},
 		setShapeStrokeWidth: (width) =>
 			applyToSelected((el) => patchShapeStyle(el, { strokeWidth: Math.max(0, width) })),

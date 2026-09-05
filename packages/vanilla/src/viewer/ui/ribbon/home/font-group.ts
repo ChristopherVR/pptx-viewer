@@ -1,3 +1,4 @@
+import type { PptxThemeColorRef } from 'pptx-viewer-core';
 import type { ChangeCaseMode, FontCatalogInput } from 'pptx-viewer-shared';
 import {
 	buildFontCatalog,
@@ -24,7 +25,8 @@ export interface FontGroupHandlers {
 	setFontFamily(family: string): void;
 	setFontSize(size: number): void;
 	changeFontSize(delta: number): void;
-	setTextColor(color: string): void;
+	/** Same `ref` contract as `SwatchPickerOptions.onSelectTheme`: omit for a plain/custom/recent pick. */
+	setTextColor(color: string, ref?: PptxThemeColorRef): void;
 	setHighlightColor(color: string): void;
 	setCharacterSpacing(value: number): void;
 	changeCase(mode: ChangeCaseMode): void;
@@ -43,6 +45,8 @@ export interface FontGroupState {
 	customFontFamilies?: readonly string[];
 	/** B6: the deck's `p:clrMru`, most-recent-first; seeds/refreshes both pickers' rows. */
 	recentColors?: readonly string[];
+	/** The deck's resolved theme colour map, feeding the font-colour "Theme Colors" grid. */
+	themeColorMap?: Record<string, string>;
 }
 
 export interface FontGroup {
@@ -167,6 +171,7 @@ export function createFontGroup(
 		swatches: OFFICE_STANDARD_SWATCHES,
 		fallback: '#000000',
 		onSelect: handlers.setTextColor,
+		onSelectTheme: (commit) => handlers.setTextColor(commit.hex, commit.ref),
 	});
 	const highlight = makeSwatchPicker(doc, t, {
 		label: t('pptx.text.highlightColor'),
@@ -222,6 +227,7 @@ export function createFontGroup(
 			embeddedFontFamilies,
 			customFontFamilies,
 			recentColors,
+			themeColorMap,
 		}) {
 			// Regroup per deck: the theme fonts and the embedded set are not
 			// known until a presentation has loaded.
@@ -247,6 +253,8 @@ export function createFontGroup(
 			highlight.setValue(text.highlightColor);
 			fontColor.setRecentColors(recentColors ?? []);
 			highlight.setRecentColors(recentColors ?? []);
+			fontColor.setThemeColorMap(themeColorMap);
+			fontColor.setSelectedRef(text.colorRef);
 
 			fontFamily.setDisabled(!editable);
 			fontSize.setDisabled(!editable);

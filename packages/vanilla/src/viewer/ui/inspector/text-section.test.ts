@@ -99,3 +99,78 @@ describe('createTextSection text colour', () => {
 		).toBeTruthy();
 	});
 });
+
+const OFFICE_THEME: Record<string, string> = {
+	dk1: '#000000',
+	lt1: '#ffffff',
+	dk2: '#44546a',
+	lt2: '#e7e6e6',
+	accent1: '#4472c4',
+	accent2: '#ed7d31',
+	accent3: '#a5a5a5',
+	accent4: '#ffc000',
+	accent5: '#5b9bd5',
+	accent6: '#70ad47',
+	bg1: '#ffffff',
+	tx1: '#000000',
+	bg2: '#e7e6e6',
+	tx2: '#44546a',
+};
+
+describe('createTextSection text colour theme grid', () => {
+	it('renders a theme-swatch grid, hidden until a theme is loaded', () => {
+		const { section } = mount();
+		section.update(baseState());
+		const grid = section.el.querySelector<HTMLElement>('.pptxv-theme-swatch-grid')!;
+		expect(grid.hidden).toBeTruthy();
+
+		section.update(baseState({ themeColorMap: OFFICE_THEME }));
+		expect(grid.hidden).toBeFalsy();
+	});
+
+	it('clicking a theme swatch commits both hex and ref', () => {
+		const { section, handlers } = mount();
+		section.update(baseState({ themeColorMap: OFFICE_THEME }));
+
+		section.el.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!.click();
+		expect(handlers.setTextStyle).toHaveBeenCalledExactlyOnceWith({
+			color: '#ed7d31',
+			colorRef: { scheme: 'accent2' },
+		});
+	});
+
+	it('highlights the selected text colour ref', () => {
+		const { section } = mount();
+		section.update(
+			baseState({
+				themeColorMap: OFFICE_THEME,
+				textStyle: { color: '#ed7d31', colorRef: { scheme: 'accent2' } },
+			}),
+		);
+
+		const swatch = section.el.querySelector<HTMLButtonElement>('button[title="Accent 2"]')!;
+		expect(swatch.classList.contains('is-selected')).toBeTruthy();
+	});
+
+	it('the native colour input clears colorRef', () => {
+		const { section, handlers } = mount();
+		section.update(baseState());
+
+		const colorInput = section.el.querySelector<HTMLInputElement>('input[type="color"]')!;
+		colorInput.value = '#00ff00';
+		colorInput.dispatchEvent(new Event('input'));
+		expect(handlers.setTextStyle).toHaveBeenCalledExactlyOnceWith({
+			color: '#00ff00',
+			colorRef: undefined,
+		});
+	});
+
+	it('disables the theme grid when text cannot be formatted', () => {
+		const { section } = mount();
+		section.update(baseState({ canText: false, themeColorMap: OFFICE_THEME }));
+
+		expect(
+			section.el.querySelector<HTMLButtonElement>('.pptxv-theme-swatch-grid-swatch')!.disabled,
+		).toBeTruthy();
+	});
+});

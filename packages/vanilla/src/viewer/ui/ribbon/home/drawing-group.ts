@@ -1,11 +1,12 @@
+import type { PptxThemeColorRef } from 'pptx-viewer-core';
 import type { ShapePresetType } from 'pptx-viewer-shared';
-import { SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
+import { RIBBON_SHAPE_SWATCHES, SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import { makeDropdown } from '../../dropdown';
-import { makeSwatchPicker, OFFICE_STANDARD_SWATCHES } from '../../swatch-picker';
+import { makeSwatchPicker } from '../../swatch-picker';
 
 export interface DrawingGroupHandlers {
 	insertShape(shapeType: ShapePresetType): void;
@@ -15,8 +16,9 @@ export interface DrawingGroupHandlers {
 	sendToBack(): void;
 	groupSelected(): void;
 	ungroupSelected(): void;
-	setShapeFill(color: string): void;
-	setShapeStroke(color: string): void;
+	/** Same `ref` contract as `SwatchPickerOptions.onSelectTheme`: omit for a plain/custom/recent pick. */
+	setShapeFill(color: string, ref?: PptxThemeColorRef): void;
+	setShapeStroke(color: string, ref?: PptxThemeColorRef): void;
 }
 
 export interface DrawingGroupState {
@@ -24,6 +26,14 @@ export interface DrawingGroupState {
 	hasSelection: boolean;
 	/** B6: the deck's `p:clrMru`, most-recent-first; seeds/refreshes both pickers' rows. */
 	recentColors?: readonly string[];
+	/** The deck's resolved theme colour map, feeding the fill/outline "Theme Colors" grids. */
+	themeColorMap?: Record<string, string>;
+	/** The selected shape's current fill, highlighting the matching theme/standard swatch. */
+	fillColor?: string;
+	fillColorRef?: PptxThemeColorRef;
+	/** The selected shape's current stroke, highlighting the matching theme/standard swatch. */
+	strokeColor?: string;
+	strokeColorRef?: PptxThemeColorRef;
 }
 
 export interface DrawingGroup {
@@ -83,19 +93,25 @@ export function createDrawingGroup(
 		onSelect: (run) => run(),
 	});
 
+	// W3-G2 follow-up: the deck's real "Theme Colors" grid sits above the flat
+	// standard swatches. A theme-swatch click commits BOTH the resolved hex and
+	// the ref (so the fill/outline keeps following the theme after a later
+	// theme change); a standard or recent swatch click always clears it.
 	const fill = makeSwatchPicker(doc, t, {
 		label: t('pptx.drawing.shapeFill'),
 		icon: 'square',
-		swatches: OFFICE_STANDARD_SWATCHES,
+		swatches: RIBBON_SHAPE_SWATCHES,
 		fallback: '#ffffff',
 		onSelect: (hex) => handlers.setShapeFill(hex),
+		onSelectTheme: (commit) => handlers.setShapeFill(commit.hex, commit.ref),
 	});
 	const outline = makeSwatchPicker(doc, t, {
 		label: t('pptx.drawing.shapeOutline'),
 		icon: 'pen',
-		swatches: OFFICE_STANDARD_SWATCHES,
+		swatches: RIBBON_SHAPE_SWATCHES,
 		fallback: '#000000',
 		onSelect: (hex) => handlers.setShapeStroke(hex),
+		onSelectTheme: (commit) => handlers.setShapeStroke(commit.hex, commit.ref),
 	});
 
 	// Shape Effects has no implementation in any binding yet; React ships it
@@ -112,7 +128,16 @@ export function createDrawingGroup(
 
 	return {
 		el,
-		update({ editable, hasSelection, recentColors }) {
+		update({
+			editable,
+			hasSelection,
+			recentColors,
+			themeColorMap,
+			fillColor,
+			fillColorRef,
+			strokeColor,
+			strokeColorRef,
+		}) {
 			shapes.setDisabled(!editable);
 			const canMut = editable && hasSelection;
 			arrange.setDisabled(!canMut);
@@ -120,6 +145,16 @@ export function createDrawingGroup(
 			outline.setDisabled(!canMut);
 			fill.setRecentColors(recentColors ?? []);
 			outline.setRecentColors(recentColors ?? []);
+			fill.setThemeColorMap(themeColorMap);
+			outline.setThemeColorMap(themeColorMap);
+			fill.setSelectedRef(fillColorRef);
+			outline.setSelectedRef(strokeColorRef);
+			if (fillColor !== undefined) {
+				fill.setValue(fillColor);
+			}
+			if (strokeColor !== undefined) {
+				outline.setValue(strokeColor);
+			}
 			effects.setDisabled(true);
 		},
 	};

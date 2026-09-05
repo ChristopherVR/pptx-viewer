@@ -3,6 +3,7 @@ import type { TextAdvancedChanges } from 'pptx-viewer-shared';
 import type { Translator } from '../../i18n';
 import { makeColorControl, makeNumberField } from '../controls';
 import { createRecentColorsRow } from '../recent-colors-row';
+import { createThemeColorSwatchGrid } from '../theme-color-swatch-grid';
 import { makeCheckboxField, makeSelectField } from './controls-extra';
 import { createTextEffectsControls } from './text-effects-controls';
 import type { InspectorHandlers, InspectorState } from './types';
@@ -40,15 +41,23 @@ export function createTextSection(
 		doc,
 		{
 			label: t('pptx.textPanel.color'),
-			onInput: (hex) => handlers.setTextStyle({ color: hex }),
+			onInput: (hex) => handlers.setTextStyle({ color: hex, colorRef: undefined }),
 			onCommit: handlers.pushRecentColor,
 		},
 		'#000000',
 	);
 	colorRow.append(colorLabel, color.el);
 	el.appendChild(colorRow);
+	// The deck's real "Theme Colors" grid: a theme-swatch click commits both
+	// the resolved hex and the ref (so the text colour keeps following the
+	// theme after a later theme change); the native input above and the
+	// recent-colours row below always clear it.
+	const colorTheme = createThemeColorSwatchGrid(doc, t, (commit) =>
+		handlers.setTextStyle({ color: commit.hex, colorRef: commit.ref }),
+	);
+	el.appendChild(colorTheme.el);
 	const colorRecent = createRecentColorsRow(doc, t, (hex) => {
-		handlers.setTextStyle({ color: hex });
+		handlers.setTextStyle({ color: hex, colorRef: undefined });
 		handlers.pushRecentColor(hex);
 	});
 	el.appendChild(colorRecent.el);
@@ -133,6 +142,9 @@ export function createTextSection(
 		update(state) {
 			el.hidden = !state.hasSelection || !state.canText;
 			color.setValue(state.textStyle?.color);
+			colorTheme.setThemeColorMap(state.themeColorMap);
+			colorTheme.setSelected(state.textStyle?.colorRef, state.textStyle?.color);
+			colorTheme.setDisabled(!state.canText);
 			colorRecent.setColors(state.recentColors ?? []);
 			colorRecent.setDisabled(!state.canText);
 			vAlign.setValue(state.vAlign);

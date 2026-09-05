@@ -47,10 +47,14 @@ export function buildSmartArtFallbackSvg(
 			}),
 		);
 	}
+	// `nodeIds` is index-aligned with `layout.nodes` (the revealed subset during a
+	// staged `p:bldDgm` build), while `a11yNodes` always covers the FULL diagram;
+	// so the label has to be looked up by node id, never by render position.
+	const labelsById = new Map(a11yNodes.map((node) => [node.id, node.label]));
 	for (const [index, node] of layout.nodes.entries()) {
-		svg.appendChild(
-			buildFallbackNode(doc, node, layout.shadowFilter, a11yNodes[index]?.label, nodeIds[index]),
-		);
+		const nodeId = nodeIds[index];
+		const label = nodeId ? labelsById.get(nodeId) : a11yNodes[index]?.label;
+		svg.appendChild(buildFallbackNode(doc, node, layout.shadowFilter, label, nodeId));
 	}
 	return svg;
 }

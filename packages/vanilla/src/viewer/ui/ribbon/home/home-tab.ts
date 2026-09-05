@@ -1,4 +1,5 @@
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
+import { hasShapeProperties } from 'pptx-viewer-core';
 
 import type { EditActions } from '../../../editor/editor-edit-ops';
 import { canFormatText, readTextFormatState } from '../../../editor/editor-format-mutations';
@@ -50,6 +51,8 @@ export interface HomeTabSyncState {
 	customFontFamilies?: readonly string[];
 	/** B6: the deck's `p:clrMru`, most-recent-first. */
 	recentColors?: readonly string[];
+	/** The deck's resolved theme colour map, feeding the font-colour "Theme Colors" grid. */
+	themeColorMap?: Record<string, string>;
 }
 
 export interface HomeTab {
@@ -174,10 +177,15 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 			embeddedFontFamilies,
 			customFontFamilies,
 			recentColors,
+			themeColorMap,
 		}) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
 			const hasSelection = selectedElement !== undefined;
+			const shapeStyle =
+				selectedElement && hasShapeProperties(selectedElement)
+					? selectedElement.shapeStyle
+					: undefined;
 			clipboard.update({ hasSelection, hasClipboard, editable, formatPainterActive });
 			slides.update({ editable, slideCount, layouts, layoutPreviews, currentLayoutPath });
 			font.update({
@@ -188,10 +196,20 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 				embeddedFontFamilies,
 				customFontFamilies,
 				recentColors,
+				themeColorMap,
 			});
 			paragraph.update({ canFormat, editable, text });
 			editing.update({ editable });
-			drawing.update({ editable, hasSelection, recentColors });
+			drawing.update({
+				editable,
+				hasSelection,
+				recentColors,
+				themeColorMap,
+				fillColor: shapeStyle?.fillColor,
+				fillColorRef: shapeStyle?.fillColorRef,
+				strokeColor: shapeStyle?.strokeColor,
+				strokeColorRef: shapeStyle?.strokeColorRef,
+			});
 			arrange.update({
 				editable,
 				hasSelection,

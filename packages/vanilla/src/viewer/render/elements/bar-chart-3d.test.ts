@@ -169,7 +169,10 @@ describe('renderChartElement - barChart3D opt-in', () => {
 		expect(container.querySelector('.pptxv-chart-placeholder')).toBeTruthy();
 	});
 
-	it('does not attempt a mount for a horizontal (barDir=bar) 3-D Bar chart', async () => {
+	// A horizontal 3-D Bar (`c:barDir="bar"`) used to fall back to the SVG chart;
+	// shared's `buildBarChart3DScene` now remaps the boxes into the horizontal
+	// frame, so it mounts the same WebGL scene as the vertical variant.
+	it('mounts the WebGL scene for a horizontal (barDir=bar) 3-D Bar chart', async () => {
 		const container = renderChartElement(
 			buildChartElement({ ...BAR3D_DATA, barDirection: 'bar' }),
 			0,
@@ -178,7 +181,7 @@ describe('renderChartElement - barChart3D opt-in', () => {
 
 		await flushMount();
 
-		expect(mountBarChart3D).not.toHaveBeenCalled();
-		expect(container.querySelector('svg')).toBeTruthy();
+		expect(mountBarChart3D).toHaveBeenCalledOnce();
+		expect(container.querySelector('svg')).toBeNull();
 	});
 });

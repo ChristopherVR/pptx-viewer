@@ -1,9 +1,28 @@
 /* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
    its own short arrange/act/assert consts. */
-import type { ChartPptxElement } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildInspectorState } from './inspector-state-builder';
+
+function shapeEl(overrides: Record<string, unknown> = {}): PptxElement {
+	return {
+		type: 'shape',
+		id: 's1',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 100,
+		shapeType: 'rect',
+		shapeStyle: {
+			fillColor: '#4472c4',
+			fillColorRef: { scheme: 'accent1' },
+			strokeColor: '#ed7d31',
+			strokeColorRef: { scheme: 'accent2' },
+		},
+		...overrides,
+	} as PptxElement;
+}
 
 /**
  * `chartHighlightCell`: the pure derivation of the on-canvas chart part
@@ -87,5 +106,29 @@ describe('buildInspectorState croppable/arrowheadsChangeable', () => {
 			locks: { noChangeArrowheads: true },
 		} as never;
 		expect(buildInspectorState(connector).arrowheadsChangeable).toBeFalsy();
+	});
+});
+
+describe('buildInspectorState theme colour refs + themeColorMap (W3-G2)', () => {
+	it('carries the fill/stroke theme refs through from shapeStyle', () => {
+		const state = buildInspectorState(shapeEl(), null, [], null, new Map(), null, []);
+		expect(state.fillColorRef).toStrictEqual({ scheme: 'accent1' });
+		expect(state.strokeColorRef).toStrictEqual({ scheme: 'accent2' });
+	});
+
+	it('is undefined for elements with no shape properties', () => {
+		const state = buildInspectorState(chartElement, null, [], null, new Map(), null, []);
+		expect(state.fillColorRef).toBeUndefined();
+		expect(state.strokeColorRef).toBeUndefined();
+	});
+
+	it('defaults themeColorMap to undefined and carries a passed map through', () => {
+		expect(
+			buildInspectorState(shapeEl(), null, [], null, new Map(), null, []).themeColorMap,
+		).toBeUndefined();
+		const map = { accent1: '#4472c4' };
+		expect(
+			buildInspectorState(shapeEl(), null, [], null, new Map(), null, [], map).themeColorMap,
+		).toBe(map);
 	});
 });

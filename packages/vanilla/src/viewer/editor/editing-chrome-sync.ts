@@ -2,6 +2,7 @@
    (many independent short-lived `const`s building each chrome update payload);
    merging them isn't a style choice here. */
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
+import { buildThemeColorMap } from 'pptx-viewer-core';
 import { canInteractWithElement } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
@@ -118,6 +119,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			embeddedFontFamilies: state.embeddedFonts.map((font) => font.name),
 			customFontFamilies: state.customFontFamilies,
 			recentColors: currentRecentColors(state),
+			themeColorMap: state.colorScheme ? buildThemeColorMap(state.colorScheme) : undefined,
 		});
 		ribbon?.setDrawState({
 			tool: state.drawTool,
@@ -135,6 +137,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 				state.mediaDataUrls,
 				state.chartPartSelection,
 				currentRecentColors(state),
+				state.colorScheme ? buildThemeColorMap(state.colorScheme) : undefined,
 			),
 		);
 		const activeSlide = state.slides[state.currentSlide];

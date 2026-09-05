@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import type { SmartArt3DModel } from 'pptx-viewer-shared';
 import {
 	buildSmartArt3DModel,
+	collectCoherent3DOffNodeIds,
 	computeSmartArtElementLayout,
 	resolvePalette,
 } from 'pptx-viewer-shared';
@@ -62,6 +63,7 @@ function buildModel(element: PptxElement): SmartArt3DModel | null {
 	return buildSmartArt3DModel(layout, {
 		background: data.chrome?.backgroundColor,
 		spatial: true,
+		coherent3DOffNodeIds: collectCoherent3DOffNodeIds(data.nodes),
 	});
 }
 

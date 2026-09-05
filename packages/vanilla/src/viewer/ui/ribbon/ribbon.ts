@@ -231,6 +231,7 @@ export function createRibbon(
 			embeddedFontFamilies: latestExtra.embeddedFontFamilies,
 			customFontFamilies: latestExtra.customFontFamilies,
 			recentColors: latestExtra.recentColors ?? [],
+			themeColorMap: latestExtra.themeColorMap,
 		});
 	};
 	const syncAnimations = (): void => {

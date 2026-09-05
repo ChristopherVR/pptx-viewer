@@ -353,6 +353,13 @@ export const RIBBON_CSS = `
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 }
+.pptxv-swatch-standard-label {
+	margin-bottom: 4px;
+	color: var(--pptx-muted-foreground);
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
 .pptxv-swatch-grid { display: grid; grid-template-columns: repeat(5, 20px); gap: 4px; margin-bottom: 6px; }
 .pptxv-swatch {
 	width: 20px;

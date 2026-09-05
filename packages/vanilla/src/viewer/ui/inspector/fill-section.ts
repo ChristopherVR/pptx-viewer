@@ -1,11 +1,16 @@
 import type { GradientState } from 'pptx-viewer-shared';
-import { defaultGradientState, PATTERN_PRESET_OPTIONS } from 'pptx-viewer-shared';
+import {
+	defaultGradientState,
+	gradientStopColorCommitPatch,
+	PATTERN_PRESET_OPTIONS,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import type { ColorControlHandle, NumberFieldHandle } from '../controls';
 import { makeButton, makeColorControl, makeNumberField } from '../controls';
 import { createRecentColorsRow } from '../recent-colors-row';
+import { createThemeColorSwatchGrid } from '../theme-color-swatch-grid';
 import { makeCheckboxField, makeRangeField, makeSelectField } from './controls-extra';
 import { createShapeEffectsControls } from './shape-effects-controls';
 import type { InspectorHandlers, InspectorState } from './types';
@@ -53,6 +58,19 @@ export function createFillSection(
 	lineLabel.textContent = t('pptx.inspector.line');
 	fillRow.append(fillLabel, fill.el, lineLabel, stroke.el);
 	el.appendChild(fillRow);
+
+	// W3-G2: the deck's real "Theme Colors" grid, above the recent-colours
+	// row. Clicking a theme swatch commits BOTH the resolved hex and the ref
+	// (so the fill/stroke keeps following the theme after a later theme
+	// change); every other commit path below clears the ref.
+	const fillTheme = createThemeColorSwatchGrid(doc, t, (commit) =>
+		handlers.setShapeFill(commit.hex, commit.ref),
+	);
+	el.appendChild(fillTheme.el);
+	const strokeTheme = createThemeColorSwatchGrid(doc, t, (commit) =>
+		handlers.setShapeStroke(commit.hex, commit.ref),
+	);
+	el.appendChild(strokeTheme.el);
 
 	// B6 (A1/A2): "Recent colours" rows under the fill and stroke pickers.
 	// Clicking a swatch commits through the SAME handler the picker's own
@@ -197,11 +215,22 @@ export function createFillSection(
 	let lastGradient: GradientState = defaultGradientState();
 	let stopRows: Array<{
 		color: ColorControlHandle;
+		theme: ReturnType<typeof createThemeColorSwatchGrid>;
 		position: NumberFieldHandle;
 		remove: ReturnType<typeof makeButton>;
 	}> = [];
 
-	const rebuildStopRows = (stops: GradientState['stops']): void => {
+	/**
+	 * Rebuilds every stop row from scratch on each `update()` (stop count can
+	 * change). Each stop gets its own "Theme Colors" grid under the native
+	 * colour input, same "swatch commits hex + ref, native input clears it"
+	 * contract as the fill/stroke pickers above.
+	 */
+	const rebuildStopRows = (
+		stops: GradientState['stops'],
+		themeColorMap: Record<string, string> | undefined,
+		canShape: boolean,
+	): void => {
 		stopsContainer.replaceChildren();
 		stopRows = stops.map((stop, index) => {
 			const row = createEl(doc, 'div', 'pptxv-inspector-row');
@@ -209,7 +238,7 @@ export function createFillSection(
 				doc,
 				{
 					label: t('pptx.gradient.stops'),
-					onInput: (hex) => handlers.updateGradientStop(index, { color: hex }),
+					onInput: (hex) => handlers.updateGradientStop(index, { color: hex, colorRef: undefined }),
 					onCommit: handlers.pushRecentColor,
 				},
 				stop.color,
@@ -229,7 +258,14 @@ export function createFillSection(
 			remove.setDisabled(stops.length <= 2);
 			row.append(color.el, position.el, remove.btn);
 			stopsContainer.appendChild(row);
-			return { color, position, remove };
+			const theme = createThemeColorSwatchGrid(doc, t, (commit) =>
+				handlers.updateGradientStop(index, gradientStopColorCommitPatch(commit)),
+			);
+			theme.setThemeColorMap(themeColorMap);
+			theme.setSelected(stop.colorRef, stop.color);
+			theme.setDisabled(!canShape);
+			stopsContainer.appendChild(theme.el);
+			return { color, theme, position, remove };
 		});
 	};
 
@@ -256,6 +292,12 @@ export function createFillSection(
 			strokeWidth.setValue(state.strokeWidth);
 			fillOpacity.setValue(state.fillOpacity);
 			strokeOpacity.setValue(state.strokeOpacity);
+			fillTheme.setThemeColorMap(state.themeColorMap);
+			fillTheme.setSelected(state.fillColorRef, state.fillColor);
+			fillTheme.setDisabled(!state.canShape);
+			strokeTheme.setThemeColorMap(state.themeColorMap);
+			strokeTheme.setSelected(state.strokeColorRef, state.strokeColor);
+			strokeTheme.setDisabled(!state.canShape);
 			fillRecent.setColors(state.recentColors ?? []);
 			strokeRecent.setColors(state.recentColors ?? []);
 			fillRecent.setDisabled(!state.canShape);
@@ -263,7 +305,7 @@ export function createFillSection(
 			gradientToggle.setValue(state.gradientEnabled);
 			angleField.setValue(state.gradient.angle);
 			lastGradient = state.gradient;
-			rebuildStopRows(state.gradient.stops);
+			rebuildStopRows(state.gradient.stops, state.themeColorMap, state.canShape);
 			gradientPanel.hidden = !state.gradientEnabled;
 			effects.update(state);
 

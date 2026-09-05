@@ -18,6 +18,7 @@ import type {
 	XmlObject,
 	PptxTagCollection,
 	TablePptxElement,
+	PptxThemeColorRef,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemeOption,
@@ -117,8 +118,14 @@ export interface InspectorHandlers {
 	setGeometry(patch: GeometryPatch): void;
 	/** Flip the selected element's lock (see elementLockTogglePatch). */
 	toggleElementLock(): void;
-	setShapeFill(color: string): void;
-	setShapeStroke(color: string): void;
+	/**
+	 * Set the shape fill colour. Pass `ref` for a theme-swatch pick (wins on
+	 * save, so the fill follows a later theme change); omit it to clear a
+	 * previously-stored ref for a plain/custom/recent pick.
+	 */
+	setShapeFill(color: string, ref?: PptxThemeColorRef): void;
+	/** Same `ref` contract as {@link setShapeFill}, for the stroke colour. */
+	setShapeStroke(color: string, ref?: PptxThemeColorRef): void;
 	setShapeStrokeWidth(width: number): void;
 	setShapeStyle(patch: Partial<ShapeStyle>): void;
 	setShapeType(shapeType: string): void;
@@ -240,7 +247,11 @@ export interface InspectorState {
 	height: number;
 	rotation: number;
 	fillColor: string | undefined;
+	/** Theme ref for `fillColor`, if any (highlights the matching theme swatch). */
+	fillColorRef: PptxThemeColorRef | undefined;
 	strokeColor: string | undefined;
+	/** Theme ref for `strokeColor`, if any (highlights the matching theme swatch). */
+	strokeColorRef: PptxThemeColorRef | undefined;
 	strokeWidth: number;
 	shapeStyle: ShapeStyle | undefined;
 	shapeType: string | undefined;
@@ -322,6 +333,12 @@ export interface InspectorState {
 	 * colours" row under the fill/stroke/text colour pickers.
 	 */
 	recentColors: readonly string[];
+	/**
+	 * The deck's resolved theme colour map (scheme key -> hex), feeding the
+	 * "Theme Colors" grid under the fill/stroke colour pickers. `undefined`
+	 * before a theme has loaded.
+	 */
+	themeColorMap: Record<string, string> | undefined;
 }
 
 /**

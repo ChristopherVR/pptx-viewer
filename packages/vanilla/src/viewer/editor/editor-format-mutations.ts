@@ -2,6 +2,7 @@ import type {
 	PptxElement,
 	PptxElementWithShapeStyle,
 	PptxElementWithText,
+	PptxThemeColorRef,
 	ShapeStyle,
 	TextSegment,
 	TextStyle,
@@ -59,6 +60,8 @@ export interface TextFormatState {
 	placeholderType: string | undefined;
 	/** Effective text colour (hex), or undefined when unset. */
 	color: string | undefined;
+	/** Theme ref for `color`, if any (highlights the matching theme swatch). */
+	colorRef: PptxThemeColorRef | undefined;
 	/** Effective highlight colour (hex), or undefined when unset. */
 	highlightColor: string | undefined;
 	/** Effective character spacing (1/100 pt), defaulting to 0 (normal). */
@@ -108,6 +111,7 @@ export function readTextFormatState(el: PptxElement | undefined): TextFormatStat
 		fontFamily: ts?.fontFamily ?? firstRun?.fontFamily,
 		placeholderType: (el as { placeholderType?: string } | undefined)?.placeholderType,
 		color: ts?.color ?? firstRun?.color,
+		colorRef: ts?.colorRef ?? firstRun?.colorRef,
 		highlightColor: ts?.highlightColor ?? firstRun?.highlightColor,
 		characterSpacing: ts?.characterSpacing ?? firstRun?.characterSpacing ?? 0,
 		listType: ts?.listType ?? firstRun?.listType,
@@ -147,9 +151,17 @@ export function adjustFontSize(el: PptxElement, delta: number): Partial<PptxElem
 	return setFontSize(el, readTextFormatState(el).fontSize + delta);
 }
 
-/** Set the text colour (hex) element-wide. */
-export function setTextColor(el: PptxElement, color: string): Partial<PptxElement> {
-	return patchTextStyle(el, { color });
+/**
+ * Set the text colour (hex) element-wide. Pass `ref` for a theme-swatch pick
+ * (wins on save, so the colour follows a later theme change); omit it to
+ * clear a previously-stored ref for a plain/custom/recent pick.
+ */
+export function setTextColor(
+	el: PptxElement,
+	color: string,
+	ref?: PptxThemeColorRef,
+): Partial<PptxElement> {
+	return patchTextStyle(el, { color, colorRef: ref });
 }
 
 /** Set the text highlight colour (hex) element-wide. */

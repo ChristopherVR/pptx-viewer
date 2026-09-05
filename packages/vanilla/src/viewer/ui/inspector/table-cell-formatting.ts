@@ -1,7 +1,14 @@
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
-import { schemaLabel } from 'pptx-viewer-shared';
+import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
+import {
+	schemaLabel,
+	tableCellFillColorCommitPatch,
+	tableCellTextColorCommitPatch,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import type { ThemeColorSwatchGridHandle } from '../theme-color-swatch-grid';
+import { createThemeColorSwatchGrid } from '../theme-color-swatch-grid';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -76,6 +83,32 @@ export function createTableCellFormatting(
 		field(label, input);
 		return input;
 	};
+	/**
+	 * A colour field with a theme ref: the native input's `input` event
+	 * explicitly clears the ref (a plain hex has no theme identity to keep),
+	 * and a "Theme Colors" grid underneath commits both the hex and the ref
+	 * (so the fill/text colour keeps following the theme after a later theme
+	 * change). No border-colour field gets one: `PptxTableCellStyle` has no
+	 * ref field for borders.
+	 */
+	const colorWithTheme = (
+		label: string,
+		key: 'color' | 'backgroundColor',
+		refKey: 'colorRef' | 'backgroundColorRef',
+		commitPatch: (commit: ThemeColorPickerCommit) => Partial<PptxTableCellStyle>,
+	): { input: HTMLInputElement; theme: ThemeColorSwatchGridHandle } => {
+		const input = doc.createElement('input');
+		input.type = 'color';
+		input.addEventListener('input', () =>
+			apply({ [key]: input.value, [refKey]: undefined } as Partial<PptxTableCellStyle>),
+		);
+		// B6: push into the "Recent colours" MRU list once the picker commits.
+		input.addEventListener('change', () => handlers.pushRecentColor(input.value));
+		field(label, input);
+		const theme = createThemeColorSwatchGrid(doc, t, (commit) => apply(commitPatch(commit)));
+		el.appendChild(theme.el);
+		return { input, theme };
+	};
 	const toggle = (label: string, key: 'bold' | 'italic' | 'underline'): HTMLInputElement => {
 		const input = doc.createElement('input');
 		input.type = 'checkbox';
@@ -102,8 +135,18 @@ export function createTableCellFormatting(
 	};
 
 	const fontSize = number(t('pptx.table.fontSize'), (value) => apply({ fontSize: value }));
-	const textColor = color(t('pptx.table.color'), 'color');
-	const background = color(t('pptx.table.background'), 'backgroundColor');
+	const { input: textColor, theme: textColorTheme } = colorWithTheme(
+		t('pptx.table.color'),
+		'color',
+		'colorRef',
+		tableCellTextColorCommitPatch,
+	);
+	const { input: background, theme: backgroundTheme } = colorWithTheme(
+		t('pptx.table.background'),
+		'backgroundColor',
+		'backgroundColorRef',
+		tableCellFillColorCommitPatch,
+	);
 	const borderColor = color(t('pptx.table.cellBorders'), 'borderColor');
 	const borderWidth = number(t('pptx.table.borderWidth'), (value) =>
 		apply({
@@ -163,6 +206,12 @@ export function createTableCellFormatting(
 			textColor.value = validColor(style.color, '#000000');
 			background.value = validColor(style.backgroundColor, '#ffffff');
 			borderColor.value = validColor(style.borderColor, '#374151');
+			textColorTheme.setThemeColorMap(state.themeColorMap);
+			textColorTheme.setSelected(style.colorRef, style.color);
+			textColorTheme.setDisabled(!state.isTable);
+			backgroundTheme.setThemeColorMap(state.themeColorMap);
+			backgroundTheme.setSelected(style.backgroundColorRef, style.backgroundColor);
+			backgroundTheme.setDisabled(!state.isTable);
 			borderWidth.value = String(style.borderTopWidth ?? 1);
 			margin.value = String(style.marginLeft ?? 4);
 			bold.checked = Boolean(style.bold);
