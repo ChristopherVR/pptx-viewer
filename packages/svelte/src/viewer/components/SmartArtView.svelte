@@ -36,11 +36,7 @@
 	const t = useTranslator();
 
 	const smartArt = $derived(element.type === 'smartArt' ? element : undefined);
-	/** Staged diagram-build descriptor, when an active native animation reveals one. */
-	const diagramBuild = $derived(
-		animationState?.build?.kind === 'diagram' ? animationState.build : undefined,
-	);
-	const view = $derived(smartArt ? buildSmartArtView(smartArt, diagramBuild) : undefined);
+	const view = $derived(smartArt ? buildSmartArtView(smartArt, animationState) : undefined);
 	const chromeStyle = $derived(smartArt ? smartArtChromeStyle(smartArt) : '');
 	const ariaLabel = $derived(smartArt ? smartArtAriaLabel(smartArt) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));

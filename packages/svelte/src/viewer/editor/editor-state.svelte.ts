@@ -21,6 +21,7 @@ import type {
 	PptxTagCollection,
 	TextSegment,
 } from 'pptx-viewer-core';
+import { buildThemeColorMap } from 'pptx-viewer-core';
 import type {
 	DeckSaveIntent,
 	ElementBoxPatch,
@@ -238,6 +239,15 @@ export class EditorState {
 	/** The colour picker's "Recent colours" row (`p:clrMru`), most-recent-first. */
 	get mruColors(): string[] {
 		return this.presentationProperties.mruColors ?? [];
+	}
+
+	/**
+	 * The deck's resolved theme colour map (scheme key -> hex), for every
+	 * colour picker's "Theme Colors" grid (`buildThemeColorSwatchGrid`).
+	 * `undefined` before a theme has loaded.
+	 */
+	get themeColorMap(): Record<string, string> | undefined {
+		return this.theme?.colorScheme ? buildThemeColorMap(this.theme.colorScheme) : undefined;
 	}
 
 	/**

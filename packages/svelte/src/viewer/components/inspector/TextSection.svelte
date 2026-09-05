@@ -10,7 +10,7 @@
 	 * and `'normal'` is OOXML `normAutofit` (shrink the TEXT on overflow). The
 	 * option labels below are worded by what they DO, not by the enum name.
 	 */
-	import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+	import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 	import {
 		autoFitModeOf,
 		autoFitModePatch,
@@ -20,12 +20,14 @@
 		textWrapPatch,
 		vAlignPatch,
 	} from 'pptx-viewer-shared';
+	import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import { setTextColorPatch } from '../../editor';
 	import RecentColorsRow from './RecentColorsRow.svelte';
 	import TextEffectsSection from './TextEffectsSection.svelte';
+	import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.svelte';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
 	const t = useTranslator();
@@ -34,6 +36,7 @@
 	const wrap = $derived(textWrapOf(el));
 	const autoFit = $derived(autoFitModeOf(el));
 	const textColor = $derived(textColorOf(el));
+	const textColorRef = $derived('textStyle' in el ? el.textStyle?.colorRef : undefined);
 	const textStyle = $derived('textStyle' in el ? (el.textStyle ?? {}) : {});
 
 	function setVAlign(value: string): void {
@@ -45,9 +48,13 @@
 	function setAutoFit(value: string): void {
 		editor.patchSelected(autoFitModePatch(el, value as NonNullable<TextStyle['autoFitMode']>));
 	}
-	function commitTextColor(hex: string): void {
-		editor.patchSelected(setTextColorPatch(el, hex));
+	/** Native colour input: always clears `colorRef` (theme-grid pick keeps it). */
+	function commitTextColor(hex: string, ref?: PptxThemeColorRef): void {
+		editor.patchSelected(setTextColorPatch(el, hex, ref));
 		editor.recordRecentColor(hex);
+	}
+	function commitTextColorTheme(commit: ThemeColorPickerCommit): void {
+		commitTextColor(commit.hex, commit.ref);
 	}
 	function patchText(next: Partial<TextStyle>): void {
 		editor.patchSelected({ textStyle: { ...textStyle, ...next } } as Partial<PptxElement>);
@@ -72,6 +79,12 @@
 		onchange={(e) => commitTextColor(e.currentTarget.value)}
 	/>
 </label>
+<ThemeColorSwatchGrid
+	themeColorMap={editor.themeColorMap}
+	selectedRef={textColorRef}
+	selectedHex={textColor}
+	onpick={commitTextColorTheme}
+/>
 <RecentColorsRow colors={editor.mruColors} onselect={commitTextColor} />
 
 <label class="pptx-svelte-field-checkbox">

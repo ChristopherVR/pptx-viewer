@@ -1,9 +1,19 @@
 <script lang="ts">
 	import type { PptxTableCellStyle, PptxTableData } from 'pptx-viewer-core';
-	import { computeMergeCellDown, computeMergeCellRight, computeSplitCell, FILL_PATTERN_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
+	import {
+		computeMergeCellDown,
+		computeMergeCellRight,
+		computeSplitCell,
+		FILL_PATTERN_LABEL_KEYS,
+		schemaLabel,
+		tableCellFillColorCommitPatch,
+		tableCellTextColorCommitPatch,
+	} from 'pptx-viewer-shared';
+	import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.svelte';
 
 	const {
 		editor,
@@ -51,6 +61,14 @@
 		patchStyle(next);
 		editor.recordRecentColor(color);
 	}
+	/** Theme swatch pick for the cell text colour: commits hex + ref together. */
+	function pickTextTheme(commit: ThemeColorPickerCommit): void {
+		patchColor(tableCellTextColorCommitPatch(commit), commit.hex);
+	}
+	/** Theme swatch pick for the cell fill colour: commits hex + ref, forces solid fill. */
+	function pickFillTheme(commit: ThemeColorPickerCommit): void {
+		patchColor({ ...tableCellFillColorCommitPatch(commit), fillMode: 'solid' }, commit.hex);
+	}
 
 	function merge(direction: 'right' | 'down' | 'split'): void {
 		const rows = direction === 'right' ? computeMergeCellRight(table, rowIndex, columnIndex) : direction === 'down' ? computeMergeCellDown(table, rowIndex, columnIndex) : computeSplitCell(table, rowIndex, columnIndex);
@@ -72,7 +90,7 @@
 
 <details open><summary>Cell formatting</summary>
 	<div class="picker"><label>Row<select aria-label="Row" bind:value={rowIndex}>{#each table.rows as _, index}<option value={index}>{index + 1}</option>{/each}</select></label><label>Column<select aria-label="Column" bind:value={columnIndex}>{#each table.columnWidths as _, index}<option value={index}>{index + 1}</option>{/each}</select></label></div>
-	{#if cell}<div class="grid"><label>Font size<input type="number" min="6" max="200" value={style.fontSize ?? 14} onchange={(event) => patchStyle({ fontSize: Number(event.currentTarget.value) })} /></label><label>Text color<input type="color" value={style.color ?? '#000000'} onchange={(event) => patchColor({ color: event.currentTarget.value }, event.currentTarget.value)} /></label><label>Background<input type="color" value={style.backgroundColor ?? '#ffffff'} onchange={(event) => patchColor({ backgroundColor: event.currentTarget.value, fillMode: 'solid' }, event.currentTarget.value)} /></label><label>Fill<select aria-label="Fill" value={style.fillMode ?? 'solid'} onchange={(event) => setFillMode(event.currentTarget.value as PptxTableCellStyle['fillMode'])}><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="pattern">Pattern</option><option value="none">None</option></select></label></div>
+	{#if cell}<div class="grid"><label>Font size<input type="number" min="6" max="200" value={style.fontSize ?? 14} onchange={(event) => patchStyle({ fontSize: Number(event.currentTarget.value) })} /></label><div class="colorField"><label>Text color<input type="color" value={style.color ?? '#000000'} onchange={(event) => patchColor({ color: event.currentTarget.value, colorRef: undefined }, event.currentTarget.value)} /></label><ThemeColorSwatchGrid themeColorMap={editor.themeColorMap} selectedRef={style.colorRef} selectedHex={style.color ?? '#000000'} onpick={pickTextTheme} /></div><div class="colorField"><label>Background<input type="color" value={style.backgroundColor ?? '#ffffff'} onchange={(event) => patchColor({ backgroundColor: event.currentTarget.value, backgroundColorRef: undefined, fillMode: 'solid' }, event.currentTarget.value)} /></label><ThemeColorSwatchGrid themeColorMap={editor.themeColorMap} selectedRef={style.backgroundColorRef} selectedHex={style.backgroundColor ?? '#ffffff'} onpick={pickFillTheme} /></div><label>Fill<select aria-label="Fill" value={style.fillMode ?? 'solid'} onchange={(event) => setFillMode(event.currentTarget.value as PptxTableCellStyle['fillMode'])}><option value="solid">Solid</option><option value="gradient">Gradient</option><option value="pattern">Pattern</option><option value="none">None</option></select></label></div>
 	<div class="buttons">{#each [['bold','B'],['italic','I'],['underline','U']] as option}<button class:active={Boolean(style[option[0] as keyof PptxTableCellStyle])} onclick={() => patchStyle({ [option[0]]: !style[option[0] as keyof PptxTableCellStyle] })}>{option[1]}</button>{/each}</div>
 	<div class="grid"><label>Horizontal<select aria-label="Horizontal" value={style.align ?? 'left'} onchange={(event) => patchStyle({ align: event.currentTarget.value as PptxTableCellStyle['align'] })}>{#each aligns as align}<option value={align}>{schemaLabel(alignKeys, align, t)}</option>{/each}</select></label><label>Vertical<select aria-label="Vertical" value={style.vAlign ?? 'top'} onchange={(event) => patchStyle({ vAlign: event.currentTarget.value as PptxTableCellStyle['vAlign'] })}>{#each vAligns as vAlign}<option value={vAlign}>{schemaLabel(vAlignKeys, vAlign, t)}</option>{/each}</select></label></div>
 	{#if style.fillMode === 'gradient'}<div class="grid"><label>Type<select aria-label="Type" value={style.gradientFillType ?? 'linear'} onchange={(event) => patchStyle({ gradientFillType: event.currentTarget.value as 'linear' | 'radial' })}><option>linear</option><option>radial</option></select></label><label>Angle<input type="number" min="0" max="360" value={style.gradientFillAngle ?? 90} onchange={(event) => patchStyle({ gradientFillAngle: Number(event.currentTarget.value) })} /></label>{#each style.gradientFillStops ?? [] as stop, index}<label>Stop {index + 1}<input type="color" value={stop.color} onchange={(event) => patchColor({ gradientFillStops: (style.gradientFillStops ?? []).map((item,i)=>i===index?{...item,color:event.currentTarget.value}:item) }, event.currentTarget.value)} /></label>{/each}</div>{/if}
@@ -82,4 +100,4 @@
 	<div class="merge"><button onclick={() => merge('right')}>Merge right</button><button onclick={() => merge('down')}>Merge down</button><button onclick={() => merge('split')}>Split</button></div>{/if}
 </details>
 
-<style>details{margin-top:10px;border-top:1px solid var(--pptx-border);padding-top:8px}summary{cursor:pointer;font-weight:600}.picker,.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.buttons,.merge{display:flex;gap:5px;margin-top:7px}label{display:grid;gap:3px;margin-top:6px;color:var(--pptx-muted-foreground);font-size:10px}input,select{min-width:0;height:25px;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-background);color:inherit}button{border:1px solid var(--pptx-border);border-radius:5px;padding:4px 7px;background:var(--pptx-muted);color:inherit}.active{background:var(--pptx-primary);color:#fff}h6{margin:8px 0 0}</style>
+<style>details{margin-top:10px;border-top:1px solid var(--pptx-border);padding-top:8px}summary{cursor:pointer;font-weight:600}.picker,.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.buttons,.merge{display:flex;gap:5px;margin-top:7px}label{display:grid;gap:3px;margin-top:6px;color:var(--pptx-muted-foreground);font-size:10px}input,select{min-width:0;height:25px;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-background);color:inherit}button{border:1px solid var(--pptx-border);border-radius:5px;padding:4px 7px;background:var(--pptx-muted);color:inherit}.active{background:var(--pptx-primary);color:#fff}h6{margin:8px 0 0}.colorField{display:flex;flex-direction:column;gap:2px}</style>

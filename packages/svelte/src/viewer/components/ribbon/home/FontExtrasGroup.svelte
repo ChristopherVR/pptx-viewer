@@ -82,6 +82,9 @@
 		el && hasTextProperties(el) ? Boolean(el.textStyle?.strikethrough) : false,
 	);
 	const textColor = $derived(el ? textColorOf(el) : '#000000');
+	const textColorRef = $derived(
+		el && hasTextProperties(el) ? el.textStyle?.colorRef : undefined,
+	);
 	const highlight = $derived(el ? highlightColorOf(el) || '#ffff00' : '#ffff00');
 
 	function apply(patch: Partial<PptxElement>): void {
@@ -208,11 +211,19 @@
 		title={t('pptx.textProperties.textColor')}
 		glyph="A"
 		recentColors={editor.mruColors}
+		themeColorMap={editor.themeColorMap}
+		currentRef={textColorRef}
 		onselect={(hex) => {
 			if (el) {
 				apply(setTextColorPatch(el, hex));
 			}
 			editor.recordRecentColor(hex);
+		}}
+		onselectTheme={(commit) => {
+			if (el) {
+				apply(setTextColorPatch(el, commit.hex, commit.ref));
+			}
+			editor.recordRecentColor(commit.hex);
 		}}
 	/>
 	<SwatchColorPicker

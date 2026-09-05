@@ -132,3 +132,29 @@ describe('shape format patches', () => {
 		});
 	});
 });
+
+describe('theme colour refs (W3-G2)', () => {
+	it('a theme-swatch pick commits BOTH the hex and the ref for fill, stroke, and text', () => {
+		const ref = { scheme: 'accent1' as const };
+		expect(setSolidFillPatch(shapeEl(), '#4472c4', ref).shapeStyle).toMatchObject({
+			fillColor: '#4472c4',
+			fillColorRef: ref,
+		});
+		expect(setStrokeColorPatch(shapeEl(), '#4472c4', ref).shapeStyle).toMatchObject({
+			strokeColor: '#4472c4',
+			strokeColorRef: ref,
+		});
+		expect(setTextColorPatch(textEl(), '#4472c4', ref).textStyle).toMatchObject({
+			color: '#4472c4',
+			colorRef: ref,
+		});
+	});
+
+	it('a plain hex commit (no ref argument) explicitly clears a previously-stored ref', () => {
+		const withRef = shapeEl({
+			shapeStyle: { fillColor: '#4472c4', fillColorRef: { scheme: 'accent1' } },
+		});
+		const patch = setSolidFillPatch(withRef, '#ff0000');
+		expect(patch.shapeStyle).toMatchObject({ fillColor: '#ff0000', fillColorRef: undefined });
+	});
+});

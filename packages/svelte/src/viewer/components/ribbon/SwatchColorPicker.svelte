@@ -7,8 +7,12 @@
 	 * `pptx-viewer-shared` (same gap noted by the vanilla binding), so this
 	 * uses a standard Office theme-color set local to the component.
 	 */
+	import type { PptxThemeColorRef } from 'pptx-viewer-core';
+	import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../i18n/context';
 	import RecentColorsRow from '../inspector/RecentColorsRow.svelte';
+	import ThemeColorSwatchGrid from '../inspector/ThemeColorSwatchGrid.svelte';
 	import { anchoredPopup } from './anchored-popup';
 
 	const {
@@ -20,6 +24,9 @@
 		glyph,
 		swatches,
 		recentColors,
+		themeColorMap,
+		currentRef,
+		onselectTheme,
 	}: {
 		value: string;
 		onselect: (hex: string) => void;
@@ -37,6 +44,16 @@
 		 * need to PUSH into the MRU list without showing a row of their own.
 		 */
 		recentColors?: readonly string[];
+		/**
+		 * When provided (alongside `onselectTheme`), renders the deck's real
+		 * "Theme Colors" grid above the standard swatches (font colour only:
+		 * highlight colour has no theme-ref concept on the model).
+		 */
+		themeColorMap?: Record<string, string>;
+		/** The element's current theme ref, if any (only meaningful with `themeColorMap`). */
+		currentRef?: PptxThemeColorRef;
+		/** Fired ONLY by a theme-swatch click, carrying both the hex and the ref. */
+		onselectTheme?: (commit: ThemeColorPickerCommit) => void;
 	} = $props();
 
 	const t = useTranslator();
@@ -89,6 +106,20 @@
 	</button>
 	{#if open}
 		<div class="pptx-svelte-swatch-menu" role="menu" use:anchoredPopup={{ anchor: triggerEl }}>
+			{#if themeColorMap && onselectTheme}
+				<ThemeColorSwatchGrid
+					{themeColorMap}
+					selectedRef={currentRef}
+					selectedHex={value}
+					onpick={(commit) => {
+						open = false;
+						onselectTheme(commit);
+					}}
+				/>
+				<div class="pptx-svelte-swatch-standard-heading">
+					{t('pptx.colorPicker.standardColors')}
+				</div>
+			{/if}
 			<div class="pptx-svelte-swatch-grid">
 				{#each palette as hex (hex)}
 					<button
@@ -172,6 +203,11 @@
 		color: var(--pptx-popover-foreground, #f3f4f6);
 		padding: 8px;
 		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.35);
+	}
+
+	.pptx-svelte-swatch-standard-heading {
+		font-size: 10px;
+		color: var(--pptx-muted-foreground, #94a3b8);
 	}
 
 	.pptx-svelte-swatch-grid {

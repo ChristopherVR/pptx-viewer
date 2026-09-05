@@ -1,6 +1,6 @@
 import type { PptxSmartArtNode, SmartArtPptxElement, SmartArtStyle } from 'pptx-viewer-core';
 import type {
-	DiagramBuildState,
+	ElementAnimationState,
 	RenderedNode,
 	RenderedShape,
 	SmartArtLayoutResult,
@@ -14,9 +14,10 @@ import {
 	computeSmartArtElementLayout,
 	flattenNodes,
 	projectDrawingShapes,
-	resolveDrawingShapeNodeId,
+	resolveRevealedDrawingShapeNodeIds,
 	resolvePalette,
-	revealedSmartArtNodeCount,
+	resolveRevealedDrawingShapes,
+	resolveRevealedSmartArtNodes,
 	styleShadowFilter,
 } from 'pptx-viewer-shared';
 
@@ -63,39 +64,32 @@ export function smartArtAriaLabel(element: SmartArtPptxElement): string | undefi
 }
 
 /**
- * Number of leading drawing shapes to reveal for a partial diagram build, kept
- * proportional to the revealed node prefix so the shapes appear in step with the
- * nodes. Mirrors the Vue `SmartArtRenderer` reveal slice.
- */
-function revealedShapeCount(shownNodes: number, totalNodes: number, totalShapes: number): number {
-	return Math.ceil((shownNodes / Math.max(totalNodes, 1)) * totalShapes);
-}
-
-/**
  * Pick the rendering path: pre-computed drawing shapes (preferred), the
  * shared layout engine over the node tree, or an empty placeholder.
  *
- * `build` is the active staged diagram build (`p:bldDgm`) during a running
- * presentation, if any: only the leading nodes / drawing shapes for the current
- * progress are revealed. The view box is still computed from the FULL shape set
- * so the diagram does not rescale as it builds (mirrors React / Vue).
+ * `animationState` is the active native-animation playback state, if any: when
+ * it carries a staged diagram build, only the leading nodes / drawing shapes
+ * for the current progress are revealed, preferring the AUTHORED per-node
+ * `p:graphicEl/@id` reveal set (`animationState.diagramReveal`) over the
+ * click-count estimate when available. The view box is still computed from the
+ * FULL shape set so the diagram does not rescale as it builds (mirrors
+ * React / Vue / Angular).
  */
 export function buildSmartArtView(
 	element: SmartArtPptxElement,
-	build?: DiagramBuildState,
+	animationState?: Pick<ElementAnimationState, 'build' | 'diagramReveal'>,
 ): SmartArtView {
 	const data = element.smartArtData;
 	const nodes: PptxSmartArtNode[] = data?.nodes ?? [];
 	const allDrawingShapes = data?.drawingShapes ?? [];
-	const shownNodeCount = build ? revealedSmartArtNodeCount(nodes, build) : nodes.length;
-	const isPartialBuild = build !== undefined && shownNodeCount < nodes.length;
-	const revealedNodes = isPartialBuild ? nodes.slice(0, shownNodeCount) : nodes;
+	const { nodes: revealedNodes } = resolveRevealedSmartArtNodes(
+		nodes,
+		animationState,
+		data?.presLayoutVars,
+	);
 	const drawingShapes =
-		isPartialBuild && allDrawingShapes.length > 0
-			? allDrawingShapes.slice(
-					0,
-					revealedShapeCount(shownNodeCount, nodes.length, allDrawingShapes.length),
-				)
+		allDrawingShapes.length > 0
+			? resolveRevealedDrawingShapes(allDrawingShapes, nodes, animationState)
 			: allDrawingShapes;
 
 	if (data && allDrawingShapes.length > 0) {
@@ -103,6 +97,10 @@ export function buildSmartArtView(
 		// View box from the FULL shape set so the diagram keeps its size while building.
 		const viewBox = computeDrawingViewBox(allDrawingShapes);
 		const labels = labelMap(buildSmartArtA11y(data).nodes);
+		// Node ids resolve over the FULL shape list, then align with the revealed
+		// subset by identity: a positional lookup over the subset mis-tags a
+		// partial build.
+		const nodeIds = resolveRevealedDrawingShapeNodeIds(allDrawingShapes, drawingShapes, nodes);
 		const shapes = projectDrawingShapes(
 			element.id,
 			drawingShapes,
@@ -114,12 +112,7 @@ export function buildSmartArtView(
 			kind: 'drawing',
 			viewBox: `0 0 ${viewBox.width} ${viewBox.height}`,
 			shapes: shapes.map((shape, index) => {
-				const nodeId = resolveDrawingShapeNodeId(
-					drawingShapes[index]!,
-					index,
-					drawingShapes,
-					nodes,
-				);
+				const nodeId = nodeIds[index];
 				return { ...shape, nodeId, ariaLabel: nodeId ? labels.get(nodeId) : undefined };
 			}),
 			shadow: styleShadowFilter(style),

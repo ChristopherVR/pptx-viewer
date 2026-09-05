@@ -146,6 +146,38 @@ describe('fillStrokeSection', () => {
 		expect(el.shapeStyle?.fillColor).toBe('#123456');
 	});
 
+	it('clicking a theme colour swatch commits both the hex and the ref (W3-G2)', () => {
+		const editor = makeEditor(shapeEl());
+		editor.theme = {
+			colorScheme: {
+				dk1: '#000000',
+				lt1: '#ffffff',
+				dk2: '#44546a',
+				lt2: '#e7e6e6',
+				accent1: '#4472c4',
+				accent2: '#ed7d31',
+				accent3: '#a5a5a5',
+				accent4: '#ffc000',
+				accent5: '#5b9bd5',
+				accent6: '#70ad47',
+				hlink: '#0563c1',
+				folHlink: '#954f72',
+			},
+		};
+		const { target } = mountSection(editor, currentEl(editor));
+
+		const fillSwatch = target.querySelector<HTMLButtonElement>('button[title="Accent 2"]');
+		expect(fillSwatch).not.toBeNull();
+		fillSwatch?.click();
+		flushSync();
+
+		const el = currentEl(editor) as {
+			shapeStyle?: { fillColor?: string; fillColorRef?: { scheme: string } };
+		};
+		expect(el.shapeStyle?.fillColor).toBe('#ed7d31');
+		expect(el.shapeStyle?.fillColorRef).toStrictEqual({ scheme: 'accent2' });
+	});
+
 	it('sets fill/stroke opacity via the sliders', () => {
 		const editor = makeEditor(shapeEl());
 		const { target, setProps } = mountSection(editor, currentEl(editor));

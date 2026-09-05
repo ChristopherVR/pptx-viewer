@@ -12,13 +12,15 @@
 		addGradientStopPatch,
 		gradientStateOf,
 		gradientStatePatch,
+		gradientStopColorCommitPatch,
 		removeGradientStopPatch,
 		updateGradientStopPatch,
 	} from 'pptx-viewer-shared';
-	import type { GradientState } from 'pptx-viewer-shared';
+	import type { GradientState, ThemeColorPickerCommit } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.svelte';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
 	const t = useTranslator();
@@ -40,9 +42,19 @@
 		const prevPos = stops[stops.length - 2]?.position ?? 0;
 		editor.patchSelected(addGradientStopPatch(el, '#ffffff', Math.round((lastPos + prevPos) / 2)));
 	}
+	/**
+	 * Native colour input: always clears `colorRef`, since a plain hex has no
+	 * theme identity for PowerPoint to reapply (React/Vue `GradientStopRow`
+	 * parity).
+	 */
 	function updateStopColor(index: number, color: string): void {
-		editor.patchSelected(updateGradientStopPatch(el, index, { color }));
+		editor.patchSelected(updateGradientStopPatch(el, index, { color, colorRef: undefined }));
 		editor.recordRecentColor(color);
+	}
+	/** Theme swatch pick: commits both the resolved hex and its theme ref. */
+	function updateStopTheme(index: number, commit: ThemeColorPickerCommit): void {
+		editor.patchSelected(updateGradientStopPatch(el, index, gradientStopColorCommitPatch(commit)));
+		editor.recordRecentColor(commit.hex);
 	}
 	function updateStopPosition(index: number, value: string): void {
 		const position = Number(value);
@@ -90,31 +102,39 @@
 
 	<div class="pptx-svelte-gradient-stops">
 		{#each gradient.stops as stop, index (index)}
-			<div class="pptx-svelte-gradient-stop">
-				<input
-					type="color"
-					aria-label={t('pptx.gradient.stops')}
-					value={stop.color}
-					onchange={(e) => updateStopColor(index, e.currentTarget.value)}
+			<div class="pptx-svelte-gradient-stop-group">
+				<div class="pptx-svelte-gradient-stop">
+					<input
+						type="color"
+						aria-label={t('pptx.gradient.stops')}
+						value={stop.color}
+						onchange={(e) => updateStopColor(index, e.currentTarget.value)}
+					/>
+					<input
+						type="number"
+						min="0"
+						max="100"
+						aria-label={t('pptx.gradient.position')}
+						value={stop.position}
+						onchange={(e) => updateStopPosition(index, e.currentTarget.value)}
+					/>
+					<button
+						type="button"
+						class="pptx-svelte-gradient-remove"
+						disabled={gradient.stops.length <= 2}
+						aria-label={t('pptx.gradient.removeStop')}
+						title={t('pptx.gradient.removeStop')}
+						onclick={() => removeStop(index)}
+					>
+						&#10005;
+					</button>
+				</div>
+				<ThemeColorSwatchGrid
+					themeColorMap={editor.themeColorMap}
+					selectedRef={stop.colorRef}
+					selectedHex={stop.color}
+					onpick={(commit) => updateStopTheme(index, commit)}
 				/>
-				<input
-					type="number"
-					min="0"
-					max="100"
-					aria-label={t('pptx.gradient.position')}
-					value={stop.position}
-					onchange={(e) => updateStopPosition(index, e.currentTarget.value)}
-				/>
-				<button
-					type="button"
-					class="pptx-svelte-gradient-remove"
-					disabled={gradient.stops.length <= 2}
-					aria-label={t('pptx.gradient.removeStop')}
-					title={t('pptx.gradient.removeStop')}
-					onclick={() => removeStop(index)}
-				>
-					&#10005;
-				</button>
 			</div>
 		{/each}
 	</div>
@@ -180,7 +200,13 @@
 	.pptx-svelte-gradient-stops {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 10px;
+	}
+
+	.pptx-svelte-gradient-stop-group {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 	}
 
 	.pptx-svelte-gradient-stop {

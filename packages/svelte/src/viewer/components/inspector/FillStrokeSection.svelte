@@ -13,6 +13,7 @@
 	 */
 	import type { PptxElement } from 'pptx-viewer-core';
 	import { hasShapeProperties } from 'pptx-viewer-core';
+	import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 	import {
 		fillColorOf,
 		gradientStateOf,
@@ -34,6 +35,7 @@
 	import GradientPanel from './GradientPanel.svelte';
 	import PatternFillPanel from './PatternFillPanel.svelte';
 	import RecentColorsRow from './RecentColorsRow.svelte';
+	import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.svelte';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
 	const t = useTranslator();
@@ -60,14 +62,29 @@
 	}
 
 	function commitFill(hex: string): void {
-		editor.patchSelected(setSolidFillPatch(el, hex));
+		editor.patchSelected(setSolidFillPatch(el, hex, undefined));
 		editor.recordRecentColor(hex);
 	}
 
+	function commitFillTheme(commit: ThemeColorPickerCommit): void {
+		editor.patchSelected(setSolidFillPatch(el, commit.hex, commit.ref));
+		editor.recordRecentColor(commit.hex);
+	}
+
 	function commitStroke(hex: string): void {
-		editor.patchSelected(setStrokeColorPatch(el, hex));
+		editor.patchSelected(setStrokeColorPatch(el, hex, undefined));
 		editor.recordRecentColor(hex);
 	}
+
+	function commitStrokeTheme(commit: ThemeColorPickerCommit): void {
+		editor.patchSelected(setStrokeColorPatch(el, commit.hex, commit.ref));
+		editor.recordRecentColor(commit.hex);
+	}
+
+	const fillColorRef = $derived(hasShapeProperties(el) ? el.shapeStyle?.fillColorRef : undefined);
+	const strokeColorRef = $derived(
+		hasShapeProperties(el) ? el.shapeStyle?.strokeColorRef : undefined,
+	);
 
 	function togglePattern(checked: boolean): void {
 		if (checked) {
@@ -95,6 +112,12 @@
 			value={/^#/.test(fill) ? fill : '#ffffff'}
 			onchange={(e) => commitFill(e.currentTarget.value)}
 		/>
+		<ThemeColorSwatchGrid
+			themeColorMap={editor.themeColorMap}
+			selectedRef={fillColorRef}
+			selectedHex={fill}
+			onpick={commitFillTheme}
+		/>
 		<RecentColorsRow colors={editor.mruColors} onselect={commitFill} />
 	</label>
 	<label class="pptx-svelte-inspector-color">
@@ -103,6 +126,12 @@
 			type="color"
 			value={/^#/.test(stroke) ? stroke : '#000000'}
 			onchange={(e) => commitStroke(e.currentTarget.value)}
+		/>
+		<ThemeColorSwatchGrid
+			themeColorMap={editor.themeColorMap}
+			selectedRef={strokeColorRef}
+			selectedHex={stroke}
+			onpick={commitStrokeTheme}
 		/>
 		<RecentColorsRow colors={editor.mruColors} onselect={commitStroke} />
 	</label>

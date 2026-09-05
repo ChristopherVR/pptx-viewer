@@ -1,4 +1,4 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxThemeColorRef } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	fontSizeOf,
@@ -55,9 +55,17 @@ export function adjustFontSizePatch(el: PptxElement, delta: number): Partial<Ppt
 	return setFontSizePatch(el, fontSizeOf(el) + delta);
 }
 
-/** Set the text (foreground) colour. */
-export function setTextColorPatch(el: PptxElement, color: string): Partial<PptxElement> {
-	return textStylePatch(el, { color });
+/**
+ * Set the text (foreground) colour. Pass `ref` for a theme-swatch pick (wins
+ * on save, so the colour follows a later theme change); omit it to clear a
+ * previously-stored ref for a plain/custom/recent pick.
+ */
+export function setTextColorPatch(
+	el: PptxElement,
+	color: string,
+	ref?: PptxThemeColorRef,
+): Partial<PptxElement> {
+	return textStylePatch(el, { color, colorRef: ref });
 }
 
 /** Read the text highlight colour (empty string when unset). */
@@ -83,13 +91,21 @@ export function setFillColorPatch(el: PptxElement, color: string): Partial<PptxE
  * when both are present); the patch itself comes from the shared
  * `shapeFillChange` decision function (React/Vue/Angular/vanilla parity).
  */
-export function setSolidFillPatch(el: PptxElement, color: string): Partial<PptxElement> {
-	return shapeStylePatch(el, shapeFillChange(color));
+export function setSolidFillPatch(
+	el: PptxElement,
+	color: string,
+	ref?: PptxThemeColorRef,
+): Partial<PptxElement> {
+	return shapeStylePatch(el, shapeFillChange(color, ref));
 }
 
-/** Set the shape stroke (outline) colour, via the shared decision function. */
-export function setStrokeColorPatch(el: PptxElement, color: string): Partial<PptxElement> {
-	return shapeStylePatch(el, shapeOutlineChange(color));
+/** Set the shape stroke (outline) colour, via the shared decision function. Same `ref` contract as {@link setSolidFillPatch}. */
+export function setStrokeColorPatch(
+	el: PptxElement,
+	color: string,
+	ref?: PptxThemeColorRef,
+): Partial<PptxElement> {
+	return shapeStylePatch(el, shapeOutlineChange(color, ref));
 }
 
 /** Read the shape stroke width (defaults to 1 when unset). */
