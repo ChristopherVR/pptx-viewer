@@ -2,16 +2,20 @@
    independent handler-local `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import {
+	advanceChartMarkDrag,
 	advanceChartValueDrag,
 	applyChartPartHighlight,
+	beginChartMarkDrag,
 	beginChartValueDrag,
+	buildChartMarkDragGeometry,
 	buildChartViewModel,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
 	formatAxisValue,
+	resolveChartKind,
 	withChartTitle,
 } from 'pptx-viewer-shared';
-import type { ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
+import type { ChartMarkDragState, ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
 
 /**
  * chart-drag (Svelte): direct on-canvas chart editing, the Svelte port of Vue's
@@ -40,6 +44,12 @@ export class ChartDragController {
 	titleDraft = $state<string | null>(null);
 
 	#active: ChartValueDragState | null = null;
+	/**
+	 * In-flight pie/doughnut slice, radar vertex, or stacked segment drag, or
+	 * null. Runs through a parallel state machine (no single vertical value
+	 * axis), never alongside `#active`.
+	 */
+	#activeMark: ChartMarkDragState | null = null;
 	#element: () => ChartPptxElement;
 	#commit: (elementId: string, chartData: PptxChartData) => void;
 	#root: () => HTMLElement | null;
@@ -81,13 +91,47 @@ export class ChartDragController {
 		}
 		// Built from the COMMITTED data so the axis does not rescale under the
 		// pointer mid-drag and take the mark away from the cursor.
-		const started = beginChartValueDrag({
-			part,
-			viewModel: buildChartViewModel(element),
-			chartData: element.chartData,
-			clientY: event.clientY,
-		});
-		if (!started) {
+		const vm = buildChartViewModel(element);
+		let captured = false;
+		// Pie/doughnut/radar/stacked marks: try the angle/radial/segment drag first.
+		const chartKind = resolveChartKind(element.chartData.chartType ?? 'bar');
+		if (part.pointIndex !== undefined && chartKind !== 'unsupported') {
+			const markGeometry = buildChartMarkDragGeometry({
+				kind: chartKind,
+				element,
+				chartData: element.chartData,
+				categoryLabels: element.chartData.categories,
+				seriesIndex: part.seriesIndex,
+				pointIndex: part.pointIndex,
+			});
+			const startedMark = beginChartMarkDrag({
+				part,
+				geometry: markGeometry,
+				chartData: element.chartData,
+				svgWidth: vm.svgWidth,
+				svgHeight: vm.svgHeight,
+				clientX: event.clientX,
+				clientY: event.clientY,
+			});
+			if (startedMark) {
+				this.#activeMark = startedMark;
+				captured = true;
+			}
+		}
+		// Clustered bar/line/scatter/bubble: the existing vertical value-axis drag.
+		if (!captured) {
+			const started = beginChartValueDrag({
+				part,
+				viewModel: vm,
+				chartData: element.chartData,
+				clientY: event.clientY,
+			});
+			if (started) {
+				this.#active = started;
+				captured = true;
+			}
+		}
+		if (!captured) {
 			return;
 		}
 		event.preventDefault();
@@ -96,7 +140,6 @@ export class ChartDragController {
 		} catch {
 			// Non-fatal: the drag still works while the pointer stays over the chart.
 		}
-		this.#active = started;
 		window.addEventListener('keydown', this.#onkeydown);
 		// Move / release are watched on the WINDOW, not the chart root: each
 		// preview frame re-renders the SVG and detaches the mark the pointer went
@@ -146,6 +189,7 @@ export class ChartDragController {
 	/** Release listeners when the chart unmounts mid-drag. */
 	destroy(): void {
 		this.#active = null;
+		this.#activeMark = null;
 		this.#detach();
 	}
 
@@ -156,6 +200,20 @@ export class ChartDragController {
 	}
 
 	#onpointermove = (event: PointerEvent): void => {
+		const activeMark = this.#activeMark;
+		if (activeMark) {
+			const rect = this.#root()?.querySelector('svg')?.getBoundingClientRect();
+			if (!rect) {
+				return;
+			}
+			const step = advanceChartMarkDrag(activeMark, event.clientX, event.clientY, rect);
+			if (!step) {
+				return;
+			}
+			this.preview = step.chartData;
+			this.label = formatAxisValue(step.value);
+			return;
+		}
 		const active = this.#active;
 		if (!active) {
 			return;
@@ -181,12 +239,19 @@ export class ChartDragController {
 
 	#end(commit: boolean): void {
 		const active = this.#active;
+		const activeMark = this.#activeMark;
 		this.#active = null;
+		this.#activeMark = null;
 		this.#detach();
 		this.preview = null;
 		this.label = null;
-		if (commit && active?.moved && active.lastData) {
+		if (!commit) {
+			return;
+		}
+		if (active?.moved && active.lastData) {
 			this.#commit(this.#element().id, active.lastData);
+		} else if (activeMark?.moved && activeMark.lastData) {
+			this.#commit(this.#element().id, activeMark.lastData);
 		}
 	}
 }

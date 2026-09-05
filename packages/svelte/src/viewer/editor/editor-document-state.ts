@@ -16,11 +16,11 @@ import type {
 	PptxCustomShow,
 	PptxTagCollection,
 } from 'pptx-viewer-core';
-import type { DeckSaveIntent, TemplateElementMap } from 'pptx-viewer-shared';
+import type { DeckSaveIntent, TableStyleSaveOptions, TemplateElementMap } from 'pptx-viewer-shared';
 import {
+	buildDeckSaveOptions,
 	cloneSlides,
 	cloneTemplateElementsBySlideId,
-	embeddedFontSaveOptions,
 	saveDeckWithPassword,
 } from 'pptx-viewer-shared';
 
@@ -80,6 +80,11 @@ export function createEditorSnapshot(snapshot: EditorSnapshot): EditorSnapshot {
  * `viewProperties` carries the View > Grid/Guides/Snap toggles the same way:
  * omitting it makes core re-emit the load-time `ppt/viewProps.xml` verbatim,
  * so a toggle flipped after load never reached the written file.
+ *
+ * `tableStyleOptions` carries the table style DEFINITION editor's
+ * `tableStyles`/`tableStylesDefaultId`/`tableStylesToDelete` (already picked
+ * by the caller via `pptx-viewer-shared`'s `tableStyleSaveOptions`), the same
+ * way: omitting it leaves `ppt/tableStyles.xml` untouched.
  */
 export async function saveEditorDocument(
 	handler: PptxHandler,
@@ -89,27 +94,42 @@ export async function saveEditorDocument(
 	embedFonts = true,
 	slideSize?: PptxSlideSize,
 	viewProperties?: PptxViewProperties,
+	tableStyleOptions?: TableStyleSaveOptions,
 ): Promise<Uint8Array> {
 	const metadata = {
-		...embeddedFontSaveOptions(embedFonts),
-		// Omitted when unknown so a deck that never loaded a size is not given one.
-		...(slideSize ? { slideSize } : {}),
-		...(viewProperties ? { viewProperties } : {}),
-		...(snapshot.sections.length > 0 ? { sections: snapshot.sections } : {}),
-		...(Object.keys(snapshot.headerFooter).length > 0
-			? { headerFooter: snapshot.headerFooter }
-			: {}),
-		...(Object.keys(snapshot.presentationProperties).length > 0
-			? { presentationProperties: snapshot.presentationProperties }
-			: {}),
-		...(snapshot.customShows.length > 0 ? { customShows: snapshot.customShows } : {}),
-		...(snapshot.coreProperties ? { coreProperties: snapshot.coreProperties } : {}),
-		...(snapshot.appProperties ? { appProperties: snapshot.appProperties } : {}),
-		...(snapshot.customProperties.length > 0
-			? { customProperties: snapshot.customProperties }
-			: {}),
-		// Omitted when empty so a deck with no tag parts is not given one.
-		...(snapshot.tagCollections.length > 0 ? { tags: snapshot.tagCollections } : {}),
+		...buildDeckSaveOptions({
+			headerFooter: snapshot.headerFooter,
+			presentationProperties: snapshot.presentationProperties,
+			viewProperties,
+			customShows: snapshot.customShows,
+			sections: snapshot.sections,
+			coreProperties: snapshot.coreProperties,
+			appProperties: snapshot.appProperties,
+			customProperties: snapshot.customProperties,
+			tagCollections: snapshot.tagCollections,
+			// Masters are handled separately below (their presence decides which
+			// `saveDeckWithPassword` overload branch runs), so this call never sees
+			// them; pass an empty snapshot here and let `slideMasters`/`notesMaster`/
+			// `handoutMaster` below win via the outer spread.
+			slideMasters: undefined,
+			notesMaster: undefined,
+			handoutMaster: undefined,
+			// Omitted when unknown so a deck that never loaded a size is not given one.
+			slideSize,
+			embedFonts,
+			// Table styles are handled below via the caller's already-picked
+			// `tableStyleOptions` (spread after this call), not through the raw
+			// map/id/delete-list shape this builder otherwise expects.
+			tableStyleMap: undefined,
+			tableStylesDefaultId: undefined,
+			tableStylesToDelete: [],
+		}),
+		// The table style DEFINITION editor's already-picked
+		// `tableStyles`/`tableStylesDefaultId`/`tableStylesToDelete` (via
+		// `pptx-viewer-shared`'s `tableStyleSaveOptions`), spread last so it wins
+		// over the (necessarily empty) table style fields `buildDeckSaveOptions`
+		// computed above from no table-style state.
+		...tableStyleOptions,
 	};
 	const hasMasters =
 		snapshot.slideMasters.length > 0 ||
@@ -120,10 +140,13 @@ export async function saveEditorDocument(
 				handler,
 				snapshot.slides,
 				{
+					...metadata,
+					// Override the (necessarily empty) master fields `buildDeckSaveOptions`
+					// computed above with the real snapshot, since masters are handled
+					// here rather than inside the shared builder call.
 					slideMasters: snapshot.slideMasters,
 					notesMaster: snapshot.notesMaster,
 					handoutMaster: snapshot.handoutMaster,
-					...metadata,
 					outputFormat: format,
 				},
 				saveIntent,

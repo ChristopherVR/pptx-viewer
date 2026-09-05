@@ -163,7 +163,7 @@
 						font-family={vm.titleStyle?.fontFamily}
 						fill={vm.titleStyle?.fill ?? '#1e293b'}
 						data-chart-part="title"
-					>{vm.title}</text>
+					>{#if vm.titleRunSpans && vm.titleRunSpans.length > 0}{#each vm.titleRunSpans as run, i (`title-run-${i}`)}<tspan font-size={run.fontSize} font-weight={run.fontWeight} font-style={run.fontStyle} font-family={run.fontFamily} fill={run.fill}>{run.text}</tspan>{/each}{:else}{vm.title}{/if}</text>
 				{/if}
 
 				{#each vm.gridlines as gl, i (`gl${i}`)}

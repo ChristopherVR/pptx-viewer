@@ -127,7 +127,13 @@ describe('inspectorPanel', () => {
 		const { target } = mountInspector(editor);
 
 		expect(target.querySelector('.pptx-svelte-inspector-grid')).toBeTruthy();
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Effects', 'Text', 'Action']);
+		expect(sectionTitles(target)).toStrictEqual([
+			'Fill & Stroke',
+			'Effects',
+			'Text',
+			'Accessibility',
+			'Action',
+		]);
 		expect(target.querySelector('.pptx-svelte-inspector-empty')).toBeNull();
 	});
 
@@ -137,7 +143,13 @@ describe('inspectorPanel', () => {
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Effects', 'Text', 'Action']);
+		expect(sectionTitles(target)).toStrictEqual([
+			'Fill & Stroke',
+			'Effects',
+			'Text',
+			'Accessibility',
+			'Action',
+		]);
 	});
 
 	it('shows Position + Fill & Stroke + Image for an image element (no Text section)', () => {
@@ -173,19 +185,24 @@ describe('inspectorPanel', () => {
 		expect(imageTarget.querySelector('.pptx-svelte-quick-styles')).toBeNull();
 	});
 
-	it('offers the alt-text field for an image but not for a shape', () => {
+	it('offers the alt-text field for an image, and alt-text + title for a shape', () => {
 		const image = imageEl();
 		const imageEditor = makeEditor([image]);
 		imageEditor.select(image.id);
 		const { target } = mountInspector(imageEditor);
 		expect(target.querySelector('.pptx-svelte-alt-text')).not.toBeNull();
+		// A picture has no title field: only the alt-text textarea, no title input.
+		expect(target.querySelector('.pptx-svelte-alt-text input[type="text"]')).toBeNull();
 		cleanup?.();
 
+		// A plain shape now models both altText and title (PptxNonVisualDescription),
+		// so its own Accessibility section renders both fields.
 		const shape = shapeEl();
 		const shapeEditor = makeEditor([shape]);
 		shapeEditor.select(shape.id);
 		const { target: shapeTarget } = mountInspector(shapeEditor);
-		expect(shapeTarget.querySelector('.pptx-svelte-alt-text')).toBeNull();
+		expect(shapeTarget.querySelector('.pptx-svelte-alt-text textarea')).not.toBeNull();
+		expect(shapeTarget.querySelector('.pptx-svelte-alt-text input[type="text"]')).not.toBeNull();
 	});
 
 	it('has no header close button on the tab row (React InspectorPane parity)', () => {

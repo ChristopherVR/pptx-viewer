@@ -10,6 +10,7 @@
  */
 
 import type {
+	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -18,7 +19,9 @@ import type {
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
+	PptxTagCollection,
 	PptxTheme,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import type {
 	PptxAiBridge,
@@ -28,7 +31,7 @@ import type {
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
-import { applyElementUpdate } from 'pptx-viewer-shared/ai';
+import { applyElementUpdate, deckDataFieldChanged } from 'pptx-viewer-shared/ai';
 
 /** Live editor accessors the bridge closes over (all read from viewer runes). */
 export interface SvelteAiBridgeDeps {
@@ -73,6 +76,18 @@ export interface SvelteAiBridgeDeps {
 	getAppProperties(): PptxAppProperties | undefined;
 	/** Custom document-property list (editor-tracked, undoable). */
 	getCustomProperties(): PptxCustomProperty[];
+	/**
+	 * `ppt/viewProps.xml` (grid/snap/guides toggles), loader-tracked. Included
+	 * so the deck tools' `getDeckData`/`applyDeckData` seam sees the same
+	 * fields the main Save/Export path persists (`saveEditorDocument`).
+	 */
+	getViewProperties(): PptxViewProperties | undefined;
+	/** Parsed `ppt/tableStyles.xml` map, loader-tracked. */
+	getTableStyleMap(): ParsedTableStyleMap | undefined;
+	/** `<a:tblStyleLst @def>` default style GUID, loader-tracked. */
+	getTableStylesDefaultId(): string | undefined;
+	/** `ppt/tags/*.xml` name/value metadata (editor-tracked, undoable). */
+	getTagCollections(): PptxTagCollection[];
 	/** Resize the slide canvas (loader value + editor history entry). */
 	setCanvasSize(size: { width: number; height: number }): void;
 	/** Replace the section list. */
@@ -88,6 +103,18 @@ export interface SvelteAiBridgeDeps {
 		app: PptxAppProperties,
 		custom: PptxCustomProperty[],
 	): void;
+	/** Replace the view properties (grid/snap/guides toggles). Not undo-tracked, like the manual toggle. */
+	setViewProperties(props: PptxViewProperties | undefined): void;
+	/** Replace the table style map. Not undo-tracked, like the manual table style editor. */
+	setTableStyleMap(map: ParsedTableStyleMap | undefined): void;
+	/**
+	 * Replace the default table style GUID. No manual UI sets this in the
+	 * Svelte binding yet (a pre-existing gap, not introduced by this seam), so
+	 * this is not undo-tracked, like `setTableStyleMap`.
+	 */
+	setTableStylesDefaultId(id: string | undefined): void;
+	/** Replace the tag collections as one undoable edit. */
+	setTagCollections(tags: PptxTagCollection[]): void;
 }
 
 /** Build the AI bridge that exposes the live Svelte viewer to the AI core. */
@@ -110,10 +137,14 @@ export function createSvelteAiBridge(deps: SvelteAiBridgeDeps): PptxAiBridge {
 			customProperties: deps.getCustomProperties(),
 			coreProperties: deps.getCoreProperties(),
 			appProperties: deps.getAppProperties(),
+			viewProperties: deps.getViewProperties(),
+			tableStyleMap: deps.getTableStyleMap(),
+			tableStylesDefaultId: deps.getTableStylesDefaultId(),
+			tags: deps.getTagCollections(),
 		} satisfies Partial<PptxData> as PptxData;
 	};
 
-	const differs = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
+	const differs = deckDataFieldChanged;
 
 	return {
 		getDeckMeta(): PptxAiDeckMeta {
@@ -179,6 +210,19 @@ export function createSvelteAiBridge(deps: SvelteAiBridgeDeps): PptxAiBridge {
 				differs(before.customProperties, nextCustom)
 			) {
 				deps.setDocumentProperties(nextCore ?? {}, nextApp ?? {}, nextCustom);
+			}
+			if (differs(before.viewProperties, after.viewProperties)) {
+				deps.setViewProperties(after.viewProperties);
+			}
+			if (differs(before.tableStyleMap, after.tableStyleMap)) {
+				deps.setTableStyleMap(after.tableStyleMap);
+			}
+			if (differs(before.tableStylesDefaultId, after.tableStylesDefaultId)) {
+				deps.setTableStylesDefaultId(after.tableStylesDefaultId);
+			}
+			const nextTags = after.tags ?? before.tags ?? [];
+			if (differs(before.tags, nextTags)) {
+				deps.setTagCollections(nextTags);
 			}
 		},
 

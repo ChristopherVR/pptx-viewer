@@ -1,4 +1,5 @@
 import type {
+	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -7,9 +8,12 @@ import type {
 } from 'pptx-viewer-core';
 import type { CanvasSize, SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import {
+	applyTableStyleDelete,
+	applyTableStyleMapChange,
 	resolveSlideSizeSelection,
 	scaleSlidesForSizeChange,
 	slideSizeToCanvasPx,
+	tableStyleSaveOptions,
 } from 'pptx-viewer-shared';
 import { getContext, setContext } from 'svelte';
 
@@ -70,6 +74,17 @@ export interface InspectorDeckActions {
 	setTemplateBackground(path: string, backgroundColor: string): void;
 	/** Read a layout/master's current background colour. */
 	getTemplateBackgroundColor(path: string): string | undefined;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, for the table properties
+	 * panel's "Edit style...". Reached via `useInspectorDeck()` context rather
+	 * than prop-drilled, so `TableSection`/`TableStyleEditor` need no chain of
+	 * intermediate props through `InspectorPanel`'s ancestors.
+	 */
+	readonly tableStyleMap: ParsedTableStyleMap | undefined;
+	/** Commit a full replacement style map (section edit, create, or delete already applied). */
+	updateTableStyleMap(nextMap: ParsedTableStyleMap): void;
+	/** Record a styleId for save-time removal from `ppt/tableStyles.xml`. */
+	deleteTableStyle(styleId: string): void;
 }
 
 export interface InspectorDeckDeps {
@@ -102,6 +117,15 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 			// Without this the theme round-trip would reload the deck at its
 			// load-time `p:sldSz` and silently undo a slide-size pick.
 			resolveSlideSizeSelection({ current: loader.slideSize, canvas: loader.canvasSize }).size,
+			undefined,
+			// Without this the theme round-trip would reload the deck at its
+			// load-time `ppt/tableStyles.xml` and silently undo a pending
+			// table-style edit/delete.
+			tableStyleSaveOptions({
+				tableStyleMap: loader.tableStyleMap,
+				tableStylesDefaultId: loader.tableStylesDefaultId,
+				tableStylesToDelete: loader.tableStylesToDelete,
+			}),
 		);
 		await loader.load(bytes);
 	}
@@ -205,6 +229,27 @@ export function createInspectorDeckActions(deps: InspectorDeckDeps): InspectorDe
 		},
 		getTemplateBackgroundColor(path: string): string | undefined {
 			return loader.handler?.getTemplateBackgroundColor(path);
+		},
+		get tableStyleMap(): ParsedTableStyleMap | undefined {
+			return loader.tableStyleMap;
+		},
+		updateTableStyleMap(nextMap: ParsedTableStyleMap): void {
+			const result = applyTableStyleMapChange(
+				{ tableStyleMap: loader.tableStyleMap, tableStylesToDelete: loader.tableStylesToDelete },
+				nextMap,
+			);
+			loader.tableStyleMap = result.tableStyleMap;
+			loader.tableStylesToDelete = result.tableStylesToDelete;
+			editor.commitChange();
+		},
+		deleteTableStyle(styleId: string): void {
+			const result = applyTableStyleDelete(
+				{ tableStyleMap: loader.tableStyleMap, tableStylesToDelete: loader.tableStylesToDelete },
+				styleId,
+			);
+			loader.tableStyleMap = result.tableStyleMap;
+			loader.tableStylesToDelete = result.tableStylesToDelete;
+			editor.commitChange();
 		},
 	};
 }

@@ -7,7 +7,7 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, placeholderPromptDescriptor, resolveChartKind } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, buildTextStyleOverrideCss, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, placeholderPromptDescriptor, resolveChartKind } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
@@ -112,6 +112,16 @@
 	 * context so editor / read-only rendering (context absent) is unaffected.
 	 */
 	const animationState = $derived(usePresentationElementState(element.id));
+	/**
+	 * A font-style emphasis effect (Bold Flash, Bold Reveal, Underline, Change
+	 * Font Style/Size) overrides the runs' own inline bold/italic/underline/
+	 * size, which plain CSS inheritance cannot reach (the runs declare those
+	 * unconditionally). See `animation-text-style-css.ts`. NOT gated on
+	 * `hasTextProperties`: a table cell, a chart title/label/legend, and a
+	 * SmartArt node caption all animate this way too, and shared's selector
+	 * already scopes itself to this element's `data-element-id`.
+	 */
+	const textStyleOverrideCss = $derived(buildTextStyleOverrideCss(element.id, animationState?.textStyle));
 	// Captured at init: `getContext` only resolves during component
 	// initialisation, so reading it inside the `$derived` below returned nothing
 	// and the text-build split never ran.
@@ -295,6 +305,14 @@
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
 		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
+		<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+		     Change Font Style/Size) overrides the runs' own inline
+		     bold/italic/underline/size, which plain CSS inheritance cannot reach
+		     (the runs declare those unconditionally). A literal `<style>` tag's
+		     content is not reactive to a mustache expression (see `ContentPartView`'s
+		     `INK_REPLAY_KEYFRAMES` precedent), so this uses the `svelte:element`
+		     escape hatch instead. -->
+		{#if textStyleOverrideCss}<svelte:element this={'style'}>{textStyleOverrideCss}</svelte:element>{/if}
 		<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
 		{#if extrusion.hasExtrusion}<Extrusion3D data={extrusion} />{/if}
 		<!-- While this element is open in the inline text editor, its live text is
@@ -320,4 +338,21 @@
 	</div>
 {:else}
 	<PlaceholderElement {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
+{/if}
+
+<!--
+	A font-style emphasis effect (Bold Flash, Bold Reveal, Underline, Change
+	Font Style/Size) overrides a table cell / chart title-label-legend /
+	SmartArt node caption / connector caption's own inline or SVG-attribute
+	styling, which plain CSS inheritance cannot reach. Rendered here, as a
+	SIBLING of the branch above rather than nested inside it: the selector
+	`buildTextStyleOverrideCss` builds (`[data-element-id="<id>"] ...`)
+	matches anywhere in the document, and TableView/ConnectorView/
+	SmartArtView/ChartView (the last not owned by this change) do not need
+	their own copy of this wiring. The plain shape/text case keeps its own
+	nested copy above (inside the `isShapeLike` branch) since that predates
+	this change and its test asserts the nested position.
+-->
+{#if !isHidden && textStyleOverrideCss && (element.type === 'table' || element.type === 'chart' || element.type === 'smartArt' || element.type === 'connector')}
+	<svelte:element this={'style'}>{textStyleOverrideCss}</svelte:element>
 {/if}

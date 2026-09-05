@@ -44,10 +44,18 @@ function makeDeps(overrides: Partial<SvelteAiBridgeDeps> = {}): SvelteAiBridgeDe
 		getCoreProperties: () => undefined,
 		getAppProperties: () => undefined,
 		getCustomProperties: () => [],
+		getViewProperties: () => undefined,
+		getTableStyleMap: () => undefined,
+		getTableStylesDefaultId: () => undefined,
+		getTagCollections: () => [],
 		setCanvasSize: vi.fn(),
 		setSections: vi.fn(),
 		setPresentationProperties: vi.fn(),
 		setDocumentProperties: vi.fn(),
+		setViewProperties: vi.fn(),
+		setTableStyleMap: vi.fn(),
+		setTableStylesDefaultId: vi.fn(),
+		setTagCollections: vi.fn(),
 		...overrides,
 	};
 }
@@ -153,5 +161,52 @@ describe('createSvelteAiBridge', () => {
 		expect(setPresentationProperties).not.toHaveBeenCalled();
 		// Slides did not change either, so no history commit.
 		expect(deps.commitSlides).not.toHaveBeenCalled();
+	});
+
+	// viewProperties/tableStyleMap/tableStylesDefaultId/tags were missing from
+	// this seam entirely: the main Save/Export path (`saveEditorDocument`)
+	// persists them, but an MCP deck tool operating on
+	// `getDeckData()`/`applyDeckData()` could not see or commit them.
+	it('getDeckData exposes viewProperties/tableStyleMap/tableStylesDefaultId/tags', () => {
+		const deps = makeDeps({
+			getViewProperties: () => ({ showComments: true }),
+			getTableStyleMap: () => ({ '{guid}': { styleId: '{guid}', styleName: 'Style' } }),
+			getTableStylesDefaultId: () => '{guid}',
+			getTagCollections: () => [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] }],
+		});
+		const bridge = createSvelteAiBridge(deps);
+
+		const data = bridge.getDeckData?.();
+		expect(data?.viewProperties).toStrictEqual({ showComments: true });
+		expect(data?.tableStyleMap).toStrictEqual({
+			'{guid}': { styleId: '{guid}', styleName: 'Style' },
+		});
+		expect(data?.tableStylesDefaultId).toBe('{guid}');
+		expect(data?.tags).toStrictEqual([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] },
+		]);
+	});
+
+	it('applyDeckData commits a changed viewProperties/tableStyleMap/tags to their setters', () => {
+		const setViewProperties = vi.fn();
+		const setTableStyleMap = vi.fn();
+		const setTagCollections = vi.fn();
+		const deps = makeDeps({ setViewProperties, setTableStyleMap, setTagCollections });
+		const bridge = createSvelteAiBridge(deps);
+
+		bridge.applyDeckData?.((data) => {
+			data.viewProperties = { showComments: false };
+			data.tableStyleMap = { '{new}': { styleId: '{new}', styleName: 'New' } };
+			data.tags = [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] }];
+			return data;
+		}, 'metadata');
+
+		expect(setViewProperties).toHaveBeenCalledWith({ showComments: false });
+		expect(setTableStyleMap).toHaveBeenCalledWith({
+			'{new}': { styleId: '{new}', styleName: 'New' },
+		});
+		expect(setTagCollections).toHaveBeenCalledWith([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] },
+		]);
 	});
 });

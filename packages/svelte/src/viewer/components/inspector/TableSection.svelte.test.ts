@@ -1,8 +1,8 @@
 /* oxlint-disable eslint/one-var -- many independent it() blocks, each with
    its own short arrange/act/assert consts. */
-import type { PptxElement } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxElement } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../editor/editor-state.svelte';
 import TableSection from './TableSection.svelte';
@@ -64,10 +64,15 @@ type TableShape = {
 function mountSection(
 	editor: EditorState,
 	el: PptxElement,
+	extra: {
+		tableStyleMap?: ParsedTableStyleMap;
+		onTableStyleMapChange?: (m: ParsedTableStyleMap) => void;
+		onDeleteTableStyle?: (id: string) => void;
+	} = {},
 ): { target: HTMLElement; setProps: (next: { el: PptxElement }) => void } {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	const props = $state({ editor, el });
+	const props = $state({ editor, el, ...extra });
 	const instance = mount(TableSection, { target, props });
 	flushSync();
 	cleanup = () => {
@@ -166,6 +171,41 @@ describe('tableSection', () => {
 		const data = (currentEl(editor) as TableShape).tableData;
 		// The preset changes at least one cell's styling from the plain default.
 		expect(data?.rows.some((row) => row.cells.some((cell) => cell.style))).toBeTruthy();
+	});
+
+	it('enables "Edit style..." with no tableStyleId, and assigns a created style to the table', () => {
+		vi.stubGlobal('prompt', vi.fn().mockReturnValue('Brand New Style'));
+		let styleMapChanges = 0;
+		let lastMap: ParsedTableStyleMap | undefined;
+		const editor = makeEditor(tableEl());
+		const { target } = mountSection(editor, currentEl(editor), {
+			tableStyleMap: {},
+			onTableStyleMapChange: (m) => {
+				styleMapChanges++;
+				lastMap = m;
+			},
+		});
+
+		const editButton = Array.from(target.querySelectorAll('button')).find(
+			(b) => b.textContent === 'Edit style...',
+		) as HTMLButtonElement;
+		expect(editButton.disabled).toBeFalsy();
+		editButton.click();
+		flushSync();
+
+		const createButton = Array.from(target.querySelectorAll('button')).find(
+			(b) => b.textContent === 'Create new style',
+		) as HTMLButtonElement;
+		expect(createButton).toBeTruthy();
+		createButton.click();
+		flushSync();
+
+		expect(styleMapChanges).toBe(1);
+		const newId = Object.keys(lastMap ?? {})[0];
+		const data = (currentEl(editor) as TableShape & { tableData?: { tableStyleId?: string } })
+			.tableData;
+		expect(data?.tableStyleId).toBe(newId);
+		vi.unstubAllGlobals();
 	});
 
 	it('formats an individual selected cell', () => {

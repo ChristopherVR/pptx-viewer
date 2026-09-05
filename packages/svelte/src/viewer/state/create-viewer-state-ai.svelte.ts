@@ -88,6 +88,10 @@ export function useAiCluster(deps: AiClusterDeps): AiCluster {
 		getCoreProperties: () => editor.coreProperties,
 		getAppProperties: () => editor.appProperties,
 		getCustomProperties: () => editor.customProperties,
+		getViewProperties: () => editor.viewProperties,
+		getTableStyleMap: () => loader.tableStyleMap,
+		getTableStylesDefaultId: () => loader.tableStylesDefaultId,
+		getTagCollections: () => editor.tagCollections,
 		setCanvasSize: (size) => {
 			deps.setEditable(true);
 			editor.editable = true;
@@ -115,6 +119,23 @@ export function useAiCluster(deps: AiClusterDeps): AiCluster {
 			deps.setEditable(true);
 			editor.editable = true;
 			editor.updateDocumentProperties(core, app, custom);
+		},
+		// Not undo-tracked, mirroring the manual View > Grid/Guides/Snap toggle
+		// and the table style DEFINITION editor (both live outside
+		// pushHistory/commitChange for the same reason `theme` does).
+		setViewProperties: (props) => {
+			editor.viewProperties = props;
+		},
+		setTableStyleMap: (map) => {
+			loader.tableStyleMap = map;
+		},
+		setTableStylesDefaultId: (id) => {
+			loader.tableStylesDefaultId = id;
+		},
+		setTagCollections: (tags) => {
+			deps.setEditable(true);
+			editor.editable = true;
+			editor.updateTagCollections(tags);
 		},
 	});
 

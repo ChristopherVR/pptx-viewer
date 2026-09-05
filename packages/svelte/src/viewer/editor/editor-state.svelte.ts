@@ -27,6 +27,7 @@ import type {
 	ElementBoxPatch,
 	ElementClipboardPayload,
 	FontEmbeddingDescriptor,
+	TableStyleSaveOptions,
 	TemplateElementMap,
 } from 'pptx-viewer-shared';
 import {
@@ -79,6 +80,14 @@ export interface EditorStateDeps {
 	 * case core re-emits the load-time dimensions verbatim.
 	 */
 	getSlideSize?: () => PptxSlideSize | undefined;
+	/**
+	 * The `tableStyles`/`tableStylesDefaultId`/`tableStylesToDelete` save
+	 * options (see `pptx-viewer-shared`'s `tableStyleSaveOptions`). Table style
+	 * DEFINITION edits live on the loader (like slide size), not the undo
+	 * stack, so they reach the save through this dep the same way. Optional
+	 * for out-of-tree mounts and the unit tests.
+	 */
+	getTableStyleOptions?: () => TableStyleSaveOptions;
 	/**
 	 * Adopt a fresh handler in place of the loaded one. Master-view CRUD
 	 * (`masterCrud`) rebuilds the package through core and comes back with a
@@ -317,6 +326,14 @@ export class EditorState {
 	 */
 	getSlideSize(): PptxSlideSize | undefined {
 		return this.#deps.getSlideSize?.();
+	}
+
+	/**
+	 * The table style save options the next save should forward, or `{}` to
+	 * leave `ppt/tableStyles.xml` alone. See {@link EditorStateDeps.getTableStyleOptions}.
+	 */
+	getTableStyleOptions(): TableStyleSaveOptions {
+		return this.#deps.getTableStyleOptions?.() ?? {};
 	}
 
 	/** Adopt a freshly loaded deck as the working document (see `loadEditorDocument`). */

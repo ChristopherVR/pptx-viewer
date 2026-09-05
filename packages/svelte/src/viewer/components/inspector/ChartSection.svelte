@@ -27,6 +27,7 @@
 		BAR3D_SHAPE_OPTIONS,
 		CHART_TYPE_LABEL_KEYS,
 		CHART_TYPE_OPTIONS,
+		collapseChartTitleRunsForEdit,
 		patchChartData as sharedPatchChartData,
 		radarStylePatch,
 		RADAR_STYLE_OPTIONS,
@@ -159,7 +160,7 @@
 
 {#if data}<div class="section">
 	<label>Chart type<select aria-label="Chart type" value={data.chartType} onchange={(event) => onTypeChange(event.currentTarget.value as ChartTypeSelectValue)}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
-	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ title: event.currentTarget.value, style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
+	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ ...collapseChartTitleRunsForEdit(data, event.currentTarget.value), style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
 	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label>
 		{#if data.chartType === 'bar3D'}
 			<label>{t('pptx.chart.bar3DShapeLabel')}<select aria-label={t('pptx.chart.bar3DShapeLabel')} data-testid="pptx-chart-bar3d-shape" value={data.barShape ?? 'box'} onchange={(event) => onBar3DShapeChange(event.currentTarget.value)}>{#each BAR3D_SHAPE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</select></label>

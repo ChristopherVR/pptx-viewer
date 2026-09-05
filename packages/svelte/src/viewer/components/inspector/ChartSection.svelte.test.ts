@@ -131,3 +131,30 @@ describe('chartSection chart subtype pickers', () => {
 		expect(chart?.type === 'chart' && chart.chartData?.wireframe).toBeTruthy();
 	});
 });
+
+// W4-D: a multi-run title collapses to one run in the dominant style instead
+// of leaving a stale second run's text behind.
+describe('chartSection title field', () => {
+	it('collapses a multi-run title to one run in the dominant style on edit', () => {
+		const { editor, target } = render(
+			chartElement({
+				title: 'Sales Q1',
+				titleRuns: [
+					{ text: 'Sales ', bold: true },
+					{ text: 'Q1 Numbers', italic: true, color: '#FF0000' },
+				],
+			}),
+		);
+		const input = target.querySelector<HTMLInputElement>('input')!;
+		input.value = 'New Title';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		const chart = editor.selectedElement;
+		const chartData = chart?.type === 'chart' ? chart.chartData : undefined;
+		expect(chartData?.title).toBe('New Title');
+		expect(chartData?.titleRuns).toStrictEqual([
+			{ text: 'New Title', italic: true, color: '#FF0000' },
+		]);
+	});
+});

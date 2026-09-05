@@ -73,6 +73,7 @@ export class CollaborationController {
 	readonly #writeBack = createWriteBackScheduler({
 		getYDoc: () => this.#ydoc,
 		getSourceBytes: () => this.#deps.getSourceBytes?.() ?? null,
+		getSaveOptions: () => this.#deps.getSaveOptions?.(),
 	});
 	readonly #presence: CollaborationPresence;
 

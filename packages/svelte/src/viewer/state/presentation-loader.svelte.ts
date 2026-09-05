@@ -113,6 +113,14 @@ export class PresentationLoader {
 	presentationTheme = $state.raw<PptxTheme | undefined>(undefined);
 	/** Parsed presentation table-style definitions keyed by style id. */
 	tableStyleMap = $state.raw<ParsedTableStyleMap | undefined>(undefined);
+	/** `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>` default style GUID. */
+	tableStylesDefaultId = $state.raw<string | undefined>(undefined);
+	/**
+	 * Style GUIDs deleted from `tableStyleMap` via the table style editor,
+	 * pending removal from `ppt/tableStyles.xml` on the next save. See
+	 * `tableStyleSaveOptions` / `applyTableStyleDelete` in `pptx-viewer-shared`.
+	 */
+	tableStylesToDelete = $state.raw<string[]>([]);
 	/** True while a load is in flight. */
 	loading = $state(false);
 	/** Error message from the last failed load, or null. */
@@ -221,6 +229,8 @@ export class PresentationLoader {
 			this.colorScheme = parsed.theme?.colorScheme;
 			this.presentationTheme = parsed.theme;
 			this.tableStyleMap = nextTableStyleMap;
+			this.tableStylesDefaultId = parsed.tableStylesDefaultId;
+			this.tableStylesToDelete = [];
 			this.canvasSize = {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,

@@ -1,6 +1,10 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { AutosaveDisabledReason } from 'pptx-viewer-shared';
-import { resolveAutosaveActivation, resolveAutosaveIntervalMs } from 'pptx-viewer-shared';
+import {
+	buildDeckSaveOptions,
+	resolveAutosaveActivation,
+	resolveAutosaveIntervalMs,
+} from 'pptx-viewer-shared';
 
 import { CollaborationController, CollaborationDialogsState } from '../collab';
 import { useCollaborationPresenceEffects } from '../collab/collaboration-presence-effects.svelte';
@@ -91,6 +95,32 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 		applyRemoteSlides: (slides: PptxSlide[]) => editor.applyRemoteSlides(slides),
 		getConfig: () => options.collaboration,
 		getSourceBytes: sourceBytes,
+		// Session-level save options (view properties, table styles, tags, deck
+		// properties, ...), built the same way as `saveEditorDocument`, so an
+		// owner's write-back file no longer drops every session-level edit
+		// outside `slides`.
+		getSaveOptions: () => {
+			const snapshot = editor.snapshot();
+			return buildDeckSaveOptions({
+				headerFooter: snapshot.headerFooter,
+				presentationProperties: snapshot.presentationProperties,
+				viewProperties: editor.viewProperties,
+				customShows: snapshot.customShows,
+				sections: snapshot.sections,
+				coreProperties: snapshot.coreProperties,
+				appProperties: snapshot.appProperties,
+				customProperties: snapshot.customProperties,
+				tagCollections: snapshot.tagCollections,
+				slideMasters: snapshot.slideMasters,
+				notesMaster: snapshot.notesMaster,
+				handoutMaster: snapshot.handoutMaster,
+				slideSize: editor.getSlideSize(),
+				tableStyleMap: loader.tableStyleMap,
+				tableStylesDefaultId: loader.tableStylesDefaultId,
+				tableStylesToDelete: loader.tableStylesToDelete,
+				embedFonts: editor.embedFonts,
+			});
+		},
 		getCanvasWidth: () => loader.canvasSize.width,
 		getCanvasHeight: () => loader.canvasSize.height,
 		onStart: (config) => options.onstartcollaboration?.(config),

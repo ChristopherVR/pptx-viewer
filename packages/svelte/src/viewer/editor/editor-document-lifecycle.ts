@@ -212,6 +212,9 @@ export async function saveEditorState(
 		// View ▸ Grid/Guides/Snap toggles, folded back into `ppt/viewProps.xml`
 		// (wave 4 #5). Outside the undo-tracked snapshot, like theme/embedFonts.
 		state.viewProperties,
+		// Table style DEFINITION editor edits, folded back into
+		// `ppt/tableStyles.xml`. Outside the undo-tracked snapshot, like slide size.
+		state.getTableStyleOptions(),
 	);
 	state.dirty = false;
 	return bytes;

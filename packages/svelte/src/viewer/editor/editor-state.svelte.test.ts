@@ -379,9 +379,18 @@ describe('editorState save', () => {
 		expect(bytes).toStrictEqual(new Uint8Array([1, 2, 3]));
 		// `editor.embedFonts` defaults to true, so the shared
 		// `embeddedFontSaveOptions` helper always contributes `embedTrueTypeFonts`.
+		// `buildDeckSaveOptions` (shared by all five bindings) always passes
+		// `headerFooter`/`presentationProperties`/`slideMasters` even when empty
+		// (core no-ops on an empty/absent header-footer or presentation-properties
+		// patch, and an empty `slideMasters` array costs an untouched deck
+		// nothing), so this is the same save every other binding produces for an
+		// untouched deck, not merely "whatever Svelte omitted before".
 		expect(save).toHaveBeenCalledWith(editor.slides, {
 			embedTrueTypeFonts: true,
 			outputFormat: 'pptx',
+			headerFooter: {},
+			presentationProperties: {},
+			slideMasters: [],
 		});
 		expect(editor.dirty).toBeFalsy();
 	});
@@ -395,6 +404,9 @@ describe('editorState save', () => {
 		expect(save).toHaveBeenCalledWith(editor.slides, {
 			embedTrueTypeFonts: true,
 			outputFormat: 'ppsx',
+			headerFooter: {},
+			presentationProperties: {},
+			slideMasters: [],
 		});
 	});
 

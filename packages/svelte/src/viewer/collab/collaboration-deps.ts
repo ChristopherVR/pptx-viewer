@@ -3,7 +3,7 @@
  * Split from `collaboration.svelte.ts` purely to keep that class within the
  * repo's file-size budget; no runtime code lives here.
  */
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 import type { CollaborationConfig } from 'pptx-viewer-shared';
 
 import type { CollabSessionFactory } from './collaboration-session';
@@ -17,6 +17,13 @@ export interface CollaborationDeps {
 	getConfig: () => CollaborationConfig | undefined;
 	/** Return the loaded source bytes for elected-writer (role 'owner') write-back. */
 	getSourceBytes?: () => Uint8Array | null;
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path
+	 * (`buildDeckSaveOptions`). Without this the elected-writer write-back
+	 * dropped every session-level edit outside `slides`.
+	 */
+	getSaveOptions?: () => PptxHandlerSaveOptions;
 	/** Slide canvas width/height (unscaled px), used to clamp incoming cursor coordinates. */
 	getCanvasWidth?: () => number | undefined;
 	getCanvasHeight?: () => number | undefined;

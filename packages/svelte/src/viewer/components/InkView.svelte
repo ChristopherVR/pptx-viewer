@@ -32,7 +32,7 @@
 	<div class="pptx-svelte-element pptx-svelte-ink" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
 		{#if strokes.length > 0}
 			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none" style={toolStyle}>
-				{#if presenting}<style>{INK_REPLAY_KEYFRAMES}</style>{/if}
+				{#if presenting}<svelte:element this={'style'}>{INK_REPLAY_KEYFRAMES}</svelte:element>{/if}
 				{#each strokes as stroke (stroke.key)}
 					{#if stroke.circles}
 						<g opacity={stroke.opacity}>

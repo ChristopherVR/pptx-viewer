@@ -13,12 +13,12 @@ import ElementRenderer from './ElementRenderer.svelte';
 
 let cleanup: (() => void) | undefined;
 
-function mountEl(element: PptxElement): HTMLElement {
+function mountEl(element: PptxElement, presenting = false): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ElementRenderer, {
 		target,
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 7 },
+		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 7, presenting },
 	});
 	flushSync();
 	cleanup = () => {
@@ -47,6 +47,16 @@ function inkElement(overrides: Record<string, unknown>): PptxElement {
 }
 
 describe('inkView', () => {
+	it('emits the replay keyframes as real CSS while presenting', () => {
+		// A literal `<style>{expr}</style>` in a Svelte template does not interpolate,
+		// so the keyframes must go through `<svelte:element this={'style'}>`.
+		const target = mountEl(
+			inkElement({ inkPaths: ['M 0 0 L 50 50'], inkColors: ['#ff0000'], inkWidths: [2] }),
+			true,
+		);
+		expect(target.querySelector('style')?.textContent).toContain('@keyframes pptx-ink-replay');
+	});
+
 	it('renders strokes as SVG paths with per-stroke colour, width, and opacity', () => {
 		const target = mountEl(
 			inkElement({

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
+	import type { ParsedTableStyleMap, PptxElement, PptxTableData } from 'pptx-viewer-core';
 	import {
 		applyTableStylePreset,
 		applyUniformCellPaddingPatch,
@@ -13,13 +13,32 @@
 		TABLE_STYLE_PRESETS,
 		tableInspectorPatch,
 		tableInspectorStateOf,
+		tableStyleAssignmentUpdate,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import TableCellSection from './TableCellSection.svelte';
+	import TableStyleEditor from './TableStyleEditor.svelte';
 
-	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
+	const {
+		editor,
+		el,
+		tableStyleMap,
+		onTableStyleMapChange,
+		onDeleteTableStyle,
+	}: {
+		editor: EditorState;
+		el: PptxElement;
+		/**
+		 * The deck's parsed `ppt/tableStyles.xml` map, for "Edit style...".
+		 * `undefined` means the host has not wired the table-style-editor
+		 * feature through; the button then simply does not render.
+		 */
+		tableStyleMap?: ParsedTableStyleMap;
+		onTableStyleMapChange?: (nextMap: ParsedTableStyleMap) => void;
+		onDeleteTableStyle?: (styleId: string) => void;
+	} = $props();
 	const t = useTranslator();
 	const inspectorState = $derived(tableInspectorStateOf(el));
 	const table = $derived(el.type === 'table' ? el.tableData : undefined);
@@ -27,6 +46,8 @@
 	let activeRow = $state(0);
 	// eslint-disable-next-line prefer-const
 	let activeColumn = $state(0);
+	// eslint-disable-next-line prefer-const
+	let showStyleEditor = $state(false);
 
 	function patchData(next: Partial<PptxTableData>): void {
 		if (el.type === 'table' && table) {
@@ -65,7 +86,23 @@
 				</button>
 			{/each}
 		</div>
+		{#if tableStyleMap !== undefined}
+			<button type="button" class="edit-style-btn" onclick={() => (showStyleEditor = !showStyleEditor)}>{t('pptx.tableStyleEditor.editButton')}</button>
+		{/if}
 	</div>
+
+	{#if showStyleEditor && tableStyleMap !== undefined}
+		<TableStyleEditor
+			styleMap={tableStyleMap}
+			styleId={table.tableStyleId}
+			themeColorMap={editor.themeColorMap}
+			onStyleMapChange={(m) => onTableStyleMapChange?.(m)}
+			onDeleteStyle={(id) => onDeleteTableStyle?.(id)}
+			onAssignStyle={(styleId) => patchData(tableStyleAssignmentUpdate(styleId))}
+			onClose={() => (showStyleEditor = false)}
+		/>
+	{/if}
+
 	<label>Cell padding<input type="number" min="0" value={Math.round(inspectorState.cellPadding)} onchange={(event) => setCellPadding(event.currentTarget.value)} /></label>
 	<div class="structure"><label>Row<input type="number" min="1" max={table.rows.length} value={activeRow + 1} onchange={(event) => (activeRow = Math.max(0, Number(event.currentTarget.value) - 1))} /></label><button type="button" onclick={() => patchData(insertTableRow(table, activeRow, 'below'))}>Insert row</button><button type="button" disabled={table.rows.length <= 1} onclick={() => patchData(deleteTableRow(table, activeRow))}>Delete row</button><label>Column<input type="number" min="1" max={table.columnWidths.length} value={activeColumn + 1} onchange={(event) => (activeColumn = Math.max(0, Number(event.currentTarget.value) - 1))} /></label><button type="button" onclick={() => patchData(insertTableColumn(table, activeColumn, 'right'))}>Insert column</button><button type="button" disabled={table.columnWidths.length <= 1} onclick={() => patchData(deleteTableColumn(table, activeColumn))}>Delete column</button></div>
 	{#if table.bandedRows}<label>Row band cycle<input type="number" min="1" value={table.bandRowCycle ?? 1} onchange={(event) => patchData({ bandRowCycle: Math.max(1, Number(event.currentTarget.value)) })} /></label>{/if}

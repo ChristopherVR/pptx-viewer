@@ -7,6 +7,7 @@ import {
 	resolveExpiredAutosaveSnapshots,
 	resolveImageResolutionScale,
 	resolveSlideSizeSelection,
+	tableStyleSaveOptions,
 } from 'pptx-viewer-shared';
 import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
 
@@ -126,6 +127,14 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		// identity); once the raw W/H inputs disagree, the pixels win.
 		getSlideSize: () =>
 			resolveSlideSizeSelection({ current: loader.slideSize, canvas: loader.canvasSize }).size,
+		// Table style DEFINITION editor edits, folded back into
+		// `ppt/tableStyles.xml` on every save (`saveEditorState`).
+		getTableStyleOptions: () =>
+			tableStyleSaveOptions({
+				tableStyleMap: loader.tableStyleMap,
+				tableStylesDefaultId: loader.tableStylesDefaultId,
+				tableStylesToDelete: loader.tableStylesToDelete,
+			}),
 		onChange: () => {
 			options.onchange?.();
 			void editor.save().then((bytes) => options.oncontentchange?.(bytes));

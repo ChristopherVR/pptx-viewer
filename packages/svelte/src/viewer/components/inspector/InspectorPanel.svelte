@@ -82,6 +82,14 @@
 	// React gates Quick Styles on shape/text (FillStrokeProperties): the presets
 	// are shape-fill recipes and mean nothing on a picture or a table.
 	const canQuickStyle = $derived(el?.type === 'shape' || el?.type === 'text');
+	// A picture's own alt text/title editor is mounted below under `isImage`;
+	// this covers only the three kinds `PptxNonVisualDescription` was added
+	// to, so it does not duplicate a table/chart/smartArt/media/ole section's
+	// own alt-text UI (those graphic-frame kinds have no editor of their own
+	// yet, tracked separately).
+	const isTextShapeOrConnector = $derived(
+		el?.type === 'text' || el?.type === 'shape' || el?.type === 'connector',
+	);
 </script>
 
 <aside
@@ -148,6 +156,13 @@
 					</div>
 				{/if}
 
+				{#if isTextShapeOrConnector}
+					<div class="pptx-svelte-inspector-section">
+						<h4>{t('pptx.accessibility.heading')}</h4>
+						<AltTextSection {editor} {el} />
+					</div>
+				{/if}
+
 				{#if isTable}
 					<!-- Cell text first (React's ElementInspectorBody renders the data
 					     grid before the table properties panel), then the structure and
@@ -157,7 +172,13 @@
 					</div>
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.inspector.table')}</h4>
-						<TableSection {editor} {el} />
+						<TableSection
+							{editor}
+							{el}
+							tableStyleMap={deck?.tableStyleMap}
+							onTableStyleMapChange={deck?.updateTableStyleMap}
+							onDeleteTableStyle={deck?.deleteTableStyle}
+						/>
 					</div>
 				{/if}
 
