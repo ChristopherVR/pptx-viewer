@@ -21,9 +21,9 @@ import {
  * focused table cell) exactly as React does so re-clicking a toggle turns it off.
  */
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { textFontSizePtToPx } from 'pptx-viewer-shared';
+import { OFFICE_COLOR_SWATCH_HEXES, textFontSizePtToPx } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -75,18 +75,7 @@ function getEffectiveTextStyle(
 	return undefined;
 }
 
-const FONT_COLOR_PRESETS = [
-	'#000000',
-	'#ffffff',
-	'#ff0000',
-	'#00aa00',
-	'#0000ff',
-	'#ff8800',
-	'#8800cc',
-	'#00cccc',
-	'#ff69b4',
-	'#808080',
-];
+const FONT_COLOR_PRESETS = OFFICE_COLOR_SWATCH_HEXES;
 
 const HIGHLIGHT_COLOR_PRESETS = [
 	'#ffff00',
@@ -121,6 +110,13 @@ const currentColor = computed(() =>
 		: (effectiveTs.value?.color ?? '#000000'),
 );
 
+const currentColorThemeRef = computed<PptxThemeColorRef | undefined>(() =>
+	isTextEl.value && props.selectedElement && hasTextProperties(props.selectedElement)
+		? (props.selectedElement.textSegments?.[0]?.style?.colorRef ??
+			props.selectedElement.textStyle?.colorRef)
+		: undefined,
+);
+
 const currentHighlight = computed(() =>
 	isTextEl.value && props.selectedElement && hasTextProperties(props.selectedElement)
 		? (props.selectedElement.textSegments?.[0]?.style?.highlightColor ??
@@ -129,11 +125,11 @@ const currentHighlight = computed(() =>
 		: '#ffff00',
 );
 
-function handleColorChange(color: string): void {
+function handleColorChange(color: string, ref?: PptxThemeColorRef): void {
 	if (!canFormat.value) {
 		return;
 	}
-	props.onUpdateTextStyle({ color });
+	props.onUpdateTextStyle({ color, colorRef: ref });
 }
 
 function handleHighlightChange(highlightColor: string): void {
@@ -358,6 +354,8 @@ function handleChangeCase(value: string): void {
 			<!-- Font colour -->
 			<TextColorPopover
 				:current="currentColor"
+				:current-ref="currentColorThemeRef"
+				:show-theme-colors="true"
 				:presets="FONT_COLOR_PRESETS"
 				:disabled="!canMut"
 				title-key="pptx.text.fontColor"

@@ -7,10 +7,12 @@
  * instead of twice, and to keep `TextSection.vue` closer to this repo's
  * 300-LOC-per-file budget. The trigger icon is passed via the default slot.
  */
+import type { PptxThemeColorRef } from 'pptx-viewer-core';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectRecentColors } from '../../composables/recent-colors-context';
+import ThemeColorSwatchGrid from '../inspector/ThemeColorSwatchGrid.vue';
 import RecentColorsRow from '../RecentColorsRow.vue';
 import { vAnchoredPopup } from './anchored-popup';
 import { pill } from './ribbon-constants';
@@ -20,10 +22,15 @@ const props = defineProps<{
 	presets: readonly string[];
 	disabled: boolean;
 	titleKey: string;
+	/** Show the deck's "Theme Colors" grid above the presets (font colour only: highlight
+	 * colour has no theme-ref concept on the model). */
+	showThemeColors?: boolean;
+	/** The element's current theme ref, if any (only meaningful with `showThemeColors`). */
+	currentRef?: PptxThemeColorRef;
 }>();
 
 const emit = defineEmits<{
-	pick: [hex: string];
+	pick: [hex: string, ref?: PptxThemeColorRef];
 }>();
 
 const { t } = useI18n();
@@ -31,9 +38,19 @@ const recentColors = injectRecentColors();
 const triggerRef = ref<HTMLButtonElement | null>(null);
 const colorInputRef = ref<HTMLInputElement | null>(null);
 
-/** Every commit through this popover both fires `pick` and records the colour as recently used. */
-function pick(hex: string): void {
-	emit('pick', hex);
+/**
+ * Every commit through this popover both fires `pick` and records the colour
+ * as recently used. Omits the second `pick` argument entirely (rather than
+ * passing an explicit `undefined`) when there is no theme ref, so callers
+ * that only read the hex see the exact same one-argument emission as before
+ * `showThemeColors` existed.
+ */
+function pick(hex: string, themeRef?: PptxThemeColorRef): void {
+	if (themeRef !== undefined) {
+		emit('pick', hex, themeRef);
+	} else {
+		emit('pick', hex);
+	}
 	recentColors?.push(hex);
 }
 </script>
@@ -52,7 +69,20 @@ function pick(hex: string): void {
 			<div class="w-4 h-1 rounded-sm -mt-0.5" :style="{ backgroundColor: props.current }" />
 		</button>
 		<div class="z-50 hidden group-hover:block pt-1" v-anchored-popup="{ anchor: triggerRef }">
-			<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2 w-36">
+			<div
+				class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2"
+				:class="showThemeColors ? 'w-48' : 'w-36'"
+			>
+				<ThemeColorSwatchGrid
+					v-if="showThemeColors"
+					:disabled="props.disabled"
+					:selected-ref="currentRef"
+					:selected-hex="current"
+					@pick="(c) => pick(c.hex, c.ref)"
+				/>
+				<div v-if="showThemeColors" class="text-[10px] text-muted-foreground mt-1 mb-1">
+					{{ t('pptx.colorPicker.standardColors') }}
+				</div>
 				<div class="grid grid-cols-5 gap-1.5 mb-2">
 					<button
 						v-for="c in presets"

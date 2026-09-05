@@ -208,6 +208,22 @@ const reflectionFill = computed(() =>
 					:height="strokeOutline.paint.height"
 				/>
 			</pattern>
+			<pattern
+				v-else-if="strokeOutline.paint.kind === 'rectPath'"
+				:id="strokeOutline.paint.id"
+				patternUnits="objectBoundingBox"
+				width="1"
+				height="1"
+			>
+				<image
+					:href="strokeOutline.paint.href"
+					x="0"
+					y="0"
+					width="1"
+					height="1"
+					preserveAspectRatio="none"
+				/>
+			</pattern>
 			<radialGradient
 				v-else-if="strokeOutline.paint.kind === 'radial'"
 				:id="strokeOutline.paint.id"

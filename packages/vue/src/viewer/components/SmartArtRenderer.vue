@@ -13,8 +13,10 @@ import {
 	canDrillDown,
 	computeDrawingViewBox,
 	projectDrawingShapes,
+	resolveRevealedDrawingShapeNodeIds,
 	resolvePalette,
-	revealedSmartArtNodeCount,
+	resolveRevealedDrawingShapes,
+	resolveRevealedSmartArtNodes,
 	shouldCommitSmartArtNodeText,
 	smartArtConnectorPaint,
 	smartArtNodeLabel,
@@ -34,7 +36,6 @@ import { getContainerStyle } from '../composables/element-style';
 import {
 	inlineEditorRect,
 	nodeIdsInRenderOrder,
-	textNodeIdsInRenderOrder,
 	useSmartArtInlineEditState,
 } from '../composables/smartart-inline-edit';
 import type {
@@ -166,40 +167,29 @@ const hasDrawingShapes = computed(() => drawingShapes.value.length > 0);
 // ── Staged diagram build (p:bldDgm) reveal ──────────────────────────────────
 //
 // When an active native animation carries a staged diagram build, reveal only
-// the leading nodes / drawing shapes for the current progress; the view box is
-// still computed from the FULL shape set so the diagram does not rescale as it
-// builds. Mirrors React's `SmartArtRenderer` reveal slice.
+// the leading nodes / drawing shapes for the current progress, preferring the
+// AUTHORED per-node `p:graphicEl/@id` reveal set (`animationState.diagramReveal`)
+// over the click-count estimate when available; the view box is still computed
+// from the FULL shape set so the diagram does not rescale as it builds.
+// Mirrors React's `SmartArtRenderer` reveal slice.
 
-const diagramBuild = computed(() => {
-	const build = props.animationState?.build;
-	return build?.kind === 'diagram' ? build : undefined;
-});
-
-const shownNodeCount = computed(() =>
-	diagramBuild.value
-		? revealedSmartArtNodeCount(nodes.value, diagramBuild.value)
-		: nodes.value.length,
-);
-
-const isPartialBuild = computed(
-	() => diagramBuild.value !== undefined && shownNodeCount.value < nodes.value.length,
+const diagramReveal = computed(() =>
+	resolveRevealedSmartArtNodes(
+		nodes.value,
+		props.animationState,
+		smartArtData.value?.presLayoutVars,
+	),
 );
 
 /** Leading node prefix revealed so far (full list when no partial build). */
-const revealedNodes = computed<PptxSmartArtNode[]>(() =>
-	isPartialBuild.value ? nodes.value.slice(0, shownNodeCount.value) : nodes.value,
-);
+const revealedNodes = computed<PptxSmartArtNode[]>(() => diagramReveal.value.nodes);
 
-/** Leading drawing-shape prefix revealed so far (proportional to nodes). */
-const revealedShapeList = computed<PptxSmartArtDrawingShape[]>(() => {
-	if (!isPartialBuild.value || drawingShapes.value.length === 0) {
-		return drawingShapes.value;
-	}
-	const count = Math.ceil(
-		(shownNodeCount.value / Math.max(nodes.value.length, 1)) * drawingShapes.value.length,
-	);
-	return drawingShapes.value.slice(0, count);
-});
+/** Revealed drawing-shape subset, preferring the authored node-id set. */
+const revealedShapeList = computed<PptxSmartArtDrawingShape[]>(() =>
+	drawingShapes.value.length === 0
+		? drawingShapes.value
+		: resolveRevealedDrawingShapes(drawingShapes.value, nodes.value, props.animationState),
+);
 
 /** Shape descriptor plus the source node id used for inline editing. */
 type EditableShape = RenderedShape & { nodeId?: string };
@@ -207,20 +197,23 @@ type EditableShape = RenderedShape & { nodeId?: string };
 const drawingViewBox = computed(() => computeDrawingViewBox(drawingShapes.value));
 
 const renderedShapes = computed<EditableShape[]>(() => {
-	// Text-bearing shapes map positionally to text-bearing source nodes so a
-	// double-click on a labelled shape targets the right node id.
-	const textIds = textNodeIdsInRenderOrder(nodes.value);
-	let textShapeIndex = 0;
-
+	// Each shape maps back to its source node id via the shared best-effort
+	// resolver (positional / reflow-suffix / unique-text), rather than a
+	// running index into `nodes` in original order: a staged build's revealed
+	// shape SUBSET is not necessarily a leading prefix (the authored-index
+	// diagramReveal descriptor can reveal an out-of-order set), so the two
+	// lists are no longer guaranteed to walk in lockstep.
+	const revealed = revealedShapeList.value;
+	const nodeIds = resolveRevealedDrawingShapeNodeIds(drawingShapes.value, revealed, nodes.value);
 	return projectDrawingShapes(
 		props.element.id,
-		revealedShapeList.value,
+		revealed,
 		drawingViewBox.value,
 		palette.value,
 		style.value,
 	).map((shape, i) => ({
 		...shape,
-		nodeId: revealedShapeList.value[i]?.text ? textIds[textShapeIndex++] : undefined,
+		nodeId: nodeIds[i],
 	}));
 });
 

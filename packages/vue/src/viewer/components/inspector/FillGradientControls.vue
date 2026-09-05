@@ -8,11 +8,12 @@ import {
 	removeGradientStopPatch,
 	updateGradientStopPatch,
 } from 'pptx-viewer-shared';
-import type { GradientStop } from 'pptx-viewer-shared';
+import type { GradientStop, ThemeColorPickerCommit } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectRecentColors } from '../../composables/recent-colors-context';
+import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.vue';
 
 /**
  * FillGradientControls: the gradient-fill half of {@link FillPanel}, shown
@@ -69,11 +70,22 @@ function onAngleChange(value: string): void {
 }
 
 function onStopColor(index: number, value: string): void {
-	emit('update', updateGradientStopPatch(props.element, index, { color: value }));
+	emit(
+		'update',
+		updateGradientStopPatch(props.element, index, { color: value, colorRef: undefined }),
+	);
 }
 
 function onStopColorCommit(value: string): void {
 	recentColors?.push(value);
+}
+
+function onStopThemePick(index: number, commit: ThemeColorPickerCommit): void {
+	emit(
+		'update',
+		updateGradientStopPatch(props.element, index, { color: commit.hex, colorRef: commit.ref }),
+	);
+	recentColors?.push(commit.hex);
 }
 
 function onStopPosition(index: number, value: string): void {
@@ -164,51 +176,56 @@ function onAddStop(): void {
 		<span class="pptx-vue-gradient-stops-heading uppercase tracking-wide text-muted-foreground">
 			{{ t('pptx.gradient.stops') }}
 		</span>
-		<div
-			v-for="(stop, index) in state.stops"
-			:key="index"
-			data-testid="fx-gradient-stop-row"
-			class="pptx-vue-gradient-stop-row flex items-center gap-1"
-		>
-			<span class="pptx-vue-gradient-stop-idx w-3 text-center text-muted-foreground">{{
-				index + 1
-			}}</span>
-			<input
-				type="color"
-				class="pptx-vue-gradient-color h-6 w-8 cursor-pointer rounded border border-border"
-				:value="stop.color"
-				@input="onStopColor(index, ($event.target as HTMLInputElement).value)"
-				@change="onStopColorCommit(($event.target as HTMLInputElement).value)"
-			/>
-			<input
-				type="number"
-				class="pptx-vue-gradient-input w-14 rounded border border-border bg-muted px-1.5 py-0.5"
-				:aria-label="t('pptx.gradient.position')"
-				min="0"
-				max="100"
-				:value="Math.round(stop.position)"
-				@change="onStopPosition(index, ($event.target as HTMLInputElement).value)"
-			/>
-			<span class="text-[10px] text-muted-foreground">%</span>
-			<input
-				type="number"
-				class="pptx-vue-gradient-input w-14 rounded border border-border bg-muted px-1.5 py-0.5"
-				aria-label="alpha"
-				min="0"
-				max="1"
-				step="0.05"
-				:value="stop.opacity ?? 1"
-				@change="onStopOpacity(index, ($event.target as HTMLInputElement).value)"
-			/>
-			<button
-				type="button"
-				class="pptx-vue-gradient-remove ml-auto rounded border border-border px-1.5 text-muted-foreground hover:text-destructive"
-				:title="t('pptx.gradient.removeStop')"
-				:disabled="state.stops.length <= 2"
-				@click="onRemoveStop(index)"
+		<div v-for="(stop, index) in state.stops" :key="index" class="pptx-vue-gradient-stop-block">
+			<div
+				data-testid="fx-gradient-stop-row"
+				class="pptx-vue-gradient-stop-row flex items-center gap-1"
 			>
-				&times;
-			</button>
+				<span class="pptx-vue-gradient-stop-idx w-3 text-center text-muted-foreground">{{
+					index + 1
+				}}</span>
+				<input
+					type="color"
+					class="pptx-vue-gradient-color h-6 w-8 cursor-pointer rounded border border-border"
+					:value="stop.color"
+					@input="onStopColor(index, ($event.target as HTMLInputElement).value)"
+					@change="onStopColorCommit(($event.target as HTMLInputElement).value)"
+				/>
+				<input
+					type="number"
+					class="pptx-vue-gradient-input w-14 rounded border border-border bg-muted px-1.5 py-0.5"
+					:aria-label="t('pptx.gradient.position')"
+					min="0"
+					max="100"
+					:value="Math.round(stop.position)"
+					@change="onStopPosition(index, ($event.target as HTMLInputElement).value)"
+				/>
+				<span class="text-[10px] text-muted-foreground">%</span>
+				<input
+					type="number"
+					class="pptx-vue-gradient-input w-14 rounded border border-border bg-muted px-1.5 py-0.5"
+					aria-label="alpha"
+					min="0"
+					max="1"
+					step="0.05"
+					:value="stop.opacity ?? 1"
+					@change="onStopOpacity(index, ($event.target as HTMLInputElement).value)"
+				/>
+				<button
+					type="button"
+					class="pptx-vue-gradient-remove ml-auto rounded border border-border px-1.5 text-muted-foreground hover:text-destructive"
+					:title="t('pptx.gradient.removeStop')"
+					:disabled="state.stops.length <= 2"
+					@click="onRemoveStop(index)"
+				>
+					&times;
+				</button>
+			</div>
+			<ThemeColorSwatchGrid
+				:selected-ref="stop.colorRef"
+				:selected-hex="stop.color"
+				@pick="(commit) => onStopThemePick(index, commit)"
+			/>
 		</div>
 		<button
 			type="button"

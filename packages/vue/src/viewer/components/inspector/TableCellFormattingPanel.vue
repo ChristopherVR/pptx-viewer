@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n';
 
 import DebouncedColorInput from './DebouncedColorInput.vue';
 import TableCellAdvancedFill from './TableCellAdvancedFill.vue';
+import TableCellColorField from './TableCellColorField.vue';
 
 /**
  * TableCellFormattingPanel: Vue port of React's inspector
@@ -122,24 +123,24 @@ function split(): void {
 		</label>
 
 		<div class="grid grid-cols-2 gap-1.5">
-			<label class="flex flex-col gap-1">
-				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.color') }}</span>
-				<DebouncedColorInput
-					:value="hex(cs.color, '#000000')"
-					:disabled="!canEdit"
-					:aria-label="t('pptx.tableCell.textColorAria')"
-					@commit="updateCellStyle({ color: $event })"
-				/>
-			</label>
-			<label class="flex flex-col gap-1">
-				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.background') }}</span>
-				<DebouncedColorInput
-					:value="hex(cs.backgroundColor, '#ffffff')"
-					:disabled="!canEdit"
-					:aria-label="t('pptx.tableCell.backgroundColorAria')"
-					@commit="updateCellStyle({ backgroundColor: $event })"
-				/>
-			</label>
+			<TableCellColorField
+				:label="t('pptx.table.color')"
+				:value="cs.color"
+				fallback="#000000"
+				:selected-ref="cs.colorRef"
+				:disabled="!canEdit"
+				:aria-label="t('pptx.tableCell.textColorAria')"
+				@commit="(hex, ref) => updateCellStyle({ color: hex, colorRef: ref })"
+			/>
+			<TableCellColorField
+				:label="t('pptx.table.background')"
+				:value="cs.backgroundColor"
+				fallback="#ffffff"
+				:selected-ref="cs.backgroundColorRef"
+				:disabled="!canEdit"
+				:aria-label="t('pptx.tableCell.backgroundColorAria')"
+				@commit="(hex, ref) => updateCellStyle({ backgroundColor: hex, backgroundColorRef: ref })"
+			/>
 		</div>
 
 		<TableCellAdvancedFill :cell-style="cs" :can-edit="canEdit" @update="updateCellStyle" />

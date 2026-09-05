@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, PptxTextWarpPreset, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 import { textFontSizePatch, textFontSizePtToPx, textFontSizePxToPt } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -10,6 +11,7 @@ import RecentColorsRow from '../RecentColorsRow.vue';
 import Text3DProperties from './Text3DProperties.vue';
 import TextEffectsPanel from './TextEffectsPanel.vue';
 import TextWarpGallery from './TextWarpGallery.vue';
+import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.vue';
 
 /**
  * TextPanel: typography inspector for the Vue `pptx-vue-viewer` editor.
@@ -82,6 +84,7 @@ const fontSize = computed<number>(() =>
 	textStyle.value?.fontSize !== undefined ? textFontSizePxToPt(textStyle.value.fontSize) : 18,
 );
 const color = computed<string>(() => textStyle.value?.color ?? '#000000');
+const colorRef = computed(() => textStyle.value?.colorRef);
 const align = computed<AlignValue | undefined>(() => textStyle.value?.align);
 const vAlign = computed<VAlignValue | undefined>(() => textStyle.value?.vAlign);
 
@@ -101,12 +104,17 @@ function onFontSize(event: Event): void {
 }
 
 function onColor(event: Event): void {
-	patchTextStyle({ color: (event.target as HTMLInputElement).value });
+	patchTextStyle({ color: (event.target as HTMLInputElement).value, colorRef: undefined });
 }
 
 function onColorPick(hex: string): void {
-	patchTextStyle({ color: hex });
+	patchTextStyle({ color: hex, colorRef: undefined });
 	recentColors?.push(hex);
+}
+
+function onColorThemePick(commit: ThemeColorPickerCommit): void {
+	patchTextStyle({ color: commit.hex, colorRef: commit.ref });
+	recentColors?.push(commit.hex);
 }
 
 function toggle(key: 'bold' | 'italic' | 'underline' | 'strikethrough'): void {
@@ -194,6 +202,11 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 					/>
 				</label>
 			</div>
+			<ThemeColorSwatchGrid
+				:selected-ref="colorRef"
+				:selected-hex="color"
+				@pick="onColorThemePick"
+			/>
 			<RecentColorsRow
 				v-if="recentColors"
 				:colors="recentColors.recent.value"

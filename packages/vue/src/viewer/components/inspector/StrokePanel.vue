@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { PptxElement, ShapeStyle, StrokeDashType } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
+import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 import { STROKE_DASH_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectRecentColors } from '../../composables/recent-colors-context';
 import RecentColorsRow from '../RecentColorsRow.vue';
+import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.vue';
 
 /**
  * StrokePanel: line/border inspector for the Vue `pptx-vue-viewer` editor.
@@ -45,12 +47,20 @@ function patchShapeStyle(next: Partial<ShapeStyle>): void {
 }
 
 function onColor(event: Event): void {
-	patchShapeStyle({ strokeColor: (event.target as HTMLInputElement).value });
+	patchShapeStyle({
+		strokeColor: (event.target as HTMLInputElement).value,
+		strokeColorRef: undefined,
+	});
 }
 
 function onColorPick(hex: string): void {
-	patchShapeStyle({ strokeColor: hex });
+	patchShapeStyle({ strokeColor: hex, strokeColorRef: undefined });
 	recentColors?.push(hex);
+}
+
+function onThemeColor(commit: ThemeColorPickerCommit): void {
+	patchShapeStyle({ strokeColor: commit.hex, strokeColorRef: commit.ref });
+	recentColors?.push(commit.hex);
 }
 
 function onWidth(event: Event): void {
@@ -88,6 +98,11 @@ function onDash(event: Event): void {
 					@change="onColorPick(($event.target as HTMLInputElement).value)"
 				/>
 			</label>
+			<ThemeColorSwatchGrid
+				:selected-ref="shapeStyle?.strokeColorRef"
+				:selected-hex="strokeColor"
+				@pick="onThemeColor"
+			/>
 			<RecentColorsRow
 				v-if="recentColors"
 				:colors="recentColors.recent.value"

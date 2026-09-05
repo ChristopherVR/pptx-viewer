@@ -24,6 +24,7 @@ import type {
 } from 'pptx-viewer-core';
 import {
 	buildSmartArt3DModel,
+	collectCoherent3DOffNodeIds,
 	computeSmartArtElementLayout,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
@@ -87,6 +88,7 @@ const model = computed<SmartArt3DModel | null>(() => {
 	return buildSmartArt3DModel(layout, {
 		background: chrome.value?.backgroundColor,
 		spatial: true,
+		coherent3DOffNodeIds: collectCoherent3DOffNodeIds(data.nodes),
 	});
 });
 

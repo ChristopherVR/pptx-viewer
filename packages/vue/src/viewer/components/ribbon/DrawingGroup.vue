@@ -5,12 +5,16 @@ import { Layers, PaintBucket, PenLine, Shapes, Sparkles } from 'lucide-vue-next'
  * controls, Shape Fill/Outline colour popovers, and a Shape Effects placeholder.
  * Vue port of React's `toolbar/DrawingGroup.tsx`.
  */
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxThemeColorRef, ShapeStyle } from 'pptx-viewer-core';
+import { hasShapeProperties } from 'pptx-viewer-core';
+import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 import { RIBBON_SHAPE_SWATCHES, shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { injectRecentColors } from '../../composables/recent-colors-context';
+import ThemeColorSwatchGrid from '../inspector/ThemeColorSwatchGrid.vue';
 import RecentColorsRow from '../RecentColorsRow.vue';
 import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
@@ -59,6 +63,12 @@ const arrangeMenu = useDropdown();
 const fillMenu = useDropdown();
 const outlineMenu = useDropdown();
 
+const selectedShapeStyle = computed<ShapeStyle | undefined>(() =>
+	props.selectedElement && hasShapeProperties(props.selectedElement)
+		? props.selectedElement.shapeStyle
+		: undefined,
+);
+
 function handlePickShape(s: { type: SupportedShapeType }): void {
 	props.onSetNewShapeType(s.type);
 	props.onAddShape();
@@ -74,16 +84,24 @@ function handleArrange(action: string, edge: boolean): void {
 	arrangeMenu.close();
 }
 
-function handleFill(color: string): void {
-	props.onUpdateElementStyle?.(shapeFillChange(color));
+function handleFill(color: string, ref?: PptxThemeColorRef): void {
+	props.onUpdateElementStyle?.(shapeFillChange(color, ref));
 	recentColors?.push(color);
 	fillMenu.close();
 }
 
-function handleOutline(color: string): void {
-	props.onUpdateElementStyle?.(shapeOutlineChange(color));
+function handleOutline(color: string, ref?: PptxThemeColorRef): void {
+	props.onUpdateElementStyle?.(shapeOutlineChange(color, ref));
 	recentColors?.push(color);
 	outlineMenu.close();
+}
+
+function handleFillThemePick(commit: ThemeColorPickerCommit): void {
+	handleFill(commit.hex, commit.ref);
+}
+
+function handleOutlineThemePick(commit: ThemeColorPickerCommit): void {
+	handleOutline(commit.hex, commit.ref);
 }
 </script>
 
@@ -172,6 +190,15 @@ function handleOutline(color: string): void {
 					v-anchored-popup="{ anchor: fillMenu.root.value }"
 				>
 					<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2">
+						<ThemeColorSwatchGrid
+							:disabled="!props.canEdit || !props.selectedElement"
+							:selected-ref="selectedShapeStyle?.fillColorRef"
+							:selected-hex="selectedShapeStyle?.fillColor"
+							@pick="handleFillThemePick"
+						/>
+						<div class="mt-1 text-[10px] text-muted-foreground mb-1">
+							{{ t('pptx.colorPicker.standardColors') }}
+						</div>
 						<div class="grid grid-cols-6 gap-1">
 							<button
 								v-for="c in FILL_COLORS"
@@ -213,6 +240,15 @@ function handleOutline(color: string): void {
 					v-anchored-popup="{ anchor: outlineMenu.root.value }"
 				>
 					<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2">
+						<ThemeColorSwatchGrid
+							:disabled="!props.canEdit || !props.selectedElement"
+							:selected-ref="selectedShapeStyle?.strokeColorRef"
+							:selected-hex="selectedShapeStyle?.strokeColor"
+							@pick="handleOutlineThemePick"
+						/>
+						<div class="mt-1 text-[10px] text-muted-foreground mb-1">
+							{{ t('pptx.colorPicker.standardColors') }}
+						</div>
 						<div class="grid grid-cols-6 gap-1">
 							<button
 								v-for="c in FILL_COLORS"

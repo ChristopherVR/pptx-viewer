@@ -91,6 +91,7 @@ import { RecentColorsKey } from './composables/recent-colors-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { SurfaceChart3DKey } from './composables/surface-chart-3d';
 import { TableThemeKey } from './composables/table-theme';
+import { ThemeColorMapKey } from './composables/theme-color-map-context';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosaveRecovery } from './composables/useAutosaveRecovery';
@@ -311,6 +312,10 @@ provide(TableThemeKey, () => ({
 // in Stroke, Text, Slide Background, table-cell fill and chart series alike.
 const recentColors = useRecentColors({ presentationProperties, loadVersion });
 provide(RecentColorsKey, recentColors);
+
+// The deck's real theme palette for every colour picker's "Theme Colors"
+// grid (see `theme-color-map-context.ts`).
+provide(ThemeColorMapKey, themeColorMap);
 
 // Expose a zoom-target lookup so Slide-Zoom / Section-Zoom tiles can render a
 // higher-fidelity fallback thumbnail (target slide's real background colour,

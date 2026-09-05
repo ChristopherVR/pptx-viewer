@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
+import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -8,6 +9,7 @@ import { injectRecentColors } from '../../composables/recent-colors-context';
 import RecentColorsRow from '../RecentColorsRow.vue';
 import FillGradientControls from './FillGradientControls.vue';
 import FillPatternControls from './FillPatternControls.vue';
+import ThemeColorSwatchGrid from './ThemeColorSwatchGrid.vue';
 
 /**
  * FillPanel: shape fill controls (mode, solid colour, opacity, gradient,
@@ -66,7 +68,12 @@ function onMode(value: string): void {
 }
 
 function onColor(value: string): void {
-	patchStyle({ fillColor: value });
+	patchStyle({ fillColor: value, fillColorRef: undefined });
+}
+
+function onThemeColor(commit: ThemeColorPickerCommit): void {
+	patchStyle({ fillColor: commit.hex, fillColorRef: commit.ref });
+	recentColors?.push(commit.hex);
 }
 
 function onOpacity(value: string): void {
@@ -114,6 +121,11 @@ function onOpacity(value: string): void {
 						@change="recentColors?.push(($event.target as HTMLInputElement).value)"
 					/>
 				</label>
+				<ThemeColorSwatchGrid
+					:selected-ref="currentStyle.fillColorRef"
+					:selected-hex="fillColor"
+					@pick="onThemeColor"
+				/>
 				<RecentColorsRow
 					v-if="recentColors"
 					:colors="recentColors.recent.value"

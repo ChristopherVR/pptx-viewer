@@ -130,3 +130,54 @@ describe('slideTextBlock - reflection (a:rPr/a:effectLst/a:reflection)', () => {
 		expect(wrapper.html()).not.toContain('pptx-vue-text-reflection');
 	});
 });
+
+/**
+ * `a:rPr/@u="words"` underlines only the words. The ordinary per-word split
+ * already emits sibling runs, but a tab-separated piece and a ruby base text
+ * each stay ONE piece, so shared hands the word/gap breakdown over as
+ * `piece.words` / `run.underlineWordPieces` and the template renders it.
+ */
+describe('slideTextBlock - u="words" on tab pieces and ruby runs', () => {
+	const wordsStyle = {
+		fontFamily: 'Arial',
+		fontSize: 16,
+		underline: true,
+		underlineStyle: 'words',
+	};
+
+	it('renders a tab piece as one span per word with no underline under the gap', () => {
+		const seg = { text: 'Hello World\t12', style: wordsStyle } as unknown as TextSegment;
+		const el = {
+			...element({ textStyle: { tabStops: [{ position: 300, align: 'r' }] } }),
+			textSegments: [seg],
+		} as PptxElement;
+		const wrapper = mount(SlideTextBlock, {
+			props: { paragraphs: buildParagraphs(el), textStyle: {} },
+		});
+		const spans = wrapper.findAll('span');
+		expect(spans.find((s) => s.text() === 'Hello World')).toBeUndefined();
+		const hello = spans.find((s) => s.text() === 'Hello');
+		expect(hello?.attributes('style')).toContain('underline');
+		expect(hello?.attributes('style')).toContain('inline-block');
+		const gap = spans.find((s) => s.element.textContent === ' ');
+		expect(gap).toBeDefined();
+		expect(gap?.attributes('style') ?? '').not.toContain('underline');
+	});
+
+	it('renders a ruby base text word by word, the ruby element itself undecorated', () => {
+		const seg = {
+			text: 'two words',
+			rubyText: 'reading',
+			style: wordsStyle,
+		} as unknown as TextSegment;
+		const el = { ...element(), textSegments: [seg] } as PptxElement;
+		const wrapper = mount(SlideTextBlock, {
+			props: { paragraphs: buildParagraphs(el), textStyle: {} },
+		});
+		const ruby = wrapper.get('ruby');
+		expect(ruby.attributes('style') ?? '').not.toContain('underline');
+		const word = ruby.findAll('span').find((s) => s.text() === 'two');
+		expect(word?.attributes('style')).toContain('underline');
+		expect(ruby.text()).toContain('two words');
+	});
+});

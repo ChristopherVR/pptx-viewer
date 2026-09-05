@@ -4,7 +4,25 @@ import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
 
 import { RecentColorsKey } from '../../composables/recent-colors-context';
+import { ThemeColorMapKey } from '../../composables/theme-color-map-context';
 import TextPanel from './TextPanel.vue';
+
+const OFFICE_THEME = {
+	dk1: '#000000',
+	lt1: '#FFFFFF',
+	dk2: '#44546A',
+	lt2: '#E7E6E6',
+	accent1: '#4472C4',
+	accent2: '#ED7D31',
+	accent3: '#A5A5A5',
+	accent4: '#FFC000',
+	accent5: '#5B9BD5',
+	accent6: '#70AD47',
+	bg1: '#FFFFFF',
+	tx1: '#000000',
+	bg2: '#E7E6E6',
+	tx2: '#44546A',
+};
 
 function textEl(textStyle?: TextStyle): PptxElement {
 	return {
@@ -95,5 +113,31 @@ describe('textPanel', () => {
 		const color = wrapper.find('input[type="color"]');
 		await color.setValue('#00ff00');
 		expect(recent.value[0]).toBe('#00ff00');
+	});
+});
+
+describe('textPanel theme colour picker', () => {
+	it('commits both the resolved hex and the ref on a theme swatch click', async () => {
+		const wrapper = mount(TextPanel, {
+			props: { element: textEl({ color: '#000000' }) },
+			global: { provide: { [ThemeColorMapKey as symbol]: ref(OFFICE_THEME) } },
+		});
+		const accent1 = wrapper.get('button[title="Accent 1"]');
+		await accent1.trigger('click');
+		const patch = wrapper.emitted('update')?.[0]?.[0] as Partial<PptxElement>;
+		expect(patch.textStyle).toMatchObject({ color: '#4472c4', colorRef: { scheme: 'accent1' } });
+	});
+
+	it('clears a previously-stored ref when the native colour input changes', async () => {
+		const wrapper = mount(TextPanel, {
+			props: {
+				element: textEl({ color: '#4472c4', colorRef: { scheme: 'accent1' } }),
+			},
+			global: { provide: { [ThemeColorMapKey as symbol]: ref(OFFICE_THEME) } },
+		});
+		const color = wrapper.find('input[type="color"]');
+		await color.setValue('#ff0000');
+		const patch = wrapper.emitted('update')?.[0]?.[0] as Partial<PptxElement>;
+		expect(patch.textStyle?.colorRef).toBeFalsy();
 	});
 });
