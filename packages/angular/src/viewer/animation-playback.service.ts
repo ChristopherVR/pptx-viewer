@@ -31,7 +31,9 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
-	cancelBuildReveal,
+	advanceMainSequence,
+	clearPlaybackTimers,
+	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
 	resolveMediaTimeNodeElementIds,
@@ -66,6 +68,12 @@ export class AnimationPlaybackService {
 	private controller: PresentationAnimationController | null = null;
 	private readonly timers: number[] = [];
 	private readonly buildHandle: BuildRafHandle = { current: null };
+	/**
+	 * The click-group the last presenter click started, so a second click while
+	 * it is still mid-flight fast-forwards it (`p:seq/@nextAc="seek"`) instead
+	 * of skipping to the next group. Owned here, mutated by the shared helpers.
+	 */
+	private readonly activeGroup = createActiveAnimationGroup();
 	private showWithAnimation: boolean | undefined = undefined;
 	private frameRoot: (() => HTMLElement | null) | undefined;
 	private onPlayActionSound: ((soundPath: string) => void) | undefined;
@@ -136,11 +144,7 @@ export class AnimationPlaybackService {
 
 	/** Clear all pending timers + the in-flight staged-build RAF. */
 	clearTimers(): void {
-		for (const timer of this.timers) {
-			window.clearTimeout(timer);
-		}
-		this.timers.length = 0;
-		cancelBuildReveal(this.buildHandle);
+		clearPlaybackTimers(this.ctx, this.activeGroup);
 	}
 
 	private syncComplete(): void {
@@ -241,18 +245,14 @@ export class AnimationPlaybackService {
 	 * through to slide navigation).
 	 */
 	advance(): boolean {
-		const controller = this.controller;
-		if (!this.animationsEnabled() || !controller || !controller.hasMoreSteps()) {
+		if (!this.animationsEnabled()) {
 			return false;
 		}
-		const group = controller.advance();
-		if (!group) {
-			return false;
-		}
-		playGroup(controller, group, this.ctx);
-		scheduleAutoAdvanceChain(controller, this.ctx);
+		// Seek-or-advance (`p:seq/@nextAc="seek"`) plus the auto-advance chain
+		// live in shared, so the branch is identical in all five bindings.
+		const consumed = advanceMainSequence(this.controller, this.ctx, this.activeGroup);
 		this.syncComplete();
-		return true;
+		return consumed;
 	}
 
 	/** Play an interactive shape's sequence; `true` when it triggered one. */
