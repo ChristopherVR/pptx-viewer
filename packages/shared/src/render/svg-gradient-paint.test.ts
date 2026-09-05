@@ -96,6 +96,27 @@ describe('buildSvgGradientDef', () => {
 		const def = buildSvgGradientDef(style({ fillGradientType: 'radial' }), 'e1');
 		expect(def).toMatchObject({ kind: 'radial', cx: 0.5, cy: 0.5 });
 	});
+
+	it('builds a rectPath pattern def (not an ellipse radialGradient) for path type "rect"', () => {
+		const def = buildSvgGradientDef(
+			style({ fillGradientType: 'radial', fillGradientPathType: 'rect' }),
+			'e1',
+		);
+		expect(def).toMatchObject({ kind: 'rectPath', id: 'pptx-grad-e1' });
+		// A bare data URI (valid for an SVG `<image href="...">` attribute), NOT
+		// the CSS `url("...")` wrapper `buildRectPathGradientImage` returns.
+		expect((def as { href: string }).href).toMatch(/^data:image\/svg\+xml,/u);
+		// The nested-rectangle band SVG itself, embedded in the data URI.
+		expect(decodeURIComponent((def as { href: string }).href)).toContain('<rect ');
+	});
+
+	it('keeps path type "shape" elliptical (only "rect" gets the band field)', () => {
+		const def = buildSvgGradientDef(
+			style({ fillGradientType: 'radial', fillGradientPathType: 'shape' }),
+			'e1',
+		);
+		expect(def).toMatchObject({ kind: 'radial' });
+	});
 });
 
 describe('svgGradientFillRef / svgGradientMarkup', () => {
@@ -128,5 +149,17 @@ describe('svgGradientFillRef / svgGradientMarkup', () => {
 	it('serialises a radial definition to markup', () => {
 		const def = buildSvgGradientDef(style({ fillGradientType: 'radial' }), 'e1');
 		expect(svgGradientMarkup(def!)).toContain('<radialGradient id="pptx-grad-e1"');
+	});
+
+	it('serialises a rectPath definition to a stretched <pattern><image> tile', () => {
+		const def = buildSvgGradientDef(
+			style({ fillGradientType: 'radial', fillGradientPathType: 'rect' }),
+			'e1',
+		);
+		const markup = svgGradientMarkup(def!);
+		expect(markup).toContain('<pattern id="pptx-grad-e1" patternUnits="objectBoundingBox"');
+		expect(markup).toContain('width="1" height="1"');
+		expect(markup).toContain('preserveAspectRatio="none"');
+		expect(markup).not.toContain('<radialGradient');
 	});
 });

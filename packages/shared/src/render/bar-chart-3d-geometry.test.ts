@@ -111,6 +111,7 @@ describe('buildBar3DMeshGroup', () => {
 			Mesh: class {
 				position = { set: () => {} };
 				scale = { set: () => {} };
+				rotation = { z: 0 };
 				userData: unknown;
 				constructor(
 					public geometry: unknown,
@@ -143,5 +144,23 @@ describe('buildBar3DMeshGroup', () => {
 			categoryIndex: 3,
 			value: 42,
 		});
+	});
+
+	it('leaves mesh rotation at 0 when horizontal is omitted or false', () => {
+		const three = fakeThreeForMeshes();
+		const { scene } = makeScene();
+		const group = buildBar3DMeshGroup(three as never, scene as never, [makeBox()]);
+		expect(group.meshes[0].rotation.z).toBe(0);
+		const groupExplicit = buildBar3DMeshGroup(three as never, scene as never, [makeBox()], false);
+		expect(groupExplicit.meshes[0].rotation.z).toBe(0);
+	});
+
+	it('rotates every mesh -Math.PI / 2 about Z for a horizontal (barDir=bar) chart', () => {
+		const three = fakeThreeForMeshes();
+		const { scene } = makeScene();
+		const boxes = [makeBox({ shape: 'box' }), makeBox({ shape: 'cylinder', categoryIndex: 1 })];
+		const group = buildBar3DMeshGroup(three as never, scene as never, boxes, true);
+		expect(group.meshes[0].rotation.z).toBe(-Math.PI / 2);
+		expect(group.meshes[1].rotation.z).toBe(-Math.PI / 2);
 	});
 });

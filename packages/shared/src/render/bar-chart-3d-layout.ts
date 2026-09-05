@@ -14,7 +14,11 @@
  */
 import type { PptxBar3DShape } from 'pptx-viewer-core';
 
-import { computeCartesianGridExtent, MAX_VALUE_HEIGHT } from './cartesian-chart-3d-geom';
+import {
+	computeCartesianGridExtent,
+	MAX_VALUE_HEIGHT,
+	transposeForHorizontalBar3D,
+} from './cartesian-chart-3d-geom';
 import type { ValueRange } from './chart-view-model';
 
 /** One (series, category) data point, resolved to display value + colour. */
@@ -171,6 +175,15 @@ function layoutStacked(
  * series its own depth plane; stacked/percentStacked keeps them coplanar and
  * stacks vertically (percentStacked's `plotValue`s are pre-normalised to
  * percent by the caller, so this function treats it identically to `stacked`).
+ *
+ * `horizontal` (`c:barDir val="bar"`) remaps every box's CENTER from the
+ * vertical local frame (category = X, value = Y, series = Z) into the
+ * horizontal one (value = X, category = Y, series unchanged on Z) via
+ * {@link transposeForHorizontalBar3D}. `size` is deliberately left in the
+ * unrotated local frame: the scene mounts every box mesh with a matching
+ * `-Math.PI / 2` Z rotation instead of swapping width/height numerically, so
+ * a cylinder/cone/pyramid box keeps its true (non-elliptical) cross-section
+ * when it ends up lying on its side (see `bar-chart-3d-geometry.ts`).
  */
 export function layoutBarChart3D(
 	points: ReadonlyArray<CartesianChart3DPoint>,
@@ -179,8 +192,14 @@ export function layoutBarChart3D(
 	range: ValueRange,
 	grouping: 'clustered' | 'stacked' | 'percentStacked',
 	depthPercent: number | undefined,
+	horizontal = false,
 ): BarChart3DBox[] {
-	return grouping === 'clustered'
-		? layoutClustered(points, cols, rows, range, depthPercent)
-		: layoutStacked(points, cols, rows, range, depthPercent);
+	const boxes =
+		grouping === 'clustered'
+			? layoutClustered(points, cols, rows, range, depthPercent)
+			: layoutStacked(points, cols, rows, range, depthPercent);
+	if (!horizontal) {
+		return boxes;
+	}
+	return boxes.map((box) => ({ ...box, center: transposeForHorizontalBar3D(box.center) }));
 }

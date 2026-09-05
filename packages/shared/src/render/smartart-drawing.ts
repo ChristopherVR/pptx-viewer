@@ -250,7 +250,7 @@ export interface DrawingViewBox {
 }
 
 /** Compute the SVG viewBox that fits all drawing shapes, rebasing to (0, 0). */
-export function computeDrawingViewBox(shapes: PptxSmartArtDrawingShape[]): DrawingViewBox {
+export function computeDrawingViewBox(shapes: readonly PptxSmartArtDrawingShape[]): DrawingViewBox {
 	let minX = Infinity;
 	let minY = Infinity;
 	let maxX = -Infinity;

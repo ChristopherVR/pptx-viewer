@@ -101,6 +101,34 @@ export interface PlaybackContext {
 // Click-group step application
 // ---------------------------------------------------------------------------
 
+/** The staged-build fields of a state, carried across the step writes below. */
+type BuildStateFields = Pick<ElementAnimationState, 'build' | 'chartReveal' | 'diagramReveal'>;
+
+/**
+ * The staged-build reveal a state already holds. A `p:bldChart` / `p:bldDgm`
+ * build fires one step PER STAGE against the same element id, so every write
+ * that replaces the element's state object (a step starting, a step's cleanup
+ * timer) has to carry these through: dropping them hands the renderer a state
+ * with no build at all, which it reads as "reveal everything" - the whole
+ * diagram popped in the moment the first stage's fade finished.
+ */
+function carryBuildState(state: ElementAnimationState | undefined): BuildStateFields {
+	if (!state) {
+		return {};
+	}
+	const carried: BuildStateFields = {};
+	if (state.build) {
+		carried.build = state.build;
+	}
+	if (state.chartReveal) {
+		carried.chartReveal = state.chartReveal;
+	}
+	if (state.diagramReveal) {
+		carried.diagramReveal = state.diagramReveal;
+	}
+	return carried;
+}
+
 /**
  * Apply a click-group's steps onto the element-state map: fire sound / media
  * commands, set each step's initial visibility + CSS animation, then schedule
@@ -145,9 +173,10 @@ export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: Playbac
 			if (step.command) {
 				continue;
 			}
-			const current = next.get(step.elementId) ?? { visible: true, cssAnimation: undefined };
-			const shouldBeVisible = step.presetClass === 'exit' ? current.visible : true;
+			const current = next.get(step.elementId);
+			const shouldBeVisible = step.presetClass === 'exit' ? (current?.visible ?? true) : true;
 			next.set(step.elementId, {
+				...carryBuildState(current),
 				visible: shouldBeVisible,
 				cssAnimation: step.cssAnimation,
 				animatesFill: step.colorTargets?.includes('fill') ? true : undefined,
@@ -167,14 +196,17 @@ export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: Playbac
 			() => {
 				ctx.setStates((previous) => {
 					const next = new Map(previous);
-					const current = next.get(step.elementId) ?? { visible: true, cssAnimation: undefined };
+					const current = next.get(step.elementId);
 					// `afterAnimation: "hideAfterAnimation"` hides the element once its
 					// (entrance/emphasis) effect ends, overriding normal visibility.
 					const visibleAfter =
-						step.presetClass === 'exit' || step.hideAfterEffect ? false : current.visible;
+						step.presetClass === 'exit' || step.hideAfterEffect
+							? false
+							: (current?.visible ?? true);
 					// `p:cTn/@fill="hold"`/`"freeze"`: keep the CSS animation attached so
 					// its final frame persists instead of reverting on cleanup.
 					next.set(step.elementId, {
+						...carryBuildState(current),
 						visible: visibleAfter,
 						cssAnimation: step.holdEndState ? step.cssAnimation : undefined,
 					});
@@ -224,12 +256,15 @@ export function driveBuildReveal(
 		ctx.setStates((previous) => {
 			const next = new Map(previous);
 			for (const id of buildIds) {
-				const build = states.get(id)?.build;
-				if (!build) {
+				const computed = states.get(id);
+				if (!computed?.build) {
 					continue;
 				}
 				const existing = next.get(id) ?? { visible: true, cssAnimation: undefined };
-				next.set(id, { ...existing, build });
+				// The authored-index reveal set (`p:graphicEl`) rides alongside the
+				// count-based `build`; both come from the same snapshot, and the
+				// renderer prefers the descriptor when present.
+				next.set(id, { ...existing, ...carryBuildState(computed) });
 			}
 			return next;
 		});

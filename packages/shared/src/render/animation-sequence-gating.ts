@@ -161,6 +161,12 @@ export interface StepApplicationState {
 	 * consumer that only needs `activeSteps`) may omit it.
 	 */
 	chartRevealHistory?: Map<string, TimelineStep[]>;
+	/**
+	 * Cumulative history of fired diagram-build steps per element, mirroring
+	 * {@link chartRevealHistory} for `p:bldDgm` per-node builds. Consumed by
+	 * `diagram-reveal-descriptor`'s `resolveDiagramRevealDescriptor`.
+	 */
+	diagramRevealHistory?: Map<string, TimelineStep[]>;
 }
 
 /**
@@ -201,6 +207,11 @@ export function applyRestartGatedStep(
 		const history = state.chartRevealHistory?.get(step.elementId) ?? [];
 		history.push(step);
 		state.chartRevealHistory?.set(step.elementId, history);
+	}
+	if (step.build?.kind === 'diagram') {
+		const history = state.diagramRevealHistory?.get(step.elementId) ?? [];
+		history.push(step);
+		state.diagramRevealHistory?.set(step.elementId, history);
 	}
 	if (step.presetClass === 'entr') {
 		state.revealedElements.add(step.elementId);

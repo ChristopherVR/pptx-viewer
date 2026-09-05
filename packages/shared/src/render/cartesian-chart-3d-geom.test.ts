@@ -5,6 +5,7 @@ import {
 	computeCartesianCameraPlacement,
 	computeCartesianGridExtent,
 	resolveCartesianCameraFov,
+	transposeForHorizontalBar3D,
 } from './cartesian-chart-3d-geom';
 
 describe('computeCartesianGridExtent', () => {
@@ -105,5 +106,39 @@ describe('buildCartesianChart3DLabels', () => {
 		const cats = Array.from({ length: 20 }, (_, i) => `c${i}`);
 		const labels = buildCartesianChart3DLabels(20, 1, cats, [], undefined, 8, 6);
 		expect(labels.filter((l) => l.axis === 'category').length).toBeLessThanOrEqual(8);
+	});
+
+	it('transposes every anchor (x, y, z) -> (y, -x, z) when horizontal is true', () => {
+		const vertical = buildCartesianChart3DLabels(3, 2, ['A', 'B', 'C'], ['S1', 'S2'], undefined);
+		const horizontal = buildCartesianChart3DLabels(
+			3,
+			2,
+			['A', 'B', 'C'],
+			['S1', 'S2'],
+			undefined,
+			8,
+			6,
+			true,
+		);
+		expect(horizontal).toHaveLength(vertical.length);
+		for (let i = 0; i < vertical.length; i++) {
+			const v = vertical[i].anchor;
+			expect(horizontal[i].anchor).toStrictEqual([v[1], -v[0], v[2]]);
+		}
+	});
+});
+
+describe('transposeForHorizontalBar3D', () => {
+	it('rotates (x, y, z) -> (y, -x, z)', () => {
+		expect(transposeForHorizontalBar3D([1, 2, 3])).toStrictEqual([2, -1, 3]);
+	});
+
+	it('is its own inverse composed with a 180 degree turn (four applications return the input)', () => {
+		const p: readonly [number, number, number] = [1, 2, 3];
+		const once = transposeForHorizontalBar3D(p);
+		const twice = transposeForHorizontalBar3D(once);
+		const thrice = transposeForHorizontalBar3D(twice);
+		const four = transposeForHorizontalBar3D(thrice);
+		expect(four).toStrictEqual(p);
 	});
 });

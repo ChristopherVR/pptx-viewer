@@ -131,4 +131,14 @@ export interface SmartArt3DModelOptions {
 	 * layout. Default `false` (phase 1 extruded behaviour).
 	 */
 	spatial?: boolean;
+	/**
+	 * `PptxSmartArtNode.id`s carrying `dgm:prSet/@coherent3DOff="1"` (a per-node
+	 * opt-out of PowerPoint's "no two identical" bevel variation a 3-D SmartArt
+	 * quick style applies). A mesh whose `RenderedNode.nodeId` is in this set
+	 * always gets the plain, un-varied bevel; every other mesh gets a small,
+	 * deterministic (hash-of-id) bevel variation so identical shapes do not
+	 * render pixel-identical, matching PowerPoint's "coherent 3-D" behaviour.
+	 * Absent/empty set: no variation at all (pre-existing behaviour).
+	 */
+	coherent3DOffNodeIds?: ReadonlySet<string>;
 }

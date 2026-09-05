@@ -19,13 +19,17 @@
  */
 import type { ShapeStyle } from 'pptx-viewer-core';
 
-import {
-	computeGradientCenter,
-	getPatternTile,
-	normalizeHexColor,
-	sanitizeGradientStops,
-} from './fill-style';
+import { computeGradientCenter, sanitizeGradientStops } from './fill-style';
+import type { SvgRectPathGradientDef } from './svg-gradient-rect-path';
+import { buildRectPathGradientDef, rectPathGradientMarkup } from './svg-gradient-rect-path';
+import type { SvgPatternDef } from './svg-stroke-pattern-paint';
 import { escapeSvgAttr } from './visual-effects';
+
+// Re-exported so existing `import { buildSvgStrokePatternDef } from
+// 'pptx-viewer-shared'` call sites (this file's own barrel neighbour,
+// `svg-gradient-paint.test.ts`, etc.) keep working unchanged after the split.
+export type { SvgPatternDef } from './svg-stroke-pattern-paint';
+export { buildSvgStrokePatternDef } from './svg-stroke-pattern-paint';
 
 /** One `<stop>` of an SVG gradient. */
 export interface SvgGradientStopDef {
@@ -58,8 +62,10 @@ export interface SvgRadialGradientDef {
 	stops: SvgGradientStopDef[];
 }
 
+export type { SvgRectPathGradientDef } from './svg-gradient-rect-path';
+
 /** Either flavour of SVG gradient produced by {@link buildSvgGradientDef}. */
-export type SvgGradientDef = SvgLinearGradientDef | SvgRadialGradientDef;
+export type SvgGradientDef = SvgLinearGradientDef | SvgRadialGradientDef | SvgRectPathGradientDef;
 
 /** Round to 4 decimals so the emitted markup stays stable and compact. */
 function round4(value: number): number {
@@ -120,6 +126,8 @@ function linearEndpoints(angleDegrees: number): { x1: number; y1: number; x2: nu
 interface GradientSource {
 	stops: SvgGradientStopDef[];
 	type: ShapeStyle['fillGradientType'];
+	/** `a:path/@type`: only `rect` gets the nested-rectangle band treatment; `circle`/`shape` stay elliptical. */
+	pathType?: ShapeStyle['fillGradientPathType'];
 	angle: number | undefined;
 	fillToRect?: ShapeStyle['fillGradientFillToRect'];
 	focalPoint?: ShapeStyle['fillGradientFocalPoint'];
@@ -133,6 +141,12 @@ function buildFromSource(source: GradientSource, id: string): SvgGradientDef | u
 	}
 
 	if ((source.type || 'linear') === 'radial') {
+		if ((source.pathType || 'circle') === 'rect') {
+			// The true field is nested axis-aligned rectangles (Chebyshev distance),
+			// which SVG's native <radialGradient> cannot express; delegate to the
+			// dedicated rect-path pattern builder (`svg-gradient-rect-path.ts`).
+			return buildRectPathGradientDef(stops, id, source.focalPoint, source.fillToRect);
+		}
 		// Path gradients run from the `fillToRect` outwards, so stop 0 sits at the
 		// centre exactly as an SVG radial gradient's offset 0 does.
 		const { cx, cy } = computeGradientCenter(source.fillToRect, source.focalPoint);
@@ -173,6 +187,7 @@ export function buildSvgGradientDef(
 		{
 			stops: toSvgStops(style.fillGradientStops),
 			type: style.fillGradientType,
+			pathType: style.fillGradientPathType,
 			angle: style.fillGradientAngle,
 			fillToRect: style.fillGradientFillToRect,
 			focalPoint: style.fillGradientFocalPoint,
@@ -204,61 +219,11 @@ export function buildSvgStrokeGradientDef(
 		{
 			stops: toSvgStops(style.strokeGradientStops),
 			type: style.strokeGradientType,
+			pathType: style.strokeGradientPathType,
 			angle: style.strokeGradientAngle,
 		},
 		svgGradientId(elementId, 'stroke'),
 	);
-}
-
-/**
- * An SVG `<pattern>` paint server for a preset pattern OUTLINE.
- *
- * The tile is carried as a data-URI `<image>` rather than inline primitives so
- * every binding can render the `<pattern>` from plain attribute bindings, with
- * no raw-markup injection (which Angular's template sanitiser would fight).
- */
-export interface SvgPatternDef {
-	kind: 'pattern';
-	id: string;
-	/** Tile size in user-space px; the pattern repeats on this grid. */
-	width: number;
-	height: number;
-	/** `data:image/svg+xml,…` of one rendered tile. */
-	href: string;
-}
-
-/**
- * Build the SVG paint-server definition for a shape's pattern OUTLINE
- * (`a:ln/a:pattFill`).
- *
- * A CSS `border` cannot be hatched, so a patterned outline was painted with the
- * parser's `strokeColor` - the pattern's foreground - as a flat line: the weave
- * disappeared entirely. Stroking a path with this pattern renders the real tile.
- *
- * Returns `undefined` when the outline is not a pattern or the preset is one we
- * do not draw, so callers keep the solid fallback.
- */
-export function buildSvgStrokePatternDef(
-	style: ShapeStyle | undefined,
-	elementId: string,
-): SvgPatternDef | undefined {
-	if (!style || style.strokeFillMode !== 'pattern' || !style.strokePatternPreset) {
-		return undefined;
-	}
-	const fg = normalizeHexColor(style.strokeColor, '#000000');
-	const bg = normalizeHexColor(style.strokePatternBackgroundColor, '#ffffff');
-	const tile = getPatternTile(style.strokePatternPreset, fg, bg);
-	if (!tile) {
-		return undefined;
-	}
-	const markup = `<svg xmlns="http://www.w3.org/2000/svg" width="${tile.w}" height="${tile.h}">${tile.inner}</svg>`;
-	return {
-		kind: 'pattern',
-		id: svgGradientId(elementId, 'strokepat'),
-		width: tile.w,
-		height: tile.h,
-		href: `data:image/svg+xml,${encodeURIComponent(markup)}`,
-	};
 }
 
 /** The `fill`/`stroke` attribute value that references a built definition. */
@@ -281,6 +246,9 @@ function numAttr(value: number): string {
  * of how a `SvgGradientDef` was constructed.
  */
 export function svgGradientMarkup(def: SvgGradientDef): string {
+	if (def.kind === 'rectPath') {
+		return rectPathGradientMarkup(def);
+	}
 	const id = escapeSvgAttr(def.id);
 	const stops = def.stops
 		.map(

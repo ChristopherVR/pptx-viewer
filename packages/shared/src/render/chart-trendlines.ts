@@ -1,36 +1,25 @@
 /**
- * chart-trendlines.ts — framework-agnostic trendline computation.
+ * chart-trendlines.ts: framework-agnostic trendline regression maths.
  *
  * A port of the React `viewer/utils/chart-trendlines.tsx` regression engine,
- * stripped of its JSX. Computes the polyline points (and optional equation /
- * R² label) for each series trendline so a binding can render them as plain
- * SVG `<path>` / `<text>` elements.
+ * stripped of its JSX. `computeTrendlinePoints` fits one series' trendline
+ * and returns its polyline points plus an optional equation / R² label;
+ * `chart-overlays-trendline.ts` calls it per series and assembles the
+ * renderable SVG path/colour/label a binding actually draws (this module
+ * used to also export that assembly step, `computeChartTrendlines`, but it
+ * had no callers anywhere in the five bindings or shared and was removed).
  *
  * Supported regression types (per `PptxChartTrendlineType`):
  * linear, exponential, logarithmic, power, polynomial, movingAvg.
  */
-import type { PptxChartData, PptxChartTrendline } from 'pptx-viewer-core';
+import type { PptxChartTrendline } from 'pptx-viewer-core';
 
-import { seriesColor } from './chart-helpers';
 import type { PlotLayout, ValueRange } from './chart-helpers';
 
 /** A single point on a computed trendline, in SVG pixel space. */
 export interface TrendlinePoint {
 	x: number;
 	y: number;
-}
-
-/** A fully-resolved, renderable trendline for one series. */
-export interface RenderableTrendline {
-	/** SVG path `d` string (`M … L …`). */
-	pathData: string;
-	/** Stroke colour (trendline override → series colour). */
-	color: string;
-	/** Optional equation / R² label text (only when requested + computable). */
-	label?: string;
-	/** Label anchor — the last trendline point, nudged up. */
-	labelX?: number;
-	labelY?: number;
 }
 
 /**
@@ -301,65 +290,4 @@ function valueToYLocal(val: number, range: ValueRange, topY: number, bottomY: nu
 	const usable = bottomY - topY;
 	const ratio = (val - range.min) / range.span;
 	return range.reverseOrder ? topY + ratio * usable : bottomY - ratio * usable;
-}
-
-/**
- * Build the renderable trendlines for every series in a chart. Returns an
- * empty array when no series declares any trendline (so a binding can skip
- * the overlay entirely).
- *
- * @param mode 'bar' for bar/column/stacked plots, 'line' for line/area plots.
- */
-export function computeChartTrendlines(
-	chartData: PptxChartData,
-	layout: PlotLayout,
-	range: ValueRange,
-	mode: 'line' | 'bar',
-	styleId?: number,
-	colorPalette?: string[],
-): RenderableTrendline[] {
-	const catCount = Math.max(chartData.categories.length, 1);
-	const out: RenderableTrendline[] = [];
-
-	chartData.series.forEach((series, si) => {
-		if (!series.trendlines || series.trendlines.length === 0) {
-			return;
-		}
-
-		series.trendlines.forEach((tl) => {
-			const { points, equation, rSquared } = computeTrendlinePoints(
-				tl,
-				series.values,
-				catCount,
-				layout,
-				range,
-				mode,
-			);
-			if (points.length < 2) {
-				return;
-			}
-
-			const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-			const color = tl.color || seriesColor(series, si, styleId, colorPalette);
-
-			const labelParts: string[] = [];
-			if (tl.displayEq && equation) {
-				labelParts.push(equation);
-			}
-			if (tl.displayRSq) {
-				labelParts.push(`R² = ${rSquared.toFixed(4)}`);
-			}
-
-			const last = points[points.length - 1];
-			out.push({
-				pathData,
-				color,
-				label: labelParts.length > 0 ? labelParts.join('  ') : undefined,
-				labelX: labelParts.length > 0 ? last.x : undefined,
-				labelY: labelParts.length > 0 ? last.y - 6 : undefined,
-			});
-		});
-	});
-
-	return out;
 }

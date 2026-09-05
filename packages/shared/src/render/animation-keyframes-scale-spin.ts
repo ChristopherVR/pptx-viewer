@@ -1,5 +1,5 @@
 /**
- * `animation-keyframes-scale-spin` — CSS `@keyframes` definitions for the
+ * `animation-keyframes-scale-spin`: CSS `@keyframes` definitions for the
  * `stretch` and `newsflash` SMIL/ECMA-376 `p:animEffect/@filter` families
  * (see `animation-filter-effects`'s module doc for how these fit the rest of
  * the filter fallback). Split out of `animation-keyframes` to keep that

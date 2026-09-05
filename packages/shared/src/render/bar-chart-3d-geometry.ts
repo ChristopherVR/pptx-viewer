@@ -82,11 +82,21 @@ export interface BarChart3DMeshGroup {
  * distinct THREE geometry instances (cone/pyramid share a class but differ by
  * radial segment count), so geometries are built per box rather than shared,
  * and returned for the caller to dispose individually on teardown.
+ *
+ * `horizontal` (`c:barDir val="bar"`) rotates every mesh `-Math.PI / 2` about
+ * Z: `box.center` already sits in the horizontal world frame
+ * (`layoutBarChart3D`), but `box.size` stays in the UNROTATED local frame
+ * (width/height/depth as if the chart were still vertical), so a
+ * cylinder/cone/pyramid keeps its true round cross-section lying on its side
+ * instead of the ellipse a numeric width/height swap would produce. A plain
+ * box shape looks identical either way (rotating a rectangular prism 90
+ * degrees is the same as swapping two of its extents).
  */
 export function buildBar3DMeshGroup(
 	three: ThreeModule,
 	scene: THREE.Scene,
 	boxes: ReadonlyArray<BarChart3DBox>,
+	horizontal = false,
 ): BarChart3DMeshGroup {
 	const meshes: THREE.Mesh[] = [];
 	const materials: THREE.Material[] = [];
@@ -97,6 +107,9 @@ export function buildBar3DMeshGroup(
 		const mesh = new three.Mesh(geometry, material);
 		mesh.position.set(...box.center);
 		mesh.scale.set(...box.size);
+		if (horizontal) {
+			mesh.rotation.z = -Math.PI / 2;
+		}
 		mesh.userData = {
 			seriesIndex: box.seriesIndex,
 			categoryIndex: box.categoryIndex,

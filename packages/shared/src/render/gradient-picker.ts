@@ -9,7 +9,7 @@
  * No framework imports; every type is concrete or `unknown` + narrowed.
  */
 
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxThemeColorRef, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
 // -- Defaults -----------------------------------------------------------------
@@ -24,6 +24,13 @@ export interface GradientStop {
 	color: string;
 	position: number;
 	opacity?: number;
+	/**
+	 * Theme colour identity for this stop, mirroring
+	 * `ShapeStyle.fillColorRef`. Set by a theme-swatch pick so the stop keeps
+	 * following the theme after a later theme change; cleared by a custom hex
+	 * pick, which has no theme identity.
+	 */
+	colorRef?: PptxThemeColorRef;
 }
 
 /** The editable gradient state surfaced to the component. */
@@ -87,6 +94,7 @@ export function gradientStatePatch(el: PptxElement, state: GradientState): Parti
 				color: s.color,
 				position: s.position,
 				opacity: s.opacity,
+				colorRef: s.colorRef,
 			})),
 		},
 	} as Partial<PptxElement>;
@@ -149,7 +157,7 @@ function sortStops(stops: GradientStop[]): GradientStop[] {
 }
 
 function sanitizeStops(
-	raw: Array<{ color: string; position: number; opacity?: number }>,
+	raw: Array<{ color: string; position: number; opacity?: number; colorRef?: PptxThemeColorRef }>,
 ): GradientStop[] {
 	const valid = raw.filter(
 		(s) =>
@@ -162,6 +170,7 @@ function sanitizeStops(
 		color: s.color,
 		position: Math.max(0, Math.min(100, s.position)),
 		opacity: typeof s.opacity === 'number' && Number.isFinite(s.opacity) ? s.opacity : undefined,
+		colorRef: s.colorRef,
 	}));
 	return sortStops(mapped);
 }

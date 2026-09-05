@@ -1,7 +1,12 @@
 import type { PptxSmartArtNode } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { revealedSmartArtNodeCount } from './diagram-build';
+import type { DiagramRevealDescriptor } from './animation-timeline-types';
+import {
+	applyDiagramRevealDescriptor,
+	resolveRevealedSmartArtNodes,
+	revealedSmartArtNodeCount,
+} from './diagram-build';
 
 /** Flat list: 1 root, 2 children, 2 grandchildren (levels 0,1,1,2,2). */
 function makeNodes(): PptxSmartArtNode[] {
@@ -121,5 +126,50 @@ describe('revealedSmartArtNodeCount', () => {
 				),
 			).toBe(revealedSmartArtNodeCount(nodes, { mode: 'byLvlAtOnce', progress: 0.1 }));
 		});
+	});
+});
+
+describe('applyDiagramRevealDescriptor', () => {
+	it('keeps only nodes named in the descriptor, in document order', () => {
+		const nodes = makeNodes(); // r, a, b, a1, a2
+		const descriptor: DiagramRevealDescriptor = { background: true, nodeIds: new Set(['a2', 'r']) };
+		expect(applyDiagramRevealDescriptor(nodes, descriptor).map((n) => n.id)).toStrictEqual([
+			'r',
+			'a2',
+		]);
+	});
+
+	it('reveals nothing when the descriptor names no nodes', () => {
+		expect(
+			applyDiagramRevealDescriptor(makeNodes(), { background: false, nodeIds: new Set() }),
+		).toStrictEqual([]);
+	});
+});
+
+describe('resolveRevealedSmartArtNodes', () => {
+	it('prefers the diagramReveal descriptor over the count-based build state', () => {
+		const nodes = makeNodes();
+		const result = resolveRevealedSmartArtNodes(nodes, {
+			build: { kind: 'diagram', mode: 'byOne', progress: 1 },
+			diagramReveal: { mode: 'byOne', descriptor: { background: true, nodeIds: new Set(['b']) } },
+		});
+		expect(result.nodes.map((n) => n.id)).toStrictEqual(['b']);
+		expect(result.shownCount).toBe(1);
+	});
+
+	it('falls back to the count-based build state when no descriptor is present', () => {
+		const nodes = makeNodes();
+		const result = resolveRevealedSmartArtNodes(nodes, {
+			build: { kind: 'diagram', mode: 'byOne', progress: 0.5 },
+		});
+		expect(result.shownCount).toBe(3);
+		expect(result.nodes).toStrictEqual(nodes.slice(0, 3));
+	});
+
+	it('reveals every node when neither build nor diagramReveal is present', () => {
+		const nodes = makeNodes();
+		const result = resolveRevealedSmartArtNodes(nodes, undefined);
+		expect(result.nodes).toStrictEqual(nodes);
+		expect(result.shownCount).toBe(nodes.length);
 	});
 });

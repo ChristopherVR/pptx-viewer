@@ -285,6 +285,59 @@ describe('playGroup', () => {
 		expect(latest().get('chart')?.visible).toBeTruthy();
 		expect(computeStatesFor).toHaveBeenCalledWith(['chart'], expect.any(Object));
 	});
+
+	// A `p:bldDgm` / `p:bldChart` build fires one step PER STAGE against the same
+	// element id. The step's initial write and its cleanup timer used to replace
+	// the state object outright, dropping `build` and the authored-index reveal
+	// descriptors; the renderer read the resulting state as "no build: reveal
+	// everything", so the whole diagram popped in once the first stage's fade
+	// ended (caught by e2e `smartart-build-reveal.spec.ts` on all five bindings).
+	it('keeps the staged-build reveal fields through a step start and its cleanup', () => {
+		vi.useFakeTimers();
+		const diagramReveal: NonNullable<ElementAnimationState['diagramReveal']> = {
+			mode: 'byOne',
+			descriptor: { background: true, nodeIds: new Set(['gamma']) },
+		};
+		const computeStatesFor = vi.fn(
+			(): Map<string, ElementAnimationState> =>
+				new Map([
+					[
+						'dgm',
+						{
+							visible: true,
+							cssAnimation: undefined,
+							build: { kind: 'diagram', mode: 'byOne', progress: 1 },
+							diagramReveal,
+						},
+					],
+				]),
+		);
+		const controller = stubController({ computeStatesFor });
+		const { ctx, latest } = makeContext();
+		// The pre-click snapshot already carries an (empty) descriptor.
+		ctx.setStates((prev) =>
+			new Map(prev).set('dgm', {
+				visible: false,
+				cssAnimation: undefined,
+				diagramReveal: {
+					mode: 'byOne',
+					descriptor: { background: false, nodeIds: new Set() },
+				},
+			}),
+		);
+		const built = group([step({ elementId: 'dgm', build: { kind: 'diagram', mode: 'byOne' } })]);
+
+		playGroup(controller, built, ctx);
+		expect(latest().get('dgm')?.diagramReveal).toBe(diagramReveal);
+		expect(latest().get('dgm')?.build?.progress).toBe(1);
+
+		// Past the step's cleanup timer (delay + duration + 8ms).
+		vi.advanceTimersByTime(1000);
+		expect(latest().get('dgm')?.cssAnimation).toBeUndefined();
+		expect(latest().get('dgm')?.diagramReveal).toBe(diagramReveal);
+		expect(latest().get('dgm')?.build?.progress).toBe(1);
+		vi.useRealTimers();
+	});
 });
 
 describe('scheduleAutoAdvanceChain', () => {

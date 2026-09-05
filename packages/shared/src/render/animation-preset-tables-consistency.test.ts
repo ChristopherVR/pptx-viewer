@@ -102,6 +102,54 @@ const APPROXIMATION_ALLOWLIST: ReadonlySet<string> = new Set([
 	// id is allowlisted rather than silently made to agree with an unverified
 	// label.
 	'exit.18',
+	// The following entries close the "68 entrance / 68 exit preset IDs, only
+	// 54/200 non-path IDs covered" gap (W3-A). Each of these ids now has a
+	// playback effect, but no dedicated keyframe exists for its exact
+	// real-world visual, so it deliberately reuses the closest existing
+	// family (documented per-id next to `PRESET_ID_TO_EFFECT` in
+	// `animation-presets.ts`), and its name has no textual overlap with the
+	// authoring/catalog name. See `animation-preset-ground-truth.ts` for the
+	// COM evidence (and its limits) behind the entrance-side ids.
+	'entr.7', // Crawl In -> flyInBottom
+	'entr.24', // Random Effects -> fadeIn
+	'entr.33', // Arrive -> riseUp
+	'entr.35', // Beveled Arrival -> flipIn
+	'entr.45', // Grow & Rotate -> growTurnIn
+	'entr.46', // Grow with Color -> expandIn
+	'entr.48', // Magnify -> zoomIn
+	'entr.50', // Sling -> flyInBottom
+	'entr.54', // Zoom Rotate -> spinnerIn
+	'entr.55', // Curvy Star -> spinnerIn
+	'entr.58', // Thread -> wipeIn
+	'entr.60', // Ascend -> riseUp
+	'entr.61', // Descend -> flyInTop
+	'entr.62', // Center Stage -> zoomIn
+	'entr.63', // Ease In -> riseUp
+	'entr.64', // Stretchy -> stretchInBottom
+	'entr.65', // Zip -> flyInRight
+	'entr.67', // Cover -> wipeIn
+	'entr.68', // Reveal -> wipeIn
+	'exit.7', // Crawl Out -> flyOutBottom
+	'exit.19', // Strips (authoring: `stripsOut`) -> wipeOut, matching exit.18's treatment
+	'exit.24', // Random Effects -> fadeOut
+	'exit.31', // Contract -> shrinkOut
+	'exit.33', // Leave -> flyOutBottom
+	'exit.34', // Basic Swivel -> fadeOut
+	'exit.35', // Beveled Departure -> fadeOut
+	'exit.42', // Float Out -> fadeOut
+	'exit.47', // Swivel Out -> fadeOut
+	'exit.50', // Sling Out -> flyOutBottom
+	'exit.54', // Zoom Rotate Out -> spinnerOut
+	'exit.55', // Curvy Star Out -> spinnerOut
+	'exit.58', // Thread Out -> wipeOut
+	'exit.60', // Ascend (exit) -> flyOutTop
+	'exit.61', // Descend (exit) -> flyOutBottom
+	'exit.62', // Exit Stage -> zoomOut
+	'exit.63', // Ease Out -> fadeOut
+	'exit.64', // Stretchy Out -> stretchOutBottom
+	'exit.65', // Zip Out -> flyOutRight
+	'exit.67', // Uncover -> wipeOut
+	'exit.68', // Conceal -> wipeOut
 ]);
 
 function checkClassAgreement(presetClass: PresetClass): void {
@@ -441,11 +489,23 @@ describe('animation preset table cross-consistency', () => {
 			expect(PRESET_ID_TO_EFFECT.exit[37]).not.toBe('bounceOut');
 		});
 
-		it('emph.14 (real Blast, not Teeter) has no dedicated keyframe and is correctly left unmapped', () => {
+		it('emph.14 (real Blast, not Teeter) has no dedicated keyframe, but a later COM+UIA pass gave it an authoring/catalog identity', () => {
+			// At the time this test was written, Blast's real id was known
+			// (displacing the old Teeter mix-up) but not yet given a typed
+			// authoring name of its own. A full COM + UI-Automation ground-truth
+			// pass (see `animation-write-mappings.ts`'s "Emphasis effects"
+			// header comment) directly observed `msoAnimEffectBlast` at emph.14
+			// and gave it the typed name `blast`; it still has no dedicated
+			// playback keyframe (a `p:animClr`+`p:animScale`+`p:set` colour/scale
+			// combo with no transform-only representation), so playback stays
+			// correctly unmapped.
 			expect(PRESET_ID_TO_EFFECT.emph[14]).toBeUndefined();
 
 			const fromAuthoring = ooxmlToPresetName({ presetClass: 'emph', presetId: 14 });
-			expect(fromAuthoring).toBeUndefined();
+			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'blast')).toBeTruthy();
+
+			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'emph', presetId: 14 });
+			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'blast')).toBeTruthy();
 		});
 	});
 
@@ -459,11 +519,12 @@ describe('animation preset table cross-consistency', () => {
 	// the SAME numeric presetID as the entrance form, mirroring the
 	// Bounce/Rise Up/Circle pattern, and are now covered by new dedicated
 	// exit keyframes; (3) entr.47 (Descend) is now covered via the `flyInTop`
-	// approximation; (4) this pass also found emph.26 is really Flash Bulb,
-	// not Pulse/Bounce as the tables currently assume - see the comment on
-	// `PRESET_ID_TO_EFFECT.emph[26]` in `animation-presets.ts` for the
-	// evidence; left uncorrected here because fixing it needs coordinated
-	// changes across all three tables.
+	// approximation; (4) this pass also found emph.26 IS Flash Bulb (not a
+	// mislabelled Pulse/Bounce as this comment previously assumed while the
+	// question was still open) - a later COM + UI-Automation ground-truth
+	// pass (see the "full emphasis catalogue" describe block below) proved
+	// Pulse and Flash Bulb are the SAME preset under two different
+	// PowerPoint-history names, so nothing needed correcting after all.
 	describe('a shape-family COM verification pass resolves more ids', () => {
 		it.each([
 			{ presetClass: 'entr' as const, presetId: 8, effect: 'diamond' },
@@ -520,6 +581,113 @@ describe('animation preset table cross-consistency', () => {
 
 			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'entr', presetId: 47 });
 			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'descend')).toBeTruthy();
+		});
+	});
+
+	// A full COM + UI-Automation ground-truth pass over the ENTIRE emphasis
+	// catalogue (W3-B): every one of the 26 items in PowerPoint's own "Add
+	// Emphasis Effect" dialog (its Basic/3D/Subtle/Moderate/Exciting groups,
+	// enumerated exhaustively via UI Automation) was reproduced via TWO
+	// independent methods and its raw XML inspected - see
+	// `animation-emphasis-ground-truth.ts` for every row. This resolved the
+	// long-open "is emph.26 Pulse or Flash Bulb?" question (they are the SAME
+	// preset - see the two rows below with identical XML) and replaced the
+	// entire previous ids-11-64 range, which had been filled by sequentially
+	// GUESSING a name per id with zero verification.
+	describe('the full emphasis-catalogue COM+UIA ground-truth pass', () => {
+		it.each([
+			{ presetId: 1, effect: 'fillcolor' },
+			{ presetId: 2, effect: 'changefont' },
+			{ presetId: 3, effect: 'fontcolor' },
+			{ presetId: 6, effect: 'growshrink' },
+			{ presetId: 7, effect: 'linecolor' },
+			{ presetId: 8, effect: 'spin' },
+			{ presetId: 9, effect: 'transparency' },
+			{ presetId: 10, effect: 'boldflash' },
+			{ presetId: 15, effect: 'boldreveal' },
+			{ presetId: 16, effect: 'brushoncolor' },
+			{ presetId: 18, effect: 'underline' },
+			{ presetId: 19, effect: 'objectcolor' },
+			{ presetId: 20, effect: 'colorwave' },
+			{ presetId: 21, effect: 'complementarycolor' },
+			{ presetId: 22, effect: 'complementarycolor' },
+			{ presetId: 23, effect: 'contrastingcolor' },
+			{ presetId: 24, effect: 'darken' },
+			{ presetId: 25, effect: 'desaturate' },
+			{ presetId: 28, effect: 'growwithcolor' },
+			{ presetId: 30, effect: 'lighten' },
+			{ presetId: 31, effect: 'styleemphasis' },
+			{ presetId: 32, effect: 'teeter' },
+			{ presetId: 33, effect: 'verticalgrow' },
+			{ presetId: 34, effect: 'wave' },
+		])('emph.$presetId -> $effect: authoring and catalog agree', ({ presetId, effect }) => {
+			const fromAuthoring = ooxmlToPresetName({ presetClass: 'emph', presetId });
+			expect(fromAuthoring, `emph.${presetId} should be covered by authoring`).toBeDefined();
+			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), effect)).toBeTruthy();
+
+			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'emph', presetId });
+			expect(fromCatalog, `emph.${presetId} should be covered by the catalog`).toBeDefined();
+			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), effect)).toBeTruthy();
+		});
+
+		it('emph.26 is Pulse AND Flash Bulb - the SAME preset, not a swap to resolve', () => {
+			expect(PRESET_ID_TO_EFFECT.emph[26]).toBe('pulse');
+
+			const fromAuthoring = ooxmlToPresetName({ presetClass: 'emph', presetId: 26 });
+			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'pulse')).toBeTruthy();
+
+			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'emph', presetId: 26 });
+			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'pulse')).toBeTruthy();
+		});
+
+		it('emph.27 is Flicker AND Color Pulse - the same one-preset-two-names pattern as emph.26', () => {
+			const fromAuthoring = ooxmlToPresetName({ presetClass: 'emph', presetId: 27 });
+			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'colorpulse')).toBeTruthy();
+
+			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'emph', presetId: 27 });
+			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'colorpulse')).toBeTruthy();
+		});
+
+		it.each([21, 22, 23, 24, 25, 30])(
+			'emph.%i is covered by EMPH_FILTER_PRESETS and agrees with authoring/catalog',
+			(presetId) => {
+				const filterPreset = EMPH_FILTER_PRESETS[presetId];
+				expect(filterPreset, `emph.${presetId} should be in EMPH_FILTER_PRESETS`).toBeDefined();
+				const filterIdentity = canonicalIdentity(filterPreset!.name);
+
+				const fromAuthoring = ooxmlToPresetName({ presetClass: 'emph', presetId });
+				expect(identitiesAgree(filterIdentity, canonicalIdentity(fromAuthoring!))).toBeTruthy();
+
+				const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'emph', presetId });
+				expect(identitiesAgree(filterIdentity, canonicalIdentity(fromCatalog!.label))).toBeTruthy();
+			},
+		);
+
+		it('ids with no named PowerPoint effect anywhere (11/12/13/17/29/37/38/39) are absent from every table', () => {
+			for (const presetId of [11, 12, 13, 17, 29, 37, 38, 39]) {
+				expect(PRESET_ID_TO_EFFECT.emph[presetId], `emph.${presetId} playback`).toBeUndefined();
+				expect(
+					ooxmlToPresetName({ presetClass: 'emph', presetId }),
+					`emph.${presetId} authoring`,
+				).toBeUndefined();
+				expect(
+					getNativeAnimationPresetMetadata({ presetClass: 'emph', presetId }),
+					`emph.${presetId} catalog`,
+				).toBeUndefined();
+			}
+		});
+
+		it('the fabricated ids 42-64 (guessed, never verified) no longer exist in any table', () => {
+			for (let presetId = 42; presetId <= 64; presetId += 1) {
+				expect(
+					ooxmlToPresetName({ presetClass: 'emph', presetId }),
+					`emph.${presetId} authoring`,
+				).toBeUndefined();
+				expect(
+					getNativeAnimationPresetMetadata({ presetClass: 'emph', presetId }),
+					`emph.${presetId} catalog`,
+				).toBeUndefined();
+			}
 		});
 	});
 });

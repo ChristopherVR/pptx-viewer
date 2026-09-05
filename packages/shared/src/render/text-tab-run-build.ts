@@ -11,7 +11,9 @@
  * has to be reimplemented per framework.
  */
 
+import { splitWordsForUnderline } from './text-decoration';
 import { resolveMetricTrackingPx, resolveTrackedTextWidth } from './text-metric-tracking';
+import { stripUnderlineDecoration } from './text-run-spacing';
 import type { RunStyle } from './text-run-style';
 import type { TabRenderContext } from './text-tab-layout';
 import { computeTabbedLayout, fillLeaderWithMeasure, measureTextWidth } from './text-tab-layout';
@@ -38,6 +40,23 @@ export interface TabbedRunPiece {
 	leaderStyle?: RunStyle;
 	/** Leader glyphs sized to fill `leaderStyle`'s width. Present only alongside `leaderStyle`. */
 	leaderText?: string;
+	/**
+	 * `a:rPr/@u="words"` per-word/gap sub-pieces of THIS tab piece's own text
+	 * (see `splitWordsForUnderline`), present only when the run's underline is
+	 * `words`. A tab-separated piece is otherwise rendered as a single span
+	 * (`text` + `style`), which underlines it continuously - correct for a
+	 * one-word piece, but wrong for a piece like `"Hello World"` between two tab
+	 * stops, which needs a gap under the space. A binding renders one SIBLING
+	 * span per entry IN PLACE OF the piece's single `text` span: each entry's
+	 * `style` is the piece's own `style` (the same inline-block layout and
+	 * advance-width correction, so the line measures exactly as before), with
+	 * the underline stripped on a gap entry. They must be siblings, not spans
+	 * nested inside the piece span: an ancestor's underline is drawn through
+	 * every inline descendant, so a nested gap could not lose it. `text`/`style`
+	 * stay the continuous-underline fallback for a binding that does not
+	 * render this field.
+	 */
+	words?: Array<{ text: string; style: RunStyle }>;
 }
 
 /** One `\n`-split line of a run's tabbed text. */
@@ -79,6 +98,7 @@ function buildTabbedLine(
 	ctx: TabRenderContext,
 	nestedDecoration: RunStyle | undefined,
 	measure: (text: string) => number,
+	underlineWords: boolean,
 ): TabbedRunPiece[] {
 	const segments = line.split('\t');
 	const trackedMeasure = (text: string) =>
@@ -104,6 +124,15 @@ function buildTabbedLine(
 				? fillLeaderWithMeasure(piece.leaderChar, piece.leaderWidth, measure)
 				: '';
 		}
+		if (underlineWords) {
+			const words = splitWordsForUnderline(piece.text);
+			if (words.length > 0) {
+				out.words = words.map((word) => ({
+					text: word.text,
+					style: word.underline ? style : stripUnderlineDecoration(style),
+				}));
+			}
+		}
 		return out;
 	});
 }
@@ -125,14 +154,19 @@ function buildTabbedLine(
  *                         piece span (see {@link TabbedRunPiece.style}).
  * @param measure           Injectable width function; defaults to a real
  *                          canvas measurement in `ctx.font`.
+ * @param underlineWords    `a:rPr/@u="words"`: split each piece's text into
+ *                          per-word/gap sub-pieces (see
+ *                          {@link TabbedRunPiece.words}) instead of leaving it
+ *                          continuously underlined.
  */
 export function buildRunTabLines(
 	text: string,
 	ctx: TabRenderContext,
 	nestedDecoration?: RunStyle,
 	measure: (text: string) => number = (t) => measureTextWidth(t, ctx.font),
+	underlineWords = false,
 ): TabbedLineRun[] {
 	return text.split('\n').map((line) => ({
-		pieces: buildTabbedLine(line, ctx, nestedDecoration, measure),
+		pieces: buildTabbedLine(line, ctx, nestedDecoration, measure, underlineWords),
 	}));
 }

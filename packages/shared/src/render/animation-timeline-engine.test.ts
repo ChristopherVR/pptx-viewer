@@ -773,6 +773,81 @@ describe('p:graphicEl chart reveal (getElementStates.chartReveal)', () => {
 	});
 });
 
+describe('p:graphicEl diagram reveal (getElementStates.diagramReveal)', () => {
+	/** One per-node diagram-build step, mirroring what `buildTimeline` emits for a `p:par` targeting `p:graphicEl/p:dgm[@id]`. */
+	function dgmStep(id: string): TimelineStep {
+		return makeStep({
+			elementId: 'dgm1',
+			build: { kind: 'diagram', mode: 'byOne' },
+			graphicElement: { id, bldStep: 'sp' },
+		});
+	}
+
+	it('derives the authored node-id set from fired steps, in REVERSE authoring order', () => {
+		// PowerPoint's "Reverse Order" fires the last node first: the authored set
+		// must reflect exactly what fired, not a forward document-order guess.
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([dgmStep('c')]),
+					makeGroup([dgmStep('b')]),
+					makeGroup([dgmStep('a')]),
+				],
+			}),
+		);
+
+		engine.advance();
+		let state = engine.getElementStates(['dgm1']).get('dgm1');
+		expect(state?.diagramReveal?.descriptor.nodeIds).toStrictEqual(new Set(['c']));
+		expect(state?.diagramReveal?.mode).toBe('byOne');
+
+		engine.advance();
+		state = engine.getElementStates(['dgm1']).get('dgm1');
+		expect(state?.diagramReveal?.descriptor.nodeIds).toStrictEqual(new Set(['c', 'b']));
+
+		engine.advance();
+		state = engine.getElementStates(['dgm1']).get('dgm1');
+		expect(state?.diagramReveal?.descriptor.nodeIds).toStrictEqual(new Set(['c', 'b', 'a']));
+	});
+
+	it('leaves diagramReveal undefined for a diagram whose build has no graphicEl id data', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([makeStep({ elementId: 'dgm1', build: { kind: 'diagram', mode: 'byOne' } })]),
+				],
+			}),
+		);
+		engine.advance();
+		expect(engine.getElementStates(['dgm1']).get('dgm1')?.diagramReveal).toBeUndefined();
+	});
+
+	it('completeAll reveals the full authored node-id set', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([dgmStep('c')]),
+					makeGroup([dgmStep('b')]),
+					makeGroup([dgmStep('a')]),
+				],
+			}),
+		);
+		engine.completeAll();
+		expect(
+			engine.getElementStates(['dgm1']).get('dgm1')?.diagramReveal?.descriptor.nodeIds,
+		).toStrictEqual(new Set(['c', 'b', 'a']));
+	});
+
+	it('reset clears the accumulated diagram reveal history', () => {
+		const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([dgmStep('a')])] }));
+		engine.advance();
+		engine.reset();
+		expect(
+			engine.getElementStates(['dgm1']).get('dgm1')?.diagramReveal?.descriptor.nodeIds.size,
+		).toBe(0);
+	});
+});
+
 describe('p:excl exclusivity (exclGroupId)', () => {
 	it('stops the previous holder of the same exclGroupId when a new one starts', () => {
 		const engine = new TimelineEngine(

@@ -223,12 +223,14 @@ export interface UnderlineWordPiece {
  * under the spaces between them, by wrapping each `underline: true` piece in
  * its own `<span>` and leaving whitespace pieces undecorated.
  *
- * Not wired into any binding's run renderer yet (that lives in each binding's
- * per-run render path / `paragraph-run-build.ts`, outside this module's
- * scope): {@link resolveUnderlineDecorationStyle}'s `'words'` case is the
- * currently-active fallback (a single continuous underline). This helper
- * exists so that wiring is a matter of calling it and mapping the result to
- * spans, not inventing the split logic per binding.
+ * Wired into the ordinary per-word metric split via `splitStyledRun`
+ * (`text-run-spacing.ts`, which emits the words/gaps as sibling `BuiltRun`s)
+ * and, for the two run shapes that must stay ONE piece, into
+ * `paragraph-run-build.ts` (`BuiltRun.underlineWordPieces`, a ruby run) and
+ * `text-tab-run-build.ts` (`TabbedRunPiece.words`, a tab-separated piece) -
+ * both fall back to {@link resolveUnderlineDecorationStyle}'s `'words'` case
+ * (a single continuous underline) for a binding that does not render the
+ * per-piece field yet.
  *
  * @param text Run text to split. Whitespace here means ASCII/Unicode spaces
  *             and tabs; a run already split into `tabLines` should call this

@@ -1,5 +1,5 @@
 /**
- * chart-overlays.test.ts — unit tests for chart-overlays.ts.
+ * chart-overlays.test.ts: unit tests for chart-overlays.ts.
  *
  * Tests are grouped by exported function:
  *   - computeLinearRegression  (regression helpers)
@@ -225,6 +225,86 @@ describe('computeTrendlinePrimitives', () => {
 		if (textPrimitive?.kind === 'text') {
 			expect(textPrimitive.text).toContain('R');
 		}
+	});
+
+	it('defaults the R² label to 4-decimal fixed formatting with no numFmt', () => {
+		const trendline: PptxChartTrendline = {
+			trendlineType: 'linear',
+			displayRSq: true,
+			// Perfectly linear series -> rSquared === 1, so the format is easy to
+			// assert exactly: "1.0000" from `.toFixed(4)`.
+		};
+		const chartData = makeChartData({
+			series: [makeSeries({ values: [1, 2, 3, 4], trendlines: [trendline] })],
+		});
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const textPrimitive = result.find((p) => p.kind === 'text');
+		expect(textPrimitive?.kind === 'text' && textPrimitive.text).toBe('R² = 1.0000');
+	});
+
+	it('honours c:trendlineLbl/c:numFmt over the default fixed formatting when sourceLinked is false', () => {
+		const trendline: PptxChartTrendline = {
+			trendlineType: 'linear',
+			displayRSq: true,
+			label: { sourceLinked: false, numberFormatCode: '0%' },
+		};
+		const chartData = makeChartData({
+			series: [makeSeries({ values: [1, 2, 3, 4], trendlines: [trendline] })],
+		});
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const textPrimitive = result.find((p) => p.kind === 'text');
+		expect(textPrimitive?.kind === 'text' && textPrimitive.text).toBe('R² = 100%');
+	});
+
+	it('ignores numFmt when sourceLinked is not explicitly false', () => {
+		const trendline: PptxChartTrendline = {
+			trendlineType: 'linear',
+			displayRSq: true,
+			label: { numberFormatCode: '0%' },
+		};
+		const chartData = makeChartData({
+			series: [makeSeries({ values: [1, 2, 3, 4], trendlines: [trendline] })],
+		});
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const textPrimitive = result.find((p) => p.kind === 'text');
+		expect(textPrimitive?.kind === 'text' && textPrimitive.text).toBe('R² = 1.0000');
+	});
+
+	it('anchors the label at c:trendlineLbl/c:layout/c:manualLayout when the author dragged it', () => {
+		const trendline: PptxChartTrendline = {
+			trendlineType: 'linear',
+			displayRSq: true,
+			label: { layout: { x: 0.1, y: 0.2, xMode: 'edge', yMode: 'edge' } },
+		};
+		const chartData = makeChartData({
+			series: [makeSeries({ values: [1, 2, 3, 4], trendlines: [trendline] })],
+		});
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const textPrimitive = result.find((p) => p.kind === 'text');
+		expect(textPrimitive?.kind === 'text' && textPrimitive.x).toBeCloseTo(0.1 * LAYOUT.svgWidth, 5);
+		expect(textPrimitive?.kind === 'text' && textPrimitive.y).toBeCloseTo(
+			0.2 * LAYOUT.svgHeight,
+			5,
+		);
+	});
+
+	it('keeps the default "hug the last point" anchor with no manual layout', () => {
+		const trendline: PptxChartTrendline = { trendlineType: 'linear', displayRSq: true };
+		const chartData = makeChartData({
+			series: [makeSeries({ values: [1, 2, 3, 4], trendlines: [trendline] })],
+		});
+		const withLayout = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const trendlineWithManualLayout: PptxChartTrendline = {
+			...trendline,
+			label: { layout: { x: 0.1, y: 0.2, xMode: 'edge', yMode: 'edge' } },
+		};
+		const chartDataManual = makeChartData({
+			series: [makeSeries({ values: [1, 2, 3, 4], trendlines: [trendlineWithManualLayout] })],
+		});
+		const withManual = computeTrendlinePrimitives(chartDataManual, 4, LAYOUT, RANGE);
+		const auto = withLayout.find((p) => p.kind === 'text');
+		const manual = withManual.find((p) => p.kind === 'text');
+		expect(auto?.kind === 'text' && manual?.kind === 'text' && auto.x !== manual.x).toBeTruthy();
 	});
 
 	it('handles exponential trendline without crashing', () => {

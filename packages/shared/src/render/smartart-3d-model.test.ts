@@ -10,7 +10,7 @@ import {
 	parseViewBox,
 	roundedRectOutline,
 } from './smartart-3d-geom';
-import { buildSmartArt3DModel } from './smartart-3d-model';
+import { buildSmartArt3DModel, collectCoherent3DOffNodeIds } from './smartart-3d-model';
 import type { SmartArtLayoutResult } from './smartart-layout-types';
 
 describe('smartart-3d geometry helpers', () => {
@@ -189,5 +189,80 @@ describe('buildSmartArt3DModel', () => {
 	it('passes the background through', () => {
 		const model = buildSmartArt3DModel(rectLayout(), { background: '#101010' });
 		expect(model.background).toBe('#101010');
+	});
+});
+
+describe('coherent3DOff bevel variation gate', () => {
+	function layoutWithNodeId(nodeId: string): SmartArtLayoutResult {
+		const layout = rectLayout();
+		layout.nodes = [{ ...layout.nodes[0], nodeId }];
+		return layout;
+	}
+
+	it('applies no variation when the caller supplies no opt-out set at all', () => {
+		const layout = layoutWithNodeId('n1');
+		const withoutSet = buildSmartArt3DModel(layout, { bevelRatio: 0.2 });
+		const withEmptySet = buildSmartArt3DModel(layout, {
+			bevelRatio: 0.2,
+			coherent3DOffNodeIds: undefined,
+		});
+		expect(withoutSet.meshes[0].bevel).toBe(withEmptySet.meshes[0].bevel);
+	});
+
+	it('a node whose id is in coherent3DOffNodeIds gets the plain, un-varied bevel', () => {
+		const layout = layoutWithNodeId('n1');
+		const plain = buildSmartArt3DModel(layout, { bevelRatio: 0.2 });
+		const optedOut = buildSmartArt3DModel(layout, {
+			bevelRatio: 0.2,
+			coherent3DOffNodeIds: new Set(['n1']),
+		});
+		expect(optedOut.meshes[0].bevel).toBe(plain.meshes[0].bevel);
+	});
+
+	it('a node NOT in coherent3DOffNodeIds gets a deterministic varied bevel', () => {
+		const layout = layoutWithNodeId('n1');
+		const plain = buildSmartArt3DModel(layout, { bevelRatio: 0.2 });
+		const varied = buildSmartArt3DModel(layout, {
+			bevelRatio: 0.2,
+			coherent3DOffNodeIds: new Set(['some-other-node']),
+		});
+		expect(varied.meshes[0].bevel).not.toBe(plain.meshes[0].bevel);
+		// Deterministic: same input always yields the same variation.
+		const variedAgain = buildSmartArt3DModel(layout, {
+			bevelRatio: 0.2,
+			coherent3DOffNodeIds: new Set(['some-other-node']),
+		});
+		expect(variedAgain.meshes[0].bevel).toBe(varied.meshes[0].bevel);
+	});
+
+	it('a node with no nodeId at all is never varied', () => {
+		const layout = rectLayout(); // no nodeId set
+		const plain = buildSmartArt3DModel(layout, { bevelRatio: 0.2 });
+		const withOptOutSet = buildSmartArt3DModel(layout, {
+			bevelRatio: 0.2,
+			coherent3DOffNodeIds: new Set(['unrelated']),
+		});
+		expect(withOptOutSet.meshes[0].bevel).toBe(plain.meshes[0].bevel);
+	});
+});
+
+describe('collectCoherent3DOffNodeIds', () => {
+	it('collects ids of nodes (and nested children) flagged coherent3DOff', () => {
+		const ids = collectCoherent3DOffNodeIds([
+			{
+				id: 'root',
+				text: 'root',
+				coherent3DOff: true,
+				children: [
+					{ id: 'child-varied', text: 'a' },
+					{ id: 'child-off', text: 'b', coherent3DOff: true },
+				],
+			},
+		]);
+		expect(ids).toStrictEqual(new Set(['root', 'child-off']));
+	});
+
+	it('returns an empty set when no node opts out', () => {
+		expect(collectCoherent3DOffNodeIds([{ id: 'a', text: 'a' }])).toStrictEqual(new Set());
 	});
 });

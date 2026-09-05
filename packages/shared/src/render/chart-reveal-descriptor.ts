@@ -45,8 +45,8 @@ export function extractStepGraphicElement(
 	if (target?.type !== 'shape' || !target.graphicElement) {
 		return undefined;
 	}
-	const { seriesIdx, categoryIdx, bldStep } = target.graphicElement;
-	return { seriesIdx, categoryIdx, bldStep };
+	const { seriesIdx, categoryIdx, id, bldStep } = target.graphicElement;
+	return { seriesIdx, categoryIdx, bldStep, ...(id !== undefined ? { id } : {}) };
 }
 
 /**

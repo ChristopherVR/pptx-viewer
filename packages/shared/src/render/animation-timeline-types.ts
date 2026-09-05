@@ -46,6 +46,34 @@ export type EffectName =
 	| 'diamondIn'
 	| 'plusIn'
 	| 'wedgeIn'
+	// entr.15/25/27/28/29/32/36/38/41/43/44/51/52/56/57/59: dedicated keyframes
+	// for the "extended" (post-2007) entrance gallery families with no cheap
+	// reuse of an existing static effect. COM-verified presetIDs 1-26 (which
+	// this codebase already cross-checks against `ooxmlToPresetName`); ids
+	// above 26 are mapped by NAME identity against the existing, previously
+	// COM-verified authoring/catalog tables (`animation-write-mappings.ts`,
+	// `animation-preset-catalog.ts`), not re-derived here (see
+	// `animation-preset-ground-truth.ts` and the W3-A report for the COM
+	// evidence and its limits: PowerPoint's `AddEffect` automation degrades
+	// several 2013+ gallery effects to a plain `filter="fade"` reveal with no
+	// child `p:animScale`/`p:animRot` richness, which is NOT proof of the real
+	// authored visual, only proof of the numeric presetID and reveal filter).
+	| 'spiralIn'
+	| 'boomerangIn'
+	| 'creditsIn'
+	| 'floatUpIn'
+	| 'pinwheelIn'
+	| 'whipIn'
+	| 'curveUpIn'
+	| 'foldIn'
+	| 'lightSpeedIn'
+	| 'flipIn'
+	| 'glideIn'
+	| 'compressIn'
+	| 'unfoldIn'
+	| 'rotateIn'
+	| 'centerRevolveIn'
+	| 'dropIn'
 	| 'cutIn'
 	| 'stretchInLeft'
 	| 'stretchInRight'
@@ -78,7 +106,31 @@ export type EffectName =
 	| 'diamondOut'
 	| 'plusOut'
 	| 'wedgeOut'
+	// Exit-side counterparts of the extended entrance families above, plus
+	// `peekOut`/`splitOut` (exit.16/17: the Peek Out / Split exit forms, which
+	// unlike their entrance counterparts had no dedicated exit keyframe at
+	// all before this pass).
+	| 'peekOut'
+	| 'splitOut'
+	| 'spiralOut'
+	| 'boomerangOut'
+	| 'creditsOut'
+	| 'floatDownOut'
+	| 'pinwheelOut'
+	| 'spinnerOut'
+	| 'whipOut'
+	| 'curveDownOut'
+	| 'unfoldOut'
+	| 'lightSpeedOut'
+	| 'flipOut'
+	| 'glideOut'
+	| 'foldOut'
+	| 'rotateOut'
+	| 'centerRevolveOut'
+	| 'dropOut'
 	| 'pulse'
+	| 'blink'
+	| 'shimmer'
 	| 'spin'
 	| 'teeter'
 	| 'growShrink'
@@ -138,10 +190,16 @@ export type StepBuildDescriptor =
  * single `p:bldGraphic` staged reveal. Only `seriesIdx` set means "whole
  * series"; only `categoryIdx` set means "whole category"; both set means a
  * single (series, category) cell. See `chart-reveal-descriptor`.
+ *
+ * `id` is the diagram counterpart (`p:dgm/@id`): the SmartArt data-model point
+ * id a per-node `p:bldDgm` effect reveals (matches `PptxSmartArtNode.id`).
+ * `bldStep` doubles as the diagram build step (`sp` / `bg`) for a `dgm`-kind
+ * target; see `diagram-reveal-descriptor`.
  */
 export interface TimelineStepGraphicElement {
 	seriesIdx?: number;
 	categoryIdx?: number;
+	id?: string;
 	bldStep?: string;
 }
 
@@ -180,6 +238,28 @@ export interface ChartRevealDescriptor {
 	categories: ReadonlySet<number>;
 	/** Individual cells revealed by a `bldStep="seriesEl"`/`"categoryEl"` effect. */
 	points: readonly ChartRevealPoint[];
+}
+
+/**
+ * Playback-time SmartArt diagram reveal state derived from AUTHORED
+ * `p:graphicEl/p:dgm/@id` indices (see `diagram-reveal-descriptor`'s
+ * `resolveDiagramRevealDescriptor`), rather than from click-count/time
+ * progress. Present on {@link ElementAnimationState.diagramReveal} only when
+ * every fired diagram-build step for the element carried `p:graphicEl` data.
+ * A SmartArt renderer prefers this over the progress-based `build` /
+ * {@link ElementBuildState} path when present, since it reflects the real
+ * authored reveal set (correct even for a reversed-order or by-branch build),
+ * and falls back to `build` when absent.
+ */
+export interface DiagramRevealDescriptor {
+	/**
+	 * Whether the diagram's background/connector chrome should currently be
+	 * visible: `true` once any node-revealing or background-revealing
+	 * (`bldStep="bg"`) step has fired.
+	 */
+	background: boolean;
+	/** Data-model point ids (`PptxSmartArtNode.id`) revealed so far. */
+	nodeIds: ReadonlySet<string>;
 }
 
 /**
@@ -447,6 +527,14 @@ export interface ElementAnimationState {
 	 * present; `chart-build`'s `resolveRevealedChartData` picks between the two.
 	 */
 	chartReveal?: { mode: ChartBuildMode; descriptor: ChartRevealDescriptor };
+	/**
+	 * Authored-index SmartArt diagram reveal state (see
+	 * {@link DiagramRevealDescriptor}), present only when every fired
+	 * diagram-build step for this element carried `p:graphicEl` node-id data.
+	 * `diagram-build`'s `resolveRevealedSmartArtNodes` prefers this over `build`
+	 * when present.
+	 */
+	diagramReveal?: { mode: DiagramBuildMode; descriptor: DiagramRevealDescriptor };
 	/**
 	 * True when an active `p:animClr` color animation targets this shape's fill.
 	 * A vector renderer should then paint the fill with `fill: inherit` so the

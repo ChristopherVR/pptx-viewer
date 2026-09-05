@@ -11,7 +11,7 @@
  *
  * @module render/ribbon-home-commands
  */
-import type { PptxSlide, ShapeStyle } from 'pptx-viewer-core';
+import type { PptxSlide, PptxThemeColorRef, ShapeStyle } from 'pptx-viewer-core';
 
 /**
  * The layout PowerPoint's Home > Reset re-applies to the active slide,
@@ -24,14 +24,19 @@ export function resetSlideLayoutPath(slide: PptxSlide | undefined): string | und
 	return typeof path === 'string' && path !== '' ? path : undefined;
 }
 
-/** The style change Home > Shape Fill commits for a picked swatch. */
-export function shapeFillChange(hex: string): Partial<ShapeStyle> {
-	return { fillColor: hex, fillMode: 'solid' };
+/**
+ * The style change Home > Shape Fill commits for a picked swatch. Pass `ref`
+ * for a theme-swatch pick (wins on save, so the fill follows a later theme
+ * change); omit it (or pass `undefined`) to explicitly clear a previously-
+ * stored ref for a plain/custom/recent pick.
+ */
+export function shapeFillChange(hex: string, ref?: PptxThemeColorRef): Partial<ShapeStyle> {
+	return { fillColor: hex, fillColorRef: ref, fillMode: 'solid' };
 }
 
-/** The style change Home > Shape Outline commits for a picked swatch. */
-export function shapeOutlineChange(hex: string): Partial<ShapeStyle> {
-	return { strokeColor: hex };
+/** The style change Home > Shape Outline commits for a picked swatch. Same `ref` contract as {@link shapeFillChange}. */
+export function shapeOutlineChange(hex: string, ref?: PptxThemeColorRef): Partial<ShapeStyle> {
+	return { strokeColor: hex, strokeColorRef: ref };
 }
 
 /**

@@ -1,7 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { fontSizeOf, textFontSizePatch } from './inspector-helpers';
+import {
+	fontSizeOf,
+	shapeStylePatch,
+	textFontSizePatch,
+	textStylePatch,
+} from './inspector-helpers';
 
 function textElement(fontSize?: number): PptxElement {
 	return {
@@ -74,5 +79,34 @@ describe('textFontSizePatch', () => {
 			{ text: 'First', style: { fontSize: 24, bold: true } },
 			{ text: 'Second', style: { fontSize: 24, italic: true } },
 		]);
+	});
+});
+
+describe('shapeStylePatch / textStylePatch theme colour refs (W3-G2)', () => {
+	it('carries a fillColorRef/strokeColorRef through the shapeStyle patch', () => {
+		const element = shapeElement();
+		const patch = shapeStylePatch(element, {
+			fillColor: '#4472c4',
+			fillColorRef: { scheme: 'accent1' },
+		});
+		expect(patch.shapeStyle).toMatchObject({
+			fillColor: '#4472c4',
+			fillColorRef: { scheme: 'accent1' },
+		});
+	});
+
+	it('explicitly clearing a ref (undefined) overrides a previously-stored one', () => {
+		const element = {
+			...shapeElement(),
+			shapeStyle: { fillColor: '#4472c4', fillColorRef: { scheme: 'accent1' } },
+		} as PptxElement;
+		const patch = shapeStylePatch(element, { fillColor: '#ff0000', fillColorRef: undefined });
+		expect(patch.shapeStyle).toMatchObject({ fillColor: '#ff0000', fillColorRef: undefined });
+	});
+
+	it('carries a colorRef through the textStyle patch', () => {
+		const element = textElement(16);
+		const patch = textStylePatch(element, { color: '#ed7d31', colorRef: { scheme: 'accent2' } });
+		expect(patch.textStyle).toMatchObject({ color: '#ed7d31', colorRef: { scheme: 'accent2' } });
 	});
 });

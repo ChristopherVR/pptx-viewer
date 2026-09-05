@@ -25,8 +25,13 @@ import type {
 	TimelineStep,
 	ElementAnimationState,
 	ChartBuildMode,
+	DiagramBuildMode,
 } from './animation-timeline-types';
 import { collectChartBuildInfo, resolveChartRevealDescriptor } from './chart-reveal-descriptor';
+import {
+	collectDiagramBuildInfo,
+	resolveDiagramRevealDescriptor,
+} from './diagram-reveal-descriptor';
 
 /**
  * Options for {@link TimelineEngine.getElementStates}. Re-exported alias of
@@ -74,6 +79,17 @@ export class TimelineEngine {
 		string,
 		{ mode: ChartBuildMode; animateBackground: boolean }
 	>;
+	/**
+	 * Cumulative (oldest-first) history of fired diagram-build steps per
+	 * element, mirroring {@link chartRevealHistory} for `p:bldDgm` per-node
+	 * builds. See `diagram-reveal-descriptor`'s `resolveDiagramRevealDescriptor`.
+	 */
+	private readonly diagramRevealHistory: Map<string, TimelineStep[]>;
+	/**
+	 * Each diagram element's static build mode, collected once from the
+	 * timeline. See `diagram-reveal-descriptor`'s `collectDiagramBuildInfo`.
+	 */
+	private readonly diagramBuildInfo: ReadonlyMap<string, { mode: DiagramBuildMode }>;
 	/**
 	 * Set of element IDs whose entrance animation has played.
 	 * These elements become visible.
@@ -129,6 +145,8 @@ export class TimelineEngine {
 		this.activeSteps = new Map();
 		this.chartRevealHistory = new Map();
 		this.chartBuildInfo = collectChartBuildInfo(timeline);
+		this.diagramRevealHistory = new Map();
+		this.diagramBuildInfo = collectDiagramBuildInfo(timeline);
 		this.revealedElements = new Set();
 		this.exitedElements = new Set();
 		this.interactiveGroupIndexes = new Map();
@@ -320,6 +338,13 @@ export class TimelineEngine {
 					state.chartReveal = { mode: chartInfo.mode, descriptor };
 				}
 			}
+			const diagramInfo = this.diagramBuildInfo.get(id);
+			if (diagramInfo) {
+				const descriptor = resolveDiagramRevealDescriptor(this.diagramRevealHistory.get(id) ?? []);
+				if (descriptor) {
+					state.diagramReveal = { mode: diagramInfo.mode, descriptor };
+				}
+			}
 			states.set(id, state);
 		}
 		return states;
@@ -463,6 +488,11 @@ export class TimelineEngine {
 					history.push(step);
 					this.chartRevealHistory.set(step.elementId, history);
 				}
+				if (step.build?.kind === 'diagram') {
+					const history = this.diagramRevealHistory.get(step.elementId) ?? [];
+					history.push(step);
+					this.diagramRevealHistory.set(step.elementId, history);
+				}
 				if (step.presetClass === 'entr') {
 					this.revealedElements.add(step.elementId);
 				}
@@ -482,6 +512,7 @@ export class TimelineEngine {
 		this.activeAnimations.clear();
 		this.activeSteps.clear();
 		this.chartRevealHistory.clear();
+		this.diagramRevealHistory.clear();
 		this.revealedElements.clear();
 		this.exitedElements.clear();
 		this.interactiveGroupIndexes.clear();
@@ -521,6 +552,7 @@ export class TimelineEngine {
 				revealedElements: this.revealedElements,
 				exitedElements: this.exitedElements,
 				chartRevealHistory: this.chartRevealHistory,
+				diagramRevealHistory: this.diagramRevealHistory,
 			});
 			if (!applied) {
 				appliedSteps ??= group.steps.slice(0, i);

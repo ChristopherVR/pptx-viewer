@@ -2,7 +2,11 @@
  * Adapts a `bar3D` chart's `PptxChartData` into the box-mesh layout the
  * interactive 3D scene ({@link ./bar-chart-3d-scene.ts}, `mountBarChart3D`)
  * needs to mount: one {@link BarChart3DBox} per (series, category) data point,
- * positioned in true 3D space (category = X, value = Y, series = Z/depth).
+ * positioned in true 3D space (category = X, value = Y, series = Z/depth for
+ * the default vertical `c:barDir val="col"`; a horizontal `val="bar"` chart
+ * remaps every box center into value = X, category = Y, series unchanged on
+ * Z, see `layoutBarChart3D`'s `horizontal` flag and `BarChart3DSceneOptions
+ * .horizontal`).
  *
  * Colour resolution (`seriesColor` / `resolveDataPointFill`) and value-range
  * maths (`computeValueRange` / `computeStackedValueRange`) are the SAME
@@ -58,6 +62,13 @@ export interface BarChart3DSceneOptions {
 	view3D?: CartesianCameraView3D;
 	/** Authored `c:floor`/`c:sideWall`/`c:backWall` fill colours, when set. */
 	wallColors?: SurfaceWallColors;
+	/**
+	 * `c:barDir val="bar"`: a horizontal 3-D Bar chart. Box centers are already
+	 * remapped into the horizontal frame (see `layoutBarChart3D`); the scene
+	 * mounter uses this flag only to rotate every box mesh `-Math.PI / 2` about
+	 * Z so non-box shapes (cylinder/cone/pyramid) keep a true cross-section.
+	 */
+	horizontal?: boolean;
 }
 
 export interface BarChart3DDataOptions {
@@ -125,6 +136,7 @@ export function buildBarChart3DData(
 			? chartData.grouping
 			: 'clustered';
 	const isPercent = grouping === 'percentStacked';
+	const horizontal = chartData.barDirection === 'bar';
 
 	const points = buildPoints(chartData, cols, isPercent);
 	const range: ValueRange = isPercent
@@ -134,7 +146,7 @@ export function buildBarChart3DData(
 			: computeValueRange(chartData.series);
 
 	const depthPercent = chartData.view3D?.depthPercent;
-	const boxes = layoutBarChart3D(points, cols, rows, range, grouping, depthPercent);
+	const boxes = layoutBarChart3D(points, cols, rows, range, grouping, depthPercent, horizontal);
 
 	return {
 		cols,
@@ -156,6 +168,7 @@ export function buildBarChart3DData(
 				}
 			: undefined,
 		wallColors: resolveChart3DWallColors(chartData),
+		...(horizontal ? { horizontal: true } : {}),
 	};
 }
 
@@ -168,11 +181,12 @@ export function buildBarChart3DData(
  *
  * Returns `null` when the element is not a chart, its `c:chartType` is not
  * literally `bar3D` (a plain `bar` chart never mounts the 3D scene, even
- * though `resolveChartKind` folds both onto the same 'bar' kind), the chart
- * is authored as a horizontal 3-D Bar (`c:barDir="bar"`, not yet supported by
- * the true-3D mesh path), or the chart has no plottable grid. A non-null
- * result means "render the WebGL scene"; `null` means "fall back to the flat
- * SVG oblique-projection bar3D renderer".
+ * though `resolveChartKind` folds both onto the same 'bar' kind), or the
+ * chart has no plottable grid. A non-null result means "render the WebGL
+ * scene"; `null` means "fall back to the flat SVG oblique-projection bar3D
+ * renderer". A horizontal 3-D Bar (`c:barDir="bar"`) mounts the SAME scene
+ * with its boxes remapped into the horizontal frame (`BarChart3DSceneOptions
+ * .horizontal`); see `layoutBarChart3D`.
  */
 export function buildBarChart3DDataForElement(
 	element: PptxElement,
@@ -186,7 +200,7 @@ export function buildBarChart3DDataForElement(
 	if (!chartData || chartData.series.length === 0) {
 		return null;
 	}
-	if (chartData.chartType !== 'bar3D' || chartData.barDirection === 'bar') {
+	if (chartData.chartType !== 'bar3D') {
 		return null;
 	}
 

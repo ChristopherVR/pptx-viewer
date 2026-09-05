@@ -1,5 +1,5 @@
 /**
- * `animation-keyframes-exit-shapes` — CSS `@keyframes` definitions for the
+ * `animation-keyframes-exit-shapes`: CSS `@keyframes` definitions for the
  * Box / Checkerboard / Blinds / Wheel / Random Bars / Diamond / Plus / Wedge
  * EXIT effects. Split out of `animation-keyframes` to keep that module under
  * the repo's file-size cap.
@@ -27,7 +27,9 @@ export type ExitShapeEffectName =
 	| 'randomBarsOut'
 	| 'diamondOut'
 	| 'plusOut'
-	| 'wedgeOut';
+	| 'wedgeOut'
+	| 'peekOut'
+	| 'splitOut';
 
 export const EXIT_SHAPE_KEYFRAME_DEFINITIONS: Record<ExitShapeEffectName, string> = {
 	boxOut: `@keyframes pptx-boxOut {
@@ -64,5 +66,18 @@ export const EXIT_SHAPE_KEYFRAME_DEFINITIONS: Record<ExitShapeEffectName, string
 	wedgeOut: `@keyframes pptx-wedgeOut {
 	from { ${maskShapeDecl('wedgeOut', 'shown')} opacity: 1; }
 	to { ${maskShapeDecl('wedgeOut', 'hidden')} opacity: 0; }
+}`,
+	// Peek Out (exit.16): the exit-gallery counterpart of Peek In, which had
+	// no dedicated exit keyframe before this pass. Collapses back toward the
+	// same bottom-origin edge Peek In reveals from.
+	peekOut: `@keyframes pptx-peekOut {
+	from { ${maskEdgeDecl('bottom', 'shown')} opacity: 1; }
+	to { ${maskEdgeDecl('bottom', 'hidden')} opacity: 0; }
+}`,
+	// Split (exit.17): the exit-gallery counterpart of Split, closing the
+	// centred band back to nothing rather than growing it outward.
+	splitOut: `@keyframes pptx-splitOut {
+	from { ${maskShapeDecl('splitHorizontalOut', 'shown')} opacity: 1; }
+	to { ${maskShapeDecl('splitHorizontalOut', 'hidden')} opacity: 0; }
 }`,
 };

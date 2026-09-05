@@ -18,7 +18,7 @@
  * §20.1.8.49 (pathFill). Pattern presets follow §20.1.10.33
  * (ST_PresetPatternVal).
  */
-import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxThemeColorRef, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import { DEFAULT_FILL_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
@@ -116,7 +116,18 @@ export function createArrayBufferCopy(bytes: Uint8Array): ArrayBuffer {
 // ---------------------------------------------------------------------------
 
 type GradientStop = NonNullable<ShapeStyle['fillGradientStops']>[number];
-type SanitizedStop = { color: string; position: number; opacity?: number };
+/**
+ * `colorRef` carries the stop's theme identity through sanitisation (see
+ * {@link ShapeStyle.fillGradientStops}'s own `colorRef` field) so a gradient
+ * stop picker can highlight the matching theme swatch and a theme swap can
+ * re-resolve the stop, same as the shape's own {@link ShapeStyle.fillColorRef}.
+ */
+type SanitizedStop = {
+	color: string;
+	position: number;
+	opacity?: number;
+	colorRef?: PptxThemeColorRef;
+};
 
 /**
  * Validates, normalizes, and sorts an array of gradient stops. Filters out
@@ -144,6 +155,7 @@ export function sanitizeGradientStops(
 				typeof stop.opacity === 'number' && Number.isFinite(stop.opacity)
 					? clampUnitInterval(stop.opacity)
 					: undefined,
+			colorRef: stop.colorRef,
 		}))
 		.sort((left, right) => left.position - right.position);
 }

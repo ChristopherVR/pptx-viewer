@@ -15,6 +15,13 @@
  * distinction is traversal ordering, which the node list already encodes in
  * document order, so a leading-prefix reveal honours both.
  *
+ * `applyDiagramRevealDescriptor` is the authored-index counterpart, consumed
+ * instead of the count-based path whenever a `DiagramRevealDescriptor` (see
+ * `diagram-reveal-descriptor`) is available; `resolveRevealedSmartArtNodes` is
+ * the single entry point every binding's SmartArt renderer should call, since
+ * it picks between the two exactly as `chart-build`'s
+ * `resolveRevealedChartData` does for charts.
+ *
  * `p:bldDgm/@bld="one"` is itself ambiguous between PowerPoint's "One by One"
  * and "By branch, one by one" Effect Options: both are legal authoring choices
  * that write the same generic `one` token, and the diagram's OWN default hint
@@ -45,7 +52,11 @@
 import type { PptxSmartArtNode, PptxSmartArtPresLayoutVars } from 'pptx-viewer-core';
 
 import { revealedStageCount } from './animation-build';
-import type { DiagramBuildMode } from './animation-timeline-types';
+import type {
+	DiagramBuildMode,
+	DiagramRevealDescriptor,
+	ElementAnimationState,
+} from './animation-timeline-types';
 
 /** The diagram variant of a playback-time build state. */
 export interface DiagramBuildState {
@@ -175,4 +186,60 @@ export function revealedSmartArtNodeCount(
 
 	// byOne / byLvl with no disambiguating hint: one node per stage.
 	return revealedStageCount(build.progress, nodes.length);
+}
+
+/**
+ * Project a node list down to the AUTHORED reveal set named by a
+ * {@link DiagramRevealDescriptor} (see `diagram-reveal-descriptor`), rather
+ * than a click-count estimate. Correct for a reversed-order, by-branch, or
+ * directional-traversal build, where {@link revealedSmartArtNodeCount}'s
+ * leading-prefix assumption is not. Preserves the input node list's own
+ * (document) order.
+ */
+export function applyDiagramRevealDescriptor(
+	nodes: readonly PptxSmartArtNode[],
+	descriptor: DiagramRevealDescriptor,
+): PptxSmartArtNode[] {
+	return nodes.filter((node) => descriptor.nodeIds.has(node.id));
+}
+
+/** Result of resolving how many/which SmartArt nodes are revealed right now. */
+export interface DiagramRevealResult {
+	/**
+	 * Revealed nodes, in the input list's own (document) order. A mutable array
+	 * (like `Array.prototype.slice`/`.filter` produce) so a caller can pass it
+	 * straight into `computeSmartArtElementLayout` / `flattenNodes` without a
+	 * copy of its own.
+	 */
+	nodes: PptxSmartArtNode[];
+	/**
+	 * Count of revealed nodes relative to the full list, for a renderer that
+	 * also needs to proportionally trim a parallel PRECOMPUTED structure with
+	 * no per-node id of its own (e.g. cached `dsp:` drawing shapes).
+	 */
+	shownCount: number;
+}
+
+/**
+ * Resolve the SmartArt nodes revealed at the current playback state,
+ * preferring the authored-index {@link DiagramRevealDescriptor}
+ * (`state.diagramReveal`) over the count-based `state.build` when both are
+ * available, and revealing every node when neither applies. Every binding's
+ * SmartArt element renderer calls this in place of calling
+ * `revealedSmartArtNodeCount` + slicing directly.
+ */
+export function resolveRevealedSmartArtNodes(
+	nodes: readonly PptxSmartArtNode[],
+	state: Pick<ElementAnimationState, 'build' | 'diagramReveal'> | undefined,
+	presLayoutVars?: PptxSmartArtPresLayoutVars,
+): DiagramRevealResult {
+	if (state?.diagramReveal) {
+		const revealed = applyDiagramRevealDescriptor(nodes, state.diagramReveal.descriptor);
+		return { nodes: revealed, shownCount: revealed.length };
+	}
+	if (state?.build?.kind === 'diagram') {
+		const shownCount = revealedSmartArtNodeCount(nodes, state.build, presLayoutVars);
+		return { nodes: nodes.slice(0, shownCount), shownCount };
+	}
+	return { nodes: nodes.slice(), shownCount: nodes.length };
 }

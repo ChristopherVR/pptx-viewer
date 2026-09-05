@@ -81,6 +81,16 @@ export interface ParagraphRun {
 	 */
 	tabLines?: TabbedLineRun[];
 	/**
+	 * `a:rPr/@u="words"` word/gap pieces of a RUBY run's base text, present only
+	 * when such a run's underline is `words` (the ordinary per-word split emits
+	 * sibling runs instead; a tab piece carries its own `words`). Same shape as
+	 * `scriptRuns` and rendered the same way, in place of `text`: a word entry
+	 * carries the decoration for its own span, a gap entry is bare text. The
+	 * run's own `style` has the underline stripped when this is set (see
+	 * `paragraph-run-build.ts`).
+	 */
+	underlineWordPieces?: ScriptFontPiece[];
+	/**
 	 * `a:reflection` mirrored-sibling wrapper style for this run (the text-run
 	 * counterpart of a shape/picture's `ComputedEffectStyle.reflection`), or
 	 * `undefined` for the common no-reflection case. A binding renders a sibling

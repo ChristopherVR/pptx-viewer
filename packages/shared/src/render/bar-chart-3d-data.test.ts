@@ -36,6 +36,29 @@ describe('buildBarChart3DData', () => {
 		expect(result!.grouping).toBe('clustered');
 	});
 
+	it('transposes every box center for a horizontal (barDir=bar) chart, matching transposeForHorizontalBar3D, while sizes stay in the unrotated local frame', () => {
+		const vertical = makeBarData({ barDirection: 'col' });
+		const horizontal = makeBarData({ barDirection: 'bar' });
+		const verticalResult = buildBarChart3DData(vertical, vertical.categories, {
+			width: 400,
+			height: 300,
+		})!;
+		const horizontalResult = buildBarChart3DData(horizontal, horizontal.categories, {
+			width: 400,
+			height: 300,
+		})!;
+		expect(horizontalResult.horizontal).toBeTruthy();
+		expect(verticalResult.horizontal).toBeUndefined();
+		for (let i = 0; i < verticalResult.boxes.length; i++) {
+			const v = verticalResult.boxes[i];
+			const h = horizontalResult.boxes[i];
+			expect(h.center).toStrictEqual([v.center[1], -v.center[0], v.center[2]]);
+			// Sizes are NOT swapped: the scene rotates the mesh instead so
+			// non-box shapes keep a true (non-elliptical) cross-section.
+			expect(h.size).toStrictEqual(v.size);
+		}
+	});
+
 	it('resolves each box shape from the series override, else the chart-level barShape', () => {
 		const data = makeBarData({
 			barShape: 'cylinder',
@@ -236,11 +259,25 @@ describe('buildBarChart3DDataForElement', () => {
 		).toBeNull();
 	});
 
-	it('returns null for a horizontal (barDir=bar) 3-D Bar chart, not yet supported by the mesh path', () => {
+	it('resolves a horizontal (barDir=bar) 3-D Bar chart and flags it horizontal', () => {
 		const data = makeBarData({ barDirection: 'bar' });
-		expect(
-			buildBarChart3DDataForElement(makeChartElement(data), { width: 400, height: 300 }),
-		).toBeNull();
+		const result = buildBarChart3DDataForElement(makeChartElement(data), {
+			width: 400,
+			height: 300,
+		});
+		expect(result).not.toBeNull();
+		expect(result!.horizontal).toBeTruthy();
+		expect(result!.boxes).toHaveLength(6);
+	});
+
+	it('does not flag horizontal for a plain vertical (barDir=col) 3-D Bar chart', () => {
+		const data = makeBarData({ barDirection: 'col' });
+		const result = buildBarChart3DDataForElement(makeChartElement(data), {
+			width: 400,
+			height: 300,
+		});
+		expect(result).not.toBeNull();
+		expect(result!.horizontal).toBeUndefined();
 	});
 
 	it('resolves a bar3D chart', () => {

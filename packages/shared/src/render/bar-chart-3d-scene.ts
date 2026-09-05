@@ -19,6 +19,10 @@
  * dynamic and guarded, and a missing dependency resolves to a no-op sentinel
  * handle so the caller falls back to the flat 2D renderer.
  *
+ * A horizontal 3-D Bar (`options.horizontal`) mounts the SAME scene: boxes
+ * arrive already remapped into the horizontal frame, so this module only
+ * rotates each mesh to match and builds the label overlay in that frame.
+ *
  * @module bar-chart-3d-scene
  */
 
@@ -126,7 +130,9 @@ export async function mountBarChart3D(
 		options.rows,
 		options.view3D?.depthPercent,
 	);
-	const floorSize = Math.max(extent.gridWidth, extent.gridDepth) * 1.2;
+	// A horizontal bar3D chart's boxes sit at various world-Y heights (the
+	// remapped category axis), so the floor also covers that vertical spread.
+	const floorSize = Math.max(extent.gridWidth, extent.gridDepth, MAX_VALUE_HEIGHT * 2) * 1.2;
 	const gridFloor = new three.GridHelper(
 		floorSize,
 		Math.max(options.cols, options.rows),
@@ -138,7 +144,9 @@ export async function mountBarChart3D(
 
 	// Authored c:floor / c:sideWall / c:backWall backdrop panels. Passes this
 	// module's OWN grid extent, never letting buildSurfaceWallMeshes recompute
-	// a mismatched one.
+	// a mismatched one. KNOWN APPROXIMATION: unlike the boxes and labels, these
+	// panels are not reoriented for `options.horizontal` (they still paint the
+	// vertical category=X, value=Y frame's panel positions).
 	const walls = options.wallColors
 		? buildSurfaceWallMeshes(
 				three,
@@ -160,7 +168,7 @@ export async function mountBarChart3D(
 		meshes: boxMeshes,
 		materials: boxMaterials,
 		geometries: boxGeometries,
-	} = buildBar3DMeshGroup(three, scene, options.boxes);
+	} = buildBar3DMeshGroup(three, scene, options.boxes, options.horizontal);
 
 	// Raycast-based hover tooltip: each box mesh carries its own (series,
 	// category, value) in `userData`, so a hit reports the cell directly (no
@@ -219,6 +227,9 @@ export async function mountBarChart3D(
 		options.categoryLabels,
 		options.seriesNames,
 		options.view3D?.depthPercent,
+		undefined,
+		undefined,
+		options.horizontal,
 	);
 	const { layer, nodes } = createLabelOverlay(doc, labels);
 	container.appendChild(layer);

@@ -1,8 +1,8 @@
-import type { PptxChartData, PptxChartTrendline } from 'pptx-viewer-core';
+import type { PptxChartTrendline } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import type { PlotLayout, ValueRange } from './chart-helpers';
-import { computeChartTrendlines, computeTrendlinePoints } from './chart-trendlines';
+import { computeTrendlinePoints } from './chart-trendlines';
 
 const layout: PlotLayout = {
 	plotLeft: 0,
@@ -16,14 +16,6 @@ const layout: PlotLayout = {
 };
 
 const range: ValueRange = { min: 0, max: 10, span: 10 };
-
-function chart(trendlines: PptxChartTrendline[], values = [1, 2, 3, 4]): PptxChartData {
-	return {
-		chartType: 'line',
-		categories: ['A', 'B', 'C', 'D'],
-		series: [{ name: 'S1', values, trendlines }],
-	} as PptxChartData;
-}
 
 describe('computeTrendlinePoints', () => {
 	it('returns no points for fewer than two values', () => {
@@ -83,32 +75,5 @@ describe('computeTrendlinePoints', () => {
 		);
 		expect(r.points.length).toBeGreaterThan(2);
 		expect(r.equation).toContain('e^');
-	});
-});
-
-describe('computeChartTrendlines', () => {
-	it('returns an empty array when no series has trendlines', () => {
-		const data = chart([]);
-		expect(computeChartTrendlines(data, layout, range, 'line')).toHaveLength(0);
-	});
-
-	it('produces a renderable path + colour for a linear trendline', () => {
-		const data = chart([{ trendlineType: 'linear' }]);
-		const out = computeChartTrendlines(data, layout, range, 'line');
-		expect(out).toHaveLength(1);
-		expect(out[0].pathData.startsWith('M ')).toBeTruthy();
-		expect(out[0].color).toBeTruthy();
-		// No equation/R² label requested → undefined.
-		expect(out[0].label).toBeUndefined();
-	});
-
-	it('honours the trendline colour override and emits a label when requested', () => {
-		const data = chart([
-			{ trendlineType: 'linear', color: '#ff8800', displayEq: true, displayRSq: true },
-		]);
-		const out = computeChartTrendlines(data, layout, range, 'line');
-		expect(out[0].color).toBe('#ff8800');
-		expect(out[0].label).toContain('R²');
-		expect(out[0].labelX).toBeTypeOf('number');
 	});
 });

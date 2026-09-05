@@ -78,11 +78,18 @@ export function buildTabLinesFor(
 	text: string,
 	ctx: RunExtrasContext,
 	style: RunStyle,
+	underlineWords = false,
 ): TabbedLineRun[] | undefined {
 	if (!ctx.tabContext || !text.includes('\t')) {
 		return undefined;
 	}
-	return buildRunTabLines(text, ctx.tabContext, nestedTextDecorationStyle(style));
+	return buildRunTabLines(
+		text,
+		ctx.tabContext,
+		nestedTextDecorationStyle(style),
+		undefined,
+		underlineWords,
+	);
 }
 
 /**

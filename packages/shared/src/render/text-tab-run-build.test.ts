@@ -91,6 +91,44 @@ describe('buildRunTabLines', () => {
 			expect(piece.style.whiteSpace).toBe('pre');
 		}
 	});
+
+	describe('underlineWords (u="words" on a tab-separated piece)', () => {
+		it('leaves `words` unset when underlineWords is false (the default)', () => {
+			const stops: TabStopSpec[] = [{ position: 100, align: 'l' }];
+			const decoration: RunStyle = { textDecoration: 'underline' };
+			const lines = buildRunTabLines('Hello World\t12', ctxWith(stops), decoration, measure);
+			expect(lines[0].pieces[0].words).toBeUndefined();
+		});
+
+		it('splits a multi-word piece into underlined words and undecorated gaps', () => {
+			const stops: TabStopSpec[] = [{ position: 100, align: 'l' }];
+			const decoration: RunStyle = { textDecoration: 'underline' };
+			const lines = buildRunTabLines('Hello World\t12', ctxWith(stops), decoration, measure, true);
+			const [firstPiece] = lines[0].pieces;
+			// Each word entry is a SIBLING replacement for the piece span, so it
+			// repeats the piece's own inline-block layout; only a gap loses the
+			// underline.
+			const { textDecoration: _dropped, ...gapStyle } = firstPiece.style;
+			expect(firstPiece.words).toStrictEqual([
+				{ text: 'Hello', style: firstPiece.style },
+				{ text: ' ', style: gapStyle },
+				{ text: 'World', style: firstPiece.style },
+			]);
+			expect(firstPiece.style.display).toBe('inline-block');
+			// The piece's own `text`/`style` stay the continuous-underline fallback
+			// for a binding that does not render `words`.
+			expect(firstPiece.text).toBe('Hello World');
+			expect(firstPiece.style.textDecoration).toBe('underline');
+		});
+
+		it('gives a single-word piece a one-entry (still underlined) words array', () => {
+			const stops: TabStopSpec[] = [{ position: 100, align: 'l' }];
+			const decoration: RunStyle = { textDecoration: 'underline' };
+			const lines = buildRunTabLines('Solo\t12', ctxWith(stops), decoration, measure, true);
+			const [piece] = lines[0].pieces;
+			expect(piece.words).toStrictEqual([{ text: 'Solo', style: piece.style }]);
+		});
+	});
 });
 
 /**

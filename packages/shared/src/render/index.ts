@@ -319,6 +319,8 @@ export * from './chart-build';
 // whenever every fired chart-build step for a chart carries index data.
 export * from './chart-reveal-descriptor';
 export * from './diagram-build';
+export * from './diagram-drawing-shape-reveal';
+export * from './diagram-reveal-descriptor';
 export * from './animation-timeline-helpers';
 // Absolute `p:animRot`/`p:animScale` `from`/`to` keyframes, plus `p:tavLst`
 // opacity and colour ramps for a generic `p:anim` node (attributed via
@@ -1269,6 +1271,9 @@ export * from './layout-gallery';
 // highlight-colour (and future fill/line-colour) pickers, shared by every
 // binding instead of each hardcoding its own copy.
 export * from './color-swatches';
+export * from './theme-color-swatches';
+export * from './theme-color-picker-state';
+export * from './theme-color-field-commit';
 
 // PowerPoint-style title bar (AutoSave toggle + quick access + file name +
 // search) and the shared IndexedDB autosave recovery store behind it. Pure

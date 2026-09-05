@@ -2766,6 +2766,8 @@ export const translationsEn: Record<string, string> = {
 	'pptx.fillPatterns.wideVertical': 'Wide Vertical',
 	'pptx.fillPatterns.zigZag': 'Zig Zag',
 	'pptx.fillStroke.eyedropperTooltip': 'Eyedropper: pick colour from screen',
+	'pptx.colorPicker.themeColors': 'Theme Colors',
+	'pptx.colorPicker.standardColors': 'Standard Colors',
 	'pptx.image.cropBottom': 'Crop Bottom',
 	'pptx.image.cropLeft': 'Crop Left',
 	'pptx.image.cropRight': 'Crop Right',

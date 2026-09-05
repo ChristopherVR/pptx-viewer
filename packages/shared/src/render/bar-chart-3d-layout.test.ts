@@ -110,3 +110,40 @@ describe('layoutBarChart3D - shape threading', () => {
 		expect(box.coneToMaxTopRadiusFactor).toBe(0);
 	});
 });
+
+describe('layoutBarChart3D - horizontal (barDir=bar) remap', () => {
+	const range: ValueRange = { min: 0, max: 100, span: 100 };
+	const points: CartesianChart3DPoint[] = [
+		point({ categoryIndex: 0, seriesIndex: 0, value: 10, plotValue: 10 }),
+		point({ categoryIndex: 1, seriesIndex: 0, value: 40, plotValue: 40 }),
+		point({ categoryIndex: 0, seriesIndex: 1, value: 25, plotValue: 25 }),
+	];
+
+	it('leaves centers/sizes untouched when horizontal is omitted or false', () => {
+		const defaulted = layoutBarChart3D(points, 2, 2, range, 'clustered', undefined);
+		const explicit = layoutBarChart3D(points, 2, 2, range, 'clustered', undefined, false);
+		expect(explicit).toStrictEqual(defaulted);
+	});
+
+	it('transposes centers (x, y, z) -> (y, -x, z) and leaves size unchanged (clustered)', () => {
+		const vertical = layoutBarChart3D(points, 2, 2, range, 'clustered', undefined);
+		const horizontal = layoutBarChart3D(points, 2, 2, range, 'clustered', undefined, true);
+		for (let i = 0; i < vertical.length; i++) {
+			const v = vertical[i];
+			const h = horizontal[i];
+			expect(h.center).toStrictEqual([v.center[1], -v.center[0], v.center[2]]);
+			expect(h.size).toStrictEqual(v.size);
+		}
+	});
+
+	it('transposes centers for stacked layout the same way', () => {
+		const vertical = layoutBarChart3D(points, 2, 2, range, 'stacked', undefined);
+		const horizontal = layoutBarChart3D(points, 2, 2, range, 'stacked', undefined, true);
+		for (let i = 0; i < vertical.length; i++) {
+			const v = vertical[i];
+			const h = horizontal[i];
+			expect(h.center).toStrictEqual([v.center[1], -v.center[0], v.center[2]]);
+			expect(h.size).toStrictEqual(v.size);
+		}
+	});
+});

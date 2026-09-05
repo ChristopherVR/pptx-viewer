@@ -6,7 +6,7 @@
  * for the binding's element-update path. Shared across React, Vue, and Angular.
  */
 
-import type { PlaceholderDefaults, PptxElement } from 'pptx-viewer-core';
+import type { PlaceholderDefaults, PptxElement, PptxThemeColorRef } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import { textFontSizePxToPt } from './text-format-presets';
@@ -101,7 +101,15 @@ export function isUnderline(el: PptxElement): boolean {
  */
 export interface ShapeStyleChanges {
 	fillColor?: string;
+	/**
+	 * Set alongside `fillColor` when the colour came from a theme swatch (wins
+	 * on save); pass `undefined` explicitly when clearing a previously-stored
+	 * ref (a custom hex or recent-colour pick has no theme identity).
+	 */
+	fillColorRef?: PptxThemeColorRef;
 	strokeColor?: string;
+	/** Same contract as {@link fillColorRef}, for the stroke colour. */
+	strokeColorRef?: PptxThemeColorRef;
 }
 
 /**
@@ -124,6 +132,8 @@ export function shapeStylePatch(el: PptxElement, changes: ShapeStyleChanges): Pa
  */
 export interface TextStyleChanges {
 	color?: string;
+	/** Same contract as {@link ShapeStyleChanges.fillColorRef}, for the text colour. */
+	colorRef?: PptxThemeColorRef;
 	fontSize?: number;
 	bold?: boolean;
 	italic?: boolean;

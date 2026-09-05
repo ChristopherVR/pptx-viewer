@@ -24,6 +24,28 @@ const GRID_SPACING = 0.5;
 /** World-space height of the tallest data point (value axis extent). */
 export const MAX_VALUE_HEIGHT = 1.5;
 
+/**
+ * Remap a point built in the "vertical" cartesian local frame (category =
+ * world X, value = world Y, series = world Z) onto the frame a horizontal
+ * `c:barDir val="bar"` `bar3D` chart needs (value = world X, category = world
+ * Y, series unchanged on Z): a -90 degree rotation about Z, i.e. `(x, y, z) ->
+ * (y, -x, z)`. The negation keeps category index 0 at the TOP of the scene
+ * (positive world Y), matching the flat SVG horizontal-bar engine's own
+ * top-to-bottom category order ({@link ./chart-horizontal-bars.ts}) so the
+ * true-3D scene and its 2D fallback never disagree about layout.
+ *
+ * Every "vertical-frame" point this cartesian geometry module produces (box
+ * centers, label anchors) can go through this same function, so a mesh
+ * rotated `-Math.PI / 2` about Z (see `bar-chart-3d-geometry.ts`) lines up
+ * with everything else built from the SAME local coordinates without a
+ * second, divergent set of horizontal-only layout maths.
+ */
+export function transposeForHorizontalBar3D(
+	point: readonly [number, number, number],
+): readonly [number, number, number] {
+	return [point[1], -point[0], point[2]];
+}
+
 /** World-space width (category axis) x depth (series axis) of the plot grid. */
 export interface CartesianGridExtent {
 	gridWidth: number;
@@ -192,9 +214,12 @@ export function buildCartesianChart3DLabels(
 	depthPercent: number | undefined,
 	maxCat = 8,
 	maxSer = 6,
+	horizontal = false,
 ): SurfaceLabel[] {
 	const { gridWidth, gridDepth } = computeCartesianGridExtent(cols, rows, depthPercent);
 	const labels: SurfaceLabel[] = [];
+	const remap = (anchor: readonly [number, number, number]): readonly [number, number, number] =>
+		horizontal ? transposeForHorizontalBar3D(anchor) : anchor;
 
 	const catStep = Math.max(1, Math.ceil(categoryLabels.length / maxCat));
 	for (let i = 0; i < categoryLabels.length; i += catStep) {
@@ -202,7 +227,7 @@ export function buildCartesianChart3DLabels(
 		labels.push({
 			key: `cat-${i}`,
 			text: categoryLabels[i],
-			anchor: [x, -0.15, gridDepth / 2 + 0.25],
+			anchor: remap([x, -0.15, gridDepth / 2 + 0.25]),
 			axis: 'category',
 		});
 	}
@@ -213,7 +238,7 @@ export function buildCartesianChart3DLabels(
 		labels.push({
 			key: `ser-${i}`,
 			text: seriesNames[i],
-			anchor: [gridWidth / 2 + 0.3, -0.15, z],
+			anchor: remap([gridWidth / 2 + 0.3, -0.15, z]),
 			axis: 'series',
 		});
 	}

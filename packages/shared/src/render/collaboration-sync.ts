@@ -111,6 +111,7 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'text',
 	'name',
 	'altText',
+	'title',
 	'isDecorative',
 	'preferRelativeResize',
 	'oleUpdateAutomatic',
