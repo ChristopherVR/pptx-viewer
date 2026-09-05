@@ -1,13 +1,13 @@
 /**
  * serialize-tags-roundtrip.test.ts: pins the tag-persistence contract that
- * `useSerialize` / `useExportSaveAs` rely on.
+ * `useSerialize` relies on (Save As routes through the same hook).
  *
- * The hooks build their save options as plain object variables (and
- * `useExportSaveAs` casts them), so a renamed or dropped `tags` key would not
- * fail the typecheck. This test saves through `handler.save()` with the exact
- * `tags` option shape the hooks now forward from viewer state, reparses the
- * bytes, and asserts the tag collections survive; a companion type assertion
- * keeps `tagCollections` a required member of the hook inputs.
+ * The hook hands its save options to the shared `buildDeckSaveOptions`, so a
+ * renamed or dropped `tags` key would surface only at runtime. This test saves
+ * through `handler.save()` with the exact `tags` option shape the hook forwards
+ * from viewer state, reparses the bytes, and asserts the tag collections
+ * survive; a companion type assertion keeps `tagCollections` a required member
+ * of the hook inputs.
  */
 import type { PptxHandlerSaveOptions, PptxTagCollection } from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';

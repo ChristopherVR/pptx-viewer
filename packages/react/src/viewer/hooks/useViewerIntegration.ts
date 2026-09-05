@@ -246,7 +246,6 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		serializeForRecovery,
 		setContent,
 		onContentChange,
-		password: dialogs.presentationPassword ?? undefined,
 		imageExportScale,
 	});
 

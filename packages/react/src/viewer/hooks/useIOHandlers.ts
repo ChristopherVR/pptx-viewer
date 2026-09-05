@@ -14,6 +14,7 @@ import { usePrintHandlers } from './usePrintHandlers';
 import type { PrintHandlersResult } from './usePrintHandlers';
 import { usePropertyHandlers } from './usePropertyHandlers';
 import type { PropertyHandlersResult } from './usePropertyHandlers';
+import type { SerializeSlides } from './useSerialize';
 import { useThemeHandlers } from './useThemeHandlers';
 import type { ThemeHandlersResult } from './useThemeHandlers';
 import type { ViewerState } from './useViewerState';
@@ -34,7 +35,11 @@ export interface UseIOHandlersInput {
 		canvasStageRef: React.RefObject<HTMLDivElement | null>;
 	};
 	handlerRef: React.RefObject<PptxHandler | null>;
-	serializeSlides: () => Promise<Uint8Array | null>;
+	/**
+	 * The one user-facing serialiser (`useSerialize`). Save As passes it the
+	 * output format, so the downloaded file carries every save option Save does.
+	 */
+	serializeSlides: SerializeSlides;
 	/**
 	 * Plaintext serialisation for bytes the viewer feeds straight back into its
 	 * own loader. "Apply theme" does exactly that, and the loader has no password
@@ -43,7 +48,6 @@ export interface UseIOHandlersInput {
 	serializeForRecovery: () => Promise<Uint8Array | null>;
 	setContent: React.Dispatch<React.SetStateAction<ArrayBuffer | Uint8Array | null>>;
 	onContentChange: ((content: Uint8Array) => void) | undefined;
-	password?: string;
 	/** File > Options > Advanced > "Image Size and Quality" raster-scale multiplier. */
 	imageExportScale?: number;
 }
@@ -74,10 +78,10 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		ops,
 		zoom,
 		handlerRef,
+		serializeSlides,
 		serializeForRecovery,
 		setContent,
 		onContentChange,
-		password,
 		imageExportScale,
 	} = input;
 
@@ -89,24 +93,20 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		filePath,
 		canvasStageRef: zoom.canvasStageRef,
 		setActiveSlideIndex: state.setActiveSlideIndex,
-		handlerRef,
-		headerFooter: state.headerFooter as unknown as Record<string, unknown>,
-		presentationProperties: state.presentationProperties as unknown as Record<string, unknown>,
+		serializeSlides,
+		headerFooter: state.headerFooter,
+		presentationProperties: state.presentationProperties,
 		customShows: state.customShows,
 		sections: state.sections,
-		coreProperties: (state.coreProperties ?? null) as Record<string, unknown> | null,
-		appProperties: (state.appProperties ?? null) as Record<string, unknown> | null,
-		customProperties: state.customProperties as unknown as Array<Record<string, unknown>>,
-		tagCollections: state.tagCollections as unknown as Array<Record<string, unknown>>,
-		slideMasters: state.slideMasters,
-		notesMaster: state.notesMaster as unknown as Record<string, unknown> | undefined,
-		handoutMaster: state.handoutMaster as unknown as Record<string, unknown> | undefined,
-		guides: state.guides,
-		activeSlideIndexForGuides: state.activeSlideIndex,
+		coreProperties: state.coreProperties,
+		appProperties: state.appProperties,
+		customProperties: state.customProperties,
+		tagCollections: state.tagCollections,
+		notesMaster: state.notesMaster,
+		handoutMaster: state.handoutMaster,
 		theme: state.theme,
 		canvasSize,
 		slideSizeEmu: state.slideSizeEmu,
-		password,
 		imageExportScale,
 	});
 

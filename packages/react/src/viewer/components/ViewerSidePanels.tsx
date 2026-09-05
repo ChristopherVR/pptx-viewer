@@ -15,6 +15,7 @@ import type { EditorHistoryResult } from '../hooks/useEditorHistory';
 import type { ElementManipulationHandlers } from '../hooks/useElementManipulation';
 import type { ElementOperations } from '../hooks/useElementOperations';
 import type { PropertyHandlersResult } from '../hooks/usePropertyHandlers';
+import { useTableStyleMapHandlers } from '../hooks/useTableStyleMapHandlers';
 import type { ThemeHandlersResult } from '../hooks/useThemeHandlers';
 import type { ViewerState } from '../hooks/useViewerState';
 import type { CanvasSize } from '../types';
@@ -106,6 +107,13 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 		history.markDirty();
 	};
 
+	const { handleTableStyleMapChange, handleDeleteTableStyle } = useTableStyleMapHandlers({
+		tableStyleMap: s.tableStyleMap,
+		setTableStyleMap: s.setTableStyleMap,
+		tableStylesToDelete: s.tableStylesToDelete,
+		setTableStylesToDelete: s.setTableStylesToDelete,
+	});
+
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
 	const currentBuiltInTheme =
 		BUILT_IN_THEMES.find((candidate) =>
@@ -166,6 +174,9 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 				onGetTemplateBackgroundColor={themeHandlers.handleGetTemplateBackgroundColor}
 				mediaDataUrls={s.mediaDataUrls}
 				theme={s.theme}
+				tableStyleMap={s.tableStyleMap}
+				onTableStyleMapChange={handleTableStyleMapChange}
+				onDeleteTableStyle={handleDeleteTableStyle}
 				panelWidth={panelWidth}
 			/>
 

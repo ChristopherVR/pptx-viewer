@@ -21,6 +21,8 @@ export interface ChartTypeSelectorProps {
 	categoryCount: number;
 	canEdit: boolean;
 	onUpdateChartData: (patch: Partial<PptxChartData>) => void;
+	/** Commits an edited flat title, collapsing multi-run rich text to the dominant style. */
+	onTitleChange: (text: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,6 +36,7 @@ export function ChartTypeSelector({
 	categoryCount,
 	canEdit,
 	onUpdateChartData,
+	onTitleChange,
 }: ChartTypeSelectorProps) {
 	const { t } = useTranslation();
 	const supportsGrouping = GROUPING_SUPPORTED_TYPES.has(chartType);
@@ -53,7 +56,7 @@ export function ChartTypeSelector({
 					disabled={!canEdit}
 					className={INPUT}
 					value={title ?? ''}
-					onChange={(e) => onUpdateChartData({ title: e.target.value })}
+					onChange={(e) => onTitleChange(e.target.value)}
 				/>
 			</label>
 

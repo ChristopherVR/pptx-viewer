@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 /* oxlint-disable eslint/one-var -- many independent it() blocks, each with
    its own short arrange/act/assert consts. */
-import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxElement, TablePptxElement } from 'pptx-viewer-core';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -130,5 +130,42 @@ describe('tablePropertiesPanel', () => {
 		const rows = (onUpdate.mock.calls[0][0] as Partial<TablePptxElement>).tableData?.rows;
 		expect(rows?.[0].cells[0].style?.backgroundColor).toBe('#4472C4');
 		expect(rows?.[0].cells[0].style?.bold).toBeTruthy();
+	});
+
+	it('enables "Edit style..." with no tableStyleId, and assigns a created style to the table', () => {
+		window.prompt = () => 'Brand New Style';
+		const onUpdate = vi.fn();
+		const onTableStyleMapChange = vi.fn();
+		const el = table();
+		act(() => {
+			root.render(
+				React.createElement(TablePropertiesPanel, {
+					tableElement: el,
+					canEdit: true,
+					onUpdateElement: onUpdate,
+					tableStyleMap: undefined,
+					onTableStyleMapChange,
+				}),
+			);
+		});
+
+		const editButton = [...host.querySelectorAll('button')].find(
+			(b) => b.textContent === 'pptx.tableStyleEditor.editButton',
+		) as HTMLButtonElement;
+		expect(editButton.disabled).toBeFalsy();
+		act(() => editButton.click());
+
+		const createButton = [...host.querySelectorAll('button')].find(
+			(b) => b.textContent === 'pptx.tableStyleEditor.newStyle',
+		) as HTMLButtonElement;
+		expect(createButton).toBeTruthy();
+		act(() => createButton.click());
+
+		expect(onTableStyleMapChange).toHaveBeenCalledOnce();
+		const nextMap = onTableStyleMapChange.mock.calls[0][0] as ParsedTableStyleMap;
+		const newId = Object.keys(nextMap)[0];
+		expect(onUpdate).toHaveBeenCalledWith({
+			tableData: expect.objectContaining({ tableStyleId: newId }),
+		});
 	});
 });

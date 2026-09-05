@@ -24,6 +24,13 @@ export interface ConnectorRendererProps {
 	) => void;
 	onRotate?: (elementId: string, rotationDeg: number) => void;
 	animationState?: ElementAnimationState;
+	/**
+	 * Scoped `!important` CSS override for an active font-style emphasis effect
+	 * (Bold Flash, Bold Reveal, Underline, Change Font Style/Size), computed by
+	 * the caller from `buildTextStyleOverrideCss` so a connector caption
+	 * animates the same way a shape's own text does.
+	 */
+	textStyleOverrideCss?: string;
 }
 
 export interface ElementRendererProps {

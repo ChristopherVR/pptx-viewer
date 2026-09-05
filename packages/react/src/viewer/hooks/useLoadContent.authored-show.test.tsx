@@ -109,6 +109,8 @@ function Harness({ content }: { content: ArrayBuffer }): null {
 		setRecentColors: noopDispatch<string[]>(),
 		setTheme: noopDispatch<PptxTheme | undefined>(),
 		setTableStyleMap: noopDispatch<ParsedTableStyleMap | undefined>(),
+		setTableStylesDefaultId: noopDispatch<string | undefined>(),
+		setTableStylesToDelete: noopDispatch<string[]>(),
 		setThemeOptions: noopDispatch<PptxThemeOption[]>(),
 		setCustomShows,
 		setActiveCustomShowId,

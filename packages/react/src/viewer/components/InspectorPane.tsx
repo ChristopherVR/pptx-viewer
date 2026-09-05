@@ -84,6 +84,9 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 		onGetTemplateBackgroundColor,
 		mediaDataUrls,
 		theme,
+		tableStyleMap,
+		onTableStyleMapChange,
+		onDeleteTableStyle,
 		panelWidth,
 	} = props;
 	const hasSelection = selectedElement !== null;
@@ -173,6 +176,9 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 									customShows={customShows}
 									tableEditorState={tableEditorState}
 									mediaDataUrls={mediaDataUrls}
+									tableStyleMap={tableStyleMap}
+									onTableStyleMapChange={onTableStyleMapChange}
+									onDeleteTableStyle={onDeleteTableStyle}
 									onUpdateElement={onUpdateElement}
 									onUpdateElementStyle={onUpdateElementStyle}
 									onUpdateTextStyle={onUpdateTextStyle}

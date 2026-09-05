@@ -105,6 +105,8 @@ function Harness({ initial }: { initial: Uint8Array }): React.ReactElement {
 		setRecentColors: noopDispatch<string[]>(),
 		setTheme,
 		setTableStyleMap: noopDispatch<ParsedTableStyleMap | undefined>(),
+		setTableStylesDefaultId: noopDispatch<string | undefined>(),
+		setTableStylesToDelete: noopDispatch<string[]>(),
 		setThemeOptions: noopDispatch<PptxThemeOption[]>(),
 		setCustomShows: noopDispatch<PptxCustomShow[]>(),
 		setActiveCustomShowId: noopDispatch<string | null>(),

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { SHAPE_PRESETS } from '../../constants';
 import { cn, normalizeHexColor, sanitizeGradientStops } from '../../utils';
+import { AccessibilityTextSection } from './AccessibilityTextSection';
 import { DebouncedColorInput } from './DebouncedColorInput';
 import { FillStrokeProperties } from './FillStrokeProperties';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
@@ -181,6 +182,22 @@ export function ShapeTextPanels({
 				canEdit={canEdit}
 				onUpdateTextStyle={onUpdateTextStyle}
 			/>
+
+			{/* Accessibility (alt text / title): a picture's own field lives in
+			    ImagePropertiesPanel; this panel only covers a plain shape, text box
+			    or connector, the three kinds `PptxNonVisualDescription` was added
+			    to. Restricted to those three types (rather than every kind the
+			    shared descriptor recognises) so it does not duplicate a
+			    table/chart/smartArt/media/ole panel's own alt-text UI. */}
+			{(selectedElement.type === 'text' ||
+				selectedElement.type === 'shape' ||
+				selectedElement.type === 'connector') && (
+				<AccessibilityTextSection
+					selectedElement={selectedElement}
+					canEdit={canEdit}
+					onUpdateElement={onUpdateElement}
+				/>
+			)}
 		</>
 	);
 }

@@ -1,5 +1,6 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
+	buildTextStyleOverrideCss,
 	getGroupChildParentFill,
 	isHollowShapeElement,
 	resolveElementAriaAttributes,
@@ -108,6 +109,14 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const visualAnimationState = backgroundAnimationState ?? animationState;
 		const isTxt = isEditableTextElement(el) && allow.textEditable;
 		const txtSE = hasTextProperties(el) ? el.textStyle : undefined;
+		// A font-style emphasis effect (Bold Flash, Bold Reveal, Underline, Change
+		// Font Style/Size) overrides the runs' own inline bold/italic/underline/
+		// size, which plain CSS inheritance cannot reach (the runs declare those
+		// unconditionally). See `animation-text-style-css.ts`. NOT gated on
+		// `hasTextProperties`: a table cell, a chart title/label/legend, and a
+		// SmartArt node caption all animate this way too, and shared's selector
+		// already scopes itself to this element's `data-element-id`.
+		const textStyleOverrideCss = buildTextStyleOverrideCss(el.id, visualAnimationState?.textStyle);
 		const ss = getShapeVisualStyle(
 			el,
 			hf,
@@ -177,6 +186,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					onResizePointerDown={onResizePointerDown}
 					onAdjustmentPointerDown={onAdjustmentPointerDown}
 					animationState={animationState}
+					textStyleOverrideCss={textStyleOverrideCss}
 				/>
 			);
 		}
@@ -291,6 +301,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}
+				{textStyleOverrideCss && <style>{textStyleOverrideCss}</style>}
 				{backgroundAnimationState ? (
 					<div
 						data-pptx-animation-layer='background'

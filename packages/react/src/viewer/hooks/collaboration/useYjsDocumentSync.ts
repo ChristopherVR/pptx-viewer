@@ -10,7 +10,7 @@
  */
 
 import { PptxHandler } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollabLoadOrigin,
 	CollaborationConfig,
@@ -57,6 +57,15 @@ export interface UseYjsDocumentSyncInput {
 	 */
 	getSourceBytes?: () => Uint8Array | null;
 	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path
+	 * (`buildDeckSaveOptions` in `pptx-viewer-shared`). Without this the
+	 * write-back reloaded the source bytes and called `handler.save(slides)`
+	 * with NO options, so an owner's write-back file dropped every
+	 * session-level edit that lives outside `slides`.
+	 */
+	getSaveOptions?: () => PptxHandlerSaveOptions;
+	/**
 	 * Monotonic counter bumped each time the content-load pipeline finishes
 	 * applying a parsed deck to viewer state. A local load that lands while the
 	 * shared doc already holds slides (a late joiner's bootstrap deck parsing
@@ -82,6 +91,7 @@ export function useYjsDocumentSync({
 	isSynced = true,
 	config,
 	getSourceBytes,
+	getSaveOptions,
 	loadVersion = 0,
 	loadOrigin = 'user',
 }: UseYjsDocumentSyncInput): void {
@@ -134,13 +144,13 @@ export function useYjsDocumentSync({
 				// Merge the separated template (master/layout) elements back so any
 				// edit-template-mode changes persist into the write-back snapshot.
 				const slidesToSave = buildSaveSlides(currentSlides, templateElementsBySlideId);
-				const bytes = await handler.save(slidesToSave);
+				const bytes = await handler.save(slidesToSave, getSaveOptions?.());
 				config.onWriteBack(bytes);
 			} catch {
 				/* write-back failures are non-fatal */
 			}
 		}, debounceMs);
-	}, [doc, config, getSourceBytes, templateElementsBySlideId]);
+	}, [doc, config, getSourceBytes, getSaveOptions, templateElementsBySlideId]);
 
 	// Re-adopt the shared doc after a local content load. The load pipeline
 	// applies its parsed slides unconditionally, so when a load finishes AFTER

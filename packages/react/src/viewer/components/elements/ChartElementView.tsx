@@ -2,9 +2,12 @@
    independent handler-local `const`s, not one statement */
 import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
 import {
+	advanceChartMarkDrag,
 	advanceChartValueDrag,
 	applyChartPartHighlight,
+	beginChartMarkDrag,
 	beginChartValueDrag,
+	buildChartMarkDragGeometry,
 	canDrillDown,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
@@ -12,7 +15,11 @@ import {
 	resolveRevealedChartData,
 	withChartTitle,
 } from 'pptx-viewer-shared';
-import type { ChartValueDragState, ElementAnimationState } from 'pptx-viewer-shared';
+import type {
+	ChartMarkDragState,
+	ChartValueDragState,
+	ElementAnimationState,
+} from 'pptx-viewer-shared';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
@@ -59,6 +66,10 @@ export function ChartElementView({
 }: ChartElementViewProps): React.ReactElement {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const dragRef = useRef<ChartValueDragState | null>(null);
+	// Pie/doughnut slice, radar vertex, and stacked/percentStacked segment drags
+	// have no single vertical value axis, so they run through a parallel state
+	// machine (chart-interaction-mark-drag.ts) instead of dragRef's cartesian one.
+	const markDragRef = useRef<ChartMarkDragState | null>(null);
 	const { selection, setSelection } = useChartPartSelection();
 	const [previewData, setPreviewData] = useState<PptxChartData | null>(null);
 	const [dragValue, setDragValue] = useState<number | null>(null);
@@ -130,11 +141,18 @@ export function ChartElementView({
 
 	const endDrag = (commit: boolean) => {
 		const active = dragRef.current;
+		const markActive = markDragRef.current;
 		dragRef.current = null;
+		markDragRef.current = null;
 		setPreviewData(null);
 		setDragValue(null);
-		if (commit && active?.moved && active.lastData && onUpdateElement) {
+		if (!commit || !onUpdateElement) {
+			return;
+		}
+		if (active?.moved && active.lastData) {
 			onUpdateElement({ chartData: active.lastData } as Partial<PptxElement>);
+		} else if (markActive?.moved && markActive.lastData) {
+			onUpdateElement({ chartData: markActive.lastData } as Partial<PptxElement>);
 		}
 	};
 
@@ -165,13 +183,46 @@ export function ChartElementView({
 		if (!viewModel || !element.chartData) {
 			return;
 		}
-		const started = beginChartValueDrag({
-			part,
-			viewModel,
-			chartData: element.chartData,
-			clientY: e.clientY,
-		});
-		if (!started) {
+		let captured = false;
+		// Pie/doughnut/radar/stacked marks: try the angle/radial/segment drag first.
+		const chartKind = resolveChartKind(element.chartData.chartType ?? 'bar');
+		if (part.pointIndex !== undefined && chartKind !== 'unsupported') {
+			const markGeometry = buildChartMarkDragGeometry({
+				kind: chartKind,
+				element,
+				chartData: element.chartData,
+				categoryLabels: element.chartData.categories,
+				seriesIndex: part.seriesIndex,
+				pointIndex: part.pointIndex,
+			});
+			const startedMark = beginChartMarkDrag({
+				part,
+				geometry: markGeometry,
+				chartData: element.chartData,
+				svgWidth: viewModel.svgWidth,
+				svgHeight: viewModel.svgHeight,
+				clientX: e.clientX,
+				clientY: e.clientY,
+			});
+			if (startedMark) {
+				markDragRef.current = startedMark;
+				captured = true;
+			}
+		}
+		// Clustered bar/line/scatter/bubble: the existing vertical value-axis drag.
+		if (!captured) {
+			const started = beginChartValueDrag({
+				part,
+				viewModel,
+				chartData: element.chartData,
+				clientY: e.clientY,
+			});
+			if (started) {
+				dragRef.current = started;
+				captured = true;
+			}
+		}
+		if (!captured) {
 			return;
 		}
 		e.preventDefault();
@@ -182,10 +233,23 @@ export function ChartElementView({
 		} catch {
 			// Non-fatal: the drag still works while the pointer stays over the chart.
 		}
-		dragRef.current = started;
 	};
 
 	const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+		const markActive = markDragRef.current;
+		if (markActive) {
+			const rect = wrapperRef.current?.querySelector('svg')?.getBoundingClientRect();
+			if (!rect) {
+				return;
+			}
+			const step = advanceChartMarkDrag(markActive, e.clientX, e.clientY, rect);
+			if (!step) {
+				return;
+			}
+			setPreviewData(step.chartData);
+			setDragValue(step.value);
+			return;
+		}
 		const active = dragRef.current;
 		if (!active) {
 			return;
@@ -200,7 +264,7 @@ export function ChartElementView({
 	};
 
 	const handlePointerUp = () => {
-		if (dragRef.current) {
+		if (dragRef.current || markDragRef.current) {
 			endDrag(true);
 		}
 	};

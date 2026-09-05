@@ -201,6 +201,16 @@ export interface ViewerCoreState {
 	/** Parsed table style definitions from `ppt/tableStyles.xml`. */
 	tableStyleMap: ParsedTableStyleMap | undefined;
 	setTableStyleMap: React.Dispatch<React.SetStateAction<ParsedTableStyleMap | undefined>>;
+	/** `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>` default style GUID. */
+	tableStylesDefaultId: string | undefined;
+	setTableStylesDefaultId: React.Dispatch<React.SetStateAction<string | undefined>>;
+	/**
+	 * Style GUIDs deleted from `tableStyleMap` via the table style editor,
+	 * pending removal from `ppt/tableStyles.xml` on the next save. See
+	 * `tableStyleSaveOptions` / `applyTableStyleDelete` in `pptx-viewer-shared`.
+	 */
+	tableStylesToDelete: string[];
+	setTableStylesToDelete: React.Dispatch<React.SetStateAction<string[]>>;
 	/** Available theme presets the user can switch between. */
 	themeOptions: PptxThemeOption[];
 	setThemeOptions: React.Dispatch<React.SetStateAction<PptxThemeOption[]>>;

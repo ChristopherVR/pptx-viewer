@@ -236,4 +236,76 @@ describe('shapeTextPanels', () => {
 		});
 		expect(pushColor).toHaveBeenCalledWith('#ff0000');
 	});
+
+	it('shows alt text and title fields for a text box and edits update the element', () => {
+		const onUpdateElement = vi.fn();
+		const selectedElement = textElement();
+		selectedElement.altText = 'A caption';
+		selectedElement.title = 'Caption title';
+		act(() => {
+			root.render(
+				<RecentColorsProvider value={{ recentColors: [], pushColor: () => {} }}>
+					<ShapeTextPanels
+						selectedElement={selectedElement}
+						canEdit
+						onUpdateElement={onUpdateElement}
+						onUpdateElementStyle={() => {}}
+						onUpdateTextStyle={() => {}}
+					/>
+				</RecentColorsProvider>,
+			);
+		});
+		const altTextArea = container.querySelector(
+			'[data-pptx-accessibility-text] textarea',
+		) as HTMLTextAreaElement;
+		const titleInput = container.querySelector(
+			'[data-pptx-accessibility-text] input[type="text"]',
+		) as HTMLInputElement;
+		expect(altTextArea.value).toBe('A caption');
+		expect(titleInput.value).toBe('Caption title');
+
+		act(() => {
+			const nativeSetter = Object.getOwnPropertyDescriptor(
+				window.HTMLTextAreaElement.prototype,
+				'value',
+			)!.set!;
+			nativeSetter.call(altTextArea, 'Updated caption');
+			altTextArea.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		expect(onUpdateElement).toHaveBeenCalledWith({ altText: 'Updated caption' });
+	});
+
+	it('shows an alt text/title section for a shape and a connector', () => {
+		const shape = { ...textElement(), type: 'shape' as const };
+		act(() => {
+			root.render(
+				<RecentColorsProvider value={{ recentColors: [], pushColor: () => {} }}>
+					<ShapeTextPanels
+						selectedElement={shape}
+						canEdit
+						onUpdateElement={() => {}}
+						onUpdateElementStyle={() => {}}
+						onUpdateTextStyle={() => {}}
+					/>
+				</RecentColorsProvider>,
+			);
+		});
+		expect(container.querySelector('[data-pptx-accessibility-text]')).not.toBeNull();
+
+		const connector = { ...textElement(), type: 'connector' as const, text: undefined };
+		act(() => {
+			root.render(
+				<RecentColorsProvider value={{ recentColors: [], pushColor: () => {} }}>
+					<ShapeTextPanels
+						selectedElement={connector}
+						canEdit
+						onUpdateElement={() => {}}
+						onUpdateElementStyle={() => {}}
+						onUpdateTextStyle={() => {}}
+					/>
+				</RecentColorsProvider>,
+			);
+		});
+		expect(container.querySelector('[data-pptx-accessibility-text]')).not.toBeNull();
+	});
 });

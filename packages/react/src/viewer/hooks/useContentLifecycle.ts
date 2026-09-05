@@ -14,6 +14,7 @@ import type { ElementOperations } from './useElementOperations';
 import { useFontInjection } from './useFontInjection';
 import { useLoadContent } from './useLoadContent';
 import { useSerialize } from './useSerialize';
+import type { SerializeSlides } from './useSerialize';
 import type { ViewerState } from './useViewerState';
 
 // ---------------------------------------------------------------------------
@@ -63,8 +64,11 @@ export interface UseContentLifecycleInput {
 
 export interface ContentLifecycleResult {
 	handlerRef: React.RefObject<PptxHandler | null>;
-	/** Serialise for the user: honours "Encrypt with Password". */
-	serializeSlides: () => Promise<Uint8Array | null>;
+	/**
+	 * Serialise for the user: honours "Encrypt with Password". Takes the
+	 * optional output container (`ppsx`/`pptm`/...) so Save As shares it.
+	 */
+	serializeSlides: SerializeSlides;
 	/**
 	 * Serialise for bytes the viewer reads back itself (autosave snapshot,
 	 * re-serialise-then-reload). Always plaintext, so recovery - which has no
@@ -114,6 +118,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setRecentColors: state.setRecentColors,
 		setTheme: state.setTheme,
 		setTableStyleMap: state.setTableStyleMap,
+		setTableStylesDefaultId: state.setTableStylesDefaultId,
+		setTableStylesToDelete: state.setTableStylesToDelete,
 		setThemeOptions: state.setThemeOptions,
 		setCustomShows: state.setCustomShows,
 		setActiveCustomShowId: state.setActiveCustomShowId,
@@ -163,6 +169,9 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		headerFooter: state.headerFooter,
 		presentationProperties: state.presentationProperties,
 		viewProperties: state.viewProperties,
+		tableStyleMap: state.tableStyleMap,
+		tableStylesDefaultId: state.tableStylesDefaultId,
+		tableStylesToDelete: state.tableStylesToDelete,
 		customShows: state.customShows,
 		sections: state.sections,
 		coreProperties: state.coreProperties,

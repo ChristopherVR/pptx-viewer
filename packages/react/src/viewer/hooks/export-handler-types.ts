@@ -1,9 +1,16 @@
 import type {
+	PptxAppProperties,
+	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxElement,
+	PptxHandoutMaster,
+	PptxHeaderFooter,
+	PptxNotesMaster,
+	PptxPresentationProperties,
+	PptxSection,
 	PptxSlide,
 	PptxSaveFormat,
-	PptxHandler,
-	PptxSlideMaster,
+	PptxTagCollection,
 	PptxTheme,
 } from 'pptx-viewer-core';
 import type { SlideSizeEmu } from 'pptx-viewer-shared';
@@ -13,6 +20,7 @@ import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import type { RefObject, MutableRefObject, Dispatch, SetStateAction } from 'react';
 
 import type { CanvasSize } from '../types';
+import type { SerializeSlides } from './useSerialize';
 
 export interface UseExportHandlersInput {
 	slides: PptxSlide[];
@@ -23,38 +31,29 @@ export interface UseExportHandlersInput {
 	filePath: string | undefined;
 	canvasStageRef: RefObject<HTMLDivElement | null>;
 	setActiveSlideIndex: Dispatch<SetStateAction<number>>;
-	handlerRef: RefObject<PptxHandler | null>;
-	/** State from the viewer needed for save-as */
-	headerFooter: Record<string, unknown>;
-	presentationProperties: Record<string, unknown>;
+	/**
+	 * The binding's one user-facing serialiser (`useSerialize`), which Save As
+	 * calls with the chosen output format. Save As no longer assembles its own
+	 * save options, so it cannot drift from Save again.
+	 */
+	serializeSlides: SerializeSlides;
+	/** Presentation-level state carried into the deck-JSON export document. */
+	headerFooter: PptxHeaderFooter;
+	presentationProperties: PptxPresentationProperties;
 	customShows: Array<{ id: string; name: string; slideRIds: string[] }>;
-	sections: Array<{
-		id: string;
-		name: string;
-		color?: string;
-		collapsed?: boolean;
-	}>;
-	coreProperties: Record<string, unknown> | null;
-	appProperties: Record<string, unknown> | null;
-	customProperties: Array<Record<string, unknown>>;
-	tagCollections: Array<Record<string, unknown>>;
-	/** The slide masters and their layouts; see `UseExportSaveAsInput`. */
-	slideMasters: PptxSlideMaster[];
-	notesMaster: Record<string, unknown> | undefined;
-	handoutMaster: Record<string, unknown> | undefined;
-	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
-	activeSlideIndexForGuides: number;
+	sections: PptxSection[];
+	coreProperties: PptxCoreProperties | undefined;
+	appProperties: PptxAppProperties | undefined;
+	customProperties: PptxCustomProperty[];
+	tagCollections: PptxTagCollection[];
+	notesMaster: PptxNotesMaster | undefined;
+	handoutMaster: PptxHandoutMaster | undefined;
 	/** Live theme, carried into the deck-JSON export document. */
 	theme: PptxTheme | undefined;
 	/** Slide canvas size in CSS pixels, carried into the deck-JSON export. */
 	canvasSize: CanvasSize;
-	/**
-	 * The EMU `p:sldSz` the viewer holds. Save-As builds its own save options
-	 * rather than reusing `useSerialize`, so without this a Slide Size edit
-	 * reached Save and not Save As (or the backstage Save, which routes here).
-	 */
+	/** The EMU `p:sldSz` the viewer holds, for the deck-JSON export's slide size. */
 	slideSizeEmu?: SlideSizeEmu | undefined;
-	password?: string;
 	/**
 	 * File > Options > Advanced > "Image Size and Quality"
 	 * (`resolveImageResolutionScale`), the raster-scale multiplier for PNG/PDF

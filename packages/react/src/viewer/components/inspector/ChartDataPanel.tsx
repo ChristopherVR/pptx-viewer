@@ -26,6 +26,7 @@ import {
 	addChartSeries,
 	chartGridlinesPatch,
 	chartGridlinesState,
+	collapseChartTitleRunsForEdit,
 	patchChartData,
 	removeChartCategory,
 	removeChartSeries,
@@ -101,6 +102,19 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			replaceChartData(patchChartData(chartData, patch));
 		},
 		[chartData, replaceChartData],
+	);
+
+	// A multi-run title collapses to one run in its dominant style so an edit
+	// does not leave another, now-stale run's text trailing the new title; see
+	// `collapseChartTitleRunsForEdit`'s doc.
+	const updateTitle = useCallback(
+		(text: string) => {
+			if (!chartData) {
+				return;
+			}
+			updateChartData(collapseChartTitleRunsForEdit(chartData, text));
+		},
+		[chartData, updateChartData],
 	);
 
 	const updateStyle = useCallback(
@@ -362,6 +376,7 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				categoryCount={categories.length}
 				canEdit={canEdit}
 				onUpdateChartData={updateChartData}
+				onTitleChange={updateTitle}
 			/>
 
 			<ChartDisplayOptions

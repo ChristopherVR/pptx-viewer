@@ -16,6 +16,7 @@ import type {
 	PptxThemeOption,
 	ShapeStyle,
 	TextStyle,
+	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 
@@ -109,6 +110,14 @@ export interface InspectorPaneProps {
 	onGetTemplateBackgroundColor?: (path: string) => string | undefined;
 	mediaDataUrls?: Map<string, string>;
 	theme?: PptxTheme;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, needed by the table
+	 * properties panel's "Edit style...". See `TablePropertiesPanel`'s
+	 * docblock for why this is optional.
+	 */
+	tableStyleMap?: ParsedTableStyleMap;
+	onTableStyleMapChange?: (nextMap: ParsedTableStyleMap) => void;
+	onDeleteTableStyle?: (styleId: string) => void;
 	/** Width of the panel in pixels (for resizable panels). */
 	panelWidth?: number;
 }

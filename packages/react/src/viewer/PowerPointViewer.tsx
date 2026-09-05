@@ -23,12 +23,14 @@ import { buildThemeColorMap } from 'pptx-viewer-core';
 import type {
 	CollabLoadOrigin,
 	CollaborationLivePatcher,
+	DeckSaveState,
 	ViewerAddinStatus,
 	ViewerSettings,
 } from 'pptx-viewer-shared';
 import {
 	applyAutoCorrect,
 	applyPreferenceToOptions,
+	buildDeckSaveOptions,
 	buildUserFontFaceStyles,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
@@ -43,6 +45,7 @@ import {
 	resolveHistoryDepth,
 	resolveImageResolutionScale,
 	resolveOptionRootClasses,
+	resolveSlideSizeSelection,
 	shouldClearAutosaveCacheOnClose,
 	shouldDiscardAutosaveOnSuccessfulSave,
 	shouldShowAutosaveRecoveryPrompt,
@@ -1019,12 +1022,20 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			customProperties: state.customProperties,
 			coreProperties: state.coreProperties,
 			appProperties: state.appProperties,
+			viewProperties: state.viewProperties,
+			tableStyleMap: state.tableStyleMap,
+			tableStylesDefaultId: state.tableStylesDefaultId,
+			tagCollections: state.tagCollections,
 			setCanvasSize: state.setCanvasSize,
 			setSections: state.setSections,
 			setPresentationProperties: state.setPresentationProperties,
 			setCustomProperties: state.setCustomProperties,
 			setCoreProperties: state.setCoreProperties,
 			setAppProperties: state.setAppProperties,
+			setViewProperties: state.setViewProperties,
+			setTableStyleMap: state.setTableStyleMap,
+			setTableStylesDefaultId: state.setTableStylesDefaultId,
+			setTagCollections: state.setTagCollections,
 			setSlides: state.setSlides,
 			setActiveSlideIndex: state.setActiveSlideIndex,
 			applySelection: editorOps.ops.applySelection,
@@ -1467,6 +1478,28 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 														loadVersion={loadVersion}
 														loadOrigin={loadOrigin}
 														livePatcher={state.livePatcher}
+														deckSaveState={{
+															headerFooter: state.headerFooter,
+															presentationProperties: state.presentationProperties,
+															viewProperties: state.viewProperties,
+															customShows: state.customShows,
+															sections: state.sections,
+															coreProperties: state.coreProperties,
+															appProperties: state.appProperties,
+															customProperties: state.customProperties,
+															tagCollections: state.tagCollections,
+															slideMasters: state.slideMasters,
+															notesMaster: state.notesMaster,
+															handoutMaster: state.handoutMaster,
+															slideSize: resolveSlideSizeSelection({
+																current: state.slideSizeEmu,
+																canvas: canvasSize,
+															}).size,
+															tableStyleMap: state.tableStyleMap,
+															tableStylesDefaultId: state.tableStylesDefaultId,
+															tableStylesToDelete: state.tableStylesToDelete,
+															embedFonts: dialogs.embedFontsEnabled,
+														}}
 													/>
 													<CollaborationFollowLayer
 														activeSlideIndex={activeSlideIndex}
@@ -1525,6 +1558,7 @@ function CollaborationDocumentSync({
 	loadVersion,
 	loadOrigin,
 	livePatcher,
+	deckSaveState,
 }: {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
@@ -1534,6 +1568,13 @@ function CollaborationDocumentSync({
 	loadVersion: number;
 	loadOrigin: CollabLoadOrigin;
 	livePatcher: CollaborationLivePatcher;
+	/**
+	 * Session-level save-option state (view properties, table styles, tags,
+	 * deck properties, ...), snapshotted fresh every render. Read through a
+	 * ref (see `deckSaveStateRef` below) so `getSaveOptions`'s identity stays
+	 * stable and does not re-subscribe the write-back scheduler on every edit.
+	 */
+	deckSaveState: DeckSaveState;
 }) {
 	const collab = useCollaboration();
 	// Retain the loaded source bytes so the elected writer (role 'owner') can
@@ -1549,6 +1590,14 @@ function CollaborationDocumentSync({
 		return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
 	}, []);
 
+	// Same ref-indirection trick as `contentRef`: `deckSaveState` changes on
+	// every keystroke that touches ANY session-level field, but `getSaveOptions`
+	// itself must stay referentially stable so it does not re-subscribe the
+	// write-back scheduler on every edit.
+	const deckSaveStateRef = useRef(deckSaveState);
+	deckSaveStateRef.current = deckSaveState;
+	const getSaveOptions = useCallback(() => buildDeckSaveOptions(deckSaveStateRef.current), []);
+
 	useYjsDocumentSync({
 		doc: collab?.doc ?? null,
 		slides,
@@ -1558,6 +1607,7 @@ function CollaborationDocumentSync({
 		isSynced: collab?.synced ?? true,
 		config,
 		getSourceBytes,
+		getSaveOptions,
 		loadVersion,
 		loadOrigin,
 	});

@@ -9,6 +9,7 @@
  * not torn down and rebuilt on every keystroke.
  */
 import type {
+	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -17,7 +18,9 @@ import type {
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
+	PptxTagCollection,
 	PptxTheme,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import type {
 	PptxAiBridge,
@@ -28,7 +31,11 @@ import type {
 	PptxAiNotifyLevel,
 	PptxAiSlidesUpdater,
 } from 'pptx-viewer-shared/ai';
-import { applyElementUpdate, computeFocusTargets } from 'pptx-viewer-shared/ai';
+import {
+	applyElementUpdate,
+	computeFocusTargets,
+	deckDataFieldChanged,
+} from 'pptx-viewer-shared/ai';
 import type { RefObject } from 'react';
 import { useMemo, useRef } from 'react';
 
@@ -63,12 +70,28 @@ export interface UseAiBridgeInput {
 	customProperties: PptxCustomProperty[];
 	coreProperties: PptxCoreProperties | undefined;
 	appProperties: PptxAppProperties | undefined;
+	/**
+	 * `ppt/viewProps.xml` (grid/snap/guides toggles). Included so the deck
+	 * tools' `getDeckData`/`applyDeckData` seam sees the same fields the main
+	 * Save/Export path persists (`useSerialize`'s `buildDeckSaveOptions` call).
+	 */
+	viewProperties: PptxViewProperties | undefined;
+	/** Parsed `ppt/tableStyles.xml` map, editable via the table style editor. */
+	tableStyleMap: ParsedTableStyleMap | undefined;
+	/** `<a:tblStyleLst @def>` default style GUID. */
+	tableStylesDefaultId: string | undefined;
+	/** `ppt/tags/*.xml` name/value metadata. */
+	tagCollections: PptxTagCollection[];
 	setCanvasSize: (size: { width: number; height: number }) => void;
 	setSections: (sections: PptxSection[]) => void;
 	setPresentationProperties: (props: PptxPresentationProperties) => void;
 	setCustomProperties: (props: PptxCustomProperty[]) => void;
 	setCoreProperties: (props: PptxCoreProperties | undefined) => void;
 	setAppProperties: (props: PptxAppProperties | undefined) => void;
+	setViewProperties: (props: PptxViewProperties | undefined) => void;
+	setTableStyleMap: (map: ParsedTableStyleMap | undefined) => void;
+	setTableStylesDefaultId: (id: string | undefined) => void;
+	setTagCollections: (tags: PptxTagCollection[]) => void;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	setActiveSlideIndex: (index: number) => void;
 	applySelection: (primaryId: string | null, ids?: string[]) => void;
@@ -107,9 +130,13 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 				customProperties: live.customProperties,
 				coreProperties: live.coreProperties,
 				appProperties: live.appProperties,
+				viewProperties: live.viewProperties,
+				tableStyleMap: live.tableStyleMap,
+				tableStylesDefaultId: live.tableStylesDefaultId,
+				tags: live.tagCollections,
 			}) satisfies Partial<PptxData> as PptxData;
 
-		const differs = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
+		const differs = deckDataFieldChanged;
 
 		return {
 			getDeckMeta(): PptxAiDeckMeta {
@@ -188,6 +215,19 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 				}
 				if (differs(before.appProperties, after.appProperties)) {
 					live.setAppProperties(after.appProperties);
+				}
+				if (differs(before.viewProperties, after.viewProperties)) {
+					live.setViewProperties(after.viewProperties);
+				}
+				if (differs(before.tableStyleMap, after.tableStyleMap)) {
+					live.setTableStyleMap(after.tableStyleMap);
+				}
+				if (differs(before.tableStylesDefaultId, after.tableStylesDefaultId)) {
+					live.setTableStylesDefaultId(after.tableStylesDefaultId);
+				}
+				const nextTags = after.tags ?? before.tags ?? [];
+				if (differs(before.tags, nextTags)) {
+					live.setTagCollections(nextTags);
 				}
 				live.markDirty();
 			},

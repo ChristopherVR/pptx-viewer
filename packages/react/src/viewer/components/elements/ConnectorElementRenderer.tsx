@@ -39,6 +39,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 		onResizePointerDown,
 		onAdjustmentPointerDown,
 		animationState,
+		textStyleOverrideCss,
 	}) {
 		const shapeEl = hasShapeProperties(el) ? el : undefined;
 		// The wrapper is padded out to `MIN_ELEMENT_SIZE` so a zero-width vertical
@@ -127,6 +128,11 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 					...(lineGlow ? { filter: lineGlow } : {}),
 				}}
 			>
+				{/* A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+				    Change Font Style/Size) overrides the caption's own inline
+				    bold/italic/underline/size, which plain CSS inheritance cannot
+				    reach. See `animation-text-style-css.ts`. */}
+				{textStyleOverrideCss && <style>{textStyleOverrideCss}</style>}
 				<svg
 					viewBox={`0 0 ${boxWidth} ${boxHeight}`}
 					className='w-full h-full'

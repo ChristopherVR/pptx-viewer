@@ -76,6 +76,8 @@ export interface UseLoadContentInput {
 	setRecentColors: React.Dispatch<React.SetStateAction<string[]>>;
 	setTheme: React.Dispatch<React.SetStateAction<PptxTheme | undefined>>;
 	setTableStyleMap: React.Dispatch<React.SetStateAction<ParsedTableStyleMap | undefined>>;
+	setTableStylesDefaultId: React.Dispatch<React.SetStateAction<string | undefined>>;
+	setTableStylesToDelete: React.Dispatch<React.SetStateAction<string[]>>;
 	setThemeOptions: React.Dispatch<React.SetStateAction<PptxThemeOption[]>>;
 	setCustomShows: React.Dispatch<React.SetStateAction<PptxCustomShow[]>>;
 	/**
@@ -149,6 +151,8 @@ export function useLoadContent({
 	setRecentColors,
 	setTheme,
 	setTableStyleMap,
+	setTableStylesDefaultId,
+	setTableStylesToDelete,
 	setThemeOptions,
 	setCustomShows,
 	setActiveCustomShowId,
@@ -343,6 +347,8 @@ export function useLoadContent({
 				setRecentColors(seedRecentColors({ mruColors: parsed.mruColors }));
 				setTheme(parsed.theme);
 				setTableStyleMap(nextTableStyleMap);
+				setTableStylesDefaultId(parsed.tableStylesDefaultId);
+				setTableStylesToDelete([]);
 				setThemeOptions(parsed.themeOptions ?? []);
 				setCustomShows(parsed.customShows ?? []);
 				// "Set Up Slide Show > Custom show" is authored intent, not decoration:

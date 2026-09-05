@@ -21,6 +21,7 @@ import type {
 	PptxThemeOption,
 	ShapeStyle,
 	TextStyle,
+	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
@@ -87,6 +88,14 @@ export interface ViewerInspectorProps {
 	onGetTemplateBackgroundColor?: (path: string) => string | undefined;
 	mediaDataUrls?: Map<string, string>;
 	theme?: PptxTheme;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, needed by the table
+	 * properties panel's "Edit style...". See `TablePropertiesPanel`'s
+	 * docblock for why this is optional.
+	 */
+	tableStyleMap?: ParsedTableStyleMap;
+	onTableStyleMapChange?: (nextMap: ParsedTableStyleMap) => void;
+	onDeleteTableStyle?: (styleId: string) => void;
 	/** Width of the panel in pixels (for resizable panels). */
 	panelWidth?: number;
 }
@@ -144,6 +153,9 @@ export function ViewerInspector({
 	onGetTemplateBackgroundColor,
 	mediaDataUrls,
 	theme,
+	tableStyleMap,
+	onTableStyleMapChange,
+	onDeleteTableStyle,
 	panelWidth,
 }: ViewerInspectorProps): React.ReactElement | null {
 	const { t } = useTranslation();
@@ -250,6 +262,9 @@ export function ViewerInspector({
 				onGetTemplateBackgroundColor={onGetTemplateBackgroundColor}
 				mediaDataUrls={mediaDataUrls}
 				theme={theme}
+				tableStyleMap={tableStyleMap}
+				onTableStyleMapChange={onTableStyleMapChange}
+				onDeleteTableStyle={onDeleteTableStyle}
 				panelWidth={panelWidth}
 			/>
 		</div>

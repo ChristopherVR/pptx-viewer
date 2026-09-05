@@ -306,7 +306,20 @@ export function renderChartViewModel(
 					fill={vm.titleStyle?.fill ?? '#1e293b'}
 					data-chart-part='title'
 				>
-					{vm.title}
+					{vm.titleRunSpans && vm.titleRunSpans.length > 0
+						? vm.titleRunSpans.map((run, i) => (
+								<tspan
+									key={`${elementId}-title-run-${i}`}
+									fontSize={run.fontSize}
+									fontWeight={run.fontWeight}
+									fontStyle={run.fontStyle}
+									fontFamily={run.fontFamily}
+									fill={run.fill}
+								>
+									{run.text}
+								</tspan>
+							))
+						: vm.title}
 				</text>
 			)}
 

@@ -6,6 +6,7 @@ import type {
 	MediaPptxElement,
 	ShapeStyle,
 	TextStyle,
+	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 import { elementLockTogglePatch, isElementLocked } from 'pptx-viewer-shared';
@@ -51,6 +52,13 @@ interface ElementInspectorBodyProps {
 	tableEditorState?: TableCellEditorState | null;
 	/** Map of media relationship IDs to data URLs for media preview. */
 	mediaDataUrls?: Map<string, string>;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, needed by "Edit style...".
+	 * See `TablePropertiesPanel`'s docblock for why this is optional.
+	 */
+	tableStyleMap?: ParsedTableStyleMap;
+	onTableStyleMapChange?: (nextMap: ParsedTableStyleMap) => void;
+	onDeleteTableStyle?: (styleId: string) => void;
 	/** Callback to apply partial updates to the selected element. */
 	onUpdateElement: (updates: Partial<PptxElement>) => void;
 	/** Callback to apply partial updates to the element's shape style. */
@@ -89,6 +97,9 @@ export function ElementInspectorBody({
 	customShows,
 	tableEditorState,
 	mediaDataUrls,
+	tableStyleMap,
+	onTableStyleMapChange,
+	onDeleteTableStyle,
 	onUpdateElement,
 	onUpdateElementStyle,
 	onUpdateTextStyle,
@@ -160,6 +171,9 @@ export function ElementInspectorBody({
 						canEdit={canEdit}
 						onUpdateElement={onUpdateElement}
 						tableEditorState={tableEditorState}
+						tableStyleMap={tableStyleMap}
+						onTableStyleMapChange={onTableStyleMapChange}
+						onDeleteTableStyle={onDeleteTableStyle}
 					/>
 				</>
 			)}

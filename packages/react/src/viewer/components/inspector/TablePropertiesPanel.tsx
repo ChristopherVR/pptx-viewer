@@ -1,19 +1,21 @@
 /* oxlint-disable eslint/one-var -- independent, unrelated locals; merging them
    into one statement would hurt readability. */
-import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxElement, TablePptxElement } from 'pptx-viewer-core';
 import {
 	applyTableStylePreset,
 	evenColumnWidths,
 	evenRowHeights,
 	redistributeColumnWidth,
+	tableStyleAssignmentUpdate,
 } from 'pptx-viewer-shared';
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TABLE_STYLE_PRESETS } from '../../constants';
 import type { TableCellEditorState } from '../../types';
 import { HEADING, CARD, INPUT, BTN } from './inspector-pane-constants';
 import { TableCellFormattingPanel } from './TableCellFormattingPanel';
+import { TableStyleEditor } from './TableStyleEditor';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -24,6 +26,15 @@ interface TablePropertiesPanelProps {
 	canEdit: boolean;
 	onUpdateElement: (updates: Partial<PptxElement>) => void;
 	tableEditorState?: TableCellEditorState | null;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, needed by "Edit style...".
+	 * Optional/absent means the host has not yet wired the table-style-editor
+	 * feature through (see `TableStyleEditor`'s docblock); the button then
+	 * simply does not render.
+	 */
+	tableStyleMap?: ParsedTableStyleMap;
+	onTableStyleMapChange?: (nextMap: ParsedTableStyleMap) => void;
+	onDeleteTableStyle?: (styleId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,8 +46,12 @@ export function TablePropertiesPanel({
 	canEdit,
 	onUpdateElement,
 	tableEditorState,
+	tableStyleMap,
+	onTableStyleMapChange,
+	onDeleteTableStyle,
 }: TablePropertiesPanelProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const [showStyleEditor, setShowStyleEditor] = useState(false);
 	const td = tableElement.tableData;
 	if (!td) {
 		return null;
@@ -148,7 +163,29 @@ export function TablePropertiesPanel({
 						</button>
 					))}
 				</div>
+				{onTableStyleMapChange && (
+					<button
+						type='button'
+						className={`${BTN} mt-1.5`}
+						disabled={!canEdit}
+						onClick={() => setShowStyleEditor((v) => !v)}
+					>
+						{t('pptx.tableStyleEditor.editButton')}
+					</button>
+				)}
 			</div>
+
+			{showStyleEditor && onTableStyleMapChange && (
+				<TableStyleEditor
+					styleMap={tableStyleMap}
+					styleId={td.tableStyleId}
+					canEdit={canEdit}
+					onStyleMapChange={onTableStyleMapChange}
+					onDeleteStyle={(styleId) => onDeleteTableStyle?.(styleId)}
+					onAssignStyle={(styleId) => updateTableData(tableStyleAssignmentUpdate(styleId))}
+					onClose={() => setShowStyleEditor(false)}
+				/>
+			)}
 
 			{/* Column Widths */}
 			<div className={CARD}>

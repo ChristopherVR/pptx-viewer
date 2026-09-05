@@ -167,6 +167,8 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const [recentColors, setRecentColors] = useState<string[]>([]);
 	const [theme, setTheme] = useState<PptxTheme | undefined>();
 	const [tableStyleMap, setTableStyleMap] = useState<ParsedTableStyleMap | undefined>();
+	const [tableStylesDefaultId, setTableStylesDefaultId] = useState<string | undefined>();
+	const [tableStylesToDelete, setTableStylesToDelete] = useState<string[]>([]);
 	const [themeOptions, setThemeOptions] = useState<PptxThemeOption[]>([]);
 	const [customShows, setCustomShows] = useState<PptxCustomShow[]>([]);
 	const [activeCustomShowId, setActiveCustomShowId] = useState<string | null>(null);
@@ -275,6 +277,10 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		setTheme,
 		tableStyleMap,
 		setTableStyleMap,
+		tableStylesDefaultId,
+		setTableStylesDefaultId,
+		tableStylesToDelete,
+		setTableStylesToDelete,
 		themeOptions,
 		setThemeOptions,
 		customShows,
