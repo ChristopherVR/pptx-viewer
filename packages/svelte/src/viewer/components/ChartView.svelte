@@ -12,7 +12,7 @@
 	 * `pptx-viewer-shared`; this SFC only emits SVG.
 	 */
 	import type { ChartPptxElement } from 'pptx-viewer-core';
-	import { applyChartBuildReveal, canDrillDown } from 'pptx-viewer-shared';
+	import { canDrillDown, resolveRevealedChartData } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildChartView, buildLegendItems, partAttrs } from '../render';
@@ -53,11 +53,6 @@
 	});
 	$effect(() => () => drag.destroy());
 
-	/** Staged chart-build descriptor, when an active native animation reveals one. */
-	const chartBuild = $derived(
-		animationState?.build?.kind === 'chart' ? animationState.build : undefined,
-	);
-
 	/**
 	 * The chart element with its data trimmed to the stages revealed at the current
 	 * build progress (`p:bldChart`). Whole-chart / no-build renders return the
@@ -67,10 +62,10 @@
 		// `drag.rendered()` is the committed element until a value drag is in
 		// flight, when it carries the live preview instead.
 		const source = drag.rendered();
-		if (source.type !== 'chart' || !chartBuild || !source.chartData) {
+		if (source.type !== 'chart' || !source.chartData) {
 			return source;
 		}
-		const revealed = applyChartBuildReveal(source.chartData, chartBuild);
+		const revealed = resolveRevealedChartData(source.chartData, animationState);
 		return revealed === source.chartData ? source : { ...source, chartData: revealed };
 	});
 
@@ -120,6 +115,32 @@
 				viewBox={`0 0 ${vm.svgWidth} ${vm.svgHeight}`}
 				preserveAspectRatio={view.preserveAspectRatio}
 			>
+				<!-- c:dPt/c:pictureOptions picture-fill patterns, rendered before anything
+				     references them via fill="url(#...)" -->
+				{#if vm.defs && vm.defs.length > 0}
+					<defs>
+						{#each vm.defs as def (def.id)}
+							<pattern
+								id={def.id}
+								patternUnits={def.patternUnits}
+								x={def.x}
+								y={def.y}
+								width={def.width}
+								height={def.height}
+							>
+								<image
+									href={def.href}
+									x="0"
+									y="0"
+									width={def.width}
+									height={def.height}
+									preserveAspectRatio={def.preserveAspectRatio}
+								/>
+							</pattern>
+						{/each}
+					</defs>
+				{/if}
+
 				<!-- Absent when the deck declares `<a:noFill/>` on `c:chartSpace`. -->
 				{#if vm.areaFill}
 					<rect

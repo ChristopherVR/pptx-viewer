@@ -2,6 +2,7 @@ import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
 import type { CellCoord, ContextMenuCommandId, ContextMenuEntry } from 'pptx-viewer-shared';
 import {
 	buildContextMenuEntries,
+	canInteractWithElement,
 	canMergeCells,
 	computeMergeCellDown,
 	computeMergeCellRight,
@@ -117,6 +118,11 @@ export function buildEditorContextMenuEntries(deps: ContextMenuDispatchDeps): Co
 					}
 				: null,
 		hasMultiSelection: editor.selection.ids.length >= 2,
+		// G10: lock-only half of Group/Ungroup gating (`a:spLocks`/`a:grpSpLocks`
+		// `@noGrp`), independent of selection count; mirrors the guard
+		// `editor.arrangeOps.groupSelected`/`ungroupSelected` already enforce on
+		// the commands themselves.
+		selectionGroupable: editor.selectedElements.every((el) => canInteractWithElement(el, 'group')),
 		aiEnabled: Boolean(deps.onAskAi ?? deps.onFixAi),
 		// The editor tracks its own clipboard, so Paste can honestly grey out
 		// instead of being offered and silently doing nothing.

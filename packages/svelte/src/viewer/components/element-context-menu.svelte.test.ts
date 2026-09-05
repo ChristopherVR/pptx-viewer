@@ -17,6 +17,8 @@ afterEach(() => {
 interface EditorStub {
 	selectedElement?: PptxElement;
 	selectionIds?: string[];
+	/** The full multi-selection, for the Group/Ungroup lock check; defaults to `[selectedElement]`. */
+	selectedElements?: PptxElement[];
 	hasClipboard?: boolean;
 	/** Cells of a canvas block range, as `[row, col]` pairs (arms Merge Cells). */
 	selectedCells?: Array<[number, number]>;
@@ -51,6 +53,7 @@ function createEditor(stub: EditorStub = {}): EditorState {
 		applyElementPatch: vi.fn(),
 		selection: { ids: stub.selectionIds ?? [] },
 		selectedElement: stub.selectedElement,
+		selectedElements: stub.selectedElements ?? (stub.selectedElement ? [stub.selectedElement] : []),
 		hasClipboard: stub.hasClipboard ?? true,
 	} as unknown as EditorState;
 }
@@ -188,6 +191,37 @@ describe('elementContextMenu', () => {
 		clickLabel(target, 'Group');
 
 		expect(editor.arrangeOps.groupSelected).toHaveBeenCalledOnce();
+	});
+
+	it('disables Group when a:spLocks/@noGrp locks a selected element', () => {
+		const locked = {
+			id: 'a',
+			type: 'shape',
+			locks: { noGrouping: true },
+		} as unknown as PptxElement;
+		const free = { id: 'b', type: 'shape' } as unknown as PptxElement;
+		const editor = createEditor({ selectionIds: ['a', 'b'], selectedElements: [locked, free] });
+		const target = mountMenu(editor);
+
+		const item = itemsOf(target).find(
+			(candidate) => (candidate.textContent ?? '').trim() === 'Group',
+		);
+		expect(item?.disabled).toBeTruthy();
+	});
+
+	it('disables Ungroup when a:grpSpLocks/@noGrp is set on the group itself', () => {
+		const lockedGroup = {
+			id: 'g1',
+			type: 'group',
+			locks: { noGrouping: true },
+		} as unknown as PptxElement;
+		const editor = createEditor({ selectedElement: lockedGroup });
+		const target = mountMenu(editor);
+
+		const item = itemsOf(target).find(
+			(candidate) => (candidate.textContent ?? '').trim() === 'Ungroup',
+		);
+		expect(item?.disabled).toBeTruthy();
 	});
 
 	it('offers Ungroup only on a group element and routes it to the arrange ops', () => {

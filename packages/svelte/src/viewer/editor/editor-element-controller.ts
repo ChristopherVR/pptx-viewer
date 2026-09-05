@@ -1,4 +1,4 @@
-import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import type { ElementBoxPatch } from 'pptx-viewer-shared';
 import { cloneElementForPaste, updateSlideNotes } from 'pptx-viewer-shared';
 
@@ -6,7 +6,11 @@ import { appendElement, newElementId } from './editor-insert';
 import type { EditorState } from './editor-state.svelte';
 import type { ZOrderDirection } from './editor-zorder';
 import { reorderElement } from './editor-zorder';
-import { remapInlineText, resolveInlineTextAutoFitHeight } from './inline-text';
+import {
+	remapInlineText,
+	resolveInlineTextAutoFitHeight,
+	resolveInlineTextNormAutofitShrink,
+} from './inline-text';
 
 const NUDGE_COALESCE_MS = 800;
 
@@ -142,6 +146,11 @@ export class EditorElementController {
 				? document.querySelector<HTMLElement>('[data-inline-editor]')
 				: null;
 		const newHeight = resolveInlineTextAutoFitHeight(target, editorEl);
+		// `a:normAutofit` ("Shrink text on overflow"): recompute the font
+		// scale/line-spacing reduction so the (possibly now longer or shorter)
+		// text still fits the shape. Mutually exclusive with the `spAutoFit`
+		// resize above (both read `autoFitMode`, only one mode is ever set).
+		const shrink = resolveInlineTextNormAutofitShrink(target, editorEl);
 		this.#editor.replaceActiveElements(
 			this.#editor.activeElements.map((element) =>
 				element.id === id
@@ -149,6 +158,15 @@ export class EditorElementController {
 							...element,
 							...remapInlineText(target, text),
 							...(newHeight !== undefined ? { height: newHeight } : {}),
+							...(shrink !== 'unchanged'
+								? {
+										textStyle: {
+											...(target as { textStyle?: TextStyle }).textStyle,
+											autoFitFontScale: shrink.fontScale,
+											autoFitLineSpacingReduction: shrink.lnSpcReduction,
+										},
+									}
+								: {}),
 						} as PptxElement)
 					: element,
 			),

@@ -113,3 +113,50 @@ describe('commitInlineText - spAutoFit editor resize', () => {
 		expect(editor.slides[0].elements[0].height).toBe(40);
 	});
 });
+
+/**
+ * Regression test for the `a:normAutofit` ("Shrink text on overflow") editor
+ * behaviour: typing past capacity must recompute
+ * `autoFitFontScale`/`autoFitLineSpacingReduction`, not leave the stale
+ * authored value on the element forever.
+ */
+describe('commitInlineText - normAutofit editor font shrink', () => {
+	it('shrinks fontScale/lnSpcReduction when the text overflows the box', () => {
+		mountEditorNode();
+		// jsdom's stubbed scrollHeight cannot vary per candidate step, so every
+		// rung in the staircase measures as "still overflowing" and the
+		// decision lands on the smallest (floor) rung.
+		stubScrollHeight(400);
+		const editor = make();
+		editor.setSlides([slide('a', [shape('e1', { textStyle: { autoFitMode: 'normal' } })])]);
+
+		editor.commitInlineText('e1', 'a very long line of text that overflows the box');
+
+		expect(editor.slides[0].elements[0].textStyle).toMatchObject({
+			autoFitFontScale: 0.25,
+			autoFitLineSpacingReduction: 0.2,
+		});
+	});
+
+	it('does not touch textStyle for spAutoFit (shape-resize mode)', () => {
+		mountEditorNode();
+		stubScrollHeight(250);
+		const editor = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+
+		editor.commitInlineText('e1', 'a much longer line of text than before');
+
+		expect(editor.slides[0].elements[0].textStyle).toStrictEqual({ autoFitMode: 'shrink' });
+	});
+
+	it('leaves textStyle alone when the (stubbed) content already fits the box', () => {
+		mountEditorNode();
+		stubScrollHeight(5);
+		const editor = make();
+		editor.setSlides([slide('a', [shape('e1', { textStyle: { autoFitMode: 'normal' } })])]);
+
+		editor.commitInlineText('e1', 'short');
+
+		expect(editor.slides[0].elements[0].textStyle).toStrictEqual({ autoFitMode: 'normal' });
+	});
+});

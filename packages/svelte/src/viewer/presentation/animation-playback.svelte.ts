@@ -4,6 +4,7 @@ import {
 	cancelBuildReveal,
 	playGroup,
 	PresentationAnimationController,
+	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
 
@@ -140,6 +141,7 @@ export class AnimationPlayback {
 		const slide = this.#deps.getSlide();
 		if (!slide || !this.#animationsEnabled()) {
 			this.#controller = null;
+			this.#ctx.mediaTimeNodeElementIds = new Map();
 			this.#states = new Map();
 			this.#keyframesCss = '';
 			this.#interactiveTriggerShapeIds = new Set();
@@ -150,6 +152,11 @@ export class AnimationPlayback {
 
 		const controller = PresentationAnimationController.fromSlide(slide);
 		this.#controller = controller;
+		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
+		// element's `ended` event instead of only its estimated `delayMs`.
+		this.#ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(
+			slide.nativeAnimations ?? [],
+		);
 		this.#keyframesCss = controller.keyframesCss;
 		this.#interactiveTriggerShapeIds = controller.interactiveTriggerShapeIds;
 		this.#hoverTriggerShapeIds = controller.hoverTriggerShapeIds;

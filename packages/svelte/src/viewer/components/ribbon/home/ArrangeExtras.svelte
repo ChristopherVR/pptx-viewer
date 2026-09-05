@@ -7,7 +7,11 @@
 	 * Reads `editor.selectedElements`/`selection` (the ordered multi-select)
 	 * and routes every mutation through `EditorState.arrangeOps`.
 	 */
-	import { canGroupSelection, canUngroupSelection } from 'pptx-viewer-shared';
+	import {
+		canGroupSelection,
+		canInteractWithElement,
+		canUngroupSelection,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -19,7 +23,13 @@
 	const canAlign = $derived(editor.editable && count >= 2);
 	const canDistribute = $derived(editor.editable && count >= 3);
 	const canFlip = $derived(editor.editable && count >= 1);
-	const canGroup = $derived(canGroupSelection(editor.editable, count));
+	// G10: mirrors the a:spLocks/@noGrp guard editor.arrangeOps.groupSelected
+	// already enforces on the command, so a locked selection reads as disabled
+	// rather than a click that silently does nothing.
+	const selectionGroupable = $derived(
+		editor.selectedElements.every((el) => canInteractWithElement(el, 'group')),
+	);
+	const canGroup = $derived(canGroupSelection(editor.editable, count, selectionGroupable));
 	const canUngroup = $derived(canUngroupSelection(editor.editable, editor.selectedElement ?? null));
 
 	const ALIGN_BUTTONS = [

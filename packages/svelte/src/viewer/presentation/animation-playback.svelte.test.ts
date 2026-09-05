@@ -105,4 +105,42 @@ describe('animationPlayback (native-timing controller)', () => {
 		expect(pb.isComplete).toBeTruthy();
 		expect(pb.advance()).toBeFalsy();
 	});
+
+	// G13: an `onStopAudio`-gated effect should start from the REAL `<audio>`
+	// element's `ended` event, not only the estimated `delayMs` baked into its
+	// cssAnimation at build time.
+	it('gates an onStopAudio-dependent effect on the real media ended event', () => {
+		const audio = document.createElement('audio');
+		audio.dataset['elementId'] = 'audio1';
+		document.body.appendChild(audio);
+
+		const mediaAnim: PptxNativeAnimation = {
+			targetId: 'audio1',
+			nodeId: 5,
+			kind: 'media',
+			presetClass: 'entr',
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation;
+		const dependentAnim: PptxNativeAnimation = {
+			targetId: 'el1',
+			presetClass: 'entr',
+			trigger: 'afterPrevious',
+			startConditions: [{ event: 'onStopAudio', delay: 0, targetTimeNodeId: 5 }],
+		} as unknown as PptxNativeAnimation;
+
+		const pb = new AnimationPlayback({
+			getSlide: () =>
+				slideWith([shapeElement('audio1'), shapeElement('el1')], [mediaAnim, dependentAnim]),
+		});
+		pb.reset();
+		pb.advance();
+
+		const before = pb.elementStates.get('el1')?.cssAnimation;
+		expect(before).toBeTypeOf('string');
+
+		audio.dispatchEvent(new Event('ended'));
+		expect(pb.elementStates.get('el1')?.cssAnimation).toContain(' 0ms ');
+
+		audio.remove();
+	});
 });

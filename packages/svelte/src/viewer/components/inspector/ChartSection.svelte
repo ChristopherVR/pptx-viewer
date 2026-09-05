@@ -44,6 +44,7 @@
 	import ChartLabelsAxesSection from './ChartLabelsAxesSection.svelte';
 	import ChartPointMarkerSection from './ChartPointMarkerSection.svelte';
 	import ChartTrendlineSection from './ChartTrendlineSection.svelte';
+	import ChartUserShapeSection from './ChartUserShapeSection.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
@@ -184,6 +185,7 @@
 	<ChartAxisFormatSection {data} {canEdit} onpatch={patch} />
 	<ChartLabelsAxesSection {editor} {data} onpatch={patch} />
 	<ChartAdvancedSection {editor} {data} onpatch={patch} />
+	<ChartUserShapeSection {data} {canEdit} onpatch={patch} />
 </div>{/if}
 
 <style>.section{display:grid;gap:8px}label{display:grid;gap:3px;color:var(--pptx-muted-foreground);font-size:10px}input,select{min-width:0;height:26px;border:1px solid var(--pptx-border);border-radius:5px;background:var(--pptx-background);color:inherit}.checks{display:grid;grid-template-columns:1fr 1fr;gap:5px}.checks label{display:flex;align-items:center}h5{margin:6px 0 0;font-size:10px;text-transform:uppercase}fieldset{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0;padding:7px;border:1px solid var(--pptx-border);border-radius:6px}</style>
