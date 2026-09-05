@@ -28,9 +28,9 @@ describe('mcp server tool registration', () => {
 		await client.connect(clientTransport);
 	});
 
-	it('lists all 54 registered tools', async () => {
+	it('lists all 58 registered tools', async () => {
 		const result = await client.listTools();
-		expect(result.tools).toHaveLength(54);
+		expect(result.tools).toHaveLength(58);
 	});
 
 	it('includes all expected tool names', async () => {

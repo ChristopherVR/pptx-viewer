@@ -113,6 +113,20 @@ export type {
 	CreateChartResult,
 } from './chart-tools.js';
 
+export {
+	listChartUserShapesT,
+	addChartUserShapeT,
+	updateChartUserShapeT,
+	removeChartUserShapeT,
+} from './chart-user-shape-tools.js';
+export type {
+	ChartUserShapeInput,
+	ListChartUserShapesParams,
+	AddChartUserShapeParams,
+	UpdateChartUserShapeParams,
+	RemoveChartUserShapeParams,
+} from './chart-user-shape-tools.js';
+
 export { manageSmartArt } from './smartart-tools.js';
 export type {
 	ManageSmartArtParams,

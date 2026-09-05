@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import * as schemas from '../schemas/index.js';
 import * as chartTools from '../tools/chart-tools.js';
+import * as chartUserShapeTools from '../tools/chart-user-shape-tools.js';
 import * as contentTools from '../tools/content-tools.js';
 import * as conversionTools from '../tools/conversion-tools.js';
 import * as elementTools from '../tools/element-tools.js';
@@ -710,6 +711,62 @@ export function createServer(): McpServer {
 		async (params) => {
 			const result = await runMcpTool(params.filePath, (ctx) =>
 				chartTools.createChart(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'chart_user_shape_list',
+		{
+			description: "List a chart's drawing-overlay shapes (c:userShapes)",
+			inputSchema: schemas.ListChartUserShapesSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartUserShapeTools.listChartUserShapesT(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'chart_user_shape_add',
+		{
+			description: "Add a drawing-overlay shape (text box or connector) to a chart's c:userShapes",
+			inputSchema: schemas.AddChartUserShapeSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartUserShapeTools.addChartUserShapeT(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'chart_user_shape_update',
+		{
+			description: "Move, resize, or restyle one of a chart's drawing-overlay shapes by index",
+			inputSchema: schemas.UpdateChartUserShapeSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartUserShapeTools.updateChartUserShapeT(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'chart_user_shape_remove',
+		{
+			description: "Remove one of a chart's drawing-overlay shapes by index",
+			inputSchema: schemas.RemoveChartUserShapeSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				chartUserShapeTools.removeChartUserShapeT(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},
