@@ -24,3 +24,26 @@ describe('ribbonColorPopoverComponent recent colours', () => {
 		expect(source).toContain('this.recentColors.push(color)');
 	});
 });
+
+describe('ribbonColorPopoverComponent theme colours (W3-G2)', () => {
+	it('mounts the theme-swatch grid only when showThemeColors is set, above the presets', () => {
+		expect(source).toContain('@if (showThemeColors()) {');
+		expect(source).toContain('<pptx-theme-color-swatch-grid');
+		expect(source).toContain('[selectedRef]="currentRef()"');
+		expect(source).toContain('ThemeColorSwatchGridComponent');
+	});
+
+	it('fires a SEPARATE pickThemeColor output (never also pick) for a theme-swatch click', () => {
+		expect(source).toContain('readonly pickThemeColor = output<ThemeColorPickerCommit>();');
+		expect(source).toContain('protected onThemePick(commit: ThemeColorPickerCommit): void {');
+		expect(source).toContain('this.pickThemeColor.emit(commit);');
+		// The theme-pick handler must not ALSO emit `pick` for the same click
+		// (that would commit the hex-only and ref-bearing patches as two
+		// separate edits/undo-steps for one click).
+		const themePickBody = source.slice(
+			source.indexOf('protected onThemePick'),
+			source.indexOf('}', source.indexOf('protected onThemePick')),
+		);
+		expect(themePickBody).not.toContain('this.pick.emit');
+	});
+});

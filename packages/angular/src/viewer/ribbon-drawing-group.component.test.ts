@@ -24,12 +24,15 @@ import { describe, expect, it } from 'vitest';
 
 import { SHAPE_PRESET_DEFS, shapeFillChange, shapeOutlineChange } from '../internal/shared';
 import type { ShapePresetDef } from '../internal/shared';
+import { componentSource } from './component-source.test-support';
 import { newPresetShapeElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import {
 	canFormatShapeSelection,
 	fillColorOf,
+	fillColorRefOf,
 	outlineColorOf,
+	outlineColorRefOf,
 	RibbonDrawingGroupComponent,
 	shapeStylePatch,
 } from './ribbon-drawing-group.component';
@@ -181,14 +184,19 @@ describe('ribbonDrawingGroupComponent Fill/Outline wiring', () => {
 	it('merges a Fill pick into the existing shape style via the shared decision function', () => {
 		const patch = shapeStylePatch(shapeEl(), shapeFillChange('#3b82f6'));
 		expect(patch).toStrictEqual({
-			shapeStyle: { fillColor: '#3b82f6', fillMode: 'solid', strokeColor: '#222222' },
+			shapeStyle: {
+				fillColor: '#3b82f6',
+				fillColorRef: undefined,
+				fillMode: 'solid',
+				strokeColor: '#222222',
+			},
 		});
 	});
 
 	it('merges an Outline pick without disturbing the existing fill', () => {
 		const patch = shapeStylePatch(shapeEl(), shapeOutlineChange('#ff0000'));
 		expect(patch).toStrictEqual({
-			shapeStyle: { fillColor: '#111111', strokeColor: '#ff0000' },
+			shapeStyle: { fillColor: '#111111', strokeColor: '#ff0000', strokeColorRef: undefined },
 		});
 	});
 
@@ -212,5 +220,52 @@ describe('ribbonDrawingGroupComponent Fill/Outline wiring', () => {
 			(editor.slides()[0].elements[0] as unknown as { shapeStyle: Record<string, unknown> })
 				.shapeStyle,
 		).toMatchObject({ fillColor: '#00ff00', fillMode: 'solid' });
+	});
+
+	it('reads the swatch dot theme ref off the current selection, undefined when unset', () => {
+		expect(
+			fillColorRefOf(shapeEl({ shapeStyle: { fillColorRef: { scheme: 'accent1' } } })),
+		).toStrictEqual({ scheme: 'accent1' });
+		expect(
+			outlineColorRefOf(shapeEl({ shapeStyle: { strokeColorRef: { scheme: 'accent2' } } })),
+		).toStrictEqual({ scheme: 'accent2' });
+		expect(fillColorRefOf(shapeEl())).toBeUndefined();
+		expect(outlineColorRefOf(shapeEl())).toBeUndefined();
+		expect(fillColorRefOf(null)).toBeUndefined();
+		expect(outlineColorRefOf(null)).toBeUndefined();
+	});
+
+	it('a theme-swatch Fill pick commits BOTH the resolved hex and the ref', () => {
+		const patch = shapeStylePatch(shapeEl(), shapeFillChange('#4472c4', { scheme: 'accent1' }));
+		expect(patch).toStrictEqual({
+			shapeStyle: {
+				fillColor: '#4472c4',
+				fillColorRef: { scheme: 'accent1' },
+				fillMode: 'solid',
+				strokeColor: '#222222',
+			},
+		});
+	});
+
+	it('a theme-swatch Outline pick commits BOTH the resolved hex and the ref', () => {
+		const patch = shapeStylePatch(shapeEl(), shapeOutlineChange('#ed7d31', { scheme: 'accent2' }));
+		expect(patch).toStrictEqual({
+			shapeStyle: {
+				fillColor: '#111111',
+				strokeColor: '#ed7d31',
+				strokeColorRef: { scheme: 'accent2' },
+			},
+		});
+	});
+
+	it('wires the theme-swatch grid above the standard-colour presets for both popovers', () => {
+		const source = componentSource(import.meta.dirname, 'ribbon-drawing-group.component.ts');
+		expect(source).toContain('[showThemeColors]="true"');
+		expect(source).toContain('[currentRef]="fillColorRef()"');
+		expect(source).toContain('[currentRef]="outlineColorRef()"');
+		expect(source).toContain('(pickThemeColor)="onFillThemePick($event)"');
+		expect(source).toContain('(pickThemeColor)="onOutlineThemePick($event)"');
+		expect(source).toContain('shapeFillChange(commit.hex, commit.ref)');
+		expect(source).toContain('shapeOutlineChange(commit.hex, commit.ref)');
 	});
 });

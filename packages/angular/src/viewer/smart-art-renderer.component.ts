@@ -23,8 +23,9 @@ import {
 	computeSmartArtElementLayout,
 	flattenNodes,
 	rebuildDrawingShapesIfCleared,
-	resolveDrawingShapeNodeId,
-	revealedSmartArtNodeCount,
+	resolveRevealedDrawingShapeNodeIds,
+	resolveRevealedDrawingShapes,
+	resolveRevealedSmartArtNodes,
 } from '../internal/shared';
 import type {
 	ElementAnimationState,
@@ -195,38 +196,28 @@ export class SmartArtRendererComponent {
 	// ── Staged diagram build (p:bldDgm) reveal ──────────────────────────────
 	//
 	// When an active native animation carries a staged diagram build, reveal only
-	// the leading nodes / drawing shapes for the current progress; the view box is
-	// still computed from the FULL shape set so the diagram does not rescale.
+	// the leading nodes / drawing shapes for the current progress, preferring the
+	// AUTHORED per-node `p:graphicEl/@id` reveal set (animationState().diagramReveal)
+	// over the click-count estimate when available; the view box is still computed
+	// from the FULL shape set so the diagram does not rescale.
 
-	private readonly diagramBuild = computed(() => {
-		const build = this.animationState()?.build;
-		return build?.kind === 'diagram' ? build : undefined;
-	});
-
-	private readonly shownNodeCount = computed(() => {
-		const build = this.diagramBuild();
-		return build ? revealedSmartArtNodeCount(this.nodes(), build) : this.nodes().length;
-	});
-
-	private readonly isPartialBuild = computed(
-		() => this.diagramBuild() !== undefined && this.shownNodeCount() < this.nodes().length,
+	private readonly diagramReveal = computed(() =>
+		resolveRevealedSmartArtNodes(
+			this.nodes(),
+			this.animationState(),
+			this.smartArtData()?.presLayoutVars,
+		),
 	);
 
 	/** Leading node prefix revealed so far (full list when no partial build). */
-	private readonly revealedNodes = computed(() =>
-		this.isPartialBuild() ? this.nodes().slice(0, this.shownNodeCount()) : this.nodes(),
-	);
+	private readonly revealedNodes = computed(() => this.diagramReveal().nodes);
 
-	/** Leading drawing-shape prefix revealed so far (proportional to nodes). */
+	/** Revealed drawing-shape subset, preferring the authored node-id set. */
 	private readonly revealedShapeList = computed(() => {
 		const shapes = this.rawDrawingShapes();
-		if (!this.isPartialBuild() || shapes.length === 0) {
-			return shapes;
-		}
-		const count = Math.ceil(
-			(this.shownNodeCount() / Math.max(this.nodes().length, 1)) * shapes.length,
-		);
-		return shapes.slice(0, count);
+		return shapes.length === 0
+			? shapes
+			: resolveRevealedDrawingShapes(shapes, this.nodes(), this.animationState());
 	});
 
 	private readonly viewBox = computed<DrawingViewBox>(() =>
@@ -253,12 +244,19 @@ export class SmartArtRendererComponent {
 	 * Node id for each drawing shape (index-aligned with `renderedShapes`).
 	 * Used to tag `<g>` elements with `data-smartart-node-id` so the 3D
 	 * renderer's hit-test overlay can resolve a click to a node.
+	 *
+	 * Aligned with the REVEALED subset `renderedShapes` projects: during a staged
+	 * `p:bldDgm` build that differs from the full list, and indexing the full
+	 * list's ids by rendered position stamped the first node's id onto whichever
+	 * shape the authored reveal showed first (Gamma carried Alpha's id).
 	 */
-	readonly drawingShapeNodeIds = computed<(string | undefined)[]>(() => {
-		const shapes = this.rawDrawingShapes();
-		const nodes = this.nodes();
-		return shapes.map((shape, i) => resolveDrawingShapeNodeId(shape, i, shapes, nodes));
-	});
+	readonly drawingShapeNodeIds = computed<(string | undefined)[]>(() =>
+		resolveRevealedDrawingShapeNodeIds(
+			this.rawDrawingShapes(),
+			this.revealedShapeList(),
+			this.nodes(),
+		),
+	);
 
 	// ── Shared SVG-fallback engine (no drawing shapes) ──────────────────────
 

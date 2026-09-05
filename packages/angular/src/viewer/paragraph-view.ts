@@ -65,6 +65,13 @@ export interface TextRun {
 	 */
 	tabLines?: TabbedLineRun[];
 	/**
+	 * `a:rPr/@u="words"` word/gap pieces of a RUBY run's base text (same shape
+	 * as `scriptRuns`, rendered the same way in place of `text`): the base text
+	 * stays one run so the annotation still reads over the whole thing, while
+	 * only the word entries carry the underline. Absent otherwise.
+	 */
+	underlineWordPieces?: ScriptFontPiece[];
+	/**
 	 * `a:reflection` mirrored-sibling wrapper style for this run, or `undefined`
 	 * for the common no-reflection case - the text-run counterpart of a
 	 * shape/picture's `ReflectionOverlay` (`element-effect-defs.ts`). The
@@ -149,6 +156,9 @@ export function buildAngularParagraphs(
 			}
 			if (run.tabLines) {
 				out.tabLines = run.tabLines;
+			}
+			if (run.underlineWordPieces) {
+				out.underlineWordPieces = run.underlineWordPieces;
 			}
 			if (run.reflection) {
 				out.reflection = run.reflection;

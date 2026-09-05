@@ -22,20 +22,23 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
+import type { ThemeColorPickerCommit } from '../internal/shared';
 import {
 	addGradientStopPatch,
 	gradientStateOf,
 	gradientStatePatch,
+	gradientStopColorCommitPatch,
 	removeGradientStopPatch,
 	updateGradientStopPatch,
 } from './gradient-picker-helpers';
 import type { GradientState, GradientStop } from './gradient-picker-helpers';
 import { RecentColorsService } from './recent-colors.service';
+import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.component';
 
 @Component({
 	selector: 'pptx-gradient-picker',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, ThemeColorSwatchGridComponent],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div class="pptx-ng-grad">
@@ -91,53 +94,60 @@ import { RecentColorsService } from './recent-colors.service';
 			<!-- ── Stops ────────────────────────────────────────────────── -->
 			<div class="pptx-ng-grad__stops-heading">{{ 'pptx.gradient.stops' | translate }}</div>
 			@for (stop of state().stops; track $index) {
-				<div class="pptx-ng-grad__stop-row">
-					<span class="pptx-ng-grad__stop-idx">{{ $index + 1 }}</span>
+				<div class="pptx-ng-grad__stop-block">
+					<div class="pptx-ng-grad__stop-row">
+						<span class="pptx-ng-grad__stop-idx">{{ $index + 1 }}</span>
 
-					<input
-						class="pptx-ng-grad__color"
-						type="color"
-						[value]="stop.color"
-						(change)="onStopColorChange($event, $index)"
+						<input
+							class="pptx-ng-grad__color"
+							type="color"
+							[value]="stop.color"
+							(change)="onStopColorChange($event, $index)"
+						/>
+
+						<label class="pptx-ng-grad__label" [for]="'grad-stop-pos-' + $index">{{
+							'pptx.gradient.position' | translate
+						}}</label>
+						<input
+							[id]="'grad-stop-pos-' + $index"
+							class="pptx-ng-grad__input pptx-ng-grad__input--number"
+							type="number"
+							inputmode="numeric"
+							min="0"
+							max="100"
+							step="1"
+							[value]="stop.position"
+							(change)="onStopPositionChange($event, $index)"
+						/>
+
+						<label class="pptx-ng-grad__label" [for]="'grad-stop-op-' + $index">α</label>
+						<input
+							[id]="'grad-stop-op-' + $index"
+							class="pptx-ng-grad__input pptx-ng-grad__input--number"
+							type="number"
+							inputmode="decimal"
+							min="0"
+							max="1"
+							step="0.05"
+							[value]="stop.opacity ?? 1"
+							(change)="onStopOpacityChange($event, $index)"
+						/>
+
+						<button
+							type="button"
+							class="pptx-ng-grad__btn pptx-ng-grad__btn--remove"
+							data-pptx-compact
+							[title]="'pptx.gradient.removeStop' | translate"
+							(click)="onRemoveStop($index)"
+						>
+							×
+						</button>
+					</div>
+					<pptx-theme-color-swatch-grid
+						[selectedRef]="stop.colorRef"
+						[selectedHex]="stop.color"
+						(pick)="onStopThemePick($event, $index)"
 					/>
-
-					<label class="pptx-ng-grad__label" [for]="'grad-stop-pos-' + $index">{{
-						'pptx.gradient.position' | translate
-					}}</label>
-					<input
-						[id]="'grad-stop-pos-' + $index"
-						class="pptx-ng-grad__input pptx-ng-grad__input--number"
-						type="number"
-						inputmode="numeric"
-						min="0"
-						max="100"
-						step="1"
-						[value]="stop.position"
-						(change)="onStopPositionChange($event, $index)"
-					/>
-
-					<label class="pptx-ng-grad__label" [for]="'grad-stop-op-' + $index">α</label>
-					<input
-						[id]="'grad-stop-op-' + $index"
-						class="pptx-ng-grad__input pptx-ng-grad__input--number"
-						type="number"
-						inputmode="decimal"
-						min="0"
-						max="1"
-						step="0.05"
-						[value]="stop.opacity ?? 1"
-						(change)="onStopOpacityChange($event, $index)"
-					/>
-
-					<button
-						type="button"
-						class="pptx-ng-grad__btn pptx-ng-grad__btn--remove"
-						data-pptx-compact
-						[title]="'pptx.gradient.removeStop' | translate"
-						(click)="onRemoveStop($index)"
-					>
-						×
-					</button>
 				</div>
 			}
 
@@ -216,6 +226,12 @@ import { RecentColorsService } from './recent-colors.service';
 			letter-spacing: 0.04em;
 			color: var(--pptx-inspector-muted, #888);
 			margin-top: 0.25rem;
+		}
+
+		.pptx-ng-grad__stop-block {
+			display: flex;
+			flex-direction: column;
+			gap: 0.2rem;
 		}
 
 		.pptx-ng-grad__stop-row {
@@ -331,13 +347,20 @@ export class GradientPickerComponent {
 
 	// ── Stop edits ────────────────────────────────────────────────────────────
 
+	/** No theme identity, so this always explicitly clears any stored `colorRef` (see {@link onStopThemePick}). */
 	protected onStopColorChange(event: Event, index: number): void {
 		const val = stringFromEvent(event);
 		if (!val) {
 			return;
 		}
-		this.emit(updateGradientStopPatch(this.element(), index, { color: val }));
+		this.emit(updateGradientStopPatch(this.element(), index, { color: val, colorRef: undefined }));
 		this.recentColors?.push(val);
+	}
+
+	/** A theme-swatch pick: commits BOTH the resolved hex and the ref. */
+	protected onStopThemePick(commit: ThemeColorPickerCommit, index: number): void {
+		this.emit(updateGradientStopPatch(this.element(), index, gradientStopColorCommitPatch(commit)));
+		this.recentColors?.push(commit.hex);
 	}
 
 	protected onStopPositionChange(event: Event, index: number): void {

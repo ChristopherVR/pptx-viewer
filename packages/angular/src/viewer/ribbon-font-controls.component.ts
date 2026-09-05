@@ -14,10 +14,12 @@ import {
 	LucideRemoveFormatting,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxThemeColorRef } from 'pptx-viewer-core';
 
+import type { ThemeColorPickerCommit } from '../internal/shared';
 import {
 	COMMON_FONT_SIZES,
+	OFFICE_COLOR_SWATCH_HEXES,
 	textFontSizePatch,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
@@ -53,18 +55,7 @@ export function steppedFontSizePt(current: number, direction: 1 | -1): number {
 	return next ?? (direction === 1 ? FONT_SIZES[FONT_SIZES.length - 1] : FONT_SIZES[0]) ?? current;
 }
 /** Font-colour swatches in the Home/Text colour popover (mirrors React/Vue). */
-const FONT_COLOR_PRESETS = [
-	'#000000',
-	'#ffffff',
-	'#ff0000',
-	'#00aa00',
-	'#0000ff',
-	'#ff8800',
-	'#8800cc',
-	'#00cccc',
-	'#ff69b4',
-	'#808080',
-];
+const FONT_COLOR_PRESETS = OFFICE_COLOR_SWATCH_HEXES;
 
 /** Text-highlight swatches in the Home/Text highlight popover (mirrors React/Vue). */
 const HIGHLIGHT_COLOR_PRESETS = [
@@ -284,11 +275,14 @@ const CHANGE_CASE_OPTIONS = [
 		<!-- Font colour popover -->
 		<pptx-ribbon-color-popover
 			[current]="curColor()"
+			[currentRef]="curColorRef()"
+			[showThemeColors]="true"
 			[presets]="fontColorPresets"
 			[disabled]="!isText()"
 			titleKey="pptx.text.fontColor"
 			swatchAriaKey="pptx.ribbon.fontColourValue"
 			(pick)="setColor($event)"
+			(pickThemeColor)="setColorRef($event)"
 		>
 			<svg
 				class="h-3.5 w-3.5"
@@ -379,6 +373,10 @@ export class RibbonFontControlsComponent {
 	protected curColor(): string {
 		return this.curStyle()?.color ?? '#000000';
 	}
+	/** Current font colour's theme ref, if any (highlights the matching theme swatch). */
+	protected curColorRef(): PptxThemeColorRef | undefined {
+		return this.curStyle()?.colorRef;
+	}
 	/** Current highlight colour of the selection (for the swatch + active-state ring). */
 	protected curHighlight(): string {
 		return this.curStyle()?.highlightColor ?? '#ffff00';
@@ -420,8 +418,13 @@ export class RibbonFontControlsComponent {
 	protected toggleStyle(key: 'bold' | 'italic' | 'underline' | 'strikethrough'): void {
 		this.patch({ [key]: !this.curStyle()?.[key] });
 	}
+	/** Preset/recent/custom pick: always clears any previously-stored theme ref. */
 	protected setColor(color: string): void {
-		this.patch({ color });
+		this.patch({ color, colorRef: undefined });
+	}
+	/** Theme-swatch pick: commits BOTH the resolved hex and the ref. */
+	protected setColorRef(commit: ThemeColorPickerCommit): void {
+		this.patch({ color: commit.hex, colorRef: commit.ref });
 	}
 	protected setHighlight(highlightColor: string): void {
 		this.patch({ highlightColor });

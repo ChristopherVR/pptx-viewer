@@ -298,3 +298,41 @@ describe('buildAngularParagraphs - reflection (a:rPr/a:effectLst/a:reflection)',
 		expect(para.runs[0].reflection).toBeUndefined();
 	});
 });
+
+/**
+ * `a:rPr/@u="words"` underlines only the words. The ordinary per-word split
+ * already emits sibling runs, but a tab-separated piece and a ruby base text
+ * each stay ONE piece, so shared hands the word/gap breakdown over as
+ * `piece.words` / `run.underlineWordPieces`; the `runContent` template in
+ * `element-renderer.component.html` renders one span per entry in place of
+ * the piece / base text.
+ */
+describe('buildAngularParagraphs - u="words" on tab pieces and ruby runs', () => {
+	const wordsStyle = {
+		fontFamily: 'Arial',
+		fontSize: 16,
+		underline: true,
+		underlineStyle: 'words',
+	} as TextSegment['style'];
+
+	it('carries per-word pieces on a multi-word tab piece, the gap undecorated', () => {
+		const element = textElement([{ text: 'Hello World\t12', style: wordsStyle }], {
+			textStyle: { tabStops: [{ position: 300, align: 'r' }] },
+		});
+		const [piece] = buildAngularParagraphs(element)[0].runs[0].tabLines?.[0].pieces ?? [];
+		expect(piece?.words?.map((w) => w.text)).toStrictEqual(['Hello', ' ', 'World']);
+		expect(piece?.words?.[0].style.textDecoration).toContain('underline');
+		expect(piece?.words?.[0].style.display).toBe('inline-block');
+		expect(piece?.words?.[1].style.textDecoration ?? '').not.toContain('underline');
+	});
+
+	it('strips the underline off a ruby run and hands the words over as pieces', () => {
+		const element = textElement([{ text: 'two words', rubyText: 'reading', style: wordsStyle }]);
+		const run = buildAngularParagraphs(element)[0].runs[0];
+		expect(run.rubyText).toBe('reading');
+		expect(run.style.textDecoration ?? '').not.toContain('underline');
+		expect(run.underlineWordPieces?.map((p) => p.text)).toStrictEqual(['two', ' ', 'words']);
+		expect(run.underlineWordPieces?.[0].style?.textDecoration).toContain('underline');
+		expect(run.underlineWordPieces?.[1].style).toBeUndefined();
+	});
+});

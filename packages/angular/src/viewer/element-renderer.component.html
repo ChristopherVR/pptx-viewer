@@ -300,6 +300,17 @@
 										[attr.height]="paint.height"
 									/>
 								</pattern>
+							} @else if (paint.kind === 'rectPath') {
+								<pattern [attr.id]="paint.id" patternUnits="objectBoundingBox" width="1" height="1">
+									<image
+										[attr.href]="paint.href"
+										x="0"
+										y="0"
+										width="1"
+										height="1"
+										preserveAspectRatio="none"
+									/>
+								</pattern>
 							} @else if (paint.kind === 'radial') {
 								<radialGradient
 									[attr.id]="paint.id"
@@ -612,14 +623,21 @@
 					@if (piece.leaderStyle) {
 						<span aria-hidden="true" [ngStyle]="piece.leaderStyle">{{ piece.leaderText }}</span>
 					}
-					<span [ngStyle]="piece.style">{{ piece.text }}</span>
+					<!-- `u="words"`: one sibling span per word/gap in place of the piece span. -->
+					@if (piece.words) {
+						@for (word of piece.words; track $index) {
+							<span [ngStyle]="word.style">{{ word.text }}</span>
+						}
+					} @else {
+						<span [ngStyle]="piece.style">{{ piece.text }}</span>
+					}
 				}
 			</span>
 			@if (!$last) {
 				<br />
 			}
 		}
-	} @else if (run.scriptRuns) {
+	} @else if (run.scriptRuns || run.underlineWordPieces) {
 		<!--
 			A bare interpolation as the sole content of an `@if`/`@else` block
 			leaks a real leading + trailing whitespace text node: Angular does
@@ -648,7 +666,7 @@
 			"ProjectAtlas" instead of React's "Project Atlas", because the
 			plain-run `@else` below had the same bug.
 		-->
-		@for (piece of run.scriptRuns; track $index) {
+		@for (piece of run.scriptRuns ?? run.underlineWordPieces; track $index) {
 			@if (piece.style) {
 				<span [ngStyle]="piece.style">{{ piece.text }}</span>
 			} @else {

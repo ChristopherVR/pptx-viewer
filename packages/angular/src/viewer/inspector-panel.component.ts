@@ -25,11 +25,13 @@ import type {
 	PptxElement,
 	PptxElementAnimation,
 	PptxSmartArtData,
+	PptxThemeColorRef,
 	SmartArtPptxElement,
 	TablePptxElement,
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
+import type { ThemeColorPickerCommit } from '../internal/shared';
 import {
 	elementLockTogglePatch,
 	isElementLocked,
@@ -73,6 +75,7 @@ import { TablePropertiesComponent } from './table-properties.component';
 import { Text3DPanelComponent } from './text-3d-panel.component';
 import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 import { TextWarpGalleryComponent } from './text-warp-gallery.component';
+import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.component';
 
 @Component({
 	selector: 'pptx-inspector-panel',
@@ -100,6 +103,7 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 		Text3DPanelComponent,
 		TextWarpGalleryComponent,
 		RecentColorsRowComponent,
+		ThemeColorSwatchGridComponent,
 		TranslatePipe,
 		LucideArrowUp,
 		LucideArrowDown,
@@ -234,6 +238,11 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 						</div>
 						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
 							<span class="pptx-ng-inspector__label">{{ 'pptx.inspector.fill' | translate }}</span>
+							<pptx-theme-color-swatch-grid
+								[selectedRef]="fillColorRef()"
+								[selectedHex]="liveFillColor()"
+								(pick)="onFillThemeColor($event)"
+							/>
 							<pptx-recent-colors-row
 								[colors]="recentColors.recent()"
 								(pick)="onFillColorPick($event)"
@@ -243,6 +252,11 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 							<span class="pptx-ng-inspector__label">{{
 								'pptx.inspector.stroke' | translate
 							}}</span>
+							<pptx-theme-color-swatch-grid
+								[selectedRef]="strokeColorRef()"
+								[selectedHex]="liveStrokeColor()"
+								(pick)="onStrokeThemeColor($event)"
+							/>
 							<pptx-recent-colors-row
 								[colors]="recentColors.recent()"
 								(pick)="onStrokeColorPick($event)"
@@ -290,6 +304,11 @@ import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 								(change)="onFontSizeChange($event)"
 							/>
 						</div>
+						<pptx-theme-color-swatch-grid
+							[selectedRef]="textColorRef()"
+							[selectedHex]="liveTextColor()"
+							(pick)="onTextThemeColor($event)"
+						/>
 						<pptx-recent-colors-row
 							[colors]="recentColors.recent()"
 							(pick)="onTextColorPick($event)"
@@ -883,8 +902,32 @@ export class InspectorPanelComponent {
 	/** Whether the element supports shape-style (fill/stroke) editing. */
 	protected readonly hasShape = computed(() => hasShapeProperties(this.el()));
 
+	/**
+	 * LIVE (not `seed()`-frozen) fill/stroke colour + ref, read fresh from the
+	 * element on every change so the theme-swatch grid's highlight tracks the
+	 * current colour right after a pick, unlike the caret-preserving `seed()`
+	 * fields the native `<input type="color">`s bind to.
+	 */
+	protected readonly liveFillColor = computed(() => fillColorOf(this.el()));
+	protected readonly liveStrokeColor = computed(() => strokeColorOf(this.el()));
+	protected readonly fillColorRef = computed<PptxThemeColorRef | undefined>(() => {
+		const cur = this.el();
+		return hasShapeProperties(cur) ? cur.shapeStyle?.fillColorRef : undefined;
+	});
+	protected readonly strokeColorRef = computed<PptxThemeColorRef | undefined>(() => {
+		const cur = this.el();
+		return hasShapeProperties(cur) ? cur.shapeStyle?.strokeColorRef : undefined;
+	});
+
 	/** Whether the element supports text-style editing. */
 	protected readonly hasText = computed(() => hasTextProperties(this.el()));
+
+	/** LIVE text colour + ref (see {@link liveFillColor}'s doc for why not `seed()`). */
+	protected readonly liveTextColor = computed(() => textColorOf(this.el()));
+	protected readonly textColorRef = computed<PptxThemeColorRef | undefined>(() => {
+		const cur = this.el();
+		return hasTextProperties(cur) ? cur.textStyle?.colorRef : undefined;
+	});
 
 	// -- Computed display values (toggles only: buttons, no caret risk) -------
 
@@ -1031,17 +1074,22 @@ export class InspectorPanelComponent {
 		this.commitFillColor(color);
 	}
 
-	/** Recent-colours row pick: commits through the same path as the native picker. */
+	/** Recent-colours row pick: commits through the same path as the native picker, clearing any stored ref. */
 	protected onFillColorPick(color: string): void {
-		this.commitFillColor(color);
+		this.commitFillColor(color, undefined);
 	}
 
-	private commitFillColor(color: string): void {
+	/** Theme-swatch pick: commits BOTH the resolved hex and the ref, so the fill follows a later theme change. */
+	protected onFillThemeColor(commit: ThemeColorPickerCommit): void {
+		this.commitFillColor(commit.hex, commit.ref);
+	}
+
+	private commitFillColor(color: string, ref?: PptxThemeColorRef): void {
 		const cur = this.el();
 		this.editor.updateElement(
 			this.slideIndex(),
 			cur.id,
-			shapeStylePatch(cur, { fillColor: color }),
+			shapeStylePatch(cur, { fillColor: color, fillColorRef: ref }),
 		);
 		this.recentColors.push(color);
 	}
@@ -1054,17 +1102,22 @@ export class InspectorPanelComponent {
 		this.commitStrokeColor(color);
 	}
 
-	/** Recent-colours row pick: commits through the same path as the native picker. */
+	/** Recent-colours row pick: commits through the same path as the native picker, clearing any stored ref. */
 	protected onStrokeColorPick(color: string): void {
-		this.commitStrokeColor(color);
+		this.commitStrokeColor(color, undefined);
 	}
 
-	private commitStrokeColor(color: string): void {
+	/** Theme-swatch pick: commits BOTH the resolved hex and the ref, so the stroke follows a later theme change. */
+	protected onStrokeThemeColor(commit: ThemeColorPickerCommit): void {
+		this.commitStrokeColor(commit.hex, commit.ref);
+	}
+
+	private commitStrokeColor(color: string, ref?: PptxThemeColorRef): void {
 		const cur = this.el();
 		this.editor.updateElement(
 			this.slideIndex(),
 			cur.id,
-			shapeStylePatch(cur, { strokeColor: color }),
+			shapeStylePatch(cur, { strokeColor: color, strokeColorRef: ref }),
 		);
 		this.recentColors.push(color);
 	}
@@ -1079,14 +1132,23 @@ export class InspectorPanelComponent {
 		this.commitTextColor(color);
 	}
 
-	/** Recent-colours row pick: commits through the same path as the native picker. */
+	/** Recent-colours row pick: commits through the same path as the native picker, clearing any stored ref. */
 	protected onTextColorPick(color: string): void {
-		this.commitTextColor(color);
+		this.commitTextColor(color, undefined);
 	}
 
-	private commitTextColor(color: string): void {
+	/** Theme-swatch pick: commits BOTH the resolved hex and the ref, so the text colour follows a later theme change. */
+	protected onTextThemeColor(commit: ThemeColorPickerCommit): void {
+		this.commitTextColor(commit.hex, commit.ref);
+	}
+
+	private commitTextColor(color: string, ref?: PptxThemeColorRef): void {
 		const cur = this.el();
-		this.editor.updateElement(this.slideIndex(), cur.id, textStylePatch(cur, { color }));
+		this.editor.updateElement(
+			this.slideIndex(),
+			cur.id,
+			textStylePatch(cur, { color, colorRef: ref }),
+		);
 		this.recentColors.push(color);
 	}
 

@@ -47,10 +47,36 @@ describe('inspector panel recent colours (wave-4 B6)', () => {
 	});
 
 	it('every colour commit path (native input or recent-row pick) pushes into RecentColorsService', () => {
-		expect(source).toContain('private commitFillColor(color: string): void {');
-		expect(source).toContain('private commitStrokeColor(color: string): void {');
-		expect(source).toContain('private commitTextColor(color: string): void {');
+		expect(source).toContain(
+			'private commitFillColor(color: string, ref?: PptxThemeColorRef): void {',
+		);
+		expect(source).toContain(
+			'private commitStrokeColor(color: string, ref?: PptxThemeColorRef): void {',
+		);
+		expect(source).toContain(
+			'private commitTextColor(color: string, ref?: PptxThemeColorRef): void {',
+		);
 		const pushCalls = (source.match(/this\.recentColors\.push\(color\)/gu) ?? []).length;
 		expect(pushCalls).toBe(3);
+	});
+});
+
+describe('inspector panel theme colour swatch grid (W3-G2)', () => {
+	it('mounts the theme-swatch grid above the fill, stroke, and text colour recent-rows', () => {
+		expect(source).toContain('ThemeColorSwatchGridComponent');
+		const mounts = (source.match(/<pptx-theme-color-swatch-grid/gu) ?? []).length;
+		expect(mounts).toBe(3);
+	});
+
+	it('wires each theme-swatch mount to its own commit handler, carrying both hex and ref', () => {
+		expect(source).toContain('(pick)="onFillThemeColor($event)"');
+		expect(source).toContain('(pick)="onStrokeThemeColor($event)"');
+		expect(source).toContain('(pick)="onTextThemeColor($event)"');
+	});
+
+	it('a theme-swatch pick commits fillColorRef/strokeColorRef/colorRef alongside the hex', () => {
+		expect(source).toContain('shapeStylePatch(cur, { fillColor: color, fillColorRef: ref })');
+		expect(source).toContain('shapeStylePatch(cur, { strokeColor: color, strokeColorRef: ref })');
+		expect(source).toContain('textStylePatch(cur, { color, colorRef: ref })');
 	});
 });

@@ -13,7 +13,11 @@
  * The service owns the signal-based per-element state map, the per-slide
  * keyframes CSS, the interactive / hover trigger-shape id sets, and the clock
  * (timers + requestAnimationFrame). The controller stays pure; the step / build
- * / auto-advance DOM glue lives in {@link module:viewer/presentation-playback-helpers}.
+ * / auto-advance DOM glue is the shared `animation-playback-engine`
+ * (`pptx-viewer-shared`), the same clock Vue, Svelte and Vanilla run. Angular
+ * used to keep a hand-ported copy of it here, which drifted: it dropped the
+ * staged-build reveal fields on every step write, so a `p:bldDgm` diagram
+ * popped fully in the moment its first stage's fade ended.
  *
  * Provide it at the component level so its lifetime tracks the host overlay:
  * `@Component({ providers: [AnimationPlaybackService] })`.
@@ -27,16 +31,14 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
-	PresentationAnimationController,
-	resolveMediaTimeNodeElementIds,
-} from '../internal/shared';
-import type { ElementAnimationState } from '../internal/shared';
-import type { BuildRafHandle, PlaybackContext } from './presentation-playback-helpers';
-import {
 	cancelBuildReveal,
 	playGroup,
+	PresentationAnimationController,
+	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
-} from './presentation-playback-helpers';
+} from '../internal/shared';
+import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from '../internal/shared';
+import { playAnimationSound, stopAnimationSound } from './animation-sound';
 
 @Injectable()
 export class AnimationPlaybackService {
@@ -87,7 +89,14 @@ export class AnimationPlaybackService {
 		},
 		timers: this.timers,
 		buildHandle: this.buildHandle,
-		onPlayActionSound: (soundPath: string) => this.onPlayActionSound?.(soundPath),
+		// The host override is registered after construction, so resolve it per
+		// call; with none registered the local player takes over (the old local
+		// copy of the engine silently dropped the sound in that case).
+		onPlayActionSound: (soundPath: string) => {
+			(this.onPlayActionSound ?? playAnimationSound)(soundPath);
+		},
+		playSound: playAnimationSound,
+		stopSound: stopAnimationSound,
 		frameRoot: () => this.frameRoot?.() ?? null,
 	};
 

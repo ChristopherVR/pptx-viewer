@@ -15,4 +15,5 @@ export {
 	addGradientStopPatch,
 	removeGradientStopPatch,
 	updateGradientStopPatch,
+	gradientStopColorCommitPatch,
 } from '../internal/shared';

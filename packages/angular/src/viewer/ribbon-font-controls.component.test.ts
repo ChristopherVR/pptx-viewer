@@ -49,3 +49,20 @@ describe('ordinary text font size units', () => {
 		expect(steppedFontSizePt(48.1, -1)).toBe(48);
 	});
 });
+
+describe('ribbonFontControlsComponent theme font colour (W3-G2)', () => {
+	it('shows the theme-colours grid on the font-colour popover only, not highlight', () => {
+		expect(ribbonSource).toContain('[showThemeColors]="true"');
+		expect(ribbonSource).toContain('[currentRef]="curColorRef()"');
+		expect(ribbonSource).toContain('(pickThemeColor)="setColorRef($event)"');
+	});
+
+	it('a preset/recent/custom pick clears any stored ref; a theme pick commits both', () => {
+		expect(ribbonSource).toContain('this.patch({ color, colorRef: undefined });');
+		expect(ribbonSource).toContain('this.patch({ color: commit.hex, colorRef: commit.ref });');
+	});
+
+	it('the standard-colour presets now come from the shared Office catalogue', () => {
+		expect(ribbonSource).toContain('OFFICE_COLOR_SWATCH_HEXES');
+	});
+});

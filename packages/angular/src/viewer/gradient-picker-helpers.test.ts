@@ -12,6 +12,7 @@ import {
 	gradientStateFromStyle,
 	gradientStateOf,
 	gradientStatePatch,
+	gradientStopColorCommitPatch,
 	hasGradientFill,
 	removeGradientStopPatch,
 	updateGradientStopPatch,
@@ -266,5 +267,48 @@ describe('updateGradientStopPatch', () => {
 		const stops = ss['fillGradientStops'] as Array<{ position: number }>;
 		// After re-sort, the stop that was at 0 is now at 80, so first stop should be the 100 one
 		expect(stops[0].position).toBeLessThanOrEqual(stops[1].position);
+	});
+
+	// ── theme-swatch commits (colorRef) ──────────────────────────────────────
+
+	it('a theme-swatch pick commits BOTH the resolved hex and the ref onto the stop', () => {
+		const el = makeShape({
+			fillMode: 'gradient',
+			fillGradientStops: [
+				{ color: '#ff0000', position: 0 },
+				{ color: '#0000ff', position: 100 },
+			],
+		});
+		const commit = gradientStopColorCommitPatch({ hex: '#4472c4', ref: { scheme: 'accent1' } });
+		const patch = updateGradientStopPatch(asEl(el), 0, commit);
+		const ss = (patch as Record<string, unknown>)['shapeStyle'] as Record<string, unknown>;
+		const stops = ss['fillGradientStops'] as Array<{
+			color: string;
+			position: number;
+			colorRef?: unknown;
+		}>;
+		const first = stops.find((s) => s.position === 0);
+		expect(first?.color).toBe('#4472c4');
+		expect(first?.colorRef).toStrictEqual({ scheme: 'accent1' });
+	});
+
+	it('a native colour pick explicitly clears a previously-stored ref', () => {
+		const el = makeShape({
+			fillMode: 'gradient',
+			fillGradientStops: [
+				{ color: '#4472c4', position: 0, colorRef: { scheme: 'accent1' } },
+				{ color: '#0000ff', position: 100 },
+			],
+		});
+		const patch = updateGradientStopPatch(asEl(el), 0, { color: '#aabbcc', colorRef: undefined });
+		const ss = (patch as Record<string, unknown>)['shapeStyle'] as Record<string, unknown>;
+		const stops = ss['fillGradientStops'] as Array<{
+			color: string;
+			position: number;
+			colorRef?: unknown;
+		}>;
+		const first = stops.find((s) => s.position === 0);
+		expect(first?.color).toBe('#aabbcc');
+		expect(first?.colorRef).toBeUndefined();
 	});
 });
