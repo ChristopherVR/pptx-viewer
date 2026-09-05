@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { TranslatePipe } from '@ngx-translate/core';
 import type { MediaBookmark, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 
+import { mediaTrimEndAbsoluteMs, mediaTrimEndMsFromAbsoluteMs } from '../internal/shared';
 import { LoadContentService } from './load-content.service';
 import { MediaPreviewComponent } from './media-preview.component';
 import { appendMediaBookmark } from './media-properties-helpers';
@@ -36,8 +37,8 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 					<input
 						type="number"
 						min="0"
-						[value]="media().trimEndMs ?? 0"
-						(change)="numberPatch('trimEndMs', $event)"
+						[value]="trimEndAbsoluteMs()"
+						(change)="trimEndPatch($event)"
 					/>
 				</label>
 			</div>
@@ -204,6 +205,19 @@ export class MediaPropertiesPanelComponent {
 	protected readonly media = computed(() => this.element());
 	protected readonly mediaDataUrls = computed(() => this.loader?.mediaDataUrls() ?? new Map());
 	protected readonly speeds = SPEEDS;
+	/**
+	 * `trimEndMs` is `p14:trim/@end`, the distance from the clip's TAIL
+	 * (COM-verified), not an absolute stop time. The "Trim end" field shows the
+	 * user an absolute position and converts back on commit, mirroring React's
+	 * `MediaInspector` / Vue's `MediaPropertiesPanel.vue` via the shared
+	 * `media-trim-range.ts` (this raw ms field used to bind the tail distance
+	 * directly, so typing "the last 5s" required computing duration-minus-5000
+	 * by hand).
+	 */
+	private readonly durationMs = computed(() => (this.media().metadata?.duration ?? 0) * 1000);
+	protected readonly trimEndAbsoluteMs = computed(() =>
+		mediaTrimEndAbsoluteMs(this.durationMs(), this.media().trimEndMs ?? 0),
+	);
 	protected readonly volumePercent = computed(() => Math.round((this.media().volume ?? 1) * 100));
 	protected readonly toggles = computed(
 		() =>
@@ -235,6 +249,14 @@ export class MediaPropertiesPanelComponent {
 	protected numberPatch(key: keyof MediaPptxElement, event: Event): void {
 		this.patch.emit({
 			[key]: Number((event.target as HTMLInputElement).value),
+		} as Partial<PptxElement>);
+	}
+
+	/** Convert the typed absolute end position back to `trimEndMs`'s tail distance. */
+	protected trimEndPatch(event: Event): void {
+		const absoluteMs = Number((event.target as HTMLInputElement).value);
+		this.patch.emit({
+			trimEndMs: mediaTrimEndMsFromAbsoluteMs(this.durationMs(), absoluteMs),
 		} as Partial<PptxElement>);
 	}
 

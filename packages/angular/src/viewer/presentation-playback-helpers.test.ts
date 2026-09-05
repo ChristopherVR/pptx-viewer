@@ -132,6 +132,66 @@ describe('applyAnimationGroupSteps', () => {
 	});
 });
 
+// G13: an `onStopAudio`-gated step should start from the REAL media element's
+// `ended` event, not only the estimated `delayMs` baked into its cssAnimation
+// at build time. Mirrors the shared `animation-playback-engine` coverage.
+describe('applyAnimationGroupSteps: onStopAudio real-media-ended gating', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	function makeCtx(): { ctx: PlaybackContext; latest: () => Map<string, ElementAnimationState> } {
+		let latest = new Map<string, ElementAnimationState>();
+		const ctx: PlaybackContext = {
+			setStates: (updater) => {
+				latest = updater(latest);
+			},
+			timers: [],
+			buildHandle: { current: null },
+		};
+		return { ctx, latest: () => latest };
+	}
+
+	it('re-applies the gated step with delay=0 when the real media element fires ended', () => {
+		const root = document.createElement('div');
+		const audio = document.createElement('audio');
+		audio.dataset['elementId'] = 'audio1';
+		root.appendChild(audio);
+
+		const { ctx, latest } = makeCtx();
+		ctx.frameRoot = () => root;
+		ctx.mediaTimeNodeElementIds = new Map([[9, 'audio1']]);
+
+		applyAnimationGroupSteps(
+			group([
+				step({
+					elementId: 'el1',
+					cssAnimation: 'pptx-fadeIn 500ms ease 4000ms 1 normal both',
+					dependsOnEvent: 'onStopAudio',
+					dependsOnTimeNodeId: 9,
+				}),
+			]),
+			ctx,
+		);
+		expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 4000ms 1 normal both');
+
+		audio.dispatchEvent(new Event('ended'));
+		expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 0ms 1 normal both');
+	});
+
+	it('does nothing when no mediaTimeNodeElementIds map is provided (fallback-only)', () => {
+		const { ctx, latest } = makeCtx();
+		applyAnimationGroupSteps(
+			group([step({ elementId: 'el1', dependsOnEvent: 'onStopAudio', dependsOnTimeNodeId: 9 })]),
+			ctx,
+		);
+		expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 0ms 1 both');
+	});
+});
+
 describe('cancelBuildReveal', () => {
 	it('clears the raf handle', () => {
 		const handle: BuildRafHandle = { current: 42 };

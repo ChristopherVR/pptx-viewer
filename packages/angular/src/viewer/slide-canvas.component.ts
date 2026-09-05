@@ -65,7 +65,10 @@ import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 import { FieldContextService } from './field-context.service';
 import { InkDrawingService } from './ink-drawing.service';
-import { resolveCommitTextAutoFitHeight } from './inline-edit-autofit-commit';
+import {
+	resolveCommitTextAutoFitHeight,
+	resolveCommitTextNormAutofitShrink,
+} from './inline-edit-autofit-commit';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
 import {
@@ -374,7 +377,13 @@ export class SlideCanvasComponent implements SlideContext {
 	/** Emitted on double-click of a text-bearing element to begin inline edit. */
 	readonly textEditStart = output<{ id: string }>();
 	/** Emitted with the new text when an inline edit commits. */
-	readonly textCommit = output<{ id: string; text: string; height?: number }>();
+	readonly textCommit = output<{
+		id: string;
+		text: string;
+		height?: number;
+		autoFitFontScale?: number;
+		autoFitLineSpacingReduction?: number;
+	}>();
 	/**
 	 * Emitted on EVERY keystroke while inline-editing. The commit path stays the
 	 * only thing that touches editor state/history; this feeds the collaboration
@@ -981,8 +990,23 @@ export class SlideCanvasComponent implements SlideContext {
 		// is the live, still-mounted textarea (this handler runs off its own
 		// `blur`), so no separate DOM lookup is needed here.
 		const height = resolveCommitTextAutoFitHeight(this.allElements(), id, editor);
+		// `a:normAutofit` ("Shrink text on overflow"): recompute the font
+		// scale/line-spacing reduction so the (possibly now longer or shorter)
+		// text still fits the shape. Mutually exclusive with the `spAutoFit`
+		// resize above (both read `autoFitMode`, only one mode is ever set).
+		const shrink = resolveCommitTextNormAutofitShrink(this.allElements(), id, editor);
 		const text = this.viewerOpts ? this.viewerOpts.autoCorrect(editor.value) : editor.value;
-		this.textCommit.emit(height !== undefined ? { id, text, height } : { id, text });
+		this.textCommit.emit({
+			id,
+			text,
+			...(height !== undefined ? { height } : {}),
+			...(shrink !== 'unchanged'
+				? {
+						autoFitFontScale: shrink.fontScale,
+						autoFitLineSpacingReduction: shrink.lnSpcReduction,
+					}
+				: {}),
+		});
 	}
 
 	onContextMenu(event: MouseEvent): void {

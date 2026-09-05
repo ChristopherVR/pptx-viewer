@@ -22,6 +22,7 @@ import {
 	chartPartToAttrs,
 	findChartPartTarget,
 	isSameChartPart,
+	resolveRevealedChartData,
 	withChartTitle,
 } from '../internal/shared';
 import {
@@ -334,5 +335,54 @@ describe('chartCanEditParts', () => {
 		expect(chartCanEditParts(false, true, true, chart)).toBeFalsy();
 		expect(chartCanEditParts(true, false, true, chart)).toBeFalsy();
 		expect(chartCanEditParts(true, true, false, chart)).toBeFalsy();
+	});
+});
+
+// ==========================================================================
+// Chart-build reveal (`resolveRevealedChartData`, via the vendored shared
+// barrel `ChartElementViewComponent.renderedElement` calls directly).
+//
+// No Angular TestBed here either (see the file header), so this exercises the
+// SAME pure decision function the component delegates to, proving the
+// vendored copy carries the authored-index reveal fix (see
+// `packages/shared/src/render/chart-reveal-descriptor.ts`) rather than
+// re-testing DOM output only React/Vue/Svelte/Vanilla can assert here.
+// ==========================================================================
+
+describe('resolveRevealedChartData (chart-build reveal)', () => {
+	function twoSeriesChartData(): PptxChartData {
+		return {
+			chartType: 'bar',
+			categories: ['Q1', 'Q2'],
+			series: [
+				{ name: 'North', values: [10, 20] },
+				{ name: 'South', values: [15, 25] },
+			],
+		};
+	}
+
+	it('prefers the authored-index chartReveal over a count-based build (reverse-order series)', () => {
+		const data = twoSeriesChartData();
+		const revealed = resolveRevealedChartData(data, {
+			build: { kind: 'chart', mode: 'bySeries', progress: 1 },
+			chartReveal: {
+				mode: 'bySeries',
+				descriptor: { background: true, series: new Set([1]), categories: new Set(), points: [] },
+			},
+		});
+		expect(revealed.series.map((s) => s.name)).toStrictEqual(['South']);
+	});
+
+	it('falls back to the count-based build when chartReveal is absent', () => {
+		const data = twoSeriesChartData();
+		const revealed = resolveRevealedChartData(data, {
+			build: { kind: 'chart', mode: 'bySeries', progress: 0.1 },
+		});
+		expect(revealed.series).toHaveLength(1);
+	});
+
+	it('returns chartData unchanged with no animation state', () => {
+		const data = twoSeriesChartData();
+		expect(resolveRevealedChartData(data, undefined)).toBe(data);
 	});
 });

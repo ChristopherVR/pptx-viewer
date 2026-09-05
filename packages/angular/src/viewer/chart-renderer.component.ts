@@ -48,6 +48,32 @@ const LEGEND_SWATCH_SIZE = 10;
 			class="pptx-ng-chart-svg"
 			style="overflow: visible; display: block; pointer-events: none;"
 		>
+			<!-- c:dPt/c:pictureOptions picture-fill patterns, rendered before anything
+				references them via fill="url(#...)" -->
+			@if ((vm().defs ?? []).length > 0) {
+				<defs>
+					@for (def of vm().defs ?? []; track def.id) {
+						<pattern
+							[attr.id]="def.id"
+							[attr.patternUnits]="def.patternUnits"
+							[attr.x]="def.x"
+							[attr.y]="def.y"
+							[attr.width]="def.width"
+							[attr.height]="def.height"
+						>
+							<image
+								[attr.href]="def.href"
+								x="0"
+								y="0"
+								[attr.width]="def.width"
+								[attr.height]="def.height"
+								[attr.preserveAspectRatio]="def.preserveAspectRatio"
+							/>
+						</pattern>
+					}
+				</defs>
+			}
+
 			<!-- Chart-area fill; absent when the deck declares c:chartSpace/a:noFill -->
 			@if (vm().areaFill) {
 				<rect

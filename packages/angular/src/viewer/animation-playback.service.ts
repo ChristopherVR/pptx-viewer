@@ -26,7 +26,10 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import { PresentationAnimationController } from '../internal/shared';
+import {
+	PresentationAnimationController,
+	resolveMediaTimeNodeElementIds,
+} from '../internal/shared';
 import type { ElementAnimationState } from '../internal/shared';
 import type { BuildRafHandle, PlaybackContext } from './presentation-playback-helpers';
 import {
@@ -155,6 +158,7 @@ export class AnimationPlaybackService {
 
 		if (!slide || !this.animationsEnabled()) {
 			this.controller = null;
+			this.ctx.mediaTimeNodeElementIds = new Map();
 			this.presentationElementStates.set(new Map());
 			this.keyframesCss.set('');
 			this.interactiveTriggerShapeIds.set(new Set());
@@ -168,6 +172,9 @@ export class AnimationPlaybackService {
 		// tracked element id list.
 		const controller = PresentationAnimationController.fromSlide(slide);
 		this.controller = controller;
+		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
+		// element's `ended` event instead of only its estimated `delayMs`.
+		this.ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);
 		this.keyframesCss.set(controller.keyframesCss);
 		this.interactiveTriggerShapeIds.set(controller.interactiveTriggerShapeIds);
 		this.hoverTriggerShapeIds.set(controller.hoverTriggerShapeIds);

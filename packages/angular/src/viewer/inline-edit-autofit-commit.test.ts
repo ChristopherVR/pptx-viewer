@@ -1,7 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, afterEach } from 'vitest';
 
-import { resolveCommitTextAutoFitHeight } from './inline-edit-autofit-commit';
+import {
+	resolveCommitTextAutoFitHeight,
+	resolveCommitTextNormAutofitShrink,
+} from './inline-edit-autofit-commit';
 
 /**
  * Regression test for the `a:spAutoFit` ("Resize shape to fit text") editor
@@ -81,5 +84,42 @@ describe('resolveCommitTextAutoFitHeight', () => {
 		const editor = document.createElement('textarea');
 		const el = { id: 'tbl_1', type: 'table', x: 0, y: 0, width: 100, height: 40 } as PptxElement;
 		expect(resolveCommitTextAutoFitHeight([el], 'tbl_1', editor)).toBeUndefined();
+	});
+});
+
+/**
+ * Regression test for the `a:normAutofit` ("Shrink text on overflow") editor
+ * behaviour: typing past capacity must recompute
+ * `autoFitFontScale`/`autoFitLineSpacingReduction`, not leave the stale
+ * authored value on the element forever.
+ */
+describe('resolveCommitTextNormAutofitShrink', () => {
+	it('shrinks fontScale/lnSpcReduction when the text overflows the box', () => {
+		// jsdom's stubbed scrollHeight cannot vary per candidate step, so every
+		// rung in the staircase measures as "still overflowing" and the
+		// decision lands on the smallest (floor) rung.
+		stubScrollHeight(400);
+		const editor = document.createElement('textarea');
+		const el = makeTextElement({ textStyle: { autoFitMode: 'normal' } });
+		expect(resolveCommitTextNormAutofitShrink([el], 'tx_1', editor)).toStrictEqual({
+			fontScale: 0.25,
+			lnSpcReduction: 0.2,
+		});
+	});
+
+	it('never shrinks for spAutoFit (shape-resize mode)', () => {
+		stubScrollHeight(400);
+		const editor = document.createElement('textarea');
+		expect(resolveCommitTextNormAutofitShrink([makeTextElement()], 'tx_1', editor)).toBe(
+			'unchanged',
+		);
+	});
+
+	it('returns unchanged when the element cannot be found (e.g. deleted mid-edit)', () => {
+		stubScrollHeight(400);
+		const editor = document.createElement('textarea');
+		expect(resolveCommitTextNormAutofitShrink([makeTextElement()], 'missing', editor)).toBe(
+			'unchanged',
+		);
 	});
 });

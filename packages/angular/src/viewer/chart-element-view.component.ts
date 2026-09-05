@@ -28,10 +28,10 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import {
 	advanceChartValueDrag,
-	applyChartBuildReveal,
 	applyChartPartHighlight,
 	beginChartValueDrag,
 	findChartPartTarget,
+	resolveRevealedChartData,
 	withChartTitle,
 } from '../internal/shared';
 import type { ChartValueDragState, ElementAnimationState } from '../internal/shared';
@@ -122,9 +122,10 @@ export class ChartElementViewComponent {
 
 	/**
 	 * Native-animation playback state. When it carries a staged chart build
-	 * (`build.kind === 'chart'`) the chart reveals its series / categories / cells
-	 * progressively via the shared `applyChartBuildReveal`. Absent outside a
-	 * running presentation, so ordinary rendering is unaffected.
+	 * (`build.kind === 'chart'`, or the authored-index `chartReveal`) the chart
+	 * reveals its series / categories / cells progressively via the shared
+	 * `resolveRevealedChartData`. Absent outside a running presentation, so
+	 * ordinary rendering is unaffected.
 	 */
 	readonly animationState = input<ElementAnimationState | undefined>(undefined);
 
@@ -235,11 +236,10 @@ export class ChartElementViewComponent {
 		const base: PptxElement = preview
 			? ({ ...this.element(), chartData: preview } as PptxElement)
 			: this.element();
-		const build = this.animationState()?.build;
-		if (!build || build.kind !== 'chart' || base.type !== 'chart' || !base.chartData) {
+		if (base.type !== 'chart' || !base.chartData) {
 			return base;
 		}
-		const revealed = applyChartBuildReveal(base.chartData, build);
+		const revealed = resolveRevealedChartData(base.chartData, this.animationState());
 		return revealed === base.chartData ? base : ({ ...base, chartData: revealed } as PptxElement);
 	});
 

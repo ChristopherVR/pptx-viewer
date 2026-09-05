@@ -43,6 +43,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { newShapeElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
+import { canGroupSelectionOnSlide, canUngroupSelectionOnSlide } from './group-lock-guard';
 
 @Component({
 	selector: 'pptx-editor-toolbar',
@@ -387,16 +388,13 @@ export class EditorToolbarComponent {
 	/** Align needs ≥2 selected elements; distribute needs ≥3. */
 	protected readonly canAlign = computed(() => this.editor.selectedIds().length >= 2);
 	protected readonly canDistribute = computed(() => this.editor.selectedIds().length >= 3);
-	/** Group needs ≥2 selected; ungroup needs exactly one selected group. */
-	protected readonly canGroup = computed(() => this.editor.selectedIds().length >= 2);
-	protected readonly canUngroup = computed(() => {
-		const ids = this.editor.selectedIds();
-		if (ids.length !== 1) {
-			return false;
-		}
-		const slide = this.editor.slides()[this.slideIndex()];
-		return slide?.elements.find((el) => el.id === ids[0])?.type === 'group';
-	});
+	/** Group/ungroup, including the `a:spLocks`/`a:grpSpLocks` `@noGrp` lock (`group-lock-guard.ts`). */
+	protected readonly canGroup = computed(() =>
+		canGroupSelectionOnSlide(this.editor.slides()[this.slideIndex()], this.editor.selectedIds()),
+	);
+	protected readonly canUngroup = computed(() =>
+		canUngroupSelectionOnSlide(this.editor.slides()[this.slideIndex()], this.editor.selectedIds()),
+	);
 
 	protected onInsertText(): void {
 		this.editor.addElement(this.slideIndex(), newTextElement());

@@ -17,8 +17,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { LucideGroup, LucideUngroup } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import type { PptxElement } from 'pptx-viewer-core';
 
 import {
 	canGroupSelection,
@@ -27,8 +27,26 @@ import {
 	strokeWidthOf,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
+import { canGroupSelected } from './group-lock-guard';
 
 export { canGroupSelection, canSetStrokeWidth, canUngroupSelection, strokeWidthOf };
+
+/**
+ * The ribbon's Group-button decision for one slide: needs an editable deck,
+ * two or more selected ids (`canGroupSelection`'s own count gate), and
+ * `a:spLocks/@noGrp` allowing every one of them (`group-lock-guard.ts`'s
+ * `canGroupSelected`, the same check `EditorStateService.groupSelected`
+ * enforces on the command itself). Pulled out of the component's `canGroup`
+ * computed so it is testable without an Angular injection context.
+ */
+export function resolveRibbonCanGroup(
+	canEdit: boolean,
+	ids: readonly string[],
+	slide: PptxSlide | undefined,
+): boolean {
+	const groupable = slide ? canGroupSelected(slide.elements, ids) : true;
+	return canGroupSelection(canEdit, ids.length, groupable);
+}
 
 @Component({
 	selector: 'pptx-ribbon-shape-extras',
@@ -86,7 +104,11 @@ export class RibbonShapeExtrasComponent {
 
 	/** Grouping needs two elements; the multi-select is the source of truth. */
 	protected readonly canGroup = computed(() =>
-		canGroupSelection(this.canEdit(), this.editor.selectedIds().length),
+		resolveRibbonCanGroup(
+			this.canEdit(),
+			this.editor.selectedIds(),
+			this.editor.slides()[this.slideIndex()],
+		),
 	);
 	protected readonly canUngroup = computed(() =>
 		canUngroupSelection(this.canEdit(), this.selectedElement()),

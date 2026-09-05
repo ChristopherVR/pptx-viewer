@@ -22,6 +22,7 @@ import type {
 	PptxTableData,
 	TextStyle,
 } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
 
 import { buildInlineTextCommitPatch, publishLiveInlineText } from '../internal/shared';
 import { CollaborationService } from './collaboration.service';
@@ -131,23 +132,46 @@ export class ViewerCanvasEditingService {
 	}
 
 	/** Commit an inline text edit without flattening its rich-text runs. */
-	onTextCommit(event: { id: string; text: string; height?: number }): void {
+	onTextCommit(event: {
+		id: string;
+		text: string;
+		height?: number;
+		autoFitFontScale?: number;
+		autoFitLineSpacingReduction?: number;
+	}): void {
 		const host = this.requireHost();
 		// Push any queued interim frame out first so it cannot land after the
 		// committed text and revert it.
 		this.collab.livePatcher.flush();
 		const element = this.findElement(host, event.id);
 		const textPatch = buildInlineTextCommitPatch(element, event.text);
-		if (!textPatch && event.height === undefined) {
+		const hasShrink = event.autoFitFontScale !== undefined;
+		if (!textPatch && event.height === undefined && !hasShrink) {
 			this.editingId.set(null);
 			return;
 		}
+		// Built by hand rather than through `textStylePatch` (which only accepts
+		// the ribbon/inspector's `TextStyleChanges`, not the autofit-only fields
+		// this editor-commit path writes).
+		const shrinkPatch: Partial<PptxElement> =
+			hasShrink && element && hasTextProperties(element)
+				? ({
+						textStyle: {
+							...element.textStyle,
+							autoFitFontScale: event.autoFitFontScale,
+							autoFitLineSpacingReduction: event.autoFitLineSpacingReduction,
+						},
+					} as Partial<PptxElement>)
+				: {};
 		this.editor.updateElement(host.activeSlideIndex(), event.id, {
 			...textPatch,
 			// `a:spAutoFit`: the shape's new height, already decided by
 			// `slide-canvas.component.ts`'s `commitText` (it holds the live
 			// editor DOM node this needs to measure).
 			...(event.height !== undefined ? { height: event.height } : {}),
+			// `a:normAutofit`: the recomputed font scale/line-spacing reduction,
+			// same source.
+			...shrinkPatch,
 		});
 		this.editingId.set(null);
 	}

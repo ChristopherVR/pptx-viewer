@@ -14,9 +14,15 @@
  * @module viewer/presentation-playback-helpers
  */
 
-import { executeMediaCommandInDom, PresentationAnimationController } from '../internal/shared';
+import {
+	executeMediaCommandInDom,
+	findMediaElementByElementId,
+	isMediaEndGated,
+	PresentationAnimationController,
+} from '../internal/shared';
 import type { ElementAnimationState, TimelineClickGroup } from '../internal/shared';
 import { playAnimationSound, stopAnimationSound } from './animation-sound';
+import { applyMediaEndedStep } from './presentation-playback-media-end-gating';
 
 /** Updater over the element-state map (React `setState`-compatible). */
 export type StatesSetter = (
@@ -38,6 +44,13 @@ export interface PlaybackContext {
 	onPlayActionSound?: (soundPath: string) => void;
 	/** Root element to scope media-command target lookups to (the slide stage). */
 	frameRoot?: () => HTMLElement | null;
+	/**
+	 * Maps a `p:audio`/`p:video` animation's own timing-tree node id to the
+	 * element id it plays (`resolveMediaTimeNodeElementIds`), so an
+	 * `onStopAudio`-gated step can find the real DOM element for its `ended`
+	 * event. Absent: falls back to the `delayMs` estimate alone.
+	 */
+	mediaTimeNodeElementIds?: ReadonlyMap<number, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -51,6 +64,23 @@ export interface PlaybackContext {
  * Mirrors the Vue `applyAnimationGroupSteps` / React `applyAnimationGroupSteps`.
  */
 export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: PlaybackContext): void {
+	// A `p:cond/@evt="onStopAudio"`-gated step also gets a real `ended`
+	// listener wired here (`presentation-playback-media-end-gating`'s
+	// `applyMediaEndedStep`), which corrects the fallback estimate below once
+	// the actual media element finishes; the fallback still fires
+	// unconditionally, so a context with no real media element (export/headless)
+	// is unaffected.
+	for (const step of group.steps) {
+		if (step.command || !isMediaEndGated(step) || step.dependsOnTimeNodeId === undefined) {
+			continue;
+		}
+		const mediaElementId = ctx.mediaTimeNodeElementIds?.get(step.dependsOnTimeNodeId);
+		const mediaEl = mediaElementId
+			? findMediaElementByElementId(mediaElementId, ctx.frameRoot?.())
+			: undefined;
+		mediaEl?.addEventListener('ended', () => applyMediaEndedStep(step, ctx), { once: true });
+	}
+
 	// Sound + media-playback side effects.
 	for (const step of group.steps) {
 		if (step.command) {

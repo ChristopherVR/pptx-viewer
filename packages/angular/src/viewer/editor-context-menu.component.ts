@@ -57,6 +57,7 @@ import type { ContextMenuActions, TableCommandOp } from './editor-context-menu-d
 import { runContextMenuCommand } from './editor-context-menu-dispatch';
 import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import { EditorStateService } from './editor-state.service';
+import { resolveContextMenuSelectionGroupable } from './group-lock-guard';
 import type { TableCellSelection } from './table-selection.service';
 import { TableSelectionService } from './table-selection.service';
 
@@ -162,6 +163,19 @@ export class EditorContextMenuComponent {
 		return slide?.elements.find((el) => el.id === ids[0]) ?? null;
 	});
 
+	/**
+	 * Lock-only half of Group/Ungroup gating (`a:spLocks`/`a:grpSpLocks`
+	 * `@noGrp`), independent of selection count, mirroring the guard
+	 * `EditorStateService.groupSelected`/`ungroupSelected` already enforce on
+	 * the commands themselves (`group-lock-guard.ts`).
+	 */
+	private readonly selectionGroupable = computed(() =>
+		resolveContextMenuSelectionGroupable(
+			this.editor.slides()[this.slideIndex()],
+			this.editor.selectedIds(),
+		),
+	);
+
 	/** The menu, as the shared command list builds it for this right-click. */
 	protected readonly entries = computed<ContextMenuEntry[]>(() => {
 		const table = this.tableCtx();
@@ -169,6 +183,7 @@ export class EditorContextMenuComponent {
 			elementType: this.selectedElement()?.type ?? null,
 			table: table ? tableMenuContext(table.element, table.sel) : null,
 			hasMultiSelection: this.editor.selectedIds().length >= 2,
+			selectionGroupable: this.selectionGroupable(),
 			aiEnabled: this.showAiActions(),
 			hasClipboard: this.editor.hasClipboard(),
 		});

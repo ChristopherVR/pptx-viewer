@@ -27,6 +27,7 @@ import { ChartDisplayOptionsComponent } from './chart-display-options.component'
 import { ChartErrorBarOptionsComponent } from './chart-error-bar-options.component';
 import { ChartMarkerOptionsComponent } from './chart-marker-options.component';
 import { ChartTrendlineOptionsComponent } from './chart-trendline-options.component';
+import { ChartUserShapeOptionsComponent } from './chart-user-shape-options.component';
 
 @Component({
 	selector: 'pptx-advanced-chart-editor',
@@ -43,6 +44,7 @@ import { ChartTrendlineOptionsComponent } from './chart-trendline-options.compon
 		ChartDatapointMarkerOptionsComponent,
 		ChartTrendlineOptionsComponent,
 		ChartErrorBarOptionsComponent,
+		ChartUserShapeOptionsComponent,
 	],
 	template: `
 		<div class="pptx-advanced-chart">
@@ -92,6 +94,11 @@ import { ChartTrendlineOptionsComponent } from './chart-trendline-options.compon
 				(elementChange)="elementChange.emit($event)"
 			/>
 			<pptx-chart-error-bar-options
+				[element]="element()"
+				[canEdit]="canEdit()"
+				(elementChange)="elementChange.emit($event)"
+			/>
+			<pptx-chart-user-shape-options
 				[element]="element()"
 				[canEdit]="canEdit()"
 				(elementChange)="elementChange.emit($event)"

@@ -1,7 +1,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import { resolveInlineEditAutoFitHeight } from '../internal/shared';
+import type { NormAutofitShrinkResult } from '../internal/shared';
+import {
+	resolveInlineEditAutoFitHeight,
+	resolveInlineEditNormAutofitShrink,
+} from '../internal/shared';
 
 /**
  * The exact composition `SlideCanvasComponent#commitText` performs to decide
@@ -25,4 +29,23 @@ export function resolveCommitTextAutoFitHeight(
 		return undefined;
 	}
 	return resolveInlineEditAutoFitHeight(el.textStyle, el.height, editor);
+}
+
+/**
+ * The `a:normAutofit` ("Shrink text on overflow") counterpart of
+ * {@link resolveCommitTextAutoFitHeight}: find the element being edited and,
+ * when it carries text properties, hand its text style, current height and
+ * the live editor `<textarea>` to the shared decision so the font
+ * scale/line-spacing reduction is recomputed on commit.
+ */
+export function resolveCommitTextNormAutofitShrink(
+	elements: readonly PptxElement[],
+	id: string,
+	editor: HTMLTextAreaElement,
+): NormAutofitShrinkResult {
+	const el = elements.find((e) => e.id === id);
+	if (!el || !hasTextProperties(el)) {
+		return 'unchanged';
+	}
+	return resolveInlineEditNormAutofitShrink(el.textStyle, el.height, editor);
 }

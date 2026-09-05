@@ -1,5 +1,5 @@
 import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { EditorStateService } from './editor-state.service';
@@ -11,6 +11,7 @@ import {
 	canGroupSelection,
 	canSetStrokeWidth,
 	canUngroupSelection,
+	resolveRibbonCanGroup,
 	strokeWidthOf,
 } from './ribbon-shape-extras.component';
 import { RibbonSlideshowSectionComponent } from './ribbon-slideshow-section.component';
@@ -161,6 +162,20 @@ describe('arrange group shape extras', () => {
 		expect(canUngroupSelection(true, shape)).toBeFalsy();
 		expect(canUngroupSelection(true, null)).toBeFalsy();
 		expect(canUngroupSelection(false, group)).toBeFalsy();
+	});
+
+	it('disables the ribbon Group button when a:spLocks/@noGrp locks a selected element', () => {
+		const slide: PptxSlide = {
+			id: 's1',
+			rId: 's1',
+			slideNumber: 1,
+			elements: [
+				{ ...shape, id: 'a', locks: { noGrouping: true } },
+				{ ...shape, id: 'b' },
+			],
+		} as PptxSlide;
+		expect(resolveRibbonCanGroup(true, ['a', 'b'], slide)).toBeFalsy();
+		expect(resolveRibbonCanGroup(true, ['b', 'b'], slide)).toBeTruthy();
 	});
 
 	it('offers an outline width only for an element that carries shape properties', () => {
