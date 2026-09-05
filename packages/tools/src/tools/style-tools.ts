@@ -1,6 +1,7 @@
 import { hasTextProperties, resolveThemeColorRef } from 'pptx-viewer-core';
 import type {
 	ImagePptxElement,
+	PptxElement,
 	PptxElementWithText,
 	PptxThemeColorRef,
 	ShapeStyle,
@@ -57,7 +58,64 @@ export interface UpdateElementStyleParams {
 	brightness?: number;
 	contrast?: number;
 	grayscale?: boolean;
+	/**
+	 * Accessibility description (`p:cNvPr/@descr`). Accepted for pictures,
+	 * every graphic frame kind (table, chart, smartArt, ole, media), and a
+	 * plain shape / text box / connector: the core writer serialises all
+	 * eight kinds, so the tool must not stop at images.
+	 */
 	altText?: string;
+	/**
+	 * Accessibility title (`p:cNvPr/@title`). Accepted for every kind that
+	 * models it: table, chart, smartArt, ole, media, text, shape and
+	 * connector (a picture has no separate title field, only `altText`).
+	 */
+	title?: string;
+}
+
+/** Element kinds whose core type models `altText` and whose writer persists it. */
+export const ALT_TEXT_ELEMENT_TYPES: ReadonlySet<PptxElement['type']> = new Set<
+	PptxElement['type']
+>(['image', 'picture', 'table', 'chart', 'smartArt', 'ole', 'media', 'text', 'shape', 'connector']);
+
+/** Element kinds whose core type models `title` and whose writer persists it. */
+export const TITLE_ELEMENT_TYPES: ReadonlySet<PptxElement['type']> = new Set<PptxElement['type']>([
+	'table',
+	'chart',
+	'smartArt',
+	'ole',
+	'media',
+	'text',
+	'shape',
+	'connector',
+]);
+
+/**
+ * Write `altText` onto `el`, or throw when the element kind has nowhere to
+ * persist it.
+ */
+export function applyElementAltText(el: PptxElement, altText: string): void {
+	if (!ALT_TEXT_ELEMENT_TYPES.has(el.type)) {
+		throw new Error(
+			`Element '${el.id}' (${el.type}) does not support altText; ` +
+				`only ${[...ALT_TEXT_ELEMENT_TYPES].join(', ')} elements do.`,
+		);
+	}
+	(el as { altText?: string }).altText = altText;
+}
+
+/**
+ * Write `title` onto `el`, or throw when the element kind has nowhere to
+ * persist it (a picture's `p:cNvPr` only ever carries `@descr`, not `@title`).
+ */
+export function applyElementTitle(el: PptxElement, title: string): void {
+	if (!TITLE_ELEMENT_TYPES.has(el.type)) {
+		throw new Error(
+			`Element '${el.id}' (${el.type}) does not support title; ` +
+				`only ${[...TITLE_ELEMENT_TYPES].join(', ')} elements do.`,
+		);
+	}
+	(el as { title?: string }).title = title;
 }
 
 export function updateElementStyle(
@@ -164,12 +222,19 @@ export function updateElementStyle(
 		}
 	}
 
+	// Alt text: pictures, every graphic-frame kind, and shapes/text/connectors
+	// carry it.
+	if (params.altText !== undefined) {
+		applyElementAltText(el, params.altText);
+	}
+	// Title: every altText kind except pictures also models a title.
+	if (params.title !== undefined) {
+		applyElementTitle(el, params.title);
+	}
+
 	// Apply image-specific fields
 	if (el.type === 'image' || el.type === 'picture') {
 		const img = el as ImagePptxElement;
-		if (params.altText !== undefined) {
-			img.altText = params.altText;
-		}
 		if (params.cropLeft !== undefined) {
 			img.cropLeft = params.cropLeft;
 		}

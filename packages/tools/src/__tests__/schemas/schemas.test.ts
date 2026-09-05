@@ -254,6 +254,17 @@ describe('element schemas', () => {
 			});
 			expect(result.success).toBeFalsy();
 		});
+
+		it('accepts altText and title', () => {
+			const result = UpdateElementSchema.safeParse({
+				filePath: '/test.pptx',
+				slideIndex: 0,
+				elementId: 'el-0',
+				altText: 'A shape description',
+				title: 'A shape title',
+			});
+			expect(result.success).toBeTruthy();
+		});
 	});
 
 	describe('deleteElementsSchema', () => {
@@ -414,6 +425,17 @@ describe('table and style schemas', () => {
 				contrast: -10,
 				grayscale: true,
 				altText: 'Photo of sunset',
+			});
+			expect(result.success).toBeTruthy();
+		});
+
+		it('accepts altText and title together', () => {
+			const result = UpdateElementStyleSchema.safeParse({
+				filePath: '/test.pptx',
+				slideIndex: 0,
+				elementId: 'shape-0',
+				altText: 'A red rounded rectangle',
+				title: 'Callout box',
 			});
 			expect(result.success).toBeTruthy();
 		});

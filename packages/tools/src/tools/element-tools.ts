@@ -20,6 +20,7 @@ import type {
 
 import type { ToolContext, ToolResult } from '../types.js';
 import { validateSlideIndex, generateElementId } from './helpers.js';
+import { applyElementAltText, applyElementTitle } from './style-tools.js';
 
 // ── addElement ──────────────────────────────────────────────────────────────
 
@@ -260,6 +261,10 @@ export interface UpdateElementParams {
 	hidden?: boolean;
 	flipH?: boolean;
 	flipV?: boolean;
+	/** Accessibility description; see {@link applyElementAltText} for the accepted kinds. */
+	altText?: string;
+	/** Accessibility title; see {@link applyElementTitle} for the accepted kinds. */
+	title?: string;
 }
 
 export function updateElement(
@@ -303,6 +308,12 @@ export function updateElement(
 	}
 	if (params.flipV !== undefined) {
 		el.flipVertical = params.flipV;
+	}
+	if (params.altText !== undefined) {
+		applyElementAltText(el, params.altText);
+	}
+	if (params.title !== undefined) {
+		applyElementTitle(el, params.title);
 	}
 
 	if (hasTextProperties(el)) {

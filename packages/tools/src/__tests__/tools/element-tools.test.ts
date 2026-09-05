@@ -14,6 +14,7 @@ import {
 	batchUpdateElements,
 } from '../../tools/element-tools.js';
 import type { ToolContext } from '../../types.js';
+import { makeTablePresentation } from '../helpers/create-test-pptx.js';
 
 function makeTestPresentation(): PptxData {
 	return {
@@ -157,6 +158,81 @@ describe('updateElement', () => {
 		});
 		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0');
 		expect((el as { text?: string }).text).toBe('Updated text');
+	});
+
+	it('writes altText onto a graphic frame (table)', () => {
+		const c = ctx(makeTablePresentation());
+		updateElement(c, {
+			slideIndex: 0,
+			elementId: 'tbl-0',
+			altText: 'Quarterly revenue by region',
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'tbl-0');
+		expect((el as { altText?: string }).altText).toBe('Quarterly revenue by region');
+	});
+
+	it('writes altText and title onto a shape', () => {
+		const c = ctx();
+		updateElement(c, {
+			slideIndex: 0,
+			elementId: 'el-1',
+			altText: 'A red rectangle',
+			title: 'Callout box',
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-1');
+		expect((el as { altText?: string }).altText).toBe('A red rectangle');
+		expect((el as { title?: string }).title).toBe('Callout box');
+	});
+
+	it('writes altText onto a text box', () => {
+		const c = ctx();
+		updateElement(c, {
+			slideIndex: 0,
+			elementId: 'el-0',
+			altText: 'Introductory paragraph',
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0');
+		expect((el as { altText?: string }).altText).toBe('Introductory paragraph');
+	});
+
+	it('rejects altText on an element kind that cannot persist it', () => {
+		const c = ctx();
+		c.pptxData.slides[0].elements.push({
+			id: 'grp-0',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			children: [],
+		} as unknown as PptxElement);
+		expect(() =>
+			updateElement(c, {
+				slideIndex: 0,
+				elementId: 'grp-0',
+				altText: 'nope',
+			}),
+		).toThrow(/does not support altText/);
+	});
+
+	it('rejects title on an element kind that cannot persist it', () => {
+		const c = ctx();
+		c.pptxData.slides[0].elements.push({
+			id: 'grp-0',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			children: [],
+		} as unknown as PptxElement);
+		expect(() =>
+			updateElement(c, {
+				slideIndex: 0,
+				elementId: 'grp-0',
+				title: 'nope',
+			}),
+		).toThrow(/does not support title/);
 	});
 
 	it('updates shape style fill color', () => {

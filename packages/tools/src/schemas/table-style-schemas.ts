@@ -108,7 +108,18 @@ export const UpdateElementStyleSchema = z.object({
 	brightness: z.number().optional(),
 	contrast: z.number().optional(),
 	grayscale: z.boolean().optional(),
-	altText: z.string().optional(),
+	altText: z
+		.string()
+		.optional()
+		.describe(
+			'Accessibility description (p:cNvPr/@descr) for image, picture, table, chart, smartArt, ole, media, text, shape and connector elements',
+		),
+	title: z
+		.string()
+		.optional()
+		.describe(
+			'Accessibility title (p:cNvPr/@title) for table, chart, smartArt, ole, media, text, shape and connector elements (not pictures)',
+		),
 });
 
 // Content tool schemas

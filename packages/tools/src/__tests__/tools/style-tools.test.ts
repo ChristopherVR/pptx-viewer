@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 
 import { updateElementStyle, runAccessibilityCheck } from '../../tools/style-tools.js';
 import type { ToolContext } from '../../types.js';
-import { makeStylePresentation } from '../helpers/create-test-pptx.js';
+import { makeStylePresentation, makeTablePresentation } from '../helpers/create-test-pptx.js';
 
 function ctx(pptxData?: PptxData): ToolContext {
 	return { pptxData: pptxData ?? makeStylePresentation() };
@@ -142,6 +142,72 @@ describe('updateElementStyle', () => {
 		});
 		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'img-0') as ImagePptxElement;
 		expect(el.altText).toBe('A descriptive alt text');
+	});
+
+	it('updates alt text on a graphic frame (table)', () => {
+		const c = ctx(makeTablePresentation());
+		updateElementStyle(c, {
+			slideIndex: 0,
+			elementId: 'tbl-0',
+			altText: 'Quarterly revenue by region',
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'tbl-0');
+		expect((el as { altText?: string }).altText).toBe('Quarterly revenue by region');
+	});
+
+	it('updates alt text and title on a shape', () => {
+		const c = ctx();
+		updateElementStyle(c, {
+			slideIndex: 0,
+			elementId: 'shape-0',
+			altText: 'A red rounded rectangle',
+			title: 'Callout box',
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'shape-0');
+		expect((el as { altText?: string }).altText).toBe('A red rounded rectangle');
+		expect((el as { title?: string }).title).toBe('Callout box');
+	});
+
+	it('updates alt text on a text box', () => {
+		const c = ctx();
+		updateElementStyle(c, {
+			slideIndex: 0,
+			elementId: 'txt-0',
+			altText: 'A caption for the chart above',
+		});
+		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'txt-0');
+		expect((el as { altText?: string }).altText).toBe('A caption for the chart above');
+	});
+
+	it('rejects alt text on an element kind that has nowhere to persist it', () => {
+		const c = ctx();
+		c.pptxData.slides[0].elements.push({
+			id: 'grp-0',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			children: [],
+		} as unknown as PptxData['slides'][number]['elements'][number]);
+		expect(() =>
+			updateElementStyle(c, {
+				slideIndex: 0,
+				elementId: 'grp-0',
+				altText: 'nope',
+			}),
+		).toThrow(/does not support altText/);
+	});
+
+	it('rejects title on a picture, whose core type has no title field', () => {
+		const c = ctx();
+		expect(() =>
+			updateElementStyle(c, {
+				slideIndex: 0,
+				elementId: 'img-0',
+				title: 'nope',
+			}),
+		).toThrow(/does not support title/);
 	});
 
 	it('updates image crop', () => {

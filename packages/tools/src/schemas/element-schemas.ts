@@ -96,6 +96,18 @@ export const UpdateElementSchema = z.object({
 	hidden: z.boolean().optional(),
 	flipH: z.boolean().optional(),
 	flipV: z.boolean().optional(),
+	altText: z
+		.string()
+		.optional()
+		.describe(
+			'Accessibility description (p:cNvPr/@descr) for image, picture, table, chart, smartArt, ole, media, text, shape and connector elements',
+		),
+	title: z
+		.string()
+		.optional()
+		.describe(
+			'Accessibility title (p:cNvPr/@title) for table, chart, smartArt, ole, media, text, shape and connector elements (not pictures)',
+		),
 });
 
 export const RenameElementSchema = z.object({
