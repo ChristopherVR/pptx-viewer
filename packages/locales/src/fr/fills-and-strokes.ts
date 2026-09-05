@@ -90,6 +90,8 @@ export const translations = {
 	'pptx.fillPatterns.wideVertical': 'Large verticale',
 	'pptx.fillPatterns.zigZag': 'Zigzag',
 	'pptx.fillStroke.eyedropperTooltip': "Pipette : choisissez la couleur sur l'écran",
+	'pptx.colorPicker.themeColors': 'Couleurs du thème',
+	'pptx.colorPicker.standardColors': 'Couleurs standard',
 	'pptx.strokeEffects.compoundLine': 'Ligne composée',
 	'pptx.strokeEffects.fillOpacity': 'Opacité de remplissage',
 	'pptx.strokeEffects.lineCap': 'Capuchon de ligne',

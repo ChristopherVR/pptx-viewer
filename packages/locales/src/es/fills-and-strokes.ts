@@ -90,6 +90,8 @@ export const translations = {
 	'pptx.fillPatterns.wideVertical': 'Amplia vertical',
 	'pptx.fillPatterns.zigZag': 'Zig Zag',
 	'pptx.fillStroke.eyedropperTooltip': 'Cuentagotas: elige el color de la pantalla',
+	'pptx.colorPicker.themeColors': 'Colores del tema',
+	'pptx.colorPicker.standardColors': 'Colores estándar',
 	'pptx.strokeEffects.compoundLine': 'Línea compuesta',
 	'pptx.strokeEffects.fillOpacity': 'Opacidad de relleno',
 	'pptx.strokeEffects.lineCap': 'Tapa de línea',

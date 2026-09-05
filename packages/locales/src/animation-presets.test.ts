@@ -51,9 +51,12 @@ const SHARED_SPELLINGS = new Set(['Plus', 'Zoom', 'Boomerang', 'Zigzag', 'Triang
 
 describe('animation preset names', () => {
 	it('covers all three preset vocabularies without overlap', () => {
-		// 39 editor presets + 266 OOXML catalogue presets + 26 motion paths.
-		expect(PRESET_KEYS).toHaveLength(331);
-		expect(new Set(PRESET_KEYS).size).toBe(331);
+		// 39 editor presets + 235 OOXML catalogue presets (68 entrance, 68 exit,
+		// 33 emphasis: PowerPoint's real emphasis catalogue is ids 1..41 with 8
+		// unreachable gaps, the former 42..64 were fabricated; 66 motion paths)
+		// + 26 motion-path authoring presets.
+		expect(PRESET_KEYS).toHaveLength(300);
+		expect(new Set(PRESET_KEYS).size).toBe(300);
 	});
 
 	it('names every reachable preset in English', () => {
