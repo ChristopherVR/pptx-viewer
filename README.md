@@ -386,7 +386,7 @@ const viewer = createPptxViewer(document.getElementById('host')!, {
 }
 ```
 
-Or call the 54 tool functions directly in your own pipeline:
+Or call the 58 tool functions directly in your own pipeline:
 
 ```typescript
 import { PptxHandler } from 'pptx-viewer-core';
