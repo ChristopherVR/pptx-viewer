@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.5.0) - 2026-09-05
+
+### Features
+
+- **core:** Wave-3 OpenXML parity (chart formatting, table styles, theme refs) (by @ChristopherVR) ([1da1637](https://github.com/ChristopherVR/pptx-viewer/commit/1da163776cf7694488a24f9074ed6bc5180c0d77))
+
 ## [3.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.4.0) - 2026-09-05
 
 ### Features

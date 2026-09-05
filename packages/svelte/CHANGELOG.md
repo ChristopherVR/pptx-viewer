@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.8.0) - 2026-09-05
+
+### Features
+
+- **core:** Wave-3 OpenXML parity (chart formatting, table styles, theme refs) (by @ChristopherVR) ([1da1637](https://github.com/ChristopherVR/pptx-viewer/commit/1da163776cf7694488a24f9074ed6bc5180c0d77))
+- **shared:** Wave-3 playback, reveal, chart render and theme swatch logic (by @ChristopherVR) ([52e2a16](https://github.com/ChristopherVR/pptx-viewer/commit/52e2a16b3fb5efb6ebbb946e214ed45b899f4519))
+- **svelte:** Wave-3 parity (staged SmartArt reveal, theme swatches, u=words) (by @ChristopherVR) ([e3fe780](https://github.com/ChristopherVR/pptx-viewer/commit/e3fe780709eb7345f8f0bca98555681dde133a59))
+- **shared:** Extract p:seq nextAc="seek" click handling (by @ChristopherVR) ([66e293b](https://github.com/ChristopherVR/pptx-viewer/commit/66e293bad91b1a2055df31cafae785fe958b87ea))
+
+### Bug Fixes
+
+- **svelte:** Honour p:seq nextAc="seek" on a mid-flight click (by @ChristopherVR) ([cc46e3f](https://github.com/ChristopherVR/pptx-viewer/commit/cc46e3f12871ee035e0cab4be72e78f2a9eff533))
+
 ## [3.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.7.0) - 2026-09-05
 
 ### Features

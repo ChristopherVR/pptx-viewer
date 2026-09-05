@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.7.0) - 2026-09-05
+
+### Features
+
+- **core:** Wave-3 OpenXML parity (chart formatting, table styles, theme refs) (by @ChristopherVR) ([1da1637](https://github.com/ChristopherVR/pptx-viewer/commit/1da163776cf7694488a24f9074ed6bc5180c0d77))
+- **shared:** Wave-3 playback, reveal, chart render and theme swatch logic (by @ChristopherVR) ([52e2a16](https://github.com/ChristopherVR/pptx-viewer/commit/52e2a16b3fb5efb6ebbb946e214ed45b899f4519))
+- **vanilla:** Wave-3 parity (staged SmartArt reveal, theme swatches, u=words) (by @ChristopherVR) ([2099fc6](https://github.com/ChristopherVR/pptx-viewer/commit/2099fc63739a6d4020cef827e4a7e685f6cecb52))
+- **shared:** Extract p:seq nextAc="seek" click handling (by @ChristopherVR) ([66e293b](https://github.com/ChristopherVR/pptx-viewer/commit/66e293bad91b1a2055df31cafae785fe958b87ea))
+
+### Bug Fixes
+
+- **vanilla:** Honour p:seq nextAc="seek" on a mid-flight click (by @ChristopherVR) ([91fb0e8](https://github.com/ChristopherVR/pptx-viewer/commit/91fb0e8689d8b36eef87a78e63491abb1031045a))
+
 ## [2.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.6.0) - 2026-09-05
 
 ### Features

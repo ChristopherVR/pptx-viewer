@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.7.0) - 2026-09-05
+
+### Features
+
+- **react:** Wave-3 parity (staged SmartArt reveal, theme swatches, bar3D) (by @ChristopherVR) ([c9e8d97](https://github.com/ChristopherVR/pptx-viewer/commit/c9e8d97542b3ca368870b2bbc3bc0e415030dc66))
+- **shared:** Extract p:seq nextAc="seek" click handling (by @ChristopherVR) ([66e293b](https://github.com/ChristopherVR/pptx-viewer/commit/66e293bad91b1a2055df31cafae785fe958b87ea))
+
+### Refactor
+
+- **react:** Route presentation clicks through shared seek module (by @ChristopherVR) ([701bb37](https://github.com/ChristopherVR/pptx-viewer/commit/701bb379d0b798de49b1e942af4736cbf95b38ba))
+
 ## [2.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.6.0) - 2026-09-05
 
 ### Features

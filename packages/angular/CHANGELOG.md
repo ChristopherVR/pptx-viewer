@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.8.0) - 2026-09-05
+
+### Features
+
+- **core:** Wave-3 OpenXML parity (chart formatting, table styles, theme refs) (by @ChristopherVR) ([1da1637](https://github.com/ChristopherVR/pptx-viewer/commit/1da163776cf7694488a24f9074ed6bc5180c0d77))
+- **shared:** Wave-3 playback, reveal, chart render and theme swatch logic (by @ChristopherVR) ([52e2a16](https://github.com/ChristopherVR/pptx-viewer/commit/52e2a16b3fb5efb6ebbb946e214ed45b899f4519))
+- **angular:** Wave-3 parity (shared playback engine, SmartArt reveal, swatches) (by @ChristopherVR) ([99eb755](https://github.com/ChristopherVR/pptx-viewer/commit/99eb755dca01b43da6de286db2ad00800fa69af4))
+- **shared:** Extract p:seq nextAc="seek" click handling (by @ChristopherVR) ([66e293b](https://github.com/ChristopherVR/pptx-viewer/commit/66e293bad91b1a2055df31cafae785fe958b87ea))
+
+### Bug Fixes
+
+- **angular:** Honour p:seq nextAc="seek" on a mid-flight click (by @ChristopherVR) ([19d6b53](https://github.com/ChristopherVR/pptx-viewer/commit/19d6b533cb4e73f31aea01fd97b57d9337326561))
+
 ## [3.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.7.0) - 2026-09-05
 
 ### Features
