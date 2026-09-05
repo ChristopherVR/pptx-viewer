@@ -131,6 +131,45 @@ describe('createPresentationPlayback (native-timing controller)', () => {
 		expect(playback.advance()).toBeFalsy();
 	});
 
+	it('a second advance inside a nextAc="seek" group fast-forwards it instead of skipping ahead', () => {
+		const seekAnim = (targetId: string): PptxNativeAnimation =>
+			({
+				targetId,
+				presetClass: 'entr',
+				trigger: 'onClick',
+				durationMs: 5000,
+				seqNextAction: 'seek',
+			}) as unknown as PptxNativeAnimation;
+		const playback = createPresentationPlayback();
+		const stage = buildStage(doc, ['a', 'b']);
+		stageWrap.appendChild(stage);
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage,
+			slide: slideWith([shapeElement('a'), shapeElement('b')], [seekAnim('a'), seekAnim('b')]),
+			slideIndex: 0,
+			presenting: true,
+		});
+		const a = stage.querySelector<HTMLElement>('[data-element-id="a"]');
+		const b = stage.querySelector<HTMLElement>('[data-element-id="b"]');
+
+		expect(playback.advance()).toBeTruthy();
+		expect(a?.style.animation).toBeTruthy();
+
+		// Mid-flight: the click is consumed by finishing `a`, and `b` stays hidden.
+		expect(playback.advance()).toBeTruthy();
+		expect(a?.style.visibility).toBe('');
+		expect(a?.style.animation).toBeFalsy();
+		expect(b?.style.visibility).toBe('hidden');
+		expect(playback.isComplete()).toBeFalsy();
+
+		// Settled: the next click starts group two.
+		expect(playback.advance()).toBeTruthy();
+		expect(b?.style.animation).toBeTruthy();
+		expect(playback.isComplete()).toBeTruthy();
+	});
+
 	it('folds withPrevious into the preceding click group', () => {
 		const playback = createPresentationPlayback();
 		const stage = buildStage(doc, ['a', 'b']);

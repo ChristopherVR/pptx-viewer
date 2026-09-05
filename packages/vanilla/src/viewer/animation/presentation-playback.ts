@@ -1,8 +1,10 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
 import {
+	advanceMainSequence,
 	applySlideTransitionSound,
-	cancelBuildReveal,
+	clearPlaybackTimers,
+	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
 	resolveMediaTimeNodeElementIds,
@@ -174,12 +176,15 @@ export function createPresentationPlayback(): PresentationPlayback {
 		}
 	};
 
+	/**
+	 * The click-group the last presenter click started, so a second click while
+	 * it is still mid-flight fast-forwards it (`p:seq/@nextAc="seek"`) instead
+	 * of skipping to the next group. Owned here, mutated by the shared helpers.
+	 */
+	const activeGroup = createActiveAnimationGroup();
+
 	const clearTimers = (): void => {
-		for (const timer of timers) {
-			window.clearTimeout(timer);
-		}
-		timers.length = 0;
-		cancelBuildReveal(buildHandle);
+		clearPlaybackTimers(ctx, activeGroup);
 	};
 
 	const teardown = (): void => {
@@ -233,16 +238,9 @@ export function createPresentationPlayback(): PresentationPlayback {
 		elementStates,
 
 		advance() {
-			if (!controller || !controller.hasMoreSteps()) {
-				return false;
-			}
-			const group = controller.advance();
-			if (!group) {
-				return false;
-			}
-			playGroup(controller, group, ctx);
-			scheduleAutoAdvanceChain(controller, ctx);
-			return true;
+			// Seek-or-advance (`p:seq/@nextAc="seek"`) plus the auto-advance chain
+			// live in shared, so the branch is identical in all five bindings.
+			return advanceMainSequence(controller, ctx, activeGroup);
 		},
 
 		isComplete() {
