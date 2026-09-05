@@ -12,6 +12,7 @@ import {
 	getContentPartReplayStyles,
 	INK_REPLAY_KEYFRAMES,
 } from '../internal/shared-src/render/ink-rendering';
+import { DynamicStyleComponent } from './dynamic-style.component';
 import type { StyleMap } from './element-style';
 import { buildInkContainerStyle } from './ink-renderer-helpers';
 
@@ -32,7 +33,7 @@ import { buildInkContainerStyle } from './ink-renderer-helpers';
 	selector: 'pptx-content-part-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle],
+	imports: [NgStyle, DynamicStyleComponent],
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-contentpart"
@@ -41,15 +42,15 @@ import { buildInkContainerStyle } from './ink-renderer-helpers';
 			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
 			@if (strokes().length > 0) {
+				@if (replay()) {
+					<pptx-dynamic-style [css]="replayKeyframes" />
+				}
 				<svg
 					class="pptx-ng-contentpart-svg"
 					[attr.viewBox]="viewBox()"
 					preserveAspectRatio="none"
 					style="width:100%;height:100%;pointer-events:none;display:block"
 				>
-					@if (replay()) {
-						<style [textContent]="replayKeyframes"></style>
-					}
 					@for (stroke of strokes(); track stroke.key) {
 						@if (stroke.nibMarks && stroke.nibMarks.length > 0) {
 							<g [attr.opacity]="stroke.opacity">

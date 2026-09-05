@@ -8,7 +8,7 @@
  * the service holds as a single atomic handle; `teardownSession` disposes it.
  */
 
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 
 import type {
 	CollaborationConfig,
@@ -45,6 +45,13 @@ export interface ConnectOptions {
 	 * edits would be dropped from the persisted deck.
 	 */
 	getTemplateElements?: () => TemplateElementsBySlideId;
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path
+	 * (`buildDeckSaveOptions`). Without this the elected-writer write-back
+	 * dropped every session-level edit outside `slides`.
+	 */
+	getSaveOptions?: () => PptxHandlerSaveOptions;
 }
 
 /** The transport objects + wiring handles of one live session, owned together. */

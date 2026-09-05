@@ -37,11 +37,11 @@ import {
 	DEFAULT_CANVAS_HEIGHT,
 	DEFAULT_CANVAS_WIDTH,
 	applyImagePathPatches,
+	buildDeckSaveOptions,
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
 	describeFontEmbedding,
-	embeddedFontSaveOptions,
 	resolveMediaElementSource,
 	resolveSlideSizeSelection,
 	resolveTableCellImageUrls,
@@ -118,6 +118,14 @@ export class LoadContentService {
 	readonly themeColorMap = signal<Record<string, string> | undefined>(undefined);
 	/** Parsed table-style definitions from `ppt/tableStyles.xml` (banding/diagonals). */
 	readonly tableStyleMap = signal<ParsedTableStyleMap | undefined>(undefined);
+	/** `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>` default style GUID. */
+	readonly tableStylesDefaultId = signal<string | undefined>(undefined);
+	/**
+	 * Style GUIDs deleted from `tableStyleMap` via the table style editor,
+	 * pending removal from `ppt/tableStyles.xml` on the next save. See
+	 * `tableStyleSaveOptions` / `applyTableStyleDelete` in `pptx-viewer-shared`.
+	 */
+	readonly tableStylesToDelete = signal<string[]>([]);
 	/** Slide masters (for placeholder/background resolution). */
 	readonly slideMasters = signal<PptxSlideMaster[]>([]);
 	/** Notes master, including its editable element tree. */
@@ -273,28 +281,35 @@ export class LoadContentService {
 		return saveDeckWithPassword(
 			this.handler,
 			[...slides],
-			{
+			buildDeckSaveOptions({
 				headerFooter: this.headerFooter(),
 				presentationProperties: this.presentationProperties(),
 				slideMasters: this.slideMasters(),
 				notesMaster: this.notesMaster(),
 				handoutMaster: this.handoutMaster(),
-				sections: sections.length > 0 ? [...sections] : undefined,
+				sections,
 				// Without this the Custom Shows dialog was write-only: shows created
 				// in it never reached `p:custShowLst`, and a deck that arrived with
 				// shows lost them on save.
-				customShows: customShows.length > 0 ? customShows.map((show) => ({ ...show })) : undefined,
+				customShows,
 				// The only route a slide-size edit has into the saved `p:sldSz`.
 				slideSize: this.slideSizeSelection().size,
 				coreProperties: this.coreProperties(),
 				appProperties: this.appProperties(),
-				customProperties: customProperties.length > 0 ? [...customProperties] : undefined,
-				tags: tags.length > 0 ? tags.map((col) => ({ ...col, tags: [...col.tags] })) : undefined,
+				customProperties,
+				tagCollections: tags,
 				outputFormat,
+				// Without this core falls back to `viewProps.xml` as it was FIRST
+				// opened, so every View-ribbon grid/guide/snap toggle silently
+				// reverted at the file boundary.
+				viewProperties: this.viewProperties(),
+				tableStyleMap: this.tableStyleMap(),
+				tableStylesDefaultId: this.tableStylesDefaultId(),
+				tableStylesToDelete: this.tableStylesToDelete(),
 				// The Fonts panel's toggle used to move and change nothing; it now
 				// decides whether the deck's embedded font data survives the save.
-				...embeddedFontSaveOptions(this.embedFonts()),
-			},
+				embedFonts: this.embedFonts(),
+			}),
 			password,
 		);
 	}
@@ -468,6 +483,8 @@ export class LoadContentService {
 			this.theme.set(parsed.theme);
 			this.themeColorMap.set(parsed.themeColorMap);
 			this.tableStyleMap.set(nextTableStyleMap);
+			this.tableStylesDefaultId.set(parsed.tableStylesDefaultId);
+			this.tableStylesToDelete.set([]);
 			this.slideMasters.set(parsed.slideMasters ?? []);
 			this.notesMaster.set(parsed.notesMaster);
 			this.handoutMaster.set(parsed.handoutMaster);

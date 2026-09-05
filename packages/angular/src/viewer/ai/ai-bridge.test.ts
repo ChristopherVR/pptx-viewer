@@ -1,4 +1,5 @@
 import type {
+	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -6,6 +7,8 @@ import type {
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
+	PptxTagCollection,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
@@ -30,6 +33,10 @@ interface DeckState {
 	customProperties: readonly PptxCustomProperty[];
 	coreProperties: PptxCoreProperties | undefined;
 	appProperties: PptxAppProperties | undefined;
+	viewProperties: PptxViewProperties | undefined;
+	tableStyleMap: ParsedTableStyleMap | undefined;
+	tableStylesDefaultId: string | undefined;
+	tagCollections: readonly PptxTagCollection[];
 }
 
 /** Build a bridge over a real editor, tracking navigation/selection side effects. */
@@ -49,6 +56,10 @@ function setup(): {
 		customProperties: [],
 		coreProperties: undefined,
 		appProperties: undefined,
+		viewProperties: undefined,
+		tableStyleMap: undefined,
+		tableStylesDefaultId: undefined,
+		tagCollections: [],
 	};
 	const bridge = createAngularAiBridge({
 		getSlides: () => editor.slides(),
@@ -74,6 +85,10 @@ function setup(): {
 		getCustomProperties: () => deck.customProperties,
 		getCoreProperties: () => deck.coreProperties,
 		getAppProperties: () => deck.appProperties,
+		getViewProperties: () => deck.viewProperties,
+		getTableStyleMap: () => deck.tableStyleMap,
+		getTableStylesDefaultId: () => deck.tableStylesDefaultId,
+		getTagCollections: () => deck.tagCollections,
 		setCanvasSize: (size) => {
 			deck.canvas = size;
 			editor.dirty.set(true);
@@ -96,6 +111,22 @@ function setup(): {
 		},
 		setAppProperties: (props) => {
 			deck.appProperties = props;
+			editor.dirty.set(true);
+		},
+		setViewProperties: (props) => {
+			deck.viewProperties = props;
+			editor.dirty.set(true);
+		},
+		setTableStyleMap: (map) => {
+			deck.tableStyleMap = map;
+			editor.dirty.set(true);
+		},
+		setTableStylesDefaultId: (id) => {
+			deck.tableStylesDefaultId = id;
+			editor.dirty.set(true);
+		},
+		setTagCollections: (tags) => {
+			deck.tagCollections = tags;
 			editor.dirty.set(true);
 		},
 	});
@@ -204,5 +235,43 @@ describe('createAngularAiBridge', () => {
 		expect(deck.sections).toStrictEqual([{ id: 'sec1', name: 'Intro', slideIds: ['s1'] }]);
 		expect(deck.coreProperties).toStrictEqual({ title: 'From AI' });
 		expect(editor.dirty()).toBeTruthy();
+	});
+
+	// viewProperties/tableStyleMap/tableStylesDefaultId/tags were missing from
+	// this seam entirely: the main Save/Export path (`loader.saveSlides`)
+	// persists them, but an MCP deck tool operating on
+	// `getDeckData()`/`applyDeckData()` could not see or commit them.
+	it('getDeckData exposes viewProperties/tableStyleMap/tableStylesDefaultId/tags', () => {
+		const { bridge, deck } = setup();
+		deck.viewProperties = { showComments: true };
+		deck.tableStyleMap = { '{guid}': { styleId: '{guid}', styleName: 'Style' } };
+		deck.tableStylesDefaultId = '{guid}';
+		deck.tagCollections = [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] }];
+
+		const data = bridge.getDeckData?.();
+		expect(data?.viewProperties).toStrictEqual({ showComments: true });
+		expect(data?.tableStyleMap).toStrictEqual({
+			'{guid}': { styleId: '{guid}', styleName: 'Style' },
+		});
+		expect(data?.tableStylesDefaultId).toBe('{guid}');
+		expect(data?.tags).toStrictEqual([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] },
+		]);
+	});
+
+	it('applyDeckData commits a changed viewProperties/tableStyleMap/tags back to their setters', () => {
+		const { bridge, deck } = setup();
+		bridge.applyDeckData?.((data) => {
+			data.viewProperties = { showComments: false };
+			data.tableStyleMap = { '{new}': { styleId: '{new}', styleName: 'New' } };
+			data.tags = [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] }];
+			return data;
+		}, 'AI deck metadata');
+
+		expect(deck.viewProperties).toStrictEqual({ showComments: false });
+		expect(deck.tableStyleMap).toStrictEqual({ '{new}': { styleId: '{new}', styleName: 'New' } });
+		expect(deck.tagCollections).toStrictEqual([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] },
+		]);
 	});
 });

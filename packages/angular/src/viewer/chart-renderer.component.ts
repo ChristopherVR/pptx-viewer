@@ -98,7 +98,21 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.fill]="vm().titleStyle?.fill ?? '#1e293b'"
 					data-chart-part="title"
 				>
-					{{ vm().title }}
+					@if (vm().titleRunSpans; as titleRunSpans) {
+						@for (run of titleRunSpans; track $index) {
+							<tspan
+								[attr.font-size]="run.fontSize"
+								[attr.font-weight]="run.fontWeight"
+								[attr.font-style]="run.fontStyle"
+								[attr.font-family]="run.fontFamily"
+								[attr.fill]="run.fill"
+							>
+								{{ run.text }}
+							</tspan>
+						}
+					} @else {
+						{{ vm().title }}
+					}
 				</text>
 			}
 

@@ -21,6 +21,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	MediaPptxElement,
+	ParsedTableStyleMap,
 	PptxAnimationTimelineAnchor,
 	PptxElement,
 	PptxElementAnimation,
@@ -33,12 +34,15 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import type { ThemeColorPickerCommit } from '../internal/shared';
 import {
+	applyTableStyleDelete,
+	applyTableStyleMapChange,
 	elementLockTogglePatch,
 	isElementLocked,
 	rebuildDrawingShapesIfCleared,
 	resolvePalette,
 	textFontSizePtToPx,
 } from '../internal/shared';
+import { AccessibilityTextPanelComponent } from './accessibility-text-panel.component';
 import { ActionSettingsPanelComponent } from './action-settings-panel.component';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
 import { ChartDataEditorComponent } from './chart-data-editor.component';
@@ -63,6 +67,7 @@ import {
 } from './inspector-helpers';
 import { IsMobileService } from './is-mobile';
 import { LineFormatPanelComponent } from './line-format-panel.component';
+import { LoadContentService } from './load-content.service';
 import { MediaPropertiesPanelComponent } from './media-properties-panel.component';
 import { PatternFillPanelComponent } from './pattern-fill-panel.component';
 import { RecentColorsRowComponent } from './recent-colors-row.component';
@@ -82,6 +87,7 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
+		AccessibilityTextPanelComponent,
 		GradientPickerComponent,
 		EffectsPanelComponent,
 		LineFormatPanelComponent,
@@ -370,6 +376,15 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 				</details>
 			}
 
+			@if (accessibilityTextEl(); as a11yEl) {
+				<details class="pptx-ng-inspector__details" open>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.accessibility.heading' | translate }}
+					</summary>
+					<pptx-accessibility-text-panel [element]="a11yEl" (patch)="onPatch($event)" />
+				</details>
+			}
+
 			<!-- ── Arrange ────────────────────────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
 				<div
@@ -481,7 +496,8 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 
 			<!-- ── Table data editor ──────────────────────────────────────────── -->
 			@if (tableEl(); as t) {
-				<details class="pptx-ng-inspector__details">
+				<!-- Open by default, as the other four bindings show these two sections. -->
+				<details class="pptx-ng-inspector__details" open>
 					<summary class="pptx-ng-inspector__summary">
 						{{ 'pptx.inspector.tableData' | translate }}
 					</summary>
@@ -489,11 +505,17 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 				</details>
 
 				<!-- ── Table style (structure, presets, widths, heights) ─────────── -->
-				<details class="pptx-ng-inspector__details">
+				<details class="pptx-ng-inspector__details" open>
 					<summary class="pptx-ng-inspector__summary">
 						{{ 'pptx.inspector.tableStyle' | translate }}
 					</summary>
-					<pptx-table-properties [element]="t" (elementChange)="onElementReplace($event)" />
+					<pptx-table-properties
+						[element]="t"
+						[tableStyleMap]="loader?.tableStyleMap()"
+						(elementChange)="onElementReplace($event)"
+						(tableStyleMapChange)="onTableStyleMapChange($event)"
+						(deleteTableStyle)="onDeleteTableStyle($event)"
+					/>
 				</details>
 
 				<!-- ── Selected cell formatting ─────────────────────────────────── -->
@@ -842,6 +864,13 @@ export class InspectorPanelComponent {
 
 	protected readonly editor = inject(EditorStateService);
 
+	/**
+	 * Optional: absent in a standalone-thumbnail/export render context.
+	 * Feeds the table properties panel's "Edit style..." (`tableStyleMap`),
+	 * see {@link onTableStyleMapChange} / {@link onDeleteTableStyle}.
+	 */
+	protected readonly loader = inject(LoadContentService, { optional: true });
+
 	/** Reactive viewport / pointer flags (drives the bottom-sheet layout). */
 	protected readonly mobile = inject(IsMobileService);
 
@@ -946,6 +975,18 @@ export class InspectorPanelComponent {
 	protected readonly imageEl = computed(() =>
 		ImagePropertiesPanelComponent.supports(this.el()) ? this.el() : undefined,
 	);
+	/**
+	 * The selected element narrowed to a plain shape/text box/connector, or
+	 * `undefined`. Gates `AccessibilityTextPanelComponent` (alt text / title):
+	 * a picture's own alt text lives in `imageEl` above, so this must not
+	 * also match `image`/`picture`, and stays restricted to the three kinds
+	 * `PptxNonVisualDescription` was added to (not every graphic-frame kind
+	 * the shared descriptor recognises), so it does not duplicate a
+	 * table/chart/smartArt/media/ole panel's own alt-text UI.
+	 */
+	protected readonly accessibilityTextEl = computed(() =>
+		AccessibilityTextPanelComponent.supports(this.el()) ? this.el() : undefined,
+	);
 	protected readonly mediaEl = computed(() =>
 		this.el().type === 'media' ? (this.el() as MediaPptxElement) : undefined,
 	);
@@ -998,6 +1039,48 @@ export class InspectorPanelComponent {
 	/** Commit a fully-replaced element (table/chart data editors) as one history entry. */
 	protected onElementReplace(updated: PptxElement): void {
 		this.editor.updateElement(this.slideIndex(), updated.id, updated as Partial<PptxElement>);
+	}
+
+	/**
+	 * Table style DEFINITION edits ("Edit style...") are a whole-map
+	 * replacement or a delete, never a per-element patch, so they bypass
+	 * {@link onElementReplace} entirely and write straight to the loader's
+	 * `tableStyleMap`/`tableStylesToDelete` signals. `applyTableStyleMapChange`/
+	 * `applyTableStyleDelete` (shared) keep `tableStylesToDelete` in sync, the
+	 * accumulator {@link LoadContentService.saveSlides} forwards via
+	 * `tableStyleSaveOptions`.
+	 */
+	protected onTableStyleMapChange(nextMap: ParsedTableStyleMap): void {
+		if (!this.loader) {
+			return;
+		}
+		const result = applyTableStyleMapChange(
+			{
+				tableStyleMap: this.loader.tableStyleMap(),
+				tableStylesToDelete: this.loader.tableStylesToDelete(),
+			},
+			nextMap,
+		);
+		this.loader.tableStyleMap.set(result.tableStyleMap);
+		this.loader.tableStylesToDelete.set(result.tableStylesToDelete);
+		this.editor.dirty.set(true);
+	}
+
+	/** Record a styleId for save-time removal from `ppt/tableStyles.xml`. */
+	protected onDeleteTableStyle(styleId: string): void {
+		if (!this.loader) {
+			return;
+		}
+		const result = applyTableStyleDelete(
+			{
+				tableStyleMap: this.loader.tableStyleMap(),
+				tableStylesToDelete: this.loader.tableStylesToDelete(),
+			},
+			styleId,
+		);
+		this.loader.tableStyleMap.set(result.tableStyleMap);
+		this.loader.tableStylesToDelete.set(result.tableStylesToDelete);
+		this.editor.dirty.set(true);
 	}
 
 	/** The active slide's element-animation list (animations live on the slide). */

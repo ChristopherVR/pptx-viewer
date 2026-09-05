@@ -22,7 +22,7 @@ import {
 	canDrillDown,
 	ensureChartInteractionStyles as ensureSharedChartInteractionStyles,
 } from '../internal/shared';
-import type { ChartValueDragState } from '../internal/shared';
+import type { ChartMarkDragState, ChartValueDragState } from '../internal/shared';
 import { findOwningSlideIndex } from './smart-art-inline-edit';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,6 +58,21 @@ export function chartCanEditParts(
  */
 export function chartDragCommitData(
 	session: ChartValueDragState | null,
+	commit: boolean,
+): PptxChartData | null {
+	if (!commit || !session?.moved) {
+		return null;
+	}
+	return session.lastData;
+}
+
+/**
+ * Same gate as {@link chartDragCommitData}, for a pie/radar/stacked mark drag
+ * ({@link ChartMarkDragState} carries the same `moved`/`lastData` shape as the
+ * cartesian value-drag session, just resolved through a different geometry).
+ */
+export function chartMarkDragCommitData(
+	session: ChartMarkDragState | null,
 	commit: boolean,
 ): PptxChartData | null {
 	if (!commit || !session?.moved) {

@@ -27,14 +27,21 @@ import {
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import {
+	advanceChartMarkDrag,
 	advanceChartValueDrag,
 	applyChartPartHighlight,
+	beginChartMarkDrag,
 	beginChartValueDrag,
+	buildChartMarkDragGeometry,
 	findChartPartTarget,
 	resolveRevealedChartData,
 	withChartTitle,
 } from '../internal/shared';
-import type { ChartValueDragState, ElementAnimationState } from '../internal/shared';
+import type {
+	ChartMarkDragState,
+	ChartValueDragState,
+	ElementAnimationState,
+} from '../internal/shared';
 import { AreaChart3DRendererComponent } from './area-chart-3d-renderer.component';
 import { AreaChart3DService } from './area-chart-3d.service';
 import { BarChart3DRendererComponent } from './bar-chart-3d-renderer.component';
@@ -42,6 +49,7 @@ import { BarChart3DService } from './bar-chart-3d.service';
 import {
 	chartCanEditParts,
 	chartDragCommitData,
+	chartMarkDragCommitData,
 	commitChartElementData,
 	ensureChartInteractionStyles,
 } from './chart-element-view-helpers';
@@ -157,6 +165,12 @@ export class ChartElementViewComponent {
 
 	/** In-flight vertical value drag, or null. */
 	private dragSession: ChartValueDragState | null = null;
+	/**
+	 * In-flight pie/doughnut slice, radar vertex, or stacked segment drag, or
+	 * null. Runs through a parallel state machine (no single vertical value
+	 * axis), never both at once.
+	 */
+	private markDragSession: ChartMarkDragState | null = null;
 	/** Local drag preview: rendered instead of the committed data mid-drag. */
 	private readonly previewData = signal<PptxChartData | null>(null);
 	/** Live value under the pointer mid-drag (drives the floating badge). */
@@ -326,13 +340,46 @@ export class ChartElementViewComponent {
 		if (!chartData || !vm) {
 			return;
 		}
-		const session = beginChartValueDrag({
-			part,
-			viewModel: vm,
-			chartData,
-			clientY: event.clientY,
-		});
-		if (!session) {
+		let captured = false;
+		// Pie/doughnut/radar/stacked marks: try the angle/radial/segment drag first.
+		const chartKind = resolveChartKind(chartData.chartType ?? 'bar');
+		if (part.pointIndex !== undefined && chartKind !== 'unsupported') {
+			const markGeometry = buildChartMarkDragGeometry({
+				kind: chartKind,
+				element: this.element(),
+				chartData,
+				categoryLabels: chartData.categories,
+				seriesIndex: part.seriesIndex,
+				pointIndex: part.pointIndex,
+			});
+			const markSession = beginChartMarkDrag({
+				part,
+				geometry: markGeometry,
+				chartData,
+				svgWidth: vm.svgWidth,
+				svgHeight: vm.svgHeight,
+				clientX: event.clientX,
+				clientY: event.clientY,
+			});
+			if (markSession) {
+				this.markDragSession = markSession;
+				captured = true;
+			}
+		}
+		// Clustered bar/line/scatter/bubble: the existing vertical value-axis drag.
+		if (!captured) {
+			const session = beginChartValueDrag({
+				part,
+				viewModel: vm,
+				chartData,
+				clientY: event.clientY,
+			});
+			if (session) {
+				this.dragSession = session;
+				captured = true;
+			}
+		}
+		if (!captured) {
 			return;
 		}
 		event.preventDefault();
@@ -343,10 +390,22 @@ export class ChartElementViewComponent {
 		} catch {
 			// Non-fatal: the drag still works while the pointer stays over the chart.
 		}
-		this.dragSession = session;
 	}
 
 	protected onPointerMove(event: PointerEvent): void {
+		const markSession = this.markDragSession;
+		if (markSession) {
+			const rect = this.wrapper()?.nativeElement.querySelector('svg')?.getBoundingClientRect();
+			if (!rect) {
+				return;
+			}
+			const step = advanceChartMarkDrag(markSession, event.clientX, event.clientY, rect);
+			if (step) {
+				this.previewData.set(step.chartData);
+				this.dragValue.set(step.value);
+			}
+			return;
+		}
 		const session = this.dragSession;
 		if (!session) {
 			return;
@@ -361,7 +420,7 @@ export class ChartElementViewComponent {
 	}
 
 	protected onPointerUp(): void {
-		if (this.dragSession) {
+		if (this.dragSession || this.markDragSession) {
 			this.endDrag(true);
 		}
 	}
@@ -369,14 +428,17 @@ export class ChartElementViewComponent {
 	/** Cancel an in-flight value drag with Escape (document-level, like React). */
 	@HostListener('document:keydown.escape')
 	protected onEscape(): void {
-		if (this.dragSession) {
+		if (this.dragSession || this.markDragSession) {
 			this.endDrag(false);
 		}
 	}
 
 	private endDrag(commit: boolean): void {
-		const data = chartDragCommitData(this.dragSession, commit);
+		const data =
+			chartDragCommitData(this.dragSession, commit) ??
+			chartMarkDragCommitData(this.markDragSession, commit);
 		this.dragSession = null;
+		this.markDragSession = null;
 		this.previewData.set(null);
 		this.dragValue.set(null);
 		if (data) {

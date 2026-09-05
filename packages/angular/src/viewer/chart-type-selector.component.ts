@@ -17,6 +17,7 @@ import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 
 import {
 	CHART_TYPE_OPTIONS,
+	collapseChartTitleRunsForEdit,
 	GROUPING_OPTIONS,
 	GROUPING_SUPPORTED_TYPES,
 	patchChartData,
@@ -141,7 +142,10 @@ export class ChartTypeSelectorComponent {
 	protected onTitle(event: Event): void {
 		const target = event.target;
 		if (target instanceof HTMLInputElement) {
-			this.emit({ title: target.value });
+			// A multi-run title collapses to one run in its dominant style so an
+			// edit does not leave another, now-stale run's text trailing the new
+			// title; see `collapseChartTitleRunsForEdit`'s doc.
+			this.emit(collapseChartTitleRunsForEdit(this.data(), target.value));
 		}
 	}
 

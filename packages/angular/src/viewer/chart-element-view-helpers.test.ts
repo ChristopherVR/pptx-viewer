@@ -15,9 +15,12 @@ import type { ChartPptxElement, PptxChartData, PptxElement, PptxSlide } from 'pp
 import { describe, expect, it } from 'vitest';
 
 import {
+	advanceChartMarkDrag,
 	advanceChartValueDrag,
 	applyChartPartHighlight,
+	beginChartMarkDrag,
 	beginChartValueDrag,
+	buildChartMarkDragGeometry,
 	CHART_PART_SELECTED_CLASS,
 	chartPartToAttrs,
 	findChartPartTarget,
@@ -28,6 +31,7 @@ import {
 import {
 	chartCanEditParts,
 	chartDragCommitData,
+	chartMarkDragCommitData,
 	commitChartElementData,
 	ensureChartInteractionStyles,
 } from './chart-element-view-helpers';
@@ -194,6 +198,103 @@ describe('value drag', () => {
 				viewModel: pieVm,
 				chartData: pie.chartData!,
 				clientY: 0,
+			}),
+		).toBeNull();
+	});
+});
+
+// ==========================================================================
+// Mark drag (pie/doughnut, radar, stacked segment: W4-H)
+// ==========================================================================
+
+describe('mark drag', () => {
+	function makePieChartElement(): ChartPptxElement {
+		return {
+			id: 'ch_pie',
+			type: 'chart',
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 300,
+			chartData: {
+				chartType: 'pie',
+				categories: ['A', 'B', 'C', 'D'],
+				series: [{ name: 'S', values: [25, 25, 25, 25] }],
+			},
+		} as ChartPptxElement;
+	}
+
+	it('drags a pie slice to a renormalised value and commits it', () => {
+		const element = makePieChartElement(),
+			chartData = element.chartData!,
+			vm = buildChartViewModel(element),
+			geometry = buildChartMarkDragGeometry({
+				kind: 'pie',
+				element,
+				chartData,
+				categoryLabels: chartData.categories,
+				seriesIndex: 0,
+				pointIndex: 1,
+			}),
+			session = beginChartMarkDrag({
+				part: { role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+				geometry,
+				chartData,
+				svgWidth: vm.svgWidth,
+				svgHeight: vm.svgHeight,
+				clientX: 150,
+				clientY: 150,
+			});
+		expect(session).not.toBeNull();
+		// Square 1:1 client-to-view-box rect: sweep the trailing edge halfway
+		// around the circle (see chart-interaction-pie.test.ts for the geometry).
+		const rect = { left: 0, top: 0, width: 300, height: 300 },
+			move = advanceChartMarkDrag(session!, 100, 150, rect);
+		expect(move).not.toBeNull();
+		expect(move!.value).toBeCloseTo(75, 0);
+		const committed = chartMarkDragCommitData(session, true);
+		expect(committed).not.toBeNull();
+		expect(committed!.series[0].values[1]).toBeCloseTo(75, 0);
+		expect(committed!.series[0].values[0]).toBe(25);
+	});
+
+	it('treats a press without movement as a click, not a value change', () => {
+		const element = makePieChartElement(),
+			chartData = element.chartData!,
+			vm = buildChartViewModel(element),
+			geometry = buildChartMarkDragGeometry({
+				kind: 'pie',
+				element,
+				chartData,
+				categoryLabels: chartData.categories,
+				seriesIndex: 0,
+				pointIndex: 1,
+			}),
+			session = beginChartMarkDrag({
+				part: { role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+				geometry,
+				chartData,
+				svgWidth: vm.svgWidth,
+				svgHeight: vm.svgHeight,
+				clientX: 150,
+				clientY: 150,
+			}),
+			rect = { left: 0, top: 0, width: 300, height: 300 };
+		expect(advanceChartMarkDrag(session!, 151, 150, rect)).toBeNull();
+		expect(chartMarkDragCommitData(session, true)).toBeNull();
+	});
+
+	it('returns null geometry for a bar chart with no stacking (clustered)', () => {
+		const element = makeChartElement(),
+			chartData = element.chartData!;
+		expect(
+			buildChartMarkDragGeometry({
+				kind: 'bar',
+				element,
+				chartData,
+				categoryLabels: chartData.categories,
+				seriesIndex: 0,
+				pointIndex: 0,
 			}),
 		).toBeNull();
 	});

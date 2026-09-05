@@ -7,6 +7,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildTextBody3DSceneStyle,
 	buildTextBuildSpec,
+	buildTextStyleOverrideCss,
 	getGroupChildParentFill,
 	getOverflowSegments,
 	isElementHidden,
@@ -27,6 +28,7 @@ import { ChartElementViewComponent } from './chart-element-view.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
 import { ContentPartRendererComponent } from './content-part-renderer.component';
+import { DynamicStyleComponent } from './dynamic-style.component';
 import {
 	getEffectFillOverlay,
 	getReflectionOverlay,
@@ -104,6 +106,7 @@ export function shouldPreventHyperlinkNavigation(
 		NgStyle,
 		NgTemplateOutlet,
 		ConnectorRendererComponent,
+		DynamicStyleComponent,
 		TableRendererComponent,
 		ChartElementViewComponent,
 		SmartArtRendererComponent,
@@ -376,6 +379,20 @@ export class ElementRendererComponent {
 	 */
 	readonly animationState = computed<ElementAnimationState | undefined>(() =>
 		this.playback?.presentationElementStates().get(this.element().id),
+	);
+
+	/**
+	 * A font-style emphasis effect (Bold Flash, Bold Reveal, Underline, Change
+	 * Font Style/Size) overrides the runs' own inline bold/italic/underline/
+	 * size, which plain CSS inheritance cannot reach (the runs declare those
+	 * unconditionally). See `animation-text-style-css.ts`. NOT gated on
+	 * `hasTextProperties`: a table cell, a chart title/label/legend, and a
+	 * SmartArt node caption all animate this way too, and shared's selector
+	 * already scopes itself to this element's `data-element-id`, which every
+	 * branch of the template below carries on its own root.
+	 */
+	readonly textStyleOverrideCss = computed<string | undefined>(() =>
+		buildTextStyleOverrideCss(this.element().id, this.animationState()?.textStyle),
 	);
 
 	/**

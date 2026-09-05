@@ -201,6 +201,7 @@ export type {
 export { AnimationPanelComponent } from './animation-panel.component';
 export { ActionSettingsPanelComponent } from './action-settings-panel.component';
 export { ImagePropertiesPanelComponent } from './image-properties-panel.component';
+export { AccessibilityTextPanelComponent } from './accessibility-text-panel.component';
 export { MediaPropertiesPanelComponent } from './media-properties-panel.component';
 export { HeaderFooterDialogComponent } from './header-footer-dialog.component';
 export { MediaPreviewComponent } from './media-preview.component';

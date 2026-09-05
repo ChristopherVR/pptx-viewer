@@ -14,7 +14,7 @@
    locals; merging them into one statement would hurt readability. */
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import type { TableStylePreset } from '../internal/shared';
 import {
@@ -23,16 +23,18 @@ import {
 	evenRowHeights,
 	redistributeColumnWidth,
 	TABLE_STYLE_PRESETS,
+	tableStyleAssignmentUpdate,
 } from '../internal/shared';
 import { patchTableData } from './table-data-helpers';
 import type { TableBooleanFlag } from './table-properties-helpers';
 import { DEFAULT_TABLE_ROW_HEIGHT, TABLE_STRUCTURE_TOGGLES } from './table-properties-helpers';
+import { TableStyleEditorLauncherComponent } from './table-style-editor-launcher.component';
 
 @Component({
 	selector: 'pptx-table-properties',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, TableStyleEditorLauncherComponent],
 	template: `
 		@if (td(); as data) {
 			<div class="pptx-tp">
@@ -97,6 +99,14 @@ import { DEFAULT_TABLE_ROW_HEIGHT, TABLE_STRUCTURE_TOGGLES } from './table-prope
 						</button>
 					}
 				</div>
+				<pptx-table-style-editor-launcher
+					[tableStyleMap]="tableStyleMap()"
+					[styleId]="data.tableStyleId"
+					[canEdit]="canEdit()"
+					(tableStyleMapChange)="tableStyleMapChange.emit($event)"
+					(deleteTableStyle)="deleteTableStyle.emit($event)"
+					(assignStyle)="onAssignStyle($event)"
+				/>
 
 				<div class="pptx-tp__row-head">
 					<span class="pptx-tp__lbl">{{ 'pptx.table.columnWidths' | translate }}</span>
@@ -255,6 +265,15 @@ export class TablePropertiesComponent {
 	readonly canEdit = input<boolean>(true);
 	/** Emits the fully-updated element after any edit. */
 	readonly elementChange = output<TablePptxElement>();
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, for "Edit style...". `undefined`
+	 * means the host has not wired the table-style-editor feature through; the
+	 * launcher then simply does not render its button.
+	 */
+	readonly tableStyleMap = input<ParsedTableStyleMap | undefined>(undefined);
+	readonly tableStyleMapChange = output<ParsedTableStyleMap>();
+	/** Record a styleId for save-time removal from `ppt/tableStyles.xml`. */
+	readonly deleteTableStyle = output<string>();
 
 	protected readonly toggles = TABLE_STRUCTURE_TOGGLES;
 	protected readonly presets = TABLE_STYLE_PRESETS;
@@ -317,6 +336,11 @@ export class TablePropertiesComponent {
 		}
 		const rows = data.rows.map((r, i) => (i === index ? { ...r, height: n } : r));
 		this.emit({ rows });
+	}
+
+	/** A newly-created style (from "Edit style...") becomes this table's style. */
+	protected onAssignStyle(styleId: string): void {
+		this.emit(tableStyleAssignmentUpdate(styleId));
 	}
 
 	private emit(patch: Partial<PptxTableData>): void {

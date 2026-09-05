@@ -23,6 +23,7 @@
 			[marked]="elementMarked()"
 			[exposeElementId]="exposeElementId()"
 			[animationState]="animationState()"
+			[textStyleOverrideCss]="textStyleOverrideCss()"
 		/>
 	}
 	@case (element().type === 'ink') {
@@ -89,6 +90,11 @@
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides a SmartArt node caption's own
+			     inline bold/italic/underline/size, which plain CSS inheritance
+			     cannot reach. See `animation-text-style-css.ts`. -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
 			<pptx-smart-art-renderer
 				[element]="element()"
 				[editable]="interactive() && editable()"
@@ -115,6 +121,11 @@
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides a chart title/label/legend's
+			     own SVG text attributes, which plain CSS inheritance cannot
+			     reach. See `animation-text-style-css.ts`. -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
 			<pptx-chart-element-view
 				[element]="element()"
 				[editable]="interactive() && editable()"
@@ -130,6 +141,11 @@
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides a table cell's own inline
+			     bold/italic/underline/size, which plain CSS inheritance cannot
+			     reach. See `animation-text-style-css.ts`. -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
 			<pptx-table-renderer
 				[element]="element()"
 				[editable]="interactive() && editable()"
@@ -193,6 +209,11 @@
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides the runs' own inline
+			     bold/italic/underline/size, which plain CSS inheritance cannot
+			     reach (the runs declare those unconditionally). -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
 			<!-- Per-sub-path fill overlay: a multi-sub-path preset (`smileyFace`'s
 			     open eyes, `actionButtonBlank`'s darkened bevel well) or custom
 			     geometry whose sub-paths cannot share one CSS background-color. -->

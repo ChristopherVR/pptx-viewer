@@ -9,7 +9,7 @@
  */
 
 import { PptxHandler } from 'pptx-viewer-core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 
 import { readSlidesFromYDoc } from '../internal/shared';
 import type { CollaborationConfig, YDocLike } from '../internal/shared';
@@ -22,16 +22,22 @@ const WRITE_BACK_DEBOUNCE_MS = 5_000;
  * Serialize the current Y.Doc slide state (with the separated master/layout
  * template elements merged back) into `.pptx` bytes. `sourceBytes` seeds the
  * handler so package parts the CRDT does not carry (media, fonts, rels) survive.
+ *
+ * `saveOptions` carries the session-level save options (view properties,
+ * table styles, tags, deck properties, ...) built the same way as the
+ * Save/Export path (`buildDeckSaveOptions`). Without it the write-back
+ * dropped every session-level edit outside `slides`.
  */
 export async function serializeWriteBack(
 	ydoc: YDocLike,
 	sourceBytes: Uint8Array,
 	templateElements: TemplateElementsBySlideId,
+	saveOptions?: PptxHandlerSaveOptions,
 ): Promise<Uint8Array> {
 	const handler = new PptxHandler();
 	await handler.load(sourceBytes.buffer as ArrayBuffer);
 	const slides = buildSaveSlides(readSlidesFromYDoc(ydoc) as PptxSlide[], templateElements);
-	return handler.save(slides);
+	return handler.save(slides, saveOptions);
 }
 
 /**
@@ -47,6 +53,7 @@ export class WriteBackScheduler {
 		ydoc: YDocLike | null,
 		getSourceBytes: (() => Uint8Array | null) | null,
 		getTemplateElements: (() => TemplateElementsBySlideId) | null,
+		getSaveOptions?: (() => PptxHandlerSaveOptions) | null,
 	): void {
 		if (!config?.onWriteBack || config.role !== 'owner' || !ydoc) {
 			return;
@@ -59,7 +66,7 @@ export class WriteBackScheduler {
 			if (!bytes || !config.onWriteBack) {
 				return;
 			}
-			void serializeWriteBack(ydoc, bytes, getTemplateElements?.() ?? {})
+			void serializeWriteBack(ydoc, bytes, getTemplateElements?.() ?? {}, getSaveOptions?.())
 				.then((out) => config.onWriteBack?.(out))
 				.catch(() => {
 					/* non-fatal */

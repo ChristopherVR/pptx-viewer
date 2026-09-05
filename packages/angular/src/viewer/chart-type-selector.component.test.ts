@@ -9,7 +9,7 @@
 import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { CHART_TYPE_OPTIONS } from '../internal/shared';
+import { CHART_TYPE_OPTIONS, collapseChartTitleRunsForEdit } from '../internal/shared';
 import { applyChartTypeSelectorPatch } from './chart-type-selector.component';
 
 function chart(overrides: Partial<ChartPptxElement['chartData']> = {}): ChartPptxElement {
@@ -76,6 +76,25 @@ describe('applyChartTypeSelectorPatch', () => {
 			const next = applyChartTypeSelectorPatch(chart(), { chartType });
 			expect(next?.chartData?.chartType).toBe(chartType);
 		}
+	});
+
+	// W4-D: the title input's `onTitle` handler patches through
+	// `collapseChartTitleRunsForEdit`, not a bare `{ title }` object, so a
+	// multi-run title collapses to one run in its dominant style instead of
+	// leaving a stale second run's text behind.
+	it('collapses a multi-run title to one run in the dominant style on edit', () => {
+		const el = chart({
+			titleRuns: [
+				{ text: 'Sales ', bold: true },
+				{ text: 'Q1 Numbers', italic: true, color: '#FF0000' },
+			],
+		});
+		const patch = collapseChartTitleRunsForEdit(el.chartData, 'New Title');
+		const next = applyChartTypeSelectorPatch(el, patch);
+		expect(next?.chartData?.title).toBe('New Title');
+		expect(next?.chartData?.titleRuns).toStrictEqual([
+			{ text: 'New Title', italic: true, color: '#FF0000' },
+		]);
 	});
 
 	it("converts a 'pareto' selection to histogram plus a cumulative-percent series (docs/guide/limitations.md ChartEx row)", () => {

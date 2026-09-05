@@ -8,6 +8,7 @@ import { buildConnectorGeometry } from './connector-path';
 import type { MarkerShape } from './connector-path';
 import type { Rect } from './connector-routing';
 import { ConnectorTextOverlayComponent } from './connector-text-overlay.component';
+import { DynamicStyleComponent } from './dynamic-style.component';
 
 /**
  * ConnectorRendererComponent: Angular port of the Vue `ConnectorRenderer.vue`
@@ -36,7 +37,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 	selector: 'pptx-connector-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ConnectorTextOverlayComponent],
+	imports: [ConnectorTextOverlayComponent, DynamicStyleComponent],
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-connector"
@@ -44,6 +45,11 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides the caption's own inline
+			     bold/italic/underline/size, which plain CSS inheritance cannot
+			     reach. See animation-text-style-css.ts. -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
 			<svg
 				[attr.width]="geo().svgW"
 				[attr.height]="geo().svgH"
@@ -190,6 +196,14 @@ export class ConnectorRendererComponent {
 	 * outside a running presentation.
 	 */
 	readonly animationState = input<ElementAnimationState | undefined>(undefined);
+
+	/**
+	 * Scoped `!important` CSS override for an active font-style emphasis effect
+	 * (Bold Flash, Bold Reveal, Underline, Change Font Style/Size), built by the
+	 * parent `ElementRendererComponent` (`buildTextStyleOverrideCss`) so a
+	 * connector's own caption animates the same way a shape's text does.
+	 */
+	readonly textStyleOverrideCss = input<string | undefined>(undefined);
 
 	/** All derived geometry, recomputed on every input change. */
 	readonly geo = computed(() => {

@@ -17,7 +17,7 @@
 
 /* oxlint-disable eslint/one-var -- pre-existing throughout this file; independent concerns, not one statement */
 import { computed, inject, Injectable, signal } from '@angular/core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 
 import type { ActiveSessionUserDescriptor } from '../internal/shared';
 import { buildActiveSessionUsers } from '../internal/shared';
@@ -48,6 +48,13 @@ interface CollaborationSessionHost {
 	readonly canvasSize: () => { width: number; height: number };
 	/** The loaded source `.pptx` bytes for elected-writer write-back, if any. */
 	readonly getSourceBytes: () => Uint8Array | null;
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path. Without
+	 * this the elected-writer write-back dropped every session-level edit
+	 * outside `slides`.
+	 */
+	readonly getSaveOptions: () => PptxHandlerSaveOptions;
 	/** The current editable deck (seeds the sync baseline after connecting). */
 	readonly currentSlides: () => readonly PptxSlide[];
 	readonly emitStart: (config: CollaborationConfig) => void;
@@ -147,6 +154,7 @@ export class ViewerCollaborationSessionService {
 			canvasHeight: size.height,
 			getSourceBytes: () => host.getSourceBytes(),
 			getTemplateElements: () => host.getTemplateElements(),
+			getSaveOptions: () => host.getSaveOptions(),
 		};
 	}
 

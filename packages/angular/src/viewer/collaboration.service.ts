@@ -16,7 +16,7 @@
  */
 
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 
 import type {
 	CollabLoadOrigin,
@@ -98,6 +98,7 @@ export class CollaborationService {
 	private canvasHeight = DEFAULT_CANVAS_BOUND;
 	private getSourceBytes: (() => Uint8Array | null) | null = null;
 	private getTemplateElements: (() => TemplateElementsBySlideId) | null = null;
+	private getSaveOptions: (() => PptxHandlerSaveOptions) | null = null;
 	private currentConfig: CollaborationConfig | null = null;
 	private lastConfig: CollaborationConfig | null = null;
 	private lastOptions: ConnectOptions = {};
@@ -182,6 +183,7 @@ export class CollaborationService {
 		this.canvasHeight = options.canvasHeight ?? DEFAULT_CANVAS_BOUND;
 		this.getSourceBytes = options.getSourceBytes ?? null;
 		this.getTemplateElements = options.getTemplateElements ?? null;
+		this.getSaveOptions = options.getSaveOptions ?? null;
 		this.currentConfig = config;
 		this.activeRole.set(config.role);
 
@@ -306,6 +308,7 @@ export class CollaborationService {
 			this.session?.ydoc ?? null,
 			this.getSourceBytes,
 			this.getTemplateElements,
+			this.getSaveOptions,
 		);
 	}
 }

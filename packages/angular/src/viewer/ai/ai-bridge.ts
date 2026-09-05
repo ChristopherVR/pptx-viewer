@@ -12,6 +12,7 @@
  * the {@link ProposalStore} apply a staged batch atomically.
  */
 import type {
+	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -20,10 +21,12 @@ import type {
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
+	PptxTagCollection,
 	PptxTheme,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 
-import { applyElementUpdate } from '../../internal/shared-ai';
+import { applyElementUpdate, deckDataFieldChanged } from '../../internal/shared-ai';
 import type {
 	PptxAiBridge,
 	PptxAiDataUpdater,
@@ -72,6 +75,18 @@ export interface BridgeDeps {
 	getCoreProperties(): PptxCoreProperties | undefined;
 	/** Extended application properties (`docProps/app.xml`), loader-tracked. */
 	getAppProperties(): PptxAppProperties | undefined;
+	/**
+	 * `ppt/viewProps.xml` (grid/snap/guides toggles), loader-tracked. Included
+	 * so the deck tools' `getDeckData`/`applyDeckData` seam sees the same
+	 * fields the main Save/Export path persists (`loader.saveSlides`).
+	 */
+	getViewProperties(): PptxViewProperties | undefined;
+	/** Parsed `ppt/tableStyles.xml` map, loader-tracked. */
+	getTableStyleMap(): ParsedTableStyleMap | undefined;
+	/** `<a:tblStyleLst @def>` default style GUID, loader-tracked. */
+	getTableStylesDefaultId(): string | undefined;
+	/** `ppt/tags/*.xml` name/value metadata, loader-tracked. */
+	getTagCollections(): readonly PptxTagCollection[];
 	/** Set the slide canvas size (px) and mark the deck dirty. */
 	setCanvasSize(size: { width: number; height: number }): void;
 	/** Replace the presentation sections and mark the deck dirty. */
@@ -84,6 +99,14 @@ export interface BridgeDeps {
 	setCoreProperties(props: PptxCoreProperties | undefined): void;
 	/** Replace the extended application properties and mark the deck dirty. */
 	setAppProperties(props: PptxAppProperties | undefined): void;
+	/** Replace the view properties and mark the deck dirty. */
+	setViewProperties(props: PptxViewProperties | undefined): void;
+	/** Replace the table style map and mark the deck dirty. */
+	setTableStyleMap(map: ParsedTableStyleMap | undefined): void;
+	/** Replace the default table style GUID and mark the deck dirty. */
+	setTableStylesDefaultId(id: string | undefined): void;
+	/** Replace the tag collections and mark the deck dirty. */
+	setTagCollections(tags: readonly PptxTagCollection[]): void;
 	/**
 	 * The slides / elements the assistant should scope its work to (explicit AI
 	 * picks, else a pinned focus, else the live canvas selection). When omitted,
@@ -121,10 +144,14 @@ export function createAngularAiBridge(deps: BridgeDeps): PptxAiBridge {
 			customProperties: [...deps.getCustomProperties()],
 			coreProperties: deps.getCoreProperties(),
 			appProperties: deps.getAppProperties(),
+			viewProperties: deps.getViewProperties(),
+			tableStyleMap: deps.getTableStyleMap(),
+			tableStylesDefaultId: deps.getTableStylesDefaultId(),
+			tags: [...deps.getTagCollections()],
 		} satisfies Partial<PptxData> as PptxData;
 	};
 
-	const differs = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
+	const differs = deckDataFieldChanged;
 
 	return {
 		getDeckMeta(): PptxAiDeckMeta {
@@ -199,6 +226,19 @@ export function createAngularAiBridge(deps: BridgeDeps): PptxAiBridge {
 			}
 			if (differs(before.appProperties, after.appProperties)) {
 				deps.setAppProperties(after.appProperties);
+			}
+			if (differs(before.viewProperties, after.viewProperties)) {
+				deps.setViewProperties(after.viewProperties);
+			}
+			if (differs(before.tableStyleMap, after.tableStyleMap)) {
+				deps.setTableStyleMap(after.tableStyleMap);
+			}
+			if (differs(before.tableStylesDefaultId, after.tableStylesDefaultId)) {
+				deps.setTableStylesDefaultId(after.tableStylesDefaultId);
+			}
+			const nextTags = after.tags ?? before.tags ?? [];
+			if (differs(before.tags, nextTags)) {
+				deps.setTagCollections(nextTags);
 			}
 		},
 		getFocusedTargets(): PptxAiFocusedTarget[] {

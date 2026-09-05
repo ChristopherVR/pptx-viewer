@@ -31,6 +31,7 @@ import type {
 import {
 	applyMasterViewCrudAction,
 	applyPreferenceToOptions,
+	buildDeckSaveOptions,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	endAudienceDisplay,
@@ -1835,6 +1836,10 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		getCustomProperties: () => this.loader.customProperties(),
 		getCoreProperties: () => this.loader.coreProperties(),
 		getAppProperties: () => this.loader.appProperties(),
+		getViewProperties: () => this.loader.viewProperties(),
+		getTableStyleMap: () => this.loader.tableStyleMap(),
+		getTableStylesDefaultId: () => this.loader.tableStylesDefaultId(),
+		getTagCollections: () => this.loader.tagCollections(),
 		setCanvasSize: (size) => {
 			this.loader.canvasSize.set(size);
 			this.editor.dirty.set(true);
@@ -1857,6 +1862,22 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		},
 		setAppProperties: (props) => {
 			this.loader.appProperties.set(props);
+			this.editor.dirty.set(true);
+		},
+		setViewProperties: (props) => {
+			this.loader.viewProperties.set(props);
+			this.editor.dirty.set(true);
+		},
+		setTableStyleMap: (map) => {
+			this.loader.tableStyleMap.set(map);
+			this.editor.dirty.set(true);
+		},
+		setTableStylesDefaultId: (id) => {
+			this.loader.tableStylesDefaultId.set(id);
+			this.editor.dirty.set(true);
+		},
+		setTagCollections: (tags) => {
+			this.loader.tagCollections.set([...tags]);
 			this.editor.dirty.set(true);
 		},
 		// Scope the assistant to the user's AI picks / pinned focus / live
@@ -2256,6 +2277,30 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			applyRemoteSlides: (slides) => this.editor.applyRemoteSlides(slides),
 			canvasSize: () => this.loader.canvasSize(),
 			getSourceBytes: () => this.fileIO.sourceBytes(),
+			// Session-level save options (view properties, table styles, tags, deck
+			// properties, ...), built the same way as `loader.saveSlides`, so an
+			// owner's write-back file no longer drops every session-level edit
+			// outside `slides`.
+			getSaveOptions: () =>
+				buildDeckSaveOptions({
+					headerFooter: this.loader.headerFooter(),
+					presentationProperties: this.loader.presentationProperties(),
+					viewProperties: this.loader.viewProperties(),
+					customShows: this.loader.customShows(),
+					sections: this.loader.sections(),
+					coreProperties: this.loader.coreProperties(),
+					appProperties: this.loader.appProperties(),
+					customProperties: this.loader.customProperties(),
+					tagCollections: this.loader.tagCollections(),
+					slideMasters: this.loader.slideMasters(),
+					notesMaster: this.loader.notesMaster(),
+					handoutMaster: this.loader.handoutMaster(),
+					slideSize: this.loader.slideSizeSelection().size,
+					tableStyleMap: this.loader.tableStyleMap(),
+					tableStylesDefaultId: this.loader.tableStylesDefaultId(),
+					tableStylesToDelete: this.loader.tableStylesToDelete(),
+					embedFonts: this.loader.embedFonts(),
+				}),
 			currentSlides: () => this.editor.slides(),
 			emitStart: (config) => this.startCollaboration.emit(config),
 			emitStop: () => this.stopCollaboration.emit(),
