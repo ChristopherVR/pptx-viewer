@@ -94,6 +94,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		getSourceBytes: options.getSourceBytes,
 		getTemplateElements: options.getTemplateElements,
 		mergeTemplateElements: buildSaveSlides,
+		getSaveOptions: options.getSaveOptions,
 	});
 
 	/** Write the current local slides into the doc (granular, echo-deduped). */

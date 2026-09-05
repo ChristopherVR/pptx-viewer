@@ -77,6 +77,13 @@ const props = withDefaults(
 		 * Enables accurate banding / header style lookups by table style GUID.
 		 */
 		tableStyleMap?: ParsedTableStyleMap;
+		/**
+		 * Scoped `!important` CSS override for an active font-style emphasis
+		 * effect (Bold Flash, Bold Reveal, Underline, Change Font Style/Size),
+		 * built by the parent `ElementRenderer` (`buildTextStyleOverrideCss`) so
+		 * a table cell animates the same way a shape's text does.
+		 */
+		textStyleOverrideCss?: string;
 	}>(),
 	{ interactive: true },
 );
@@ -490,6 +497,12 @@ onBeforeUnmount(() => {
 		:data-element-id="element.id"
 		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>
+		<!--
+			`<style>` is a forbidden side-effect tag in an SFC template, so the
+			override is rendered through the dynamic `<component :is>` escape
+			hatch instead (see `ElementRenderer.vue`).
+		-->
+		<component :is="'style'" v-if="textStyleOverrideCss">{{ textStyleOverrideCss }}</component>
 		<TableResizeOverlay
 			:column-widths="tableData.columnWidths"
 			:editable="editingEnabled"

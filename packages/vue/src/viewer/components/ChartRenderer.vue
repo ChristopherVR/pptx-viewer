@@ -60,6 +60,13 @@ const props = defineProps<{
 	 * `resolveRevealedChartData`.
 	 */
 	animationState?: ElementAnimationState;
+	/**
+	 * Scoped `!important` CSS override for an active font-style emphasis effect
+	 * (Bold Flash, Bold Reveal, Underline, Change Font Style/Size), built by the
+	 * parent `ElementRenderer` (`buildTextStyleOverrideCss`) so a chart
+	 * title/label/legend animates the same way a shape's text does.
+	 */
+	textStyleOverrideCss?: string;
 }>();
 
 const { t } = useI18n();
@@ -200,6 +207,12 @@ const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 		@pointerup="onPointerup"
 		@dblclick="onDblclick"
 	>
+		<!--
+			`<style>` is a forbidden side-effect tag in an SFC template, so the
+			override is rendered through the dynamic `<component :is>` escape
+			hatch instead (see `ElementRenderer.vue`).
+		-->
+		<component :is="'style'" v-if="textStyleOverrideCss">{{ textStyleOverrideCss }}</component>
 		<!-- Labelled placeholder for chart types the engine does not support -->
 		<div v-if="isPlaceholder" class="pptx-vue-placeholder pptx-vue-chart-placeholder">
 			{{ placeholderLabel }}

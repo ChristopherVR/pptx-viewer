@@ -14,7 +14,12 @@
  * unpacking them here would only make the parent's call site long enough to
  * hide a mistake in.
  */
-import type { PptxElement, PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxPresentationProperties,
+	PptxSlide,
+} from 'pptx-viewer-core';
 import { useI18n } from 'vue-i18n';
 
 import type { UseCommentsWiringResult } from '../composables/useCommentsWiring';
@@ -38,6 +43,10 @@ const props = defineProps<{
 	comments: UseCommentsWiringResult;
 	onUpdate: (patch: Partial<PptxElement>) => void;
 	onUpdateSlideAnimations: (animations: PptxSlide['animations']) => void;
+	/** Commit a full replacement table style map (see `TableStyleEditor.vue`'s docblock). */
+	onTableStyleMapChange: (nextMap: ParsedTableStyleMap) => void;
+	/** Record a styleId for save-time removal from `ppt/tableStyles.xml`. */
+	onDeleteTableStyle: (styleId: string) => void;
 	onSlideUpdate: (patch: Partial<PptxSlide>) => void;
 	onPresentationUpdate: (patch: Partial<PptxPresentationProperties>) => void;
 	onSelectElement: (id: string) => void;
@@ -64,8 +73,11 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:slide-animations="activeSlide?.animations ?? []"
 		:animation-timeline-anchors="activeSlide?.animationTimelineAnchors ?? []"
 		:custom-shows="deck.customShows.value"
+		:table-style-map="deck.tableStyleMap.value"
 		@update="onUpdate"
 		@update-slide-animations="onUpdateSlideAnimations"
+		@table-style-map-change="onTableStyleMapChange"
+		@delete-table-style="onDeleteTableStyle"
 	/>
 
 	<!-- Slide-level inspector (no element selected): tabbed

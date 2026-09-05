@@ -4,8 +4,8 @@
 /* oxlint-disable eslint/one-var -- independent, unrelated locals across this
    short assertion; merging them into one statement would hurt readability. */
 import { mount } from '@vue/test-utils';
-import type { PptxTableData } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type { ParsedTableStyleMap, PptxTableData } from 'pptx-viewer-core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import TableStyleOptions from './TableStyleOptions.vue';
 
@@ -17,6 +17,17 @@ function tableData(overrides: Partial<PptxTableData> = {}): PptxTableData {
 		...overrides,
 	};
 }
+
+let originalPrompt: typeof window.prompt;
+
+beforeEach(() => {
+	originalPrompt = window.prompt;
+	window.prompt = () => null;
+});
+
+afterEach(() => {
+	window.prompt = originalPrompt;
+});
 
 describe('tableStyleOptions', () => {
 	it('applies the shared preset assignment when a quick-style swatch is clicked', async () => {
@@ -52,5 +63,28 @@ describe('tableStyleOptions', () => {
 
 		await checkboxes[5].setValue(true);
 		expect((wrapper.emitted('update') as unknown[][]).at(-1)?.[0]).toStrictEqual({ lastRow: true });
+	});
+
+	it('enables "Edit style..." with no tableStyleId, and assigns a created style to the table', async () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('Brand New Style');
+		const wrapper = mount(TableStyleOptions, {
+			props: { tableData: tableData(), canEdit: true, tableStyleMap: {} },
+		});
+
+		const buttons = wrapper.findAll('button').filter((b) => b.text() === 'Edit style...');
+		expect(buttons).toHaveLength(1);
+		expect(buttons[0].attributes('disabled')).toBeUndefined();
+		await buttons[0].trigger('click');
+
+		const createButton = wrapper.findAll('button').find((b) => b.text() === 'Create new style');
+		expect(createButton).toBeTruthy();
+		await createButton!.trigger('click');
+
+		const events = wrapper.emitted('update') as unknown[][];
+		const styleMapEvents = wrapper.emitted('tableStyleMapChange') as unknown[][];
+		expect(styleMapEvents).toBeTruthy();
+		const nextMap = styleMapEvents[0][0] as ParsedTableStyleMap;
+		const newId = Object.keys(nextMap)[0];
+		expect(events.at(-1)?.[0]).toStrictEqual({ tableStyleId: newId });
 	});
 });

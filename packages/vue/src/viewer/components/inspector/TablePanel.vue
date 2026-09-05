@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxTableData,
+	TablePptxElement,
+} from 'pptx-viewer-core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -31,10 +36,17 @@ import TableStyleOptions from './TableStyleOptions.vue';
  */
 const props = defineProps<{
 	element: PptxElement;
+	/**
+	 * The deck's parsed `ppt/tableStyles.xml` map, needed by "Edit style...".
+	 * See `TableStyleOptions.vue`'s docblock for why this is optional.
+	 */
+	tableStyleMap?: ParsedTableStyleMap;
 }>();
 
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
+	tableStyleMapChange: [nextMap: ParsedTableStyleMap];
+	deleteTableStyle: [styleId: string];
 }>();
 
 const { t } = useI18n();
@@ -206,7 +218,14 @@ function mergeSelected(): void {
 				{{ t('pptx.table.mergeSelected') }}
 			</button>
 
-			<TableStyleOptions :table-data="tableData" :can-edit="true" @update="patchTableData" />
+			<TableStyleOptions
+				:table-data="tableData"
+				:can-edit="true"
+				:table-style-map="tableStyleMap"
+				@update="patchTableData"
+				@table-style-map-change="(m) => emit('tableStyleMapChange', m)"
+				@delete-table-style="(id) => emit('deleteTableStyle', id)"
+			/>
 
 			<TableCellFormattingPanel
 				v-if="activeCell"

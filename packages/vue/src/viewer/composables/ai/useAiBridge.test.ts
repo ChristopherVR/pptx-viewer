@@ -1,12 +1,15 @@
 // oxlint-disable react-hooks/rules-of-hooks
 import type {
+	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
+	PptxTagCollection,
 	PptxTheme,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
@@ -32,6 +35,10 @@ function makeBridge() {
 	const customProperties = shallowRef<PptxCustomProperty[]>([]);
 	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
 	const appProperties = shallowRef<PptxAppProperties | undefined>(undefined);
+	const viewProperties = shallowRef<PptxViewProperties | undefined>(undefined);
+	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
+	const tableStylesDefaultId = shallowRef<string | undefined>(undefined);
+	const tagCollections = shallowRef<PptxTagCollection[]>([]);
 	const pushHistory = vi.fn();
 	const markDirty = vi.fn();
 
@@ -46,6 +53,10 @@ function makeBridge() {
 		customProperties,
 		coreProperties,
 		appProperties,
+		viewProperties,
+		tableStyleMap,
+		tableStylesDefaultId,
+		tagCollections,
 		fileName: () => undefined,
 		pushHistory,
 		markDirty,
@@ -63,6 +74,10 @@ function makeBridge() {
 		customProperties,
 		coreProperties,
 		appProperties,
+		viewProperties,
+		tableStyleMap,
+		tableStylesDefaultId,
+		tagCollections,
 		pushHistory,
 		markDirty,
 	};
@@ -116,5 +131,49 @@ describe('useAiBridge deck-data seam', () => {
 
 		expect(h.sections.value).toBe(beforeSections);
 		expect(h.pushHistory).not.toHaveBeenCalled();
+	});
+
+	// viewProperties/tableStyleMap/tableStylesDefaultId/tags were missing from
+	// this seam entirely: the main Save/Export path (`useLoadContent`'s
+	// `buildDeckSaveOptions` call) persists them, but an MCP deck tool
+	// operating on `getDeckData()`/`applyDeckData()` could not see or commit
+	// them. See React's identical fix in `useAiBridge.ts`.
+	it('getDeckData exposes viewProperties/tableStyleMap/tableStylesDefaultId/tags', () => {
+		const h = makeBridge();
+		h.viewProperties.value = { showComments: true };
+		h.tableStyleMap.value = { '{guid}': { styleId: '{guid}', styleName: 'Style' } };
+		h.tableStylesDefaultId.value = '{guid}';
+		h.tagCollections.value = [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] }];
+
+		const data = h.bridge.getDeckData?.();
+		expect(data?.viewProperties).toStrictEqual({ showComments: true });
+		expect(data?.tableStyleMap).toStrictEqual({
+			'{guid}': { styleId: '{guid}', styleName: 'Style' },
+		});
+		expect(data?.tableStylesDefaultId).toBe('{guid}');
+		expect(data?.tags).toStrictEqual([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'k', value: 'v' }] },
+		]);
+	});
+
+	it('applyDeckData commits a changed viewProperties/tableStyleMap/tags back to their refs', () => {
+		const h = makeBridge();
+		h.bridge.applyDeckData?.(
+			(data) => ({
+				...data,
+				viewProperties: { showComments: false },
+				tableStyleMap: { '{new}': { styleId: '{new}', styleName: 'New' } },
+				tags: [{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] }],
+			}),
+			'metadata',
+		);
+
+		expect(h.viewProperties.value).toStrictEqual({ showComments: false });
+		expect(h.tableStyleMap.value).toStrictEqual({
+			'{new}': { styleId: '{new}', styleName: 'New' },
+		});
+		expect(h.tagCollections.value).toStrictEqual([
+			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'a', value: 'b' }] },
+		]);
 	});
 });

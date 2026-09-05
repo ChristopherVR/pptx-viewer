@@ -238,3 +238,47 @@ describe('chartViewModelSvg: c:legendEntry deletion (real chart pipeline)', () =
 		expect(labels).not.toContain('Cost');
 	});
 });
+
+// W4-D: a chart title with typed rich-text runs (`titleRuns`) draws one
+// <tspan> per run instead of collapsing to a single flat text node.
+describe('chartViewModelSvg: chart title rich text (titleRunSpans)', () => {
+	it('renders one <tspan> per titleRunSpans entry with its own style', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			title: 'Sales Q1',
+			categories: ['Q1'],
+			series: [{ name: 'Revenue', values: [10] }],
+			style: { hasTitle: true },
+			titleRuns: [
+				{ text: 'Sales ', bold: true },
+				{ text: 'Q1', italic: true, color: '#FF0000' },
+			],
+		});
+		const vm = buildChartViewModel(element);
+		expect(vm.titleRunSpans).toHaveLength(2);
+		const wrapper = mountVm(vm);
+		const tspans = wrapper.findAll('tspan');
+		expect(tspans).toHaveLength(2);
+		expect(tspans[0].text()).toBe('Sales');
+		expect(tspans[1].text()).toBe('Q1');
+		expect(tspans[1].attributes('font-style')).toBe('italic');
+	});
+
+	it('falls back to a flat text node when the title has no typed runs', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			title: 'Sales',
+			categories: ['Q1'],
+			series: [{ name: 'Revenue', values: [10] }],
+			style: { hasTitle: true },
+		});
+		const vm = buildChartViewModel(element);
+		expect(vm.titleRunSpans).toBeUndefined();
+		const wrapper = mountVm(vm);
+		expect(wrapper.findAll('tspan')).toHaveLength(0);
+		const titleText = wrapper
+			.findAll('text')
+			.find((t) => t.attributes('data-chart-part') === 'title');
+		expect(titleText?.text()).toBe('Sales');
+	});
+});

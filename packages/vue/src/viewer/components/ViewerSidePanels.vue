@@ -12,7 +12,12 @@
  * directly arrive as a value plus a close callback, because a parent `ref`
  * read in the parent's template is auto-unwrapped before it reaches a prop.
  */
-import type { PptxElement, PptxPresentationProperties, PptxSlide } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxPresentationProperties,
+	PptxSlide,
+} from 'pptx-viewer-core';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 import type { AiPanelController } from '../composables/ai/useAiPanelController';
@@ -65,6 +70,8 @@ const props = defineProps<{
 	goTo: (index: number) => void;
 	onInspectorUpdate: (patch: Partial<PptxElement>) => void;
 	onUpdateSlideAnimations: (animations: PptxSlide['animations']) => void;
+	onTableStyleMapChange: (nextMap: ParsedTableStyleMap) => void;
+	onDeleteTableStyle: (styleId: string) => void;
 	onSlideUpdate: (patch: Partial<PptxSlide>) => void;
 	onPresentationUpdate: (patch: Partial<PptxPresentationProperties>) => void;
 }>();
@@ -91,6 +98,8 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		:comments="comments"
 		:on-update="onInspectorUpdate"
 		:on-update-slide-animations="onUpdateSlideAnimations"
+		:on-table-style-map-change="onTableStyleMapChange"
+		:on-delete-table-style="onDeleteTableStyle"
 		:on-slide-update="onSlideUpdate"
 		:on-presentation-update="onPresentationUpdate"
 		:on-select-element="selectionPane.onSelectionPaneSelect"

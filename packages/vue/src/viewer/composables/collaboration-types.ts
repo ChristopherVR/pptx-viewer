@@ -39,6 +39,14 @@ export interface UseCollaborationOptions {
 	 */
 	getTemplateElements?: () => Record<string, import('pptx-viewer-core').PptxElement[]>;
 	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path
+	 * (`buildDeckSaveOptions`). Without this the elected-writer write-back
+	 * called `handler.save(slides)` with NO options, so an owner's write-back
+	 * file dropped every session-level edit outside `slides`.
+	 */
+	getSaveOptions?: () => import('pptx-viewer-core').PptxHandlerSaveOptions;
+	/**
 	 * Monotonic counter bumped each time the content-load pipeline finishes
 	 * applying a parsed deck to viewer state. A local load that lands while the
 	 * shared doc already holds slides (a late joiner's bootstrap deck parsing

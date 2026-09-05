@@ -47,6 +47,13 @@ const props = defineProps<{
 	 * the wrapper's animated `stroke` keyframes cascade into the line + arrowheads.
 	 */
 	animationState?: ElementAnimationState;
+	/**
+	 * Scoped `!important` CSS override for an active font-style emphasis effect
+	 * (Bold Flash, Bold Reveal, Underline, Change Font Style/Size), built by the
+	 * parent `ElementRenderer` (`buildTextStyleOverrideCss`) so the connector's
+	 * own caption animates the same way a shape's text does.
+	 */
+	textStyleOverrideCss?: string;
 }>();
 
 const ss = computed(() =>
@@ -248,6 +255,12 @@ function offsetTransform(offset: number): string | undefined {
 		:style="wrapperStyle"
 		:data-element-id="element.id"
 	>
+		<!--
+			`<style>` is a forbidden side-effect tag in an SFC template, so the
+			override is rendered through the dynamic `<component :is>` escape
+			hatch instead (see `ElementRenderer.vue`).
+		-->
+		<component :is="'style'" v-if="textStyleOverrideCss">{{ textStyleOverrideCss }}</component>
 		<svg
 			:width="w"
 			:height="h"

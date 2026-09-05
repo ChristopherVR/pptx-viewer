@@ -87,6 +87,13 @@ const props = defineProps<{
 	 * the current progress; absent or non-diagram state renders every node.
 	 */
 	animationState?: ElementAnimationState;
+	/**
+	 * Scoped `!important` CSS override for an active font-style emphasis effect
+	 * (Bold Flash, Bold Reveal, Underline, Change Font Style/Size), built by the
+	 * parent `ElementRenderer` (`buildTextStyleOverrideCss`) so a SmartArt node
+	 * caption animates the same way a shape's text does.
+	 */
+	textStyleOverrideCss?: string;
 }>();
 
 const { t } = useI18n();
@@ -400,6 +407,12 @@ function onEditorKeydown(event: KeyboardEvent): void {
 		:data-pptx-element="props.interactive || props.marked ? 'true' : undefined"
 		aria-roledescription="diagram"
 	>
+		<!--
+			`<style>` is a forbidden side-effect tag in an SFC template, so the
+			override is rendered through the dynamic `<component :is>` escape
+			hatch instead (see `ElementRenderer.vue`).
+		-->
+		<component :is="'style'" v-if="textStyleOverrideCss">{{ textStyleOverrideCss }}</component>
 		<div
 			ref="rootEl"
 			class="pptx-vue-smartart-chrome"

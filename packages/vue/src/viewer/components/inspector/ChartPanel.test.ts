@@ -106,6 +106,27 @@ describe('chartPanel', () => {
 		expect(next.chartType).toBe('bar');
 	});
 
+	// W4-D: a multi-run title collapses to one run in the dominant style
+	// instead of leaving a stale second run's text behind.
+	it('collapses a multi-run title to one run in the dominant style on edit', async () => {
+		const wrapper = mount(ChartPanel, {
+			props: {
+				element: chartElement({
+					titleRuns: [
+						{ text: 'Sales ', bold: true },
+						{ text: 'Q1 Numbers', italic: true, color: '#FF0000' },
+					],
+				}),
+			},
+		});
+		const input = wrapper.get('[data-testid="chart-title"]');
+		await input.setValue('New Title');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.title).toBe('New Title');
+		expect(next.titleRuns).toStrictEqual([{ text: 'New Title', italic: true, color: '#FF0000' }]);
+	});
+
 	it('shows the grouping control only for grouping-capable types', () => {
 		const grouped = mount(ChartPanel, { props: { element: chartElement({ chartType: 'bar' }) } });
 		expect(grouped.find('[data-testid="chart-grouping"]').exists()).toBeTruthy();

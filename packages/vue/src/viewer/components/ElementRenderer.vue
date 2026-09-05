@@ -4,6 +4,7 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildParagraphs,
 	buildTextBody3DSceneStyle,
+	buildTextStyleOverrideCss,
 	getGroupChildParentFill,
 	getOverflowSegments,
 	hasTextWarp,
@@ -116,6 +117,19 @@ const slideElementsSource = injectSlideElements();
  */
 const presentationStates = injectPresentationElementStates();
 const animationState = computed(() => presentationStates.value.get(props.element.id));
+/**
+ * A font-style emphasis effect (Bold Flash, Bold Reveal, Underline, Change
+ * Font Style/Size) overrides the runs' own inline bold/italic/underline/size,
+ * which plain CSS inheritance cannot reach (the runs declare those
+ * unconditionally). See `animation-text-style-css.ts`. NOT gated on
+ * `hasTextProperties`: a table cell, a chart title/label/legend, and a
+ * SmartArt node caption all animate this way too, and shared's selector
+ * already scopes itself to this element's `data-element-id`, which every
+ * delegated renderer's own root already carries (see `elementMarker` above).
+ */
+const textStyleOverrideCss = computed(() =>
+	buildTextStyleOverrideCss(props.element.id, animationState.value?.textStyle),
+);
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -372,6 +386,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:element="element"
 		:z-index="zIndex"
 		:animation-state="animationState"
+		:text-style-override-css="textStyleOverrideCss"
 		:data-pptx-element="elementMarker"
 	/>
 
@@ -389,6 +404,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:text-style-override-css="textStyleOverrideCss"
 	/>
 	<ChartRenderer
 		v-else-if="element.type === 'chart'"
@@ -398,6 +414,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:interactive="interactive"
 		:marked="marked"
 		:animation-state="animationState"
+		:text-style-override-css="textStyleOverrideCss"
 	/>
 	<SmartArt3DRenderer
 		v-else-if="element.type === 'smartArt' && smartArt3D"
@@ -415,6 +432,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:interactive="interactive"
 		:marked="marked"
 		:animation-state="animationState"
+		:text-style-override-css="textStyleOverrideCss"
 	/>
 	<InkRenderer
 		v-else-if="element.type === 'ink'"
@@ -472,6 +490,12 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:data-pptx-element="elementMarker"
 	>
 		<DuotoneFilterDefs :element="element" />
+		<!--
+			`<style>` is a forbidden side-effect tag in an SFC template (the compiler
+			rejects it even behind `v-if`), so the override is rendered through the
+			dynamic `<component :is>` escape hatch instead.
+		-->
+		<component :is="'style'" v-if="textStyleOverrideCss">{{ textStyleOverrideCss }}</component>
 		<!-- Soft-edge <filter> defs + DAG fill-overlay tint layer + reflection. -->
 		<ShapeEffectOverlay :element="element" :media-data-urls="mediaDataUrls" />
 		<Extrusion3DOverlay v-if="extrusionData.hasExtrusion" :data="extrusionData" />

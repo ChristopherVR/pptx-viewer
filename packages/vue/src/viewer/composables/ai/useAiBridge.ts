@@ -18,6 +18,7 @@
  */
 import { cloneSlide } from 'pptx-viewer-core';
 import type {
+	ParsedTableStyleMap,
 	PptxAppProperties,
 	PptxCoreProperties,
 	PptxCustomProperty,
@@ -26,10 +27,16 @@ import type {
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
+	PptxTagCollection,
 	PptxTheme,
+	PptxViewProperties,
 } from 'pptx-viewer-core';
 import type { CanvasSize } from 'pptx-viewer-shared';
-import { applyElementUpdate, computeFocusTargets } from 'pptx-viewer-shared/ai';
+import {
+	applyElementUpdate,
+	computeFocusTargets,
+	deckDataFieldChanged,
+} from 'pptx-viewer-shared/ai';
 import type {
 	PptxAiBridge,
 	PptxAiDataUpdater,
@@ -58,6 +65,18 @@ export interface UseAiBridgeInput {
 	customProperties: Ref<PptxCustomProperty[]>;
 	coreProperties: Ref<PptxCoreProperties | undefined>;
 	appProperties: Ref<PptxAppProperties | undefined>;
+	/**
+	 * `ppt/viewProps.xml` (grid/snap/guides toggles). Included so the deck
+	 * tools' `getDeckData`/`applyDeckData` seam sees the same fields the main
+	 * Save/Export path persists (`useLoadContent`'s `buildDeckSaveOptions` call).
+	 */
+	viewProperties: Ref<PptxViewProperties | undefined>;
+	/** Parsed `ppt/tableStyles.xml` map, editable via the table style editor. */
+	tableStyleMap: Ref<ParsedTableStyleMap | undefined>;
+	/** `<a:tblStyleLst @def>` default style GUID. */
+	tableStylesDefaultId: Ref<string | undefined>;
+	/** `ppt/tags/*.xml` name/value metadata. */
+	tagCollections: Ref<PptxTagCollection[]>;
 	/** Display name of the open document, when known. */
 	fileName: () => string | undefined;
 	/** Snapshot the current slides onto the undo stack (call before mutating). */
@@ -101,9 +120,13 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 			customProperties: input.customProperties.value,
 			coreProperties: input.coreProperties.value,
 			appProperties: input.appProperties.value,
+			viewProperties: input.viewProperties.value,
+			tableStyleMap: input.tableStyleMap.value,
+			tableStylesDefaultId: input.tableStylesDefaultId.value,
+			tags: input.tagCollections.value,
 		}) satisfies Partial<PptxData> as PptxData;
 
-	const differs = (a: unknown, b: unknown): boolean => JSON.stringify(a) !== JSON.stringify(b);
+	const differs = deckDataFieldChanged;
 
 	return {
 		getDeckMeta(): PptxAiDeckMeta {
@@ -185,6 +208,19 @@ export function useAiBridge(input: UseAiBridgeInput): PptxAiBridge {
 			}
 			if (differs(before.appProperties, after.appProperties)) {
 				input.appProperties.value = after.appProperties;
+			}
+			if (differs(before.viewProperties, after.viewProperties)) {
+				input.viewProperties.value = after.viewProperties;
+			}
+			if (differs(before.tableStyleMap, after.tableStyleMap)) {
+				input.tableStyleMap.value = after.tableStyleMap;
+			}
+			if (differs(before.tableStylesDefaultId, after.tableStylesDefaultId)) {
+				input.tableStylesDefaultId.value = after.tableStylesDefaultId;
+			}
+			const nextTags = after.tags ?? before.tags ?? [];
+			if (differs(before.tags, nextTags)) {
+				input.tagCollections.value = nextTags;
 			}
 			input.markDirty();
 		},

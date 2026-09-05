@@ -1,13 +1,16 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
    independent aliased re-exports, not one statement */
 import {
+	advanceChartMarkDrag as advanceSharedChartMarkDrag,
 	advanceChartValueDrag as advanceSharedChartValueDrag,
 	applyChartPartHighlight as applySharedChartPartHighlight,
+	beginChartMarkDrag as beginSharedChartMarkDrag,
 	beginChartValueDrag as beginSharedChartValueDrag,
+	buildChartMarkDragGeometry as buildSharedChartMarkDragGeometry,
 	CHART_DRAG_THRESHOLD_PX,
 	ensureChartInteractionStyles,
 } from 'pptx-viewer-shared';
-import type { ChartValueDragState } from 'pptx-viewer-shared';
+import type { ChartMarkDragState, ChartValueDragState } from 'pptx-viewer-shared';
 
 /**
  * chart-canvas-interaction-support: Vue's names for the framework-neutral
@@ -38,3 +41,19 @@ export const advanceChartValueDrag = advanceSharedChartValueDrag;
 
 /** State of an in-flight data-point value drag. */
 export type ActiveValueDrag = ChartValueDragState;
+
+// Pie/doughnut slice, radar vertex, and stacked/percentStacked segment drags:
+// no single vertical value axis, so they run through a parallel geometry +
+// state machine (chart-interaction-mark-drag.ts) instead of the above.
+
+/** Resolve a mark's drag geometry for the given chart kind and part. */
+export const buildChartMarkDragGeometry = buildSharedChartMarkDragGeometry;
+
+/** Start a mark drag, or null when this part/kind has no drag meaning. */
+export const beginChartMarkDrag = beginSharedChartMarkDrag;
+
+/** Advance an in-flight mark drag to the pointer's current client position. */
+export const advanceChartMarkDrag = advanceSharedChartMarkDrag;
+
+/** State of an in-flight pie/radar/stacked mark drag. */
+export type ActiveMarkDrag = ChartMarkDragState;

@@ -27,6 +27,7 @@ import { ShieldAlert } from 'lucide-vue-next';
 import { hasShapeProperties, PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, PptxTheme, ShapeStyle } from 'pptx-viewer-core';
 import {
+	buildDeckSaveOptions,
 	buildFieldSubstitutionContext,
 	buildUserFontFaceStyles,
 	canInteractWithElement,
@@ -45,6 +46,7 @@ import {
 	resolveAuthoredSlideRange,
 	resolveImageResolutionScale,
 	resolveOptionRootClasses,
+	resolveSlideSizeSelection,
 	shouldClearAutosaveCacheOnClose,
 	shouldOpenInProtectedView,
 	shouldShowAutosaveRecoveryPrompt,
@@ -153,6 +155,7 @@ import { useSlideTemplateInsertion } from './composables/useSlideTemplateInserti
 import { useSmartArtNodeEditContext } from './composables/useSmartArtNodeEditContext';
 import { useSwipeNavigation } from './composables/useSwipeNavigation';
 import { useTableCellEditingContext } from './composables/useTableCellEditingContext';
+import { useTableStyleMapHandlers } from './composables/useTableStyleMapHandlers';
 import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
@@ -823,6 +826,18 @@ const deckActions = useInspectorDeckActions({
 	},
 });
 
+// -- Table style DEFINITION editor ("Edit style...") persistence: threads
+// edits/deletes from the element inspector's table panel into `deck`'s
+// mutable `tableStyleMap`/`tableStylesToDelete`, which `deck.serialize`
+// forwards to every `handler.save(...)` call via `tableStyleSaveOptions`.
+const tableStyleMapHandlers = useTableStyleMapHandlers({
+	tableStyleMap: deck.tableStyleMap,
+	tableStylesToDelete: deck.tableStylesToDelete,
+	markDirty: () => {
+		autosave.isDirty.value = true;
+	},
+});
+
 // -- Comments ----------------------------------------------------------
 // An explicit host `authorName` wins; otherwise fall back to the user's own
 // Options > General > "User name" before the generic "You".
@@ -855,6 +870,32 @@ const collaboration = useCollaborationWiring({
 		}
 		return c instanceof Uint8Array ? c : new Uint8Array(c);
 	},
+	// Session-level save options (view properties, table styles, tags, deck
+	// properties, ...), built the same way as `deck.serialize`, so an owner's
+	// write-back file no longer drops every session-level edit outside `slides`.
+	getSaveOptions: () =>
+		buildDeckSaveOptions({
+			headerFooter: headerFooter.value,
+			presentationProperties: presentationProperties.value,
+			viewProperties: viewProperties.value,
+			customShows: customShows.value,
+			sections: sections.value,
+			coreProperties: coreProperties.value,
+			appProperties: appProperties.value,
+			customProperties: customProperties.value,
+			tagCollections: tagCollections.value,
+			slideMasters: slideMasters.value,
+			notesMaster: notesMaster.value,
+			handoutMaster: handoutMaster.value,
+			slideSize: resolveSlideSizeSelection({
+				current: deck.slideSize.value,
+				canvas: canvasSize.value,
+			}).size,
+			tableStyleMap: tableStyleMap.value,
+			tableStylesDefaultId: deck.tableStylesDefaultId.value,
+			tableStylesToDelete: deck.tableStylesToDelete.value,
+			embedFonts: fontEmbedding.embedFontsEnabled.value,
+		}),
 	initialUserColor: props.collaboration?.userColor,
 	canvasWidth: computed(() => canvasSize.value.width),
 	canvasHeight: computed(() => canvasSize.value.height),
@@ -1270,6 +1311,10 @@ const aiBridge = useAiBridge({
 	customProperties,
 	coreProperties,
 	appProperties,
+	viewProperties,
+	tableStyleMap,
+	tableStylesDefaultId: deck.tableStylesDefaultId,
+	tagCollections,
 	fileName: () => props.fileName,
 	pushHistory: history.pushHistory,
 	markDirty: () => {
@@ -1741,6 +1786,8 @@ defineExpose<PowerPointViewerExpose>(
 					:go-to="goTo"
 					:on-inspector-update="inspector.onInspectorUpdate"
 					:on-update-slide-animations="inspector.writeSlideAnimations"
+					:on-table-style-map-change="tableStyleMapHandlers.onTableStyleMapChange"
+					:on-delete-table-style="tableStyleMapHandlers.onDeleteTableStyle"
 					:on-slide-update="applySlideBackgroundPatch"
 					:on-presentation-update="slideShow.onPresentationPropertiesUpdate"
 				/>
@@ -1916,6 +1963,8 @@ defineExpose<PowerPointViewerExpose>(
 				:on-notes-update="onNotesUpdate"
 				:on-inspector-update="inspector.onInspectorUpdate"
 				:on-update-slide-animations="inspector.writeSlideAnimations"
+				:on-table-style-map-change="tableStyleMapHandlers.onTableStyleMapChange"
+				:on-delete-table-style="tableStyleMapHandlers.onDeleteTableStyle"
 				:on-slide-update="applySlideBackgroundPatch"
 				:on-presentation-update="slideShow.onPresentationPropertiesUpdate"
 				:on-select-element="selectionPane.onSelectionPaneSelect"

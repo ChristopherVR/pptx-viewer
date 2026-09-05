@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollabLoadOrigin,
 	CollaborationConfig,
@@ -24,6 +24,13 @@ export interface UseCollaborationWiringInput {
 	getTemplateElements: () => Record<string, PptxElement[]>;
 	/** Retain the loaded source bytes for elected-writer (role 'owner') write-back. */
 	getSourceBytes: () => Uint8Array | null;
+	/**
+	 * Session-level save options (view properties, table styles, tags, deck
+	 * properties, ...), built the same way as the Save/Export path. Without
+	 * this the elected-writer write-back dropped every session-level edit
+	 * outside `slides`.
+	 */
+	getSaveOptions: () => PptxHandlerSaveOptions;
 	/** This user's initial cursor/label colour (read once, matching `useCollaboration`'s own option). */
 	initialUserColor: string | undefined;
 	canvasWidth: ComputedRef<number>;
@@ -76,6 +83,7 @@ export function useCollaborationWiring(
 		getLoadOrigin,
 		getTemplateElements,
 		getSourceBytes,
+		getSaveOptions,
 		initialUserColor,
 		canvasWidth,
 		canvasHeight,
@@ -100,6 +108,7 @@ export function useCollaborationWiring(
 		},
 		getTemplateElements,
 		getSourceBytes,
+		getSaveOptions,
 		userColor: initialUserColor,
 		canvasWidth,
 		canvasHeight,

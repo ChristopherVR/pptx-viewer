@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next';
 import type { ChartPptxElement, PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
-import { GROUPING_OPTIONS, GROUPING_SUPPORTED_TYPES, CHART_TYPE_OPTIONS } from 'pptx-viewer-shared';
+import {
+	collapseChartTitleRunsForEdit,
+	GROUPING_OPTIONS,
+	GROUPING_SUPPORTED_TYPES,
+	CHART_TYPE_OPTIONS,
+} from 'pptx-viewer-shared';
 import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -106,7 +111,15 @@ function onTypeChange(event: Event): void {
 }
 
 function onTitleInput(event: Event): void {
-	editing.patchChartData({ title: (event.target as HTMLInputElement).value });
+	// A multi-run title collapses to one run in its dominant style so an edit
+	// does not leave another, now-stale run's text trailing the new title;
+	// see `collapseChartTitleRunsForEdit`'s doc.
+	editing.patchChartData(
+		collapseChartTitleRunsForEdit(
+			chartData.value ?? undefined,
+			(event.target as HTMLInputElement).value,
+		),
+	);
 }
 
 function onGroupingChange(event: Event): void {

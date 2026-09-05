@@ -37,7 +37,7 @@ import {
 import type { DeckSaveIntent, DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
 	applyImagePathPatches,
-	embeddedFontSaveOptions,
+	buildDeckSaveOptions,
 	resolveSlideSizeSelection,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
@@ -187,6 +187,14 @@ export interface UseLoadContentResult {
 	 * header colour resolution by table-style GUID.
 	 */
 	tableStyleMap: ShallowRef<ParsedTableStyleMap | undefined>;
+	/** `ppt/tableStyles.xml`'s `<a:tblStyleLst @def>` default style GUID. */
+	tableStylesDefaultId: ShallowRef<string | undefined>;
+	/**
+	 * Style GUIDs deleted from `tableStyleMap` via the table style editor,
+	 * pending removal from `ppt/tableStyles.xml` on the next save. See
+	 * `tableStyleSaveOptions` / `applyTableStyleDelete` in `pptx-viewer-shared`.
+	 */
+	tableStylesToDelete: ShallowRef<string[]>;
 	/** Ordered presentation sections (`p:sectionLst`), empty when none. */
 	sections: ShallowRef<PptxSection[]>;
 	/** Named custom slide shows (`p:custShowLst`), empty when none. */
@@ -313,6 +321,8 @@ export function useLoadContent(
 	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
 	const signatures = shallowRef<ParsedSignature[]>([]);
 	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
+	const tableStylesDefaultId = shallowRef<string | undefined>(undefined);
+	const tableStylesToDelete = shallowRef<string[]>([]);
 	const sections = shallowRef<PptxSection[]>([]);
 	const customShows = shallowRef<PptxCustomShow[]>([]);
 	const modernCommentAuthors = shallowRef<PptxModernCommentAuthor[]>([]);
@@ -506,6 +516,8 @@ export function useLoadContent(
 			tagCollections.value = parsed.tags ?? [];
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
 			tableStyleMap.value = nextTableStyleMap;
+			tableStylesDefaultId.value = parsed.tableStylesDefaultId;
+			tableStylesToDelete.value = [];
 			sections.value = parsed.sections ?? [];
 			customShows.value = parsed.customShows ?? [];
 			modernCommentAuthors.value = parsed.modernCommentAuthors ?? [];
@@ -567,7 +579,7 @@ export function useLoadContent(
 		return saveDeckWithPassword(
 			handler.value,
 			buildSaveSlides(slides.value, templateElementsBySlideId.value),
-			{
+			buildDeckSaveOptions({
 				coreProperties: coreProperties.value,
 				customProperties: customProperties.value,
 				appProperties: appProperties.value,
@@ -585,12 +597,19 @@ export function useLoadContent(
 				slideMasters: slideMasters.value,
 				notesMaster: notesMaster.value,
 				handoutMaster: handoutMaster.value,
-				tags: tagCollections.value.length > 0 ? tagCollections.value : undefined,
+				tagCollections: tagCollections.value,
+				// Without this core falls back to `viewProps.xml` as it was FIRST
+				// opened, so every View-ribbon grid/guide/snap toggle silently
+				// reverted at the file boundary.
+				viewProperties: viewProperties.value,
+				tableStyleMap: tableStyleMap.value,
+				tableStylesDefaultId: tableStylesDefaultId.value,
+				tableStylesToDelete: tableStylesToDelete.value,
 				outputFormat: format,
 				// The Fonts panel's toggle used to move and change nothing; it now
 				// decides whether the deck's embedded font data survives the save.
-				...embeddedFontSaveOptions(options?.getEmbedFonts?.() ?? true),
-			},
+				embedFonts: options?.getEmbedFonts?.() ?? true,
+			}),
 			{ ...options?.getSaveIntent?.(), purpose },
 		);
 	};
@@ -645,6 +664,8 @@ export function useLoadContent(
 		embeddedFonts,
 		signatures,
 		tableStyleMap,
+		tableStylesDefaultId,
+		tableStylesToDelete,
 		sections,
 		customShows,
 		modernCommentAuthors,

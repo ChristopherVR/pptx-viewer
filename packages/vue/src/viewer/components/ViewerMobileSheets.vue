@@ -11,6 +11,7 @@
  * cosmetic one; it lives on the single `v-if` below.
  */
 import type {
+	ParsedTableStyleMap,
 	PptxComment,
 	PptxElement,
 	PptxNotesMaster,
@@ -61,6 +62,8 @@ const props = defineProps<{
 	onNotesUpdate: (notes: string) => void;
 	onInspectorUpdate: (patch: Partial<PptxElement>) => void;
 	onUpdateSlideAnimations: (animations: PptxSlide['animations']) => void;
+	onTableStyleMapChange: (nextMap: ParsedTableStyleMap) => void;
+	onDeleteTableStyle: (styleId: string) => void;
 	onSlideUpdate: (patch: Partial<PptxSlide>) => void;
 	onPresentationUpdate: (patch: Partial<PptxPresentationProperties>) => void;
 	onSelectElement: (id: string) => void;
@@ -144,6 +147,8 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 			:comments="comments"
 			:on-update="onInspectorUpdate"
 			:on-update-slide-animations="onUpdateSlideAnimations"
+			:on-table-style-map-change="onTableStyleMapChange"
+			:on-delete-table-style="onDeleteTableStyle"
 			:on-slide-update="onSlideUpdate"
 			:on-presentation-update="onPresentationUpdate"
 			:on-select-element="onSelectElement"

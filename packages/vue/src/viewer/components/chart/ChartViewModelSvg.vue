@@ -131,7 +131,20 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 			:fill="vm.titleStyle?.fill ?? '#1e293b'"
 			data-chart-part="title"
 		>
-			{{ vm.title }}
+			<template v-if="vm.titleRunSpans && vm.titleRunSpans.length > 0">
+				<tspan
+					v-for="(run, i) in vm.titleRunSpans"
+					:key="`${elementId}-title-run-${i}`"
+					:font-size="run.fontSize"
+					:font-weight="run.fontWeight"
+					:font-style="run.fontStyle"
+					:font-family="run.fontFamily"
+					:fill="run.fill"
+				>
+					{{ run.text }}
+				</tspan>
+			</template>
+			<template v-else>{{ vm.title }}</template>
 		</text>
 
 		<line
