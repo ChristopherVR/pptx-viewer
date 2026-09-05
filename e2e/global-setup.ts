@@ -8,6 +8,7 @@ import { generateMasterViewsFixture } from './fixtures/generate-master-views-fix
 import { generateMorphShapeSwapFixture } from './fixtures/generate-morph-shape-swap-fixture';
 import { generateInkFixture, generateOleFixture } from './fixtures/generate-ole-ink-fixtures';
 import { generateParityWave4Fixture } from './fixtures/generate-parity-wave4-fixture';
+import { generatePresetTextInsetsFixture } from './fixtures/generate-preset-text-insets-fixture';
 import { generateFixture as generateTemplateEditingFixture } from './fixtures/generate-template-editing-fixture';
 import {
 	generateTemplateGroupFixture,
@@ -16,6 +17,7 @@ import {
 import { generateTextBodyFixture } from './fixtures/generate-text-body-fixture';
 import { generateTextLayoutFixture } from './fixtures/generate-text-layout-fixture';
 import { generateFixture as generateTransitionsAnimationsFixture } from './fixtures/generate-transitions-animations-fixture';
+import { generateUnderlineWordsFixture } from './fixtures/generate-underline-words-fixture';
 
 export default async function globalSetup() {
 	// Before anything else: a stale dist means the run tests code that is not on
@@ -37,4 +39,6 @@ export default async function globalSetup() {
 	await generateMorphShapeSwapFixture();
 	await generateLineFillFidelityFixture();
 	await generateParityWave4Fixture();
+	await generateUnderlineWordsFixture();
+	await generatePresetTextInsetsFixture();
 }
