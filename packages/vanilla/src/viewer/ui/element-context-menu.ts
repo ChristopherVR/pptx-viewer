@@ -15,6 +15,7 @@
  */
 import {
 	buildContextMenuEntries,
+	canInteractWithElement,
 	clampFlyoutPosition,
 	isElementIdInteractive,
 	resolveContextMenuElementId,
@@ -192,6 +193,13 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 				elementType: element?.type ?? null,
 				table: table?.context ?? null,
 				hasMultiSelection: next.selectedElementIds.length > 1,
+				// G10: lock-only half of Group/Ungroup gating
+				// (`a:spLocks`/`a:grpSpLocks` `@noGrp`), mirroring the guard
+				// `editor-arrange-mutations.ts`'s `groupSelection`/`ungroupSelection`
+				// already enforce on the commands themselves.
+				selectionGroupable: next.selectedElementIds.every((selectedId) =>
+					canInteractWithElement(findActiveElement(next, selectedId) ?? null, 'group'),
+				),
 				aiEnabled: deps.getAi() !== null,
 				hasClipboard: next.clipboardPayload !== null,
 			}),

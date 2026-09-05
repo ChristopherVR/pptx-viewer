@@ -1,11 +1,11 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import {
-	applyChartBuildReveal,
 	buildChartViewModel,
 	chartPlaceholderLabel,
 	getChartStylePalette,
 	getContainerStyle,
 	resolveChartKind,
+	resolveRevealedChartData,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
@@ -113,13 +113,12 @@ export const renderChartSvgElement: ElementRenderer = (element, zIndex, context)
 	container.dataset.elementId = element.id;
 
 	// Native staged chart build (`p:bldChart`): during a running presentation the
-	// controller surfaces a `build` descriptor whose `progress` (0..1) trims the
+	// controller surfaces a `build`/`chartReveal` descriptor that trims the
 	// chart to the stages revealed so far. Mirrors Vue's `ChartRenderer` reveal.
-	const build = context.presentationStates?.get(element.id)?.build;
-	const chartData =
-		build?.kind === 'chart' && element.chartData
-			? applyChartBuildReveal(element.chartData, build)
-			: element.chartData;
+	const animationState = context.presentationStates?.get(element.id);
+	const chartData = element.chartData
+		? resolveRevealedChartData(element.chartData, animationState)
+		: element.chartData;
 	if (!chartData || chartData.series.length === 0) {
 		container.appendChild(renderChartPlaceholder(doc, chartData?.chartType ?? 'bar', context.t));
 		return container;

@@ -5,6 +5,7 @@ import {
 	cancelBuildReveal,
 	playGroup,
 	PresentationAnimationController,
+	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
 
@@ -185,6 +186,7 @@ export function createPresentationPlayback(): PresentationPlayback {
 		stopTransition();
 		clearTimers();
 		controller = null;
+		ctx.mediaTimeNodeElementIds = new Map();
 		elementStates.clear();
 		currentStage = null;
 		previousStage = null;
@@ -192,6 +194,9 @@ export function createPresentationPlayback(): PresentationPlayback {
 
 	const enterSlide = (slide: PptxSlide, doc: Document, completed = false): void => {
 		controller = PresentationAnimationController.fromSlide(slide);
+		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
+		// element's `ended` event instead of only its estimated `delayMs`.
+		ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);
 		injectSlideKeyframes(doc, controller.keyframesCss);
 		commitStates(controller.computeStates());
 		seededCompleted = false;

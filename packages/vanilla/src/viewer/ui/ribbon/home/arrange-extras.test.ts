@@ -38,27 +38,78 @@ describe('createArrangeExtras', () => {
 		const stroke = extras.el.querySelector('input') as HTMLInputElement;
 
 		// Not editable: everything disabled regardless of selection.
-		extras.update({ editable: false, selectedCount: 2, selectedElement: groupElement() });
+		extras.update({
+			editable: false,
+			selectedCount: 2,
+			selectionGroupable: true,
+			selectedElement: groupElement(),
+		});
 		expect(group.disabled).toBeTruthy();
 		expect(ungroup.disabled).toBeTruthy();
 		expect(stroke.disabled).toBeTruthy();
 
 		// Editable, two shapes selected (no single active element): Group enabled,
 		// Ungroup/stroke gated on there being an active element that qualifies.
-		extras.update({ editable: true, selectedCount: 2, selectedElement: undefined });
+		extras.update({
+			editable: true,
+			selectedCount: 2,
+			selectionGroupable: true,
+			selectedElement: undefined,
+		});
 		expect(group.disabled).toBeFalsy();
 		expect(ungroup.disabled).toBeTruthy();
 		expect(stroke.disabled).toBeTruthy();
 
 		// Editable, a single shape selected: stroke width editable, shows its value.
-		extras.update({ editable: true, selectedCount: 1, selectedElement: shapeElement(3) });
+		extras.update({
+			editable: true,
+			selectedCount: 1,
+			selectionGroupable: true,
+			selectedElement: shapeElement(3),
+		});
 		expect(stroke.disabled).toBeFalsy();
 		expect(stroke.value).toBe('3');
 		expect(ungroup.disabled).toBeTruthy();
 
 		// Editable, a group selected: Ungroup enabled.
-		extras.update({ editable: true, selectedCount: 1, selectedElement: groupElement() });
+		extras.update({
+			editable: true,
+			selectedCount: 1,
+			selectionGroupable: true,
+			selectedElement: groupElement(),
+		});
 		expect(ungroup.disabled).toBeFalsy();
+	});
+
+	it('disables Group when a:spLocks/@noGrp locks a selected element even with two selected', () => {
+		const handlers = { groupSelected: vi.fn(), ungroupSelected: vi.fn(), setStrokeWidth: vi.fn() };
+		const extras = createArrangeExtras(document, createTranslator(), handlers);
+		const group = extras.el.querySelector('button:nth-of-type(1)') as HTMLButtonElement;
+
+		extras.update({
+			editable: true,
+			selectedCount: 2,
+			selectionGroupable: false,
+			selectedElement: undefined,
+		});
+
+		expect(group.disabled).toBeTruthy();
+	});
+
+	it('disables Ungroup when a:grpSpLocks/@noGrp is set on the group itself', () => {
+		const handlers = { groupSelected: vi.fn(), ungroupSelected: vi.fn(), setStrokeWidth: vi.fn() };
+		const extras = createArrangeExtras(document, createTranslator(), handlers);
+		const ungroup = extras.el.querySelector('button:nth-of-type(2)') as HTMLButtonElement;
+		const lockedGroup = { ...groupElement(), locks: { noGrouping: true } } as PptxElement;
+
+		extras.update({
+			editable: true,
+			selectedCount: 1,
+			selectionGroupable: true,
+			selectedElement: lockedGroup,
+		});
+
+		expect(ungroup.disabled).toBeTruthy();
 	});
 
 	it('falls back to the shared DEFAULT_STROKE_WIDTH for a shape with no explicit width', () => {
@@ -66,7 +117,12 @@ describe('createArrangeExtras', () => {
 		const extras = createArrangeExtras(document, createTranslator(), handlers);
 		const stroke = extras.el.querySelector('input') as HTMLInputElement;
 
-		extras.update({ editable: true, selectedCount: 1, selectedElement: shapeElement(undefined) });
+		extras.update({
+			editable: true,
+			selectedCount: 1,
+			selectionGroupable: true,
+			selectedElement: shapeElement(undefined),
+		});
 
 		expect(stroke.value).toBe('1');
 	});

@@ -21,6 +21,8 @@ export interface ArrangeExtrasState {
 	editable: boolean;
 	/** How many elements the multi-select holds; Group needs two. */
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	selectedElement: PptxElement | undefined;
 }
 
@@ -85,9 +87,9 @@ export function createArrangeExtras(
 
 	return {
 		el,
-		update({ editable, selectedCount, selectedElement }) {
+		update({ editable, selectedCount, selectionGroupable, selectedElement }) {
 			const element = selectedElement ?? null;
-			group.setDisabled(!canGroupSelection(editable, selectedCount));
+			group.setDisabled(!canGroupSelection(editable, selectedCount, selectionGroupable));
 			ungroup.setDisabled(!canUngroupSelection(editable, element));
 			stroke.disabled = !canSetStrokeWidth(editable, element);
 			const width = strokeWidthOf(element);

@@ -1,5 +1,6 @@
 import type {
 	ChartPartRef,
+	ChartSvgDef,
 	ChartViewModel,
 	SvgLine,
 	SvgPrimitive,
@@ -31,6 +32,16 @@ export function renderChartViewModelSvg(
 		preserveAspectRatio,
 	});
 	applyStyleMap(svg, { width: '100%', height: '100%', display: 'block' });
+
+	// c:dPt/c:pictureOptions picture-fill patterns, rendered before anything
+	// references them via fill="url(#...)".
+	if (vm.defs && vm.defs.length > 0) {
+		const defs = createSvgEl(doc, 'defs', {});
+		for (const def of vm.defs) {
+			defs.appendChild(renderPatternDef(doc, def));
+		}
+		svg.appendChild(defs);
+	}
 
 	// Skipped entirely when the deck declares `<a:noFill/>` on `c:chartSpace`:
 	// an SVG `rect` with no `fill` paints black, so the element must not exist.
@@ -175,6 +186,29 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 		case 'areaGradient':
 			return null;
 	}
+}
+
+/** One `ChartSvgDef` (a data point's picture-fill `<pattern>`) to its SVG node. */
+function renderPatternDef(doc: Document, def: ChartSvgDef): SVGElement {
+	const pattern = createSvgEl(doc, 'pattern', {
+		id: def.id,
+		patternUnits: def.patternUnits,
+		x: def.x,
+		y: def.y,
+		width: def.width,
+		height: def.height,
+	});
+	pattern.appendChild(
+		createSvgEl(doc, 'image', {
+			href: def.href,
+			x: 0,
+			y: 0,
+			width: def.width,
+			height: def.height,
+			preserveAspectRatio: def.preserveAspectRatio,
+		}),
+	);
+	return pattern;
 }
 
 function renderLine(doc: Document, line: SvgLine): SVGLineElement {

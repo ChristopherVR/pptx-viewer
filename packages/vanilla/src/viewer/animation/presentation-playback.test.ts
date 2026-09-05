@@ -429,4 +429,51 @@ describe('createPresentationPlayback transition sound (p:sndAc/p:stSnd, p:endSnd
 		});
 		expect(stopAnimationSound).toHaveBeenCalledWith();
 	});
+
+	// G13: an `onStopAudio`-gated effect should start from the REAL `<audio>`
+	// element's `ended` event, not only the estimated `delayMs` baked into its
+	// cssAnimation at build time.
+	it('gates an onStopAudio-dependent effect on the real media ended event', () => {
+		const playback = createPresentationPlayback();
+		const stage = buildStage(doc, ['el1']);
+		// `findMediaElementByElementId` matches either the wrapper itself or a
+		// nested `<video>`/`<audio>`, mirroring how a real media element renders.
+		const audioWrapper = doc.createElement('div');
+		audioWrapper.dataset.elementId = 'audio1';
+		const audio = doc.createElement('audio');
+		audioWrapper.appendChild(audio);
+		stage.appendChild(audioWrapper);
+		stageWrap.appendChild(stage);
+
+		const mediaAnim: PptxNativeAnimation = {
+			targetId: 'audio1',
+			nodeId: 5,
+			kind: 'media',
+			presetClass: 'entr',
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation;
+		const dependentAnim: PptxNativeAnimation = {
+			targetId: 'el1',
+			presetClass: 'entr',
+			trigger: 'afterPrevious',
+			startConditions: [{ event: 'onStopAudio', delay: 0, targetTimeNodeId: 5 }],
+		} as unknown as PptxNativeAnimation;
+
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage,
+			slide: slideWith([shapeElement('audio1'), shapeElement('el1')], [mediaAnim, dependentAnim]),
+			slideIndex: 0,
+			presenting: true,
+		});
+		expect(playback.advance()).toBeTruthy();
+
+		const el1 = stage.querySelector<HTMLElement>('[data-element-id="el1"]');
+		const before = el1?.style.animation;
+		expect(before).toBeTruthy();
+
+		audio.dispatchEvent(new Event('ended'));
+		expect(el1?.style.animation).toContain(' 0ms ');
+	});
 });

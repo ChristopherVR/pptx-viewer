@@ -17,6 +17,7 @@ import { tokenSelect } from './chart-exhaustive-controls';
 import { createChartExhaustiveSection } from './chart-exhaustive-section';
 import { createChartPointIndexField } from './chart-point-index';
 import { createChartSubtypeSection } from './chart-subtype-section';
+import { createChartUserShapeSection } from './chart-user-shape-section';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -90,6 +91,14 @@ export function createChartSection(
 	// wireframe): shown beside the advanced section's gridlines toggle and the
 	// exhaustive section's secondary-axis control, same wave.
 	const subtype = createChartSubtypeSection(doc, t, (data) => handlers.setChartData(data));
+	// Overlay-shape edits (`c:userShapes`) only ever touch `userShapes`, so a
+	// shallow patch merged onto `current` is enough; unlike the sections above
+	// it never needs a full replacement chart-data object.
+	const userShapes = createChartUserShapeSection(doc, t, (patch) => {
+		if (current) {
+			handlers.setChartData({ ...current, ...patch });
+		}
+	});
 	el.append(
 		title.label,
 		chartType.label,
@@ -100,6 +109,7 @@ export function createChartSection(
 		advanced.el,
 		subtype.el,
 		exhaustive.el,
+		userShapes.el,
 	);
 
 	let current: PptxChartData | undefined;
@@ -164,6 +174,7 @@ export function createChartSection(
 			advanced.update(current);
 			subtype.update(current);
 			exhaustive.update(current);
+			userShapes.update(current);
 		},
 	};
 }

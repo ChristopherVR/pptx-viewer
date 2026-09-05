@@ -251,6 +251,8 @@ export interface RibbonSelectionState {
 	hasClipboard: boolean;
 	slideCount: number;
 	selectedCount?: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable?: boolean;
 	formatPainterActive?: boolean;
 	selectedElementId?: string;
 	animations?: readonly PptxElementAnimation[];

@@ -18,14 +18,10 @@ import type {
 import {
 	actionAffordanceLabels,
 	applyElementActionAffordances,
-	getAriaLabel,
-	getAriaRole,
-	getAriaRoleDescription,
+	applyRenderedElementAccessibility,
 	getSlideBackgroundStyle,
-	isElementActionable,
 	isElementRendered,
 	isTemplateElementId,
-	PRESENTATION_STAGE_ATTRIBUTE,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -159,14 +155,6 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		stage.setAttribute('aria-roledescription', 'slide');
 		stage.setAttribute('aria-label', t('pptx.canvas.slide'));
 	}
-	// Marks a RUNNING show so `PRESENTATION_HIT_TEST_CSS` makes its scenery
-	// pointer-transparent: only action shapes, media transport and links take a
-	// click, exactly as in PowerPoint. The other bindings get this attribute
-	// from the shared accessibility pass, which this stage does not use.
-	if (options.presenting) {
-		stage.setAttribute(PRESENTATION_STAGE_ATTRIBUTE, 'true');
-	}
-
 	const context: ElementRenderContext = {
 		document: doc,
 		slide,
@@ -220,7 +208,6 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 					node.style.pointerEvents = 'none';
 				}
 				node.setAttribute('data-pptx-element', 'true');
-				applyElementAccessibility(node, element);
 			}
 			return node;
 		},
@@ -234,6 +221,20 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 			stage.appendChild(node);
 		}
 	});
+
+	// Give every interactive rendered element the same shared role/label/
+	// decorative model the other four bindings apply at their own stage
+	// boundary. This used to be a hand-rolled subset with no "Mark as
+	// decorative" (G16) handling at all, so a decorative picture (or any other
+	// decorative element) stayed announced to assistive tech in this binding
+	// alone; it also stays at the stage boundary (rather than per-renderer) so
+	// custom host renderers receive it too, and thumbnails do not duplicate the
+	// slide's screen-reader tree.
+	if (interactive) {
+		applyRenderedElementAccessibility(stage, slide.elements, {
+			presenting: options.presenting ?? false,
+		});
+	}
 
 	// Authoring chrome for an Action Setting (amber "has action" badge + hover
 	// link tooltip). Applied here, once the stage is assembled, rather than
@@ -265,32 +266,4 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 	}
 
 	return stage;
-}
-
-/**
- * Give every interactive rendered element the same shared accessibility
- * metadata used by React. This stays at the stage boundary so custom host
- * renderers receive it too, and thumbnails do not duplicate the slide's
- * screen-reader tree.
- */
-function applyElementAccessibility(node: HTMLElement | SVGElement, element: PptxElement): void {
-	// Actionable elements (click/hover action, text hyperlink, zoom tile) are
-	// announced as buttons, matching React's element renderer.
-	const actionable = isElementActionable(element);
-	// The neutral marker `PRESENTATION_INERT_CLICK_SELECTOR` keys off: an
-	// element that owns its own click must never also step the slide show on.
-	if (actionable) {
-		node.setAttribute('data-pptx-action', 'click');
-	} else {
-		node.removeAttribute('data-pptx-action');
-	}
-	const role = getAriaRole(element, { actionable });
-	if (role !== undefined) {
-		node.setAttribute('role', role);
-	}
-	node.setAttribute('aria-label', getAriaLabel(element));
-	const roleDescription = getAriaRoleDescription(element);
-	if (roleDescription !== undefined) {
-		node.setAttribute('aria-roledescription', roleDescription);
-	}
 }

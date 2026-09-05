@@ -203,6 +203,21 @@ describe('mountElementContextMenu', () => {
 		context.destroy();
 	});
 
+	it('disables Group when a:spLocks/@noGrp locks a selected element', () => {
+		const locked = shapeSlide();
+		(locked.elements[0] as { locks?: { noGrouping: boolean } }).locks = { noGrouping: true };
+		const context = harness(locked, {
+			state: { selectedElementId: 'el-2', selectedElementIds: ['el-1', 'el-2'] },
+		});
+		rightClick(context.target);
+
+		const group = Array.from(
+			document.querySelectorAll<HTMLButtonElement>('.pptxv-context-menu-item'),
+		).find((node) => node.textContent === 'Group');
+		expect(group?.disabled).toBeTruthy();
+		context.destroy();
+	});
+
 	it('dismisses on Escape and on a click outside the menu', () => {
 		const context = harness(shapeSlide());
 

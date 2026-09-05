@@ -223,6 +223,7 @@ export function createRibbon(
 			formatPainterActive: latestExtra.formatPainterActive ?? false,
 			slideCount: latestExtra.slideCount,
 			selectedCount: latestExtra.selectedCount ?? 0,
+			selectionGroupable: latestExtra.selectionGroupable ?? true,
 			layouts: latestExtra.layouts ?? [],
 			layoutPreviews: latestExtra.layoutPreviews,
 			currentLayoutPath: latestExtra.currentLayoutPath,

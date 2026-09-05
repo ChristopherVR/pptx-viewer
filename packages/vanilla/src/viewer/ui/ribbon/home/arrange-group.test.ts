@@ -61,6 +61,7 @@ const selected = {
 	hasSelection: true,
 	formatPainterActive: false,
 	selectedCount: 1,
+	selectionGroupable: true,
 	selectedElement: shape(),
 };
 

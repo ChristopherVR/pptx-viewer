@@ -7,11 +7,14 @@ import type { ElementRenderContext } from '../types';
 import { renderChartElement, resolveChartPalette } from './chart';
 import { registerTableChartRenderers } from './register-table-chart';
 
-function buildContext(): ElementRenderContext {
+function buildContext(
+	presentationStates?: ElementRenderContext['presentationStates'],
+): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	registerTableChartRenderers(registry);
 	const context: ElementRenderContext = {
 		document,
+		presentationStates,
 		slide: { id: 'slide-1', rId: 'rId1', slideNumber: 1, elements: [] },
 		canvasSize: { width: 1280, height: 720 },
 		scale: 1,
@@ -99,6 +102,55 @@ describe('renderChartElement', () => {
 		const southBars = Array.from(bars).filter((b) => b.getAttribute('fill') === '#123456');
 		expect(southBars).toHaveLength(3);
 		expect(southBars[0]?.getAttribute('data-chart-series')).toBe('1');
+	});
+
+	it('reveals only the authored p:graphicEl series via animationState.chartReveal (reverse-order build)', () => {
+		// "Enter by Series, Reverse Order" fires series 1 ("South") before series
+		// 0: the reveal must show exactly {1}, not a forward-count guess.
+		const context = buildContext(
+			new Map([
+				[
+					'el-chart',
+					{
+						visible: true,
+						cssAnimation: undefined,
+						chartReveal: {
+							mode: 'bySeries',
+							descriptor: {
+								background: true,
+								series: new Set([1]),
+								categories: new Set(),
+								points: [],
+							},
+						},
+					},
+				],
+			]),
+		);
+		const node = renderChartElement(buildChartElement(barChartData()), 5, context) as HTMLElement;
+		const svg = node.querySelector('svg') as SVGSVGElement;
+		const bars = svg.querySelectorAll('rect[data-chart-part="dataPoint"]');
+		expect(bars).toHaveLength(3);
+		expect(bars[0]?.getAttribute('data-chart-series')).toBe('0');
+		expect(svg.querySelectorAll('g.pptxv-chart-legend-item')).toHaveLength(1);
+	});
+
+	it('falls back to count-based reveal (animationState.build) when chartReveal is absent', () => {
+		const context = buildContext(
+			new Map([
+				[
+					'el-chart',
+					{
+						visible: true,
+						cssAnimation: undefined,
+						build: { kind: 'chart', mode: 'bySeries', progress: 0.1 },
+					},
+				],
+			]),
+		);
+		const node = renderChartElement(buildChartElement(barChartData()), 5, context) as HTMLElement;
+		const svg = node.querySelector('svg') as SVGSVGElement;
+		expect(svg.querySelectorAll('rect[data-chart-part="dataPoint"]')).toHaveLength(3);
 	});
 
 	it('renders bar chart chrome: title, gridlines, axis + category labels, legend', () => {

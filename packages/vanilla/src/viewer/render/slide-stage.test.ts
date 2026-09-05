@@ -219,6 +219,61 @@ describe('renderSlideStage', () => {
 		).toBeNull();
 	});
 
+	/**
+	 * `image.ts`'s own `<img>` has always hardcoded `alt=""`, matching every
+	 * other binding's own image renderer (React, Vue, Angular, Svelte all do
+	 * the same): the real accessible name and "Mark as decorative" (G16) state
+	 * belong on the CONTAINER `applyRenderedElementAccessibility` labels, not
+	 * duplicated onto the native `<img>`. This binding's stage used to run a
+	 * hand-rolled subset of that shared pass with no decorative handling at
+	 * all, so a picture's authored alt text reached the container fine but
+	 * "Mark as decorative" never did (`isElementMarkedDecorative` was never
+	 * consulted): a decorative picture stayed announced to assistive tech in
+	 * this binding alone.
+	 */
+	it('reaches the DOM with a picture element own alt text and its decorative flag', () => {
+		const slide = buildSlide();
+		slide.elements = [
+			{
+				type: 'image',
+				id: 'el-alt',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 100,
+				imageData: PNG_DATA_URL,
+				altText: 'A cat on a mat',
+			},
+			{
+				type: 'image',
+				id: 'el-decorative',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 100,
+				imageData: PNG_DATA_URL,
+				isDecorative: true,
+			},
+		] as PptxSlide['elements'];
+		const stage = renderSlideStage({
+			document,
+			slide,
+			canvasSize: { width: 1280, height: 720 },
+			mediaDataUrls: new Map<string, string>(),
+			registry: createDefaultRegistry(),
+			t: createTranslator(),
+			interactive: true,
+		});
+
+		const withAlt = stage.querySelector<HTMLElement>('[data-element-id="el-alt"]');
+		expect(withAlt?.getAttribute('aria-label')).toBe('A cat on a mat');
+		expect(withAlt?.getAttribute('aria-hidden')).toBeNull();
+		expect(withAlt?.querySelector('img')?.alt).toBe('');
+
+		const decorative = stage.querySelector<HTMLElement>('[data-element-id="el-decorative"]');
+		expect(decorative?.getAttribute('aria-hidden')).toBe('true');
+	});
+
 	it('announces an action-carrying shape as a button, like React does', () => {
 		const slide = buildSlide();
 		slide.elements = [

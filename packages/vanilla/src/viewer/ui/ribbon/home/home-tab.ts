@@ -34,6 +34,8 @@ export interface HomeTabSyncState {
 	hasClipboard: boolean;
 	slideCount: number;
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	formatPainterActive: boolean;
 	layouts: readonly LayoutOption[];
 	/** Artwork for the layout gallery thumbnails, keyed by layout path. */
@@ -163,6 +165,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 			hasClipboard,
 			slideCount,
 			selectedCount,
+			selectionGroupable,
 			formatPainterActive,
 			layouts,
 			layoutPreviews,
@@ -194,6 +197,7 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 				hasSelection,
 				formatPainterActive,
 				selectedCount,
+				selectionGroupable,
 				selectedElement,
 			});
 		},

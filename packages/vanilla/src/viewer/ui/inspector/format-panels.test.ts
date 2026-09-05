@@ -278,4 +278,42 @@ describe('media section trim timeline wiring', () => {
 		);
 		expect(section.el.querySelector('.pptxv-media-timeline')).not.toBeNull();
 	});
+
+	/**
+	 * `trimEndMs` is `p14:trim/@end`'s distance from the clip's TAIL
+	 * (COM-verified). The "Trim End" number field used to bind that distance
+	 * directly, so typing "the last 5s" of a 20s clip meant computing
+	 * 20000-5000 by hand; it now shows/accepts the absolute end position, like
+	 * React's `MediaInspector` and Vue's `MediaPropertiesPanel.vue`.
+	 */
+	it('shows 15000 (15s) for a 20s clip with trimEndMs=5000, and stores 5000 for a typed 15000', async () => {
+		const { createMediaSection } = await import('./media-section');
+		const setMediaProperties = vi.fn();
+		const section = createMediaSection(document, createTranslator(), sectionFactory(), {
+			setMediaProperties,
+		} as unknown as InspectorHandlers);
+		section.update(
+			state({
+				isMedia: true,
+				media: {
+					type: 'media',
+					id: 'm1',
+					trimStartMs: 0,
+					trimEndMs: 5000,
+					metadata: { duration: 20 },
+				} as MediaPptxElement,
+			}),
+		);
+
+		const trimEndInput = section.el.querySelector<HTMLInputElement>(
+			'input[aria-label="Trim End"]',
+		)!;
+		expect(trimEndInput.value).toBe('15000');
+
+		// A different absolute end than the one just displayed (15000), so the
+		// field's own "unchanged commit" guard does not swallow it.
+		trimEndInput.value = '12000';
+		trimEndInput.dispatchEvent(new Event('change'));
+		expect(setMediaProperties).toHaveBeenCalledWith({ trimEndMs: 8000 });
+	});
 });

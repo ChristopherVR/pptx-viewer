@@ -1,3 +1,5 @@
+import { mediaTrimEndAbsoluteMs, mediaTrimEndMsFromAbsoluteMs } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n';
 import { makeNumberField } from '../controls';
 import { makeCheckboxField, makeRangeField, makeSelectField } from './controls-extra';
@@ -11,6 +13,18 @@ export function createMediaSection(
 	handlers: InspectorHandlers,
 ) {
 	const el = section(t('pptx.media.title'));
+	// G17/trim-end: `trimEndMs` is `p14:trim/@end`'s distance from the clip's
+	// TAIL (COM-verified, see shared `media-trim-range.ts`), not an absolute
+	// stop time. The "Trim end" number field below used to bind that distance
+	// directly, so typing "the last 5s" of a 20s clip meant computing
+	// 20000-5000 by hand; it now shows/accepts the absolute end position, like
+	// React's `MediaInspector` and Vue's `MediaPropertiesPanel.vue`.
+	let currentMedia: InspectorState['media'];
+	const resolveDurationMs = (): number => {
+		const liveSeconds = Number.isFinite(preview.duration) ? preview.duration : 0;
+		const metadataSeconds = currentMedia?.metadata?.duration ?? 0;
+		return (liveSeconds || metadataSeconds) * 1000;
+	};
 	const preview = doc.createElement('video');
 	preview.controls = true;
 	preview.preload = 'metadata';
@@ -71,7 +85,10 @@ export function createMediaSection(
 	const trimEnd = makeNumberField(doc, {
 		label: t('pptx.media.trimEnd'),
 		min: 0,
-		onCommit: (trimEndMs) => handlers.setMediaProperties({ trimEndMs }),
+		onCommit: (absoluteEndMs) =>
+			handlers.setMediaProperties({
+				trimEndMs: mediaTrimEndMsFromAbsoluteMs(resolveDurationMs(), absoluteEndMs),
+			}),
 	});
 	const bookmarks = textArea(doc, t('pptx.media.bookmarks'));
 	bookmarks.control.placeholder = '12.5 | Intro';
@@ -111,13 +128,12 @@ export function createMediaSection(
 	// `TrimTimeline`). It reads the live `<video>` for duration/playhead, so it
 	// only becomes useful once the preview reports metadata; the numeric trim
 	// fields above stay as the keyboard-accessible way to set the same values.
-	let currentMedia: InspectorState['media'];
 	let canEditMedia = false;
 	const timeline = createMediaTrimTimeline(doc, {
 		onTrimChange: (trimStartMs, trimEndMs) => {
 			handlers.setMediaProperties({ trimStartMs, trimEndMs });
 			trimStart.setValue(trimStartMs);
-			trimEnd.setValue(trimEndMs);
+			trimEnd.setValue(mediaTrimEndAbsoluteMs(resolveDurationMs(), trimEndMs));
 		},
 		onSeek: (seconds) => {
 			if (Number.isFinite(preview.duration)) {
@@ -174,7 +190,7 @@ export function createMediaSection(
 			volume.setValue((media?.volume ?? 1) * 100);
 			speed.setValue(String(media?.playbackSpeed ?? 1));
 			trimStart.setValue(media?.trimStartMs ?? 0);
-			trimEnd.setValue(media?.trimEndMs ?? 0);
+			trimEnd.setValue(mediaTrimEndAbsoluteMs(resolveDurationMs(), media?.trimEndMs ?? 0));
 			bookmarks.control.value = (media?.bookmarks ?? [])
 				.map(({ time, label }) => `${time} | ${label}`)
 				.join('\n');

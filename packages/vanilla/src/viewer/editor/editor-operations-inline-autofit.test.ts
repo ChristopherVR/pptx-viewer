@@ -1,4 +1,4 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
@@ -58,6 +58,11 @@ function stubScrollHeight(value: number): void {
 	});
 }
 
+/** `PptxElement.textStyle` is only on the text-mixin members of the union. */
+function textStyleOf(element: PptxElement): TextStyle | undefined {
+	return (element as { textStyle?: TextStyle }).textStyle;
+}
+
 function mountEditorNode(): HTMLElement {
 	const el = document.createElement('div');
 	el.setAttribute('data-inline-editor', '');
@@ -103,5 +108,49 @@ describe('createEditorOps commitInlineText - spAutoFit editor resize', () => {
 		ops.commitInlineText('e1', 'some text');
 
 		expect(store.get().slides[0].elements[0].height).toBe(40);
+	});
+});
+
+/**
+ * Regression test for the `a:normAutofit` ("Shrink text on overflow") editor
+ * behaviour: typing past capacity must recompute
+ * `autoFitFontScale`/`autoFitLineSpacingReduction`, not leave the stale
+ * authored value on the element forever.
+ */
+describe('createEditorOps commitInlineText - normAutofit editor font shrink', () => {
+	it('shrinks fontScale/lnSpcReduction when the text overflows the box', () => {
+		mountEditorNode();
+		// jsdom's stubbed scrollHeight cannot vary per candidate step, so every
+		// rung in the staircase measures as "still overflowing" and the
+		// decision lands on the smallest (floor) rung.
+		stubScrollHeight(400);
+		const { store, ops } = makeOps([shape('e1', { textStyle: { autoFitMode: 'normal' } })]);
+
+		ops.commitInlineText('e1', 'a very long line of text that overflows the box');
+
+		expect(textStyleOf(store.get().slides[0].elements[0])).toMatchObject({
+			autoFitFontScale: 0.25,
+			autoFitLineSpacingReduction: 0.2,
+		});
+	});
+
+	it('does not touch textStyle for spAutoFit (shape-resize mode)', () => {
+		mountEditorNode();
+		stubScrollHeight(250);
+		const { store, ops } = makeOps([shape('e1')]);
+
+		ops.commitInlineText('e1', 'a much longer line of text than before');
+
+		expect(textStyleOf(store.get().slides[0].elements[0])).toStrictEqual({ autoFitMode: 'shrink' });
+	});
+
+	it('leaves textStyle alone when the (stubbed) content already fits the box', () => {
+		mountEditorNode();
+		stubScrollHeight(5);
+		const { store, ops } = makeOps([shape('e1', { textStyle: { autoFitMode: 'normal' } })]);
+
+		ops.commitInlineText('e1', 'short');
+
+		expect(textStyleOf(store.get().slides[0].elements[0])).toStrictEqual({ autoFitMode: 'normal' });
 	});
 });

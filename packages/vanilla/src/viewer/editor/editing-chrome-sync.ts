@@ -2,13 +2,28 @@
    (many independent short-lived `const`s building each chrome update payload);
    merging them isn't a style choice here. */
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
+import { canInteractWithElement } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { combineCommentMentionAuthors } from '../ui/comment-mention-typeahead';
 import type { LayoutOption } from '../ui/ribbon/ribbon-types';
+import { getActiveElements } from './editor-active-elements';
 import { currentRecentColors } from './editor-recent-colors';
 import { buildInspectorState } from './inspector-state-builder';
+
+/**
+ * G10: whether `a:spLocks`/`a:grpSpLocks`'s `@noGrp` allows the current
+ * selection to be grouped/ungrouped, mirroring the guard
+ * `editor-arrange-mutations.ts`'s `groupSelection`/`ungroupSelection` already
+ * enforce on the commands themselves.
+ */
+function resolveSelectionGroupable(state: ViewerState): boolean {
+	const active = getActiveElements(state);
+	return state.selectedElementIds.every((id) =>
+		canInteractWithElement(active.find((element) => element.id === id) ?? null, 'group'),
+	);
+}
 
 /**
  * Flatten every slide master's layouts into the `{ path, name }` options the
@@ -88,6 +103,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			hasClipboard: state.clipboardPayload !== null,
 			slideCount: state.slides.length,
 			selectedCount: state.selectedElementIds.length,
+			selectionGroupable: resolveSelectionGroupable(state),
 			formatPainterActive: state.formatPainterSourceId !== null,
 			selectedElementId: state.selectedElementId ?? undefined,
 			animations: state.slides[state.currentSlide]?.animations ?? [],

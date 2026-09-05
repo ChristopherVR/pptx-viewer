@@ -8,8 +8,9 @@ import {
 	readEditableText,
 	remapTextToSegments,
 	resolveInlineEditAutoFitHeight,
+	resolveInlineEditNormAutofitShrink,
 } from 'pptx-viewer-shared';
-import type { InlineTextSelection } from 'pptx-viewer-shared';
+import type { InlineTextSelection, NormAutofitShrinkResult } from 'pptx-viewer-shared';
 
 import { createEl, getTextBlockStyle } from '../render';
 import { markInsertedParagraph } from './inline-text-paragraph-marker';
@@ -94,6 +95,29 @@ export function resolveInlineTextAutoFitHeight(
 		return undefined;
 	}
 	return resolveInlineEditAutoFitHeight(element.textStyle, element.height, editorEl);
+}
+
+/**
+ * `a:normAutofit` ("Shrink text on overflow") editor-commit recompute: decide
+ * the element's new `fontScale`/`lnSpcReduction` from its text style, current
+ * (fixed) height, and the live editor DOM node - `'unchanged'` when the
+ * element carries no text properties, autofit isn't `'normal'`, or the
+ * measured height did not meaningfully change. Mutually exclusive with
+ * {@link resolveInlineTextAutoFitHeight} (`a:spAutoFit`); both read
+ * `autoFitMode`, only one mode is ever set.
+ *
+ * `EditorOperations.commitInlineText` calls this before it replaces the
+ * element, for the same reason (and at the same point) it calls
+ * {@link resolveInlineTextAutoFitHeight}.
+ */
+export function resolveInlineTextNormAutofitShrink(
+	element: PptxElement,
+	editorEl: HTMLElement | null,
+): NormAutofitShrinkResult {
+	if (!hasTextProperties(element)) {
+		return 'unchanged';
+	}
+	return resolveInlineEditNormAutofitShrink(element.textStyle, element.height, editorEl);
 }
 
 export interface InlineEditorSession {

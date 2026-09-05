@@ -27,6 +27,8 @@ export interface ArrangeGroupState {
 	hasSelection: boolean;
 	formatPainterActive: boolean;
 	selectedCount: number;
+	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
+	selectionGroupable: boolean;
 	selectedElement: PptxElement | undefined;
 }
 
@@ -169,7 +171,14 @@ export function createArrangeGroup(
 
 	return {
 		el,
-		update({ editable, hasSelection, formatPainterActive, selectedCount, selectedElement }) {
+		update({
+			editable,
+			hasSelection,
+			formatPainterActive,
+			selectedCount,
+			selectionGroupable,
+			selectedElement,
+		}) {
 			const canMut = editable && hasSelection;
 			for (const b of [
 				...alignButtons,
@@ -184,7 +193,7 @@ export function createArrangeGroup(
 			]) {
 				b.setDisabled(!canMut);
 			}
-			extras.update({ editable, selectedCount, selectedElement });
+			extras.update({ editable, selectedCount, selectionGroupable, selectedElement });
 			painter.setDisabled(!editable || (!hasSelection && !formatPainterActive));
 			painter.btn.dataset.active = String(formatPainterActive);
 			distributeH.setDisabled(!editable || selectedCount < MIN_DISTRIBUTE_SELECTION);

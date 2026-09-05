@@ -14,6 +14,7 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 	TextSegment,
+	TextStyle,
 } from 'pptx-viewer-core';
 import { duplicateElement } from 'pptx-viewer-core';
 import type { ElementBoxPatch } from 'pptx-viewer-shared';
@@ -39,7 +40,11 @@ import {
 import { setHandoutSlidesPerPage } from './editor-master-actions';
 import { selectionState } from './editor-selection-state';
 import { createStructuredEditorOperations } from './editor-structured-operations';
-import { remapInlineText, resolveInlineTextAutoFitHeight } from './inline-text-editor';
+import {
+	remapInlineText,
+	resolveInlineTextAutoFitHeight,
+	resolveInlineTextNormAutofitShrink,
+} from './inline-text-editor';
 
 /**
  * History-tracked editing operations over the viewer store: the vanilla
@@ -288,6 +293,12 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					? document.querySelector<HTMLElement>('[data-inline-editor]')
 					: null;
 			const newHeight = resolveInlineTextAutoFitHeight(target, editorEl);
+			// `a:normAutofit` ("Shrink text on overflow"): recompute the font
+			// scale/line-spacing reduction so the (possibly now longer or
+			// shorter) text still fits the shape. Mutually exclusive with the
+			// `spAutoFit` resize above (both read `autoFitMode`, only one mode is
+			// ever set).
+			const shrink = resolveInlineTextNormAutofitShrink(target, editorEl);
 			store.set(
 				replaceActiveElements(
 					state,
@@ -297,6 +308,15 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 									...element,
 									...remapInlineText(target, text),
 									...(newHeight !== undefined ? { height: newHeight } : {}),
+									...(shrink !== 'unchanged'
+										? {
+												textStyle: {
+													...(target as { textStyle?: TextStyle }).textStyle,
+													autoFitFontScale: shrink.fontScale,
+													autoFitLineSpacingReduction: shrink.lnSpcReduction,
+												},
+											}
+										: {}),
 								} as PptxElement)
 							: element,
 					),
