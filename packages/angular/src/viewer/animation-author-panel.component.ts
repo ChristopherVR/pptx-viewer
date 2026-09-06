@@ -67,6 +67,7 @@ import {
 	setAfterAnimationColor,
 	setDirection,
 	setEffectSound,
+	setEffectStockSound,
 	showDirectionPicker,
 } from './animation-author-helpers';
 import { getAnimationElementLabel, getAnimationTriggerElements } from './animation-author-view';
@@ -296,6 +297,10 @@ export class AnimationAuthorPanelComponent {
 
 	protected onEffectSoundPick(pick: EffectSoundPick | undefined): void {
 		this.emit(setEffectSound(this.animations(), this.element().id, pick));
+	}
+
+	protected onEffectStockSoundPick(catalogueId: string): void {
+		this.emit(setEffectStockSound(this.animations(), this.element().id, catalogueId));
 	}
 
 	// ── After animation ───────────────────────────────────────────────────────

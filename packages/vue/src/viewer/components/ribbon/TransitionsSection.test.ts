@@ -1,9 +1,11 @@
 import { mount } from '@vue/test-utils';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-import { TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
+import { EFFECT_SOUND_CATALOGUE, TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import TransitionsSection from './TransitionsSection.vue';
+
+const STOCK_IDS = EFFECT_SOUND_CATALOGUE.map((entry) => entry.id);
 
 /**
  * The defect these cover is not "a control is missing" (`ribbon-control-
@@ -124,22 +126,24 @@ describe('transitionsSection reads the deck', () => {
 		expect((wrapper.find('input[type="text"]').element as HTMLInputElement).value).toBe('00:03.00');
 	});
 
-	it('offers None and Other Sound for a slide with no sound', () => {
+	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
 		const { wrapper } = mountTab(slideWith());
 		const select = wrapper.find('select');
 		expect(select.attributes('disabled')).toBeUndefined();
 		expect(select.findAll('option').map((o) => o.attributes('value'))).toStrictEqual([
 			'none',
+			...STOCK_IDS,
 			'other',
 		]);
 	});
 
-	it('leads with the current file name once the slide carries a sound', () => {
+	it('leads with the current file name once the slide carries a non-stock sound', () => {
 		const { wrapper } = mountTab(slideWith({ type: 'fade', soundFileName: 'chime.wav' }));
 		const select = wrapper.find('select');
 		expect(select.findAll('option').map((o) => o.attributes('value'))).toStrictEqual([
 			'current',
 			'none',
+			...STOCK_IDS,
 			'other',
 		]);
 	});
@@ -154,6 +158,16 @@ describe('transitionsSection > Sound picker', () => {
 		expect(onTransitionChange).toHaveBeenCalledWith(
 			expect.objectContaining({ soundRId: undefined, soundFileName: undefined }),
 		);
+	});
+
+	it('picks a stock sound directly, with no file dialog', async () => {
+		const { wrapper, onTransitionChange } = mountTab(slideWith({ type: 'fade' }));
+		await wrapper.find('select').setValue('chime');
+		expect(onTransitionChange).toHaveBeenCalledWith(
+			expect.objectContaining({ soundName: 'CHIMES.WAV', soundFileName: 'CHIMES.WAV' }),
+		);
+		const call = onTransitionChange.mock.calls[0][0] as Partial<PptxSlideTransition>;
+		expect(call.soundData).toMatch(/^data:audio\/wav;base64,/);
 	});
 
 	it('opens the file picker instead of committing when "Other Sound..." is chosen', async () => {

@@ -36,10 +36,18 @@ describe('slide transition sound embedding (save pipeline)', () => {
 		expect(slides[0].transition?.soundRId).toBeTruthy();
 		expect(slides[0].transition?.soundPath).toBe(mediaFiles[0]);
 
-		// The slide relationship references the new media part.
+		// The slide relationship references the new media part, with the
+		// `audio` relationship type: COM-verified against PowerPoint 2016
+		// (2026-09-06) as exactly what PowerPoint itself mints for an embedded
+		// transition sound. The generic `media` type this used to write made
+		// PowerPoint refuse to reopen the saved file at all
+		// (`0x80070570`, "corrupted and unreadable").
 		const relsXml = await zip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string');
 		const rId = slides[0].transition!.soundRId!;
 		expect(relsXml).toContain(`Id="${rId}"`);
+		expect(relsXml).toContain(
+			`Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/audio"`,
+		);
 		expect(relsXml).toContain(`Target="../media/${mediaFiles[0].split('/').pop()}"`);
 
 		// The transition XML references the same relationship id, per ECMA-376

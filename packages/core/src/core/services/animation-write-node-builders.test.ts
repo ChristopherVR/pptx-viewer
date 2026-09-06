@@ -214,19 +214,27 @@ describe('buildSingleEffectNode', () => {
 	});
 
 	it('includes sound reference when soundRId is set', () => {
+		// COM-verified against PowerPoint 2016 (2026-09-06): a newly-picked
+		// effect sound is written as a `p:audio` node inside `p:subTnLst`,
+		// targeting `p:sndTgt`, not as `p:stSnd` (PowerPoint itself does not
+		// recognise that legacy form back).
 		const anim: PptxElementAnimation = {
 			elementId: 'sp1',
 			durationMs: 500,
 			soundRId: 'rId5',
+			soundName: 'CHIMES.WAV',
 		};
 		const node = buildSingleEffectNode(anim, 'fadeIn', 'entr', createIdAllocator())!;
 		const outerCTn = node['p:cTn'] as XmlObject;
 		const innerPar = (outerCTn['p:childTnLst'] as XmlObject)['p:par'] as XmlObject;
 		const effectCTn = innerPar['p:cTn'] as XmlObject;
-		const stSnd = effectCTn['p:stSnd'] as XmlObject;
-		expect(stSnd).toBeDefined();
-		const snd = stSnd['p:snd'] as XmlObject;
-		expect(snd['@_r:embed']).toBe('rId5');
+		expect(effectCTn['p:stSnd']).toBeUndefined();
+		const subTnLst = effectCTn['p:subTnLst'] as XmlObject;
+		const audio = subTnLst['p:audio'] as XmlObject;
+		const cMediaNode = audio['p:cMediaNode'] as XmlObject;
+		const sndTgt = ((cMediaNode['p:tgtEl'] as XmlObject)['p:sndTgt'] as XmlObject) ?? {};
+		expect(sndTgt['@_r:embed']).toBe('rId5');
+		expect(sndTgt['@_name']).toBe('CHIMES.WAV');
 	});
 
 	it('includes end sound when stopSound is true', () => {

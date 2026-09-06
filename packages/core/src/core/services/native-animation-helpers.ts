@@ -20,20 +20,65 @@ import { extractBldPResumeAttrs } from './animation-timing-attrs';
 import { extractBldPTemplates } from './animation-timing-templates';
 
 /**
- * Extract sound action (`p:stSnd` or `p:endSnd`) from a `p:cTn` node.
+ * True when a `p:audio` node inside an effect's `p:subTnLst` is the "effect
+ * sound" construct (targets `p:sndTgt`, no shape) rather than a genuine
+ * embedded media element's playback node (targets `p:spTgt`, handled by
+ * `native-animation-media-walk.ts`). Shared by the parse side
+ * ({@link extractSoundAction}) and the write side
+ * (`animation-write-node-behaviors.ts`'s `applySoundToEffectCTn`) so both
+ * agree on which `p:audio` entries belong to the sound picker.
+ */
+export function isEffectSoundAudioNode(audioNode: XmlObject): boolean {
+	const cMediaNode = audioNode['p:cMediaNode'] as XmlObject | undefined;
+	const tgtEl = cMediaNode?.['p:tgtEl'] as XmlObject | undefined;
+	return tgtEl?.['p:sndTgt'] !== undefined;
+}
+
+/**
+ * Read the embed relationship id and `@_name` off a `p:snd`/`p:sndTgt`-shaped
+ * node (both share the same `CT_EmbeddedWAVAudioFile` attributes).
+ */
+function readEmbeddedSound(
+	soundNode: XmlObject | undefined,
+): { soundRId?: string; soundName?: string } | undefined {
+	if (!soundNode) {
+		return undefined;
+	}
+	const embed = soundNode['@_r:embed'] ?? soundNode['@_embed'];
+	if (!embed) {
+		return undefined;
+	}
+	const result: { soundRId?: string; soundName?: string } = { soundRId: String(embed) };
+	const name = soundNode['@_name'];
+	if (name !== undefined) {
+		result.soundName = String(name);
+	}
+	return result;
+}
+
+/**
+ * Extract an effect's sound action from its own `p:cTn` node.
+ *
+ * Modern PowerPoint (COM-verified against 2016) writes a newly-picked effect
+ * sound as a `p:audio/p:cMediaNode/p:tgtEl/p:sndTgt` node inside
+ * `p:subTnLst`, a sibling of `p:childTnLst` on the SAME `p:cTn` this function
+ * receives - not as `p:stSnd` (that legacy, directly-on-`p:cTn` form is still
+ * parsed here for round-trip of older-authored decks, but PowerPoint itself
+ * no longer writes it and does not recognise it back:
+ * `Effect.EffectInformation.SoundEffect` reads empty against a deck carrying
+ * only the legacy form). `p:endSnd` ("stop the previous sound") is unrelated
+ * to a stock/custom pick and is checked on both the legacy and modern shapes.
  */
 export function extractSoundAction(cTn: XmlObject): {
 	soundRId?: string;
+	soundName?: string;
 	stopSound?: boolean;
 } {
 	const stSnd = cTn['p:stSnd'] as XmlObject | undefined;
 	if (stSnd) {
-		const snd = stSnd['p:snd'] as XmlObject | undefined;
-		if (snd) {
-			const embed = snd['@_r:embed'] ?? snd['@_embed'];
-			if (embed) {
-				return { soundRId: String(embed) };
-			}
+		const resolved = readEmbeddedSound(stSnd['p:snd'] as XmlObject | undefined);
+		if (resolved) {
+			return resolved;
 		}
 	}
 
@@ -41,16 +86,28 @@ export function extractSoundAction(cTn: XmlObject): {
 		return { stopSound: true };
 	}
 
+	const subTnLst = cTn['p:subTnLst'] as XmlObject | undefined;
+	if (subTnLst) {
+		for (const audioNode of ensureArray(subTnLst['p:audio'])) {
+			if (!isEffectSoundAudioNode(audioNode)) {
+				continue;
+			}
+			const cMediaNode = audioNode['p:cMediaNode'] as XmlObject | undefined;
+			const tgtEl = cMediaNode?.['p:tgtEl'] as XmlObject | undefined;
+			const resolved = readEmbeddedSound(tgtEl?.['p:sndTgt'] as XmlObject | undefined);
+			if (resolved) {
+				return resolved;
+			}
+		}
+	}
+
 	const childTnList = cTn['p:childTnLst'] as XmlObject | undefined;
 	if (childTnList) {
 		const childStSnd = childTnList['p:stSnd'] as XmlObject | undefined;
 		if (childStSnd) {
-			const snd = childStSnd['p:snd'] as XmlObject | undefined;
-			if (snd) {
-				const embed = snd['@_r:embed'] ?? snd['@_embed'];
-				if (embed) {
-					return { soundRId: String(embed) };
-				}
+			const resolved = readEmbeddedSound(childStSnd['p:snd'] as XmlObject | undefined);
+			if (resolved) {
+				return resolved;
 			}
 		}
 		if (childTnList['p:endSnd'] !== undefined) {

@@ -1,10 +1,12 @@
-import { TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
+import { EFFECT_SOUND_CATALOGUE, TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
 import { ChromeUiState } from '../../../state/chrome-ui.svelte';
 import TransitionsTab from './TransitionsTab.svelte';
+
+const STOCK_IDS = EFFECT_SOUND_CATALOGUE.map((entry) => entry.id);
 
 /**
  * TransitionsTab tests: the Timing / Advance Slide / Inspector controls added
@@ -182,11 +184,35 @@ describe('transitionsTab', () => {
 		}
 	});
 
-	it('offers None and Other Sound for a slide with no sound', () => {
+	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
 		const target = mountTab(makeEditor());
 		const select = label(target, 'Sound')?.querySelector('select');
 		expect(select?.disabled).toBeFalsy();
-		expect([...(select?.options ?? [])].map((o) => o.value)).toStrictEqual(['none', 'other']);
+		expect([...(select?.options ?? [])].map((o) => o.value)).toStrictEqual([
+			'none',
+			...STOCK_IDS,
+			'other',
+		]);
+	});
+
+	it('picks a stock sound directly, with no file dialog, and enables the preview button', () => {
+		const editor = makeEditor();
+		const target = mountTab(editor);
+		const select = label(target, 'Sound')?.querySelector('select') as HTMLSelectElement;
+
+		select.value = 'chime';
+		fire(select, 'change');
+
+		expect(editor.slides[0]?.transition).toMatchObject({
+			soundName: 'CHIMES.WAV',
+			soundFileName: 'CHIMES.WAV',
+		});
+		expect(editor.slides[0]?.transition?.soundData).toMatch(/^data:audio\/wav;base64,/);
+
+		const previewButton = target.querySelector<HTMLButtonElement>(
+			'button[aria-label="Preview sound"]',
+		);
+		expect(previewButton).not.toBeNull();
 	});
 
 	it('seeds the controls from the active slide rather than a fixed default', () => {
@@ -212,7 +238,7 @@ describe('transitionsTab', () => {
 		expect(seconds.value).toBe('00:05.00');
 	});
 
-	it('leads with the current file name once the slide carries a sound', () => {
+	it('leads with the current file name once the slide carries a non-stock sound', () => {
 		const editor = makeEditor();
 		editor.slides = [
 			{ ...editor.slides[0], transition: { type: 'fade', soundFileName: 'chime.wav' } },
@@ -222,6 +248,7 @@ describe('transitionsTab', () => {
 		expect([...(select?.options ?? [])].map((o) => o.value)).toStrictEqual([
 			'current',
 			'none',
+			...STOCK_IDS,
 			'other',
 		]);
 		expect(select?.value).toBe('current');

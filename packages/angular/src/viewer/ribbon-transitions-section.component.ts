@@ -35,7 +35,9 @@ import type { RibbonTransitionDraft } from '../internal/shared';
 import {
 	applyRibbonTransitionDraft,
 	applyTransitionSoundFile,
+	applyTransitionStockSound,
 	clearTransitionSound,
+	getEffectSoundAsset,
 	mergeSlideTransition,
 	playSlideTransitionPreview,
 	readRibbonTransitionDraft,
@@ -46,7 +48,9 @@ import {
 	TRANSITION_SOUND_OTHER_VALUE,
 	transitionSoundOptions,
 	transitionSoundSelectedValue,
+	transitionStockSoundId,
 } from '../internal/shared';
+import { playAnimationSound } from './animation-sound';
 import { EditorStateService } from './editor-state.service';
 
 @Component({
@@ -125,6 +129,15 @@ import { EditorStateService } from './editor-state.service';
 					</option>
 				}
 			</select>
+			<button
+				type="button"
+				class="pptx-rb-pill"
+				[attr.aria-label]="'pptx.animation.sound.preview' | translate"
+				[disabled]="!stockSoundId()"
+				(click)="onSoundPreview()"
+			>
+				<svg lucidePlay class="h-3 w-3"></svg>
+			</button>
 			<input
 				#soundFileInput
 				type="file"
@@ -276,6 +289,21 @@ export class RibbonTransitionsSectionComponent {
 		transitionSoundSelectedValue(this.editor.slides()[this.slideIndex()]?.transition),
 	);
 
+	protected readonly stockSoundId = computed(() =>
+		transitionStockSoundId(this.editor.slides()[this.slideIndex()]?.transition),
+	);
+
+	protected onSoundPreview(): void {
+		const id = this.stockSoundId();
+		if (!id) {
+			return;
+		}
+		const asset = getEffectSoundAsset(id);
+		if (asset) {
+			playAnimationSound(asset.dataUrl);
+		}
+	}
+
 	/**
 	 * Sound writes a raw `Partial<PptxSlideTransition>` straight onto the
 	 * active slide rather than going through the ribbon draft: the picked
@@ -294,6 +322,12 @@ export class RibbonTransitionsSectionComponent {
 		}
 		if (select.value === TRANSITION_SOUND_NONE_VALUE) {
 			this.commitSoundChange(clearTransitionSound());
+			return;
+		}
+		// One of PowerPoint's 19 built-in stock sounds (catalogue id).
+		const patch = applyTransitionStockSound(select.value);
+		if (patch) {
+			this.commitSoundChange(patch);
 		}
 	}
 

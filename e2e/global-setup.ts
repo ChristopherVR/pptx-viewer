@@ -3,6 +3,7 @@ import { generateBar3DHorizontalFixture } from './fixtures/generate-bar3d-horizo
 import { generateFixture as generateBoxCubeTransitionFixture } from './fixtures/generate-box-cube-transition-fixture';
 import { generateChartFixture } from './fixtures/generate-chart-fixture';
 import { generateChartUserShapeGroupFixture } from './fixtures/generate-chart-user-shape-group-fixture';
+import { generateFixture as generateEffectSoundGalleryFixture } from './fixtures/generate-effect-sound-gallery-fixture';
 import { generateFieldSubstitutionFixture } from './fixtures/generate-field-substitution-fixture';
 import { generateFixture } from './fixtures/generate-format-painter-fixture';
 import { generateLineFillFidelityFixture } from './fixtures/generate-line-fill-fidelity-fixture';
@@ -39,6 +40,7 @@ export default async function globalSetup() {
 	await generatePie3DFixture();
 	await generateFieldSubstitutionFixture();
 	await generateTransitionsAnimationsFixture();
+	await generateEffectSoundGalleryFixture();
 	await generateBoxCubeTransitionFixture();
 	await generateTemplateEditingFixture();
 	await generateTemplateGroupFixture();

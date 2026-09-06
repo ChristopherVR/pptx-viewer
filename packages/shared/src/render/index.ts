@@ -339,6 +339,13 @@ export * from './animation-timeline-rows';
 // only shows once an effect exists, not part of the core preset/timing form.
 export * from './animation-sound-authoring';
 export * from './animation-after-effect-authoring';
+// PowerPoint's built-in stock sound gallery (19 entries), a synthesised
+// DOM-free WAV asset per entry, and the pure DSP primitives/generators behind
+// it. Shared by both the effect sound picker above and the transition sound
+// picker (`slide-transition-sound.ts`): both write the same OOXML `@_name`
+// convention, so both offer the same gallery.
+export * from './effect-sound-catalogue';
+export * from './effect-sound-synth';
 // Naming layer over both preset vocabularies (editor `PptxAnimationPreset`
 // tokens and core's OOXML preset catalogue), so no timeline prints a wire id.
 export * from './animation-preset-labels';

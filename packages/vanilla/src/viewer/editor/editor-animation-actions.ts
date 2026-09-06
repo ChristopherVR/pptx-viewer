@@ -31,6 +31,7 @@ import {
 	setDirection,
 	setDuration,
 	setEffectSound,
+	setEffectStockSound,
 	setRepeatCount,
 	setRepeatMode,
 	setMotionPath,
@@ -101,6 +102,8 @@ export interface AnimationActions {
 		elementId: string,
 		pick: { dataUrl: string; fileName?: string } | undefined,
 	): void;
+	/** Stage one of PowerPoint's 19 built-in stock sounds by catalogue id. */
+	setAnimationStockSound(elementId: string, catalogueId: string): void;
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 	moveAnimation(elementId: string, index: number): void;
 }
@@ -255,6 +258,12 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 
 		setAnimationSound(elementId, pick) {
 			commitAnimations(elementId, (current) => setEffectSound(current, elementId, pick));
+		},
+
+		setAnimationStockSound(elementId, catalogueId) {
+			commitAnimations(elementId, (current) =>
+				setEffectStockSound(current, elementId, catalogueId),
+			);
 		},
 
 		// Both route through the FULL merged sequence (editor animations plus

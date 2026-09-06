@@ -24,6 +24,7 @@ import {
 	setAfterAnimation,
 	setAfterAnimationColor,
 	setEffectSound,
+	setEffectStockSound,
 } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 
@@ -272,6 +273,16 @@ export function useAnimationHandlers({
 		[canEdit, updateAnimations, selectedElement.id],
 	);
 
+	const handleEffectStockSoundPick = useCallback(
+		(catalogueId: string) => {
+			if (!canEdit) {
+				return;
+			}
+			updateAnimations((anims) => setEffectStockSound(anims, selectedElement.id, catalogueId));
+		},
+		[canEdit, updateAnimations, selectedElement.id],
+	);
+
 	// ── After animation ──
 
 	const handleAfterAnimationChange = useCallback(
@@ -377,6 +388,7 @@ export function useAnimationHandlers({
 		handleMotionPathChange,
 		effectSoundState,
 		handleEffectSoundPick,
+		handleEffectStockSoundPick,
 		handleAfterAnimationChange,
 		handleAfterAnimationColorChange,
 		getTimelineLabel,

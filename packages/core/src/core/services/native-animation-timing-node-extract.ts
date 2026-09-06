@@ -236,6 +236,7 @@ export function buildTimingNodeAnimation(
 		repeatCount: repeatInfo.repeatCount,
 		autoReverse: repeatInfo.autoReverse ?? childAutoReverseTiming?.autoReverse,
 		soundRId: soundInfo.soundRId,
+		soundName: soundInfo.soundName,
 		stopSound: soundInfo.stopSound,
 		startConditions: startConditions ?? undefined,
 		endConditions: endConditions ?? undefined,

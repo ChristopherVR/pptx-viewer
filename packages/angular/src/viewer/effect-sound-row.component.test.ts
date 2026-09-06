@@ -14,6 +14,7 @@ import { Injector, runInInjectionContext, signal } from '@angular/core';
 import type { InputSignal, OutputEmitterRef } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { EFFECT_SOUND_CATALOGUE } from '../internal/shared';
 import type { EffectSoundState } from '../internal/shared';
 import { EffectSoundRowComponent } from './effect-sound-row.component';
 import type { EffectSoundPick } from './effect-sound-row.component';
@@ -23,6 +24,7 @@ const ROW_SOURCE = readFileSync(path.join(__dirname, 'effect-sound-row.component
 function createRow(soundState: EffectSoundState): {
 	row: EffectSoundRowComponent;
 	emitted: Array<EffectSoundPick | undefined>;
+	emittedStock: string[];
 } {
 	const row = runInInjectionContext(
 		Injector.create({ providers: [] }),
@@ -38,7 +40,11 @@ function createRow(soundState: EffectSoundState): {
 			emitted.push(value);
 		},
 	);
-	return { row, emitted };
+	const emittedStock: string[] = [];
+	vi.spyOn(row.pickStock as OutputEmitterRef<string>, 'emit').mockImplementation((value) => {
+		emittedStock.push(value);
+	});
+	return { row, emitted, emittedStock };
 }
 
 function selectChange(row: EffectSoundRowComponent, value: string): void {
@@ -57,10 +63,16 @@ describe('effectSoundRowComponent', () => {
 		expect(emitted).toStrictEqual([undefined]);
 	});
 
-	it('does not emit when the custom option is picked (opens the file dialog instead)', () => {
+	it('does not emit when "Other Sound..." is picked (opens the file dialog instead)', () => {
 		const { row, emitted } = createRow({ hasSound: false });
-		selectChange(row, 'custom');
+		selectChange(row, 'other');
 		expect(emitted).toStrictEqual([]);
+	});
+
+	it('emits pickStock with the catalogue id when a stock entry is picked', () => {
+		const { row, emittedStock } = createRow({ hasSound: false });
+		selectChange(row, 'chime');
+		expect(emittedStock).toStrictEqual(['chime']);
 	});
 
 	it('emits a data: URL pick when a file is chosen', async () => {
@@ -93,13 +105,41 @@ describe('effectSoundRowComponent', () => {
 		} as unknown as Event);
 		expect(emitted).toStrictEqual([]);
 	});
+
+	it('selectedValue reflects the matching catalogue entry', () => {
+		const { row } = createRow({ hasSound: true, fileName: 'CHIMES.WAV', catalogueId: 'chime' });
+		expect((row as unknown as { selectedValue: () => string }).selectedValue()).toBe('chime');
+	});
+
+	it('onPreview does nothing without a catalogueId, and does not throw with one', () => {
+		const { row: noStock } = createRow({ hasSound: false });
+		expect(() => {
+			(noStock as unknown as { onPreview: () => void }).onPreview();
+		}).not.toThrow();
+
+		const { row: withStock } = createRow({
+			hasSound: true,
+			fileName: 'CHIMES.WAV',
+			catalogueId: 'chime',
+		});
+		expect(() => {
+			(withStock as unknown as { onPreview: () => void }).onPreview();
+		}).not.toThrow();
+	});
 });
 
 describe('effect sound row template contract', () => {
-	it('labels the row and both options from the shared dictionary', () => {
+	it('labels the row and its built-in options from the shared dictionary', () => {
 		expect(ROW_SOURCE).toContain(`'pptx.animation.sound' | translate`);
 		expect(ROW_SOURCE).toContain(`'pptx.animation.sound.none' | translate`);
 		expect(ROW_SOURCE).toContain(`'pptx.animation.sound.custom' | translate`);
+		expect(ROW_SOURCE).toContain(`'pptx.animation.sound.other' | translate`);
+		expect(ROW_SOURCE).toContain(`'pptx.animation.sound.preview' | translate`);
+	});
+
+	it('renders every catalogue entry via the shared gallery', () => {
+		expect(ROW_SOURCE).toContain('EFFECT_SOUND_CATALOGUE');
+		expect(EFFECT_SOUND_CATALOGUE).toHaveLength(19);
 	});
 
 	it('disables the select on a read-only deck', () => {

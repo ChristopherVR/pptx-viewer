@@ -147,10 +147,13 @@ function updateEffectNodeAttributes(
 		}
 	}
 
-	applySoundToEffectCTn(cTn, anim);
+	// Runs BEFORE the sound step: `applyAfterAnimationBehavior` deletes and
+	// rebuilds `p:subTnLst` from scratch, which would erase a sound entry
+	// written first (see `applySoundToEffectCTn`'s own doc comment).
 	if (presetClass !== 'exit' && presetClass !== 'path') {
 		applyAfterAnimationBehavior(cTn, anim, shapeId);
 	}
+	applySoundToEffectCTn(cTn, anim);
 }
 
 /**

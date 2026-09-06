@@ -1,7 +1,11 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { getEffectSoundState, setEffectSound } from './animation-sound-authoring';
+import {
+	getEffectSoundState,
+	setEffectSound,
+	setEffectStockSound,
+} from './animation-sound-authoring';
 
 const BASE: PptxElementAnimation = {
 	elementId: 'el-1',
@@ -49,6 +53,20 @@ describe('getEffectSoundState', () => {
 		];
 		expect(getEffectSoundState(anims, 'el-1').fileName).toBe('My Sound.wav');
 	});
+
+	it('reports a matching catalogueId when soundName names a stock sound', () => {
+		const anims = [
+			{ ...BASE, soundRId: 'rId3', soundPath: 'ppt/media/audio2.wav', soundName: 'CHIMES.WAV' },
+		];
+		expect(getEffectSoundState(anims, 'el-1').catalogueId).toBe('chime');
+	});
+
+	it('reports no catalogueId for a custom sound name', () => {
+		const anims = [
+			{ ...BASE, soundRId: 'rId3', soundPath: 'ppt/media/audio2.wav', soundName: 'my-sound.mp3' },
+		];
+		expect(getEffectSoundState(anims, 'el-1').catalogueId).toBeUndefined();
+	});
 });
 
 describe('setEffectSound', () => {
@@ -92,5 +110,20 @@ describe('setEffectSound', () => {
 		const result = setEffectSound(anims, 'el-1', { dataUrl: 'data:audio/mpeg;base64,AA==' });
 		expect(anims[0].soundData).toBeUndefined();
 		expect(result).not.toBe(anims);
+	});
+});
+
+describe('setEffectStockSound', () => {
+	it('stages a synthesised stock sound with its canonical name', () => {
+		const result = setEffectStockSound([BASE], 'el-1', 'chime');
+		expect(result[0].soundData?.startsWith('data:audio/wav;base64,')).toBeTruthy();
+		expect(result[0].soundName).toBe('CHIMES.WAV');
+		expect(result[0].soundFileName).toBe('CHIMES.WAV');
+		expect(getEffectSoundState(result, 'el-1').catalogueId).toBe('chime');
+	});
+
+	it('leaves the animation list unchanged for an unknown catalogue id', () => {
+		const result = setEffectStockSound([BASE], 'el-1', 'not-a-real-sound');
+		expect(result).toStrictEqual([BASE]);
 	});
 });

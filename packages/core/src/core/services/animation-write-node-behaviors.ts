@@ -3,16 +3,16 @@
  * builder functions for the OOXML animation write service. Extracted from
  * `animation-write-node-builders` to keep file sizes manageable.
  */
-import type {
-	PptxAnimationKeyframe,
-	PptxAnimationPreset,
-	PptxElementAnimation,
-	XmlObject,
-} from '../types';
+import type { PptxAnimationKeyframe, PptxAnimationPreset, XmlObject } from '../types';
 import {
 	buildTavLstFromKeyframes,
 	DEFAULT_OPACITY_KEYFRAMES,
 } from './animation-write-node-keyframes';
+
+// Effect-sound (`p:audio/p:sndTgt`) node assembly lives in its own module to
+// keep this file's size manageable; re-exported here so existing importers
+// of `applySoundToEffectCTn` from this module keep working unchanged.
+export { applySoundToEffectCTn } from './animation-write-node-sound';
 
 /** Emphasis presets that use p:animRot (rotation). */
 export const ROTATION_EMPHASIS: ReadonlySet<string> = new Set(['spin', 'teeter']);
@@ -26,29 +26,6 @@ export const OPACITY_EMPHASIS: ReadonlySet<string> = new Set([
 	'flash',
 	'boldFlash',
 ]);
-
-/**
- * Apply (or clear) an effect's `p:stSnd` / `p:endSnd` sound action onto its
- * `p:cTn` (CT_TLCommonTimeNodeData). Shared by the full-rebuild builders below
- * and the surgical updater (`animation-timing-surgical`) so an existing
- * effect's sound can be edited without rebuilding the whole node.
- */
-export function applySoundToEffectCTn(
-	effectCTn: XmlObject,
-	anim: Pick<PptxElementAnimation, 'soundRId' | 'stopSound'>,
-): void {
-	delete effectCTn['p:stSnd'];
-	delete effectCTn['p:endSnd'];
-	if (anim.stopSound) {
-		effectCTn['p:endSnd'] = {};
-	} else if (anim.soundRId) {
-		effectCTn['p:stSnd'] = {
-			'p:snd': {
-				'@_r:embed': anim.soundRId,
-			},
-		};
-	}
-}
 
 /**
  * Build a p:set node for toggling element visibility.

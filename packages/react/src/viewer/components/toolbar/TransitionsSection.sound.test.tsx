@@ -9,6 +9,7 @@
  * carries.
  */
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import { EFFECT_SOUND_CATALOGUE } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -88,17 +89,19 @@ async function waitFor(predicate: () => boolean, timeoutMs = 2000): Promise<void
 }
 
 describe('transitions > Sound picker', () => {
-	it('shows None and Other Sound when the slide has no sound, and is enabled', () => {
+	const STOCK_IDS = EFFECT_SOUND_CATALOGUE.map((entry) => entry.id);
+
+	it('shows None, all 19 stock sounds, and Other Sound when the slide has no sound, and is enabled', () => {
 		const onTransitionChange = vi.fn();
 		renderTab({ type: 'fade' }, onTransitionChange);
 
 		const select = soundSelect();
 		expect(select.disabled).toBeFalsy();
 		const optionValues = Array.from(select.options).map((o) => o.value);
-		expect(optionValues).toStrictEqual(['none', 'other']);
+		expect(optionValues).toStrictEqual(['none', ...STOCK_IDS, 'other']);
 	});
 
-	it('leads with the current file name once the slide carries a sound', () => {
+	it('leads with the current file name once the slide carries a non-stock sound', () => {
 		const onTransitionChange = vi.fn();
 		renderTab({ type: 'fade', soundFileName: 'chime.wav' }, onTransitionChange);
 
@@ -107,8 +110,31 @@ describe('transitions > Sound picker', () => {
 		expect(Array.from(select.options).map((o) => o.value)).toStrictEqual([
 			'current',
 			'none',
+			...STOCK_IDS,
 			'other',
 		]);
+	});
+
+	it('picks a stock sound directly, with no file dialog, and shows a working preview button', () => {
+		const onTransitionChange = vi.fn();
+		renderTab({ type: 'fade' }, onTransitionChange);
+
+		const select = soundSelect();
+		act(() => {
+			select.value = 'chime';
+			select.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+
+		expect(onTransitionChange).toHaveBeenCalledWith(
+			expect.objectContaining({ soundName: 'CHIMES.WAV', soundFileName: 'CHIMES.WAV' }),
+		);
+		const call = onTransitionChange.mock.calls[0][0] as Partial<PptxSlideTransition>;
+		expect(call.soundData).toMatch(/^data:audio\/wav;base64,/);
+
+		const previewButton = container.querySelector<HTMLButtonElement>(
+			'button[aria-label="pptx.animation.sound.preview"]',
+		);
+		expect(previewButton).toBeTruthy();
 	});
 
 	it('clears the sound when "None" is chosen', () => {

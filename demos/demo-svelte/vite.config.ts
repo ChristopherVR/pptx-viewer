@@ -26,6 +26,10 @@ export default defineConfig({
 	plugins: [svelte(), tailwindcss(), buildStamp(pkg('svelte', 'package.json'))],
 	server: {
 		port: 4177,
+		// Never auto-bump onto a sibling demo's port when this one is busy: an
+		// Angular server that lands on 4175 is indistinguishable from the Vue demo
+		// to the e2e harness, which then fails every Vue spec against stale dist.
+		strictPort: true,
 		open: true,
 	},
 	build: {

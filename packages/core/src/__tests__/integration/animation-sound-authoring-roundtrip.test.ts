@@ -33,7 +33,7 @@ const TINY_AUDIO_BYTES = new Uint8Array([
 const TINY_AUDIO_DATA_URL = `data:audio/mpeg;base64,${Buffer.from(TINY_AUDIO_BYTES).toString('base64')}`;
 
 describe('animation effect sound authoring round-trip', () => {
-	it('embeds a newly-picked sound, mints its relationship, and writes p:stSnd', async () => {
+	it('embeds a newly-picked sound, mints its relationship, and writes the modern p:audio/p:sndTgt sound node', async () => {
 		const { handler, data, createSlide } = await PresentationBuilder.create();
 		const slideBuilder = createSlide('Blank').addText('Hello', {
 			x: 10,
@@ -74,7 +74,12 @@ describe('animation effect sound authoring round-trip', () => {
 		expect(contentTypes).toContain('audio/mpeg');
 
 		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
-		expect(slideXml).toContain('<p:stSnd>');
+		// COM-verified against PowerPoint 2016 (2026-09-06): PowerPoint itself
+		// writes a newly-picked effect sound as a `p:audio` node inside
+		// `p:subTnLst`, targeting `p:sndTgt`, never the legacy `p:stSnd` (which
+		// it no longer recognises back).
+		expect(slideXml).not.toContain('<p:stSnd>');
+		expect(slideXml).toContain('<p:sndTgt');
 		expect(slideXml).toContain(`r:embed="${relIdMatch![1]}"`);
 
 		// Round-trip: reloading resolves the relationship to a real archive path,
@@ -114,7 +119,7 @@ describe('animation effect sound authoring round-trip', () => {
 		const secondSave = await reloader.save(reloaded.slides);
 		const zip = await JSZip.loadAsync(secondSave);
 		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
-		expect(slideXml).toContain('<p:stSnd>');
+		expect(slideXml).toContain('<p:sndTgt');
 
 		const mediaPath = Object.keys(zip.files).find((path) =>
 			/^ppt\/media\/audio\d+\.mp3$/u.test(path),

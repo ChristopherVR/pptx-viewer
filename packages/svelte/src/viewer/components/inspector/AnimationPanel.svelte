@@ -35,6 +35,7 @@
 		setAnimationExit,
 		setDirection,
 		setEffectSound,
+		setEffectStockSound,
 		setSequence,
 		showDirectionPicker,
 	} from 'pptx-viewer-shared';
@@ -117,6 +118,13 @@
 		commit(setEffectSound(anims, el.id, pick));
 	}
 
+	function onEffectStockSoundPick(catalogueId: string): void {
+		if (!el) {
+			return;
+		}
+		commit(setEffectStockSound(anims, el.id, catalogueId));
+	}
+
 	function onAfterAnimationChange(action: PptxAfterAnimationAction): void {
 		if (!el) {
 			return;
@@ -197,7 +205,12 @@
 				</select>
 			</label>
 
-			<EffectSoundRow {soundState} {canEdit} onpick={onEffectSoundPick} />
+			<EffectSoundRow
+			{soundState}
+			{canEdit}
+			onpick={onEffectSoundPick}
+			onpickstock={onEffectStockSoundPick}
+		/>
 			<AfterAnimationRow
 				action={anim?.afterAnimation ?? 'none'}
 				color={anim?.afterAnimationColor}

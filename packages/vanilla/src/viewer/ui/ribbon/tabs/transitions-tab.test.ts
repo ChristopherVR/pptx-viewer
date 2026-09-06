@@ -1,12 +1,18 @@
 import type { PptxSlideTransition } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
-import { EMPTY_RIBBON_TRANSITION_DRAFT, TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
+import {
+	EFFECT_SOUND_CATALOGUE,
+	EMPTY_RIBBON_TRANSITION_DRAFT,
+	TRANSITION_PREVIEW_ATTR,
+} from 'pptx-viewer-shared';
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../../i18n';
 import type { RibbonTransitionHandlers } from '../ribbon-types';
 import { createTransitionsTab } from './transitions-tab';
+
+const STOCK_IDS = EFFECT_SOUND_CATALOGUE.map((entry) => entry.id);
 
 /** The tab's handler bag: a (mutable) draft source plus a spy on the commit. */
 function makeHandlers(
@@ -66,12 +72,12 @@ describe('createTransitionsTab', () => {
 		expect(named(tab, t('pptx.ribbon.inspector'))).toHaveLength(1);
 	});
 
-	it('offers None and Other Sound for a slide with no sound', () => {
+	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
 		const t = createTranslator();
 		const tab = createTransitionsTab(document, t, makeHandlers(), vi.fn());
 		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
 		expect(select.disabled).toBeFalsy();
-		expect([...select.options].map((o) => o.value)).toStrictEqual(['none', 'other']);
+		expect([...select.options].map((o) => o.value)).toStrictEqual(['none', ...STOCK_IDS, 'other']);
 	});
 
 	it('offers the Advance Slide group, with both After controls React renders', () => {
@@ -258,13 +264,37 @@ describe('createTransitionsTab > Sound picker', () => {
 		return tab.el.querySelector('input[type="file"]') as HTMLInputElement;
 	}
 
-	it('leads with the current file name once the slide carries a sound', () => {
+	it('leads with the current file name once the slide carries a non-stock sound', () => {
 		const t = createTranslator();
 		const handlers = makeHandlers(undefined, { type: 'fade', soundFileName: 'chime.wav' });
 		const tab = createTransitionsTab(document, t, handlers, vi.fn());
 		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
-		expect([...select.options].map((o) => o.value)).toStrictEqual(['current', 'none', 'other']);
+		expect([...select.options].map((o) => o.value)).toStrictEqual([
+			'current',
+			'none',
+			...STOCK_IDS,
+			'other',
+		]);
 		expect(select.value).toBe('current');
+	});
+
+	it('picks a stock sound directly, with no file dialog, and enables the preview button', () => {
+		const t = createTranslator();
+		const handlers = makeHandlers();
+		const tab = createTransitionsTab(document, t, handlers, vi.fn());
+		const select = named(tab, t('pptx.ribbon.sound'))[0] as HTMLSelectElement;
+
+		select.value = 'chime';
+		select.dispatchEvent(new Event('change'));
+
+		expect(handlers.applyChange).toHaveBeenCalledWith(
+			expect.objectContaining({ soundName: 'CHIMES.WAV', soundFileName: 'CHIMES.WAV' }),
+		);
+		const call = handlers.applyChange.mock.calls[0][0] as Partial<PptxSlideTransition>;
+		expect(call.soundData).toMatch(/^data:audio\/wav;base64,/);
+
+		const previewButton = named(tab, t('pptx.animation.sound.preview'))[0] as HTMLButtonElement;
+		expect(previewButton).toBeTruthy();
 	});
 
 	it('clears the sound when "None" is chosen', () => {

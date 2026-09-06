@@ -23,8 +23,10 @@
 	import {
 		applyRibbonTransitionDraft,
 		applyTransitionSoundFile,
+		applyTransitionStockSound,
 		clearTransitionSound,
 		EMPTY_RIBBON_TRANSITION_DRAFT,
+		getEffectSoundAsset,
 		playSlideTransitionPreview,
 		readRibbonTransitionDraft,
 		readSoundFileAsDataUrl,
@@ -32,10 +34,12 @@
 		TRANSITION_SOUND_OTHER_VALUE,
 		transitionSoundOptions,
 		transitionSoundSelectedValue,
+		transitionStockSoundId,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import { playAnimationSound } from '../../../presentation/animation-sound';
 	import type { ChromeUiState } from '../../../state/chrome-ui.svelte';
 	import { TRANSITION_PRESETS } from './transition-presets';
 
@@ -99,6 +103,9 @@
 	const soundSelectedValue = $derived(
 		transitionSoundSelectedValue(editor.slides[editor.currentSlideIndex]?.transition),
 	);
+	const stockSoundId = $derived(
+		transitionStockSoundId(editor.slides[editor.currentSlideIndex]?.transition),
+	);
 
 	function onSoundSelectChange(event: Event): void {
 		const select = event.currentTarget as HTMLSelectElement;
@@ -111,6 +118,22 @@
 		}
 		if (select.value === TRANSITION_SOUND_NONE_VALUE) {
 			editor.transitionOps.applyChange(clearTransitionSound());
+			return;
+		}
+		// One of PowerPoint's 19 built-in stock sounds (catalogue id).
+		const patch = applyTransitionStockSound(select.value);
+		if (patch) {
+			editor.transitionOps.applyChange(patch);
+		}
+	}
+
+	function onSoundPreview(): void {
+		if (!stockSoundId) {
+			return;
+		}
+		const asset = getEffectSoundAsset(stockSoundId);
+		if (asset) {
+			playAnimationSound(asset.dataUrl);
 		}
 	}
 
@@ -185,6 +208,15 @@
 				<option value={option.value}>{option.i18nKey ? t(option.i18nKey) : option.label}</option>
 			{/each}
 		</select>
+		<button
+			type="button"
+			class="pptx-svelte-transitionstab-preview"
+			aria-label={t('pptx.animation.sound.preview')}
+			disabled={!stockSoundId}
+			onclick={onSoundPreview}
+		>
+			&#9654;
+		</button>
 		<input
 			bind:this={soundFileInput}
 			type="file"
@@ -362,5 +394,21 @@
 
 	.pptx-svelte-transitionstab-sound-file {
 		display: none;
+	}
+
+	.pptx-svelte-transitionstab-preview {
+		height: 26px;
+		width: 26px;
+		border: 1px solid var(--pptx-border, #33334d);
+		border-radius: var(--pptx-radius, 6px);
+		background: var(--pptx-background, #11111b);
+		color: inherit;
+		font-size: 9px;
+		cursor: pointer;
+	}
+
+	.pptx-svelte-transitionstab-preview:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 </style>

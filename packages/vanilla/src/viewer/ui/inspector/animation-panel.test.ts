@@ -12,6 +12,7 @@ function makeHandlers() {
 		applyMotionPath: vi.fn<InspectorHandlers['applyMotionPath']>(),
 		setAnimationTiming: vi.fn<InspectorHandlers['setAnimationTiming']>(),
 		setAnimationSound: vi.fn<InspectorHandlers['setAnimationSound']>(),
+		setAnimationStockSound: vi.fn<InspectorHandlers['setAnimationStockSound']>(),
 		reorderAnimation: vi.fn<InspectorHandlers['reorderAnimation']>(),
 		pushRecentColor: vi.fn<InspectorHandlers['pushRecentColor']>(),
 	};

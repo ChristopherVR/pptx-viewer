@@ -184,13 +184,15 @@ export function buildSingleEffectNode(
 
 	effectCTn['p:childTnLst'] = childTnLst;
 
-	applySoundToEffectCTn(effectCTn, anim);
 	// "After animation" describes what happens once an entrance/emphasis
 	// effect finishes; an exit effect already ends by hiding, so it never
 	// gets one (mirrors the exit skip in `applyAfterAnimationFromEditorList`).
+	// Runs BEFORE the sound step: it deletes and rebuilds `p:subTnLst` from
+	// scratch, which would erase a sound entry written first.
 	if (presetClass !== 'exit') {
 		applyAfterAnimationBehavior(effectCTn, anim, shapeId);
 	}
+	applySoundToEffectCTn(effectCTn, anim);
 
 	const wrapperId = allocateId();
 	return {

@@ -125,6 +125,8 @@ export interface InspectorHandlers {
 		elementId: string,
 		pick: { dataUrl: string; fileName?: string } | undefined,
 	): void;
+	/** Stage one of PowerPoint's 19 built-in stock sounds by catalogue id. */
+	setAnimationStockSound(elementId: string, catalogueId: string): void;
 	/** Move an element's animation one step in the slide play order. */
 	reorderAnimation(elementId: string, direction: 'up' | 'down'): void;
 

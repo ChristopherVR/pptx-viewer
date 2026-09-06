@@ -151,6 +151,7 @@
 			[soundState]="soundState()"
 			[canEdit]="canEdit()"
 			(pick)="onEffectSoundPick($event)"
+			(pickStock)="onEffectStockSoundPick($event)"
 		/>
 		<pptx-after-animation-row
 			[action]="current()?.afterAnimation ?? 'none'"

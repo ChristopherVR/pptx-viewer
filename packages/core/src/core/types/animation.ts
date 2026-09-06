@@ -333,10 +333,27 @@ export interface PptxNativeAnimation {
 	buildLevel?: number;
 	/** Group ID linking a `p:bldP` entry to its timing animation node. */
 	groupId?: string;
-	/** Sound relationship ID to play when animation triggers (`p:stSnd`). */
+	/**
+	 * Sound relationship ID to play when animation triggers. Modern PowerPoint
+	 * (COM-verified against 2016) writes this as a `p:audio/p:cMediaNode`
+	 * sibling of the effect's own `p:childTnLst`, targeting `p:sndTgt` rather
+	 * than a shape; the legacy `p:stSnd` form (directly on `p:cTn`) is still
+	 * accepted on load for round-trip of older-authored decks, but PowerPoint
+	 * itself no longer writes it and does not recognise it back
+	 * (`Effect.EffectInformation.SoundEffect` reads empty against it).
+	 */
 	soundRId?: string;
 	/** Resolved sound file path from relationship. */
 	soundPath?: string;
+	/**
+	 * The embedded sound's `@_name` (from `p:snd`/`p:sndTgt`). For one of
+	 * PowerPoint's 19 built-in stock sounds this is the exact upper-case file
+	 * name PowerPoint itself writes (e.g. `"CHIMES.WAV"`); see
+	 * `pptx-viewer-shared`'s `effect-sound-catalogue.ts`, which matches this
+	 * value back to a gallery entry. Absent for a custom sound with no name,
+	 * or when unresolved.
+	 */
+	soundName?: string;
 	/** Whether to stop any currently playing sound (`p:endSnd`). */
 	stopSound?: boolean;
 	/**
@@ -934,10 +951,24 @@ export interface PptxElementAnimation {
 	motionPathRotationCenterX?: number;
 	/** Motion-path rotation centre Y in slide percentage units (`p:rCtr/@y`). */
 	motionPathRotationCenterY?: number;
-	/** Sound relationship ID to play when animation triggers (`p:stSnd`). */
+	/**
+	 * Sound relationship ID to play when animation triggers. Written on save
+	 * as a `p:audio/p:cMediaNode` sibling of the effect's own `p:childTnLst`
+	 * (see `PptxNativeAnimation.soundRId` for the COM-verified detail).
+	 */
 	soundRId?: string;
 	/** Resolved sound file path from relationship. */
 	soundPath?: string;
+	/**
+	 * The `@_name` to write on the embedded sound (`p:sndTgt`). For a stock
+	 * gallery pick this is the exact PowerPoint file name (e.g.
+	 * `"CHIMES.WAV"`), which is what makes PowerPoint itself recognise the
+	 * sound as that built-in entry when it reopens the saved deck (there is no
+	 * separate "built-in" flag anywhere in the schema). Set by
+	 * `pptx-viewer-shared`'s `setEffectSound` when the pick carries a
+	 * `soundName`; absent for a custom file with no meaningful name.
+	 */
+	soundName?: string;
 	/** Whether to stop any currently playing sound (`p:endSnd`). */
 	stopSound?: boolean;
 	/**
@@ -952,7 +983,9 @@ export interface PptxElementAnimation {
 	/**
 	 * Display name for the chosen sound (e.g. the uploaded file's name),
 	 * shown by the authoring UI's sound picker. Purely cosmetic; has no
-	 * OOXML equivalent and is not required for playback.
+	 * OOXML equivalent and is not required for playback. For a stock gallery
+	 * pick, the UI derives its label from {@link soundName} via the catalogue
+	 * instead of this field.
 	 */
 	soundFileName?: string;
 	/**

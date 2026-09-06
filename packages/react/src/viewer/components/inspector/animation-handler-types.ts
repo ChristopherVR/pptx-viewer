@@ -72,6 +72,7 @@ export interface AnimationHandlers {
 	handleMoveDown: (animIndex: number) => void;
 	effectSoundState: EffectSoundState;
 	handleEffectSoundPick: (pick: { dataUrl: string; fileName?: string } | undefined) => void;
+	handleEffectStockSoundPick: (catalogueId: string) => void;
 	handleAfterAnimationChange: (action: PptxAfterAnimationAction) => void;
 	handleAfterAnimationColorChange: (color: string) => void;
 	getTimelineLabel: (anim: PptxElementAnimation) => string;

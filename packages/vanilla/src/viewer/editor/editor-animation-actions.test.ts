@@ -243,6 +243,24 @@ describe('createAnimationActions', () => {
 		expect(cleared.soundRId).toBeUndefined();
 	});
 
+	it('setAnimationStockSound stages a synthesised stock sound with its canonical name', () => {
+		const animations: PptxElementAnimation[] = [{ elementId: 'el1', entrance: 'fadeIn', order: 0 }];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [{ ...buildSlide('a', [buildElement('el1')]), animations }],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'el1',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationStockSound('el1', 'chime');
+		const anim = store.get().slides[0].animations![0];
+		expect(anim.soundName).toBe('CHIMES.WAV');
+		expect(anim.soundData?.startsWith('data:audio/wav;base64,')).toBeTruthy();
+	});
+
 	it('setAnimationEffect sets one bucket on the selected element and marks dirty', () => {
 		const store = createStore({
 			...createInitialViewerState(),

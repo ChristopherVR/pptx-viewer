@@ -24,6 +24,7 @@ import type { PptxElementAnimation, PptxNativeAnimation } from '../types';
 interface NativeSoundState {
 	soundRId?: string;
 	soundPath?: string;
+	soundName?: string;
 	stopSound?: boolean;
 }
 
@@ -44,6 +45,7 @@ export function mergeNativeSoundIntoEditorAnimations(
 			soundByElement.set(nativeAnim.targetId, {
 				soundRId: nativeAnim.soundRId,
 				soundPath: nativeAnim.soundPath,
+				soundName: nativeAnim.soundName,
 				stopSound: nativeAnim.stopSound,
 			});
 		}
@@ -62,6 +64,7 @@ export function mergeNativeSoundIntoEditorAnimations(
 		}
 		editorAnim.soundRId = nativeSound.soundRId;
 		editorAnim.soundPath = nativeSound.soundPath;
+		editorAnim.soundName = nativeSound.soundName;
 		editorAnim.stopSound = nativeSound.stopSound;
 	}
 }

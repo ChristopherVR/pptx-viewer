@@ -29,6 +29,21 @@ export async function readZipPartText(bytes: Uint8Array, partName: string): Prom
 }
 
 /**
+ * The raw bytes of `partName` (e.g. an embedded `ppt/media/audioN.wav`)
+ * inside `bytes`. Unlike {@link readZipPartText}, this does not decode the
+ * part as UTF-8 text, which would corrupt binary content (a WAV/PNG/etc.
+ * media part is not valid UTF-8 in general).
+ */
+export async function readZipPartBytes(bytes: Uint8Array, partName: string): Promise<Uint8Array> {
+	const zip = await JSZip.loadAsync(bytes);
+	const entry = zip.file(partName);
+	if (!entry) {
+		throw new Error(`no such part in the package: ${partName}`);
+	}
+	return entry.async('uint8array');
+}
+
+/**
  * The substring of `xml` covering the FIRST `<tag ...>...</tag>` element whose
  * opening tag or content contains `marker` - a lightweight way to isolate one
  * shape's block by its name/id without a full XML parse, matching the style

@@ -1,4 +1,5 @@
 import type { PptxElement, PptxElementAnimation, PptxSlide } from 'pptx-viewer-core';
+import { EFFECT_SOUND_CATALOGUE } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -78,7 +79,7 @@ describe('effectSoundRow', () => {
 		expect(select.value).toBe('none');
 	});
 
-	it('shows the picked file name once a sound is set', () => {
+	it('shows the picked custom file name once a non-stock sound is set', () => {
 		const { select } = mountPanel([
 			{
 				elementId: 'shape-1',
@@ -87,8 +88,41 @@ describe('effectSoundRow', () => {
 				soundPath: 'ppt/media/audio1.wav',
 			},
 		]);
-		expect(select.value).toBe('custom');
-		expect(select.querySelector('option[value="custom"]')?.textContent).toBe('audio1.wav');
+		expect(select.value).toBe('current');
+		expect(select.querySelector('option[value="current"]')?.textContent).toBe('audio1.wav');
+	});
+
+	it('lists all 19 stock sounds plus None and Other Sound', () => {
+		const { select } = mountPanel();
+		const values = Array.from(select.options).map((o) => o.value);
+		expect(values).toStrictEqual(['none', ...EFFECT_SOUND_CATALOGUE.map((e) => e.id), 'other']);
+	});
+
+	it('shows the matching stock entry selected when the sound name is a stock name', () => {
+		const { select } = mountPanel([
+			{
+				elementId: 'shape-1',
+				entrance: 'fadeIn',
+				soundRId: 'rId1',
+				soundPath: 'ppt/media/audio1.wav',
+				soundName: 'CHIMES.WAV',
+			},
+		]);
+		expect(select.value).toBe('chime');
+	});
+
+	it('picks a stock sound directly, with no file dialog, and enables the preview button', () => {
+		const { editor, select, target } = mountPanel();
+		choose(select, 'chime');
+		const anim = editor.slides[0]?.animations?.[0];
+		expect(anim?.soundName).toBe('CHIMES.WAV');
+		expect(anim?.soundData).toMatch(/^data:audio\/wav;base64,/);
+
+		const previewButton = target.querySelector<HTMLButtonElement>(
+			'button[aria-label="Preview sound"]',
+		);
+		expect(previewButton).not.toBeNull();
+		expect(previewButton?.disabled).toBeFalsy();
 	});
 
 	it('clears the sound when "No Sound" is chosen', () => {

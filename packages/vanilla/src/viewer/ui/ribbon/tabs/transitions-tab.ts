@@ -2,8 +2,10 @@ import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 import {
 	applyRibbonTransitionDraft,
 	applyTransitionSoundFile,
+	applyTransitionStockSound,
 	clearTransitionSound,
 	EMPTY_RIBBON_TRANSITION_DRAFT,
+	getEffectSoundAsset,
 	playSlideTransitionPreview,
 	readSoundFileAsDataUrl,
 	RIBBON_TRANSITION_PRESETS,
@@ -11,8 +13,10 @@ import {
 	TRANSITION_SOUND_OTHER_VALUE,
 	transitionSoundOptions,
 	transitionSoundSelectedValue,
+	transitionStockSoundId,
 } from 'pptx-viewer-shared';
 
+import { playAnimationSound } from '../../../animation/animation-sound';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton, makeNumberField } from '../../controls';
@@ -140,7 +144,13 @@ export function createTransitionsTab(
 	soundFile.type = 'file';
 	soundFile.accept = 'audio/*';
 	soundFile.style.display = 'none';
-	soundLabel.append(doc.createTextNode(t('pptx.ribbon.sound')), sound, soundFile);
+	const soundPreview = doc.createElement('button');
+	soundPreview.type = 'button';
+	soundPreview.className = 'pptxv-transition-sound-preview';
+	soundPreview.setAttribute('aria-label', t('pptx.animation.sound.preview'));
+	soundPreview.textContent = '▶';
+	soundPreview.disabled = true;
+	soundLabel.append(doc.createTextNode(t('pptx.ribbon.sound')), sound, soundPreview, soundFile);
 	el.appendChild(soundLabel);
 
 	/** Repaint the Sound select's options and selection from the active slide. */
@@ -154,6 +164,7 @@ export function createTransitionsTab(
 			sound.appendChild(optionEl);
 		}
 		sound.value = transitionSoundSelectedValue(transition);
+		soundPreview.disabled = !transitionStockSoundId(transition);
 	}
 	paintSound();
 
@@ -167,6 +178,22 @@ export function createTransitionsTab(
 		}
 		if (sound.value === TRANSITION_SOUND_NONE_VALUE) {
 			handlers.applyChange(clearTransitionSound());
+			return;
+		}
+		// One of PowerPoint's 19 built-in stock sounds (catalogue id).
+		const patch = applyTransitionStockSound(sound.value);
+		if (patch) {
+			handlers.applyChange(patch);
+		}
+	});
+	soundPreview.addEventListener('click', () => {
+		const id = transitionStockSoundId(handlers.readTransition());
+		if (!id) {
+			return;
+		}
+		const asset = getEffectSoundAsset(id);
+		if (asset) {
+			playAnimationSound(asset.dataUrl);
 		}
 	});
 	soundFile.addEventListener('change', () => {

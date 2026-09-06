@@ -1,15 +1,10 @@
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
 import {
-	applyTransitionSoundFile,
-	clearTransitionSound,
 	playSlideTransitionPreview,
 	readRibbonTransitionDraft,
-	readSoundFileAsDataUrl,
 	RIBBON_TRANSITION_PRESETS,
 	ribbonTransitionUpdates,
-	TRANSITION_SOUND_NONE_VALUE,
-	TRANSITION_SOUND_OTHER_VALUE,
 	transitionSoundOptions,
 	transitionSoundSelectedValue,
 } from 'pptx-viewer-shared';
@@ -19,6 +14,7 @@ import { LuCopy, LuPanelRight, LuPlay } from 'react-icons/lu';
 
 import { cn } from '../../utils';
 import { ic, ics, pill, sep } from './toolbar-constants';
+import { useTransitionSoundPicker } from './useTransitionSoundPicker';
 
 /**
  * The Transitions ribbon tab.
@@ -62,35 +58,16 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 		[draft, p],
 	);
 
-	// The Sound picker's file input: hidden, and clicked programmatically by
-	// the "Other Sound..." entry. `onTransitionChange` is generic (a raw
-	// `Partial<PptxSlideTransition>`), so a sound pick bypasses the draft
-	// entirely instead of going through `commit`.
-	const soundFileInputRef = React.useRef<HTMLInputElement>(null);
-	const handleSoundFilePicked = React.useCallback(
-		(file: File) => {
-			void readSoundFileAsDataUrl(file).then((dataUrl) => {
-				if (dataUrl) {
-					p.onTransitionChange(applyTransitionSoundFile({ name: file.name, dataUrl }));
-				}
-				return undefined;
-			});
-		},
-		[p],
-	);
-	const handleSoundSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-		const value = event.target.value;
-		if (value === TRANSITION_SOUND_OTHER_VALUE) {
-			soundFileInputRef.current?.click();
-			// The file input's own change (or a cancelled dialog) decides what
-			// happens next; put the select back to what the slide actually has.
-			event.target.value = transitionSoundSelectedValue(p.activeSlide?.transition);
-			return;
-		}
-		if (value === TRANSITION_SOUND_NONE_VALUE) {
-			p.onTransitionChange(clearTransitionSound());
-		}
-	};
+	// `onTransitionChange` is generic (a raw `Partial<PptxSlideTransition>`),
+	// so a sound pick bypasses the draft entirely instead of going through
+	// `commit`; see `useTransitionSoundPicker`.
+	const {
+		soundFileInputRef,
+		stockSoundId,
+		handleSoundSelectChange,
+		handleSoundFileChange,
+		handleSoundPreview,
+	} = useTransitionSoundPicker(p.activeSlide, p.onTransitionChange);
 
 	return (
 		<>
@@ -177,18 +154,21 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 						</option>
 					))}
 				</select>
+				<button
+					type='button'
+					aria-label={t('pptx.animation.sound.preview')}
+					onClick={handleSoundPreview}
+					disabled={!stockSoundId}
+					className='shrink-0 rounded border border-border bg-muted p-1 disabled:opacity-40'
+				>
+					<LuPlay className='h-3 w-3' />
+				</button>
 				<input
 					ref={soundFileInputRef}
 					type='file'
 					accept='audio/*'
 					className='hidden'
-					onChange={(e) => {
-						const file = e.target.files?.[0];
-						if (file) {
-							handleSoundFilePicked(file);
-						}
-						e.target.value = '';
-					}}
+					onChange={handleSoundFileChange}
 				/>
 			</label>
 

@@ -63,6 +63,7 @@ type PanelHandlers = Pick<
 	| 'applyMotionPath'
 	| 'setAnimationTiming'
 	| 'setAnimationSound'
+	| 'setAnimationStockSound'
 	| 'reorderAnimation'
 	| 'pushRecentColor'
 >;
@@ -160,11 +161,20 @@ export function createAnimationPanel(
 		options,
 	);
 
-	const effectSoundRow = createEffectSoundRow(doc, t, (pick) => {
-		if (current.selectedElementId) {
-			handlers.setAnimationSound(current.selectedElementId, pick);
-		}
-	});
+	const effectSoundRow = createEffectSoundRow(
+		doc,
+		t,
+		(pick) => {
+			if (current.selectedElementId) {
+				handlers.setAnimationSound(current.selectedElementId, pick);
+			}
+		},
+		(catalogueId) => {
+			if (current.selectedElementId) {
+				handlers.setAnimationStockSound(current.selectedElementId, catalogueId);
+			}
+		},
+	);
 	options.appendChild(effectSoundRow.el);
 	const afterAnimationRow = createAfterAnimationRow(
 		doc,

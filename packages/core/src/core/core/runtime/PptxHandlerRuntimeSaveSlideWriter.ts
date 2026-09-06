@@ -113,14 +113,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Embed a newly-authored animation effect sound and mint its relationship.
 	 *
-	 * The animation panel's sound picker stages a chosen file as a pending
-	 * `data:` URL on `PptxElementAnimation.soundData` (the same convention
-	 * `imageData` / `mediaData` use for not-yet-embedded media). This writes
-	 * the bytes into `ppt/media/`, registers an `audio` relationship for them
-	 * (the type real PowerPoint uses for `p:snd/@r:embed`, embedded or not),
-	 * and rewrites the animation entry to reference the resolved
-	 * `soundRId` / `soundPath` so the timing writer below emits a legal
-	 * `p:stSnd`. A no-op for every entry that has no pending sound.
+	 * The animation panel's sound picker (stock gallery or custom file) stages
+	 * the chosen sound as a pending `data:` URL on
+	 * `PptxElementAnimation.soundData` (the same convention `imageData` /
+	 * `mediaData` use for not-yet-embedded media). This writes the bytes into
+	 * `ppt/media/`, registers an `audio` relationship for them (the type real
+	 * PowerPoint itself uses for both `p:snd/@r:embed` and `p:sndTgt/@r:embed`,
+	 * embedded or not), and rewrites the animation entry to reference the
+	 * resolved `soundRId` / `soundPath` / `soundName` so
+	 * `applySoundToEffectCTn` below emits the modern
+	 * `p:audio/p:cMediaNode/p:sndTgt` sound node PowerPoint recognises back. A
+	 * no-op for every entry that has no pending sound.
 	 */
 	protected embedPendingAnimationSounds(
 		animations: PptxElementAnimation[],
@@ -244,7 +247,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.embedTransitionSound(slide.transition, {
 				saveSession,
 				slideRelationshipRegistry,
-				slideMediaRelationshipType: constants.slideMediaRelationshipType,
+				slideAudioRelationshipType: constants.slideAudioRelationshipType,
 				slideId: slide.id,
 			});
 			// `CT_Slide` allows ONE `p:transition`, and PowerPoint 2010+ keeps it

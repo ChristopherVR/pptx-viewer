@@ -90,6 +90,7 @@ export function AnimationPanel({
 		handleMotionPathChange,
 		effectSoundState,
 		handleEffectSoundPick,
+		handleEffectStockSoundPick,
 		handleAfterAnimationChange,
 		handleAfterAnimationColorChange,
 		handlePreviewClick,
@@ -239,6 +240,7 @@ export function AnimationPanel({
 							soundState={effectSoundState}
 							canEdit={canEdit}
 							onPick={handleEffectSoundPick}
+							onPickStock={handleEffectStockSoundPick}
 						/>
 						<AfterAnimationRow
 							action={selectedElementAnimation?.afterAnimation ?? 'none'}

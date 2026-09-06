@@ -16,9 +16,15 @@ import { Injector, runInInjectionContext } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { RIBBON_TRANSITION_PRESETS, TRANSITION_PREVIEW_ATTR } from '../internal/shared';
+import {
+	EFFECT_SOUND_CATALOGUE,
+	RIBBON_TRANSITION_PRESETS,
+	TRANSITION_PREVIEW_ATTR,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { RibbonTransitionsSectionComponent } from './ribbon-transitions-section.component';
+
+const STOCK_IDS = EFFECT_SOUND_CATALOGUE.map((entry) => entry.id);
 
 /** The protected surface the template binds to. */
 interface TransitionsControls {
@@ -180,21 +186,40 @@ describe('transitions ribbon tab', () => {
 });
 
 describe('transitions ribbon tab > Sound picker', () => {
-	it('offers None and Other Sound for a slide with no sound', () => {
+	it('offers None, all 19 stock sounds, and Other Sound for a slide with no sound', () => {
 		const { controls } = harness();
-		expect(controls.soundOptions().map((option) => option.value)).toStrictEqual(['none', 'other']);
+		expect(controls.soundOptions().map((option) => option.value)).toStrictEqual([
+			'none',
+			...STOCK_IDS,
+			'other',
+		]);
 		expect(controls.soundSelectedValue()).toBe('none');
 	});
 
-	it('leads with the current file name once the slide carries a sound', () => {
+	it('leads with the current file name once the slide carries a non-stock sound', () => {
 		const { editor, controls } = harness();
 		editor.updateSlide(0, { transition: { type: 'fade', soundFileName: 'chime.wav' } });
 		expect(controls.soundOptions().map((option) => option.value)).toStrictEqual([
 			'current',
 			'none',
+			...STOCK_IDS,
 			'other',
 		]);
 		expect(controls.soundSelectedValue()).toBe('current');
+	});
+
+	it('picks a stock sound directly, with no file dialog', () => {
+		const { editor, controls } = harness();
+		editor.updateSlide(0, { transition: { type: 'fade' } });
+
+		controls.onSoundSelectChange(changeEvent('chime'));
+
+		expect(editor.slides()[0].transition).toMatchObject({
+			type: 'fade',
+			soundName: 'CHIMES.WAV',
+			soundFileName: 'CHIMES.WAV',
+		});
+		expect(editor.slides()[0].transition?.soundData).toMatch(/^data:audio\/wav;base64,/);
 	});
 
 	it('clears the sound when "None" is chosen', () => {

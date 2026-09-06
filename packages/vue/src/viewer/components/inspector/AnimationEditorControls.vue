@@ -18,6 +18,7 @@ import {
 	setDelay,
 	setDuration,
 	setEffectSound,
+	setEffectStockSound,
 	setRepeatCount,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
@@ -110,6 +111,18 @@ function soundPatch(
 	return {
 		soundData: result?.soundData,
 		soundFileName: result?.soundFileName,
+		soundName: result?.soundName,
+		soundRId: result?.soundRId,
+		soundPath: result?.soundPath,
+	};
+}
+
+function soundStockPatch(catalogueId: string): Partial<PptxElementAnimation> {
+	const [result] = setEffectStockSound([props.animation], props.animation.elementId, catalogueId);
+	return {
+		soundData: result?.soundData,
+		soundFileName: result?.soundFileName,
+		soundName: result?.soundName,
 		soundRId: result?.soundRId,
 		soundPath: result?.soundPath,
 	};
@@ -256,7 +269,11 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				</option>
 			</select>
 		</label>
-		<EffectSoundRow :sound-state="soundState" @pick="(pick) => emit('patch', soundPatch(pick))" />
+		<EffectSoundRow
+			:sound-state="soundState"
+			@pick="(pick) => emit('patch', soundPatch(pick))"
+			@pick-stock="(id) => emit('patch', soundStockPatch(id))"
+		/>
 		<AfterAnimationRow
 			:action="animation.afterAnimation ?? 'none'"
 			:color="animation.afterAnimationColor"

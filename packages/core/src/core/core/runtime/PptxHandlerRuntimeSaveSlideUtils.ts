@@ -9,11 +9,18 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 export interface EmbedTransitionSoundContext {
 	saveSession: PptxSaveState;
 	slideRelationshipRegistry: IPptxSlideRelationshipRegistry;
-	/** Relationship type for an embedded (package-internal) media part; the
-	 * same generic type `processMediaEmbedding` uses for embedded audio/video,
-	 * per ECMA-376's convention that type-specific `audio`/`video` relationship
-	 * types are reserved for EXTERNALLY linked media. */
-	slideMediaRelationshipType: string;
+	/**
+	 * Relationship type for the embedded transition sound part. COM-verified
+	 * against PowerPoint 2016 (2026-09-06): PowerPoint itself mints
+	 * `.../relationships/audio` for an embedded (package-internal) transition
+	 * sound, the same type `embedPendingAnimationSounds` already uses for an
+	 * effect sound - NOT the generic `media` type this used to pass, which
+	 * PowerPoint refuses to reopen (`0x80070570`, "corrupted and
+	 * unreadable"). The doc comment this replaces claimed ECMA-376 reserves
+	 * `audio`/`video` for externally-linked media only; whatever the schema
+	 * allows, it is not what PowerPoint itself writes or accepts here.
+	 */
+	slideAudioRelationshipType: string;
 	slideId: string;
 }
 
@@ -148,7 +155,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const relationshipId = ctx.slideRelationshipRegistry.nextRelationshipId();
 		ctx.slideRelationshipRegistry.upsertRelationship(
 			relationshipId,
-			ctx.slideMediaRelationshipType,
+			ctx.slideAudioRelationshipType,
 			targetSoundPath.replace(/^ppt\//u, '../'),
 		);
 		transition.soundRId = relationshipId;

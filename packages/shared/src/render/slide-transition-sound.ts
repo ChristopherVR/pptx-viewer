@@ -18,9 +18,22 @@
  * slide save writer). Once that happens `soundRId`/`soundPath` are populated
  * and `soundData` is cleared, exactly like `imagePath` for a picture.
  *
+ * WHY the stock gallery needed no core changes: `PptxSlideTransition.soundName`
+ * and its write side (`slide-transition-xml.ts`'s `buildTransitionSound`)
+ * already round-trip an OOXML `@_name`, which is exactly what COM-verified
+ * ground truth (PowerPoint 2016, `SlideShowTransition.SoundEffect.
+ * ImportFromFile`, 2026-09-06) showed PowerPoint itself writes for a stock
+ * sound: `<p:snd r:embed="rIdN" name="APPLAUSE.WAV"/>`, no separate
+ * "built-in" flag anywhere. {@link applyTransitionStockSound} only needed to
+ * add an AUTHORING path that stages one of `effect-sound-catalogue.ts`'s 19
+ * synthesised sounds with its canonical name.
+ *
  * @module render/slide-transition-sound
  */
 import type { PptxSlideTransition } from 'pptx-viewer-core';
+
+import { EFFECT_SOUND_CATALOGUE, findEffectSoundCatalogueEntry } from './effect-sound-catalogue';
+import { getEffectSoundAsset } from './effect-sound-synth';
 
 /** A local sound file the user picked, already read into memory. */
 export interface TransitionSoundFilePick {
@@ -50,24 +63,33 @@ export interface TransitionSoundOption {
 
 /**
  * Options for the Sound `<select>`, in the order PowerPoint's own Sound
- * dropdown uses: the file already picked (if any), then None, then the
- * browse entry.
+ * dropdown uses: the file already picked (if any, and not a stock match),
+ * then None, then PowerPoint's 19 built-in stock sounds, then the browse
+ * entry.
  */
 export function transitionSoundOptions(
 	transition: PptxSlideTransition | undefined,
 ): TransitionSoundOption[] {
 	const options: TransitionSoundOption[] = [];
+	const stockId = transitionStockSoundId(transition);
 	const fileName = transition?.soundFileName?.trim();
-	if (fileName) {
+	if (fileName && !stockId) {
 		options.push({ value: TRANSITION_SOUND_CURRENT_VALUE, label: fileName });
 	}
 	options.push({ value: TRANSITION_SOUND_NONE_VALUE, i18nKey: 'pptx.ribbon.soundNone' });
+	for (const entry of EFFECT_SOUND_CATALOGUE) {
+		options.push({ value: entry.id, i18nKey: entry.i18nKey });
+	}
 	options.push({ value: TRANSITION_SOUND_OTHER_VALUE, i18nKey: 'pptx.ribbon.soundOther' });
 	return options;
 }
 
 /** The value the Sound `<select>` should currently show as selected. */
 export function transitionSoundSelectedValue(transition: PptxSlideTransition | undefined): string {
+	const stockId = transitionStockSoundId(transition);
+	if (stockId) {
+		return stockId;
+	}
 	return transition?.soundFileName?.trim()
 		? TRANSITION_SOUND_CURRENT_VALUE
 		: TRANSITION_SOUND_NONE_VALUE;
@@ -98,6 +120,41 @@ export function applyTransitionSoundFile(
 		soundPath: undefined,
 		stopSound: undefined,
 	};
+}
+
+/**
+ * The transition fields a stock gallery pick (`catalogueId`, e.g. `"chime"`)
+ * writes: the synthesised sound staged pending, with the catalogue's
+ * canonical `@_name` so PowerPoint recognises it as that built-in sound on
+ * reload (see the module doc comment). Returns `undefined` for an id absent
+ * from the catalogue.
+ */
+export function applyTransitionStockSound(
+	catalogueId: string,
+): Partial<PptxSlideTransition> | undefined {
+	const asset = getEffectSoundAsset(catalogueId);
+	if (!asset) {
+		return undefined;
+	}
+	return {
+		soundData: asset.dataUrl,
+		soundFileName: asset.fileName,
+		soundName: asset.fileName,
+		soundRId: undefined,
+		soundPath: undefined,
+		stopSound: undefined,
+	};
+}
+
+/**
+ * The stock-gallery id matching `transition`'s current sound, when its
+ * `soundName` names one of PowerPoint's 19 built-in sounds. `undefined` for a
+ * custom sound file or no sound at all.
+ */
+export function transitionStockSoundId(
+	transition: PptxSlideTransition | undefined,
+): string | undefined {
+	return findEffectSoundCatalogueEntry(transition?.soundName)?.id;
 }
 
 /** The transition fields the picker's "None" entry writes: no sound at all. */

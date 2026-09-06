@@ -8,22 +8,27 @@
  * a way to choose "no sound" or a new audio file, with the choice actually
  * landing in the saved OOXML.
  *
- * Bundling stock sound assets (PowerPoint's own "Applause" / "Camera" /
- * "Chime" WAVs) was out of scope here: no such assets exist anywhere in this
- * repo (only a throwaway test fixture, `e2e/fixtures/media/tiny-audio.mp3`,
- * unsuitable to ship as a real feature). The picker this module supports is
- * therefore two states: **no sound**, or a **custom sound** the user chooses
- * from their own files. A `dataUrl` staged this way is a *pending* embed
- * (mirrors `imageData` / `mediaData`): `PptxHandlerRuntimeSaveSlideWriter`'s
- * `embedPendingAnimationSounds` converts it to real archive bytes and mints
- * an `audio` relationship on save, at which point `soundRId` / `soundPath`
- * become the resolved reference and `soundData` is cleared.
+ * Two kinds of pick exist. A **stock** pick names one of PowerPoint's 19
+ * built-in gallery sounds (see `effect-sound-catalogue.ts`); Microsoft's own
+ * WAV assets cannot be redistributed, so `effect-sound-synth.ts` synthesises
+ * a DOM-free placeholder and this module stages it with the catalogue's
+ * canonical `@_name` so the SAVED deck is byte-for-byte what PowerPoint
+ * itself recognises as that stock sound (COM-verified, see the catalogue
+ * module's doc comment). A **custom** pick is a sound the user chooses from
+ * their own files, with no catalogue match. Either way the result is a
+ * `dataUrl` staged as a *pending* embed (mirrors `imageData` / `mediaData`):
+ * `PptxHandlerRuntimeSaveSlideWriter`'s `embedPendingAnimationSounds`
+ * converts it to real archive bytes and mints an `audio` relationship on
+ * save, at which point `soundRId` / `soundPath` become the resolved
+ * reference and `soundData` is cleared.
  *
  * @module render/animation-sound-authoring
  */
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 
 import { animationFor, upsert } from './animation-authoring';
+import { findEffectSoundCatalogueEntry } from './effect-sound-catalogue';
+import { getEffectSoundAsset } from './effect-sound-synth';
 
 /** A newly-picked sound file, staged for embedding on the next save. */
 export interface EffectSoundPick {
@@ -31,6 +36,12 @@ export interface EffectSoundPick {
 	dataUrl: string;
 	/** Display name (e.g. the file's original name), shown by the picker. */
 	fileName?: string;
+	/**
+	 * The `@_name` PowerPoint should write for this sound. Set for a stock
+	 * gallery pick to the catalogue's canonical file name (e.g.
+	 * `"CHIMES.WAV"`); absent for a custom file pick with no meaningful name.
+	 */
+	soundName?: string;
 }
 
 /** Framework-neutral descriptor of an effect's current sound state. */
@@ -43,6 +54,13 @@ export interface EffectSoundState {
 	 * already on the deck when it was opened.
 	 */
 	fileName?: string;
+	/**
+	 * The matching stock-gallery id (`effect-sound-catalogue.ts`) when the
+	 * current sound's `soundName` names one of PowerPoint's 19 built-in
+	 * sounds, so the picker can show that entry selected instead of falling
+	 * back to a raw file name. Absent for a custom sound or "no sound".
+	 */
+	catalogueId?: string;
 }
 
 /**
@@ -63,7 +81,31 @@ export function getEffectSoundState(
 		return { hasSound: false };
 	}
 	const fileName = entry.soundFileName ?? lastPathSegment(entry.soundPath);
-	return { hasSound: true, fileName };
+	const catalogueId = findEffectSoundCatalogueEntry(entry.soundName)?.id;
+	return catalogueId !== undefined
+		? { hasSound: true, fileName, catalogueId }
+		: { hasSound: true, fileName };
+}
+
+/**
+ * Stage one of PowerPoint's 19 built-in stock sounds (`catalogueId`, e.g.
+ * `"chime"`) as the effect's pending sound. Returns the input array unchanged
+ * when `catalogueId` does not match a catalogue entry.
+ */
+export function setEffectStockSound(
+	anims: readonly PptxElementAnimation[],
+	elementId: string,
+	catalogueId: string,
+): PptxElementAnimation[] {
+	const asset = getEffectSoundAsset(catalogueId);
+	if (!asset) {
+		return anims.slice();
+	}
+	return setEffectSound(anims, elementId, {
+		dataUrl: asset.dataUrl,
+		fileName: asset.fileName,
+		soundName: asset.fileName,
+	});
 }
 
 function lastPathSegment(path: string | undefined): string | undefined {
@@ -90,6 +132,7 @@ export function setEffectSound(
 		...cur,
 		soundData: pick?.dataUrl,
 		soundFileName: pick?.fileName,
+		soundName: pick?.soundName,
 		soundRId: undefined,
 		soundPath: undefined,
 	}));
