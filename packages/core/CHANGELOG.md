@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.7.0) - 2026-09-06
+
+### Features
+
+- **core:** Close the wave-5 OpenXML limitation gaps in parse/save (by @ChristopherVR) ([175dbbd](https://github.com/ChristopherVR/pptx-viewer/commit/175dbbdccefebd5b4c4cd386a421b3bcb0209093))
+
 ## [3.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.6.0) - 2026-09-05
 
 ### Features

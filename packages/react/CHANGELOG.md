@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.9.0) - 2026-09-06
+
+### Features
+
+- **core:** Close the wave-5 OpenXML limitation gaps in parse/save (by @ChristopherVR) ([175dbbd](https://github.com/ChristopherVR/pptx-viewer/commit/175dbbdccefebd5b4c4cd386a421b3bcb0209093))
+- **shared:** Wave-5 render logic for the closed limitation rows (by @ChristopherVR) ([2c9ea37](https://github.com/ChristopherVR/pptx-viewer/commit/2c9ea37519fed39982a83692baef630153c2844c))
+- **react:** Wave-5 limitation closures (3D charts, userShapes, ink, effects) (by @ChristopherVR) ([8272e2b](https://github.com/ChristopherVR/pptx-viewer/commit/8272e2b82cc9b4506843adfaa8d5ddd3cf8d4509))
+
 ## [3.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.8.0) - 2026-09-05
 
 ### Features

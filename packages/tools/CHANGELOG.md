@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.4.1) - 2026-09-06
+
+### Bug Fixes
+
+- **tools:** Report the displayed chart type (Pareto, filtered) in list_elements (by @ChristopherVR) ([c9ece87](https://github.com/ChristopherVR/pptx-viewer/commit/c9ece873c4fea307df3ab41faa79223ec5c5fa5e))
+
 ## [2.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.4.0) - 2026-09-05
 
 ### Features

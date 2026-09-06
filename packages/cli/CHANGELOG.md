@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.9.0) - 2026-09-06
+
+### Features
+
+- **react:** Wave-5 limitation closures (3D charts, userShapes, ink, effects) (by @ChristopherVR) ([8272e2b](https://github.com/ChristopherVR/pptx-viewer/commit/8272e2b82cc9b4506843adfaa8d5ddd3cf8d4509))
+
 ## [2.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.8.0) - 2026-09-05
 
 ### Features

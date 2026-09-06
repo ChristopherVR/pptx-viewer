@@ -8,6 +8,33 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-06
+
+_Releases: pptx-viewer-core@3.7.0, pptx-react-viewer@3.9.0, pptx-vue-viewer@3.9.0, pptx-angular-viewer@3.10.0, pptx-vanilla-viewer@2.9.0, pptx-svelte-viewer@3.10.0, pptx-viewer-mcp@2.4.1, @christophervr/pptx-viewer@2.9.0_
+
+### Features
+
+- **core:** Close the wave-5 OpenXML limitation gaps in parse/save (by @ChristopherVR) ([175dbbd](https://github.com/ChristopherVR/pptx-viewer/commit/175dbbdccefebd5b4c4cd386a421b3bcb0209093))
+- **shared:** Wave-5 render logic for the closed limitation rows (by @ChristopherVR) ([2c9ea37](https://github.com/ChristopherVR/pptx-viewer/commit/2c9ea37519fed39982a83692baef630153c2844c))
+- **locales:** De/es/fr strings for chart userShapes and after-effects (by @ChristopherVR) ([d949501](https://github.com/ChristopherVR/pptx-viewer/commit/d949501182b799e3075751125732672a559803a4))
+- **react:** Wave-5 limitation closures (3D charts, userShapes, ink, effects) (by @ChristopherVR) ([8272e2b](https://github.com/ChristopherVR/pptx-viewer/commit/8272e2b82cc9b4506843adfaa8d5ddd3cf8d4509))
+- **vue:** Wave-5 limitation closures (3D charts, userShapes, ink, effects) (by @ChristopherVR) ([6da0814](https://github.com/ChristopherVR/pptx-viewer/commit/6da081424668411c93693be82cb192e8723201f0))
+- **angular:** Wave-5 limitation closures (3D charts, userShapes, ink, effects) (by @ChristopherVR) ([1f39d88](https://github.com/ChristopherVR/pptx-viewer/commit/1f39d883cff234ac6f3358ee943072e89e2aec0e))
+- **svelte:** Wave-5 limitation closures (3D charts, userShapes, ink, effects) (by @ChristopherVR) ([6f96a03](https://github.com/ChristopherVR/pptx-viewer/commit/6f96a030d2bc33471f209ad53809d4298dcc7703))
+- **vanilla:** Wave-5 limitation closures (3D charts, userShapes, ink, effects) (by @ChristopherVR) ([c5bb750](https://github.com/ChristopherVR/pptx-viewer/commit/c5bb7500313fbcb827528c8428fd4efbbb011e15))
+
+### Bug Fixes
+
+- **tools:** Report the displayed chart type (Pareto, filtered) in list_elements (by @ChristopherVR) ([c9ece87](https://github.com/ChristopherVR/pptx-viewer/commit/c9ece873c4fea307df3ab41faa79223ec5c5fa5e))
+
+### Documentation
+
+- Limitations page lists only the genuinely open gaps (by @ChristopherVR) ([fd8dd4a](https://github.com/ChristopherVR/pptx-viewer/commit/fd8dd4acc9c909204e5150998ab2954aafe6ad63))
+
+### Testing
+
+- **e2e:** Wave-5 cross-binding specs and generated fixtures (by @ChristopherVR) ([bfa0fc7](https://github.com/ChristopherVR/pptx-viewer/commit/bfa0fc78409bcdb0d4353b4f63532c495cf89f50))
+
 ## 2026-09-05
 
 _Releases: pptx-viewer-core@3.6.0, pptx-react-viewer@3.8.0, pptx-vue-viewer@3.8.0, pptx-angular-viewer@3.9.0, pptx-vanilla-viewer@2.8.0, pptx-svelte-viewer@3.9.0, pptx-viewer-mcp@2.4.0, @christophervr/pptx-viewer@2.8.0_
