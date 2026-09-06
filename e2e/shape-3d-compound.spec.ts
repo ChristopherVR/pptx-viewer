@@ -178,6 +178,38 @@ async function bulletMarkerCount(page: Page): Promise<number> {
 	});
 }
 
+/**
+ * Computed `mix-blend-mode` + background of the fill-overlay layer nested in
+ * the largest element with this id suffix. Every binding names the layer's
+ * class `*fill-overlay` (`pptx-react-fill-overlay`, `pptx-vue-fill-overlay`,
+ * `pptx-ng-fill-overlay`, `pptx-svelte-fill-overlay`, `pptxv-fill-overlay`).
+ */
+async function fillOverlayPaintOf(
+	page: Page,
+	idSuffix: string,
+): Promise<{ mixBlendMode: string; backgroundColor: string } | null> {
+	return page.evaluate((suffix) => {
+		let best: HTMLElement | undefined;
+		let bestArea = 0;
+		for (const node of document.querySelectorAll<HTMLElement>('[data-element-id]')) {
+			if (!(node.dataset.elementId ?? '').endsWith(suffix)) {
+				continue;
+			}
+			const box = node.getBoundingClientRect();
+			if (box.width * box.height > bestArea) {
+				bestArea = box.width * box.height;
+				best = node;
+			}
+		}
+		const overlay = best?.querySelector<HTMLElement>('[class*="fill-overlay"]');
+		if (!overlay) {
+			return null;
+		}
+		const style = getComputedStyle(overlay);
+		return { mixBlendMode: style.mixBlendMode, backgroundColor: style.backgroundColor };
+	}, idSuffix);
+}
+
 test.describe('shape 3D (a:scene3d / a:sp3d)', () => {
 	test('a bevelled, extruded block renders in 3D, not flat', async ({ page }) => {
 		await loadDeck(page);
@@ -187,12 +219,19 @@ test.describe('shape 3D (a:scene3d / a:sp3d)', () => {
 		expect(bevelled, 'found the 3D block').not.toBeNull();
 		expect(flat, 'found the control block').not.toBeNull();
 
-		// The camera preset becomes a real 3D transform + perspective. The control
-		// block, identical but for its `a:scene3d`, has neither: a binding that
-		// ignores shape 3D paints the two the same way.
+		// The camera preset (`isometricTopUp`) becomes a real 3D rotate transform.
+		// The control block, identical but for its `a:scene3d`, has neither: a
+		// binding that ignores shape 3D paints the two the same way.
+		//
+		// No `perspective` assertion here: `isometricTopUp` is COM-measured
+		// (2026-09) to render as a true parallelogram in real PowerPoint (parallel
+		// projection, no perspective foreshortening at all), so the shared camera
+		// mapping correctly emits NO CSS `perspective` for it (see
+		// `pptx-viewer-shared`'s `visual-3d-camera.ts`). A perspective-family
+		// preset (`perspectiveFront` and friends) does still emit one; that is
+		// covered by that module's own unit tests, not this fixture.
 		expect(bevelled?.transform).not.toBe('none');
 		expect(bevelled?.transform).not.toBe(flat?.transform);
-		expect(bevelled?.perspective).not.toBe('none');
 		expect(bevelled?.transformStyle).toBe('preserve-3d');
 
 		// `a:sp3d/@extrusionH` + `a:bevelT` become stacked depth shadows.
@@ -221,6 +260,23 @@ test.describe('compound outlines (a:ln/@cmpd)', () => {
 		// the control's whole width rather than being drawn thinner overall.
 		expect(compound?.totalStrokeWidth).toBeCloseTo(single?.totalStrokeWidth ?? 0, 0);
 		expect(compound?.stroke).toBe(single?.stroke);
+	});
+});
+
+test.describe('blend modes (a:effectLst/a:fillOverlay)', () => {
+	test('a mult-blend fill overlay paints a real mix-blend-mode layer', async ({ page }) => {
+		await loadDeck(page);
+
+		const overlay = await fillOverlayPaintOf(page, 'shape-5');
+		expect(overlay, "found the blended shape's fill-overlay layer").not.toBeNull();
+
+		// `a:fillOverlay/@blend="mult"` maps to CSS `mix-blend-mode: multiply` on
+		// a separately-painted tint layer (not an opacity fallback on the whole
+		// element): PowerPoint composites the fixture's `FFCC00` overlay over the
+		// `3366CC` base fill into a dark olive green via true multiply blending,
+		// and a browser's `mix-blend-mode: multiply` reproduces that exactly.
+		expect(overlay?.mixBlendMode).toBe('multiply');
+		expect(overlay?.backgroundColor).toBe('rgb(255, 204, 0)');
 	});
 });
 

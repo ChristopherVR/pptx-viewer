@@ -28,9 +28,19 @@ export const WAVE4_MRU_COLORS = ['#FF6600', '#0066FF', '#33CC33'];
 /** `p:gridSpacing` in EMU (0.5cm). */
 export const WAVE4_GRID_SPACING = 180000;
 
+// Deliberately WITHOUT `cryptAlgorithmSid` (or `algorithmName`/`algIdExt`):
+// this fixture exists to exercise the plain "read-only recommended" banner +
+// unconditional "Edit anyway" (plus the unrelated compat-warning/slide-range
+// surfaces below), not password verification. `hashData`/`saltData` here are
+// placeholder bytes, not a real hash of anything, so if a crypto-identifying
+// attribute resolved to a real algorithm this verifier would look CHECKABLE
+// (`requiresPassword: true`) with no password that could ever satisfy it,
+// locking the deck for good and breaking every test past the banner assertion
+// below. A REAL, checkable PowerPoint-authored verifier lives in
+// `modify-password.pptx` (see `modify-password-prompt.spec.ts`).
 const MODIFY_VERIFIER =
 	'<p:modifyVerifier cryptProviderType="rsaAES" cryptAlgorithmClass="hash" ' +
-	'cryptAlgorithmType="typeAny" cryptAlgorithmSid="14" spinCount="100000" ' +
+	'cryptAlgorithmType="typeAny" spinCount="100000" ' +
 	'saltData="Zm9v" hashData="YmFy"/>';
 
 const VIEW_PROPS =

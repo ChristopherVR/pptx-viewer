@@ -8,6 +8,13 @@
  * green. It also carries a bullet paragraph whose only run is whitespace: the
  * paragraph builders disagree about whether that draws a marker.
  *
+ * It also carries a shape with a direct `a:effectLst/a:fillOverlay` blend
+ * (2026-09 limitations audit): nothing in `e2e/fixtures` exercised
+ * `mix-blend-mode` end to end, even though `getEffectDagBlendMode` /
+ * `getShapeFillOverlay` in `pptx-viewer-shared` have mapped OOXML
+ * `a:blend`/`a:fillOverlay/@blend` to real CSS `mix-blend-mode` values
+ * (multiply/screen/darken/lighten) in every binding for some time.
+ *
  * The package scaffolding (theme, master, layout, rels, content types) comes
  * from the SDK builder; only `ppt/slides/slide1.xml` is hand-authored, because
  * the features under test have no SDK surface and would otherwise have to
@@ -121,6 +128,95 @@ const bullets = shape({
       <a:p><a:pPr marL="285750" indent="-285750"><a:buChar char="•"/></a:pPr><a:r><a:rPr lang="en-US" sz="1800"/><a:t>Another item</a:t></a:r></a:p>`,
 });
 
+/**
+ * A shape whose fill is tinted by a direct `a:effectLst/a:fillOverlay`
+ * `blend="mult"`: the OOXML construct `getShapeFillOverlay` (shared
+ * `visual-effects.ts`) maps to a separately-painted, blended `<div>` with a
+ * real CSS `mix-blend-mode: multiply`, not an opacity fallback.
+ */
+const blendOverlay = shape({
+	id: 7,
+	name: 'Blend Overlay',
+	x: 600,
+	y: 360,
+	w: 220,
+	h: 120,
+	fill: '3366CC',
+	extra: `<a:effectLst><a:fillOverlay blend="mult"><a:solidFill><a:srgbClr val="FFCC00"/></a:solidFill></a:fillOverlay></a:effectLst>`,
+});
+
+/**
+ * Off-axis camera presets (2026-09 off-axis-camera wave): nothing in
+ * `e2e/fixtures` exercised the `perspectiveHeroic*`/`perspectiveContrasting*`
+ * family, whose `rotateX`/`rotateY` signs shared `visual-3d-camera` had
+ * backwards until COM-measured (see that module's doc comment) and whose
+ * off-axis skew is now partly corrected with a COM-calibrated
+ * `perspective-origin`. `shape-3d-off-axis-camera.spec.ts` pins the computed
+ * `transform`/`perspectiveOrigin` for these two identically across all five
+ * bindings.
+ */
+// `extrusionH`/`extrusionClr` (2026-09 extrusion-panel-side wave): nothing in
+// `e2e/fixtures` exercised a homography-driven camera preset on an ACTUALLY
+// EXTRUDED shape, only a flat one; this shape now carries a real 36pt
+// extrusion so `shape-3d-off-axis-camera.spec.ts` can assert on which side
+// panels PowerPoint (and now every binding) actually shows, COM-measured to
+// be bottom+right for `perspectiveHeroicLeftFacing` (see
+// `packages/shared/src/render/visual-3d-panel-sides.ts`'s module doc
+// comment).
+const heroic = shape({
+	id: 8,
+	name: 'Heroic Left Facing',
+	x: 60,
+	y: 470,
+	w: 220,
+	h: 140,
+	fill: '3366CC',
+	extra: `<a:scene3d>
+        <a:camera prst="perspectiveHeroicLeftFacing"/>
+        <a:lightRig rig="threePt" dir="t"/>
+      </a:scene3d>
+      <a:sp3d extrusionH="457200"><a:extrusionClr><a:srgbClr val="112255"/></a:extrusionClr></a:sp3d>`,
+});
+const contrasting = shape({
+	id: 9,
+	name: 'Contrasting Left Facing',
+	x: 320,
+	y: 470,
+	w: 220,
+	h: 140,
+	fill: '3366CC',
+	extra: `<a:scene3d>
+        <a:camera prst="perspectiveContrastingLeftFacing"/>
+        <a:lightRig rig="threePt" dir="t"/>
+      </a:scene3d>`,
+});
+
+/**
+ * 2026-09 full-preset extrusion-panel wave: nothing in `e2e/fixtures`
+ * exercised the `oblique*`/`legacyOblique*`/`legacyPerspective*` family's
+ * extrusion panels (that family's front face is never rotated at all - only
+ * `isometricTopUp` above and `perspectiveHeroicLeftFacing` covered the other
+ * two families). `obliqueBottomRight` is COM-measured to show a single
+ * `bottom` extrusion panel with a real diagonal depth-skew (see
+ * `packages/shared/src/render/visual-3d-panel-quad.ts`'s `PANEL_DEPTH_SKEW_MAP`),
+ * so `shape-3d-off-axis-camera.spec.ts` can assert a clip-path polygon for
+ * this family too, not just `perspective*`/`isometric*`.
+ */
+const obliqueBlock = shape({
+	id: 10,
+	name: 'Oblique Bottom Right',
+	x: 600,
+	y: 490,
+	w: 220,
+	h: 140,
+	fill: '3366CC',
+	extra: `<a:scene3d>
+        <a:camera prst="obliqueBottomRight"/>
+        <a:lightRig rig="threePt" dir="t"/>
+      </a:scene3d>
+      <a:sp3d extrusionH="457200"><a:extrusionClr><a:srgbClr val="112255"/></a:extrusionClr></a:sp3d>`,
+});
+
 const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
   <p:cSld>
@@ -132,6 +228,10 @@ const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       ${compound}
       ${single}
       ${bullets}
+      ${blendOverlay}
+      ${heroic}
+      ${contrasting}
+      ${obliqueBlock}
     </p:spTree>
   </p:cSld>
   <p:clrMapOvr><a:overrideClrMapping bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/></p:clrMapOvr>
