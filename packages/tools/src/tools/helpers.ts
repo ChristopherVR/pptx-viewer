@@ -1,4 +1,4 @@
-import { hasTextProperties } from 'pptx-viewer-core';
+import { hasTextProperties, resolveDisplayedChartTypeName } from 'pptx-viewer-core';
 import type { PptxSlide, PptxElement, TablePptxElement } from 'pptx-viewer-core';
 
 export function generateElementId(): string {
@@ -101,8 +101,8 @@ export function describeElement(el: PptxElement): Record<string, unknown> {
 		}
 	}
 
-	if (el.type === 'chart') {
-		base.chartType = (el as { chartData?: { type?: string } }).chartData?.type;
+	if (el.type === 'chart' && el.chartData) {
+		base.chartType = resolveDisplayedChartTypeName(el.chartData);
 	}
 
 	if (el.type === 'group') {
