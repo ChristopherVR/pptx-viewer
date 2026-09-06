@@ -653,6 +653,125 @@ describe('pptxAnimationWriteService', () => {
 	// -----------------------------------------------------------------------
 	// buildTimingXml - ID independence between calls
 	// -----------------------------------------------------------------------
+	// -----------------------------------------------------------------------
+	// buildTimingXml - "after animation" dim to colour
+	// -----------------------------------------------------------------------
+	describe('buildTimingXml - dim after animation', () => {
+		/**
+		 * Navigate a single-effect, single-click-group build down to the
+		 * entrance effect's own `p:cTn`, mirroring the "combined effects"
+		 * describe block's navigation above.
+		 */
+		function entranceEffectCTn(result: XmlObject): XmlObject {
+			const tnLst = result['p:tnLst'] as XmlObject;
+			const rootCTn = (tnLst['p:par'] as XmlObject)['p:cTn'] as XmlObject;
+			const seq = (rootCTn['p:childTnLst'] as XmlObject)['p:seq'] as XmlObject;
+			const seqCTn = seq['p:cTn'] as XmlObject;
+			const clickGroup = (seqCTn['p:childTnLst'] as XmlObject)['p:par'] as XmlObject;
+			const clickGroupCTn = clickGroup['p:cTn'] as XmlObject;
+			const wrapperPar = (clickGroupCTn['p:childTnLst'] as XmlObject)['p:par'] as XmlObject;
+			const wrapperCTn = wrapperPar['p:cTn'] as XmlObject;
+			const effectPar = (wrapperCTn['p:childTnLst'] as XmlObject)['p:par'] as XmlObject;
+			return effectPar['p:cTn'] as XmlObject;
+		}
+
+		/**
+		 * Pinned against a GENUINE PowerPoint-authored after-effect, captured
+		 * via the legacy `Shape.AnimationSettings` object (COM, PowerPoint
+		 * 2016, 2026-09-06): see `e2e/fixtures/animation-after-effect.pptx`
+		 * and `animation-after-effect-write.ts` for the full shape and
+		 * provenance. The dim behaviour lives in `p:subTnLst` (a SIBLING of
+		 * `p:childTnLst`, not nested inside it), targets the generic `ppt_c`
+		 * attribute (not `fillcolor`, which is the unrelated "Change Fill
+		 * Color" EMPHASIS effect this project's writer used to (wrongly)
+		 * model itself after), and marks `@_afterEffect="1"` on its OWN
+		 * `p:cBhvr/p:cTn`, not on the entrance effect's outer `p:cTn`.
+		 */
+		it('targets ppt_c on a p:subTnLst sibling, matching genuine PowerPoint animClr output', () => {
+			const service = createService();
+			const animations: PptxElementAnimation[] = [
+				{
+					elementId: 'sp1',
+					entrance: 'fadeIn',
+					durationMs: 1000,
+					afterAnimation: 'dimToColor',
+					afterAnimationColor: '#FF00FF',
+				},
+			];
+			const result = service.buildTimingXml(animations, undefined)!;
+			const effectCTn = entranceEffectCTn(result);
+			expect(effectCTn['@_afterEffect']).toBeUndefined();
+			const subTnLst = effectCTn['p:subTnLst'] as XmlObject;
+			const animClr = subTnLst['p:animClr'] as XmlObject;
+
+			expect(animClr['@_clrSpc']).toBe('rgb');
+			expect(animClr['@_dir']).toBe('cw');
+			const cBhvr = animClr['p:cBhvr'] as XmlObject;
+			expect(cBhvr['@_override']).toBe('childStyle');
+			const attrNameLst = cBhvr['p:attrNameLst'] as XmlObject;
+			expect(attrNameLst['p:attrName']).toBe('ppt_c');
+			const innerCTn = cBhvr['p:cTn'] as XmlObject;
+			expect(innerCTn['@_masterRel']).toBe('nextClick');
+			expect(innerCTn['@_afterEffect']).toBe('1');
+			expect((animClr['p:to'] as XmlObject)['a:srgbClr']).toMatchObject({ '@_val': 'FF00FF' });
+		});
+
+		it('omits p:subTnLst and the afterEffect flag when afterAnimation is unset', () => {
+			const service = createService();
+			const animations: PptxElementAnimation[] = [
+				{ elementId: 'sp1', entrance: 'fadeIn', durationMs: 1000 },
+			];
+			const result = service.buildTimingXml(animations, undefined)!;
+			const effectCTn = entranceEffectCTn(result);
+			expect(effectCTn['p:subTnLst']).toBeUndefined();
+			expect(effectCTn['@_afterEffect']).toBeUndefined();
+		});
+
+		it('writes a sameClick hide referencing the entrance id for hideAfterAnimation', () => {
+			const service = createService();
+			const animations: PptxElementAnimation[] = [
+				{
+					elementId: 'sp1',
+					entrance: 'fadeIn',
+					durationMs: 1000,
+					afterAnimation: 'hideAfterAnimation',
+				},
+			];
+			const result = service.buildTimingXml(animations, undefined)!;
+			const effectCTn = entranceEffectCTn(result);
+			const subTnLst = effectCTn['p:subTnLst'] as XmlObject;
+			const setNode = subTnLst['p:set'] as XmlObject;
+			const cBhvr = setNode['p:cBhvr'] as XmlObject;
+			const innerCTn = cBhvr['p:cTn'] as XmlObject;
+			expect(innerCTn['@_masterRel']).toBe('sameClick');
+			expect(innerCTn['@_afterEffect']).toBe('1');
+			const stCondLst = innerCTn['p:stCondLst'] as XmlObject;
+			const cond = stCondLst['p:cond'] as XmlObject;
+			expect(cond['@_evt']).toBe('end');
+			expect((cond['p:tn'] as XmlObject)['@_val']).toBe(String(effectCTn['@_id']));
+			expect((setNode['p:to'] as XmlObject)['p:strVal']).toMatchObject({ '@_val': 'hidden' });
+		});
+
+		it('writes a nextClick hide with no stCondLst for hideOnNextClick', () => {
+			const service = createService();
+			const animations: PptxElementAnimation[] = [
+				{
+					elementId: 'sp1',
+					entrance: 'fadeIn',
+					durationMs: 1000,
+					afterAnimation: 'hideOnNextClick',
+				},
+			];
+			const result = service.buildTimingXml(animations, undefined)!;
+			const effectCTn = entranceEffectCTn(result);
+			const subTnLst = effectCTn['p:subTnLst'] as XmlObject;
+			const setNode = subTnLst['p:set'] as XmlObject;
+			const innerCTn = (setNode['p:cBhvr'] as XmlObject)['p:cTn'] as XmlObject;
+			expect(innerCTn['@_masterRel']).toBe('nextClick');
+			expect(innerCTn['p:stCondLst']).toBeUndefined();
+		});
+	});
+
 	describe('buildTimingXml - ID allocation', () => {
 		it('resets ID counter for each full rebuild', () => {
 			const service = createService();

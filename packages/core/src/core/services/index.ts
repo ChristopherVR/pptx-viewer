@@ -58,12 +58,9 @@ export {
 	OOXML_TO_PRESET_EMPH,
 	ooxmlToPresetName,
 } from './animation-write-mappings';
-export {
-	buildSingleEffectNode,
-	applySoundToEffectCTn,
-	applyAfterEffectFlag,
-	applyDimColorBehavior,
-} from './animation-write-node-builders';
+export { buildSingleEffectNode, applySoundToEffectCTn } from './animation-write-node-builders';
+export { applyAfterAnimationBehavior } from './animation-after-effect-write';
+export { extractAfterAnimationFromSubTnLst } from './native-animation-after-effect';
 export {
 	parseCondition,
 	parseConditionList,

@@ -116,15 +116,51 @@ function resolveShapeFill(
 	return undefined;
 }
 
-/** Parse the shape properties (geometry, fill, line) shared by sp / cxnSp / pic. */
+/**
+ * Parse an `a:xfrm`'s own `rot`/`flipH`/`flipV` attributes (ECMA-376
+ * `CT_Transform2D`), present on a leaf's `spPr/a:xfrm` or a group's
+ * `grpSpPr/a:xfrm` independently of any `off`/`ext` it also carries. `rot` is
+ * stored in 60,000ths of a degree; verified against real PowerPoint (COM),
+ * which writes `flipH="1"`/`flipV="1"` (never `"true"`), but both spellings
+ * are schema-legal (`xsd:boolean`) and accepted here.
+ */
+function parseXfrmRotFlip(
+	xfrm: XmlObject | undefined,
+): Pick<PptxChartUserShape, 'rotation' | 'flipH' | 'flipV'> {
+	if (!xfrm) {
+		return {};
+	}
+	const result: Pick<PptxChartUserShape, 'rotation' | 'flipH' | 'flipV'> = {};
+	const rot = Number.parseFloat(String(xfrm['@_rot'] ?? ''));
+	if (Number.isFinite(rot) && rot !== 0) {
+		result.rotation = rot / 60000;
+	}
+	const flipH = xfrm['@_flipH'];
+	if (flipH === '1' || flipH === 'true') {
+		result.flipH = true;
+	}
+	const flipV = xfrm['@_flipV'];
+	if (flipV === '1' || flipV === 'true') {
+		result.flipV = true;
+	}
+	return result;
+}
+
+/** Parse the shape properties (geometry, fill, line, rotation/flip) shared by sp / cxnSp / pic. */
 function parseShapeVisuals(
 	shape: XmlObject,
 	kind: PptxChartUserShape['kind'],
 	xml: XmlLookupLike,
 	colors: ColorParserLike,
-): Pick<PptxChartUserShape, 'prst' | 'fill' | 'stroke' | 'strokeWidth'> {
+): Pick<
+	PptxChartUserShape,
+	'prst' | 'fill' | 'stroke' | 'strokeWidth' | 'rotation' | 'flipH' | 'flipV'
+> {
 	const spPr = xml.getChildByLocalName(shape, 'spPr');
-	const result: Pick<PptxChartUserShape, 'prst' | 'fill' | 'stroke' | 'strokeWidth'> = {};
+	const result: Pick<
+		PptxChartUserShape,
+		'prst' | 'fill' | 'stroke' | 'strokeWidth' | 'rotation' | 'flipH' | 'flipV'
+	> = {};
 
 	const prst = xml.getChildByLocalName(spPr, 'prstGeom')?.['@_prst'];
 	if (prst) {
@@ -146,10 +182,19 @@ function parseShapeVisuals(
 	if (Number.isFinite(w)) {
 		result.strokeWidth = w / 12700;
 	}
+	Object.assign(result, parseXfrmRotFlip(xml.getChildByLocalName(spPr, 'xfrm')));
 	return result;
 }
 
 const DIRECT_KINDS: Array<'sp' | 'cxnSp' | 'pic'> = ['sp', 'cxnSp', 'pic'];
+
+/** Extract a `pic` node's alt text (`cdr:nvPicPr/cdr:cNvPr/@descr`), when present. */
+function parsePicAltText(shape: XmlObject, xml: XmlLookupLike): string | undefined {
+	const nvPicPr = xml.getChildByLocalName(shape, 'nvPicPr');
+	const cNvPr = xml.getChildByLocalName(nvPicPr, 'cNvPr');
+	const descr = cNvPr?.['@_descr'];
+	return typeof descr === 'string' && descr.length > 0 ? descr : undefined;
+}
 
 /** Build one flattened overlay shape from a direct sp / cxnSp / pic node. */
 function buildUserShape(
@@ -165,11 +210,13 @@ function buildUserShape(
 	// reference), so the raw node is kept for verbatim re-emission; see
 	// `PptxChartUserShape.rawXml`'s doc.
 	const rawXml = kind === 'pic' ? cloneXmlObject(shape) : undefined;
+	const altText = kind === 'pic' ? parsePicAltText(shape, xml) : undefined;
 	return {
 		kind,
 		...base,
 		...visuals,
 		...(paragraphs ? { paragraphs } : {}),
+		...(altText ? { altText } : {}),
 		...(rawXml ? { rawXml } : {}),
 	};
 }
@@ -209,21 +256,28 @@ function parseGroupTransform(
 		xml.getChildByLocalName(xfrm, 'chOff'),
 		xml.getChildByLocalName(xfrm, 'chExt'),
 	);
-	return { off, ext, chOff, chExt };
+	return { off, ext, chOff, chExt, ...parseXfrmRotFlip(xfrm) };
 }
 
 /**
  * Parse a group child's own `a:xfrm` (position within the parent group's
- * child coordinate space). Direct shapes (`sp`/`cxnSp`/`pic`) carry it under
- * their `spPr`; a `graphicFrame` carries it directly.
+ * child coordinate space, plus its own rotation/flip). Direct shapes
+ * (`sp`/`cxnSp`/`pic`) carry it under their `spPr`; a `graphicFrame` carries
+ * it directly.
  */
 function parseChildOffExt(
 	shape: XmlObject,
 	xml: XmlLookupLike,
-): { off: { x: number; y: number }; ext: { cx: number; cy: number } } {
+): { off: { x: number; y: number }; ext: { cx: number; cy: number } } & Pick<
+	PptxChartUserShape,
+	'rotation' | 'flipH' | 'flipV'
+> {
 	const spPr = xml.getChildByLocalName(shape, 'spPr');
 	const xfrm = xml.getChildByLocalName(spPr, 'xfrm') ?? xml.getChildByLocalName(shape, 'xfrm');
-	return parseOffExt(xml.getChildByLocalName(xfrm, 'off'), xml.getChildByLocalName(xfrm, 'ext'));
+	return {
+		...parseOffExt(xml.getChildByLocalName(xfrm, 'off'), xml.getChildByLocalName(xfrm, 'ext')),
+		...parseXfrmRotFlip(xfrm),
+	};
 }
 
 /** Build one grouped `sp`/`cxnSp`/`pic` child, positioned in its parent's child coordinate space. */
@@ -236,6 +290,7 @@ function buildGroupChild(
 	const visuals = parseShapeVisuals(shape, kind, xml, colors);
 	const paragraphs = kind === 'pic' ? undefined : parseShapeParagraphs(shape, xml, colors);
 	const rawXml = kind === 'pic' ? cloneXmlObject(shape) : undefined;
+	const altText = kind === 'pic' ? parsePicAltText(shape, xml) : undefined;
 	const { off, ext } = parseChildOffExt(shape, xml);
 	return {
 		kind,
@@ -243,6 +298,7 @@ function buildGroupChild(
 		ext,
 		...visuals,
 		...(paragraphs ? { paragraphs } : {}),
+		...(altText ? { altText } : {}),
 		...(rawXml ? { rawXml } : {}),
 	};
 }
@@ -282,11 +338,14 @@ function parseGroupChildren(
 		children.push(buildNestedGroupChild(nested, xml, colors));
 	}
 	for (const graphicFrame of xml.getChildrenArrayByLocalName(group, 'graphicFrame')) {
-		const { off, ext } = parseChildOffExt(graphicFrame, xml);
+		const { off, ext, rotation, flipH, flipV } = parseChildOffExt(graphicFrame, xml);
 		children.push({
 			kind: 'graphicFrame',
 			off,
 			ext,
+			...(rotation !== undefined ? { rotation } : {}),
+			...(flipH ? { flipH } : {}),
+			...(flipV ? { flipV } : {}),
 			rawXml: cloneXmlObject(graphicFrame),
 		});
 	}
@@ -341,7 +400,8 @@ function parseAnchorShape(
 		// verbatim instead of dropping it to a bare placeholder; see
 		// `PptxChartUserShape.rawXml`'s doc.
 		const rawXml = cloneXmlObject(graphicFrame);
-		return [{ kind: 'graphicFrame', ...base, ...(rawXml ? { rawXml } : {}) }];
+		const rotFlip = parseXfrmRotFlip(xml.getChildByLocalName(graphicFrame, 'xfrm'));
+		return [{ kind: 'graphicFrame', ...base, ...rotFlip, ...(rawXml ? { rawXml } : {}) }];
 	}
 
 	return [];
@@ -408,7 +468,50 @@ export function parseChartUserShapesDrawing(
 /** A leaf overlay shape produced by {@link flattenChartUserShapes}: never `grpSp`. */
 type FlattenedChartUserShape = Omit<PptxChartUserShape, 'kind' | 'transform' | 'children'> & {
 	kind: Exclude<PptxChartUserShape['kind'], 'grpSp'>;
+	/**
+	 * Set only for a leaf that came from a group nested inside an
+	 * `absSizeAnchor` WHEN {@link flattenChartUserShapes} was not given a
+	 * `chartBox`: an additional position offset in EMU to add (after dividing
+	 * by a pixel's EMU size) to the pixel position computed from {@link
+	 * PptxChartUserShape.from}. An `absSizeAnchor`'s `from` is a chart-relative
+	 * fraction but its `ext` is an absolute EMU size (ECMA-376 21.4.2.1), so a
+	 * group child's offset within that box (itself a fraction of the group's
+	 * own EMU-scaled extent, see {@link childFraction}) composes as an EMU
+	 * delta. Without knowing the chart's own EMU size that delta cannot be
+	 * re-expressed as a further fraction of `from`, so it is carried
+	 * separately instead; see `chart-user-shape-overlay.ts`'s `shapeBox` for
+	 * where this is applied. When `chartBox` IS given, this delta is folded
+	 * directly into `from` instead (see {@link flattenChartUserShapes}'s doc),
+	 * and this field is left unset.
+	 */
+	absGroupOffsetEmu?: { x: number; y: number };
 };
+
+/**
+ * The chart's own rendered box: the same box a `relSizeAnchor`'s `from`/`to`
+ * (0..1) fractions span. Passing it to {@link flattenChartUserShapes} lets it
+ * resolve two group-composition values exactly instead of approximating them:
+ *
+ * 1. A top-level `relSizeAnchor` group's own rotation composes around its
+ *    REAL aspect ratio, `(to.x - from.x) * width : (to.y - from.y) * height`,
+ *    instead of isotropically (1:1). Only the `width`:`height` RATIO is used
+ *    for this, so any consistent unit works (chart pixels, EMU, points, ...).
+ * 2. A leaf nested inside an `absSizeAnchor` group has its own EMU offset
+ *    within the group folded into `from` as a further chart-fraction,
+ *    instead of being carried separately as `absGroupOffsetEmu`. THIS case
+ *    divides that EMU offset by `width`/`height` directly, so they must be in
+ *    EMU here: pass the chart's real EMU size when known (e.g. the chart
+ *    element's own `width`/`height`), or a pixel size multiplied by
+ *    `EMU_PER_PIXEL` (9525) when only that is available.
+ *
+ * Omitting this parameter keeps the previous, chart-size-agnostic
+ * approximation for both cases unchanged (isotropic top-level rotation;
+ * `absGroupOffsetEmu` carried as a separate field).
+ */
+export interface ChartUserShapesChartBox {
+	width: number;
+	height: number;
+}
 
 /**
  * Map a child's position (in its parent group's `chOff`/`chExt` coordinate
@@ -435,6 +538,95 @@ function childFraction(
 	};
 }
 
+/** Normalize a rotation in degrees to `[0, 360)`. */
+function normalizeRotationDeg(deg: number): number {
+	const mod = deg % 360;
+	return mod < 0 ? mod + 360 : mod;
+}
+
+/**
+ * Apply ONE group level's own rigid-body flip/rotation to a child's box,
+ * expressed as a fraction of that group's own box (so the group's own centre
+ * is always exactly `(0.5, 0.5)`): mirror the box around that centre on each
+ * flipped axis, THEN rotate the box's CENTRE around the same point (matching
+ * the "mirror, then rotate, both about own centre" order ECMA-376 uses for an
+ * ordinary shape's `a:xfrm`, see `element-style-transform.ts`'s
+ * `getElementTransform` doc). Width/height are left unchanged: this model
+ * flattens groups to axis-aligned boxes, so only the box's CENTRE moves under
+ * rotation; the visual spin itself is carried separately as the leaf's own
+ * composed {@link PptxChartUserShape.rotation} and applied at render time
+ * (`chart-user-shape-overlay.ts`) as a CSS/SVG transform about the leaf's own
+ * centre.
+ *
+ * `aspect` is the group's own REAL box size (only its cx:cy RATIO matters,
+ * any consistent unit works: EMU is used throughout by both call sites). The
+ * centre offset is converted into that real aspect before rotating, then
+ * back, rather than rotating the raw 0-1 fraction directly: a naive fraction
+ * rotation implicitly treats the group as square, which distorts the result
+ * whenever the group's own box is not (verified against real PowerPoint via
+ * COM, `Chart.Shapes` / `GroupItems` reporting absolute Left/Top/Width/
+ * Height: a 10deg-rotated group with a 2:1 real box places an off-centre
+ * child at a measurably different point than the fraction-only maths
+ * predicts; see `chart-user-shapes-parser.test.ts`'s "anisotropic group"
+ * cases). Which value IS that real box, per COM, differs by level:
+ *
+ * - A NESTED `grpSp` child's own declared `a:xfrm`
+ *   ({@link PptxChartUserShapeGroupChild.ext}, identical to its
+ *   {@link PptxChartUserShapeGroupTransform.ext}) is its real box: COM's
+ *   `GroupItems` placed a nested group's own off-centre child exactly where
+ *   this ext's aspect predicts.
+ * - The OUTERMOST group's real box comes from its ANCHOR instead, exactly
+ *   like its position (see `flattenChartUserShapes`'s doc): an `absSizeAnchor`
+ *   shape's OWN {@link PptxChartUserShape.ext}, NOT the group's `grpSpPr`
+ *   `a:xfrm`'s `ext` (COM's reported group Width/Height matched the anchor's
+ *   `ext`, not a deliberately-different `grpSpPr` `ext`, when the two were
+ *   set to different aspects). A `relSizeAnchor`'s real aspect depends on the
+ *   chart's actual rendered box instead: `(to.x - from.x) : (to.y - from.y)`
+ *   scaled by the chart's own width:height. When {@link flattenChartUserShapes}
+ *   is given a `chartBox`, that is exactly what is passed as `aspect` here
+ *   (COM-verified: a 20deg-rotated `relSizeAnchor` group with a 2:1 real box
+ *   places an off-centre child exactly where this aspect predicts, matching
+ *   the same "anisotropic group" technique used for the `absSizeAnchor`
+ *   cases above). Without a `chartBox`, this case falls back to the previous
+ *   isotropic (1:1) approximation, since the real aspect cannot be known.
+ *
+ * A degenerate (zero or negative) aspect axis also falls back to isotropic
+ * (1:1), matching the previous fraction-only behaviour, since a real ratio
+ * cannot be formed from it.
+ */
+function applyGroupRigidTransform(
+	box: { x: number; y: number; w: number; h: number },
+	rotationDeg: number,
+	flipH: boolean,
+	flipV: boolean,
+	aspect: { w: number; h: number },
+): { x: number; y: number; w: number; h: number } {
+	let { x, y } = box;
+	const { w, h } = box;
+	if (flipH) {
+		x = 1 - x - w;
+	}
+	if (flipV) {
+		y = 1 - y - h;
+	}
+	const normalized = normalizeRotationDeg(rotationDeg);
+	if (normalized === 0) {
+		return { x, y, w, h };
+	}
+	const aspectW = aspect.w > 0 ? aspect.w : 1;
+	const aspectH = aspect.h > 0 ? aspect.h : 1;
+	const rad = (normalized * Math.PI) / 180;
+	const cos = Math.cos(rad);
+	const sin = Math.sin(rad);
+	const dx = (x + w / 2 - 0.5) * aspectW;
+	const dy = (y + h / 2 - 0.5) * aspectH;
+	const rx = dx * cos - dy * sin;
+	const ry = dx * sin + dy * cos;
+	const cx = 0.5 + rx / aspectW;
+	const cy = 0.5 + ry / aspectH;
+	return { x: cx - w / 2, y: cy - h / 2, w, h };
+}
+
 /**
  * Flatten a chart's overlay shapes into a leaf list ready for rendering: a
  * `grpSp` entry is expanded into its grouped children with the group's
@@ -446,55 +638,104 @@ function childFraction(
  * The cumulative position/size is resolved as a fraction of the outermost
  * anchor's own box (see {@link childFraction}), which composes correctly
  * across arbitrary nesting depth. For a `relSizeAnchor` this maps exactly
- * onto `from`/`to`. For an `absSizeAnchor` it is a documented approximation:
- * the fraction maps exactly onto the anchor's absolute EMU `ext` (size), but
- * the anchor's `from` (a fraction of the whole chart) cannot be shifted by a
- * group child's offset without knowing the chart's live pixel size, which
- * this pure function does not have; such a leaf keeps the anchor's own
- * `from` unshifted; only its size is corrected.
+ * onto `from`/`to`. For an `absSizeAnchor` the fraction maps exactly onto the
+ * anchor's absolute EMU `ext` (size); shifting the anchor's own `from` (a
+ * fraction of the whole chart) by a group child's EMU offset needs the
+ * chart's own size, so it is exact when `chartBox` is given (folded directly
+ * into `from`) and otherwise an approximation (the anchor's own `from` is
+ * left unshifted, with the shift instead carried on the leaf as
+ * `absGroupOffsetEmu` for a caller that can apply it itself, e.g. by
+ * converting an EMU delta straight to pixels without needing the chart's
+ * size at all).
  *
  * @param shapes - The chart's `userShapes` list, as parsed/edited.
+ * @param chartBox - The chart's own rendered box, when known; see {@link
+ *   ChartUserShapesChartBox}'s doc for the two approximations it resolves and
+ *   the unit each one needs.
  * @returns A flat list of leaf shapes (never `kind: 'grpSp'`), in the same
  *   relative order as `shapes`.
  */
 export function flattenChartUserShapes(
 	shapes: ReadonlyArray<PptxChartUserShape> | undefined,
+	chartBox?: ChartUserShapesChartBox,
 ): FlattenedChartUserShape[] {
 	if (!shapes) {
 		return [];
 	}
 
-	/** Walk a group's children, returning each leaf's box as a fraction of the group's OWN box. */
+	/** One leaf's box (fraction of the OWN group's box being walked) plus its composed rotation/flip so far. */
+	interface LeafPlacement {
+		box: { x: number; y: number; w: number; h: number };
+		rotation: number;
+		flipH: boolean;
+		flipV: boolean;
+		child: PptxChartUserShapeGroupChild;
+	}
+
+	/**
+	 * Walk a group's children, returning each leaf's box as a fraction of the
+	 * group's OWN box, and its rotation/flip composed from everything AT OR
+	 * BELOW this level (a nested `grpSp` child's OWN rotation/flip is folded
+	 * in here via {@link applyGroupRigidTransform}; the CALLER is responsible
+	 * for folding in the rotation/flip of the group whose `chOff`/`chExt` was
+	 * passed in, exactly once, since that group's own box is not visible from
+	 * inside this function).
+	 */
 	function resolveGroupLeaves(
 		children: readonly PptxChartUserShapeGroupChild[],
 		chOff: { x: number; y: number },
 		chExt: { cx: number; cy: number },
-	): Array<{
-		box: { x: number; y: number; w: number; h: number };
-		child: PptxChartUserShapeGroupChild;
-	}> {
+	): LeafPlacement[] {
 		return children.flatMap((child) => {
 			const frac = childFraction(child.off, child.ext, chOff, chExt);
 			if (child.kind === 'grpSp') {
-				if (!child.transform || !child.children) {
+				const childTransform = child.transform;
+				if (!childTransform || !child.children) {
 					return [];
 				}
 				const nested = resolveGroupLeaves(
 					child.children,
-					child.transform.chOff,
-					child.transform.chExt,
+					childTransform.chOff,
+					childTransform.chExt,
 				);
-				return nested.map(({ box, child: leaf }) => ({
-					box: {
-						x: frac.x + box.x * frac.w,
-						y: frac.y + box.y * frac.h,
-						w: box.w * frac.w,
-						h: box.h * frac.h,
-					},
-					child: leaf,
-				}));
+				const groupRotation = childTransform.rotation ?? 0;
+				const groupFlipH = Boolean(childTransform.flipH);
+				const groupFlipV = Boolean(childTransform.flipV);
+				// A nested group's own declared `a:xfrm` ext IS its real box (see
+				// `applyGroupRigidTransform`'s doc): unlike the OUTERMOST anchor,
+				// there is no separate anchor overriding it here.
+				const nestedAspect = { w: childTransform.ext.cx, h: childTransform.ext.cy };
+				return nested.map((entry): LeafPlacement => {
+					const selfBox = applyGroupRigidTransform(
+						entry.box,
+						groupRotation,
+						groupFlipH,
+						groupFlipV,
+						nestedAspect,
+					);
+					return {
+						box: {
+							x: frac.x + selfBox.x * frac.w,
+							y: frac.y + selfBox.y * frac.h,
+							w: selfBox.w * frac.w,
+							h: selfBox.h * frac.h,
+						},
+						rotation: normalizeRotationDeg(entry.rotation + groupRotation),
+						flipH: entry.flipH !== groupFlipH,
+						flipV: entry.flipV !== groupFlipV,
+						child: entry.child,
+					};
+				});
 			}
-			return [{ box: frac, child }];
+			return [
+				{
+					box: frac,
+					rotation: normalizeRotationDeg(child.rotation ?? 0),
+					flipH: Boolean(child.flipH),
+					flipV: Boolean(child.flipV),
+					child,
+				},
+			];
 		});
 	}
 
@@ -505,8 +746,41 @@ export function flattenChartUserShapes(
 		if (!shape.transform || !shape.children) {
 			return [];
 		}
-		const leaves = resolveGroupLeaves(shape.children, shape.transform.chOff, shape.transform.chExt);
-		return leaves.map(({ box, child }) => {
+		const rawLeaves = resolveGroupLeaves(
+			shape.children,
+			shape.transform.chOff,
+			shape.transform.chExt,
+		);
+		// Fold in the OUTERMOST group's own rotation/flip, exactly once, the
+		// same way each nested `grpSp` level already folded in its own above.
+		const topRotation = shape.transform.rotation ?? 0;
+		const topFlipH = Boolean(shape.transform.flipH);
+		const topFlipV = Boolean(shape.transform.flipV);
+		// The OUTERMOST group's real box comes from its own ANCHOR, not its
+		// `grpSpPr` xfrm's `ext` (see `applyGroupRigidTransform`'s doc): an
+		// `absSizeAnchor`'s own `ext` is a real EMU size; a `relSizeAnchor`'s
+		// real aspect is `(to - from) * chartBox` when `chartBox` is known,
+		// otherwise it falls back to isotropic (1:1), unchanged from before.
+		const relAspect = (): { w: number; h: number } => {
+			if (!chartBox) {
+				return { w: 1, h: 1 };
+			}
+			const to = shape.to ?? shape.from;
+			return {
+				w: (to.x - shape.from.x) * chartBox.width,
+				h: (to.y - shape.from.y) * chartBox.height,
+			};
+		};
+		const topAspect =
+			shape.anchor === 'abs' && shape.ext ? { w: shape.ext.cx, h: shape.ext.cy } : relAspect();
+		const leaves = rawLeaves.map((entry): LeafPlacement => ({
+			box: applyGroupRigidTransform(entry.box, topRotation, topFlipH, topFlipV, topAspect),
+			rotation: normalizeRotationDeg(entry.rotation + topRotation),
+			flipH: entry.flipH !== topFlipH,
+			flipV: entry.flipV !== topFlipV,
+			child: entry.child,
+		}));
+		return leaves.map(({ box, rotation, flipH, flipV, child }) => {
 			const {
 				kind,
 				off: _off,
@@ -514,8 +788,16 @@ export function flattenChartUserShapes(
 				rawXml,
 				transform: _transform,
 				children: _children,
+				rotation: _childRotation,
+				flipH: _childFlipH,
+				flipV: _childFlipV,
 				...visuals
 			} = child;
+			const rotFlip = {
+				...(rotation !== 0 ? { rotation } : {}),
+				...(flipH ? { flipH } : {}),
+				...(flipV ? { flipV } : {}),
+			};
 			if (shape.anchor === 'rel') {
 				const width = (shape.to?.x ?? shape.from.x) - shape.from.x;
 				const height = (shape.to?.y ?? shape.from.y) - shape.from.y;
@@ -528,16 +810,39 @@ export function flattenChartUserShapes(
 					to,
 					...(rawXml ? { rawXml } : {}),
 					...visuals,
+					...rotFlip,
 				} as FlattenedChartUserShape;
 			}
 			const ext = shape.ext ?? { cx: 0, cy: 0 };
+			// The group's own box is scaled to the anchor's absolute EMU `ext`
+			// (the same assumption the size line below already makes), so the
+			// child's fractional offset within that box converts to an exact
+			// EMU position delta the same way its fractional size converts to
+			// an exact EMU extent.
+			const offsetEmu = { x: box.x * ext.cx, y: box.y * ext.cy };
+			// When the chart's own box is known (in the SAME unit as `ext`, i.e.
+			// EMU), that EMU delta converts to an exact further fraction of the
+			// whole chart and is folded straight into `from`; otherwise it is
+			// carried separately as `absGroupOffsetEmu` for a caller that can
+			// apply it itself (see `ChartUserShapesChartBox`'s and
+			// `absGroupOffsetEmu`'s docs).
+			const validChartBox =
+				chartBox && chartBox.width > 0 && chartBox.height > 0 ? chartBox : undefined;
+			const from = validChartBox
+				? {
+						x: shape.from.x + offsetEmu.x / validChartBox.width,
+						y: shape.from.y + offsetEmu.y / validChartBox.height,
+					}
+				: shape.from;
 			return {
 				kind,
 				anchor: 'abs',
-				from: shape.from,
+				from,
 				ext: { cx: box.w * ext.cx, cy: box.h * ext.cy },
+				...(validChartBox ? {} : { absGroupOffsetEmu: offsetEmu }),
 				...(rawXml ? { rawXml } : {}),
 				...visuals,
+				...rotFlip,
 			} as FlattenedChartUserShape;
 		});
 	});

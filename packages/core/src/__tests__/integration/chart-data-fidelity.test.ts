@@ -113,4 +113,35 @@ describe('chart-data-fidelity fixture (PowerPoint-authored)', () => {
 			chartLevel: false,
 		});
 	});
+
+	// c16:uniqueId (Office 2014+ chart extension, see chart-series-identity.ts):
+	// this pie's series AND each of its four c:dPt carry their own identity GUID.
+	it('parses c16:uniqueId on the series and its data points', async () => {
+		const chart = chartOnSlide(await loadFixture(), 3);
+		const series = chart.chartData?.series[0];
+		expect(series?.uniqueId).toBe('{00000000-9E1A-42B0-83D9-C8460AD0BBCB}');
+		expect(series?.dataPoints?.map((dp) => dp.uniqueId)).toStrictEqual([
+			'{00000001-E2F1-4F77-BE80-2B425AA84908}',
+			'{00000003-E2F1-4F77-BE80-2B425AA84908}',
+			'{00000005-E2F1-4F77-BE80-2B425AA84908}',
+			'{00000007-E2F1-4F77-BE80-2B425AA84908}',
+		]);
+	});
+
+	// Base c:leaderLines/c:spPr (this fixture's chart15 extension companion is
+	// present but EMPTY, so this exercises the base-element fallback path of
+	// parseLeaderLineStyle in chart-data-label-parser.ts).
+	it('parses the series-level leader-line stroke style', async () => {
+		const chart = chartOnSlide(await loadFixture(), 3);
+		const leaderLineStyle = chart.chartData?.series[0]?.dataLabelOptions?.leaderLineStyle;
+		expect(leaderLineStyle?.strokeWidth).toBe(0.75);
+		expect(leaderLineStyle?.strokeColor).toMatch(/^#[0-9a-fA-F]{6}$/);
+	});
+
+	// c16r3:dataDisplayOptions16/dispNaAsBlank ("Show #N/A as an empty cell"),
+	// this chart's own c:chart/c:extLst trailing child.
+	it('parses the chart-level dispNaAsBlank chrome flag', async () => {
+		const chart = chartOnSlide(await loadFixture(), 3);
+		expect(chart.chartData?.chartChrome?.dispNaAsBlank).toBeTruthy();
+	});
 });

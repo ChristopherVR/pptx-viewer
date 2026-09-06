@@ -11,10 +11,14 @@ import {
 	pointsToSvgPath,
 	pointsToTilt,
 	resolveChannelOrder,
+	tiltChannelsFromXY,
 } from './inkml-trace-decode';
+import type { TiltChannels } from './inkml-trace-decode';
 
-const INKML_NAMESPACE = 'http://www.w3.org/2003/InkML';
-const METADATA_NAMESPACE = 'https://pptx-viewer.dev/inkml/metadata';
+// Re-exported for the existing import sites (and colocated tests): the
+// writer half of this module was split out to `inkml-content-part-writer.ts`
+// to keep both files under this repo's file-size guideline.
+export { buildInkMlContent } from './inkml-content-part-writer';
 
 export interface ParsedInkMlContent {
 	strokes: ContentPartInkStroke[];
@@ -76,14 +80,32 @@ export function parseInkMlContent(data: XmlObject, box?: InkTargetBox): ParsedIn
 		const pressures = entry.authored
 			? tracePressures(entry.text)
 			: pointsToPressures(entry.points, channelOrder);
-		// The library's own authored format never carries a tilt channel; only
-		// a real PowerPoint (or other digitizer-authored) trace can.
-		const tilt = entry.authored ? undefined : pointsToTilt(entry.points, channelOrder);
+		// The library's own authored format encodes tilt (when the stroke has
+		// any) as two trailing columns after the pressure value: `x y f <a> <b>`.
+		// That is always positional (distinct from a foreign trace's declared
+		// `channelOrder`-driven decode), but WHICH pair those two trailing
+		// columns are (the `OTx`/`OTy` vector, or `AZIMUTH`/`ALTITUDE` degrees)
+		// still has to follow the part's own declared channel names: this
+		// writer's `buildInkMlContent` stamps `pva:path` on every trace
+		// regardless of tilt mode, so an authored AZIMUTH/ALTITUDE part is
+		// indistinguishable from a vector one by shape alone.
+		const azimuthEncoded = channelOrder.includes('AZIMUTH');
+		const tilt = entry.authored
+			? traceTilt(entry.text, azimuthEncoded)
+			: pointsToTilt(entry.points, channelOrder);
 		strokes.push({
 			...brush,
 			path,
 			...(pressures.length > 0 ? { pressures } : {}),
-			...(tilt ? { tiltAngles: tilt.angles, tiltMagnitudes: tilt.magnitudes } : {}),
+			...(tilt && tilt.encoding === 'azimuthAltitude'
+				? {
+						tiltAngles: tilt.angles,
+						tiltMagnitudes: tilt.magnitudes,
+						tiltEncoding: 'azimuthAltitude',
+					}
+				: tilt
+					? { tiltAngles: tilt.angles, tiltMagnitudes: tilt.magnitudes }
+					: {}),
 		});
 	}
 	return { strokes, rawXml: data };
@@ -153,120 +175,6 @@ function brushOpacity(properties: Map<string, { value: unknown; units: unknown }
 	return DEFAULT_BRUSH.opacity;
 }
 
-/** Build schema-shaped InkML while retaining unknown nodes from a loaded part. */
-export function buildInkMlContent(
-	strokes: readonly ContentPartInkStroke[],
-	rawXml?: XmlObject,
-): XmlObject {
-	const data = rawXml ? { ...rawXml } : {};
-	// A loaded PowerPoint part is keyed `inkml:ink`, not `ink:ink`. Missing that
-	// wrote a SECOND root element beside PowerPoint's, producing an XML part with
-	// two roots that no consumer can read.
-	const existingKey = Object.keys(data).find((key) => localNameOf(key) === 'ink');
-	const existingRoot = existingKey ? (data[existingKey] as XmlObject | undefined) : undefined;
-	const root: XmlObject = existingRoot ? { ...existingRoot } : {};
-	root['@_xmlns:ink'] = INKML_NAMESPACE;
-	root['@_xmlns:pva'] = METADATA_NAMESPACE;
-	// Verified against real PowerPoint COM behaviour: a plain `<ink:traceFormat>`
-	// / `<ink:brush>` / `id="..."` part (this project's ORIGINAL authored
-	// dialect) passes this project's own lenient reader and internal schema
-	// validator, but real PowerPoint's own InkML parser rejects it as
-	// "corrupted and unreadable" (0x80070570). Real PowerPoint requires:
-	//   - `traceFormat` nested inside `definitions/context/inkSource`, not a
-	//     direct child of the root.
-	//   - `brush` nested inside `definitions` (a sibling of `context`), not a
-	//     direct child of the root.
-	//   - Every identifiable element (`context`, `inkSource`, `brush`) keyed by
-	//     the InkML/XML spec's `xml:id`, NOT a bare `id` attribute: `id="..."`
-	//     alone is schema-legal enough for this project's own reader but real
-	//     PowerPoint's parser rejects the whole part.
-	//   - Each `<trace>` carries BOTH `contextRef` and `brushRef`; `brushRef`
-	//     alone (this project's original authored form) is rejected too.
-	// The compact difference-encoding PowerPoint itself writes (`100
-	// 200,'40'46,"0"-5`) is NOT required: plain per-point decimal channel
-	// values (already this project's own dialect) open fine once the
-	// structural requirements above are met.
-	root['ink:definitions'] = {
-		'ink:context': {
-			'@_xml:id': 'ctx0',
-			'ink:inkSource': {
-				'@_xml:id': 'inkSrc0',
-				'ink:traceFormat': {
-					'ink:channel': [
-						{ '@_name': 'X', '@_type': 'decimal' },
-						{ '@_name': 'Y', '@_type': 'decimal' },
-						{ '@_name': 'F', '@_type': 'decimal', '@_min': '0', '@_max': '1' },
-					],
-				},
-			},
-		},
-		'ink:brush': strokes.map((stroke, index) => ({
-			'@_xml:id': `brush${index + 1}`,
-			'ink:brushProperty': [
-				{ '@_name': 'color', '@_value': stroke.color },
-				{ '@_name': 'width', '@_value': String(stroke.width) },
-				{ '@_name': 'opacity', '@_value': String(stroke.opacity) },
-			],
-		})),
-	};
-	root['ink:trace'] = strokes.map((stroke, index) => ({
-		'@_contextRef': '#ctx0',
-		'@_brushRef': `#brush${index + 1}`,
-		'@_pva:path': stroke.path,
-		'#text': pathToTrace(stroke.path, stroke.pressures),
-	}));
-	// The rewritten root replaces whatever prefix the source used, and the
-	// source's own definitions/traces must not survive beside it. Also drop a
-	// root-level `ink:traceFormat`/`ink:brush` a PRE-fix version of this writer
-	// left directly on the root (real PowerPoint's parser requires both nested
-	// under `ink:definitions`, moved above): those are stale duplicates once
-	// this rebuild runs, not additional content to keep.
-	if (existingKey) {
-		delete data[existingKey];
-	}
-	delete data['ink'];
-	delete root['ink:traceFormat'];
-	deleteStaleInkChildren(root);
-	data['ink:ink'] = root;
-	return data;
-}
-
-/** Drop the source part's own trace/brush/definition nodes after a rewrite. */
-function deleteStaleInkChildren(root: XmlObject): void {
-	for (const key of Object.keys(root)) {
-		if (key.startsWith('ink:') || key.startsWith('@_') || key === '#text') {
-			continue;
-		}
-		const local = localNameOf(key);
-		if (
-			local === 'trace' ||
-			local === 'brush' ||
-			local === 'traceGroup' ||
-			local === 'definitions'
-		) {
-			delete root[key];
-		}
-	}
-}
-
-function localNameOf(key: string): string {
-	const colon = key.indexOf(':');
-	return colon >= 0 ? key.slice(colon + 1) : key;
-}
-
-function pathToTrace(path: string, pressures: readonly number[] | undefined): string {
-	const points = [...path.matchAll(/[ML]\s*(?<x>[\d.eE+-]+)[,\s]+(?<y>[\d.eE+-]+)/giu)];
-	if (points.length === 0) {
-		return path;
-	}
-	return points
-		.map((point, index) => {
-			const pressure = Math.max(0, Math.min(1, pressures?.[index] ?? 0.5));
-			return `${point.groups?.x} ${point.groups?.y} ${pressure}`;
-		})
-		.join(', ');
-}
-
 function tracePressures(text: string): number[] {
 	const pressures: number[] = [];
 	for (const point of text.split(',')) {
@@ -276,4 +184,49 @@ function tracePressures(text: string): number[] {
 		}
 	}
 	return pressures;
+}
+
+/**
+ * Extract tilt data from this project's own authored trace text
+ * (`x y pressure <a> <b>`, see the writer's `pathToTrace` in
+ * `inkml-content-part-writer.ts`). Distinct from `pointsToTilt`, which
+ * decodes a foreign trace via its declared `channelOrder`; the authored
+ * format is always positional, so a point missing the trailing pair is
+ * simply skipped.
+ *
+ * `azimuthEncoded` selects which pair the two trailing columns are: this
+ * writer stamps its own ready-made `pva:path` on EVERY trace regardless of
+ * tilt mode (see `buildInkMlContent`), so an authored part cannot be told
+ * apart from its `channelOrder` shape alone; the caller passes whether the
+ * part's own declared `traceFormat` includes `AZIMUTH`.
+ */
+function traceTilt(text: string, azimuthEncoded: boolean): TiltChannels | undefined {
+	const as: number[] = [];
+	const bs: number[] = [];
+	for (const point of text.split(',')) {
+		const values = point.trim().split(/[\s]+/u).map(Number);
+		if (values.length >= 5 && Number.isFinite(values[3]) && Number.isFinite(values[4])) {
+			as.push(values[3]);
+			bs.push(values[4]);
+		}
+	}
+	if (as.length === 0) {
+		return undefined;
+	}
+	return azimuthEncoded ? azimuthAltitudeFromDegrees(as, bs) : tiltChannelsFromXY(as, bs);
+}
+
+/**
+ * Authored-dialect counterpart of `inkml-trace-decode.ts`'s
+ * `tiltFromAzimuthAltitude`, for the positionally-parsed `azimuths`/
+ * `altitudes` pair `traceTilt` already extracted (rather than a raw
+ * `channelOrder`-indexed point array).
+ */
+function azimuthAltitudeFromDegrees(
+	azimuths: readonly number[],
+	altitudes: readonly number[],
+): TiltChannels {
+	const angles = azimuths.map((azimuth) => (azimuth * Math.PI) / 180);
+	const magnitudes = altitudes.map((altitude) => Math.max(0, Math.min(1, 1 - altitude / 90)));
+	return { angles, magnitudes, encoding: 'azimuthAltitude' };
 }

@@ -22,14 +22,18 @@
  */
 
 import type {
-	PptxSmartArtConstraint,
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtLayoutNode,
-	PptxSmartArtNumericRule,
 	PptxSmartArtPresLayoutVars,
 } from '../types';
 import { chooseAlgType } from './smartart-layout-interpreter-flow';
 import { treeMaxDepth, walkWithTreeLocation } from './smartart-layout-interpreter-tree-location';
+
+export {
+	clampByRules,
+	findConstraint,
+	ratioConstraint,
+} from './smartart-layout-interpreter-constraints';
 
 /** Arrangement families the interpreter can execute. */
 export type ArrangementKind =
@@ -128,7 +132,7 @@ export function discoverArrangement(
 	let aux: ArrangementPlan | undefined;
 	const maxDepth = treeMaxDepth(definition.rootNode);
 	walkWithTreeLocation(definition.rootNode, (node, location) => {
-		if (!chosen && nodeCount !== undefined && node.choose && node.choose.length > 0) {
+		if (!hierarchy && !chosen && nodeCount !== undefined && node.choose && node.choose.length > 0) {
 			const type = chooseAlgType(node, nodeCount, {
 				presLayoutVars,
 				position: location.position,
@@ -136,10 +140,21 @@ export function discoverArrangement(
 				depth: location.depth,
 				maxDepth,
 			});
-			const kind = type ? PRIMARY_ALG[type] : undefined;
-			if (kind && STRUCTURAL.has(kind)) {
-				const arranger = node.children?.find((child) => child.algorithm?.type === type) ?? node;
-				chosen = { kind, node: arranger };
+			// A genuine org-chart layoutDef (ECMA-376 orgChart1) wraps its OWN
+			// root `hierChild`/`hierRoot` algorithm in a `dgm:choose` picking
+			// between `linDir` variants, not a bare `dgm:alg` - so this must be
+			// checked here, alongside the STRUCTURAL kinds below, or a
+			// choose-wrapped hierarchy is never found at all and the diagram
+			// falls through to a `conn`/`sp`/`tx` leaf approximation instead.
+			// Measured against `smartart-orgchart-hierbranch.pptx` in the corpus.
+			if (type === 'hierRoot' || type === 'hierChild') {
+				hierarchy = node.children?.find((child) => child.algorithm?.type === type) ?? node;
+			} else {
+				const kind = type ? PRIMARY_ALG[type] : undefined;
+				if (kind && STRUCTURAL.has(kind)) {
+					const arranger = node.children?.find((child) => child.algorithm?.type === type) ?? node;
+					chosen = { kind, node: arranger };
+				}
 			}
 		}
 		const type = node.algorithm?.type;
@@ -183,80 +198,6 @@ export function discoverArrangement(
 /** The first nested item `layoutNode` under an arranger (the per-point shape). */
 export function itemNode(arranger: PptxSmartArtLayoutNode): PptxSmartArtLayoutNode | undefined {
 	return arranger.children?.[0];
-}
-
-/** Find the first constraint of `type`, optionally restricted to a relationship. */
-export function findConstraint(
-	constraints: PptxSmartArtConstraint[] | undefined,
-	type: string,
-	forRel?: PptxSmartArtConstraint['for'],
-): PptxSmartArtConstraint | undefined {
-	return constraints?.find(
-		(constraint) => constraint.type === type && (forRel === undefined || constraint.for === forRel),
-	);
-}
-
-/** Read a constraint's ratio (`fact`, or a sub-1 `val`), or `undefined`. */
-function constraintRatio(constraint: PptxSmartArtConstraint): number | undefined {
-	if (typeof constraint.factor === 'number' && Number.isFinite(constraint.factor)) {
-		return Math.max(0, constraint.factor);
-	}
-	if (
-		typeof constraint.value === 'number' &&
-		Number.isFinite(constraint.value) &&
-		constraint.value >= 0 &&
-		constraint.value < 1
-	) {
-		return constraint.value;
-	}
-	return undefined;
-}
-
-/** Clamp a ratio to a matching `dgm:ruleLst` numeric rule's `max`, when present. */
-export function clampByRules(
-	value: number,
-	rules: PptxSmartArtNumericRule[] | undefined,
-	type: string,
-): number {
-	const rule = rules?.find((entry) => entry.type === type);
-	if (rule && typeof rule.max === 'number' && Number.isFinite(rule.max)) {
-		return Math.min(value, rule.max);
-	}
-	return value;
-}
-
-/**
- * Resolve a spacing/padding constraint to a *ratio* of the item extent.
- *
- * DiagramML commonly expresses sibling spacing and padding as a factor of a
- * referenced dimension, e.g. `<dgm:constr type="sibSp" refType="w" fact="0.1"/>`.
- * We surface that factor directly. When only a small absolute `val` (< 1) is
- * present we treat it as a ratio too; otherwise the caller's default is used.
- *
- * A `for="ch"` constraint (the child-scoped form real diagrams use for sibling
- * spacing / padding) is preferred over an unscoped one, and the result is capped
- * by any matching `dgm:ruleLst` numeric rule `max` when `rules` is supplied.
- */
-export function ratioConstraint(
-	constraints: PptxSmartArtConstraint[] | undefined,
-	types: readonly string[],
-	fallback: number,
-	rules?: PptxSmartArtNumericRule[],
-): number {
-	for (const type of types) {
-		const matches = (constraints ?? []).filter((constraint) => constraint.type === type);
-		const ordered = [
-			...matches.filter((constraint) => constraint.for === 'ch'),
-			...matches.filter((constraint) => constraint.for !== 'ch'),
-		];
-		for (const constraint of ordered) {
-			const ratio = constraintRatio(constraint);
-			if (ratio !== undefined) {
-				return clampByRules(ratio, rules, type);
-			}
-		}
-	}
-	return fallback;
 }
 
 /** Read an algorithm parameter value by its `dgm:param` type. */

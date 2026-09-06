@@ -37,9 +37,17 @@ import { isLineDrawnChartType } from '../../utils/chart-container-type-map';
 import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-generator';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applyChartDataTable } from '../../utils/chart-data-table';
-import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
+import {
+	applySeriesDataPointsToXml,
+	applySeriesPictureOptionsToXml,
+} from '../../utils/chart-datapoint-serializer';
 import { applyChartDateAxisUnits } from '../../utils/chart-date-axis';
 import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
+import { findChartExtByUri, findChildByLocalName } from '../../utils/chart-ext-lookup';
+import {
+	assignSeriesIndices,
+	collectFilteredSeriesIndices,
+} from '../../utils/chart-filtered-series';
 import { applyChartLayouts } from '../../utils/chart-layout';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applyChartLineStyle } from '../../utils/chart-line-style-serializer';
@@ -50,6 +58,11 @@ import { applyChartPrintSettings } from '../../utils/chart-print-settings';
 import { applyChartProtection } from '../../utils/chart-protection';
 import { writeSeriesColorToSpPr } from '../../utils/chart-series-color-serializer';
 import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
+import {
+	buildChartUniqueIdExtLst,
+	generateChartUniqueId,
+	regenerateClonedUniqueId,
+} from '../../utils/chart-series-identity';
 import {
 	applyBar3DShapeToXml,
 	applyGapDepthToXml,
@@ -81,6 +94,13 @@ import {
 } from './save-table-merge-helpers';
 import { rebuildTableXmlFromData } from './table-structural-ops';
 import { writeTablePropertiesOwnFillAndEffects } from './table-tblpr-save';
+
+/**
+ * `c:ext/@uri` for the Office 2017 (`c16r3:`) "show #N/A as an empty cell"
+ * chart extension. See `PptxChartChrome.dispNaAsBlank` and the matching
+ * constant in `PptxHandlerRuntimeChartParsingHelpers.ts`.
+ */
+const CHART_DATA_DISPLAY_OPTIONS_EXT_URI = '{56B9EC1D-385E-4148-901F-78D8002777C0}';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -353,20 +373,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						(key) => this.compatibilityService.getXmlLocalName(key) === 'ser',
 					) ?? 'c:ser';
 
+				// A series PowerPoint's "Chart Filters" feature hid still occupies its
+				// own `c:idx` inside this container's `c15:filtered*Series` extension
+				// (see chart-filtered-series.ts). Every idx/order assigned to a VISIBLE
+				// series below must skip those, or a renumbered visible series and the
+				// still-untouched filtered one end up sharing one index.
+				const reservedSeriesIndices = collectFilteredSeriesIndices(
+					chartTypeContainer,
+					this.xmlLookupService,
+				);
+				const seriesIndexAssignment = assignSeriesIndices(
+					chartData.series.length,
+					reservedSeriesIndices,
+				);
+
 				// Update existing series that are present in both XML and data
 				const commonCount = Math.min(seriesNodes.length, chartData.series.length);
 				for (let si = 0; si < commonCount; si++) {
 					const seriesNode = seriesNodes[si];
 					const seriesData = chartData.series[si];
+					const assignedIndex = seriesIndexAssignment[si];
 
 					// Update series index
 					const idxNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'idx');
 					if (idxNode) {
-						idxNode['@_val'] = String(si);
+						idxNode['@_val'] = String(assignedIndex);
 					}
 					const orderNode = this.xmlLookupService.getChildByLocalName(seriesNode, 'order');
 					if (orderNode) {
-						orderNode['@_val'] = String(si);
+						orderNode['@_val'] = String(assignedIndex);
 					}
 
 					// Update series name
@@ -483,6 +518,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						);
 					}
 
+					// Series-level picture-fill flags (c:ser/c:pictureOptions).
+					// Undefined = passthrough.
+					if (seriesData.picture !== undefined) {
+						applySeriesPictureOptionsToXml(seriesNode, seriesData.picture, (key) =>
+							this.compatibilityService.getXmlLocalName(key),
+						);
+					}
+
 					// Per-data-point label overrides (c:dLbl inside c:ser's c:dLbls).
 					// Undefined = passthrough.
 					if (seriesData.dataLabels !== undefined) {
@@ -513,7 +556,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					for (let si = seriesNodes.length; si < chartData.series.length; si++) {
 						const seriesData = chartData.series[si];
 						const newNode = this.buildNewSeriesXml(
-							si,
+							seriesIndexAssignment[si],
 							seriesData,
 							chartData.categories,
 							templateSeries,
@@ -1227,6 +1270,65 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (chrome.showDLblsOverMax !== undefined) {
 			this.upsertValChild(chartRoot, 'showDLblsOverMax', chrome.showDLblsOverMax ? '1' : '0');
 		}
+		if (chrome.dispNaAsBlank !== undefined) {
+			this.applyChartDispNaAsBlank(chartRoot, chrome.dispNaAsBlank);
+		}
+	}
+
+	/**
+	 * Write `c16r3:dataDisplayOptions16/c16r3:dispNaAsBlank` ("Show #N/A as an
+	 * empty cell", see `PptxChartChrome.dispNaAsBlank`) into `c:chart/c:extLst`.
+	 * Updates an existing extension node's `@val` in place when present
+	 * (preserving anything else on the `c:ext`/`c:extLst`); otherwise creates
+	 * the minimal `extLst`/`ext`/`dataDisplayOptions16` wrapper, appended as
+	 * `c:chart`'s trailing child, matching CT_Chart's schema order.
+	 */
+	private applyChartDispNaAsBlank(chartRoot: XmlObject, value: boolean): void {
+		const localName = (key: string) => this.compatibilityService.getXmlLocalName(key);
+		const val = value ? '1' : '0';
+
+		const ext = findChartExtByUri(chartRoot, localName, CHART_DATA_DISPLAY_OPTIONS_EXT_URI);
+		const extLstKey = Object.keys(chartRoot).find((k) => localName(k) === 'extLst');
+		const extLst = extLstKey ? (chartRoot[extLstKey] as XmlObject) : undefined;
+		const dataDisplayOptions = ext
+			? findChildByLocalName(ext, 'dataDisplayOptions16', localName)
+			: undefined;
+		const dispNaAsBlankNode = dataDisplayOptions
+			? findChildByLocalName(dataDisplayOptions, 'dispNaAsBlank', localName)
+			: undefined;
+
+		if (dispNaAsBlankNode) {
+			dispNaAsBlankNode['@_val'] = val;
+			return;
+		}
+		if (dataDisplayOptions) {
+			dataDisplayOptions['c16r3:dispNaAsBlank'] = { '@_val': val };
+			return;
+		}
+		const newExt: XmlObject = {
+			'@_uri': CHART_DATA_DISPLAY_OPTIONS_EXT_URI,
+			'c16r3:dataDisplayOptions16': {
+				'@_xmlns:c16r3': 'http://schemas.microsoft.com/office/drawing/2017/03/chart',
+				'c16r3:dispNaAsBlank': { '@_val': val },
+			},
+		};
+		if (ext) {
+			// An ext with this uri exists but had no dataDisplayOptions16 child
+			// (unexpected, but handle it rather than duplicate the c:ext).
+			ext['c16r3:dataDisplayOptions16'] = newExt['c16r3:dataDisplayOptions16'];
+			return;
+		}
+		if (extLst) {
+			const existingExtKey = Object.keys(extLst).find((k) => localName(k) === 'ext');
+			if (existingExtKey) {
+				const current = extLst[existingExtKey] as XmlObject | XmlObject[];
+				extLst[existingExtKey] = Array.isArray(current) ? [...current, newExt] : [current, newExt];
+			} else {
+				extLst['c:ext'] = newExt;
+			}
+			return;
+		}
+		chartRoot['c:extLst'] = { 'c:ext': newExt };
 	}
 
 	/**
@@ -1262,6 +1364,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (templateSeries) {
 			// Deep-clone the template
 			const clone = JSON.parse(JSON.stringify(templateSeries)) as XmlObject;
+
+			// A cloned series carries the template's OWN `c16:uniqueId`
+			// (c:extLst/c:ext/c16:uniqueId, see chart-series-identity.ts)
+			// verbatim, since it was copied wholesale before any field below is
+			// touched. PowerPoint uses that GUID to track a series' identity
+			// independent of its idx/order, so leaving it would give the new
+			// series the SAME identity as the one it was templated from.
+			// Replace it with a fresh id before anything else.
+			regenerateClonedUniqueId(clone, (key) => this.compatibilityService.getXmlLocalName(key));
 
 			// Update idx / order
 			const idxNode = this.xmlLookupService.getChildByLocalName(clone, 'idx');
@@ -1359,6 +1470,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				},
 			},
 		};
+
+		// Give a wholly new series its own identity (`c16:uniqueId`, see
+		// chart-series-identity.ts), matching what PowerPoint itself writes for
+		// a freshly authored series. `c:extLst` is the trailing child in
+		// schema order.
+		ser['c:extLst'] = buildChartUniqueIdExtLst(generateChartUniqueId());
 
 		return ser;
 	}

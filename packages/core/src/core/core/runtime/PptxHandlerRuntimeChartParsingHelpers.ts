@@ -17,8 +17,18 @@ import type {
 	PptxChartOfPieOptions,
 	PptxChartView3D,
 } from '../../types';
+import { findChartExtByUri, findChildByLocalName } from '../../utils/chart-ext-lookup';
 import { parseChartPivotSource } from '../../utils/chart-pivot-source';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeChartDetection';
+
+/**
+ * `c:ext/@uri` for the Office 2017 (`c16r3:`) "show #N/A as an empty cell"
+ * chart extension. Confirmed against real corpus markup
+ * (`e2e/fixtures/chart-data-fidelity.pptx`,
+ * `packages/core/src/__tests__/fixtures/corpus/smartart-chart-table-mix.pptx`):
+ * `c:chart/c:extLst/c:ext/c16r3:dataDisplayOptions16/c16r3:dispNaAsBlank`.
+ */
+const CHART_DATA_DISPLAY_OPTIONS_EXT_URI = '{56B9EC1D-385E-4148-901F-78D8002777C0}';
 
 /**
  * Parse a boolean from a `c:*Boolean/@val` style OOXML attribute.
@@ -267,6 +277,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const showDLblsOverMax = parseBoolVal(showDLblsOverMaxNode);
 		if (showDLblsOverMax !== undefined) {
 			chrome.showDLblsOverMax = showDLblsOverMax;
+		}
+
+		// `c16r3:dataDisplayOptions16/c16r3:dispNaAsBlank`: "Show #N/A as an
+		// empty cell" (Office 2017+ chart extension, c:chart/c:extLst's
+		// trailing child). See CHART_DATA_DISPLAY_OPTIONS_EXT_URI above.
+		const localName = (key: string) => this.compatibilityService.getXmlLocalName(key);
+		const dataDisplayExt = findChartExtByUri(
+			chartRoot,
+			localName,
+			CHART_DATA_DISPLAY_OPTIONS_EXT_URI,
+		);
+		const dataDisplayOptions = findChildByLocalName(
+			dataDisplayExt,
+			'dataDisplayOptions16',
+			localName,
+		);
+		const dispNaAsBlankNode = findChildByLocalName(dataDisplayOptions, 'dispNaAsBlank', localName);
+		const dispNaAsBlank = parseBoolVal(dispNaAsBlankNode);
+		if (dispNaAsBlank !== undefined) {
+			chrome.dispNaAsBlank = dispNaAsBlank;
 		}
 
 		return Object.keys(chrome).length > 0 ? chrome : undefined;

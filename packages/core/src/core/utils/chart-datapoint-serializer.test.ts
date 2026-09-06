@@ -4,6 +4,7 @@ import { PptxXmlLookupService } from '../services/PptxXmlLookupService';
 import type { XmlObject } from '../types';
 import {
 	applySeriesDataPointsToXml,
+	applySeriesPictureOptionsToXml,
 	parseChartDataPointPicture,
 	parseChartDataPointPictureBlipRel,
 } from './chart-datapoint-serializer';
@@ -182,6 +183,48 @@ describe('applySeriesDataPointsToXml', () => {
 		node['c:dPt'] = { 'c:idx': { '@_val': '0' } };
 		applySeriesDataPointsToXml(node, undefined, getLocalName);
 		expect(node['c:dPt']).toBeUndefined();
+	});
+});
+
+// Series-level c:ser/c:pictureOptions (CT_BarSer): applies to every point
+// unless a c:dPt overrides it.
+describe('applySeriesPictureOptionsToXml', () => {
+	it('inserts c:pictureOptions before c:dPt when both are modeled', () => {
+		const node = seriesNode();
+		node['c:dPt'] = { 'c:idx': { '@_val': '0' } };
+		applySeriesPictureOptionsToXml(
+			node,
+			{ applyToFront: true, applyToSides: true, applyToEnd: true },
+			getLocalName,
+		);
+		const keys = Object.keys(node);
+		expect(keys.indexOf('c:pictureOptions')).toBeLessThan(keys.indexOf('c:dPt'));
+		expect(node['c:pictureOptions']).toStrictEqual({
+			'c:applyToFront': { '@_val': '1' },
+			'c:applyToSides': { '@_val': '1' },
+			'c:applyToEnd': { '@_val': '1' },
+		});
+	});
+
+	it('inserts before c:cat when there is no c:dPt', () => {
+		const node = seriesNode();
+		applySeriesPictureOptionsToXml(node, { pictureFormat: 'stack' }, getLocalName);
+		const keys = Object.keys(node);
+		expect(keys.indexOf('c:pictureOptions')).toBeLessThan(keys.indexOf('c:cat'));
+	});
+
+	it('updates an existing c:pictureOptions in place', () => {
+		const node = seriesNode();
+		node['c:pictureOptions'] = { 'c:applyToFront': { '@_val': '1' } };
+		applySeriesPictureOptionsToXml(node, { applyToFront: false }, getLocalName);
+		expect(node['c:pictureOptions']).toStrictEqual({ 'c:applyToFront': { '@_val': '0' } });
+	});
+
+	it('removes c:pictureOptions when every flag is unset', () => {
+		const node = seriesNode();
+		node['c:pictureOptions'] = { 'c:applyToFront': { '@_val': '1' } };
+		applySeriesPictureOptionsToXml(node, {}, getLocalName);
+		expect(node['c:pictureOptions']).toBeUndefined();
 	});
 });
 

@@ -32,12 +32,25 @@ import type {
 	PptxChartUserShapeParagraph,
 	XmlObject,
 } from '../types';
+import {
+	applyChildXfrmToRawNode,
+	applyPicAltText,
+	applyRotationFlipToRawNode,
+} from './chart-user-shapes-raw-patch';
 import { cloneXmlObject } from './clone-utils';
 
 /** The shared visual fields `buildShapeProps`/`buildSpNode`/`buildCxnSpNode` need, common to a top-level shape and a group child. */
 type ShapeVisualsLike = Pick<
 	PptxChartUserShape,
-	'kind' | 'prst' | 'fill' | 'stroke' | 'strokeWidth' | 'paragraphs'
+	| 'kind'
+	| 'prst'
+	| 'fill'
+	| 'stroke'
+	| 'strokeWidth'
+	| 'paragraphs'
+	| 'rotation'
+	| 'flipH'
+	| 'flipV'
 >;
 
 /** A group's own transform plus children, common to a top-level `grpSp` shape and a nested `grpSp` child. */
@@ -114,10 +127,40 @@ function buildTxBody(paragraphs: PptxChartUserShapeParagraph[] | undefined): Xml
 }
 
 /**
+ * Merge a shape's own `rotation`/`flipH`/`flipV` onto its `a:xfrm` as `@_rot`
+ * (60,000ths of a degree, matching `PptxElementTransformUpdater.ts`'s
+ * convention) / `@_flipH` / `@_flipV`, creating a bare `a:xfrm` (no `off`/
+ * `ext`) when `base` is `undefined` but rotation/flip is set: verified
+ * against real PowerPoint (COM), a TOP-LEVEL anchor shape's `spPr/a:xfrm` can
+ * carry `rot`/`flipH`/`flipV` with no `off`/`ext` of its own, independent of
+ * the anchor's `cdr:from`/`cdr:to` markers that actually govern its position.
+ * Returns `undefined` when there is nothing to write (no base, no
+ * rotation/flip): the caller then omits `a:xfrm` entirely, matching a plain
+ * unrotated shape's original markup.
+ */
+function mergeRotationFlipXfrm(
+	shape: Pick<PptxChartUserShape, 'rotation' | 'flipH' | 'flipV'>,
+	base?: XmlObject,
+): XmlObject | undefined {
+	const xfrm: XmlObject = base ? { ...base } : {};
+	if (shape.rotation) {
+		xfrm['@_rot'] = String(Math.round(shape.rotation * 60000));
+	}
+	if (shape.flipH) {
+		xfrm['@_flipH'] = '1';
+	}
+	if (shape.flipV) {
+		xfrm['@_flipV'] = '1';
+	}
+	return Object.keys(xfrm).length > 0 ? xfrm : undefined;
+}
+
+/**
  * Build the `cdr:spPr` shared by `sp` and `cxnSp`. `a:xfrm` (a group child's
- * own position within its parent's child coordinate space) must sequence
- * FIRST per `CT_ShapeProperties`, so it is threaded in as a constructor
- * argument rather than assigned after the fact.
+ * own position within its parent's child coordinate space, or a top-level
+ * shape's own rotation/flip) must sequence FIRST per `CT_ShapeProperties`, so
+ * it is threaded in as a constructor argument rather than assigned after the
+ * fact.
  */
 function buildShapeProps(
 	shape: ShapeVisualsLike,
@@ -125,8 +168,9 @@ function buildShapeProps(
 	xfrm?: XmlObject,
 ): XmlObject {
 	const spPr: XmlObject = {};
-	if (xfrm) {
-		spPr['a:xfrm'] = xfrm;
+	const finalXfrm = mergeRotationFlipXfrm(shape, xfrm);
+	if (finalXfrm) {
+		spPr['a:xfrm'] = finalXfrm;
 	}
 	if (includeGeometry) {
 		spPr['a:prstGeom'] = { '@_prst': shape.prst ?? 'rect', 'a:avLst': {} };
@@ -190,9 +234,9 @@ function buildChildXfrm(child: Pick<PptxChartUserShapeGroupChild, 'off' | 'ext'>
 	return buildOffExt(child.off, child.ext);
 }
 
-/** Build a group's own `a:xfrm` (its `off`/`ext`/`chOff`/`chExt`). */
+/** Build a group's own `a:xfrm` (its `off`/`ext`/`chOff`/`chExt`, plus its own rotation/flip). */
 function buildGroupTransformXfrm(transform: PptxChartUserShapeGroupTransform): XmlObject {
-	return {
+	const xfrm: XmlObject = {
 		...buildOffExt(transform.off, transform.ext),
 		'a:chOff': {
 			'@_x': String(Math.round(transform.chOff.x)),
@@ -203,6 +247,16 @@ function buildGroupTransformXfrm(transform: PptxChartUserShapeGroupTransform): X
 			'@_cy': String(Math.round(transform.chExt.cy)),
 		},
 	};
+	if (transform.rotation) {
+		xfrm['@_rot'] = String(Math.round(transform.rotation * 60000));
+	}
+	if (transform.flipH) {
+		xfrm['@_flipH'] = '1';
+	}
+	if (transform.flipV) {
+		xfrm['@_flipV'] = '1';
+	}
+	return xfrm;
 }
 
 /** Build one grouped child's node, keyed by the `cdr:*` element name it belongs under. */
@@ -222,9 +276,17 @@ function buildGroupChildNode(
 			? child.kind
 			: undefined;
 	if (rawShapeKey) {
-		// Verbatim source content (its own `a:xfrm` is already baked in): see
-		// `PptxChartUserShape.rawXml`'s doc.
-		return { key: rawShapeKey, node: cloneXmlObject(child.rawXml) ?? {} };
+		// Verbatim source content, except the two fields the inspector's
+		// minimal editor can change: position/size (baked into the node's own
+		// `a:xfrm`, unlike a top-level anchor) and, for a `pic`, alt text. See
+		// `PptxChartUserShape.rawXml`'s doc and `applyChildXfrmToRawNode`'s.
+		const rawNode = cloneXmlObject(child.rawXml) ?? {};
+		applyChildXfrmToRawNode(rawNode, child.off, child.ext);
+		applyRotationFlipToRawNode(rawNode, child.rotation, child.flipH, child.flipV);
+		if (rawShapeKey === 'pic') {
+			applyPicAltText(rawNode, child.altText);
+		}
+		return { key: rawShapeKey, node: rawNode };
 	}
 	if (child.kind === 'cxnSp') {
 		return { key: 'cxnSp', node: buildCxnSpNode(child, id, buildChildXfrm(child)) };
@@ -310,9 +372,18 @@ function buildAnchorNode(shape: PptxChartUserShape, idState: IdState): XmlObject
 			? (`cdr:${shape.kind}` as const)
 			: undefined;
 	if (rawShapeKey) {
-		// Verbatim source content: re-emit as-is instead of a lossy rectangle
-		// placeholder. See `PptxChartUserShape.rawXml`'s doc.
-		node[rawShapeKey] = cloneXmlObject(shape.rawXml) ?? {};
+		// Verbatim source content, except a `pic`'s alt text: re-emit as-is
+		// instead of a lossy rectangle placeholder. Position/size need no
+		// patch here (a top-level anchor's `cdr:from`/`cdr:to`/`cdr:ext`
+		// markers, written above, already govern them independently of any
+		// `a:xfrm` the picture node itself might carry). See
+		// `PptxChartUserShape.rawXml`'s doc.
+		const rawNode = cloneXmlObject(shape.rawXml) ?? {};
+		applyRotationFlipToRawNode(rawNode, shape.rotation, shape.flipH, shape.flipV);
+		if (shape.kind === 'pic') {
+			applyPicAltText(rawNode, shape.altText);
+		}
+		node[rawShapeKey] = rawNode;
 	} else if (shape.kind === 'cxnSp') {
 		node['cdr:cxnSp'] = buildCxnSpNode(shape, id);
 	} else {

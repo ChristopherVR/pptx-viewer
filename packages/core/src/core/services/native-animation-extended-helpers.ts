@@ -1,3 +1,4 @@
+import { themeColorRefFromSchemeClr } from '../color/theme-color-ref';
 /**
  * Extended animation parsing helpers for OOXML animation node types:
  * p:animClr, p:excl, p:cmd, p:iterate, and text-level targets (p:txEl).
@@ -6,6 +7,7 @@ import type {
 	PptxColorAnimation,
 	PptxTextAnimationTarget,
 	PptxAnimationIterate,
+	PptxThemeColorRef,
 	XmlObject,
 } from '../types';
 import { extractAttrNameFromCBhvr } from './native-animation-attr-name';
@@ -42,16 +44,22 @@ function extractSingleColorAnimation(node: XmlObject): PptxColorAnimation {
 	// the value here, only ensure it survives a parse/save cycle.
 	const path = node['@_path'] !== undefined ? String(node['@_path']) : undefined;
 
-	const fromColor = extractColorValue(node['p:from'] as XmlObject | undefined);
-	const toColor = extractColorValue(node['p:to'] as XmlObject | undefined);
+	const fromContainer = node['p:from'] as XmlObject | undefined;
+	const toContainer = node['p:to'] as XmlObject | undefined;
 	const byContainer = node['p:by'] as XmlObject | undefined;
+	const fromColor = extractColorValue(fromContainer);
+	const toColor = extractColorValue(toContainer);
 	const byColor = extractHslDeltaOrColorValue(byContainer, colorSpace);
 	const hslDelta = colorSpace === 'hsl' ? extractHslDelta(byContainer) : undefined;
+	const fromColorRef = extractSchemeColorRef(fromContainer);
+	const toColorRef = extractSchemeColorRef(toContainer);
+	// An HSL `by` is a signed delta (see `hslDelta`), never a theme colour.
+	const byColorRef = colorSpace === 'hsl' ? undefined : extractSchemeColorRef(byContainer);
 
 	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName.
 	const targetAttribute = extractAttrNameFromCBhvr(node['p:cBhvr'] as XmlObject | undefined);
 
-	return {
+	const result: PptxColorAnimation = {
 		colorSpace,
 		direction,
 		path,
@@ -61,6 +69,23 @@ function extractSingleColorAnimation(node: XmlObject): PptxColorAnimation {
 		hslDelta,
 		targetAttribute,
 	};
+	if (fromColorRef) {
+		result.fromColorRef = fromColorRef;
+	}
+	if (toColorRef) {
+		result.toColorRef = toColorRef;
+	}
+	if (byColorRef) {
+		result.byColorRef = byColorRef;
+	}
+	return result;
+}
+
+/** The typed theme reference for a colour container's `a:schemeClr` child, when present. */
+function extractSchemeColorRef(
+	colorContainer: XmlObject | undefined,
+): PptxThemeColorRef | undefined {
+	return themeColorRefFromSchemeClr(colorContainer?.['a:schemeClr'] as XmlObject | undefined);
 }
 
 /** Decode OOXML's signed HSL offsets into degrees / percentage points. */

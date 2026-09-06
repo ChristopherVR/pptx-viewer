@@ -6,6 +6,12 @@ import type {
 	XmlObject,
 } from '../types';
 import { parseChartDataPointPicture } from './chart-datapoint-serializer';
+import { parseChartUniqueId } from './chart-series-identity';
+
+/** Resolve a possibly-prefixed XML key to its local name (`c:idx` -> `idx`). */
+function localNameOf(key: string): string {
+	return key.replace(/^.*:/u, '');
+}
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -199,6 +205,15 @@ export function parseSeriesDataPoints(
 			const bubble3D = booleanValue(xmlLookup.getChildByLocalName(node, 'bubble3D'));
 			if (bubble3D !== undefined) {
 				result.bubble3D = bubble3D;
+			}
+
+			// This point's identity GUID (`c:dPt/c:extLst/c:ext/c16:uniqueId`),
+			// see chart-series-identity.ts. Read-only here: an edited existing
+			// point keeps its own extLst as passthrough automatically
+			// (chart-datapoint-serializer.ts).
+			const uniqueId = parseChartUniqueId(node, localNameOf);
+			if (uniqueId !== undefined) {
+				result.uniqueId = uniqueId;
 			}
 
 			return result;

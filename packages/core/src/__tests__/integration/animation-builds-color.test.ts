@@ -52,4 +52,19 @@ describe('animation-builds-color fixture', () => {
 		expect(colour?.colorAnimation?.targetAttribute).toBe('fillcolor');
 		expect(colour?.colorAnimation?.toColor?.toLowerCase()).toBe('#00ff00');
 	});
+
+	it('parses the genuine p:animClr dir="cw" attribute (regression)', async () => {
+		// This deck's `<p:animClr clrSpc="rgb" dir="cw">` is the genuine
+		// PowerPoint "Change Fill Color" EMPHASIS effect's own `p:animClr`
+		// (attrName `fillcolor`, inside `p:childTnLst`). It is a different
+		// OOXML construct from the "after animation: dim to colour" behaviour
+		// (attrName `ppt_c`, inside a sibling `p:subTnLst`; see
+		// `e2e/fixtures/animation-after-effect.pptx` and
+		// `animation-after-effect-write.ts`), which this project's writer
+		// used to (wrongly) model after this fixture's shape instead.
+		const data = await loadFixture();
+		const anims = data.slides[2]?.nativeAnimations ?? [];
+		const colour = anims.find((a) => a.colorAnimation);
+		expect(colour?.colorAnimation?.direction).toBe('cw');
+	});
 });

@@ -25,8 +25,8 @@ describe('text body CT_Scene3D round-trip', () => {
 				},
 				'd:backdrop': {
 					'd:anchor': { '@_x': '1', '@_y': '2', '@_z': '3' },
-					'd:norm': { '@_x': '4', '@_y': '5', '@_z': '6' },
-					'd:up': { '@_x': '7', '@_y': '8', '@_z': '9' },
+					'd:norm': { '@_dx': '4', '@_dy': '5', '@_dz': '6' },
+					'd:up': { '@_dx': '7', '@_dy': '8', '@_dz': '9' },
 				},
 				'd:extLst': { 'd:ext': { '@_uri': '{SCENE-EXT}', 'x:payload': { '@_v': '1' } } },
 			},
@@ -129,12 +129,48 @@ describe('text body CT_Scene3D round-trip', () => {
 
 		const scene = bodyPr['a:scene3d'] as XmlObject;
 		expect(Object.keys(scene)).toStrictEqual(['a:camera', 'a:lightRig', 'a:backdrop']);
-		expect(Object.keys(scene['a:backdrop'] as XmlObject)).toStrictEqual([
-			'a:anchor',
-			'a:norm',
-			'a:up',
-		]);
+		const backdrop = scene['a:backdrop'] as XmlObject;
+		expect(Object.keys(backdrop)).toStrictEqual(['a:anchor', 'a:norm', 'a:up']);
+		// `a:anchor` is CT_Point3D (x/y/z); `a:norm`/`a:up` are CT_Vector3D
+		// (dx/dy/dz) - NOT interchangeable, per ECMA-376.
+		expect(findChild(backdrop, 'anchor')).toStrictEqual({ '@_x': '1', '@_y': '2', '@_z': '3' });
+		expect(findChild(backdrop, 'norm')).toStrictEqual({ '@_dx': '0', '@_dy': '0', '@_dz': '1' });
+		expect(findChild(backdrop, 'up')).toStrictEqual({ '@_dx': '0', '@_dy': '-1', '@_dz': '0' });
 		expect(findChild(findChild(scene, 'camera')!, 'rot')).toStrictEqual({ '@_rev': '30' });
+	});
+
+	it('scales a fractional (normalised) backdrop direction to valid integer ST_Coordinate values instead of corrupting or dropping it', () => {
+		const bodyPr: XmlObject = {};
+		applyTextBodyScene3d(bodyPr, {
+			textBodyScene3d: {
+				cameraPreset: 'orthographicFront',
+				lightRigType: 'brightRoom',
+				lightRigDirection: 'r',
+				hasBackdrop: true,
+				backdropAnchorX: 0,
+				backdropAnchorY: 0,
+				backdropAnchorZ: 0,
+				// A normalised unit vector tilted toward +X/+Y, as a caller
+				// reaching for the public API (rather than round-tripping a
+				// parsed file) would naturally write.
+				backdropNormalX: 0.7071,
+				backdropNormalY: 0.7071,
+				backdropNormalZ: 0,
+				backdropUpX: 0,
+				backdropUpY: 1,
+				backdropUpZ: 0,
+			},
+		});
+
+		const scene = bodyPr['a:scene3d'] as XmlObject;
+		const backdrop = scene['a:backdrop'] as XmlObject;
+		const norm = findChild(backdrop, 'norm')!;
+		for (const attr of ['@_dx', '@_dy', '@_dz']) {
+			expect(Number.isInteger(Number(norm[attr]))).toBeTruthy();
+		}
+		// The ratio between dx and dy is preserved (both components equal).
+		expect(norm['@_dx']).toBe(norm['@_dy']);
+		expect(norm['@_dz']).toBe('0');
 	});
 
 	it('validates enum and range values without destroying preserved XML', () => {

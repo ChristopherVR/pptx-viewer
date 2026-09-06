@@ -15,6 +15,37 @@ import { rectNode, styleContext } from './smartart-layout-interpreter-render';
 import type { StyleContext } from './smartart-layout-interpreter-render';
 import type { RenderedConnector, RenderedNode } from './smartart-layout-types';
 
+/**
+ * The org-chart-family "hierRoot" algorithm's root-box alignment offset
+ * (`dgm:param type="hierAlign"` / `dgm:constr type="alignOff"` in the built-in
+ * "Organization Chart" layoutDef), as a fraction of one box's width.
+ *
+ * Measured directly against genuine PowerPoint cached `dsp:drawing` output
+ * (not derived from the ECMA-376 constraint text, which this interpreter does
+ * not solve generically): every sampled hanging-generation transition offsets
+ * the child column by EXACTLY 0.25x the box width from its parent's own left
+ * edge, regardless of `hierBranch` (`std`/`init`/`l`/`r`/`hang` all measured
+ * identical) and regardless of generation depth:
+ *
+ *   - `smartart-orgchart-hierbranch.pptx` slides 1-4 (Standard/Both/Left/Right
+ *     Hanging): Report One -> Analyst One, every variant, ratio 0.25 exactly.
+ *   - `smartart-orgchart-many.pptx`: a flattened report-group's real children
+ *     offset 0.25 from the (dropped) group-wrapper's own fanned slot.
+ *   - `smartart-orgchart-nested-hang.pptx` (Standard AND Both Hanging):
+ *     Team One's own hanging children (Team Four/Five, a THIRD generation)
+ *     offset 0.25 from Team One, confirming the ratio recurses unchanged at
+ *     deeper generations, and that "Both Hanging" does NOT alternate side for
+ *     multiple ordinary children of the SAME parent (they share one column,
+ *     same as every other `hierBranch` value) - see the doc comment on
+ *     `placeHangingTree` in `smartart-hierarchy-hanging.ts`.
+ *
+ * Used both for the first hop out of a fanned/flattened parent (see
+ * `smartart-hierarchy-standard.ts`'s `hangingPlacer` invocation) and for every
+ * further hop within the hanging tail itself (`HangingOptions.indent` in
+ * `smartart-hierarchy-hanging.ts`).
+ */
+export const HIER_TAIL_OFFSET_RATIO = 0.25;
+
 /** Mutable render state threaded through one hierarchy arrangement pass. */
 export interface HierContext {
 	elementId: string;
@@ -176,4 +207,58 @@ export function rowSize(childMax: number | undefined, childPreferred: number | u
 		return childMax;
 	}
 	return Number.POSITIVE_INFINITY;
+}
+
+/** True for a `dgm:pt` that is an invisible org-chart grouping wrapper. */
+function isOrgChartGroupWrapper(node: PptxSmartArtNode): boolean {
+	return !node.nodeType && node.text.trim().length === 0;
+}
+
+/**
+ * Genuine PowerPoint org charts (`presLayoutVars.orgChart`) do NOT attach
+ * ordinary reports directly to their manager: even a manager with only 3
+ * direct reports (well within the default `chPref=3` threshold, no overflow)
+ * gets up to `chPref` synthetic, untyped, EMPTY content points as an
+ * intermediate "hierChild group" layer, with the real reports nested one
+ * level under whichever group slot got populated. Measured against
+ * `smartart-orgchart-hierbranch.pptx` in the corpus: every one of its four
+ * slides parses to 11 content points for a tree the author only typed 7 nodes
+ * into, the extra 4 being one empty assistant slot and three empty group
+ * points (only one of which has any children).
+ *
+ * Left alone, the hierarchy arranger renders those group wrappers as ordinary
+ * blank fanned-out boxes and their real children one generation too deep
+ * (landing on the hanging tail instead of the fan-out row PowerPoint itself
+ * shows). This flattens them out before the tree is built: an empty, untyped
+ * node's children are spliced into its own parent's child list in its place,
+ * and the wrapper itself is dropped (an empty, childless slot simply
+ * disappears, matching PowerPoint's own unpopulated group columns). Assistant
+ * points keep their role even when empty - only a plain untyped node with no
+ * text is a group wrapper - so a genuinely blank ordinary node is never lost:
+ * that shape does not occur in a real org chart's data model. A no-op when
+ * `orgChart` is not set, or when no such wrapper is present.
+ */
+export function flattenOrgChartGroupWrappers(
+	nodes: PptxSmartArtNode[],
+	orgChart: boolean,
+): PptxSmartArtNode[] {
+	if (!orgChart || !nodes.some(isOrgChartGroupWrapper)) {
+		return nodes;
+	}
+	const byId = new Map(nodes.map((node) => [node.id, node]));
+	const parentIdOf = (node: PptxSmartArtNode): string | undefined => {
+		let current = node;
+		// Walk past chained wrappers (a wrapper parented under another wrapper).
+		while (current.parentId) {
+			const parent = byId.get(current.parentId);
+			if (!parent || !isOrgChartGroupWrapper(parent)) {
+				return current.parentId;
+			}
+			current = parent;
+		}
+		return current.parentId;
+	};
+	return nodes
+		.filter((node) => !isOrgChartGroupWrapper(node))
+		.map((node) => ({ ...node, parentId: parentIdOf(node) }));
 }

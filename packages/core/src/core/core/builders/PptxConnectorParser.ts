@@ -164,6 +164,13 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 				y: Math.round(parseInt(String(offset['@_y'] || '0'), 10) / this.context.emuPerPx),
 				width: Math.round(parseInt(String(extent['@_cx'] || '0'), 10) / this.context.emuPerPx),
 				height: Math.round(parseInt(String(extent['@_cy'] || '0'), 10) / this.context.emuPerPx),
+				// Exact EMU alongside the rounded pixel value; see
+				// `xfrm-emu-resolution.ts` for why the save-side writer can only
+				// re-emit these when the connector has not moved/resized.
+				xEmu: parseInt(String(offset['@_x'] || '0'), 10),
+				yEmu: parseInt(String(offset['@_y'] || '0'), 10),
+				widthEmu: parseInt(String(extent['@_cx'] || '0'), 10),
+				heightEmu: parseInt(String(extent['@_cy'] || '0'), 10),
 				shapeType,
 				shapeAdjustments,
 				rotation,

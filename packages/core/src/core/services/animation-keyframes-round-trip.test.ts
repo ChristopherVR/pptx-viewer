@@ -128,6 +128,38 @@ describe('animation tav keyframe round-trip', () => {
 		expect(makeRoundTrip(input)).toStrictEqual(input);
 	});
 
+	it('parses a scheme-colour (a:schemeClr) clrVal stop with its typed theme ref', () => {
+		const node: XmlObject = {
+			'p:cBhvr': { 'p:cTn': { '@_id': '1' } },
+			'p:tavLst': {
+				'p:tav': [
+					{
+						'@_tm': '0',
+						'p:val': {
+							'p:clrVal': {
+								'a:schemeClr': { '@_val': 'accent1', 'a:lumMod': { '@_val': '60000' } },
+							},
+						},
+					},
+					{
+						'@_tm': '100000',
+						'p:val': { 'p:clrVal': { 'a:srgbClr': { '@_val': 'FF0000' } } },
+					},
+				],
+			},
+		};
+		const parsed = extractKeyframes(node);
+		expect(parsed).toStrictEqual([
+			{
+				colorRef: { lumMod: 0.6, scheme: 'accent1' },
+				tm: 0,
+				value: 'accent1',
+				valueType: 'clr',
+			},
+			{ tm: 100000, value: '#FF0000', valueType: 'clr' },
+		]);
+	});
+
 	it('preserves @_fmla on a tav entry', () => {
 		const input: PptxAnimationKeyframe[] = [
 			{ tm: 0, value: '0', valueType: 'str', fmla: '#ppt_x+0.1*sin(2*pi*$)' },

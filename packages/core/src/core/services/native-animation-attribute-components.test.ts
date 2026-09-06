@@ -39,4 +39,57 @@ describe('extractAttributeAnimations', () => {
 		]);
 		expect(result?.every((entry) => entry.durationMs === 1000)).toBeTruthy();
 	});
+
+	it('extracts from/to/by attributes when there is no p:tavLst (Grow And Turn ground truth)', () => {
+		const result = extractAttributeAnimations({
+			'p:anim': [
+				{
+					'@_calcmode': 'lin',
+					'@_from': '(-#ppt_w/2)',
+					'@_to': '(#ppt_x)',
+					'p:cBhvr': {
+						'p:cTn': { '@_dur': '600' },
+						'p:attrNameLst': { 'p:attrName': 'ppt_x' },
+					},
+				},
+				{
+					'@_by': '(#ppt_h/3+#ppt_w*0.1)',
+					'p:cBhvr': {
+						'@_additive': 'sum',
+						'p:cTn': { '@_dur': '200' },
+						'p:attrNameLst': { 'p:attrName': 'ppt_x' },
+					},
+				},
+			],
+		});
+
+		expect(result).toHaveLength(2);
+		expect(result?.[0]).toMatchObject({
+			attrName: 'ppt_x',
+			calcMode: 'lin',
+			from: '(-#ppt_w/2)',
+			keyframes: [],
+			to: '(#ppt_x)',
+		});
+		expect(result?.[1]).toMatchObject({
+			attrName: 'ppt_x',
+			by: '(#ppt_h/3+#ppt_w*0.1)',
+			keyframes: [],
+		});
+	});
+
+	it('still drops a p:anim with no attrName, no keyframes, and no from/to/by', () => {
+		const result = extractAttributeAnimations({
+			'p:anim': [
+				{
+					'p:cBhvr': {
+						'p:cTn': { '@_dur': '200' },
+						'p:attrNameLst': { 'p:attrName': 'ppt_x' },
+					},
+				},
+			],
+		});
+
+		expect(result).toBeUndefined();
+	});
 });

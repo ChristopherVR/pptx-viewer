@@ -161,7 +161,12 @@ describe('smartArt org-chart round-trip: presLayoutVars (hierBranch / orgChart /
 		expect(stdDrawing).not.toBe(rightHangDrawing);
 	});
 
-	it('bakes chMax row-wrapping into the fabricated cached dsp: drawing on save', async () => {
+	it('bakes chMax column-grouping into the fabricated cached dsp: drawing on save', async () => {
+		// Genuine PowerPoint output (`smartart-orgchart-many.pptx` in the
+		// corpus) groups excess children into `chMax`/`chPref`-sized hanging
+		// COLUMNS side by side, not additional fanned rows: see
+		// `smartart-orgchart-genuine-fixture.test.ts` and the rewritten
+		// `placeWrappedChildren` in `smartart-hierarchy-standard.ts`.
 		const initial = await presentationWithOrgChartSmartArt(SIX_REPORTS);
 		const handler = new PptxHandler();
 		const loaded = await handler.load(initial.buffer as ArrayBuffer);
@@ -177,10 +182,11 @@ describe('smartArt org-chart round-trip: presLayoutVars (hierBranch / orgChart /
 		const cached = smartArt(reloaded.slides).smartArtData!.drawingShapes;
 		expect(cached?.length).toBe(7); // manager + 6 reports
 
-		const reportYs = (cached ?? [])
-			.filter((shape) => shape.text?.startsWith('Report'))
-			.map((shape) => Math.round(shape.y));
-		// chMax=3 over 6 reports wraps into two rows, i.e. two distinct y values.
-		expect(new Set(reportYs).size).toBe(2);
+		const reports = (cached ?? []).filter((shape) => shape.text?.startsWith('Report'));
+		const reportXs = reports.map((shape) => Math.round(shape.x));
+		const reportYs = reports.map((shape) => Math.round(shape.y));
+		// chMax=3 over 6 reports groups into two side-by-side columns of 3.
+		expect(new Set(reportXs).size).toBe(2);
+		expect(new Set(reportYs).size).toBe(3);
 	});
 });

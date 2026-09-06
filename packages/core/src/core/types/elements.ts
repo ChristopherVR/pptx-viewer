@@ -467,13 +467,14 @@ export interface MediaPptxElement extends PptxElementBase {
 	 */
 	isLinked?: boolean;
 	/**
-	 * Accessibility description from `p:nvGraphicFramePr/p:cNvPr/@descr`.
-	 * Only populated for the `p:graphicFrame`-shaped (SDK-created) media
-	 * form; a `p:pic`-shaped media element's alt text is not currently
-	 * parsed (see `PptxHandlerRuntimePictureParsing.ts`).
+	 * Accessibility description. Read from `p:nvGraphicFramePr/p:cNvPr/@descr`
+	 * for the `p:graphicFrame`-shaped (SDK-created) media form, or from
+	 * `p:nvPicPr/p:cNvPr/@descr` for the `p:pic`-shaped media form (real
+	 * PowerPoint's usual authoring shape for a video/audio placeholder); see
+	 * `PptxHandlerRuntimePictureParsing.ts`.
 	 */
 	altText?: string;
-	/** Accessibility title from `p:nvGraphicFramePr/p:cNvPr/@title`. Same scope note as {@link altText}. */
+	/** Accessibility title, from the same `@title` attribute on whichever `p:cNvPr` the media form uses. Same scope note as {@link altText}. */
 	title?: string;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
@@ -501,6 +502,46 @@ export interface GroupPptxElement extends PptxElementBase {
 	children: PptxElement[];
 	/** Fill style extracted from the group's `p:grpSpPr`, used for `a:grpFill` inheritance. */
 	groupFill?: ShapeStyle;
+	/**
+	 * The SAME `p:grpSpPr` extraction as {@link groupFill}, kept whenever the
+	 * group carries a `p:grpSpPr` at all, regardless of whether it resolved to
+	 * a paintable fill.
+	 *
+	 * `groupFill` is `undefined` unless the group has a real fill, because
+	 * `getGroupChildParentFill`/`groupChildInheritedFill` (the `a:grpFill`
+	 * inheritance chain) must keep chaining through an ancestor's fill when
+	 * THIS group has none of its own. A group whose `p:grpSpPr` authors only
+	 * `a:effectLst` (shadow/glow/soft-edge/reflection, no fill) needs those
+	 * effects to still reach the renderer, so they are kept here under a name
+	 * that carries no fill-inheritance meaning. Currently only reflection is
+	 * read from it (`getComputedEffectStyle`); the rest of `a:effectLst` on a
+	 * group remains unsupported.
+	 */
+	groupEffectStyle?: ShapeStyle;
+	/**
+	 * Exact EMU the group's own `a:chOff`/`a:chExt` (the coordinate space its
+	 * CHILDREN are authored in) were parsed from, alongside {@link
+	 * PptxElementBase.xEmu} etc for the group's own placement in its PARENT's
+	 * space. `undefined` when the source carried no usable `a:chOff`/`a:chExt`
+	 * (an SDK-created group, or one whose `a:xfrm` had no child-space data).
+	 *
+	 * Used by `group-xfrm-preservation.ts`'s `hasCapturedChildSpace` to decide
+	 * whether this group's original `a:chOff`/`a:chExt` can be re-emitted
+	 * verbatim (always true once captured, regardless of whether anything in
+	 * the subtree has moved or resized - only its DIRECT children's
+	 * `a:off`/`a:ext` are recomputed, via `invertChildIntoGroupSpace`, when
+	 * something changed), instead of the normalized `chOff 0,0` / `chExt ==
+	 * ext` space the writer falls back to when this is `undefined` (or
+	 * degenerate). See `group-shape-geometry.ts`'s module doc for why a group
+	 * needs two coordinate systems at all.
+	 */
+	chOffXEmu?: number;
+	/** See {@link chOffXEmu}. */
+	chOffYEmu?: number;
+	/** See {@link chOffXEmu}. */
+	chExtWidthEmu?: number;
+	/** See {@link chOffXEmu}. */
+	chExtHeightEmu?: number;
 }
 
 /**
@@ -530,6 +571,24 @@ export interface InkPptxElement extends PptxElementBase {
 	 * variable-width strokes that reflect stylus/pen pressure.
 	 */
 	inkPointPressures?: number[][];
+	/**
+	 * Per-path arrays of per-point pen-tilt lean direction (degrees, straight
+	 * from `PointerEvent.tiltX` on supporting hardware).
+	 *
+	 * Each entry corresponds to the path at the same index in `inkPaths`, and
+	 * is paired positionally with {@link inkPointTiltY}. Present only when at
+	 * least one point in the stroke reported a genuinely non-zero tilt: a
+	 * device that never reports tilt (a mouse, or a stylus with no tilt
+	 * sensor) leaves both arrays absent, the same way `inkPointPressures` is
+	 * omitted when pressure never varies. When present, the renderer converts
+	 * the raw `(tiltX, tiltY)` vector into a lean angle + magnitude (see
+	 * `pptx-viewer-shared`'s `tiltChannelsFromVectors`) and widens the stroke
+	 * perpendicular to the lean direction, approximating a chisel-tip
+	 * calligraphy nib.
+	 */
+	inkPointTiltX?: number[][];
+	/** Per-path, per-point pen-tilt lean direction (degrees), paired with {@link inkPointTiltX}. */
+	inkPointTiltY?: number[][];
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }
@@ -564,6 +623,20 @@ export interface ContentPartInkStroke {
 	 * {@link tiltAngles}.
 	 */
 	tiltMagnitudes?: number[];
+	/**
+	 * Which InkML channel pair {@link tiltAngles}/{@link tiltMagnitudes} were
+	 * decoded from: `'azimuthAltitude'` when the source declared `AZIMUTH`
+	 * (optionally paired with `ALTITUDE`); omitted (implying `OTx`/`OTy`, i.e.
+	 * `'vector'`) otherwise, including for tilt this library itself captured
+	 * from the Draw tool's `PointerEvent.tiltX`/`tiltY`.
+	 *
+	 * A save that has to rewrite this content part's InkML (see
+	 * `inkml-content-part-writer.ts`) uses this to re-declare the SAME channel
+	 * pair the file already used, rather than always converting to `OTx`/`OTy`;
+	 * the rendered lean is identical either way; only the written channel
+	 * NAMES differ.
+	 */
+	tiltEncoding?: 'vector' | 'azimuthAltitude';
 }
 
 /**

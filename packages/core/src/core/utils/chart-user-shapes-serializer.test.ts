@@ -82,6 +82,85 @@ describe('buildChartUserShapesDrawingXml', () => {
 		expect(reparsed).toStrictEqual(shapes);
 	});
 
+	it('round-trips a rotated and flipped top-level sp', () => {
+		const xml = createXmlLookup();
+		const shapes: PptxChartUserShape[] = [
+			{
+				kind: 'sp',
+				anchor: 'rel',
+				from: { x: 0.05, y: 0.05 },
+				to: { x: 0.3, y: 0.2 },
+				prst: 'rect',
+				rotation: 30,
+				flipV: true,
+			},
+		];
+		const built = buildChartUserShapesDrawingXml(shapes);
+		const reparsed = parseChartUserShapesDrawing(built, xml, colors);
+		expect(reparsed).toStrictEqual(shapes);
+	});
+
+	it('round-trips a rotated cxnSp with no flip attributes when unset', () => {
+		const xml = createXmlLookup();
+		const shapes: PptxChartUserShape[] = [
+			{
+				kind: 'cxnSp',
+				anchor: 'rel',
+				from: { x: 0, y: 0 },
+				to: { x: 0.2, y: 0.2 },
+				rotation: 45,
+				stroke: '#000000',
+			},
+		];
+		const built = buildChartUserShapesDrawingXml(shapes);
+		const anchor = (built['c:userShapes'] as XmlObject)['cdr:relSizeAnchor'] as XmlObject;
+		const xfrm = ((anchor['cdr:cxnSp'] as XmlObject)['cdr:spPr'] as XmlObject)[
+			'a:xfrm'
+		] as XmlObject;
+		expect(xfrm['@_flipH']).toBeUndefined();
+		expect(xfrm['@_flipV']).toBeUndefined();
+		const reparsed = parseChartUserShapesDrawing(built, xml, colors);
+		expect(reparsed).toStrictEqual(shapes);
+	});
+
+	it("round-trips a group's own rotation/flip alongside its children", () => {
+		const xml = createXmlLookup();
+		const shapes: PptxChartUserShape[] = [
+			{
+				kind: 'grpSp',
+				anchor: 'rel',
+				from: { x: 0.1, y: 0.1 },
+				to: { x: 0.4, y: 0.4 },
+				transform: {
+					off: { x: 0, y: 0 },
+					ext: { cx: 1000000, cy: 1000000 },
+					chOff: { x: 0, y: 0 },
+					chExt: { cx: 1000000, cy: 1000000 },
+					rotation: 15,
+					flipH: true,
+				},
+				children: [
+					{
+						kind: 'sp',
+						off: { x: 0, y: 0 },
+						ext: { cx: 500000, cy: 1000000 },
+						prst: 'rect',
+						rotation: 7.5,
+					},
+				],
+			},
+		];
+		const built = buildChartUserShapesDrawingXml(shapes);
+		const reparsed = parseChartUserShapesDrawing(built, xml, colors);
+		// Not toStrictEqual: a freshly rebuilt (no source `rawXml`) grpSp gets
+		// its OWN verbatim rawXml attached on reparse, same as the sibling
+		// "rebuilds a grpSp from its typed transform/children" test below.
+		expect(reparsed).toHaveLength(1);
+		const group = reparsed![0];
+		expect(group.transform).toStrictEqual(shapes[0]!.transform);
+		expect(group.children).toStrictEqual(shapes[0]!.children);
+	});
+
 	it('round-trips an absSizeAnchor connector', () => {
 		const xml = createXmlLookup();
 		const shapes: PptxChartUserShape[] = [
@@ -173,6 +252,85 @@ describe('buildChartUserShapesDrawingXml', () => {
 		const built = buildChartUserShapesDrawingXml(shapes);
 		const reparsed = parseChartUserShapesDrawing(built, xml, colors);
 		expect(reparsed).toStrictEqual(shapes);
+	});
+
+	// W2-F: alt text is the one `pic` field the minimal editor can change
+	// without touching the rest of the verbatim node (the blip, etc).
+	it('patches only the alt text onto a rawXml pic, leaving the rest verbatim', () => {
+		const xml = createXmlLookup();
+		const picRawXml: XmlObject = {
+			'cdr:blipFill': { 'a:blip': { '@_r:embed': 'rId1' } },
+		};
+		const shapes: PptxChartUserShape[] = [
+			{
+				kind: 'pic',
+				anchor: 'rel',
+				from: { x: 0.1, y: 0.1 },
+				to: { x: 0.3, y: 0.3 },
+				rawXml: picRawXml,
+				altText: 'A photo of the podium',
+			},
+		];
+		const built = buildChartUserShapesDrawingXml(shapes);
+		const reparsed = parseChartUserShapesDrawing(built, xml, colors);
+		expect(reparsed).toHaveLength(1);
+		expect(reparsed![0].kind).toBe('pic');
+		expect(reparsed![0].altText).toBe('A photo of the podium');
+		expect(reparsed![0].rawXml).toStrictEqual({
+			...picRawXml,
+			'cdr:nvPicPr': { 'cdr:cNvPr': { '@_descr': 'A photo of the podium' } },
+		});
+	});
+
+	// W2-F: a grouped pic/graphicFrame child's position/size lives inside its
+	// own `a:xfrm`, baked into `rawXml`; editing the typed `off`/`ext` (what
+	// the inspector's controls change) must actually move the shape on save,
+	// not silently re-emit the stale pre-edit position.
+	it("patches a grouped pic child's own xfrm from its edited off/ext", () => {
+		const xml = createXmlLookup();
+		const shapes: PptxChartUserShape[] = [
+			{
+				kind: 'grpSp',
+				anchor: 'rel',
+				from: { x: 0, y: 0 },
+				to: { x: 1, y: 1 },
+				transform: {
+					off: { x: 0, y: 0 },
+					ext: { cx: 1000000, cy: 1000000 },
+					chOff: { x: 0, y: 0 },
+					chExt: { cx: 1000000, cy: 1000000 },
+				},
+				children: [
+					{
+						kind: 'pic',
+						// Edited: moved/resized from wherever the source had it.
+						off: { x: 200000, y: 300000 },
+						ext: { cx: 400000, cy: 500000 },
+						rawXml: {
+							'cdr:spPr': {
+								'a:xfrm': {
+									'a:off': { '@_x': '0', '@_y': '0' },
+									'a:ext': { '@_cx': '100000', '@_cy': '100000' },
+								},
+							},
+							'cdr:blipFill': { 'a:blip': { '@_r:embed': 'rId1' } },
+						},
+						altText: 'Podium photo',
+					},
+				],
+			},
+		];
+		const built = buildChartUserShapesDrawingXml(shapes);
+		const reparsed = parseChartUserShapesDrawing(built, xml, colors);
+		const child = reparsed![0].children![0];
+		expect(child.kind).toBe('pic');
+		expect(child.off).toStrictEqual({ x: 200000, y: 300000 });
+		expect(child.ext).toStrictEqual({ cx: 400000, cy: 500000 });
+		expect(child.altText).toBe('Podium photo');
+		// The blip content is untouched.
+		expect((child.rawXml as XmlObject)['cdr:blipFill']).toStrictEqual({
+			'a:blip': { '@_r:embed': 'rId1' },
+		});
 	});
 
 	it('falls back to a placeholder rectangle for a rawXml-less pic (no source markup to fall back to)', () => {

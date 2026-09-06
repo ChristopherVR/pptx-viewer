@@ -64,11 +64,35 @@ export interface GroupTransform {
 	readonly parentY: number;
 	readonly parentW: number;
 	readonly parentH: number;
+	/**
+	 * The exact EMU integers `parentX`/`parentY`/`parentW`/`parentH` were
+	 * parsed from (the group's own `a:off`/`a:ext`), for `resolveXfrmEmu`
+	 * (`xfrm-emu-resolution.ts`) to re-emit byte-identical on save when the
+	 * group has not moved/resized. `0` when the corresponding node is absent,
+	 * mirroring the `0` default of the pixel fields above.
+	 */
+	readonly parentXEmu: number;
+	readonly parentYEmu: number;
+	readonly parentWEmu: number;
+	readonly parentHEmu: number;
 	/** Origin/extent of the space the group's CHILDREN are authored in. */
 	readonly chX: number;
 	readonly chY: number;
 	readonly chW: number;
 	readonly chH: number;
+	/**
+	 * The exact EMU integers `chX`/`chY`/`chW`/`chH` were parsed from (the
+	 * group's own `a:chOff`/`a:chExt`), for `group-xfrm-preservation.ts` to
+	 * decide whether an unmodified group can re-emit them byte-identical.
+	 * `0` when the corresponding node is absent, mirroring `chX`/etc's `0`
+	 * default above (a caller that cares about "was `a:chOff`/`a:chExt`
+	 * actually present" should also check `chW`/`chH` for `> 0`, the same
+	 * convention `parentWEmu`/`parentHEmu` already use).
+	 */
+	readonly chOffXEmu: number;
+	readonly chOffYEmu: number;
+	readonly chExtWEmu: number;
+	readonly chExtHEmu: number;
 	/** `ext / chExt`, i.e. how much the group squeezes its child space. */
 	readonly scaleX: number;
 	readonly scaleY: number;
@@ -112,10 +136,18 @@ export function readGroupTransform(xfrm: unknown, emuPerPx: number): GroupTransf
 		parentY = 0,
 		parentW = 0,
 		parentH = 0;
+	let parentXEmu = 0,
+		parentYEmu = 0,
+		parentWEmu = 0,
+		parentHEmu = 0;
 	let chX = 0,
 		chY = 0,
 		chW = 0,
 		chH = 0;
+	let chOffXEmu = 0,
+		chOffYEmu = 0,
+		chExtWEmu = 0,
+		chExtHEmu = 0;
 	let rotation: number | undefined;
 	let flipHorizontal = false;
 	let flipVertical = false;
@@ -123,23 +155,31 @@ export function readGroupTransform(xfrm: unknown, emuPerPx: number): GroupTransf
 	if (xfrm) {
 		const off = child(xfrm, 'a:off');
 		if (off) {
-			parentX = parseEmuInt(attr(off, '@_x')) / emuPerPx;
-			parentY = parseEmuInt(attr(off, '@_y')) / emuPerPx;
+			parentXEmu = parseEmuInt(attr(off, '@_x'));
+			parentYEmu = parseEmuInt(attr(off, '@_y'));
+			parentX = parentXEmu / emuPerPx;
+			parentY = parentYEmu / emuPerPx;
 		}
 		const ext = child(xfrm, 'a:ext');
 		if (ext) {
-			parentW = parseEmuInt(attr(ext, '@_cx')) / emuPerPx;
-			parentH = parseEmuInt(attr(ext, '@_cy')) / emuPerPx;
+			parentWEmu = parseEmuInt(attr(ext, '@_cx'));
+			parentHEmu = parseEmuInt(attr(ext, '@_cy'));
+			parentW = parentWEmu / emuPerPx;
+			parentH = parentHEmu / emuPerPx;
 		}
 		const chOff = child(xfrm, 'a:chOff');
 		if (chOff) {
-			chX = parseEmuInt(attr(chOff, '@_x')) / emuPerPx;
-			chY = parseEmuInt(attr(chOff, '@_y')) / emuPerPx;
+			chOffXEmu = parseEmuInt(attr(chOff, '@_x'));
+			chOffYEmu = parseEmuInt(attr(chOff, '@_y'));
+			chX = chOffXEmu / emuPerPx;
+			chY = chOffYEmu / emuPerPx;
 		}
 		const chExt = child(xfrm, 'a:chExt');
 		if (chExt) {
-			chW = parseEmuInt(attr(chExt, '@_cx')) / emuPerPx;
-			chH = parseEmuInt(attr(chExt, '@_cy')) / emuPerPx;
+			chExtWEmu = parseEmuInt(attr(chExt, '@_cx'));
+			chExtHEmu = parseEmuInt(attr(chExt, '@_cy'));
+			chW = chExtWEmu / emuPerPx;
+			chH = chExtHEmu / emuPerPx;
 		}
 		// `@_rot` is 60000ths of a degree (ECMA-376 ST_Angle).
 		const rot = attr(xfrm, '@_rot');
@@ -156,10 +196,18 @@ export function readGroupTransform(xfrm: unknown, emuPerPx: number): GroupTransf
 		parentY,
 		parentW,
 		parentH,
+		parentXEmu,
+		parentYEmu,
+		parentWEmu,
+		parentHEmu,
 		chX,
 		chY,
 		chW,
 		chH,
+		chOffXEmu,
+		chOffYEmu,
+		chExtWEmu,
+		chExtHEmu,
 		scaleX: chW > 0 ? parentW / chW : 1,
 		scaleY: chH > 0 ? parentH / chH : 1,
 		rotation,

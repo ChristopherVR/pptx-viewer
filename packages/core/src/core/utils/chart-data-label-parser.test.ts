@@ -256,4 +256,99 @@ describe('chartML data label parsing', () => {
 			});
 		});
 	});
+
+	// Leader-line stroke styling: c:dLbls/c:leaderLines/c:spPr (base) and its
+	// chart15-extension mirror, c:extLst/c:ext/c15:leaderLines/c:spPr, confirmed
+	// against real corpus markup (e2e/fixtures/issue-132-gradient-fill.pptx,
+	// e2e/fixtures/issue-132-hr-deck.pptx), which write only the extension form.
+	describe('leaderLineStyle', () => {
+		const colorParser = {
+			parseColor: (node: XmlObject | undefined) => {
+				const srgb = node?.['a:srgbClr'] as XmlObject | undefined;
+				return srgb?.['@_val'] ? `#${srgb['@_val']}` : undefined;
+			},
+		};
+
+		it('is absent when no colorParser is given, so untouched charts round-trip byte-identical', () => {
+			const group: XmlObject = {
+				'c:extLst': {
+					'c:ext': {
+						'@_uri': '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}',
+						'c15:leaderLines': {
+							'c:spPr': {
+								'a:ln': { '@_w': '9525', 'a:solidFill': { 'a:srgbClr': { '@_val': '808080' } } },
+							},
+						},
+					},
+				},
+			};
+			expect(parseChartDataLabelOptions(group, lookup).leaderLineStyle).toBeUndefined();
+		});
+
+		// Real corpus shape: c15:layout / c15:showLeaderLines / c15:leaderLines
+		// wrapped in one c:ext, matching issue-132-gradient-fill.pptx chart1.xml.
+		it('parses the chart15-extension leaderLines/spPr stroke (real corpus shape)', () => {
+			const group: XmlObject = {
+				'c:showVal': { '@_val': '1' },
+				'c:showLeaderLines': { '@_val': '0' },
+				'c:extLst': {
+					'c:ext': {
+						'@_uri': '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}',
+						'@_xmlns:c15': 'http://schemas.microsoft.com/office/drawing/2012/chart',
+						'c15:layout': {},
+						'c15:showLeaderLines': { '@_val': '1' },
+						'c15:leaderLines': {
+							'c:spPr': {
+								'a:ln': {
+									'@_w': '9525',
+									'@_cap': 'flat',
+									'a:solidFill': { 'a:srgbClr': { '@_val': '808080' } },
+								},
+							},
+						},
+					},
+				},
+			};
+			const result = parseChartDataLabelOptions(group, lookup, colorParser);
+			expect(result.leaderLineStyle).toStrictEqual({ strokeColor: '#808080', strokeWidth: 0.75 });
+		});
+
+		it('falls back to the base c:leaderLines/c:spPr when no extension is present', () => {
+			const group: XmlObject = {
+				'c:showLeaderLines': { '@_val': '1' },
+				'c:leaderLines': {
+					'c:spPr': {
+						'a:ln': { '@_w': '19050', 'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } } },
+					},
+				},
+			};
+			const result = parseChartDataLabelOptions(group, lookup, colorParser);
+			expect(result.leaderLineStyle).toStrictEqual({ strokeColor: '#FF0000', strokeWidth: 1.5 });
+		});
+
+		it('prefers the extension form over the base element when both are present', () => {
+			const group: XmlObject = {
+				'c:leaderLines': {
+					'c:spPr': { 'a:ln': { 'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } } } },
+				},
+				'c:extLst': {
+					'c:ext': {
+						'@_uri': '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}',
+						'c15:leaderLines': {
+							'c:spPr': { 'a:ln': { 'a:solidFill': { 'a:srgbClr': { '@_val': '00FF00' } } } },
+						},
+					},
+				},
+			};
+			const result = parseChartDataLabelOptions(group, lookup, colorParser);
+			expect(result.leaderLineStyle?.strokeColor).toBe('#00FF00');
+		});
+
+		it('is undefined when neither the base element nor the extension is present', () => {
+			const group: XmlObject = { 'c:showVal': { '@_val': '1' } };
+			expect(
+				parseChartDataLabelOptions(group, lookup, colorParser).leaderLineStyle,
+			).toBeUndefined();
+		});
+	});
 });

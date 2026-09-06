@@ -64,10 +64,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
-			const x = Math.round(parseEmuInt(xmlAttr(off, 'x')) / PptxHandlerRuntime.EMU_PER_PX);
-			const y = Math.round(parseEmuInt(xmlAttr(off, 'y')) / PptxHandlerRuntime.EMU_PER_PX);
-			const width = Math.round(parseEmuInt(xmlAttr(ext, 'cx')) / PptxHandlerRuntime.EMU_PER_PX);
-			const height = Math.round(parseEmuInt(xmlAttr(ext, 'cy')) / PptxHandlerRuntime.EMU_PER_PX);
+			// Exact EMU alongside the rounded pixel value; see the matching
+			// comment in `PptxHandlerRuntimeShapeParsing.ts` and
+			// `xfrm-emu-resolution.ts` for why this is safe to record even from
+			// an inherited (placeholder-merged) transform.
+			const xEmu = parseEmuInt(xmlAttr(off, 'x'));
+			const yEmu = parseEmuInt(xmlAttr(off, 'y'));
+			const widthEmu = parseEmuInt(xmlAttr(ext, 'cx'));
+			const heightEmu = parseEmuInt(xmlAttr(ext, 'cy'));
+			const x = Math.round(xEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const y = Math.round(yEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const width = Math.round(widthEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const height = Math.round(heightEmu / PptxHandlerRuntime.EMU_PER_PX);
 			const rotation = xfrm['@_rot'] ? parseEmuInt(xfrm['@_rot']) / 60000 : undefined;
 			const skewX = xfrm['@_skewX'] ? parseEmuInt(xfrm['@_skewX']) / 60000 : undefined;
 			const skewY = xfrm['@_skewY'] ? parseEmuInt(xfrm['@_skewY']) / 60000 : undefined;
@@ -80,6 +88,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const mediaReference = parseDrawingMediaReference(nvPr, this.externalRelsMap.get(slidePath));
 
 			if (mediaReference) {
+				// `p:nvPicPr/p:cNvPr/@descr` / `@title`: the same alt-text pair a
+				// picture's own `p:cNvPr` carries (see `altTextRaw` further below).
+				// A `p:pic`-shaped media element (real PowerPoint's usual form, as
+				// opposed to the SDK's `p:graphicFrame`-shaped media) never read
+				// these, so accessibility text authored on a video/audio placeholder
+				// was silently dropped on load even though the generic save writer
+				// (`applyGraphicFrameAltTextToCnvPr`) already re-emits it for both
+				// shapes.
+				const mediaCNvPr = (pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:cNvPr'] as
+					| XmlObject
+					| undefined;
+				const mediaAltText = String(mediaCNvPr?.['@_descr'] || '').trim() || undefined;
+				const mediaTitle = String(mediaCNvPr?.['@_title'] || '').trim() || undefined;
 				this.compatibilityService.inspectMediaReferenceCompatibility(
 					mediaReference.kind,
 					slidePath,
@@ -151,6 +172,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					y,
 					width,
 					height,
+					xEmu,
+					yEmu,
+					widthEmu,
+					heightEmu,
 					rotation,
 					skewX,
 					skewY,
@@ -174,6 +199,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					bookmarks: p14Media.bookmarks,
 					posterFramePath,
 					posterFrameData,
+					...(mediaAltText !== undefined ? { altText: mediaAltText } : {}),
+					...(mediaTitle !== undefined ? { title: mediaTitle } : {}),
 					...this.readImageCropFromBlipFill(posterBlipFill),
 					// Real PowerPoint media is `p:pic`-shaped even though the
 					// `media` type buckets as `p:graphicFrame`, so its locks live
@@ -404,6 +431,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				y,
 				width,
 				height,
+				xEmu,
+				yEmu,
+				widthEmu,
+				heightEmu,
 				imageData,
 				imagePath,
 				svgData,

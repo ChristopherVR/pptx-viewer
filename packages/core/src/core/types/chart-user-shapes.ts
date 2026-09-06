@@ -50,6 +50,21 @@ export interface PptxChartUserShapeGroupTransform {
 	chOff: { x: number; y: number };
 	/** Size of the child coordinate space (`a:chExt`), in EMU. */
 	chExt: { cx: number; cy: number };
+	/**
+	 * The group's own rotation in degrees (`a:xfrm/@rot`, stored in 60,000ths
+	 * of a degree), when present. Rotates the whole group, and everything
+	 * grouped inside it, as a rigid body about the CENTRE of the group's own
+	 * box ({@link off}/{@link ext}); see `flattenChartUserShapes` in
+	 * `chart-user-shapes-parser.ts` for how this composes onto each contained
+	 * leaf's own {@link PptxChartUserShapeGroupChild.rotation}. Verified
+	 * against real PowerPoint (COM): a `cdr:grpSp`'s `cdr:grpSpPr/a:xfrm` does
+	 * carry `rot` the same way an ordinary shape's does.
+	 */
+	rotation?: number;
+	/** The group's own horizontal flip (`a:xfrm/@flipH`), when present; composes onto children by XOR, see {@link rotation}'s doc. */
+	flipH?: boolean;
+	/** The group's own vertical flip (`a:xfrm/@flipV`), when present; composes onto children by XOR, see {@link rotation}'s doc. */
+	flipV?: boolean;
 }
 
 /**
@@ -76,6 +91,23 @@ export interface PptxChartUserShapeGroupChild {
 	strokeWidth?: number;
 	/** Text paragraphs of the shape's `txBody`, when present. */
 	paragraphs?: PptxChartUserShapeParagraph[];
+	/**
+	 * A `pic` child's alt text (`cdr:nvPicPr/cdr:cNvPr/@descr`), when present.
+	 * Editable independently of {@link rawXml}'s otherwise-verbatim content:
+	 * the serializer patches only this attribute onto the cloned raw node.
+	 */
+	altText?: string;
+	/**
+	 * This child's OWN rotation in degrees (`a:xfrm/@rot`), when present.
+	 * Composes with every enclosing group's own
+	 * {@link PptxChartUserShapeGroupTransform.rotation} (added) to produce the
+	 * leaf's final on-screen rotation; see `flattenChartUserShapes`.
+	 */
+	rotation?: number;
+	/** This child's OWN horizontal flip (`a:xfrm/@flipH`); composes with an ancestor group's flip by XOR. */
+	flipH?: boolean;
+	/** This child's OWN vertical flip (`a:xfrm/@flipV`); composes with an ancestor group's flip by XOR. */
+	flipV?: boolean;
 	/**
 	 * Verbatim source XML of a `pic`/`graphicFrame` child, or of this node
 	 * itself when `kind === 'grpSp'` and the nested group is untouched since
@@ -126,6 +158,29 @@ export interface PptxChartUserShape {
 	strokeWidth?: number;
 	/** Text paragraphs of the shape's `txBody`, when present. */
 	paragraphs?: PptxChartUserShapeParagraph[];
+	/**
+	 * A `pic` anchor's alt text (`cdr:nvPicPr/cdr:cNvPr/@descr`), when
+	 * present. Editable independently of {@link rawXml}'s otherwise-verbatim
+	 * content: the serializer patches only this attribute onto the cloned
+	 * raw node, so a picture's blip and other markup are untouched.
+	 */
+	altText?: string;
+	/**
+	 * This shape's OWN rotation in degrees (`a:xfrm/@rot`, on `spPr/a:xfrm`
+	 * for `sp`/`cxnSp`/`pic`, or directly on a top-level `graphicFrame`'s own
+	 * `a:xfrm`), when present. A top-level anchor's position/size is governed
+	 * by {@link from}/{@link to}/{@link ext}, never by this `a:xfrm`'s own
+	 * `off`/`ext` (see {@link rawXml}'s doc), but `rot`/`flipH`/`flipV` on that
+	 * same `a:xfrm` DO apply visually: verified against real PowerPoint (COM),
+	 * which writes e.g. `<a:xfrm rot="1800000"><a:off .../><a:ext .../></a:xfrm>`
+	 * on a rotated overlay shape's `spPr`, with the `off`/`ext` values
+	 * unrelated to the anchor's own `cdr:from`/`cdr:to`.
+	 */
+	rotation?: number;
+	/** This shape's OWN horizontal flip (`a:xfrm/@flipH`); see {@link rotation}'s doc. */
+	flipH?: boolean;
+	/** This shape's OWN vertical flip (`a:xfrm/@flipV`); see {@link rotation}'s doc. */
+	flipV?: boolean;
 	/**
 	 * Verbatim source XML of a `pic` or `graphicFrame` anchor child (the
 	 * `cdr:pic` / `cdr:graphicFrame` node itself, not the enclosing anchor),

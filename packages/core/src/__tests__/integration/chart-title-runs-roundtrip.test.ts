@@ -95,6 +95,50 @@ describe('chart title rich text (titleRuns): load -> edit -> save -> re-parse', 
 		});
 	});
 
+	it('collapses a stale multi-run title to one run on an unrelated flat-title rewrite', async () => {
+		// Seed a chart with two differently-styled runs (same shape as the
+		// "editing titleRuns to two differently-styled runs" block above), then
+		// edit only the flat `title` to text that shares nothing with either
+		// run's old text: no alignment survives, so this is the "unrelated
+		// rewrite" case `distributeTitleRunsText` cannot realign. PowerPoint's
+		// own behaviour when you retype a title is to collapse to a single run
+		// in the first run's formatting; the pre-fix fallback instead patched
+		// only the first run's TEXT in place and left the second run ("Report")
+		// trailing, stale, on the slide.
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildSeed());
+		const chart = findChart(data);
+		chart.chartData!.title = 'Q4 Sales';
+		chart.chartData!.titleRuns = [
+			{ text: 'Q4 Sales', bold: true, color: '#FF0000', fontSize: 18 },
+			{ text: 'Report', italic: true },
+		];
+		const seeded = await handler.save(data.slides);
+		const seededHandler = new PptxHandler();
+		const seededData = await seededHandler.load(
+			seeded.buffer.slice(seeded.byteOffset, seeded.byteOffset + seeded.byteLength) as ArrayBuffer,
+		);
+
+		// Now the unrelated rewrite: only `title` changes, `titleRuns` stays the
+		// stale two-run array load produced.
+		const seededChart = findChart(seededData);
+		seededChart.chartData!.title = 'Annual Summary';
+
+		const saved = await seededHandler.save(seededData.slides);
+		const reloaded = new PptxHandler();
+		const reparsed = await reloaded.load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		const finalChart = findChart(reparsed);
+		expect(finalChart.chartData?.title).toBe('Annual Summary');
+		// One run, carrying the FIRST run's formatting (bold/red/18pt) and the
+		// whole new text; the second run ("Report", italic) is dropped rather
+		// than left trailing.
+		expect(finalChart.chartData?.titleRuns).toStrictEqual([
+			{ text: 'Annual Summary', bold: true, color: '#FF0000', fontSize: 18 },
+		]);
+	});
+
 	it('falls back to the flat title path when titleRuns is never set', async () => {
 		const handler = new PptxHandler();
 		const data = await handler.load(await buildSeed());

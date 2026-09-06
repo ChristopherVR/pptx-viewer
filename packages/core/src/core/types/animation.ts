@@ -5,6 +5,7 @@
  * @module pptx-types/animation
  */
 
+import type { PptxThemeColorRef } from './color-ref';
 import type { XmlObject } from './common';
 
 // ==========================================================================
@@ -500,17 +501,28 @@ export interface PptxNativeAnimation {
 	 */
 	afterEffect?: boolean;
 	/**
-	 * "After animation" end-state behaviour carried over from the matching
-	 * {@link PptxElementAnimation.afterAnimation} entry for this effect's
-	 * element. Not populated by the native-timing parser itself (there is no
-	 * single `p:cTn` attribute for it): `applyAfterAnimationFromEditorList` in
-	 * `pptx-viewer-shared` merges it in from the editor's per-element
-	 * animation list before playback, since that is the model the animation
-	 * panel writes `afterAnimation` into.
+	 * "After animation" end-state behaviour: dim-to-colour, hide-after-
+	 * animation, or hide-on-next-click. Populated directly by the
+	 * native-timing parser (`native-animation-after-effect.ts`) when the
+	 * effect's `p:cTn/p:subTnLst` carries PowerPoint's genuine after-effect
+	 * shape, so a real-world deck's build shows up here even with no
+	 * `pptx:editorMeta`. `applyAfterAnimationFromEditorList` in
+	 * `pptx-viewer-shared` overrides this from the matching
+	 * {@link PptxElementAnimation.afterAnimation} entry when the editor's
+	 * per-element animation list has one (the model the animation panel
+	 * writes `afterAnimation` into), so an edit through our own UI always wins.
 	 */
 	afterAnimationAction?: PptxAfterAnimationAction;
-	/** Dim-to color hex, present when {@link afterAnimationAction} is `dimToColor`. */
+	/** Dim-to color hex, present when {@link afterAnimationAction} is `dimToColor` AND the dim target is an already-resolved `a:srgbClr`. */
 	afterAnimationColor?: string;
+	/**
+	 * The typed theme reference when a `dimToColor` target is an `a:schemeClr`
+	 * (e.g. `accent2`) instead of `a:srgbClr`: this parse layer has no theme to
+	 * resolve it to sRGB with (see {@link afterAnimationColor}'s doc), so a
+	 * playback consumer resolves this against the deck's theme colour map.
+	 * Mutually exclusive with {@link afterAnimationColor} being set.
+	 */
+	afterAnimationColorRef?: PptxThemeColorRef;
 	/**
 	 * Parsed `p:animEffect` filter descriptor. `presetId`/`presetClass` remain
 	 * the primary effect selector (see `resolveEffect` in `pptx-viewer-shared`);
@@ -645,14 +657,47 @@ export interface PptxAnimationKeyframe {
 	 * fidelity; consumers may use it to drive computed animation values.
 	 */
 	fmla?: string;
+	/**
+	 * The typed theme reference when a `p:val/p:clrVal` stop is an
+	 * `a:schemeClr` (e.g. `accent1`), including any `tint`/`shade`/`lumMod`/
+	 * `lumOff`/`alpha` children. {@link value} keeps the bare scheme name for
+	 * round-trip; a playback consumer needs this ref (resolved against the
+	 * deck's theme colour map) to turn the stop into a real CSS colour, which
+	 * the bare name alone cannot do. Absent for an `a:srgbClr` stop, whose
+	 * {@link value} is already a resolved `#rrggbb` hex string.
+	 */
+	colorRef?: PptxThemeColorRef;
 }
 
 /** One generic `p:anim` behaviour inside a composed PowerPoint effect. */
 export interface PptxAttributeAnimation {
 	/** Lowercased target attribute from `p:attrNameLst`. */
 	attrName: string;
-	/** Authored value stops from this behaviour's `p:tavLst`. */
+	/**
+	 * Authored value stops from this behaviour's `p:tavLst`. Empty when the
+	 * behaviour instead uses the simpler `from`/`to`/`by` attribute form (see
+	 * below); at least one of `keyframes`, `from`/`to`, or `by` is present.
+	 */
 	keyframes: PptxAnimationKeyframe[];
+	/**
+	 * `p:anim/@_from` (a formula string, ECMA-376 S19.5.4 CT_TLAnimateBehavior):
+	 * the absolute starting value, used instead of `p:tavLst` when the
+	 * behaviour only has two endpoints. PowerPoint writes this form for some
+	 * built-in presets (e.g. "Grow And Turn"'s `ppt_x` fly-in): a bare
+	 * `p:anim from="..." to="..."` with no `p:tavLst` child at all. See
+	 * `animation-ppt-formula-ground-truth.md` in `pptx-viewer-shared` for the
+	 * real-PowerPoint sample this was found in.
+	 */
+	from?: string;
+	/** `p:anim/@_to`: the absolute ending value. See {@link from}. */
+	to?: string;
+	/**
+	 * `p:anim/@_by`: a DELTA formula added to wherever the attribute already
+	 * stands (as opposed to `from`/`to`'s absolute values), typically paired
+	 * with `p:cBhvr/@_additive="sum"` so it composites with a sibling
+	 * behaviour driving the same attribute instead of replacing it.
+	 */
+	by?: string;
 	/** Duration from this behaviour's nested `p:cTn/@dur`. */
 	durationMs?: number;
 	/** Start offset from this behaviour's nested `p:stCondLst`. */
@@ -661,8 +706,11 @@ export interface PptxAttributeAnimation {
 	 * Interpolation mode from this behaviour's own `@_calcmode`
 	 * (ST_TLAnimateBehaviorCalcMode, ECMA-376 S19.5.2): `discrete` snaps to
 	 * each `p:tav` stop with no interpolation, `lin` (the OOXML default)
-	 * interpolates linearly, `fmla` evaluates `p:tav/@fmla` (not consulted at
-	 * playback here; formulas are round-tripped only). Absent means `lin`.
+	 * interpolates linearly. `fmla` as the WHOLE behaviour's calc mode has
+	 * never been observed in a real PowerPoint file and is not consulted at
+	 * playback; what PowerPoint actually writes is `calcmode="lin"` with a
+	 * per-stop `p:tav/@fmla` (see {@link PptxAnimationKeyframe.fmla}), which
+	 * IS consulted regardless of this field's value. Absent means `lin`.
 	 */
 	calcMode?: 'discrete' | 'lin' | 'fmla';
 }
@@ -690,16 +738,31 @@ export interface PptxColorAnimation {
 	 * companion to `@dir` for HSL colour-space animations.
 	 */
 	path?: string;
-	/** Starting color as hex string. */
+	/** Starting color as hex string, or the bare scheme name (e.g. `accent1`) for a theme colour; see {@link fromColorRef}. */
 	fromColor?: string;
-	/** Ending color as hex string. */
+	/** Ending color as hex string, or the bare scheme name; see {@link toColorRef}. */
 	toColor?: string;
 	/**
-	 * Color delta (for "by" animations) as hex string. For HSL colour-space
-	 * animations this retains the historical byte-packed compatibility value;
-	 * consumers should prefer {@link hslDelta}, which preserves signed values.
+	 * Color delta (for "by" animations) as hex string, or the bare scheme name;
+	 * see {@link byColorRef}. For HSL colour-space animations this retains the
+	 * historical byte-packed compatibility value; consumers should prefer
+	 * {@link hslDelta}, which preserves signed values.
 	 */
 	byColor?: string;
+	/**
+	 * The typed theme reference when {@link fromColor} is an `a:schemeClr`
+	 * (including `tint`/`shade`/`lumMod`/`lumOff`/`alpha`), so playback can
+	 * resolve it against the deck's theme colour map. Absent when `fromColor`
+	 * is already a resolved `#rrggbb` hex (an `a:srgbClr` stop).
+	 */
+	fromColorRef?: PptxThemeColorRef;
+	/** The typed theme reference for {@link toColor}; see {@link fromColorRef}. */
+	toColorRef?: PptxThemeColorRef;
+	/**
+	 * The typed theme reference for {@link byColor} (RGB colour space only; an
+	 * HSL `by` is a signed delta, never a theme colour). See {@link fromColorRef}.
+	 */
+	byColorRef?: PptxThemeColorRef;
 	/**
 	 * Typed HSL delta from `p:by/p:hsl`. This preserves signed values and their
 	 * OOXML units without forcing them through the legacy byte-packed `byColor`

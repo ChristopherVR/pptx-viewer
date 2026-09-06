@@ -34,7 +34,7 @@ export type { PptxChartStyleDefinition, PptxChartStylePartEntry } from './chart-
  * @example
  * ```ts
  * const type: PptxChartType = "bar";
- * // => "bar" — one of: "bar" | "line" | "pie" | "doughnut" | "area" | "scatter" | …
+ * // => "bar": one of: "bar" | "line" | "pie" | "doughnut" | "area" | "scatter" | …
  * ```
  */
 export type PptxChartType =
@@ -96,7 +96,7 @@ export type PptxBar3DShape = 'box' | 'cone' | 'coneToMax' | 'cylinder' | 'pyrami
  * @example
  * ```ts
  * const type: PptxChartTrendlineType = "linear";
- * // => "linear" — one of: "linear" | "exponential" | "logarithmic" | "polynomial" | "power" | "movingAvg"
+ * // => "linear": one of: "linear" | "exponential" | "logarithmic" | "polynomial" | "power" | "movingAvg"
  * ```
  */
 export type PptxChartTrendlineType =
@@ -156,7 +156,7 @@ export type PptxChartErrBarType = 'both' | 'minus' | 'plus';
  * @example
  * ```ts
  * const valType: PptxChartErrValType = "percentage";
- * // => "percentage" — one of: "cust" | "fixedVal" | "percentage" | "stdDev" | "stdErr"
+ * // => "percentage": one of: "cust" | "fixedVal" | "percentage" | "stdDev" | "stdErr"
  * ```
  */
 export type PptxChartErrValType = 'cust' | 'fixedVal' | 'percentage' | 'stdDev' | 'stdErr';
@@ -302,6 +302,14 @@ export interface PptxChartDataPoint {
 	bubble3D?: boolean;
 	/** Per-point picture-fill flags (`c:dPt/c:pictureOptions`). */
 	picture?: PptxChartDataPointPicture;
+	/**
+	 * This point's identity GUID (`c:dPt/c:extLst/c:ext/c16:uniqueId/@val`,
+	 * the Office 2014+ `{C3380CC4-5D6E-409C-BE32-E72D297353CC}` chart
+	 * extension), read-only here: an edited point keeps its existing
+	 * `c:extLst` as passthrough (see `chart-datapoint-serializer.ts`), so this
+	 * field exists for introspection rather than round-trip.
+	 */
+	uniqueId?: string;
 }
 
 /** Schema values accepted by `c:dLblPos`. */
@@ -392,7 +400,7 @@ export interface PptxChartAxisFormatting extends PptxChartAxisLabelFormatting {
 	axPos?: 'b' | 'l' | 'r' | 't';
 	/** Unique axis identifier (c:axId/@val) used to link series to axes. */
 	axisId?: number;
-	/** Cross-axis identifier — the axis this axis crosses. */
+	/** Cross-axis identifier: the axis this axis crosses. */
 	crossAxisId?: number;
 	/** Automatic crossing mode (`c:crosses`). Mutually exclusive with `crossesAt`. */
 	crosses?: 'autoZero' | 'min' | 'max';
@@ -671,6 +679,55 @@ export interface PptxChartSeries {
 	waterfallOptions?: PptxChartWaterfallOptions;
 	regionMapOptions?: PptxChartRegionMapOptions;
 	treemapOptions?: PptxChartTreemapOptions;
+	/**
+	 * Series-level picture-fill flags (`c:ser/c:pictureOptions`), legal
+	 * wherever a per-point `c:dPt/c:pictureOptions` is (CT_BarSer): paints
+	 * EVERY point in the series with one picture unless a `c:dPt` overrides it
+	 * for that point alone. A point's own {@link PptxChartDataPoint.picture}
+	 * takes precedence entirely (not merged field-by-field) when it resolves
+	 * its own image; renderers fall back to this series-level picture only
+	 * when the point has none of its own.
+	 */
+	picture?: PptxChartDataPointPicture;
+	/**
+	 * This series' identity GUID (`c:ser/c:extLst/c:ext/c16:uniqueId/@val`,
+	 * the Office 2014+ `{C3380CC4-5D6E-409C-BE32-E72D297353CC}` chart
+	 * extension). PowerPoint uses it to track a series across edits and
+	 * collaborators independent of its `c:idx`/`c:order` position (the same
+	 * role animation targeting and CRDT reconciliation need). An edited
+	 * existing series keeps its own `c:extLst` as passthrough; a NEW series
+	 * added by cloning an existing one as a template is given a freshly
+	 * generated id rather than duplicating the template's (see
+	 * `regenerateClonedUniqueId` in `chart-series-identity.ts`), since two
+	 * series sharing one identity is exactly what this extension exists to
+	 * prevent.
+	 */
+	uniqueId?: string;
+}
+
+/**
+ * A series PowerPoint's "Chart Filters" feature hid from the plot while
+ * keeping it in the workbook (`c:<type>Chart/c:extLst/c:ext
+ * [@uri={02D57815-91ED-43cb-92C2-25804820EDAC}]/c15:filtered<Type>Series
+ * /c15:ser`). Read-mostly: {@link PptxChartData.filteredSeries} exists for
+ * introspection (AI tools, "unhide filtered series" UI) and round-trips as
+ * passthrough through the preserved chart XML when untouched. See
+ * `utils/chart-filtered-series.ts` for the parse rules and the idx-collision
+ * fix this modelling enables on save.
+ */
+export interface PptxChartFilteredSeries {
+	/** `c15:ser/c:idx/@val`, the workbook column position this series still occupies. */
+	idx: number;
+	/** `c15:ser/c:order/@val`, defaulting to {@link idx} when absent. */
+	order: number;
+	/** Series name, from the hidden series' own `c:tx` cache. */
+	name?: string;
+	/** Category labels, from the hidden series' own `c:cat` cache. */
+	categories?: string[];
+	/** Data values, from the hidden series' own `c:val` cache. */
+	values?: number[];
+	/** This hidden series' own identity GUID (`c16:uniqueId`), when present. */
+	uniqueId?: string;
 }
 
 /**
@@ -695,6 +752,19 @@ export interface PptxChartDataLabelOptions {
 	separator?: string;
 	/** Show leader lines where supported (`c:showLeaderLines`). */
 	showLeaderLines?: boolean;
+	/**
+	 * Leader-line stroke styling for offset (pie/doughnut `outEnd`/`bestFit`)
+	 * labels. Resolved from the base `c:leaderLines/c:spPr` when present, else
+	 * falling back to the Office 2013+ chart15 extension's mirror
+	 * (`c:extLst/c:ext/c15:leaderLines/c:spPr`, uri
+	 * `{CE6537A1-D6FC-4f65-9D91-7224C49458BB}`), which is the one PowerPoint
+	 * itself treats as authoritative when both are present. Confirmed against
+	 * `e2e/fixtures/issue-132-gradient-fill.pptx` and
+	 * `e2e/fixtures/issue-132-hr-deck.pptx`, both of which write only the
+	 * extension form. `undefined` leaves the renderer's own default leader-line
+	 * stroke.
+	 */
+	leaderLineStyle?: PptxChartShapeProps;
 	/**
 	 * Label position (`c:dLblPos`). Valid values depend on the chart type
 	 * (`ctr`, `inEnd`, `inBase`, `outEnd`, `bestFit`, `l`, `r`, `t`, `b`).
@@ -856,12 +926,12 @@ export interface PptxBubbleChartOptions {
  *
  * All fields are optional and round-trip verbatim.
  *
- * - {@link rotX} — X-axis rotation in degrees (-90…90).
- * - {@link rotY} — Y-axis rotation in degrees (0…360).
- * - {@link depthPercent} — chart depth as a percentage of base width.
- * - {@link rAngAx} — `true` if axes meet at right angles.
- * - {@link perspective} — perspective angle in degrees (0…240).
- * - {@link hPercent} — height as a percentage of chart width.
+ * - {@link rotX}: X-axis rotation in degrees (-90…90).
+ * - {@link rotY}: Y-axis rotation in degrees (0…360).
+ * - {@link depthPercent}: chart depth as a percentage of base width.
+ * - {@link rAngAx}: `true` if axes meet at right angles.
+ * - {@link perspective}: perspective angle in degrees (0…240).
+ * - {@link hPercent}: height as a percentage of chart width.
  */
 export interface PptxChartView3D {
 	rotX?: number;
@@ -876,12 +946,17 @@ export interface PptxChartView3D {
  * Chart "chrome" flags from `c:chart` that round-trip cleanly even when
  * rendering ignores them.
  *
- * - {@link autoTitleDeleted} — `c:autoTitleDeleted/@val`. Suppresses the
+ * - {@link autoTitleDeleted}: `c:autoTitleDeleted/@val`. Suppresses the
  *   auto-generated title for single-series charts.
- * - {@link dispBlanksAs} — `c:dispBlanksAs/@val`. How blank cells
+ * - {@link dispBlanksAs}: `c:dispBlanksAs/@val`. How blank cells
  *   render: `"gap"`, `"zero"`, or `"span"`.
- * - {@link showDLblsOverMax} — `c:showDLblsOverMax/@val`. Keeps data
+ * - {@link showDLblsOverMax}: `c:showDLblsOverMax/@val`. Keeps data
  *   labels visible for points exceeding the value-axis maximum.
+ * - {@link dispNaAsBlank}: the Office 2017+ chart extension
+ *   `c:extLst/c:ext/c16r3:dataDisplayOptions16/c16r3:dispNaAsBlank/@val`
+ *   (uri `{56B9EC1D-385E-4148-901F-78D8002777C0}`), PowerPoint's "Show #N/A
+ *   as an empty cell" chart option. Confirmed against real corpus markup
+ *   (`e2e/fixtures/chart-data-fidelity.pptx`).
  *
  * `c:plotVisOnly` lives on {@link PptxChartData.plotVisibleOnly} and is
  * intentionally not duplicated here.
@@ -890,6 +965,7 @@ export interface PptxChartChrome {
 	autoTitleDeleted?: boolean;
 	dispBlanksAs?: 'gap' | 'zero' | 'span';
 	showDLblsOverMax?: boolean;
+	dispNaAsBlank?: boolean;
 }
 
 /** Manual chart placement from `c:layout/c:manualLayout` (CT_ManualLayout). */
@@ -987,6 +1063,13 @@ export interface PptxChartData {
 	categoryLevels?: string[][];
 	dateCategories?: PptxChartDateCategories;
 	series: PptxChartSeries[];
+	/**
+	 * Series hidden from the plot by PowerPoint's "Chart Filters" feature
+	 * (Series tab) but still present in the workbook, aggregated across every
+	 * chart-type container (combo charts can carry more than one). Absent
+	 * when the chart has no such extension. See {@link PptxChartFilteredSeries}.
+	 */
+	filteredSeries?: PptxChartFilteredSeries[];
 	/** Chart style/formatting metadata. */
 	style?: PptxChartStyle;
 	/** Grouping mode for bar/area/line charts: 'clustered' | 'stacked' | 'percentStacked' */
@@ -1114,9 +1197,9 @@ export interface PptxChartData {
 	/**
 	 * Color cycling method from the chart color style part's `meth` attribute.
 	 *
-	 * - `"cycle"` — repeat the palette colours in order (default)
-	 * - `"withinLinear"` — gradient within each series
-	 * - `"acrossLinear"` — gradient across series
+	 * - `"cycle"`: repeat the palette colours in order (default)
+	 * - `"withinLinear"`: gradient within each series
+	 * - `"acrossLinear"`: gradient across series
 	 */
 	colorMethod?: 'cycle' | 'withinLinear' | 'acrossLinear';
 	/** Internal source color-style part path used for lossless dirty saves. */

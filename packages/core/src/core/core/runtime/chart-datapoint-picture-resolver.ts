@@ -1,18 +1,20 @@
 /**
- * Resolve each data point's picture-fill blip (`c:dPt/c:spPr/a:blipFill/
- * a:blip`) into an actual image URL (C2-G9 render half).
+ * Resolve each data point's AND each series' picture-fill blip
+ * (`c:dPt|c:ser/c:spPr/a:blipFill/a:blip`) into an actual image URL (C2-G9
+ * render half).
  *
  * Split out of `PptxHandlerRuntimeChartParsing.ts` (already well past the
  * repo's file-size guidance) so this integration stays a single call site
  * there instead of a ~50-line inline method.
  *
- * The synchronous `parseSeriesDataPoints` pass already captures the flags
- * (`PptxChartDataPoint.picture`) but cannot resolve `r:embed`/`r:link` itself
- * (that needs the chart part's relationships and zip access), so this
- * re-walks the SAME raw `c:ser` nodes, in the SAME order
- * `parseAllChartContainers` traversed them (container-by-container, in
- * `containerKeys` order), to line each `series[i]` up with its source `c:ser`
- * node and mutate `dataPoints[j].picture.imageUrl` in place.
+ * The synchronous `parseSeriesDataPoints`/series parse pass already captures
+ * the flags (`PptxChartDataPoint.picture` / `PptxChartSeries.picture`) but
+ * cannot resolve `r:embed`/`r:link` itself (that needs the chart part's
+ * relationships and zip access), so this re-walks the SAME raw `c:ser` nodes,
+ * in the SAME order `parseAllChartContainers` traversed them
+ * (container-by-container, in `containerKeys` order), to line each
+ * `series[i]` up with its source `c:ser` node and mutate
+ * `dataPoints[j].picture.imageUrl` / `series[i].picture.imageUrl` in place.
  *
  * @module runtime/chart-datapoint-picture-resolver
  */
@@ -54,9 +56,31 @@ export async function resolveDataPointPictureImages(
 	);
 	let rels: Array<{ id: string; type: string; target: string }> | undefined;
 	for (let si = 0; si < series.length; si++) {
-		const dataPoints = series[si].dataPoints;
 		const seriesNode = rawSeriesNodes[si];
-		if (!dataPoints || !seriesNode) {
+		if (!seriesNode) {
+			continue;
+		}
+
+		// Series-level c:pictureOptions (CT_BarSer): the same blip lookup as a
+		// c:dPt, just rooted at the c:ser node instead of a c:dPt child.
+		const seriesPicture = series[si].picture;
+		if (seriesPicture) {
+			const seriesRelId = parseChartDataPointPictureBlipRel(seriesNode, xmlLookup);
+			if (seriesRelId) {
+				rels ??= await readChartRels(chartPartPath);
+				const seriesRel = rels.find((r) => r.id === seriesRelId);
+				if (seriesRel) {
+					const imagePath = resolveImagePath(chartPartPath, seriesRel.target);
+					const imageUrl = await getImageData(imagePath);
+					if (imageUrl) {
+						seriesPicture.imageUrl = imageUrl;
+					}
+				}
+			}
+		}
+
+		const dataPoints = series[si].dataPoints;
+		if (!dataPoints) {
 			continue;
 		}
 		const dPtNodes = xmlLookup.getChildrenArrayByLocalName(seriesNode, 'dPt');

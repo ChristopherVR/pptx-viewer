@@ -50,6 +50,10 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	y: 'scalar',
 	width: 'scalar',
 	height: 'scalar',
+	xEmu: 'scalar',
+	yEmu: 'scalar',
+	widthEmu: 'scalar',
+	heightEmu: 'scalar',
 	rotation: 'scalar',
 	skewX: 'scalar',
 	skewY: 'scalar',
@@ -181,6 +185,11 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	// GroupPptxElement
 	children: 'complex',
 	groupFill: 'complex',
+	groupEffectStyle: 'complex',
+	chOffXEmu: 'scalar',
+	chOffYEmu: 'scalar',
+	chExtWidthEmu: 'scalar',
+	chExtHeightEmu: 'scalar',
 	// InkPptxElement
 	inkPaths: 'scalar',
 	inkColors: 'scalar',
@@ -188,6 +197,8 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	inkOpacities: 'scalar',
 	inkTool: 'scalar',
 	inkPointPressures: 'complex',
+	inkPointTiltX: 'complex',
+	inkPointTiltY: 'complex',
 	// ContentPartPptxElement
 	inkStrokes: 'complex',
 	inkPartPath: 'scalar',

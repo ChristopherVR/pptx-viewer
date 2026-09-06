@@ -34,8 +34,16 @@ const localName = (key: string): string => key.split(':').pop() ?? key;
 /** Point types that denote a real data node (vs a transition placeholder). */
 const NODE_POINT_TYPES = new Set(['node', 'norm', 'nonNorm', 'asst', 'nonAsst', 'doc', 'all']);
 
-/** Structural algorithm types a decidable choose branch may select. */
-const CHOOSE_ALG_TYPES = new Set(['lin', 'cycle', 'pyra', 'snake']);
+/**
+ * Structural algorithm types a decidable choose branch may select. Includes
+ * `hierChild`/`hierRoot`: a genuine org-chart layoutDef (ECMA-376 orgChart1)
+ * wraps its OWN root hierarchy algorithm in a `dgm:choose` picking between
+ * `linDir`/`hierBranch` variants, not a bare `dgm:alg` - excluding them here
+ * meant a choose-wrapped hierarchy was never recognised at all (see
+ * `smartart-layout-interpreter-model.ts`'s `discoverArrangement`, which
+ * special-cases these two types to set `hierarchy` rather than `chosen`).
+ */
+const CHOOSE_ALG_TYPES = new Set(['lin', 'cycle', 'pyra', 'snake', 'hierChild', 'hierRoot']);
 
 /** First finite entry of a per-axis attribute list, or `undefined`. */
 function firstNumber(values: number[] | undefined): number | undefined {

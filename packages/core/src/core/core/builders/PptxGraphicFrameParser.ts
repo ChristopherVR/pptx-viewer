@@ -488,6 +488,17 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				y: Math.round(parseInt(String(offset['@_y'] || '0'), 10) / this.context.emuPerPx),
 				width: Math.round(parseInt(String(extent['@_cx'] || '0'), 10) / this.context.emuPerPx),
 				height: Math.round(parseInt(String(extent['@_cy'] || '0'), 10) / this.context.emuPerPx),
+				// Exact EMU alongside the rounded pixel value; see
+				// `xfrm-emu-resolution.ts`. A table's `width`/`height` above may be
+				// overridden further down from its `a:tblGrid` (some producers leave
+				// the frame's own `a:xfrm/a:ext` stale relative to the grid) -- in
+				// that case these values legitimately fail `resolveXfrmEmu`'s
+				// equality check on save and the writer re-quantizes from the
+				// grid-corrected pixel value instead of re-emitting the stale EMU.
+				xEmu: parseInt(String(offset['@_x'] || '0'), 10),
+				yEmu: parseInt(String(offset['@_y'] || '0'), 10),
+				widthEmu: parseInt(String(extent['@_cx'] || '0'), 10),
+				heightEmu: parseInt(String(extent['@_cy'] || '0'), 10),
 				rotation: transform?.['@_rot']
 					? parseInt(String(transform['@_rot']), 10) / 60000
 					: undefined,

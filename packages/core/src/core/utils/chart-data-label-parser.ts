@@ -18,6 +18,58 @@ interface ColorParserLike {
 	parseColor: (fillNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
 }
 
+/**
+ * `c:ext/@uri` for the Office 2013+ "chart15" extension namespace. Reused
+ * across several distinct chart15 additions (`c15:layout`,
+ * `c15:showLeaderLines`, `c15:leaderLines`, `c15:dlblFieldTable`,
+ * `c15:showDataLabelsRange`); which one applies is determined by the child
+ * element inside `c:ext`, not by the uri. Confirmed against real corpus
+ * markup (`e2e/fixtures/issue-132-gradient-fill.pptx`,
+ * `e2e/fixtures/issue-132-hr-deck.pptx`).
+ */
+const CHART15_EXT_URI = '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}';
+
+function findChart15Ext(group: XmlObject, xmlLookup: XmlLookupLike): XmlObject | undefined {
+	const extLst = xmlLookup.getChildByLocalName(group, 'extLst');
+	if (!extLst) {
+		return undefined;
+	}
+	return xmlLookup
+		.getChildrenArrayByLocalName(extLst, 'ext')
+		.find((ext) => ext['@_uri'] === CHART15_EXT_URI);
+}
+
+/**
+ * Resolve a `c:dLbls` group's leader-line stroke styling for offset
+ * (pie/doughnut `outEnd`/`bestFit`) labels. PowerPoint writes the style twice:
+ * once as a plain `c:leaderLines/c:spPr` (the transitional-schema form) and
+ * again, identically, inside the chart15 extension
+ * (`c:extLst/c:ext/c15:leaderLines/c:spPr`) for readers that only look there.
+ * Office itself treats the extension copy as authoritative when both are
+ * present, so it is checked first; the base element is the fallback for
+ * strict-schema files that omit the extension.
+ */
+function parseLeaderLineStyle(
+	group: XmlObject,
+	xmlLookup: XmlLookupLike,
+	colorParser: ColorParserLike,
+): ReturnType<typeof parseShapeProps> {
+	const ext = findChart15Ext(group, xmlLookup);
+	const extLeaderLines = ext ? xmlLookup.getChildByLocalName(ext, 'leaderLines') : undefined;
+	const extSpPr = extLeaderLines
+		? xmlLookup.getChildByLocalName(extLeaderLines, 'spPr')
+		: undefined;
+	if (extSpPr) {
+		return parseShapeProps(extSpPr, xmlLookup, colorParser);
+	}
+
+	const baseLeaderLines = xmlLookup.getChildByLocalName(group, 'leaderLines');
+	const baseSpPr = baseLeaderLines
+		? xmlLookup.getChildByLocalName(baseLeaderLines, 'spPr')
+		: undefined;
+	return baseSpPr ? parseShapeProps(baseSpPr, xmlLookup, colorParser) : undefined;
+}
+
 const POSITIONS = new Set<PptxChartDataLabelPosition>([
 	'bestFit',
 	'b',
@@ -302,6 +354,10 @@ export function parseChartDataLabelOptions(
 		);
 		if (txPrStyle) {
 			result.txPr = txPrStyle;
+		}
+		const leaderLineStyle = parseLeaderLineStyle(group, xmlLookup, colorParser);
+		if (leaderLineStyle) {
+			result.leaderLineStyle = leaderLineStyle;
 		}
 	}
 	return result;

@@ -240,4 +240,37 @@ describe('graphic-frame altText/title round-trip', () => {
 		);
 		expect(reloadedSmartArt?.type === 'smartArt' && reloadedSmartArt.title).toBe('Org chart');
 	});
+
+	it('round-trips altText/title set on a media element built via the SDK', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create({
+			initialSlideCount: 0,
+		});
+		const slide = createSlide('Blank')
+			.addMedia('video', 'data:video/mp4;base64,AAAA', {
+				x: 50,
+				y: 50,
+				width: 400,
+				height: 300,
+			})
+			.build();
+		data.slides.push(slide);
+		const seed = await handler.save(data.slides);
+
+		const loadHandler = new PptxHandler();
+		const loaded = await loadHandler.load(seed.buffer as ArrayBuffer);
+		const media = findByType(loaded.slides[0].elements, 'media');
+		if (media?.type !== 'media') {
+			throw new Error('media not found');
+		}
+		media.altText = 'A product walkthrough video';
+		media.title = 'Product walkthrough';
+
+		const saved = await loadHandler.save(loaded.slides);
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedMedia = findByType(reloaded.slides[0].elements, 'media');
+		expect(reloadedMedia?.type === 'media' && reloadedMedia.altText).toBe(
+			'A product walkthrough video',
+		);
+		expect(reloadedMedia?.type === 'media' && reloadedMedia.title).toBe('Product walkthrough');
+	});
 });

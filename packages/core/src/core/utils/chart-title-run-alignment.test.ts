@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { distributeTitleRunsText } from './chart-title-run-alignment';
+import { distributeTitleRunsText, realignOrCollapseTitleRuns } from './chart-title-run-alignment';
 
 describe('distributeTitleRunsText', () => {
 	it('returns undefined for an empty run list', () => {
@@ -59,5 +59,36 @@ describe('distributeTitleRunsText', () => {
 			'',
 			'D',
 		]);
+	});
+});
+
+describe('realignOrCollapseTitleRuns', () => {
+	it('realigns onto the existing runs when the new text still contains them', () => {
+		const runs = realignOrCollapseTitleRuns(
+			[{ text: 'Revenue', bold: true }, { text: ' Growth' }],
+			'Revenue Growth 2024',
+		);
+		expect(runs).toStrictEqual([{ text: 'Revenue', bold: true }, { text: ' Growth 2024' }]);
+	});
+
+	it("collapses to a single run in the first run's formatting on an unrelated full rewrite", () => {
+		const runs = realignOrCollapseTitleRuns(
+			[
+				{ text: 'Revenue', bold: true, color: '#FF0000' },
+				{ text: ' Growth', italic: true },
+			],
+			'Completely Different Title',
+		);
+		expect(runs).toStrictEqual([
+			{ text: 'Completely Different Title', bold: true, color: '#FF0000' },
+		]);
+	});
+
+	it("collapses three stale runs to one, keeping only the first run's formatting", () => {
+		const runs = realignOrCollapseTitleRuns(
+			[{ text: 'Q1 ', italic: true }, { text: 'Revenue', bold: true }, { text: ' Report' }],
+			'Annual Summary',
+		);
+		expect(runs).toStrictEqual([{ text: 'Annual Summary', italic: true }]);
 	});
 });

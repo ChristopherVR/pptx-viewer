@@ -1,3 +1,4 @@
+import { themeColorRefFromSchemeClr } from '../color/theme-color-ref';
 /**
  * Helper functions extracted from PptxNativeAnimationService.
  * Provides XML parsing utilities for animation timing trees.
@@ -8,6 +9,7 @@ import type {
 	PptxAnimationKeyframe,
 	PptxNativeAnimation,
 	PptxTextBuildType,
+	PptxThemeColorRef,
 	XmlObject,
 } from '../types';
 import {
@@ -297,6 +299,9 @@ export function extractKeyframes(
 		if (fmlaRaw !== undefined) {
 			entry.fmla = String(fmlaRaw);
 		}
+		if (decoded.colorRef) {
+			entry.colorRef = decoded.colorRef;
+		}
 		out.push(entry);
 	}
 
@@ -310,9 +315,11 @@ export function extractKeyframes(
  * `native-animation-set-components.ts` can decode a `p:set`'s `p:to` the
  * same way {@link extractKeyframes} decodes a `p:tav`'s `p:val`.
  */
-export function decodeKeyframeValue(
-	valNode: XmlObject,
-): { value: string | boolean | number; valueType: 'str' | 'bool' | 'int' | 'flt' | 'clr' } | null {
+export function decodeKeyframeValue(valNode: XmlObject): {
+	value: string | boolean | number;
+	valueType: 'str' | 'bool' | 'int' | 'flt' | 'clr';
+	colorRef?: PptxThemeColorRef;
+} | null {
 	const strVal = valNode['p:strVal'] as XmlObject | undefined;
 	if (strVal && strVal['@_val'] !== undefined) {
 		return { value: String(strVal['@_val']), valueType: 'str' };
@@ -349,7 +356,10 @@ export function decodeKeyframeValue(
 		}
 		const scheme = clrVal['a:schemeClr'] as XmlObject | undefined;
 		if (scheme?.['@_val'] !== undefined) {
-			return { value: String(scheme['@_val']), valueType: 'clr' };
+			const colorRef = themeColorRefFromSchemeClr(scheme);
+			return colorRef
+				? { value: String(scheme['@_val']), valueType: 'clr', colorRef }
+				: { value: String(scheme['@_val']), valueType: 'clr' };
 		}
 	}
 

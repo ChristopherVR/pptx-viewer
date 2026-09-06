@@ -693,6 +693,53 @@ describe('buildGroupTransformXml', () => {
 		expect(xfrm['a:chOff']).toStrictEqual({ '@_x': '0', '@_y': '0' });
 		expect(xfrm['a:chExt']).toStrictEqual(xfrm['a:ext']);
 	});
+
+	it('re-emits the exact source EMU (via resolveXfrmEmu) for an unmoved/unresized group', () => {
+		// 1524123 EMU is sub-pixel (not a multiple of 9525) but rounds to the
+		// same 160px the group currently reports.
+		const xfrm = buildGroupTransformXml(
+			{ x: 160, y: 20, width: 100, height: 50, xEmu: 1524123, yEmu: 190500 },
+			EMU_PER_PX,
+		);
+		expect((xfrm['a:off'] as XmlObject)['@_x']).toBe('1524123');
+		expect((xfrm['a:ext'] as XmlObject)['@_cx']).toBe(String(100 * EMU_PER_PX));
+	});
+
+	it('re-quantizes from pixels once the group has moved (stale EMU is never written)', () => {
+		const xfrm = buildGroupTransformXml(
+			{ x: 200, y: 20, width: 100, height: 50, xEmu: 1524123 },
+			EMU_PER_PX,
+		);
+		expect((xfrm['a:off'] as XmlObject)['@_x']).toBe(String(200 * EMU_PER_PX));
+	});
+
+	// A directly-resized ROTATED group with no child touched: COM ground
+	// truth (a 90-degree group, `Shape.Width *= 1.5` via PowerPoint COM,
+	// unzipped and read back) shows `a:off` MOVES to compensate, keeping the
+	// left edge visually fixed on screen once rotated. See
+	// `rotated-resize-anchor.ts` for the full derivation and the 25/180/-40
+	// degree cases; this pins the group-transform-xml wiring specifically.
+	it('matches COM ground truth: a 90-degree group resized via Width keeps the left edge on screen', () => {
+		const xfrm = buildGroupTransformXml(
+			{
+				x: 400, // unchanged from xEmu (3810000 / 9525 = 400): the resize never touched x
+				y: 133, // unchanged from yEmu (1270000 / 9525 rounds to 133)
+				width: 500, // new width (4762500 / 9525 = 500 exactly)
+				height: 80, // unchanged (762000 / 9525 = 80 exactly)
+				rotation: 90,
+				xEmu: 3810000,
+				yEmu: 1270000,
+				widthEmu: 3175000,
+				heightEmu: 762000,
+			},
+			EMU_PER_PX,
+		);
+		expect(xfrm['@_rot']).toBe(String(90 * 60000));
+		expect((xfrm['a:ext'] as XmlObject)['@_cx']).toBe('4762500');
+		expect((xfrm['a:ext'] as XmlObject)['@_cy']).toBe('762000');
+		expect((xfrm['a:off'] as XmlObject)['@_x']).toBe('3016250');
+		expect((xfrm['a:off'] as XmlObject)['@_y']).toBe('2063750');
+	});
 });
 
 describe('applyGroupChildTransform', () => {
@@ -710,6 +757,26 @@ describe('applyGroupChildTransform', () => {
 		applyGroupChildTransform(xml, { x: 1, y: 1, width: 2, height: 2 }, EMU_PER_PX);
 		const xfrm = (xml['p:grpSpPr'] as XmlObject)['a:xfrm'] as XmlObject;
 		expect((xfrm['a:ext'] as XmlObject)['@_cx']).toBe(String(2 * EMU_PER_PX));
+	});
+
+	it('re-emits the child exact source EMU (via resolveXfrmEmu) when unmoved', () => {
+		const xml: XmlObject = { 'p:nvGraphicFramePr': {}, 'p:xfrm': {}, 'a:graphic': {} };
+		applyGroupChildTransform(
+			xml,
+			{ x: 4, y: 4, width: 5, height: 6, xEmu: 38100, yEmu: 38111 },
+			EMU_PER_PX,
+		);
+		const off = (xml['p:xfrm'] as XmlObject)['a:off'] as XmlObject;
+		// 38100 / 9525 = 4 exactly; 38111 is sub-pixel but also rounds to 4.
+		expect(off['@_x']).toBe('38100');
+		expect(off['@_y']).toBe('38111');
+	});
+
+	it('re-quantizes the child from pixels once it has moved within the group', () => {
+		const xml: XmlObject = { 'p:nvGraphicFramePr': {}, 'p:xfrm': {}, 'a:graphic': {} };
+		applyGroupChildTransform(xml, { x: 10, y: 4, width: 5, height: 6, xEmu: 38111 }, EMU_PER_PX);
+		const off = (xml['p:xfrm'] as XmlObject)['a:off'] as XmlObject;
+		expect(off['@_x']).toBe(String(10 * EMU_PER_PX));
 	});
 });
 
@@ -1057,7 +1124,11 @@ describe.runIf(existsSync(fixturePath(LINKED_TEXTBOX)))(
 
 			expect(grpSp).toContain(EDITED);
 			expect(grpSp).toContain('FF00FF');
-			expect(grpSp).toContain(`x="${Math.round(123 * EMU_PER_PX)}"`);
+			// The enclosing group ("GroupB") keeps its original (identity, scale
+			// 1) `a:chOff` of 400000 EMU, so the moved child's `a:off/@x` is that
+			// chOff PLUS its new relative position in EMU, not a bare
+			// `123 * EMU_PER_PX` re-based from a reset `chOff 0,0` space.
+			expect(grpSp).toContain(`x="${400000 + Math.round(123 * EMU_PER_PX)}"`);
 
 			const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
 			const rGroup = reloaded.slides
@@ -1065,7 +1136,15 @@ describe.runIf(existsSync(fixturePath(LINKED_TEXTBOX)))(
 				.elements.find((el) => el.type === 'group') as GroupPptxElement;
 			const rChild = rGroup.children[0];
 			expect(rChild.text).toBe(EDITED);
-			expect(rChild.x).toBeCloseTo(123, 0);
+			// The moved child (ChainB-head) is now the LEFTMOST child, so
+			// PowerPoint's own bounding-box auto-fit (`group-tight-rewrap.ts`)
+			// makes the group's re-wrapped `a:chOff/@x` equal to this child's own
+			// `a:off/@x` exactly - its relative-to-group x therefore reads back
+			// as 0, not 123, once the new chOff becomes the reload's origin. Y
+			// is untouched by the rewrap (ChainB-tail still defines the y
+			// extent), so it round-trips to the original 45 unaffected.
+			expect(rChild.x).toBeCloseTo(0, 0);
+			expect(rChild.y).toBeCloseTo(45, 0);
 			expect(rChild.shapeStyle?.fillColor?.toUpperCase()).toContain('FF00FF');
 		});
 

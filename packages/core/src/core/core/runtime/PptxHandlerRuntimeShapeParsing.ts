@@ -54,12 +54,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
-			const x = Math.round(parseInt(xmlAttr(off, 'x') || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const y = Math.round(parseInt(xmlAttr(off, 'y') || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const width = Math.round(parseInt(xmlAttr(ext, 'cx') || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const height = Math.round(
-				parseInt(xmlAttr(ext, 'cy') || '0') / PptxHandlerRuntime.EMU_PER_PX,
-			);
+			// Exact EMU alongside the rounded pixel value, for `resolveXfrmEmu`
+			// (xfrm-emu-resolution.ts) to re-emit byte-identical `a:off`/`a:ext`
+			// on save when this shape has not moved/resized. `off`/`ext` here
+			// are the EFFECTIVE (placeholder-merged) transform, but the save
+			// writer only ever patches THIS shape's own `a:xfrm` (a no-op when
+			// it has none), so a value inherited from a layout/master is
+			// harmless to record: it is never written unless the slide shape
+			// already carries its own `a:xfrm` to patch.
+			const xEmu = parseInt(xmlAttr(off, 'x') || '0');
+			const yEmu = parseInt(xmlAttr(off, 'y') || '0');
+			const widthEmu = parseInt(xmlAttr(ext, 'cx') || '0');
+			const heightEmu = parseInt(xmlAttr(ext, 'cy') || '0');
+			const x = Math.round(xEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const y = Math.round(yEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const width = Math.round(widthEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const height = Math.round(heightEmu / PptxHandlerRuntime.EMU_PER_PX);
 
 			const rotation = xfrm?.['@_rot'] ? parseInt(String(xfrm['@_rot']), 10) / 60000 : undefined;
 			const skewX = xfrm?.['@_skewX'] ? parseInt(String(xfrm['@_skewX']), 10) / 60000 : undefined;
@@ -367,6 +377,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				y,
 				width,
 				height,
+				xEmu,
+				yEmu,
+				widthEmu,
+				heightEmu,
 				text,
 				textStyle: hasText || promptText ? textStyle : undefined,
 				// A body whose only paragraph is EMPTY still produces a segment:

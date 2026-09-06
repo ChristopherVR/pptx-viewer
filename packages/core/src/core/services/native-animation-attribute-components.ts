@@ -23,7 +23,19 @@ export function extractAttributeAnimations(
 	for (const node of ensureArray(childTnList['p:anim'])) {
 		const attrName = extractAttrNameFromCBhvr(node['p:cBhvr'] as XmlObject | undefined);
 		const keyframes = extractKeyframes(node);
-		if (!attrName || !keyframes || keyframes.length === 0) {
+		// PowerPoint writes some built-in presets ("Grow And Turn"'s `ppt_x`
+		// fly-in) as a bare `p:anim from="..." to="..."` / `p:anim by="..."`
+		// with NO `p:tavLst` child at all (ECMA-376 S19.5.4). Without this
+		// fallback those behaviours had no keyframes to extract and were
+		// silently dropped, not merely left unhandled downstream.
+		const from = node['@_from'] !== undefined ? String(node['@_from']) : undefined;
+		const to = node['@_to'] !== undefined ? String(node['@_to']) : undefined;
+		const by = node['@_by'] !== undefined ? String(node['@_by']) : undefined;
+		const hasKeyframes = Boolean(keyframes && keyframes.length > 0);
+		if (
+			!attrName ||
+			(!hasKeyframes && from === undefined && to === undefined && by === undefined)
+		) {
 			continue;
 		}
 
@@ -32,10 +44,13 @@ export function extractAttributeAnimations(
 		const calcMode = normalizeCalcMode(node['@_calcmode']);
 		components.push({
 			attrName,
-			keyframes,
+			keyframes: keyframes ?? [],
 			durationMs: readTimingAttr(cTn?.['@_dur']),
 			delayMs: cTn ? extractStartConditionDelayMs(cTn) : undefined,
 			...(calcMode ? { calcMode } : {}),
+			...(from !== undefined ? { from } : {}),
+			...(to !== undefined ? { to } : {}),
+			...(by !== undefined ? { by } : {}),
 		});
 	}
 

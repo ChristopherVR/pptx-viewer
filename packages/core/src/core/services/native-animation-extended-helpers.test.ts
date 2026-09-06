@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import {
+	extractColorAnimation,
 	extractOleChartBuilds,
 	extractSmartArtBuilds,
 	extractGraphicBuilds,
@@ -10,6 +11,53 @@ import {
 	extractChildBehaviourDurationMs,
 } from './native-animation-extended-helpers';
 import { ensureArray } from './native-animation-helpers';
+
+describe('extractColorAnimation scheme-colour refs', () => {
+	it('captures a typed theme ref (with lumMod) alongside the bare scheme name', () => {
+		const result = extractColorAnimation({
+			'p:animClr': {
+				'p:cBhvr': { 'p:attrNameLst': { 'p:attrName': 'fillcolor' } },
+				'p:to': { 'a:schemeClr': { '@_val': 'accent1', 'a:lumMod': { '@_val': '50000' } } },
+			},
+		});
+		expect(result?.toColor).toBe('accent1');
+		expect(result?.toColorRef).toStrictEqual({ lumMod: 0.5, scheme: 'accent1' });
+		expect(result?.fromColorRef).toBeUndefined();
+	});
+
+	it('leaves the ref undefined for an already-resolved srgbClr stop', () => {
+		const result = extractColorAnimation({
+			'p:animClr': {
+				'p:cBhvr': { 'p:attrNameLst': { 'p:attrName': 'fillcolor' } },
+				'p:to': { 'a:srgbClr': { '@_val': 'FF0000' } },
+			},
+		});
+		expect(result?.toColor).toBe('#FF0000');
+		expect(result?.toColorRef).toBeUndefined();
+	});
+
+	it('does not capture a byColorRef for an HSL colour-space by (a signed delta, never a theme colour)', () => {
+		const result = extractColorAnimation({
+			'p:animClr': {
+				'@_clrSpc': 'hsl',
+				'p:by': { 'a:schemeClr': { '@_val': 'accent2' } },
+				'p:cBhvr': { 'p:attrNameLst': { 'p:attrName': 'fillcolor' } },
+			},
+		});
+		expect(result?.byColorRef).toBeUndefined();
+	});
+
+	it('captures a byColorRef for an RGB colour-space by', () => {
+		const result = extractColorAnimation({
+			'p:animClr': {
+				'p:by': { 'a:schemeClr': { '@_val': 'accent2' } },
+				'p:cBhvr': { 'p:attrNameLst': { 'p:attrName': 'fillcolor' } },
+			},
+		});
+		expect(result?.byColor).toBe('accent2');
+		expect(result?.byColorRef).toStrictEqual({ scheme: 'accent2' });
+	});
+});
 
 describe('extractOleChartBuilds', () => {
 	it('returns empty array when bldLst is undefined', () => {

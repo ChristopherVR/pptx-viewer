@@ -91,6 +91,11 @@ saveCtx.upsertValChild = (
 		...args: unknown[]
 	) => unknown
 ).bind(saveCtx);
+saveCtx.applyChartDispNaAsBlank = (
+	(SaveDataRuntime.prototype as Record<string, unknown>).applyChartDispNaAsBlank as (
+		...args: unknown[]
+	) => unknown
+).bind(saveCtx);
 const applyOfPieOptions = bind<(c: XmlObject, o: PptxChartOfPieOptions) => void>(
 	SaveDataRuntime.prototype,
 	saveCtx,
@@ -326,6 +331,56 @@ describe('parseChartChrome', () => {
 			showDLblsOverMax: true,
 		});
 	});
+
+	// c16r3:dataDisplayOptions16/dispNaAsBlank ("Show #N/A as an empty cell"),
+	// confirmed against real corpus markup
+	// (e2e/fixtures/chart-data-fidelity.pptx, packages/core/src/__tests__/
+	// fixtures/corpus/smartart-chart-table-mix.pptx): c:chart's trailing
+	// c:extLst carries a c:ext uri="{56B9EC1D-385E-4148-901F-78D8002777C0}"
+	// wrapping c16r3:dataDisplayOptions16.
+	it('parses dispNaAsBlank from the c16r3 chart extension', () => {
+		const chartRoot: XmlObject = {
+			'c:plotVisOnly': { '@_val': '1' },
+			'c:dispBlanksAs': { '@_val': 'gap' },
+			'c:extLst': {
+				'c:ext': {
+					'@_uri': '{56B9EC1D-385E-4148-901F-78D8002777C0}',
+					'@_xmlns:c16r3': 'http://schemas.microsoft.com/office/drawing/2017/03/chart',
+					'c16r3:dataDisplayOptions16': {
+						'c16r3:dispNaAsBlank': { '@_val': '1' },
+					},
+				},
+			},
+		};
+		expect(parseChartChrome(chartRoot)).toStrictEqual({
+			dispBlanksAs: 'gap',
+			dispNaAsBlank: true,
+		});
+	});
+
+	it('parses dispNaAsBlank="0" as false', () => {
+		const chartRoot: XmlObject = {
+			'c:extLst': {
+				'c:ext': {
+					'@_uri': '{56B9EC1D-385E-4148-901F-78D8002777C0}',
+					'c16r3:dataDisplayOptions16': { 'c16r3:dispNaAsBlank': { '@_val': '0' } },
+				},
+			},
+		};
+		expect(parseChartChrome(chartRoot)).toStrictEqual({ dispNaAsBlank: false });
+	});
+
+	it('ignores an extLst whose c:ext uri does not match the data-display-options extension', () => {
+		const chartRoot: XmlObject = {
+			'c:extLst': {
+				'c:ext': {
+					'@_uri': '{SOME-OTHER-EXTENSION}',
+					'c16r3:dataDisplayOptions16': { 'c16r3:dispNaAsBlank': { '@_val': '1' } },
+				},
+			},
+		};
+		expect(parseChartChrome(chartRoot)).toBeUndefined();
+	});
 });
 
 describe('applyChartChrome', () => {
@@ -353,6 +408,47 @@ describe('applyChartChrome', () => {
 		};
 		applyChartChrome(chartRoot, original);
 		expect(parseChartChrome(chartRoot)).toStrictEqual(original);
+	});
+
+	it('creates the c16r3:dataDisplayOptions16 extension when none exists', () => {
+		const chartRoot: XmlObject = {};
+		applyChartChrome(chartRoot, { dispNaAsBlank: true });
+		expect(parseChartChrome(chartRoot)).toStrictEqual({ dispNaAsBlank: true });
+		const extLst = chartRoot['c:extLst'] as XmlObject;
+		const ext = extLst['c:ext'] as XmlObject;
+		expect(ext['@_uri']).toBe('{56B9EC1D-385E-4148-901F-78D8002777C0}');
+	});
+
+	it('updates an existing dispNaAsBlank extension in place, preserving siblings', () => {
+		const chartRoot: XmlObject = {
+			'c:extLst': {
+				'c:ext': {
+					'@_uri': '{56B9EC1D-385E-4148-901F-78D8002777C0}',
+					'@_xmlns:c16r3': 'http://schemas.microsoft.com/office/drawing/2017/03/chart',
+					'c16r3:dataDisplayOptions16': { 'c16r3:dispNaAsBlank': { '@_val': '1' } },
+				},
+			},
+		};
+		applyChartChrome(chartRoot, { dispNaAsBlank: false });
+		expect(parseChartChrome(chartRoot)).toStrictEqual({ dispNaAsBlank: false });
+		// The uri and xmlns declaration on the existing c:ext survive untouched.
+		const ext = (chartRoot['c:extLst'] as XmlObject)['c:ext'] as XmlObject;
+		expect(ext['@_uri']).toBe('{56B9EC1D-385E-4148-901F-78D8002777C0}');
+		expect(ext['@_xmlns:c16r3']).toBe('http://schemas.microsoft.com/office/drawing/2017/03/chart');
+	});
+
+	it('preserves an unrelated existing c:ext when adding the data-display-options extension', () => {
+		const chartRoot: XmlObject = {
+			'c:extLst': {
+				'c:ext': { '@_uri': '{SOME-OTHER-EXTENSION}', 'x:whatever': {} },
+			},
+		};
+		applyChartChrome(chartRoot, { dispNaAsBlank: true });
+		const exts = (chartRoot['c:extLst'] as XmlObject)['c:ext'] as XmlObject[];
+		expect(Array.isArray(exts)).toBeTruthy();
+		expect(exts).toHaveLength(2);
+		expect(exts[0]['@_uri']).toBe('{SOME-OTHER-EXTENSION}');
+		expect(exts[1]['@_uri']).toBe('{56B9EC1D-385E-4148-901F-78D8002777C0}');
 	});
 });
 

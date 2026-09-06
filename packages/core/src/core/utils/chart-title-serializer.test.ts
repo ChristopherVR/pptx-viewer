@@ -313,7 +313,7 @@ describe('applyChartTitleToXml', () => {
 				]);
 			});
 
-			it("falls back to patching only the first run for an unrelated rewrite (today's collapse, unchanged)", () => {
+			it("collapses to a single run carrying the first run's formatting and the whole new text for an unrelated rewrite", () => {
 				const chart = twoRunTitle();
 				applyChartTitleToXml(
 					chart,
@@ -326,13 +326,55 @@ describe('applyChartTitleToXml', () => {
 				const rich = (
 					((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject
 				)['a:p'] as XmlObject;
-				// No alignment survives: the pre-existing single-run patch fallback
-				// wins, exactly as it did before this fix. The second run's text is
-				// now stale (matches pre-fix behaviour byte-for-byte).
-				expect(rich['a:r']).toStrictEqual([
-					{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Completely Different Title' },
-					{ 'a:t': ' Growth' },
-				]);
+				// No alignment survives (the new text does not contain the second
+				// run's old text anywhere): PowerPoint's own behaviour when you
+				// retype a title is to collapse to ONE run, so the second run is
+				// dropped rather than left trailing with its now-stale text. The
+				// surviving run keeps the FIRST run's formatting (bold).
+				expect(rich['a:r']).toStrictEqual({
+					'a:rPr': { '@_b': '1' },
+					'a:t': 'Completely Different Title',
+				});
+			});
+
+			it('drops formatting-only differences too: three stale runs collapse to one on an unrelated rewrite', () => {
+				const chart: XmlObject = {
+					'c:title': {
+						'c:tx': {
+							'c:rich': {
+								'a:p': {
+									'a:r': [
+										{ 'a:rPr': { '@_i': '1' }, 'a:t': 'Q1 ' },
+										{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Revenue' },
+										{ 'a:t': ' Report' },
+									],
+								},
+							},
+						},
+						'c:overlay': { '@_val': '0' },
+					},
+					'c:autoTitleDeleted': { '@_val': '0' },
+					'c:plotArea': {},
+				};
+				applyChartTitleToXml(
+					chart,
+					{
+						title: 'Annual Summary',
+						titleRuns: [
+							{ text: 'Q1 ', italic: true },
+							{ text: 'Revenue', bold: true },
+							{ text: ' Report' },
+						],
+					},
+					local,
+				);
+				const rich = (
+					((chart['c:title'] as XmlObject)['c:tx'] as XmlObject)['c:rich'] as XmlObject
+				)['a:p'] as XmlObject;
+				expect(rich['a:r']).toStrictEqual({
+					'a:rPr': { '@_i': '1' },
+					'a:t': 'Annual Summary',
+				});
 			});
 		});
 	});

@@ -11,10 +11,16 @@
  */
 
 import type { PptxChartTitleRun, XmlObject } from '../types';
-import { distributeTitleRunsText } from './chart-title-run-alignment';
-
-type GetLocalName = (key: string) => string;
-type XmlValue = XmlObject[string];
+import { buildTitleNode, buildTitleText, buildTitleTextFromRuns } from './chart-title-node-builder';
+import { realignOrCollapseTitleRuns } from './chart-title-run-alignment';
+import type { GetLocalName } from './chart-title-xml-ops';
+import {
+	collectAllText,
+	findKey,
+	insertAt,
+	replaceFirstText,
+	setAutoTitleDeleted,
+} from './chart-title-xml-ops';
 
 /** The title-relevant subset of `PptxChartData` / `PptxChartStyle`. */
 export interface ChartTitleModel {
@@ -39,9 +45,10 @@ export interface ChartTitleModel {
 	 * (`distributeTitleRunsText`) rather than discarded: an appended suffix
 	 * lands on the last run, an edit confined to one run only changes that
 	 * run, and every other run's text and style survive untouched. Only when
-	 * no such alignment exists (an unrelated rewrite) does it fall back to
-	 * patching just the first run in place, leaving the rest of this stale
-	 * array's text as authored.
+	 * no such alignment exists (an unrelated rewrite) does it collapse to a
+	 * SINGLE run carrying the first run's formatting and the whole new text,
+	 * dropping every other run, matching what PowerPoint itself does when you
+	 * retype a chart title.
 	 */
 	titleRuns?: PptxChartTitleRun[];
 }
@@ -53,157 +60,6 @@ export interface ChartTitleOptions {
 	 * (`cx:title`, which has no auto-title flag).
 	 */
 	prefix: 'c' | 'cx';
-}
-
-function findKey(node: XmlObject, localName: string, getLocalName: GetLocalName) {
-	return Object.keys(node).find((key) => getLocalName(key) === localName);
-}
-
-/** Rewrite `parent` with `entries` as its ordered children (keeps key order). */
-function replaceEntries(parent: XmlObject, entries: Array<readonly [string, XmlValue]>): void {
-	for (const key of Object.keys(parent)) {
-		delete parent[key];
-	}
-	for (const [key, value] of entries) {
-		parent[key] = value;
-	}
-}
-
-/** Insert `key: value` at `index` in `parent`'s child order. */
-function insertAt(parent: XmlObject, index: number, key: string, value: XmlValue): void {
-	const entries = Object.keys(parent).map((k) => [k, parent[k]] as const);
-	entries.splice(Math.max(0, Math.min(index, entries.length)), 0, [key, value] as const);
-	replaceEntries(parent, entries);
-}
-
-/** Set (or insert, right after the title) the `c:autoTitleDeleted` flag. */
-function setAutoTitleDeleted(chartRoot: XmlObject, deleted: boolean, getLocalName: GetLocalName) {
-	const value = { '@_val': deleted ? '1' : '0' };
-	const existingKey = findKey(chartRoot, 'autoTitleDeleted', getLocalName);
-	if (existingKey) {
-		chartRoot[existingKey] = value;
-		return;
-	}
-	const keys = Object.keys(chartRoot);
-	const titleIndex = keys.findIndex((key) => getLocalName(key) === 'title');
-	insertAt(chartRoot, titleIndex === -1 ? 0 : titleIndex + 1, 'c:autoTitleDeleted', value);
-}
-
-/** Collect every `a:t` text value under `node`, walking depth-first, in document order. */
-function collectAllText(node: XmlObject, getLocalName: GetLocalName, out: string[]): void {
-	for (const key of Object.keys(node)) {
-		if (key.startsWith('@_')) {
-			continue;
-		}
-		const value = node[key];
-		const children = Array.isArray(value) ? value : [value];
-		if (getLocalName(key) === 't') {
-			for (const child of children) {
-				if (child === undefined || child === null) {
-					continue;
-				}
-				out.push(
-					typeof child === 'object' ? String((child as XmlObject)['#text'] ?? '') : String(child),
-				);
-			}
-			continue;
-		}
-		for (const child of children) {
-			if (child && typeof child === 'object') {
-				collectAllText(child as XmlObject, getLocalName, out);
-			}
-		}
-	}
-}
-
-/** Replace the first `a:t` text under `node`, walking depth-first. */
-function replaceFirstText(node: XmlObject, text: string, getLocalName: GetLocalName): boolean {
-	for (const key of Object.keys(node)) {
-		if (key.startsWith('@_')) {
-			continue;
-		}
-		if (getLocalName(key) === 't') {
-			const current = node[key];
-			node[key] =
-				current && typeof current === 'object' && !Array.isArray(current)
-					? { ...(current as XmlObject), '#text': text }
-					: text;
-			return true;
-		}
-		const value = node[key];
-		const children = Array.isArray(value) ? value : [value];
-		for (const child of children) {
-			if (
-				child &&
-				typeof child === 'object' &&
-				replaceFirstText(child as XmlObject, text, getLocalName)
-			) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-/** A fresh rich-text `tx` block carrying a single run. */
-function buildTitleText(prefix: 'c' | 'cx', text: string): XmlObject {
-	const rich: XmlObject =
-		prefix === 'c'
-			? { 'a:bodyPr': {}, 'a:lstStyle': {}, 'a:p': { 'a:r': { 'a:t': text } } }
-			: { 'a:p': { 'a:r': { 'a:t': text } } };
-	const tx: XmlObject = {};
-	tx[`${prefix}:rich`] = rich;
-	return tx;
-}
-
-/** Build one run's `a:rPr` from its typed bold/italic/size/color, or `undefined` when none is set. */
-function buildRunProperties(run: PptxChartTitleRun): XmlObject | undefined {
-	const rPr: XmlObject = {};
-	if (run.bold !== undefined) {
-		rPr['@_b'] = run.bold ? '1' : '0';
-	}
-	if (run.italic !== undefined) {
-		rPr['@_i'] = run.italic ? '1' : '0';
-	}
-	if (run.fontSize !== undefined) {
-		rPr['@_sz'] = String(Math.round(run.fontSize * 100));
-	}
-	if (run.color) {
-		rPr['a:solidFill'] = { 'a:srgbClr': { '@_val': run.color.replace(/^#/u, '').toUpperCase() } };
-	}
-	return Object.keys(rPr).length > 0 ? rPr : undefined;
-}
-
-/** A fresh rich-text `tx` block carrying one run per `PptxChartTitleRun`. */
-function buildTitleTextFromRuns(prefix: 'c' | 'cx', runs: PptxChartTitleRun[]): XmlObject {
-	const runNodes = runs.map((run): XmlObject => {
-		const rPr = buildRunProperties(run);
-		return { ...(rPr ? { 'a:rPr': rPr } : {}), 'a:t': run.text };
-	});
-	const paragraph: XmlObject = { 'a:r': runNodes.length === 1 ? runNodes[0] : runNodes };
-	const rich: XmlObject =
-		prefix === 'c' ? { 'a:bodyPr': {}, 'a:lstStyle': {}, 'a:p': paragraph } : { 'a:p': paragraph };
-	const tx: XmlObject = {};
-	tx[`${prefix}:rich`] = rich;
-	return tx;
-}
-
-/** A fresh title node (schema order: tx, then overlay for the 2006 model). */
-function buildTitleNode(
-	prefix: 'c' | 'cx',
-	text: string | undefined,
-	runs: PptxChartTitleRun[] | undefined,
-): XmlObject {
-	const node: XmlObject = {};
-	if (runs && runs.length > 0) {
-		node[`${prefix}:tx`] = buildTitleTextFromRuns(prefix, runs);
-	} else if (text !== undefined) {
-		node[`${prefix}:tx`] = buildTitleText(prefix, text);
-	}
-	if (prefix === 'c') {
-		node['c:overlay'] = { '@_val': '0' };
-	}
-	return node;
 }
 
 /**
@@ -269,11 +125,12 @@ export function applyChartTitleToXml(
 	// A stale MULTI-run title (more than one differently-styled run) is not
 	// necessarily an unrelated rewrite: when the edited `title` still contains
 	// every other run's text in order (an append, an insertion, or a rewrite
-	// confined to one run), realign the runs onto it instead of falling
-	// through to the single-run patch below, which would otherwise leave
-	// every run after the first with its now-orphaned stale text (see
-	// `distributeTitleRunsText`'s doc). A single-run title keeps the existing
-	// single-run in-place patch unchanged.
+	// confined to one run), `realignOrCollapseTitleRuns` realigns the runs onto
+	// it instead of falling through to the single-run patch below, which would
+	// otherwise leave every run after the first with its now-orphaned stale
+	// text. Only when no such alignment survives (an unrelated full rewrite)
+	// does it collapse to a single run instead (see its own doc). A
+	// single-run title keeps the existing single-run in-place patch unchanged.
 	const staleRuns = model.titleRuns;
 	if (
 		prefix === 'c' &&
@@ -282,14 +139,7 @@ export function applyChartTitleToXml(
 		staleRuns &&
 		staleRuns.length > 1
 	) {
-		const newTitle = model.title;
-		const distributed = distributeTitleRunsText(
-			staleRuns.map((run) => run.text),
-			newTitle,
-		);
-		if (distributed) {
-			runs = staleRuns.map((run, index) => ({ ...run, text: distributed[index] ?? '' }));
-		}
+		runs = realignOrCollapseTitleRuns(staleRuns, model.title);
 	}
 
 	let titleNode = existingKey ? (chartRoot[existingKey] as XmlObject | undefined) : undefined;

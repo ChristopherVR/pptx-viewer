@@ -214,3 +214,24 @@ describe('preset text rect: wave 2 ECMA-transcribed presets, COM-verified', () =
 		expectRect('nonIsoscelesTrapezoid', { l: 16.67, t: 8.33, r: 183.29, b: 100 });
 	});
 });
+
+/**
+ * `sun` was the ONE preset the wave-2 COM pass could not match (the disc's
+ * own `discL`/`discT`/`discR`/`discB` bounds were 7.3% off), so it was kept
+ * off `VERIFIED_TEXT_RECT_PRESETS` with the measured ground truth recorded
+ * for later. `preset-shape-definitions-misc.ts` (commit `1da163776`)
+ * replaced the rect with the disc's own inscribed axis-aligned rectangle
+ * (`trl`/`trt`/`trr`/`trb`, the same 45deg-touching construction `ellipse`
+ * uses); this guards that formula against the original COM measurement at
+ * both aspect ratios it was confirmed on, and closes the allowlist gap (see
+ * `verified-text-rect-presets.ts`).
+ */
+describe('preset text rect: sun (re-derived disc-inscribed rect, COM-verified)', () => {
+	it('matches PowerPoint at 200x100pt, default adj', () => {
+		expectRect('sun', { l: 64.65, t: 32.32, r: 135.27, b: 67.68 });
+	});
+
+	it('matches PowerPoint at a second aspect ratio, 160x120pt', () => {
+		expectRect('sun', { l: 51.72, t: 38.79, r: 108.22, b: 81.21 }, 160, 120);
+	});
+});

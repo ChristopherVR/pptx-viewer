@@ -260,7 +260,11 @@ export {
 	type Ole2DirectoryEntry,
 } from './ole2-parser';
 
-export { verifyModifyPassword, createModifyVerifier } from './modify-verifier';
+export {
+	verifyModifyPassword,
+	createModifyVerifier,
+	resolveModifyVerifierAlgorithmName,
+} from './modify-verifier';
 
 export {
 	detectDigitalSignatures,
@@ -348,6 +352,7 @@ export { parseChartAxes, parseChart3DSurfaces } from './chart-axis-parser';
 export { parseCxChartSeries } from './chart-cx-parser';
 
 export { flattenChartUserShapes } from './chart-user-shapes-parser';
+export type { ChartUserShapesChartBox } from './chart-user-shapes-parser';
 
 export { parseEmbeddedXlsx } from './chart-xlsx-parser';
 
@@ -359,6 +364,9 @@ export {
 	chartDataAddCategory,
 	chartDataRemoveCategory,
 } from './chart-data-utils';
+
+export { isParetoChartData, resolveDisplayedChartTypeName } from './chart-pareto-detect';
+export type { ParetoDetectableChartData } from './chart-pareto-detect';
 
 export {
 	parseSlideDrawingGuides,

@@ -146,6 +146,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				y,
 				width,
 				height,
+				// Exact EMU alongside the rounded/defaulted pixel value; see
+				// `xfrm-emu-resolution.ts`. Only recorded when the raw attribute
+				// parsed to a finite/positive value, mirroring the guards `width`/
+				// `height` above already apply before falling back to the 120x80
+				// default (a defaulted axis has no exact EMU source to re-emit).
+				...(Number.isFinite(rawX) ? { xEmu: rawX } : {}),
+				...(Number.isFinite(rawY) ? { yEmu: rawY } : {}),
+				...(Number.isFinite(rawCx) && rawCx > 0 ? { widthEmu: rawCx } : {}),
+				...(Number.isFinite(rawCy) && rawCy > 0 ? { heightEmu: rawCy } : {}),
 				shapeId,
 				name,
 				inkStrokes: inkStrokes.length > 0 ? inkStrokes : undefined,
@@ -260,6 +269,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				y,
 				width,
 				height,
+				// Exact EMU alongside the rounded/defaulted pixel value; see the
+				// matching comment on the `contentPart` parser above and
+				// `xfrm-emu-resolution.ts`.
+				...(Number.isFinite(rawX) ? { xEmu: rawX } : {}),
+				...(Number.isFinite(rawY) ? { yEmu: rawY } : {}),
+				...(Number.isFinite(rawCx) && rawCx > 0 ? { widthEmu: rawCx } : {}),
+				...(Number.isFinite(rawCy) && rawCy > 0 ? { heightEmu: rawCy } : {}),
 				rotation,
 				skewX,
 				skewY,

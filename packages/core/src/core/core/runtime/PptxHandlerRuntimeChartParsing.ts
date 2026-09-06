@@ -35,7 +35,9 @@ import {
 	parseSeriesDataLabels,
 } from '../../utils/chart-data-label-parser';
 import { parseDataTable } from '../../utils/chart-data-table-parser';
+import { parseChartDataPointPicture } from '../../utils/chart-datapoint-picture';
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
+import { parseFilteredSeries } from '../../utils/chart-filtered-series';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { parseChartPrintSettings } from '../../utils/chart-print-settings';
@@ -46,6 +48,7 @@ import {
 	parseSeriesExplosion,
 	parseMarker,
 } from '../../utils/chart-series-detail-parser';
+import { parseChartUniqueId } from '../../utils/chart-series-identity';
 import { parseChartSpaceFlags } from '../../utils/chart-space-flags';
 import { parseBar3DShapeVal, parseRadarStyleVal } from '../../utils/chart-subtype-values';
 import { parseChartTitleRuns } from '../../utils/chart-title-runs-parser';
@@ -159,7 +162,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const seriesContainer = plotArea[seriesContainerKey] as XmlObject | undefined;
 
-			const { categories, categoryLevels, series } = this.parseAllChartContainers(
+			const { categories, categoryLevels, series, filteredSeries } = this.parseAllChartContainers(
 				plotArea,
 				chartContainerKeys,
 				chartType,
@@ -347,10 +350,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 
-			// Resolve any c:dPt/c:pictureOptions picture fill to an actual image URL
-			// (C2-G9 render half). Cheap early-exit: only re-walks the raw c:dPt
-			// nodes when at least one data point actually carries picture flags.
-			if (finalSeries.some((s) => s.dataPoints?.some((dp) => dp.picture))) {
+			// Resolve any c:dPt/c:ser c:pictureOptions picture fill to an actual
+			// image URL (C2-G9 render half). Cheap early-exit: only re-walks the
+			// raw nodes when at least one series or data point actually carries
+			// picture flags.
+			if (finalSeries.some((s) => s.picture || s.dataPoints?.some((dp) => dp.picture))) {
 				await resolveDataPointPictureImages(
 					this.xmlLookupService,
 					this.readChartRels.bind(this),
@@ -414,6 +418,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(categoryLevels ? { categoryLevels } : {}),
 				...(dateCategories ? { dateCategories } : {}),
 				series: finalSeries,
+				...(filteredSeries ? { filteredSeries } : {}),
 				title: titleText,
 				...(titleRuns ? { titleRuns } : {}),
 				style: chartStyle,
@@ -498,15 +503,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		containerKeys: string[],
 		chartLevelType: PptxChartType,
 		axes: PptxChartData['axes'],
-	): { categories: string[]; categoryLevels?: string[][]; series: PptxChartData['series'] } {
+	): {
+		categories: string[];
+		categoryLevels?: string[][];
+		series: PptxChartData['series'];
+		filteredSeries?: PptxChartData['filteredSeries'];
+	} {
 		const isCombo = chartLevelType === 'combo';
 		let categories: string[] = [];
 		let categoryLevels: string[][] | undefined;
 		const series: PptxChartData['series'] = [];
+		let filteredSeries: PptxChartData['filteredSeries'];
 
 		for (const containerKey of containerKeys) {
 			const container = plotArea[containerKey] as XmlObject | undefined;
 			const seriesList = this.xmlLookupService.getChildrenArrayByLocalName(container, 'ser');
+			const containerFilteredSeries = parseFilteredSeries(container, this.xmlLookupService);
+			if (containerFilteredSeries) {
+				filteredSeries = [...(filteredSeries ?? []), ...containerFilteredSeries];
+			}
 			if (seriesList.length === 0) {
 				continue;
 			}
@@ -563,7 +578,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 
-		return { categories, ...(categoryLevels ? { categoryLevels } : {}), series };
+		return {
+			categories,
+			...(categoryLevels ? { categoryLevels } : {}),
+			series,
+			...(filteredSeries ? { filteredSeries } : {}),
+		};
 	}
 
 	/**
@@ -746,6 +766,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Parse series-level explosion (c:explosion for pie)
 			const explosion = parseSeriesExplosion(seriesNode, this.xmlLookupService);
 
+			// This series' identity GUID (`c:ser/c:extLst/c:ext/c16:uniqueId`),
+			// see chart-series-identity.ts. Read-only here: an edited existing
+			// series keeps its own extLst as passthrough automatically.
+			const uniqueId = parseChartUniqueId(seriesNode, (key) =>
+				this.compatibilityService.getXmlLocalName(key),
+			);
+
+			// Parse series-level c:pictureOptions (CT_BarSer): a picture fill
+			// applied to every point in the series unless a c:dPt overrides it.
+			// The blip itself is resolved later, alongside the per-point ones,
+			// once relationship/zip access is available (see the `finalSeries.some`
+			// check below and `resolveDataPointPictureImages`).
+			const seriesPicture = parseChartDataPointPicture(seriesNode, this.xmlLookupService);
+
 			// Per-series x values (c:xVal) and bubble sizes (c:bubbleSize). Both are
 			// declared PER SERIES by CT_ScatterSer / CT_BubbleSer, so neither can be
 			// taken off the first series or guessed from the series count.
@@ -822,11 +856,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(seriesMarker ? { marker: seriesMarker } : {}),
 				...(dataLabels.length > 0 ? { dataLabels } : {}),
 				...(explosion !== undefined ? { explosion } : {}),
+				...(seriesPicture ? { picture: seriesPicture } : {}),
 				...(invertIfNegative !== undefined ? { invertIfNegative } : {}),
 				...(smooth !== undefined ? { smooth } : {}),
 				...(axisId !== undefined ? { axisId } : {}),
 				...(seriesChartType ? { seriesChartType } : {}),
 				...(seriesShape !== undefined ? { shape: seriesShape } : {}),
+				...(uniqueId !== undefined ? { uniqueId } : {}),
 			};
 		});
 	}

@@ -1,4 +1,5 @@
 import type { Pptx3DScene, ShapeStyle, XmlObject } from '../../types';
+import { roundCoordinate, scaleVectorToIntegers } from '../../utils/scene3d-coordinate';
 import { serializeEffectDagContainer } from '../builders/effect-dag-containers';
 import { setEffectChild } from '../builders/effect-list-roundtrip';
 import { effectIsPurelyStyleMatrix } from './authored-shape-style';
@@ -133,22 +134,31 @@ function buildScene3dBackdrop(s3d: Pptx3DScene): XmlObject | undefined {
 	if (!s3d.hasBackdrop || !hasNorm || !hasUp) {
 		return undefined;
 	}
+	// `a:norm`/`a:up` are direction vectors (`ST_Coordinate`, a signed integer;
+	// only the ratio between dx/dy/dz matters), `a:anchor` is a position
+	// (also `ST_Coordinate`). Neither field is guaranteed to hold an integer
+	// (see `scene3d-coordinate`'s module doc comment for why a caller might
+	// reasonably pass a normalised float direction), so both are made
+	// integer-safe here rather than stringified verbatim, which would emit an
+	// invalid attribute PowerPoint cannot open.
+	const norm = scaleVectorToIntegers(
+		s3d.backdropNormalX ?? 0,
+		s3d.backdropNormalY ?? 0,
+		s3d.backdropNormalZ ?? 0,
+	);
+	const up = scaleVectorToIntegers(
+		s3d.backdropUpX ?? 0,
+		s3d.backdropUpY ?? 0,
+		s3d.backdropUpZ ?? 0,
+	);
 	return {
 		'a:anchor': {
-			'@_x': String(s3d.backdropAnchorX ?? 0),
-			'@_y': String(s3d.backdropAnchorY ?? 0),
-			'@_z': String(s3d.backdropAnchorZ ?? 0),
+			'@_x': String(roundCoordinate(s3d.backdropAnchorX ?? 0)),
+			'@_y': String(roundCoordinate(s3d.backdropAnchorY ?? 0)),
+			'@_z': String(roundCoordinate(s3d.backdropAnchorZ ?? 0)),
 		},
-		'a:norm': {
-			'@_dx': String(s3d.backdropNormalX ?? 0),
-			'@_dy': String(s3d.backdropNormalY ?? 0),
-			'@_dz': String(s3d.backdropNormalZ ?? 0),
-		},
-		'a:up': {
-			'@_dx': String(s3d.backdropUpX ?? 0),
-			'@_dy': String(s3d.backdropUpY ?? 0),
-			'@_dz': String(s3d.backdropUpZ ?? 0),
-		},
+		'a:norm': { '@_dx': String(norm.x), '@_dy': String(norm.y), '@_dz': String(norm.z) },
+		'a:up': { '@_dx': String(up.x), '@_dy': String(up.y), '@_dz': String(up.z) },
 	};
 }
 

@@ -388,6 +388,46 @@ describe('writeShapeEffects - 3D Scene', () => {
 		expect(backdrop['a:up']).toStrictEqual({ '@_dx': '0', '@_dy': '1', '@_dz': '0' });
 	});
 
+	it('scales a fractional backdrop norm/up to integer ST_Coordinate values instead of writing invalid decimal attributes', () => {
+		const spPr: XmlObject = {};
+		writeShapeEffects(
+			spPr,
+			{
+				scene3d: {
+					cameraPreset: 'orthographicFront',
+					hasBackdrop: true,
+					backdropAnchorX: 1.6,
+					backdropAnchorY: 2.4,
+					backdropAnchorZ: 0,
+					// A normalised unit vector, as a caller constructing a
+					// `ShapeStyle` directly (rather than round-tripping a
+					// parsed file, which only ever produces integers) might
+					// naturally write.
+					backdropNormalX: 0.7071,
+					backdropNormalY: 0.7071,
+					backdropNormalZ: 0,
+					backdropUpX: 0,
+					backdropUpY: 1,
+					backdropUpZ: 0,
+				},
+			},
+			{},
+		);
+		const scene = spPr['a:scene3d'] as XmlObject;
+		const backdrop = scene['a:backdrop'] as XmlObject;
+		const anchor = backdrop['a:anchor'] as XmlObject;
+		// Anchor (a position) rounds each component independently.
+		expect(anchor['@_x']).toBe('2');
+		expect(anchor['@_y']).toBe('2');
+		const norm = backdrop['a:norm'] as XmlObject;
+		for (const attr of ['@_dx', '@_dy', '@_dz']) {
+			expect(Number.isInteger(Number(norm[attr]))).toBeTruthy();
+		}
+		// The ratio between dx and dy is preserved (both components equal).
+		expect(norm['@_dx']).toBe(norm['@_dy']);
+		expect(norm['@_dz']).toBe('0');
+	});
+
 	it('should omit a partial backdrop missing norm/up (schema-invalid)', () => {
 		const spPr: XmlObject = {};
 		writeShapeEffects(

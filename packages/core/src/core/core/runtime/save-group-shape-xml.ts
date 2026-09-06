@@ -22,6 +22,17 @@
 import type { PptxElement, XmlObject } from '../../types';
 import { assignOrderedXmlChildren } from './ordered-xml-children';
 
+// Transform-building helpers (`a:xfrm`, `a:chOff`/`a:chExt`, and each
+// child's `a:off`/`a:ext`) live in their own module to keep this file under
+// the repo's 300-LOC guideline; re-exported here so existing callers of
+// `save-group-shape-xml.ts` keep working unchanged.
+export type {
+	GroupTransformInput,
+	GroupChildTransformInput,
+	GroupOwnEmuOverride,
+} from './save-group-transform-xml';
+export { buildGroupTransformXml, applyGroupChildTransform } from './save-group-transform-xml';
+
 /**
  * The tags a `<p:grpSp>` child may be written under. The first six are the
  * `CT_GroupShape` choice; the last four mirror the extension tags this
@@ -126,49 +137,6 @@ export function cloneXmlNode(node: XmlObject): XmlObject {
 	return JSON.parse(JSON.stringify(node)) as XmlObject;
 }
 
-/** Minimal geometry description of a group, in pixels. */
-export interface GroupTransformInput {
-	readonly x: number;
-	readonly y: number;
-	readonly width: number;
-	readonly height: number;
-	readonly rotation?: number;
-	readonly flipHorizontal?: boolean;
-	readonly flipVertical?: boolean;
-}
-
-/**
- * Build the group's `a:xfrm`.
- *
- * The child coordinate space is deliberately reset to `chOff 0,0` /
- * `chExt == ext`: the parser already resolved every child into the group's
- * own pixel space (see `PptxHandlerRuntimeGroupParsing`), so re-emitting the
- * original `a:chOff`/`a:chExt` would apply the child scale twice.
- */
-export function buildGroupTransformXml(group: GroupTransformInput, emuPerPx: number): XmlObject {
-	const offX = Math.round(group.x * emuPerPx);
-	const offY = Math.round(group.y * emuPerPx);
-	const extCx = Math.round(group.width * emuPerPx);
-	const extCy = Math.round(group.height * emuPerPx);
-
-	const xfrm: XmlObject = {};
-	// `@_rot` is 60000ths of a degree (ECMA-376 ST_Angle); flips are "1" flags.
-	if (typeof group.rotation === 'number' && group.rotation !== 0) {
-		xfrm['@_rot'] = String(Math.round(group.rotation * 60000));
-	}
-	if (group.flipHorizontal) {
-		xfrm['@_flipH'] = '1';
-	}
-	if (group.flipVertical) {
-		xfrm['@_flipV'] = '1';
-	}
-	xfrm['a:off'] = { '@_x': String(offX), '@_y': String(offY) };
-	xfrm['a:ext'] = { '@_cx': String(extCx), '@_cy': String(extCy) };
-	xfrm['a:chOff'] = { '@_x': '0', '@_y': '0' };
-	xfrm['a:chExt'] = { '@_cx': String(extCx), '@_cy': String(extCy) };
-	return xfrm;
-}
-
 /**
  * Build `p:nvGrpSpPr`, preserving the original `p:cNvPr` (id, name, `@descr`,
  * `@hidden`, `a:hlinkClick`) and `a:grpSpLocks` when the group came from a
@@ -228,32 +196,6 @@ export function buildGroupPropertiesXml(
 	const clone = cloneXmlNode(rawProps);
 	delete clone['a:xfrm'];
 	return { 'a:xfrm': xfrm, ...clone };
-}
-
-/**
- * Rewrite a child node's offset/extent into the group's coordinate space.
- * Shapes carry it at `p:spPr/a:xfrm`; graphic frames and groups at
- * `p:xfrm` / `p:grpSpPr/a:xfrm`.
- */
-export function applyGroupChildTransform(
-	xml: XmlObject,
-	child: { x: number; y: number; width: number; height: number },
-	emuPerPx: number,
-): void {
-	const spPr = xml['p:spPr'] as XmlObject | undefined;
-	const grpSpPr = xml['p:grpSpPr'] as XmlObject | undefined;
-	const childXfrm = (spPr?.['a:xfrm'] ?? xml['p:xfrm'] ?? grpSpPr?.['a:xfrm']) as
-		| XmlObject
-		| undefined;
-	if (!childXfrm) {
-		return;
-	}
-	childXfrm['a:off'] ??= {};
-	childXfrm['a:ext'] ??= {};
-	(childXfrm['a:off'] as XmlObject)['@_x'] = String(Math.round(child.x * emuPerPx));
-	(childXfrm['a:off'] as XmlObject)['@_y'] = String(Math.round(child.y * emuPerPx));
-	(childXfrm['a:ext'] as XmlObject)['@_cx'] = String(Math.round(child.width * emuPerPx));
-	(childXfrm['a:ext'] as XmlObject)['@_cy'] = String(Math.round(child.height * emuPerPx));
 }
 
 /** One classified group child, ready to be assigned onto the `p:grpSp`. */

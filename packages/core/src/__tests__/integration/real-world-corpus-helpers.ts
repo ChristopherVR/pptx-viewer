@@ -14,6 +14,10 @@ export const REQUIRED_CORPUS_FIXTURES = [
 	'ole-embedded-media.pptx',
 	'preset-geometry-wordart.pptx',
 	'smartart-chart-table-mix.pptx',
+	'smartart-orgchart-fan-variants.pptx',
+	'smartart-orgchart-hierbranch.pptx',
+	'smartart-orgchart-many.pptx',
+	'smartart-orgchart-nested-hang.pptx',
 ] as const;
 
 /** List every `.pptx` fixture under {@link CORPUS_DIR}, or `[]` if absent. */

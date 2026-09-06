@@ -19,6 +19,10 @@ function makeElement(
 		rotation: number;
 		flipHorizontal: boolean;
 		flipVertical: boolean;
+		xEmu: number;
+		yEmu: number;
+		widthEmu: number;
+		heightEmu: number;
 	}>,
 ): PptxElement {
 	return {
@@ -31,6 +35,10 @@ function makeElement(
 		rotation: overrides.rotation,
 		flipHorizontal: overrides.flipHorizontal,
 		flipVertical: overrides.flipVertical,
+		xEmu: overrides.xEmu,
+		yEmu: overrides.yEmu,
+		widthEmu: overrides.widthEmu,
+		heightEmu: overrides.heightEmu,
 	} as unknown as PptxElement;
 }
 
@@ -236,6 +244,56 @@ describe('pptxElementTransformUpdater', () => {
 		// 10.7 * 9525 = 101917.5 → 101918 (Math.round)
 		expect((xfrm['a:off'] as XmlObject)['@_x']).toBe(String(Math.round(10.7 * EMU_PER_PX)));
 		expect((xfrm['a:off'] as XmlObject)['@_y']).toBe(String(Math.round(20.3 * EMU_PER_PX)));
+	});
+
+	// ── Rotated resize: `a:off` must move to keep the anchor edge on screen ─
+	// COM ground truth (a plain, non-group rectangle rotated 90 degrees,
+	// `Shape.Width *= 1.5` via real PowerPoint, unzipped and read back). See
+	// `rotated-resize-anchor.ts` for the derivation and the 25/180/-40 degree
+	// cases; this pins that a PLAIN (non-group) top-level shape takes the
+	// same corrected path as a group's own resize.
+	it('matches COM ground truth: a 90-degree plain shape resized via Width keeps the left edge on screen', () => {
+		const shape = makeShapeXml();
+		const element = makeElement({
+			x: 400, // unchanged from xEmu (3810000 / 9525 = 400): the resize never touched x
+			y: 133, // unchanged from yEmu (1270000 / 9525 rounds to 133)
+			width: 400, // new width (3810000 / 9525 = 400 exactly)
+			height: 107, // unchanged (1016000 / 9525 rounds to 107)
+			rotation: 90,
+			xEmu: 3810000,
+			yEmu: 1270000,
+			widthEmu: 2540000,
+			heightEmu: 1016000,
+		});
+		updater.applyTransform(shape, element, EMU_PER_PX);
+
+		const xfrm = (shape['p:spPr'] as XmlObject)['a:xfrm'] as XmlObject;
+		expect((xfrm['a:ext'] as XmlObject)['@_cx']).toBe('3810000');
+		expect((xfrm['a:ext'] as XmlObject)['@_cy']).toBe('1016000');
+		expect((xfrm['a:off'] as XmlObject)['@_x']).toBe('3175000');
+		expect((xfrm['a:off'] as XmlObject)['@_y']).toBe('1905000');
+	});
+
+	it('leaves an unrotated resize byte-identical to the pre-existing naive result', () => {
+		const shape = makeShapeXml();
+		const element = makeElement({
+			x: 400,
+			y: 133,
+			width: 400,
+			height: 107,
+			xEmu: 3810000,
+			yEmu: 1270000,
+			widthEmu: 2540000,
+			heightEmu: 1016000,
+		});
+		updater.applyTransform(shape, element, EMU_PER_PX);
+
+		const xfrm = (shape['p:spPr'] as XmlObject)['a:xfrm'] as XmlObject;
+		// No rotation: a:off stays exactly what the naive resolve produces
+		// (x/y unchanged in px, so the exact original EMU is re-emitted).
+		expect((xfrm['a:off'] as XmlObject)['@_x']).toBe('3810000');
+		expect((xfrm['a:off'] as XmlObject)['@_y']).toBe('1270000');
+		expect((xfrm['a:ext'] as XmlObject)['@_cx']).toBe('3810000');
 	});
 
 	// ── Combined position + rotation + flip ──────────────────────────────

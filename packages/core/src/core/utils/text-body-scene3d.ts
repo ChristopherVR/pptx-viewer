@@ -1,100 +1,7 @@
 import type { Pptx3DScene, TextStyle, XmlObject } from '../types';
 import { cloneXmlObject } from './clone-utils';
-
-const CAMERA_PRESETS = new Set([
-	'legacyObliqueTopLeft',
-	'legacyObliqueTop',
-	'legacyObliqueTopRight',
-	'legacyObliqueLeft',
-	'legacyObliqueFront',
-	'legacyObliqueRight',
-	'legacyObliqueBottomLeft',
-	'legacyObliqueBottom',
-	'legacyObliqueBottomRight',
-	'legacyPerspectiveTopLeft',
-	'legacyPerspectiveTop',
-	'legacyPerspectiveTopRight',
-	'legacyPerspectiveLeft',
-	'legacyPerspectiveFront',
-	'legacyPerspectiveRight',
-	'legacyPerspectiveBottomLeft',
-	'legacyPerspectiveBottom',
-	'legacyPerspectiveBottomRight',
-	'orthographicFront',
-	'isometricTopUp',
-	'isometricTopDown',
-	'isometricBottomUp',
-	'isometricBottomDown',
-	'isometricLeftUp',
-	'isometricLeftDown',
-	'isometricRightUp',
-	'isometricRightDown',
-	'isometricOffAxis1Left',
-	'isometricOffAxis1Right',
-	'isometricOffAxis1Top',
-	'isometricOffAxis2Left',
-	'isometricOffAxis2Right',
-	'isometricOffAxis2Top',
-	'isometricOffAxis3Left',
-	'isometricOffAxis3Right',
-	'isometricOffAxis3Bottom',
-	'isometricOffAxis4Left',
-	'isometricOffAxis4Right',
-	'isometricOffAxis4Bottom',
-	'obliqueTopLeft',
-	'obliqueTop',
-	'obliqueTopRight',
-	'obliqueLeft',
-	'obliqueRight',
-	'obliqueBottomLeft',
-	'obliqueBottom',
-	'obliqueBottomRight',
-	'perspectiveFront',
-	'perspectiveLeft',
-	'perspectiveRight',
-	'perspectiveAbove',
-	'perspectiveBelow',
-	'perspectiveAboveLeftFacing',
-	'perspectiveAboveRightFacing',
-	'perspectiveContrastingLeftFacing',
-	'perspectiveContrastingRightFacing',
-	'perspectiveHeroicLeftFacing',
-	'perspectiveHeroicRightFacing',
-	'perspectiveHeroicExtremeLeftFacing',
-	'perspectiveHeroicExtremeRightFacing',
-	'perspectiveRelaxed',
-	'perspectiveRelaxedModerately',
-]);
-const LIGHT_RIGS = new Set([
-	'legacyFlat1',
-	'legacyFlat2',
-	'legacyFlat3',
-	'legacyFlat4',
-	'legacyNormal1',
-	'legacyNormal2',
-	'legacyNormal3',
-	'legacyNormal4',
-	'legacyHarsh1',
-	'legacyHarsh2',
-	'legacyHarsh3',
-	'legacyHarsh4',
-	'threePt',
-	'balanced',
-	'soft',
-	'harsh',
-	'flood',
-	'contrasting',
-	'morning',
-	'sunrise',
-	'sunset',
-	'chilly',
-	'freezing',
-	'flat',
-	'twoPt',
-	'glow',
-	'brightRoom',
-]);
-const LIGHT_DIRECTIONS = new Set(['tl', 't', 'tr', 'l', 'r', 'bl', 'b', 'br']);
+import { roundCoordinate, scaleVectorToIntegers } from './scene3d-coordinate';
+import { CAMERA_PRESETS, LIGHT_DIRECTIONS, LIGHT_RIGS } from './text-body-scene3d-presets';
 
 const localName = (key: string): string => key.replace(/^@_/, '').split(':').pop() ?? key;
 const childKey = (node: XmlObject, local: string): string | undefined =>
@@ -137,13 +44,25 @@ const applyRotation = (target: Pptx3DScene, node: XmlObject | undefined, prefix:
 		target[`${prefix}RotZ` as 'cameraRotZ'] = z;
 	}
 };
-const applyPoint = (target: Pptx3DScene, node: XmlObject | undefined, prefix: string): void => {
+/**
+ * Read a `CT_Point3D` (`x`/`y`/`z`, e.g. `a:anchor`) or `CT_Vector3D`
+ * (`dx`/`dy`/`dz`, e.g. `a:norm`/`a:up`) node's three components onto
+ * `target`. `attrPrefix` selects which attribute names to read: the two
+ * types are NOT interchangeable in the schema (an `a:norm`/`a:up` with
+ * `x`/`y`/`z` instead of `dx`/`dy`/`dz` is schema-invalid).
+ */
+const applyPoint = (
+	target: Pptx3DScene,
+	node: XmlObject | undefined,
+	prefix: string,
+	attrPrefix: '' | 'd' = '',
+): void => {
 	for (const [axis, suffix] of [
 		['x', 'X'],
 		['y', 'Y'],
 		['z', 'Z'],
 	] as const) {
-		const value = finiteInt(node?.[`@_${axis}`]);
+		const value = finiteInt(node?.[`@_${attrPrefix}${axis}`]);
 		if (value !== undefined) {
 			target[`${prefix}${suffix}` as 'backdropAnchorX'] = value;
 		}
@@ -177,8 +96,8 @@ export function parseTextBodyScene3d(bodyPr: XmlObject, style: TextStyle): void 
 	if (backdrop) {
 		typed.hasBackdrop = true;
 		applyPoint(typed, child(backdrop, 'anchor'), 'backdropAnchor');
-		applyPoint(typed, child(backdrop, 'norm'), 'backdropNormal');
-		applyPoint(typed, child(backdrop, 'up'), 'backdropUp');
+		applyPoint(typed, child(backdrop, 'norm'), 'backdropNormal', 'd');
+		applyPoint(typed, child(backdrop, 'up'), 'backdropUp', 'd');
 	}
 	style.textBodyScene3d = typed;
 }
@@ -217,13 +136,36 @@ const rotationXml = (x?: number, y?: number, z?: number): XmlObject | undefined 
 	setAttrs(rot, { lat: x, lon: y, rev: z });
 	return rot;
 };
-const pointXml = (x?: number, y?: number, z?: number): XmlObject | undefined => {
-	if (![x, y, z].every(Number.isInteger)) {
+/**
+ * `CT_Point3D` (`a:anchor`): a position, `ST_Coordinate` (integer). Each
+ * component is rounded independently; unlike a direction vector, there is no
+ * ratio between x/y/z to preserve.
+ */
+const anchorXml = (x?: number, y?: number, z?: number): XmlObject | undefined => {
+	if (x === undefined || y === undefined || z === undefined) {
 		return undefined;
 	}
 	const point: XmlObject = {};
-	setAttrs(point, { x, y, z });
+	setAttrs(point, { x: roundCoordinate(x), y: roundCoordinate(y), z: roundCoordinate(z) });
 	return point;
+};
+
+/**
+ * `CT_Vector3D` (`a:norm`/`a:up`): a direction, `ST_Coordinate` (integer)
+ * components where only the ratio between dx/dy/dz matters. Scaled via
+ * {@link scaleVectorToIntegers} rather than the strict "every component must
+ * already be an integer, else drop the whole node" the old `pointXml` did,
+ * which silently discarded an authored backdrop the moment any one component
+ * (e.g. a normalised float direction) was fractional.
+ */
+const vectorXml = (x?: number, y?: number, z?: number): XmlObject | undefined => {
+	if (x === undefined || y === undefined || z === undefined) {
+		return undefined;
+	}
+	const { x: dx, y: dy, z: dz } = scaleVectorToIntegers(x, y, z);
+	const vector: XmlObject = {};
+	setAttrs(vector, { dx, dy, dz });
+	return vector;
 };
 
 export function applyTextBodyScene3d(bodyPr: XmlObject, style: TextStyle | undefined): void {
@@ -279,9 +221,9 @@ export function applyTextBodyScene3d(bodyPr: XmlObject, style: TextStyle | undef
 	setChild(scene, 'lightRig', ordered(light, ['rot']));
 	if (typed.hasBackdrop) {
 		const backdrop = cloneXmlObject(child(scene, 'backdrop')) ?? {};
-		const anchor = pointXml(typed.backdropAnchorX, typed.backdropAnchorY, typed.backdropAnchorZ);
-		const norm = pointXml(typed.backdropNormalX, typed.backdropNormalY, typed.backdropNormalZ);
-		const up = pointXml(typed.backdropUpX, typed.backdropUpY, typed.backdropUpZ);
+		const anchor = anchorXml(typed.backdropAnchorX, typed.backdropAnchorY, typed.backdropAnchorZ);
+		const norm = vectorXml(typed.backdropNormalX, typed.backdropNormalY, typed.backdropNormalZ);
+		const up = vectorXml(typed.backdropUpX, typed.backdropUpY, typed.backdropUpZ);
 		if (anchor) {
 			setChild(backdrop, 'anchor', anchor);
 		}

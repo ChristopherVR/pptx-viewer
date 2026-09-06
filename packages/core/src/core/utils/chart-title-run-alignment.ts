@@ -8,6 +8,8 @@
  * @module utils/chart-title-run-alignment
  */
 
+import type { PptxChartTitleRun } from '../types';
+
 /**
  * Realign a stale `titleRuns` array's texts onto an edited flat `title`
  * string, when the edit is localized (an append, an insertion, or a rewrite
@@ -16,9 +18,8 @@
  * The caller has edited `model.title` directly without touching `titleRuns`
  * (every pre-existing chart-title consumer's edit shape), so `titleRuns`
  * still holds the OLD per-run texts. Naively patching just the first run
- * (the pre-W5-E fallback, still used when this returns `undefined`) leaves
- * every subsequent run with its now-orphaned stale text, so a two-run title
- * edited by appending text came back as the edited text glued to the
+ * leaves every subsequent run with its now-orphaned stale text, so a two-run
+ * title edited by appending text came back as the edited text glued to the
  * original SECOND run's unrelated text.
  *
  * Walks `oldTexts` left to right, matching each one as a literal anchor in
@@ -85,4 +86,35 @@ export function distributeTitleRunsText(
 		result[result.length - 1] += newText.slice(pos);
 	}
 	return result;
+}
+
+/**
+ * Resolve the runs a stale multi-run title should serialize as, after the
+ * caller edited only the flat `title` string.
+ *
+ * Tries {@link distributeTitleRunsText} first: when the new text still
+ * contains every unaffected run's original text in order, every run and its
+ * formatting survive, realigned onto the new text. Only when no such
+ * alignment exists at all (an unrelated full rewrite) does this collapse the
+ * title to a SINGLE run carrying `staleRuns`' first run's formatting and the
+ * whole new text, dropping the other runs. That is what PowerPoint itself
+ * does when you retype a chart title, and it replaces the old, strictly
+ * worse fallback of patching only the first run's TEXT in place while every
+ * additional run's text stayed on the slide, stale.
+ *
+ * `staleRuns` must be non-empty; callers only reach this once a multi-run
+ * `titleRuns` array is already known to exist.
+ */
+export function realignOrCollapseTitleRuns(
+	staleRuns: readonly PptxChartTitleRun[],
+	newTitle: string,
+): PptxChartTitleRun[] {
+	const distributed = distributeTitleRunsText(
+		staleRuns.map((run) => run.text),
+		newTitle,
+	);
+	if (distributed) {
+		return staleRuns.map((run, index) => ({ ...run, text: distributed[index] ?? '' }));
+	}
+	return [{ ...staleRuns[0], text: newTitle }];
 }

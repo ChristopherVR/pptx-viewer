@@ -12,7 +12,11 @@
 import { describe, it, expect } from 'vitest';
 
 import type { PptxModifyVerifier } from '../types';
-import { verifyModifyPassword, createModifyVerifier } from './modify-verifier';
+import {
+	verifyModifyPassword,
+	createModifyVerifier,
+	resolveModifyVerifierAlgorithmName,
+} from './modify-verifier';
 
 // ---------------------------------------------------------------------------
 // verifyModifyPassword
@@ -211,5 +215,147 @@ describe('createModifyVerifier', () => {
 		});
 		await expect(verifyModifyPassword(verifier, password)).resolves.toBeTruthy();
 		await expect(verifyModifyPassword(verifier, 'wrong')).resolves.toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// resolveModifyVerifierAlgorithmName / PowerPoint's cryptAlgorithmSid form
+// ---------------------------------------------------------------------------
+
+describe('resolveModifyVerifierAlgorithmName', () => {
+	it('prefers an explicit algorithmName', () => {
+		expect(
+			resolveModifyVerifierAlgorithmName({ algorithmName: 'SHA-256', cryptAlgorithmSid: 14 }),
+		).toBe('SHA-256');
+	});
+
+	it('falls back to the legacy algIdExt', () => {
+		expect(resolveModifyVerifierAlgorithmName({ algIdExt: 'SHA-384' })).toBe('SHA-384');
+	});
+
+	it('resolves the CAPI ALG_SID PowerPoint itself writes (cryptAlgorithmSid=14 -> SHA-512)', () => {
+		expect(resolveModifyVerifierAlgorithmName({ cryptAlgorithmSid: 14 })).toBe('SHA-512');
+	});
+
+	it('resolves every documented ALG_SID hash constant', () => {
+		expect(resolveModifyVerifierAlgorithmName({ cryptAlgorithmSid: 4 })).toBe('SHA-1');
+		expect(resolveModifyVerifierAlgorithmName({ cryptAlgorithmSid: 12 })).toBe('SHA-256');
+		expect(resolveModifyVerifierAlgorithmName({ cryptAlgorithmSid: 13 })).toBe('SHA-384');
+	});
+
+	it('returns undefined for an unrecognised sid and for no identification at all', () => {
+		expect(resolveModifyVerifierAlgorithmName({ cryptAlgorithmSid: 9999 })).toBeUndefined();
+		expect(resolveModifyVerifierAlgorithmName({})).toBeUndefined();
+	});
+});
+
+describe('verifyModifyPassword against a PowerPoint-shaped verifier (no algorithmName)', () => {
+	it('verifies a SHA-512 hash identified only by cryptAlgorithmSid, matching what "Set Password to Modify" writes', async () => {
+		// Build a real SHA-512 verifier the normal way, then reshape it to how
+		// PowerPoint's COM `Presentation.WritePassword` actually serialises one
+		// (observed via COM automation): `cryptAlgorithmSid="14"` +
+		// `cryptAlgorithmClass="hash"`, no `algorithmName` attribute at all.
+		const withName = await createModifyVerifier('powerpoint-style', {
+			spinCount: 10,
+			algorithmName: 'SHA-512',
+		});
+		const powerPointShaped: PptxModifyVerifier = {
+			hashData: withName.hashData,
+			saltData: withName.saltData,
+			spinValue: withName.spinValue,
+			cryptAlgorithmSid: 14,
+			cryptAlgorithmClass: 'hash',
+			cryptAlgorithmType: 'typeAny',
+		};
+
+		await expect(verifyModifyPassword(powerPointShaped, 'powerpoint-style')).resolves.toBeTruthy();
+		await expect(verifyModifyPassword(powerPointShaped, 'wrong')).resolves.toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Algorithms Web Crypto never implemented (MD2, MD4, MD5, RIPEMD-128/160,
+// WHIRLPOOL): the "Unrecognised verifier algorithms are not checked"
+// limitation this module used to have.
+// ---------------------------------------------------------------------------
+
+describe('verifyModifyPassword with algorithms Web Crypto does not implement', () => {
+	it.each(['MD2', 'MD4', 'MD5', 'RIPEMD-128', 'RIPEMD-160', 'WHIRLPOOL'] as const)(
+		'creates and verifies a %s verifier',
+		async (algorithmName) => {
+			const verifier = await createModifyVerifier('correct horse battery staple', {
+				algorithmName,
+				spinCount: 25,
+			});
+			expect(verifier.algorithmName).toBe(algorithmName);
+			await expect(
+				verifyModifyPassword(verifier, 'correct horse battery staple'),
+			).resolves.toBeTruthy();
+			await expect(verifyModifyPassword(verifier, 'wrong password')).resolves.toBeFalsy();
+		},
+	);
+
+	it('resolves cryptAlgorithmSid=1 (MD2) and sid=2 (MD4), the two CAPI sids beyond SHA/MD5', () => {
+		expect(resolveModifyVerifierAlgorithmName({ cryptAlgorithmSid: 1 })).toBe('MD2');
+		expect(resolveModifyVerifierAlgorithmName({ cryptAlgorithmSid: 2 })).toBe('MD4');
+	});
+
+	it('accepts hyphen-less and lower-case algorithmName spellings', () => {
+		expect(resolveModifyVerifierAlgorithmName({ algorithmName: 'ripemd160' })).toBe('RIPEMD-160');
+		expect(resolveModifyVerifierAlgorithmName({ algorithmName: 'RIPEMD128' })).toBe('RIPEMD-128');
+		expect(resolveModifyVerifierAlgorithmName({ algorithmName: 'whirlpool' })).toBe('WHIRLPOOL');
+		expect(resolveModifyVerifierAlgorithmName({ algorithmName: 'md5' })).toBe('MD5');
+		expect(resolveModifyVerifierAlgorithmName({ algorithmName: 'sha1' })).toBe('SHA-1');
+	});
+
+	it('rejects an algorithmName this viewer still does not implement', () => {
+		expect(resolveModifyVerifierAlgorithmName({ algorithmName: 'BLAKE2B' })).toBeUndefined();
+	});
+
+	it('cross-checks the full salt+spin iteration against node:crypto MD5, independent of createModifyVerifier', async () => {
+		// Build an MD5 verifier by hand (not via createModifyVerifier), using
+		// node:crypto for every hash step, so this test does not depend on the
+		// module under test for anything but `verifyModifyPassword` itself.
+		const { createHash } = await import('node:crypto');
+		const salt = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+		const password = 'hand-built-md5';
+		const passwordUtf16LE = Buffer.from(password, 'utf16le');
+		const spinCount = 37;
+
+		function md5Buf(buf: Buffer): Buffer {
+			return createHash('md5').update(buf).digest();
+		}
+
+		let h = md5Buf(Buffer.concat([Buffer.from(salt), passwordUtf16LE]));
+		for (let i = 0; i < spinCount; i++) {
+			const counter = Buffer.alloc(4);
+			counter.writeUInt32LE(i, 0);
+			h = md5Buf(Buffer.concat([h, counter]));
+		}
+
+		const verifier: PptxModifyVerifier = {
+			algorithmName: 'MD5',
+			saltData: Buffer.from(salt).toString('base64'),
+			hashData: h.toString('base64'),
+			spinValue: spinCount,
+		};
+
+		await expect(verifyModifyPassword(verifier, password)).resolves.toBeTruthy();
+		await expect(verifyModifyPassword(verifier, 'wrong')).resolves.toBeFalsy();
+	});
+});
+
+describe('the salt-less legacy verifier case (see module doc)', () => {
+	it('cannot be checked and does not crash when saltData is absent', async () => {
+		// Confirmed via COM (Presentation.WritePassword then SaveAs) that real
+		// PowerPoint always writes saltData, including for the legacy
+		// cryptAlgorithmSid form; a salt-less verifier is not a shape real
+		// PowerPoint produces, so this only documents the safe fallback.
+		const verifier: PptxModifyVerifier = {
+			cryptAlgorithmSid: 14,
+			hashData: 'dGVzdA==',
+			spinValue: 100000,
+		};
+		await expect(verifyModifyPassword(verifier, 'anything')).resolves.toBeFalsy();
 	});
 });

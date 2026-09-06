@@ -23,14 +23,17 @@
  */
 
 import type { TreeNode } from './smartart-helpers';
+import { placeFannedRow, planFan } from './smartart-hierarchy-fan';
 import {
 	effectiveWidth,
 	elbowConnector,
+	HIER_TAIL_OFFSET_RATIO,
 	partitionChildren,
 	pushNode,
 	stubConnector,
 } from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
+import { placeWrappedChildren as placeWrappedChildrenImpl } from './smartart-hierarchy-wrapped-groups';
 
 /** Resolved options for one standard-branch arrangement pass. */
 export interface StandardOptions {
@@ -38,11 +41,19 @@ export interface StandardOptions {
 	/** Resolved `chPref`/`chMax` row size; `Infinity` when unbounded. */
 	perRow: number;
 	/**
-	 * Present only for `hierBranch="init"`: places every generation past the
-	 * root's direct children as a hanging column instead of continuing the
-	 * standard fan-out.
+	 * Present for `hierBranch` `init`/`hang`/`l`/`r`: places every generation
+	 * past the root's direct children as a hanging column instead of
+	 * continuing the standard fan-out. Takes the FULL sibling list (not one
+	 * subtree at a time): genuine PowerPoint output stacks a node's several
+	 * ordinary children in ONE shared column at a single x, not one
+	 * side-by-side column per child - see `smartart-orgchart-hierbranch.pptx`
+	 * in the corpus, where a manager's own two-report tail (each report having
+	 * further children of its own) still lands both reports at the same x.
+	 * That shared column itself starts offset from `t` by
+	 * `HIER_TAIL_OFFSET_RATIO` (the `hierAlign`/`alignOff` root-box alignment;
+	 * see its doc comment), not flush with `t`'s own left edge.
 	 */
-	hangingPlacer?: (hc: HierContext, subtree: TreeNode, anchorX: number, anchorY: number) => void;
+	hangingPlacer?: (hc: HierContext, subtrees: TreeNode[], anchorX: number, anchorY: number) => void;
 }
 
 const ASSISTANT_GAP = 4;
@@ -83,6 +94,19 @@ function placeFlatChildren(
 	cellH: number,
 	options: StandardOptions,
 ): void {
+	// Precomputed up front (not just incrementally in the loop below) so every
+	// child in this row can be handed the FULL sibling column list: see
+	// `planFan`'s doc comment on why a "chPref-reached" grandchild needs its
+	// own generation's complete x-center array, not just its own position.
+	const siblingCxs: number[] = [];
+	{
+		let offset = xOffset;
+		for (const child of normal) {
+			const childW = effectiveWidth(child, options.orgChart);
+			siblingCxs.push((offset + childW / 2) * cellW);
+			offset += childW;
+		}
+	}
 	let childOffset = xOffset;
 	for (const child of normal) {
 		const childW = effectiveWidth(child, options.orgChart);
@@ -97,18 +121,29 @@ function placeFlatChildren(
 			childCy - hc.boxH / 2,
 			child.node.id,
 		);
-		placeAt(hc, child, childCx, childCy, childOffset, childW, level + 1, cellW, cellH, options);
+		placeAt(
+			hc,
+			child,
+			childCx,
+			childCy,
+			childOffset,
+			childW,
+			level + 1,
+			cellW,
+			cellH,
+			options,
+			siblingCxs,
+		);
 		childOffset += childW;
 	}
 }
 
 /**
- * Place one generation's ordinary children across multiple rows stacked
- * within the SAME generation's vertical band, `perRow` (`chPref`/`chMax`) per
- * row. A wrapped child's own descendants still resolve onto the normal
- * per-level grid: the virtual `xOffset` handed to its own recursion is solved
- * so `(xOffset + childW / 2) * cellW` reproduces the position already used
- * here, keeping `cellW`/`cellH` uniform for every generation past this one.
+ * Place one generation's ordinary children as `perRow` (`chPref`/`chMax`)
+ * sized GROUPS, side by side: see `placeWrappedChildren`'s doc comment in
+ * `smartart-hierarchy-wrapped-groups.ts` for the row-vs-column decision (moved
+ * there, alongside `planWrappedGroups`, to keep this file under the
+ * per-file LOC limit).
  */
 function placeWrappedChildren(
 	hc: HierContext,
@@ -123,31 +158,20 @@ function placeWrappedChildren(
 	cellH: number,
 	options: StandardOptions,
 ): void {
-	const perRow = options.perRow;
-	const rows = Math.ceil(normal.length / perRow);
-	const rowH = cellH / rows;
-	const totalW = spanW * cellW;
-	const leftX = xOffset * cellW;
-	for (let row = 0; row < rows; row++) {
-		const rowChildren = normal.slice(row * perRow, Math.min((row + 1) * perRow, normal.length));
-		const slotW = totalW / rowChildren.length;
-		const rowCy = (level + 1) * cellH - cellH / 2 + row * rowH + rowH / 2 + cellH / 2;
-		rowChildren.forEach((child, i) => {
-			const childCx = leftX + slotW * (i + 0.5);
-			const childW = effectiveWidth(child, options.orgChart);
-			elbowConnector(
-				hc,
-				parentId,
-				cx,
-				cy + hc.boxH / 2,
-				childCx,
-				rowCy - hc.boxH / 2,
-				child.node.id,
-			);
-			const virtualOffset = childCx / cellW - childW / 2;
-			placeAt(hc, child, childCx, rowCy, virtualOffset, childW, level + 1, cellW, cellH, options);
-		});
-	}
+	placeWrappedChildrenImpl(
+		hc,
+		parentId,
+		normal,
+		cx,
+		cy,
+		xOffset,
+		spanW,
+		level,
+		cellW,
+		cellH,
+		options,
+		placeAt,
+	);
 }
 
 /** Render `t` at an explicit `(cx, cy)`, then its assistants and children. */
@@ -162,6 +186,7 @@ function placeAt(
 	cellW: number,
 	cellH: number,
 	options: StandardOptions,
+	siblingCxs?: number[],
 ): void {
 	pushNode(hc, t.node, cx - hc.boxW / 2, cy - hc.boxH / 2);
 	const { assistants, normal } = partitionChildren(t, options.orgChart);
@@ -170,19 +195,28 @@ function placeAt(
 		return;
 	}
 	if (options.hangingPlacer && level >= 1) {
-		// Space each child the same way `placeFlatChildren` would (by its
-		// subtree's own effective width), but hand it to the hanging placer
-		// instead of continuing the standard fan-out, so siblings' hanging
-		// columns don't collide.
-		let childOffset = xOffset;
-		for (const child of normal) {
-			const childW = effectiveWidth(child, options.orgChart);
-			const anchorCx = (childOffset + childW / 2) * cellW;
-			const anchorY = (level + 1) * cellH;
-			elbowConnector(hc, t.node.id, cx, cy + hc.boxH / 2, anchorCx, anchorY, child.node.id);
-			options.hangingPlacer(hc, child, anchorCx - hc.boxW / 2, anchorY);
-			childOffset += childW;
+		const plan = planFan(normal.length, options.perRow, siblingCxs);
+		if (plan) {
+			placeFannedRow(hc, t, normal, plan, cx, cy, level, cellW, cellH, options, placeAt);
+			return;
 		}
+		// All of `t`'s ordinary children stack in ONE shared hanging column
+		// directly under `t` (see `StandardOptions.hangingPlacer`'s doc
+		// comment), not one side-by-side column per child.
+		const anchorY = (level + 1) * cellH;
+		const columnOffset = hc.boxW * HIER_TAIL_OFFSET_RATIO;
+		for (const child of normal) {
+			elbowConnector(
+				hc,
+				t.node.id,
+				cx,
+				cy + hc.boxH / 2,
+				cx + columnOffset,
+				anchorY,
+				child.node.id,
+			);
+		}
+		options.hangingPlacer(hc, normal, cx - hc.boxW / 2 + columnOffset, anchorY);
 		return;
 	}
 	if (Number.isFinite(options.perRow) && normal.length > options.perRow) {

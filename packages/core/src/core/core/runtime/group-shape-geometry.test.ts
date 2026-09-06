@@ -62,10 +62,18 @@ describe('readGroupTransform', () => {
 			parentY: 0,
 			parentW: 0,
 			parentH: 0,
+			parentXEmu: 0,
+			parentYEmu: 0,
+			parentWEmu: 0,
+			parentHEmu: 0,
 			chX: 0,
 			chY: 0,
 			chW: 0,
 			chH: 0,
+			chOffXEmu: 0,
+			chOffYEmu: 0,
+			chExtWEmu: 0,
+			chExtHEmu: 0,
 			scaleX: 1,
 			scaleY: 1,
 			rotation: undefined,
@@ -80,6 +88,22 @@ describe('readGroupTransform', () => {
 		expect(t.parentY).toBe(200);
 		expect(t.parentW).toBe(500);
 		expect(t.parentH).toBe(300);
+	});
+
+	it('captures the exact EMU offset/extent alongside the pixel values', () => {
+		// Sub-pixel EMU values (not exact multiples of 9525) must survive
+		// unrounded for `resolveXfrmEmu` to re-emit on save.
+		const t = readGroupTransform(
+			{
+				'a:off': { '@_x': '1524123', '@_y': '2397004' },
+				'a:ext': { '@_cx': '6096050', '@_cy': '3429091' },
+			},
+			EMU_PER_PX,
+		);
+		expect(t.parentXEmu).toBe(1524123);
+		expect(t.parentYEmu).toBe(2397004);
+		expect(t.parentWEmu).toBe(6096050);
+		expect(t.parentHEmu).toBe(3429091);
 	});
 
 	it('reads the child offset and extent', () => {
@@ -155,6 +179,10 @@ describe('transformGroupChild', () => {
 		parentY: 0,
 		parentW: 0,
 		parentH: 0,
+		parentXEmu: 0,
+		parentYEmu: 0,
+		parentWEmu: 0,
+		parentHEmu: 0,
 		chX: 0,
 		chY: 0,
 		chW: 0,

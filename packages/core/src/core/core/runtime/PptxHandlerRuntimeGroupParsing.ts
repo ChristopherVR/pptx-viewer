@@ -1,25 +1,19 @@
-import {
-	TEXT_ORIENTATION_IDENTITY,
-	getElementOrientationMatrix,
-	isTextOrientationMatrix,
-	multiplyTextOrientationMatrices,
-} from '../../geometry/transform-utils';
-import { XmlObject, PptxElement, hasShapeProperties, hasTextProperties } from '../../types';
+import { getElementOrientationMatrix } from '../../geometry/transform-utils';
+import { XmlObject, PptxElement } from '../../types';
 import type { GroupPptxElement } from '../../types';
 import { xmlPath } from '../../utils/xml-access';
-import { findGroupXmlOffset } from './group-child-order';
-import type { GroupTransform } from './group-shape-geometry';
 import {
-	MAX_GROUP_DEPTH,
-	parseEmuInt,
-	readGroupTransform,
-	transformGroupChild,
-} from './group-shape-geometry';
+	applyAncestorGroupTextTransform,
+	applyGroupFillInheritance,
+	applyRawChildGeometry,
+	resolveGroupFillImagePure,
+	resolveGroupXmlSlice,
+} from './group-parsing-helpers';
+import type { GroupFillImageHost } from './group-parsing-helpers';
+import type { GroupTransform } from './group-shape-geometry';
+import { MAX_GROUP_DEPTH, readGroupTransform, transformGroupChild } from './group-shape-geometry';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSpTreeParsing';
 import { parseShapeLockNode, SHAPE_LOCK_CONTAINERS } from './shape-lock-containers';
-
-/** The resolved fill a group hands down to children whose fill is `a:grpFill`. */
-type GroupFillStyle = NonNullable<GroupPptxElement['groupFill']>;
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -58,7 +52,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.unwrapAlternateContent(group as Record<string, unknown>);
 
 		const childOrder = this.extractSpTreeChildOrder(
-			this.groupXmlSlice(group, rawXmlStr),
+			resolveGroupXmlSlice(group, rawXmlStr),
 			group as Record<string, unknown>,
 			'p:grpSp',
 		);
@@ -95,7 +89,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const childNode = this.ensureArray(group[entry.tag])[entry.indexInType] as
 						| XmlObject
 						| undefined;
-					this.applyRawChildGeometry(element, childNode);
+					applyRawChildGeometry(element, childNode, PptxHandlerRuntime.EMU_PER_PX);
 					transformGroupChild(element, transform);
 					elements.push(element);
 				}
@@ -103,186 +97,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return elements;
-	}
-
-	/**
-	 * The slide's raw XML, re-based so it STARTS at this group's `<p:grpSp>`.
-	 *
-	 * `extractSpTreeChildOrder` recovers true document order by scanning from
-	 * the first occurrence of the container tag, which only works when the
-	 * container is unique in the string. A slide has many `p:grpSp`, so the
-	 * string is sliced to this one first. Without it the scan is skipped and
-	 * children come back tag-grouped (all `p:sp`, then all `p:pic`, ...),
-	 * which restacks the group: see {@link findGroupXmlOffset}.
-	 *
-	 * @returns The slice, or `undefined` to let the caller fall back.
-	 */
-	private groupXmlSlice(group: XmlObject, rawXmlStr: string | undefined): string | undefined {
-		if (!rawXmlStr) {
-			return undefined;
-		}
-		const cNvPr = (group['p:nvGrpSpPr'] as XmlObject | undefined)?.['p:cNvPr'] as
-			| XmlObject
-			| undefined;
-		const id = cNvPr?.['@_id'];
-		if (id === undefined || id === null) {
-			return undefined;
-		}
-		const offset = findGroupXmlOffset(rawXmlStr, String(id));
-		return offset === undefined ? undefined : rawXmlStr.slice(offset);
-	}
-
-	/**
-	 * A child shape's own `a:xfrm` is expressed in the group's child coordinate
-	 * space, not EMU. `parseShape` converts it as if it were EMU (dividing by
-	 * EMU_PER_PX and rounding), so compact child units round to 0. Recover the
-	 * child's true position/size by re-reading its raw `a:off`/`a:ext` here
-	 * (unrounded) before the group scale is applied.
-	 *
-	 * A nested `p:grpSp` needs no such repair: it is read unrounded by
-	 * {@link parseGroupShapeAsGroup} at depth > 0.
-	 */
-	private applyRawChildGeometry(el: PptxElement, childNode: XmlObject | undefined): void {
-		if (!childNode) {
-			return;
-		}
-		const childXfrm =
-			((childNode['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] as XmlObject | undefined) ??
-			(childNode['p:xfrm'] as XmlObject | undefined);
-		if (!childXfrm) {
-			return;
-		}
-		const off = childXfrm['a:off'] as XmlObject | undefined;
-		const ext = childXfrm['a:ext'] as XmlObject | undefined;
-		if (off) {
-			el.x = parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX;
-			el.y = parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX;
-		}
-		if (ext) {
-			el.width = parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX;
-			el.height = parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX;
-		}
-	}
-
-	private applyAncestorGroupTextTransform(
-		children: PptxElement[],
-		groupTransform: ReturnType<typeof getElementOrientationMatrix>,
-	): void {
-		for (const child of children) {
-			if (child.type === 'group') {
-				this.applyAncestorGroupTextTransform(child.children, groupTransform);
-				continue;
-			}
-			if (!hasTextProperties(child)) {
-				continue;
-			}
-			const existing = child.textStyle?.ancestorGroupTransform;
-			const nestedTransform = isTextOrientationMatrix(existing)
-				? existing
-				: TEXT_ORIENTATION_IDENTITY;
-			child.textStyle = {
-				...child.textStyle,
-				ancestorGroupTransform: multiplyTextOrientationMatrices(groupTransform, nestedTransform),
-			};
-		}
-	}
-
-	/**
-	 * Push a group fill down to every descendant whose own fill is `a:grpFill`
-	 * ("inherit from my group").
-	 *
-	 * `a:grpFill` resolves against the nearest ANCESTOR group that actually has
-	 * a fill, so the walk descends through a nested group that has none of its
-	 * own. Two things count as "none of its own", and they are the same two the
-	 * render side applies in `getGroupChildParentFill` (`pptx-viewer-shared`,
-	 * `render/group-fill.ts`):
-	 *
-	 * - the group declares no fill at all;
-	 * - the group's own fill is ITSELF `a:grpFill` (`fillMode === 'group'`),
-	 *   i.e. it inherits too, so the ancestor's fill passes straight through.
-	 *   Stopping there left the leaves under it carrying an unresolved
-	 *   `fillMode: 'group'` in the MODEL. Render compensated by chaining, but
-	 *   the MCP tools, the exporters and the Markdown converter read the model,
-	 *   not the DOM, so they saw an unpainted shape.
-	 *
-	 * A nested group that declares a REAL fill has already resolved its own
-	 * subtree against that fill, so the walk stops there.
-	 */
-	private applyGroupFillInheritance(children: PptxElement[], fill: GroupFillStyle): void {
-		for (const child of children) {
-			if (child.type === 'group') {
-				if (!child.groupFill || child.groupFill.fillMode === 'group') {
-					this.applyGroupFillInheritance(child.children, fill);
-				}
-				continue;
-			}
-			if (hasShapeProperties(child) && child.shapeStyle?.fillMode === 'group') {
-				child.shapeStyle = {
-					...child.shapeStyle,
-					fillMode: fill.fillMode,
-					fillColor: fill.fillColor,
-					fillOpacity: fill.fillOpacity,
-					fillGradient: fill.fillGradient,
-					fillGradientStops: fill.fillGradientStops,
-					fillGradientAngle: fill.fillGradientAngle,
-					fillGradientType: fill.fillGradientType,
-					fillPatternPreset: fill.fillPatternPreset,
-					fillPatternBackgroundColor: fill.fillPatternBackgroundColor,
-					fillImageUrl: fill.fillImageUrl,
-					fillImageMode: fill.fillImageMode,
-				};
-			}
-		}
-	}
-
-	/**
-	 * Resolve a group's own `p:grpSpPr/a:blipFill` (`fillMode: 'image'`) to a
-	 * displayable `fillImageUrl` plus tiling mode, mirroring the blip
-	 * resolution `parseShapeWithImageFill` does for a shape's own image fill.
-	 *
-	 * Like a picture parsed with `eagerDecodeImages: false`, an unresolved
-	 * archive-relative path is left in `fillImageUrl` as-is rather than a
-	 * displayable URL: `ShapeStyle.fillImageUrl` is a single field (unlike
-	 * `PptxImageProperties.imagePath`/`imageData`'s pair), so there is no
-	 * lazy-load patch target for it yet. A load pipeline that wants this case
-	 * resolved must either pass `eagerDecodeImages: true`, or extend the
-	 * loader's image-path collector to also walk `GroupPptxElement.groupFill`.
-	 */
-	private async resolveGroupFillImage(
-		blipFill: XmlObject | undefined,
-		slidePath: string,
-	): Promise<{ fillImageUrl: string; fillImageMode: 'stretch' | 'tile' } | undefined> {
-		const blip = blipFill?.['a:blip'] as XmlObject | undefined;
-		const rEmbed = blip?.['@_r:embed'] ? String(blip['@_r:embed']) : undefined;
-		const rLink = blip?.['@_r:link'] ? String(blip['@_r:link']) : undefined;
-		const relId = rEmbed || rLink;
-		if (!relId) {
-			return undefined;
-		}
-		const target = this.slideRelsMap.get(slidePath)?.get(relId);
-		if (!target) {
-			return undefined;
-		}
-		const fillImageMode = blipFill?.['a:tile'] !== undefined ? 'tile' : 'stretch';
-		if (target.startsWith('http://') || target.startsWith('https://')) {
-			return this.allowExternalImages === true
-				? { fillImageUrl: target, fillImageMode }
-				: undefined;
-		}
-		if (target.startsWith('data:')) {
-			return { fillImageUrl: target, fillImageMode };
-		}
-		const imagePath = this.resolveImagePath(slidePath, target);
-		if (!imagePath) {
-			return undefined;
-		}
-		if (this.eagerDecodeImages) {
-			const imageData = await this.getImageData(imagePath);
-			if (imageData) {
-				return { fillImageUrl: imageData, fillImageMode };
-			}
-		}
-		return { fillImageUrl: imagePath, fillImageMode };
 	}
 
 	/**
@@ -326,7 +140,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// `fillMode` claimed 'image'.
 		if (grpFillStyle?.fillMode === 'image' && grpSpPr) {
 			const blipFill = grpSpPr['a:blipFill'] as XmlObject | undefined;
-			const imageFill = await this.resolveGroupFillImage(blipFill, slidePath);
+			const imageFill = await resolveGroupFillImagePure(
+				this as unknown as GroupFillImageHost,
+				blipFill,
+				slidePath,
+			);
 			if (imageFill) {
 				grpFillStyle.fillImageUrl = imageFill.fillImageUrl;
 				grpFillStyle.fillImageMode = imageFill.fillImageMode;
@@ -345,11 +163,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// {@link applyGroupFillInheritance}); pushing the group-mode style down
 		// here would just re-stamp `fillMode: 'group'` on the leaves.
 		if (hasGroupFill && grpFillStyle.fillMode !== 'group') {
-			this.applyGroupFillInheritance(children, grpFillStyle);
+			applyGroupFillInheritance(children, grpFillStyle);
 		}
 
 		if (raw.rotation || raw.flipHorizontal || raw.flipVertical) {
-			this.applyAncestorGroupTextTransform(
+			applyAncestorGroupTextTransform(
 				children,
 				getElementOrientationMatrix({
 					rotation: raw.rotation,
@@ -359,10 +177,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 
-		// Convert children to group-relative coordinates
+		// Convert children to group-relative coordinates.
+		//
+		// Subtracts the UNROUNDED `raw.parentX`/`raw.parentY`, not the rounded
+		// `parentX`/`parentY` computed above for the group's OWN `x`/`y` field.
+		// `parseGroupShape` (called just above) already placed every child via
+		// `transformGroupChild`, which adds the group's UNROUNDED `parentX`/
+		// `parentY` (freshly read via its own `readGroupTransform` call) as the
+		// translation term. Subtracting the ROUNDED value here instead leaves a
+		// residual of up to +/-0.5px baked into every child's relative
+		// coordinate (`unrounded - rounded`), invisible at render time (the
+		// group's own rounded position and the residual cancel back out to the
+		// exact original absolute pixel value when composited), but it breaks
+		// the invariant `group-xfrm-preservation.ts`'s `isGroupChildUnchanged`
+		// depends on: that "the value subtracted from a child IS `group.x`".
+		// The residual is usually small enough not to cross a rounding
+		// boundary, but a compounding one (e.g. a `p:grpSp` nested inside this
+		// group, whose OWN relativization runs the same arithmetic on top of
+		// this group's residual) can cross it, permanently defeating
+		// byte-identical save for that nested group's children even though
+		// nothing moved. See `xfrm-emu-precision-roundtrip.test.ts`'s
+		// "nested/scaled groups" describe block.
 		for (const child of children) {
-			child.x -= parentX;
-			child.y -= parentY;
+			child.x -= raw.parentX;
+			child.y -= raw.parentY;
 		}
 
 		const grpCNvPr = (group?.['p:nvGrpSpPr'] as XmlObject | undefined)?.['p:cNvPr'] as
@@ -395,6 +233,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			y: parentY,
 			width: parentW || Math.max(...children.map((c) => c.x + c.width)),
 			height: parentH || Math.max(...children.map((c) => c.y + c.height)),
+			// Exact EMU for `resolveXfrmEmu` (xfrm-emu-resolution.ts) to re-emit
+			// byte-identical on save for an unmoved/unresized TOP-LEVEL group.
+			// `width`/`height` fall back to a computed bounding box when the
+			// group carries no usable `a:ext` (`parentW`/`parentH` are 0), in
+			// which case there is no exact source EMU either.
+			//
+			// A NESTED group (depth > 0) is also a "child" of its ancestor: its
+			// x/y/width/height get rebased by `transformGroupChild` just like a
+			// leaf shape's, so this value legitimately fails `resolveXfrmEmu`'s
+			// equality check whenever the ancestor uses PowerPoint's common
+			// `a:chOff == a:off` ("children keep slide-absolute coordinates")
+			// authoring convention -- see `applyRawChildGeometry`'s comment and
+			// `xfrm-emu-precision-roundtrip.test.ts`'s module doc.
+			xEmu: raw.parentXEmu,
+			yEmu: raw.parentYEmu,
+			widthEmu: parentW ? raw.parentWEmu : undefined,
+			heightEmu: parentH ? raw.parentHEmu : undefined,
+			// Exact EMU for the group's own `a:chOff`/`a:chExt` (the CHILDREN's
+			// coordinate space), for `group-xfrm-preservation.ts` to decide
+			// whether an unmodified group can re-emit its original child space
+			// byte-identical instead of the normalized `chOff 0,0` / `chExt ==
+			// ext` space `save-group-shape-xml.ts` falls back to. `chExtWidthEmu`/
+			// `chExtHeightEmu` are gated on `chW`/`chH` (mirroring the
+			// `widthEmu`/`heightEmu` gate above) since a zero `chExt` has no real
+			// source ext to re-emit either.
+			chOffXEmu: raw.chOffXEmu,
+			chOffYEmu: raw.chOffYEmu,
+			chExtWidthEmu: raw.chW > 0 ? raw.chExtWEmu : undefined,
+			chExtHeightEmu: raw.chH > 0 ? raw.chExtHEmu : undefined,
 			// Group-level rotation/flip live on `p:grpSpPr/a:xfrm` and must be
 			// carried onto the GroupPptxElement so the renderer can wrap the
 			// whole group in a single rotate/flip transform (issue #70).
@@ -406,6 +273,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			actionClick: grpActionClick,
 			actionHover: grpActionHover,
 			groupFill: hasGroupFill ? grpFillStyle : undefined,
+			// The SAME `extractShapeStyle` result as `groupFill`, but kept whenever
+			// `p:grpSpPr` exists at all, regardless of whether it resolved to a
+			// paintable fill. `groupFill` is gated on `hasGroupFill` because
+			// `getGroupChildParentFill`/`groupChildInheritedFill` (the `a:grpFill`
+			// inheritance chain) must keep chaining through an ancestor's fill
+			// when THIS group has none of its own - a group whose `p:grpSpPr`
+			// authors only `a:effectLst/a:reflection` (no fill) still needs that
+			// reflection to reach the renderer (`getComputedEffectStyle` reads
+			// this field, never `groupFill`, for exactly that reason), but must
+			// not be mistaken for "this group has a fill to hand down".
+			groupEffectStyle: grpFillStyle,
 			locks: grpLocks,
 		};
 

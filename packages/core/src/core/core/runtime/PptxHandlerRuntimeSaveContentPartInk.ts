@@ -5,6 +5,8 @@ import type {
 	XmlObject,
 } from '../../types';
 import { buildInkMlContent, parseInkMlContent } from '../../utils';
+import { tiltChannelsFromXY } from '../../utils/inkml-trace-decode';
+import { resolveXfrmEmu } from '../../utils/xfrm-emu-resolution';
 import { ensureXmlChildOrCreate } from '../../utils/xml-access';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveModel3D';
@@ -39,9 +41,31 @@ function strokeListsEqual(
 			stroke.color === other.color &&
 			stroke.width === other.width &&
 			stroke.opacity === other.opacity &&
-			(stroke.pressures ?? []).length === (other.pressures ?? []).length
+			(stroke.pressures ?? []).length === (other.pressures ?? []).length &&
+			(stroke.tiltAngles ?? []).length === (other.tiltAngles ?? []).length
 		);
 	});
+}
+
+/**
+ * Convert an `InkPptxElement` path's raw per-point `tiltX`/`tiltY` (degrees,
+ * from `PointerEvent.tiltX`/`tiltY`) into the `{angles, magnitudes}` shape
+ * `ContentPartInkStroke` (and the InkML writer's `OTx`/`OTy` authoring) both
+ * expect, or `undefined` when the path has no tilt data at all. Shares the
+ * exact vector-to-angle/magnitude convention the InkML reader's
+ * `pointsToTilt` uses, via `tiltChannelsFromXY`.
+ */
+function tiltChannelsForPath(
+	el: InkPptxElement,
+	index: number,
+): { tiltAngles: number[]; tiltMagnitudes: number[] } | undefined {
+	const tiltX = el.inkPointTiltX?.[index];
+	const tiltY = el.inkPointTiltY?.[index];
+	if (!tiltX?.length || !tiltY?.length) {
+		return undefined;
+	}
+	const tilt = tiltChannelsFromXY(tiltX, tiltY);
+	return tilt ? { tiltAngles: tilt.angles, tiltMagnitudes: tilt.magnitudes } : undefined;
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -75,6 +99,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					...(el.inkPointPressures?.[index]?.length
 						? { pressures: el.inkPointPressures[index] }
 						: {}),
+					...(tiltChannelsForPath(el, index) ?? {}),
 				},
 			];
 		});
@@ -227,13 +252,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const emu = PptxHandlerRuntime.EMU_PER_PX;
 		const xfrmKey = Object.hasOwn(shape, 'p:xfrm') ? 'p:xfrm' : 'p14:xfrm';
 		const transform = ensureXmlChildOrCreate(shape, xfrmKey);
+		const width = Math.max(el.width, 1);
+		const height = Math.max(el.height, 1);
 		transform['a:off'] = {
-			'@_x': String(Math.round(el.x * emu)),
-			'@_y': String(Math.round(el.y * emu)),
+			'@_x': String(resolveXfrmEmu(el.x, el.xEmu, emu)),
+			'@_y': String(resolveXfrmEmu(el.y, el.yEmu, emu)),
 		};
 		transform['a:ext'] = {
-			'@_cx': String(Math.round(Math.max(el.width, 1) * emu)),
-			'@_cy': String(Math.round(Math.max(el.height, 1) * emu)),
+			'@_cx': String(resolveXfrmEmu(width, el.widthEmu, emu)),
+			'@_cy': String(resolveXfrmEmu(height, el.heightEmu, emu)),
 		};
 	}
 

@@ -184,6 +184,17 @@ export interface TiltChannels {
 	angles: number[];
 	/** Lean strength at each point, 0 (upright) to 1 (maximally leaned). */
 	magnitudes: number[];
+	/**
+	 * Which channel pair the source trace actually declared: the InkML-
+	 * conventional `OTx`/`OTy` (or `tiltX`/`tiltY`) vector pair, or
+	 * `AZIMUTH`/`ALTITUDE`. Recorded so a save that has to rewrite this part
+	 * (see `inkml-content-part-writer.ts`) can re-declare the SAME channel
+	 * pair instead of silently converting every re-saved stroke to `OTx`/`OTy`;
+	 * the angle/magnitude values themselves are already a lossless decode of
+	 * either encoding, so this field only affects which channel NAMES get
+	 * written back, not the rendered lean.
+	 */
+	encoding: 'vector' | 'azimuthAltitude';
 }
 
 /**
@@ -237,11 +248,40 @@ function tiltFromVector(
 	xIndex: number,
 	yIndex: number,
 ): TiltChannels | undefined {
+	const oxs: number[] = [];
+	const oys: number[] = [];
+	for (const point of points) {
+		oxs.push(point[xIndex]);
+		oys.push(point[yIndex]);
+	}
+	return tiltChannelsFromXY(oxs, oys);
+}
+
+/**
+ * Derive per-point angle (radians) + magnitude (0-1, normalised against the
+ * largest magnitude anywhere in `oxs`/`oys`) from parallel tilt-offset vector
+ * arrays. Non-finite pairs are dropped (not zero-filled), matching
+ * {@link tiltFromVector}'s original point-filtering behaviour.
+ *
+ * This is the shared core of {@link tiltFromVector} (InkML `OTx`/`OTy`
+ * channel decode) and of the InkML writer's inverse mapping in
+ * `inkml-content-part.ts` (`tiltOffsetAt`): both need the exact same
+ * vector<->angle/magnitude convention so a written value reads back to the
+ * same angle/magnitude. It is also mirrored (small, dependency-free, no
+ * shared code to import across the core/shared package boundary) as
+ * `tiltChannelsFromVectors` in `pptx-viewer-shared`'s `render/ink-tilt-nib.ts`
+ * for the Draw tool's own live-captured `tiltX`/`tiltY` degrees.
+ */
+export function tiltChannelsFromXY(
+	oxs: readonly number[],
+	oys: readonly number[],
+): TiltChannels | undefined {
 	const angles: number[] = [];
 	const rawMagnitudes: number[] = [];
-	for (const point of points) {
-		const ox = point[xIndex];
-		const oy = point[yIndex];
+	const len = Math.min(oxs.length, oys.length);
+	for (let i = 0; i < len; i++) {
+		const ox = oxs[i];
+		const oy = oys[i];
 		if (!Number.isFinite(ox) || !Number.isFinite(oy)) {
 			continue;
 		}
@@ -253,7 +293,7 @@ function tiltFromVector(
 	}
 	const max = Math.max(0, ...rawMagnitudes);
 	const magnitudes = rawMagnitudes.map((m) => (max > 0 ? Math.min(1, m / max) : 0));
-	return { angles, magnitudes };
+	return { angles, magnitudes, encoding: 'vector' };
 }
 
 /** Derive angle + magnitude from AZIMUTH (required) and ALTITUDE (optional), both in degrees. */
@@ -278,7 +318,7 @@ function tiltFromAzimuthAltitude(
 	if (angles.length === 0) {
 		return undefined;
 	}
-	return { angles, magnitudes };
+	return { angles, magnitudes, encoding: 'azimuthAltitude' };
 }
 
 /** Read a child value by local element name, ignoring any XML namespace prefix. */

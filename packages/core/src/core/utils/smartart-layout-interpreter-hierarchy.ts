@@ -5,27 +5,51 @@
  * `presLayoutVars` (`dgm:presLayoutVars`/`dgm:varLst`) for every hint it
  * carries:
  *
- *   - `hierBranch` (`std`/`init`/`hang`/`l`/`r`): each value now produces a
- *     genuinely distinct arrangement - see `smartart-hierarchy-standard.ts`
- *     (`std`/`init`) and `smartart-hierarchy-hanging.ts` (`hang`/`l`/`r`, and
- *     `init`'s tail past the root's own children).
+ *   - `hierBranch` (`std`/`init`/`hang`/`l`/`r`): the root's OWN direct
+ *     children ALWAYS fan out via the standard branch, whatever `hierBranch`
+ *     says - measured against four genuine PowerPoint org charts
+ *     (`smartart-orgchart-hierbranch.pptx` in the corpus, one slide per
+ *     `SmartArtNode.OrgChartLayout` value): the manager's direct reports stay
+ *     in one fanned row for Standard, Both Hanging, Left Hanging AND Right
+ *     Hanging alike. What `hierBranch` actually changes is everything past
+ *     that first generation, and only for `init`/`hang`/`l`/`r`: literal `std`
+ *     installs no tail at all (every generation fans), matching base
+ *     ECMA-376; this is likely never reachable from real PowerPoint output
+ *     (see `smartart-pres-layout-vars.ts`'s module doc comment: an unset root
+ *     `hierBranch` resolves to `init`, not `std`), but hand-built layoutDefs
+ *     can still request it explicitly. `init`/`hang`/`l`/`r` all hang the tail
+ *     the SAME direction and never alternate per sibling: despite the
+ *     "Left"/"Both Hanging" naming, genuine PowerPoint output measured across
+ *     all four variants (plus a third-generation case in
+ *     `smartart-orgchart-nested-hang.pptx`) shows an identical offset every
+ *     time - see `HIER_TAIL_OFFSET_RATIO`'s doc comment in
+ *     `smartart-hierarchy-shared.ts` and `placeHangingTree`'s doc comment in
+ *     `smartart-hierarchy-hanging.ts`. Each hanging hop (including the FIRST
+ *     one out of the fanned generation) offsets by that measured ratio of the
+ *     box width, modelling the layoutDef's own `hierAlign`/`alignOff`
+ *     root-box alignment (previously unmodelled: the first hop rendered flush
+ *     with its parent, a visible divergence from PowerPoint).
  *   - `orgChart`: when set, `dgm:pt/@type="asst"` assistant nodes render in a
  *     dedicated row/slot next to their manager instead of fanning out as an
  *     ordinary subordinate.
- *   - `chMax`/`chPref`: bound and hint how many ordinary children share one
- *     row before wrapping to the next (standard branch only; a hanging column
- *     has no "row" to wrap).
+ *   - `chMax`/`chPref`: group ordinary children exceeding this size into that
+ *     many side-by-side hanging COLUMNS instead of one fanned row (standard
+ *     branch only; a hanging column has no "row" to group). See
+ *     `smartart-hierarchy-standard.ts`'s `placeWrappedChildren`.
  *
  * When `presLayoutVars.hierBranch` is ABSENT (a hand-authored/non-Office
- * layoutDef that never sets it), orientation falls back to the algorithm's
- * OWN `linDir` param (`dgm:alg[@type=hierChild]/dgm:param[@type=linDir]`),
- * per base ECMA-376 - `fromL`/`fromR` select a hanging tree growing away from
- * that edge, matching `hierBranch="r"`/`"l"`. `fromT` (top-down, the default)
- * needs no fallback: it already IS the standard branch's own layout.
- * `fromB` (bottom-up) and `secLinDir`/`chAlign` are not modelled - they would
- * need restructuring `placeStandardTree`'s row layout to flip vertically /
- * control cross-axis alignment, out of scope for this fallback (Office-authored
- * layouts always set `presLayoutVars`, so this only affects non-Office content).
+ * layoutDef that never sets it, and never sets `orgChart` either - see below),
+ * orientation falls back to the algorithm's OWN `linDir` param
+ * (`dgm:alg[@type=hierChild]/dgm:param[@type=linDir]`), per base ECMA-376 -
+ * `fromL`/`fromR` select a FULL hanging tree (from the root's own children
+ * down), matching `hierBranch="r"`/`"l"`'s pre-measurement behaviour, because
+ * there is no org-chart-family structure here to say otherwise. `fromT`
+ * (top-down, the default) needs no fallback: it already IS the standard
+ * branch's own layout. `fromB` (bottom-up) and `secLinDir`/`chAlign` are not
+ * modelled - they would need restructuring `placeStandardTree`'s row layout to
+ * flip vertically / control cross-axis alignment, out of scope for this
+ * fallback (Office-authored layouts always set `presLayoutVars`, so this only
+ * affects non-Office content).
  *
  * Pure geometry; no framework code, no DOM.
  */
@@ -37,9 +61,14 @@ import type {
 	SmartArtStyle,
 } from '../types';
 import { buildTree, treeDepth } from './smartart-helpers';
-import { placeHangingForest, placeHangingTree } from './smartart-hierarchy-hanging';
-import type { HangDirection, HangingCursor } from './smartart-hierarchy-hanging';
-import { baseContext, effectiveWidth } from './smartart-hierarchy-shared';
+import { placeHangingForest } from './smartart-hierarchy-hanging';
+import type { HangDirection } from './smartart-hierarchy-hanging';
+import {
+	baseContext,
+	effectiveWidth,
+	flattenOrgChartGroupWrappers,
+	HIER_TAIL_OFFSET_RATIO,
+} from './smartart-hierarchy-shared';
 import { placeStandardTree } from './smartart-hierarchy-standard';
 import type { StandardOptions } from './smartart-hierarchy-standard';
 import { algorithmParam } from './smartart-layout-interpreter-model';
@@ -51,10 +80,18 @@ import type {
 } from './smartart-layout-types';
 
 const INSET = 6;
-/** Hanging direction used for `init`'s post-root-level generations. */
-const INIT_TAIL_DIRECTION: HangDirection = 'right';
 
-type BranchMode = 'std' | 'init' | 'hanging';
+/**
+ * `std`: literal ECMA-376 standard branch, no hanging tail anywhere (every
+ *        generation fans). Reachable only from an explicit hand-built
+ *        `hierarchyBranch: 'std'` - see the module doc comment.
+ * `tailed`: the root's own children fan out (same as `std`), but every
+ *        deeper generation hangs. Selected by `init`/`hang`/`l`/`r`.
+ * `hanging`: the WHOLE tree hangs, including the root's own children. Only
+ *        reached via the `linDir` fallback (no `presLayoutVars.hierBranch` at
+ *        all) - see the module doc comment.
+ */
+type BranchMode = 'std' | 'tailed' | 'hanging';
 
 /** `linDir` values that select a hanging tree when `hierBranch` is absent. */
 function isHangingLinDir(linDir: string | undefined): boolean {
@@ -66,11 +103,8 @@ function branchMode(
 	linDir: string | undefined,
 ): BranchMode {
 	const branch = presLayoutVars?.hierarchyBranch;
-	if (branch === 'l' || branch === 'r' || branch === 'hang') {
-		return 'hanging';
-	}
-	if (branch === 'init') {
-		return 'init';
+	if (branch === 'l' || branch === 'r' || branch === 'hang' || branch === 'init') {
+		return 'tailed';
 	}
 	if (branch === undefined && isHangingLinDir(linDir)) {
 		return 'hanging';
@@ -78,24 +112,26 @@ function branchMode(
 	return 'std';
 }
 
-function hangDirection(
-	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
-	linDir: string | undefined,
-): HangDirection {
-	switch (presLayoutVars?.hierarchyBranch) {
-		case 'l':
-			return 'left';
-		case 'hang':
-			return 'alternate';
-		case 'r':
-			return 'right';
-		default:
-			// Reached only via the `linDir` fallback in `branchMode` (no explicit
-			// `hierBranch`), so `linDir` is `fromL`/`fromR` here: `fromR` grows the
-			// tree leftward (children lead away from the right edge), `fromL`
-			// grows it rightward.
-			return linDir === 'fromR' ? 'left' : 'right';
-	}
+/**
+ * Tail direction for `tailed` mode (the root's own children are unaffected).
+ *
+ * `l`/`hang`/`r`/`init` all measure identically as 'right' against genuine
+ * PowerPoint output - see the module doc comment and `HIER_TAIL_OFFSET_RATIO`
+ * in `smartart-hierarchy-shared.ts`. Kept as a function (rather than a bare
+ * constant) so a future genuine-fixture measurement that DOES find a real
+ * per-branch difference has a single place to encode it.
+ */
+function tailDirection(_presLayoutVars: PptxSmartArtPresLayoutVars | undefined): HangDirection {
+	return 'right';
+}
+
+/**
+ * Direction for `hanging` mode, reached ONLY via the `linDir` fallback (no
+ * `presLayoutVars.hierBranch` at all): `fromR` grows the tree leftward
+ * (children lead away from the right edge), `fromL` grows it rightward.
+ */
+function linDirHangDirection(linDir: string | undefined): HangDirection {
+	return linDir === 'fromR' ? 'left' : 'right';
 }
 
 /** Resolve `chPref`/`chMax` into one per-row size (`Infinity` = unbounded). */
@@ -123,8 +159,11 @@ export function arrangeHierarchy(
 	algorithmNode?: PptxSmartArtLayoutNode,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
-	const roots = buildTree(nodes);
 	const orgChart = presLayoutVars?.orgChart === true;
+	// See `flattenOrgChartGroupWrappers`'s doc comment: genuine org charts nest
+	// ordinary reports one level under invisible, untyped, empty "group"
+	// content points rather than attaching them to the manager directly.
+	const roots = buildTree(flattenOrgChartGroupWrappers(nodes, orgChart));
 	// Only consulted when `presLayoutVars.hierBranch` is absent - see the module
 	// doc comment and `branchMode`/`hangDirection`.
 	const linDir = algorithmNode ? algorithmParam(algorithmNode, 'linDir') : undefined;
@@ -138,7 +177,7 @@ export function arrangeHierarchy(
 		const hc = baseContext(nodes.length, elementId, palette, style, boxW, boxH, connectorLabels);
 		placeHangingForest(hc, roots, INSET + indent, INSET, {
 			orgChart,
-			direction: hangDirection(presLayoutVars, linDir),
+			direction: linDirHangDirection(linDir),
 			indent,
 			vGap,
 		});
@@ -154,23 +193,21 @@ export function arrangeHierarchy(
 	const hc = baseContext(nodes.length, elementId, palette, style, boxW, boxH, connectorLabels);
 
 	const standardOptions: StandardOptions = { orgChart, perRow: resolveRowSize(presLayoutVars) };
-	if (mode === 'init') {
-		const indent = boxW * 0.35;
+	if (mode === 'tailed') {
+		// Measured ratio (`HIER_TAIL_OFFSET_RATIO`), not the unrelated 0.35 used
+		// by the `linDir`-only `hanging` mode above: this is the org-chart-family
+		// `hierAlign`/`alignOff` root-box offset, and genuine PowerPoint output
+		// pins it at exactly 0.25x the box width - see the constant's doc comment.
+		const indent = boxW * HIER_TAIL_OFFSET_RATIO;
 		const vGap = boxH * 0.55;
-		standardOptions.hangingPlacer = (childHc, subtree, anchorX, anchorY) => {
-			const cursor: HangingCursor = { y: anchorY };
-			placeHangingTree(
-				childHc,
-				subtree,
-				anchorX,
-				{
-					orgChart,
-					direction: INIT_TAIL_DIRECTION,
-					indent,
-					vGap,
-				},
-				cursor,
-			);
+		const direction = tailDirection(presLayoutVars);
+		standardOptions.hangingPlacer = (childHc, subtrees, anchorX, anchorY) => {
+			placeHangingForest(childHc, subtrees, anchorX, anchorY, {
+				orgChart,
+				direction,
+				indent,
+				vGap,
+			});
 		};
 	}
 

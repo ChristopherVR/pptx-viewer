@@ -84,6 +84,29 @@ export interface PptxElementBase {
 	y: number;
 	width: number;
 	height: number;
+	/**
+	 * The exact EMU integer `x` was parsed from (the `a:off/@_x` this
+	 * element's own `a:xfrm` carried on load), when the parser could resolve
+	 * one. `x` itself is always `Math.round(xEmu / EMU_PER_PX)` at parse
+	 * time, but that rounding is lossy: re-deriving EMU from `x` on save
+	 * (`Math.round(x * EMU_PER_PX)`) can drift from the original value by up
+	 * to half a pixel's worth of EMU on every load/save cycle even when
+	 * nothing touched this element. Kept alongside `x` (not instead of it) so
+	 * every consumer that only cares about on-screen position is unaffected;
+	 * only the save-side xfrm writer (`resolveXfrmEmu` in
+	 * `xfrm-emu-resolution.ts`) reads this, and only when `x` still equals
+	 * `Math.round(xEmu / EMU_PER_PX)` (i.e. nothing moved this element since
+	 * load) does it re-emit `xEmu` verbatim instead of re-quantizing `x`.
+	 * `undefined` for an SDK-created element or one whose transform could not
+	 * be resolved to a usable `a:off` on load.
+	 */
+	xEmu?: number;
+	/** The exact EMU integer `y` was parsed from (`a:off/@_y`). See {@link xEmu}. */
+	yEmu?: number;
+	/** The exact EMU integer `width` was parsed from (`a:ext/@_cx`). See {@link xEmu}. */
+	widthEmu?: number;
+	/** The exact EMU integer `height` was parsed from (`a:ext/@_cy`). See {@link xEmu}. */
+	heightEmu?: number;
 	rotation?: number;
 	/** Skew along the X axis in degrees (parsed from `@_skewX` in 1/60000ths of a degree). */
 	skewX?: number;

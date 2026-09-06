@@ -3,7 +3,37 @@
  *
  * PowerPoint's "read-only recommended" / "modify password" feature stores
  * a password hash in `p:modifyVerifier` within `presentation.xml`. This
- * module implements the hash verification algorithm from ECMA-376.
+ * module implements the hash verification algorithm from ECMA-376:
+ *
+ *   H0 = SHA(salt + password_utf16le)
+ *   Hn = SHA(Hn-1 + iterator_le32), for iterator = 0 .. spinCount-1
+ *
+ * The iteration step's byte order (previous hash FIRST, iterator counter
+ * SECOND) was verified against a `.pptx` produced by real PowerPoint (COM
+ * `Presentation.WritePassword`, `p:modifyVerifier/@cryptAlgorithmSid="14"`,
+ * i.e. SHA-512): the reverse order, which an earlier version of this module
+ * used, only ever passed its own round-trip tests (`createModifyVerifier`
+ * piped straight back into `verifyModifyPassword`) and could never verify an
+ * actual PowerPoint-authored password.
+ *
+ * Every hash algorithm ECMA-376 19.2.1.22 / [MS-OFFCRYPTO] permits a
+ * verifier to name is checkable: SHA-1/256/384/512 via Web Crypto, and
+ * MD2, MD4, MD5, RIPEMD-128, RIPEMD-160 and WHIRLPOOL via the pure
+ * TypeScript implementations in `./digests` (Web Crypto never implemented
+ * any of those). See `./digests/algorithm-names.ts` for name normalisation
+ * and `./digests/digest.ts` for the dispatcher.
+ *
+ * A verifier real PowerPoint writes always carries `saltData`: COM
+ * automation (`Presentation.WritePassword = "x"` then `SaveAs`) was used to
+ * confirm this for the legacy `cryptAlgorithmSid` form (the only form that
+ * omits `algorithmName`), and it produced
+ * `cryptAlgorithmSid="14" ... saltData="..." hashData="..."` - never a
+ * salt-less verifier. A `p:modifyVerifier` with no `saltData` is therefore
+ * not a shape real PowerPoint produces; this module makes no attempt to
+ * guess a default (such as treating a missing salt as empty), since doing
+ * so would fabricate a check for a case nothing in the wild exercises. Such
+ * a verifier still falls back to the unconditional "Edit anyway" every
+ * other unrecognisable verifier gets.
  *
  * @see ECMA-376 Part 1, Section 19.2.1.22 (modifyVerifier)
  * @see [MS-OFFCRYPTO] Section 2.3.7.1 (Password Verifier Generation)
@@ -12,6 +42,65 @@
  */
 
 import type { PptxModifyVerifier } from '../types';
+import type { DigestAlgorithmName } from './digests';
+import { digest, normalizeDigestAlgorithmName } from './digests';
+
+// ---------------------------------------------------------------------------
+// Legacy CryptoAPI algorithm identification
+// ---------------------------------------------------------------------------
+
+/**
+ * Legacy CryptoAPI `ALG_SID_*` hash constants (from `wincrypt.h`), as used by
+ * `p:modifyVerifier/@cryptAlgorithmSid` when the verifier identifies its hash
+ * algorithm through the CAPI provider/class/type/sid quartet instead of a
+ * named `algorithmName` (or legacy `algIdExt`) attribute.
+ *
+ * This is not a theoretical alternate encoding: PowerPoint's own "Set
+ * Password to Modify" (`Presentation.WritePassword` via COM, and the
+ * File > Info > Protect Presentation UI) writes EXACTLY this form -
+ * `cryptAlgorithmSid="14" cryptAlgorithmClass="hash" cryptAlgorithmType="typeAny"`
+ * with no `algorithmName` attribute at all. Without this mapping, a real
+ * PowerPoint-authored modify password could never be verified by this
+ * module; only a verifier this codebase itself wrote (`createModifyVerifier`,
+ * which always sets `algorithmName`) would work.
+ *
+ * @see [MS-OFFCRYPTO] 2.1.3 (password verifier), ECMA-376 Part 1 19.2.1.22
+ */
+const CRYPT_ALGORITHM_SID_NAMES: Readonly<Record<number, DigestAlgorithmName>> = {
+	1: 'MD2',
+	2: 'MD4',
+	3: 'MD5',
+	4: 'SHA-1',
+	12: 'SHA-256',
+	13: 'SHA-384',
+	14: 'SHA-512',
+};
+
+/**
+ * Resolve a `p:modifyVerifier`'s effective hash algorithm name, preferring an
+ * explicit `algorithmName` (or legacy `algIdExt`) and falling back to the
+ * `cryptAlgorithmSid` CAPI identifier PowerPoint itself writes. The result is
+ * always normalised (see `./digests/algorithm-names.ts`), so a caller never
+ * has to separately handle `"SHA1"` vs `"SHA-1"` vs `"sha-1"`.
+ *
+ * Returns undefined when none of these resolve to a known algorithm (e.g. an
+ * unrecognised `cryptAlgorithmSid`, or an `algorithmName` this viewer does
+ * not implement), in which case the verifier cannot be checked here.
+ */
+export function resolveModifyVerifierAlgorithmName(
+	verifier: Pick<PptxModifyVerifier, 'algorithmName' | 'algIdExt' | 'cryptAlgorithmSid'>,
+): DigestAlgorithmName | undefined {
+	if (verifier.algorithmName) {
+		return normalizeDigestAlgorithmName(verifier.algorithmName);
+	}
+	if (verifier.algIdExt) {
+		return normalizeDigestAlgorithmName(verifier.algIdExt);
+	}
+	if (verifier.cryptAlgorithmSid !== undefined) {
+		return CRYPT_ALGORITHM_SID_NAMES[verifier.cryptAlgorithmSid];
+	}
+	return undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,38 +166,6 @@ function base64Encode(bytes: Uint8Array): string {
 	return btoa(binary);
 }
 
-/** Map OOXML hash algorithm names to Web Crypto names. */
-function mapHashAlgorithm(name: string): string {
-	const upper = name.toUpperCase().replace(/-/g, '');
-	switch (upper) {
-		case 'SHA1':
-			return 'SHA-1';
-		case 'SHA256':
-			return 'SHA-256';
-		case 'SHA384':
-			return 'SHA-384';
-		case 'SHA512':
-			return 'SHA-512';
-		default:
-			return name;
-	}
-}
-
-/** Get crypto.subtle. */
-function getSubtle(): SubtleCrypto {
-	if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.subtle) {
-		return globalThis.crypto.subtle;
-	}
-	throw new Error('Web Crypto API is required for modify password verification.');
-}
-
-/** Hash data using specified algorithm. */
-async function hashDigest(algorithm: string, data: Uint8Array): Promise<Uint8Array> {
-	const subtle = getSubtle();
-	const result = await subtle.digest(mapHashAlgorithm(algorithm), data as unknown as BufferSource);
-	return new Uint8Array(result);
-}
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -123,6 +180,10 @@ async function hashDigest(algorithm: string, data: Uint8Array): Promise<Uint8Arr
  * 2. For i = 0..spinCount-1: Hi = H(i_le32 + Hi-1)
  * 3. Compare Hfinal with the stored hash.
  *
+ * The hash algorithm is resolved via {@link resolveModifyVerifierAlgorithmName}:
+ * an explicit `algorithmName`/`algIdExt`, or (the form PowerPoint itself
+ * writes) `cryptAlgorithmSid`.
+ *
  * @param verifier - The parsed `PptxModifyVerifier` from the presentation.
  * @param password - The password to check.
  * @returns True if the password matches.
@@ -131,23 +192,28 @@ export async function verifyModifyPassword(
 	verifier: PptxModifyVerifier,
 	password: string,
 ): Promise<boolean> {
-	if (!verifier.algorithmName || !verifier.hashData || !verifier.saltData) {
+	const algorithm = resolveModifyVerifierAlgorithmName(verifier);
+	if (!algorithm || !verifier.hashData || !verifier.saltData) {
 		return false;
 	}
 
 	const salt = base64Decode(verifier.saltData);
 	const expectedHash = base64Decode(verifier.hashData);
 	const spinCount = verifier.spinValue ?? 100000;
-	const algorithm = verifier.algorithmName;
 
 	const passwordBytes = encodeUtf16LE(password);
 
 	// H0 = H(salt + password)
-	let h = await hashDigest(algorithm, concat(salt, passwordBytes));
+	let h = await digest(algorithm, concat(salt, passwordBytes));
 
-	// Iterate: Hn = H(iterator_le32 + Hn-1)
+	// Iterate: Hn = H(Hn-1 + iterator_le32). Verified against a REAL
+	// PowerPoint-authored `p:modifyVerifier` (COM `Presentation.WritePassword`):
+	// the iterator comes AFTER the previous hash, not before it, despite this
+	// module's own docstring (and every earlier version of this function)
+	// describing it the other way around; that description was never checked
+	// against an actual PowerPoint file, only against itself.
 	for (let i = 0; i < spinCount; i++) {
-		h = await hashDigest(algorithm, concat(uint32LE(i), h));
+		h = await digest(algorithm, concat(h, uint32LE(i)));
 	}
 
 	// Compare
@@ -187,7 +253,11 @@ export async function createModifyVerifier(
 		spinCount?: number;
 	},
 ): Promise<PptxModifyVerifier> {
-	const algorithm = options?.algorithmName ?? 'SHA-512';
+	const requestedAlgorithm = options?.algorithmName ?? 'SHA-512';
+	const algorithm = normalizeDigestAlgorithmName(requestedAlgorithm);
+	if (!algorithm) {
+		throw new Error(`Unsupported modify-verifier hash algorithm: ${requestedAlgorithm}`);
+	}
 	const spinCount = options?.spinCount ?? 100000;
 
 	// Generate random salt
@@ -204,11 +274,12 @@ export async function createModifyVerifier(
 	const passwordBytes = encodeUtf16LE(password);
 
 	// H0 = H(salt + password)
-	let h = await hashDigest(algorithm, concat(salt, passwordBytes));
+	let h = await digest(algorithm, concat(salt, passwordBytes));
 
-	// Iterate: Hn = H(iterator_le32 + Hn-1)
+	// Iterate: Hn = H(Hn-1 + iterator_le32); see the matching note in
+	// `verifyModifyPassword` above.
 	for (let i = 0; i < spinCount; i++) {
-		h = await hashDigest(algorithm, concat(uint32LE(i), h));
+		h = await digest(algorithm, concat(h, uint32LE(i)));
 	}
 
 	return {

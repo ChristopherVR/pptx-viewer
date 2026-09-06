@@ -103,6 +103,78 @@ describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
 		}
 	});
 
+	it('authors Draw-tab pen-tilt as InkML OTx/OTy and reloads it into tiltAngles/tiltMagnitudes', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const ink: InkPptxElement = {
+			id: 'authored-tilt-ink',
+			type: 'ink',
+			x: 10,
+			y: 20,
+			width: 200,
+			height: 100,
+			inkPaths: ['M0,0 L50,0 L100,0'],
+			inkColors: ['#112233'],
+			inkWidths: [2.5],
+			// A pen leaned fully along +X at the first point, fully along +Y at
+			// the second (the largest lean in the stroke), and flat (upright) at
+			// the third: PointerEvent.tiltX/tiltY degrees, straight from the
+			// capture site.
+			inkPointTiltX: [[45, 0, 0]],
+			inkPointTiltY: [[0, 45, 0]],
+		};
+		data.slides.push(createSlide('Blank').addElement(ink).build());
+
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const inkPath = Object.keys(zip.files).find((path) => /^ppt\/ink\/ink\d+\.xml$/u.test(path));
+		expect(inkPath).toBeTruthy();
+		const inkXml = await zip.file(inkPath!)!.async('string');
+		expect(inkXml).toContain('name="OTx"');
+		expect(inkXml).toContain('name="OTy"');
+
+		const validation = await validatePptx(saved.buffer as ArrayBuffer);
+		if (!validation.valid) {
+			throw new Error(validation.issues.map((issue) => issue.message).join('\n'));
+		}
+
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(saved.buffer as ArrayBuffer);
+		const reloadedInk = reloaded.slides[0].elements.find(
+			(element): element is ContentPartPptxElement => element.type === 'contentPart',
+		);
+		const [stroke] = reloadedInk?.inkStrokes ?? [];
+		expect(stroke?.tiltAngles).toHaveLength(3);
+		expect(stroke?.tiltAngles?.[0]).toBeCloseTo(0, 5);
+		expect(stroke?.tiltAngles?.[1]).toBeCloseTo(Math.PI / 2, 5);
+		expect(stroke?.tiltMagnitudes?.[0]).toBeCloseTo(1, 5);
+		expect(stroke?.tiltMagnitudes?.[1]).toBeCloseTo(1, 5);
+		expect(stroke?.tiltMagnitudes?.[2]).toBeCloseTo(0, 5);
+	});
+
+	it('a stroke with no tilt data authors an InkML part with no OTx/OTy channel', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const ink: InkPptxElement = {
+			id: 'authored-no-tilt-ink',
+			type: 'ink',
+			x: 10,
+			y: 20,
+			width: 200,
+			height: 100,
+			inkPaths: ['M0,0 L50,25'],
+			inkColors: ['#112233'],
+			inkWidths: [2.5],
+			inkPointPressures: [[0.2, 0.6]],
+		};
+		data.slides.push(createSlide('Blank').addElement(ink).build());
+
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const inkPath = Object.keys(zip.files).find((path) => /^ppt\/ink\/ink\d+\.xml$/u.test(path));
+		const inkXml = await zip.file(inkPath!)!.async('string');
+		expect(inkXml).not.toContain('OTx');
+		expect(inkXml).not.toContain('OTy');
+	});
+
 	it('ink element loaded from rawXml survives a dirty round-trip via passthrough', async () => {
 		const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"

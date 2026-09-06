@@ -646,7 +646,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Transform
-		this.elementTransformUpdater.applyTransform(shape, el, PptxHandlerRuntime.EMU_PER_PX);
+		this.elementTransformUpdater.applyTransform(
+			shape,
+			el,
+			PptxHandlerRuntime.EMU_PER_PX,
+			ctx.preserveGroupChildSpace,
+		);
 
 		// Image crop / effects / alt text
 		this.applyImageProperties(shape, el);

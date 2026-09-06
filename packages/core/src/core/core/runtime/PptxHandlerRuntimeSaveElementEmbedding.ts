@@ -22,6 +22,7 @@ import {
 } from '../../utils/drawing-media-reference';
 import { ensureXmlChild } from '../../utils/xml-access';
 import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders';
+import type { GroupChildSpaceOwner } from './group-xfrm-preservation';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTextWriter';
 
 /** Context passed to per-element save processing. */
@@ -45,6 +46,25 @@ export interface SaveSlideContext {
 	 * top-level element.
 	 */
 	readonly inheritedGroupFill?: ShapeStyle;
+	/**
+	 * The ENCLOSING group itself (the immediate parent whose children are
+	 * currently being serialised), which already carries the
+	 * `GroupChildSpaceOwner` shape `group-xfrm-preservation.ts` needs (its
+	 * captured `a:chOff`/`a:chExt` paired with its OWN immutable
+	 * `widthEmu`/`heightEmu`). Set only
+	 * while serialising the direct children of a group (recomputed at each
+	 * nesting level in `buildGroupShapeXml`, never inherited from an outer
+	 * group), so `elementTransformUpdater.applyTransform` can invert this
+	 * element's CURRENT relative-to-group geometry back into that space (its
+	 * exact original child-space `a:off`/`a:ext` EMU verbatim when unchanged,
+	 * otherwise the inverse of the parse-time mapping) instead of
+	 * `resolveXfrmEmu`'s ordinary (parent-space) comparison. Absent for a
+	 * top-level element, where there is no child space to preserve; also
+	 * absent (or with no captured chOff/chExt) for a group with none of its
+	 * own, in which case `invertChildIntoGroupSpace` returns `undefined` and
+	 * the ordinary comparison applies.
+	 */
+	readonly preserveGroupChildSpace?: GroupChildSpaceOwner;
 }
 
 function getMediaReferenceContainer(shape: XmlObject | undefined): XmlObject | undefined {
