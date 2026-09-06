@@ -23,17 +23,54 @@
  * any of those). See `./digests/algorithm-names.ts` for name normalisation
  * and `./digests/digest.ts` for the dispatcher.
  *
- * A verifier real PowerPoint writes always carries `saltData`: COM
- * automation (`Presentation.WritePassword = "x"` then `SaveAs`) was used to
- * confirm this for the legacy `cryptAlgorithmSid` form (the only form that
- * omits `algorithmName`), and it produced
- * `cryptAlgorithmSid="14" ... saltData="..." hashData="..."` - never a
- * salt-less verifier. A `p:modifyVerifier` with no `saltData` is therefore
- * not a shape real PowerPoint produces; this module makes no attempt to
- * guess a default (such as treating a missing salt as empty), since doing
- * so would fabricate a check for a case nothing in the wild exercises. Such
- * a verifier still falls back to the unconditional "Edit anyway" every
- * other unrecognisable verifier gets.
+ * ## Salt-less verifiers
+ *
+ * ECMA-376 19.2.1.22's `CT_ModifyVerifier` declares `saltData` (like every
+ * other attribute on the type except the CAPI quartet) `use="optional"`, so a
+ * conformant producer other than PowerPoint is free to omit it, and
+ * [MS-OFFCRYPTO] 2.3.7.1's iterated-hash derivation never special-cases an
+ * empty salt: it is simply the decoded byte string prepended to the
+ * password, and a zero-length byte string is a valid decode of an absent
+ * attribute. This module therefore treats a missing (or empty) `saltData` as
+ * a zero-length salt and runs the same H0/iteration derivation, rather than
+ * refusing to check the hash at all, so this viewer's own read-only-recommended
+ * prompt now asks for (and verifies) a password against such a verifier
+ * instead of an unconditional "Edit anyway".
+ *
+ * COM automation (`Presentation.WritePassword = "x"` then `SaveAs`) confirmed
+ * real PowerPoint itself always writes a non-empty `saltData`, so this path
+ * never fires for a genuine PowerPoint-authored file. Separately, and
+ * IMPORTANTLY NOT the behaviour this module implements: COM testing of a
+ * hand-authored salt-less `p:modifyVerifier` (`scripts/make-saltless-verifier-
+ * fixture.mjs`, both in the `algorithmName` form and reshaped byte-for-byte
+ * into PowerPoint's own legacy `cryptAlgorithmSid` form) showed real
+ * PowerPoint's own "Set Password to Modify" check rejects EVERY password for
+ * such a file, `Presentations.Open` throwing "Reenter the password required
+ * to modify files" even for the password that mathematically satisfies the
+ * ECMA-376 hash - the identical failure a genuinely wrong password produces
+ * against a real, salted verifier. PowerPoint's own implementation therefore
+ * appears to require a non-empty salt as a precondition for running the check
+ * at all, stricter than what the schema and the published derivation actually
+ * require. This module still checks the hash per spec rather than mirroring
+ * that stricter, undocumented PowerPoint behaviour: doing the ECMA-376-legal
+ * computation is strictly more capable (any spec-conformant producer's
+ * salt-less verifier becomes checkable here), and there is no way to
+ * distinguish "PowerPoint would refuse this too" from "some other tool wrote
+ * it and expects the spec's derivation" without also flagging every algorithm
+ * PowerPoint happens to write differently, which would defeat the purpose of
+ * supporting the other legal shapes at all.
+ *
+ * `spinValue`/`spinCount` is likewise optional; when absent this module
+ * defaults it to 100000 (PowerPoint's own default spin count), the same
+ * default used for `createModifyVerifier`'s own output.
+ *
+ * A legacy XOR-obfuscation password (used by the pre-OOXML binary `.ppt`
+ * write-protection scheme, and by early binary Word/Excel) is NOT a legal
+ * shape for `p:modifyVerifier`: `CT_ModifyVerifier` only ever carries a
+ * cryptographic hash verifier (the CAPI quartet or `algorithmName`), never a
+ * bare obfuscation key, so no XOR fallback is implemented here. A `.ppt`'s
+ * own (different) write-protection scheme is handled by the legacy importer
+ * in `core/ppt/`, not this module.
  *
  * @see ECMA-376 Part 1, Section 19.2.1.22 (modifyVerifier)
  * @see [MS-OFFCRYPTO] Section 2.3.7.1 (Password Verifier Generation)
@@ -43,7 +80,14 @@
 
 import type { PptxModifyVerifier } from '../types';
 import type { DigestAlgorithmName } from './digests';
-import { digest, normalizeDigestAlgorithmName } from './digests';
+import { normalizeDigestAlgorithmName } from './digests';
+import {
+	base64Decode,
+	base64Encode,
+	bytesEqual,
+	iteratedHash,
+	randomSalt,
+} from './modify-verifier-codec';
 
 // ---------------------------------------------------------------------------
 // Legacy CryptoAPI algorithm identification
@@ -103,70 +147,6 @@ export function resolveModifyVerifierAlgorithmName(
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Convert a string to UTF-16LE bytes. */
-function encodeUtf16LE(str: string): Uint8Array {
-	const buf = new Uint8Array(str.length * 2);
-	for (let i = 0; i < str.length; i++) {
-		const code = str.charCodeAt(i);
-		buf[i * 2] = code & 0xff;
-		buf[i * 2 + 1] = (code >> 8) & 0xff;
-	}
-	return buf;
-}
-
-/** Concatenate Uint8Arrays. */
-function concat(...arrays: Uint8Array[]): Uint8Array {
-	let totalLength = 0;
-	for (const arr of arrays) {
-		totalLength += arr.length;
-	}
-	const result = new Uint8Array(totalLength);
-	let offset = 0;
-	for (const arr of arrays) {
-		result.set(arr, offset);
-		offset += arr.length;
-	}
-	return result;
-}
-
-/** Write a 32-bit little-endian integer to a Uint8Array. */
-function uint32LE(value: number): Uint8Array {
-	const buf = new Uint8Array(4);
-	const view = new DataView(buf.buffer);
-	view.setUint32(0, value, true);
-	return buf;
-}
-
-/** Decode base64 string to Uint8Array. */
-function base64Decode(str: string): Uint8Array {
-	if (typeof Buffer !== 'undefined') {
-		const buf = Buffer.from(str, 'base64');
-		return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
-	}
-	const binary = atob(str);
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) {
-		bytes[i] = binary.charCodeAt(i);
-	}
-	return bytes;
-}
-
-/** Encode Uint8Array to base64 string. */
-function base64Encode(bytes: Uint8Array): string {
-	if (typeof Buffer !== 'undefined') {
-		return Buffer.from(bytes).toString('base64');
-	}
-	let binary = '';
-	for (let i = 0; i < bytes.length; i++) {
-		binary += String.fromCharCode(bytes[i]!);
-	}
-	return btoa(binary);
-}
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -174,15 +154,15 @@ function base64Encode(bytes: Uint8Array): string {
  * Verify a modify-protection password against the verifier stored
  * in `presentation.xml`.
  *
- * The algorithm follows ECMA-376 Part 1, Section 19.2.1.22:
- *
- * 1. H0 = H(salt + password_utf16le)
- * 2. For i = 0..spinCount-1: Hi = H(i_le32 + Hi-1)
- * 3. Compare Hfinal with the stored hash.
- *
- * The hash algorithm is resolved via {@link resolveModifyVerifierAlgorithmName}:
- * an explicit `algorithmName`/`algIdExt`, or (the form PowerPoint itself
- * writes) `cryptAlgorithmSid`.
+ * The algorithm follows ECMA-376 Part 1, Section 19.2.1.22 (see
+ * {@link iteratedHash}). The hash algorithm is resolved via
+ * {@link resolveModifyVerifierAlgorithmName}: an explicit
+ * `algorithmName`/`algIdExt`, or (the form PowerPoint itself writes)
+ * `cryptAlgorithmSid`. `saltData` and `spinValue`/`spinCount` are both
+ * optional per the schema; a missing `saltData` is treated as a zero-length
+ * salt and a missing spin count defaults to 100000 (see the module doc
+ * comment's "Salt-less verifiers" section for the citation and the COM
+ * evidence backing both defaults).
  *
  * @param verifier - The parsed `PptxModifyVerifier` from the presentation.
  * @param password - The password to check.
@@ -193,54 +173,26 @@ export async function verifyModifyPassword(
 	password: string,
 ): Promise<boolean> {
 	const algorithm = resolveModifyVerifierAlgorithmName(verifier);
-	if (!algorithm || !verifier.hashData || !verifier.saltData) {
+	if (!algorithm || !verifier.hashData) {
 		return false;
 	}
 
-	const salt = base64Decode(verifier.saltData);
+	const salt = verifier.saltData ? base64Decode(verifier.saltData) : new Uint8Array(0);
 	const expectedHash = base64Decode(verifier.hashData);
 	const spinCount = verifier.spinValue ?? 100000;
 
-	const passwordBytes = encodeUtf16LE(password);
-
-	// H0 = H(salt + password)
-	let h = await digest(algorithm, concat(salt, passwordBytes));
-
-	// Iterate: Hn = H(Hn-1 + iterator_le32). Verified against a REAL
-	// PowerPoint-authored `p:modifyVerifier` (COM `Presentation.WritePassword`):
-	// the iterator comes AFTER the previous hash, not before it, despite this
-	// module's own docstring (and every earlier version of this function)
-	// describing it the other way around; that description was never checked
-	// against an actual PowerPoint file, only against itself.
-	for (let i = 0; i < spinCount; i++) {
-		h = await digest(algorithm, concat(h, uint32LE(i)));
-	}
-
-	// Compare
-	if (h.length !== expectedHash.length) {
-		// Truncate or compare up to shorter length
-		const len = Math.min(h.length, expectedHash.length);
-		for (let i = 0; i < len; i++) {
-			if (h[i] !== expectedHash[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	for (let i = 0; i < h.length; i++) {
-		if (h[i] !== expectedHash[i]) {
-			return false;
-		}
-	}
-	return true;
+	const h = await iteratedHash(algorithm, salt, password, spinCount);
+	return bytesEqual(h, expectedHash);
 }
 
 /**
  * Create a modify verifier from a password.
  *
  * Generates the hash and salt data needed for `p:modifyVerifier`
- * in `presentation.xml`.
+ * in `presentation.xml`. Always writes a real random salt, matching what
+ * real PowerPoint itself produces (COM-confirmed, see the module doc
+ * comment); use {@link createSaltlessModifyVerifierForTesting} to build the
+ * salt-less shape for fixtures/tests.
  *
  * @param password - The modify protection password.
  * @param options - Optional hash algorithm and spin count.
@@ -259,33 +211,54 @@ export async function createModifyVerifier(
 		throw new Error(`Unsupported modify-verifier hash algorithm: ${requestedAlgorithm}`);
 	}
 	const spinCount = options?.spinCount ?? 100000;
-
-	// Generate random salt
-	const salt = new Uint8Array(16);
-	if (typeof globalThis.crypto !== 'undefined') {
-		globalThis.crypto.getRandomValues(salt);
-	} else {
-		// Fallback for environments without crypto
-		for (let i = 0; i < salt.length; i++) {
-			salt[i] = Math.floor(Math.random() * 256);
-		}
-	}
-
-	const passwordBytes = encodeUtf16LE(password);
-
-	// H0 = H(salt + password)
-	let h = await digest(algorithm, concat(salt, passwordBytes));
-
-	// Iterate: Hn = H(Hn-1 + iterator_le32); see the matching note in
-	// `verifyModifyPassword` above.
-	for (let i = 0; i < spinCount; i++) {
-		h = await digest(algorithm, concat(h, uint32LE(i)));
-	}
+	const salt = randomSalt();
+	const h = await iteratedHash(algorithm, salt, password, spinCount);
 
 	return {
 		algorithmName: algorithm,
 		hashData: base64Encode(h),
 		saltData: base64Encode(salt),
+		spinValue: spinCount,
+		cryptAlgorithmClass: 'hash',
+		cryptAlgorithmType: 'typeAny',
+	};
+}
+
+/**
+ * Test/fixture-only: build a `p:modifyVerifier` with NO `saltData` attribute
+ * at all (a zero-length salt is hashed in, per ECMA-376 19.2.1.22's optional
+ * `saltData`; see the module doc comment).
+ *
+ * Real PowerPoint always writes a salt (COM-confirmed); this helper exists
+ * solely to generate the salt-less fixtures `scripts/make-saltless-verifier-
+ * fixture.mjs` produces and to unit-test the salt-less code path
+ * {@link verifyModifyPassword} supports for robustness against any legal
+ * `p:modifyVerifier` shape. No save/write path a user can trigger should ever
+ * call this; `createModifyVerifier` (always salted) is the one every
+ * "Set Password to Modify" UI must keep using.
+ *
+ * @param password - The modify protection password.
+ * @param options - Optional hash algorithm and spin count.
+ * @returns A PptxModifyVerifier object with no `saltData`, ready to be saved.
+ */
+export async function createSaltlessModifyVerifierForTesting(
+	password: string,
+	options?: {
+		algorithmName?: string;
+		spinCount?: number;
+	},
+): Promise<PptxModifyVerifier> {
+	const requestedAlgorithm = options?.algorithmName ?? 'SHA-512';
+	const algorithm = normalizeDigestAlgorithmName(requestedAlgorithm);
+	if (!algorithm) {
+		throw new Error(`Unsupported modify-verifier hash algorithm: ${requestedAlgorithm}`);
+	}
+	const spinCount = options?.spinCount ?? 100000;
+	const h = await iteratedHash(algorithm, new Uint8Array(0), password, spinCount);
+
+	return {
+		algorithmName: algorithm,
+		hashData: base64Encode(h),
 		spinValue: spinCount,
 		cryptAlgorithmClass: 'hash',
 		cryptAlgorithmType: 'typeAny',

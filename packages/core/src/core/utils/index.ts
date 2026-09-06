@@ -263,6 +263,7 @@ export {
 export {
 	verifyModifyPassword,
 	createModifyVerifier,
+	createSaltlessModifyVerifierForTesting,
 	resolveModifyVerifierAlgorithmName,
 } from './modify-verifier';
 

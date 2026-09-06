@@ -9,7 +9,11 @@
  * actually reaching `editor.editable`), not just the shared resolver (already
  * unit-tested in `pptx-viewer-shared/render/read-only-recommendation`).
  */
-import { createModifyVerifier, PptxHandler } from 'pptx-viewer-core';
+import {
+	createModifyVerifier,
+	createSaltlessModifyVerifierForTesting,
+	PptxHandler,
+} from 'pptx-viewer-core';
 import type { PptxModifyVerifier } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -27,14 +31,14 @@ async function buildDeck(kind: 'modifyVerifier' | 'markedFinal' | 'none'): Promi
 	const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
 	try {
 		if (kind === 'modifyVerifier') {
-			// Deliberately no `saltData`: `readOnlyRecommendation` only sets
-			// `requiresPassword` for a hash it could actually run (hashData +
-			// saltData + algorithmName), so this fixture recommends read-only
-			// without gating "Edit anyway" on a password. The password-required
-			// path is covered separately by `buildPasswordProtectedDeck` below,
-			// which has a real, checkable hash.
+			// An algorithm this viewer does not implement at all (not merely a
+			// salt-less one: a missing `saltData` is now checkable too, see
+			// `readOnlyRecommendation`'s doc comment), so this fixture recommends
+			// read-only without gating "Edit anyway" on a password. The
+			// password-required path is covered separately by
+			// `buildPasswordProtectedDeck` below, which has a real, checkable hash.
 			return await handler.save(data.slides, {
-				modifyVerifier: { algorithmName: 'SHA-512', hashData: 'ZmFrZQ==' },
+				modifyVerifier: { algorithmName: 'BLAKE2B', hashData: 'ZmFrZQ==' },
 			});
 		}
 		if (kind === 'markedFinal') {
@@ -51,6 +55,24 @@ async function buildDeck(kind: 'modifyVerifier' | 'markedFinal' | 'none'): Promi
 /** A deck whose `modifyVerifier` carries a REAL, checkable hash for `password`. */
 async function buildPasswordProtectedDeck(password: string): Promise<Uint8Array> {
 	const verifier: PptxModifyVerifier = await createModifyVerifier(password, { spinCount: 10 });
+	const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+	try {
+		return await handler.save(data.slides, { modifyVerifier: verifier });
+	} finally {
+		handler.dispose();
+	}
+}
+
+/**
+ * As {@link buildPasswordProtectedDeck}, but with NO `saltData` at all
+ * (`createSaltlessModifyVerifierForTesting`; see `modify-verifier.ts`'s
+ * module doc comment, "Salt-less verifiers"). `saltData` is optional per
+ * ECMA-376 19.2.1.22, so this is checkable exactly like a salted verifier.
+ */
+async function buildSaltlessPasswordProtectedDeck(password: string): Promise<Uint8Array> {
+	const verifier: PptxModifyVerifier = await createSaltlessModifyVerifierForTesting(password, {
+		spinCount: 10,
+	});
 	const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
 	try {
 		return await handler.save(data.slides, { modifyVerifier: verifier });
@@ -125,12 +147,14 @@ describe('svelte read-only recommendation', () => {
 		expect(state.editor.editable).toBeFalsy();
 	}, 60_000);
 
-	it('"Edit anyway" lifts the lock and hides the banner (no usable hash to verify)', async () => {
-		// This fixture's `hashData` ('ZmFrZQ==' = base64 "fake") is not a real
-		// hash the deck's password would ever satisfy, so `readOnlyRecommendation`
-		// reports `requiresPassword: false` and "Edit anyway" stays immediate,
-		// same as "Mark as Final". The password-required path below uses a deck
-		// with a REAL, checkable hash instead.
+	it('"Edit anyway" lifts the lock and hides the banner (unrecognised algorithm, not verifiable)', async () => {
+		// This fixture names `algorithmName: 'BLAKE2B'`, an algorithm this viewer
+		// does not implement at all, so `readOnlyRecommendation` reports
+		// `requiresPassword: false` and "Edit anyway" stays immediate, same as
+		// "Mark as Final". A missing `saltData` alone would NOT produce this
+		// (see the salt-less password-required describe block below); the
+		// password-required path further down uses a deck with a REAL,
+		// checkable hash instead.
 		const state = await loadHarness(await buildDeck('modifyVerifier'));
 		flushSync();
 		expect(state.editor.editable).toBeFalsy();
@@ -186,6 +210,51 @@ describe('svelte read-only recommendation', () => {
 
 		it('submitPassword with the correct password unlocks editing', async () => {
 			const state = await loadHarness(await buildPasswordProtectedDeck('right-password'));
+			state.readOnlyRec.editAnyway();
+			flushSync();
+
+			await state.readOnlyRec.submitPassword('right-password');
+			flushSync();
+
+			expect(state.readOnlyRec.locked).toBeFalsy();
+			expect(state.readOnlyRec.passwordPromptOpen).toBeFalsy();
+			expect(state.readOnlyRec.showBanner).toBeFalsy();
+			expect(state.editor.editable).toBeTruthy();
+		}, 60_000);
+	});
+
+	describe('password-protected modifyVerifier with NO saltData (salt-less, still checkable)', () => {
+		it('editAnyway opens the password prompt instead of unlocking', async () => {
+			const state = await loadHarness(await buildSaltlessPasswordProtectedDeck('right-password'));
+			flushSync();
+			expect(state.loader.modifyVerifier?.saltData).toBeUndefined();
+			expect(state.readOnlyRec.recommendation.requiresPassword).toBeTruthy();
+			expect(state.editor.editable).toBeFalsy();
+
+			state.readOnlyRec.editAnyway();
+			flushSync();
+
+			expect(state.readOnlyRec.passwordPromptOpen).toBeTruthy();
+			expect(state.readOnlyRec.locked).toBeTruthy();
+			expect(state.editor.editable).toBeFalsy();
+		}, 60_000);
+
+		it('submitPassword with a wrong password stays locked', async () => {
+			const state = await loadHarness(await buildSaltlessPasswordProtectedDeck('right-password'));
+			state.readOnlyRec.editAnyway();
+			flushSync();
+
+			await state.readOnlyRec.submitPassword('wrong-password');
+			flushSync();
+
+			expect(state.readOnlyRec.locked).toBeTruthy();
+			expect(state.readOnlyRec.passwordPromptOpen).toBeTruthy();
+			expect(state.readOnlyRec.passwordError).toBe('wrong-password');
+			expect(state.editor.editable).toBeFalsy();
+		}, 60_000);
+
+		it('submitPassword with the correct password unlocks editing', async () => {
+			const state = await loadHarness(await buildSaltlessPasswordProtectedDeck('right-password'));
 			state.readOnlyRec.editAnyway();
 			flushSync();
 

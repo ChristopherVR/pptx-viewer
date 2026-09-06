@@ -8,7 +8,7 @@
  */
 import { Injector, runInInjectionContext, signal } from '@angular/core';
 import type { PptxData } from 'pptx-viewer-core';
-import { createModifyVerifier } from 'pptx-viewer-core';
+import { createModifyVerifier, createSaltlessModifyVerifierForTesting } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { LoadContentService } from './load-content.service';
@@ -103,6 +103,51 @@ describe('loadNoticesService', () => {
 
 			expect(service.passwordPromptOpen()).toBeFalsy();
 			expect(service.passwordError()).toBeNull();
+		});
+	});
+
+	describe('password-protected modifyVerifier with NO saltData (salt-less, still checkable)', () => {
+		it('editAnyway opens the password prompt instead of unlocking', async () => {
+			const verifier = await createSaltlessModifyVerifierForTesting('right-password', {
+				spinCount: 10,
+			});
+			expect(verifier.saltData).toBeUndefined();
+			const service = createService({ modifyVerifier: verifier } as unknown as PptxData);
+			expect(service.recommendation().requiresPassword).toBeTruthy();
+
+			service.editAnyway();
+
+			expect(service.passwordPromptOpen()).toBeTruthy();
+			expect(service.lockActive()).toBeTruthy();
+			expect(service.bannerActive()).toBeTruthy();
+		});
+
+		it('submitPassword with the correct password unlocks and closes the prompt', async () => {
+			const verifier = await createSaltlessModifyVerifierForTesting('right-password', {
+				spinCount: 10,
+			});
+			const service = createService({ modifyVerifier: verifier } as unknown as PptxData);
+			service.editAnyway();
+
+			await service.submitPassword('right-password');
+
+			expect(service.lockActive()).toBeFalsy();
+			expect(service.passwordPromptOpen()).toBeFalsy();
+			expect(service.bannerActive()).toBeFalsy();
+		});
+
+		it('submitPassword with a wrong password stays locked and reports wrong-password', async () => {
+			const verifier = await createSaltlessModifyVerifierForTesting('right-password', {
+				spinCount: 10,
+			});
+			const service = createService({ modifyVerifier: verifier } as unknown as PptxData);
+			service.editAnyway();
+
+			await service.submitPassword('wrong-password');
+
+			expect(service.lockActive()).toBeTruthy();
+			expect(service.passwordPromptOpen()).toBeTruthy();
+			expect(service.passwordError()).toBe('wrong-password');
 		});
 	});
 });

@@ -26,8 +26,37 @@ describe('checkModifyPassword', () => {
 		});
 	});
 
-	it("resolves ok:false reason:'unsupported-algorithm' when the hash is unverifiable (missing salt)", async () => {
+	it("resolves ok:false reason:'wrong-password', not 'unsupported-algorithm', for a salt-less verifier with a garbage hash", async () => {
+		// A missing saltData no longer means "cannot check" (see
+		// `resolveModifyVerifierAlgorithmName`'s and `verifyModifyPassword`'s
+		// module docs in `pptx-viewer-core`): 'abc==' just is not the real hash
+		// of 'anything' under an empty salt, so this is a wrong password, not an
+		// unverifiable verifier.
 		const verifier: PptxModifyVerifier = { hashData: 'abc==', algorithmName: 'SHA-512' };
+		await expect(checkModifyPassword(verifier, 'anything')).resolves.toStrictEqual({
+			ok: false,
+			reason: 'wrong-password',
+		});
+	});
+
+	it('checks a REAL salt-less verifier correctly (checkable, not unsupported)', async () => {
+		const { createSaltlessModifyVerifierForTesting } = await import('pptx-viewer-core');
+		const verifier = await createSaltlessModifyVerifierForTesting('salt-less-password', {
+			algorithmName: 'SHA-512',
+			spinCount: 10,
+		});
+		expect(verifier.saltData).toBeUndefined();
+		await expect(checkModifyPassword(verifier, 'salt-less-password')).resolves.toStrictEqual({
+			ok: true,
+		});
+		await expect(checkModifyPassword(verifier, 'wrong')).resolves.toStrictEqual({
+			ok: false,
+			reason: 'wrong-password',
+		});
+	});
+
+	it("resolves ok:false reason:'unsupported-algorithm' when a verifier has no hash at all", async () => {
+		const verifier: PptxModifyVerifier = { algorithmName: 'SHA-512' };
 		await expect(checkModifyPassword(verifier, 'anything')).resolves.toStrictEqual({
 			ok: false,
 			reason: 'unsupported-algorithm',

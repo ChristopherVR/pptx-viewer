@@ -15,6 +15,7 @@ import type { PptxModifyVerifier } from '../types';
 import {
 	verifyModifyPassword,
 	createModifyVerifier,
+	createSaltlessModifyVerifierForTesting,
 	resolveModifyVerifierAlgorithmName,
 } from './modify-verifier';
 
@@ -41,7 +42,11 @@ describe('verifyModifyPassword', () => {
 		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBeFalsy();
 	});
 
-	it('returns false when saltData is missing', async () => {
+	it('returns false for a garbage hash when saltData is missing (still checkable, just wrong)', async () => {
+		// A missing saltData no longer means "cannot check": it is treated as a
+		// zero-length salt (see the module doc comment's "Salt-less verifiers"
+		// section), so this now fails because 'dGVzdA==' is not the real hash of
+		// 'password' under an empty salt, not because the verifier is unusable.
 		const verifier: PptxModifyVerifier = {
 			algorithmName: 'SHA-512',
 			hashData: 'dGVzdA==',
@@ -345,17 +350,119 @@ describe('verifyModifyPassword with algorithms Web Crypto does not implement', (
 	});
 });
 
-describe('the salt-less legacy verifier case (see module doc)', () => {
-	it('cannot be checked and does not crash when saltData is absent', async () => {
-		// Confirmed via COM (Presentation.WritePassword then SaveAs) that real
-		// PowerPoint always writes saltData, including for the legacy
-		// cryptAlgorithmSid form; a salt-less verifier is not a shape real
-		// PowerPoint produces, so this only documents the safe fallback.
+describe('salt-less verifiers (see module doc "Salt-less verifiers" section)', () => {
+	it('checks a salt-less verifier built by createSaltlessModifyVerifierForTesting', async () => {
+		const verifier = await createSaltlessModifyVerifierForTesting('open sesame', {
+			algorithmName: 'SHA-512',
+			spinCount: 25,
+		});
+		expect(verifier.saltData).toBeUndefined();
+		await expect(verifyModifyPassword(verifier, 'open sesame')).resolves.toBeTruthy();
+		await expect(verifyModifyPassword(verifier, 'wrong')).resolves.toBeFalsy();
+	});
+
+	it('treats an EMPTY saltData string the same as an absent one', async () => {
+		const verifier = await createSaltlessModifyVerifierForTesting('empty-salt-attr', {
+			algorithmName: 'SHA-256',
+			spinCount: 10,
+		});
+		const withEmptyAttr: PptxModifyVerifier = { ...verifier, saltData: '' };
+		await expect(verifyModifyPassword(withEmptyAttr, 'empty-salt-attr')).resolves.toBeTruthy();
+	});
+
+	it('does not crash and reports false for an unresolvable salt-less verifier', async () => {
 		const verifier: PptxModifyVerifier = {
-			cryptAlgorithmSid: 14,
+			cryptAlgorithmSid: 9999,
 			hashData: 'dGVzdA==',
 			spinValue: 100000,
 		};
 		await expect(verifyModifyPassword(verifier, 'anything')).resolves.toBeFalsy();
+	});
+
+	it('cross-checks a salt-less MD5 verifier against node:crypto directly (independent of createSaltlessModifyVerifierForTesting)', async () => {
+		const { createHash } = await import('node:crypto');
+		const password = 'hand-built-saltless-md5';
+		const passwordUtf16LE = Buffer.from(password, 'utf16le');
+		const spinCount = 13;
+
+		function md5Buf(buf: Buffer): Buffer {
+			return createHash('md5').update(buf).digest();
+		}
+
+		let h = md5Buf(passwordUtf16LE); // H0 = H(salt + password), salt = empty
+		for (let i = 0; i < spinCount; i++) {
+			const counter = Buffer.alloc(4);
+			counter.writeUInt32LE(i, 0);
+			h = md5Buf(Buffer.concat([h, counter]));
+		}
+
+		const verifier: PptxModifyVerifier = {
+			algorithmName: 'MD5',
+			hashData: h.toString('base64'),
+			spinValue: spinCount,
+		};
+
+		await expect(verifyModifyPassword(verifier, password)).resolves.toBeTruthy();
+		await expect(verifyModifyPassword(verifier, 'wrong')).resolves.toBeFalsy();
+	});
+
+	it.each(['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512', 'MD5', 'RIPEMD-160', 'WHIRLPOOL'] as const)(
+		'creates and verifies a salt-less %s verifier',
+		async (algorithmName) => {
+			const verifier = await createSaltlessModifyVerifierForTesting(
+				'correct horse battery staple',
+				{
+					algorithmName,
+					spinCount: 15,
+				},
+			);
+			expect(verifier.saltData).toBeUndefined();
+			await expect(
+				verifyModifyPassword(verifier, 'correct horse battery staple'),
+			).resolves.toBeTruthy();
+			await expect(verifyModifyPassword(verifier, 'wrong password')).resolves.toBeFalsy();
+		},
+	);
+});
+
+describe('other legal CT_ModifyVerifier shapes (ECMA-376 19.2.1.22 / [MS-OFFCRYPTO] 2.3.7)', () => {
+	it('defaults spinCount to 100000 when spinValue is absent entirely', async () => {
+		// Build the H0 hash by hand with 100000 iterations and confirm a verifier
+		// with NO spinValue/spinCount attribute at all still matches it.
+		const withDefaultSpin = await createModifyVerifier('default-spin-count', {
+			algorithmName: 'SHA-256',
+			spinCount: 100000,
+		});
+		const noSpinAttr: PptxModifyVerifier = { ...withDefaultSpin, spinValue: undefined };
+		await expect(verifyModifyPassword(noSpinAttr, 'default-spin-count')).resolves.toBeTruthy();
+	});
+
+	it('resolves the algorithm from cryptAlgorithmClass/Type/ProviderType presence without them affecting the hash', async () => {
+		const verifier = await createModifyVerifier('capi-quartet', {
+			algorithmName: 'SHA-1',
+			spinCount: 10,
+		});
+		const withQuartet: PptxModifyVerifier = {
+			...verifier,
+			algorithmName: undefined,
+			cryptAlgorithmSid: 4,
+			cryptAlgorithmClass: 'hash',
+			cryptAlgorithmType: 'typeAny',
+			cryptProviderType: 'providerTypeRsaFull',
+		};
+		await expect(verifyModifyPassword(withQuartet, 'capi-quartet')).resolves.toBeTruthy();
+	});
+
+	it('tolerates base64 saltData/hashData with embedded whitespace/newlines', async () => {
+		const verifier = await createModifyVerifier('whitespace-in-base64', {
+			algorithmName: 'SHA-256',
+			spinCount: 10,
+		});
+		const wrapped: PptxModifyVerifier = {
+			...verifier,
+			saltData: (verifier.saltData ?? '').replace(/(.{4})/g, '$1\n'),
+			hashData: (verifier.hashData ?? '').replace(/(.{4})/g, '$1 '),
+		};
+		await expect(verifyModifyPassword(wrapped, 'whitespace-in-base64')).resolves.toBeTruthy();
 	});
 });

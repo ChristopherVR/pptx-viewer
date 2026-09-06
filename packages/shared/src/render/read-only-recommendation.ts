@@ -8,9 +8,12 @@
  *   "Set Password to Modify" flow. When it carries a hash this viewer can
  *   verify (see `checkModifyPassword`), lifting the lock requires that
  *   password, matching PowerPoint's own "read-only recommended" prompt; when
- *   it does not (an older/unsupported algorithm, or a bare recommendation
- *   with no hash) the deck still defaults to read-only but "Edit anyway"
- *   works without a password, since there is nothing to check it against.
+ *   it does not (an unrecognised algorithm, or a bare recommendation with no
+ *   hash at all) the deck still defaults to read-only but "Edit anyway"
+ *   works without a password, since there is nothing to check it against. A
+ *   verifier with a hash but no `saltData` IS checkable (an optional
+ *   ECMA-376 19.2.1.22 attribute; core's `verifyModifyPassword` treats a
+ *   missing salt as zero-length), so it requires the password too.
  * - `docProps/custom.xml`'s well-known `_MarkAsFinal` custom property, which
  *   PowerPoint's "Mark as Final" writes. Unlike `modifyVerifier` this is not
  *   modelled as its own field (no reader-facing feature besides this one has
@@ -65,11 +68,13 @@ export interface ReadOnlyRecommendation {
 	/**
 	 * Whether lifting this recommendation requires a correct password, rather
 	 * than a plain "Edit anyway". True only for a `modifyVerifier` that carries
-	 * a hash this viewer can actually check (`hashData` + `saltData` +
-	 * `algorithmName`, see `checkModifyPassword`). "Mark as Final" is purely
-	 * advisory and never requires one, and a `modifyVerifier` missing pieces of
-	 * its hash cannot be verified either way, so both fall back to the plain
-	 * "Edit anyway" a binding already had.
+	 * a hash this viewer can actually check (`hashData` plus a resolvable
+	 * algorithm, see `checkModifyPassword`; `saltData` is optional and NOT
+	 * required, a missing salt is still checkable). "Mark as Final" is purely
+	 * advisory and never requires one, and a `modifyVerifier` with no hash at
+	 * all, or naming an algorithm this viewer does not implement, cannot be
+	 * verified either way, so both fall back to the plain "Edit anyway" a
+	 * binding already had.
 	 */
 	readonly requiresPassword: boolean;
 }
@@ -125,13 +130,11 @@ export function readOnlyRecommendation(
 			messageKey: 'pptx.readOnly.modifyVerifierRecommended',
 			defaultReadOnly: true,
 			// A hash this viewer can actually check requires the password before
-			// "Edit anyway" can lift the lock; anything less (no salt, or an
-			// algorithm this resolver does not recognise) cannot be verified, so
-			// it falls back to the plain "Edit anyway" every other recommendation
-			// already has.
-			requiresPassword: Boolean(
-				verifier.hashData && verifier.saltData && resolveModifyVerifierAlgorithmName(verifier),
-			),
+			// "Edit anyway" can lift the lock; `saltData` is deliberately NOT part
+			// of this check (see the field doc comment above): only a missing hash
+			// or an unrecognised algorithm falls back to the plain "Edit anyway"
+			// every other recommendation already has.
+			requiresPassword: Boolean(verifier.hashData && resolveModifyVerifierAlgorithmName(verifier)),
 		};
 	}
 	if (isMarkedAsFinal(data.customProperties)) {

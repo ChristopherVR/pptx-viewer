@@ -39,12 +39,24 @@ export type ModifyPasswordCheckResult =
  * `requiresPassword`, but this function stays defensive against being called
  * directly) and when core's verifier throws trying to compute the digest
  * (an algorithm this viewer's Web Crypto binding does not support).
+ *
+ * A missing `saltData` is NOT one of those pieces: `p:modifyVerifier`'s
+ * `saltData` attribute is optional (ECMA-376 19.2.1.22), and core's
+ * `verifyModifyPassword` treats an absent salt as a zero-length one and runs
+ * the same hash derivation, so a salt-less verifier is checkable here too.
+ * See `verifyModifyPassword`'s module doc comment ("Salt-less verifiers") in
+ * `pptx-viewer-core` for the ECMA-376/[MS-OFFCRYPTO] citation; that comment
+ * also documents a COM-confirmed surprise worth knowing before assuming this
+ * mirrors PowerPoint: real PowerPoint's own "Set Password to Modify" check
+ * rejects EVERY password (including the mathematically correct one) for a
+ * salt-less verifier, so this function is deliberately MORE permissive than
+ * PowerPoint's own implementation, not a reproduction of it.
  */
 export async function checkModifyPassword(
 	verifier: PptxModifyVerifier | undefined,
 	password: string,
 ): Promise<ModifyPasswordCheckResult> {
-	if (!verifier?.hashData || !verifier.saltData || !resolveModifyVerifierAlgorithmName(verifier)) {
+	if (!verifier?.hashData || !resolveModifyVerifierAlgorithmName(verifier)) {
 		return { ok: false, reason: 'unsupported-algorithm' };
 	}
 	try {

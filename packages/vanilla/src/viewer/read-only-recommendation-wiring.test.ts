@@ -10,7 +10,11 @@
  * `createModifyVerifier`, so `checkModifyPassword` runs the actual ECMA-376
  * digest check, not a stub.
  */
-import { createModifyVerifier, PptxHandler } from 'pptx-viewer-core';
+import {
+	createModifyVerifier,
+	createSaltlessModifyVerifierForTesting,
+	PptxHandler,
+} from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createPptxViewer } from './PptxViewer';
@@ -36,6 +40,23 @@ afterEach(() => {
 
 async function buildPasswordProtectedDeck(password: string): Promise<Uint8Array> {
 	const verifier = await createModifyVerifier(password, { spinCount: 10 });
+	const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+	try {
+		return await handler.save(data.slides, { modifyVerifier: verifier });
+	} finally {
+		handler.dispose();
+	}
+}
+
+/**
+ * As {@link buildPasswordProtectedDeck}, but the verifier has NO `saltData`
+ * at all. `saltData` is optional per ECMA-376 19.2.1.22, and core's
+ * `verifyModifyPassword` treats an absent salt as zero-length, so this is
+ * just as checkable as a salted verifier: "Edit anyway" must still prompt for
+ * (and verify) the password rather than unlocking unconditionally.
+ */
+async function buildSaltlessPasswordProtectedDeck(password: string): Promise<Uint8Array> {
+	const verifier = await createSaltlessModifyVerifierForTesting(password, { spinCount: 10 });
 	const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
 	try {
 		return await handler.save(data.slides, { modifyVerifier: verifier });
@@ -116,5 +137,66 @@ describe('vanilla read-only recommendation password prompt', () => {
 		expect(
 			container.querySelector<HTMLElement>('[data-testid="pptx-readonly-banner"]')?.hidden,
 		).toBeTruthy();
+	});
+
+	describe('salt-less modifyVerifier (no saltData attribute at all)', () => {
+		it('"Edit anyway" still opens the password prompt, not an unconditional unlock', async () => {
+			const { container, viewer } = mount();
+			await viewer.loadFile(await buildSaltlessPasswordProtectedDeck('right-password'));
+
+			container
+				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
+				.click();
+
+			const form = container.querySelector<HTMLElement>(
+				'[data-testid="pptx-readonly-password-form"]',
+			);
+			expect(form?.hidden).toBeFalsy();
+			expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeFalsy();
+		});
+
+		it('a wrong password stays read-only', async () => {
+			const { container, viewer } = mount();
+			await viewer.loadFile(await buildSaltlessPasswordProtectedDeck('right-password'));
+			container
+				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
+				.click();
+
+			const input = container.querySelector<HTMLInputElement>(
+				'[data-testid="pptx-readonly-password-input"]',
+			)!;
+			input.value = 'wrong-password';
+			container
+				.querySelector<HTMLFormElement>('[data-testid="pptx-readonly-password-form"]')!
+				.dispatchEvent(new Event('submit', { cancelable: true }));
+
+			await vi.waitFor(() => {
+				const error = container.querySelector('[data-testid="pptx-readonly-password-error"]');
+				expect((error as HTMLElement | null)?.hidden).toBeFalsy();
+			});
+			expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeFalsy();
+		});
+
+		it('the correct password unlocks editing', async () => {
+			const { container, viewer } = mount();
+			await viewer.loadFile(await buildSaltlessPasswordProtectedDeck('right-password'));
+			container
+				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
+				.click();
+
+			const input = container.querySelector<HTMLInputElement>(
+				'[data-testid="pptx-readonly-password-input"]',
+			)!;
+			input.value = 'right-password';
+			container
+				.querySelector<HTMLFormElement>('[data-testid="pptx-readonly-password-form"]')!
+				.dispatchEvent(new Event('submit', { cancelable: true }));
+
+			await vi.waitFor(() => {
+				expect(
+					container.querySelector('.pptxv')?.classList.contains('pptxv-editable'),
+				).toBeTruthy();
+			});
+		});
 	});
 });

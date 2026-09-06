@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { createModifyVerifier } from 'pptx-viewer-core';
+import { createModifyVerifier, createSaltlessModifyVerifierForTesting } from 'pptx-viewer-core';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -228,6 +228,87 @@ describe('useReadOnlyRecommendationState', () => {
 			expect(latest?.passwordPromptOpen).toBeFalsy();
 			expect(latest?.locked).toBeTruthy();
 			expect(latest?.bannerVisible).toBeTruthy();
+		});
+	});
+
+	describe('password-protected modifyVerifier with NO saltData (salt-less, still checkable)', () => {
+		it('editAnyway opens the password prompt instead of unlocking', async () => {
+			const verifier = await createSaltlessModifyVerifierForTesting('right-password', {
+				spinCount: 10,
+			});
+			expect(verifier.saltData).toBeUndefined();
+			render('deck-1');
+			act(() => {
+				latest?.setModifyVerifier(verifier);
+				latest?.setRecommendation({
+					kind: 'modifyVerifier',
+					messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+					defaultReadOnly: true,
+					requiresPassword: true,
+				});
+			});
+			act(() => {
+				latest?.editAnyway();
+			});
+			expect(latest?.passwordPromptOpen).toBeTruthy();
+			expect(latest?.locked).toBeTruthy();
+			expect(latest?.bannerVisible).toBeTruthy();
+		});
+
+		it('submitPassword with the correct password unlocks and closes the prompt', async () => {
+			const verifier = await createSaltlessModifyVerifierForTesting('right-password', {
+				spinCount: 10,
+			});
+			render('deck-1');
+			act(() => {
+				latest?.setModifyVerifier(verifier);
+				latest?.setRecommendation({
+					kind: 'modifyVerifier',
+					messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+					defaultReadOnly: true,
+					requiresPassword: true,
+				});
+			});
+			act(() => {
+				latest?.editAnyway();
+			});
+
+			await act(async () => {
+				await latest?.submitPassword('right-password');
+			});
+
+			expect(latest?.locked).toBeFalsy();
+			expect(latest?.passwordPromptOpen).toBeFalsy();
+			expect(latest?.passwordError).toBeNull();
+			expect(latest?.bannerVisible).toBeFalsy();
+		});
+
+		it('submitPassword with a wrong password stays locked and reports wrong-password', async () => {
+			const verifier = await createSaltlessModifyVerifierForTesting('right-password', {
+				spinCount: 10,
+			});
+			render('deck-1');
+			act(() => {
+				latest?.setModifyVerifier(verifier);
+				latest?.setRecommendation({
+					kind: 'modifyVerifier',
+					messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+					defaultReadOnly: true,
+					requiresPassword: true,
+				});
+			});
+			act(() => {
+				latest?.editAnyway();
+			});
+
+			await act(async () => {
+				await latest?.submitPassword('wrong-password');
+			});
+
+			expect(latest?.locked).toBeTruthy();
+			expect(latest?.passwordPromptOpen).toBeTruthy();
+			expect(latest?.passwordError).toBe('wrong-password');
+			await flush();
 		});
 	});
 });

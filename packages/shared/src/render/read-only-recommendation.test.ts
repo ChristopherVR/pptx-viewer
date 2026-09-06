@@ -12,14 +12,23 @@ describe('readOnlyRecommendation', () => {
 		});
 	});
 
-	it('recommends read-only for a modifyVerifier with hash data but no salt (unverifiable)', () => {
+	it('requires a password for a modifyVerifier with hash data but no salt (checkable: saltData is optional)', () => {
 		const result = readOnlyRecommendation({
 			modifyVerifier: { hashData: 'abc==', algorithmName: 'SHA-512' },
 		});
 		expect(result.kind).toBe('modifyVerifier');
 		expect(result.messageKey).toBe('pptx.readOnly.modifyVerifierRecommended');
 		expect(result.defaultReadOnly).toBeTruthy();
-		// No saltData: this viewer cannot run the hash, so "Edit anyway" stays plain.
+		// A missing saltData is treated as a zero-length salt (ECMA-376
+		// 19.2.1.22 declares it optional), so this IS checkable.
+		expect(result.requiresPassword).toBeTruthy();
+	});
+
+	it('does not require a password for a modifyVerifier with no hash at all', () => {
+		const result = readOnlyRecommendation({
+			modifyVerifier: { algorithmName: 'SHA-512' },
+		});
+		expect(result.kind).toBe('modifyVerifier');
 		expect(result.requiresPassword).toBeFalsy();
 	});
 

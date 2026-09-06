@@ -106,6 +106,28 @@ describe('presentation partial-construct round trips', () => {
 			expect(rereloaded.modifyVerifier).toMatchObject(verifier);
 		});
 
+		it('writes the XML attribute as spinCount, matching real PowerPoint (COM-authored modify-password.pptx), not spinValue', async () => {
+			// A genuine PowerPoint-authored p:modifyVerifier (COM
+			// Presentation.WritePassword then SaveAs) writes spinCount="100000",
+			// never spinValue. An earlier version of applyModifyVerifier wrote
+			// `@_spinValue` (matching the TypeScript field name 1:1 instead of the
+			// real XML attribute), which COM testing showed PowerPoint does not
+			// recognise: it rejected the correct password for such a file the same
+			// way it rejects a wrong one. This pins the fix at the XML level, since
+			// the round-trip test above only proves OUR OWN reader agrees with
+			// OUR OWN writer, which is exactly the blind spot that let the
+			// original bug through.
+			const handler = new PptxHandler();
+			const data = await handler.load((await baseDeckBytes()).buffer as ArrayBuffer);
+			const saved = await handler.save(data.slides, {
+				modifyVerifier: { algorithmName: 'SHA-512', hashData: 'aGFzaA==', spinValue: 100000 },
+			});
+			const zip = await JSZip.loadAsync(saved);
+			const presentationXml = await zip.file('ppt/presentation.xml')!.async('string');
+			expect(presentationXml).toContain('spinCount="100000"');
+			expect(presentationXml).not.toContain('spinValue=');
+		});
+
 		it('removes the verifier when explicitly set to null', async () => {
 			const handler = new PptxHandler();
 			const data = await handler.load((await baseDeckBytes()).buffer as ArrayBuffer);

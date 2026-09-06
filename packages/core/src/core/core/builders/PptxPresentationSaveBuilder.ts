@@ -246,7 +246,19 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 			mv['@_saltData'] = modifyVerifier.saltData;
 		}
 		if (modifyVerifier.spinValue !== undefined) {
-			mv['@_spinValue'] = String(modifyVerifier.spinValue);
+			// The XML attribute is `spinCount`, NOT `spinValue`: a genuine
+			// PowerPoint-authored `p:modifyVerifier` (COM `Presentation.
+			// WritePassword` then `SaveAs`, see `e2e/fixtures/modify-password.pptx`)
+			// writes `spinCount="100000"`. Writing `spinValue` here (an earlier
+			// version of this method, matching the TypeScript field name 1:1)
+			// produced an attribute PowerPoint itself does not write and a COM
+			// round-trip showed it does not recognise either: PowerPoint rejected
+			// the correct password for a verifier carrying `spinValue` the same
+			// way it rejects a wrong one. The TypeScript field stays `spinValue`
+			// (see `PptxModifyVerifier`); only the serialised attribute name
+			// changes. Reading still accepts either spelling (see
+			// `extractModifyVerifier` in `PptxHandlerRuntimePresentationStructure.ts`).
+			mv['@_spinCount'] = String(modifyVerifier.spinValue);
 		}
 		if (modifyVerifier.algIdExt !== undefined) {
 			mv['@_algIdExt'] = modifyVerifier.algIdExt;
