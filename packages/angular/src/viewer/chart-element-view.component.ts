@@ -39,6 +39,7 @@ import {
 } from '../internal/shared';
 import type {
 	ChartMarkDragState,
+	ChartPartRef,
 	ChartValueDragState,
 	ElementAnimationState,
 } from '../internal/shared';
@@ -47,6 +48,7 @@ import { AreaChart3DService } from './area-chart-3d.service';
 import { BarChart3DRendererComponent } from './bar-chart-3d-renderer.component';
 import { BarChart3DService } from './bar-chart-3d.service';
 import {
+	chart3DPointValueUpdate,
 	chartCanEditParts,
 	chartDragCommitData,
 	chartMarkDragCommitData,
@@ -77,47 +79,7 @@ import { SurfaceChart3DService } from './surface-chart-3d.service';
 		AreaChart3DRendererComponent,
 		PieChart3DRendererComponent,
 	],
-	template: `
-		<div
-			#wrapper
-			class="pptx-ng-chart-view"
-			[class.pptx-chart-interactive]="canEdit()"
-			(pointerdown)="onPointerDown($event)"
-			(pointermove)="onPointerMove($event)"
-			(pointerup)="onPointerUp()"
-			(dblclick)="onDblClick($event)"
-		>
-			@if (use3D() && isSurfaceKind()) {
-				<pptx-surface-chart-3d-renderer [element]="renderedElement()" />
-			} @else if (use3DBar() && isBar3DKind()) {
-				<pptx-bar-chart-3d-renderer [element]="renderedElement()" />
-			} @else if (use3DLine() && isLine3DKind()) {
-				<pptx-line-chart-3d-renderer [element]="renderedElement()" />
-			} @else if (use3DArea() && isArea3DKind()) {
-				<pptx-area-chart-3d-renderer [element]="renderedElement()" />
-			} @else if (use3DPie() && isPie3DKind()) {
-				<pptx-pie-chart-3d-renderer [element]="renderedElement()" />
-			} @else {
-				<pptx-chart-renderer [element]="renderedElement()" />
-			}
-			@if (dragValue() !== null) {
-				<div class="pptx-ng-chart-drag-badge">{{ dragBadge() }}</div>
-			}
-			@if (titleDraft() !== null) {
-				<input
-					#titleEditor
-					type="text"
-					class="pptx-ng-chart-title-input"
-					[value]="titleDraft() ?? ''"
-					(input)="onTitleInput($event)"
-					(keydown)="onTitleKeydown($event)"
-					(blur)="commitTitle()"
-					(pointerdown)="$event.stopPropagation()"
-					(dblclick)="$event.stopPropagation()"
-				/>
-			}
-		</div>
-	`,
+	templateUrl: './chart-element-view.component.html',
 })
 export class ChartElementViewComponent {
 	/** The chart element to render. Must be `type === 'chart'`. */
@@ -185,8 +147,9 @@ export class ChartElementViewComponent {
 
 	/**
 	 * Opt-in interactive 3D surface scene (camera orbit/zoom via OrbitControls).
-	 * Marks are not selectable/draggable in this mode: a mesh facet has no 2D
-	 * screen geometry to hit-test against, so value-drag editing stays SVG-only.
+	 * Click-to-select only: the grid is a single mesh with no per-cell geometry
+	 * to drag a value against, so value-drag editing stays SVG-only (see the
+	 * shared `SurfaceChart3DInteraction` doc comment).
 	 */
 	protected readonly use3D = computed(() => this.surfaceChart3DSvc?.enabled() ?? false);
 	protected readonly isSurfaceKind = computed(
@@ -195,18 +158,19 @@ export class ChartElementViewComponent {
 
 	/**
 	 * Opt-in interactive 3D bar scene (real box meshes, camera orbit/zoom via
-	 * OrbitControls). Same "marks are not selectable/draggable" caveat as the
-	 * surface scene above. `chartType` is checked directly (NOT via
-	 * `resolveChartKind`, which folds `bar`/`bar3D` onto the same 'bar' kind),
-	 * so a plain 2-D bar chart never mounts the 3D scene.
+	 * OrbitControls). Clustered boxes are click-to-select AND drag-to-value
+	 * (`onChartPart3DSelect`/`onChart3DValueDragCommit` below); stacked/
+	 * percentStacked boxes are select-only. `chartType` is checked directly
+	 * (NOT via `resolveChartKind`, which folds `bar`/`bar3D` onto the same
+	 * 'bar' kind), so a plain 2-D bar chart never mounts the 3D scene.
 	 */
 	protected readonly use3DBar = computed(() => this.barChart3DSvc?.enabled() ?? false);
 	protected readonly isBar3DKind = computed(() => this.chartData()?.chartType === 'bar3D');
 
 	/**
 	 * Opt-in interactive 3D line/area scenes (tube path / ribbon meshes, camera
-	 * orbit/zoom via OrbitControls). Same "marks are not selectable/draggable"
-	 * caveat as the surface/bar scenes above.
+	 * orbit/zoom via OrbitControls). Point markers are click-to-select AND
+	 * drag-to-value, same as the bar scene above.
 	 */
 	protected readonly use3DLine = computed(() => this.lineChart3DSvc?.enabled() ?? false);
 	protected readonly isLine3DKind = computed(() => this.chartData()?.chartType === 'line3D');
@@ -215,11 +179,11 @@ export class ChartElementViewComponent {
 
 	/**
 	 * Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
-	 * OrbitControls). Same "marks are not selectable/draggable" caveat as the
-	 * bar scene above. `chartType` is checked directly (NOT via
-	 * `resolveChartKind`, which folds `pie`/`pie3D`/`doughnut` onto the same
-	 * 'pie' kind), so a plain 2-D pie or doughnut chart never mounts the 3D
-	 * scene.
+	 * OrbitControls). Click-to-select only: a pie/doughnut slice has no single
+	 * value axis to drag along (see the shared `PieChart3DInteraction` doc
+	 * comment). `chartType` is checked directly (NOT via `resolveChartKind`,
+	 * which folds `pie`/`pie3D`/`doughnut` onto the same 'pie' kind), so a
+	 * plain 2-D pie or doughnut chart never mounts the 3D scene.
 	 */
 	protected readonly use3DPie = computed(() => this.pieChart3DSvc?.enabled() ?? false);
 	protected readonly isPie3DKind = computed(() => this.chartData()?.chartType === 'pie3D');
@@ -262,11 +226,17 @@ export class ChartElementViewComponent {
 		return value === null ? '' : formatAxisValue(value);
 	});
 
-	/** The part selected for THIS chart, or null. */
-	private readonly selectedPart = computed(() => {
+	/** The part selected for THIS chart, or null. Also fed to the 3D chart
+	 * renderers so an external selection change (inspector, keyboard) re-applies
+	 * the mesh highlight in the mounted scene. */
+	protected readonly selectedPart = computed(() => {
 		const sel = this.partSelection?.selection() ?? null;
 		return sel && sel.elementId === this.element().id ? sel.part : null;
 	});
+
+	/** Active font-style emphasis override for a 3D chart scene's own axis
+	 * labels (bar3D/line3D/area3D/surface3D; pie3D draws none). */
+	protected readonly chartTextStyle = computed(() => this.animationState()?.textStyle);
 
 	constructor() {
 		ensureChartInteractionStyles();
@@ -446,6 +416,55 @@ export class ChartElementViewComponent {
 				this.editor,
 				this.element().id,
 				data,
+				this.slideContext?.slideId() ?? null,
+			);
+		}
+	}
+
+	// ── 3D chart interaction (bar3D/line3D/area3D/surface3D/pie3D scenes) ─────
+
+	/**
+	 * A 3D scene's own click-to-select fired (or empty space, clearing). Routes
+	 * to the SAME `ChartPartSelectionService` the 2D `onPointerDown` above uses,
+	 * so the inspector reacts identically to a 3D mark. Gated on `canEdit()`
+	 * exactly like the 2D path: every read-only mount of this same chart
+	 * element (thumbnail rail, export) shares the one injected service
+	 * instance, so an un-gated write here would fight the canvas copy's
+	 * selection (see the constructor's `clearForElement` effect comment).
+	 */
+	protected onChartPart3DSelect(part: ChartPartRef | null): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		if (part) {
+			this.partSelection?.select({ elementId: this.element().id, part });
+		} else {
+			this.partSelection?.clearForElement(this.element().id);
+		}
+	}
+
+	/**
+	 * Live value while dragging a 3D mark. Only drives the floating badge
+	 * (`dragValue`/`dragBadge`, shared with the 2D drag UI): unlike the 2D SVG
+	 * drag, previewing the new value in the mesh itself would require
+	 * re-mounting the WebGL scene on every pointer-move, which would tear down
+	 * the in-flight pointer capture the shared scene's own drag state machine
+	 * relies on.
+	 */
+	protected onChart3DValueDragPreview(event: { part: ChartPartRef; value: number }): void {
+		this.dragValue.set(event.value);
+	}
+
+	/** Final value from a 3D mark drag: commits through the same channel the
+	 * 2D value-drag / mark-drag paths use above. */
+	protected onChart3DValueDragCommit(event: { part: ChartPartRef; value: number }): void {
+		this.dragValue.set(null);
+		const next = chart3DPointValueUpdate(this.chartData(), event.part, event.value);
+		if (next) {
+			commitChartElementData(
+				this.editor,
+				this.element().id,
+				next,
 				this.slideContext?.slideId() ?? null,
 			);
 		}

@@ -308,8 +308,13 @@ import { ZoomTargetService } from './zoom-target.service';
 					<pptx-readonly-banner
 						[kind]="loadNotices.recommendation().kind"
 						[messageKey]="loadNotices.recommendation().messageKey"
+						[passwordPromptOpen]="loadNotices.passwordPromptOpen()"
+						[passwordError]="loadNotices.passwordError()"
+						[checkingPassword]="loadNotices.checkingPassword()"
 						(editAnyway)="loadNotices.editAnyway()"
 						(dismiss)="loadNotices.dismissBanner()"
+						(submitPassword)="loadNotices.submitPassword($event)"
+						(cancelPassword)="loadNotices.cancelPasswordPrompt()"
 					/>
 				}
 				@if (!mobile.isMobile() && chromeVisible()) {

@@ -1,0 +1,120 @@
+<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.userShapes' | translate">
+	<div class="pptx-chart-card__row" style="justify-content: space-between">
+		<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.userShapes' | translate }}</h4>
+		<button
+			type="button"
+			data-testid="chart-user-shape-add"
+			[disabled]="!canEdit()"
+			(click)="onAddTextBox()"
+		>
+			{{ 'pptx.chart.userShapeAddTextBox' | translate }}
+		</button>
+	</div>
+
+	@if (rows().length === 0) {
+		<div class="pptx-chart-card__label">{{ 'pptx.chart.userShapesEmpty' | translate }}</div>
+	} @else {
+		@for (row of rows(); track pathKey(row.path)) {
+			<div
+				class="pptx-chart-card__group"
+				data-testid="chart-user-shape-row"
+				[attr.data-chart-user-shape-path]="pathKey(row.path)"
+				[style.marginLeft.px]="row.depth * 12"
+			>
+				<div class="pptx-chart-card__row">
+					<span class="pptx-chart-card__label"
+						>{{ kindLabel(row.kind) }}{{ row.text ? ' - ' + row.text : '' }}</span
+					>
+					@if (row.isGroup) {
+						<button
+							type="button"
+							data-testid="chart-user-shape-add-into-group"
+							[disabled]="!canEdit()"
+							(click)="onAddIntoGroup(row.path)"
+						>
+							{{ 'pptx.chart.userShapeAddIntoGroup' | translate }}
+						</button>
+					}
+					<button
+						type="button"
+						data-testid="chart-user-shape-delete"
+						[attr.aria-label]="'pptx.chart.userShapeDelete' | translate"
+						[disabled]="!canEdit()"
+						(click)="onRemove(row.path)"
+					>
+						&#10005;
+					</button>
+				</div>
+
+				@if (row.editableVisuals) {
+					<div class="pptx-chart-card__row">
+						<span class="pptx-chart-card__label">{{ 'pptx.chart.userShapeText' | translate }}</span>
+						<input
+							type="text"
+							class="pptx-chart-card__input"
+							[attr.aria-label]="'pptx.chart.userShapeText' | translate"
+							[disabled]="!canEdit()"
+							[value]="row.text ?? ''"
+							(change)="onText(row.path, $event)"
+						/>
+					</div>
+					<div class="pptx-chart-card__row">
+						<label class="pptx-chart-card__row">
+							<span class="pptx-chart-card__label">{{
+								'pptx.chart.userShapeFill' | translate
+							}}</span>
+							<input
+								type="color"
+								[attr.aria-label]="'pptx.chart.userShapeFill' | translate"
+								[disabled]="!canEdit()"
+								[value]="row.fill ?? '#ffffff'"
+								(change)="onFill(row.path, $event)"
+							/>
+						</label>
+						<label class="pptx-chart-card__row">
+							<span class="pptx-chart-card__label">{{
+								'pptx.chart.userShapeStroke' | translate
+							}}</span>
+							<input
+								type="color"
+								[attr.aria-label]="'pptx.chart.userShapeStroke' | translate"
+								[disabled]="!canEdit()"
+								[value]="row.stroke ?? '#000000'"
+								(change)="onStroke(row.path, $event)"
+							/>
+						</label>
+					</div>
+				}
+
+				@if (row.editableAltText) {
+					<div class="pptx-chart-card__row">
+						<span class="pptx-chart-card__label">{{
+							'pptx.chart.userShapeAltText' | translate
+						}}</span>
+						<input
+							type="text"
+							class="pptx-chart-card__input"
+							[attr.aria-label]="'pptx.chart.userShapeAltText' | translate"
+							[disabled]="!canEdit()"
+							[value]="row.altText ?? ''"
+							(change)="onAltText(row.path, $event)"
+						/>
+					</div>
+				}
+
+				<!-- Every row (including a grpSp group header) is position/size
+				editable: a top-level group's own drawing anchor moves/resizes it,
+				and a nested row edits a chart-relative from/to fraction. -->
+				<pptx-chart-user-shape-position
+					[row]="row"
+					[userShapes]="element().chartData?.userShapes"
+					[canEdit]="canEdit()"
+					(patch)="onPositionPatch($event)"
+					(boxPatch)="onPositionBoxPatch($event)"
+					(rotationPatch)="onPositionRotationPatch($event)"
+					(flipPatch)="onPositionFlipPatch($event)"
+				/>
+			</div>
+		}
+	}
+</section>

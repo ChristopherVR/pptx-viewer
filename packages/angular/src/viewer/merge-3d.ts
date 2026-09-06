@@ -38,6 +38,12 @@ export function merge3dStyleMap(base: StyleMap, computed: Computed3dStyle | unde
 	if (computed.perspective) {
 		base['perspective'] = computed.perspective;
 	}
+	if (computed.perspectiveOrigin) {
+		base['perspective-origin'] = computed.perspectiveOrigin;
+	}
+	if (computed.transformOrigin) {
+		base['transform-origin'] = computed.transformOrigin;
+	}
 	if (computed.transformStyle) {
 		base['transform-style'] = computed.transformStyle;
 	}

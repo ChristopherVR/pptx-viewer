@@ -56,7 +56,20 @@ import type { InkStroke } from './ink-renderer-helpers';
 						<style [textContent]="replayKeyframes"></style>
 					}
 					@for (stroke of strokes(); track $index) {
-						@if (stroke.circles && stroke.circles.length > 0) {
+						@if (stroke.nibMarks && stroke.nibMarks.length > 0) {
+							<g [attr.opacity]="stroke.opacity">
+								@for (m of stroke.nibMarks; track $index) {
+									<ellipse
+										[attr.cx]="m.cx"
+										[attr.cy]="m.cy"
+										[attr.rx]="m.rPerp"
+										[attr.ry]="m.rTilt"
+										[attr.transform]="'rotate(' + m.rotationDeg + ' ' + m.cx + ' ' + m.cy + ')'"
+										[attr.fill]="stroke.color"
+									/>
+								}
+							</g>
+						} @else if (stroke.circles && stroke.circles.length > 0) {
 							<g [attr.opacity]="stroke.opacity">
 								@for (c of stroke.circles; track $index) {
 									<circle

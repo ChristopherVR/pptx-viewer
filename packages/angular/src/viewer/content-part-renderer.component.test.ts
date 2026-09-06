@@ -36,11 +36,19 @@ const inked = (): ContentPartPptxElement =>
 
 describe('contentPart renderer (angular)', () => {
 	it('is registered and reachable from the element-renderer template', () => {
-		const template = readFileSync(path.join(__dirname, 'element-renderer.component.html'), 'utf8');
+		// contentPart is one of the "simple wrapper" kinds split out to
+		// `ElementRendererGraphicsComponent`; see that component's doc.
+		const template = readFileSync(
+			path.join(__dirname, 'element-renderer-graphics.component.html'),
+			'utf8',
+		);
 		expect(template).toContain(`element().type === 'contentPart'`);
 		expect(template).toContain('<pptx-content-part-renderer');
 
-		const component = readFileSync(path.join(__dirname, 'element-renderer.component.ts'), 'utf8');
+		const component = readFileSync(
+			path.join(__dirname, 'element-renderer-graphics.component.ts'),
+			'utf8',
+		);
 		expect(component).toContain('ContentPartRendererComponent');
 
 		const renderer = readFileSync(

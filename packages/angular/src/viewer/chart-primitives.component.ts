@@ -119,6 +119,7 @@ import type {
 						[attr.y2]="asLine(prim).y2"
 						[attr.stroke]="asLine(prim).stroke"
 						[attr.stroke-width]="asLine(prim).strokeWidth"
+						[attr.transform]="asLine(prim).transform ?? null"
 					>
 						@if (asLine(prim).title !== undefined) {
 							<svg:title>{{ asLine(prim).title }}</svg:title>
@@ -133,6 +134,7 @@ import type {
 						[attr.stroke-width]="asPolygon(prim).strokeWidth"
 						[attr.opacity]="asPolygon(prim).opacity ?? 1"
 						[attr.stroke-dasharray]="asPolygon(prim).dashArray ?? null"
+						[attr.transform]="asPolygon(prim).transform ?? null"
 						[attr.data-chart-part]="partRole(prim)"
 						[attr.data-chart-series]="partSeries(prim)"
 						[attr.data-chart-point]="partPoint(prim)"

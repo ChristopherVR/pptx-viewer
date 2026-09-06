@@ -56,6 +56,15 @@ export interface ShowNavigatorDeps {
 	/** The slide at the CURRENT index (a computed over `currentIndex`). */
 	currentSlide: () => PptxSlide | undefined;
 	showWithAnimation: () => boolean | undefined;
+	/**
+	 * The slide canvas size (px), for a `p:anim` formula needing the animated
+	 * shape's real box (e.g. Grow And Turn's `-#ppt_w/2` fly-in). Optional so a
+	 * host constructed before this existed still compiles; omitting it just
+	 * keeps the pre-existing fallback behaviour.
+	 */
+	canvasSize?: () => { width: number; height: number };
+	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+	themeColorMap?: () => Readonly<Record<string, string>> | undefined;
 	playback: AnimationPlaybackService;
 	annotations: PresentationAnnotationsService;
 	/** Publish a committed index change to the host's `indexChange` output. */
@@ -196,7 +205,12 @@ export class PresentationShowNavigator {
 			// back press replays them from the start rather than leaving the slide,
 			// so a presenter who overshot can watch the build again (PowerPoint).
 			if (this.deps.playback.isSeededCompleted()) {
-				this.deps.playback.setSlide(this.deps.currentSlide(), this.deps.showWithAnimation());
+				const size = this.deps.canvasSize?.();
+				this.deps.playback.setSlide(this.deps.currentSlide(), this.deps.showWithAnimation(), {
+					slideHeightPx: size?.height,
+					slideWidthPx: size?.width,
+					themeColorMap: this.deps.themeColorMap?.(),
+				});
 				return;
 			}
 			// PowerPoint shows a slide you step BACK onto with its builds played.

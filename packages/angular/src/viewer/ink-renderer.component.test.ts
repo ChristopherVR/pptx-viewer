@@ -88,10 +88,10 @@ describe('buildInkStrokes', () => {
 		expect(buildInkStrokes(shape)).toStrictEqual([]);
 	});
 
-	it('leaves circles undefined for constant-width strokes', () => {
+	it('leaves circles null for constant-width strokes', () => {
 		const strokes = buildInkStrokes(ink({ inkWidths: [2, 2] }));
-		expect(strokes[0].circles).toBeUndefined();
-		expect(strokes[1].circles).toBeUndefined();
+		expect(strokes[0].circles).toBeNull();
+		expect(strokes[1].circles).toBeNull();
 	});
 
 	it('emits pressure circles when inkPointPressures varies', () => {
@@ -120,6 +120,26 @@ describe('buildInkStrokes', () => {
 		);
 		expect(strokes[0].circles).toBeDefined();
 		expect(strokes[0].circles).toHaveLength(3);
+	});
+
+	it('projects calligraphic nib marks (not circles) when inkPointTiltX/Y carry a genuine lean', () => {
+		const strokes = buildInkStrokes(
+			ink({
+				inkPaths: ['M0 0 L10 0 L20 0'],
+				inkWidths: [4],
+				inkPointPressures: [[0.1, 0.9, 0.3]],
+				inkPointTiltX: [[10, 0, 0]],
+				inkPointTiltY: [[0, 20, 0]],
+			}),
+		);
+		expect(strokes[0].circles).toBeNull();
+		expect(strokes[0].nibMarks).not.toBeNull();
+		expect(strokes[0].nibMarks?.length).toBeGreaterThan(0);
+	});
+
+	it('leaves nibMarks null when tilt data is absent', () => {
+		const strokes = buildInkStrokes(ink());
+		expect(strokes[0].nibMarks).toBeNull();
 	});
 });
 

@@ -323,8 +323,14 @@
 				Live ink stroke preview: shown while the user is drawing.
 				pointer-events:none so it never intercepts element gestures.
 				No data-pptx-element / aria-roledescription / data-pptx-viewport.
+
+				Renders `inkDrawing.liveStrokeView()`: the same plain-path /
+				pressure-circle / tilt-nib decision `InkRendererComponent` makes for
+				a committed stroke, so a calligraphic lean or pressure-variable
+				width shows up while the pointer is still down, not only after
+				release.
 			-->
-			@if (inkDrawing.active() && inkDrawing.liveInkPath() && drawTool() !== 'select') {
+			@if (inkDrawing.active() && inkDrawing.liveStrokeView() && drawTool() !== 'select') {
 				<svg
 					class="pptx-ng-ink-preview"
 					aria-hidden="true"
@@ -332,15 +338,41 @@
 					[attr.height]="canvasSize().height"
 					style="position: absolute; inset: 0; pointer-events: none; z-index: 70"
 				>
-					<path
-						[attr.d]="inkDrawing.liveInkPath()"
-						fill="none"
-						[attr.stroke]="drawColor()"
-						[attr.stroke-width]="drawWidth()"
-						[attr.stroke-opacity]="drawTool() === 'highlighter' ? 0.4 : 1"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
+					@if (inkDrawing.liveStrokeView()?.nibMarks; as nibMarks) {
+						<g [attr.opacity]="inkDrawing.liveStrokeView()?.opacity">
+							@for (m of nibMarks; track $index) {
+								<ellipse
+									[attr.cx]="m.cx"
+									[attr.cy]="m.cy"
+									[attr.rx]="m.rPerp"
+									[attr.ry]="m.rTilt"
+									[attr.transform]="'rotate(' + m.rotationDeg + ' ' + m.cx + ' ' + m.cy + ')'"
+									[attr.fill]="inkDrawing.liveStrokeView()?.color"
+								/>
+							}
+						</g>
+					} @else if (inkDrawing.liveStrokeView()?.circles; as circles) {
+						<g [attr.opacity]="inkDrawing.liveStrokeView()?.opacity">
+							@for (c of circles; track $index) {
+								<circle
+									[attr.cx]="c.cx"
+									[attr.cy]="c.cy"
+									[attr.r]="c.r"
+									[attr.fill]="inkDrawing.liveStrokeView()?.color"
+								/>
+							}
+						</g>
+					} @else {
+						<path
+							[attr.d]="inkDrawing.liveStrokeView()?.d"
+							fill="none"
+							[attr.stroke]="inkDrawing.liveStrokeView()?.color"
+							[attr.stroke-width]="inkDrawing.liveStrokeView()?.width"
+							[attr.stroke-opacity]="inkDrawing.liveStrokeView()?.opacity"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					}
 				</svg>
 			}
 

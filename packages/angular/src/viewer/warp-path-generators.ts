@@ -6,52 +6,20 @@
  * versions in `pptx-viewer-shared` (`render/text-warp.ts`), so they are
  * re-exported from the vendored shared barrel rather than duplicated here.
  *
- * `SVG_WARP_PRESETS` / `shouldUseSvgWarp` are kept LOCAL on purpose: the Angular
- * renderer (`text-warp.ts`) treats only this *narrow* set as `<textPath>`-routed
- * presets and CSS-approximates the envelope/simple families. Shared's
- * `SVG_WARP_PRESETS` is a broader set (every path-renderable preset), so it must
- * not be substituted here; doing so would route envelope/simple presets to
- * `<textPath>` and break the css-strategy routing (and its tests).
+ * `SVG_WARP_PRESETS` / `shouldUseSvgWarp` used to be a LOCAL, deliberately
+ * NARROWER copy: the Angular renderer (`text-warp.ts`) routed only this subset
+ * to `<textPath>` and CSS-approximated the envelope/simple families for
+ * everything else. That was a cross-binding parity bug, not an intentional
+ * scope: React and Vanilla import shared's `shouldUseSvgWarp` directly (the
+ * BROAD set, every path-renderable preset) and already rendered inflate/
+ * deflate/can/slant/fade/cascade as true SVG textPath, so Angular silently
+ * fell back to a flat CSS-transform approximation for the same presets. Now
+ * re-exported straight from shared so Angular can never drift from it again.
  */
-import type { PptxTextWarpPreset } from 'pptx-viewer-core';
-
-export { getWarpPath, WARP_PATH_GENERATORS } from '../internal/shared';
+export {
+	getWarpPath,
+	WARP_PATH_GENERATORS,
+	SVG_WARP_PRESETS,
+	shouldUseSvgWarp,
+} from '../internal/shared';
 export type { WarpPathGenerator } from '../internal/shared';
-
-/**
- * Presets that the Angular renderer draws with SVG `<textPath>` along a
- * curved/circular path. Envelope (inflate/deflate/can) and simple (slant/fade/
- * cascade) presets are intentionally absent; they are CSS-approximated by
- * `text-warp.ts`. This set must stay in sync with that file's `PATH_PRESETS`.
- */
-export const SVG_WARP_PRESETS: ReadonlySet<string> = new Set([
-	'textArchUp',
-	'textArchDown',
-	'textCircle',
-	'textWave1',
-	'textWave2',
-	'textWave4',
-	'textDoubleWave1',
-	'textCurveUp',
-	'textCurveDown',
-	'textArchUpPour',
-	'textArchDownPour',
-	'textCirclePour',
-	'textButton',
-	'textButtonPour',
-	'textRingInside',
-	'textRingOutside',
-	'textTriangle',
-	'textTriangleInverted',
-	'textChevron',
-	'textChevronInverted',
-	'textStop',
-]);
-
-/** Returns `true` when the preset should use SVG `<textPath>` rendering. */
-export function shouldUseSvgWarp(preset: PptxTextWarpPreset | undefined): boolean {
-	if (!preset || preset === 'textNoShape' || preset === 'textPlain') {
-		return false;
-	}
-	return SVG_WARP_PRESETS.has(preset);
-}

@@ -32,7 +32,11 @@ const FILL_RENDERERS = [
 ];
 
 /** Hosts that draw the positioned, marked box for the renderers above. */
-const CONTRACT_OWNERS = ['element-renderer.component.ts', 'smart-art-3d-renderer.component.ts'];
+const CONTRACT_OWNERS = [
+	'element-renderer.component.ts',
+	'element-renderer-graphics.component.ts',
+	'smart-art-3d-renderer.component.ts',
+];
 
 describe('element contract ownership', () => {
 	it.each(FILL_RENDERERS)('%s does not claim data-element-id', (file) => {
@@ -55,7 +59,9 @@ describe('element contract ownership', () => {
 	});
 
 	it('draws the OLE and SmartArt boxes from the element dispatcher', () => {
-		const text = source('element-renderer.component.ts');
+		// Both boxes live in the "simple wrapper" dispatcher split out to
+		// `ElementRendererGraphicsComponent`; see that component's doc.
+		const text = source('element-renderer-graphics.component.ts');
 		// Both branches wrap their leaf renderer in the positioned, marked box.
 		expect(text).toMatch(/pptx-ng-ole"[\s\S]*?\[ngStyle\]="containerStyle\(\)"/u);
 		expect(text).toMatch(/pptx-ng-smartart"[\s\S]*?\[ngStyle\]="containerStyle\(\)"/u);

@@ -37,6 +37,20 @@ describe('getSoftEdgeFilterDef', () => {
 		const def = getSoftEdgeFilterDef(shape({ softEdgeRadius: 6.4 }, 'abc'));
 		expect(def).toStrictEqual({ id: 'soft-edge-abc', radius: 6 });
 	});
+
+	it('resolves a soft edge from a group’s groupEffectStyle (p:grpSpPr/a:effectLst)', () => {
+		const group = {
+			type: 'group',
+			id: 'grp-soft',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			children: [],
+			groupEffectStyle: { softEdgeRadius: 6 },
+		} as unknown as PptxElement;
+		expect(getSoftEdgeFilterDef(group)).toStrictEqual({ id: 'soft-edge-grp-soft', radius: 6 });
+	});
 });
 
 describe('getEffectFillOverlay', () => {
@@ -56,22 +70,19 @@ describe('getEffectFillOverlay', () => {
 
 describe('getReflectionOverlay', () => {
 	it('returns undefined without a reflection', () => {
-		expect(getReflectionOverlay(shape({}), new Map())).toBeUndefined();
+		expect(getReflectionOverlay(shape({}))).toBeUndefined();
 	});
 
-	it('resolves the mirrored fill for a shape (no -webkit-box-reflect)', () => {
+	it('resolves the wrapper style for a shape (no -webkit-box-reflect)', () => {
 		const overlay = getReflectionOverlay(
 			shape({ fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 }),
-			new Map(),
 		);
 		expect(overlay?.wrapperStyle.top).toBe('calc(100% + 4px)');
 		expect(overlay?.wrapperStyle.transform).toBe('scaleY(-1)');
 		expect(JSON.stringify(overlay)).not.toContain('box-reflect');
-		expect(overlay?.fill?.backgroundColor).toBe('#ff0000');
-		expect(overlay?.imgSrc).toBeUndefined();
 	});
 
-	it('resolves the mirrored <img> src for a picture element', () => {
+	it('resolves the wrapper style for a picture element too', () => {
 		const picture = {
 			type: 'picture',
 			id: 'pic1',
@@ -82,9 +93,23 @@ describe('getReflectionOverlay', () => {
 			imageData: 'data:image/png;base64,AAAA',
 			shapeStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
 		} as unknown as PptxElement;
-		const overlay = getReflectionOverlay(picture, new Map());
-		expect(overlay?.imgSrc).toBe('data:image/png;base64,AAAA');
-		expect(overlay?.fill).toBeUndefined();
+		const overlay = getReflectionOverlay(picture);
+		expect(overlay?.wrapperStyle.top).toBe('calc(100% + 4px)');
+	});
+
+	it('resolves the wrapper style for a group from groupFill', () => {
+		const group = {
+			type: 'group',
+			id: 'g1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 80,
+			children: [],
+			groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 6 },
+		} as unknown as PptxElement;
+		const overlay = getReflectionOverlay(group);
+		expect(overlay?.wrapperStyle.top).toBe('calc(100% + 6px)');
 	});
 });
 

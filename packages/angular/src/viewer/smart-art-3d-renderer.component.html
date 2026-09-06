@@ -1,0 +1,49 @@
+@if (useFallback()) {
+	<!--
+		The SVG renderer only fills a box, so the positioned, id-bearing,
+		marked element node has to be drawn here.
+	-->
+	<div
+		class="pptx-ng-element pptx-ng-smartart"
+		[ngStyle]="containerStyle()"
+		[attr.data-element-id]="element().id"
+		[attr.data-pptx-element]="markElement() ? 'true' : null"
+	>
+		<pptx-smart-art-renderer [element]="element()" />
+	</div>
+} @else {
+	<div
+		#container3d
+		class="pptx-ng-element pptx-ng-smartart-3d"
+		[ngStyle]="containerStyle()"
+		[attr.data-element-id]="element().id"
+		[attr.data-pptx-element]="markElement() ? 'true' : null"
+	>
+		<canvas #canvas class="pptx-ng-smartart-3d-canvas"></canvas>
+		@if (canEdit()) {
+			<!-- Invisible SVG overlay: provides data-smartart-node-id hit targets -->
+			<div class="pptx-ng-smartart-3d-hittest" (dblclick)="onOverlayDblClick($event)">
+				<pptx-smart-art-renderer [element]="element()" [editable]="false" />
+			</div>
+			@if (editState()) {
+				<textarea
+					#nodeEditor3d
+					class="pptx-ng-smartart-3d-node-editor"
+					[style.left.px]="editState()!.box.x"
+					[style.top.px]="editState()!.box.y"
+					[style.width.px]="editState()!.box.width"
+					[style.height.px]="editState()!.box.height"
+					[value]="editState()!.text"
+					spellcheck="false"
+					[attr.aria-label]="'pptx.smartArt.editNodeText' | translate"
+					(input)="updateDraft($event)"
+					(blur)="commitEdit()"
+					(keydown)="onEditorKeydown($event)"
+					(mousedown)="$event.stopPropagation()"
+					(click)="$event.stopPropagation()"
+					(dblclick)="$event.stopPropagation()"
+				></textarea>
+			}
+		}
+	</div>
+}

@@ -151,6 +151,7 @@ export class TransitionPreviewComponent {
 			transition.direction,
 			transition.orient,
 			transition.spokes,
+			transition.pattern,
 		);
 	});
 

@@ -34,7 +34,9 @@ describe('text-style emphasis override reaches every element type', () => {
 	});
 
 	it('emits <pptx-dynamic-style> inside the table, chart, and smartArt wrapper divs', () => {
-		const html = read('element-renderer.component.html');
+		// table/chart/smartArt are "simple wrapper" kinds split out to
+		// `ElementRendererGraphicsComponent`; see that component's doc.
+		const html = read('element-renderer-graphics.component.html');
 		for (const marker of ['pptx-ng-table', 'pptx-ng-chart', 'pptx-ng-smartart']) {
 			const caseStart = html.indexOf(`class="pptx-ng-element ${marker}"`);
 			expect(caseStart).toBeGreaterThan(-1);

@@ -163,7 +163,14 @@ export class AnimationPlaybackService {
 	setSlide(
 		slide: PptxSlide | undefined,
 		showWithAnimation?: boolean,
-		options?: { completed?: boolean },
+		options?: {
+			completed?: boolean;
+			/** The slide canvas size (px), for a `p:anim` formula needing the animated shape's real box. */
+			slideWidthPx?: number;
+			slideHeightPx?: number;
+			/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+			themeColorMap?: Readonly<Record<string, string>>;
+		},
 	): void {
 		this.showWithAnimation = showWithAnimation;
 		this.clearTimers();
@@ -182,8 +189,15 @@ export class AnimationPlaybackService {
 
 		// The controller builds the timeline engine (expanding text-build
 		// animations) and derives keyframes CSS, trigger-shape ids, and the full
-		// tracked element id list.
-		const controller = PresentationAnimationController.fromSlide(slide);
+		// tracked element id list. `slideWidthPx`/`slideHeightPx`/`themeColorMap`
+		// let it resolve a `p:anim` formula that needs the animated shape's real
+		// box (Grow And Turn's `-#ppt_w/2` fly-in) and a scheme-colour ramp stop
+		// instead of falling back.
+		const controller = PresentationAnimationController.fromSlide(slide, {
+			slideHeightPx: options?.slideHeightPx,
+			slideWidthPx: options?.slideWidthPx,
+			themeColorMap: options?.themeColorMap,
+		});
 		this.controller = controller;
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.

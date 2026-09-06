@@ -1,0 +1,73 @@
+<div
+	#wrapper
+	class="pptx-ng-chart-view"
+	[class.pptx-chart-interactive]="canEdit()"
+	(pointerdown)="onPointerDown($event)"
+	(pointermove)="onPointerMove($event)"
+	(pointerup)="onPointerUp()"
+	(dblclick)="onDblClick($event)"
+>
+	@if (use3D() && isSurfaceKind()) {
+		<pptx-surface-chart-3d-renderer
+			[element]="renderedElement()"
+			[selectedPart]="selectedPart()"
+			[textStyle]="chartTextStyle()"
+			(partSelect)="onChartPart3DSelect($event)"
+			(valueDragPreview)="onChart3DValueDragPreview($event)"
+			(valueDragCommit)="onChart3DValueDragCommit($event)"
+		/>
+	} @else if (use3DBar() && isBar3DKind()) {
+		<pptx-bar-chart-3d-renderer
+			[element]="renderedElement()"
+			[selectedPart]="selectedPart()"
+			[textStyle]="chartTextStyle()"
+			(partSelect)="onChartPart3DSelect($event)"
+			(valueDragPreview)="onChart3DValueDragPreview($event)"
+			(valueDragCommit)="onChart3DValueDragCommit($event)"
+		/>
+	} @else if (use3DLine() && isLine3DKind()) {
+		<pptx-line-chart-3d-renderer
+			[element]="renderedElement()"
+			[selectedPart]="selectedPart()"
+			[textStyle]="chartTextStyle()"
+			(partSelect)="onChartPart3DSelect($event)"
+			(valueDragPreview)="onChart3DValueDragPreview($event)"
+			(valueDragCommit)="onChart3DValueDragCommit($event)"
+		/>
+	} @else if (use3DArea() && isArea3DKind()) {
+		<pptx-area-chart-3d-renderer
+			[element]="renderedElement()"
+			[selectedPart]="selectedPart()"
+			[textStyle]="chartTextStyle()"
+			(partSelect)="onChartPart3DSelect($event)"
+			(valueDragPreview)="onChart3DValueDragPreview($event)"
+			(valueDragCommit)="onChart3DValueDragCommit($event)"
+		/>
+	} @else if (use3DPie() && isPie3DKind()) {
+		<pptx-pie-chart-3d-renderer
+			[element]="renderedElement()"
+			[selectedPart]="selectedPart()"
+			(partSelect)="onChartPart3DSelect($event)"
+			(valueDragPreview)="onChart3DValueDragPreview($event)"
+			(valueDragCommit)="onChart3DValueDragCommit($event)"
+		/>
+	} @else {
+		<pptx-chart-renderer [element]="renderedElement()" />
+	}
+	@if (dragValue() !== null) {
+		<div class="pptx-ng-chart-drag-badge">{{ dragBadge() }}</div>
+	}
+	@if (titleDraft() !== null) {
+		<input
+			#titleEditor
+			type="text"
+			class="pptx-ng-chart-title-input"
+			[value]="titleDraft() ?? ''"
+			(input)="onTitleInput($event)"
+			(keydown)="onTitleKeydown($event)"
+			(blur)="commitTitle()"
+			(pointerdown)="$event.stopPropagation()"
+			(dblclick)="$event.stopPropagation()"
+		/>
+	}
+</div>

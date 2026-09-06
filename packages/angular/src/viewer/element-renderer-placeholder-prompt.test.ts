@@ -22,9 +22,11 @@ import { describe, expect, it } from 'vitest';
 import { placeholderPromptDescriptor } from '../internal/shared';
 import { componentSource as readComponentSource } from './component-source.test-support';
 
+// The placeholder-prompt branch lives in the text/shape branch, split out to
+// `ElementRendererShapeComponent`; see that component's doc.
 const componentSource = readComponentSource(
 	dirname(fileURLToPath(import.meta.url)),
-	'element-renderer.component.ts',
+	'element-renderer-shape.component.ts',
 );
 
 function textElement(overrides: Partial<PptxElement> = {}): PptxElement {

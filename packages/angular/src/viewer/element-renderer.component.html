@@ -26,142 +26,54 @@
 			[textStyleOverrideCss]="textStyleOverrideCss()"
 		/>
 	}
-	@case (element().type === 'ink') {
+	@case (isGraphicsElement()) {
 		<!--
-			This renderer (and zoom / model3d / 3D SmartArt below) positions its
-			own root box, so it takes the neutral element marker
-			(data-pptx-element) as an input instead of being wrapped in a marked
-			box the way chart / table / OLE are: an outer positioned box would
-			offset it twice.
+			The "simple wrapper" kinds (table / chart / smartArt / ink / media /
+			ole / contentPart / zoom / model3d): each paints one specialised
+			renderer, optionally inside a marked `containerStyle` box. Split out
+			to `ElementRendererGraphicsComponent` purely to keep this component's
+			`.ts`/`.html` under the file-size limit; see that component's doc.
 		-->
-		<pptx-ink-renderer
+		<pptx-element-renderer-graphics
 			[element]="element()"
 			[zIndex]="zIndex()"
 			[mediaDataUrls]="mediaDataUrls()"
-			[replay]="presenting()"
-			[markElement]="elementMarked()"
+			[interactive]="interactive()"
+			[editable]="editable()"
+			[presenting]="presenting()"
 			[exposeElementId]="exposeElementId()"
+			[elementMarked]="elementMarked()"
+			[elementIdAttr]="elementIdAttr()"
+			[rootPointerEvents]="rootPointerEvents()"
+			[containerStyle]="containerStyle()"
+			[textStyleOverrideCss]="textStyleOverrideCss()"
+			[animationState]="animationState()"
+			[smartArt3D]="smartArt3D()"
+			[placeholderLabel]="placeholderLabel()"
+			(cellCommit)="cellCommit.emit($event)"
+			(tableChange)="tableChange.emit($event)"
 		/>
-	}
-	@case (element().type === 'contentPart') {
-		<!--
-			Real PowerPoint ink. Same positioning contract as pptx-ink-renderer
-			above: the renderer's own root is absolutely positioned, so it takes
-			the neutral element marker as an input rather than being wrapped.
-		-->
-		<pptx-content-part-renderer
-			[element]="element()"
-			[zIndex]="zIndex()"
-			[replay]="presenting()"
-			[markElement]="elementMarked()"
-			[exposeElementId]="exposeElementId()"
-		/>
-	}
-	@case (element().type === 'zoom') {
-		<pptx-zoom-renderer
-			[element]="element()"
-			[zIndex]="zIndex()"
-			[mediaDataUrls]="mediaDataUrls()"
-			[markElement]="elementMarked()"
-		/>
-	}
-	@case (element().type === 'model3d') {
-		<pptx-model3d-renderer
-			[element]="element()"
-			[zIndex]="zIndex()"
-			[mediaDataUrls]="mediaDataUrls()"
-			[markElement]="elementMarked()"
-			[exposeElementId]="exposeElementId()"
-		/>
-	}
-	@case (element().type === 'smartArt' && smartArt3D()) {
-		<pptx-smart-art-3d-renderer
-			[element]="element()"
-			[zIndex]="zIndex()"
-			[canEdit]="interactive() && editable()"
-			[markElement]="elementMarked()"
-		/>
-	}
-	@case (element().type === 'smartArt') {
-		<div
-			class="pptx-ng-element pptx-ng-smartart"
-			[ngStyle]="containerStyle()"
-			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="elementIdAttr()"
-			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
-		>
-			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
-			     Change Font Style/Size) overrides a SmartArt node caption's own
-			     inline bold/italic/underline/size, which plain CSS inheritance
-			     cannot reach. See `animation-text-style-css.ts`. -->
-			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
-			<pptx-smart-art-renderer
-				[element]="element()"
-				[editable]="interactive() && editable()"
-				[animationState]="animationState()"
-			/>
-		</div>
-	}
-	@case (element().type === 'ole') {
-		<div
-			class="pptx-ng-element pptx-ng-ole"
-			[ngStyle]="containerStyle()"
-			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="elementIdAttr()"
-			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
-		>
-			<pptx-ole-renderer [element]="element()" />
-		</div>
-	}
-	@case (element().type === 'chart') {
-		<div
-			class="pptx-ng-element pptx-ng-chart"
-			[ngStyle]="containerStyle()"
-			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="elementIdAttr()"
-			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
-		>
-			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
-			     Change Font Style/Size) overrides a chart title/label/legend's
-			     own SVG text attributes, which plain CSS inheritance cannot
-			     reach. See `animation-text-style-css.ts`. -->
-			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
-			<pptx-chart-element-view
-				[element]="element()"
-				[editable]="interactive() && editable()"
-				[animationState]="animationState()"
-			/>
-		</div>
-	}
-	@case (element().type === 'table') {
-		<div
-			class="pptx-ng-element pptx-ng-table"
-			[ngStyle]="containerStyle()"
-			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="elementIdAttr()"
-			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
-		>
-			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
-			     Change Font Style/Size) overrides a table cell's own inline
-			     bold/italic/underline/size, which plain CSS inheritance cannot
-			     reach. See `animation-text-style-css.ts`. -->
-			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
-			<pptx-table-renderer
-				[element]="element()"
-				[editable]="interactive() && editable()"
-				(cellCommit)="cellCommit.emit({ id: element().id, commit: $event })"
-				(tableChange)="tableChange.emit($event)"
-			/>
-		</div>
 	}
 	@case (element().type === 'group') {
 		<div
 			class="pptx-ng-element pptx-ng-group"
-			[ngStyle]="containerStyle()"
+			[ngStyle]="shapeContainerStyle()"
 			[style.pointer-events]="rootPointerEvents()"
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
+			<!-- A group paints no fill/outline of its own, but `p:grpSpPr/a:effectLst`
+			     DOES carry a shadow/glow/soft-edge for the group's own composite
+			     raster (the `filter`/`overflow` merged into `shapeContainerStyle()`
+			     above from `getShapeFillStrokeStyle`; the soft-edge `<filter>` def
+			     itself is injected by the shared `@if (softEdgeFilter(); …)` block
+			     below the switch) and a reflection (parsed onto `groupEffectStyle`)
+			     that mirrors the whole group subtree, so this still needs mounting. -->
+			@if (reflection(); as refl) {
+				<div class="pptx-ng-reflection" aria-hidden="true" [ngStyle]="refl.wrapperStyle">
+					<pptx-reflection-mirror-content [element]="element()" [mediaDataUrls]="mediaDataUrls()" />
+				</div>
+			}
 			@for (child of children(); track child.id) {
 				<pptx-element-renderer
 					[element]="child"
@@ -189,338 +101,29 @@
 			[exposeElementId]="exposeElementId()"
 		/>
 	}
-	@case (element().type === 'media') {
-		<pptx-media-renderer
+	@case (isShapeLike()) {
+		<!--
+			The `text`/`shape` branch: fill/stroke box, 3D extrusion, reflection,
+			hollow hit outline, gradient outline, WordArt warp, and the rich text
+			block. Split out to `ElementRendererShapeComponent` purely to keep
+			this component's `.ts`/`.html` under the file-size limit; see that
+			component's doc.
+		-->
+		<pptx-element-renderer-shape
 			[element]="element()"
 			[mediaDataUrls]="mediaDataUrls()"
-			[zIndex]="zIndex()"
-			[interactive]="interactive()"
-			[marked]="elementMarked()"
-			[exposeElementId]="exposeElementId()"
+			[shapeContainerStyle]="shapeContainerStyle()"
+			[rootPointerEvents]="rootPointerEvents()"
+			[elementIdAttr]="elementIdAttr()"
+			[elementMarked]="elementMarked()"
+			[textStyleOverrideCss]="textStyleOverrideCss()"
+			[editable]="editable()"
 			[presenting]="presenting()"
-			[placeholderLabel]="placeholderLabel()"
+			[fieldContext]="fieldContext()"
+			[slideElements]="slideElements()"
+			[subElementAnimStates]="subElementAnimStates()"
+			[editingElementId]="editingElementId()"
 		/>
-	}
-	@case (isShapeLike()) {
-		<div
-			class="pptx-ng-element pptx-ng-shape"
-			[ngStyle]="shapeContainerStyle()"
-			[style.pointer-events]="rootPointerEvents()"
-			[attr.data-element-id]="elementIdAttr()"
-			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
-		>
-			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
-			     Change Font Style/Size) overrides the runs' own inline
-			     bold/italic/underline/size, which plain CSS inheritance cannot
-			     reach (the runs declare those unconditionally). -->
-			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
-			<!-- Per-sub-path fill overlay: a multi-sub-path preset (`smileyFace`'s
-			     open eyes, `actionButtonBlank`'s darkened bevel well) or custom
-			     geometry whose sub-paths cannot share one CSS background-color. -->
-			@if (subpathFill(); as sf) {
-				<svg
-					class="pptx-ng-subpath-fill"
-					aria-hidden="true"
-					[attr.viewBox]="subpathFillViewBox()"
-					preserveAspectRatio="none"
-					style="position: absolute; inset: 0; width: 100%; height: 100%"
-				>
-					@for (paint of sf.paints; track $index) {
-						<path [attr.d]="paint.d" [attr.fill]="paint.fill" stroke="none" />
-					}
-				</svg>
-			}
-			@if (fillOverlay(); as ov) {
-				<div
-					class="pptx-ng-fill-overlay"
-					aria-hidden="true"
-					style="position: absolute; inset: 0; pointer-events: none"
-					[style.background]="ov.color"
-					[style.mix-blend-mode]="ov.blendMode"
-				></div>
-			}
-			<!-- Mirrored reflection sibling (`a:reflection`): cross-browser, unlike
-			     the `-webkit-box-reflect` this replaced (Firefox never implemented
-			     that property, so reflections were invisible there entirely). -->
-			@if (reflection(); as refl) {
-				<div class="pptx-ng-reflection" aria-hidden="true" [ngStyle]="refl.wrapperStyle">
-					@if (refl.imgSrc) {
-						<img
-							[src]="refl.imgSrc"
-							alt=""
-							draggable="false"
-							style="width: 100%; height: 100%"
-							[ngStyle]="refl.imgFitStyle"
-						/>
-					} @else if (refl.fill) {
-						<div
-							style="width: 100%; height: 100%"
-							[style.background-color]="refl.fill.backgroundColor"
-							[style.background-image]="refl.fill.backgroundImage"
-							[style.background-size]="refl.fill.backgroundSize"
-							[style.background-position]="refl.fill.backgroundPosition"
-							[style.background-repeat]="refl.fill.backgroundRepeat"
-						></div>
-					}
-				</div>
-			}
-			<!-- Hollow frame hit target: an unfilled, textless shape is hit-tested
-			     on its outline only, so its interior lets clicks through. -->
-			@if (hollowHit(); as hit) {
-				<svg
-					aria-hidden="true"
-					[attr.viewBox]="outlineViewBox()"
-					preserveAspectRatio="none"
-					style="
-						position: absolute;
-						inset: 0;
-						width: 100%;
-						height: 100%;
-						overflow: visible;
-						pointer-events: none;
-					"
-				>
-					<path
-						[attr.d]="hit.d"
-						fill="none"
-						stroke="transparent"
-						[attr.stroke-width]="hit.strokeWidth"
-						style="pointer-events: stroke"
-					/>
-				</svg>
-			}
-			<!-- Stroked outline: a CSS border takes one flat colour, and cannot
-			     outline an open preset (`line`, `arc`) at all. -->
-			@if (gradientOutline(); as go) {
-				<svg
-					class="pptx-ng-gradient-outline"
-					aria-hidden="true"
-					[attr.viewBox]="outlineViewBox()"
-					preserveAspectRatio="none"
-					style="
-						position: absolute;
-						inset: 0;
-						width: 100%;
-						height: 100%;
-						overflow: visible;
-						pointer-events: none;
-					"
-				>
-					@if (go.paint; as paint) {
-						<defs>
-							@if (paint.kind === 'pattern') {
-								<pattern
-									[attr.id]="paint.id"
-									[attr.width]="paint.width"
-									[attr.height]="paint.height"
-									patternUnits="userSpaceOnUse"
-								>
-									<image
-										[attr.href]="paint.href"
-										[attr.width]="paint.width"
-										[attr.height]="paint.height"
-									/>
-								</pattern>
-							} @else if (paint.kind === 'rectPath') {
-								<pattern [attr.id]="paint.id" patternUnits="objectBoundingBox" width="1" height="1">
-									<image
-										[attr.href]="paint.href"
-										x="0"
-										y="0"
-										width="1"
-										height="1"
-										preserveAspectRatio="none"
-									/>
-								</pattern>
-							} @else if (paint.kind === 'radial') {
-								<radialGradient
-									[attr.id]="paint.id"
-									[attr.cx]="paint.cx"
-									[attr.cy]="paint.cy"
-									[attr.r]="paint.r"
-								>
-									@for (stop of paint.stops; track $index) {
-										<stop
-											[attr.offset]="stop.offset"
-											[attr.stop-color]="stop.color"
-											[attr.stop-opacity]="stop.opacity"
-										/>
-									}
-								</radialGradient>
-							} @else {
-								<linearGradient
-									[attr.id]="paint.id"
-									[attr.x1]="paint.x1"
-									[attr.y1]="paint.y1"
-									[attr.x2]="paint.x2"
-									[attr.y2]="paint.y2"
-								>
-									@for (stop of paint.stops; track $index) {
-										<stop
-											[attr.offset]="stop.offset"
-											[attr.stop-color]="stop.color"
-											[attr.stop-opacity]="stop.opacity"
-										/>
-									}
-								</linearGradient>
-							}
-						</defs>
-					}
-					@for (strand of go.strands; track $index) {
-						<path
-							[attr.d]="go.d"
-							fill="none"
-							[attr.stroke]="go.stroke"
-							[attr.stroke-width]="strand.strokeWidth"
-							[attr.stroke-dasharray]="go.dashArray"
-							[attr.stroke-linecap]="go.lineCap"
-							[attr.stroke-linejoin]="go.lineJoin"
-							[style.transform]="
-								strand.offset !== 0 ? 'translate(0, ' + strand.offset + 'px)' : null
-							"
-						/>
-					}
-				</svg>
-			}
-			<!-- While this element is open in the inline text editor, its live text
-			     is drawn by that overlay instead (see `isBeingInlineEdited`);
-			     rendering it here too produced a duplicate, offset "text shadow"
-			     (issue #182). -->
-			@if (!isBeingInlineEdited()) {
-				@if (pathWarp(); as warp) {
-					<svg
-						[attr.width]="warp.width"
-						[attr.height]="warp.height"
-						[attr.viewBox]="'0 0 ' + warp.width + ' ' + warp.height"
-						style="position: absolute; inset: 0; overflow: visible; pointer-events: none"
-						aria-hidden="true"
-					>
-						<defs>
-							@for (line of warp.pathLines; track line.pathId) {
-								<path [attr.id]="line.pathId" [attr.d]="line.d" fill="none" />
-							}
-						</defs>
-						@for (line of warp.pathLines; track line.pathId) {
-							<text
-								[attr.font-size]="warp.baseFontSize"
-								[attr.font-family]="warp.baseFontFamily"
-								[attr.fill]="warp.baseColor"
-							>
-								<textPath
-									[attr.href]="'#' + line.pathId"
-									[attr.startOffset]="warp.startOffset"
-									[attr.text-anchor]="warp.textAnchor"
-								>
-									@for (seg of line.segments; track $index) {
-										<tspan
-											[attr.fill]="seg.style?.color ?? warp.baseColor"
-											[attr.font-weight]="seg.style?.bold ? 700 : 400"
-											[attr.font-style]="seg.style?.italic ? 'italic' : 'normal'"
-										>
-											{{ seg.text }}
-										</tspan>
-									}
-								</textPath>
-							</text>
-						}
-					</svg>
-				} @else if (placeholderPrompt(); as prompt) {
-					<div class="pptx-ng-text" [ngStyle]="prompt.style">{{ prompt.text }}</div>
-				} @else if (hasText()) {
-					<div class="pptx-ng-text" [ngStyle]="warpedTextStyle()">
-						@for (para of paragraphs(); track $index) {
-							<p
-								class="pptx-ng-para"
-								[ngStyle]="para.paragraphStyle ?? null"
-								[style.padding-left.px]="para.indentPx"
-								[style.text-indent.px]="para.textIndentPx ?? null"
-								[style.line-height]="para.lineHeight ?? null"
-								[style.margin-top.px]="para.spaceBeforePx ?? null"
-								[style.margin-bottom.px]="para.spaceAfterPx ?? null"
-								[style.font-size.px]="para.strutFontSizePx ?? null"
-							>
-								@if (para.bulletPicture?.src) {
-									<img
-										class="pptx-ng-bullet-image"
-										[src]="para.bulletPicture.src"
-										[alt]="para.bulletPicture.accessibleLabel"
-										[style.width.px]="para.bulletPicture.sizePx"
-										[style.height.px]="para.bulletPicture.sizePx"
-										style="
-											display: inline-block;
-											vertical-align: middle;
-											margin-inline-end: 4px;
-											object-fit: contain;
-										"
-									/>
-								} @else if (para.bulletMarker) {
-									<span
-										class="pptx-ng-bullet"
-										[ngStyle]="para.bulletStyle"
-										[attr.aria-label]="para.bulletPicture?.accessibleLabel ?? null"
-										>{{ para.bulletMarker }}</span
-									>
-								}
-								@if (textBuildSpecs()[$index]; as spec) {
-									<!-- Staged text build: render the split pieces so each one
-								     carries its own sub-animation. -->
-									@if (spec.granularity === 'paragraph') {
-										<span [attr.data-anim-id]="spec.animId" [ngStyle]="buildSpanStyle(spec)">{{
-											paragraphText(para)
-										}}</span>
-									} @else {
-										@for (span of spec.spans ?? []; track $index) {
-											<span [attr.data-anim-id]="span.animId" [ngStyle]="buildSpanStyle(span)">{{
-												span.text
-											}}</span>
-										}
-									}
-								} @else {
-									@for (run of para.runs; track $index) {
-										@if (run.equationXml) {
-											<pptx-equation-renderer
-												[equationXml]="run.equationXml"
-												[equationNumber]="run.equationNumber"
-											/>
-										} @else if (
-											run.text ===
-											'
-'
-										) {
-											<br />
-										} @else if (run.reflection; as refl) {
-											<!-- `a:reflection`: wrapped HERE, around the whole base
-										     run (`runBase`), rather than inside its href/ruby/plain
-										     branches - a `<ruby>` run's own `display: ruby` (which
-										     positions the annotation above its base text) would
-										     break if forced to `display: inline-block` to host the
-										     mirror. Cross-browser, unlike the `-webkit-box-reflect`
-										     this replaced (Firefox never implemented it). -->
-											<span style="position: relative; display: inline-block">
-												<ng-container *ngTemplateOutlet="runBase; context: { run: run }" />
-												<span class="pptx-ng-text-reflection" aria-hidden="true" [ngStyle]="refl"
-													><span [ngStyle]="run.style"
-														><ng-container
-															*ngTemplateOutlet="runContent; context: { run: run }" /></span
-												></span>
-											</span>
-										} @else {
-											<ng-container *ngTemplateOutlet="runBase; context: { run: run }" />
-										}
-									}
-								}
-								@if (para.isEmpty) {
-									<!-- An authored blank line has no runs, so without this the
-								     <p> collapses to zero height and the gap a deck puts
-								     between a heading and its bullet list disappears. -->
-									<br />
-								}
-							</p>
-						}
-					</div>
-				}
-			}
-		</div>
 	}
 	@default {
 		<div
@@ -591,110 +194,3 @@
 		</defs>
 	</svg>
 }
-
-<!--
-	One run's base element (hyperlink / ruby / plain span), reused via
-	`ngTemplateOutlet` both directly and inside the `a:reflection` wrapper above,
-	so the reflection case does not duplicate this three-way branch.
--->
-<ng-template #runBase let-run="run">
-	@if (run.href) {
-		<a
-			class="pptx-ng-link"
-			[href]="run.href"
-			[attr.target]="run.target ?? '_blank'"
-			[attr.rel]="run.rel ?? 'noopener noreferrer'"
-			[attr.title]="run.tooltip ?? null"
-			[ngStyle]="run.style"
-			(click)="onHyperlinkClick($event, run.href)"
-			><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
-		/></a>
-	} @else if (run.rubyText) {
-		<!-- `a:ruby`: the phonetic guide sits above its base
-		     text; the <rp> parentheses are the fallback for a
-		     browser without ruby support. -->
-		<ruby [ngStyle]="run.style"
-			><ng-container *ngTemplateOutlet="runContent; context: { run: run }" /><rp>(</rp
-			><rt [ngStyle]="run.rubyStyle">{{ run.rubyText }}</rt
-			><rp>)</rp></ruby
-		>
-	} @else {
-		<span [ngStyle]="run.style"
-			><ng-container *ngTemplateOutlet="runContent; context: { run: run }"
-		/></span>
-	}
-</ng-template>
-
-<!--
-	A run's text content, honouring shared's per-script font split
-	(`run.scriptRuns`) and measured tab-stop layout (`run.tabLines`) when
-	either is present. Both descriptors come from `pptx-viewer-shared`'s
-	`buildParagraphs` (the per-script split was React-only before this
-	template existed: CJK, Arabic, Hebrew and Thai text rendered in the wrong
-	typeface here; the tab layout was likewise React-only, so a TOC-style row
-	lost its leader dots and right-aligned page number). Reused via
-	`ngTemplateOutlet` for the run's span / anchor / ruby base text, so all
-	three carry the same content logic.
--->
-<ng-template #runContent let-run="run">
-	@if (run.tabLines) {
-		@for (line of run.tabLines; track $index) {
-			<span style="display: inline-block; white-space: nowrap">
-				@for (piece of line.pieces; track $index) {
-					@if (piece.leaderStyle) {
-						<span aria-hidden="true" [ngStyle]="piece.leaderStyle">{{ piece.leaderText }}</span>
-					}
-					<!-- `u="words"`: one sibling span per word/gap in place of the piece span. -->
-					@if (piece.words) {
-						@for (word of piece.words; track $index) {
-							<span [ngStyle]="word.style">{{ word.text }}</span>
-						}
-					} @else {
-						<span [ngStyle]="piece.style">{{ piece.text }}</span>
-					}
-				}
-			</span>
-			@if (!$last) {
-				<br />
-			}
-		}
-	} @else if (run.scriptRuns || run.underlineWordPieces) {
-		<!--
-			A bare interpolation as the sole content of an `@if`/`@else` block
-			leaks a real leading + trailing whitespace text node: Angular does
-			not collapse that whitespace the way it collapses whitespace between
-			element TAGS. Worse, oxfmt's Angular-template printer always breaks a
-			block's content onto its own indented line, even when the block was
-			written as a single line with the braces touching, so writing the
-			`{{ x }}` compact ourselves does not survive the next `bun run fmt` /
-			pre-commit `lint-staged` pass: it silently re-introduces the leak
-			(this happened twice, see `20d4d177`, `18eebb6f`). `<ng-container>`
-			does not render any DOM node of its own, so wrapping the
-			interpolation in one keeps the no-wrapper-element behaviour of
-			React's `<>{piece.text}</>` fragment while making the interpolation
-			tag-adjacent, which both Angular AND oxfmt already treat as safely
-			collapsible (see the many `<span>{{ x }}</span>` one-liners in this
-			file). That was invisible while a paragraph was one run per script
-			(two stray spaces at the run's own edges, trimmed visually by the
-			browser but still present in `textContent`), but shared's per-word /
-			per-gap metric split (`text-run-spacing.ts`, issue #149) re-emits
-			every WORD and inter-word GAP as its own sibling run, so the same
-			one-space leak lands between every word: "will choose" rendered as
-			"will     choose" (five spaces: the word's own trailing leak, the
-			gap run's real space plus its OWN two leaks, the next word's leading
-			leak). The same leak also showed up one paragraph at a time:
-			"Project" / "Atlas" as two separate paragraphs read back as
-			"ProjectAtlas" instead of React's "Project Atlas", because the
-			plain-run `@else` below had the same bug.
-		-->
-		@for (piece of run.scriptRuns ?? run.underlineWordPieces; track $index) {
-			@if (piece.style) {
-				<span [ngStyle]="piece.style">{{ piece.text }}</span>
-			} @else {
-				<ng-container>{{ piece.text }}</ng-container>
-			}
-		}
-	} @else {
-		<ng-container>{{ run.text }}</ng-container>
-	}
-</ng-template>

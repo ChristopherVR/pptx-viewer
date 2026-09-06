@@ -7,16 +7,23 @@
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { hasGlyphEnvelope } from '../internal/shared';
 import {
 	ALL_CLASSIFIED_PRESETS,
 	getTextWarp,
 	getWarpCategory,
 	groupIntoParagraphs,
 } from './text-warp';
-import type { TextWarpCssDef, TextWarpPathDef } from './text-warp';
+import type { TextWarpGlyphDef, TextWarpPathDef } from './text-warp';
 import { SVG_WARP_PRESETS } from './warp-path-generators';
 
 // ── helpers ────────────────────────────────────────────────────────────
+
+/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
+function matrixScaleY(transform: string): number {
+	const terms = transform.replace('matrix(', '').replace(')', '').trim().split(/\s+/u);
+	return Number(terms[3]);
+}
 
 function makeTextElement(
 	preset: string | undefined,
@@ -111,10 +118,13 @@ describe('getWarpCategory', () => {
 		expect(getWarpCategory('textDeflateInflate')).toBe('envelope');
 	});
 
-	it('returns "simple" for simple-family presets', () => {
-		expect(getWarpCategory('textSlantUp')).toBe('simple');
-		expect(getWarpCategory('textFadeRight')).toBe('simple');
-		expect(getWarpCategory('textCascadeDown')).toBe('simple');
+	it('classifies the former "simple" family (slant/fade/cascade) as path', () => {
+		// These moved from the CSS-transform-approximated `simple` family to
+		// true SVG textPath once their generators became single-line-safe; see
+		// `pptx-viewer-shared`'s `text-warp.ts`.
+		expect(getWarpCategory('textSlantUp')).toBe('path');
+		expect(getWarpCategory('textFadeRight')).toBe('path');
+		expect(getWarpCategory('textCascadeDown')).toBe('path');
 	});
 });
 
@@ -289,56 +299,113 @@ describe('getTextWarp - strategy: path', () => {
 	});
 });
 
-// ── getTextWarp: css strategy ──────────────────────────────────────────
+// ── getTextWarp: former "css strategy" presets now render as true path ──
 
-describe('getTextWarp - strategy: css', () => {
-	it('returns TextWarpCssDef for textSlantUp', () => {
-		const el = makeTextElement('textSlantUp', { text: 'hi' });
-		const def = getTextWarp(el) as TextWarpCssDef;
+describe('getTextWarp - envelope/former-simple presets render as true SVG path', () => {
+	// Regression pins: `getTextWarp` used to return a `TextWarpCssDef` (a flat
+	// CSS-transform approximation) for these presets because
+	// `warp-path-generators.ts` exposed a deliberately NARROWER local
+	// `shouldUseSvgWarp`. React and Vanilla import shared's BROAD
+	// `shouldUseSvgWarp` directly and already rendered these as true SVG
+	// textPath, so this was a cross-binding parity bug, not an inherent
+	// CSS-only limitation. `warp-path-generators.ts` now re-exports the broad
+	// shared set, so every classified preset takes the `'path'` branch.
+	it.each([
+		'textSlantUp',
+		'textFadeDown',
+		'textCascadeUp',
+		'textSlantDown',
+		'textFadeLeft',
+		'textCascadeDown',
+	])('returns a TextWarpPathDef (not css) for %s', (preset) => {
+		const el = makeTextElement(preset, { text: 'hi' });
+		const def = getTextWarp(el) as TextWarpPathDef;
 		expect(def).toBeDefined();
-		expect(def.strategy).toBe('css');
-		expect(def.preset).toBe('textSlantUp');
-		expect(def.cssTransform).toContain('perspective');
-		expect(def.cssTransformOrigin).toBe('left center');
+		expect(def.strategy).toBe('path');
+		expect(def.pathLines[0].d).toMatch(/^M /u);
 	});
+});
 
-	it('returns TextWarpCssDef for textFadeDown', () => {
-		const el = makeTextElement('textFadeDown', { text: 'hi' });
-		const def = getTextWarp(el) as TextWarpCssDef;
-		expect(def.strategy).toBe('css');
-		expect(def.cssTransform).toContain('rotateX');
-		expect(def.cssTransformOrigin).toBe('center top');
-	});
+// ── getTextWarp: envelope presets get a true two-curve glyph descriptor ─
 
-	it('returns TextWarpCssDef for textCascadeUp', () => {
-		const el = makeTextElement('textCascadeUp', { text: 'hi' });
-		const def = getTextWarp(el) as TextWarpCssDef;
-		expect(def.strategy).toBe('css');
-		expect(def.cssTransform).toContain('skewY');
-		expect(def.cssTransformOrigin).toBe('left top');
-	});
-
-	it('returns TextWarpCssDef for textInflate (envelope)', () => {
-		const el = makeTextElement('textInflate', { text: 'hi' });
-		const def = getTextWarp(el) as TextWarpCssDef;
-		expect(def.strategy).toBe('css');
-		expect(def.cssTransform).toContain('scaleY');
-	});
-
-	it('returns TextWarpCssDef for textCanDown (envelope)', () => {
-		const el = makeTextElement('textCanDown', { text: 'hi' });
-		const def = getTextWarp(el) as TextWarpCssDef;
-		expect(def.strategy).toBe('css');
-		expect(def.cssTransform).toContain('rotateX');
-	});
-
-	it('cssTransform strings do not contain "none" or empty transform-origin', () => {
-		for (const preset of ['textSlantDown', 'textFadeLeft', 'textCascadeDown']) {
-			const el = makeTextElement(preset, { text: 'x' });
-			const def = getTextWarp(el);
+describe('getTextWarp - envelope presets (inflate/deflate/can) render as a glyph descriptor', () => {
+	// The fixed residual: PowerPoint bends inflate/deflate/can between an
+	// independent top and bottom curve, so glyph HEIGHT varies with
+	// horizontal position; a shared-baseline `<textPath>` cannot express
+	// that. These presets now resolve to `strategy: 'glyph'` (one `<text>`
+	// per glyph, see `text-warp-glyph.ts`) instead.
+	it.each(['textInflate', 'textDeflate', 'textCanUp', 'textCanDown'])(
+		'returns a TextWarpGlyphDef (not path) for %s',
+		(preset) => {
+			const el = makeTextElement(preset, { text: 'Hello' });
+			const def = getTextWarp(el) as TextWarpGlyphDef;
 			expect(def).toBeDefined();
-			expect((def as TextWarpCssDef).cssTransform.length).toBeGreaterThan(0);
-			expect((def as TextWarpCssDef).cssTransformOrigin.length).toBeGreaterThan(0);
+			expect(def.strategy).toBe('glyph');
+			expect(def.glyphs).toHaveLength('Hello'.length);
+			expect(def.glyphs.every((g) => g.transform.includes('matrix(1'))).toBeTruthy();
+		},
+	);
+
+	it('varies scaleY across the line for textInflate (the fixed residual)', () => {
+		// Default (unset) adj: at the max (4x) intensity the band can legitimately
+		// saturate to the full box height across most of a short line's width
+		// (PowerPoint's own extreme Inflate maxes out the same way), which would
+		// make every glyph's scaleY identical and defeat this assertion; default
+		// intensity still demonstrably varies without that ceiling.
+		const el = makeTextElement('textInflate', { text: 'INFLATED TEXT' });
+		const def = getTextWarp(el) as TextWarpGlyphDef;
+		const scales = def.glyphs.map((g) => matrixScaleY(g.transform));
+		expect(new Set(scales.map((s) => s.toFixed(4))).size).toBeGreaterThan(1);
+	});
+
+	it('every classified envelope preset name has a glyph-envelope curve', () => {
+		for (const preset of SVG_WARP_PRESETS) {
+			if (hasGlyphEnvelope(preset)) {
+				const el = makeTextElement(preset, { text: 'AB' });
+				const def = getTextWarp(el) as TextWarpGlyphDef;
+				expect(def.strategy).toBe('glyph');
+			}
+		}
+	});
+
+	it('a multi-paragraph inflate element still uses the per-glyph envelope for every line', () => {
+		const el = makeTextElement('textInflate', {
+			textSegments: [
+				{ text: 'Top', style: {} },
+				{ text: '', style: {}, isParagraphBreak: true },
+				{ text: 'Bottom', style: {} },
+			],
+		});
+		const def = getTextWarp(el) as TextWarpGlyphDef;
+		expect(def.strategy).toBe('glyph');
+		// 'Top' (3) + 'Bottom' (6) = 9 glyphs total.
+		expect(def.glyphs).toHaveLength(9);
+	});
+
+	it('a short caption of very wide glyphs on a steep can-up curve gets sliced with a deterministic clip-id prefix', () => {
+		// Wide "M"s at extreme adj: exactly the "6-8 very wide glyphs filling
+		// the box" residual from limitations.md, where a single affine per
+		// glyph is no longer enough (see `chooseGlyphSliceCount` in
+		// pptx-viewer-shared). `makeTextElement`'s box is 300px wide; with no
+		// real canvas 2D context in this test environment,
+		// `measureGlyphAdvances` falls back to a deterministic
+		// `fontSize * 0.55` per character: 3 "M"s at fontSize 160 measure 88px
+		// each, ~29% of the line per glyph.
+		const el = makeTextElement('textCanUp', { text: 'MMM', adj: 66667, fontSize: 160 });
+		const def = getTextWarp(el) as TextWarpGlyphDef;
+		expect(def.strategy).toBe('glyph');
+		expect(def.glyphs).toHaveLength(3);
+		const sliced = def.glyphs.filter((g) => (g.slices?.length ?? 1) > 1);
+		expect(sliced.length).toBeGreaterThan(0);
+		for (const g of sliced) {
+			expect(g.slices!.length).toBeGreaterThan(1);
+			// clipIdPrefix is unique per glyph (element id + line + glyph index).
+			expect(g.clipIdPrefix).toMatch(/^ng-warp-el-1-l0-g\d+$/u);
+		}
+		// An ordinary (non-sliced) glyph still carries a usable clipIdPrefix
+		// even though the template never references it.
+		for (const g of def.glyphs) {
+			expect(g.clipIdPrefix.length).toBeGreaterThan(0);
 		}
 	});
 });
@@ -348,8 +415,10 @@ describe('getTextWarp - strategy: css', () => {
 describe('getTextWarp - all SVG path presets produce valid path defs', () => {
 	// Drive directly from the canonical path-preset set so the test stays in
 	// sync with the renderer's routing (envelope/simple presets are CSS, not
-	// textPath, and are covered by the css-strategy describe block).
-	const svgPresets = [...SVG_WARP_PRESETS];
+	// textPath, and are covered by the css-strategy describe block). The
+	// glyph-envelope presets (inflate/deflate/can) are excluded here: they
+	// resolve to `strategy: 'glyph'`, covered by the describe block above.
+	const svgPresets = [...SVG_WARP_PRESETS].filter((preset) => !hasGlyphEnvelope(preset));
 
 	it.each(svgPresets)('preset %s yields strategy "path" with a non-empty d', (preset) => {
 		const el = makeTextElement(preset, { text: 'test' });

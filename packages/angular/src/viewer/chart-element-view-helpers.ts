@@ -21,8 +21,9 @@ import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import {
 	canDrillDown,
 	ensureChartInteractionStyles as ensureSharedChartInteractionStyles,
+	withChartPointValue,
 } from '../internal/shared';
-import type { ChartMarkDragState, ChartValueDragState } from '../internal/shared';
+import type { ChartMarkDragState, ChartPartRef, ChartValueDragState } from '../internal/shared';
 import { findOwningSlideIndex } from './smart-art-inline-edit';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,6 +80,35 @@ export function chartMarkDragCommitData(
 		return null;
 	}
 	return session.lastData;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3D value-drag commit data (bar3D/line3D/area3D/pie3D/surface3D: no drag
+// state machine of their own, the shared three.js scene reports the
+// live/final value directly)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The chart data a 3D scene's `onValueDragPreview`/`onValueDragCommit` should
+ * apply, or `null` when the part carries no point index (a series-level part,
+ * or a part shape the 3D scenes never actually emit for a value drag) or there
+ * is no chart data to update against.
+ *
+ * Pure so it is unit-testable without a WebGL context: `BarChart3DRendererComponent`
+ * / `LineChart3DRendererComponent` / `AreaChart3DRendererComponent` /
+ * `PieChart3DRendererComponent` / `SurfaceChart3DRendererComponent` forward
+ * their `valueDragPreview`/`valueDragCommit` outputs here via
+ * `ChartElementViewComponent`.
+ */
+export function chart3DPointValueUpdate(
+	chartData: PptxChartData | undefined,
+	part: ChartPartRef,
+	value: number,
+): PptxChartData | null {
+	if (!chartData || part.pointIndex === undefined) {
+		return null;
+	}
+	return withChartPointValue(chartData, part.seriesIndex, part.pointIndex, value);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

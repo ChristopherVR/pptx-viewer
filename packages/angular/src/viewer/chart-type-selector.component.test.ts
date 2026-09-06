@@ -6,10 +6,17 @@
  * the emit logic is factored into the standalone `applyChartTypeSelectorPatch`,
  * which is what the component's template events actually call.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { CHART_TYPE_OPTIONS, collapseChartTitleRunsForEdit } from '../internal/shared';
+import {
+	CHART_TYPE_OPTIONS,
+	collapseChartTitleRunsForEdit,
+	resolveDisplayedChartType,
+} from '../internal/shared';
 import { applyChartTypeSelectorPatch } from './chart-type-selector.component';
 
 function chart(overrides: Partial<ChartPptxElement['chartData']> = {}): ChartPptxElement {
@@ -128,5 +135,30 @@ describe('chart type picker option list', () => {
 	it('offers Pareto, the histogram-family entry with no PptxChartType of its own', () => {
 		const values = CHART_TYPE_OPTIONS.map((opt) => opt.value);
 		expect(values).toContain('pareto');
+	});
+});
+
+// No Angular TestBed here (see media-properties-panel.component.test.ts): this
+// pins the source to the shared `resolveDisplayedChartType` the template's
+// select binds to, plus the underlying resolution.
+describe('chart type picker selected value (docs/guide/limitations.md ChartEx row)', () => {
+	it('reads the type-select value through resolveDisplayedChartType, not chartData.chartType raw', () => {
+		const source = readFileSync(path.join(__dirname, 'chart-type-selector.component.ts'), 'utf8');
+		expect(source).toMatch(/displayedType = computed<[^>]*>\(\(\) =>/);
+		expect(source).toMatch(/resolveDisplayedChartType\(data\)/);
+		expect(source).toMatch(/\[value\]="displayedType\(\)"/);
+		expect(source).toMatch(/opt\.value === displayedType\(\)/);
+	});
+
+	it('resolveDisplayedChartType shows "pareto" for a histogram with a paretoLine series', () => {
+		const paretoChart = chart({
+			chartType: 'histogram',
+			series: [
+				{ name: 'Frequency', values: [3, 5, 2] },
+				{ name: 'Cumulative %', values: [30, 80, 100], histogramOptions: { layout: 'pareto' } },
+			],
+		}).chartData;
+		expect(paretoChart).toBeDefined();
+		expect(resolveDisplayedChartType(paretoChart!)).toBe('pareto');
 	});
 });

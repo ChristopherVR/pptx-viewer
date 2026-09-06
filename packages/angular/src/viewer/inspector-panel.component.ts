@@ -976,13 +976,11 @@ export class InspectorPanelComponent {
 		ImagePropertiesPanelComponent.supports(this.el()) ? this.el() : undefined,
 	);
 	/**
-	 * The selected element narrowed to a plain shape/text box/connector, or
-	 * `undefined`. Gates `AccessibilityTextPanelComponent` (alt text / title):
-	 * a picture's own alt text lives in `imageEl` above, so this must not
-	 * also match `image`/`picture`, and stays restricted to the three kinds
-	 * `PptxNonVisualDescription` was added to (not every graphic-frame kind
-	 * the shared descriptor recognises), so it does not duplicate a
-	 * table/chart/smartArt/media/ole panel's own alt-text UI.
+	 * The selected element, or `undefined`, gating
+	 * `AccessibilityTextPanelComponent` (alt text / title) via shared's
+	 * `shouldShowAccessibilitySection`: true for a plain shape, text box,
+	 * connector, and every graphic-frame kind (table/chart/smartArt/media/ole).
+	 * A picture's own alt text lives in `imageEl` above instead.
 	 */
 	protected readonly accessibilityTextEl = computed(() =>
 		AccessibilityTextPanelComponent.supports(this.el()) ? this.el() : undefined,

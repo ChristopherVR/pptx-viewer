@@ -23,10 +23,22 @@
  * Selector: `pptx-chart-renderer`
  * Input:    `element` - required `PptxElement` narrowed to `type === 'chart'`
  */
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	DestroyRef,
+	inject,
+	input,
+	signal,
+} from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { computeChartLegendLayout } from '../internal/shared';
+import {
+	computeChartLegendLayout,
+	getBarFacePicturePixelSampleVersion,
+	subscribeBarFacePicturePixelSamples,
+} from '../internal/shared';
 import { ChartPrimitivesComponent } from './chart-primitives.component';
 import { buildChartViewModel } from './chart-renderer-helpers';
 import type { ChartViewModel } from './chart-renderer-helpers';
@@ -248,7 +260,28 @@ const LEGEND_SWATCH_SIZE = 10;
 })
 export class ChartRendererComponent {
 	readonly element = input.required<PptxElement>();
-	readonly vm = computed<ChartViewModel>(() => buildChartViewModel(this.element()));
+
+	/**
+	 * An untargeted bar3D extrusion face whose fill is picture-only samples a
+	 * colour from the picture ASYNCHRONOUSLY (see `chart-bar3d-face-picture-
+	 * sample.ts`'s module doc for the COM-verified ground truth this
+	 * reproduces); `buildChartViewModel` only ever sees whatever is already
+	 * cached. This signal is bumped by the shared (non-Angular) sample cache
+	 * whenever one resolves, and `vm` below reads it purely to establish a
+	 * signal dependency, forcing `computed` to rebuild once a sample lands.
+	 */
+	private readonly sampleVersion = signal(getBarFacePicturePixelSampleVersion());
+	constructor() {
+		const unsubscribe = subscribeBarFacePicturePixelSamples(() => {
+			this.sampleVersion.set(getBarFacePicturePixelSampleVersion());
+		});
+		inject(DestroyRef).onDestroy(unsubscribe);
+	}
+
+	readonly vm = computed<ChartViewModel>(() => {
+		this.sampleVersion();
+		return buildChartViewModel(this.element());
+	});
 	readonly viewBox = computed(() => `0 0 ${this.vm().svgWidth} ${this.vm().svgHeight}`);
 	readonly swatchSize = LEGEND_SWATCH_SIZE;
 	readonly legendItems = computed(() => computeChartLegendLayout(this.vm()));

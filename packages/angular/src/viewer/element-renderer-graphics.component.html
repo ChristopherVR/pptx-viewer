@@ -1,0 +1,143 @@
+@switch (true) {
+	@case (element().type === 'ink') {
+		<!--
+			This renderer (and zoom / model3d / 3D SmartArt below) positions its
+			own root box, so it takes the neutral element marker
+			(data-pptx-element) as an input instead of being wrapped in a marked
+			box the way chart / table / OLE are: an outer positioned box would
+			offset it twice.
+		-->
+		<pptx-ink-renderer
+			[element]="element()"
+			[zIndex]="zIndex()"
+			[mediaDataUrls]="mediaDataUrls()"
+			[replay]="presenting()"
+			[markElement]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
+		/>
+	}
+	@case (element().type === 'contentPart') {
+		<!--
+			Real PowerPoint ink. Same positioning contract as pptx-ink-renderer
+			above: the renderer's own root is absolutely positioned, so it takes
+			the neutral element marker as an input rather than being wrapped.
+		-->
+		<pptx-content-part-renderer
+			[element]="element()"
+			[zIndex]="zIndex()"
+			[replay]="presenting()"
+			[markElement]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
+		/>
+	}
+	@case (element().type === 'zoom') {
+		<pptx-zoom-renderer
+			[element]="element()"
+			[zIndex]="zIndex()"
+			[mediaDataUrls]="mediaDataUrls()"
+			[markElement]="elementMarked()"
+		/>
+	}
+	@case (element().type === 'model3d') {
+		<pptx-model3d-renderer
+			[element]="element()"
+			[zIndex]="zIndex()"
+			[mediaDataUrls]="mediaDataUrls()"
+			[markElement]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
+		/>
+	}
+	@case (element().type === 'smartArt' && smartArt3D()) {
+		<pptx-smart-art-3d-renderer
+			[element]="element()"
+			[zIndex]="zIndex()"
+			[canEdit]="interactive() && editable()"
+			[markElement]="elementMarked()"
+			[textStyle]="animationState()?.textStyle"
+		/>
+	}
+	@case (element().type === 'smartArt') {
+		<div
+			class="pptx-ng-element pptx-ng-smartart"
+			[ngStyle]="containerStyle()"
+			[style.pointer-events]="rootPointerEvents()"
+			[attr.data-element-id]="elementIdAttr()"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
+		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides a SmartArt node caption's own
+			     inline bold/italic/underline/size, which plain CSS inheritance
+			     cannot reach. See `animation-text-style-css.ts`. -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
+			<pptx-smart-art-renderer
+				[element]="element()"
+				[editable]="interactive() && editable()"
+				[animationState]="animationState()"
+			/>
+		</div>
+	}
+	@case (element().type === 'ole') {
+		<div
+			class="pptx-ng-element pptx-ng-ole"
+			[ngStyle]="containerStyle()"
+			[style.pointer-events]="rootPointerEvents()"
+			[attr.data-element-id]="elementIdAttr()"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
+		>
+			<pptx-ole-renderer [element]="element()" />
+		</div>
+	}
+	@case (element().type === 'chart') {
+		<div
+			class="pptx-ng-element pptx-ng-chart"
+			[ngStyle]="containerStyle()"
+			[style.pointer-events]="rootPointerEvents()"
+			[attr.data-element-id]="elementIdAttr()"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
+		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides a chart title/label/legend's
+			     own SVG text attributes, which plain CSS inheritance cannot
+			     reach. See `animation-text-style-css.ts`. -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
+			<pptx-chart-element-view
+				[element]="element()"
+				[editable]="interactive() && editable()"
+				[animationState]="animationState()"
+			/>
+		</div>
+	}
+	@case (element().type === 'table') {
+		<div
+			class="pptx-ng-element pptx-ng-table"
+			[ngStyle]="containerStyle()"
+			[style.pointer-events]="rootPointerEvents()"
+			[attr.data-element-id]="elementIdAttr()"
+			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
+		>
+			<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+			     Change Font Style/Size) overrides a table cell's own inline
+			     bold/italic/underline/size, which plain CSS inheritance cannot
+			     reach. See `animation-text-style-css.ts`. -->
+			<pptx-dynamic-style [css]="textStyleOverrideCss()" />
+			<pptx-table-renderer
+				[element]="element()"
+				[editable]="interactive() && editable()"
+				(cellCommit)="cellCommit.emit({ id: element().id, commit: $event })"
+				(tableChange)="tableChange.emit($event)"
+			/>
+		</div>
+	}
+	@case (element().type === 'media') {
+		<pptx-media-renderer
+			[element]="element()"
+			[mediaDataUrls]="mediaDataUrls()"
+			[zIndex]="zIndex()"
+			[interactive]="interactive()"
+			[marked]="elementMarked()"
+			[exposeElementId]="exposeElementId()"
+			[presenting]="presenting()"
+			[placeholderLabel]="placeholderLabel()"
+		/>
+	}
+}

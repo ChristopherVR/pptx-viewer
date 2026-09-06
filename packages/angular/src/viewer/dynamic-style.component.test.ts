@@ -27,10 +27,21 @@ describe('dynamic <style> wiring', () => {
 	});
 
 	it('routes the text-style emphasis override through pptx-dynamic-style', () => {
-		expect(read('element-renderer.component.html')).toContain(
-			'<pptx-dynamic-style [css]="textStyleOverrideCss()" />',
-		);
-		expect(read('element-renderer.component.ts')).toContain('DynamicStyleComponent,');
+		// The text/shape and table/chart/smartArt wrapper divs that carry this
+		// override live in the two element-renderer child components; see
+		// `ElementRendererShapeComponent` / `ElementRendererGraphicsComponent`.
+		for (const file of [
+			'element-renderer-shape.component.html',
+			'element-renderer-graphics.component.html',
+		]) {
+			expect(read(file)).toContain('<pptx-dynamic-style [css]="textStyleOverrideCss()" />');
+		}
+		for (const file of [
+			'element-renderer-shape.component.ts',
+			'element-renderer-graphics.component.ts',
+		]) {
+			expect(read(file)).toContain('DynamicStyleComponent,');
+		}
 	});
 
 	it('routes the ink replay keyframes through pptx-dynamic-style, outside the svg', () => {

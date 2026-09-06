@@ -29,6 +29,7 @@ import {
 	withChartTitle,
 } from '../internal/shared';
 import {
+	chart3DPointValueUpdate,
 	chartCanEditParts,
 	chartDragCommitData,
 	chartMarkDragCommitData,
@@ -296,6 +297,39 @@ describe('mark drag', () => {
 				seriesIndex: 0,
 				pointIndex: 0,
 			}),
+		).toBeNull();
+	});
+});
+
+// ==========================================================================
+// 3D value-drag commit data (bar3D/line3D/area3D scenes report a live/final
+// value directly, with no drag state machine of their own to advance)
+// ==========================================================================
+
+describe('chart3DPointValueUpdate', () => {
+	it('applies the dragged value to the targeted point, others untouched', () => {
+		const chartData = makeChartData();
+		const next = chart3DPointValueUpdate(
+			chartData,
+			{ role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+			999,
+		);
+		expect(next).not.toBeNull();
+		expect(next!.series[0].values).toStrictEqual([100, 999, 120]);
+		expect(next!.series[1].values).toStrictEqual([80, 90, 100]);
+		// The base data is never mutated.
+		expect(chartData.series[0].values[1]).toBe(150);
+	});
+
+	it('returns null for a series-level part (no point index)', () => {
+		expect(
+			chart3DPointValueUpdate(makeChartData(), { role: 'series', seriesIndex: 0 }, 42),
+		).toBeNull();
+	});
+
+	it('returns null when there is no chart data yet', () => {
+		expect(
+			chart3DPointValueUpdate(undefined, { role: 'dataPoint', seriesIndex: 0, pointIndex: 0 }, 1),
 		).toBeNull();
 	});
 });

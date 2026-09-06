@@ -1,0 +1,280 @@
+<div
+	class="pptx-ng-element pptx-ng-shape"
+	[ngStyle]="shapeContainerStyle()"
+	[style.pointer-events]="rootPointerEvents()"
+	[attr.data-element-id]="elementIdAttr()"
+	[attr.data-pptx-element]="elementMarked() ? 'true' : null"
+>
+	<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
+	     Change Font Style/Size) overrides the runs' own inline
+	     bold/italic/underline/size, which plain CSS inheritance cannot
+	     reach (the runs declare those unconditionally). -->
+	<pptx-dynamic-style [css]="textStyleOverrideCss()" />
+	<!-- Per-sub-path fill overlay: a multi-sub-path preset (`smileyFace`'s
+	     open eyes, `actionButtonBlank`'s darkened bevel well) or custom
+	     geometry whose sub-paths cannot share one CSS background-color. -->
+	@if (subpathFill(); as sf) {
+		<svg
+			class="pptx-ng-subpath-fill"
+			aria-hidden="true"
+			[attr.viewBox]="subpathFillViewBox()"
+			preserveAspectRatio="none"
+			style="position: absolute; inset: 0; width: 100%; height: 100%"
+		>
+			@for (paint of sf.paints; track $index) {
+				<path [attr.d]="paint.d" [attr.fill]="paint.fill" stroke="none" />
+			}
+		</svg>
+	}
+	@if (fillOverlay(); as ov) {
+		<div
+			class="pptx-ng-fill-overlay"
+			aria-hidden="true"
+			style="position: absolute; inset: 0; pointer-events: none"
+			[style.background]="ov.color"
+			[style.mix-blend-mode]="ov.blendMode"
+		></div>
+	}
+	<!-- Real 3D extrusion side panels (`a:sp3d/@extrusionH`), on top of the
+	     flat box-shadow approximation `shapeContainerStyle` already applied. -->
+	<pptx-extrusion-3d-overlay [data]="extrusionData()" />
+	<!-- Mirrored reflection sibling (`a:reflection`): cross-browser, unlike
+	     the `-webkit-box-reflect` this replaced (Firefox never implemented
+	     that property, so reflections were invisible there entirely). A full
+	     inert clone of the element's own content (fill, outline, text body),
+	     not just its resolved fill - see `ReflectionMirrorContentComponent`. -->
+	@if (reflection(); as refl) {
+		<div class="pptx-ng-reflection" aria-hidden="true" [ngStyle]="refl.wrapperStyle">
+			<pptx-reflection-mirror-content [element]="element()" [mediaDataUrls]="mediaDataUrls()" />
+		</div>
+	}
+	<!-- Hollow frame hit target: an unfilled, textless shape is hit-tested
+	     on its outline only, so its interior lets clicks through. -->
+	@if (hollowHit(); as hit) {
+		<svg
+			aria-hidden="true"
+			[attr.viewBox]="outlineViewBox()"
+			preserveAspectRatio="none"
+			style="
+				position: absolute;
+				inset: 0;
+				width: 100%;
+				height: 100%;
+				overflow: visible;
+				pointer-events: none;
+			"
+		>
+			<path
+				[attr.d]="hit.d"
+				fill="none"
+				stroke="transparent"
+				[attr.stroke-width]="hit.strokeWidth"
+				style="pointer-events: stroke"
+			/>
+		</svg>
+	}
+	<!-- Stroked outline: a CSS border takes one flat colour, and cannot
+	     outline an open preset (`line`, `arc`) at all. -->
+	@if (gradientOutline(); as go) {
+		<svg
+			class="pptx-ng-gradient-outline"
+			aria-hidden="true"
+			[attr.viewBox]="outlineViewBox()"
+			preserveAspectRatio="none"
+			style="
+				position: absolute;
+				inset: 0;
+				width: 100%;
+				height: 100%;
+				overflow: visible;
+				pointer-events: none;
+			"
+		>
+			@if (go.paint; as paint) {
+				<defs>
+					@if (paint.kind === 'pattern') {
+						<pattern
+							[attr.id]="paint.id"
+							[attr.width]="paint.width"
+							[attr.height]="paint.height"
+							patternUnits="userSpaceOnUse"
+						>
+							<image
+								[attr.href]="paint.href"
+								[attr.width]="paint.width"
+								[attr.height]="paint.height"
+							/>
+						</pattern>
+					} @else if (paint.kind === 'rectPath') {
+						<pattern [attr.id]="paint.id" patternUnits="objectBoundingBox" width="1" height="1">
+							<image
+								[attr.href]="paint.href"
+								x="0"
+								y="0"
+								width="1"
+								height="1"
+								preserveAspectRatio="none"
+							/>
+						</pattern>
+					} @else if (paint.kind === 'radial') {
+						<radialGradient
+							[attr.id]="paint.id"
+							[attr.cx]="paint.cx"
+							[attr.cy]="paint.cy"
+							[attr.r]="paint.r"
+						>
+							@for (stop of paint.stops; track $index) {
+								<stop
+									[attr.offset]="stop.offset"
+									[attr.stop-color]="stop.color"
+									[attr.stop-opacity]="stop.opacity"
+								/>
+							}
+						</radialGradient>
+					} @else {
+						<linearGradient
+							[attr.id]="paint.id"
+							[attr.x1]="paint.x1"
+							[attr.y1]="paint.y1"
+							[attr.x2]="paint.x2"
+							[attr.y2]="paint.y2"
+						>
+							@for (stop of paint.stops; track $index) {
+								<stop
+									[attr.offset]="stop.offset"
+									[attr.stop-color]="stop.color"
+									[attr.stop-opacity]="stop.opacity"
+								/>
+							}
+						</linearGradient>
+					}
+				</defs>
+			}
+			@for (strand of go.strands; track $index) {
+				<path
+					[attr.d]="go.d"
+					fill="none"
+					[attr.stroke]="go.stroke"
+					[attr.stroke-width]="strand.strokeWidth"
+					[attr.stroke-dasharray]="go.dashArray"
+					[attr.stroke-linecap]="go.lineCap"
+					[attr.stroke-linejoin]="go.lineJoin"
+					[style.transform]="strand.offset !== 0 ? 'translate(0, ' + strand.offset + 'px)' : null"
+				/>
+			}
+		</svg>
+	}
+	<!-- While this element is open in the inline text editor, its live text
+	     is drawn by that overlay instead (see `isBeingInlineEdited`);
+	     rendering it here too produced a duplicate, offset "text shadow"
+	     (issue #182). -->
+	@if (!isBeingInlineEdited()) {
+		@if (glyphWarp(); as gwarp) {
+			<svg
+				[attr.width]="gwarp.width"
+				[attr.height]="gwarp.height"
+				[attr.viewBox]="'0 0 ' + gwarp.width + ' ' + gwarp.height"
+				style="position: absolute; inset: 0; overflow: visible; pointer-events: none"
+				aria-hidden="true"
+			>
+				@for (g of gwarp.glyphs; track $index) {
+					<!-- Ordinary glyph (no slices needed): a bare <text>, unchanged
+					     from before per-glyph slicing existed. -->
+					@if (!g.slices || g.slices.length <= 1) {
+						<text
+							[attr.x]="g.x"
+							[attr.y]="g.y"
+							[attr.transform]="g.transform"
+							[attr.fill]="g.fill"
+							[attr.font-size]="g.fontSize"
+							[attr.font-weight]="g.fontWeight"
+							[attr.font-style]="g.fontStyle"
+							[attr.font-family]="g.fontFamily"
+						>
+							{{ g.char }}
+						</text>
+					} @else {
+						<!-- A very wide glyph on a strongly-curved envelope: rendered
+						     as `slices.length` clipped copies, each with its own affine
+						     (see `chooseGlyphSliceCount` in pptx-viewer-shared), so the
+						     pieces tile across the glyph. Wrapped in a real <g> so it
+						     never matches an "svg > text" selector the single-slice
+						     case does. -->
+						<g [attr.data-glyph-slices]="g.slices.length">
+							@for (slice of g.slices; track $index; let si = $index) {
+								<clipPath [attr.id]="g.clipIdPrefix + '-s' + si" clipPathUnits="userSpaceOnUse">
+									<rect
+										[attr.x]="slice.clipX0"
+										y="-100000"
+										[attr.width]="slice.clipX1 - slice.clipX0"
+										height="200000"
+									/>
+								</clipPath>
+								<text
+									[attr.x]="g.x"
+									[attr.y]="g.y"
+									[attr.transform]="slice.transform"
+									[attr.clip-path]="'url(#' + g.clipIdPrefix + '-s' + si + ')'"
+									[attr.fill]="g.fill"
+									[attr.font-size]="g.fontSize"
+									[attr.font-weight]="g.fontWeight"
+									[attr.font-style]="g.fontStyle"
+									[attr.font-family]="g.fontFamily"
+								>
+									{{ g.char }}
+								</text>
+							}
+						</g>
+					}
+				}
+			</svg>
+		} @else if (pathWarp(); as warp) {
+			<svg
+				[attr.width]="warp.width"
+				[attr.height]="warp.height"
+				[attr.viewBox]="'0 0 ' + warp.width + ' ' + warp.height"
+				style="position: absolute; inset: 0; overflow: visible; pointer-events: none"
+				aria-hidden="true"
+			>
+				<defs>
+					@for (line of warp.pathLines; track line.pathId) {
+						<path [attr.id]="line.pathId" [attr.d]="line.d" fill="none" />
+					}
+				</defs>
+				@for (line of warp.pathLines; track line.pathId) {
+					<text
+						[attr.font-size]="warp.baseFontSize"
+						[attr.font-family]="warp.baseFontFamily"
+						[attr.fill]="warp.baseColor"
+					>
+						<textPath
+							[attr.href]="'#' + line.pathId"
+							[attr.startOffset]="warp.startOffset"
+							[attr.text-anchor]="warp.textAnchor"
+						>
+							@for (seg of line.segments; track $index) {
+								<tspan
+									[attr.fill]="seg.style?.color ?? warp.baseColor"
+									[attr.font-weight]="seg.style?.bold ? 700 : 400"
+									[attr.font-style]="seg.style?.italic ? 'italic' : 'normal'"
+								>
+									{{ seg.text }}
+								</tspan>
+							}
+						</textPath>
+					</text>
+				}
+			</svg>
+		} @else if (placeholderPrompt(); as prompt) {
+			<div class="pptx-ng-text" [ngStyle]="prompt.style">{{ prompt.text }}</div>
+		} @else if (hasText()) {
+			<pptx-slide-text-block
+				[paragraphs]="paragraphs()"
+				[textStyle]="warpedTextStyle()"
+				[elementId]="element().id"
+				[subElementAnimStates]="subElementAnimStates()"
+				[interactive]="true"
+			/>
+		}
+	}
+</div>

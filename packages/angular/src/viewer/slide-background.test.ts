@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_SLIDE_BACKGROUND, getSlideBackgroundStyle } from './slide-background';
@@ -67,5 +67,32 @@ describe('getSlideBackgroundStyle', () => {
 			}),
 		);
 		expect(style['background-color']).toBe('#00ff00');
+	});
+
+	it('anchors a shadeToTitle gradient on the title placeholder when a slide size is supplied', () => {
+		const gradient = 'linear-gradient(90.00deg, #000000 0%, #ffffff 100%)';
+		const title = {
+			id: 'title1',
+			type: 'text',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			placeholderType: 'title',
+		} as unknown as PptxElement;
+		const style = getSlideBackgroundStyle(
+			slide({ backgroundGradient: gradient, backgroundShadeToTitle: true, elements: [title] }),
+			{ widthPx: 960, heightPx: 540 },
+		);
+		expect(style['background-image']).not.toBe(gradient);
+		expect(style['background-image']).toMatch(/^url\("data:image\/svg\+xml,/u);
+	});
+
+	it('leaves the gradient untouched when shadeToTitle is set but no slide size is supplied', () => {
+		const gradient = 'linear-gradient(90.00deg, #000000 0%, #ffffff 100%)';
+		const style = getSlideBackgroundStyle(
+			slide({ backgroundGradient: gradient, backgroundShadeToTitle: true }),
+		);
+		expect(style['background-image']).toBe(gradient);
 	});
 });

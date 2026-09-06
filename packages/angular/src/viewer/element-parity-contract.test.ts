@@ -12,6 +12,12 @@ import { describe, expect, it } from 'vitest';
 
 const ELEMENT_HTML = readFileSync(path.join(__dirname, 'element-renderer.component.html'), 'utf8');
 const ELEMENT_TS = readFileSync(path.join(__dirname, 'element-renderer.component.ts'), 'utf8');
+// ink/contentPart/zoom/model3d/smartArt3D (the renderers that own their own
+// root box) are split out to `ElementRendererGraphicsComponent`.
+const GRAPHICS_HTML = readFileSync(
+	path.join(__dirname, 'element-renderer-graphics.component.html'),
+	'utf8',
+);
 const CANVAS_HTML = readFileSync(path.join(__dirname, 'slide-canvas.component.html'), 'utf8');
 const TABLE_HTML = readFileSync(path.join(__dirname, 'table-renderer.component.html'), 'utf8');
 const TABLE_TS = readFileSync(path.join(__dirname, 'table-renderer.component.ts'), 'utf8');
@@ -37,7 +43,8 @@ describe('element marker contract', () => {
 	});
 
 	it('forwards the marker to the renderers that own their own root box', () => {
-		expect(ELEMENT_HTML).toContain(`[markElement]="elementMarked()"`);
+		expect(GRAPHICS_HTML).toContain(`[markElement]="elementMarked()"`);
+		expect(GRAPHICS_HTML).not.toContain(`[markElement]="interactive()"`);
 		expect(ELEMENT_HTML).not.toContain(`[markElement]="interactive()"`);
 	});
 });

@@ -8,17 +8,22 @@ import {
 	ElementRef,
 	input,
 	OnDestroy,
+	output,
 	signal,
 	viewChild,
 } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { buildPieChart3DDataForElement } from '../internal/shared';
-import type { PieChart3DHandle, PieChart3DSceneOptions } from '../internal/shared';
+import type { ChartPartRef, PieChart3DHandle, PieChart3DSceneOptions } from '../internal/shared';
 // Type-only import of the shared scene controller; the implementation (which
 // pulls the optional `three` peer) is loaded lazily via dynamic import so it
 // never lands in the main bundle.
-import type { mountPieChart3D as MountPieChart3D } from '../internal/shared-src/render/pie-chart-3d-scene';
+import type {
+	mountPieChart3D as MountPieChart3D,
+	PieChart3DInteraction,
+} from '../internal/shared-src/render/pie-chart-3d-scene';
+import { Chart3DSceneMount } from './chart-3d-scene-mount';
 import { ChartRendererComponent } from './chart-renderer.component';
 
 type MountFn = typeof MountPieChart3D;
@@ -41,11 +46,16 @@ type MountFn = typeof MountPieChart3D;
  *    sentinel),
  *  - or the scene fails to load.
  *
- * Marks are not selectable/draggable in this mode: a mesh wedge has no 2D
- * screen geometry to hit-test against, so value-drag editing stays SVG-only
- * (`ChartElementViewComponent` only mounts this component when NOT editing
- * marks would matter, i.e. it swaps in for the plain renderer, not the
- * interactive one). Mirrors `BarChart3DRendererComponent` exactly.
+ * Wedges are click-to-select (`partSelect`, mirroring the 2D chart's
+ * `ChartPartSelectionService` wiring one level up in
+ * `ChartElementViewComponent`) and drag-to-value (`valueDragPreview`/
+ * `valueDragCommit`) via the shared `PieChart3DInteraction` wiring: dragging
+ * sweeps a wedge's trailing edge around the pie's centre, renormalising every
+ * other slice's angle live, exactly like the flat SVG pie/doughnut's own
+ * on-canvas editing. The scene draws no axis labels, so unlike
+ * bar3D/line3D/area3D/surface3D there is no `textStyle` input. `selectedPart`
+ * re-applies the wedge-emissive highlight when the selection changes from
+ * outside this scene (inspector, keyboard).
  */
 @Component({
 	selector: 'pptx-pie-chart-3d-renderer',
@@ -69,6 +79,15 @@ type MountFn = typeof MountPieChart3D;
 })
 export class PieChart3DRendererComponent implements OnDestroy {
 	readonly element = input.required<PptxElement>();
+	/** The part selected elsewhere (inspector, keyboard), or null. Applied to the live scene. */
+	readonly selectedPart = input<ChartPartRef | null>(null);
+
+	/** Emitted when a wedge (or empty space, `null`) is clicked. */
+	readonly partSelect = output<ChartPartRef | null>();
+	/** Emitted continuously while dragging a wedge's value around the pie (live preview). */
+	readonly valueDragPreview = output<{ part: ChartPartRef; value: number }>();
+	/** Emitted once on release with the final dragged value. */
+	readonly valueDragCommit = output<{ part: ChartPartRef; value: number }>();
 
 	private readonly sceneRef = viewChild<ElementRef<HTMLDivElement>>('scene');
 
@@ -94,15 +113,18 @@ export class PieChart3DRendererComponent implements OnDestroy {
 	/** Set when `three` is missing or the scene failed to load: forces the SVG fallback. */
 	private readonly failed = signal(false);
 
-	private handle: PieChart3DHandle | null = null;
-	/** The options identity the live handle was mounted with. */
-	private mountedOptions: PieChart3DSceneOptions | null = null;
+	/** Mount / supersede / teardown state (see `chart-3d-scene-mount.ts`);
+	 * `scene.handle()` is the live handle, `null` while unmounted/loading. */
+	private readonly scene = new Chart3DSceneMount<PieChart3DSceneOptions, PieChart3DHandle>({
+		onFailed: () => this.failed.set(true),
+	});
 
 	constructor() {
 		afterNextRender(() => void this.loadScene());
 
 		// Mount when the scene container exists, the runtime has loaded, and we
-		// have (new) wedge-mesh data. Re-mounts when the underlying data changes.
+		// have (new) wedge-mesh data. Re-mounts when the underlying data changes; an
+		// in-flight mount for the same data is left alone (`ensure`).
 		effect(() => {
 			const container = this.sceneRef()?.nativeElement;
 			const fn = this.mountFn();
@@ -110,18 +132,27 @@ export class PieChart3DRendererComponent implements OnDestroy {
 			if (!container || !fn || !opts) {
 				return;
 			}
-			if (this.mountedOptions === opts && this.handle) {
-				return;
-			}
-			this.mount(fn, container, opts);
+			this.scene.ensure(
+				opts,
+				() => fn(container, opts, this.buildInteraction()),
+				(handle) => {
+					handle.setSelectedPart(this.selectedPart());
+				},
+			);
 		});
 
 		// Push size changes to the live handle without re-mounting.
 		effect(() => {
 			const opts = this.options();
 			if (opts) {
-				this.handle?.resize(opts.width, opts.height);
+				this.scene.handle()?.resize(opts.width, opts.height);
 			}
+		});
+
+		// Re-apply the selected-part highlight when the external selection (or
+		// the live handle) changes.
+		effect(() => {
+			this.scene.handle()?.setSelectedPart(this.selectedPart());
 		});
 	}
 
@@ -137,32 +168,15 @@ export class PieChart3DRendererComponent implements OnDestroy {
 		}
 	}
 
-	private mount(fn: MountFn, container: HTMLElement, options: PieChart3DSceneOptions): void {
-		this.teardownHandle();
-		this.mountedOptions = options;
-		void fn(container, options).then((handle) => {
-			// Newer data (or a teardown) superseded this mount while loading.
-			if (this.mountedOptions !== options) {
-				handle.dispose();
-				return undefined;
-			}
-			if (!handle.ok) {
-				handle.dispose();
-				this.failed.set(true);
-				this.mountedOptions = null;
-				return undefined;
-			}
-			this.handle = handle;
-			return undefined;
-		});
-	}
-
-	private teardownHandle(): void {
-		this.handle?.dispose();
-		this.handle = null;
+	private buildInteraction(): PieChart3DInteraction {
+		return {
+			onSelect: (part) => this.partSelect.emit(part),
+			onValueDragPreview: (part, value) => this.valueDragPreview.emit({ part, value }),
+			onValueDragCommit: (part, value) => this.valueDragCommit.emit({ part, value }),
+		};
 	}
 
 	ngOnDestroy(): void {
-		this.teardownHandle();
+		this.scene.teardown();
 	}
 }

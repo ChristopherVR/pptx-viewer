@@ -24,6 +24,10 @@ import { componentSource } from './component-source.test-support';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const rendererSource = componentSource(here, 'element-renderer.component.ts');
+// The text/shape branch (where the linked-chain slice is actually resolved
+// and handed to the shared paragraph builder) is split out to
+// `ElementRendererShapeComponent`.
+const shapeSource = componentSource(here, 'element-renderer-shape.component.ts');
 const canvasSource = componentSource(here, 'slide-canvas.component.ts');
 
 /**
@@ -79,7 +83,7 @@ describe('the shared rule the renderer delegates to', () => {
 
 describe('elementRenderer linked text box wiring', () => {
 	it('resolves the rendered segments through the shared helper, not the raw field', () => {
-		expect(rendererSource).toContain(
+		expect(shapeSource).toContain(
 			'getOverflowSegments(el, this.slideElements()) ?? el.textSegments',
 		);
 	});
@@ -88,9 +92,9 @@ describe('elementRenderer linked text box wiring', () => {
 	// override; passing it anywhere else (or rebuilding paragraphs locally) is
 	// how this binding drifted from the other four before.
 	it('builds its paragraphs from shared buildParagraphs, not a local copy', () => {
-		expect(rendererSource).toContain('buildAngularParagraphs(el, this.fieldContext(), segments)');
-		expect(rendererSource).not.toContain('resolveParagraphSpacing');
-		expect(rendererSource).not.toContain('splitStyledRun');
+		expect(shapeSource).toContain('buildAngularParagraphs(el, this.fieldContext(), segments)');
+		expect(shapeSource).not.toContain('resolveParagraphSpacing');
+		expect(shapeSource).not.toContain('splitStyledRun');
 	});
 
 	it('accepts the sibling list the rule needs', () => {

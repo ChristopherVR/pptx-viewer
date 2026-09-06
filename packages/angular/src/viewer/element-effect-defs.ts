@@ -7,19 +7,15 @@
  * base `[ngStyle]` maps. Mirrors the Vue/Svelte `ShapeEffectOverlay` split.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 
 import {
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
-	getComputedFillStyle,
-	getImageFitStyle,
-	getImageSrc,
+	getEffectStyleSource,
 	getSoftEdgeSvgFilter,
 } from '../internal/shared';
 import type {
-	ComputedFillStyle,
 	FillOverlayCss,
 	ReflectionWrapperStyle,
 	StrokeOutline,
@@ -41,10 +37,11 @@ export interface SoftEdgeFilterDef {
  * the shared effect-filter builder resolves. Mirrors the duotone-filter pairing.
  */
 export function getSoftEdgeFilterDef(el: PptxElement): SoftEdgeFilterDef | undefined {
-	if (!hasShapeProperties(el)) {
-		return undefined;
-	}
-	const ss = el.shapeStyle;
+	// `getEffectStyleSource` resolves a shape/image's own `shapeStyle` OR a
+	// group's `groupEffectStyle` (the same `p:grpSpPr` extraction, kept for
+	// shadow/glow/soft-edge/reflection even without a fill of its own), so a
+	// group's own `a:softEdge` gets an injectable filter too.
+	const ss = getEffectStyleSource(el);
 	const def = getSoftEdgeSvgFilter(ss, el.id);
 	if (!def || !ss || typeof ss.softEdgeRadius !== 'number') {
 		return undefined;
@@ -64,42 +61,31 @@ export function getEffectFillOverlay(el: PptxElement): FillOverlayCss | undefine
 }
 
 /**
- * `a:reflection` mirrored-sibling descriptor: the wrapper style (position,
- * mirror transform, mask-image fade - see shared's `getReflectionWrapperStyle`)
- * plus the mirrored CONTENT to paint inside it. Cross-browser, unlike the
- * `-webkit-box-reflect` `element-style.ts` used to set (Firefox never
- * implemented that property, so reflections were invisible there entirely).
+ * `a:reflection` mirrored-sibling wrapper style descriptor (position, mirror
+ * transform, mask-image fade - see shared's `getReflectionWrapperStyle`).
+ * Cross-browser, unlike the `-webkit-box-reflect` `element-style.ts` used to
+ * set (Firefox never implemented that property, so reflections were invisible
+ * there entirely).
+ *
+ * The mirrored CONTENT is no longer carried here: `ReflectionMirrorContentComponent`
+ * (`reflection-mirror-content.component.ts`) paints the element's own fill,
+ * outline, text body and - for a group - its children directly from
+ * `element`, rather than this descriptor only ever offering a resolved fill
+ * (or a picture's `<img>` src) to paint a flat box with.
  */
 export interface ReflectionOverlay {
 	wrapperStyle: ReflectionWrapperStyle;
-	/** Set for a picture/image element: its actual photo, cloned. */
-	imgSrc?: string;
-	imgFitStyle?: Record<string, unknown>;
-	/** Set for everything else: the resolved fill (colour/gradient/pattern/image). */
-	fill?: ComputedFillStyle;
 }
 
 /**
  * Resolve the reflection overlay descriptor for an element, or `undefined`
- * when it has no `a:reflection`. `a:grpFill` children reflect as transparent:
- * the enclosing group's fill is not threaded into this overlay.
+ * when it has no `a:reflection`. Works for a group too: a group carries no
+ * `shapeStyle` of its own, but `getComputedEffectStyle` resolves
+ * `p:grpSpPr/a:effectLst/a:reflection` from `groupEffectStyle` for one.
  */
-export function getReflectionOverlay(
-	el: PptxElement,
-	mediaDataUrls: Map<string, string>,
-): ReflectionOverlay | undefined {
+export function getReflectionOverlay(el: PptxElement): ReflectionOverlay | undefined {
 	const wrapperStyle = getComputedEffectStyle(el).reflection;
-	if (!wrapperStyle) {
-		return undefined;
-	}
-	if (isImageLikeElement(el)) {
-		return {
-			wrapperStyle,
-			imgSrc: getImageSrc(el, mediaDataUrls),
-			imgFitStyle: getImageFitStyle(el) as Record<string, unknown>,
-		};
-	}
-	return { wrapperStyle, fill: getComputedFillStyle(el) };
+	return wrapperStyle ? { wrapperStyle } : undefined;
 }
 
 /**

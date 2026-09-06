@@ -3,22 +3,27 @@
  *
  * Angular port of:
  *   packages/react/src/viewer/utils/text-warp-classifier.ts
- *   packages/react/src/viewer/utils/text-warp-css.tsx
  *   packages/react/src/viewer/utils/warp-text-renderer.tsx  (descriptor shape)
  *
  * `getTextWarp(element)` resolves an element's OOXML `prstTxWarp` preset into a
  * `TextWarpDef` that the Angular template can consume without any React/HTML
- * string injection.  The descriptor selects one of two rendering strategies:
+ * string injection. Every classified preset (`textNoShape`/`textPlain`/unknown
+ * excluded) now resolves to `strategy: 'path'`: SVG `<textPath>` along a
+ * curved/arc/circle/bent baseline. The `pathLines` array contains one entry
+ * per paragraph with a pre-computed SVG `d` attribute; the template renders an
+ * inline `<svg>` with `<defs><path>` + `<text><textPath href>`.
  *
- *   - `'path'`    : SVG `<textPath>` along a curved/arc/circle path.
- *                   The `pathLines` array contains one entry per paragraph with a
- *                   pre-computed SVG `d` attribute.  The template renders an inline
- *                   `<svg>` with `<defs><path>` + `<text><textPath href>`.
- *
- *   - `'css'`     : A whole-block CSS transform approximation.  The template
- *                   applies `cssTransform` and `cssTransformOrigin` to the
- *                   existing `div.pptx-ng-text` wrapper (or a parent div) via
- *                   `[ngStyle]`.  No SVG required.
+ * `strategy: 'css'` (a whole-block CSS transform approximation applied to the
+ * `div.pptx-ng-text` wrapper) is no longer produced: `warp-path-generators.ts`
+ * used to expose a NARROWER, LOCAL `shouldUseSvgWarp` that deliberately
+ * excluded the envelope (inflate/deflate/can) and simple (slant/fade/cascade)
+ * families, so this function fell back to a CSS-transform approximation for
+ * them - a cross-binding parity bug, since React and Vanilla import shared's
+ * BROAD `shouldUseSvgWarp` directly and already rendered those presets as true
+ * SVG textPath. `warp-path-generators.ts` now re-exports the broad shared set,
+ * so every classified preset takes the `'path'` branch. `TextWarpCssDef` /
+ * `'css'` stay in the `TextWarpDef` union for API stability; nothing produces
+ * one any more.
  *
  * Presets classified as `'none'` (textNoShape, textPlain, unknown) return
  * `undefined` so callers can skip extra rendering without an allowlist check.
@@ -29,9 +34,9 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	ALL_CLASSIFIED_PRESETS as SHARED_ALL_CLASSIFIED_PRESETS,
 	classifyTextWarp,
-	getEnvelopeCssTransform,
-	getSimpleCssTransform,
+	DEFAULT_FONT_FAMILY,
 	groupIntoParagraphs,
+	hasGlyphEnvelope,
 	substituteFieldText,
 } from '../internal/shared';
 import type {
@@ -39,6 +44,8 @@ import type {
 	WarpCategory as SharedWarpCategory,
 	WarpParagraph,
 } from '../internal/shared';
+import { buildGlyphWarpDef } from './text-warp-glyph';
+import type { TextWarpGlyphDef } from './text-warp-glyph';
 import { getWarpPath, shouldUseSvgWarp } from './warp-path-generators';
 
 // ── Warp category classifier ───────────────────────────────────────────
@@ -131,8 +138,13 @@ export interface TextWarpCssDef {
 	readonly cssTransformOrigin: string;
 }
 
-/** Union of the two warp rendering strategies. */
-export type TextWarpDef = TextWarpPathDef | TextWarpCssDef;
+// `WarpGlyph` + `TextWarpGlyphDef` (the true two-curve envelope descriptor,
+// inflate/deflate/can) now live in `text-warp-glyph.ts`, re-exported here so
+// existing `./text-warp` import paths keep working.
+export type { WarpGlyph, TextWarpGlyphDef } from './text-warp-glyph';
+
+/** Union of the warp rendering strategies. */
+export type TextWarpDef = TextWarpPathDef | TextWarpCssDef | TextWarpGlyphDef;
 
 // ── CSS transform generators ───────────────────────────────────────────
 // Envelope / simple CSS approximations are provided by shared
@@ -158,7 +170,6 @@ function resolveAlignment(align: string | undefined): {
 // ── Public API ─────────────────────────────────────────────────────────
 
 const DEFAULT_FONT_SIZE = 18;
-const DEFAULT_FONT_FAMILY = 'Calibri, sans-serif';
 const DEFAULT_COLOR = '#000000';
 
 /**
@@ -172,8 +183,8 @@ const DEFAULT_COLOR = '#000000';
  *                 field runs (slide number, date/time, footer, ...) in the warp
  *                 paragraphs are resolved to their display text, mirroring
  *                 React's warp-text-renderer.
- * @returns  A `TextWarpDef` with `strategy: 'path'` for SVG textPath warps, or
- *           `strategy: 'css'` for CSS-transform approximations.
+ * @returns  A `TextWarpDef` with `strategy: 'path'` for a classified preset,
+ *           or `undefined` for `textNoShape`/`textPlain`/an unknown preset.
  */
 export function getTextWarp(
 	element: PptxElement,
@@ -190,69 +201,60 @@ export function getTextWarp(
 		return undefined;
 	}
 
-	const adj1 = ts?.textWarpAdj;
-	const adj2 = ts?.textWarpAdj2;
-
-	// ── Strategy: SVG path ──────────────────────────────────────────────
-	if (shouldUseSvgWarp(preset)) {
-		const paragraphs = groupIntoParagraphs(element, (seg) => {
-			if (seg.fieldType) {
-				const substituted = substituteFieldText(seg.text, seg.fieldType, fieldContext);
-				if (substituted !== seg.text) {
-					return { ...seg, text: substituted };
-				}
-			}
-			return seg;
-		});
-		if (paragraphs.length === 0) {
-			return undefined;
-		}
-
-		const lineCount = paragraphs.length;
-		const width = element.width;
-		const height = element.height;
-		const pathIdPrefix = `ng-warp-${element.id}`;
-
-		const { startOffset, textAnchor } = resolveAlignment(ts?.align);
-
-		const pathLines: WarpPathLine[] = paragraphs.map((para, i) => ({
-			pathId: `${pathIdPrefix}-${i}`,
-			d: getWarpPath(preset, width, height, i, lineCount, adj1, adj2),
-			segments: para.segments,
-		}));
-
-		return {
-			strategy: 'path',
-			preset,
-			pathLines,
-			width,
-			height,
-			textAnchor,
-			startOffset,
-			baseFontSize: (ts?.fontSize ?? DEFAULT_FONT_SIZE) as number,
-			baseFontFamily: ts?.fontFamily ?? DEFAULT_FONT_FAMILY,
-			baseColor: ts?.color ?? DEFAULT_COLOR,
-		} satisfies TextWarpPathDef;
-	}
-
-	// ── Strategy: CSS transform ─────────────────────────────────────────
-	const category = getWarpCategory(preset);
-
-	let cssDef: { transform: string; transformOrigin: string } | undefined;
-	if (category === 'envelope') {
-		cssDef = getEnvelopeCssTransform(preset, adj1, adj2);
-	} else if (category === 'simple') {
-		cssDef = getSimpleCssTransform(preset, adj1);
-	}
-
-	if (!cssDef) {
+	// Every classified preset renders as SVG `<textPath>`; an unclassified
+	// (unknown) preset string falls through to `undefined` here.
+	if (!shouldUseSvgWarp(preset)) {
 		return undefined;
 	}
 
+	const adj1 = ts?.textWarpAdj;
+	const adj2 = ts?.textWarpAdj2;
+
+	const paragraphs = groupIntoParagraphs(element, (seg) => {
+		if (seg.fieldType) {
+			const substituted = substituteFieldText(seg.text, seg.fieldType, fieldContext);
+			if (substituted !== seg.text) {
+				return { ...seg, text: substituted };
+			}
+		}
+		return seg;
+	});
+	if (paragraphs.length === 0) {
+		return undefined;
+	}
+
+	const lineCount = paragraphs.length;
+	const width = element.width;
+	const height = element.height;
+	const pathIdPrefix = `ng-warp-${element.id}`;
+
+	// Envelope presets (inflate/deflate/can) get a true per-glyph height warp
+	// instead of a shared-baseline `<textPath>`, across every paragraph: line
+	// `i` of `lineCount` occupies its own vertical slice of the envelope band
+	// (see `buildGlyphWarpDef`), so a multi-paragraph block bends within the
+	// same overall envelope shape.
+	if (hasGlyphEnvelope(preset)) {
+		return buildGlyphWarpDef(preset, paragraphs, width, height, adj1, adj2, ts, pathIdPrefix);
+	}
+
+	const { startOffset, textAnchor } = resolveAlignment(ts?.align);
+
+	const pathLines: WarpPathLine[] = paragraphs.map((para, i) => ({
+		pathId: `${pathIdPrefix}-${i}`,
+		d: getWarpPath(preset, width, height, i, lineCount, adj1, adj2),
+		segments: para.segments,
+	}));
+
 	return {
-		strategy: 'css',
+		strategy: 'path',
 		preset,
-		cssTransform: cssDef.transform,
-		cssTransformOrigin: cssDef.transformOrigin,
-	} satisfies TextWarpCssDef;
+		pathLines,
+		width,
+		height,
+		textAnchor,
+		startOffset,
+		baseFontSize: (ts?.fontSize ?? DEFAULT_FONT_SIZE) as number,
+		baseFontFamily: ts?.fontFamily ?? DEFAULT_FONT_FAMILY,
+		baseColor: ts?.color ?? DEFAULT_COLOR,
+	} satisfies TextWarpPathDef;
 }

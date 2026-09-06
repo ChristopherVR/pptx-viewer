@@ -35,6 +35,7 @@ import {
 	mayLeaveSlideShow,
 } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
+import { LoadContentService } from './load-content.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
 import type { SlideAnnotationMap } from './presentation-annotations.service';
@@ -125,6 +126,13 @@ export class PresentationOverlayComponent implements OnInit {
 	 * it, external-hyperlink clicks are simply never confirmed.
 	 */
 	private readonly viewerOpts = inject(ViewerOptionsService, { optional: true });
+	/**
+	 * Optional for the same reason as {@link viewerOpts}. Its `themeColorMap`
+	 * signal lets `AnimationPlaybackService.setSlide` resolve a scheme-colour
+	 * (`a:schemeClr`) animation stop; absent it, such a stop falls back to the
+	 * canned preset timing exactly as before.
+	 */
+	private readonly loadContent = inject(LoadContentService, { optional: true });
 	// ------------------------------------------------------------------
 	// Inputs
 	// ------------------------------------------------------------------
@@ -238,6 +246,8 @@ export class PresentationOverlayComponent implements OnInit {
 		authoredRange: () => this.authoredRange(),
 		currentSlide: () => this.currentSlide(),
 		showWithAnimation: () => this.showWithAnimation(),
+		canvasSize: () => this.canvasSize(),
+		themeColorMap: () => this.loadContent?.themeColorMap(),
 		playback: this.playback,
 		annotations: this.annotations,
 		emitIndex: (index) => this.indexChange.emit(index),
@@ -453,7 +463,13 @@ export class PresentationOverlayComponent implements OnInit {
 		// per-slide keyframes CSS.
 		effect(() => {
 			const completed = this.navigator.takePendingCompletedEntry();
-			this.playback.setSlide(this.currentSlide(), this.showWithAnimation(), { completed });
+			const size = this.canvasSize();
+			this.playback.setSlide(this.currentSlide(), this.showWithAnimation(), {
+				completed,
+				slideHeightPx: size.height,
+				slideWidthPx: size.width,
+				themeColorMap: this.loadContent?.themeColorMap(),
+			});
 			this.slideKeyframes.set(this.playback.keyframesCss());
 		});
 

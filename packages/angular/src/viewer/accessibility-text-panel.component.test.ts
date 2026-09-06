@@ -2,8 +2,9 @@
  * accessibility-text-panel.component.test.ts
  *
  * `AccessibilityTextPanelComponent` is the alt text / title editor for a
- * plain shape, text box or connector (`PptxNonVisualDescription`), at parity
- * with React's `AccessibilityTextSection` and Vue's `AccessibilityPanel.vue`.
+ * plain shape, text box, connector, or any graphic-frame kind
+ * (table/chart/smartArt/media/ole), at parity with React's
+ * `AccessibilityTextSection` and Vue's `AccessibilityPanel.vue`.
  *
  * No Angular TestBed here (see `media-properties-panel.component.test.ts`):
  * `.supports()` is a plain static method testable without DI, and the
@@ -36,12 +37,16 @@ describe('accessibilityTextPanelComponent.supports', () => {
 		expect(AccessibilityTextPanelComponent.supports(el('picture'))).toBeFalsy();
 	});
 
-	it('excludes graphic-frame kinds owned by their own panels (table/chart/etc)', () => {
-		expect(AccessibilityTextPanelComponent.supports(el('table'))).toBeFalsy();
-		expect(AccessibilityTextPanelComponent.supports(el('chart'))).toBeFalsy();
-		expect(AccessibilityTextPanelComponent.supports(el('smartArt'))).toBeFalsy();
-		expect(AccessibilityTextPanelComponent.supports(el('ole'))).toBeFalsy();
-		expect(AccessibilityTextPanelComponent.supports(el('media'))).toBeFalsy();
+	it('supports every graphic-frame kind (table/chart/smartArt/media/ole)', () => {
+		expect(AccessibilityTextPanelComponent.supports(el('table'))).toBeTruthy();
+		expect(AccessibilityTextPanelComponent.supports(el('chart'))).toBeTruthy();
+		expect(AccessibilityTextPanelComponent.supports(el('smartArt'))).toBeTruthy();
+		expect(AccessibilityTextPanelComponent.supports(el('ole'))).toBeTruthy();
+		expect(AccessibilityTextPanelComponent.supports(el('media'))).toBeTruthy();
+	});
+
+	it('excludes a kind with neither field, like a group', () => {
+		expect(AccessibilityTextPanelComponent.supports(el('group'))).toBeFalsy();
 	});
 });
 

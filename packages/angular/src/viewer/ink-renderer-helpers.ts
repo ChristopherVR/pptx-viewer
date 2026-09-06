@@ -1,14 +1,15 @@
-import type { InkPptxElement, PptxElement } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 import { isInkElement } from 'pptx-viewer-core';
 
 import {
+	buildInkGroupStrokes,
 	extractPathPoints,
 	generatePressureCircles,
 	hasPressureVariation,
 	interpolateWidth,
 	pressuresToWidths,
 } from '../internal/shared';
-import type { PathPoint, PressureCircle, PressureConfig } from '../internal/shared';
+import type { InkGroupStrokeView, PathPoint, PressureCircle } from '../internal/shared';
 import { DEFAULT_STROKE_COLOR } from './constants';
 import type { StyleMap } from './element-style';
 import { getContainerStyle } from './element-style';
@@ -20,10 +21,11 @@ import { getContainerStyle } from './element-style';
  * unit-tested without TestBed, following the same pattern as
  * `connector-path.ts`.
  *
- * The pressure-stroke maths itself lives in `pptx-viewer-shared`
- * (`render/ink-rendering`), so every binding samples a path and sizes its
- * circles the same way; what remains here is the Angular view-model: resolving
- * per-stroke colour / width / opacity and the container style.
+ * The pressure/tilt-stroke maths itself lives in `pptx-viewer-shared`
+ * (`render/ink-group-strokes`, the same decision function
+ * `ContentPartRendererComponent` uses for a loaded `p:contentPart`), so every
+ * binding samples a path and sizes its circles/nib marks the same way; what
+ * remains here is the Angular view-model: the container style.
  */
 
 // Re-exported for the existing Angular import sites (and its tests).
@@ -36,52 +38,8 @@ export {
 	pressuresToWidths,
 };
 
-/**
- * Pressure-circle sizing for an ink stroke of `baseWidth`.
- *
- * Every binding uses the same envelope (0.5px minimum, 1.5x the stroke width at
- * full pressure); spelling it once here keeps Angular from drifting off it.
- */
-function pressureConfig(baseWidth: number): PressureConfig {
-	return { baseWidth, minRadius: 0.5, maxRadius: baseWidth * 1.5 };
-}
-
-/** Resolved per-stroke data used to render a single `<path>` (or circle set). */
-export interface InkStroke {
-	d: string;
-	color: string;
-	width: number;
-	opacity: number;
-	/**
-	 * When present, render as pressure-sensitive circles instead of a plain
-	 * constant-width `<path>`. Empty/absent means a constant-width stroke.
-	 */
-	circles?: PressureCircle[];
-}
-
-/**
- * Compute pressure circles for stroke `i`, or `undefined` when the stroke has
- * no usable pressure variation and should render as a plain constant-width path.
- *
- * Mirrors React's `renderInk`: prefer per-point `inkPointPressures`, then fall
- * back to a varying `inkWidths` array treated as per-point widths.
- */
-function pressureCirclesForStroke(
-	el: InkPptxElement,
-	index: number,
-	d: string,
-	baseWidth: number,
-): PressureCircle[] | undefined {
-	const pointPressures = el.inkPointPressures?.[index];
-	if (pointPressures && pointPressures.length > 1 && hasPressureVariation(pointPressures)) {
-		const widths = pressuresToWidths(pointPressures, baseWidth);
-		return generatePressureCircles(extractPathPoints(d), widths, pressureConfig(baseWidth));
-	}
-	if (el.inkWidths && el.inkWidths.length > 1 && hasPressureVariation(el.inkWidths)) {
-		return generatePressureCircles(extractPathPoints(d), el.inkWidths, pressureConfig(baseWidth));
-	}
-	return undefined;
-}
+/** Resolved per-stroke data used to render a single `<path>`, circle set, or nib-mark set. */
+export type InkStroke = InkGroupStrokeView;
 
 /**
  * Narrow `element` to `InkPptxElement` and return the resolved per-stroke
@@ -91,17 +49,7 @@ export function buildInkStrokes(element: PptxElement): InkStroke[] {
 	if (!isInkElement(element)) {
 		return [];
 	}
-	const el: InkPptxElement = element;
-	return (el.inkPaths ?? []).map((d, i) => {
-		const width = el.inkWidths?.[i] ?? 1;
-		return {
-			d,
-			color: el.inkColors?.[i] ?? DEFAULT_STROKE_COLOR,
-			width,
-			opacity: el.inkOpacities?.[i] ?? 1,
-			circles: pressureCirclesForStroke(el, i, d, width),
-		};
-	});
+	return buildInkGroupStrokes(element, { color: DEFAULT_STROKE_COLOR, width: 1 });
 }
 
 /** Minimum SVG viewport dimension (clamp to ≥ 1 to avoid degenerate viewBox). */

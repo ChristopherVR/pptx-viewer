@@ -1538,7 +1538,7 @@ export class SlideCanvasComponent implements SlideContext {
 			// and stays see-through, so it cannot occlude the stage beneath it.
 			...(this.transparentBackground()
 				? { background: 'none', 'background-color': 'transparent', 'box-shadow': 'none' }
-				: getSlideBackgroundStyle(slide)),
+				: getSlideBackgroundStyle(slide, { widthPx: size.width, heightPx: size.height })),
 		};
 		return style;
 	});

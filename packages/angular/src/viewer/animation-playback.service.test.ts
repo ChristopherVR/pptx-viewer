@@ -80,3 +80,39 @@ describe('animation-playback.service main-sequence advance', () => {
 		expect(playback.isComplete()).toBeTruthy();
 	});
 });
+
+describe('animation-playback.service geometry/theme render context wiring', () => {
+	// Grow And Turn's own ground-truth markup: `from="(-#ppt_w/2)" to="(#ppt_x)"`
+	// on a `ppt_x` attribute animation (see animation-ppt-formula-ground-truth.md).
+	function growAndTurnSlide(): PptxSlide {
+		return {
+			elements: [{ height: 100, id: 'a', type: 'shape', width: 200, x: 200, y: 150 }],
+			id: 'slide-1',
+			nativeAnimations: [
+				{
+					attributeAnimations: [
+						{ attrName: 'ppt_x', from: '(-#ppt_w/2)', keyframes: [], to: '(#ppt_x)' },
+					],
+					durationMs: 600,
+					presetClass: 'entr',
+					targetId: 'a',
+					trigger: 'onClick',
+				} as unknown as PptxNativeAnimation,
+			],
+		} as unknown as PptxSlide;
+	}
+
+	it('resolves the cross-axis fly-in formula when slide size is passed through setSlide', () => {
+		const playback = createService();
+		playback.setSlide(growAndTurnSlide(), true, { slideHeightPx: 720, slideWidthPx: 960 });
+		// centre x = (200 + 200/2) / 960 = 0.3125; from = -100/960 = -0.104167;
+		// delta = -0.104167 - 0.3125 = -0.416667 -> formatted to 4dp.
+		expect(playback.keyframesCss()).toContain('-0.4167');
+	});
+
+	it('falls back to canned timing when slide size is not passed', () => {
+		const playback = createService();
+		playback.setSlide(growAndTurnSlide());
+		expect(playback.keyframesCss()).not.toContain('-0.4167');
+	});
+});

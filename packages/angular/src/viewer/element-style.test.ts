@@ -253,7 +253,7 @@ describe('getShapeFillStrokeStyle - geometry cascade parity', () => {
  * while the Angular inspector still shipped the UI to author it.
  */
 describe('getShapeFillStrokeStyle - shape 3D', () => {
-	it('applies the camera transform and perspective from a:scene3d', () => {
+	it('applies the camera transform from a:scene3d (isometric: parallel projection, no perspective)', () => {
 		const style = getShapeFillStrokeStyle(
 			baseElement({
 				shapeStyle: {
@@ -263,9 +263,46 @@ describe('getShapeFillStrokeStyle - shape 3D', () => {
 				},
 			} as unknown as Partial<PptxElement>),
 		);
-		expect(String(style['transform'])).toContain('rotate');
-		expect(style['perspective']).toBeDefined();
+		// 2026-09 off-axis-camera homography wave: an exact COM-measured
+		// `matrix3d(...)` replaces the old `rotateX/Y/Z` chain (see shared
+		// `visual-3d-camera-homography`'s module doc comment). Isometric
+		// presets are pure affine (no perspective divide, still a true
+		// parallelogram), so no CSS `perspective` is emitted; a
+		// perspective-family preset (checked below) does emit a matrix3d too,
+		// with its own baked-in projective divide.
+		expect(String(style['transform'])).toContain('matrix3d(');
+		expect(style['perspective']).toBeUndefined();
 		expect(style['transform-style']).toBe('preserve-3d');
+	});
+
+	it('applies an exact matrix3d camera transform, no separate perspective, for a perspective-family preset', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: {
+					fillColor: '#3366CC',
+					fillMode: 'solid',
+					scene3d: { cameraPreset: 'perspectiveAbove' },
+				},
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(String(style['transform'])).toContain('matrix3d(');
+		expect(style['perspective']).toBeUndefined();
+		expect(style['transform-style']).toBe('preserve-3d');
+	});
+
+	it('bakes the off-axis skew into the matrix3d for corrected presets (transform-origin 0 0, no perspective-origin)', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: {
+					fillColor: '#3366CC',
+					fillMode: 'solid',
+					scene3d: { cameraPreset: 'perspectiveContrastingLeftFacing' },
+				},
+			} as unknown as Partial<PptxElement>),
+		);
+		expect(style['perspective-origin']).toBeUndefined();
+		expect(style['transform-origin']).toBe('0 0');
+		expect(String(style['transform'])).toContain('matrix3d(');
 	});
 
 	it('stacks the a:sp3d extrusion depth into box-shadow without losing the effect shadow', () => {
@@ -394,5 +431,42 @@ describe('getShapeFillStrokeStyle - outline', () => {
 			} as unknown as Partial<PptxElement>),
 		);
 		expect(style['border']).toBeUndefined();
+	});
+});
+
+describe('getShapeFillStrokeStyle group-level effects (p:grpSpPr/a:effectLst)', () => {
+	function group(groupEffectStyle?: Record<string, unknown>): PptxElement {
+		return {
+			type: 'group',
+			id: 'grp-1',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			children: [],
+			groupEffectStyle,
+		} as unknown as PptxElement;
+	}
+
+	it('returns an empty style for a group with no groupEffectStyle', () => {
+		expect(getShapeFillStrokeStyle(group())).toStrictEqual({});
+	});
+
+	it('paints the group composite shadow as a `filter: drop-shadow`, never a `box-shadow`', () => {
+		const style = getShapeFillStrokeStyle(
+			group({ shadowColor: '#000000', shadowAngle: 0, shadowDistance: 4, shadowBlur: 6 }),
+		);
+		expect(style['box-shadow']).toBeUndefined();
+		expect(String(style['filter'])).toContain('drop-shadow');
+	});
+
+	it('paints a group glow as a `filter: drop-shadow`', () => {
+		const style = getShapeFillStrokeStyle(group({ glowColor: '#00ff00', glowRadius: 10 }));
+		expect(String(style['filter'])).toContain('drop-shadow');
+	});
+
+	it('sets overflow: visible for a group blur effect with @grow', () => {
+		const style = getShapeFillStrokeStyle(group({ blurRadius: 6, blurGrow: true }));
+		expect(style['overflow']).toBe('visible');
 	});
 });

@@ -15,12 +15,14 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 
+import type { ChartTypeSelectValue } from '../internal/shared';
 import {
 	CHART_TYPE_OPTIONS,
 	collapseChartTitleRunsForEdit,
 	GROUPING_OPTIONS,
 	GROUPING_SUPPORTED_TYPES,
 	patchChartData,
+	resolveDisplayedChartType,
 } from '../internal/shared';
 
 /**
@@ -64,11 +66,11 @@ export function applyChartTypeSelectorPatch(
 						class="pptx-cts__input"
 						[attr.aria-label]="'pptx.chart.type' | translate"
 						[disabled]="!canEdit()"
-						[value]="chartData.chartType"
+						[value]="displayedType()"
 						(change)="onType($event)"
 					>
 						@for (opt of typeOptions; track opt.value) {
-							<option [value]="opt.value" [selected]="opt.value === chartData.chartType">
+							<option [value]="opt.value" [selected]="opt.value === displayedType()">
 								{{ opt.labelKey | translate }}
 							</option>
 						}
@@ -137,6 +139,16 @@ export class ChartTypeSelectorComponent {
 	protected readonly supportsGrouping = computed(() => {
 		const chartType = this.data()?.chartType;
 		return chartType !== undefined && GROUPING_SUPPORTED_TYPES.has(chartType);
+	});
+	/**
+	 * The type shown as selected. "Pareto" has no `PptxChartType` of its own
+	 * (docs/guide/limitations.md's ChartEx row): it is `chartType: 'histogram'`
+	 * plus a `paretoLine`-layout series, so reading `chartType` raw would show
+	 * "Histogram" for a chart the user picked "Pareto" for.
+	 */
+	protected readonly displayedType = computed<ChartTypeSelectValue | undefined>(() => {
+		const data = this.data();
+		return data ? resolveDisplayedChartType(data) : undefined;
 	});
 
 	protected onTitle(event: Event): void {

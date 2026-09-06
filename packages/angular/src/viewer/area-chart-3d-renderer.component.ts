@@ -8,17 +8,27 @@ import {
 	ElementRef,
 	input,
 	OnDestroy,
+	output,
 	signal,
 	viewChild,
 } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { buildAreaChart3DDataForElement } from '../internal/shared';
-import type { AreaChart3DHandle, AreaChart3DSceneOptions } from '../internal/shared';
+import type {
+	AreaChart3DHandle,
+	AreaChart3DSceneOptions,
+	ChartPartRef,
+	TextStyleAnimationDescriptor,
+} from '../internal/shared';
 // Type-only import of the shared scene controller; the implementation (which
 // pulls the optional `three` peer) is loaded lazily via dynamic import so it
 // never lands in the main bundle.
-import type { mountAreaChart3D as MountAreaChart3D } from '../internal/shared-src/render/area-chart-3d-scene';
+import type {
+	CartesianChart3DInteraction,
+	mountAreaChart3D as MountAreaChart3D,
+} from '../internal/shared-src/render/area-chart-3d-scene';
+import { Chart3DSceneMount } from './chart-3d-scene-mount';
 import { ChartRendererComponent } from './chart-renderer.component';
 
 type MountFn = typeof MountAreaChart3D;
@@ -41,9 +51,14 @@ type MountFn = typeof MountAreaChart3D;
  *    sentinel),
  *  - or the scene fails to load.
  *
- * Marks are not selectable/draggable in this mode: a mesh has no 2D screen
- * geometry to hit-test against. Mirrors `BarChart3DRendererComponent` /
- * `LineChart3DRendererComponent` exactly.
+ * Point markers are click-to-select (`partSelect`) and drag-to-value
+ * (`valueDragPreview`/`valueDragCommit`) via the shared
+ * `CartesianChart3DInteraction` wiring, mirroring
+ * `BarChart3DRendererComponent` / `LineChart3DRendererComponent`.
+ * `selectedPart` re-applies the marker highlight when the selection changes
+ * from outside this scene; `textStyle` applies/clears the axis-label
+ * bold/italic/underline/size/colour override driven by native-animation
+ * playback.
  */
 @Component({
 	selector: 'pptx-area-chart-3d-renderer',
@@ -67,6 +82,17 @@ type MountFn = typeof MountAreaChart3D;
 })
 export class AreaChart3DRendererComponent implements OnDestroy {
 	readonly element = input.required<PptxElement>();
+	/** The part selected elsewhere (inspector, keyboard), or null. Applied to the live scene. */
+	readonly selectedPart = input<ChartPartRef | null>(null);
+	/** Active font-style emphasis override for the scene's own axis labels. */
+	readonly textStyle = input<TextStyleAnimationDescriptor | undefined>(undefined);
+
+	/** Emitted when a point marker (or empty space, `null`) is clicked. */
+	readonly partSelect = output<ChartPartRef | null>();
+	/** Emitted continuously while dragging a point's value (live preview). */
+	readonly valueDragPreview = output<{ part: ChartPartRef; value: number }>();
+	/** Emitted once on release with the final dragged value. */
+	readonly valueDragCommit = output<{ part: ChartPartRef; value: number }>();
 
 	private readonly sceneRef = viewChild<ElementRef<HTMLDivElement>>('scene');
 
@@ -92,15 +118,18 @@ export class AreaChart3DRendererComponent implements OnDestroy {
 	/** Set when `three` is missing or the scene failed to load: forces the SVG fallback. */
 	private readonly failed = signal(false);
 
-	private handle: AreaChart3DHandle | null = null;
-	/** The options identity the live handle was mounted with. */
-	private mountedOptions: AreaChart3DSceneOptions | null = null;
+	/** Mount / supersede / teardown state (see `chart-3d-scene-mount.ts`);
+	 * `scene.handle()` is the live handle, `null` while unmounted/loading. */
+	private readonly scene = new Chart3DSceneMount<AreaChart3DSceneOptions, AreaChart3DHandle>({
+		onFailed: () => this.failed.set(true),
+	});
 
 	constructor() {
 		afterNextRender(() => void this.loadScene());
 
 		// Mount when the scene container exists, the runtime has loaded, and we
-		// have (new) path data. Re-mounts when the underlying data changes.
+		// have (new) path data. Re-mounts when the underlying data changes; an
+		// in-flight mount for the same data is left alone (`ensure`).
 		effect(() => {
 			const container = this.sceneRef()?.nativeElement;
 			const fn = this.mountFn();
@@ -108,18 +137,34 @@ export class AreaChart3DRendererComponent implements OnDestroy {
 			if (!container || !fn || !opts) {
 				return;
 			}
-			if (this.mountedOptions === opts && this.handle) {
-				return;
-			}
-			this.mount(fn, container, opts);
+			this.scene.ensure(
+				opts,
+				() => fn(container, opts, this.buildInteraction()),
+				(handle) => {
+					handle.setSelectedPart(this.selectedPart());
+					handle.setTextStyle(this.textStyle());
+				},
+			);
 		});
 
 		// Push size changes to the live handle without re-mounting.
 		effect(() => {
 			const opts = this.options();
 			if (opts) {
-				this.handle?.resize(opts.width, opts.height);
+				this.scene.handle()?.resize(opts.width, opts.height);
 			}
+		});
+
+		// Re-apply the selected-part highlight when the external selection (or
+		// the live handle) changes.
+		effect(() => {
+			this.scene.handle()?.setSelectedPart(this.selectedPart());
+		});
+
+		// Apply/clear the axis-label text-style override when it (or the live
+		// handle) changes.
+		effect(() => {
+			this.scene.handle()?.setTextStyle(this.textStyle());
 		});
 	}
 
@@ -135,32 +180,15 @@ export class AreaChart3DRendererComponent implements OnDestroy {
 		}
 	}
 
-	private mount(fn: MountFn, container: HTMLElement, options: AreaChart3DSceneOptions): void {
-		this.teardownHandle();
-		this.mountedOptions = options;
-		void fn(container, options).then((handle) => {
-			// Newer data (or a teardown) superseded this mount while loading.
-			if (this.mountedOptions !== options) {
-				handle.dispose();
-				return undefined;
-			}
-			if (!handle.ok) {
-				handle.dispose();
-				this.failed.set(true);
-				this.mountedOptions = null;
-				return undefined;
-			}
-			this.handle = handle;
-			return undefined;
-		});
-	}
-
-	private teardownHandle(): void {
-		this.handle?.dispose();
-		this.handle = null;
+	private buildInteraction(): CartesianChart3DInteraction {
+		return {
+			onSelect: (part) => this.partSelect.emit(part),
+			onValueDragPreview: (part, value) => this.valueDragPreview.emit({ part, value }),
+			onValueDragCommit: (part, value) => this.valueDragCommit.emit({ part, value }),
+		};
 	}
 
 	ngOnDestroy(): void {
-		this.teardownHandle();
+		this.scene.teardown();
 	}
 }

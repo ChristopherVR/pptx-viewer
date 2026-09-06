@@ -2,18 +2,18 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { getNonVisualDescriptionFields } from '../internal/shared';
+import { getNonVisualDescriptionFields, shouldShowAccessibilitySection } from '../internal/shared';
 
 /**
- * Alt text / title editor for a plain shape, text box or connector, at
- * parity with React's `AccessibilityTextSection` and Vue's
- * `AccessibilityPanel.vue`.
+ * Alt text / title editor for a plain shape, text box, connector, or any
+ * graphic-frame kind (table/chart/smartArt/media/ole), at parity with
+ * React's `AccessibilityTextSection` and Vue's `AccessibilityPanel.vue`.
  *
  * A picture's own alt text field lives in `ImagePropertiesPanelComponent`;
- * this covers the three element kinds that only started modelling `altText`
- * / `title` once core parsed `p:cNvPr/@descr` / `@title` on `p:sp` / `p:cxnSp`
- * (see `PptxNonVisualDescription`). `getNonVisualDescriptionFields` (shared)
- * decides which fields apply so this component stays a thin view.
+ * `shouldShowAccessibilitySection` (shared) decides which other element
+ * kinds get this panel at all, and `getNonVisualDescriptionFields` (shared)
+ * decides which of its two fields apply, so this component stays a thin
+ * view.
  */
 @Component({
 	selector: 'pptx-accessibility-text-panel',
@@ -82,9 +82,9 @@ export class AccessibilityTextPanelComponent {
 
 	protected readonly fields = computed(() => getNonVisualDescriptionFields(this.element()));
 
-	/** Whether the selected element kind supports either field. */
+	/** Whether the selected element kind should show this panel at all. */
 	static supports(element: PptxElement): boolean {
-		return element.type === 'text' || element.type === 'shape' || element.type === 'connector';
+		return shouldShowAccessibilitySection(element);
 	}
 
 	protected onAltText(event: Event): void {

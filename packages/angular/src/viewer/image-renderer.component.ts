@@ -6,14 +6,17 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import { getImageOverflow } from '../internal/shared';
 import { ColorChangedImageComponent } from './color-changed-image.component';
+import { getReflectionOverlay } from './element-effect-defs';
+import type { ReflectionOverlay } from './element-effect-defs';
 import { getContainerStyle, getImageSrc } from './element-style';
 import { buildAngularImageRenderView } from './image-renderer-helpers';
+import { ReflectionMirrorContentComponent } from './reflection-mirror-content.component';
 
 @Component({
 	selector: 'pptx-image-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, ColorChangedImageComponent],
+	imports: [NgStyle, ColorChangedImageComponent, ReflectionMirrorContentComponent],
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-image"
@@ -57,6 +60,14 @@ import { buildAngularImageRenderView } from './image-renderer-helpers';
 			}
 			@if (view().colorWashStyle; as washStyle) {
 				<div class="pptx-ng-image-color-wash" [ngStyle]="washStyle"></div>
+			}
+			<!-- a:reflection mirror. This never rendered at all before: the
+			     shape/text branch mounted its own reflection block, but a
+			     picture routed through this component instead and got none. -->
+			@if (reflection(); as refl) {
+				<div class="pptx-ng-reflection" aria-hidden="true" [ngStyle]="refl.wrapperStyle">
+					<pptx-reflection-mirror-content [element]="element()" [mediaDataUrls]="mediaDataUrls()" />
+				</div>
 			}
 		</div>
 	`,
@@ -102,6 +113,9 @@ export class ImageRendererComponent {
 	}));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
 	readonly view = computed(() => buildAngularImageRenderView(this.element()));
+	readonly reflection = computed<ReflectionOverlay | undefined>(() =>
+		getReflectionOverlay(this.element()),
+	);
 	readonly safeFilters = computed<Array<{ id: string; markup: SafeHtml }>>(() =>
 		this.view().svgFilters.map((filter) => ({
 			id: filter.id,

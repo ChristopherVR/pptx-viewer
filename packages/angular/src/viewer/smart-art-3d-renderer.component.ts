@@ -14,10 +14,9 @@ import {
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxElement, SmartArtColorScheme, SmartArtStyle } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 
-import { buildSmartArt3DModel, computeSmartArtElementLayout } from '../internal/shared';
-import type { SmartArt3DModel } from '../internal/shared';
+import type { SmartArt3DModel, TextStyleAnimationDescriptor } from '../internal/shared';
 // Type-only import of the scene runtime; the implementation (which pulls the
 // optional `three` peer) is loaded lazily via dynamic import so it never lands
 // in the main bundle.
@@ -26,20 +25,18 @@ import { EditorStateService } from './editor-state.service';
 import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
 import { SLIDE_CONTEXT } from './slide-context';
+import {
+	buildSmartArt3DModelForElement,
+	computeNode3DEditBox,
+	findSmartArtNodeElementAtPoint,
+	getSmartArtData,
+} from './smart-art-3d-renderer-helpers';
 import { commitNodeText, findOwningSlideIndex } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 
 type MountFn = typeof MountSmartArt3D;
 type SceneHandle = ReturnType<MountFn>;
-
-const PALETTES: Record<SmartArtColorScheme, string[]> = {
-	colorful1: ['#3b82f6', '#22c55e', '#f97316', '#eab308', '#a855f7', '#ec4899'],
-	colorful2: ['#6366f1', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-	colorful3: ['#0ea5e9', '#84cc16', '#f43e5e', '#a855f7', '#f97316', '#10b981'],
-	monochromatic1: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb', '#1d4ed8'],
-	monochromatic2: ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#4f46e5', '#4338ca'],
-};
 
 /**
  * SmartArt3DRendererComponent: Angular Three.js SmartArt renderer.
@@ -61,91 +58,8 @@ const PALETTES: Record<SmartArtColorScheme, string[]> = {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle, SmartArtRendererComponent, TranslatePipe],
-	template: `
-		@if (useFallback()) {
-			<!--
-				The SVG renderer only fills a box, so the positioned, id-bearing,
-				marked element node has to be drawn here.
-			-->
-			<div
-				class="pptx-ng-element pptx-ng-smartart"
-				[ngStyle]="containerStyle()"
-				[attr.data-element-id]="element().id"
-				[attr.data-pptx-element]="markElement() ? 'true' : null"
-			>
-				<pptx-smart-art-renderer [element]="element()" />
-			</div>
-		} @else {
-			<div
-				#container3d
-				class="pptx-ng-element pptx-ng-smartart-3d"
-				[ngStyle]="containerStyle()"
-				[attr.data-element-id]="element().id"
-				[attr.data-pptx-element]="markElement() ? 'true' : null"
-			>
-				<canvas #canvas class="pptx-ng-smartart-3d-canvas"></canvas>
-				@if (canEdit()) {
-					<!-- Invisible SVG overlay: provides data-smartart-node-id hit targets -->
-					<div class="pptx-ng-smartart-3d-hittest" (dblclick)="onOverlayDblClick($event)">
-						<pptx-smart-art-renderer [element]="element()" [editable]="false" />
-					</div>
-					@if (editState()) {
-						<textarea
-							#nodeEditor3d
-							class="pptx-ng-smartart-3d-node-editor"
-							[style.left.px]="editState()!.box.x"
-							[style.top.px]="editState()!.box.y"
-							[style.width.px]="editState()!.box.width"
-							[style.height.px]="editState()!.box.height"
-							[value]="editState()!.text"
-							spellcheck="false"
-							[attr.aria-label]="'pptx.smartArt.editNodeText' | translate"
-							(input)="updateDraft($event)"
-							(blur)="commitEdit()"
-							(keydown)="onEditorKeydown($event)"
-							(mousedown)="$event.stopPropagation()"
-							(click)="$event.stopPropagation()"
-							(dblclick)="$event.stopPropagation()"
-						></textarea>
-					}
-				}
-			</div>
-		}
-	`,
-	styles: `
-		.pptx-ng-smartart-3d-canvas {
-			width: 100%;
-			height: 100%;
-			display: block;
-		}
-
-		/* Invisible hit-test overlay: fills the canvas area, captures dblclicks */
-		.pptx-ng-smartart-3d-hittest {
-			position: absolute;
-			inset: 0;
-			opacity: 0;
-			pointer-events: auto;
-		}
-
-		/* Inline node text editor, positioned over the clicked node */
-		.pptx-ng-smartart-3d-node-editor {
-			position: absolute;
-			box-sizing: border-box;
-			margin: 0;
-			padding: 1px 2px;
-			border: 1px solid var(--pptx-inspector-active, #0078d4);
-			border-radius: 2px;
-			background: #fff;
-			color: #111;
-			font-size: 11px;
-			line-height: 1.1;
-			text-align: center;
-			resize: none;
-			overflow: hidden;
-			z-index: 20;
-			outline: none;
-		}
-	`,
+	templateUrl: './smart-art-3d-renderer.component.html',
+	styleUrl: './smart-art-3d-renderer.component.css',
 })
 export class SmartArt3DRendererComponent implements OnDestroy {
 	readonly element = input.required<PptxElement>();
@@ -158,6 +72,15 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	 * SVG fallback branch is drawn into. Set only by the main interactive canvas.
 	 */
 	readonly markElement = input<boolean>(false);
+	/**
+	 * Active font-style emphasis override (Bold Flash, Bold Reveal, Underline,
+	 * Change Font Style/Size) for every node's caption, driven by native-
+	 * animation playback. Mirrors `ChartElementViewComponent`'s `textStyle`
+	 * threading for the 3D chart scenes: a canvas-texture caption has no DOM
+	 * text node the CSS-injection path (`buildTextStyleOverrideCss`) can reach,
+	 * so the scene's own `setTextStyle` handle method is the only way in.
+	 */
+	readonly textStyle = input<TextStyleAnimationDescriptor | undefined>(undefined);
 
 	private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
 	private readonly containerEl = viewChild<ElementRef<HTMLElement>>('container3d');
@@ -167,7 +90,9 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	readonly useFallback = signal(true);
 
 	private readonly mountFn = signal<MountFn | null>(null);
-	private handle: SceneHandle | null = null;
+	/** The live mounted handle, or `null` while unmounted. A signal so
+	 * `setTextStyle` re-applies as soon as it (or the input) changes. */
+	private readonly handle = signal<SceneHandle | null>(null);
 
 	protected readonly editState = signal<InlineEditState | null>(null);
 	/** Live draft text, updated on every input event. */
@@ -184,36 +109,11 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 		getContainerStyle(this.element(), this.zIndex()),
 	);
 
-	private readonly smartArtData = computed(() => {
-		const el = this.element();
-		return el.type === 'smartArt' ? el.smartArtData : undefined;
-	});
+	private readonly smartArtData = computed(() => getSmartArtData(this.element()));
 
-	private readonly model = computed<SmartArt3DModel | null>(() => {
-		const data = this.smartArtData();
-		if (!data || data.nodes.length === 0) {
-			return null;
-		}
-		const el = this.element();
-		const ctFills = data.colorTransform?.fillColors;
-		const palette =
-			ctFills && ctFills.length > 0
-				? ctFills
-				: (PALETTES[data.colorScheme ?? 'colorful1'] ?? PALETTES.colorful1);
-		const style: SmartArtStyle = data.style ?? 'flat';
-		const layout = computeSmartArtElementLayout(
-			data,
-			data.nodes,
-			{ width: Math.max(el.width, 1), height: Math.max(el.height, 1) },
-			palette,
-			style,
-			el.id,
-		);
-		return buildSmartArt3DModel(layout, {
-			background: data.chrome?.backgroundColor,
-			spatial: true,
-		});
-	});
+	private readonly model = computed<SmartArt3DModel | null>(() =>
+		buildSmartArt3DModelForElement(this.element()),
+	);
 
 	constructor() {
 		afterNextRender(() => void this.loadScene());
@@ -223,12 +123,12 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 			const canvasEl = this.canvas()?.nativeElement;
 			const fn = this.mountFn();
 			const m = this.model();
-			if (!canvasEl || !fn || !m || this.handle) {
+			if (!canvasEl || !fn || !m || this.handle()) {
 				return;
 			}
 			try {
 				const el = this.element();
-				this.handle = fn(canvasEl, m, el.width, el.height, {});
+				this.handle.set(fn(canvasEl, m, el.width, el.height, { textStyle: this.textStyle() }));
 			} catch {
 				this.useFallback.set(true);
 			}
@@ -237,7 +137,13 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 		// Resize without re-mounting.
 		effect(() => {
 			const el = this.element();
-			this.handle?.resize(el.width, el.height);
+			this.handle()?.resize(el.width, el.height);
+		});
+
+		// Apply/clear the node-caption text-style override when it (or the live
+		// handle) changes.
+		effect(() => {
+			this.handle()?.setTextStyle(this.textStyle());
 		});
 
 		// Auto-focus the textarea when the editor opens.
@@ -277,44 +183,25 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	 */
 	onOverlayDblClick(event: MouseEvent): void {
 		const container = this.containerEl()?.nativeElement;
-		if (!container) {
-			return;
-		}
-
 		const data = this.smartArtData();
-		if (!data) {
+		if (!container || !data) {
 			return;
 		}
-
-		// document.elementsFromPoint includes elements with pointer-events:none,
-		// so we can find the <g data-smartart-node-id="..."> in the overlay SVG.
-		const elements = document.elementsFromPoint(event.clientX, event.clientY);
-		const nodeEl = elements.find(
-			(el): el is Element => el instanceof Element && el.hasAttribute('data-smartart-node-id'),
+		// elementsFromPoint includes pointer-events:none nodes, so this finds the
+		// <g data-smartart-node-id="..."> in the invisible overlay SVG.
+		const nodeEl = findSmartArtNodeElementAtPoint(
+			document.elementsFromPoint(event.clientX, event.clientY),
 		);
-		if (!nodeEl) {
+		const nodeId = nodeEl?.getAttribute('data-smartart-node-id');
+		if (!nodeEl || !nodeId) {
 			return;
 		}
-
-		const nodeId = nodeEl.getAttribute('data-smartart-node-id');
-		if (!nodeId) {
-			return;
-		}
-
 		const currentText = data.nodes.find((n) => n.id === nodeId)?.text ?? '';
-		const nodeRect = nodeEl.getBoundingClientRect();
-		const containerRect = container.getBoundingClientRect();
-
 		this.draftText = currentText;
 		this.editSettled = false;
 		this.editState.set({
 			nodeId,
-			box: {
-				x: nodeRect.left - containerRect.left,
-				y: nodeRect.top - containerRect.top,
-				width: nodeRect.width,
-				height: nodeRect.height,
-			},
+			box: computeNode3DEditBox(nodeEl.getBoundingClientRect(), container.getBoundingClientRect()),
 			text: currentText,
 		});
 	}
@@ -382,7 +269,7 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	}
 
 	ngOnDestroy(): void {
-		this.handle?.dispose();
-		this.handle = null;
+		this.handle()?.dispose();
+		this.handle.set(null);
 	}
 }

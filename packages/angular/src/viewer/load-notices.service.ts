@@ -17,9 +17,20 @@
  */
 import { Injectable, computed, inject, signal } from '@angular/core';
 
-import { compatibilityWarningToasts, readOnlyRecommendation } from '../internal/shared';
-import type { CompatibilityWarningToast, ReadOnlyRecommendation } from '../internal/shared';
+import {
+	checkModifyPassword,
+	compatibilityWarningToasts,
+	readOnlyRecommendation,
+} from '../internal/shared';
+import type {
+	CompatibilityWarningToast,
+	ModifyPasswordCheckResult,
+	ReadOnlyRecommendation,
+} from '../internal/shared';
 import { LoadContentService } from './load-content.service';
+
+/** Why the last password attempt failed; see `checkModifyPassword` (`pptx-viewer-shared`). */
+export type ModifyPasswordErrorReason = Extract<ModifyPasswordCheckResult, { ok: false }>['reason'];
 
 @Injectable()
 export class LoadNoticesService {
@@ -46,15 +57,61 @@ export class LoadNoticesService {
 	 */
 	readonly lockActive = computed(() => this.recommendation().defaultReadOnly && !this.lockLifted());
 
-	/** "Edit anyway": lifts the recommendation's lock and hides the banner. */
+	/** Whether the inline password prompt should render instead of the two buttons. */
+	readonly passwordPromptOpen = signal(false);
+	/** Reason the last password attempt failed, or null before any attempt / after success. */
+	readonly passwordError = signal<ModifyPasswordErrorReason | null>(null);
+	/** True while {@link submitPassword}'s check is in flight (disables the form). */
+	readonly checkingPassword = signal(false);
+
+	/**
+	 * "Edit anyway": lifts the recommendation's lock and hides the banner, or
+	 * (when `recommendation().requiresPassword` is set) opens the inline
+	 * password prompt instead of unlocking immediately.
+	 */
 	editAnyway(): void {
-		this.lockLifted.set(true);
-		this.bannerHidden.set(true);
+		if (this.recommendation().requiresPassword) {
+			this.passwordPromptOpen.set(true);
+			this.passwordError.set(null);
+			return;
+		}
+		this.unlock();
 	}
 
 	/** "Dismiss": hides the banner but leaves any lock in place. */
 	dismissBanner(): void {
 		this.bannerHidden.set(true);
+	}
+
+	/** Close the password prompt without unlocking. */
+	cancelPasswordPrompt(): void {
+		this.passwordPromptOpen.set(false);
+		this.passwordError.set(null);
+	}
+
+	/** Check `password` against the deck's `modifyVerifier`; unlocks on a match. */
+	async submitPassword(password: string): Promise<void> {
+		this.checkingPassword.set(true);
+		try {
+			const result = await checkModifyPassword(
+				this.loader?.parsedData()?.modifyVerifier ?? undefined,
+				password,
+			);
+			if (result.ok) {
+				this.unlock();
+			} else {
+				this.passwordError.set(result.reason);
+			}
+		} finally {
+			this.checkingPassword.set(false);
+		}
+	}
+
+	private unlock(): void {
+		this.lockLifted.set(true);
+		this.bannerHidden.set(true);
+		this.passwordPromptOpen.set(false);
+		this.passwordError.set(null);
 	}
 
 	// ── Compatibility-warning toasts ────────────────────────────────────────
@@ -87,6 +144,9 @@ export class LoadNoticesService {
 	resetForLoad(): void {
 		this.bannerHidden.set(false);
 		this.lockLifted.set(false);
+		this.passwordPromptOpen.set(false);
+		this.passwordError.set(null);
+		this.checkingPassword.set(false);
 		this.dismissedToastIds.set(new Set());
 	}
 }

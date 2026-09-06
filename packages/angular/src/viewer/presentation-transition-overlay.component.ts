@@ -423,6 +423,7 @@ export class PresentationTransitionOverlayComponent {
 			tr.direction,
 			tr.orient,
 			tr.spokes,
+			tr.pattern,
 		);
 	});
 

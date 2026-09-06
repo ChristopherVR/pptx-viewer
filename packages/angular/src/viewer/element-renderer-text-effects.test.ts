@@ -51,14 +51,28 @@ describe('elementRenderer per-run text effects (shared builder wiring)', () => {
 		expect(JSON.stringify(style)).not.toContain('box-reflect');
 	});
 
-	it('builds a text-body 3D scene style (perspective + rotate) from scene3d', () => {
+	it('builds a text-body 3D scene style (COM-measured homography matrix3d) from scene3d', () => {
+		// `perspectiveAbove` is now unified onto the shape-level COM-measured
+		// homography (see `text-effects-3d`'s module doc comment): a
+		// `matrix3d(...)` + `transformOrigin: '0 0'`, not the old hand-tuned
+		// `perspective` + `rotateX` approximation.
 		const scene = buildTextBody3DSceneStyle({
 			textBodyScene3d: { cameraPreset: 'perspectiveAbove' },
 		} as TextStyle) as StyleMap | undefined;
 		expect(scene).toBeTruthy();
-		expect(scene?.perspective).toBeTruthy();
-		expect(String(scene?.transform)).toContain('rotateX');
+		expect(String(scene?.transform)).toContain('matrix3d');
+		expect(scene?.transformOrigin).toBe('0 0');
 		expect(scene?.transformStyle).toBe('preserve-3d');
+	});
+
+	it('renders an oblique text-body camera as flat (front face undistorted), matching the shape measurement', () => {
+		// `oblique*` only skews an EXTRUDED shape's side panels, never the front
+		// face (COM-measured, see `visual-3d-camera-homography`); a text body
+		// under `obliqueTopLeft` should therefore get no camera transform at all.
+		const scene = buildTextBody3DSceneStyle({
+			textBodyScene3d: { cameraPreset: 'obliqueTopLeft' },
+		} as TextStyle) as StyleMap | undefined;
+		expect(scene).toBeUndefined();
 	});
 
 	it('returns no scene style when the text body carries no scene3d', () => {
