@@ -224,3 +224,22 @@ export type {
 	ApplyLayoutResult,
 	LayoutInfo,
 } from './layout-tools.js';
+
+export {
+	getOleContent,
+	setOleSheetCell,
+	setOleDocumentParagraph,
+	setOleDeckSlideTitle,
+	replaceOleFileT,
+	setOleObjectNameT,
+} from './ole-tools.js';
+export type {
+	GetOleContentParams,
+	GetOleContentResult,
+	SetOleContentResult,
+	SetOleSheetCellParams,
+	SetOleDocumentParagraphParams,
+	SetOleDeckSlideTitleParams,
+	ReplaceOleFileParams,
+	SetOleObjectNameParams,
+} from './ole-tools.js';

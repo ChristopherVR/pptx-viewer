@@ -142,6 +142,66 @@ describe('olePropertiesPanel object name editing', () => {
 		expect(getNameInput().disabled).toBeTruthy();
 	});
 
+	it('shows the "Edit content" button for an editable, embedded object', () => {
+		act(() => {
+			root.render(
+				<OlePropertiesPanel selectedElement={makeOle({})} canEdit onUpdateElement={() => {}} />,
+			);
+		});
+		const button = Array.from(container.querySelectorAll('button')).find(
+			(b) => b.textContent === translationsEn['pptx.ole.editContent'],
+		);
+		expect(button).toBeDefined();
+	});
+
+	it('hides the "Edit content" button when canEdit is false', () => {
+		act(() => {
+			root.render(
+				<OlePropertiesPanel
+					selectedElement={makeOle({})}
+					canEdit={false}
+					onUpdateElement={() => {}}
+				/>,
+			);
+		});
+		const button = Array.from(container.querySelectorAll('button')).find(
+			(b) => b.textContent === translationsEn['pptx.ole.editContent'],
+		);
+		expect(button).toBeUndefined();
+	});
+
+	it('hides the "Edit content" button for a linked (not embedded) object', () => {
+		act(() => {
+			root.render(
+				<OlePropertiesPanel
+					selectedElement={makeOle({ isLinked: true })}
+					canEdit
+					onUpdateElement={() => {}}
+				/>,
+			);
+		});
+		const button = Array.from(container.querySelectorAll('button')).find(
+			(b) => b.textContent === translationsEn['pptx.ole.editContent'],
+		);
+		expect(button).toBeUndefined();
+	});
+
+	it('opens the OLE editor dialog when "Edit content" is clicked', () => {
+		act(() => {
+			root.render(
+				<OlePropertiesPanel selectedElement={makeOle({})} canEdit onUpdateElement={() => {}} />,
+			);
+		});
+		expect(container.querySelector('[role="dialog"]')).toBeNull();
+		const button = Array.from(container.querySelectorAll('button')).find(
+			(b) => b.textContent === translationsEn['pptx.ole.editContent'],
+		);
+		act(() => {
+			button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		});
+		expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+	});
+
 	it('renders nothing for a non-OLE element', () => {
 		const shape: PptxElement = { id: 's1', type: 'shape', x: 0, y: 0, width: 10, height: 10 };
 		act(() => {

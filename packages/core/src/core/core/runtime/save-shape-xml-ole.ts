@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { OlePptxElement } from '../../types';
+import { findAllOleObjNodes } from '../../utils/ole-alternate-content';
 import { oleUpdateAutomaticAttr } from '../builders/ole-update-automatic';
 
 /**
@@ -136,12 +137,20 @@ export function buildOleGraphicFrameXml(
  * passes through verbatim.
  */
 export function applyOleTypedFieldUpdatesXml(shape: XmlObject, el: OlePptxElement): void {
-	const oleObj = (
-		(shape['a:graphic'] as XmlObject | undefined)?.['a:graphicData'] as XmlObject | undefined
-	)?.['p:oleObj'] as XmlObject | undefined;
-	if (!oleObj) {
-		return;
+	const graphicData = (shape['a:graphic'] as XmlObject | undefined)?.['a:graphicData'] as
+		| XmlObject
+		| undefined;
+	// Real PowerPoint wraps the OLE object in `mc:AlternateContent` (see
+	// `ole-alternate-content.ts`): an `mc:Choice Requires="v"` branch (which
+	// carries its own copy of these same attributes) alongside `mc:Fallback`.
+	// Applying the update to only one left the other stale, and PowerPoint
+	// itself (which DOES support "v"/VML) can read the Choice branch back.
+	for (const oleObj of findAllOleObjNodes(graphicData)) {
+		applyOleTypedFieldUpdatesToNode(oleObj, el);
 	}
+}
+
+function applyOleTypedFieldUpdatesToNode(oleObj: XmlObject, el: OlePptxElement): void {
 	if (el.oleProgId) {
 		oleObj['@_progId'] = el.oleProgId;
 	}

@@ -14,6 +14,7 @@ import * as jsonTools from '../tools/json-tools.js';
 import * as layoutTools from '../tools/layout-tools.js';
 import * as lockTools from '../tools/lock-tools.js';
 import * as metadataTools from '../tools/metadata-tools.js';
+import * as oleTools from '../tools/ole-tools.js';
 import * as presentationTools from '../tools/presentation-tools.js';
 import * as sectionTools from '../tools/section-tools.js';
 import * as slideTools from '../tools/slide-tools.js';
@@ -1211,6 +1212,101 @@ export function createServer(): McpServer {
 		async (params) => {
 			const result = await runMcpTool(params.filePath, (ctx) =>
 				layoutTools.applyLayout(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	// ── OLE content tools ───────────────────────────────────────────────────
+
+	server.registerTool(
+		'ole_get_content',
+		{
+			description:
+				"Inspect an embedded OLE object's editable content: resolved kind, plus the sheet grid, " +
+				'paragraph list, or nested-deck slide summaries, whichever applies',
+			inputSchema: schemas.GetOleContentSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				oleTools.getOleContent(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'ole_set_sheet_cell',
+		{
+			description: "Edit one cell of an embedded Excel OLE object's first worksheet",
+			inputSchema: schemas.SetOleSheetCellSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				oleTools.setOleSheetCell(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'ole_set_document_paragraph',
+		{
+			description: "Replace one paragraph's text in an embedded Word (.docx) OLE object",
+			inputSchema: schemas.SetOleDocumentParagraphSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				oleTools.setOleDocumentParagraph(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'ole_set_deck_slide_title',
+		{
+			description:
+				'Edit one text-bearing shape on one slide of an embedded nested-deck (PowerPoint) OLE ' +
+				'object, via a full load/save round-trip through the nested deck (call ole_get_content ' +
+				"first to discover each slide's elementIds)",
+			inputSchema: schemas.SetOleDeckSlideTitleSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				oleTools.setOleDeckSlideTitle(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'ole_replace_file',
+		{
+			description:
+				"Replace an embedded OLE object's payload wholesale with an arbitrary file; works for any " +
+				'OLE kind, including a generic "Package" object or an unsupported format',
+			inputSchema: schemas.ReplaceOleFileSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				oleTools.replaceOleFileT(ctx, params),
+			);
+			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		},
+	);
+
+	server.registerTool(
+		'ole_set_object_name',
+		{
+			description:
+				"Rename an OLE object's Object Name (p:oleObj/@name); regenerates the baked-in icon " +
+				'caption too when the object is displayed as an icon',
+			inputSchema: schemas.SetOleObjectNameSchema.shape,
+		},
+		async (params) => {
+			const result = await runMcpTool(params.filePath, (ctx) =>
+				oleTools.setOleObjectNameT(ctx, params),
 			);
 			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
 		},

@@ -99,4 +99,39 @@ describe('olePropertiesSection', () => {
 		const input = target.querySelector('input[type="text"]') as HTMLInputElement;
 		expect(input.disabled).toBeTruthy();
 	});
+
+	it('shows the "Edit content..." button when editable and not linked', () => {
+		const target = mountSection(ole(), createEditor());
+		const button = Array.from(target.querySelectorAll('button')).find(
+			(b) => b.textContent?.trim() === 'Edit content...',
+		);
+		expect(button).toBeDefined();
+	});
+
+	it('hides the "Edit content..." button when the editor is not editable', () => {
+		const target = mountSection(ole(), createEditor(false));
+		const button = Array.from(target.querySelectorAll('button')).find(
+			(b) => b.textContent?.trim() === 'Edit content...',
+		);
+		expect(button).toBeUndefined();
+	});
+
+	it('hides the "Edit content..." button for a linked object', () => {
+		const target = mountSection(ole({ isLinked: true }), createEditor());
+		const button = Array.from(target.querySelectorAll('button')).find(
+			(b) => b.textContent?.trim() === 'Edit content...',
+		);
+		expect(button).toBeUndefined();
+	});
+
+	it('opens the OleEditorDialog when "Edit content..." is clicked', () => {
+		const target = mountSection(ole(), createEditor());
+		expect(target.querySelector('[role="dialog"]')).toBeNull();
+		const button = Array.from(target.querySelectorAll('button')).find(
+			(b) => b.textContent?.trim() === 'Edit content...',
+		) as HTMLButtonElement;
+		button.click();
+		flushSync();
+		expect(target.querySelector('[role="dialog"]')).not.toBeNull();
+	});
 });

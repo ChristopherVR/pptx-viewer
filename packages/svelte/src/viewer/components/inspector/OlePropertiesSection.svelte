@@ -17,15 +17,23 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import OleEditorDialog from './OleEditorDialog.svelte';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
 	const t = useTranslator();
 	const canEdit = $derived(editor.editable);
 
 	const ole = $derived(el as OlePptxElement);
+
+	let isEditorOpen = $state(false);
 </script>
 
 <div class="pptx-svelte-ole-info">
+	{#if canEdit && !ole.isLinked}
+		<button type="button" class="pptx-svelte-ole-edit-content" onclick={() => (isEditorOpen = true)}>
+			{t('pptx.ole.editContent')}
+		</button>
+	{/if}
 	<label class="pptx-svelte-ole-name">
 		<span>{t('pptx.ole.objectName')}</span>
 		<input
@@ -58,7 +66,23 @@
 	</div>
 </div>
 
+<OleEditorDialog {editor} el={ole} open={isEditorOpen} onclose={() => (isEditorOpen = false)} />
+
 <style>
+	.pptx-svelte-ole-edit-content {
+		width: 100%;
+		padding: 6px 8px;
+		border: 1px solid var(--pptx-border, #33334d);
+		border-radius: var(--pptx-radius, 6px);
+		background: transparent;
+		color: inherit;
+		cursor: pointer;
+		font: inherit;
+		font-size: 11px;
+	}
+	.pptx-svelte-ole-edit-content:hover {
+		background: var(--pptx-accent, #33334d);
+	}
 	.pptx-svelte-ole-info {
 		display: flex;
 		flex-direction: column;

@@ -1,10 +1,11 @@
 import type { PptxElement, ShapeStyle, OlePptxElement, GroupPptxElement } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
 import { buildOleObjectNamePatch, canInteractWithElement } from 'pptx-viewer-shared';
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { OleEditorDialog } from '../OleEditorDialog';
 import { ConnectorArrowsSection } from './ConnectorArrowsSection';
 import { CARD, HEADING, INPUT, BTN } from './inspector-pane-constants';
 
@@ -97,6 +98,7 @@ export function OlePropertiesPanel({
 	onUpdateElement,
 }: OlePropertiesPanelProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const [isEditorOpen, setIsEditorOpen] = useState(false);
 	if (selectedElement.type !== 'ole') {
 		return null;
 	}
@@ -105,6 +107,15 @@ export function OlePropertiesPanel({
 		<div className={CARD}>
 			<div className={HEADING}>{t('pptx.ole.title')}</div>
 			<div className='space-y-1.5 text-[11px]'>
+				{canEdit && !ole.isLinked && (
+					<button
+						type='button'
+						onClick={() => setIsEditorOpen(true)}
+						className='w-full px-2 py-1.5 rounded border border-border text-foreground hover:bg-accent transition-colors text-[11px]'
+					>
+						{t('pptx.ole.editContent')}
+					</button>
+				)}
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.ole.objectName')}</span>
 					<input
@@ -144,6 +155,12 @@ export function OlePropertiesPanel({
 					</span>
 				</div>
 			</div>
+			<OleEditorDialog
+				isOpen={isEditorOpen}
+				onClose={() => setIsEditorOpen(false)}
+				element={ole}
+				onUpdateElement={onUpdateElement}
+			/>
 		</div>
 	);
 }

@@ -1,5 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
+	downloadDataUrl,
 	openUrlInNewTab,
 	resolveOleVerbTarget,
 	safeOpenUrl,
@@ -133,7 +134,16 @@ export function usePresentationActionExtensions(
 	const onOleVerb = useCallback(
 		(verb: number, elementId: string | undefined) => {
 			const target = resolveOleVerbTarget(slides[presentationSlideIndex], elementId, verb);
-			if (target) {
+			if (!target) {
+				return;
+			}
+			// A running show never offers in-place editing, so 'edit' downgrades
+			// to the same "open the payload" behaviour as 'preview'; only a
+			// generic Package object (no in-place editor at all) forces a real
+			// file download instead of trying to render it inline.
+			if (target.action === 'download') {
+				downloadDataUrl(target.url, target.fileName ?? 'download');
+			} else {
 				openUrlInNewTab(target.url);
 			}
 		},

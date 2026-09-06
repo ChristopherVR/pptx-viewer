@@ -181,7 +181,6 @@ Under the hood the engine is split into many small, focused modules. If you want
 
 ## Limitations
 
-- **OLE objects** (embedded Word docs, spreadsheets, and similar) cannot be edited in place: you get their preview image and can extract/download the embedded payload, but not edit its contents.
 - **SmartArt** is broken into editable shapes. It uses PowerPoint's own pre-computed shape geometry when present; after structural edits (add/remove/reorder/promote/demote nodes) a live reflow engine rebuilds the shapes, with an algorithmic fallback covering 13 layout families for diagrams PowerPoint never rendered.
 - **Chart editing** covers data, categories, and chart type, plus legend, axes (scale, format, titles, gridlines, log/display units), data labels, trendlines, error bars, and per-series/per-point markers and fills. A handful of rarely-used chart properties remain read-only for display.
 - **Strict-format files** (ISO/IEC 29500 Strict) are converted to the more common Transitional form when opened and converted back when saved.

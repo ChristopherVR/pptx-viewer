@@ -554,6 +554,11 @@ export * from './ole-actions';
 // application type + per-type brand colour / label / aria label / badge text /
 // display name / placeholder box style. The icon/badge JSX stays per binding.
 export * from './ole-renderer-helpers';
+// OLE "Edit content" dialog descriptor: which editor tab (sheet/document/
+// deck/file) a binding should show for a given element, plus i18n keys for
+// its title/tabs. The dialog UI + wiring into core's edit functions stays
+// per binding.
+export * from './ole-edit-model';
 // Editor snap geometry: snap-to-shape (siblings + guides → snap lines, React/Vue
 // model), snap-to-box (closest-per-axis span guides, Angular model), grid
 // snapping. Pure maths; the pointer/drag driver stays in each binding.

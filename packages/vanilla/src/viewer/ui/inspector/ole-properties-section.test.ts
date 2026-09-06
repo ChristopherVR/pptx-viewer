@@ -12,18 +12,30 @@ function state(overrides: Partial<InspectorState> = {}): InspectorState {
 	return {
 		hasSelection: true,
 		isOle: false,
+		isLocked: false,
 		oleObjectType: undefined,
 		oleFileName: undefined,
 		oleIsLinked: false,
 		oleName: undefined,
+		oleElement: undefined,
 		...overrides,
 	} as InspectorState;
 }
 
-function handlers(): InspectorHandlers & { setOleName: ReturnType<typeof vi.fn> } {
-	return { setOleName: vi.fn() } as unknown as InspectorHandlers & {
+function handlers(): InspectorHandlers & {
+	setOleName: ReturnType<typeof vi.fn>;
+	setOleContent: ReturnType<typeof vi.fn>;
+} {
+	return { setOleName: vi.fn(), setOleContent: vi.fn() } as unknown as InspectorHandlers & {
 		setOleName: ReturnType<typeof vi.fn>;
+		setOleContent: ReturnType<typeof vi.fn>;
 	};
+}
+
+function findEditButton(el: HTMLElement): HTMLButtonElement | undefined {
+	return Array.from(el.querySelectorAll('button')).find(
+		(button) => button.textContent === 'Edit content...',
+	);
 }
 
 describe('ole properties section', () => {
@@ -96,5 +108,62 @@ describe('ole properties section', () => {
 		input.value = 'Q3 Budget';
 		input.dispatchEvent(new Event('change', { bubbles: true }));
 		expect(h.setOleName).toHaveBeenCalledWith('Q3 Budget');
+	});
+
+	it('shows the "Edit content" button for an editable, embedded object', () => {
+		const section = createOlePropertiesSection(
+			document,
+			createTranslator(),
+			sectionFactory(),
+			handlers(),
+		);
+		section.update(state({ isOle: true }));
+		expect(findEditButton(section.el)?.hidden).toBeFalsy();
+	});
+
+	it('hides the "Edit content" button when the element is locked', () => {
+		const section = createOlePropertiesSection(
+			document,
+			createTranslator(),
+			sectionFactory(),
+			handlers(),
+		);
+		section.update(state({ isOle: true, isLocked: true }));
+		expect(findEditButton(section.el)?.hidden).toBeTruthy();
+	});
+
+	it('hides the "Edit content" button for a linked (not embedded) object', () => {
+		const section = createOlePropertiesSection(
+			document,
+			createTranslator(),
+			sectionFactory(),
+			handlers(),
+		);
+		section.update(state({ isOle: true, oleIsLinked: true }));
+		expect(findEditButton(section.el)?.hidden).toBeTruthy();
+	});
+
+	it('opens the OLE editor dialog when "Edit content" is clicked', () => {
+		const section = createOlePropertiesSection(
+			document,
+			createTranslator(),
+			sectionFactory(),
+			handlers(),
+		);
+		const oleElement = {
+			id: 'ole1',
+			type: 'ole' as const,
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			oleObjectType: 'excel' as const,
+		};
+		section.update(state({ isOle: true, oleElement }));
+		expect(document.querySelector('[role="dialog"]')).toBeNull();
+		findEditButton(section.el)?.click();
+		expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+		document.querySelector('[role="dialog"]')?.remove();
+		document.querySelector('.pptxv-parity-backdrop')?.remove();
 	});
 });

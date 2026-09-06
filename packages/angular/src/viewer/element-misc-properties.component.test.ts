@@ -241,3 +241,33 @@ describe('elementMiscPropertiesComponent OLE object name', () => {
 		expect(COMPONENT_SOURCE).toContain("'pptx.ole.objectName' | translate");
 	});
 });
+
+/**
+ * OLE "Edit content" dialog wiring (see `OlePropertiesPanel.test.tsx` /
+ * `OleEditorDialog.test.tsx` for the React reference scenarios this ports).
+ * Content editing itself (`OleEditorDialogComponent`) is exercised directly
+ * in `ole-editor-dialog.component.test.ts`; these guards only pin that this
+ * panel mounts it correctly, gated the same way React does.
+ */
+describe('elementMiscPropertiesComponent OLE edit-content dialog', () => {
+	it('gates the "Edit content" button on canEdit() && !value.isLinked, matching React', () => {
+		expect(COMPONENT_SOURCE).toContain('@if (canEdit() && !value.isLinked)');
+		expect(COMPONENT_SOURCE).toContain('(click)="openEditor()"');
+		expect(COMPONENT_SOURCE).toContain("'pptx.ole.editContent' | translate");
+	});
+
+	it('mounts pptx-ole-editor-dialog wired to isEditorOpen and the shared patch output', () => {
+		expect(COMPONENT_SOURCE).toContain('<pptx-ole-editor-dialog');
+		expect(COMPONENT_SOURCE).toContain('[open]="isEditorOpen()"');
+		expect(COMPONENT_SOURCE).toContain('[element]="value"');
+		expect(COMPONENT_SOURCE).toContain('(patch)="patch.emit($event)"');
+		expect(COMPONENT_SOURCE).toContain('(close)="isEditorOpen.set(false)"');
+	});
+
+	it('starts closed and opens on openEditor()', () => {
+		const { component } = createMiscPropertiesComponent(makeOle());
+		expect(component['isEditorOpen']()).toBeFalsy();
+		(component as unknown as { openEditor: () => void }).openEditor();
+		expect(component['isEditorOpen']()).toBeTruthy();
+	});
+});

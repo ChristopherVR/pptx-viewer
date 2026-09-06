@@ -8,6 +8,7 @@ import type {
 	TablePptxElement,
 	XmlObject,
 } from '../../types';
+import { findOleObjNode } from '../../utils/ole-alternate-content';
 import { detectOleObjectType, inferOleExtensionFromTarget } from '../../utils/ole-utils';
 import { resolveP14MediaForGraphicFrame } from '../runtime/media-p14-extension-resolve';
 import { parseShapeLocksFromNode, SHAPE_LOCK_CONTAINERS } from '../runtime/shape-lock-containers';
@@ -255,31 +256,9 @@ function hasChartExPayload(graphicData: XmlObject | undefined): boolean {
 	return branches.some((branch) => hasChartExPayload(branch));
 }
 
+/** See `ole-alternate-content.ts`'s `findOleObjNode` (the single implementation both parse and save sides share). */
 function findOleObjPayload(graphicData: XmlObject | undefined): XmlObject | undefined {
-	if (!graphicData) {
-		return undefined;
-	}
-	const direct = graphicData['p:oleObj'] as XmlObject | undefined;
-	if (direct) {
-		return direct;
-	}
-	const altContent = graphicData['mc:AlternateContent'] as XmlObject | undefined;
-	if (!altContent) {
-		return undefined;
-	}
-	const fallback = altContent['mc:Fallback'] as XmlObject | undefined;
-	const fallbackOleObj = fallback?.['p:oleObj'] as XmlObject | undefined;
-	if (fallbackOleObj) {
-		return fallbackOleObj;
-	}
-	const choices = ensureArrayLike(altContent['mc:Choice'] as XmlObject | XmlObject[] | undefined);
-	for (const choice of choices) {
-		const node = choice?.['p:oleObj'] as XmlObject | undefined;
-		if (node) {
-			return node;
-		}
-	}
-	return undefined;
+	return findOleObjNode(graphicData);
 }
 
 /**

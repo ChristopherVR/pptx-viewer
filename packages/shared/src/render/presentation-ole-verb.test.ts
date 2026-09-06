@@ -12,7 +12,7 @@ function slideOf(elements: PptxElement[]): PptxSlide {
 }
 
 describe('resolveOleVerbTarget', () => {
-	it("opens the clicked OLE element's recovered embedding, whatever the verb", () => {
+	it("opens the clicked OLE element's recovered embedding and classifies the primary verb as 'edit'", () => {
 		const slide = slideOf([
 			ole('ole1', {
 				oleEmbeddedData: 'data:application/octet-stream;base64,AAAA',
@@ -23,10 +23,30 @@ describe('resolveOleVerbTarget', () => {
 			elementId: 'ole1',
 			url: 'data:application/octet-stream;base64,AAAA',
 			fileName: 'budget.xlsx',
+			action: 'edit',
 		});
-		expect(resolveOleVerbTarget(slide, 'ole1', 0)?.url).toBe(
-			'data:application/octet-stream;base64,AAAA',
-		);
+		expect(resolveOleVerbTarget(slide, 'ole1', 0)?.action).toBe('edit');
+		expect(resolveOleVerbTarget(slide, 'ole1')?.action).toBe('edit'); // no verb specified
+	});
+
+	it("classifies a Show-family verb as 'preview'", () => {
+		const slide = slideOf([
+			ole('ole1', { oleEmbeddedData: 'data:application/pdf;base64,AAAA' } as Partial<PptxElement>),
+		]);
+		expect(resolveOleVerbTarget(slide, 'ole1', 1)?.action).toBe('preview');
+		expect(resolveOleVerbTarget(slide, 'ole1', -2)?.action).toBe('preview');
+	});
+
+	it("always classifies a generic Package object as 'download', whatever the verb", () => {
+		const slide = slideOf([
+			ole('pkg1', {
+				oleObjectType: 'package',
+				oleEmbeddedData: 'data:application/octet-stream;base64,AAAA',
+			} as Partial<PptxElement>),
+		]);
+		expect(resolveOleVerbTarget(slide, 'pkg1', -1)?.action).toBe('download');
+		expect(resolveOleVerbTarget(slide, 'pkg1', 0)?.action).toBe('download');
+		expect(resolveOleVerbTarget(slide, 'pkg1', 1)?.action).toBe('download');
 	});
 
 	it('finds an OLE object nested inside a group', () => {

@@ -291,7 +291,15 @@ export interface SmartArtPptxElement extends PptxElementBase {
  *
  * Used to show type-specific icons and previews in the editor.
  */
-export type OleObjectType = 'excel' | 'word' | 'pdf' | 'visio' | 'mathtype' | 'package' | 'unknown';
+export type OleObjectType =
+	| 'excel'
+	| 'word'
+	| 'powerpoint'
+	| 'pdf'
+	| 'visio'
+	| 'mathtype'
+	| 'package'
+	| 'unknown';
 
 /**
  * An OLE (Object Linking and Embedding) object.
@@ -370,6 +378,15 @@ export interface OlePptxElement extends PptxElementBase {
 	 * `false`; `undefined` means the source authored no explicit value.
 	 */
 	oleUpdateAutomatic?: boolean;
+	/**
+	 * Set by the in-viewer OLE content editors (`ole-edit-api.ts`) whenever
+	 * `oleEmbeddedData` and/or `previewImageData` have been changed in memory
+	 * and still need to be written back into the saved package. Never
+	 * authored from a parsed file; purely an in-memory save signal, mirroring
+	 * `PptxSlide.isDirty`. The save writer clears it once the pending write
+	 * has been queued.
+	 */
+	oleContentDirty?: boolean;
 	/** Accessibility description from `p:nvGraphicFramePr/p:cNvPr/@descr`. */
 	altText?: string;
 	/** Accessibility title from `p:nvGraphicFramePr/p:cNvPr/@title`. */

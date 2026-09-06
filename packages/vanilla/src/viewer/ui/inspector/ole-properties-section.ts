@@ -1,7 +1,9 @@
+import type { OlePptxElement } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { openOleEditorDialog } from './ole-editor-dialog';
 import type { InspectorHandlers, InspectorState } from './types';
 
 export interface OlePropertiesSection {
@@ -26,6 +28,25 @@ export function createOlePropertiesSection(
 ): OlePropertiesSection {
 	const el = section(t('pptx.ole.title'));
 	el.classList.add('pptxv-ole-info');
+
+	// A browser cannot run the native application that owns an embedded OLE
+	// object, but its recovered payload (spreadsheet cells, document
+	// paragraphs, nested-deck slide titles) IS editable in place; see
+	// `ole-editor-dialog.ts`. Gated the same as every other per-element edit
+	// action in this inspector: not locked, and (OLE-specific) not a link,
+	// since there is no local payload to edit for a linked object.
+	let currentOle: OlePptxElement | undefined;
+	const editButton = doc.createElement('button');
+	editButton.type = 'button';
+	editButton.textContent = t('pptx.ole.editContent');
+	editButton.addEventListener('click', () => {
+		if (currentOle) {
+			openOleEditorDialog(doc, t, currentOle, {
+				onUpdateElement: (patch) => handlers.setOleContent(patch),
+			});
+		}
+	});
+	el.appendChild(editButton);
 
 	const nameLabel = createEl(doc, 'label', 'pptxv-field pptxv-ole-name');
 	const nameCaption = createEl(doc, 'span', 'pptxv-field-label');
@@ -61,6 +82,8 @@ export function createOlePropertiesSection(
 			if (!state.isOle) {
 				return;
 			}
+			currentOle = state.oleElement;
+			editButton.hidden = state.isLocked || state.oleIsLinked;
 			if (doc.activeElement !== nameInput) {
 				nameInput.value = state.oleName ?? '';
 			}

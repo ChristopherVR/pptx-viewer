@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import OlePropertiesPanel from './OlePropertiesPanel.vue';
 
@@ -77,5 +77,54 @@ describe('olePropertiesPanel', () => {
 		const wrapper = mount(OlePropertiesPanel, { props: { element: ole() } });
 		const input = wrapper.find('input[type="text"]');
 		expect((input.element as HTMLInputElement).disabled).toBeTruthy();
+	});
+
+	describe('edit content button/dialog', () => {
+		afterEach(() => {
+			document.body.innerHTML = '';
+		});
+
+		function findEditContentButton(
+			wrapper: ReturnType<typeof mount>,
+		): HTMLButtonElement | undefined {
+			return Array.from(wrapper.element.querySelectorAll<HTMLButtonElement>('button')).find(
+				(b) => b.textContent?.trim() === 'Edit content...',
+			);
+		}
+
+		it('shows the "Edit content" button for an editable, embedded object', () => {
+			const wrapper = mount(OlePropertiesPanel, {
+				props: { element: ole(), canEdit: true },
+				attachTo: document.body,
+			});
+			expect(findEditContentButton(wrapper)).toBeDefined();
+		});
+
+		it('hides the "Edit content" button when canEdit is false', () => {
+			const wrapper = mount(OlePropertiesPanel, {
+				props: { element: ole(), canEdit: false },
+				attachTo: document.body,
+			});
+			expect(findEditContentButton(wrapper)).toBeUndefined();
+		});
+
+		it('hides the "Edit content" button for a linked (not embedded) object', () => {
+			const wrapper = mount(OlePropertiesPanel, {
+				props: { element: ole({ isLinked: true } as Partial<PptxElement>), canEdit: true },
+				attachTo: document.body,
+			});
+			expect(findEditContentButton(wrapper)).toBeUndefined();
+		});
+
+		it('opens the OLE editor dialog when "Edit content" is clicked', async () => {
+			const wrapper = mount(OlePropertiesPanel, {
+				props: { element: ole(), canEdit: true },
+				attachTo: document.body,
+			});
+			expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+			findEditContentButton(wrapper)?.click();
+			await wrapper.vm.$nextTick();
+			expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
+		});
 	});
 });

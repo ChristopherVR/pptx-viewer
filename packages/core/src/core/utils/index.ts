@@ -92,6 +92,50 @@ export {
 	type OleUnwrapResult,
 } from './ole-embedded-extract';
 
+export { replaceOleEmbedding, encodeOle10Native } from './ole-embedded-replace';
+export { detectOlePayloadEditorKind, type OlePayloadEditorKind } from './ole-payload-kind';
+export {
+	readOleSheetGrid,
+	writeOleSheetCellEdit,
+	type OleSheetGrid,
+	type OleSheetRow,
+	type OleSheetCell,
+} from './ole-sheet-xlsx-editor';
+export { readOleXlsGrid, writeOleXlsNumericCellEdit } from './ole-sheet-xls-biff8';
+export { writeOleXlsStringCellEdit } from './ole-sheet-xls-biff8-writer';
+export {
+	readOleDocumentParagraphs,
+	writeOleDocumentParagraphEdit,
+} from './ole-document-docx-editor';
+export {
+	readOleNestedDeckDetail,
+	readOleNestedDeckFirstSlideTextLines,
+	writeOleNestedDeckElementText,
+	type OleNestedDeckSlideDetail,
+	type OleNestedDeckTextElement,
+} from './ole-nested-deck-editor';
+export { encodePng, decodePngDimensions } from './png-encoder';
+export { RasterCanvas, rgb, type RasterColor } from './raster-canvas';
+export { renderOleIconPng, oleObjectTypeToGlyph, type OleIconGlyph } from './ole-icon-raster';
+export {
+	renderOleSheetPreviewPng,
+	renderOleDocumentPreviewPng,
+	renderOleDeckPreviewPng,
+} from './ole-content-preview-raster';
+export {
+	resolveOleEditorKindFromPayload,
+	getOleSheetGrid,
+	getOleDocumentParagraphs,
+	getOleNestedDeckBytes,
+	getOleNestedDeckDetail,
+	applyOleSheetCellEdit,
+	applyOleDocumentParagraphEdit,
+	applyOleNestedDeckBytes,
+	applyOleNestedDeckElementTextEdit,
+	replaceOleFile,
+	setOleObjectName,
+} from './ole-edit-api';
+
 export { decomposeSmartArt, computeSmartArtElementsWithoutCache } from './smartart-decompose';
 
 export {

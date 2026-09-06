@@ -1,7 +1,7 @@
 import type { OlePptxElement, XmlObject } from '../../types';
 import { parseDataUrlToBytes } from '../../utils/data-url-utils';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSmartArtFabrication';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveOleContent';
 
 const OLE_OBJECT_RELATIONSHIP_TYPE =
 	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject';

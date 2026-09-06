@@ -108,6 +108,7 @@ export function buildInspectorState(
 		oleFileName: el?.type === 'ole' ? el.fileName : undefined,
 		oleIsLinked: el?.type === 'ole' && el.isLinked === true,
 		oleName: el?.type === 'ole' ? el.oleName : undefined,
+		oleElement: el?.type === 'ole' ? el : undefined,
 		x: el?.x ?? 0,
 		y: el?.y ?? 0,
 		width: el?.width ?? 0,

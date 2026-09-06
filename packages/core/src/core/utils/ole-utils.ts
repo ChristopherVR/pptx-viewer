@@ -10,7 +10,7 @@ const PROG_ID_MAP: ReadonlyArray<{
 }> = [
 	{ pattern: /^Excel\./iu, type: 'excel', extension: 'xlsx' },
 	{ pattern: /^Word\./iu, type: 'word', extension: 'docx' },
-	{ pattern: /^PowerPoint\./iu, type: 'excel', extension: 'pptx' },
+	{ pattern: /^PowerPoint\./iu, type: 'powerpoint', extension: 'pptx' },
 	{ pattern: /^Visio\./iu, type: 'visio', extension: 'vsdx' },
 	{ pattern: /^Equation\./iu, type: 'mathtype', extension: 'wmf' },
 	{ pattern: /^MathType/iu, type: 'mathtype', extension: 'wmf' },
@@ -138,6 +138,8 @@ export function getOleObjectTypeLabel(oleObjectType: OleObjectType | undefined):
 			return 'Microsoft Excel';
 		case 'word':
 			return 'Microsoft Word';
+		case 'powerpoint':
+			return 'Microsoft PowerPoint';
 		case 'pdf':
 			return 'PDF Document';
 		case 'visio':

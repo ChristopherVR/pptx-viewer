@@ -1,6 +1,7 @@
 import type { PresentationActionRunner } from 'pptx-viewer-shared';
 import {
 	applyMediaCommandVerb,
+	downloadDataUrl,
 	findMediaElementByElementId,
 	firstShowSlideIndex,
 	openUrlInNewTab,
@@ -72,15 +73,24 @@ export function buildWaveFourActionCallbacks(
 				applyMediaCommandVerb(el, { verb: 'togglePlay' });
 			}
 		},
-		// A browser cannot run the verb in the owning application: open the
-		// recovered embedding, as OleView's own "Open" affordance does.
+		// A browser cannot run the verb in the owning application: classify it
+		// (see `resolveOleVerbTarget`) and open the recovered embedding
+		// accordingly. A running show never offers in-place editing, so
+		// 'edit' downgrades to the same "open the payload" behaviour as
+		// 'preview'; a generic Package object ('download') forces a real
+		// file download instead of trying to render it inline.
 		oleVerb: (verb, elementId) => {
 			const target = resolveOleVerbTarget(
 				deps.getSlides()[deps.getCurrentIndex()],
 				elementId,
 				verb,
 			);
-			if (target) {
+			if (!target) {
+				return;
+			}
+			if (target.action === 'download') {
+				downloadDataUrl(target.url, target.fileName ?? 'download');
+			} else {
 				openUrlInNewTab(target.url);
 			}
 		},

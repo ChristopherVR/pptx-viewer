@@ -1,0 +1,49 @@
+.pptx-ole-edit-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: min(88vw, 560px);
+	font-size: 12px;
+}
+.pptx-ole-edit-status {
+	margin: 0;
+	font-size: 11px;
+	color: var(--pptx-muted-foreground, #9ca3af);
+}
+.pptx-ole-edit-error {
+	margin: 0;
+	font-size: 11px;
+	color: var(--pptx-destructive, #ef4444);
+}
+.pptx-ole-edit-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	width: 100%;
+}
+.pptx-ole-edit-file-input {
+	display: none;
+}
+.pptx-ole-edit-btn {
+	padding: 0.375rem 0.75rem;
+	border: 1px solid var(--pptx-border, #374151);
+	border-radius: 0.375rem;
+	background: var(--pptx-card, #111827);
+	color: var(--pptx-foreground, #f3f4f6);
+	font-size: 0.75rem;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+.pptx-ole-edit-btn:hover {
+	background: var(--pptx-border, #374151);
+}
+.pptx-ole-edit-btn-primary {
+	border-color: var(--pptx-primary, #6366f1);
+	background: var(--pptx-primary, #6366f1);
+	color: #ffffff;
+	font-weight: 500;
+}
+.pptx-ole-edit-btn-primary:hover {
+	filter: brightness(1.1);
+}

@@ -25,6 +25,7 @@ import type {
 	PptxThemeOption,
 	ElementAction,
 	OleObjectType,
+	OlePptxElement,
 	SmartArtColorScheme,
 	SmartArtLayoutType,
 	TextStyle,
@@ -193,6 +194,13 @@ export interface InspectorHandlers {
 	 * surface.
 	 */
 	setOleName(name: string): void;
+	/**
+	 * Patch an in-place OLE content edit (spreadsheet cell / document
+	 * paragraph / nested-deck slide title / Replace File) onto the selected
+	 * element. Callers pass `buildOleContentUpdatePatch`'s output, which
+	 * already scopes the patch to the fields a content edit can touch.
+	 */
+	setOleContent(patch: Partial<OlePptxElement>): void;
 	setChartData(data: PptxChartData): void;
 	setMediaProperties(patch: Partial<MediaPptxElement>): void;
 
@@ -263,6 +271,12 @@ export interface InspectorState {
 	oleIsLinked: boolean;
 	/** The OLE object's author-assigned name (`p:oleObj/@name`), if any. */
 	oleName: string | undefined;
+	/**
+	 * The full selected OLE element, feeding the "Edit content" dialog (which
+	 * needs `oleEmbeddedData`/`oleFileExtension`/`oleShowAsIcon` etc., not just
+	 * the flattened fields above). `undefined` when the selection isn't OLE.
+	 */
+	oleElement: OlePptxElement | undefined;
 	x: number;
 	y: number;
 	width: number;

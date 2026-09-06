@@ -16,6 +16,7 @@ import type {
 import { buildChartColorStyleXml } from '../../utils/chart-color-style-writer';
 import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-generator';
 import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
+import { findOleObjNode } from '../../utils/ole-alternate-content';
 import { ensureXmlChild } from '../../utils/xml-access';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveContentPartInk';
@@ -623,6 +624,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const oleEl = el as OlePptxElement;
 			if (shape) {
 				this.applyOleTypedFieldUpdates(shape, oleEl);
+				if (oleEl.oleContentDirty) {
+					// See `ole-alternate-content.ts`: real PowerPoint wraps the
+					// `p:oleObj` in `mc:AlternateContent`, so a "direct" lookup
+					// alone silently no-ops a content edit against any
+					// COM/PowerPoint-authored deck.
+					const graphicData = (shape['a:graphic'] as XmlObject | undefined)?.['a:graphicData'] as
+						| XmlObject
+						| undefined;
+					const oleObjNode = findOleObjNode(graphicData);
+					if (oleObjNode) {
+						this.applyOleContentUpdateToShape(oleObjNode, oleEl, ctx);
+					}
+				}
 			} else {
 				shape = this.createOleElementWithPayload(oleEl, ctx);
 				if (!shape) {

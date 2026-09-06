@@ -15,6 +15,7 @@
  */
 import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 import {
+	downloadDataUrl,
 	openUrlInNewTab,
 	resolveOleVerbTarget,
 	safeOpenUrl,
@@ -120,10 +121,22 @@ export function usePresentationActionExtras(
 		toggleStageElementMedia(input.frameRoot(), elementId);
 	}
 
-	/** A browser cannot run the verb in the owning application: open the recovered embedding instead. */
+	/**
+	 * A browser cannot run the verb in the owning application: classify it
+	 * (see `resolveOleVerbTarget`) and open the recovered embedding
+	 * accordingly. A running show never offers in-place editing, so 'edit'
+	 * downgrades to the same "open the payload" behaviour as 'preview'; a
+	 * generic Package object ('download') forces a real file download
+	 * instead of trying to render it inline.
+	 */
 	function oleVerb(verb: number, elementId: string | undefined): void {
 		const target = resolveOleVerbTarget(input.activeSlide(), elementId, verb);
-		if (target) {
+		if (!target) {
+			return;
+		}
+		if (target.action === 'download') {
+			downloadDataUrl(target.url, target.fileName ?? 'download');
+		} else {
 			openUrlInNewTab(target.url);
 		}
 	}

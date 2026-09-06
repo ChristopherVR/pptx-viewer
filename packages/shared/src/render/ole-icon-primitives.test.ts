@@ -44,6 +44,12 @@ describe('getOleIconShapes', () => {
 		expect(getOleIconShapes('visio')).toHaveLength(7);
 	});
 
+	it('returns a distinct 5-primitive PowerPoint glyph', () => {
+		const shapes = getOleIconShapes('powerpoint');
+		expect(shapes).toHaveLength(5);
+		expect(shapes.every((s) => s.tag === 'rect' || s.tag === 'line')).toBeTruthy();
+	});
+
 	it('returns the generic unknown-type glyph', () => {
 		const shapes = getOleIconShapes('unknown');
 		expect(shapes).toHaveLength(3);

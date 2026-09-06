@@ -32,7 +32,15 @@ function makeOle(overrides: Partial<OlePptxElement> = {}): OlePptxElement {
 	};
 }
 
-const ALL_TYPES: ResolvedOleType[] = ['excel', 'word', 'pdf', 'visio', 'mathtype', 'unknown'];
+const ALL_TYPES: ResolvedOleType[] = [
+	'excel',
+	'word',
+	'powerpoint',
+	'pdf',
+	'visio',
+	'mathtype',
+	'unknown',
+];
 
 describe('resolveOleType', () => {
 	it('maps each known oleObjectType directly', () => {
@@ -41,6 +49,7 @@ describe('resolveOleType', () => {
 		expect(resolveOleType(makeOle({ oleObjectType: 'pdf' }))).toBe('pdf');
 		expect(resolveOleType(makeOle({ oleObjectType: 'visio' }))).toBe('visio');
 		expect(resolveOleType(makeOle({ oleObjectType: 'mathtype' }))).toBe('mathtype');
+		expect(resolveOleType(makeOle({ oleObjectType: 'powerpoint' }))).toBe('powerpoint');
 	});
 
 	it('falls back to progId when oleObjectType is package or unknown', () => {
@@ -60,6 +69,7 @@ describe('resolveOleType', () => {
 		expect(resolveOleType(makeOle({ oleProgId: 'Visio.Drawing.11' }))).toBe('visio');
 		expect(resolveOleType(makeOle({ oleProgId: 'Equation.3' }))).toBe('mathtype');
 		expect(resolveOleType(makeOle({ oleProgId: 'MathType' }))).toBe('mathtype');
+		expect(resolveOleType(makeOle({ oleProgId: 'PowerPoint.Show.12' }))).toBe('powerpoint');
 	});
 
 	it('is case-insensitive for progId matching', () => {
@@ -76,6 +86,7 @@ describe('getOleTypeColor', () => {
 	it('returns the documented brand colour per type', () => {
 		expect(getOleTypeColor('excel')).toBe('#217346');
 		expect(getOleTypeColor('word')).toBe('#2B579A');
+		expect(getOleTypeColor('powerpoint')).toBe('#D24726');
 		expect(getOleTypeColor('pdf')).toBe('#D4272E');
 		expect(getOleTypeColor('visio')).toBe('#3955A3');
 		expect(getOleTypeColor('mathtype')).toBe('#7B2D8E');
@@ -93,6 +104,7 @@ describe('getOleTypeLabel', () => {
 	it('returns the human-readable label per type', () => {
 		expect(getOleTypeLabel('excel')).toBe('Excel Spreadsheet');
 		expect(getOleTypeLabel('word')).toBe('Word Document');
+		expect(getOleTypeLabel('powerpoint')).toBe('PowerPoint Presentation');
 		expect(getOleTypeLabel('pdf')).toBe('PDF Document');
 		expect(getOleTypeLabel('visio')).toBe('Visio Diagram');
 		expect(getOleTypeLabel('mathtype')).toBe('Math Equation');

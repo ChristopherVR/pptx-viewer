@@ -17,3 +17,4 @@ export * from './lock-schemas.js';
 export * from './validation-schemas.js';
 export * from './presentation-schemas.js';
 export * from './layout-schemas.js';
+export * from './ole-schemas.js';

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { GroupPptxElement, OlePptxElement, PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
@@ -12,6 +12,7 @@ import {
 	connectorArrowPatch,
 	connectorArrowValue,
 } from '../internal/shared';
+import { OleEditorDialogComponent } from './ole-editor-dialog.component';
 import { schemaLabelKey } from './schema-token-labels';
 
 /**
@@ -45,7 +46,7 @@ export function connectorStylePatch(
 @Component({
 	selector: 'pptx-element-misc-properties',
 	standalone: true,
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, OleEditorDialogComponent],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		@if (connector()) {
@@ -99,6 +100,11 @@ export function connectorStylePatch(
 		@if (ole(); as value) {
 			<section class="card" [attr.aria-label]="'pptx.ole.title' | translate">
 				<h3>{{ 'pptx.ole.title' | translate }}</h3>
+				@if (canEdit() && !value.isLinked) {
+					<button type="button" class="ole-edit-btn" (click)="openEditor()">
+						{{ 'pptx.ole.editContent' | translate }}
+					</button>
+				}
 				<label class="ole-name">
 					<span>{{ 'pptx.ole.objectName' | translate }}</span>
 					<input
@@ -126,6 +132,12 @@ export function connectorStylePatch(
 						<dd>{{ (value.isLinked ? 'pptx.ole.linked' : 'pptx.ole.embedded') | translate }}</dd>
 					</div>
 				</dl>
+				<pptx-ole-editor-dialog
+					[open]="isEditorOpen()"
+					[element]="value"
+					(patch)="patch.emit($event)"
+					(close)="isEditorOpen.set(false)"
+				/>
 			</section>
 		}
 	`,
@@ -165,6 +177,19 @@ export function connectorStylePatch(
 		}
 		.ole-name {
 			margin-bottom: 8px;
+		}
+		.ole-edit-btn {
+			width: 100%;
+			margin-bottom: 8px;
+			padding: 4px 8px;
+			border: 1px solid var(--pptx-inspector-border, #444);
+			border-radius: 3px;
+			background: transparent;
+			color: inherit;
+			cursor: pointer;
+		}
+		.ole-edit-btn:hover {
+			background: var(--pptx-inspector-input-bg, #2d2d2d);
 		}
 		p {
 			margin: 0;
@@ -218,6 +243,8 @@ export class ElementMiscPropertiesComponent {
 		this.element().type === 'ole' ? (this.element() as OlePptxElement) : undefined,
 	);
 	protected readonly oleType = computed(() => getOleObjectTypeLabel(this.ole()?.oleObjectType));
+	/** Whether the "Edit content" dialog is currently open. */
+	protected readonly isEditorOpen = signal(false);
 	/**
 	 * G9: `arrowheadsChangeable` (`a:cxnSpLocks/@noChangeArrowheads`) already
 	 * existed on `element-locks.ts` but nothing here consulted it.
@@ -238,6 +265,11 @@ export class ElementMiscPropertiesComponent {
 		this.patch.emit(
 			buildOleObjectNamePatch((event.target as HTMLInputElement).value) as Partial<PptxElement>,
 		);
+	}
+
+	/** Open the "Edit content" dialog (button gated on `canEdit() && !ole.isLinked`). */
+	protected openEditor(): void {
+		this.isEditorOpen.set(true);
 	}
 
 	/**

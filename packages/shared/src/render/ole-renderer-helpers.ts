@@ -19,12 +19,20 @@ import type { OlePptxElement } from 'pptx-viewer-core';
  * `package` and `unknown` from the core type both collapse to `'unknown'` here
  * so that every branch is guaranteed to have a colour and label.
  */
-export type ResolvedOleType = 'excel' | 'word' | 'pdf' | 'visio' | 'mathtype' | 'unknown';
+export type ResolvedOleType =
+	| 'excel'
+	| 'word'
+	| 'powerpoint'
+	| 'pdf'
+	| 'visio'
+	| 'mathtype'
+	| 'unknown';
 
 /** Brand colour per OLE application type. */
 const TYPE_COLORS: Record<ResolvedOleType, string> = {
 	excel: '#217346',
 	word: '#2B579A',
+	powerpoint: '#D24726',
 	pdf: '#D4272E',
 	visio: '#3955A3',
 	mathtype: '#7B2D8E',
@@ -35,6 +43,7 @@ const TYPE_COLORS: Record<ResolvedOleType, string> = {
 const TYPE_LABELS: Record<ResolvedOleType, string> = {
 	excel: 'Excel Spreadsheet',
 	word: 'Word Document',
+	powerpoint: 'PowerPoint Presentation',
 	pdf: 'PDF Document',
 	visio: 'Visio Diagram',
 	mathtype: 'Math Equation',
@@ -57,6 +66,9 @@ export function resolveOleType(el: OlePptxElement): ResolvedOleType {
 	}
 	if (progId.includes('word')) {
 		return 'word';
+	}
+	if (progId.includes('powerpoint')) {
+		return 'powerpoint';
 	}
 	if (progId.includes('acroexch') || progId.includes('acrobat') || progId.includes('pdf')) {
 		return 'pdf';

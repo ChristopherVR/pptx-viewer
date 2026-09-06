@@ -154,6 +154,7 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	oleEmbeddedMimeType: 'scalar',
 	oleEmbeddedByteSize: 'scalar',
 	oleFollowColorScheme: 'scalar',
+	oleContentDirty: 'scalar',
 	// MediaPptxElement
 	mediaType: 'scalar',
 	mediaPath: 'scalar',

@@ -5,6 +5,7 @@ import type {
 	XmlObject,
 	PptxChartData,
 	MediaPptxElement,
+	OlePptxElement,
 	ElementAction,
 	SmartArtColorScheme,
 	SmartArtLayoutType,
@@ -97,6 +98,8 @@ export interface InspectorActions {
 	setTitle(text: string): void;
 	/** Set the selected OLE element's Object Name (`p:oleObj/@name`). */
 	setOleName(name: string): void;
+	/** Patch an in-place OLE content edit (see `InspectorHandlers.setOleContent`). */
+	setOleContent(patch: Partial<OlePptxElement>): void;
 	setChartData(data: PptxChartData): void;
 	setMediaProperties(patch: Partial<MediaPptxElement>): void;
 
@@ -206,6 +209,7 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 		setTitle: (text) => applyToSelected(() => ({ title: text })),
 		setOleName: (name) =>
 			applyToSelected((el) => (el.type === 'ole' ? buildOleObjectNamePatch(name) : {})),
+		setOleContent: (patch) => applyToSelected((el) => (el.type === 'ole' ? patch : {})),
 		setChartData: (data) =>
 			applyToSelected((el) => (el.type === 'chart' ? { chartData: data } : {})),
 		setMediaProperties: (patch) => applyToSelected((el) => (el.type === 'media' ? patch : {})),

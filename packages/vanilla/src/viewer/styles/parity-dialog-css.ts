@@ -54,4 +54,16 @@ export const PARITY_DIALOG_CSS = `
 .pptxv-custom-shows-active { display: flex; align-items: center; gap: 8px; } .pptxv-custom-shows-active select { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; }
 .pptxv-custom-shows article { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; padding: 8px; border: 1px solid var(--pptx-border); border-radius: 6px; } .pptxv-custom-shows article > div { grid-column: 1 / -1; max-height: 140px; overflow: auto; }
 @media (max-width: 767px) { .pptxv-parity-dialog { top: auto; bottom: 0; width: 100%; max-height: 88dvh; transform: translateX(-50%); border-radius: 16px 16px 0 0; } }
+.pptxv-ole-edit-dialog { width: min(600px, calc(100vw - 32px)); }
+.pptxv-ole-edit-loading, .pptxv-ole-edit-empty { color: var(--pptx-muted-foreground); }
+.pptxv-ole-edit-error { color: var(--pptx-destructive); }
+.pptxv-ole-edit-table-wrap { max-height: 50vh; overflow: auto; border: 1px solid var(--pptx-border); border-radius: 4px; }
+.pptxv-ole-edit-table { width: 100%; border-collapse: collapse; }
+.pptxv-ole-edit-table td { border: 1px solid var(--pptx-border); padding: 0; }
+.pptxv-ole-edit-table input { width: 100%; padding: 5px 6px; border: 0; background: transparent; color: inherit; }
+.pptxv-ole-edit-table input:focus { background: var(--pptx-accent); outline: none; }
+.pptxv-ole-edit-paragraphs, .pptxv-ole-edit-deck { display: flex; flex-direction: column; gap: 8px; }
+.pptxv-ole-edit-paragraphs textarea { padding: 6px 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; resize: vertical; }
+.pptxv-ole-edit-deck-row { display: flex; flex-direction: column; gap: 4px; color: var(--pptx-muted-foreground); }
+.pptxv-ole-edit-deck-row input { padding: 6px 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: var(--pptx-foreground); }
 `;

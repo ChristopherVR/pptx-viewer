@@ -14,8 +14,10 @@
 import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
 import { buildOleObjectNamePatch } from 'pptx-viewer-shared';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import OleEditorDialog from '../OleEditorDialog.vue';
 
 const props = defineProps<{ element: PptxElement; canEdit?: boolean }>();
 const emit = defineEmits<{
@@ -24,6 +26,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const ole = computed(() => props.element as OlePptxElement);
+const isEditorOpen = ref(false);
 
 function onNameInput(event: Event): void {
 	emit(
@@ -31,10 +34,22 @@ function onNameInput(event: Event): void {
 		buildOleObjectNamePatch((event.target as HTMLInputElement).value) as Partial<PptxElement>,
 	);
 }
+
+function onEditorUpdate(patch: Partial<PptxElement>): void {
+	emit('update', patch);
+}
 </script>
 
 <template>
 	<div class="space-y-1.5 text-[11px]">
+		<button
+			v-if="props.canEdit && !ole.isLinked"
+			type="button"
+			class="w-full rounded border border-border px-2 py-1.5 text-[11px] text-foreground transition-colors hover:bg-accent"
+			@click="isEditorOpen = true"
+		>
+			{{ t('pptx.ole.editContent') }}
+		</button>
 		<label class="flex flex-col gap-1">
 			<span class="text-muted-foreground">{{ t('pptx.ole.objectName') }}</span>
 			<input
@@ -64,4 +79,10 @@ function onNameInput(event: Event): void {
 			</span>
 		</div>
 	</div>
+	<OleEditorDialog
+		:open="isEditorOpen"
+		:element="ole"
+		@update="onEditorUpdate"
+		@close="isEditorOpen = false"
+	/>
 </template>

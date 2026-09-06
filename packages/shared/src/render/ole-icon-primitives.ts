@@ -83,6 +83,13 @@ const ICONS: Record<ResolvedOleType, OleIconShape[]> = {
 		line(7, 11, 17, 11, 1.5, true),
 		line(7, 15, 13, 15, 1.5, true),
 	],
+	powerpoint: [
+		rect(3, 4, 18, 15, 2),
+		rect(7, 8, 6, 7, 1),
+		line(15, 9, 19, 9, 1.5),
+		line(15, 12, 19, 12, 1.5),
+		line(9, 19, 15, 19, 1.5, true),
+	],
 	pdf: [rect(4, 2, 16, 20, 2), text(12, 14, 'PDF', 7)],
 	visio: [
 		rect(8, 2, 8, 5, 1),
