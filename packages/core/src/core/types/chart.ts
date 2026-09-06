@@ -324,6 +324,19 @@ export type PptxChartDataLabelPosition =
 	| 'r'
 	| 't';
 
+/**
+ * `c15:dlblRangeCache`/`c15:datalabelsRange` (CT_SeriesDataLabelsRange):
+ * PowerPoint 2013+'s "Value From Cells" custom label source, one cell range
+ * supplying every label in a group (chart-type or series `c:dLbls`), with a
+ * cache aligned to point order. See `utils/chart-data-labels-range.ts`.
+ */
+export interface PptxChartDataLabelsRange {
+	/** `c15:f`: the cell range formula (e.g. `Sheet1!$D$2:$D$5`). */
+	formula: string;
+	/** `c15:dlblRangeCache`: cached label text, index-aligned with data points. */
+	cache: string[];
+}
+
 /** Individual data label override (c:dLbl). */
 export interface PptxChartDataLabel {
 	idx: number;
@@ -365,6 +378,14 @@ export interface PptxChartDataLabel {
 	 * over any chart/series-level default when set.
 	 */
 	spPr?: PptxChartShapeProps;
+	/**
+	 * `c15:xForSave`: this override exists only so its properties survive a
+	 * save/reload round trip; PowerPoint merges it back onto the series'
+	 * default label on load. Round-tripped as-is (an edited chart keeps an
+	 * existing point's whole `extLst`, this flag included); introspection
+	 * only otherwise. See `utils/chart-data-labels-range.ts`.
+	 */
+	savedForCompatibilityOnly?: boolean;
 }
 
 /** Axis number format. */
@@ -785,6 +806,22 @@ export interface PptxChartDataLabelOptions {
 	 * (point > series > chart-type).
 	 */
 	txPr?: PptxChartLegendTextStyle;
+	/**
+	 * PowerPoint 2013+ "Value From Cells", series-wide form
+	 * (`c15:datalabelsRange`, chart15 uri `{CE6537A1-...}`): one cell range
+	 * supplies every label in this group, aligned by point index. A
+	 * SERIES-WIDE alternative to the per-point `c15:dlblFieldTable` mechanism
+	 * (already resolved into {@link PptxChartDataLabel.text} at parse time).
+	 * See `utils/chart-data-labels-range.ts`.
+	 */
+	dataLabelsRange?: PptxChartDataLabelsRange;
+	/**
+	 * `c15:showDataLabelsRange` at the SAME level as {@link dataLabelsRange}:
+	 * whether every label in this group resolves through the range's cache.
+	 * Distinct from the per-point {@link PptxChartDataLabel} flag of the same
+	 * XML name. Only meaningful when {@link dataLabelsRange} is set.
+	 */
+	showDataLabelsRange?: boolean;
 }
 
 /** Typed text defaults for a single chart legend entry. */
@@ -1070,6 +1107,19 @@ export interface PptxChartData {
 	 * when the chart has no such extension. See {@link PptxChartFilteredSeries}.
 	 */
 	filteredSeries?: PptxChartFilteredSeries[];
+	/**
+	 * `c15:filteredSeriesTitle`: the auto-generated series title text (e.g.
+	 * "Series 3") PowerPoint preserved when the chart filter hid the series
+	 * whose data would otherwise have supplied it. See
+	 * `utils/chart-ext-titles.ts`. Read-mostly like {@link filteredSeries}.
+	 */
+	filteredSeriesTitle?: string;
+	/**
+	 * `c15:filteredCategoryTitle`: the auto-numbered category labels ("1",
+	 * "2", "3", ...) PowerPoint preserved when the chart filter hid the
+	 * category axis source entirely. See `utils/chart-ext-titles.ts`.
+	 */
+	filteredCategoryTitle?: string[];
 	/** Chart style/formatting metadata. */
 	style?: PptxChartStyle;
 	/** Grouping mode for bar/area/line charts: 'clustered' | 'stacked' | 'percentStacked' */

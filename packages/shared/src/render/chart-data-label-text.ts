@@ -95,6 +95,23 @@ export function resolveDataLabelContent(
 		showPercent === true ||
 		showBubbleSize === true;
 
+	// PowerPoint 2013+ "Value From Cells", series-wide form
+	// (`c15:datalabelsRange`): one cell range's cache supplies every label in
+	// the group, aligned by point index. Falls back to the chart-type level
+	// the same way the content flags do; a literal per-point override
+	// (`point?.text`, which already resolves the per-point
+	// `c15:dlblFieldTable` mechanism at parse time) always wins.
+	const rangeGroup =
+		seriesLevel?.dataLabelsRange !== undefined
+			? seriesLevel
+			: chartLevel?.dataLabelsRange !== undefined
+				? chartLevel
+				: undefined;
+	const rangeText =
+		rangeGroup?.showDataLabelsRange !== false
+			? rangeGroup?.dataLabelsRange?.cache[pointIndex]
+			: undefined;
+
 	return {
 		// Nothing declared anywhere => the historical "just print the value".
 		showValue: anySet ? showValue === true : true,
@@ -105,7 +122,11 @@ export function resolveDataLabelContent(
 		separator:
 			point?.separator ?? seriesLevel?.separator ?? chartLevel?.separator ?? DEFAULT_SEPARATOR,
 		deleted: point?.deleted === true,
-		...(point?.text !== undefined ? { customText: point.text } : {}),
+		...(point?.text !== undefined
+			? { customText: point.text }
+			: rangeText !== undefined
+				? { customText: rangeText }
+				: {}),
 	};
 }
 

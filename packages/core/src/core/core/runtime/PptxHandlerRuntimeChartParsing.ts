@@ -37,6 +37,7 @@ import {
 import { parseDataTable } from '../../utils/chart-data-table-parser';
 import { parseChartDataPointPicture } from '../../utils/chart-datapoint-picture';
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
+import { parseFilteredTitles } from '../../utils/chart-ext-titles';
 import { parseFilteredSeries } from '../../utils/chart-filtered-series';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
@@ -162,12 +163,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const seriesContainer = plotArea[seriesContainerKey] as XmlObject | undefined;
 
-			const { categories, categoryLevels, series, filteredSeries } = this.parseAllChartContainers(
-				plotArea,
-				chartContainerKeys,
-				chartType,
-				axes,
-			);
+			const {
+				categories,
+				categoryLevels,
+				series,
+				filteredSeries,
+				filteredSeriesTitle,
+				filteredCategoryTitle,
+			} = this.parseAllChartContainers(plotArea, chartContainerKeys, chartType, axes);
 			const firstSeriesNode = chartContainerKeys
 				.flatMap((key) =>
 					this.xmlLookupService.getChildrenArrayByLocalName(
@@ -419,6 +422,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(dateCategories ? { dateCategories } : {}),
 				series: finalSeries,
 				...(filteredSeries ? { filteredSeries } : {}),
+				...(filteredSeriesTitle ? { filteredSeriesTitle } : {}),
+				...(filteredCategoryTitle ? { filteredCategoryTitle } : {}),
 				title: titleText,
 				...(titleRuns ? { titleRuns } : {}),
 				style: chartStyle,
@@ -508,12 +513,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		categoryLevels?: string[][];
 		series: PptxChartData['series'];
 		filteredSeries?: PptxChartData['filteredSeries'];
+		filteredSeriesTitle?: PptxChartData['filteredSeriesTitle'];
+		filteredCategoryTitle?: PptxChartData['filteredCategoryTitle'];
 	} {
 		const isCombo = chartLevelType === 'combo';
 		let categories: string[] = [];
 		let categoryLevels: string[][] | undefined;
 		const series: PptxChartData['series'] = [];
 		let filteredSeries: PptxChartData['filteredSeries'];
+		let filteredSeriesTitle: PptxChartData['filteredSeriesTitle'];
+		let filteredCategoryTitle: PptxChartData['filteredCategoryTitle'];
 
 		for (const containerKey of containerKeys) {
 			const container = plotArea[containerKey] as XmlObject | undefined;
@@ -521,6 +530,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const containerFilteredSeries = parseFilteredSeries(container, this.xmlLookupService);
 			if (containerFilteredSeries) {
 				filteredSeries = [...(filteredSeries ?? []), ...containerFilteredSeries];
+			}
+			const containerFilteredTitles = parseFilteredTitles(container, this.xmlLookupService);
+			if (containerFilteredTitles?.seriesTitle && filteredSeriesTitle === undefined) {
+				filteredSeriesTitle = containerFilteredTitles.seriesTitle;
+			}
+			if (containerFilteredTitles?.categoryTitle && filteredCategoryTitle === undefined) {
+				filteredCategoryTitle = containerFilteredTitles.categoryTitle;
 			}
 			if (seriesList.length === 0) {
 				continue;
@@ -583,6 +599,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(categoryLevels ? { categoryLevels } : {}),
 			series,
 			...(filteredSeries ? { filteredSeries } : {}),
+			...(filteredSeriesTitle ? { filteredSeriesTitle } : {}),
+			...(filteredCategoryTitle ? { filteredCategoryTitle } : {}),
 		};
 	}
 

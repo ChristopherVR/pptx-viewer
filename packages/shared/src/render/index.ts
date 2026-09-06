@@ -136,6 +136,9 @@ export * from './slide-transition-label-keys';
 // Guarded add/remove/edit operations behind the chart inspector's data grid
 // (auto-naming, last-series/category protection, non-numeric cell rejection).
 export * from './chart-data-grid-ops';
+// Hide/restore a Chart-Filters series (c15:filteredSeries + filteredSeriesTitle/
+// filteredCategoryTitle fallback) and edit a c15:datalabelsRange cached label.
+export * from './chart-ext-editor-actions';
 // What a data label SAYS: the c:showVal / c:showCatName / c:showSerName /
 // c:showPercent / c:separator cascade (per-point -> series -> chart-type).
 export * from './chart-data-label-text';

@@ -27,12 +27,15 @@ import {
 	chartGridlinesPatch,
 	chartGridlinesState,
 	collapseChartTitleRunsForEdit,
+	hideChartSeries,
 	patchChartData,
 	removeChartCategory,
 	removeChartSeries,
+	restoreFilteredSeries,
 	seriesSecondaryAxisPatch,
 	setChartCategoryLabel,
 	setChartCellValue,
+	setDataLabelsRangeCache,
 } from 'pptx-viewer-shared';
 import { useCallback } from 'react';
 
@@ -47,6 +50,7 @@ import { ChartDataPointMarkerOptions } from './ChartDataPointMarkerOptions';
 import { ChartDataPointOptions } from './ChartDataPointOptions';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
 import { ChartErrorBarOptions } from './ChartErrorBarOptions';
+import { ChartFilteredSeriesOptions } from './ChartFilteredSeriesOptions';
 import { ChartMarkerOptions } from './ChartMarkerOptions';
 import { ChartSeriesColorOptions } from './ChartSeriesColorOptions';
 import { ChartSubtypeOptions } from './ChartSubtypeOptions';
@@ -272,6 +276,40 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 		[chartData, replaceChartData],
 	);
 
+	// ── PowerPoint "Chart Filters" show/hide + "Value From Cells" cache edit ──
+	const hideSeries = useCallback(
+		(seriesIndex: number) => {
+			const next = chartData && hideChartSeries(chartData, seriesIndex);
+			if (next) {
+				replaceChartData(next);
+			}
+		},
+		[chartData, replaceChartData],
+	);
+
+	const restoreSeries = useCallback(
+		(filteredIndex: number) => {
+			const next = chartData && restoreFilteredSeries(chartData, filteredIndex);
+			if (next) {
+				replaceChartData(next);
+			}
+		},
+		[chartData, replaceChartData],
+	);
+
+	const setLabelsRangeCache = useCallback(
+		(seriesIndex: number, pointIndex: number, text: string) => {
+			if (!series) {
+				return;
+			}
+			const updated = series.map((s, i) =>
+				i === seriesIndex ? setDataLabelsRangeCache(s, pointIndex, text) : s,
+			);
+			updateChartData({ series: updated });
+		},
+		[series, updateChartData],
+	);
+
 	// ── SDK-op helpers (clone, mutate via core op, emit) ────────
 	// The headless chart ops mutate in place; run them against a deep clone of
 	// the chart data so React sees a fresh reference and history stays clean.
@@ -463,6 +501,14 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				canEdit={canEdit}
 				onSetColor={setSeriesColor}
 				onToggleSecondaryAxis={toggleSecondaryAxis}
+			/>
+
+			<ChartFilteredSeriesOptions
+				chartData={chartData}
+				canEdit={canEdit}
+				onHideSeries={hideSeries}
+				onRestoreSeries={restoreSeries}
+				onSetDataLabelsRangeCache={setLabelsRangeCache}
 			/>
 
 			<ChartUserShapeOptions

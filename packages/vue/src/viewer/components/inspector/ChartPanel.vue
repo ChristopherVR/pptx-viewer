@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { X } from 'lucide-vue-next';
 import type { ChartPptxElement, PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
 import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 import {
@@ -13,9 +12,7 @@ import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectChartCanvasEdit } from '../../composables/chart-part-selection';
-import { injectRecentColors } from '../../composables/recent-colors-context';
 import { useChartEditing } from '../../composables/useChartEditing';
-import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
 import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
 import ChartAxisOptions from './ChartAxisOptions.vue';
 import ChartAxisStyleOptions from './ChartAxisStyleOptions.vue';
@@ -26,7 +23,9 @@ import ChartDataPointMarkerOptions from './ChartDataPointMarkerOptions.vue';
 import ChartDataPointOptions from './ChartDataPointOptions.vue';
 import ChartDisplayOptions from './ChartDisplayOptions.vue';
 import ChartErrorBarOptions from './ChartErrorBarOptions.vue';
+import ChartFilteredSeriesOptions from './ChartFilteredSeriesOptions.vue';
 import ChartMarkerOptions from './ChartMarkerOptions.vue';
+import ChartSeriesColorOptions from './ChartSeriesColorOptions.vue';
 import ChartSubtypeOptions from './ChartSubtypeOptions.vue';
 import ChartTrendlineOptions from './ChartTrendlineOptions.vue';
 import ChartUserShapeOptions from './ChartUserShapeOptions.vue';
@@ -39,8 +38,8 @@ import ChartUserShapeOptions from './ChartUserShapeOptions.vue';
  *  - Emits `update` with a SHALLOW `Partial<PptxElement>` patch, always
  *    `{ chartData: <full new chart data> }`, merged via `ops.updateElement`.
  *
- * The SFC stays thin: the type/title/grouping/series-colour controls live
- * inline, while every advanced section is its own subcomponent. All mutation
+ * The SFC stays thin: the type/title/grouping controls live inline, while
+ * every advanced section is its own subcomponent. All mutation
  * plumbing (clone-mutate-emit, `pptx-viewer-core` SDK ops) lives in the
  * `useChartEditing` composable.
  */
@@ -53,9 +52,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const recentColors = injectRecentColors();
-
-const DEFAULT_SERIES_COLOR = '#4472c4';
 
 const isChart = computed(() => props.element.type === 'chart');
 
@@ -108,13 +104,6 @@ const getFollowDataPoint = (): boolean =>
 
 const editing = useChartEditing(chartElement, chartData, emitChartData, getFollowDataPoint);
 
-// Series colour commits are debounced (~180ms) so dragging through the native
-// colour picker collapses into one history-friendly update, matching React.
-const commitSeriesColor = useDebouncedCallback(
-	(index: number, color: string) => editing.setSeriesColor(index, color),
-	180,
-);
-
 function onTypeChange(event: Event): void {
 	editing.patchChartData({ chartType: (event.target as HTMLSelectElement).value as PptxChartType });
 }
@@ -135,19 +124,6 @@ function onGroupingChange(event: Event): void {
 	editing.patchChartData({
 		grouping: (event.target as HTMLSelectElement).value as PptxChartData['grouping'],
 	});
-}
-
-function onSeriesColorInput(event: Event, index: number): void {
-	commitSeriesColor(index, (event.target as HTMLInputElement).value);
-}
-
-function onSeriesColorCommit(event: Event): void {
-	recentColors?.push((event.target as HTMLInputElement).value);
-}
-
-function onClearSeriesColor(index: number): void {
-	commitSeriesColor.cancel();
-	editing.setSeriesColor(index, null);
 }
 
 const FIELD = 'pptx-vue-chart-field flex flex-col gap-1';
@@ -268,34 +244,19 @@ const CONTROL =
 				@set-error-bars="editing.setSeriesErrorBars"
 			/>
 
-			<div v-if="series.length > 0" :class="FIELD">
-				<span :class="LABEL">{{ t('pptx.chart.seriesColors') }}</span>
-				<div
-					v-for="(s, si) in series"
-					:key="`${s.name}-${si}`"
-					class="pptx-vue-chart-series-color flex items-center gap-2"
-				>
-					<span class="flex-1 truncate" :title="s.name">{{ s.name }}</span>
-					<input
-						type="color"
-						class="pptx-vue-chart-swatch h-6 w-8 cursor-pointer rounded border border-border bg-muted p-0"
-						data-testid="chart-series-color"
-						:value="s.color || DEFAULT_SERIES_COLOR"
-						:aria-label="t('pptx.chart.seriesColor', { name: s.name })"
-						@input="onSeriesColorInput($event, si)"
-						@change="onSeriesColorCommit"
-					/>
-					<button
-						v-if="s.color"
-						type="button"
-						class="pptx-vue-chart-clear text-muted-foreground hover:text-red-400 shrink-0"
-						:title="t('pptx.chart.clearSeriesColor')"
-						@click="onClearSeriesColor(si)"
-					>
-						<X class="w-3 h-3" aria-hidden="true" />
-					</button>
-				</div>
-			</div>
+			<ChartSeriesColorOptions
+				:series="series"
+				@set-color="editing.setSeriesColor"
+				@clear-color="(si) => editing.setSeriesColor(si, null)"
+			/>
+
+			<ChartFilteredSeriesOptions
+				:chart-data="chartData"
+				:can-edit="true"
+				@hide-series="editing.hideSeries"
+				@restore-series="editing.restoreSeries"
+				@set-data-labels-range-cache="editing.setLabelsRangeCache"
+			/>
 
 			<ChartUserShapeOptions :chart-data="chartData" @update-chart-data="editing.patchChartData" />
 

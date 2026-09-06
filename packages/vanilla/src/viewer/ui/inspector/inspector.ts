@@ -189,6 +189,7 @@ export function createInspector(
 		setEditable(editable) {
 			el.hidden = !editable;
 			tableDataGrid.setEditable(editable);
+			chart.setEditable(editable);
 		},
 	};
 }

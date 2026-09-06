@@ -28,11 +28,14 @@
 		CHART_TYPE_LABEL_KEYS,
 		CHART_TYPE_OPTIONS,
 		collapseChartTitleRunsForEdit,
+		hideChartSeries,
 		patchChartData as sharedPatchChartData,
 		radarStylePatch,
 		RADAR_STYLE_OPTIONS,
 		resolveDisplayedChartType,
+		restoreFilteredSeries,
 		schemaLabel,
+		setDataLabelsRangeCache,
 		surfaceWireframePatch,
 		SURFACE_WIREFRAME_OPTIONS,
 	} from 'pptx-viewer-shared';
@@ -43,6 +46,7 @@
 	import ChartAxisFormatSection from './ChartAxisFormatSection.svelte';
 	import ChartDataGrid from './ChartDataGrid.svelte';
 	import ChartErrorBarSection from './ChartErrorBarSection.svelte';
+	import ChartFilteredSeriesOptions from './ChartFilteredSeriesOptions.svelte';
 	import ChartLabelsAxesSection from './ChartLabelsAxesSection.svelte';
 	import ChartPointMarkerSection from './ChartPointMarkerSection.svelte';
 	import ChartTrendlineSection from './ChartTrendlineSection.svelte';
@@ -124,6 +128,29 @@
 	function setTrendline(index: number, trendline: PptxChartTrendline | null): void {
 		seriesPatch(index, { trendlines: trendline ? [trendline] : [] });
 	}
+	// ── PowerPoint "Chart Filters" show/hide + "Value From Cells" cache edit ──
+	function hideSeries(seriesIndex: number): void {
+		const next = data && hideChartSeries(data, seriesIndex);
+		if (next) {
+			replace(next);
+		}
+	}
+	function restoreSeries(filteredIndex: number): void {
+		const next = data && restoreFilteredSeries(data, filteredIndex);
+		if (next) {
+			replace(next);
+		}
+	}
+	function setLabelsRangeCache(seriesIndex: number, pointIndex: number, text: string): void {
+		if (data) {
+			patch({
+				series: data.series.map((series, i) =>
+					i === seriesIndex ? setDataLabelsRangeCache(series, pointIndex, text) : series,
+				),
+			});
+		}
+	}
+
 	/**
 	 * Set or clear a per-point marker override through core's headless op, which
 	 * mutates in place: run it over a deep clone so the editor sees a fresh
@@ -187,6 +214,13 @@
 		onrenameseries={(index, name) => seriesPatch(index, { name })}
 	/>
 	<h5>Series</h5>{#each data.series as series, index}<fieldset><input aria-label="Series name" value={series.name} oninput={(event) => seriesPatch(index, { name: event.currentTarget.value })} /><input aria-label="Series values" value={series.values.join(', ')} onchange={(event) => seriesPatch(index, { values: event.currentTarget.value.split(',').map(Number).filter(Number.isFinite) })} /><input type="color" aria-label="Series color" value={series.color ?? '#4472c4'} onchange={(event) => seriesColorPatch(index, event.currentTarget.value)} /></fieldset>{/each}
+	<ChartFilteredSeriesOptions
+		chartData={data}
+		{canEdit}
+		onhideseries={hideSeries}
+		onrestoreseries={restoreSeries}
+		onsetdatalabelsrangecache={setLabelsRangeCache}
+	/>
 	<ChartTrendlineSection {data} {canEdit} onsettrendline={setTrendline} />
 	{#if chart}<ChartPointMarkerSection {editor} element={chart} {canEdit} onsetpointmarker={setPointMarker} />{/if}
 	<h5>Axes</h5>{#each data.axes ?? [] as axis, index}<fieldset><input aria-label="Axis title" value={axis.titleText ?? ''} oninput={(event) => axisPatch(index, { titleText: event.currentTarget.value })} /><input type="number" aria-label="Axis minimum" placeholder="Min" value={axis.min ?? ''} onchange={(event) => axisPatch(index, { min: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /><input type="number" aria-label="Axis maximum" placeholder="Max" value={axis.max ?? ''} onchange={(event) => axisPatch(index, { max: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} /></fieldset>{/each}

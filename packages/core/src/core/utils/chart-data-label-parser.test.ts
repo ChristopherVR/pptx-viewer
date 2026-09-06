@@ -169,6 +169,76 @@ describe('chartML data label parsing', () => {
 		});
 	});
 
+	describe('c15:xForSave (compatibility-only data labels)', () => {
+		it('parses a true c15:xForSave flag onto the point', () => {
+			const series: XmlObject = {
+				'c:dLbls': {
+					'c:dLbl': {
+						'c:idx': { '@_val': '0' },
+						'c:showVal': { '@_val': '1' },
+						'c:extLst': {
+							'c:ext': {
+								'@_uri': '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}',
+								'c15:xForSave': { '@_val': '1' },
+							},
+						},
+					},
+				},
+			};
+			const [label] = parseSeriesDataLabels(series, lookup);
+			expect(label.savedForCompatibilityOnly).toBeTruthy();
+		});
+
+		it('leaves savedForCompatibilityOnly unset when no c15:xForSave is present', () => {
+			const series: XmlObject = {
+				'c:dLbls': { 'c:dLbl': { 'c:idx': { '@_val': '0' }, 'c:showVal': { '@_val': '1' } } },
+			};
+			const [label] = parseSeriesDataLabels(series, lookup);
+			expect(label.savedForCompatibilityOnly).toBeUndefined();
+		});
+	});
+
+	// c15:datalabelsRange/c15:dlblRangeCache: the series-wide "Value From
+	// Cells" form, one range for every label in the group (chart-type or
+	// series c:dLbls), distinct from the per-point c15:dlblFieldTable above.
+	describe('c15:datalabelsRange (series-wide "Value From Cells")', () => {
+		const group: XmlObject = {
+			'c:showVal': { '@_val': '0' },
+			'c:extLst': {
+				'c:ext': {
+					'@_uri': '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}',
+					'c15:showDataLabelsRange': { '@_val': '1' },
+					'c15:datalabelsRange': {
+						'c15:f': 'Sheet1!$D$2:$D$5',
+						'c15:dlblRangeCache': {
+							'c:ptCount': { '@_val': '3' },
+							'c:pt': [
+								{ '@_idx': '0', 'c:v': 'Low' },
+								{ '@_idx': '1', 'c:v': 'Medium' },
+								{ '@_idx': '2', 'c:v': 'High' },
+							],
+						},
+					},
+				},
+			},
+		};
+
+		it('parses the formula and dense index-aligned cache', () => {
+			const options = parseChartDataLabelOptions(group, lookup);
+			expect(options.dataLabelsRange).toStrictEqual({
+				formula: 'Sheet1!$D$2:$D$5',
+				cache: ['Low', 'Medium', 'High'],
+			});
+			expect(options.showDataLabelsRange).toBeTruthy();
+		});
+
+		it('omits dataLabelsRange when no c15:datalabelsRange is present', () => {
+			const options = parseChartDataLabelOptions({ 'c:showVal': { '@_val': '1' } }, lookup);
+			expect(options.dataLabelsRange).toBeUndefined();
+			expect(options.showDataLabelsRange).toBeUndefined();
+		});
+	});
+
 	// C2-G1 (data-label half): c:dLbls/c:txPr and c:dLbl/c:txPr font, theme-resolved
 	// the same way axis/title/legend text already is.
 	describe('c:txPr font (theme resolution)', () => {

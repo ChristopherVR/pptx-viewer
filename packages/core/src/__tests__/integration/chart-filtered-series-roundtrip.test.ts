@@ -119,4 +119,63 @@ describe('chart filtered-series round-trip (c15:filteredBarSeries)', () => {
 		// series) must be unique.
 		expect(new Set(idxMatches).size).toBe(idxMatches.length);
 	});
+
+	// The chart editor's hide/show ("Chart Filters") actions
+	// (pptx-viewer-shared's hideChartSeries/restoreFilteredSeries) actually
+	// change PptxChartData.filteredSeries, so this now needs a writer
+	// (chart-filtered-series-writer.ts) or the edit would silently vanish on
+	// save: filteredSeries was previously read-mostly, round-tripping only as
+	// opaque passthrough on an otherwise-untouched chart.
+	describe('editing filteredSeries (hide/restore) survives save + reload', () => {
+		it('restoring the filtered series into a real <c:ser> removes it from the c15 extension', async () => {
+			const handler = new PptxHandler();
+			const data = await handler.load(toArrayBuffer(loadFixtureBytes()));
+			const chart = chartOnSlide(data, 0);
+			const filtered = chart.chartData!.filteredSeries![0]!;
+
+			// Mirrors pptx-viewer-shared's restoreFilteredSeries.
+			chart.chartData!.series = [
+				...chart.chartData!.series,
+				{ name: filtered.name!, values: filtered.values! },
+			];
+			chart.chartData!.filteredSeries = undefined;
+
+			const savedBytes = await handler.save(data.slides);
+			const savedXml = await readZipEntry(savedBytes, 'ppt/charts/chart1.xml');
+			expect(savedXml).not.toContain('c15:filteredBarSeries');
+
+			const reloaded = await new PptxHandler().load(toArrayBuffer(savedBytes));
+			const reloadedChart = chartOnSlide(reloaded, 0);
+			expect(reloadedChart.chartData?.series.map((s) => s.name)).toStrictEqual([
+				'Series A',
+				'Series C',
+				'Series B',
+			]);
+			expect(reloadedChart.chartData?.filteredSeries).toBeUndefined();
+		});
+
+		it('hiding a visible series writes it into a new c15:filteredBarSeries entry', async () => {
+			const handler = new PptxHandler();
+			const data = await handler.load(toArrayBuffer(loadFixtureBytes()));
+			const chart = chartOnSlide(data, 0);
+			const hiddenSeries = chart.chartData!.series[0]!; // "Series A"
+
+			// Mirrors pptx-viewer-shared's hideChartSeries.
+			chart.chartData!.series = chart.chartData!.series.filter((s) => s !== hiddenSeries);
+			chart.chartData!.filteredSeries = [
+				...chart.chartData!.filteredSeries!,
+				{ idx: 2, order: 2, name: hiddenSeries.name, values: hiddenSeries.values },
+			];
+
+			const savedBytes = await handler.save(data.slides);
+			const reloaded = await new PptxHandler().load(toArrayBuffer(await savedBytes));
+			const reloadedChart = chartOnSlide(reloaded, 0);
+
+			expect(reloadedChart.chartData?.series.map((s) => s.name)).toStrictEqual(['Series C']);
+			const stillFiltered = reloadedChart.chartData?.filteredSeries ?? [];
+			expect(stillFiltered.map((f) => f.name)).toStrictEqual(['Series B', 'Series A']);
+			const restoredA = stillFiltered.find((f) => f.name === 'Series A');
+			expect(restoredA?.values).toStrictEqual(hiddenSeries.values);
+		});
+	});
 });

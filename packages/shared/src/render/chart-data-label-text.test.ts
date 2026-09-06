@@ -63,6 +63,56 @@ describe('resolveDataLabelContent', () => {
 		});
 		expect(resolveDataLabelContent(chart(), series, 0).showPercent).toBeTruthy();
 	});
+
+	// c15:datalabelsRange: PowerPoint 2013+ "Value From Cells", series-wide
+	// form (one cell range's cache supplies every label in the group).
+	describe('c15:datalabelsRange ("Value From Cells")', () => {
+		const series: PptxChartSeries = {
+			...shareSeries,
+			dataLabelOptions: {
+				dataLabelsRange: { formula: 'Sheet1!$D$2:$D$5', cache: ['Low', 'Medium', 'High', 'Top'] },
+				showDataLabelsRange: true,
+			},
+		};
+
+		it('uses the range cache text, index-aligned with the point', () => {
+			expect(resolveDataLabelContent(chart(), series, 1).customText).toBe('Medium');
+		});
+
+		it('defaults to enabled when showDataLabelsRange is unset', () => {
+			const withoutFlag: PptxChartSeries = {
+				...shareSeries,
+				dataLabelOptions: { dataLabelsRange: series.dataLabelOptions!.dataLabelsRange },
+			};
+			expect(resolveDataLabelContent(chart(), withoutFlag, 0).customText).toBe('Low');
+		});
+
+		it('is suppressed when showDataLabelsRange is explicitly false', () => {
+			const disabled: PptxChartSeries = {
+				...shareSeries,
+				dataLabelOptions: {
+					dataLabelsRange: series.dataLabelOptions!.dataLabelsRange,
+					showDataLabelsRange: false,
+				},
+			};
+			expect(resolveDataLabelContent(chart(), disabled, 0).customText).toBeUndefined();
+		});
+
+		it('a literal per-point c:dLbl/c:tx wins over the range cache', () => {
+			const withOverride: PptxChartSeries = {
+				...series,
+				dataLabels: [{ idx: 1, text: 'Manual' }],
+			};
+			expect(resolveDataLabelContent(chart(), withOverride, 1).customText).toBe('Manual');
+		});
+
+		it('falls back to the chart-type level when the series has no range of its own', () => {
+			const data = chart({
+				style: { hasDataLabels: true, dataLabels: series.dataLabelOptions },
+			});
+			expect(resolveDataLabelContent(data, shareSeries, 2).customText).toBe('High');
+		});
+	});
 });
 
 describe('buildDataLabelText', () => {

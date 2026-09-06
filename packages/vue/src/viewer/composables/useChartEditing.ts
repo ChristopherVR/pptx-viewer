@@ -6,9 +6,11 @@
  * Every mutation funnels through one of two paths:
  *  - `replaceChartData` / `patchChartData` for plain shallow patches and the
  *    smart `chartDataChangeType` path, and
- *  - `applyChartOp`, which deep-clones the chart data and runs an in-place
- *    `pptx-viewer-core` SDK op against the clone so the live element is never
- *    mutated (Vue sees a fresh reference and history stays clean).
+ *  - `useChartOpEditing`'s `applyChartOp` (a sibling file, split out to keep
+ *    this one under the repo's 300-LOC guideline), which deep-clones the
+ *    chart data and runs an in-place `pptx-viewer-core` SDK op against the
+ *    clone so the live element is never mutated (Vue sees a fresh reference
+ *    and history stays clean).
  *
  * The returned helpers all emit a SHALLOW `{ chartData }` patch via the
  * supplied `emitUpdate`, matching the inspector-panel `update` contract.
@@ -18,59 +20,35 @@ import type {
 	PptxChartAxisFormatting,
 	PptxChartData,
 	PptxChartErrBars,
-	PptxChartMarkerSymbol,
 	PptxChartSeries,
 	PptxChartStyle,
 	PptxChartTrendline,
-	PptxChartType,
-} from 'pptx-viewer-core';
-import {
-	setChartAxisGridlineStyle,
-	setChartAxisLogScale,
-	setChartAxisTitleStyle,
-	setChartDataPointExplosion,
-	setChartDataPointFill,
-	setChartDataPointLabel,
-	setChartDataPointMarker,
-	setChartSeriesChartType,
-	setChartSeriesMarker,
 } from 'pptx-viewer-core';
 import {
 	addChartCategory,
 	addChartSeries,
+	hideChartSeries,
 	patchChartData as sharedPatchChartData,
 	removeChartCategory,
 	removeChartSeries,
+	restoreFilteredSeries,
 	setChartCategoryLabel,
 	setChartCellValue,
+	setDataLabelsRangeCache,
 } from 'pptx-viewer-shared';
 import type { ComputedRef } from 'vue';
-import { toRaw } from 'vue';
 
-/** Edit shape for axis-title font styling (matches the core op). */
-export interface ChartAxisTitleStyleEdit {
-	fontFamily?: string | null;
-	fontSize?: number | null;
-	fontBold?: boolean;
-	fontColor?: string | null;
-}
+import { useChartOpEditing } from './useChartOpEditing';
+import type { ChartOpEditing } from './useChartOpEditing';
 
-/** Edit shape for gridline line styling (matches the core op). */
-export interface ChartGridlineStyleEdit {
-	color?: string | null;
-	width?: number | null;
-	dashStyle?: string | null;
-}
-
-/** Patch shape for a series marker (subset accepted by the core op). */
-export interface ChartMarkerEdit {
-	symbol?: PptxChartMarkerSymbol;
-	size?: number;
-	fillColor?: string;
-}
+export type {
+	ChartAxisTitleStyleEdit,
+	ChartGridlineStyleEdit,
+	ChartMarkerEdit,
+} from './useChartOpEditing';
 
 /** The mutation helpers a chart inspector needs. */
-export interface ChartEditing {
+export interface ChartEditing extends ChartOpEditing {
 	patchChartData: (patch: Partial<PptxChartData>) => void;
 	updateStyle: (patch: Partial<PptxChartStyle>) => void;
 	updateAxis: (
@@ -80,25 +58,6 @@ export interface ChartEditing {
 	setSeriesColor: (index: number, color: string | null) => void;
 	setSeriesTrendline: (index: number, trendline: PptxChartTrendline | null) => void;
 	setSeriesErrorBars: (index: number, errBars: PptxChartErrBars | null) => void;
-	setAxisLogScale: (
-		axisType: PptxChartAxisFormatting['axisType'],
-		opts: { enabled: boolean; base?: number },
-	) => void;
-	setAxisTitleStyle: (
-		axisType: PptxChartAxisFormatting['axisType'],
-		edit: ChartAxisTitleStyleEdit,
-	) => void;
-	setGridlineStyle: (
-		axisType: PptxChartAxisFormatting['axisType'],
-		which: 'major' | 'minor',
-		edit: ChartGridlineStyleEdit,
-	) => void;
-	setSeriesMarker: (index: number, marker: ChartMarkerEdit | null) => void;
-	setSeriesType: (index: number, seriesType: PptxChartType | null) => void;
-	setPointFill: (seriesIndex: number, pointIndex: number, color: string | null) => void;
-	setPointExplosion: (seriesIndex: number, pointIndex: number, explosion: number | null) => void;
-	setPointMarker: (seriesIndex: number, pointIndex: number, marker: ChartMarkerEdit | null) => void;
-	setPointLabel: (seriesIndex: number, pointIndex: number, text: string | null) => void;
 	/** Patch a single series (e.g. rename) in place, preserving the rest. */
 	updateSeries: (index: number, patch: Partial<PptxChartSeries>) => void;
 	/** Rename one category label. */
@@ -110,6 +69,12 @@ export interface ChartEditing {
 	removeSeries: (seriesIndex: number) => void;
 	addCategory: () => void;
 	removeCategory: (catIndex: number) => void;
+	/** PowerPoint "Chart Filters": hide a currently-visible series. */
+	hideSeries: (seriesIndex: number) => void;
+	/** PowerPoint "Chart Filters": restore a series it hid. */
+	restoreSeries: (filteredIndex: number) => void;
+	/** "Value From Cells": edit one cached custom-label string for a series. */
+	setLabelsRangeCache: (seriesIndex: number, pointIndex: number, text: string) => void;
 }
 
 /**
@@ -230,24 +195,38 @@ export function useChartEditing(
 	const setSeriesTrendline = (index: number, trendline: PptxChartTrendline | null): void =>
 		updateSeries(index, { trendlines: trendline ? [trendline] : [] });
 
+	// ── PowerPoint "Chart Filters" show/hide + "Value From Cells" cache edit ──
+	const hideSeries = (seriesIndex: number): void => {
+		const data = chartData.value;
+		const next = data && hideChartSeries(data, seriesIndex);
+		if (next) {
+			replaceChartData(next);
+		}
+	};
+
+	const restoreSeries = (filteredIndex: number): void => {
+		const data = chartData.value;
+		const next = data && restoreFilteredSeries(data, filteredIndex);
+		if (next) {
+			replaceChartData(next);
+		}
+	};
+
+	const setLabelsRangeCache = (seriesIndex: number, pointIndex: number, text: string): void => {
+		const data = chartData.value;
+		if (!data) {
+			return;
+		}
+		const seriesList = data.series.map((s, i) =>
+			i === seriesIndex ? setDataLabelsRangeCache(s, pointIndex, text) : s,
+		);
+		patchChartData({ series: seriesList });
+	};
+
 	const setSeriesErrorBars = (index: number, errBars: PptxChartErrBars | null): void =>
 		updateSeries(index, { errBars: errBars ? [errBars] : [] });
 
-	/** Deep-clone the chart data, run an in-place core op against it, emit. */
-	const applyChartOp = (mutate: (el: ChartPptxElement) => void): void => {
-		const el = element.value;
-		const data = chartData.value;
-		if (!el || !data) {
-			return;
-		}
-		// `toRaw` strips Vue's reactive Proxy so `structuredClone` (which cannot
-		// clone a Proxy) sees a plain object; the op then mutates the clone only.
-		const clone: ChartPptxElement = { ...toRaw(el), chartData: structuredClone(toRaw(data)) };
-		mutate(clone);
-		if (clone.chartData) {
-			replaceChartData(clone.chartData);
-		}
-	};
+	const opEditing = useChartOpEditing(element, chartData, replaceChartData);
 
 	return {
 		patchChartData,
@@ -256,26 +235,7 @@ export function useChartEditing(
 		setSeriesColor,
 		setSeriesTrendline,
 		setSeriesErrorBars,
-		setAxisLogScale: (axisType, opts) =>
-			applyChartOp((el) => setChartAxisLogScale(el, axisType, opts)),
-		setAxisTitleStyle: (axisType, edit) =>
-			applyChartOp((el) => setChartAxisTitleStyle(el, axisType, edit)),
-		setGridlineStyle: (axisType, which, edit) =>
-			applyChartOp((el) => setChartAxisGridlineStyle(el, axisType, which, edit)),
-		setSeriesMarker: (index, marker) =>
-			applyChartOp((el) => setChartSeriesMarker(el, index, marker)),
-		setSeriesType: (index, seriesType) =>
-			applyChartOp((el) => setChartSeriesChartType(el, index, seriesType)),
-		setPointFill: (seriesIndex, pointIndex, color) =>
-			applyChartOp((el) => setChartDataPointFill(el, seriesIndex, pointIndex, color)),
-		setPointExplosion: (seriesIndex, pointIndex, explosion) =>
-			applyChartOp((el) => setChartDataPointExplosion(el, seriesIndex, pointIndex, explosion)),
-		setPointMarker: (seriesIndex, pointIndex, marker) =>
-			applyChartOp((el) => setChartDataPointMarker(el, seriesIndex, pointIndex, marker)),
-		setPointLabel: (seriesIndex, pointIndex, text) =>
-			applyChartOp((el) =>
-				setChartDataPointLabel(el, seriesIndex, pointIndex, text !== null ? { text } : null),
-			),
+		...opEditing,
 		updateSeries,
 		updateCategoryLabel,
 		updateValue,
@@ -283,5 +243,8 @@ export function useChartEditing(
 		removeSeries,
 		addCategory,
 		removeCategory,
+		hideSeries,
+		restoreSeries,
+		setLabelsRangeCache,
 	};
 }

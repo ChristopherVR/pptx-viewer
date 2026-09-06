@@ -22,9 +22,16 @@
  * `c:f` range reference untouched. That is already lossless under this
  * codebase's existing idx/ptCount cache expansion, so no separate
  * category-filter modelling is needed. `c15:filteredCategoryTitle` /
- * `c15:filteredSeriesTitle` / `c15:xForSave` were not reproducible via COM
- * automation in any chart type tried here; they are left undocumented
- * pending a real corpus sample.
+ * `c15:filteredSeriesTitle` (siblings of `c15:filtered<Type>Series` inside
+ * this SAME extension) and `c15:xForSave` / `c15:datalabelsRange` (a
+ * different chart15 extension family, `{CE6537A1-...}`) were likewise not
+ * reproducible via PowerPoint 2016 COM automation in any scenario tried
+ * (`Series.IsFiltered` plus a cell-linked chart title, scatter category
+ * filtering); see `scripts/make-chart-ext-fixtures.ps1` for the attempts.
+ * They are now modelled directly from the published [MS-ODRAWXML] schema in
+ * `chart-ext-titles.ts` and `chart-data-labels-range.ts` and round-trip
+ * byte-identically through the same passthrough path this module already
+ * relies on for the untouched case.
  *
  * The one behaviour this module fixes, not just describes: the save path
  * (`PptxHandlerRuntimeSaveDataSerialization`) allocates every visible
@@ -73,7 +80,10 @@ function scalarChild(
  * idx/ptCount expansion rule (a sparse cache slot is a genuine blank, not
  * absence): {@link PptxHandlerRuntimeChartDetection.extractChartCategoryValues}.
  */
-function readCachedValues(refContainer: XmlObject | undefined, xmlLookup: XmlLookupLike): string[] {
+export function readCachedValues(
+	refContainer: XmlObject | undefined,
+	xmlLookup: XmlLookupLike,
+): string[] {
 	if (!refContainer) {
 		return [];
 	}
@@ -111,6 +121,27 @@ function readCachedValues(refContainer: XmlObject | undefined, xmlLookup: XmlLoo
 	return out;
 }
 
+/**
+ * Dense values from either a ref form (`c:strRef`/`c:numRef`, cache nested
+ * one level inside `c:strCache`/`c:numCache`) or a LITERAL form
+ * (`c:strLit`/`c:numLit`, the SAME ptCount/pt shape directly, no nesting -
+ * what a value with no real cell reference, e.g. a freshly hidden series
+ * from the chart editor's "Chart Filters" action, is written as; see
+ * `chart-filtered-series-writer.ts`).
+ */
+function readRefOrLiteral(container: XmlObject | undefined, xmlLookup: XmlLookupLike): string[] {
+	const ref =
+		xmlLookup.getChildByLocalName(container, 'strRef') ??
+		xmlLookup.getChildByLocalName(container, 'numRef');
+	if (ref) {
+		return readCachedValues(ref, xmlLookup);
+	}
+	const literal =
+		xmlLookup.getChildByLocalName(container, 'strLit') ??
+		xmlLookup.getChildByLocalName(container, 'numLit');
+	return literal ? readCachedValues({ 'c:strCache': literal }, xmlLookup) : [];
+}
+
 function parseOneFilteredSeries(
 	node: XmlObject,
 	xmlLookup: XmlLookupLike,
@@ -129,27 +160,19 @@ function parseOneFilteredSeries(
 	const result: PptxChartFilteredSeries = { idx, order };
 
 	const txNode = xmlLookup.getChildByLocalName(node, 'tx');
-	const nameValues = readCachedValues(
-		xmlLookup.getChildByLocalName(txNode, 'strRef') ??
-			xmlLookup.getChildByLocalName(txNode, 'numRef'),
-		xmlLookup,
-	);
-	if (nameValues[0]) {
-		result.name = nameValues[0];
+	const nameValues = readRefOrLiteral(txNode, xmlLookup);
+	const literalName =
+		nameValues[0] ?? (xmlLookup.getScalarChildByLocalName?.(txNode, 'v') || undefined);
+	if (literalName) {
+		result.name = literalName;
 	}
 
-	const catNode = xmlLookup.getChildByLocalName(node, 'cat');
-	const categories = readCachedValues(
-		xmlLookup.getChildByLocalName(catNode, 'strRef') ??
-			xmlLookup.getChildByLocalName(catNode, 'numRef'),
-		xmlLookup,
-	);
+	const categories = readRefOrLiteral(xmlLookup.getChildByLocalName(node, 'cat'), xmlLookup);
 	if (categories.length > 0) {
 		result.categories = categories;
 	}
 
-	const valNode = xmlLookup.getChildByLocalName(node, 'val');
-	const values = readCachedValues(xmlLookup.getChildByLocalName(valNode, 'numRef'), xmlLookup)
+	const values = readRefOrLiteral(xmlLookup.getChildByLocalName(node, 'val'), xmlLookup)
 		.map((v) => Number.parseFloat(v))
 		.filter((n) => Number.isFinite(n));
 	if (values.length > 0) {
@@ -165,7 +188,7 @@ function parseOneFilteredSeries(
 }
 
 /** Find the chart15 filter `c:ext` (by uri) directly under `container/c:extLst`. */
-function findFilterExt(
+export function findFilterExt(
 	container: XmlObject | undefined,
 	xmlLookup: XmlLookupLike,
 ): XmlObject | undefined {

@@ -4,6 +4,16 @@ import type {
 	PptxChartDataLabelOptions,
 	XmlObject,
 } from '../types';
+import {
+	findChart15Ext,
+	parseDataLabelFieldTable,
+	showsDataLabelsRange,
+} from './chart-data-label-field-table';
+import {
+	groupShowsDataLabelsRange,
+	parseDataLabelsRange,
+	parseXForSave,
+} from './chart-data-labels-range';
 import { parseDefRPrTextStyle, resolveTxPrDefRPr } from './chart-def-rpr-style';
 import { parseChartManualLayout } from './chart-layout';
 import { parseShapeProps } from './chart-series-detail-parser';
@@ -16,27 +26,6 @@ interface XmlLookupLike {
 
 interface ColorParserLike {
 	parseColor: (fillNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
-}
-
-/**
- * `c:ext/@uri` for the Office 2013+ "chart15" extension namespace. Reused
- * across several distinct chart15 additions (`c15:layout`,
- * `c15:showLeaderLines`, `c15:leaderLines`, `c15:dlblFieldTable`,
- * `c15:showDataLabelsRange`); which one applies is determined by the child
- * element inside `c:ext`, not by the uri. Confirmed against real corpus
- * markup (`e2e/fixtures/issue-132-gradient-fill.pptx`,
- * `e2e/fixtures/issue-132-hr-deck.pptx`).
- */
-const CHART15_EXT_URI = '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}';
-
-function findChart15Ext(group: XmlObject, xmlLookup: XmlLookupLike): XmlObject | undefined {
-	const extLst = xmlLookup.getChildByLocalName(group, 'extLst');
-	if (!extLst) {
-		return undefined;
-	}
-	return xmlLookup
-		.getChildrenArrayByLocalName(extLst, 'ext')
-		.find((ext) => ext['@_uri'] === CHART15_EXT_URI);
 }
 
 /**
@@ -145,78 +134,6 @@ function numberFormatCode(
 	return formatCode.length > 0 ? formatCode : undefined;
 }
 
-/** Recursively collect every object descendant (inclusive of `node` itself's children) whose local name is `target`. */
-function collectByLocalName(node: XmlObject, target: string, out: XmlObject[]): void {
-	for (const [key, child] of Object.entries(node)) {
-		if (key.startsWith('@_') || key === '#text') {
-			continue;
-		}
-		const items = Array.isArray(child) ? child : [child];
-		for (const item of items) {
-			if (item && typeof item === 'object') {
-				if (localNameOf(key) === target) {
-					out.push(item as XmlObject);
-				}
-				collectByLocalName(item as XmlObject, target, out);
-			}
-		}
-	}
-}
-
-/**
- * Parse PowerPoint 2013+'s "Value From Cells" custom label text
- * (`c:dLbls/c:extLst/c:ext/c15:dlblFieldTable/c15:dlblFieldTableEntry`),
- * keyed by point index (`c:pt/@idx`).
- *
- * Distinct from the plain `c:dLbl/c:tx/c:rich` literal-text override: this
- * extension caches the linked cell range's text so a per-point label whose
- * `c15:showDataLabelsRange` flag is set can resolve straight to the cached
- * string, without needing the source workbook. Searched by local name only
- * (ignoring the exact `c15:`/`mc:AlternateContent` wrapping) since only the
- * idx -> text mapping matters here.
- */
-function parseDataLabelFieldTable(
-	group: XmlObject,
-	xmlLookup: XmlLookupLike,
-): Map<number, string> | undefined {
-	const extLst = xmlLookup.getChildByLocalName(group, 'extLst');
-	if (!extLst) {
-		return undefined;
-	}
-	const tables: XmlObject[] = [];
-	collectByLocalName(extLst, 'dlblFieldTable', tables);
-	if (tables.length === 0) {
-		return undefined;
-	}
-	const points: XmlObject[] = [];
-	for (const table of tables) {
-		collectByLocalName(table, 'pt', points);
-	}
-	const map = new Map<number, string>();
-	for (const pt of points) {
-		const idx = Number.parseInt(String(pt['@_idx'] ?? ''), 10);
-		if (!Number.isInteger(idx) || idx < 0) {
-			continue;
-		}
-		const value = scalar(pt, 'v', xmlLookup);
-		if (value !== undefined) {
-			map.set(idx, value);
-		}
-	}
-	return map.size > 0 ? map : undefined;
-}
-
-/** Whether a `c:dLbl`'s `c:extLst` carries a `c15:showDataLabelsRange` flag set to true. */
-function showsDataLabelsRange(dLblNode: XmlObject, xmlLookup: XmlLookupLike): boolean {
-	const extLst = xmlLookup.getChildByLocalName(dLblNode, 'extLst');
-	if (!extLst) {
-		return false;
-	}
-	const flags: XmlObject[] = [];
-	collectByLocalName(extLst, 'showDataLabelsRange', flags);
-	return flags.some((flag) => flag['@_val'] === '1' || flag['@_val'] === 'true');
-}
-
 /** Parse individual `c:dLbl` overrides and validate their simple-type values. */
 export function parseSeriesDataLabels(
 	seriesNode: XmlObject,
@@ -278,6 +195,13 @@ export function parseSeriesDataLabels(
 			if (cellText !== undefined) {
 				result.text = cellText;
 			}
+		}
+		// `c15:xForSave`: this override exists only to survive a save/reload
+		// round trip (see chart-data-labels-range.ts's doc). Round-tripped for
+		// introspection; the save path preserves the point's whole extLst.
+		const forSave = parseXForSave(node, xmlLookup);
+		if (forSave !== undefined) {
+			result.savedForCompatibilityOnly = forSave;
 		}
 		const numberFormat = numberFormatCode(node, xmlLookup);
 		if (numberFormat !== undefined) {
@@ -344,6 +268,13 @@ export function parseChartDataLabelOptions(
 	const numberFormat = numberFormatCode(group, xmlLookup);
 	if (numberFormat !== undefined) {
 		result.numberFormat = numberFormat;
+	}
+	// PowerPoint 2013+ "Value From Cells", series-wide form: one cell range
+	// supplies every label in this group (see chart-data-labels-range.ts).
+	const dataLabelsRange = parseDataLabelsRange(group, xmlLookup);
+	if (dataLabelsRange) {
+		result.dataLabelsRange = dataLabelsRange;
+		result.showDataLabelsRange = groupShowsDataLabelsRange(group, xmlLookup);
 	}
 	if (colorParser) {
 		const txPrStyle = parseDefRPrTextStyle(

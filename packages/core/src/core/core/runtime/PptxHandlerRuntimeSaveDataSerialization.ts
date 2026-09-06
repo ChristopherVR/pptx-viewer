@@ -35,6 +35,7 @@ import {
 } from '../../utils/chart-container-schema';
 import { isLineDrawnChartType } from '../../utils/chart-container-type-map';
 import { buildChartExSpaceXml, canGenerateChartEx } from '../../utils/chart-cx-generator';
+import { applyDataLabelsRangeToDLbls } from '../../utils/chart-data-labels-range';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applyChartDataTable } from '../../utils/chart-data-table';
 import {
@@ -48,6 +49,10 @@ import {
 	assignSeriesIndices,
 	collectFilteredSeriesIndices,
 } from '../../utils/chart-filtered-series';
+import {
+	applyFilteredSeriesToXml,
+	filteredSeriesUnchanged,
+} from '../../utils/chart-filtered-series-writer';
 import { applyChartLayouts } from '../../utils/chart-layout';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applyChartLineStyle } from '../../utils/chart-line-style-serializer';
@@ -537,6 +542,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						);
 					}
 
+					// Series-wide "Value From Cells" (c15:datalabelsRange), independent
+					// of the per-point overrides above: it lives in c:ser/c:dLbls's OWN
+					// extLst, not a c:dLbl. dataLabelsRangeUnchanged compares against
+					// whatever c:dLbls already has, so an untouched series (the common
+					// case: nothing currently authors this field) never gets its dLbls
+					// group touched at all, preserving it byte-for-byte.
+					if (seriesData.dataLabelOptions?.dataLabelsRange !== undefined) {
+						const getLocalName = (key: string) => this.compatibilityService.getXmlLocalName(key);
+						const dLblsKey =
+							Object.keys(seriesNode).find((k) => getLocalName(k) === 'dLbls') ?? 'c:dLbls';
+						let dLbls = (seriesNode as XmlObject)[dLblsKey] as XmlObject | undefined;
+						if (!dLbls) {
+							dLbls = {};
+							(seriesNode as XmlObject)[dLblsKey] = dLbls;
+						}
+						applyDataLabelsRangeToDLbls(
+							dLbls,
+							seriesData.dataLabelOptions.dataLabelsRange,
+							seriesData.dataLabelOptions.showDataLabelsRange,
+							getLocalName,
+						);
+					}
+
 					// Per-series 3-D bar/column shape override (c:ser/c:shape), legal
 					// only inside a bar3D container. Undefined = passthrough.
 					if (seriesData.shape !== undefined && chartData.chartType === 'bar3D') {
@@ -588,6 +616,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (chartData.series.length === 1) {
 						chartTypeContainer[seriesKey] = (chartTypeContainer[seriesKey] as XmlObject[])[0];
 					}
+				}
+
+				// PowerPoint "Chart Filters" hide/show (c15:filtered<Type>Series):
+				// re-derive from the model only when the chart editor's
+				// hideChartSeries/restoreFilteredSeries actions actually changed it,
+				// so an untouched chart's extension stays byte-identical passthrough.
+				if (
+					!filteredSeriesUnchanged(
+						chartTypeContainer,
+						chartData.filteredSeries,
+						this.xmlLookupService,
+					)
+				) {
+					applyFilteredSeriesToXml(
+						chartTypeContainer,
+						chartData.filteredSeries,
+						chartData.categories,
+						containerLocalName,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+					);
 				}
 
 				// ── Per-series combo types ────────────────────────────

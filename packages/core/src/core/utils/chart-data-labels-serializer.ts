@@ -10,7 +10,8 @@
  * @module utils/chart-data-labels-serializer
  */
 
-import type { XmlObject } from '../types';
+import type { PptxChartDataLabelsRange, XmlObject } from '../types';
+import { applyDataLabelsRangeToDLbls } from './chart-data-labels-range';
 
 /** Resolve a possibly-prefixed XML key to its local name. */
 type GetLocalName = (key: string) => string;
@@ -30,6 +31,10 @@ export interface ChartDataLabelStyle {
 		position?: string;
 		/** Label-specific number format (`c:dLbls/c:numFmt/@formatCode`), distinct from the series' own cell format (C2-G16). */
 		numberFormat?: string;
+		/** PowerPoint 2013+ "Value From Cells" (`c15:datalabelsRange`); see `chart-data-labels-range.ts`. */
+		dataLabelsRange?: PptxChartDataLabelsRange;
+		/** `c15:showDataLabelsRange` at the group level, paired with {@link dataLabelsRange}. */
+		showDataLabelsRange?: boolean;
 	};
 }
 
@@ -223,6 +228,12 @@ export function applyChartDataLabelsToXml(
 
 		const existing = existingKey ? (container[existingKey] as XmlObject) : undefined;
 		const built = buildDLbls(existing, effective, getLocalName);
+		applyDataLabelsRangeToDLbls(
+			built,
+			opts.dataLabelsRange,
+			opts.showDataLabelsRange,
+			getLocalName,
+		);
 
 		if (existingKey) {
 			container[existingKey] = built;

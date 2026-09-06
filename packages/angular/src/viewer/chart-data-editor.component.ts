@@ -55,6 +55,7 @@ import {
 	setSeriesName,
 	setSeriesValue,
 } from './chart-data-helpers';
+import { ChartFilteredSeriesOptionsComponent } from './chart-filtered-series-options.component';
 import { ChartPartSelectionService } from './chart-part-selection.service';
 import { RecentColorsService } from './recent-colors.service';
 import { ViewerOptionsService } from './viewer-options.service';
@@ -62,7 +63,7 @@ import { ViewerOptionsService } from './viewer-options.service';
 @Component({
 	selector: 'pptx-chart-data-editor',
 	standalone: true,
-	imports: [AdvancedChartEditorComponent, TranslatePipe],
+	imports: [AdvancedChartEditorComponent, ChartFilteredSeriesOptionsComponent, TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<section class="pptx-chart-editor" [attr.aria-label]="'pptx.chart.data' | translate">
@@ -211,6 +212,11 @@ import { ViewerOptionsService } from './viewer-options.service';
 						</tbody>
 					</table>
 				</div>
+				<pptx-chart-filtered-series-options
+					[element]="element()"
+					[canEdit]="canEdit()"
+					(elementChange)="elementChange.emit($event)"
+				/>
 				<pptx-advanced-chart-editor
 					[element]="element()"
 					[canEdit]="canEdit()"

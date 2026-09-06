@@ -258,6 +258,20 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 		note: 'COM-authored ground truth for PowerPoint\'s "Chart Filters" feature: a 3-series/4-category column chart with `Series.IsFiltered = True` on series B and `FullCategoryCollection().IsFiltered = True` on one category. The hidden series survives as `c:barChart/c:extLst/c:ext[uri={02D57815-91ED-43cb-92C2-25804820EDAC}]/c15:filteredBarSeries/c15:ser`, a full c:ser-shaped node with its own idx/order/tx/cat/val caches and c16:uniqueId; the filtered category produced no separate extension at all, just a shortened c:strCache/c:numCache on every surviving series. See chart-filtered-series.ts.',
 	},
 	{
+		file: 'chart-ext-filtered-titles.pptx',
+		dir: 'e2e',
+		provenance: 'synthetic',
+		status: 'roundtrip',
+		note: "chart-filtered-series.pptx (genuine COM output, Series.IsFiltered) with c15:filteredSeriesTitle/c15:filteredCategoryTitle hand-authored into the SAME c15:filteredBarSeries extension per the published [MS-ODRAWXML] schema (CT_FilteredSeriesTitle/CT_FilteredCategoryTitle): PowerPoint 2016 COM automation could not be made to write either extension (see scripts/make-chart-ext-fixtures.ps1), and PowerPoint's own SaveAs silently DROPS unrecognized foreign extLst content on resave rather than preserving it, so a COM re-save cannot serve as the fixture here. Verified only via `pptx-com-open.ps1`: PowerPoint opens the file with the same slide/shape counts as the unedited base, no repair.",
+	},
+	{
+		file: 'chart-ext-datalabels-range.pptx',
+		dir: 'e2e',
+		provenance: 'synthetic',
+		status: 'roundtrip',
+		note: 'A COM-authored column chart (Series(1).DataLabels.ShowRange = True, which DOES round-trip through PowerPoint as a real c15:showDataLabelsRange group flag) with a c15:datalabelsRange (c15:f + c15:dlblRangeCache) and a c:dLbl/c15:xForSave hand-authored alongside it: COM has no settable property for the "Value From Cells" range formula itself (see scripts/make-chart-ext-fixtures.ps1). Same PowerPoint-drops-foreign-extLst-content caveat as chart-ext-filtered-titles.pptx applies; verified via pptx-com-open.ps1 only.',
+	},
+	{
 		file: 'chart-user-shape-group.pptx',
 		dir: 'e2e',
 		provenance: 'synthetic',

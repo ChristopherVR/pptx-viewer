@@ -17,6 +17,7 @@ import { createChartAdvancedSection } from './chart-advanced-section';
 import { createChartDataGrid } from './chart-data-grid';
 import { tokenSelect } from './chart-exhaustive-controls';
 import { createChartExhaustiveSection } from './chart-exhaustive-section';
+import { createChartFilteredSeriesSection } from './chart-filtered-series-section';
 import { createChartPointIndexField } from './chart-point-index';
 import { createChartSubtypeSection } from './chart-subtype-section';
 import { createChartUserShapeSection } from './chart-user-shape-section';
@@ -93,6 +94,14 @@ export function createChartSection(
 	// wireframe): shown beside the advanced section's gridlines toggle and the
 	// exhaustive section's secondary-axis control, same wave.
 	const subtype = createChartSubtypeSection(doc, t, (data) => handlers.setChartData(data));
+	// Chart Filters (series show/hide) + "Value From Cells" label caches. Sits
+	// right after the advanced block, which owns the per-series colour controls,
+	// mirroring React mounting `ChartFilteredSeriesOptions` after
+	// `ChartSeriesColorOptions`. The shared actions return a full replacement
+	// chart-data object, so it commits straight through.
+	const filteredSeries = createChartFilteredSeriesSection(doc, t, (data) =>
+		handlers.setChartData(data),
+	);
 	// Overlay-shape edits (`c:userShapes`) only ever touch `userShapes`, so a
 	// shallow patch merged onto `current` is enough; unlike the sections above
 	// it never needs a full replacement chart-data object.
@@ -109,6 +118,7 @@ export function createChartSection(
 		legend.label,
 		labels.label,
 		advanced.el,
+		filteredSeries.el,
 		subtype.el,
 		exhaustive.el,
 		userShapes.el,
@@ -181,9 +191,14 @@ export function createChartSection(
 			legend.control.checked = current.style?.hasLegend ?? false;
 			labels.control.checked = current.style?.hasDataLabels ?? false;
 			advanced.update(current);
+			filteredSeries.update(current);
 			subtype.update(current);
 			exhaustive.update(current);
 			userShapes.update(current);
+		},
+		/** Read-only mode: disables the Chart Filters / Value From Cells controls. */
+		setEditable(editable: boolean) {
+			filteredSeries.setEditable(editable);
 		},
 	};
 }
