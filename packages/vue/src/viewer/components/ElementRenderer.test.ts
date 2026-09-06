@@ -146,6 +146,51 @@ describe('elementRenderer', () => {
 		expect(wrapper.text()).toContain('child');
 	});
 
+	it('mirrors a group-level a:reflection (p:grpSpPr/a:effectLst) across its children', () => {
+		// `p:grpSpPr/a:effectLst/a:reflection` lands on `groupFill` (the same
+		// extractor a regular shape's `spPr` uses); a group has no `shapeStyle`
+		// of its own, so `ElementRenderer` must mount `ShapeEffectOverlay` on the
+		// group branch too, not only on the text/shape branch.
+		const wrapper = mountEl({
+			type: 'group',
+			id: 'g-refl',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 200,
+			groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+			children: [{ type: 'text', id: 'c1', x: 0, y: 0, width: 50, height: 20, text: 'child' }],
+		} as unknown as PptxElement);
+		const reflection = wrapper.get('.pptx-vue-reflection');
+		expect(reflection.text()).toContain('child');
+	});
+
+	it('paints a group-level shadow / glow as a filter on the group composite', () => {
+		// `p:grpSpPr/a:effectLst` shadow / glow is computed into the group's
+		// `filter` by `getShapeFillStrokeStyle`; the group branch must bind that
+		// style (it bound only the container transform once, so the filter never
+		// reached the DOM while the other four bindings painted it).
+		const wrapper = mountEl({
+			type: 'group',
+			id: 'g-fx',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 200,
+			groupEffectStyle: {
+				shadowColor: '#000000',
+				shadowBlur: 4,
+				shadowOffsetX: 3,
+				shadowOffsetY: 3,
+				glowColor: '#FFC000',
+				glowRadius: 8,
+			},
+			children: [{ type: 'text', id: 'c1', x: 0, y: 0, width: 50, height: 20, text: 'child' }],
+		} as unknown as PptxElement);
+		const group = wrapper.get('.pptx-vue-group');
+		expect(group.attributes('style')).toContain('drop-shadow');
+	});
+
 	it('renders a defensive placeholder for unknown element types', () => {
 		// Every real PptxElement type now has a dedicated renderer; the generic
 		// placeholder is only reached defensively for an unrecognised `type`.
@@ -297,8 +342,12 @@ describe('elementRenderer per-run text effects', () => {
 		} as unknown as PptxElement);
 		const block = wrapper.find('.pptx-vue-text');
 		const style = block.attributes('style') ?? '';
-		expect(style).toContain('perspective');
-		expect(style).toContain('rotateX');
+		// `perspectiveAbove` is unified onto the shape-level COM-measured
+		// homography (see `text-effects-3d`'s module doc comment): a
+		// `matrix3d(...)` + `transform-origin: 0 0`, not the old hand-tuned
+		// `perspective` + `rotateX` approximation.
+		expect(style).toContain('matrix3d');
+		expect(style).toContain('transform-origin: 0 0');
 	});
 });
 

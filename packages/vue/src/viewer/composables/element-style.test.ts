@@ -307,3 +307,40 @@ describe('getShapeFillStrokeStyle gradient tiling (#132)', () => {
 		expect(style.backgroundImage).not.toMatch(/circle\s+[\d.]+%/u);
 	});
 });
+
+describe('getShapeFillStrokeStyle group-level effects (p:grpSpPr/a:effectLst)', () => {
+	function group(groupEffectStyle?: Record<string, unknown>): PptxElement {
+		return {
+			type: 'group',
+			id: 'grp-1',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			children: [],
+			groupEffectStyle,
+		} as unknown as PptxElement;
+	}
+
+	it('returns an empty style for a group with no groupEffectStyle', () => {
+		expect(getShapeFillStrokeStyle(group())).toStrictEqual({});
+	});
+
+	it('paints the group composite shadow as a `filter: drop-shadow`, never a `box-shadow`', () => {
+		const style = getShapeFillStrokeStyle(
+			group({ shadowColor: '#000000', shadowAngle: 0, shadowDistance: 4, shadowBlur: 6 }),
+		);
+		expect(style.boxShadow).toBeUndefined();
+		expect(String(style.filter)).toContain('drop-shadow');
+	});
+
+	it('paints a group glow as a `filter: drop-shadow`', () => {
+		const style = getShapeFillStrokeStyle(group({ glowColor: '#00ff00', glowRadius: 10 }));
+		expect(String(style.filter)).toContain('drop-shadow');
+	});
+
+	it('sets overflow: visible for a group blur effect with @grow', () => {
+		const style = getShapeFillStrokeStyle(group({ blurRadius: 6, blurGrow: true }));
+		expect(style.overflow).toBe('visible');
+	});
+});

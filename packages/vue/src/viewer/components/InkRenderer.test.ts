@@ -100,6 +100,46 @@ describe('inkRenderer', () => {
 		expect(wrapper.findAll('circle')).toHaveLength(0);
 	});
 
+	it('paints calligraphic nib ellipses when inkPointTiltX/Y carry a genuine lean, taking priority over pressure circles', () => {
+		const wrapper = mount(InkRenderer, {
+			props: {
+				element: ink({
+					inkPaths: ['M0 0 L50 0 L100 0'],
+					inkColors: ['#111111'],
+					inkWidths: [4],
+					inkOpacities: [1],
+					inkPointPressures: [[0.2, 0.6, 0.9]],
+					inkPointTiltX: [[10, 0, 0]],
+					inkPointTiltY: [[0, 20, 0]],
+				}),
+				zIndex: 1,
+			},
+		});
+		expect(wrapper.findAll('path')).toHaveLength(0);
+		expect(wrapper.findAll('circle')).toHaveLength(0);
+		const ellipses = wrapper.findAll('ellipse');
+		expect(ellipses.length).toBeGreaterThan(0);
+		expect(ellipses[0].attributes('fill')).toBe('#111111');
+	});
+
+	it('treats a constant (0, 0) tilt reading as no real lean, but still degrades safely (circular ellipses)', () => {
+		const wrapper = mount(InkRenderer, {
+			props: {
+				element: ink({
+					inkPaths: ['M0 0 L10 0'],
+					inkPointTiltX: [[0, 0]],
+					inkPointTiltY: [[0, 0]],
+				}),
+				zIndex: 1,
+			},
+		});
+		const ellipses = wrapper.findAll('ellipse');
+		expect(ellipses.length).toBeGreaterThan(0);
+		for (const ellipse of ellipses) {
+			expect(ellipse.attributes('rx')).toBe(ellipse.attributes('ry'));
+		}
+	});
+
 	it('applies sequential replay styles when presentation replay is enabled', () => {
 		const wrapper = mount(InkRenderer, {
 			props: { element: ink(), zIndex: 1, replay: true },

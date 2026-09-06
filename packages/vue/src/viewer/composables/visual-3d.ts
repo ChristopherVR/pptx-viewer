@@ -65,6 +65,12 @@ export function merge3dStyle(base: CSSProperties, computed: Computed3dStyle | un
 	if (computed.perspective) {
 		base.perspective = computed.perspective;
 	}
+	if (computed.perspectiveOrigin) {
+		base.perspectiveOrigin = computed.perspectiveOrigin;
+	}
+	if (computed.transformOrigin) {
+		base.transformOrigin = computed.transformOrigin;
+	}
 	if (computed.transformStyle) {
 		base.transformStyle = computed.transformStyle as CSSProperties['transformStyle'];
 	}

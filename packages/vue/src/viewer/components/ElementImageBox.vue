@@ -22,6 +22,7 @@ import { computed } from 'vue';
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
 import { useColorChangeImage } from '../composables/use-color-change-image';
 import type { ClrChangeEffect } from '../composables/use-color-change-image';
+import ShapeEffectOverlay from './ShapeEffectOverlay.vue';
 
 const props = defineProps<{
 	element: PptxElement;
@@ -161,5 +162,12 @@ const rootPointerEvents = computed<CSSProperties | null>(() =>
 				opacity: colorWash.opacity,
 			}"
 		/>
+		<!-- DAG fill-overlay tint + `a:reflection` mirror. A picture has no
+		     gradient/pattern outline or soft edge of its own to add here (those
+		     builders return undefined for an image), but the reflection mirror
+		     was missing entirely before this: `ElementImageBox` never mounted
+		     `ShapeEffectOverlay` at all, so a reflected picture rendered nothing
+		     extra despite the component supporting one. -->
+		<ShapeEffectOverlay :element="element" :media-data-urls="mediaDataUrls" />
 	</div>
 </template>

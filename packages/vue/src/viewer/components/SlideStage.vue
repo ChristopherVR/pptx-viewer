@@ -192,7 +192,10 @@ const stageStyle = computed<CSSProperties>(() => ({
 	// A stacked overlay layer opts out entirely and stays see-through.
 	...(props.transparentBackground
 		? { background: 'none', backgroundColor: 'transparent' }
-		: (getSlideBackgroundStyle(props.slide) as CSSProperties)),
+		: (getSlideBackgroundStyle(props.slide, {
+				widthPx: props.canvasSize.width,
+				heightPx: props.canvasSize.height,
+			}) as CSSProperties)),
 }));
 </script>
 

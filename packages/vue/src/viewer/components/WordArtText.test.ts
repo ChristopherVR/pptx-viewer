@@ -4,6 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 import WordArtText from './WordArtText.vue';
 
+/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
+function matrixScaleY(transform: string): number {
+	const terms = transform.replace('matrix(', '').replace(')', '').trim().split(/\s+/u);
+	return Number(terms[3]);
+}
+
 function warpedText(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
 		type: 'text',
@@ -115,40 +121,119 @@ describe('wordArtText', () => {
 		expect(tp.attributes('startOffset')).toBe('50%');
 	});
 
-	it('applies a CSS transform (not a textPath) for an envelope preset', () => {
+	it('renders one <text> per glyph (true two-curve envelope), not a shared textPath', () => {
+		// Regression pin: envelope presets used to fall back to a flat
+		// `.pptx-vue-wordart-css` box with a CSS `transform` approximation, then
+		// later to a shared-baseline `<textPath>` (see the WordArt envelope
+		// fidelity fix docs above). Neither varies glyph HEIGHT across the
+		// line the way PowerPoint's own two-curve envelope does, so this now
+		// renders one `<text>` per glyph with its own `translate/scale`.
 		const wrapper = mount(WordArtText, {
 			props: {
 				element: warpedText({ textStyle: { textWarpPreset: 'textInflate', color: '#00ff00' } }),
 				zIndex: 4,
 			},
 		});
-		// Envelope presets render the flat-text overlay, never an SVG textPath.
-		expect(wrapper.find('svg').exists()).toBeFalsy();
+		expect(wrapper.find('svg.pptx-vue-wordart').exists()).toBeTruthy();
 		expect(wrapper.find('textPath').exists()).toBeFalsy();
-		const box = wrapper.find('.pptx-vue-wordart-css');
-		expect(box.exists()).toBeTruthy();
-		const style = box.attributes('style') ?? '';
-		expect(style).toContain('scaleY(1.15)');
-		expect(style).toContain('transform-origin: center center');
-		// The text content + per-run colour still render.
-		expect(box.text()).toContain('Hello');
-		expect(box.find('span').attributes('style')).toContain('color: #00ff00');
+		expect(wrapper.find('.pptx-vue-wordart-css').exists()).toBeFalsy();
+		const glyphTexts = wrapper.findAll('svg > text');
+		expect(glyphTexts).toHaveLength('Hello'.length);
+		expect(glyphTexts.map((t) => t.text()).join('')).toBe('Hello');
+		expect(glyphTexts[0].attributes('fill')).toBe('#00ff00');
+		expect(glyphTexts[0].attributes('transform')).toContain('matrix(1');
 	});
 
-	it('applies a CSS transform for a simple preset', () => {
+	it('varies scaleY across an inflate line (the fixed residual: glyph height between curves)', () => {
+		const wrapper = mount(WordArtText, {
+			props: {
+				element: warpedText({
+					textStyle: { textWarpPreset: 'textInflate' },
+					text: 'INFLATED TEXT',
+				}),
+				zIndex: 0,
+			},
+		});
+		const scales = wrapper
+			.findAll('svg > text')
+			.map((t) => matrixScaleY(t.attributes('transform') ?? ''));
+		expect(new Set(scales.map((s) => s.toFixed(4))).size).toBeGreaterThan(1);
+	});
+
+	it('a multi-paragraph inflate element still uses the per-glyph envelope for every line', () => {
+		const wrapper = mount(WordArtText, {
+			props: {
+				element: warpedText({
+					textStyle: { textWarpPreset: 'textInflate' },
+					text: '',
+					textSegments: [
+						{ text: 'Top', style: {} },
+						{ text: '', style: {}, isParagraphBreak: true },
+						{ text: 'Bottom', style: {} },
+					],
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('textPath').exists()).toBeFalsy();
+		// 'Top' (3) + 'Bottom' (6) = 9 glyphs total.
+		expect(wrapper.findAll('svg > text')).toHaveLength(9);
+	});
+
+	it('a short caption of very wide glyphs on a steep can-up curve renders sliced glyphs, clipped and seamed', () => {
+		// Wide "M"s at extreme adj: exactly the "6-8 very wide glyphs filling
+		// the box" residual from limitations.md, where a single affine per
+		// glyph is no longer enough (see `chooseGlyphSliceCount` in
+		// pptx-viewer-shared). happy-dom has no real canvas 2D context, so
+		// `measureGlyphAdvances` falls back to a deterministic `fontSize * 0.55`
+		// per character: 3 "M"s at fontSize 160 measure 88px each, ~29% of a
+		// 300px line per glyph.
+		const wrapper = mount(WordArtText, {
+			props: {
+				element: warpedText({
+					width: 300,
+					height: 120,
+					text: 'MMM',
+					textStyle: { textWarpPreset: 'textCanUp', textWarpAdj: 66667, fontSize: 160 },
+				}),
+				zIndex: 0,
+			},
+		});
+		const glyphGroups = wrapper.findAll('svg > g[data-glyph-slices]');
+		expect(glyphGroups.length).toBeGreaterThan(0);
+		for (const group of glyphGroups) {
+			const sliceTexts = group.findAll('text');
+			const clipPaths = group.findAll('clipPath');
+			expect(sliceTexts).toHaveLength(clipPaths.length);
+			expect(sliceTexts.length).toBeGreaterThan(1);
+			const ids = new Set<string>();
+			for (const t of sliceTexts) {
+				const clip = t.attributes('clip-path') ?? '';
+				const id = /url\(#([^)]+)\)/u.exec(clip)?.[1];
+				expect(id).toBeTruthy();
+				ids.add(id!);
+			}
+			expect(ids.size).toBe(sliceTexts.length);
+		}
+		// A single-slice glyph still renders as a bare <text> direct svg
+		// child, not wrapped in a group - ordinary captions pay no cost.
+		const bareGlyphs = wrapper.findAll('svg > text');
+		expect(bareGlyphs.length + glyphGroups.length).toBe('MMM'.length);
+	});
+
+	it('renders a true SVG textPath (not a CSS transform) for a former "simple" preset', () => {
+		// textSlantUp/textFadeRight/textCascadeUp etc. moved from the CSS-transform
+		// `simple` family to true SVG textPath once their generators became
+		// single-line-safe.
 		const wrapper = mount(WordArtText, {
 			props: {
 				element: warpedText({ textStyle: { textWarpPreset: 'textSlantUp' } }),
 				zIndex: 0,
 			},
 		});
-		expect(wrapper.find('textPath').exists()).toBeFalsy();
-		const box = wrapper.find('.pptx-vue-wordart-css');
-		expect(box.exists()).toBeTruthy();
-		const style = box.attributes('style') ?? '';
-		expect(style).toContain('skewY(-4deg)');
-		expect(style).toContain('rotateY(8deg)');
-		expect(style).toContain('transform-origin: left center');
+		expect(wrapper.find('svg.pptx-vue-wordart').exists()).toBeTruthy();
+		expect(wrapper.find('textPath').exists()).toBeTruthy();
+		expect(wrapper.find('.pptx-vue-wordart-css').exists()).toBeFalsy();
 	});
 
 	it('keeps using a textPath (not a CSS box) for a path preset', () => {

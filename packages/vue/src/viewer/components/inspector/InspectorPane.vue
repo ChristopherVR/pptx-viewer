@@ -7,6 +7,7 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
+import { shouldShowAccessibilitySection } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -80,15 +81,11 @@ const isConnector = computed(() => props.element.type === 'connector');
 const isGroup = computed(() => props.element.type === 'group');
 const isOle = computed(() => props.element.type === 'ole');
 // Accessibility (alt text / title): a picture's own field lives in
-// `ImagePanel`; this covers only the three kinds `PptxNonVisualDescription`
-// was added to, so it does not duplicate a table/chart/smartArt/media/ole
-// panel's own alt-text UI.
-const isTextShapeOrConnector = computed(
-	() =>
-		props.element.type === 'text' ||
-		props.element.type === 'shape' ||
-		props.element.type === 'connector',
-);
+// `ImagePanel`; shared's `shouldShowAccessibilitySection` decides everything
+// else, a plain shape, text box, connector, and every graphic-frame kind
+// (table/chart/smartArt/media/ole), so this stays in sync with the other
+// four bindings without a hard-coded type list here.
+const showAccessibilitySection = computed(() => shouldShowAccessibilitySection(props.element));
 
 function relay(patch: Partial<PptxElement>): void {
 	emit('update', patch);
@@ -259,7 +256,7 @@ function relay(patch: Partial<PptxElement>): void {
 		</div>
 
 		<div
-			v-if="isTextShapeOrConnector"
+			v-if="showAccessibilitySection"
 			class="pptx-vue-inspector-section py-2 border-b border-border"
 		>
 			<h3

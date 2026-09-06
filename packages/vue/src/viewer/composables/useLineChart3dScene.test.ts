@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 import type { Ref } from 'vue';
 
+import type { ChartCanvasEditContext, ChartPartSelection } from './chart-part-selection';
 import { useLineChart3dScene } from './useLineChart3dScene';
 
 const { LINE_CHART_THREE_UNAVAILABLE, mountLineChart3D } = vi.hoisted(() => ({
@@ -14,15 +15,41 @@ const { LINE_CHART_THREE_UNAVAILABLE, mountLineChart3D } = vi.hoisted(() => ({
 	mountLineChart3D: vi.fn(),
 }));
 
-vi.mock(import('pptx-viewer-shared'), () => ({
-	mountLineChart3D: (...args: unknown[]) => mountLineChart3D(...args),
-	LINE_CHART_THREE_UNAVAILABLE,
-}));
+vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		mountLineChart3D: (...args: unknown[]) => mountLineChart3D(...args),
+		LINE_CHART_THREE_UNAVAILABLE,
+	};
+});
+
+// The composable calls `injectChartCanvasEdit()` internally; mock it so tests
+// can supply a plain (non-injected) `ChartCanvasEditContext` fake without a
+// real Vue component/provide tree.
+const { injectChartCanvasEdit } = vi.hoisted(() => ({ injectChartCanvasEdit: vi.fn() }));
+vi.mock(import('./chart-part-selection'), async (importOriginal) => {
+	const actual = await importOriginal();
+	return { ...actual, injectChartCanvasEdit };
+});
+
+function makeCtx(overrides: Partial<ChartCanvasEditContext> = {}): ChartCanvasEditContext {
+	return {
+		selection: ref<ChartPartSelection | null>(null),
+		setSelection: vi.fn(),
+		canSelectCharts: () => true,
+		canEditChart: () => true,
+		updateElement: vi.fn(),
+		...overrides,
+	};
+}
 
 function okHandle() {
 	return {
 		ok: true,
 		resize: vi.fn(),
+		setSelectedPart: vi.fn(),
+		setTextStyle: vi.fn(),
 		dispose: vi.fn(),
 	};
 }
@@ -56,16 +83,39 @@ interface SceneRefs {
 	options: Ref<LineChart3DSceneOptions | null>;
 }
 
-function run(refs: SceneRefs) {
+function run(
+	refs: SceneRefs,
+	extra: {
+		chartData?: () => import('pptx-viewer-core').PptxChartData | undefined;
+		textStyle?: Ref<import('pptx-viewer-shared').TextStyleAnimationDescriptor | undefined>;
+	} = {},
+) {
 	const scope = effectScope();
-	const result = scope.run(() => useLineChart3dScene(refs))!;
+	const result = scope.run(() =>
+		useLineChart3dScene({
+			...refs,
+			elementId: () => 'el-1',
+			chartData: extra.chartData ?? (() => undefined),
+			textStyle: extra.textStyle,
+		}),
+	)!;
 	return { scope, result };
+}
+
+function chartData() {
+	return {
+		chartType: 'line3D',
+		series: [{ name: 'S1', values: [10, 20] }],
+		categories: ['A', 'B'],
+	} as unknown as import('pptx-viewer-core').PptxChartData;
 }
 
 beforeEach(() => {
 	mountLineChart3D.mockReset();
 	mountLineChart3D.mockResolvedValue(okHandle());
 	LINE_CHART_THREE_UNAVAILABLE.dispose.mockReset();
+	injectChartCanvasEdit.mockReset();
+	injectChartCanvasEdit.mockReturnValue(undefined);
 });
 
 afterEach(() => {
@@ -85,7 +135,15 @@ describe('useLineChart3dScene', () => {
 		await nextTick();
 		await Promise.resolve();
 
-		expect(mountLineChart3D).toHaveBeenCalledWith(refs.container.value, refs.options.value);
+		expect(mountLineChart3D).toHaveBeenCalledWith(
+			refs.container.value,
+			{ ...refs.options.value, textStyle: undefined },
+			expect.objectContaining({
+				onSelect: expect.any(Function),
+				onValueDragPreview: expect.any(Function),
+				onValueDragCommit: expect.any(Function),
+			}),
+		);
 		expect(result.mounted.value).toBeTruthy();
 	});
 
@@ -155,5 +213,118 @@ describe('useLineChart3dScene', () => {
 
 		expect(first.dispose).toHaveBeenCalledOnce();
 		expect(mountLineChart3D).toHaveBeenCalledTimes(2);
+	});
+
+	it('mounts with the active text-style override and re-applies it via setTextStyle when it changes', async () => {
+		const handle = okHandle();
+		mountLineChart3D.mockResolvedValue(handle);
+		const textStyle = ref<import('pptx-viewer-shared').TextStyleAnimationDescriptor | undefined>({
+			bold: true,
+		});
+		const refs: SceneRefs = {
+			container: ref(document.createElement('div')),
+			options: ref(paths()),
+		};
+
+		run(refs, { textStyle });
+		await nextTick();
+		await Promise.resolve();
+
+		expect(mountLineChart3D).toHaveBeenCalledWith(
+			refs.container.value,
+			expect.objectContaining({ textStyle: { bold: true } }),
+			expect.any(Object),
+		);
+
+		textStyle.value = { underline: true };
+		await nextTick();
+
+		expect(handle.setTextStyle).toHaveBeenCalledWith({ underline: true });
+	});
+
+	it('selects the clicked part through the injected chart-canvas-edit context', async () => {
+		const ctx = makeCtx();
+		injectChartCanvasEdit.mockReturnValue(ctx);
+		const handle = okHandle();
+		mountLineChart3D.mockResolvedValue(handle);
+		const refs: SceneRefs = {
+			container: ref(document.createElement('div')),
+			options: ref(paths()),
+		};
+
+		run(refs);
+		await nextTick();
+		await Promise.resolve();
+
+		const interaction = mountLineChart3D.mock.calls[0]![2] as {
+			onSelect: (
+				part: { role: 'dataPoint'; seriesIndex: number; pointIndex: number } | null,
+			) => void;
+		};
+		interaction.onSelect({ role: 'dataPoint', seriesIndex: 0, pointIndex: 1 });
+
+		expect(ctx.setSelection).toHaveBeenCalledWith({
+			elementId: 'el-1',
+			part: { role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+		});
+	});
+
+	it('commits a value drag through withChartPointValue and the same update path 2D dragging uses', async () => {
+		const ctx = makeCtx();
+		injectChartCanvasEdit.mockReturnValue(ctx);
+		const handle = okHandle();
+		mountLineChart3D.mockResolvedValue(handle);
+		const refs: SceneRefs = {
+			container: ref(document.createElement('div')),
+			options: ref(paths()),
+		};
+
+		run(refs, { chartData });
+		await nextTick();
+		await Promise.resolve();
+
+		const interaction = mountLineChart3D.mock.calls[0]![2] as {
+			onValueDragCommit: (
+				part: { role: 'dataPoint'; seriesIndex: number; pointIndex: number },
+				value: number,
+			) => void;
+		};
+		interaction.onValueDragCommit({ role: 'dataPoint', seriesIndex: 0, pointIndex: 1 }, 42);
+
+		expect(ctx.updateElement).toHaveBeenCalledOnce();
+		const [elementId, patch] = vi.mocked(ctx.updateElement).mock.calls[0]!;
+		expect(elementId).toBe('el-1');
+		expect(
+			(patch as { chartData: import('pptx-viewer-core').PptxChartData }).chartData.series[0]
+				?.values?.[1],
+		).toBe(42);
+	});
+
+	it('re-applies setSelectedPart when the selection changes from outside this scene', async () => {
+		const ctx = makeCtx();
+		injectChartCanvasEdit.mockReturnValue(ctx);
+		const handle = okHandle();
+		mountLineChart3D.mockResolvedValue(handle);
+		const refs: SceneRefs = {
+			container: ref(document.createElement('div')),
+			options: ref(paths()),
+		};
+
+		run(refs);
+		await nextTick();
+		await Promise.resolve();
+		handle.setSelectedPart.mockClear();
+
+		ctx.selection.value = {
+			elementId: 'el-1',
+			part: { role: 'dataPoint', seriesIndex: 0, pointIndex: 1 },
+		};
+		await nextTick();
+
+		expect(handle.setSelectedPart).toHaveBeenCalledWith({
+			role: 'dataPoint',
+			seriesIndex: 0,
+			pointIndex: 1,
+		});
 	});
 });

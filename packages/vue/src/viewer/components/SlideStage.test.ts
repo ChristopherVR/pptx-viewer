@@ -221,3 +221,39 @@ describe('slideStage per-slide field substitution', () => {
 		expect(wrapper.text()).toContain('Slide #');
 	});
 });
+
+describe('slideStage shadeToTitle background', () => {
+	function titleShape(): PptxElement {
+		return {
+			type: 'text',
+			id: 'title-1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			placeholderType: 'title',
+		} as unknown as PptxElement;
+	}
+
+	it('anchors the gradient on the title placeholder as a rect-path gradient', () => {
+		const slide: PptxSlide = {
+			id: 's1',
+			elements: [titleShape()],
+			backgroundGradient: 'linear-gradient(90.00deg, #000000 0%, #ffffff 100%)',
+			backgroundShadeToTitle: true,
+		} as unknown as PptxSlide;
+		const style = mountStage({ slide }).get('.pptx-vue-stage').attributes('style');
+		expect(style).not.toContain('linear-gradient(90.00deg, #000000 0%, #ffffff 100%)');
+		expect(style).toContain('data:image/svg+xml');
+	});
+
+	it('leaves the gradient untouched when shadeToTitle is unset', () => {
+		const slide: PptxSlide = {
+			id: 's1',
+			elements: [titleShape()],
+			backgroundGradient: 'linear-gradient(90.00deg, #000000 0%, #ffffff 100%)',
+		} as unknown as PptxSlide;
+		const style = mountStage({ slide }).get('.pptx-vue-stage').attributes('style');
+		expect(style).toContain('linear-gradient(90.00deg, #000000 0%, #ffffff 100%)');
+	});
+});

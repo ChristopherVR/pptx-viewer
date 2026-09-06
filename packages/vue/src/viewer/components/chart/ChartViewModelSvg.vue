@@ -284,6 +284,7 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 				:stroke-width="prim.strokeWidth"
 				:stroke-dasharray="prim.dashArray"
 				:opacity="prim.opacity ?? 1"
+				:transform="prim.transform"
 			>
 				<title v-if="prim.title !== undefined">{{ prim.title }}</title>
 			</line>
@@ -295,6 +296,7 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 				:stroke-width="prim.strokeWidth"
 				:opacity="prim.opacity ?? 1"
 				:stroke-dasharray="prim.dashArray"
+				:transform="prim.transform"
 				v-bind="partAttrs(prim.part)"
 			>
 				<title v-if="prim.title !== undefined">{{ prim.title }}</title>

@@ -33,6 +33,7 @@ const animations = computed(() =>
 		props.transition.direction,
 		props.transition.orient,
 		props.transition.spokes,
+		props.transition.pattern,
 	),
 );
 // 'none' and 'cut' have nothing to show: React hides the preview entirely.

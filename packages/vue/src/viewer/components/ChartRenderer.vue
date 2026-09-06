@@ -11,13 +11,10 @@ import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useAreaChart3D } from '../composables/area-chart-3d';
-import { useBarChart3D } from '../composables/bar-chart-3d';
+import { useBarFacePictureSampleVersion } from '../composables/bar-face-picture-sample-version';
+import { useChart3DSceneSelection } from '../composables/chart-3d-scene-selection';
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { getContainerStyle } from '../composables/element-style';
-import { useLineChart3D } from '../composables/line-chart-3d';
-import { usePieChart3D } from '../composables/pie-chart-3d';
-import { useSurfaceChart3D } from '../composables/surface-chart-3d';
 import Area3DChartRenderer from './Area3DChartRenderer.vue';
 import Bar3DChartRenderer from './Bar3DChartRenderer.vue';
 import { buildVueChartViewModel } from './chart/chart-view-model';
@@ -137,54 +134,39 @@ const chartKind = computed(() =>
 const isPlaceholder = computed(() => chartKind.value === 'unsupported');
 
 /**
- * Opt-in interactive 3D surface scene (camera orbit/zoom via OrbitControls).
- * Marks are not selectable/draggable in this mode: a mesh facet has no 2D
- * screen geometry to hit-test against, so value-drag editing stays SVG-only.
+ * Opt-in interactive 3D scenes (real box/wedge/tube-path/ribbon/surface
+ * meshes, camera orbit/zoom via OrbitControls, plus on-canvas part
+ * click/drag; see `useChart3DSceneSelection`). Marks are not
+ * selectable/draggable for surface/pie: a mesh facet or wedge has no single
+ * vertical value axis to drag against.
  */
-const use3D = useSurfaceChart3D();
-const isSurfaceKind = computed(() => chartKind.value === 'surface');
-
-/**
- * Opt-in interactive 3D bar scene (real box meshes, camera orbit/zoom via
- * OrbitControls). Same "marks are not selectable/draggable" caveat as the
- * surface scene above. Gated on the RAW chart type, not `chartKind`:
- * `resolveChartKind` folds `bar`/`bar3D` onto the same 'bar' kind, so a plain
- * 2D bar chart must never pick up the 3D scene.
- */
-const use3DBar = useBarChart3D();
-const isBar3DKind = computed(() => chartType.value === 'bar3D');
-
-/**
- * Opt-in interactive 3D line/area scenes (tube path / ribbon meshes, camera
- * orbit/zoom via OrbitControls). Same "marks are not selectable/draggable"
- * caveat as the surface/bar scenes above.
- */
-const use3DLine = useLineChart3D();
-const isLine3DKind = computed(() => chartType.value === 'line3D');
-const use3DArea = useAreaChart3D();
-const isArea3DKind = computed(() => chartType.value === 'area3D');
-
-/**
- * Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
- * OrbitControls). Same "marks are not selectable/draggable" caveat as the
- * surface/bar3D scenes above. Gated on the RAW chart type, not `chartKind`,
- * mirroring `isBar3DKind`: `resolveChartKind` folds `pie`/`doughnut`/`pie3D`
- * onto the same kind, so a plain 2D pie chart must never pick up the 3D scene.
- */
-const use3DPie = usePieChart3D();
-const isPie3DKind = computed(() => chartType.value === 'pie3D');
+const { showSurface3D, showBar3D, showLine3D, showArea3D, showPie3D } = useChart3DSceneSelection({
+	chartKind: () => chartKind.value,
+	chartType: () => chartType.value,
+});
 
 const placeholderLabel = computed(() =>
 	chartPlaceholderLabel(chartType.value, (key, params) => t(key, params ?? {})),
 );
 
+// An untargeted bar3D extrusion face whose fill is picture-only samples a
+// colour from the picture ASYNCHRONOUSLY (see `chart-bar3d-face-picture-
+// sample.ts`'s module doc for the COM-verified ground truth this
+// reproduces); the shared view-model builder only ever sees whatever is
+// already cached, so `viewModel` below reads this to rebuild once one lands.
+const barFacePictureSampleVersion = useBarFacePictureSampleVersion();
+
 /**
  * Shared view-model, with Vue's palette threaded in. Built from
  * `revealedElement` so an in-flight value drag previews live.
  */
-const viewModel = computed<ChartViewModel | undefined>(() =>
-	isPlaceholder.value ? undefined : buildVueChartViewModel(revealedElement.value),
-);
+const viewModel = computed<ChartViewModel | undefined>(() => {
+	// Referenced so this computed re-derives once a bar3D face-picture colour
+	// sample resolves (the shared sample cache is a plain module-level cache,
+	// not a Vue ref, so Vue would otherwise never know to re-run this).
+	void barFacePictureSampleVersion.value;
+	return isPlaceholder.value ? undefined : buildVueChartViewModel(revealedElement.value);
+});
 
 /**
  * Aspect-ratio policy, decided by shared rather than by a local kind chain.
@@ -192,6 +174,15 @@ const viewModel = computed<ChartViewModel | undefined>(() =>
  * bindings stretch.
  */
 const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
+
+/**
+ * Active text-style emphasis override, threaded into the 3D chart renderers'
+ * own `textStyle` prop: they apply it via their mounted handle's
+ * `setTextStyle` (a DOM CSS override, i.e. `textStyleOverrideCss` above,
+ * cannot reach a WebGL canvas). Pie3D draws no axis labels, so it does not
+ * take this prop.
+ */
+const textStyle = computed(() => props.animationState?.textStyle);
 </script>
 
 <template>
@@ -220,39 +211,43 @@ const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 
 		<!-- Opt-in interactive 3D surface scene, falling back to the SVG below -->
 		<SurfaceChart3DRenderer
-			v-else-if="use3D && isSurfaceKind && viewModel"
+			v-else-if="showSurface3D && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"
+			:text-style="textStyle"
 		/>
 
 		<!-- Opt-in interactive 3D bar scene, falling back to the SVG below -->
 		<Bar3DChartRenderer
-			v-else-if="use3DBar && isBar3DKind && viewModel"
+			v-else-if="showBar3D && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"
+			:text-style="textStyle"
 		/>
 
 		<!-- Opt-in interactive 3D line scene, falling back to the SVG below -->
 		<Line3DChartRenderer
-			v-else-if="use3DLine && isLine3DKind && viewModel"
+			v-else-if="showLine3D && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"
+			:text-style="textStyle"
 		/>
 
 		<!-- Opt-in interactive 3D area scene, falling back to the SVG below -->
 		<Area3DChartRenderer
-			v-else-if="use3DArea && isArea3DKind && viewModel"
+			v-else-if="showArea3D && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"
+			:text-style="textStyle"
 		/>
 
 		<!-- Opt-in interactive 3D pie scene, falling back to the SVG below -->
 		<PieChart3DRenderer
-			v-else-if="use3DPie && isPie3DKind && viewModel"
+			v-else-if="showPie3D && viewModel"
 			:element="revealedElement"
 			:view-model="viewModel"
 			:preserve-aspect-ratio="aspectRatio"

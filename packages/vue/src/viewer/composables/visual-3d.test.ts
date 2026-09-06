@@ -31,20 +31,23 @@ describe('get3dTransformCss', () => {
 		expect(get3dTransformCss(undefined, undefined)).toBeUndefined();
 	});
 
-	it('produces perspective for perspectiveFront preset', () => {
+	it('produces an exact COM-measured matrix3d for perspectiveFront preset (no separate perspective)', () => {
+		// 2026-09 off-axis-camera homography wave: see shared
+		// `visual-3d-camera-homography`'s module doc comment.
 		const result = get3dTransformCss({ cameraPreset: 'perspectiveFront' }, undefined);
-		expect(result?.perspective).toBe('1000px');
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.perspective).toBeUndefined();
 	});
 
-	it('produces rotateX for a scene3d rotation (perspectiveAbove)', () => {
+	it('produces an exact matrix3d for a scene3d rotation (perspectiveAbove)', () => {
 		const result = get3dTransformCss({ cameraPreset: 'perspectiveAbove' }, undefined);
-		expect(result?.transform).toContain('rotateX(-20deg)');
-		expect(result?.perspective).toBe('1000px');
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.perspective).toBeUndefined();
 	});
 
-	it('produces rotateY for perspectiveLeft preset', () => {
+	it('produces an exact matrix3d for perspectiveLeft preset', () => {
 		const result = get3dTransformCss({ cameraPreset: 'perspectiveLeft' }, undefined);
-		expect(result?.transform).toContain('rotateY(20deg)');
+		expect(result?.transform).toContain('matrix3d(');
 	});
 
 	it('honours explicit camera rotation overrides (1/60000 deg)', () => {
@@ -186,11 +189,12 @@ describe('getComputed3dStyle', () => {
 		expect(getComputed3dStyle(el)).toBeUndefined();
 	});
 
-	it('emits scene3d rotation as a rotateX transform', () => {
+	it('emits scene3d rotation as an exact matrix3d transform', () => {
 		const el = shape3dEl({ cameraPreset: 'perspectiveAbove' });
 		const result = getComputed3dStyle(el);
-		expect(result?.transform).toContain('rotateX(-20deg)');
-		expect(result?.perspective).toBe('1000px');
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.perspective).toBeUndefined();
+		expect(result?.transformOrigin).toBe('0 0');
 		expect(result?.willChange).toBe('transform');
 	});
 
@@ -213,10 +217,10 @@ describe('getComputed3dStyle', () => {
 		expect(result?.boxShadow).toContain('inset');
 	});
 
-	it('folds backdrop ground shadow into boxShadow', () => {
+	it('does not synthesize a ground shadow from a bare backdrop (COM-measured: no visible effect)', () => {
 		const el = shape3dEl({ hasBackdrop: true });
 		const result = getComputed3dStyle(el);
-		expect(result?.boxShadow).toContain('rgba(0,0,0,0.25)');
+		expect(result?.boxShadow).toBeUndefined();
 	});
 
 	it('emits material filter and light-rig overlay', () => {
@@ -239,8 +243,8 @@ describe('getComputed3dStyle', () => {
 			},
 		);
 		const result = getComputed3dStyle(el);
-		expect(result?.perspective).toBe('1000px');
-		expect(result?.transform).toContain('rotateX(-20deg)');
+		expect(result?.perspective).toBeUndefined();
+		expect(result?.transform).toContain('matrix3d(');
 		expect(result?.extrusionBoxShadow).toContain('#4472C4');
 		expect(result?.boxShadow).toContain('inset');
 		expect(result?.filter).toBeDefined();
@@ -277,6 +281,22 @@ describe('merge3dStyle', () => {
 		const el = shape3dEl({ cameraPreset: 'perspectiveAbove' });
 		merge3dStyle(base, getComputed3dStyle(el));
 		expect(String(base.transform)).toContain('rotate(45deg)');
-		expect(String(base.transform)).toContain('rotateX(-20deg)');
+		expect(String(base.transform)).toContain('matrix3d(');
+	});
+
+	it('carries the COM-measured off-axis skew through for corrected presets (transformOrigin 0 0, no perspective-origin)', () => {
+		const base: CSSProperties = {};
+		const el = shape3dEl({ cameraPreset: 'perspectiveContrastingLeftFacing' });
+		merge3dStyle(base, getComputed3dStyle(el));
+		expect(base.perspectiveOrigin).toBeUndefined();
+		expect(base.transformOrigin).toBe('0 0');
+		expect(String(base.transform)).toContain('matrix3d(');
+	});
+
+	it('leaves perspective-origin unset for presets with no off-axis correction', () => {
+		const base: CSSProperties = {};
+		const el = shape3dEl({ cameraPreset: 'perspectiveAbove' });
+		merge3dStyle(base, getComputed3dStyle(el));
+		expect(base.perspectiveOrigin).toBeUndefined();
 	});
 });

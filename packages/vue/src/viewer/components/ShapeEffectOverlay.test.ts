@@ -176,5 +176,146 @@ describe('shapeEffectOverlay', () => {
 			});
 			expect(wrapper.find('.pptx-vue-reflection').exists()).toBeFalsy();
 		});
+
+		it("mirrors the shape's own text body, not just its resolved fill", () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: {
+						type: 'shape',
+						id: 'sp-text',
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 80,
+						shapeStyle: {
+							fillColor: '#ff0000',
+							reflectionStartOpacity: 0.5,
+							reflectionDistance: 4,
+						},
+						text: 'Hello reflected world',
+						textSegments: [{ text: 'Hello reflected world' }],
+					} as unknown as PptxElement,
+				},
+			});
+			expect(wrapper.get('.pptx-vue-reflection').text()).toContain('Hello reflected world');
+		});
+
+		it('suppresses reflection when suppressReflection is set (no double-mirroring)', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: shape({
+						fillColor: '#ff0000',
+						reflectionStartOpacity: 0.5,
+						reflectionDistance: 4,
+					}),
+					suppressReflection: true,
+				},
+			});
+			expect(wrapper.find('.pptx-vue-reflection').exists()).toBeFalsy();
+		});
+
+		it('mirrors a reflected group by recursing into its children', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: {
+						type: 'group',
+						id: 'grp1',
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 100,
+						groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+						children: [
+							{
+								type: 'shape',
+								id: 'child1',
+								x: 10,
+								y: 10,
+								width: 80,
+								height: 40,
+								shapeStyle: { fillColor: '#00ff00' },
+								text: 'Child text',
+								textSegments: [{ text: 'Child text' }],
+							},
+						],
+					} as unknown as PptxElement,
+				},
+			});
+			const layer = wrapper.get('.pptx-vue-reflection');
+			expect(layer.text()).toContain('Child text');
+			expect(layer.html()).toContain('#00ff00');
+		});
+
+		it('renders nothing for a group with no groupFill reflection', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: {
+						type: 'group',
+						id: 'grp-none',
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 100,
+						children: [],
+					} as unknown as PptxElement,
+				},
+			});
+			expect(wrapper.find('.pptx-vue-reflection').exists()).toBeFalsy();
+		});
+
+		it('double-mirrors a child that carries its own reflection inside a reflected group', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: {
+						type: 'group',
+						id: 'grp-nested',
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 100,
+						groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+						children: [
+							{
+								type: 'shape',
+								id: 'child-own-reflection',
+								x: 10,
+								y: 10,
+								width: 80,
+								height: 40,
+								shapeStyle: {
+									fillColor: '#00ff00',
+									reflectionStartOpacity: 0.5,
+									reflectionDistance: 2,
+								},
+							},
+						],
+					} as unknown as PptxElement,
+				},
+			});
+			// One wrapper for the group's own mirror, one nested inside it for the
+			// child's own reflection: the child is not the element being mirrored,
+			// so `suppressReflection` (`topLevel`) must not have been forced on it.
+			expect(wrapper.findAll('.pptx-vue-reflection')).toHaveLength(2);
+		});
+	});
+
+	describe('group-level shadow/glow/soft-edge', () => {
+		it('injects the soft-edge <filter> for a group carrying p:grpSpPr/a:effectLst/a:softEdge', () => {
+			const wrapper = mount(ShapeEffectOverlay, {
+				props: {
+					element: {
+						type: 'group',
+						id: 'grp-soft',
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 100,
+						groupEffectStyle: { softEdgeRadius: 6 },
+						children: [],
+					} as unknown as PptxElement,
+				},
+			});
+			expect(wrapper.html()).toContain('id="soft-edge-grp-soft"');
+		});
 	});
 });

@@ -86,6 +86,26 @@ describe('chartPanel', () => {
 		}
 	});
 
+	it('shows "pareto" (not "histogram") as selected for a histogram with a paretoLine series', () => {
+		const wrapper = mount(ChartPanel, {
+			props: {
+				element: chartElement({
+					chartType: 'histogram',
+					series: [
+						{ name: 'Frequency', values: [3, 5, 2] },
+						{
+							name: 'Cumulative %',
+							values: [30, 80, 100],
+							histogramOptions: { layout: 'pareto' },
+						},
+					],
+				}),
+			},
+		});
+		const select = wrapper.get('[data-testid="chart-type"]').element as HTMLSelectElement;
+		expect(select.value).toBe('pareto');
+	});
+
 	it('clears grouping when switching to a type that does not support it', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
 		await wrapper.get('[data-testid="chart-type"]').setValue('pie');

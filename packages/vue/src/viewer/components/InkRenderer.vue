@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import type { InkPptxElement, PptxElement } from 'pptx-viewer-core';
 import { isInkElement } from 'pptx-viewer-core';
-import {
-	extractPathPoints,
-	generatePressureCircles,
-	getInkReplayStyles,
-	hasPressureVariation,
-	INK_REPLAY_KEYFRAMES,
-	pressuresToWidths,
-} from 'pptx-viewer-shared';
-import type { PressureCircle } from 'pptx-viewer-shared';
+import { buildInkGroupStrokes, getInkReplayStyles, INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, watchEffect } from 'vue';
 
@@ -25,16 +17,16 @@ import { DEFAULT_STROKE_COLOR } from '../constants';
  * width, and opacity resolved from the parallel `inkColors`/`inkWidths`/
  * `inkOpacities` arrays.
  *
- * Pressure-sensitive variable-width strokes are rendered when the element
- * carries per-point pressure data (`inkPointPressures`) or a legacy per-point
- * `inkWidths` array with variation: each sampled point becomes an SVG `<circle>`
- * whose radius follows the interpolated width (shared `generatePressureCircles`
- * maths), matching React. Strokes without pressure data degrade to plain
- * constant-width `<path>`s.
+ * The per-stroke view model (path vs pressure circles vs tilt-driven nib
+ * marks) is the shared `buildInkGroupStrokes` decision function, the same one
+ * `ContentPartRenderer.vue` uses for a loaded `p:contentPart`: pressure comes
+ * from `inkPointPressures` (or a legacy per-point `inkWidths` array), tilt
+ * from `inkPointTiltX`/`inkPointTiltY`. Strokes without either degrade to a
+ * plain constant-width `<path>`.
  *
  * Presentation mode progressively replays constant-width paths using the
- * shared dash-offset timing model. Pressure circles remain static because SVG
- * dash replay only applies to paths.
+ * shared dash-offset timing model. Pressure circles and nib marks remain
+ * static because SVG dash replay only applies to paths.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -54,71 +46,13 @@ const ink = computed<InkPptxElement | undefined>(() =>
 const viewBoxW = computed(() => Math.max(props.element.width, 1));
 const viewBoxH = computed(() => Math.max(props.element.height, 1));
 
-interface PathStroke {
-	kind: 'path';
-	d: string;
-	color: string;
-	width: number;
-	opacity: number;
-}
-
-interface PressureStroke {
-	kind: 'pressure';
-	circles: PressureCircle[];
-	color: string;
-	opacity: number;
-}
-
-type InkStroke = PathStroke | PressureStroke;
-
-/**
- * Build the per-point pressure circles for a stroke, or return null when the
- * stroke has no usable (varying) pressure data and should render as a plain
- * variable-width path instead.
- */
-function pressureCirclesFor(
-	el: InkPptxElement,
-	pathD: string,
-	index: number,
-	width: number,
-): PressureCircle[] | null {
-	const config = { baseWidth: width, minRadius: 0.5, maxRadius: width * 1.5 };
-
-	// Prefer per-point pressure from the stylus (inkPointPressures[index]).
-	const pointPressures = el.inkPointPressures?.[index];
-	if (pointPressures && pointPressures.length > 1 && hasPressureVariation(pointPressures)) {
-		const pointWidths = pressuresToWidths(pointPressures, width);
-		return generatePressureCircles(extractPathPoints(pathD), pointWidths, config);
-	}
-
-	// Legacy fallback: treat the inkWidths array as per-point widths only when it
-	// carries more entries than there are paths (so a normal per-path widths array
-	// is never mistaken for pressure data) and shows variation.
-	const paths = el.inkPaths ?? [];
-	if (el.inkWidths && el.inkWidths.length > paths.length && hasPressureVariation(el.inkWidths)) {
-		return generatePressureCircles(extractPathPoints(pathD), el.inkWidths, config);
-	}
-
-	return null;
-}
-
-/** Resolve per-stroke colour/width/opacity and pick path vs. pressure rendering. */
-const strokes = computed<InkStroke[]>(() => {
+/** Per-stroke view model: plain path, pressure circles, or tilt nib marks. */
+const strokes = computed(() => {
 	const el = ink.value;
 	if (!el) {
 		return [];
 	}
-	return (el.inkPaths ?? []).map((d, i): InkStroke => {
-		const color = el.inkColors?.[i] ?? DEFAULT_STROKE_COLOR;
-		const width = el.inkWidths?.[i] ?? 1;
-		const opacity = el.inkOpacities?.[i] ?? 1;
-
-		const circles = pressureCirclesFor(el, d, i, width);
-		if (circles) {
-			return { kind: 'pressure', circles, color, opacity };
-		}
-		return { kind: 'path', d, color, width, opacity };
-	});
+	return buildInkGroupStrokes(el, { color: DEFAULT_STROKE_COLOR, width: 1 });
 });
 const replayStyles = computed(() =>
 	props.replay && ink.value ? getInkReplayStyles(ink.value) : [],
@@ -144,8 +78,6 @@ function replayStyle(index: number): CSSProperties | undefined {
 			}
 		: undefined;
 }
-
-const strokeKey = (i: number): string => `${props.element.id}-ink-${i}`;
 </script>
 
 <template>
@@ -156,11 +88,23 @@ const strokeKey = (i: number): string => `${props.element.id}-ink-${i}`;
 			:viewBox="`0 0 ${viewBoxW} ${viewBoxH}`"
 			preserveAspectRatio="none"
 		>
-			<template v-for="(s, i) in strokes" :key="strokeKey(i)">
-				<g v-if="s.kind === 'pressure'" :opacity="s.opacity">
+			<template v-for="(s, i) in strokes" :key="s.key">
+				<g v-if="s.nibMarks" :opacity="s.opacity">
+					<ellipse
+						v-for="(m, j) in s.nibMarks"
+						:key="`${s.key}-nib-${j}`"
+						:cx="m.cx"
+						:cy="m.cy"
+						:rx="m.rPerp"
+						:ry="m.rTilt"
+						:transform="`rotate(${m.rotationDeg} ${m.cx} ${m.cy})`"
+						:fill="s.color"
+					/>
+				</g>
+				<g v-else-if="s.circles" :opacity="s.opacity">
 					<circle
 						v-for="(c, j) in s.circles"
-						:key="`${strokeKey(i)}-pc-${j}`"
+						:key="`${s.key}-pc-${j}`"
 						:cx="c.cx"
 						:cy="c.cy"
 						:r="c.r"

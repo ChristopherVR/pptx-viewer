@@ -171,7 +171,10 @@ const textStyle = computed<CSSProperties>(() => {
 	// mirroring React's ElementBody. Compose its transform with any existing
 	// text-block transform rather than clobbering it. No-op when absent.
 	const textStyleRaw = hasTextProperties(props.element) ? props.element.textStyle : undefined;
-	const scene3d = buildTextBody3DSceneStyle(textStyleRaw) as CSSProperties | undefined;
+	const scene3d = buildTextBody3DSceneStyle(textStyleRaw, {
+		width: props.element.width,
+		height: props.element.height,
+	}) as CSSProperties | undefined;
 	if (!scene3d) {
 		return base;
 	}
@@ -329,15 +332,21 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 	<!-- Hidden via the Selection Pane: render nothing at all (see `isRendered`). -->
 	<template v-if="!isRendered" />
 
-	<!-- Group: recurse into children -->
+	<!-- Group: recurse into children. `shapeDivStyle` (not the bare
+	     `containerStyle`) so the group's own `p:grpSpPr/a:effectLst` shadow /
+	     glow `filter` from `getShapeFillStrokeStyle` reaches the composite. -->
 	<div
 		v-else-if="element.type === 'group'"
 		class="pptx-vue-element pptx-vue-group"
 		:class="templateClass"
-		:style="[containerStyle, rootPointerEvents]"
+		:style="[shapeDivStyle, rootPointerEvents]"
 		:data-element-id="element.id"
 		:data-pptx-element="elementMarker"
 	>
+		<!-- A group has no fill/outline/soft-edge of its own to paint here (see
+		     `ShapeEffectOverlay`'s doc comment), but `p:grpSpPr/a:effectLst/a:reflection`
+		     mirrors the whole group subtree, so this still needs mounting. -->
+		<ShapeEffectOverlay :element="element" :media-data-urls="mediaDataUrls" />
 		<ElementRenderer
 			v-for="(child, i) in element.children ?? []"
 			:key="child.id"
@@ -422,6 +431,8 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:replay="presenting"
+		:text-style="animationState?.textStyle"
+		:text-style-override-css="textStyleOverrideCss"
 		:data-pptx-element="elementMarker"
 	/>
 	<SmartArtRenderer

@@ -55,6 +55,15 @@ export interface UseAnimationPlaybackOptions {
 	onPlayActionSound?: (soundPath: string) => void;
 	/** Root element to scope media-command (`p:cmd`) target lookups to. */
 	frameRoot?: () => HTMLElement | null;
+	/**
+	 * The slide canvas size (px), in the same unit the elements' own
+	 * `x`/`y`/`width`/`height` are authored in. Lets `PresentationAnimationController
+	 * .fromSlide` resolve a `p:anim` formula that needs the animated shape's real
+	 * box (e.g. Grow And Turn's `-#ppt_w/2` fly-in) instead of falling back.
+	 */
+	canvasSize?: MaybeRefOrGetter<{ width: number; height: number } | undefined>;
+	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+	themeColorMap?: MaybeRefOrGetter<Readonly<Record<string, string>> | undefined>;
 }
 
 export interface UseAnimationPlaybackResult {
@@ -163,8 +172,16 @@ export function useAnimationPlayback(
 
 		// The controller builds the timeline engine (expanding text-build
 		// animations) and derives keyframes CSS, trigger-shape ids, and the full
-		// tracked element id list.
-		controller = PresentationAnimationController.fromSlide(slide);
+		// tracked element id list. `canvasSize`/`themeColorMap` let it resolve a
+		// `p:anim` formula that needs the animated shape's real box (Grow And
+		// Turn's `-#ppt_w/2` fly-in) and a scheme-colour ramp stop instead of
+		// falling back.
+		const canvasSize = toValue(options.canvasSize);
+		controller = PresentationAnimationController.fromSlide(slide, {
+			slideHeightPx: canvasSize?.height,
+			slideWidthPx: canvasSize?.width,
+			themeColorMap: toValue(options.themeColorMap),
+		});
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.
 		ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);

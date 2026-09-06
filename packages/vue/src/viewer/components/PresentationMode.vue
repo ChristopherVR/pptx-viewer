@@ -41,6 +41,7 @@ import { useI18n } from 'vue-i18n';
 
 import { stopAnimationSound } from '../composables/animation-sound';
 import { providePresentationElementStates } from '../composables/presentation-element-states';
+import { injectThemeColorMap } from '../composables/theme-color-map-context';
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import type { ActiveCustomShow } from '../composables/usePresentationActionExtras';
@@ -201,6 +202,11 @@ const playback = useAnimationPlayback({
 	slide: nav.activeSlide,
 	showWithAnimation: () => props.presentationProperties?.showWithAnimation,
 	frameRoot: () => frameRef.value,
+	// Lets the controller resolve a `p:anim` formula that needs the animated
+	// shape's real box (Grow And Turn's `-#ppt_w/2` fly-in) and a scheme-colour
+	// ramp stop instead of falling back.
+	canvasSize: () => props.canvasSize,
+	themeColorMap: injectThemeColorMap(),
 });
 // Publish the per-element state map so the chart / SmartArt / connector / shape
 // renderers can reveal staged builds and relinquish animated fill / stroke.

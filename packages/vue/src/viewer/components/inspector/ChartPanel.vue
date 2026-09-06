@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next';
 import type { ChartPptxElement, PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
+import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 import {
 	collapseChartTitleRunsForEdit,
 	GROUPING_OPTIONS,
 	GROUPING_SUPPORTED_TYPES,
 	CHART_TYPE_OPTIONS,
+	resolveDisplayedChartType,
 } from 'pptx-viewer-shared';
 import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -65,7 +67,14 @@ const chartData = computed<PptxChartData | null>(() => chartElement.value?.chart
 
 const series = computed(() => chartData.value?.series ?? []);
 const categories = computed(() => chartData.value?.categories ?? []);
-const currentType = computed<PptxChartType | ''>(() => chartData.value?.chartType ?? '');
+// "Pareto" has no `PptxChartType` of its own (docs/guide/limitations.md's
+// ChartEx row): it is `chartType: 'histogram'` plus a `paretoLine`-layout
+// series, so the select must resolve it via `resolveDisplayedChartType`
+// rather than reading `chartData.chartType` raw, or a re-opened Pareto chart
+// reads back showing "Histogram" as selected.
+const currentType = computed<ChartTypeSelectValue | ''>(() =>
+	chartData.value ? resolveDisplayedChartType(chartData.value) : '',
+);
 const currentTitle = computed<string>(() => chartData.value?.title ?? '');
 const currentGrouping = computed<string>(() => chartData.value?.grouping ?? 'clustered');
 

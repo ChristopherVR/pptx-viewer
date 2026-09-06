@@ -60,6 +60,24 @@ export function getShapeFillStrokeStyle(
 	animatesFill?: boolean,
 	animatesStroke?: boolean,
 ): CSSProperties {
+	if (el.type === 'group') {
+		// A group has no fill/stroke/geometry of its own (the branches below all
+		// read `el.shapeStyle`, which a group never has), but PowerPoint still
+		// lets `p:grpSpPr/a:effectLst` carry a shadow/glow/soft-edge for the
+		// group's own COMPOSITE raster (see shared `getComputedEffectStyle`).
+		// Reflection rides a separate mirrored sibling node (`ShapeEffectOverlay.vue`),
+		// same as a shape, so only the container-level `filter` / `overflow`
+		// belong here.
+		const fx = getComputedEffectStyle(el);
+		const groupStyle: CSSProperties = {};
+		if (fx.filter) {
+			groupStyle.filter = fx.filter;
+		}
+		if (fx.overflowVisible) {
+			groupStyle.overflow = 'visible';
+		}
+		return groupStyle;
+	}
 	if (!hasShapeProperties(el)) {
 		return {};
 	}

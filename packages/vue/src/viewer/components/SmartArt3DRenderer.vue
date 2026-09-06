@@ -28,15 +28,15 @@ import {
 	computeSmartArtElementLayout,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
-import type { SmartArt3DModel } from 'pptx-viewer-shared';
-import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import type { SmartArt3DModel, TextStyleAnimationDescriptor } from 'pptx-viewer-shared';
+import { computed, nextTick, ref, toRef } from 'vue';
 import type { CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle } from '../composables/element-style';
 import { inlineEditorRect, useSmartArtInlineEditState } from '../composables/smartart-inline-edit';
 import { injectSmartArtNodeEdit } from '../composables/smartart-node-edit';
+import { useSmartArt3DScene } from '../composables/useSmartArt3DScene';
 import SmartArtHitTestWrapper from './SmartArtHitTestWrapper.vue';
 import SmartArtRenderer from './SmartArtRenderer.vue';
 
@@ -44,6 +44,17 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/**
+	 * Active font-style emphasis override (Bold Flash, Bold Reveal, Underline,
+	 * Change Font Style/Size), applied to every node caption via the mounted
+	 * handle's `setTextStyle`. The parent `ElementRenderer`'s DOM CSS override
+	 * (`buildTextStyleOverrideCss`) cannot reach a canvas-texture caption, so
+	 * this scene-native path is the only one that reaches it; the fallback
+	 * SVG `SmartArtRenderer` below still takes the CSS override directly.
+	 */
+	textStyle?: TextStyleAnimationDescriptor;
+	/** Forwarded to the fallback SVG `SmartArtRenderer` (see `textStyle` above). */
+	textStyleOverrideCss?: string;
 }>();
 
 const { t } = useI18n();
@@ -92,12 +103,18 @@ const model = computed<SmartArt3DModel | null>(() => {
 	});
 });
 
-/** `true` once we know the 3D scene cannot run; render the SVG fallback. */
-const useFallback = ref(true);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const editorEl = ref<HTMLTextAreaElement | null>(null);
-let handle: SmartArt3DHandle | null = null;
+
+/** Opt-in interactive WebGL scene; falls back to the SVG renderer when it cannot mount. */
+const { useFallback } = useSmartArt3DScene({
+	canvas: canvasRef,
+	model: () => model.value,
+	width: () => props.element.width,
+	height: () => props.element.height,
+	textStyle: toRef(props, 'textStyle'),
+});
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -158,42 +175,6 @@ function commitEdit(): void {
 	}
 	editState.cancel();
 }
-
-// ── 3D scene lifecycle ───────────────────────────────────────────────────────
-
-async function mountScene(): Promise<void> {
-	const m = model.value;
-	if (!m || m.meshes.length === 0) {
-		useFallback.value = true;
-		return;
-	}
-	try {
-		const { mountSmartArt3D } = await import('pptx-viewer-shared/smartart-3d');
-		useFallback.value = false;
-		// Wait for the canvas (v-else branch) to render now that fallback is off.
-		await Promise.resolve();
-		const canvas = canvasRef.value;
-		if (!canvas) {
-			useFallback.value = true;
-			return;
-		}
-		handle = mountSmartArt3D(canvas, m, props.element.width, props.element.height, {});
-	} catch {
-		useFallback.value = true;
-	}
-}
-
-onMounted(mountScene);
-
-watch(
-	() => [props.element.width, props.element.height] as const,
-	([w, h]) => handle?.resize(w, h),
-);
-
-onBeforeUnmount(() => {
-	handle?.dispose();
-	handle = null;
-});
 </script>
 
 <template>
@@ -202,6 +183,7 @@ onBeforeUnmount(() => {
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:text-style-override-css="textStyleOverrideCss"
 	/>
 	<div
 		v-else

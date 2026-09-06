@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import AccessibilityPanel from './AccessibilityPanel.vue';
 import AnimationPanel from './AnimationPanel.vue';
 import ConnectorArrowsPanel from './ConnectorArrowsPanel.vue';
 import InspectorPane from './InspectorPane.vue';
@@ -77,5 +78,22 @@ describe('inspectorPane connector arrowheads', () => {
 		const patch = { shapeStyle: { connectorEndArrow: 'stealth' } };
 		wrapper.getComponent(ConnectorArrowsPanel).vm.$emit('update', patch);
 		expect(wrapper.emitted('update')?.[0]?.[0]).toStrictEqual(patch);
+	});
+});
+
+describe('inspectorPane accessibility section', () => {
+	it.each(['text', 'shape', 'connector', 'table', 'chart', 'smartArt', 'media', 'ole'])(
+		'mounts the accessibility panel for a %s',
+		(type) => {
+			const wrapper = mount(InspectorPane, { props: { element: shape({ type } as never) } });
+			expect(wrapper.findComponent(AccessibilityPanel).exists()).toBeTruthy();
+		},
+	);
+
+	it('does not mount the accessibility panel for a picture (its alt text has its own field)', () => {
+		const wrapper = mount(InspectorPane, {
+			props: { element: shape({ type: 'picture' } as never) },
+		});
+		expect(wrapper.findComponent(AccessibilityPanel).exists()).toBeFalsy();
 	});
 });

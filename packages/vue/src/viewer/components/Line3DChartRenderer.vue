@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import type { PptxElement } from 'pptx-viewer-core';
-import type { ChartViewModel } from 'pptx-viewer-shared';
+import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
+import type { ChartViewModel, TextStyleAnimationDescriptor } from 'pptx-viewer-shared';
 import { buildLineChart3DDataForElement } from 'pptx-viewer-shared';
-import { computed, ref } from 'vue';
+import { computed, ref, toRef } from 'vue';
 
 import { useLineChart3dScene } from '../composables/useLineChart3dScene';
+import ChartEditOverlays from './chart/ChartEditOverlays.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
 import Chart3DLoading from './Chart3DLoading.vue';
 
@@ -16,8 +17,10 @@ import Chart3DLoading from './Chart3DLoading.vue';
  * is installed, this mounts the shared, framework-agnostic vanilla-three
  * controller (`mountLineChart3D` from `pptx-viewer-shared`) into a container
  * div for a camera-orbitable set of real 3D tube-path meshes (OrbitControls:
- * drag to rotate, scroll to zoom). The mount lifecycle lives in
- * {@link useLineChart3dScene}; this SFC stays thin presentation. Mirrors
+ * drag to rotate, scroll to zoom; click a marker to select it, drag one to
+ * change its value). The mount lifecycle, including the bridge to the SAME
+ * chart-part selection + commit path the 2D SVG mark interaction uses, lives
+ * in {@link useLineChart3dScene}; this SFC stays thin presentation. Mirrors
  * `Bar3DChartRenderer.vue` exactly.
  *
  * Falls back to the plain SVG `ChartViewModelSvg` (rendered with the same
@@ -30,6 +33,13 @@ const props = defineProps<{
 	/** The parent's already-built SVG view-model, used as the fallback render. */
 	viewModel: ChartViewModel;
 	preserveAspectRatio?: 'none' | 'xMidYMid meet';
+	/**
+	 * Active font-style emphasis override (Bold Flash, Bold Reveal, Underline,
+	 * Change Font Style/Size), applied to the scene's own axis-label text via
+	 * the mounted handle's `setTextStyle` (a DOM CSS override cannot reach a
+	 * WebGL canvas).
+	 */
+	textStyle?: TextStyleAnimationDescriptor;
 }>();
 
 const options = computed(() =>
@@ -39,11 +49,18 @@ const options = computed(() =>
 	}),
 );
 
+const chartData = computed<PptxChartData | undefined>(() =>
+	props.element.type === 'chart' ? props.element.chartData : undefined,
+);
+
 const sceneContainer = ref<HTMLElement | null>(null);
 
-const { mounted, loading } = useLineChart3dScene({
+const { mounted, loading, dragLabel } = useLineChart3dScene({
 	container: sceneContainer,
 	options,
+	elementId: () => props.element.id,
+	chartData: () => chartData.value,
+	textStyle: toRef(props, 'textStyle'),
 });
 
 /** Show the SVG fallback once loading has settled without a mounted scene. */
@@ -71,6 +88,8 @@ const showLoading = computed(() => !mounted.value && loading.value);
 		:vm="viewModel"
 		:preserve-aspect-ratio="preserveAspectRatio"
 	/>
+	<!-- Mid-drag value badge for a live value drag on a marker -->
+	<ChartEditOverlays v-if="mounted" :drag-label="dragLabel" :title-draft="null" />
 </template>
 
 <style scoped>

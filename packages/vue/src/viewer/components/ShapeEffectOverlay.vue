@@ -26,21 +26,27 @@
  *     SVG paints it instead, each sub-path with its own resolved fill.
  *  5. A mirrored REFLECTION sibling (`a:reflection`): cross-browser (unlike the
  *     `-webkit-box-reflect` `element-style.ts` used to set, which Firefox never
- *     implemented), painted with the same content the element itself uses (a
- *     cloned `<img>` for a picture, the resolved fill for everything else).
+ *     implemented), painted with a full inert clone of the element's own
+ *     rendered content (`ReflectionMirrorContent`: fill, outline, its text
+ *     body, and - for a group - its children), not just its resolved fill.
  *
- * Renders nothing when the element has no shape properties, no fill overlay,
- * and no soft edge.
+ * A group has no `shapeStyle` of its own, so the fill-overlay/outline extras
+ * above stay `undefined` for one (their own builders self-guard on
+ * `hasShapeProperties`), but `p:grpSpPr/a:effectLst` DOES resolve a soft edge
+ * and a reflection (from `groupEffectStyle`, see shared `getComputedEffectStyle`
+ * / `getEffectStyleSource`); the reflection mirrors the whole group subtree,
+ * the soft edge feathers the group's own composited raster (its shadow/glow
+ * ride the container `filter` set by `element-style.ts`, not this overlay).
+ *
+ * Renders nothing when the element has no fill overlay, soft edge, stroke
+ * outline, hollow hit band, sub-path fill, or reflection.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 import {
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
-	getComputedFillStyle,
-	getImageFitStyle,
-	getImageSrc,
+	getEffectStyleSource,
 	getSoftEdgeSvgFilter,
 	buildHollowHitOutline,
 	strokeOutlineViewBox,
@@ -48,10 +54,18 @@ import {
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
+import ReflectionMirrorContent from './ReflectionMirrorContent.vue';
+
 const props = defineProps<{
 	element: PptxElement;
 	/** Only needed to resolve a reflected picture's `<img>` src (lazy-loaded pictures). */
 	mediaDataUrls?: Map<string, string>;
+	/**
+	 * Do not render this element's own reflection mirror. Set by
+	 * `ReflectionMirrorContent` while it is itself rendering AS a reflection
+	 * mirror's content, so a mirror never grows a mirror of itself.
+	 */
+	suppressReflection?: boolean;
 }>();
 
 /**
@@ -94,10 +108,7 @@ const fillOverlayStyle = computed<CSSProperties | undefined>(() => {
  * `<filter id="soft-edge-<id>">…</filter>` element injected via `v-html`.
  */
 const softEdge = computed(() => {
-	if (!hasShapeProperties(props.element)) {
-		return undefined;
-	}
-	return getSoftEdgeSvgFilter(props.element.shapeStyle, props.element.id);
+	return getSoftEdgeSvgFilter(getEffectStyleSource(props.element), props.element.id);
 });
 
 /**
@@ -118,32 +129,13 @@ const outlineViewBox = computed(() => strokeOutlineViewBox(props.element));
 
 /**
  * `a:reflection` mirrored-sibling wrapper style, or `undefined` when the
- * element has no reflection. Cross-browser (unlike the `-webkit-box-reflect`
- * `element-style.ts` used to set): see shared's `getReflectionWrapperStyle`.
+ * element has no reflection (or this instance is itself painting AS a
+ * mirror's content, via `suppressReflection`). Cross-browser (unlike the
+ * `-webkit-box-reflect` `element-style.ts` used to set): see shared's
+ * `getReflectionWrapperStyle`.
  */
-const reflection = computed<CSSProperties | undefined>(
-	() => effect.value.reflection as CSSProperties | undefined,
-);
-
-/**
- * The reflection's mirrored CONTENT: a picture's actual photo (a cloned
- * `<img>`, since a picture's pixels are never expressed as CSS background)
- * for a picture/image element, or the resolved fill for everything else.
- * `a:grpFill` children reflect as transparent: the enclosing group's fill is
- * not threaded into this overlay.
- */
-const reflectionImgSrc = computed(() =>
-	reflection.value && isImageLikeElement(props.element)
-		? getImageSrc(props.element, props.mediaDataUrls ?? new Map())
-		: undefined,
-);
-const reflectionImgStyle = computed<CSSProperties>(
-	() => getImageFitStyle(props.element) as CSSProperties,
-);
-const reflectionFill = computed(() =>
-	reflection.value && !isImageLikeElement(props.element)
-		? getComputedFillStyle(props.element)
-		: undefined,
+const reflection = computed<CSSProperties | undefined>(() =>
+	props.suppressReflection ? undefined : (effect.value.reflection as CSSProperties | undefined),
 );
 </script>
 
@@ -292,24 +284,6 @@ const reflectionFill = computed(() =>
 		/>
 	</svg>
 	<div v-if="reflection" class="pptx-vue-reflection" aria-hidden="true" :style="reflection">
-		<img
-			v-if="reflectionImgSrc"
-			:src="reflectionImgSrc"
-			alt=""
-			draggable="false"
-			:style="{ width: '100%', height: '100%', ...reflectionImgStyle }"
-		/>
-		<div
-			v-else-if="reflectionFill"
-			:style="{
-				width: '100%',
-				height: '100%',
-				backgroundColor: reflectionFill.backgroundColor,
-				backgroundImage: reflectionFill.backgroundImage,
-				backgroundSize: reflectionFill.backgroundSize,
-				backgroundPosition: reflectionFill.backgroundPosition,
-				backgroundRepeat: reflectionFill.backgroundRepeat,
-			}"
-		/>
+		<ReflectionMirrorContent :element="element" :media-data-urls="mediaDataUrls" />
 	</div>
 </template>

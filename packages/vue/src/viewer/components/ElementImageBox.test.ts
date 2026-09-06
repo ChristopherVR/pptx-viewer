@@ -185,4 +185,28 @@ describe('element image box', () => {
 
 		expect(wrapper.attributes('style')).toContain('clip-path: path(');
 	});
+
+	it('mirrors a reflected picture (regression: ShapeEffectOverlay was never mounted here)', () => {
+		// `ElementRenderer` only ever mounted `ShapeEffectOverlay` on its
+		// text/shape branch; a picture routed through this component instead and
+		// never got one, so `a:effectLst/a:reflection` on a picture rendered
+		// nothing at all despite `ShapeEffectOverlay` itself supporting pictures.
+		const element = {
+			type: 'picture',
+			id: 'pic-refl',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 80,
+			imageData: 'data:image/png;base64,AAAA',
+			shapeStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+		} as unknown as ImagePptxElement;
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+
+		const reflection = wrapper.get('.pptx-vue-reflection');
+		expect(reflection.find('img').attributes('src')).toBe('data:image/png;base64,AAAA');
+	});
 });

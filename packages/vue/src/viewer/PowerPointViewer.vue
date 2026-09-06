@@ -1559,8 +1559,13 @@ defineExpose<PowerPointViewerExpose>(
 					v-if="readOnlyRec.showBanner.value"
 					:kind="readOnlyRec.recommendation.value.kind"
 					:message-key="readOnlyRec.recommendation.value.messageKey"
+					:password-prompt-open="readOnlyRec.passwordPromptOpen.value"
+					:password-error="readOnlyRec.passwordError.value"
+					:checking-password="readOnlyRec.checkingPassword.value"
 					@edit-anyway="readOnlyRec.editAnyway"
 					@dismiss="readOnlyRec.dismiss"
+					@submit-password="readOnlyRec.submitPassword"
+					@cancel-password="readOnlyRec.cancelPasswordPrompt"
 				/>
 
 				<!-- PowerPoint-style title bar sits ABOVE and OUTSIDE the

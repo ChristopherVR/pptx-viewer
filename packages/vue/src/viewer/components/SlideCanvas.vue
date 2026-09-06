@@ -81,7 +81,10 @@ const wrapperStyle = computed<CSSProperties>(() => ({
 	// Paint the resolved slide background on the labelled slide region so a
 	// master/layout-inherited background is exposed on the aria-roledescription
 	// ="slide" node, matching React/Angular (the inner SlideStage repaints it).
-	...(getSlideBackgroundStyle(props.slide) as CSSProperties),
+	...(getSlideBackgroundStyle(props.slide, {
+		widthPx: props.canvasSize.width,
+		heightPx: props.canvasSize.height,
+	}) as CSSProperties),
 }));
 
 const viewportRef = ref<HTMLElement | null>(null);

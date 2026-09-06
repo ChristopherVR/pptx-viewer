@@ -3,32 +3,36 @@ import type { PptxElement, PptxElementWithText, TextSegment, TextStyle } from 'p
 import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildWarpPath,
-	classifyTextWarp,
-	getWarpCssTransform,
+	DEFAULT_FONT_FAMILY,
 	groupIntoParagraphs,
 	normalizeHexColor,
 	shouldUseSvgWarp,
 	substituteFieldText,
 } from 'pptx-viewer-shared';
-import type { WarpParagraph } from 'pptx-viewer-shared';
-import type { CSSProperties } from 'vue';
+import type { EnvelopeGlyphPlacement, WarpParagraph } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
+import { useTextWarpEnvelope } from '../composables/useTextWarpEnvelope';
+import WordArtEnvelopeGlyph from './WordArtEnvelopeGlyph.vue';
 
 /**
  * WordArtText - Vue port of the React `WarpedText` SVG renderer.
  *
- * Renders warped (WordArt) text. The strategy depends on the preset's
- * {@link classifyTextWarp} category, mirroring React:
- *  - `path` (arch, wave, circle, triangle, chevron, curve, ring, …): each
- *    paragraph becomes one SVG baseline `<path>` + `<text>` pair, with per-run
- *    styling (colour, bold/italic, underline, hyperlink) emitted as `<tspan>`
- *    attributes.
- *  - `envelope` (inflate/deflate/can) and `simple` (slant/fade/cascade): SVG
- *    `<textPath>` cannot bend individual glyphs, so the text is laid out flat
- *    and a CSS `transform` (+ `transform-origin`) from {@link getWarpCssTransform}
- *    approximates the warp, the same approach React uses.
+ * Renders warped (WordArt) text. Every classified preset (`textNoShape` /
+ * `textPlain` / unknown excluded) renders along an SVG `<textPath>` baseline
+ * built by {@link shouldUseSvgWarp} + `buildWarpPath`: arch/wave/circle/
+ * triangle/chevron/ring/curve, and (as of the WordArt envelope fidelity fix)
+ * inflate/deflate/can/slant/fade/cascade too, matching React and Vanilla.
+ *
+ * This used to branch on `classifyTextWarp(preset)` and fall back to a flat
+ * `<div>` + CSS `transform` approximation for the `envelope`/`simple`
+ * categories; that branch was dead code once `shouldUseSvgWarp` is used
+ * directly (it already returns `true` for every classified preset), and
+ * because React/Vanilla never had that branch, Vue rendered inflate/deflate/
+ * can/slant/fade/cascade as a flat CSS-transform approximation while React
+ * and Vanilla already rendered them as true SVG textPath - a cross-binding
+ * parity bug this component no longer has.
  *
  * Presets that are not classified (`textNoShape`, `textPlain`, unknown values)
  * cause the component to render nothing; callers fall back to flat text. The
@@ -41,8 +45,9 @@ const props = defineProps<{
 }>();
 
 // ── Inlined scalar defaults (kept self-contained; mirrors React constants) ──
+// DEFAULT_FONT_FAMILY comes from pptx-viewer-shared so every binding's WordArt
+// fallback font is the same string (see the shared `constants.ts` doc comment).
 const DEFAULT_TEXT_COLOR = '#111827';
-const DEFAULT_FONT_FAMILY = '"Segoe UI", "Helvetica Neue", Arial, sans-serif';
 const DEFAULT_TEXT_FONT_SIZE = 24;
 const HYPERLINK_COLOR = '#0563C1';
 
@@ -56,28 +61,12 @@ const textEl = computed<PptxElementWithText | null>(() =>
 
 const preset = computed(() => textEl.value?.textStyle?.textWarpPreset);
 
-/** Rendering-strategy category for the current preset. */
-const category = computed(() => classifyTextWarp(preset.value));
-
 /**
- * `path` presets render along an SVG `<textPath>` baseline. `envelope`/`simple`
- * presets are excluded here even though they also pass {@link shouldUseSvgWarp}:
- * they use the CSS-transform branch instead, matching React.
+ * Every classified preset renders along an SVG `<textPath>` baseline; only
+ * `textNoShape` / `textPlain` / unknown presets fall through to flat text
+ * (handled by the caller, not this component). Matches React and Vanilla.
  */
-const usesTextPath = computed(
-	() => Boolean(textEl.value) && category.value === 'path' && shouldUseSvgWarp(preset.value),
-);
-
-/**
- * `envelope`/`simple` presets render flat text with a CSS-transform
- * approximation (perspective/rotate/skew/scale) instead of a textPath.
- */
-const usesCssTransform = computed(
-	() => Boolean(textEl.value) && (category.value === 'envelope' || category.value === 'simple'),
-);
-
-/** Whether this component should render anything for the current element. */
-const active = computed(() => usesTextPath.value || usesCssTransform.value);
+const usesTextPath = computed(() => Boolean(textEl.value) && shouldUseSvgWarp(preset.value));
 
 const width = computed(() => Math.max(props.element.width, 1));
 const height = computed(() => Math.max(props.element.height, 1));
@@ -181,36 +170,57 @@ function pathFor(i: number): string {
 	);
 }
 
-/**
- * CSS-transform style for `envelope`/`simple` presets: the warp `transform`
- * plus its `transform-origin`, applied to the flat-text overlay. `undefined`
- * for `path`/`none` presets.
- */
-const warpTransformStyle = computed<CSSProperties | undefined>(() => {
-	const warp = getWarpCssTransform(preset.value, warpAdj.value, warpAdj2.value);
-	if (!warp) {
-		return undefined;
-	}
-	return { transform: warp.transform, transformOrigin: warp.transformOrigin };
+const { useGlyphEnvelope, glyphLines } = useTextWarpEnvelope({
+	textEl,
+	preset,
+	paragraphs,
+	width,
+	height,
+	warpAdj,
+	warpAdj2,
+	defaultFontFamily: DEFAULT_FONT_FAMILY,
+	defaultFontSize: DEFAULT_TEXT_FONT_SIZE,
 });
 
-/** Inline style for a flat-text run (mirrors {@link tspanProps} as CSS). */
-function runStyle(segment: TextSegment): CSSProperties {
-	const p = tspanProps(segment);
-	return {
-		color: p.fill,
-		fontSize: `${p.fontSize}px`,
-		fontWeight: p.fontWeight,
-		fontStyle: p.fontStyle,
-		fontFamily: p.fontFamily,
-		textDecoration: p.textDecoration,
-	};
+/** Per-glyph `<text>` style attributes, from the segment it belongs to. */
+function glyphProps(glyph: EnvelopeGlyphPlacement, segments: TextSegment[]): TspanProps {
+	return tspanProps(segments[glyph.segmentIndex]);
+}
+
+/**
+ * Deterministic clip-id prefix for one glyph's slices, unique across every
+ * WordArt element on the page: `element.id` + line + glyph index. Sanitised
+ * the same way `pathIdPrefix` already is, since an SVG `id` cannot contain
+ * arbitrary characters a PPTX shape id might.
+ */
+function glyphClipIdPrefix(lineIndex: number, glyphIndex: number): string {
+	return `${pathIdPrefix.value}-l${lineIndex}-g${glyphIndex}`;
 }
 </script>
 
 <template>
 	<svg
-		v-if="usesTextPath && paragraphs.length > 0"
+		v-if="useGlyphEnvelope"
+		class="pptx-vue-wordart"
+		:width="width"
+		:height="height"
+		:viewBox="`0 0 ${width} ${height}`"
+		xmlns="http://www.w3.org/2000/svg"
+		aria-hidden="true"
+		:style="{ zIndex }"
+	>
+		<template v-for="line in glyphLines" :key="`line-${line.lineIndex}`">
+			<WordArtEnvelopeGlyph
+				v-for="(g, gi) in line.glyphs"
+				:key="`g-${line.lineIndex}-${gi}`"
+				:glyph="g"
+				:tspan="glyphProps(g, line.segments)"
+				:clip-id-prefix="glyphClipIdPrefix(line.lineIndex, gi)"
+			/>
+		</template>
+	</svg>
+	<svg
+		v-else-if="usesTextPath && paragraphs.length > 0"
 		class="pptx-vue-wordart"
 		:width="width"
 		:height="height"
@@ -257,24 +267,6 @@ function runStyle(segment: TextSegment): CSSProperties {
 			</textPath>
 		</text>
 	</svg>
-
-	<div
-		v-else-if="usesCssTransform && paragraphs.length > 0"
-		class="pptx-vue-wordart pptx-vue-wordart-css"
-		:style="{ ...warpTransformStyle, zIndex }"
-		aria-hidden="true"
-	>
-		<div
-			v-for="(para, pi) in paragraphs"
-			:key="`css-line-${pi}`"
-			class="pptx-vue-wordart-line"
-			:style="{ textAlign: alignment.textAnchor === 'middle' ? 'center' : alignment.textAnchor }"
-		>
-			<span v-for="(seg, si) in para.segments" :key="`css-run-${pi}-${si}`" :style="runStyle(seg)">
-				{{ seg.text }}
-			</span>
-		</div>
-	</div>
 </template>
 
 <style scoped>
@@ -283,18 +275,5 @@ function runStyle(segment: TextSegment): CSSProperties {
 	inset: 0;
 	overflow: visible;
 	pointer-events: none;
-}
-
-.pptx-vue-wordart-css {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	white-space: pre-wrap;
-	will-change: transform;
-}
-
-.pptx-vue-wordart-line {
-	width: 100%;
 }
 </style>
