@@ -7,7 +7,9 @@ import {
 } from 'pptx-viewer-shared';
 
 import { createEl } from '../dom';
+import { getShapeFillStrokeStyle } from '../element-styles';
 import type { ElementRenderer } from '../types';
+import { renderReflectionOverlay, renderShapeFilterDefs } from './shape-filter-defs';
 
 /**
  * Paint a group child's `a:grpFill` inheritance onto its already-rendered node.
@@ -96,13 +98,29 @@ function paintInheritedFill(
  * nearest enclosing group that has one.
  */
 export const renderGroupElement: ElementRenderer = (element, zIndex, context) => {
-	const el = createEl(
-		context.document,
-		'div',
-		'pptxv-element pptxv-group',
-		getContainerStyle(element, zIndex),
-	);
+	const el = createEl(context.document, 'div', 'pptxv-element pptxv-group', {
+		...getContainerStyle(element, zIndex),
+		// A group paints no fill/outline of its own, but `p:grpSpPr/a:effectLst`
+		// DOES carry a shadow/glow/soft-edge for the group's own composite
+		// raster (see shared `getComputedEffectStyle`), expressed as `filter` /
+		// `overflow` here.
+		...getShapeFillStrokeStyle(element),
+	});
 	el.dataset.elementId = element.id;
+
+	// The soft-edge feather `<filter>` def, when the group carries one (its
+	// `url(#soft-edge-<id>)` reference rides on the `filter` merged in above).
+	const filterDefs = renderShapeFilterDefs(context.document, element);
+	if (filterDefs) {
+		el.appendChild(filterDefs);
+	}
+
+	// `p:grpSpPr/a:effectLst/a:reflection` (parsed onto `groupEffectStyle`)
+	// mirrors the whole group subtree.
+	const reflection = renderReflectionOverlay(context.document, element, context.mediaDataUrls);
+	if (reflection) {
+		el.appendChild(reflection);
+	}
 
 	if (element.type === 'group' && element.children?.length) {
 		const parentGroupFill = getGroupChildParentFill(element);

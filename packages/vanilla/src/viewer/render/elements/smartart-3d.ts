@@ -10,6 +10,10 @@ import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
 
 import { createEl } from '../dom';
 import type { ElementRenderContext, ElementRenderer } from '../types';
+import {
+	registerChart3DTextStyleHandle,
+	unregisterChart3DTextStyleHandle,
+} from './chart-3d-text-style-registry';
 import { renderSmartArtSvg } from './smartart';
 
 /**
@@ -28,6 +32,11 @@ import { renderSmartArtSvg } from './smartart';
  * place, mirroring Vue's `useFallback` flag and Vanilla's own `model3d.ts`
  * graceful-degradation pattern (dynamic import + fallback, no hard `three`
  * dependency in this package).
+ *
+ * Active font-style emphasis (`context.presentationStates`) is applied to
+ * every node's caption at mount time and kept live via
+ * `chart-3d-text-style-registry.ts`: the captions are canvas-drawn textures,
+ * so the CSS-based override every other element gets can never reach them.
  */
 export const renderSmartArt3DElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'smartArt') {
@@ -100,9 +109,10 @@ async function mountScene(
 			model,
 			Math.max(1, element.width),
 			Math.max(1, element.height),
-			{},
+			{ textStyle: context.presentationStates?.get(element.id)?.textStyle },
 		);
-		observeSceneRemoval(context.document, fallback, handle);
+		registerChart3DTextStyleHandle(context.document, element.id, handle);
+		observeSceneRemoval(context.document, fallback, handle, element.id);
 	} catch {
 		// `three` unavailable or the scene failed to mount: restore the SVG
 		// fallback that was already painted synchronously.
@@ -115,6 +125,7 @@ function observeSceneRemoval(
 	doc: Document,
 	wrapper: HTMLElement | SVGElement,
 	handle: SmartArt3DHandle,
+	elementId: string,
 ): void {
 	const MutationObserver = doc.defaultView?.MutationObserver;
 	if (!wrapper.isConnected || !MutationObserver) {
@@ -125,6 +136,7 @@ function observeSceneRemoval(
 			return;
 		}
 		observer.disconnect();
+		unregisterChart3DTextStyleHandle(doc, elementId, handle);
 		handle.dispose();
 	});
 	observer.observe(doc, { childList: true, subtree: true });

@@ -27,13 +27,17 @@ describe('vanilla: native animation @filter fallback', () => {
 	});
 
 	it('falls back to the generic fade for a genuinely unmapped filter family', () => {
+		// `pixelate` used to be this test's example but graduated to a real
+		// dedicated keyframe; `image` substitutes a second AUTHORED image
+		// mid-transition that the OOXML payload never carries, so it stays
+		// unmapped (see the `p:animEffect/@filter` row in limitations.md).
 		const timeline = buildTimeline([
 			{
 				targetId: 'shape2',
 				presetClass: 'exit',
 				trigger: 'onClick',
 				durationMs: 300,
-				effectFilter: { family: 'pixelate', transition: 'out', raw: 'pixelate' },
+				effectFilter: { family: 'image', transition: 'out', raw: 'image' },
 			} as PptxNativeAnimation,
 		]);
 		const step = timeline.clickGroups[0].steps[0];

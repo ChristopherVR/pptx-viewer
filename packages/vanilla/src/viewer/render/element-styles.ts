@@ -52,6 +52,12 @@ function merge3dStyle(base: CssStyleMap, computed: Computed3dStyle | undefined):
 	if (computed.perspective) {
 		base['perspective'] = computed.perspective;
 	}
+	if (computed.perspectiveOrigin) {
+		base['perspectiveOrigin'] = computed.perspectiveOrigin;
+	}
+	if (computed.transformOrigin) {
+		base['transformOrigin'] = computed.transformOrigin;
+	}
 	if (computed.transformStyle) {
 		base['transformStyle'] = computed.transformStyle;
 	}
@@ -89,6 +95,24 @@ export function getShapeFillStrokeStyle(
 	animatesFill?: boolean,
 	animatesStroke?: boolean,
 ): CssStyleMap {
+	if (el.type === 'group') {
+		// A group has no fill/stroke/geometry of its own (the branches below all
+		// read `el.shapeStyle`, which a group never has), but PowerPoint still
+		// lets `p:grpSpPr/a:effectLst` carry a shadow/glow/soft-edge for the
+		// group's own COMPOSITE raster (see shared `getComputedEffectStyle`).
+		// Reflection rides a separate mirrored sibling node (`renderReflectionOverlay`),
+		// same as a shape, so only the container-level `filter` / `overflow`
+		// belong here.
+		const fx = getComputedEffectStyle(el);
+		const groupStyle: CssStyleMap = {};
+		if (fx.filter) {
+			groupStyle.filter = fx.filter;
+		}
+		if (fx.overflowVisible) {
+			groupStyle.overflow = 'visible';
+		}
+		return groupStyle;
+	}
 	if (!hasShapeProperties(el)) {
 		return {};
 	}
@@ -235,7 +259,7 @@ export function getTextBlockStyle(el: PptxElement): CssStyleMap {
 		bodyLayout: true,
 		pxLengths: true,
 	});
-	const scene3d = buildTextBody3DSceneStyle(el.textStyle);
+	const scene3d = buildTextBody3DSceneStyle(el.textStyle, { width: el.width, height: el.height });
 	if (!scene3d) {
 		return base;
 	}

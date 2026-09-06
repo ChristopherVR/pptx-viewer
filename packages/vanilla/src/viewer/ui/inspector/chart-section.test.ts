@@ -148,6 +148,23 @@ describe('chart section type and grouping selects', () => {
 		expect(committed.series).toHaveLength(2);
 		expect(committed.series[1].histogramOptions?.layout).toBe('pareto');
 	});
+
+	it('shows "pareto" (not "histogram") as selected for a histogram with a paretoLine series', () => {
+		const { section, labelFor } = mount();
+		section.update({
+			isChart: true,
+			chartData: chart({
+				chartType: 'histogram',
+				series: [
+					{ name: 'Frequency', values: [3, 5, 2] },
+					{ name: 'Cumulative %', values: [30, 80, 100], histogramOptions: { layout: 'pareto' } },
+				],
+			}),
+		} as InspectorState);
+		const select = labelFor('pptx.chart.type').querySelector('select')!;
+
+		expect(select.value).toBe('pareto');
+	});
 });
 
 /**

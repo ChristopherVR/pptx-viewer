@@ -53,6 +53,7 @@ import {
 	DEFAULT_VIEWER_OPTIONS,
 	describeFontEmbedding,
 	resolve3DRenderingFlags,
+	checkModifyPassword,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
 	readBackstageRecentFile,
@@ -1443,8 +1444,18 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	 * The read-only recommendation banner's "Edit anyway" button
 	 * (`p:modifyVerifier` / "Mark as Final"): lifts the lock and hides the
 	 * banner, unlike plain dismiss which only hides it.
+	 *
+	 * When the recommendation's `requiresPassword` is set (a `modifyVerifier`
+	 * with a hash this viewer can check), this opens the inline password
+	 * prompt instead of unlocking immediately: PowerPoint's own "read-only
+	 * recommended" prompt keeps the deck locked until the correct password is
+	 * entered, and a wrong one leaves it locked.
 	 */
 	editAnywayFromReadOnlyRecommendation(): void {
+		if (this.store.get().readOnlyRecommendation?.requiresPassword) {
+			this.store.set({ readOnlyPasswordPromptOpen: true, readOnlyPasswordError: null });
+			return;
+		}
 		this.store.set({ readOnlyBannerDismissed: true });
 		this.setEditable(true);
 	}
@@ -1452,6 +1463,39 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** The read-only recommendation banner's plain close button: hides the banner, keeps the lock. */
 	dismissReadOnlyBanner(): void {
 		this.store.set({ readOnlyBannerDismissed: true });
+	}
+
+	/** The read-only recommendation banner's password form "Cancel": closes the prompt without unlocking. */
+	cancelReadOnlyPasswordPrompt(): void {
+		this.store.set({ readOnlyPasswordPromptOpen: false, readOnlyPasswordError: null });
+	}
+
+	/**
+	 * Check `password` against the deck's `modifyVerifier`
+	 * (`checkModifyPassword`, `pptx-viewer-shared`); unlocks and closes the
+	 * prompt on a match, otherwise leaves the deck locked and reports why.
+	 */
+	submitReadOnlyPassword(password: string): void {
+		void this.checkReadOnlyPassword(password);
+	}
+
+	private async checkReadOnlyPassword(password: string): Promise<void> {
+		this.store.set({ readOnlyCheckingPassword: true });
+		try {
+			const result = await checkModifyPassword(this.store.get().modifyVerifier, password);
+			if (result.ok) {
+				this.store.set({
+					readOnlyBannerDismissed: true,
+					readOnlyPasswordPromptOpen: false,
+					readOnlyPasswordError: null,
+				});
+				this.setEditable(true);
+			} else {
+				this.store.set({ readOnlyPasswordError: result.reason });
+			}
+		} finally {
+			this.store.set({ readOnlyCheckingPassword: false });
+		}
 	}
 
 	/** One compatibility toast's own dismiss button. */

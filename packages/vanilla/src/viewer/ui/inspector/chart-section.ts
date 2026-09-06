@@ -9,6 +9,7 @@ import {
 	CHART_TYPE_OPTIONS,
 	collapseChartTitleRunsForEdit,
 	patchChartData as sharedPatchChartData,
+	resolveDisplayedChartType,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
@@ -164,7 +165,11 @@ export function createChartSection(
 				return;
 			}
 			title.control.value = current.title ?? '';
-			chartType.control.value = current.chartType;
+			// "Pareto" has no `PptxChartType` of its own (docs/guide/limitations.md's
+			// ChartEx row): it is `chartType: 'histogram'` plus a `paretoLine`-layout
+			// series, so reading `current.chartType` raw would show "Histogram" for
+			// a chart the user picked "Pareto" for.
+			chartType.control.value = resolveDisplayedChartType(current);
 			grouping.control.value = current.grouping ?? 'clustered';
 			// Point the shared index picker at the canvas-clicked point BEFORE the
 			// advanced/exhaustive sections read it below, so their per-point fields

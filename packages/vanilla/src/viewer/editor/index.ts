@@ -31,6 +31,8 @@ export type {
 	DrawModeStageInteractions,
 } from './editor-draw-mode';
 export { createDrawModeController } from './editor-draw-mode';
+export type { InkLivePreviewOverlay } from './ink-live-preview-overlay';
+export { createInkLivePreviewOverlay } from './ink-live-preview-overlay';
 export type { EditActions, EditActionsDeps, GeometryPatch } from './editor-edit-ops';
 export { createEditActions } from './editor-edit-ops';
 export type { DeckViewToggleOption } from './editor-view-preferences';

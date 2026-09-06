@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTranslator } from '../../i18n';
 import { createElementRendererRegistry } from '../registry';
 import type { ElementRenderContext } from '../types';
+import { applyChart3DTextStyle } from './chart-3d-text-style-registry';
 import { renderSmartArtElement } from './smartart';
 
 // Mock the lazily-imported vanilla Three.js SmartArt scene runtime so the
@@ -314,6 +315,7 @@ describe('renderSmartArtElement (opt-in 3D)', () => {
 		mountSmartArt3D.mockReturnValue({
 			resize: vi.fn(),
 			setInteractive: vi.fn(),
+			setTextStyle: vi.fn(),
 			dispose,
 		});
 		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext(true)) as HTMLElement;
@@ -326,6 +328,37 @@ describe('renderSmartArtElement (opt-in 3D)', () => {
 		});
 
 		expect(dispose).toHaveBeenCalledOnce();
+	});
+
+	it('threads the active font-style emphasis into the mount options and keeps it live via the registry', async () => {
+		const setTextStyle = vi.fn();
+		mountSmartArt3D.mockReturnValue({
+			resize: vi.fn(),
+			setInteractive: vi.fn(),
+			setTextStyle,
+			dispose: vi.fn(),
+		});
+		const element = nodesOnlyElement();
+		const presentationStates = new Map([
+			[element.id, { visible: true, cssAnimation: undefined, textStyle: { bold: true } }],
+		]);
+		renderSmartArtElement(element, 0, makeContext(true, { presentationStates }));
+
+		await flushMount();
+
+		expect(mountSmartArt3D).toHaveBeenCalledExactlyOnceWith(
+			expect.anything(),
+			expect.objectContaining({ meshes: expect.any(Array) }),
+			400,
+			240,
+			{ textStyle: { bold: true } },
+		);
+
+		// A later animation tick reaches the SAME mounted handle via the
+		// registry (`chart-3d-text-style-registry.ts`), since a caption drawn
+		// as a canvas texture has no CSS selector the usual override can target.
+		applyChart3DTextStyle(document, element.id, { italic: true });
+		expect(setTextStyle).toHaveBeenCalledExactlyOnceWith({ italic: true });
 	});
 });
 

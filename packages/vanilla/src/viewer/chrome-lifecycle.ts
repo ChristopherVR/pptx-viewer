@@ -110,6 +110,10 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	editAnywayFromReadOnlyRecommendation(): void;
 	/** The read-only recommendation banner's plain close button. */
 	dismissReadOnlyBanner(): void;
+	/** The read-only recommendation banner's password form submit. */
+	submitReadOnlyPassword(password: string): void;
+	/** The read-only recommendation banner's password form "Cancel". */
+	cancelReadOnlyPasswordPrompt(): void;
 	/** One compatibility toast's own dismiss button. */
 	dismissCompatToast(id: string): void;
 	/** The compatibility toast stack's "Dismiss all" button. */
@@ -193,6 +197,8 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		onEnableEditing: () => deps.enableEditingFromProtectedView(),
 		onEditAnywayFromReadOnly: () => deps.editAnywayFromReadOnlyRecommendation(),
 		onDismissReadOnlyBanner: () => deps.dismissReadOnlyBanner(),
+		onSubmitReadOnlyPassword: (password) => deps.submitReadOnlyPassword(password),
+		onCancelReadOnlyPasswordPrompt: () => deps.cancelReadOnlyPasswordPrompt(),
 		onDismissCompatToast: (id) => deps.dismissCompatToast(id),
 		onDismissAllCompatToasts: () => deps.dismissAllCompatToasts(),
 		...buildChromeCallbacks(deps),
@@ -207,6 +213,11 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	chrome.setReadOnlyRecommendation(
 		store.get().readOnlyRecommendation,
 		store.get().readOnlyBannerDismissed,
+		{
+			promptOpen: store.get().readOnlyPasswordPromptOpen,
+			error: store.get().readOnlyPasswordError,
+			checking: store.get().readOnlyCheckingPassword,
+		},
 	);
 	chrome.setCompatToasts(store.get().compatToasts);
 
@@ -561,6 +572,10 @@ export interface ChromeHost {
 	editAnywayFromReadOnlyRecommendation(): void;
 	/** The read-only recommendation banner's plain close button. */
 	dismissReadOnlyBanner(): void;
+	/** The read-only recommendation banner's password form submit. */
+	submitReadOnlyPassword(password: string): void;
+	/** The read-only recommendation banner's password form "Cancel". */
+	cancelReadOnlyPasswordPrompt(): void;
 	/** One compatibility toast's own dismiss button. */
 	dismissCompatToast(id: string): void;
 	/** The compatibility toast stack's "Dismiss all" button. */
@@ -824,6 +839,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		enableEditingFromProtectedView: () => host.enableEditingFromProtectedView(),
 		editAnywayFromReadOnlyRecommendation: () => host.editAnywayFromReadOnlyRecommendation(),
 		dismissReadOnlyBanner: () => host.dismissReadOnlyBanner(),
+		submitReadOnlyPassword: (password) => host.submitReadOnlyPassword(password),
+		cancelReadOnlyPasswordPrompt: () => host.cancelReadOnlyPasswordPrompt(),
 		dismissCompatToast: (id) => host.dismissCompatToast(id),
 		dismissAllCompatToasts: () => host.dismissAllCompatToasts(),
 		confirmExternalHyperlink: (url) => host.confirmExternalHyperlink(url),

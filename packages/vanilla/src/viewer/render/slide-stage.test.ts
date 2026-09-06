@@ -315,4 +315,29 @@ describe('renderSlideStage', () => {
 		const stage = renderStage(buildSlide());
 		expect(stage.querySelector('.pptxv-activex-overlay')).toBeNull();
 	});
+
+	it('anchors a shadeToTitle gradient on the title placeholder', () => {
+		const gradient = 'linear-gradient(90.00deg, #000000 0%, #ffffff 100%)';
+		const slide: PptxSlide = {
+			id: 'slide-1',
+			rId: 'rId1',
+			slideNumber: 1,
+			backgroundGradient: gradient,
+			backgroundShadeToTitle: true,
+			elements: [
+				{
+					id: 'title-1',
+					type: 'text',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 50,
+					placeholderType: 'title',
+				},
+			] as PptxSlide['elements'],
+		};
+		const stage = renderStage(slide);
+		expect(stage.style.backgroundImage).not.toContain(gradient);
+		expect(stage.style.backgroundImage).toContain('data:image/svg+xml');
+	});
 });

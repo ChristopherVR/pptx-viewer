@@ -33,14 +33,17 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 });
 
 function okHandle() {
-	return { ok: true, resize: vi.fn(), dispose: vi.fn() };
+	return { ok: true, resize: vi.fn(), setSelectedPart: vi.fn(), dispose: vi.fn() };
 }
 
 function unavailableHandle() {
-	return { ok: false, resize: vi.fn(), dispose: vi.fn() };
+	return { ok: false, resize: vi.fn(), setSelectedPart: vi.fn(), dispose: vi.fn() };
 }
 
-function buildContext(pieChart3D: boolean): ElementRenderContext {
+function buildContext(
+	pieChart3D: boolean,
+	overrides: Partial<ElementRenderContext> = {},
+): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	registerTableChartRenderers(registry);
 	const context: ElementRenderContext = {
@@ -61,6 +64,7 @@ function buildContext(pieChart3D: boolean): ElementRenderContext {
 		renderElement(element, zIndex) {
 			return registry.resolve(element.type)(element, zIndex, context);
 		},
+		...overrides,
 	};
 	return context;
 }
@@ -134,9 +138,51 @@ describe('renderChartElement - pieChart3D opt-in', () => {
 		expect(mountPieChart3D).toHaveBeenCalledExactlyOnceWith(
 			expect.anything(),
 			expect.objectContaining({ wedges: expect.any(Array) }),
+			// Not interactive in this context: no interaction hooks are wired.
+			undefined,
 		);
 		expect(container.querySelector('.pptxv-pie-chart-3d-scene')).toBeTruthy();
 		expect(container.querySelector('svg')).toBeNull();
+	});
+
+	it('wires click-to-select and drag-to-value on the interactive canvas, seeded from the store selection', async () => {
+		const onChartPartSelect = vi.fn();
+		const onChartPointChange = vi.fn();
+		const element = buildChartElement(PIE3D_DATA);
+		const context = buildContext(true, {
+			interactive: true,
+			onChartPointChange,
+			onChartPartSelect,
+			chartPartSelection: { elementId: element.id, part: { role: 'dataPoint', seriesIndex: 0 } },
+		});
+		renderChartElement(element, 0, context);
+
+		await flushMount();
+
+		expect(mountPieChart3D).toHaveBeenCalledOnce();
+		const interaction = mountPieChart3D.mock.calls[0]?.[2];
+		expect(interaction).toBeDefined();
+
+		interaction.onSelect({ role: 'dataPoint', seriesIndex: 1, pointIndex: 0 });
+		expect(onChartPartSelect).toHaveBeenCalledExactlyOnceWith(element, {
+			role: 'dataPoint',
+			seriesIndex: 1,
+			pointIndex: 0,
+		});
+
+		// A dragged wedge value commits through the SAME chart-data update path
+		// every other interactive 3D chart kind uses.
+		interaction.onValueDragCommit({ role: 'dataPoint', seriesIndex: 0, pointIndex: 1 }, 42);
+		expect(onChartPointChange).toHaveBeenCalledExactlyOnceWith(
+			element,
+			expect.objectContaining({ series: [{ name: 'S1', values: [1, 42, 3] }] }),
+		);
+
+		const handle = await mountPieChart3D.mock.results[0]?.value;
+		expect(handle.setSelectedPart).toHaveBeenCalledExactlyOnceWith({
+			role: 'dataPoint',
+			seriesIndex: 0,
+		});
 	});
 
 	it('keeps the SVG in place when the mount resolves not-ok (three unavailable)', async () => {

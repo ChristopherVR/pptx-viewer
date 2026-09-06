@@ -1,14 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
+import { hasShapeProperties } from 'pptx-viewer-core';
 import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
-	getComputedFillStyle,
 	getDuotoneSvgFilter,
-	getImageFitStyle,
-	getImageSrc,
+	getEffectStyleSource,
 	getSoftEdgeSvgFilter,
 	isPatternPaint,
 	strokeOutlineViewBox,
@@ -16,6 +14,7 @@ import {
 } from 'pptx-viewer-shared';
 
 import { createEl, createSvgEl } from '../dom';
+import { buildReflectionMirrorContent } from './reflection-mirror-content';
 
 /**
  * Hidden SVG definitions referenced by shape-level effect filters: the DAG
@@ -25,15 +24,21 @@ import { createEl, createSvgEl } from '../dom';
  * matching `<filter>` markup so those references resolve.
  */
 export function renderShapeFilterDefs(doc: Document, element: PptxElement): SVGSVGElement | null {
-	if (!hasShapeProperties(element)) {
+	// `getEffectStyleSource` resolves a shape/image's own `shapeStyle` OR a
+	// group's `groupEffectStyle` (the same `p:grpSpPr` extraction, kept for
+	// shadow/glow/soft-edge/reflection even without a fill of its own). Duotone
+	// is a DAG image effect a group never carries, so `getDuotoneSvgFilter`
+	// harmlessly returns `undefined` for one; the soft edge is not.
+	const style = getEffectStyleSource(element);
+	if (!style) {
 		return null;
 	}
 	const markups: string[] = [];
-	const duotone = getDuotoneSvgFilter(element.shapeStyle, element.id);
+	const duotone = getDuotoneSvgFilter(style, element.id);
 	if (duotone) {
 		markups.push(duotone.filterMarkup);
 	}
-	const softEdge = getSoftEdgeSvgFilter(element.shapeStyle, element.id);
+	const softEdge = getSoftEdgeSvgFilter(style, element.id);
 	if (softEdge) {
 		markups.push(softEdge.filterMarkup);
 	}
@@ -77,11 +82,12 @@ export function renderShapeFillOverlay(doc: Document, element: PptxElement): HTM
  * `a:reflection` mirrored-sibling node: a cross-browser replacement for
  * `-webkit-box-reflect` (Firefox never implemented that property, so
  * reflections rendered nothing there at all). Positioned/transformed/masked
- * by shared's `getReflectionWrapperStyle`; painted inside with the SAME
- * content the element itself uses - a cloned `<img>` for a picture (a
- * picture's pixels are never expressed as CSS background), or the resolved
- * fill for everything else. `a:grpFill` children reflect as transparent: the
- * enclosing group's fill is not threaded into this overlay.
+ * by shared's `getReflectionWrapperStyle`; painted inside with a full inert
+ * clone of the element's own rendered content - fill, outline, its text
+ * body, and for a group its children - not just its resolved fill (see
+ * `buildReflectionMirrorContent`). Works for a group too: a group has no
+ * `shapeStyle` of its own, but `getComputedEffectStyle` resolves
+ * `p:grpSpPr/a:effectLst/a:reflection` from `groupEffectStyle` for one.
  */
 export function renderReflectionOverlay(
 	doc: Document,
@@ -94,36 +100,12 @@ export function renderReflectionOverlay(
 	}
 	const layer = createEl(doc, 'div', 'pptxv-reflection', { ...wrapperStyle });
 	layer.setAttribute('aria-hidden', 'true');
-
-	if (isImageLikeElement(element)) {
-		const src = getImageSrc(element, new Map(mediaDataUrls));
-		if (src) {
-			const img = createEl(doc, 'img', undefined, {
-				width: '100%',
-				height: '100%',
-				...getImageFitStyle(element),
-			});
-			img.setAttribute('src', src);
-			img.setAttribute('alt', '');
-			img.setAttribute('draggable', 'false');
-			layer.appendChild(img);
-		}
-		return layer;
-	}
-
-	const fill = getComputedFillStyle(element);
-	if (fill) {
-		const fillLayer = createEl(doc, 'div', undefined, {
-			width: '100%',
-			height: '100%',
-			...(fill.backgroundColor ? { backgroundColor: fill.backgroundColor } : {}),
-			...(fill.backgroundImage ? { backgroundImage: fill.backgroundImage } : {}),
-			...(fill.backgroundSize ? { backgroundSize: fill.backgroundSize } : {}),
-			...(fill.backgroundPosition ? { backgroundPosition: fill.backgroundPosition } : {}),
-			...(fill.backgroundRepeat ? { backgroundRepeat: fill.backgroundRepeat } : {}),
-		});
-		layer.appendChild(fillLayer);
-	}
+	// `suppressOwnReflection: true` - this call is building the mirror FOR
+	// `element` itself, so its content must not also grow another nested
+	// mirror of itself. A DESCENDANT with its own reflection encountered while
+	// building that content is a different element and keeps its reflection
+	// (see `buildReflectionMirrorContent`'s doc).
+	layer.appendChild(buildReflectionMirrorContent(doc, element, mediaDataUrls, undefined, true));
 	return layer;
 }
 

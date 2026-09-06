@@ -11,11 +11,13 @@ import {
 	autoFitModeOf,
 	canInteractWithElement,
 	defaultGradientState,
+	getNonVisualDescriptionFields,
 	gradientStateOf,
 	hasGradientFill,
 	imageAdjustmentsStateOf,
 	imageCropStateOf,
 	isElementLocked,
+	shouldShowAccessibilitySection,
 	tableInspectorStateOf,
 	textAdvancedStateOf,
 	textWrapOf,
@@ -150,9 +152,9 @@ export function buildInspectorState(
 		imageDuotone2:
 			el && isImageLikeElement(el) ? (el.imageEffects?.duotone?.color2 ?? '#ffffff') : '#ffffff',
 		imageColorWash: el && isImageLikeElement(el) ? el.imageEffects?.colorWash : undefined,
-		altText: el && 'altText' in el && typeof el.altText === 'string' ? el.altText : '',
-		title: el && 'title' in el && typeof el.title === 'string' ? el.title : '',
-		isTextShapeOrConnector: el?.type === 'text' || el?.type === 'shape' || el?.type === 'connector',
+		altText: el ? getNonVisualDescriptionFields(el).altText : '',
+		title: el ? getNonVisualDescriptionFields(el).title : '',
+		showAccessibilitySection: el !== undefined && shouldShowAccessibilitySection(el),
 		chartHighlightCell:
 			el?.type === 'chart' && chartPartSelection?.elementId === el.id
 				? {

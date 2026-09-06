@@ -49,6 +49,15 @@ export interface SyncStageParams {
 	 * already complete.
 	 */
 	seedCompleted?: boolean;
+	/**
+	 * The slide canvas size (px), in the same unit the elements' own
+	 * `x`/`y`/`width`/`height` are authored in. Lets `PresentationAnimationController
+	 * .fromSlide` resolve a `p:anim` formula that needs the animated shape's real
+	 * box (e.g. Grow And Turn's `-#ppt_w/2` fly-in) instead of falling back.
+	 */
+	canvasSize?: { width: number; height: number };
+	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+	themeColorMap?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -110,6 +119,13 @@ export function createPresentationPlayback(): PresentationPlayback {
 	let seededCompleted = false;
 	/** The slide the stage currently renders, kept so a back press can replay it. */
 	let lastSlide: PptxSlide | undefined;
+	/**
+	 * The slide canvas size + theme colour map from the most recent `syncStage`,
+	 * kept so `replayCurrentSlide` (which has no `SyncStageParams` of its own)
+	 * can still pass them to `enterSlide`.
+	 */
+	let lastCanvasSize: { width: number; height: number } | undefined;
+	let lastThemeColorMap: Readonly<Record<string, string>> | undefined;
 
 	const interactiveIds = (): ReadonlySet<string> =>
 		controller?.interactiveTriggerShapeIds ?? new Set();
@@ -198,7 +214,15 @@ export function createPresentationPlayback(): PresentationPlayback {
 	};
 
 	const enterSlide = (slide: PptxSlide, doc: Document, completed = false): void => {
-		controller = PresentationAnimationController.fromSlide(slide);
+		// `lastCanvasSize`/`lastThemeColorMap` let the controller resolve a
+		// `p:anim` formula that needs the animated shape's real box (Grow And
+		// Turn's `-#ppt_w/2` fly-in) and a scheme-colour ramp stop instead of
+		// falling back.
+		controller = PresentationAnimationController.fromSlide(slide, {
+			slideHeightPx: lastCanvasSize?.height,
+			slideWidthPx: lastCanvasSize?.width,
+			themeColorMap: lastThemeColorMap,
+		});
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.
 		ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);
@@ -286,6 +310,8 @@ export function createPresentationPlayback(): PresentationPlayback {
 			mediaDataUrls = params.mediaDataUrls ?? new Map();
 			reRenderElements = params.reRenderElements ?? null;
 			currentStage = params.stage;
+			lastCanvasSize = params.canvasSize;
+			lastThemeColorMap = params.themeColorMap;
 
 			const entering = !wasPresenting;
 			const slideChanged = params.slideIndex !== lastIndex;

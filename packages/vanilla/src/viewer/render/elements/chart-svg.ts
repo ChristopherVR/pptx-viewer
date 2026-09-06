@@ -188,6 +188,7 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 				'stroke-width': prim.strokeWidth,
 				opacity: prim.opacity ?? 1,
 				'stroke-dasharray': prim.dashArray,
+				transform: prim.transform,
 			});
 			appendTitle(doc, el, prim.title);
 			applyPartAttrs(el, prim.part);
@@ -235,6 +236,7 @@ function renderLine(doc: Document, line: SvgLine): SVGLineElement {
 		'stroke-width': line.strokeWidth,
 		'stroke-dasharray': line.dashArray,
 		opacity: line.opacity ?? 1,
+		transform: line.transform,
 	});
 	appendTitle(doc, el, line.title);
 	return el;

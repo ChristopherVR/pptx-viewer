@@ -216,6 +216,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 
 	// Draw mode owns stage gestures while a pen, highlighter, or eraser is active.
 	const drawMode = createDrawModeController({
+		doc,
 		store,
 		editActions,
 		interactions,

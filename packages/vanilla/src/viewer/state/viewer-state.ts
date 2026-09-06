@@ -11,6 +11,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxModernCommentAuthor,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -28,6 +29,7 @@ import type {
 	ElementClipboardPayload,
 	InlineTextSelection,
 	Guide,
+	ModifyPasswordCheckResult,
 	ReadOnlyRecommendation,
 	RemoteCursor,
 	SanitizedPresence,
@@ -40,6 +42,9 @@ import {
 } from 'pptx-viewer-shared';
 
 import type { ChartPartSelection } from '../render';
+
+/** Why the last password attempt failed; see `checkModifyPassword` (`pptx-viewer-shared`). */
+export type ModifyPasswordErrorReason = Extract<ModifyPasswordCheckResult, { ok: false }>['reason'];
 
 /** `zoom` is either an explicit scale factor (1 = 100%) or fit-to-viewport. */
 export type ZoomLevel = number | 'fit';
@@ -282,6 +287,22 @@ export interface ViewerState {
 	 */
 	readOnlyBannerDismissed: boolean;
 	/**
+	 * The loaded deck's raw `p:modifyVerifier`, kept alongside
+	 * {@link readOnlyRecommendation} so `submitReadOnlyPassword` can check a
+	 * candidate password against it (`checkModifyPassword`, `pptx-viewer-shared`).
+	 */
+	modifyVerifier?: PptxModifyVerifier;
+	/**
+	 * Whether the read-only recommendation banner's inline password prompt is
+	 * open (replaces "Edit anyway"/"Dismiss" while true). Only reachable when
+	 * `readOnlyRecommendation.requiresPassword` is set.
+	 */
+	readOnlyPasswordPromptOpen: boolean;
+	/** Reason the last password attempt failed, or null before any attempt / after success. */
+	readOnlyPasswordError: ModifyPasswordErrorReason | null;
+	/** True while a submitted password is being checked; disables the form. */
+	readOnlyCheckingPassword: boolean;
+	/**
 	 * Compatibility-warning toasts for the current load (deck-level
 	 * `data.warnings` concatenated with every slide's own `warnings`, deduped
 	 * by code through the shared `compatibilityWarningToasts`). Load
@@ -370,6 +391,10 @@ export function createInitialViewerState(): ViewerState {
 		spellCheckEnabled: false,
 		readOnlyRecommendation: null,
 		readOnlyBannerDismissed: false,
+		modifyVerifier: undefined,
+		readOnlyPasswordPromptOpen: false,
+		readOnlyPasswordError: null,
+		readOnlyCheckingPassword: false,
 		compatToasts: [],
 	};
 }

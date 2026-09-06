@@ -11,7 +11,7 @@ function sectionFactory() {
 function state(overrides: Partial<InspectorState> = {}): InspectorState {
 	return {
 		hasSelection: true,
-		isTextShapeOrConnector: true,
+		showAccessibilitySection: true,
 		altText: '',
 		title: '',
 		...overrides,
@@ -25,7 +25,7 @@ function handlers(): InspectorHandlers {
 	} as unknown as InspectorHandlers;
 }
 
-describe('accessibility section (shape/text/connector alt text and title)', () => {
+describe('accessibility section (alt text and title)', () => {
 	it('is hidden when nothing is selected', () => {
 		const section = createAccessibilitySection(
 			document,
@@ -37,14 +37,14 @@ describe('accessibility section (shape/text/connector alt text and title)', () =
 		expect(section.el.hidden).toBeTruthy();
 	});
 
-	it('is hidden for an element kind other than text/shape/connector', () => {
+	it('is hidden for an element kind the shared descriptor excludes (e.g. a picture or group)', () => {
 		const section = createAccessibilitySection(
 			document,
 			createTranslator(),
 			sectionFactory(),
 			handlers(),
 		);
-		section.update(state({ isTextShapeOrConnector: false }));
+		section.update(state({ showAccessibilitySection: false }));
 		expect(section.el.hidden).toBeTruthy();
 	});
 

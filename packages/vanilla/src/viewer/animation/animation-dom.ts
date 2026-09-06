@@ -6,6 +6,8 @@ import {
 } from 'pptx-viewer-shared';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
 
+import { applyChart3DTextStyle } from '../render/elements/chart-3d-text-style-registry';
+
 /** Marker attribute on the `<style>` child a text-style override patches in place. */
 const TEXT_STYLE_OVERRIDE_ATTR = 'data-pptx-text-style-override';
 
@@ -14,12 +16,19 @@ const TEXT_STYLE_OVERRIDE_ATTR = 'data-pptx-text-style-override';
  * child (Bold Flash, Bold Reveal, Underline, Change Font Style/Size), which
  * OVERRIDES the runs' own inline bold/italic/underline/size since plain CSS
  * inheritance cannot reach them. See `animation-text-style-css.ts`.
+ *
+ * Also forwards the same descriptor to a mounted 3D chart/SmartArt3D scene's
+ * own `setTextStyle` (via `chart-3d-text-style-registry.ts`): its axis labels
+ * / node captions are canvas-drawn textures the CSS override above can never
+ * reach, so the registry lookup is the robust path for those elements
+ * regardless of whether the (harmless) CSS override also runs.
  */
 function applyTextStyleOverride(
 	el: HTMLElement,
 	id: string,
 	state: ElementAnimationState | undefined,
 ): void {
+	applyChart3DTextStyle(el.ownerDocument, id, state?.textStyle);
 	const css = buildTextStyleOverrideCss(id, state?.textStyle);
 	let styleTag = el.querySelector<HTMLStyleElement>(`:scope > style[${TEXT_STYLE_OVERRIDE_ATTR}]`);
 	if (!css) {

@@ -317,12 +317,13 @@ export interface InspectorState {
 	/** The selected element's accessibility title (`p:cNvPr/@title`), if any. */
 	title: string;
 	/**
-	 * Whether the selection is a plain shape, text box or connector: gates the
-	 * Accessibility section's own alt-text/title editor (a picture's alt text
-	 * has its own field in the Image section; a graphic frame has no editor
-	 * of its own yet).
+	 * Whether the Accessibility section's own alt-text/title editor should
+	 * show for the current selection: true for a plain shape, text box,
+	 * connector, and every graphic-frame kind (table/chart/smartArt/media/ole).
+	 * A picture's alt text has its own field in the Image section instead.
+	 * See shared's `shouldShowAccessibilitySection`.
 	 */
-	isTextShapeOrConnector: boolean;
+	showAccessibilitySection: boolean;
 	chartData?: PptxChartData;
 	/**
 	 * The on-canvas chart part selection, scoped to the selected chart element:

@@ -516,3 +516,75 @@ describe('createPresentationPlayback transition sound (p:sndAc/p:stSnd, p:endSnd
 		expect(el1?.style.animation).toContain(' 0ms ');
 	});
 });
+
+describe('createPresentationPlayback geometry/theme render context wiring', () => {
+	let doc: Document;
+	let stageWrap: HTMLElement;
+
+	beforeEach(() => {
+		doc = document;
+		stageWrap = doc.createElement('div');
+		doc.body.appendChild(stageWrap);
+	});
+
+	afterEach(() => {
+		stageWrap.remove();
+		doc.getElementById('pptx-vanilla-presentation-keyframes')?.remove();
+		doc.getElementById('pptx-vanilla-slide-keyframes')?.remove();
+	});
+
+	// Grow And Turn's own ground-truth markup: `from="(-#ppt_w/2)" to="(#ppt_x)"`
+	// on a `ppt_x` attribute animation (see animation-ppt-formula-ground-truth.md).
+	function growAndTurnAnim(targetId: string): PptxNativeAnimation {
+		return {
+			attributeAnimations: [
+				{ attrName: 'ppt_x', from: '(-#ppt_w/2)', keyframes: [], to: '(#ppt_x)' },
+			],
+			durationMs: 600,
+			presetClass: 'entr',
+			targetId,
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation;
+	}
+
+	function boxedShapeElement(id: string): PptxElement {
+		return { height: 100, id, type: 'shape', width: 200, x: 200, y: 150 } as unknown as PptxElement;
+	}
+
+	function slideKeyframesCss(): string {
+		return doc.getElementById('pptx-vanilla-slide-keyframes')?.textContent ?? '';
+	}
+
+	it('resolves the cross-axis fly-in formula when canvasSize is passed through syncStage', () => {
+		const playback = createPresentationPlayback();
+		const stage = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage);
+		playback.syncStage({
+			canvasSize: { height: 720, width: 960 },
+			doc,
+			presenting: true,
+			slide: slideWith([boxedShapeElement('a')], [growAndTurnAnim('a')]),
+			slideIndex: 0,
+			stage,
+			stageWrap,
+		});
+		// centre x = (200 + 200/2) / 960 = 0.3125; from = -100/960 = -0.104167;
+		// delta = -0.104167 - 0.3125 = -0.416667 -> formatted to 4dp.
+		expect(slideKeyframesCss()).toContain('-0.4167');
+	});
+
+	it('falls back to canned timing when canvasSize is not passed', () => {
+		const playback = createPresentationPlayback();
+		const stage = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage);
+		playback.syncStage({
+			doc,
+			presenting: true,
+			slide: slideWith([boxedShapeElement('a')], [growAndTurnAnim('a')]),
+			slideIndex: 0,
+			stage,
+			stageWrap,
+		});
+		expect(slideKeyframesCss()).not.toContain('-0.4167');
+	});
+});

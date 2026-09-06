@@ -1,4 +1,5 @@
 import type { InkPoint, StrokeToInkElementOpts } from 'pptx-viewer-shared';
+import { pointFromPointerEvent } from 'pptx-viewer-shared';
 
 import type { DrawTool } from '../state';
 import { resolveTopLevelElementId } from './element-hit';
@@ -42,6 +43,13 @@ export interface DrawGesturesDeps {
 	onCommitStroke(stroke: StrokeToInkElementOpts): void;
 	/** The eraser tool was clicked on an existing element with this id. */
 	onEraseAt(id: string): void;
+	/**
+	 * The in-progress stroke's accumulated points, updated on pointerdown and
+	 * every pointermove; `null` once the gesture ends (pointerup/cancel) so the
+	 * caller clears its live preview. Optional so existing callers (and tests)
+	 * that don't render a live preview are unaffected.
+	 */
+	onStrokePreview?(points: readonly InkPoint[] | null): void;
 }
 
 export interface DrawGestures {
@@ -62,20 +70,22 @@ export function createDrawGestures(deps: DrawGesturesDeps): DrawGestures {
 	let active: ActiveStroke | null = null;
 
 	/**
-	 * Map a pointer event to a stage-local point, carrying its pressure
-	 * reading along (`PointerEvent.pressure`, 0..1). `strokeToInkElement`
-	 * (via the shared `onCommitStroke` path) decides whether the accumulated
-	 * per-point pressures vary enough to author a variable-width stroke.
+	 * Map a pointer event to a stage-local point, carrying its pressure and
+	 * tilt reading along (via the shared `pointFromPointerEvent`).
+	 * `strokeToInkElement` (via the shared `onCommitStroke` path) decides
+	 * whether the accumulated per-point pressures vary enough, or any point's
+	 * tilt is genuinely non-zero, to author a variable-width / calligraphic
+	 * stroke.
 	 */
-	const mapPoint = (event: PointerEvent): InkPoint => ({
-		...clientPointToStagePoint(
+	const mapPoint = (event: PointerEvent): InkPoint => {
+		const { x, y } = clientPointToStagePoint(
 			event.clientX,
 			event.clientY,
 			deps.getStageOrigin(),
 			deps.getScale(),
-		),
-		...(typeof event.pressure === 'number' ? { pressure: event.pressure } : {}),
-	});
+		);
+		return pointFromPointerEvent(x, y, event);
+	};
 
 	function detach(): void {
 		window.removeEventListener('pointermove', onPointerMove);
@@ -88,6 +98,7 @@ export function createDrawGestures(deps: DrawGesturesDeps): DrawGestures {
 			return;
 		}
 		active.points.push(mapPoint(event));
+		deps.onStrokePreview?.(active.points);
 	}
 
 	function onPointerUp(event: PointerEvent): void {
@@ -98,6 +109,7 @@ export function createDrawGestures(deps: DrawGesturesDeps): DrawGestures {
 		const stroke = active;
 		detach();
 		active = null;
+		deps.onStrokePreview?.(null);
 		deps.onCommitStroke({
 			points: stroke.points,
 			color: deps.getColor(),
@@ -112,6 +124,7 @@ export function createDrawGestures(deps: DrawGesturesDeps): DrawGestures {
 		}
 		detach();
 		active = null;
+		deps.onStrokePreview?.(null);
 	}
 
 	return {
@@ -135,14 +148,19 @@ export function createDrawGestures(deps: DrawGesturesDeps): DrawGestures {
 			event.preventDefault();
 			event.stopPropagation();
 			active = { tool, pointerId: event.pointerId, points: [mapPoint(event)] };
+			deps.onStrokePreview?.(active.points);
 			window.addEventListener('pointermove', onPointerMove);
 			window.addEventListener('pointerup', onPointerUp);
 			window.addEventListener('pointercancel', onPointerCancel);
 		},
 		isActive: () => active !== null,
 		dispose() {
+			const wasActive = active !== null;
 			detach();
 			active = null;
+			if (wasActive) {
+				deps.onStrokePreview?.(null);
+			}
 		},
 	};
 }

@@ -9,14 +9,15 @@ export interface AccessibilitySection {
 
 /**
  * The Accessibility section: alt text / title editor for a plain shape, text
- * box or connector, at parity with React's `AccessibilityTextSection`, Vue's
+ * box, connector, or any graphic-frame kind (table/chart/smartArt/media/ole),
+ * at parity with React's `AccessibilityTextSection`, Vue's
  * `AccessibilityPanel.vue`, Angular's `AccessibilityTextPanelComponent`, and
- * Svelte's (now type-generic) `AltTextSection.svelte`.
+ * Svelte's `AltTextSection.svelte`.
  *
  * A picture's own alt text field lives in `image-section.ts`; this section
- * is restricted to `state.isTextShapeOrConnector` so it does not duplicate
- * a table/chart/smartArt/media/ole panel's own alt-text UI. Committed on
- * change, not per keystroke, matching the image section's alt-text field.
+ * is gated on `state.showAccessibilitySection` (shared's
+ * `shouldShowAccessibilitySection`) so it does not duplicate that. Committed
+ * on change, not per keystroke, matching the image section's alt-text field.
  */
 export function createAccessibilitySection(
 	doc: Document,
@@ -55,15 +56,15 @@ export function createAccessibilitySection(
 	return {
 		el,
 		update(state) {
-			el.hidden = !state.hasSelection || !state.isTextShapeOrConnector;
+			el.hidden = !state.hasSelection || !state.showAccessibilitySection;
 			if (doc.activeElement !== alt) {
 				alt.value = state.altText;
 			}
 			if (doc.activeElement !== title) {
 				title.value = state.title;
 			}
-			alt.disabled = !state.isTextShapeOrConnector;
-			title.disabled = !state.isTextShapeOrConnector;
+			alt.disabled = !state.showAccessibilitySection;
+			title.disabled = !state.showAccessibilitySection;
 		},
 	};
 }

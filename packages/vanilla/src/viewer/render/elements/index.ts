@@ -16,6 +16,11 @@ export { renderConnectorElement } from './connector';
 export { renderGroupElement } from './group';
 export { renderImageElement } from './image';
 export { renderInkElement } from './ink';
+// Shared by `ink.ts`'s committed-stroke rendering and the Draw tool's live
+// in-progress preview overlay (`editor/ink-live-preview-overlay.ts`), so both
+// paint an `InkStrokeView` (plain path / pressure circles / tilt nib marks)
+// identically.
+export { buildStrokeSvg } from './ink-stroke-svg';
 export { renderLineChart3DElement } from './line-chart-3d';
 export { renderMediaElement } from './media';
 export { renderOleElement } from './ole';

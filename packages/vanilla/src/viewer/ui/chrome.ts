@@ -27,7 +27,7 @@ import type { PresentationTouchControls } from './presentation-touch-controls';
 import { createPresentationTouchControls } from './presentation-touch-controls';
 import type { ProtectedViewBanner } from './protected-view-banner';
 import { createProtectedViewBanner } from './protected-view-banner';
-import type { ReadOnlyBanner } from './read-only-banner';
+import type { ModifyPasswordErrorReason, ReadOnlyBanner } from './read-only-banner';
 import { createReadOnlyBanner } from './read-only-banner';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
@@ -84,6 +84,10 @@ export interface ChromeOptions {
 	onEditAnywayFromReadOnly(): void;
 	/** Close click on the read-only recommendation banner. */
 	onDismissReadOnlyBanner(): void;
+	/** The read-only recommendation banner's password form submit. */
+	onSubmitReadOnlyPassword(password: string): void;
+	/** The read-only recommendation banner's password form "Cancel". */
+	onCancelReadOnlyPasswordPrompt(): void;
 	/** One compatibility toast's own dismiss button. */
 	onDismissCompatToast(id: string): void;
 	/** The compatibility toast stack's "Dismiss all" button. */
@@ -139,6 +143,11 @@ export interface ViewerChrome {
 	setReadOnlyRecommendation(
 		recommendation: ReadOnlyRecommendation | null,
 		dismissed: boolean,
+		passwordState: {
+			promptOpen: boolean;
+			error: ModifyPasswordErrorReason | null;
+			checking: boolean;
+		},
 	): void;
 	/** Replace the compatibility-warning toast stack. */
 	setCompatToasts(toasts: readonly CompatibilityWarningToast[]): void;
@@ -213,6 +222,8 @@ export function buildViewerChrome(
 				t,
 				() => options.onEditAnywayFromReadOnly(),
 				() => options.onDismissReadOnlyBanner(),
+				(password) => options.onSubmitReadOnlyPassword(password),
+				() => options.onCancelReadOnlyPasswordPrompt(),
 			)
 		: null;
 	if (readOnlyBanner) {
@@ -420,8 +431,8 @@ export function buildViewerChrome(
 		setProtectedView(active) {
 			protectedViewBanner?.setActive(active);
 		},
-		setReadOnlyRecommendation(recommendation, dismissed) {
-			readOnlyBanner?.update(recommendation, dismissed);
+		setReadOnlyRecommendation(recommendation, dismissed, passwordState) {
+			readOnlyBanner?.update(recommendation, dismissed, passwordState);
 		},
 		setCompatToasts(toasts) {
 			compatToasts.update(toasts);

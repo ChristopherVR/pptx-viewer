@@ -6,6 +6,7 @@ import {
 	getContainerStyle,
 	resolveChartKind,
 	resolveRevealedChartData,
+	subscribeBarFacePicturePixelSamples,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
@@ -158,6 +159,24 @@ export const renderChartSvgElement: ElementRenderer = (element, zIndex, context)
 
 	paint(chartData);
 	attachChartEditing(container, element, context, paint);
+
+	// An untargeted bar3D extrusion face whose fill is picture-only samples a
+	// colour from the picture ASYNCHRONOUSLY (see `chart-bar3d-face-picture-
+	// sample.ts`'s module doc for the COM-verified ground truth this
+	// reproduces); `buildChartViewModel` only ever sees whatever is already
+	// cached, so this repaints once a sample lands. Vanilla has no unmount
+	// hook to unsubscribe from, so the listener self-unsubscribes the first
+	// time it notices `container` left the document, rather than leaking one
+	// subscription (and the closure's whole `container`/`paint` graph)
+	// forever every time a slide with a bar3D picture-fill chart unmounts.
+	const unsubscribe = subscribeBarFacePicturePixelSamples(() => {
+		if (!container.isConnected) {
+			unsubscribe();
+			return;
+		}
+		paint(chartData);
+	});
+
 	return container;
 };
 

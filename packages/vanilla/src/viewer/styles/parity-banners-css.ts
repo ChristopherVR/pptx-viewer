@@ -44,6 +44,59 @@ export const PARITY_BANNERS_CSS = `
 }
 .pptxv-readonly-banner-dismiss:hover { background: rgba(120, 53, 15, 0.12); }
 .pptxv-readonly-banner-dismiss svg { width: 14px; height: 14px; }
+.pptxv-readonly-banner-password-form {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 8px;
+}
+.pptxv-readonly-banner-password-input {
+	padding: 3px 8px;
+	border: 1px solid #b45309;
+	border-radius: 4px;
+	background: #fff;
+	color: #78350f;
+	font: inherit;
+}
+.pptxv-readonly-banner-unlock {
+	flex: none;
+	padding: 3px 10px;
+	border: 1px solid #b45309;
+	border-radius: 4px;
+	background: #fff;
+	color: #78350f;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+.pptxv-readonly-banner-unlock:hover { background: #fde68a; }
+.pptxv-readonly-banner-password-cancel {
+	flex: none;
+	padding: 3px 8px;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	border-radius: 4px;
+}
+.pptxv-readonly-banner-password-cancel:hover { background: rgba(120, 53, 15, 0.12); }
+.pptxv-readonly-banner-password-error {
+	flex: none;
+	color: #991b1b;
+	font-size: 12px;
+}
+.pptxv-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
 
 .pptxv-compat-toasts {
 	/* Position, size, stacking order and pointer-events come from

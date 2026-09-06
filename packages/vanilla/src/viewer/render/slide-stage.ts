@@ -148,7 +148,7 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 		'--pptx-slide-w': `${canvasSize.width}px`,
 		'--pptx-slide-h': `${canvasSize.height}px`,
 		'--pptxv-grid-size': `${options.gridSpacingPx ?? 10}px`,
-		...getSlideBackgroundStyle(slide),
+		...getSlideBackgroundStyle(slide, { widthPx: canvasSize.width, heightPx: canvasSize.height }),
 	});
 	if (interactive) {
 		stage.setAttribute('role', 'region');

@@ -109,6 +109,27 @@ describe('renderInkElement', () => {
 		expect(circles?.[0].getAttribute('fill')).toBe('#123456');
 	});
 
+	it('renders calligraphic nib ellipses when inkPointTiltX/Y carry a genuine lean, taking priority over pressure circles', () => {
+		const node = renderInkElement(
+			inkElement({
+				inkPaths: ['M 0 0 L 10 0 L 20 0'],
+				inkColors: ['#123456'],
+				inkWidths: [3],
+				inkPointPressures: [[0.1, 0.9, 0.4]],
+				inkPointTiltX: [[10, 0, 0]],
+				inkPointTiltY: [[0, 20, 0]],
+			}),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		const svg = node.querySelector('svg');
+		expect(svg?.querySelector('path')).toBeNull();
+		expect(svg?.querySelector('circle')).toBeNull();
+		const ellipses = svg?.querySelectorAll('ellipse');
+		expect(ellipses?.length).toBeGreaterThan(0);
+		expect(ellipses?.[0].getAttribute('fill')).toBe('#123456');
+	});
+
 	it('replays constant-width strokes sequentially while presenting', () => {
 		const node = renderInkElement(
 			inkElement({ inkPaths: ['M 0 0 L 30 40', 'M 5 5 L 15 5'] }),

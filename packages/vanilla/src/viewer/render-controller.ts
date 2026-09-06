@@ -2,6 +2,7 @@
    (many independent short-lived `const`s per render pass); merging them
    isn't a style choice here. */
 import type { PptxChartData, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { buildThemeColorMap } from 'pptx-viewer-core';
 import type {
 	ChartPartRef,
 	MasterViewCrudAction,
@@ -393,6 +394,11 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				// PowerPoint shows a slide you step BACK onto with its builds already
 				// played; the store marks the pending entry as backward.
 				seedCompleted: state.enteringBackward === true,
+				// Lets the controller resolve a `p:anim` formula that needs the
+				// animated shape's real box (Grow And Turn's `-#ppt_w/2` fly-in) and
+				// a scheme-colour ramp stop instead of falling back.
+				canvasSize: state.canvasSize,
+				themeColorMap: state.colorScheme ? buildThemeColorMap(state.colorScheme) : undefined,
 			});
 		} else {
 			presentationStageNode = null;

@@ -142,9 +142,20 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		}
 		if (
 			state.readOnlyRecommendation !== previous.readOnlyRecommendation ||
-			state.readOnlyBannerDismissed !== previous.readOnlyBannerDismissed
+			state.readOnlyBannerDismissed !== previous.readOnlyBannerDismissed ||
+			state.readOnlyPasswordPromptOpen !== previous.readOnlyPasswordPromptOpen ||
+			state.readOnlyPasswordError !== previous.readOnlyPasswordError ||
+			state.readOnlyCheckingPassword !== previous.readOnlyCheckingPassword
 		) {
-			chrome.setReadOnlyRecommendation(state.readOnlyRecommendation, state.readOnlyBannerDismissed);
+			chrome.setReadOnlyRecommendation(
+				state.readOnlyRecommendation,
+				state.readOnlyBannerDismissed,
+				{
+					promptOpen: state.readOnlyPasswordPromptOpen,
+					error: state.readOnlyPasswordError,
+					checking: state.readOnlyCheckingPassword,
+				},
+			);
 		}
 		if (state.compatToasts !== previous.compatToasts) {
 			chrome.setCompatToasts(state.compatToasts);

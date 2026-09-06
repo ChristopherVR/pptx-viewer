@@ -53,6 +53,7 @@ export function createTransitionPreview(doc: Document, t: Translator): Transitio
 			current.direction,
 			current.orient,
 			current.spokes,
+			current.pattern,
 		);
 		outgoing.style.zIndex = animations.outgoingOnTop ? '2' : '0';
 		// Recreate the elements' animation from scratch (setting the same string

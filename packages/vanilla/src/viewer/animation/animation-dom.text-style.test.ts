@@ -1,6 +1,7 @@
 import type { ElementAnimationState } from 'pptx-viewer-shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { registerChart3DTextStyleHandle } from '../render/elements/chart-3d-text-style-registry';
 import { applyElementAnimationStyles } from './animation-dom';
 
 function stage(): HTMLElement {
@@ -112,5 +113,24 @@ describe('applyElementAnimationStyles text-style override', () => {
 		expect(styleTag?.textContent).toContain(
 			'[data-element-id="chart-1"] text, [data-element-id="chart-1"] tspan { fill: #ff0000 !important; }',
 		);
+	});
+
+	// A 3D chart/SmartArt3D element's axis labels / node captions are
+	// canvas-drawn textures, so the CSS override above can never reach them.
+	// `chart-3d-text-style-registry.ts` is the robust path: the 3D renderer
+	// registers its mounted handle, and this per-tick pass forwards the SAME
+	// descriptor straight to `handle.setTextStyle`, alongside the (here
+	// ineffective, but harmless) CSS override.
+	it('forwards the active text style to a registered 3D scene handle', () => {
+		const root = stage();
+		const setTextStyle = vi.fn();
+		registerChart3DTextStyleHandle(document, 'sp_1', { setTextStyle });
+
+		const states = new Map<string, ElementAnimationState>([
+			['sp_1', { visible: true, cssAnimation: undefined, textStyle: { bold: true } }],
+		]);
+		applyElementAnimationStyles(root, states, new Set(), new Set());
+
+		expect(setTextStyle).toHaveBeenCalledExactlyOnceWith({ bold: true });
 	});
 });

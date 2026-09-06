@@ -33,14 +33,29 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 });
 
 function okHandle() {
-	return { ok: true, resize: vi.fn(), dispose: vi.fn() };
+	return {
+		ok: true,
+		resize: vi.fn(),
+		setSelectedPart: vi.fn(),
+		setTextStyle: vi.fn(),
+		dispose: vi.fn(),
+	};
 }
 
 function unavailableHandle() {
-	return { ok: false, resize: vi.fn(), dispose: vi.fn() };
+	return {
+		ok: false,
+		resize: vi.fn(),
+		setSelectedPart: vi.fn(),
+		setTextStyle: vi.fn(),
+		dispose: vi.fn(),
+	};
 }
 
-function buildContext(lineChart3D: boolean): ElementRenderContext {
+function buildContext(
+	lineChart3D: boolean,
+	overrides: Partial<ElementRenderContext> = {},
+): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	registerTableChartRenderers(registry);
 	const context: ElementRenderContext = {
@@ -61,6 +76,7 @@ function buildContext(lineChart3D: boolean): ElementRenderContext {
 		renderElement(element, zIndex) {
 			return registry.resolve(element.type)(element, zIndex, context);
 		},
+		...overrides,
 	};
 	return context;
 }
@@ -137,9 +153,71 @@ describe('renderChartElement - lineChart3D opt-in', () => {
 		expect(mountLineChart3D).toHaveBeenCalledExactlyOnceWith(
 			expect.anything(),
 			expect.objectContaining({ cols: 2, rows: 2 }),
+			// Not interactive in this context: no interaction hooks are wired.
+			undefined,
 		);
 		expect(container.querySelector('.pptxv-line-chart-3d-scene')).toBeTruthy();
 		expect(container.querySelector('svg')).toBeNull();
+	});
+
+	it('wires click-to-select + drag-to-value on the interactive canvas, seeded from the store selection', async () => {
+		const onChartPartSelect = vi.fn();
+		const onChartPointChange = vi.fn();
+		const element = buildChartElement(LINE3D_DATA);
+		const context = buildContext(true, {
+			interactive: true,
+			onChartPointChange,
+			onChartPartSelect,
+			chartPartSelection: { elementId: element.id, part: { role: 'dataPoint', seriesIndex: 0 } },
+		});
+		renderChartElement(element, 0, context);
+
+		await flushMount();
+
+		expect(mountLineChart3D).toHaveBeenCalledOnce();
+		const interaction = mountLineChart3D.mock.calls[0]?.[2];
+		expect(interaction).toBeDefined();
+
+		interaction.onSelect({ role: 'dataPoint', seriesIndex: 1, pointIndex: 0 });
+		expect(onChartPartSelect).toHaveBeenCalledExactlyOnceWith(element, {
+			role: 'dataPoint',
+			seriesIndex: 1,
+			pointIndex: 0,
+		});
+
+		interaction.onValueDragCommit({ role: 'dataPoint', seriesIndex: 0, pointIndex: 1 }, 42);
+		expect(onChartPointChange).toHaveBeenCalledExactlyOnceWith(
+			element,
+			expect.objectContaining({
+				series: [
+					{ name: 'S1', values: [1, 42] },
+					{ name: 'S2', values: [3, 4] },
+				],
+			}),
+		);
+
+		const handle = await mountLineChart3D.mock.results[0]?.value;
+		expect(handle.setSelectedPart).toHaveBeenCalledExactlyOnceWith({
+			role: 'dataPoint',
+			seriesIndex: 0,
+		});
+	});
+
+	it('threads the active font-style emphasis into the mount options', async () => {
+		const element = buildChartElement(LINE3D_DATA);
+		const presentationStates = new Map([
+			[element.id, { visible: true, cssAnimation: undefined, textStyle: { bold: true } }],
+		]);
+		const context = buildContext(true, { presentationStates });
+		renderChartElement(element, 0, context);
+
+		await flushMount();
+
+		expect(mountLineChart3D).toHaveBeenCalledExactlyOnceWith(
+			expect.anything(),
+			expect.objectContaining({ textStyle: { bold: true } }),
+			undefined,
+		);
 	});
 
 	it('keeps the SVG in place when the mount resolves not-ok (three unavailable)', async () => {

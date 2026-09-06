@@ -133,13 +133,13 @@ describe('buildInspectorState theme colour refs + themeColorMap (W3-G2)', () => 
 	});
 });
 
-describe('buildInspectorState altText/title/isTextShapeOrConnector', () => {
+describe('buildInspectorState altText/title/showAccessibilitySection', () => {
 	it('reads altText and title from a shape', () => {
 		const shape = shapeEl({ altText: 'A red rectangle', title: 'Callout' });
 		const state = buildInspectorState(shape);
 		expect(state.altText).toBe('A red rectangle');
 		expect(state.title).toBe('Callout');
-		expect(state.isTextShapeOrConnector).toBeTruthy();
+		expect(state.showAccessibilitySection).toBeTruthy();
 	});
 
 	it('defaults altText/title to empty strings when unset', () => {
@@ -148,22 +148,36 @@ describe('buildInspectorState altText/title/isTextShapeOrConnector', () => {
 		expect(state.title).toBe('');
 	});
 
-	it('is true for text and connector, false for a picture/table/group', () => {
-		expect(buildInspectorState({ ...shapeEl(), type: 'text' }).isTextShapeOrConnector).toBeTruthy();
+	it('is true for text, connector and every graphic-frame kind, false for a picture/group', () => {
 		expect(
-			buildInspectorState({ ...chartElement, type: 'connector' } as never).isTextShapeOrConnector,
+			buildInspectorState({ ...shapeEl(), type: 'text' }).showAccessibilitySection,
 		).toBeTruthy();
 		expect(
-			buildInspectorState({ ...chartElement, type: 'image' } as never).isTextShapeOrConnector,
+			buildInspectorState({ ...chartElement, type: 'connector' } as never).showAccessibilitySection,
+		).toBeTruthy();
+		expect(buildInspectorState(chartElement).showAccessibilitySection).toBeTruthy();
+		expect(
+			buildInspectorState({ ...chartElement, type: 'table' } as never).showAccessibilitySection,
+		).toBeTruthy();
+		expect(
+			buildInspectorState({ ...chartElement, type: 'smartArt' } as never).showAccessibilitySection,
+		).toBeTruthy();
+		expect(
+			buildInspectorState({ ...chartElement, type: 'media' } as never).showAccessibilitySection,
+		).toBeTruthy();
+		expect(
+			buildInspectorState({ ...chartElement, type: 'ole' } as never).showAccessibilitySection,
+		).toBeTruthy();
+		expect(
+			buildInspectorState({ ...chartElement, type: 'image' } as never).showAccessibilitySection,
 		).toBeFalsy();
-		expect(buildInspectorState(chartElement).isTextShapeOrConnector).toBeFalsy();
 		expect(
 			buildInspectorState({ ...chartElement, type: 'group', children: [] } as never)
-				.isTextShapeOrConnector,
+				.showAccessibilitySection,
 		).toBeFalsy();
 	});
 
 	it('is false when nothing is selected', () => {
-		expect(buildInspectorState(undefined).isTextShapeOrConnector).toBeFalsy();
+		expect(buildInspectorState(undefined).showAccessibilitySection).toBeFalsy();
 	});
 });

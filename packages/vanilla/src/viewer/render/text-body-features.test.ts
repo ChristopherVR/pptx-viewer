@@ -75,14 +75,16 @@ describe('vanilla text-body features', () => {
 
 	// WordArt-style 3D text (`a:bodyPr/a:scene3d`) used to render flat here:
 	// React, Vue and Angular all wired `buildTextBody3DSceneStyle` at the text
-	// body container, but Vanilla never did. This asserts the shared camera
-	// preset maps through to `perspective` + `transform`.
-	it('applies the body 3D scene camera preset as perspective + rotate', () => {
+	// body container, but Vanilla never did. `perspectiveAbove` is unified onto
+	// the shape-level COM-measured homography (see `text-effects-3d`'s module
+	// doc comment), so this asserts a `matrix3d(...)` + `transformOrigin: '0 0'`,
+	// not the old hand-tuned `perspective` + `rotateX` approximation.
+	it('applies the body 3D scene camera preset as a COM-measured homography matrix3d', () => {
 		const style = getTextBlockStyle(
 			textShape({ textStyle: { textBodyScene3d: { cameraPreset: 'perspectiveAbove' } } }),
 		);
-		expect(style['perspective']).toBe('800px');
-		expect(style['transform']).toBe('rotateX(-12deg)');
+		expect(String(style['transform'])).toContain('matrix3d');
+		expect(style['transformOrigin']).toBe('0 0');
 		expect(style['transformStyle']).toBe('preserve-3d');
 	});
 
@@ -97,7 +99,7 @@ describe('vanilla text-body features', () => {
 				},
 			}),
 		);
-		expect(style['transform']).toBe('rotate(45deg) rotateX(-12deg)');
+		expect(String(style['transform'])).toMatch(/^rotate\(45deg\) matrix3d\(/);
 	});
 
 	// `a:flatTx` is the explicit "render flat" override and must block the

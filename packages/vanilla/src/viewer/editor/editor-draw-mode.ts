@@ -1,6 +1,9 @@
+import { buildLiveInkStrokeView } from 'pptx-viewer-shared';
+
 import type { DrawTool, Store, ViewerState } from '../state';
 import { createDrawGestures } from './editor-draw-gestures';
 import type { EditActions } from './editor-edit-ops';
+import { createInkLivePreviewOverlay } from './ink-live-preview-overlay';
 
 /**
  * The Draw ribbon tab's mode-switching + pointer-routing glue, extracted from
@@ -24,6 +27,7 @@ export interface DrawModeStageInteractions {
 }
 
 export interface DrawModeDeps {
+	doc: Document;
 	store: Store<ViewerState>;
 	editActions: Pick<EditActions, 'commitStroke' | 'eraseInkElement'>;
 	interactions: DrawModeStageInteractions;
@@ -50,6 +54,14 @@ export interface DrawModeController {
 export function createDrawModeController(deps: DrawModeDeps): DrawModeController {
 	const { store, editActions, interactions } = deps;
 
+	// The live in-progress stroke preview: mounted inside the scaled
+	// `.pptxv-stage` (like `motion-path-overlay.ts`) and redrawn straight from
+	// the gesture callbacks below, independent of the store-driven render
+	// cycle, so it tracks every pointermove at full rate.
+	const inkPreview = createInkLivePreviewOverlay(deps.doc);
+	const resolveInkTool = (tool: DrawTool): 'pen' | 'highlighter' | 'freeform' =>
+		tool === 'highlighter' ? 'highlighter' : tool === 'freeform' ? 'freeform' : 'pen';
+
 	const drawGestures = createDrawGestures({
 		getScale: deps.getScale,
 		getStageOrigin: deps.getStageOrigin,
@@ -59,6 +71,20 @@ export function createDrawModeController(deps: DrawModeDeps): DrawModeController
 		getWidth: () => store.get().drawWidth,
 		onCommitStroke: (stroke) => editActions.commitStroke(stroke),
 		onEraseAt: (id) => editActions.eraseInkElement(id),
+		onStrokePreview: (points) => {
+			if (!points) {
+				inkPreview.update(null, store.get().canvasSize);
+				return;
+			}
+			inkPreview.mount(deps.getStageRoot() as HTMLElement | null);
+			const view = buildLiveInkStrokeView({
+				points: [...points],
+				color: store.get().drawColor,
+				width: store.get().drawWidth,
+				tool: resolveInkTool(store.get().drawTool),
+			});
+			inkPreview.update(view, store.get().canvasSize);
+		},
 	});
 
 	/** True while a drawing tool (not `'select'`) should own stage pointer input. */
@@ -102,6 +128,9 @@ export function createDrawModeController(deps: DrawModeDeps): DrawModeController
 		},
 		setColor: (color) => store.set({ drawColor: color }),
 		setWidth: (width) => store.set({ drawWidth: Math.max(1, Math.round(width)) }),
-		dispose: () => drawGestures.dispose(),
+		dispose: () => {
+			drawGestures.dispose();
+			inkPreview.destroy();
+		},
 	};
 }
