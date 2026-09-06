@@ -187,6 +187,36 @@ describe('applyAnimationGroupSteps', () => {
 			);
 			expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 0ms 1 both');
 		});
+
+		// A `p:cond evt="onStopAudio"` naming its dependency by SHAPE
+		// (`p:tgtEl/p:spTgt`, no `@_tn`) resolves the media element DIRECTLY by
+		// its shape/element id, with no `mediaTimeNodeElementIds` map involved.
+		it("re-applies a dependsOnShapeId-gated step when that shape's media fires ended", () => {
+			const root = document.createElement('div');
+			const audio = document.createElement('audio');
+			audio.dataset['elementId'] = 'audio-shape-3';
+			root.appendChild(audio);
+
+			const { ctx, latest } = makeContext();
+			ctx.frameRoot = () => root;
+			// Deliberately no mediaTimeNodeElementIds: the shape-id form needs none.
+
+			applyAnimationGroupSteps(
+				group([
+					step({
+						elementId: 'el1',
+						cssAnimation: 'pptx-fadeIn 500ms ease 4000ms 1 normal both',
+						dependsOnEvent: 'onStopAudio',
+						dependsOnShapeId: 'audio-shape-3',
+					}),
+				]),
+				ctx,
+			);
+			expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 4000ms 1 normal both');
+
+			audio.dispatchEvent(new Event('ended'));
+			expect(latest().get('el1')?.cssAnimation).toBe('pptx-fadeIn 500ms ease 0ms 1 normal both');
+		});
 	});
 });
 

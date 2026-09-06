@@ -297,6 +297,24 @@ describe('getSlideTransitionAnimations', () => {
 		const windowResult = getSlideTransitionAnimations('window', 400, undefined, 'vert');
 		expect(windowResult.incoming).toContain('pptx-tr-window-vert');
 		expect(windowResult.outgoing).toContain('pptx-tr-window-out');
+	});
+
+	it('matches Doors/Window horz/vert clip-path to PowerPoint (COM CreateVideo measured)', () => {
+		// MEASURED (issue: horz/vert were swapped): PowerPoint's `dir="horz"`
+		// names a HORIZONTAL split line opening top/bottom (clips top+bottom,
+		// `inset(50% 0)`), and `dir="vert"` a VERTICAL split line opening
+		// left/right (clips left+right, `inset(0 50%)`) - the reverse of what the
+		// attribute name suggests at a glance.
+		const block = (name: string): string => {
+			const start = P14_TRANSITION_KEYFRAMES_ALL.indexOf(`@keyframes ${name} `);
+			expect(start).toBeGreaterThanOrEqual(0);
+			const next = P14_TRANSITION_KEYFRAMES_ALL.indexOf('@keyframes', start + 1);
+			return P14_TRANSITION_KEYFRAMES_ALL.slice(start, next < 0 ? undefined : next);
+		};
+		expect(block('pptx-tr-doors-horz')).toContain('inset(50% 0)');
+		expect(block('pptx-tr-doors-vert')).toContain('inset(0 50%)');
+		expect(block('pptx-tr-window-horz')).toContain('inset(50% 0)');
+		expect(block('pptx-tr-window-vert')).toContain('inset(0 50%)');
 
 		// `prism` was latently broken (directionalPair emitted `pptx-tr-prism-to-*`
 		// names with no matching keyframes); it now emits the correct out/in names.
@@ -306,10 +324,12 @@ describe('getSlideTransitionAnimations', () => {
 
 		// `cube`/`flip`/`rotate`/`orbit` now resolve to the real p15 cinematic 3-D
 		// keyframes (see slide-transition-cinematic), no longer the cross-fade.
+		// Rotate and Orbit both default to the `left` direction, same as Cube/Flip
+		// (COM-measured four-direction hinge, not the old rotate cw/ccw binary).
 		for (const type of ['cube', 'flip', 'rotate', 'orbit'] as const) {
 			const result = getSlideTransitionAnimations(type as PptxTransitionType, 400, undefined);
 			expect(result.outgoing.startsWith('pptx-tr-fade-out ')).toBeFalsy();
-			expect(result.outgoing).toContain(`pptx-tr-${type === 'rotate' ? 'rotate-out-ccw' : type}`);
+			expect(result.outgoing).toContain(`pptx-tr-${type}-out-left`);
 		}
 	});
 
@@ -424,6 +444,11 @@ describe('resolveSlideTransition', () => {
 		const transition: PptxSlideTransition = { type: 'cover', direction: 'lu' };
 		expect(resolveSlideTransition(transition).incoming).toContain('pptx-tr-cover-from-lu');
 	});
+
+	it('forwards pattern (shred), not just direction', () => {
+		const transition: PptxSlideTransition = { type: 'shred', pattern: 'rectangle' };
+		expect(resolveSlideTransition(transition).incoming).toContain('pptx-tr-shred-rectangles-in');
+	});
 });
 
 describe('resolveTransitionDurationMs', () => {
@@ -511,11 +536,21 @@ describe('getP14TransitionAnimations', () => {
 		expect(P14_TRANSITION_KEYFRAMES_ALL).toContain('@keyframes pptx-tr-pan-from-right');
 	});
 
-	it('resolves shred rectangles vs strips pattern', () => {
+	it('resolves shred rectangles vs strips pattern from the pattern param, not direction', () => {
+		// `p14:shred` names its tile shape via the SEPARATE `@_pattern` attribute
+		// ('strip' | 'rectangle'); `direction` maps to the unrelated `@_dir`
+		// (in/out). Writing the pattern into `@_dir="rectangles"` instead of
+		// `@_pattern="rectangle"` is a real corruption bug, COM-verified: real
+		// PowerPoint refuses to open the resulting file at all.
+		expect(
+			getP14TransitionAnimations('shred', 600, undefined, undefined, 'rectangle')?.incoming,
+		).toContain('pptx-tr-shred-rectangles-in');
+		expect(
+			getP14TransitionAnimations('shred', 600, undefined, undefined, 'strip')?.incoming,
+		).toContain('pptx-tr-shred-strips-in');
+		// A stray `direction: 'rectangles'` (the old, wrong signal) must NOT select
+		// the rectangles pattern now that pattern has its own parameter.
 		expect(getP14TransitionAnimations('shred', 600, 'rectangles')?.incoming).toContain(
-			'pptx-tr-shred-rectangles-in',
-		);
-		expect(getP14TransitionAnimations('shred', 600, 'strips')?.incoming).toContain(
 			'pptx-tr-shred-strips-in',
 		);
 	});

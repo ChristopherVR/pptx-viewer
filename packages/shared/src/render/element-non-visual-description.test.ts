@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	getNonVisualDescriptionFields,
+	shouldShowAccessibilitySection,
 	supportsAltTextField,
 	supportsTitleField,
 } from './element-non-visual-description';
@@ -94,5 +95,32 @@ describe('getNonVisualDescriptionFields', () => {
 		expect(fields.showTitle).toBeFalsy();
 		expect(fields.altText).toBe('');
 		expect(fields.title).toBe('');
+	});
+});
+
+describe('shouldShowAccessibilitySection', () => {
+	it('is true for a shape, text box and connector', () => {
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'shape' }))).toBeTruthy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'text' }))).toBeTruthy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'connector' }))).toBeTruthy();
+	});
+
+	it('is true for every graphic-frame kind (table, chart, smartArt, media, ole)', () => {
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'table' }))).toBeTruthy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'chart' }))).toBeTruthy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'smartArt' }))).toBeTruthy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'media' }))).toBeTruthy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'ole' }))).toBeTruthy();
+	});
+
+	it('is false for a picture/image, whose alt text has its own field elsewhere', () => {
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'image' }))).toBeFalsy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'picture' }))).toBeFalsy();
+	});
+
+	it('is false for a kind with no descr/title field, like a group', () => {
+		const group = makeElement({ type: 'group', children: [] } as unknown as PptxElement);
+		expect(shouldShowAccessibilitySection(group)).toBeFalsy();
+		expect(shouldShowAccessibilitySection(makeElement({ type: 'ink' }))).toBeFalsy();
 	});
 });

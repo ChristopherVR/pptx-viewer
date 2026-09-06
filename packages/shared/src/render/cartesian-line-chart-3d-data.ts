@@ -16,6 +16,7 @@
  */
 import type { PptxChartData } from 'pptx-viewer-core';
 
+import type { TextStyleAnimationDescriptor } from './animation-text-style-resolve';
 import type { CartesianCameraView3D } from './cartesian-chart-3d-geom';
 import type {
 	CartesianLine3DPoint,
@@ -46,6 +47,8 @@ export interface CartesianLine3DSceneOptions {
 	view3D?: CartesianCameraView3D;
 	/** Authored `c:floor`/`c:sideWall`/`c:backWall` fill colours, when set. */
 	wallColors?: SurfaceWallColors;
+	/** Active font-style emphasis override (bold/italic/underline/size/colour) for the axis labels. */
+	textStyle?: TextStyleAnimationDescriptor;
 }
 
 export interface CartesianLine3DDataOptions {

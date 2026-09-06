@@ -25,6 +25,7 @@ import {
 	Vector3,
 } from 'three';
 
+import type { TextStyleAnimationDescriptor } from '../render/animation-text-style-resolve';
 import type { SmartArt3DMesh, SmartArt3DModel } from '../render/smartart-3d-types';
 import { makeTextTexture } from './text-texture';
 
@@ -36,6 +37,14 @@ interface Disposable {
 /** A built mesh group plus its teardown hook. */
 export interface BuiltMeshGroup {
 	group: Group;
+	/**
+	 * Rebuild every node's label plane with a new font-style emphasis override
+	 * (or `undefined` to clear it) - the LABEL textures are baked into a canvas
+	 * (see `text-texture.ts`), so applying an emphasis change means disposing
+	 * and repainting them, unlike a CSS override on DOM text. Leaves the block
+	 * extrusions and connectors untouched.
+	 */
+	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
 	dispose: () => void;
 }
 
@@ -91,14 +100,31 @@ function addBlock(group: Group, disposables: Disposable[], m: SmartArt3DMesh): E
 	return geo;
 }
 
-/** Add a front-face text plane for one node, if it has a label. */
-function addLabel(group: Group, disposables: Disposable[], m: SmartArt3DMesh): void {
+/** One node's currently-mounted label plane (or none), tracked for `setTextStyle` rebuilds. */
+interface LabelEntry {
+	node: SmartArt3DMesh;
+	plane: Mesh | null;
+	disposables: Disposable[];
+}
+
+/** Build a front-face text plane for one node, or `null` when it has no label / no DOM. */
+function buildLabelPlane(
+	m: SmartArt3DMesh,
+	textStyle: TextStyleAnimationDescriptor | undefined,
+): { plane: Mesh; disposables: Disposable[] } | null {
 	if (!m.text) {
-		return;
+		return null;
 	}
-	const tex = makeTextTexture(m.text, m.textColor, m.fontSize, m.halfWidth * 2, m.halfHeight * 2);
+	const tex = makeTextTexture(
+		m.text,
+		m.textColor,
+		m.fontSize,
+		m.halfWidth * 2,
+		m.halfHeight * 2,
+		textStyle,
+	);
 	if (!tex) {
-		return;
+		return null;
 	}
 	const planeGeo = new PlaneGeometry(tex.worldWidth, tex.worldHeight);
 	const planeMaterial = new MeshBasicMaterial({
@@ -113,8 +139,7 @@ function addLabel(group: Group, disposables: Disposable[], m: SmartArt3DMesh): v
 	const offset = new Vector3(0, 0, m.depth + m.bevel + 0.4).applyEuler(euler);
 	plane.position.set(m.position.x + offset.x, m.position.y + offset.y, m.position.z + offset.z);
 	plane.rotation.copy(euler);
-	group.add(plane);
-	disposables.push(planeGeo, planeMaterial, tex.texture);
+	return { plane, disposables: [planeGeo, planeMaterial, tex.texture] };
 }
 
 /** Add a connector poly-line on the base plane. */
@@ -134,25 +159,60 @@ function addConnectors(group: Group, disposables: Disposable[], model: SmartArt3
 	}
 }
 
+/** Remove and dispose one label entry's current plane, if any. */
+function clearLabel(group: Group, entry: LabelEntry): void {
+	if (entry.plane) {
+		group.remove(entry.plane);
+	}
+	for (const d of entry.disposables) {
+		d.dispose();
+	}
+	entry.plane = null;
+	entry.disposables = [];
+}
+
 /**
  * Build a `THREE.Group` for a SmartArt 3D model. The group is centred on the
  * origin (the model positions already are); callers add it to the scene.
+ * `textStyle` is a font-style emphasis override applied to every node's
+ * label (see {@link BuiltMeshGroup.setTextStyle}); emphasis is authored per
+ * shape/animation-target, not per SmartArt node, so it applies uniformly.
  */
-export function buildMeshGroup(model: SmartArt3DModel): BuiltMeshGroup {
+export function buildMeshGroup(
+	model: SmartArt3DModel,
+	textStyle?: TextStyleAnimationDescriptor,
+): BuiltMeshGroup {
 	const group = new Group();
-	const disposables: Disposable[] = [];
-
-	for (const m of model.meshes) {
-		addBlock(group, disposables, m);
-		addLabel(group, disposables, m);
-	}
-	addConnectors(group, disposables, model);
+	const blockDisposables: Disposable[] = [];
+	const labelEntries: LabelEntry[] = model.meshes.map((m) => {
+		addBlock(group, blockDisposables, m);
+		const built = buildLabelPlane(m, textStyle);
+		if (built) {
+			group.add(built.plane);
+		}
+		return { node: m, plane: built?.plane ?? null, disposables: built?.disposables ?? [] };
+	});
+	addConnectors(group, blockDisposables, model);
 
 	return {
 		group,
+		setTextStyle(style) {
+			for (const entry of labelEntries) {
+				clearLabel(group, entry);
+				const built = buildLabelPlane(entry.node, style);
+				if (built) {
+					group.add(built.plane);
+					entry.plane = built.plane;
+					entry.disposables = built.disposables;
+				}
+			}
+		},
 		dispose() {
-			for (const d of disposables) {
+			for (const d of blockDisposables) {
 				d.dispose();
+			}
+			for (const entry of labelEntries) {
+				clearLabel(group, entry);
 			}
 		},
 	};

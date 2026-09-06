@@ -375,6 +375,24 @@ describe('buildRegionMapViewModel — basic structure', () => {
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		expect(rects.length).toBeGreaterThan(0);
 	});
+
+	it('carries a valueDrag context spanning the matched regions min/max, so a region can be dragged to a new value', () => {
+		const vm = buildRegionMapViewModel(el, data, labels);
+		expect(vm.valueDrag).toBeDefined();
+		expect(vm.valueDrag?.range.min).toBe(20);
+		expect(vm.valueDrag?.range.max).toBe(100);
+		expect(vm.valueDrag?.plotTop).toBeLessThan(vm.valueDrag!.plotBottom);
+	});
+
+	it('tags each matched region path with the dataPoint part valueDrag commits through', () => {
+		const vm = buildRegionMapViewModel(el, data, labels);
+		const matchedPaths = vm.primitives.filter((p) => p.kind === 'path' && p.part !== undefined);
+		expect(matchedPaths.length).toBeGreaterThan(0);
+		for (const p of matchedPaths) {
+			expect(p.part?.role).toBe('dataPoint');
+			expect(p.part?.seriesIndex).toBe(0);
+		}
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

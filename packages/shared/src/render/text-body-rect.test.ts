@@ -51,19 +51,31 @@ describe('resolveTextBodyRectPadding', () => {
 	});
 
 	// Wave 2 COM-verified every remaining ECMA-transcribed preset (stars,
-	// ribbons, scrolls, gears, etc.) EXCEPT `sun`: its pre-existing hand-derived
-	// `rect` was measured to be wrong too (see `VERIFIED_TEXT_RECT_PRESETS`'s
-	// doc comment), so it deliberately stays off the allowlist and on the full
-	// box until a correct formula is found.
-	it('ignores the text rectangle of presets not verified against PowerPoint', () => {
-		for (const shapeType of ['sun']) {
-			expect(resolveTextBodyRectPadding(shape({ shapeType }))).toStrictEqual({
-				left: 0,
-				top: 0,
-				right: 0,
-				bottom: 0,
-			});
-		}
+	// ribbons, scrolls, gears, etc.). `sun` joined the allowlist afterward,
+	// once `preset-shape-definitions-misc.ts` (commit `1da163776`) replaced its
+	// rect with the disc's own inscribed rectangle and a COM re-measurement
+	// confirmed the new formula (see `VERIFIED_TEXT_RECT_PRESETS`'s doc
+	// comment and `preset-text-rect.test.ts`'s `sun` cases for the numbers).
+	it('ignores the text rectangle of a preset not verified against PowerPoint', () => {
+		expect(resolveTextBodyRectPadding(shape({ shapeType: 'futurePresetNoRect' }))).toStrictEqual({
+			left: 0,
+			top: 0,
+			right: 0,
+			bottom: 0,
+		});
+	});
+
+	// COM-measured at 200x100pt (see `preset-text-rect.test.ts`): l=64.65,
+	// t=32.32, r=135.27, b=67.68. The implemented formula is symmetric about
+	// the box centre, so left/right and top/bottom padding come out equal
+	// (~64.65 and ~32.32), matching the measurement within its own <0.1%
+	// tolerance.
+	it('insets sun to the disc own inscribed rectangle, now that it is COM-verified', () => {
+		const padding = resolveTextBodyRectPadding(shape({ shapeType: 'sun' }));
+		expect(padding.left).toBeCloseTo(64.65, 1);
+		expect(padding.top).toBeCloseTo(32.32, 1);
+		expect(padding.right).toBeCloseTo(64.65, 1);
+		expect(padding.bottom).toBeCloseTo(32.32, 1);
 	});
 
 	// Wave 2 follow-up: a representative sample of the newly COM-verified

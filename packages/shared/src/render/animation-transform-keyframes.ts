@@ -10,6 +10,7 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { createAttributeTransformModel } from './animation-attribute-transform';
 import { parseMotionPathPoints } from './animation-motion-path';
+import type { AnimationElementBox } from './animation-render-context';
 
 export interface TransformKeyframePrefixes {
 	motion: string;
@@ -56,13 +57,20 @@ function hasScale(anim: PptxNativeAnimation): boolean {
 	);
 }
 
-/** True when the parsed animation contains an authored transform behaviour. */
-export function hasAuthoredTransform(anim: PptxNativeAnimation): boolean {
+/**
+ * True when the parsed animation contains an authored transform behaviour.
+ * `box` is the animated shape's real rendered geometry (slide-fraction
+ * units), when the caller has it; see `animation-render-context.ts`.
+ */
+export function hasAuthoredTransform(
+	anim: PptxNativeAnimation,
+	box?: AnimationElementBox,
+): boolean {
 	return (
 		Boolean(anim.motionPath) ||
 		hasRotation(anim) ||
 		hasScale(anim) ||
-		createAttributeTransformModel(anim) !== undefined
+		createAttributeTransformModel(anim, box) !== undefined
 	);
 }
 
@@ -168,16 +176,19 @@ function keyframeName(
 
 /**
  * Build one keyframe block so simultaneous transform behaviours remain
- * simultaneous instead of competing for the CSS `transform` property.
+ * simultaneous instead of competing for the CSS `transform` property. `box`
+ * is the animated shape's real rendered geometry (slide-fraction units),
+ * when the caller has it; see `animation-render-context.ts`.
  */
 export function buildTransformKeyframes(
 	anim: PptxNativeAnimation,
 	uid: number,
 	prefixes: TransformKeyframePrefixes,
+	box?: AnimationElementBox,
 ): { keyframeName: string; css: string } | undefined {
 	const rotation = hasRotation(anim);
 	const scale = hasScale(anim);
-	const attributeModel = createAttributeTransformModel(anim);
+	const attributeModel = createAttributeTransformModel(anim, box);
 	const parsedPoints = anim.motionPath
 		? rotateMotionPathPoints(parseMotionPathPoints(anim.motionPath), anim)
 		: [];

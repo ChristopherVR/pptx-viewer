@@ -4,7 +4,8 @@
  *
  * Pure, framework-agnostic. {@link buildTextBody3DSceneStyle} maps a text
  * body's `a:scene3d` camera/light rig to a neutral CSS record (perspective +
- * rotate transform). Each binding casts the record into its own style type.
+ * rotate transform, or a COM-measured exact `matrix3d(...)` homography).
+ * Each binding casts the record into its own style type.
  *
  * A per-run extrusion/bevel `text-shadow` builder used to live here
  * (`buildText3DShadowCss`), but `a:sp3d`/`a:scene3d`/`a:flatTx` are only ever
@@ -19,84 +20,57 @@
  * (`text-effects.ts`), so it could never produce a defined value in any
  * binding. It was removed rather than kept as dead coverage; see
  * `text-effects.ts` for where the 3D layer used to be spliced in.
+ *
+ * 2026-09: this module used to carry its own hand-tuned `rotateX`/`rotateY`
+ * preset table (`TEXT_CAMERA_PRESET_MAP`), independent of - and drifted from
+ * - the shape-level camera math. `a:bodyPr/a:scene3d` (`CT_Scene3D`) is the
+ * IDENTICAL schema type used for `a:spPr/a:scene3d`: nothing in ECMA-376
+ * suggests PowerPoint's camera projection differs between a shape and a text
+ * body under the same preset. This now calls the shape-level
+ * {@link getCameraTransform} directly (COM-measured homographies from
+ * `visual-3d-camera-homography` for `perspective*`/`isometric*`, identity for
+ * `oblique*`/`legacyOblique*`/`legacyPerspective*`/`orthographicFront`, the
+ * FOV-derived perspective/rotation fallback for an explicit `a:camera/a:rot`
+ * override or an unrecognised preset) rather than reimplementing a second,
+ * approximate model, so a WordArt text box under `perspectiveHeroicLeftFacing`
+ * produces the exact same `matrix3d(...)` a shape of the same rendered size
+ * would (COM-verified via the shape measurement: `a:scene3d/a:camera` has no
+ * shape-vs-text-specific rendering path in real PowerPoint). This also fixes
+ * every `isometricOffAxis*` preset, which the old table omitted entirely (no
+ * camera effect at all on a text body), and every `oblique*`/`legacyOblique*`/
+ * `legacyPerspective*` preset, which the old table wrongly rotated the front
+ * face for (see `visual-3d-camera-homography`'s module doc comment: these only
+ * skew an EXTRUDED shape's side panels, never the front face).
+ *
+ * @module render/text-effects-3d
  */
 import type { TextStyle } from 'pptx-viewer-core';
 
 import type { TextCssProperties } from './text-fill';
+import { getCameraTransform } from './visual-3d-camera';
+import type { ElementSizePx } from './visual-3d-camera';
 
 // ── Text body 3D scene style ─────────────────────────────────────────────
-
-/**
- * Camera preset configuration: CSS perspective distance and base rotation
- * angles (in degrees). Mirrors the shape-level CAMERA_PRESET_MAP but with
- * reduced rotation values for text (text 3D is typically subtler).
- */
-interface TextCameraPresetConfig {
-	perspective?: string;
-	rotateX: number;
-	rotateY: number;
-	rotateZ: number;
-}
-
-const TEXT_CAMERA_PRESET_MAP: Record<string, TextCameraPresetConfig> = {
-	orthographicFront: { rotateX: 0, rotateY: 0, rotateZ: 0 },
-	perspectiveFront: { perspective: '800px', rotateX: 0, rotateY: 0, rotateZ: 0 },
-	perspectiveAbove: { perspective: '800px', rotateX: -12, rotateY: 0, rotateZ: 0 },
-	perspectiveBelow: { perspective: '800px', rotateX: 12, rotateY: 0, rotateZ: 0 },
-	perspectiveLeft: { perspective: '800px', rotateX: 0, rotateY: 12, rotateZ: 0 },
-	perspectiveRight: { perspective: '800px', rotateX: 0, rotateY: -12, rotateZ: 0 },
-	perspectiveAboveLeftFacing: { perspective: '800px', rotateX: -12, rotateY: 15, rotateZ: 0 },
-	perspectiveAboveRightFacing: { perspective: '800px', rotateX: -12, rotateY: -15, rotateZ: 0 },
-	perspectiveContrastingLeftFacing: { perspective: '700px', rotateX: -10, rotateY: 20, rotateZ: 0 },
-	perspectiveContrastingRightFacing: {
-		perspective: '700px',
-		rotateX: -10,
-		rotateY: -20,
-		rotateZ: 0,
-	},
-	perspectiveHeroicLeftFacing: { perspective: '600px', rotateX: -8, rotateY: 25, rotateZ: 0 },
-	perspectiveHeroicRightFacing: { perspective: '600px', rotateX: -8, rotateY: -25, rotateZ: 0 },
-	perspectiveHeroicExtremeLeftFacing: {
-		perspective: '500px',
-		rotateX: -6,
-		rotateY: 30,
-		rotateZ: 0,
-	},
-	perspectiveHeroicExtremeRightFacing: {
-		perspective: '500px',
-		rotateX: -6,
-		rotateY: -30,
-		rotateZ: 0,
-	},
-	perspectiveRelaxed: { perspective: '1000px', rotateX: -6, rotateY: 0, rotateZ: 0 },
-	perspectiveRelaxedModerately: { perspective: '1200px', rotateX: -3, rotateY: 0, rotateZ: 0 },
-	isometricLeftDown: { perspective: '1000px', rotateX: -20, rotateY: 25, rotateZ: 0 },
-	isometricRightUp: { perspective: '1000px', rotateX: -20, rotateY: -25, rotateZ: 0 },
-	isometricTopUp: { perspective: '1000px', rotateX: -30, rotateY: 0, rotateZ: 25 },
-	isometricTopDown: { perspective: '1000px', rotateX: -30, rotateY: 0, rotateZ: -25 },
-	isometricBottomUp: { perspective: '1000px', rotateX: 30, rotateY: 0, rotateZ: 25 },
-	isometricBottomDown: { perspective: '1000px', rotateX: 30, rotateY: 0, rotateZ: -25 },
-	obliqueTopLeft: { perspective: '800px', rotateX: -12, rotateY: 12, rotateZ: 0 },
-	obliqueTop: { perspective: '800px', rotateX: -15, rotateY: 0, rotateZ: 0 },
-	obliqueTopRight: { perspective: '800px', rotateX: -12, rotateY: -12, rotateZ: 0 },
-	obliqueLeft: { perspective: '800px', rotateX: 0, rotateY: 15, rotateZ: 0 },
-	obliqueRight: { perspective: '800px', rotateX: 0, rotateY: -15, rotateZ: 0 },
-	obliqueBottomLeft: { perspective: '800px', rotateX: 12, rotateY: 12, rotateZ: 0 },
-	obliqueBottom: { perspective: '800px', rotateX: 15, rotateY: 0, rotateZ: 0 },
-	obliqueBottomRight: { perspective: '800px', rotateX: 12, rotateY: -12, rotateZ: 0 },
-};
 
 /**
  * Build CSS properties for 3D scene rendering on a text body.
  *
  * Maps `a:bodyPr/a:scene3d` camera presets and explicit rotations to CSS
- * `perspective` + `transform` (rotateX/Y/Z) plus `transform-style:
- * preserve-3d`. Returns `undefined` when no scene3d (or no effective rotation/
+ * `perspective` + `transform` (a COM-measured exact `matrix3d(...)` when the
+ * preset has ground truth, otherwise `rotateX`/`rotateY`/`rotateZ`) plus
+ * `transform-style: preserve-3d`, via the same {@link getCameraTransform}
+ * shapes use. Returns `undefined` when no scene3d (or no effective rotation/
  * perspective) is present. Applied as a wrapper style on the text body
  * container.
+ *
+ * `elementSize`, when provided, re-projects a non-homography camera's field
+ * of view onto the text body's actual rendered size instead of a fixed
+ * reference size (see {@link getCameraTransform}); omitting it reproduces the
+ * legacy behaviour for callers that have not been updated to pass it.
  */
 export function buildTextBody3DSceneStyle(
 	textStyle: TextStyle | undefined,
+	elementSize?: ElementSizePx,
 ): TextCssProperties | undefined {
 	// `a:flatTx` is an explicit "render flat" override (mutually exclusive with
 	// `a:sp3d`/`a:scene3d` in OOXML): short-circuit here so an inherited/stale
@@ -109,29 +83,19 @@ export function buildTextBody3DSceneStyle(
 		return undefined;
 	}
 
-	const preset = scene3d.cameraPreset ? TEXT_CAMERA_PRESET_MAP[scene3d.cameraPreset] : undefined;
+	const {
+		perspective,
+		perspectiveOrigin,
+		matrix3d,
+		transformOrigin,
+		cameraFlatFace,
+		rotateX,
+		rotateY,
+		rotateZ,
+	} = getCameraTransform(scene3d, elementSize);
 
-	let perspective = preset?.perspective;
-	let rotateX = preset?.rotateX ?? 0;
-	let rotateY = preset?.rotateY ?? 0;
-	let rotateZ = preset?.rotateZ ?? 0;
-
-	// Explicit rotation angles override preset defaults (values in 1/60000 degrees)
-	if (scene3d.cameraRotX) {
-		rotateX = -(scene3d.cameraRotX / 60000);
-	}
-	if (scene3d.cameraRotY) {
-		rotateY = scene3d.cameraRotY / 60000;
-	}
-	if (scene3d.cameraRotZ) {
-		rotateZ = scene3d.cameraRotZ / 60000;
-	}
-
-	if (!perspective && (rotateX !== 0 || rotateY !== 0 || rotateZ !== 0)) {
-		perspective = '800px';
-	}
-
-	const hasRotation = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
+	const hasRotation =
+		Boolean(matrix3d) || (!cameraFlatFace && (rotateX !== 0 || rotateY !== 0 || rotateZ !== 0));
 	const hasScene = hasRotation || Boolean(perspective);
 
 	if (!hasScene) {
@@ -143,8 +107,20 @@ export function buildTextBody3DSceneStyle(
 	if (perspective) {
 		style.perspective = perspective;
 	}
+	if (perspectiveOrigin) {
+		style.perspectiveOrigin = perspectiveOrigin;
+	}
+	// `'0 0'` for a COM-measured homography (see `visual-3d-camera-homography`'s
+	// module doc comment: the matrix already encodes translation relative to
+	// the element's own un-rotated top-left corner, so a non-zero origin would
+	// double-apply it); omitted otherwise, keeping the default centred origin.
+	if (transformOrigin) {
+		style.transformOrigin = transformOrigin;
+	}
 
-	if (hasRotation) {
+	if (matrix3d) {
+		style.transform = matrix3d;
+	} else if (!cameraFlatFace) {
 		const transforms: string[] = [];
 		if (rotateX !== 0) {
 			transforms.push(`rotateX(${rotateX}deg)`);
@@ -155,7 +131,9 @@ export function buildTextBody3DSceneStyle(
 		if (rotateZ !== 0) {
 			transforms.push(`rotateZ(${rotateZ}deg)`);
 		}
-		style.transform = transforms.join(' ');
+		if (transforms.length > 0) {
+			style.transform = transforms.join(' ');
+		}
 	}
 
 	// Preserve 3D space for child elements

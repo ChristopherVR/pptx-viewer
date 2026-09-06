@@ -99,6 +99,21 @@ describe('buildSurfaceViewModel — isometric (≥2 series, ≥2 categories)', (
 		expect(vm.legend).toHaveLength(0);
 	});
 
+	it('carries a valueDrag context so a cell can be dragged to a new value', () => {
+		const vm = buildSurfaceViewModel(el, data, labels);
+		expect(vm.valueDrag).toBeDefined();
+		expect(vm.valueDrag?.range.min).toBeLessThan(vm.valueDrag!.range.max);
+		expect(vm.valueDrag?.plotTop).toBeLessThan(vm.valueDrag!.plotBottom);
+	});
+
+	it('tags each face polygon with the dataPoint part valueDrag commits through', () => {
+		const vm = buildSurfaceViewModel(el, data, labels);
+		const facePolygons = vm.primitives.filter((p) => p.kind === 'polygon' && p.fill !== 'none');
+		for (const p of facePolygons) {
+			expect(p.part?.role).toBe('dataPoint');
+		}
+	});
+
 	it('exposes the chart title when hasTitle is true', () => {
 		const titled: PptxChartData = {
 			...data,
@@ -192,6 +207,18 @@ describe('buildSurfaceViewModel — flat fallback (<2 series or <2 categories)',
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		// 1 series × 3 categories = 3 cells.
 		expect(rects).toHaveLength(3);
+	});
+
+	it('carries a valueDrag context so a cell can be dragged to a new value', () => {
+		const el = makeElement();
+		const data = makeSurfaceData(1, 3);
+		const vm = buildSurfaceViewModel(el, data, data.categories);
+		expect(vm.valueDrag).toBeDefined();
+		expect(vm.valueDrag?.range.min).toBeLessThan(vm.valueDrag!.range.max);
+		expect(vm.valueDrag?.plotTop).toBeLessThan(vm.valueDrag!.plotBottom);
+		for (const p of vm.primitives) {
+			expect(p.part?.role).toBe('dataPoint');
+		}
 	});
 
 	it('uses bandFmts colours for rect fills instead of the continuous ramp', () => {

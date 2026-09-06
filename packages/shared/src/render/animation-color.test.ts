@@ -274,6 +274,75 @@ describe('buildColorAnimationKeyframes', () => {
 		).toBeUndefined();
 	});
 
+	it('still does not resolve a scheme token with no accompanying ref, even with a theme map', () => {
+		// `toColor` alone (no `toColorRef`) is the pre-existing "we saw the
+		// scheme name but never captured its ref" shape; a caller must not
+		// guess a plain hex-code coercion for it.
+		expect(
+			buildColorAnimationKeyframes(
+				{ colorSpace: 'rgb', targetAttribute: 'fillcolor', toColor: 'accent1' },
+				'theme-token-no-ref',
+				undefined,
+				{ accent1: '#336699' },
+			),
+		).toBeUndefined();
+	});
+
+	it('resolves a scheme-colour (accent1) stop against the theme colour map', () => {
+		const css = buildColorAnimationKeyframes(
+			{
+				colorSpace: 'rgb',
+				fromColor: '#ff0000',
+				targetAttribute: 'fillcolor',
+				toColor: 'accent1',
+				toColorRef: { scheme: 'accent1' },
+			},
+			'theme-token',
+			2,
+			{ accent1: '#336699' },
+		);
+		expect(css).toBeDefined();
+		expect(css).toContain('@keyframes theme-token');
+		expect(css).toContain('100% { fill: #336699;');
+	});
+
+	it('applies lumMod/lumOff on a resolved scheme-colour stop', () => {
+		// lumMod 50% + lumOff 0% on accent1 (#336699) darkens the luminance by half.
+		const css = buildColorAnimationKeyframes(
+			{
+				colorSpace: 'rgb',
+				fromColor: '#000000',
+				targetAttribute: 'style.color',
+				toColor: 'accent1',
+				toColorRef: { lumMod: 0.5, scheme: 'accent1' },
+			},
+			'theme-token-lummod',
+			2,
+			{ accent1: '#336699' },
+		);
+		expect(css).toBeDefined();
+		// Not the same hex as the unmodified accent1 resolution.
+		expect(css).not.toContain('#336699');
+		expect(css).toContain('100% { color:');
+	});
+
+	it('resolves an HSL delta whose "from" is a scheme colour', () => {
+		const css = buildColorAnimationKeyframes(
+			{
+				colorSpace: 'hsl',
+				fromColor: 'accent1',
+				fromColorRef: { scheme: 'accent1' },
+				hslDelta: { hue: 60, lightness: 0, saturation: 0 },
+				targetAttribute: 'fillcolor',
+			},
+			'theme-token-hsl',
+			2,
+			{ accent1: '#336699' },
+		);
+		expect(css).toBeDefined();
+		expect(css).toContain('0% { fill: #336699;');
+	});
+
 	it('generates keyframes for RGB from-to animation', () => {
 		const anim: PptxColorAnimation = {
 			colorSpace: 'rgb',

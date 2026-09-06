@@ -97,6 +97,41 @@ describe('applyDataPointPictureFills', () => {
 		expect(result.defs[0].height).toBe(40);
 	});
 
+	// C2-G9 3-D face-targeting half: c:applyToFront gates the FRONT rect only
+	// for bar3D (a plain 2-D bar has no face concept and always paints once resolved).
+	it('leaves the front rect on its solid fill when applyToFront=false on a bar3D chart', () => {
+		const chartData: PptxChartData = {
+			...chartDataWithPicture('stretch'),
+			chartType: 'bar3D',
+			series: [
+				{
+					name: 'Series 1',
+					values: [1, 2],
+					dataPoints: [
+						{
+							idx: 1,
+							picture: {
+								imageUrl: 'data:image/png;base64,AAA',
+								applyToFront: false,
+								applyToSides: true,
+							},
+						},
+					],
+				},
+			],
+		};
+		const result = applyDataPointPictureFills(chartData, 'chart-1', [dataPointRect]);
+		expect(result.defs).toStrictEqual([]);
+		expect(result.primitives[0]).toBe(dataPointRect);
+	});
+
+	it('still paints the front rect on a bar3D chart when applyToFront is unset (COM: absent = all faces)', () => {
+		const chartData = { ...chartDataWithPicture('stretch'), chartType: 'bar3D' as const };
+		const result = applyDataPointPictureFills(chartData, 'chart-1', [dataPointRect]);
+		expect(result.defs).toHaveLength(1);
+		expect((result.primitives[0] as SvgRect).fill).toBe(`url(#${result.defs[0].id})`);
+	});
+
 	it('ignores non-rect and non-dataPoint primitives', () => {
 		const line: SvgPrimitive = {
 			kind: 'line',

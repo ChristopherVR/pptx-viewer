@@ -77,7 +77,13 @@ export * from './image-effects';
 export * from './image-background-removal';
 export * from './image-effect-filter-values';
 export * from './image-fill-overlay';
+export * from './text-segment-paragraph-break';
 export * from './text-warp';
+export * from './text-warp-envelope-curves';
+export * from './text-warp-envelope-layout';
+export * from './text-warp-glyph-slicing';
+export * from './text-warp-preset-definitions';
+export * from './text-warp-preset-sampler';
 export * from './omml-to-mathml';
 export * from './latex-to-omml';
 export * from './equation-templates';
@@ -95,6 +101,11 @@ export * from './chart-axis';
 export * from './chart-palette';
 export * from './chart-datapoint-picture-fills';
 export * from './chart-datapoint-style';
+// `bar3D` extrusion-face (side/end) picture-fill targeting + the untargeted-
+// face tint/shade fallback every solid-filled bar already used (C2-G9 3-D
+// face-targeting half); `bar-chart-3d-face-fill.ts`'s three.js round-shape
+// resolver reuses the same fallback, so both presentations agree.
+export * from './chart-bar3d-face-picture';
 export * from './chart-sparkline';
 // Legend swatch/label placement (horizontal row vs. vertical stack), shared by
 // every binding's chart projector so `LEGEND_ITEM_WIDTH` and the placement
@@ -107,6 +118,11 @@ export * from './chart-legend-placement';
 // controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
 // gridline/combo selectors), shared by every binding's chart editor.
 export * from './chart-editor-options';
+// Pareto detection for the display-only "Pareto" chart-type label: a Pareto
+// chart is `chartType: 'histogram'` plus a `paretoLine`-layout series, with no
+// `PptxChartType` of its own, so pickers/inspectors resolve what to show via
+// `resolveDisplayedChartType` instead of reading `chartType` raw.
+export { isParetoChart, resolveDisplayedChartType } from './chart-pareto';
 // Per-type default categories/series/categoryLevels for the six ChartEx kinds
 // (histogram, funnel, treemap, sunburst, boxWhisker, regionMap) an insert
 // needs to actually look like that chart type.
@@ -133,6 +149,18 @@ export * from './chart-canvas-drag';
 // Chart drawing-overlay (c:userShapes) inspector editing: descriptor list,
 // default text-box factory, pixel<->fraction anchor conversion, validation.
 export * from './chart-user-shape-edit';
+// Chart drawing-overlay FULL tree editing: a grpSp's grouped children (and
+// nested groups) flattened into indented rows, plus path-based row edits.
+export * from './chart-user-shape-tree';
+// A row's own rotation/flip write helpers, split out of chart-user-shape-tree
+// to stay under this repo's file-size limit.
+export * from './chart-user-shape-row-transform';
+// Chart drawing-overlay group container editing: a nested row's chart-relative
+// fraction position/size (converted to/from its own EMU child-space off/ext
+// through the ancestor group chain).
+export * from './chart-user-shape-row-frame';
+// Insert a new default shape into an existing group row's children.
+export * from './chart-user-shape-group-child';
 // SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
 // / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
 // `paletteColor` duplicate (with deliberately different signatures) the ones in
@@ -333,6 +361,9 @@ export * from './animation-filter-effects';
 // A mask composites with the element's own geometry `clip-path`, which a
 // `clip-path` keyframe would replace (flooding a thin shape's bounding box).
 export * from './animation-mask-reveal';
+// `p:animEffect/@filter="pixelate"` mosaic reveal/conceal: self-contained
+// SVG `<filter>` data-URIs stepped through discrete `@keyframes` stops.
+export * from './animation-pixelate-filter';
 export * from './animation-keyframes';
 export * from './animation-color';
 export * from './animation-color-base-style';
@@ -481,8 +512,9 @@ export * from './group-ops';
 // Slide-background style cascade: resolved background fields -> CSS map
 // (image -> gradient -> pattern -> solid colour precedence).
 export * from './slide-background';
-// Legacy PowerPoint 97-2003 `shadeToTitle` background hint: shades a slide's
-// gradient background toward its title placeholder's text colour.
+// Legacy PowerPoint 97-2003 `shadeToTitle` background hint: anchors a slide's
+// gradient background as a rectangular path gradient on its title
+// placeholder's bounds (COM-measured against real PowerPoint).
 export * from './background-shade-to-title';
 // Editor lifecycle foundation: `editor-insert` (pure factory functions that
 // build new `PptxElement`s with `id: ''` for the caller to assign), `element-
@@ -1183,11 +1215,24 @@ export * from './ink-drawing';
 // resulting circles/paths. React + Vue + Angular ink renderers consume this.
 export * from './ink-rendering';
 export * from './ink-tilt-nib';
+// The shared per-stroke render-mode decision (plain path / pressure circles /
+// tilt nib marks) both `content-part-strokes.ts` and `ink-group-strokes.ts`
+// build on.
+export * from './ink-stroke-view';
+// The in-progress (pointer-still-down) counterpart of `ink-stroke-view.ts`'s
+// decision: the same plain-path/pressure-circle/tilt-nib render mode for a
+// stroke's accumulated live points, so a binding's Draw overlay shows the
+// calligraphic lean/variable width DURING the gesture, not only after commit.
+export * from './ink-live-preview';
 // `p:contentPart` ink view model: per-stroke path/colour/width/opacity, the
 // pressure-circle decision, and the element viewBox. One decision function for
 // all five bindings (it used to be a Svelte-local module, while Vue and Angular
 // had no contentPart renderer at all and painted the unsupported placeholder).
 export * from './content-part-strokes';
+// Draw-tab `InkPptxElement` ink view model: the same per-stroke decision as
+// `content-part-strokes.ts`, for the element type the Draw tool itself
+// authors rather than a loaded `p:contentPart`.
+export * from './ink-group-strokes';
 // Draw-tab eraser hit-testing: which `ink`/`contentPart` element (top-most,
 // tolerance radius) a point falls on. One decision function for all five
 // bindings, which each duplicated the box+radius loop (and disagreed on the
@@ -1434,6 +1479,8 @@ export * from './placeholder-prompt';
 export * from './slide-size-rescale';
 // Write-protection recommendation (p:modifyVerifier / docProps _MarkAsFinal).
 export * from './read-only-recommendation';
+// Password check against p:modifyVerifier for the read-only banner's unlock prompt.
+export * from './modify-password-check';
 // getCompatibilityWarnings() -> toast descriptors, deduped by code.
 export * from './compatibility-warning-toasts';
 // Picture "Crop to Shape" clip-path (reuses the shared shape-geometry cascade).
@@ -1447,6 +1494,17 @@ export * from './image-effect-corrections';
 // bar3D column/bar shape geometry (box/cylinder/cone[ToMax]/pyramid[ToMax])
 // for the interactive three.js bar3D scene.
 export * from './bar-chart-3d-geometry';
+// Pure per-face `c:pictureOptions` fill resolution (picture vs derived
+// colour) for one bar3D box's six `BoxGeometry` faces; no `three` import.
+export * from './bar-chart-3d-face-fill';
+// Turns the above into actual `THREE.Material`(s) + async texture loading for
+// one bar3D box mesh, plus the scene-scoped texture manager/cache.
+export * from './bar-chart-3d-materials';
+// Async first-pixel colour sampling (+ cache/subscribe) for an untargeted
+// bar3D extrusion face whose fill is picture-only; a binding subscribes once
+// per mounted chart and re-renders when a sample lands (C2-G9 face-targeting
+// gap: PowerPoint paints a flat colour sampled from the picture itself).
+export * from './chart-bar3d-face-picture-sample';
 // Inspector option lists + pure patch builders for bar3D shape, radar style,
 // and surface wireframe.
 export * from './chart-subtype-options';

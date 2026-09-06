@@ -16,6 +16,59 @@
 import type { PathPoint, PressureConfig } from './ink-rendering';
 import { interpolateWidth } from './ink-rendering';
 
+/** Decoded per-point pen-tilt lean, derived from a raw `(x, y)` tilt-offset vector pair. */
+export interface TiltVectorChannels {
+	/** Lean direction at each point, in radians. */
+	angles: number[];
+	/** Lean strength at each point, 0 (upright) to 1 (maximally leaned), normalised to this series' own peak. */
+	magnitudes: number[];
+}
+
+/**
+ * Derive per-point angle (radians) + magnitude (0-1, normalised against the
+ * largest magnitude anywhere in `xs`/`ys`) from parallel tilt vector arrays,
+ * or `undefined` when both arrays are empty.
+ *
+ * This is the Draw tool's own live-capture counterpart of
+ * `pointsToTilt`/`tiltChannelsFromXY` in
+ * `packages/core/src/core/utils/inkml-trace-decode.ts`, which decodes the
+ * same convention from a loaded InkML file's `OTx`/`OTy` channels. The two
+ * are intentionally NOT unified into one shared function: `shared` cannot
+ * import a `core`-internal (non-public) utility, and this geometry is a
+ * handful of lines with no framework or format dependency, so a documented,
+ * cross-referenced mirror is cheaper than adding new public `core` API
+ * surface for it. Any change to the normalisation convention (peak-relative
+ * magnitude) must be made in both places.
+ *
+ * Units are irrelevant here (the maths is purely geometric): the Draw tool
+ * calls this with `PointerEvent.tiltX`/`tiltY` degrees; the InkML reader
+ * calls its own copy with arbitrary device units. Only the resulting radians
+ * + normalised magnitude matter downstream.
+ */
+export function tiltChannelsFromVectors(
+	xs: readonly number[],
+	ys: readonly number[],
+): TiltVectorChannels | undefined {
+	const angles: number[] = [];
+	const rawMagnitudes: number[] = [];
+	const len = Math.min(xs.length, ys.length);
+	for (let i = 0; i < len; i++) {
+		const x = xs[i];
+		const y = ys[i];
+		if (!Number.isFinite(x) || !Number.isFinite(y)) {
+			continue;
+		}
+		angles.push(Math.atan2(y, x));
+		rawMagnitudes.push(Math.hypot(x, y));
+	}
+	if (angles.length === 0) {
+		return undefined;
+	}
+	const max = Math.max(0, ...rawMagnitudes);
+	const magnitudes = rawMagnitudes.map((m) => (max > 0 ? Math.min(1, m / max) : 0));
+	return { angles, magnitudes };
+}
+
 /**
  * Configuration for tilt-driven "nib" rendering, extending {@link PressureConfig}
  * with how strongly tilt magnitude elongates the nib's wide axis.

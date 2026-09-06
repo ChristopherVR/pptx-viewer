@@ -211,6 +211,60 @@ describe('extractPathPoints curve sampling', () => {
 	});
 });
 
+describe('extractPathPoints arc-length reparametrization', () => {
+	it('spaces samples evenly by arc length on an extreme (asymmetric) curve, unlike plain parametric sampling', () => {
+		// A cubic whose first three control points all coincide with the start:
+		// B(t) reduces to a straight line but PARAMETRISED as x = 100 * t^3, so
+		// equal-t samples bunch tightly near t=0 and spread out near t=1 (the
+		// "extreme curve" case: a real ink-drawn curve with a sharp corner
+		// produces the same kind of lopsided control polygon).
+		const p0 = { x: 0, y: 0 };
+		const p1 = { x: 0, y: 0 };
+		const p2 = { x: 0, y: 0 };
+		const p3 = { x: 100, y: 0 };
+		const points = extractPathPoints('M 0 0 C 0 0 0 0 100 0');
+		expect(points.length).toBeGreaterThan(4);
+
+		const spacingBetween = (pts: { x: number; y: number }[]) => {
+			const spacings: number[] = [];
+			for (let i = 1; i < pts.length; i++) {
+				spacings.push(Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+			}
+			return spacings;
+		};
+
+		const arcLengthSpacings = spacingBetween(points);
+		const arcLengthRatio = Math.max(...arcLengthSpacings) / Math.min(...arcLengthSpacings);
+		// Successive spacings from the fixed module are within ~5% of each other.
+		expect(arcLengthRatio).toBeLessThan(1.05);
+
+		// The OLD parametric approach (equal-`t` sampling, no reparametrization)
+		// on the exact same curve, at the exact same sample count, is grossly
+		// uneven: this is the regression this fix closes.
+		const sampleCount = points.length - 1; // interior + endpoint samples (excludes the M start point)
+		const parametricPoints = [
+			p0,
+			...Array.from({ length: sampleCount }, (_, i) =>
+				referenceCubicAt(p0, p1, p2, p3, (i + 1) / sampleCount),
+			),
+		];
+		const parametricSpacings = spacingBetween(parametricPoints);
+		const parametricRatio = Math.max(...parametricSpacings) / Math.min(...parametricSpacings);
+		expect(parametricRatio).toBeGreaterThan(1.5);
+	});
+
+	it('still lies exactly on the curve after reparametrization', () => {
+		const p0 = { x: 0, y: 0 };
+		const p1 = { x: 200, y: 0 };
+		const p2 = { x: 200, y: 0 };
+		const p3 = { x: 200, y: 100 };
+		const points = extractPathPoints('M 0 0 C 200 0 200 0 200 100');
+		for (const point of points) {
+			expect(isOnCubicCurve(point, p0, p1, p2, p3, 1)).toBeTruthy();
+		}
+	});
+});
+
 describe('generatePressureCircles on curved strokes', () => {
 	it('places every pressure circle on the true curve, not drifted toward control points', () => {
 		const p0 = { x: 0, y: 0 };

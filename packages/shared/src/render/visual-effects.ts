@@ -962,15 +962,54 @@ export interface ComputedEffectStyle {
  *
  * @returns A {@link ComputedEffectStyle}; all-undefined when no effects apply.
  */
+/**
+ * The `ShapeStyle` {@link getComputedEffectStyle} reads effects from: a shape
+ * / image / text / connector's own `shapeStyle`, or a group's
+ * `groupEffectStyle` (the SAME `p:grpSpPr` extraction, kept for shadow / glow
+ * / soft-edge / reflection even when the group has no fill of its own - see
+ * that field's doc on `GroupPptxElement`).
+ *
+ * Exported so a binding's soft-edge `<filter>` injection - which needs the
+ * raw `ShapeStyle` to call {@link getSoftEdgeSvgFilter}, not just the
+ * aggregated `ComputedEffectStyle` - can find the exact same style
+ * `getComputedEffectStyle` used, for a group as much as for a shape. Every
+ * binding had its own copy of the `hasShapeProperties(...) ? el.shapeStyle :
+ * undefined` ternary and none of them accounted for a group, which is why a
+ * group's own `a:softEdge` filter reference resolved to nothing.
+ */
+export function getEffectStyleSource(element: PptxElement): ShapeStyle | undefined {
+	if ('shapeStyle' in element) {
+		return element.shapeStyle;
+	}
+	return element.type === 'group' ? element.groupEffectStyle : undefined;
+}
+
 export function getComputedEffectStyle(
 	element: PptxElement,
 	options: { includeGlowBoxShadow?: boolean } = {},
 ): ComputedEffectStyle {
-	const style = 'shapeStyle' in element ? element.shapeStyle : undefined;
+	const style = getEffectStyleSource(element);
 	const result: ComputedEffectStyle = {};
 	if (!style) {
 		return result;
 	}
+
+	// A group has no `shapeStyle` of its own, but `p:grpSpPr/a:effectLst`
+	// (shadow / glow / soft edge / reflection) is parsed through the SAME
+	// extractor as a regular shape's `p:spPr` and lands on
+	// `GroupPptxElement.groupEffectStyle` (`getEffectStyleSource` above), a
+	// separate field from `groupFill`, which is reserved for `a:grpFill`
+	// inheritance and stays `undefined` when the group has no fill of its own -
+	// see that field's doc for why conflating the two broke the inheritance
+	// chain. From here a group with a `groupEffectStyle` flows through the SAME
+	// pipeline as a shape/image below: PowerPoint applies `p:grpSpPr/a:effectLst`
+	// to the group's COMPOSITE raster (shadow/glow trace the silhouette of
+	// every child painted together, not each child's own box), which is
+	// exactly what `shadowsCompositePixels` already routes a group through - a
+	// CSS `filter: drop-shadow(...)` on the group's wrapper produces that same
+	// result. A group has no `a:ln` (so the line-shadow/line-glow branches
+	// below are no-ops for it) and OOXML does not author fill-overlay/DAG
+	// adjustments on `p:grpSpPr`, so those stay harmlessly absent too.
 
 	// A connector paints its own `a:ln` effects onto the stroked SVG path (an
 	// `feDropShadow` / `drop-shadow` on the line itself), so adding them to the

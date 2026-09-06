@@ -18,7 +18,7 @@
  * several observations per category (each series contributes one sample per
  * category, per `computeBoxWhiskerGeometry` in `chart-box-whisker.ts`), a
  * region map needs category labels that actually resolve to a region code
- * (see `REGION_ALIAS_MAP` in `chart-waterfall-map.ts`) or it renders as an
+ * (see `REGION_ALIAS_MAP` in `chart-region-map-alias.ts`) or it renders as an
  * empty map with every row in the "unmatched" fallback table, and a Pareto
  * chart needs a second series carrying the cumulative-percentage line.
  *

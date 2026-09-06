@@ -10,6 +10,8 @@
  *
  * @module render/p14-transition-keyframes
  */
+import { PRISM_TRANSITION_KEYFRAMES } from './slide-transition-prism';
+import { WARP_TRANSITION_KEYFRAMES } from './slide-transition-warp';
 
 /** Part 1: conveyor / doors / ferris / flash / flythrough / gallery / glitter / honeycomb / pan. */
 export const P14_TRANSITION_KEYFRAMES = `
@@ -35,13 +37,19 @@ export const P14_TRANSITION_KEYFRAMES = `
 	to   { transform: translateX(100%) rotateY(-30deg); }
 }
 
-/* ── Doors (clip-path from center split) ──────────────────────────── */
+/* ── Doors (clip-path from center split) ──────────────────────────────
+   MEASURED via COM CreateVideo: PowerPoint's \`dir="horz"\` names a
+   HORIZONTAL split line (two panels stacked top/bottom, opening upward and
+   downward), and \`dir="vert"\` a VERTICAL split line (panels side by side,
+   opening left and right) - the opposite of what "clips left/right" vs
+   "clips top/bottom" would suggest at a glance. Keep the clip-path bodies
+   matched to the MEASURED direction, not the intuitive one. */
 @keyframes pptx-tr-doors-horz {
-	from { clip-path: inset(0 50%); }
+	from { clip-path: inset(50% 0); }
 	to   { clip-path: inset(0 0); }
 }
 @keyframes pptx-tr-doors-vert {
-	from { clip-path: inset(50% 0); }
+	from { clip-path: inset(0 50%); }
 	to   { clip-path: inset(0 0); }
 }
 
@@ -173,40 +181,9 @@ export const P14_TRANSITION_KEYFRAMES = `
 
 /** Part 2: prism / reveal / ripple / shred / switch / vortex / warp / wheelReverse / window. */
 export const P14_TRANSITION_KEYFRAMES_2 = `
-/* ── Prism (3D rotation via perspective transform) ───────────────── */
-@keyframes pptx-tr-prism-in-from-right {
-	from { transform: perspective(800px) rotateY(-90deg) translateX(50%); opacity: 0; }
-	to   { transform: perspective(800px) rotateY(0deg) translateX(0); opacity: 1; }
-}
-@keyframes pptx-tr-prism-out-to-left {
-	from { transform: perspective(800px) rotateY(0deg) translateX(0); opacity: 1; }
-	to   { transform: perspective(800px) rotateY(90deg) translateX(-50%); opacity: 0; }
-}
-@keyframes pptx-tr-prism-in-from-left {
-	from { transform: perspective(800px) rotateY(90deg) translateX(-50%); opacity: 0; }
-	to   { transform: perspective(800px) rotateY(0deg) translateX(0); opacity: 1; }
-}
-@keyframes pptx-tr-prism-out-to-right {
-	from { transform: perspective(800px) rotateY(0deg) translateX(0); opacity: 1; }
-	to   { transform: perspective(800px) rotateY(-90deg) translateX(50%); opacity: 0; }
-}
-@keyframes pptx-tr-prism-in-from-bottom {
-	from { transform: perspective(800px) rotateX(90deg) translateY(50%); opacity: 0; }
-	to   { transform: perspective(800px) rotateX(0deg) translateY(0); opacity: 1; }
-}
-@keyframes pptx-tr-prism-out-to-top {
-	from { transform: perspective(800px) rotateX(0deg) translateY(0); opacity: 1; }
-	to   { transform: perspective(800px) rotateX(-90deg) translateY(-50%); opacity: 0; }
-}
-@keyframes pptx-tr-prism-in-from-top {
-	from { transform: perspective(800px) rotateX(-90deg) translateY(-50%); opacity: 0; }
-	to   { transform: perspective(800px) rotateX(0deg) translateY(0); opacity: 1; }
-}
-@keyframes pptx-tr-prism-out-to-bottom {
-	from { transform: perspective(800px) rotateX(0deg) translateY(0); opacity: 1; }
-	to   { transform: perspective(800px) rotateX(90deg) translateY(50%); opacity: 0; }
-}
-
+/* ── Prism: see \`slide-transition-prism\` (split out to keep this module
+   under the per-file LOC budget) ─────────────────────────────────────── */
+${PRISM_TRANSITION_KEYFRAMES}
 /* ── Reveal (slide away reveal) ──────────────────────────────────── */
 @keyframes pptx-tr-reveal-out-to-right {
 	from { transform: translateX(0); }
@@ -216,9 +193,13 @@ export const P14_TRANSITION_KEYFRAMES_2 = `
 	from { transform: translateX(0); }
 	to   { transform: translateX(-100%); }
 }
+/* MEASURED: the incoming layer stays hidden for roughly the first half of the
+   transition (a real black/background gap shows through), then fades in -
+   not a flat 0.5->1 fade running the whole duration. */
 @keyframes pptx-tr-reveal-in {
-	from { opacity: 0.5; }
-	to   { opacity: 1; }
+	0%   { opacity: 0; }
+	50%  { opacity: 0; }
+	100% { opacity: 1; }
 }
 
 /* ── Ripple (expanding ring clip-path) ───────────────────────────── */
@@ -273,25 +254,9 @@ export const P14_TRANSITION_KEYFRAMES_2 = `
 	to   { transform: rotate(-720deg) scale(0); opacity: 0; }
 }
 
-/* ── Warp (skew distortion) ──────────────────────────────────────── */
-@keyframes pptx-tr-warp-in {
-	from { transform: scale(0.3) skewX(30deg) skewY(15deg); opacity: 0; }
-	50%  { transform: scale(0.8) skewX(-5deg) skewY(-3deg); opacity: 0.7; }
-	to   { transform: scale(1) skewX(0deg) skewY(0deg); opacity: 1; }
-}
-@keyframes pptx-tr-warp-out {
-	from { transform: scale(1) skewX(0deg) skewY(0deg); opacity: 1; }
-	50%  { transform: scale(0.8) skewX(5deg) skewY(3deg); opacity: 0.7; }
-	to   { transform: scale(0.3) skewX(-30deg) skewY(-15deg); opacity: 0; }
-}
-@keyframes pptx-tr-warp-reverse-in {
-	from { transform: scale(3) skewX(-20deg) skewY(-10deg); opacity: 0; filter: blur(4px); }
-	to   { transform: scale(1) skewX(0deg) skewY(0deg); opacity: 1; filter: blur(0); }
-}
-@keyframes pptx-tr-warp-reverse-out {
-	from { transform: scale(1) skewX(0deg) skewY(0deg); opacity: 1; filter: blur(0); }
-	to   { transform: scale(3) skewX(20deg) skewY(10deg); opacity: 0; filter: blur(4px); }
-}
+/* ── Warp: see \`slide-transition-warp\` (COM-measured radial zoom blur,
+   split out to keep this module under the per-file LOC budget) ────────── */
+${WARP_TRANSITION_KEYFRAMES}
 
 /* ── WheelReverse (reverse wheel rotation) ───────────────────────── */
 @keyframes pptx-tr-wheel-reverse-in {
@@ -299,13 +264,15 @@ export const P14_TRANSITION_KEYFRAMES_2 = `
 	to   { clip-path: circle(75% at 50% 50%); transform: rotate(0deg); }
 }
 
-/* ── Window (scale from center with border) ──────────────────────── */
+/* ── Window (scale from center with border) ──────────────────────────
+   Same measured horz/vert meaning as Doors above (horz = horizontal split
+   line opening vertically; vert = vertical split line opening horizontally). */
 @keyframes pptx-tr-window-horz {
-	from { clip-path: inset(0 50%); }
+	from { clip-path: inset(50% 0); }
 	to   { clip-path: inset(0 0); }
 }
 @keyframes pptx-tr-window-vert {
-	from { clip-path: inset(50% 0); }
+	from { clip-path: inset(0 50%); }
 	to   { clip-path: inset(0 0); }
 }
 @keyframes pptx-tr-window-out {

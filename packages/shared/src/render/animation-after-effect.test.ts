@@ -6,6 +6,7 @@ import {
 	applyAfterAnimationFromEditorList,
 	buildAfterAnimationDimKeyframes,
 	injectHideOnNextClickSteps,
+	resolveAfterAnimationStepFields,
 } from './animation-after-effect';
 import type { TimelineClickGroup, TimelineStep } from './animation-timeline-types';
 
@@ -57,6 +58,26 @@ describe('applyAfterAnimationFromEditorList', () => {
 		expect(result[1].afterAnimationAction).toBeUndefined();
 	});
 
+	it('clears a stale native scheme-colour ref when the editor overrides the colour', () => {
+		const natives = [
+			nativeAnim({
+				afterAnimationAction: 'dimToColor',
+				afterAnimationColorRef: { scheme: 'accent2' },
+				targetId: 'sp1',
+			}),
+		];
+		const editors = [
+			editorAnim({
+				afterAnimation: 'dimToColor',
+				afterAnimationColor: '#ff0000',
+				elementId: 'sp1',
+			}),
+		];
+		const result = applyAfterAnimationFromEditorList(natives, editors);
+		expect(result[0].afterAnimationColor).toBe('#ff0000');
+		expect(result[0].afterAnimationColorRef).toBeUndefined();
+	});
+
 	it('never merges afterAnimation onto an exit effect', () => {
 		const natives = [nativeAnim({ targetId: 'sp1', presetClass: 'exit' })];
 		const editors = [editorAnim({ elementId: 'sp1', afterAnimation: 'hideAfterAnimation' })];
@@ -76,6 +97,74 @@ describe('applyAfterAnimationFromEditorList', () => {
 		const editors = [editorAnim({ afterAnimation: 'hideAfterAnimation' })];
 		const result = applyAfterAnimationFromEditorList(natives, editors);
 		expect(result[0].afterAnimationAction).toBeUndefined();
+	});
+
+	it('preserves a native-parsed afterAnimationAction (genuine third-party markup) with no editor list', () => {
+		// `pptx-viewer-core`'s native-timing parser now decodes PowerPoint's
+		// genuine `p:subTnLst` after-effect shape directly onto
+		// `afterAnimationAction` / `afterAnimationColor` (see
+		// `native-animation-after-effect.ts`), so a real-world deck with no
+		// `pptx:editorMeta` still reaches playback correctly here.
+		const natives = [
+			nativeAnim({
+				targetId: 'sp1',
+				afterAnimationAction: 'dimToColor',
+				afterAnimationColor: '#808080',
+			}),
+		];
+		const result = applyAfterAnimationFromEditorList(natives, undefined);
+		expect(result[0].afterAnimationAction).toBe('dimToColor');
+		expect(result[0].afterAnimationColor).toBe('#808080');
+	});
+
+	it('lets an editor list entry override a native-parsed afterAnimationAction', () => {
+		const natives = [nativeAnim({ targetId: 'sp1', afterAnimationAction: 'hideAfterAnimation' })];
+		const editors = [
+			editorAnim({
+				elementId: 'sp1',
+				afterAnimation: 'dimToColor',
+				afterAnimationColor: '#ff0000',
+			}),
+		];
+		const result = applyAfterAnimationFromEditorList(natives, editors);
+		expect(result[0].afterAnimationAction).toBe('dimToColor');
+		expect(result[0].afterAnimationColor).toBe('#ff0000');
+	});
+});
+
+describe('resolveAfterAnimationStepFields', () => {
+	it('resolves a dim-to-scheme-colour ref against the theme colour map', () => {
+		const anim = nativeAnim({
+			afterAnimationAction: 'dimToColor',
+			afterAnimationColorRef: { scheme: 'accent2' },
+		});
+		const fields = resolveAfterAnimationStepFields(anim, 'fadeIn 500ms', false, 500, 'dim-0', {
+			accent2: '#336699',
+		});
+		expect(fields.holdEndState).toBeTruthy();
+		expect(fields.dimKeyframeBlock).toContain('color: #336699;');
+	});
+
+	it('falls back (no dim) when the scheme ref has no matching theme colour map slot', () => {
+		const anim = nativeAnim({
+			afterAnimationAction: 'dimToColor',
+			afterAnimationColorRef: { scheme: 'accent2' },
+		});
+		const fields = resolveAfterAnimationStepFields(anim, 'fadeIn 500ms', false, 500, 'dim-0');
+		expect(fields.dimKeyframeBlock).toBeUndefined();
+		expect(fields.cssAnimation).toBe('fadeIn 500ms');
+	});
+
+	it('prefers an already-resolved afterAnimationColor over a stale ref', () => {
+		const anim = nativeAnim({
+			afterAnimationAction: 'dimToColor',
+			afterAnimationColor: '#808080',
+			afterAnimationColorRef: { scheme: 'accent2' },
+		});
+		const fields = resolveAfterAnimationStepFields(anim, 'fadeIn 500ms', false, 500, 'dim-0', {
+			accent2: '#336699',
+		});
+		expect(fields.dimKeyframeBlock).toContain('color: #808080;');
 	});
 });
 

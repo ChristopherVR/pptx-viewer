@@ -306,6 +306,55 @@ describe('buildColorTavKeyframe', () => {
 		expect(buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 6)).toBeUndefined();
 	});
 
+	it('resolves a scheme-colour token via colorRef + the theme colour map', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			keyframes: [
+				{
+					colorRef: { scheme: 'accent1' as const },
+					tm: 0,
+					value: 'accent1',
+					valueType: 'clr' as const,
+				},
+				{
+					colorRef: { scheme: 'accent2' as const },
+					tm: 100000,
+					value: 'accent2',
+					valueType: 'clr' as const,
+				},
+			],
+		};
+		const result = buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 7, {
+			accent1: '#336699',
+			accent2: '#993366',
+		});
+		expect(result?.css).toContain('0% { fill: #336699;');
+		expect(result?.css).toContain('100% { fill: #993366;');
+	});
+
+	it('still falls back for a scheme-colour token when the theme map has no matching slot', () => {
+		const anim = {
+			attrName: 'fillcolor',
+			keyframes: [
+				{
+					colorRef: { scheme: 'accent1' as const },
+					tm: 0,
+					value: 'accent1',
+					valueType: 'clr' as const,
+				},
+				{
+					colorRef: { scheme: 'accent2' as const },
+					tm: 100000,
+					value: 'accent2',
+					valueType: 'clr' as const,
+				},
+			],
+		};
+		expect(
+			buildColorTavKeyframe(anim, 'pptx-tl-tavclr', 8, { accent3: '#000000' }),
+		).toBeUndefined();
+	});
+
 	it('returns undefined for a non-colour keyframe value', () => {
 		const anim = {
 			attrName: 'fillcolor',

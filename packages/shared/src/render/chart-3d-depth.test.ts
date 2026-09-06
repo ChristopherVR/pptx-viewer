@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { applyChart3DDepth, computeDepthVector, translateSlicePath } from './chart-3d-depth';
+import { resolveUntargetedBarFaceFill } from './chart-bar3d-face-picture';
+import {
+	ensureBarFacePicturePixelSampled,
+	resetBarFacePicturePixelCacheForTests,
+} from './chart-bar3d-face-picture-sample';
 import type { ChartViewModel, SvgPath, SvgRect } from './chart-view-model';
 
 function emptyVm(primitives: ChartViewModel['primitives']): ChartViewModel {
@@ -212,5 +217,148 @@ describe('applyChart3DDepth - clustered bar3D per-series depth staggering', () =
 		// Both series' top faces are offset by the identical shared vector, so
 		// (given identical rect geometry here) they produce identical points.
 		expect(polys[0].points).toBe(polys[2].points);
+	});
+});
+
+// C2-G9 3-D face-targeting half: a `bar3D` point's/series' picture fill
+// (`c:pictureOptions`) must paint only the faces `applyToFront`/`Sides`/`End`
+// select, leaving the rest on their tinted/shaded solid fill.
+describe('applyChart3DDepth - bar3D picture-fill face targeting', () => {
+	const barRect: SvgRect = {
+		kind: 'rect',
+		x: 50,
+		y: 100,
+		w: 20,
+		h: 80,
+		fill: '#4472C4',
+		part: { role: 'dataPoint', seriesIndex: 0, pointIndex: 0 },
+	};
+
+	function seriesWithPicture(picture: Record<string, unknown>) {
+		return [{ dataPoints: [{ idx: 0, picture: { imageUrl: 'data:image/png;x', ...picture } }] }];
+	}
+
+	it('paints both side and end faces when no applyTo* flags are set (COM: absent = all faces)', () => {
+		const vm = applyChart3DDepth(
+			emptyVm([barRect]),
+			'bar3D',
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			{
+				series: seriesWithPicture({}),
+				elementId: 'chart1',
+			},
+		);
+		const [topFace, sideFace] = vm.primitives.filter((p): p is SvgPolygon => p.kind === 'polygon');
+		expect(topFace.fill).toMatch(/^url\(#chart1-chart-dpt-pic-0-0-end\)$/u);
+		expect(sideFace.fill).toMatch(/^url\(#chart1-chart-dpt-pic-0-0-side\)$/u);
+		expect(vm.defs).toHaveLength(2);
+	});
+
+	it('paints only the targeted face, leaving the other on its tinted/shaded solid', () => {
+		const vm = applyChart3DDepth(
+			emptyVm([barRect]),
+			'bar3D',
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			{
+				series: seriesWithPicture({ applyToFront: true, applyToSides: true, applyToEnd: false }),
+				elementId: 'chart1',
+			},
+		);
+		const [topFace, sideFace] = vm.primitives.filter((p): p is SvgPolygon => p.kind === 'polygon');
+		expect(topFace.fill).not.toMatch(/^url\(/u);
+		expect(sideFace.fill).toBe('url(#chart1-chart-dpt-pic-0-0-side)');
+		expect(vm.defs).toHaveLength(1);
+	});
+
+	describe('the untargeted end/side face fallback once the picture first pixel is sampled', () => {
+		const imageUrl = 'data:image/png;chart-3d-depth-sample-test';
+		const pictureContext = {
+			series: [
+				{ dataPoints: [{ idx: 0, picture: { imageUrl, applyToSides: false, applyToEnd: false } }] },
+			],
+			elementId: 'chart1',
+		};
+
+		beforeEach(() => {
+			resetBarFacePicturePixelCacheForTests();
+		});
+		afterEach(() => {
+			resetBarFacePicturePixelCacheForTests();
+		});
+
+		it('uses the resolved point/series colour fallback before any sample is cached', () => {
+			const vm = applyChart3DDepth(
+				emptyVm([barRect]),
+				'bar3D',
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				pictureContext,
+			);
+			const [topFace, sideFace] = vm.primitives.filter(
+				(p): p is SvgPolygon => p.kind === 'polygon',
+			);
+			expect(topFace.fill).toBe(resolveUntargetedBarFaceFill('end', '#4472C4'));
+			expect(sideFace.fill).toBe(resolveUntargetedBarFaceFill('side', '#4472C4'));
+		});
+
+		it('uses the sampled colour (COM-verified: PowerPoint samples the picture itself) once it is cached', async () => {
+			ensureBarFacePicturePixelSampled(imageUrl, () => Promise.resolve('#00ff00'));
+			await vi.waitFor(() => {
+				const vm = applyChart3DDepth(
+					emptyVm([barRect]),
+					'bar3D',
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					pictureContext,
+				);
+				const [topFace] = vm.primitives.filter((p): p is SvgPolygon => p.kind === 'polygon');
+				expect(topFace.fill).toBe(resolveUntargetedBarFaceFill('end', '#00ff00'));
+			});
+
+			const vm = applyChart3DDepth(
+				emptyVm([barRect]),
+				'bar3D',
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				pictureContext,
+			);
+			const [topFace, sideFace] = vm.primitives.filter(
+				(p): p is SvgPolygon => p.kind === 'polygon',
+			);
+			expect(topFace.fill).toBe(resolveUntargetedBarFaceFill('end', '#00ff00'));
+			expect(sideFace.fill).toBe(resolveUntargetedBarFaceFill('side', '#00ff00'));
+		});
+	});
+
+	it('leaves both extrusion faces solid when the point has no picture', () => {
+		const vm = applyChart3DDepth(
+			emptyVm([barRect]),
+			'bar3D',
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			{
+				series: [{}],
+				elementId: 'chart1',
+			},
+		);
+		const polys = vm.primitives.filter((p): p is SvgPolygon => p.kind === 'polygon');
+		for (const poly of polys) {
+			expect(poly.fill).not.toMatch(/^url\(/u);
+		}
+		expect(vm.defs ?? []).toHaveLength(0);
 	});
 });

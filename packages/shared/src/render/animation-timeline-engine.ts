@@ -11,6 +11,7 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { applyStepBuildMetadata } from './animation-build';
 import type { ElementBuildStateOptions } from './animation-build';
+import type { AnimationRenderContext } from './animation-render-context';
 import {
 	applyRestartGatedStep,
 	EMPTY_CLICK_GROUP,
@@ -157,11 +158,16 @@ export class TimelineEngine {
 		this.exclusiveHolders = new Map();
 	}
 
-	/** Build a TimelineEngine from a slide's native animations. */
+	/**
+	 * Build a TimelineEngine from a slide's native animations. `renderContext`
+	 * (see `animation-render-context.ts`) supplies the animated elements' real
+	 * geometry and the deck's theme colour map, when the caller built one.
+	 */
 	public static fromAnimations(
 		nativeAnimations: ReadonlyArray<PptxNativeAnimation>,
+		renderContext?: AnimationRenderContext,
 	): TimelineEngine {
-		return new TimelineEngine(buildTimeline(nativeAnimations));
+		return new TimelineEngine(buildTimeline(nativeAnimations, renderContext));
 	}
 
 	/** The underlying timeline data. */

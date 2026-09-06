@@ -7,7 +7,10 @@
  *
  * Handled here (all with real, distinct keyframes):
  *
- *  - 3-D rotations: `cube`, `box`, `flip`, `rotate`, `orbit`
+ *  - 3-D rotations: `cube`, `flip`, `rotate`, `orbit` (kept in this module),
+ *    and `box` (split into `slide-transition-box`: it shares Cube's OOXML
+ *    element but is COM-measured as visually distinct, so it earns its own
+ *    keyframe set rather than reusing Cube's)
  *  - page curl / peel: `pageCurlSingle`, `pageCurlDouble`, `peelOff`
  *  - directional / scale / rotate composites: `fallOver`, `drape`, `curtains`,
  *    `wind`, `prestige`, `fracture`, `crush`, `airplane`, `origami`
@@ -28,6 +31,12 @@
 
 import type { PptxTransitionType } from 'pptx-viewer-core';
 
+import {
+	BOX_TRANSITION_KEYFRAMES,
+	getBoxTransitionAnimations,
+	prismDepthPair,
+} from './slide-transition-box';
+import { ROTATE_TRANSITION_KEYFRAMES } from './slide-transition-rotate';
 import { EASE, resolveDirection } from './slide-transition-types';
 import type { ResolvedDirection, SlideTransitionAnimations } from './slide-transition-types';
 
@@ -61,13 +70,15 @@ export function getCinematicTransitionAnimations(
 	void orient;
 
 	switch (type) {
-		// Box is Cube's inverted twin (`<p14:prism isInverted="1"/>`): the same
-		// solid rotating, seen from inside. The 3-D pair is the closest CSS
-		// approximation we have, and it beats the flat cross-fade an unhandled
-		// type falls back to.
 		case 'cube':
-		case 'box':
 			return threeDPair('pptx-tr-cube', resolveDirection(direction, 'left'), dur, false);
+
+		// Box shares Cube's OOXML element (`<p14:prism isInverted="1"/>`) but is
+		// visually distinct, per COM `CreateVideo` measurement (see
+		// `slide-transition-box`): the two faces separate with a depth gap
+		// instead of staying joined along one flush hinge.
+		case 'box':
+			return getBoxTransitionAnimations(durationMs, direction);
 
 		case 'orbit':
 			return threeDPair('pptx-tr-orbit', resolveDirection(direction, 'left'), dur, false);
@@ -75,23 +86,23 @@ export function getCinematicTransitionAnimations(
 		case 'flip':
 			return threeDPair('pptx-tr-flip', resolveDirection(direction, 'left'), dur, true);
 
-		case 'rotate': {
-			// left/up spin counter-clockwise, right/down clockwise.
-			const d = resolveDirection(direction, 'left');
-			const spin = d === 'right' || d === 'down' ? 'cw' : 'ccw';
-			return {
-				outgoing: `pptx-tr-rotate-out-${spin} ${dur} ${EASE} forwards`,
-				incoming: `pptx-tr-rotate-in-${spin} ${dur} ${EASE} forwards`,
-				outgoingOnTop: true,
-			};
-		}
+		// Rotate shares Cube's OOXML element (`<p14:prism isContent="1"/>`, see
+		// `p14-prism-family`) and, per COM measurement, its motion too: see
+		// `slide-transition-rotate` for the full writeup.
+		case 'rotate':
+			return threeDPair('pptx-tr-rotate', resolveDirection(direction, 'left'), dur, false);
 
 		case 'fallOver':
-			// Incoming pivots down over the stationary outgoing slide.
+			// MEASURED via COM CreateVideo: the OUTGOING slide topples forward
+			// off a top hinge and recedes out of view, revealing the incoming
+			// slide beneath it - the reverse of what the pre-measurement
+			// keyframes did (an incoming board toppling onto a stationary
+			// outgoing). The incoming slide needs no animation of its own: it is
+			// simply uncovered as the falling outgoing layer fades away on top.
 			return {
 				outgoing: `pptx-tr-fallover-out ${dur} ${EASE} forwards`,
-				incoming: `pptx-tr-fallover-in ${dur} ${EASE} forwards`,
-				outgoingOnTop: false,
+				incoming: 'none',
+				outgoingOnTop: true,
 			};
 
 		case 'drape':
@@ -188,6 +199,7 @@ export function getCinematicTransitionAnimations(
  * already defined in the core block, so it is intentionally not redefined here.
  */
 export const CINEMATIC_TRANSITION_KEYFRAMES = `
+${BOX_TRANSITION_KEYFRAMES}
 /* ── Cube (rotate off one edge onto the next face) ──────────────────── */
 @keyframes pptx-tr-cube-out-left { from { transform: perspective(1400px) translateX(0) rotateY(0deg); } to { transform: perspective(1400px) translateX(-50%) rotateY(-90deg); opacity: .5; } }
 @keyframes pptx-tr-cube-in-left { from { transform: perspective(1400px) translateX(50%) rotateY(90deg); opacity: .5; } to { transform: perspective(1400px) translateX(0) rotateY(0deg); opacity: 1; } }
@@ -198,15 +210,13 @@ export const CINEMATIC_TRANSITION_KEYFRAMES = `
 @keyframes pptx-tr-cube-out-down { from { transform: perspective(1400px) translateY(0) rotateX(0deg); } to { transform: perspective(1400px) translateY(50%) rotateX(-90deg); opacity: .5; } }
 @keyframes pptx-tr-cube-in-down { from { transform: perspective(1400px) translateY(-50%) rotateX(90deg); opacity: .5; } to { transform: perspective(1400px) translateY(0) rotateX(0deg); opacity: 1; } }
 
-/* ── Orbit (swing the faces through depth) ──────────────────────────── */
-@keyframes pptx-tr-orbit-out-left { from { transform: perspective(1600px) translateZ(0) rotateY(0deg); opacity: 1; } to { transform: perspective(1600px) translateZ(-700px) rotateY(-105deg); opacity: 0; } }
-@keyframes pptx-tr-orbit-in-left { from { transform: perspective(1600px) translateZ(-700px) rotateY(105deg); opacity: 0; } to { transform: perspective(1600px) translateZ(0) rotateY(0deg); opacity: 1; } }
-@keyframes pptx-tr-orbit-out-right { from { transform: perspective(1600px) translateZ(0) rotateY(0deg); opacity: 1; } to { transform: perspective(1600px) translateZ(-700px) rotateY(105deg); opacity: 0; } }
-@keyframes pptx-tr-orbit-in-right { from { transform: perspective(1600px) translateZ(-700px) rotateY(-105deg); opacity: 0; } to { transform: perspective(1600px) translateZ(0) rotateY(0deg); opacity: 1; } }
-@keyframes pptx-tr-orbit-out-up { from { transform: perspective(1600px) translateZ(0) rotateX(0deg); opacity: 1; } to { transform: perspective(1600px) translateZ(-700px) rotateX(105deg); opacity: 0; } }
-@keyframes pptx-tr-orbit-in-up { from { transform: perspective(1600px) translateZ(-700px) rotateX(-105deg); opacity: 0; } to { transform: perspective(1600px) translateZ(0) rotateX(0deg); opacity: 1; } }
-@keyframes pptx-tr-orbit-out-down { from { transform: perspective(1600px) translateZ(0) rotateX(0deg); opacity: 1; } to { transform: perspective(1600px) translateZ(-700px) rotateX(-105deg); opacity: 0; } }
-@keyframes pptx-tr-orbit-in-down { from { transform: perspective(1600px) translateZ(-700px) rotateX(105deg); opacity: 0; } to { transform: perspective(1600px) translateZ(0) rotateX(0deg); opacity: 1; } }
+/* ── Orbit (faces separate and recede in depth, like Box, but reached via
+   isContent="1" isInverted="1" instead of Box's isInverted="1" alone).
+   MEASURED via COM CreateVideo: a real depth gap opens between the two faces
+   and both foreshorten in width AND height as they turn, exactly like Box -
+   not the flat translateZ-only recede + fade the pre-measurement keyframes
+   used, which never opened a gap. Reuses Box's own depth-recede recipe
+   (prismDepthPair) under the orbit prefix. ─────────────────────────────── */${prismDepthPair('orbit', 'left', 'X', -1)}${prismDepthPair('orbit', 'right', 'X', 1)}${prismDepthPair('orbit', 'up', 'Y', -1)}${prismDepthPair('orbit', 'down', 'Y', 1)}
 
 /* ── Flip (card flip; opacity hides the back face) ──────────────────── */
 @keyframes pptx-tr-flip-out-left { from { transform: perspective(1400px) rotateY(0deg); opacity: 1; } to { transform: perspective(1400px) rotateY(90deg); opacity: 0; } }
@@ -218,15 +228,11 @@ export const CINEMATIC_TRANSITION_KEYFRAMES = `
 @keyframes pptx-tr-flip-out-down { from { transform: perspective(1400px) rotateX(0deg); opacity: 1; } to { transform: perspective(1400px) rotateX(90deg); opacity: 0; } }
 @keyframes pptx-tr-flip-in-down { from { transform: perspective(1400px) rotateX(-90deg); opacity: 0; } to { transform: perspective(1400px) rotateX(0deg); opacity: 1; } }
 
-/* ── Rotate (in-plane spin + zoom) ──────────────────────────────────── */
-@keyframes pptx-tr-rotate-out-cw { from { transform: rotate(0deg) scale(1); opacity: 1; } to { transform: rotate(90deg) scale(.4); opacity: 0; } }
-@keyframes pptx-tr-rotate-in-cw { from { transform: rotate(-90deg) scale(.4); opacity: 0; } to { transform: rotate(0deg) scale(1); opacity: 1; } }
-@keyframes pptx-tr-rotate-out-ccw { from { transform: rotate(0deg) scale(1); opacity: 1; } to { transform: rotate(-90deg) scale(.4); opacity: 0; } }
-@keyframes pptx-tr-rotate-in-ccw { from { transform: rotate(90deg) scale(.4); opacity: 0; } to { transform: rotate(0deg) scale(1); opacity: 1; } }
-
-/* ── Fall Over (incoming board topples down over outgoing) ──────────── */
-@keyframes pptx-tr-fallover-out { from { transform: translateZ(0); opacity: 1; } to { transform: perspective(1400px) rotateX(5deg) scale(.94); opacity: .25; } }
-@keyframes pptx-tr-fallover-in { 0% { transform: perspective(1400px) rotateX(-100deg); transform-origin: top center; opacity: .4; } 70% { transform: perspective(1400px) rotateX(8deg); transform-origin: top center; opacity: 1; } 100% { transform: perspective(1400px) rotateX(0deg); transform-origin: top center; opacity: 1; } }
+${ROTATE_TRANSITION_KEYFRAMES}
+/* ── Fall Over (the OUTGOING slide topples off a top hinge, revealing the
+   incoming slide beneath - MEASURED, the opposite of the old "incoming board
+   topples onto outgoing" guess) ──────────────────────────────────────── */
+@keyframes pptx-tr-fallover-out { 0% { transform: perspective(1400px) rotateX(0deg) translateY(0) scale(1); transform-origin: top center; opacity: 1; } 55% { transform: perspective(1400px) rotateX(60deg) translateY(6%) scale(.92); transform-origin: top center; opacity: .85; } 100% { transform: perspective(1400px) rotateX(105deg) translateY(22%) scale(.7); transform-origin: top center; opacity: 0; } }
 
 /* ── Drape (fabric draping down into place) ─────────────────────────── */
 @keyframes pptx-tr-drape-in { from { transform: perspective(1600px) rotateX(-55deg) scale(1.15); transform-origin: top center; opacity: 0; } to { transform: perspective(1600px) rotateX(0deg) scale(1); transform-origin: top center; opacity: 1; } }
@@ -245,9 +251,15 @@ export const CINEMATIC_TRANSITION_KEYFRAMES = `
 /* ── Fracture (shatter into contrast + blur) ────────────────────────── */
 @keyframes pptx-tr-fracture-out { 0% { transform: scale(1); opacity: 1; filter: contrast(1) blur(0); } 55% { transform: scale(1.04) rotate(1deg); opacity: 1; filter: contrast(1.7) brightness(1.15); } 100% { transform: scale(1.15) rotate(-2deg); opacity: 0; filter: contrast(2.2) blur(4px); } }
 
-/* ── Crush (squash flat, then new slide expands) ────────────────────── */
-@keyframes pptx-tr-crush-out { from { transform: scaleY(1); transform-origin: bottom; opacity: 1; } to { transform: scaleY(0); transform-origin: bottom; opacity: .2; } }
-@keyframes pptx-tr-crush-in { from { transform: scaleY(0); transform-origin: bottom; opacity: .2; } to { transform: scaleY(1); transform-origin: bottom; opacity: 1; } }
+/* ── Crush (crumple toward the centre into a small wad, then the new slide
+   unfurls the same way in reverse) - MEASURED via COM CreateVideo: the
+   outgoing content balls up into an irregular small shape near the centre,
+   not the flat bottom-hinged vertical squash the pre-measurement keyframes
+   used. A single CSS layer cannot fold into an irregular wad, but scaling
+   BOTH axes down unevenly plus a rotation reads far closer to "crumpled"
+   than a pure scaleY flattening does. ──────────────────────────────────── */
+@keyframes pptx-tr-crush-out { 0% { transform: scale(1, 1) rotate(0deg); opacity: 1; } 60% { transform: scale(.55, .4) rotate(-6deg); opacity: .8; } 100% { transform: scale(.15, .12) rotate(-14deg); opacity: 0; } }
+@keyframes pptx-tr-crush-in { 0% { transform: scale(.15, .12) rotate(14deg); opacity: 0; } 40% { transform: scale(.55, .4) rotate(6deg); opacity: .8; } 100% { transform: scale(1, 1) rotate(0deg); opacity: 1; } }
 
 /* ── Peel Off (peel away from a corner) ─────────────────────────────── */
 @keyframes pptx-tr-peeloff-out { from { transform: perspective(1400px) rotate3d(1, 1, 0, 0deg); transform-origin: top right; opacity: 1; } to { transform: perspective(1400px) rotate3d(1, 1, 0, 110deg); transform-origin: top right; opacity: .15; } }

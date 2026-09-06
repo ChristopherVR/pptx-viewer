@@ -3,17 +3,21 @@
  * behaviour (`PptxElementAnimation.afterAnimation` / `afterAnimationColor`):
  * dim-to-color, hide-after-animation, and hide-on-next-click.
  *
- * The native-timing parser has no single `p:cTn` attribute for this (a real
- * OOXML file expresses it as extra sibling behaviour nodes), so
- * {@link applyAfterAnimationFromEditorList} merges it in from the editor's
- * per-element animation list (the model the animation panel writes
- * `afterAnimation` into) before the timeline is built. Both lists are already
- * keyed by the same `element.id` after `reconcileAnimationTargets` runs at
- * load time.
+ * `pptx-viewer-core`'s native-timing parser (`native-animation-after-effect.ts`)
+ * already decodes PowerPoint's genuine `p:subTnLst` after-effect shape onto
+ * `PptxNativeAnimation.afterAnimationAction` / `afterAnimationColor`, so a
+ * real-world deck's build is visible before this module runs. What
+ * {@link applyAfterAnimationFromEditorList} adds is precedence: it OVERRIDES
+ * that native value from the editor's per-element animation list (the model
+ * the animation panel writes `afterAnimation` into) whenever that list has an
+ * entry, so an edit made through this app's own UI always wins over whatever
+ * was on disk. Both lists are already keyed by the same `element.id` after
+ * `reconcileAnimationTargets` runs at load time.
  *
  * @module render/animation-after-effect
  */
 import type { PptxElementAnimation, PptxNativeAnimation } from 'pptx-viewer-core';
+import { resolveThemeColorRef } from 'pptx-viewer-core';
 
 import type { TimelineClickGroup, TimelineStep } from './animation-timeline-types';
 
@@ -52,6 +56,10 @@ export function applyAfterAnimationFromEditorList(
 			...anim,
 			afterAnimationAction: ea.afterAnimation,
 			afterAnimationColor: ea.afterAnimationColor,
+			// The editor's own model has no theme-colour-ref concept (it always
+			// writes a concrete hex); clear a native scheme ref so a stale one
+			// never survives an edit that overrides the colour.
+			afterAnimationColorRef: undefined,
 		};
 	});
 }
@@ -105,17 +113,26 @@ export interface AfterAnimationStepFields {
  * `onHover`-triggered effect is honoured exactly like a main-sequence one.
  */
 export function resolveAfterAnimationStepFields(
-	anim: Pick<PptxNativeAnimation, 'afterAnimationAction' | 'afterAnimationColor'>,
+	anim: Pick<
+		PptxNativeAnimation,
+		'afterAnimationAction' | 'afterAnimationColor' | 'afterAnimationColorRef'
+	>,
 	cssAnimation: string,
 	baseHoldEndState: boolean,
 	dimStartDelayMs: number,
 	dimKeyframeName: string,
+	themeColorMap?: Readonly<Record<string, string>>,
 ): AfterAnimationStepFields {
-	if (anim.afterAnimationAction === 'dimToColor' && anim.afterAnimationColor) {
+	const dimColor =
+		anim.afterAnimationColor ??
+		(anim.afterAnimationColorRef
+			? resolveThemeColorRef(anim.afterAnimationColorRef, themeColorMap)
+			: undefined);
+	if (anim.afterAnimationAction === 'dimToColor' && dimColor) {
 		return {
 			cssAnimation: appendDimAnimation(cssAnimation, dimKeyframeName, dimStartDelayMs),
 			holdEndState: true,
-			dimKeyframeBlock: buildAfterAnimationDimKeyframes(anim.afterAnimationColor, dimKeyframeName),
+			dimKeyframeBlock: buildAfterAnimationDimKeyframes(dimColor, dimKeyframeName),
 		};
 	}
 	if (anim.afterAnimationAction === 'hideAfterAnimation') {

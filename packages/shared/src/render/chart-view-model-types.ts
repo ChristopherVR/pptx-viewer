@@ -149,6 +149,8 @@ export interface SvgLine {
 	dashArray?: string;
 	opacity?: number;
 	title?: string;
+	/** Optional SVG transform (e.g. a chart-overlay connector's own rotation about its box centre). */
+	transform?: string;
 }
 
 export interface SvgText {
@@ -179,6 +181,8 @@ export interface SvgPolygon {
 	dashArray?: string;
 	part?: ChartPartRef;
 	title?: string;
+	/** Optional SVG transform (e.g. a chart-overlay shape's own rotation/flip about its box centre). */
+	transform?: string;
 }
 
 export interface SvgAreaGradient {

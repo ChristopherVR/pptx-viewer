@@ -4,9 +4,14 @@ import type {
 	PptxNativeAnimation,
 } from 'pptx-viewer-core';
 
+import type { GeometryKind } from './animation-attribute-geometry';
+import { resolveGeometryStops } from './animation-attribute-geometry';
+import type { AnimationElementBox } from './animation-render-context';
+
 type AttributeKind = 'opacity' | 'rotation' | 'scaleX' | 'scaleY' | 'translateX' | 'translateY';
 
 interface ParsedComponent {
+	calcMode: 'discrete' | 'lin';
 	delayMs: number;
 	durationMs: number;
 	kind: AttributeKind;
@@ -37,7 +42,9 @@ const ATTRIBUTE_KINDS: Readonly<Record<string, AttributeKind>> = {
 	'style.rotation': 'rotation',
 };
 
-const SELF_REFERENCE_RE = /^#?ppt_([whxy])(?:([+-])(\d*\.?\d+))?$/iu;
+function isGeometryKind(kind: AttributeKind): kind is GeometryKind {
+	return kind === 'scaleX' || kind === 'scaleY' || kind === 'translateX' || kind === 'translateY';
+}
 
 function clamp01(value: number): number {
 	return Math.max(0, Math.min(1, value));
@@ -48,68 +55,46 @@ function numericValue(keyframe: PptxAnimationKeyframe): number | undefined {
 	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function parseSelfReference(
-	keyframe: PptxAnimationKeyframe,
-	expectedAxis: 'h' | 'w' | 'x' | 'y',
-): { offset: number } | undefined {
-	const token = String(keyframe.value).replaceAll(' ', '').toLowerCase();
-	const match = SELF_REFERENCE_RE.exec(token);
-	if (!match || match[1] !== expectedAxis) {
-		return undefined;
-	}
-	const magnitude = match[3] === undefined ? 0 : Number(match[3]);
-	if (!Number.isFinite(magnitude)) {
-		return undefined;
-	}
-	return { offset: match[2] === '-' ? -magnitude : magnitude };
-}
-
-function parseValue(kind: AttributeKind, keyframe: PptxAnimationKeyframe): number | undefined {
-	if (kind === 'rotation') {
-		return numericValue(keyframe);
-	}
-	if (kind === 'opacity') {
-		const value = numericValue(keyframe);
-		return value === undefined ? undefined : clamp01(value);
-	}
-	if (kind === 'scaleX' || kind === 'scaleY') {
-		const numeric = numericValue(keyframe);
-		if (numeric === 0) {
-			return 0;
+/** `rotation`/`opacity` keep the pre-existing plain-numeric-ramp behaviour: no formula language involved. */
+function resolveNonGeometryStops(
+	kind: 'opacity' | 'rotation',
+	component: PptxAttributeAnimation,
+): Array<{ progress: number; value: number }> | undefined {
+	const stops: Array<{ progress: number; value: number }> = [];
+	for (const keyframe of component.keyframes) {
+		if (typeof keyframe.tm !== 'number' || !Number.isFinite(keyframe.tm)) {
+			return undefined;
 		}
-		const axis = kind === 'scaleX' ? 'w' : 'h';
-		const reference = parseSelfReference(keyframe, axis);
-		return reference?.offset === 0 ? 1 : undefined;
+		const raw = numericValue(keyframe);
+		if (raw === undefined) {
+			return undefined;
+		}
+		stops.push({
+			progress: clamp01(keyframe.tm / 100000),
+			value: kind === 'opacity' ? clamp01(raw) : raw,
+		});
 	}
-	const axis = kind === 'translateX' ? 'x' : 'y';
-	const reference = parseSelfReference(keyframe, axis);
-	return reference === undefined ? undefined : reference.offset * 100;
+	return stops.length >= 2 ? stops : undefined;
 }
 
 function parseComponent(
 	component: PptxAttributeAnimation,
 	effectDurationMs: number,
+	box: AnimationElementBox | undefined,
 ): ParsedComponent | undefined {
 	const kind = ATTRIBUTE_KINDS[component.attrName];
 	if (!kind) {
 		return undefined;
 	}
-	const stops: ParsedComponent['stops'] = [];
-	for (const keyframe of component.keyframes) {
-		if (typeof keyframe.tm !== 'number' || !Number.isFinite(keyframe.tm)) {
-			return undefined;
-		}
-		const value = parseValue(kind, keyframe);
-		if (value === undefined) {
-			return undefined;
-		}
-		stops.push({ progress: clamp01(keyframe.tm / 100000), value });
-	}
-	if (stops.length < 2) {
+	const stops = isGeometryKind(kind)
+		? resolveGeometryStops(kind, component, box)
+		: resolveNonGeometryStops(kind, component);
+	if (!stops) {
 		return undefined;
 	}
 	stops.sort((left, right) => left.progress - right.progress);
 	return {
+		calcMode: component.calcMode === 'discrete' ? 'discrete' : 'lin',
 		delayMs: component.delayMs ?? 0,
 		durationMs: component.durationMs ?? effectDurationMs,
 		kind,
@@ -120,18 +105,22 @@ function parseComponent(
 function valueAt(component: ParsedComponent, progress: number, effectDurationMs: number): number {
 	const elapsedMs = progress * effectDurationMs - component.delayMs;
 	const localProgress = clamp01(elapsedMs / Math.max(1, component.durationMs));
-	const first = component.stops[0];
-	const last = component.stops[component.stops.length - 1];
+	const { stops } = component;
+	const first = stops[0];
+	const last = stops[stops.length - 1];
 	if (localProgress <= first.progress) {
 		return first.value;
 	}
 	if (localProgress >= last.progress) {
 		return last.value;
 	}
-	for (let index = 1; index < component.stops.length; index += 1) {
-		const right = component.stops[index];
-		const left = component.stops[index - 1];
+	for (let index = 1; index < stops.length; index += 1) {
+		const right = stops[index];
+		const left = stops[index - 1];
 		if (localProgress <= right.progress) {
+			if (component.calcMode === 'discrete') {
+				return left.value;
+			}
 			const span = Math.max(Number.EPSILON, right.progress - left.progress);
 			const ratio = (localProgress - left.progress) / span;
 			return left.value + (right.value - left.value) * ratio;
@@ -140,16 +129,24 @@ function valueAt(component: ParsedComponent, progress: number, effectDurationMs:
 	return last.value;
 }
 
-/** Build a normalized playback model for supported generic `p:anim` transforms. */
+/**
+ * Build a normalized playback model for supported generic `p:anim`
+ * transforms. `box` is the animated shape's real rendered geometry
+ * (slide-fraction units), when the caller has it; see
+ * `animation-render-context.ts`. Without it, a formula that mixes axes (Grow
+ * And Turn's `-#ppt_w/2` fly-in) still falls back to the effect's canned
+ * timing, exactly as before.
+ */
 export function createAttributeTransformModel(
 	anim: Pick<PptxNativeAnimation, 'attributeAnimations' | 'durationMs'>,
+	box?: AnimationElementBox,
 ): AttributeTransformModel | undefined {
 	const effectDurationMs = Math.max(1, anim.durationMs ?? 1000);
 	const supportedComponents = (anim.attributeAnimations ?? []).filter(
 		(component) => ATTRIBUTE_KINDS[component.attrName] !== undefined,
 	);
 	const components = supportedComponents.map((component) =>
-		parseComponent(component, effectDurationMs),
+		parseComponent(component, effectDurationMs, box),
 	);
 	const parsedComponents = components.filter(
 		(component): component is ParsedComponent => component !== undefined,
@@ -178,7 +175,11 @@ export function createAttributeTransformModel(
 		stateAt(progress) {
 			const state: AttributeTransformState = {};
 			for (const component of parsedComponents) {
-				state[component.kind] = valueAt(component, progress, effectDurationMs);
+				const value = valueAt(component, progress, effectDurationMs);
+				state[component.kind] =
+					isGeometryKind(component.kind) && component.kind.startsWith('translate')
+						? value * 100
+						: value;
 			}
 			return state;
 		},

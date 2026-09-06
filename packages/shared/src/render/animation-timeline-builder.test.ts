@@ -93,6 +93,105 @@ describe('buildTimeline', () => {
 		expect(result.keyframesCss).toContain('@keyframes pptx-flyInLeft');
 	});
 
+	// -------------------------------------------------------------------
+	// ppt_x/ppt_y/ppt_w/ppt_h formula ground truth (real PowerPoint COM
+	// output, see pptx-viewer-shared's animation-ppt-formula-ground-truth.md
+	// and packages/core/src/__tests__/fixtures/animation-ppt-formula-ground-truth.pptx)
+	// -------------------------------------------------------------------
+
+	it('grow and turn: falls back to the preset when ppt_x mixes with ppt_w (real geometry needed)', () => {
+		// Real markup has no p:tavLst at all for this behaviour: a bare
+		// `p:anim from="(-#ppt_w/2)" to="(#ppt_x)"`.
+		const result = buildTimeline([
+			makeAnim({
+				durationMs: 600,
+				presetClass: 'entr',
+				presetId: 34,
+				attributeAnimations: [
+					{
+						attrName: 'ppt_x',
+						durationMs: 600,
+						from: '(-#ppt_w/2)',
+						keyframes: [],
+						to: '(#ppt_x)',
+					},
+				],
+			}),
+		]);
+
+		// presetId 34 is not in PRESET_ID_TO_EFFECT, so this exercises the
+		// unmapped-preset safety net (a neutral fade), not a specific name;
+		// the point of this test is that it does NOT produce a dynamic
+		// ppt_x transform keyframe (which would need the real box).
+		expect(result.keyframesCss).not.toContain('translate(');
+	});
+
+	it('bounce: plays the real ppt_x/ppt_y offsets, including a p:tav/@fmla sine ramp', () => {
+		const result = buildTimeline([
+			makeAnim({
+				durationMs: 1822,
+				presetClass: 'entr',
+				presetId: 26,
+				attributeAnimations: [
+					{
+						attrName: 'ppt_x',
+						durationMs: 1822,
+						keyframes: [
+							{ tm: 0, value: '#ppt_x-0.25', valueType: 'str' },
+							{ tm: 100000, value: '#ppt_x', valueType: 'str' },
+						],
+					},
+					{
+						attrName: 'ppt_y',
+						durationMs: 1822,
+						keyframes: [
+							{ fmla: '#ppt_y-sin(pi*$)/3', tm: 0, value: 0.5, valueType: 'flt' },
+							{ tm: 100000, value: 1, valueType: 'flt' },
+						],
+					},
+				],
+			}),
+		]);
+
+		expect(result.clickGroups[0].steps[0].keyframeName).toContain('pptx-tl-transform');
+		// x: delta -0.25 slide-widths at t=0, settling to 0 at t=100%.
+		expect(result.keyframesCss).toContain('calc(var(--pptx-slide-w, 1280px) * -0.2500)');
+		// y: $ = 0.5 at the fmla stop -> -sin(pi*0.5)/3 = -1/3 slide-heights.
+		expect(result.keyframesCss).toMatch(/calc\(var\(--pptx-slide-h, 720px\) \* -0\.3333\)/);
+	});
+
+	it('float: grows ppt_w/ppt_h from a literal 0 to full scale', () => {
+		const result = buildTimeline([
+			makeAnim({
+				durationMs: 1000,
+				presetClass: 'entr',
+				presetId: 31,
+				attributeAnimations: [
+					{
+						attrName: 'ppt_w',
+						durationMs: 1000,
+						keyframes: [
+							{ tm: 0, value: 0, valueType: 'flt' },
+							{ tm: 100000, value: '#ppt_w', valueType: 'str' },
+						],
+					},
+					{
+						attrName: 'ppt_h',
+						durationMs: 1000,
+						keyframes: [
+							{ tm: 0, value: 0, valueType: 'flt' },
+							{ tm: 100000, value: '#ppt_h', valueType: 'str' },
+						],
+					},
+				],
+			}),
+		]);
+
+		expect(result.clickGroups[0].steps[0].keyframeName).toContain('pptx-tl-transform');
+		expect(result.keyframesCss).toContain('scale(0, 0)');
+		expect(result.keyframesCss).toContain('scale(1, 1)');
+	});
+
 	it('tracks entrance element IDs', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'entr' })]);
 		expect(result.entranceElementIds.has('el1')).toBeTruthy();
@@ -895,6 +994,23 @@ describe('buildTimeline', () => {
 		]);
 		const dependentStep = result.clickGroups[0].steps.find((s) => s.elementId === 'el1');
 		expect(dependentStep?.dependsOnTimeNodeId).toBe(1);
+		expect(dependentStep?.dependsOnEvent).toBe('onStopAudio');
+	});
+
+	// A `p:cond` may name its onStopAudio dependency by SHAPE
+	// (`p:tgtEl/p:spTgt`) instead of `@_tn` (ECMA-376 CT_TLTimeCondition,
+	// S19.5.31 allows either as an alternative). No `dependsOnTimeNodeId`
+	// lookup is needed for this form: the shape id resolves directly.
+	it('attaches dependsOnShapeId/dependsOnEvent for an onStopAudio(p:tgtEl/p:spTgt) condition', () => {
+		const result = buildTimeline([
+			makeAnim({
+				targetId: 'el1',
+				startConditions: [{ event: 'onStopAudio', delay: 0, targetShapeId: 'audio-shape-1' }],
+			}),
+		]);
+		const dependentStep = result.clickGroups[0].steps.find((s) => s.elementId === 'el1');
+		expect(dependentStep?.dependsOnShapeId).toBe('audio-shape-1');
+		expect(dependentStep?.dependsOnTimeNodeId).toBeUndefined();
 		expect(dependentStep?.dependsOnEvent).toBe('onStopAudio');
 	});
 

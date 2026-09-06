@@ -20,7 +20,7 @@
  * is rendered faithfully by delegating to {@link getP14TransitionAnimations}
  * (its `@keyframes` live in `p14-transition-keyframes` and are folded into
  * `SLIDE_TRANSITION_KEYFRAMES`). The newer Office 2013+ (p15) cinematic family
- * (`cube`/`flip`/`rotate`/`orbit`/`fallOver`/`drape`/`curtains`/`wind`/
+ * (`cube`/`box`/`flip`/`rotate`/`orbit`/`fallOver`/`drape`/`curtains`/`wind`/
  * `prestige`/`fracture`/`crush`/`peelOff`/`pageCurlSingle`/`pageCurlDouble`/
  * `airplane`/`origami`) is likewise rendered faithfully via
  * {@link getCinematicTransitionAnimations} (its `@keyframes` live in
@@ -71,6 +71,7 @@ export function getSlideTransitionAnimations(
 	direction: string | undefined,
 	orient?: string | undefined,
 	spokes?: number | undefined,
+	pattern?: string | undefined,
 ): SlideTransitionAnimations {
 	const dur = `${durationMs}ms`;
 
@@ -81,12 +82,12 @@ export function getSlideTransitionAnimations(
 	// the 2-D CSS cases below. The p14 `@keyframes` are folded into
 	// `SLIDE_TRANSITION_KEYFRAMES`, so every binding that injects that block
 	// animates these faithfully with no per-binding wiring.
-	const p14 = getP14TransitionAnimations(type, durationMs, direction, orient);
+	const p14 = getP14TransitionAnimations(type, durationMs, direction, orient, pattern);
 	if (p14) {
 		return p14;
 	}
 
-	// The Office 2013+ (p15) cinematic family (cube/flip/rotate/orbit/fallOver/
+	// The Office 2013+ (p15) cinematic family (cube/box/flip/rotate/orbit/fallOver/
 	// drape/curtains/wind/prestige/fracture/crush/peelOff/pageCurlSingle/
 	// pageCurlDouble/airplane/origami) is rendered with real 3-D / composite
 	// keyframes. Returns `undefined` for every other type so the classic 2-D
@@ -323,7 +324,14 @@ export function getSlideTransitionAnimations(
 
 		// `pull` is the directional alias of `uncover`.
 		case 'pull':
-			return getSlideTransitionAnimations('uncover', durationMs, direction, orient, spokes);
+			return getSlideTransitionAnimations(
+				'uncover',
+				durationMs,
+				direction,
+				orient,
+				spokes,
+				pattern,
+			);
 
 		case 'morph':
 			return {
@@ -335,7 +343,14 @@ export function getSlideTransitionAnimations(
 		case 'random': {
 			const randomType =
 				RANDOM_ELIGIBLE_TYPES[Math.floor(Math.random() * RANDOM_ELIGIBLE_TYPES.length)];
-			return getSlideTransitionAnimations(randomType, durationMs, direction, orient, spokes);
+			return getSlideTransitionAnimations(
+				randomType,
+				durationMs,
+				direction,
+				orient,
+				spokes,
+				pattern,
+			);
 		}
 
 		// The exotic / 3-D transition family (conveyor/doors/ferris/flash/
@@ -376,6 +391,7 @@ export function resolveSlideTransition(
 		transition.direction,
 		transition.orient,
 		transition.spokes,
+		transition.pattern,
 	);
 }
 

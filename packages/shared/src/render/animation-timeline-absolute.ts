@@ -32,6 +32,7 @@
  */
 
 import type { PptxAnimationKeyframe, PptxNativeAnimation } from 'pptx-viewer-core';
+import { resolveThemeColorRef } from 'pptx-viewer-core';
 
 import { resolveCssProperties } from './animation-color';
 
@@ -219,7 +220,7 @@ const HEX_COLOR_RE = /^#[0-9a-f]{6}$/iu;
  * list whose `p:attrName` names a known colour attribute (`fillcolor`,
  * `fill.color`, `style.color`, `stroke.color`), or `undefined` when the
  * attribute is unrecognised, there are fewer than two usable stops, or any
- * stop isn't a resolved `#rrggbb` hex colour.
+ * stop isn't a resolvable colour.
  *
  * This is the sibling of {@link buildOpacityTavKeyframe} for the OTHER shape
  * `p:tavLst` playback can now place with confidence: a full multi-stop colour
@@ -228,9 +229,10 @@ const HEX_COLOR_RE = /^#[0-9a-f]{6}$/iu;
  * handled via {@link PptxNativeAnimation.colorAnimation}, which this
  * function defers to when present so an incidental `p:tavLst` on that same
  * node never overrides it). A scheme-colour token (`a:schemeClr`, e.g.
- * `"accent1"`) cannot be resolved to a CSS colour without theme context this
- * pure function doesn't have, so any non-hex stop also bails to the caller's
- * canned fallback rather than emitting invalid CSS.
+ * `"accent1"`) resolves via each stop's {@link PptxAnimationKeyframe.colorRef}
+ * against `themeColorMap`; a stop that is neither a resolved `#rrggbb` hex
+ * nor a resolvable scheme ref also bails to the caller's canned fallback
+ * rather than emitting invalid CSS.
  *
  * Reuses {@link resolveCssProperties} (`animation-color.ts`) for the
  * attribute -> CSS-property mapping, the same one `p:animClr` keyframes use,
@@ -241,6 +243,7 @@ export function buildColorTavKeyframe(
 	anim: Pick<PptxNativeAnimation, 'keyframes' | 'attrName' | 'colorAnimation' | 'calcMode'>,
 	namePrefix: string,
 	uid: number,
+	themeColorMap?: Readonly<Record<string, string>>,
 ): { keyframeName: string; css: string } | undefined {
 	if (anim.colorAnimation) {
 		return undefined;
@@ -261,8 +264,13 @@ export function buildColorTavKeyframe(
 		if (kf.valueType !== 'clr') {
 			return undefined;
 		}
-		const color = String(kf.value);
-		if (!HEX_COLOR_RE.test(color)) {
+		const raw = String(kf.value);
+		const color = HEX_COLOR_RE.test(raw)
+			? raw
+			: kf.colorRef
+				? resolveThemeColorRef(kf.colorRef, themeColorMap)
+				: undefined;
+		if (!color) {
 			return undefined;
 		}
 		stops.push({ pct: clamp01(kf.tm / 100000) * 100, color: color.toLowerCase() });

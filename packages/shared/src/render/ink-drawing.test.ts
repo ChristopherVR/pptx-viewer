@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_POINTER_PRESSURE, pointsToSvgPathD, strokeToInkElement } from './ink-drawing';
+import {
+	DEFAULT_POINTER_PRESSURE,
+	pointFromPointerEvent,
+	pointsToSvgPathD,
+	strokeToInkElement,
+} from './ink-drawing';
 
 describe('pointsToSvgPathD', () => {
 	it('returns an empty string for no points', () => {
@@ -97,5 +102,84 @@ describe('strokeToInkElement', () => {
 			tool: 'pen',
 		});
 		expect(ink?.inkPointPressures).toBeUndefined();
+	});
+
+	it('omits inkPointTiltX/Y when every point reports a flat (0, 0) tilt (mouse / no tilt sensor)', () => {
+		const ink = strokeToInkElement({
+			points: [
+				{ x: 0, y: 0, tiltX: 0, tiltY: 0 },
+				{ x: 10, y: 5, tiltX: 0, tiltY: 0 },
+			],
+			color: '#000',
+			width: 3,
+			tool: 'pen',
+		});
+		expect(ink?.inkPointTiltX).toBeUndefined();
+		expect(ink?.inkPointTiltY).toBeUndefined();
+	});
+
+	it('omits inkPointTiltX/Y when points carry no tilt field at all (older callers, other bindings)', () => {
+		const ink = strokeToInkElement({
+			points: [
+				{ x: 0, y: 0 },
+				{ x: 10, y: 5 },
+			],
+			color: '#000',
+			width: 3,
+			tool: 'pen',
+		});
+		expect(ink?.inkPointTiltX).toBeUndefined();
+		expect(ink?.inkPointTiltY).toBeUndefined();
+	});
+
+	it('authors inkPointTiltX/Y (raw degrees) when any point reports a genuinely non-zero tilt', () => {
+		const ink = strokeToInkElement({
+			points: [
+				{ x: 0, y: 0, tiltX: 0, tiltY: 0 },
+				{ x: 10, y: 5, tiltX: 30, tiltY: -15 },
+				{ x: 20, y: 0, tiltX: 0, tiltY: 0 },
+			],
+			color: '#000',
+			width: 3,
+			tool: 'pen',
+		});
+		expect(ink?.inkPointTiltX).toStrictEqual([[0, 30, 0]]);
+		expect(ink?.inkPointTiltY).toStrictEqual([[0, -15, 0]]);
+	});
+
+	it('unlike pressure, a CONSTANT non-zero tilt across every point still authors the channel (flat is the no-tilt baseline, not uniformity)', () => {
+		const ink = strokeToInkElement({
+			points: [
+				{ x: 0, y: 0, tiltX: 10, tiltY: 10 },
+				{ x: 10, y: 5, tiltX: 10, tiltY: 10 },
+			],
+			color: '#000',
+			width: 3,
+			tool: 'pen',
+		});
+		expect(ink?.inkPointTiltX).toStrictEqual([[10, 10]]);
+		expect(ink?.inkPointTiltY).toStrictEqual([[10, 10]]);
+	});
+});
+
+describe('pointFromPointerEvent', () => {
+	it('attaches pressure and tilt from the event onto an already stage-mapped position', () => {
+		expect(pointFromPointerEvent(12, 34, { pressure: 0.7, tiltX: 20, tiltY: -5 })).toStrictEqual({
+			x: 12,
+			y: 34,
+			pressure: 0.7,
+			tiltX: 20,
+			tiltY: -5,
+		});
+	});
+
+	it('carries through undefined pressure/tilt fields verbatim (a mouse event has neither)', () => {
+		expect(pointFromPointerEvent(1, 2, {})).toStrictEqual({
+			x: 1,
+			y: 2,
+			pressure: undefined,
+			tiltX: undefined,
+			tiltY: undefined,
+		});
 	});
 });

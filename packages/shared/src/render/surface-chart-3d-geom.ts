@@ -96,6 +96,30 @@ export function buildSurfaceGeometry(
 }
 
 /**
+ * World-space position of one surface-grid vertex `(row, col)`, matching the
+ * EXACT vertex layout {@link buildSurfaceGeometry}'s rotated
+ * `THREE.PlaneGeometry` produces (row -> depth segment / world Z, col ->
+ * width segment / world X, height -> world Y). A caller placing a selection
+ * marker or calibrating a value drag against a specific data point needs this
+ * to land on the SAME point the rendered mesh does, rather than re-deriving
+ * (and risking drifting from) the plane-geometry math.
+ */
+export function surfaceVertexWorldPosition(
+	cols: number,
+	rows: number,
+	row: number,
+	col: number,
+	heightMap: Float32Array,
+): readonly [number, number, number] {
+	const { gridWidth, gridDepth } = computeGridExtent(cols, rows);
+	const x = col * GRID_SPACING - gridWidth / 2;
+	const z = row * GRID_SPACING - gridDepth / 2;
+	const idx = row * cols + col;
+	const h = idx >= 0 && idx < heightMap.length ? heightMap[idx] : 0;
+	return [x, h * MAX_HEIGHT, z];
+}
+
+/**
  * Build the axis labels (category along the front edge, series along the right
  * edge, plus a single "Value" Y-axis label) as world-anchored {@link
  * SurfaceLabel}s. Category/series labels are thinned to at most `maxCat`/`maxSer`

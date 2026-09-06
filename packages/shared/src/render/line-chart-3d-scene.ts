@@ -1,28 +1,22 @@
 /**
  * Vanilla three.js 3D line-chart scene controller (framework-agnostic).
  *
- * Mounts an interactive `line3D` chart into a caller-provided container
- * element: dynamically imports `three` plus its `OrbitControls` addon, builds
- * one `THREE.TubeGeometry` (swept along a `THREE.CatmullRomCurve3` through
- * that series' category/value points) per series, each on its own depth
- * ("Z") plane (see {@link ./cartesian-line-chart-3d-layout.ts}), plus a small
- * sphere marker per data point for precise raycast hover, a grid floor,
- * authored `c:floor`/`c:sideWall`/`c:backWall` panels, a perspective camera
- * driven by `c:view3D`, OrbitControls, and a RAF loop. Exposes `dispose()`
- * for deterministic teardown.
+ * Mounts an interactive `line3D` chart into a caller-provided container: one
+ * `THREE.TubeGeometry` per series (swept along a `CatmullRomCurve3` through
+ * its category/value points, own depth "Z" plane, see
+ * {@link ./cartesian-line-chart-3d-layout.ts}), a small sphere marker per data
+ * point (hover + click/drag hit target), grid floor, authored wall panels, a
+ * `c:view3D` camera, OrbitControls, and a RAF loop.
  *
- * Mirrors {@link ./bar-chart-3d-scene.ts} (`mountBarChart3D`), the
- * established shape for this "optional three.js scene with a 2D SVG safety
- * net" pattern: `three` is an OPTIONAL peer dependency, every import is
- * dynamic and guarded, and a missing dependency resolves to a no-op sentinel
- * handle so the caller falls back to the flat 2D renderer.
+ * Mirrors {@link ./bar-chart-3d-scene.ts}'s "optional three.js scene with a
+ * 2D SVG safety net" pattern.
  *
  * @module line-chart-3d-scene
  */
 
 import type * as THREE from 'three';
-import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+import type { TextStyleAnimationDescriptor } from './animation-text-style-resolve';
 import {
 	buildCartesianChart3DLabels,
 	computeCartesianCameraPlacement,
@@ -31,16 +25,26 @@ import {
 } from './cartesian-chart-3d-geom';
 import type { CartesianChart3DHit } from './cartesian-chart-3d-hit-test';
 import { buildCartesianChart3DHoverTooltip } from './cartesian-chart-3d-hit-test';
+import { attachCartesianChart3DInteraction } from './cartesian-chart-3d-interaction-wiring';
+import type { CartesianChart3DInteraction } from './cartesian-chart-3d-interaction-wiring';
 import type { CartesianLine3DSceneOptions } from './cartesian-line-chart-3d-data';
-import { createLabelOverlay } from './surface-chart-3d-label-overlay';
+import { attachChart3DHoverTooltip } from './chart-3d-hover-tooltip';
+import { createChart3DLabelProjector } from './chart-3d-label-projection';
+import type { HighlightableMaterial } from './chart-3d-mesh-highlight';
+import { loadChart3DOrbitControls, loadChart3DThree } from './chart-3d-three-loader';
+import type { ChartPartRef } from './chart-view-model';
 import { buildSurfaceWallMeshes } from './surface-chart-3d-walls';
 
-type ThreeModule = typeof THREE;
+export type { CartesianChart3DInteraction };
 
 /** Imperative handle to a mounted line3D chart view. */
 export interface LineChart3DHandle {
 	readonly ok: boolean;
 	resize: (width: number, height: number) => void;
+	/** Apply (or clear) the selected-mark highlight, e.g. when selection changes via the inspector rather than a click on this scene. */
+	setSelectedPart: (part: ChartPartRef | null) => void;
+	/** Apply (or clear) a font-style emphasis override on the axis labels. */
+	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
 	dispose: () => void;
 }
 
@@ -48,6 +52,8 @@ export interface LineChart3DHandle {
 export const LINE_CHART_THREE_UNAVAILABLE: LineChart3DHandle = {
 	ok: false,
 	resize: () => {},
+	setSelectedPart: () => {},
+	setTextStyle: () => {},
 	dispose: () => {},
 };
 
@@ -55,25 +61,6 @@ export const LINE_CHART_THREE_UNAVAILABLE: LineChart3DHandle = {
 const TUBE_RADIUS = 0.025;
 /** World-space radius of each per-vertex hover marker. */
 const MARKER_RADIUS = 0.045;
-
-async function loadThree(): Promise<ThreeModule | null> {
-	try {
-		return (await import('three')) as ThreeModule;
-	} catch {
-		return null;
-	}
-}
-
-async function loadOrbitControlsCtor(): Promise<
-	(new (camera: THREE.Camera, dom: HTMLElement) => OrbitControls) | null
-> {
-	try {
-		const mod = await import('three/examples/jsm/controls/OrbitControls.js');
-		return mod.OrbitControls;
-	} catch {
-		return null;
-	}
-}
 
 /**
  * Mount an interactive 3D line chart into `container` and start rendering.
@@ -85,9 +72,10 @@ async function loadOrbitControlsCtor(): Promise<
 export async function mountLineChart3D(
 	container: HTMLElement,
 	options: CartesianLine3DSceneOptions,
+	interaction?: CartesianChart3DInteraction,
 ): Promise<LineChart3DHandle> {
-	const three = await loadThree();
-	const OrbitCtrlCtor = three ? await loadOrbitControlsCtor() : null;
+	const three = await loadChart3DThree();
+	const OrbitCtrlCtor = three ? await loadChart3DOrbitControls() : null;
 	if (!three || !OrbitCtrlCtor) {
 		return LINE_CHART_THREE_UNAVAILABLE;
 	}
@@ -151,8 +139,7 @@ export async function mountLineChart3D(
 		scene.add(mesh);
 	}
 
-	// One tube mesh per series (its own depth plane), one shared sphere
-	// geometry for the per-vertex hover markers (scaled/positioned per point).
+	// One tube per series; one shared sphere geometry for the hover markers.
 	const markerGeometry = new three.SphereGeometry(MARKER_RADIUS, 8, 6);
 	const tubeGeometries: THREE.TubeGeometry[] = [];
 	const tubeMaterials: THREE.Material[] = [];
@@ -192,43 +179,23 @@ export async function mountLineChart3D(
 		}
 	}
 
-	// Raycast-based hover tooltip against the per-vertex marker meshes: each
-	// carries its own (series, category, value) in `userData`.
-	const raycaster = new three.Raycaster();
-	const pointerNdc = new three.Vector2();
-	let hoveredTooltip: string | undefined;
-
-	const updateHoverTooltip = (clientX: number, clientY: number): void => {
-		const rect = canvas.getBoundingClientRect();
-		if (rect.width <= 0 || rect.height <= 0) {
-			return;
-		}
-		pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-		pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-		raycaster.setFromCamera(pointerNdc, camera);
-		const hits = raycaster.intersectObjects(markerMeshes, false);
-		const hit = hits[0]?.object.userData as CartesianChart3DHit | undefined;
-		const tooltip = buildCartesianChart3DHoverTooltip(hit, {
-			categoryLabels: options.categoryLabels,
-			seriesNames: options.seriesNames,
-			numberFormats: options.numberFormats,
-		});
-		if (tooltip !== hoveredTooltip) {
-			hoveredTooltip = tooltip;
-			canvas.title = tooltip ?? '';
-		}
+	// Raycast-based hover tooltip against the per-vertex marker meshes.
+	const tooltipData = {
+		categoryLabels: options.categoryLabels,
+		seriesNames: options.seriesNames,
+		numberFormats: options.numberFormats,
 	};
-	const onPointerMove = (event: PointerEvent): void => {
-		updateHoverTooltip(event.clientX, event.clientY);
-	};
-	const onPointerLeave = (): void => {
-		if (hoveredTooltip !== undefined) {
-			hoveredTooltip = undefined;
-			canvas.title = '';
-		}
-	};
-	canvas.addEventListener('pointermove', onPointerMove);
-	canvas.addEventListener('pointerleave', onPointerLeave);
+	const hoverTooltip = attachChart3DHoverTooltip({
+		three,
+		canvas,
+		camera,
+		meshes: markerMeshes,
+		buildTooltip: (intersection) =>
+			buildCartesianChart3DHoverTooltip(
+				intersection?.object.userData as CartesianChart3DHit | undefined,
+				tooltipData,
+			),
+	});
 
 	const controls = new OrbitCtrlCtor(camera, canvas);
 	controls.enablePan = true;
@@ -240,6 +207,20 @@ export async function mountLineChart3D(
 	controls.target.copy(target);
 	controls.update();
 
+	// Click-to-select + drag-to-value (see cartesian-chart-3d-interaction-wiring.ts).
+	const pointerInteraction = attachCartesianChart3DInteraction({
+		three,
+		canvas,
+		camera,
+		controls,
+		width,
+		height,
+		markerMeshes,
+		markerMaterials: markerMaterials as unknown as HighlightableMaterial[],
+		series: options.series,
+		interaction,
+	});
+
 	const doc = container.ownerDocument ?? document;
 	const labels = buildCartesianChart3DLabels(
 		options.cols,
@@ -248,24 +229,9 @@ export async function mountLineChart3D(
 		options.seriesNames,
 		options.view3D?.depthPercent,
 	);
-	const { layer, nodes } = createLabelOverlay(doc, labels);
-	container.appendChild(layer);
-	const anchors = labels.map((l) => new three.Vector3(...l.anchor));
-	const projected = new three.Vector3();
-
-	const updateLabels = (): void => {
-		for (let i = 0; i < nodes.length; i++) {
-			projected.copy(anchors[i]).project(camera);
-			const node = nodes[i];
-			if (projected.z > 1) {
-				node.style.display = 'none';
-				continue;
-			}
-			node.style.display = '';
-			node.style.left = `${((projected.x + 1) / 2) * width}px`;
-			node.style.top = `${((-projected.y + 1) / 2) * height}px`;
-		}
-	};
+	const labelProjector = createChart3DLabelProjector(three, doc, labels);
+	labelProjector.applyTextStyle(options.textStyle);
+	container.appendChild(labelProjector.layer);
 
 	let frame = 0;
 	let disposed = false;
@@ -276,7 +242,7 @@ export async function mountLineChart3D(
 		frame = requestAnimationFrame(renderLoop);
 		controls.update();
 		renderer.render(scene, camera);
-		updateLabels();
+		labelProjector.update(camera, width, height);
 	};
 	frame = requestAnimationFrame(renderLoop);
 
@@ -290,6 +256,13 @@ export async function mountLineChart3D(
 			renderer.setSize(width, height, false);
 			canvas.style.width = `${width}px`;
 			canvas.style.height = `${height}px`;
+			pointerInteraction.updateSize(width, height);
+		},
+		setSelectedPart(part: ChartPartRef | null) {
+			pointerInteraction.setSelectedPart(part);
+		},
+		setTextStyle(style: TextStyleAnimationDescriptor | undefined) {
+			labelProjector.applyTextStyle(style);
 		},
 		dispose() {
 			if (disposed) {
@@ -297,8 +270,8 @@ export async function mountLineChart3D(
 			}
 			disposed = true;
 			cancelAnimationFrame(frame);
-			canvas.removeEventListener('pointermove', onPointerMove);
-			canvas.removeEventListener('pointerleave', onPointerLeave);
+			hoverTooltip.dispose();
+			pointerInteraction.dispose();
 			controls.dispose();
 			markerGeometry.dispose();
 			for (const g of tubeGeometries) {
@@ -312,7 +285,7 @@ export async function mountLineChart3D(
 			scene.clear();
 			renderer.dispose();
 			canvas.remove();
-			layer.remove();
+			labelProjector.layer.remove();
 		},
 	};
 }

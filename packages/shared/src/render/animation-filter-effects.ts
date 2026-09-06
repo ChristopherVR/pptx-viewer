@@ -48,6 +48,12 @@
  *    that jump the element to its end state almost immediately rather than
  *    animating gradually over the effect's duration, matching a SMIL `cut`
  *    filter's "instant swap" semantics.
+ *  - `pixelate` maps onto `pixelateIn`/`pixelateOut`, a genuinely blocky
+ *    mosaic grid built from a small fixed set of self-contained SVG
+ *    `<filter>` data-URIs stepped through discrete `@keyframes` stops (see
+ *    `animation-pixelate-filter`): each visible cell shows the element's own
+ *    real content at that position, not a canvas rasterisation, so it still
+ *    fits this engine's "one static `@keyframes` block per effect" shape.
  *  - `stretch` carries the same `fromLeft`/`fromRight`/`fromTop`/`fromBottom`
  *    direction tokens as `slide` (SMIL 2.0 Transition Effects), so it reuses
  *    {@link SLIDE_TOKEN_TO_SUFFIX} for the edge lookup (see
@@ -64,19 +70,18 @@
  *    repo's file-size guideline) does exactly that, deterministically, from
  *    the animation's `targetId` rather than `Math.random()`.
  *
- * Families with NO cheap CSS equivalent given this engine's one-element
- * mask/keyframe architecture (`image`, `pixelate`) are intentionally left out
- * of {@link FILTER_FAMILY_EFFECT}: `resolveEffect` returning `undefined` for
- * them lets the timeline builder's existing unmapped-preset safety net
+ * `image` has NO cheap CSS equivalent given this engine's one-element
+ * mask/keyframe architecture and is intentionally left out of
+ * {@link FILTER_FAMILY_EFFECT}: `resolveEffect` returning `undefined` for it
+ * lets the timeline builder's existing unmapped-preset safety net
  * (`fallbackEffectForClass`) substitute the neutral `fadeIn`/`fadeOut`, so the
  * effect is never silently dropped. See {@link GENERIC_FALLBACK_FILTER_FAMILIES}
  * for why: `image` substitutes a second AUTHORED image mid-transition that the
  * OOXML `p:animEffect` filter payload never carries, so there is nothing to
- * substitute; `pixelate`'s blocky mosaic needs to rasterise the element's
- * actual painted content at progressively coarser resolution, which is a
- * canvas/WebGL operation, not a `mask-image`/`clip-path`/`transform` one, so
- * it does not fit this architecture's "one CSS `@keyframes` block per effect"
- * shape the way every other family above does.
+ * substitute. (`pixelate` used to live in this same fallback bucket for the
+ * same architectural reason - "rasterising content is a canvas operation" -
+ * until `animation-pixelate-filter` showed a real SVG-filter mosaic fits the
+ * architecture after all; see `pixelate` above.)
  *
  * @module render/animation-filter-effects
  */
@@ -131,6 +136,7 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	wedge: { entr: 'wedgeIn', exit: 'fadeOut' },
 	cut: { entr: 'cutIn', exit: 'cutOut' },
 	newsflash: { entr: 'newsflashIn', exit: 'newsflashOut' },
+	pixelate: { entr: 'pixelateIn', exit: 'pixelateOut' },
 };
 
 /**
@@ -139,10 +145,10 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
  * builder's generic entrance/exit fade safety net rather than being dropped.
  * Exported so the shared test suite can assert every one of them actually
  * reaches that fallback, and so this list is the single place documenting
- * "known but approximated as fade". See the module doc for why each of these
- * two specifically has no cheap CSS equivalent in this architecture.
+ * "known but approximated as fade". See the module doc for why `image`
+ * specifically has no cheap CSS equivalent in this architecture.
  */
-export const GENERIC_FALLBACK_FILTER_FAMILIES: readonly string[] = ['image', 'pixelate'];
+export const GENERIC_FALLBACK_FILTER_FAMILIES: readonly string[] = ['image'];
 
 // ==========================================================================
 // Slide / cover / uncover / push / pull (direct Fly mapping)

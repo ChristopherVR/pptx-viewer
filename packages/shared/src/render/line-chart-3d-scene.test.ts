@@ -110,6 +110,11 @@ vi.mock(import('three'), () => {
 					h.canvasListeners.splice(i, 1);
 				}
 			},
+			// The scene is mounted inside an ARMED (`pptx-chart-interactive`) chart
+			// root, so mark presses are the scene's own (see `isChartInteractionArmed`).
+			closest(selector: string) {
+				return selector === '.pptx-chart-interactive' ? {} : null;
+			},
 			getBoundingClientRect() {
 				return { left: 0, top: 0, width: 200, height: 150 };
 			},
@@ -163,6 +168,8 @@ vi.mock(import('three'), () => {
 		},
 		MeshPhongMaterial: class {
 			dispose = h.calls.materialDispose;
+			emissive = { set: vi.fn() };
+			emissiveIntensity = 0;
 		},
 		MeshBasicMaterial: class {
 			dispose = h.calls.wallMatDispose;
@@ -332,13 +339,20 @@ describe('mountLineChart3D - raycast hover tooltip', () => {
 		return entry.cb;
 	}
 
-	it('registers pointermove/pointerleave listeners on the canvas', async () => {
+	it('registers the hover-tooltip AND click/drag pointer listeners on the canvas', async () => {
 		const handle = await mountLineChart3D(
 			fakeElement(fakeDocument()) as unknown as HTMLElement,
 			baseOptions(),
 		);
 		expect(handle.ok).toBeTruthy();
-		expect(h.canvasListeners.map((l) => l.type)).toStrictEqual(['pointermove', 'pointerleave']);
+		expect(h.canvasListeners.map((l) => l.type)).toStrictEqual([
+			'pointermove',
+			'pointerleave',
+			'pointerdown',
+			'pointermove',
+			'pointerup',
+			'pointercancel',
+		]);
 	});
 
 	it('sets the raycast hit marker userData as the canvas title', async () => {
@@ -373,5 +387,61 @@ describe('mountLineChart3D - raycast hover tooltip', () => {
 		);
 		handle.dispose();
 		expect(h.canvasListeners).toHaveLength(0);
+	});
+});
+
+describe('mountLineChart3D - click-to-select / drag-to-value', () => {
+	function fireAll(type: string, e: Record<string, unknown>): void {
+		for (const l of h.canvasListeners.filter((entry) => entry.type === type)) {
+			l.cb({ stopPropagation() {}, preventDefault() {}, ...e } as never);
+		}
+	}
+
+	it('fires onSelect with the clicked marker on a plain click', async () => {
+		h.behaviour.raycastHits = [
+			{ object: { userData: { seriesIndex: 1, categoryIndex: 0, value: 5 } } },
+		];
+		const onSelect = vi.fn();
+		const handle = await mountLineChart3D(
+			fakeElement(fakeDocument()) as unknown as HTMLElement,
+			baseOptions(),
+			{ onSelect },
+		);
+		expect(handle.ok).toBeTruthy();
+
+		fireAll('pointerdown', { clientX: 50, clientY: 50, pointerId: 1 });
+		fireAll('pointerup', { clientX: 50, clientY: 50, pointerId: 1 });
+
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith({
+			role: 'dataPoint',
+			seriesIndex: 1,
+			pointIndex: 0,
+		});
+	});
+
+	it('drags a marker past the threshold: preview then commit fire, onSelect does not', async () => {
+		h.behaviour.raycastHits = [
+			{ object: { userData: { seriesIndex: 0, categoryIndex: 0, value: 10 } } },
+		];
+		const onSelect = vi.fn();
+		const onValueDragPreview = vi.fn();
+		const onValueDragCommit = vi.fn();
+		const handle = await mountLineChart3D(
+			fakeElement(fakeDocument()) as unknown as HTMLElement,
+			baseOptions(),
+			{ onSelect, onValueDragPreview, onValueDragCommit },
+		);
+		expect(handle.ok).toBeTruthy();
+
+		fireAll('pointerdown', { clientX: 50, clientY: 50, pointerId: 1 });
+		fireAll('pointermove', { clientX: 50, clientY: 20, pointerId: 1 });
+		expect(onValueDragPreview).toHaveBeenCalledWith(
+			{ role: 'dataPoint', seriesIndex: 0, pointIndex: 0 },
+			expect.any(Number),
+		);
+		fireAll('pointerup', { clientX: 50, clientY: 20, pointerId: 1 });
+
+		expect(onValueDragCommit).toHaveBeenCalledOnce();
+		expect(onSelect).not.toHaveBeenCalled();
 	});
 });

@@ -38,6 +38,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
 
 import { applyAfterAnimationFromEditorList } from './animation-after-effect';
+import { buildAnimationRenderContext } from './animation-render-context';
 import { resolveAnimationTargetId } from './animation-target-id';
 import type { ElementStatesOptions } from './animation-timeline-engine';
 import { TimelineEngine } from './animation-timeline-engine';
@@ -60,6 +61,26 @@ import { flattenSlideElements } from './presentation-action';
  * `elapsedMs`), so a binding imports it from the controller.
  */
 export type PresentationStatesOptions = ElementStatesOptions;
+
+/**
+ * Optional context {@link PresentationAnimationController.fromSlide} threads
+ * into the timeline builder so it can resolve a `p:anim` formula that needs
+ * the animated shape's REAL box (e.g. Grow And Turn's `-#ppt_w/2` fly-in) and
+ * a scheme-colour (`a:schemeClr`) stop in a `p:animClr` / colour ramp. Both
+ * fields are independently optional: a binding with only the slide's canvas
+ * size (no theme yet loaded) still gets geometry-formula resolution, and vice
+ * versa. Omitting the options object entirely keeps the previous behaviour
+ * (self-only formula resolution, scheme colours falling back), so this is a
+ * strictly additive, non-breaking change to `fromSlide`'s signature.
+ */
+export interface PresentationAnimationControllerOptions {
+	/** The slide canvas width, in the SAME px unit `PptxElement.x/width` are authored in. */
+	slideWidthPx?: number;
+	/** The slide canvas height, in the SAME px unit `PptxElement.y/height` are authored in. */
+	slideHeightPx?: number;
+	/** The deck's resolved theme colour map (`PptxData.themeColorMap`). */
+	themeColorMap?: Readonly<Record<string, string>>;
+}
 
 /**
  * Build the per-target text-build segment counts for a slide: for every
@@ -110,7 +131,10 @@ export class PresentationAnimationController {
 	 * then caches the keyframes CSS, trigger-shape id sets, and the full element
 	 * id list (base element ids + text-build sub-element ids) to track.
 	 */
-	public static fromSlide(slide: PptxSlide): PresentationAnimationController {
+	public static fromSlide(
+		slide: PptxSlide,
+		options?: PresentationAnimationControllerOptions,
+	): PresentationAnimationController {
 		// Motion paths authored in this session live on the editor model until the
 		// deck is saved; project them in so pressing play right after applying one
 		// actually moves the shape.
@@ -135,7 +159,14 @@ export class PresentationAnimationController {
 		const expandedAnims =
 			segmentCounts.size > 0 ? expandTextBuildAnimations(rangedAnims, segmentCounts) : rangedAnims;
 
-		const engine = TimelineEngine.fromAnimations(expandedAnims);
+		const renderContext = buildAnimationRenderContext(
+			slide,
+			options?.slideWidthPx !== undefined && options?.slideHeightPx !== undefined
+				? { heightPx: options.slideHeightPx, widthPx: options.slideWidthPx }
+				: undefined,
+			options?.themeColorMap,
+		);
+		const engine = TimelineEngine.fromAnimations(expandedAnims, renderContext);
 
 		// Animations may target a shape nested inside a group (`p:grpSp`), so
 		// track every descendant id, not just the top-level elements.

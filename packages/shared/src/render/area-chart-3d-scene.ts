@@ -1,24 +1,18 @@
 /**
  * Vanilla three.js 3D area-chart scene controller (framework-agnostic).
  *
- * Identical to {@link ./line-chart-3d-scene.ts} (`mountLineChart3D`), one
- * `THREE.TubeGeometry` path + per-vertex hover marker per series, each on its
- * own depth ("Z") plane, plus grid floor, authored wall panels, `c:view3D`
- * camera, OrbitControls, and a RAF loop, EXCEPT it additionally fills a
- * translucent ribbon `THREE.BufferGeometry` from each series' path down to
- * its baseline (value = 0), built from
- * {@link ./cartesian-line-chart-3d-layout.ts}'s `buildAreaRibbonTriangles`,
- * matching PowerPoint's real 3-D Area chart.
- *
- * Mirrors {@link ./bar-chart-3d-scene.ts}, the established shape for this
- * "optional three.js scene with a 2D SVG safety net" pattern.
+ * Identical to {@link ./line-chart-3d-scene.ts}, EXCEPT it additionally fills
+ * a translucent ribbon from each series' path down to its baseline (value =
+ * 0), via {@link ./area-chart-3d-ribbon-geometry.ts}, matching PowerPoint's
+ * real 3-D Area chart.
  *
  * @module area-chart-3d-scene
  */
 
 import type * as THREE from 'three';
-import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+import type { TextStyleAnimationDescriptor } from './animation-text-style-resolve';
+import { buildAreaRibbonGeometry } from './area-chart-3d-ribbon-geometry';
 import {
 	buildCartesianChart3DLabels,
 	computeCartesianCameraPlacement,
@@ -27,17 +21,26 @@ import {
 } from './cartesian-chart-3d-geom';
 import type { CartesianChart3DHit } from './cartesian-chart-3d-hit-test';
 import { buildCartesianChart3DHoverTooltip } from './cartesian-chart-3d-hit-test';
+import { attachCartesianChart3DInteraction } from './cartesian-chart-3d-interaction-wiring';
+import type { CartesianChart3DInteraction } from './cartesian-chart-3d-interaction-wiring';
 import type { CartesianLine3DSceneOptions } from './cartesian-line-chart-3d-data';
-import { buildAreaRibbonTriangles } from './cartesian-line-chart-3d-layout';
-import { createLabelOverlay } from './surface-chart-3d-label-overlay';
+import { attachChart3DHoverTooltip } from './chart-3d-hover-tooltip';
+import { createChart3DLabelProjector } from './chart-3d-label-projection';
+import type { HighlightableMaterial } from './chart-3d-mesh-highlight';
+import { loadChart3DOrbitControls, loadChart3DThree } from './chart-3d-three-loader';
+import type { ChartPartRef } from './chart-view-model';
 import { buildSurfaceWallMeshes } from './surface-chart-3d-walls';
 
-type ThreeModule = typeof THREE;
+export type { CartesianChart3DInteraction };
 
 /** Imperative handle to a mounted area3D chart view. */
 export interface AreaChart3DHandle {
 	readonly ok: boolean;
 	resize: (width: number, height: number) => void;
+	/** Apply (or clear) the selected-mark highlight, e.g. when selection changes via the inspector rather than a click on this scene. */
+	setSelectedPart: (part: ChartPartRef | null) => void;
+	/** Apply (or clear) a font-style emphasis override on the axis labels. */
+	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
 	dispose: () => void;
 }
 
@@ -45,6 +48,8 @@ export interface AreaChart3DHandle {
 export const AREA_CHART_THREE_UNAVAILABLE: AreaChart3DHandle = {
 	ok: false,
 	resize: () => {},
+	setSelectedPart: () => {},
+	setTextStyle: () => {},
 	dispose: () => {},
 };
 
@@ -54,40 +59,6 @@ const TUBE_RADIUS = 0.02;
 const MARKER_RADIUS = 0.045;
 /** Ribbon fill opacity, translucent so overlapping series planes stay legible. */
 const RIBBON_OPACITY = 0.75;
-
-async function loadThree(): Promise<ThreeModule | null> {
-	try {
-		return (await import('three')) as ThreeModule;
-	} catch {
-		return null;
-	}
-}
-
-async function loadOrbitControlsCtor(): Promise<
-	(new (camera: THREE.Camera, dom: HTMLElement) => OrbitControls) | null
-> {
-	try {
-		const mod = await import('three/examples/jsm/controls/OrbitControls.js');
-		return mod.OrbitControls;
-	} catch {
-		return null;
-	}
-}
-
-/** Build a ribbon `BufferGeometry` for one series' area fill, or `null` when it has < 2 vertices. */
-function buildRibbonGeometry(
-	three: ThreeModule,
-	path: CartesianLine3DSceneOptions['series'][number],
-): THREE.BufferGeometry | null {
-	const triangles = buildAreaRibbonTriangles(path);
-	if (triangles.length === 0) {
-		return null;
-	}
-	const geometry = new three.BufferGeometry();
-	geometry.setAttribute('position', new three.Float32BufferAttribute(triangles, 3));
-	geometry.computeVertexNormals();
-	return geometry;
-}
 
 /**
  * Mount an interactive 3D area chart into `container` and start rendering.
@@ -99,9 +70,10 @@ function buildRibbonGeometry(
 export async function mountAreaChart3D(
 	container: HTMLElement,
 	options: CartesianLine3DSceneOptions,
+	interaction?: CartesianChart3DInteraction,
 ): Promise<AreaChart3DHandle> {
-	const three = await loadThree();
-	const OrbitCtrlCtor = three ? await loadOrbitControlsCtor() : null;
+	const three = await loadChart3DThree();
+	const OrbitCtrlCtor = three ? await loadChart3DOrbitControls() : null;
 	if (!three || !OrbitCtrlCtor) {
 		return AREA_CHART_THREE_UNAVAILABLE;
 	}
@@ -142,12 +114,8 @@ export async function mountAreaChart3D(
 		options.view3D?.depthPercent,
 	);
 	const floorSize = Math.max(extent.gridWidth, extent.gridDepth) * 1.2;
-	const gridFloor = new three.GridHelper(
-		floorSize,
-		Math.max(options.cols, options.rows),
-		0xcccccc,
-		0xe8e8e8,
-	);
+	const gridSegs = Math.max(options.cols, options.rows);
+	const gridFloor = new three.GridHelper(floorSize, gridSegs, 0xcccccc, 0xe8e8e8);
 	gridFloor.position.y = -0.02;
 	scene.add(gridFloor);
 
@@ -170,9 +138,10 @@ export async function mountAreaChart3D(
 	const ribbonGeometries: THREE.BufferGeometry[] = [];
 	const otherMaterials: THREE.Material[] = [];
 	const markerMeshes: THREE.Mesh[] = [];
+	const markerMaterials: THREE.Material[] = [];
 
 	for (const path of options.series) {
-		const ribbonGeometry = buildRibbonGeometry(three, path);
+		const ribbonGeometry = buildAreaRibbonGeometry(three, path);
 		if (ribbonGeometry) {
 			const ribbonMaterial = new three.MeshPhongMaterial({
 				color: path.color,
@@ -212,45 +181,27 @@ export async function mountAreaChart3D(
 			} satisfies CartesianChart3DHit;
 			scene.add(marker);
 			markerMeshes.push(marker);
+			markerMaterials.push(markerMaterial);
 			otherMaterials.push(markerMaterial);
 		}
 	}
 
-	const raycaster = new three.Raycaster();
-	const pointerNdc = new three.Vector2();
-	let hoveredTooltip: string | undefined;
-
-	const updateHoverTooltip = (clientX: number, clientY: number): void => {
-		const rect = canvas.getBoundingClientRect();
-		if (rect.width <= 0 || rect.height <= 0) {
-			return;
-		}
-		pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-		pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-		raycaster.setFromCamera(pointerNdc, camera);
-		const hits = raycaster.intersectObjects(markerMeshes, false);
-		const hit = hits[0]?.object.userData as CartesianChart3DHit | undefined;
-		const tooltip = buildCartesianChart3DHoverTooltip(hit, {
-			categoryLabels: options.categoryLabels,
-			seriesNames: options.seriesNames,
-			numberFormats: options.numberFormats,
-		});
-		if (tooltip !== hoveredTooltip) {
-			hoveredTooltip = tooltip;
-			canvas.title = tooltip ?? '';
-		}
+	const tooltipData = {
+		categoryLabels: options.categoryLabels,
+		seriesNames: options.seriesNames,
+		numberFormats: options.numberFormats,
 	};
-	const onPointerMove = (event: PointerEvent): void => {
-		updateHoverTooltip(event.clientX, event.clientY);
-	};
-	const onPointerLeave = (): void => {
-		if (hoveredTooltip !== undefined) {
-			hoveredTooltip = undefined;
-			canvas.title = '';
-		}
-	};
-	canvas.addEventListener('pointermove', onPointerMove);
-	canvas.addEventListener('pointerleave', onPointerLeave);
+	const hoverTooltip = attachChart3DHoverTooltip({
+		three,
+		canvas,
+		camera,
+		meshes: markerMeshes,
+		buildTooltip: (intersection) =>
+			buildCartesianChart3DHoverTooltip(
+				intersection?.object.userData as CartesianChart3DHit | undefined,
+				tooltipData,
+			),
+	});
 
 	const controls = new OrbitCtrlCtor(camera, canvas);
 	controls.enablePan = true;
@@ -262,6 +213,20 @@ export async function mountAreaChart3D(
 	controls.target.copy(target);
 	controls.update();
 
+	// Click-to-select + drag-to-value (see cartesian-chart-3d-interaction-wiring.ts).
+	const pointerInteraction = attachCartesianChart3DInteraction({
+		three,
+		canvas,
+		camera,
+		controls,
+		width,
+		height,
+		markerMeshes,
+		markerMaterials: markerMaterials as unknown as HighlightableMaterial[],
+		series: options.series,
+		interaction,
+	});
+
 	const doc = container.ownerDocument ?? document;
 	const labels = buildCartesianChart3DLabels(
 		options.cols,
@@ -270,24 +235,9 @@ export async function mountAreaChart3D(
 		options.seriesNames,
 		options.view3D?.depthPercent,
 	);
-	const { layer, nodes } = createLabelOverlay(doc, labels);
-	container.appendChild(layer);
-	const anchors = labels.map((l) => new three.Vector3(...l.anchor));
-	const projected = new three.Vector3();
-
-	const updateLabels = (): void => {
-		for (let i = 0; i < nodes.length; i++) {
-			projected.copy(anchors[i]).project(camera);
-			const node = nodes[i];
-			if (projected.z > 1) {
-				node.style.display = 'none';
-				continue;
-			}
-			node.style.display = '';
-			node.style.left = `${((projected.x + 1) / 2) * width}px`;
-			node.style.top = `${((-projected.y + 1) / 2) * height}px`;
-		}
-	};
+	const labelProjector = createChart3DLabelProjector(three, doc, labels);
+	labelProjector.applyTextStyle(options.textStyle);
+	container.appendChild(labelProjector.layer);
 
 	let frame = 0;
 	let disposed = false;
@@ -298,7 +248,7 @@ export async function mountAreaChart3D(
 		frame = requestAnimationFrame(renderLoop);
 		controls.update();
 		renderer.render(scene, camera);
-		updateLabels();
+		labelProjector.update(camera, width, height);
 	};
 	frame = requestAnimationFrame(renderLoop);
 
@@ -312,6 +262,13 @@ export async function mountAreaChart3D(
 			renderer.setSize(width, height, false);
 			canvas.style.width = `${width}px`;
 			canvas.style.height = `${height}px`;
+			pointerInteraction.updateSize(width, height);
+		},
+		setSelectedPart(part: ChartPartRef | null) {
+			pointerInteraction.setSelectedPart(part);
+		},
+		setTextStyle(style: TextStyleAnimationDescriptor | undefined) {
+			labelProjector.applyTextStyle(style);
 		},
 		dispose() {
 			if (disposed) {
@@ -319,8 +276,8 @@ export async function mountAreaChart3D(
 			}
 			disposed = true;
 			cancelAnimationFrame(frame);
-			canvas.removeEventListener('pointermove', onPointerMove);
-			canvas.removeEventListener('pointerleave', onPointerLeave);
+			hoverTooltip.dispose();
+			pointerInteraction.dispose();
 			controls.dispose();
 			markerGeometry.dispose();
 			for (const g of [...tubeGeometries, ...ribbonGeometries]) {
@@ -334,7 +291,7 @@ export async function mountAreaChart3D(
 			scene.clear();
 			renderer.dispose();
 			canvas.remove();
-			layer.remove();
+			labelProjector.layer.remove();
 		},
 	};
 }

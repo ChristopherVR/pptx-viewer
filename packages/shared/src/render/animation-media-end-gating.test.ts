@@ -52,6 +52,12 @@ describe('isMediaEndGated', () => {
 	it('is false for onStopAudio with no specific target node', () => {
 		expect(isMediaEndGated(makeStep({ dependsOnEvent: 'onStopAudio' }))).toBeFalsy();
 	});
+
+	it('is true for a step depending on a specific onStopAudio SHAPE target (p:tgtEl/p:spTgt, no @tn)', () => {
+		expect(
+			isMediaEndGated(makeStep({ dependsOnEvent: 'onStopAudio', dependsOnShapeId: 'audio1' })),
+		).toBeTruthy();
+	});
 });
 
 describe('findMediaEndGatedSteps', () => {

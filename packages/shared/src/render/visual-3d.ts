@@ -29,14 +29,16 @@
 import type { PptxElement, Pptx3DScene, Pptx3DShape, MaterialPresetType } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
+import { getBevelHighlightDirection, isBevelProfileInverted } from './visual-3d-bevel-light';
+import type { BevelLightVector } from './visual-3d-bevel-light';
 import { getCameraTransform } from './visual-3d-camera';
-import type { Scene3dParams } from './visual-3d-camera';
+import type { ElementSizePx, Scene3dParams } from './visual-3d-camera';
 import { darkenColor } from './visual-3d-color';
 import { EMU_PER_PX, MAX_EXTRUSION_LAYERS } from './visual-3d-constants';
 import { getMaterialCssOverrides } from './visual-3d-materials';
 
 export { getCameraTransform } from './visual-3d-camera';
-export type { Scene3dParams, CameraTransform } from './visual-3d-camera';
+export type { ElementSizePx, Scene3dParams, CameraTransform } from './visual-3d-camera';
 export {
 	getMaterialCssOverrides,
 	getMaterialGradientOverlay,
@@ -299,9 +301,34 @@ export function getLightRigCss(
 
 // ── Bevel preset mapping ─────────────────────────────────────────────────
 
-function getBevelShadow(bevelType: string, bW: number, bH: number, isBottom: boolean): string {
-	const hlDir = isBottom ? -1 : 1;
-	const shDir = isBottom ? 1 : -1;
+/**
+ * `bevelType` -> inset box-shadow layers. `hlDirX`/`hlDirY` (each -1/0/1)
+ * replace the old single diagonal `hlDir` scalar so a COM-measured light-rig
+ * direction (see `visual-3d-bevel-light`) can point the highlight at any of
+ * the 4 cardinal edges, not just a top-left/bottom-right diagonal.
+ */
+function getBevelShadow(
+	bevelType: string,
+	bW: number,
+	bH: number,
+	isBottom: boolean,
+	lightVector: BevelLightVector = { dx: -1, dy: -1 },
+): string {
+	// `softRound` measured an INVERTED highlight relative to every other
+	// profile (see `visual-3d-bevel-light`'s module doc comment): apply that
+	// flip BEFORE the existing top/bottom-bevel inversion below, so a bottom
+	// `softRound` bevel still keeps its own "opposite the top's" relationship
+	// to the (now-inverted) top vector.
+	const profileVector = isBevelProfileInverted(bevelType)
+		? { dx: -lightVector.dx, dy: -lightVector.dy }
+		: lightVector;
+	// The bottom bevel keeps its pre-existing behaviour: highlight opposite
+	// the top's (only the top bevel was COM-measured; see the module doc
+	// comment on `visual-3d-bevel-light`).
+	const hlDirX = isBottom ? -profileVector.dx : profileVector.dx;
+	const hlDirY = isBottom ? -profileVector.dy : profileVector.dy;
+	const shDirX = -hlDirX;
+	const shDirY = -hlDirY;
 	const hlOpacity = isBottom ? 0.2 : 0.3;
 	const shOpacity = isBottom ? 0.3 : 0.2;
 	const maxDim = Math.max(bW, bH);
@@ -309,99 +336,99 @@ function getBevelShadow(bevelType: string, bW: number, bH: number, isBottom: boo
 	switch (bevelType) {
 		case 'circle':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 2}px rgba(255,255,255,${hlOpacity + 0.12})`,
-				`inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px ${maxDim + 4}px rgba(255,255,255,${hlOpacity * 0.4})`,
-				`inset ${shDir * bW}px ${shDir * bH}px ${maxDim + 2}px rgba(0,0,0,${shOpacity + 0.06})`,
-				`inset ${shDir * Math.round(bW * 0.5)}px ${shDir * Math.round(bH * 0.5)}px ${maxDim + 4}px rgba(0,0,0,${shOpacity * 0.3})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px ${maxDim + 2}px rgba(255,255,255,${hlOpacity + 0.12})`,
+				`inset ${hlDirX * Math.round(bW * 0.5)}px ${hlDirY * Math.round(bH * 0.5)}px ${maxDim + 4}px rgba(255,255,255,${hlOpacity * 0.4})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px ${maxDim + 2}px rgba(0,0,0,${shOpacity + 0.06})`,
+				`inset ${shDirX * Math.round(bW * 0.5)}px ${shDirY * Math.round(bH * 0.5)}px ${maxDim + 4}px rgba(0,0,0,${shOpacity * 0.3})`,
 			].join(', ');
 
 		case 'relaxedInset':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 5}px rgba(255,255,255,${hlOpacity - 0.04})`,
-				`inset ${shDir * bW}px ${shDir * bH}px ${maxDim + 5}px rgba(0,0,0,${shOpacity - 0.04})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px ${maxDim + 5}px rgba(255,255,255,${hlOpacity - 0.04})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px ${maxDim + 5}px rgba(0,0,0,${shOpacity - 0.04})`,
 				`inset 0 0 ${maxDim + 8}px rgba(0,0,0,${shOpacity * 0.15})`,
 			].join(', ');
 
 		case 'hardEdge':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px 0 rgba(255,255,255,${hlOpacity + 0.18})`,
-				`inset ${shDir * bW}px ${shDir * bH}px 0 rgba(0,0,0,${shOpacity + 0.18})`,
-				`inset ${hlDir * Math.round(bW * 0.4)}px ${hlDir * Math.round(bH * 0.4)}px 0 rgba(255,255,255,${hlOpacity * 0.3})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px 0 rgba(255,255,255,${hlOpacity + 0.18})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px 0 rgba(0,0,0,${shOpacity + 0.18})`,
+				`inset ${hlDirX * Math.round(bW * 0.4)}px ${hlDirY * Math.round(bH * 0.4)}px 0 rgba(255,255,255,${hlOpacity * 0.3})`,
 			].join(', ');
 
 		case 'cross':
 			return [
-				`inset ${hlDir * bW}px 0 ${bW}px rgba(255,255,255,${hlOpacity})`,
-				`inset 0 ${hlDir * bH}px ${bH}px rgba(255,255,255,${hlOpacity})`,
-				`inset ${shDir * bW}px 0 ${bW}px rgba(0,0,0,${shOpacity})`,
-				`inset 0 ${shDir * bH}px ${bH}px rgba(0,0,0,${shOpacity})`,
+				`inset ${hlDirX * bW}px 0 ${bW}px rgba(255,255,255,${hlOpacity})`,
+				`inset 0 ${hlDirY * bH}px ${bH}px rgba(255,255,255,${hlOpacity})`,
+				`inset ${shDirX * bW}px 0 ${bW}px rgba(0,0,0,${shOpacity})`,
+				`inset 0 ${shDirY * bH}px ${bH}px rgba(0,0,0,${shOpacity})`,
 				`inset 0 0 ${Math.round(maxDim * 0.5)}px rgba(0,0,0,${shOpacity * 0.2})`,
 			].join(', ');
 
 		case 'coolSlant':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * Math.round(bH * 0.4)}px ${maxDim}px rgba(255,255,255,${hlOpacity + 0.12})`,
-				`inset ${hlDir * Math.round(bW * 0.6)}px 0 ${Math.round(maxDim * 0.6)}px rgba(255,255,255,${hlOpacity * 0.4})`,
-				`inset ${shDir * Math.round(bW * 0.4)}px ${shDir * bH}px ${maxDim}px rgba(0,0,0,${shOpacity + 0.1})`,
+				`inset ${hlDirX * bW}px ${hlDirY * Math.round(bH * 0.4)}px ${maxDim}px rgba(255,255,255,${hlOpacity + 0.12})`,
+				`inset ${hlDirX * Math.round(bW * 0.6)}px 0 ${Math.round(maxDim * 0.6)}px rgba(255,255,255,${hlOpacity * 0.4})`,
+				`inset ${shDirX * Math.round(bW * 0.4)}px ${shDirY * bH}px ${maxDim}px rgba(0,0,0,${shOpacity + 0.1})`,
 			].join(', ');
 
 		case 'angle':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px ${Math.round(maxDim * 0.4)}px rgba(255,255,255,${hlOpacity + 0.16})`,
-				`inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px 0 rgba(255,255,255,${hlOpacity * 0.5})`,
-				`inset ${shDir * bW}px ${shDir * bH}px ${Math.round(maxDim * 0.4)}px rgba(0,0,0,${shOpacity + 0.12})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px ${Math.round(maxDim * 0.4)}px rgba(255,255,255,${hlOpacity + 0.16})`,
+				`inset ${hlDirX * Math.round(bW * 0.5)}px ${hlDirY * Math.round(bH * 0.5)}px 0 rgba(255,255,255,${hlOpacity * 0.5})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px ${Math.round(maxDim * 0.4)}px rgba(0,0,0,${shOpacity + 0.12})`,
 			].join(', ');
 
 		case 'softRound':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 7}px rgba(255,255,255,${hlOpacity + 0.02})`,
-				`inset ${hlDir * Math.round(bW * 0.3)}px ${hlDir * Math.round(bH * 0.3)}px ${maxDim + 10}px rgba(255,255,255,${hlOpacity * 0.3})`,
-				`inset ${shDir * bW}px ${shDir * bH}px ${maxDim + 7}px rgba(0,0,0,${shOpacity - 0.04})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px ${maxDim + 7}px rgba(255,255,255,${hlOpacity + 0.02})`,
+				`inset ${hlDirX * Math.round(bW * 0.3)}px ${hlDirY * Math.round(bH * 0.3)}px ${maxDim + 10}px rgba(255,255,255,${hlOpacity * 0.3})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px ${maxDim + 7}px rgba(0,0,0,${shOpacity - 0.04})`,
 			].join(', ');
 
 		case 'convex':
 			return [
 				`inset 0 0 ${maxDim + 4}px rgba(255,255,255,${hlOpacity + 0.06})`,
-				`inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim}px rgba(255,255,255,${hlOpacity + 0.02})`,
-				`inset ${shDir * bW}px ${shDir * bH}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
-				`inset ${shDir * Math.round(bW * 1.5)}px ${shDir * Math.round(bH * 1.5)}px ${maxDim + 2}px rgba(0,0,0,${shOpacity * 0.3})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px ${maxDim}px rgba(255,255,255,${hlOpacity + 0.02})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
+				`inset ${shDirX * Math.round(bW * 1.5)}px ${shDirY * Math.round(bH * 1.5)}px ${maxDim + 2}px rgba(0,0,0,${shOpacity * 0.3})`,
 			].join(', ');
 
 		case 'slope':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 4}px rgba(255,255,255,${hlOpacity + 0.06})`,
-				`inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px ${maxDim + 6}px rgba(255,255,255,${hlOpacity * 0.35})`,
-				`inset ${shDir * Math.round(bW * 0.7)}px ${shDir * Math.round(bH * 0.7)}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px ${maxDim + 4}px rgba(255,255,255,${hlOpacity + 0.06})`,
+				`inset ${hlDirX * Math.round(bW * 0.5)}px ${hlDirY * Math.round(bH * 0.5)}px ${maxDim + 6}px rgba(255,255,255,${hlOpacity * 0.35})`,
+				`inset ${shDirX * Math.round(bW * 0.7)}px ${shDirY * Math.round(bH * 0.7)}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
 			].join(', ');
 
 		case 'divot':
 			return [
-				`inset ${shDir * Math.round(bW * 0.5)}px ${shDir * Math.round(bH * 0.5)}px ${Math.round(maxDim * 0.5)}px rgba(255,255,255,${hlOpacity + 0.06})`,
-				`inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px ${Math.round(maxDim * 0.5)}px rgba(0,0,0,${shOpacity + 0.12})`,
+				`inset ${shDirX * Math.round(bW * 0.5)}px ${shDirY * Math.round(bH * 0.5)}px ${Math.round(maxDim * 0.5)}px rgba(255,255,255,${hlOpacity + 0.06})`,
+				`inset ${hlDirX * Math.round(bW * 0.5)}px ${hlDirY * Math.round(bH * 0.5)}px ${Math.round(maxDim * 0.5)}px rgba(0,0,0,${shOpacity + 0.12})`,
 				`inset 0 0 ${Math.round(maxDim * 0.3)}px rgba(0,0,0,${shOpacity * 0.3})`,
 			].join(', ');
 
 		case 'riblet':
 			return [
-				`inset 0 ${hlDir * bH}px ${Math.round(bH * 0.4)}px rgba(255,255,255,${hlOpacity + 0.02})`,
-				`inset 0 ${shDir * bH}px ${Math.round(bH * 0.4)}px rgba(0,0,0,${shOpacity})`,
-				`inset 0 ${hlDir * Math.round(bH * 2)}px ${bH}px rgba(255,255,255,${hlOpacity * 0.45})`,
-				`inset 0 ${shDir * Math.round(bH * 2)}px ${bH}px rgba(0,0,0,${shOpacity * 0.25})`,
+				`inset 0 ${hlDirY * bH}px ${Math.round(bH * 0.4)}px rgba(255,255,255,${hlOpacity + 0.02})`,
+				`inset 0 ${shDirY * bH}px ${Math.round(bH * 0.4)}px rgba(0,0,0,${shOpacity})`,
+				`inset 0 ${hlDirY * Math.round(bH * 2)}px ${bH}px rgba(255,255,255,${hlOpacity * 0.45})`,
+				`inset 0 ${shDirY * Math.round(bH * 2)}px ${bH}px rgba(0,0,0,${shOpacity * 0.25})`,
 			].join(', ');
 
 		case 'artDeco':
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px 0 rgba(255,255,255,${hlOpacity + 0.12})`,
-				`inset ${hlDir * Math.round(bW * 2)}px ${hlDir * Math.round(bH * 2)}px 0 rgba(255,255,255,${hlOpacity * 0.45})`,
-				`inset ${hlDir * Math.round(bW * 3)}px ${hlDir * Math.round(bH * 3)}px 0 rgba(255,255,255,${hlOpacity * 0.2})`,
-				`inset ${shDir * bW}px ${shDir * bH}px 0 rgba(0,0,0,${shOpacity + 0.12})`,
-				`inset ${shDir * Math.round(bW * 2)}px ${shDir * Math.round(bH * 2)}px 0 rgba(0,0,0,${shOpacity * 0.4})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px 0 rgba(255,255,255,${hlOpacity + 0.12})`,
+				`inset ${hlDirX * Math.round(bW * 2)}px ${hlDirY * Math.round(bH * 2)}px 0 rgba(255,255,255,${hlOpacity * 0.45})`,
+				`inset ${hlDirX * Math.round(bW * 3)}px ${hlDirY * Math.round(bH * 3)}px 0 rgba(255,255,255,${hlOpacity * 0.2})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px 0 rgba(0,0,0,${shOpacity + 0.12})`,
+				`inset ${shDirX * Math.round(bW * 2)}px ${shDirY * Math.round(bH * 2)}px 0 rgba(0,0,0,${shOpacity * 0.4})`,
 			].join(', ');
 
 		default:
 			return [
-				`inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim}px rgba(255,255,255,${hlOpacity})`,
-				`inset ${shDir * bW}px ${shDir * bH}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
+				`inset ${hlDirX * bW}px ${hlDirY * bH}px ${maxDim}px rgba(255,255,255,${hlOpacity})`,
+				`inset ${shDirX * bW}px ${shDirY * bH}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
 			].join(', ');
 	}
 }
@@ -448,6 +475,10 @@ export interface Transform3dCss {
 	transform?: string;
 	transformStyle?: string;
 	perspective?: string;
+	/** COM-calibrated off-axis correction for a handful of camera presets; see `visual-3d-camera`. */
+	perspectiveOrigin?: string;
+	/** `'0 0'` when the camera transform is a COM-measured exact `matrix3d(...)`; see `visual-3d-camera`. */
+	transformOrigin?: string;
 }
 
 /**
@@ -456,29 +487,48 @@ export interface Transform3dCss {
  * present a `translateZ` is appended so the front face sits above the stacked
  * box-shadow depth (mirrors React's `apply3dEffects`).
  *
+ * `elementSize`, when passed, re-projects the camera's field of view onto the
+ * element's actual rendered size instead of `visual-3d-camera`'s fixed
+ * reference size (see {@link getCameraTransform}).
+ *
  * Returns `undefined` when there is nothing 3D to apply.
  */
 export function get3dTransformCss(
 	scene3d: Pptx3DScene | undefined,
 	shape3d: Pptx3DShape | undefined,
+	elementSize?: ElementSizePx,
 ): Transform3dCss | undefined {
 	if (!scene3d && !shape3d) {
 		return undefined;
 	}
 
-	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
-	const hasRotation = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
+	const {
+		perspective,
+		perspectiveOrigin,
+		matrix3d,
+		transformOrigin,
+		cameraFlatFace,
+		rotateX,
+		rotateY,
+		rotateZ,
+	} = getCameraTransform(scene3d, elementSize);
+	const hasRotation =
+		Boolean(matrix3d) || (!cameraFlatFace && (rotateX !== 0 || rotateY !== 0 || rotateZ !== 0));
 	const hasExtrusion = Boolean(shape3d?.extrusionHeight && shape3d.extrusionHeight > 0);
 
 	const transforms: string[] = [];
-	if (rotateX !== 0) {
-		transforms.push(`rotateX(${rotateX}deg)`);
-	}
-	if (rotateY !== 0) {
-		transforms.push(`rotateY(${rotateY}deg)`);
-	}
-	if (rotateZ !== 0) {
-		transforms.push(`rotateZ(${rotateZ}deg)`);
+	if (matrix3d) {
+		transforms.push(matrix3d);
+	} else if (!cameraFlatFace) {
+		if (rotateX !== 0) {
+			transforms.push(`rotateX(${rotateX}deg)`);
+		}
+		if (rotateY !== 0) {
+			transforms.push(`rotateY(${rotateY}deg)`);
+		}
+		if (rotateZ !== 0) {
+			transforms.push(`rotateZ(${rotateZ}deg)`);
+		}
 	}
 
 	const positionZPx = getPositionZPx(shape3d);
@@ -500,6 +550,12 @@ export function get3dTransformCss(
 	const result: Transform3dCss = {};
 	if (perspective) {
 		result.perspective = perspective;
+	}
+	if (perspectiveOrigin) {
+		result.perspectiveOrigin = perspectiveOrigin;
+	}
+	if (transformOrigin) {
+		result.transformOrigin = transformOrigin;
 	}
 	if (transforms.length > 0) {
 		result.transform = transforms.join(' ');
@@ -587,6 +643,35 @@ export function getContourBoxShadow(
 	return `0 0 0 ${widthPx}px ${color}`;
 }
 
+/**
+ * `a:backdrop` ground-plane: intentionally renders NO synthetic CSS shadow of
+ * its own. This used to add a hardcoded/normal-tilt-responsive directional
+ * `box-shadow` (`getBackdropShadow`) whenever `hasBackdrop` was set,
+ * regardless of whether the shape carried a real shadow effect
+ * (`a:effectLst/a:outerShdw`).
+ *
+ * COM-measured 2026-09 (real PowerPoint, `Slide.Export`): with NO shadow
+ * effect on the shape, `a:backdrop` produces ZERO visible difference for any
+ * `a:norm` tested (default level floor, and two tilted values) - PowerPoint
+ * does not synthesize a shadow purely from the presence of a backdrop plane.
+ * A second check added the shape's own `a:outerShdw`: a level (default, or
+ * near-level) backdrop then renders indistinguishably from having no backdrop
+ * at all (the shape's ordinary small drop shadow, already rendered by every
+ * binding's normal effect pipeline, independent of this module). A STRONGLY
+ * TILTED backdrop, however, does change the shadow dramatically: PowerPoint
+ * projects the shadow onto the tilted plane, producing a large, sheared,
+ * non-convex shape utterly unlike a soft offset/blur rectangle - a true 3D
+ * plane projection of the shadow silhouette, which a single CSS `box-shadow`
+ * cannot represent at any parameter setting. Reproducing it correctly would
+ * need a real projected-geometry renderer (well beyond this module's
+ * box-shadow/filter model), so rather than keep an approximation that is
+ * wrong in the common case (no shadow, or a level backdrop: adds a fake
+ * shadow PowerPoint never shows) AND unable to represent the one case where
+ * backdrop genuinely matters, the synthetic layer was removed entirely. The
+ * shape's own authored shadow (rendered elsewhere, unconditionally) is left
+ * as the fidelity floor; `docs/guide/limitations.md` documents the gap.
+ */
+
 /** The CSS produced by {@link getBevelStyle}. */
 export interface BevelCss {
 	boxShadow: string;
@@ -597,12 +682,23 @@ export interface BevelCss {
  * Bevel preset → inset `box-shadow` (top + bottom bevels combined), plus an
  * optional background gradient for presets that benefit from one
  * (convex/divot/softRound). Returns `undefined` when no bevel is present.
+ *
+ * `lightRigDirection` (`a:lightRig/@dir`) COM-measured (see
+ * `visual-3d-bevel-light`'s module doc comment) to snap the TOP bevel's
+ * highlight to one of the 4 cardinal edges rather than a fixed top-left
+ * diagonal; omitted (or unrecognised) keeps that pre-existing default. The
+ * bottom bevel was not independently measured but shares the same resolved
+ * direction (negated, as it already was before this parameter existed).
  */
-export function getBevelStyle(shape3d: Shape3dParams | undefined): BevelCss | undefined {
+export function getBevelStyle(
+	shape3d: Shape3dParams | undefined,
+	lightRigDirection?: string,
+): BevelCss | undefined {
 	if (!shape3d) {
 		return undefined;
 	}
 
+	const lightVector = getBevelHighlightDirection(lightRigDirection);
 	const parts: string[] = [];
 
 	if (shape3d.bevelTopType && shape3d.bevelTopType !== 'none') {
@@ -612,7 +708,7 @@ export function getBevelStyle(shape3d: Shape3dParams | undefined): BevelCss | un
 		const bH = shape3d.bevelTopHeight
 			? Math.max(1, Math.round(shape3d.bevelTopHeight / EMU_PER_PX))
 			: 3;
-		parts.push(getBevelShadow(shape3d.bevelTopType, bW, bH, false));
+		parts.push(getBevelShadow(shape3d.bevelTopType, bW, bH, false, lightVector));
 	}
 
 	if (shape3d.bevelBottomType && shape3d.bevelBottomType !== 'none') {
@@ -622,7 +718,7 @@ export function getBevelStyle(shape3d: Shape3dParams | undefined): BevelCss | un
 		const bH = shape3d.bevelBottomHeight
 			? Math.max(1, Math.round(shape3d.bevelBottomHeight / EMU_PER_PX))
 			: 3;
-		parts.push(getBevelShadow(shape3d.bevelBottomType, bW, bH, true));
+		parts.push(getBevelShadow(shape3d.bevelBottomType, bW, bH, true, lightVector));
 	}
 
 	if (parts.length === 0) {
@@ -651,12 +747,17 @@ export function getBevelStyle(shape3d: Shape3dParams | undefined): BevelCss | un
  * Bevel preset → inset `box-shadow` string only (top + bottom combined). The
  * React-compatible counterpart to {@link getBevelStyle} that returns just the
  * shadow (no background gradient). Returns `undefined` when no bevel is present.
+ * See {@link getBevelStyle} for `lightRigDirection`.
  */
-export function get3DBevelShadow(shape3d: Shape3dParams | undefined): string | undefined {
+export function get3DBevelShadow(
+	shape3d: Shape3dParams | undefined,
+	lightRigDirection?: string,
+): string | undefined {
 	if (!shape3d) {
 		return undefined;
 	}
 
+	const lightVector = getBevelHighlightDirection(lightRigDirection);
 	const parts: string[] = [];
 
 	if (shape3d.bevelTopType && shape3d.bevelTopType !== 'none') {
@@ -666,7 +767,7 @@ export function get3DBevelShadow(shape3d: Shape3dParams | undefined): string | u
 		const bH = shape3d.bevelTopHeight
 			? Math.max(1, Math.round(shape3d.bevelTopHeight / EMU_PER_PX))
 			: 3;
-		parts.push(getBevelShadow(shape3d.bevelTopType, bW, bH, false));
+		parts.push(getBevelShadow(shape3d.bevelTopType, bW, bH, false, lightVector));
 	}
 
 	if (shape3d.bevelBottomType && shape3d.bevelBottomType !== 'none') {
@@ -676,7 +777,7 @@ export function get3DBevelShadow(shape3d: Shape3dParams | undefined): string | u
 		const bH = shape3d.bevelBottomHeight
 			? Math.max(1, Math.round(shape3d.bevelBottomHeight / EMU_PER_PX))
 			: 3;
-		parts.push(getBevelShadow(shape3d.bevelBottomType, bW, bH, true));
+		parts.push(getBevelShadow(shape3d.bevelBottomType, bW, bH, true, lightVector));
 	}
 
 	return parts.length > 0 ? parts.join(', ') : undefined;
@@ -707,27 +808,47 @@ export function get3DTransformStyle(
 		return {};
 	}
 
-	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
+	const {
+		perspective,
+		perspectiveOrigin,
+		matrix3d,
+		transformOrigin,
+		cameraFlatFace,
+		rotateX,
+		rotateY,
+		rotateZ,
+	} = getCameraTransform(scene3d);
 
 	const style: Record<string, string> = {};
 
 	if (perspective) {
 		style.perspective = perspective;
 	}
+	if (perspectiveOrigin) {
+		style.perspectiveOrigin = perspectiveOrigin;
+	}
+	if (transformOrigin) {
+		style.transformOrigin = transformOrigin;
+	}
 
-	const hasRotation = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
+	const hasRotation =
+		Boolean(matrix3d) || (!cameraFlatFace && (rotateX !== 0 || rotateY !== 0 || rotateZ !== 0));
 	const has3D = hasRotation || Boolean(perspective) || Boolean(shape3d);
 
 	if (hasRotation) {
 		const transforms: string[] = [];
-		if (rotateX !== 0) {
-			transforms.push(`rotateX(${rotateX}deg)`);
-		}
-		if (rotateY !== 0) {
-			transforms.push(`rotateY(${rotateY}deg)`);
-		}
-		if (rotateZ !== 0) {
-			transforms.push(`rotateZ(${rotateZ}deg)`);
+		if (matrix3d) {
+			transforms.push(matrix3d);
+		} else {
+			if (rotateX !== 0) {
+				transforms.push(`rotateX(${rotateX}deg)`);
+			}
+			if (rotateY !== 0) {
+				transforms.push(`rotateY(${rotateY}deg)`);
+			}
+			if (rotateZ !== 0) {
+				transforms.push(`rotateZ(${rotateZ}deg)`);
+			}
 		}
 		style.transform = transforms.join(' ');
 	}
@@ -748,6 +869,8 @@ export type MutableCss = {
 	transform?: string;
 	transformStyle?: string;
 	perspective?: string | number;
+	perspectiveOrigin?: string;
+	transformOrigin?: string;
 	willChange?: string;
 	boxShadow?: string;
 	background?: string;
@@ -767,35 +890,59 @@ export type MutableCss = {
  * extrusion side-face and contour colour when `extrusionClr`/`contourClr` are
  * omitted, matching PowerPoint; callers that have the resolved fill should pass
  * it for higher fidelity.
+ *
+ * `elementSize`, when passed, re-projects the camera's field of view onto the
+ * element's actual rendered size (see {@link getCameraTransform}).
  */
 export function apply3dEffects(
 	base: MutableCss,
 	scene3d: Scene3dParams | undefined,
 	shape3d: Shape3dParams | undefined,
 	fillColorFallback?: string,
+	elementSize?: ElementSizePx,
 ): void {
 	if (!scene3d && !shape3d) {
 		return;
 	}
 
-	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
+	const {
+		perspective,
+		perspectiveOrigin,
+		matrix3d,
+		transformOrigin,
+		cameraFlatFace,
+		rotateX,
+		rotateY,
+		rotateZ,
+	} = getCameraTransform(scene3d, elementSize);
 
 	if (perspective) {
 		base.perspective = perspective;
 	}
+	if (perspectiveOrigin) {
+		base.perspectiveOrigin = perspectiveOrigin;
+	}
+	if (transformOrigin) {
+		base.transformOrigin = transformOrigin;
+	}
 
-	const hasRotation = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
+	const hasRotation =
+		Boolean(matrix3d) || (!cameraFlatFace && (rotateX !== 0 || rotateY !== 0 || rotateZ !== 0));
 
 	if (hasRotation) {
 		const transforms: string[] = [];
-		if (rotateX !== 0) {
-			transforms.push(`rotateX(${rotateX}deg)`);
-		}
-		if (rotateY !== 0) {
-			transforms.push(`rotateY(${rotateY}deg)`);
-		}
-		if (rotateZ !== 0) {
-			transforms.push(`rotateZ(${rotateZ}deg)`);
+		if (matrix3d) {
+			transforms.push(matrix3d);
+		} else {
+			if (rotateX !== 0) {
+				transforms.push(`rotateX(${rotateX}deg)`);
+			}
+			if (rotateY !== 0) {
+				transforms.push(`rotateY(${rotateY}deg)`);
+			}
+			if (rotateZ !== 0) {
+				transforms.push(`rotateZ(${rotateZ}deg)`);
+			}
 		}
 		const rotation3d = transforms.join(' ');
 		// Compose with any existing transform (e.g. flip/rotation).
@@ -837,16 +984,13 @@ export function apply3dEffects(
 	}
 
 	// ── Bevel highlights/shadows ──
-	const bevelShadow = get3DBevelShadow(shape3d);
+	const bevelShadow = get3DBevelShadow(shape3d, scene3d?.lightRigDirection);
 	if (bevelShadow) {
 		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${bevelShadow}` : bevelShadow;
 	}
 
-	// ── Backdrop plane → ground-plane shadow ──
-	if (scene3d?.hasBackdrop) {
-		const backdropShadow = '0px 8px 24px -4px rgba(0,0,0,0.25)';
-		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${backdropShadow}` : backdropShadow;
-	}
+	// `a:backdrop` renders no synthetic shadow of its own; see the module doc
+	// comment above `getBevelStyle`'s declaration for the COM measurement.
 
 	// ── Material preset → CSS filter/opacity/gradient ──
 	if (shape3d?.presetMaterial) {
@@ -894,6 +1038,10 @@ export interface Computed3dStyle {
 	transform?: string;
 	transformStyle?: string;
 	perspective?: string;
+	/** COM-calibrated off-axis correction for a handful of camera presets; see `visual-3d-camera`. */
+	perspectiveOrigin?: string;
+	/** `'0 0'` when the camera transform is a COM-measured exact `matrix3d(...)`; see `visual-3d-camera`. */
+	transformOrigin?: string;
 	willChange?: string;
 	/** Stacked extrusion depth shadow — combine separately from `boxShadow`. */
 	extrusionBoxShadow?: string;
@@ -925,15 +1073,30 @@ export function getComputed3dStyle(el: PptxElement): Computed3dStyle | undefined
 	const result: Computed3dStyle = {};
 
 	// ── Camera / perspective / rotation ──
-	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
-	const transformCss = get3dTransformCss(scene3d, shape3d);
+	// The element's own rendered size re-projects the camera's field of view
+	// (see `getCameraTransform`) rather than falling back to the reference size
+	// the preset table was tuned at, so a large shape is not warped as
+	// aggressively, in absolute terms, as a small one under the same camera.
+	const elementSize: ElementSizePx = { width: el.width, height: el.height };
+	const { perspective, matrix3d, cameraFlatFace, rotateX, rotateY, rotateZ } = getCameraTransform(
+		scene3d,
+		elementSize,
+	);
+	const transformCss = get3dTransformCss(scene3d, shape3d, elementSize);
 	if (transformCss?.perspective) {
 		result.perspective = transformCss.perspective;
+	}
+	if (transformCss?.perspectiveOrigin) {
+		result.perspectiveOrigin = transformCss.perspectiveOrigin;
+	}
+	if (transformCss?.transformOrigin) {
+		result.transformOrigin = transformCss.transformOrigin;
 	}
 	if (transformCss?.transform) {
 		result.transform = transformCss.transform;
 	}
-	const hasRotation = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
+	const hasRotation =
+		Boolean(matrix3d) || (!cameraFlatFace && (rotateX !== 0 || rotateY !== 0 || rotateZ !== 0));
 	if (hasRotation || perspective || shape3d) {
 		result.willChange = 'transform';
 		result.transformStyle = 'preserve-3d';
@@ -950,21 +1113,20 @@ export function getComputed3dStyle(el: PptxElement): Computed3dStyle | undefined
 		result.extrusionBoxShadow = extrusion;
 	}
 
-	// ── Contour + bevel + backdrop shadows (folded into boxShadow) ──
+	// ── Contour + bevel shadows (folded into boxShadow) ──
+	// `a:backdrop` renders no synthetic shadow of its own; see the module doc
+	// comment above `getBevelStyle`'s declaration for the COM measurement.
 	const shadowParts: string[] = [];
 	const contour = getContourBoxShadow(shape3d, strokeColor ?? fillColor);
 	if (contour) {
 		shadowParts.push(contour);
 	}
-	const bevel = getBevelStyle(shape3d);
+	const bevel = getBevelStyle(shape3d, scene3d?.lightRigDirection);
 	if (bevel) {
 		shadowParts.push(bevel.boxShadow);
 		if (bevel.background) {
 			result.background = bevel.background;
 		}
-	}
-	if (scene3d?.hasBackdrop) {
-		shadowParts.push('0px 8px 24px -4px rgba(0,0,0,0.25)');
 	}
 
 	// ── Material preset ──

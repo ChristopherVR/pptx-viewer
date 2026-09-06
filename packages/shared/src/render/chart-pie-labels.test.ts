@@ -54,6 +54,29 @@ describe('buildPieDataLabels', () => {
 		expect(result.leaderLines).toHaveLength(0);
 	});
 
+	it('uses the default grey leader-line stroke when no leaderLineStyle is given', () => {
+		const result = buildPieDataLabels({ slices, values, ...geom, position: 'outEnd' });
+		expect(result.leaderLines[0].stroke).toBe('#94a3b8');
+	});
+
+	// Data-label leaderLineStyle, resolved from c:dLbls/c:leaderLines/c:spPr or
+	// its chart15-extension mirror (chart-data-label-parser.ts), confirmed
+	// against real corpus markup (issue-132-gradient-fill.pptx /
+	// issue-132-hr-deck.pptx: a themed grey `a:schemeClr tx1 lumMod/lumOff`
+	// resolved to a hex string by core before it reaches this renderer).
+	it('uses the authored leaderLineStyle stroke colour when given', () => {
+		const result = buildPieDataLabels({
+			slices,
+			values,
+			...geom,
+			position: 'outEnd',
+			leaderLineStyle: { strokeColor: '#a6a6a6' },
+		});
+		expect(result.leaderLines).toHaveLength(2);
+		expect(result.leaderLines[0].stroke).toBe('#a6a6a6');
+		expect(result.leaderLines[1].stroke).toBe('#a6a6a6');
+	});
+
 	it('skips slices with an undefined value', () => {
 		const result = buildPieDataLabels({ slices, values: [60], ...geom, position: 'ctr' });
 		expect(result.labels).toHaveLength(1);

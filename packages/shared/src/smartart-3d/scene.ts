@@ -19,6 +19,7 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+import type { TextStyleAnimationDescriptor } from '../render/animation-text-style-resolve';
 import type { SmartArt3DModel } from '../render/smartart-3d-types';
 import { buildMeshGroup } from './meshes';
 
@@ -32,6 +33,8 @@ export interface SmartArt3DViewOptions {
 	background?: string;
 	/** Device pixel-ratio cap. Default `2`. */
 	maxPixelRatio?: number;
+	/** Active font-style emphasis override (bold/italic/underline/size/colour) for every node's caption. */
+	textStyle?: TextStyleAnimationDescriptor;
 }
 
 /** Imperative handle to a mounted SmartArt 3D view. */
@@ -40,6 +43,8 @@ export interface SmartArt3DHandle {
 	resize: (width: number, height: number) => void;
 	/** Toggle interactive orbit controls at runtime. */
 	setInteractive: (on: boolean) => void;
+	/** Apply (or clear) a font-style emphasis override on every node's caption. */
+	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
 	/** Tear down the renderer, controls, and all GPU resources. */
 	dispose: () => void;
 }
@@ -143,7 +148,7 @@ export function mountSmartArt3D(
 	fill.position.set(cx - radius, cy - radius * 0.6, cz + dist * 0.6);
 	scene.add(fill);
 
-	const built = buildMeshGroup(model);
+	const built = buildMeshGroup(model, options.textStyle);
 	scene.add(built.group);
 
 	let controls: OrbitControls | null = null;
@@ -186,6 +191,9 @@ export function mountSmartArt3D(
 		},
 		setInteractive(on: boolean) {
 			enableControls(on);
+		},
+		setTextStyle(style: TextStyleAnimationDescriptor | undefined) {
+			built.setTextStyle(style);
 		},
 		dispose() {
 			disposed = true;

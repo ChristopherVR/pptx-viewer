@@ -361,6 +361,77 @@ describe('getComputedEffectStyle', () => {
 		expect(getComputedEffectStyle(shape({}))).toStrictEqual({});
 	});
 
+	it('returns an empty object for a group with no groupFill reflection', () => {
+		const group = {
+			type: 'group',
+			id: 'g1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 200,
+			children: [],
+		} as unknown as PptxElement;
+		expect(getComputedEffectStyle(group)).toStrictEqual({});
+	});
+
+	it('reads reflection from groupEffectStyle for a group (p:grpSpPr/a:effectLst has no dedicated shapeStyle)', () => {
+		const group = {
+			type: 'group',
+			id: 'g1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 200,
+			children: [],
+			groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 6 },
+		} as unknown as PptxElement;
+		const result = getComputedEffectStyle(group);
+		expect(result.reflection?.top).toBe('calc(100% + 6px)');
+	});
+
+	it('resolves shadow/glow/soft-edge from groupEffectStyle onto the group composite (as a filter, not a box-shadow)', () => {
+		const group = {
+			type: 'group',
+			id: 'g1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 200,
+			children: [],
+			groupEffectStyle: {
+				shadowColor: '#000000',
+				shadowAngle: 0,
+				shadowDistance: 4,
+				shadowBlur: 6,
+				shadowOpacity: 0.35,
+				glowColor: '#00ff00',
+				glowRadius: 10,
+				softEdgeRadius: 3,
+			},
+		} as unknown as PptxElement;
+		const result = getComputedEffectStyle(group);
+		// Groups composite their children into one raster, so shadow rides the
+		// same `filter: drop-shadow(...)` path as an image/text group, never
+		// `boxShadow` (which would shadow the bounding RECTANGLE instead).
+		expect(result.boxShadow).toBeUndefined();
+		expect(result.filter).toContain('drop-shadow');
+		expect(result.filter).toContain('url(#soft-edge-g1)');
+	});
+
+	it('sets overflowVisible for a group blur effect with @grow', () => {
+		const group = {
+			type: 'group',
+			id: 'g1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 200,
+			children: [],
+			groupEffectStyle: { blurRadius: 6, blurGrow: true },
+		} as unknown as PptxElement;
+		expect(getComputedEffectStyle(group).overflowVisible).toBeTruthy();
+	});
+
 	it('aggregates box-shadow, filter, reflection, opacity and blend', () => {
 		const result = getComputedEffectStyle(
 			shape({

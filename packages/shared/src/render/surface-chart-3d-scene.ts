@@ -1,26 +1,26 @@
 /**
  * Vanilla three.js 3D surface-chart scene controller (framework-agnostic).
  *
- * Mounts an interactive surface chart into a caller-provided container element:
- * dynamically imports `three` plus its `OrbitControls` addon, builds a colour-
- * displaced surface mesh (with optional wireframe), grid floor, lights, and an
- * isometric camera, renders with a RAF loop, and overlays axis labels as DOM
- * nodes that are re-projected to screen each frame. Raycasts pointer moves
- * against the mesh to set a native hover tooltip on the canvas element (see
- * {@link ./surface-chart-3d-hit-test.ts}), matching every other chart kind's
- * SVG-`<title>` hover tooltip. Exposes `dispose()` for deterministic teardown
- * of GPU resources, listeners, and overlay nodes.
+ * Mounts an interactive surface chart into a caller-provided container: a
+ * colour-displaced surface mesh (with optional wireframe), grid floor,
+ * lights, an isometric camera, a RAF loop, and DOM axis labels re-projected
+ * to screen each frame. Raycasts pointer moves against the mesh for a native
+ * hover tooltip (see {@link ./surface-chart-3d-hit-test.ts}) and clicks/drags
+ * for selection and value editing (see
+ * {@link ./surface-chart-3d-interaction-wiring.ts}).
  *
- * `three` is an OPTIONAL peer dependency: every import is dynamic and guarded.
- * When `three` (or its OrbitControls addon) is missing, {@link mountSurfaceChart3D}
- * resolves to a sentinel handle ({@link SURFACE_THREE_UNAVAILABLE}) so the caller
- * can fall back to the 2D renderer. No framework imports - React, Vue, and
- * Angular bindings can all mount it.
+ * `three` is an OPTIONAL peer dependency: every import is dynamic and
+ * guarded, resolving to {@link SURFACE_THREE_UNAVAILABLE} when unavailable so
+ * the caller falls back to the 2D renderer.
  */
 
 import type * as THREE from 'three';
-import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+import type { TextStyleAnimationDescriptor } from './animation-text-style-resolve';
+import { attachChart3DHoverTooltip } from './chart-3d-hover-tooltip';
+import { createChart3DLabelProjector } from './chart-3d-label-projection';
+import { loadChart3DOrbitControls, loadChart3DThree } from './chart-3d-three-loader';
+import type { ChartPartRef } from './chart-view-model';
 import {
 	buildSurfaceGeometry,
 	buildSurfaceLabels,
@@ -30,11 +30,15 @@ import {
 } from './surface-chart-3d-geom';
 import type { SurfaceCameraView3D } from './surface-chart-3d-geom';
 import { buildSurfaceHoverTooltip } from './surface-chart-3d-hit-test';
-import { createLabelOverlay } from './surface-chart-3d-label-overlay';
+import {
+	attachSurfaceChart3DInteraction,
+	createSurfaceHighlightMarker,
+} from './surface-chart-3d-interaction-wiring';
+import type { SurfaceChart3DInteraction } from './surface-chart-3d-interaction-wiring';
 import { buildSurfaceWallMeshes } from './surface-chart-3d-walls';
 import type { SurfaceWallColors } from './surface-chart-3d-walls';
 
-type ThreeModule = typeof THREE;
+export type { SurfaceChart3DInteraction };
 
 /** Inputs describing the surface to render and its container size. */
 export interface SurfaceChart3DSceneOptions {
@@ -64,6 +68,8 @@ export interface SurfaceChart3DSceneOptions {
 	values?: Float32Array;
 	/** Per-series number-format codes, aligned to `seriesNames`. */
 	numberFormats?: ReadonlyArray<string | undefined>;
+	/** Active font-style emphasis override (bold/italic/underline/size/colour) for the axis labels. */
+	textStyle?: TextStyleAnimationDescriptor;
 }
 
 /** `c:floor`/`c:sideWall`/`c:backWall` fill colours a scene can paint. */
@@ -75,6 +81,10 @@ export interface SurfaceChart3DHandle {
 	readonly ok: boolean;
 	/** Resize the renderer + camera + overlay to new CSS-pixel dimensions. */
 	resize: (width: number, height: number) => void;
+	/** Apply (or clear) the selected-vertex highlight marker, e.g. when selection changes via the inspector rather than a click on this scene. */
+	setSelectedPart: (part: ChartPartRef | null) => void;
+	/** Apply (or clear) a font-style emphasis override on the axis labels. */
+	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
 	/** Tear down the renderer, controls, geometries, listeners, and overlays. */
 	dispose: () => void;
 }
@@ -83,31 +93,12 @@ export interface SurfaceChart3DHandle {
 export const SURFACE_THREE_UNAVAILABLE: SurfaceChart3DHandle = {
 	ok: false,
 	resize: () => {},
+	setSelectedPart: () => {},
+	setTextStyle: () => {},
 	dispose: () => {},
 };
 
 const FOV = 45;
-
-/** Dynamically load `three`; returns `null` when the package is not installed. */
-async function loadThree(): Promise<ThreeModule | null> {
-	try {
-		return (await import('three')) as ThreeModule;
-	} catch {
-		return null;
-	}
-}
-
-/** Dynamically load the OrbitControls addon; returns `null` when unavailable. */
-async function loadOrbitControlsCtor(): Promise<
-	(new (camera: THREE.Camera, dom: HTMLElement) => OrbitControls) | null
-> {
-	try {
-		const mod = await import('three/examples/jsm/controls/OrbitControls.js');
-		return mod.OrbitControls;
-	} catch {
-		return null;
-	}
-}
 
 /**
  * Mount an interactive 3D surface chart into `container` and start rendering.
@@ -118,9 +109,10 @@ async function loadOrbitControlsCtor(): Promise<
 export async function mountSurfaceChart3D(
 	container: HTMLElement,
 	options: SurfaceChart3DSceneOptions,
+	interaction?: SurfaceChart3DInteraction,
 ): Promise<SurfaceChart3DHandle> {
-	const three = await loadThree();
-	const OrbitCtrlCtor = three ? await loadOrbitControlsCtor() : null;
+	const three = await loadChart3DThree();
+	const OrbitCtrlCtor = three ? await loadChart3DOrbitControls() : null;
 	if (!three || !OrbitCtrlCtor) {
 		return SURFACE_THREE_UNAVAILABLE;
 	}
@@ -166,7 +158,6 @@ export async function mountSurfaceChart3D(
 	gridFloor.position.y = -0.02;
 	scene.add(gridFloor);
 
-	// Authored c:floor / c:sideWall / c:backWall backdrop panels.
 	const walls = options.surfaceColors
 		? buildSurfaceWallMeshes(three, cols, rows, MAX_HEIGHT, options.surfaceColors)
 		: null;
@@ -174,14 +165,8 @@ export async function mountSurfaceChart3D(
 		scene.add(mesh);
 	}
 
-	// Surface mesh + optional wireframe.
-	const { geometry, wireGeometry } = buildSurfaceGeometry(
-		three,
-		cols,
-		rows,
-		options.heightMap,
-		options.colorMap,
-	);
+	const { heightMap, colorMap } = options;
+	const { geometry, wireGeometry } = buildSurfaceGeometry(three, cols, rows, heightMap, colorMap);
 	const surfaceMaterial = new three.MeshPhongMaterial({
 		vertexColors: true,
 		side: three.DoubleSide,
@@ -191,6 +176,11 @@ export async function mountSurfaceChart3D(
 	});
 	const surfaceMesh = new three.Mesh(geometry, surfaceMaterial);
 	scene.add(surfaceMesh);
+
+	// Selected-vertex highlight: see `surface-chart-3d-interaction-wiring.ts`'s
+	// module doc for why this is a marker mesh rather than a material tint.
+	const highlightMarker = createSurfaceHighlightMarker(three, cols, rows, heightMap);
+	scene.add(highlightMarker.mesh);
 
 	let wireMaterial: THREE.LineBasicMaterial | null = null;
 	if (options.wireframe) {
@@ -202,49 +192,23 @@ export async function mountSurfaceChart3D(
 		scene.add(new three.LineSegments(wireGeometry, wireMaterial));
 	}
 
-	// Raycast-based hover tooltip: the mesh is a WebGL surface, not SVG marks, so
-	// there is no `<title>` element to attach a native tooltip to directly. The
-	// canvas element itself is a real DOM node though, so its own `title`
-	// attribute gets the same native browser tooltip every other chart kind's
-	// SVG mark uses, just re-targeted to whichever facet the pointer currently
-	// sits over. See `surface-chart-3d-hit-test.ts` for the raycast-to-cell math.
-	const raycaster = new three.Raycaster();
-	const pointerNdc = new three.Vector2();
-	let hoveredTooltip: string | undefined;
-
-	const updateHoverTooltip = (clientX: number, clientY: number): void => {
-		const rect = canvas.getBoundingClientRect();
-		if (rect.width <= 0 || rect.height <= 0) {
-			return;
-		}
-		pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-		pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-		raycaster.setFromCamera(pointerNdc, camera);
-		const hits = raycaster.intersectObject(surfaceMesh, false);
-		const tooltip = buildSurfaceHoverTooltip(hits[0]?.faceIndex, {
-			cols,
-			rows,
-			categoryLabels: options.categoryLabels,
-			seriesNames: options.seriesNames,
-			values: options.values,
-			numberFormats: options.numberFormats,
-		});
-		if (tooltip !== hoveredTooltip) {
-			hoveredTooltip = tooltip;
-			canvas.title = tooltip ?? '';
-		}
-	};
-	const onPointerMove = (event: PointerEvent): void => {
-		updateHoverTooltip(event.clientX, event.clientY);
-	};
-	const onPointerLeave = (): void => {
-		if (hoveredTooltip !== undefined) {
-			hoveredTooltip = undefined;
-			canvas.title = '';
-		}
-	};
-	canvas.addEventListener('pointermove', onPointerMove);
-	canvas.addEventListener('pointerleave', onPointerLeave);
+	// Raycast-based hover tooltip against the single surface mesh (see
+	// `surface-chart-3d-hit-test.ts` for the raycast-to-cell math).
+	const hoverTooltip = attachChart3DHoverTooltip({
+		three,
+		canvas,
+		camera,
+		meshes: [surfaceMesh],
+		buildTooltip: (intersection) =>
+			buildSurfaceHoverTooltip(intersection?.faceIndex, {
+				cols,
+				rows,
+				categoryLabels: options.categoryLabels,
+				seriesNames: options.seriesNames,
+				values: options.values,
+				numberFormats: options.numberFormats,
+			}),
+	});
 
 	const controls = new OrbitCtrlCtor(camera, canvas);
 	controls.enablePan = true;
@@ -256,28 +220,29 @@ export async function mountSurfaceChart3D(
 	controls.target.copy(target);
 	controls.update();
 
+	// Click-to-select + drag-to-value (see surface-chart-3d-interaction-wiring.ts).
+	const pointerInteraction = attachSurfaceChart3DInteraction({
+		three,
+		canvas,
+		camera,
+		controls,
+		width,
+		height,
+		surfaceMesh,
+		cols,
+		rows,
+		heightMap,
+		values: options.values,
+		highlightMarker,
+		interaction,
+	});
+
 	// Axis-label DOM overlay, re-projected to screen each frame.
 	const doc = container.ownerDocument ?? document;
 	const labels = buildSurfaceLabels(cols, rows, options.categoryLabels, options.seriesNames);
-	const { layer, nodes } = createLabelOverlay(doc, labels);
-	container.appendChild(layer);
-	const anchors = labels.map((l) => new three.Vector3(...l.anchor));
-	const projected = new three.Vector3();
-
-	const updateLabels = (): void => {
-		for (let i = 0; i < nodes.length; i++) {
-			projected.copy(anchors[i]).project(camera);
-			const node = nodes[i];
-			// Hide labels behind the camera.
-			if (projected.z > 1) {
-				node.style.display = 'none';
-				continue;
-			}
-			node.style.display = '';
-			node.style.left = `${((projected.x + 1) / 2) * width}px`;
-			node.style.top = `${((-projected.y + 1) / 2) * height}px`;
-		}
-	};
+	const labelProjector = createChart3DLabelProjector(three, doc, labels);
+	labelProjector.applyTextStyle(options.textStyle);
+	container.appendChild(labelProjector.layer);
 
 	let frame = 0;
 	let disposed = false;
@@ -288,7 +253,7 @@ export async function mountSurfaceChart3D(
 		frame = requestAnimationFrame(renderLoop);
 		controls.update();
 		renderer.render(scene, camera);
-		updateLabels();
+		labelProjector.update(camera, width, height);
 	};
 	frame = requestAnimationFrame(renderLoop);
 
@@ -302,6 +267,13 @@ export async function mountSurfaceChart3D(
 			renderer.setSize(width, height, false);
 			canvas.style.width = `${width}px`;
 			canvas.style.height = `${height}px`;
+			pointerInteraction.updateSize(width, height);
+		},
+		setSelectedPart(part: ChartPartRef | null) {
+			pointerInteraction.setSelectedPart(part);
+		},
+		setTextStyle(style: TextStyleAnimationDescriptor | undefined) {
+			labelProjector.applyTextStyle(style);
 		},
 		dispose() {
 			if (disposed) {
@@ -309,19 +281,20 @@ export async function mountSurfaceChart3D(
 			}
 			disposed = true;
 			cancelAnimationFrame(frame);
-			canvas.removeEventListener('pointermove', onPointerMove);
-			canvas.removeEventListener('pointerleave', onPointerLeave);
+			hoverTooltip.dispose();
+			pointerInteraction.dispose();
 			controls.dispose();
 			geometry.dispose();
 			wireGeometry.dispose();
 			surfaceMaterial.dispose();
 			wireMaterial?.dispose();
+			highlightMarker.dispose();
 			gridFloor.dispose();
 			walls?.dispose();
 			scene.clear();
 			renderer.dispose();
 			canvas.remove();
-			layer.remove();
+			labelProjector.layer.remove();
 		},
 	};
 }

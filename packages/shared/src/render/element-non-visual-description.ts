@@ -16,6 +16,7 @@
  */
 
 import type { PptxElement } from 'pptx-viewer-core';
+import { isImageLikeElement } from 'pptx-viewer-core';
 
 /** Element kinds whose core type models `altText` (`p:cNvPr/@descr`). */
 const ALT_TEXT_ELEMENT_TYPES: ReadonlySet<PptxElement['type']> = new Set<PptxElement['type']>([
@@ -95,4 +96,31 @@ export function getNonVisualDescriptionFields(element: PptxElement): NonVisualDe
 		altText: showAltText ? readStringField(element, 'altText') : '',
 		title: showTitle ? readStringField(element, 'title') : '',
 	};
+}
+
+/**
+ * Whether a binding's inspector should render its dedicated Accessibility
+ * section (the alt-text + title editor next to `AccessibilityTextSection` /
+ * `AccessibilityPanel.vue` / `AccessibilityTextPanelComponent` /
+ * `AltTextSection.svelte` / vanilla's `createAccessibilitySection`) for
+ * `element`.
+ *
+ * A picture/image is deliberately excluded even though it models `altText`
+ * ({@link supportsAltTextField}): its own field already lives in each
+ * binding's Image section, so showing it again here would duplicate that
+ * UI. Every other kind that models `altText` or `title` (shape, text box,
+ * connector, and every graphic-frame kind: table, chart, smartArt, media,
+ * ole) shows the section.
+ *
+ * Before this existed, five bindings each hard-coded their own
+ * `type === 'text' || type === 'shape' || type === 'connector'` gate,
+ * silently missing table/chart/smartArt/media/ole even though the model and
+ * `getNonVisualDescriptionFields` already supported them.
+ */
+export function shouldShowAccessibilitySection(element: PptxElement): boolean {
+	if (isImageLikeElement(element)) {
+		return false;
+	}
+	const fields = getNonVisualDescriptionFields(element);
+	return fields.showAltText || fields.showTitle;
 }

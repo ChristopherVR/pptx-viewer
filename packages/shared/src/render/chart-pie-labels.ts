@@ -14,7 +14,11 @@
  *
  * @module chart-pie-labels
  */
-import type { PptxChartDataLabelPosition, PptxChartManualLayout } from 'pptx-viewer-core';
+import type {
+	PptxChartDataLabelPosition,
+	PptxChartManualLayout,
+	PptxChartShapeProps,
+} from 'pptx-viewer-core';
 
 import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { ChartAnchorPoint, ChartFrameSize } from './chart-manual-layout';
@@ -45,6 +49,15 @@ export interface PieLabelParams {
 	position?: PptxChartDataLabelPosition;
 	/** `c:showLeaderLines`. Defaults to on for outside labels. */
 	showLeaderLines?: boolean;
+	/**
+	 * Leader-line stroke styling (`PptxChartDataLabelOptions.leaderLineStyle`,
+	 * resolved from the base `c:leaderLines/c:spPr` or its chart15-extension
+	 * mirror, `c:extLst/c:ext/c15:leaderLines/c:spPr`). Only the stroke colour
+	 * is honoured here; omit to keep this module's own default leader-line
+	 * colour (`#94a3b8`), which is what every chart rendered before this
+	 * extension was modelled.
+	 */
+	leaderLineStyle?: PptxChartShapeProps;
 	/** Series `c:numFmt` / cache format code applied to each label value. */
 	numberFormat?: string;
 	/**
@@ -128,8 +141,18 @@ function applyManualDrag(
  * leader line from the rim point to the label anchor.
  */
 export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
-	const { slices, values, cx, cy, outerR, position, showLeaderLines, numberFormat, labelText } =
-		params;
+	const {
+		slices,
+		values,
+		cx,
+		cy,
+		outerR,
+		position,
+		showLeaderLines,
+		numberFormat,
+		labelText,
+		leaderLineStyle,
+	} = params;
 	const outside = isOutsidePosition(position);
 	const labels: SvgText[] = [];
 	const leaderLines: SvgLine[] = [];
@@ -189,7 +212,7 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 				y1: rimY,
 				x2: labelX,
 				y2: labelY,
-				stroke: '#94a3b8',
+				stroke: leaderLineStyle?.strokeColor ?? '#94a3b8',
 				strokeWidth: 0.75,
 			});
 		}

@@ -11,7 +11,7 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import { resolveTitleColorForShading, shadeGradientTowardTitle } from './background-shade-to-title';
+import { resolveShadeToTitleBackgroundImage } from './background-shade-to-title';
 import type { CssStyleMap } from './element-style-transform';
 import { getPatternSvg } from './fill-style';
 
@@ -19,11 +19,25 @@ import { getPatternSvg } from './fill-style';
 export const DEFAULT_SLIDE_BACKGROUND = '#ffffff';
 
 /**
+ * The slide's own pixel size, needed only to anchor a `shadeToTitle`
+ * gradient on the title placeholder's bounds (see
+ * `background-shade-to-title.ts`). Optional: a caller that omits it still
+ * gets the plain authored gradient, matching this project's prior behaviour.
+ */
+export interface SlideBackgroundSize {
+	widthPx: number;
+	heightPx: number;
+}
+
+/**
  * Build the background portion of the slide stage style from a slide's
  * resolved background fields. Returns only `background-*` properties so the
  * caller can spread it into the rest of the stage style.
  */
-export function getSlideBackgroundStyle(slide: PptxSlide | undefined): CssStyleMap {
+export function getSlideBackgroundStyle(
+	slide: PptxSlide | undefined,
+	slideSize?: SlideBackgroundSize,
+): CssStyleMap {
 	const style: CssStyleMap = {};
 
 	// Base solid colour. For pattern fills the parser leaves `backgroundColor`
@@ -43,13 +57,20 @@ export function getSlideBackgroundStyle(slide: PptxSlide | undefined): CssStyleM
 		style['background-size'] = '100% 100%';
 		style['background-repeat'] = 'no-repeat';
 	} else if (slide?.backgroundGradient) {
-		// Legacy PowerPoint 97-2003 `<p:bgPr shadeToTitle="1">` hint: shade the
-		// gradient's far stop toward the title placeholder's text colour. See
-		// `background-shade-to-title.ts` for the approximation this makes.
-		style['background-image'] = slide.backgroundShadeToTitle
-			? (shadeGradientTowardTitle(slide.backgroundGradient, resolveTitleColorForShading(slide)) ??
-				slide.backgroundGradient)
-			: slide.backgroundGradient;
+		// `slide.backgroundShadeToTitle` (legacy PowerPoint 97-2003
+		// `<p:bgPr shadeToTitle="1">`) anchors the gradient on the slide's title
+		// placeholder as a rectangular path gradient, COM-measured pixel-accurate
+		// against real PowerPoint; see `background-shade-to-title.ts`. Falls back
+		// to the plain authored gradient when the slide has no title placeholder
+		// shape of its own, or when the caller has not supplied `slideSize`.
+		const anchored = slide.backgroundShadeToTitle
+			? resolveShadeToTitleBackgroundImage(slide, slideSize?.widthPx, slideSize?.heightPx)
+			: undefined;
+		style['background-image'] = anchored ?? slide.backgroundGradient;
+		if (anchored) {
+			style['background-size'] = '100% 100%';
+			style['background-repeat'] = 'no-repeat';
+		}
 	} else if (pattern) {
 		const svg = getPatternSvg(
 			pattern.preset,

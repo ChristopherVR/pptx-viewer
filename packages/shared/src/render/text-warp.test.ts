@@ -37,10 +37,24 @@ describe('classifyTextWarp', () => {
 		expect(classifyTextWarp('textCanUp')).toBe('envelope');
 	});
 
-	it('classifies simple presets', () => {
-		expect(classifyTextWarp('textSlantUp')).toBe('simple');
-		expect(classifyTextWarp('textFadeRight')).toBe('simple');
-		expect(classifyTextWarp('textCascadeUp')).toBe('simple');
+	it('classifies the former "simple" family (slant/fade/cascade) as path', () => {
+		// These moved out of the CSS-transform-approximated `simple` family once
+		// their generators became single-line-safe: they now render as true SVG
+		// textPath, the same mechanism as arch/wave/circle.
+		expect(classifyTextWarp('textSlantUp')).toBe('path');
+		expect(classifyTextWarp('textSlantDown')).toBe('path');
+		expect(classifyTextWarp('textFadeUp')).toBe('path');
+		expect(classifyTextWarp('textFadeDown')).toBe('path');
+		expect(classifyTextWarp('textFadeLeft')).toBe('path');
+		expect(classifyTextWarp('textFadeRight')).toBe('path');
+		expect(classifyTextWarp('textCascadeUp')).toBe('path');
+		expect(classifyTextWarp('textCascadeDown')).toBe('path');
+	});
+
+	it('never classifies a preset as "simple" any more', () => {
+		for (const preset of ALL_CLASSIFIED_PRESETS) {
+			expect(classifyTextWarp(preset)).not.toBe('simple');
+		}
 	});
 
 	it('returns "none" for unknown presets', () => {
@@ -149,6 +163,42 @@ describe('wARP_PATH_GENERATORS', () => {
 		const match = path.match(/M 0,(?<y0>\d+\.?\d*)\s+L\s+\d+\.?\d*,(?<y1>\d+\.?\d*)/u);
 		expect(match).not.toBeNull();
 		expect(parseFloat(match!.groups!.y0)).toBeGreaterThan(parseFloat(match!.groups!.y1));
+	});
+
+	/**
+	 * A single-paragraph WordArt element always renders its one line at
+	 * `t = 0.5` (see `buildWarpPath`). Several generators used a `t`-only
+	 * modulation (`1 - 2*t`, `2*t - 1`, `sin(t*2*PI)`) that is exactly zero at
+	 * `t = 0.5`, so the *overwhelmingly common* single-line WordArt case
+	 * rendered these presets as a perfectly flat baseline: no visible warp at
+	 * all, worse than even the CSS-transform approximation it replaced.
+	 * Regression-pins non-degeneracy at the default adjustment for every
+	 * preset known to have had this bug.
+	 */
+	it('does not degenerate to a flat baseline at t=0.5 (single-line WordArt)', () => {
+		const singleLineDegenerate = [
+			'textInflate',
+			'textDeflate',
+			'textDeflateInflateDeflate',
+			'textFadeRight',
+			'textFadeLeft',
+			'textButton',
+			'textButtonPour',
+		] as const;
+		for (const preset of singleLineDegenerate) {
+			const path = WARP_PATH_GENERATORS[preset](200, 100, 0.5);
+			// A degenerate path is a straight horizontal/diagonal line whose
+			// control/end points equal its start point's y (curves) or whose two
+			// endpoints share the same y (lines). Assert the path is NOT the
+			// straight `M 0,y L w,y` shape by checking it has curve commands or
+			// differing y-coordinates.
+			const yValues = [...path.matchAll(/-?\d+\.?\d*/gu)].map(Number);
+			const distinctY = new Set(yValues.filter((_, i) => i % 2 === 1));
+			expect(
+				distinctY.size,
+				`${preset} produced a flat single-line baseline: ${path}`,
+			).toBeGreaterThan(1);
+		}
 	});
 });
 
@@ -268,21 +318,24 @@ describe('getWarpCssTransform', () => {
 		);
 	});
 
-	it('dispatches simple presets to the simple generator', () => {
-		expect(getWarpCssTransform('textSlantUp')).toStrictEqual(getSimpleCssTransform('textSlantUp'));
+	it('never dispatches to the simple generator (no preset classifies as "simple" any more)', () => {
+		// textSlantUp moved from `simple` to `path` once its generator became
+		// single-line-safe (see text-warp.ts); it now renders as true SVG
+		// textPath, so the CSS-transform dispatcher must no longer touch it.
+		expect(getWarpCssTransform('textSlantUp')).toBeUndefined();
+		expect(getSimpleCssTransform('textSlantUp')).toBeDefined(); // the generator itself still exists
 	});
 
-	it('passes adjustments through', () => {
+	it('passes adjustments through for the envelope family', () => {
 		expect(getWarpCssTransform('textInflate', 37500)).toStrictEqual(
 			getEnvelopeCssTransform('textInflate', 37500),
-		);
-		expect(getWarpCssTransform('textSlantUp', 110000)).toStrictEqual(
-			getSimpleCssTransform('textSlantUp', 110000),
 		);
 	});
 
 	it('returns undefined for path / none presets', () => {
 		expect(getWarpCssTransform('textArchUp')).toBeUndefined();
+		expect(getWarpCssTransform('textSlantUp')).toBeUndefined();
+		expect(getWarpCssTransform('textFadeRight')).toBeUndefined();
 		expect(getWarpCssTransform('textPlain')).toBeUndefined();
 		expect(getWarpCssTransform(undefined)).toBeUndefined();
 	});
@@ -324,6 +377,37 @@ describe('groupIntoParagraphs', () => {
 		});
 		expect(result).toHaveLength(1);
 		expect(result[0].segments.map((s) => s.text)).toStrictEqual(['a']);
+	});
+
+	it('splits on a bare "\\n" separator with no isParagraphBreak flag (the slide-load path)', () => {
+		// `PptxHandlerRuntimeShapeParagraphContentParsing` tags the terminator
+		// between two `<a:p>` paragraphs as a plain `text: '\n'` segment with NO
+		// `isParagraphBreak` flag on initial load (only a post-edit remap adds
+		// that flag) - a caller that checked `isParagraphBreak` alone silently
+		// merged both paragraphs into one, and the literal "\n" character was
+		// then measured and rendered as its own WordArt glyph.
+		const result = groupIntoParagraphs({
+			textSegments: [
+				{ text: 'Top', style: {} },
+				{ text: '\n', style: {} },
+				{ text: 'Bottom', style: {} },
+			],
+		});
+		expect(result).toHaveLength(2);
+		expect(result[0].segments.map((s) => s.text)).toStrictEqual(['Top']);
+		expect(result[1].segments.map((s) => s.text)).toStrictEqual(['Bottom']);
+	});
+
+	it('keeps a soft line-break ("\\n" with isLineBreak) inside its own paragraph', () => {
+		const result = groupIntoParagraphs({
+			textSegments: [
+				{ text: 'a', style: {} },
+				{ text: '\n', style: {}, isLineBreak: true },
+				{ text: 'b', style: {} },
+			],
+		});
+		expect(result).toHaveLength(1);
+		expect(result[0].segments.map((s) => s.text)).toStrictEqual(['a', '\n', 'b']);
 	});
 
 	it('applies the optional per-segment transform to non-break segments', () => {

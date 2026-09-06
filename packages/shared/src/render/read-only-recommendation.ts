@@ -5,29 +5,47 @@
  * Core parses two independent signals a `.pptx` can carry for this:
  * - `p:modifyVerifier` in `presentation.xml`: a password hash written by
  *   PowerPoint's "Protect Presentation > Restrict Editing" / the legacy
- *   "Set Password to Modify" flow. Its presence means editing requires a
- *   password this viewer never asks for, so the deck should default to
- *   read-only.
+ *   "Set Password to Modify" flow. When it carries a hash this viewer can
+ *   verify (see `checkModifyPassword`), lifting the lock requires that
+ *   password, matching PowerPoint's own "read-only recommended" prompt; when
+ *   it does not (an older/unsupported algorithm, or a bare recommendation
+ *   with no hash) the deck still defaults to read-only but "Edit anyway"
+ *   works without a password, since there is nothing to check it against.
  * - `docProps/custom.xml`'s well-known `_MarkAsFinal` custom property, which
  *   PowerPoint's "Mark as Final" writes. Unlike `modifyVerifier` this is not
  *   modelled as its own field (no reader-facing feature besides this one has
  *   needed it), so it is read out of the already-parsed `customProperties`
- *   list here rather than adding a core field for a single boolean.
+ *   list here rather than adding a core field for a single boolean. It never
+ *   requires a password: PowerPoint's own "Edit Anyway" for it is unconditional.
  *
  * Both are recommendations, not enforcement: neither core nor this module
  * blocks a save, they only tell a binding what state to default a "read-only"
  * toggle to and what banner to show. Every binding surfaces it as the
- * read-only banner (editing stays locked until "Edit anyway"); before that a
+ * read-only banner (editing stays locked until "Edit anyway", or until the
+ * right password is entered when `requiresPassword` is set); before that a
  * deck opened this way was silently editable.
  *
- * Framework-agnostic: no React, Vue, Angular, Svelte or DOM imports.
+ * Framework-agnostic: no React, Vue, Angular, Svelte or DOM imports (it does
+ * import a small, dependency-free algorithm-name resolver from
+ * `pptx-viewer-core`, the same way `modify-password-check.ts` does).
  */
+import { resolveModifyVerifierAlgorithmName } from 'pptx-viewer-core';
 
 /** The `PptxData` fields this decision reads. Declared structurally. */
 export interface ReadOnlyRecommendationSource {
 	readonly modifyVerifier?: {
 		readonly hashData?: string;
+		readonly saltData?: string;
 		readonly algorithmName?: string;
+		/** Legacy algorithm ID extension; an alternate name-carrying attribute. */
+		readonly algIdExt?: string;
+		/**
+		 * Legacy CryptoAPI ALG_SID hash identifier. PowerPoint's own "Set
+		 * Password to Modify" writes ONLY this (no `algorithmName`), so it must
+		 * be checked to recognise a real PowerPoint-authored verifier as
+		 * checkable; see `resolveModifyVerifierAlgorithmName` (`pptx-viewer-core`).
+		 */
+		readonly cryptAlgorithmSid?: number;
 	};
 	readonly customProperties?: ReadonlyArray<{
 		readonly name: string;
@@ -44,12 +62,23 @@ export interface ReadOnlyRecommendation {
 	readonly messageKey: string;
 	/** Whether a binding's "read-only" toggle should default to on. */
 	readonly defaultReadOnly: boolean;
+	/**
+	 * Whether lifting this recommendation requires a correct password, rather
+	 * than a plain "Edit anyway". True only for a `modifyVerifier` that carries
+	 * a hash this viewer can actually check (`hashData` + `saltData` +
+	 * `algorithmName`, see `checkModifyPassword`). "Mark as Final" is purely
+	 * advisory and never requires one, and a `modifyVerifier` missing pieces of
+	 * its hash cannot be verified either way, so both fall back to the plain
+	 * "Edit anyway" a binding already had.
+	 */
+	readonly requiresPassword: boolean;
 }
 
 const NOT_RECOMMENDED: ReadOnlyRecommendation = {
 	kind: null,
 	messageKey: '',
 	defaultReadOnly: false,
+	requiresPassword: false,
 };
 
 /** `docProps/custom.xml`'s well-known "Mark as Final" property name. */
@@ -89,11 +118,20 @@ export function readOnlyRecommendation(
 	if (!data) {
 		return NOT_RECOMMENDED;
 	}
-	if (data.modifyVerifier && (data.modifyVerifier.hashData || data.modifyVerifier.algorithmName)) {
+	const verifier = data.modifyVerifier;
+	if (verifier && (verifier.hashData || verifier.algorithmName)) {
 		return {
 			kind: 'modifyVerifier',
 			messageKey: 'pptx.readOnly.modifyVerifierRecommended',
 			defaultReadOnly: true,
+			// A hash this viewer can actually check requires the password before
+			// "Edit anyway" can lift the lock; anything less (no salt, or an
+			// algorithm this resolver does not recognise) cannot be verified, so
+			// it falls back to the plain "Edit anyway" every other recommendation
+			// already has.
+			requiresPassword: Boolean(
+				verifier.hashData && verifier.saltData && resolveModifyVerifierAlgorithmName(verifier),
+			),
 		};
 	}
 	if (isMarkedAsFinal(data.customProperties)) {
@@ -101,6 +139,7 @@ export function readOnlyRecommendation(
 			kind: 'markedFinal',
 			messageKey: 'pptx.readOnly.markedFinal',
 			defaultReadOnly: true,
+			requiresPassword: false,
 		};
 	}
 	return NOT_RECOMMENDED;

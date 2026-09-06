@@ -12,11 +12,13 @@
  * @module render/visual-3d-extrusion
  */
 
-import { getCameraTransform } from './visual-3d-camera';
+import { getCameraTransform, getDefaultPerspectivePx } from './visual-3d-camera';
 import type { Scene3dParams } from './visual-3d-camera';
 import { darkenColor } from './visual-3d-color';
 import { EMU_PER_PX } from './visual-3d-constants';
+import { buildExtrusionPanels } from './visual-3d-extrusion-panels';
 import { getMaterialGradientOverlay } from './visual-3d-materials';
+import { resolveExtrusionPanelVisibility } from './visual-3d-panel-sides';
 
 /**
  * Maximum cap on rendered extrusion depth (in px) for side-panel 3D mode.
@@ -104,7 +106,25 @@ export function build3DExtrusionData(
 		return empty;
 	}
 
-	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
+	const {
+		perspective,
+		perspectiveOrigin,
+		matrix3d,
+		transformOrigin,
+		cameraFlatFace,
+		rotateX,
+		rotateY,
+		rotateZ,
+		panelSides,
+	} = getCameraTransform(scene3d, {
+		width: elementWidth,
+		height: elementHeight,
+	});
+	// A COM-measured homography (an exact `matrix3d`, or a flat/identity
+	// result) resolved this camera; either way the legacy rotateX/rotateY
+	// approximation and a centred `perspective` must NOT also be applied to
+	// the front face/wrapper (see `visual-3d-camera`'s `cameraFlatFace` doc).
+	const homographyResolved = Boolean(matrix3d) || Boolean(cameraFlatFace);
 
 	// Use extrusion colour or darken the fill colour for side faces
 	const extColor = shape3d.extrusionColor || fillColor || '#888888';
@@ -117,25 +137,51 @@ export function build3DExtrusionData(
 	// Half-depth offset: front face is pushed forward by half the depth
 	const halfDepth = clampedDepth / 2;
 
-	// Wrapper style: establishes the 3D perspective context
+	// Wrapper style: establishes the 3D perspective context.
 	const wrapperStyle: Extrusion3dCss = {
 		position: 'absolute',
 		inset: 0,
 		transformStyle: 'preserve-3d',
-		perspective: perspective || '800px',
 		pointerEvents: 'none',
 	};
+	if (homographyResolved) {
+		// A COM-measured homography bakes in its own projective divide (or is a
+		// measured no-op, see `visual-3d-camera-homography`); a generic
+		// `perspective` distance here would compound a second, unrelated
+		// projection on top of it. `transform-origin` must match the front
+		// face's (0 0), or the panels (sharing the same transform) pivot
+		// around the wrong point.
+		wrapperStyle.transformOrigin = transformOrigin ?? '0 0';
+	} else {
+		// No scene3d at all: fall back to the generic default distance
+		// re-projected onto this element's own size rather than a flat px
+		// constant, and keep perspective-origin in sync with the front face's
+		// off-axis correction so the side panels share its vanishing point.
+		wrapperStyle.perspective =
+			perspective ??
+			`${Math.round(getDefaultPerspectivePx({ width: elementWidth, height: elementHeight }))}px`;
+		if (perspectiveOrigin) {
+			wrapperStyle.perspectiveOrigin = perspectiveOrigin;
+		}
+	}
 
-	// Front face: translate forward in Z to sit at the front of the extrusion
+	// Front face: translate forward in Z to sit at the front of the extrusion.
+	// `translateZ` composes correctly AFTER a homography `matrix3d` (its z
+	// row/column is the identity, see `homographyToMatrix3d`): z passes
+	// through untouched while x/y project exactly as the flat case.
 	const frontFaceTransforms: string[] = [`translateZ(${halfDepth}px)`];
-	if (rotateX !== 0) {
-		frontFaceTransforms.unshift(`rotateX(${rotateX}deg)`);
-	}
-	if (rotateY !== 0) {
-		frontFaceTransforms.unshift(`rotateY(${rotateY}deg)`);
-	}
-	if (rotateZ !== 0) {
-		frontFaceTransforms.unshift(`rotateZ(${rotateZ}deg)`);
+	if (matrix3d) {
+		frontFaceTransforms.unshift(matrix3d);
+	} else if (!cameraFlatFace) {
+		if (rotateX !== 0) {
+			frontFaceTransforms.unshift(`rotateX(${rotateX}deg)`);
+		}
+		if (rotateY !== 0) {
+			frontFaceTransforms.unshift(`rotateY(${rotateY}deg)`);
+		}
+		if (rotateZ !== 0) {
+			frontFaceTransforms.unshift(`rotateZ(${rotateZ}deg)`);
+		}
 	}
 
 	const frontFaceStyle: Extrusion3dCss = {
@@ -143,128 +189,37 @@ export function build3DExtrusionData(
 		transformStyle: 'preserve-3d',
 		backfaceVisibility: 'hidden',
 	};
-
-	// Determine which panels to show based on camera angle.
-	// When looking from above (rotateX < 0), the bottom panel is visible.
-	// When looking from below (rotateX > 0), the top panel is visible.
-	// When looking from the left (rotateY > 0), the right panel is visible.
-	// When looking from the right (rotateY < 0), the left panel is visible.
-	// We also show panels for straight-on views to give depth perception.
-	const showBottom = rotateX <= 2;
-	const showTop = rotateX >= -2;
-	const showRight = rotateY <= 5;
-	const showLeft = rotateY >= -5;
-
-	// Common side panel base styles
-	const panelBase: Extrusion3dCss = {
-		position: 'absolute',
-		backfaceVisibility: 'hidden',
-		transformStyle: 'preserve-3d',
-	};
-
-	// Direction-aware gradients for side faces: panels facing the light
-	// source get a lighter gradient, those facing away get darker.
-	// For top-left default lighting, bottom and right panels are more lit.
-	const isLitFromTop = rotateX <= 0; // camera above → bottom panel lit
-	const isLitFromLeft = rotateY >= 0; // camera left → right panel lit
-
-	// Vertical panels (top/bottom): front edge → back edge gradient
-	const bottomGradient = isLitFromTop
-		? `linear-gradient(to bottom, ${sideColorLit}, ${sideColor})`
-		: `linear-gradient(to bottom, ${sideColor}, ${sideColorDeep})`;
-	const topGradient = isLitFromTop
-		? `linear-gradient(to bottom, ${sideColor}, ${sideColorDeep})`
-		: `linear-gradient(to bottom, ${sideColorLit}, ${sideColor})`;
-
-	// Horizontal panels (left/right): front edge → back edge gradient
-	const rightGradient = isLitFromLeft
-		? `linear-gradient(to right, ${sideColor}, ${sideColorLit})`
-		: `linear-gradient(to right, ${sideColorLit}, ${sideColorDeep})`;
-	const leftGradient = isLitFromLeft
-		? `linear-gradient(to right, ${sideColorDeep}, ${sideColor})`
-		: `linear-gradient(to right, ${sideColor}, ${sideColorLit})`;
-
-	const rotations: string[] = [];
-	if (rotateX !== 0) {
-		rotations.push(`rotateX(${rotateX}deg)`);
-	}
-	if (rotateY !== 0) {
-		rotations.push(`rotateY(${rotateY}deg)`);
-	}
-	if (rotateZ !== 0) {
-		rotations.push(`rotateZ(${rotateZ}deg)`);
+	if (homographyResolved) {
+		frontFaceStyle.transformOrigin = transformOrigin ?? '0 0';
 	}
 
-	const panels: ExtrusionPanel[] = [];
+	// Determine which panels to show: `panelSides` (COM-measured, see
+	// `visual-3d-panel-sides`) is authoritative whenever the camera preset
+	// resolved one; `resolveExtrusionPanelVisibility` also applies the
+	// legacy rotateX/rotateY fallback and the "show all four" face-on
+	// default (see its own doc comment).
+	const { showTop, showBottom, showLeft, showRight } = resolveExtrusionPanelVisibility(
+		panelSides,
+		rotateX,
+		rotateY,
+	);
 
-	// ── Bottom panel ──
-	// Positioned at the bottom edge of the shape, rotated 90deg around X axis
-	if (showBottom) {
-		panels.push({
-			side: 'bottom',
-			style: {
-				...panelBase,
-				width: elementWidth,
-				height: clampedDepth,
-				left: 0,
-				top: elementHeight,
-				transformOrigin: 'top center',
-				transform: [...rotations, 'rotateX(-90deg)', `translateZ(${-halfDepth}px)`].join(' '),
-				background: bottomGradient,
-			},
-		});
-	}
-
-	// ── Top panel ──
-	if (showTop) {
-		panels.push({
-			side: 'top',
-			style: {
-				...panelBase,
-				width: elementWidth,
-				height: clampedDepth,
-				left: 0,
-				top: 0,
-				transformOrigin: 'bottom center',
-				transform: [...rotations, 'rotateX(90deg)', `translateZ(${-halfDepth}px)`].join(' '),
-				background: topGradient,
-			},
-		});
-	}
-
-	// ── Right panel ──
-	if (showRight) {
-		panels.push({
-			side: 'right',
-			style: {
-				...panelBase,
-				width: clampedDepth,
-				height: elementHeight,
-				left: elementWidth,
-				top: 0,
-				transformOrigin: 'left center',
-				transform: [...rotations, 'rotateY(90deg)', `translateZ(${-halfDepth}px)`].join(' '),
-				background: rightGradient,
-			},
-		});
-	}
-
-	// ── Left panel ──
-	if (showLeft) {
-		panels.push({
-			side: 'left',
-			style: {
-				...panelBase,
-				width: clampedDepth,
-				height: elementHeight,
-				left: 0,
-				top: 0,
-				transformOrigin: 'right center',
-				transform: [...rotations, 'rotateY(-90deg)', `translateZ(${-halfDepth}px)`].join(' '),
-				background: leftGradient,
-			},
-		});
-	}
+	const panels = buildExtrusionPanels({
+		panelVisibility: { showTop, showBottom, showLeft, showRight },
+		elementWidth,
+		elementHeight,
+		clampedDepth,
+		halfDepth,
+		rotateX,
+		rotateY,
+		rotateZ,
+		matrix3d,
+		homographyResolved,
+		cameraPreset: scene3d?.cameraPreset,
+		sideColorLit,
+		sideColor,
+		sideColorDeep,
+	});
 
 	// Material overlay for front face
 	const materialOverlay = getMaterialGradientOverlay(shape3d.presetMaterial, rotateX, rotateY);

@@ -9,6 +9,7 @@
 
 import { SCALE_SPIN_KEYFRAME_DEFINITIONS } from './animation-keyframes-scale-spin';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
+import { PIXELATE_IN_KEYFRAMES } from './animation-pixelate-filter';
 
 // The wipe/peek/blinds/split/box/random-bars reveals are CSS `mask` sweeps,
 // NOT `clip-path` keyframes: a `clip-path` animation replaces the element's
@@ -144,6 +145,10 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	1% { opacity: 1; }
 	100% { opacity: 1; }
 }`,
+	// `pixelate` SMIL filter family: a mosaic grid reveal (see
+	// `animation-pixelate-filter`), the only genuinely blocky-content reveal in
+	// this table; every other entry above is opacity/transform/mask driven.
+	pixelateIn: PIXELATE_IN_KEYFRAMES,
 	// `stretch`In*/Out* and `newsflash`In/Out (SMIL/ECMA-376 transition
 	// filters) are defined in `animation-keyframes-scale-spin` and spread in
 	// below; see that module's doc for why.

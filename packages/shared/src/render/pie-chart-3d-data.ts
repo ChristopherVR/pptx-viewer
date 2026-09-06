@@ -41,6 +41,17 @@ export interface PieChart3DSceneOptions {
 	height: number;
 	/** Authored `c:view3D` driving the initial camera + wedge thickness. */
 	view3D?: PieChart3DView3D;
+	/**
+	 * Series 0's raw values, `c:explosion` percentages (index-aligned with
+	 * `wedges`), and `c:firstSliceAng` - everything
+	 * `computePieChart3DSliceAngles` needs to recompute every wedge's angle
+	 * from a live-dragged value, so a value drag can renormalise the WHOLE
+	 * disc locally (rebuilding wedge geometry in the scene) rather than only
+	 * the dragged wedge.
+	 */
+	values: ReadonlyArray<number>;
+	explosions: ReadonlyArray<number>;
+	firstSliceAngleDeg: number | undefined;
 }
 
 export interface PieChart3DDataOptions {
@@ -101,6 +112,9 @@ export function buildPieChart3DData(
 		width: options.width,
 		height: options.height,
 		view3D,
+		values,
+		explosions,
+		firstSliceAngleDeg: chartData.firstSliceAngle,
 	};
 }
 

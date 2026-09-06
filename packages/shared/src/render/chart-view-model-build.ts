@@ -89,8 +89,22 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 			sideWall: chartData.sideWall,
 			backWall: chartData.backWall,
 		};
+		// bar3D's oblique-projection side/end extrusion faces resolve their OWN
+		// picture-fill targeting (`c:applyToSides`/`c:applyToEnd`), independent of
+		// the front rect's (`withDataPointPictureFills` below); see
+		// `chart-3d-depth.ts`'s `barExtrusion`.
+		const bar3DPicture =
+			chartType === 'bar3D' ? { series: chartData.series, elementId: element.id } : undefined;
 		return finishViewModel(
-			applyChart3DDepth(flat, chartType, chartData.view3D, walls, chartData.grouping, pieCenter),
+			applyChart3DDepth(
+				flat,
+				chartType,
+				chartData.view3D,
+				walls,
+				chartData.grouping,
+				pieCenter,
+				bar3DPicture,
+			),
 			chartData,
 			element,
 		);

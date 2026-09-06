@@ -1,5 +1,9 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
-import { chartDataChangeType } from 'pptx-viewer-core';
+import {
+	chartDataChangeType,
+	isParetoChartData,
+	resolveDisplayedChartTypeName,
+} from 'pptx-viewer-core';
 
 import { buildSecondaryAxis } from './chart-axis-render';
 import type { PlotLayout, SvgCircle, SvgPolyline, SvgPrimitive, SvgText } from './chart-view-model';
@@ -129,6 +133,41 @@ export function buildParetoPrimitives(
 				}) satisfies SvgCircle,
 		),
 	];
+}
+
+/**
+ * True when `data` is the shape this SDK models as "Pareto": `chartType:
+ * 'histogram'` with at least one series whose `histogramOptions.layout` is
+ * `'pareto'` (the cumulative-percentage line `applyParetoConversion` appends).
+ * Pareto has no `PptxChartType` of its own (see docs/guide/limitations.md's
+ * ChartEx row), so this is the only way to recognise one from data alone.
+ *
+ * Delegates to `pptx-viewer-core`'s `isParetoChartData` so the detection
+ * logic has one implementation shared with `pptx-viewer-mcp`, which cannot
+ * import from this (internal, per-binding-bundled) package.
+ */
+export function isParetoChart(data: Pick<PptxChartData, 'chartType' | 'series'>): boolean {
+	return isParetoChartData(data);
+}
+
+/**
+ * The chart type a type picker or inspector should show as "current" /
+ * "selected". `data.chartType` alone reads a Pareto chart back as
+ * `'histogram'` because Pareto is a display-only overlay on the histogram
+ * shape (see {@link applyParetoConversion}); this restores the round trip for
+ * display purposes only; it never changes what is stored or serialized.
+ *
+ * Consumed by every binding's Change Chart Type picker and chart-type
+ * inspector label so re-opening a Pareto chart shows "Pareto", not
+ * "Histogram", without introducing a `PptxChartType` of `'pareto'`.
+ *
+ * Delegates to `pptx-viewer-core`'s `resolveDisplayedChartTypeName` (see
+ * {@link isParetoChart}).
+ */
+export function resolveDisplayedChartType(
+	data: Pick<PptxChartData, 'chartType' | 'series'>,
+): PptxChartData['chartType'] | 'pareto' {
+	return resolveDisplayedChartTypeName(data);
 }
 
 /** Build the fixed Pareto percentage axis using shared secondary-axis conventions. */

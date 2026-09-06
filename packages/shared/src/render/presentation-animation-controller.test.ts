@@ -197,6 +197,46 @@ describe('presentationAnimationController.fromSlide', () => {
 	});
 });
 
+describe('presentationAnimationController.fromSlide with geometry/theme options', () => {
+	// Grow And Turn's own ground-truth markup: `from="(-#ppt_w/2)" to="(#ppt_x)"`
+	// on a `ppt_x` attribute animation (see animation-ppt-formula-ground-truth.md).
+	function growAndTurnAnim(targetId: string): PptxNativeAnimation {
+		return {
+			attributeAnimations: [
+				{ attrName: 'ppt_x', from: '(-#ppt_w/2)', keyframes: [], to: '(#ppt_x)' },
+			],
+			durationMs: 600,
+			presetClass: 'entr',
+			targetId,
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation;
+	}
+
+	function boxedShapeElement(id: string): PptxElement {
+		// left=200, top=150, width=200, height=100 on a 960x960... (960x720) slide,
+		// matching the real-PowerPoint sample the formula evaluator was derived
+		// from (in points there; px here, since fraction-of-slide is unit-free).
+		return { height: 100, id, type: 'shape', width: 200, x: 200, y: 150 } as unknown as PptxElement;
+	}
+
+	it('resolves the cross-axis fly-in formula into a real translate keyframe when given the box', () => {
+		const slide = slideWith([boxedShapeElement('a')], [growAndTurnAnim('a')]);
+		const controller = PresentationAnimationController.fromSlide(slide, {
+			slideHeightPx: 720,
+			slideWidthPx: 960,
+		});
+		// centre x = (200 + 200/2) / 960 = 0.3125; from = -100/960 = -0.104167;
+		// delta = -0.104167 - 0.3125 = -0.416667 -> percent/100 formatted to 4dp.
+		expect(controller.keyframesCss).toContain('-0.4167');
+	});
+
+	it('falls back to the canned preset timing without the box (pre-existing behaviour)', () => {
+		const slide = slideWith([boxedShapeElement('a')], [growAndTurnAnim('a')]);
+		const controller = PresentationAnimationController.fromSlide(slide);
+		expect(controller.keyframesCss).not.toContain('-0.4167');
+	});
+});
+
 describe('presentationAnimationController.collectBuildStepIds', () => {
 	it('returns ids only for steps carrying a staged build', () => {
 		const group = makeGroup([

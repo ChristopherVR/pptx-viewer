@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { generateNibMarks } from './ink-tilt-nib';
+import { generateNibMarks, tiltChannelsFromVectors } from './ink-tilt-nib';
 
 describe('generateNibMarks', () => {
 	it('should return an empty array when there are no points', () => {
@@ -76,5 +76,34 @@ describe('generateNibMarks', () => {
 		// is only 0.2 rad wide, landing the midpoint at +-pi (not near 0, which
 		// is what a naive un-wrapped lerp would produce).
 		expect(Math.abs(marks[1].rotationDeg - 90)).toBeGreaterThan(150);
+	});
+});
+
+describe('tiltChannelsFromVectors', () => {
+	it('returns undefined for empty input (no tilt captured)', () => {
+		expect(tiltChannelsFromVectors([], [])).toBeUndefined();
+	});
+
+	it('derives angle from the vector direction and magnitude normalised to this series own peak', () => {
+		// Mirrors the InkML OTx/OTy fixture in
+		// packages/core/src/core/utils/inkml-content-part.test.ts.
+		const result = tiltChannelsFromVectors([10, 0, 0], [0, 20, 0]);
+		expect(result).toBeDefined();
+		expect(result?.angles[0]).toBeCloseTo(0, 5);
+		expect(result?.angles[1]).toBeCloseTo(Math.PI / 2, 5);
+		expect(result?.magnitudes[0]).toBeCloseTo(0.5, 5);
+		expect(result?.magnitudes[1]).toBeCloseTo(1, 5);
+		expect(result?.magnitudes[2]).toBeCloseTo(0, 5);
+	});
+
+	it('returns all-zero magnitudes (not undefined) for a constant (0, 0) reading', () => {
+		const result = tiltChannelsFromVectors([0, 0], [0, 0]);
+		expect(result).toBeDefined();
+		expect(result?.magnitudes).toStrictEqual([0, 0]);
+	});
+
+	it('drops non-finite pairs rather than zero-filling them', () => {
+		const result = tiltChannelsFromVectors([10, Number.NaN], [0, 5]);
+		expect(result?.angles).toHaveLength(1);
 	});
 });

@@ -94,6 +94,14 @@ describe('buildPieChart3DData', () => {
 		expect(result!.view3D).toBeUndefined();
 	});
 
+	it('carries the raw values, explosions, and firstSliceAngleDeg through for a live drag recompute', () => {
+		const data = makePieData({ firstSliceAngle: 45 });
+		const result = buildPieChart3DData(data, data.categories, { width: 400, height: 300 });
+		expect(result!.values).toStrictEqual([10, 20, 30]);
+		expect(result!.explosions).toStrictEqual([0, 0, 0]);
+		expect(result!.firstSliceAngleDeg).toBe(45);
+	});
+
 	it('resolves wedge thickness from hPercent', () => {
 		const base = buildPieChart3DData(makePieData(), ['A', 'B', 'C'], { width: 400, height: 300 });
 		const thin = buildPieChart3DData(makePieData({ view3D: { hPercent: 25 } }), ['A', 'B', 'C'], {

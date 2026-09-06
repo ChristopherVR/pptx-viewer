@@ -46,6 +46,7 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'wedge', entr: 'wedgeIn', exit: 'fadeOut' },
 	{ family: 'cut', entr: 'cutIn', exit: 'cutOut' },
 	{ family: 'newsflash', entr: 'newsflashIn', exit: 'newsflashOut' },
+	{ family: 'pixelate', entr: 'pixelateIn', exit: 'pixelateOut' },
 ];
 
 describe('resolveFilterEffect', () => {

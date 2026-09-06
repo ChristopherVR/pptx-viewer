@@ -1,93 +1,159 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { resolveTitleColorForShading, shadeGradientTowardTitle } from './background-shade-to-title';
+import {
+	computeShadeToTitleFillToRect,
+	parseGradientCssStops,
+	resolveShadeToTitleBackgroundImage,
+	resolveShadeToTitleRect,
+} from './background-shade-to-title';
 
 function slide(overrides: Partial<PptxSlide>): PptxSlide {
 	return { id: 'slide1', rId: 'rId1', slideNumber: 1, elements: [], ...overrides };
 }
 
-function titleElement(color: string): PptxElement {
+function titleElement(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
 		id: 'title1',
 		type: 'text',
-		x: 0,
-		y: 0,
-		width: 100,
-		height: 50,
+		x: 120,
+		y: 88,
+		width: 720,
+		height: 188,
 		text: 'My Title',
-		textSegments: [{ text: 'My Title', style: { color } }],
-		rawXml: {
-			'p:nvSpPr': { 'p:nvPr': { 'p:ph': { '@_type': 'title' } } },
-		},
+		placeholderType: 'ctrTitle',
+		...overrides,
 	} as unknown as PptxElement;
 }
 
-describe('resolveTitleColorForShading', () => {
-	it('returns the resolved colour of the title placeholder', () => {
-		const color = resolveTitleColorForShading(slide({ elements: [titleElement('#FF8800')] }));
-		expect(color).toBe('#FF8800');
+describe('resolveShadeToTitleRect', () => {
+	it('returns the bounds of the slide own title/ctrTitle placeholder', () => {
+		expect(resolveShadeToTitleRect(slide({ elements: [titleElement()] }))).toStrictEqual({
+			x: 120,
+			y: 88,
+			width: 720,
+			height: 188,
+		});
 	});
 
-	it('returns undefined when the slide has no text at all', () => {
-		expect(resolveTitleColorForShading(slide({ elements: [] }))).toBeUndefined();
+	it('is case-insensitive on placeholderType', () => {
+		expect(
+			resolveShadeToTitleRect(slide({ elements: [titleElement({ placeholderType: 'Title' })] })),
+		).toStrictEqual({ x: 120, y: 88, width: 720, height: 188 });
 	});
 
-	it('returns undefined for a slide with no title colour information', () => {
-		const bare: PptxElement = {
-			id: 'title1',
-			type: 'text',
-			x: 0,
-			y: 0,
-			width: 100,
-			height: 50,
-			text: 'My Title',
-			rawXml: { 'p:nvSpPr': { 'p:nvPr': { 'p:ph': { '@_type': 'title' } } } },
-		} as unknown as PptxElement;
-		expect(resolveTitleColorForShading(slide({ elements: [bare] }))).toBeUndefined();
+	it('returns undefined when the slide has no title placeholder', () => {
+		const body = titleElement({ placeholderType: 'body' });
+		expect(resolveShadeToTitleRect(slide({ elements: [body] }))).toBeUndefined();
+	});
+
+	it('returns undefined for a title placeholder with no usable size', () => {
+		const zeroSize = titleElement({ width: 0, height: 0 });
+		expect(resolveShadeToTitleRect(slide({ elements: [zeroSize] }))).toBeUndefined();
+	});
+
+	it('returns undefined for a slide with no elements', () => {
+		expect(resolveShadeToTitleRect(slide({ elements: [] }))).toBeUndefined();
 	});
 });
 
-describe('shadeGradientTowardTitle', () => {
-	it('recolours the last stop of a linear gradient toward the title colour', () => {
-		const result = shadeGradientTowardTitle(
-			'linear-gradient(90.00deg, #000000 0%, #FFFFFF 100%)',
-			'#FF0000',
+describe('computeShadeToTitleFillToRect', () => {
+	it('converts title px bounds to slide-relative fillToRect insets', () => {
+		// The COM-measured fixture: 960x540pt slide, ctrTitle at Left=120
+		// Top=88.37504 Width=720 Height=188.
+		const rect = computeShadeToTitleFillToRect(
+			{ x: 120, y: 88.37504, width: 720, height: 188 },
+			960,
+			540,
 		);
-		expect(result).toBe('linear-gradient(90.00deg, #000000 0%, #FF0000 100%)');
+		expect(rect).toBeDefined();
+		expect(rect!.l).toBeCloseTo(0.125, 5);
+		expect(rect!.t).toBeCloseTo(0.163657, 5);
+		expect(rect!.r).toBeCloseTo(0.125, 5);
+		expect(rect!.b).toBeCloseTo(0.488194, 5);
 	});
 
-	it('recolours the last stop of a radial gradient toward the title colour', () => {
-		const result = shadeGradientTowardTitle(
-			'radial-gradient(circle at 50% 50%, #000000 0%, #FFFFFF 100%)',
-			'#00FF00',
-		);
-		expect(result).toBe('radial-gradient(circle at 50% 50%, #000000 0%, #00FF00 100%)');
+	it('returns undefined for a non-positive slide size', () => {
+		expect(
+			computeShadeToTitleFillToRect({ x: 0, y: 0, width: 10, height: 10 }, 0, 540),
+		).toBeUndefined();
+		expect(
+			computeShadeToTitleFillToRect({ x: 0, y: 0, width: 10, height: 10 }, 960, 0),
+		).toBeUndefined();
+	});
+});
+
+describe('parseGradientCssStops', () => {
+	it('parses hex stops out of a linear-gradient string', () => {
+		const css = 'linear-gradient(90.00deg, #000000 0%, #0000ff 100%)';
+		expect(parseGradientCssStops(css)).toStrictEqual([
+			{ position: 0, color: '#000000' },
+			{ position: 100, color: '#0000ff' },
+		]);
 	});
 
-	it('handles a headerless gradient (no explicit angle/position)', () => {
-		const result = shadeGradientTowardTitle('linear-gradient(#000000, #FFFFFF)', '#123456');
-		expect(result).toBe('linear-gradient(#000000, #123456)');
+	it('parses rgba stops into hex + opacity', () => {
+		const css = 'linear-gradient(90.00deg, rgba(255, 0, 0, 0.5) 0%, #00ff00 100%)';
+		expect(parseGradientCssStops(css)).toStrictEqual([
+			{ position: 0, color: '#ff0000', opacity: 0.5 },
+			{ position: 100, color: '#00ff00' },
+		]);
 	});
 
-	it('preserves alpha on an rgba() stop', () => {
-		const result = shadeGradientTowardTitle(
-			'linear-gradient(90.00deg, #000000 0%, rgba(255, 255, 255, 0.5) 100%)',
-			'#112233',
-		);
-		expect(result).toBe('linear-gradient(90.00deg, #000000 0%, rgba(17, 34, 51, 0.5) 100%)');
+	it('ignores the "at 50% 50%" position keyword of a radial-gradient wrapper', () => {
+		const css = 'radial-gradient(75% 75% at 50% 50%, #000000 0%, #0000ff 100%)';
+		expect(parseGradientCssStops(css)).toStrictEqual([
+			{ position: 0, color: '#000000' },
+			{ position: 100, color: '#0000ff' },
+		]);
 	});
 
-	it('returns the gradient unchanged when there is no title colour', () => {
-		const gradient = 'linear-gradient(90.00deg, #000000 0%, #FFFFFF 100%)';
-		expect(shadeGradientTowardTitle(gradient, undefined)).toBe(gradient);
+	it('returns an empty array for a gradient with no stop tokens', () => {
+		expect(parseGradientCssStops('none')).toStrictEqual([]);
+	});
+});
+
+describe('resolveShadeToTitleBackgroundImage', () => {
+	const gradientSlide = slide({
+		backgroundShadeToTitle: true,
+		backgroundGradient: 'linear-gradient(90.00deg, #0000ff 0%, #00ff00 100%)',
+		elements: [titleElement()],
 	});
 
-	it('returns the input unchanged when it is not a recognised gradient', () => {
-		expect(shadeGradientTowardTitle('#FF0000', '#00FF00')).toBe('#FF0000');
+	it('builds a rect-path gradient data URI when everything is available', () => {
+		const image = resolveShadeToTitleBackgroundImage(gradientSlide, 960, 540);
+		expect(image).toBeDefined();
+		expect(image).toMatch(/^url\("data:image\/svg\+xml,/u);
+		expect(image).not.toBe(gradientSlide.backgroundGradient);
 	});
 
-	it('returns undefined unchanged when the gradient is undefined', () => {
-		expect(shadeGradientTowardTitle(undefined, '#00FF00')).toBeUndefined();
+	it('returns undefined when shadeToTitle is not set', () => {
+		expect(
+			resolveShadeToTitleBackgroundImage(
+				slide({ ...gradientSlide, backgroundShadeToTitle: false }),
+				960,
+				540,
+			),
+		).toBeUndefined();
+	});
+
+	it('returns undefined when the slide has no gradient background', () => {
+		expect(
+			resolveShadeToTitleBackgroundImage(
+				slide({ backgroundShadeToTitle: true, elements: [titleElement()] }),
+				960,
+				540,
+			),
+		).toBeUndefined();
+	});
+
+	it('returns undefined when the caller supplies no slide size', () => {
+		expect(resolveShadeToTitleBackgroundImage(gradientSlide, undefined, undefined)).toBeUndefined();
+	});
+
+	it('returns undefined when the slide has no title placeholder', () => {
+		expect(
+			resolveShadeToTitleBackgroundImage(slide({ ...gradientSlide, elements: [] }), 960, 540),
+		).toBeUndefined();
 	});
 });

@@ -35,6 +35,7 @@ import {
 	resolveParagraphRtl,
 } from './text-paragraph-style';
 import type { RunStyle } from './text-run-style';
+import { isParagraphSeparatorSegment } from './text-segment-paragraph-break';
 import { resolveAutoFitFontScale } from './text-style-helpers';
 
 // `ParagraphRun` / `RenderParagraph` live in `paragraph-types.ts` (imported
@@ -102,7 +103,7 @@ export function buildParagraphs(
 		terminator?: TextSegment;
 	}> = [{ paraSegments: [], paraIndices: [] }];
 	for (const [segIndex, seg] of segments.entries()) {
-		if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
+		if (isParagraphSeparatorSegment(seg)) {
 			// Keep the separator: for an EMPTY paragraph it is the only carrier
 			// of the authored `a:endParaRPr` style (core stamps its font size on
 			// it), which sizes the blank line's box below.

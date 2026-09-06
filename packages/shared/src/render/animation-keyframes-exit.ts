@@ -10,6 +10,7 @@
  */
 
 import { maskEdgeDecl } from './animation-mask-reveal';
+import { PIXELATE_OUT_KEYFRAMES } from './animation-pixelate-filter';
 
 export const EXIT_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	disappear: `@keyframes pptx-disappear {
@@ -85,4 +86,7 @@ export const EXIT_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	75% { opacity: 0; }
 	100% { opacity: 0; }
 }`,
+	// Exit-side counterpart of `pixelateIn` (see `animation-pixelate-filter`):
+	// the mosaic coarsens from fully resolved down to the coarsest level.
+	pixelateOut: PIXELATE_OUT_KEYFRAMES,
 };

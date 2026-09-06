@@ -36,6 +36,12 @@ describe('buildBarChart3DData', () => {
 		expect(result!.grouping).toBe('clustered');
 	});
 
+	it('threads the chart series list into `picture` for bar3D face-fill resolution', () => {
+		const data = makeBarData();
+		const result = buildBarChart3DData(data, data.categories, { width: 400, height: 300 });
+		expect(result!.picture).toStrictEqual({ series: data.series });
+	});
+
 	it('transposes every box center for a horizontal (barDir=bar) chart, matching transposeForHorizontalBar3D, while sizes stay in the unrotated local frame', () => {
 		const vertical = makeBarData({ barDirection: 'col' });
 		const horizontal = makeBarData({ barDirection: 'bar' });

@@ -89,6 +89,45 @@ describe('resolveEffectiveStartCondition', () => {
 		expect(result.dependsOnEvent).toBeUndefined();
 	});
 
+	// ECMA-376 CT_TLTimeCondition (S19.5.31): `p:cond` names its dependency by
+	// EITHER `@_tn` OR a `p:tgtEl` choice-child, never both. PowerPoint targets
+	// a shape for every other event via `p:tgtEl/p:spTgt` (onClick/onNext), and
+	// a media shape's Play behaviour is 1:1 with its own shape id, so an
+	// `onStopAudio` condition may name the same dependency by shape instead of
+	// time-node id.
+	it('sequences after a SPECIFIC onStopAudio SHAPE dependency (p:tgtEl/p:spTgt, no @tn)', () => {
+		const conds: AnimationCondition[] = [
+			{ event: 'onStopAudio', delay: 0, targetShapeId: 'audio-shape-1' },
+		];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.trigger).toBe('afterPrevious');
+		expect(result.dependsOnShapeId).toBe('audio-shape-1');
+		expect(result.dependsOnTimeNodeId).toBeUndefined();
+		expect(result.dependsOnEvent).toBe('onStopAudio');
+		expect(result.requiresInteraction).toBeFalsy();
+	});
+
+	it('prefers the @tn form over a shape target when a condition list somehow carries both', () => {
+		// Not schema-legal on a SINGLE p:cond (tgtEl and @tn are mutually
+		// exclusive there), but the OR-set as a whole could carry one condition
+		// of each form; @tn is the more specific reference.
+		const conds: AnimationCondition[] = [
+			{ event: 'onStopAudio', delay: 0, targetShapeId: 'audio-shape-1' },
+			{ event: 'onStopAudio', delay: 0, targetTimeNodeId: 9 },
+		];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.dependsOnTimeNodeId).toBe(9);
+		expect(result.dependsOnShapeId).toBeUndefined();
+	});
+
+	it('does not shape-gate onEnd/onBegin (only onStopAudio gets the shape-target alternative)', () => {
+		const conds: AnimationCondition[] = [{ event: 'onEnd', delay: 0, targetShapeId: 'shape-9' }];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.dependsOnTimeNodeId).toBeUndefined();
+		expect(result.dependsOnShapeId).toBeUndefined();
+		expect(result.dependsOnEvent).toBeUndefined();
+	});
+
 	it('prefers the time-node dependency when both a click and a tn-end exist', () => {
 		const conds: AnimationCondition[] = [
 			{ event: 'onClick', delay: 0 },

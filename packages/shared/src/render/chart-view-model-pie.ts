@@ -138,6 +138,13 @@ export function buildPieViewModel(
 				outerR,
 				position: chartData.style.dataLabels?.position,
 				showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
+				// Series-level `c:ser/c:dLbls` (where PowerPoint actually writes the
+				// leader-line style, see chart-data-label-parser.ts) overrides the
+				// chart-type-level group, matching the point > series > chart-type
+				// cascade every other data-label field already follows.
+				leaderLineStyle:
+					pieSeries?.dataLabelOptions?.leaderLineStyle ??
+					chartData.style.dataLabels?.leaderLineStyle,
 				numberFormat: chartData.series[0]?.numberFormat,
 				labelText: pieSeries
 					? (pointIndex, value) => {

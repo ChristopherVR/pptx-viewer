@@ -36,20 +36,41 @@ describe('get3dTransformCss', () => {
 		expect(get3dTransformCss(undefined, undefined)).toBeUndefined();
 	});
 
-	it('produces perspective for perspectiveFront preset', () => {
+	it('produces an exact COM-measured matrix3d for perspectiveFront preset (no separate perspective)', () => {
+		// 2026-09 off-axis-camera homography wave: a COM-measured exact
+		// `matrix3d(...)` replaces the old `perspective()` + `rotateX/Y` model
+		// (see `visual-3d-camera-homography`'s module doc comment); a separate
+		// CSS `perspective` would double-apply the projective divide.
 		const result = get3dTransformCss({ cameraPreset: 'perspectiveFront' }, undefined);
-		expect(result?.perspective).toBe('1000px');
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.perspective).toBeUndefined();
+		expect(result?.transformOrigin).toBe('0 0');
 	});
 
-	it('produces rotateX for a scene3d rotation (perspectiveAbove)', () => {
+	it('produces an exact matrix3d for a scene3d rotation (perspectiveAbove)', () => {
 		const result = get3dTransformCss({ cameraPreset: 'perspectiveAbove' }, undefined);
-		expect(result?.transform).toContain('rotateX(-20deg)');
-		expect(result?.perspective).toBe('1000px');
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.perspective).toBeUndefined();
 	});
 
-	it('produces rotateY for perspectiveLeft preset', () => {
+	it('produces an exact matrix3d for perspectiveLeft preset', () => {
 		const result = get3dTransformCss({ cameraPreset: 'perspectiveLeft' }, undefined);
-		expect(result?.transform).toContain('rotateY(20deg)');
+		expect(result?.transform).toContain('matrix3d(');
+	});
+
+	it('folds the off-axis correction into the matrix3d for perspectiveContrastingLeftFacing (no separate perspective-origin)', () => {
+		const result = get3dTransformCss(
+			{ cameraPreset: 'perspectiveContrastingLeftFacing' },
+			undefined,
+		);
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.perspectiveOrigin).toBeUndefined();
+		expect(result?.transformOrigin).toBe('0 0');
+	});
+
+	it('omits perspective-origin for every homography-driven preset', () => {
+		const result = get3dTransformCss({ cameraPreset: 'perspectiveLeft' }, undefined);
+		expect(result?.perspectiveOrigin).toBeUndefined();
 	});
 
 	it('honours explicit camera rotation overrides (1/60000 deg)', () => {
@@ -131,6 +152,15 @@ describe('getContourBoxShadow', () => {
 	});
 });
 
+// `a:backdrop` intentionally renders NO synthetic CSS shadow of its own (see
+// the module doc comment above `getBevelStyle`'s declaration in `visual-3d.ts`
+// for the COM measurement: with no shadow effect on the shape, a backdrop
+// produces zero visible difference in real PowerPoint at any `a:norm`, and
+// even with a shadow effect a level/near-level backdrop is visually
+// indistinguishable from having no backdrop at all - only a strongly tilted
+// backdrop changes the shadow, in a way no CSS `box-shadow` can represent).
+// `getBackdropShadow` (and its dedicated test suite) were removed with it.
+
 // ── getBevelStyle ────────────────────────────────────────────────────────
 
 describe('getBevelStyle', () => {
@@ -205,11 +235,14 @@ describe('getComputed3dStyle', () => {
 		expect(getComputed3dStyle(el)).toBeUndefined();
 	});
 
-	it('emits scene3d rotation as a rotateX transform', () => {
+	it('emits scene3d rotation as an exact matrix3d transform', () => {
 		const el = shape3dEl({ cameraPreset: 'perspectiveAbove' });
 		const result = getComputed3dStyle(el);
-		expect(result?.transform).toContain('rotateX(-20deg)');
-		expect(result?.perspective).toBe('1000px');
+		expect(result?.transform).toContain('matrix3d(');
+		// The homography path never emits a separate CSS `perspective`: the
+		// projective divide is already baked into the matrix3d.
+		expect(result?.perspective).toBeUndefined();
+		expect(result?.transformOrigin).toBe('0 0');
 		expect(result?.willChange).toBe('transform');
 	});
 
@@ -232,10 +265,10 @@ describe('getComputed3dStyle', () => {
 		expect(result?.boxShadow).toContain('inset');
 	});
 
-	it('folds backdrop ground shadow into boxShadow', () => {
+	it('does not synthesize a ground shadow from a bare backdrop (COM-measured: no visible effect)', () => {
 		const el = shape3dEl({ hasBackdrop: true });
 		const result = getComputed3dStyle(el);
-		expect(result?.boxShadow).toContain('rgba(0,0,0,0.25)');
+		expect(result?.boxShadow).toBeUndefined();
 	});
 
 	it('emits material filter and light-rig overlay', () => {
@@ -258,8 +291,8 @@ describe('getComputed3dStyle', () => {
 			},
 		);
 		const result = getComputed3dStyle(el);
-		expect(result?.perspective).toBe('1000px');
-		expect(result?.transform).toContain('rotateX(-20deg)');
+		expect(result?.perspective).toBeUndefined();
+		expect(result?.transform).toContain('matrix3d(');
 		expect(result?.extrusionBoxShadow).toContain('#4472C4');
 		expect(result?.boxShadow).toContain('inset');
 		expect(result?.filter).toBeDefined();
@@ -278,10 +311,15 @@ describe('getCameraTransform', () => {
 		expect(result.rotateZ).toBe(0);
 	});
 
-	it('maps perspectiveAbove to rotateX -20deg with 1000px perspective', () => {
+	it('maps perspectiveAbove to an exact matrix3d, no separate perspective', () => {
 		const result = getCameraTransform({ cameraPreset: 'perspectiveAbove' });
-		expect(result.perspective).toBe('1000px');
-		expect(result.rotateX).toBe(-20);
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toContain('matrix3d(');
+		expect(result.transformOrigin).toBe('0 0');
+		// rotateX still carries the legacy table's hand-tuned angle as an
+		// extrusion panel-direction HINT only; see `cameraFlatFace`'s doc
+		// comment. It must NOT be used to build the actual CSS transform.
+		expect(result.rotateX).toBe(20);
 	});
 
 	it('explicit rotation angles override preset defaults', () => {
@@ -300,22 +338,32 @@ describe('getCameraTransform', () => {
 		expect(result.rotateX).toBe(-10);
 	});
 
-	it('maps isometricLeftUp and isometricRightDown to non-zero rotation (D1-G1)', () => {
+	it('maps isometricLeftUp and isometricRightDown to non-zero rotation with NO perspective (D1-G1)', () => {
 		const leftUp = getCameraTransform({ cameraPreset: 'isometricLeftUp' });
 		expect(leftUp.rotateX).not.toBe(0);
 		expect(leftUp.rotateY).not.toBe(0);
-		expect(leftUp.perspective).toBeDefined();
+		// COM-measured (2026-09): real PowerPoint renders isometric presets as a
+		// true parallelogram (parallel projection), not a perspective-foreshortened
+		// one, so no CSS `perspective` is emitted for this family at all.
+		expect(leftUp.perspective).toBeUndefined();
 
 		const rightDown = getCameraTransform({ cameraPreset: 'isometricRightDown' });
 		expect(rightDown.rotateX).not.toBe(0);
 		expect(rightDown.rotateY).not.toBe(0);
-		expect(rightDown.perspective).toBeDefined();
+		expect(rightDown.perspective).toBeUndefined();
 		// The two presets mirror each other around the isometric cube's diagonal.
 		expect(rightDown.rotateX).toBe(leftUp.rotateX);
 		expect(rightDown.rotateY).toBe(-leftUp.rotateY);
 	});
 
-	it('maps all 18 legacyOblique*/legacyPerspective* presets to non-flat rotation or explicit front (D1-G2)', () => {
+	it('maps all 18 legacyOblique*/legacyPerspective* presets to a flat (identity) front face (D1-G2)', () => {
+		// 2026-09 COM ground truth (see `visual-3d-camera-homography`'s module
+		// doc comment): a flat shape's front face renders pixel-identical to
+		// orthographicFront under every one of these presets, extruded or not
+		// -- only an EXTRUDED shape's side panels pick up any oblique/legacy
+		// perspective skew. The old expectation ("every preset must carry a
+		// non-flat perspective distance") encoded the pre-fix, COM-disproven
+		// behaviour.
 		const legacyPresets = [
 			'legacyObliqueTopLeft',
 			'legacyObliqueTop',
@@ -338,10 +386,12 @@ describe('getCameraTransform', () => {
 		];
 		for (const cameraPreset of legacyPresets) {
 			const result = getCameraTransform({ cameraPreset });
-			// Every legacy preset must resolve to a real (non-fallback-flat)
-			// perspective distance, proving it is present in CAMERA_PRESET_MAP
-			// rather than silently falling through to the "unknown preset" path.
-			expect(result.perspective).toBeDefined();
+			// Flat front face: no separate perspective AND no matrix3d (an
+			// identity homography is intentionally omitted, see
+			// `isIdentityHomography`'s doc comment).
+			expect(result.perspective).toBeUndefined();
+			expect(result.matrix3d).toBeUndefined();
+			expect(result.cameraFlatFace).toBeTruthy();
 		}
 	});
 });
@@ -373,6 +423,42 @@ describe('get3DBevelShadow', () => {
 		const layers = (result ?? '').split(', inset');
 		expect(layers.length).toBeGreaterThanOrEqual(3);
 	});
+
+	it('rotates the top bevel highlight to the lightRigDirection COM-measured cardinal edge', () => {
+		const shape3d = { bevelTopType: 'circle', bevelTopWidth: 28575, bevelTopHeight: 28575 };
+		// dir="t": highlight is a pure vertical offset (dx=0), toward the top
+		// (negative Y), per `visual-3d-bevel-light`'s measured mapping.
+		const top = get3DBevelShadow(shape3d, 't')!;
+		expect(top).toMatch(/inset 0px -\d+px/);
+		// dir="r": highlight is a pure horizontal offset (dy=0), toward the
+		// right (positive X).
+		const right = get3DBevelShadow(shape3d, 'r')!;
+		expect(right).toMatch(/inset \d+px 0px/);
+		// No direction at all keeps the pre-existing top-left diagonal default.
+		const defaultDir = get3DBevelShadow(shape3d)!;
+		expect(defaultDir).toMatch(/inset -\d+px -\d+px/);
+	});
+
+	// COM-measured 2026-09 (12-profile x 8-direction campaign, see
+	// `visual-3d-bevel-light`'s module doc comment): `softRound` lit up the
+	// OPPOSITE cardinal edge from every other profile under the same
+	// lightRigDirection.
+	it('inverts the highlight direction for softRound relative to circle', () => {
+		const circle = get3DBevelShadow(
+			{ bevelTopType: 'circle', bevelTopWidth: 28575, bevelTopHeight: 28575 },
+			't',
+		)!;
+		const softRound = get3DBevelShadow(
+			{ bevelTopType: 'softRound', bevelTopWidth: 28575, bevelTopHeight: 28575 },
+			't',
+		)!;
+		// circle dir="t" highlights (the white rgba layer) toward the top
+		// (negative Y offset)...
+		expect(circle).toMatch(/inset 0px -\d+px \d+px rgba\(255,255,255,/);
+		// ...softRound dir="t" highlights toward the bottom (positive Y offset).
+		expect(softRound).toMatch(/inset 0px \d+px \d+px rgba\(255,255,255,/);
+		expect(softRound).not.toMatch(/inset 0px -\d+px \d+px rgba\(255,255,255,/);
+	});
 });
 
 // ── get3DMaterialFilter (React-compatible alias) ─────────────────────────
@@ -401,9 +487,11 @@ describe('get3DTransformStyle', () => {
 		expect(Object.keys(get3DTransformStyle(undefined))).toHaveLength(0);
 	});
 
-	it('includes perspective + willChange for a camera preset', () => {
+	it('includes an exact matrix3d + willChange for a camera preset', () => {
 		const result = get3DTransformStyle({ cameraPreset: 'perspectiveFront' });
-		expect(result.perspective).toBe('1000px');
+		expect(result.perspective).toBeUndefined();
+		expect(result.transform).toContain('matrix3d(');
+		expect(result.transformOrigin).toBe('0 0');
 		expect(result.willChange).toBe('transform');
 	});
 
@@ -464,10 +552,10 @@ describe('apply3dEffects', () => {
 		expect(base.boxShadow).toContain('#888888');
 	});
 
-	it('adds backdrop ground-plane shadow', () => {
+	it('does not synthesize a ground shadow from a bare backdrop (COM-measured: no visible effect)', () => {
 		const base: MutableCss = {};
 		apply3dEffects(base, { hasBackdrop: true }, undefined);
-		expect(base.boxShadow).toContain('rgba(0,0,0,0.25)');
+		expect(base.boxShadow).toBeUndefined();
 	});
 
 	it('applies material opacity for clear material', () => {
@@ -487,7 +575,7 @@ describe('apply3dEffects', () => {
 			},
 		);
 		expect(base.transform).toContain('scaleX(-1)');
-		expect(base.transform).toContain('rotateX(-20deg)');
+		expect(base.transform).toContain('matrix3d(');
 		expect(base.boxShadow).toContain('2px 2px 4px rgba(0,0,0,0.5)');
 		expect(base.boxShadow).toContain('#000');
 	});
@@ -506,11 +594,13 @@ describe('apply3dEffects', () => {
 				presetMaterial: 'plastic',
 			},
 		);
-		expect(base.perspective).toBe('1000px');
-		expect(base.transform).toContain('rotateX(-20deg)');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
+		expect(base.transformOrigin).toBe('0 0');
 		expect(base.boxShadow).toContain('#4472C4');
 		expect(base.boxShadow).toContain('inset');
-		expect(base.boxShadow).toContain('rgba(0,0,0,0.25)');
+		// The bare `hasBackdrop: true` above contributes no shadow of its own
+		// (COM-measured: no visible effect without a real shadow present).
 		expect(base.filter).toContain('brightness');
 		expect(base.backgroundImage).toContain('linear-gradient');
 		expect(base.willChange).toBe('transform');

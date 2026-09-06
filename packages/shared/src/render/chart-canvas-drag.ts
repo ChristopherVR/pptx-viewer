@@ -73,6 +73,22 @@ export const CHART_INTERACTIVE_CLASS = 'pptx-chart-interactive';
 export const CHART_PART_SELECTED_CLASS = 'pptx-chart-part-selected';
 
 /**
+ * Whether `node` sits inside a chart root that is currently armed for mark
+ * interaction (carries {@link CHART_INTERACTIVE_CLASS}).
+ *
+ * The 2D marks get this gate for free from the stylesheet above (they are
+ * pointer-transparent until the root is armed). A 3D scene's WebGL canvas has
+ * no such CSS gate, so its pointer wiring asks this instead, keeping "is a
+ * mark press the scene's or the stage's?" a single decision every binding
+ * already makes by toggling the one class.
+ */
+export function isChartInteractionArmed(node: Element | null | undefined): boolean {
+	return (
+		typeof node?.closest === 'function' && node.closest(`.${CHART_INTERACTIVE_CLASS}`) !== null
+	);
+}
+
+/**
  * Re-apply the selected-part highlight class inside `root`.
  *
  * Called after every render: the projectors re-create the SVG marks on each

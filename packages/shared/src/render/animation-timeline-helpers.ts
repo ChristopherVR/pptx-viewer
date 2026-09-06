@@ -23,6 +23,8 @@ import {
 	FLY_SUBTYPE_TO_EDGE,
 	PRESET_ID_TO_EFFECT,
 } from './animation-presets';
+import type { AnimationElementBox, AnimationRenderContext } from './animation-render-context';
+import { resolveAnimationTargetId } from './animation-target-id';
 import type {
 	AnimationStep,
 	EffectName,
@@ -139,6 +141,24 @@ const TIMELINE_TRANSFORM_PREFIXES = {
 } as const;
 
 /**
+ * The animated element's real box + the deck's theme colour map, when the
+ * caller built one (see `animation-render-context.ts`). Resolves cross-axis
+ * `p:anim` geometry formulas (Grow And Turn's `-#ppt_w/2` fly-in) and
+ * scheme-colour (`a:schemeClr`) ramp stops that would otherwise fall back to
+ * canned timing / be dropped.
+ */
+export function boxForAnimation(
+	anim: PptxNativeAnimation,
+	renderContext: AnimationRenderContext | undefined,
+): AnimationElementBox | undefined {
+	if (!renderContext) {
+		return undefined;
+	}
+	const targetId = resolveAnimationTargetId(anim);
+	return targetId ? renderContext.getElementBox(targetId) : undefined;
+}
+
+/**
  * Build a dynamic CSS `@keyframes` block for motion path, rotation, scale, or
  * colour animations that don't map to a static effect preset. Uses the
  * `pptx-motionPath-*` / `pptx-rotateBy-*` / `pptx-scaleBy-*` / `pptx-color-*`
@@ -147,8 +167,14 @@ const TIMELINE_TRANSFORM_PREFIXES = {
 export function buildDynamicKeyframes(
 	anim: PptxNativeAnimation,
 	uid: number,
+	renderContext?: AnimationRenderContext,
 ): { keyframeName: string; css: string } | undefined {
-	const transform = buildTransformKeyframes(anim, uid, FLAT_TRANSFORM_PREFIXES);
+	const transform = buildTransformKeyframes(
+		anim,
+		uid,
+		FLAT_TRANSFORM_PREFIXES,
+		boxForAnimation(anim, renderContext),
+	);
 	if (transform) {
 		return transform;
 	}
@@ -156,7 +182,12 @@ export function buildDynamicKeyframes(
 	// Color animation (p:animClr)
 	if (anim.colorAnimation) {
 		const name = `pptx-color-${uid}`;
-		const css = buildColorAnimationKeyframes(anim.colorAnimation, name);
+		const css = buildColorAnimationKeyframes(
+			anim.colorAnimation,
+			name,
+			undefined,
+			renderContext?.themeColorMap,
+		);
 		if (css) {
 			return { keyframeName: name, css };
 		}
@@ -182,15 +213,26 @@ export function buildDynamicKeyframes(
 export function buildDynamicKeyframe(
 	anim: PptxNativeAnimation,
 	uid: number,
+	renderContext?: AnimationRenderContext,
 ): { keyframeName: string; css: string } | undefined {
-	const transform = buildTransformKeyframes(anim, uid, TIMELINE_TRANSFORM_PREFIXES);
+	const transform = buildTransformKeyframes(
+		anim,
+		uid,
+		TIMELINE_TRANSFORM_PREFIXES,
+		boxForAnimation(anim, renderContext),
+	);
 	if (transform) {
 		return transform;
 	}
 	// Color animation (p:animClr)
 	if (anim.colorAnimation) {
 		const name = `pptx-tl-color-${uid}`;
-		const css = buildColorAnimationKeyframes(anim.colorAnimation, name);
+		const css = buildColorAnimationKeyframes(
+			anim.colorAnimation,
+			name,
+			undefined,
+			renderContext?.themeColorMap,
+		);
 		if (css) {
 			return { keyframeName: name, css };
 		}

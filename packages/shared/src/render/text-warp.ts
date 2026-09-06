@@ -1,5 +1,5 @@
 /**
- * Text warp / WordArt logic — Vue port of the React
+ * Text warp / WordArt logic: Vue port of the React
  * `viewer/utils/warp-path-generators.ts` + `text-warp-classifier.ts`.
  *
  * Pure, framework-agnostic helpers that classify an OOXML `prstTxWarp` preset
@@ -14,14 +14,26 @@
 import type { PptxElement, PptxTextWarpPreset, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { isParagraphSeparatorSegment } from './text-segment-paragraph-break';
+
 // ── Classifier ──────────────────────────────────────────────────────────
 
 /**
  * Rendering-strategy category for a warp preset.
- *  - `path`:     renders along an SVG `<textPath>` (arcs, waves, circles…)
- *  - `envelope`: non-uniform vertical stretch (inflate/deflate/can)
- *  - `simple`:   basic 2D transforms (slant, fade, cascade)
+ *  - `path`:     renders along an SVG `<textPath>` (arcs, waves, circles,
+ *                slant/fade/cascade, …)
+ *  - `envelope`: non-uniform vertical stretch (inflate/deflate/can). Also
+ *                renders along an SVG `<textPath>`; kept as its own category
+ *                for documentation/grouping only (see {@link ENVELOPE_PRESETS}).
+ *  - `simple`:   unused (kept for API stability; no preset classifies here
+ *                any more, see {@link SIMPLE_PRESETS}).
  *  - `none`:     no warp (`textNoShape`, `textPlain`, unknown)
+ *
+ * Every classified preset (`path` and `envelope` alike) should be routed to
+ * SVG `<textPath>` rendering via {@link shouldUseSvgWarp}; a binding that
+ * instead branches on this category to decide path-vs-CSS-transform will
+ * wrongly fall back to a flat CSS-transform approximation for the `envelope`
+ * family. Use `shouldUseSvgWarp` for that decision, not `classifyTextWarp`.
  */
 export type WarpCategory = 'path' | 'envelope' | 'simple' | 'none';
 
@@ -50,9 +62,30 @@ const PATH_PRESETS: ReadonlySet<string> = new Set([
 	'textChevron',
 	'textChevronInverted',
 	'textStop',
+	// Moved from the former `simple` (CSS-transform) family: all six have
+	// single-line-safe generators below and render as true SVG textPath,
+	// same mechanism as arch/wave/circle.
+	'textSlantUp',
+	'textSlantDown',
+	'textFadeUp',
+	'textFadeDown',
+	'textFadeLeft',
+	'textFadeRight',
+	'textCascadeUp',
+	'textCascadeDown',
 ]);
 
-/** Presets that stretch text non-uniformly per line (inflate/deflate/can). */
+/**
+ * Presets that stretch text non-uniformly per line (inflate/deflate/can).
+ *
+ * Historically these were CSS-transform-approximated (see
+ * {@link getEnvelopeCssTransform}), but every one of them already has a
+ * single-line-safe SVG baseline generator in {@link WARP_PATH_GENERATORS}
+ * (see the "single-line degeneracy" note there), so `classifyTextWarp` keeps
+ * classifying them as `'envelope'` for documentation/grouping purposes only;
+ * the actual path-vs-CSS rendering decision every binding should make is
+ * {@link shouldUseSvgWarp}, which is `true` for all of them.
+ */
 const ENVELOPE_PRESETS: ReadonlySet<string> = new Set([
 	'textInflate',
 	'textDeflate',
@@ -66,17 +99,15 @@ const ENVELOPE_PRESETS: ReadonlySet<string> = new Set([
 	'textCanDown',
 ]);
 
-/** Presets approximated by basic 2D transforms (slant, fade, cascade). */
-const SIMPLE_PRESETS: ReadonlySet<string> = new Set([
-	'textSlantUp',
-	'textSlantDown',
-	'textFadeRight',
-	'textFadeLeft',
-	'textFadeUp',
-	'textFadeDown',
-	'textCascadeUp',
-	'textCascadeDown',
-]);
+/**
+ * Historically "presets approximated by basic 2D transforms (slant, fade,
+ * cascade)". As of the WordArt envelope fidelity fix, slant/fade/cascade all
+ * have single-line-safe SVG baseline generators (like every other classified
+ * preset) and are classified as `'path'` instead; this set is now empty and
+ * kept only so `WarpCategory` still has a `'simple'` member for API
+ * stability. Nothing currently classifies into it.
+ */
+const SIMPLE_PRESETS: ReadonlySet<string> = new Set([]);
 
 /**
  * Classify a warp preset into a rendering-strategy category.
@@ -130,8 +161,16 @@ export interface WarpTextSource {
 export type WarpSegmentTransform = (segment: TextSegment) => TextSegment;
 
 /**
- * Group an element's `textSegments` into paragraphs delimited by
- * `isParagraphBreak` segments (the break markers themselves are excluded).
+ * Group an element's `textSegments` into paragraphs delimited by paragraph
+ * SEPARATOR segments (the break markers themselves are excluded): see
+ * {@link isParagraphSeparatorSegment} for what counts as one. A caller that
+ * checked only `isParagraphBreak` here used to miss the far more common
+ * slide-load case (a bare `text: '\n'` segment with no flag at all), so a
+ * freshly-opened multi-paragraph WordArt block never split into separate
+ * lines: the literal `"\n"` fell into the first paragraph's own run list and
+ * was measured and rendered as its own glyph, which also flipped the
+ * vertical ordering of a multi-line envelope (paragraph 2's text ended up
+ * sharing paragraph 1's line instead of occupying its own band).
  *
  * Falls back to a single synthetic paragraph carrying `element.text` when no
  * segments are present, and to an empty array when there is neither text nor
@@ -160,7 +199,7 @@ export function groupIntoParagraphs(
 	const paragraphs: WarpParagraph[] = [];
 	let current: TextSegment[] = [];
 	for (const seg of segments) {
-		if (seg.isParagraphBreak) {
+		if (isParagraphSeparatorSegment(seg)) {
 			if (current.length > 0) {
 				paragraphs.push({ segments: current });
 			}
@@ -260,7 +299,7 @@ function archDownPath(w: number, h: number, t: number, adj?: number): string {
 	return `M 0,0 A ${w / 2},${archH} 0 0,0 ${w},0`;
 }
 
-/** Full ellipse — concentric ellipses shrink towards centre. */
+/** Full ellipse: concentric ellipses shrink towards centre. */
 function circlePath(w: number, h: number, t: number, adj?: number): string {
 	const cx = w / 2;
 	const cy = h / 2;
@@ -287,20 +326,36 @@ function wave1Path(w: number, h: number, t: number, adj?: number, adj2?: number)
 	return `M 0,${yMid} C ${cp1x},${yMid - amp} ${cp2x},${yMid + amp} ${w},${yMid}`;
 }
 
-/** Inflate — top lines bow up, bottom lines bow down. */
+/**
+ * Inflate: the baseline bows up in the middle (balloon shape).
+ *
+ * `intensity` sets a BASE amplitude that stays present at `t=0.5` (a single
+ * paragraph, the common WordArt case) plus a smaller per-line `extra` term so
+ * a multi-line block still varies top-to-bottom. The original formula used
+ * `(1 - 2 * t)` alone, which is exactly zero at `t=0.5`: single-line Inflate
+ * text rendered perfectly flat, indistinguishable from no warp at all.
+ */
 function inflatePath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.15 + t * 0.7);
-	const adjFactor = adj !== undefined ? adj / 18750 : 1;
-	const bulge = h * 0.3 * (1 - 2 * t) * clamp4(adjFactor);
+	const intensity = adj !== undefined ? clamp4(adj / 18750) : 1;
+	const base = h * 0.22 * intensity;
+	const extra = h * 0.1 * intensity * (0.5 - t);
+	const bulge = base + extra;
 	return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Deflate — opposite of inflate. */
+/**
+ * Deflate: the baseline dips down in the middle (pinched shape), the
+ * opposite curvature from {@link inflatePath}. Same base+extra fix for the
+ * `t=0.5` single-line degeneracy the original `(2 * t - 1)` formula had.
+ */
 function deflatePath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.15 + t * 0.7);
-	const adjFactor = adj !== undefined ? adj / 18750 : 1;
-	const pinch = h * 0.3 * (2 * t - 1) * clamp4(adjFactor);
-	return `M 0,${yBase} Q ${w / 2},${yBase - pinch} ${w},${yBase}`;
+	const intensity = adj !== undefined ? clamp4(adj / 18750) : 1;
+	const base = h * 0.18 * intensity;
+	const extra = h * 0.08 * intensity * (t - 0.5);
+	const dip = base + extra;
+	return `M 0,${yBase} Q ${w / 2},${yBase + dip} ${w},${yBase}`;
 }
 
 /** Gentle upward curve. */
@@ -332,7 +387,7 @@ function wave2Path(w: number, h: number, t: number, adj?: number, adj2?: number)
 	return `M 0,${yMid} C ${cp1x},${yMid + amp} ${cp2x},${yMid - amp} ${w},${yMid}`;
 }
 
-/** Double wave — two full cycles. */
+/** Double wave: two full cycles. */
 function wave4Path(w: number, h: number, t: number, adj?: number, adj2?: number): string {
 	const yMid = h * (0.25 + t * 0.5);
 	const adjFactor = adj !== undefined ? adj / 12500 : 1;
@@ -360,7 +415,7 @@ function doubleWave1Path(w: number, h: number, t: number, adj?: number, adj2?: n
 	);
 }
 
-/** Cylindrical text — upward. */
+/** Cylindrical text: upward. */
 function canUpPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 18750 : 1;
 	const curvature = clamp4(adjFactor);
@@ -371,7 +426,7 @@ function canUpPath(w: number, h: number, t: number, adj?: number): string {
 	return `M 0,${h} A ${w / 2},${archH} 0 0,1 ${w},${h}`;
 }
 
-/** Cylindrical text — downward. */
+/** Cylindrical text: downward. */
 function canDownPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 18750 : 1;
 	const curvature = clamp4(adjFactor);
@@ -382,15 +437,19 @@ function canDownPath(w: number, h: number, t: number, adj?: number): string {
 	return `M 0,0 A ${w / 2},${archH} 0 0,0 ${w},0`;
 }
 
-/** Button — convex top / concave bottom. */
+/**
+ * Button: convex top / concave bottom. Base+extra amplitude (see
+ * {@link inflatePath}) so a single-line button still bows instead of going
+ * flat at `t=0.5`.
+ */
 function buttonPath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.1 + t * 0.8);
-	const adjFactor = adj !== undefined ? adj / 18750 : 1;
-	const bulge = h * 0.15 * (1 - 2 * t) * clamp4(adjFactor);
+	const intensity = adj !== undefined ? clamp4(adj / 18750) : 1;
+	const bulge = h * 0.11 * intensity + h * 0.08 * intensity * (0.5 - t);
 	return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Ring inside — concentric ellipses scaled inward. */
+/** Ring inside: concentric ellipses scaled inward. */
 function ringInsidePath(w: number, h: number, t: number, adj?: number): string {
 	const cx = w / 2;
 	const cy = h / 2;
@@ -406,7 +465,7 @@ function ringInsidePath(w: number, h: number, t: number, adj?: number): string {
 	);
 }
 
-/** Ring outside — concentric ellipses scaled outward. */
+/** Ring outside: concentric ellipses scaled outward. */
 function ringOutsidePath(w: number, h: number, t: number, adj?: number): string {
 	const cx = w / 2;
 	const cy = h / 2;
@@ -422,7 +481,7 @@ function ringOutsidePath(w: number, h: number, t: number, adj?: number): string 
 	);
 }
 
-/** Cascading up — lines tilt from lower-left to upper-right. */
+/** Cascading up: lines tilt from lower-left to upper-right. */
 export function cascadeUpPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 44444 : 1;
 	const tilt = 0.2 * clamp4(adjFactor);
@@ -432,7 +491,7 @@ export function cascadeUpPath(w: number, h: number, t: number, adj?: number): st
 	return `M 0,${yStart} L ${w},${yEnd}`;
 }
 
-/** Cascading down — lines tilt from upper-left to lower-right. */
+/** Cascading down: lines tilt from upper-left to lower-right. */
 export function cascadeDownPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 44444 : 1;
 	const tilt = 0.2 * clamp4(adjFactor);
@@ -444,7 +503,7 @@ export function cascadeDownPath(w: number, h: number, t: number, adj?: number): 
 
 // ── Priority 3 ──────────────────────────────────────────────────────────
 
-/** Triangle / trapezoid — top line narrow, bottom line full width. */
+/** Triangle / trapezoid: top line narrow, bottom line full width. */
 function trianglePath(w: number, h: number, t: number, adj?: number): string {
 	const adjRatio = adj !== undefined ? adj / 100000 : 0.5;
 	const narrowW = w * (1 - Math.max(0, Math.min(adjRatio, 1))) * 0.3;
@@ -454,7 +513,7 @@ function trianglePath(w: number, h: number, t: number, adj?: number): string {
 	return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Inverted triangle — top line full width, bottom line narrow. */
+/** Inverted triangle: top line full width, bottom line narrow. */
 function triangleInvertedPath(w: number, h: number, t: number, adj?: number): string {
 	const adjRatio = adj !== undefined ? adj / 100000 : 0.5;
 	const narrowW = w * (1 - Math.max(0, Math.min(adjRatio, 1))) * 0.3;
@@ -464,7 +523,7 @@ function triangleInvertedPath(w: number, h: number, t: number, adj?: number): st
 	return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Stop / octagon — lines narrow at top and bottom, widest in centre. */
+/** Stop / octagon: lines narrow at top and bottom, widest in centre. */
 function stopPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 25000 : 1;
 	const insetScale = clamp4(adjFactor);
@@ -473,7 +532,7 @@ function stopPath(w: number, h: number, t: number, adj?: number): string {
 	return `M ${inset},${yBase} L ${w - inset},${yBase}`;
 }
 
-/** Chevron — V-shape pointing down. */
+/** Chevron: V-shape pointing down. */
 function chevronPath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.15 + t * 0.7);
 	const adjFactor = adj !== undefined ? adj / 25000 : 1;
@@ -481,7 +540,7 @@ function chevronPath(w: number, h: number, t: number, adj?: number): string {
 	return `M 0,${yBase} L ${w / 2},${yBase + dip} L ${w},${yBase}`;
 }
 
-/** Inverted chevron — V-shape pointing up. */
+/** Inverted chevron: V-shape pointing up. */
 function chevronInvertedPath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.15 + t * 0.7);
 	const adjFactor = adj !== undefined ? adj / 25000 : 1;
@@ -523,7 +582,7 @@ function deflateTopPath(w: number, h: number, t: number, adj?: number): string {
 
 // ── Priority 4 ──────────────────────────────────────────────────────────
 
-/** Slant up — baseline rises from left to right. */
+/** Slant up: baseline rises from left to right. */
 function slantUpPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 55000 : 1;
 	const slant = 0.25 * clamp4(adjFactor);
@@ -533,7 +592,7 @@ function slantUpPath(w: number, h: number, t: number, adj?: number): string {
 	return `M 0,${yStart} L ${w},${yEnd}`;
 }
 
-/** Slant down — baseline falls from left to right. */
+/** Slant down: baseline falls from left to right. */
 function slantDownPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 55000 : 1;
 	const slant = 0.25 * clamp4(adjFactor);
@@ -543,27 +602,30 @@ function slantDownPath(w: number, h: number, t: number, adj?: number): string {
 	return `M 0,${yStart} L ${w},${yEnd}`;
 }
 
-/** Fade right — text narrows towards the right (trapezoid). */
+/**
+ * Fade right: baseline tilts down towards the right edge, hinting the
+ * shrink-to-the-right taper. The squeeze magnitude no longer depends on `t`
+ * (the original `(1 - 2 * t)` factor went to zero at `t=0.5`, so single-line
+ * Fade Right rendered as a flat horizontal baseline with no fade at all).
+ */
 function fadeRightPath(w: number, h: number, t: number, adj?: number): string {
-	const adjFactor = adj !== undefined ? adj / 50000 : 1;
-	const squeezeScale = clamp4(adjFactor);
+	const intensity = adj !== undefined ? clamp4(adj / 50000) : 1;
 	const yLeft = h * (0.1 + t * 0.8);
-	const squeeze = 0.35 * (1 - 2 * t) * squeezeScale;
+	const squeeze = 0.32 * intensity;
 	const yRight = h * (0.5 + squeeze * 0.4);
 	return `M 0,${yLeft} L ${w},${yRight}`;
 }
 
-/** Fade left — text narrows towards the left (trapezoid). */
+/** Fade left: mirror of {@link fadeRightPath}, tilts towards the left edge. */
 function fadeLeftPath(w: number, h: number, t: number, adj?: number): string {
-	const adjFactor = adj !== undefined ? adj / 50000 : 1;
-	const squeezeScale = clamp4(adjFactor);
-	const squeeze = 0.35 * (1 - 2 * t) * squeezeScale;
+	const intensity = adj !== undefined ? clamp4(adj / 50000) : 1;
+	const squeeze = 0.32 * intensity;
 	const yLeft = h * (0.5 + squeeze * 0.4);
 	const yRight = h * (0.1 + t * 0.8);
 	return `M 0,${yLeft} L ${w},${yRight}`;
 }
 
-/** Fade up — text narrows towards the top. */
+/** Fade up: text narrows towards the top. */
 function fadeUpPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 50000 : 1;
 	const taperScale = clamp4(adjFactor);
@@ -575,7 +637,7 @@ function fadeUpPath(w: number, h: number, t: number, adj?: number): string {
 	return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Fade down — text narrows towards the bottom. */
+/** Fade down: text narrows towards the bottom. */
 function fadeDownPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 50000 : 1;
 	const taperScale = clamp4(adjFactor);
@@ -587,7 +649,7 @@ function fadeDownPath(w: number, h: number, t: number, adj?: number): string {
 	return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Arch up pour — hollowed arch upward. */
+/** Arch up pour: hollowed arch upward. */
 function archUpPourPath(w: number, h: number, t: number, adj?: number): string {
 	const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
 	const maxArch = (0.7 * adjNorm) / 0.5;
@@ -598,7 +660,7 @@ function archUpPourPath(w: number, h: number, t: number, adj?: number): string {
 	return `M 0,${h} A ${w / 2},${archH} 0 0,1 ${w},${h}`;
 }
 
-/** Arch down pour — hollowed arch downward. */
+/** Arch down pour: hollowed arch downward. */
 function archDownPourPath(w: number, h: number, t: number, adj?: number): string {
 	const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
 	const baseDepth = (0.2 * adjNorm) / 0.5;
@@ -609,7 +671,7 @@ function archDownPourPath(w: number, h: number, t: number, adj?: number): string
 	return `M 0,0 A ${w / 2},${archH} 0 0,0 ${w},0`;
 }
 
-/** Circle pour — concentric ellipses with an inner gap. */
+/** Circle pour: concentric ellipses with an inner gap. */
 function circlePourPath(w: number, h: number, t: number, adj?: number): string {
 	const cx = w / 2;
 	const cy = h / 2;
@@ -625,15 +687,18 @@ function circlePourPath(w: number, h: number, t: number, adj?: number): string {
 	);
 }
 
-/** Button pour — convex top / concave bottom with larger margins. */
+/**
+ * Button pour: convex top / concave bottom with larger margins. Base+extra
+ * amplitude (see {@link inflatePath}) so single-line text still bows.
+ */
 function buttonPourPath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.15 + t * 0.7);
-	const adjFactor = adj !== undefined ? adj / 18750 : 1;
-	const bulge = h * 0.12 * (1 - 2 * t) * clamp4(adjFactor);
+	const intensity = adj !== undefined ? clamp4(adj / 18750) : 1;
+	const bulge = h * 0.09 * intensity + h * 0.06 * intensity * (0.5 - t);
 	return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Deflate-inflate — pinched in centre top/bottom, expanded at edges. */
+/** Deflate-inflate: pinched in centre top/bottom, expanded at edges. */
 function deflateInflatePath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.15 + t * 0.7);
 	const adjFactor = adj !== undefined ? adj / 18750 : 1;
@@ -642,13 +707,16 @@ function deflateInflatePath(w: number, h: number, t: number, adj?: number): stri
 	return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Deflate-inflate-deflate — triple oscillation. */
+/**
+ * Deflate-inflate-deflate: triple oscillation across the width. Base+extra
+ * amplitude (see {@link inflatePath}): the original `sin(t * 2*PI)` factor is
+ * zero at `t=0.5`, which made a single-line block render as a dead-flat
+ * baseline (the two Bezier segments collapsed to one straight line).
+ */
 function deflateInflateDeflatePath(w: number, h: number, t: number, adj?: number): string {
 	const yBase = h * (0.15 + t * 0.7);
-	const adjFactor = adj !== undefined ? adj / 18750 : 1;
-	const ampScale = clamp4(adjFactor);
-	const factor = Math.sin(t * Math.PI * 2);
-	const bulge = h * 0.15 * factor * ampScale;
+	const ampScale = adj !== undefined ? clamp4(adj / 18750) : 1;
+	const bulge = h * 0.15 * ampScale + h * 0.05 * ampScale * Math.sin(t * Math.PI * 2);
 	const q1 = w / 3;
 	const q2 = (2 * w) / 3;
 	return (

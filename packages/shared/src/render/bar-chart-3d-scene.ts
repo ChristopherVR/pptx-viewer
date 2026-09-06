@@ -26,28 +26,37 @@
  * @module bar-chart-3d-scene
  */
 
-import type * as THREE from 'three';
-import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+import type { TextStyleAnimationDescriptor } from './animation-text-style-resolve';
 import type { BarChart3DSceneOptions } from './bar-chart-3d-data';
 import { buildBar3DMeshGroup } from './bar-chart-3d-geometry';
 import { buildBarChart3DHoverTooltip } from './bar-chart-3d-hit-test';
 import type { BarChart3DHit } from './bar-chart-3d-hit-test';
+import { attachBarChart3DInteraction } from './bar-chart-3d-interaction-wiring';
+import type { BarChart3DInteraction } from './bar-chart-3d-interaction-wiring';
+import { createBarChart3DTextureManager } from './bar-chart-3d-materials';
 import {
 	buildCartesianChart3DLabels,
 	computeCartesianCameraPlacement,
 	computeCartesianGridExtent,
 	MAX_VALUE_HEIGHT,
 } from './cartesian-chart-3d-geom';
-import { createLabelOverlay } from './surface-chart-3d-label-overlay';
+import { attachChart3DHoverTooltip } from './chart-3d-hover-tooltip';
+import { createChart3DLabelProjector } from './chart-3d-label-projection';
+import type { HighlightableMaterialRef } from './chart-3d-mesh-highlight';
+import { loadChart3DOrbitControls, loadChart3DThree } from './chart-3d-three-loader';
+import type { ChartPartRef } from './chart-view-model';
 import { buildSurfaceWallMeshes } from './surface-chart-3d-walls';
 
-type ThreeModule = typeof THREE;
+export type { BarChart3DInteraction };
 
 /** Imperative handle to a mounted bar3D chart view. */
 export interface BarChart3DHandle {
 	readonly ok: boolean;
 	resize: (width: number, height: number) => void;
+	/** Apply (or clear) the selected-mark highlight, e.g. when selection changes via the inspector rather than a click on this scene. */
+	setSelectedPart: (part: ChartPartRef | null) => void;
+	/** Apply (or clear) a font-style emphasis override on the axis labels. */
+	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
 	dispose: () => void;
 }
 
@@ -55,27 +64,10 @@ export interface BarChart3DHandle {
 export const BAR_CHART_THREE_UNAVAILABLE: BarChart3DHandle = {
 	ok: false,
 	resize: () => {},
+	setSelectedPart: () => {},
+	setTextStyle: () => {},
 	dispose: () => {},
 };
-
-async function loadThree(): Promise<ThreeModule | null> {
-	try {
-		return (await import('three')) as ThreeModule;
-	} catch {
-		return null;
-	}
-}
-
-async function loadOrbitControlsCtor(): Promise<
-	(new (camera: THREE.Camera, dom: HTMLElement) => OrbitControls) | null
-> {
-	try {
-		const mod = await import('three/examples/jsm/controls/OrbitControls.js');
-		return mod.OrbitControls;
-	} catch {
-		return null;
-	}
-}
 
 /**
  * Mount an interactive 3D bar chart into `container` and start rendering.
@@ -87,9 +79,10 @@ async function loadOrbitControlsCtor(): Promise<
 export async function mountBarChart3D(
 	container: HTMLElement,
 	options: BarChart3DSceneOptions,
+	interaction?: BarChart3DInteraction,
 ): Promise<BarChart3DHandle> {
-	const three = await loadThree();
-	const OrbitCtrlCtor = three ? await loadOrbitControlsCtor() : null;
+	const three = await loadChart3DThree();
+	const OrbitCtrlCtor = three ? await loadChart3DOrbitControls() : null;
 	if (!three || !OrbitCtrlCtor) {
 		return BAR_CHART_THREE_UNAVAILABLE;
 	}
@@ -163,51 +156,39 @@ export async function mountBarChart3D(
 
 	// One mesh per data point, geometry chosen per box's resolved bar3D shape
 	// (`box`, `cone[ToMax]`, `cylinder`, `pyramid[ToMax]`; see
-	// {@link ./bar-chart-3d-geometry.ts}).
+	// {@link ./bar-chart-3d-geometry.ts}). `c:pictureOptions` picture-fill
+	// textures (see {@link ./bar-chart-3d-materials.ts}) share one texture
+	// manager across every box, so two boxes referencing the same picture
+	// load the image once.
+	const textureManager = createBarChart3DTextureManager(three);
 	const {
 		meshes: boxMeshes,
 		materials: boxMaterials,
 		geometries: boxGeometries,
-	} = buildBar3DMeshGroup(three, scene, options.boxes, options.horizontal);
+		materialDisposers: boxMaterialDisposers,
+	} = buildBar3DMeshGroup(
+		three,
+		scene,
+		options.boxes,
+		options.horizontal,
+		options.picture ? { context: options.picture, textures: textureManager } : undefined,
+	);
 
 	// Raycast-based hover tooltip: each box mesh carries its own (series,
 	// category, value) in `userData`, so a hit reports the cell directly (no
 	// face-index -> cell arithmetic, unlike the surface chart's single mesh).
-	const raycaster = new three.Raycaster();
-	const pointerNdc = new three.Vector2();
-	let hoveredTooltip: string | undefined;
-
-	const updateHoverTooltip = (clientX: number, clientY: number): void => {
-		const rect = canvas.getBoundingClientRect();
-		if (rect.width <= 0 || rect.height <= 0) {
-			return;
-		}
-		pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-		pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-		raycaster.setFromCamera(pointerNdc, camera);
-		const hits = raycaster.intersectObjects(boxMeshes, false);
-		const hit = hits[0]?.object.userData as BarChart3DHit | undefined;
-		const tooltip = buildBarChart3DHoverTooltip(hit, {
-			categoryLabels: options.categoryLabels,
-			seriesNames: options.seriesNames,
-			numberFormats: options.numberFormats,
-		});
-		if (tooltip !== hoveredTooltip) {
-			hoveredTooltip = tooltip;
-			canvas.title = tooltip ?? '';
-		}
-	};
-	const onPointerMove = (event: PointerEvent): void => {
-		updateHoverTooltip(event.clientX, event.clientY);
-	};
-	const onPointerLeave = (): void => {
-		if (hoveredTooltip !== undefined) {
-			hoveredTooltip = undefined;
-			canvas.title = '';
-		}
-	};
-	canvas.addEventListener('pointermove', onPointerMove);
-	canvas.addEventListener('pointerleave', onPointerLeave);
+	const hoverTooltip = attachChart3DHoverTooltip({
+		three,
+		canvas,
+		camera,
+		meshes: boxMeshes,
+		buildTooltip: (intersection) =>
+			buildBarChart3DHoverTooltip(intersection?.object.userData as BarChart3DHit | undefined, {
+				categoryLabels: options.categoryLabels,
+				seriesNames: options.seriesNames,
+				numberFormats: options.numberFormats,
+			}),
+	});
 
 	const controls = new OrbitCtrlCtor(camera, canvas);
 	controls.enablePan = true;
@@ -218,6 +199,23 @@ export async function mountBarChart3D(
 	controls.maxPolarAngle = Math.PI / 2 + 0.3;
 	controls.target.copy(target);
 	controls.update();
+
+	// Click-to-select + drag-to-value: raycasts the SAME box meshes the hover
+	// tooltip above uses (see bar-chart-3d-interaction-wiring.ts).
+	const pointerInteraction = attachBarChart3DInteraction({
+		three,
+		canvas,
+		camera,
+		controls,
+		width,
+		height,
+		boxMeshes,
+		boxMaterials: boxMaterials as unknown as HighlightableMaterialRef[],
+		boxes: options.boxes,
+		grouping: options.grouping,
+		horizontal: Boolean(options.horizontal),
+		interaction,
+	});
 
 	// Axis-label DOM overlay, re-projected to screen each frame.
 	const doc = container.ownerDocument ?? document;
@@ -231,24 +229,9 @@ export async function mountBarChart3D(
 		undefined,
 		options.horizontal,
 	);
-	const { layer, nodes } = createLabelOverlay(doc, labels);
-	container.appendChild(layer);
-	const anchors = labels.map((l) => new three.Vector3(...l.anchor));
-	const projected = new three.Vector3();
-
-	const updateLabels = (): void => {
-		for (let i = 0; i < nodes.length; i++) {
-			projected.copy(anchors[i]).project(camera);
-			const node = nodes[i];
-			if (projected.z > 1) {
-				node.style.display = 'none';
-				continue;
-			}
-			node.style.display = '';
-			node.style.left = `${((projected.x + 1) / 2) * width}px`;
-			node.style.top = `${((-projected.y + 1) / 2) * height}px`;
-		}
-	};
+	const labelProjector = createChart3DLabelProjector(three, doc, labels);
+	labelProjector.applyTextStyle(options.textStyle);
+	container.appendChild(labelProjector.layer);
 
 	let frame = 0;
 	let disposed = false;
@@ -259,7 +242,7 @@ export async function mountBarChart3D(
 		frame = requestAnimationFrame(renderLoop);
 		controls.update();
 		renderer.render(scene, camera);
-		updateLabels();
+		labelProjector.update(camera, width, height);
 	};
 	frame = requestAnimationFrame(renderLoop);
 
@@ -273,6 +256,13 @@ export async function mountBarChart3D(
 			renderer.setSize(width, height, false);
 			canvas.style.width = `${width}px`;
 			canvas.style.height = `${height}px`;
+			pointerInteraction.updateSize(width, height);
+		},
+		setSelectedPart(part: ChartPartRef | null) {
+			pointerInteraction.setSelectedPart(part);
+		},
+		setTextStyle(style: TextStyleAnimationDescriptor | undefined) {
+			labelProjector.applyTextStyle(style);
 		},
 		dispose() {
 			if (disposed) {
@@ -280,21 +270,22 @@ export async function mountBarChart3D(
 			}
 			disposed = true;
 			cancelAnimationFrame(frame);
-			canvas.removeEventListener('pointermove', onPointerMove);
-			canvas.removeEventListener('pointerleave', onPointerLeave);
+			hoverTooltip.dispose();
+			pointerInteraction.dispose();
 			controls.dispose();
 			for (const g of boxGeometries) {
 				g.dispose();
 			}
-			for (const m of boxMaterials) {
-				m.dispose();
+			for (const disposeMaterial of boxMaterialDisposers) {
+				disposeMaterial();
 			}
+			textureManager.disposeAll();
 			gridFloor.dispose();
 			walls?.dispose();
 			scene.clear();
 			renderer.dispose();
 			canvas.remove();
-			layer.remove();
+			labelProjector.layer.remove();
 		},
 	};
 }

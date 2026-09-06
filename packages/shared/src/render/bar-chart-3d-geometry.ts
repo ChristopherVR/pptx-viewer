@@ -24,6 +24,8 @@ import type * as THREE from 'three';
 
 import type { BarChart3DHit } from './bar-chart-3d-hit-test';
 import type { BarChart3DBox } from './bar-chart-3d-layout';
+import type { BarBoxPictureAssets } from './bar-chart-3d-materials';
+import { buildBarBoxMaterial } from './bar-chart-3d-materials';
 
 type ThreeModule = typeof THREE;
 
@@ -72,8 +74,11 @@ export function buildBar3DGeometry(
 /** The three per-box mesh resources the scene tracks for disposal/raycasting. */
 export interface BarChart3DMeshGroup {
 	meshes: THREE.Mesh[];
-	materials: THREE.Material[];
+	/** One material (no picture fill) or a 6-entry `BoxGeometry` face-material array (`c:pictureOptions` resolved) per box. */
+	materials: Array<THREE.Material | THREE.Material[]>;
 	geometries: THREE.BufferGeometry[];
+	/** Frees every box's own material(s) and any texture clone it owns (never the shared texture manager's base textures; see `BarChart3DTextureManager.disposeAll`). One entry per box, same order as `meshes`. */
+	materialDisposers: Array<() => void>;
 }
 
 /**
@@ -91,19 +96,25 @@ export interface BarChart3DMeshGroup {
  * instead of the ellipse a numeric width/height swap would produce. A plain
  * box shape looks identical either way (rotating a rectangular prism 90
  * degrees is the same as swapping two of its extents).
+ *
+ * `picture`, when given, resolves each box's `c:pictureOptions` picture-fill
+ * face targeting via {@link buildBarBoxMaterial}; omitted entirely, every box
+ * keeps its original single uniform `MeshPhongMaterial(box.color)`.
  */
 export function buildBar3DMeshGroup(
 	three: ThreeModule,
 	scene: THREE.Scene,
 	boxes: ReadonlyArray<BarChart3DBox>,
 	horizontal = false,
+	picture?: BarBoxPictureAssets,
 ): BarChart3DMeshGroup {
 	const meshes: THREE.Mesh[] = [];
-	const materials: THREE.Material[] = [];
+	const materials: Array<THREE.Material | THREE.Material[]> = [];
+	const materialDisposers: Array<() => void> = [];
 	const geometries: THREE.BufferGeometry[] = [];
 	for (const box of boxes) {
 		const geometry = buildBar3DGeometry(three, box.shape, box.coneToMaxTopRadiusFactor);
-		const material = new three.MeshPhongMaterial({ color: box.color, shininess: 30 });
+		const { material, dispose } = buildBarBoxMaterial(three, box, picture);
 		const mesh = new three.Mesh(geometry, material);
 		mesh.position.set(...box.center);
 		mesh.scale.set(...box.size);
@@ -118,7 +129,8 @@ export function buildBar3DMeshGroup(
 		scene.add(mesh);
 		meshes.push(mesh);
 		materials.push(material);
+		materialDisposers.push(dispose);
 		geometries.push(geometry);
 	}
-	return { meshes, materials, geometries };
+	return { meshes, materials, geometries, materialDisposers };
 }

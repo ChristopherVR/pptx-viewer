@@ -117,6 +117,7 @@ export function getP14TransitionAnimations(
 	durationMs: number,
 	direction: string | undefined,
 	orient?: string | undefined,
+	pattern?: string | undefined,
 ): SlideTransitionAnimations | undefined {
 	const dur = `${durationMs}ms`;
 	const ease = EASE;
@@ -245,13 +246,18 @@ export function getP14TransitionAnimations(
 			};
 
 		case 'shred': {
-			const pattern = direction === 'rectangles' ? 'rectangles' : 'strips';
+			// `p14:shred` names its tile shape via the SEPARATE `@_pattern`
+			// attribute (`strip` | `rectangle`), not `@_dir` (which is the
+			// unrelated `in`/`out` fly direction) - COM-verified: writing the
+			// pattern into `@_dir="rectangles"` instead of `@_pattern="rectangle"`
+			// produces a file real PowerPoint refuses to open at all ("PowerPoint
+			// could not open the file"), not merely a wrong render.
+			const isRectangles = pattern === 'rectangle';
 			return {
 				outgoing: `pptx-tr-shred-out ${dur} ${ease} forwards`,
-				incoming:
-					pattern === 'rectangles'
-						? `pptx-tr-shred-rectangles-in ${dur} ${ease} forwards`
-						: `pptx-tr-shred-strips-in ${dur} ${ease} forwards`,
+				incoming: isRectangles
+					? `pptx-tr-shred-rectangles-in ${dur} ${ease} forwards`
+					: `pptx-tr-shred-strips-in ${dur} ${ease} forwards`,
 				outgoingOnTop: true,
 			};
 		}

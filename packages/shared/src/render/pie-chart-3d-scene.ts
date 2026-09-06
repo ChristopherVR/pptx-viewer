@@ -17,6 +17,15 @@
  * `c:floor`/`c:sideWall`/`c:backWall` panels, matching PowerPoint's own
  * behaviour and the flat SVG engine's `chart-3d-surfaces.ts` doc comment.
  *
+ * A wedge is also drag-to-value, exactly like the flat SVG pie/doughnut:
+ * dragging sweeps its trailing edge around the pie's centre, and every other
+ * slice's ANGLE renormalises live (its own absolute value stays fixed, but the
+ * series total the pie's angles divide against changes) - see
+ * `pie-chart-3d-drag.ts` / `pie-chart-3d-interaction-wiring.ts`. Because the
+ * bar3D/line3D/area3D/surface3D drag calibration in
+ * `chart-3d-pointer-interaction.ts` only handles a single fixed WORLD axis,
+ * this scene wires its own pointer interaction instead of that shared one.
+ *
  * Mirrors {@link ./bar-chart-3d-scene.ts} (`mountBarChart3D`), the
  * established shape for this "optional three.js scene with a 2D SVG safety
  * net" pattern: `three` is an OPTIONAL peer dependency, every import is
@@ -26,20 +35,34 @@
  * @module pie-chart-3d-scene
  */
 
-import type * as THREE from 'three';
-import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+import { attachChart3DHoverTooltip } from './chart-3d-hover-tooltip';
+import type { HighlightableMaterialRef } from './chart-3d-mesh-highlight';
+import { loadChart3DOrbitControls, loadChart3DThree } from './chart-3d-three-loader';
+import type { ChartPartRef } from './chart-view-model';
 import type { PieChart3DSceneOptions } from './pie-chart-3d-data';
-import { computePieChart3DCameraPlacement } from './pie-chart-3d-geom';
+import {
+	computePieChart3DCameraPlacement,
+	computePieChart3DSliceAngles,
+} from './pie-chart-3d-geom';
+import type { PieChart3DSliceAngle } from './pie-chart-3d-geom';
 import { buildPieChart3DHoverTooltip } from './pie-chart-3d-hit-test';
 import type { PieChart3DHit } from './pie-chart-3d-hit-test';
+import { attachPieChart3DInteraction } from './pie-chart-3d-interaction-wiring';
+import type {
+	PieChart3DInteraction,
+	PieChart3DInteractionHandle,
+	PieChart3DWedgeAngleRef,
+} from './pie-chart-3d-interaction-wiring';
+import { applyPieChart3DWedgeAngles, buildPieChart3DWedgeMeshes } from './pie-chart-3d-mesh';
 
-type ThreeModule = typeof THREE;
+export type { PieChart3DInteraction };
 
 /** Imperative handle to a mounted pie3D chart view. */
 export interface PieChart3DHandle {
 	readonly ok: boolean;
 	resize: (width: number, height: number) => void;
+	/** Apply (or clear) the selected-wedge highlight, e.g. when selection changes via the inspector rather than a click on this scene. */
+	setSelectedPart: (part: ChartPartRef | null) => void;
 	dispose: () => void;
 }
 
@@ -47,32 +70,9 @@ export interface PieChart3DHandle {
 export const PIE_CHART_THREE_UNAVAILABLE: PieChart3DHandle = {
 	ok: false,
 	resize: () => {},
+	setSelectedPart: () => {},
 	dispose: () => {},
 };
-
-async function loadThree(): Promise<ThreeModule | null> {
-	try {
-		return (await import('three')) as ThreeModule;
-	} catch {
-		return null;
-	}
-}
-
-async function loadOrbitControlsCtor(): Promise<
-	(new (camera: THREE.Camera, dom: HTMLElement) => OrbitControls) | null
-> {
-	try {
-		const mod = await import('three/examples/jsm/controls/OrbitControls.js');
-		return mod.OrbitControls;
-	} catch {
-		return null;
-	}
-}
-
-/** Minimum radial segments per wedge so a thin slice is still visibly curved. */
-const MIN_RADIAL_SEGMENTS = 3;
-/** Radial segments for a full-circle wedge (360deg); scaled down for narrower slices. */
-const FULL_CIRCLE_SEGMENTS = 64;
 
 /**
  * Mount an interactive 3D pie chart into `container` and start rendering.
@@ -84,12 +84,18 @@ const FULL_CIRCLE_SEGMENTS = 64;
 export async function mountPieChart3D(
 	container: HTMLElement,
 	options: PieChart3DSceneOptions,
+	interaction?: PieChart3DInteraction,
 ): Promise<PieChart3DHandle> {
-	const three = await loadThree();
-	const OrbitCtrlCtor = three ? await loadOrbitControlsCtor() : null;
-	if (!three || !OrbitCtrlCtor) {
+	const threeModule = await loadChart3DThree();
+	const OrbitCtrlCtor = threeModule ? await loadChart3DOrbitControls() : null;
+	if (!threeModule || !OrbitCtrlCtor) {
 		return PIE_CHART_THREE_UNAVAILABLE;
 	}
+	// A stable non-null binding (rather than the `ThreeModule | null` `threeModule`
+	// above): TypeScript's control-flow narrowing from the guard above does not
+	// reliably survive into `recomputeLiveAngles` below, a hoisted function
+	// declaration referencing `three` from an enclosing scope.
+	const three = threeModule;
 
 	let width = Math.max(1, options.width);
 	let height = Math.max(1, options.height);
@@ -121,75 +127,35 @@ export async function mountPieChart3D(
 	const target = new three.Vector3(...placement.target);
 	camera.lookAt(target);
 
-	// One CylinderGeometry mesh per wedge: radiusTop = radiusBottom = outerRadius,
-	// height = thickness, capped (openEnded=false) so a partial thetaLength gets
-	// real flat top/bottom + curved rim + flat radial "cut" faces for free.
-	const wedgeMeshes: THREE.Mesh[] = [];
-	const wedgeGeometries: THREE.BufferGeometry[] = [];
-	const wedgeMaterials: THREE.Material[] = [];
-	for (const wedge of options.wedges) {
-		const segments = Math.max(
-			MIN_RADIAL_SEGMENTS,
-			Math.round((wedge.thetaLength / (Math.PI * 2)) * FULL_CIRCLE_SEGMENTS),
-		);
-		const geometry = new three.CylinderGeometry(
-			options.outerRadius,
-			options.outerRadius,
-			options.thickness,
-			segments,
-			1,
-			false,
-			wedge.startAngle,
-			wedge.thetaLength,
-		);
-		const material = new three.MeshPhongMaterial({ color: wedge.color, shininess: 30 });
-		const mesh = new three.Mesh(geometry, material);
-		mesh.position.set(wedge.explodeOffset[0], 0, wedge.explodeOffset[1]);
-		mesh.userData = { pointIndex: wedge.pointIndex, value: wedge.value } satisfies PieChart3DHit;
-		scene.add(mesh);
-		wedgeMeshes.push(mesh);
-		wedgeGeometries.push(geometry);
-		wedgeMaterials.push(material);
-	}
+	// One CylinderGeometry mesh per wedge (see pie-chart-3d-mesh.ts for why a
+	// partial-arc capped cylinder gets a full wedge shape for free).
+	const {
+		meshes: wedgeMeshes,
+		geometries: wedgeGeometries,
+		materials: wedgeMaterials,
+	} = buildPieChart3DWedgeMeshes(
+		three,
+		scene,
+		options.wedges,
+		options.outerRadius,
+		options.thickness,
+	);
 
 	// Raycast-based hover tooltip: each wedge mesh carries its own point index
 	// in `userData`, so a hit reports the slice directly (no face-index -> cell
 	// arithmetic, matching bar3D's box meshes).
-	const raycaster = new three.Raycaster();
-	const pointerNdc = new three.Vector2();
-	let hoveredTooltip: string | undefined;
-
-	const updateHoverTooltip = (clientX: number, clientY: number): void => {
-		const rect = canvas.getBoundingClientRect();
-		if (rect.width <= 0 || rect.height <= 0) {
-			return;
-		}
-		pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-		pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-		raycaster.setFromCamera(pointerNdc, camera);
-		const hits = raycaster.intersectObjects(wedgeMeshes, false);
-		const hit = hits[0]?.object.userData as PieChart3DHit | undefined;
-		const tooltip = buildPieChart3DHoverTooltip(hit, {
-			categoryLabels: options.categoryLabels,
-			seriesName: options.seriesName,
-			numberFormat: options.numberFormat,
-		});
-		if (tooltip !== hoveredTooltip) {
-			hoveredTooltip = tooltip;
-			canvas.title = tooltip ?? '';
-		}
-	};
-	const onPointerMove = (event: PointerEvent): void => {
-		updateHoverTooltip(event.clientX, event.clientY);
-	};
-	const onPointerLeave = (): void => {
-		if (hoveredTooltip !== undefined) {
-			hoveredTooltip = undefined;
-			canvas.title = '';
-		}
-	};
-	canvas.addEventListener('pointermove', onPointerMove);
-	canvas.addEventListener('pointerleave', onPointerLeave);
+	const hoverTooltip = attachChart3DHoverTooltip({
+		three,
+		canvas,
+		camera,
+		meshes: wedgeMeshes,
+		buildTooltip: (intersection) =>
+			buildPieChart3DHoverTooltip(intersection?.object.userData as PieChart3DHit | undefined, {
+				categoryLabels: options.categoryLabels,
+				seriesName: options.seriesName,
+				numberFormat: options.numberFormat,
+			}),
+	});
 
 	const controls = new OrbitCtrlCtor(camera, canvas);
 	controls.enablePan = true;
@@ -200,6 +166,66 @@ export async function mountPieChart3D(
 	controls.maxPolarAngle = Math.PI / 2 + 0.3;
 	controls.target.copy(target);
 	controls.update();
+
+	// Live wedge-angle snapshot, updated by `recomputeLiveAngles` on every value
+	// drag preview/commit tick so `getWedges` (re-read by the interaction
+	// wiring at the start of every press) always reflects the on-screen
+	// geometry, even across several drags within one mount, before any commit
+	// round-trips through the caller and remounts the whole scene fresh.
+	let currentAngles: readonly PieChart3DSliceAngle[] = options.wedges;
+	let liveValues = options.values.slice();
+
+	/** Recompute every wedge's angle from `liveValues` (one value already replaced by the caller) and rebuild its mesh. */
+	function recomputeLiveAngles(): void {
+		const angles = computePieChart3DSliceAngles(
+			liveValues,
+			options.explosions,
+			options.firstSliceAngleDeg,
+			options.outerRadius,
+		);
+		currentAngles = angles;
+		applyPieChart3DWedgeAngles(
+			three,
+			wedgeMeshes,
+			wedgeGeometries,
+			options.outerRadius,
+			options.thickness,
+			angles,
+		);
+	}
+
+	// Click-to-select + drag-to-value: each wedge is its own mesh, so it gets
+	// the same emissive highlight bar3D/line3D/area3D marks do, and the ANGLE
+	// drag (see the module doc comment) is wired through
+	// `pie-chart-3d-interaction-wiring.ts` rather than the generic
+	// single-fixed-axis calibration `chart-3d-pointer-interaction.ts` uses for
+	// bar3D/line3D/area3D/surface3D.
+	const pointerInteraction: PieChart3DInteractionHandle = attachPieChart3DInteraction({
+		three,
+		canvas,
+		camera,
+		controls,
+		wedgeMeshes,
+		wedgeMaterials: wedgeMaterials as unknown as HighlightableMaterialRef[],
+		getWedges: (): readonly PieChart3DWedgeAngleRef[] => currentAngles,
+		interaction: {
+			onSelect: interaction?.onSelect,
+			onValueDragPreview: (part, value) => {
+				if (part.pointIndex !== undefined) {
+					liveValues = liveValues.map((v, i) => (i === part.pointIndex ? value : v));
+					recomputeLiveAngles();
+				}
+				interaction?.onValueDragPreview?.(part, value);
+			},
+			onValueDragCommit: (part, value) => {
+				if (part.pointIndex !== undefined) {
+					liveValues = liveValues.map((v, i) => (i === part.pointIndex ? value : v));
+					recomputeLiveAngles();
+				}
+				interaction?.onValueDragCommit?.(part, value);
+			},
+		},
+	});
 
 	let frame = 0;
 	let disposed = false;
@@ -223,6 +249,14 @@ export async function mountPieChart3D(
 			renderer.setSize(width, height, false);
 			canvas.style.width = `${width}px`;
 			canvas.style.height = `${height}px`;
+			// No `updateSize`: unlike the generic `chart-3d-pointer-interaction.ts`
+			// (which caches width/height to project a calibration to screen space
+			// once at drag-start), this scene's own wiring re-derives the pointer's
+			// NDC position from `canvas.getBoundingClientRect()` on every raycast,
+			// so it needs no cached size to keep in sync.
+		},
+		setSelectedPart(part: ChartPartRef | null) {
+			pointerInteraction.setSelectedPart(part);
 		},
 		dispose() {
 			if (disposed) {
@@ -230,8 +264,8 @@ export async function mountPieChart3D(
 			}
 			disposed = true;
 			cancelAnimationFrame(frame);
-			canvas.removeEventListener('pointermove', onPointerMove);
-			canvas.removeEventListener('pointerleave', onPointerLeave);
+			hoverTooltip.dispose();
+			pointerInteraction.dispose();
 			controls.dispose();
 			for (const g of wedgeGeometries) {
 				g.dispose();

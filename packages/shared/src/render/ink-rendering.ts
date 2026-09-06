@@ -20,6 +20,8 @@
 
 import type { InkPptxElement, ContentPartInkStroke } from 'pptx-viewer-core';
 
+import { sampleCubicSegment, sampleQuadSegment } from './ink-curve-sampling';
+
 // ==========================================================================
 // SVG path point extraction
 // ==========================================================================
@@ -69,93 +71,6 @@ function tokenizeSvgPath(d: string): RawPathToken[] {
 	}
 	flush();
 	return tokens;
-}
-
-function distance(a: PathPoint, b: PathPoint): number {
-	return Math.hypot(b.x - a.x, b.y - a.y);
-}
-
-/** Target spacing (px) between curve samples, before min/max clamping. */
-const CURVE_SAMPLE_SPACING_PX = 4;
-/** Always sample at least this many interior points per curve segment. */
-const CURVE_MIN_SAMPLES = 4;
-/** Cap samples per curve segment so a huge curve can't blow up point count. */
-const CURVE_MAX_SAMPLES = 24;
-
-/**
- * Number of `t` steps to evaluate along a curve segment, scaled by its
- * control-polygon ("hull") length so longer or tighter curves get
- * proportionally more samples.
- */
-function curveSampleCount(hullLength: number): number {
-	const raw = Math.ceil(hullLength / CURVE_SAMPLE_SPACING_PX);
-	return Math.max(CURVE_MIN_SAMPLES, Math.min(CURVE_MAX_SAMPLES, raw));
-}
-
-/** Evaluate a cubic Bezier at parameter `t` via De Casteljau's algorithm. */
-function cubicBezierAt(
-	p0: PathPoint,
-	p1: PathPoint,
-	p2: PathPoint,
-	p3: PathPoint,
-	t: number,
-): PathPoint {
-	const mt = 1 - t;
-	const a = { x: mt * p0.x + t * p1.x, y: mt * p0.y + t * p1.y };
-	const b = { x: mt * p1.x + t * p2.x, y: mt * p1.y + t * p2.y };
-	const c = { x: mt * p2.x + t * p3.x, y: mt * p2.y + t * p3.y };
-	const ab = { x: mt * a.x + t * b.x, y: mt * a.y + t * b.y };
-	const bc = { x: mt * b.x + t * c.x, y: mt * b.y + t * c.y };
-	return { x: mt * ab.x + t * bc.x, y: mt * ab.y + t * bc.y };
-}
-
-/** Evaluate a quadratic Bezier at parameter `t` via De Casteljau's algorithm. */
-function quadBezierAt(p0: PathPoint, p1: PathPoint, p2: PathPoint, t: number): PathPoint {
-	const mt = 1 - t;
-	const a = { x: mt * p0.x + t * p1.x, y: mt * p0.y + t * p1.y };
-	const b = { x: mt * p1.x + t * p2.x, y: mt * p1.y + t * p2.y };
-	return { x: mt * a.x + t * b.x, y: mt * a.y + t * b.y };
-}
-
-/** Append the interior + endpoint samples for a cubic curve segment starting at `current`. */
-function sampleCubicSegment(
-	points: PathPoint[],
-	current: PathPoint | undefined,
-	p1: PathPoint,
-	p2: PathPoint,
-	end: PathPoint,
-): PathPoint {
-	if (!current) {
-		// No known start point (malformed path): fall back to the raw
-		// control points rather than dropping data.
-		points.push(p1, p2, end);
-		return end;
-	}
-	const hull = distance(current, p1) + distance(p1, p2) + distance(p2, end);
-	const samples = curveSampleCount(hull);
-	for (let i = 1; i <= samples; i++) {
-		points.push(cubicBezierAt(current, p1, p2, end, i / samples));
-	}
-	return end;
-}
-
-/** Append the interior + endpoint samples for a quadratic curve segment starting at `current`. */
-function sampleQuadSegment(
-	points: PathPoint[],
-	current: PathPoint | undefined,
-	cp: PathPoint,
-	end: PathPoint,
-): PathPoint {
-	if (!current) {
-		points.push(cp, end);
-		return end;
-	}
-	const hull = distance(current, cp) + distance(cp, end);
-	const samples = curveSampleCount(hull);
-	for (let i = 1; i <= samples; i++) {
-		points.push(quadBezierAt(current, cp, end, i / samples));
-	}
-	return end;
 }
 
 /**

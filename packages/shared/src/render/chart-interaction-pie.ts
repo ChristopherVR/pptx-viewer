@@ -59,22 +59,26 @@ export function buildPieDragGeometry(
 }
 
 /**
- * New value for the dragged slice given the pointer's (view-box) position.
- * The slice's leading edge stays put; the span from there to the pointer's
- * angle becomes the slice's new share of the series total, and
+ * New value for a slice given the pointer's angle (radians, same convention
+ * as {@link PieDragGeometry.startAngle}/`leadingAngle`) and the series'
+ * values. The slice's leading edge stays put; the span from there to the
+ * pointer's angle becomes the slice's new share of the series total, and
  * {@link shareToValue} converts that share back to an absolute value holding
  * every other (unchanged) slice's value fixed.
+ *
+ * Split out of {@link resolvePieDragValue} so the interactive 3D pie scene
+ * (`pie-chart-3d-drag.ts`) can reuse the SAME renormalisation formula from a
+ * pointer angle it derives its own way (a raycast against the pie's plane,
+ * rather than `atan2` over a 2D view-box position), so a dragged pie3D wedge
+ * renormalises identically to its flat SVG counterpart.
  */
-export function resolvePieDragValue(
-	geometry: PieDragGeometry,
-	pointerX: number,
-	pointerY: number,
+export function resolvePieSliceShareValue(
+	pointerAngle: number,
+	leadingAngle: number,
+	values: readonly number[],
+	pointIndex: number,
 ): number {
-	const { cx, cy, values, pointIndex, startAngle } = geometry,
-		total = values.reduce((sum, v) => sum + Math.abs(v), 0) || 1,
-		before = values.slice(0, pointIndex).reduce((sum, v) => sum + Math.abs(v), 0),
-		leadingAngle = startAngle + (before / total) * TWO_PI,
-		pointerAngle = Math.atan2(pointerY - cy, pointerX - cx),
+	const total = values.reduce((sum, v) => sum + Math.abs(v), 0) || 1,
 		rawSpan = ((pointerAngle - leadingAngle) % TWO_PI) + TWO_PI,
 		span = Math.min(Math.max(rawSpan % TWO_PI, ANGLE_EPSILON), TWO_PI - ANGLE_EPSILON),
 		share = span / TWO_PI,
@@ -88,4 +92,23 @@ export function resolvePieDragValue(
 			span: Math.max(total, absValue, 1),
 		};
 	return roundDragValue(sign * absValue, range);
+}
+
+/**
+ * New value for the dragged slice given the pointer's (view-box) position.
+ * See {@link resolvePieSliceShareValue} for the renormalisation itself; this
+ * wrapper only derives the pointer's angle and the slice's own leading edge
+ * from the 2D drag geometry.
+ */
+export function resolvePieDragValue(
+	geometry: PieDragGeometry,
+	pointerX: number,
+	pointerY: number,
+): number {
+	const { cx, cy, values, pointIndex, startAngle } = geometry,
+		total = values.reduce((sum, v) => sum + Math.abs(v), 0) || 1,
+		before = values.slice(0, pointIndex).reduce((sum, v) => sum + Math.abs(v), 0),
+		leadingAngle = startAngle + (before / total) * TWO_PI,
+		pointerAngle = Math.atan2(pointerY - cy, pointerX - cx);
+	return resolvePieSliceShareValue(pointerAngle, leadingAngle, values, pointIndex);
 }

@@ -59,20 +59,27 @@
  * measurement confirms the corrected reading matches PowerPoint exactly, so
  * `pie` is listed below with the rest.
  *
- * `sun` is NOT listed. It deliberately keeps a pre-existing hand-derived
- * `rect` (`preset-shape-definitions-misc.ts`, `discL`/`discT`/`discR`/
- * `discB`, the central disc's own extents) rather than an ECMA transcription
- * (there is no `preset-text-rect-*.ts` override for it), and this wave's COM
- * measurement shows that hand-derived rect is ALSO wrong: at 200x100pt and
- * the default `adj`, PowerPoint measures l=64.65,t=32.32,r=135.27,b=67.68,
- * while the disc rect evaluates to l=50,t=25,r=150,b=75 (7.3% off, well
- * outside the 0.02 tolerance every other entry here meets). The closest
- * re-derivation tried (the diagonal ray's inner band edge: that file's own
- * `mL`/`mT`/`mR`/`mB` guides) still misses by a consistent ~1.5% on every
- * edge, an order of magnitude worse than the sub-0.1% every formula in this
- * module otherwise achieves, so it was not adopted as a guess. `sun` stays
- * off this list, with the measured ground truth recorded here for whoever
- * picks this up next.
+ * `sun` IS now listed (2026-09-06). At the time this comment was first written
+ * it deliberately kept a pre-existing hand-derived `rect`
+ * (`preset-shape-definitions-misc.ts`, `discL`/`discT`/`discR`/`discB`, the
+ * central disc's own extents), and a COM measurement showed that rect was
+ * wrong: at 200x100pt and the default `adj`, PowerPoint measures
+ * l=64.65,t=32.32,r=135.27,b=67.68, while the disc rect evaluated to
+ * l=50,t=25,r=150,b=75 (7.3% off, well outside the 0.02 tolerance every other
+ * entry here meets), and the closest re-derivation tried then (the diagonal
+ * ray's inner band edge) still missed by ~1.5% on every edge. A later
+ * geometry fix (`preset-shape-definitions-misc.ts`, commit `1da163776`)
+ * replaced the rect with the disc's OWN inscribed axis-aligned rectangle
+ * (touching the disc ellipse at 45deg, the same construction `ellipse`'s own
+ * text rect uses against its full bounding ellipse): `trl`/`trt`/`trr`/`trb`,
+ * built from `cos`/`sin` guides against the disc radius. Re-measured via COM
+ * (PowerPoint 2016) against that same target (l=64.65,t=32.32,r=135.27,
+ * b=67.68 at 200x100pt) and a second aspect ratio (l=51.72,t=38.79,
+ * r=108.22,b=81.21 at 160x120pt), the new formula matches both within 0.1%,
+ * so `sun` now belongs on this list too (see
+ * `preset-text-rect.test.ts`'s `sun` case for the regression guard). This
+ * closes the module's last remaining gap: every preset this project carries a
+ * geometry-table `rect` for is now COM-verified.
  */
 export const VERIFIED_TEXT_RECT_PRESETS: ReadonlySet<string> = new Set([
 	// Straight and bent arrows.
@@ -272,4 +279,7 @@ export const VERIFIED_TEXT_RECT_PRESETS: ReadonlySet<string> = new Set([
 	'squaretabs',
 	'plaque',
 	'foldedcorner',
+	// COM-verified 2026-09-06, after `preset-shape-definitions-misc.ts` fixed
+	// the disc's own inscribed rect. See the module doc comment above.
+	'sun',
 ]);

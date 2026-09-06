@@ -120,6 +120,8 @@ describe('collaboration-sync: element field coverage', () => {
 			inkOpacities: [1],
 			inkTool: 'pen',
 			inkPointPressures: [[0.5, 0.6]],
+			inkPointTiltX: [[10, 30]],
+			inkPointTiltY: [[0, -15]],
 		};
 		expect(roundTripElement(ink)).toStrictEqual(ink);
 	});

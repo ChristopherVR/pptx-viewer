@@ -1,10 +1,13 @@
 /**
  * `animation-media-end-gating`: bridges a real `<audio>`/`<video>` element's
  * `ended` DOM event to the {@link TimelineStep}s whose OOXML start condition
- * is `p:cond/@evt="onStopAudio"` targeting that SPECIFIC media time node
- * (ECMA-376 S19.5.28 CT_TLTimeCondition), rather than the estimated-duration
- * delay `animation-timeline-builder` bakes into `TimelineStep.delayMs` (and
- * into `TimelineStep.cssAnimation`'s own `animation-delay`) as a fallback.
+ * is `p:cond/@evt="onStopAudio"` targeting that SPECIFIC media element,
+ * whether named by time-node id (`@_tn`, `dependsOnTimeNodeId`) or by shape
+ * (`p:tgtEl/p:spTgt`, `dependsOnShapeId`) - `CT_TLTimeCondition` (ECMA-376
+ * S19.5.28/19.5.31) allows either as an alternative way to say "this specific
+ * one" - rather than the estimated-duration delay `animation-timeline-builder`
+ * bakes into `TimelineStep.delayMs` (and into `TimelineStep.cssAnimation`'s
+ * own `animation-delay`) as a fallback.
  *
  * PowerPoint's own duration for the referenced audio node is only an ESTIMATE
  * of how long the clip actually plays: a variable-length or `p14:trim`med
@@ -39,12 +42,16 @@ import type { PlaybackContext } from './animation-playback-engine';
 import type { TimelineClickGroup, TimelineStep } from './animation-timeline-types';
 
 /**
- * Whether `step` waits for a SPECIFIC media time node's real completion
- * (`p:cond/@evt="onStopAudio"` with `@tn`), rather than resolving entirely
- * from a fixed computed delay.
+ * Whether `step` waits for a SPECIFIC media element's real completion
+ * (`p:cond/@evt="onStopAudio"` naming its dependency by either `@tn`
+ * (`dependsOnTimeNodeId`) or `p:tgtEl/p:spTgt` (`dependsOnShapeId`)), rather
+ * than resolving entirely from a fixed computed delay.
  */
 export function isMediaEndGated(step: TimelineStep): boolean {
-	return step.dependsOnEvent === 'onStopAudio' && step.dependsOnTimeNodeId !== undefined;
+	return (
+		step.dependsOnEvent === 'onStopAudio' &&
+		(step.dependsOnTimeNodeId !== undefined || step.dependsOnShapeId !== undefined)
+	);
 }
 
 /**
@@ -53,6 +60,11 @@ export function isMediaEndGated(step: TimelineStep): boolean {
  * `ended` handler (matched by that media's own timeline node id) to apply
  * those steps immediately via {@link zeroDelayCssAnimation}, rather than
  * waiting out (or racing) the pre-computed `delayMs` estimate.
+ *
+ * Only matches the `@tn` (time-node id) dependency form; a `p:tgtEl/p:spTgt`
+ * (shape id) dependency is resolved directly by {@link wireMediaEndedSteps}
+ * without going through a node-id lookup, so it has no equivalent id to pass
+ * here.
  */
 export function findMediaEndGatedSteps(
 	group: TimelineClickGroup | null | undefined,
@@ -115,20 +127,33 @@ export function zeroDelayCssAnimation(cssAnimation: string): string {
  */
 /**
  * Wire every media-end-gated step in `group` to its real `<audio>`/`<video>`
- * element's `ended` event, when `ctx.mediaTimeNodeElementIds` (see
- * {@link resolveMediaTimeNodeElementIds}) resolves the dependency to an
- * element actually mounted on the stage (scoped to `ctx.frameRoot`). Called
- * once per group application by `animation-playback-engine`'s
+ * element's `ended` event. The target element is resolved one of two ways,
+ * matching the OOXML choice `p:cond` makes between `@tn` and `p:tgtEl`:
+ *
+ *  - {@link TimelineStep.dependsOnShapeId} (`p:tgtEl/p:spTgt`): resolved
+ *    DIRECTLY by `data-element-id` via {@link findMediaElementByElementId},
+ *    scoped to `ctx.frameRoot`. No per-slide map needed since the shape id
+ *    already names the element.
+ *  - {@link TimelineStep.dependsOnTimeNodeId} (`@tn`): looked up through
+ *    `ctx.mediaTimeNodeElementIds` (see {@link resolveMediaTimeNodeElementIds})
+ *    first, since a time-node id is not itself an element id.
+ *
+ * Called once per group application by `animation-playback-engine`'s
  * `applyAnimationGroupSteps`; a context with no real media element for the
- * dependency (export/headless, or `mediaTimeNodeElementIds` omitted) is a
- * no-op, leaving the estimate-based fallback as the only trigger.
+ * dependency (export/headless, an unmounted element, or
+ * `mediaTimeNodeElementIds` omitted for the `@tn` form) is a no-op, leaving
+ * the estimate-based fallback as the only trigger.
  */
 export function wireMediaEndedSteps(group: TimelineClickGroup, ctx: PlaybackContext): void {
 	for (const step of group.steps) {
-		if (step.command || !isMediaEndGated(step) || step.dependsOnTimeNodeId === undefined) {
+		if (step.command || !isMediaEndGated(step)) {
 			continue;
 		}
-		const mediaElementId = ctx.mediaTimeNodeElementIds?.get(step.dependsOnTimeNodeId);
+		const mediaElementId =
+			step.dependsOnShapeId ??
+			(step.dependsOnTimeNodeId !== undefined
+				? ctx.mediaTimeNodeElementIds?.get(step.dependsOnTimeNodeId)
+				: undefined);
 		const mediaEl = mediaElementId
 			? findMediaElementByElementId(mediaElementId, ctx.frameRoot?.())
 			: undefined;

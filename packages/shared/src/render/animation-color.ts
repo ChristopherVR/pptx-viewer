@@ -5,7 +5,8 @@
  * @module render/animation-color
  */
 
-import type { PptxColorAnimation } from 'pptx-viewer-core';
+import type { PptxColorAnimation, PptxThemeColorRef } from 'pptx-viewer-core';
+import { resolveThemeColorRef } from 'pptx-viewer-core';
 
 import type { ColorAnimationTarget } from './animation-timeline-types';
 
@@ -295,32 +296,55 @@ function relativeHslColor(
 	return `hsl(from ${baseColorForProperty(property)} calc(h + ${hue}) calc(s + ${saturation}) calc(l + ${lightness}) / alpha)`;
 }
 
+/**
+ * Resolve one `p:animClr` colour value to a real `#rrggbb` hex: `raw` already
+ * IS one for an `a:srgbClr` stop, but for an `a:schemeClr` stop (e.g.
+ * `accent1`) it is the bare scheme name, which needs `ref` (its
+ * tint/shade/lumMod/lumOff/alpha, captured alongside it) resolved against the
+ * deck's theme colour map. Returns `undefined` when `raw` is absent, already
+ * hex-invalid, or a scheme name with no map (or no matching slot) to resolve
+ * it against, so the caller falls back exactly as it did before scheme
+ * colours were understood here.
+ */
+function resolveComponentColorHex(
+	raw: string | undefined,
+	ref: PptxThemeColorRef | undefined,
+	themeColorMap: Readonly<Record<string, string>> | undefined,
+): string | undefined {
+	if (!raw) {
+		return undefined;
+	}
+	if (HEX_COLOR.test(raw)) {
+		return raw;
+	}
+	return ref ? resolveThemeColorRef(ref, themeColorMap) : undefined;
+}
+
 /** Resolve an ordinary absolute/RGB-delta component at one progress stop. */
 function absoluteComponentColor(
 	component: PptxColorAnimation,
 	progress: number,
+	themeColorMap: Readonly<Record<string, string>> | undefined,
 ): string | undefined {
-	const { colorSpace, direction, fromColor, toColor, byColor } = component;
+	const { colorSpace, direction } = component;
+	const fromColor = resolveComponentColorHex(
+		component.fromColor,
+		component.fromColorRef,
+		themeColorMap,
+	);
+	const toColor = resolveComponentColorHex(component.toColor, component.toColorRef, themeColorMap);
+	const byColor = resolveComponentColorHex(component.byColor, component.byColorRef, themeColorMap);
 	let effectiveFrom: string;
 	let effectiveTo: string;
 	if (fromColor && toColor) {
-		if (!HEX_COLOR.test(fromColor) || !HEX_COLOR.test(toColor)) {
-			return undefined;
-		}
 		effectiveFrom = fromColor;
 		effectiveTo = toColor;
 	} else if (fromColor && byColor) {
-		if (!HEX_COLOR.test(fromColor) || !HEX_COLOR.test(byColor)) {
-			return undefined;
-		}
 		const fromRgb = hexToRgb(fromColor);
 		const byRgb = hexToRgb(byColor);
 		effectiveFrom = fromColor;
 		effectiveTo = rgbToHex(fromRgb.r + byRgb.r, fromRgb.g + byRgb.g, fromRgb.b + byRgb.b);
 	} else if (toColor) {
-		if (!HEX_COLOR.test(toColor)) {
-			return undefined;
-		}
 		effectiveFrom = '#000000';
 		effectiveTo = toColor;
 	} else {
@@ -345,6 +369,7 @@ export function buildColorAnimationKeyframes(
 	colorAnim: PptxColorAnimation,
 	keyframeName: string,
 	steps: number = 10,
+	themeColorMap?: Readonly<Record<string, string>>,
 ): string | undefined {
 	const components = colorAnimationComponents(colorAnim);
 	if (
@@ -368,19 +393,24 @@ export function buildColorAnimationKeyframes(
 		for (const component of components) {
 			const cssProperties = resolveCssProperties(component.targetAttribute);
 			if (component.hslDelta) {
-				if (component.fromColor && !HEX_COLOR.test(component.fromColor)) {
+				const hslFromColor = resolveComponentColorHex(
+					component.fromColor,
+					component.fromColorRef,
+					themeColorMap,
+				);
+				if (component.fromColor && !hslFromColor) {
 					continue;
 				}
 				for (const property of cssProperties) {
-					const color = component.fromColor
-						? applyHslDelta(component.fromColor, component.hslDelta, t)
+					const color = hslFromColor
+						? applyHslDelta(hslFromColor, component.hslDelta, t)
 						: relativeHslColor(property, component.hslDelta, t);
 					declarations.push(`${property}: ${color};`);
 					hasDeclarations = true;
 				}
 				continue;
 			}
-			const color = absoluteComponentColor(component, t);
+			const color = absoluteComponentColor(component, t, themeColorMap);
 			if (color) {
 				declarations.push(...cssProperties.map((property) => `${property}: ${color};`));
 				hasDeclarations = true;

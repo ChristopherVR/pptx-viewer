@@ -31,8 +31,10 @@ import type {
 	PptxElement,
 } from 'pptx-viewer-core';
 
+import type { TextStyleAnimationDescriptor } from './animation-text-style-resolve';
 import type { BarChart3DBox, CartesianChart3DPoint } from './bar-chart-3d-layout';
 import { layoutBarChart3D } from './bar-chart-3d-layout';
+import type { BarBoxPictureContext } from './bar-chart-3d-materials';
 import type { CartesianCameraView3D } from './cartesian-chart-3d-geom';
 import { resolveChart3DWallColors } from './chart-3d-surfaces';
 import { resolveDataPointFill } from './chart-datapoint-style';
@@ -69,6 +71,16 @@ export interface BarChart3DSceneOptions {
 	 * Z so non-box shapes (cylinder/cone/pyramid) keep a true cross-section.
 	 */
 	horizontal?: boolean;
+	/** Active font-style emphasis override (bold/italic/underline/size/colour) for the axis labels. */
+	textStyle?: TextStyleAnimationDescriptor;
+	/**
+	 * `c:ser`/`c:dPt` picture-fill inputs for `c:pictureOptions` face
+	 * targeting (see `bar-chart-3d-face-fill.ts`). Always populated by
+	 * {@link buildBarChart3DData} (the chart's own series list); a hand-built
+	 * `BarChart3DSceneOptions` fixture may omit it, which keeps every box a
+	 * single uniform coloured material (the pre-existing behaviour).
+	 */
+	picture?: BarBoxPictureContext;
 }
 
 export interface BarChart3DDataOptions {
@@ -168,6 +180,7 @@ export function buildBarChart3DData(
 				}
 			: undefined,
 		wallColors: resolveChart3DWallColors(chartData),
+		picture: { series: chartData.series },
 		...(horizontal ? { horizontal: true } : {}),
 	};
 }

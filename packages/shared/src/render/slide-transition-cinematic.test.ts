@@ -12,6 +12,7 @@ const DUR = 800;
 /** Every p15 cinematic type this module owns. */
 const CINEMATIC_TYPES: readonly PptxTransitionType[] = [
 	'cube',
+	'box',
 	'flip',
 	'rotate',
 	'orbit',
@@ -80,6 +81,37 @@ describe('getCinematicTransitionAnimations', () => {
 		expect(signatures.size).toBe(CINEMATIC_TYPES.length);
 	});
 
+	it('gives box its own keyframes, distinct from cube (not a reused pair)', () => {
+		const box = getCinematicTransitionAnimations('box', DUR, 'l');
+		const cube = getCinematicTransitionAnimations('cube', DUR, 'l');
+		expect(box?.outgoing).toContain('pptx-tr-box-out-left');
+		expect(box?.incoming).toContain('pptx-tr-box-in-left');
+		expect(box?.outgoing).not.toBe(cube?.outgoing);
+		expect(box?.incoming).not.toBe(cube?.incoming);
+	});
+
+	it('recedes box in depth (translateZ) unlike cube, which stays on the screen plane', () => {
+		const block = (name: string): string => {
+			const start = CINEMATIC_TRANSITION_KEYFRAMES.indexOf(`@keyframes ${name} `);
+			expect(start).toBeGreaterThanOrEqual(0);
+			const next = CINEMATIC_TRANSITION_KEYFRAMES.indexOf('@keyframes', start + 1);
+			return CINEMATIC_TRANSITION_KEYFRAMES.slice(start, next < 0 ? undefined : next);
+		};
+		expect(block('pptx-tr-box-out-left')).toContain('translateZ');
+		expect(block('pptx-tr-cube-out-left')).not.toContain('translateZ');
+	});
+
+	it('respects direction for box (left/right/up/down are distinct)', () => {
+		const left = getCinematicTransitionAnimations('box', DUR, 'l');
+		const right = getCinematicTransitionAnimations('box', DUR, 'r');
+		const up = getCinematicTransitionAnimations('box', DUR, 'u');
+		const down = getCinematicTransitionAnimations('box', DUR, 'd');
+		expect(left?.outgoing).toContain('pptx-tr-box-out-left');
+		expect(right?.outgoing).toContain('pptx-tr-box-out-right');
+		expect(up?.outgoing).toContain('pptx-tr-box-out-up');
+		expect(down?.outgoing).toContain('pptx-tr-box-out-down');
+	});
+
 	it('respects direction for cube (left/right/up/down are distinct)', () => {
 		const left = getCinematicTransitionAnimations('cube', DUR, 'l');
 		const right = getCinematicTransitionAnimations('cube', DUR, 'r');
@@ -91,13 +123,30 @@ describe('getCinematicTransitionAnimations', () => {
 		expect(down?.outgoing).toContain('pptx-tr-cube-out-down');
 	});
 
-	it('maps rotate direction to clockwise / counter-clockwise spin', () => {
+	it('resolves rotate to a Cube-family screen-flush hinge, all four directions (COM CreateVideo measured)', () => {
+		// Rotate shares Cube's OOXML element (`isContent="1"`) and, per COM
+		// measurement, its motion: a full four-direction hinge, not the old
+		// cw/ccw binary that silently dropped up/down.
 		expect(getCinematicTransitionAnimations('rotate', DUR, 'r')?.outgoing).toContain(
-			'pptx-tr-rotate-out-cw',
+			'pptx-tr-rotate-out-right',
 		);
 		expect(getCinematicTransitionAnimations('rotate', DUR, 'l')?.outgoing).toContain(
-			'pptx-tr-rotate-out-ccw',
+			'pptx-tr-rotate-out-left',
 		);
+		expect(getCinematicTransitionAnimations('rotate', DUR, 'u')?.outgoing).toContain(
+			'pptx-tr-rotate-out-up',
+		);
+		expect(getCinematicTransitionAnimations('rotate', DUR, 'd')?.outgoing).toContain(
+			'pptx-tr-rotate-out-down',
+		);
+		// No depth gap: unlike Orbit/Box, Rotate/Cube keep a screen-flush hinge.
+		expect(getCinematicTransitionAnimations('rotate', DUR, 'l')?.outgoingOnTop).toBeFalsy();
+	});
+
+	it('resolves orbit to a Box-family depth-recede pair, distinct from the old translateZ-only recede', () => {
+		const animations = getCinematicTransitionAnimations('orbit', DUR, 'l');
+		expect(animations?.outgoing).toContain('pptx-tr-orbit-out-left');
+		expect(animations?.incoming).toContain('pptx-tr-orbit-in-left');
 	});
 
 	it('blows wind left or right per direction', () => {

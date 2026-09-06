@@ -1,185 +1,245 @@
 /**
  * Legacy PowerPoint 97-2003 "shade to title colour" background effect.
  *
- * `<p:bgPr shadeToTitle="1">` (ECMA-376 Part 1, Section19.3.1.2,
+ * `<p:bgPr shadeToTitle="1">` (ECMA-376 Part 1, Section 19.3.1.2,
  * `CT_BackgroundProperties`) marks a slide's background gradient to shade
- * toward the title placeholder's text colour. It was exposed in the
- * PowerPoint 97-2003 "Background" dialog's two-colour shaded-fill picker as a
- * "Shade to title color" checkbox; no PowerPoint version since 2007 exposes a
- * UI control that writes it, and it has never been observed in this
- * project's real-world corpus (see `docs/guide/limitations.md`).
+ * toward the title placeholder. It was exposed in the PowerPoint 97-2003
+ * "Background" dialog's two-colour shaded-fill picker as a "Shade to title
+ * color" checkbox; no PowerPoint version since 2007 exposes a UI control that
+ * writes it, and it has never been observed in this project's real-world
+ * corpus (see `docs/guide/limitations.md`).
  *
- * No published ECMA-376 or MS-ODRAWXML text documents the exact resulting
- * blend, so {@link shadeGradientTowardTitle} is a best-reasoned
- * approximation rather than a byte-for-byte match of legacy PowerPoint's
- * renderer: it recolours the gradient's LAST stop (the one nearest the edge
- * of the slide, opposite the direction the gradient starts from) to the
- * title's resolved text colour, preserving that stop's position and alpha
- * and leaving every other stop, the gradient type, and its angle/shape
- * untouched. This reflects the flag's documented intent ("shade background
- * TOWARD the title colour") without a documented ground truth to verify the
- * exact stop position, interpolation curve, or how many stops legacy
- * PowerPoint actually touched.
+ * COM-measured ground truth (2026-09-06, PowerPoint 2016 x64, via a hand-built
+ * two-stop `<a:gradFill>` blue(0%)/green(100%) linear gradient plus a real
+ * `ctrTitle` placeholder, `Slide.Export` PNG diffed pixel-by-pixel, then a
+ * finer 40-sample scan along both axes): the name is misleading. PowerPoint
+ * does NOT recolour any stop toward the title's text colour (an earlier
+ * implementation's guess, disproven by the first coarse measurement).
+ * Instead it converts the fill into a rectangular *path* gradient (like
+ * authoring "Shading style: From center" but with a rectangle instead of an
+ * ellipse) whose inner box is the title placeholder's OWN bounding rectangle
+ * (not some inset/padded variant of it) and whose ORIGINAL stop colours are
+ * preserved unchanged: the gradient's first stop fills the title box, the
+ * last stop reaches the slide's outer edges, with a smooth ramp between.
+ *
+ * On a 960x540pt slide with a `ctrTitle` at fractions l=0.125, t=0.16366,
+ * r=0.875, b=0.51181 (`Title.Left/.Top/.Width/.Height` over
+ * `PageSetup.SlideWidth/Height`), a 40-sample fine scan of the exported PNG
+ * found the rendered gradient pure (matching the inner stop colour exactly)
+ * across x in [0.150, 0.850] and y in [0.175, 0.500], and pure again (matching
+ * the outer stop) at every slide edge, with a monotonic ramp in between whose
+ * measured half-pixel-accurate boundary sits at the title's own edge in every
+ * one of the four directions (the small asymmetry that made an earlier,
+ * coarser reading look like a *different* inner rectangle was 0.025-fraction
+ * quantization noise from an 11-point grid sample, not a real offset).
+ * Because the title sits high and roughly centred, the ramp above and beside
+ * it is a thin band while the ramp below it (title bottom at 0.512, slide
+ * bottom at 1.0) is a wide, gradual one; that asymmetry falls straight out of
+ * treating each of the four edges independently (see
+ * {@link computeShadeToTitleFillToRect} and `path-gradient-rect.ts`), not from
+ * any special-cased "different formula for the bottom" - moving the title
+ * (re-measured, not a fixed legacy-template constant) moves the same
+ * lopsided shape with it. PowerPoint did not repair the file and the
+ * shape/slide counts were unchanged with the flag on or off.
+ *
+ * This module reproduces that field exactly, reusing the same nested-rect
+ * band engine `svg-gradient-rect-path.ts` / `path-gradient-rect.ts` already
+ * use for a shape's own `a:path type="rect"` gradient: the slide plays the
+ * role of "the shape", and the title placeholder's bounds (expressed as
+ * `RectPathGradientFillToRect` insets of the SLIDE) play the role of
+ * `a:fillToRect`. No new rendering primitive was needed, only a title-bounds
+ * -> `fillToRect` conversion ({@link computeShadeToTitleFillToRect}) and a way
+ * to recover the gradient's stop colours from the CSS string
+ * `PptxSlide.backgroundGradient` already carries
+ * ({@link parseGradientCssStops}): core stores the resolved background
+ * gradient only as a finished CSS `linear-gradient()` / `radial-gradient()`
+ * string (see `PptxGradientStyleCodec.extractGradientFillCss`), not as
+ * structured stops, so this module parses its own project's deterministic
+ * `<color> <position>%` token shape back out rather than widen the core model
+ * for a legacy flag no real-world deck has ever been seen to use.
+ *
+ * Inheritance behaviour, COM-verified (2026-09-06, PowerPoint 2016 x64): this
+ * only finds a title when the SLIDE's own XML carries a title/ctrTitle
+ * placeholder shape (`resolveShadeToTitleRect` reads `PptxSlide.elements`,
+ * where placeholder geometry inherited from the layout/master is already
+ * resolved onto the slide's own shape - see
+ * `PptxHandlerRuntimeShapeParsing.ts`'s `findPlaceholderContext` merge). That
+ * is not an approximation this project accepted: a slide that relies on the
+ * layout's title purely by NOT defining a title shape at all renders the
+ * plain, unanchored gradient IN REAL POWERPOINT TOO. Three decks were built
+ * from a real-world corpus fixture (`themed-layout-placeholders.pptx`) and
+ * `Slide.Export`-ed to PNG: (1) a slide with no shapes of its own, pointed at
+ * a "Title Slide" layout whose `ctrTitle` carries its own layout-level
+ * `<a:xfrm>` distinct from the master's; (2) a slide with no shapes of its
+ * own, pointed at the "Blank" layout, which defines no title anywhere and
+ * whose master only has a `title` (no `ctrTitle`); (3) a baseline slide that
+ * keeps its own `title` placeholder shape. A pixel scan (20-sample rows and
+ * columns) found (1) and (2) byte-identical to each other and to the same
+ * gradient with `shadeToTitle` OFF: a plain axis-aligned ramp, x-invariant
+ * along a horizontal scan, that only LOOKS non-linear because of the
+ * fixture's `<a:lin scaled="1">` (scaling a linear gradient to a non-square
+ * region warps the ramp's rate but not its shape). (3) diverges from that
+ * exact same baseline at the same coordinates once the slide owns a title
+ * shape, confirming the anchoring only engages then. In short: core's
+ * layout/master element extraction (`PptxHandlerRuntimeLayoutElements.ts`)
+ * deliberately excludes placeholder shapes from the elements it returns (they
+ * only feed placeholder-default/style inheritance), so no layout-only title's
+ * geometry is reachable from a `PptxSlide` at all - and that is correct,
+ * because PowerPoint's own renderer does not consult the layout or master
+ * for this effect either. See `docs/guide/limitations.md`.
  *
  * Pure, framework-agnostic, and consumed by every binding through
- * {@link getSlideBackgroundStyle} in `slide-background.ts`, so the effect is
- * decided once here rather than ported five times (see CLAUDE.md Rule 2).
+ * {@link getSlideBackgroundStyle} in `slide-background.ts` (see CLAUDE.md
+ * Rule 2).
  *
  * @module render/background-shade-to-title
  */
-import type { PptxSlide } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { colorWithOpacity, normalizeHexColor } from './fill-style';
-import { resolveSlideOutlineElements } from './outline-view';
+import type { RectPathGradientFillToRect, RectPathGradientStop } from './path-gradient-rect';
+import { buildRectPathGradientImage } from './path-gradient-rect';
 
-/**
- * Resolve the effective colour of a slide's title, for use by
- * {@link shadeGradientTowardTitle}.
- *
- * Reuses {@link resolveSlideOutlineElements}'s title resolution (title/ctrTitle
- * placeholder first, falling back to the slide's first text-bearing element
- * when the deck carries no placeholders at all) rather than re-implementing
- * placeholder-type detection here: both features agree on what "the slide's
- * title" means, and that decision should not drift between them.
- *
- * Returns `undefined` when the slide has no title, or the title carries no
- * resolved colour anywhere in its runs.
- */
-export function resolveTitleColorForShading(slide: PptxSlide | undefined): string | undefined {
-	if (!slide) {
-		return undefined;
-	}
-	const title = resolveSlideOutlineElements(slide).title;
-	if (!title || !hasTextProperties(title)) {
-		return undefined;
-	}
+/** Placeholder types PowerPoint treats as the slide's title. */
+const TITLE_PLACEHOLDER_TYPES = new Set(['title', 'ctrtitle']);
 
-	for (const segment of title.textSegments ?? []) {
-		const color = segment.style?.color;
-		if (typeof color === 'string' && color.trim().length > 0) {
-			return color;
-		}
-	}
-
-	const flatColor = title.textStyle?.color;
-	return typeof flatColor === 'string' && flatColor.trim().length > 0 ? flatColor : undefined;
+function isTitlePlaceholder(element: PptxElement): boolean {
+	const type = element.placeholderType;
+	return typeof type === 'string' && TITLE_PLACEHOLDER_TYPES.has(type.trim().toLowerCase());
 }
 
-interface ParsedCssGradient {
-	fn: 'linear-gradient' | 'radial-gradient';
-	/** Angle/shape/position preamble before the stop list, when present. */
-	header: string | undefined;
-	stops: string[];
-}
-
-/** Split a CSS function's argument list on commas, ignoring ones nested inside `fn(...)`. */
-function splitTopLevel(input: string): string[] {
-	const tokens: string[] = [];
-	let depth = 0;
-	let start = 0;
-	for (let i = 0; i < input.length; i++) {
-		const ch = input[i];
-		if (ch === '(') {
-			depth++;
-		} else if (ch === ')') {
-			depth--;
-		} else if (ch === ',' && depth === 0) {
-			tokens.push(input.slice(start, i));
-			start = i + 1;
-		}
-	}
-	tokens.push(input.slice(start));
-	return tokens;
-}
-
-/** Matches the `<angle>` (or `to <side>`) preamble `buildGradientCssFromStops` emits for linear gradients. */
-function isLinearHeader(token: string): boolean {
-	const trimmed = token.trim();
-	return /^-?\d+(?:\.\d+)?deg$/u.test(trimmed) || /^to\s+(top|bottom|left|right)/iu.test(trimmed);
-}
-
-/** Matches the `<shape> at <x> <y>` preamble `buildGradientCssFromStops` emits for radial gradients. */
-function isRadialHeader(token: string): boolean {
-	return /\bat\b/u.test(token);
+/** A title placeholder's bounds, in the same slide-relative px space as every `PptxElement`. */
+export interface TitlePlaceholderRect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
 }
 
 /**
- * Parse a `linear-gradient(...)` / `radial-gradient(...)` CSS string produced
- * by this project's own gradient codec back into a header + stop list.
- *
- * Deliberately narrow: it understands exactly the shapes
- * `buildGradientCssFromStops` (`packages/core`) emits, not arbitrary
- * author-supplied CSS, since the only input this function ever sees is a
- * slide's own `backgroundGradient`, generated by that same codec.
+ * Find the slide's own title/ctrTitle placeholder and return its bounds, or
+ * `undefined` when the slide carries no title placeholder shape (see the
+ * module docstring's "known residual gap") or that shape has no usable size.
  */
-function parseCssGradient(css: string): ParsedCssGradient | undefined {
-	const match = /^(linear-gradient|radial-gradient)\((.*)\)$/su.exec(css.trim());
-	if (!match) {
+export function resolveShadeToTitleRect(
+	slide: PptxSlide | undefined,
+): TitlePlaceholderRect | undefined {
+	const title = (slide?.elements ?? []).find(isTitlePlaceholder);
+	if (!title || !(title.width > 0) || !(title.height > 0)) {
 		return undefined;
 	}
-	const fn = match[1] as ParsedCssGradient['fn'];
-	const tokens = splitTopLevel(match[2]).map((token) => token.trim());
-	if (tokens.length === 0 || tokens[0] === undefined) {
-		return undefined;
-	}
+	return { x: title.x, y: title.y, width: title.width, height: title.height };
+}
 
-	const hasHeader =
-		fn === 'linear-gradient' ? isLinearHeader(tokens[0]) : isRadialHeader(tokens[0]);
-	const header = hasHeader ? tokens[0] : undefined;
-	const stops = hasHeader ? tokens.slice(1) : tokens;
+function clampUnit(value: number): number {
+	return Math.min(1, Math.max(0, value));
+}
+
+/**
+ * Convert a title placeholder's px bounds into the `RectPathGradientFillToRect`
+ * insets `path-gradient-rect.ts`'s band engine expects, treating the whole
+ * SLIDE as the "shape" the gradient fills (see the module docstring). Returns
+ * `undefined` for a non-positive slide size.
+ */
+export function computeShadeToTitleFillToRect(
+	title: TitlePlaceholderRect,
+	slideWidthPx: number,
+	slideHeightPx: number,
+): RectPathGradientFillToRect | undefined {
+	if (!(slideWidthPx > 0) || !(slideHeightPx > 0)) {
+		return undefined;
+	}
+	return {
+		l: clampUnit(title.x / slideWidthPx),
+		t: clampUnit(title.y / slideHeightPx),
+		r: clampUnit(1 - (title.x + title.width) / slideWidthPx),
+		b: clampUnit(1 - (title.y + title.height) / slideHeightPx),
+	};
+}
+
+/** Matches one `<colour> <position>%` gradient stop token (see {@link parseGradientCssStops}). */
+const GRADIENT_STOP_TOKEN = /(rgba?\([^)]*\)|#[0-9a-fA-F]{3,8})\s+(-?[\d.]+)%/gu;
+
+function toHexChannel(value: number): string {
+	return Math.min(255, Math.max(0, Math.round(value)))
+		.toString(16)
+		.padStart(2, '0');
+}
+
+/** Parse one matched colour token (`#RRGGBB`/`#RGB` or `rgba(r, g, b, a)`) into a stop's colour/opacity. */
+function parseStopColor(token: string): { color: string; opacity?: number } {
+	if (token.startsWith('#')) {
+		const hex = token.slice(1);
+		const expanded =
+			hex.length === 3 ? `${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}` : hex.slice(0, 6);
+		return { color: `#${expanded.toLowerCase()}` };
+	}
+	const channels = (token.match(/[\d.]+/gu) ?? []).map(Number);
+	const [r = 0, g = 0, b = 0, alpha] = channels;
+	const color = `#${toHexChannel(r)}${toHexChannel(g)}${toHexChannel(b)}`;
+	return typeof alpha === 'number' && Number.isFinite(alpha)
+		? { color, opacity: alpha }
+		: { color };
+}
+
+/**
+ * Recover a gradient's colour stops from the finished CSS string
+ * `PptxSlide.backgroundGradient` carries.
+ *
+ * Not a general CSS gradient parser: this project's own
+ * `PptxGradientStyleCodec.buildGradientCssFromStops` is the only producer of
+ * that string, and it always emits stops as `<colour> <position>%` tokens
+ * (`#rrggbb` or `rgba(r, g, b, a)` colours) in gradient order regardless of
+ * `linear-gradient(...)` / `radial-gradient(...)` wrapping, so matching that
+ * exact shape back out is reliable here even though it would not be for
+ * arbitrary author-supplied CSS. The direction/shape keywords the gradient
+ * function itself carries (angle, `at 50% 50%`, ...) are intentionally
+ * discarded: PowerPoint's `shadeToTitle` effect replaces the gradient's
+ * geometry entirely and keeps only its stop colours (see module docstring).
+ */
+export function parseGradientCssStops(css: string): RectPathGradientStop[] {
+	const stops: RectPathGradientStop[] = [];
+	for (const match of css.matchAll(GRADIENT_STOP_TOKEN)) {
+		const position = Number.parseFloat(match[2]);
+		if (!Number.isFinite(position)) {
+			continue;
+		}
+		stops.push({ position, ...parseStopColor(match[1]) });
+	}
+	return stops;
+}
+
+/**
+ * Build the anchored rect-path gradient's `background-image` CSS value for a
+ * slide flagged `shadeToTitle`, or `undefined` when the effect does not apply:
+ * no gradient background, no title placeholder shape on the slide (COM-verified
+ * to match real PowerPoint, which does not fall back to a layout- or
+ * master-inherited title either - see the module docstring), or the caller
+ * could not supply the slide's pixel size (a binding not yet updated to pass
+ * one - see `getSlideBackgroundStyle`). Callers should keep rendering
+ * `slide.backgroundGradient` unchanged in every one of those cases.
+ */
+export function resolveShadeToTitleBackgroundImage(
+	slide: PptxSlide | undefined,
+	slideWidthPx: number | undefined,
+	slideHeightPx: number | undefined,
+): string | undefined {
+	if (!slide?.backgroundShadeToTitle || !slide.backgroundGradient) {
+		return undefined;
+	}
+	if (!slideWidthPx || !slideHeightPx) {
+		return undefined;
+	}
+	const titleRect = resolveShadeToTitleRect(slide);
+	if (!titleRect) {
+		return undefined;
+	}
+	const fillToRect = computeShadeToTitleFillToRect(titleRect, slideWidthPx, slideHeightPx);
+	if (!fillToRect) {
+		return undefined;
+	}
+	const stops = parseGradientCssStops(slide.backgroundGradient);
 	if (stops.length === 0) {
 		return undefined;
 	}
-	return { fn, header, stops };
-}
-
-/** Trailing ` <n>%` position suffix `buildGradientCssFromStops` appends to a stop's colour token. */
-const STOP_POSITION_RE = /\s+(\d+(?:\.\d+)?%)\s*$/u;
-const RGBA_RE = /^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/u;
-
-/** Recolour one gradient stop token to `titleColor`, preserving its position and alpha. */
-function recolorStop(stop: string, titleColor: string): string {
-	const positionMatch = STOP_POSITION_RE.exec(stop);
-	const position = positionMatch?.[1];
-	const colorPart = positionMatch ? stop.slice(0, stop.length - positionMatch[0].length) : stop;
-
-	const alphaMatch = RGBA_RE.exec(colorPart.trim());
-	const normalizedTitle = normalizeHexColor(titleColor, titleColor);
-	const newColor = alphaMatch
-		? colorWithOpacity(normalizedTitle, Number.parseFloat(alphaMatch[1]))
-		: normalizedTitle;
-
-	return position ? `${newColor} ${position}` : newColor;
-}
-
-/**
- * Apply the legacy "shade to title colour" adjustment to a slide's background
- * CSS gradient. See the module docstring for the approximation this makes.
- *
- * Returns `gradientCss` unchanged when there is no title colour to shade
- * toward, or when the string is not a gradient this module's parser
- * recognises (an unresolved fill, or a future gradient shape the codec does
- * not yet emit): silently doing nothing is the safe failure mode for a
- * decorative legacy hint, matching how {@link resolveTitleColorForShading}
- * already returns `undefined` rather than throwing.
- */
-export function shadeGradientTowardTitle(
-	gradientCss: string | undefined,
-	titleColor: string | undefined,
-): string | undefined {
-	if (!gradientCss || !titleColor) {
-		return gradientCss;
-	}
-	const parsed = parseCssGradient(gradientCss);
-	if (!parsed) {
-		return gradientCss;
-	}
-
-	const stops = [...parsed.stops];
-	const lastIndex = stops.length - 1;
-	stops[lastIndex] = recolorStop(stops[lastIndex], titleColor);
-
-	const args = parsed.header ? [parsed.header, ...stops] : stops;
-	return `${parsed.fn}(${args.join(', ')})`;
+	return buildRectPathGradientImage(stops, undefined, fillToRect);
 }
