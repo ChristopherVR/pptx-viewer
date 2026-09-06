@@ -17,6 +17,7 @@
 
 import type { PptxElement } from 'pptx-viewer-core';
 import { updateSmartArtNodeText } from 'pptx-viewer-core';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 import {
 	buildSmartArt3DModel,
 	collectCoherent3DOffNodeIds,
@@ -75,6 +76,13 @@ interface SmartArt3DRendererProps {
 	canEdit?: boolean;
 	/** Commit element updates (node text edits) through the host editor path. */
 	onUpdateElement?: (updates: Partial<PptxElement>) => void;
+	/**
+	 * Playback state for the diagram; only its `textStyle` (an active
+	 * font-style emphasis override) is consumed here, applied to every node's
+	 * caption via {@link SmartArt3DScene}'s handle. Staged-build reveal is an
+	 * SVG-only concern, handled by `SmartArtRenderer`.
+	 */
+	animationState?: ElementAnimationState;
 }
 
 export function SmartArt3DRenderer({
@@ -83,6 +91,7 @@ export function SmartArt3DRenderer({
 	interactive = false,
 	canEdit,
 	onUpdateElement,
+	animationState,
 }: SmartArt3DRendererProps): React.ReactElement {
 	const [threeAvailable, setThreeAvailable] = useState<boolean | null>(null);
 
@@ -149,6 +158,7 @@ export function SmartArt3DRenderer({
 					width={element.width}
 					height={element.height}
 					interactive={interactive}
+					textStyle={animationState?.textStyle}
 				/>
 			</Suspense>
 		</SceneErrorBoundary>

@@ -23,6 +23,7 @@ import {
 	apply3dEffects as sharedApply3dEffects,
 } from 'pptx-viewer-shared';
 import type {
+	ElementSizePx,
 	Extrusion3DData as SharedExtrusion3DData,
 	ExtrusionPanel as SharedExtrusionPanel,
 	Shape3dExtrusionParams,
@@ -87,16 +88,21 @@ export function get3DTransformStyle(
 /**
  * Apply 3D effects (perspective, rotation, extrusion, bevel, material, light
  * rig) to a mutable `React.CSSProperties` object.
+ *
+ * `elementSize`, when passed, re-projects the camera's field of view onto the
+ * element's actual rendered size instead of a fixed reference size (see shared
+ * `getCameraTransform`).
  */
 export function apply3dEffects(
 	base: React.CSSProperties,
 	scene3d: Scene3dParams | undefined,
 	shape3d: Shape3dParams | undefined,
 	fillColorFallback?: string,
+	elementSize?: ElementSizePx,
 ): void {
 	// React's `CSSProperties` allows `string | number` for several fields whereas
 	// shared's neutral `MutableCss` narrows them to string; the mutator only ever
 	// writes string values, so the cast is sound. `fillColorFallback` lets the
 	// extrusion/contour default to the shape's resolved fill colour.
-	sharedApply3dEffects(base as MutableCss, scene3d, shape3d, fillColorFallback);
+	sharedApply3dEffects(base as MutableCss, scene3d, shape3d, fillColorFallback, elementSize);
 }

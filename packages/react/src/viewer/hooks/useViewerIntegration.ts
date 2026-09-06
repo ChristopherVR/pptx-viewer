@@ -1,4 +1,4 @@
-import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxModifyVerifier, PptxSlide } from 'pptx-viewer-core';
 import type {
 	CompatibilityWarningToast,
 	ReadOnlyRecommendation,
@@ -67,6 +67,8 @@ export interface UseViewerIntegrationInput {
 	allowExternalImages?: boolean;
 	/** Forwarded to `useContentLifecycle` -> `useLoadContent`: see `useReadOnlyRecommendationState`. */
 	setReadOnlyRecommendation: Dispatch<SetStateAction<ReadOnlyRecommendation>>;
+	/** Forwarded to `useContentLifecycle` -> `useLoadContent`: see `useReadOnlyRecommendationState`. */
+	setModifyVerifier: Dispatch<SetStateAction<PptxModifyVerifier | undefined>>;
 	/** Forwarded to `useContentLifecycle` -> `useLoadContent`: see `useCompatibilityToastsState`. */
 	setCompatToasts: Dispatch<SetStateAction<CompatibilityWarningToast[]>>;
 	canEdit: boolean;
@@ -152,6 +154,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		autosaveIntervalMs,
 		allowExternalImages,
 		setReadOnlyRecommendation,
+		setModifyVerifier,
 		setCompatToasts,
 		canEdit,
 		promptKeepInkAnnotations,
@@ -227,6 +230,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			onContentApplied: () => setLoadVersion((v) => v + 1),
 			allowExternalImages,
 			setReadOnlyRecommendation,
+			setModifyVerifier,
 			setCompatToasts,
 		},
 	);

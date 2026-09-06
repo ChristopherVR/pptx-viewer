@@ -9,16 +9,20 @@
  * @module SmartArt3DScene
  */
 
-import type { SmartArt3DModel } from 'pptx-viewer-shared';
+import type { SmartArt3DModel, TextStyleAnimationDescriptor } from 'pptx-viewer-shared';
 import { mountSmartArt3D } from 'pptx-viewer-shared/smartart-3d';
 import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
 import React, { useEffect, useRef } from 'react';
+
+import { useLatestRef } from './chart3d-interaction-hooks';
 
 export interface SmartArt3DSceneProps {
 	model: SmartArt3DModel;
 	width: number;
 	height: number;
 	interactive: boolean;
+	/** Active font-style emphasis override for every node's caption. */
+	textStyle?: TextStyleAnimationDescriptor;
 }
 
 export default function SmartArt3DScene({
@@ -26,9 +30,11 @@ export default function SmartArt3DScene({
 	width,
 	height,
 	interactive,
+	textStyle,
 }: SmartArt3DSceneProps): React.ReactElement {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const handleRef = useRef<SmartArt3DHandle | null>(null);
+	const textStyleRef = useLatestRef(textStyle);
 
 	// Mount once per model; rebuild when the model identity changes.
 	useEffect(() => {
@@ -38,14 +44,15 @@ export default function SmartArt3DScene({
 		}
 		const handle = mountSmartArt3D(canvas, model, width, height, {
 			interactive,
+			textStyle: textStyleRef.current,
 		});
 		handleRef.current = handle;
 		return () => {
 			handle.dispose();
 			handleRef.current = null;
 		};
-		// width/height/interactive changes are handled by the effects below to
-		// avoid tearing down the whole scene on a resize.
+		// width/height/interactive/textStyle changes are handled by the effects
+		// below to avoid tearing down the whole scene on a resize or a style tick.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [model]);
 
@@ -58,6 +65,11 @@ export default function SmartArt3DScene({
 	useEffect(() => {
 		handleRef.current?.setInteractive(interactive);
 	}, [interactive]);
+
+	// Apply/clear the emphasis override without re-mounting.
+	useEffect(() => {
+		handleRef.current?.setTextStyle(textStyle);
+	}, [textStyle]);
 
 	return (
 		<canvas

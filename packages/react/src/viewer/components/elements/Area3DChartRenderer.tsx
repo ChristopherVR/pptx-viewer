@@ -16,11 +16,13 @@
  */
 
 import type { PptxElement } from 'pptx-viewer-core';
+import type { ChartPartRef, TextStyleAnimationDescriptor } from 'pptx-viewer-shared';
 import { buildAreaChart3DDataForElement } from 'pptx-viewer-shared';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
 import { LoadingState } from '../LoadingState';
+import type { AnyChart3DInteraction } from './chart3d-interaction-hooks';
 
 /** Stub rendered when the dynamic scene import fails. */
 function FailedToLoad(): null {
@@ -62,9 +64,20 @@ class SceneErrorBoundary extends React.Component<
 
 interface Area3DChartRendererProps {
 	element: PptxElement;
+	/** Click-to-select / drag-to-value wiring; omit for a read-only mount. */
+	interaction?: AnyChart3DInteraction;
+	/** External selection (e.g. from the inspector) to mirror onto this scene's highlight. */
+	selectedPart?: ChartPartRef | null;
+	/** Active font-style emphasis override for the axis labels. */
+	textStyle?: TextStyleAnimationDescriptor;
 }
 
-export function Area3DChartRenderer({ element }: Area3DChartRendererProps): React.ReactElement {
+export function Area3DChartRenderer({
+	element,
+	interaction,
+	selectedPart,
+	textStyle,
+}: Area3DChartRendererProps): React.ReactElement {
 	const [threeAvailable, setThreeAvailable] = useState<boolean | null>(null);
 
 	useEffect(() => {
@@ -103,7 +116,12 @@ export function Area3DChartRenderer({ element }: Area3DChartRendererProps): Reac
 	return (
 		<SceneErrorBoundary fallback={svgFallback}>
 			<Suspense fallback={<LoadingState />}>
-				<LazyArea3DChartScene options={options} />
+				<LazyArea3DChartScene
+					options={options}
+					interaction={interaction}
+					selectedPart={selectedPart}
+					textStyle={textStyle}
+				/>
 			</Suspense>
 		</SceneErrorBoundary>
 	);

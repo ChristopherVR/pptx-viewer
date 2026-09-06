@@ -139,10 +139,18 @@ describe('getP14TransitionAnimations', () => {
 		expect(result!.incoming).toContain('pptx-tr-shred-strips-in');
 	});
 
-	it('should return shred with rectangles when direction is "rectangles"', () => {
-		const result = getP14TransitionAnimations('shred', 700, 'rectangles');
+	it('should return shred with rectangles when the pattern is "rectangle"', () => {
+		// The tile shape is `p14:shred/@pattern`, not `@dir` (COM-verified: a
+		// deck with `@dir="rectangles"` does not even open in PowerPoint).
+		const result = getP14TransitionAnimations('shred', 700, 'in', undefined, 'rectangle');
 		expect(result).toBeDefined();
 		expect(result!.incoming).toContain('pptx-tr-shred-rectangles-in');
+	});
+
+	it('ignores a tile shape written into the direction attribute', () => {
+		const result = getP14TransitionAnimations('shred', 700, 'rectangles');
+		expect(result).toBeDefined();
+		expect(result!.incoming).toContain('pptx-tr-shred-strips-in');
 	});
 
 	it('should return switch animations', () => {

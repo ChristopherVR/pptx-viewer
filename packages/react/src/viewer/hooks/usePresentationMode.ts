@@ -38,6 +38,8 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		slides,
 		templateElementsBySlideId,
 		visibleSlideIndexes,
+		canvasSize,
+		themeColorMap,
 		activeSlideIndex,
 		containerRef,
 		content,
@@ -104,7 +106,13 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		startSlideAnimations,
 		isSeededCompleted,
 		presentationTimersRef,
-	} = useAnimationPlayback({ slides, onPlayActionSound, showWithAnimation });
+	} = useAnimationPlayback({
+		slides,
+		onPlayActionSound,
+		showWithAnimation,
+		canvasSize,
+		themeColorMap,
+	});
 
 	const {
 		rehearsing,

@@ -1,11 +1,20 @@
 import type { PptxElement, PptxElementWithText, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties, getSubstituteFontFamily } from 'pptx-viewer-core';
-import { groupIntoParagraphs as sharedGroupIntoParagraphs } from 'pptx-viewer-shared';
+import type { EnvelopeGlyphPlacement, EnvelopeSegmentInput } from 'pptx-viewer-shared';
+import {
+	buildGlyphEnvelope,
+	groupIntoParagraphs as sharedGroupIntoParagraphs,
+	hasGlyphEnvelope,
+} from 'pptx-viewer-shared';
 /**
  * SVG textPath-based text warp (WordArt) React component.
  *
  * Uses path generators from `warp-path-generators.ts` to render warped
- * text along SVG paths for presets that require it.
+ * text along SVG paths for presets that require it. Envelope presets
+ * (inflate/deflate/can, see `hasGlyphEnvelope`) instead render one `<text>`
+ * per glyph via `buildGlyphEnvelope`, so glyph HEIGHT varies between the
+ * preset's top and bottom curves the way PowerPoint's own text warp does;
+ * `<textPath>` can only bend a shared baseline, never per-glyph height.
  */
 import React from 'react';
 
@@ -97,6 +106,108 @@ function getSegmentTspanProps(
 	};
 }
 
+/** Resolve the plain (measurement-ready) font a segment renders with. */
+function resolveSegmentFont(
+	segment: TextSegment,
+	element: PptxElementWithText,
+): EnvelopeSegmentInput['font'] {
+	const s = segment.style || ({} as TextStyle);
+	const family = s.fontFamily || element.textStyle?.fontFamily;
+	return {
+		fontFamily: family ? getSubstituteFontFamily(family) : DEFAULT_FONT_FAMILY,
+		fontSizePx: (s.fontSize ?? element.textStyle?.fontSize ?? DEFAULT_TEXT_FONT_SIZE) as number,
+		bold: s.bold ?? element.textStyle?.bold,
+		italic: s.italic ?? element.textStyle?.italic,
+	};
+}
+
+/**
+ * Render one glyph. Most glyphs have no `slices` (a single affine already
+ * fits them within tolerance): one `<text transform>`, unchanged from before
+ * per-glyph slicing existed. A glyph on a strongly-curved envelope wide
+ * enough to need it (see `chooseGlyphSliceCount` in `pptx-viewer-shared`)
+ * instead renders `slices.length` copies of the SAME glyph, each clipped to
+ * its own x-band and carrying its own affine, so the pieces tile across the
+ * glyph the way PowerPoint's per-point outline warp would.
+ */
+function EnvelopeGlyph({
+	glyphKey,
+	glyph,
+	tspanProps,
+}: {
+	glyphKey: string;
+	glyph: EnvelopeGlyphPlacement;
+	tspanProps: React.SVGProps<SVGTSpanElement>;
+}): React.ReactElement {
+	if (!glyph.slices || glyph.slices.length <= 1) {
+		return (
+			<text x={glyph.x} y={glyph.y} transform={glyph.transform} {...tspanProps}>
+				{glyph.char}
+			</text>
+		);
+	}
+	// A REAL `<g>` (not a `<>`), so a sliced glyph's `<text>`s are `svg > g >
+	// text`, never `svg > text` - keeping the single-slice DOM shape (a bare
+	// `<text>` as a direct `<svg>` child) exactly as it was before slicing
+	// existed, which every "one `<text>` per glyph" test/selector assumes.
+	return (
+		<g data-glyph-slices={glyph.slices.length}>
+			{glyph.slices.map((slice, si) => {
+				const clipId = `${glyphKey}-s${si}`;
+				return (
+					<React.Fragment key={clipId}>
+						<clipPath id={clipId} clipPathUnits='userSpaceOnUse'>
+							<rect
+								x={slice.clipX0}
+								y={-100000}
+								width={Math.max(0, slice.clipX1 - slice.clipX0)}
+								height={200000}
+							/>
+						</clipPath>
+						<text
+							x={glyph.x}
+							y={glyph.y}
+							transform={slice.transform}
+							clipPath={`url(#${clipId})`}
+							{...tspanProps}
+						>
+							{glyph.char}
+						</text>
+					</React.Fragment>
+				);
+			})}
+		</g>
+	);
+}
+
+/** Render one envelope-warped line as one `<text>` per glyph (or more, for a sliced glyph). */
+function EnvelopeLine({
+	paraSegments,
+	glyphs,
+	element,
+	fallbackColor,
+	lineIdPrefix,
+}: {
+	paraSegments: TextSegment[];
+	glyphs: EnvelopeGlyphPlacement[];
+	element: PptxElementWithText;
+	fallbackColor: string;
+	lineIdPrefix: string;
+}): React.ReactElement {
+	return (
+		<>
+			{glyphs.map((g, i) => (
+				<EnvelopeGlyph
+					key={i}
+					glyphKey={`${lineIdPrefix}-g${i}`}
+					glyph={g}
+					tspanProps={getSegmentTspanProps(paraSegments[g.segmentIndex], element, fallbackColor)}
+				/>
+			))}
+		</>
+	);
+}
+
 // ── Public API - React component ───────────────────────────────────────
 
 /** Props for the `WarpedText` SVG renderer. */
@@ -154,6 +265,55 @@ export function WarpedText({
 		? getSubstituteFontFamily(textEl.textStyle.fontFamily)
 		: DEFAULT_FONT_FAMILY;
 	const baseFill = normalizeHexColor(textEl.textStyle?.color, fallbackColor);
+
+	// Envelope presets (inflate/deflate/can) get a true per-glyph height warp
+	// instead of a shared-baseline `<textPath>`. Every paragraph renders this
+	// way: paragraph `i` of `lineCount` occupies the `[i/lineCount,
+	// (i+1)/lineCount]` vertical slice of the envelope curve's local band (see
+	// `buildGlyphEnvelope` in pptx-viewer-shared), so a multi-paragraph block
+	// bends within the same overall envelope shape instead of falling back to
+	// a shared-baseline `<textPath>` per line.
+	if (hasGlyphEnvelope(preset)) {
+		return (
+			<svg
+				width={width}
+				height={height}
+				viewBox={`0 0 ${width} ${height}`}
+				xmlns='http://www.w3.org/2000/svg'
+				style={{ overflow: 'visible', position: 'absolute', inset: 0, pointerEvents: 'none' }}
+				aria-hidden='true'
+			>
+				{paragraphs.map((para, paraIdx) => {
+					const segsInput: EnvelopeSegmentInput[] = para.segments.map((seg, i) => ({
+						text: seg.text,
+						font: resolveSegmentFont(seg, textEl),
+						segmentIndex: i,
+					}));
+					const glyphs = buildGlyphEnvelope(
+						preset,
+						segsInput,
+						width,
+						height,
+						align,
+						warpAdj,
+						warpAdj2,
+						paraIdx,
+						lineCount,
+					);
+					return (
+						<EnvelopeLine
+							key={`envelope-line-${paraIdx}`}
+							paraSegments={para.segments}
+							glyphs={glyphs}
+							element={textEl}
+							fallbackColor={fallbackColor}
+							lineIdPrefix={`warp-${element.id}-l${paraIdx}`}
+						/>
+					);
+				})}
+			</svg>
+		);
+	}
 
 	return (
 		<svg

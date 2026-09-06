@@ -371,6 +371,7 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			<ChartTypeSelector
 				title={title}
 				chartType={chartType!}
+				chartData={chartData}
 				grouping={grouping}
 				seriesCount={series.length}
 				categoryCount={categories.length}

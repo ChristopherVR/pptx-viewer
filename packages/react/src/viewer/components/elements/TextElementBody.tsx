@@ -45,7 +45,9 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 	const useSvgWarp = shouldUseSvgWarp(
 		hasTextProperties(el) ? el.textStyle?.textWarpPreset : undefined,
 	);
-	const scene3dStyle = hasTextProperties(el) ? buildTextBody3DSceneStyle(el.textStyle) : undefined;
+	const scene3dStyle = hasTextProperties(el)
+		? buildTextBody3DSceneStyle(el.textStyle, { width: el.width, height: el.height })
+		: undefined;
 	// `a:bodyPr/@rot` rotates the whole text body (degrees, clockwise positive).
 	// Through shared since wave 4: the same rotation now reaches vue, angular,
 	// svelte and vanilla, which all painted a rotated body upright.
@@ -56,8 +58,23 @@ export function renderTextElementBody(options: RenderBodyOptions): React.ReactNo
 			.join(' ') || undefined;
 	const transformStyle: React.CSSProperties = {
 		transform: composedTransform,
-		transformOrigin: 'center',
+		// A COM-measured homography (`scene3dStyle.transformOrigin === '0 0'`)
+		// MUST win over the default centred origin, or the matrix3d's baked-in
+		// translation (relative to the element's own top-left) is applied from
+		// the wrong pivot and the projection is wrong (see
+		// `visual-3d-camera-homography`'s module doc comment). This used to be
+		// hardcoded to `'center'` unconditionally, silently clobbering
+		// `scene3dStyle.transformOrigin` the same way Svelte's `ElementRenderer`
+		// once re-clobbered `pointerEvents` from its own interactive flag.
+		transformOrigin: scene3dStyle?.transformOrigin ?? 'center',
 		...(scene3dStyle?.perspective ? { perspective: scene3dStyle.perspective } : {}),
+		// COM-calibrated off-axis correction for a handful of camera presets
+		// (see `visual-3d-camera`'s module doc comment); only reachable when an
+		// explicit `a:camera/a:rot`/`@fov`/`@zoom` override sits alongside one of
+		// those presets, since the homography path above never sets it.
+		...(scene3dStyle?.perspectiveOrigin
+			? { perspectiveOrigin: scene3dStyle.perspectiveOrigin as string }
+			: {}),
 		...(scene3dStyle?.transformStyle ? { transformStyle: scene3dStyle.transformStyle } : {}),
 		...(isLinkedTextBox ? { overflow: 'hidden' } : {}),
 	};

@@ -96,7 +96,6 @@ describe('shapeEffectOverlay', () => {
 			} as unknown as PptxElement;
 			const html = renderToStaticMarkup(<ShapeEffectOverlay element={picture} />);
 			expect(html).toContain('pptx-react-reflection');
-			expect(html).toContain('pptx-react-reflection-picture-surface');
 			expect(html).toContain('<img');
 			expect(html).toContain('data:image/png;base64,AAAA');
 			expect(html).toContain('overflow:hidden');
@@ -117,13 +116,138 @@ describe('shapeEffectOverlay', () => {
 				shapeStyle: { reflectionStartOpacity: 0.5 },
 			} as unknown as PptxElement;
 			const html = renderToStaticMarkup(<ShapeEffectOverlay element={picture} />);
-			expect(html).toContain('pptx-react-reflection-picture-surface');
+			expect(html).toContain('pptx-react-reflection');
 			expect(html).toContain('border-radius:50%');
 			expect(html).toContain('transform:translate(');
 		});
 
 		it('renders nothing extra when there is no reflection', () => {
 			expect(render(shape({ fillColor: '#ffffff' }))).not.toContain('pptx-react-reflection');
+		});
+
+		it("mirrors the shape's own text body, not just its resolved fill", () => {
+			const textShape = {
+				type: 'shape',
+				id: 'sp-text',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 80,
+				shapeStyle: { fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+				text: 'Hello reflected world',
+				textSegments: [{ text: 'Hello reflected world' }],
+			} as unknown as PptxElement;
+			const html = renderToStaticMarkup(<ShapeEffectOverlay element={textShape} />);
+			const reflectionStart = html.indexOf('pptx-react-reflection');
+			expect(reflectionStart).toBeGreaterThan(-1);
+			expect(html.slice(reflectionStart)).toContain('Hello reflected world');
+		});
+
+		it('does not recurse into a second mirror inside its own mirrored clone', () => {
+			const textShape = {
+				type: 'shape',
+				id: 'sp-text',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 80,
+				shapeStyle: { fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+			} as unknown as PptxElement;
+			const html = renderToStaticMarkup(<ShapeEffectOverlay element={textShape} />);
+			// Exactly one reflection wrapper: the clone inside it must not grow its own.
+			expect(html.match(/pptx-react-reflection"/gu)?.length).toBe(1);
+		});
+
+		it('mirrors a reflected group by recursing into its children', () => {
+			const group = {
+				type: 'group',
+				id: 'grp1',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+				children: [
+					{
+						type: 'shape',
+						id: 'child1',
+						x: 10,
+						y: 10,
+						width: 80,
+						height: 40,
+						shapeStyle: { fillColor: '#00ff00' },
+						text: 'Child text',
+						textSegments: [{ text: 'Child text' }],
+					},
+				],
+			} as unknown as PptxElement;
+			const html = renderToStaticMarkup(<ShapeEffectOverlay element={group} />);
+			expect(html).toContain('pptx-react-reflection');
+			expect(html).toContain('Child text');
+			expect(html).toContain('#00ff00');
+		});
+
+		it('renders nothing for a group with no groupFill reflection', () => {
+			const group = {
+				type: 'group',
+				id: 'grp-none',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				children: [],
+			} as unknown as PptxElement;
+			expect(render(group)).toBe('');
+		});
+
+		it('double-mirrors a child that carries its own reflection inside a reflected group', () => {
+			const group = {
+				type: 'group',
+				id: 'grp-nested',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+				children: [
+					{
+						type: 'shape',
+						id: 'child-own-reflection',
+						x: 10,
+						y: 10,
+						width: 80,
+						height: 40,
+						shapeStyle: {
+							fillColor: '#00ff00',
+							reflectionStartOpacity: 0.5,
+							reflectionDistance: 2,
+						},
+					},
+				],
+			} as unknown as PptxElement;
+			const html = renderToStaticMarkup(<ShapeEffectOverlay element={group} />);
+			// One wrapper for the group's own mirror, one nested inside it for the
+			// child's own reflection: the child is not the element being mirrored,
+			// so `suppressReflection` must not have been propagated to it.
+			expect(html.match(/pptx-react-reflection"/gu)?.length).toBe(2);
+		});
+	});
+
+	describe('group-level shadow/glow/soft-edge', () => {
+		it('injects the soft-edge <filter> for a group carrying p:grpSpPr/a:effectLst/a:softEdge', () => {
+			const group = {
+				type: 'group',
+				id: 'grp-soft',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				groupEffectStyle: { softEdgeRadius: 6 },
+				children: [],
+			} as unknown as PptxElement;
+			const html = renderToStaticMarkup(<ShapeEffectOverlay element={group} />);
+			expect(html).toContain('id="soft-edge-grp-soft"');
+			expect(html).toContain('feGaussianBlur');
 		});
 	});
 

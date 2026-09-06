@@ -1,14 +1,12 @@
-import type {
-	InkPptxElement,
-	PptxSlide,
-	ShapePptxElement,
-	CustomGeometrySegment,
-} from 'pptx-viewer-core';
+import type { InkPptxElement, PptxSlide, ShapePptxElement } from 'pptx-viewer-core';
+import type { InkStrokeView } from 'pptx-viewer-shared';
 import { findEraserHitElementId } from 'pptx-viewer-shared';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import type { DrawingTool } from '../../types-ui';
 import type { ZoomViewport } from './canvas-types';
+import { finishDrawStroke } from './finishDrawStroke';
+import { useLiveInkPreview } from './useLiveInkPreview';
 
 /* ------------------------------------------------------------------ */
 /*  Return type                                                        */
@@ -18,6 +16,15 @@ export interface DrawingOverlayState {
 	isDrawing: boolean;
 	isStrokeActive: boolean;
 	liveStrokeD: string;
+	/**
+	 * The in-progress stroke's render view (plain path, pressure circles, or
+	 * tilt nib marks), built by the shared `buildLiveInkStrokeView` from the
+	 * SAME accumulated per-point pressure/tilt data a committed stroke uses.
+	 * `null` while idle. `DrawingOverlaySvg` renders this instead of
+	 * `liveStrokeD` so a calligraphic lean or pressure-variable width appears
+	 * DURING the gesture, not only after `pointerup`.
+	 */
+	liveStrokeView: InkStrokeView | null;
 	currentStrokePoints: Array<{ x: number; y: number }>;
 	handleDrawPointerDown: (e: React.PointerEvent) => void;
 	handleDrawPointerMove: (e: React.PointerEvent) => void;
@@ -54,6 +61,8 @@ export function useDrawingOverlay({
 		[],
 	);
 	const [currentStrokePressures, setCurrentStrokePressures] = useState<number[]>([]);
+	const [currentStrokeTiltX, setCurrentStrokeTiltX] = useState<number[]>([]);
+	const [currentStrokeTiltY, setCurrentStrokeTiltY] = useState<number[]>([]);
 	const [isStrokeActive, setIsStrokeActive] = useState(false);
 
 	/** Convert pointer position to canvas-local coordinates. */
@@ -72,18 +81,6 @@ export function useDrawingOverlay({
 		},
 		[zoom.canvasStageRef, zoom.editorScale],
 	);
-
-	/** Build an SVG path `d` string from an array of {x,y} points. */
-	const buildPathD = useCallback((pts: Array<{ x: number; y: number }>): string => {
-		if (pts.length === 0) {
-			return '';
-		}
-		const parts = [`M ${pts[0].x} ${pts[0].y}`];
-		for (let i = 1; i < pts.length; i++) {
-			parts.push(`L ${pts[i].x} ${pts[i].y}`);
-		}
-		return parts.join(' ');
-	}, []);
 
 	const handleDrawPointerDown = useCallback(
 		(e: React.PointerEvent) => {
@@ -114,6 +111,8 @@ export function useDrawingOverlay({
 			(e.target as HTMLElement).setPointerCapture(e.pointerId);
 			setCurrentStrokePoints([pt]);
 			setCurrentStrokePressures([e.pressure]);
+			setCurrentStrokeTiltX([e.tiltX ?? 0]);
+			setCurrentStrokeTiltY([e.tiltY ?? 0]);
 			setIsStrokeActive(true);
 			if (isDrawingRef) {
 				(isDrawingRef as React.MutableRefObject<boolean>).current = true;
@@ -133,6 +132,8 @@ export function useDrawingOverlay({
 			}
 			setCurrentStrokePoints((prev) => [...prev, pt]);
 			setCurrentStrokePressures((prev) => [...prev, e.pressure]);
+			setCurrentStrokeTiltX((prev) => [...prev, e.tiltX ?? 0]);
+			setCurrentStrokeTiltY((prev) => [...prev, e.tiltY ?? 0]);
 		},
 		[isStrokeActive, activeTool, pointerToCanvasCoords],
 	);
@@ -147,127 +148,61 @@ export function useDrawingOverlay({
 			if (isDrawingRef) {
 				(isDrawingRef as React.MutableRefObject<boolean>).current = false;
 			}
-			if (currentStrokePoints.length < 2) {
-				setCurrentStrokePoints([]);
-				return;
-			}
-			// Compute bounding box
-			let minX = Infinity,
-				minY = Infinity,
-				maxX = -Infinity,
-				maxY = -Infinity;
-			for (const pt of currentStrokePoints) {
-				if (pt.x < minX) {
-					minX = pt.x;
-				}
-				if (pt.y < minY) {
-					minY = pt.y;
-				}
-				if (pt.x > maxX) {
-					maxX = pt.x;
-				}
-				if (pt.y > maxY) {
-					maxY = pt.y;
-				}
-			}
-			const PAD = drawingWidth;
-			minX -= PAD;
-			minY -= PAD;
-			maxX += PAD;
-			maxY += PAD;
-			const w = Math.max(maxX - minX, 1);
-			const h = Math.max(maxY - minY, 1);
-			const relPoints = currentStrokePoints.map((pt) => ({
-				x: pt.x - minX,
-				y: pt.y - minY,
-			}));
-
-			if (activeTool === 'freeform') {
-				const COORD_SCALE = 100;
-				const pathW = Math.round(w * COORD_SCALE);
-				const pathH = Math.round(h * COORD_SCALE);
-				const segments: CustomGeometrySegment[] = [];
-				for (let i = 0; i < relPoints.length; i++) {
-					const scaledPt = {
-						x: Math.round(relPoints[i].x * COORD_SCALE),
-						y: Math.round(relPoints[i].y * COORD_SCALE),
-					};
-					segments.push(
-						i === 0 ? { type: 'moveTo', pt: scaledPt } : { type: 'lineTo', pt: scaledPt },
-					);
-				}
-				// Close the path for a proper freeform polygon
-				if (segments.length > 2) {
-					segments.push({ type: 'close' });
-				}
-				const freeformShape: ShapePptxElement = {
-					id: `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-					type: 'shape',
-					x: minX,
-					y: minY,
-					width: w,
-					height: h,
-					shapeType: 'custom',
-					shapeStyle: {
-						fillColor: 'transparent',
-						strokeColor: drawingColor,
-						strokeWidth: drawingWidth,
-					},
-					customGeometryPaths: [{ width: pathW, height: pathH, segments }],
-				};
-				onAddFreeformShape?.(freeformShape);
-			} else {
-				const pathD = buildPathD(relPoints);
-				const isHighlighter = activeTool === 'highlighter';
-				// Check if we have meaningful pressure variation from the stylus/pen.
-				// A uniform pressure of 0.5 (the default for mouse input) means no
-				// real pressure data was captured.
-				const hasPressure =
-					currentStrokePressures.length >= 2 &&
-					currentStrokePressures.some((p) => Math.abs(p - currentStrokePressures[0]) > 0.01);
-				const ink: InkPptxElement = {
-					id: `ink-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-					type: 'ink',
-					x: minX,
-					y: minY,
-					width: w,
-					height: h,
-					inkPaths: [pathD],
-					inkColors: [drawingColor],
-					inkWidths: [drawingWidth],
-					inkOpacities: [isHighlighter ? 0.4 : 1],
-					inkTool: isHighlighter ? 'highlighter' : 'pen',
-					...(hasPressure ? { inkPointPressures: [currentStrokePressures] } : {}),
-				};
-				onAddInkElement?.(ink);
+			// Turns the accumulated points into a committed `ink` element or
+			// `freeform` shape (or `null` for a too-short stroke, a plain tap);
+			// see `finishDrawStroke` for the pure geometry/element construction.
+			const finished = finishDrawStroke({
+				tool: activeTool,
+				points: currentStrokePoints,
+				pressures: currentStrokePressures,
+				tiltX: currentStrokeTiltX,
+				tiltY: currentStrokeTiltY,
+				color: drawingColor,
+				width: drawingWidth,
+			});
+			if (finished?.kind === 'freeform') {
+				onAddFreeformShape?.(finished.element);
+			} else if (finished?.kind === 'ink') {
+				onAddInkElement?.(finished.element);
 			}
 			setCurrentStrokePoints([]);
 			setCurrentStrokePressures([]);
+			setCurrentStrokeTiltX([]);
+			setCurrentStrokeTiltY([]);
 		},
 		[
 			isStrokeActive,
 			activeTool,
 			currentStrokePoints,
+			currentStrokeTiltX,
+			currentStrokeTiltY,
 			drawingColor,
 			drawingWidth,
 			isDrawingRef,
 			onAddInkElement,
 			onAddFreeformShape,
-			buildPathD,
 			currentStrokePressures,
 		],
 	);
 
-	/** The in-progress stroke path for the live preview. */
-	const liveStrokeD = useMemo(
-		() => (isStrokeActive ? buildPathD(currentStrokePoints) : ''),
-		[isStrokeActive, currentStrokePoints, buildPathD],
+	// The live preview (plain path + shared render-view decision) is its own
+	// hook: see `useLiveInkPreview` for why this was split out.
+	const { liveStrokeD, liveStrokeView } = useLiveInkPreview(
+		isStrokeActive,
+		activeTool,
+		currentStrokePoints,
+		currentStrokePressures,
+		currentStrokeTiltX,
+		currentStrokeTiltY,
+		drawingColor,
+		drawingWidth,
 	);
 
 	return {
 		isDrawing,
 		isStrokeActive,
 		liveStrokeD,
+		liveStrokeView,
 		currentStrokePoints,
 		handleDrawPointerDown,
 		handleDrawPointerMove,

@@ -44,6 +44,7 @@ export function SmartArtElement({
 				className={className}
 				canEdit={canEdit}
 				onUpdateElement={onUpdateElement}
+				animationState={animationState}
 			/>
 		);
 	}

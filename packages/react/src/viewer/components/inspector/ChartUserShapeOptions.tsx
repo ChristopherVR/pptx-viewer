@@ -1,14 +1,24 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import {
 	createDefaultChartUserShape,
-	listChartUserShapeDescriptors,
+	createDefaultChartUserShapeGroupChild,
+	getChartUserShapeGroupTransform,
+	listChartUserShapeRows,
 	withChartUserShapeAdded,
-	withChartUserShapeRemoved,
-	withChartUserShapeUpdated,
+	withChartUserShapeGroupChildAdded,
+	withChartUserShapeRowChartBoxUpdated,
+	withChartUserShapeRowFlipUpdated,
+	withChartUserShapeRowRemoved,
+	withChartUserShapeRowRotationUpdated,
+	withChartUserShapeRowTextUpdated,
+	withChartUserShapeRowUpdated,
 } from 'pptx-viewer-shared';
+import type { ChartUserShapeRowPatch } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
 import { BTN, CARD, HEADING, INPUT } from './chart-panel-constants';
+import type { ChartUserShapeRowBoxPatch } from './ChartUserShapePositionFields';
+import { ChartUserShapePositionFields } from './ChartUserShapePositionFields';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -19,15 +29,19 @@ export interface ChartUserShapeOptionsProps {
 	onUpdateChartData: (patch: Partial<PptxChartData>) => void;
 }
 
+const PATH_KEY = (path: readonly number[]): string => path.join(',');
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 /**
  * "Chart overlay shapes" section: list a chart's `c:userShapes` drawing
- * overlays, add a default text box, delete one, and nudge a `sp`/`cxnSp`
- * shape's anchor fractions. Purely a thin view over the shared
- * `pptx-viewer-shared` `chart-user-shape-edit` helpers (C2-G10 follow-up),
- * so every binding's inspector stays in lock-step (CLAUDE.md Rule 2).
+ * overlays as an indented tree (a `grpSp`'s grouped children included, W2-F),
+ * add a default text box, delete any row, and edit a `sp`/`cxnSp` row's text/
+ * fill/line, a `pic` row's alt text, and any non-group row's position/size.
+ * Purely a thin view over the shared `pptx-viewer-shared` `chart-user-shape-
+ * edit`/`chart-user-shape-tree` helpers, so every binding's inspector stays
+ * in lock-step (CLAUDE.md Rule 2).
  */
 export function ChartUserShapeOptions({
 	chartData,
@@ -36,11 +50,37 @@ export function ChartUserShapeOptions({
 }: ChartUserShapeOptionsProps) {
 	const { t } = useTranslation();
 	const shapes = chartData.userShapes;
-	const descriptors = listChartUserShapeDescriptors(shapes);
+	const rows = listChartUserShapeRows(shapes);
 
 	const kindLabel = (kind: string): string => {
 		const key = `pptx.chart.userShapeKind${kind.charAt(0).toUpperCase()}${kind.slice(1)}`;
 		return t(key);
+	};
+
+	const update = (path: readonly number[], patch: ChartUserShapeRowPatch) =>
+		onUpdateChartData({ userShapes: withChartUserShapeRowUpdated(shapes, path, patch) });
+
+	const updateBox = (path: readonly number[], box: ChartUserShapeRowBoxPatch) =>
+		onUpdateChartData({ userShapes: withChartUserShapeRowChartBoxUpdated(shapes, path, box) });
+
+	const updateRotation = (path: readonly number[], rotation: number | undefined) =>
+		onUpdateChartData({ userShapes: withChartUserShapeRowRotationUpdated(shapes, path, rotation) });
+
+	const updateFlip = (path: readonly number[], flip: { flipH?: boolean; flipV?: boolean }) =>
+		onUpdateChartData({ userShapes: withChartUserShapeRowFlipUpdated(shapes, path, flip) });
+
+	const addIntoGroup = (path: readonly number[]) => {
+		const transform = getChartUserShapeGroupTransform(shapes, path);
+		if (!transform) {
+			return;
+		}
+		onUpdateChartData({
+			userShapes: withChartUserShapeGroupChildAdded(
+				shapes,
+				path,
+				createDefaultChartUserShapeGroupChild(transform),
+			),
+		});
 	};
 
 	return (
@@ -61,108 +101,121 @@ export function ChartUserShapeOptions({
 				</button>
 			</div>
 
-			{descriptors.length === 0 ? (
+			{rows.length === 0 ? (
 				<div className='text-[11px] text-muted-foreground'>{t('pptx.chart.userShapesEmpty')}</div>
 			) : (
 				<div className='space-y-2'>
-					{descriptors.map((d) => (
-						<div key={d.index} className='space-y-1 rounded border border-border p-1.5'>
+					{rows.map((row) => (
+						<div
+							key={PATH_KEY(row.path)}
+							data-chart-user-shape-path={PATH_KEY(row.path)}
+							style={{ marginLeft: row.depth * 12 }}
+							className='space-y-1 rounded border border-border p-1.5'
+						>
 							<div className='flex items-center gap-2 text-[11px]'>
 								<span className='flex-1 truncate'>
-									{kindLabel(d.kind)}
-									{d.text ? ` - ${d.text}` : ''}
+									{kindLabel(row.kind)}
+									{row.text ? ` - ${row.text}` : ''}
 								</span>
+								{row.isGroup ? (
+									<button
+										type='button'
+										disabled={!canEdit}
+										className={BTN}
+										onClick={() => addIntoGroup(row.path)}
+									>
+										{t('pptx.chart.userShapeAddIntoGroup')}
+									</button>
+								) : null}
 								<button
 									type='button'
 									disabled={!canEdit}
 									aria-label={t('pptx.chart.userShapeDelete')}
 									className={BTN}
 									onClick={() =>
-										onUpdateChartData({ userShapes: withChartUserShapeRemoved(shapes, d.index) })
+										onUpdateChartData({
+											userShapes: withChartUserShapeRowRemoved(shapes, row.path),
+										})
 									}
 								>
 									✕
 								</button>
 							</div>
 
-							{d.editable ? (
+							{row.editableVisuals ? (
 								<div className='flex items-center gap-1 text-[11px]'>
-									<span className='text-muted-foreground'>{t('pptx.chart.userShapeFrom')}</span>
+									<span className='text-muted-foreground'>{t('pptx.chart.userShapeText')}</span>
 									<input
-										type='number'
-										step='0.01'
-										min={0}
-										max={1}
+										type='text'
+										aria-label={t('pptx.chart.userShapeText')}
 										disabled={!canEdit}
 										className={INPUT}
-										value={d.from.x}
+										value={row.text ?? ''}
 										onChange={(e) =>
 											onUpdateChartData({
-												userShapes: withChartUserShapeUpdated(shapes, d.index, {
-													from: { ...d.from, x: Number(e.target.value) },
-												}),
+												userShapes: withChartUserShapeRowTextUpdated(
+													shapes,
+													row.path,
+													e.target.value,
+												),
 											})
 										}
 									/>
+								</div>
+							) : null}
+
+							{row.editableVisuals ? (
+								<div className='flex items-center gap-3 text-[11px]'>
+									<label className='flex items-center gap-1'>
+										<span className='text-muted-foreground'>{t('pptx.chart.userShapeFill')}</span>
+										<input
+											type='color'
+											aria-label={t('pptx.chart.userShapeFill')}
+											disabled={!canEdit}
+											value={row.fill ?? '#ffffff'}
+											onChange={(e) => update(row.path, { fill: e.target.value })}
+										/>
+									</label>
+									<label className='flex items-center gap-1'>
+										<span className='text-muted-foreground'>{t('pptx.chart.userShapeStroke')}</span>
+										<input
+											type='color'
+											aria-label={t('pptx.chart.userShapeStroke')}
+											disabled={!canEdit}
+											value={row.stroke ?? '#000000'}
+											onChange={(e) => update(row.path, { stroke: e.target.value })}
+										/>
+									</label>
+								</div>
+							) : null}
+
+							{row.editableAltText ? (
+								<div className='flex items-center gap-1 text-[11px]'>
+									<span className='text-muted-foreground'>{t('pptx.chart.userShapeAltText')}</span>
 									<input
-										type='number'
-										step='0.01'
-										min={0}
-										max={1}
+										type='text'
+										aria-label={t('pptx.chart.userShapeAltText')}
 										disabled={!canEdit}
 										className={INPUT}
-										value={d.from.y}
-										onChange={(e) =>
-											onUpdateChartData({
-												userShapes: withChartUserShapeUpdated(shapes, d.index, {
-													from: { ...d.from, y: Number(e.target.value) },
-												}),
-											})
-										}
+										value={row.altText ?? ''}
+										onChange={(e) => update(row.path, { altText: e.target.value })}
 									/>
-									{d.anchor === 'rel' && d.to ? (
-										<>
-											<span className='text-muted-foreground'>{t('pptx.chart.userShapeTo')}</span>
-											<input
-												type='number'
-												step='0.01'
-												min={0}
-												max={1}
-												disabled={!canEdit}
-												className={INPUT}
-												value={d.to.x}
-												onChange={(e) =>
-													onUpdateChartData({
-														userShapes: withChartUserShapeUpdated(shapes, d.index, {
-															to: { ...d.to!, x: Number(e.target.value) },
-														}),
-													})
-												}
-											/>
-											<input
-												type='number'
-												step='0.01'
-												min={0}
-												max={1}
-												disabled={!canEdit}
-												className={INPUT}
-												value={d.to.y}
-												onChange={(e) =>
-													onUpdateChartData({
-														userShapes: withChartUserShapeUpdated(shapes, d.index, {
-															to: { ...d.to!, y: Number(e.target.value) },
-														}),
-													})
-												}
-											/>
-										</>
-									) : null}
 								</div>
-							) : (
-								<div className='text-[10px] italic text-muted-foreground'>
-									{t('pptx.chart.userShapeNotEditable')}
-								</div>
-							)}
+							) : null}
+
+							{/* Every row (including a grpSp group header) is now position/size
+							editable: a top-level group's own drawing anchor moves/resizes it,
+							and a nested row edits a chart-relative fraction, see
+							ChartUserShapePositionFields' doc. */}
+							<ChartUserShapePositionFields
+								row={row}
+								userShapes={shapes}
+								canEdit={canEdit}
+								onPatch={update}
+								onBoxPatch={updateBox}
+								onRotationPatch={updateRotation}
+								onFlipPatch={updateFlip}
+							/>
 						</div>
 					))}
 				</div>

@@ -1,6 +1,10 @@
 import type { PptxElement, ShapeStyle, TextStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { textFontSizePtToPx, textFontSizePxToPt } from 'pptx-viewer-shared';
+import {
+	shouldShowAccessibilitySection,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -184,14 +188,12 @@ export function ShapeTextPanels({
 			/>
 
 			{/* Accessibility (alt text / title): a picture's own field lives in
-			    ImagePropertiesPanel; this panel only covers a plain shape, text box
-			    or connector, the three kinds `PptxNonVisualDescription` was added
-			    to. Restricted to those three types (rather than every kind the
-			    shared descriptor recognises) so it does not duplicate a
-			    table/chart/smartArt/media/ole panel's own alt-text UI. */}
-			{(selectedElement.type === 'text' ||
-				selectedElement.type === 'shape' ||
-				selectedElement.type === 'connector') && (
+			    ImagePropertiesPanel; shared's `shouldShowAccessibilitySection`
+			    decides everything else, a plain shape, text box, connector, and
+			    every graphic-frame kind (table/chart/smartArt/media/ole), so this
+			    stays in sync with the other four bindings without a hard-coded
+			    type list here. */}
+			{shouldShowAccessibilitySection(selectedElement) && (
 				<AccessibilityTextSection
 					selectedElement={selectedElement}
 					canEdit={canEdit}

@@ -43,6 +43,7 @@ describe('chartTypeSelector title field', () => {
 				<ChartTypeSelector
 					title='Sales'
 					chartType='bar'
+					chartData={{ chartType: 'bar', series: [{ name: 'Sales', values: [1, 2] }] }}
 					grouping={undefined}
 					seriesCount={1}
 					categoryCount={2}
@@ -65,6 +66,7 @@ describe('chartTypeSelector title field', () => {
 				<ChartTypeSelector
 					title='Sales'
 					chartType='bar'
+					chartData={{ chartType: 'bar', series: [{ name: 'Sales', values: [1, 2] }] }}
 					grouping={undefined}
 					seriesCount={1}
 					categoryCount={2}
@@ -80,5 +82,35 @@ describe('chartTypeSelector title field', () => {
 			select.dispatchEvent(new Event('change', { bubbles: true }));
 		});
 		expect(onUpdateChartData).toHaveBeenCalledWith({ chartType: 'line' });
+	});
+
+	it('shows "Pareto" (not "Histogram") as selected for a histogram with a paretoLine series', () => {
+		act(() =>
+			root.render(
+				<ChartTypeSelector
+					title='Defects'
+					chartType='histogram'
+					chartData={{
+						chartType: 'histogram',
+						series: [
+							{ name: 'Frequency', values: [3, 5, 2] },
+							{
+								name: 'Cumulative %',
+								values: [30, 80, 100],
+								histogramOptions: { layout: 'pareto' },
+							},
+						],
+					}}
+					grouping={undefined}
+					seriesCount={2}
+					categoryCount={3}
+					canEdit
+					onUpdateChartData={() => {}}
+					onTitleChange={() => {}}
+				/>,
+			),
+		);
+		const select = container.querySelector('select') as HTMLSelectElement;
+		expect(select.value).toBe('pareto');
 	});
 });

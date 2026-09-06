@@ -248,3 +248,56 @@ describe('getShapeVisualStyle shared-pipeline convergence', () => {
 		expect(String(style.boxShadow)).toContain('3px 4px');
 	});
 });
+
+describe('getShapeVisualStyle group-level effects (p:grpSpPr/a:effectLst)', () => {
+	function makeGroup(groupEffectStyle?: Record<string, unknown>): PptxElement {
+		return {
+			id: 'grp-1',
+			type: 'group',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			children: [],
+			groupEffectStyle,
+		} as unknown as PptxElement;
+	}
+
+	it('returns an empty style for a group with no groupEffectStyle', () => {
+		expect(getShapeVisualStyle(makeGroup(), true, '#fff', 0, '#000')).toStrictEqual({});
+	});
+
+	it('paints the group composite shadow as a `filter: drop-shadow`, never a `box-shadow`', () => {
+		const style = getShapeVisualStyle(
+			makeGroup({ shadowColor: '#000000', shadowAngle: 0, shadowDistance: 4, shadowBlur: 6 }),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		expect(style.boxShadow).toBeUndefined();
+		expect(String(style.filter)).toContain('drop-shadow');
+	});
+
+	it('paints a group glow as a `filter: drop-shadow`', () => {
+		const style = getShapeVisualStyle(
+			makeGroup({ glowColor: '#00ff00', glowRadius: 10 }),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		expect(String(style.filter)).toContain('drop-shadow');
+	});
+
+	it('sets overflow: visible for a group blur effect with @grow', () => {
+		const style = getShapeVisualStyle(
+			makeGroup({ blurRadius: 6, blurGrow: true }),
+			true,
+			'#fff',
+			0,
+			'#000',
+		);
+		expect(style.overflow).toBe('visible');
+	});
+});

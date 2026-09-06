@@ -172,21 +172,30 @@ export function computeCameraTransform(preset?: string, lat?: number, lon?: numb
 		scene.cameraRotY = lon;
 	}
 
-	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene);
+	const { perspective, matrix3d, cameraFlatFace, rotateX, rotateY, rotateZ } =
+		getCameraTransform(scene);
 
 	const parts: string[] = [];
 
-	if (perspective) {
-		parts.push(`perspective(${perspective})`);
-	}
-	if (rotateX !== 0) {
-		parts.push(`rotateX(${rotateX}deg)`);
-	}
-	if (rotateY !== 0) {
-		parts.push(`rotateY(${rotateY}deg)`);
-	}
-	if (rotateZ !== 0) {
-		parts.push(`rotateZ(${rotateZ}deg)`);
+	// A COM-measured exact `matrix3d(...)` (see shared
+	// `visual-3d-camera-homography`) replaces `perspective()` + `rotateX/Y/Z`
+	// entirely; `cameraFlatFace` means the same, just resolved to nothing at
+	// all (an identity homography).
+	if (matrix3d) {
+		parts.push(matrix3d);
+	} else if (!cameraFlatFace) {
+		if (perspective) {
+			parts.push(`perspective(${perspective})`);
+		}
+		if (rotateX !== 0) {
+			parts.push(`rotateX(${rotateX}deg)`);
+		}
+		if (rotateY !== 0) {
+			parts.push(`rotateY(${rotateY}deg)`);
+		}
+		if (rotateZ !== 0) {
+			parts.push(`rotateZ(${rotateZ}deg)`);
+		}
 	}
 
 	return parts.join(' ');

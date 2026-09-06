@@ -172,7 +172,10 @@ export function PresentationStage({
 							// the stage publishes its own size for those calc() offsets.
 							'--pptx-slide-w': `${safeWidth}px`,
 							'--pptx-slide-h': `${safeHeight}px`,
-							...getReactSlideBackgroundStyle(activeSlide),
+							...getReactSlideBackgroundStyle(activeSlide, {
+								widthPx: canvasSize.width,
+								heightPx: canvasSize.height,
+							}),
 						} as React.CSSProperties
 					}
 				>

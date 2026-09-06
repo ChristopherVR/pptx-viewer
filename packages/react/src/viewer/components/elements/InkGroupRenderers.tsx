@@ -32,19 +32,18 @@ import {
 	renderVectorShape,
 } from '../../utils';
 import {
-	extractPathPoints,
-	generatePressureCircles,
-	generateNibMarks,
-	hasPressureVariation,
-	pressuresToWidths,
+	buildContentPartStrokes,
+	buildInkGroupStrokes,
 	getInkReplayStyles,
 	getContentPartReplayStyles,
-	resolveInkColor,
-	resolveInkWidth,
-	resolveInkOpacity,
 	INK_REPLAY_KEYFRAMES,
 } from '../../utils/ink-rendering';
-import type { InkReplayConfig } from '../../utils/ink-rendering';
+import type {
+	InkReplayConfig,
+	InkStrokeView,
+	NibMark,
+	PressureCircle,
+} from '../../utils/ink-rendering';
 import { shapeParams } from '../ElementRenderer';
 import { ShapeEffectOverlay } from './ShapeEffectOverlay';
 
@@ -66,25 +65,16 @@ export interface InkRenderOptions {
 }
 
 /**
- * Render pressure-sensitive circles for a single ink stroke.
+ * Render pressure-sensitive circles for a single (already-decided) stroke.
  * This produces a series of SVG `<circle>` elements with varying radii
  * to simulate pressure variation along the stroke.
  */
 function renderPressureStroke(
-	pathD: string,
-	widths: number[],
-	baseWidth: number,
+	circles: PressureCircle[],
 	color: string,
 	opacity: number,
 	keyPrefix: string,
 ) {
-	const points = extractPathPoints(pathD);
-	const circles = generatePressureCircles(points, widths, {
-		baseWidth,
-		minRadius: 0.5,
-		maxRadius: baseWidth * 1.5,
-	});
-
 	return (
 		<g opacity={opacity}>
 			{circles.map((c, j) => (
@@ -95,27 +85,11 @@ function renderPressureStroke(
 }
 
 /**
- * Render calligraphic nib marks for a single ink stroke: an ellipse per point,
- * widened perpendicular to the pen's tilt-lean direction (a chisel-tip look).
- * The tilt counterpart of {@link renderPressureStroke}.
+ * Render calligraphic nib marks for a single (already-decided) stroke: an
+ * ellipse per point, widened perpendicular to the pen's tilt-lean direction
+ * (a chisel-tip look). The tilt counterpart of {@link renderPressureStroke}.
  */
-function renderNibMarkStroke(
-	pathD: string,
-	widths: number[],
-	tiltAngles: number[],
-	tiltMagnitudes: number[],
-	baseWidth: number,
-	color: string,
-	opacity: number,
-	keyPrefix: string,
-) {
-	const points = extractPathPoints(pathD);
-	const marks = generateNibMarks(points, widths, tiltAngles, tiltMagnitudes, {
-		baseWidth,
-		minRadius: 0.5,
-		maxRadius: baseWidth * 1.5,
-	});
-
+function renderNibMarkStroke(marks: NibMark[], color: string, opacity: number, keyPrefix: string) {
 	return (
 		<g opacity={opacity}>
 			{marks.map((m, j) => (
@@ -133,16 +107,65 @@ function renderNibMarkStroke(
 	);
 }
 
+/**
+ * Render one already-decided stroke view (plain path, pressure circles, or
+ * nib marks). Exported so the Draw tool's live in-progress preview
+ * (`DrawingOverlaySvg`) can paint its own `InkStrokeView` (built by the shared
+ * `buildLiveInkStrokeView`) with the exact same calligraphic-nib /
+ * pressure-circle mapping a committed stroke gets, instead of a hand-rolled
+ * plain `<path>`.
+ */
+export function renderStrokeView(
+	view: InkStrokeView,
+	pressureSensitive: boolean,
+	replayStyle:
+		| { strokeDasharray: string; strokeDashoffset: string; animation: string; pathLength: number }
+		| undefined,
+	key: string,
+) {
+	// Tilt-driven nib rendering is unconditional (matches this module's
+	// original contentPart behaviour): it degrades to a plain circle wherever
+	// tilt magnitude is 0, so it is safe even when `pressureSensitive` is
+	// explicitly disabled. Only the pressure-circle branch is gated by it.
+	if (view.nibMarks) {
+		return <g key={key}>{renderNibMarkStroke(view.nibMarks, view.color, view.opacity, key)}</g>;
+	}
+	if (pressureSensitive && view.circles) {
+		return <g key={key}>{renderPressureStroke(view.circles, view.color, view.opacity, key)}</g>;
+	}
+	return (
+		<path
+			key={key}
+			d={view.d}
+			fill='none'
+			stroke={view.color}
+			strokeWidth={view.width}
+			strokeOpacity={view.opacity}
+			strokeLinecap='round'
+			strokeLinejoin='round'
+			vectorEffect='non-scaling-stroke'
+			{...(replayStyle
+				? {
+						strokeDasharray: replayStyle.strokeDasharray,
+						strokeDashoffset: replayStyle.strokeDashoffset,
+						style: {
+							animation: replayStyle.animation,
+							'--ink-path-length': replayStyle.pathLength,
+						} as React.CSSProperties,
+					}
+				: {})}
+		/>
+	);
+}
+
 export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
 	const replay = options?.replay ?? false;
-	// Enable pressure-sensitive rendering by default when the element has
-	// per-point pressure data with actual variation, or legacy per-point
-	// width data with variation.
-	const hasPointPressures = Boolean(el.inkPointPressures) && el.inkPointPressures!.length > 0;
-	const hasLegacyPressure =
-		Boolean(el.inkWidths) && el.inkWidths!.length > 1 && hasPressureVariation(el.inkWidths!);
-	const hasPressure = hasPointPressures || hasLegacyPressure;
-	const pressureSensitive = options?.pressureSensitive ?? hasPressure;
+	const strokes = buildInkGroupStrokes(el, { color: '#000', width: 3 });
+	// Enable pressure/tilt-sensitive rendering by default when any stroke
+	// actually decided to render as circles or nib marks (per-point pressure
+	// or tilt data with real variation/lean; see `buildInkGroupStrokes`).
+	const hasVariableStroke = strokes.some((s) => s.circles || s.nibMarks);
+	const pressureSensitive = options?.pressureSensitive ?? hasVariableStroke;
 	const replayStyles = replay ? getInkReplayStyles(el, options?.replayConfig) : null;
 
 	return (
@@ -152,61 +175,9 @@ export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
 			preserveAspectRatio='none'
 		>
 			{replay && <style>{INK_REPLAY_KEYFRAMES}</style>}
-			{el.inkPaths.map((d, i) => {
-				const color = resolveInkColor(el.inkColors, i);
-				const width = resolveInkWidth(el.inkWidths, i);
-				const opacity = resolveInkOpacity(el.inkOpacities, i);
-
-				// Pressure-sensitive rendering using per-point pressure data.
-				if (pressureSensitive) {
-					// Prefer inkPointPressures (per-point pressure from stylus).
-					const pointPressures = el.inkPointPressures?.[i];
-					if (pointPressures && pointPressures.length > 1 && hasPressureVariation(pointPressures)) {
-						const pointWidths = pressuresToWidths(pointPressures, width);
-						return (
-							<g key={`${el.id}-ink-${i}`}>
-								{renderPressureStroke(d, pointWidths, width, color, opacity, `${el.id}-ink-${i}`)}
-							</g>
-						);
-					}
-
-					// Legacy fallback: use inkWidths array as per-point widths
-					// (when it has more entries than paths and shows variation).
-					if (el.inkWidths && el.inkWidths.length > 1 && hasPressureVariation(el.inkWidths)) {
-						return (
-							<g key={`${el.id}-ink-${i}`}>
-								{renderPressureStroke(d, el.inkWidths, width, color, opacity, `${el.id}-ink-${i}`)}
-							</g>
-						);
-					}
-				}
-
-				// Standard or replay-animated path rendering.
-				const replayStyle = replayStyles?.[i];
-				return (
-					<path
-						key={`${el.id}-ink-${i}`}
-						d={d}
-						fill='none'
-						stroke={color}
-						strokeWidth={width}
-						strokeOpacity={opacity}
-						strokeLinecap='round'
-						strokeLinejoin='round'
-						vectorEffect='non-scaling-stroke'
-						{...(replayStyle
-							? {
-									strokeDasharray: replayStyle.strokeDasharray,
-									strokeDashoffset: replayStyle.strokeDashoffset,
-									style: {
-										animation: replayStyle.animation,
-										'--ink-path-length': replayStyle.pathLength,
-									} as React.CSSProperties,
-								}
-							: {})}
-					/>
-				);
-			})}
+			{strokes.map((s, i) =>
+				renderStrokeView(s, pressureSensitive, replayStyles?.[i], `${el.id}-ink-${i}`),
+			)}
 		</svg>
 	);
 }
@@ -331,6 +302,7 @@ export function renderContentPart(el: ContentPartPptxElement, options?: InkRende
 	if (el.inkStrokes && el.inkStrokes.length > 0) {
 		const replay = options?.replay ?? false;
 		const pressureSensitive = options?.pressureSensitive ?? true;
+		const strokes = buildContentPartStrokes(el);
 		const replayStyles = replay
 			? getContentPartReplayStyles(el.inkStrokes, options?.replayConfig)
 			: null;
@@ -342,82 +314,9 @@ export function renderContentPart(el: ContentPartPptxElement, options?: InkRende
 				preserveAspectRatio='none'
 			>
 				{replay && <style>{INK_REPLAY_KEYFRAMES}</style>}
-				{el.inkStrokes.map((stroke, i) => {
-					// Tilt-driven calligraphic nib rendering takes priority when the
-					// source declared tilt channels; it degrades to plain circles
-					// wherever tilt magnitude is 0, so this is safe even for a
-					// stroke whose tilt barely varies.
-					if (stroke.tiltAngles && stroke.tiltAngles.length > 0) {
-						const magnitudes = stroke.tiltMagnitudes ?? stroke.tiltAngles.map(() => 0.5);
-						const widths =
-							stroke.pressures &&
-							stroke.pressures.length > 1 &&
-							hasPressureVariation(stroke.pressures)
-								? pressuresToWidths(stroke.pressures, stroke.width)
-								: [stroke.width];
-						return (
-							<g key={`${el.id}-cp-ink-${i}`}>
-								{renderNibMarkStroke(
-									stroke.path,
-									widths,
-									stroke.tiltAngles,
-									magnitudes,
-									stroke.width,
-									stroke.color,
-									stroke.opacity,
-									`${el.id}-cp-ink-${i}`,
-								)}
-							</g>
-						);
-					}
-
-					// Pressure-sensitive rendering for content part strokes
-					if (
-						pressureSensitive &&
-						stroke.pressures &&
-						stroke.pressures.length > 1 &&
-						hasPressureVariation(stroke.pressures)
-					) {
-						const pointWidths = pressuresToWidths(stroke.pressures, stroke.width);
-						return (
-							<g key={`${el.id}-cp-ink-${i}`}>
-								{renderPressureStroke(
-									stroke.path,
-									pointWidths,
-									stroke.width,
-									stroke.color,
-									stroke.opacity,
-									`${el.id}-cp-ink-${i}`,
-								)}
-							</g>
-						);
-					}
-
-					const replayStyle = replayStyles?.[i];
-					return (
-						<path
-							key={`${el.id}-cp-ink-${i}`}
-							d={stroke.path}
-							fill='none'
-							stroke={stroke.color}
-							strokeWidth={stroke.width}
-							strokeOpacity={stroke.opacity}
-							strokeLinecap='round'
-							strokeLinejoin='round'
-							vectorEffect='non-scaling-stroke'
-							{...(replayStyle
-								? {
-										strokeDasharray: replayStyle.strokeDasharray,
-										strokeDashoffset: replayStyle.strokeDashoffset,
-										style: {
-											animation: replayStyle.animation,
-											'--ink-path-length': replayStyle.pathLength,
-										} as React.CSSProperties,
-									}
-								: {})}
-						/>
-					);
-				})}
+				{strokes.map((s, i) =>
+					renderStrokeView(s, pressureSensitive, replayStyles?.[i], `${el.id}-cp-ink-${i}`),
+				)}
 			</svg>
 		);
 	}

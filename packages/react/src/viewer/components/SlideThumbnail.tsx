@@ -46,7 +46,13 @@ function SlideThumbnailImpl({
 	return (
 		<div
 			className='relative w-full overflow-hidden rounded border border-border bg-white'
-			style={{ height: previewHeight, ...getReactSlideBackgroundStyle(slide) }}
+			style={{
+				height: previewHeight,
+				...getReactSlideBackgroundStyle(slide, {
+					widthPx: safeCanvasWidth,
+					heightPx: safeCanvasHeight,
+				}),
+			}}
 		>
 			<div
 				className='absolute top-0 left-0 origin-top-left'

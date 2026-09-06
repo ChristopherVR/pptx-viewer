@@ -28,6 +28,15 @@ export interface UseAnimationPlaybackInput {
 	onPlayActionSound?: (soundPath: string) => void;
 	/** When false, all animations are skipped (elements shown immediately). */
 	showWithAnimation?: boolean;
+	/**
+	 * The slide canvas size (px), in the same unit the elements' own
+	 * `x`/`y`/`width`/`height` are authored in. Lets `PresentationAnimationController
+	 * .fromSlide` resolve a `p:anim` formula that needs the animated shape's real
+	 * box (e.g. Grow And Turn's `-#ppt_w/2` fly-in) instead of falling back.
+	 */
+	canvasSize?: { width: number; height: number };
+	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+	themeColorMap?: Readonly<Record<string, string>>;
 }
 
 /** How a slide's animation timeline should be seeded when it becomes active. */
@@ -86,7 +95,7 @@ export interface UseAnimationPlaybackResult {
 // ---------------------------------------------------------------------------
 
 export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnimationPlaybackResult {
-	const { slides, onPlayActionSound, showWithAnimation } = input;
+	const { slides, onPlayActionSound, showWithAnimation, canvasSize, themeColorMap } = input;
 	const animationsEnabled = showWithAnimation !== false;
 
 	// State
@@ -188,7 +197,14 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			// The controller builds the timeline engine (expanding text-build
 			// animations into sub-element animations) and derives the keyframes CSS,
 			// trigger-shape id sets, and the full tracked element id list.
-			const controller = PresentationAnimationController.fromSlide(slide);
+			// `canvasSize`/`themeColorMap` let it resolve a `p:anim` formula that
+			// needs the animated shape's real box (Grow And Turn's `-#ppt_w/2`
+			// fly-in) and a scheme-colour ramp stop instead of falling back.
+			const controller = PresentationAnimationController.fromSlide(slide, {
+				slideHeightPx: canvasSize?.height,
+				slideWidthPx: canvasSize?.width,
+				themeColorMap,
+			});
 			controllerRef.current = controller;
 			mediaTimeNodeElementIdsRef.current = resolveMediaTimeNodeElementIds(
 				slide.nativeAnimations ?? [],
@@ -201,7 +217,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 			setPresentationElementStates(controller.computeStates());
 		},
-		[slides],
+		[slides, canvasSize, themeColorMap],
 	);
 
 	// -----------------------------------------------------------------------

@@ -30,41 +30,53 @@ describe('getCameraTransform', () => {
 		expect(result.rotateY).toBe(0);
 	});
 
-	it('maps perspectiveFront to 1000px perspective with no rotation', () => {
+	it('maps perspectiveFront to an exact matrix3d with no separate perspective', () => {
+		// 2026-09 off-axis-camera homography wave: see shared
+		// `visual-3d-camera-homography`'s module doc comment.
 		const result = getCameraTransform({ cameraPreset: 'perspectiveFront' });
-		expect(result.perspective).toBe('1000px');
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toContain('matrix3d(');
 		expect(result.rotateX).toBe(0);
 		expect(result.rotateY).toBe(0);
 	});
 
-	it('maps perspectiveAbove to rotateX -20deg', () => {
+	// rotateX/rotateY still carry the legacy table's hand-tuned angle as an
+	// extrusion panel-direction HINT only (see shared `cameraFlatFace` doc
+	// comment); the actual transform is the exact matrix3d above/below.
+	it('maps perspectiveAbove to an exact matrix3d, panel hint rotateX 20deg', () => {
 		const result = getCameraTransform({ cameraPreset: 'perspectiveAbove' });
-		expect(result.perspective).toBe('1000px');
-		expect(result.rotateX).toBe(-20);
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toContain('matrix3d(');
+		expect(result.rotateX).toBe(20);
 		expect(result.rotateY).toBe(0);
 	});
 
-	it('maps perspectiveBelow to rotateX 20deg', () => {
+	it('maps perspectiveBelow to an exact matrix3d, panel hint rotateX -20deg', () => {
 		const result = getCameraTransform({ cameraPreset: 'perspectiveBelow' });
-		expect(result.perspective).toBe('1000px');
-		expect(result.rotateX).toBe(20);
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toContain('matrix3d(');
+		expect(result.rotateX).toBe(-20);
 	});
 
-	it('maps perspectiveLeft to rotateY 20deg', () => {
+	it('maps perspectiveLeft to an exact matrix3d, panel hint rotateY -20deg', () => {
 		const result = getCameraTransform({ cameraPreset: 'perspectiveLeft' });
-		expect(result.perspective).toBe('1000px');
-		expect(result.rotateY).toBe(20);
-	});
-
-	it('maps perspectiveRight to rotateY -20deg', () => {
-		const result = getCameraTransform({ cameraPreset: 'perspectiveRight' });
-		expect(result.perspective).toBe('1000px');
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toContain('matrix3d(');
 		expect(result.rotateY).toBe(-20);
 	});
 
-	it('maps isometric presets with both X and Y rotation', () => {
+	it('maps perspectiveRight to an exact matrix3d, panel hint rotateY 20deg', () => {
+		const result = getCameraTransform({ cameraPreset: 'perspectiveRight' });
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toContain('matrix3d(');
+		expect(result.rotateY).toBe(20);
+	});
+
+	it('maps isometric presets with both X and Y rotation and NO perspective', () => {
 		const result = getCameraTransform({ cameraPreset: 'isometricLeftDown' });
-		expect(result.perspective).toBe('1200px');
+		// COM-measured (2026-09): real PowerPoint renders isometric presets as a
+		// true parallelogram (parallel projection), so no `perspective` is emitted.
+		expect(result.perspective).toBeUndefined();
 		expect(result.rotateX).toBe(-35);
 		expect(result.rotateY).toBe(45);
 	});
@@ -300,18 +312,19 @@ describe('get3DTransformStyle', () => {
 		expect(Object.keys(result)).toHaveLength(0);
 	});
 
-	it('includes perspective for camera presets', () => {
+	it('includes an exact matrix3d for camera presets, no separate perspective', () => {
 		const result = get3DTransformStyle({ cameraPreset: 'perspectiveFront' });
-		expect(result.perspective).toBe('1000px');
+		expect(result.perspective).toBeUndefined();
+		expect(result.transform).toContain('matrix3d(');
 		expect(result.willChange).toBe('transform');
 	});
 
-	it('includes rotation transforms', () => {
+	it('includes the exact matrix3d transform', () => {
 		const result = get3DTransformStyle({
 			cameraPreset: 'perspectiveAbove',
 		});
-		expect(result.transform).toContain('rotateX(-20deg)');
-		expect(result.perspective).toBe('1000px');
+		expect(result.transform).toContain('matrix3d(');
+		expect(result.perspective).toBeUndefined();
 	});
 
 	it('sets willChange when shape3d exists', () => {
@@ -428,17 +441,18 @@ describe('apply3dEffects', () => {
 		expect(base.transform).toContain('rotateZ(30deg)');
 	});
 
-	it('should apply camera preset perspective', () => {
+	it('should apply an exact matrix3d for a camera preset, no separate perspective', () => {
 		const base: React.CSSProperties = {};
 		apply3dEffects(base, { cameraPreset: 'perspectiveFront' }, undefined);
-		expect(base.perspective).toBe('1000px');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
 	});
 
-	it('should apply camera preset rotation', () => {
+	it('should apply the exact matrix3d camera transform', () => {
 		const base: React.CSSProperties = {};
 		apply3dEffects(base, { cameraPreset: 'perspectiveAbove' }, undefined);
-		expect(base.perspective).toBe('1000px');
-		expect(base.transform).toContain('rotateX(-20deg)');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
 	});
 
 	it('should add extrusion depth as stacked box-shadows', () => {
@@ -467,11 +481,10 @@ describe('apply3dEffects', () => {
 		expect(base.boxShadow).toContain('rgba(255,255,255,');
 	});
 
-	it('should add backdrop ground-plane shadow', () => {
+	it('does not synthesize a ground shadow from a bare backdrop (COM-measured: no visible effect)', () => {
 		const base: React.CSSProperties = {};
 		apply3dEffects(base, { hasBackdrop: true }, undefined);
-		expect(base.boxShadow).toBeDefined();
-		expect(base.boxShadow).toContain('rgba(0,0,0,0.25)');
+		expect(base.boxShadow).toBeUndefined();
 	});
 
 	it('should apply material preset CSS overrides', () => {
@@ -536,12 +549,13 @@ describe('apply3dEffects', () => {
 			},
 		);
 
-		expect(base.perspective).toBe('1000px');
-		expect(base.transform).toContain('rotateX(-20deg)');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
 		expect(base.boxShadow).toBeDefined();
 		expect(base.boxShadow).toContain('#4472C4'); // extrusion
 		expect(base.boxShadow).toContain('inset'); // bevel + material
-		expect(base.boxShadow).toContain('rgba(0,0,0,0.25)'); // backdrop
+		// The bare `hasBackdrop: true` above contributes no shadow of its own
+		// (COM-measured: no visible effect without a real shadow present).
 		expect(base.filter).toContain('brightness'); // material + light rig
 		expect(base.backgroundImage).toContain('linear-gradient'); // light rig
 		expect(base.willChange).toBe('transform');
@@ -586,7 +600,7 @@ describe('apply3dEffects', () => {
 		const base: React.CSSProperties = { transform: 'scaleX(-1)' };
 		apply3dEffects(base, { cameraPreset: 'perspectiveAbove' }, undefined);
 		expect(base.transform).toContain('scaleX(-1)');
-		expect(base.transform).toContain('rotateX(-20deg)');
+		expect(base.transform).toContain('matrix3d(');
 	});
 
 	it('should add translateZ for extrusion depth', () => {
@@ -625,7 +639,7 @@ describe('build3DExtrusionData', () => {
 		expect(result.panels.length).toBeLessThanOrEqual(4);
 	});
 
-	it('wrapper style has preserve-3d and perspective', () => {
+	it('wrapper style has preserve-3d, no separate perspective for a homography-driven preset', () => {
 		const result = build3DExtrusionData(
 			{ extrusionHeight: 95250 },
 			{ cameraPreset: 'perspectiveFront' },
@@ -634,7 +648,12 @@ describe('build3DExtrusionData', () => {
 			100,
 		);
 		expect(result.wrapperStyle.transformStyle).toBe('preserve-3d');
-		expect(result.wrapperStyle.perspective).toBe('1000px');
+		// `perspectiveFront` is a COM-measured homography-driven preset (see
+		// shared `visual-3d-camera-homography`): the wrapper skips a generic
+		// `perspective` (which would compound a second, unrelated projection on
+		// top of the matrix3d) and pins transform-origin to the front face's.
+		expect(result.wrapperStyle.perspective).toBeUndefined();
+		expect(result.wrapperStyle.transformOrigin).toBe('0 0');
 		expect(result.wrapperStyle.pointerEvents).toBe('none');
 	});
 
@@ -694,17 +713,26 @@ describe('build3DExtrusionData', () => {
 		expect(right!.style.height).toBe(100);
 	});
 
-	it('panels have rotateX/Y transforms for perspective camera', () => {
+	it('uses an exact clip-path quad (not the front face matrix3d) for a measured homography-driven camera', () => {
 		const result = build3DExtrusionData(
 			{ extrusionHeight: 95250 },
-			{ cameraPreset: 'perspectiveAbove' }, // rotateX = -20
+			{ cameraPreset: 'perspectiveAbove' },
 			'#888',
 			200,
 			100,
 		);
+		// COM-measured 2026-09 (see shared `visual-3d-panel-sides`'s doc
+		// comment): perspectiveAbove shows only the bottom panel.
 		const bottom = result.panels.find((p) => p.side === 'bottom');
-		expect(bottom?.style.transform).toContain('rotateX(-20deg)');
-		expect(bottom?.style.transform).toContain('rotateX(-90deg)');
+		// COM-measured 2026-09 (see shared `visual-3d-panel-quad`'s doc
+		// comment): the old local-rotate-fold + shared matrix3d composition is
+		// DEGENERATE for a homography camera (it collapses the panel's front and
+		// back edges onto the same screen line, since the homography's
+		// projective divide never depends on z). `perspectiveAbove` has COM
+		// ground truth, so it now gets an explicit projected `clip-path` quad
+		// instead, with no `transform` at all.
+		expect(bottom?.style.clipPath).toContain('polygon(');
+		expect(bottom?.style.transform).toBeUndefined();
 	});
 
 	it('uses extrusionColor for side face colouring', () => {
@@ -776,59 +804,64 @@ describe('build3DExtrusionData', () => {
 		expect(result.materialOverlay).toBeUndefined();
 	});
 
-	it('applies default 800px perspective when no scene3d', () => {
+	it('applies the default custom-rotation perspective (re-projected onto element size) when no scene3d', () => {
 		const result = build3DExtrusionData({ extrusionHeight: 95250 }, undefined, '#888', 200, 100);
-		expect(result.wrapperStyle.perspective).toBe('800px');
+		// The 800px reference default (at the 300px reference size) re-projected
+		// onto this 200x100 element: 100/tan(atan(150/800)) = 533.33, rounds to 533.
+		expect(result.wrapperStyle.perspective).toBe('533px');
 	});
 
-	it('uses scene3d perspective when provided', () => {
+	it('uses the exact matrix3d transform-origin for a homography-driven preset, no separate perspective', () => {
 		const result = build3DExtrusionData(
 			{ extrusionHeight: 95250 },
-			{ cameraPreset: 'perspectiveHeroicLeftFacing' }, // 600px
+			{ cameraPreset: 'perspectiveHeroicLeftFacing' },
 			'#888',
 			200,
 			100,
 		);
-		expect(result.wrapperStyle.perspective).toBe('600px');
+		expect(result.wrapperStyle.perspective).toBeUndefined();
+		expect(result.wrapperStyle.transformOrigin).toBe('0 0');
 	});
 
 	it('selectively shows panels based on camera angle', () => {
-		// Camera from far left: rotateY > 5 hides left, shows right
+		// COM-measured 2026-09 (see shared `visual-3d-panel-sides`'s
+		// `PERSPECTIVE_MEASURED_EXCEPTIONS` doc comment): this preset shows
+		// ONLY the left panel, never top/bottom/right.
 		const result = build3DExtrusionData(
 			{ extrusionHeight: 95250 },
-			{ cameraPreset: 'perspectiveHeroicExtremeLeftFacing' }, // rotateY = 45
+			{ cameraPreset: 'perspectiveHeroicExtremeRightFacing' },
 			'#888',
 			200,
 			100,
 		);
 		const sides = result.panels.map((p) => p.side);
-		// With rotateY = 45, left panel should NOT be visible (rotateY >= -5 is the check)
-		// but right panel should be (rotateY <= 5 fails since 45 > 5, so right NOT shown)
-		// Actually the logic is: showRight = rotateY <= 5, showLeft = rotateY >= -5
-		// rotateY = 45: showRight = false, showLeft = true
 		expect(sides).toContain('left');
 		expect(sides).not.toContain('right');
 	});
 
 	it('uses direction-aware gradients on side panels based on camera angle', () => {
-		// Camera from above-left: bottom and right panels should be lit
+		// perspectiveAboveLeftFacing is rotateX = 20, rotateY = -25
+		// (COM-corrected 2026-09, see shared `visual-3d-camera`'s doc comment).
 		const result = build3DExtrusionData(
 			{ extrusionHeight: 95250 }, // 10px
-			{ cameraPreset: 'perspectiveAboveLeftFacing' }, // rotateX = -20, rotateY = 25
+			{ cameraPreset: 'perspectiveAboveLeftFacing' },
 			'#888888',
 			200,
 			100,
 		);
-		// Bottom panel should have the lighter gradient (camera from above => lit from top)
-		const bottom = result.panels.find((p) => p.side === 'bottom');
-		expect(bottom).toBeDefined();
-		expect(bottom!.style.background).toBeDefined();
-		const bottomBg = bottom!.style.background as string;
-		expect(bottomBg).toContain('linear-gradient');
+		// showTop = rotateX >= -2 => true for rotateX = 20; showBottom is false.
+		const top = result.panels.find((p) => p.side === 'top');
+		expect(top).toBeDefined();
+		expect(top!.style.background).toBeDefined();
+		const topBg = top!.style.background as string;
+		expect(topBg).toContain('linear-gradient');
 
-		// Left panel is visible (rotateY >= -5 => yes since rotateY = 25)
-		const left = result.panels.find((p) => p.side === 'left');
-		expect(left).toBeDefined();
+		// The rotateY heuristic would predict a right panel too, but the COM
+		// measurement (shared `visual-3d-panel-sides-perspective`) shows every
+		// `*LeftFacing` preset renders only its primary side: no right panel.
+		const right = result.panels.find((p) => p.side === 'right');
+		expect(right).toBeUndefined();
+		expect(result.panels.map((p) => p.side)).toStrictEqual(['top']);
 	});
 
 	it('applies camera-aware material gradient overlay', () => {
@@ -845,13 +878,13 @@ describe('build3DExtrusionData', () => {
 
 		const resultRight = build3DExtrusionData(
 			{ extrusionHeight: 95250, presetMaterial: 'metal' },
-			{ cameraPreset: 'perspectiveRight' }, // rotateY = -20
+			{ cameraPreset: 'perspectiveRight' }, // rotateY = 20 (COM-corrected 2026-09)
 			'#888',
 			200,
 			100,
 		);
 		expect(resultRight.materialOverlay).toBeDefined();
-		// Camera right (rotateY = -20) should shift highlight angle
+		// Camera right (rotateY = 20) should shift highlight angle
 		expect(resultRight.materialOverlay).not.toContain('135deg');
 	});
 

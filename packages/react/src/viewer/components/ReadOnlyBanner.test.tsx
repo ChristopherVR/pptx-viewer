@@ -25,6 +25,7 @@ const modifyVerifierRecommendation: ReadOnlyRecommendation = {
 	kind: 'modifyVerifier',
 	messageKey: 'pptx.readOnly.modifyVerifierRecommended',
 	defaultReadOnly: true,
+	requiresPassword: false,
 };
 
 describe('readOnlyBanner', () => {
@@ -77,5 +78,106 @@ describe('readOnlyBanner', () => {
 		) as HTMLButtonElement;
 		act(() => button.click());
 		expect(onDismiss).toHaveBeenCalledOnce();
+	});
+
+	describe('password prompt', () => {
+		it('renders the password form instead of the two buttons when open', () => {
+			act(() =>
+				root.render(
+					<ReadOnlyBanner
+						recommendation={modifyVerifierRecommendation}
+						onEditAnyway={() => {}}
+						onDismiss={() => {}}
+						passwordPromptOpen
+						onSubmitPassword={() => {}}
+						onCancelPassword={() => {}}
+					/>,
+				),
+			);
+			expect(container.querySelector('[data-testid="pptx-readonly-password-form"]')).not.toBeNull();
+			expect(container.querySelector('[data-testid="pptx-readonly-edit-anyway"]')).toBeNull();
+			expect(container.querySelector('[data-testid="pptx-readonly-dismiss"]')).toBeNull();
+			const input = container.querySelector(
+				'[data-testid="pptx-readonly-password-input"]',
+			) as HTMLInputElement;
+			expect(input.type).toBe('password');
+			expect(input.getAttribute('aria-invalid')).toBe('false');
+		});
+
+		it('submits the typed password when "Unlock" is clicked', () => {
+			const onSubmitPassword = vi.fn();
+			act(() =>
+				root.render(
+					<ReadOnlyBanner
+						recommendation={modifyVerifierRecommendation}
+						onEditAnyway={() => {}}
+						onDismiss={() => {}}
+						passwordPromptOpen
+						onSubmitPassword={onSubmitPassword}
+						onCancelPassword={() => {}}
+					/>,
+				),
+			);
+			const input = container.querySelector(
+				'[data-testid="pptx-readonly-password-input"]',
+			) as HTMLInputElement;
+			const nativeSetter = Object.getOwnPropertyDescriptor(
+				window.HTMLInputElement.prototype,
+				'value',
+			)?.set;
+			act(() => {
+				nativeSetter?.call(input, 'secret');
+				input.dispatchEvent(new Event('input', { bubbles: true }));
+			});
+			const unlockButton = container.querySelector(
+				'[data-testid="pptx-readonly-unlock"]',
+			) as HTMLButtonElement;
+			act(() => unlockButton.click());
+			expect(onSubmitPassword).toHaveBeenCalledWith('secret');
+		});
+
+		it('calls onCancelPassword when "Cancel" is clicked', () => {
+			const onCancelPassword = vi.fn();
+			act(() =>
+				root.render(
+					<ReadOnlyBanner
+						recommendation={modifyVerifierRecommendation}
+						onEditAnyway={() => {}}
+						onDismiss={() => {}}
+						passwordPromptOpen
+						onSubmitPassword={() => {}}
+						onCancelPassword={onCancelPassword}
+					/>,
+				),
+			);
+			const cancelButton = container.querySelector(
+				'[data-testid="pptx-readonly-password-cancel"]',
+			) as HTMLButtonElement;
+			act(() => cancelButton.click());
+			expect(onCancelPassword).toHaveBeenCalledOnce();
+		});
+
+		it('marks the input aria-invalid and shows the error text on wrong-password', () => {
+			act(() =>
+				root.render(
+					<ReadOnlyBanner
+						recommendation={modifyVerifierRecommendation}
+						onEditAnyway={() => {}}
+						onDismiss={() => {}}
+						passwordPromptOpen
+						passwordError='wrong-password'
+						onSubmitPassword={() => {}}
+						onCancelPassword={() => {}}
+					/>,
+				),
+			);
+			const input = container.querySelector(
+				'[data-testid="pptx-readonly-password-input"]',
+			) as HTMLInputElement;
+			expect(input.getAttribute('aria-invalid')).toBe('true');
+			const error = container.querySelector('[data-testid="pptx-readonly-password-error"]');
+			expect(error).not.toBeNull();
+			expect(error?.getAttribute('role')).toBe('alert');
+		});
 	});
 });

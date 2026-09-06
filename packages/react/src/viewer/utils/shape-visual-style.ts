@@ -98,6 +98,24 @@ export function getShapeVisualStyle(
 	animatesStroke?: boolean,
 	parentGroupFill?: ShapeStyle,
 ): React.CSSProperties {
+	if (element.type === 'group') {
+		// A group has no fill/stroke/geometry of its own (the branches below all
+		// read `element.shapeStyle`, which a group never has), but PowerPoint
+		// still lets `p:grpSpPr/a:effectLst` carry a shadow/glow/soft-edge for
+		// the group's own COMPOSITE raster (see shared `getComputedEffectStyle`).
+		// Reflection rides a separate mirrored sibling node (`ShapeEffectOverlay`),
+		// same as a shape, so only the container-level `filter` / `overflow`
+		// belong here.
+		const fx = getComputedEffectStyle(element);
+		const groupStyle: React.CSSProperties = {};
+		if (fx.filter) {
+			groupStyle.filter = fx.filter;
+		}
+		if (fx.overflowVisible) {
+			groupStyle.overflow = 'visible';
+		}
+		return groupStyle;
+	}
 	if (!hasShapeProperties(element)) {
 		return {};
 	}
@@ -165,8 +183,13 @@ export function getShapeVisualStyle(
 
 	// ── 3D effects (perspective + rotation + extrusion/bevel) ──
 	// Pass the resolved fill colour so extrusion/contour default to it when no
-	// explicit extrusion colour is set.
-	apply3dEffects(base, ss?.scene3d, ss?.shape3d, ss?.fillColor ?? fillColor);
+	// explicit extrusion colour is set, and the element's own rendered size so
+	// the camera's field of view is projected onto it rather than a fixed
+	// reference size (see shared `getCameraTransform`).
+	apply3dEffects(base, ss?.scene3d, ss?.shape3d, ss?.fillColor ?? fillColor, {
+		width: element.width,
+		height: element.height,
+	});
 
 	// The SVG `<path>` owns the fill/stroke for freeform geometry; keep effects
 	// (shadow, glow, opacity, blend) on the container but drop the rectangular

@@ -1,4 +1,4 @@
-import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandler, PptxModifyVerifier, PptxSlide } from 'pptx-viewer-core';
 import type { CompatibilityWarningToast, ReadOnlyRecommendation } from 'pptx-viewer-shared';
 /**
  * useContentLifecycle: Composes content loading, font injection,
@@ -54,6 +54,8 @@ export interface UseContentLifecycleInput {
 	allowExternalImages?: boolean;
 	/** Forwarded to {@link useLoadContent}: see `useReadOnlyRecommendationState`. */
 	setReadOnlyRecommendation: React.Dispatch<React.SetStateAction<ReadOnlyRecommendation>>;
+	/** Forwarded to {@link useLoadContent}: see `useReadOnlyRecommendationState`. */
+	setModifyVerifier: React.Dispatch<React.SetStateAction<PptxModifyVerifier | undefined>>;
 	/** Forwarded to {@link useLoadContent}: see `useCompatibilityToastsState`. */
 	setCompatToasts: React.Dispatch<React.SetStateAction<CompatibilityWarningToast[]>>;
 }
@@ -99,6 +101,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		onContentApplied,
 		allowExternalImages,
 		setReadOnlyRecommendation,
+		setModifyVerifier,
 		setCompatToasts,
 	} = input;
 
@@ -140,6 +143,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		setDigitalSignatureCount: state.setDigitalSignatureCount,
 		setGuides: state.setGuides,
 		setReadOnlyRecommendation,
+		setModifyVerifier,
 		setCompatToasts,
 		setLoading: state.setLoading,
 		setError: state.setError,

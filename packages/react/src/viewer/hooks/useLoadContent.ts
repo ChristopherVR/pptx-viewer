@@ -7,6 +7,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHeaderFooter,
 	PptxHandoutMaster,
+	PptxModifyVerifier,
 	PptxModernCommentAuthor,
 	PptxNotesMaster,
 	PptxSlide,
@@ -106,6 +107,12 @@ export interface UseLoadContentInput {
 	>;
 	/** Whether the loaded deck recommends opening read-only (`p:modifyVerifier` / "Mark as Final"). */
 	setReadOnlyRecommendation: React.Dispatch<React.SetStateAction<ReadOnlyRecommendation>>;
+	/**
+	 * The deck's raw `p:modifyVerifier`, kept alongside the recommendation
+	 * above so the read-only banner's password prompt can check a candidate
+	 * password against it (`checkModifyPassword`, `pptx-viewer-shared`).
+	 */
+	setModifyVerifier: React.Dispatch<React.SetStateAction<PptxModifyVerifier | undefined>>;
 	/** Deck + slide compatibility-warning toast stack for this load. */
 	setCompatToasts: React.Dispatch<React.SetStateAction<CompatibilityWarningToast[]>>;
 	setLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -173,6 +180,7 @@ export function useLoadContent({
 	setDigitalSignatureCount,
 	setGuides,
 	setReadOnlyRecommendation,
+	setModifyVerifier,
 	setCompatToasts,
 	setLoading,
 	setError,
@@ -391,6 +399,7 @@ export function useLoadContent({
 				// compatibility-warning toast stack: both reset wholesale on every
 				// load, matching every other setter here.
 				setReadOnlyRecommendation(readOnlyRecommendation(parsed));
+				setModifyVerifier(parsed.modifyVerifier ?? undefined);
 				setCompatToasts(
 					compatibilityWarningToasts([
 						...(parsed.warnings ?? []),

@@ -27,6 +27,15 @@ export interface UsePresentationSetupInput {
 	/** Master/layout shapes painted beneath each slide, by slide id (see `usePresentationMode`). */
 	templateElementsBySlideId?: Record<string, PptxElement[]>;
 	visibleSlideIndexes: number[];
+	/**
+	 * The slide canvas size (px), in the same unit the elements' own
+	 * `x`/`y`/`width`/`height` are authored in. Threaded to `useAnimationPlayback`
+	 * so a `p:anim` formula that needs the animated shape's real box (e.g. Grow
+	 * And Turn's `-#ppt_w/2` fly-in) can be resolved instead of falling back.
+	 */
+	canvasSize?: { width: number; height: number };
+	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+	themeColorMap?: Readonly<Record<string, string>>;
 	activeSlideIndex: number;
 	containerRef: React.RefObject<HTMLElement | null>;
 	/** Raw PPTX bytes: forwarded to audience window for content sharing. */
@@ -95,6 +104,8 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		slides,
 		templateElementsBySlideId,
 		visibleSlideIndexes,
+		canvasSize,
+		themeColorMap,
 		activeSlideIndex,
 		containerRef,
 		content,
@@ -131,6 +142,8 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		slides,
 		templateElementsBySlideId,
 		visibleSlideIndexes,
+		canvasSize,
+		themeColorMap,
 		activeSlideIndex,
 		containerRef,
 		content,

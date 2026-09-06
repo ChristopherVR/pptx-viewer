@@ -148,9 +148,12 @@ describe('p14_TRANSITION_KEYFRAMES_2', () => {
 			expect(P14_TRANSITION_KEYFRAMES_2).toContain('@keyframes pptx-tr-warp-reverse-out');
 		});
 
-		it('uses skewX and skewY for warp distortion', () => {
-			expect(P14_TRANSITION_KEYFRAMES_2).toContain('skewX(');
-			expect(P14_TRANSITION_KEYFRAMES_2).toContain('skewY(');
+		it('uses a radial zoom blur, not a skew, for warp distortion', () => {
+			// COM-measured: PowerPoint's Warp is a scale + blur + brightness
+			// pulse from centre (see shared `slide-transition-warp`), not skew.
+			expect(P14_TRANSITION_KEYFRAMES_2).not.toContain('skewX(');
+			expect(P14_TRANSITION_KEYFRAMES_2).toContain('blur(');
+			expect(P14_TRANSITION_KEYFRAMES_2).toContain('brightness(');
 		});
 	});
 

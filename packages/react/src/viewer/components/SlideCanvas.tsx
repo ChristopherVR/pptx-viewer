@@ -198,6 +198,7 @@ export function SlideCanvas({
 		isDrawing,
 		isStrokeActive,
 		liveStrokeD,
+		liveStrokeView,
 		handleDrawPointerDown,
 		handleDrawPointerMove,
 		handleDrawPointerUp,
@@ -263,7 +264,10 @@ export function SlideCanvas({
 						// pinch-zoom. View/present mode keeps the default so the slide can
 						// still be scrolled and swipe-navigated.
 						touchAction: isEditableCanvas ? 'none' : undefined,
-						...getReactSlideBackgroundStyle(activeSlide),
+						...getReactSlideBackgroundStyle(activeSlide, {
+							widthPx: canvasSize.width,
+							heightPx: canvasSize.height,
+						}),
 					}}
 					onClick={handleStageClick}
 					onDoubleClick={handleStageDblClick}
@@ -479,6 +483,7 @@ export function SlideCanvas({
 							drawingWidth={drawingWidth}
 							isStrokeActive={isStrokeActive}
 							liveStrokeD={liveStrokeD}
+							liveStrokeView={liveStrokeView}
 							onPointerDown={handleDrawPointerDown}
 							onPointerMove={handleDrawPointerMove}
 							onPointerUp={handleDrawPointerUp}

@@ -1,11 +1,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
+import { isImageLikeElement } from 'pptx-viewer-core';
 import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
 	getComputedEffectStyle,
-	getComputedFillStyle,
+	getEffectStyleSource,
 	getSoftEdgeSvgFilter,
 	strokeOutlineViewBox,
 } from 'pptx-viewer-shared';
@@ -13,8 +13,8 @@ import type { StrokeOutlinePaint } from 'pptx-viewer-shared';
 import React from 'react';
 import type { CSSProperties } from 'react';
 
-import { getImageRenderStyle, getImageSurfaceMaskStyle, getImageSurfaceStyle } from '../../utils';
-import { imgSrc } from './ImageRenderer';
+import { getImageSurfaceMaskStyle } from '../../utils';
+import { StaticElementRenderer } from '../StaticElementRenderer';
 
 /**
  * The `<defs>` paint server an outline is stroked with. Only a gradient or a
@@ -92,29 +92,46 @@ function renderOutlinePaint(paint: StrokeOutlinePaint): React.ReactElement {
  *     cannot share one CSS `background-color`: `getShapeVisualStyle` drops the
  *     container fill for these (via shared `suppressesCssFill`) so this layered
  *     SVG paints it instead, each sub-path with its own resolved fill.
+ *  5. A mirrored REFLECTION sibling (`a:reflection`): a full, inert clone of the
+ *     element's own rendered content (`StaticElementRenderer`, the same
+ *     read-only recursive renderer thumbnails/previews use), not just its
+ *     resolved fill - fill, outline, its text body, and for a group its
+ *     children, all mirror. `suppressReflection` stops the clone from
+ *     recursing into its OWN reflection block.
  *
- * Renders nothing when the element has no shape properties, no fill overlay,
- * and no soft edge.
+ * A group has no `shapeStyle` of its own, so the fill-overlay/outline extras
+ * above naturally stay `undefined` for one (their builders self-guard on
+ * `hasShapeProperties`), but `p:grpSpPr/a:effectLst` DOES resolve a soft edge
+ * and a reflection (from `groupEffectStyle`, see shared `getComputedEffectStyle`
+ * / `getEffectStyleSource`); the reflection mirrors the whole group subtree,
+ * the soft edge feathers the group's own composited raster (its shadow/glow
+ * ride the container `filter` set by `getShapeVisualStyle`, not this overlay).
+ *
+ * Renders nothing when the element has no fill overlay, soft edge, stroke
+ * outline, hollow hit band, sub-path fill, or reflection.
  */
 export function ShapeEffectOverlay({
 	element,
 	animatesFill = false,
 	animatesStroke = false,
+	suppressReflection = false,
 }: {
 	element: PptxElement;
 	/** Let an active fill-colour keyframe own SVG sub-path paint. */
 	animatesFill?: boolean;
 	/** Let an active stroke-colour keyframe own the SVG outline paint. */
 	animatesStroke?: boolean;
+	/**
+	 * Do not render this element's own reflection mirror. Set by
+	 * `StaticElementRenderer` while it is itself rendering AS a reflection
+	 * mirror's content, so a mirror never grows a mirror of itself.
+	 */
+	suppressReflection?: boolean;
 }): React.ReactElement | null {
-	if (!hasShapeProperties(element)) {
-		return null;
-	}
-
 	const fx = getComputedEffectStyle(element);
 	const overlay = fx.fillOverlay;
-	const reflection = fx.reflection;
-	const softEdge = getSoftEdgeSvgFilter(element.shapeStyle, element.id);
+	const reflection = suppressReflection ? undefined : fx.reflection;
+	const softEdge = getSoftEdgeSvgFilter(getEffectStyleSource(element), element.id);
 	const strokeOutline = buildStrokeOutline(element);
 	// An unfilled, textless shape is a FRAME: its container is pointer-events:none
 	// so clicks fall through to what it is drawn over, and this transparent band
@@ -124,18 +141,6 @@ export function ShapeEffectOverlay({
 	if (!overlay && !softEdge && !strokeOutline && !hollowHit && !subpathFill && !reflection) {
 		return null;
 	}
-
-	// The reflection's mirrored CONTENT: a picture's actual photo (a cloned
-	// `<img>`, since a picture's pixels are never expressed as CSS background)
-	// for a picture/image element, or the resolved fill (colour / gradient /
-	// pattern / image fill) for everything else - the same two paint sources
-	// `getShapeVisualStyle` / `ImageRenderer` use for the element itself.
-	// `a:grpFill` children reflect as transparent: the enclosing group's fill
-	// is not threaded into this overlay (see `getGroupChildParentFill`, which
-	// only the group's own child-rendering path resolves).
-	const reflectionFill =
-		reflection && !isImageLikeElement(element) ? getComputedFillStyle(element) : undefined;
-	const reflectionImgSrc = reflection && isImageLikeElement(element) ? imgSrc(element) : undefined;
 
 	const fillOverlayStyle: CSSProperties | undefined = overlay
 		? {
@@ -253,35 +258,17 @@ export function ShapeEffectOverlay({
 					aria-hidden='true'
 					style={reflection as CSSProperties}
 				>
-					{reflectionImgSrc ? (
-						<div
-							className='pptx-react-reflection-picture-surface'
-							style={getImageSurfaceStyle(element)}
-						>
-							<img
-								src={reflectionImgSrc}
-								alt=''
-								draggable={false}
-								style={{
-									width: '100%',
-									height: '100%',
-									...getImageRenderStyle(element),
-								}}
-							/>
-						</div>
-					) : reflectionFill ? (
-						<div
-							style={{
-								width: '100%',
-								height: '100%',
-								backgroundColor: reflectionFill.backgroundColor,
-								backgroundImage: reflectionFill.backgroundImage,
-								backgroundSize: reflectionFill.backgroundSize,
-								backgroundPosition: reflectionFill.backgroundPosition,
-								backgroundRepeat: reflectionFill.backgroundRepeat,
-							}}
-						/>
-					) : null}
+					{/*
+						Full inert clone of the element's own rendered content: fill,
+						outline, and its text body (a picture's actual photo when
+						`element` is one). `positioned={false}` fills the wrapper above
+						at 100%/100% instead of re-applying the element's own x/y (the
+						element's own rotation already applies to this whole overlay via
+						the enclosing container's transform, so re-applying it here would
+						double it). `suppressReflection` stops this clone from mounting
+						ANOTHER copy of this very reflection.
+					*/}
+					<StaticElementRenderer element={element} positioned={false} suppressReflection />
 				</div>
 			) : null}
 		</>

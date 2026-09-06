@@ -1,5 +1,4 @@
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import type { ViewerOptions } from 'pptx-viewer-shared';
 /**
  * useViewerBuildingBlocksCore: The "core state" third of
  * `useViewerBuildingBlocks`'s hook wiring (state, zoom, history, derived
@@ -10,8 +9,10 @@ import type { ViewerOptions } from 'pptx-viewer-shared';
  * Calls the exact same hooks, in the exact same order/wiring, as the
  * corresponding section of `PowerPointViewer.tsx`.
  */
+import { buildThemeColorMap } from 'pptx-viewer-core';
+import type { ViewerOptions } from 'pptx-viewer-shared';
 import { resolveHistoryDepth, resolveImageResolutionScale } from 'pptx-viewer-shared';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { ViewerMode } from '../types-core';
 import { useDerivedSlideState } from './useDerivedSlideState';
@@ -153,12 +154,23 @@ export function useViewerBuildingBlocksCore(
 		documentGridSpacing: state.viewProperties?.gridSpacing,
 	});
 
+	// Threaded into `useAnimationPlayback` so a `p:anim` formula that needs the
+	// animated shape's REAL box (Grow And Turn's `-#ppt_w/2` fly-in) and a
+	// scheme-colour (`a:schemeClr`) ramp stop can be resolved instead of
+	// falling back; see `PresentationAnimationController.fromSlide`'s options.
+	const themeColorMap = useMemo(
+		() => (state.theme?.colorScheme ? buildThemeColorMap(state.theme.colorScheme) : undefined),
+		[state.theme?.colorScheme],
+	);
+
 	const { presentation, annotations, actionSoundHandlerRef, setExitModeHandler } =
 		usePresentationSetup({
 			mode,
 			slides,
 			templateElementsBySlideId,
 			visibleSlideIndexes,
+			canvasSize,
+			themeColorMap,
 			endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
 			// File > Options > Advanced > "Prompt to keep ink annotations when
 			// exiting" / "Show popup toolbar" while presenting.

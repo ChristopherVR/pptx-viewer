@@ -205,6 +205,7 @@ export function useViewerBuildingBlocksState(
 		// under the same default-off, core-side SSRF/privacy guard.
 		allowExternalImages: viewerOptions.trust.allowExternalContent,
 		setReadOnlyRecommendation: readOnlyRec.setRecommendation,
+		setModifyVerifier: readOnlyRec.setModifyVerifier,
 		setCompatToasts: compatToastsState.setToasts,
 		canEdit,
 		promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,

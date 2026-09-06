@@ -870,6 +870,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			// http(s) image sources actually load.
 			allowExternalImages: viewerOptions.trust.allowExternalContent,
 			setReadOnlyRecommendation: readOnlyRec.setRecommendation,
+			setModifyVerifier: readOnlyRec.setModifyVerifier,
 			setCompatToasts: compatToastsState.setToasts,
 			canEdit,
 			promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
@@ -1162,6 +1163,11 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										recommendation={readOnlyRec.recommendation}
 										onEditAnyway={readOnlyRec.editAnyway}
 										onDismiss={readOnlyRec.dismiss}
+										passwordPromptOpen={readOnlyRec.passwordPromptOpen}
+										passwordError={readOnlyRec.passwordError}
+										checkingPassword={readOnlyRec.checkingPassword}
+										onSubmitPassword={readOnlyRec.submitPassword}
+										onCancelPassword={readOnlyRec.cancelPasswordPrompt}
 									/>
 								)}
 

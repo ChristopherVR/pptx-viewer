@@ -15,11 +15,13 @@
  */
 
 import type { PptxElement } from 'pptx-viewer-core';
+import type { ChartPartRef } from 'pptx-viewer-shared';
 import { buildPieChart3DDataForElement } from 'pptx-viewer-shared';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { renderChartElement } from '../../utils';
 import { LoadingState } from '../LoadingState';
+import type { AnyChart3DInteraction } from './chart3d-interaction-hooks';
 
 /** Stub rendered when the dynamic scene import fails. */
 function FailedToLoad(): null {
@@ -61,9 +63,17 @@ class SceneErrorBoundary extends React.Component<
 
 interface PieChart3DRendererProps {
 	element: PptxElement;
+	/** Click-to-select + drag-to-value wiring; omit for a read-only mount. */
+	interaction?: AnyChart3DInteraction;
+	/** External selection (e.g. from the inspector) to mirror onto this scene's highlight. */
+	selectedPart?: ChartPartRef | null;
 }
 
-export function PieChart3DRenderer({ element }: PieChart3DRendererProps): React.ReactElement {
+export function PieChart3DRenderer({
+	element,
+	interaction,
+	selectedPart,
+}: PieChart3DRendererProps): React.ReactElement {
 	const [threeAvailable, setThreeAvailable] = useState<boolean | null>(null);
 
 	useEffect(() => {
@@ -102,7 +112,11 @@ export function PieChart3DRenderer({ element }: PieChart3DRendererProps): React.
 	return (
 		<SceneErrorBoundary fallback={svgFallback}>
 			<Suspense fallback={<LoadingState />}>
-				<LazyPieChart3DScene options={options} />
+				<LazyPieChart3DScene
+					options={options}
+					interaction={interaction}
+					selectedPart={selectedPart}
+				/>
 			</Suspense>
 		</SceneErrorBoundary>
 	);

@@ -102,16 +102,19 @@ describe('text-warp-classifier', () => {
 			expect(getWarpCategory('textDeflateInflate')).toBe('envelope');
 		});
 
-		it('returns "simple" for textSlantUp', () => {
-			expect(getWarpCategory('textSlantUp')).toBe('simple');
+		// textSlantUp/textFadeRight/textCascadeDown moved from the CSS-transform
+		// `simple` family to true SVG textPath once their generators became
+		// single-line-safe; see `pptx-viewer-shared`'s `text-warp.ts`.
+		it('returns "path" for textSlantUp (moved from "simple")', () => {
+			expect(getWarpCategory('textSlantUp')).toBe('path');
 		});
 
-		it('returns "simple" for textFadeRight', () => {
-			expect(getWarpCategory('textFadeRight')).toBe('simple');
+		it('returns "path" for textFadeRight (moved from "simple")', () => {
+			expect(getWarpCategory('textFadeRight')).toBe('path');
 		});
 
-		it('returns "simple" for textCascadeDown', () => {
-			expect(getWarpCategory('textCascadeDown')).toBe('simple');
+		it('returns "path" for textCascadeDown (moved from "simple")', () => {
+			expect(getWarpCategory('textCascadeDown')).toBe('path');
 		});
 
 		it('returns "none" for unknown presets', () => {

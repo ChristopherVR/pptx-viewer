@@ -162,6 +162,7 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					strokeWidth={l.strokeWidth}
 					strokeDasharray={l.dashArray}
 					opacity={l.opacity ?? 1}
+					transform={l.transform}
 				>
 					{l.title !== undefined ? <title>{l.title}</title> : null}
 				</line>
@@ -178,6 +179,7 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					strokeWidth={p.strokeWidth}
 					opacity={p.opacity ?? 1}
 					strokeDasharray={p.dashArray}
+					transform={p.transform}
 					{...partAttrs(p.part)}
 				>
 					{p.title !== undefined ? <title>{p.title}</title> : null}

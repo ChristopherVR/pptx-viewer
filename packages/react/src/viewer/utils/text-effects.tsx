@@ -24,6 +24,7 @@ import {
 	buildTextFillCss as sharedBuildTextFillCss,
 	buildTextBody3DSceneStyle as sharedBuildTextBody3DSceneStyle,
 } from 'pptx-viewer-shared';
+import type { ElementSizePx } from 'pptx-viewer-shared';
 import type React from 'react';
 
 export {
@@ -44,6 +45,7 @@ export function buildTextFillCss(style: TextStyle): React.CSSProperties | undefi
 /** Build CSS properties for 3D scene rendering on a text body. */
 export function buildTextBody3DSceneStyle(
 	textStyle: TextStyle | undefined,
+	elementSize?: ElementSizePx,
 ): React.CSSProperties | undefined {
-	return sharedBuildTextBody3DSceneStyle(textStyle) as React.CSSProperties | undefined;
+	return sharedBuildTextBody3DSceneStyle(textStyle, elementSize) as React.CSSProperties | undefined;
 }

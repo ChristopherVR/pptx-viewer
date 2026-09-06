@@ -23,6 +23,10 @@ export {
 	resolveInkWidth,
 	INK_REPLAY_KEYFRAME_NAME,
 	INK_REPLAY_KEYFRAMES,
+	buildContentPartStrokes,
+	contentPartViewBox,
+	buildInkGroupStrokes,
+	inkGroupViewBox,
 } from 'pptx-viewer-shared';
 export type {
 	PathPoint,
@@ -32,4 +36,7 @@ export type {
 	NibMark,
 	InkReplayConfig,
 	InkStrokeAnimationStyle,
+	InkStrokeView,
+	ContentPartStrokeView,
+	InkGroupStrokeView,
 } from 'pptx-viewer-shared';

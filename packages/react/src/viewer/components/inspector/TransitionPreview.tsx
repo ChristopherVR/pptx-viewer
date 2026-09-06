@@ -37,8 +37,16 @@ export function TransitionPreview({
 				transition.direction,
 				transition.orient,
 				transition.spokes,
+				transition.pattern,
 			),
-		[transition.type, transition.direction, transition.orient, transition.spokes, durationMs],
+		[
+			transition.type,
+			transition.direction,
+			transition.orient,
+			transition.spokes,
+			transition.pattern,
+			durationMs,
+		],
 	);
 
 	const handlePlay = useCallback(() => {

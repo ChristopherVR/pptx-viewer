@@ -180,20 +180,23 @@ describe('computeMaterialFilter', () => {
 // ── computeCameraTransform ──────────────────────────────────────────────
 
 describe('computeCameraTransform', () => {
-	it('returns perspective for perspectiveFront preset', () => {
+	it('returns an exact matrix3d for perspectiveFront preset, no separate perspective()', () => {
+		// 2026-09 off-axis-camera homography wave: see shared
+		// `visual-3d-camera-homography`'s module doc comment.
 		const result = computeCameraTransform('perspectiveFront');
-		expect(result).toContain('perspective(1000px)');
+		expect(result).toContain('matrix3d(');
+		expect(result).not.toContain('perspective(');
 	});
 
-	it('returns rotateX for perspectiveAbove preset', () => {
+	it('returns an exact matrix3d for perspectiveAbove preset', () => {
 		const result = computeCameraTransform('perspectiveAbove');
-		expect(result).toContain('perspective(1000px)');
-		expect(result).toContain('rotateX(-20deg)');
+		expect(result).toContain('matrix3d(');
+		expect(result).not.toContain('perspective(');
 	});
 
-	it('returns rotateY for perspectiveLeft preset', () => {
+	it('returns an exact matrix3d for perspectiveLeft preset', () => {
 		const result = computeCameraTransform('perspectiveLeft');
-		expect(result).toContain('rotateY(20deg)');
+		expect(result).toContain('matrix3d(');
 	});
 
 	it('uses explicit lat/lon overrides', () => {
@@ -219,10 +222,9 @@ describe('computeCameraTransform', () => {
 		expect(result).toContain('rotateX(-10deg)');
 	});
 
-	it('includes all three rotation axes for isometric presets', () => {
+	it('produces an exact affine matrix3d for isometric presets (no perspective divide)', () => {
 		const result = computeCameraTransform('isometricTopUp');
-		expect(result).toContain('rotateX(');
-		expect(result).toContain('rotateZ(');
+		expect(result).toContain('matrix3d(');
 	});
 });
 
@@ -258,11 +260,12 @@ describe('computeShape3dStyles', () => {
 		expect(result.boxShadow as string).toContain('inset');
 	});
 
-	it('applies camera perspective for scene3d alone', () => {
+	it('applies an exact matrix3d camera transform for scene3d alone, no separate perspective', () => {
 		const result = computeShape3dStyles(undefined, {
 			cameraPreset: 'perspectiveFront',
 		});
-		expect(result.perspective).toBe('1000px');
+		expect(result.perspective).toBeUndefined();
+		expect(result.transform).toContain('matrix3d(');
 		expect(result.willChange).toBe('transform');
 	});
 
@@ -288,8 +291,8 @@ describe('computeShape3dStyles', () => {
 			},
 		);
 
-		expect(result.perspective).toBe('1000px');
-		expect(result.transform).toContain('rotateX(-20deg)');
+		expect(result.perspective).toBeUndefined();
+		expect(result.transform).toContain('matrix3d(');
 		expect(result.boxShadow).toBeDefined();
 		const shadow = result.boxShadow as string;
 		expect(shadow).toContain('#4472C4'); // extrusion
@@ -326,9 +329,8 @@ describe('computeShape3dStyles', () => {
 		expect(result.backgroundImage).toContain('linear-gradient');
 	});
 
-	it('applies backdrop ground shadow from scene3d', () => {
+	it('does not synthesize a ground shadow from a bare backdrop (COM-measured: no visible effect)', () => {
 		const result = computeShape3dStyles(undefined, { hasBackdrop: true });
-		expect(result.boxShadow).toBeDefined();
-		expect(result.boxShadow as string).toContain('rgba(0,0,0,0.25)');
+		expect(result.boxShadow).toBeUndefined();
 	});
 });

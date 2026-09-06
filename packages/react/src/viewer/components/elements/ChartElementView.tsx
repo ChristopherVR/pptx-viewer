@@ -1,26 +1,24 @@
-/* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file:
-   independent handler-local `const`s, not one statement */
-import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxElement } from 'pptx-viewer-core';
 import {
-	advanceChartMarkDrag,
-	advanceChartValueDrag,
 	applyChartPartHighlight,
-	beginChartMarkDrag,
-	beginChartValueDrag,
-	buildChartMarkDragGeometry,
 	canDrillDown,
 	ensureChartInteractionStyles,
 	findChartPartTarget,
+	getBarFacePicturePixelSampleVersion,
 	resolveChartKind,
 	resolveRevealedChartData,
+	subscribeBarFacePicturePixelSamples,
 	withChartTitle,
 } from 'pptx-viewer-shared';
-import type {
-	ChartMarkDragState,
-	ChartValueDragState,
-	ElementAnimationState,
-} from 'pptx-viewer-shared';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
+import React, {
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from 'react';
 
 import { renderChartElement } from '../../utils';
 import { formatAxisValue } from '../../utils/chart-helpers';
@@ -30,12 +28,14 @@ import { AreaChart3DContext } from './area-chart-3d-context';
 import { Area3DChartRenderer } from './Area3DChartRenderer';
 import { BarChart3DContext } from './bar-chart-3d-context';
 import { Bar3DChartRenderer } from './Bar3DChartRenderer';
+import { buildChart3DPartInteraction } from './build-chart3d-part-interaction';
 import { LineChart3DContext } from './line-chart-3d-context';
 import { Line3DChartRenderer } from './Line3DChartRenderer';
 import { PieChart3DContext } from './pie-chart-3d-context';
 import { PieChart3DRenderer } from './PieChart3DRenderer';
 import { SurfaceChart3DContext } from './surface-chart-3d-context';
 import { SurfaceChart3DRenderer } from './SurfaceChart3DRenderer';
+import { useChartMarkInteraction } from './use-chart-mark-interaction';
 
 export interface ChartElementViewProps {
 	element: ChartPptxElement;
@@ -56,7 +56,9 @@ export interface ChartElementViewProps {
  * Renders a chart element and, in edit mode, makes its data marks directly
  * manipulable: click a bar/dot/slice to select that series/point (synced with
  * the chart inspector), drag a mark vertically to change its value (cartesian
- * kinds), and double-click the title to edit it in place.
+ * kinds), and double-click the title to edit it in place. The interactive 3D
+ * scenes (bar3D/line3D/area3D/pie3D/surface3D) get the same click/drag ->
+ * selection/commit wiring via {@link buildChart3DPartInteraction}.
  */
 export function ChartElementView({
 	element,
@@ -65,50 +67,54 @@ export function ChartElementView({
 	animationState,
 }: ChartElementViewProps): React.ReactElement {
 	const wrapperRef = useRef<HTMLDivElement>(null);
-	const dragRef = useRef<ChartValueDragState | null>(null);
-	// Pie/doughnut slice, radar vertex, and stacked/percentStacked segment drags
-	// have no single vertical value axis, so they run through a parallel state
-	// machine (chart-interaction-mark-drag.ts) instead of dragRef's cartesian one.
-	const markDragRef = useRef<ChartMarkDragState | null>(null);
 	const { selection, setSelection } = useChartPartSelection();
-	const [previewData, setPreviewData] = useState<PptxChartData | null>(null);
-	const [dragValue, setDragValue] = useState<number | null>(null);
 	const [titleDraft, setTitleDraft] = useState<string | null>(null);
 
 	const selectedPart = selection?.elementId === element.id ? selection.part : null;
 	const canEdit = editable && Boolean(onUpdateElement);
 
 	// Opt-in interactive 3D surface scene (camera orbit/zoom via OrbitControls).
-	// Marks are not selectable/draggable in this mode: a mesh facet has no 2D
-	// screen geometry to hit-test against, so value-drag editing stays SVG-only.
 	const use3D = useContext(SurfaceChart3DContext);
 	const isSurfaceKind = resolveChartKind(element.chartData?.chartType ?? 'bar') === 'surface';
 
-	// Opt-in interactive 3D bar scene (real box meshes, camera orbit/zoom via
-	// OrbitControls). Same "marks are not selectable/draggable" caveat as the
-	// surface scene above: a mesh box has no 2D screen geometry to hit-test.
+	// Opt-in interactive 3D bar scene (real box meshes, camera orbit/zoom via OrbitControls).
 	const use3DBar = useContext(BarChart3DContext);
 	const isBar3DKind = element.chartData?.chartType === 'bar3D';
 
-	// Opt-in interactive 3D line/area scenes (tube path / ribbon meshes, camera
-	// orbit/zoom via OrbitControls). Same "marks are not selectable/draggable"
-	// caveat as the surface/bar scenes above.
+	// Opt-in interactive 3D line/area scenes (tube path / ribbon meshes, camera orbit/zoom).
 	const use3DLine = useContext(LineChart3DContext);
 	const isLine3DKind = element.chartData?.chartType === 'line3D';
 	const use3DArea = useContext(AreaChart3DContext);
 	const isArea3DKind = element.chartData?.chartType === 'area3D';
-	// Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via
-	// OrbitControls). Same "marks are not selectable/draggable" caveat as the
-	// surface/bar3D scenes above.
+	// Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via OrbitControls).
 	const use3DPie = useContext(PieChart3DContext);
 	const isPie3DKind = element.chartData?.chartType === 'pie3D';
 
+	// An untargeted bar3D extrusion face whose fill is picture-only samples a
+	// colour from the picture ASYNCHRONOUSLY (see chart-bar3d-face-picture-
+	// sample.ts's module doc for the COM-verified ground truth this
+	// reproduces); the view-model builder only ever sees whatever is already
+	// cached, so this subscribes to every resolved sample and forces a
+	// rebuild once one lands, the same "state flips once the async decode
+	// resolves" shape `ColorChangedImage`/`use-color-change-image.ts` already
+	// use for `applyColorChange`.
+	const barFacePictureSampleVersion = useSyncExternalStore(
+		subscribeBarFacePicturePixelSamples,
+		getBarFacePicturePixelSampleVersion,
+		getBarFacePicturePixelSampleVersion,
+	);
+
 	// The drag context comes from the committed data, captured at drag start, so
 	// axis ranges do not rescale under the pointer mid-drag.
-	const viewModel = useMemo(
-		() => (canEdit ? buildReactChartViewModel(element) : null),
-		[canEdit, element],
-	);
+	const viewModel = useMemo(() => {
+		// Referenced (not used) purely so this memo invalidates once a bar3D
+		// face-picture colour sample resolves: `buildReactChartViewModel`
+		// consults the shared sample cache internally, which this hook has no
+		// other way to depend on.
+		void barFacePictureSampleVersion;
+		return canEdit ? buildReactChartViewModel(element) : null;
+		// oxlint-disable-next-line react/memo-dependencies -- see comment above
+	}, [canEdit, element, barFacePictureSampleVersion]);
 
 	useEffect(ensureChartInteractionStyles, []);
 
@@ -139,135 +145,30 @@ export function ChartElementView({
 		applyChartPartHighlight(wrapperRef.current, selectedPart);
 	});
 
-	const endDrag = (commit: boolean) => {
-		const active = dragRef.current;
-		const markActive = markDragRef.current;
-		dragRef.current = null;
-		markDragRef.current = null;
-		setPreviewData(null);
-		setDragValue(null);
-		if (!commit || !onUpdateElement) {
-			return;
-		}
-		if (active?.moved && active.lastData) {
-			onUpdateElement({ chartData: active.lastData } as Partial<PptxElement>);
-		} else if (markActive?.moved && markActive.lastData) {
-			onUpdateElement({ chartData: markActive.lastData } as Partial<PptxElement>);
-		}
-	};
-
-	// Cancel an in-flight value drag with Escape.
-	useEffect(() => {
-		if (dragValue === null) {
-			return;
-		}
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
-				endDrag(false);
-			}
-		};
-		window.addEventListener('keydown', onKeyDown);
-		return () => window.removeEventListener('keydown', onKeyDown);
+	const {
+		previewData,
+		dragValue,
+		setDragValue,
+		handlePointerDown,
+		handlePointerMove,
+		handlePointerUp,
+	} = useChartMarkInteraction({
+		element,
+		canEdit,
+		onUpdateElement,
+		viewModel,
+		wrapperRef,
+		setSelection,
 	});
 
-	const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-		if (!canEdit) {
-			return;
-		}
-		const part = findChartPartTarget(e.target);
-		if (!part) {
-			return;
-		}
-		e.stopPropagation();
-		setSelection({ elementId: element.id, part });
-		if (!viewModel || !element.chartData) {
-			return;
-		}
-		let captured = false;
-		// Pie/doughnut/radar/stacked marks: try the angle/radial/segment drag first.
-		const chartKind = resolveChartKind(element.chartData.chartType ?? 'bar');
-		if (part.pointIndex !== undefined && chartKind !== 'unsupported') {
-			const markGeometry = buildChartMarkDragGeometry({
-				kind: chartKind,
-				element,
-				chartData: element.chartData,
-				categoryLabels: element.chartData.categories,
-				seriesIndex: part.seriesIndex,
-				pointIndex: part.pointIndex,
-			});
-			const startedMark = beginChartMarkDrag({
-				part,
-				geometry: markGeometry,
-				chartData: element.chartData,
-				svgWidth: viewModel.svgWidth,
-				svgHeight: viewModel.svgHeight,
-				clientX: e.clientX,
-				clientY: e.clientY,
-			});
-			if (startedMark) {
-				markDragRef.current = startedMark;
-				captured = true;
-			}
-		}
-		// Clustered bar/line/scatter/bubble: the existing vertical value-axis drag.
-		if (!captured) {
-			const started = beginChartValueDrag({
-				part,
-				viewModel,
-				chartData: element.chartData,
-				clientY: e.clientY,
-			});
-			if (started) {
-				dragRef.current = started;
-				captured = true;
-			}
-		}
-		if (!captured) {
-			return;
-		}
-		e.preventDefault();
-		// Pointer capture keeps the drag alive when the pointer leaves the mark;
-		// guarded because test DOMs (and older browsers) may not implement it.
-		try {
-			e.currentTarget.setPointerCapture?.(e.pointerId);
-		} catch {
-			// Non-fatal: the drag still works while the pointer stays over the chart.
-		}
-	};
-
-	const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-		const markActive = markDragRef.current;
-		if (markActive) {
-			const rect = wrapperRef.current?.querySelector('svg')?.getBoundingClientRect();
-			if (!rect) {
-				return;
-			}
-			const step = advanceChartMarkDrag(markActive, e.clientX, e.clientY, rect);
-			if (!step) {
-				return;
-			}
-			setPreviewData(step.chartData);
-			setDragValue(step.value);
-			return;
-		}
-		const active = dragRef.current;
-		if (!active) {
-			return;
-		}
-		const height = wrapperRef.current?.querySelector('svg')?.getBoundingClientRect().height ?? 0;
-		const step = advanceChartValueDrag(active, e.clientY, height);
-		if (!step) {
-			return;
-		}
-		setPreviewData(step.chartData);
-		setDragValue(step.value);
-	};
-
-	const handlePointerUp = () => {
-		if (dragRef.current || markDragRef.current) {
-			endDrag(true);
-		}
-	};
+	const chart3DInteraction = buildChart3DPartInteraction({
+		element,
+		canEdit,
+		onUpdateElement,
+		selection,
+		setSelection,
+		setDragValue,
+	});
 
 	const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
 		// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this chart's
@@ -321,15 +222,39 @@ export function ChartElementView({
 			onDoubleClick={handleDoubleClick}
 		>
 			{use3D && isSurfaceKind ? (
-				<SurfaceChart3DRenderer element={renderedElement} />
+				<SurfaceChart3DRenderer
+					element={renderedElement}
+					interaction={chart3DInteraction}
+					selectedPart={selectedPart}
+					textStyle={animationState?.textStyle}
+				/>
 			) : use3DBar && isBar3DKind ? (
-				<Bar3DChartRenderer element={renderedElement} />
+				<Bar3DChartRenderer
+					element={renderedElement}
+					interaction={chart3DInteraction}
+					selectedPart={selectedPart}
+					textStyle={animationState?.textStyle}
+				/>
 			) : use3DLine && isLine3DKind ? (
-				<Line3DChartRenderer element={renderedElement} />
+				<Line3DChartRenderer
+					element={renderedElement}
+					interaction={chart3DInteraction}
+					selectedPart={selectedPart}
+					textStyle={animationState?.textStyle}
+				/>
 			) : use3DArea && isArea3DKind ? (
-				<Area3DChartRenderer element={renderedElement} />
+				<Area3DChartRenderer
+					element={renderedElement}
+					interaction={chart3DInteraction}
+					selectedPart={selectedPart}
+					textStyle={animationState?.textStyle}
+				/>
 			) : use3DPie && isPie3DKind ? (
-				<PieChart3DRenderer element={renderedElement} />
+				<PieChart3DRenderer
+					element={renderedElement}
+					interaction={chart3DInteraction}
+					selectedPart={selectedPart}
+				/>
 			) : (
 				renderChartElement(renderedElement)
 			)}

@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { createModifyVerifier } from 'pptx-viewer-core';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -6,6 +7,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { useReadOnlyRecommendationState } from './useReadOnlyRecommendationState';
 import type { UseReadOnlyRecommendationStateResult } from './useReadOnlyRecommendationState';
+
+async function flush(): Promise<void> {
+	await act(async () => {
+		await Promise.resolve();
+	});
+}
 
 let latest: UseReadOnlyRecommendationStateResult | null = null;
 
@@ -49,6 +56,7 @@ describe('useReadOnlyRecommendationState', () => {
 				kind: 'modifyVerifier',
 				messageKey: 'pptx.readOnly.modifyVerifierRecommended',
 				defaultReadOnly: true,
+				requiresPassword: false,
 			});
 		});
 		expect(latest?.locked).toBeTruthy();
@@ -62,6 +70,7 @@ describe('useReadOnlyRecommendationState', () => {
 				kind: 'markedFinal',
 				messageKey: 'pptx.readOnly.markedFinal',
 				defaultReadOnly: true,
+				requiresPassword: false,
 			});
 		});
 		act(() => {
@@ -78,6 +87,7 @@ describe('useReadOnlyRecommendationState', () => {
 				kind: 'markedFinal',
 				messageKey: 'pptx.readOnly.markedFinal',
 				defaultReadOnly: true,
+				requiresPassword: false,
 			});
 		});
 		act(() => {
@@ -94,6 +104,7 @@ describe('useReadOnlyRecommendationState', () => {
 				kind: 'markedFinal',
 				messageKey: 'pptx.readOnly.markedFinal',
 				defaultReadOnly: true,
+				requiresPassword: false,
 			});
 			latest?.editAnyway();
 		});
@@ -109,9 +120,114 @@ describe('useReadOnlyRecommendationState', () => {
 				kind: 'markedFinal',
 				messageKey: 'pptx.readOnly.markedFinal',
 				defaultReadOnly: true,
+				requiresPassword: false,
 			});
 		});
 		expect(latest?.locked).toBeTruthy();
 		expect(latest?.bannerVisible).toBeTruthy();
+	});
+
+	describe('password-protected modifyVerifier', () => {
+		it('editAnyway opens the password prompt instead of unlocking', async () => {
+			const verifier = await createModifyVerifier('right-password', { spinCount: 10 });
+			render('deck-1');
+			act(() => {
+				latest?.setModifyVerifier(verifier);
+				latest?.setRecommendation({
+					kind: 'modifyVerifier',
+					messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+					defaultReadOnly: true,
+					requiresPassword: true,
+				});
+			});
+			act(() => {
+				latest?.editAnyway();
+			});
+			expect(latest?.passwordPromptOpen).toBeTruthy();
+			// Opening the prompt must not lift the lock by itself.
+			expect(latest?.locked).toBeTruthy();
+			expect(latest?.bannerVisible).toBeTruthy();
+		});
+
+		it('submitPassword with the correct password unlocks and closes the prompt', async () => {
+			const verifier = await createModifyVerifier('right-password', { spinCount: 10 });
+			render('deck-1');
+			act(() => {
+				latest?.setModifyVerifier(verifier);
+				latest?.setRecommendation({
+					kind: 'modifyVerifier',
+					messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+					defaultReadOnly: true,
+					requiresPassword: true,
+				});
+			});
+			// A separate act() so `editAnyway` closes over the just-committed
+			// recommendation (React does not re-render mid-callback).
+			act(() => {
+				latest?.editAnyway();
+			});
+
+			await act(async () => {
+				await latest?.submitPassword('right-password');
+			});
+
+			expect(latest?.locked).toBeFalsy();
+			expect(latest?.passwordPromptOpen).toBeFalsy();
+			expect(latest?.passwordError).toBeNull();
+			expect(latest?.bannerVisible).toBeFalsy();
+		});
+
+		it('submitPassword with a wrong password stays locked and reports wrong-password', async () => {
+			const verifier = await createModifyVerifier('right-password', { spinCount: 10 });
+			render('deck-1');
+			act(() => {
+				latest?.setModifyVerifier(verifier);
+				latest?.setRecommendation({
+					kind: 'modifyVerifier',
+					messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+					defaultReadOnly: true,
+					requiresPassword: true,
+				});
+			});
+			// A separate act() so `editAnyway` closes over the just-committed
+			// recommendation (React does not re-render mid-callback).
+			act(() => {
+				latest?.editAnyway();
+			});
+
+			await act(async () => {
+				await latest?.submitPassword('wrong-password');
+			});
+
+			expect(latest?.locked).toBeTruthy();
+			expect(latest?.passwordPromptOpen).toBeTruthy();
+			expect(latest?.passwordError).toBe('wrong-password');
+			await flush();
+		});
+
+		it('cancelPasswordPrompt closes the prompt without unlocking', async () => {
+			const verifier = await createModifyVerifier('right-password', { spinCount: 10 });
+			render('deck-1');
+			act(() => {
+				latest?.setModifyVerifier(verifier);
+				latest?.setRecommendation({
+					kind: 'modifyVerifier',
+					messageKey: 'pptx.readOnly.modifyVerifierRecommended',
+					defaultReadOnly: true,
+					requiresPassword: true,
+				});
+			});
+			// A separate act() so `editAnyway` closes over the just-committed
+			// recommendation (React does not re-render mid-callback).
+			act(() => {
+				latest?.editAnyway();
+			});
+			act(() => {
+				latest?.cancelPasswordPrompt();
+			});
+			expect(latest?.passwordPromptOpen).toBeFalsy();
+			expect(latest?.locked).toBeTruthy();
+			expect(latest?.bannerVisible).toBeTruthy();
+		});
 	});
 });

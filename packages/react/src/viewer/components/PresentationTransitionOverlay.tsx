@@ -176,8 +176,16 @@ export function PresentationTransitionOverlay({
 				transition.direction,
 				transition.orient,
 				transition.spokes,
+				transition.pattern,
 			),
-		[transition.type, transition.direction, transition.orient, transition.spokes, durationMs],
+		[
+			transition.type,
+			transition.direction,
+			transition.orient,
+			transition.spokes,
+			transition.pattern,
+			durationMs,
+		],
 	);
 
 	// Scale for the slide layer. Prefer the stage's own scale: it is already

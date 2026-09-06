@@ -308,4 +308,43 @@ describe('shapeTextPanels', () => {
 		});
 		expect(container.querySelector('[data-pptx-accessibility-text]')).not.toBeNull();
 	});
+
+	it.each(['table', 'chart', 'smartArt', 'media', 'ole'] as const)(
+		'shows the accessibility section for a %s (graphic-frame kind)',
+		(type) => {
+			const element = { ...textElement(), type, text: undefined };
+			act(() => {
+				root.render(
+					<RecentColorsProvider value={{ recentColors: [], pushColor: () => {} }}>
+						<ShapeTextPanels
+							selectedElement={element}
+							canEdit
+							onUpdateElement={() => {}}
+							onUpdateElementStyle={() => {}}
+							onUpdateTextStyle={() => {}}
+						/>
+					</RecentColorsProvider>,
+				);
+			});
+			expect(container.querySelector('[data-pptx-accessibility-text]')).not.toBeNull();
+		},
+	);
+
+	it('does not show the accessibility section for a picture (its alt text has its own field elsewhere)', () => {
+		const picture = { ...textElement(), type: 'picture' as const, text: undefined };
+		act(() => {
+			root.render(
+				<RecentColorsProvider value={{ recentColors: [], pushColor: () => {} }}>
+					<ShapeTextPanels
+						selectedElement={picture}
+						canEdit
+						onUpdateElement={() => {}}
+						onUpdateElementStyle={() => {}}
+						onUpdateTextStyle={() => {}}
+					/>
+				</RecentColorsProvider>,
+			);
+		});
+		expect(container.querySelector('[data-pptx-accessibility-text]')).toBeNull();
+	});
 });
