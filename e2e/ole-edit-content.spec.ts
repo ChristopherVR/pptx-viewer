@@ -7,13 +7,16 @@ import type { Locator, Page } from '@playwright/test';
  *
  * Fixture: `e2e/fixtures/ole-editable.pptx`, authored via REAL PowerPoint /
  * Excel / Word COM automation (`Shapes.AddOLEObject`), not the SDK/zip-patch
- * technique `ole-and-ink.spec.ts` had to fall back to. It carries five
+ * technique `ole-and-ink.spec.ts` had to fall back to. It carries six
  * objects on slide 1: an embedded `Excel.Sheet.12` workbook
  * (`Sheet1!A1="Revenue"`, `B1=42`), an embedded `Word.Document.12`
  * ("Hello from Word"), a packaged `.txt` file (generic "Package" object,
- * always shown as an icon), a `DisplayAsIcon:=true` Excel object, and an
+ * always shown as an icon), a `DisplayAsIcon:=true` Excel object, an
  * embedded `PowerPoint.Show.12` nested deck (2 slides: slide 1 has a title
- * + body text box, slide 2 has a title only).
+ * + body text box, slide 2 has a title only), and (shape index 5, added
+ * afterward; indices 0-4 are unchanged) an embedded legacy binary Word
+ * 97-2003 `.doc` document (3 paragraphs: "Legacy Doc Slide Title" / "Legacy
+ * Doc Body Paragraph" / "Legacy Doc Third Paragraph").
  *
  * This spec exercises the sheet-cell edit path and the nested-deck edit path
  * end to end through the real UI: select the object, open its "Edit
@@ -27,7 +30,7 @@ import type { Locator, Page } from '@playwright/test';
  * behind a UI that only ever reads its own in-memory state.
  */
 import JSZip from 'jszip';
-import { PptxHandler, readOleNestedDeckDetail } from 'pptx-viewer-core';
+import { PptxHandler, readOleDocParagraphs, readOleNestedDeckDetail } from 'pptx-viewer-core';
 
 import { savePptxViaBackstage } from './save-pptx';
 import { fixture, inspector, loadDeck, selectElement } from './support/deck';
@@ -36,6 +39,7 @@ import { downloadBytes } from './support/exports';
 const OLE_EDITABLE_FIXTURE = fixture('ole-editable.pptx');
 const NEW_CELL_VALUE = '999';
 const NEW_DECK_BODY_TEXT = 'Edited Via E2E Nested Deck Test';
+const NEW_LEGACY_DOC_PARAGRAPH = 'Edited Via E2E Legacy Doc Test';
 
 /** The nth OLE object on the canvas (0-based, in document order). */
 function oleObject(page: Page, index: number): Locator {
@@ -193,5 +197,50 @@ test.describe('OLE embedded object content editing', () => {
 		) as Array<{ text?: string; paragraphs?: unknown }>;
 		const reloadedRaw = JSON.stringify(slide1Texts);
 		expect(reloadedRaw).toContain(NEW_DECK_BODY_TEXT);
+	});
+
+	test('edits a paragraph of an embedded legacy binary .doc object and the saved file carries the new text', async ({
+		page,
+	}) => {
+		await loadDeck(page, OLE_EDITABLE_FIXTURE);
+
+		// The legacy Word 97-2003 .doc object is the sixth shape (index 5; see
+		// the COM authoring script). It has 3 paragraphs, rendered as one
+		// <textarea> each, same as the .docx object above.
+		await selectElement(page, oleObject(page, 5));
+		await expect(inspector(page)).toBeVisible();
+		const dialog = await openEditContentDialog(page);
+
+		const paragraphInputs = dialog.locator('textarea');
+		await expect(paragraphInputs).toHaveCount(3);
+		await expect(paragraphInputs.nth(0)).toHaveValue('Legacy Doc Slide Title');
+		const secondParagraph = paragraphInputs.nth(1);
+		await expect(secondParagraph).toHaveValue('Legacy Doc Body Paragraph');
+		await secondParagraph.fill(NEW_LEGACY_DOC_PARAGRAPH);
+		await secondParagraph.blur();
+
+		// Give the async edit (decode -> rewrite the CFB piece table/FKP pages
+		// -> re-encode -> regenerate preview) a moment to commit before closing.
+		await page.waitForTimeout(500);
+
+		const closeButtons = dialog.getByRole('button', { name: /close|save/iu });
+		await closeButtons.first().click();
+
+		// Save through the app's own File > Save, exactly as a user would.
+		const download = await savePptxViaBackstage(page);
+		const bytes = await downloadBytes(download);
+
+		const zip = await JSZip.loadAsync(bytes);
+		const embeddingPath = Object.keys(zip.files).find((path) =>
+			/^ppt\/embeddings\/.*\.doc$/iu.test(path),
+		);
+		expect(embeddingPath, 'the embedded .doc part still exists after save').toBeDefined();
+
+		const docBytes = await zip.file(embeddingPath!)!.async('uint8array');
+		expect(readOleDocParagraphs(docBytes)).toStrictEqual([
+			'Legacy Doc Slide Title',
+			NEW_LEGACY_DOC_PARAGRAPH,
+			'Legacy Doc Third Paragraph',
+		]);
 	});
 });

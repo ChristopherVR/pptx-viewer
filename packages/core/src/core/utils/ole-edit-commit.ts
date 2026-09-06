@@ -14,6 +14,7 @@ import {
 	renderOleDocumentPreviewPng,
 	renderOleSheetPreviewPng,
 } from './ole-content-preview-raster';
+import { readOleDocParagraphs } from './ole-document-doc-editor';
 import { readOleDocumentParagraphs } from './ole-document-docx-editor';
 import { oleBytesToDataUrl } from './ole-embedded-extract';
 import { oleObjectTypeToGlyph, renderOleIconPng } from './ole-icon-raster';
@@ -57,8 +58,11 @@ export async function regeneratePreview(
 			return oleBytesToDataUrl(renderOleSheetPreviewPng(grid), 'image/png');
 		}
 	}
-	if (kind === 'document-docx') {
-		const paragraphs = await readOleDocumentParagraphs(newPayload);
+	if (kind === 'document-docx' || kind === 'document-doc') {
+		const paragraphs =
+			kind === 'document-docx'
+				? await readOleDocumentParagraphs(newPayload)
+				: readOleDocParagraphs(newPayload);
 		if (paragraphs) {
 			return oleBytesToDataUrl(renderOleDocumentPreviewPng(paragraphs), 'image/png');
 		}

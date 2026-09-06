@@ -107,6 +107,7 @@ export {
 	readOleDocumentParagraphs,
 	writeOleDocumentParagraphEdit,
 } from './ole-document-docx-editor';
+export { readOleDocParagraphs, writeOleDocParagraphEdit } from './ole-document-doc-editor';
 export {
 	readOleNestedDeckDetail,
 	readOleNestedDeckFirstSlideTextLines,

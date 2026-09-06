@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import JSZip from 'jszip';
 import { oleBytesToDataUrl, PptxHandler } from 'pptx-viewer-core';
 import type { OlePptxElement, PptxData } from 'pptx-viewer-core';
@@ -36,6 +39,29 @@ async function makeDocxDataUrl(): Promise<string> {
 		bytes,
 		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 	);
+}
+
+/**
+ * Real Word 97-2003 `.doc` authored via Word COM (see
+ * `ole-document-doc-editor.test.ts` in `pptx-viewer-core` for provenance and
+ * the real-Word round-trip this fixture was verified against).
+ */
+function makeDocDataUrl(): string {
+	const bytes = readFileSync(
+		path.join(
+			__dirname,
+			'..',
+			'..',
+			'..',
+			'..',
+			'core',
+			'src',
+			'__tests__',
+			'fixtures',
+			'ole-word-97.doc',
+		),
+	);
+	return oleBytesToDataUrl(new Uint8Array(bytes), 'application/msword');
 }
 
 async function makeDeckDataUrl(): Promise<string> {
@@ -101,6 +127,25 @@ describe('getOleContent', () => {
 		expect(result.result.kind).toBe('document-docx');
 		expect(result.result.editable).toBeTruthy();
 		expect(result.result.paragraphs).toStrictEqual(['Hello']);
+	});
+
+	it('returns paragraphs for a legacy binary doc-payload OLE object', async () => {
+		const ctx = ctxWithOle({
+			id: 'ole-2b',
+			type: 'ole',
+			oleObjectType: 'word',
+			oleEmbeddedData: makeDocDataUrl(),
+			oleEmbeddedFileName: 'notes.doc',
+		});
+		const result = await getOleContent(ctx, { slideIndex: 0, elementId: 'ole-2b' });
+		expect(result.result.kind).toBe('document-doc');
+		expect(result.result.editable).toBeTruthy();
+		expect(result.result.paragraphs).toStrictEqual([
+			'First paragraph plain text.',
+			'Second paragraph has a bold word in the middle.',
+			'Third paragraph, plain again, this is the one we will edit.',
+			'Fourth and final paragraph.',
+		]);
 	});
 
 	it('returns deck slide summaries for a nested-deck OLE object', async () => {
@@ -224,6 +269,31 @@ describe('setOleDocumentParagraph', () => {
 
 		const read = await getOleContent(ctx, { slideIndex: 0, elementId: 'ole-1' });
 		expect(read.result.paragraphs).toStrictEqual(['Updated']);
+	});
+
+	it('applies the edit for a legacy binary doc-payload OLE object', async () => {
+		const ctx = ctxWithOle({
+			id: 'ole-1b',
+			type: 'ole',
+			oleObjectType: 'word',
+			oleEmbeddedData: makeDocDataUrl(),
+		});
+		const result = await setOleDocumentParagraph(ctx, {
+			slideIndex: 0,
+			elementId: 'ole-1b',
+			paragraphIndex: 2,
+			text: 'Edited via MCP tool.',
+		});
+		expect(result.dirty).toBeTruthy();
+		expect(result.result.changed).toBeTruthy();
+
+		const read = await getOleContent(ctx, { slideIndex: 0, elementId: 'ole-1b' });
+		expect(read.result.paragraphs).toStrictEqual([
+			'First paragraph plain text.',
+			'Second paragraph has a bold word in the middle.',
+			'Edited via MCP tool.',
+			'Fourth and final paragraph.',
+		]);
 	});
 });
 

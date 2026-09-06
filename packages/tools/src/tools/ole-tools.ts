@@ -70,7 +70,7 @@ export interface GetOleContentResult {
 	message?: string;
 	/** Present when `kind` is `sheet-xlsx` or `sheet-xls`. */
 	sheet?: OleSheetGrid;
-	/** Present when `kind` is `document-docx`. */
+	/** Present when `kind` is `document-docx` or `document-doc`. */
 	paragraphs?: string[];
 	/** Present when `kind` is `deck-pptx`: every slide's text-element inventory. */
 	deckSlides?: OleNestedDeckSlideDetail[];
@@ -79,9 +79,10 @@ export interface GetOleContentResult {
 /**
  * Describe an OLE object's editable content: the resolved payload kind, plus
  * whichever of the sheet grid / paragraph list / nested-deck slide summaries
- * applies. `document-doc` (legacy Word) and `file` (anything unsupported, or
- * a missing/unreadable payload) come back as not editable in place; the
- * caller should use {@link replaceOleFileT} instead.
+ * applies. `file` (anything unsupported, or a missing/unreadable payload, or
+ * a `document-doc` this editor declined to touch, see `getOleDocumentParagraphs`
+ * in `pptx-viewer-core`) comes back as not editable in place; the caller
+ * should use {@link replaceOleFileT} instead.
  */
 export async function getOleContent(
 	ctx: ToolContext,
@@ -97,7 +98,8 @@ export async function getOleContent(
 			const sheet = await getOleSheetGrid(element);
 			return { ...base, result: { elementId: element.id, kind, editable: true, sheet } };
 		}
-		case 'document-docx': {
+		case 'document-docx':
+		case 'document-doc': {
 			const paragraphs = await getOleDocumentParagraphs(element);
 			return { ...base, result: { elementId: element.id, kind, editable: true, paragraphs } };
 		}
@@ -163,7 +165,7 @@ export interface SetOleDocumentParagraphParams {
 	text: string;
 }
 
-/** Replace one paragraph's text in a Word-payload (`.docx`) OLE object. */
+/** Replace one paragraph's text in a Word-payload (`.docx` or legacy binary `.doc`) OLE object. */
 export async function setOleDocumentParagraph(
 	ctx: ToolContext,
 	params: SetOleDocumentParagraphParams,

@@ -525,9 +525,12 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'Authored via real PowerPoint/Excel/Word COM (Shapes.AddOLEObject): an embedded ' +
 			'Excel.Sheet.12 workbook (Sheet1!A1="Revenue", B1=42), an embedded Word.Document.12 ' +
 			'("Hello from Word"), a packaged .txt file (generic "Package" object), a ' +
-			'DisplayAsIcon:=true Excel object, and an embedded PowerPoint.Show.12 nested deck ' +
-			'(2 slides: slide 1 has a title + body text box, slide 2 has a title only). ' +
-			'Ground truth for e2e/ole-edit-content.spec.ts.',
+			'DisplayAsIcon:=true Excel object, an embedded PowerPoint.Show.12 nested deck ' +
+			'(2 slides: slide 1 has a title + body text box, slide 2 has a title only), and (shape ' +
+			'index 5, added afterward; indices 0-4 are unchanged) an embedded legacy binary ' +
+			'Word 97-2003 (.doc) document, 3 paragraphs ("Legacy Doc Slide Title" / "Legacy Doc ' +
+			'Body Paragraph" / "Legacy Doc Third Paragraph"). Ground truth for ' +
+			'e2e/ole-edit-content.spec.ts.',
 	},
 	{
 		file: 'parity-wave4.pptx',

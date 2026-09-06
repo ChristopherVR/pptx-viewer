@@ -1252,7 +1252,8 @@ export function createServer(): McpServer {
 	server.registerTool(
 		'ole_set_document_paragraph',
 		{
-			description: "Replace one paragraph's text in an embedded Word (.docx) OLE object",
+			description:
+				"Replace one paragraph's text in an embedded Word (.docx or legacy .doc) OLE object",
 			inputSchema: schemas.SetOleDocumentParagraphSchema.shape,
 		},
 		async (params) => {

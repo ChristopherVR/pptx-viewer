@@ -1,10 +1,18 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
 import { PptxHandler } from '../../core/PptxHandler';
 import type { OlePptxElement } from '../../core/types/elements';
-import { applyOleSheetCellEdit, setOleObjectName } from '../../core/utils/ole-edit-api';
+import { readOleDocParagraphs } from '../../core/utils/ole-document-doc-editor';
+import {
+	applyOleDocumentParagraphEdit,
+	applyOleSheetCellEdit,
+	setOleObjectName,
+} from '../../core/utils/ole-edit-api';
 import { readOleSheetGrid } from '../../core/utils/ole-sheet-xlsx-editor';
 import { decodePngDimensions } from '../../core/utils/png-encoder';
 
@@ -224,5 +232,115 @@ describe('oLE content edit save round-trip', () => {
 			(el): el is OlePptxElement => el.type === 'ole',
 		)!;
 		expect(reloadedOle.oleName).toBe('Renamed Via AlternateContent');
+	});
+
+	it('rewrites an embedded legacy binary .doc payload on save, readable again after reload', async () => {
+		// Real Word 97-2003 .doc authored via Word COM; see
+		// ole-document-doc-editor.test.ts for provenance and the real-Word
+		// round-trip this exact fixture was verified against.
+		const docBytes = readFileSync(path.join(__dirname, '..', 'fixtures', 'ole-word-97.doc'));
+		const previewPngBytes = Uint8Array.from(Buffer.from(STUB_PNG_BASE64, 'base64'));
+
+		const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+	xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+	xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+	<p:cSld>
+		<p:spTree>
+			<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
+			<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
+			<p:graphicFrame>
+				<p:nvGraphicFramePr><p:cNvPr id="2" name="Embedded Word Document"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
+				<p:xfrm><a:off x="914400" y="914400"/><a:ext cx="2286000" cy="1714500"/></p:xfrm>
+				<a:graphic>
+					<a:graphicData uri="http://schemas.openxmlformats.org/presentationml/2006/ole">
+						<p:oleObj progId="Word.Document.8" showAsIcon="0" r:id="rId2" imgW="2286000" imgH="1714500">
+							<p:embed/>
+							<p:pic>
+								<p:nvPicPr><p:cNvPr id="0" name="Picture"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>
+								<p:blipFill><a:blip r:embed="rId3"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>
+								<p:spPr>
+									<a:xfrm><a:off x="914400" y="914400"/><a:ext cx="2286000" cy="1714500"/></a:xfrm>
+									<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+								</p:spPr>
+							</p:pic>
+						</p:oleObj>
+					</a:graphicData>
+				</a:graphic>
+			</p:graphicFrame>
+		</p:spTree>
+	</p:cSld>
+</p:sld>`;
+		const slideRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+	<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+	<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject" Target="../embeddings/oleObject1.doc"/>
+	<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
+</Relationships>`;
+
+		const { handler: srcHandler, data: srcData, createSlide } = await PresentationBuilder.create();
+		srcData.slides.push(createSlide('Blank').build());
+		const baseBytes = await srcHandler.save(srcData.slides);
+		const zip = await JSZip.loadAsync(baseBytes);
+		zip.file('ppt/slides/slide1.xml', slideXml);
+		zip.file('ppt/slides/_rels/slide1.xml.rels', slideRelsXml);
+		zip.file('ppt/embeddings/oleObject1.doc', docBytes);
+		zip.file('ppt/media/image1.png', previewPngBytes);
+		const patchedBytes = await zip.generateAsync({ type: 'uint8array' });
+
+		// 1. Load: the OLE element's embedded .doc payload should be recovered
+		//    and its paragraphs readable.
+		const handler = new PptxHandler();
+		const loaded = await handler.load(patchedBytes.buffer as ArrayBuffer);
+		const oleEl = loaded.slides[0].elements.find((el): el is OlePptxElement => el.type === 'ole')!;
+		expect(oleEl.oleEmbeddedData).toBeDefined();
+		const originalBytes = Uint8Array.from(
+			Buffer.from(oleEl.oleEmbeddedData!.split(',')[1]!, 'base64'),
+		);
+		expect(readOleDocParagraphs(originalBytes)).toStrictEqual([
+			'First paragraph plain text.',
+			'Second paragraph has a bold word in the middle.',
+			'Third paragraph, plain again, this is the one we will edit.',
+			'Fourth and final paragraph.',
+		]);
+
+		// 2. Apply the content edit via the pure edit API (mirrors what a
+		//    binding's OLE editor dialog would call), replacing the element.
+		const editedEl = await applyOleDocumentParagraphEdit(
+			oleEl,
+			2,
+			'Edited via the SDK integration test.',
+		);
+		expect(editedEl.oleContentDirty).toBeTruthy();
+		loaded.slides[0].elements = loaded.slides[0].elements.map((el) =>
+			el === oleEl ? editedEl : el,
+		);
+		loaded.slides[0].isDirty = true;
+
+		// 3. Save: the embedding part AND preview image part must be rewritten.
+		const savedBytes = await handler.save(loaded.slides);
+		const savedZip = await JSZip.loadAsync(savedBytes);
+		const savedDocBytes = await savedZip.file('ppt/embeddings/oleObject1.doc')!.async('uint8array');
+		expect(readOleDocParagraphs(savedDocBytes)).toStrictEqual([
+			'First paragraph plain text.',
+			'Second paragraph has a bold word in the middle.',
+			'Edited via the SDK integration test.',
+			'Fourth and final paragraph.',
+		]);
+
+		const savedPreviewBytes = await savedZip.file('ppt/media/image1.png')!.async('uint8array');
+		expect(savedPreviewBytes).not.toStrictEqual(previewPngBytes);
+		expect(decodePngDimensions(savedPreviewBytes)).toBeDefined();
+
+		// 4. Reload: the edited value round-trips through a fresh load.
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(savedBytes.buffer as ArrayBuffer);
+		const reloadedOle = reloaded.slides[0].elements.find(
+			(el): el is OlePptxElement => el.type === 'ole',
+		)!;
+		const reloadedBytes = Uint8Array.from(
+			Buffer.from(reloadedOle.oleEmbeddedData!.split(',')[1]!, 'base64'),
+		);
+		expect(readOleDocParagraphs(reloadedBytes)?.[2]).toBe('Edited via the SDK integration test.');
 	});
 });

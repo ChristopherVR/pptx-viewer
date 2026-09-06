@@ -22,6 +22,7 @@
  */
 import type { OleObjectType, OlePptxElement } from '../types/elements';
 import { parseDataUrlToBytes } from './data-url-utils';
+import { readOleDocParagraphs, writeOleDocParagraphEdit } from './ole-document-doc-editor';
 import {
 	readOleDocumentParagraphs,
 	writeOleDocumentParagraphEdit,
@@ -89,7 +90,7 @@ export async function getOleSheetGrid(element: OlePptxElement): Promise<OleSheet
 	return undefined;
 }
 
-/** Read the paragraph text for a Word-payload OLE element (docx only; legacy doc is replace-only). */
+/** Read the paragraph text for a Word-payload OLE element (`.docx` or legacy binary `.doc`). */
 export async function getOleDocumentParagraphs(
 	element: OlePptxElement,
 ): Promise<string[] | undefined> {
@@ -98,7 +99,13 @@ export async function getOleDocumentParagraphs(
 		return undefined;
 	}
 	const kind = await detectOlePayloadEditorKind(bytes);
-	return kind === 'document-docx' ? readOleDocumentParagraphs(bytes) : undefined;
+	if (kind === 'document-docx') {
+		return readOleDocumentParagraphs(bytes);
+	}
+	if (kind === 'document-doc') {
+		return readOleDocParagraphs(bytes);
+	}
+	return undefined;
 }
 
 /** Read the raw payload bytes of a nested-deck (embedded PowerPoint) OLE element, for `PptxHandler.load`. */
@@ -170,7 +177,7 @@ export async function applyOleSheetCellEdit(
 	return bytesEqual(bytes, updated) ? element : commitPayload(element, kind, updated);
 }
 
-/** Replace one paragraph's text in a Word-payload (docx) OLE element. */
+/** Replace one paragraph's text in a Word-payload (`.docx` or legacy binary `.doc`) OLE element. */
 export async function applyOleDocumentParagraphEdit(
 	element: OlePptxElement,
 	paragraphIndex: number,
@@ -181,11 +188,15 @@ export async function applyOleDocumentParagraphEdit(
 		return element;
 	}
 	const kind = await detectOlePayloadEditorKind(bytes);
-	if (kind !== 'document-docx') {
-		return element;
+	if (kind === 'document-docx') {
+		const updated = await writeOleDocumentParagraphEdit(bytes, paragraphIndex, text);
+		return bytesEqual(bytes, updated) ? element : commitPayload(element, kind, updated);
 	}
-	const updated = await writeOleDocumentParagraphEdit(bytes, paragraphIndex, text);
-	return bytesEqual(bytes, updated) ? element : commitPayload(element, kind, updated);
+	if (kind === 'document-doc') {
+		const updated = writeOleDocParagraphEdit(bytes, paragraphIndex, text);
+		return bytesEqual(bytes, updated) ? element : commitPayload(element, kind, updated);
+	}
+	return element;
 }
 
 /** Replace a nested-deck OLE element's payload with a re-saved presentation's bytes. */
