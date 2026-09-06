@@ -15,6 +15,7 @@ export interface FileSectionProps {
 	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;
 	onSaveAsPptm: () => void;
+	onSaveAsPpt: () => void;
 	hasMacros: boolean;
 	onCopySlideAsImage: () => void;
 	onPrint: () => void;

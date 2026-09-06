@@ -81,7 +81,7 @@
 			<div class="actions">
 				@for (action of actions(); track action.titleKey) {
 					<button type="button" (click)="run(action.event)">
-						<b>{{ action.icon }}</b
+						<b aria-hidden="true">{{ action.icon }}</b
 						><span
 							><strong>{{ action.titleKey | translate }}</strong
 							><small>{{ action.bodyKey | translate }}</small></span

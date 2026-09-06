@@ -109,6 +109,7 @@ export function buildOverflowMenuItems(
 			{ label: t('pptx.file.saveAsPptxTooltip'), run: () => file.save() },
 			{ label: t('pptx.file.saveAsPpsxTooltip'), run: () => file.saveAsPpsx() },
 			{ label: t('pptx.file.saveAsPptmTooltip'), run: () => file.saveAsPptm() },
+			{ label: t('pptx.file.saveAsPptTooltip'), run: () => file.saveAsPpt() },
 		);
 	}
 	items.push(

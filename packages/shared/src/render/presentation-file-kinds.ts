@@ -12,16 +12,17 @@
  * working loader unreachable in practice. Whenever the loader learns a format,
  * exactly one list has to change.
  *
- * ## Read many, write one
+ * ## Read many, write several
  *
  * Input is a superset of output. We READ `.pptx`, `.ppsx`, `.pptm`, `.potx`,
- * legacy binary `.ppt` and portable `pptx-viewer-json`; we WRITE only the
- * OpenXML family. That asymmetry is deliberate (PowerPoint itself does the
- * same: open a 97-2003 deck and Save As offers `.pptx`), and it is why
- * {@link savedPresentationFileName} always REPLACES the source extension
- * rather than keeping it. A deck opened as `report.ppt` and saved as
- * `report.ppt` would be a file whose bytes and whose name disagree, which is
- * the kind of thing PowerPoint refuses to open.
+ * legacy binary `.ppt` and portable `pptx-viewer-json`; we WRITE the OpenXML
+ * family plus legacy binary `.ppt` (via `packages/core/src/core/ppt/writer/`,
+ * a real MS-PPT/OLE2 encoder, not a stub). `savedPresentationFileName`
+ * REPLACES the source extension with the extension of the format actually
+ * being written rather than keeping the source's: a deck opened as
+ * `report.pptx` and saved back as `.ppt` (or vice versa) must have its name
+ * agree with its bytes, which is the kind of mismatch PowerPoint itself
+ * refuses to open.
  *
  * This module deliberately imports nothing, so any layer (render, export, a
  * binding, a host app) can depend on it without risking an import cycle.
@@ -80,7 +81,11 @@ export function isSupportedPresentationFile(name: string | null | undefined): bo
 	return LOADABLE_EXTENSION_PATTERN.test(baseNameOf(name));
 }
 
-/** True for the binary PowerPoint 97-2003 family, which we read but never write. */
+/**
+ * True for the binary PowerPoint 97-2003 family. `.ppt` itself is now also a
+ * SAVE target (see {@link SavedPresentationFormat}); `.pps`/`.pot` (97-2003
+ * show/template) remain read-only siblings sharing the same record format.
+ */
 export function isLegacyBinaryPresentation(name: string | null | undefined): boolean {
 	if (!name) {
 		return false;
@@ -88,8 +93,8 @@ export function isLegacyBinaryPresentation(name: string | null | undefined): boo
 	return /\.(?:ppt|pps|pot)$/iu.test(baseNameOf(name));
 }
 
-/** The formats the save path can produce. Binary `.ppt` is deliberately absent. */
-export type SavedPresentationFormat = 'pptx' | 'ppsx' | 'pptm';
+/** The formats the save path can produce. */
+export type SavedPresentationFormat = 'pptx' | 'ppsx' | 'pptm' | 'ppt';
 
 /** Fallback stem when the host supplies no source file name. */
 const DEFAULT_BASE_NAME = 'presentation';
@@ -114,9 +119,10 @@ export function presentationBaseName(
  * The name a saved copy should be offered under: the source stem plus the
  * extension of the format actually being written.
  *
- * This is what turns `report.ppt` into `report.pptx` on Save As. Output is
- * always an OpenXML package, so keeping the source extension would mislabel
- * the bytes.
+ * This is what turns `report.ppt` into `report.pptx` on a regular Save As,
+ * and `report.pptx` into `report.ppt` when the user explicitly picks the
+ * PowerPoint 97-2003 format. Keeping the source extension would mislabel the
+ * bytes either way.
  */
 export function savedPresentationFileName(
 	sourceName: string | null | undefined,

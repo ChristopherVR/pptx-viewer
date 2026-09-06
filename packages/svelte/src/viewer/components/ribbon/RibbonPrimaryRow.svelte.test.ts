@@ -110,11 +110,13 @@ describe('ribbonPrimaryRow', () => {
 
 	it('the overflow menu lists every File/Options action a handler was passed for', () => {
 		const onsaveppsx = vi.fn();
+		const onsaveppt = vi.fn();
 		const onsignatures = vi.fn();
 		const target = mountRow({
 			exportUi: { exporting: false } as unknown as ExportUiState,
 			onsaveppsx,
 			onsavepptm: vi.fn(),
+			onsaveppt,
 			oninfo: vi.fn(),
 			ona11y: vi.fn(),
 			onshortcuts: vi.fn(),
@@ -133,6 +135,7 @@ describe('ribbonPrimaryRow', () => {
 			expect.arrayContaining([
 				'Save as Slide Show (.ppsx)',
 				'Save as Macro-Enabled (.pptm)',
+				'Save as PowerPoint 97-2003 (.ppt)',
 				'Copy Slide as Image',
 				'Document Properties',
 				'Accessibility Check',
@@ -149,6 +152,14 @@ describe('ribbonPrimaryRow', () => {
 		);
 		ppsxItem?.click();
 		expect(onsaveppsx).toHaveBeenCalledOnce();
+
+		target.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.click();
+		flushSync();
+		const pptItem = [...target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+			(item) => item.textContent?.trim() === 'Save as PowerPoint 97-2003 (.ppt)',
+		);
+		pptItem?.click();
+		expect(onsaveppt).toHaveBeenCalledOnce();
 
 		target.querySelector<HTMLButtonElement>('[aria-label="More actions"]')?.click();
 		flushSync();

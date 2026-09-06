@@ -26,6 +26,20 @@ interface DirEntry {
 	type: number;
 	startSector: number;
 	size: number;
+	/**
+	 * Storage CLSID (16 bytes), written at directory-entry offset 80. Left
+	 * undefined (all-zero, [MS-CFB]'s "no CLSID" value) for every stream
+	 * entry and for a root entry with no application-specific identity.
+	 *
+	 * Some host applications' own OLE2 readers use the ROOT ENTRY's CLSID to
+	 * identify the storage's document type independently of its stream
+	 * names: a legacy binary `.ppt` (`ppt/writer/write-ppt.ts`) sets it to
+	 * PowerPoint 97-2003's well-known CLSID
+	 * `{64818D10-4F9B-11CF-86EA-00AA00B929E8}` via {@link buildOle2}'s
+	 * `rootClsid` parameter; encrypted-OOXML callers leave it unset, matching
+	 * their previously-working all-zero behaviour.
+	 */
+	clsid?: Uint8Array;
 }
 
 /** Internal type for a sector chain allocation. */
@@ -234,6 +248,11 @@ function serializeDirectoryEntries(
 		// Color (1 = black for red-black tree)
 		dirData[entryOffset + 67] = 1;
 
+		// Storage CLSID (16 bytes); zero-filled unless the entry carries one.
+		if (entry.clsid) {
+			dirData.set(entry.clsid.subarray(0, 16), entryOffset + 80);
+		}
+
 		// Left sibling, right sibling, child
 		// Use a simple binary tree layout: root child = 1, entries linked as right siblings
 		if (i === 0) {
@@ -282,12 +301,16 @@ function writeStreamSectors(
 /**
  * Build an OLE2 compound binary file from named streams.
  *
- * Creates a minimal v3 OLE2 container suitable for encrypted OOXML packages.
+ * Creates a minimal v3 OLE2 container suitable for encrypted OOXML packages
+ * (or, with `rootClsid`, for a document format such as legacy `.ppt` whose
+ * host application identifies the storage by its root entry's CLSID).
  *
  * @param streams - Map of stream names to their binary data.
+ * @param rootClsid - Optional 16-byte storage CLSID for the root entry. See
+ *   {@link DirEntry.clsid}. Omit to keep the previous all-zero behaviour.
  * @returns ArrayBuffer of the complete OLE2 file.
  */
-export function buildOle2(streams: Map<string, Uint8Array>): ArrayBuffer {
+export function buildOle2(streams: Map<string, Uint8Array>, rootClsid?: Uint8Array): ArrayBuffer {
 	const sectorSize = 512;
 	const miniSectorSize = 64;
 	const miniStreamCutoff = 0x1000;
@@ -366,6 +389,7 @@ export function buildOle2(streams: Map<string, Uint8Array>): ArrayBuffer {
 		type: ENTRY_TYPE_ROOT,
 		startSector: rootStartSector === -1 ? ENDOFCHAIN : rootStartSector,
 		size: miniStreamContainer.length,
+		clsid: rootClsid,
 	});
 
 	for (const stream of regularStreams) {

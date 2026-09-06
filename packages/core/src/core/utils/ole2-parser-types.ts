@@ -59,6 +59,14 @@ export interface Ole2DirectoryEntry {
 	leftSiblingId: number;
 	/** Index of the right sibling directory entry (-1 if none). */
 	rightSiblingId: number;
+	/**
+	 * Storage CLSID (16 bytes), read from directory-entry offset 80. Present
+	 * on every entry (all-zero when the host set no CLSID); callers that
+	 * round-trip a container through `buildOle2` pass the root entry's value
+	 * through as `rootClsid` so a re-serialized file keeps its original
+	 * application identity (see `ole-sheet-xls-biff8.ts`'s CFB-rewrap helper).
+	 */
+	clsid: Uint8Array;
 }
 
 /**

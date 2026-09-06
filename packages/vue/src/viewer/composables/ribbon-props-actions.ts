@@ -140,6 +140,7 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onSaveAsPptx: () => void input.downloadAs('pptx'),
 		onSaveAsPpsx: () => void input.downloadAs('ppsx'),
 		onSaveAsPptm: () => void input.downloadAs('pptm'),
+		onSaveAsPpt: () => void input.downloadAs('ppt'),
 		onCopySlideAsImage: () => void input.onCopySlideAsImage(),
 		onPrint: input.openPrintDialog,
 		onToggleShortcuts: () => {

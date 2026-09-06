@@ -67,6 +67,7 @@ import type { RibbonTab } from './ribbon-types';
 				(save)="save.emit()"
 				(savePpsx)="savePpsx.emit()"
 				(savePptm)="savePptm.emit()"
+				(savePpt)="savePpt.emit()"
 				(copySlideAsImage)="copySlideAsImage.emit()"
 				(shortcuts)="shortcuts.emit()"
 				(versionHistory)="versionHistory.emit()"
@@ -113,6 +114,7 @@ import type { RibbonTab } from './ribbon-types';
 					(save)="save.emit()"
 					(savePpsx)="savePpsx.emit()"
 					(savePptm)="savePptm.emit()"
+					(savePpt)="savePpt.emit()"
 					(signatures)="signatures.emit()"
 					(info)="info.emit()"
 					(print)="print.emit()"
@@ -271,6 +273,7 @@ export class RibbonComponent {
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
+	readonly savePpt = output<void>();
 	/** Emitted when the user toggles the slides panel from the top bar. */
 	readonly toggleSidebar = output<void>();
 	/** Emitted when the user clicks the AI assistant Sparkles toggle. */

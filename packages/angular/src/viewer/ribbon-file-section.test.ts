@@ -5,7 +5,7 @@ import { RibbonFileSectionComponent, visibleMainNav } from './ribbon-file-sectio
 
 /** The protected template surface the backstage cards render from. */
 interface FileSectionInternals {
-	page: { set: (id: 'export') => void };
+	page: { set: (id: 'export' | 'saveAs') => void };
 	actions: () => readonly { titleKey: string; icon: string; event: { emit: () => void } }[];
 	run: (event: { emit: () => void }) => void;
 }
@@ -67,6 +67,41 @@ describe('export page JSON card', () => {
 		}
 
 		expect(exports).toBe(1);
+		expect(closes).toBe(1);
+	});
+});
+
+describe('save-as page .ppt card', () => {
+	it('shows the Save .ppt card with its icon', () => {
+		const file = createFileSection();
+		const internals = file as unknown as FileSectionInternals;
+		internals.page.set('saveAs');
+
+		const card = internals
+			.actions()
+			.find((action) => action.titleKey === 'pptx.backstage.card.saveAsPpt.title');
+		expect(card).toBeDefined();
+		expect(card?.icon).toBe('97');
+	});
+
+	it('fires savePpt (and closes the backstage) when the card is clicked', () => {
+		const file = createFileSection();
+		const internals = file as unknown as FileSectionInternals;
+		internals.page.set('saveAs');
+		let saves = 0;
+		let closes = 0;
+		file.savePpt.subscribe(() => saves++);
+		file.close.subscribe(() => closes++);
+
+		const card = internals
+			.actions()
+			.find((action) => action.titleKey === 'pptx.backstage.card.saveAsPpt.title');
+		expect(card).toBeDefined();
+		if (card) {
+			internals.run(card.event);
+		}
+
+		expect(saves).toBe(1);
 		expect(closes).toBe(1);
 	});
 });

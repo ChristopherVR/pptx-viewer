@@ -19,6 +19,7 @@
 		exportUi,
 		onsaveppsx,
 		onsavepptm,
+		onsaveppt,
 		oninfo,
 		ona11y,
 		onshortcuts,
@@ -30,6 +31,7 @@
 		exportUi: ExportUiState;
 		onsaveppsx?: () => void;
 		onsavepptm?: () => void;
+		onsaveppt?: () => void;
 		oninfo?: () => void;
 		ona11y?: () => void;
 		onshortcuts?: () => void;
@@ -96,6 +98,7 @@
 			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runVideo())}>{t('pptx.export.webmVideo')}</button>
 			{#if onsaveppsx}<button type="button" role="menuitem" onclick={() => choose(onsaveppsx)}>{t('pptx.file.saveAsPpsxTooltip')}</button>{/if}
 			{#if onsavepptm}<button type="button" role="menuitem" onclick={() => choose(onsavepptm)}>{t('pptx.file.saveAsPptmTooltip')}</button>{/if}
+			{#if onsaveppt}<button type="button" role="menuitem" onclick={() => choose(onsaveppt)}>{t('pptx.file.saveAsPptTooltip')}</button>{/if}
 			<div class="pptx-svelte-overflow-sep" aria-hidden="true"></div>
 			<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPrint())}>{t('pptx.print.title')}</button>
 			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => exportUi.runCopyImage())}>{t('pptx.file.copyImageTooltip')}</button>

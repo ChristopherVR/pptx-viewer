@@ -34,6 +34,7 @@
 		hiddenActions,
 		onsaveppsx,
 		onsavepptm,
+		onsaveppt,
 		oninfo,
 		ona11y,
 		onshortcuts,
@@ -62,6 +63,7 @@
 		/** Overflow menu: same File-tab/settings handlers, exposed a second way. */
 		onsaveppsx?: () => void;
 		onsavepptm?: () => void;
+		onsaveppt?: () => void;
 		oninfo?: () => void;
 		ona11y?: () => void;
 		onshortcuts?: () => void;
@@ -163,6 +165,7 @@
 			{exportUi}
 			{onsaveppsx}
 			{onsavepptm}
+			{onsaveppt}
 			{oninfo}
 			{ona11y}
 			{onshortcuts}

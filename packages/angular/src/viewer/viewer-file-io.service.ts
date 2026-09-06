@@ -139,6 +139,11 @@ export class ViewerFileIOService {
 		await this.saveAs('pptm');
 	}
 
+	/** Legacy binary PowerPoint 97-2003 `.ppt`; `saveAs` picks the OLE2 MIME type. */
+	async saveAsPpt(): Promise<void> {
+		await this.saveAs('ppt');
+	}
+
 	/**
 	 * File > Export > Export as JSON: serialise the live deck (templates merged
 	 * back in when editing) to `pptx-viewer-json` and trigger the download.

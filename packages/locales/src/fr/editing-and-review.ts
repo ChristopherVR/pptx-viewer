@@ -143,6 +143,8 @@ export const translations = {
 	'pptx.file.png': 'PNG',
 	'pptx.file.saveAsPpsx': 'Enregistrer .ppsx',
 	'pptx.file.saveAsPpsxTooltip': 'Enregistrer sous forme de diaporama (.ppsx)',
+	'pptx.file.saveAsPpt': 'Enregistrer .ppt',
+	'pptx.file.saveAsPptTooltip': 'Enregistrer au format PowerPoint 97-2003 (.ppt)',
 	'pptx.file.saveAsPptm': 'Enregistrer le .pptm',
 	'pptx.file.saveAsPptmTooltip': 'Enregistrer avec macros (.pptm)',
 	'pptx.file.saveAsPptx': 'Enregistrer le .pptx',

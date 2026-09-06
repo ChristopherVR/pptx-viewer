@@ -102,6 +102,7 @@
 		hiddenActions={props.hiddenActions}
 		onsaveppsx={props.ondownloadppsx}
 		onsavepptm={props.ondownloadpptm}
+		onsaveppt={props.ondownloadppt}
 		oninfo={() => setPropertiesOpen(true)}
 		ona11y={() => (activeTab = 'review')}
 		onshortcuts={props.onshortcuts}
@@ -131,6 +132,7 @@
 			ondownload={props.ondownload}
 			ondownloadppsx={props.ondownloadppsx}
 			ondownloadpptm={props.ondownloadpptm}
+			ondownloadppt={props.ondownloadppt}
 			hasMacros={props.hasMacros}
 			onopenfile={props.onopenfile}
 			onopenrecent={props.onopenrecent}

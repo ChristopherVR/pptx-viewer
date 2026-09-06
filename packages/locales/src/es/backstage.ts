@@ -68,6 +68,9 @@ export const translations = {
 		'Guarde un archivo .ppsx que se abre directamente como presentación con diapositivas.',
 	'pptx.backstage.card.saveAsPptm.title': 'Presentación habilitada para macros',
 	'pptx.backstage.card.saveAsPptm.body': 'Conserve el contenido VBA en un archivo .pptm.',
+	'pptx.backstage.card.saveAsPpt.title': 'Presentación de PowerPoint 97-2003',
+	'pptx.backstage.card.saveAsPpt.body':
+		'Guarde una copia binaria .ppt compatible con versiones anteriores de PowerPoint.',
 	'pptx.backstage.card.pdf.title': 'Crear PDF',
 	'pptx.backstage.card.pdf.body': 'Publique un documento portátil con una página por diapositiva.',
 	'pptx.backstage.card.png.title': 'Exportar diapositiva actual',

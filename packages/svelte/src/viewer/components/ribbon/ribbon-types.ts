@@ -49,6 +49,7 @@ export interface RibbonProps {
 	ondownload: () => void;
 	ondownloadppsx: () => void;
 	ondownloadpptm: () => void;
+	ondownloadppt: () => void;
 	onversionhistory: () => void;
 	hasMacros: boolean;
 	embeddedFontNames: string[];

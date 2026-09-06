@@ -75,6 +75,7 @@ export interface ExportHandlersResult {
 	handleSaveAsPptx: () => void;
 	handleSaveAsPpsx: () => void;
 	handleSaveAsPptm: () => void;
+	handleSaveAsPpt: () => void;
 	handleCancelExport: () => void;
 	exportModalOpen: boolean;
 	exportModalTitle: string;

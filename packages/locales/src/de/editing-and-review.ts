@@ -142,6 +142,8 @@ export const translations = {
 	'pptx.file.png': 'PNG',
 	'pptx.file.saveAsPpsx': 'Speichern Sie .ppsx',
 	'pptx.file.saveAsPpsxTooltip': 'Als Bildschirmpräsentation speichern (.ppsx)',
+	'pptx.file.saveAsPpt': 'Speichern Sie .ppt',
+	'pptx.file.saveAsPptTooltip': 'Als PowerPoint 97-2003 speichern (.ppt)',
 	'pptx.file.saveAsPptm': 'Speichern Sie .pptm',
 	'pptx.file.saveAsPptmTooltip': 'Mit Makros speichern (.pptm)',
 	'pptx.file.saveAsPptx': 'Speichern Sie .pptx',

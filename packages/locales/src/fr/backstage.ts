@@ -69,6 +69,9 @@ export const translations = {
 		'Enregistrez un fichier .ppsx qui s’ouvre directement en diaporama.',
 	'pptx.backstage.card.saveAsPptm.title': 'Présentation prenant en charge les macros',
 	'pptx.backstage.card.saveAsPptm.body': 'Conservez le contenu VBA dans un fichier .pptm.',
+	'pptx.backstage.card.saveAsPpt.title': 'Présentation PowerPoint 97-2003',
+	'pptx.backstage.card.saveAsPpt.body':
+		'Enregistrez une copie binaire .ppt compatible avec les anciennes versions de PowerPoint.',
 	'pptx.backstage.card.pdf.title': 'Créer un PDF',
 	'pptx.backstage.card.pdf.body': 'Publiez un document portable avec une page par diapositive.',
 	'pptx.backstage.card.png.title': 'Exporter la diapositive active',

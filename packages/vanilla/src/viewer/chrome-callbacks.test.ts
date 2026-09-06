@@ -41,4 +41,15 @@ describe('buildChromeCallbacks', () => {
 		expect(toggleSubtitles).toHaveBeenCalledOnce();
 		expect(openSetUpSlideShow).toHaveBeenCalledOnce();
 	});
+
+	it('routes every Save As format, including binary .ppt, through downloadAs', () => {
+		const downloadAs = vi.fn(() => Promise.resolve());
+		const callbacks = buildChromeCallbacks(buildDeps({ downloadAs }));
+
+		callbacks.ribbonHandlers.file.saveAsPpsx();
+		callbacks.ribbonHandlers.file.saveAsPptm();
+		callbacks.ribbonHandlers.file.saveAsPpt();
+
+		expect(downloadAs.mock.calls).toStrictEqual([['ppsx'], ['pptm'], ['ppt']]);
+	});
 });

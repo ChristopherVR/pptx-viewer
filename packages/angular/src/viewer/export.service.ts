@@ -48,6 +48,7 @@ export class ExportService {
 		pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 		ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
 		pptm: 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+		ppt: 'application/vnd.ms-powerpoint',
 	};
 
 	/** Build a resolution-independent SVG string directly from slide data. */

@@ -243,6 +243,7 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onSaveAsPptx: exportHandlers.handleSaveAsPptx,
 		onSaveAsPpsx: exportHandlers.handleSaveAsPpsx,
 		onSaveAsPptm: exportHandlers.handleSaveAsPptm,
+		onSaveAsPpt: exportHandlers.handleSaveAsPpt,
 		hasMacros: s.hasMacros,
 		onCopySlideAsImage: exportHandlers.handleCopySlideAsImage,
 		onPrint: printHandlers.handlePrint,

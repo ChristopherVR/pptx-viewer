@@ -70,6 +70,7 @@ export interface ExportSaveAsResult {
 	handleSaveAsPptx: () => void;
 	handleSaveAsPpsx: () => void;
 	handleSaveAsPptm: () => void;
+	handleSaveAsPpt: () => void;
 }
 
 export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult {
@@ -104,9 +105,13 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 				// No handler loaded yet: nothing to write.
 				return;
 			}
-			const blob = new Blob([data as BlobPart], {
-				type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-			});
+			// Legacy binary `.ppt` is an OLE2 compound file, not a ZIP: its own
+			// MIME type, not the OOXML package one every other format shares.
+			const mimeType =
+				format === 'ppt'
+					? 'application/vnd.ms-powerpoint'
+					: 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+			const blob = new Blob([data as BlobPart], { type: mimeType });
 			downloadBlob(blob, downloadName);
 		} catch (err) {
 			console.error(`[PowerPointViewer] Save as .${format} failed:`, err);
@@ -160,6 +165,9 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 	const handleSaveAsPptm = () => {
 		void handleSaveAsFormat('pptm');
 	};
+	const handleSaveAsPpt = () => {
+		void handleSaveAsFormat('ppt');
+	};
 
 	return {
 		handleExportJson,
@@ -167,5 +175,6 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		handleSaveAsPptx,
 		handleSaveAsPpsx,
 		handleSaveAsPptm,
+		handleSaveAsPpt,
 	};
 }

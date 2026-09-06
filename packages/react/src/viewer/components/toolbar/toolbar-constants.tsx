@@ -141,6 +141,11 @@ export const OV: Array<{ labelKey: string; i: React.ReactNode; k: string }> = [
 		labelKey: 'pptx.file.saveAsPptmTooltip',
 		i: <LuDatabase className={`${ics} text-muted-foreground`} />,
 	},
+	{
+		k: 'ppt',
+		labelKey: 'pptx.file.saveAsPptTooltip',
+		i: <LuFileText className={`${ics} text-muted-foreground`} />,
+	},
 	{ k: '---0', labelKey: '', i: null },
 	{
 		k: 'print',

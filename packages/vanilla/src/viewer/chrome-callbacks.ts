@@ -188,6 +188,7 @@ export function buildChromeCallbacks(
 			save: () => deps.save(),
 			saveAsPpsx: () => void deps.downloadAs('ppsx'),
 			saveAsPptm: () => void deps.downloadAs('pptm'),
+			saveAsPpt: () => void deps.downloadAs('ppt'),
 			exportPng: () => void deps.exportSlidePng(),
 			copySlideAsImage: () => void deps.copySlideAsImage(),
 			exportPdf: () => void deps.exportPdf(),

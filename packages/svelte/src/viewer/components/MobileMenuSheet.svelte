@@ -169,6 +169,7 @@
 					ondownload={props.ondownload}
 					ondownloadppsx={props.ondownloadppsx}
 					ondownloadpptm={props.ondownloadpptm}
+					ondownloadppt={props.ondownloadppt}
 					hasMacros={props.hasMacros}
 					onopenfile={props.onopenfile}
 					onopenrecent={props.onopenrecent}

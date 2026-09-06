@@ -26,6 +26,7 @@ function mountFileSection(hiddenActions?: string[]) {
 			onSaveAsPptx: () => {},
 			onSaveAsPpsx: () => {},
 			onSaveAsPptm: () => {},
+			onSaveAsPpt: () => {},
 			hasMacros: false,
 			onCopySlideAsImage: () => {},
 			onPrint: () => {},

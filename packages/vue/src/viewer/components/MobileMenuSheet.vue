@@ -292,6 +292,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-save-as-pptx="props.onSaveAsPptx"
 						:on-save-as-ppsx="props.onSaveAsPpsx"
 						:on-save-as-pptm="props.onSaveAsPptm"
+						:on-save-as-ppt="props.onSaveAsPpt"
 						:has-macros="props.hasMacros"
 						:on-copy-slide-as-image="props.onCopySlideAsImage"
 						:on-print="props.onPrint"

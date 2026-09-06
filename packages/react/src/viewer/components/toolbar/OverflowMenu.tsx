@@ -14,6 +14,7 @@ type OverflowKeys =
 	| 'onSaveAsPptx'
 	| 'onSaveAsPpsx'
 	| 'onSaveAsPptm'
+	| 'onSaveAsPpt'
 	| 'onPrint'
 	| 'onCopySlideAsImage'
 	| 'onRunAccessibilityCheck'
@@ -42,6 +43,7 @@ export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 				pptx: p.onSaveAsPptx,
 				ppsx: p.onSaveAsPpsx,
 				pptm: p.onSaveAsPptm,
+				ppt: p.onSaveAsPpt,
 				print: p.onPrint,
 				copyImg: p.onCopySlideAsImage,
 				a11y: p.onRunAccessibilityCheck,

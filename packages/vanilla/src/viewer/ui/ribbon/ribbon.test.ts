@@ -7,6 +7,7 @@ import { readTextFormatState } from '../../editor/editor-format-mutations';
 import { createTranslator } from '../../i18n';
 import { createFontGroup } from './home/font-group';
 import { createRibbon } from './ribbon';
+import { buildOverflowMenuItems } from './ribbon-primary-menus';
 import type { RibbonHandlers, RibbonInsertHandlers } from './ribbon-types';
 
 /** A fake action bag: every method access returns a fresh `vi.fn()`, memoised. */
@@ -71,6 +72,7 @@ function buildHandlers(): RibbonHandlers {
 			save: vi.fn(),
 			saveAsPpsx: vi.fn(),
 			saveAsPptm: vi.fn(),
+			saveAsPpt: vi.fn(),
 			exportPng: vi.fn(),
 			copySlideAsImage: vi.fn(),
 			exportPdf: vi.fn(),
@@ -264,6 +266,48 @@ describe('createRibbon', () => {
 		);
 		infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		expect(backstage?.querySelectorAll('.pptxv-bs-actions svg')).toHaveLength(5);
+	});
+
+	it('offers a PowerPoint 97-2003 (.ppt) card on the Save As page', () => {
+		const t = createTranslator();
+		const handlers = buildHandlers();
+		const ribbon = createRibbon(document, t, handlers);
+		Array.from(ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab'))
+			.find((button) => button.textContent === 'File')
+			?.click();
+		const backstage = ribbon.el.querySelector<HTMLElement>('.pptxv-backstage');
+		Array.from(backstage?.querySelectorAll<HTMLButtonElement>('nav button') ?? [])
+			.find((button) => button.textContent?.trim() === 'Save As')
+			?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		const cards = Array.from(
+			backstage?.querySelectorAll<HTMLButtonElement>('.pptxv-bs-actions button') ?? [],
+		);
+		const pptCard = cards.find((button) =>
+			button.textContent?.includes(t('pptx.backstage.card.saveAsPpt.title')),
+		);
+		expect(pptCard).toBeTruthy();
+		expect(pptCard?.querySelector('svg')).toBeTruthy();
+		// The .ppt card sits after the macro-enabled card, which is hidden until
+		// the deck has macros, so the order is pptx, ppsx, ppt.
+		expect(cards.indexOf(pptCard as HTMLButtonElement)).toBe(2);
+		pptCard?.click();
+		expect(handlers.file.saveAsPpt).toHaveBeenCalledOnce();
+		expect(handlers.file.saveAsPptm).not.toHaveBeenCalled();
+		expect(handlers.file.save).not.toHaveBeenCalled();
+	});
+
+	it('lists Save as .ppt in the overflow menu right after the macro-enabled entry', () => {
+		const t = createTranslator();
+		const handlers = buildHandlers();
+		const items = buildOverflowMenuItems(t, handlers);
+		const labels = items.map((item) => item.label);
+		const pptIndex = labels.indexOf(t('pptx.file.saveAsPptTooltip'));
+		expect(pptIndex).toBe(labels.indexOf(t('pptx.file.saveAsPptmTooltip')) + 1);
+		items[pptIndex].run();
+		expect(handlers.file.saveAsPpt).toHaveBeenCalledOnce();
+		expect(buildOverflowMenuItems(t, handlers, ['export']).map((item) => item.label)).not.toContain(
+			t('pptx.file.saveAsPptTooltip'),
+		);
 	});
 
 	it('opens viewer settings immediately from File Options', () => {

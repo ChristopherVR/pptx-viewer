@@ -678,6 +678,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onSaveAsPptx={exportHandlers.handleSaveAsPptx}
 				onSaveAsPpsx={exportHandlers.handleSaveAsPpsx}
 				onSaveAsPptm={exportHandlers.handleSaveAsPptm}
+				onSaveAsPpt={exportHandlers.handleSaveAsPpt}
 				hasMacros={s.hasMacros}
 				onCopySlideAsImage={exportHandlers.handleCopySlideAsImage}
 				onPrint={printHandlers.handlePrint}

@@ -104,4 +104,12 @@ describe('buildDeckSaveOptions', () => {
 		});
 		expect(options.outputFormat).toBe('ppsx');
 	});
+
+	it('passes outputFormat "ppt" and pptPassword through', () => {
+		const options = buildDeckSaveOptions(
+			baseState({ outputFormat: 'ppt', pptPassword: 'secret123' }),
+		);
+		expect(options.outputFormat).toBe('ppt');
+		expect(options.pptPassword).toBe('secret123');
+	});
 });

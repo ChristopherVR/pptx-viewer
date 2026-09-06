@@ -58,6 +58,7 @@ const ALL_OVERFLOW_ITEMS: ReadonlyArray<{
 	{ key: 'save', labelKey: 'pptx.ribbon.savePptx', needsSlides: true },
 	{ key: 'savePpsx', labelKey: 'pptx.file.saveAsPpsxTooltip', needsSlides: true },
 	{ key: 'savePptm', labelKey: 'pptx.file.saveAsPptmTooltip', needsSlides: true },
+	{ key: 'savePpt', labelKey: 'pptx.file.saveAsPptTooltip', needsSlides: true },
 	{ key: '---0', labelKey: '' },
 	{ key: 'print', labelKey: 'pptx.print.printButton' },
 	{ key: 'copyImg', labelKey: 'pptx.file.copyImageTooltip', needsSlides: true },
@@ -309,6 +310,7 @@ export class RibbonPrimaryRowComponent {
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
+	readonly savePpt = output<void>();
 	readonly copySlideAsImage = output<void>();
 	readonly shortcuts = output<void>();
 	readonly versionHistory = output<void>();
@@ -378,6 +380,9 @@ export class RibbonPrimaryRowComponent {
 				break;
 			case 'savePptm':
 				this.savePptm.emit();
+				break;
+			case 'savePpt':
+				this.savePpt.emit();
 				break;
 			case 'copyImg':
 				this.copySlideAsImage.emit();

@@ -143,6 +143,7 @@
 		ondownload={() => void vm.downloadPptx()}
 		ondownloadppsx={() => void vm.downloadAs('ppsx')}
 		ondownloadpptm={() => void vm.downloadAs('pptm')}
+		ondownloadppt={() => void vm.downloadAs('ppt')}
 		onversionhistory={() => (vm.versionHistoryOpen = true)}
 		hasMacros={loader.hasMacros}
 		embeddedFontNames={loader.embeddedFonts.map((font) => font.name)}
@@ -267,6 +268,7 @@
 			ondownload={() => void vm.downloadPptx()}
 			ondownloadppsx={() => void vm.downloadAs('ppsx')}
 			ondownloadpptm={() => void vm.downloadAs('pptm')}
+			ondownloadppt={() => void vm.downloadAs('ppt')}
 			onversionhistory={() => (vm.versionHistoryOpen = true)}
 			hasMacros={loader.hasMacros}
 			embeddedFontNames={loader.embeddedFonts.map((font) => font.name)}

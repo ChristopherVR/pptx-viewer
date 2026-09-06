@@ -31,7 +31,7 @@ The file is processed entirely in the browser. Nothing is uploaded to a server: 
 :::
 
 ::: warning Supported files
-The app opens `.pptx` and its relatives (`.ppsx`, `.pptm`, `.potx`), plus **legacy binary `.ppt`** from PowerPoint 97-2003, which is converted as it loads. Whatever you open, saving always writes a `.pptx`, so a deck opened as `report.ppt` is offered back as `report.pptx`.
+The app opens `.pptx` and its relatives (`.ppsx`, `.pptm`, `.potx`), plus **legacy binary `.ppt`** from PowerPoint 97-2003, which is converted as it loads. Saving defaults to `.pptx` regardless of what you opened (a deck opened as `report.ppt` is offered back as `report.pptx`), but Save As also offers **PowerPoint 97-2003 Presentation (`.ppt`)** as an explicit format choice alongside `.ppsx` and `.pptm`; see [Limitations](/guide/limitations) for the current fidelity and real-PowerPoint-compatibility caveats on that format.
 
 Password-protected `.pptx` files open once you supply the password: a dialog titled **Encrypted File** asks for it. Password-protected **`.ppt`** files cannot be opened at all, because the old encryption scheme is not decrypted.
 :::

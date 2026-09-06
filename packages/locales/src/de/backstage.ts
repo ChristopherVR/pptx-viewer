@@ -68,6 +68,9 @@ export const translations = {
 		'Eine PPSX-Datei speichern, die direkt als Bildschirmpräsentation geöffnet wird.',
 	'pptx.backstage.card.saveAsPptm.title': 'Präsentation mit Makros',
 	'pptx.backstage.card.saveAsPptm.body': 'VBA-Inhalte in einer PPTM-Datei beibehalten.',
+	'pptx.backstage.card.saveAsPpt.title': 'PowerPoint 97-2003-Präsentation',
+	'pptx.backstage.card.saveAsPpt.body':
+		'Eine binäre PPT-Kopie speichern, die mit älteren PowerPoint-Versionen kompatibel ist.',
 	'pptx.backstage.card.pdf.title': 'PDF erstellen',
 	'pptx.backstage.card.pdf.body':
 		'Ein portables Dokument mit einer Seite pro Folie veröffentlichen.',

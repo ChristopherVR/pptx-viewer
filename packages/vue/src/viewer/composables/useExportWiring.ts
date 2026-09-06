@@ -150,9 +150,13 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 	async function downloadAs(format: PptxSaveFormat): Promise<void> {
 		try {
 			const bytes = await saveAs(format);
-			const blob = new Blob([bytes as unknown as BlobPart], {
-				type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-			});
+			// Legacy binary `.ppt` is an OLE2 compound file, not a ZIP: its own MIME
+			// type, not the OOXML package one every other format shares.
+			const mimeType =
+				format === 'ppt'
+					? 'application/vnd.ms-powerpoint'
+					: 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+			const blob = new Blob([bytes as unknown as BlobPart], { type: mimeType });
 			downloadBlob(blob, `presentation.${format}`);
 			// Options > Accessibility > "feedback with sound", and Options > Save >
 			// "keep the last AutoRecover version": once a `.pptx` save lands, the

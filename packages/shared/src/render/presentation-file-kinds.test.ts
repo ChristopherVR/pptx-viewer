@@ -52,7 +52,7 @@ describe('the open allow-list', () => {
 		expect(isSupportedPresentationFile('C:\\decks\\report.ppt')).toBeTruthy();
 	});
 
-	it('knows which of them are binary formats we read but never write', () => {
+	it('knows which of them are binary-family filenames (legacy .ppt is now also a save target)', () => {
 		expect(isLegacyBinaryPresentation('report.ppt')).toBeTruthy();
 		expect(isLegacyBinaryPresentation('report.pptx')).toBeFalsy();
 		expect(isLegacyBinaryPresentation(undefined)).toBeFalsy();
@@ -61,8 +61,10 @@ describe('the open allow-list', () => {
 
 describe('the saved-copy name', () => {
 	/**
-	 * Output is always an OpenXML package. Keeping the source extension would
-	 * hand the user a `.ppt` whose bytes are a ZIP, which PowerPoint refuses.
+	 * The default save format is OpenXML. Keeping a `.ppt` source's extension
+	 * on an ordinary Save would hand the user a `.ppt` whose bytes are a ZIP,
+	 * which PowerPoint refuses; explicitly picking the `'ppt'` format (see
+	 * below) is the only way to get a `.ppt` byte-shape back out.
 	 */
 	it('turns a legacy .ppt source into a .pptx save name', () => {
 		expect(savedPresentationFileName('report.ppt')).toBe('report.pptx');
@@ -72,6 +74,10 @@ describe('the saved-copy name', () => {
 	it('re-extensions any source for the format actually being written', () => {
 		expect(savedPresentationFileName('report.pptx', 'ppsx')).toBe('report.ppsx');
 		expect(savedPresentationFileName('report.ppt', 'pptm')).toBe('report.pptm');
+	});
+
+	it('saves as legacy binary .ppt when that format is explicitly requested', () => {
+		expect(savedPresentationFileName('report.pptx', 'ppt')).toBe('report.ppt');
 	});
 
 	it('falls back to presentation.pptx with no usable source name', () => {

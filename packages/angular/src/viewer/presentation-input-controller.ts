@@ -23,6 +23,7 @@ import {
 	createPresentationKeyBuffer,
 	createWheelStepBuffer,
 	findHighlightClickTarget,
+	downloadDataUrl,
 	mapPresentationKey,
 	mapPresentationWheel,
 	openUrlInNewTab,
@@ -267,11 +268,20 @@ export class PresentationInputController {
 				safeOpenUrl(presentationTarget);
 			},
 			playMedia: (elementId) => toggleStageElementMedia(this.deps.root(), elementId),
-			// A browser cannot run the verb in the owning application: open the
-			// recovered embedding, as the OLE renderer's own "Open" does.
+			// A browser cannot run the verb in the owning application: classify it
+			// (see `resolveOleVerbTarget`) and open the recovered embedding
+			// accordingly. A running show never offers in-place editing, so
+			// 'edit' downgrades to the same "open the payload" behaviour as
+			// 'preview'; a generic Package object ('download') forces a real
+			// file download instead of trying to render it inline.
 			oleVerb: (verb, elementId) => {
 				const oleTarget = resolveOleVerbTarget(this.deps.currentSlide(), elementId, verb);
-				if (oleTarget) {
+				if (!oleTarget) {
+					return;
+				}
+				if (oleTarget.action === 'download') {
+					downloadDataUrl(oleTarget.url, oleTarget.fileName ?? 'download');
+				} else {
 					openUrlInNewTab(oleTarget.url);
 				}
 			},

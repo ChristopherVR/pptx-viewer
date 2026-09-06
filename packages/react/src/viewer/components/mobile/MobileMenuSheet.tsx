@@ -347,6 +347,7 @@ function MobileSectionBody({
 						onSaveAsPptx={p.onSaveAsPptx}
 						onSaveAsPpsx={p.onSaveAsPpsx}
 						onSaveAsPptm={p.onSaveAsPptm}
+						onSaveAsPpt={p.onSaveAsPpt}
 						hasMacros={p.hasMacros}
 						onCopySlideAsImage={p.onCopySlideAsImage}
 						onPrint={p.onPrint}

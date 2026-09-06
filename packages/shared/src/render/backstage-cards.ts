@@ -20,6 +20,7 @@ export type BackstageCardId =
 	| 'saveAsPptx'
 	| 'saveAsPpsx'
 	| 'saveAsPptm'
+	| 'saveAsPpt'
 	| 'pdf'
 	| 'png'
 	| 'video'
@@ -84,6 +85,11 @@ export const BACKSTAGE_CARDS: Readonly<Record<BackstageCardId, BackstageCard>> =
 		'Macro-Enabled Presentation',
 		'Preserve VBA content in a .pptm file.',
 	),
+	saveAsPpt: card(
+		'saveAsPpt',
+		'PowerPoint 97-2003 Presentation',
+		'Save a binary .ppt copy compatible with older PowerPoint versions.',
+	),
 	pdf: card('pdf', 'Create PDF', 'Publish a portable document with one page per slide.'),
 	png: card('png', 'Export current slide', 'Create a high-quality PNG image.'),
 	video: card('video', 'Create a Video', 'Export slide timings and animations as WebM.'),
@@ -118,7 +124,7 @@ export const BACKSTAGE_PAGE_CARDS: Readonly<
 	Partial<Record<BackstagePage, readonly BackstageCardId[]>>
 > = {
 	info: ['protect', 'inspect', 'embedFonts', 'signatures', 'versionHistory'],
-	saveAs: ['saveAsPptx', 'saveAsPpsx', 'saveAsPptm'],
+	saveAs: ['saveAsPptx', 'saveAsPpsx', 'saveAsPptm', 'saveAsPpt'],
 	export: ['pdf', 'png', 'video', 'gif', 'json', 'copyImage'],
 	print: ['print'],
 	share: ['share'],

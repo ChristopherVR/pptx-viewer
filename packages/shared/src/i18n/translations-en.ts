@@ -2337,6 +2337,8 @@ export const translationsEn: Record<string, string> = {
 	'pptx.file.png': 'PNG',
 	'pptx.file.saveAsPpsx': 'Save .ppsx',
 	'pptx.file.saveAsPpsxTooltip': 'Save as Slide Show (.ppsx)',
+	'pptx.file.saveAsPpt': 'Save .ppt',
+	'pptx.file.saveAsPptTooltip': 'Save as PowerPoint 97-2003 (.ppt)',
 	'pptx.file.saveAsPptm': 'Save .pptm',
 	'pptx.file.saveAsPptmTooltip': 'Save as Macro-Enabled (.pptm)',
 	'pptx.file.saveAsPptx': 'Save .pptx',
@@ -3488,6 +3490,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.backstage.card.saveAsPpsx.body': 'Save a .ppsx file that opens directly in slide show.',
 	'pptx.backstage.card.saveAsPptm.title': 'Macro-Enabled Presentation',
 	'pptx.backstage.card.saveAsPptm.body': 'Preserve VBA content in a .pptm file.',
+	'pptx.backstage.card.saveAsPpt.title': 'PowerPoint 97-2003 Presentation',
+	'pptx.backstage.card.saveAsPpt.body':
+		'Save a binary .ppt copy compatible with older PowerPoint versions.',
 	'pptx.backstage.card.pdf.title': 'Create PDF',
 	'pptx.backstage.card.pdf.body': 'Publish a portable document with one page per slide.',
 	'pptx.backstage.card.png.title': 'Export current slide',

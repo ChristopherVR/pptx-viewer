@@ -102,6 +102,7 @@ export function createRibbonPropsFixture(overrides: Partial<RibbonProps> = {}): 
 		onSaveAsPptx: noop,
 		onSaveAsPpsx: noop,
 		onSaveAsPptm: noop,
+		onSaveAsPpt: noop,
 		onCopySlideAsImage: noop,
 		onPrint: noop,
 		onToggleShortcuts: noop,

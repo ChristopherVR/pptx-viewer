@@ -1,0 +1,138 @@
+/**
+ * Lays out every persist object of the "PowerPoint Document" stream
+ * (DocumentContainer, MainMaster, one Slide per slide, optional Notes
+ * containers) sequentially and records each one's offset, ready for
+ * `write-ppt.ts` to append the persist directory / user edit and optionally
+ * encrypt.
+ *
+ * @module ppt/writer/document-stream-layout
+ */
+
+import { buildPictureStore } from './bstore-writer';
+import { ByteWriter } from './byte-writer';
+import { buildDocumentContainer, buildSlidePersistAtom } from './document-writer';
+import { buildNotesContainer } from './notes-writer';
+import { buildMainMasterContainer, buildSlideContainer } from './slide-writer';
+import type { WDeck } from './write-model';
+
+/** Count every shape (recursively) in one drawing's shape list, +1 for the patriarch. */
+function countDrawingShapes(shapes: WDeck['slides'][number]['shapes']): number {
+	let count = 1;
+	const walk = (list: WDeck['slides'][number]['shapes']): void => {
+		for (const shape of list) {
+			count++;
+			if (shape.kind === 'group') {
+				walk(shape.children);
+			}
+		}
+	};
+	walk(shapes);
+	return count;
+}
+
+/** Collect every distinct font name referenced anywhere in the deck. */
+function collectFonts(deck: WDeck): string[] {
+	const collect = (shape: WDeck['slides'][number]['shapes'][number]): string[] => {
+		if (shape.kind === 'group') {
+			return shape.children.flatMap(collect);
+		}
+		if (shape.kind === 'picture' || !shape.text) {
+			return [];
+		}
+		return shape.text.paragraphs.flatMap((p) =>
+			p.runs.map((r) => r.fontName).filter((n): n is string => Boolean(n)),
+		);
+	};
+	const fonts = Array.from(new Set(deck.slides.flatMap((slide) => slide.shapes.flatMap(collect))));
+	return fonts.length > 0 ? fonts : ['Calibri'];
+}
+
+/** Result of laying out the unencrypted document stream. */
+export interface DocumentStreamLayout {
+	bytes: ByteWriter;
+	offsets: Array<[number, number]>;
+	docId: number;
+	maxPersistId: number;
+	picturesStream: Uint8Array | undefined;
+}
+
+/** Persist id of the DocumentContainer. */
+export const DOC_ID = 1;
+/** Persist id of the MainMaster. */
+export const MASTER_ID = 2;
+
+/** Lay out the full unencrypted "PowerPoint Document" stream content. */
+export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
+	const slideRect = { x: 0, y: 0, w: deck.widthEmu, h: deck.heightEmu };
+	const notesRect = { x: 0, y: 0, w: deck.heightEmu, h: deck.widthEmu };
+
+	const slideIds = deck.slides.map((_, i) => 3 + i);
+	let nextId = 3 + deck.slides.length;
+	const notesIds = deck.slides.map((slide) => (slide.notesParagraphs?.length ? nextId++ : 0));
+
+	// Drawing ids: 1 = master, 2..N+1 = slides in order, then one per slide
+	// that has notes. Every drawing in the document needs a distinct id (see
+	// `drawing-writer.ts#buildDrawing`'s doc comment).
+	const masterDrawingId = 1;
+	const slideDrawingIds = deck.slides.map((_, i) => 2 + i);
+	let nextDrawingId = 2 + deck.slides.length;
+	const notesDrawingIds = deck.slides.map((slide) =>
+		slide.notesParagraphs?.length ? nextDrawingId++ : 0,
+	);
+	const shapesPerDrawing = [
+		1, // master: patriarch only, no decorative shapes
+		...deck.slides.map((slide) => countDrawingShapes(slide.shapes)),
+		...deck.slides.filter((s) => s.notesParagraphs?.length).map(() => 2), // patriarch + body placeholder
+	];
+
+	const fonts = collectFonts(deck);
+	const { dggContainer, picturesStream } = buildPictureStore(deck.pictures, shapesPerDrawing);
+
+	const slideContainers = deck.slides.map((slide, i) =>
+		buildSlideContainer(slide, slideRect, MASTER_ID, notesIds[i]!, fonts, slideDrawingIds[i]!),
+	);
+	const notesContainers = deck.slides
+		.map((slide, i) =>
+			notesIds[i]
+				? buildNotesContainer(
+						slide.notesParagraphs!,
+						notesRect,
+						slideIds[i]!,
+						fonts,
+						notesDrawingIds[i]!,
+					)
+				: undefined,
+		)
+		.filter((c): c is Uint8Array => c !== undefined);
+
+	const masterContainer = buildMainMasterContainer(slideRect, masterDrawingId);
+	const masterPersistAtom = buildSlidePersistAtom(MASTER_ID, 256);
+	const slidePersistAtoms = slideIds.map((id, i) => buildSlidePersistAtom(id, 256 + i));
+
+	const documentContainer = buildDocumentContainer({
+		widthEmu: deck.widthEmu,
+		heightEmu: deck.heightEmu,
+		fonts,
+		masterPersistAtom,
+		slidePersistAtoms,
+		dggContainer,
+	});
+
+	const layout = new ByteWriter();
+	const offsets: Array<[number, number]> = [];
+	const place = (id: number, bytes: Uint8Array): void => {
+		offsets.push([id, layout.size]);
+		layout.bytes(bytes);
+	};
+	place(DOC_ID, documentContainer);
+	place(MASTER_ID, masterContainer);
+	slideIds.forEach((id, i) => place(id, slideContainers[i]!));
+	let notesCursor = 0;
+	notesIds.forEach((id) => {
+		if (id) {
+			place(id, notesContainers[notesCursor++]!);
+		}
+	});
+
+	return { bytes: layout, offsets, docId: DOC_ID, maxPersistId: nextId - 1, picturesStream };
+}

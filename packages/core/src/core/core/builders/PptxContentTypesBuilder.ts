@@ -297,6 +297,10 @@ export class PptxContentTypesBuilder implements IPptxContentTypesBuilder {
 		pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml',
 		ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml',
 		pptm: 'application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml',
+		// Never reached: a 'ppt' save bypasses this OOXML content-types builder
+		// entirely (see PptxHandlerRuntimeSaveLegacyPpt). Present only so this
+		// lookup stays exhaustive over PptxSaveFormat.
+		ppt: 'application/vnd.ms-powerpoint',
 	};
 
 	private static readonly VBA_PROJECT_CONTENT_TYPE = 'application/vnd.ms-office.vbaProject';

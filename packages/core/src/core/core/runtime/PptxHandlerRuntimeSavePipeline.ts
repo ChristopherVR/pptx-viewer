@@ -7,7 +7,7 @@ import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
 import { applyHeaderFooterToMaster } from './header-footer-parts';
 import { slidesPerPageToPrintOutput } from './pptx-print-properties';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveHandoutInfrastructure';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveLegacyPpt';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -27,6 +27,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	async save(slides: PptxSlide[], options?: PptxHandlerSaveOptions): Promise<Uint8Array> {
+		// A legacy binary `.ppt` is not an OOXML ZIP package: bypass the whole
+		// pipeline below (it builds/mutates `this.zip`) rather than converting
+		// an already-produced .pptx. See `PptxHandlerRuntimeSaveLegacyPpt`.
+		if (options?.outputFormat === 'ppt') {
+			return this.saveAsLegacyPpt(slides, options);
+		}
 		const effectiveConformance = this.resolveEffectiveConformance(options?.conformance);
 		const saveConstants = createPptxSaveConstants(effectiveConformance);
 		const {

@@ -190,6 +190,9 @@ export function parseOle2(buffer: ArrayBuffer): Ole2File {
 		const leftSiblingId = entryView.getUint32(68, true);
 		const rightSiblingId = entryView.getUint32(72, true);
 		const childId = entryView.getUint32(76, true);
+		const clsid = new Uint8Array(
+			entryView.buffer.slice(entryView.byteOffset + 80, entryView.byteOffset + 96),
+		);
 		const startSector = entryView.getUint32(116, true);
 		const sizeLow = entryView.getUint32(120, true);
 
@@ -209,6 +212,7 @@ export function parseOle2(buffer: ArrayBuffer): Ole2File {
 			childId: childId === 0xffffffff ? -1 : childId,
 			leftSiblingId: leftSiblingId === 0xffffffff ? -1 : leftSiblingId,
 			rightSiblingId: rightSiblingId === 0xffffffff ? -1 : rightSiblingId,
+			clsid,
 		});
 	}
 

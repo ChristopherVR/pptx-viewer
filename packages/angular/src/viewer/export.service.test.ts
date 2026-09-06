@@ -55,6 +55,7 @@ describe('savePresentation', () => {
 		['pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'],
 		['ppsx', 'application/vnd.openxmlformats-officedocument.presentationml.slideshow'],
 		['pptm', 'application/vnd.ms-powerpoint.presentation.macroenabled.12'],
+		['ppt', 'application/vnd.ms-powerpoint'],
 	] as const)('uses the %s package MIME type', (format, expectedType) => {
 		const createObjectUrl = vi.fn(() => 'blob:presentation');
 		Object.defineProperty(URL, 'createObjectURL', {

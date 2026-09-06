@@ -7,6 +7,7 @@ const PRESENTATION_MIME: Record<PptxSaveFormat, string> = {
 	pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 	ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
 	pptm: 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+	ppt: 'application/vnd.ms-powerpoint',
 };
 
 /** The imperative editing API exposed on the `PowerPointViewer` instance. */

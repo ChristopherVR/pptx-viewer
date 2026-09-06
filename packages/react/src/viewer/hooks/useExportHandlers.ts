@@ -69,6 +69,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handleSaveAsPptx,
 		handleSaveAsPpsx,
 		handleSaveAsPptm,
+		handleSaveAsPpt,
 	} = useExportSaveAs({
 		slides,
 		templateElementsBySlideId,
@@ -310,6 +311,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handleSaveAsPptx,
 		handleSaveAsPpsx,
 		handleSaveAsPptm,
+		handleSaveAsPpt,
 		handleCancelExport,
 		exportModalOpen,
 		exportModalTitle,

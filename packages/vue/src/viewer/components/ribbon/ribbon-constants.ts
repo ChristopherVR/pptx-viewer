@@ -123,6 +123,7 @@ export const OV: Array<{ labelKey: string; icon: Component | null; k: string }> 
 	{ k: 'pptx', labelKey: 'pptx.file.saveAsPptxTooltip', icon: Download },
 	{ k: 'ppsx', labelKey: 'pptx.file.saveAsPpsxTooltip', icon: Play },
 	{ k: 'pptm', labelKey: 'pptx.file.saveAsPptmTooltip', icon: Database },
+	{ k: 'ppt', labelKey: 'pptx.file.saveAsPptTooltip', icon: FileText },
 	{ k: '---0', labelKey: '', icon: null },
 	{ k: 'print', labelKey: 'pptx.print.printButton', icon: Printer },
 	{ k: 'copyImg', labelKey: 'pptx.file.copyImageTooltip', icon: Copy },

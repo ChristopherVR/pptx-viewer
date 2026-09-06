@@ -28,6 +28,7 @@ function ovAct(k: string): void {
 		pptx: props.onSaveAsPptx,
 		ppsx: props.onSaveAsPpsx,
 		pptm: props.onSaveAsPptm,
+		ppt: props.onSaveAsPpt,
 		print: props.onPrint,
 		copyImg: props.onCopySlideAsImage,
 		a11y: props.onRunAccessibilityCheck,

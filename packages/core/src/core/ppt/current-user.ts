@@ -70,7 +70,14 @@ export function parseCurrentUserAtom(stream: Uint8Array): CurrentUserAtom {
 	}
 
 	let userName = '';
-	const nameStart = d + 0x18;
+	// The ANSI user name begins right after the fixed header, i.e. at
+	// `d + size` (== `d + 0x14`, since `size` is asserted above): a
+	// real COM-written CurrentUserAtom's name is not preceded by 4 extra
+	// padding bytes. Verified against `sample-deck.ppt` (a COM-generated
+	// fixture) and by the `.ppt` writer's own encoder, whose earlier
+	// `d + 0x18` assumption made every file it produced unreadable by real
+	// PowerPoint.
+	const nameStart = d + size;
 	for (let i = 0; i < lenUserName && nameStart + i < view.byteLength; i++) {
 		userName += String.fromCharCode(view.getUint8(nameStart + i));
 	}

@@ -4,6 +4,7 @@
 	import BadgeCheck from '@lucide/svelte/icons/badge-check';
 	import Clock3 from '@lucide/svelte/icons/clock-3';
 	import Copy from '@lucide/svelte/icons/copy';
+	import Database from '@lucide/svelte/icons/database';
 	import FileCode2 from '@lucide/svelte/icons/file-code-2';
 	import FileJson from '@lucide/svelte/icons/file-json';
 	import FileText from '@lucide/svelte/icons/file-text';
@@ -28,7 +29,7 @@
 	import BackstageAction from './BackstageAction.svelte';
 	import BackstageNavIcon from './BackstageNavIcon.svelte';
 
-	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings, accountAuth }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void; accountAuth?: AccountAuthConfig } = $props();
+	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, ondownloadppt, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings, accountAuth }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; ondownloadppt: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void; accountAuth?: AccountAuthConfig } = $props();
 	const t = useTranslator();
 	const viewerOptions = useViewerOptions();
 	let page = $state<BackstagePage>('home');
@@ -39,8 +40,8 @@
 	const visibleRecent = $derived.by(() => { const q = query.trim().toLowerCase(); return q ? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(q)) : recent; });
 	const title = $derived(t(BACKSTAGE_NAV.find((item) => item.id === page)?.labelKey ?? 'pptx.backstage.nav.home'));
 	function run(action?: () => void): void { action?.(); if (action) {onclose();} }
-	const CARD_ICONS: Record<BackstageCardId, Component> = { protect: LockKeyhole, inspect: Info, embedFonts: Type, signatures: BadgeCheck, versionHistory: Clock3, saveAsPptx: FileText, saveAsPpsx: Presentation, saveAsPptm: FileCode2, pdf: FileText, png: Image, video: Video, gif: Images, json: FileJson, copyImage: Copy, print: Printer, share: Share2 };
-	const cardHandlers = $derived<Record<BackstageCardId, (() => void) | undefined>>({ protect: onprotect, inspect: onproperties, embedFonts: onfonts, signatures: onsignatures, versionHistory: onversionhistory, saveAsPptx: ondownload, saveAsPpsx: ondownloadppsx, saveAsPptm: ondownloadpptm, pdf: () => void exportUi?.runPdf(), png: () => exportUi?.runPng(), video: () => void exportUi?.runVideo(), gif: () => void exportUi?.runGif(), json: () => void exportUi?.runJson(), copyImage: () => exportUi?.runCopyImage(), print: onprint, share: onshare });
+	const CARD_ICONS: Record<BackstageCardId, Component> = { protect: LockKeyhole, inspect: Info, embedFonts: Type, signatures: BadgeCheck, versionHistory: Clock3, saveAsPptx: FileText, saveAsPpsx: Presentation, saveAsPptm: FileCode2, saveAsPpt: Database, pdf: FileText, png: Image, video: Video, gif: Images, json: FileJson, copyImage: Copy, print: Printer, share: Share2 };
+	const cardHandlers = $derived<Record<BackstageCardId, (() => void) | undefined>>({ protect: onprotect, inspect: onproperties, embedFonts: onfonts, signatures: onsignatures, versionHistory: onversionhistory, saveAsPptx: ondownload, saveAsPpsx: ondownloadppsx, saveAsPptm: ondownloadpptm, saveAsPpt: ondownloadppt, pdf: () => void exportUi?.runPdf(), png: () => exportUi?.runPng(), video: () => void exportUi?.runVideo(), gif: () => void exportUi?.runGif(), json: () => void exportUi?.runJson(), copyImage: () => exportUi?.runCopyImage(), print: onprint, share: onshare });
 	const cards = $derived(backstageCardsFor(page).filter((card) => card.id !== 'saveAsPptm' || hasMacros));
 	function select(id: BackstagePage): void { if (id === 'close') {onclose();} else if (id === 'save') {run(ondownload);} else if (id === 'options' && onsettings) {run(onsettings);} else {page = id;} }
 </script>

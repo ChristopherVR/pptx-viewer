@@ -62,6 +62,11 @@ export interface DeckSaveState {
 	slideSize?: PptxSlideSize | undefined;
 	/** Target output format. Omit to keep core's own default (`'pptx'`). */
 	outputFormat?: PptxSaveFormat | undefined;
+	/**
+	 * RC4 CryptoAPI password for a `'ppt'`-format save. Ignored for every
+	 * other {@link outputFormat}. See `PptxHandlerSaveOptions.pptPassword`.
+	 */
+	pptPassword?: string | undefined;
 	/** File > Fonts > "Embed fonts in the file". Defaults to `true`. */
 	embedFonts?: boolean | undefined;
 	tableStyleMap: TableStyleSaveOptionsState['tableStyleMap'];
@@ -92,6 +97,7 @@ export function buildDeckSaveOptions(state: DeckSaveState): PptxHandlerSaveOptio
 		handoutMaster: state.handoutMaster,
 		slideSize: state.slideSize,
 		outputFormat: state.outputFormat,
+		pptPassword: state.pptPassword,
 		...tableStyleSaveOptions({
 			tableStyleMap: state.tableStyleMap,
 			tableStylesDefaultId: state.tableStylesDefaultId,

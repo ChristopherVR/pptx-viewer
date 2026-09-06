@@ -15,6 +15,7 @@ function noopProps(): FileSectionProps {
 		onSaveAsPptx: () => {},
 		onSaveAsPpsx: () => {},
 		onSaveAsPptm: () => {},
+		onSaveAsPpt: () => {},
 		hasMacros: false,
 		onCopySlideAsImage: () => {},
 		onPrint: () => {},
@@ -71,5 +72,14 @@ describe('buildFileSectionActions', () => {
 
 		const withoutMacros = buildFileSectionActions('saveAs', noopProps(), notHidden);
 		expect(withoutMacros.map((action) => action[4])).not.toContain('Macro-Enabled Presentation');
+	});
+
+	it('maps the saveAsPpt card to onSaveAsPpt', () => {
+		const onSaveAsPpt = vi.fn();
+		const actions = buildFileSectionActions('saveAs', { ...noopProps(), onSaveAsPpt }, notHidden);
+		const pptCard = actions.find((action) => action[4] === 'PowerPoint 97-2003 Presentation');
+		expect(pptCard).toBeDefined();
+		pptCard?.[3]?.();
+		expect(onSaveAsPpt).toHaveBeenCalledOnce();
 	});
 });

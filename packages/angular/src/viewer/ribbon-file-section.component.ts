@@ -44,6 +44,7 @@ const CARD_ICONS: Record<BackstageCardId, string> = {
 	saveAsPptx: 'P',
 	saveAsPpsx: '▶',
 	saveAsPptm: 'M',
+	saveAsPpt: '97',
 	pdf: 'PDF',
 	png: 'PNG',
 	video: '▶',
@@ -95,6 +96,7 @@ export class RibbonFileSectionComponent {
 	readonly save = output<void>();
 	readonly savePpsx = output<void>();
 	readonly savePptm = output<void>();
+	readonly savePpt = output<void>();
 	readonly exportPng = output<void>();
 	readonly exportPdf = output<void>();
 	readonly exportGif = output<void>();
@@ -197,6 +199,7 @@ export class RibbonFileSectionComponent {
 			saveAsPptx: this.save,
 			saveAsPpsx: this.savePpsx,
 			saveAsPptm: this.savePptm,
+			saveAsPpt: this.savePpt,
 			pdf: this.exportPdf,
 			png: this.exportPng,
 			video: this.exportVideo,

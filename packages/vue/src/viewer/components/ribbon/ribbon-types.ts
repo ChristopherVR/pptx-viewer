@@ -274,6 +274,7 @@ export interface RibbonProps {
 	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;
 	onSaveAsPptm: () => void;
+	onSaveAsPpt: () => void;
 	onCopySlideAsImage: () => void;
 	onPrint: () => void;
 	onToggleShortcuts: () => void;

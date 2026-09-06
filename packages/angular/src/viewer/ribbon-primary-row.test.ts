@@ -31,6 +31,7 @@ describe('visibleOverflowItems', () => {
 			expect.arrayContaining([
 				'savePpsx',
 				'savePptm',
+				'savePpt',
 				'copyImg',
 				'shortcuts',
 				'versionHistory',

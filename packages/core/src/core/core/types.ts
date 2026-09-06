@@ -96,7 +96,7 @@ export class ZipBombError extends Error {
 }
 
 /** Output format for the save pipeline. */
-export type PptxSaveFormat = 'pptx' | 'ppsx' | 'pptm';
+export type PptxSaveFormat = 'pptx' | 'ppsx' | 'pptm' | 'ppt';
 
 export interface PptxHandlerSaveOptions {
 	headerFooter?: PptxHeaderFooter;
@@ -193,8 +193,23 @@ export interface PptxHandlerSaveOptions {
 	 * - `'pptx'` (default): Standard presentation.
 	 * - `'ppsx'`: Slide-show file (opens in presentation mode).
 	 * - `'pptm'`: Macro-enabled presentation (requires VBA data).
+	 * - `'ppt'`: Legacy binary PowerPoint 97-2003 presentation. Bypasses the
+	 *   OOXML ZIP pipeline entirely; see `PptxHandlerRuntimeSaveLegacyPpt`.
+	 *   Elements with no binary equivalent (charts, SmartArt, media, OLE, ink,
+	 *   3D models) are degraded to a rasterised preview picture or a labelled
+	 *   placeholder, each reported via a `scope: 'save'`-adjacent
+	 *   `PptxCompatibilityWarning`.
 	 */
 	outputFormat?: PptxSaveFormat;
+	/**
+	 * Password for RC4 CryptoAPI encryption of a `'ppt'`-format save. Ignored
+	 * for every other {@link outputFormat}; encrypting a `.pptx`/`.ppsx`/`.pptm`
+	 * save uses {@link IPptxHandlerRuntime.saveEncrypted}'s separate AES/Agile
+	 * OLE2 wrapping instead, since the legacy binary format's own encryption
+	 * scheme is embedded directly in the `.ppt` stream rather than wrapping an
+	 * already-produced package.
+	 */
+	pptPassword?: string;
 	/**
 	 * Embedded fonts to write back (or add) to the saved PPTX.
 	 *
