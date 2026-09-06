@@ -206,6 +206,13 @@ export const translations = {
 	'pptx.readOnly.bannerTitle': 'Lecture seule',
 	'pptx.readOnly.editAnyway': 'Modifier quand même',
 	'pptx.readOnly.dismiss': 'Fermer',
+	'pptx.readOnly.passwordLabel': 'Mot de passe',
+	'pptx.readOnly.passwordPlaceholder': 'Saisir le mot de passe',
+	'pptx.readOnly.unlock': 'Déverrouiller',
+	'pptx.readOnly.wrongPassword':
+		'Ce mot de passe est incorrect. La présentation reste en lecture seule.',
+	'pptx.readOnly.unsupportedAlgorithm':
+		'La protection par mot de passe de ce fichier ne peut pas être vérifiée par cette visionneuse.',
 	'pptx.compatibility.toastTitle': 'Avis de compatibilité',
 	'pptx.compatibility.dismiss': 'Fermer',
 	'pptx.compatibility.dismissAll': 'Tout fermer',

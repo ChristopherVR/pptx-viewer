@@ -205,6 +205,13 @@ export const translations = {
 	'pptx.readOnly.bannerTitle': 'Schreibgeschützt',
 	'pptx.readOnly.editAnyway': 'Trotzdem bearbeiten',
 	'pptx.readOnly.dismiss': 'Schließen',
+	'pptx.readOnly.passwordLabel': 'Kennwort',
+	'pptx.readOnly.passwordPlaceholder': 'Kennwort eingeben',
+	'pptx.readOnly.unlock': 'Entsperren',
+	'pptx.readOnly.wrongPassword':
+		'Das Kennwort ist nicht richtig. Die Präsentation bleibt schreibgeschützt.',
+	'pptx.readOnly.unsupportedAlgorithm':
+		'Der Kennwortschutz dieser Datei kann von diesem Viewer nicht überprüft werden.',
 	'pptx.compatibility.toastTitle': 'Kompatibilitätshinweis',
 	'pptx.compatibility.dismiss': 'Schließen',
 	'pptx.compatibility.dismissAll': 'Alle schließen',
