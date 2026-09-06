@@ -16,7 +16,7 @@
  *
  * @module ole-nested-deck-editor
  */
-import { PptxHandler } from '../PptxHandler';
+import type { PptxHandler } from '../PptxHandler';
 import type { PptxElement, PptxSlide, ShapePptxElement, TextPptxElement } from '../types';
 
 /** One text-bearing shape on a nested slide, addressable for editing. */
@@ -75,6 +75,11 @@ async function loadNestedDeck(
 	pptxBytes: Uint8Array,
 ): Promise<{ handler: PptxHandler; slides: PptxSlide[] } | undefined> {
 	try {
+		// Imported lazily: a static import here closes a cycle (utils barrel ->
+		// this module -> PptxHandler -> runtime save mixins -> utils barrel) that
+		// left `SMART_ART_DEFINITION_PARTS` undefined at module-evaluation time
+		// for any consumer whose import graph entered through the runtime.
+		const { PptxHandler } = await import('../PptxHandler');
 		const handler = new PptxHandler();
 		const data = await handler.load(pptxBytes.buffer.slice(0) as ArrayBuffer);
 		return { handler, slides: data.slides };
