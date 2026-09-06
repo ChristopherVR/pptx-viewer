@@ -16,10 +16,10 @@ import type { WAnyShape, WRect } from './write-model';
 const FSP_FLAG_BACKGROUND = 0x0400;
 const BACKGROUND_RECT_SPT = 1;
 
-function buildDg(drawingId: number, shapeCount: number, shapeIdBudget: number): Uint8Array {
+function buildDg(drawingId: number, shapeCount: number, lastShapeId: number): Uint8Array {
 	const data = new ByteWriter()
 		.u32(shapeCount + 1) // + patriarch
-		.u32(shapeIdBudget)
+		.u32(lastShapeId)
 		.toBytes();
 	return record(OA.Dg, data, drawingId, false, 0);
 }
@@ -65,12 +65,16 @@ export function buildDrawing(
 	}
 	const spgrContainer = record(OA.SpgrContainer, spgrData.toBytes(), 0, true);
 
-	// Matches the corresponding OfficeArtIDCL cluster's numShapeIdsUsed in
-	// bstore-writer.ts#buildDgg, so the two independently-computed values
-	// stay consistent.
-	const shapeIdBudget = drawingId * SHAPE_ID_CLUSTER_SIZE;
+	// The Dg record's second field is the id of the LAST shape allocated in
+	// this drawing (patriarch = drawingId * SHAPE_ID_CLUSTER_SIZE, see
+	// `ShapeIdAllocator`), not the top of the drawing's 1024-wide budget:
+	// confirmed against a COM-authored fixture. Read straight off the
+	// allocator (now that every shape, including the optional background
+	// rect, has been built) rather than recomputed from `shapes.length`, so
+	// it can never drift out of sync with what was actually allocated.
+	const lastShapeId = allocator.lastIssued;
 	const dgData = new ByteWriter()
-		.bytes(buildDg(drawingId, shapes.length, shapeIdBudget))
+		.bytes(buildDg(drawingId, shapes.length, lastShapeId))
 		.bytes(spgrContainer)
 		.toBytes();
 	const dgContainer = record(OA.DgContainer, dgData, 0, true);

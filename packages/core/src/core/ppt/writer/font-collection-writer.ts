@@ -39,27 +39,57 @@ function buildFontEntityAtom(name: string, index: number): Uint8Array {
 
 /**
  * Build the five extra sibling records a real (COM-written) `Environment`
- * always carries alongside `FontCollection`: an unidentified container
- * (`0x0fc8`, BEFORE `FontCollection`), three unidentified small atoms
+ * always carries alongside `FontCollection`: a container (`0x0fc8`, BEFORE
+ * `FontCollection`) wrapping one child atom, three unidentified small atoms
  * (`0x0fa4`, `0x0fa5`, `0x0fa9`, AFTER it), and a document-level
  * `TextMasterStyleAtom` for the "other" text type (`instance = 4`,
- * [MS-PPT] TextTypeEnum). Their exact field semantics are not documented
- * anywhere this writer could find, but their zero-filled presence (matching
- * a real file's sizes and position relative to `FontCollection`) is enough:
- * their total ABSENCE (this writer's earlier behaviour) failed real
- * PowerPoint's Office File Validation outright even though `FontCollection`
- * itself was already byte-correct, confirmed fixed by COM re-verification.
- * Unlike `document-writer.ts`'s optional `List`/`HeadersFooters`/`0x0428`
- * records, these are NOT individually optional for `Environment`.
+ * [MS-PPT] TextTypeEnum).
+ *
+ * Their exact field semantics are not documented anywhere this writer could
+ * find, but their total ABSENCE (an earlier revision of this writer) failed
+ * real PowerPoint's Office File Validation outright even though
+ * `FontCollection` itself was already byte-correct, confirmed fixed by COM
+ * re-verification. Unlike `document-writer.ts`'s optional
+ * `List`/`HeadersFooters`/`0x0428` records, these are NOT individually
+ * optional for `Environment`.
+ *
+ * `0x0fc8` specifically was then written zero-filled and NOT a container
+ * (this writer's second revision): reverse bisection against a COM-authored
+ * fixture found real files write it as a CONTAINER (`recVer` 0xF) wrapping
+ * one child record (type `0x0fd2`, instance 3, 4-byte data `00000001`), and
+ * splicing ONLY that in place of the zero-filled flat atom, with every other
+ * byte of an otherwise 100%-real file left untouched, was what made
+ * `Presentations.Open` accept it. The three trailing atoms' data bytes below
+ * are likewise copied verbatim from that same fixture rather than left
+ * zero-filled, on the same reverse-bisection evidence for `0x0fc8`.
  */
 function buildEnvironmentLeadingRecord(): Uint8Array {
-	return record(0x0fc8, new Uint8Array(12), 2, false, 0);
+	const child = record(0x0fd2, new Uint8Array([0x01, 0x00, 0x00, 0x00]), 3, false, 0);
+	return record(0x0fc8, child, 2, true);
 }
 
 function buildEnvironmentTrailingRecords(): Uint8Array {
-	const unknown0fa4 = record(0x0fa4, new Uint8Array(8), 0, false, 0);
-	const unknown0fa5 = record(0x0fa5, new Uint8Array(12), 0, false, 0);
-	const unknown0fa9 = record(0x0fa9, new Uint8Array(10), 0, false, 0);
+	const unknown0fa4 = record(
+		0x0fa4,
+		new Uint8Array([0x80, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00]),
+		0,
+		false,
+		0,
+	);
+	const unknown0fa5 = record(
+		0x0fa5,
+		new Uint8Array([0x00, 0x00, 0x00, 0x08, 0x2e, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]),
+		0,
+		false,
+		0,
+	);
+	const unknown0fa9 = record(
+		0x0fa9,
+		new Uint8Array([0x07, 0x00, 0x00, 0x00, 0x02, 0x00, 0x09, 0x04, 0x00, 0x00]),
+		0,
+		false,
+		0,
+	);
 	const otherTextStyle = record(
 		RT.TextMasterStyleAtom,
 		new ByteWriter().u16(1).u32(0).u32(0).toBytes(),

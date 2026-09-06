@@ -10,7 +10,11 @@
 
 import { buildPictureStore } from './bstore-writer';
 import { ByteWriter } from './byte-writer';
-import { buildDocumentContainer, buildSlidePersistAtom } from './document-writer';
+import {
+	buildDocumentContainer,
+	buildSlidePersistAtom,
+	MASTER_SLIDE_ID_SENTINEL,
+} from './document-writer';
 import { buildNotesContainer } from './notes-writer';
 import { buildMainMasterContainer, buildSlideContainer } from './slide-writer';
 import type { WDeck } from './write-model';
@@ -106,17 +110,27 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		.filter((c): c is Uint8Array => c !== undefined);
 
 	const masterContainer = buildMainMasterContainer(slideRect, masterDrawingId);
-	const masterPersistAtom = buildSlidePersistAtom(MASTER_ID, 256);
-	const slidePersistAtoms = slideIds.map((id, i) => buildSlidePersistAtom(id, 256 + i));
+	const masterPersistAtom = buildSlidePersistAtom(MASTER_ID, MASTER_SLIDE_ID_SENTINEL);
+	// flags=4: real (COM-written) files set this bit on a SLIDE's own
+	// SlidePersistAtom (never on a master's); see buildSlidePersistAtom's doc.
+	const slidePersistAtoms = slideIds.map((id, i) => buildSlidePersistAtom(id, 256 + i, 4));
 
-	const documentContainer = buildDocumentContainer({
+	const documentInput = {
 		widthEmu: deck.widthEmu,
 		heightEmu: deck.heightEmu,
 		fonts,
 		masterPersistAtom,
 		slidePersistAtoms,
 		dggContainer,
-	});
+	};
+	const maxPersistId = nextId - 1;
+	const contentSizeWithoutPadding =
+		buildDocumentContainer(documentInput).length +
+		masterContainer.length +
+		slideContainers.reduce((sum, c) => sum + c.length, 0) +
+		notesContainers.reduce((sum, c) => sum + c.length, 0);
+	const paddingBytes = ensureMinimumDocumentStreamSize(contentSizeWithoutPadding, maxPersistId);
+	const documentContainer = buildDocumentContainer({ ...documentInput, paddingBytes });
 
 	const layout = new ByteWriter();
 	const offsets: Array<[number, number]> = [];
@@ -134,5 +148,37 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		}
 	});
 
-	return { bytes: layout, offsets, docId: DOC_ID, maxPersistId: nextId - 1, picturesStream };
+	return { bytes: layout, offsets, docId: DOC_ID, maxPersistId, picturesStream };
+}
+
+/**
+ * How many extra bytes `buildDocumentContainer` needs as a padding `List`
+ * record so the finished "PowerPoint Document" stream (this content, plus
+ * the `PersistDirectoryAtom` and `UserEditAtom` `write-ppt.ts` appends
+ * after it) ends up in a STRICTLY LARGER 512-byte CFB sector count than the
+ * 4096-byte (8-sector) "Current User" stream `current-user-writer.ts`
+ * always writes.
+ *
+ * Confirmed required by direct COM testing across a size sweep (both by
+ * slide count and by run length, independently): `Presentations.Open`
+ * fails whenever "PowerPoint Document" is <= 4096 bytes (tied with or
+ * smaller than "Current User"'s sector count) and succeeds once it reaches
+ * 4608 bytes (9 sectors) - a boundary unrelated to slide count, persist-id
+ * count, or any of this writer's other fixes. Real PowerPoint never needs
+ * this: with a full embedded theme, its own "PowerPoint Document" is always
+ * orders of magnitude past this threshold already.
+ */
+function ensureMinimumDocumentStreamSize(
+	contentSizeWithoutPadding: number,
+	maxPersistId: number,
+): number {
+	const CFB_SECTOR_SIZE = 512;
+	const CURRENT_USER_STREAM_SIZE = 4096;
+	const TARGET_MINIMUM = CURRENT_USER_STREAM_SIZE + CFB_SECTOR_SIZE; // 4608: one whole sector past Current User
+	// PersistDirectoryAtom (one contiguous run: 8-byte record header + 4-byte
+	// group header + 4 bytes per persist id) + UserEditAtom (8-byte record
+	// header + 28-byte data = 36 bytes), matching persist-writer.ts exactly.
+	const persistTailSize = 8 + 4 + 4 * maxPersistId + 36;
+	const projectedTotal = contentSizeWithoutPadding + persistTailSize;
+	return Math.max(0, TARGET_MINIMUM - projectedTotal);
 }

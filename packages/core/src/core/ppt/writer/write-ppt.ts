@@ -113,5 +113,11 @@ export async function buildPptFile(
 		streams.set('Pictures', finished.picturesBytes);
 	}
 
-	return new Uint8Array(buildOle2(streams, PPT_STORAGE_CLSID));
+	// miniStreamCutoff=0: see buildOle2's doc comment. A tiny deck's `Current
+	// User` / `PowerPoint Document` streams are small enough to qualify for
+	// the mini stream, which real PowerPoint's COM-driven CFB reader rejects
+	// even though this writer's mini-FAT implementation is spec-correct and
+	// round-trips through our own reader; real PowerPoint-authored files
+	// sidestep this by padding those streams to the 4096-byte cutoff instead.
+	return new Uint8Array(buildOle2(streams, PPT_STORAGE_CLSID, 0));
 }

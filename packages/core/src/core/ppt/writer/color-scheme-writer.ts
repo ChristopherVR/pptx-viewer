@@ -12,11 +12,17 @@ import { RT } from '../record-types';
 import { ByteWriter, record } from './byte-writer';
 import { encodeColorRef } from './colors';
 
-/** Build a framed ColorSchemeAtom (recInstance 0x001) with the default scheme. */
-export function buildColorSchemeAtom(): Uint8Array {
+/**
+ * Build a framed ColorSchemeAtom with the default scheme.
+ *
+ * @param recInstance - Defaults to `0x001` (a `Slide`'s own scheme, and a
+ *   master's SECOND scheme atom; see `buildMainMasterContainer`'s doc for
+ *   why a `MainMaster` needs a first one at `0x006` too).
+ */
+export function buildColorSchemeAtom(recInstance = 0x001): Uint8Array {
 	const w = new ByteWriter();
 	for (const rgb of DEFAULT_SCHEME) {
 		w.u32(encodeColorRef(rgb));
 	}
-	return record(RT.ColorSchemeAtom, w.toBytes(), 0x001, false, 0);
+	return record(RT.ColorSchemeAtom, w.toBytes(), recInstance, false, 0);
 }

@@ -99,13 +99,38 @@ export function buildSlideContainer(
  * File Validation hard-rejected every `.ppt` this writer produced ("Office
  * has detected a problem with this file... cannot be opened", no repair
  * option) until this was added, confirmed fixed by COM re-verification.
+ *
+ * A real `MainMaster` also carries TWO `ColorSchemeAtom` records back to
+ * back (`recInstance` `0x006` then `0x001`, identical colour data in every
+ * COM-authored fixture checked; a `Slide` container only ever has the
+ * second one). Real PowerPoint's `Presentations.Open` rejects a
+ * `MainMaster` with only the `0x001` one (this writer's earlier behaviour):
+ * confirmed by reverse bisection against a COM-authored fixture by
+ * splicing ONLY that record type, with every other byte of an otherwise
+ * 100%-real file left untouched, and by sweeping every `recInstance` value
+ * from 0 to 100 with the real scheme bytes unchanged, of which only `0x006`
+ * (the file's own original value) opened. The `0x006` meaning is not
+ * documented anywhere this project has found; treat it as a fixed
+ * requirement rather than a derivable one until proven otherwise.
+ *
+ * The child order below (`SlideAtom`, the `0x006` `ColorSchemeAtom`, every
+ * `TextMasterStyleAtom`, THEN `Drawing`, THEN the `0x001` `ColorSchemeAtom`)
+ * matches a real `MainMaster` exactly; this writer's earlier order
+ * (`Drawing` right after `SlideAtom`, both `ColorSchemeAtom`s back to back
+ * before any text style) does not, and reordering alone (with every record
+ * this writer already produced, unchanged) was not sufficient on its own to
+ * fix the reverse-bisection failure either: it needed pairing with the
+ * `buildMasterTextStyles` fix below.
  */
+const MASTER_FIRST_COLOR_SCHEME_INSTANCE = 0x006;
+
 export function buildMainMasterContainer(slideRect: WRect, drawingId: number): Uint8Array {
 	const data = new ByteWriter()
 		.bytes(buildMasterSlideAtom())
+		.bytes(buildColorSchemeAtom(MASTER_FIRST_COLOR_SCHEME_INSTANCE))
+		.bytes(buildMasterTextStyles())
 		.bytes(buildDrawing(slideRect, [], undefined, [], drawingId))
 		.bytes(buildColorSchemeAtom())
-		.bytes(buildMasterTextStyles())
 		.toBytes();
 	return record(RT.MainMaster, data, 0, true);
 }
