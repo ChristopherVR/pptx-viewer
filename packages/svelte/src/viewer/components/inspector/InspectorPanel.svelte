@@ -20,6 +20,7 @@
 	 */
 	import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 	import type { PptxHandler, PptxTheme } from 'pptx-viewer-core';
+	import { shouldShowAccessibilitySection } from 'pptx-viewer-shared';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
@@ -83,13 +84,11 @@
 	// are shape-fill recipes and mean nothing on a picture or a table.
 	const canQuickStyle = $derived(el?.type === 'shape' || el?.type === 'text');
 	// A picture's own alt text/title editor is mounted below under `isImage`;
-	// this covers only the three kinds `PptxNonVisualDescription` was added
-	// to, so it does not duplicate a table/chart/smartArt/media/ole section's
-	// own alt-text UI (those graphic-frame kinds have no editor of their own
-	// yet, tracked separately).
-	const isTextShapeOrConnector = $derived(
-		el?.type === 'text' || el?.type === 'shape' || el?.type === 'connector',
-	);
+	// shared's `shouldShowAccessibilitySection` decides everything else, a
+	// plain shape, text box, connector, and every graphic-frame kind
+	// (table/chart/smartArt/media/ole), so this stays in sync with the other
+	// four bindings without a hard-coded type list here.
+	const showAccessibilitySection = $derived(el !== undefined && shouldShowAccessibilitySection(el));
 </script>
 
 <aside
@@ -156,7 +155,7 @@
 					</div>
 				{/if}
 
-				{#if isTextShapeOrConnector}
+				{#if showAccessibilitySection}
 					<div class="pptx-svelte-inspector-section">
 						<h4>{t('pptx.accessibility.heading')}</h4>
 						<AltTextSection {editor} {el} />

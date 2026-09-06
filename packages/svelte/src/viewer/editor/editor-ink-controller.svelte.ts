@@ -1,5 +1,6 @@
-import type { InkPoint } from 'pptx-viewer-shared';
+import type { InkPoint, InkStrokeView } from 'pptx-viewer-shared';
 import {
+	buildLiveInkStrokeView,
 	findEraserHitElementId,
 	pointsToSvgPathD,
 	removeElement,
@@ -47,6 +48,14 @@ export class EditorInkController {
 	width = $state(DEFAULT_INK_WIDTH);
 	/** SVG path `d` for the in-progress stroke's live preview, or `''` when idle. */
 	livePathD = $state('');
+	/**
+	 * The in-progress stroke's render view (plain path, pressure circles, or
+	 * tilt nib marks), from the shared `buildLiveInkStrokeView`: the same
+	 * decision `InkView.svelte` makes for a committed stroke (via
+	 * `buildInkStrokes`), fed the SAME accumulated points {@link commitStroke}
+	 * hands to `strokeToInkElement`. `null` while idle.
+	 */
+	liveStrokeView: InkStrokeView | null = $state(null);
 
 	constructor(editor: EditorState) {
 		this.#editor = editor;
@@ -66,6 +75,7 @@ export class EditorInkController {
 	setTool(tool: InkDrawTool): void {
 		this.tool = tool;
 		this.livePathD = '';
+		this.liveStrokeView = null;
 		if (tool !== 'select') {
 			this.#editor.select(null);
 		}
@@ -79,9 +89,23 @@ export class EditorInkController {
 		this.width = width;
 	}
 
-	/** Update the live preview path while a pen/highlighter stroke is in progress. */
+	/**
+	 * Update the live preview while a pen/highlighter/freeform stroke is in
+	 * progress: both the plain `livePathD` (kept for existing consumers) and
+	 * `liveStrokeView`, the same plain-path/pressure-circle/tilt-nib decision
+	 * a committed stroke gets from `buildInkStrokes`, built from the identical
+	 * accumulated points.
+	 */
 	previewStroke(points: readonly InkPoint[]): void {
-		this.livePathD = pointsToSvgPathD([...points]);
+		const pts = [...points];
+		this.livePathD = pointsToSvgPathD(pts);
+		this.liveStrokeView = buildLiveInkStrokeView({
+			points: pts,
+			color: this.color,
+			width: this.width,
+			tool:
+				this.tool === 'highlighter' ? 'highlighter' : this.tool === 'freeform' ? 'freeform' : 'pen',
+		});
 	}
 
 	/**
@@ -92,6 +116,7 @@ export class EditorInkController {
 	 */
 	commitStroke(points: readonly InkPoint[]): void {
 		this.livePathD = '';
+		this.liveStrokeView = null;
 		if (this.tool === 'freeform') {
 			const shape = strokeToFreeformShape(points, this.color, this.width);
 			if (shape) {

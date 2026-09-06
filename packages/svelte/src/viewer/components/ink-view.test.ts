@@ -120,6 +120,25 @@ describe('inkView', () => {
 		expect(target.querySelectorAll('svg circle')).toHaveLength(3);
 	});
 
+	it('renders calligraphic nib ellipses when inkPointTiltX/Y carry a genuine lean, taking priority over pressure circles', () => {
+		const target = mountEl(
+			inkElement({
+				inkPaths: ['M 0 0 L 10 0 L 20 0'],
+				inkColors: ['#123456'],
+				inkWidths: [3],
+				inkPointPressures: [[0.1, 0.9, 0.4]],
+				inkPointTiltX: [[10, 0, 0]],
+				inkPointTiltY: [[0, 20, 0]],
+			}),
+		);
+		const svg = target.querySelector('svg');
+		expect(svg?.querySelector('path')).toBeNull();
+		expect(svg?.querySelector('circle')).toBeNull();
+		const ellipses = svg?.querySelectorAll('ellipse');
+		expect(ellipses?.length).toBeGreaterThan(0);
+		expect(ellipses?.[0].getAttribute('fill')).toBe('#123456');
+	});
+
 	it('renders no SVG for an element without strokes', () => {
 		const target = mountEl(inkElement({}));
 		expect(target.querySelector('[data-element-id="ink-1"]')).not.toBeNull();

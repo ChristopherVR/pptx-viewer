@@ -15,6 +15,14 @@
 	 * Element-data changes dispose the previous scene and mount the updated
 	 * model on the same single-canvas surface. This keeps inspector layout,
 	 * colour, and text edits live without leaving orphaned WebGL contexts.
+	 *
+	 * A font-style emphasis effect (Bold Flash, Bold Reveal, Underline, Change
+	 * Font Style/Size) active on this element applies to every node caption via
+	 * `options.textStyle` at mount and `handle.setTextStyle` on change,
+	 * matching the DOM `buildTextStyleOverrideCss` injection `ElementRenderer`
+	 * uses for the SVG `SmartArtView`: a canvas-texture caption cannot be
+	 * reached by a CSS override, so this scene needs the shared handle method
+	 * as its own, real application path.
 	 */
 	import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
 	import type { SmartArt3DModel } from 'pptx-viewer-shared';
@@ -25,9 +33,11 @@
 	import type { ElementRendererProps } from './props';
 	import SmartArtView from './SmartArtView.svelte';
 
-	const { element, mediaDataUrls, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
+	const { element, mediaDataUrls, zIndex, animationState, interactive = false, marked = false }: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+	/** Active font-style emphasis override for every node caption, if any. */
+	const textStyle = $derived(animationState?.textStyle);
 
 	/** `true` once the WebGL scene has mounted; otherwise render the SVG fallback. */
 	let mounted = $state(false);
@@ -58,7 +68,7 @@
 				mounted = false;
 				return;
 			}
-			handle = mountSmartArt3D(canvasEl, model, width, height, {});
+			handle = mountSmartArt3D(canvasEl, model, width, height, { textStyle });
 		} catch {
 			if (version === generation) {
 				mounted = false;
@@ -81,6 +91,12 @@
 
 	$effect(() => {
 		handle?.resize(element.width, element.height);
+	});
+
+	// Applied without a remount: a text-style change alone should not tear
+	// down and re-orbit the whole scene.
+	$effect(() => {
+		handle?.setTextStyle(textStyle);
 	});
 
 	onDestroy(() => {

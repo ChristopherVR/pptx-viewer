@@ -142,6 +142,48 @@ describe('chartSection chart-type select', () => {
 		// The defect shape itself: an option whose text is its own wire value.
 		expect(texts(select).filter((text, index) => text === tokens[index])).toStrictEqual([]);
 	});
+
+	// docs/guide/limitations.md ChartEx row: Pareto has no `PptxChartType` of
+	// its own (`chartType: 'histogram'` plus a `paretoLine`-layout series), so
+	// the select must resolve the displayed value through
+	// `resolveDisplayedChartType` rather than reading `chartData.chartType`
+	// raw, or a re-opened Pareto chart shows "Histogram" as selected.
+	it('shows Pareto (not Histogram) as selected for a histogram with a paretoLine series', () => {
+		const editor = chartEditor();
+		editor.setSlides([
+			{
+				id: 's1',
+				rId: 'rId1',
+				slideNumber: 1,
+				elements: [
+					{
+						type: 'chart',
+						id: 'c1',
+						x: 0,
+						y: 0,
+						width: 400,
+						height: 300,
+						chartData: {
+							chartType: 'histogram',
+							categories: ['A', 'B', 'C'],
+							series: [
+								{ name: 'Frequency', values: [3, 5, 2] },
+								{
+									name: 'Cumulative %',
+									values: [30, 80, 100],
+									histogramOptions: { layout: 'pareto' },
+								},
+							],
+						},
+					},
+				],
+			},
+		]);
+		editor.select('c1');
+		const target = mountAt(ChartSection, { editor });
+		const select = selectFor(target, 'Chart type');
+		expect(select.value).toBe('pareto');
+	});
 });
 
 describe('chartAdvancedSection token selects', () => {

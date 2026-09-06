@@ -99,6 +99,11 @@
 		messageKey={readOnlyRec.recommendation.messageKey}
 		oneditanyway={() => readOnlyRec.editAnyway()}
 		ondismiss={() => readOnlyRec.dismiss()}
+		passwordpromptopen={readOnlyRec.passwordPromptOpen}
+		passworderror={readOnlyRec.passwordError}
+		checkingpassword={readOnlyRec.checkingPassword}
+		onsubmitpassword={(password) => readOnlyRec.submitPassword(password)}
+		oncancelpassword={() => readOnlyRec.cancelPasswordPrompt()}
 	/>
 {/if}
 <TitleBar

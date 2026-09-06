@@ -36,6 +36,7 @@
 			transition.direction,
 			transition.orient,
 			transition.spokes,
+			transition.pattern,
 		),
 	);
 	// 'none' and 'cut' have nothing to show: React hides the preview entirely.

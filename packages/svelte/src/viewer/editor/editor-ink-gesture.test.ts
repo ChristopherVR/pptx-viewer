@@ -14,14 +14,23 @@ import type { InkGestureController, InkGestureDeps } from './editor-ink-gesture'
 
 function pointerEvent(
 	type: string,
-	over: { clientX: number; clientY: number; pointerId?: number; pressure?: number },
+	over: {
+		clientX: number;
+		clientY: number;
+		pointerId?: number;
+		pressure?: number;
+		tiltX?: number;
+		tiltY?: number;
+	},
 ): PointerEvent {
 	return new PointerEvent(type, {
 		clientX: over.clientX,
 		clientY: over.clientY,
 		pointerId: over.pointerId ?? 1,
 		pressure: over.pressure,
-	});
+		tiltX: over.tiltX,
+		tiltY: over.tiltY,
+	} as PointerEventInit);
 }
 
 function makeDeps(
@@ -84,7 +93,7 @@ describe('createInkGestureController', () => {
 		const { deps, calls } = makeDeps('eraser');
 		controller = createInkGestureController(deps);
 		controller.handlePointerDown(pointerEvent('pointerdown', { clientX: 5, clientY: 7 }));
-		expect(calls.erase).toStrictEqual([{ x: 5, y: 7, pressure: 0 }]);
+		expect(calls.erase).toStrictEqual([{ x: 5, y: 7, pressure: 0, tiltX: 0, tiltY: 0 }]);
 		expect(calls.start).toBe(0);
 		expect(controller.isActive()).toBeFalsy();
 	});
@@ -93,28 +102,29 @@ describe('createInkGestureController', () => {
 		const { deps, calls } = makeDeps('pen');
 		controller = createInkGestureController(deps);
 
-		// `PointerEventInit.pressure` defaults to 0 (per the DOM spec) when a
-		// test constructs a `PointerEvent` without setting it, so every
-		// captured point below carries that value.
+		// `PointerEventInit.pressure`/`tiltX`/`tiltY` default to 0 (per the DOM
+		// spec) when a test constructs a `PointerEvent` without setting them,
+		// so every captured point below carries those values.
+		const flat = { pressure: 0, tiltX: 0, tiltY: 0 };
 		controller.handlePointerDown(pointerEvent('pointerdown', { clientX: 0, clientY: 0 }));
 		expect(calls.start).toBe(1);
 		expect(controller.isActive()).toBeTruthy();
-		expect(calls.preview.at(-1)).toStrictEqual([{ x: 0, y: 0, pressure: 0 }]);
+		expect(calls.preview.at(-1)).toStrictEqual([{ x: 0, y: 0, ...flat }]);
 
 		window.dispatchEvent(pointerEvent('pointermove', { clientX: 10, clientY: 0 }));
 		window.dispatchEvent(pointerEvent('pointermove', { clientX: 10, clientY: 10 }));
 		expect(calls.preview.at(-1)).toStrictEqual([
-			{ x: 0, y: 0, pressure: 0 },
-			{ x: 10, y: 0, pressure: 0 },
-			{ x: 10, y: 10, pressure: 0 },
+			{ x: 0, y: 0, ...flat },
+			{ x: 10, y: 0, ...flat },
+			{ x: 10, y: 10, ...flat },
 		]);
 
 		window.dispatchEvent(pointerEvent('pointerup', { clientX: 10, clientY: 10 }));
 		expect(calls.end).toStrictEqual([
 			[
-				{ x: 0, y: 0, pressure: 0 },
-				{ x: 10, y: 0, pressure: 0 },
-				{ x: 10, y: 10, pressure: 0 },
+				{ x: 0, y: 0, ...flat },
+				{ x: 10, y: 0, ...flat },
+				{ x: 10, y: 10, ...flat },
 			],
 		]);
 		expect(controller.isActive()).toBeFalsy();
@@ -144,7 +154,26 @@ describe('createInkGestureController', () => {
 		});
 		controller = createInkGestureController(deps);
 		controller.handlePointerDown(pointerEvent('pointerdown', { clientX: 120, clientY: 70 }));
-		expect(calls.preview.at(-1)).toStrictEqual([{ x: 10, y: 10, pressure: 0 }]);
+		expect(calls.preview.at(-1)).toStrictEqual([{ x: 10, y: 10, pressure: 0, tiltX: 0, tiltY: 0 }]);
+	});
+
+	it('carries each pointer event tilt reading through to the accumulated points', () => {
+		const { deps, calls } = makeDeps('pen');
+		controller = createInkGestureController(deps);
+
+		controller.handlePointerDown(
+			pointerEvent('pointerdown', { clientX: 0, clientY: 0, tiltX: 0, tiltY: 0 }),
+		);
+		window.dispatchEvent(
+			pointerEvent('pointermove', { clientX: 10, clientY: 0, tiltX: 30, tiltY: -15 }),
+		);
+		window.dispatchEvent(
+			pointerEvent('pointermove', { clientX: 20, clientY: 0, tiltX: 45, tiltY: 0 }),
+		);
+		window.dispatchEvent(pointerEvent('pointerup', { clientX: 20, clientY: 0 }));
+
+		expect(calls.end.at(-1)?.map((p) => p.tiltX)).toStrictEqual([0, 30, 45]);
+		expect(calls.end.at(-1)?.map((p) => p.tiltY)).toStrictEqual([0, -15, 0]);
 	});
 
 	it('ignores pointermove/pointerup events for a different pointer id', () => {

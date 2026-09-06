@@ -68,6 +68,13 @@ export interface PresentationControllerDeps {
 	onPlayActionSound?: (soundPath: string) => void;
 	/** The live presentation stage root, to scope media-command lookups to. */
 	getFrameRoot?(): HTMLElement | null;
+	/**
+	 * The slide canvas size (px), for a `p:anim` formula needing the animated
+	 * shape's real box (e.g. Grow And Turn's `-#ppt_w/2` fly-in).
+	 */
+	getCanvasSize?(): { width: number; height: number } | undefined;
+	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+	getThemeColorMap?(): Readonly<Record<string, string>> | undefined;
 	/** End the show (host leaves presentation mode). */
 	exit?(): void;
 	/** `p:showPr` "end with black slide"; defaults to on, like PowerPoint. */
@@ -140,6 +147,8 @@ export class PresentationController {
 			getShowWithAnimation: deps.getShowWithAnimation,
 			onPlayActionSound: deps.onPlayActionSound,
 			frameRoot: deps.getFrameRoot,
+			getCanvasSize: deps.getCanvasSize,
+			getThemeColorMap: deps.getThemeColorMap,
 		});
 	}
 

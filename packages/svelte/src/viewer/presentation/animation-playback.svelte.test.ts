@@ -175,3 +175,42 @@ describe('animationPlayback (native-timing controller)', () => {
 		audio.remove();
 	});
 });
+
+describe('animationPlayback geometry/theme render context wiring', () => {
+	// Grow And Turn's own ground-truth markup: `from="(-#ppt_w/2)" to="(#ppt_x)"`
+	// on a `ppt_x` attribute animation (see animation-ppt-formula-ground-truth.md).
+	function growAndTurnAnim(targetId: string): PptxNativeAnimation {
+		return {
+			attributeAnimations: [
+				{ attrName: 'ppt_x', from: '(-#ppt_w/2)', keyframes: [], to: '(#ppt_x)' },
+			],
+			durationMs: 600,
+			presetClass: 'entr',
+			targetId,
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation;
+	}
+
+	function boxedShapeElement(id: string): PptxElement {
+		return { height: 100, id, type: 'shape', width: 200, x: 200, y: 150 } as unknown as PptxElement;
+	}
+
+	it('resolves the cross-axis fly-in formula when getCanvasSize is supplied', () => {
+		const pb = new AnimationPlayback({
+			getCanvasSize: () => ({ height: 720, width: 960 }),
+			getSlide: () => slideWith([boxedShapeElement('a')], [growAndTurnAnim('a')]),
+		});
+		pb.reset();
+		// centre x = (200 + 200/2) / 960 = 0.3125; from = -100/960 = -0.104167;
+		// delta = -0.104167 - 0.3125 = -0.416667 -> formatted to 4dp.
+		expect(pb.keyframesCss).toContain('-0.4167');
+	});
+
+	it('falls back to canned timing when getCanvasSize is not supplied', () => {
+		const pb = new AnimationPlayback({
+			getSlide: () => slideWith([boxedShapeElement('a')], [growAndTurnAnim('a')]),
+		});
+		pb.reset();
+		expect(pb.keyframesCss).not.toContain('-0.4167');
+	});
+});

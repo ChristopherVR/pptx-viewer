@@ -44,6 +44,15 @@ export interface AnimationPlaybackDeps {
 	onPlayActionSound?: (soundPath: string) => void;
 	/** Root element to scope media-command (`p:cmd`) target lookups to. */
 	frameRoot?: () => HTMLElement | null;
+	/**
+	 * The slide canvas size (px), in the same unit the elements' own
+	 * `x`/`y`/`width`/`height` are authored in. Lets `PresentationAnimationController
+	 * .fromSlide` resolve a `p:anim` formula that needs the animated shape's real
+	 * box (e.g. Grow And Turn's `-#ppt_w/2` fly-in) instead of falling back.
+	 */
+	getCanvasSize?(): { width: number; height: number } | undefined;
+	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
+	getThemeColorMap?(): Readonly<Record<string, string>> | undefined;
 }
 
 export class AnimationPlayback {
@@ -154,7 +163,16 @@ export class AnimationPlayback {
 			return;
 		}
 
-		const controller = PresentationAnimationController.fromSlide(slide);
+		// `getCanvasSize`/`getThemeColorMap` let the controller resolve a
+		// `p:anim` formula that needs the animated shape's real box (Grow And
+		// Turn's `-#ppt_w/2` fly-in) and a scheme-colour ramp stop instead of
+		// falling back.
+		const canvasSize = this.#deps.getCanvasSize?.();
+		const controller = PresentationAnimationController.fromSlide(slide, {
+			slideHeightPx: canvasSize?.height,
+			slideWidthPx: canvasSize?.width,
+			themeColorMap: this.#deps.getThemeColorMap?.(),
+		});
 		this.#controller = controller;
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.

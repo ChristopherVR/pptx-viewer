@@ -1,7 +1,9 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import type { ElementAnimationState } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PresentationElementStatesKey } from '../state/presentation-element-states-context';
 import { SmartArt3DContextKey } from '../state/smart-art-3d-context';
 import ElementRenderer from './ElementRenderer.svelte';
 
@@ -28,7 +30,7 @@ vi.mock(import('pptx-viewer-shared/smartart-3d'), async (importOriginal) => {
 });
 
 function okHandle() {
-	return { resize: vi.fn(), setInteractive: vi.fn(), dispose: vi.fn() };
+	return { resize: vi.fn(), setInteractive: vi.fn(), setTextStyle: vi.fn(), dispose: vi.fn() };
 }
 
 let cleanup: (() => void) | undefined;
@@ -119,7 +121,7 @@ describe('smartArt3DView', () => {
 			expect.objectContaining({ meshes: expect.any(Array), connectors: expect.any(Array) }),
 			400,
 			240,
-			{},
+			{ textStyle: undefined },
 		);
 		const node = target.querySelector<HTMLElement>('[data-element-id="sa3d-1"]');
 		expect(node?.getAttribute('style')).toContain('left: 10px');
@@ -155,5 +157,36 @@ describe('smartArt3DView', () => {
 		cleanup?.();
 		cleanup = undefined;
 		expect(handle.dispose).toHaveBeenCalledOnce();
+	});
+
+	it('passes an active text-style emphasis override to the scene at mount', async () => {
+		const element = smartArtElement();
+		const states = new Map<string, ElementAnimationState>([
+			[element.id, { visible: true, cssAnimation: undefined, textStyle: { bold: true } }],
+		]);
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(ElementRenderer, {
+			target,
+			props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 2 },
+			context: new Map<symbol, unknown>([
+				[SmartArt3DContextKey, () => true],
+				[PresentationElementStatesKey, () => states],
+			]),
+		});
+		flushSync();
+		cleanup = () => {
+			unmount(instance);
+			target.remove();
+		};
+		await flushMount();
+
+		expect(mountSmartArt3D).toHaveBeenCalledExactlyOnceWith(
+			expect.anything(),
+			expect.anything(),
+			400,
+			240,
+			{ textStyle: { bold: true } },
+		);
 	});
 });

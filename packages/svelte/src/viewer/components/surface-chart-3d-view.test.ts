@@ -1,7 +1,9 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
+import type { ChartPartRef, ElementAnimationState } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PresentationElementStatesKey } from '../state/presentation-element-states-context';
 import { SurfaceChart3DContextKey } from '../state/surface-chart-3d-context';
 import ElementRenderer from './ElementRenderer.svelte';
 
@@ -30,7 +32,13 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 });
 
 function okHandle() {
-	return { ok: true, resize: vi.fn(), dispose: vi.fn() };
+	return {
+		ok: true,
+		resize: vi.fn(),
+		setSelectedPart: vi.fn(),
+		setTextStyle: vi.fn(),
+		dispose: vi.fn(),
+	};
 }
 
 function unavailableHandle() {
@@ -167,5 +175,127 @@ describe('surfaceChart3DView', () => {
 		cleanup?.();
 		cleanup = undefined;
 		expect(handle.dispose).toHaveBeenCalledOnce();
+	});
+
+	describe('on-canvas interaction', () => {
+		function mountInteractiveEl(
+			element: PptxElement,
+			onchartpointcommit: (elementId: string, chartData: PptxChartData) => void,
+			animationState?: ElementAnimationState,
+		): HTMLElement {
+			const target = document.createElement('div');
+			document.body.appendChild(target);
+			const context = new Map<symbol, unknown>([[SurfaceChart3DContextKey, () => true]]);
+			if (animationState) {
+				context.set(PresentationElementStatesKey, () => new Map([[element.id, animationState]]));
+			}
+			const instance = mount(ElementRenderer, {
+				target,
+				props: {
+					element,
+					mediaDataUrls: new Map<string, string>(),
+					zIndex: 2,
+					interactive: true,
+					onchartpointcommit,
+				},
+				context,
+			});
+			flushSync();
+			cleanup = () => {
+				unmount(instance);
+				target.remove();
+			};
+			return target;
+		}
+
+		it('wires onSelect/onValueDragPreview/onValueDragCommit when editable', async () => {
+			mountInteractiveEl(surfaceChartElement(SURFACE_DATA), vi.fn());
+			await flushMount();
+
+			const interaction = mountSurfaceChart3D.mock.calls[0]?.[2];
+			expect(interaction?.onSelect).toBeInstanceOf(Function);
+			expect(interaction?.onValueDragPreview).toBeInstanceOf(Function);
+			expect(interaction?.onValueDragCommit).toBeInstanceOf(Function);
+		});
+
+		it('commits a dragged value through onchartpointcommit via withChartPointValue', async () => {
+			const onchartpointcommit = vi.fn();
+			mountInteractiveEl(surfaceChartElement(SURFACE_DATA), onchartpointcommit);
+			await flushMount();
+
+			const interaction = mountSurfaceChart3D.mock.calls[0]?.[2];
+			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: 1, pointIndex: 0 };
+			interaction?.onValueDragCommit(part, 42);
+			flushSync();
+
+			expect(onchartpointcommit).toHaveBeenCalledExactlyOnceWith(
+				'sc3d-1',
+				expect.objectContaining({
+					series: [
+						expect.objectContaining({ values: [1, 2] }),
+						expect.objectContaining({ values: [42, 4] }),
+					],
+				}),
+			);
+		});
+
+		it('shows a live drag badge while a value drag preview is active', async () => {
+			const target = mountInteractiveEl(surfaceChartElement(SURFACE_DATA), vi.fn());
+			await flushMount();
+
+			const interaction = mountSurfaceChart3D.mock.calls[0]?.[2];
+			const part: ChartPartRef = { role: 'dataPoint', seriesIndex: 0, pointIndex: 0 };
+			interaction?.onValueDragPreview(part, 7);
+			flushSync();
+
+			expect(target.querySelector('.pptx-svelte-surface-chart-3d-drag-badge')?.textContent).toBe(
+				'7',
+			);
+		});
+
+		it('omits the interaction object when there is no commit handler (not editable)', async () => {
+			mountEl(surfaceChartElement(SURFACE_DATA), true);
+			await flushMount();
+
+			expect(mountSurfaceChart3D.mock.calls[0]).toHaveLength(2);
+		});
+
+		it('arms the wrapper (pptx-chart-interactive) only while editable', async () => {
+			// The shared 3D pointer wiring asks `isChartInteractionArmed` before
+			// it owns a mark press; without the class the press bubbled to the
+			// stage and a value drag moved the whole chart element instead.
+			const editable = mountInteractiveEl(surfaceChartElement(SURFACE_DATA), vi.fn());
+			await flushMount();
+			expect(
+				editable
+					.querySelector('[data-element-id="sc3d-1"]')
+					?.classList.contains('pptx-chart-interactive'),
+			).toBeTruthy();
+			cleanup?.();
+			cleanup = undefined;
+
+			const readOnly = mountEl(surfaceChartElement(SURFACE_DATA), true);
+			await flushMount();
+			expect(
+				readOnly
+					.querySelector('[data-element-id="sc3d-1"]')
+					?.classList.contains('pptx-chart-interactive'),
+			).toBeFalsy();
+		});
+
+		it('passes the active text-style override to the scene at mount', async () => {
+			mountInteractiveEl(surfaceChartElement(SURFACE_DATA), vi.fn(), {
+				visible: true,
+				cssAnimation: undefined,
+				textStyle: { bold: true },
+			});
+			await flushMount();
+
+			expect(mountSurfaceChart3D).toHaveBeenCalledExactlyOnceWith(
+				expect.anything(),
+				expect.objectContaining({ textStyle: { bold: true } }),
+				expect.anything(),
+			);
+		});
 	});
 });

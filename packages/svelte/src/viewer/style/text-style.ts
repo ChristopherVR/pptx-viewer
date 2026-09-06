@@ -36,7 +36,7 @@ export function getTextBlockStyle(el: PptxElement): CssStyleMap {
 		bodyLayout: true,
 		pxLengths: true,
 	});
-	const scene3d = buildTextBody3DSceneStyle(el.textStyle);
+	const scene3d = buildTextBody3DSceneStyle(el.textStyle, { width: el.width, height: el.height });
 	if (!scene3d) {
 		return base;
 	}

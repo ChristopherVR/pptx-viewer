@@ -113,6 +113,34 @@ describe('elementRenderer dispatch', () => {
 		expect(target.querySelector('.pptx-svelte-text')).toBeNull();
 	});
 
+	it('renders true SVG per-glyph text (not a CSS transform) for an envelope preset', () => {
+		// Regression pin: `WordArtText.svelte` used to gate on
+		// `classifyTextWarp(preset) === 'path'`, which excludes inflate/deflate/
+		// can, and fell back to a flat `.pptx-svelte-wordart-css` box with a CSS
+		// `transform` approximation. The envelope family now renders one SVG
+		// `<text>` per glyph (each with its own affine fit to the envelope
+		// curves, see `text-warp-envelope-layout.ts`), never a CSS box.
+		const target = mountEl({
+			...base,
+			type: 'shape',
+			textSegments: [{ text: 'Inflated' }],
+			textStyle: { textWarpPreset: 'textInflate' },
+		} as PptxElement);
+		expect(target.querySelectorAll('.pptx-svelte-wordart text').length).toBeGreaterThan(1);
+		expect(target.querySelector('.pptx-svelte-wordart-css')).toBeNull();
+	});
+
+	it('renders a true SVG textPath for a former "simple" preset (slant)', () => {
+		const target = mountEl({
+			...base,
+			type: 'shape',
+			textSegments: [{ text: 'Slanted' }],
+			textStyle: { textWarpPreset: 'textSlantUp' },
+		} as PptxElement);
+		expect(target.querySelector('.pptx-svelte-wordart textPath')).not.toBeNull();
+		expect(target.querySelector('.pptx-svelte-wordart-css')).toBeNull();
+	});
+
 	it('renders extrusion panels and shape-level duotone defs', () => {
 		const target = mountEl({
 			...base,

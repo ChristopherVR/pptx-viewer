@@ -9,7 +9,7 @@
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 	import { build3DExtrusionData, buildParagraphs, buildTextStyleOverrideCss, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, placeholderPromptDescriptor, resolveChartKind } from 'pptx-viewer-shared';
 
-	import { getContainerStyle, getShapeBoxStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
+	import { getContainerStyle, getShapeBoxStyle, getShapeFillStrokeStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
 	import { getSlideElementsGetter } from '../state/slide-elements';
 	import { useAreaChart3D } from '../state/area-chart-3d-context';
@@ -252,10 +252,23 @@
 	<!-- Group: recurse into children. -->
 	<div
 		class="pptx-svelte-element pptx-svelte-group"
-		style={styleToString(mergeStyles(getContainerStyle(element, zIndex), rootPointerEventsStyle))}
+		style={styleToString(
+				mergeStyles(
+					getContainerStyle(element, zIndex),
+					getShapeFillStrokeStyle(element),
+					rootPointerEventsStyle,
+				),
+			)}
 		data-element-id={element.id}
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
+		<!-- A group paints no fill/outline of its own, but `p:grpSpPr/a:effectLst`
+		     DOES carry a shadow/glow/soft-edge for the group's own composite
+		     raster (the `filter`/`overflow` merged into the style above from
+		     `getShapeFillStrokeStyle`) and a reflection (parsed onto
+		     `groupEffectStyle`) that mirrors the whole group subtree, so this
+		     still needs mounting. -->
+		<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
 		{#each element.children ?? [] as child, i (child.id)}
 			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {marked} {editTemplateMode} {editingElementId} {editable} {selectedElementIds} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
 		{/each}
@@ -279,7 +292,7 @@
 {:else if element.type === 'chart'}
 	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} selected={isSelected} {onchartpointcommit} />
 {:else if element.type === 'smartArt' && smartArt3D}
-	<SmartArt3DView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
+	<SmartArt3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'smartArt'}
 	<SmartArtView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {animationState} {onsmartartnodecommit} {onsmartartnodefill} />
 {:else if element.type === 'media'}

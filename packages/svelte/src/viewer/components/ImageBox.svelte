@@ -19,6 +19,7 @@
 
 	import { getContainerStyle, getImageSrc, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
+	import ShapeEffectOverlay from './ShapeEffectOverlay.svelte';
 
 	const { element, mediaDataUrls, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
 
@@ -145,4 +146,9 @@
 			></div>
 		{/if}
 	{/if}
+	<!-- DAG fill-overlay tint + a:reflection mirror. This never rendered at
+	     all before: ElementRenderer only ever mounted ShapeEffectOverlay on
+	     its text/shape branch, so a reflected picture rendered nothing extra
+	     despite ShapeEffectOverlay itself supporting pictures. -->
+	<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
 </div>

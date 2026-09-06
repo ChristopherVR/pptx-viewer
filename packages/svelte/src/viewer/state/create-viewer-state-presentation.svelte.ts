@@ -67,6 +67,11 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 			}
 		},
 		getFrameRoot: () => deps.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
+		// Lets the animation controller resolve a `p:anim` formula that needs the
+		// animated shape's real box (Grow And Turn's `-#ppt_w/2` fly-in) and a
+		// scheme-colour ramp stop instead of falling back.
+		getCanvasSize: () => loader.canvasSize,
+		getThemeColorMap: () => editor.themeColorMap,
 		// File > Options > Advanced > "End with black slide". Off means the show
 		// exits straight to the editor instead of raising the black end screen.
 		getEndWithBlackSlide: () => optionsState.options.advanced.slideShowEndWithBlackSlide,

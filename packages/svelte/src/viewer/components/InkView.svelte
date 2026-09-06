@@ -6,7 +6,10 @@
 	 * width / opacity from the parallel arrays. Pressure-sensitive strokes
 	 * (per-point `inkPointPressures`, or a legacy varying per-point `inkWidths`
 	 * array) render as `<circle>`s whose radius follows the interpolated width
-	 * (shared `generatePressureCircles` maths).
+	 * (shared `generatePressureCircles` maths). Tilt-aware calligraphic nib
+	 * strokes render when a path carries genuine `inkPointTiltX`/`inkPointTiltY`
+	 * lean, taking priority over plain pressure circles, matching
+	 * `ContentPartView.svelte`'s loaded-`p:contentPart` counterpart.
 	 */
 	import { INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
 
@@ -34,7 +37,20 @@
 			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none" style={toolStyle}>
 				{#if presenting}<svelte:element this={'style'}>{INK_REPLAY_KEYFRAMES}</svelte:element>{/if}
 				{#each strokes as stroke (stroke.key)}
-					{#if stroke.circles}
+					{#if stroke.nibMarks}
+						<g opacity={stroke.opacity}>
+							{#each stroke.nibMarks as mark, i (i)}
+								<ellipse
+									cx={mark.cx}
+									cy={mark.cy}
+									rx={mark.rPerp}
+									ry={mark.rTilt}
+									transform={`rotate(${mark.rotationDeg} ${mark.cx} ${mark.cy})`}
+									fill={stroke.color}
+								/>
+							{/each}
+						</g>
+					{:else if stroke.circles}
 						<g opacity={stroke.opacity}>
 							{#each stroke.circles as circle, i (i)}
 								<circle cx={circle.cx} cy={circle.cy} r={circle.r} fill={stroke.color} />

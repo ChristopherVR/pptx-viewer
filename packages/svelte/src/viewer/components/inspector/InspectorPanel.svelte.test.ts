@@ -75,6 +75,30 @@ function tableEl(): PptxElement {
 	} as PptxElement;
 }
 
+function chartEl(): PptxElement {
+	return { type: 'chart', id: 'cht1', x: 0, y: 0, width: 200, height: 100 } as PptxElement;
+}
+
+function smartArtEl(): PptxElement {
+	return {
+		type: 'smartArt',
+		id: 'sa1',
+		x: 0,
+		y: 0,
+		width: 200,
+		height: 100,
+		smartArtData: { layout: 'orgChart', nodes: [{ id: 'n1', text: 'Root' }] },
+	} as PptxElement;
+}
+
+function mediaEl(): PptxElement {
+	return { type: 'media', id: 'med1', x: 0, y: 0, width: 200, height: 100 } as PptxElement;
+}
+
+function oleEl(): PptxElement {
+	return { type: 'ole', id: 'ole1', x: 0, y: 0, width: 200, height: 100 } as PptxElement;
+}
+
 function makeEditor(elements: PptxElement[]): EditorState {
 	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 	editor.editable = true;
@@ -161,13 +185,13 @@ describe('inspectorPanel', () => {
 		expect(sectionTitles(target)).toStrictEqual(['Fill & Stroke', 'Effects', 'Image', 'Action']);
 	});
 
-	it('shows only Position + Table for a table element (no Fill & Stroke or Text)', () => {
+	it('shows Position + Accessibility + Table for a table element (no Fill & Stroke or Text)', () => {
 		const el = tableEl();
 		const editor = makeEditor([el]);
 		editor.select(el.id);
 		const { target } = mountInspector(editor);
 
-		expect(sectionTitles(target)).toStrictEqual(['Table', 'Action']);
+		expect(sectionTitles(target)).toStrictEqual(['Accessibility', 'Table', 'Action']);
 	});
 
 	it('offers Quick Styles for a shape but not for an image (React FillStrokeProperties gating)', () => {
@@ -204,6 +228,25 @@ describe('inspectorPanel', () => {
 		expect(shapeTarget.querySelector('.pptx-svelte-alt-text textarea')).not.toBeNull();
 		expect(shapeTarget.querySelector('.pptx-svelte-alt-text input[type="text"]')).not.toBeNull();
 	});
+
+	it.each([
+		['chart', chartEl],
+		['smartArt', smartArtEl],
+		['media', mediaEl],
+		['ole', oleEl],
+	] as const)(
+		'shows the Accessibility section (alt text + title) for a %s element',
+		(_type, factory) => {
+			const el = factory();
+			const editor = makeEditor([el]);
+			editor.select(el.id);
+			const { target } = mountInspector(editor);
+
+			expect(sectionTitles(target)).toContain('Accessibility');
+			expect(target.querySelector('.pptx-svelte-alt-text textarea')).not.toBeNull();
+			expect(target.querySelector('.pptx-svelte-alt-text input[type="text"]')).not.toBeNull();
+		},
+	);
 
 	it('has no header close button on the tab row (React InspectorPane parity)', () => {
 		const el = shapeEl();

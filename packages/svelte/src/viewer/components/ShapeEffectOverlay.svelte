@@ -22,26 +22,49 @@
 	 *     cannot share one CSS `background-color`: `element-style.ts` drops the
 	 *     container fill for these (via shared `suppressesCssFill`) so this
 	 *     layered SVG paints it instead, each sub-path with its own resolved fill.
+	 *  5. A mirrored REFLECTION sibling (`a:reflection`): a full, inert clone of
+	 *     the element's own rendered content (`ReflectionMirrorContent`), not
+	 *     just its resolved fill - fill, outline, its text body, and for a
+	 *     group its children, all mirror. `suppressReflection` stops the clone
+	 *     from recursing into its OWN reflection block.
 	 *
-	 * Renders nothing when the element has no fill overlay and no soft edge.
+	 * A group has no `shapeStyle` of its own, so the fill-overlay/outline extras
+	 * above stay `undefined` for one, but `p:grpSpPr/a:effectLst` DOES resolve a
+	 * soft edge and a reflection (from `groupEffectStyle`, via shared
+	 * `getEffectStyleSource`); the soft edge feathers the group's own
+	 * composited raster (its shadow/glow ride the container `filter` set by
+	 * `element-style.ts`, not this overlay).
+	 *
+	 * Renders nothing when the element has no fill overlay and no soft edge (and
+	 * this instance's own reflection, when it has one and is not suppressed).
 	 */
-	import { hasShapeProperties, isImageLikeElement } from 'pptx-viewer-core';
 	import {
 		buildStrokeOutline,
 		buildSubpathFillOverlay,
 		getComputedEffectStyle,
-		getComputedFillStyle,
-		getImageFitStyle,
+		getEffectStyleSource,
 		getSoftEdgeSvgFilter,
 		buildHollowHitOutline,
 		strokeOutlineViewBox,
 	} from 'pptx-viewer-shared';
 	import type { CssStyleMap } from 'pptx-viewer-shared';
 
-	import { getImageSrc, styleToString } from '../style';
+	import { styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
+	import ReflectionMirrorContent from './ReflectionMirrorContent.svelte';
 
-	const { element, mediaDataUrls }: ElementRendererProps = $props();
+	const {
+		element,
+		mediaDataUrls,
+		suppressReflection = false,
+	}: ElementRendererProps & {
+		/**
+		 * Do not render this element's own reflection mirror. Set by
+		 * `ReflectionMirrorContent` while it is itself rendering AS a reflection
+		 * mirror's content, so a mirror never grows a mirror of itself.
+		 */
+		suppressReflection?: boolean;
+	} = $props();
 
 	/**
 	 * Per-sub-path fill overlay for a multi-sub-path preset or custom geometry,
@@ -65,11 +88,7 @@
 	);
 
 	/** Soft-edge `<filter>` definition for this element, when a soft edge applies. */
-	const softEdge = $derived(
-		hasShapeProperties(element)
-			? getSoftEdgeSvgFilter(element.shapeStyle, element.id)
-			: undefined,
-	);
+	const softEdge = $derived(getSoftEdgeSvgFilter(getEffectStyleSource(element), element.id));
 
 	/**
 	 * Stroked SVG outline, for the two cases a CSS border cannot paint: a
@@ -91,49 +110,18 @@
 
 	/**
 	 * `a:reflection` mirrored-sibling wrapper style, or `undefined` when the
-	 * element has no reflection. Cross-browser (unlike the `-webkit-box-reflect`
-	 * `element-style.ts` used to set, which Firefox never implemented): see
-	 * shared's `getReflectionWrapperStyle`.
+	 * element has no reflection (or this instance is itself painting AS a
+	 * mirror's content, via `suppressReflection`). Cross-browser (unlike the
+	 * `-webkit-box-reflect` `element-style.ts` used to set, which Firefox never
+	 * implemented): see shared's `getReflectionWrapperStyle`.
 	 */
-	const reflection = $derived(getComputedEffectStyle(element).reflection);
+	const reflection = $derived(
+		suppressReflection ? undefined : getComputedEffectStyle(element).reflection,
+	);
 
 	/** The wrapper style above, serialised to an inline CSS string. */
 	const reflectionStyle = $derived(
 		reflection ? styleToString(reflection as unknown as CssStyleMap) : undefined,
-	);
-
-	/**
-	 * The reflection's mirrored CONTENT: a picture's actual photo (a cloned
-	 * `<img>`, since a picture's pixels are never expressed as CSS background)
-	 * for a picture/image element, or the resolved fill for everything else.
-	 * `a:grpFill` children reflect as transparent: the enclosing group's fill is
-	 * not threaded into this overlay.
-	 */
-	const reflectionImgSrc = $derived(
-		reflection && isImageLikeElement(element) ? getImageSrc(element, mediaDataUrls) : undefined,
-	);
-	const reflectionImgFitStyle = $derived(
-		styleToString({ width: '100%', height: '100%', ...getImageFitStyle(element) }),
-	);
-	const reflectionFill = $derived(
-		reflection && !isImageLikeElement(element) ? getComputedFillStyle(element) : undefined,
-	);
-	const reflectionFillStyle = $derived(
-		reflectionFill
-			? styleToString({
-					width: '100%',
-					height: '100%',
-					...(reflectionFill.backgroundColor ? { backgroundColor: reflectionFill.backgroundColor } : {}),
-					...(reflectionFill.backgroundImage ? { backgroundImage: reflectionFill.backgroundImage } : {}),
-					...(reflectionFill.backgroundSize ? { backgroundSize: reflectionFill.backgroundSize } : {}),
-					...(reflectionFill.backgroundPosition
-						? { backgroundPosition: reflectionFill.backgroundPosition }
-						: {}),
-					...(reflectionFill.backgroundRepeat
-						? { backgroundRepeat: reflectionFill.backgroundRepeat }
-						: {}),
-				})
-			: undefined,
 	);
 </script>
 
@@ -244,10 +232,6 @@
 {/if}
 {#if reflectionStyle}
 	<div class="pptx-svelte-reflection" aria-hidden="true" style={reflectionStyle}>
-		{#if reflectionImgSrc}
-			<img src={reflectionImgSrc} alt="" draggable="false" style={reflectionImgFitStyle} />
-		{:else if reflectionFillStyle}
-			<div style={reflectionFillStyle}></div>
-		{/if}
+		<ReflectionMirrorContent {element} {mediaDataUrls} />
 	</div>
 {/if}

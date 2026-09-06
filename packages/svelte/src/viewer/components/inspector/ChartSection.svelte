@@ -31,6 +31,7 @@
 		patchChartData as sharedPatchChartData,
 		radarStylePatch,
 		RADAR_STYLE_OPTIONS,
+		resolveDisplayedChartType,
 		schemaLabel,
 		surfaceWireframePatch,
 		SURFACE_WIREFRAME_OPTIONS,
@@ -63,6 +64,13 @@
 	);
 	const data = $derived(chart?.chartData);
 	const canEdit = $derived(editor.editable);
+	/**
+	 * The type shown as selected. "Pareto" has no `PptxChartType` of its own
+	 * (docs/guide/limitations.md's ChartEx row): it is `chartType: 'histogram'`
+	 * plus a `paretoLine`-layout series, so reading `data.chartType` raw would
+	 * show "Histogram" for a chart the user picked "Pareto" for.
+	 */
+	const displayedType = $derived(data ? resolveDisplayedChartType(data) : undefined);
 
 	function patch(next: Partial<PptxChartData>): void {
 		if (chart && data) {
@@ -159,7 +167,7 @@
 </script>
 
 {#if data}<div class="section">
-	<label>Chart type<select aria-label="Chart type" value={data.chartType} onchange={(event) => onTypeChange(event.currentTarget.value as ChartTypeSelectValue)}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
+	<label>Chart type<select aria-label="Chart type" value={displayedType} onchange={(event) => onTypeChange(event.currentTarget.value as ChartTypeSelectValue)}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</select></label>
 	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ ...collapseChartTitleRunsForEdit(data, event.currentTarget.value), style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
 	<div class="checks"><label><input type="checkbox" checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} />Legend</label><label><input type="checkbox" checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} />Data labels</label><label><input type="checkbox" checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} />Gridlines</label>
 		{#if data.chartType === 'bar3D'}

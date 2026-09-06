@@ -106,4 +106,42 @@ describe('slideStage', () => {
 			cleanup = undefined;
 		}
 	});
+
+	it('anchors a shadeToTitle gradient on the title placeholder', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const gradient = 'linear-gradient(90.00deg, #000000 0%, #ffffff 100%)';
+		const slide: PptxSlide = {
+			id: 'slide-1',
+			rId: 'rId1',
+			slideNumber: 1,
+			backgroundGradient: gradient,
+			backgroundShadeToTitle: true,
+			elements: [
+				{
+					id: 'title-1',
+					type: 'text',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 50,
+					placeholderType: 'title',
+				},
+			],
+		} as unknown as PptxSlide;
+		const instance = mount(SlideStage, {
+			target,
+			props: {
+				slide,
+				canvasSize: { width: 960, height: 540 },
+				mediaDataUrls: new Map<string, string>(),
+			},
+		});
+		flushSync();
+		const stage = target.querySelector<HTMLElement>('.pptx-svelte-stage');
+		expect(stage?.style.backgroundImage).not.toContain(gradient);
+		expect(stage?.style.backgroundImage).toContain('data:image/svg+xml');
+		unmount(instance);
+		target.remove();
+	});
 });

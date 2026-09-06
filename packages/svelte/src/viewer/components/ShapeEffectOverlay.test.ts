@@ -176,5 +176,120 @@ describe('shapeEffectOverlay', () => {
 			const target = render(shape('el-plain-2', { fillColor: '#00ff00' }));
 			expect(target.querySelector('.pptx-svelte-reflection')).toBeNull();
 		});
+
+		it("mirrors the shape's own text body, not just its resolved fill", () => {
+			const target = render({
+				type: 'shape',
+				id: 'sp-text',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 80,
+				shapeStyle: { fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+				text: 'Hello reflected world',
+				textSegments: [{ text: 'Hello reflected world' }],
+			} as unknown as PptxElement);
+			const layer = target.querySelector<HTMLElement>('.pptx-svelte-reflection');
+			expect(layer?.textContent).toContain('Hello reflected world');
+		});
+
+		it('does not recurse into a second mirror inside its own mirrored clone', () => {
+			const target = render(
+				shape('sp-suppress', {
+					fillColor: '#ff0000',
+					reflectionStartOpacity: 0.5,
+					reflectionDistance: 4,
+				}),
+			);
+			expect(target.querySelectorAll('.pptx-svelte-reflection')).toHaveLength(1);
+		});
+
+		it('mirrors a reflected group by recursing into its children', () => {
+			const target = render({
+				type: 'group',
+				id: 'grp1',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+				children: [
+					{
+						type: 'shape',
+						id: 'child1',
+						x: 10,
+						y: 10,
+						width: 80,
+						height: 40,
+						shapeStyle: { fillColor: '#00ff00' },
+						text: 'Child text',
+						textSegments: [{ text: 'Child text' }],
+					},
+				],
+			} as unknown as PptxElement);
+			const layer = target.querySelector<HTMLElement>('.pptx-svelte-reflection');
+			expect(layer?.textContent).toContain('Child text');
+			expect(layer?.innerHTML).toContain('#00ff00');
+		});
+
+		it('renders nothing for a group with no groupFill reflection', () => {
+			const target = render({
+				type: 'group',
+				id: 'grp-none',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				children: [],
+			} as unknown as PptxElement);
+			expect(target.querySelector('.pptx-svelte-reflection')).toBeNull();
+		});
+
+		it('double-mirrors a child that carries its own reflection inside a reflected group', () => {
+			const target = render({
+				type: 'group',
+				id: 'grp-nested',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				groupEffectStyle: { reflectionStartOpacity: 0.5, reflectionDistance: 4 },
+				children: [
+					{
+						type: 'shape',
+						id: 'child-own-reflection',
+						x: 10,
+						y: 10,
+						width: 80,
+						height: 40,
+						shapeStyle: {
+							fillColor: '#00ff00',
+							reflectionStartOpacity: 0.5,
+							reflectionDistance: 2,
+						},
+					},
+				],
+			} as unknown as PptxElement);
+			// One wrapper for the group's own mirror, one nested inside it for the
+			// child's own reflection: the child is not the element being mirrored,
+			// so `suppressReflection` (`topLevel`) must not have been forced on it.
+			expect(target.querySelectorAll('.pptx-svelte-reflection')).toHaveLength(2);
+		});
+	});
+
+	describe('group-level shadow/glow/soft-edge', () => {
+		it('injects the soft-edge <filter> for a group carrying p:grpSpPr/a:effectLst/a:softEdge', () => {
+			const target = render({
+				type: 'group',
+				id: 'grp-soft',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 100,
+				groupEffectStyle: { softEdgeRadius: 6 },
+				children: [],
+			} as unknown as PptxElement);
+			expect(target.innerHTML).toContain('id="soft-edge-grp-soft"');
+		});
 	});
 });

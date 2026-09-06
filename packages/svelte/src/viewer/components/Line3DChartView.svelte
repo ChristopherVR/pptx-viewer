@@ -9,24 +9,35 @@
 	 * whenever it fails (missing `three`, no plottable grid, or a mount error),
 	 * this component renders the SVG `ChartView` instead - the SAME component
 	 * used for every other chart kind, so drag/title editing keep working
-	 * outside 3D mode. Marks are not selectable/draggable while the 3D scene is
-	 * active: a tube mesh has no 2D screen geometry to hit-test against.
+	 * outside 3D mode.
+	 *
+	 * Marks ARE selectable/draggable while the 3D scene is active: a click or a
+	 * vertical drag on a series point raycasts through the shared
+	 * `mountLineChart3D` `interaction` callbacks (`Chart3DInteractionController`,
+	 * `chart-3d-interaction.svelte.ts`), which funnels a committed value drag
+	 * through the SAME `onchartpointcommit` path 2D on-canvas dragging uses.
 	 *
 	 * Element-data changes dispose the previous scene and mount the updated
 	 * layout on the same single-container surface, exactly like
 	 * `Bar3DChartView.svelte`.
 	 */
+	import type { ChartPptxElement } from 'pptx-viewer-core';
 	import type { LineChart3DHandle } from 'pptx-viewer-shared';
-	import { buildLineChart3DDataForElement, mountLineChart3D } from 'pptx-viewer-shared';
+	import { buildLineChart3DDataForElement, canDrillDown, mountLineChart3D } from 'pptx-viewer-shared';
 	import { onDestroy, tick } from 'svelte';
 
 	import { getContainerStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
+	import { Chart3DInteractionController } from './chart-3d-interaction.svelte';
 	import ChartView from './ChartView.svelte';
 
 	const { element, mediaDataUrls, zIndex, animationState, interactive = false, marked = false, onchartpointcommit }: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+	/** Active font-style emphasis override for the axis labels, if any. */
+	const textStyle = $derived(animationState?.textStyle);
+	/** See `Bar3DChartView`'s `editable` doc; identical gate for a line3D chart's points. */
+	const editable = $derived(interactive && Boolean(onchartpointcommit) && canDrillDown(element));
 
 	/** `true` once the WebGL scene has mounted; otherwise render the SVG fallback. */
 	let mounted = $state(false);
@@ -37,6 +48,12 @@
 	let sceneHost: HTMLDivElement | undefined = $state();
 	let handle: LineChart3DHandle | undefined;
 	let generation = 0;
+
+	const interactionController = new Chart3DInteractionController<LineChart3DHandle>({
+		element: () => element as ChartPptxElement,
+		commit: (id, chartData) => onchartpointcommit?.(id, chartData),
+		getHandle: () => handle,
+	});
 
 	async function mountScene(
 		version: number,
@@ -53,13 +70,26 @@
 			mounted = false;
 			return;
 		}
-		const result = await mountLineChart3D(sceneHost, options);
+		const result = editable
+			? await mountLineChart3D(
+					sceneHost,
+					{ ...options, textStyle },
+					{
+						onSelect: interactionController.onSelect,
+						onValueDragPreview: interactionController.onValueDragPreview,
+						onValueDragCommit: interactionController.onValueDragCommit,
+					},
+				)
+			: await mountLineChart3D(sceneHost, { ...options, textStyle });
 		if (version !== generation) {
 			result.dispose();
 			return;
 		}
 		if (result.ok) {
 			handle = result;
+			// The remount just dropped the previous scene's mesh highlight; put a
+			// tracked selection back onto the new one.
+			interactionController.syncSelection(handle);
 		} else {
 			mounted = false;
 		}
@@ -81,6 +111,12 @@
 		handle?.resize(element.width, element.height);
 	});
 
+	// Applied without a remount: a text-style change alone should not tear
+	// down and re-orbit the whole scene.
+	$effect(() => {
+		handle?.setTextStyle(textStyle);
+	});
+
 	onDestroy(() => {
 		generation += 1;
 		handle?.dispose();
@@ -89,13 +125,19 @@
 </script>
 
 {#if mounted}
+	<!-- Armed (`pptx-chart-interactive`) while editable, exactly like ChartView's
+	     2D marks: the shared 3D pointer wiring asks `isChartInteractionArmed` before
+	     it owns a mark press (select / value drag) instead of letting it bubble. -->
 	<div
-		class="pptx-svelte-element pptx-svelte-line-chart-3d"
+		class={`pptx-svelte-element pptx-svelte-line-chart-3d${editable ? ' pptx-chart-interactive' : ''}`}
 		style={containerStyle}
 		data-element-id={element.id}
 		data-pptx-element={interactive || marked ? 'true' : undefined}
 	>
 		<div bind:this={sceneHost} class="pptx-svelte-line-chart-3d-scene"></div>
+		{#if interactionController.dragLabel !== null}
+			<div class="pptx-svelte-line-chart-3d-drag-badge">{interactionController.dragLabel}</div>
+		{/if}
 	</div>
 {:else}
 	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} {interactive} {marked} {onchartpointcommit} />
@@ -106,5 +148,18 @@
 		width: 100%;
 		height: 100%;
 		will-change: transform;
+	}
+
+	.pptx-svelte-line-chart-3d-drag-badge {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		padding: 1px 6px;
+		border-radius: 4px;
+		background: #1e293b;
+		color: #f8fafc;
+		font-size: 10px;
+		line-height: 1.5;
+		pointer-events: none;
 	}
 </style>

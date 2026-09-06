@@ -1,23 +1,33 @@
 <script lang="ts">
 	/**
 	 * ChartUserShapeSection: "Chart overlay shapes" section (`c:userShapes`
-	 * drawing overlay, C2-G10 edit/serialize follow-up), mirroring React's
-	 * `inspector/ChartUserShapeOptions.tsx`.
+	 * drawing overlay), mirroring React's `inspector/ChartUserShapeOptions.tsx`.
 	 *
-	 * List existing overlay shapes, add a default text box, delete one, and
-	 * nudge a `sp`/`cxnSp` shape's anchor fractions. Pure view over
-	 * `pptx-viewer-shared`'s `chart-user-shape-edit` helpers.
+	 * Lists existing overlay shapes as an indented tree (a `grpSp`'s grouped
+	 * children included, W2-F), adds a default text box, deletes any row, and
+	 * edits a `sp`/`cxnSp` row's text/fill/line, a `pic` row's alt text, and
+	 * any non-group row's position/size. Pure view over `pptx-viewer-shared`'s
+	 * `chart-user-shape-edit`/`chart-user-shape-tree` helpers.
 	 */
-	import type { PptxChartData, PptxChartUserShape } from 'pptx-viewer-core';
+	import type { PptxChartData } from 'pptx-viewer-core';
 	import {
 		createDefaultChartUserShape,
-		listChartUserShapeDescriptors,
+		createDefaultChartUserShapeGroupChild,
+		getChartUserShapeGroupTransform,
+		listChartUserShapeRows,
 		withChartUserShapeAdded,
-		withChartUserShapeRemoved,
-		withChartUserShapeUpdated,
+		withChartUserShapeGroupChildAdded,
+		withChartUserShapeRowChartBoxUpdated,
+		withChartUserShapeRowFlipUpdated,
+		withChartUserShapeRowRemoved,
+		withChartUserShapeRowRotationUpdated,
+		withChartUserShapeRowTextUpdated,
+		withChartUserShapeRowUpdated,
 	} from 'pptx-viewer-shared';
+	import type { ChartUserShapeRowPatch } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
+	import ChartUserShapePositionFields from './ChartUserShapePositionFields.svelte';
 
 	const {
 		data,
@@ -30,7 +40,7 @@
 	} = $props();
 	const t = useTranslator();
 
-	const descriptors = $derived(listChartUserShapeDescriptors(data.userShapes));
+	const rows = $derived(listChartUserShapeRows(data.userShapes));
 
 	function kindLabel(kind: string): string {
 		return t(`pptx.chart.userShapeKind${kind.charAt(0).toUpperCase()}${kind.slice(1)}`);
@@ -40,12 +50,42 @@
 		onpatch({ userShapes: withChartUserShapeAdded(data.userShapes, createDefaultChartUserShape()) });
 	}
 
-	function removeShape(index: number): void {
-		onpatch({ userShapes: withChartUserShapeRemoved(data.userShapes, index) });
+	function removeRow(path: number[]): void {
+		onpatch({ userShapes: withChartUserShapeRowRemoved(data.userShapes, path) });
 	}
 
-	function updateAnchor(index: number, patch: Partial<PptxChartUserShape>): void {
-		onpatch({ userShapes: withChartUserShapeUpdated(data.userShapes, index, patch) });
+	function updateRow(path: number[], patch: ChartUserShapeRowPatch): void {
+		onpatch({ userShapes: withChartUserShapeRowUpdated(data.userShapes, path, patch) });
+	}
+
+	function updateText(path: number[], text: string): void {
+		onpatch({ userShapes: withChartUserShapeRowTextUpdated(data.userShapes, path, text) });
+	}
+
+	function updateBox(path: number[], box: { from: { x: number; y: number }; to: { x: number; y: number } }): void {
+		onpatch({ userShapes: withChartUserShapeRowChartBoxUpdated(data.userShapes, path, box) });
+	}
+
+	function updateRotation(path: number[], rotation: number | undefined): void {
+		onpatch({ userShapes: withChartUserShapeRowRotationUpdated(data.userShapes, path, rotation) });
+	}
+
+	function updateFlip(path: number[], flip: { flipH?: boolean; flipV?: boolean }): void {
+		onpatch({ userShapes: withChartUserShapeRowFlipUpdated(data.userShapes, path, flip) });
+	}
+
+	function addIntoGroup(path: number[]): void {
+		const transform = getChartUserShapeGroupTransform(data.userShapes, path);
+		if (!transform) {
+			return;
+		}
+		onpatch({
+			userShapes: withChartUserShapeGroupChildAdded(
+				data.userShapes,
+				path,
+				createDefaultChartUserShapeGroupChild(transform),
+			),
+		});
 	}
 </script>
 
@@ -56,71 +96,89 @@
 			{t('pptx.chart.userShapeAddTextBox')}
 		</button>
 	</div>
-	{#if descriptors.length === 0}
+	{#if rows.length === 0}
 		<p class="empty">{t('pptx.chart.userShapesEmpty')}</p>
 	{:else}
-		{#each descriptors as d (d.index)}
-			<div class="row">
-				<span class="name">{kindLabel(d.kind)}{d.text ? ` - ${d.text}` : ''}</span>
-				<button
-					type="button"
-					disabled={!canEdit}
-					aria-label={t('pptx.chart.userShapeDelete')}
-					onclick={() => removeShape(d.index)}
-				>
-					&#10005;
-				</button>
-			</div>
-			{#if d.editable}
-				<div class="anchor">
-					<span>{t('pptx.chart.userShapeFrom')}</span>
-					<input
-						type="number"
-						step="0.01"
-						min="0"
-						max="1"
-						disabled={!canEdit}
-						value={d.from.x}
-						onchange={(event) =>
-							updateAnchor(d.index, { from: { ...d.from, x: Number(event.currentTarget.value) } })}
-					/>
-					<input
-						type="number"
-						step="0.01"
-						min="0"
-						max="1"
-						disabled={!canEdit}
-						value={d.from.y}
-						onchange={(event) =>
-							updateAnchor(d.index, { from: { ...d.from, y: Number(event.currentTarget.value) } })}
-					/>
-					{#if d.anchor === 'rel' && d.to}
-						<span>{t('pptx.chart.userShapeTo')}</span>
-						<input
-							type="number"
-							step="0.01"
-							min="0"
-							max="1"
-							disabled={!canEdit}
-							value={d.to.x}
-							onchange={(event) =>
-								updateAnchor(d.index, { to: { ...d.to!, x: Number(event.currentTarget.value) } })}
-						/>
-						<input
-							type="number"
-							step="0.01"
-							min="0"
-							max="1"
-							disabled={!canEdit}
-							value={d.to.y}
-							onchange={(event) =>
-								updateAnchor(d.index, { to: { ...d.to!, y: Number(event.currentTarget.value) } })}
-						/>
+		{#each rows as row (row.path.join(','))}
+			<div
+				class="row-container"
+				style="margin-left: {row.depth * 12}px"
+				data-chart-user-shape-path={row.path.join(',')}
+			>
+				<div class="row">
+					<span class="name">{kindLabel(row.kind)}{row.text ? ` - ${row.text}` : ''}</span>
+					{#if row.isGroup}
+						<button type="button" disabled={!canEdit} onclick={() => addIntoGroup(row.path)}>
+							{t('pptx.chart.userShapeAddIntoGroup')}
+						</button>
 					{/if}
+					<button
+						type="button"
+						disabled={!canEdit}
+						aria-label={t('pptx.chart.userShapeDelete')}
+						onclick={() => removeRow(row.path)}
+					>
+						&#10005;
+					</button>
 				</div>
-			{:else}
-				<p class="not-editable">{t('pptx.chart.userShapeNotEditable')}</p>
-			{/if}
+
+				{#if row.editableVisuals}
+					<div class="anchor">
+						<span>{t('pptx.chart.userShapeText')}</span>
+						<input
+							type="text"
+							aria-label={t('pptx.chart.userShapeText')}
+							disabled={!canEdit}
+							value={row.text ?? ''}
+							onchange={(event) => updateText(row.path, event.currentTarget.value)}
+						/>
+					</div>
+					<div class="anchor">
+						<span>{t('pptx.chart.userShapeFill')}</span>
+						<input
+							type="color"
+							aria-label={t('pptx.chart.userShapeFill')}
+							disabled={!canEdit}
+							value={row.fill ?? '#ffffff'}
+							onchange={(event) => updateRow(row.path, { fill: event.currentTarget.value })}
+						/>
+						<span>{t('pptx.chart.userShapeStroke')}</span>
+						<input
+							type="color"
+							aria-label={t('pptx.chart.userShapeStroke')}
+							disabled={!canEdit}
+							value={row.stroke ?? '#000000'}
+							onchange={(event) => updateRow(row.path, { stroke: event.currentTarget.value })}
+						/>
+					</div>
+				{/if}
+
+				{#if row.editableAltText}
+					<div class="anchor">
+						<span>{t('pptx.chart.userShapeAltText')}</span>
+						<input
+							type="text"
+							aria-label={t('pptx.chart.userShapeAltText')}
+							disabled={!canEdit}
+							value={row.altText ?? ''}
+							onchange={(event) => updateRow(row.path, { altText: event.currentTarget.value })}
+						/>
+					</div>
+				{/if}
+
+				<!-- Every row (including a grpSp group header) is position/size
+				editable: a top-level group's own drawing anchor moves/resizes it,
+				and a nested row edits a chart-relative from/to fraction. -->
+				<ChartUserShapePositionFields
+					{row}
+					userShapes={data.userShapes}
+					{canEdit}
+					onpatch={updateRow}
+					onboxpatch={updateBox}
+					onrotationpatch={updateRotation}
+					onflippatch={updateFlip}
+				/>
+			</div>
 		{/each}
 	{/if}
 </div>
@@ -136,18 +194,19 @@
 		font-size: 10px;
 		text-transform: uppercase;
 	}
-	.empty,
-	.not-editable {
+	.empty {
 		color: var(--pptx-muted-foreground);
 		font-size: 10px;
 		font-style: italic;
+	}
+	.row-container {
+		margin-top: 5px;
 	}
 	.row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 5px;
-		margin-top: 5px;
 	}
 	.name {
 		overflow: hidden;
@@ -164,7 +223,7 @@
 		font-size: 10px;
 		margin: 3px 0 5px;
 	}
-	.anchor input {
+	.anchor input[type='text'] {
 		width: 0;
 		flex: 1;
 		min-width: 0;

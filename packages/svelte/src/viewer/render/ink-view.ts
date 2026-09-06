@@ -1,87 +1,41 @@
+/**
+ * View-model builder for Draw-tab `InkPptxElement` strokes.
+ *
+ * The pressure-circle decision used to be hand-rolled here (a near-exact copy
+ * of Vue's and vanilla's own hand-rolled versions, with no tilt/nib support at
+ * all), which meant a real pen-tilt reading never rendered a calligraphic
+ * lean for the Draw tool's own strokes even though a loaded `p:contentPart`'s
+ * tilt already did (see `contentpart-view.ts`). It now delegates to
+ * `pptx-viewer-shared`'s `buildInkGroupStrokes`, the exact same decision
+ * function `ContentPartView.svelte` uses for a loaded content part; this
+ * module only adds the per-stroke presentation-replay style, which is
+ * Svelte's own concern (each binding wires replay differently).
+ */
 import type { InkPptxElement } from 'pptx-viewer-core';
-import type { InkStrokeAnimationStyle, PressureCircle } from 'pptx-viewer-shared';
+import type { InkGroupStrokeView, InkStrokeAnimationStyle } from 'pptx-viewer-shared';
 import {
+	buildInkGroupStrokes,
 	DEFAULT_STROKE_COLOR,
-	extractPathPoints,
-	generatePressureCircles,
 	getInkReplayStyles,
-	hasPressureVariation,
-	pressuresToWidths,
+	inkGroupViewBox,
 } from 'pptx-viewer-shared';
 
-/**
- * View-model builder for `ink` elements (port of the vanilla binding's
- * `renderInkElement`). Pressure maths (path-point extraction, interpolated
- * widths, circle generation) come from `pptx-viewer-shared`; this module only
- * resolves per-stroke colour/width/opacity and picks path vs circles.
- */
-
-/** One rendered ink stroke: a constant-width path, or pressure circles. */
-export interface InkStrokeView {
-	key: string;
-	d: string;
-	color: string;
-	width: number;
-	opacity: number;
-	/** Per-point pressure circles; `null` renders the plain `<path>`. */
-	circles: PressureCircle[] | null;
-	/** Sequential reveal style, enabled only while presenting. */
+/** One rendered ink stroke: a constant-width path, pressure circles, or tilt nib marks. */
+export interface InkStrokeView extends InkGroupStrokeView {
+	/** Sequential reveal style, enabled only while presenting; `null` otherwise. */
 	replay: InkStrokeAnimationStyle | null;
 }
 
 /** SVG `viewBox` for the ink element's bounding box (min 1x1). */
-export function inkViewBox(element: InkPptxElement): string {
-	return `0 0 ${Math.max(element.width, 1)} ${Math.max(element.height, 1)}`;
-}
+export const inkViewBox = inkGroupViewBox;
 
 /** Project the element's parallel ink arrays into per-stroke view models. */
-
 export function buildInkStrokes(element: InkPptxElement, replay = false): InkStrokeView[] {
 	const replayStyles = replay ? getInkReplayStyles(element) : [];
-	return element.inkPaths.map((d, i) => {
-		const width = element.inkWidths?.[i] ?? 1;
-		return {
-			key: `stroke${i}`,
-			d,
-			color: element.inkColors?.[i] ?? DEFAULT_STROKE_COLOR,
-			width,
-			opacity: element.inkOpacities?.[i] ?? 1,
-			circles: pressureCirclesFor(element, d, i, width),
+	return buildInkGroupStrokes(element, { color: DEFAULT_STROKE_COLOR, width: 1 }).map(
+		(stroke, i) => ({
+			...stroke,
 			replay: replayStyles[i] ?? null,
-		};
-	});
-}
-
-/**
- * Build the per-point pressure circles for a stroke, or return null when the
- * stroke has no usable (varying) pressure data and should render as a plain
- * constant-width path instead. Mirrors Vue's / vanilla's `pressureCirclesFor`.
- */
-function pressureCirclesFor(
-	el: InkPptxElement,
-	pathD: string,
-	index: number,
-	width: number,
-): PressureCircle[] | null {
-	const config = { baseWidth: width, minRadius: 0.5, maxRadius: width * 1.5 };
-
-	// Prefer per-point pressure from the stylus (inkPointPressures[index]).
-	const pointPressures = el.inkPointPressures?.[index];
-	if (pointPressures && pointPressures.length > 1 && hasPressureVariation(pointPressures)) {
-		const pointWidths = pressuresToWidths(pointPressures, width);
-		return generatePressureCircles(extractPathPoints(pathD), pointWidths, config);
-	}
-
-	// Legacy fallback: treat the inkWidths array as per-point widths only when it
-	// carries more entries than there are paths (so a normal per-path widths array
-	// is never mistaken for pressure data) and shows variation.
-	if (
-		el.inkWidths &&
-		el.inkWidths.length > el.inkPaths.length &&
-		hasPressureVariation(el.inkWidths)
-	) {
-		return generatePressureCircles(extractPathPoints(pathD), el.inkWidths, config);
-	}
-
-	return null;
+		}),
+	);
 }

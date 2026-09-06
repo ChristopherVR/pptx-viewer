@@ -1,6 +1,9 @@
 import type { PptxCustomProperty, PptxModifyVerifier } from 'pptx-viewer-core';
-import type { ReadOnlyRecommendation } from 'pptx-viewer-shared';
-import { readOnlyRecommendation } from 'pptx-viewer-shared';
+import type { ModifyPasswordCheckResult, ReadOnlyRecommendation } from 'pptx-viewer-shared';
+import { checkModifyPassword, readOnlyRecommendation } from 'pptx-viewer-shared';
+
+/** Why the last password attempt failed; see `checkModifyPassword` (`pptx-viewer-shared`). */
+export type ModifyPasswordErrorReason = Extract<ModifyPasswordCheckResult, { ok: false }>['reason'];
 
 /**
  * ReadOnlyRecommendationState: the Trust-Center-style banner shown when a
@@ -17,6 +20,9 @@ import { readOnlyRecommendation } from 'pptx-viewer-shared';
 export class ReadOnlyRecommendationState {
 	#dismissed = $state(false);
 	#editAnywayGranted = $state(false);
+	#passwordPromptOpen = $state(false);
+	#passwordError = $state<ModifyPasswordErrorReason | null>(null);
+	#checkingPassword = $state(false);
 	#getModifyVerifier: () => PptxModifyVerifier | undefined;
 	#getCustomProperties: () => PptxCustomProperty[];
 
@@ -47,10 +53,33 @@ export class ReadOnlyRecommendationState {
 		return rec.kind !== null && rec.defaultReadOnly && !this.#editAnywayGranted;
 	}
 
-	/** "Edit anyway": lifts the lock and hides the banner for this document. */
+	/** Whether the inline password prompt should render instead of the two buttons. */
+	get passwordPromptOpen(): boolean {
+		return this.#passwordPromptOpen;
+	}
+
+	/** Reason the last password attempt failed, or null before any attempt / after success. */
+	get passwordError(): ModifyPasswordErrorReason | null {
+		return this.#passwordError;
+	}
+
+	/** True while {@link submitPassword}'s check is in flight (disables the form). */
+	get checkingPassword(): boolean {
+		return this.#checkingPassword;
+	}
+
+	/**
+	 * "Edit anyway": lifts the lock and hides the banner for this document, or
+	 * (when `recommendation.requiresPassword` is set) opens the inline
+	 * password prompt instead of unlocking immediately.
+	 */
 	editAnyway(): void {
-		this.#editAnywayGranted = true;
-		this.#dismissed = true;
+		if (this.recommendation.requiresPassword) {
+			this.#passwordPromptOpen = true;
+			this.#passwordError = null;
+			return;
+		}
+		this.#unlock();
 	}
 
 	/** "Dismiss": hides the banner but leaves the lock (if any) in place. */
@@ -58,9 +87,40 @@ export class ReadOnlyRecommendationState {
 		this.#dismissed = true;
 	}
 
+	/** Close the password prompt without unlocking. */
+	cancelPasswordPrompt(): void {
+		this.#passwordPromptOpen = false;
+		this.#passwordError = null;
+	}
+
+	/** Check `password` against the deck's `modifyVerifier`; unlocks on a match. */
+	async submitPassword(password: string): Promise<void> {
+		this.#checkingPassword = true;
+		try {
+			const result = await checkModifyPassword(this.#getModifyVerifier(), password);
+			if (result.ok) {
+				this.#unlock();
+			} else {
+				this.#passwordError = result.reason;
+			}
+		} finally {
+			this.#checkingPassword = false;
+		}
+	}
+
+	#unlock(): void {
+		this.#editAnywayGranted = true;
+		this.#dismissed = true;
+		this.#passwordPromptOpen = false;
+		this.#passwordError = null;
+	}
+
 	/** Re-arm the recommendation for a newly loaded document. */
 	reset(): void {
 		this.#dismissed = false;
 		this.#editAnywayGranted = false;
+		this.#passwordPromptOpen = false;
+		this.#passwordError = null;
+		this.#checkingPassword = false;
 	}
 }

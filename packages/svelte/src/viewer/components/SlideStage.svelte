@@ -82,7 +82,10 @@
 			// see-through, so it cannot hide what it is animating over.
 			...(transparentBackground
 				? { background: 'none', backgroundColor: 'transparent' }
-				: getSlideBackgroundStyle(slide)),
+				: getSlideBackgroundStyle(slide, {
+						widthPx: canvasSize.width,
+						heightPx: canvasSize.height,
+					})),
 		}),
 	);
 
