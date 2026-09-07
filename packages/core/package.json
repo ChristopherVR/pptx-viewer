@@ -87,7 +87,7 @@
 		"@types/utif": "3.0.6",
 		"@xmldom/xmldom": "^0.9.12",
 		"node-forge": "^1.4.0",
-		"tsdown": "^0.22.14",
+		"tsdown": "^0.23.0",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
