@@ -15,15 +15,13 @@
  * ```
  */
 
-import type { ElementRef } from '@angular/core';
 import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	effect,
 	inject,
 	input,
-	viewChild,
+	linkedSignal,
 } from '@angular/core';
 import { LucideArrowDown, LucideArrowUp } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -572,7 +570,11 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 			}
 
 			<!-- ── Animation authoring ────────────────────────────────────────── -->
-			<details #animationDetails class="pptx-ng-inspector__details" [open]="animationSectionOpen()">
+			<details
+				class="pptx-ng-inspector__details"
+				[open]="animationSectionOpen()"
+				(toggle)="onAnimationSectionToggle($event)"
+			>
 				<summary class="pptx-ng-inspector__summary">
 					{{ 'pptx.inspector.animation' | translate }}
 				</summary>
@@ -882,17 +884,16 @@ export class InspectorPanelComponent {
 	 * show them (their animation controls are never behind a collapsed group).
 	 */
 	private readonly inspectorPane = inject(ViewerInspectorPanelService, { optional: true });
-	private readonly animationDetails = viewChild<ElementRef<HTMLDetailsElement>>('animationDetails');
 
-	constructor() {
-		effect(() => {
-			const request = this.inspectorPane?.animationPanelRequest() ?? 0;
-			const details = this.animationDetails()?.nativeElement;
-			if (request > 0 && details) {
-				details.open = true;
-			}
-		});
-	}
+	/**
+	 * The ribbon request count at which the user last collapsed the Animation
+	 * section by hand (`null` = not collapsed). Resets whenever a different
+	 * element is selected, so each selection starts from the automatic rule.
+	 */
+	private readonly animationManuallyClosedAt = linkedSignal<PptxElement, number | null>({
+		source: this.element,
+		computation: () => null,
+	});
 
 	/**
 	 * Optional: absent in a standalone-thumbnail/export render context.
@@ -1119,11 +1120,30 @@ export class InspectorPanelComponent {
 	 * The Animation section starts expanded for an element that already carries
 	 * an effect, so its authoring rows (effect sound, after-animation, timing)
 	 * are visible on selection the way React's and Vue's inspectors show them;
-	 * the ribbon's "Animation Panel" expands it on demand for any element.
+	 * the ribbon's "Animation Panel" expands it on demand for any element. A
+	 * manual collapse sticks until the next ribbon request (the request counter
+	 * moves past the value recorded at collapse time), so the section really
+	 * re-opens on every click. Pure signals, no DOM effect: the panel stays
+	 * constructible in a plain injector (this package's TestBed-free tests).
 	 */
-	protected readonly animationSectionOpen = computed(() =>
-		this.slideAnimations().some((animation) => animation.elementId === this.element().id),
-	);
+	protected readonly animationSectionOpen = computed(() => {
+		const request = this.inspectorPane?.animationPanelRequest() ?? 0;
+		if (this.animationManuallyClosedAt() === request) {
+			return false;
+		}
+		return (
+			request > 0 ||
+			this.slideAnimations().some((animation) => animation.elementId === this.element().id)
+		);
+	});
+
+	/** `<details>` toggle: remember a manual collapse against the current ribbon request count. */
+	protected onAnimationSectionToggle(event: Event): void {
+		const open = (event.target as HTMLDetailsElement).open;
+		this.animationManuallyClosedAt.set(
+			open ? null : (this.inspectorPane?.animationPanelRequest() ?? 0),
+		);
+	}
 	/** Read-only anchors for the active slide's deck-native effect groups. */
 	protected readonly slideAnimationTimelineAnchors = computed<
 		readonly PptxAnimationTimelineAnchor[]
