@@ -37,7 +37,10 @@ describe('checkModifyPassword', () => {
 			ok: false,
 			reason: 'wrong-password',
 		});
-	});
+		// No spinCount on the verifier means PowerPoint's default 100000 PBKDF2
+		// rounds run for real here (about 2s alone, longer under a parallel
+		// suite), so this test gets more than vitest's 5s default.
+	}, 30_000);
 
 	it('checks a REAL salt-less verifier correctly (checkable, not unsupported)', async () => {
 		const { createSaltlessModifyVerifierForTesting } = await import('pptx-viewer-core');

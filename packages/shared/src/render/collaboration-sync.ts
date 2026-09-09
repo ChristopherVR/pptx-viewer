@@ -178,6 +178,9 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'oleEmbeddedMimeType',
 	'oleEmbeddedByteSize',
 	'oleFollowColorScheme',
+	// Set by in-place OLE content editing until the next save re-embeds the
+	// payload (`ole-edit-commit.ts` in `pptx-viewer-core`); a plain flag.
+	'oleContentDirty',
 	// GroupPptxElement: exact EMU for the group's own `a:chOff`/`a:chExt`
 	// (child coordinate space). See `group-xfrm-preservation.ts` in
 	// `pptx-viewer-core`.

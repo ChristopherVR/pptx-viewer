@@ -232,12 +232,35 @@ describe('forEach point selection', () => {
 		expect(boxes).toHaveLength(3);
 	});
 
-	it('skips leading points for a 1-based start offset (st)', () => {
-		const boxes = linWithForEach([{ axis: ['ch'], pointTypes: ['node'], start: [2] }], nodes);
-		expect(boxes).toHaveLength(2);
-		// Data node '1' is skipped; the first placed rect is node '2'.
-		expect(boxes.some((b) => b.key.includes('-lin-1-'))).toBeFalsy();
-		expect(boxes.some((b) => b.key.includes('-lin-2-'))).toBeTruthy();
+	it('declines to arrange when the only forEach is a continuation (1-based start offset st > 1, nothing else drives it)', () => {
+		// A bare `dgm:forEach axis="ch" st="N>1"` is never a standalone
+		// "skip the first N-1 points" driver: per `isContinuationForEach`
+		// (`smartart-layout-interpreter-composite-detect.ts`, its own
+		// dedicated unit test "is true for a `dgm:forEach axis="ch" st="2"`
+		// (a CONTINUATION iterator)"), it always means "pick up points
+		// already consumed elsewhere in the SAME item template" - e.g. the
+		// corpus's `Table List` `pillars` (`st="2"`, skipping the `roof`
+		// slot's own point 1) and `Stacked List` `vertFlow` (`st="2"`,
+		// skipping `firstComp`'s point 1). `discoverArrangement` excludes
+		// such a node from structural candidacy at ANY depth, including the
+		// diagram's own top-level arranger; with no other structural
+		// candidate in this layoutDef to be a continuation OF, the
+		// interpreter correctly declines (`undefined`) rather than guessing
+		// that this st=2 iterator drives the arrangement on its own.
+		const layout = interpretSmartArtLayout({
+			layoutDefinition: def({
+				algorithm: { type: 'lin', parameters: [{ type: 'linDir', value: 'fromL' }] },
+				forEach: [{ axis: ['ch'], pointTypes: ['node'], start: [2] }],
+				children: [{ algorithm: { type: 'tx' } }],
+			}),
+			nodes,
+			flat: nodes,
+			box: BOX,
+			palette: PALETTE,
+			style: STYLE,
+			elementId: ID,
+		});
+		expect(layout).toBeUndefined();
 	});
 });
 
@@ -398,7 +421,17 @@ describe('interpret cycle', () => {
 	});
 	const nodes = [n('1', 'A'), n('2', 'B'), n('3', 'C'), n('4', 'D')];
 
-	it('arranges points equidistant around the box centre', () => {
+	it('mirrors ring points equidistant across the stAng axis on a non-square box', () => {
+		// See the identical fixture in `smartart-layout-interpreter-fidelity
+		// .test.ts` ("mirrors ring points equidistant across the stAng axis
+		// on a non-square box") for the full derivation: `computeCycleRingLayout`
+		// fits the ring to a non-square `BOX` (400x300) by an anisotropic
+		// per-axis scale (COM-verified against `basic-cycle--flat3.pptx`'s
+		// cached 347x232 non-square ellipse), so points are NOT equidistant
+		// from the centre in general - only points mirrored across the
+		// `stAng` axis (here `stAng=0`, the vertical axis) are, since
+		// reflecting about that axis commutes with an independent
+		// scaleX/scaleY.
 		const layout = interpretSmartArtLayout({
 			layoutDefinition: cycleDef,
 			nodes,
@@ -413,9 +446,14 @@ describe('interpret cycle', () => {
 		const cx = BOX.width / 2;
 		const cy = BOX.height / 2;
 		const radii = pts.map((p) => Math.hypot(p.cx - cx, p.cy - cy));
-		for (const r of radii) {
-			expect(r).toBeCloseTo(radii[0], 3);
+		for (let i = 1; i <= Math.floor(radii.length / 2); i++) {
+			const mirror = (radii.length - i) % radii.length;
+			expect(radii[i]).toBeCloseTo(radii[mirror], 3);
 		}
+		// Genuinely anisotropic: BOX is wider than tall, so the side points
+		// (on the horizontal axis) sit farther from centre than the top
+		// point (on the vertical axis).
+		expect(radii[1]).toBeGreaterThan(radii[0]);
 		expect(layout!.family).toBe('cycle');
 	});
 
@@ -514,8 +552,19 @@ describe('interpret hierarchy', () => {
 	// root's own children ALWAYS fan out in one row whatever `hierBranch` says,
 	// and only deeper generations hang, all of them the SAME direction ("Left"
 	// and "Right Hanging" do not mirror).
-	const threeLevel = [n('1', 'Root', [n('2', 'A', [n('3', 'A1'), n('4', 'A2')])])];
-	const threeLevelFlat = [n('1', 'Root'), n('2', 'A'), n('3', 'A1'), n('4', 'A2')];
+	// `A` has a sibling (`B`) so it is NOT a "solo chain link" (root's own
+	// only child): per `smartart-hierarchy-standard.ts`'s `placeAt` doc
+	// comment (COM-verified against `smartart-orgchart-hierbranch.pptx`'s
+	// "Report One", exercised directly in `pptx-viewer-core`'s
+	// `smartart-layout-interpreter-hierarchy.test.ts` as "still hangs a
+	// shared-row node's children even when spanW happens to equal its child
+	// count"), a node that SHARES its own row with a real sibling always
+	// hangs its ordinary children in one column, even when its own child
+	// count would otherwise match the "solo chain link" fan-continuation
+	// shape (`organization-chart--hier8.pptx`'s "Branch A Child") that
+	// applies ONLY to a lone link with no siblings of its own.
+	const threeLevel = [n('1', 'Root', [n('2', 'A', [n('3', 'A1'), n('4', 'A2')]), n('5', 'B')])];
+	const threeLevelFlat = [n('1', 'Root'), n('2', 'A'), n('3', 'A1'), n('4', 'A2'), n('5', 'B')];
 
 	for (const hierarchyBranch of ['l', 'r'] as const) {
 		it(`fans the root's own children and hangs deeper generations for hierBranch=${hierarchyBranch}`, () => {

@@ -116,16 +116,37 @@ describe('fidelity: snake', () => {
 // ── Cycle ───────────────────────────────────────────────────────────────────
 
 describe('fidelity: cycle', () => {
-	it('spaces points equidistant on a ring around the centre', () => {
+	it('mirrors ring points equidistant across the stAng axis on a non-square box', () => {
+		// The ring is fit to `BOX` (400x300, non-square) by an anisotropic
+		// per-axis scale - a natural circle scaled independently by scaleX/
+		// scaleY, not a uniform radius - see `computeCycleRingLayout`'s own
+		// module doc comment in `smartart-layout-interpreter-cycle-ring.ts`,
+		// COM-verified against `basic-cycle--flat3.pptx`'s cached 347x232
+		// non-square ellipse (the corpus proof this is the general rule, not
+		// an approximation). So on a non-square box, points at different
+		// angles are NOT equidistant from the centre in general.
+		//
+		// What DOES still hold, derived from that model: reflecting a point
+		// about the axis `stAng` itself sits on commutes with an independent
+		// per-axis scale (cos is even, sin is odd around that axis), so for
+		// `stAng=0` (this fixture's own start angle - the vertical axis)
+		// point `i` and point `n-i` are mirror images and land EQUIDISTANT
+		// from the centre, for any n. That is the structural invariant to
+		// assert instead of a uniform radius.
 		const layout = run(cycleDef(), contentNodes(5));
 		const pts = circlesOf(layout.nodes);
 		expect(pts).toHaveLength(5);
 		const cx = BOX.width / 2;
 		const cy = BOX.height / 2;
 		const radii = pts.map((p) => Math.hypot(p.cx - cx, p.cy - cy));
-		for (const r of radii) {
-			expect(r).toBeCloseTo(radii[0], 3);
+		for (let i = 1; i <= Math.floor(radii.length / 2); i++) {
+			const mirror = (radii.length - i) % radii.length;
+			expect(radii[i]).toBeCloseTo(radii[mirror], 3);
 		}
+		// Genuinely anisotropic (not a degenerate equal-radius fluke): BOX is
+		// wider than it is tall, so the near-horizontal mirrored pair sits
+		// farther from centre than the lone top point on the vertical axis.
+		expect(radii[1]).toBeGreaterThan(radii[0]);
 		expect(layout.family).toBe('cycle');
 	});
 
