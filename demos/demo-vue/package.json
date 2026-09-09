@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.12",
-		"@ai-sdk/vue": "^4.0.65",
+		"@ai-sdk/vue": "^4.0.93",
 		"ai": "^7.0.44",
 		"fast-xml-parser": "^5.11.0",
 		"jspdf": "^4.2.1",
