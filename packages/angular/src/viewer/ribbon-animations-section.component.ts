@@ -180,12 +180,15 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 			<svg lucideTrash2 class="h-4 w-4"></svg> {{ 'pptx.animations.remove' | translate }}
 		</button>
 		<span class="pptx-rb-sep"></span>
-		<!-- Animation Panel -->
+		<!-- Animation Panel: opens the inspector WITH its Animation section
+		     expanded (React/Vue land on the animation controls directly; the
+		     Angular inspector's sections are collapsible, so a plain toggle left
+		     the effect-sound and after-animation rows hidden). -->
 		<button
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.animations.openPanelTooltip' | translate"
-			(click)="toggleInspector.emit()"
+			(click)="openAnimationPanel.emit()"
 		>
 			<svg lucidePanelRight class="h-4 w-4"></svg>
 			{{ 'pptx.animations.animationPanel' | translate }}
@@ -229,6 +232,8 @@ export class RibbonAnimationsSectionComponent {
 
 	readonly present = output<void>();
 	readonly toggleInspector = output<void>();
+	/** "Animation Panel": open the inspector and expand its Animation section. */
+	readonly openAnimationPanel = output<void>();
 
 	protected hasSel(): boolean {
 		return this.editor.selectedIds().length > 0;

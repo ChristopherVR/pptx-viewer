@@ -408,6 +408,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						(copySlideAsImage)="xport.copySlideAsImage()"
 						(replace)="findReplace.openFindReplace()"
 						(toggleInspector)="inspectorPanel.toggleFormatPanel()"
+						(openAnimationPanel)="inspectorPanel.openAnimationPanel()"
 						(drawToolChange)="onDrawToolChange($event)"
 						[showGrid]="showGrid()"
 						[showRulers]="showRulers()"

@@ -69,6 +69,20 @@ describe('viewerInspectorPanelService', () => {
 		expect(svc.visibleInspectorKind()).toBe('slide');
 	});
 
+	it('openAnimationPanel surfaces the format pane and bumps the animation-section request every time', () => {
+		const svc = createService(true);
+		svc.togglePanel('comments');
+		expect(svc.animationPanelRequest()).toBe(0);
+		svc.openAnimationPanel();
+		expect(svc.activePanel()).toBeNull();
+		expect(svc.formatPanelClosed()).toBeFalsy();
+		expect(svc.animationPanelRequest()).toBe(1);
+		// A second click must be observable again (the inspector re-expands a
+		// section the user collapsed by hand), so the counter is monotonic.
+		svc.openAnimationPanel();
+		expect(svc.animationPanelRequest()).toBe(2);
+	});
+
 	it('toggleFormatPanel still toggles the pane after the mobile-closed default', () => {
 		const svc = createService(true);
 		svc.toggleFormatPanel();

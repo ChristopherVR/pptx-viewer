@@ -191,6 +191,23 @@ export class ViewerInspectorPanelService {
 	 * open/closed state, matching React's and Vue's independent open/close
 	 * toggle (closing/opening is not tied to selection changes).
 	 */
+	/**
+	 * Monotonic counter bumped by {@link openAnimationPanel}; the inspector
+	 * panel reacts to every change by expanding its Animation section, so a
+	 * user who collapsed it by hand gets it back on the next ribbon click.
+	 */
+	readonly animationPanelRequest = signal(0);
+
+	/**
+	 * Ribbon "Animation Panel": surface the format view like
+	 * {@link openFormatPanel} AND expand the inspector's Animation section
+	 * (React's `onOpenAnimationPanel` lands on those controls directly).
+	 */
+	openAnimationPanel(): void {
+		this.openFormatPanel();
+		this.animationPanelRequest.update((n) => n + 1);
+	}
+
 	toggleFormatPanel(): void {
 		if (this.activePanel() !== null) {
 			this.activePanel.set(null);

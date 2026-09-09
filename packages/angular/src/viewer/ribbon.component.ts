@@ -172,6 +172,7 @@ import type { RibbonTab } from './ribbon-types';
 					(openMasterView)="openMasterView.emit()"
 					(toggleNotes)="toggleNotes.emit()"
 					(toggleInspector)="toggleInspector.emit()"
+					(openAnimationPanel)="openAnimationPanel.emit()"
 					(drawToolChange)="drawToolChange.emit($event)"
 					(toggleThemeGallery)="toggleThemeGallery.emit()"
 					(editTheme)="editTheme.emit()"
@@ -309,6 +310,8 @@ export class RibbonComponent {
 	readonly replace = output<void>();
 	/** Design/Transitions/Animations tabs want the right-docked Inspector panel opened. */
 	readonly toggleInspector = output<void>();
+	/** Animations tab "Animation Panel": open the Inspector with its Animation section expanded. */
+	readonly openAnimationPanel = output<void>();
 	/** Draw tab tool state changed (tool/colour/width); UI-only, no ink back-end yet. */
 	readonly drawToolChange = output<DrawToolState>();
 	/** Emitted when the user clicks "Browse Themes" in the Design tab. */

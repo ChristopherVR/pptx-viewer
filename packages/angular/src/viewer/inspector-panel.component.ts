@@ -15,7 +15,16 @@
  * ```
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import type { ElementRef } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	effect,
+	inject,
+	input,
+	viewChild,
+} from '@angular/core';
 import { LucideArrowDown, LucideArrowUp } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
@@ -81,6 +90,7 @@ import { Text3DPanelComponent } from './text-3d-panel.component';
 import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 import { TextWarpGalleryComponent } from './text-warp-gallery.component';
 import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.component';
+import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 @Component({
 	selector: 'pptx-inspector-panel',
@@ -562,7 +572,7 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 			}
 
 			<!-- ── Animation authoring ────────────────────────────────────────── -->
-			<details class="pptx-ng-inspector__details">
+			<details #animationDetails class="pptx-ng-inspector__details" [open]="animationSectionOpen()">
 				<summary class="pptx-ng-inspector__summary">
 					{{ 'pptx.inspector.animation' | translate }}
 				</summary>
@@ -865,6 +875,26 @@ export class InspectorPanelComponent {
 	protected readonly editor = inject(EditorStateService);
 
 	/**
+	 * Optional: absent when the panel is rendered outside a viewer. The ribbon's
+	 * "Animation Panel" bumps {@link ViewerInspectorPanelService.animationPanelRequest};
+	 * every bump expands the Animation section below, so the effect-sound and
+	 * after-animation rows are visible the way React's and Vue's inspectors
+	 * show them (their animation controls are never behind a collapsed group).
+	 */
+	private readonly inspectorPane = inject(ViewerInspectorPanelService, { optional: true });
+	private readonly animationDetails = viewChild<ElementRef<HTMLDetailsElement>>('animationDetails');
+
+	constructor() {
+		effect(() => {
+			const request = this.inspectorPane?.animationPanelRequest() ?? 0;
+			const details = this.animationDetails()?.nativeElement;
+			if (request > 0 && details) {
+				details.open = true;
+			}
+		});
+	}
+
+	/**
 	 * Optional: absent in a standalone-thumbnail/export render context.
 	 * Feeds the table properties panel's "Edit style..." (`tableStyleMap`),
 	 * see {@link onTableStyleMapChange} / {@link onDeleteTableStyle}.
@@ -1084,6 +1114,15 @@ export class InspectorPanelComponent {
 	/** The active slide's element-animation list (animations live on the slide). */
 	protected readonly slideAnimations = computed<readonly PptxElementAnimation[]>(
 		() => this.editor.slides()[this.slideIndex()]?.animations ?? [],
+	);
+	/**
+	 * The Animation section starts expanded for an element that already carries
+	 * an effect, so its authoring rows (effect sound, after-animation, timing)
+	 * are visible on selection the way React's and Vue's inspectors show them;
+	 * the ribbon's "Animation Panel" expands it on demand for any element.
+	 */
+	protected readonly animationSectionOpen = computed(() =>
+		this.slideAnimations().some((animation) => animation.elementId === this.element().id),
 	);
 	/** Read-only anchors for the active slide's deck-native effect groups. */
 	protected readonly slideAnimationTimelineAnchors = computed<

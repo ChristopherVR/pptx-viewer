@@ -135,6 +135,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					[canEdit]="canEdit()"
 					(present)="present.emit()"
 					(toggleInspector)="toggleInspector.emit()"
+					(openAnimationPanel)="openAnimationPanel.emit()"
 				/>
 			}
 			@case ('help') {
@@ -199,6 +200,8 @@ export class RibbonContentSecondaryComponent {
 	readonly openMasterView = output<void>();
 	readonly toggleNotes = output<void>();
 	readonly toggleInspector = output<void>();
+	/** Animations tab "Animation Panel": open the inspector on its Animation section. */
+	readonly openAnimationPanel = output<void>();
 	readonly drawToolChange = output<DrawToolState>();
 	readonly toggleThemeGallery = output<void>();
 	/** Design > Edit Theme: open the theme gallery in its customise mode. */
