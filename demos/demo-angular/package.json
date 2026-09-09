@@ -23,7 +23,7 @@
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-locales": "workspace:*",
 		"rxjs": "^7.8.2",
-		"zone.js": "^0.16.2"
+		"zone.js": "^0.16.3"
 	},
 	"devDependencies": {
 		"@analogjs/vite-plugin-angular": "^2.6.4",

@@ -81,7 +81,7 @@
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32",
-		"zone.js": "^0.16.2"
+		"zone.js": "^0.16.3"
 	},
 	"peerDependencies": {
 		"@angular/common": "^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0",
