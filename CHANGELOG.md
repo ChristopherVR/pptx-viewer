@@ -8,6 +8,56 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-09
+
+_Releases: pptx-viewer-core@3.8.0, pptx-react-viewer@3.10.0, pptx-vue-viewer@3.10.0, pptx-angular-viewer@3.11.0, pptx-vanilla-viewer@2.10.0, pptx-svelte-viewer@3.11.0, pptx-viewer-mcp@2.5.0, @christophervr/pptx-viewer@2.10.0_
+
+### Features
+
+- **core:** Check salt-less modify verifiers instead of unlocking blindly (by @ChristopherVR) ([7c7f1da](https://github.com/ChristopherVR/pptx-viewer/commit/7c7f1da9f43e2d0836e675777d0f3036a0792c4e))
+- **core:** Model the c15 filtered-title and Value From Cells chart extensions (by @ChristopherVR) ([880fa81](https://github.com/ChristopherVR/pptx-viewer/commit/880fa81e9f2149216e1fcbb057dc316dc02e640f))
+- **core:** Ship PowerPoint's built-in stock sound gallery for effects and transitions (by @ChristopherVR) ([41854e5](https://github.com/ChristopherVR/pptx-viewer/commit/41854e561f3b56bbb177e761aadcfb66e608aba7))
+- **core:** Write legacy binary .ppt (PowerPoint 97-2003) from the save pipeline (by @ChristopherVR) ([d3360c1](https://github.com/ChristopherVR/pptx-viewer/commit/d3360c18d30ab616ee0ba533a3cdf0357fa1e390))
+- **core:** Edit embedded OLE content in place across all five bindings (by @ChristopherVR) ([3f51347](https://github.com/ChristopherVR/pptx-viewer/commit/3f513476e979cc2401cf0f20e5e000bc7af0a0ec))
+- **core:** Edit legacy Word 97-2003 (.doc) OLE documents in place (by @ChristopherVR) ([cfad261](https://github.com/ChristopherVR/pptx-viewer/commit/cfad261b07d1ad5fb79b122fd8eeff29cfe3ab5e))
+- **core:** Interpret SmartArt layouts against a COM-authored ground-truth corpus (by @ChristopherVR) ([d1b43a5](https://github.com/ChristopherVR/pptx-viewer/commit/d1b43a5203b499ac1b18c7da58a3d4a7c38ba640))
+
+### Bug Fixes
+
+- **vanilla:** Wire setAnimationStockSound into the chrome callbacks (by @ChristopherVR) ([f122477](https://github.com/ChristopherVR/pptx-viewer/commit/f122477df073d322277db28a709ebe9b03708eba))
+- **core:** Break the OLE nested-deck import cycle and declare the effect-sound fixture (by @ChristopherVR) ([7a99ea6](https://github.com/ChristopherVR/pptx-viewer/commit/7a99ea6acb31f4511bc68a504d971f0d6a20e954))
+- **core:** Make SDK-authored .ppt decks open in PowerPoint (by @ChristopherVR) ([7433ee5](https://github.com/ChristopherVR/pptx-viewer/commit/7433ee510abc76bfdbe546874cb117387f381f18))
+- **core:** Build the validator enum table through a pure call (by @ChristopherVR) ([d4977ea](https://github.com/ChristopherVR/pptx-viewer/commit/d4977eae77aff80a8b2b87bf87f8f76d89afb9c6))
+- **core:** Replace a stray NUL byte inside a string literal (by @ChristopherVR) ([40bdda3](https://github.com/ChristopherVR/pptx-viewer/commit/40bdda3b5a066a89afcbf6beeabf4aa55837adad))
+- **angular:** Surface the inspector's Animation section like the other bindings (by @ChristopherVR) ([f0d317a](https://github.com/ChristopherVR/pptx-viewer/commit/f0d317aacc4017b5d8397a9f81f9d29e7bf0980d))
+- **shared:** Sync the OLE content-dirty flag and settle three stale test premises (by @ChristopherVR) ([5302473](https://github.com/ChristopherVR/pptx-viewer/commit/53024730770ddbc50e997347c68c3a7737a686e3))
+- **angular:** Drive the inspector's Animation section with signals only (by @ChristopherVR) ([994b2c3](https://github.com/ChristopherVR/pptx-viewer/commit/994b2c37229946a33ceed9d38f12d626b032dd19))
+- **core:** Place cached SmartArt shapes at their raw offsets and keep a lone column in bounds (by @ChristopherVR) ([09ecba9](https://github.com/ChristopherVR/pptx-viewer/commit/09ecba9d245aa34d85e4a05eedb474775a413239))
+- **shared:** Give the accessibility title field a name distinct from the chart title (by @ChristopherVR) ([37bbe6a](https://github.com/ChristopherVR/pptx-viewer/commit/37bbe6aa4b973feea6b04ffec7d80dc3a676e405))
+- **shared:** Keep a plain Fly In on its directional preset when a real box is available (by @ChristopherVR) ([a026049](https://github.com/ChristopherVR/pptx-viewer/commit/a0260492322fe52a67b3d7fc01002ddf8f737211))
+
+### Documentation
+
+- Remove the limitation rows closed by wave 6 (by @ChristopherVR) ([463ed2b](https://github.com/ChristopherVR/pptx-viewer/commit/463ed2be773ad430a7e432809073902adc6cbc86))
+
+### Dependencies
+
+- **deps:** Merge dependabot #220 (by @ChristopherVR) ([cc7fefb](https://github.com/ChristopherVR/pptx-viewer/commit/cc7fefb97b2ef0429c104390238cd72ed2bff602))
+- **deps:** Update @angular/common requirement from ^22.1.2 to ^22.1.5 (by @dependabot[bot]) ([a2e4ff0](https://github.com/ChristopherVR/pptx-viewer/commit/a2e4ff068cec0a6377140b38c3097220e3e7fb62))
+- **deps:** Merge dependabot #219 (by @ChristopherVR) ([19dbd9f](https://github.com/ChristopherVR/pptx-viewer/commit/19dbd9f708aea1e83995271dc909fce4280eea1b))
+- **deps:** Update @angular/compiler-cli requirement (by @dependabot[bot]) ([b142681](https://github.com/ChristopherVR/pptx-viewer/commit/b142681ad3be6564da5e71d3bb809db93cdd5aff))
+- **deps:** Merge dependabot #218 (by @ChristopherVR) ([046dd86](https://github.com/ChristopherVR/pptx-viewer/commit/046dd864721dbb69d041bb5a99f6fd7edabaf9ff))
+- **deps:** Merge dependabot #214 (by @ChristopherVR) ([965c481](https://github.com/ChristopherVR/pptx-viewer/commit/965c4810b24888141e6ed4e8eb65a4d254a52239))
+- **deps:** Bump the minor-and-patch group with 3 updates (by @dependabot[bot]) ([6e40989](https://github.com/ChristopherVR/pptx-viewer/commit/6e409896e58d8e60a6a94ae3c4d51c6b6a5e7108))
+- **deps:** Merge dependabot #212 (by @ChristopherVR) ([a69fe7e](https://github.com/ChristopherVR/pptx-viewer/commit/a69fe7eaad513d06808570b31bf032f4310bafbd))
+- **deps:** Sync bun.lock after merging the dependabot updates (by @ChristopherVR) ([1c2ce71](https://github.com/ChristopherVR/pptx-viewer/commit/1c2ce7172be2bae484e7c378486c4880caa5ebcc))
+- **deps:** Update every dependency to its latest in-range version (by @ChristopherVR) ([1f242b7](https://github.com/ChristopherVR/pptx-viewer/commit/1f242b71b25a902f4ea817a45853c5f1a19db2c0))
+
+### Chores
+
+- **deps-dev:** Update rollup requirement from ^4.63.0 to ^4.63.1 (by @dependabot[bot]) ([b099154](https://github.com/ChristopherVR/pptx-viewer/commit/b0991547f721923603c66382baac83e1009a3af3))
+- **deps-dev:** Update @vue/test-utils requirement (by @dependabot[bot]) ([9930b6f](https://github.com/ChristopherVR/pptx-viewer/commit/9930b6f3b60767ec2270ac7c6259553d1ecbd541))
+
 ## 2026-09-06
 
 _Releases: pptx-viewer-core@3.7.0, pptx-react-viewer@3.9.0, pptx-vue-viewer@3.9.0, pptx-angular-viewer@3.10.0, pptx-vanilla-viewer@2.9.0, pptx-svelte-viewer@3.10.0, pptx-viewer-mcp@2.4.1, @christophervr/pptx-viewer@2.9.0_

@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.5.0) - 2026-09-09
+
+### Features
+
+- **core:** Edit embedded OLE content in place across all five bindings (by @ChristopherVR) ([3f51347](https://github.com/ChristopherVR/pptx-viewer/commit/3f513476e979cc2401cf0f20e5e000bc7af0a0ec))
+- **core:** Edit legacy Word 97-2003 (.doc) OLE documents in place (by @ChristopherVR) ([cfad261](https://github.com/ChristopherVR/pptx-viewer/commit/cfad261b07d1ad5fb79b122fd8eeff29cfe3ab5e))
+
+### Dependencies
+
+- **deps:** Bump the minor-and-patch group with 3 updates (by @dependabot[bot]) ([6e40989](https://github.com/ChristopherVR/pptx-viewer/commit/6e409896e58d8e60a6a94ae3c4d51c6b6a5e7108))
+- **deps:** Merge dependabot #212 (by @ChristopherVR) ([a69fe7e](https://github.com/ChristopherVR/pptx-viewer/commit/a69fe7eaad513d06808570b31bf032f4310bafbd))
+- **deps:** Update every dependency to its latest in-range version (by @ChristopherVR) ([1f242b7](https://github.com/ChristopherVR/pptx-viewer/commit/1f242b71b25a902f4ea817a45853c5f1a19db2c0))
+
 ## [2.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.4.1) - 2026-09-06
 
 ### Bug Fixes

@@ -7,6 +7,40 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.10.0) - 2026-09-09
+
+### Features
+
+- **core:** Check salt-less modify verifiers instead of unlocking blindly (by @ChristopherVR) ([7c7f1da](https://github.com/ChristopherVR/pptx-viewer/commit/7c7f1da9f43e2d0836e675777d0f3036a0792c4e))
+- **core:** Model the c15 filtered-title and Value From Cells chart extensions (by @ChristopherVR) ([880fa81](https://github.com/ChristopherVR/pptx-viewer/commit/880fa81e9f2149216e1fcbb057dc316dc02e640f))
+- **core:** Ship PowerPoint's built-in stock sound gallery for effects and transitions (by @ChristopherVR) ([41854e5](https://github.com/ChristopherVR/pptx-viewer/commit/41854e561f3b56bbb177e761aadcfb66e608aba7))
+- **core:** Write legacy binary .ppt (PowerPoint 97-2003) from the save pipeline (by @ChristopherVR) ([d3360c1](https://github.com/ChristopherVR/pptx-viewer/commit/d3360c18d30ab616ee0ba533a3cdf0357fa1e390))
+- **core:** Edit embedded OLE content in place across all five bindings (by @ChristopherVR) ([3f51347](https://github.com/ChristopherVR/pptx-viewer/commit/3f513476e979cc2401cf0f20e5e000bc7af0a0ec))
+- **core:** Edit legacy Word 97-2003 (.doc) OLE documents in place (by @ChristopherVR) ([cfad261](https://github.com/ChristopherVR/pptx-viewer/commit/cfad261b07d1ad5fb79b122fd8eeff29cfe3ab5e))
+- **core:** Interpret SmartArt layouts against a COM-authored ground-truth corpus (by @ChristopherVR) ([d1b43a5](https://github.com/ChristopherVR/pptx-viewer/commit/d1b43a5203b499ac1b18c7da58a3d4a7c38ba640))
+
+### Bug Fixes
+
+- **core:** Break the OLE nested-deck import cycle and declare the effect-sound fixture (by @ChristopherVR) ([7a99ea6](https://github.com/ChristopherVR/pptx-viewer/commit/7a99ea6acb31f4511bc68a504d971f0d6a20e954))
+- **core:** Make SDK-authored .ppt decks open in PowerPoint (by @ChristopherVR) ([7433ee5](https://github.com/ChristopherVR/pptx-viewer/commit/7433ee510abc76bfdbe546874cb117387f381f18))
+- **core:** Build the validator enum table through a pure call (by @ChristopherVR) ([d4977ea](https://github.com/ChristopherVR/pptx-viewer/commit/d4977eae77aff80a8b2b87bf87f8f76d89afb9c6))
+- **core:** Replace a stray NUL byte inside a string literal (by @ChristopherVR) ([40bdda3](https://github.com/ChristopherVR/pptx-viewer/commit/40bdda3b5a066a89afcbf6beeabf4aa55837adad))
+- **shared:** Sync the OLE content-dirty flag and settle three stale test premises (by @ChristopherVR) ([5302473](https://github.com/ChristopherVR/pptx-viewer/commit/53024730770ddbc50e997347c68c3a7737a686e3))
+- **core:** Place cached SmartArt shapes at their raw offsets and keep a lone column in bounds (by @ChristopherVR) ([09ecba9](https://github.com/ChristopherVR/pptx-viewer/commit/09ecba9d245aa34d85e4a05eedb474775a413239))
+- **shared:** Give the accessibility title field a name distinct from the chart title (by @ChristopherVR) ([37bbe6a](https://github.com/ChristopherVR/pptx-viewer/commit/37bbe6aa4b973feea6b04ffec7d80dc3a676e405))
+- **shared:** Keep a plain Fly In on its directional preset when a real box is available (by @ChristopherVR) ([a026049](https://github.com/ChristopherVR/pptx-viewer/commit/a0260492322fe52a67b3d7fc01002ddf8f737211))
+
+### Dependencies
+
+- **deps:** Merge dependabot #214 (by @ChristopherVR) ([965c481](https://github.com/ChristopherVR/pptx-viewer/commit/965c4810b24888141e6ed4e8eb65a4d254a52239))
+- **deps:** Bump the minor-and-patch group with 3 updates (by @dependabot[bot]) ([6e40989](https://github.com/ChristopherVR/pptx-viewer/commit/6e409896e58d8e60a6a94ae3c4d51c6b6a5e7108))
+- **deps:** Merge dependabot #212 (by @ChristopherVR) ([a69fe7e](https://github.com/ChristopherVR/pptx-viewer/commit/a69fe7eaad513d06808570b31bf032f4310bafbd))
+- **deps:** Update every dependency to its latest in-range version (by @ChristopherVR) ([1f242b7](https://github.com/ChristopherVR/pptx-viewer/commit/1f242b71b25a902f4ea817a45853c5f1a19db2c0))
+
+### Chores
+
+- **deps-dev:** Update @vue/test-utils requirement (by @dependabot[bot]) ([9930b6f](https://github.com/ChristopherVR/pptx-viewer/commit/9930b6f3b60767ec2270ac7c6259553d1ecbd541))
+
 ## [3.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.9.0) - 2026-09-06
 
 ### Features

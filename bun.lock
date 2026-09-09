@@ -189,7 +189,7 @@
     },
     "packages/angular": {
       "name": "pptx-angular-viewer",
-      "version": "3.10.0",
+      "version": "3.11.0",
       "dependencies": {
         "@lucide/angular": "^1.43.0",
         "dompurify": "^3.4.15",
@@ -247,7 +247,7 @@
     },
     "packages/cli": {
       "name": "@christophervr/pptx-viewer",
-      "version": "2.9.0",
+      "version": "2.10.0",
       "bin": {
         "pptx-viewer": "./dist/cli.mjs",
       },
@@ -294,7 +294,7 @@
     },
     "packages/core": {
       "name": "pptx-viewer-core",
-      "version": "3.7.0",
+      "version": "3.8.0",
       "bin": {
         "pptx": "./dist/cli/index.mjs",
       },
@@ -339,7 +339,7 @@
     },
     "packages/react": {
       "name": "pptx-react-viewer",
-      "version": "3.9.0",
+      "version": "3.10.0",
       "dependencies": {
         "clsx": "^2.1.1",
         "dompurify": "^3.4.15",
@@ -444,7 +444,7 @@
     },
     "packages/svelte": {
       "name": "pptx-svelte-viewer",
-      "version": "3.10.0",
+      "version": "3.11.0",
       "dependencies": {
         "@lucide/svelte": "^1.43.0",
         "fast-xml-parser": "^5.11.1",
@@ -491,7 +491,7 @@
     },
     "packages/tools": {
       "name": "pptx-viewer-mcp",
-      "version": "2.4.1",
+      "version": "2.5.0",
       "bin": {
         "pptx-tools": "./dist/mcp/index.mjs",
       },
@@ -519,7 +519,7 @@
     },
     "packages/vanilla": {
       "name": "pptx-vanilla-viewer",
-      "version": "2.9.0",
+      "version": "2.10.0",
       "dependencies": {
         "dompurify": "^3.4.15",
         "fast-xml-parser": "^5.11.1",
@@ -556,7 +556,7 @@
     },
     "packages/vue": {
       "name": "pptx-vue-viewer",
-      "version": "3.9.0",
+      "version": "3.10.0",
       "dependencies": {
         "clsx": "^2.1.1",
         "dompurify": "^3.4.15",

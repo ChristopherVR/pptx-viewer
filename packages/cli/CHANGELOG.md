@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.10.0) - 2026-09-09
+
+### Features
+
+- **core:** Check salt-less modify verifiers instead of unlocking blindly (by @ChristopherVR) ([7c7f1da](https://github.com/ChristopherVR/pptx-viewer/commit/7c7f1da9f43e2d0836e675777d0f3036a0792c4e))
+- **core:** Model the c15 filtered-title and Value From Cells chart extensions (by @ChristopherVR) ([880fa81](https://github.com/ChristopherVR/pptx-viewer/commit/880fa81e9f2149216e1fcbb057dc316dc02e640f))
+- **core:** Ship PowerPoint's built-in stock sound gallery for effects and transitions (by @ChristopherVR) ([41854e5](https://github.com/ChristopherVR/pptx-viewer/commit/41854e561f3b56bbb177e761aadcfb66e608aba7))
+- **core:** Write legacy binary .ppt (PowerPoint 97-2003) from the save pipeline (by @ChristopherVR) ([d3360c1](https://github.com/ChristopherVR/pptx-viewer/commit/d3360c18d30ab616ee0ba533a3cdf0357fa1e390))
+- **core:** Edit embedded OLE content in place across all five bindings (by @ChristopherVR) ([3f51347](https://github.com/ChristopherVR/pptx-viewer/commit/3f513476e979cc2401cf0f20e5e000bc7af0a0ec))
+
+### Dependencies
+
+- **deps:** Bump the minor-and-patch group with 3 updates (by @dependabot[bot]) ([6e40989](https://github.com/ChristopherVR/pptx-viewer/commit/6e409896e58d8e60a6a94ae3c4d51c6b6a5e7108))
+- **deps:** Merge dependabot #212 (by @ChristopherVR) ([a69fe7e](https://github.com/ChristopherVR/pptx-viewer/commit/a69fe7eaad513d06808570b31bf032f4310bafbd))
+- **deps:** Update every dependency to its latest in-range version (by @ChristopherVR) ([1f242b7](https://github.com/ChristopherVR/pptx-viewer/commit/1f242b71b25a902f4ea817a45853c5f1a19db2c0))
+
 ## [2.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.9.0) - 2026-09-06
 
 ### Features
