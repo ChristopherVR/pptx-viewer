@@ -1,6 +1,7 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
+import type { AnimationRenderContext } from './animation-render-context';
 import { buildTimeline } from './animation-timeline-builder';
 
 function makeAnim(overrides: Partial<PptxNativeAnimation> = {}): PptxNativeAnimation {
@@ -91,6 +92,44 @@ describe('buildTimeline', () => {
 
 		expect(result.clickGroups[0].steps[0].keyframeName).toBe('pptx-flyInLeft');
 		expect(result.keyframesCss).toContain('@keyframes pptx-flyInLeft');
+	});
+
+	it('keeps the same directional fly preset once a real box lets the sibling formula resolve', () => {
+		// Regression test for the issue-132 deck (slide 8, presetId 2 / left
+		// fly-in): with a real render-context box, `0-#ppt_w/2` -> `#ppt_x`
+		// stops being "not representable" (the previous test's scenario) and
+		// resolves exactly. That must not demote the semantic `flyInLeft`
+		// keyframe to a generic per-node `pptx-tl-transform-*` reconstruction:
+		// PowerPoint writes this same bare ppt_x/ppt_y shape for a PLAIN fly
+		// in, not only for a richer effect (see
+		// `animation-ppt-formula-ground-truth.md`), so the box-aware formula
+		// resolver must not out-rank a preset that already resolves.
+		const keyframes = (from: string, to: string) => [
+			{ tm: 0, value: from, valueType: 'str' as const },
+			{ tm: 100000, value: to, valueType: 'str' as const },
+		];
+		const renderContext: AnimationRenderContext = {
+			getElementBox: (elementId) =>
+				elementId === 'el1' ? { x: 0.743, y: 0.6514, width: 0.1305, height: 0.2319 } : undefined,
+		};
+		const result = buildTimeline(
+			[
+				makeAnim({
+					durationMs: 500,
+					presetId: 2,
+					presetSubtype: 8,
+					attributeAnimations: [
+						{ attrName: 'ppt_x', durationMs: 500, keyframes: keyframes('0-#ppt_w/2', '#ppt_x') },
+						{ attrName: 'ppt_y', durationMs: 500, keyframes: keyframes('#ppt_y', '#ppt_y') },
+					],
+				}),
+			],
+			renderContext,
+		);
+
+		expect(result.clickGroups[0].steps[0].keyframeName).toBe('pptx-flyInLeft');
+		expect(result.keyframesCss).toContain('@keyframes pptx-flyInLeft');
+		expect(result.keyframesCss).not.toContain('pptx-tl-transform');
 	});
 
 	// -------------------------------------------------------------------

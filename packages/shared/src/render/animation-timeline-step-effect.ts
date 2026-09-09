@@ -65,10 +65,36 @@ export function resolveStepEffect(
 	includeDirectional: boolean = true,
 ): StepEffectResolution {
 	let dynamicUid = dynamicUidStart;
-	let dynamic = hasAuthoredTransform(singleAnim, boxForAnimation(singleAnim, renderContext))
-		? buildDynamicKeyframe(singleAnim, dynamicUid++, renderContext)
-		: undefined;
-	let effect = dynamic ? undefined : resolveEffect(singleAnim);
+	const box = boxForAnimation(singleAnim, renderContext);
+	const authoredTransform = hasAuthoredTransform(singleAnim, box);
+	const staticEffect = resolveEffect(singleAnim);
+	// A directional Fly In/Out's authored `ppt_x`/`ppt_y` sibling formula
+	// (e.g. `from="(-#ppt_w/2)"` `to="(#ppt_x)"` for a left entrance) is
+	// PowerPoint's bare encoding of the SAME edge-to-rest motion the static
+	// `flyInLeft`-style preset already represents (see
+	// `animation-ppt-formula-ground-truth.md`); once a real box lets it
+	// resolve, it reconstructs that identical motion per-node instead of
+	// adding anything a named preset can't. Prefer the preset there, so the
+	// playback CSS keeps the semantic `pptx-flyInLeft`-style keyframe name.
+	// This is deliberately narrow to the fly family: OTHER authored
+	// position/size ramps (Bounce's sine `p:tav/@fmla`, Float's 0-to-full
+	// scale) carry real curvature/complexity a canned preset can't
+	// represent and must keep taking the dynamic path.
+	const preferStaticEffect =
+		authoredTransform &&
+		(staticEffect === 'flyInLeft' ||
+			staticEffect === 'flyInRight' ||
+			staticEffect === 'flyInTop' ||
+			staticEffect === 'flyInBottom' ||
+			staticEffect === 'flyOutLeft' ||
+			staticEffect === 'flyOutRight' ||
+			staticEffect === 'flyOutTop' ||
+			staticEffect === 'flyOutBottom');
+	let dynamic =
+		authoredTransform && !preferStaticEffect
+			? buildDynamicKeyframe(singleAnim, dynamicUid++, renderContext)
+			: undefined;
+	let effect = dynamic ? undefined : staticEffect;
 	if (!effect && !dynamic) {
 		dynamic = buildDynamicKeyframe(singleAnim, dynamicUid++, renderContext);
 	}
