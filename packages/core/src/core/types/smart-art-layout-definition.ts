@@ -97,7 +97,95 @@ export interface PptxSmartArtLayoutNode {
 	rules?: PptxSmartArtNumericRule[];
 	/** `dgm:shape`: this node's own preset geometry override, when present. */
 	shape?: PptxSmartArtLayoutNodeShape;
+	/**
+	 * `dgm:presOf` (CT_PresentationOf, same iterator shape as `dgm:forEach`):
+	 * which data-model point(s) this node's OWN text/geometry binds to -
+	 * `axis: ['self']` the point currently being iterated, `['des']` all of
+	 * its descendants, `['ch']` its direct children, and so on. Absent or
+	 * empty `axis` (including a bare `<dgm:presOf/>`) means the node carries
+	 * no text of its own (a pure positioning/decoration wrapper - `composite`,
+	 * `sp` spacer, connector cap). See `smartart-layout-interpreter-item-
+	 * roles.ts`, the one consumer: it is what lets the interpreter tell a
+	 * text-bearing per-item role (a list layout's `childText`, a card
+	 * layout's `roleText`/`bodyText`) apart from a same-generation sibling
+	 * that positions or decorates instead.
+	 */
+	presentationOf?: PptxSmartArtIteratorAttributes;
+	/**
+	 * EVERY `dgm:constr` reachable from this node, including ones declared
+	 * inside a `dgm:choose`/`dgm:if`/`dgm:else` that wraps THIS layoutNode's
+	 * `constrLst` (a genuinely conditional constraint set, e.g. one branch
+	 * per data-point count - `gear`'s composite positions its `gear1`/
+	 * `gear2`/`gear3` slots this way, so its plain, direct-child-only
+	 * `constraints` above is empty for it). Stops at a nested `dgm:layoutNode`
+	 * boundary: that child's own conditional constrLst becomes ITS
+	 * `allConstraints`, not folded into the parent's. Read-only /
+	 * interpretation-only - `constraints` above (this node's own DIRECT
+	 * constrLst) remains the one `applySmartArtLayoutDefinition` round-trips,
+	 * so editing an unrelated property can never collapse a genuinely
+	 * conditional constrLst into a single branch. `undefined` when this node
+	 * declares no constrLst at all, in or out of a choose (the common case);
+	 * otherwise a superset of `constraints` (every branch, blindly unioned -
+	 * this interpreter does not evaluate `dgm:choose` conditions when
+	 * indexing constraints, matching the same "flatten both branches"
+	 * convention `nestedLayoutNodes` already uses for `children`). See
+	 * `smartart-constraint-solver.ts`'s `buildConstraintIndex`, the only
+	 * consumer.
+	 */
+	allConstraints?: PptxSmartArtConstraint[];
 	children?: PptxSmartArtLayoutNode[];
+	/**
+	 * The iterator attributes of the ENCLOSING `dgm:forEach` this node was
+	 * found through, when `nestedLayoutNodes` (`smartart-layout-definition
+	 * .ts`) reached it by walking one - as opposed to being a direct child of
+	 * its parent layoutNode, or reached only through a `dgm:choose` wrapper
+	 * (a condition, not an iteration, leaves this `undefined`).
+	 *
+	 * `forEach` above records a node's OWN direct `dgm:forEach` children
+	 * (which wrap ITS descendants); this is the opposite direction - the
+	 * forEach that wraps the node ITSELF, one level up. A layoutNode can sit
+	 * inside more than one enclosing forEach only via nesting, so this is
+	 * always the SINGLE nearest one, not a list.
+	 *
+	 * This is what tells a genuinely repeated per-child template
+	 * (`axis="ch"`, `ptType` absent or `"node"`) apart from a once-only or
+	 * transition-only sibling that merely happens to sit inside SOME
+	 * `dgm:forEach` (a `ptType="parTrans"`/`"sibTrans"` connector, or
+	 * `axis="followSib" cnt="1"`) - both can be direct siblings under the
+	 * SAME parent layoutNode (`lProcess1`'s `vertFlow` has one forEach for
+	 * its `parTrans` connector and a SEPARATE one, `axis="ch"`, for its
+	 * repeated `child` items; `vertFlow.forEach` bundles both, but only
+	 * `child.forEachOrigin` says which ONE produced it). See
+	 * `smartart-layout-interpreter-item-roles-recursive.ts`, the one
+	 * consumer. Read-only / interpretation-only, like `allConstraints`:
+	 * never round-tripped by `applySmartArtLayoutDefinition`.
+	 */
+	forEachOrigin?: PptxSmartArtIteratorAttributes;
+	/**
+	 * The condition of the NEAREST enclosing `dgm:if` this node was found
+	 * through, when `nestedLayoutNodes` (`smartart-layout-definition.ts`)
+	 * reached it via a `dgm:choose`'s `if` branch (as opposed to a direct
+	 * child, a `dgm:else` branch - always `undefined` here, see below - or a
+	 * `dgm:forEach`, which sets {@link forEachOrigin} instead). Lets a
+	 * caller that already has the data-model node list decide whether this
+	 * node's OWN branch is genuinely live for a specific point, instead of
+	 * treating every choose-flattened branch as unconditionally present
+	 * (`nestedLayoutNodes`' pre-existing "flatten every branch" convention,
+	 * still the default when this is absent or a caller does not evaluate
+	 * it) - e.g. `cycle-matrix--fallback-n2.pptx`'s `child1group`..
+	 * `child4group`, each gated on a DIFFERENT top-level point existing and
+	 * having its own child (`axis="ch ch" st="N 1" cnt="1 0" func="cnt"
+	 * op="gte" val="1"`).
+	 *
+	 * Deliberately `undefined` for a `dgm:else` branch: ECMA-376 defines it
+	 * as "none of the sibling ifs matched", which would need the FULL
+	 * sibling list's conditions negated and ANDed together, not a single
+	 * condition - no gallery fixture measured needs an else branch's own
+	 * guard yet, so it is left unconditional (rendered by default, matching
+	 * the pre-existing flatten-everything behaviour) rather than guessed at.
+	 * Evaluate with `smartart-layout-interpreter-when.ts`'s `evaluateWhen`.
+	 */
+	chooseGuard?: PptxSmartArtWhen;
 }
 
 /** Metadata and root node from DiagramML CT_DiagramDefinition. */

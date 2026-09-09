@@ -55,7 +55,10 @@ describe('resolveNamedRuleOverride', () => {
 			{ type: 'primFontSz', forName: 'node', value: 28 },
 			{ type: 'h', forName: 'sibTrans', value: 0.9 },
 		];
-		expect(resolveNamedRuleOverride(rules, 'node')).toStrictEqual({ width: 0.35, fontSize: 28 });
+		// The `primFontSz` rule resolves NO key (see the module doc comment's
+		// "NEITHER... is actually wired in" note): a `dgm:rule` is a shrink-search
+		// bound, not a literal value to assign, so only the `w` rule survives.
+		expect(resolveNamedRuleOverride(rules, 'node')).toStrictEqual({ width: 0.35 });
 	});
 
 	it('matches nothing when the name is absent from the rule pool (not everything)', () => {
@@ -69,16 +72,27 @@ describe('resolveNamedRuleOverride', () => {
 		expect(resolveNamedRuleOverride(rules, 'node')).toBeUndefined();
 	});
 
-	// G11: `secFontSz` is `primFontSz`'s sibling (scales the secondary/subordinate
-	// text run) but was missing from OVERRIDE_KEY, so a two-line node template's
-	// subtitle rule silently did nothing.
-	it('resolves secFontSz the same way as primFontSz', () => {
-		const rules = [{ type: 'secFontSz', forName: 'node', value: 10 }];
-		expect(resolveNamedRuleOverride(rules, 'node')).toStrictEqual({ fontSize: 10 });
+	// Supersedes the former "G11" case (`secFontSz` mirrors `primFontSz`): a
+	// PowerPoint-authored `primFontSz`/`secFontSz` rule is a shrink-search
+	// bound (measured against "Vertical Bullet List" - see the module doc
+	// comment), not a literal override, so neither ever resolves a key here;
+	// a rule pool containing ONLY one resolves no override at all.
+	it('resolves neither primFontSz nor secFontSz to an override (shrink-search bounds, not literal values)', () => {
+		expect(
+			resolveNamedRuleOverride([{ type: 'secFontSz', forName: 'node', value: 10 }], 'node'),
+		).toBeUndefined();
+		expect(
+			resolveNamedRuleOverride([{ type: 'primFontSz', forName: 'node', value: 10 }], 'node'),
+		).toBeUndefined();
 	});
 });
 
 describe('applyNamedRuleOverride', () => {
+	// `applyToNode`'s own mechanics, exercised with a hand-built override: no
+	// real `dgm:rule` resolves a `fontSize` key any more (see
+	// `resolveNamedRuleOverride`'s tests above), but `NamedRuleOverride` keeps
+	// the field and `applyToNode` still honours it when a caller supplies one
+	// directly, so this still documents that behaviour in isolation.
 	it('resizes and recentres rect nodes, but only changes font size on other kinds', () => {
 		const box = { width: 600, height: 300 };
 		const result = {
@@ -149,6 +163,10 @@ describe('applyNamedRuleOverride', () => {
 
 describe('interpretSmartArtLayout: forName-scoped rule overrides', () => {
 	it('overrides only the named item role, leaving other rendered fields untouched', () => {
+		// The `primFontSz` rule alongside the `w` one is intentionally NOT
+		// asserted to set `fontSize`: it is a shrink-search bound
+		// (`smartart-layout-item-font-size.ts` consumes it), not a literal
+		// value this module assigns - see the module doc comment.
 		const definition = linearDefinition([
 			{ type: 'w', forName: 'node', value: 0.4, factor: 1.5, max: 0.35 },
 			{ type: 'primFontSz', forName: 'node', value: 28 },
@@ -168,7 +186,6 @@ describe('interpretSmartArtLayout: forName-scoped rule overrides', () => {
 			expect(node.kind).toBe('rect');
 			if (node.kind === 'rect') {
 				expect(node.width).toBeCloseTo(0.35 * 600);
-				expect(node.fontSize).toBe(28);
 			}
 		}
 	});

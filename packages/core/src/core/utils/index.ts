@@ -210,12 +210,13 @@ export {
 export {
 	buildConstraintIndex,
 	resolveConstraint,
-	resolveRatioConstraint,
 	roleOf,
 	hasReference,
 	EMPTY_CONSTRAINT_INDEX,
 	type ConstraintIndex,
 } from './smartart-constraint-solver';
+export { resolveConstraintDeclaredBy } from './smartart-constraint-declared-by';
+export { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 export { selectArrangedNodes, chooseAlgType } from './smartart-layout-interpreter-flow';
 export { arrangeLinear, arrangeSnake } from './smartart-layout-interpreter-linear';
 export { arrangeCycle } from './smartart-layout-interpreter-cycle';

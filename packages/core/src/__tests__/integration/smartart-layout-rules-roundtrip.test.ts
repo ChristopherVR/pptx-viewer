@@ -14,12 +14,23 @@
  * two differently-named child roles). The deleted evaluator's fallback also
  * applied an unmatched name to EVERY node instead of none.
  *
- * This test exercises the restored, spec-correct behaviour in
- * `smartart-layout-interpreter-named-rules.ts`: a rule declared anywhere in
- * the tree that names the arranger's item template (here, "node") overrides
- * that role's width/font size uniformly for every point rendered through it,
- * both in the live-preview render model (`computeSmartArtElementsWithoutCache`)
- * and in the fabricated cached `dsp:` drawing baked on save.
+ * This test exercises `smartart-layout-interpreter-named-rules.ts`'s
+ * `forName`-scoped `w` override, still applied as a direct value (no OTHER
+ * part of the interpreter resolves an item's own `w`/`h` rule clamp).
+ *
+ * `primFontSz`/`secFontSz`, by contrast, are NOT treated as a literal
+ * override any more (see `smartart-layout-interpreter-named-rules.ts`'s
+ * module doc comment): measured against the genuine "Vertical Bullet List"
+ * gallery fixture (`smartart-gallery-ground-truth.test.ts`), a `dgm:rule
+ * type="primFontSz"` is a shrink-search BOUND (its arranger declares
+ * `<dgm:rule type="primFontSz" for="ch" forName="parentText" val="5"/>` as
+ * an intentionally shallow floor of last resort, mirrored by the SAME
+ * item's own `<dgm:rule type="h" val="INF"/>` in the identical `ruleLst`
+ * container - unambiguously a bound, since height cannot literally be set to
+ * infinity), never a value to assign outright. Treating it as a literal
+ * override discarded `smartart-layout-item-font-size.ts`'s own real
+ * text-measured fit entirely and made a genuine fixture's font size come out
+ * roughly 10x too small.
  */
 
 import JSZip from 'jszip';
@@ -99,11 +110,14 @@ describe('smartArt layout rule round-trip: forName-scoped rule overrides', () =>
 		for (const shape of renderModel) {
 			expect(shape.type).toBe('shape');
 			if (shape.type === 'shape') {
-				// primFontSz=28 applies uniformly: `forName` names the shared
-				// "node" template, not one instance among the three siblings.
-				expect(shape.textStyle?.fontSize).toBe(28);
-				expect(shape.textSegments?.[0]?.style.fontSize).toBeCloseTo(28 * (96 / 72));
-				// w=0.4*1.5 clamped to max=0.35 of the 600px-wide frame.
+				// The `primFontSz` rule is NOT applied as a literal 28pt override
+				// (see the module doc comment above): with no `primFontSz`
+				// CONSTRAINT declared (only the rule), the item falls back to the
+				// pre-existing 12px heuristic ceiling, which this short text
+				// trivially fits.
+				expect(shape.textStyle?.fontSize).toBe(12);
+				// w=0.4*1.5 clamped to max=0.35 of the 600px-wide frame - the `w`
+				// rule DOES still apply directly (see the module doc comment).
 				expect(shape.width).toBeCloseTo(0.35 * 600);
 			}
 		}
@@ -123,8 +137,11 @@ describe('smartArt layout rule round-trip: forName-scoped rule overrides', () =>
 		const savedZip = await JSZip.loadAsync(saved);
 		const drawing = await savedZip.file('ppt/diagrams/drawing1.xml')!.async('string');
 
-		// primFontSz=28pt -> `sz="2800"` (hundredths of a point) on every shape.
-		const matches = [...drawing.matchAll(/sz="2800"/gu)];
+		// The `primFontSz` rule is NOT a literal 28pt override (see the module
+		// doc comment above) - with no `primFontSz` CONSTRAINT declared, every
+		// shape bakes the pre-existing 12pt heuristic ceiling (`sz="1200"`)
+		// this short text trivially fits at.
+		const matches = [...drawing.matchAll(/sz="1200"/gu)];
 		expect(matches).toHaveLength(3);
 
 		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
@@ -132,7 +149,7 @@ describe('smartArt layout rule round-trip: forName-scoped rule overrides', () =>
 		expect(cached?.length).toBe(3);
 		for (const shape of cached ?? []) {
 			// The cached model exposes renderer units even though OOXML stores points.
-			expect(shape.fontSize).toBeCloseTo(28 * (96 / 72));
+			expect(shape.fontSize).toBeCloseTo(12 * (96 / 72));
 		}
 	});
 

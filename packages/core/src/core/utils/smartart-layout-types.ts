@@ -57,6 +57,60 @@ export interface RenderedNodeIdentity {
 	nodeId?: string;
 	/** Additional rotation in degrees from a `custAng` manual override. */
 	rotation?: number;
+	/**
+	 * Explicit DrawingML preset geometry name (`rect`, `roundRect`, ...) for
+	 * the save-pipeline bridge (`smartart-interpreter-drawing-bridge.ts`) to
+	 * use verbatim instead of its own kind-based default. Set by
+	 * `smartart-layout-interpreter-item-roles.ts` when a per-item role
+	 * template (e.g. a list layout's `childText`) declares its own `dgm:shape`
+	 * distinct from the arranger's hardcoded family shape. `undefined` keeps
+	 * the bridge's pre-existing behaviour.
+	 */
+	presetOverride?: string;
+	/**
+	 * Additional `PptxSmartArtNode.id`s whose text folds into THIS shape as
+	 * extra paragraphs (see `projectFoldedNodeText` in the drawing bridge),
+	 * pre-resolved by `smartart-layout-interpreter-item-roles.ts` for a
+	 * `des`/`ch`-axis role that combines more than one descendant's text into
+	 * one box. `undefined` keeps the bridge's own descendant-folding
+	 * inference (nearest rendered ancestor absorbs any node without a box).
+	 */
+	foldedNodeIds?: string[];
+	/**
+	 * Pre-resolved, verbatim display text for a role bound to a TRANSITION
+	 * point (`dgm:presOf ptType="sibTrans"|"parTrans"`) rather than a real
+	 * data node - e.g. a numbered-badge layout's ordinal "1"/"2"/"3" text,
+	 * which PowerPoint stores on the `sibTrans` point of the item's own
+	 * `parOf` edge (`PptxSmartArtConnection.label`), not on any
+	 * `PptxSmartArtNode` `nodeId` can resolve. Set by
+	 * `smartart-layout-interpreter-item-roles.ts`. When present, the
+	 * save-pipeline bridge (`smartart-interpreter-drawing-bridge.ts`) uses it
+	 * verbatim instead of resolving `nodeId` against the node array (which
+	 * would find nothing and render blank text).
+	 */
+	literalText?: string;
+	/**
+	 * The `dgm:layoutNode/@name` of the per-item text role this entry was
+	 * split from (e.g. a pyramid's `level` vs `acctTx`), set by
+	 * `smartart-layout-interpreter-item-role-shared.ts`'s `stackRoleContent`
+	 * for EVERY split entry (rect or polygon), not only ones an arranger
+	 * needs to distinguish. A `polygon` split (`arrangePyramid`'s
+	 * parent+child pyramid accent) starts as an unchanged copy of the
+	 * original geometry per role - this is the one field an arranger-specific
+	 * geometry pass can key off to reposition/resize each entry by name,
+	 * since `stackRoleContent` itself has no generic way to split a
+	 * polygon's own `points`. `undefined` on an unsplit node.
+	 */
+	itemRoleName?: string;
+	/**
+	 * The font size (px) a FOLDED descendant paragraph (`collectFoldedDescendants`
+	 * in the drawing bridge) should render at, when it differs from this
+	 * shape's own `fontSize` - see `smartart-layout-item-font-tier.ts`'s
+	 * module doc comment for why a folded descendant renders SMALLER than its
+	 * ancestor's own top-level text. `undefined` keeps the bridge's
+	 * pre-existing behaviour of reusing `fontSize` for every folded paragraph.
+	 */
+	descendantFontSize?: number;
 }
 
 /** A node rendered as an SVG rect (rounded or flat). */
@@ -87,6 +141,19 @@ export interface RenderedCircleNode extends RenderedNodeTextStyle, RenderedNodeI
 	cx: number;
 	cy: number;
 	r: number;
+	/**
+	 * Optional independent horizontal/vertical radii for a genuinely elliptical
+	 * node (e.g. the `cycle` arranger's "Basic Cycle" ring, whose real
+	 * PowerPoint output is a non-circular ellipse - see
+	 * `smartart-layout-interpreter-cycle.ts`). Additive: every existing
+	 * producer that never sets these keeps rendering as the plain circle `r`
+	 * always described; a consumer that does not know about `rx`/`ry` still
+	 * gets a sensible circle (`r`) rather than an error. Only
+	 * `smartart-interpreter-drawing-bridge.ts`'s geometry conversion currently
+	 * reads them.
+	 */
+	rx?: number;
+	ry?: number;
 	fill: string;
 	stroke: string;
 	strokeWidth: number;

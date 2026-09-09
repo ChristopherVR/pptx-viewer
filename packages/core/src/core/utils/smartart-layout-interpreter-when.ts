@@ -8,7 +8,8 @@
  * Pure TypeScript - no framework code, no DOM.
  */
 
-import type { PptxSmartArtPresLayoutVars, PptxSmartArtWhen } from '../types';
+import type { PptxSmartArtNode, PptxSmartArtPresLayoutVars, PptxSmartArtWhen } from '../types';
+import { resolveAxisCount } from './smartart-layout-interpreter-axis-count';
 
 /** Parse a numeric branch threshold, or `undefined` when non-numeric. */
 function toNumber(value: string): number | undefined {
@@ -40,6 +41,17 @@ export interface WhenContext {
 	maxDepth?: number;
 	/** Diagram presentation layout variables, for `func="var"` (`@arg` names the variable). */
 	presLayoutVars?: PptxSmartArtPresLayoutVars;
+	/**
+	 * The diagram's own flat data-model node array (`parentId`-linked), for a
+	 * `func="cnt"` `dgm:if` whose `@axis` is declared at all - a single bare
+	 * hop (`axis="ch"`, "the context point's own children"), a sub-range
+	 * select (`@st`/`@cnt`), or a compound multi-hop chain (`axis="ch ch"`,
+	 * "my first child's own children") - see {@link resolveAxisCount}.
+	 * Omitted by a caller with no data-model tree to offer keeps the older,
+	 * coarser `nodeCount`-only behaviour for `cnt` exactly as before (no
+	 * regression for a caller that never had this).
+	 */
+	nodes?: PptxSmartArtNode[];
 }
 
 /** Apply `when.operator` to compare `actual` against a numeric `threshold`. */
@@ -77,6 +89,25 @@ const VAR_LOOKUP: Readonly<
 	resizeHandles: (v) => v.resizeHandles,
 };
 
+/**
+ * ECMA-376 `CT_DirectionVarSet`/etc. default a `dgm:varLst` variable NOT
+ * written to the file, rather than leaving it "unknown": most built-in
+ * layoutDefs (every `lin`/`snake`/`cycle`/`pyra` family, at minimum) gate
+ * their primary arrangement algorithm behind
+ * `<dgm:if func="var" arg="dir" op="equ" val="norm">` and never write an
+ * explicit `dgm:dir` unless the diagram is actually reversed - so treating
+ * "absent" as undecidable (rather than "norm", the spec default) meant this
+ * choose was NEVER decided for the common case, and `discoverArrangement`
+ * fell through to the legacy family approximation for the majority of the
+ * built-in gallery (measured via `smartart-gallery-ground-truth.test.ts`:
+ * "Basic Process" and most List/Process/Cycle/Pyramid layouts). Only `dir`
+ * is defaulted here; the other `dgm:varLst` variables (`hierBranch`,
+ * `chMax`/`chPref`, ...) are resolved with their own defaults already
+ * applied at parse time (`smartart-pres-layout-vars.ts`), so they reach here
+ * with a concrete value or a deliberate "genuinely absent" `undefined`.
+ */
+const VAR_DEFAULT: Readonly<Partial<Record<string, string>>> = { dir: 'norm' };
+
 /** Evaluate `func="var"`: compare `presLayoutVars[@arg]` against `when.value`. */
 function evaluateVar(
 	when: PptxSmartArtWhen,
@@ -85,7 +116,8 @@ function evaluateVar(
 	if (!when.argument) {
 		return undefined;
 	}
-	const actual = VAR_LOOKUP[when.argument]?.(presLayoutVars);
+	const resolved = VAR_LOOKUP[when.argument]?.(presLayoutVars);
+	const actual = resolved ?? VAR_DEFAULT[when.argument];
 	if (actual === undefined) {
 		return undefined;
 	}
@@ -118,10 +150,12 @@ function evaluateParity(
 }
 
 /**
- * Evaluate a single `dgm:if`. `func="cnt"` (against `nodeCount`) is always
- * decidable; `pos`/`revPos`/`posEven`/`posOdd`/`depth`/`maxDepth`/`var` are
- * decidable only when `context` supplies the matching field - otherwise this
- * returns `undefined` so the caller keeps its blind first-alg behaviour.
+ * Evaluate a single `dgm:if`. `func="cnt"` (against `resolveAxisCount` when
+ * `when.axis` is declared and real tree navigation is available, else the
+ * caller's own flat `nodeCount`) is always decidable; `pos`/`revPos`/
+ * `posEven`/`posOdd`/`depth`/`maxDepth`/`var` are decidable only when
+ * `context` supplies the matching field - otherwise this returns `undefined`
+ * so the caller keeps its blind first-alg behaviour.
  */
 export function evaluateWhen(
 	when: PptxSmartArtWhen,
@@ -131,9 +165,43 @@ export function evaluateWhen(
 	switch (when.function) {
 		case 'cnt': {
 			const threshold = toNumber(when.value);
-			return threshold === undefined
-				? undefined
-				: compareNumeric(nodeCount, when.operator, threshold);
+			if (threshold === undefined) {
+				return undefined;
+			}
+			// ANY declared `@axis` (a bare single hop included) needs real tree
+			// navigation: ECMA-376 21.4.7.5's `axis="ch"` means "the CONTEXT
+			// point's own children", which the caller's flat `nodeCount` (every
+			// point at every depth) only coincides with when no matched point has
+			// a deeper descendant of its own. `radial-list--hier5.pptx`'s own
+			// `axis="ch" ptType="node" func="cnt"` satellite-count choose is the
+			// fixture that exposed this: 3 top-level satellites (the real answer
+			// ECMA wants), but a flat total of 5 once two satellites fold in a
+			// child's own text. Also fixes `tabbed-arc--hier5.pptx` (14.82% ->
+			// 5.25%). This ONCE measured worse for `radial-list` alone
+			// (87.43% -> 109-115%) because of a SEPARATE bug in
+			// `resolveCycleRingParams`'s `heightOverWidth` resolution for a
+			// side-by-side (not self-aspect-declaring) composite ring item -
+			// see that function's own doc comment for the fix landed alongside
+			// this one; both together, verify `radial-list` does not regress
+			// below its own prior number before trusting this scope change.
+			// Falls back to `nodeCount` only when `context.nodes` is absent, or
+			// `resolveAxisCount` itself declines (an axis hop it doesn't
+			// recognise) - never a silent behaviour change for a caller with no
+			// tree to navigate.
+			const axis = when.axis;
+			if (axis !== undefined && context.nodes) {
+				const resolved = resolveAxisCount(
+					context.nodes,
+					axis,
+					when.pointTypes,
+					when.start,
+					when.count,
+				);
+				if (resolved !== undefined) {
+					return compareNumeric(resolved, when.operator, threshold);
+				}
+			}
+			return compareNumeric(nodeCount, when.operator, threshold);
 		}
 		case 'pos': {
 			if (context.position === undefined) {

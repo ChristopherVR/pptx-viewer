@@ -157,4 +157,67 @@ describe('parseSmartArtConnections', () => {
 		const { parentByNodeId } = runtime.connections(dataModel);
 		expect(parentByNodeId.get('child')).toBe('root');
 	});
+
+	it("falls back to the sibTrans point's own text when the paired parTrans is blank", () => {
+		// `numbered-dots-horizontal--hier5.pptx`'s "1"/"2"/"3" ordinal badges
+		// live on the `sibTrans` point of each top-level item's `parOf` edge;
+		// its paired `parTrans` point exists (every `parOf` cxn declares both
+		// ids) but carries no text. Picking `parentTransitionId` unconditionally
+		// (the previous behaviour) meant `label` was ALWAYS undefined here,
+		// since it never looked at `siblingTransitionId`'s text once a
+		// `parTransId` was merely present.
+		const dataModel: XmlObject = {
+			'dgm:ptLst': {
+				'dgm:pt': [
+					{ '@_modelId': 'par1', '@_type': 'parTrans' },
+					{
+						'@_modelId': 'sib1',
+						'@_type': 'sibTrans',
+						'dgm:t': { 'a:p': { 'a:r': { 'a:t': '1' } } },
+					},
+				],
+			},
+			'dgm:cxnLst': {
+				'dgm:cxn': {
+					'@_modelId': 'c1',
+					'@_srcId': 'doc',
+					'@_destId': 'nodeOne',
+					'@_parTransId': 'par1',
+					'@_sibTransId': 'sib1',
+				},
+			},
+		};
+		const { parsedConnections } = runtime.connections(dataModel);
+		expect(parsedConnections[0]?.label).toBe('1');
+	});
+
+	it("still prefers the parTrans point's text when both transition points carry text", () => {
+		const dataModel: XmlObject = {
+			'dgm:ptLst': {
+				'dgm:pt': [
+					{
+						'@_modelId': 'par1',
+						'@_type': 'parTrans',
+						'dgm:t': { 'a:p': { 'a:r': { 'a:t': 'reports to' } } },
+					},
+					{
+						'@_modelId': 'sib1',
+						'@_type': 'sibTrans',
+						'dgm:t': { 'a:p': { 'a:r': { 'a:t': 'next' } } },
+					},
+				],
+			},
+			'dgm:cxnLst': {
+				'dgm:cxn': {
+					'@_modelId': 'c1',
+					'@_srcId': 'manager',
+					'@_destId': 'report',
+					'@_parTransId': 'par1',
+					'@_sibTransId': 'sib1',
+				},
+			},
+		};
+		const { parsedConnections } = runtime.connections(dataModel);
+		expect(parsedConnections[0]?.label).toBe('reports to');
+	});
 });

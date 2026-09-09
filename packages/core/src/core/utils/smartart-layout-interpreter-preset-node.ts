@@ -38,31 +38,111 @@ export interface PresetBoxNodeParams {
 	shape: PptxSmartArtLayoutNodeShape | undefined;
 	/** The arranger's hardcoded default kind, used when `shape` has none. */
 	fallbackKind: PresetRenderKind;
+	/**
+	 * A font size every item in the arranged set shares (see
+	 * `smartart-layout-item-font-size.ts`), overriding the per-node char-width
+	 * fit heuristic. Omit to keep that heuristic (e.g. arrangers with no
+	 * uniform item template).
+	 */
+	fontSizeOverride?: number;
+	/** See `RenderedNodeIdentity.descendantFontSize`'s doc comment. */
+	descendantFontSize?: number;
+	/**
+	 * Opt-in: when the resolved kind is `circle` and `width !== height`, carry
+	 * the true `width`/`height` through as `RenderedCircleNode.rx`/`.ry`
+	 * instead of silently clamping to a circle via `r = min(width, height) /
+	 * 2` (the default, pre-existing behaviour every other caller keeps
+	 * unchanged). Needed by `smartart-layout-interpreter-cycle.ts`: a real
+	 * `ellipse`-preset "Basic Cycle" ring node IS genuinely non-circular (its
+	 * PowerPoint aspect comes from fitting an anisotropically-scaled ring into
+	 * the diagram box - see that module's doc comment), and clamping it to a
+	 * circle was silently discarding a correct width down to the (smaller)
+	 * height. Left `false` by default so `smartart-layout-interpreter-
+	 * linear.ts`/`smartart-hierarchy-shared.ts`'s existing circle-kind
+	 * fixtures render byte-identically.
+	 */
+	preserveEllipseAspect?: boolean;
+}
+
+/**
+ * Resolve the exact DrawingML preset geometry name (`a:prstGeom/@prst`) this
+ * box should carry, for the save-pipeline bridge
+ * (`smartart-interpreter-drawing-bridge.ts`) to emit verbatim via
+ * `RenderedNodeIdentity.presetOverride`.
+ *
+ * `shape.presetGeometry` (the layoutNode's own `dgm:shape/@type`) wins when
+ * present - it is the exact preset PowerPoint itself would cache, whatever
+ * coarse `kind` it maps to (`rect` for a plain `rect`/`roundRect`/..., `circle`
+ * for `ellipse`/`donut`/..., `polygon` for `chevron`/`homePlate`/...). When the
+ * layoutNode carries no shape override, fall back to the family default this
+ * bridge has always emitted for that coarse kind (`roundRect` for a rect,
+ * `ellipse` for a circle) so unauthored layouts keep their pre-existing
+ * output. A `polygon` kind is only ever reached via an explicit
+ * `POLYGON_PRESETS` match in `resolvePresetRenderKind`, so `shape.
+ * presetGeometry` is always defined in that branch.
+ */
+function resolvedPreset(
+	shape: PptxSmartArtLayoutNodeShape | undefined,
+	kind: PresetRenderKind,
+): string {
+	return shape?.presetGeometry ?? (kind === 'circle' ? 'ellipse' : 'roundRect');
 }
 
 /** Build a node covering `[x,y,width,height]`, in the kind `shape` resolves to. */
 export function presetBoxNode(params: PresetBoxNodeParams): RenderedNode {
-	const { x, y, width, height, shape, fallbackKind, ...common } = params;
+	const {
+		x,
+		y,
+		width,
+		height,
+		shape,
+		fallbackKind,
+		fontSizeOverride,
+		descendantFontSize,
+		preserveEllipseAspect,
+		...common
+	} = params;
 	const kind = resolvePresetRenderKind(shape, fallbackKind);
+	const presetOverride = resolvedPreset(shape, kind);
 
 	if (kind === 'circle') {
 		const r = Math.min(width, height) / 2;
-		return circleNode({ ...common, cx: x + width / 2, cy: y + height / 2, r });
+		const ellipseRadii = preserveEllipseAspect ? { rx: width / 2, ry: height / 2 } : {};
+		return {
+			...circleNode({
+				...common,
+				cx: x + width / 2,
+				cy: y + height / 2,
+				r,
+				...ellipseRadii,
+				fontSizeOverride,
+				descendantFontSize,
+			}),
+			presetOverride,
+		};
 	}
 
 	if (kind === 'polygon') {
 		const points = presetPolygonPoints(shape?.presetGeometry, x, y, width, height);
-		return polygonNode({
-			...common,
-			points,
-			textX: x + width / 2,
-			textY: y + height / 2,
-			fontWidth: width * 0.9,
-			fontHeight: height,
-		});
+		return {
+			...polygonNode({
+				...common,
+				points,
+				textX: x + width / 2,
+				textY: y + height / 2,
+				fontWidth: width * 0.9,
+				fontHeight: height,
+				fontSizeOverride,
+				descendantFontSize,
+			}),
+			presetOverride,
+		};
 	}
 
-	const built = rectNode({ ...common, x, y, width, height });
+	const built = rectNode({ ...common, x, y, width, height, fontSizeOverride, descendantFontSize });
 	const rxFraction = presetCornerRadiusFraction(shape);
-	return rxFraction === undefined ? built : { ...built, rx: Math.min(width, height) * rxFraction };
+	return {
+		...(rxFraction === undefined ? built : { ...built, rx: Math.min(width, height) * rxFraction }),
+		presetOverride,
+	};
 }

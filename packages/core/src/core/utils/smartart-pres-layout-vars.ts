@@ -272,5 +272,17 @@ export function parseSmartArtPresLayoutVars(
 		}
 	}
 
-	return Object.keys(result).length > 0 ? result : undefined;
+	// A `presLayoutVars`/`varLst` element being PRESENT (even a bare
+	// `<dgm:dir/>` with no `@val`, common when a document never reverses the
+	// default direction - `BendingPictureCaption`'s cached `diagram` pres
+	// point declares exactly this) is meaningfully different from no such
+	// element existing at all: `func="var"` `dgm:if` evaluation
+	// (`smartart-layout-interpreter-when.ts`'s `evaluateVar`) can only apply
+	// its OWN spec default for a variable that resolves to `undefined`
+	// WITHIN a defined `presLayoutVars` object - a container that parsed to
+	// `{}` here must still be returned as `{}`, not collapsed to `undefined`,
+	// or every `dgm:choose` gating the diagram's primary arrangement on
+	// `dir` becomes undecidable and the interpreter falls back to a bare
+	// leaf approximation instead of ever running the real algorithm.
+	return result;
 }

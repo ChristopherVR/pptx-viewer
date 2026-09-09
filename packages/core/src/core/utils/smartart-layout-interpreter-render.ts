@@ -55,11 +55,15 @@ interface RectParams {
 	palette: string[];
 	style: SmartArtStyle;
 	ctx: StyleContext;
+	/** A font size shared by every item in the arranged set; see `presetBoxNode`. */
+	fontSizeOverride?: number;
+	/** See `RenderedNodeIdentity.descendantFontSize`'s doc comment. */
+	descendantFontSize?: number;
 }
 
 /** Build a styled rounded-rect node covering `[x,y,width,height]`. */
 export function rectNode(params: RectParams): RenderedRectNode {
-	const { x, y, width, height, node, index, total, palette, style, ctx } = params;
+	const { x, y, width, height, node, index, total, palette, style, ctx, fontSizeOverride } = params;
 	return {
 		kind: 'rect',
 		key: params.key,
@@ -74,9 +78,12 @@ export function rectNode(params: RectParams): RenderedRectNode {
 		strokeWidth: ctx.strokeWidth,
 		opacity: nodeOpacity(index, total, style),
 		text: truncate(node.text, 40),
-		fontSize: fitFontSize(node.text, width * 0.9, height, 12),
+		fontSize: fontSizeOverride ?? fitFontSize(node.text, width * 0.9, height, 12),
 		textX: x + width / 2,
 		textY: y + height / 2,
+		...(params.descendantFontSize !== undefined
+			? { descendantFontSize: params.descendantFontSize }
+			: {}),
 		...nodeTextStyle(node),
 	};
 }
@@ -86,17 +93,24 @@ interface CircleParams {
 	cx: number;
 	cy: number;
 	r: number;
+	/** Independent horizontal/vertical radii for a genuine ellipse; see `RenderedCircleNode.rx`/`.ry`'s doc comment. */
+	rx?: number;
+	ry?: number;
 	node: PptxSmartArtNode;
 	index: number;
 	total: number;
 	palette: string[];
 	style: SmartArtStyle;
 	ctx: StyleContext;
+	/** A font size shared by every item in the arranged set; see `presetBoxNode`. */
+	fontSizeOverride?: number;
+	/** See `RenderedNodeIdentity.descendantFontSize`'s doc comment. */
+	descendantFontSize?: number;
 }
 
 /** Build a styled circle node centred at `[cx,cy]`. */
 export function circleNode(params: CircleParams): RenderedCircleNode {
-	const { cx, cy, r, node, index, total, palette, style, ctx } = params;
+	const { cx, cy, r, rx, ry, node, index, total, palette, style, ctx, fontSizeOverride } = params;
 	return {
 		kind: 'circle',
 		key: params.key,
@@ -104,12 +118,17 @@ export function circleNode(params: CircleParams): RenderedCircleNode {
 		cx,
 		cy,
 		r,
+		...(rx !== undefined ? { rx } : {}),
+		...(ry !== undefined ? { ry } : {}),
 		fill: nodeFill(node, index, palette),
 		stroke: nodeStroke(node, ctx.stroke),
 		strokeWidth: ctx.strokeWidth,
 		opacity: nodeOpacity(index, total, style),
 		text: truncate(node.text, 20),
-		fontSize: fitFontSize(node.text, r * 1.4, r * 2, 11),
+		fontSize: fontSizeOverride ?? fitFontSize(node.text, r * 1.4, r * 2, 11),
+		...(params.descendantFontSize !== undefined
+			? { descendantFontSize: params.descendantFontSize }
+			: {}),
 		...nodeTextStyle(node),
 	};
 }
@@ -127,11 +146,16 @@ interface PolygonParams {
 	palette: string[];
 	style: SmartArtStyle;
 	ctx: StyleContext;
+	/** A font size shared by every item in the arranged set; see `presetBoxNode`. */
+	fontSizeOverride?: number;
+	/** See `RenderedNodeIdentity.descendantFontSize`'s doc comment. */
+	descendantFontSize?: number;
 }
 
 /** Build a styled polygon node from an SVG points string. */
 export function polygonNode(params: PolygonParams): RenderedPolygonNode {
-	const { points, textX, textY, node, index, total, palette, style, ctx } = params;
+	const { points, textX, textY, node, index, total, palette, style, ctx, fontSizeOverride } =
+		params;
 	return {
 		kind: 'polygon',
 		key: params.key,
@@ -142,9 +166,12 @@ export function polygonNode(params: PolygonParams): RenderedPolygonNode {
 		strokeWidth: ctx.strokeWidth,
 		opacity: nodeOpacity(index, total, style),
 		text: truncate(node.text, 25),
-		fontSize: fitFontSize(node.text, params.fontWidth, params.fontHeight, 12),
+		fontSize: fontSizeOverride ?? fitFontSize(node.text, params.fontWidth, params.fontHeight, 12),
 		textX,
 		textY,
+		...(params.descendantFontSize !== undefined
+			? { descendantFontSize: params.descendantFontSize }
+			: {}),
 		...nodeTextStyle(node),
 	};
 }

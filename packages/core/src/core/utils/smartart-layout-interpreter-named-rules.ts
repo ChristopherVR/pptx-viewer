@@ -42,9 +42,28 @@
  * scaling a node's SECONDARY (subordinate) text run instead of the primary
  * one. `applyToNode` has only one `fontSize` field to write per rendered node
  * (the interpreter doesn't model primary/secondary as separate runs), so a
- * `secFontSz` override is applied identically to `primFontSz` here; the
- * distinction only matters once a renderer starts drawing primary/secondary
- * text as separate elements.
+ * `secFontSz` override would be applied identically to `primFontSz`; the
+ * distinction would only matter once a renderer starts drawing primary/
+ * secondary text as separate elements.
+ *
+ * NEITHER `primFontSz` NOR `secFontSz` is actually wired into
+ * `OVERRIDE_KEY` (see its own doc comment): per ECMA-376, a `dgm:rule` is a
+ * BOUND on the autofit algorithm's shrink search (a floor/ceiling `dgm:constr`
+ * already resolves to first), never a literal "set the font to this value"
+ * instruction the way a `w`/`h` size rule can plausibly be read as one. A
+ * PREVIOUS version of this module treated a `primFontSz` rule's `val` as a
+ * direct override and measurably broke "Vertical Bullet List"
+ * (`smartart-gallery-ground-truth.test.ts`): its arranger declares
+ * `<dgm:rule type="primFontSz" for="ch" forName="parentText" val="5"/>` as
+ * the shrink-search FLOOR (5pt, an intentionally shallow last resort, mirrored
+ * by the item's own `<dgm:rule type="h" val="INF"/>` - both are BOUNDS, not
+ * values to assign), and this module was hard-setting every rendered node's
+ * font to a literal 5, discarding `smartart-layout-item-font-size.ts`'s own
+ * properly text-measured fit entirely. That floor is now read directly by
+ * `smartart-layout-item-font-size.ts`'s own `primFontSzFloorRuleValues`
+ * (which also checks an ARRANGER-declared `for="ch" forName=<role>` rule, not
+ * only the item's own self-scoped `ruleLst`), so this module no longer needs
+ * to duplicate it.
  */
 
 import type {
@@ -100,11 +119,16 @@ export interface NamedRuleOverride {
 	fontSize?: number;
 }
 
+/**
+ * `primFontSz`/`secFontSz` are deliberately NOT keys here - see the module
+ * doc comment's "NEITHER... is actually wired in" note. A `w`/`h` rule stays
+ * wired as a direct override: unlike a font-size shrink bound, no OTHER part
+ * of this interpreter already resolves an item's own `w`/`h` rule clamp, so
+ * this remains its one consumer.
+ */
 const OVERRIDE_KEY: Readonly<Record<string, keyof NamedRuleOverride>> = {
 	w: 'width',
 	h: 'height',
-	primFontSz: 'fontSize',
-	secFontSz: 'fontSize',
 };
 
 /**

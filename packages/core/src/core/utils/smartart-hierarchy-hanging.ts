@@ -27,12 +27,8 @@
  */
 
 import type { TreeNode } from './smartart-helpers';
-import {
-	elbowConnector,
-	partitionChildren,
-	pushNode,
-	stubConnector,
-} from './smartart-hierarchy-shared';
+import { partitionChildren } from './smartart-hierarchy-orgchart-tree';
+import { elbowConnector, pushNode, stubConnector } from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
 
 /** Indent direction for one hanging-branch arrangement pass. */

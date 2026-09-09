@@ -1,19 +1,57 @@
 /**
- * SmartArt DiagramML interpreter - hierarchy arranger shared helpers.
+ * SmartArt DiagramML interpreter - hierarchy arranger shared render context.
  *
- * Small pieces shared by the standard/init tree placer
- * (`smartart-hierarchy-standard.ts`) and the hanging-column placer
- * (`smartart-hierarchy-hanging.ts`): the per-run render context, the rect/
- * connector factories, and assistant-node ("`dgm:pt/@type="asst"`") detection
- * for `presLayoutVars.orgChart` mode. Pure geometry; no framework code, no
- * DOM.
+ * The per-run render context and the rect/connector factories shared by the
+ * standard/init tree placer (`smartart-hierarchy-standard.ts`) and the
+ * hanging-column placer (`smartart-hierarchy-hanging.ts`). Org-chart tree
+ * shaping (assistant partitioning, group-wrapper flattening, effective
+ * width) lives in `smartart-hierarchy-orgchart-tree.ts` (split out for the
+ * file-size budget). Pure geometry; no framework code, no DOM.
  */
 
-import type { PptxSmartArtNode, SmartArtStyle } from '../types';
-import type { TreeNode } from './smartart-helpers';
-import { rectNode, styleContext } from './smartart-layout-interpreter-render';
+import type {
+	PptxSmartArtLayoutNode,
+	PptxSmartArtLayoutNodeShape,
+	PptxSmartArtNode,
+	SmartArtStyle,
+} from '../types';
+import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
+import { styleContext } from './smartart-layout-interpreter-render';
 import type { StyleContext } from './smartart-layout-interpreter-render';
 import type { RenderedConnector, RenderedNode } from './smartart-layout-types';
+
+/**
+ * Find the actual per-node preset geometry a hierarchy item box should carry.
+ *
+ * Every genuine org-chart-family item is itself a small `composite` (a
+ * genuine fixture's `rootComposite` -> `rootText` (`alg="tx"`, the real
+ * `dgm:shape` - e.g. `rect`) + `rootConnector` (`alg="sp"`, a hidden spacer)):
+ * this arranger renders that whole per-node composite as ONE box, so the
+ * preset that must reach the save-pipeline bridge
+ * (`smartart-interpreter-drawing-bridge.ts`) is the `tx`-algorithm
+ * descendant's own shape, not the wrapping `composite` node's (which never
+ * declares a `@type`, only `hierRoot`/`hierChild`'s first child directly).
+ * Depth-first, first `tx` node with a shape wins; `undefined` when the
+ * arranger's item template declares no shape anywhere (falls back to
+ * `presetBoxNode`'s own family default).
+ */
+export function findHierarchyItemShape(
+	node: PptxSmartArtLayoutNode | undefined,
+): PptxSmartArtLayoutNodeShape | undefined {
+	if (!node) {
+		return undefined;
+	}
+	if (node.algorithm?.type === 'tx' && node.shape) {
+		return node.shape;
+	}
+	for (const child of node.children ?? []) {
+		const found = findHierarchyItemShape(child);
+		if (found) {
+			return found;
+		}
+	}
+	return undefined;
+}
 
 /**
  * The org-chart-family "hierRoot" algorithm's root-box alignment offset
@@ -46,6 +84,18 @@ import type { RenderedConnector, RenderedNode } from './smartart-layout-types';
  */
 export const HIER_TAIL_OFFSET_RATIO = 0.25;
 
+/**
+ * Extra vertical gap between consecutive hanging-tail boxes, as a fraction of
+ * the item's own height (`HangingOptions.vGap` in `smartart-hierarchy-
+ * hanging.ts`, and `arrangeHierarchy`'s own `vGap` setup in
+ * `smartart-layout-interpreter-hierarchy.ts`). Also consumed by `fitItemBox`
+ * (`smartart-hierarchy-orientation.ts`) to size the item box AROUND the
+ * generation-axis room a hanging tail will actually need - see
+ * `smartart-hierarchy-hang-depth.ts`'s module doc comment for the
+ * COM-verified derivation (`organization-chart--hier5.pptx`/`--hier8.pptx`).
+ */
+export const HANG_HEIGHT_RATIO = 0.55;
+
 /** Mutable render state threaded through one hierarchy arrangement pass. */
 export interface HierContext {
 	elementId: string;
@@ -64,6 +114,8 @@ export interface HierContext {
 	 * `PptxSmartArtConnection.label`). Looked up by {@link elbowConnector}.
 	 */
 	connectorLabels?: Map<string, string>;
+	/** The item template's own preset override; see {@link findHierarchyItemShape}. */
+	itemShape?: PptxSmartArtLayoutNodeShape;
 }
 
 export function baseContext(
@@ -74,6 +126,7 @@ export function baseContext(
 	boxW: number,
 	boxH: number,
 	connectorLabels?: Map<string, string>,
+	itemShape?: PptxSmartArtLayoutNodeShape,
 ): HierContext {
 	return {
 		elementId,
@@ -87,6 +140,7 @@ export function baseContext(
 		connectors: [],
 		counter: { value: 0 },
 		connectorLabels,
+		itemShape,
 	};
 }
 
@@ -100,7 +154,7 @@ export function pushNode(
 ): number {
 	const index = hc.counter.value++;
 	hc.nodes.push(
-		rectNode({
+		presetBoxNode({
 			key: `${hc.elementId}-hier-${node.id}-${index}`,
 			x,
 			y,
@@ -112,6 +166,8 @@ export function pushNode(
 			palette: hc.palette,
 			style: hc.style,
 			ctx: hc.ctx,
+			shape: hc.itemShape,
+			fallbackKind: 'rect',
 		}),
 	);
 	return index;
@@ -156,109 +212,4 @@ export function stubConnector(
 		d: `M${fx},${fy} L${cx},${cy}`,
 		dash: '2,2',
 	});
-}
-
-/** A `dgm:pt/@type="asst"` (assistant) data-model node. */
-export function isAssistant(node: PptxSmartArtNode): boolean {
-	return node.nodeType === 'asst';
-}
-
-/** Split a tree node's children into assistants and ordinary subordinates. */
-export function partitionChildren(
-	t: TreeNode,
-	orgChart: boolean,
-): { assistants: TreeNode[]; normal: TreeNode[] } {
-	if (!orgChart) {
-		return { assistants: [], normal: t.children };
-	}
-	const assistants: TreeNode[] = [];
-	const normal: TreeNode[] = [];
-	for (const child of t.children) {
-		(isAssistant(child.node) ? assistants : normal).push(child);
-	}
-	return { assistants, normal };
-}
-
-/**
- * Tree width counting only ordinary (non-assistant) descendants: assistants
- * are rendered as a side annotation near their parent, not a fan-out sibling,
- * so they must not claim a normal sibling's share of the available width.
- * Falls back to plain leaf-counting (matching `treeWidth`) when `orgChart` is
- * off, so non-org-chart hierarchies are unaffected.
- */
-export function effectiveWidth(t: TreeNode, orgChart: boolean): number {
-	const { normal } = partitionChildren(t, orgChart);
-	if (normal.length === 0) {
-		return 1;
-	}
-	let sum = 0;
-	for (const child of normal) {
-		sum += effectiveWidth(child, orgChart);
-	}
-	return sum;
-}
-
-/** A resolved per-parent row size for `chMax`/`chPref` wrapping (`Infinity` = unbounded). */
-export function rowSize(childMax: number | undefined, childPreferred: number | undefined): number {
-	if (typeof childPreferred === 'number' && childPreferred > 0) {
-		return childPreferred;
-	}
-	if (typeof childMax === 'number' && childMax > 0) {
-		return childMax;
-	}
-	return Number.POSITIVE_INFINITY;
-}
-
-/** True for a `dgm:pt` that is an invisible org-chart grouping wrapper. */
-function isOrgChartGroupWrapper(node: PptxSmartArtNode): boolean {
-	return !node.nodeType && node.text.trim().length === 0;
-}
-
-/**
- * Genuine PowerPoint org charts (`presLayoutVars.orgChart`) do NOT attach
- * ordinary reports directly to their manager: even a manager with only 3
- * direct reports (well within the default `chPref=3` threshold, no overflow)
- * gets up to `chPref` synthetic, untyped, EMPTY content points as an
- * intermediate "hierChild group" layer, with the real reports nested one
- * level under whichever group slot got populated. Measured against
- * `smartart-orgchart-hierbranch.pptx` in the corpus: every one of its four
- * slides parses to 11 content points for a tree the author only typed 7 nodes
- * into, the extra 4 being one empty assistant slot and three empty group
- * points (only one of which has any children).
- *
- * Left alone, the hierarchy arranger renders those group wrappers as ordinary
- * blank fanned-out boxes and their real children one generation too deep
- * (landing on the hanging tail instead of the fan-out row PowerPoint itself
- * shows). This flattens them out before the tree is built: an empty, untyped
- * node's children are spliced into its own parent's child list in its place,
- * and the wrapper itself is dropped (an empty, childless slot simply
- * disappears, matching PowerPoint's own unpopulated group columns). Assistant
- * points keep their role even when empty - only a plain untyped node with no
- * text is a group wrapper - so a genuinely blank ordinary node is never lost:
- * that shape does not occur in a real org chart's data model. A no-op when
- * `orgChart` is not set, or when no such wrapper is present.
- */
-export function flattenOrgChartGroupWrappers(
-	nodes: PptxSmartArtNode[],
-	orgChart: boolean,
-): PptxSmartArtNode[] {
-	if (!orgChart || !nodes.some(isOrgChartGroupWrapper)) {
-		return nodes;
-	}
-	const byId = new Map(nodes.map((node) => [node.id, node]));
-	const parentIdOf = (node: PptxSmartArtNode): string | undefined => {
-		let current = node;
-		// Walk past chained wrappers (a wrapper parented under another wrapper).
-		while (current.parentId) {
-			const parent = byId.get(current.parentId);
-			if (!parent || !isOrgChartGroupWrapper(parent)) {
-				return current.parentId;
-			}
-			current = parent;
-		}
-		return current.parentId;
-	};
-	return nodes
-		.filter((node) => !isOrgChartGroupWrapper(node))
-		.map((node) => ({ ...node, parentId: parentIdOf(node) }));
 }

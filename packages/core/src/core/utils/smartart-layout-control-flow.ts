@@ -53,7 +53,12 @@ function integers(value: unknown, unsigned = false): number[] | undefined {
 	return parsed;
 }
 
-function parseIterator(node: XmlObject): PptxSmartArtIteratorAttributes {
+/**
+ * Parse CT_Iterate's shared attribute set (`axis`/`ptType`/`st`/`cnt`/`step`/
+ * `hideLastTrans`). Exposed for `smartart-layout-definition.ts`, which reuses
+ * it verbatim for `dgm:presOf` (CT_PresentationOf extends CT_Iterate).
+ */
+export function parseIterator(node: XmlObject): PptxSmartArtIteratorAttributes {
 	return {
 		name: optionalString(node['@_name']),
 		reference: optionalString(node['@_ref']),
@@ -66,7 +71,14 @@ function parseIterator(node: XmlObject): PptxSmartArtIteratorAttributes {
 	};
 }
 
-function parseWhen(node: XmlObject): PptxSmartArtWhen | undefined {
+/**
+ * Exported so `smartart-layout-interpreter-choose-algorithm.ts` can parse a
+ * NESTED `dgm:if` living inside an already-active branch's raw XML (a
+ * `dgm:choose` wrapped entirely inside another `dgm:if`, never reaching
+ * `parseSmartArtControlFlow` below - only a layoutNode's DIRECT `dgm:choose`
+ * children do) the exact same way this module parses a top-level one.
+ */
+export function parseWhen(node: XmlObject): PptxSmartArtWhen | undefined {
 	const func = optionalString(node['@_func']);
 	const operator = optionalString(node['@_op']);
 	const value = optionalString(node['@_val']);

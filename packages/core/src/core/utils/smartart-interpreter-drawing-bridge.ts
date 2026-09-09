@@ -20,8 +20,15 @@
 
 import type { PptxElement, PptxSmartArtNode } from '../types';
 import { nextId, makeShapeElement } from './smartart-helpers';
+import { collectFoldedDescendants, projectFoldedNodeText } from './smartart-interpreter-fold-text';
 import type { SmartArtLayoutResult } from './smartart-layout-types';
-import { projectSmartArtNodeText } from './smartart-node-text-projection';
+import { smartArtChildrenOf } from './smartart-node-tree-axis';
+
+export {
+	collectFoldedDescendants,
+	foldedDescendantTexts,
+	foldedItemText,
+} from './smartart-interpreter-fold-text';
 
 /** Axis-aligned bounding box of an SVG polygon `points` string. */
 function polygonBoundingBox(points: string): {
@@ -63,15 +70,51 @@ export function interpretedLayoutToElements(
 	bulletEnabled = false,
 ): PptxElement[] {
 	const nodeById = new Map(nodes.map((n) => [n.id, n]));
+	const childrenOf = smartArtChildrenOf(nodes);
+	// Every node this result gives its own box to, PLUS every id a role box
+	// pre-claimed via `foldedNodeIds` (`smartart-layout-interpreter-item-
+	// roles.ts`: e.g. a list layout's `childText` box, which owns its
+	// descendant's text directly rather than leaving it for inference below).
+	// A node in neither set (one added a level deeper via the text pane's
+	// Tab/"Add Bullet", when the diagram's driving forEach is `axis="ch"`)
+	// gets folded into its nearest rendered ancestor's box instead - see
+	// `collectFoldedDescendants`.
+	const renderedIds = new Set(
+		result.nodes
+			.flatMap((r) => [r.nodeId, ...(r.foldedNodeIds ?? [])])
+			.filter((id): id is string => Boolean(id)),
+	);
 	const elements: PptxElement[] = [];
 
 	for (const rendered of result.nodes) {
 		const node = rendered.nodeId ? nodeById.get(rendered.nodeId) : undefined;
-		const text = node?.text ?? '';
 		const fontSize = rendered.fontSize;
-		const textSegments = node
-			? projectSmartArtNodeText(node, { fontSize: fontSize * (96 / 72) }, { bulletEnabled })
+		const fallbackStyle = { fontSize: fontSize * (96 / 72) };
+		const descendantFallbackStyle =
+			rendered.descendantFontSize === undefined
+				? fallbackStyle
+				: { fontSize: rendered.descendantFontSize * (96 / 72) };
+		// A pre-resolved role (`foldedNodeIds` set, even to an empty array by
+		// the item-roles expansion) owns exactly that content; only a node
+		// with NO pre-resolution falls back to inferring folded descendants
+		// from what nothing else rendered.
+		const folded = !node
+			? []
+			: rendered.foldedNodeIds !== undefined
+				? rendered.foldedNodeIds
+						.map((id) => nodeById.get(id))
+						.filter((n): n is PptxSmartArtNode => Boolean(n))
+				: collectFoldedDescendants(node, renderedIds, childrenOf);
+		const projection = node
+			? projectFoldedNodeText(node, folded, fallbackStyle, descendantFallbackStyle, bulletEnabled)
 			: undefined;
+		// `literalText` (a role bound to a transition point rather than a real
+		// data node, e.g. a numbered-badge's ordinal text - see
+		// `RenderedNodeIdentity.literalText`'s doc comment) wins over the
+		// node-projected text; `undefined` keeps this bridge's pre-existing
+		// behaviour unchanged.
+		const text = rendered.literalText ?? projection?.text ?? '';
+		const textSegments = projection?.segments;
 		// Embed the node id (`sa-interp-<nodeId>`), matching the convention
 		// `resolveShapeModelId` (smartart-fabrication-drawing.ts) already relies
 		// on for the OTHER decompose branches ("Layout-engine shapes embed the
@@ -96,31 +139,48 @@ export function interpretedLayoutToElements(
 					containerBounds.y + rendered.y,
 					rendered.width,
 					rendered.height,
-					'roundRect',
+					// `presetOverride` (set by `smartart-layout-interpreter-item-
+					// roles.ts` for a role with its own declared `dgm:shape`, e.g.
+					// a list layout's plain-`rect` `childText` beside its
+					// `roundRect` primary) wins over the arranger's own hardcoded
+					// family default.
+					rendered.presetOverride ?? 'roundRect',
 					rendered.fill,
 					text,
 					common,
 				),
 			);
 		} else if (rendered.kind === 'circle') {
+			// `rx`/`ry` (set only by a caller that opted into
+			// `presetBoxNode`'s `preserveEllipseAspect`, e.g. the `cycle`
+			// arranger's real non-circular ellipses) carry the true
+			// width/height; every other circle-kind node leaves them unset and
+			// keeps this bridge's pre-existing `r`-derived square bounding box.
+			const halfWidth = rendered.rx ?? rendered.r;
+			const halfHeight = rendered.ry ?? rendered.r;
 			elements.push(
 				makeShapeElement(
 					id,
-					containerBounds.x + rendered.cx - rendered.r,
-					containerBounds.y + rendered.cy - rendered.r,
-					rendered.r * 2,
-					rendered.r * 2,
-					'ellipse',
+					containerBounds.x + rendered.cx - halfWidth,
+					containerBounds.y + rendered.cy - halfHeight,
+					halfWidth * 2,
+					halfHeight * 2,
+					// `presetOverride` carries the layout node's exact `dgm:shape`
+					// (e.g. `donut`, `pie`, `blockArc`) when one was declared;
+					// `ellipse` is this bridge's pre-existing family default,
+					// matching what a plain circle-arranger (no shape override)
+					// has always cached.
+					rendered.presetOverride ?? 'ellipse',
 					rendered.fill,
 					text,
 					common,
 				),
 			);
 		} else {
-			// Every polygon the interpreter currently emits is a pyramid
-			// trapezoid band; the `trapezoid` preset (already used by the
-			// algorithmic pyramid layout in `smartart-layouts.ts`) reproduces
-			// that shape from a bounding box without hand-built custom geometry.
+			// A polygon kind is only ever reached via an explicit preset match
+			// (`resolvePresetRenderKind`'s `POLYGON_PRESETS`), so `presetOverride`
+			// is always populated here; `trapezoid` is kept only as a defensive
+			// fallback for a `RenderedPolygonNode` built outside that path.
 			const bbox = polygonBoundingBox(rendered.points);
 			elements.push(
 				makeShapeElement(
@@ -129,7 +189,7 @@ export function interpretedLayoutToElements(
 					containerBounds.y + bbox.y,
 					bbox.width,
 					bbox.height,
-					'trapezoid',
+					rendered.presetOverride ?? 'trapezoid',
 					rendered.fill,
 					text,
 					common,

@@ -108,18 +108,19 @@ export function truncate(text: string, max: number): string {
 
 /**
  * Fit font size to available space.
- * Uses a 0.6 char-width heuristic; clamps to 6 px minimum.
+ * Uses a 0.6 char-width heuristic; clamps to `minSize` (6pt by default).
  */
 export function fitFontSize(
 	text: string,
 	maxWidth: number,
 	maxHeight: number,
 	baseSize: number,
+	minSize = 6,
 ): number {
 	const charWidthRatio = 0.6;
 	const maxByWidth = maxWidth / Math.max(1, text.length * charWidthRatio);
 	const maxByHeight = maxHeight * 0.5;
-	return Math.max(6, Math.min(baseSize, maxByWidth, maxByHeight));
+	return Math.max(minSize, Math.min(baseSize, maxByWidth, maxByHeight));
 }
 
 /**

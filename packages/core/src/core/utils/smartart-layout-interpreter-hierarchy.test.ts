@@ -81,16 +81,22 @@ function signature(result: SmartArtLayoutResult): string {
 describe('smartArt hierarchy arranger: hierBranch', () => {
 	// Measured against genuine PowerPoint output (see the module doc comment
 	// on smartart-layout-interpreter-hierarchy.ts): the root's own direct
-	// children (generation 1) fan out identically for EVERY hierBranch value,
-	// including "hang"/"l"/"r". "std", "init", "hang", "l" and "r" therefore
-	// do NOT all produce mutually distinct arrangements on a shallow tree:
-	// "init" and "r" are indistinguishable (both hang the tail rightward, the
-	// only way either is reached), and only "std" (no tail at all) is
-	// guaranteed to differ from the other four.
-	it('generation-1 children fan out identically for every hierBranch value', () => {
+	// children (generation 1) fan out identically for EVERY `tailed`-family
+	// hierBranch value ("init"/"hang"/"l"/"r" - "init" and "r" are further
+	// indistinguishable, both hang the tail rightward, the only way either is
+	// reached). "std" (`undefined`/`'std'`, no tail at all) is a SEPARATE
+	// group: it packs `fitItemBox`'s generation axis against the tree's own
+	// FULL depth (every generation genuinely fans), while the tailed family
+	// packs against only the fanned generations (`computeHangShape`, see
+	// `smartart-hierarchy-hang-depth.ts`) - a 3-generation tree like this one
+	// therefore gets a GENUINELY smaller `cellH` (denser rows) under "std"
+	// than under a tailed branch (which only ever reserves room for 2 fanned
+	// rows here, the third being a separate hanging tail), so "std" is not
+	// expected to land generation-1 at the same y as the tailed family
+	// anymore - see `smartart-hierarchy-orientation.ts`'s `fitItemBox` doc
+	// comment for the COM-verified derivation this reflects.
+	it('generation-1 children fan out identically across the tailed hierBranch family', () => {
 		const variants: Array<PptxSmartArtPresLayoutVars | undefined> = [
-			undefined,
-			{ hierarchyBranch: 'std' },
 			{ hierarchyBranch: 'init' },
 			{ hierarchyBranch: 'hang' },
 			{ hierarchyBranch: 'l' },
@@ -106,6 +112,13 @@ describe('smartArt hierarchy arranger: hierBranch', () => {
 			expect(c2.x).toBeCloseTo(positions[0].c2.x, 0);
 			expect(c2.y).toBeCloseTo(positions[0].c2.y, 0);
 		}
+	});
+
+	it('"std" (undefined and the literal value) also fan generation-1 identically to each other', () => {
+		const std1 = run(DEPTH_THREE_TREE, undefined);
+		const std2 = run(DEPTH_THREE_TREE, { hierarchyBranch: 'std' });
+		expect(byId(std1, 'c1').x).toBeCloseTo(byId(std2, 'c1').x, 0);
+		expect(byId(std1, 'c1').y).toBeCloseTo(byId(std2, 'c1').y, 0);
 	});
 
 	it('"init" and "r" are the same arrangement (both hang the tail rightward)', () => {
@@ -157,16 +170,19 @@ describe('smartArt hierarchy arranger: hierBranch', () => {
 
 	it('"init" fans the root\'s direct children out but hangs the grandchildren', () => {
 		const init = run(DEPTH_THREE_TREE, { hierarchyBranch: 'init' });
-		const std = run(DEPTH_THREE_TREE, { hierarchyBranch: 'std' });
+		const right = run(DEPTH_THREE_TREE, { hierarchyBranch: 'r' });
 
-		// The root's own children (c1/c2) still land on the standard fan-out
-		// row, same as "std".
-		expect(byId(init, 'c1').y).toBeCloseTo(byId(std, 'c1').y, 0);
-		expect(byId(init, 'c2').y).toBeCloseTo(byId(std, 'c2').y, 0);
+		// The root's own children (c1/c2) land on the SAME standard fan-out row
+		// as any other tailed-family branch (see the previous test's own doc
+		// comment for why comparing this against "std" is no longer meaningful:
+		// "std" packs against the tree's full depth, tailed against only the
+		// fanned generations).
+		expect(byId(init, 'c1').y).toBeCloseTo(byId(right, 'c1').y, 0);
+		expect(byId(init, 'c2').y).toBeCloseTo(byId(right, 'c2').y, 0);
 
-		// But the grandchildren (g1/g2) do NOT land on "std"'s third standard
-		// row - they hang from their own parent instead.
-		expect(byId(init, 'g1').y).not.toBeCloseTo(byId(std, 'g1').y, 0);
+		// The grandchildren (g1/g2) hang from their own parent: g1 sits BELOW
+		// its own parent (c1) rather than sharing c1's own fan row.
+		expect(byId(init, 'g1').y).toBeGreaterThan(byId(init, 'c1').y);
 	});
 });
 
@@ -258,16 +274,22 @@ describe('smartArt hierarchy arranger: orgChart assistants', () => {
 		expect(assistant.height).toBeCloseTo(child.height, 0);
 	});
 
-	it('an explicit hierBranch keeps the assistant on the fan-style row, even for "r"/"hang"/"l"', () => {
+	it('an explicit hierBranch keeps the assistant on the fan-style row, identically across "r"/"hang"/"l"', () => {
 		// Measured against genuine PowerPoint output: the manager's OWN
 		// assistant/children row always uses the standard branch's
 		// `placeAssistantRow`, whatever hierBranch says - only a MODE reached
 		// via the `linDir` fallback (see the next test) places an assistant
-		// flush with its manager's own x.
-		const std = run(withAssistant, { orgChart: true });
+		// flush with its manager's own x. Compared across the TAILED family
+		// only (not against "std" - see the `hierBranch` describe block's own
+		// comment for why "std" now legitimately packs at a different `cellH`
+		// even when, as here, the tree has no hanging tail at all: "std" still
+		// uses `OUTER_MARGIN_X_RATIO`/`OUTER_MARGIN_Y_RATIO` while tailed mode
+		// uses no margin, a genuine, COM-verified difference between the two
+		// families, not an artifact of this specific shallow tree).
 		const right = run(withAssistant, { orgChart: true, hierarchyBranch: 'r' });
-		expect(byId(right, 'a1').x).toBeCloseTo(byId(std, 'a1').x, 0);
-		expect(byId(right, 'a1').y).toBeCloseTo(byId(std, 'a1').y, 0);
+		const hang = run(withAssistant, { orgChart: true, hierarchyBranch: 'hang' });
+		expect(byId(right, 'a1').x).toBeCloseTo(byId(hang, 'a1').x, 0);
+		expect(byId(right, 'a1').y).toBeCloseTo(byId(hang, 'a1').y, 0);
 	});
 
 	it('renders an assistant at the same x as its manager in the full linDir-hanging fallback', () => {
@@ -334,5 +356,249 @@ describe('smartArt hierarchy arranger: chMax / chPref column grouping', () => {
 		const ys = Array.from({ length: 6 }, (_, i) => byId(result, `c${i + 1}`).y);
 		const distinctRows = new Set(ys.map((y) => Math.round(y)));
 		expect(distinctRows.size).toBe(1);
+	});
+});
+
+// COM-verified against real "Hierarchy" fixtures (867x533 diagram box, the
+// size every `smartart-gallery` fixture shares): the item box's own w/h is
+// NOT a fixed fraction of the diagram or a flat pixel cap (the arranger's
+// previous heuristic, `min(cellW*0.8, 150)` / `min(cellH*0.4, 40)`, ignored
+// both sibling count and tree depth entirely) - it comes from fitting the
+// widest fanned row's sibling count into the box width, and separately
+// fitting the tallest hanging chain's generation count into the box height,
+// clipping to the narrower of the two so a deep tailed tree renders visibly
+// squashed below its natural aspect (`hierarchy--hier5.pptx`) while a
+// shallow, narrow one keeps its natural aspect (`hierarchy--hier8.pptx`).
+describe('smartArt hierarchy arranger: item box sizing (fitItemBox)', () => {
+	const GALLERY_BOX: BoundingBox = { width: 867, height: 533 };
+
+	it('matches "hierarchy--flat3.pptx" (root + 2 children, cached w=371 h=203) within 1%', () => {
+		const twoChildren: PptxSmartArtNode[] = [
+			{ id: 'm', text: 'Alpha' },
+			{ id: 'c1', text: 'Beta', parentId: 'm' },
+			{ id: 'c2', text: 'Gamma', parentId: 'm' },
+		];
+		const result = arrangeHierarchy(twoChildren, GALLERY_BOX, palette, 'flat', 'hier-flat3');
+		const node = byId(result, 'm');
+		expect(Math.abs(node.width - 371) / GALLERY_BOX.width).toBeLessThanOrEqual(0.01);
+		expect(Math.abs(node.height - 203) / GALLERY_BOX.height).toBeLessThanOrEqual(0.01);
+	});
+
+	it('matches "hierarchy--hier8.pptx" (5-wide fan, cached w=144 h=97, natural aspect) within 1%', () => {
+		const wideFan: PptxSmartArtNode[] = [
+			{ id: 'root', text: 'A Root' },
+			{ id: 'a1', text: 'A Child', parentId: 'root' },
+			...Array.from({ length: 5 }, (_, i) => ({
+				id: `f${i}`,
+				text: `Fan ${i}`,
+				parentId: 'a1',
+			})),
+		];
+		const result = arrangeHierarchy(wideFan, GALLERY_BOX, palette, 'flat', 'hier-hier8');
+		const node = byId(result, 'root');
+		expect(Math.abs(node.width - 144) / GALLERY_BOX.width).toBeLessThanOrEqual(0.02);
+		expect(Math.abs(node.height - 97) / GALLERY_BOX.height).toBeLessThanOrEqual(0.02);
+	});
+
+	it('squashes below its natural aspect for a deep tailed hang ("hierarchy--hier5.pptx", cached w=371 h=131)', () => {
+		const result = run(DEPTH_THREE_TREE);
+		// DEPTH_THREE_TREE isn't the gallery box, but the qualitative claim
+		// (tall tree => height clipped below the width-driven natural aspect)
+		// must hold regardless of box size.
+		const node = byId(result, 'm');
+		const naturalHeight = node.width * 0.667;
+		expect(node.height).toBeLessThan(naturalHeight);
+	});
+
+	// A TRANSPOSED hierarchy ("Horizontal Hierarchy") needs ZERO outer margin
+	// on BOTH axes (sizing AND leading-margin positioning), unlike the
+	// non-transposed case above - see `smartart-hierarchy-orientation.ts`'s
+	// `OUTER_MARGIN_X_RATIO` doc comment. Regression: applying the
+	// non-transposed margin here pushed "Horizontal Hierarchy"'s root 61px
+	// away from the box's left edge and its item size 5.9% too narrow.
+	it('matches "horizontal-hierarchy--flat3.pptx" (transposed, root + 2 children, cached w=361 h=248, root flush at box.x/box.y) within 1%', () => {
+		const horizontalHierarchyAlg: PptxSmartArtLayoutNode = {
+			algorithm: { type: 'hierChild' },
+			constraints: [
+				{ type: 'w', referenceType: 'h', factor: 2 },
+				{ type: 'sibSp', referenceType: 'h', factor: 0.15 },
+				{ type: 'sp', referenceType: 'w', factor: 0.4 },
+			],
+		};
+		const twoChildren: PptxSmartArtNode[] = [
+			{ id: 'm', text: 'Alpha' },
+			{ id: 'c1', text: 'Beta', parentId: 'm' },
+			{ id: 'c2', text: 'Gamma', parentId: 'm' },
+		];
+		const result = arrangeHierarchy(
+			twoChildren,
+			GALLERY_BOX,
+			palette,
+			'flat',
+			'hier-horiz-flat3',
+			undefined,
+			undefined,
+			horizontalHierarchyAlg,
+		);
+		const node = byId(result, 'm');
+		// Real screen w/h are swapped relative to the non-transposed case: the
+		// item's screen WIDTH is the (transposed) generation-axis size, its
+		// screen HEIGHT is the fan-axis size.
+		expect(Math.abs(node.width - 361) / GALLERY_BOX.width).toBeLessThanOrEqual(0.01);
+		expect(Math.abs(node.height - 248) / GALLERY_BOX.height).toBeLessThanOrEqual(0.01);
+		// Cached: the root sits flush at the box's own left/top edge (x=53,
+		// matching a fresh `arrangeHierarchy` call's implicit box origin of 0
+		// since this test's box has no x/y offset) - not offset by a leading
+		// margin the way the non-transposed axis's positioning still is.
+		expect(node.x).toBeCloseTo(0, 0);
+	});
+});
+
+// A `tailed`/`init`-branch node with NO siblings of its own (a solo link in a
+// single-child chain) should fan its OWN multiple children in one row
+// (reusing the whole diagram's fan-axis allocation), not hang them in a
+// narrow column - see `smartart-hierarchy-standard.ts`'s `placeAt` doc
+// comment for the exact COM-verified condition (`organization-chart--hier8.pptx`
+// vs `smartart-orgchart-hierbranch.pptx`'s "Report One").
+describe('smartArt hierarchy arranger: solo chain link continues fanning', () => {
+	it('fans a solo chain link\'s 5 children in one row instead of hanging them ("organization-chart--hier8.pptx" shape)', () => {
+		const tree: PptxSmartArtNode[] = [
+			{ id: 'root', text: 'Branch A Root' },
+			{ id: 'child', text: 'Branch A Child', parentId: 'root' },
+			{ id: 'f0', text: 'Branch A Grandchild', parentId: 'child' },
+			{ id: 'f1', text: 'Branch B Root', parentId: 'child' },
+			{ id: 'f2', text: 'Branch B Child', parentId: 'child' },
+			{ id: 'f3', text: 'Branch B Grandchild', parentId: 'child' },
+			{ id: 'f4', text: 'Branch C Child', parentId: 'child' },
+			// The one deeper generation: a genuine solo hanging chain, must
+			// still hang (not fan-of-one).
+			{ id: 'g', text: 'Branch C Root', parentId: 'f3' },
+		];
+		const result = run(tree, { orgChart: true, childPreferred: 3, hierarchyBranch: 'init' });
+		const fanned = ['f0', 'f1', 'f2', 'f3', 'f4'].map((id) => byId(result, id));
+		// All 5 share the SAME row (y) and have 5 DISTINCT x positions - a fan,
+		// not a hanging column (which would share x, not y).
+		for (const node of fanned) {
+			expect(node.y).toBeCloseTo(fanned[0].y, 0);
+		}
+		expect(new Set(fanned.map((n) => Math.round(n.x))).size).toBe(5);
+		// The deeper solo chain ("Branch C Root", g) still hangs: it does NOT
+		// share the fanned row's y (it is BELOW it), and it is not centred at
+		// its own parent's x the way a fanned child would be.
+		const g = byId(result, 'g');
+		const parent = byId(result, 'f3');
+		expect(g.y).toBeGreaterThan(parent.y);
+	});
+
+	it('still hangs a shared-row node\'s children even when spanW happens to equal its child count ("smartart-orgchart-hierbranch.pptx" Report One shape)', () => {
+		const tree: PptxSmartArtNode[] = [
+			{ id: 'manager', text: 'Manager' },
+			{ id: 'r1', text: 'Report One', parentId: 'manager' },
+			{ id: 'r2', text: 'Report Two', parentId: 'manager' },
+			{ id: 'r3', text: 'Report Three', parentId: 'manager' },
+			{ id: 'a1', text: 'Analyst One', parentId: 'r1' },
+			{ id: 'a2', text: 'Analyst Two', parentId: 'r1' },
+		];
+		const result = run(tree, { orgChart: true, childPreferred: 3, hierarchyBranch: 'init' });
+		const r1 = byId(result, 'r1');
+		const a1 = byId(result, 'a1');
+		const a2 = byId(result, 'a2');
+		// A fan-of-two here would centre a1/a2 at r1's OWN row y; the real
+		// (hanging) shape drops them BELOW r1 instead, both at the SAME
+		// (hanging column) x, not two side-by-side x positions.
+		expect(a1.y).toBeGreaterThan(r1.y);
+		expect(a2.y).toBeGreaterThan(r1.y);
+		expect(a1.x).toBeCloseTo(a2.x, 0);
+	});
+});
+
+// `hierarchy-list--hier5.pptx` ("Hierarchy List", uniqueId `hierarchy3`)
+// declares only ONE per-item template past the root (`childText`), whose own
+// `dgm:presOf` folds every deeper descendant into that SAME box
+// (`axis="self desOrSelf" ... cnt="1 0"`) rather than giving it a separate
+// generation of boxes the way "Hierarchy"/"Organization Chart" do - see
+// `smartart-hierarchy-fold-depth.ts`'s module doc comment. Previously
+// `arrangeHierarchy` gave a grandchild (folded in the cached drawing) its
+// OWN box regardless, a shape-COUNT mismatch (interpreted 5 vs cached 4 for
+// the real fixture).
+describe('smartArt hierarchy arranger: fold-depth (layout definition caps generations, not the data tree)', () => {
+	const childText: PptxSmartArtLayoutNode = {
+		name: 'childText',
+		algorithm: { type: 'tx' },
+		presentationOf: {
+			axis: ['self', 'desOrSelf'],
+			pointTypes: ['node', 'node'],
+			start: [1, 1],
+			count: [1, 0],
+		},
+	};
+	const algorithmNode: PptxSmartArtLayoutNode = {
+		name: 'diagram',
+		algorithm: { type: 'hierChild' },
+		children: [
+			{
+				name: 'root',
+				children: [{ name: 'childShape', algorithm: { type: 'hierChild' }, children: [childText] }],
+			},
+		],
+	};
+
+	it('does not give a grandchild its own box when the item template folds descendants (count matches: root + direct children only)', () => {
+		const result = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-fold',
+			undefined,
+			undefined,
+			algorithmNode,
+		);
+		// DEPTH_THREE_TREE: m -> {c1, c2}, c1 -> g1, c2 -> g2. Folded: only m/c1/c2
+		// get boxes (3), never g1/g2.
+		expect(rects(result)).toHaveLength(3);
+		expect(rects(result).some((n) => n.nodeId === 'g1')).toBeFalsy();
+		expect(rects(result).some((n) => n.nodeId === 'g2')).toBeFalsy();
+	});
+
+	it('gives every generation its own box with NO algorithmNode (undefined declines the fold check, no regression for a caller with nothing to inspect)', () => {
+		const result = arrangeHierarchy(DEPTH_THREE_TREE, box, palette, 'flat', 'hier-nofold');
+		expect(rects(result)).toHaveLength(5);
+	});
+
+	it('gives every generation its own box when the item template has only a plain "self" presOf (the "Hierarchy" family shape, no regression)', () => {
+		const plainAlgorithmNode: PptxSmartArtLayoutNode = {
+			name: 'diagram',
+			algorithm: { type: 'hierChild' },
+			children: [
+				{
+					name: 'root',
+					children: [
+						{
+							name: 'childShape',
+							algorithm: { type: 'hierChild' },
+							children: [
+								{
+									name: 'childText',
+									algorithm: { type: 'tx' },
+									presentationOf: { axis: ['self'] },
+								},
+							],
+						},
+					],
+				},
+			],
+		};
+		const result = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-plain',
+			undefined,
+			undefined,
+			plainAlgorithmNode,
+		);
+		expect(rects(result)).toHaveLength(5);
 	});
 });

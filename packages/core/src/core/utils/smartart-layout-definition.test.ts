@@ -96,6 +96,25 @@ describe('diagramML layout-definition metadata', () => {
 		});
 	});
 
+	// cycle-matrix--fallback-n2.pptx's `child1group`..`child4group`: each
+	// choose-flattened via a `dgm:if`, gated on a DIFFERENT condition -
+	// `nestedLayoutNodes` must tag each with the guarding if's OWN condition,
+	// not a shared/blank one, and leave a direct (non-choose) sibling
+	// untouched.
+	it('tags a choose-flattened layoutNode with its enclosing if condition (chooseGuard)', () => {
+		const parsed = parseSmartArtLayoutDefinition(fixture(), localName)!;
+		const [chosen, child] = parsed.rootNode.children!;
+		expect(chosen.name).toBe('chosen');
+		expect(chosen.chooseGuard).toMatchObject({
+			function: 'cnt',
+			argument: 'ch',
+			operator: 'gte',
+			value: '2',
+		});
+		expect(child.name).toBe('child');
+		expect(child.chooseGuard).toBeUndefined();
+	});
+
 	it('surgically edits typed fields and preserves algorithms, unknown data, and extLst', () => {
 		const xml = fixture();
 		const value = parseSmartArtLayoutDefinition(xml, localName)!;
@@ -234,5 +253,138 @@ describe('diagramML layout-definition metadata', () => {
 			'categories[0].priority must be an unsigned 32-bit integer',
 			'titles[0].value is required',
 		]);
+	});
+});
+
+describe('dgm:presOf and choose-nested dgm:constrLst', () => {
+	it('parses dgm:presOf into presentationOf, omitting an empty/bare one', () => {
+		const parsed = parseSmartArtLayoutDefinition(
+			{
+				'x:layoutNode': {
+					'@_name': 'root',
+					'x:presOf': { '@_axis': 'des', '@_ptType': 'node' },
+					'x:layoutNode': { '@_name': 'decorative', 'x:presOf': '' },
+				},
+			},
+			localName,
+		);
+		expect(parsed?.rootNode.presentationOf).toMatchObject({ axis: ['des'], pointTypes: ['node'] });
+		expect(parsed?.rootNode.children?.[0].presentationOf).toBeUndefined();
+	});
+
+	it('reaches a dgm:constrLst declared inside a dgm:choose wrapping the SAME layoutNode', () => {
+		// `gear`'s composite has no direct constrLst at all: its slot
+		// positioning is entirely inside a count-decidable dgm:choose.
+		const parsed = parseSmartArtLayoutDefinition(
+			{
+				'x:layoutNode': {
+					'@_name': 'composite',
+					'x:choose': {
+						'x:if': {
+							'@_func': 'cnt',
+							'@_op': 'lte',
+							'@_val': '1',
+							'x:constrLst': { 'x:constr': { '@_type': 'w', '@_for': 'ch', '@_forName': 'gear1' } },
+						},
+						'x:else': {
+							'x:constrLst': { 'x:constr': { '@_type': 'w', '@_for': 'ch', '@_forName': 'gear2' } },
+						},
+					},
+					'x:layoutNode': { '@_name': 'gear1' },
+				},
+			},
+			localName,
+		);
+		// Both branches are blindly unioned (this interpreter never evaluates
+		// the choose condition when indexing constraints), and `constraints`
+		// (the node's own DIRECT constrLst, round-tripped by `apply*`) stays
+		// undefined - only `allConstraints` (interpretation-only) sees these.
+		expect(parsed?.rootNode.constraints).toBeUndefined();
+		expect(parsed?.rootNode.allConstraints).toMatchObject([
+			{ type: 'w', for: 'ch', forName: 'gear1' },
+			{ type: 'w', for: 'ch', forName: 'gear2' },
+		]);
+	});
+});
+
+describe('forEachOrigin: the enclosing dgm:forEach a layoutNode was reached through', () => {
+	it("tags a layoutNode found via dgm:forEach with that forEach's iterator attributes", () => {
+		// `lProcess1`'s `child` shape: found through `<dgm:forEach axis="ch"
+		// ptType="node">`, so it carries that axis/ptType on its own
+		// `forEachOrigin` - the marker `smartart-layout-interpreter-item-
+		// roles-recursive.ts` uses to tell a genuinely repeated per-child
+		// template apart from a direct, once-only child.
+		const parsed = parseSmartArtLayoutDefinition(
+			{
+				'x:layoutNode': {
+					'@_name': 'vertFlow',
+					'x:forEach': {
+						'@_axis': 'ch',
+						'@_ptType': 'node',
+						'x:layoutNode': { '@_name': 'child' },
+					},
+				},
+			},
+			localName,
+		);
+		expect(parsed?.rootNode.children?.[0].name).toBe('child');
+		expect(parsed?.rootNode.children?.[0].forEachOrigin).toMatchObject({
+			axis: ['ch'],
+			pointTypes: ['node'],
+		});
+	});
+
+	it('leaves forEachOrigin undefined for a direct child or one reached only through dgm:choose', () => {
+		const parsed = parseSmartArtLayoutDefinition(
+			{
+				'x:layoutNode': {
+					'@_name': 'root',
+					'x:layoutNode': { '@_name': 'direct' },
+					'x:choose': { 'x:if': { 'x:layoutNode': { '@_name': 'chosen' } } },
+				},
+			},
+			localName,
+		);
+		const byName = new Map(parsed?.rootNode.children?.map((c) => [c.name, c]));
+		expect(byName.get('direct')?.forEachOrigin).toBeUndefined();
+		expect(byName.get('chosen')?.forEachOrigin).toBeUndefined();
+	});
+
+	it('uses the NEAREST enclosing forEach when one forEach nests inside another', () => {
+		// `LinedList`'s `vert1`/`vert2` shape: an outer `axis="ch"` forEach
+		// wraps `horz2`, which itself wraps an inner `axis="followSib"
+		// ptType="sibTrans"` forEach around `thinLine3` - `thinLine3` must
+		// carry the INNER (nearest) iterator, not the outer one.
+		const parsed = parseSmartArtLayoutDefinition(
+			{
+				'x:layoutNode': {
+					'@_name': 'vert1',
+					'x:forEach': {
+						'@_axis': 'ch',
+						'@_ptType': 'node',
+						'x:layoutNode': {
+							'@_name': 'horz2',
+							'x:forEach': {
+								'@_axis': 'followSib',
+								'@_ptType': 'sibTrans',
+								'@_cnt': '1',
+								'x:layoutNode': { '@_name': 'thinLine3' },
+							},
+						},
+					},
+				},
+			},
+			localName,
+		);
+		const horz2 = parsed?.rootNode.children?.[0];
+		expect(horz2?.name).toBe('horz2');
+		expect(horz2?.forEachOrigin).toMatchObject({ axis: ['ch'], pointTypes: ['node'] });
+		const thinLine3 = horz2?.children?.[0];
+		expect(thinLine3?.name).toBe('thinLine3');
+		expect(thinLine3?.forEachOrigin).toMatchObject({
+			axis: ['followSib'],
+			pointTypes: ['sibTrans'],
+			count: [1],
+		});
 	});
 });

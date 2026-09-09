@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import {
 	applySmartArtConstraintRules,
+	parseConstraint,
 	parseSmartArtConstraintRules,
 	validateSmartArtConstraintRules,
 } from './smartart-constraint-rules';
@@ -17,9 +18,12 @@ import {
 } from './smartart-layout-algorithm';
 import {
 	applySmartArtControlFlow,
+	parseIterator,
 	parseSmartArtControlFlow,
 	validateSmartArtControlFlow,
 } from './smartart-layout-control-flow';
+import { choosePresentationOf, nestedConstraints } from './smartart-layout-definition-constraints';
+import { nestedLayoutNodes } from './smartart-layout-definition-nesting';
 import {
 	applySmartArtLayoutNodeShape,
 	parseSmartArtLayoutNodeShape,
@@ -54,40 +58,6 @@ function children(node: XmlObject | undefined, name: string, localName: LocalNam
 	return value && typeof value === 'object' ? [value as XmlObject] : [];
 }
 
-/** Find the next generation of layout nodes through forEach/choose wrappers. */
-function nestedLayoutNodes(node: XmlObject, localName: LocalName): XmlObject[] {
-	const found: XmlObject[] = [];
-	const visit = (value: unknown): void => {
-		if (!value || typeof value !== 'object') {
-			return;
-		}
-		if (Array.isArray(value)) {
-			value.forEach(visit);
-			return;
-		}
-		for (const [key, entry] of Object.entries(value as XmlObject)) {
-			if (key.startsWith('@_')) {
-				continue;
-			}
-			if (localName(key) === 'layoutNode') {
-				for (const layoutNode of Array.isArray(entry) ? entry : [entry]) {
-					if (layoutNode && typeof layoutNode === 'object') {
-						found.push(layoutNode as XmlObject);
-					}
-				}
-			} else {
-				visit(entry);
-			}
-		}
-	};
-	for (const [key, value] of Object.entries(node)) {
-		if (!key.startsWith('@_') && localName(key) !== 'extLst') {
-			visit({ [key]: value });
-		}
-	}
-	return found;
-}
-
 function optionalString(value: unknown): string | undefined {
 	const result = String(value ?? '').trim();
 	return result.length > 0 ? result : undefined;
@@ -99,8 +69,17 @@ function parseLocalized(node: XmlObject): PptxSmartArtLocalizedText | undefined 
 }
 
 function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNode {
-	const nested = nestedLayoutNodes(node, localName).map((entry) => parseNode(entry, localName));
+	const nested = nestedLayoutNodes(node, localName).map((entry) => ({
+		...parseNode(entry.xml, localName),
+		forEachOrigin: entry.origin,
+		chooseGuard: entry.guard,
+	}));
 	const childOrder = optionalString(node['@_chOrder']);
+	const presOf = choosePresentationOf(node, localName);
+	const presentationOf = presOf ? parseIterator(presOf) : undefined;
+	const allConstraints = nestedConstraints(node, localName).map((entry) =>
+		parseConstraint(entry, localName),
+	);
 	return {
 		name: optionalString(node['@_name']),
 		styleLabel: optionalString(node['@_styleLbl']),
@@ -110,6 +89,9 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		...parseSmartArtControlFlow(node, localName),
 		...parseSmartArtConstraintRules(node, localName),
 		shape: parseSmartArtLayoutNodeShape(node, localName),
+		presentationOf:
+			presentationOf && (presentationOf.axis?.length ?? 0) > 0 ? presentationOf : undefined,
+		allConstraints: allConstraints.length > 0 ? allConstraints : undefined,
 		children: nested.length > 0 ? nested : undefined,
 	};
 }
@@ -204,7 +186,7 @@ function applyNode(target: XmlObject, value: PptxSmartArtLayoutNode, localName: 
 	const existing = nestedLayoutNodes(target, localName);
 	value.children?.forEach((entry, index) => {
 		if (existing[index]) {
-			applyNode(existing[index], entry, localName);
+			applyNode(existing[index].xml, entry, localName);
 		}
 	});
 }

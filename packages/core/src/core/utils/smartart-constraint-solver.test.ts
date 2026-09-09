@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PptxSmartArtConstraint, PptxSmartArtLayoutDefinition } from '../types';
-import {
-	buildConstraintIndex,
-	resolveConstraint,
-	resolveRatioConstraint,
-} from './smartart-constraint-solver';
+import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
+import { buildConstraintIndex, resolveConstraint } from './smartart-constraint-solver';
 
 function constr(overrides: Partial<PptxSmartArtConstraint>): PptxSmartArtConstraint {
 	return { type: 'w', ...overrides };

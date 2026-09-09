@@ -45,7 +45,8 @@
 
 import type { TreeNode } from './smartart-helpers';
 import type { PlaceAtFn } from './smartart-hierarchy-fan';
-import { effectiveWidth, elbowConnector, partitionChildren } from './smartart-hierarchy-shared';
+import { effectiveWidth, partitionChildren } from './smartart-hierarchy-orgchart-tree';
+import { elbowConnector } from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
 
 /** One `chPref`-sized (or smaller, if trailing) chunk of a wrapped generation. */

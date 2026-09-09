@@ -70,7 +70,14 @@ function parseTarget(node: XmlObject, localName: LocalName) {
 	};
 }
 
-function parseConstraint(node: XmlObject, localName: LocalName): PptxSmartArtConstraint {
+/**
+ * Parse one `dgm:constr` element. Exposed for `smartart-layout-definition
+ * .ts`, which reuses it to parse constraint entries reachable through a
+ * `dgm:choose`/`dgm:if`/`dgm:else` wrapping this SAME layoutNode (a
+ * genuinely conditional, e.g. count-branched, `constrLst`), not just the
+ * node's own direct one this module's `parseSmartArtConstraintRules` reads.
+ */
+export function parseConstraint(node: XmlObject, localName: LocalName): PptxSmartArtConstraint {
 	return {
 		type: attr(node, 'type', localName) ?? '',
 		...parseTarget(node, localName),

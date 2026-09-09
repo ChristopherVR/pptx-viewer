@@ -65,14 +65,15 @@ import type {
 	PptxSmartArtConstraint,
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtLayoutNode,
-	PptxSmartArtNumericRule,
 } from '../types';
-import { clampByRules, ratioConstraint } from './smartart-layout-interpreter-model';
 
 /** Sentinel role for an unnamed layoutNode (most commonly the root arranger). */
 const ROOT_ROLE = '\u0000root';
 
-interface IndexedConstraint {
+/** One `dgm:constr` plus the role that declared it. Exposed for
+ * `smartart-constraint-declared-by.ts`, which needs to filter candidates by
+ * `declaringRole` before running the same reference-walking logic. */
+export interface IndexedConstraint {
 	constraint: PptxSmartArtConstraint;
 	/** Name of the layoutNode whose `constrLst` declared this entry ("self"). */
 	declaringRole: string;
@@ -88,15 +89,43 @@ function finite(value: number | undefined): value is number {
 	return typeof value === 'number' && Number.isFinite(value);
 }
 
-/** The role a target (`for`/`forName`, or `refFor`/`refForName`) resolves to. */
-function targetRole(target: { for?: string; forName?: string }, declaringRole: string): string {
+/**
+ * The role a target (`for`/`forName`/`ptType`, or `refFor`/`refForName`/
+ * `refPtType`) resolves to.
+ *
+ * `forName` names a `dgm:layoutNode` directly and wins when present. Absent
+ * that, `ptType` (`node`/`sibTrans`/`asst`/...) is the DiagramML-level
+ * targeting dimension real built-ins actually use for a `for="ch"` constraint
+ * with no `forName` - e.g. "Basic Process"'s real layoutDef declares BOTH
+ * `<dgm:constr type="w" for="ch" ptType="node" .../>` (the item box) AND
+ * `<dgm:constr type="w" for="ch" ptType="sibTrans" .../>` (the connector) on
+ * the SAME declaring node with NO `forName` on either. Before `ptType` was
+ * part of the role key, both collapsed onto `declaringRole` and clobbered
+ * each other in the index (whichever was inserted first silently won every
+ * lookup for BOTH the item's own w/h and the connector's), which is why
+ * `itemAspect` (`smartart-layout-interpreter-linear.ts`) could never resolve
+ * a per-item aspect for these layouts even though the constraint order was
+ * unambiguous in the XML. Used as the role key verbatim (not scoped under
+ * `declaringRole`) because every built-in item template's own `dgm:layoutNode
+ * name=` conventionally equals its `ptType` string ("node"), which is also
+ * what `roleOf(itemNode(arranger))` reads at the call site - so this need not
+ * invent a synthetic key the rest of the interpreter would never look up.
+ */
+function targetRole(
+	target: { for?: string; forName?: string; pointType?: string },
+	declaringRole: string,
+): string {
 	if ((target.for === 'ch' || target.for === 'des') && target.forName) {
 		return target.forName;
+	}
+	if ((target.for === 'ch' || target.for === 'des') && target.pointType) {
+		return target.pointType;
 	}
 	return declaringRole;
 }
 
-function entryKey(role: string, type: string): string {
+/** Exposed for `smartart-constraint-declared-by.ts` (see {@link IndexedConstraint}). */
+export function entryKey(role: string, type: string): string {
 	return `${role}::${type}`;
 }
 
@@ -129,7 +158,11 @@ export function buildConstraintIndex(definition: PptxSmartArtLayoutDefinition): 
 
 	const walk = (node: PptxSmartArtLayoutNode): void => {
 		const declaringRole = roleOf(node);
-		for (const constraint of node.constraints ?? []) {
+		// `allConstraints` (when present) is a superset of `constraints` that
+		// also includes ones declared inside a `dgm:choose`/`dgm:if`/`dgm:else`
+		// wrapping THIS node's own constrLst (see its doc comment - `gear`'s
+		// composite positions its slots this way exclusively).
+		for (const constraint of node.allConstraints ?? node.constraints ?? []) {
 			const role = targetRole(constraint, declaringRole);
 			const list = entries.get(entryKey(role, constraint.type));
 			const entry: IndexedConstraint = { constraint, declaringRole };
@@ -173,7 +206,8 @@ function combine(constraint: PptxSmartArtConstraint, referenced: number): number
 	return result;
 }
 
-function resolveEntry(
+/** Exposed for `smartart-constraint-declared-by.ts` (see {@link IndexedConstraint}). */
+export function resolveEntry(
 	index: ConstraintIndex,
 	entry: IndexedConstraint,
 	visiting: Set<string>,
@@ -184,7 +218,11 @@ function resolveEntry(
 	}
 	const refType = constraint.referenceType ?? constraint.type;
 	const refRole = targetRole(
-		{ for: constraint.referenceFor, forName: constraint.referenceForName },
+		{
+			for: constraint.referenceFor,
+			forName: constraint.referenceForName,
+			pointType: constraint.referencePointType,
+		},
 		declaringRole,
 	);
 	const referenced = resolveInternal(index, refRole, refType, visiting);
@@ -242,54 +280,4 @@ export function resolveConstraint(
 	type: string,
 ): number | undefined {
 	return resolveInternal(index, role, type, new Set());
-}
-
-/**
- * Resolve a relative-only fallback for the ratio-style constraint types a
- * flow arranger already scans literally (`sibSp`/`sp`/`begPad`/`endPad`, and
- * the pyramid/snake gap ratio). Only considers `type`s that have at least one
- * REFERENCE-bearing declaration for `role`: a pure-literal declaration is the
- * existing scalar path's job (`ratioConstraint`), and re-interpreting it here
- * without that path's ratio-vs-absolute magnitude check would risk treating an
- * absolute value (e.g. a point margin) as a fraction.
- */
-function resolveReferencedRatio(
-	index: ConstraintIndex,
-	role: string,
-	types: readonly string[],
-	rules: PptxSmartArtNumericRule[] | undefined,
-): number | undefined {
-	for (const type of types) {
-		const candidates = index.entries.get(entryKey(role, type));
-		if (!candidates?.some((entry) => hasReference(entry.constraint))) {
-			continue;
-		}
-		const resolved = resolveConstraint(index, role, type);
-		if (resolved !== undefined) {
-			return clampByRules(resolved, rules, type);
-		}
-	}
-	return undefined;
-}
-
-/**
- * Drop-in replacement for a bare `ratioConstraint(...)` call: tries the exact
- * same literal scan first (so every already-passing behaviour is unchanged),
- * then falls back to resolving a relative constraint declared for `role`
- * before giving up to `fallback`.
- */
-export function resolveRatioConstraint(
-	constraints: PptxSmartArtConstraint[] | undefined,
-	index: ConstraintIndex,
-	role: string,
-	types: readonly string[],
-	fallback: number,
-	rules?: PptxSmartArtNumericRule[],
-): number {
-	const literal = ratioConstraint(constraints, types, Number.NaN, rules);
-	if (!Number.isNaN(literal)) {
-		return literal;
-	}
-	const relative = resolveReferencedRatio(index, role, types, rules);
-	return relative ?? fallback;
 }

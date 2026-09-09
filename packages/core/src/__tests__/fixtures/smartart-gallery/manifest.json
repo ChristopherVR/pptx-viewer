@@ -1,0 +1,1364 @@
+[
+	{
+		"file": "basic-block-list--hier5.pptx",
+		"layoutName": "Basic Block List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-block-list--flat3.pptx",
+		"layoutName": "Basic Block List",
+		"category": "list",
+		"dataset": "flat3"
+	},
+	{
+		"file": "basic-block-list--hier8.pptx",
+		"layoutName": "Basic Block List",
+		"category": "list",
+		"dataset": "hier8"
+	},
+	{
+		"file": "alternating-hexagons--hier5.pptx",
+		"layoutName": "Alternating Hexagons",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-caption-list--hier5.pptx",
+		"layoutName": "Picture Caption List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "lined-list--hier5.pptx",
+		"layoutName": "Lined List",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-bullet-list--hier5.pptx",
+		"layoutName": "Vertical Bullet List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-bullet-list--flat3.pptx",
+		"layoutName": "Vertical Bullet List",
+		"category": "list",
+		"dataset": "flat3"
+	},
+	{
+		"file": "vertical-bullet-list--hier8.pptx",
+		"layoutName": "Vertical Bullet List",
+		"category": "list",
+		"dataset": "hier8"
+	},
+	{
+		"file": "vertical-box-list--hier5.pptx",
+		"layoutName": "Vertical Box List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-bracket-list--hier5.pptx",
+		"layoutName": "Vertical Bracket List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "varying-width-list--hier5.pptx",
+		"layoutName": "Varying Width List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "tab-list--hier5.pptx",
+		"layoutName": "Tab List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "horizontal-bullet-list--hier5.pptx",
+		"layoutName": "Horizontal Bullet List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "square-accent-list--hier5.pptx",
+		"layoutName": "Square Accent List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-accent-list--hier5.pptx",
+		"layoutName": "Picture Accent List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-accent-list--flat3.pptx",
+		"layoutName": "Picture Accent List",
+		"category": "list",
+		"dataset": "flat3"
+	},
+	{
+		"file": "picture-accent-list--hier8.pptx",
+		"layoutName": "Picture Accent List",
+		"category": "list",
+		"dataset": "hier8"
+	},
+	{
+		"file": "bending-picture-accent-list--hier5.pptx",
+		"layoutName": "Bending Picture Accent List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bending-picture-accent-list--flat3.pptx",
+		"layoutName": "Bending Picture Accent List",
+		"category": "list",
+		"dataset": "flat3"
+	},
+	{
+		"file": "bending-picture-accent-list--hier8.pptx",
+		"layoutName": "Bending Picture Accent List",
+		"category": "list",
+		"dataset": "hier8"
+	},
+	{
+		"file": "stacked-list--hier5.pptx",
+		"layoutName": "Stacked List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-action-list--hier5.pptx",
+		"layoutName": "Vertical Action List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "increasing-circle-process--hier5.pptx",
+		"layoutName": "Increasing Circle Process",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "pie-process--hier5.pptx",
+		"layoutName": "Pie Process",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "detailed-process--hier5.pptx",
+		"layoutName": "Detailed Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "grouped-list--hier5.pptx",
+		"layoutName": "Grouped List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "horizontal-picture-list--hier5.pptx",
+		"layoutName": "Horizontal Picture List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "continuous-picture-list--hier5.pptx",
+		"layoutName": "Continuous Picture List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-strips--hier5.pptx",
+		"layoutName": "Picture Strips",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-picture-list--hier5.pptx",
+		"layoutName": "Vertical Picture List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "alternating-picture-blocks--hier5.pptx",
+		"layoutName": "Alternating Picture Blocks",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-picture-accent-list--hier5.pptx",
+		"layoutName": "Vertical Picture Accent List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "titled-picture-accent-list--hier5.pptx",
+		"layoutName": "Titled Picture Accent List",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-block-list--hier5.pptx",
+		"layoutName": "Vertical Block List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-chevron-list--hier5.pptx",
+		"layoutName": "Vertical Chevron List",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-accent-list--hier5.pptx",
+		"layoutName": "Vertical Accent List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-arrow-list--hier5.pptx",
+		"layoutName": "Vertical Arrow List",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "trapezoid-list--hier5.pptx",
+		"layoutName": "Trapezoid List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "descending-block-list--hier5.pptx",
+		"layoutName": "Descending Block List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "icon-circle-label-list--hier5.pptx",
+		"layoutName": "Icon Circle Label List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "table-list--hier5.pptx",
+		"layoutName": "Table List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "segmented-process--hier5.pptx",
+		"layoutName": "Segmented Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-curved-list--hier5.pptx",
+		"layoutName": "Vertical Curved List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "pyramid-list--hier5.pptx",
+		"layoutName": "Pyramid List",
+		"category": "pyramid",
+		"dataset": "hier5"
+	},
+	{
+		"file": "pyramid-list--flat3.pptx",
+		"layoutName": "Pyramid List",
+		"category": "pyramid",
+		"dataset": "flat3"
+	},
+	{
+		"file": "pyramid-list--hier8.pptx",
+		"layoutName": "Pyramid List",
+		"category": "pyramid",
+		"dataset": "hier8"
+	},
+	{
+		"file": "target-list--hier5.pptx",
+		"layoutName": "Target List",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "hierarchy-list--hier5.pptx",
+		"layoutName": "Hierarchy List",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-circle-list--hier5.pptx",
+		"layoutName": "Vertical Circle List",
+		"category": "list",
+		"dataset": "hier5"
+	},
+	{
+		"file": "table-hierarchy--hier5.pptx",
+		"layoutName": "Table Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "table-hierarchy--flat3.pptx",
+		"layoutName": "Table Hierarchy",
+		"category": "hierarchy",
+		"dataset": "flat3"
+	},
+	{
+		"file": "table-hierarchy--hier8.pptx",
+		"layoutName": "Table Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier8"
+	},
+	{
+		"file": "architecture-layout--hier5.pptx",
+		"layoutName": "Architecture Layout",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-process--hier5.pptx",
+		"layoutName": "Basic Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-process--flat3.pptx",
+		"layoutName": "Basic Process",
+		"category": "process",
+		"dataset": "flat3"
+	},
+	{
+		"file": "basic-process--hier8.pptx",
+		"layoutName": "Basic Process",
+		"category": "process",
+		"dataset": "hier8"
+	},
+	{
+		"file": "step-up-process--hier5.pptx",
+		"layoutName": "Step Up Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "step-down-process--hier5.pptx",
+		"layoutName": "Step Down Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "numbered-linear-arrow-process--hier5.pptx",
+		"layoutName": "Numbered Linear Arrow Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "accent-process--hier5.pptx",
+		"layoutName": "Accent Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-accent-process--hier5.pptx",
+		"layoutName": "Picture Accent Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "alternating-flow--hier5.pptx",
+		"layoutName": "Alternating Flow",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "continuous-block-process--hier5.pptx",
+		"layoutName": "Continuous Block Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "continuous-block-process--flat3.pptx",
+		"layoutName": "Continuous Block Process",
+		"category": "process",
+		"dataset": "flat3"
+	},
+	{
+		"file": "continuous-block-process--hier8.pptx",
+		"layoutName": "Continuous Block Process",
+		"category": "process",
+		"dataset": "hier8"
+	},
+	{
+		"file": "increasing-arrows-process--hier5.pptx",
+		"layoutName": "Increasing Arrows Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "interconnected-block-process--hier5.pptx",
+		"layoutName": "Interconnected Block Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "continuous-arrow-process--hier5.pptx",
+		"layoutName": "Continuous Arrow Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "converging-text--fallback-n4.pptx",
+		"layoutName": "Converging Text",
+		"category": "process",
+		"dataset": "fallback-n4"
+	},
+	{
+		"file": "process-arrows--hier5.pptx",
+		"layoutName": "Process Arrows",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bullet-timeline--hier5.pptx",
+		"layoutName": "Bullet Timeline",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bullet-timeline-inverted--hier5.pptx",
+		"layoutName": "Bullet Timeline Inverted",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "circle-accent-timeline--hier5.pptx",
+		"layoutName": "Circle Accent Timeline",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-timeline--hier5.pptx",
+		"layoutName": "Basic Timeline",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-timeline--flat3.pptx",
+		"layoutName": "Basic Timeline",
+		"category": "process",
+		"dataset": "flat3"
+	},
+	{
+		"file": "basic-timeline--hier8.pptx",
+		"layoutName": "Basic Timeline",
+		"category": "process",
+		"dataset": "hier8"
+	},
+	{
+		"file": "circle-process--hier5.pptx",
+		"layoutName": "Circle Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-chevron-process--hier5.pptx",
+		"layoutName": "Basic Chevron Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-chevron-process--flat3.pptx",
+		"layoutName": "Basic Chevron Process",
+		"category": "process",
+		"dataset": "flat3"
+	},
+	{
+		"file": "basic-chevron-process--hier8.pptx",
+		"layoutName": "Basic Chevron Process",
+		"category": "process",
+		"dataset": "hier8"
+	},
+	{
+		"file": "chevron-accent-process--hier5.pptx",
+		"layoutName": "Chevron Accent Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "closed-chevron-process--hier5.pptx",
+		"layoutName": "Closed Chevron Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "chevron-list--hier5.pptx",
+		"layoutName": "Chevron List",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "sub-step-process--hier5.pptx",
+		"layoutName": "Sub-Step Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "phased-process--hier5.pptx",
+		"layoutName": "Phased Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "random-to-result-process--hier5.pptx",
+		"layoutName": "Random to Result Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-process--hier5.pptx",
+		"layoutName": "Vertical Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "staggered-process--hier5.pptx",
+		"layoutName": "Staggered Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "process-list--hier5.pptx",
+		"layoutName": "Process List",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "circle-arrow-process--hier5.pptx",
+		"layoutName": "Circle Arrow Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-bending-process--hier5.pptx",
+		"layoutName": "Basic Bending Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "repeating-bending-process--hier5.pptx",
+		"layoutName": "Repeating Bending Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "vertical-bending-process--hier5.pptx",
+		"layoutName": "Vertical Bending Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "ascending-picture-accent-process--hier5.pptx",
+		"layoutName": "Ascending Picture Accent Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "upward-arrow--hier5.pptx",
+		"layoutName": "Upward Arrow",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "descending-process--hier5.pptx",
+		"layoutName": "Descending Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "circular-bending-process--hier5.pptx",
+		"layoutName": "Circular Bending Process",
+		"category": "process",
+		"dataset": "hier5"
+	},
+	{
+		"file": "equation--hier5.pptx",
+		"layoutName": "Equation",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "equation--flat3.pptx",
+		"layoutName": "Equation",
+		"category": "relationship",
+		"dataset": "flat3"
+	},
+	{
+		"file": "equation--hier8.pptx",
+		"layoutName": "Equation",
+		"category": "relationship",
+		"dataset": "hier8"
+	},
+	{
+		"file": "vertical-equation--hier5.pptx",
+		"layoutName": "Vertical Equation",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "funnel--flat3.pptx",
+		"layoutName": "Funnel",
+		"category": "relationship",
+		"dataset": "flat3"
+	},
+	{
+		"file": "gear--hier5.pptx",
+		"layoutName": "Gear",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "gear--flat3.pptx",
+		"layoutName": "Gear",
+		"category": "relationship",
+		"dataset": "flat3"
+	},
+	{
+		"file": "arrow-ribbon--fallback-n2.pptx",
+		"layoutName": "Arrow Ribbon",
+		"category": "relationship",
+		"dataset": "fallback-n2"
+	},
+	{
+		"file": "opposing-arrows--fallback-n2.pptx",
+		"layoutName": "Opposing Arrows",
+		"category": "relationship",
+		"dataset": "fallback-n2"
+	},
+	{
+		"file": "converging-arrows--hier5.pptx",
+		"layoutName": "Converging Arrows",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "diverging-arrows--hier5.pptx",
+		"layoutName": "Diverging Arrows",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-cycle--hier5.pptx",
+		"layoutName": "Basic Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-cycle--flat3.pptx",
+		"layoutName": "Basic Cycle",
+		"category": "cycle",
+		"dataset": "flat3"
+	},
+	{
+		"file": "basic-cycle--hier8.pptx",
+		"layoutName": "Basic Cycle",
+		"category": "cycle",
+		"dataset": "hier8"
+	},
+	{
+		"file": "text-cycle--hier5.pptx",
+		"layoutName": "Text Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-cycle--flat3.pptx",
+		"layoutName": "Text Cycle",
+		"category": "cycle",
+		"dataset": "flat3"
+	},
+	{
+		"file": "text-cycle--hier8.pptx",
+		"layoutName": "Text Cycle",
+		"category": "cycle",
+		"dataset": "hier8"
+	},
+	{
+		"file": "block-cycle--hier5.pptx",
+		"layoutName": "Block Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "nondirectional-cycle--hier5.pptx",
+		"layoutName": "Nondirectional Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "continuous-cycle--hier5.pptx",
+		"layoutName": "Continuous Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "continuous-cycle--flat3.pptx",
+		"layoutName": "Continuous Cycle",
+		"category": "cycle",
+		"dataset": "flat3"
+	},
+	{
+		"file": "continuous-cycle--hier8.pptx",
+		"layoutName": "Continuous Cycle",
+		"category": "cycle",
+		"dataset": "hier8"
+	},
+	{
+		"file": "multidirectional-cycle--hier5.pptx",
+		"layoutName": "Multidirectional Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "segmented-cycle--hier5.pptx",
+		"layoutName": "Segmented Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-pie--hier5.pptx",
+		"layoutName": "Basic Pie",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "hexagon-radial--hier5.pptx",
+		"layoutName": "Hexagon Radial",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "radial-cycle--hier5.pptx",
+		"layoutName": "Radial Cycle",
+		"category": "cycle",
+		"dataset": "hier5"
+	},
+	{
+		"file": "radial-cycle--flat3.pptx",
+		"layoutName": "Radial Cycle",
+		"category": "cycle",
+		"dataset": "flat3"
+	},
+	{
+		"file": "radial-cycle--hier8.pptx",
+		"layoutName": "Radial Cycle",
+		"category": "cycle",
+		"dataset": "hier8"
+	},
+	{
+		"file": "basic-radial--hier5.pptx",
+		"layoutName": "Basic Radial",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "diverging-radial--hier5.pptx",
+		"layoutName": "Diverging Radial ",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "radial-venn--hier5.pptx",
+		"layoutName": "Radial Venn",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "cycle-matrix--fallback-n2.pptx",
+		"layoutName": "Cycle Matrix",
+		"category": "relationship",
+		"dataset": "fallback-n2"
+	},
+	{
+		"file": "radial-cluster--hier5.pptx",
+		"layoutName": "Radial Cluster",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "organization-chart--hier5.pptx",
+		"layoutName": "Organization Chart",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "organization-chart--flat3.pptx",
+		"layoutName": "Organization Chart",
+		"category": "hierarchy",
+		"dataset": "flat3"
+	},
+	{
+		"file": "organization-chart--hier8.pptx",
+		"layoutName": "Organization Chart",
+		"category": "hierarchy",
+		"dataset": "hier8"
+	},
+	{
+		"file": "picture-organization-chart--hier5.pptx",
+		"layoutName": "Picture Organization Chart",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "name-and-title-organization-chart--hier5.pptx",
+		"layoutName": "Name and Title Organization Chart",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "half-circle-organization-chart--hier5.pptx",
+		"layoutName": "Half Circle Organization Chart",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "circle-picture-hierarchy--hier5.pptx",
+		"layoutName": "Circle Picture Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "hierarchy--hier5.pptx",
+		"layoutName": "Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "hierarchy--flat3.pptx",
+		"layoutName": "Hierarchy",
+		"category": "hierarchy",
+		"dataset": "flat3"
+	},
+	{
+		"file": "hierarchy--hier8.pptx",
+		"layoutName": "Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier8"
+	},
+	{
+		"file": "labeled-hierarchy--hier5.pptx",
+		"layoutName": "Labeled Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "horizontal-organization-chart--hier5.pptx",
+		"layoutName": "Horizontal Organization Chart",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "horizontal-multi-level-hierarchy--hier5.pptx",
+		"layoutName": "Horizontal Multi-Level Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "horizontal-hierarchy--hier5.pptx",
+		"layoutName": "Horizontal Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "horizontal-hierarchy--flat3.pptx",
+		"layoutName": "Horizontal Hierarchy",
+		"category": "hierarchy",
+		"dataset": "flat3"
+	},
+	{
+		"file": "horizontal-hierarchy--hier8.pptx",
+		"layoutName": "Horizontal Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier8"
+	},
+	{
+		"file": "horizontal-labeled-hierarchy--hier5.pptx",
+		"layoutName": "Horizontal Labeled Hierarchy",
+		"category": "hierarchy",
+		"dataset": "hier5"
+	},
+	{
+		"file": "balance--hier5.pptx",
+		"layoutName": "Balance",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "circle-relationship--hier5.pptx",
+		"layoutName": "Circle Relationship",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "hexagon-cluster--hier5.pptx",
+		"layoutName": "Hexagon Cluster",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "opposing-ideas--fallback-n4.pptx",
+		"layoutName": "Opposing Ideas",
+		"category": "relationship",
+		"dataset": "fallback-n4"
+	},
+	{
+		"file": "plus-and-minus--fallback-n2.pptx",
+		"layoutName": "Plus and Minus",
+		"category": "relationship",
+		"dataset": "fallback-n2"
+	},
+	{
+		"file": "reverse-list--fallback-n2.pptx",
+		"layoutName": "Reverse List",
+		"category": "relationship",
+		"dataset": "fallback-n2"
+	},
+	{
+		"file": "counterbalance-arrows--fallback-n2.pptx",
+		"layoutName": "Counterbalance Arrows",
+		"category": "relationship",
+		"dataset": "fallback-n2"
+	},
+	{
+		"file": "segmented-pyramid--hier5.pptx",
+		"layoutName": "Segmented Pyramid",
+		"category": "pyramid",
+		"dataset": "hier5"
+	},
+	{
+		"file": "segmented-pyramid--flat3.pptx",
+		"layoutName": "Segmented Pyramid",
+		"category": "pyramid",
+		"dataset": "flat3"
+	},
+	{
+		"file": "segmented-pyramid--hier8.pptx",
+		"layoutName": "Segmented Pyramid",
+		"category": "pyramid",
+		"dataset": "hier8"
+	},
+	{
+		"file": "nested-target--hier5.pptx",
+		"layoutName": "Nested Target",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "converging-radial--hier5.pptx",
+		"layoutName": "Converging Radial",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "radial-list--hier5.pptx",
+		"layoutName": "Radial List",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "tabbed-arc--hier5.pptx",
+		"layoutName": "Tabbed Arc",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-target--hier5.pptx",
+		"layoutName": "Basic Target",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-target--flat3.pptx",
+		"layoutName": "Basic Target",
+		"category": "relationship",
+		"dataset": "flat3"
+	},
+	{
+		"file": "basic-venn--hier5.pptx",
+		"layoutName": "Basic Venn",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-venn--flat3.pptx",
+		"layoutName": "Basic Venn",
+		"category": "relationship",
+		"dataset": "flat3"
+	},
+	{
+		"file": "linear-venn--hier5.pptx",
+		"layoutName": "Linear Venn",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "stacked-venn--hier5.pptx",
+		"layoutName": "Stacked Venn",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "interconnected-rings--hier5.pptx",
+		"layoutName": "Interconnected Rings",
+		"category": "relationship",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-matrix--fallback-n1.pptx",
+		"layoutName": "Basic Matrix",
+		"category": "matrix",
+		"dataset": "fallback-n1"
+	},
+	{
+		"file": "titled-matrix--fallback-n1.pptx",
+		"layoutName": "Titled Matrix",
+		"category": "matrix",
+		"dataset": "fallback-n1"
+	},
+	{
+		"file": "grid-matrix--fallback-n1.pptx",
+		"layoutName": "Grid Matrix",
+		"category": "matrix",
+		"dataset": "fallback-n1"
+	},
+	{
+		"file": "basic-pyramid--hier5.pptx",
+		"layoutName": "Basic Pyramid",
+		"category": "pyramid",
+		"dataset": "hier5"
+	},
+	{
+		"file": "basic-pyramid--flat3.pptx",
+		"layoutName": "Basic Pyramid",
+		"category": "pyramid",
+		"dataset": "flat3"
+	},
+	{
+		"file": "basic-pyramid--hier8.pptx",
+		"layoutName": "Basic Pyramid",
+		"category": "pyramid",
+		"dataset": "hier8"
+	},
+	{
+		"file": "inverted-pyramid--hier5.pptx",
+		"layoutName": "Inverted Pyramid",
+		"category": "pyramid",
+		"dataset": "hier5"
+	},
+	{
+		"file": "accented-picture--hier5.pptx",
+		"layoutName": "Accented Picture",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "circular-picture-callout--hier5.pptx",
+		"layoutName": "Circular Picture Callout",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "radial-picture-list--fallback-n4.pptx",
+		"layoutName": "Radial Picture List",
+		"category": "picture",
+		"dataset": "fallback-n4"
+	},
+	{
+		"file": "snapshot-picture-list--hier5.pptx",
+		"layoutName": "Snapshot Picture List",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "spiral-picture--hier5.pptx",
+		"layoutName": "Spiral Picture",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "captioned-pictures--hier5.pptx",
+		"layoutName": "Captioned Pictures",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bending-picture-caption--hier5.pptx",
+		"layoutName": "Bending Picture Caption",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-frame--hier5.pptx",
+		"layoutName": "Picture Frame",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bending-picture-semi-transparent-text--hier5.pptx",
+		"layoutName": "Bending Picture Semi-Transparent Text",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bending-picture-blocks--hier5.pptx",
+		"layoutName": "Bending Picture Blocks",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bending-picture-caption-list--hier5.pptx",
+		"layoutName": "Bending Picture Caption List",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "titled-picture-blocks--hier5.pptx",
+		"layoutName": "Titled Picture Blocks",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-grid--hier5.pptx",
+		"layoutName": "Picture Grid",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-grid--flat3.pptx",
+		"layoutName": "Picture Grid",
+		"category": "picture",
+		"dataset": "flat3"
+	},
+	{
+		"file": "picture-grid--hier8.pptx",
+		"layoutName": "Picture Grid",
+		"category": "picture",
+		"dataset": "hier8"
+	},
+	{
+		"file": "picture-accent-blocks--hier5.pptx",
+		"layoutName": "Picture Accent Blocks",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "theme-picture-accent--hier5.pptx",
+		"layoutName": "Theme Picture Accent",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "theme-picture-grid--hier5.pptx",
+		"layoutName": "Theme Picture Grid",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "theme-picture-alternating-accent--hier5.pptx",
+		"layoutName": "Theme Picture Alternating Accent",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "alternating-picture-circles--hier5.pptx",
+		"layoutName": "Alternating Picture Circles",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "title-picture-lineup--hier5.pptx",
+		"layoutName": "Title Picture Lineup",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "picture-lineup--hier5.pptx",
+		"layoutName": "Picture Lineup",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "framed-text-picture--hier5.pptx",
+		"layoutName": "Framed Text Picture",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "bubble-picture-list--hier5.pptx",
+		"layoutName": "Bubble Picture List",
+		"category": "picture",
+		"dataset": "hier5"
+	},
+	{
+		"file": "alternating-circle-process--hier5.pptx",
+		"layoutName": "Alternating Circle Process",
+		"category": "timeline",
+		"dataset": "hier5"
+	},
+	{
+		"file": "numbered-dots-horizontal--hier5.pptx",
+		"layoutName": "Numbered Dots Horizontal",
+		"category": "timeline",
+		"dataset": "hier5"
+	},
+	{
+		"file": "numbered-dots-vertical--hier5.pptx",
+		"layoutName": "Numbered Dots Vertical",
+		"category": "timeline",
+		"dataset": "hier5"
+	},
+	{
+		"file": "small-dots-horizontal--hier5.pptx",
+		"layoutName": "Small Dots Horizontal",
+		"category": "timeline",
+		"dataset": "hier5"
+	},
+	{
+		"file": "small-dots-horizontal--flat3.pptx",
+		"layoutName": "Small Dots Horizontal",
+		"category": "timeline",
+		"dataset": "flat3"
+	},
+	{
+		"file": "small-dots-horizontal--hier8.pptx",
+		"layoutName": "Small Dots Horizontal",
+		"category": "timeline",
+		"dataset": "hier8"
+	},
+	{
+		"file": "small-dots-vertical--hier5.pptx",
+		"layoutName": "Small Dots Vertical",
+		"category": "timeline",
+		"dataset": "hier5"
+	},
+	{
+		"file": "meet-the-team--hier5.pptx",
+		"layoutName": "Meet The Team",
+		"category": "meettheteam",
+		"dataset": "hier5"
+	},
+	{
+		"file": "meet-the-team--flat3.pptx",
+		"layoutName": "Meet The Team",
+		"category": "meettheteam",
+		"dataset": "flat3"
+	},
+	{
+		"file": "meet-the-team--hier8.pptx",
+		"layoutName": "Meet The Team",
+		"category": "meettheteam",
+		"dataset": "hier8"
+	},
+	{
+		"file": "meet-the-team-card--hier5.pptx",
+		"layoutName": "Meet The Team Card",
+		"category": "meettheteam",
+		"dataset": "hier5"
+	},
+	{
+		"file": "meet-the-team-card-vertical--hier5.pptx",
+		"layoutName": "Meet The Team Card Vertical",
+		"category": "meettheteam",
+		"dataset": "hier5"
+	},
+	{
+		"file": "meet-the-team-oval--hier5.pptx",
+		"layoutName": "Meet The Team Oval",
+		"category": "meettheteam",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-side-line-numbered--hier5.pptx",
+		"layoutName": "Text Card Side Line Numbered",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-side-line-icon--hier5.pptx",
+		"layoutName": "Text Card Side Line Icon",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-side-line-quote--hier5.pptx",
+		"layoutName": "Text Card Side Line Quote",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-side-line-wide-image--hier5.pptx",
+		"layoutName": "Text Card Side Line Wide Image",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-short-line--hier5.pptx",
+		"layoutName": "Text Card Short Line",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-short-line--flat3.pptx",
+		"layoutName": "Text Card Short Line",
+		"category": "textcard",
+		"dataset": "flat3"
+	},
+	{
+		"file": "text-card-short-line--hier8.pptx",
+		"layoutName": "Text Card Short Line",
+		"category": "textcard",
+		"dataset": "hier8"
+	},
+	{
+		"file": "text-card-short-line-number--hier5.pptx",
+		"layoutName": "Text Card Short Line Number",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-short-line-quote--hier5.pptx",
+		"layoutName": "Text Card Short Line Quote",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "text-card-short-line-wide--hier5.pptx",
+		"layoutName": "Text Card Short Line Wide",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "horizontal-action-list--hier5.pptx",
+		"layoutName": "Horizontal Action List",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "numbered-card-list--hier5.pptx",
+		"layoutName": "Numbered Card List",
+		"category": "textcard",
+		"dataset": "hier5"
+	},
+	{
+		"file": "numbered-title-list--hier5.pptx",
+		"layoutName": "Numbered Title List",
+		"category": "textcard",
+		"dataset": "hier5"
+	}
+]

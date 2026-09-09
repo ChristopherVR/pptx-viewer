@@ -2,12 +2,7 @@
  * SmartArt DiagramML interpreter - pyramid (`pyra`) arranger.
  *
  * Stacks the data-model points as horizontal trapezoid bands forming a
- * triangle. Honours the `sibSp` gap constraint between bands. When
- * `pyraAcctPos` (`dgm:param[@type=pyraAcctPos]`, `bef`/`aft`) is present -
- * PowerPoint's "Pyramid List" gallery variant - each band's text moves out of
- * the (often too-narrow) trapezoid into a dedicated accent box beside it,
- * matching real PowerPoint behaviour: the trapezoid becomes a plain colour
- * band and the accent box carries the legible text, inset by `pyraAcctTxMar`.
+ * triangle. Honours the `sibSp` gap constraint between bands.
  *
  * Also honours `dgm:param[@type=pyraLvlNode]` (COM-verified against real
  * PowerPoint's "Basic Pyramid": `ppt/diagrams/layout1.xml`'s root `dgm:alg
@@ -23,34 +18,96 @@
  * which qualifies as a ratio (`500` is not less than `1`), so this is a
  * no-op there, verified byte-identical against the shipped layout via a COM
  * probe.
+ *
+ * ## `pyraAcctPos` (`dgm:param[@type=pyraAcctPos]`, `bef`/`aft`): NOT a
+ * separate accent-box column
+ *
+ * A previous round of this interpreter modelled `pyraAcctPos` as "move this
+ * band's text into a dedicated rect callout beside the band" (a
+ * `bandX`/`acctX` two-column split), reasoning by analogy with the gallery's
+ * "Pyramid List" variant. That model is WRONG, discovered by COM-verified
+ * regression: of the 227-fixture gallery corpus, only `basic-pyramid` and
+ * `inverted-pyramid` ever declare `pyraAcctPos` at all (grepped every
+ * fixture's `layout1.xml`), and "Pyramid List" (`pyramid-list--*.pptx`)
+ * does NOT use `dgm:alg type="pyra"` for its accent at all - it is a
+ * `composite` of a single decorative `triangle` (`alg="sp"`, one static
+ * shape, not per-item bands) beside a `lin`-arranged list of `roundRect`
+ * items, structurally unrelated to this module. `basic-pyramid`/
+ * `inverted-pyramid`'s cached ground truth for an accented row (a data
+ * point with a child) is TWO TRAPEZOID shapes sharing one band's slot
+ * (`trapezoid` for the point's own text, `nonIsoscelesTrapezoid` for the
+ * child's), not a rect sidebar - a fundamentally different shape family from
+ * the old column model, which produced a `rect` accent box that never
+ * matched any real fixture's preset OR geometry.
+ *
+ * The real, per-item, child-driven accent split (populated only when a data
+ * point HAS a child - `levelTx`/`acctTx`-named roles, `axis="self"`/`"des"`
+ * respectively) is handled upstream by the item-roles module
+ * (`smartart-layout-interpreter-item-role-stack.ts`'s `stackRoleContent`),
+ * which resolves per-point role content against the real tree and produces,
+ * per accented row, TWO polygon entries sharing the ORIGINAL (unsplit) band's
+ * `points` - one tagged `itemRoleName` for the point's own text ("levelTx"),
+ * one for the child's ("acctTx"). This arranger emits ONE plain trapezoid
+ * band per top-level point (matching `basic-pyramid--flat3.pptx`'s all-leaf
+ * dataset exactly, 0.12% residual) and takes no `pyraAcctPos` branch at all.
+ *
+ * ## `pyraAcctRatio` band-splitting geometry (COM-verified,
+ *    `repositionPyramidBands`)
+ *
+ * `basic-pyramid`/`inverted-pyramid` also declare `pyraAcctRatio` (gated on
+ * `func="maxDepth" op="gte" val="2"` - true whenever ANY point in the WHOLE
+ * diagram has a child): once active, EVERY row's own "level" (self-role) band
+ * shrinks uniformly to `(1 - pyraAcctRatio)` of its natural width - COM-
+ * verified across all 3 rows of `basic-pyramid--hier5.pptx` (accented AND the
+ * one unaccented row alike): each row's natural top/bottom x-coordinates,
+ * scaled by this SAME factor anchored at the diagram box's own LEFT edge
+ * (`scaledX = (1 - pyraAcctRatio) * naturalX`, in box-LOCAL coordinates where
+ * the left edge is `x=0`), reproduce the cached "level" band's bounding box
+ * to within rounding for every row (`Node One`/`Three`/`Four`, `pyraAcctRatio
+ * =0.32`). The accent (`acctTx`, only present on a row with a child) then
+ * fills the REMAINDER of that row's natural slot: its own top-left/bottom-
+ * left corners are the level band's own (scaled) top-right/bottom-right
+ * corners - the two bands share a slanted boundary - and its top-right/
+ * bottom-right corners are both the diagram box's own right edge (flush,
+ * vertical), matching the cached `nonIsoscelesTrapezoid` preset's own
+ * asymmetric shape (one slanted side, one vertical). Both derivations
+ * verified independently for all 3 rows of `basic-pyramid--hier5.pptx`
+ * (COM-verified bounding-box match to within 1px on every one).
+ *
+ * `stackRoleContent` has no generic way to split a polygon's own `points`
+ * (unlike a rect, which splits by height) - see `RenderedNodeIdentity.
+ * itemRoleName`'s own doc comment - so `repositionPyramidBands` is the
+ * arranger-specific geometry pass that module's doc comment calls for,
+ * applied as a POST-PASS after `expandResultItemRoles` (keyed by
+ * `itemRoleName` and `nodeId`, not by re-deriving anything `stackRoleContent`
+ * itself decided) rather than folded into `arrangePyramid` itself, so it
+ * never double-splits a row `stackRoleContent` already left alone (a row
+ * with no child keeps its single, unsplit entry - `itemRoleName` stays
+ * `undefined` - but STILL needs the same `pyraAcctRatio` width shrink, since
+ * the ratio is diagram-wide, not per-row).
+ *
  * Pure geometry; no framework code.
  */
 
 import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '../types';
+import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 import type { ConstraintIndex } from './smartart-constraint-solver';
-import {
-	EMPTY_CONSTRAINT_INDEX,
-	resolveRatioConstraint,
-	roleOf,
-} from './smartart-constraint-solver';
+import { EMPTY_CONSTRAINT_INDEX, roleOf } from './smartart-constraint-solver';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
 import { algorithmParam } from './smartart-layout-interpreter-model';
-import { polygonNode, rectNode, styleContext } from './smartart-layout-interpreter-render';
+import { polygonNode, styleContext } from './smartart-layout-interpreter-render';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
 
-const INSET = 8;
-/** Fraction of the box width reserved for the accent-box column when `pyraAcctPos` is set. */
-const ACCENT_RATIO = 0.42;
-/** Gap, in px, between a band and its accent box. */
-const ACCENT_GAP = 6;
-
-/** Horizontal band region and, when accented, the accent-box column beside it. */
-interface PyramidColumns {
-	bandX: number;
-	bandW: number;
-	acctX?: number;
-	acctW?: number;
-}
+// COM-verified against "Basic Pyramid" (`basic-pyramid--flat3.pptx`, no
+// `sibSp` declared on the `pyra` layout node): the stack of bands fills the
+// FULL diagram box edge-to-edge, zero outer margin and zero inter-band gap
+// (cached `dsp:sp` bands are `h = box.height / n` stacked with no space
+// between them, and the widest band's `w` equals the box width exactly). Both
+// are ratio constraints (`sibSp`/`sp`, and a margin-shaped constraint if one
+// existed) that `resolveRatioConstraint` picks up when a real layout declares
+// them; the literal here is only the "declares nothing" fallback.
+export const DEFAULT_GAP_RATIO = 0;
+export const DEFAULT_INSET = 0;
 
 /** Depth-first search of an arranger's item-template subtree for a `dgm:layoutNode` by name. */
 function findNamedNode(
@@ -69,25 +126,6 @@ function findNamedNode(
 	return undefined;
 }
 
-/** Split the usable width into a band region and, when `acctPos` is set, an accent column. */
-function pyramidColumns(
-	usableX: number,
-	maxW: number,
-	acctPos: string | undefined,
-): PyramidColumns {
-	if (acctPos !== 'bef' && acctPos !== 'aft') {
-		return { bandX: usableX, bandW: maxW };
-	}
-	const acctW = maxW * ACCENT_RATIO - ACCENT_GAP;
-	const bandW = maxW - acctW - ACCENT_GAP;
-	if (acctPos === 'bef') {
-		// Accent box reads BEFORE the band (to its left).
-		return { bandX: usableX + acctW + ACCENT_GAP, bandW, acctX: usableX, acctW };
-	}
-	// 'aft': accent box reads AFTER the band (to its right).
-	return { bandX: usableX, bandW, acctX: usableX + bandW + ACCENT_GAP, acctW };
-}
-
 /** Execute the `pyra` algorithm: stacked trapezoid bands (apex at top). */
 export function arrangePyramid(
 	plan: ArrangementPlan,
@@ -101,25 +139,16 @@ export function arrangePyramid(
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
 	const n = nodes.length;
-	const maxW = w - INSET * 2;
-	const acctPos = algorithmParam(plan.node, 'pyraAcctPos');
-	const acctTxMar = resolveRatioConstraint(
-		plan.node.constraints,
-		index,
-		roleOf(plan.node),
-		['pyraAcctTxMar'],
-		0.08,
-	);
-	const { bandX, bandW, acctX, acctW } = pyramidColumns(INSET, maxW, acctPos);
-	const bandCx = bandX + bandW / 2;
+	const bandW = w - DEFAULT_INSET * 2;
+	const bandCx = DEFAULT_INSET + bandW / 2;
 	const gapRatio = resolveRatioConstraint(
 		plan.node.constraints,
 		index,
 		roleOf(plan.node),
 		['sibSp', 'sp'],
-		0.06,
+		DEFAULT_GAP_RATIO,
 	);
-	const usableH = h - INSET * 2;
+	const usableH = h - DEFAULT_INSET * 2;
 	const bandH = n > 0 ? usableH / (n + Math.max(0, n - 1) * gapRatio) : usableH;
 	const gap = gapRatio * bandH;
 
@@ -136,16 +165,25 @@ export function arrangePyramid(
 	const lvlHeightRatio = lvlNode
 		? resolveRatioConstraint(lvlNode.constraints, index, roleOf(lvlNode), ['h'], 1)
 		: 1;
+	// `linDir="fromT"` ("inverted-pyramid": the apex points DOWN, widest band on
+	// TOP) vs the common `"fromB"` (apex UP, widest band on the bottom, "Basic
+	// Pyramid" itself) - COM-verified against `inverted-pyramid--hier5.pptx`:
+	// its own topmost row (`i=0`) is the WIDEST cached band, the exact mirror
+	// of `basic-pyramid`'s own `i=0` (narrowest, the apex). Reusing `linDir`
+	// (the same param name `lin`/`snake` already read for flow direction) is
+	// the genuine ECMA declarative signal, not a per-fixture-name guess.
+	const inverted = algorithmParam(plan.node, 'linDir') === 'fromT';
 
-	const renderedNodes: RenderedNode[] = nodes.flatMap((node, i) => {
-		const slotTop = INSET + i * (bandH + gap);
+	const renderedNodes: RenderedNode[] = nodes.map((node, i) => {
+		const slotTop = DEFAULT_INSET + i * (bandH + gap);
 		const slotBot = slotTop + bandH;
 		const slotMidY = (slotTop + slotBot) / 2;
 		const halfBandH = ((slotBot - slotTop) * lvlHeightRatio) / 2;
 		const yTop = slotMidY - halfBandH;
 		const yBot = slotMidY + halfBandH;
-		const fTop = i / n;
-		const fBot = (i + 1) / n;
+		const effectiveI = inverted ? n - 1 - i : i;
+		const fTop = effectiveI / n;
+		const fBot = (effectiveI + 1) / n;
 		const halfTop = ((bandW * fTop) / 2) * lvlWidthRatio;
 		const halfBot = ((bandW * fBot) / 2) * lvlWidthRatio;
 		const points = [
@@ -154,7 +192,7 @@ export function arrangePyramid(
 			`${bandCx + halfBot},${yBot}`,
 			`${bandCx - halfBot},${yBot}`,
 		].join(' ');
-		const band = polygonNode({
+		return polygonNode({
 			key: `${elementId}-pyra-${node.id}-${i}`,
 			points,
 			textX: bandCx,
@@ -168,43 +206,6 @@ export function arrangePyramid(
 			style,
 			ctx,
 		});
-		if (acctX === undefined || acctW === undefined) {
-			return [band];
-		}
-		// Real "Pyramid List" bands carry no text of their own once accented -
-		// the accent box is the sole text carrier for this data point, so the
-		// band becomes decorative (`nodeId: undefined` keeps the decompose
-		// bridge from projecting the node's text onto it too, avoiding a
-		// duplicate-text regression). `dgm:shape/@lkTxEntry="1"` on the level
-		// node overrides this: it explicitly marks the decorative shape as
-		// mirroring its paired content node's text, so it keeps its own text
-		// instead of going blank (see `smartart-layout-node-shape.ts`'s
-		// `parseSmartArtLkTxEntry` doc comment for why no Office-authored
-		// gallery layout actually exercises this path).
-		const decorativeBand: RenderedNode = lvlNode?.shape?.lkTxEntry
-			? band
-			: { ...band, nodeId: undefined, text: '' };
-		const marX = acctW * acctTxMar;
-		const marY = bandH * acctTxMar;
-		const accent = rectNode({
-			key: `${elementId}-pyra-acct-${node.id}-${i}`,
-			x: acctX + marX,
-			// Anchored to the full slot, not the (possibly `pyraLvlNode`-shrunk)
-			// band edges: the accent box is a separate named node, unaffected by
-			// how much of its own slot the band shape fills.
-			y: slotTop + marY,
-			width: Math.max(1, acctW - marX * 2),
-			height: Math.max(1, bandH - marY * 2),
-			node,
-			index: i,
-			total: n,
-			palette,
-			style,
-			ctx,
-		});
-		// The accent box is a text callout, not another colour swatch: it reads
-		// against the slide background, not the band's cycled fill.
-		return [decorativeBand, { ...accent, fill: 'none', stroke: 'none' }];
 	});
 
 	return {

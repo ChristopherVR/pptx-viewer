@@ -24,9 +24,17 @@
 import type {
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
 	PptxSmartArtPresLayoutVars,
 } from '../types';
-import { chooseAlgType } from './smartart-layout-interpreter-flow';
+import {
+	hasStructuralDescendant,
+	isContinuationForEach,
+	isTransitionOnlyChild,
+	itemTemplateNodes,
+	mapsSlots,
+} from './smartart-layout-interpreter-composite-detect';
+import { chooseAlgorithm } from './smartart-layout-interpreter-flow';
 import { treeMaxDepth, walkWithTreeLocation } from './smartart-layout-interpreter-tree-location';
 
 export {
@@ -66,22 +74,22 @@ const PRIMARY_ALG: Readonly<Record<string, ArrangementKind>> = {
 	tx: 'text',
 };
 
-/** Kinds driven by a real point-flow algorithm (preferred over conn/sp/tx). */
-const STRUCTURAL = new Set<ArrangementKind>(['linear', 'cycle', 'pyramid', 'snake']);
-
-/** Constraint types that position a composite child into an explicit slot. */
-const SLOT_CONSTRAINTS = new Set(['l', 't', 'w', 'h', 'ctrX', 'ctrY']);
-
 /**
- * True when a composite's child `layoutNode`s carry positioning constraints that
- * map data points into fixed slots. Only then does `composite` win; otherwise it
- * is a passive wrapper and the interpreter recurses to the inner arrangement.
+ * Kinds driven by a real point-flow algorithm (preferred over conn/sp/tx),
+ * and where every arranged point gets its own item box from a shared
+ * per-item template - so `smartart-layout-interpreter-item-roles.ts`'s
+ * multi-role expansion (a list layout's `childText`, a card layout's
+ * `roleText`/`bodyText`, ...) applies uniformly to all four. `hierarchy` and
+ * `composite` are excluded: hierarchy gives each node's own box independent
+ * per-depth treatment, and a top-level `composite` arranger maps points 1:1
+ * onto EXPLICIT named slots rather than repeating one item template.
  */
-function mapsSlots(node: PptxSmartArtLayoutNode): boolean {
-	return (node.children ?? []).some((child) =>
-		(child.constraints ?? []).some((constraint) => SLOT_CONSTRAINTS.has(constraint.type)),
-	);
-}
+export const STRUCTURAL_ARRANGEMENT_KINDS = new Set<ArrangementKind>([
+	'linear',
+	'cycle',
+	'pyramid',
+	'snake',
+]);
 
 /**
  * True when a `conn`/`sp`/`tx` node carries enough to arrange as a standalone
@@ -119,11 +127,19 @@ function isMeaningfulAux(node: PptxSmartArtLayoutNode): boolean {
  * (1-based), sibling count, depth, and the tree's max depth, so `"pos"`/
  * `"revPos"`/`"posEven"`/`"posOdd"`/`"depth"`/`"maxDepth"` are decidable
  * here too, not just `"cnt"`/`"var"` (previously the only two reachable).
+ *
+ * `flatNodes`, when supplied, additionally lets a `func="cnt"` `dgm:if`
+ * whose `@axis` needs real compound navigation decide too (ECMA-376
+ * 21.4.7.5 - see `smartart-layout-interpreter-when.ts`'s `resolveAxisCount`
+ * doc comment for the exact fixture this fixes, `basic-radial--hier5.pptx`'s
+ * `axis="ch ch"` `stAng` choose). Omitted keeps every such `cnt` on the
+ * older, coarser `nodeCount`-only comparison, exactly as before.
  */
 export function discoverArrangement(
 	definition: PptxSmartArtLayoutDefinition,
 	nodeCount?: number,
 	presLayoutVars?: PptxSmartArtPresLayoutVars,
+	flatNodes?: PptxSmartArtNode[],
 ): ArrangementPlan | undefined {
 	let hierarchy: PptxSmartArtLayoutNode | undefined;
 	let chosen: ArrangementPlan | undefined;
@@ -131,28 +147,61 @@ export function discoverArrangement(
 	let structural: ArrangementPlan | undefined;
 	let aux: ArrangementPlan | undefined;
 	const maxDepth = treeMaxDepth(definition.rootNode);
+	const itemTemplates = new Set<PptxSmartArtLayoutNode>();
+	itemTemplateNodes(definition.rootNode, itemTemplates);
 	walkWithTreeLocation(definition.rootNode, (node, location) => {
-		if (!hierarchy && !chosen && nodeCount !== undefined && node.choose && node.choose.length > 0) {
-			const type = chooseAlgType(node, nodeCount, {
+		if (
+			!hierarchy &&
+			!chosen &&
+			nodeCount !== undefined &&
+			node.choose &&
+			node.choose.length > 0 &&
+			!isContinuationForEach(node)
+		) {
+			// `chooseAlgorithm` keeps the winning branch's `dgm:param`s (see its doc comment).
+			const resolvedAlg = chooseAlgorithm(node, nodeCount, {
 				presLayoutVars,
 				position: location.position,
 				total: location.total,
 				depth: location.depth,
 				maxDepth,
+				nodes: flatNodes,
 			});
-			// A genuine org-chart layoutDef (ECMA-376 orgChart1) wraps its OWN
-			// root `hierChild`/`hierRoot` algorithm in a `dgm:choose` picking
-			// between `linDir` variants, not a bare `dgm:alg` - so this must be
-			// checked here, alongside the STRUCTURAL kinds below, or a
-			// choose-wrapped hierarchy is never found at all and the diagram
-			// falls through to a `conn`/`sp`/`tx` leaf approximation instead.
-			// Measured against `smartart-orgchart-hierbranch.pptx` in the corpus.
+			const type = resolvedAlg?.type;
+			// A genuine org-chart layoutDef wraps its OWN root `hierChild`/
+			// `hierRoot` algorithm in a `dgm:choose` (`smartart-orgchart-
+			// hierbranch.pptx`) - checked here too, alongside the STRUCTURAL
+			// kinds below. Keeps the ORIGINAL `node` fallback (not the
+			// param-carrying `withResolvedAlg` the non-hierarchy branch uses
+			// below): hierarchy's own params resolve via `presLayoutVars`, not
+			// `algorithmParam`, and hierarchy code elsewhere compares nodes by
+			// REFERENCE against the original tree, which a `{...node}` copy
+			// would defeat.
 			if (type === 'hierRoot' || type === 'hierChild') {
 				hierarchy = node.children?.find((child) => child.algorithm?.type === type) ?? node;
 			} else {
+				const withResolvedAlg = resolvedAlg ? { ...node, algorithm: resolvedAlg } : node;
 				const kind = type ? PRIMARY_ALG[type] : undefined;
-				if (kind && STRUCTURAL.has(kind)) {
-					const arranger = node.children?.find((child) => child.algorithm?.type === type) ?? node;
+				const arranger =
+					node.children?.find(
+						(child) =>
+							child.algorithm?.type === type &&
+							!isTransitionOnlyChild(child) &&
+							!isContinuationForEach(child),
+					) ?? withResolvedAlg;
+				if (kind && STRUCTURAL_ARRANGEMENT_KINDS.has(kind)) {
+					chosen = { kind, node: arranger };
+				} else if (kind === 'composite' && !itemTemplates.has(arranger) && mapsSlots(arranger)) {
+					// A count/direction-decidable `dgm:choose` picking `composite`
+					// for one branch (a fixed grid, `cycleMatrixDiagram`'s small-N
+					// layout) and something else for another must win with the SAME
+					// priority as a chosen STRUCTURAL kind - otherwise the blind
+					// alg walk below (`compositeSlot`) can commit to whichever
+					// alternative's `dgm:alg` happens to appear FIRST in the raw
+					// XML, ignoring the choose's actual data-driven decision (a
+					// regression `target-list`/`captioned-pictures`/`vertical-
+					// accent-list` measured once `mapsSlots` started recognising
+					// arranger-declared slot constraints).
 					chosen = { kind, node: arranger };
 				}
 			}
@@ -170,13 +219,20 @@ export function discoverArrangement(
 			return;
 		}
 		if (kind === 'composite') {
-			if (!compositeSlot && mapsSlots(node)) {
+			if (
+				!compositeSlot &&
+				!itemTemplates.has(node) &&
+				!hasStructuralDescendant(node) &&
+				mapsSlots(node)
+			) {
 				compositeSlot = node;
 			}
 			return;
 		}
-		if (STRUCTURAL.has(kind)) {
-			structural ??= { kind, node };
+		if (STRUCTURAL_ARRANGEMENT_KINDS.has(kind)) {
+			if (!isContinuationForEach(node)) {
+				structural ??= { kind, node };
+			}
 			return;
 		}
 		if (!aux && isMeaningfulAux(node)) {

@@ -197,6 +197,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			chrome,
 			colorTransform,
 			quickStyle,
+			// The theme's own minor-Latin font: what SmartArt text actually
+			// renders in absent a per-run `a:latin` override (confirmed: every
+			// text-bearing shape across the whole 227-fixture gallery corpus
+			// carries no run-level font override at all, so it always inherits
+			// the theme's minor font - confirmed 'Aptos', Microsoft's current
+			// Office default, for the entire corpus). Threading the REAL font
+			// through `smartart-layout-item-font-size.ts`'s fitter surfaced
+			// several OTHER wrong terms in the fitting model that a hardcoded
+			// 'Calibri' guess had been silently compensating for (see that
+			// module's doc comment for the fixed terms and their proving
+			// fixtures) - now that those are fixed, this is live.
+			themeMinorFont: this.themeFontMap['mn-lt'] || undefined,
 			dataRelId: diagramDataRelationshipId,
 			layoutRelId: layoutRelationshipId.length > 0 ? layoutRelationshipId : undefined,
 			drawingRelId:

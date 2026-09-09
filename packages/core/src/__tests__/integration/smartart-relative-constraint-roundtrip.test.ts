@@ -128,7 +128,14 @@ describe('smartArt relative constraint round-trip: refType/refFor/refForName', (
 		const xs = shapes.map((shape) => shape.x).sort((a, b) => a - b);
 		const widths = shapes.map((shape) => shape.width);
 		const step = xs[1] - xs[0];
-		expect(step).toBeCloseTo(xs[2] - xs[1], 0);
+		// Allow a 1px tolerance, not `toBeCloseTo(_, 0)`'s 0.5px: each shape's x
+		// is independently rounded to a whole pixel (`makeShapeElement` in
+		// `smartart-helpers.ts`), and with a 600px-wide container these
+		// particular fractional positions (206.25, 412.5) straddle a rounding
+		// tie, so the two consecutive steps can legitimately differ by exactly
+		// 1px even though the underlying un-rounded geometry is perfectly
+		// uniform - not a resolution bug.
+		expect(Math.abs(step - (xs[2] - xs[1]))).toBeLessThanOrEqual(1);
 		// step = mainExtent * (1 + sib) where sib resolves to 0.1.
 		expect(step / widths[0]).toBeCloseTo(1.1, 1);
 	});

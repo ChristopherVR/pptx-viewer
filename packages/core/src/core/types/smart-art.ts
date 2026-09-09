@@ -391,6 +391,14 @@ export interface PptxSmartArtData {
 	 * Consulted by the fallback layout engine for direction/org-chart hints.
 	 */
 	presLayoutVars?: PptxSmartArtPresLayoutVars;
+	/**
+	 * The deck's own theme minor-Latin font (`a:fontScheme/a:minorFont/a:latin/
+	 * @typeface`): what SmartArt text actually renders in when no per-run
+	 * `a:latin` override is present (the common case - see
+	 * `smartart-layout-item-font-size.ts`'s font-fit, the one consumer).
+	 * Undefined when the theme carries no font scheme at all.
+	 */
+	themeMinorFont?: string;
 	/** Relationship ID for the diagram data part (for round-trip save). */
 	dataRelId?: string;
 	/** Relationship ID for the diagram layout part. */

@@ -60,4 +60,30 @@ describe('parseSmartArtPresLayoutVars', () => {
 		expect(vars!.direction).toBeUndefined();
 		expect(vars!.bulletEnabled).toBeFalsy();
 	});
+
+	it('returns a defined (empty) object for a bare <dgm:dir/> with no @val, not undefined', () => {
+		// `bending-picture-caption--hier5.pptx`'s cached `diagram` pres point
+		// declares exactly `<dgm:presLayoutVars><dgm:dir/></dgm:presLayoutVars>`
+		// (present, but valueless): `smartart-layout-interpreter-when.ts`'s
+		// `evaluateVar` can only apply its OWN `dir="norm"` spec default to a
+		// variable that resolves to `undefined` WITHIN a defined
+		// `presLayoutVars` object - collapsing this to `undefined` entirely
+		// made every `dgm:if func="var" arg="dir"` choose gating the diagram's
+		// primary arrangement undecidable, so `discoverArrangement` fell back
+		// to a single-leaf `tx` approximation instead of running `snake`
+		// (measured: 5 flat grid boxes instead of 3, one per top-level node).
+		const vars = parseSmartArtPresLayoutVars({
+			'dgm:ptLst': {
+				'dgm:pt': {
+					'@_type': 'doc',
+					'dgm:prSet': {
+						'dgm:presLayoutVars': { 'dgm:dir': '' },
+					},
+				},
+			},
+		});
+		expect(vars).toBeDefined();
+		expect(vars).toStrictEqual({});
+		expect(vars!.direction).toBeUndefined();
+	});
 });

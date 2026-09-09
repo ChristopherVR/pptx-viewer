@@ -10,24 +10,19 @@
  * approximation.
  *
  * This is intentionally a *partial* interpreter (see
- * `smartart-layout-interpreter-model.ts` for the honest scope note): it honours
- * the arrangement algorithm, its direction/angle parameters, and the scalar
+ * `smartart-layout-interpreter-model.ts` for the honest scope note): it
+ * honours the arrangement algorithm, direction/angle params, and scalar
  * `dgm:constr` factors, and executes the decidable parts of `dgm:forEach`
- * (st/cnt/step + hideLastTrans point selection) and `dgm:choose` (count-decidable
- * branch selection), but does not run the full recursive constraint-reference
- * solver.
+ * (st/cnt/step + hideLastTrans) and `dgm:choose` (count-decidable branch
+ * selection), but does not run the full recursive constraint-reference solver.
  *
  * Lives in `pptx-viewer-core` (moved from `pptx-viewer-shared`) so it is the
  * SINGLE interpreter used both by the SVG-fallback preview path (every
  * binding, via `pptx-viewer-shared`'s re-export) and by this package's own
- * save/decompose pipeline, which fabricates the cached `dsp:` diagram drawing
- * when PowerPoint's own is absent (`smartart-decompose.ts`,
- * `smartart-interpreter-drawing-bridge.ts`). `pptx-viewer-core` cannot import
- * `pptx-viewer-shared` (shared depends on core, not the reverse), so this is
- * the only direction that avoids a circular dependency; see
- * `smartart-layout-types.ts` for the same note. It only runs on the path with
- * no cached `dsp` drawing part; a valid pre-existing cached drawing still wins
- * (see `PptxHandlerRuntimeSaveDocumentParts.ts`).
+ * save/decompose pipeline (`smartart-decompose.ts`,
+ * `smartart-interpreter-drawing-bridge.ts`). Only runs on the path with no
+ * cached `dsp` drawing part; a pre-existing cache still wins (see
+ * `PptxHandlerRuntimeSaveDocumentParts.ts`).
  */
 
 import type {
@@ -37,37 +32,41 @@ import type {
 	PptxSmartArtPresLayoutVars,
 	SmartArtStyle,
 } from '../types';
-import type { ConstraintIndex } from './smartart-constraint-solver';
 import { buildConstraintIndex } from './smartart-constraint-solver';
-import { arrangeConn, arrangeSpacer, arrangeText } from './smartart-layout-interpreter-aux';
-import { arrangeComposite } from './smartart-layout-interpreter-composite';
+import { applyChildOrder } from './smartart-hierarchy-child-order';
+import {
+	buildChildOrder,
+	buildConnectorLabels,
+} from './smartart-layout-interpreter-connector-order';
 import { applyCustomLayoutOverrides } from './smartart-layout-interpreter-custom';
-import { arrangeCycle } from './smartart-layout-interpreter-cycle';
+import { dispatchArrangement } from './smartart-layout-interpreter-dispatch';
 import { selectArrangedNodes } from './smartart-layout-interpreter-flow';
 import { arrangeHierarchy } from './smartart-layout-interpreter-hierarchy';
-import { arrangeLinear, arrangeSnake } from './smartart-layout-interpreter-linear';
+import { buildHubRenderedNode, detectHubExpansion } from './smartart-layout-interpreter-hub';
+import { expandResultItemRoles } from './smartart-layout-interpreter-item-roles';
 import {
 	discoverArrangement,
 	itemNode,
-	resolveFlowDirection,
+	STRUCTURAL_ARRANGEMENT_KINDS,
 } from './smartart-layout-interpreter-model';
-import type { ArrangementKind, ArrangementPlan } from './smartart-layout-interpreter-model';
+import type { ArrangementKind } from './smartart-layout-interpreter-model';
 import {
 	applyNamedRuleOverride,
 	collectNamedRules,
 	resolveNamedRuleOverride,
 } from './smartart-layout-interpreter-named-rules';
-import { arrangePyramid } from './smartart-layout-interpreter-pyramid';
+import { repositionPyramidBands } from './smartart-layout-interpreter-pyramid-bands';
 import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
 import { applySmartArtRoleColors } from './smartart-node-role-colors';
 import type { SmartArtColorRoleMap } from './smartart-node-role-colors';
+import { smartArtChildrenOf, topLevelSmartArtNodes } from './smartart-node-tree-axis';
 
 /**
  * Arrangement kinds where one item layoutNode template covers every rendered
  * point, so a `forName`-scoped rule override resolves unambiguously (see
- * `smartart-layout-interpreter-named-rules.ts`). `hierarchy` and `composite`
- * are deliberately excluded: they have no single uniform role name to key
- * off, and neither does the `conn`/`spacer`/`text` aux fallback.
+ * `smartart-layout-interpreter-named-rules.ts`). `hierarchy`/`composite`/the
+ * `conn`/`spacer`/`text` aux fallback are excluded: none has one uniform role
+ * name to key off.
  */
 const NAMED_OVERRIDE_KINDS = new Set<ArrangementKind>(['linear', 'snake', 'cycle', 'pyramid']);
 
@@ -94,32 +93,21 @@ export interface InterpretLayoutInput {
 	 */
 	colorRoles?: SmartArtColorRoleMap;
 	/**
-	 * Data-model connections (from `PptxSmartArtData.connections`). Only
-	 * consulted by the hierarchy arranger, to label a `parOf` edge's rendered
-	 * connector from its linked `parTrans` point's text (a
-	 * `connection.label` set by `parseSmartArtConnections`).
+	 * Data-model connections (from `PptxSmartArtData.connections`): labels a
+	 * hierarchy `parOf` edge's connector from its `parTrans` text, and
+	 * resolves a transition-bound item role's ordinal text (a numbered
+	 * badge) from its `sibTrans`/`parTrans` text - both via `connection.label`
+	 * (`parseSmartArtConnections`).
 	 */
 	connections?: PptxSmartArtConnection[];
-}
-
-/** Build `${parentId}>${childId} -> label` from labelled `parOf` connections. */
-function buildConnectorLabels(
-	connections: PptxSmartArtConnection[] | undefined,
-): Map<string, string> | undefined {
-	if (!connections || connections.length === 0) {
-		return undefined;
-	}
-	const labels = new Map<string, string>();
-	for (const connection of connections) {
-		if (!connection.label) {
-			continue;
-		}
-		const isParentChildEdge = !connection.type || connection.type === 'parOf';
-		if (isParentChildEdge) {
-			labels.set(`${connection.sourceId}>${connection.destId}`, connection.label);
-		}
-	}
-	return labels.size > 0 ? labels : undefined;
+	/**
+	 * The deck's own theme minor-Latin font (`PptxSmartArtData.themeMinorFont`),
+	 * threaded through to the `lin`/`snake` arrangers' font-fit
+	 * (`smartart-layout-item-font-size.ts`) so text is measured against the
+	 * REAL font PowerPoint renders it in, not a hardcoded guess. `undefined`
+	 * falls back to that module's own default.
+	 */
+	fontName?: string;
 }
 
 /** Run the recognised arrangement algorithm, or `undefined` when none applies. */
@@ -128,7 +116,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 	if (!layoutDefinition || flat.length === 0) {
 		return undefined;
 	}
-	const plan = discoverArrangement(layoutDefinition, flat.length, presLayoutVars);
+	const plan = discoverArrangement(layoutDefinition, flat.length, presLayoutVars, flat);
 	if (!plan) {
 		return undefined;
 	}
@@ -147,9 +135,47 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 			presLayoutVars,
 			buildConnectorLabels(input.connections),
 			plan.node,
+			buildConstraintIndex(layoutDefinition),
+			buildChildOrder(input.connections),
 		);
 	}
-	const arranged = selectArrangedNodes(plan.node, flat);
+	// A top-level `composite` arranger (`gear`, `balance`) maps its NAMED
+	// slots onto the top-level points directly via each slot's OWN `presOf`
+	// (see `arrangeComposite`'s module doc comment); it typically declares
+	// several SEPARATE single-point `forEach`s (one per slot, e.g. `gear2`'s
+	// own `st="2" cnt="1"`), which `selectArrangedNodes`'s single "driving
+	// iterator" model was never built to combine, so it is bypassed here in
+	// favour of the plain top-level point list every slot's ordinal position
+	// already indexes into. Known gap: a composite with SEVEN independent
+	// single-point `forEach`s, one per named "ring" slot (`target-list`'s
+	// concentric rings) still needs a real multi-forEach walk - see the
+	// Track S/R handoff notes for the exact diagnosis.
+	const roots = topLevelSmartArtNodes(nodes);
+	const childrenOf = smartArtChildrenOf(nodes);
+	// "hub + satellites" (`radial-cycle`'s center, `balance`'s pivot): a
+	// container point whose OWN children a NESTED forEach arranges - see
+	// `smartart-layout-interpreter-hub.ts`.
+	const preArranged =
+		plan.kind === 'composite'
+			? roots.length > 0
+				? roots
+				: flat
+			: selectArrangedNodes(plan.node, flat, roots);
+	const hub = detectHubExpansion(plan.node, preArranged, childrenOf);
+	// `hub.satellites` (`smartArtChildrenOf`, built from flat `parentId`
+	// pointers) is in `dgm:ptLst` declaration order, which is NOT necessarily
+	// true ring order - the SAME class of bug `buildChildOrder`/
+	// `applyChildOrder` already fixes for `arrangeHierarchy` (see their doc
+	// comments), reused verbatim here: every satellite shares the SAME
+	// parent (the hub), so `applyChildOrder`'s same-parent-only scoping is
+	// trivially satisfied and this is a plain, safe sort by `dgm:cxn`'s own
+	// `srcOrd`. COM-verified regression against `basic-radial--hier5.pptx`/
+	// `diverging-radial--hier5.pptx`: without this, satellites landed at the
+	// wrong ring position (rotated relative to the cached drawing) even
+	// though their SIZE already matched after `resolveHubToNodeRatio`.
+	const arranged = hub
+		? applyChildOrder(hub.satellites, buildChildOrder(input.connections))
+		: preArranged;
 	if (arranged.length === 0) {
 		return undefined;
 	}
@@ -164,61 +190,72 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 		elementId,
 		presLayoutVars,
 		constraintIndex,
+		childrenOf,
+		hub !== undefined,
+		input.fontName,
+		flat,
 	);
-	if (!result || !NAMED_OVERRIDE_KINDS.has(plan.kind)) {
-		return result;
+	if (!result) {
+		return undefined;
 	}
 	// Apply any `dgm:rule/@forName` override that names the arranger's item
 	// template (see `smartart-layout-interpreter-named-rules.ts`): declared
 	// anywhere in the tree, resolved by the item layoutNode's own `name`.
-	const override = resolveNamedRuleOverride(
-		collectNamedRules(layoutDefinition),
-		itemNode(plan.node)?.name,
-	);
-	return applyNamedRuleOverride(result, override, box);
-}
-
-/** Dispatch a discovered plan to its arranger, or `undefined` when declined. */
-function dispatchArrangement(
-	plan: ArrangementPlan,
-	arranged: PptxSmartArtNode[],
-	box: BoundingBox,
-	palette: string[],
-	style: SmartArtStyle,
-	elementId: string,
-	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
-	index: ConstraintIndex,
-): SmartArtLayoutResult | undefined {
-	switch (plan.kind) {
-		case 'linear': {
-			const flow = resolveFlowDirection(plan.node, presLayoutVars);
-			return arrangeLinear(plan, flow, arranged, box, palette, style, elementId, index);
-		}
-		case 'snake':
-			return arrangeSnake(plan, arranged, box, palette, style, elementId, index);
-		case 'cycle':
-			return arrangeCycle(plan, arranged, box, palette, style, elementId);
-		case 'pyramid':
-			return arrangePyramid(plan, arranged, box, palette, style, elementId, index);
-		case 'composite':
-			return arrangeComposite(plan, arranged, box, palette, style, elementId, index);
-		case 'conn':
-			return arrangeConn(plan, arranged, box, palette, style, elementId, index);
-		case 'spacer':
-			return arrangeSpacer(plan, arranged, box, palette, style, elementId);
-		case 'text':
-			// `arrangeText` places only the FIRST point (a composite `tx` leaf
-			// describes one region). Reached as a standalone plan it is the
-			// last-resort aux branch, so accepting it for a multi-point diagram
-			// silently drops every point but one. Decline instead and let the
-			// caller's family approximation place them all. Seen on real decks
-			// whose `.../layout/default` definition hides its `snake` arrangers
-			// inside a `dgm:choose` this interpreter cannot decide.
-			if (arranged.length > 1) {
-				return undefined;
-			}
-			return arrangeText(plan, arranged, box, palette, style, elementId);
+	const withNamedRule = NAMED_OVERRIDE_KINDS.has(plan.kind)
+		? applyNamedRuleOverride(
+				result,
+				resolveNamedRuleOverride(collectNamedRules(layoutDefinition), itemNode(plan.node)?.name),
+				box,
+			)
+		: result;
+	// Split each arranged point's box into its per-item text roles (a list
+	// layout's `childText`, a badge's ordinal text via `connections`) - see
+	// `smartart-layout-interpreter-item-roles.ts`.
+	const withItemRoles = STRUCTURAL_ARRANGEMENT_KINDS.has(plan.kind)
+		? expandResultItemRoles(
+				plan.node,
+				withNamedRule,
+				nodes,
+				childrenOf,
+				constraintIndex,
+				input.connections,
+			)
+		: withNamedRule;
+	// `pyraAcctRatio`'s own band-split geometry (see `repositionPyramidBands`'s
+	// doc comment) - a post-pass keyed by `nodeId`/row, not folded into
+	// `arrangePyramid` itself, so it never double-splits a row `stackRoleContent`
+	// (just above) already left alone. A no-op when `pyraAcctRatio` is absent
+	// (every pyramid layout except `basic-pyramid`/`inverted-pyramid`), or when
+	// no top-level point actually has a child (`hasAccentSomewhere` - see that
+	// param's own doc comment for why this can't be read off the constraint
+	// index alone).
+	const hasAccentSomewhere = arranged.some((node) => flat.some((n) => n.parentId === node.id));
+	const withPyramidBands =
+		plan.kind === 'pyramid'
+			? repositionPyramidBands(
+					withItemRoles,
+					box,
+					plan.node,
+					arranged.map((n) => n.id),
+					flat,
+					hasAccentSomewhere,
+					constraintIndex,
+				)
+			: withItemRoles;
+	if (!hub) {
+		return withPyramidBands;
 	}
+	const hubNode = buildHubRenderedNode(
+		plan.node,
+		hub.hubNode,
+		box,
+		palette,
+		style,
+		elementId,
+		hub.satellites.length,
+		constraintIndex,
+	);
+	return { ...withPyramidBands, nodes: [hubNode, ...withPyramidBands.nodes] };
 }
 
 /**

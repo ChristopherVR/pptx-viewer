@@ -106,12 +106,61 @@ function parseAdjustments(
 	return adjustments.length > 0 ? adjustments : undefined;
 }
 
-/** Parse a `dgm:layoutNode`'s `dgm:shape` child, or `undefined` when absent/empty. */
+/**
+ * Every `dgm:shape` reachable from `node` at its own level: a DIRECT child,
+ * or one reached through `dgm:choose`/`dgm:if`/`dgm:else` wrapping THIS SAME
+ * layoutNode (stopping at a nested `dgm:layoutNode`), in document order -
+ * the same reachability `choosePresentationOf`
+ * (`smartart-layout-definition-constraints.ts`) already gives `dgm:presOf`.
+ * `CircleAccentTimeline`'s `parTx`/`chTx`/`desTx` each wrap BOTH their
+ * `dgm:alg` AND their `dgm:shape` in a `dgm:choose` picking the LTR/RTL
+ * rotation variant (`rot="295"` vs `rot="65"`, both `type="rect"`) - a
+ * DIRECT-child-only shape lookup found neither, silently dropping the role's
+ * declared preset entirely (`presetGeometry` staying `undefined`), which
+ * broke `smartart-layout-interpreter-item-role-stack.ts`'s "does this role
+ * EXPLICITLY declare rect" check for a `circle`-kind merged item.
+ */
+function nestedShapes(node: XmlObject, localName: LocalName): XmlObject[] {
+	const found: XmlObject[] = [];
+	const visit = (value: unknown): void => {
+		if (!value || typeof value !== 'object') {
+			return;
+		}
+		if (Array.isArray(value)) {
+			value.forEach(visit);
+			return;
+		}
+		for (const [key, entry] of Object.entries(value as XmlObject)) {
+			if (key.startsWith('@_')) {
+				continue;
+			}
+			const name = localName(key);
+			if (name === 'layoutNode') {
+				continue;
+			}
+			if (name === 'shape') {
+				for (const candidate of Array.isArray(entry) ? entry : [entry]) {
+					found.push(candidate && typeof candidate === 'object' ? (candidate as XmlObject) : {});
+				}
+				continue;
+			}
+			visit(entry);
+		}
+	};
+	for (const [key, value] of Object.entries(node)) {
+		if (!key.startsWith('@_') && localName(key) !== 'extLst') {
+			visit({ [key]: value });
+		}
+	}
+	return found;
+}
+
+/** Parse a `dgm:layoutNode`'s `dgm:shape` child (direct or choose-wrapped), or `undefined` when absent/empty. */
 export function parseSmartArtLayoutNodeShape(
 	node: XmlObject,
 	localName: LocalName,
 ): PptxSmartArtLayoutNodeShape | undefined {
-	const shapeEl = child(node, 'shape', localName);
+	const shapeEl = child(node, 'shape', localName) ?? nestedShapes(node, localName)[0];
 	if (!shapeEl) {
 		return undefined;
 	}

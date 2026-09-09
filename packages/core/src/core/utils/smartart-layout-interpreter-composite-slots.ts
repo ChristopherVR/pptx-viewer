@@ -12,8 +12,12 @@
  */
 
 import type { PptxSmartArtConstraint, PptxSmartArtLayoutNode } from '../types';
+import {
+	firstConstraintDeclaredBy,
+	resolveConstraintDeclaredBy,
+} from './smartart-constraint-declared-by';
 import type { ConstraintIndex } from './smartart-constraint-solver';
-import { resolveConstraint } from './smartart-constraint-solver';
+import { resolveConstraint, roleOf } from './smartart-constraint-solver';
 import { findConstraint } from './smartart-layout-interpreter-model';
 import type { BoundingBox } from './smartart-layout-types';
 
@@ -41,6 +45,13 @@ export interface Slot {
 	y: number;
 	width: number;
 	height: number;
+}
+
+/** One composite child slot's raw dimensions, plus its source layoutNode
+ * (for `arrangeComposite`'s `dgm:presOf`-aware data mapping). */
+export interface SlottedDims {
+	node: PptxSmartArtLayoutNode;
+	dims: SlotDims;
 }
 
 /** Pick the extent a constraint's `factor` multiplies, honouring `referenceType`. */
@@ -71,16 +82,55 @@ function isCrossRoleReference(constraint: PptxSmartArtConstraint): boolean {
 	);
 }
 
+/**
+ * A slot's `type` dimension as declared by the ARRANGER (the composite
+ * node's own `for="ch" forName="<slot role>"` constraint), for when the
+ * slot's OWN constrLst says nothing - real built-ins (`gear`, `balance`,
+ * `stacked-venn`, Meet the Team's `compNode`) position slots this way almost
+ * exclusively, self-declared slot geometry being the rarer case. Mirrors the
+ * self-declared branch's fraction/absolute-raw split: `resolveConstraintDeclaredBy`
+ * already walks the reference chain (so a slot positioned relative to a
+ * SIBLING slot, e.g. `t` = sibling's resolved `b`, resolves here too), this
+ * only adds the axis (`w`/`h`) the resulting dimensionless number scales
+ * against, from the declaring constraint's own `refType`.
+ */
+function dimDeclaredBy(
+	role: string,
+	type: string,
+	declaringRole: string,
+	box: BoundingBox,
+	index: ConstraintIndex,
+): Dim | undefined {
+	const declared = firstConstraintDeclaredBy(index, role, type, declaringRole);
+	if (!declared) {
+		return undefined;
+	}
+	const resolved = resolveConstraintDeclaredBy(index, role, type, declaringRole);
+	if (typeof resolved !== 'number' || !Number.isFinite(resolved)) {
+		return undefined;
+	}
+	const extent = axisExtent(declared.referenceType, box, defaultExtent(type, box));
+	if (resolved >= 0 && resolved <= 1) {
+		return { px: resolved * extent };
+	}
+	if (resolved > 1) {
+		return { abs: resolved };
+	}
+	return undefined;
+}
+
 /** Resolve one constraint to pixels (factor / sub-1 value) or an absolute raw. */
 function dimOf(
 	constraints: PptxSmartArtConstraint[] | undefined,
 	type: string,
 	box: BoundingBox,
 	index: ConstraintIndex,
+	role: string,
+	declaringRole: string,
 ): Dim | undefined {
 	const constraint = findConstraint(constraints, type);
 	if (!constraint) {
-		return undefined;
+		return dimDeclaredBy(role, type, declaringRole, box, index);
 	}
 	if (isCrossRoleReference(constraint)) {
 		// "This slot's <type> is a factor of THAT sibling role's resolved
@@ -126,25 +176,36 @@ function isPositioned(dims: SlotDims): boolean {
 	);
 }
 
-/** Read the raw dimensions from every child, keeping only positioned slots. */
+/**
+ * Read the raw dimensions from every child, keeping only positioned slots.
+ *
+ * @param declaringRole The composite arranger's own role name (`roleOf`),
+ *   for resolving a slot positioned by the ARRANGER's `for="ch"
+ *   forName="<slot>"` constraint instead of the slot's own (see
+ *   `dimDeclaredBy`). Defaults to the composite `layoutNode`'s own name when
+ *   omitted (every existing call site already has it to hand as `children`'s
+ *   parent).
+ */
 export function readSlots(
 	children: PptxSmartArtLayoutNode[],
 	box: BoundingBox,
 	index: ConstraintIndex,
-): SlotDims[] {
-	const slots: SlotDims[] = [];
+	declaringRole: string,
+): SlottedDims[] {
+	const slots: SlottedDims[] = [];
 	for (const child of children) {
 		const c = child.constraints;
+		const role = roleOf(child);
 		const dims: SlotDims = {
-			l: dimOf(c, 'l', box, index),
-			t: dimOf(c, 't', box, index),
-			w: dimOf(c, 'w', box, index),
-			h: dimOf(c, 'h', box, index),
-			ctrX: dimOf(c, 'ctrX', box, index),
-			ctrY: dimOf(c, 'ctrY', box, index),
+			l: dimOf(c, 'l', box, index, role, declaringRole),
+			t: dimOf(c, 't', box, index, role, declaringRole),
+			w: dimOf(c, 'w', box, index, role, declaringRole),
+			h: dimOf(c, 'h', box, index, role, declaringRole),
+			ctrX: dimOf(c, 'ctrX', box, index, role, declaringRole),
+			ctrY: dimOf(c, 'ctrY', box, index, role, declaringRole),
 		};
 		if (isPositioned(dims)) {
-			slots.push(dims);
+			slots.push({ node: child, dims });
 		}
 	}
 	return slots;
@@ -163,15 +224,15 @@ function absOf(dim: Dim | undefined): number {
  * absolutely-positioned slot inside the bounds.
  */
 export function axisAbsMax(
-	slots: SlotDims[],
+	slots: SlottedDims[],
 	pos: keyof SlotDims,
 	ctr: keyof SlotDims,
 	size: keyof SlotDims,
 ): number {
 	let max = 0;
-	for (const slot of slots) {
-		const s = absOf(slot[size]);
-		const edge = Math.max(absOf(slot[pos]) + s, absOf(slot[ctr]) + s / 2, s);
+	for (const { dims } of slots) {
+		const s = absOf(dims[size]);
+		const edge = Math.max(absOf(dims[pos]) + s, absOf(dims[ctr]) + s / 2, s);
 		if (edge > max) {
 			max = edge;
 		}

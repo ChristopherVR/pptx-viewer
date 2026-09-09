@@ -78,8 +78,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!parsed) {
 				return;
 			}
-			const transitionId = parsed.parentTransitionId ?? parsed.siblingTransitionId;
-			const label = transitionId ? transitionTextById.get(transitionId) : undefined;
+			// Prefer whichever transition point actually CARRIES text: every
+			// `parOf` cxn declares both a `parTransId` and a `sibTransId`, so
+			// picking `parentTransitionId` unconditionally (the previous
+			// behaviour) meant `siblingTransitionId`'s own text was NEVER read
+			// whenever a parTrans id was merely present, even when it carried no
+			// text itself (`numbered-dots-horizontal--hier5.pptx`'s "1"/"2"/"3"
+			// ordinal badges live on the `sibTrans` point; its paired `parTrans`
+			// is always blank). `parentTransitionId`'s text still wins when BOTH
+			// carry text, matching the documented org-chart connector-label case.
+			const parentText = parsed.parentTransitionId
+				? transitionTextById.get(parsed.parentTransitionId)
+				: undefined;
+			const siblingText = parsed.siblingTransitionId
+				? transitionTextById.get(parsed.siblingTransitionId)
+				: undefined;
+			const label = parentText ?? siblingText;
 			parsedConnections.push(label ? { ...parsed, label } : parsed);
 			// `parOf` (the schema default when `@_type` is omitted, per ECMA-376
 			// CT_Cxn) is the only connection type expressing a data-graph

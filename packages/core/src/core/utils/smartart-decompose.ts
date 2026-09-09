@@ -206,6 +206,7 @@ export function computeSmartArtElementsWithoutCache(
 			presLayoutVars: smartArtData.presLayoutVars,
 			colorRoles: smartArtData.colorTransform?.roleColors,
 			connections: smartArtData.connections,
+			fontName: smartArtData.themeMinorFont,
 		});
 		if (interpreted && interpreted.nodes.length > 0) {
 			return interpretedLayoutToElements(

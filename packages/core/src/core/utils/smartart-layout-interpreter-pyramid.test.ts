@@ -12,8 +12,21 @@ function nodes(n: number): PptxSmartArtNode[] {
 	return Array.from({ length: n }, (_, i) => ({ id: `n${i}`, text: `Band ${i}` }));
 }
 
-// G2: `pyraAcctPos` (PowerPoint's "Pyramid List" gallery variant) moves band
-// text into a dedicated accent box instead of cramming it into the trapezoid.
+// G2 (REVISED, round 3): `pyraAcctPos` (`dgm:param[@type=pyraAcctPos]`,
+// `bef`/`aft`) does NOT mean "move this band's text into a dedicated rect
+// accent box" - that was this arranger's own earlier model, and it is WRONG.
+// COM-verified regression: of the 227-fixture gallery corpus, only
+// `basic-pyramid`/`inverted-pyramid` ever declare `pyraAcctPos` at all, and
+// their cached ground truth for an accented row (a point with a child) is
+// TWO TRAPEZOID shapes sharing one band's slot (`trapezoid` + a
+// `nonIsoscelesTrapezoid`), never a `rect` sidebar. "Pyramid List" (the
+// layout this arranger's old model was reasoning by analogy with) does not
+// even use `dgm:alg type="pyra"` - it is a `composite` of one static
+// decorative triangle beside a `lin`-arranged list, structurally unrelated.
+// This arranger therefore ignores `pyraAcctPos` entirely and always emits
+// one plain trapezoid band per top-level point; the per-item accent split
+// (only present when a point has a child) is the item-roles module's job
+// (`smartart-layout-interpreter-item-role-stack.ts`'s `stackRoleContent`).
 describe('arrangePyramid pyraAcctPos', () => {
 	it('renders one polygon band per node, carrying its own text, when pyraAcctPos is absent', () => {
 		const plan = planFor({ algorithm: { type: 'pyra' } });
@@ -29,126 +42,100 @@ describe('arrangePyramid pyraAcctPos', () => {
 		expect(result.nodes.every((node) => node.kind === 'polygon' && node.nodeId)).toBeTruthy();
 	});
 
-	it('pyraAcctPos=aft splits each band into a decorative trapezoid + a text accent box', () => {
-		const plan = planFor({
-			algorithm: { type: 'pyra', parameters: [{ type: 'pyraAcctPos', value: 'aft' }] },
-		});
-		const result = arrangePyramid(
-			plan,
+	it('pyraAcctPos=aft is a no-op: still one polygon band per node, no accent box (regression test)', () => {
+		const withParam = arrangePyramid(
+			planFor({
+				algorithm: { type: 'pyra', parameters: [{ type: 'pyraAcctPos', value: 'aft' }] },
+			}),
 			nodes(3),
 			{ width: 300, height: 300 },
 			['#fff'],
 			'flat',
 			'e',
 		);
-		// 3 bands x (decorative polygon + text accent rect) = 6 rendered nodes.
-		expect(result.nodes).toHaveLength(6);
-
-		const bands = result.nodes.filter((node) => node.kind === 'polygon');
-		const accents = result.nodes.filter((node) => node.kind === 'rect');
-		expect(bands).toHaveLength(3);
-		expect(accents).toHaveLength(3);
-		// The band is decorative: no nodeId, so the decompose bridge won't also
-		// project the node's real text onto it (avoiding duplicate text).
-		expect(bands.every((band) => band.nodeId === undefined)).toBeTruthy();
-		// The accent box is the sole text carrier for its data point.
-		expect(accents.map((accent) => accent.nodeId)).toStrictEqual(['n0', 'n1', 'n2']);
-
-		// 'aft': the accent box sits to the RIGHT of its band.
-		const band0 = bands[0];
-		const accent0 = accents[0];
-		if (band0.kind !== 'polygon' || accent0.kind !== 'rect') {
-			throw new Error('unexpected kinds');
-		}
-		const bandRightEdge = Math.max(
-			...band0.points
-				.trim()
-				.split(/\s+/u)
-				.map((pair) => Number(pair.split(',')[0])),
+		const withoutParam = arrangePyramid(
+			planFor({ algorithm: { type: 'pyra' } }),
+			nodes(3),
+			{ width: 300, height: 300 },
+			['#fff'],
+			'flat',
+			'e',
 		);
-		expect(accent0.x).toBeGreaterThan(bandRightEdge);
+		expect(withParam.nodes).toStrictEqual(withoutParam.nodes);
+		expect(withParam.nodes.filter((node) => node.kind === 'rect')).toHaveLength(0);
 	});
 
-	it('pyraAcctPos=bef puts the accent box to the LEFT of the band', () => {
-		const plan = planFor({
-			algorithm: { type: 'pyra', parameters: [{ type: 'pyraAcctPos', value: 'bef' }] },
-		});
+	it('pyraAcctPos=bef is also a no-op', () => {
 		const result = arrangePyramid(
-			plan,
+			planFor({
+				algorithm: { type: 'pyra', parameters: [{ type: 'pyraAcctPos', value: 'bef' }] },
+			}),
 			nodes(2),
 			{ width: 300, height: 200 },
 			['#fff'],
 			'flat',
 			'e',
 		);
-		const band0 = result.nodes.find((node) => node.kind === 'polygon');
-		const accent0 = result.nodes.find((node) => node.kind === 'rect');
-		if (!band0 || band0.kind !== 'polygon' || !accent0 || accent0.kind !== 'rect') {
-			throw new Error('expected one polygon band and one rect accent');
-		}
-		const bandLeftEdge = Math.min(
-			...band0.points
-				.trim()
-				.split(/\s+/u)
-				.map((pair) => Number(pair.split(',')[0])),
-		);
-		expect(accent0.x + accent0.width).toBeLessThanOrEqual(bandLeftEdge);
+		expect(result.nodes).toHaveLength(2);
+		expect(result.nodes.every((node) => node.kind === 'polygon')).toBeTruthy();
 	});
 });
 
-// G9: `dgm:shape/@lkTxEntry` on the named level node keeps the decorative
-// band's own text (mirroring its paired content node) instead of always
-// going blank once `pyraAcctPos` moves text to the accent box.
-describe('arrangePyramid lkTxEntry', () => {
-	it('blanks the band when the level node has no lkTxEntry (pre-existing behaviour)', () => {
-		const plan = planFor({
-			algorithm: {
-				type: 'pyra',
-				parameters: [
-					{ type: 'pyraAcctPos', value: 'aft' },
-					{ type: 'pyraLvlNode', value: 'level' },
-				],
-			},
-			children: [{ name: 'level' }],
-		});
+// COM-verified against "Basic Pyramid" (`basic-pyramid--flat3.pptx`): the
+// `pyra` layout node declares no `sibSp`/margin constraint at all, and the
+// cached drawing stacks bands edge-to-edge filling the FULL diagram box
+// (zero outer inset, zero inter-band gap), not the old hardcoded 8px inset /
+// 6% gap this arranger used to apply unconditionally.
+describe('arrangePyramid default spacing (no sibSp declared)', () => {
+	it('fills the full box with zero gap between bands, matching "Basic Pyramid" ground truth', () => {
 		const result = arrangePyramid(
-			plan,
-			nodes(1),
-			{ width: 200, height: 200 },
+			planFor({ algorithm: { type: 'pyra' } }),
+			nodes(3),
+			{ width: 867, height: 533 },
 			['#fff'],
 			'flat',
 			'e',
 		);
-		const band = result.nodes.find((node) => node.kind === 'polygon');
-		expect(band?.nodeId).toBeUndefined();
-		expect(band?.text).toBe('');
-	});
-
-	it('keeps the band\'s own text when the named level node declares lkTxEntry="1"', () => {
-		const plan = planFor({
-			algorithm: {
-				type: 'pyra',
-				parameters: [
-					{ type: 'pyraAcctPos', value: 'aft' },
-					{ type: 'pyraLvlNode', value: 'level' },
-				],
-			},
-			children: [{ name: 'level', shape: { lkTxEntry: true } }],
-		});
-		const result = arrangePyramid(
-			plan,
-			nodes(1),
-			{ width: 200, height: 200 },
-			['#fff'],
-			'flat',
-			'e',
-		);
-		const band = result.nodes.find((node) => node.kind === 'polygon');
-		expect(band?.nodeId).toBe('n0');
-		expect(band?.text).not.toBe('');
-		// The accent box still renders too - lkTxEntry mirrors the text, it
-		// doesn't remove the accent box.
-		expect(result.nodes.filter((node) => node.kind === 'rect')).toHaveLength(1);
+		const heightOf = (points: string): number => {
+			const ys = points
+				.trim()
+				.split(/\s+/u)
+				.map((pair) => Number(pair.split(',')[1]));
+			return Math.max(...ys) - Math.min(...ys);
+		};
+		const widthOf = (points: string): number => {
+			const xs = points
+				.trim()
+				.split(/\s+/u)
+				.map((pair) => Number(pair.split(',')[0]));
+			return Math.max(...xs) - Math.min(...xs);
+		};
+		const bands = result.nodes.filter((node) => node.kind === 'polygon');
+		expect(bands).toHaveLength(3);
+		// Cached: each band h=178 (533/3), stacked with no gap: band i's points
+		// start exactly where band i-1's end (y = i * 533/3).
+		for (const band of bands) {
+			if (band.kind !== 'polygon') {
+				throw new Error('expected polygon');
+			}
+			expect(heightOf(band.points)).toBeCloseTo(533 / 3, 0);
+		}
+		// Cached: bottom band's width equals the full box width (867), the
+		// widest band in the stack; no outer inset is applied.
+		const bottomBand = bands[2];
+		if (bottomBand.kind !== 'polygon') {
+			throw new Error('expected polygon');
+		}
+		expect(widthOf(bottomBand.points)).toBeCloseTo(867, 0);
+		// Zero gap: band 1's top y equals band 0's bottom y exactly.
+		const ys = (points: string) =>
+			points
+				.trim()
+				.split(/\s+/u)
+				.map((pair) => Number(pair.split(',')[1]));
+		const band0Bottom = Math.max(...ys((bands[0] as { points: string }).points));
+		const band1Top = Math.min(...ys((bands[1] as { points: string }).points));
+		expect(band1Top).toBeCloseTo(band0Bottom, 5);
 	});
 });
 

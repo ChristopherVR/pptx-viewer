@@ -17,33 +17,18 @@
  * Pure TypeScript - no framework code, no DOM.
  */
 
-import type {
-	PptxSmartArtChoose,
-	PptxSmartArtForEach,
-	PptxSmartArtLayoutNode,
-	PptxSmartArtNode,
-	XmlObject,
-} from '../types';
-import { evaluateWhen } from './smartart-layout-interpreter-when';
-import type { WhenContext } from './smartart-layout-interpreter-when';
+import type { PptxSmartArtForEach, PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
 
 export type { WhenContext } from './smartart-layout-interpreter-when';
-
-const localName = (key: string): string => key.split(':').pop() ?? key;
+// Re-exported so existing callers (`smartart-layout-interpreter-model.ts`,
+// `index.ts`'s barrel) keep importing choose/alg resolution from this module;
+// the implementation itself lives in
+// `smartart-layout-interpreter-choose-algorithm.ts` (split out to stay under
+// the repo's per-file line budget).
+export { chooseAlgorithm, chooseAlgType } from './smartart-layout-interpreter-choose-algorithm';
 
 /** Point types that denote a real data node (vs a transition placeholder). */
 const NODE_POINT_TYPES = new Set(['node', 'norm', 'nonNorm', 'asst', 'nonAsst', 'doc', 'all']);
-
-/**
- * Structural algorithm types a decidable choose branch may select. Includes
- * `hierChild`/`hierRoot`: a genuine org-chart layoutDef (ECMA-376 orgChart1)
- * wraps its OWN root hierarchy algorithm in a `dgm:choose` picking between
- * `linDir`/`hierBranch` variants, not a bare `dgm:alg` - excluding them here
- * meant a choose-wrapped hierarchy was never recognised at all (see
- * `smartart-layout-interpreter-model.ts`'s `discoverArrangement`, which
- * special-cases these two types to set `hierarchy` rather than `chosen`).
- */
-const CHOOSE_ALG_TYPES = new Set(['lin', 'cycle', 'pyra', 'snake', 'hierChild', 'hierRoot']);
 
 /** First finite entry of a per-axis attribute list, or `undefined`. */
 function firstNumber(values: number[] | undefined): number | undefined {
@@ -52,24 +37,100 @@ function firstNumber(values: number[] | undefined): number | undefined {
 }
 
 /**
- * Pick the `dgm:forEach` that iterates the data points. Built-ins iterate the
- * points with an `axis="ch" ptType="node"` forEach; a diagram may also carry a
- * transition (`sibTrans`) iterator. We prefer a node-point iterator, then a
- * child-axis iterator, then the first one present.
+ * Every `dgm:forEach` on `node` that qualifies as a POINT-consuming iterator
+ * (as opposed to a decorative/transition one), in document order. Built-ins
+ * usually declare exactly ONE (`axis="ch" ptType="node"`) - `selectArrangedNodes`
+ * used to pick just that ONE via `drivingIterator` (still the fallback rule
+ * below when nothing node-typed is found). Some built-ins declare SEVERAL
+ * INDEPENDENT node-point iterators on the SAME `layoutNode`, each covering a
+ * different slice of the point set - `Target List`'s `Name0` composite
+ * declares 7 (`st="1".."7" cnt="1"`, one per named ring slot); `Table List`/
+ * `Stacked List`'s continuation arranger has just 1 (handled separately by
+ * `isContinuationForEach`, a Track S file). {@link selectArrangedNodes}
+ * resolves and UNIONS every entry here, so a diagram whose points are split
+ * across N independent iterators arranges the union, not just the first.
  */
-function drivingIterator(node: PptxSmartArtLayoutNode): PptxSmartArtForEach | undefined {
+function qualifyingIterators(node: PptxSmartArtLayoutNode): PptxSmartArtForEach[] {
 	const list = node.forEach;
 	if (!list || list.length === 0) {
-		return undefined;
+		return [];
 	}
-	const nodeIter = list.find((each) => each.pointTypes?.some((type) => NODE_POINT_TYPES.has(type)));
-	if (nodeIter) {
-		return nodeIter;
+	const nodeIters = list.filter((each) =>
+		each.pointTypes?.some((type) => NODE_POINT_TYPES.has(type)),
+	);
+	if (nodeIters.length > 0) {
+		return nodeIters;
 	}
 	const axisIter = list.find((each) =>
 		each.axis?.some((axis) => axis === 'ch' || axis === 'des' || axis === 'self'),
 	);
-	return axisIter ?? list[0];
+	return [axisIter ?? list[0]];
+}
+
+/** One iterator's own `st`/`cnt`/`step` selection against a base of `length`, as 0-based indices. */
+function resolveIteratorIndices(iter: PptxSmartArtForEach, length: number): number[] {
+	const start = firstNumber(iter.start);
+	const st0 = start !== undefined ? Math.max(0, start - 1) : 0;
+	const stepRaw = firstNumber(iter.step);
+	const step = stepRaw !== undefined && stepRaw > 0 ? stepRaw : 1;
+	const cnt = firstNumber(iter.count) ?? 0;
+	const indices: number[] = [];
+	for (let i = st0; i < length; i += step) {
+		indices.push(i);
+		if (cnt > 0 && indices.length >= cnt) {
+			break;
+		}
+	}
+	return indices;
+}
+
+/**
+ * A SECOND kind of multi-iterator shape, distinct from {@link
+ * qualifyingIterators}'s "N independent entries on the SAME node": one
+ * iterator's item template nests ANOTHER, `axis="followSib" ptType="node"`
+ * iterator inside its own body - `Alternating Flow`'s `process` arranger has
+ * ONE direct `dgm:forEach` (`step="2"`, every OTHER point via `composite1`),
+ * but `composite1`'s own body ALSO nests a `followSib`/`ptType="node"
+ * cnt="1"` iterator reaching `composite2` - "the point immediately
+ * following the current one", rendered through a DIFFERENT (but, in every
+ * gallery fixture measured, role-compatible - see `smartart-layout-
+ * interpreter-item-roles.ts`'s `isPartialForEachOrigin`) item template. The
+ * typed model flattens this nesting onto `arranger.children`, so it is only
+ * reachable via each child's OWN `forEachOrigin`, not `node.forEach`
+ * (`followSib` never denotes an absolute position, so it cannot be resolved
+ * by {@link resolveIteratorIndices} against `base` directly - each count
+ * found here is applied RELATIVE TO every already-selected index instead).
+ * A `followSib`/`ptType="sibTrans"`/`"parTrans"` transition (a connector,
+ * decorative) is excluded by the SAME `NODE_POINT_TYPES` filter every other
+ * iterator here uses.
+ */
+function collectFollowSibNodeCounts(node: PptxSmartArtLayoutNode): number[] {
+	const counts: number[] = [];
+	for (const child of node.children ?? []) {
+		const origin = child.forEachOrigin;
+		if (
+			origin?.axis?.includes('followSib') &&
+			origin.pointTypes?.some((type) => NODE_POINT_TYPES.has(type))
+		) {
+			counts.push(firstNumber(origin.count) ?? 1);
+		}
+	}
+	return counts;
+}
+
+/**
+ * `true` when an iterator's `axis` is EXACTLY `ch` (children of the current
+ * scope, no combined `des`/`desOrSelf`/`all` token). Real built-in layoutDefs
+ * drive their top-level item arrangement with `axis="ch" ptType="node"` (see
+ * `basic-process--hier5.pptx`'s `layout1.xml`: `<dgm:forEach name="nodesForEach"
+ * axis="ch" ptType="node">`, paired with `<dgm:bulletEnabled val="1"/>` on the
+ * SAME layoutNode): PowerPoint arranges one box per DIRECT top-level node and
+ * folds any deeper node (added via the text-pane's Tab/"Add Bullet") into that
+ * box as extra paragraphs rather than a sibling box. A combined axis (e.g.
+ * `"ch des"`) deliberately wants the full descendant set, so it is left alone.
+ */
+function isChildOnlyAxis(iter: PptxSmartArtForEach): boolean {
+	return iter.axis?.length === 1 && iter.axis[0] === 'ch';
 }
 
 /**
@@ -78,123 +139,79 @@ function drivingIterator(node: PptxSmartArtLayoutNode): PptxSmartArtForEach | un
  * drop the trailing slot. `st` is 1-based (DiagramML default 1); `cnt` of 0
  * means "all"; `step` defaults to 1. Returns `flat` unchanged when the arranger
  * node carries no iterator.
+ *
+ * When `node` declares MORE THAN ONE qualifying iterator ({@link
+ * qualifyingIterators}), or nests a `followSib`/`ptType="node"` iterator
+ * inside one iterator's own item template ({@link
+ * collectFollowSibNodeCounts}), the result is the UNION of every iterator's
+ * own selection, in data order - `Target List`'s 7 independent single-point
+ * ring iterators, and `Alternating Flow`'s `step="2"` primary paired with a
+ * nested `followSib` "next point" secondary, both resolve this way. The
+ * common case (exactly one iterator, no nested pairing) is unaffected: the
+ * union of one iterator's own indices is exactly its own selection, same as
+ * before this generalisation.
+ *
+ * @param roots The original (un-flattened) top-level nodes. When EVERY
+ *   qualifying iterator's axis is exactly `ch` (see {@link isChildOnlyAxis}),
+ *   selection runs over `roots` instead of the depth-first-flattened `flat`,
+ *   so a node with children gets exactly one box; the caller
+ *   (`interpretedLayoutToElements`) folds each unrendered descendant's text
+ *   into its ancestor's box as additional paragraphs. Omit `roots` (or pass
+ *   it equal to `flat`) to keep the previous flat-only behaviour, e.g. for
+ *   callers with no tree to offer.
  */
 export function selectArrangedNodes(
 	node: PptxSmartArtLayoutNode,
 	flat: PptxSmartArtNode[],
+	roots?: PptxSmartArtNode[],
 ): PptxSmartArtNode[] {
-	const iter = drivingIterator(node);
-	if (!iter) {
-		return flat;
+	const iterators = qualifyingIterators(node);
+	if (iterators.length === 0) {
+		// No driving iterator at all does not mean "no restriction": the
+		// arranger's own per-item structure can live entirely inside a
+		// nested `dgm:choose`/`composite` with no forEach of its own
+		// (`basic-chevron-process--hier8`'s `Name0`), in which case the
+		// top-level points are still the right arranged set - `flat` (every
+		// node, including grandchildren) produced a box per DESCENDANT too.
+		// Requires MORE THAN ONE root: a single root with no forEach here is
+		// ambiguous with the "hub + satellites" shape
+		// (`smartart-layout-interpreter-hub.ts` decides that one separately,
+		// from `flat`) and with a genuinely single-root-but-flat dataset
+		// (`table-hierarchy`) that still needs every node, not just the root.
+		// [w6-c-s, per coordinator instruction: minimal Track-G-file edit,
+		// re-read before editing.]
+		return roots && roots.length > 1 ? roots : flat;
 	}
-	const start = firstNumber(iter.start);
-	const st0 = start !== undefined ? Math.max(0, start - 1) : 0;
-	const stepRaw = firstNumber(iter.step);
-	const step = stepRaw !== undefined && stepRaw > 0 ? stepRaw : 1;
-	const cnt = firstNumber(iter.count) ?? 0;
-	const selected: PptxSmartArtNode[] = [];
-	for (let i = st0; i < flat.length; i += step) {
-		selected.push(flat[i]);
-		if (cnt > 0 && selected.length >= cnt) {
-			break;
+	const base = roots && roots.length > 0 && iterators.every(isChildOnlyAxis) ? roots : flat;
+	const indices = new Set<number>();
+	for (const iter of iterators) {
+		for (const i of resolveIteratorIndices(iter, base.length)) {
+			indices.add(i);
 		}
 	}
-	if (iter.hideLastTransition?.[0] === true && selected.length > 0) {
+	const followSibCounts = collectFollowSibNodeCounts(node);
+	if (followSibCounts.length > 0) {
+		for (const i of [...indices]) {
+			for (const count of followSibCounts) {
+				for (let k = 1; k <= count; k++) {
+					const j = i + k;
+					if (j < base.length) {
+						indices.add(j);
+					}
+				}
+			}
+		}
+	}
+	const selected = [...indices].sort((a, b) => a - b).map((i) => base[i]);
+	// `hideLastTrans` only has an unambiguous meaning for a single driving
+	// iterator (drop ITS OWN trailing slot) - a genuine multi-iterator union
+	// has no single "last" iterator's trailing slot to drop.
+	if (
+		iterators.length === 1 &&
+		iterators[0].hideLastTransition?.[0] === true &&
+		selected.length > 0
+	) {
 		selected.pop();
 	}
 	return selected;
-}
-
-/**
- * Resolve the raw XML of the active `dgm:choose` branch for a node count, or
- * `undefined` when the choose is not decidable (an earlier branch is
- * undecidable) or no branch applies. DiagramML picks the first matching `if` in
- * order, so an undecidable earlier branch forces a bail.
- */
-function activeBranch(
-	choose: PptxSmartArtChoose,
-	nodeCount: number,
-	context: WhenContext,
-): XmlObject | undefined {
-	for (const when of choose.when) {
-		const result = evaluateWhen(when, nodeCount, context);
-		if (result === undefined) {
-			return undefined;
-		}
-		if (result) {
-			return when.rawXml;
-		}
-	}
-	return choose.otherwise?.rawXml ?? undefined;
-}
-
-/** First recognised structural `dgm:alg` type declared inside a branch's XML. */
-function branchAlgType(raw: XmlObject | undefined): string | undefined {
-	if (!raw) {
-		return undefined;
-	}
-	let found: string | undefined;
-	const visit = (value: unknown): void => {
-		if (found !== undefined || !value || typeof value !== 'object') {
-			return;
-		}
-		if (Array.isArray(value)) {
-			value.forEach(visit);
-			return;
-		}
-		for (const [key, entry] of Object.entries(value as XmlObject)) {
-			if (found !== undefined) {
-				return;
-			}
-			if (key.startsWith('@_')) {
-				continue;
-			}
-			if (localName(key) === 'alg') {
-				for (const candidate of Array.isArray(entry) ? entry : [entry]) {
-					const type =
-						candidate && typeof candidate === 'object'
-							? String((candidate as XmlObject)['@_type'] ?? '')
-							: '';
-					if (CHOOSE_ALG_TYPES.has(type)) {
-						found = type;
-						return;
-					}
-				}
-			} else {
-				visit(entry);
-			}
-		}
-	};
-	visit(raw);
-	return found;
-}
-
-/**
- * Resolve a decidable `dgm:choose` on `node` to the structural algorithm type
- * it selects, or `undefined` when no choose is decidable (in which case the
- * caller keeps the blind first-recognised-alg behaviour). Decidable on
- * `func="cnt"` from `nodeCount` alone, or on `func="var"` when `context`
- * carries `presLayoutVars`; `pos`/`revPos`/`posEven`/`posOdd`/`depth`/
- * `maxDepth` are decidable too when `context` supplies the declaring layout
- * node's own tree location (`discoverArrangement` in
- * `smartart-layout-interpreter-model.ts` now supplies it for every `choose`
- * it walks). `context` defaults to `{}` for source compatibility with
- * existing callers that don't have a tree location to offer (in which case
- * those functions stay undecidable, exactly as before).
- */
-export function chooseAlgType(
-	node: PptxSmartArtLayoutNode,
-	nodeCount: number,
-	context: WhenContext = {},
-): string | undefined {
-	if (!node.choose || node.choose.length === 0) {
-		return undefined;
-	}
-	for (const choose of node.choose) {
-		const type = branchAlgType(activeBranch(choose, nodeCount, context));
-		if (type !== undefined) {
-			return type;
-		}
-	}
-	return undefined;
 }
