@@ -1,6 +1,7 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { translationsEn } from '../i18n/translations-en';
 import { collapseChartTitleRunsForEdit, resolveChartTitleRunSpans } from './chart-title-runs';
 
 function chart(overrides: Partial<PptxChartData> = {}): PptxChartData {
@@ -84,5 +85,36 @@ describe('collapseChartTitleRunsForEdit', () => {
 			title: 'New',
 			titleRuns: [{ text: 'New', bold: true }],
 		});
+	});
+});
+
+/**
+ * Regression guard for `e2e/chart-title-runs.spec.ts`'s "editing the flat
+ * title through the inspector collapses to one run" (previously failed in
+ * vanilla/svelte, not react/vue/angular).
+ *
+ * `collapseChartTitleRunsForEdit` above was never the bug: it always
+ * collapsed correctly. The real cause was a DUPLICATE accessible name.
+ * Every binding's inspector also shows an Accessibility section for a chart
+ * (`shouldShowAccessibilitySection`, `element-non-visual-description.ts`)
+ * with its own alt-text "Title" field, captioned by
+ * `pptx.elementAccessibility.title`. When that field's translated label was
+ * the bare word "Title" - identical to the chart's own `pptx.chart.title`
+ * field - a "find the Title-labelled control" lookup was ambiguous. In
+ * vanilla and svelte the Accessibility section renders BEFORE the chart
+ * section in the DOM, so the lookup silently landed on the alt-text title
+ * and edited that instead, leaving the chart's own (multi-run) title
+ * untouched. React/Vue/Angular happened to render the chart section first,
+ * so the same ambiguity did not manifest there.
+ *
+ * This does not assert DOM order (binding-specific, fragile); it asserts
+ * the two labels can never collide again, which fixes every binding from
+ * one shared string.
+ */
+describe('elementAccessibility.title vs chart.title (label collision guard)', () => {
+	it('translates to a different string than the chart title field', () => {
+		expect(translationsEn['pptx.elementAccessibility.title']).not.toBe(
+			translationsEn['pptx.chart.title'],
+		);
 	});
 });

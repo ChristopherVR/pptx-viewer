@@ -12,7 +12,7 @@ export const translations = {
 	'pptx.elementAccessibility.altText': 'Alt-Text',
 	'pptx.elementAccessibility.altTextPlaceholder':
 		'Beschreiben Sie dieses Element für die Barrierefreiheit',
-	'pptx.elementAccessibility.title': 'Titel',
+	'pptx.elementAccessibility.title': 'Barrierefreiheitstitel',
 	'pptx.elementAccessibility.titlePlaceholder': 'Barrierefreiheitstitel (optional)',
 	'pptx.headerFooter.title': 'Kopf- und Fußzeile',
 	'pptx.headerFooter.close': 'Schließen',

@@ -204,9 +204,20 @@ export const translationsEn: Record<string, string> = {
 	'pptx.accessibility.info': 'Info: ',
 	// Element-level alt text / title (shape, text box, connector). A picture's
 	// own alt text field uses `pptx.image.altText` / `pptx.image.altTextPlaceholder`.
+	//
+	// `elementAccessibility.title` is deliberately NOT the bare word "Title":
+	// every graphic-frame kind that shows this section (table/chart/smartArt/
+	// media/ole, `shouldShowAccessibilitySection`) can ALSO have its own
+	// type-specific field captioned exactly "Title" (a chart's `pptx.chart.title`,
+	// an axis's `pptx.chart.axisTitle`). Two inspector fields with the identical
+	// accessible name broke `chart-title-runs.spec.ts`'s inspector edit in
+	// vanilla/svelte (Accessibility renders before the Chart section in those
+	// bindings' DOM, unlike React/Vue): a "first Title-labelled control" lookup
+	// silently edited this alt-text title instead of the chart's own title. See
+	// `chart-title-runs.test.ts`'s label-collision guard.
 	'pptx.elementAccessibility.altText': 'Alt text',
 	'pptx.elementAccessibility.altTextPlaceholder': 'Describe this element for accessibility',
-	'pptx.elementAccessibility.title': 'Title',
+	'pptx.elementAccessibility.title': 'Accessibility title',
 	'pptx.elementAccessibility.titlePlaceholder': 'Accessibility title (optional)',
 
 	// Animations

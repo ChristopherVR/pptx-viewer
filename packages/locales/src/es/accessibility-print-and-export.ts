@@ -11,7 +11,7 @@ export const translations = {
 	'pptx.accessibility.info': 'Información:',
 	'pptx.elementAccessibility.altText': 'Texto alternativo',
 	'pptx.elementAccessibility.altTextPlaceholder': 'Describa este elemento para accesibilidad',
-	'pptx.elementAccessibility.title': 'Título',
+	'pptx.elementAccessibility.title': 'Título de accesibilidad',
 	'pptx.elementAccessibility.titlePlaceholder': 'Título de accesibilidad (opcional)',
 	'pptx.headerFooter.title': 'Encabezado y pie de página',
 	'pptx.headerFooter.close': 'Cerrar',
