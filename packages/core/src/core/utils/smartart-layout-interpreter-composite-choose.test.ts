@@ -34,15 +34,17 @@ describe('collectChooseAwareSlots (cycle-matrix pattern)', () => {
 	): PptxSmartArtLayoutNode {
 		return {
 			name,
-			chooseGuard: {
-				axis: ['ch', 'ch'],
-				pointTypes: ['node', 'node'],
-				start: [guardStart, 1],
-				count: [1, 0],
-				function: 'cnt',
-				operator: 'gte',
-				value: '1',
-			},
+			chooseGuard: [
+				{
+					axis: ['ch', 'ch'],
+					pointTypes: ['node', 'node'],
+					start: [guardStart, 1],
+					count: [1, 0],
+					function: 'cnt',
+					operator: 'gte',
+					value: '1',
+				},
+			],
 			children: [
 				{
 					name: `${name}Text`,
@@ -96,7 +98,7 @@ describe('collectChooseAwareSlots (cycle-matrix pattern)', () => {
 	it('an undecidable guard (unsupported axis) defaults to allowing the branch, not suppressing it', () => {
 		const wrapper: PptxSmartArtLayoutNode = {
 			name: 'wrapper',
-			chooseGuard: { function: 'var', argument: 'unsupported', operator: 'equ', value: 'x' },
+			chooseGuard: [{ function: 'var', argument: 'unsupported', operator: 'equ', value: 'x' }],
 			children: [
 				{
 					name: 'leaf',
@@ -195,5 +197,106 @@ describe('collectChooseAwareSlots (decorative sp + text tx pairing)', () => {
 			'circles',
 		);
 		expect(slots).toHaveLength(0);
+	});
+});
+
+// nested-target--hier5.pptx's oChild shape: a bare wrapper (no presOf) whose
+// ONE child template has a MULTI-anchor forEachOrigin (a genuine forEach with
+// an unbounded second hop - "every child of point 1"), reached from a
+// composite root with no self-axis slot anywhere (arrangeByChooseAwareSlots's
+// own territory). Cached wants ONE box per anchor - "Node Two" alone, "Node
+// Three" alone - not one box with both folded together.
+describe('collectChooseAwareSlots (multi-anchor forEachOrigin per-iteration split)', () => {
+	const one = node('one', 'Node One');
+	const two = node('two', 'Node Two');
+	const three = node('three', 'Node Three');
+	const flat: PptxSmartArtNode[] = [
+		one,
+		{ ...two, parentId: 'one' },
+		{ ...three, parentId: 'one' },
+	];
+
+	function outerBoxChildren(): PptxSmartArtLayoutNode {
+		return {
+			name: 'outerBoxChildren',
+			children: [
+				{
+					name: 'oChild',
+					presentationOf: { axis: ['desOrSelf'], pointTypes: ['node'] },
+					forEachOrigin: {
+						axis: ['ch', 'ch'],
+						pointTypes: ['node', 'node'],
+						start: [1, 1],
+						count: [1, 0],
+					},
+					constraints: positioned({ w: 1, h: 1 }),
+				},
+			],
+		};
+	}
+
+	it('produces ONE slot per anchor, not one slot with every anchor folded together', () => {
+		const slots = collectChooseAwareSlots(
+			outerBoxChildren(),
+			flat,
+			box,
+			EMPTY_CONSTRAINT_INDEX,
+			'outerBoxChildren',
+		);
+		expect(slots).toHaveLength(2);
+		expect(slots.map((s) => s.content.map((n) => n.id))).toStrictEqual([['two'], ['three']]);
+	});
+
+	it('slices the shared container rect between the per-anchor slots instead of stacking them identically', () => {
+		const slots = collectChooseAwareSlots(
+			outerBoxChildren(),
+			flat,
+			box,
+			EMPTY_CONSTRAINT_INDEX,
+			'outerBoxChildren',
+		);
+		expect(slots[0].rect).not.toStrictEqual(slots[1].rect);
+		// Both slots' widths sum to the shared (full-box) container's own width.
+		expect(slots[0].rect.width + slots[1].rect.width).toBe(box.width);
+	});
+
+	/**
+	 * A `func="pos"` condition in the per-anchor template's OWN `chooseGuard`
+	 * chain decides against the CURRENT forEach iteration's own 1-based
+	 * position, not `discoverArrangement`'s unrelated static tree-location
+	 * `pos` - `sub-step-process--hier5.pptx`'s `chLin1..7` each carry
+	 * exactly this shape (`pos==N` chained with a nearly-vacuous `cnt>=1`),
+	 * though `chLinN` itself is a STRUCTURAL arranger, not a presOf-bearing
+	 * content leaf, so this mechanism alone does not yet reach that fixture.
+	 */
+	it('a pos==N chooseGuard on the per-anchor template keeps only the matching iteration', () => {
+		const template = outerBoxChildren();
+		template.children![0].chooseGuard = [{ function: 'pos', operator: 'equ', value: '2' }];
+		const slots = collectChooseAwareSlots(
+			template,
+			flat,
+			box,
+			EMPTY_CONSTRAINT_INDEX,
+			'outerBoxChildren',
+		);
+		expect(slots).toHaveLength(1);
+		expect(slots[0].content.map((n) => n.id)).toStrictEqual(['three']);
+	});
+
+	it('a chooseGuard chain requiring BOTH an outer pos==N and an inner cnt condition still discriminates correctly', () => {
+		const template = outerBoxChildren();
+		template.children![0].chooseGuard = [
+			{ function: 'pos', operator: 'equ', value: '1' },
+			{ function: 'cnt', operator: 'gte', value: '1' },
+		];
+		const slots = collectChooseAwareSlots(
+			template,
+			flat,
+			box,
+			EMPTY_CONSTRAINT_INDEX,
+			'outerBoxChildren',
+		);
+		expect(slots).toHaveLength(1);
+		expect(slots[0].content.map((n) => n.id)).toStrictEqual(['two']);
 	});
 });

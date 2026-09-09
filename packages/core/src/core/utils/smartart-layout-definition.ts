@@ -72,7 +72,7 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 	const nested = nestedLayoutNodes(node, localName).map((entry) => ({
 		...parseNode(entry.xml, localName),
 		forEachOrigin: entry.origin,
-		chooseGuard: entry.guard,
+		chooseGuard: entry.guard.length > 0 ? entry.guard : undefined,
 	}));
 	const childOrder = optionalString(node['@_chOrder']);
 	const presOf = choosePresentationOf(node, localName);

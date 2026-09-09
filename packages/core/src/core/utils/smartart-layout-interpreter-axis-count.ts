@@ -67,6 +67,17 @@ function selectRange(
 	return nodes.slice(zeroBasedStart, zeroBasedStart + take);
 }
 
+/** One hop's `@ptType` filter followed by its own `@st`/`@cnt` range, the pair every hop in {@link resolveAxisNodes}'s loop applies. */
+function applyPointTypeAndRange(
+	nodes: PptxSmartArtNode[],
+	pointType: string | undefined,
+	start: number | undefined,
+	count: number | undefined,
+): PptxSmartArtNode[] {
+	const filtered = pointType ? nodes.filter((n) => pointTypeMatches(n, pointType)) : nodes;
+	return selectRange(filtered, start, count);
+}
+
 /**
  * ECMA-376 21.4.7.5's compound axis navigation: `axis`/`ptType`/`st`/`cnt`
  * are PARALLEL lists, one entry per hop, applied pairwise in order -
@@ -90,28 +101,64 @@ function selectRange(
  *   `forEachOrigin`'s `axis="ch ch" st="2 1" cnt="1 1"` - "point 2's first
  *   child" - so `desOrSelf` there must resolve relative to THAT point).
  * - `context` omitted (the pre-existing default, used by every caller before
- *   this parameter existed): hop 0 is root-relative, and ONLY `ch`/`self`
- *   are decidable there (both yield the diagram's own top-level points) -
- *   every other token returns `undefined` (undecidable), exactly as before.
- *   This is deliberately NOT generalised the way the `context`-supplied path
- *   is: the diagram's own document root is not itself a member of `nodes`
- *   in this codebase's data model, so a bare, un-anchored `des`/`desOrSelf`/
- *   `root`/... has no single correct reading, and guessing one (this was
- *   tried and reverted - see git history) silently changed `dgm:if/
- *   func="cnt"` guard decisions gallery-wide, regressing `basic-venn` and 17
- *   other fixtures at once by resolving a `desOrSelf`-anchored content slot
- *   that was supposed to stay undecided (and fall through to a DIFFERENT,
- *   correct resolution path) into a wrong, over-eager "every node in the
- *   diagram" answer instead. A caller that legitimately needs a scoped
- *   answer for one of these tokens must supply `context` explicitly.
+ *   this parameter existed): hop 0 is root-relative, and `ch`/`self`/`root`
+ *   are decidable there - every other token returns `undefined`
+ *   (undecidable), exactly as before. This is deliberately NOT generalised
+ *   the way the `context`-supplied path is: the diagram's own document root
+ *   is not itself a member of `nodes` in this codebase's data model, so a
+ *   bare, un-anchored `des`/`desOrSelf`/... has no single correct reading,
+ *   and guessing one (this was tried and reverted - see git history)
+ *   silently changed `dgm:if/func="cnt"` guard decisions gallery-wide,
+ *   regressing `basic-venn` and 17 other fixtures at once by resolving a
+ *   `desOrSelf`-anchored content slot that was supposed to stay undecided
+ *   (and fall through to a DIFFERENT, correct resolution path) into a wrong,
+ *   over-eager "every node in the diagram" answer instead. A caller that
+ *   legitimately needs a scoped answer for one of those tokens must supply
+ *   `context` explicitly.
+ *   - `ch`/`self` at hop 0 both yield the diagram's own top-level points
+ *     (`roots`) - this codebase's data model never carries the actual
+ *     document/`doc`-typed point `self` would otherwise mean, so both
+ *     tokens collapse to the same "start from the top" reading.
+ *   - `root` at hop 0, USED ALONE, means exactly the same thing (`roots`) -
+ *     ECMA-376's `root` axis means "the topmost ancestor", and root-
+ *     relatively (no anchor) that topmost ancestor IS the diagram's own
+ *     document node, whose own top-level point list is `roots`.
+ *   - `root` COMPOUNDED with an immediately-following `ch` (`axis="root
+ *     ch..."`, the ONLY compound shape measured against real fixtures -
+ *     `nested-target--hier5.pptx`'s `outerBox`/`middleBox`/`centerBox`
+ *     guards, `basic-venn--hier5.pptx`'s `circ1TxSh` guard) means "the
+ *     document node, then ITS children" - since the document node is not a
+ *     real member of `nodes`, `ch` here is not a real tree-hop (there is
+ *     nothing in `childrenOf` to hop from); it is ABSORBED into the `root`
+ *     read itself, and the pair together STILL means exactly `roots` -
+ *     COM-verified: `basic-venn--hier5.pptx` (3 top-level points, 2 of which
+ *     have a child each) has `resolveAxisNodes(flat, ['root','ch'], ['all',
+ *     'node'])` correctly returning length 3 (the top-level COUNT), not the
+ *     5 a fallback `flat.length` denominator gives NOR the 2 a real
+ *     "children of the top-level points" hop would give; `nested-target`'s
+ *     single top-level point ("Node One", with 3 children of its own) needs
+ *     the SAME `root ch` shape to read 1 (not 3), or its three concentric-
+ *     ring `dgm:if`/@func="cnt"` thresholds (`>= 1`/`>= 2`/`>= 3`) cannot
+ *     discriminate at all. `ch`'s own `@ptType`/`@st`/`@cnt` (the compound's
+ *     SECOND hop) still applies, to the FULL `roots` list (`root`'s own hop
+ *     is a true no-op: the document is always exactly one node, so its own
+ *     `@st`/`@cnt` never meaningfully narrows anything real fixtures use).
+ *     A `root` compounded with anything OTHER than an immediately-following
+ *     `ch` (e.g. a hypothetical `axis="root des"`) is left exactly as
+ *     undecidable as before this change - not measured against any fixture,
+ *     and extending the same "absorb the next hop" reading to `des`/
+ *     `desOrSelf` is the SAME "every node in the diagram" trap the reverted
+ *     generalisation above hit.
  *
  * Returns `undefined` (undecidable) when `axis` is empty, or (with no
- * `context`) hop 0 is neither `ch` nor `self`; a recognised-but-empty hop (a
- * leaf's `ch`, or an anchored `desOrSelf` set that resolved to nothing) is a
- * real empty array, not undecidable. Exported (not just `resolveAxisCount`'s
- * own count) for `smartart-layout-interpreter-composite-choose.ts` and
- * `smartart-layout-interpreter-composite-foreach.ts`'s content resolution,
- * which need the actual resolved NODES, not just how many.
+ * `context`) hop 0 is none of `ch`/`self`/`root`, or hop 0 is `root`
+ * compounded with anything other than a following `ch`; a recognised-but-
+ * empty hop (a leaf's `ch`, or an anchored `desOrSelf` set that resolved to
+ * nothing) is a real empty array, not undecidable. Exported (not just
+ * `resolveAxisCount`'s own count) for `smartart-layout-interpreter-
+ * composite-choose.ts` and `smartart-layout-interpreter-composite-
+ * foreach.ts`'s content resolution, which need the actual resolved NODES,
+ * not just how many.
  */
 export function resolveAxisNodes(
 	nodes: PptxSmartArtNode[],
@@ -124,7 +171,11 @@ export function resolveAxisNodes(
 	if (axis.length === 0) {
 		return undefined;
 	}
-	if (context === undefined && axis[0] !== 'ch' && axis[0] !== 'self') {
+	const rootRelative = context === undefined;
+	if (rootRelative && axis[0] !== 'ch' && axis[0] !== 'self' && axis[0] !== 'root') {
+		return undefined;
+	}
+	if (rootRelative && axis[0] === 'root' && axis.length > 1 && axis[1] !== 'ch') {
 		return undefined;
 	}
 	const byId = new Map(nodes.map((n) => [n.id, n] as const));
@@ -143,19 +194,38 @@ export function resolveAxisNodes(
 		}
 	}
 	const roots = nodes.filter((n) => !n.parentId || !byId.has(n.parentId));
-	let current =
-		context !== undefined
-			? navigateAxisHop(context, axis[0], nodes, childrenOf, parentOf, roots)
-			: roots;
-	for (let hop = 0; hop < axis.length; hop += 1) {
-		if (hop > 0) {
-			current = navigateAxisHop(current, axis[hop], nodes, childrenOf, parentOf, roots);
-		}
-		const pointType = pointTypes?.[hop];
-		if (pointType) {
-			current = current.filter((n) => pointTypeMatches(n, pointType));
-		}
-		current = selectRange(current, start?.[hop], count?.[hop]);
+
+	// Hop 0 (and, for a root-relative `root`+`ch` compound, hop 1 too - see
+	// the doc comment) is resolved OUTSIDE the general per-hop loop below: a
+	// `context`-anchored hop 0 uses `navigateAxisHop` like every later hop
+	// does, a bare `ch`/`self` is the pre-existing `roots` shortcut, and a
+	// bare `root` (alone or `root`+`ch`) absorbs the document-node hop into
+	// that same `roots` shortcut, applying whichever hop's OWN `@ptType`/
+	// `@st`/`@cnt` is the real, meaningful one (hop 1's, when `ch` follows).
+	let current: PptxSmartArtNode[];
+	let nextHop: number;
+	if (context !== undefined) {
+		current = applyPointTypeAndRange(
+			navigateAxisHop(context, axis[0], nodes, childrenOf, parentOf, roots),
+			pointTypes?.[0],
+			start?.[0],
+			count?.[0],
+		);
+		nextHop = 1;
+	} else if (axis[0] === 'root' && axis.length > 1) {
+		current = applyPointTypeAndRange(roots, pointTypes?.[1], start?.[1], count?.[1]);
+		nextHop = 2;
+	} else {
+		current = applyPointTypeAndRange(roots, pointTypes?.[0], start?.[0], count?.[0]);
+		nextHop = 1;
+	}
+	for (let hop = nextHop; hop < axis.length; hop += 1) {
+		current = applyPointTypeAndRange(
+			navigateAxisHop(current, axis[hop], nodes, childrenOf, parentOf, roots),
+			pointTypes?.[hop],
+			start?.[hop],
+			count?.[hop],
+		);
 	}
 	return current;
 }

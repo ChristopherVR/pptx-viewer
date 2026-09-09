@@ -18,7 +18,7 @@
  * `smartArtElementsToDrawingShapes` (which also drops non-shape elements).
  */
 
-import type { PptxElement, PptxSmartArtNode } from '../types';
+import type { PptxElement, PptxSmartArtConnection, PptxSmartArtNode } from '../types';
 import { nextId, makeShapeElement } from './smartart-helpers';
 import { collectFoldedDescendants, projectFoldedNodeText } from './smartart-interpreter-fold-text';
 import type { SmartArtLayoutResult } from './smartart-layout-types';
@@ -62,15 +62,25 @@ function polygonBoundingBox(points: string): {
  * @param containerBounds - The SmartArt graphic frame's bounds on the slide;
  *                          the interpreter's own geometry is already sized to
  *                          the frame, so only an offset is needed (no scale).
+ * @param connections     - `PptxSmartArtData.connections`, when available:
+ *                          orders each `smartArtChildrenOf` group by its own
+ *                          `dgm:cxn` `srcOrd` rather than raw `dgm:ptLst`
+ *                          declaration order (see that function's own doc
+ *                          comment) - the SAME general rule the interpreter's
+ *                          own live path already applies, so a fabricated
+ *                          cached drawing's folded descendant text joins in
+ *                          the same order. Omitted keeps the pre-existing
+ *                          declaration-order behaviour.
  */
 export function interpretedLayoutToElements(
 	result: SmartArtLayoutResult,
 	nodes: PptxSmartArtNode[],
 	containerBounds: { x: number; y: number },
 	bulletEnabled = false,
+	connections?: PptxSmartArtConnection[],
 ): PptxElement[] {
 	const nodeById = new Map(nodes.map((n) => [n.id, n]));
-	const childrenOf = smartArtChildrenOf(nodes);
+	const childrenOf = smartArtChildrenOf(nodes, connections);
 	// Every node this result gives its own box to, PLUS every id a role box
 	// pre-claimed via `foldedNodeIds` (`smartart-layout-interpreter-item-
 	// roles.ts`: e.g. a list layout's `childText` box, which owns its

@@ -1,9 +1,9 @@
 /**
  * SmartArt DiagramML interpreter - a ring item's own effective `h:w` aspect,
  * when it is not a plain literal `fact`/sub-1 `val`: derived from an internal
- * composite child pairing ({@link deriveCompositeSquareChildAspect}), or from
- * the constraint GRAPH when the item's own `w` is itself reference-resolved
- * ({@link resolveGraphAspectRatio}).
+ * composite self+child pairing ({@link deriveCompositeSelfChildLayout}), or
+ * from the constraint GRAPH when the item's own `w` is itself reference-
+ * resolved ({@link resolveGraphAspectRatio}).
  *
  * Split out of `smartart-layout-interpreter-cycle-constraints.ts` (the
  * file-size budget). Pure constraint reading; no framework code.
@@ -13,27 +13,68 @@ import type { PptxSmartArtLayoutNode } from '../types';
 import { resolveConstraint, roleOf } from './smartart-constraint-solver';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 
+/** A composite ring item's own self (uniform, ring-placed) + content-dependent child sub-shapes. */
+export interface CompositeContentLayout {
+	/** The "self" sub-shape's own `dgm:layoutNode/@name` (e.g. `parentNode`). */
+	selfName: string;
+	/** `self.w = selfWidthFactor * composite.w` - always a SQUARE (`self.h = self.w`), see the doc comment below. */
+	selfWidthFactor: number;
+	/** The content-dependent "child" sub-shape's own name (e.g. `childNode`), when found alongside `self`. */
+	childName?: string;
+	/** `child.l = childLeftFactor * self.w` (offset from the self shape's OWN left edge, in self-width units). */
+	childLeftFactor?: number;
+	/** `child.w = childWidthFactor * composite.w` (same "fraction of the whole composite" convention `selfWidthFactor` uses). */
+	childWidthFactor?: number;
+}
+
 /**
  * `radial-list--hier5.pptx`'s own ring item (`node`) is a `composite` of
- * `parentNode` (an ellipse, `alg="tx"`) and `childNode` (a rect, side by
- * side) - `node` itself declares no direct `h` constraint at all, so
- * `resolveRatioConstraint`'s own literal/indexed lookups both decline and
- * `heightOverWidth` fell back to the bare default of `1`, treating this
- * genuinely WIDE composite (ellipse + gap + rect, ~3.4:1) as square and
- * corrupting the ring's anisotropic scale on any non-360 arc (COM-verified
- * regression: satellites landed with `x` far outside the diagram box).
+ * `parentNode` (an ellipse, `alg="tx"`, the point's OWN text - always
+ * present) and `childNode` (a rect, side by side, the point's CHILD text -
+ * only present when the point has one) - `node` itself declares no direct
+ * `h` constraint at all, so `resolveRatioConstraint`'s own literal/indexed
+ * lookups both decline.
  *
- * The composite's own constrLst declares the real relationship instead:
- * `parentNode.w = fact * node.w` (a `w` constraint targeting `parentNode`,
- * with NO `refFor`/`refForName` - referencing the ENCLOSING composite's own
- * width, ECMA-376's convention for an unqualified reference) PAIRED with
- * `parentNode.h = parentNode.w` (a SELF-referential `h` constraint - same
- * `for`/`forName` as its own `refFor`/`refForName`, i.e. "this child is
- * square"). Since `parentNode` is `t=0`-anchored (the composite's own
- * vertical extent starts at it) and `childNode.h` in turn references
- * `parentNode.h` (never taller), the composite's OWN effective height is
- * exactly `parentNode`'s width-fraction of the composite's own width - the
- * `fact` on that first `w` constraint IS `heightOverWidth`.
+ * The composite's own constrLst declares the real relationship: `parentNode
+ * .w = fact * node.w` (a `w` constraint targeting `parentNode`, with NO
+ * `refFor`/`refForName` - referencing the ENCLOSING composite's own width,
+ * ECMA-376's convention for an unqualified reference) PAIRED with `parentNode
+ * .h = parentNode.w` (a SELF-referential `h` constraint - same `for`/
+ * `forName` as its own `refFor`/`refForName`, i.e. "this child is square").
+ *
+ * An EARLIER round of this derivation used `selfWidthFactor` itself
+ * (`0.4` for `radial-list`) as the WHOLE ring item's own `heightOverWidth`,
+ * reasoning that `node.h = parentNode.h = parentNode.w = 0.4 * node.w`. That
+ * is arithmetically true but the WRONG quantity for `computeCycleRingLayout`'s
+ * own uniform "every point occupies the same natural footprint" ring-placement
+ * model: `node`'s own FULL width (including room for `childNode`) is only
+ * needed by a point that HAS a child - `radial-list--hier5.pptx`'s own cached
+ * ground truth shows a point WITHOUT a child rendering `parentNode` ALONE, at
+ * the SAME uniform size as every other point's own `parentNode` (204x154 for
+ * all three satellites, COM-verified), not stretched to fill the composite's
+ * full (content-dependent) width. The ring's own natural unit-width should
+ * therefore be `parentNode`'s OWN footprint, not the composite's - and since
+ * `parentNode` is declared SELF-SQUARE (`h = w`), that natural aspect is
+ * simply `1` (a circle, before the ring's own anisotropic scale renders it as
+ * an ellipse) - `resolveCycleRingParams` now uses this function only to
+ * DETECT the pattern (and recover the `1` fallback for `heightOverWidth`
+ * instead of the composite's own inflated aspect); the descriptor itself
+ * (`selfWidthFactor`/`childLeftFactor`/`childWidthFactor`) is threaded through
+ * for `smartart-layout-interpreter-cycle-ring-item.ts`'s own POST-PASS
+ * (mirroring `repositionPyramidBands`) that repositions each point's own
+ * content-dependent `childNode` copy relative to its already-correctly-placed
+ * `parentNode` copy.
+ *
+ * The child descriptor is read the SAME way: a sibling `dgm:layoutNode`
+ * declaring `l for="ch" forName=<child> refType="w" refFor="ch"
+ * refForName=<self> fact=G` (the child's own left edge, as a fraction of the
+ * self shape's width) PAIRED with `w for="ch" forName=<child> refType="w"
+ * fact=H` (the child's own width, as a fraction of the WHOLE composite -
+ * the SAME unqualified-reference convention `selfWidthFactor` itself uses).
+ * `radial-list--hier5.pptx`: `childLeftFactor=1.1`, `childWidthFactor=0.6` -
+ * COM-verified: `childNode.w = 0.6*node.w = 0.6*(parentNode.w/0.4) =
+ * 1.5*parentNode.w`, matching the cached rect's own width (305) against the
+ * cached ellipse's own width (204) to within rounding (204*1.5=306).
  *
  * General, not `radial-list`-specific: matches ANY composite whose
  * constrLst declares a `for="ch"` width fraction (no `refFor`) for some
@@ -46,9 +87,9 @@ import type { ConstraintIndex } from './smartart-constraint-solver';
  * every other ring item (`basic-cycle`'s `dummy`, `basic-radial`'s `node`
  * ellipse-only item, ...).
  */
-export function deriveCompositeSquareChildAspect(
+export function deriveCompositeSelfChildLayout(
 	item: PptxSmartArtLayoutNode | undefined,
-): number | undefined {
+): CompositeContentLayout | undefined {
 	if (!item || item.algorithm?.type !== 'composite') {
 		return undefined;
 	}
@@ -64,19 +105,48 @@ export function deriveCompositeSquareChildAspect(
 		) {
 			continue;
 		}
-		const childName = width.forName;
+		const selfName = width.forName;
 		const isSelfSquare = constraints.some(
 			(c) =>
 				c.type === 'h' &&
 				c.for === 'ch' &&
-				c.forName === childName &&
+				c.forName === selfName &&
 				c.referenceType === 'w' &&
 				c.referenceFor === 'ch' &&
-				c.referenceForName === childName,
+				c.referenceForName === selfName,
 		);
-		if (isSelfSquare) {
-			return width.factor;
+		if (!isSelfSquare) {
+			continue;
 		}
+		const childLeft = constraints.find(
+			(c) =>
+				c.type === 'l' &&
+				c.for === 'ch' &&
+				c.forName !== undefined &&
+				c.forName !== selfName &&
+				c.referenceType === 'w' &&
+				c.referenceFor === 'ch' &&
+				c.referenceForName === selfName &&
+				typeof c.factor === 'number',
+		);
+		const childName = childLeft?.forName;
+		const childWidth = childName
+			? constraints.find(
+					(c) =>
+						c.type === 'w' &&
+						c.for === 'ch' &&
+						c.forName === childName &&
+						c.referenceForName === undefined &&
+						typeof c.factor === 'number',
+				)
+			: undefined;
+		return {
+			selfName,
+			selfWidthFactor: width.factor,
+			childName,
+			childLeftFactor: childLeft?.factor,
+			childWidthFactor: childWidth?.factor,
+		};
 	}
 	return undefined;
 }

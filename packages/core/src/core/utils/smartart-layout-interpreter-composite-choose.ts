@@ -46,45 +46,60 @@ import type { PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
 import type { SlotStyleContext } from './smartart-layout-interpreter-composite';
-import { resolveAnchoredContent } from './smartart-layout-interpreter-composite-anchor';
-import { readSlots, resolveSlot } from './smartart-layout-interpreter-composite-slots';
-import type { Slot } from './smartart-layout-interpreter-composite-slots';
+import { resolveAnchoredContentPerAnchor } from './smartart-layout-interpreter-composite-anchor';
+import type {
+	ChooseAwareSlot,
+	RawSlotCandidate,
+} from './smartart-layout-interpreter-composite-group-slots';
+import { resolveGroupedSlots } from './smartart-layout-interpreter-composite-group-slots';
 import { rectNode } from './smartart-layout-interpreter-render';
 import { evaluateWhen } from './smartart-layout-interpreter-when';
 import type { BoundingBox, RenderedNode, RenderedRectNode } from './smartart-layout-types';
 
+/** 1-based position + sibling count for a `func="pos"`/`"revPos"`/`"posEven"`/`"posOdd"` condition in a `chooseGuard` chain, when the CANDIDATE being tested is one iteration of a multi-anchor `forEachOrigin` split (see {@link collectRawCandidates}) - `undefined` for a bare wrapper or a single-anchor node, where no per-iteration position exists. */
+interface IterationPosition {
+	position: number;
+	total: number;
+}
+
 /**
- * `true` when `node`'s own `chooseGuard` (if any) allows it to render,
- * evaluated against the diagram's full flat node list. An UNDECIDABLE guard
- * (an axis/function this interpreter cannot navigate) defaults to "allow" -
- * dropping content this cannot confidently evaluate would be a NEW
- * regression, whereas over-including at worst matches the pre-existing
- * "flatten every branch" behaviour.
+ * `true` when EVERY condition in `node`'s own `chooseGuard` CHAIN (if any -
+ * `sub-step-process--hier5.pptx`'s `chLin1..7`, each nested inside BOTH an
+ * outer `pos`-discriminating `dgm:if` and an inner, nearly-vacuous one, need
+ * BOTH to hold) allows it to render, evaluated against the diagram's full
+ * flat node list, with `iterationPosition` (when supplied) letting a
+ * `func="pos"`-family condition decide against WHICH forEach iteration this
+ * specific candidate is - `discoverArrangement`'s own tree-location `pos`
+ * (the layoutNode's static position in the layoutDef) is a DIFFERENT
+ * concept, never applicable here (this module never receives it). An
+ * UNDECIDABLE condition anywhere in the chain defaults that ONE condition
+ * to "allow" (not the whole chain) - dropping content this cannot
+ * confidently evaluate would be a NEW regression, whereas over-including at
+ * worst matches the pre-existing "flatten every branch" behaviour; a chain
+ * where every OTHER condition is still decidable and false still correctly
+ * excludes the branch.
  */
-function guardAllows(node: PptxSmartArtLayoutNode, flat: PptxSmartArtNode[]): boolean {
+function guardAllows(
+	node: PptxSmartArtLayoutNode,
+	flat: PptxSmartArtNode[],
+	iterationPosition: IterationPosition | undefined,
+): boolean {
 	if (!node.chooseGuard) {
 		return true;
 	}
-	return evaluateWhen(node.chooseGuard, flat.length, { nodes: flat }) !== false;
-}
-
-/** One resolved choose-aware slot: its final rect and the node(s) it renders
- * (the first is primary, the rest fold in as extra paragraphs). */
-export interface ChooseAwareSlot {
-	rect: Slot;
-	content: PptxSmartArtNode[];
-}
-
-/** A choose-live, `presOf`-bearing candidate found by {@link collectRawCandidates}, not yet resolved to a rect. */
-interface RawSlotCandidate {
-	node: PptxSmartArtLayoutNode;
-	declaringRole: string;
-	content: PptxSmartArtNode[];
+	return node.chooseGuard.every(
+		(guard) =>
+			evaluateWhen(guard, flat.length, {
+				nodes: flat,
+				position: iterationPosition?.position,
+				total: iterationPosition?.total,
+			}) !== false,
+	);
 }
 
 /**
  * Recursively walk `node`'s subtree collecting every choose-live,
- * `presOf`-bearing, POSITIONED descendant as a RAW candidate (content
+ * `presOf`-bearing, POSITIONED descendant as RAW candidates (content
  * resolved, geometry not yet attempted) - see {@link collectChooseAwareSlots}
  * for why this is a separate pass. A branch whose OWN `chooseGuard`
  * evaluates false is dropped entirely, IT AND EVERYTHING NESTED INSIDE IT
@@ -94,6 +109,27 @@ interface RawSlotCandidate {
  * OWN role as the next `declaringRole`, since a nested composite re-scopes
  * `for="ch" forName="X"` positioning to its own children (`child1group`'s
  * own constrLst positions `child1`/`child1Text`, not `children`'s).
+ *
+ * A `presOf`-bearing node reached through a MULTI-anchor `forEachOrigin`
+ * (`nested-target--hier5.pptx`'s `oChild`: a genuine `dgm:forEach axis="ch
+ * ch" st="1 1" cnt="1 0"`, an UNBOUNDED second hop - "every child of point
+ * 1", not a fixed position) produces ONE candidate PER anchor
+ * (`resolveAnchoredContentPerAnchor`), not one candidate with every anchor's
+ * content folded together - the genuine "one item template, N forEach
+ * iterations" ECMA-376 21.4.2.13 describes, the same mechanism
+ * `sub-step-process--hier5.pptx`'s hand-duplicated `chLin1..7` templates
+ * need. Each anchor's OWN `guardAllows` check is deferred until its content
+ * is resolved (rather than checked once, up front, the way a bare wrapper's
+ * is) specifically so a `func="pos"`-family condition in `node`'s own
+ * `chooseGuard` chain can decide against THAT SPECIFIC iteration's own
+ * 1-based position - `sub-step-process`'s own `chLinN` templates each carry
+ * a `pos==N` guard this way (though `chLinN` itself is a STRUCTURAL
+ * arranger, not a presOf-bearing content leaf, so this mechanism alone does
+ * not yet reach it - see this module's own doc comment on remaining gaps).
+ * A single-anchor forEach (or none at all) still produces exactly ONE
+ * candidate, `iteration=0, iterationCount=1`, with `iterationPosition`
+ * `undefined` (no per-iteration position exists) - behaviour-identical to
+ * before this split existed.
  */
 function collectRawCandidates(
 	node: PptxSmartArtLayoutNode,
@@ -101,75 +137,25 @@ function collectRawCandidates(
 	declaringRole: string,
 	out: RawSlotCandidate[] = [],
 ): RawSlotCandidate[] {
-	if (!guardAllows(node, flat)) {
-		return out;
-	}
 	const axis = node.presentationOf?.axis;
 	if (axis && axis.length > 0) {
-		const content = resolveAnchoredContent(node, flat);
-		if (content.length > 0) {
-			out.push({ node, declaringRole, content });
-		}
+		const groups = resolveAnchoredContentPerAnchor(node, flat);
+		const iterationPosition = (iteration: number): IterationPosition | undefined =>
+			groups.length > 1 ? { position: iteration + 1, total: groups.length } : undefined;
+		groups.forEach((content, iteration) => {
+			if (!guardAllows(node, flat, iterationPosition(iteration))) {
+				return;
+			}
+			out.push({ node, declaringRole, content, iteration, iterationCount: groups.length });
+		});
+		return out;
+	}
+	if (!guardAllows(node, flat, undefined)) {
 		return out;
 	}
 	const nextRole = roleOf(node);
 	for (const child of node.children ?? []) {
 		collectRawCandidates(child, flat, nextRole, out);
-	}
-	return out;
-}
-
-/** Every content node id in `content`, sorted so two candidates that resolve to the SAME points (any order) collapse to the same group key. */
-function contentSignature(content: PptxSmartArtNode[]): string {
-	return content
-		.map((n) => n.id)
-		.sort()
-		.join(' ');
-}
-
-/**
- * Group `candidates` by their resolved content (several layoutNodes can
- * anchor to the EXACT same point set - see {@link collectChooseAwareSlots}'s
- * own doc comment on the decorative/text pairing this exists for), then
- * resolve ONE rect per group: try each member's OWN `readSlots` in turn,
- * preferring a NON-`sp` member first (the real text carrier usually declares
- * its own margin-only `constrLst`, but a `dgm:alg type="sp"` sibling more
- * often carries the group's actual position/size constraint - `Staggered
- * Process`'s `ThreeNodes_3_text` has no positioned slot of its own at all;
- * only its decorative `ThreeNodes_3` sibling does), falling back to an `sp`
- * member's slot when no other member has one. A group with NO positioned
- * member anywhere is dropped (matches the pre-existing "no slot resolves ->
- * no content" behaviour).
- */
-function resolveGroupedSlots(
-	candidates: RawSlotCandidate[],
-	box: BoundingBox,
-	index: ConstraintIndex,
-): ChooseAwareSlot[] {
-	const groups = new Map<string, RawSlotCandidate[]>();
-	for (const candidate of candidates) {
-		const key = contentSignature(candidate.content);
-		const group = groups.get(key);
-		if (group) {
-			group.push(candidate);
-		} else {
-			groups.set(key, [candidate]);
-		}
-	}
-	const out: ChooseAwareSlot[] = [];
-	for (const group of groups.values()) {
-		const ordered = [...group].sort((a, b) => {
-			const aIsSp = a.node.algorithm?.type === 'sp' ? 1 : 0;
-			const bIsSp = b.node.algorithm?.type === 'sp' ? 1 : 0;
-			return aIsSp - bIsSp;
-		});
-		for (const candidate of ordered) {
-			const [slotted] = readSlots([candidate.node], box, index, candidate.declaringRole);
-			if (slotted) {
-				out.push({ rect: resolveSlot(slotted.dims, box, 1, 1), content: candidate.content });
-				break;
-			}
-		}
 	}
 	return out;
 }

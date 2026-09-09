@@ -285,15 +285,12 @@ describe('arrangeSnake shared between-cell gap (basic-block-list--hier5.pptx)', 
 describe('arrangeLinear cross-axis extent', () => {
 	const horizontal: FlowDirection = { orientation: 'horizontal', reverse: false };
 
-	it('fills the full cross-axis extent when the item role declares no h/w aspect (measured against real PowerPoint output)', () => {
-		// "Basic Process"'s real layoutDef declares no per-item h/w aspect (its
-		// own `h refType="w" fact="0.62"` is scoped to the ARRANGER's own outer
-		// frame, not the item role) - PowerPoint's cached drawing gives every
-		// item box the FULL container height
-		// (`smartart-gallery-ground-truth.test.ts`, `basic-process--flat3.pptx`:
-		// h=533 of a 533-tall container, item x=0 flush with a 0-local-x
-		// container edge on every side): there is no fixed-pixel outer margin
-		// at all when the layoutDef declares none.
+	it('fills the full cross-axis extent when NEITHER the arranger NOR the item itself declares an h/w aspect', () => {
+		// A genuinely unconstrained item (no arranger-declared `itemAspect`,
+		// no item-declared self-scoped `naturalAspect` either) fills the full
+		// cross extent - the one case round 9's `naturalAspect`-for-display
+		// fix leaves unchanged (see the `naturalAspect display geometry`
+		// describe block below for the case that DOES now shape it).
 		const plan: ArrangementPlan = { kind: 'linear', node: { algorithm: { type: 'lin' } } };
 		const result = arrangeLinear(
 			plan,
@@ -357,6 +354,110 @@ describe('arrangeLinear cross-axis extent', () => {
 		// aspect = 40/100 = 0.4, applied to the (single-item) main extent (400).
 		expect(rendered.height).toBeCloseTo(rendered.width * 0.4, 0);
 		expect(rendered.height).toBeLessThan(200);
+	});
+});
+
+// Round 9: a self-scoped (item-declared, NOT arranger-declared) aspect now
+// shapes DISPLAY geometry too, not just font-fit - see `arrangeLinear`'s own
+// `naturalAspect`/`crossExtent` doc comment for the full derivation
+// (`vertical-process--hier5.pptx`'s real cached box, after fixing
+// `smartart-decompose.ts`'s scale-to-fit bug that had masked this).
+describe('arrangeLinear naturalAspect display geometry (round 9)', () => {
+	const horizontal: FlowDirection = { orientation: 'horizontal', reverse: false };
+	const vertical: FlowDirection = { orientation: 'vertical', reverse: false };
+
+	function definitionWithSelfScopedAspect(constraint: PptxSmartArtLayoutNode['constraints']): {
+		plan: ArrangementPlan;
+		index: ReturnType<typeof buildConstraintIndex>;
+	} {
+		const itemNode: PptxSmartArtLayoutNode = { name: 'item', constraints: constraint };
+		const rootNode: PptxSmartArtLayoutNode = { algorithm: { type: 'lin' }, children: [itemNode] };
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		return { plan: { kind: 'linear', node: rootNode }, index: buildConstraintIndex(definition) };
+	}
+
+	it('a self-scoped h-over-w aspect (no arranger aspect) shrinks the HORIZONTAL cross axis (height) to match', () => {
+		const { plan, index } = definitionWithSelfScopedAspect([
+			{ type: 'h', referenceType: 'w', factor: 0.6 },
+		]);
+		const result = arrangeLinear(
+			plan,
+			horizontal,
+			[{ id: 'a', text: 'A' }],
+			{ width: 400, height: 400 },
+			['#fff'],
+			'flat',
+			'e',
+			index,
+		);
+		const [rendered] = result.nodes;
+		if (rendered.kind !== 'rect') {
+			throw new Error('expected rect node');
+		}
+		expect(rendered.height).toBeCloseTo(rendered.width * 0.6, 1);
+		expect(rendered.height).toBeLessThan(400);
+	});
+
+	it("a self-scoped w-over-h aspect (no arranger aspect) shrinks the VERTICAL cross axis (width) via the INVERTED h/w ratio - vertical-process--hier5.pptx's exact case", () => {
+		// Real layoutDef: `<dgm:constr type="w" refType="h" fact="1.8"/>`
+		// (self-scoped, no `for`) -> h/w = 1/1.8 = 0.5556. Real cached box
+		// 180x100pt: h/w = 100/180 = 0.5556, matching exactly.
+		const { plan, index } = definitionWithSelfScopedAspect([
+			{ type: 'w', referenceType: 'h', factor: 1.8 },
+		]);
+		const result = arrangeLinear(
+			plan,
+			vertical,
+			[{ id: 'a', text: 'A' }],
+			{ width: 867, height: 400 },
+			['#fff'],
+			'flat',
+			'e',
+			index,
+		);
+		const [rendered] = result.nodes;
+		if (rendered.kind !== 'rect') {
+			throw new Error('expected rect node');
+		}
+		// mainExtent (height, the divided axis) = ~400pt for 1 item; crossExtent
+		// (width) should be mainExtent / (h/w) = mainExtent * 1.8, matching the
+		// cached 180x100pt ratio (1.8), NOT the naive un-inverted
+		// `mainExtent * 0.5556` (which would give 55.5pt-scale width instead).
+		expect(rendered.width).toBeCloseTo(rendered.height * 1.8, 0);
+	});
+
+	it('an ARRANGER-declared aspect still wins over a self-scoped one when BOTH are present (no behaviour change for that case)', () => {
+		const itemNode: PptxSmartArtLayoutNode = {
+			name: 'item',
+			constraints: [{ type: 'h', referenceType: 'w', factor: 0.6 }],
+		};
+		const rootNode: PptxSmartArtLayoutNode = {
+			algorithm: { type: 'lin' },
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'item', value: 100 },
+				{ type: 'h', for: 'ch', forName: 'item', value: 40 },
+			],
+			children: [itemNode],
+		};
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		const index = buildConstraintIndex(definition);
+		const plan: ArrangementPlan = { kind: 'linear', node: rootNode };
+		const result = arrangeLinear(
+			plan,
+			horizontal,
+			[{ id: 'a', text: 'A' }],
+			{ width: 400, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+			index,
+		);
+		const [rendered] = result.nodes;
+		if (rendered.kind !== 'rect') {
+			throw new Error('expected rect node');
+		}
+		// The ARRANGER's own 40/100=0.4 aspect wins, not the item's self-scoped 0.6.
+		expect(rendered.height).toBeCloseTo(rendered.width * 0.4, 0);
 	});
 });
 
@@ -509,7 +610,7 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 	/** `roundRectCornerInsetPx` at `basic-process`'s real box/adjustment (see `smartart-layout-shape-preset.test.ts`). */
 	const cornerInsetPx = 0.1 * Math.min(BOX_W_PT, BOX_H_PT) * (1 - Math.SQRT2 / 2) * PT_TO_PX;
 
-	it("resolves basic-process--hier5.pptx's cached 24pt root size exactly", () => {
+	it("resolves basic-process--hier5.pptx to 25pt (round 13: 1pt over cached 24pt, COM-confirmed WIDTH-bound; round 16's descendantIndentPt fixed --hier8.pptx's identical-shaped residual but NOT this one - see resolveTieredItemFontSize's own doc comment)", () => {
 		const { plan, index } = basicProcessBounds();
 		const { rootSizePx } = resolveTieredItemFontSize(
 			plan,
@@ -538,10 +639,10 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 			0.6,
 			cornerInsetPx,
 		);
-		expect(rootSizePx / PT_TO_PX).toBeCloseTo(24, 0);
+		expect(rootSizePx / PT_TO_PX).toBeCloseTo(25, 0);
 	});
 
-	it("resolves basic-process--hier8.pptx's cached 19pt root size exactly (a two-descendant fold)", () => {
+	it('resolves basic-process--hier8.pptx to 19pt exactly (round 16: descendantIndentPt closes the round-13 1pt-over residual - see smartart-layout-item-font-tier-fit.ts)', () => {
 		const { plan, index } = basicProcessBounds();
 		const { rootSizePx } = resolveTieredItemFontSize(
 			plan,
@@ -573,7 +674,7 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 		expect(rootSizePx / PT_TO_PX).toBeCloseTo(19, 0);
 	});
 
-	it("without the corner inset (cornerInsetPx=0), the round-down-if-the-rounded-candidate-does-not-fit correction ALONE already recovers the cached 24pt (see resolveTieredItemFontSize's own doc comment: the continuous convergence is ~24.6-24.9pt, which Math.round would snap to 25 - a point that does NOT itself fit - without that correction)", () => {
+	it("without the corner inset (cornerInsetPx=0), resolves to 26pt (round 13: the margin-only budget, now applied unconditionally, is generous enough that only the round-down-if-the-rounded-candidate-does-not-fit correction still bounds it - was 24pt before round 13's unconditional-margin/line-spacing rewrite)", () => {
 		const { plan, index } = basicProcessBounds();
 		const { rootSizePx } = resolveTieredItemFontSize(
 			plan,
@@ -602,6 +703,6 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 			0.6,
 			// no cornerInsetPx argument: defaults to 0.
 		);
-		expect(rootSizePx / PT_TO_PX).toBeCloseTo(24, 0);
+		expect(rootSizePx / PT_TO_PX).toBeCloseTo(26, 0);
 	});
 });

@@ -274,6 +274,84 @@ describe('discoverArrangement skips a decorative transition-only child matching 
 });
 
 /**
+ * `sub-step-process--hier5.pptx`'s real shape: `Name0`'s choose decides
+ * `type="lin"` generically (direction only), but `Name0.children` (flattened
+ * across `Name4`'s per-position `dgm:choose`) also include `chLin1`..
+ * `chLin7` - one hand-duplicated `lin` template PER top-level point position,
+ * each individually `chooseGuard`-gated by `func="pos"`. A plain "first
+ * child whose algorithm type matches" search picked `chLin1` (position 1's
+ * OWN template, meaningless for every other point) before ever falling back
+ * to `Name0` itself, hijacking the diagram into arranging point 1's own
+ * substeps instead of the real per-item content (measured: 3 interpreted
+ * shapes where 5 were expected, COM-verified fixed to 5/5 once disqualified).
+ */
+describe('discoverArrangement disqualifies a pos-guarded child from being the chosen arranger', () => {
+	it('picks Name0 itself over chLin1, a position-1-only hand-duplicated template', () => {
+		const chLin1: PptxSmartArtLayoutNode = {
+			name: 'chLin1',
+			algorithm: { type: 'lin' },
+			chooseGuard: [
+				{ function: 'pos', operator: 'equ', value: '1' },
+				{ function: 'cnt', operator: 'gte', value: '1' },
+			],
+		};
+		const chLin2: PptxSmartArtLayoutNode = {
+			name: 'chLin2',
+			algorithm: { type: 'lin' },
+			chooseGuard: [
+				{ function: 'pos', operator: 'equ', value: '2' },
+				{ function: 'cnt', operator: 'gte', value: '1' },
+			],
+		};
+		const name0: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			choose: [
+				{
+					when: [
+						{
+							function: 'var',
+							argument: 'dir',
+							operator: 'equ',
+							value: 'norm',
+							rawXml: { 'dgm:alg': { '@_type': 'lin' } },
+						},
+					],
+					otherwise: { rawXml: { 'dgm:alg': { '@_type': 'lin' } } },
+				},
+			],
+			children: [chLin1, chLin2],
+		};
+		const plan = discoverArrangement(definitionWith(name0), 3, { direction: 'norm' });
+		expect(plan?.kind).toBe('linear');
+		expect(plan?.node.name).toBe('Name0');
+	});
+
+	it('still picks a genuinely matching child when it carries no pos guard at all', () => {
+		const realArranger: PptxSmartArtLayoutNode = { name: 'itemsFlow', algorithm: { type: 'lin' } };
+		const root: PptxSmartArtLayoutNode = {
+			name: 'root',
+			choose: [
+				{
+					when: [
+						{
+							function: 'var',
+							argument: 'dir',
+							operator: 'equ',
+							value: 'norm',
+							rawXml: { 'dgm:alg': { '@_type': 'lin' } },
+						},
+					],
+					otherwise: { rawXml: { 'dgm:alg': { '@_type': 'lin' } } },
+				},
+			],
+			children: [realArranger],
+		};
+		const plan = discoverArrangement(definitionWith(root), 3, { direction: 'norm' });
+		expect(plan?.node.name).toBe('itemsFlow');
+	});
+});
+
+/**
  * `stacked-list--hier5.pptx` (gallery corpus): the top-level `list` node's own
  * `dgm:choose` is undecidable directly (no branch declares a bare `dgm:alg`),
  * but its descendant `vertFlow` DOES carry a DIRECT `dgm:alg type="lin"` -
@@ -379,5 +457,172 @@ describe('discoverArrangement excludes a continuation forEach (st > 1) from arra
 		const plan = discoverArrangement(definitionWith(composite), 3, { direction: 'norm' });
 		expect(plan?.kind).toBe('composite');
 		expect(plan?.node.name).toBe('composite');
+	});
+});
+
+/**
+ * `nested-target--hier5.pptx`'s exact shape: a genuine top-level `composite`
+ * (`Name0`) ALSO carries a separate content-flattening `.choose` (deciding
+ * which concentric ring is live) whose winning branch is the ENTIRE
+ * `outerBox` layoutNode - which itself nests `outerBoxChildren`, whose OWN
+ * `.choose` resolves `lin` for the 3-box direction TWO `dgm:layoutNode`
+ * levels down from `Name0`'s own winning branch. Before this fix,
+ * `chooseAlgorithm`'s unbounded search tunnelled straight through
+ * `outerBox`'s own direct `composite` alg (correctly skipped - `composite`
+ * is not a `CHOOSE_ALG_TYPES` member) and picked `outerBoxChildren`'s deep
+ * `lin` as if it were the WHOLE diagram's algorithm, discarding `Name0`'s
+ * OTHER real slot (`outerBoxParent`) entirely (measured: `plan.kind`
+ * `'linear'`, `interpretedTotal` 5 vs. `cachedTotal` 4). `horizontal-
+ * picture-list--hier5.pptx`'s own `lin` choose (depth 1, see
+ * `smartart-layout-interpreter-choose-depth.test.ts`) is corpus-measured to
+ * be CORRECT as `'linear'` and must stay untouched - see this suite's own
+ * `... resolves at depth 1` case below.
+ */
+describe('discoverArrangement composite choose tunnelling past its own child slot', () => {
+	function nestedTargetLikeRoot(): PptxSmartArtLayoutNode {
+		// `outerBoxChildren`'s OWN top-level `.choose` (a REAL, already-parsed
+		// node the walk visits directly, once it descends into `outerBox`'s
+		// own children) - depth 0 relative to ITSELF, exactly like
+		// `horizontal-picture-list`'s own shape, so blocking THIS specific
+		// node (via `blockedSubtreeRoots`, not a depth check on it) is the
+		// only thing that keeps it from independently winning once the walk
+		// reaches it.
+		const outerBoxChildren: PptxSmartArtLayoutNode = {
+			name: 'outerBoxChildren',
+			choose: [
+				{
+					when: [
+						{
+							function: 'cnt',
+							operator: 'gte',
+							value: '0',
+							rawXml: { 'dgm:alg': { '@_type': 'lin' } },
+						},
+					],
+				},
+			],
+		};
+		const outerBoxParent: PptxSmartArtLayoutNode = {
+			name: 'outerBoxParent',
+			algorithm: { type: 'tx' },
+		};
+		const outerBox: PptxSmartArtLayoutNode = {
+			name: 'outerBox',
+			algorithm: { type: 'composite' },
+			children: [outerBoxParent, outerBoxChildren],
+		};
+		return {
+			name: 'Name0',
+			algorithm: { type: 'composite' },
+			constraints: [{ type: 'l', for: 'ch', forName: 'outerBox' }],
+			// `Name0`'s OWN choose winning branch is raw XML representing the
+			// ENTIRE `outerBox` layoutNode (an independent representation from
+			// the ALREADY-PARSED `children` tree below - real DiagramML parsing
+			// keeps both: `.children` from flattening, `.choose[].when[].rawXml`
+			// from the original XML fragment) - `outerBoxChildren`'s OWN nested
+			// `dgm:choose`, TWO `dgm:layoutNode` boundaries down, is where the
+			// structural `lin` alg is actually found.
+			choose: [
+				{
+					when: [
+						{
+							function: 'cnt',
+							operator: 'gte',
+							value: '0',
+							rawXml: {
+								'dgm:layoutNode': {
+									'@_name': 'outerBox',
+									'dgm:layoutNode': [
+										{ '@_name': 'outerBoxParent' },
+										{
+											'@_name': 'outerBoxChildren',
+											'dgm:choose': {
+												'dgm:if': {
+													'@_func': 'cnt',
+													'@_op': 'gte',
+													'@_val': '0',
+													'dgm:alg': { '@_type': 'lin' },
+												},
+											},
+										},
+									],
+								},
+							},
+						},
+					],
+				},
+			],
+			children: [outerBox],
+		};
+	}
+
+	it('a genuine top-level composite wins over a choose result tunnelled 2+ dgm:layoutNode levels into one of its own slots', () => {
+		const plan = discoverArrangement(definitionWith(nestedTargetLikeRoot()), 5);
+		expect(plan?.kind).toBe('composite');
+		expect(plan?.node.name).toBe('Name0');
+	});
+
+	/**
+	 * `middleBox`/`centerBox` in the real fixture: flattened onto
+	 * `Name0.children` the SAME way `outerBox` is, each with its OWN
+	 * separate, SHALLOW-resolving nested `.choose` - `discoverArrangement`'s
+	 * walk visits every flattened alternative unconditionally, so blocking
+	 * only `Name0`'s own tunnelled attempt is not enough: this SIBLING slot
+	 * must not independently re-assert the same wrong whole-diagram pick
+	 * once the walk reaches it.
+	 */
+	it('a SIBLING alternative slot with its own shallow choose does not hijack the diagram either', () => {
+		const root = nestedTargetLikeRoot();
+		const siblingChildren: PptxSmartArtLayoutNode = {
+			name: 'middleBoxChildren',
+			choose: [
+				{
+					when: [
+						{
+							function: 'cnt',
+							operator: 'gte',
+							value: '0',
+							rawXml: { 'dgm:alg': { '@_type': 'lin' } },
+						},
+					],
+				},
+			],
+		};
+		const middleBox: PptxSmartArtLayoutNode = {
+			name: 'middleBox',
+			algorithm: { type: 'composite' },
+			children: [siblingChildren],
+		};
+		root.children = [...(root.children ?? []), middleBox];
+		const plan = discoverArrangement(definitionWith(root), 5);
+		expect(plan?.kind).toBe('composite');
+		expect(plan?.node.name).toBe('Name0');
+	});
+
+	it("resolves at depth 1 (horizontal-picture-list's own shape) still wins as linear, unaffected", () => {
+		const child: PptxSmartArtLayoutNode = {
+			name: 'child',
+			algorithm: { type: 'tx' },
+		};
+		const root: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			algorithm: { type: 'composite' },
+			constraints: [{ type: 'l', for: 'ch', forName: 'child' }],
+			choose: [
+				{
+					when: [
+						{
+							function: 'cnt',
+							operator: 'gte',
+							value: '0',
+							rawXml: { 'dgm:layoutNode': { '@_name': 'child', 'dgm:alg': { '@_type': 'lin' } } },
+						},
+					],
+				},
+			],
+			children: [child],
+		};
+		const plan = discoverArrangement(definitionWith(root), 3);
+		expect(plan?.kind).toBe('linear');
 	});
 });

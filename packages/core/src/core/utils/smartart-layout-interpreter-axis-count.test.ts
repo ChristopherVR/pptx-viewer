@@ -8,10 +8,82 @@ describe('resolveAxisNodes', () => {
 		expect(resolveAxisNodes([], [], undefined, undefined, undefined)).toBeUndefined();
 	});
 
-	it('is undecidable (undefined) with no context when hop 0 is neither ch nor self', () => {
+	it('is undecidable (undefined) with no context when hop 0 is none of ch/self/root', () => {
 		const nodes: PptxSmartArtNode[] = [{ id: 'a', text: 'A' }];
 		expect(resolveAxisNodes(nodes, ['des'], undefined, undefined, undefined)).toBeUndefined();
-		expect(resolveAxisNodes(nodes, ['root'], undefined, undefined, undefined)).toBeUndefined();
+	});
+
+	/**
+	 * `nested-target--hier5.pptx`'s `outerBox`/`middleBox`/`centerBox` guards
+	 * and `basic-venn--hier5.pptx`'s `circ1TxSh` guard all gate on
+	 * `axis="root ch"` (`dgm:if/@func="cnt"`) - `root` at hop 0, root-
+	 * relatively, means the SAME thing `ch`/`self` already mean there (the
+	 * diagram's own top-level point list), whether used alone or compounded
+	 * with an immediately-following `ch` - see `resolveAxisNodes`'s own doc
+	 * comment for the full derivation and why `des`/`desOrSelf` are
+	 * deliberately NOT given the same treatment.
+	 */
+	it('bare "root" resolves to the diagram\'s own top-level points, same as ch/self', () => {
+		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
+		const two: PptxSmartArtNode = { id: 'two', text: 'Two', parentId: 'one' };
+		const three: PptxSmartArtNode = { id: 'three', text: 'Three' };
+		const nodes = [one, two, three];
+		const result = resolveAxisNodes(nodes, ['root'], ['node'], undefined, undefined);
+		expect(result?.map((n) => n.id)).toStrictEqual(['one', 'three']);
+	});
+
+	/**
+	 * COM-verified via `basic-venn--hier5.pptx` (3 top-level points, 2 of
+	 * which have a child of their own): `resolveAxisNodes(flat, ['root',
+	 * 'ch'], ['all', 'node'])` must read as the top-level COUNT (3), never
+	 * `flat.length` (5, the undecidable fallback `evaluateWhen` used before
+	 * this fix) NOR a real "children of the top-level points" hop (2 - "ch"
+	 * here is absorbed into the `root` read, not a second real tree-hop).
+	 */
+	it('"root ch" resolves to the top-level points themselves, not their children', () => {
+		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
+		const child: PptxSmartArtNode = { id: 'child', text: 'Child', parentId: 'one' };
+		const two: PptxSmartArtNode = { id: 'two', text: 'Two' };
+		const three: PptxSmartArtNode = { id: 'three', text: 'Three' };
+		const grandchild: PptxSmartArtNode = { id: 'gc', text: 'GC', parentId: 'three' };
+		const nodes = [one, child, two, three, grandchild];
+		const result = resolveAxisNodes(nodes, ['root', 'ch'], ['all', 'node'], undefined, undefined);
+		expect(result?.map((n) => n.id)).toStrictEqual(['one', 'two', 'three']);
+	});
+
+	/**
+	 * `nested-target--hier5.pptx`'s real shape: ONE top-level point ("Node
+	 * One") with three children of its own. `outerBox`/`middleBox`/
+	 * `centerBox` each gate on `axis="root ch" st="1 1" cnt="0 0"` with
+	 * `op="gte"` thresholds of 1/2/3 - against the correct top-level count
+	 * (1), only the `>= 1` guard should pass; against the old undecidable
+	 * fallback (`flat.length`, 5 for this fixture: 1 root + 4 total
+	 * descendants) all three incorrectly passed at once.
+	 */
+	it('"root ch" with st/cnt reads the top-level count, discriminating nested-target\'s three ring guards', () => {
+		const nodeOne: PptxSmartArtNode = { id: 'one', text: 'Node One' };
+		const two: PptxSmartArtNode = { id: 'two', text: 'Two', parentId: 'one' };
+		const three: PptxSmartArtNode = { id: 'three', text: 'Three', parentId: 'one' };
+		const four: PptxSmartArtNode = { id: 'four', text: 'Four', parentId: 'one' };
+		const five: PptxSmartArtNode = { id: 'five', text: 'Five', parentId: 'four' };
+		const nodes = [nodeOne, two, three, four, five];
+		const result = resolveAxisNodes(nodes, ['root', 'ch'], ['all', 'node'], [1, 1], [0, 0]);
+		expect(result?.map((n) => n.id)).toStrictEqual(['one']);
+	});
+
+	/**
+	 * `root` compounded with anything OTHER than an immediately-following
+	 * `ch` (no fixture measured needs this) stays exactly as undecidable as
+	 * before this change - extending the same "absorb the next hop" reading
+	 * to `des`/`desOrSelf` is the same "every node in the diagram" trap a
+	 * fuller root-hop generalisation hit and was reverted for (see the
+	 * `des` case above and `resolveAxisNodes`'s own doc comment).
+	 */
+	it('"root des" (root compounded with a non-ch hop) stays undecidable', () => {
+		const nodes: PptxSmartArtNode[] = [{ id: 'a', text: 'A' }];
+		expect(
+			resolveAxisNodes(nodes, ['root', 'des'], undefined, undefined, undefined),
+		).toBeUndefined();
 	});
 
 	it('bare "ch" resolves to the diagram\'s own top-level points', () => {

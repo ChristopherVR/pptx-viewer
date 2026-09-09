@@ -18,24 +18,26 @@ type LocalName = (key: string) => string;
  * iterator attributes of the nearest ENCLOSING `dgm:forEach` it was reached
  * through (`undefined` for a direct child, or one reached only via a
  * `dgm:choose` - see `PptxSmartArtLayoutNode.forEachOrigin`'s doc comment)
- * and the condition of the nearest enclosing `dgm:if` (`undefined` for a
- * direct child, a `dgm:forEach`-only path, or a `dgm:else` branch - see
- * `PptxSmartArtLayoutNode.chooseGuard`'s doc comment). */
+ * and the CHAIN of every enclosing `dgm:if`'s own condition, outermost
+ * first (empty for a direct child, a `dgm:forEach`-only path, or a
+ * `dgm:else` branch contributing nothing of its own - see
+ * `PptxSmartArtLayoutNode.chooseGuard`'s doc comment for why this is a
+ * chain, not a single "nearest one" condition). */
 export interface FoundLayoutNode {
 	xml: XmlObject;
 	origin: PptxSmartArtIteratorAttributes | undefined;
-	guard: PptxSmartArtWhen | undefined;
+	guard: PptxSmartArtWhen[];
 }
 
 /** Find the next generation of layout nodes through forEach/choose wrappers,
- * tagging each with the enclosing forEach it was iterated by and the
- * enclosing `dgm:if` condition it was gated by, if any. */
+ * tagging each with the enclosing forEach it was iterated by and the FULL
+ * chain of enclosing `dgm:if` conditions it was gated by, if any. */
 export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundLayoutNode[] {
 	const found: FoundLayoutNode[] = [];
 	const visit = (
 		value: unknown,
 		origin: PptxSmartArtIteratorAttributes | undefined,
-		guard: PptxSmartArtWhen | undefined,
+		guard: PptxSmartArtWhen[],
 	): void => {
 		if (!value || typeof value !== 'object') {
 			return;
@@ -62,23 +64,27 @@ export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundL
 					}
 				}
 			} else if (name === 'if') {
-				// The NEAREST enclosing if's own condition becomes the guard for
+				// EVERY enclosing if's own condition is APPENDED to the chain for
 				// everything inside it - see `PptxSmartArtLayoutNode.chooseGuard`'s
-				// doc comment. A nested choose inside an already-active branch
-				// (rare in this corpus) overwrites with the INNER if's condition,
-				// matching `forEachOrigin`'s "nearest one" precedent.
+				// doc comment (`sub-step-process`'s `chLin1..7`, each needing BOTH
+				// an outer `pos` guard AND an inner `cnt` one). A nested choose
+				// inside an already-active branch keeps the OUTER condition(s) too,
+				// unlike `forEachOrigin`'s deliberate "nearest one" precedent.
 				for (const ifNode of Array.isArray(entry) ? entry : [entry]) {
 					if (ifNode && typeof ifNode === 'object') {
-						visit(ifNode, origin, parseWhen(ifNode as XmlObject));
+						const when = parseWhen(ifNode as XmlObject);
+						visit(ifNode, origin, when ? [...guard, when] : guard);
 					}
 				}
 			} else if (name === 'else') {
 				// ECMA-376's else has no condition of its own (see the type's doc
 				// comment on why this is left unconditional rather than the
-				// negated-OR of every sibling if).
+				// negated-OR of every sibling if) - but any OUTER ancestor
+				// guard(s) already accumulated before this choose still apply, so
+				// the chain passes through UNCHANGED, not reset.
 				for (const elseNode of Array.isArray(entry) ? entry : [entry]) {
 					if (elseNode && typeof elseNode === 'object') {
-						visit(elseNode, origin, undefined);
+						visit(elseNode, origin, guard);
 					}
 				}
 			} else {
@@ -88,7 +94,7 @@ export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundL
 	};
 	for (const [key, value] of Object.entries(node)) {
 		if (!key.startsWith('@_') && localName(key) !== 'extLst') {
-			visit({ [key]: value }, undefined, undefined);
+			visit({ [key]: value }, undefined, []);
 		}
 	}
 	return found;

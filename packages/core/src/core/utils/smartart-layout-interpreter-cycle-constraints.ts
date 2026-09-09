@@ -20,9 +20,10 @@ import {
 	resolveHubToNodeRatio,
 } from './smartart-layout-interpreter-cycle-hub-ratio';
 import {
-	deriveCompositeSquareChildAspect,
+	deriveCompositeSelfChildLayout,
 	resolveGraphAspectRatio,
 } from './smartart-layout-interpreter-cycle-item-aspect';
+import type { CompositeContentLayout } from './smartart-layout-interpreter-cycle-item-aspect';
 import { itemNode } from './smartart-layout-interpreter-model';
 
 export { resolveHubToNodeRatio } from './smartart-layout-interpreter-cycle-hub-ratio';
@@ -35,7 +36,7 @@ export { resolveHubToNodeRatio } from './smartart-layout-interpreter-cycle-hub-r
  * for `primFontSz`. Duplicated here (rather than importing that module's
  * private constant) to avoid a cross-track dependency for one literal.
  */
-const POINTS_TO_PIXELS = 96 / 72;
+export const POINTS_TO_PIXELS = 96 / 72;
 
 /**
  * `sibSp`'s SCHEMA default is 0 (MS's "Cycle Algorithm" reference), but that
@@ -59,7 +60,7 @@ export const DEFAULT_MIN_GAP_RATIO = 0.5;
  * (continuous-cycle) resolves to `15`; `sibSp fact="0.5"` (basic-cycle) and
  * `sibSp refType="w" fact="0.15"` both resolve to `undefined`.
  */
-function absoluteConstraintPoints(
+export function absoluteConstraintPoints(
 	constraint: ReturnType<typeof findConstraint>,
 ): number | undefined {
 	if (
@@ -189,6 +190,8 @@ export function resolveCycleRingParams(
 	absoluteGapPx?: number;
 	hubRatio?: { hubName: string; factor: number };
 	hubGapRatio?: number;
+	absoluteHubGapPx?: number;
+	contentLayout?: CompositeContentLayout;
 } {
 	const constraintNode = resolveCycleConstraintNode(arrangerNode);
 	// A `dgm:choose`/`dgm:if`/`dgm:else`-wrapped `constrLst` (every "cycle"
@@ -209,29 +212,34 @@ export function resolveCycleRingParams(
 	// than a plain fraction of each other - the ratio is `resolvedH /
 	// resolvedW`, not `resolvedH` alone (`diverging-radial--hier5.pptx`'s own
 	// `node`, whose `w` itself chains through `centerShape`). Only when
-	// NEITHER resolves does this fall to `deriveCompositeSquareChildAspect`
-	// (a composite ring item with no direct `h` constraint of its own,
-	// `radial-list`'s `node`, ellipse+rect side by side) before the bare `1`
-	// default.
+	// NEITHER resolves does this check `deriveCompositeSelfChildLayout` (a
+	// composite ring item with no direct `h` constraint of its own,
+	// `radial-list`'s `node`, ellipse+rect side by side): its own doc comment
+	// explains why the ring's OWN uniform unit is the "self" shape's own
+	// square aspect (`1`), never the composite's full (content-dependent)
+	// aspect - the earlier `1` bare default and this pattern's own fallback
+	// are therefore the SAME value, just for a documented reason instead of
+	// an arbitrary one.
 	const literalHeightOverWidth = ratioConstraint(
 		itemConstraints ?? [],
 		['h'],
 		Number.NaN,
 		item?.rules,
 	);
+	const contentLayout = deriveCompositeSelfChildLayout(item);
 	const heightOverWidth = !Number.isNaN(literalHeightOverWidth)
 		? literalHeightOverWidth
 		: (resolveGraphAspectRatio(item, index) ??
-			resolveRatioConstraint(
-				itemConstraints,
-				index,
-				roleOf(item),
-				['h'],
-				deriveCompositeSquareChildAspect(item) ?? 1,
-				item?.rules,
-			));
+			resolveRatioConstraint(itemConstraints, index, roleOf(item), ['h'], 1, item?.rules));
 	const hubRatio = resolveHubToNodeRatio(item, arrangerConstraints);
 	const hubGapRatio = resolveHubGapRatio(item?.name, hubRatio, arrangerConstraints);
+	// An ABSOLUTE `sp` (no `fact` at all, e.g. `radial-list--hier5.pptx`'s own
+	// `<dgm:constr type="sp" val="20"/>`) is a hub-to-satellite gap too, but
+	// `resolveHubGapRatio` only ever resolves a RATIO-form `sp` (a declared
+	// `fact`) - see `computeCycleRingLayout`'s own `absoluteHubGapPx` doc
+	// comment for how this feeds the SAME fixed-point iteration
+	// `absoluteGapPx` already uses.
+	const absoluteHubGap = absoluteConstraintPoints(findConstraint(arrangerConstraints, 'sp'));
 	const absolutePoints = absoluteConstraintPoints(findConstraint(arrangerConstraints, 'sibSp'));
 	if (absolutePoints !== undefined) {
 		// An absolute `sibSp` is a MINIMUM distance too (per MS's "Cycle
@@ -248,6 +256,9 @@ export function resolveCycleRingParams(
 			absoluteGapPx: absolutePoints * POINTS_TO_PIXELS,
 			hubRatio,
 			hubGapRatio,
+			absoluteHubGapPx:
+				absoluteHubGap !== undefined ? absoluteHubGap * POINTS_TO_PIXELS : undefined,
+			contentLayout,
 		};
 	}
 	const minGapRatio = resolveRatioConstraint(
@@ -262,6 +273,8 @@ export function resolveCycleRingParams(
 		minGapRatio: Math.max(DEFAULT_MIN_GAP_RATIO, minGapRatio),
 		heightOverWidth,
 		hubRatio,
+		absoluteHubGapPx: absoluteHubGap !== undefined ? absoluteHubGap * POINTS_TO_PIXELS : undefined,
+		contentLayout,
 		hubGapRatio,
 	};
 }

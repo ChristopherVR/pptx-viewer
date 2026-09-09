@@ -185,7 +185,7 @@ describe('arrangeSnake two-tier fold-aware font fit (basic-block-list--hier5.ppt
 	});
 });
 
-describe('arrangeSnake two-tier fold-aware font fit (basic-block-list--hier8.pptx, a KNOWN 1pt-over residual)', () => {
+describe('arrangeSnake two-tier fold-aware font fit (basic-block-list--hier8.pptx, EXACT since round 16)', () => {
 	/**
 	 * `basic-block-list--hier8.pptx`'s real data: "Branch A Root" (level 0)
 	 * folds TWO deeper descendants, "Branch A Child" (level 1) and "Branch A
@@ -193,13 +193,15 @@ describe('arrangeSnake two-tier fold-aware font fit (basic-block-list--hier8.ppt
 	 * BOTH descendant paragraphs the SAME size (29pt) regardless of their
 	 * different depth, confirming the two-tier split is level-0-vs-everything-
 	 * else, not a per-depth cascade (see `smartart-layout-item-font-tier.ts`'s
-	 * module doc comment). Cached root/descendant pair: 37pt/29pt; this joint
-	 * search's own continuous convergence is 38.34pt (round -> 38, ALSO over
-	 * with floor), a documented, NOT-fixed-this-round residual - see the
-	 * module doc comment's "known residual" paragraph and the round 6
-	 * successor-doc section for the COM-verified investigation. Pinned to the
-	 * codebase's OWN current (imperfect) output so a future change here is
-	 * deliberate, not an accidental regression.
+	 * module doc comment). Cached root/descendant pair: 37pt/29pt.
+	 *
+	 * Round 6 through 15 pinned this to a documented 1pt-over residual (38pt):
+	 * the joint search's continuous convergence (~38.34pt) rounded to 38 and
+	 * held there. Round 16 (`smartart-layout-item-font-tier-fit.ts`'s
+	 * `descendantIndentPt`, wrapping each descendant paragraph at its own
+	 * narrower, hanging-indented column instead of the item's full width)
+	 * closes this exactly - the narrower column adds enough height pressure
+	 * that the 38pt candidate no longer fits, landing on the cached 37pt.
 	 */
 	function nodesFor(): PptxSmartArtNode[] {
 		return [
@@ -221,7 +223,7 @@ describe('arrangeSnake two-tier fold-aware font fit (basic-block-list--hier8.ppt
 		]);
 	}
 
-	it('is 1pt over the cached 37pt root size (38pt) - a known, documented residual, not silently masked', () => {
+	it('resolves the cached 37pt root size exactly (round 16: fixed the round 6-15 documented 38pt residual)', () => {
 		const { plan, index } = blockListDefinitionWithItemBounds();
 		const box = { width: 867, height: 533 };
 		const result = arrangeSnake(
@@ -239,7 +241,7 @@ describe('arrangeSnake two-tier fold-aware font fit (basic-block-list--hier8.ppt
 		if (first.kind !== 'rect') {
 			throw new Error('expected rect node');
 		}
-		expect(first.fontSize / PT_TO_PX).toBeCloseTo(38, 0);
+		expect(first.fontSize / PT_TO_PX).toBeCloseTo(37, 0);
 		expect(first.descendantFontSize ?? 0).toBeLessThan(first.fontSize);
 	});
 });

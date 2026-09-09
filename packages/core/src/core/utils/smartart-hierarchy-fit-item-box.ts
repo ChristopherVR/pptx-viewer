@@ -86,5 +86,24 @@ export function fitItemBox(
 	// aspect ratio.
 	const naturalHeight = widthFit * aspectRatio;
 	const boxH = clampToNaturalAspect ? Math.min(naturalHeight, heightFit) : heightFit;
-	return { boxW: Math.max(1, widthFit), boxH: Math.max(1, boxH) };
+	// `clampToNaturalAspect` callers (`std` mode) keep the item's OWN declared
+	// `aspectRatio` invariant no matter which axis actually bound `boxH`: when
+	// the WIDTH axis bound it (`boxH===naturalHeight`), `boxH/aspectRatio`
+	// already equals `widthFit` exactly, so this is a no-op; when the HEIGHT
+	// axis bound it instead (`boxH===heightFit < naturalHeight`, real PowerPoint
+	// output round 11/SESSION 8 found this is the COMMON case for a
+	// multi-generation tree - see `smartart-layout-interpreter-hierarchy.ts`'s
+	// module doc comment), `boxW` must SHRINK along with `boxH` to keep the
+	// same aspect, not stay at the wider `widthFit` - the round-11 reader
+	// correction exposed this as a REAL bug (COM-verified against
+	// `hierarchy--hier5.pptx`: the old unconditional `widthFit` produced a
+	// 372x131 box, aspect 0.352, silently violating its own declared 0.667
+	// aspect; `boxW=boxH/aspectRatio` instead keeps every `std`-mode box at
+	// its own declared aspect always, matching what a real DiagramML renderer
+	// does). `tailed` callers (`clampToNaturalAspect=false`) are UNCHANGED:
+	// org-chart-family items are not aspect-locked at all (see this
+	// function's own doc comment on `clampToNaturalAspect`), so `boxW` stays
+	// `widthFit` there regardless of which axis bound `boxH`.
+	const boxW = clampToNaturalAspect ? boxH / aspectRatio : widthFit;
+	return { boxW: Math.max(1, boxW), boxH: Math.max(1, boxH) };
 }

@@ -9,16 +9,15 @@
  * Scope / honesty: the typed layout model flattens `dgm:forEach` / `dgm:choose`
  * wrappers when collecting nested `layoutNode`s (see
  * `smartart-layout-definition.ts`), so this interpreter does NOT run the full
- * recursive control-flow / constraint-reference solver. Instead it:
- *   - reads the primary `dgm:alg` type from the definition to pick an
- *     arrangement family (lin / cycle / hierRoot|hierChild / pyra / snake),
- *   - reads the arranger node's direction params (`linDir`, `stAng`, `spanAng`),
- *   - applies the scalar `dgm:constr` factors (sp / sibSp / begPad / endPad and
- *     w/h aspect) that are already parsed,
- *   - arranges the *actual data-model nodes* accordingly.
- * When the definition contains no recognised arrangement algorithm the
- * interpreter declines (returns `undefined`) and the caller keeps the legacy
- * approximation. This module only exposes the discovery + constraint helpers.
+ * recursive control-flow / constraint-reference solver. Instead it reads the
+ * primary `dgm:alg` type to pick an arrangement family (lin / cycle /
+ * hierRoot|hierChild / pyra / snake), reads the arranger's direction params
+ * (`linDir`, `stAng`, `spanAng`), applies the scalar `dgm:constr` factors
+ * (sp / sibSp / begPad / endPad and w/h aspect), and arranges the *actual
+ * data-model nodes* accordingly. When the definition contains no recognised
+ * arrangement algorithm the interpreter declines (`undefined`) and the caller
+ * keeps the legacy approximation. This module only exposes the discovery +
+ * constraint helpers.
  */
 
 import type {
@@ -27,14 +26,17 @@ import type {
 	PptxSmartArtNode,
 	PptxSmartArtPresLayoutVars,
 } from '../types';
+import { tunnelsPastOwnCompositeSlot } from './smartart-layout-interpreter-choose-depth';
 import {
 	hasStructuralDescendant,
 	isContinuationForEach,
+	isLayoutNodeOrDescendantOf,
 	isTransitionOnlyChild,
 	itemTemplateNodes,
 	mapsSlots,
 } from './smartart-layout-interpreter-composite-detect';
 import { chooseAlgorithm } from './smartart-layout-interpreter-flow';
+import { hasPositionGuard } from './smartart-layout-interpreter-position-family';
 import { treeMaxDepth, walkWithTreeLocation } from './smartart-layout-interpreter-tree-location';
 
 export {
@@ -42,6 +44,10 @@ export {
 	findConstraint,
 	ratioConstraint,
 } from './smartart-layout-interpreter-constraints';
+export {
+	detectPositionFamily,
+	hasPositionGuard,
+} from './smartart-layout-interpreter-position-family';
 
 /** Arrangement families the interpreter can execute. */
 export type ArrangementKind =
@@ -104,36 +110,41 @@ function isMeaningfulAux(node: PptxSmartArtLayoutNode): boolean {
  * Determine which arrangement algorithm drives the diagram.
  *
  * Precedence (highest first):
- *   1. hierarchy    - any `hierRoot`/`hierChild` (org-chart / tree) always wins.
- *   2. choose        - a `dgm:choose` that is decidable from `nodeCount` selects
- *                      its branch's structural algorithm instead of the blind
- *                      first-found one. Undecidable chooses fall through.
- *   3. composite     - a `composite` whose child slots carry positioning
- *                      constraints (maps data points into fixed slots). A passive
- *                      composite wrapper is skipped so its inner arrangement wins.
- *   4. structural    - the first `lin`/`cycle`/`pyra`/`snake` in document order.
- *   5. conn/sp/tx     - only when they are the dominant/only algorithm (no
- *                      structural or slot-mapping composite present) and carry
- *                      constraints/children.
+ *   1. hierarchy - any `hierRoot`/`hierChild` (org-chart / tree) always wins.
+ *   2. choose - a `dgm:choose` decidable from `nodeCount` selects its branch's
+ *      structural algorithm instead of the blind first-found one (never a
+ *      pos-guarded child - see `smartart-layout-interpreter-position-
+ *      family.ts`). Undecidable chooses fall through. EXCEPT when the node
+ *      also independently qualifies as its own genuine composite (see (3))
+ *      AND the choose result was found by tunnelling 2+ `dgm:layoutNode`
+ *      levels into one of its own child slots - see
+ *      `tunnelsPastOwnCompositeSlot` (`smartart-layout-interpreter-choose-
+ *      depth.ts`) for the corpus-measured, monotonic derivation - in which
+ *      case the node's own composite identity wins instead.
+ *   3. composite - a `composite` whose child slots carry positioning
+ *      constraints (maps data points into fixed slots). A passive composite
+ *      wrapper is skipped so its inner arrangement wins.
+ *   4. structural - the first `lin`/`cycle`/`pyra`/`snake` in document order.
+ *   5. conn/sp/tx - only when they are the dominant/only algorithm (no
+ *      structural or slot-mapping composite present) and carry
+ *      constraints/children.
  *
  * `nodeCount` (the flat data-point count) is optional; when omitted the choose
  * step is skipped and the blind first-alg behaviour is preserved. Returns
- * `undefined` when nothing is recognised, so the caller keeps the legacy family
- * approximation.
+ * `undefined` when nothing is recognised, so the caller keeps the legacy
+ * family approximation.
  *
  * `presLayoutVars`, when supplied, lets a `func="var"` `dgm:if` decide its
  * branch (see `smartart-layout-interpreter-flow.ts`'s `WhenContext`). Every
  * `dgm:choose` visited is also given its declaring node's sibling position
  * (1-based), sibling count, depth, and the tree's max depth, so `"pos"`/
- * `"revPos"`/`"posEven"`/`"posOdd"`/`"depth"`/`"maxDepth"` are decidable
- * here too, not just `"cnt"`/`"var"` (previously the only two reachable).
+ * `"revPos"`/`"posEven"`/`"posOdd"`/`"depth"`/`"maxDepth"` are decidable here
+ * too, not just `"cnt"`/`"var"`.
  *
- * `flatNodes`, when supplied, additionally lets a `func="cnt"` `dgm:if`
- * whose `@axis` needs real compound navigation decide too (ECMA-376
- * 21.4.7.5 - see `smartart-layout-interpreter-when.ts`'s `resolveAxisCount`
- * doc comment for the exact fixture this fixes, `basic-radial--hier5.pptx`'s
- * `axis="ch ch"` `stAng` choose). Omitted keeps every such `cnt` on the
- * older, coarser `nodeCount`-only comparison, exactly as before.
+ * `flatNodes`, when supplied, additionally lets a `func="cnt"` `dgm:if` whose
+ * `@axis` needs real compound navigation decide too (ECMA-376 21.4.7.5 - see
+ * `smartart-layout-interpreter-when.ts`'s `resolveAxisCount` doc comment).
+ * Omitted keeps every such `cnt` on the coarser `nodeCount`-only comparison.
  */
 export function discoverArrangement(
 	definition: PptxSmartArtLayoutDefinition,
@@ -149,6 +160,11 @@ export function discoverArrangement(
 	const maxDepth = treeMaxDepth(definition.rootNode);
 	const itemTemplates = new Set<PptxSmartArtLayoutNode>();
 	itemTemplateNodes(definition.rootNode, itemTemplates);
+	// Whole subtrees a BLOCKED tunnelled choose result (`tunnelledPastOwnSlot`
+	// below) was already found in - a SIBLING alternative slot must not
+	// independently re-assert the same wrong pick later; see `smartart-
+	// layout-interpreter-choose-depth.ts`'s own doc comment.
+	const blockedSubtreeRoots: PptxSmartArtLayoutNode[] = [];
 	walkWithTreeLocation(definition.rootNode, (node, location) => {
 		if (
 			!hierarchy &&
@@ -156,40 +172,61 @@ export function discoverArrangement(
 			nodeCount !== undefined &&
 			node.choose &&
 			node.choose.length > 0 &&
-			!isContinuationForEach(node)
+			!isContinuationForEach(node) &&
+			!blockedSubtreeRoots.some((root) => isLayoutNodeOrDescendantOf(root, node))
 		) {
-			// `chooseAlgorithm` keeps the winning branch's `dgm:param`s (see its doc comment).
-			const resolvedAlg = chooseAlgorithm(node, nodeCount, {
+			const whenContext = {
 				presLayoutVars,
 				position: location.position,
 				total: location.total,
 				depth: location.depth,
 				maxDepth,
 				nodes: flatNodes,
-			});
+			};
+			// `chooseAlgorithm` keeps the winning branch's `dgm:param`s (see its doc comment).
+			const resolvedAlg = chooseAlgorithm(node, nodeCount, whenContext);
 			const type = resolvedAlg?.type;
 			// A genuine org-chart layoutDef wraps its OWN root `hierChild`/
-			// `hierRoot` algorithm in a `dgm:choose` (`smartart-orgchart-
-			// hierbranch.pptx`) - checked here too, alongside the STRUCTURAL
-			// kinds below. Keeps the ORIGINAL `node` fallback (not the
-			// param-carrying `withResolvedAlg` the non-hierarchy branch uses
-			// below): hierarchy's own params resolve via `presLayoutVars`, not
-			// `algorithmParam`, and hierarchy code elsewhere compares nodes by
-			// REFERENCE against the original tree, which a `{...node}` copy
-			// would defeat.
+			// `hierRoot` algorithm in a `dgm:choose` - checked here too. Keeps the
+			// ORIGINAL `node` fallback (not the param-carrying `withResolvedAlg`
+			// below): hierarchy's own params resolve via `presLayoutVars`, and
+			// hierarchy code elsewhere compares nodes by REFERENCE against the
+			// original tree, which a `{...node}` copy would defeat.
 			if (type === 'hierRoot' || type === 'hierChild') {
 				hierarchy = node.children?.find((child) => child.algorithm?.type === type) ?? node;
 			} else {
 				const withResolvedAlg = resolvedAlg ? { ...node, algorithm: resolvedAlg } : node;
 				const kind = type ? PRIMARY_ALG[type] : undefined;
+				const rawArranger = node.children?.find(
+					(child) =>
+						child.algorithm?.type === type &&
+						!isTransitionOnlyChild(child) &&
+						!isContinuationForEach(child),
+				);
+				// A pos-guarded child describes ONE position's own hand-duplicated
+				// branch, never a shared template for every point - disqualified
+				// here like a transition-only/continuation-only child already is;
+				// see `smartart-layout-interpreter-position-family.ts`'s own doc
+				// comment (`hasPositionGuard`) for the corpus-measured derivation.
 				const arranger =
-					node.children?.find(
-						(child) =>
-							child.algorithm?.type === type &&
-							!isTransitionOnlyChild(child) &&
-							!isContinuationForEach(child),
-					) ?? withResolvedAlg;
-				if (kind && STRUCTURAL_ARRANGEMENT_KINDS.has(kind)) {
+					rawArranger && !hasPositionGuard(rawArranger) ? rawArranger : withResolvedAlg;
+				// A STRUCTURAL choose result found by tunnelling 2+ `dgm:layoutNode`
+				// levels into one of `node`'s OWN child slots (only when `node`
+				// ALSO independently qualifies as its own genuine top-level
+				// composite) describes that slot's small internal item arrangement,
+				// not a competing whole-diagram algorithm - corpus-measured,
+				// monotonic threshold; see `smartart-layout-interpreter-choose-
+				// depth.ts`'s own doc comment.
+				const tunnelledPastOwnSlot = tunnelsPastOwnCompositeSlot(
+					node,
+					nodeCount,
+					whenContext,
+					itemTemplates,
+				);
+				if (tunnelledPastOwnSlot) {
+					blockedSubtreeRoots.push(node);
+				}
+				if (kind && STRUCTURAL_ARRANGEMENT_KINDS.has(kind) && !tunnelledPastOwnSlot) {
 					chosen = { kind, node: arranger };
 				} else if (kind === 'composite' && !itemTemplates.has(arranger) && mapsSlots(arranger)) {
 					// A count/direction-decidable `dgm:choose` picking `composite`
@@ -251,46 +288,13 @@ export function discoverArrangement(
 	return structural ?? aux;
 }
 
-/** The first nested item `layoutNode` under an arranger (the per-point shape). */
-export function itemNode(arranger: PptxSmartArtLayoutNode): PptxSmartArtLayoutNode | undefined {
-	return arranger.children?.[0];
-}
-
-/** Read an algorithm parameter value by its `dgm:param` type. */
-export function algorithmParam(node: PptxSmartArtLayoutNode, type: string): string | undefined {
-	return node.algorithm?.parameters?.find((param) => param.type === type)?.value;
-}
-
-/** Read a numeric algorithm parameter, returning `fallback` when absent/invalid. */
-export function numericParam(node: PptxSmartArtLayoutNode, type: string, fallback: number): number {
-	const raw = algorithmParam(node, type);
-	if (raw === undefined) {
-		return fallback;
-	}
-	const parsed = Number(raw);
-	return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-/** Orientation + ordering resolved from `linDir` and presentation variables. */
-export interface FlowDirection {
-	orientation: 'horizontal' | 'vertical';
-	reverse: boolean;
-}
-
-/**
- * Resolve linear flow direction from the arranger's `linDir` param and the
- * data model's `dgm:dir` (`presLayoutVars.direction`). `fromR`/`fromB` and a
- * reversed direction both flip the placement order.
- */
-export function resolveFlowDirection(
-	arranger: PptxSmartArtLayoutNode,
-	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
-): FlowDirection {
-	const linDir = algorithmParam(arranger, 'linDir');
-	const vertical = linDir === 'fromT' || linDir === 'fromB';
-	let reverse = linDir === 'fromR' || linDir === 'fromB';
-	if (presLayoutVars?.direction === 'rev') {
-		reverse = !reverse;
-	}
-	return { orientation: vertical ? 'vertical' : 'horizontal', reverse };
-}
+// Arranger `dgm:param` readers + linear flow-direction resolution moved to
+// `smartart-layout-interpreter-flow-direction.ts` (the per-file line
+// budget); re-exported here so every existing import site is unaffected.
+export {
+	algorithmParam,
+	type FlowDirection,
+	itemNode,
+	numericParam,
+	resolveFlowDirection,
+} from './smartart-layout-interpreter-flow-direction';

@@ -4,6 +4,7 @@ import type { PptxSmartArtLayoutNode } from '../types';
 import {
 	hasStructuralDescendant,
 	isContinuationForEach,
+	isLayoutNodeOrDescendantOf,
 } from './smartart-layout-interpreter-composite-detect';
 
 describe('isContinuationForEach', () => {
@@ -116,5 +117,40 @@ describe('hasStructuralDescendant excludes a continuation-only descendant', () =
 			children: [itemsFlow],
 		};
 		expect(hasStructuralDescendant(root)).toBeTruthy();
+	});
+});
+
+/**
+ * `nested-target--hier5.pptx`'s own shape (`Name0` -> `outerBox` ->
+ * `outerBoxChildren`): `discoverArrangement` uses this to keep a SIBLING
+ * alternative slot (`middleBox`/`centerBox`, flattened onto `Name0.children`
+ * the same way `outerBox` is) from independently re-asserting a whole-
+ * diagram algorithm pick once `Name0` has already been found to have its
+ * OWN choose wrongly tunnelling into one such slot.
+ */
+describe('isLayoutNodeOrDescendantOf', () => {
+	const outerBoxChildren: PptxSmartArtLayoutNode = { name: 'outerBoxChildren' };
+	const outerBox: PptxSmartArtLayoutNode = { name: 'outerBox', children: [outerBoxChildren] };
+	const middleBox: PptxSmartArtLayoutNode = { name: 'middleBox' };
+	const name0: PptxSmartArtLayoutNode = { name: 'Name0', children: [outerBox, middleBox] };
+
+	it('is true for the ancestor itself', () => {
+		expect(isLayoutNodeOrDescendantOf(name0, name0)).toBeTruthy();
+	});
+
+	it('is true for a direct child', () => {
+		expect(isLayoutNodeOrDescendantOf(name0, outerBox)).toBeTruthy();
+	});
+
+	it('is true for a deeper descendant', () => {
+		expect(isLayoutNodeOrDescendantOf(name0, outerBoxChildren)).toBeTruthy();
+	});
+
+	it('is false for a SIBLING outside the ancestor subtree', () => {
+		expect(isLayoutNodeOrDescendantOf(outerBox, middleBox)).toBeFalsy();
+	});
+
+	it('is false for an unrelated node', () => {
+		expect(isLayoutNodeOrDescendantOf(outerBox, { name: 'unrelated' })).toBeFalsy();
 	});
 });

@@ -1,12 +1,12 @@
 /**
  * SmartArt DiagramML interpreter - linear (`lin`) arranger.
  *
- * `lin` lays the data-model points out in a single row or column, honouring the
- * `linDir` direction and the scalar `sibSp`/`begPad`/`endPad`/`w`/`h`
- * constraints, producing fully-styled rect view-models. Pure geometry; no
- * framework code. The `snake` algorithm (a boustrophedon grid) is a sibling
- * module, `smartart-layout-interpreter-snake.ts`, re-exported below so no
- * caller's import path changes.
+ * `lin` lays the data-model points out in a single row or column, honouring
+ * `linDir` and the scalar `sibSp`/`begPad`/`endPad`/`w`/`h` constraints,
+ * producing fully-styled rect view-models. Pure geometry; no framework code.
+ * The `snake` algorithm (a boustrophedon grid) is a sibling module,
+ * `smartart-layout-interpreter-snake.ts`, re-exported below so no caller's
+ * import path changes.
  */
 
 import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '../types';
@@ -32,11 +32,10 @@ export { arrangeSnake } from './smartart-layout-interpreter-snake';
 
 /**
  * Item aspect (height / width), resolved ONLY from the ARRANGER's own
- * `constrLst` (`for="ch" forName="<item role>"` / `for="ch" ptType="<item
- * ptType>"`), via {@link resolveConstraintDeclaredBy} - see that function's
- * doc comment for the measured, genuine-content reason an item's OWN
- * self-scoped `h`/`w` (as opposed to one the arranger prescribes for it) is
- * deliberately NOT considered here.
+ * `constrLst` (`for="ch" forName="<item role>"` / `ptType="<item ptType>"`),
+ * via {@link resolveConstraintDeclaredBy} - the item's OWN self-scoped
+ * `h`/`w` is a SEPARATE fallback the caller applies itself (`naturalAspect`
+ * below), not considered here.
  */
 function itemAspect(plan: ArrangementPlan, index: ConstraintIndex): number | undefined {
 	const item = itemNode(plan.node);
@@ -188,42 +187,53 @@ export function arrangeLinear(
 		n,
 		clampRatio,
 	);
-	// When the item role declares no PER-ITEM `h`/`w` aspect (`itemAspect`
-	// undefined), the item fills the full cross-axis extent. Measured against
-	// `basic-process--hier5.pptx` (smartart-gallery-ground-truth.test.ts):
-	// PowerPoint's own cached boxes span the FULL container height (533 of
-	// 533), not a fraction of the item's own width. The unscoped
-	// `<dgm:constr type="h" refType="w" fact="0.62"/>` real "Basic Process"
-	// carries is scoped to the ARRANGER's own outer w/h aspect (used only when
-	// the SmartArt frame itself has no explicit size), not a per-item box
-	// aspect - `itemAspect` correctly declines to resolve it as one, but this
-	// default previously reused that same 0.62 figure as a per-item fallback
-	// anyway, shrinking every item lacking an explicit aspect to ~62% of its
-	// own width instead of the real full-height box.
-	const crossExtent = aspect
-		? Math.min(usableCross, Math.max(12, mainExtent * aspect))
-		: usableCross;
-	const crossPos = INSET + (usableCross - crossExtent) / 2;
-	const start = INSET + begPad * mainExtent;
-	// The item template's own `dgm:shape` override (ellipse/chevron/diamond/...)
-	// wins over the arranger's hardcoded rect default when present.
+	// The item template's own `dgm:shape` override wins over the arranger's
+	// hardcoded rect default when present.
 	const itemTemplate = itemNode(plan.node);
 	const itemShape = findCompositeItemShape(itemTemplate);
+	// The item template's OWN self-scoped `h`/`w` aspect (`resolveItemSelfAspect`)
+	// - see that function's doc comment. "Basic Block List"'s 0.6 aspect is
+	// ARRANGER-declared instead, resolving via `itemAspect`/`aspect` above,
+	// so this is `undefined` for it (no double application).
+	const naturalAspect = resolveItemSelfAspect(itemTemplate);
+	// No aspect anywhere -> fill the full cross-axis extent. A self-scoped
+	// aspect with no ARRANGER aspect now shapes DISPLAY geometry too, like
+	// font-fit already did: measured against `vertical-process--hier5.pptx`'s
+	// real cached box (180x100pt, `naturalAspect`-shaped) after fixing
+	// `smartart-decompose.ts`'s scale-to-fit bug (see its doc comment) that
+	// had reported an inflated, WRONG cached box for it and `basic-process--
+	// hier5.pptx`. `naturalAspect` is h/w; multiply by it when the main axis
+	// is w (`horizontal`) but DIVIDE when the main axis is h (vertical) -
+	// `vertical-process--hier5.pptx` (self-scoped `w refType="h" fact="1.8"`
+	// -> h/w 0.5556) exposed this: reusing the horizontal-only
+	// `mainExtent * aspect` formula for a vertical arranger gave 55.5pt
+	// width against its cached 180pt.
+	//
+	// Applied to `naturalAspect` ONLY, never the ARRANGER-declared `aspect`:
+	// `itemAspect`'s own resolution is not always a genuine geometric ratio
+	// (`vertical-bullet-list--hier5.pptx`'s `parentText` role resolves
+	// `height` from `primFontSz` - a fixed size, not proportional to width -
+	// giving `aspect=33.8`, garbage as a ratio). The OLD orientation-blind
+	// formula saturated that garbage past `usableCross` harmlessly; dividing
+	// by it collapses to the 12px floor instead. Only `naturalAspect`
+	// (`resolveItemSelfAspect` restricts it to literal `h refType="w"`/
+	// `w refType="h"` constructs) is trusted with the division, until
+	// `itemAspect` itself is audited to only resolve genuine ratios.
+	const crossExtent = aspect
+		? Math.min(usableCross, Math.max(12, mainExtent * aspect))
+		: typeof naturalAspect === 'number'
+			? Math.min(
+					usableCross,
+					Math.max(12, mainExtent * (horizontal ? naturalAspect : 1 / naturalAspect)),
+				)
+			: usableCross;
+	const crossPos = INSET + (usableCross - crossExtent) / 2;
+	const start = INSET + begPad * mainExtent;
 	// Every item shares ONE font size (see `smartart-layout-item-font-size.ts`):
 	// all boxes here are the same [mainExtent x crossExtent] regardless of
 	// orientation, so one shared computation covers the whole set.
 	const itemW = horizontal ? mainExtent : crossExtent;
 	const itemH = horizontal ? crossExtent : mainExtent;
-
-	// Font-fit is solved against the item template's OWN self-scoped `h`/`w`
-	// aspect when it declares one (`resolveItemSelfAspect`), NOT the possibly
-	// much taller `crossExtent` a no-aspect arranger fills full-height:
-	// PowerPoint solves text fit against the diagram's own natural box size -
-	// see `resolveItemSelfAspect`'s doc comment. When the item declares no
-	// such self-scoped aspect (e.g. "Basic Block List", whose 0.6 aspect is
-	// ARRANGER-declared and therefore already reflected in `crossExtent`
-	// itself via `itemAspect`), this is a no-op and `itemH` is used as-is.
-	const naturalAspect = resolveItemSelfAspect(itemTemplate);
 	// A top-level `axis="ch"`-arranged node whose OWN descendant was added a
 	// level deeper (the text pane's Tab/"Add Bullet") folds that descendant's
 	// text into this SAME box (see `foldedItemText`'s doc comment): the
@@ -235,17 +245,12 @@ export function arrangeLinear(
 		childrenOf ? foldedDescendantTexts(node, renderedIds, childrenOf) : [];
 	// The item's TEXT-fit box is smaller than its own rendered `itemW`x`itemH`
 	// for a `roundRect`-family shape: see `roundRectCornerInsetPx`'s doc
-	// comment. The rendered box itself (`presetBoxNode` below) is untouched -
-	// this is fed to the fitter as an extra inset alongside its own margins
-	// (NOT pre-subtracted from `itemW`/`itemH` here: that would distort the
-	// self-scoped-`naturalAspect` cap, which multiplies the item's own WIDTH
-	// by its aspect ratio - shrinking width first under-shrinks the resulting
-	// height by only `aspect` of the intended amount). Computed against the
-	// item's own NATURAL box (the same `naturalAspect`-capped height the
-	// fitter itself uses), not the raw, possibly much-taller `itemH` a
-	// no-aspect arranger fills full-height with - `min(w, h)` must be the
-	// shape's TRUE displayed short side, or the inset comes out based on the
-	// wrong (larger) axis.
+	// comment. Fed to the fitter as an extra inset alongside its own margins,
+	// not pre-subtracted from `itemW`/`itemH` (would distort the font-fit's
+	// own `naturalAspect` cap). `min(w, h)` is the shape's TRUE displayed
+	// short side (already `naturalAspect`-capped when `itemH` came from
+	// that path above, making this `Math.min` a no-op there; still correct
+	// when `aspect` shaped `itemH` instead).
 	const naturalHeightForInset =
 		typeof naturalAspect === 'number' ? Math.min(itemH, itemW * naturalAspect) : itemH;
 	const cornerInset = roundRectCornerInsetPx(itemShape, itemW, naturalHeightForInset);

@@ -85,6 +85,54 @@ export function measureTextWidth(text: string, fontSize: number, table: FontAdva
 	return widthPx;
 }
 
+/** Greedy word-wrap result: line count plus the widest line's own rendered width (same unit as `maxWidth`). */
+interface GreedyWrapResult {
+	lines: number;
+	widestLineWidth: number;
+}
+
+/**
+ * The shared greedy word-wrap loop `wrappedLineCount`/`wrappedWidestLineWidth`
+ * both read from, so the two can never silently diverge on where a line
+ * breaks.
+ */
+function greedyWrap(
+	text: string,
+	maxWidth: number,
+	fontSize: number,
+	table: FontAdvanceTable,
+): GreedyWrapResult {
+	if (maxWidth <= 0) {
+		return { lines: Number.POSITIVE_INFINITY, widestLineWidth: 0 };
+	}
+	const spaceWidth = measureTextWidth(' ', fontSize, table);
+	let lines = 0;
+	let widestLineWidth = 0;
+	for (const paragraph of text.split('\n')) {
+		const words = paragraph.split(/\s+/u).filter((word) => word.length > 0);
+		if (words.length === 0) {
+			lines += 1;
+			continue;
+		}
+		let lineWidth = 0;
+		let paragraphLines = 1;
+		for (const word of words) {
+			const wordWidth = measureTextWidth(word, fontSize, table);
+			const extended = lineWidth === 0 ? wordWidth : lineWidth + spaceWidth + wordWidth;
+			if (extended > maxWidth && lineWidth > 0) {
+				widestLineWidth = Math.max(widestLineWidth, lineWidth);
+				paragraphLines += 1;
+				lineWidth = wordWidth;
+			} else {
+				lineWidth = extended;
+			}
+		}
+		widestLineWidth = Math.max(widestLineWidth, lineWidth);
+		lines += paragraphLines;
+	}
+	return { lines: Math.max(1, lines), widestLineWidth };
+}
+
 /**
  * Greedy word-wrap line count for `text` at `fontSize`/`maxWidth`, honouring
  * explicit `\n` breaks. Exported (beyond the module's own `fitWrappedFontSize`
@@ -98,32 +146,25 @@ export function wrappedLineCount(
 	fontSize: number,
 	table: FontAdvanceTable,
 ): number {
-	if (maxWidth <= 0) {
-		return Number.POSITIVE_INFINITY;
-	}
-	const spaceWidth = measureTextWidth(' ', fontSize, table);
-	let lines = 0;
-	for (const paragraph of text.split('\n')) {
-		const words = paragraph.split(/\s+/u).filter((word) => word.length > 0);
-		if (words.length === 0) {
-			lines += 1;
-			continue;
-		}
-		let lineWidth = 0;
-		let paragraphLines = 1;
-		for (const word of words) {
-			const wordWidth = measureTextWidth(word, fontSize, table);
-			const extended = lineWidth === 0 ? wordWidth : lineWidth + spaceWidth + wordWidth;
-			if (extended > maxWidth && lineWidth > 0) {
-				paragraphLines += 1;
-				lineWidth = wordWidth;
-			} else {
-				lineWidth = extended;
-			}
-		}
-		lines += paragraphLines;
-	}
-	return Math.max(1, lines);
+	return greedyWrap(text, maxWidth, fontSize, table).lines;
+}
+
+/**
+ * The widest single wrapped line's own rendered width (same unit as
+ * `maxWidth`), from the SAME greedy wrap `wrappedLineCount` uses. Used by
+ * `smartart-layout-item-font-tier-fit.ts`'s `itemFits` (round 16) to reject
+ * a candidate size outright when a single word cannot fit `maxWidth` at
+ * all (the widest "line" is then that one overlong word, which by
+ * construction the greedy wrap never further breaks) - distinct from an
+ * ordinary wrap boundary, where every line's own width is `<= maxWidth`.
+ */
+export function wrappedWidestLineWidth(
+	text: string,
+	maxWidth: number,
+	fontSize: number,
+	table: FontAdvanceTable,
+): number {
+	return greedyWrap(text, maxWidth, fontSize, table).widestLineWidth;
 }
 
 /** Whether wrapped `text` fits `maxHeight` at font `size` within `maxWidth`. */

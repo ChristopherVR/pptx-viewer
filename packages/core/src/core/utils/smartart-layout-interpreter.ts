@@ -39,6 +39,8 @@ import {
 	buildConnectorLabels,
 } from './smartart-layout-interpreter-connector-order';
 import { applyCustomLayoutOverrides } from './smartart-layout-interpreter-custom';
+import { resolveCycleRingParams } from './smartart-layout-interpreter-cycle-constraints';
+import { repositionCycleRingContent } from './smartart-layout-interpreter-cycle-ring-item';
 import { dispatchArrangement } from './smartart-layout-interpreter-dispatch';
 import { selectArrangedNodes } from './smartart-layout-interpreter-flow';
 import { arrangeHierarchy } from './smartart-layout-interpreter-hierarchy';
@@ -151,7 +153,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 	// concentric rings) still needs a real multi-forEach walk - see the
 	// Track S/R handoff notes for the exact diagnosis.
 	const roots = topLevelSmartArtNodes(nodes);
-	const childrenOf = smartArtChildrenOf(nodes);
+	const childrenOf = smartArtChildrenOf(nodes, input.connections);
 	// "hub + satellites" (`radial-cycle`'s center, `balance`'s pivot): a
 	// container point whose OWN children a NESTED forEach arranges - see
 	// `smartart-layout-interpreter-hub.ts`.
@@ -242,8 +244,21 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 					constraintIndex,
 				)
 			: withItemRoles;
+	// A composite ring item's own content-dependent "child" sub-shape (see
+	// `repositionCycleRingContent`'s own doc comment, `radial-list--hier5
+	// .pptx`'s `parentNode`/`childNode` pair) - a no-op for every OTHER cycle
+	// layout (`contentLayout` only resolves for this specific composite
+	// self+child shape, see `deriveCompositeSelfChildLayout`'s doc comment).
+	const withCycleRingContent =
+		plan.kind === 'cycle'
+			? repositionCycleRingContent(
+					withPyramidBands,
+					resolveCycleRingParams(plan.node, constraintIndex).contentLayout,
+					flat,
+				)
+			: withPyramidBands;
 	if (!hub) {
-		return withPyramidBands;
+		return withCycleRingContent;
 	}
 	const hubNode = buildHubRenderedNode(
 		plan.node,
@@ -255,7 +270,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 		hub.satellites.length,
 		constraintIndex,
 	);
-	return { ...withPyramidBands, nodes: [hubNode, ...withPyramidBands.nodes] };
+	return { ...withCycleRingContent, nodes: [hubNode, ...withCycleRingContent.nodes] };
 }
 
 /**

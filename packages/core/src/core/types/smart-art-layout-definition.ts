@@ -162,14 +162,16 @@ export interface PptxSmartArtLayoutNode {
 	 */
 	forEachOrigin?: PptxSmartArtIteratorAttributes;
 	/**
-	 * The condition of the NEAREST enclosing `dgm:if` this node was found
-	 * through, when `nestedLayoutNodes` (`smartart-layout-definition.ts`)
-	 * reached it via a `dgm:choose`'s `if` branch (as opposed to a direct
-	 * child, a `dgm:else` branch - always `undefined` here, see below - or a
-	 * `dgm:forEach`, which sets {@link forEachOrigin} instead). Lets a
-	 * caller that already has the data-model node list decide whether this
-	 * node's OWN branch is genuinely live for a specific point, instead of
-	 * treating every choose-flattened branch as unconditionally present
+	 * The conditions of EVERY enclosing `dgm:if` this node was found through,
+	 * outermost first, when `nestedLayoutNodes` (`smartart-layout-
+	 * definition.ts`) reached it via one or more `dgm:choose`'s `if` branches
+	 * (as opposed to a direct child, a `dgm:else` branch contributing no
+	 * condition of its own - see below - or a `dgm:forEach`, which sets
+	 * {@link forEachOrigin} instead). ALL must hold (evaluate `!== false`,
+	 * per {@link chooseGuard}'s own AND semantics - see `evaluateWhen`) for
+	 * this node's branch to be genuinely live. A caller that already has the
+	 * data-model node list can use this instead of treating every
+	 * choose-flattened branch as unconditionally present
 	 * (`nestedLayoutNodes`' pre-existing "flatten every branch" convention,
 	 * still the default when this is absent or a caller does not evaluate
 	 * it) - e.g. `cycle-matrix--fallback-n2.pptx`'s `child1group`..
@@ -177,15 +179,26 @@ export interface PptxSmartArtLayoutNode {
 	 * having its own child (`axis="ch ch" st="N 1" cnt="1 0" func="cnt"
 	 * op="gte" val="1"`).
 	 *
-	 * Deliberately `undefined` for a `dgm:else` branch: ECMA-376 defines it
-	 * as "none of the sibling ifs matched", which would need the FULL
-	 * sibling list's conditions negated and ANDed together, not a single
-	 * condition - no gallery fixture measured needs an else branch's own
-	 * guard yet, so it is left unconditional (rendered by default, matching
-	 * the pre-existing flatten-everything behaviour) rather than guessed at.
-	 * Evaluate with `smartart-layout-interpreter-when.ts`'s `evaluateWhen`.
+	 * A CHAIN, not a single condition, because a node can sit inside NESTED
+	 * `dgm:choose`s whose OWN conditions are each individually necessary -
+	 * `sub-step-process--hier5.pptx`'s `chLin1`..`chLin7` each sit inside
+	 * BOTH an outer `dgm:if func="pos" op="equ" val="N"` (which one of the
+	 * 7 hand-duplicated per-position templates this is) AND an inner,
+	 * nearly-vacuous `dgm:if func="cnt" op="gte" val="1"` (has >= 1 point at
+	 * all) - keeping only the NEAREST (inner) one, as an earlier single-
+	 * condition design did, loses the ONE piece of information (the outer
+	 * `pos` guard) that actually discriminates `chLin1` from `chLin2`.
+	 *
+	 * A `dgm:else` branch contributes NO condition of its own (ECMA-376
+	 * defines it as "none of the sibling ifs matched", which would need the
+	 * FULL sibling list's conditions negated and ANDed together, not a
+	 * single condition - no gallery fixture measured needs an else branch's
+	 * own guard yet, so it is left unconditional, matching the pre-existing
+	 * flatten-everything behaviour) but does NOT clear any OUTER ancestor
+	 * guard already accumulated before it. Evaluate with `smartart-layout-
+	 * interpreter-when.ts`'s `evaluateWhen`, once per entry, ANDed.
 	 */
-	chooseGuard?: PptxSmartArtWhen;
+	chooseGuard?: PptxSmartArtWhen[];
 }
 
 /** Metadata and root node from DiagramML CT_DiagramDefinition. */

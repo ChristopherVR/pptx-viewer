@@ -46,8 +46,11 @@ describe('presetCornerRadiusFraction', () => {
 		expect(presetCornerRadiusFraction(undefined)).toBeUndefined();
 	});
 
-	it('returns the PowerPoint default (0.15) when roundRect carries no adjustment', () => {
-		expect(presetCornerRadiusFraction({ presetGeometry: 'roundRect' })).toBe(0.15);
+	it("returns roundRect's own OOXML preset default (1/6, adj guide 16667) when it carries no adjustment - matches vertical-bullet-list--flat3.pptx/continuous-block-process--flat3.pptx/pyramid-list--flat3.pptx cached txXfrm insets exactly (round 10)", () => {
+		expect(presetCornerRadiusFraction({ presetGeometry: 'roundRect' })).toBeCloseTo(
+			16667 / 100000,
+			10,
+		);
 	});
 
 	it('uses the idx=1 adjustment value as the corner radius fraction', () => {

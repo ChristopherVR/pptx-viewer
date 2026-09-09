@@ -9,17 +9,11 @@
  * Tab/"Add Bullet") - as ONE string rendered at ONE uniform font size. Real
  * PowerPoint does not: every gallery fixture with a folded descendant
  * paragraph renders that descendant at a SMALLER, INDEPENDENTLY-shrunk size
- * than the item's own top-level text, in the SAME box. Confirmed directly
- * from the cached `dsp:sp`'s own `txBody` (not a derived/rounded value): e.g.
- * `basic-block-list--hier5.pptx`'s "Node One" (top-level) run carries
- * `sz="4800"` (48pt) while its folded child "Node Two has a longer label"
- * carries `sz="3700"` (37pt) in the SAME shape - the uniform model can only
- * ever report ONE of these two numbers, and the gallery's own font-size
- * check reads the FIRST paragraph's run (`extractDrawingShapeTextStyle`),
- * i.e. the LARGER, top-level size - so a uniform fit that (correctly, per
- * the old model) shrinks to accommodate the smaller descendant text
- * UNDER-reports the item's real cached size by a wide margin (e.g. 46pt
- * instead of 48pt: not a rounding residue, a structurally wrong target).
+ * than the item's own top-level text, in the SAME box - confirmed directly
+ * from the cached `dsp:sp`'s own `txBody`: `basic-block-list--hier5.pptx`'s
+ * "Node One" run carries `sz="4800"` (48pt) while its folded child "Node
+ * Two has a longer label" carries `sz="3700"` (37pt) in the SAME shape - a
+ * uniform-size fit can only ever report ONE of these two numbers.
  *
  * A corpus-wide scan (`smartart-gallery/*.pptx`'s cached `drawing1.xml`,
  * every `<dsp:sp>` with more than one distinct run `sz` across its
@@ -66,16 +60,15 @@
  * gate-score-maximising one; do not re-tune it to chase a REMAINING height-
  * budget residual (see below) again.
  *
- * **Still a known residual**: `basic-block-list--hier8.pptx` (37pt cached,
- * gives 38pt: TWO stacked descendants, plain `rect`, none of round 8's
- * `roundRect`-specific work applies) and `basic-block-list--flat3.pptx`
- * (36pt cached, gives 37pt: no fold, also plain `rect`). COM-verified NOT a
- * wrap-line-count bug (`smartart-text-wrap-fit.test.ts`'s history and the
- * successor doc's round 6 section: real PowerPoint gives the IDENTICAL line
- * count this codebase predicts at the boundary sizes) - a genuine sub-point
- * greedy-advance-sum-vs-real-text-shaping precision ceiling, not (as far as
- * round 8 determined) the same height-budget mechanism as the `roundRect`
- * pair.
+ * **Still a known residual**: `basic-block-list--flat3.pptx` (36pt cached,
+ * gives 37pt: no fold, plain `rect`). COM-verified NOT a wrap-line-count bug
+ * (`smartart-text-wrap-fit.test.ts`'s history and the successor doc's round
+ * 6 section: real PowerPoint gives the IDENTICAL line count this codebase
+ * predicts at the boundary sizes) - a genuine sub-point greedy-advance-sum-
+ * vs-real-text-shaping precision ceiling. `basic-block-list--hier8.pptx`
+ * (37pt cached, TWO stacked descendants) carried the SAME diagnosis through
+ * round 15 but is now EXACT (round 16, see below) - the real cause there
+ * was the descendant indent, not this precision ceiling.
  *
  * Per-level paragraph spacing (`ROOT_SPCAFT_FACTOR`/`DESCENDANT_SPCAFT_FACTOR`
  * in `smartart-layout-item-font-tier-fit.ts`) is likewise a rendering default
@@ -84,6 +77,29 @@
  * descendant, applied additively (not scaled by `SMARTART_LINE_SPACING_FACTOR`)
  * except after the box's LAST paragraph (`spcFirstLastPara="0"` skips it
  * there).
+ *
+ * **Round 13: both special-case branches DELETED, replaced by the single
+ * COM-derived formula above (`margins.vertical + 2 * cornerInsetPx`,
+ * `lineSpacingFactor` always 0.9).** Round 12 tried the margin-unconditional
+ * and lineSpacing-unconditional fixes SEPARATELY and in combination and
+ * regressed `basic-process--flat3.pptx` every time - because round 12 (like
+ * every round before it) kept the height term at a SINGLE `cornerInsetPx`,
+ * never tried DOUBLE. Round 13's direct COM measurement of real
+ * `BoundWidth`/`BoundHeight` proved double-corner is the correct term on
+ * BOTH axes (see above) - with it, the margin and line-spacing fixes no
+ * longer regress `basic-process--flat3.pptx` (still exact at 19pt) and
+ * additionally fix `vertical-process--hier5.pptx` (now exact at 24pt,
+ * previously 1pt under). **Round 13's residual, `--hier8.pptx` closed in
+ * round 16, `--hier5.pptx` still open**: both had moved from exact to 1pt
+ * OVER (25 vs 24, 20 vs 19), WIDTH-bound. Cause: `itemFits` was wrapping the
+ * folded DESCENDANT paragraph at the item's FULL width instead of the
+ * narrower column PowerPoint actually uses (the descendant's own cached
+ * `a:pPr marL` hanging indent - see `smartart-layout-item-font-tier-fit.ts`'s
+ * `descendantIndentPt`), not a glyph-advance precision ceiling as round
+ * 13/14 first suspected. Wrapping at `availWidthPx - descendantIndentPt(...)`
+ * (round 16) closes `--hier8.pptx` exactly; `--hier5.pptx` stays 1pt over
+ * (25 vs 24) - its real `BoundWidth` gap at the rejected candidate is ~3x
+ * `--hier8.pptx`'s, too large for the indent term alone to close.
  */
 
 import type { ConstraintIndex } from './smartart-constraint-solver';
@@ -133,47 +149,35 @@ const PX_PER_PT = 96 / 72;
  *   multiplication. Zero for a plain `rect`/other preset, where none of this
  *   applies.
  *
- *   **The real vertical budget, round 8 (COM was tried again and found
- *   unreliable for this corpus, same failure mode as round 5/7 - the
- *   derivation below is from the cached `drawing1.xml` directly, the ONLY
- *   reliable ground truth for this specific question):** the WIDTH loses
- *   `2 * cornerInsetPx` unconditionally (word-wrap must clear the rounded
- *   corner on either edge, at any line - reproducing the cached
- *   `dsp:txXfrm` width exactly for every `roundRect` item checked). The
- *   HEIGHT is where the round-6/7 residual actually lived, and the fix is
- *   NOT a tuned single-vs-double-sided deduction (that was curve-fitting,
- *   not a mechanism, and the coordinator correctly rejected it): it is that
- *   a NON-folded item's real avail height IS the cached `dsp:txXfrm` height
- *   with NO further margin subtraction, while a FOLDED item's real avail
- *   height IS `spPr height - marginsVertical - cornerInsetPx` (margins
- *   applied normally, corner ONCE, matching round 7's original finding
- *   exactly). First measured on `basic-process--flat3.pptx`'s (non-folded)
- *   cached `dsp:sp`, which shows `anchor="ctr"`, against its OWN sibling
- *   `basic-process--hier5.pptx`'s FOLDED item (same layoutDef, same box),
- *   which shows `anchor="t"` - suggesting the real PowerPoint mechanism is
- *   an anchor difference (a folded, top-anchored item tolerates wrapped
- *   text extending toward/past the nominal bottom edge, per round 4's
- *   un-confirmed hypothesis; a non-folded, center-anchored one does not).
- *   **`hasDescendants` (fold status) is what this codebase actually branches
- *   on, NOT a parsed `anchor` value - and the two are not perfectly
- *   correlated**: `vertical-process--hier5.pptx`'s folded item is cached
- *   `anchor="ctr"` (not `"t"`), yet needs the FOLDED (margin-included)
- *   branch to reproduce its cached 24pt exactly (verified against its own
- *   cached `dsp:txXfrm`/`spPr` box, 180x100pt, txXfrm 174x94pt). Treat
- *   `hasDescendants` as an empirically-confirmed proxy for which vertical
- *   BUDGET a folded/non-folded item needs (2 layoutDefs, 3 fixtures), not
- *   as a literal stand-in for the cached `anchor` attribute - the two
- *   disagree in at least one real fixture while the BUDGET choice it drives
- *   is still correct there. **This distinction is gated on
- *   `cornerInsetPx > 0`** (a `roundRect`-family preset): for a plain `rect`
- *   (`cornerInsetPx === 0`), dropping the margin from a non-folded item's
- *   height collapses to "no height constraint at all" and is WRONG -
- *   verified as a real regression (`basic-block-list--flat3.pptx` moved
- *   from a 1pt-over residual to 6pt-over) before this guard was added; a
- *   plain `rect` keeps the ORIGINAL always-subtract-margin behaviour
- *   regardless of fold status.
+ *   **The real vertical budget, round 13 - derived from live COM, not
+ *   inferred (superseding every prior round's `anchor`/`hasDescendants`-
+ *   gated special case, all now DELETED):** opened a COPY of 7 named
+ *   fixtures, converted each SmartArt item to a real, independent AutoShape
+ *   (`CommandBars.ExecuteMso("SmartArtConvertToShapes")`), restored its REAL
+ *   cached `TextFrame2` margins (conversion resets them to an AutoShape
+ *   default), then swept `Font.Size` through the cached size N-1..N+2 and
+ *   read `TextRange.BoundHeight`/`BoundWidth` directly - PowerPoint's own
+ *   real text layout, with none of this codebase's own wrap/line-height
+ *   approximations in the loop. Result: `avail = dimension - margins(that
+ *   axis, REAL, exactly as `TextFrame2` reports them) - 2 * cornerInsetPx`,
+ *   the SAME formula on BOTH axes, with NO special-casing by fold status.
+ *   Verified by hand against the measured `BoundWidth`/`BoundHeight`:
+ *   `basic-process--flat3.pptx` (non-folded) is HEIGHT-bound (avail
+ *   102.4511-11.4-6.00=85.05pt; real `BoundHeight` 83.64pt at cached 19pt
+ *   fits, 88.05pt at 20pt does not); `basic-process--hier5.pptx` (folded)
+ *   is WIDTH-bound (avail 170.7519-14.4-6.00=150.35pt; real `BoundWidth`
+ *   146.02pt at cached 24pt fits, 152.98pt at 25pt does not) - the OLD
+ *   model never checked width against its own avail at all, and the two
+ *   special-cased branches were each tuned against only ONE of these two
+ *   axes being the true binding constraint. Content height itself: the
+ *   existing `SMARTART_LINE_SPACING_FACTOR` (0.9) applies UNCONDITIONALLY
+ *   now (deleted the `naturalAspect ? 1 : 0.9` special case - COM confirms
+ *   `basic-process--flat3.pptx`'s cached paragraphs carry the SAME 90%
+ *   `spcPct` as every other fixture regardless of whether the item declares
+ *   a geometric self-aspect).
  *
- *   **A second, independent bug found while chasing this**: the final
+ *   **A second, independent bug found while chasing this** (round 8):
+ *   the final
  *   `snapToWholePoint(rootPx)` can round a CONTINUOUS value that fits (e.g.
  *   19.9pt) UP to the next whole point (20pt) even when that whole point
  *   does NOT itself fit - the binary search only guarantees its OWN
@@ -201,7 +205,7 @@ export function resolveTieredItemFontSize(
 	const table = resolveFontTable(fontName);
 	const fixedMargins = itemMarginsPx(index, role, table);
 	const proportional = proportionalMarginFraction(index, role);
-	const lineSpacingFactor = typeof naturalAspect === 'number' ? 1 : SMARTART_LINE_SPACING_FACTOR;
+	const lineSpacingFactor = SMARTART_LINE_SPACING_FACTOR;
 
 	/** Whether every item fits at candidate `rootPx`, with margins resolved against `marginBasisPx`. */
 	const fitsAtMarginBasis = (rootPx: number, marginBasisPx: number): boolean => {
@@ -217,14 +221,7 @@ export function resolveTieredItemFontSize(
 					? Math.min(item.height, item.width * naturalAspect)
 					: item.height;
 			const availWidthPx = Math.max(1, item.width - margins.horizontal - 2 * cornerInsetPx);
-			// See this function's own doc comment ("the real vertical budget,
-			// round 8") for the anchor-conditioned derivation and why it is
-			// gated on `cornerInsetPx > 0`.
-			const hasDescendants = item.descendantTexts.length > 0;
-			const verticalReduction =
-				hasDescendants || cornerInsetPx === 0
-					? margins.vertical + cornerInsetPx
-					: 2 * cornerInsetPx;
+			const verticalReduction = margins.vertical + 2 * cornerInsetPx;
 			const availHeightPx = Math.max(1, naturalHeight - verticalReduction);
 			const descendantPx = rootPx * SMARTART_DESCENDANT_FONT_SCALE;
 			const fits = itemFits(

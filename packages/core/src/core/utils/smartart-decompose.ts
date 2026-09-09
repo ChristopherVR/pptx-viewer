@@ -12,12 +12,11 @@
  * `./smartart-layout-interpreter.ts` (the SAME interpreter every binding's
  * live preview uses, via `pptx-viewer-shared`'s re-export) is used for more
  * accurate positioning before falling back to the simpler heuristic layouts.
- * This used to run a second, weaker constraint-driven engine
- * (`smartart-layout-engine.ts`, deleted) that only implemented `lin`/`snake`/
- * `cycle`/`pyra`/`hierRoot`/`hierChild` and never interpreted control flow, so
- * a diagram whose live preview used `composite`/`conn`/`sp`/`tx` (or a decided
- * `dgm:choose`/`dgm:forEach`) was fabricated with a plain linear fallback on
- * save.
+ * This used to run a second, weaker engine (`smartart-layout-engine.ts`,
+ * deleted) that only implemented `lin`/`snake`/`cycle`/`pyra`/`hierRoot`/
+ * `hierChild` and never interpreted control flow, so a diagram whose live
+ * preview used `composite`/`conn`/`sp`/`tx` was fabricated with a plain
+ * linear fallback on save.
  */
 
 import type {
@@ -210,6 +209,7 @@ export function computeSmartArtElementsWithoutCache(
 				nodes,
 				containerBounds,
 				smartArtData.presLayoutVars?.bulletEnabled,
+				smartArtData.connections,
 			);
 		}
 	}

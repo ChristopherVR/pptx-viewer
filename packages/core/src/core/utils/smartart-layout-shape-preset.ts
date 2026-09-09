@@ -199,9 +199,30 @@ export function findCompositeItemShape(
 }
 
 /**
+ * `roundRect`'s own OOXML preset-geometry default adjustment (`adj` guide
+ * `16667`, i.e. 1/6 of the shorter side) - the value PowerPoint itself falls
+ * back to when a `dgm:shape type="roundRect"` declares no `dgm:adjLst` at
+ * all, confirmed directly against the cached drawing (ground truth): every
+ * gallery fixture with an EMPTY `<dgm:adjLst/>` (`vertical-bullet-list`,
+ * `continuous-block-process`, `pyramid-list`, ...) shows its cached
+ * `dsp:txXfrm` inset from `spPr`'s own box by EXACTLY
+ * `(1/6) * min(w,h) * (1 - cos45deg)` on every side (e.g.
+ * `continuous-block-process--flat3.pptx`'s 209.2x160.0pt box: measured inset
+ * 7.81pt, `(1/6)*160*0.292893 = 7.81pt`, exact to 2 decimal places) - a
+ * PREVIOUS default of 0.15 here (never itself verified against a cached
+ * fixture, only "matching `rectNode`'s pre-existing hardcoded rx heuristic")
+ * under-estimated this by ~11% and left extra headroom the font-fitter used
+ * to justify an oversized shared font (part of `vertical-bullet-list--
+ * flat3.pptx`'s font-size residual: see `smartart-layout-item-font-tier.ts`).
+ * A fixture with an EXPLICIT `dgm:adj idx="1"` (e.g. `basic-process`'s `val=
+ * "0.1"`) is unaffected either way, since that value wins over this default.
+ */
+const DEFAULT_ROUND_RECT_ADJ_FRACTION = 16667 / 100000;
+
+/**
  * Resolve a `roundRect`-family preset's corner-radius fraction (0..1 of the
- * shorter side) from its first (`idx=1`) `dgm:adjLst` value, PowerPoint's own
- * default (0.15, matching `rectNode`'s pre-existing hardcoded rx heuristic)
+ * shorter side) from its first (`idx=1`) `dgm:adjLst` value, or `roundRect`'s
+ * own OOXML preset-geometry default (see {@link DEFAULT_ROUND_RECT_ADJ_FRACTION})
  * when the preset is round-rect-family but carries no adjustment, or
  * `undefined` for a plain `rect`/other preset (no override).
  */
@@ -214,7 +235,7 @@ export function presetCornerRadiusFraction(
 	}
 	const raw = shape?.adjustments?.find((adjustment) => adjustment.index === 1)?.value;
 	if (raw === undefined) {
-		return 0.15;
+		return DEFAULT_ROUND_RECT_ADJ_FRACTION;
 	}
 	// DrawingML adj values are conventionally 0..1 already in this codebase's
 	// typed model (see `smartart-layout-node-shape.ts`), but tolerate a raw

@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { PptxSmartArtLayoutDefinition, PptxSmartArtLayoutNode } from '../types';
 import { buildConstraintIndex, EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
 import {
-	deriveCompositeSquareChildAspect,
+	deriveCompositeSelfChildLayout,
 	resolveGraphAspectRatio,
 } from './smartart-layout-interpreter-cycle-item-aspect';
 
-/** `radial-list--hier5.pptx`'s own ring item ("node"): parentNode (ellipse, w=0.4*node.w, self-square) + childNode (rect, side by side). */
+/** `radial-list--hier5.pptx`'s own ring item ("node"): parentNode (ellipse, w=0.4*node.w, self-square) + childNode (rect, l=1.1*parentNode.w, w=0.6*node.w, side by side). */
 function radialListNodeItem(): PptxSmartArtLayoutNode {
 	return {
 		name: 'node',
@@ -24,6 +24,16 @@ function radialListNodeItem(): PptxSmartArtLayoutNode {
 				referenceFor: 'ch',
 				referenceForName: 'parentNode',
 				operator: 'equ',
+			},
+			{
+				type: 'l',
+				for: 'ch',
+				forName: 'childNode',
+				referenceType: 'w',
+				referenceFor: 'ch',
+				referenceForName: 'parentNode',
+				operator: 'equ',
+				factor: 1.1,
 			},
 			{
 				type: 'w',
@@ -44,9 +54,15 @@ function radialListNodeItem(): PptxSmartArtLayoutNode {
 	};
 }
 
-describe('deriveCompositeSquareChildAspect', () => {
-	it('derives the self-square child\'s own width fraction ("radial-list": parentNode.w = 0.4*node.w, parentNode.h = parentNode.w -> 0.4)', () => {
-		expect(deriveCompositeSquareChildAspect(radialListNodeItem())).toBeCloseTo(0.4, 5);
+describe('deriveCompositeSelfChildLayout', () => {
+	it('derives the full self+child descriptor ("radial-list": parentNode.w=0.4*node.w self-square, childNode.l=1.1*parentNode.w, childNode.w=0.6*node.w)', () => {
+		expect(deriveCompositeSelfChildLayout(radialListNodeItem())).toStrictEqual({
+			selfName: 'parentNode',
+			selfWidthFactor: 0.4,
+			childName: 'childNode',
+			childLeftFactor: 1.1,
+			childWidthFactor: 0.6,
+		});
 	});
 
 	it('declines for a non-composite item (no regression for a plain single-shape ring item)', () => {
@@ -55,7 +71,7 @@ describe('deriveCompositeSquareChildAspect', () => {
 			algorithm: { type: 'tx' },
 			constraints: [{ type: 'h', referenceType: 'w', factor: 0.5 }],
 		};
-		expect(deriveCompositeSquareChildAspect(plainItem)).toBeUndefined();
+		expect(deriveCompositeSelfChildLayout(plainItem)).toBeUndefined();
 	});
 
 	it('declines when no child declares a self-square h=w pairing', () => {
@@ -67,7 +83,7 @@ describe('deriveCompositeSquareChildAspect', () => {
 				{ type: 'h', for: 'ch', forName: 'a', referenceType: 'w', factor: 0.3 },
 			],
 		};
-		expect(deriveCompositeSquareChildAspect(noSquareChild)).toBeUndefined();
+		expect(deriveCompositeSelfChildLayout(noSquareChild)).toBeUndefined();
 	});
 
 	it('declines a width constraint that references another node instead of the composite itself (a genuine hub-ratio constraint, not a self-contained aspect)', () => {
@@ -95,11 +111,37 @@ describe('deriveCompositeSquareChildAspect', () => {
 				},
 			],
 		};
-		expect(deriveCompositeSquareChildAspect(hubRatioShape)).toBeUndefined();
+		expect(deriveCompositeSelfChildLayout(hubRatioShape)).toBeUndefined();
+	});
+
+	it('returns a descriptor with an undefined childName/childLeftFactor/childWidthFactor when the self-square shape has no sibling child at all (a lone self-square composite child)', () => {
+		const selfOnly: PptxSmartArtLayoutNode = {
+			name: 'node',
+			algorithm: { type: 'composite' },
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'a', referenceType: 'w', factor: 0.4 },
+				{
+					type: 'h',
+					for: 'ch',
+					forName: 'a',
+					referenceType: 'w',
+					referenceFor: 'ch',
+					referenceForName: 'a',
+					operator: 'equ',
+				},
+			],
+		};
+		expect(deriveCompositeSelfChildLayout(selfOnly)).toStrictEqual({
+			selfName: 'a',
+			selfWidthFactor: 0.4,
+			childName: undefined,
+			childLeftFactor: undefined,
+			childWidthFactor: undefined,
+		});
 	});
 
 	it('returns undefined for undefined input', () => {
-		expect(deriveCompositeSquareChildAspect(undefined)).toBeUndefined();
+		expect(deriveCompositeSelfChildLayout(undefined)).toBeUndefined();
 	});
 });
 

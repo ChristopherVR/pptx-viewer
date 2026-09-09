@@ -101,11 +101,12 @@ describe('diagramML layout-definition metadata', () => {
 	// `nestedLayoutNodes` must tag each with the guarding if's OWN condition,
 	// not a shared/blank one, and leave a direct (non-choose) sibling
 	// untouched.
-	it('tags a choose-flattened layoutNode with its enclosing if condition (chooseGuard)', () => {
+	it('tags a choose-flattened layoutNode with its enclosing if condition (chooseGuard), as a one-entry chain', () => {
 		const parsed = parseSmartArtLayoutDefinition(fixture(), localName)!;
 		const [chosen, child] = parsed.rootNode.children!;
 		expect(chosen.name).toBe('chosen');
-		expect(chosen.chooseGuard).toMatchObject({
+		expect(chosen.chooseGuard).toHaveLength(1);
+		expect(chosen.chooseGuard?.[0]).toMatchObject({
 			function: 'cnt',
 			argument: 'ch',
 			operator: 'gte',
@@ -113,6 +114,80 @@ describe('diagramML layout-definition metadata', () => {
 		});
 		expect(child.name).toBe('child');
 		expect(child.chooseGuard).toBeUndefined();
+	});
+
+	/**
+	 * `sub-step-process--hier5.pptx`'s exact shape: `chLin1`..`chLin7` each
+	 * sit inside BOTH an outer `dgm:if func="pos" op="equ" val="N"` (which
+	 * one of the 7 hand-duplicated per-position templates this is) AND an
+	 * inner, nearly-vacuous `dgm:if func="cnt" op="gte" val="1"` (has >= 1
+	 * point at all). Keeping only the nearest (inner) condition loses the
+	 * ONE piece of information that actually discriminates `chLin1` from
+	 * `chLin2` - `chooseGuard` must capture BOTH, outermost first.
+	 */
+	it('chains EVERY enclosing if condition, outermost first, for a layoutNode nested inside TWO chooses', () => {
+		const nested: XmlObject = {
+			'x:layoutNode': {
+				'@_name': 'root',
+				'x:choose': {
+					'x:if': {
+						'@_func': 'pos',
+						'@_op': 'equ',
+						'@_val': '1',
+						'x:choose': {
+							'x:if': {
+								'@_func': 'cnt',
+								'@_op': 'gte',
+								'@_val': '1',
+								'x:layoutNode': { '@_name': 'chLin1' },
+							},
+						},
+					},
+				},
+			},
+		};
+		const parsed = parseSmartArtLayoutDefinition(nested, localName)!;
+		const [chLin1] = parsed.rootNode.children!;
+		expect(chLin1.name).toBe('chLin1');
+		expect(chLin1.chooseGuard).toStrictEqual([
+			expect.objectContaining({ function: 'pos', operator: 'equ', value: '1' }),
+			expect.objectContaining({ function: 'cnt', operator: 'gte', value: '1' }),
+		]);
+	});
+
+	it('an else branch contributes no condition of its own but keeps any OUTER ancestor guard already accumulated', () => {
+		const nested: XmlObject = {
+			'x:layoutNode': {
+				'@_name': 'root',
+				'x:choose': {
+					'x:if': {
+						'@_func': 'pos',
+						'@_op': 'equ',
+						'@_val': '1',
+						'x:choose': {
+							'x:if': {
+								'@_func': 'cnt',
+								'@_op': 'gte',
+								'@_val': '99',
+								'x:layoutNode': { '@_name': 'liveBranch' },
+							},
+							'x:else': { 'x:layoutNode': { '@_name': 'elseBranch' } },
+						},
+					},
+				},
+			},
+		};
+		const parsed = parseSmartArtLayoutDefinition(nested, localName)!;
+		// Both branches are flattened unconditionally (`nestedLayoutNodes`
+		// does not evaluate `dgm:choose` conditions at parse time - the
+		// pre-existing "flatten every branch" convention).
+		const [, elseBranch] = parsed.rootNode.children!;
+		expect(elseBranch.name).toBe('elseBranch');
+		// The inner if/else's own condition is absent (else has none), but the
+		// OUTER pos==1 guard still applies.
+		expect(elseBranch.chooseGuard).toStrictEqual([
+			expect.objectContaining({ function: 'pos', operator: 'equ', value: '1' }),
+		]);
 	});
 
 	it('surgically edits typed fields and preserves algorithms, unknown data, and extLst', () => {

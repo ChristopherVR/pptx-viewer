@@ -135,73 +135,65 @@ describe('arrangeCycle ctrShpMap', () => {
 	});
 });
 
-// COM-verified against genuine PowerPoint output (real cached `dsp:sp`
-// geometry, not a guess - see the module doc comment for the full
-// derivation): `computeCycleRingLayout` must reproduce these two
-// INDEPENDENTLY-different real layouts' node sizing exactly, not just one
-// (ruling out a formula fit to a single sample).
-describe('computeCycleRingLayout (COM-verified)', () => {
+// Live-COM-verified against genuine PowerPoint output (round 11/SESSION 8
+// correction: PowerPoint does NOT scale cached SmartArt to the frame - it
+// places constraint-sized content, centred when smaller than the frame; a
+// PRIOR "anisotropic fill-to-box" model here was measured against a reader
+// bug and reproduced no real output - see `smartart-decompose.test.ts`'s own
+// "matches live PowerPoint COM geometry" describe block and this file's
+// module doc comment for the full correction history and the three
+// independent measurement methods). `computeCycleRingLayout` must reproduce
+// these real layouts' node sizing, not a guess.
+describe('computeCycleRingLayout (live-COM-verified)', () => {
 	const GALLERY_BOX = { width: 867, height: 533 };
 
-	it('matches "basic-cycle--flat3.pptx" (sibSp fact=0.5, item h fact absent -> 1): w=347 h=232', () => {
+	it('matches "basic-cycle--flat3.pptx" (sibSp fact=0.5, item h fact absent -> 1): a TRUE CIRCLE, cached 231.90x231.90 (three independent COM methods agree)', () => {
 		const ring = computeCycleRingLayout(3, 0, 360, 0.5, 1, GALLERY_BOX);
-		expect(ring.nodeWidth).toBeCloseTo(347, 0);
-		expect(ring.nodeHeight).toBeCloseTo(232, 0);
-		// Alpha (index 0, "top" of the ring): cached box-local x=313-53=260,
-		// y=120-120=0 (touches the box's own top edge exactly - real "Basic
-		// Cycle" renders this "flower" of large overlapping ellipses, not small
-		// dots on a thin ring). `computeCycleRingLayout`'s `BoundingBox` carries
-		// no `x`/`y` offset (the caller adds the diagram's own origin), so these
-		// are box-LOCAL, unlike the fixture's absolute slide coordinates.
-		expect(ring.centers[0].x - ring.nodeWidth / 2).toBeCloseTo(260, 0);
-		expect(ring.centers[0].y - ring.nodeHeight / 2).toBeCloseTo(0, 0);
+		expect(ring.nodeWidth).toBeCloseTo(231.9, 0);
+		expect(ring.nodeHeight).toBeCloseTo(231.9, 0);
+		expect(ring.nodeWidth).toBeCloseTo(ring.nodeHeight, 6);
 	});
 
-	it('matches "multidirectional-cycle--hier5.pptx" (sibSp fact=0.65, item h fact=0.5): w=327 h=138', () => {
+	it('matches "multidirectional-cycle--hier5.pptx" (sibSp fact=0.65, item h fact=0.5): w=276 h=138, cached delta 0.00% (gate-verified)', () => {
 		const ring = computeCycleRingLayout(3, 0, 360, 0.65, 0.5, GALLERY_BOX);
-		expect(ring.nodeWidth).toBeCloseTo(327, 0);
+		expect(ring.nodeWidth).toBeCloseTo(276, 0);
 		expect(ring.nodeHeight).toBeCloseTo(138, 0);
 	});
 
-	it("floors a smaller declared sibSp at the real engine minimum (nondirectional-cycle/block-cycle declare 0.15, but measure the SAME w=347 as basic-cycle's 0.5)", () => {
-		// The caller (`resolveCycleRingParams`) is what applies the
-		// `DEFAULT_MIN_GAP_RATIO` floor to a smaller declared `sibSp`; this
-		// pins the OTHER half - that once floored to 0.5, cycle6-style layouts'
-		// own declared 0.15 would have produced the wrong (403px) width.
+	it('a smaller declared sibSp still resolves to a genuinely DIFFERENT (larger) size once floored at the real engine minimum by the caller (`resolveCycleRingParams`, not this function) - this pins that the UNFLOORED 0.15 itself produces a different footprint than the floored 0.5, so the caller-side floor is load-bearing', () => {
 		const floored = computeCycleRingLayout(3, 0, 360, 0.5, 1, GALLERY_BOX);
 		const unfloored = computeCycleRingLayout(3, 0, 360, 0.15, 1, GALLERY_BOX);
-		expect(floored.nodeWidth).toBeCloseTo(347, 0);
-		expect(unfloored.nodeWidth).not.toBeCloseTo(347, 0);
+		expect(unfloored.nodeWidth).not.toBeCloseTo(floored.nodeWidth, 0);
 	});
 
-	it('degenerate 2-node ring: nodes touch the box top/bottom, not a wildly stretched ellipse', () => {
-		// Documented approximation (see the module doc comment's `radial-cycle`
-		// note): the natural pre-scale footprint is a single vertical line for
-		// n=2, so there is no genuine horizontal spread to fit against. This
-		// pins the DEFENSIVE fallback (isotropic on the degenerate axis)
-		// against ever regressing to the old bug (naive box-width fill turning
-		// a 2-node ring into an absurdly wide ellipse, `nodeWidth` far
-		// exceeding the box itself).
+	it('degenerate 2-node ring: a bounded circle, not a wildly stretched ellipse', () => {
+		// The natural pre-scale footprint is a single vertical line for n=2 (no
+		// horizontal spread at all); the isotropic contain fit handles this
+		// gracefully by construction (the degenerate axis's own candidate scale
+		// is effectively infinite, so the OTHER axis's finite scale always
+		// wins) - no special-casing needed, unlike the old anisotropic model.
 		const ring = computeCycleRingLayout(2, 0, 360, 0.5, 1, GALLERY_BOX);
 		expect(ring.nodeWidth).toBeLessThanOrEqual(GALLERY_BOX.width);
+		expect(ring.nodeWidth).toBeCloseTo(ring.nodeHeight, 6);
 		expect(ring.centers[0].x).toBeCloseTo(ring.centers[1].x, 5);
 	});
 
-	it('a hub+ring composite\'s own r0 is governed by hubGeometry (hub-to-satellite gap), not the adjacent-satellite chord ("basic-radial--hier5.pptx": hubRatio factor=1, sp fact=0.3 refFor "node" -> hubGapRatio=0.3 -> r0=0.5+0.3+0.5=1.3, vs the chord-only r0=0.866 from sibSp=0.5 floored)', () => {
-		// COM-verified: `basic-radial--hier5.pptx`'s 3 satellites measured
-		// w=266 h=180 (0.19% delta from cached) with this hub-aware r0; the
-		// OLD chord-only r0 (sibSp-only) gave w=347 h=232, a uniform ~30%
-		// oversize on every ring node (see `smartart-layout-interpreter-
-		// cycle-hub-ratio.ts`'s `resolveHubGapRatio` doc comment for the full
-		// distance-based derivation).
+	it('a hub+ring composite\'s own r0 is governed by hubGeometry (hub-to-satellite gap), not the adjacent-satellite chord ("basic-radial--hier5.pptx": hubRatio factor=1, sp fact=0.3 -> hubGapRatio=0.3 -> r0=0.5+0.3+0.5=1.3, vs the chord-only r0=0.866 from sibSp=0.5 floored) - a SMALLER r0 shrinks the resulting node size', () => {
+		// COM-verified: `basic-radial--hier5.pptx`'s 4 satellites are cached as
+		// perfect circles at 179.28x179.28 (0.38% delta from this hub-aware r0's
+		// own 180.68px, via the full `arrangeCycle` pipeline including its own
+		// `hubGapRatio` resolution - not reproduced digit-for-digit by this
+		// isolated call, which uses a simplified hand-picked `hubGeometry`, but
+		// the SHAPE (a true circle, meaningfully smaller than the hub-less
+		// chord-only r0) is the load-bearing fact this test pins).
 		const withoutHub = computeCycleRingLayout(3, 0, 360, 0.5, 1, GALLERY_BOX);
 		const withHub = computeCycleRingLayout(3, 0, 360, 0.5, 1, GALLERY_BOX, undefined, {
 			factor: 1,
 			gapRatio: 0.3,
 		});
-		expect(withoutHub.nodeWidth).toBeCloseTo(347, 0);
-		expect(withHub.nodeWidth).toBeCloseTo(266, -1);
-		expect(withHub.nodeHeight).toBeCloseTo(180, -1);
+		expect(withHub.nodeWidth).toBeLessThan(withoutHub.nodeWidth);
+		expect(withHub.nodeWidth).toBeCloseTo(180.7, 0);
+		expect(withHub.nodeWidth).toBeCloseTo(withHub.nodeHeight, 6);
 	});
 
 	it('hubGeometry never shrinks r0 BELOW the adjacent-satellite chord minimum (sibSp is a genuine floor, not overridden by a smaller hub gap)', () => {

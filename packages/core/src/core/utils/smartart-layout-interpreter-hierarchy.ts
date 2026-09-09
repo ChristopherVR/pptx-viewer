@@ -69,8 +69,8 @@ import {
 	transposeResult,
 } from './smartart-hierarchy-orientation';
 import {
+	compositeFanPitch,
 	computeAxisPitch,
-	FAN_MARGIN_RATIO,
 	GENERATION_MARGIN_RATIO,
 	translateResult,
 } from './smartart-hierarchy-pitch';
@@ -188,43 +188,28 @@ export function arrangeHierarchy(
 		mode !== 'tailed',
 	);
 	// `cellW`/`cellH` as a naive `dimension/count` split distributes leftover
-	// space EQUALLY on both ends ("space-around"); COM-verified real
-	// PowerPoint output instead has a fixed leading margin (left/top) with the
-	// tree's trailing edge (rightmost sibling, deepest generation) flush
-	// against the far box edge - see `smartart-hierarchy-pitch.ts`'s module
-	// doc comment for the exact derivation. `pitch` plugs in as `cellW`/
-	// `cellH` unchanged; `shift` corrects the leading margin afterwards via
-	// `translateResult`. A TRANSPOSED hierarchy needs NO leading margin either
-	// (same COM-verified finding as `fitItemBox`'s own `marginXRatio`/
-	// `marginYRatio` - see `OUTER_MARGIN_X_RATIO`'s doc comment): its item
-	// size already fills the box edge-to-edge with zero slack, so applying a
-	// nonzero leading margin on top double-counts space that was never there,
-	// pushing the whole tree away from the box's leading edge (measured
-	// regression: `horizontal-hierarchy--flat3.pptx`'s root rendered 61px
-	// right of the box's left edge instead of flush).
-	// `tailed` mode: `computeAxisPitch`'s own "stretch pitch/gap to fill the
-	// WHOLE box" model assumes `totalLeaves`/`depth` items genuinely span the
-	// entire `effectiveBox` - true for `std` (every generation fans, filling
-	// the box), false here (only `fannedGenerations` rows actually fan; the
-	// REST of the box is reserved for the hanging tail via its OWN, separate
-	// `vGap`/indent mechanism - `fitItemBox`'s own `maxHangDepth` term
-	// already sized `boxW`/`boxH` around exactly how much of the box that
-	// reservation consumes, see that function's doc comment). Stretching
-	// `computeAxisPitch` to fill the WHOLE box using only the fanned count
-	// double-reserves that same space as one giant inter-row gap
-	// (COM-verified regression: `organization-chart--hier5.pptx`'s own
-	// generation-1 row rendered ~200px too far down). The fix is NOT to skip
-	// `computeAxisPitch` (a naive, unstretched `itemSize*(1+gapRatio)` pitch
-	// reintroduces the exact "space-around" bug that function exists to
-	// correct - see its own module doc comment - regressing every position
-	// by exactly `gap/2`, COM-verified: ~37px on `organization-chart--hier5
-	// .pptx`'s own fan row): it is to stretch `computeAxisPitch` against only
-	// the FAN-share of the box (`effectiveBox` minus whatever `fitItemBox`
-	// reserved for the hanging tail on that axis), so the SAME leading-margin
-	// correction applies, just scoped to the smaller region the fanned rows
-	// actually occupy.
+	// space EQUALLY on both ends ("space-around"); real PowerPoint treats the
+	// two axes DIFFERENTLY instead - generation axis: fixed leading margin
+	// (top), trailing edge flush against the far box edge; fan axis: CENTRED
+	// (no margin, a fixed `sibSp` gap, slack split evenly) - see
+	// `smartart-hierarchy-pitch.ts`'s module doc comment for the full
+	// derivation and its round-11/SESSION-8 correction. `pitch` plugs in as
+	// `cellW`/`cellH`; `shift` corrects the position afterwards via
+	// `translateResult`. A TRANSPOSED hierarchy needs no GENERATION-axis
+	// leading margin (its item size already fills the box edge-to-edge, so a
+	// nonzero margin double-counts space that was never there - measured
+	// regression: `horizontal-hierarchy--flat3.pptx`'s root rendered 61px off
+	// the box's left edge instead of flush).
+	// `tailed` mode: a pitch fill against the WHOLE `effectiveBox` assumes
+	// `totalLeaves`/`depth` items genuinely span it - true for `std` (every
+	// generation fans), false here (only `fannedGenerations` rows fan; the
+	// REST is reserved for the hanging tail via its own separate `vGap`/
+	// indent mechanism, already sized via `fitItemBox`'s own `maxHangDepth`
+	// term). Filling the WHOLE box using only the fanned count double-
+	// reserves that space as one giant inter-row gap (COM-verified
+	// regression: `organization-chart--hier5.pptx`'s own generation-1 row
+	// rendered ~200px too far down) - scoped to just the FAN-share instead.
 	const tailedPitch = mode === 'tailed';
-	const fanMargin = orientation.transposed || tailedPitch ? 0 : boxW * FAN_MARGIN_RATIO;
 	const generationMargin =
 		orientation.transposed || tailedPitch ? 0 : boxH * GENERATION_MARGIN_RATIO;
 	const fanWidth = tailedPitch
@@ -233,7 +218,25 @@ export function arrangeHierarchy(
 	const fanHeight = tailedPitch
 		? effectiveBox.height - hangShape.maxHangDepth * (1 + HANG_HEIGHT_RATIO) * boxH
 		: effectiveBox.height;
-	const xPitch = computeAxisPitch(fanWidth, fanMargin, boxW, totalLeaves);
+	// The FAN axis is CENTRED (`compositeFanPitch`), not a leading-margin/
+	// trailing-flush pack - see that function's own doc comment for the
+	// round-11/SESSION-8/9 COM correction (`compositeWidthFactor` is
+	// `undefined` for `tailedPitch` mode: org-chart's own `rootText1` is
+	// never shrunk relative to its own composite wrapper - see `smartart-
+	// hierarchy-composite-child.ts`). Used UNCONDITIONALLY for `tailedPitch`
+	// too: empirically byte-identical to the OLD `computeAxisPitch(fanWidth,
+	// 0, boxW, totalLeaves)` fill-exactly formula across all 7 org-chart-
+	// family fixtures - a real equivalence, not a guess; the remaining
+	// org-chart residual is therefore NOT a fan-axis bug, see `smartart-
+	// track-r-successor.md`'s own SESSION 9.
+	const xPitch = compositeFanPitch(
+		fanWidth,
+		boxW,
+		orientation.compositeWidthFactor,
+		orientation.cardOffsetXRatio,
+		orientation.sibSpRatio,
+		totalLeaves,
+	);
 	const yPitch = computeAxisPitch(fanHeight, generationMargin, boxH, depth);
 	const cellW = xPitch.pitch;
 	const cellH = yPitch.pitch;

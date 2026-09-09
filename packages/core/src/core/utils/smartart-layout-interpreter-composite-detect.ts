@@ -191,3 +191,25 @@ export function itemTemplateNodes(
 		itemTemplateNodes(child, out);
 	}
 }
+
+/**
+ * True when `node` is `ancestor` itself, or somewhere inside its subtree.
+ * `discoverArrangement` (`smartart-layout-interpreter-model.ts`) uses this
+ * to keep a SIBLING alternative slot (`nested-target--hier5.pptx`'s
+ * `middleBox`/`centerBox`, each flattened onto the SAME parent's children
+ * the way `outerBox` is, each with its OWN separate, shallow-resolving
+ * nested `.choose`) from independently re-asserting a whole-diagram
+ * algorithm pick once an ANCESTOR composite has already been found to have
+ * ITS OWN choose wrongly tunnelling into one such slot - see
+ * `smartart-layout-interpreter-choose-depth.ts`'s own doc comment for the
+ * full derivation.
+ */
+export function isLayoutNodeOrDescendantOf(
+	ancestor: PptxSmartArtLayoutNode,
+	node: PptxSmartArtLayoutNode,
+): boolean {
+	if (ancestor === node) {
+		return true;
+	}
+	return (ancestor.children ?? []).some((child) => isLayoutNodeOrDescendantOf(child, node));
+}

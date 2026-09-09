@@ -170,49 +170,73 @@ export function stackRoleContent(
 	if (original.kind === 'rect') {
 		return stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index);
 	}
-	// The arranger's merged shape is NOT a rect. Recover a rect split only
-	// when EVERY role EXPLICITLY declares a rect-family shape of its own, OR
-	// the roles explicitly declare two-or-more DISTINCT shape kinds (see
-	// `hasMixedExplicitKinds` above) - either way `stackAsRect` still gives
-	// each row its OWN `presetOverride`, so a mixed set keeps its real
-	// per-role presets even though the geometry style here is rect-based.
-	//
-	// EXCEPT `polygon`: a pyramid row's `levelTx`(rect)/`acctTx`
-	// (`nonIsoscelesTrapezoid`) pair is ALSO a "mixed explicit kinds" set by
-	// the check above, but its cached ground truth (COM-verified against
-	// `basic-pyramid--hier5.pptx`) is two TRAPEZOID shapes sharing the band's
-	// slot, never a `rect` sidebar - `stackAsRect` here produced a uniform
-	// vertical rect stack that matched neither the accented rows' preset NOR
-	// even the UNACCENTED rows in the same diagram (which have only one role
-	// and never reach this function at all, so seeing them wrong too was the
-	// tell that `original`'s own geometry was being discarded). `polygon`
-	// already has its own dedicated "unchanged copy per role, tagged for a
-	// later arranger-specific geometry pass" branch below (see this
-	// function's own doc comment); `everyRoleIsRect`/`hasMixedExplicitKinds`
-	// must never preempt it.
-	if (original.kind !== 'polygon' && (everyRoleIsRect || hasMixedExplicitKinds)) {
+	// The arranger's merged shape is NOT a rect. Recover a rect split when
+	// EVERY role EXPLICITLY declares a rect-family shape of its own (see
+	// `everyRoleIsRect` above, e.g. "Meet the Team"'s `nameText`/`roleText`
+	// pair, merged shape `circle`) - `stackAsRect` still gives each row its
+	// OWN `presetOverride`.
+	if (everyRoleIsRect) {
 		return stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index);
 	}
-	// A `circle` original with roles that do NOT explicitly want rect stays
-	// exactly as before this round: declined entirely (`undefined`, keeping
-	// the caller's single already-correct circle). Only `polygon` (a
-	// pyramid row's trapezoid parent+child accent) gets the "unchanged copy
-	// per role, tagged for a later geometry pass" treatment - a genuine
-	// hub+satellite `circle` has no such geometry pass to hand off to, and
-	// duplicating it per role produces IDENTICAL overlapping circles instead
-	// (measured: `radial-cycle`/`basic-radial`/`diverging-radial`/
-	// `radial-venn`/`converging-radial`/`hexagon-radial` regressed when this
-	// branch was reached for `circle` too).
-	if (original.kind !== 'polygon') {
-		return undefined;
+	// `polygon` (a pyramid row's `levelTx`(rect)/`acctTx`
+	// (`nonIsoscelesTrapezoid`) pair, COM-verified against `basic-pyramid
+	// --hier5.pptx`: cached ground truth is two SIDE-BY-SIDE trapezoids
+	// sharing the band's slot, never a vertical rect stack) ALWAYS reaches
+	// the "unchanged copy per role, tagged for a later arranger-specific
+	// geometry pass" branch below (`repositionPyramidBands`) - unconditional
+	// on `hasMixedExplicitKinds`, because `basic-pyramid`'s own two roles
+	// (`levelTx`/`acctTx`) BOTH resolve to the SAME `polygon` kind (neither
+	// declares an explicit rect-family shape), so `hasMixedExplicitKinds`
+	// itself is FALSE for this fixture despite genuinely needing the split -
+	// `polygon` never had a `stackAsRect` fallback to begin with (its own
+	// geometry cannot split by height at all), so this is unaffected by
+	// `hasMixedExplicitKinds` either way.
+	if (original.kind === 'polygon') {
+		return splitAsUnchangedCopy(content, original);
 	}
+	// `circle` (`radial-list`'s own `parentNode`(ellipse)/`childNode`(rect)
+	// ring-item pair, COM-verified against `radial-list--hier5.pptx`: cached
+	// ground truth is a side-by-side ellipse+rect, never a vertical rect
+	// stack) needs a MIXED explicit-kind set specifically (unlike `polygon`):
+	// a genuine hub+satellite `circle` (no mixed kinds -
+	// `radial-cycle`/`basic-radial`/`diverging-radial`/`radial-venn`/
+	// `converging-radial`/`hexagon-radial`) has no arranger-specific geometry
+	// pass to hand off to, and duplicating it per role produces IDENTICAL
+	// overlapping circles instead (measured regression when this branch was
+	// reached for a bare `circle` too) - only a genuinely mixed set (`circle`
+	// -> the cycle ring's own composite-child repositioning,
+	// `smartart-layout-interpreter-cycle-ring-item.ts`) gets the "unchanged
+	// copy" treatment.
+	if (original.kind === 'circle') {
+		return hasMixedExplicitKinds ? splitAsUnchangedCopy(content, original) : undefined;
+	}
+	// Any OTHER merged kind with a mixed explicit-kind set keeps the
+	// pre-existing `stackAsRect` behaviour (still gives each role its own
+	// `presetOverride`, just without a dedicated geometry pass to hand off
+	// to) - no fixture in the built-in gallery is known to reach this, but it
+	// preserves the behaviour this function already had before this round.
+	if (hasMixedExplicitKinds) {
+		return stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index);
+	}
+	// Any other merged kind, no mixed roles at all: nothing to do.
+	return undefined;
+}
+
+/**
+ * The "unchanged copy per role, tagged with `itemRoleName`" split
+ * (`polygon`/`circle`, see `stackRoleContent`'s own call sites): each role's
+ * entry starts as an UNCHANGED copy of `original`'s own geometry, letting an
+ * arranger-specific geometry pass (`repositionPyramidBands`,
+ * `repositionCycleRingContent`) reposition/resize it afterward.
+ */
+function splitAsUnchangedCopy(content: ItemRoleContent[], original: RenderedNode): RenderedNode[] {
 	return content.map((entry, i) => {
 		const fields = splitEntryFields(entry, `${original.key}-role${i}`, original);
-		// A `self`-axis role (`levelTx` in `basic-pyramid--hier5.pptx`: the
-		// point's OWN text, re-presented alongside its child's) is not a
-		// SEPARATE shape at all - it IS the original polygon, so its preset
-		// must stay whatever the arranger already decided
-		// (`original.presetOverride`, e.g. a plain pyramid band's
+		// `polygon` ONLY: a `self`-axis role (`levelTx` in `basic-pyramid
+		// --hier5.pptx`: the point's OWN text, re-presented alongside its
+		// child's) is not a SEPARATE shape at all - it IS the original
+		// polygon, so its preset must stay whatever the arranger already
+		// decided (`original.presetOverride`, e.g. a plain pyramid band's
 		// `trapezoid`), never the role's own declared `dgm:shape` (COM-verified
 		// against the same fixture: `levelTx` declares a placeholder `rect`
 		// with `hideGeometry="1"`, but the cached row renders `trapezoid`,
@@ -221,7 +245,17 @@ export function stackRoleContent(
 		// shape (`acctTx`'s declared `nonIsoscelesTrapezoid` matches the cached
 		// accent shape exactly) and keeps its own declared preset regardless of
 		// `hideGeometry`.
-		const isSelfRole = entry.role.presentationOf?.axis?.includes('self') ?? false;
+		//
+		// `circle` (`radial-list`'s own `parentNode`/`childNode` pair): NEITHER
+		// role is a `hideGeometry` placeholder - `parentNode` genuinely
+		// declares its own `ellipse` shape - so BOTH roles always keep their
+		// own declared preset (`fields.presetOverride`); `original`'s own
+		// merged `presetOverride` is not a reliable stand-in for the self
+		// role's shape the way it is for a pyramid band (measured: the merged
+		// `circle` item's own `presetOverride` can be `undefined` even when
+		// the self role itself declares a real shape).
+		const isSelfRole =
+			original.kind === 'polygon' && (entry.role.presentationOf?.axis?.includes('self') ?? false);
 		const presetOverride = isSelfRole ? original.presetOverride : fields.presetOverride;
 		return { ...original, ...fields, presetOverride };
 	});

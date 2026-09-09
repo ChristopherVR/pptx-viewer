@@ -3,8 +3,15 @@
  *
  * Split out of `smartart-layout-interpreter-cycle.ts` to keep that file under
  * the repo's per-file line budget. See that module's doc comment for the full
- * COM-verified derivation of the "natural circle then anisotropic scale"
- * model; this file is purely the numeric machinery (no constraint reading).
+ * COM-verified derivation of the "natural circle, then isotropic CONTAIN fit,
+ * centred" model (round 11/SESSION 8: live PowerPoint COM proved cached
+ * SmartArt geometry is placed at its OWN constraint-derived size, centred in
+ * the frame when smaller than it, never independently stretched per axis -
+ * see ECMA-376 21.4.7; a prior "anisotropic fill-to-box" model in this file
+ * was measured against a reader bug that has since been fixed and reproduced
+ * NO real PowerPoint output, see the parent module's own doc comment for the
+ * full correction history); this file is purely the numeric machinery (no
+ * constraint reading).
  *
  * Pure geometry; no framework code.
  */
@@ -130,29 +137,32 @@ function ringLayoutForGapFactor(
 	const maxX = Math.max(...xs) + halfW;
 	const minY = Math.min(...ys) - halfH;
 	const maxY = Math.max(...ys) + halfH;
-	const spreadX = Math.max(...xs) - Math.min(...xs);
-	const spreadY = Math.max(...ys) - Math.min(...ys);
 	const naturalBoundW = Math.max(1e-6, maxX - minX);
 	const naturalBoundH = Math.max(1e-6, maxY - minY);
-	let scaleX = box.width / naturalBoundW;
-	let scaleY = box.height / naturalBoundH;
-	// Degenerate axis (every point shares that coordinate, e.g. a 2-node ring
-	// stacked on a single vertical line): that axis carries no genuine spread
-	// to anisotropically fit against, so filling the box on it literally would
-	// stretch nodes absurdly wide/tall. Fall back to the OTHER axis's scale
-	// (isotropic) instead - an approximation, not a COM-verified formula; see
-	// the module doc comment's `radial-cycle` 2-satellite note.
-	if (spreadX < 1e-6 && spreadY >= 1e-6) {
-		scaleX = scaleY;
-	} else if (spreadY < 1e-6 && spreadX >= 1e-6) {
-		scaleY = scaleX;
-	}
+	// A SINGLE isotropic scale (never independent per-axis stretching, see
+	// the module doc comment for the live-COM correction): the tighter of the
+	// two per-axis "fill" candidates wins, and the slack this leaves on the
+	// OTHER axis is centred, never left flush against one edge. COM-verified
+	// against `basic-cycle--flat3.pptx` (a full-circle, hub-less 3-point
+	// ring): this reproduces the cached 231.90x231.90 EXACT CIRCLE (231.98
+	// computed, 0.03% off) and its own measured centring (natural diagram
+	// width 579.95px computed vs 579.86px cached, centred with ~143.4px
+	// margin on both sides - matches to within rounding); and against
+	// `basic-radial--hier5.pptx` (a hub+ring family): its own 4-satellite
+	// content bounding box is ALSO centred on both axes in the cached
+	// drawing (measured margins ~141.6px horizontal, ~2.0px vertical,
+	// symmetric on both sides each), not flush or independently stretched.
+	const scale = Math.min(box.width / naturalBoundW, box.height / naturalBoundH);
+	const scaleX = scale;
+	const scaleY = scale;
+	const offsetX = (box.width - naturalBoundW * scale) / 2;
+	const offsetY = (box.height - naturalBoundH * scale) / 2;
 
 	const centers = natural.map((p) => ({
-		x: (p.x - minX) * scaleX,
-		y: (p.y - minY) * scaleY,
+		x: (p.x - minX) * scaleX + offsetX,
+		y: (p.y - minY) * scaleY + offsetY,
 	}));
-	const hubCenter = { x: (0 - minX) * scaleX, y: (0 - minY) * scaleY };
+	const hubCenter = { x: (0 - minX) * scaleX + offsetX, y: (0 - minY) * scaleY + offsetY };
 	// Largest hub half-extent (natural units) that clears every ring node's
 	// own edge from the shared natural centre.
 	const naturalHubRadius = Math.max(0, r0 - Math.max(halfW, halfH));
@@ -191,6 +201,17 @@ function ringLayoutForGapFactor(
  * `continuous-cycle--flat3.pptx` (`sibSp val="15"`, i.e. 15pt = 20px): this
  * converges to `gapFactor ~= 0.0472`, `nodeWidth ~= 423.5` vs the cached
  * 420 (0.8%).
+ *
+ * `absoluteHubGapPx`, when given (an ABSOLUTE `sp val`, e.g. `radial-list
+ * --hier5.pptx`'s own `<dgm:constr type="sp" val="20"/>` - see
+ * `resolveCycleRingParams`'s own doc comment): the SAME fixed-point idea,
+ * but refining `hubGeometry.gapRatio` (the hub-to-satellite gap, natural
+ * units) toward `absoluteHubGapPx / nodeWidthPx` instead of `sibSp`'s own
+ * `gapFactor` - `resolveHubGapRatio` only ever resolves a RATIO-form `sp`
+ * (a declared `fact`), so an absolute `sp val` (no `fact` at all) needs this
+ * SEPARATE iteration; both can run in the SAME loop when a layout declares
+ * both an absolute `sibSp` AND an absolute `sp` (not observed in the
+ * built-in gallery, but not assumed impossible either).
  */
 export function computeCycleRingLayout(
 	n: number,
@@ -201,12 +222,16 @@ export function computeCycleRingLayout(
 	box: BoundingBox,
 	absoluteGapPx?: number,
 	hubGeometry?: HubRingGeometry,
+	absoluteHubGapPx?: number,
 ): CycleRingLayout {
 	const degenerate = degenerateRingLayout(n, heightOverWidth, box);
 	if (degenerate) {
 		return degenerate;
 	}
-	if (absoluteGapPx === undefined || absoluteGapPx <= 0) {
+	const needsGapIteration = absoluteGapPx !== undefined && absoluteGapPx > 0;
+	const needsHubGapIteration =
+		absoluteHubGapPx !== undefined && absoluteHubGapPx > 0 && hubGeometry !== undefined;
+	if (!needsGapIteration && !needsHubGapIteration) {
 		return ringLayoutForGapFactor(
 			n,
 			stAngDeg,
@@ -218,6 +243,7 @@ export function computeCycleRingLayout(
 		);
 	}
 	let gapFactor = minGapRatio;
+	let hub = hubGeometry;
 	for (let iteration = 0; iteration < 20; iteration += 1) {
 		const candidate = ringLayoutForGapFactor(
 			n,
@@ -226,15 +252,26 @@ export function computeCycleRingLayout(
 			gapFactor,
 			heightOverWidth,
 			box,
-			hubGeometry,
+			hub,
 		);
 		const nextGapFactor =
-			candidate.nodeWidth > 1e-6 ? absoluteGapPx / candidate.nodeWidth : gapFactor;
-		if (Math.abs(nextGapFactor - gapFactor) < 1e-9) {
-			gapFactor = nextGapFactor;
+			needsGapIteration && candidate.nodeWidth > 1e-6
+				? absoluteGapPx / candidate.nodeWidth
+				: gapFactor;
+		const nextHubGapRatio =
+			needsHubGapIteration && candidate.nodeWidth > 1e-6
+				? absoluteHubGapPx / candidate.nodeWidth
+				: hub?.gapRatio;
+		const gapConverged = Math.abs(nextGapFactor - gapFactor) < 1e-9;
+		const hubGapConverged =
+			!needsHubGapIteration || Math.abs((nextHubGapRatio ?? 0) - (hub?.gapRatio ?? 0)) < 1e-9;
+		gapFactor = nextGapFactor;
+		if (needsHubGapIteration && hub) {
+			hub = { ...hub, gapRatio: nextHubGapRatio ?? hub.gapRatio };
+		}
+		if (gapConverged && hubGapConverged) {
 			break;
 		}
-		gapFactor = nextGapFactor;
 	}
-	return ringLayoutForGapFactor(n, stAngDeg, spanDeg, gapFactor, heightOverWidth, box, hubGeometry);
+	return ringLayoutForGapFactor(n, stAngDeg, spanDeg, gapFactor, heightOverWidth, box, hub);
 }
