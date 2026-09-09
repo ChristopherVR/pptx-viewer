@@ -10,10 +10,10 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@ai-sdk/openai-compatible": "^3.0.12",
-		"ai": "^7.0.44",
-		"fast-xml-parser": "^5.11.0",
-		"jszip": "^3.10.1",
+		"@ai-sdk/openai-compatible": "^3.0.47",
+		"ai": "^7.0.97",
+		"fast-xml-parser": "^5.11.1",
+		"jszip": "^3.10.2",
 		"pptx-vanilla-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-locales": "workspace:*",
@@ -23,9 +23,9 @@
 	},
 	"devDependencies": {
 		"@tailwindcss/vite": "^4.3.3",
-		"@types/node": "^26.2.0",
+		"@types/node": "^26.5.1",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^7.0.2",
-		"vite": "^8.2.1"
+		"vite": "^8.2.2"
 	}
 }
