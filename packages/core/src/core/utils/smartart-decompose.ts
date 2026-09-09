@@ -59,6 +59,26 @@ function quickStyleStrokeScale(quickStyle: PptxSmartArtQuickStyle | undefined): 
 	}
 }
 
+/**
+ * `ds.x`/`ds.y`/`ds.width`/`ds.height` (from `dsp:sp`'s own `a:xfrm`) are
+ * ALREADY in the SAME coordinate space as `containerBounds` (`dsp:drawing`'s
+ * shapes are authored relative to the SmartArt graphicFrame's own origin,
+ * baked to match the frame's CURRENT extent, never an independent space
+ * needing remap). A PREVIOUS version rescaled every shape to fill
+ * `containerBounds` via the shapes' own bounding box - wrong whenever a
+ * `lin`-arranged diagram's natural content does not fill an (author-
+ * resized) oversized frame on one axis: `basic-process--hier5.pptx` (a
+ * horizontal row, 137px tall inside a 533px frame, real whitespace above/
+ * below) and `vertical-process--hier5.pptx` (same, horizontally, 240px
+ * inside 867px) got inflated 3.89x/3.61x respectively, corrupting the
+ * CACHED side of every GEOM comparison - masked because the interpreter's
+ * OWN "no-aspect -> fill full cross extent" default (`smartart-layout-
+ * interpreter-linear.ts`) produced a similarly oversized box, the two
+ * wrongs cancelling into a false PASS. `basic-block-list--hier5.pptx`
+ * (snake, content already filling its frame, scale ~1.0) was never
+ * affected - only `lin` diagrams whose natural aspect disagrees with
+ * their frame's are exposed.
+ */
 function convertDrawingShapes(
 	drawingShapes: PptxSmartArtDrawingShape[],
 	containerBounds: DrawingBounds,
@@ -66,30 +86,6 @@ function convertDrawingShapes(
 	quickStyle?: PptxSmartArtQuickStyle,
 ): PptxElement[] {
 	const strokeScale = quickStyleStrokeScale(quickStyle);
-	// Compute the bounding box of all drawing shapes to determine the offset
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-	for (const ds of drawingShapes) {
-		if (ds.x < minX) {
-			minX = ds.x;
-		}
-		if (ds.y < minY) {
-			minY = ds.y;
-		}
-		if (ds.x + ds.width > maxX) {
-			maxX = ds.x + ds.width;
-		}
-		if (ds.y + ds.height > maxY) {
-			maxY = ds.y + ds.height;
-		}
-	}
-
-	const drawingW = maxX - minX || 1;
-	const drawingH = maxY - minY || 1;
-	const scaleX = containerBounds.width / drawingW;
-	const scaleY = containerBounds.height / drawingH;
 
 	return drawingShapes.map((ds, index) => {
 		const fill =
@@ -100,10 +96,10 @@ function convertDrawingShapes(
 
 		return makeShapeElement(
 			nextId('sa-draw'),
-			containerBounds.x + (ds.x - minX) * scaleX,
-			containerBounds.y + (ds.y - minY) * scaleY,
-			ds.width * scaleX,
-			ds.height * scaleY,
+			containerBounds.x + ds.x,
+			containerBounds.y + ds.y,
+			ds.width,
+			ds.height,
 			ds.shapeType ?? 'rect',
 			fill,
 			ds.text ?? '',

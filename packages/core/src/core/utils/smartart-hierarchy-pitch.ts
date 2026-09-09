@@ -76,7 +76,27 @@ export function computeAxisPitch(
 	const n = Math.max(1, count);
 	const gap = n > 1 ? Math.max(0, (dimension - margin - n * itemSize) / (n - 1)) : 0;
 	const pitch = itemSize + gap;
-	return { pitch, shift: margin - gap / 2 };
+	const rawShift = margin - gap / 2;
+	// The tree's own trailing edge (last item's right/bottom edge, after the
+	// leading `margin` and inter-item `gap`s) must never sit past the box's
+	// own far edge - COM-verified: it sits flush against it, never past it
+	// (see the module doc comment). `rightEdge(shift) = shift + n*itemSize +
+	// gap*(n-0.5)` (derived from `placeStandardTree`'s own `cx=(offset+0.5)*
+	// pitch` placement); solving `rightEdge<=dimension` for `shift` gives the
+	// bound below. For `n>1` with an unfloored `gap`, `rawShift` already
+	// satisfies this EXACTLY by `gap`'s own defining equation - the clamp is
+	// then a byte-identical no-op (verified against every currently-passing
+	// multi-column `hierarchy`/`organization-chart` fixture). It only
+	// actually engages for the `count===1` degenerate case (`gap` is
+	// hard-coded `0`, so there is no gap term left to reconcile `fitItemBox`'s
+	// own independently-calibrated SYMMETRIC margin with this function's own
+	// LEADING-only margin - see `FAN_MARGIN_RATIO`'s doc comment for the two
+	// ratios' independent COM derivations) and the latent `n>1`-but-already-
+	// overflowing case (`gap` floored to `0` because the un-gapped items alone
+	// already exceed `dimension`), neither of which any built-in gallery
+	// fixture exercises today.
+	const maxShift = dimension - n * itemSize - gap * (n - 0.5);
+	return { pitch, shift: Math.min(rawShift, maxShift) };
 }
 
 /** Translate one rendered node by a constant `(dx, dy)`. */
