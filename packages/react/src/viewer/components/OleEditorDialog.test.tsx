@@ -190,7 +190,10 @@ describe('oleEditorDialog', () => {
 			// `blur` does not bubble), so that is what a real blur triggers.
 			input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
 		});
-		await flush();
+		// The commit re-encodes the workbook asynchronously; a fixed number of
+		// flush rounds was not always enough under CI load, so poll like the
+		// nested-deck case below does.
+		await waitUntil(() => onUpdateElement.mock.calls.length > 0);
 
 		expect(onUpdateElement).toHaveBeenCalledWith(
 			expect.objectContaining({
