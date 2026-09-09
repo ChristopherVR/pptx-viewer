@@ -102,7 +102,7 @@ function colorMapEnums(): Record<string, readonly string[]> {
 	return entries;
 }
 
-export const ENUMS: Record<string, readonly string[]> = {
+const STATIC_ENUMS: Record<string, readonly string[]> = {
 	'ph@type': [
 		'title',
 		'body',
@@ -195,8 +195,22 @@ export const ENUMS: Record<string, readonly string[]> = {
 		'sysDashDot',
 		'sysDashDotDot',
 	],
-	...colorMapEnums(),
 };
+
+function buildEnums(): Record<string, readonly string[]> {
+	return { ...STATIC_ENUMS, ...colorMapEnums() };
+}
+
+/**
+ * The static table plus the generated colour-map entries. Built through a
+ * pure zero-argument call rather than an inline `...colorMapEnums()` spread:
+ * a bundle that never references `ENUMS` (the vanilla binding) cannot
+ * tree-shake an object literal whose spread has side effects, so esbuild kept
+ * it as a bare expression statement, and Bun's transpiler then printed that
+ * statement with every property value stripped (`"ph@type": ,`), which made
+ * the vanilla `build-styles` step fail to load its own bundle.
+ */
+export const ENUMS: Record<string, readonly string[]> = /* @__PURE__ */ buildEnums();
 
 export const BLACK_WHITE = [
 	'clr',
