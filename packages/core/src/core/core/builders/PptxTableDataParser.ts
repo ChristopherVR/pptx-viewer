@@ -78,7 +78,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 			const xmlRows = this.context.ensureArray(tableNode['a:tr']) as XmlObject[];
 			const rows: PptxTableRow[] = xmlRows.map((rowNode) => {
 				const rowHeightEmu = parseInt(String(rowNode?.['@_h'] || '0'), 10) || 0;
-				const rowHeight = Math.round(rowHeightEmu / this.context.emuPerPx);
+				const rowHeight = rowHeightEmu / this.context.emuPerPx;
 				const xmlCells = this.context.ensureArray(rowNode['a:tc']) as XmlObject[];
 
 				return {

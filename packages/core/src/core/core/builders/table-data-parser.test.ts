@@ -125,7 +125,7 @@ describe('pptxTableDataParser - grid column widths', () => {
 // ---------------------------------------------------------------------------
 
 describe('pptxTableDataParser - row heights', () => {
-	it('converts row height from EMU to rounded pixels', () => {
+	it('preserves fractional pixels when converting row heights from EMU', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['9144000'],
 			rows: [
@@ -136,8 +136,19 @@ describe('pptxTableDataParser - row heights', () => {
 		const parser = new PptxTableDataParser(makeContext());
 		const result = parser.parseTableData(graphicData);
 
-		expect(result!.rows[0].height).toBe(Math.round(370840 / EMU_PER_PX));
-		expect(result!.rows[1].height).toBe(Math.round(914400 / EMU_PER_PX));
+		expect(result!.rows[0].height).toBe(370840 / EMU_PER_PX);
+		expect(result!.rows[1].height).toBe(914400 / EMU_PER_PX);
+	});
+
+	it.each([0, 1, 4762, 4763, 825500, 9144001])('round-trips a row height of %i EMU', (height) => {
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(
+			makeTableXml({
+				gridCols: ['9144000'],
+				rows: [{ height: String(height), cells: [makeCell('A')] }],
+			}),
+		);
+		expect(Math.round(result!.rows[0].height! * EMU_PER_PX)).toBe(height);
 	});
 
 	it('defaults row height to 0 when @_h is missing', () => {

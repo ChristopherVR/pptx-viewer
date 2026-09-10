@@ -15,6 +15,116 @@ import type { TablePptxElement } from '../../core/types/elements';
  * `SAVE_ELEMENT_SKIPPED` warning. The saved slide had an empty `p:spTree`.
  */
 describe('sDK-created table survives save round-trip', () => {
+	it.each([
+		'no edit',
+		'other shape',
+		'cell text',
+		'row height',
+		'add row',
+		'delete row',
+		'add column',
+		'delete column',
+	])('preserves row-height precision through load/save after %s', async (edit) => {
+		const emuPerPx = 9525;
+		const expectedHeights = [825500, 370840, 914400];
+		const { handler: creator, data, createSlide } = await PresentationBuilder.create();
+		data.slides.push(
+			createSlide('Blank')
+				.addText('Title', { x: 20, y: 10, width: 300, height: 40 })
+				.addTable(
+					{
+						rows: expectedHeights.map((height, index) => ({
+							height: height / emuPerPx,
+							cells: [{ text: `Row ${index}` }, { text: 'Value' }],
+						})),
+					},
+					{ x: 20, y: 80, width: 400, height: 240 },
+				)
+				.build(),
+		);
+		const fixture = await creator.save(data.slides);
+		const handler = new PptxHandler();
+		const loaded = await handler.load(fixture.buffer as ArrayBuffer);
+		const title = loaded.slides[0].elements.find(
+			(element) => element.type === 'text' && element.text === 'Title',
+		)!;
+		const table = loaded.slides[0].elements.find((element) => element.type === 'table')!;
+		const tableData = table.tableData!;
+
+		switch (edit) {
+			case 'other shape':
+				title.x += 10;
+				break;
+			case 'cell text':
+				tableData.rows[0].cells[0].text = 'Edited cell';
+				break;
+			case 'row height':
+				tableData.rows[0].height = 42.25;
+				expectedHeights[0] = Math.round(42.25 * emuPerPx);
+				break;
+			case 'add row':
+				tableData.rows.push({ height: 31.5, cells: [{ text: 'New row' }, { text: 'Value' }] });
+				expectedHeights.push(Math.round(31.5 * emuPerPx));
+				break;
+			case 'delete row':
+				tableData.rows.splice(1, 1);
+				expectedHeights.splice(1, 1);
+				break;
+			case 'add column':
+				tableData.columnWidths = [1 / 3, 1 / 3, 1 / 3];
+				for (const row of tableData.rows) {
+					row.cells.push({ text: 'New column' });
+				}
+				break;
+			case 'delete column':
+				tableData.columnWidths = [1];
+				for (const row of tableData.rows) {
+					row.cells.pop();
+				}
+				break;
+		}
+
+		const saved = await handler.save(loaded.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(
+			[...xml.matchAll(/<a:tr\b[^>]*\bh="(\d+)"/g)].map((match) => Number(match[1])),
+		).toStrictEqual(expectedHeights);
+		if (edit === 'cell text') {
+			expect(xml).toContain('Edited cell');
+		}
+		if (edit === 'add row') {
+			expect(xml).toContain('New row');
+		}
+		if (edit === 'add column') {
+			expect(xml).toContain('New column');
+		}
+
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(saved.buffer as ArrayBuffer);
+		const reloadedTable = reloaded.slides[0].elements.find((element) => element.type === 'table')!;
+		expect(
+			reloadedTable.tableData!.rows.map((row) => Math.round(row.height! * emuPerPx)),
+		).toStrictEqual(expectedHeights);
+		if (edit === 'other shape') {
+			expect(
+				reloaded.slides[0].elements.find(
+					(element) => element.type === 'text' && element.text === 'Title',
+				)!.x,
+			).toBe(title.x);
+		}
+		if (edit === 'row height') {
+			// A dirty re-save must preserve the explicitly resized row too.
+			reloadedTable.x += 1;
+			const savedAgain = await reloader.save(reloaded.slides);
+			const secondZip = await JSZip.loadAsync(savedAgain);
+			const secondXml = await secondZip.file('ppt/slides/slide1.xml')!.async('string');
+			expect(
+				[...secondXml.matchAll(/<a:tr\b[^>]*\bh="(\d+)"/g)].map((match) => Number(match[1])),
+			).toStrictEqual(expectedHeights);
+		}
+	});
+
 	it('addTable then save → reload preserves rows, columns, and cell text', async () => {
 		const { handler, data, createSlide } = await PresentationBuilder.create();
 		data.slides.push(
