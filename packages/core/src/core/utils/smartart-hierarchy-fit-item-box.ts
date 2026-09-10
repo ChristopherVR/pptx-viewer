@@ -108,6 +108,7 @@ export function fitItemBox(
 	maxHangRows = maxHangDepth,
 	allChildrenHang = false,
 	hangHeightRatio = HANG_HEIGHT_RATIO,
+	compositeChainHeightRatio?: number,
 ): { boxW: number; boxH: number } {
 	const n = Math.max(1, columns);
 	const usableW = box.width - 2 * box.width * marginXRatio;
@@ -136,7 +137,34 @@ export function fitItemBox(
 	// determines the item's height directly, un-clamped by the declared
 	// aspect ratio.
 	const naturalHeight = widthFit * aspectRatio;
-	const boxH = clampToNaturalAspect ? Math.min(naturalHeight, heightFit) : heightFit;
+	// SESSION 32: for the "parent-relative" composite-child shape
+	// (`compositeChainHeightRatio` defined - see `resolveHierarchyOrientation`'s
+	// own `HierarchyOrientation.compositeChainHeightRatio` doc comment, e.g.
+	// `circle-picture-hierarchy--hier5.pptx`), `widthFit` IS the WRAPPING
+	// `composite` cell's own width (`compositeW`, un-shrunk - the layout's own
+	// top-level `w for=des forName=composite refType=w` declares composite's
+	// width equal to the free `w` variable `widthFit` solves for, fact 1),
+	// unlike `aspectRatio` (the RENDERED child's own, already-shrunk aspect) -
+	// so `naturalHeight = widthFit * aspectRatio` does NOT give the rendered
+	// item's true height for this shape (COM-verified: the raw declared
+	// `heightFit` denominator - generic `generations`/`generationGapRatio`
+	// packing, calibrated only against the SELF-referential composite shape's
+	// own cached row spacing - produces the SAME box height for three
+	// structurally different fixtures sharing a box/depth/margin, i.e. is
+	// structurally incapable of reflecting this shape's own composite chain at
+	// all). `compositeChainHeightRatio * widthFit` IS the correct chain
+	// (`compositeH = compositeW * compositeAspect`, `renderedItem.h =
+	// compositeH * compositeHeightFactor`), verified within 0.9% of
+	// `circle-picture-hierarchy--hier5.pptx`'s own cached item height (vs the
+	// un-corrected `heightFit` clamp's 9.5%) - bypasses BOTH the `heightFit`
+	// clamp and the `naturalHeight`/`aspectRatio` route entirely, since neither
+	// is a principled model for this shape.
+	const boxH =
+		compositeChainHeightRatio !== undefined
+			? widthFit * compositeChainHeightRatio
+			: clampToNaturalAspect
+				? Math.min(naturalHeight, heightFit)
+				: heightFit;
 	// `clampToNaturalAspect` callers (`std` mode) keep the item's OWN declared
 	// `aspectRatio` invariant no matter which axis actually bound `boxH`: when
 	// the WIDTH axis bound it (`boxH===naturalHeight`), `boxH/aspectRatio`

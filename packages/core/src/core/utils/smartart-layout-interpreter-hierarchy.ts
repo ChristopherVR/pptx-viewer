@@ -54,12 +54,15 @@ import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
 import { buildTree, treeDepth } from './smartart-helpers';
 import type { TreeNode } from './smartart-helpers';
 import { computeHierarchyAxisPitches } from './smartart-hierarchy-axis-pitch';
-import { branchMode, resolveRowSize, tailDirection } from './smartart-hierarchy-branch-mode';
+import { branchMode, resolveRowSize } from './smartart-hierarchy-branch-mode';
 import { resolveCascadePlan } from './smartart-hierarchy-cascade';
 import { buildFanAwareWidthMap, resolveSpanWidth } from './smartart-hierarchy-fan-aware-width';
 import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
 import { computeHangShape } from './smartart-hierarchy-hang-depth';
-import { arrangeFullyHangingTree, placeHangingForest } from './smartart-hierarchy-hanging';
+import {
+	arrangeFullyHangingTree,
+	configureTailedHangingPlacer,
+} from './smartart-hierarchy-hanging';
 import { flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
 import {
 	applyChildOrder,
@@ -72,7 +75,6 @@ import {
 	baseContext,
 	findHierarchyItemName,
 	findHierarchyItemShape,
-	HIER_TAIL_OFFSET_RATIO,
 } from './smartart-hierarchy-shared';
 import { placeStandardTree } from './smartart-hierarchy-standard';
 import type { StandardOptions } from './smartart-hierarchy-standard';
@@ -190,7 +192,9 @@ export function arrangeHierarchy(
 	// baseline, measured) - stays aspect-clamped. `half-circle`/`name-and-
 	// title`'s own paired aspect+position problem is still open - see
 	// `smartart-track-r-successor.md` (SESSION 18-23) for the full history.
-	// `hangHeightRatio`: see `fitItemBox`'s own doc comment (SESSION 25).
+	// `hangHeightRatio`: see `HierarchyOrientation.hangHeightRatio`'s own doc
+	// comment (SESSION 25/32) - `fitItemBox`'s own default (`HANG_HEIGHT_RATIO`)
+	// applies only when this is `undefined` (the compound-text-role shape).
 	const { boxW, boxH } = fitItemBox(
 		effectiveBox,
 		totalLeaves,
@@ -204,7 +208,8 @@ export function arrangeHierarchy(
 		undefined,
 		hangShape.maxHangRows,
 		hangShape.allChildrenHang,
-		orientation.transposed ? orientation.generationGapRatio : undefined,
+		orientation.hangHeightRatio,
+		orientation.compositeChainHeightRatio,
 	);
 	// See `smartart-hierarchy-cascade.ts`'s own module doc comment for the
 	// declared construct this resolves (`half-circle-organization-chart`'s
@@ -224,6 +229,7 @@ export function arrangeHierarchy(
 		cascadePlan.pitchDepth,
 		cascadePlan.pitchHangShape,
 		tailedPitch,
+		cascadePlan.cascadeOffsetX?.offsetPx,
 	);
 	const cellW = xPitch.pitch;
 	const cellH = yPitch.pitch;
@@ -246,32 +252,26 @@ export function arrangeHierarchy(
 		resolveSpan: fanAwareWidthMap
 			? (t) => resolveSpanWidth(fanAwareWidthMap, t, orgChart)
 			: undefined,
-		hangHeightRatio: orientation.transposed ? orientation.generationGapRatio : undefined,
+		// The fan->hang gap ratio, matching `fitItemBox`'s own SAME value above
+		// (sizing and positioning must move together) - see
+		// `HierarchyOrientation.hangHeightRatio`'s own doc comment
+		// (`smartart-hierarchy-orientation-types.ts`) for the COM-verified
+		// derivation and its compound-text-role exception.
+		hangHeightRatio: orientation.hangHeightRatio,
 		cascadeOffsetX: cascadePlan.cascadeOffsetX,
 	};
-	// SESSION 28: the cascade construct (`smartart-hierarchy-cascade.ts`)
-	// reuses the SAME fanned-row placement for every generation, so `placeAt`
-	// must fall through its own default `placeFlatChildren`/
-	// `placeWrappedChildren` branch at every level instead of routing the row
-	// past the fan through `hangingPlacer`'s independent (and, for this
-	// construct, wrong) `HANG_HEIGHT_RATIO` gap.
-	if (mode === 'tailed' && !cascadePlan.active) {
-		// Measured ratio (`HIER_TAIL_OFFSET_RATIO`), not the unrelated 0.35 used
-		// by the `linDir`-only `hanging` mode above: this is the org-chart-family
-		// `hierAlign`/`alignOff` root-box offset, and genuine PowerPoint output
-		// pins it at exactly 0.25x the box width - see the constant's doc comment.
-		const indent = boxW * HIER_TAIL_OFFSET_RATIO;
-		const vGap = boxH * 0.55;
-		const direction = tailDirection(presLayoutVars);
-		standardOptions.hangingPlacer = (childHc, subtrees, anchorX, anchorY) => {
-			placeHangingForest(childHc, subtrees, anchorX, anchorY, {
-				orgChart,
-				direction,
-				indent,
-				vGap,
-			});
-		};
-	}
+	// See `configureTailedHangingPlacer`'s own doc comment (`smartart-hierarchy-
+	// hanging.ts`) for why this is a no-op for `std`/`hanging` mode and for the
+	// SESSION 28 cascade construct.
+	configureTailedHangingPlacer(
+		standardOptions,
+		mode,
+		cascadePlan,
+		boxW,
+		boxH,
+		presLayoutVars,
+		orgChart,
+	);
 
 	let offset = 0;
 	for (const root of roots) {

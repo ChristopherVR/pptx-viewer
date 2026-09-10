@@ -30,14 +30,23 @@ import type {
 	PptxSmartArtLayoutNode,
 	PptxSmartArtLayoutNodeShape,
 	PptxSmartArtNode,
+	PptxSmartArtPresLayoutVars,
 	SmartArtStyle,
 } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import type { TreeNode } from './smartart-helpers';
-import { linDirHangDirection } from './smartart-hierarchy-branch-mode';
+import { linDirHangDirection, tailDirection } from './smartart-hierarchy-branch-mode';
+import type { CascadePlan } from './smartart-hierarchy-cascade';
 import { partitionChildren } from './smartart-hierarchy-orgchart-tree';
-import { baseContext, elbowConnector, pushNode, stubConnector } from './smartart-hierarchy-shared';
+import {
+	baseContext,
+	elbowConnector,
+	HIER_TAIL_OFFSET_RATIO,
+	pushNode,
+	stubConnector,
+} from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
+import type { StandardOptions } from './smartart-hierarchy-standard';
 import { resolveHierarchyItemFontSizePx } from './smartart-layout-interpreter-hierarchy-fontfit';
 import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
 
@@ -188,5 +197,43 @@ export function arrangeFullyHangingTree(
 		shadowFilter: hc.ctx.shadow,
 		viewBox: `0 0 ${w} ${h}`,
 		family: 'hierarchy',
+	};
+}
+
+/**
+ * Wire `standardOptions.hangingPlacer` for the `tailed` (org-chart) family's
+ * own hanging tail - split out of `smartart-layout-interpreter-hierarchy.ts`
+ * (the file-size budget): the setup block itself, unchanged, just relocated.
+ * A no-op (leaves `standardOptions.hangingPlacer` unset) for `std`/`hanging`
+ * mode and for the SESSION 28 cascade construct (`cascadePlan.active`): see
+ * that field's own call-site doc comment history for why the cascade shape
+ * needs `placeAt`'s DEFAULT fanned-row branch instead of this placer.
+ */
+export function configureTailedHangingPlacer(
+	standardOptions: StandardOptions,
+	mode: 'std' | 'tailed' | 'hanging',
+	cascadePlan: Pick<CascadePlan, 'active'>,
+	boxW: number,
+	boxH: number,
+	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
+	orgChart: boolean,
+): void {
+	if (mode !== 'tailed' || cascadePlan.active) {
+		return;
+	}
+	// Measured ratio (`HIER_TAIL_OFFSET_RATIO`), not the unrelated 0.35 used by
+	// the `linDir`-only `hanging` mode above: this is the org-chart-family
+	// `hierAlign`/`alignOff` root-box offset, and genuine PowerPoint output
+	// pins it at exactly 0.25x the box width - see the constant's doc comment.
+	const indent = boxW * HIER_TAIL_OFFSET_RATIO;
+	const vGap = boxH * 0.55;
+	const direction = tailDirection(presLayoutVars);
+	standardOptions.hangingPlacer = (childHc, subtrees, anchorX, anchorY) => {
+		placeHangingForest(childHc, subtrees, anchorX, anchorY, {
+			orgChart,
+			direction,
+			indent,
+			vGap,
+		});
 	};
 }

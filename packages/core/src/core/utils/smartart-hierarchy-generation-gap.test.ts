@@ -42,6 +42,45 @@ describe('resolveGenerationGapRatio', () => {
 		);
 	});
 
+	it("session 32: a parent-relative composite child (`heightFactor` defined - circle-picture-hierarchy--hier5.pptx's own shape) converts via `declaredFact/heightFactor`, NOT the self-referential shape's squared-aspectRatio formula - `0.25/0.8=0.3125` reproduces the fixture's own cached row-to-row generation pitch (~189.5px local, depth 3, boxH~144) within 0.3%, where the squared formula (0.4687, calibrated for the DIFFERENT self-referential composite.h->renderedItem.h relationship) does not", () => {
+		const constraints = [{ type: 'sp', referenceType: 'h', factor: 0.25 }];
+		const compositeChild = {
+			aspectRatio: 0.6666666666666666,
+			widthFactor: 0.6,
+			offsetXRatio: 0.4,
+			heightFactor: 0.8,
+		};
+		const ratio = resolveGenerationGapRatio(
+			constraints,
+			'h',
+			compositeChild.aspectRatio,
+			compositeChild,
+			0.5,
+		);
+		expect(ratio).toBeCloseTo(0.3125, 6);
+	});
+
+	it('session 32: the heightFactor branch takes priority over the squared-aspectRatio formula whenever both a `heightFactor` and a `compositeAspect` are supplied (defensive: the two formulas model different composite shapes and must not both apply)', () => {
+		const constraints = [{ type: 'sp', referenceType: 'h', factor: 0.25 }];
+		const compositeChild = {
+			aspectRatio: 0.6666666666666666,
+			widthFactor: 0.6,
+			offsetXRatio: 0.4,
+			heightFactor: 0.8,
+		};
+		const withHeightFactor = resolveGenerationGapRatio(
+			constraints,
+			'h',
+			compositeChild.aspectRatio,
+			compositeChild,
+			0.5,
+		);
+		const squaredFormula =
+			(0.25 * 0.5) /
+			(compositeChild.widthFactor * compositeChild.aspectRatio * compositeChild.aspectRatio);
+		expect(withHeightFactor).not.toBeCloseTo(squaredFormula, 2);
+	});
+
 	it('session 24: falls back to a WHOLE-index search for an ancestor-declared `sp` (labeled-hierarchy--hier5.pptx\'s own shape: `mainComposite`\'s own constrLst declares `sp for="des" refType="h" refFor="des" refForName="level1Shape" fact="0.4"`, unreachable from `hierChild1`\'s own local constraints) - only tried when the local search finds nothing, matches by the ITEM\'s own name, not by which node declared it', () => {
 		const index: ConstraintIndex = {
 			entries: new Map([

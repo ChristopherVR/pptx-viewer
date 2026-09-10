@@ -255,3 +255,36 @@ export function resolveCompositeChildGeometry(
 	}
 	return undefined;
 }
+
+/**
+ * SESSION 32: the SAME "compound, multi-role text box" structural signal
+ * `resolveCompositeChildGeometry` bails on (see this module's own SESSION 28
+ * doc comment above), exposed standalone for callers that need to know
+ * WHETHER a layout declares this shape without needing its (unresolvable)
+ * aspect/width/offset geometry - `smartart-hierarchy-orientation.ts`'s own
+ * `hangHeightRatio` generalisation (SESSION 32) must NOT apply to
+ * `name-and-title-organization-chart--hier5.pptx`: that fixture's own
+ * `rootText1` height is not determined by a single declared `fact` at all
+ * (two stacked rows), so `generationGapRatio` - the single-role fan/generation
+ * gap - is not a trustworthy stand-in for ITS hang-row gap either (COM-verified
+ * regression: applying it anyway makes this fixture's own residual worse,
+ * `0.0415` -> `0.0542`, while `organization-chart--hier5.pptx`/
+ * `picture-organization-chart--hier5.pptx` - the SAME tree shape, a plain,
+ * single-role `rootText1` - go to exactly `0`). Returns `false` (not just
+ * `undefined`) for a layoutDef with no `composite` wrapper at all, matching
+ * `resolveCompositeChildGeometry`'s own "nothing to bail on" convention.
+ */
+export function compositeDeclaresCompoundTextRole(
+	algorithmNode: PptxSmartArtLayoutNode | undefined,
+): boolean {
+	const compositeNode = findCompositeDescendant(algorithmNode);
+	if (!compositeNode) {
+		return false;
+	}
+	const child = findTextBearingChild(compositeNode);
+	if (!child?.name) {
+		return false;
+	}
+	const constraints = compositeNode.allConstraints ?? compositeNode.constraints ?? [];
+	return constraints.some((c) => c.type === 'primFontSz' && c.referenceForName === child.name);
+}

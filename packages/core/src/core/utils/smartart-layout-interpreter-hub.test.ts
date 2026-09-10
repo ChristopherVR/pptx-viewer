@@ -157,4 +157,69 @@ describe('buildHubRenderedNode', () => {
 		expect(rendered.nodeId).toBe('hub');
 		expect(rendered.kind).toBe('circle');
 	});
+
+	/**
+	 * Round 36: a `ctrShpMap="fNode"` hub (the `arranger.algorithm?.type ===
+	 * 'cycle'` branch) used to hand no `fontSizeOverride` to `presetBoxNode` at
+	 * all, so it fell through that helper's own crude, un-derived per-box
+	 * heuristic - capped around 12px regardless of the hub's real box size. A
+	 * corpus-wide scan of every hub-bearing cycle fixture's own cached drawing
+	 * (`l36-hub-font-scan.ts`, scratchpad) showed the hub's real font size is
+	 * always fit to its OWN box, and always bigger than that ~12px fallback
+	 * for a hub with real room to grow (`basic-radial--hier5.pptx`: 50.7pt;
+	 * `radial-venn--hier5.pptx`: 86.7pt). These two tests pin the real fit
+	 * (not the fallback) now runs for the hub, using the SAME shared tiered
+	 * fitter `arrangeCycle`'s ring items already use.
+	 */
+	function cycleArranger(): PptxSmartArtLayoutNode {
+		return {
+			name: 'singleCycle',
+			algorithm: { type: 'cycle', parameters: [{ type: 'ctrShpMap', value: 'fNode' }] },
+			children: [
+				{ name: 'singleCenter', algorithm: { type: 'tx' }, shape: { presetGeometry: 'roundRect' } },
+			],
+		};
+	}
+
+	it('fits a ctrShpMap="fNode" hub to its own box, not the ~12px internal fallback', () => {
+		const box = { width: 900, height: 900 };
+		const rendered = buildHubRenderedNode(
+			cycleArranger(),
+			{ id: 'hub', text: 'Center' },
+			box,
+			['#fff'],
+			'flat',
+			'e',
+			3,
+		);
+		// `singleCenter`'s own declared `roundRect` preset wins over the
+		// fallback circle (`presetBoxNode`'s own precedence).
+		expect(rendered.kind).toBe('rect');
+		expect(rendered.fontSize).toBeGreaterThan(20);
+	});
+
+	it('fits the font independently to the hub own solved box size (varies with satellite count, not a fixed constant)', () => {
+		const box = { width: 900, height: 900 };
+		const twoSatellites = buildHubRenderedNode(
+			cycleArranger(),
+			{ id: 'hub', text: 'Center' },
+			box,
+			['#fff'],
+			'flat',
+			'e',
+			2,
+		);
+		const sevenSatellites = buildHubRenderedNode(
+			cycleArranger(),
+			{ id: 'hub', text: 'Center' },
+			box,
+			['#fff'],
+			'flat',
+			'e',
+			7,
+		);
+		expect(twoSatellites.fontSize).not.toBe(sevenSatellites.fontSize);
+		expect(twoSatellites.fontSize).toBeGreaterThan(20);
+		expect(sevenSatellites.fontSize).toBeGreaterThan(20);
+	});
 });

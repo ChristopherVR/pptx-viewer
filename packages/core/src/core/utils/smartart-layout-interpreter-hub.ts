@@ -20,6 +20,7 @@
 import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
+import { foldedDescendantTexts } from './smartart-interpreter-drawing-bridge';
 import {
 	computeCycleRingLayout,
 	resolveCycleRingParams,
@@ -28,6 +29,8 @@ import { arrangerRepeatsChildTemplate } from './smartart-layout-interpreter-hub-
 import { itemNode, numericParam } from './smartart-layout-interpreter-model';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { styleContext } from './smartart-layout-interpreter-render';
+import { resolveTieredItemFontSize } from './smartart-layout-item-font-tier';
+import { roundRectCornerInsetPx } from './smartart-layout-shape-preset';
 import type { BoundingBox, RenderedNode } from './smartart-layout-types';
 
 /** The hub point plus the satellites its nested `axis="ch"` forEach actually arranges. */
@@ -89,6 +92,8 @@ export function buildHubRenderedNode(
 	elementId: string,
 	satelliteCount = 0,
 	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
+	childrenOf?: Map<string, PptxSmartArtNode[]>,
+	fontName?: string,
 ): RenderedNode {
 	const item = itemNode(arranger);
 	if (arranger.algorithm?.type === 'cycle' && satelliteCount > 0) {
@@ -136,6 +141,32 @@ export function buildHubRenderedNode(
 			width = Math.max(1, naturalHubDiam * scaleX);
 			height = Math.max(1, naturalHubDiam * scaleY);
 		}
+		// Round 36: this branch used to hand no `fontSizeOverride` to
+		// `presetBoxNode` at all, so every hub fell through that helper's own
+		// crude, un-derived per-box heuristic (capped ~12px) regardless of the
+		// diagram's real declared `primFontSz` - the SAME gap `smartart-layout-
+		// interpreter-cycle-fontfit.ts`'s module doc comment describes round 18
+		// closing for the RING items, just never wired for the hub (which is
+		// built HERE, via `detectHubExpansion`, before `arrangeCycle` ever sees a
+		// hub-stripped node list - `arrangeCycle`'s own `buildCycleHubBox` hub-
+		// font branch is unreachable for every genuine gallery hub fixture). A
+		// corpus-wide scan of every hub-bearing cycle fixture's cached drawing
+		// (`l36-hub-font-scan.ts`, scratchpad) shows the hub's real font size is
+		// ALWAYS fit to ITS OWN (usually much bigger) box, independently of the
+		// ring items' shared size - fits the SAME shared tiered fitter
+		// `arrangeCycle`'s ring items already use, against the hub's own box only.
+		const cornerInsetPx = roundRectCornerInsetPx(item?.shape, width, height);
+		const descendantTexts = childrenOf
+			? foldedDescendantTexts(hubNode, new Set([hubNode.id]), childrenOf)
+			: [];
+		const { rootSizePx, descendantSizePx } = resolveTieredItemFontSize(
+			{ kind: 'cycle', node: arranger },
+			index,
+			[{ rootText: hubNode.text, descendantTexts, width, height }],
+			fontName,
+			undefined,
+			cornerInsetPx,
+		);
 		return presetBoxNode({
 			key: `${elementId}-hub-${hubNode.id}`,
 			x: ring.hubCenter.x - width / 2,
@@ -151,6 +182,8 @@ export function buildHubRenderedNode(
 			shape: item?.shape,
 			fallbackKind: 'circle',
 			preserveEllipseAspect: true,
+			fontSizeOverride: rootSizePx,
+			descendantFontSize: descendantSizePx,
 		});
 	}
 	// Coarse, centred placeholder for a non-`cycle` hub-bearing algorithm

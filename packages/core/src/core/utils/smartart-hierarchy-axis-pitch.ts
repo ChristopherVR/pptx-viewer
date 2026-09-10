@@ -79,6 +79,7 @@ export function computeHierarchyAxisPitches(
 	depth: number,
 	hangShape: HierarchyHangShape,
 	tailedPitch: boolean,
+	cascadeReserveOffsetPx?: number,
 ): HierarchyAxisPitches {
 	// SESSION 28: the generation-axis mirror of `compositeFanPitch`'s own
 	// `compositeW` substitution - when the layout's own "parent-relative"
@@ -98,20 +99,92 @@ export function computeHierarchyAxisPitches(
 		tailedPitch && orientation.compositeHeightFactor
 			? boxH / orientation.compositeHeightFactor
 			: boxH;
-	const generationMargin = orientation.transposed ? 0 : boxH * GENERATION_MARGIN_RATIO;
+	// SESSION 30: `GENERATION_MARGIN_RATIO` is a fixed leading-margin BIAS
+	// compensating for the "Hierarchy"-family `composite` wrapper's own
+	// decorative "3D card" shell (see this module's own doc comment) - it is
+	// COM-verified correct whenever that shell exists (`hierarchy--
+	// {flat3,hier5,hier8}.pptx`, `compositeWidthFactor` defined) AND for
+	// `tailedPitch` (org-chart family, no such shell but a different,
+	// independently-verified shape - see `smartart-hierarchy-axis-pitch.test.ts`'s
+	// own non-transposed-tailed case). It does NOT generalise to a `std`-mode
+	// layout with NO declared `composite` wrapper at all
+	// (`compositeWidthFactor===undefined`, "level1Shape direct" - SESSION 21's
+	// own naming): `labeled-hierarchy--hier5.pptx`'s own cached root sits
+	// FLUSH against the generation axis's leading edge (local `y=0`), not
+	// biased down by this margin - applying it anyway put the root ~29px
+	// (5.44% of the 533-tall diagram) below where PowerPoint renders it.
+	// Solving the SAME centred-pitch equation backward from the fixture's own
+	// cached row centres (COM-verified: local `y=0/197/393`, i.e. flush) shows
+	// `margin=0` is the exact value that reproduces a flush root, not a
+	// smaller nonzero bias - not just "closer to zero". Scoped narrowly (only
+	// `!tailedPitch && compositeWidthFactor===undefined`): `circle-picture-
+	// hierarchy--hier5.pptx` (the OTHER "std", no-outer-margin-style fixture
+	// with a small residual) still declares its OWN `composite` wrapper
+	// (`compositeWidthFactor=0.6`), so this condition leaves it untouched -
+	// confirmed via a full corpus regen, not just this fixture's own number.
+	//
+	// SESSION 31: the `tailedPitch` half of that same margin ALSO does not
+	// generalise to a tailed (org-chart-family) tree with NO hanging tail at
+	// all (`hangShape.maxHangDepth===0`, a purely-fanned tree that never
+	// escapes the fan into `placeHangingForest`'s own separate mechanism -
+	// see `smartart-hierarchy-hang-depth.ts`'s `computeHangShape`):
+	// `organization-chart--flat3.pptx` (1 root + 2 fanned children, no
+	// deeper generation) is the ONLY built-in-gallery fixture with this exact
+	// shape (`mode==='tailed' && maxHangDepth===0` - every other org-chart-
+	// family fixture checked has a real hang, `maxHangDepth>=1`, and keeps
+	// the existing nonzero margin unaffected). Per-shape diagnostic showed
+	// BOTH rows (root AND the fanned children) shifted uniformly `+16px`
+	// (3.0% of the 533-tall diagram) too far down, with `w`/`h` already
+	// exact - the signature of a pure `yPitch.shift` error, not a pitch or
+	// size bug. Solving `computeAxisPitch`'s own centred-shift equation
+	// backward from the fixture's cached local row centres (`128`/`406`,
+	// `pitch=278.5` matching this fixture's OWN un-margined pitch almost
+	// exactly) gives `margin=~1.5` (effectively `0`, not the ~33px
+	// `boxH*GENERATION_MARGIN_RATIO` the un-scoped condition was applying) -
+	// COM-verified via the fixture's own cached geometry, not guessed.
+	const noHangTailed = tailedPitch && hangShape.maxHangDepth === 0;
+	const generationMargin =
+		orientation.transposed ||
+		(!tailedPitch && orientation.compositeWidthFactor === undefined) ||
+		noHangTailed
+			? 0
+			: boxH * GENERATION_MARGIN_RATIO;
+	// SESSION 30: when the declared cascade shape is active
+	// (`cascadeReserveOffsetPx` defined - see `smartart-hierarchy-cascade.ts`),
+	// the row past the fan no longer sits in an INDENTED hanging column at
+	// all - `placeAt` routes it through the SAME fanned-row placer as every
+	// other generation, nudged right by `cascadeOffsetX`'s own fixed
+	// `alignOff`-derived pixel amount instead. The fan axis must reserve room
+	// for THAT nudge, not the (now-unused for this shape) `HIER_TAIL_OFFSET_
+	// RATIO` indent reservation the plain hanging-tail model needs - reusing
+	// the indent term here left the fan row centred ~56px (6.5% of the
+	// diagram width) too far right on `half-circle-organization-chart--
+	// hier5.pptx`, uniformly across every generation (root included, since
+	// this feeds `xPitch.shift`, applied to the WHOLE result via
+	// `translateResult`) - COM-verified fix, not a per-layout special case:
+	// `cascadeReserveOffsetPx` is `undefined` for every fixture that doesn't
+	// declare this construct, leaving `fanWidth` byte-identical to before.
 	const fanWidth = tailedPitch
-		? effectiveBox.width - hangShape.maxHangDepth * HIER_TAIL_OFFSET_RATIO * boxW
+		? effectiveBox.width -
+			(cascadeReserveOffsetPx ?? hangShape.maxHangDepth * HIER_TAIL_OFFSET_RATIO * boxW)
 		: effectiveBox.width;
-	// See `fitItemBox`'s own `hangHeightRatio` doc comment (SESSION 25): the
-	// SAME per-hang-row height reservation this pitch makes must use the SAME
-	// ratio that sized `boxH` in the first place, or a transposed tailed hang
-	// (e.g. "Horizontal Organization Chart") over-reserves room using the
-	// fixed `HANG_HEIGHT_RATIO` against a `boxH` that was itself already
-	// grown by `generationGapRatio` instead - measured regression (root's own
-	// fanned children row landing 89px/10.3% short of cached).
-	const hangHeightRatio = orientation.transposed
-		? orientation.generationGapRatio
-		: HANG_HEIGHT_RATIO;
+	// See `HierarchyOrientation.hangHeightRatio`'s own doc comment (SESSION
+	// 25/32): the SAME per-hang-row height reservation this pitch makes must
+	// use the SAME ratio that sized `boxH` (`fitItemBox`) and positioned the
+	// hang transition (`smartart-hierarchy-standard.ts`) in the first place -
+	// all three consume `orientation.hangHeightRatio` (falling back to the
+	// fixed `HANG_HEIGHT_RATIO` only for the rare compound-text-role shape
+	// that field itself is `undefined` for), or the reservation this function
+	// makes disagrees with the size/position `fitItemBox`/`placeAt` actually
+	// used (measured regression when left on the OLD, always-fixed
+	// `HANG_HEIGHT_RATIO`: `organization-chart--hier5.pptx`/
+	// `picture-organization-chart--hier5.pptx` 1.27% -> 3.38%, worse, not
+	// better; and, pre-SESSION-32, a transposed tailed hang (e.g. "Horizontal
+	// Organization Chart") over-reserved room using the fixed ratio against a
+	// `boxH` that was itself already grown by `generationGapRatio` instead -
+	// measured regression, root's own fanned children row landing 89px/10.3%
+	// short of cached).
+	const hangHeightRatio = orientation.hangHeightRatio ?? HANG_HEIGHT_RATIO;
 	const fanHeight = tailedPitch
 		? effectiveBox.height - hangShape.maxHangRows * (1 + hangHeightRatio) * boxH
 		: effectiveBox.height;

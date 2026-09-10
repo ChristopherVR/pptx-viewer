@@ -51,6 +51,36 @@ describe('fitItemBox', () => {
 		expect(boxH / boxW).toBeCloseTo(0.5, 6);
 	});
 
+	// SESSION 32: the SAME organization-chart--hier5.pptx shape as the test
+	// above, but passing `hangHeightRatio=generationGapRatio=0.42` (what
+	// `resolveHierarchyOrientation` now actually supplies for this fixture -
+	// see `HierarchyOrientation.hangHeightRatio`'s own doc comment) instead of
+	// letting it default to the fixed `HANG_HEIGHT_RATIO=0.55`. COM-verified:
+	// the DEFAULT (0.55, the test above) under-sizes this fixture by 3.4%
+	// (`134.3` vs cached `139`); `0.42` reproduces cached `278x139` to within
+	// rounding - full gate regen confirms `maxDeltaFraction` goes to exactly
+	// `0` for this fixture with this change (was `0.0127`).
+	it('a supplied hangHeightRatio reserves LESS room than the default 0.55, landing the exact cached size (organization-chart--hier5.pptx shape, SESSION 32)', () => {
+		const { boxW, boxH } = fitItemBox(
+			{ width: 867, height: 533 },
+			2,
+			2,
+			0.21,
+			0.5,
+			0.42,
+			0,
+			0,
+			1,
+			undefined,
+			1,
+			true,
+			0.42,
+		);
+		expect(boxH).toBeCloseTo(138.8, 1);
+		expect(boxW).toBeCloseTo(277.6, 1);
+		expect(boxH / boxW).toBeCloseTo(0.5, 6);
+	});
+
 	it('session 10: clamps to the smaller of natural aspect and heightFit even when heightFit has far more room (a tall, narrow box) - the `clampToNaturalAspect` parameter this replaced is gone, every caller needs this behaviour now', () => {
 		const { boxH, boxW } = fitItemBox({ width: 100, height: 800 }, 2, 2, 0, 1, 0, 0, 0, 0);
 		const naturalHeight = boxW; // aspectRatio=1 here, so naturalHeight===boxW.
@@ -99,5 +129,51 @@ describe('fitItemBox', () => {
 		);
 		expect(withOverride.boxH).toBeCloseTo(255.0, 0); // matches cached exactly.
 		expect(withOverride.boxW).toBeCloseTo(77.8, 0); // matches cached (78) within 0.3%.
+	});
+
+	// SESSION 32: circle-picture-hierarchy--hier5.pptx's own shape - the SAME
+	// box/totalLeaves/depth/sibSp/margins as the FIRST test above
+	// (`hierarchy--hier5.pptx`), but a "parent-relative" composite child
+	// (`compositeHeightFactor=0.8`, `compositeAspect=0.5` - see
+	// `smartart-hierarchy-composite-child.ts`'s own SESSION 21 doc comment)
+	// instead of the self-referential shape: without `compositeChainHeightRatio`
+	// (`compositeAspect*heightFactor=0.4`), `heightFit` (130.75, identical to
+	// `hierarchy--hier5.pptx`'s own value - the raw formula cannot distinguish
+	// the two shapes at all) wins the `Math.min` clamp and under-sizes the item
+	// by 9.5% (cached is 216x144). Passing `compositeChainHeightRatio` bypasses
+	// that clamp entirely and reconstructs the item from the composite chain
+	// (`widthFit` IS `compositeW`, un-shrunk - `renderedItem.h = compositeW *
+	// compositeAspect * compositeHeightFactor`), landing within 0.9% of cached
+	// instead of 9.5%.
+	it('a parent-relative composite child bypasses the heightFit clamp via compositeChainHeightRatio (circle-picture-hierarchy--hier5.pptx shape)', () => {
+		const withoutChain = fitItemBox(
+			{ width: 867, height: 533 },
+			2,
+			3,
+			0.1,
+			0.6666666666666666,
+			0.25,
+			0.0491,
+			0.0707,
+		);
+		expect(withoutChain.boxH).toBeCloseTo(130.74, 1); // same heightFit as hierarchy--hier5.pptx - structurally blind to the composite chain.
+		const { boxW, boxH } = fitItemBox(
+			{ width: 867, height: 533 },
+			2,
+			3,
+			0.1,
+			0.6666666666666666,
+			0.25,
+			0.0491,
+			0.0707,
+			0,
+			undefined,
+			0,
+			false,
+			undefined,
+			0.4,
+		);
+		expect(boxH).toBeCloseTo(148.93, 1); // widthFit(372.32) * compositeChainHeightRatio(0.4) - within 0.9% of cached 144.
+		expect(boxW).toBeCloseTo(223.4, 0); // boxH/aspectRatio - within 3.4% of cached 216 (the pre-existing widthFit overshoot, not this fix's own residual).
 	});
 });

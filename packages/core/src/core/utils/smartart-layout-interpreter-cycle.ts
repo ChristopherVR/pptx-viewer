@@ -234,10 +234,11 @@ export function arrangeCycle(
 	// descendants) for the first genuinely declared preset instead of
 	// assuming the item template is always the first one.
 	const itemShape = findCompositeItemShape(resolveCycleConstraintNode(plan.node));
-	// Shared font size for every ring/hub item (round 18): see
-	// `smartart-layout-interpreter-cycle-fontfit.ts`'s module doc comment.
+	// Font size for every ring item, plus the hub's own INDEPENDENT size when
+	// one is present (round 18/36): see `smartart-layout-interpreter-cycle-
+	// fontfit.ts`'s module doc comment.
 	const cornerInset = roundRectCornerInsetPx(itemShape, ring.nodeWidth, ring.nodeHeight);
-	const { fontSizeOverride, descendantSizePx } = resolveCycleFontFit(
+	const fontFit = resolveCycleFontFit(
 		plan,
 		index,
 		ringNodes,
@@ -256,12 +257,12 @@ export function arrangeCycle(
 		ctx,
 		shape: itemShape,
 		elementId,
-		fontSizeOverride,
-		descendantFontSize: descendantSizePx,
+		fontSizeOverride: fontFit.fontSizeOverride,
+		descendantFontSize: fontFit.descendantSizePx,
 	};
 	const renderedNodes: RenderedNode[] = buildCycleRingBoxes(ringNodes, ring, boxInputs);
 	if (hubNode) {
-		renderedNodes.push(buildCycleHubBox(hubNode, ring, nodes.length, boxInputs));
+		renderedNodes.push(buildCycleHubBox(hubNode, ring, nodes.length, boxInputs, fontFit));
 	}
 
 	// A ring point whose OWN data node has children (`radial-cluster`'s

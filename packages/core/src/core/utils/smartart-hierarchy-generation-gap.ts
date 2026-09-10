@@ -124,6 +124,29 @@ export function resolveGenerationGapRatio(
 ): number {
 	const onStackingAxis = findByReference(constraints, 'sp', stackingAxis);
 	if (onStackingAxis !== undefined) {
+		// SESSION 32: the "parent-relative" composite-child shape
+		// (`compositeChild.heightFactor` defined - see `smartart-hierarchy-
+		// composite-child.ts`'s own module doc comment, e.g. `circle-picture-
+		// hierarchy--hier5.pptx`) declares `sp` relative to the WRAPPING
+		// `composite`'s own stacking-axis size directly (the SAME `refFor=des
+		// refForName=composite` shape "Hierarchy" itself declares), but its
+		// composite.h -> renderedItem.h relationship is `heightFactor` ALONE
+		// (`renderedItem.h = composite.h * heightFactor`, declared directly,
+		// no width-axis indirection) - not the squared-`aspectRatio` formula
+		// below, which is derived from the SELF-referential shape's own
+		// composite.h -> renderedItem.h path THROUGH the width axis
+		// (`widthFactor`/`aspectRatio`) and does not apply here. Converting:
+		// `gapRatio = declaredFact * composite.h / renderedItem.h =
+		// declaredFact / heightFactor`. COM-verified against `circle-picture-
+		// hierarchy--hier5.pptx`: `0.25 / 0.8 = 0.3125` reproduces the cached
+		// row-to-row generation pitch (`~189.5px` local, depth 3) within 0.3%
+		// once `fitItemBox`'s own SESSION 32 `compositeChainHeightRatio` fix
+		// lands alongside this (sizing and positioning must move together -
+		// see `smartart-track-r-successor.md`'s SESSION 31 finding this
+		// completes).
+		if (compositeChild?.heightFactor !== undefined && compositeChild.heightFactor > 0) {
+			return onStackingAxis / compositeChild.heightFactor;
+		}
 		if (
 			compositeChild &&
 			compositeAspect !== undefined &&

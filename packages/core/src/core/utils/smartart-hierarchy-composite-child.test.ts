@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PptxSmartArtLayoutNode } from '../types';
-import { resolveCompositeChildGeometry } from './smartart-hierarchy-composite-child';
+import {
+	compositeDeclaresCompoundTextRole,
+	resolveCompositeChildGeometry,
+} from './smartart-hierarchy-composite-child';
 
 /**
  * `hierarchy--flat3.pptx`'s own real `layout1.xml` shape (trimmed to the
@@ -211,5 +214,52 @@ describe('resolveCompositeChildGeometry', () => {
 			],
 		};
 		expect(resolveCompositeChildGeometry(circlePictureLike)).toBeUndefined();
+	});
+});
+
+describe('compositeDeclaresCompoundTextRole', () => {
+	it("session 32: true for name-and-title-organization-chart--hier5.pptx's own shape (a SECOND role's primFontSz declared relative to the text child) - the SAME structural signal resolveCompositeChildGeometry bails on, exposed standalone so smartart-hierarchy-orientation.ts's hangHeightRatio generalisation can avoid it without needing the (unresolvable) full geometry", () => {
+		const nameAndTitleLike: PptxSmartArtLayoutNode = {
+			name: 'hierChild1',
+			children: [
+				{
+					name: 'composite',
+					algorithm: { type: 'composite' },
+					constraints: [
+						{ type: 'w', for: 'ch', forName: 'rootText1', referenceType: 'w' },
+						{ type: 'h', for: 'ch', forName: 'rootText1', referenceType: 'h', factor: 0.9 },
+						{
+							type: 'primFontSz',
+							for: 'des',
+							forName: 'titleText1',
+							referenceType: 'primFontSz',
+							referenceFor: 'des',
+							referenceForName: 'rootText1',
+						},
+					],
+					children: [{ name: 'rootText1', presentationOf: { axis: ['self'] } }],
+				},
+			],
+		};
+		expect(compositeDeclaresCompoundTextRole(nameAndTitleLike)).toBeTruthy();
+	});
+
+	it("false for organization-chart--hier5.pptx's own shape (a plain, single-role text child, no primFontSz cross-reference)", () => {
+		const orgChartLike: PptxSmartArtLayoutNode = {
+			name: 'hierChild1',
+			children: [
+				{
+					name: 'rootComposite1',
+					algorithm: { type: 'composite' },
+					children: [{ name: 'rootText1', presentationOf: { axis: ['self'] } }],
+				},
+			],
+		};
+		expect(compositeDeclaresCompoundTextRole(orgChartLike)).toBeFalsy();
+	});
+
+	it('false for a layoutDef with no `composite` wrapper at all (e.g. "Horizontal Hierarchy") - nothing to bail on', () => {
+		expect(compositeDeclaresCompoundTextRole(undefined)).toBeFalsy();
+		expect(compositeDeclaresCompoundTextRole({ name: 'hierChild1', children: [] })).toBeFalsy();
 	});
 });

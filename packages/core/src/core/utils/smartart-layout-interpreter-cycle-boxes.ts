@@ -8,6 +8,7 @@
  */
 
 import type { PptxSmartArtLayoutNodeShape, PptxSmartArtNode, SmartArtStyle } from '../types';
+import type { CycleFontFit } from './smartart-layout-interpreter-cycle-fontfit';
 import type { CycleRingLayout } from './smartart-layout-interpreter-cycle-ring';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import type { StyleContext } from './smartart-layout-interpreter-render';
@@ -53,12 +54,20 @@ export function buildCycleRingBoxes(
 	});
 }
 
-/** The centred `ctrShpMap="fNode"` hub box, sized from the ring's own largest-clearing-ellipse fit. */
+/**
+ * The centred `ctrShpMap="fNode"` hub box, sized from the ring's own
+ * largest-clearing-ellipse fit. `hubFontFit` (round 36): the hub fits its OWN
+ * box independently of the ring items - see `smartart-layout-interpreter-
+ * cycle-fontfit.ts`'s module doc comment. Falls back to `inputs`' own ring
+ * size when omitted, so an existing caller with no hub-specific fit is
+ * unaffected.
+ */
 export function buildCycleHubBox(
 	hubNode: PptxSmartArtNode,
 	ring: CycleRingLayout,
 	totalNodeCount: number,
 	inputs: CycleBoxInputs,
+	hubFontFit?: CycleFontFit,
 ): RenderedNode {
 	const hubW = Math.max(1, ring.hubHalfWidth * 2);
 	const hubH = Math.max(1, ring.hubHalfHeight * 2);
@@ -77,7 +86,7 @@ export function buildCycleHubBox(
 		shape: inputs.shape,
 		fallbackKind: 'circle',
 		preserveEllipseAspect: true,
-		fontSizeOverride: inputs.fontSizeOverride,
-		descendantFontSize: inputs.descendantFontSize,
+		fontSizeOverride: hubFontFit?.hubFontSizeOverride ?? inputs.fontSizeOverride,
+		descendantFontSize: hubFontFit?.hubDescendantSizePx ?? inputs.descendantFontSize,
 	});
 }

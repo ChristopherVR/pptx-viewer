@@ -89,26 +89,24 @@ export interface InterpretLayoutInput {
 	presLayoutVars?: PptxSmartArtPresLayoutVars;
 	/**
 	 * Per-styleLbl-role resolved colour lists (from
-	 * `PptxSmartArtColorTransform.roleColors`). When present, a node whose
-	 * {@link PptxSmartArtNode.styleRole} matches a key gets that role's own
-	 * cycled fill colour instead of the generic `palette` cycling - see
+	 * `PptxSmartArtColorTransform.roleColors`): a node whose {@link
+	 * PptxSmartArtNode.styleRole} matches a key gets that role's own cycled
+	 * fill colour instead of the generic `palette` cycling - see
 	 * `smartart-node-role-colors.ts`.
 	 */
 	colorRoles?: SmartArtColorRoleMap;
 	/**
 	 * Data-model connections (from `PptxSmartArtData.connections`): labels a
 	 * hierarchy `parOf` edge's connector from its `parTrans` text, and
-	 * resolves a transition-bound item role's ordinal text (a numbered
-	 * badge) from its `sibTrans`/`parTrans` text - both via `connection.label`
-	 * (`parseSmartArtConnections`).
+	 * resolves a transition-bound item role's ordinal text (a numbered badge)
+	 * from its `sibTrans`/`parTrans` text - via `connection.label`.
 	 */
 	connections?: PptxSmartArtConnection[];
 	/**
 	 * The deck's own theme minor-Latin font (`PptxSmartArtData.themeMinorFont`),
-	 * threaded through to the `lin`/`snake` arrangers' font-fit
-	 * (`smartart-layout-item-font-size.ts`) so text is measured against the
-	 * REAL font PowerPoint renders it in, not a hardcoded guess. `undefined`
-	 * falls back to that module's own default.
+	 * threaded through to every arranger's font-fit so text is measured
+	 * against the REAL font PowerPoint renders it in. `undefined` falls back
+	 * to the default in `smartart-layout-item-font-size.ts`.
 	 */
 	fontName?: string;
 }
@@ -275,6 +273,8 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 		elementId,
 		hub.satellites.length,
 		constraintIndex,
+		childrenOf,
+		input.fontName,
 	);
 	return { ...withCycleRingContent, nodes: [hubNode, ...withCycleRingContent.nodes] };
 }

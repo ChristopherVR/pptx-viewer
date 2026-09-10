@@ -36,9 +36,13 @@ import type { PptxSmartArtLayoutNode } from '../types';
 import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
-import { resolveCompositeChildGeometry } from './smartart-hierarchy-composite-child';
+import {
+	compositeDeclaresCompoundTextRole,
+	resolveCompositeChildGeometry,
+} from './smartart-hierarchy-composite-child';
 import { DEFAULT_ASPECT_RATIO, resolveAspectRatio } from './smartart-hierarchy-constraint-lookup';
 import { resolveGenerationGapRatio } from './smartart-hierarchy-generation-gap';
+import type { HierarchyOrientation } from './smartart-hierarchy-orientation-types';
 import { tailedHierarchyDeclaresChAlign } from './smartart-hierarchy-tailed-transpose';
 
 export { findByReference } from './smartart-hierarchy-constraint-lookup';
@@ -74,46 +78,10 @@ const DEFAULT_SIB_SP_RATIO = 0.1;
 export const OUTER_MARGIN_X_RATIO = 0.0491;
 export const OUTER_MARGIN_Y_RATIO = 0.0707;
 
-export interface HierarchyOrientation {
-	/** True when the fan axis is Y (siblings stack vertically) and generations stack along X. */
-	transposed: boolean;
-	sibSpRatio: number;
-	/** `h:w` when `!transposed`; the axes are swapped inside `arrangeHierarchy` when `transposed`, so this is always the ratio to apply to the FAN-axis size to get the CROSS-axis size in "logical" (post-swap) space. */
-	aspectRatio: number;
-	/** Generation-to-generation gap the DECLARED `sp` fact, no `composite`-cell correction applied - see `smartart-hierarchy-generation-gap.ts`. Used by `fitItemBox` to SIZE the item; that solve already matched cached geometry with this raw value, see the call site's own comment. */
-	generationGapRatio: number;
-	/** The SAME gap, `composite`-cell-corrected (mirrors `compositeWidthFactor`'s own cell-vs-item split on the fan axis) - used by `computeHierarchyAxisPitches` to POSITION composite cells, the ones actually centred/pitched. Identical to `generationGapRatio` whenever no `composite` wrapper is declared (every `tailed`/`transposed` layout checked). */
-	compositeGenerationGapRatio: number;
-	/** Outer margin (fraction of the effective box) on the FAN axis - see `OUTER_MARGIN_X_RATIO`'s doc comment: 0 when `transposed`. */
-	marginXRatio: number;
-	/** Outer margin (fraction of the effective box) on the GENERATION axis - see `OUTER_MARGIN_X_RATIO`'s doc comment: 0 when `transposed`. */
-	marginYRatio: number;
-	/**
-	 * The rendered item's own width as a fraction of the WRAPPING `composite`
-	 * cell's width, when the layout declares one (`smartart-hierarchy-
-	 * composite-child.ts`'s own `widthFactor`) - `undefined` for a layoutDef
-	 * with no such wrapper (e.g. "Horizontal Hierarchy"). The FAN axis needs
-	 * to centre `composite` CELLS (not the smaller rendered item) using the
-	 * layout's own unconverted `sibSpRatio` - see `smartart-layout-
-	 * interpreter-hierarchy.ts`'s own fan-axis wiring.
-	 */
-	compositeWidthFactor?: number;
-	/**
-	 * The generation-axis mirror of `compositeWidthFactor` - the rendered
-	 * item's own height as a fraction of the WRAPPING `composite` cell's own
-	 * height, when the layout's own "parent-relative" shape declares one
-	 * (`smartart-hierarchy-composite-child.ts`'s own `heightFactor`, SESSION
-	 * 28) - `undefined` otherwise (including the self-referential composite
-	 * shape, where no caller has yet needed the distinction).
-	 */
-	compositeHeightFactor?: number;
-	/**
-	 * The rendered item's own constant "3D card" offset from its `composite`
-	 * cell's own leading edge, as a fraction of the `composite` cell's width
-	 * - 0 when no `composite` wrapper is declared (nothing to offset from).
-	 */
-	cardOffsetXRatio: number;
-}
+// `HierarchyOrientation` (the descriptor this module resolves) now lives in
+// `smartart-hierarchy-orientation-types.ts` (file-size budget); re-exported
+// here so existing callers of this module are unaffected.
+export type { HierarchyOrientation };
 
 /**
  * Resolve whether `algorithmNode` is a transposed (horizontal-fan) hierarchy
@@ -191,7 +159,14 @@ export function resolveHierarchyOrientation(
 			marginYRatio: 0,
 			// A transposed hierarchy declares no `composite` wrapper (see
 			// `smartart-hierarchy-composite-child.ts`'s own module doc comment) -
-			// nothing to correct or offset from.
+			// nothing to correct or offset from, and no parent-relative shape to
+			// chain through either.
+			compositeChainHeightRatio: undefined,
+			// SESSION 25 already substituted `generationGapRatio` for the
+			// transposed case (see `HierarchyOrientation.hangHeightRatio`'s own
+			// SESSION 32 doc comment) - no compound-role guard needed here, no
+			// transposed fixture in the corpus declares that shape.
+			hangHeightRatio: resolveGenerationGapRatio(constraints, 'w', hToW),
 			cardOffsetXRatio: 0,
 		};
 	}
@@ -264,6 +239,23 @@ export function resolveHierarchyOrientation(
 		marginYRatio: tailedMargin ? 0 : OUTER_MARGIN_Y_RATIO,
 		compositeWidthFactor: compositeChild?.widthFactor,
 		compositeHeightFactor: compositeChild?.heightFactor,
+		// SESSION 32: see `HierarchyOrientation.compositeChainHeightRatio`'s own
+		// doc comment - only defined for the "parent-relative" composite-child
+		// shape (`compositeChild.heightFactor` set), `undefined` for the
+		// self-referential shape (plain "Hierarchy") and every layout with no
+		// `composite` wrapper at all.
+		compositeChainHeightRatio:
+			compositeChild?.heightFactor !== undefined
+				? compositeAspect * compositeChild.heightFactor
+				: undefined,
+		// SESSION 32: see `HierarchyOrientation.hangHeightRatio`'s own doc
+		// comment - `undefined` (callers fall back to the fixed
+		// `HANG_HEIGHT_RATIO`) only for the compound, multi-role text box
+		// shape; `generationGapRatio` otherwise, matching COM-verified ground
+		// truth for the plain "Organization Chart" family.
+		hangHeightRatio: compositeDeclaresCompoundTextRole(algorithmNode)
+			? undefined
+			: resolveGenerationGapRatio(constraints, 'h', compositeAspect),
 		cardOffsetXRatio: compositeChild?.offsetXRatio ?? 0,
 	};
 }
