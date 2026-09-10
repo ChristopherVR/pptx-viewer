@@ -3,12 +3,14 @@
  * dispatcher that turns the editor's own element tree into the model
  * `write-model.ts` types describe.
  *
- * Elements with no binary-`.ppt` equivalent (chart, smartArt, media, ole,
- * ink, model3d, contentPart, zoom, unknown) are written as their rasterised
- * preview picture when one is available (PNG/JPEG only, see
- * `raster-utils.ts`), otherwise as a labelled placeholder rectangle. Either
- * way a `PptxCompatibilityWarning` (`scope: 'element'`) is reported so the
- * degradation is visible to the caller, never silent.
+ * `media` and `ole` have real binary equivalents (`media-element-convert.ts`,
+ * `ole-element-convert.ts`). Every other element with no binary-`.ppt`
+ * equivalent (chart, smartArt, ink, contentPart, model3d, zoom, unknown; see
+ * `docs/guide/limitations.md`'s `.ppt` row on why ink/smartArt still degrade
+ * despite investigation) is written as its rasterised preview picture when
+ * one is available (PNG/JPEG only, see `raster-utils.ts`), otherwise as a
+ * labelled placeholder rectangle. Either way a `PptxCompatibilityWarning`
+ * (`scope: 'element'`) is reported, never silent.
  *
  * @module ppt/writer/element-to-write-model
  */

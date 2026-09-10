@@ -4,8 +4,7 @@ import type {
 	InkPptxElement,
 	XmlObject,
 } from '../../types';
-import { buildInkMlContent, parseInkMlContent } from '../../utils';
-import { tiltChannelsFromXY } from '../../utils/inkml-trace-decode';
+import { buildInkMlContent, inkElementToStrokes, parseInkMlContent } from '../../utils';
 import { resolveXfrmEmu } from '../../utils/xfrm-emu-resolution';
 import { ensureXmlChildOrCreate } from '../../utils/xml-access';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
@@ -47,27 +46,6 @@ function strokeListsEqual(
 	});
 }
 
-/**
- * Convert an `InkPptxElement` path's raw per-point `tiltX`/`tiltY` (degrees,
- * from `PointerEvent.tiltX`/`tiltY`) into the `{angles, magnitudes}` shape
- * `ContentPartInkStroke` (and the InkML writer's `OTx`/`OTy` authoring) both
- * expect, or `undefined` when the path has no tilt data at all. Shares the
- * exact vector-to-angle/magnitude convention the InkML reader's
- * `pointsToTilt` uses, via `tiltChannelsFromXY`.
- */
-function tiltChannelsForPath(
-	el: InkPptxElement,
-	index: number,
-): { tiltAngles: number[]; tiltMagnitudes: number[] } | undefined {
-	const tiltX = el.inkPointTiltX?.[index];
-	const tiltY = el.inkPointTiltY?.[index];
-	if (!tiltX?.length || !tiltY?.length) {
-		return undefined;
-	}
-	const tilt = tiltChannelsFromXY(tiltX, tiltY);
-	return tilt ? { tiltAngles: tilt.angles, tiltMagnitudes: tilt.magnitudes } : undefined;
-}
-
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	private readonly newContentPartFallbackByXml = new Map<XmlObject, XmlObject>();
 
@@ -84,25 +62,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		el: InkPptxElement,
 		ctx: SaveSlideContext,
 	): XmlObject | undefined {
-		const strokes = el.inkPaths.flatMap((path, index) => {
-			if (!path.trim()) {
-				return [];
-			}
-			const width = el.inkWidths?.[index] ?? 2;
-			const opacity = el.inkOpacities?.[index] ?? 1;
-			return [
-				{
-					path,
-					color: el.inkColors?.[index] ?? '#000000',
-					width: Number.isFinite(width) && width > 0 ? width : 2,
-					opacity: Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1,
-					...(el.inkPointPressures?.[index]?.length
-						? { pressures: el.inkPointPressures[index] }
-						: {}),
-					...(tiltChannelsForPath(el, index) ?? {}),
-				},
-			];
-		});
+		const strokes = inkElementToStrokes(el);
 		if (strokes.length === 0) {
 			return undefined;
 		}

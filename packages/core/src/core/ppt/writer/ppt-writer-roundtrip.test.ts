@@ -169,6 +169,44 @@ describe('legacy .ppt writer round-trip', () => {
 		expect(reloaded.slides[0]!.elements.length).toBeGreaterThan(0);
 	});
 
+	it("null-terminates a named shape's wzName complex property", async () => {
+		// Regression test for a bug that made real PowerPoint reject any
+		// `.ppt` this writer produced for a shape with a `name` set (see
+		// `fopt-writer.test.ts`'s `encodeComplexString` unit test for the
+		// COM-verified root cause): assert at the BYTE level, not just via
+		// this project's own (already terminator-tolerant) reader, since the
+		// reader alone cannot catch a missing terminator.
+		const { handler, data, createSlide } = await PptxHandler.createBlank({
+			title: 'Named Shape Test',
+		});
+		const slide = createSlide('Blank').build();
+		const named: PptxElement = {
+			type: 'shape',
+			id: 'nt1',
+			name: 'MyNamedRect',
+			x: 100,
+			y: 150,
+			width: 300,
+			height: 120,
+			shapeType: 'rect',
+			shapeStyle: { fillColor: '#4472C4' },
+		} as PptxElement;
+		slide.elements = [named];
+		data.slides = [slide];
+
+		const bytes = await handler.save(data.slides, { outputFormat: 'ppt' });
+		// "M" (0x4D, 0x00) ... "t" (0x74, 0x00) then a null terminator: search
+		// for the UTF-16LE encoding of the name immediately followed by 00 00.
+		const nameUtf16 = Buffer.from('MyNamedRect', 'utf16le');
+		const needle = Buffer.concat([nameUtf16, Buffer.from([0, 0])]);
+		const haystack = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		// Not `toContain`: that checks array MEMBERSHIP (a single element),
+		// not the byte-subsequence search `Buffer#includes` performs, which is
+		// what this assertion actually needs.
+		// oxlint-disable-next-line vitest/prefer-to-contain
+		expect(haystack.includes(needle)).toBeTruthy();
+	});
+
 	it('writes the PowerPoint 97-2003 storage CLSID on the OLE2 root entry', async () => {
 		// A zero CLSID (buildOle2's previous default) made real PowerPoint
 		// refuse to open the file outright ("This version of PowerPoint can't

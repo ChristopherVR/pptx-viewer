@@ -50,13 +50,28 @@ export function boolPropValue(flag: boolean, bit: number, useBit: number): numbe
 	return useBit | (flag ? bit : 0);
 }
 
-/** UTF-16LE encode a string for a `wzName`-style complex property (no terminator). */
+/**
+ * UTF-16LE encode a string for a `wzName`-style complex property, WITH a
+ * trailing null terminator (one `\0` UTF-16 code unit, 2 bytes).
+ *
+ * A real (COM-written) shape's `wzName` complex property always carries this
+ * terminator: reverse-engineered from a COM-authored `.ppt` (a shape named
+ * "Ink 6" writes a 12-byte payload, `49 00 6e 00 6b 00 20 00 36 00 00 00`,
+ * i.e. 5 visible UTF-16 code units PLUS a trailing `00 00`, not the 10 bytes
+ * the name's 5 characters alone would need). This writer's earlier
+ * (untested-against-COM) assumption of no terminator produced a shape any
+ * real `Presentations.Open` rejects outright ("Office has detected a
+ * problem with this file", no repair option) for EVERY shape with a `name`
+ * set, confirmed by bisecting an otherwise byte-identical, COM-verified
+ * working file down to just this one property's presence.
+ */
 export function encodeComplexString(name: string): Uint8Array {
-	const out = new Uint8Array(name.length * 2);
+	const out = new Uint8Array((name.length + 1) * 2);
 	const view = new DataView(out.buffer);
 	for (let i = 0; i < name.length; i++) {
 		view.setUint16(i * 2, name.charCodeAt(i), true);
 	}
+	// Trailing 2 bytes already zero-initialised: the null terminator.
 	return out;
 }
 

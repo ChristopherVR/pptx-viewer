@@ -72,6 +72,7 @@ export {
 export { parseDataUrlToBytes, fetchUrlToBytes } from './data-url-utils';
 export { buildInkMlContent, parseInkMlContent } from './inkml-content-part';
 export type { ParsedInkMlContent } from './inkml-content-part';
+export { inkElementToStrokes } from './ink-element-strokes';
 export { inkBounds, inkLengthToPx, inkPointMapper } from './inkml-ink-space';
 export type { InkBounds, InkTargetBox } from './inkml-ink-space';
 
