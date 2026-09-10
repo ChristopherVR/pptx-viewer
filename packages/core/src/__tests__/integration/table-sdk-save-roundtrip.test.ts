@@ -2,10 +2,43 @@ import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
+import { updateMergeAttrsInRawXml } from '../../core/core';
 import { rebuildTableStructureInRawXml } from '../../core/core/runtime/table-cell-rawxml-ops';
 import type { TableStructureEdit } from '../../core/core/runtime/table-cell-rawxml-ops';
 import { PptxHandler } from '../../core/PptxHandler';
 import type { TablePptxElement } from '../../core/types/elements';
+
+const RICH_CELL_BODY =
+	'<a:txBody><a:bodyPr/><a:lstStyle/><a:p>' +
+	'<a:r><a:rPr lang="en-US" b="1"/><a:t>Rich</a:t></a:r>' +
+	'<a:fld id="{AAAA0000-0000-4000-A000-000000000001}" type="slidenum"><a:rPr/><a:t>1</a:t></a:fld>' +
+	'<a:r><a:rPr lang="en-US" i="1"/><a:t>Text</a:t></a:r>' +
+	'<a:endParaRPr lang="en-US"/></a:p></a:txBody>';
+
+async function buildDeckWithRichTableCell(): Promise<Uint8Array> {
+	const { handler, data, createSlide } = await PresentationBuilder.create();
+	data.slides.push(
+		createSlide('Blank')
+			.addTable(
+				{
+					rows: [
+						{ cells: [{ text: 'A' }, { text: 'B' }] },
+						{ cells: [{ text: 'RichText1' }, { text: '' }] },
+					],
+				},
+				{ x: 20, y: 20, width: 400, height: 120 },
+			)
+			.build(),
+	);
+	const zip = await JSZip.loadAsync(await handler.save(data.slides));
+	const path = 'ppt/slides/slide1.xml';
+	const xml = await zip.file(path)!.async('string');
+	const richBody =
+		/<a:txBody>(?:(?!<\/a:txBody>)[\s\S])*?<a:t>RichText1<\/a:t>(?:(?!<\/a:txBody>)[\s\S])*?<\/a:txBody>/;
+	expect(xml, 'fixture precondition: rich-cell marker body').toMatch(richBody);
+	zip.file(path, xml.replace(richBody, RICH_CELL_BODY));
+	return zip.generateAsync({ type: 'uint8array' });
+}
 
 /**
  * Regression test for SDK-created tables being silently dropped on save.
@@ -367,5 +400,65 @@ describe('sDK-created table survives save round-trip', () => {
 		expect(slideXml).toMatch(/<a16:colId\s+val="\d+"/);
 		expect(slideXml).toContain('xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main"');
 		expect(slideXml).toMatch(/mc:Ignorable="[^"]*\ba16\b[^"]*"/);
+	});
+
+	it('preserves rich cells through unrelated and equal-text merge save round-trips', async () => {
+		let handler = new PptxHandler();
+		let loaded = await handler.load((await buildDeckWithRichTableCell()).buffer as ArrayBuffer);
+		let table = loaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		const richRuns = structuredClone(table.tableData!.rows[1].cells[0].textRuns);
+		expect(richRuns).toStrictEqual([
+			{ text: 'Rich', bold: true },
+			{ text: '1', isField: true },
+			{ text: 'Text', italic: true },
+		]);
+
+		const merged = structuredClone(table.tableData!);
+		merged.rows[0].cells[0].text = 'A B';
+		delete merged.rows[0].cells[0].textRuns;
+		merged.rows[0].cells[0].gridSpan = 2;
+		merged.rows[0].cells[1].text = '';
+		delete merged.rows[0].cells[1].textRuns;
+		merged.rows[0].cells[1].hMerge = true;
+		table.rawXml = updateMergeAttrsInRawXml(table, merged);
+		table.tableData = merged;
+
+		let saved = await handler.save(loaded.slides);
+		handler = new PptxHandler();
+		loaded = await handler.load(saved.buffer as ArrayBuffer);
+		table = loaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		expect(table.tableData!.rows[0].cells[0].textRuns).toHaveLength(1);
+		expect(table.tableData!.rows[0].cells[0].textRuns?.[0].text).toBe('A B');
+		expect(table.tableData!.rows[1].cells[0].textRuns).toStrictEqual(richRuns);
+
+		const split = structuredClone(table.tableData!);
+		delete split.rows[0].cells[0].gridSpan;
+		delete split.rows[0].cells[1].hMerge;
+		table.rawXml = updateMergeAttrsInRawXml(table, split);
+		table.tableData = split;
+
+		saved = await handler.save(loaded.slides);
+		const splitHandler = new PptxHandler();
+		const reloaded = await splitHandler.load(saved.buffer as ArrayBuffer);
+		const splitTable = reloaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		expect(splitTable.tableData!.rows[1].cells[0].textRuns).toStrictEqual(richRuns);
+
+		const equalTextMerge = structuredClone(splitTable.tableData!);
+		equalTextMerge.rows[1].cells[0].gridSpan = 2;
+		equalTextMerge.rows[1].cells[1].hMerge = true;
+		splitTable.rawXml = updateMergeAttrsInRawXml(splitTable, equalTextMerge);
+		splitTable.tableData = equalTextMerge;
+		const equalTextSaved = await splitHandler.save(reloaded.slides);
+		const equalTextReloaded = await new PptxHandler().load(equalTextSaved.buffer as ArrayBuffer);
+		const equalTextTable = equalTextReloaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		expect(equalTextTable.tableData!.rows[1].cells[0].textRuns).toStrictEqual(richRuns);
 	});
 });

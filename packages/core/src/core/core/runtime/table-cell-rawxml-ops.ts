@@ -12,6 +12,7 @@
  */
 import type { PptxElement, PptxTableData, XmlObject } from '../../types';
 import { ensureXmlChild, ensureXmlChildOrCreate, ensureXmlChildren } from '../../utils/xml-access';
+import { rebuildCellTextBody, tableCellTextBodyMatches } from './table-cell-text-xml';
 import { ensureArray, getTblFromRawXml } from './table-structural-helpers';
 
 // ── Cell text update ─────────────────────────────────────────────────────
@@ -55,56 +56,6 @@ export function updateCellTextInRawXml(
 	);
 
 	return newRawXml;
-}
-
-/**
- * Rebuild a cell's `<a:txBody>` around a single run of `text`, carrying over
- * the body properties, list style, first paragraph's properties and first
- * run's properties.
- *
- * Every key is inserted in SCHEMA order, because fast-xml-parser's builder
- * emits object keys in insertion order and the three types involved are all
- * `xsd:sequence`s: `CT_TextBody` is (`a:bodyPr`, `a:lstStyle?`, `a:p+`),
- * `CT_TextParagraph` is (`a:pPr?`, runs...), `CT_RegularTextRun` is
- * (`a:rPr?`, `a:t`). Building the content first and appending the properties
- * afterwards - which both copies of this code did - emits an out-of-order
- * package, the spelling PowerPoint reads by silently discarding the group.
- *
- * Carry-over tests are `!== undefined` rather than truthiness, because a bare
- * `<a:pPr/>` or `<a:rPr/>` parses to the empty STRING and a truthiness test
- * drops it.
- */
-function rebuildCellTextBody(existingTxBody: XmlObject | undefined, text: string): XmlObject {
-	const existingParagraphs = ensureArray(
-		existingTxBody?.['a:p'] as XmlObject | XmlObject[] | undefined,
-	);
-	const firstParagraph = existingParagraphs.length > 0 ? existingParagraphs[0] : undefined;
-	const existingRuns = firstParagraph
-		? ensureArray(firstParagraph['a:r'] as XmlObject | XmlObject[] | undefined)
-		: [];
-	const firstRunProps = existingRuns.length > 0 ? existingRuns[0]['a:rPr'] : undefined;
-
-	const newRun: XmlObject = {};
-	if (firstRunProps !== undefined) {
-		newRun['a:rPr'] = firstRunProps;
-	}
-	newRun['a:t'] = text;
-
-	const newParagraph: XmlObject = {};
-	if (firstParagraph?.['a:pPr'] !== undefined) {
-		newParagraph['a:pPr'] = firstParagraph['a:pPr'];
-	}
-	newParagraph['a:r'] = newRun;
-
-	const newTxBody: XmlObject = {};
-	if (existingTxBody?.['a:bodyPr'] !== undefined) {
-		newTxBody['a:bodyPr'] = existingTxBody['a:bodyPr'];
-	}
-	if (existingTxBody?.['a:lstStyle'] !== undefined) {
-		newTxBody['a:lstStyle'] = existingTxBody['a:lstStyle'];
-	}
-	newTxBody['a:p'] = newParagraph;
-	return newTxBody;
 }
 
 // ── Cell text style update ───────────────────────────────────────────────
@@ -325,12 +276,10 @@ export function updateMergeAttrsInRawXml(
 				delete xmlCell['@_vMerge'];
 			}
 
-			// Sync cell text for merged cells that were cleared
-			if (cell.text !== undefined) {
-				xmlCell['a:txBody'] = rebuildCellTextBody(
-					xmlCell['a:txBody'] as XmlObject | undefined,
-					cell.text,
-				);
+			// Rebuild only changed text, preserving rich bodies just as save does (#68).
+			const txBody = xmlCell['a:txBody'] as XmlObject | undefined;
+			if (cell.text !== undefined && !tableCellTextBodyMatches(txBody, cell.text)) {
+				xmlCell['a:txBody'] = rebuildCellTextBody(txBody, cell.text);
 			}
 		}
 	}

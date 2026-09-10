@@ -45,7 +45,13 @@ import type { Locator, Page } from '@playwright/test';
 import JSZip from 'jszip';
 
 import { savePptxViaBackstage } from './save-pptx';
-import { centreOf, chooseCommand, openMenuOn, selectTableCell } from './support/context-menu';
+import {
+	centreOf,
+	chooseCommand,
+	menuIsOpen,
+	openMenuAt,
+	openMenuOn,
+} from './support/context-menu';
 import { resetTabSession } from './support/deck';
 
 const fixturePath = resolve(
@@ -254,14 +260,6 @@ async function savedSlideFourTable(page: Page): Promise<RawTableCell[][]> {
 	);
 }
 
-/** Drive one table-cell context-menu command through the neutral UI contract. */
-async function chooseTableCommand(page: Page, cell: Locator, label: string): Promise<void> {
-	await selectTableCell(page, cell);
-	const menu = await openMenuOn(page, cell);
-	expect(menu.labels).toContain(label.toLowerCase());
-	await chooseCommand(page, label);
-}
-
 function expectMixedRevenueRuns(cell: RawTableCell): void {
 	expect(cell.text).toBe('Revenue grew 42%');
 	expect(cell.runs.map((run) => run.text)).toEqual(['Revenue ', 'grew 42%']);
@@ -272,6 +270,35 @@ function expectMixedRevenueRuns(cell: RawTableCell): void {
 	expect(cell.runs[1]?.xml).toContain('b="1"');
 	expect(cell.runs[1]?.xml).toContain('val="C00000"');
 	expect(cell.runs[1]?.xml).toContain('typeface="Georgia"');
+}
+
+/** Make the cell to the right of the authored rich cell empty without changing its anchor. */
+async function richAnchorWithEmptyRightDeck(): Promise<DeckPayload> {
+	const zip = await JSZip.loadAsync(await readFile(fixturePath));
+	const slidePath = 'ppt/slides/slide4.xml';
+	const slide = zip.file(slidePath);
+	if (!slide) {
+		throw new Error(`${slidePath} is missing from the table styling fixture`);
+	}
+	const xml = await slide.async('string');
+	const table = xml.match(/<a:tbl>.*?<\/a:tbl>/su)?.[0];
+	const row = table ? [...table.matchAll(/<a:tr\b.*?<\/a:tr>/gsu)][1]?.[0] : undefined;
+	const rightCell = row ? [...row.matchAll(/<a:tc\b[^>]*>.*?<\/a:tc>/gsu)][2]?.[0] : undefined;
+	if (!table || !row || !rightCell || !rightCell.includes('<a:t>R2C3</a:t>')) {
+		throw new Error('the expected cell to the right of Revenue is missing from slide 4');
+	}
+	const emptyCell = rightCell.replace(
+		/<a:txBody>.*?<\/a:txBody>/su,
+		'<a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="en-US"/></a:p></a:txBody>',
+	);
+	const updatedRow = row.replace(rightCell, emptyCell);
+	const updatedTable = table.replace(row, updatedRow);
+	zip.file(slidePath, xml.replace(table, updatedTable));
+	return {
+		name: 'table-rich-anchor-empty-right.pptx',
+		mimeType: PPTX_MIME,
+		buffer: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
+	};
 }
 
 async function gotoSlide(page: Page, slideNumber: number): Promise<void> {
@@ -315,6 +342,110 @@ function canvasCell(page: Page, text: string): Locator {
 		.locator('td')
 		.filter({ hasText: new RegExp(`^\\s*${text}\\s*$`, 'u') })
 		.first();
+}
+
+/** A cell by rendered row and column, independent of its binding-specific merged text. */
+function canvasCellAt(page: Page, row: number, column: number): Locator {
+	return page
+		.locator('[aria-roledescription="slide"]')
+		.first()
+		.locator('table tr')
+		.nth(row)
+		.locator('td')
+		.nth(column);
+}
+
+/**
+ * Select and invoke a cell command through the context menu.
+ *
+ * Right-click the cell first. If that opens the table-level menu, dismiss it
+ * without clearing the table selection, then one left click selects the cell
+ * before the second right-click. Re-measure because the inspector moves it.
+ */
+async function chooseTableCommand(page: Page, cell: Locator, label: string): Promise<void> {
+	const box = await cell.boundingBox();
+	expect(box, 'the table cell should have a layout box').not.toBeNull();
+	const directMenu = await openMenuAt(page, {
+		x: box!.x + box!.width / 4,
+		y: box!.y + box!.height / 2,
+	});
+	if (directMenu.labels.includes(label.toLowerCase())) {
+		await chooseCommand(page, label);
+		return;
+	}
+
+	await page.keyboard.press('Escape');
+	await expect.poll(() => menuIsOpen(page)).toBe(false);
+	const movedBox = await cell.boundingBox();
+	expect(movedBox, 'the cell should remain laid out after dismissing the menu').not.toBeNull();
+	await page.mouse.click(movedBox!.x + movedBox!.width / 4, movedBox!.y + movedBox!.height / 2);
+	await page.waitForTimeout(350);
+	const selectedBox = await cell.boundingBox();
+	expect(selectedBox, 'the selected cell should remain laid out').not.toBeNull();
+	const selectedMenu = await openMenuAt(page, {
+		x: selectedBox!.x + selectedBox!.width / 4,
+		y: selectedBox!.y + selectedBox!.height / 2,
+	});
+	expect(selectedMenu.labels, `context menu commands after selecting the cell`).toContain(
+		label.toLowerCase(),
+	);
+	await chooseCommand(page, label);
+}
+
+interface RawRevenueRun {
+	text: string;
+	rPr: string;
+}
+
+/** Read the authored rich cell on slide 4 from a saved PPTX. */
+async function rawRevenueRuns(path: string): Promise<RawRevenueRun[]> {
+	const zip = await JSZip.loadAsync(await readFile(path));
+	const slide = zip.file('ppt/slides/slide4.xml');
+	if (!slide) {
+		throw new Error('saved deck is missing ppt/slides/slide4.xml');
+	}
+	const xml = await slide.async('string');
+	const table = xml.match(/<a:tbl>.*?<\/a:tbl>/su)?.[0] ?? '';
+	const row = [...table.matchAll(/<a:tr\b.*?<\/a:tr>/gsu)][1]?.[0] ?? '';
+	const cell = [...row.matchAll(/<a:tc\b[^>]*>.*?<\/a:tc>/gsu)][1]?.[0] ?? '';
+	return [...cell.matchAll(/<a:r>(.*?)<\/a:r>/gsu)].map((run) => ({
+		text: [...run[1].matchAll(/<a:t>(.*?)<\/a:t>/gsu)].map((match) => match[1]).join(''),
+		rPr: run[1].match(/<a:rPr\b.*?<\/a:rPr>|<a:rPr\b[^>]*\/>/su)?.[0] ?? '',
+	}));
+}
+
+function expectAuthoredRevenueRuns(runs: RawRevenueRun[]): void {
+	expect(runs.map((run) => run.text)).toStrictEqual(['Revenue ', 'grew 42%']);
+	expect(runs[0]?.rPr).toMatch(/\bsz="1200"/u);
+	expect(runs[0]?.rPr).toMatch(/\bb="0"/u);
+	expect(runs[0]?.rPr).toMatch(/\btypeface="Arial"/u);
+	expect(runs[1]?.rPr).toMatch(/\bsz="2400"/u);
+	expect(runs[1]?.rPr).toMatch(/\bb="1"/u);
+	expect(runs[1]?.rPr).toMatch(/\btypeface="Georgia"/u);
+	expect(runs[1]?.rPr).toMatch(/\bval="C00000"/u);
+}
+
+async function expectTopRowCellCount(page: Page, count: number): Promise<void> {
+	await expect
+		.poll(async () => {
+			const table = await measureTable(page);
+			return table.cells.filter((cell) => cell.row === 0).length;
+		})
+		.toBe(count);
+}
+
+function expectRenderedRevenueRuns(table: TablePaint): void {
+	const cell = table.cells.find((candidate) => candidate.text === 'Revenue grew 42%');
+	expect(cell, 'the untouched rich-text cell should remain rendered').toBeTruthy();
+	const plain = cell!.runs.find((run) => run.text === 'Revenue ');
+	const emphasis = cell!.runs.find((run) => run.text === 'grew 42%');
+	expect(plain, 'the regular Arial run should remain separate').toBeTruthy();
+	expect(emphasis, 'the bold red Georgia run should remain separate').toBeTruthy();
+	expect(Number(plain!.fontWeight) || 400).toBeLessThan(700);
+	expect(plain!.fontFamily).toContain('Arial');
+	expect(Number(emphasis!.fontWeight)).toBeGreaterThanOrEqual(700);
+	expect(emphasis!.fontFamily).toContain('Georgia');
+	expect(distance(emphasis!.color, { r: 192, g: 0, b: 0 })).toBeLessThan(30);
 }
 
 test.describe('table styling', () => {
@@ -567,6 +698,79 @@ test.describe('table styling', () => {
 			text.r + text.g + text.b,
 			`an unstyled body cell painted ${body.color}, which is the host chrome's colour, not the deck's`,
 		).toBeLessThan(240);
+	});
+
+	test('preserves an untouched rich cell through merge and split saves', async ({ page }) => {
+		await gotoSlide(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
+
+		await chooseTableCommand(page, canvasCellAt(page, 0, 0), 'Merge Right');
+		await expectTopRowCellCount(page, 3);
+		expectRenderedRevenueRuns(await measureTable(page));
+
+		const undo = page.getByRole('button', { name: 'Undo', exact: true });
+		const redo = page.getByRole('button', { name: 'Redo', exact: true });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expectTopRowCellCount(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await expectTopRowCellCount(page, 3);
+		expectRenderedRevenueRuns(await measureTable(page));
+
+		const mergedDownload = await savePptxViaBackstage(page);
+		const mergedPath = await mergedDownload.path();
+		expect(mergedPath, 'the browser should retain the merged PPTX').not.toBeNull();
+		expectAuthoredRevenueRuns(await rawRevenueRuns(mergedPath!));
+		await loadDeck(page, mergedPath!);
+		await gotoSlide(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
+
+		await chooseTableCommand(page, canvasCellAt(page, 0, 0), 'Split Cell');
+		await expectTopRowCellCount(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
+
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expectTopRowCellCount(page, 3);
+		expectRenderedRevenueRuns(await measureTable(page));
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await expectTopRowCellCount(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
+
+		const splitDownload = await savePptxViaBackstage(page);
+		const splitPath = await splitDownload.path();
+		expect(splitPath, 'the browser should retain the split PPTX').not.toBeNull();
+		expectAuthoredRevenueRuns(await rawRevenueRuns(splitPath!));
+		await loadDeck(page, splitPath!);
+		await gotoSlide(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
+	});
+
+	test('preserves a rich anchor when merging its empty right neighbour', async ({ page }) => {
+		await loadDeck(page, await richAnchorWithEmptyRightDeck());
+		await gotoSlide(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
+		await expect(canvasCellAt(page, 1, 2)).toHaveText('');
+
+		await chooseTableCommand(page, canvasCellAt(page, 1, 1), 'Merge Right');
+		await expect
+			.poll(async () => {
+				const table = await measureTable(page);
+				return table.cells.filter((cell) => cell.row === 1).length;
+			})
+			.toBe(3);
+		expectRenderedRevenueRuns(await measureTable(page));
+
+		const download = await savePptxViaBackstage(page);
+		const savedPath = await download.path();
+		expect(savedPath, 'the browser should retain the merged PPTX').not.toBeNull();
+		expectAuthoredRevenueRuns(await rawRevenueRuns(savedPath!));
+		await loadDeck(page, savedPath!);
+		await gotoSlide(page, 4);
+		expectRenderedRevenueRuns(await measureTable(page));
 	});
 
 	/**

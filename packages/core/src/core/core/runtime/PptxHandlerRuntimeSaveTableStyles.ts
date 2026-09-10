@@ -7,39 +7,11 @@ import {
 	writeDiagonalBorders,
 	writeCellTextFormatting,
 } from './table-cell-save-helpers';
+import { tableCellTextBodyMatches } from './table-cell-text-xml';
+
+export { flattenCellTxBodyText } from './table-cell-text-xml';
 
 type EnsureArray = (value: unknown) => XmlObject[];
-
-/**
- * Flatten a cell `a:txBody` to the same `\n`-joined plain string that
- * `PptxTableDataParser.extractTableCellText` produces at load time
- * (per-paragraph run text followed by field text). Used to detect whether a
- * cell's text was actually edited so an unedited cell can keep its rich
- * multi-run / multi-paragraph structure verbatim (#68).
- */
-export function flattenCellTxBodyText(
-	txBody: XmlObject | undefined,
-	ensureArray: EnsureArray,
-): string {
-	if (!txBody) {
-		return '';
-	}
-	const paragraphs = ensureArray(txBody['a:p']);
-	const lines: string[] = [];
-	for (const paragraph of paragraphs) {
-		const runs = ensureArray((paragraph as XmlObject)?.['a:r']);
-		const fields = ensureArray((paragraph as XmlObject)?.['a:fld']);
-		let lineText = '';
-		for (const run of runs) {
-			lineText += String((run as XmlObject)?.['a:t'] ?? '');
-		}
-		for (const field of fields) {
-			lineText += String((field as XmlObject)?.['a:t'] ?? '');
-		}
-		lines.push(lineText);
-	}
-	return lines.join('\n');
-}
 
 /**
  * Whether a cell `a:txBody` carries rich content that the single cell-level
@@ -87,10 +59,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// rebuild below, which is the best we can do from a flat string.
 		const ensureArray = this.ensureArray.bind(this);
 		const existingTxBody = xmlCell['a:txBody'] as XmlObject | undefined;
-		if (existingTxBody && ensureArray(existingTxBody['a:p']).length > 0) {
-			if (flattenCellTxBodyText(existingTxBody, ensureArray) === text) {
-				return;
-			}
+		if (tableCellTextBodyMatches(existingTxBody, text, ensureArray)) {
+			return;
 		}
 
 		if (!xmlCell['a:txBody']) {
