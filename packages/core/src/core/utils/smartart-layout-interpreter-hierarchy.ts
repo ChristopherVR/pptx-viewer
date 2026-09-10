@@ -59,18 +59,10 @@ import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
 import { computeHangShape } from './smartart-hierarchy-hang-depth';
 import { arrangeFullyHangingTree } from './smartart-hierarchy-hanging-arrange';
 import { flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
-import {
-	applyChildOrder,
-	fitItemBox,
-	resolveHierarchyOrientation,
-	transposeResult,
-} from './smartart-hierarchy-orientation';
+import { applyChildOrder, fitItemBox, transposeResult } from './smartart-hierarchy-orientation';
+import { resolveHierarchyEffectiveOrientation } from './smartart-hierarchy-orientation-resolve';
 import { translateResult } from './smartart-hierarchy-pitch';
-import {
-	baseContext,
-	findHierarchyItemName,
-	findHierarchyItemShape,
-} from './smartart-hierarchy-shared';
+import { baseContext, findHierarchyItemShape } from './smartart-hierarchy-shared';
 import { placeStandardTree } from './smartart-hierarchy-standard';
 import type { StandardOptions } from './smartart-hierarchy-standard';
 import { configureTailedHangingPlacer } from './smartart-hierarchy-tailed-placer';
@@ -135,22 +127,18 @@ export function arrangeHierarchy(
 		);
 	}
 
-	// `orientation.transposed` ("Horizontal Hierarchy" and its siblings - see
-	// `smartart-hierarchy-orientation.ts`'s module doc comment) runs this
-	// WHOLE std/tailed algorithm against a box with width/height swapped, then
-	// maps the result back at the very end (`transposeResult`): the fan axis
-	// is always "X"/`cellW`/`boxW`'s own width and the generation axis always
-	// "Y" from `placeStandardTree`'s own point of view, whichever real screen
-	// axis that maps to.
-	const orientation = resolveHierarchyOrientation(
+	// See `smartart-hierarchy-orientation-resolve.ts`'s own module doc
+	// comment for why BOTH `orientation.transposed` ("Horizontal Hierarchy")
+	// and the axis-swapped construct (`hierAlign="lCtrCh"/"rCtrCh"`) run this
+	// WHOLE std/tailed algorithm against a swapped `effectiveBox`.
+	const { orientation, swapAxes, effectiveBox } = resolveHierarchyEffectiveOrientation(
 		algorithmNode,
 		index,
 		mode,
-		findHierarchyItemName(algorithmNode),
+		nodes.length,
+		presLayoutVars,
+		box,
 	);
-	const effectiveBox: BoundingBox = orientation.transposed
-		? { width: h, height: w }
-		: { width: w, height: h };
 	const rawDepth = roots.length > 0 ? Math.max(...roots.map((r) => treeDepth(r))) : 1;
 	const rowSize = resolveRowSize(presLayoutVars);
 	// `tailed` mode: only the fanned generations (root's own children row,
@@ -284,7 +272,7 @@ export function arrangeHierarchy(
 		xPitch.shift,
 		yPitch.shift,
 	);
-	return orientation.transposed ? transposeResult(result, w, h) : result;
+	return swapAxes ? transposeResult(result, w, h) : result;
 }
 
 function finish(
