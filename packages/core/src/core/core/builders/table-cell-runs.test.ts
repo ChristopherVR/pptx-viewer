@@ -106,6 +106,21 @@ describe('extractTableCellTextRuns', () => {
 		]);
 	});
 
+	it('distinguishes an inline field from a literal with the same text', () => {
+		const cell = parseCell(
+			'<a:tc><a:txBody><a:p>' +
+				'<a:r><a:t>1</a:t></a:r>' +
+				'<a:fld id="page" type="slidenum"><a:t>1</a:t></a:fld>' +
+				'<a:r><a:t>1</a:t></a:r>' +
+				'</a:p></a:txBody></a:tc>',
+		);
+		expect(extractTableCellTextRuns(cell, context)).toStrictEqual([
+			{ text: '1' },
+			{ text: '1', isField: true },
+			{ text: '1' },
+		]);
+	});
+
 	it('leaves the flat cell text untouched, so the #68 save guard still fires', () => {
 		// The writer decides a cell was EDITED by comparing the flattened text it
 		// re-derives from the source `a:txBody` against `cell.text`; an unedited

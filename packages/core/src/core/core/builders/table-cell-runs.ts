@@ -115,6 +115,9 @@ export function extractTableCellTextRuns(
 			}
 			const node = item as XmlObject | undefined;
 			const run: PptxTableCellTextRun = { text: String(node?.['a:t'] ?? '') };
+			if (tag === 'a:fld') {
+				run.isField = true;
+			}
 			applyRunProperties(run, node?.['a:rPr'] as XmlObject | undefined, context);
 			runs.push(run);
 			textRunCount++;

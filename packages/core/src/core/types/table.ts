@@ -255,6 +255,8 @@ export interface PptxTableCellTextRun {
 	isParagraphBreak?: boolean;
 	/** This entry is a soft line break (`a:br`) rather than carrying text. */
 	isLineBreak?: boolean;
+	/** This entry carries an `a:fld` value rather than a literal `a:r`. */
+	isField?: true;
 	bold?: boolean;
 	italic?: boolean;
 	underline?: boolean;
