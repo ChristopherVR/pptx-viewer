@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.0) - 2026-09-10
+
+### Features
+
+- **shared:** Make every dense panel usable at 360px in all five bindings (by @ChristopherVR) ([f560f4a](https://github.com/ChristopherVR/pptx-viewer/commit/f560f4a5e0d0efc83819f3ea0d30816dcc878a59))
+- **shared:** Tile GIF, video, notes-PDF and print captures past the canvas cap (by @ChristopherVR) ([4cdd3e5](https://github.com/ChristopherVR/pptx-viewer/commit/4cdd3e55cc8eb3ffc96d22060521f0f36efe997f))
+- **shared:** Decide GIF and video capture scale and cap once for all bindings (by @ChristopherVR) ([ad3adfa](https://github.com/ChristopherVR/pptx-viewer/commit/ad3adfa527fe288d380cd22132543f51e30c3027))
+- **shared:** Warp WordArt envelope glyphs by their real outlines (by @ChristopherVR) ([1e67d70](https://github.com/ChristopherVR/pptx-viewer/commit/1e67d70a0cb9c5fb9ab967c69987fd39fa267d59))
+
+### Bug Fixes
+
+- **react,vue,angular,svelte,vanilla:** Guard OLE editor state after unmount and steady three e2e specs (by @ChristopherVR) ([6bc1e4c](https://github.com/ChristopherVR/pptx-viewer/commit/6bc1e4c27e98f4f132358a64ea5cb694a9b39af2))
+
 ## [2.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.12.0) - 2026-09-10
 
 ### Features

@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.12.0) - 2026-09-10
+
+### Features
+
+- **core:** Read OLE embeds back from legacy .ppt decks (by @ChristopherVR) ([2f1a9a6](https://github.com/ChristopherVR/pptx-viewer/commit/2f1a9a601ffc9a2e7dff691622ccddf3eb109e8e))
+- **core:** SmartArt hang ratios, cascade reserve, generation margins and hub font fit (by @ChristopherVR) ([8ccd7cc](https://github.com/ChristopherVR/pptx-viewer/commit/8ccd7ccec858642fe568cfe310128dd263db3721))
+
+### Testing
+
+- **core:** Pin PowerPoint's property-order dependence for combined rotated group edits (by @ChristopherVR) ([dc6692e](https://github.com/ChristopherVR/pptx-viewer/commit/dc6692ebaaaeb6fe28ce635e9ec3c69f4e46c89d))
+
 ## [3.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.11.0) - 2026-09-10
 
 ### Features

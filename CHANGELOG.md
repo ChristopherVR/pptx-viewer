@@ -10,6 +10,40 @@ dated sections beneath it are generated from
 
 ## 2026-09-10
 
+_Releases: pptx-viewer-core@3.12.0, pptx-react-viewer@3.14.0, pptx-vue-viewer@3.14.0, pptx-angular-viewer@3.14.0, pptx-vanilla-viewer@2.14.0, pptx-svelte-viewer@3.15.0, @christophervr/pptx-viewer@2.13.0_
+
+### Features
+
+- **shared:** Make every dense panel usable at 360px in all five bindings (by @ChristopherVR) ([f560f4a](https://github.com/ChristopherVR/pptx-viewer/commit/f560f4a5e0d0efc83819f3ea0d30816dcc878a59))
+- **shared:** COM-calibrate the a:lightRig elevation table for all 27 rigs (by @ChristopherVR) ([e0db035](https://github.com/ChristopherVR/pptx-viewer/commit/e0db03513aa2099e6a235dd47f50cc618c456f1d))
+- **core:** Read OLE embeds back from legacy .ppt decks (by @ChristopherVR) ([2f1a9a6](https://github.com/ChristopherVR/pptx-viewer/commit/2f1a9a601ffc9a2e7dff691622ccddf3eb109e8e))
+- **shared:** Tile GIF, video, notes-PDF and print captures past the canvas cap (by @ChristopherVR) ([4cdd3e5](https://github.com/ChristopherVR/pptx-viewer/commit/4cdd3e55cc8eb3ffc96d22060521f0f36efe997f))
+- **core:** SmartArt hang ratios, cascade reserve, generation margins and hub font fit (by @ChristopherVR) ([8ccd7cc](https://github.com/ChristopherVR/pptx-viewer/commit/8ccd7ccec858642fe568cfe310128dd263db3721))
+- **shared:** Decide GIF and video capture scale and cap once for all bindings (by @ChristopherVR) ([ad3adfa](https://github.com/ChristopherVR/pptx-viewer/commit/ad3adfa527fe288d380cd22132543f51e30c3027))
+- **shared:** Warp WordArt envelope glyphs by their real outlines (by @ChristopherVR) ([1e67d70](https://github.com/ChristopherVR/pptx-viewer/commit/1e67d70a0cb9c5fb9ab967c69987fd39fa267d59))
+
+### Bug Fixes
+
+- **react,vue,angular,svelte,vanilla:** Guard OLE editor state after unmount and steady three e2e specs (by @ChristopherVR) ([6bc1e4c](https://github.com/ChristopherVR/pptx-viewer/commit/6bc1e4c27e98f4f132358a64ea5cb694a9b39af2))
+- **angular,vanilla:** Give the AI history menu its 44px touch targets and steady two e2e specs (by @ChristopherVR) ([8e06a7f](https://github.com/ChristopherVR/pptx-viewer/commit/8e06a7f74e0a1e5636c22dc897176f3990daa737))
+
+### Refactor
+
+- **angular,vue:** Split the options pane styles and inspector section card (by @ChristopherVR) ([113f5d2](https://github.com/ChristopherVR/pptx-viewer/commit/113f5d2ada79679e38601e2ab09f8993aa0f425b))
+
+### Documentation
+
+- Move the cinematic-transition and media-codec rows to the guide pages (by @ChristopherVR) ([35754a1](https://github.com/ChristopherVR/pptx-viewer/commit/35754a136df56701dff8f8a9a9d1f0c7c0d7d28e))
+- **shared:** Record the metal/circle re-measurement and the failed decoupling (by @ChristopherVR) ([57fd7c2](https://github.com/ChristopherVR/pptx-viewer/commit/57fd7c2c944ab171f985903cb11e0da8c389e891))
+- Rewrite the wave 8 limitation rows to their measured state (by @ChristopherVR) ([1b3fde7](https://github.com/ChristopherVR/pptx-viewer/commit/1b3fde789ac277402d688d778f7c2a700312b100))
+- Move the group re-wrap order fact to the conformance page and refresh the EMF rows (by @ChristopherVR) ([19c8593](https://github.com/ChristopherVR/pptx-viewer/commit/19c8593c23930a625e5adb0458b3c75693e0fa5d))
+
+### Testing
+
+- **core:** Pin PowerPoint's property-order dependence for combined rotated group edits (by @ChristopherVR) ([dc6692e](https://github.com/ChristopherVR/pptx-viewer/commit/dc6692ebaaaeb6fe28ce635e9ec3c69f4e46c89d))
+
+## 2026-09-10
+
 _Releases: pptx-viewer-core@3.11.0, pptx-react-viewer@3.13.0, pptx-vue-viewer@3.13.0, pptx-angular-viewer@3.13.0, pptx-vanilla-viewer@2.13.0, pptx-svelte-viewer@3.14.0, @christophervr/pptx-viewer@2.12.0_
 
 ### Features
