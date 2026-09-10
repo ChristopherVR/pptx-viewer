@@ -13,7 +13,7 @@ export default defineConfig((options) => ({
 	outDir: '.types',
 	dts: { emitDtsOnly: true },
 	deps: {
-		neverBundle: ['pptx-viewer-core', 'three', /^three\//u, 'dompurify', 'ai'],
+		neverBundle: ['pptx-viewer-core', 'three', /^three\//u, 'dompurify', 'ai', 'opentype.js'],
 	},
 	sourcemap: false,
 	clean: !options.watch,

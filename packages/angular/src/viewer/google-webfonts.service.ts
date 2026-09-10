@@ -21,7 +21,13 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import type { PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
 
-import { resolveGoogleWebfontHref } from '../internal/shared';
+import {
+	collectReferencedFontFamilies,
+	fetchGoogleWebfontOutlineBytes,
+	resolveGoogleWebfontHref,
+	selectGoogleWebfontFamilies,
+} from '../internal/shared';
+import { glyphOutlineFontCache, glyphOutlineFontsTick } from './glyph-outline-cache';
 
 /** DOM id of the managed `<link>` element (binding-specific, like the style ids). */
 export const GOOGLE_WEBFONTS_LINK_ID = 'pptx-angular-google-fonts';
@@ -73,6 +79,67 @@ export class GoogleWebfontsService {
 			this.linkEl.rel = 'stylesheet';
 			this.linkEl.href = href;
 			return href;
+		});
+		this.syncOutlineBytes(slides ?? [], embeddedFonts ?? [], token);
+	}
+
+	/**
+	 * Best-effort glyph-outline bytes for catalogue webfonts. A WordArt
+	 * envelope glyph (inflate/deflate/can) in a referenced (not embedded)
+	 * family only gets true outline warping once the ACTUAL font file's bytes
+	 * are fetched (the `<link>` stylesheet carries no glyph geometry, see
+	 * `text-warp-outline-webfont-fetch.ts`). Additive and best-effort: a
+	 * failure just leaves the affine-transform fallback in place.
+	 * `glyphOutlineFontsTick` is bumped so `text-warp-glyph.ts`'s
+	 * `buildGlyphWarpDef` (read inside `glyphWarp`'s `computed()`) recomputes
+	 * once bytes land.
+	 */
+	private syncOutlineBytes(
+		slides: readonly PptxSlide[],
+		embeddedFonts: readonly PptxEmbeddedFont[],
+		token: number,
+	): void {
+		const referenced = collectReferencedFontFamilies(slides);
+		const candidates = selectGoogleWebfontFamilies(
+			referenced,
+			embeddedFonts.map((font) => font.name),
+		);
+		if (candidates.length === 0) {
+			return;
+		}
+		void resolveGoogleWebfontHref(slides, embeddedFonts).then(async (href) => {
+			if (token !== this.syncToken || !href) {
+				return;
+			}
+			const variants: Array<{ bold: boolean; italic: boolean }> = [
+				{ bold: false, italic: false },
+				{ bold: true, italic: false },
+			];
+			let registeredAny = false;
+			for (const family of candidates) {
+				for (const variant of variants) {
+					if (token !== this.syncToken) {
+						return;
+					}
+					const bytes = await fetchGoogleWebfontOutlineBytes(
+						href,
+						family,
+						variant.bold,
+						variant.italic,
+						fetch,
+					);
+					if (
+						bytes &&
+						glyphOutlineFontCache.registerFontBytes(family, variant.bold, variant.italic, bytes)
+					) {
+						registeredAny = true;
+					}
+				}
+			}
+			if (registeredAny && token === this.syncToken) {
+				glyphOutlineFontsTick.update((tick) => tick + 1);
+			}
+			return undefined;
 		});
 	}
 

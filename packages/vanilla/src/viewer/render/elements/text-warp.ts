@@ -11,6 +11,7 @@ import {
 	shouldUseSvgWarp,
 } from 'pptx-viewer-shared';
 
+import { getGlyphOutline } from '../../glyph-outline-cache';
 import { createEl, createSvgEl } from '../dom';
 import type { ElementRenderContext } from '../types';
 
@@ -118,16 +119,26 @@ function renderGlyphWarp(
 			style.textWarpAdj2,
 			lineIndex,
 			lineCount,
+			getGlyphOutline,
 		);
 		glyphs.forEach((g, glyphIndex) => {
 			const s = segments[g.segmentIndex]?.style ?? {};
+			const fill = s.color ?? style.color ?? '#000000';
 			const textAttrs = {
-				fill: s.color ?? style.color ?? '#000000',
+				fill,
 				'font-family': s.fontFamily ?? style.fontFamily ?? DEFAULT_FONT_FAMILY,
 				'font-size': s.fontSize ?? style.fontSize ?? 18,
 				'font-weight': (s.bold ?? style.bold) ? 'bold' : undefined,
 				'font-style': (s.italic ?? style.italic) ? 'italic' : undefined,
 			};
+			if (g.outlinePath) {
+				// The glyph's real outline, already warped point-by-point (see
+				// `buildWarpedGlyphOutlinePathD` in pptx-viewer-shared): exact, so
+				// no affine fit or slicing is needed.
+				const path = createSvgEl(context.document, 'path', { d: g.outlinePath, fill });
+				svg.appendChild(path);
+				return;
+			}
 			if (!g.slices || g.slices.length <= 1) {
 				// Ordinary glyph (no slices needed): a bare <text>, unchanged from
 				// before per-glyph slicing existed.

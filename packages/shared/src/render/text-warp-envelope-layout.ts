@@ -14,59 +14,25 @@
  */
 import { DEFAULT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import { hasGlyphEnvelope, NOMINAL_ENVELOPE_BAND } from './text-warp-envelope-curves';
+import type {
+	EnvelopeAlign,
+	EnvelopeFontSpec,
+	EnvelopeGlyphPlacement,
+	EnvelopeSegmentInput,
+	GlyphOutlineLookup,
+} from './text-warp-envelope-types';
 import { edgeBandAt, glyphEnvelopeMatrix, sliceBand } from './text-warp-glyph-matrix';
-import type { EnvelopeGlyphSlice } from './text-warp-glyph-slicing';
+import { buildWarpedGlyphOutlinePathD } from './text-warp-glyph-outline';
 import { buildGlyphSlices, chooseGlyphSliceCount } from './text-warp-glyph-slicing';
 
-/** The subset of a run's resolved style this module needs to measure it. */
-export interface EnvelopeFontSpec {
-	fontFamily?: string;
-	fontSizePx?: number;
-	bold?: boolean;
-	italic?: boolean;
-}
-
-/** One run's worth of glyphs to lay out along the envelope, in source order. */
-export interface EnvelopeSegmentInput {
-	text: string;
-	font: EnvelopeFontSpec;
-	/** Index into the caller's own segment/style array (carried through untouched). */
-	segmentIndex: number;
-}
-
-/** Where and how to draw one glyph. */
-export interface EnvelopeGlyphPlacement {
-	char: string;
-	segmentIndex: number;
-	/** SVG `x` for the (otherwise flat) `<text>` element. */
-	x: number;
-	/** SVG `y` (nominal baseline; the vertical placement is done by `transform`). */
-	y: number;
-	/**
-	 * An SVG `matrix(1 b 0 d 0 f)` mapping the glyph's nominal band onto the
-	 * envelope curve at this glyph's own horizontal extent (see
-	 * {@link glyphEnvelopeMatrix}). `a=1, c=0, e=0` deliberately: the glyph's
-	 * `x`/`y` attributes already carry its absolute position, so the matrix
-	 * only contributes a vertical scale (`d`) and horizontal shear (`b`) plus
-	 * a constant offset (`f`) - it must never ALSO translate by `x`, which
-	 * would double the glyph's horizontal position (`x` from the attribute,
-	 * `x` again from the matrix).
-	 */
-	transform: string;
-	/**
-	 * Present only when this glyph needed more than one rendered piece (see
-	 * `chooseGlyphSliceCount` in `text-warp-glyph-slicing.ts`): a very wide
-	 * glyph on a strongly-curved envelope, where `transform` alone (fit across
-	 * the glyph's WHOLE width) misses how much the curve bends within that
-	 * width. When present, a binding renders `slices.length` copies of this
-	 * glyph instead of one, each clipped to its own `[clipX0, clipX1]` band (in
-	 * the SAME coordinate space `x`/`y` are already in) and carrying its own
-	 * `transform`. Absent (the overwhelmingly common case) for an ordinary
-	 * caption, in which case a binding renders exactly as it did before this
-	 * field existed: one `<text transform={transform}>`, no clip-path.
-	 */
-	slices?: EnvelopeGlyphSlice[];
-}
+export type {
+	EnvelopeAlign,
+	EnvelopeFontSpec,
+	EnvelopeGlyphPlacement,
+	EnvelopeSegmentInput,
+	GlyphOutlineLookup,
+	GlyphOutlineLookupFont,
+} from './text-warp-envelope-types';
 
 let measureCtx: CanvasRenderingContext2D | null | undefined;
 
@@ -118,22 +84,6 @@ export function measureGlyphAdvances(text: string, font: EnvelopeFontSpec): numb
 	return advances;
 }
 
-/**
- * Horizontal line alignment. Matches `TextStyle['align']` exactly (including
- * the distribute/Thai variants) so callers can pass it straight through
- * without narrowing; every non-`right` non-`left`-ish value renders centred,
- * same as {@link envelopeCurveAt}'s callers already treat unknown alignments.
- */
-export type EnvelopeAlign =
-	| 'left'
-	| 'center'
-	| 'right'
-	| 'justify'
-	| 'justLow'
-	| 'dist'
-	| 'thaiDist'
-	| undefined;
-
 function startX(align: EnvelopeAlign, width: number, lineWidth: number): number {
 	if (align === 'right') {
 		return width - lineWidth;
@@ -176,6 +126,7 @@ export function buildGlyphEnvelope(
 	adj2?: number,
 	lineIndex = 0,
 	lineCount = 1,
+	getGlyphOutline?: GlyphOutlineLookup,
 ): EnvelopeGlyphPlacement[] {
 	if (!hasGlyphEnvelope(preset) || width <= 0 || height <= 0 || lineCount < 1) {
 		return [];
@@ -210,16 +161,29 @@ export function buildGlyphEnvelope(
 			const u1 = width > 0 ? x1 / width : 0.5;
 			const edge0 = edgeBandAt(preset, u0, adj, adj2, height, safeLineIndex, safeLineCount);
 			const edge1 = edgeBandAt(preset, u1, adj, adj2, height, safeLineIndex, safeLineCount);
-			const sliceCount = chooseGlyphSliceCount(
-				preset,
-				u0,
-				u1,
-				adj,
-				adj2,
-				height,
-				safeLineIndex,
-				safeLineCount,
-			);
+
+			// Outline warping takes priority when the caller can supply the
+			// glyph's real outline: it is exact, so the affine fit (and its
+			// piecewise-slice fallback) is only worth computing when it can't.
+			const outlineCommands = getGlyphOutline?.(char, segment.font, x, nomBottom);
+			const outlinePath = outlineCommands
+				? buildWarpedGlyphOutlinePathD(
+						outlineCommands,
+						preset,
+						width,
+						height,
+						nomTop,
+						nomBottom,
+						adj,
+						adj2,
+						safeLineIndex,
+						safeLineCount,
+					)
+				: undefined;
+
+			const sliceCount = outlinePath
+				? 1
+				: chooseGlyphSliceCount(preset, u0, u1, adj, adj2, height, safeLineIndex, safeLineCount);
 			placements.push({
 				char,
 				segmentIndex: segment.segmentIndex,
@@ -244,6 +208,7 @@ export function buildGlyphEnvelope(
 								sliceCount,
 							)
 						: undefined,
+				outlinePath,
 			});
 			x += glyphWidth;
 		});

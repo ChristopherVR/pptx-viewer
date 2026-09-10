@@ -20,6 +20,7 @@ import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
 import { normalizeHexColor } from './color';
+import { getGlyphOutline } from './glyph-outline-cache';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import type { ElementFindHighlights } from './text-segment-helpers';
@@ -139,6 +140,13 @@ function EnvelopeGlyph({
 	glyph: EnvelopeGlyphPlacement;
 	tspanProps: React.SVGProps<SVGTSpanElement>;
 }): React.ReactElement {
+	if (glyph.outlinePath) {
+		// The glyph's real outline, already warped point-by-point (see
+		// `buildWarpedGlyphOutlinePathD` in pptx-viewer-shared): exact, so no
+		// affine fit or slicing is needed. `fill` carries the colour a `<text>`
+		// would otherwise get from `tspanProps`.
+		return <path d={glyph.outlinePath} fill={tspanProps.fill} />;
+	}
 	if (!glyph.slices || glyph.slices.length <= 1) {
 		return (
 			<text x={glyph.x} y={glyph.y} transform={glyph.transform} {...tspanProps}>
@@ -299,6 +307,7 @@ export function WarpedText({
 						warpAdj2,
 						paraIdx,
 						lineCount,
+						getGlyphOutline,
 					);
 					return (
 						<EnvelopeLine

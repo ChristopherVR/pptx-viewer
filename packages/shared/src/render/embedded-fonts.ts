@@ -46,6 +46,53 @@ const DEFAULT_FONT_FORMAT = 'truetype';
 /** Default MIME type when no format-specific mapping applies. */
 const DEFAULT_FONT_MIME = 'font/ttf';
 
+/** Decode a validated `data:font/…;base64,…` URL's payload to raw bytes. */
+function decodeFontDataUrl(dataUrl: string): Uint8Array | undefined {
+	const match = FONT_DATA_URL_PATTERN.exec(dataUrl);
+	if (!match) {
+		return undefined;
+	}
+	const commaIndex = dataUrl.indexOf(',');
+	if (commaIndex < 0) {
+		return undefined;
+	}
+	try {
+		const binary = atob(dataUrl.slice(commaIndex + 1));
+		const bytes = new Uint8Array(binary.length);
+		for (let i = 0; i < binary.length; i++) {
+			bytes[i] = binary.charCodeAt(i);
+		}
+		return bytes;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Resolve an embedded-font entry to its raw (clear-text) font bytes,
+ * independent of how the caller will use them (CSS `@font-face` injection via
+ * {@link resolveFontVariant}, or glyph-outline parsing via
+ * `text-warp-outline-font-cache.ts`). Tries, in order: decoding the core
+ * loader's own `dataUrl` (the common case), the preserved `rawFontData`, and
+ * de-obfuscating `originalPartBytes` with `fontGuid`. Returns `undefined` when
+ * none of these yield usable bytes.
+ */
+export function resolveEmbeddedFontClearBytes(font: PptxEmbeddedFont): Uint8Array | undefined {
+	if (isInjectableUrl(font.dataUrl) && !font.dataUrl.startsWith('blob:')) {
+		const decoded = decodeFontDataUrl(font.dataUrl);
+		if (decoded && decoded.length >= 4) {
+			return decoded;
+		}
+	}
+	if (font.rawFontData && font.rawFontData.length > 0) {
+		return font.rawFontData;
+	}
+	if (font.originalPartBytes && font.originalPartBytes.length > 0 && font.fontGuid) {
+		return deobfuscateFont(font.originalPartBytes, font.fontGuid);
+	}
+	return undefined;
+}
+
 /**
  * True when `url` is safe to interpolate into `src: url("…")`.
  *
@@ -138,14 +185,7 @@ export function resolveFontVariant(
 	}
 
 	// Strategy 2: de-obfuscate raw bytes and mint an object URL.
-	let clearBytes: Uint8Array | undefined;
-	if (font.rawFontData && font.rawFontData.length > 0) {
-		// Already clear-text (preserved by the loader for round-trip).
-		clearBytes = font.rawFontData;
-	} else if (font.originalPartBytes && font.originalPartBytes.length > 0 && font.fontGuid) {
-		// Obfuscated bytes + GUID → XOR de-obfuscation (ECMA-376 Part 2 §14.2.1).
-		clearBytes = deobfuscateFont(font.originalPartBytes, font.fontGuid);
-	}
+	const clearBytes = resolveEmbeddedFontClearBytes(font);
 
 	if (!clearBytes || clearBytes.length < 4) {
 		return null;

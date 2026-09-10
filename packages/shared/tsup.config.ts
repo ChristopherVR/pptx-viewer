@@ -21,7 +21,11 @@ export default defineConfig((options) => ({
 	// host app dedupes a single copy rather than inlining it into shared. `ai`
 	// (Vercel AI SDK) is an optional peer behind the `ai` entry; each binding
 	// keeps it external so the host app owns a single copy of the SDK.
-	external: ['pptx-viewer-core', 'three', /^three\//u, 'dompurify', 'ai'],
+	// `opentype.js` (WordArt envelope glyph-outline warping, `text-warp-outline-
+	// font-cache.ts`) is external for the same reason as `dompurify`: every
+	// binding that bundles shared declares it directly (see each binding's own
+	// package.json) so there is one copy, not one per binding.
+	external: ['pptx-viewer-core', 'three', /^three\//u, 'dompurify', 'ai', 'opentype.js'],
 	treeshake: true,
 	platform: 'neutral',
 }));

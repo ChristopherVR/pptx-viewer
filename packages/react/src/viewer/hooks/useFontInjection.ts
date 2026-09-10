@@ -1,10 +1,17 @@
 import type { PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
-import { collectReferencedFontFamilies, resolveGoogleWebfontHref } from 'pptx-viewer-shared';
+import {
+	collectReferencedFontFamilies,
+	fetchGoogleWebfontOutlineBytes,
+	resolveGoogleWebfontHref,
+	selectGoogleWebfontFamilies,
+} from 'pptx-viewer-shared';
 /**
  * useFontInjection: Injects @font-face declarations for embedded PPTX fonts
  * and loads Google Fonts fallbacks for referenced families the API serves.
  */
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+import { glyphOutlineFontCache } from '../utils/glyph-outline-cache';
 
 /* ------------------------------------------------------------------ */
 /*  Style element ID constants                                        */
@@ -151,6 +158,65 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 			if (existing) {
 				document.head.removeChild(existing);
 			}
+		};
+	}, [embeddedFonts, slides]);
+
+	// ── Best-effort glyph-outline bytes for catalogue webfonts ───────
+	// A WordArt envelope glyph (inflate/deflate/can) in a referenced (not
+	// embedded) family only gets true outline warping once the ACTUAL font
+	// file's bytes are fetched (a `<link>` stylesheet alone carries no glyph
+	// geometry, see `text-warp-outline-webfont-fetch.ts`). This is additive
+	// and best-effort: failures just leave the existing affine-transform
+	// fallback in place, never an error. `outlineFontsTick` forces a
+	// re-render once bytes land, so already-mounted WordArt picks them up
+	// from the shared `glyphOutlineFontCache` without needing a prop.
+	const [, setOutlineFontsTick] = useState(0);
+	useEffect(() => {
+		let cancelled = false;
+		const referenced = collectReferencedFontFamilies(slides);
+		const candidates = selectGoogleWebfontFamilies(
+			referenced,
+			embeddedFonts.map((font) => font.name),
+		);
+		if (candidates.length === 0) {
+			return;
+		}
+		void resolveGoogleWebfontHref(slides, embeddedFonts).then(async (href) => {
+			if (cancelled || !href) {
+				return;
+			}
+			const boldItalicVariants: Array<{ bold: boolean; italic: boolean }> = [
+				{ bold: false, italic: false },
+				{ bold: true, italic: false },
+			];
+			let registeredAny = false;
+			for (const family of candidates) {
+				for (const variant of boldItalicVariants) {
+					if (cancelled) {
+						return;
+					}
+					const bytes = await fetchGoogleWebfontOutlineBytes(
+						href,
+						family,
+						variant.bold,
+						variant.italic,
+						fetch,
+					);
+					if (
+						bytes &&
+						glyphOutlineFontCache.registerFontBytes(family, variant.bold, variant.italic, bytes)
+					) {
+						registeredAny = true;
+					}
+				}
+			}
+			if (registeredAny && !cancelled) {
+				setOutlineFontsTick((tick) => tick + 1);
+			}
+			return undefined;
+		});
+		return () => {
+			cancelled = true;
 		};
 	}, [embeddedFonts, slides]);
 

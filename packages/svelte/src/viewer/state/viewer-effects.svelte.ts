@@ -1,9 +1,15 @@
+import {
+	collectReferencedFontFamilies,
+	fetchGoogleWebfontOutlineBytes,
+	selectGoogleWebfontFamilies,
+} from 'pptx-viewer-shared';
 import { untrack } from 'svelte';
 
 import type { Translator } from '../../i18n/translator';
 import type { EditorController } from '../editor/editor-controller.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
 import type { ViewerLoadDetail } from '../types';
+import { glyphOutlineFontCache, glyphOutlineFontsTick } from './glyph-outline-cache.svelte';
 import {
 	removeGoogleWebfontsLink,
 	resolveWebfontHref,
@@ -161,6 +167,65 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 			return () => {
 				cancelled = true;
 				removeGoogleWebfontsLink(document);
+			};
+		});
+
+		// Best-effort glyph-outline bytes for catalogue webfonts. A WordArt
+		// envelope glyph (inflate/deflate/can) in a referenced (not embedded)
+		// family only gets true outline warping once the ACTUAL font file's
+		// bytes are fetched (the `<link>` stylesheet above carries no glyph
+		// geometry, see `text-warp-outline-webfont-fetch.ts`). Additive and
+		// best-effort: a failure just leaves the affine-transform fallback in
+		// place. `glyphOutlineFontsTick.value` is bumped so `WordArtText.svelte`
+		// (which reads it) recomputes once bytes land.
+		$effect(() => {
+			let cancelled = false;
+			const slides = deps.loader.slides;
+			const embeddedFonts = deps.loader.embeddedFonts;
+			const referenced = collectReferencedFontFamilies(slides);
+			const candidates = selectGoogleWebfontFamilies(
+				referenced,
+				embeddedFonts.map((font) => font.name),
+			);
+			if (candidates.length === 0) {
+				return;
+			}
+			void resolveWebfontHref(slides, embeddedFonts).then(async (href) => {
+				if (cancelled || !href) {
+					return;
+				}
+				const variants: Array<{ bold: boolean; italic: boolean }> = [
+					{ bold: false, italic: false },
+					{ bold: true, italic: false },
+				];
+				let registeredAny = false;
+				for (const family of candidates) {
+					for (const variant of variants) {
+						if (cancelled) {
+							return;
+						}
+						const bytes = await fetchGoogleWebfontOutlineBytes(
+							href,
+							family,
+							variant.bold,
+							variant.italic,
+							fetch,
+						);
+						if (
+							bytes &&
+							glyphOutlineFontCache.registerFontBytes(family, variant.bold, variant.italic, bytes)
+						) {
+							registeredAny = true;
+						}
+					}
+				}
+				if (registeredAny && !cancelled) {
+					glyphOutlineFontsTick.value += 1;
+				}
+				return undefined;
+			});
+			return () => {
+				cancelled = true;
 			};
 		});
 	}

@@ -1,8 +1,41 @@
 import { mount } from '@vue/test-utils';
-import type { PptxElement } from 'pptx-viewer-core';
+import { Font, Glyph, Path } from 'opentype.js';
+import type { PptxElement, PptxEmbeddedFont } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { glyphOutlineFontCache } from '../utils/glyph-outline-cache';
 import WordArtText from './WordArtText.vue';
+
+/** A minimal, self-contained TrueType-shaped font, built with opentype.js's own object model. */
+function buildTestFont(): Uint8Array {
+	const notdefGlyph = new Glyph({
+		name: '.notdef',
+		unicode: 0,
+		advanceWidth: 650,
+		path: new Path(),
+	});
+	const rectPath = new Path();
+	rectPath.moveTo(100, 0);
+	rectPath.lineTo(100, 700);
+	rectPath.lineTo(500, 700);
+	rectPath.lineTo(500, 0);
+	rectPath.close();
+	const glyphs = [notdefGlyph];
+	for (const ch of new Set('HeloINFLATEDTXR')) {
+		glyphs.push(
+			new Glyph({ name: ch, unicode: ch.codePointAt(0), advanceWidth: 650, path: rectPath }),
+		);
+	}
+	const font = new Font({
+		familyName: 'WarpOutlineVueTestFont',
+		styleName: 'Regular',
+		unitsPerEm: 1000,
+		ascender: 800,
+		descender: -200,
+		glyphs,
+	});
+	return new Uint8Array(font.toArrayBuffer());
+}
 
 /** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
 function matrixScaleY(transform: string): number {
@@ -245,5 +278,33 @@ describe('wordArtText', () => {
 		});
 		expect(wrapper.find('textPath').exists()).toBeTruthy();
 		expect(wrapper.find('.pptx-vue-wordart-css').exists()).toBeFalsy();
+	});
+
+	it('renders warped <path> outlines (not <text>) once the font is registered in the outline cache', () => {
+		const embedded: PptxEmbeddedFont = {
+			name: 'WarpOutlineVueTestFont',
+			dataUrl: '',
+			rawFontData: buildTestFont(),
+		};
+		glyphOutlineFontCache.registerEmbeddedFonts([embedded]);
+		const wrapper = mount(WordArtText, {
+			props: {
+				element: warpedText({
+					textStyle: {
+						textWarpPreset: 'textInflate',
+						fontFamily: 'WarpOutlineVueTestFont',
+						color: '#123456',
+					},
+				}),
+				zIndex: 0,
+			},
+		});
+		const paths = wrapper.findAll('svg > path');
+		expect(paths).toHaveLength('Hello'.length);
+		expect(wrapper.find('svg > text').exists()).toBeFalsy();
+		for (const p of paths) {
+			expect(p.attributes('d')?.startsWith('M')).toBeTruthy();
+			expect(p.attributes('fill')).toBe('#123456');
+		}
 	});
 });

@@ -27,6 +27,7 @@ import {
 	buildUserFontFaceStyles,
 } from './embedded-fonts-helpers';
 import type { ObjectUrlFactory, ViewerFontSource } from './embedded-fonts-helpers';
+import { glyphOutlineFontCache } from './glyph-outline-cache';
 
 /** True when the runtime exposes the DOM APIs we need to inject a `<style>`. */
 function hasDomSupport(): boolean {
@@ -91,6 +92,10 @@ export class EmbeddedFontsService {
 	 * leak across re-parses. Pass an empty list (or `null`) to clear everything.
 	 */
 	setFonts(fonts: readonly PptxEmbeddedFont[] | null | undefined): void {
+		// Register this deck's embedded fonts' real outlines (see
+		// glyph-outline-cache.ts) for WordArt envelope glyph-outline warping.
+		// Synchronous and idempotent, so it is safe to re-run on every call.
+		glyphOutlineFontCache.registerEmbeddedFonts(fonts ?? []);
 		const previousUrls = this.liveObjectUrls;
 		const { fontFaceCss, fontFamilies, objectUrls } = buildEmbeddedFontStyles(
 			fonts,

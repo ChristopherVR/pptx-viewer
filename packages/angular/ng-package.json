@@ -8,6 +8,7 @@
 		"jszip",
 		"fast-xml-parser",
 		"dompurify",
+		"opentype.js",
 		"pptx-viewer-core",
 		"pptx-viewer-mcp",
 		"zod"

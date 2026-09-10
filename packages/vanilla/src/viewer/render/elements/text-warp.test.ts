@@ -1,10 +1,43 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import { Font, Glyph, Path } from 'opentype.js';
+import type { PptxElement, PptxEmbeddedFont } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { glyphOutlineFontCache } from '../../glyph-outline-cache';
 import { createTranslator } from '../../i18n';
 import { createElementRendererRegistry } from '../registry';
 import type { ElementRenderContext } from '../types';
 import { renderWarpedText } from './text-warp';
+
+/** A minimal, self-contained TrueType-shaped font, built with opentype.js's own object model. */
+function buildTestFont(): Uint8Array {
+	const notdefGlyph = new Glyph({
+		name: '.notdef',
+		unicode: 0,
+		advanceWidth: 650,
+		path: new Path(),
+	});
+	const rectPath = new Path();
+	rectPath.moveTo(100, 0);
+	rectPath.lineTo(100, 700);
+	rectPath.lineTo(500, 700);
+	rectPath.lineTo(500, 0);
+	rectPath.close();
+	const glyphs = [notdefGlyph];
+	for (const ch of new Set('Hello')) {
+		glyphs.push(
+			new Glyph({ name: ch, unicode: ch.codePointAt(0), advanceWidth: 650, path: rectPath }),
+		);
+	}
+	const font = new Font({
+		familyName: 'WarpOutlineVanillaTestFont',
+		styleName: 'Regular',
+		unitsPerEm: 1000,
+		ascender: 800,
+		descender: -200,
+		glyphs,
+	});
+	return new Uint8Array(font.toArrayBuffer());
+}
 
 /**
  * Regression coverage for the WordArt envelope fidelity fix.
@@ -166,5 +199,36 @@ describe('renderWarpedText: envelope/former-simple presets render as true SVG te
 		expect(node?.querySelector('textPath')).toBeNull();
 		// 'Top' (3) + 'Bottom' (6) = 9 glyphs total.
 		expect(node?.querySelectorAll('text')).toHaveLength(9);
+	});
+
+	it('renders warped <path> outlines (not <text>) once the font is registered in the outline cache', () => {
+		const embedded: PptxEmbeddedFont = {
+			name: 'WarpOutlineVanillaTestFont',
+			dataUrl: '',
+			rawFontData: buildTestFont(),
+		};
+		glyphOutlineFontCache.registerEmbeddedFonts([embedded]);
+		const element: PptxElement = {
+			type: 'text',
+			id: 'wa-outline',
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 100,
+			text: 'Hello',
+			textStyle: {
+				textWarpPreset: 'textInflate',
+				fontFamily: 'WarpOutlineVanillaTestFont',
+				color: '#123456',
+			},
+		} as PptxElement;
+		const node = renderWarpedText(element, buildContext()) as SVGSVGElement | null;
+		const paths = node?.querySelectorAll('path') ?? [];
+		expect(paths).toHaveLength('Hello'.length);
+		expect(node?.querySelector('text')).toBeNull();
+		for (const p of paths) {
+			expect(p.getAttribute('d')?.startsWith('M')).toBeTruthy();
+			expect(p.getAttribute('fill')).toBe('#123456');
+		}
 	});
 });

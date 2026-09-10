@@ -298,4 +298,103 @@ describe('buildGlyphEnvelope', () => {
 			}
 		});
 	});
+
+	describe('getGlyphOutline', () => {
+		it('is not consulted (and the affine transform/slices apply) when omitted', () => {
+			stubFixedAdvance(20);
+			const placements = buildGlyphEnvelope(
+				'textInflate',
+				[{ text: 'Hi', font: FONT, segmentIndex: 0 }],
+				200,
+				120,
+				'center',
+			);
+			for (const p of placements) {
+				expect(p.outlinePath).toBeUndefined();
+				expect(p.transform).toBeTruthy();
+			}
+		});
+
+		it('sets outlinePath from getGlyphOutline and skips slicing when it succeeds', () => {
+			stubFixedAdvance(60);
+			const getGlyphOutline = vi.fn(() => [
+				{ type: 'M' as const, x: 0, y: 0 },
+				{ type: 'L' as const, x: 10, y: 10 },
+				{ type: 'Z' as const },
+			]);
+			const placements = buildGlyphEnvelope(
+				'textCanUp',
+				[{ text: 'MMMMMM', font: FONT, segmentIndex: 0 }],
+				360,
+				120,
+				'center',
+				66667,
+				undefined,
+				0,
+				1,
+				getGlyphOutline,
+			);
+			expect(getGlyphOutline).toHaveBeenCalledWith(
+				'M',
+				FONT,
+				expect.any(Number),
+				expect.any(Number),
+			);
+			for (const p of placements) {
+				expect(p.outlinePath).toBeTruthy();
+				expect(p.outlinePath!.startsWith('M')).toBeTruthy();
+				// Outline warping is exact, so slicing (the affine-fit workaround)
+				// never applies once an outline was obtained.
+				expect(p.slices).toBeUndefined();
+			}
+		});
+
+		it('falls back to the affine transform per-glyph when getGlyphOutline returns undefined', () => {
+			stubFixedAdvance(20);
+			const getGlyphOutline = vi.fn(() => undefined);
+			const placements = buildGlyphEnvelope(
+				'textInflate',
+				[{ text: 'Hi', font: FONT, segmentIndex: 0 }],
+				200,
+				120,
+				'center',
+				undefined,
+				undefined,
+				0,
+				1,
+				getGlyphOutline,
+			);
+			expect(getGlyphOutline).toHaveBeenCalledWith(
+				'H',
+				FONT,
+				expect.any(Number),
+				expect.any(Number),
+			);
+			for (const p of placements) {
+				expect(p.outlinePath).toBeUndefined();
+				expect(p.transform).toBeTruthy();
+			}
+		});
+
+		it('treats an empty-array result (whitespace) as "nothing to draw", not a failure', () => {
+			stubFixedAdvance(20);
+			const getGlyphOutline = vi.fn(() => []);
+			const placements = buildGlyphEnvelope(
+				'textInflate',
+				[{ text: ' ', font: FONT, segmentIndex: 0 }],
+				200,
+				120,
+				'center',
+				undefined,
+				undefined,
+				0,
+				1,
+				getGlyphOutline,
+			);
+			// buildWarpedGlyphOutlinePathD returns undefined for an empty command
+			// list, so the space glyph still carries its (harmless, invisible)
+			// affine transform rather than a broken empty `outlinePath`.
+			expect(placements[0].outlinePath).toBeUndefined();
+		});
+	});
 });

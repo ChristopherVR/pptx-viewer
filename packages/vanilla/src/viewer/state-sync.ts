@@ -56,7 +56,11 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 				// renderer's feet but nothing scheduled the next paint (unlike the
 				// other four bindings' reactive frameworks, this store's listener
 				// IS the reactivity: a change unlisted here simply never repaints).
-				state.tableStyleMap !== previous.tableStyleMap) &&
+				state.tableStyleMap !== previous.tableStyleMap ||
+				// A catalogue webfont's glyph-outline bytes just landed (see
+				// glyph-outline-cache.ts): repaint so an already-rendered WordArt
+				// envelope glyph in that family picks up outline warping.
+				state.outlineFontsTick !== previous.outlineFontsTick) &&
 				!state.interactionActive) ||
 			(previous.interactionActive && !state.interactionActive)
 		) {

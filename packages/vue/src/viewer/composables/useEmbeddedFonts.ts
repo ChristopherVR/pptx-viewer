@@ -3,6 +3,8 @@ import { deobfuscateFont, detectFontFormat, getSubstituteFontFamily } from 'pptx
 import { computed, onScopeDispose, toValue, watch } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 
+import { glyphOutlineFontCache } from '../utils/glyph-outline-cache';
+
 /**
  * `useEmbeddedFonts`: Vue port of the embedded-font injection logic in the
  * React `useFontInjection` hook (the `@font-face` half).
@@ -243,6 +245,17 @@ export function useEmbeddedFonts(
 		styleEl.textContent = css;
 	};
 
+	// Register this deck's embedded fonts' real outlines (see
+	// glyph-outline-cache.ts) for WordArt envelope glyph-outline warping.
+	// `immediate: true` runs this synchronously at composable setup, before
+	// the first render that would use them - registerEmbeddedFonts is
+	// idempotent, so re-running on every source change is cheap.
+	const stopOutlineWatch = watch(
+		() => toValue(fonts) ?? [],
+		(source) => glyphOutlineFontCache.registerEmbeddedFonts(source),
+		{ immediate: true },
+	);
+
 	// Drive the injection off the computed CSS. The watcher reads `fontFaceCss`
 	// (which in turn drives `resolvedVariants`, including object-URL lifecycle),
 	// then mirrors the result into a `<style>` element. `immediate: true`
@@ -253,6 +266,7 @@ export function useEmbeddedFonts(
 
 	onScopeDispose(() => {
 		stopWatch();
+		stopOutlineWatch();
 		if (styleEl && styleEl.parentNode) {
 			styleEl.parentNode.removeChild(styleEl);
 		}

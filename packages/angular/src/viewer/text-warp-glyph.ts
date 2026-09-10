@@ -13,6 +13,7 @@ import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
 import { buildGlyphEnvelope, DEFAULT_FONT_FAMILY } from '../internal/shared';
 import type { EnvelopeGlyphSlice, EnvelopeSegmentInput, WarpParagraph } from '../internal/shared';
+import { getGlyphOutline, glyphOutlineFontsTick } from './glyph-outline-cache';
 
 const DEFAULT_FONT_SIZE = 18;
 const DEFAULT_COLOR = '#000000';
@@ -44,6 +45,15 @@ export interface WarpGlyph {
 	 * The template appends `-s{index}` per slice.
 	 */
 	readonly clipIdPrefix: string;
+	/**
+	 * A warped SVG path `d` for this glyph's ACTUAL outline (see
+	 * `buildWarpedGlyphOutlinePathD` in pptx-viewer-shared), present only when
+	 * a real font file was obtainable for this glyph's family/style. When set,
+	 * the template renders `<path d [fill]>` instead of `<text transform>` /
+	 * `slices`: exact, since every outline point is already mapped through the
+	 * envelope curve at its OWN x.
+	 */
+	readonly outlinePath?: string;
 }
 
 /** Descriptor for the true two-curve envelope renderer. One `<text>` per glyph. */
@@ -97,6 +107,11 @@ export function buildGlyphWarpDef(
 	elementStyle: TextStyle | undefined,
 	idPrefix: string,
 ): TextWarpGlyphDef {
+	// Read (never write) the tick so a caller inside an Angular `computed()`
+	// (element-renderer-shape.component.ts's `glyphWarp`) picks this function
+	// up as a dependency and recomputes once a catalogue webfont's outline
+	// bytes land (see glyph-outline-cache.ts).
+	glyphOutlineFontsTick();
 	const lineCount = paragraphs.length;
 	const glyphs: WarpGlyph[] = paragraphs.flatMap((paragraph, lineIndex) => {
 		const segments = paragraph.segments;
@@ -115,6 +130,7 @@ export function buildGlyphWarpDef(
 			adj2,
 			lineIndex,
 			lineCount,
+			getGlyphOutline,
 		);
 		return placements.map((p, glyphIndex) => {
 			const s = segments[p.segmentIndex]?.style ?? {};
@@ -131,6 +147,7 @@ export function buildGlyphWarpDef(
 				fontSize: (s.fontSize ?? elementStyle?.fontSize ?? DEFAULT_FONT_SIZE) as number,
 				slices: p.slices,
 				clipIdPrefix: `${idPrefix}-l${lineIndex}-g${glyphIndex}`,
+				outlinePath: p.outlinePath,
 			};
 		});
 	});

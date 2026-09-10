@@ -95,6 +95,15 @@ export interface ViewerState {
 	activeCustomShowId: string | null;
 	embeddedFonts: PptxEmbeddedFont[];
 	/**
+	 * Bumped whenever a catalogue webfont's glyph-outline bytes are newly
+	 * registered into `glyph-outline-cache.ts`'s `GlyphOutlineFontCache` (see
+	 * `PptxViewer.ts`'s webfonts subscription). Not read for its value: only
+	 * listed in `state-sync.ts`'s repaint condition so a WordArt envelope
+	 * glyph that just became outline-warpable repaints without needing any
+	 * OTHER field to also change.
+	 */
+	outlineFontsTick: number;
+	/**
 	 * File > Fonts > "Embed fonts in the file". Read by the save path, which
 	 * hands it to the shared `embeddedFontSaveOptions`: off passes
 	 * `embeddedFontList: null` and strips `p:embeddedFontLst`, the `/font`
@@ -337,6 +346,7 @@ export function createInitialViewerState(): ViewerState {
 		commentAuthors: [],
 		activeCustomShowId: null,
 		embeddedFonts: [],
+		outlineFontsTick: 0,
 		embedFonts: true,
 		customFontFamilies: [],
 		hasDigitalSignatures: false,

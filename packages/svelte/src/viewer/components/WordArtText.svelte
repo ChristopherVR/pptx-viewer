@@ -14,6 +14,7 @@
 	} from 'pptx-viewer-shared';
 
 	import { getFieldContextGetter } from '../state/field-context';
+	import { getGlyphOutline, glyphOutlineFontsTick } from '../state/glyph-outline-cache.svelte';
 	import { styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
@@ -105,13 +106,18 @@
 	}
 
 	/** One glyph plus its already-resolved inline style string (avoids a stale
-	 *  cross-paragraph `segmentIndex` lookup at render time). */
-	type StyledGlyph = EnvelopeGlyphPlacement & { styleStr: string };
+	 *  cross-paragraph `segmentIndex` lookup at render time), plus the plain
+	 *  fill colour string for the outline-`<path>` branch (a `style` attribute
+	 *  `color` does not paint an SVG `fill`). */
+	type StyledGlyph = EnvelopeGlyphPlacement & { styleStr: string; fillColor: string };
 
 	const glyphs = $derived.by<StyledGlyph[]>(() => {
 		if (!useGlyphEnvelope) {
 			return [];
 		}
+		// Read (never write) the tick so this recomputes once a catalogue
+		// webfont's outline bytes land (see glyph-outline-cache.svelte.ts).
+		void glyphOutlineFontsTick.value;
 		const lineCount = paragraphs.length;
 		return paragraphs.flatMap((paragraph, lineIndex) => {
 			const segs: EnvelopeSegmentInput[] = paragraph.segments.map((seg, i) => ({
@@ -119,8 +125,11 @@
 				font: segmentFont(seg),
 				segmentIndex: i,
 			}));
-			const placements = buildGlyphEnvelope(preset as string, segs, width, height, textElement?.textStyle?.align, textElement?.textStyle?.textWarpAdj, textElement?.textStyle?.textWarpAdj2, lineIndex, lineCount);
-			return placements.map((p) => ({ ...p, styleStr: styleToString(runStyle(paragraph.segments[p.segmentIndex])) }));
+			const placements = buildGlyphEnvelope(preset as string, segs, width, height, textElement?.textStyle?.align, textElement?.textStyle?.textWarpAdj, textElement?.textStyle?.textWarpAdj2, lineIndex, lineCount, getGlyphOutline);
+			return placements.map((p) => {
+				const s = runStyle(paragraph.segments[p.segmentIndex]);
+				return { ...p, styleStr: styleToString(s), fillColor: String(s.color) };
+			});
 		});
 	});
 </script>
@@ -128,7 +137,12 @@
 {#if useGlyphEnvelope}
 	<svg class="pptx-svelte-wordart" {width} {height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true" style={`z-index:${zIndex}`}>
 		{#each glyphs as g, gi (gi)}
-			{#if !g.slices || g.slices.length <= 1}
+			{#if g.outlinePath}
+				<!-- The glyph's real outline, already warped point-by-point (see
+				     `buildWarpedGlyphOutlinePathD` in pptx-viewer-shared): exact,
+				     so no affine fit or slicing is needed. -->
+				<path d={g.outlinePath} fill={g.fillColor} />
+			{:else if !g.slices || g.slices.length <= 1}
 				<!-- Ordinary glyph (no slices needed): a bare <text>, unchanged
 				     from before per-glyph slicing existed. -->
 				<text x={g.x} y={g.y} transform={g.transform} style={g.styleStr}>{g.char}</text>

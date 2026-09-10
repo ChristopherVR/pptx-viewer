@@ -178,9 +178,12 @@
 				aria-hidden="true"
 			>
 				@for (g of gwarp.glyphs; track $index) {
-					<!-- Ordinary glyph (no slices needed): a bare <text>, unchanged
-					     from before per-glyph slicing existed. -->
-					@if (!g.slices || g.slices.length <= 1) {
+					<!-- The glyph's real outline, already warped point-by-point (see
+					     `buildWarpedGlyphOutlinePathD` in pptx-viewer-shared): exact,
+					     so no affine fit or slicing is needed. -->
+					@if (g.outlinePath) {
+						<path [attr.d]="g.outlinePath" [attr.fill]="g.fill" />
+					} @else if (!g.slices || g.slices.length <= 1) {
 						<text
 							[attr.x]="g.x"
 							[attr.y]="g.y"

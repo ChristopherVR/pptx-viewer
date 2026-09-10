@@ -27,6 +27,7 @@ import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, CollabLoadOrigin, SlideSizeEmu } from 'pptx-viewer-shared';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
 
+import { glyphOutlineFontCache } from './glyph-outline-cache.svelte';
 import {
 	resolveLazyImages,
 	resolveLazyTableCellImages,
@@ -212,6 +213,11 @@ export class PresentationLoader {
 			this.customProperties = parsed.customProperties ?? [];
 			this.tagCollections = parsed.tags ?? [];
 			this.embeddedFonts = parsed.embeddedFonts ?? [];
+			// Synchronous, not an effect: registers this deck's embedded fonts'
+			// real outlines (see glyph-outline-cache.svelte.ts) BEFORE the first
+			// render that uses them, so WordArt envelope glyphs get outline
+			// warping on the very first paint.
+			glyphOutlineFontCache.registerEmbeddedFonts(parsed.embeddedFonts ?? []);
 			this.hasDigitalSignatures = parsed.hasDigitalSignatures ?? false;
 			this.digitalSignatureCount = parsed.digitalSignatureCount ?? 0;
 			this.isPasswordProtected = parsed.isPasswordProtected ?? false;

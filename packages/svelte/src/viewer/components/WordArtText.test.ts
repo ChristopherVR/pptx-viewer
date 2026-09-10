@@ -1,8 +1,41 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import { Font, Glyph, Path } from 'opentype.js';
+import type { PptxElement, PptxEmbeddedFont } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { glyphOutlineFontCache } from '../state/glyph-outline-cache.svelte';
 import WordArtText from './WordArtText.svelte';
+
+/** A minimal, self-contained TrueType-shaped font, built with opentype.js's own object model. */
+function buildTestFont(): Uint8Array {
+	const notdefGlyph = new Glyph({
+		name: '.notdef',
+		unicode: 0,
+		advanceWidth: 650,
+		path: new Path(),
+	});
+	const rectPath = new Path();
+	rectPath.moveTo(100, 0);
+	rectPath.lineTo(100, 700);
+	rectPath.lineTo(500, 700);
+	rectPath.lineTo(500, 0);
+	rectPath.close();
+	const glyphs = [notdefGlyph];
+	for (const ch of new Set('Hello')) {
+		glyphs.push(
+			new Glyph({ name: ch, unicode: ch.codePointAt(0), advanceWidth: 650, path: rectPath }),
+		);
+	}
+	const font = new Font({
+		familyName: 'WarpOutlineSvelteTestFont',
+		styleName: 'Regular',
+		unitsPerEm: 1000,
+		ascender: 800,
+		descender: -200,
+		glyphs,
+	});
+	return new Uint8Array(font.toArrayBuffer());
+}
 
 let cleanup: (() => void) | undefined;
 
@@ -137,5 +170,30 @@ describe('wordArtText (Svelte)', () => {
 	it('keeps using a textPath for a former "simple" preset', () => {
 		const svg = mountWarped(warpedText({ textStyle: { textWarpPreset: 'textSlantUp' } }));
 		expect(svg?.querySelector('textPath')).not.toBeNull();
+	});
+
+	it('renders warped <path> outlines (not <text>) once the font is registered in the outline cache', () => {
+		const embedded: PptxEmbeddedFont = {
+			name: 'WarpOutlineSvelteTestFont',
+			dataUrl: '',
+			rawFontData: buildTestFont(),
+		};
+		glyphOutlineFontCache.registerEmbeddedFonts([embedded]);
+		const svg = mountWarped(
+			warpedText({
+				textStyle: {
+					textWarpPreset: 'textInflate',
+					fontFamily: 'WarpOutlineSvelteTestFont',
+					color: '#123456',
+				},
+			}),
+		);
+		const paths = svg?.querySelectorAll('path') ?? [];
+		expect(paths).toHaveLength('Hello'.length);
+		expect(svg?.querySelector('text')).toBeNull();
+		for (const p of paths) {
+			expect(p.getAttribute('d')?.startsWith('M')).toBeTruthy();
+			expect(p.getAttribute('fill')).toBe('#123456');
+		}
 	});
 });

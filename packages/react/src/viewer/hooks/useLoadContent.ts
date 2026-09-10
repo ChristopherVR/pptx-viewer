@@ -46,6 +46,7 @@ import { useEffect, useRef } from 'react';
 
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type { CanvasSize } from '../types';
+import { glyphOutlineFontCache } from '../utils/glyph-outline-cache';
 import { partitionTemplateElements } from '../utils/template-editing';
 import {
 	collectMediaElements,
@@ -388,6 +389,11 @@ export function useLoadContent({
 				setCoreProperties(parsed.coreProperties);
 				setAppProperties(parsed.appProperties);
 				setEmbeddedFonts(parsed.embeddedFonts ?? []);
+				// Synchronous, not an effect: registers this deck's embedded fonts'
+				// real outlines (see glyph-outline-cache.ts) BEFORE the first render
+				// that uses them, so WordArt envelope glyphs get outline warping on
+				// the very first paint instead of needing a follow-up re-render.
+				glyphOutlineFontCache.registerEmbeddedFonts(parsed.embeddedFonts ?? []);
 				setHasMacros(parsed.hasMacros === true);
 				setHasDigitalSignatures(parsed.hasDigitalSignatures === true);
 				setDigitalSignatureCount(parsed.digitalSignatureCount ?? 0);

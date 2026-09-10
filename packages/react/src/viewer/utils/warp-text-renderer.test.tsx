@@ -16,13 +16,46 @@
  * No `@testing-library/react` in this workspace; uses the manual `createRoot`
  * + `act` harness (see `OlePropertiesPanel.test.tsx`).
  */
-import type { PptxElement } from 'pptx-viewer-core';
+import { Font, Glyph, Path } from 'opentype.js';
+import type { PptxElement, PptxEmbeddedFont } from 'pptx-viewer-core';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { glyphOutlineFontCache } from './glyph-outline-cache';
 import { WarpedText } from './warp-text-renderer';
+
+/** A minimal, self-contained TrueType-shaped font, built with opentype.js's own object model. */
+function buildTestFont(): Uint8Array {
+	const notdefGlyph = new Glyph({
+		name: '.notdef',
+		unicode: 0,
+		advanceWidth: 650,
+		path: new Path(),
+	});
+	const rectPath = new Path();
+	rectPath.moveTo(100, 0);
+	rectPath.lineTo(100, 700);
+	rectPath.lineTo(500, 700);
+	rectPath.lineTo(500, 0);
+	rectPath.close();
+	const glyphs = [notdefGlyph];
+	for (const ch of new Set('Hello')) {
+		glyphs.push(
+			new Glyph({ name: ch, unicode: ch.codePointAt(0), advanceWidth: 650, path: rectPath }),
+		);
+	}
+	const font = new Font({
+		familyName: 'WarpOutlineReactTestFont',
+		styleName: 'Regular',
+		unitsPerEm: 1000,
+		ascender: 800,
+		descender: -200,
+		glyphs,
+	});
+	return new Uint8Array(font.toArrayBuffer());
+}
 
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
@@ -174,6 +207,36 @@ describe('warpedText: envelope/former-simple presets render as true SVG textPath
 		// wrapped in a group - ordinary captions pay no cost.
 		const bareGlyphs = svg.querySelectorAll(':scope > text');
 		expect(bareGlyphs.length + glyphGroups.length).toBe('MMM'.length);
+	});
+
+	it('renders warped <path> outlines (not <text>) once the font is registered in the outline cache', () => {
+		const embedded: PptxEmbeddedFont = {
+			name: 'WarpOutlineReactTestFont',
+			dataUrl: '',
+			rawFontData: buildTestFont(),
+		};
+		glyphOutlineFontCache.registerEmbeddedFonts([embedded]);
+		const el = renderWarpedElement({
+			type: 'text',
+			id: 'wa-outline',
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 100,
+			text: 'Hello',
+			textStyle: {
+				textWarpPreset: 'textInflate',
+				fontFamily: 'WarpOutlineReactTestFont',
+				color: '#123456',
+			},
+		} as PptxElement);
+		const paths = el.querySelectorAll('svg > path');
+		expect(paths).toHaveLength('Hello'.length);
+		expect(el.querySelector('svg > text')).toBeNull();
+		for (const p of paths) {
+			expect(p.getAttribute('d')?.startsWith('M')).toBeTruthy();
+			expect(p.getAttribute('fill')).toBe('#123456');
+		}
 	});
 
 	it('a multi-paragraph inflate element bends line 0 above line 1 (band slicing)', () => {

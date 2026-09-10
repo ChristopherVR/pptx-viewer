@@ -38,8 +38,9 @@ function clipId(sliceIndex: number): string {
 </script>
 
 <template>
+	<path v-if="glyph.outlinePath" :d="glyph.outlinePath" :fill="tspan.fill" />
 	<text
-		v-if="!glyph.slices || glyph.slices.length <= 1"
+		v-else-if="!glyph.slices || glyph.slices.length <= 1"
 		:x="glyph.x"
 		:y="glyph.y"
 		:transform="glyph.transform"

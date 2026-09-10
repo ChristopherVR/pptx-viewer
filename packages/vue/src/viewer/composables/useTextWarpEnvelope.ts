@@ -9,6 +9,8 @@ import { buildGlyphEnvelope, hasGlyphEnvelope } from 'pptx-viewer-shared';
 import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
 
+import { getGlyphOutline, glyphOutlineFontsTick } from '../utils/glyph-outline-cache';
+
 /** One warped line's glyph placements plus the segments to resolve their style from. */
 export interface EnvelopeGlyphLine {
 	lineIndex: number;
@@ -76,6 +78,9 @@ export function useTextWarpEnvelope(options: {
 		if (!useGlyphEnvelope.value) {
 			return [];
 		}
+		// Read (never write) the tick so this computed re-runs once a catalogue
+		// webfont's outline bytes land (see glyph-outline-cache.ts).
+		void glyphOutlineFontsTick.value;
 		const lineCount = paragraphs.value.length;
 		return paragraphs.value.map((paragraph, lineIndex) => {
 			const segs: EnvelopeSegmentInput[] = paragraph.segments.map((seg, i) => ({
@@ -93,6 +98,7 @@ export function useTextWarpEnvelope(options: {
 				warpAdj2.value,
 				lineIndex,
 				lineCount,
+				getGlyphOutline,
 			);
 			return { lineIndex, glyphs, segments: paragraph.segments };
 		});

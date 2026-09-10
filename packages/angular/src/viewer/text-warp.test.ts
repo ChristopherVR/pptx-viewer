@@ -4,10 +4,12 @@
  * Covers: getTextWarp(), getWarpCategory(), groupIntoParagraphs(),
  *         ALL_CLASSIFIED_PRESETS membership, and the TextWarpDef shape.
  */
-import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import { Font, Glyph, Path } from 'opentype.js';
+import type { PptxElement, PptxEmbeddedFont, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { hasGlyphEnvelope } from '../internal/shared';
+import { glyphOutlineFontCache } from './glyph-outline-cache';
 import {
 	ALL_CLASSIFIED_PRESETS,
 	getTextWarp,
@@ -16,6 +18,37 @@ import {
 } from './text-warp';
 import type { TextWarpGlyphDef, TextWarpPathDef } from './text-warp';
 import { SVG_WARP_PRESETS } from './warp-path-generators';
+
+/** A minimal, self-contained TrueType-shaped font, built with opentype.js's own object model. */
+function buildTestFont(): Uint8Array {
+	const notdefGlyph = new Glyph({
+		name: '.notdef',
+		unicode: 0,
+		advanceWidth: 650,
+		path: new Path(),
+	});
+	const rectPath = new Path();
+	rectPath.moveTo(100, 0);
+	rectPath.lineTo(100, 700);
+	rectPath.lineTo(500, 700);
+	rectPath.lineTo(500, 0);
+	rectPath.close();
+	const glyphs = [notdefGlyph];
+	for (const ch of new Set('Hello')) {
+		glyphs.push(
+			new Glyph({ name: ch, unicode: ch.codePointAt(0), advanceWidth: 650, path: rectPath }),
+		);
+	}
+	const font = new Font({
+		familyName: 'WarpOutlineAngularTestFont',
+		styleName: 'Regular',
+		unitsPerEm: 1000,
+		ascender: 800,
+		descender: -200,
+		glyphs,
+	});
+	return new Uint8Array(font.toArrayBuffer());
+}
 
 // ── helpers ────────────────────────────────────────────────────────────
 
@@ -406,6 +439,27 @@ describe('getTextWarp - envelope presets (inflate/deflate/can) render as a glyph
 		// even though the template never references it.
 		for (const g of def.glyphs) {
 			expect(g.clipIdPrefix.length).toBeGreaterThan(0);
+		}
+	});
+
+	it('sets outlinePath (not slices) once the font is registered in the outline cache', () => {
+		const embedded: PptxEmbeddedFont = {
+			name: 'WarpOutlineAngularTestFont',
+			dataUrl: '',
+			rawFontData: buildTestFont(),
+		};
+		glyphOutlineFontCache.registerEmbeddedFonts([embedded]);
+		const el = makeTextElement('textInflate', {
+			text: 'Hello',
+			fontFamily: 'WarpOutlineAngularTestFont',
+		});
+		const def = getTextWarp(el) as TextWarpGlyphDef;
+		expect(def.strategy).toBe('glyph');
+		expect(def.glyphs).toHaveLength('Hello'.length);
+		for (const g of def.glyphs) {
+			expect(g.outlinePath).toBeTruthy();
+			expect(g.outlinePath!.startsWith('M')).toBeTruthy();
+			expect(g.slices).toBeUndefined();
 		}
 	});
 });

@@ -44,7 +44,9 @@
  * sans-serif`; Svelte's omitted "Helvetica Neue"; Vanilla had no fallback at
  * all) - now unified on the shared `DEFAULT_FONT_FAMILY` constant
  * (`pptx-viewer-shared`) across all five bindings, so this explicit typeface
- * is kept for determinism, not to route around a divergence.
+ * is kept for determinism, not to route around a divergence. `wide-glyph-can`
+ * overrides it to a deliberately unmatchable name instead; see
+ * `WarpSpec.fontFamily`'s doc comment for why.
  *
  * Re-runnable; `global-setup.ts` invokes it on every Playwright run.
  */
@@ -77,6 +79,23 @@ interface WarpSpec {
 	widthPt?: number;
 	/** Font size override (pt); large text in a narrow box is the "very wide glyph" residual. */
 	fontSizePt?: number;
+	/**
+	 * `<a:latin typeface>` override; defaults to `Arial`. `wide-glyph-can` uses
+	 * a deliberately unmatchable name instead: `Arial` resolves via
+	 * `google-webfonts-metric-clones.ts` (`Arial` -> `Arimo`) to a real
+	 * catalogue webfont, so once that async fetch lands, EVERY glyph-envelope
+	 * shape here (this one included) switches from the affine/slicing fallback
+	 * to the exact outline-warp `<path>` renderer - which always reports
+	 * `sliceCount: 1` (see `buildGlyphEnvelope`'s doc comment), making the
+	 * slicing-specific assertions below meaningless once the fetch resolves.
+	 * `wide-glyph-can` exists specifically to exercise `chooseGlyphSliceCount`
+	 * (`pptx-viewer-shared`), so it needs a family with NO catalogue match
+	 * (verified against both `findGoogleFontsFamily` and
+	 * `findMetricCompatibleGoogleFontsFamily`, which are exact-normalised
+	 * lookups, not fuzzy) to keep that fallback path deterministically
+	 * reachable.
+	 */
+	fontFamily?: string;
 }
 
 const WARPS: WarpSpec[] = [
@@ -124,6 +143,9 @@ const WARPS: WarpSpec[] = [
 		widthPt: 150,
 		fontSizePt: 60,
 		paragraphs: ['MOM'],
+		// See `WarpSpec.fontFamily`'s doc comment: must have no catalogue match
+		// so this shape deterministically stays on the affine/slicing fallback.
+		fontFamily: 'PptxE2EWideGlyphNoOutlineMatch',
 	},
 ];
 
@@ -131,8 +153,8 @@ const WIDTH_PT = 220;
 const HEIGHT_PT = 80;
 const DEFAULT_FONT_SIZE_PT = 32;
 
-const paragraphXml = (text: string, fontSizePt: number) =>
-	`<a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="${fontSizePt * 100}" b="1"><a:solidFill><a:srgbClr val="2E75B6"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t>${text}</a:t></a:r></a:p>`;
+const paragraphXml = (text: string, fontSizePt: number, fontFamily: string) =>
+	`<a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="en-US" sz="${fontSizePt * 100}" b="1"><a:solidFill><a:srgbClr val="2E75B6"/></a:solidFill><a:latin typeface="${fontFamily}"/></a:rPr><a:t>${text}</a:t></a:r></a:p>`;
 
 const warpShapeXml = (spec: WarpSpec, index: number) => {
 	const avLst =
@@ -142,6 +164,7 @@ const warpShapeXml = (spec: WarpSpec, index: number) => {
 	const widthPt = spec.widthPt ?? WIDTH_PT;
 	const heightPt = spec.heightPt ?? HEIGHT_PT;
 	const fontSizePt = spec.fontSizePt ?? DEFAULT_FONT_SIZE_PT;
+	const fontFamily = spec.fontFamily ?? 'Arial';
 	const paragraphs = spec.paragraphs ?? ['Warped'];
 	return `<p:sp><p:nvSpPr><p:cNvPr id="${index + 2}" name="${spec.name}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${
 		spec.x * EMU_PER_PT
@@ -149,7 +172,7 @@ const warpShapeXml = (spec: WarpSpec, index: number) => {
 		heightPt * EMU_PER_PT
 	}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap="none"><a:prstTxWarp prst="${
 		spec.prst
-	}">${avLst}</a:prstTxWarp></a:bodyPr><a:lstStyle/>${paragraphs.map((p) => paragraphXml(p, fontSizePt)).join('')}</p:txBody></p:sp>`;
+	}">${avLst}</a:prstTxWarp></a:bodyPr><a:lstStyle/>${paragraphs.map((p) => paragraphXml(p, fontSizePt, fontFamily)).join('')}</p:txBody></p:sp>`;
 };
 
 const THEME = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

@@ -10,6 +10,7 @@ import {
 import type {
 	ParsedTableStyleMap,
 	PptxElement,
+	PptxEmbeddedFont,
 	PptxHandler,
 	PptxSaveFormat,
 	PptxSlide,
@@ -30,8 +31,10 @@ import {
 	buildUserFontFaceStyles,
 	clearPresentationDeck,
 	collectAccessibilityIssues,
+	collectReferencedFontFamilies,
 	createPresentationSessionId,
 	endAudienceDisplay,
+	fetchGoogleWebfontOutlineBytes,
 	isPresentationSessionMessage,
 	loadPresentationDeck,
 	mayLeaveSlideShow,
@@ -43,6 +46,7 @@ import {
 	reflowSmartArtData,
 	resolveAudienceScreenPlacement,
 	resolveGoogleWebfontHref,
+	selectGoogleWebfontFamilies,
 	shouldCommitSmartArtNodeText,
 	stepPresenterZoom,
 	storePresentationDeck,
@@ -81,6 +85,7 @@ import type { EditorController } from './editor';
 import { createEditorController } from './editor';
 import type { ExportLifecycle } from './export-lifecycle';
 import { createExportLifecycle, ViewerExportHost } from './export-lifecycle';
+import { glyphOutlineFontCache } from './glyph-outline-cache';
 import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
 import type { LoadingController } from './loading-controller';
@@ -528,6 +533,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			if (state.slides === previous.slides && state.embeddedFonts === previous.embeddedFonts) {
 				return;
 			}
+			// Register this deck's embedded fonts' real outlines (see
+			// glyph-outline-cache.ts) for WordArt envelope glyph-outline
+			// warping. Synchronous and idempotent, before the async webfont
+			// work below, so an embedded font is outline-warpable in the very
+			// first repaint this state change causes.
+			glyphOutlineFontCache.registerEmbeddedFonts(state.embeddedFonts);
 			const token = ++this.webfontsToken;
 			void resolveGoogleWebfontHref(state.slides, state.embeddedFonts).then((href) => {
 				if (token !== this.webfontsToken) {
@@ -536,6 +547,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				syncGoogleWebfontsLink(this.doc, href);
 				return href;
 			});
+			this.syncGlyphOutlineWebfonts(state.slides, state.embeddedFonts, token);
 		});
 		this.sessions = createSessionControllers({
 			doc: this.doc,
@@ -611,6 +623,69 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	 * a prior mount first, so it can re-attach after a locale-driven chrome
 	 * remount. No-op (and never touches the `ai` SDK) when `ai` is absent.
 	 */
+	/**
+	 * Best-effort glyph-outline bytes for catalogue webfonts. A WordArt
+	 * envelope glyph (inflate/deflate/can) in a referenced (not embedded)
+	 * family only gets true outline warping once the ACTUAL font file's bytes
+	 * are fetched (the `<link>` stylesheet `syncGoogleWebfontsLink` injects
+	 * carries no glyph geometry, see `text-warp-outline-webfont-fetch.ts`).
+	 * Additive and best-effort: a failure just leaves the affine-transform
+	 * fallback in place. Bumps `outlineFontsTick` (see `state-sync.ts`) so a
+	 * repaint picks up newly-available outlines from `glyphOutlineFontCache`.
+	 *
+	 * @param token - The same `webfontsToken` value the caller's `<link>`
+	 *   resolution is tagged with, so a superseded deck's late result never
+	 *   applies here either.
+	 */
+	private syncGlyphOutlineWebfonts(
+		slides: readonly PptxSlide[],
+		embeddedFonts: readonly PptxEmbeddedFont[],
+		token: number,
+	): void {
+		const referenced = collectReferencedFontFamilies(slides);
+		const candidates = selectGoogleWebfontFamilies(
+			referenced,
+			embeddedFonts.map((font) => font.name),
+		);
+		if (candidates.length === 0) {
+			return;
+		}
+		void resolveGoogleWebfontHref(slides, embeddedFonts).then(async (href) => {
+			if (token !== this.webfontsToken || !href) {
+				return;
+			}
+			const variants: Array<{ bold: boolean; italic: boolean }> = [
+				{ bold: false, italic: false },
+				{ bold: true, italic: false },
+			];
+			let registeredAny = false;
+			for (const family of candidates) {
+				for (const variant of variants) {
+					if (token !== this.webfontsToken) {
+						return;
+					}
+					const bytes = await fetchGoogleWebfontOutlineBytes(
+						href,
+						family,
+						variant.bold,
+						variant.italic,
+						fetch,
+					);
+					if (
+						bytes &&
+						glyphOutlineFontCache.registerFontBytes(family, variant.bold, variant.italic, bytes)
+					) {
+						registeredAny = true;
+					}
+				}
+			}
+			if (registeredAny && token === this.webfontsToken) {
+				this.store.set({ outlineFontsTick: this.store.get().outlineFontsTick + 1 });
+			}
+			return undefined;
+		});
+	}
+
 	/**
 	 * Mount the canvas right-click menu against the current chrome. Re-callable:
 	 * the chrome (and with it `chrome.viewport`, which owns the `contextmenu`

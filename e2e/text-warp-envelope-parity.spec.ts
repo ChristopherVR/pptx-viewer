@@ -112,6 +112,24 @@ interface ShapeFacts {
 	distinctGlyphScaleCount: number;
 	/** Number of DISTINCT shear (`b`) values across those glyph `<text transform>`s. */
 	distinctGlyphShearCount: number;
+	/**
+	 * Number of glyphs rendered as a bare `svg > path` instead of `<text
+	 * transform>` - the exact outline-warp path (`buildWarpedGlyphOutlinePathD`
+	 * in pptx-viewer-shared), used once a glyph's real font FILE is obtainable
+	 * (an embedded font, or a Google Fonts catalogue match for the referenced
+	 * family - the fixture's `Arial` run resolves to one, so this is the
+	 * COMMON case once the async webfont fetch lands, not a rare edge case).
+	 * A glyph-envelope shape never mixes `<path>` glyphs with a `<textPath>`
+	 * baseline (`hasGlyphEnvelope` routes a shape to exactly one renderer), so
+	 * `svg > path` is unambiguous here: the baseline path a `<textPath>` shape
+	 * uses lives in `svg > defs > path`, a different locator entirely. An
+	 * outline `<path>` glyph carries no `transform` attribute (the warp is
+	 * already baked into its `d`), so `distinctGlyphScaleCount` /
+	 * `distinctGlyphShearCount` read 0 once every glyph in a shape is
+	 * outline-rendered - `outlineGlyphCount > 0` is the signal callers must
+	 * check instead of (or alongside) those counts.
+	 */
+	outlineGlyphCount: number;
 }
 
 /** Distinct y-coordinates in an SVG path `d` attribute (`x,y x,y ...` pairs). */
@@ -133,10 +151,26 @@ function shearBOf(transform: string): number | null {
 	return match ? Number(match[1]) : null;
 }
 
+/**
+ * Wait for any in-flight outline-webfont fetch (`text-warp-outline-webfont-
+ * fetch.ts`: the fixture's `Arial` run resolves to a real Google Fonts
+ * catalogue match, so this fires for every glyph-envelope shape) to settle
+ * before reading the DOM, so a read never lands mid-transition between the
+ * affine fallback (`<text transform>`) and the exact outline `<path>` -
+ * either STABLE state is valid and already handled by `outlineGlyphCount`
+ * below, but a torn read between them is not. Best-effort: a demo that keeps
+ * a long-poll or websocket open (collab, HMR) would never go idle, so a
+ * timeout here is swallowed rather than failing the test.
+ */
+async function waitForOutlineFetchSettle(page: Page): Promise<void> {
+	await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+}
+
 async function readShapes(page: Page, origin: string): Promise<ShapeFacts[]> {
 	await loadDeckAt(page, origin, FIXTURE);
 	await slideStage(page).waitFor();
 	await page.waitForTimeout(300);
+	await waitForOutlineFetchSettle(page);
 
 	const nodes = slideElements(page);
 	await expect(nodes).toHaveCount(SHAPE_NAMES.length);
@@ -158,15 +192,20 @@ async function readShapes(page: Page, origin: string): Promise<ShapeFacts[]> {
 		const glyphTransforms = await node
 			.locator('svg text[transform]')
 			.evaluateAll((els) => els.map((el) => el.getAttribute('transform') ?? ''));
+		// Direct child of `<svg>`, same nesting level as the `<text transform>`
+		// glyphs above (see `ShapeFacts.outlineGlyphCount`'s doc comment) - never
+		// the `<textPath>` baseline path, which lives in `svg > defs > path`.
+		const outlineGlyphCount = await node.locator('svg > path').count();
 		const scales = glyphTransforms.map(scaleYOf).filter((n): n is number => n !== null);
 		const shears = glyphTransforms.map(shearBOf).filter((n): n is number => n !== null);
 		facts.push({
 			name: SHAPE_NAMES[i],
 			hasTextPath: textPathCount > 0,
 			distinctBaselineYCount: d ? distinctYCount(d) : 0,
-			glyphCount: scales.length,
+			glyphCount: scales.length + outlineGlyphCount,
 			distinctGlyphScaleCount: new Set(scales.map((s) => s.toFixed(3))).size,
 			distinctGlyphShearCount: new Set(shears.map((s) => s.toFixed(3))).size,
+			outlineGlyphCount,
 		});
 	}
 	return facts;
@@ -212,10 +251,19 @@ async function readGlyphBoxesFor(
 	await loadDeckAt(page, origin, FIXTURE);
 	await slideStage(page).waitFor();
 	await page.waitForTimeout(300);
+	await waitForOutlineFetchSettle(page);
 
 	const shapeIndex = SHAPE_NAMES.indexOf(shapeName);
 	const node = slideElements(page).nth(shapeIndex);
-	return node.locator('svg > text, svg > g[data-glyph-slices]').evaluateAll((els) =>
+	// `svg > path` (a bare direct child, same nesting level as `svg > text`):
+	// the exact outline-warp path for one glyph (`buildWarpedGlyphOutlinePathD`
+	// in pptx-viewer-shared), used once a glyph's real font FILE is obtainable.
+	// Never sliced (`sliceCount` is always 1 for it: layout only slices the
+	// affine-fallback path, see `buildGlyphEnvelope`'s doc comment), and never
+	// confusable with a `<textPath>` baseline path here - none of the shapes
+	// this function reads (`inflate`/`inflate-multi`/`wide-glyph-can`) use
+	// `<textPath>` at all, so a bare `svg > path` can only be an outline glyph.
+	return node.locator('svg > text, svg > g[data-glyph-slices], svg > path').evaluateAll((els) =>
 		els.map((el) => {
 			const isGroup = el.tagName.toLowerCase() === 'g';
 			const pieces = isGroup ? [...el.querySelectorAll('text')] : [el as SVGGraphicsElement];
@@ -348,10 +396,25 @@ test.describe('wordArt envelope/former-"simple" presets render as true SVG textP
 				// stretch them). Asserting scaleY variation for `can-up` here was
 				// wrong; it is asserted via shear (`b`) variation instead, just
 				// below.
-				if (GLYPH_ENVELOPE_HEIGHT_VARIES.has(shape.name) && shape.distinctGlyphScaleCount <= 1) {
+				// An outline-rendered glyph (`ShapeFacts.outlineGlyphCount`) carries
+				// no `transform` attribute to read a scaleY/shear term FROM - the
+				// warp is already baked into its `d`, exactly (not an affine fit),
+				// so `outlineGlyphCount > 0` is itself the proof the envelope was
+				// applied for these two checks; whether the outline math itself is
+				// correct is covered by `text-warp-glyph-outline.test.ts` in
+				// pptx-viewer-shared, not this DOM-wiring spec.
+				if (
+					shape.outlineGlyphCount === 0 &&
+					GLYPH_ENVELOPE_HEIGHT_VARIES.has(shape.name) &&
+					shape.distinctGlyphScaleCount <= 1
+				) {
 					problems.push(`${shape.name}: every glyph has the same height (envelope not applied)`);
 				}
-				if (GLYPH_ENVELOPE_SHEAR_VARIES.has(shape.name) && shape.distinctGlyphShearCount <= 1) {
+				if (
+					shape.outlineGlyphCount === 0 &&
+					GLYPH_ENVELOPE_SHEAR_VARIES.has(shape.name) &&
+					shape.distinctGlyphShearCount <= 1
+				) {
 					problems.push(`${shape.name}: every glyph has the same shear (envelope not applied)`);
 				}
 			}
