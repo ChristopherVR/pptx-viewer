@@ -192,8 +192,9 @@ function placeAt(
 		// row and the hanging tail's first box (COM-verified regression:
 		// `organization-chart--hier5.pptx`'s own first hanging box rendered
 		// flush against its parent's bottom edge, 7.69% short of the cached
-		// position).
-		const anchorY = cy + hc.boxH / 2 + HANG_HEIGHT_RATIO * hc.boxH;
+		// position). `options.hangHeightRatio` overrides this for a
+		// TRANSPOSED tailed hierarchy - see its own doc comment.
+		const anchorY = cy + hc.boxH / 2 + (options.hangHeightRatio ?? HANG_HEIGHT_RATIO) * hc.boxH;
 		const columnOffset = hc.boxW * HIER_TAIL_OFFSET_RATIO;
 		for (const child of normal) {
 			elbowConnector(

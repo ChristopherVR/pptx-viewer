@@ -48,6 +48,8 @@ import { roleOf } from './smartart-constraint-solver';
 import type { SlotStyleContext } from './smartart-layout-interpreter-composite';
 import { resolveAnchoredContentPerAnchor } from './smartart-layout-interpreter-composite-anchor';
 import { selectFirstMatchChildren } from './smartart-layout-interpreter-composite-choose-groups';
+import type { FontFitContext } from './smartart-layout-interpreter-composite-fontfit';
+import { resolveFitByDeclaringRole } from './smartart-layout-interpreter-composite-fontfit';
 import type {
 	ChooseAwareSlot,
 	RawSlotCandidate,
@@ -210,6 +212,37 @@ export function collectChooseAwareSlots(
  * module's own doc comment). Returns `undefined` when nothing resolves, so
  * the caller (`smartart-layout-interpreter-composite.ts`) falls back to the
  * blind order-based mapping.
+ *
+ * Round 28 measured a shared-font-fit wiring attempt (`resolveSharedFontFit`
+ * across EVERY slot at once, matching the OTHER two composite paths) against
+ * the full 227-fixture corpus and REVERTED it: it genuinely helped several
+ * fixtures close to the cached size (`balance--hier5.pptx` 12->34.7pt
+ * against a 37.3pt target, `counterbalance-arrows--fallback-n2.pptx`
+ * 12->34.7pt against 36.0pt), but OVERSHOT others badly
+ * (`cycle-matrix--fallback-n2.pptx` 12->80.0pt against a 21.3pt target,
+ * `grid-matrix--fallback-n1.pptx` 12->110.7pt against 61.3pt,
+ * `segmented-pyramid--hier5.pptx` 12->86.7pt against 25.3pt), because
+ * `slots[0]?.node`'s own declared `primFontSz` ceiling was reused as ONE
+ * SHARED ceiling for every slot in the whole composite - but this family's
+ * slots do NOT always share one uniform item template the way
+ * `upward-arrow`'s own `arrowDiagramN`/`textBoxN` count-branches do (all
+ * discovered under the SAME live count-branch wrapper): a
+ * `cycle-matrix`/`basic-matrix`/`segmented-pyramid`-style choose-aware
+ * composite's slots come from DIFFERENT named wrapper groups
+ * (`child1group` vs `circle`, etc.), each with its own genuinely different
+ * declared ceiling.
+ *
+ * Round 29: fit is now computed PER GROUP instead of once globally, keyed by
+ * `ChooseAwareSlot.declaringRole` (the name of the nearest enclosing
+ * bare-wrapper `layoutNode` each slot was discovered under, already threaded
+ * through by `resolveGroupedSlots`). `upward-arrow`'s slots all share ONE
+ * declaringRole (their live count-branch wrapper), so grouping degenerates
+ * to the SAME single shared fit round 28 already measured as correct for it;
+ * `cycle-matrix`/`grid-matrix`/`segmented-pyramid`'s slots split across
+ * their own distinct wrapper names, so each group gets its own ceiling
+ * instead of inheriting an unrelated group's. Measured monotonic (no
+ * fixture's `maxGeomDelta` worse) across the full corpus before landing -
+ * see the round 29 update in the successor doc for the exact sweep.
  */
 export function arrangeByChooseAwareSlots(
 	root: PptxSmartArtLayoutNode,
@@ -217,13 +250,16 @@ export function arrangeByChooseAwareSlots(
 	box: BoundingBox,
 	index: ConstraintIndex,
 	ctx: SlotStyleContext,
+	fontCtx?: FontFitContext,
 ): RenderedNode[] | undefined {
 	const slots = collectChooseAwareSlots(root, flat, box, index, roleOf(root));
 	if (slots.length === 0) {
 		return undefined;
 	}
-	return slots.map(({ rect, content, node: layoutNode }, i) => {
+	const fitByRole = fontCtx ? resolveFitByDeclaringRole(fontCtx, slots) : new Map();
+	return slots.map(({ rect, content, node: layoutNode, declaringRole }, i) => {
 		const first = content[0];
+		const fit = fitByRole.get(declaringRole);
 		const rendered: RenderedRectNode = {
 			...(presetBoxNode({
 				key: `${ctx.elementId}-comp-choose-${first.id}-${i}`,
@@ -236,6 +272,8 @@ export function arrangeByChooseAwareSlots(
 				total: slots.length,
 				palette: ctx.palette,
 				style: ctx.style,
+				fontSizeOverride: fit?.rootSizePx,
+				descendantFontSize: fit?.descendantSizePx,
 				ctx: ctx.ctx,
 				shape: findCompositeItemShape(layoutNode),
 				fallbackKind: 'rect',

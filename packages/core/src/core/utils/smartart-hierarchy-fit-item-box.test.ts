@@ -57,4 +57,47 @@ describe('fitItemBox', () => {
 		expect(boxH).toBeLessThan(800); // never the un-clamped heightFit.
 		expect(boxH).toBeCloseTo(naturalHeight, 6); // width axis binds, aspect exact.
 	});
+
+	// horizontal-organization-chart--hier5.pptx's own shape (SESSION 25): a
+	// TRANSPOSED `tailed` hierarchy (n=2, both children hang 1 leaf each -
+	// the SAME tree shape as `organization-chart--hier5.pptx` above, which
+	// keeps the DEFAULT `hangHeightRatio`). With the default `HANG_HEIGHT_
+	// RATIO=0.55` the denominator (`2+1+1*0.2+1*0.55=3.75`) under-sizes the
+	// item by the SAME ~10% on both axes (cached is 255x78, NOT 231x71).
+	// Passing `generationGapRatio` (0.2) as `hangHeightRatio` instead gives
+	// `2+1+1*0.2+1*0.2=3.4`, matching cached within 0.4%.
+	it('a transposed tailed hang uses the passed hangHeightRatio instead of the default HANG_HEIGHT_RATIO (horizontal-organization-chart--hier5.pptx shape)', () => {
+		const defaultRatio = fitItemBox(
+			{ width: 533, height: 867 },
+			2,
+			2,
+			0.125,
+			3.278688524590164,
+			0.2,
+			0,
+			0,
+			1,
+			undefined,
+			1,
+			true,
+		);
+		expect(defaultRatio.boxH).toBeCloseTo(231.2, 0); // the un-fixed, too-small value.
+		const withOverride = fitItemBox(
+			{ width: 533, height: 867 },
+			2,
+			2,
+			0.125,
+			3.278688524590164,
+			0.2,
+			0,
+			0,
+			1,
+			undefined,
+			1,
+			true,
+			0.2,
+		);
+		expect(withOverride.boxH).toBeCloseTo(255.0, 0); // matches cached exactly.
+		expect(withOverride.boxW).toBeCloseTo(77.8, 0); // matches cached (78) within 0.3%.
+	});
 });

@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
-import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
-import { collectChooseAwareSlots } from './smartart-layout-interpreter-composite-choose';
+import type {
+	PptxSmartArtLayoutDefinition,
+	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
+} from '../types';
+import { buildConstraintIndex, EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
+import {
+	arrangeByChooseAwareSlots,
+	collectChooseAwareSlots,
+} from './smartart-layout-interpreter-composite-choose';
+import type { FontFitContext } from './smartart-layout-interpreter-composite-fontfit';
+import type { SlotStyleContext } from './smartart-layout-interpreter-composite-render';
+import type { ArrangementPlan } from './smartart-layout-interpreter-model';
+import type { RenderedRectNode } from './smartart-layout-types';
 
 const box = { width: 800, height: 400 };
 
@@ -361,5 +372,146 @@ describe('collectChooseAwareSlots first-match-wins (chooseGroups)', () => {
 		const slots = collectChooseAwareSlots(root, flat, box, EMPTY_CONSTRAINT_INDEX, 'root');
 		expect(slots).toHaveLength(1);
 		expect(slots[0].content.map((n) => n.id)).toStrictEqual(['two']);
+	});
+});
+
+describe("arrangeByChooseAwareSlots resolves each slot's own declared shape (round 28)", () => {
+	// `upward-arrow--hier5.pptx`'s exact shape: a `dgm:choose`-per-count
+	// composite with no `self`-axis slot anywhere, one candidate group whose
+	// own layoutNode declares a real, non-default preset (`round2DiagRect`
+	// there; `homePlate` here, any non-default preset exercises the same
+	// code path). Before round 28, `arrangeByChooseAwareSlots` called
+	// `rectNode` directly (no shape param), so every choose-aware slot fell
+	// through to the generic `roundRect` default regardless of what the
+	// winning candidate's own layoutNode declared.
+	const alpha = node('alpha', 'Alpha');
+	const flat: PptxSmartArtNode[] = [alpha];
+	const ctx: SlotStyleContext = {
+		ctx: { strokeWidth: 1, stroke: '#000', shadow: undefined },
+		palette: ['#fff'],
+		style: 'flat',
+		elementId: 'e',
+	};
+
+	it("uses the winning candidate's own declared shape, not the generic roundRect default", () => {
+		const group: PptxSmartArtLayoutNode = {
+			name: 'textBox1',
+			shape: { presetGeometry: 'homePlate' },
+			presentationOf: { axis: ['ch'], pointTypes: ['node'], start: [1], count: [1] },
+			constraints: positioned({ l: 0, t: 0, w: 1, h: 1 }),
+		};
+		const root: PptxSmartArtLayoutNode = { name: 'root', children: [group] };
+		const rendered = arrangeByChooseAwareSlots(root, flat, box, EMPTY_CONSTRAINT_INDEX, ctx);
+		expect(rendered).toHaveLength(1);
+		expect(rendered![0].presetOverride).toBe('homePlate');
+	});
+
+	it('falls back to the generic default when the winning candidate declares no shape at all', () => {
+		const group: PptxSmartArtLayoutNode = {
+			name: 'textBox1',
+			presentationOf: { axis: ['ch'], pointTypes: ['node'], start: [1], count: [1] },
+			constraints: positioned({ l: 0, t: 0, w: 1, h: 1 }),
+		};
+		const root: PptxSmartArtLayoutNode = { name: 'root', children: [group] };
+		const rendered = arrangeByChooseAwareSlots(root, flat, box, EMPTY_CONSTRAINT_INDEX, ctx);
+		expect(rendered).toHaveLength(1);
+		expect(rendered![0].presetOverride).toBe('roundRect');
+	});
+});
+
+// Round 29: `upward-arrow--hier5.pptx`'s own count-branch shape has every
+// live slot under ONE wrapper (one declaringRole), so a single shared
+// font-fit across them is correct; `cycle-matrix`/`grid-matrix`/
+// `segmented-pyramid`'s shape has SEVERAL live slots under DIFFERENT named
+// wrapper groups, each with its OWN declared `primFontSz` ceiling. Round 28
+// measured and reverted a font-fit wiring attempt that computed ONE shared
+// fit across every slot regardless of group, which correctly closed the
+// first shape but badly overshot the second (a small group's own small
+// ceiling got replaced by an unrelated big group's). This pins the per-group
+// isolation `resolveFitByDeclaringRole` now provides: two groups with
+// different declared ceilings must not influence each other.
+describe('arrangeByChooseAwareSlots per-group font-fit isolation (round 29)', () => {
+	const alpha = node('alpha', 'Alpha');
+	const beta = node('beta', 'Beta has a noticeably longer label than Alpha');
+	const flat: PptxSmartArtNode[] = [alpha, beta];
+	const ctx: SlotStyleContext = {
+		ctx: { strokeWidth: 1, stroke: '#000', shadow: undefined },
+		palette: ['#fff'],
+		style: 'flat',
+		elementId: 'e',
+	};
+
+	/** One choose-guarded wrapper group with its own presOf leaf, its own declared `primFontSz` ceiling, and its own box. */
+	function group(
+		groupName: string,
+		leafName: string,
+		start: number,
+		primFontSzPt: number,
+		dims: { l: number; t: number; w: number; h: number },
+	): PptxSmartArtLayoutNode {
+		return {
+			name: groupName,
+			children: [
+				{
+					name: leafName,
+					presentationOf: { axis: ['ch'], pointTypes: ['node'], start: [start], count: [1] },
+					constraints: [...positioned(dims), { type: 'primFontSz', value: primFontSzPt }],
+				},
+			],
+		};
+	}
+
+	function planAndIndex(children: PptxSmartArtLayoutNode[]): {
+		plan: ArrangementPlan;
+		index: ReturnType<typeof buildConstraintIndex>;
+	} {
+		const rootNode: PptxSmartArtLayoutNode = { name: 'root', children };
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		return { plan: { kind: 'composite', node: rootNode }, index: buildConstraintIndex(definition) };
+	}
+
+	it("a small group's own small declared ceiling survives next to an unrelated big group's big one", () => {
+		const smallGroup = group('smallGroup', 'smallLeaf', 1, 21, { l: 0, t: 0, w: 0.5, h: 1 });
+		const bigGroup = group('bigGroup', 'bigLeaf', 2, 80, { l: 0.5, t: 0, w: 0.5, h: 1 });
+		const { plan, index } = planAndIndex([smallGroup, bigGroup]);
+		const fontCtx: FontFitContext = { plan, index, fontName: undefined };
+		const rendered = arrangeByChooseAwareSlots(
+			plan.node,
+			flat,
+			box,
+			index,
+			ctx,
+			fontCtx,
+		) as RenderedRectNode[];
+		expect(rendered).toHaveLength(2);
+		const small = rendered.find((r) => r.nodeId === 'alpha')!;
+		const big = rendered.find((r) => r.nodeId === 'beta')!;
+		// Each group's own fit is capped by its OWN declared ceiling, not
+		// clobbered by the other group's - the exact regression round 28
+		// measured (a shared global fit reused `slots[0]`'s ceiling for
+		// every slot, so the small group inherited the big group's 80pt cap
+		// or vice versa depending on discovery order).
+		expect(small.fontSize).toBeLessThanOrEqual(21 * (96 / 72) + 0.01);
+		expect(big.fontSize).toBeGreaterThan(small.fontSize);
+	});
+
+	it('a single-group composite (upward-arrow shape) still gets a real, non-fallback font size', () => {
+		const singleGroup = group('countBranch', 'textBox1', 1, 40, { l: 0, t: 0, w: 1, h: 1 });
+		const { plan, index } = planAndIndex([singleGroup]);
+		const fontCtx: FontFitContext = { plan, index, fontName: undefined };
+		const rendered = arrangeByChooseAwareSlots(
+			plan.node,
+			[alpha],
+			box,
+			index,
+			ctx,
+			fontCtx,
+		) as RenderedRectNode[];
+		expect(rendered).toHaveLength(1);
+		// Not the crude 12px un-derived fallback (`fitFontSize`'s literal
+		// cap) that every choose-aware slot rendered before font-fit was
+		// wired at all.
+		expect(rendered[0].fontSize).not.toBe(12);
+		expect(rendered[0].fontSize).toBeGreaterThan(12);
 	});
 });

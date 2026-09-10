@@ -77,6 +77,22 @@ export const ALL_CHILDREN_HANG_EXTRA_RATIO = 0.6587;
  * sweep that found it diverges from `maxHangDepth` whenever a hung node has
  * more than one ordinary child - `placeHangingTree` stacks every one of
  * THOSE in the SAME shared column, one row each, not one row per hop).
+ *
+ * `hangHeightRatio` (default `HANG_HEIGHT_RATIO`, every existing caller
+ * unaffected): the per-hang-row HEIGHT-axis gap constant `maxHangRows`
+ * multiplies. SESSION 25 (`smartart-track-r-successor.md`): a `tailed`
+ * hierarchy whose hang ALSO grows along the fan-becomes-generation
+ * transposed axis (`orientation.transposed`, e.g. "Horizontal Organization
+ * Chart" - see `resolveHierarchyOrientation`'s own `tailedTransposed`
+ * signal) needs `orientation.generationGapRatio` here instead of the fixed
+ * `0.55`: COM-verified against `horizontal-organization-chart--hier5.pptx`
+ * (`n=2`, both children hang 1 leaf each - the SAME tree shape as plain
+ * `organization-chart--hier5.pptx`, which stays correct with the DEFAULT
+ * `HANG_HEIGHT_RATIO`, confirming this is a transposed-only correction, not
+ * a universal one): the un-substituted denominator (`2+1+0.2+1*0.55=3.75`)
+ * under-sizes the item box by the SAME ~10% on BOTH axes (`boxW`/`boxH`
+ * share one aspect ratio here); substituting `generationGapRatio=0.2` gives
+ * `2+1+0.2+1*0.2=3.4`, matching the cached item box within 0.4%.
  */
 export function fitItemBox(
 	box: BoundingBox,
@@ -91,6 +107,7 @@ export function fitItemBox(
 	clampToNaturalAspect = true,
 	maxHangRows = maxHangDepth,
 	allChildrenHang = false,
+	hangHeightRatio = HANG_HEIGHT_RATIO,
 ): { boxW: number; boxH: number } {
 	const n = Math.max(1, columns);
 	const usableW = box.width - 2 * box.width * marginXRatio;
@@ -105,7 +122,7 @@ export function fitItemBox(
 		(generations +
 			maxHangRows +
 			Math.max(0, generations - 1) * generationGapRatio +
-			maxHangRows * HANG_HEIGHT_RATIO);
+			maxHangRows * hangHeightRatio);
 	// `clampToNaturalAspect` (default `true`, every existing `std`-mode caller
 	// unaffected): "Hierarchy" itself always wants the SMALLER of its own
 	// declared `h:w` natural aspect and whatever the generation axis actually

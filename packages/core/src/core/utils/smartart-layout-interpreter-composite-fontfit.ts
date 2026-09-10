@@ -21,6 +21,7 @@
 
 import type { PptxSmartArtLayoutNode } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
+import type { ChooseAwareSlot } from './smartart-layout-interpreter-composite-group-slots';
 import type { SelfDesPair } from './smartart-layout-interpreter-composite-pairs';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
 import { resolveTieredItemFontSize } from './smartart-layout-item-font-tier';
@@ -85,4 +86,45 @@ export function resolveFontFitFromPairs(
 			height: pair.selfRect.height,
 		})),
 	);
+}
+
+/**
+ * One shared font-fit per distinct `declaringRole` among `slots` - see
+ * `arrangeByChooseAwareSlots`'s own doc comment (`smartart-layout-
+ * interpreter-composite-choose.ts`) for why a single global fit
+ * over-restricts a choose-aware composite whose slots come from more than
+ * one named wrapper group (`cycle-matrix`/`grid-matrix`/`segmented-
+ * pyramid`'s shape - each named group carries its own, genuinely different,
+ * declared `primFontSz` ceiling, unlike `upward-arrow`'s own count-branches,
+ * which all share ONE wrapper and so degenerate to a single shared fit
+ * here regardless).
+ */
+export function resolveFitByDeclaringRole(
+	fontCtx: FontFitContext,
+	slots: ChooseAwareSlot[],
+): Map<string, SharedFontFit | undefined> {
+	const byRole = new Map<string, ChooseAwareSlot[]>();
+	for (const slot of slots) {
+		const group = byRole.get(slot.declaringRole);
+		if (group) {
+			group.push(slot);
+		} else {
+			byRole.set(slot.declaringRole, [slot]);
+		}
+	}
+	const fitByRole = new Map<string, SharedFontFit | undefined>();
+	for (const [role, group] of byRole) {
+		const fit = resolveSharedFontFit(
+			fontCtx,
+			group[0]?.node,
+			group.map(({ content, rect }) => ({
+				rootText: content[0]?.text ?? '',
+				descendantTexts: content.slice(1).map((entry) => entry.text),
+				width: rect.width,
+				height: rect.height,
+			})),
+		);
+		fitByRole.set(role, fit);
+	}
+	return fitByRole;
 }

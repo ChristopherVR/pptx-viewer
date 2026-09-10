@@ -84,8 +84,18 @@ export function computeHierarchyAxisPitches(
 	const fanWidth = tailedPitch
 		? effectiveBox.width - hangShape.maxHangDepth * HIER_TAIL_OFFSET_RATIO * boxW
 		: effectiveBox.width;
+	// See `fitItemBox`'s own `hangHeightRatio` doc comment (SESSION 25): the
+	// SAME per-hang-row height reservation this pitch makes must use the SAME
+	// ratio that sized `boxH` in the first place, or a transposed tailed hang
+	// (e.g. "Horizontal Organization Chart") over-reserves room using the
+	// fixed `HANG_HEIGHT_RATIO` against a `boxH` that was itself already
+	// grown by `generationGapRatio` instead - measured regression (root's own
+	// fanned children row landing 89px/10.3% short of cached).
+	const hangHeightRatio = orientation.transposed
+		? orientation.generationGapRatio
+		: HANG_HEIGHT_RATIO;
 	const fanHeight = tailedPitch
-		? effectiveBox.height - hangShape.maxHangRows * (1 + HANG_HEIGHT_RATIO) * boxH
+		? effectiveBox.height - hangShape.maxHangRows * (1 + hangHeightRatio) * boxH
 		: effectiveBox.height;
 	const xPitch = compositeFanPitch(
 		fanWidth,

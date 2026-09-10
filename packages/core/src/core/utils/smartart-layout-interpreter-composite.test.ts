@@ -226,3 +226,86 @@ describe('arrangeComposite presOf-aware mapping', () => {
 		expect(result?.nodes).toHaveLength(1);
 	});
 });
+
+describe("arrangeComposite resolves each slot's own declared shape (round 28)", () => {
+	it("sets presetOverride from a self slot's own declared shape, not the generic roundRect default", () => {
+		// Before round 28, `arrangeByPresentationOf`/`renderAnchoredPair`
+		// called `rectNode` directly (no shape param at all), so every
+		// composite-rendered box fell through to `smartart-interpreter-
+		// drawing-bridge.ts`'s own `presetOverride ?? 'roundRect'` default
+		// regardless of what the layoutNode declared - this test's own
+		// `shapeType` param (already accepted by `slot()`, unused by every
+		// PRE-EXISTING assertion here) is what exposed the gap.
+		const plan = planOf([
+			slot('gear1', 'self', { l: 0, t: 0, w: 0.5, h: 1 }, 'ellipse'),
+			slot('gear2', 'self', { l: 0.5, t: 0, w: 0.5, h: 1 }, 'ellipse'),
+		]);
+		const result = arrangeComposite(
+			plan,
+			[node('a', 'Alpha'), node('b', 'Beta')],
+			box,
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const [first, second] = result!.nodes as RenderedRectNode[];
+		expect(first.presetOverride).toBe('ellipse');
+		expect(second.presetOverride).toBe('ellipse');
+	});
+
+	it("sets presetOverride from a des slot's own declared shape too", () => {
+		const plan = planOf([
+			slot('gear1', 'self', { l: 0, t: 0, w: 1, h: 0.5 }, 'rect'),
+			slot('gear1ch', 'des', { l: 0, t: 0.5, w: 1, h: 0.5 }, 'homePlate'),
+		]);
+		const childrenOf = new Map([['a', [node('a-child', 'Child of A')]]]);
+		const result = arrangeComposite(
+			plan,
+			[node('a', 'Alpha')],
+			box,
+			['#fff'],
+			'flat',
+			'e',
+			EMPTY_CONSTRAINT_INDEX,
+			childrenOf,
+		);
+		const [self, des] = result!.nodes as RenderedRectNode[];
+		expect(self.presetOverride).toBe('rect');
+		expect(des.presetOverride).toBe('homePlate');
+	});
+
+	it('falls back to the generic default when no slot declares a shape at all (unchanged, pre-existing behaviour)', () => {
+		const plan = planOf([
+			slot('gear1', 'self', { l: 0, t: 0, w: 0.5, h: 1 }),
+			slot('gear2', 'self', { l: 0.5, t: 0, w: 0.5, h: 1 }),
+		]);
+		const result = arrangeComposite(
+			plan,
+			[node('a', 'Alpha'), node('b', 'Beta')],
+			box,
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const [first] = result!.nodes as RenderedRectNode[];
+		expect(first.presetOverride).toBe('roundRect');
+	});
+
+	it("resolves each slot's own declared shape on the order-based fallback path too (no presOf on any slot)", () => {
+		const plan = planOf([
+			slot('title', undefined, { l: 0, t: 0, w: 1, h: 0.3 }, 'chevron'),
+			slot('body', undefined, { l: 0, t: 0.3, w: 1, h: 0.7 }, 'ellipse'),
+		]);
+		const result = arrangeComposite(
+			plan,
+			[node('a', 'Alpha'), node('b', 'Beta')],
+			box,
+			['#fff'],
+			'flat',
+			'e',
+		);
+		const [first, second] = result!.nodes as RenderedRectNode[];
+		expect(first.presetOverride).toBe('chevron');
+		expect(second.presetOverride).toBe('ellipse');
+	});
+});

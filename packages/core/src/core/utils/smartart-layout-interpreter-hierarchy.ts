@@ -203,6 +203,7 @@ export function arrangeHierarchy(
 	// baseline, measured) - stays aspect-clamped. `half-circle`/`name-and-
 	// title`'s own paired aspect+position problem is still open - see
 	// `smartart-track-r-successor.md` (SESSION 18-23) for the full history.
+	// `hangHeightRatio`: see `fitItemBox`'s own doc comment (SESSION 25).
 	const { boxW, boxH } = fitItemBox(
 		effectiveBox,
 		totalLeaves,
@@ -216,6 +217,7 @@ export function arrangeHierarchy(
 		undefined,
 		hangShape.maxHangRows,
 		hangShape.allChildrenHang,
+		orientation.transposed ? orientation.generationGapRatio : undefined,
 	);
 	// See `computeHierarchyAxisPitches`'s own doc comment (`smartart-
 	// hierarchy-axis-pitch.ts`) for why the fan and generation axes use
@@ -253,6 +255,7 @@ export function arrangeHierarchy(
 		resolveSpan: fanAwareWidthMap
 			? (t) => resolveSpanWidth(fanAwareWidthMap, t, orgChart)
 			: undefined,
+		hangHeightRatio: orientation.transposed ? orientation.generationGapRatio : undefined,
 	};
 	if (mode === 'tailed') {
 		// Measured ratio (`HIER_TAIL_OFFSET_RATIO`), not the unrelated 0.35 used

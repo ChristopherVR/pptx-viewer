@@ -42,6 +42,17 @@ export interface StandardOptions {
 	 */
 	hangingPlacer?: (hc: HierContext, subtrees: TreeNode[], anchorX: number, anchorY: number) => void;
 	/**
+	 * The gap between a hanging parent's own bottom edge and its tail's first
+	 * box, as a fraction of the item's own height (`HANG_HEIGHT_RATIO` by
+	 * default when unset - see that constant's doc comment). SESSION 25: a
+	 * TRANSPOSED tailed hierarchy (e.g. "Horizontal Organization Chart") needs
+	 * `orientation.generationGapRatio` here instead - see `fitItemBox`'s own
+	 * `hangHeightRatio` doc comment (`smartart-hierarchy-fit-item-box.ts`) for
+	 * the full derivation; this is the SAME ratio, applied at the actual
+	 * hang-tail placement site instead of the size/pitch solve.
+	 */
+	hangHeightRatio?: number;
+	/**
 	 * True when the layout definition's own per-item template folds every
 	 * descendant beyond the root's direct children into that SAME box's text
 	 * (`hierarchyLeafFoldsDescendants`, `smartart-hierarchy-fold-depth.ts`) -

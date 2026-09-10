@@ -249,7 +249,7 @@ export function arrangeComposite(
 			ctx,
 			fontCtx,
 		) ??
-		arrangeByChooseAwareSlots(plan.node, flat, box, index, ctx) ??
+		arrangeByChooseAwareSlots(plan.node, flat, box, index, ctx, fontCtx) ??
 		arrangeByOrder(slotted, nodes, box, absX, absY, ctx, fontCtx);
 
 	return {
