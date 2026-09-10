@@ -1,9 +1,9 @@
-import type { PptxTableData } from 'pptx-viewer-core';
+import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import {
-	deleteTableColumn,
-	deleteTableRow,
-	insertTableColumn,
-	insertTableRow,
+	insertTableElementColumn,
+	insertTableElementRow,
+	removeTableElementColumn,
+	removeTableElementRow,
 } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
@@ -13,33 +13,36 @@ import { describe, expect, it } from 'vitest';
 // Inserting or deleting a row/column through a merged cell region silently
 // corrupted the merge (a dangling hMerge/vMerge continuation with no valid
 // anchor, or a stale gridSpan/rowSpan). TableSection.svelte now imports the
-// same shared functions the other four bindings use; these tests exercise them
+// same shared element functions the other four bindings use; these tests exercise them
 // through the exact call convention TableSection.svelte uses (insert relative
 // to an "active" row/column, delete by index) to guard against that import
 // being swapped back out for a local reimplementation.
 
-function table(): PptxTableData {
-	return {
+function element(tableData: PptxTableData): TablePptxElement {
+	return { type: 'table', id: 'tbl', x: 0, y: 0, width: 300, height: 200, tableData };
+}
+
+function table(): TablePptxElement {
+	return element({
 		rows: [
 			{ cells: [{ text: 'a', rowSpan: 3 }, { text: 'b' }] },
 			{ cells: [{ text: '', vMerge: true }, { text: 'd' }] },
 			{ cells: [{ text: '', vMerge: true }, { text: 'f' }] },
 		],
 		columnWidths: [0.5, 0.5],
-	};
+	});
 }
 
-function wideTable(): PptxTableData {
-	return {
+function wideTable(): TablePptxElement {
+	return element({
 		rows: [{ cells: [{ text: 'a', gridSpan: 2 }, { text: '', hMerge: true }, { text: 'c' }] }],
 		columnWidths: [1 / 3, 1 / 3, 1 / 3],
-	};
+	});
 }
 
 describe('table structure editing (merge-aware, via pptx-viewer-shared)', () => {
 	it('grows a vertical merge anchor when inserting a row through its span', () => {
-		// TableSection calls insertTableRow(table, activeRow, 'below') on click.
-		const result = insertTableRow(table(), 1, 'below');
+		const result = insertTableElementRow(table(), 1, 'below').tableData!;
 		expect(result.rows).toHaveLength(4);
 		expect(result.rows[0].cells[0].rowSpan).toBe(4);
 		// The newly inserted row's cell in the merged column is a continuation,
@@ -48,8 +51,7 @@ describe('table structure editing (merge-aware, via pptx-viewer-shared)', () => 
 	});
 
 	it('migrates the merge anchor when deleting the anchor row', () => {
-		// TableSection calls deleteTableRow(table, activeRow) on click.
-		const result = deleteTableRow(table(), 0);
+		const result = removeTableElementRow(table(), 0).tableData!;
 		expect(result.rows).toHaveLength(2);
 		// The anchor's text/span move onto the next surviving row instead of
 		// leaving row 0 (now the old vMerge continuation) as a broken anchor.
@@ -59,15 +61,13 @@ describe('table structure editing (merge-aware, via pptx-viewer-shared)', () => 
 	});
 
 	it('grows a horizontal merge anchor when inserting a column through its span', () => {
-		// TableSection calls insertTableColumn(table, activeColumn, 'right').
-		const result = insertTableColumn(wideTable(), 0, 'right');
+		const result = insertTableElementColumn(wideTable(), 0, 'right').tableData!;
 		expect(result.rows[0].cells).toHaveLength(4);
 		expect(result.rows[0].cells[0].gridSpan).toBe(3);
 	});
 
 	it('migrates the merge anchor when deleting the anchor column', () => {
-		// TableSection calls deleteTableColumn(table, activeColumn).
-		const result = deleteTableColumn(wideTable(), 0);
+		const result = removeTableElementColumn(wideTable(), 0).tableData!;
 		expect(result.rows[0].cells).toHaveLength(2);
 		expect(result.rows[0].cells[0].hMerge).toBeUndefined();
 		expect(result.rows[0].cells[0].gridSpan).toBeUndefined();

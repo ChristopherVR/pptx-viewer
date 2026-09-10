@@ -275,6 +275,7 @@ export function removeTableColumn(
 						adjustedCells[nextColIdx] = {
 							...nextCell,
 							text: cell.text || nextCell.text,
+							textRuns: cell.text ? cell.textRuns : nextCell.textRuns,
 							style: nextCell.style || cell.style,
 							gridSpan: gs - 1 > 1 ? gs - 1 : undefined,
 							hMerge: undefined, // No longer a continuation
@@ -320,7 +321,7 @@ export function removeTableColumn(
 
 			// Remove from each a:tr
 			const xmlRows = ensureArray(tbl['a:tr'] as XmlObject | XmlObject[]);
-			for (const xmlRow of xmlRows) {
+			for (const [rowIndex, xmlRow] of xmlRows.entries()) {
 				const xmlCells = ensureArray(xmlRow['a:tc'] as XmlObject | XmlObject[]);
 				if (index < xmlCells.length) {
 					const xmlCell = xmlCells[index];
@@ -357,7 +358,7 @@ export function removeTableColumn(
 									nextXmlCell['@_rowSpan'] = xmlCell['@_rowSpan'];
 								}
 								// Copy text body from anchor to new anchor
-								if (xmlCell['a:txBody']) {
+								if (tableData.rows[rowIndex]?.cells[index]?.text && xmlCell['a:txBody']) {
 									nextXmlCell['a:txBody'] = xmlCell['a:txBody'];
 								}
 							}

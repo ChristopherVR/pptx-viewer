@@ -1,14 +1,19 @@
 <script lang="ts">
-	import type { ParsedTableStyleMap, PptxElement, PptxTableData } from 'pptx-viewer-core';
+	import type {
+		ParsedTableStyleMap,
+		PptxElement,
+		PptxTableData,
+		TablePptxElement,
+	} from 'pptx-viewer-core';
 	import {
 		applyTableStylePreset,
 		applyUniformCellPaddingPatch,
-		deleteTableColumn,
-		deleteTableRow,
 		evenColumnWidths,
 		evenRowHeights,
-		insertTableColumn,
-		insertTableRow,
+		insertTableElementColumn,
+		insertTableElementRow,
+		removeTableElementColumn,
+		removeTableElementRow,
 		redistributeColumnWidth,
 		TABLE_STYLE_PRESETS,
 		tableInspectorPatch,
@@ -41,7 +46,8 @@
 	} = $props();
 	const t = useTranslator();
 	const inspectorState = $derived(tableInspectorStateOf(el));
-	const table = $derived(el.type === 'table' ? el.tableData : undefined);
+	const tableElement = $derived(el.type === 'table' ? (el as TablePptxElement) : undefined);
+	const table = $derived(tableElement?.tableData);
 	// eslint-disable-next-line prefer-const
 	let activeRow = $state(0);
 	// eslint-disable-next-line prefer-const
@@ -53,6 +59,25 @@
 		if (el.type === 'table' && table) {
 			editor.applyElementPatch(el.id, { tableData: { ...table, ...next } });
 		}
+	}
+
+	function editStructure(
+		transform: (element: TablePptxElement) => TablePptxElement,
+	): void {
+		if (!tableElement) {
+			return;
+		}
+		// Props may be deeply reactive proxies, which `structuredClone` cannot
+		// consume. The shared raw-XML helpers operate on a plain immutable value.
+		const source = $state.snapshot(tableElement);
+		const next = transform(source);
+		if (next === source) {
+			return;
+		}
+		editor.applyElementPatch(tableElement.id, {
+			tableData: next.tableData,
+			rawXml: next.rawXml,
+		});
 	}
 
 	function setCellPadding(value: string): void {
@@ -104,7 +129,7 @@
 	{/if}
 
 	<label>Cell padding<input type="number" min="0" value={Math.round(inspectorState.cellPadding)} onchange={(event) => setCellPadding(event.currentTarget.value)} /></label>
-	<div class="structure"><label>Row<input type="number" min="1" max={table.rows.length} value={activeRow + 1} onchange={(event) => (activeRow = Math.max(0, Number(event.currentTarget.value) - 1))} /></label><button type="button" onclick={() => patchData(insertTableRow(table, activeRow, 'below'))}>Insert row</button><button type="button" disabled={table.rows.length <= 1} onclick={() => patchData(deleteTableRow(table, activeRow))}>Delete row</button><label>Column<input type="number" min="1" max={table.columnWidths.length} value={activeColumn + 1} onchange={(event) => (activeColumn = Math.max(0, Number(event.currentTarget.value) - 1))} /></label><button type="button" onclick={() => patchData(insertTableColumn(table, activeColumn, 'right'))}>Insert column</button><button type="button" disabled={table.columnWidths.length <= 1} onclick={() => patchData(deleteTableColumn(table, activeColumn))}>Delete column</button></div>
+	<div class="structure"><label>Row<input type="number" min="1" max={table.rows.length} value={activeRow + 1} onchange={(event) => (activeRow = Math.max(0, Number(event.currentTarget.value) - 1))} /></label><button type="button" onclick={() => editStructure((element) => insertTableElementRow(element, activeRow, 'below'))}>Insert row</button><button type="button" disabled={table.rows.length <= 1} onclick={() => editStructure((element) => removeTableElementRow(element, activeRow))}>Delete row</button><label>Column<input type="number" min="1" max={table.columnWidths.length} value={activeColumn + 1} onchange={(event) => (activeColumn = Math.max(0, Number(event.currentTarget.value) - 1))} /></label><button type="button" onclick={() => editStructure((element) => insertTableElementColumn(element, activeColumn, 'right'))}>Insert column</button><button type="button" disabled={table.columnWidths.length <= 1} onclick={() => editStructure((element) => removeTableElementColumn(element, activeColumn))}>Delete column</button></div>
 	{#if table.bandedRows}<label>Row band cycle<input type="number" min="1" value={table.bandRowCycle ?? 1} onchange={(event) => patchData({ bandRowCycle: Math.max(1, Number(event.currentTarget.value)) })} /></label>{/if}
 	{#if table.bandedColumns}<label>Column band cycle<input type="number" min="1" value={table.bandColCycle ?? 1} onchange={(event) => patchData({ bandColCycle: Math.max(1, Number(event.currentTarget.value)) })} /></label>{/if}
 	<details><summary>Column widths</summary><button type="button" onclick={() => patchData({ columnWidths: evenColumnWidths(table.columnWidths.length) })}>Distribute evenly</button>{#each table.columnWidths as width, index}<label>Column {index + 1}<input type="range" min="5" max="80" value={Math.round(width * 100)} onchange={(event) => patchData({ columnWidths: redistributeColumnWidth(table.columnWidths, index, Number(event.currentTarget.value) / 100) })} /></label>{/each}</details>

@@ -2,6 +2,8 @@ import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
+import { rebuildTableStructureInRawXml } from '../../core/core/runtime/table-cell-rawxml-ops';
+import type { TableStructureEdit } from '../../core/core/runtime/table-cell-rawxml-ops';
 import { PptxHandler } from '../../core/PptxHandler';
 import type { TablePptxElement } from '../../core/types/elements';
 
@@ -15,6 +17,99 @@ import type { TablePptxElement } from '../../core/types/elements';
  * `SAVE_ELEMENT_SKIPPED` warning. The saved slide had an empty `p:spTree`.
  */
 describe('sDK-created table survives save round-trip', () => {
+	it.each(
+		(['row', 'column'] as const).flatMap((axis) =>
+			(['insert', 'delete'] as const).flatMap((action) =>
+				[0, 1, action === 'insert' ? 3 : 2].map((index) => ({ axis, action, index })),
+			),
+		),
+	)(
+		'preserves rich surviving cells after $axis $action at $index',
+		async (edit: TableStructureEdit) => {
+			const { handler: creator, data, createSlide } = await PresentationBuilder.create();
+			data.slides.push(
+				createSlide('Blank')
+					.addTable(
+						{
+							rows: Array.from({ length: 3 }, () => ({
+								height: 40,
+								cells: Array.from({ length: 3 }, () => ({ text: 'Rich text' })),
+							})),
+						},
+						{ x: 20, y: 80, width: 400, height: 240 },
+					)
+					.build(),
+			);
+			const initial = await creator.save(data.slides);
+			const handler = new PptxHandler();
+			const loaded = await handler.load(initial.buffer as ArrayBuffer);
+			const table = loaded.slides[0].elements.find((element) => element.type === 'table')!;
+			const rows = table.rawXml!['a:graphic']['a:graphicData']['a:tbl']['a:tr'];
+			for (const row of rows) {
+				for (const cell of row['a:tc']) {
+					cell['a:txBody']['a:p'] = {
+						'a:r': [
+							{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Rich ' },
+							{ 'a:rPr': { '@_i': '1' }, 'a:t': 'text' },
+						],
+					};
+				}
+			}
+			table.x += 1;
+			const richFixture = await handler.save(loaded.slides);
+			const editor = new PptxHandler();
+			const edited = await editor.load(richFixture.buffer as ArrayBuffer);
+			const source = edited.slides[0].elements.find((element) => element.type === 'table')!;
+			const expectedRuns = source.tableData!.rows[0].cells[0].textRuns;
+			expect(expectedRuns).toStrictEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ text: 'Rich ', bold: true }),
+					expect.objectContaining({ text: 'text', italic: true }),
+				]),
+			);
+			const next = structuredClone(source.tableData!);
+			if (edit.axis === 'row') {
+				if (edit.action === 'insert') {
+					next.rows.splice(edit.index, 0, {
+						height: 40,
+						cells: Array.from({ length: 3 }, () => ({ text: '' })),
+					});
+				} else {
+					next.rows.splice(edit.index, 1);
+				}
+			} else {
+				for (const row of next.rows) {
+					if (edit.action === 'insert') {
+						row.cells.splice(edit.index, 0, { text: '' });
+					} else {
+						row.cells.splice(edit.index, 1);
+					}
+				}
+				next.columnWidths = Array.from({ length: edit.action === 'insert' ? 4 : 2 }, () =>
+					edit.action === 'insert' ? 0.25 : 0.5,
+				);
+			}
+			const rawXml = rebuildTableStructureInRawXml(source, next, edit);
+			Object.assign(source, { tableData: next, rawXml });
+			const saved = await editor.save(edited.slides);
+			const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+			const result = reloaded.slides[0].elements.find(
+				(element) => element.type === 'table',
+			)!.tableData!;
+			expect(result.rows).toHaveLength(next.rows.length);
+			expect(result.columnWidths).toHaveLength(next.columnWidths.length);
+			for (const [r, row] of result.rows.entries()) {
+				for (const [c, cell] of row.cells.entries()) {
+					const inserted = edit.action === 'insert' && (edit.axis === 'row' ? r : c) === edit.index;
+					expect(cell.text).toBe(inserted ? '' : 'Rich text');
+					if (!inserted) {
+						expect(cell.textRuns).toStrictEqual(expectedRuns);
+					}
+				}
+			}
+		},
+	);
+
 	it.each([
 		'no edit',
 		'other shape',

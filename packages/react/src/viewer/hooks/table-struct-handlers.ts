@@ -6,21 +6,16 @@
  * adjustments and synchronise both `tableData` and `rawXml` so that
  * rendering and saving both reflect the changes.
  */
-import type { TablePptxElement } from 'pptx-viewer-core';
 import {
-	insertTableRow,
-	deleteTableRow,
-	insertTableColumn,
-	deleteTableColumn,
+	insertTableElementRow,
+	removeTableElementRow,
+	insertTableElementColumn,
+	removeTableElementColumn,
 	setCellText,
 } from 'pptx-viewer-shared';
 
 import type { TableCellEditorState } from '../types';
-import {
-	updateCellTextInRawXml,
-	updateCellTextStyleInRawXml,
-	rebuildTableStructureInRawXml,
-} from '../utils/table-parse';
+import { updateCellTextInRawXml, updateCellTextStyleInRawXml } from '../utils/table-parse';
 import type { UseTableOperationsInput, TableStructHandlers } from './table-operation-types';
 
 // ---------------------------------------------------------------------------
@@ -176,16 +171,8 @@ export function createTableStructHandlers(input: UseTableOperationsInput): Table
 			return;
 		}
 		const rowIdx = ts?.rowIndex ?? 0;
-		const newTableData = insertTableRow(selectedElement.tableData, rowIdx, position);
-
-		// Build update object
-		const updates: Partial<TablePptxElement> = { tableData: newTableData };
-		const newRawXml = rebuildTableStructureInRawXml(selectedElement, newTableData);
-		if (newRawXml) {
-			updates.rawXml = newRawXml;
-		}
-
-		ops.updateSelectedElement(updates);
+		const next = insertTableElementRow(selectedElement, rowIdx, position);
+		ops.updateSelectedElement({ tableData: next.tableData, rawXml: next.rawXml });
 		history.markDirty();
 	};
 
@@ -195,22 +182,12 @@ export function createTableStructHandlers(input: UseTableOperationsInput): Table
 		if (!selectedElement || selectedElement.type !== 'table' || !selectedElement.tableData) {
 			return;
 		}
-		const td = selectedElement.tableData;
 		const rowIdx = ts?.rowIndex ?? 0;
-		const newTableData = deleteTableRow(td, rowIdx);
-		// `deleteTableRow` returns the same reference when the delete is a no-op
-		// (single row or out-of-range index).
-		if (newTableData === td) {
+		const next = removeTableElementRow(selectedElement, rowIdx);
+		if (next === selectedElement) {
 			return;
 		}
-
-		const updates: Partial<TablePptxElement> = { tableData: newTableData };
-		const newRawXml = rebuildTableStructureInRawXml(selectedElement, newTableData);
-		if (newRawXml) {
-			updates.rawXml = newRawXml;
-		}
-
-		ops.updateSelectedElement(updates);
+		ops.updateSelectedElement({ tableData: next.tableData, rawXml: next.rawXml });
 		history.markDirty();
 	};
 
@@ -221,15 +198,8 @@ export function createTableStructHandlers(input: UseTableOperationsInput): Table
 			return;
 		}
 		const colIdx = ts?.columnIndex ?? 0;
-		const newTableData = insertTableColumn(selectedElement.tableData, colIdx, position);
-
-		const updates: Partial<TablePptxElement> = { tableData: newTableData };
-		const newRawXml = rebuildTableStructureInRawXml(selectedElement, newTableData);
-		if (newRawXml) {
-			updates.rawXml = newRawXml;
-		}
-
-		ops.updateSelectedElement(updates);
+		const next = insertTableElementColumn(selectedElement, colIdx, position);
+		ops.updateSelectedElement({ tableData: next.tableData, rawXml: next.rawXml });
 		history.markDirty();
 	};
 
@@ -239,22 +209,12 @@ export function createTableStructHandlers(input: UseTableOperationsInput): Table
 		if (!selectedElement || selectedElement.type !== 'table' || !selectedElement.tableData) {
 			return;
 		}
-		const td = selectedElement.tableData;
 		const colIdx = ts?.columnIndex ?? 0;
-		const newTableData = deleteTableColumn(td, colIdx);
-		// `deleteTableColumn` returns the same reference for no-op deletes
-		// (single column or out-of-range index).
-		if (newTableData === td) {
+		const next = removeTableElementColumn(selectedElement, colIdx);
+		if (next === selectedElement) {
 			return;
 		}
-
-		const updates: Partial<TablePptxElement> = { tableData: newTableData };
-		const newRawXml = rebuildTableStructureInRawXml(selectedElement, newTableData);
-		if (newRawXml) {
-			updates.rawXml = newRawXml;
-		}
-
-		ops.updateSelectedElement(updates);
+		ops.updateSelectedElement({ tableData: next.tableData, rawXml: next.rawXml });
 		history.markDirty();
 	};
 

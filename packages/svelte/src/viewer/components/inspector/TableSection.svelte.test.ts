@@ -1,6 +1,6 @@
 /* oxlint-disable eslint/one-var -- many independent it() blocks, each with
    its own short arrange/act/assert consts. */
-import type { ParsedTableStyleMap, PptxElement } from 'pptx-viewer-core';
+import type { ParsedTableStyleMap, PptxElement, TablePptxElement } from 'pptx-viewer-core';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,8 +21,8 @@ afterEach(() => {
 	cleanup = undefined;
 });
 
-function tableEl(): PptxElement {
-	return {
+function tableEl(withRawXml = false): PptxElement {
+	const element: TablePptxElement = {
 		type: 'table',
 		id: 'tbl1',
 		x: 0,
@@ -33,7 +33,35 @@ function tableEl(): PptxElement {
 			rows: [{ cells: [{ text: 'A' }, { text: 'B' }] }, { cells: [{ text: 'C' }, { text: 'D' }] }],
 			columnWidths: [0.5, 0.5],
 		},
-	} as PptxElement;
+	};
+	if (withRawXml) {
+		element.rawXml = {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': { 'a:gridCol': [{ '@_w': '1000' }, { '@_w': '1000' }] },
+						'a:tr': [
+							{
+								'@_h': '370840',
+								'a:tc': [
+									{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'A' } } }, 'a:tcPr': {} },
+									{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'B' } } }, 'a:tcPr': {} },
+								],
+							},
+							{
+								'@_h': '370840',
+								'a:tc': [
+									{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'C' } } }, 'a:tcPr': {} },
+									{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'D' } } }, 'a:tcPr': {} },
+								],
+							},
+						],
+					},
+				},
+			},
+		};
+	}
+	return element;
 }
 
 function makeEditor(el: PptxElement): EditorState {
@@ -127,6 +155,23 @@ describe('tableSection', () => {
 				expect(cell.style?.marginLeft).toBe(8);
 			}
 		}
+	});
+
+	it('commits rawXml with tableData for a structural edit', () => {
+		const source = tableEl(true);
+		const editor = makeEditor(source);
+		const { target } = mountSection(editor, currentEl(editor));
+		const insertRow = Array.from(target.querySelectorAll('button')).find(
+			(button) => button.textContent === 'Insert row',
+		);
+		expect(insertRow).toBeTruthy();
+		insertRow!.click();
+		flushSync();
+
+		const current = currentEl(editor) as TablePptxElement;
+		expect(current.tableData?.rows).toHaveLength(3);
+		expect(current.rawXml).toBeDefined();
+		expect(current.rawXml).not.toBe((source as TablePptxElement).rawXml);
 	});
 
 	it('sets a column to the exact requested width, proportionally rescaling the others', () => {

@@ -714,6 +714,64 @@ describe('rebuildTableXmlFromData', () => {
 // ===========================================================================
 
 describe('combined operations', () => {
+	it.each(['row', 'column'] as const)(
+		'preserves rich runs when deleting a merged %s anchor',
+		(axis) => {
+			const td = make2x3TableData();
+			const source = td.rows[0].cells[0];
+			const target = axis === 'row' ? td.rows[1].cells[0] : td.rows[0].cells[1];
+			source.textRuns = [
+				{ text: 'A', bold: true },
+				{ text: '1', italic: true },
+			];
+			target.text = '';
+			target.textRuns = [{ text: '', underline: true }];
+			if (axis === 'row') {
+				source.rowSpan = 2;
+				target.vMerge = true;
+			} else {
+				source.gridSpan = 2;
+				target.hMerge = true;
+			}
+			const result = axis === 'row' ? removeTableRow(td, 0) : removeTableColumn(td, 0);
+			expect(result.tableData.rows[0].cells[0].text).toBe(source.text);
+			expect(result.tableData.rows[0].cells[0].textRuns).toStrictEqual(source.textRuns);
+		},
+	);
+
+	it('keeps the existing empty row-anchor text policy and its matching runs', () => {
+		const td = make2x3TableData();
+		td.rows[0].cells[0] = { text: '', rowSpan: 2, textRuns: [{ text: '', bold: true }] };
+		td.rows[1].cells[0] = {
+			text: 'Fallback',
+			vMerge: true,
+			textRuns: [{ text: 'Fallback', italic: true }],
+		};
+		const result = removeTableRow(td, 0);
+		expect(result.tableData.rows[0].cells[0].text).toBe('');
+		expect(result.tableData.rows[0].cells[0].textRuns).toStrictEqual(td.rows[0].cells[0].textRuns);
+	});
+
+	it('retains the continuation text body when deleting an empty column anchor', () => {
+		const td = make2x3TableData();
+		const raw = make2x3RawXml();
+		td.rows[0].cells[0] = { text: '', gridSpan: 2, textRuns: [{ text: '', bold: true }] };
+		td.rows[0].cells[1] = {
+			text: 'B1',
+			hMerge: true,
+			textRuns: [{ text: 'B', italic: true }, { text: '1' }],
+		};
+		const cells = getXmlCells(getTbl(raw), 0);
+		cells[0] = makeTc('', { '@_gridSpan': '2' });
+		cells[1]['@_hMerge'] = '1';
+		cells[1]['a:txBody']['a:p']['a:r'] = [{ 'a:rPr': { '@_i': '1' }, 'a:t': 'B' }, { 'a:t': '1' }];
+		const expectedBody = structuredClone(cells[1]['a:txBody']);
+		const result = removeTableColumn(td, 0, raw);
+		expect(result.tableData.rows[0].cells[0].text).toBe('B1');
+		expect(result.tableData.rows[0].cells[0].textRuns).toStrictEqual(td.rows[0].cells[1].textRuns);
+		expect(getXmlCells(getTbl(result.rawXml!), 0)[0]['a:txBody']).toStrictEqual(expectedBody);
+	});
+
 	it('should support add row then remove row to return to original size', () => {
 		const td = make2x3TableData();
 		const { tableData: afterAdd } = addTableRow(td, 1);

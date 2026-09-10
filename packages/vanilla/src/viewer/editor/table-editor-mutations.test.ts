@@ -1,6 +1,6 @@
 /* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
    its own short arrange/act/assert consts. */
-import type { PptxTableData } from 'pptx-viewer-core';
+import type { PptxTableData, TablePptxElement, XmlObject } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -22,16 +22,69 @@ function table(): PptxTableData {
 	};
 }
 
+function rawTableRows(element: TablePptxElement): XmlObject[] {
+	const graphic = element.rawXml!['a:graphic'] as XmlObject;
+	const data = graphic['a:graphicData'] as XmlObject;
+	return (data['a:tbl'] as XmlObject)['a:tr'] as XmlObject[];
+}
+
 describe('table editor mutations', () => {
+	it('moves surviving raw cells with an inserted row and deleted column', () => {
+		const data = table();
+		const rawRows = data.rows.map((row) => ({
+			'@_h': '381000',
+			'a:tc': row.cells.map((cell) => ({
+				'a:txBody': { 'a:p': { 'a:r': { 'a:rPr': { '@_b': '1' }, 'a:t': cell.text } } },
+				'a:tcPr': {},
+			})),
+		}));
+		const element: TablePptxElement = {
+			id: 'table',
+			type: 'table',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			tableData: data,
+			rawXml: {
+				'a:graphic': {
+					'a:graphicData': {
+						'a:tbl': {
+							'a:tblGrid': { 'a:gridCol': [{ '@_w': '1000' }, { '@_w': '1000' }] },
+							'a:tr': rawRows,
+						},
+					},
+				},
+			},
+		};
+		const withRow = mutateTableStructure(element, { row: 0, column: 0 }, 'insertRowBelow');
+		expect(rawTableRows(withRow)[2]['a:tc']).toStrictEqual(rawRows[1]['a:tc']);
+		const withColumnRemoved = mutateTableStructure(withRow, { row: 0, column: 0 }, 'deleteColumn');
+		expect(withColumnRemoved.tableData!.rows[2].cells[0].text).toBe('D');
+		expect(rawTableRows(withColumnRemoved)[2]['a:tc']).toStrictEqual(rawRows[1]['a:tc'][1]);
+	});
+
 	it('inserts and deletes rows and columns', () => {
-		const withRow = mutateTableStructure(table(), { row: 0, column: 0 }, 'insertRowBelow');
-		expect(withRow.rows).toHaveLength(3);
+		const element: TablePptxElement = {
+			id: 'table',
+			type: 'table',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			tableData: table(),
+		};
+		const withRow = mutateTableStructure(element, { row: 0, column: 0 }, 'insertRowBelow');
+		expect(withRow.tableData!.rows).toHaveLength(3);
 		const withColumn = mutateTableStructure(withRow, { row: 0, column: 0 }, 'insertColumnRight');
-		expect(withColumn.columnWidths).toHaveLength(3);
+		expect(withColumn.tableData!.columnWidths).toHaveLength(3);
 		expect(
-			mutateTableStructure(withColumn, { row: 0, column: 1 }, 'deleteColumn').columnWidths,
+			mutateTableStructure(withColumn, { row: 0, column: 1 }, 'deleteColumn').tableData!
+				.columnWidths,
 		).toHaveLength(2);
-		expect(mutateTableStructure(withRow, { row: 1, column: 0 }, 'deleteRow').rows).toHaveLength(2);
+		expect(
+			mutateTableStructure(withRow, { row: 1, column: 0 }, 'deleteRow').tableData!.rows,
+		).toHaveLength(2);
 	});
 
 	it('formats a cell range without touching other cells', () => {

@@ -39,6 +39,7 @@ export {
 } from './table-create-xml';
 
 // Raw-XML cell/merge/structure mutations
+export type { TableStructureEdit } from './table-cell-rawxml-ops';
 export {
 	updateCellTextInRawXml,
 	updateCellTextStyleInRawXml,

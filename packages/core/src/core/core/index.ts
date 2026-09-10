@@ -26,6 +26,7 @@ export { DEFAULT_MAX_UNCOMPRESSED_BYTES, MAX_ZIP_ENTRY_COUNT, ZipBombError } fro
 // Framework-agnostic table XML builders and raw-XML mutation operations,
 // consumed by the viewer bindings (insert tables, edit cell text/style,
 // sync rawXml on merge/structure changes).
+export type { TableStructureEdit } from './runtime/table-structural-ops';
 export {
 	createTableCellXml,
 	createTableGraphicFrameRawXml,

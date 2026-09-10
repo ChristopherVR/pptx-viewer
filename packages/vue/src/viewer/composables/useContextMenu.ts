@@ -1,4 +1,4 @@
-import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
+import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import {
 	buildContextMenuEntries,
 	resolveContextMenuElementId,
@@ -179,6 +179,17 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			ops.updateElement(tbl.el.id, { tableData: next } as Partial<PptxElement>);
 		}
 	}
+
+	/** Apply a structural result with its synchronised raw table XML. */
+	function applyContextTableElement(next: TablePptxElement | null): void {
+		const tbl = contextTable.value;
+		if (tbl && next && next !== tbl.el) {
+			ops.updateElement(tbl.el.id, {
+				tableData: next.tableData,
+				rawXml: next.rawXml,
+			} as Partial<PptxElement>);
+		}
+	}
 	function onCanvasContextMenu(event: MouseEvent): void {
 		if (!canEdit()) {
 			return;
@@ -274,22 +285,22 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		const { rowIndex, columnIndex } = tbl.sel;
 		switch (actionId) {
 			case 'table-insert-row-above':
-				applyContextTableData(applyInsertRow(td, rowIndex, 'above'));
+				applyContextTableElement(applyInsertRow(tbl.el, rowIndex, 'above'));
 				break;
 			case 'table-insert-row-below':
-				applyContextTableData(applyInsertRow(td, rowIndex, 'below'));
+				applyContextTableElement(applyInsertRow(tbl.el, rowIndex, 'below'));
 				break;
 			case 'table-delete-row':
-				applyContextTableData(applyDeleteRow(td, rowIndex));
+				applyContextTableElement(applyDeleteRow(tbl.el, rowIndex));
 				break;
 			case 'table-insert-col-left':
-				applyContextTableData(applyInsertColumn(td, columnIndex, 'left'));
+				applyContextTableElement(applyInsertColumn(tbl.el, columnIndex, 'left'));
 				break;
 			case 'table-insert-col-right':
-				applyContextTableData(applyInsertColumn(td, columnIndex, 'right'));
+				applyContextTableElement(applyInsertColumn(tbl.el, columnIndex, 'right'));
 				break;
 			case 'table-delete-col':
-				applyContextTableData(applyDeleteColumn(td, columnIndex));
+				applyContextTableElement(applyDeleteColumn(tbl.el, columnIndex));
 				break;
 			case 'table-merge-right':
 				applyContextTableData(applyMergeRight(td, rowIndex, columnIndex));

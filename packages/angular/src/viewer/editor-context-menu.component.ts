@@ -245,10 +245,14 @@ export class EditorContextMenuComponent {
 			return;
 		}
 		const updated = op(ctx.element, ctx.sel);
-		if (updated.tableData) {
-			this.editor.updateElement(this.slideIndex(), ctx.element.id, {
+		if (updated !== ctx.element && updated.tableData) {
+			const patch: Partial<TablePptxElement> = {
 				tableData: updated.tableData,
-			});
+			};
+			if (updated.rawXml !== ctx.element.rawXml) {
+				patch.rawXml = updated.rawXml;
+			}
+			this.editor.updateElement(this.slideIndex(), ctx.element.id, patch);
 		}
 	}
 }

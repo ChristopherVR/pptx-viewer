@@ -1,4 +1,4 @@
-import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
+import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildEditorContextMenuEntries, runContextMenuCommand } from './context-menu-dispatch';
@@ -23,8 +23,8 @@ function tableData(rows = 3, cols = 3): PptxTableData {
 	};
 }
 
-function tableElement(data: PptxTableData = tableData()): PptxElement {
-	return {
+function tableElement(data: PptxTableData = tableData(), withRawXml = false): PptxElement {
+	const element: TablePptxElement = {
 		type: 'table',
 		id: 'tbl',
 		x: 0,
@@ -33,7 +33,28 @@ function tableElement(data: PptxTableData = tableData()): PptxElement {
 		height: 200,
 		rotation: 0,
 		tableData: data,
-	} as PptxElement;
+	};
+	if (withRawXml) {
+		element.rawXml = {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': {
+							'a:gridCol': data.columnWidths.map(() => ({ '@_w': '1000' })),
+						},
+						'a:tr': data.rows.map((row) => ({
+							'@_h': '370840',
+							'a:tc': row.cells.map((cell) => ({
+								'a:txBody': { 'a:p': { 'a:r': { 'a:t': cell.text } } },
+								'a:tcPr': {},
+							})),
+						})),
+					},
+				},
+			},
+		};
+	}
+	return element;
 }
 
 function makeEditor(element: PptxElement = tableElement()): EditorState {
@@ -159,5 +180,22 @@ describe('block merge through the context menu', () => {
 
 		editor.undo();
 		expect(modelOf(editor).rows[0].cells[0].gridSpan).toBeUndefined();
+	});
+});
+
+describe('structural table commands through the context menu', () => {
+	it('commits rawXml with tableData', () => {
+		const source = tableElement(tableData(2, 2), true);
+		const editor = makeEditor(source);
+
+		runContextMenuCommand('table-insert-row-below', {
+			editor,
+			cell: { rowIndex: 0, columnIndex: 0 },
+		});
+
+		const current = editor.selectedElement as TablePptxElement;
+		expect(current.tableData?.rows).toHaveLength(3);
+		expect(current.rawXml).toBeDefined();
+		expect(current.rawXml).not.toBe((source as TablePptxElement).rawXml);
 	});
 });

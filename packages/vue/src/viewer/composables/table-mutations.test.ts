@@ -1,4 +1,4 @@
-import type { PptxTableData } from 'pptx-viewer-core';
+import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -21,34 +21,46 @@ function makeTableData(rows: number, cols: number): PptxTableData {
 	};
 }
 
+function makeTableElement(rows: number, cols: number): TablePptxElement {
+	return {
+		type: 'table',
+		id: 'table-1',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 200,
+		tableData: makeTableData(rows, cols),
+	};
+}
+
 describe('table-mutations', () => {
 	it('inserts a row above the target index', () => {
-		const next = applyInsertRow(makeTableData(2, 2), 0, 'above');
-		expect(next.rows).toHaveLength(3);
-		expect(next.rows[0].cells.every((c) => c.text === '')).toBeTruthy();
+		const next = applyInsertRow(makeTableElement(2, 2), 0, 'above');
+		expect(next.tableData?.rows).toHaveLength(3);
+		expect(next.tableData?.rows[0].cells.every((c) => c.text === '')).toBeTruthy();
 	});
 
 	it('inserts a row below the target index', () => {
-		const next = applyInsertRow(makeTableData(2, 2), 0, 'below');
-		expect(next.rows).toHaveLength(3);
-		expect(next.rows[1].cells.every((c) => c.text === '')).toBeTruthy();
+		const next = applyInsertRow(makeTableElement(2, 2), 0, 'below');
+		expect(next.tableData?.rows).toHaveLength(3);
+		expect(next.tableData?.rows[1].cells.every((c) => c.text === '')).toBeTruthy();
 	});
 
 	it('deletes a row and returns null on a single-row no-op', () => {
-		expect(applyDeleteRow(makeTableData(2, 2), 0)?.rows).toHaveLength(1);
-		expect(applyDeleteRow(makeTableData(1, 2), 0)).toBeNull();
+		expect(applyDeleteRow(makeTableElement(2, 2), 0)?.tableData?.rows).toHaveLength(1);
+		expect(applyDeleteRow(makeTableElement(1, 2), 0)).toBeNull();
 	});
 
 	it('inserts a column keeping widths normalised', () => {
-		const next = applyInsertColumn(makeTableData(2, 2), 0, 'right');
-		expect(next.columnWidths).toHaveLength(3);
-		expect(next.rows[0].cells).toHaveLength(3);
-		expect(next.columnWidths.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
+		const next = applyInsertColumn(makeTableElement(2, 2), 0, 'right');
+		expect(next.tableData?.columnWidths).toHaveLength(3);
+		expect(next.tableData?.rows[0].cells).toHaveLength(3);
+		expect(next.tableData?.columnWidths.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
 	});
 
 	it('deletes a column and returns null on a single-column no-op', () => {
-		expect(applyDeleteColumn(makeTableData(2, 2), 0)?.columnWidths).toHaveLength(1);
-		expect(applyDeleteColumn(makeTableData(2, 1), 0)).toBeNull();
+		expect(applyDeleteColumn(makeTableElement(2, 2), 0)?.tableData?.columnWidths).toHaveLength(1);
+		expect(applyDeleteColumn(makeTableElement(2, 1), 0)).toBeNull();
 	});
 
 	it('merges the cell to the right (gridSpan + hMerge)', () => {

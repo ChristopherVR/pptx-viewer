@@ -1,4 +1,4 @@
-import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
+import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import type { CellCoord, ContextMenuCommandId, ContextMenuEntry } from 'pptx-viewer-shared';
 import {
 	buildContextMenuEntries,
@@ -7,11 +7,11 @@ import {
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
-	deleteTableColumn,
-	deleteTableRow,
-	insertTableColumn,
-	insertTableRow,
+	insertTableElementColumn,
+	insertTableElementRow,
 	mergeCells,
+	removeTableElementColumn,
+	removeTableElementRow,
 } from 'pptx-viewer-shared';
 
 import type { EditorState } from './editor-state.svelte';
@@ -139,22 +139,6 @@ function computeTableCommand(
 ): PptxTableData | null {
 	const { rowIndex, columnIndex } = cell;
 	switch (id) {
-		case 'table-insert-row-above':
-			return insertTableRow(tableData, rowIndex, 'above');
-		case 'table-insert-row-below':
-			return insertTableRow(tableData, rowIndex, 'below');
-		case 'table-delete-row': {
-			const next = deleteTableRow(tableData, rowIndex);
-			return next === tableData ? null : next;
-		}
-		case 'table-insert-col-left':
-			return insertTableColumn(tableData, columnIndex, 'left');
-		case 'table-insert-col-right':
-			return insertTableColumn(tableData, columnIndex, 'right');
-		case 'table-delete-col': {
-			const next = deleteTableColumn(tableData, columnIndex);
-			return next === tableData ? null : next;
-		}
 		case 'table-merge-right': {
 			const rows = computeMergeCellRight(tableData, rowIndex, columnIndex);
 			return rows ? { ...tableData, rows } : null;
@@ -185,14 +169,50 @@ function computeTableCommand(
 	}
 }
 
+/** A structural table result, or `undefined` when `id` is not structural. */
+function computeTableStructureCommand(
+	id: ContextMenuCommandId,
+	element: TablePptxElement,
+	cell: ContextMenuCellTarget,
+): TablePptxElement | undefined {
+	const { rowIndex, columnIndex } = cell;
+	switch (id) {
+		case 'table-insert-row-above':
+			return insertTableElementRow(element, rowIndex, 'above');
+		case 'table-insert-row-below':
+			return insertTableElementRow(element, rowIndex, 'below');
+		case 'table-delete-row':
+			return removeTableElementRow(element, rowIndex);
+		case 'table-insert-col-left':
+			return insertTableElementColumn(element, columnIndex, 'left');
+		case 'table-insert-col-right':
+			return insertTableElementColumn(element, columnIndex, 'right');
+		case 'table-delete-col':
+			return removeTableElementColumn(element, columnIndex);
+		default:
+			return undefined;
+	}
+}
+
 /** Apply a table command to the selected table as one undoable step. */
 function runTableCommand(id: ContextMenuCommandId, deps: ContextMenuDispatchDeps): void {
 	const element = deps.editor.selectedElement;
-	const tableData = selectedTableData(deps.editor);
 	const cell = deps.cell;
-	if (!element || !tableData || !cell) {
+	if (!element || element.type !== 'table' || !element.tableData || !cell) {
 		return;
 	}
+	const structural = computeTableStructureCommand(id, element, cell);
+	if (structural) {
+		if (structural !== element) {
+			deps.editor.applyElementPatch(element.id, {
+				tableData: structural.tableData,
+				rawXml: structural.rawXml,
+			} as Partial<PptxElement>);
+			deps.editor.tableCells.clear();
+		}
+		return;
+	}
+	const tableData = element.tableData;
 	const next = computeTableCommand(
 		id,
 		tableData,

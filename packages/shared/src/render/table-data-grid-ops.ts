@@ -24,7 +24,7 @@
  *
  * @module render/table-data-grid-ops
  */
-import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
+import type { PptxTableData, TablePptxElement, TableStructureEdit } from 'pptx-viewer-core';
 import { rebuildTableStructureInRawXml, updateCellTextInRawXml } from 'pptx-viewer-core';
 
 import { setCellText } from './table-cell-edit';
@@ -53,6 +53,7 @@ import {
 function withTableData(
 	element: TablePptxElement,
 	transform: (data: PptxTableData) => PptxTableData,
+	edit: TableStructureEdit,
 ): TablePptxElement {
 	const tableData = element.tableData;
 	if (!tableData) {
@@ -64,7 +65,7 @@ function withTableData(
 	}
 	const updated: TablePptxElement = { ...element, tableData: next };
 	if (element.rawXml) {
-		const rawXml = rebuildTableStructureInRawXml(element, next);
+		const rawXml = rebuildTableStructureInRawXml(element, next, edit);
 		if (rawXml) {
 			updated.rawXml = rawXml;
 		}
@@ -110,7 +111,11 @@ export function insertTableElementRow(
 	rowIdx: number,
 	position: 'above' | 'below',
 ): TablePptxElement {
-	return withTableData(element, (data) => insertTableRow(data, rowIdx, position));
+	return withTableData(element, (data) => insertTableRow(data, rowIdx, position), {
+		axis: 'row',
+		action: 'insert',
+		index: position === 'above' ? rowIdx : rowIdx + 1,
+	});
 }
 
 /**
@@ -121,7 +126,11 @@ export function insertTableElementRow(
  * @returns A new element with the row removed.
  */
 export function removeTableElementRow(element: TablePptxElement, rowIdx: number): TablePptxElement {
-	return withTableData(element, (data) => deleteTableRow(data, rowIdx));
+	return withTableData(element, (data) => deleteTableRow(data, rowIdx), {
+		axis: 'row',
+		action: 'delete',
+		index: rowIdx,
+	});
 }
 
 /**
@@ -137,7 +146,11 @@ export function insertTableElementColumn(
 	colIdx: number,
 	position: 'left' | 'right',
 ): TablePptxElement {
-	return withTableData(element, (data) => insertTableColumn(data, colIdx, position));
+	return withTableData(element, (data) => insertTableColumn(data, colIdx, position), {
+		axis: 'column',
+		action: 'insert',
+		index: position === 'left' ? colIdx : colIdx + 1,
+	});
 }
 
 /**
@@ -151,7 +164,11 @@ export function removeTableElementColumn(
 	element: TablePptxElement,
 	colIdx: number,
 ): TablePptxElement {
-	return withTableData(element, (data) => deleteTableColumn(data, colIdx));
+	return withTableData(element, (data) => deleteTableColumn(data, colIdx), {
+		axis: 'column',
+		action: 'delete',
+		index: colIdx,
+	});
 }
 
 /**
