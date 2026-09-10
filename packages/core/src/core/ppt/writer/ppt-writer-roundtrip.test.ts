@@ -183,3 +183,196 @@ describe('legacy .ppt writer round-trip', () => {
 		expect(Buffer.from(clsid).toString('hex')).toBe('108d81649b4fcf1186ea00aa00b929e8');
 	});
 });
+
+describe('legacy .ppt writer: hyperlinks and click actions', () => {
+	/**
+	 * Every shape/run action kind tested here was independently verified
+	 * against real PowerPoint over COM (`ActionSettings(ppMouseClick)`):
+	 * `Action`/`Hyperlink.Address`/`Hyperlink.SubAddress` all matched, see
+	 * `scripts/com-acceptance-ppt.mjs`'s `hyperlinks-and-actions` case. This
+	 * suite instead proves the OTHER direction: round-tripping the written
+	 * bytes back through this project's OWN importer reconstructs the same
+	 * `actionClick` / run-level hyperlink the SDK was given.
+	 */
+	async function buildActionDeck(): Promise<{ handler: PptxHandler; slides: PptxSlide[] }> {
+		const { handler, data, createSlide } = await PptxHandler.create({ initialSlideCount: 0 });
+		const slideBuilder = createSlide('Blank');
+		const addRect = (y: number, text: string): void => {
+			slideBuilder.addShape('rect', {
+				x: 20,
+				y,
+				width: 200,
+				height: 40,
+				fill: { type: 'solid', color: '#4472C4' },
+				text,
+			});
+		};
+		addRect(10, 'url-link');
+		addRect(60, 'slide-link');
+		addRect(110, 'next-link');
+		addRect(160, 'prev-link');
+		addRect(210, 'first-link');
+		addRect(260, 'last-link');
+		addRect(310, 'end-link');
+		addRect(360, 'mailto-link');
+		addRect(410, 'customshow-link');
+		addRect(460, 'this has a linked word inside');
+
+		const slide1 = slideBuilder.build();
+		data.slides.push(slide1);
+		data.slides.push(createSlide('Blank').build());
+		data.slides.push(createSlide('Blank').build());
+
+		const [urlSh, slideSh, nextSh, prevSh, firstSh, lastSh, endSh, mailtoSh, showSh, runSh] =
+			slide1.elements as PptxElement[];
+		(urlSh as { actionClick?: unknown }).actionClick = { url: 'https://example.com/path?q=1' };
+		(slideSh as { actionClick?: unknown }).actionClick = {
+			action: 'ppaction://hlinksldjump',
+			targetSlideIndex: 2,
+		};
+		(nextSh as { actionClick?: unknown }).actionClick = {
+			action: 'ppaction://hlinkshowjump?jump=nextslide',
+		};
+		(prevSh as { actionClick?: unknown }).actionClick = {
+			action: 'ppaction://hlinkshowjump?jump=previousslide',
+		};
+		(firstSh as { actionClick?: unknown }).actionClick = {
+			action: 'ppaction://hlinkshowjump?jump=firstslide',
+		};
+		(lastSh as { actionClick?: unknown }).actionClick = {
+			action: 'ppaction://hlinkshowjump?jump=lastslide',
+		};
+		(endSh as { actionClick?: unknown }).actionClick = {
+			action: 'ppaction://hlinkshowjump?jump=endshow',
+		};
+		(mailtoSh as { actionClick?: unknown }).actionClick = { url: 'mailto:test@example.com' };
+		(showSh as { actionClick?: unknown }).actionClick = {
+			action: 'ppaction://customshow?id=0&return=true',
+		};
+		const runShapeWithText = runSh as PptxElement & {
+			textSegments?: Array<{ text: string; style?: { hyperlink?: string } }>;
+		};
+		for (const seg of runShapeWithText.textSegments ?? []) {
+			if (seg.text.includes('linked')) {
+				seg.style = { ...seg.style, hyperlink: 'https://run-level.example.com/' };
+			}
+		}
+
+		return { handler, slides: data.slides };
+	}
+
+	it('round-trips every shape-level action kind through our own importer', async () => {
+		const { handler, slides } = await buildActionDeck();
+		const bytes = await handler.save(slides, {
+			outputFormat: 'ppt',
+			customShows: [{ name: 'MyShow', id: '0', slideRIds: [slides[0]!.rId] }],
+		});
+
+		const reloadHandler = new PptxHandler();
+		const reloaded = await reloadHandler.load(bytes.buffer as ArrayBuffer);
+		const elements = reloaded.slides[0]!.elements as Array<
+			PptxElement & { actionClick?: { url?: string; action?: string; targetSlideIndex?: number } }
+		>;
+		const byText = (text: string): (typeof elements)[number] | undefined =>
+			elements.find((el) => 'textSegments' in el && el.textSegments?.some((s) => s.text === text));
+
+		expect(byText('url-link')?.actionClick?.url).toBe('https://example.com/path?q=1');
+
+		const slideLink = byText('slide-link')?.actionClick;
+		expect(slideLink?.action).toContain('hlinksldjump');
+		expect(slideLink?.targetSlideIndex).toBe(2);
+
+		expect(byText('next-link')?.actionClick?.action).toContain('jump=nextslide');
+		expect(byText('prev-link')?.actionClick?.action).toContain('jump=previousslide');
+		expect(byText('first-link')?.actionClick?.action).toContain('jump=firstslide');
+		expect(byText('last-link')?.actionClick?.action).toContain('jump=lastslide');
+		expect(byText('end-link')?.actionClick?.action).toContain('jump=endshow');
+		expect(byText('mailto-link')?.actionClick?.url).toBe('mailto:test@example.com');
+		expect(byText('customshow-link')?.actionClick?.action).toContain('customshow');
+	});
+
+	it('round-trips a run-level (text-selection) hyperlink through our own importer', async () => {
+		const { handler, slides } = await buildActionDeck();
+		const bytes = await handler.save(slides, { outputFormat: 'ppt' });
+
+		const reloadHandler = new PptxHandler();
+		const reloaded = await reloadHandler.load(bytes.buffer as ArrayBuffer);
+		const runShape = reloaded.slides[0]!.elements.find(
+			(el) => 'textSegments' in el && el.textSegments?.some((s) => s.text.includes('linked')),
+		) as
+			| (PptxElement & { textSegments?: Array<{ text: string; style?: { hyperlink?: string } }> })
+			| undefined;
+
+		expect(runShape).toBeDefined();
+		const linkedSegment = runShape?.textSegments?.find((s) => s.text.includes('linked'));
+		expect(linkedSegment?.style?.hyperlink).toBe('https://run-level.example.com/');
+	});
+});
+
+describe('legacy .ppt writer: OLE embeds', () => {
+	/**
+	 * Verified against real PowerPoint over COM (`scripts/com-acceptance-ppt.mjs`'s
+	 * `runOleCase`): the saved shape is `msoEmbeddedOLEObject` with
+	 * `OLEFormat.ProgID === "Package"`. This project's own `.ppt` IMPORTER does
+	 * not parse `ExOleEmbedContainer`/`ExOleObjStg` back into an `OlePptxElement`
+	 * yet (`document-parser.ts` never looks for `RT.ExternalOleEmbed`), matching
+	 * `notes-writer.ts`'s own documented gap for `RT.Notes`: this suite instead
+	 * proves the WRITE side embeds real payload bytes with no compatibility
+	 * warning, and that round-tripping through our own reader still produces a
+	 * renderable picture shape (the read side degrades an OLE embed to its
+	 * plain picture-frame preview, never to a placeholder or a crash).
+	 */
+	it('embeds a real OLE payload with no compatibility warning', async () => {
+		const { handler, data, createSlide } = await PptxHandler.create({ initialSlideCount: 0 });
+		const slide = createSlide('Blank').build();
+		const textBytes = new TextEncoder().encode('Hello embedded object');
+		const oleDataUrl = `data:text/plain;base64,${Buffer.from(textBytes).toString('base64')}`;
+		const oleElement: PptxElement = {
+			type: 'ole',
+			id: 'ole1',
+			x: 100,
+			y: 100,
+			width: 200,
+			height: 150,
+			fileName: 'notes.txt',
+			oleEmbeddedFileName: 'notes.txt',
+			oleEmbeddedData: oleDataUrl,
+			previewImageData: PNG_1X1,
+		} as PptxElement;
+		slide.elements = [oleElement];
+		data.slides = [slide];
+
+		const bytes = await handler.save(data.slides, { outputFormat: 'ppt' });
+		expect(handler.getCompatibilityWarnings()).toHaveLength(0);
+
+		const reloadHandler = new PptxHandler();
+		const reloaded = await reloadHandler.load(bytes.buffer as ArrayBuffer);
+		expect(reloaded.slides).toHaveLength(1);
+		expect(reloaded.slides[0]!.elements.length).toBeGreaterThan(0);
+		expect(
+			reloaded.slides[0]!.elements.some((el) => el.type === 'picture' || el.type === 'image'),
+		).toBeTruthy();
+	});
+
+	it('degrades to a placeholder with a warning when no embedded payload is available', async () => {
+		const { handler, data, createSlide } = await PptxHandler.create({ initialSlideCount: 0 });
+		const slide = createSlide('Blank').build();
+		const oleElement: PptxElement = {
+			type: 'ole',
+			id: 'ole1',
+			x: 100,
+			y: 100,
+			width: 200,
+			height: 150,
+			fileName: 'notes.txt',
+		} as PptxElement;
+		slide.elements = [oleElement];
+		data.slides = [slide];
+
+		await handler.save(data.slides, { outputFormat: 'ppt' });
+		const warnings = handler.getCompatibilityWarnings();
+		expect(
+			warnings.some((w) => w.scope === 'element' && w.code === 'ppt-unsupported-ole'),
+		).toBeTruthy();
+	});
+});

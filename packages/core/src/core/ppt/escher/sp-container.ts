@@ -8,6 +8,8 @@
 
 import type { PptColorScheme } from '../color-scheme';
 import { resolveEscherColor } from '../color-scheme';
+import { collectTextHyperlinkRanges, resolveShapeInteractiveInfo } from '../hyperlink-parser';
+import type { RawHyperlinkStrings } from '../hyperlink-parser';
 import type { PptAnyShape, PptShape, PptTextBody } from '../ppt-model';
 import { findChild, isContainer, iterateChildren } from '../record-stream';
 import type { PptRecord } from '../record-stream';
@@ -28,6 +30,8 @@ export interface DrawingContext {
 	fonts: string[];
 	/** Raw outline texts for OutlineTextRefAtom resolution. */
 	rawOutlineText: PptRawText[] | undefined;
+	/** Document-wide hyperlink string lookup (see `hyperlink-parser.ts`). */
+	hyperlinkStrings: Map<number, RawHyperlinkStrings>;
 }
 
 /** Result of parsing a drawing container. */
@@ -50,22 +54,23 @@ const PLACEHOLDER_TYPE_MAP: Record<number, string> = {
 	16: 'subTitle',
 };
 
-/** Extract the text body from a client textbox record. */
+/** Extract the text body (including any run-level hyperlinks) from a client textbox record. */
 function extractText(ctx: DrawingContext, clientTextbox: PptRecord): PptTextBody | undefined {
 	const start = clientTextbox.dataOffset;
 	const end = clientTextbox.dataOffset + clientTextbox.recLen;
+	const hyperlinkRanges = collectTextHyperlinkRanges(ctx.view, start, end, ctx.hyperlinkStrings);
 	const outlineRef = findOutlineTextRef(ctx.view, start, end);
 	if (outlineRef !== undefined && ctx.rawOutlineText) {
 		const raw = ctx.rawOutlineText[outlineRef];
 		if (raw) {
-			return buildTextBody(raw, ctx.fonts);
+			return buildTextBody(raw, ctx.fonts, hyperlinkRanges);
 		}
 	}
 	const bodies = collectTextBodies(ctx.view, start, end, ctx.scheme);
 	if (bodies.length === 0) {
 		return undefined;
 	}
-	return buildTextBody(bodies[0], ctx.fonts);
+	return buildTextBody(bodies[0], ctx.fonts, hyperlinkRanges);
 }
 
 /** Read the placeholder type from the client data, when present. */
@@ -110,10 +115,24 @@ function parseShape(ctx: DrawingContext, container: PptRecord): PptAnyShape | un
 	const flipH = (flags & FSP_FLAG_FLIPH) !== 0 ? true : undefined;
 	const flipV = (flags & FSP_FLAG_FLIPV) !== 0 ? true : undefined;
 
+	const clientData = findChild(ctx.view, container, OA.ClientData);
+	const actionClick = clientData
+		? resolveShapeInteractiveInfo(ctx.view, clientData, ctx.hyperlinkStrings)
+		: undefined;
+
 	// Picture shape: pib references the picture collection (1-based).
 	const pib = props.values.get(OPT.pib);
 	if (pib !== undefined && pib > 0) {
-		return { kind: 'picture', pictureIndex: pib - 1, name, anchor, rotationDeg, flipH, flipV };
+		return {
+			kind: 'picture',
+			pictureIndex: pib - 1,
+			name,
+			anchor,
+			rotationDeg,
+			flipH,
+			flipV,
+			actionClick,
+		};
 	}
 
 	const shape: PptShape = {
@@ -125,6 +144,7 @@ function parseShape(ctx: DrawingContext, container: PptRecord): PptAnyShape | un
 		rotationDeg,
 		flipH,
 		flipV,
+		actionClick,
 	};
 
 	const fill = extractFill(props, ctx.scheme, spt);
@@ -136,7 +156,6 @@ function parseShape(ctx: DrawingContext, container: PptRecord): PptAnyShape | un
 		shape.line = line;
 	}
 
-	const clientData = findChild(ctx.view, container, OA.ClientData);
 	if (clientData) {
 		const placeholderType = extractPlaceholder(ctx, clientData);
 		if (placeholderType) {

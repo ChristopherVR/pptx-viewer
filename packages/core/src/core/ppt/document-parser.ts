@@ -11,6 +11,7 @@
 import { DEFAULT_SCHEME, findSchemeColors } from './color-scheme';
 import type { PptColorScheme } from './color-scheme';
 import { EncryptedPptError } from './current-user';
+import { parseHyperlinkStrings } from './hyperlink-parser';
 import { buildPersistDirectory } from './persist-directory';
 import type { PersistDirectory } from './persist-directory';
 import { parsePictures } from './pictures';
@@ -151,6 +152,7 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 	}
 
 	const fonts = parseFonts(view, docContainer);
+	const hyperlinkStrings = parseHyperlinkStrings(view, docContainer);
 
 	// Main master: first entry of the MasterListWithText (instance 1).
 	let masterPersistId: number | undefined;
@@ -173,7 +175,14 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 	if (masterOffset !== undefined) {
 		const masterRec = readRecordOrThrow(view, masterOffset);
 		if (masterRec.recType === RT.MainMaster) {
-			const master = parseMasterContainer(view, data, fonts, docScheme, masterRec);
+			const master = parseMasterContainer(
+				view,
+				data,
+				fonts,
+				docScheme,
+				masterRec,
+				hyperlinkStrings,
+			);
 			if (master.scheme) {
 				scheme = master.scheme;
 			}
@@ -205,6 +214,7 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 					fonts,
 					masterScheme: scheme,
 					outlineText: outline.get(persistId),
+					hyperlinkStrings,
 				},
 				rec,
 			),

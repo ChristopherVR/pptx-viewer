@@ -11,10 +11,34 @@ import JSZip from 'jszip';
 
 import { SCHEME } from '../color-scheme';
 import type { PptDeck, PptSlideModel } from '../ppt-model';
+import type { HyperlinkRelAllocator } from './hyperlink-xml';
 import { slideLayoutXml, slideMasterXml, themeXml } from './master-writer';
 import { shapeXml } from './shape-writer';
 import type { ShapeWriterContext } from './shape-writer';
 import { solidFill } from './xml-utils';
+
+const HYPERLINK_REL_TYPE =
+	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink';
+
+/**
+ * Build a `HyperlinkRelAllocator` that appends each newly registered
+ * relationship's XML to `relsOut`, starting `rId` allocation after
+ * `startCounter` (the highest `rId` number already used by this part, e.g.
+ * the layout/media relationships a slide already carries).
+ */
+function makeHyperlinkRelAllocator(
+	relsOut: string[],
+	startCounter: { n: number },
+): HyperlinkRelAllocator {
+	return {
+		addRel(target, external, type = HYPERLINK_REL_TYPE): string {
+			const relId = `rId${++startCounter.n}`;
+			const mode = external ? ' TargetMode="External"' : '';
+			relsOut.push(`  <Relationship Id="${relId}" Type="${type}" Target="${target}"${mode}/>`);
+			return relId;
+		},
+	};
+}
 
 const CONTENT_TYPE_BY_EXT: Record<string, string> = {
 	png: 'image/png',
@@ -41,6 +65,8 @@ function slideXml(
 	deck: PptDeck,
 	slide: PptSlideModel,
 	relIdByPicture: Map<number, string>,
+	relsOut: string[],
+	relCounterStart: { n: number },
 ): string {
 	let nextId = 2;
 	const ctx: ShapeWriterContext = {
@@ -49,6 +75,8 @@ function slideXml(
 			const relId = relIdByPicture.get(pictureIndex);
 			return relId ? { relId } : undefined;
 		},
+		hyperlinkRels: makeHyperlinkRelAllocator(relsOut, relCounterStart),
+		slideCount: deck.slides.length,
 	};
 	const shapes = slide.shapes.map((shape) => shapeXml(shape, ctx)).join('');
 	const backgroundRgb = slide.followMasterBackground
@@ -188,17 +216,22 @@ export async function buildPptxPackage(deck: PptDeck): Promise<ArrayBuffer> {
 	zip.file('ppt/_rels/presentation.xml.rels', presentationRelsXml(deck));
 
 	let masterShapeId = 2;
+	const masterRels: string[] = [];
 	const masterCtx: ShapeWriterContext = {
 		nextId: () => masterShapeId++,
 		mediaRel: () => undefined,
+		hyperlinkRels: makeHyperlinkRelAllocator(masterRels, { n: 2 }),
+		slideCount: deck.slides.length,
 	};
-	zip.file('ppt/slideMasters/slideMaster1.xml', slideMasterXml(deck, masterCtx));
+	const masterXml = slideMasterXml(deck, masterCtx);
+	zip.file('ppt/slideMasters/slideMaster1.xml', masterXml);
 	zip.file(
 		'ppt/slideMasters/_rels/slideMaster1.xml.rels',
 		`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+${masterRels.join('\n')}
 </Relationships>`,
 	);
 	zip.file('ppt/slideLayouts/slideLayout1.xml', slideLayoutXml());
@@ -227,7 +260,9 @@ export async function buildPptxPackage(deck: PptDeck): Promise<ArrayBuffer> {
 				`  <Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${fileNumber}.${picture.extension}"/>`,
 			);
 		}
-		zip.file(`ppt/slides/slide${i + 1}.xml`, slideXml(deck, slide, relIdByPicture));
+		const relCounterState = { n: relCounter };
+		const slideBody = slideXml(deck, slide, relIdByPicture, mediaRels, relCounterState);
+		zip.file(`ppt/slides/slide${i + 1}.xml`, slideBody);
 		zip.file(
 			`ppt/slides/_rels/slide${i + 1}.xml.rels`,
 			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

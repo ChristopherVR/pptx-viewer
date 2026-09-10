@@ -6,7 +6,10 @@
  */
 
 import { EMU_PER_PX } from '../../constants';
+import type { PptxAction } from '../../types/actions';
 import type { TextSegment, TextStyle } from '../../types/text';
+import type { HyperlinkResolveContext } from './hyperlink-model';
+import { resolveHyperlink } from './hyperlink-model';
 import type { WParagraph, WRun } from './write-model';
 
 const ALIGN_MAP: Record<string, WParagraph['align']> = {
@@ -22,7 +25,26 @@ const ALIGN_MAP: Record<string, WParagraph['align']> = {
 /** PowerPoint's own binary-text soft-line-break encoding: a vertical tab. */
 const SOFT_BREAK_CHAR = String.fromCharCode(0x0b);
 
-function styleToRun(text: string, style: TextStyle | undefined): WRun {
+/** Build a `PptxAction`-shaped object from a run's own `TextStyle` hyperlink fields. */
+function segmentHyperlinkAction(segment: TextSegment): PptxAction | undefined {
+	const style = segment.style;
+	if (!style?.hyperlink && !style?.hyperlinkAction) {
+		return undefined;
+	}
+	return {
+		url: style.hyperlink,
+		action: style.hyperlinkAction,
+		targetSlideIndex: style.hyperlinkTargetSlideIndex,
+		tooltip: style.hyperlinkTooltip,
+	};
+}
+
+function styleToRun(
+	text: string,
+	style: TextStyle | undefined,
+	segment: TextSegment | undefined,
+	hyperlinkCtx: HyperlinkResolveContext,
+): WRun {
 	return {
 		text,
 		bold: style?.bold,
@@ -31,6 +53,9 @@ function styleToRun(text: string, style: TextStyle | undefined): WRun {
 		sizePt: style?.fontSize,
 		colorRgb: style?.color?.replace(/^#/u, ''),
 		fontName: style?.fontFamily,
+		hyperlink: segment
+			? resolveHyperlink(segmentHyperlinkAction(segment), hyperlinkCtx)
+			: undefined,
 	};
 }
 
@@ -73,13 +98,20 @@ function metaFromSegment(
 export function textSegmentsToParagraphs(
 	segments: TextSegment[],
 	paragraphIndents: Array<{ marginLeft?: number; indent?: number }> | undefined,
-	fallback: { text?: string; style?: TextStyle },
+	fallback: { text?: string; style?: TextStyle; hyperlinkCtx: HyperlinkResolveContext },
 ): WParagraph[] {
+	const hyperlinkCtx = fallback.hyperlinkCtx;
 	if (segments.length === 0) {
 		if (!fallback.text) {
 			return [];
 		}
-		return [{ indentLevel: 0, align: 'l', runs: [styleToRun(fallback.text, fallback.style)] }];
+		return [
+			{
+				indentLevel: 0,
+				align: 'l',
+				runs: [styleToRun(fallback.text, fallback.style, undefined, hyperlinkCtx)],
+			},
+		];
 	}
 
 	const fallbackAlign = (fallback.style?.align && ALIGN_MAP[fallback.style.align]) ?? 'l';
@@ -114,7 +146,7 @@ export function textSegmentsToParagraphs(
 			meta = metaFromSegment(segment, paragraphIndents, paraIndex, fallbackAlign);
 		}
 		const text = segment.isLineBreak ? SOFT_BREAK_CHAR : segment.text;
-		runs.push(styleToRun(text, segment.style));
+		runs.push(styleToRun(text, segment.style, segment, hyperlinkCtx));
 	}
 	flush();
 

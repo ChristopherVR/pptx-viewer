@@ -8,6 +8,7 @@
  */
 
 import type { PptColorScheme } from './color-scheme';
+import type { PptHyperlinkTarget } from './hyperlink-target';
 import type { PptStyleRuns } from './text/style-props';
 
 /** Rectangle in EMU. */
@@ -27,6 +28,8 @@ export interface PptRun {
 	sizePt?: number;
 	colorRgb?: string;
 	fontName?: string;
+	/** Run-level (`MouseClickTextInteractiveInfoAtom`-anchored) hyperlink. */
+	hyperlink?: PptHyperlinkTarget;
 }
 
 /** A resolved paragraph. */
@@ -70,6 +73,8 @@ export interface PptShapeBase {
 	rotationDeg?: number;
 	flipH?: boolean;
 	flipV?: boolean;
+	/** Shape-level (`MouseClickInteractiveInfoContainer` in `OfficeArtClientData`) hyperlink. */
+	actionClick?: PptHyperlinkTarget;
 }
 
 /** A geometric shape or text box. */

@@ -26,7 +26,11 @@ import { createRequire } from 'node:module';
 
 import { test, expect } from '@playwright/test';
 
-import { loadDeck } from './support/deck';
+import {
+	HYPERLINK_SHAPE_TEXT,
+	HYPERLINK_TARGET_URL,
+} from './fixtures/generate-hyperlink-action-fixture';
+import { fixture, loadDeck } from './support/deck';
 
 const coreRequire = createRequire(createRequire(import.meta.url).resolve('pptx-viewer-core'));
 type CoreModule = typeof import('pptx-viewer-core');
@@ -67,4 +71,40 @@ test('Save As PowerPoint 97-2003 (.ppt) downloads a real OLE2 binary deck', asyn
 	);
 	// e2e/fixtures/sample-deck.pptx (loaded by `loadDeck`) has 7 slides.
 	expect(data.slides.length).toBe(7);
+});
+
+test('Save As .ppt preserves a shape-level hyperlink (a:hlinkClick)', async ({ page }) => {
+	// hyperlink-action.pptx (generate-hyperlink-action-fixture.ts) has one
+	// slide, one rectangle whose p:cNvPr carries a real a:hlinkClick pointing
+	// at an external URL relationship: the binding-neutral input every save
+	// path shares, so this proves the same thing for every one of the five
+	// demos the Playwright project matrix runs this spec against.
+	await loadDeck(page, fixture('hyperlink-action.pptx'));
+
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	await toolbar.getByRole('tab', { name: 'File', exact: true }).click();
+
+	const backstage = page.getByRole('dialog', { name: 'File' });
+	await backstage.waitFor();
+	await backstage.getByRole('button', { name: 'Save As', exact: true }).click();
+
+	const downloadPromise = page.waitForEvent('download');
+	await backstage.getByRole('button', { name: /^PowerPoint 97-2003 Presentation/u }).click();
+	const download = await downloadPromise;
+
+	const path = await download.path();
+	expect(path).toBeTruthy();
+	const bytes = await readFile(path!);
+	expect(Array.from(bytes.subarray(0, 8))).toStrictEqual(CFB_SIGNATURE);
+
+	const handler = new PptxHandler();
+	const data = await handler.load(
+		bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+	);
+	expect(data.slides.length).toBe(1);
+	const shape = data.slides[0]!.elements.find(
+		(el) => 'textSegments' in el && el.textSegments?.some((s) => s.text === HYPERLINK_SHAPE_TEXT),
+	) as { actionClick?: { url?: string } } | undefined;
+	expect(shape).toBeDefined();
+	expect(shape?.actionClick?.url).toBe(HYPERLINK_TARGET_URL);
 });

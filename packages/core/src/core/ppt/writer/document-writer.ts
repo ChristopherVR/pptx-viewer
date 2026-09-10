@@ -126,6 +126,12 @@ function buildPaddingTag(size: number): Uint8Array {
  *   `ensureMinimumDocumentStreamSize` for why this exists: a from-scratch
  *   deck small enough that "PowerPoint Document" would tie or undercut
  *   "Current User"'s CFB sector count fails to open in real PowerPoint.
+ * @param exObjList - The document-wide `ExObjListContainer` (see
+ *   `hyperlink-writer.ts#buildExObjList`), when any hyperlink/click-action
+ *   was written anywhere in the deck. Placed immediately after
+ *   `DocumentAtom`, matching a COM-authored ground-truth fixture's own
+ *   `DocumentContainer` child order (`DocumentAtom`, `ExObjListContainer`,
+ *   `DocumentTextInfoContainer`/Environment, `DrawingGroupContainer`, ...).
  */
 export function buildDocumentContainer(input: {
 	widthEmu: number;
@@ -135,6 +141,7 @@ export function buildDocumentContainer(input: {
 	slidePersistAtoms: Uint8Array[];
 	dggContainer: Uint8Array;
 	paddingBytes?: number;
+	exObjList?: Uint8Array;
 }): Uint8Array {
 	const drawingGroup = record(RT.DrawingGroup, input.dggContainer, 0, true);
 	// A real (COM-written) DocumentContainer's LAST child is always a
@@ -142,9 +149,11 @@ export function buildDocumentContainer(input: {
 	// behaviour) failed real PowerPoint's Office File Validation outright,
 	// confirmed fixed by COM re-verification.
 	const endDocumentAtom = record(RT.EndDocumentAtom, new Uint8Array(0), 0, false, 0);
-	const w = new ByteWriter()
-		.bytes(buildDocumentAtom(input.widthEmu, input.heightEmu))
-		.bytes(buildEnvironment(input.fonts))
+	const w = new ByteWriter().bytes(buildDocumentAtom(input.widthEmu, input.heightEmu));
+	if (input.exObjList) {
+		w.bytes(input.exObjList);
+	}
+	w.bytes(buildEnvironment(input.fonts))
 		.bytes(drawingGroup)
 		.bytes(buildSlideListWithText([input.masterPersistAtom], 1));
 	if (input.paddingBytes) {

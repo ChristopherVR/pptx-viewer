@@ -13,8 +13,10 @@
 import { OA } from '../record-types';
 import { buildChildAnchorData, buildClientAnchor } from './anchor-writer';
 import { ByteWriter, record } from './byte-writer';
+import type { HyperlinkCollector } from './hyperlink-writer';
+import type { OleCollector } from './ole-writer';
 import type { ShapeIdAllocator } from './shape-id-allocator';
-import { buildPictureContainer, buildShapeContainer } from './shape-writer';
+import { buildClientData, buildPictureContainer, buildShapeContainer } from './shape-writer';
 import type { WAnyShape, WGroup, WRect } from './write-model';
 
 const FSP_FLAG_GROUP = 0x0001;
@@ -48,14 +50,20 @@ export function buildCanvasPatriarch(allocator: ShapeIdAllocator): Uint8Array {
 	return record(OA.SpContainer, data, 0, true);
 }
 
-/** Build a nested group's own patriarch: `FSPGR` (child rect) + `FSP` + `ClientAnchor`. */
-function buildNestedGroupPatriarch(anchor: WRect, allocator: ShapeIdAllocator): Uint8Array {
+/** Build a nested group's own patriarch: `FSPGR` (child rect) + `FSP` + `ClientAnchor` [+ `ClientData`]. */
+function buildNestedGroupPatriarch(
+	group: WGroup,
+	allocator: ShapeIdAllocator,
+	hyperlinks: HyperlinkCollector,
+): Uint8Array {
 	const data = new ByteWriter()
-		.bytes(buildFspgr(anchor))
+		.bytes(buildFspgr(group.anchor))
 		.bytes(buildGroupFsp(allocator.next(), FSP_FLAG_GROUP))
-		.bytes(buildClientAnchor(anchor))
-		.toBytes();
-	return record(OA.SpContainer, data, 0, true);
+		.bytes(buildClientAnchor(group.anchor));
+	if (group.hyperlink) {
+		data.bytes(buildClientData(undefined, group.hyperlink, hyperlinks));
+	}
+	return record(OA.SpContainer, data.toBytes(), 0, true);
 }
 
 /** Dispatch a single shape/picture/group to its framed OfficeArt container. */
@@ -63,14 +71,16 @@ export function buildAnyShapeContainer(
 	shape: WAnyShape,
 	fonts: string[],
 	allocator: ShapeIdAllocator,
+	hyperlinks: HyperlinkCollector,
+	oleEmbeds: OleCollector,
 ): Uint8Array {
 	if (shape.kind === 'shape') {
-		return buildShapeContainer(shape, fonts, allocator);
+		return buildShapeContainer(shape, fonts, allocator, hyperlinks);
 	}
 	if (shape.kind === 'picture') {
-		return buildPictureContainer(shape, allocator);
+		return buildPictureContainer(shape, allocator, hyperlinks, oleEmbeds);
 	}
-	return buildGroupContainer(shape, fonts, allocator);
+	return buildGroupContainer(shape, fonts, allocator, hyperlinks, oleEmbeds);
 }
 
 /** Build a framed OfficeArtSpgrContainer for a nested group. */
@@ -78,10 +88,12 @@ export function buildGroupContainer(
 	group: WGroup,
 	fonts: string[],
 	allocator: ShapeIdAllocator,
+	hyperlinks: HyperlinkCollector,
+	oleEmbeds: OleCollector,
 ): Uint8Array {
-	const data = new ByteWriter().bytes(buildNestedGroupPatriarch(group.anchor, allocator));
+	const data = new ByteWriter().bytes(buildNestedGroupPatriarch(group, allocator, hyperlinks));
 	for (const child of group.children) {
-		data.bytes(buildAnyShapeContainer(child, fonts, allocator));
+		data.bytes(buildAnyShapeContainer(child, fonts, allocator, hyperlinks, oleEmbeds));
 	}
 	return record(OA.SpgrContainer, data.toBytes(), 0, true);
 }

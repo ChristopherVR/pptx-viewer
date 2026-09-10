@@ -11,8 +11,13 @@ import { ByteWriter, record } from './byte-writer';
 /** Well-known OfficeArt property ids (mirrors `escher/properties.ts#OPT`). */
 export const OPT = {
 	rotation: 4,
+	/** Combined picture-protection boolean flags; see `shape-props-writer.ts`. */
+	pictureBooleanProperties1: 127,
 	lTxid: 128,
 	pib: 260,
+	pictureId: 267,
+	/** Combined picture boolean flags (distinct id range from `pib`'s group); see `shape-props-writer.ts`. */
+	pictureBooleanProperties2: 319,
 	fillType: 384,
 	fillColor: 385,
 	fillBackColor: 387,
@@ -24,6 +29,9 @@ export const OPT = {
 	wzName: 896,
 	fillShadeType: 393,
 } as const;
+
+/** `OfficeArtFOPTEHeader.fBid`: the property's value is a BLIP identifier (e.g. `pib`). */
+export const FBID_FLAG = 0x4000;
 
 /** A simple (32-bit value) property entry. */
 export interface FoptSimpleEntry {
@@ -58,12 +66,19 @@ export function encodeComplexString(name: string): Uint8Array {
  * Complex properties are automatically sorted to the end of the fixed-entry
  * table (order among themselves is preserved) since their payload order
  * must match their entry order.
+ *
+ * A simple entry's `id` is written verbatim (not masked to the low 14 bits):
+ * a caller MAY pre-OR the `fBid` bit (`0x4000`) onto it for a "blip
+ * identifier" property (`pib`; see `shape-props-writer.ts`), confirmed
+ * required by real PowerPoint's Office File Validation. Entries are sorted
+ * by their PID (`id & 0x3fff`, ignoring `fBid`) so a flagged id still sorts
+ * into its correct numeric position.
  */
 export function buildFopt(simple: FoptSimpleEntry[], complex: FoptComplexEntry[] = []): Uint8Array {
 	const entries = new ByteWriter();
-	const allSorted = [...simple].sort((a, b) => a.id - b.id);
+	const allSorted = [...simple].sort((a, b) => (a.id & 0x3fff) - (b.id & 0x3fff));
 	for (const entry of allSorted) {
-		entries.u16(entry.id & 0x3fff).u32(entry.value >>> 0);
+		entries.u16(entry.id & 0x7fff).u32(entry.value >>> 0);
 	}
 	for (const entry of complex) {
 		entries.u16((entry.id & 0x3fff) | 0x8000).u32(entry.bytes.length >>> 0);

@@ -8,6 +8,7 @@ import { findSchemeColors } from './color-scheme';
 import type { PptColorScheme } from './color-scheme';
 import { parseDrawing } from './escher/sp-container';
 import type { DrawingContext } from './escher/sp-container';
+import type { RawHyperlinkStrings } from './hyperlink-parser';
 import type { PptAnyShape, PptSlideModel } from './ppt-model';
 import { findChild, findDescendant } from './record-stream';
 import type { PptRecord } from './record-stream';
@@ -26,6 +27,8 @@ export interface SlideParseInputs {
 	masterScheme: PptColorScheme;
 	/** Outline text for this slide from the SlideListWithText, if any. */
 	outlineText: PptRawText[] | undefined;
+	/** Document-wide hyperlink string lookup (see `hyperlink-parser.ts`). */
+	hyperlinkStrings: Map<number, RawHyperlinkStrings>;
 }
 
 /**
@@ -61,6 +64,7 @@ export function parseSlideContainer(inputs: SlideParseInputs, container: PptReco
 				scheme,
 				fonts,
 				rawOutlineText: inputs.outlineText,
+				hyperlinkStrings: inputs.hyperlinkStrings,
 			};
 			const parsed = parseDrawing(ctx, dgContainer);
 			slide.shapes = parsed.shapes;
@@ -92,6 +96,7 @@ export function parseMasterContainer(
 	fonts: string[],
 	fallbackScheme: PptColorScheme,
 	container: PptRecord,
+	hyperlinkStrings: Map<number, RawHyperlinkStrings>,
 ): ParsedMaster {
 	const scheme = findSchemeColors(view, container);
 	const active = scheme ?? fallbackScheme;
@@ -108,6 +113,7 @@ export function parseMasterContainer(
 				scheme: active,
 				fonts,
 				rawOutlineText: undefined,
+				hyperlinkStrings,
 			};
 			const parsed = parseDrawing(ctx, dgContainer);
 			backgroundRgb = parsed.backgroundRgb;

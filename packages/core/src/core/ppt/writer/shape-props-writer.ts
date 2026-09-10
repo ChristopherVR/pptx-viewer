@@ -16,7 +16,7 @@
 
 import { encodeColorRef } from './colors';
 import type { FoptComplexEntry, FoptSimpleEntry } from './fopt-writer';
-import { OPT, boolPropValue, encodeComplexString } from './fopt-writer';
+import { FBID_FLAG, OPT, boolPropValue, encodeComplexString } from './fopt-writer';
 import type { WFill, WLine } from './write-model';
 
 const DASH_CODE: Record<string, number> = {
@@ -88,7 +88,18 @@ export function buildShapeFoptProps(input: {
 		simple.push({ id: OPT.rotation, value: Math.round(input.rotationDeg * 65536) });
 	}
 	if (input.pib !== undefined) {
-		simple.push({ id: OPT.pib, value: input.pib });
+		// Three properties a real (COM-written) picture's FOPT always carries
+		// alongside `pib` (verified against a COM-authored ground-truth
+		// fixture, byte-for-byte): omitting all three failed real PowerPoint's
+		// Office File Validation outright ("Office has detected a problem
+		// with this file"), reverse-bisected down to this exact set. `pib`
+		// itself needs the `fBid` bit (it is a BLIP identifier, not a plain
+		// integer); `pictureBooleanProperties1`/`2` are copied verbatim as
+		// their individual bit meanings are undocumented.
+		simple.push({ id: OPT.pictureBooleanProperties1, value: 0x00e1_0080 });
+		simple.push({ id: OPT.pib | FBID_FLAG, value: input.pib });
+		simple.push({ id: OPT.pictureId, value: 2 });
+		simple.push({ id: OPT.pictureBooleanProperties2, value: 0x0006_0000 });
 	}
 	const complex: FoptComplexEntry[] = [];
 	if (input.name) {

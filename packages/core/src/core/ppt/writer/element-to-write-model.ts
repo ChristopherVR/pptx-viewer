@@ -13,9 +13,12 @@
  * @module ppt/writer/element-to-write-model
  */
 
-import type { GroupPptxElement, PptxElement, PptxSlide } from '../../types';
+import type { GroupPptxElement, PptxCustomShow, PptxElement, PptxSlide } from '../../types';
 import type { PptxCompatibilityWarning } from '../../types/metadata';
 import { elementRectEmu } from './element-rect';
+import type { HyperlinkResolveContext } from './hyperlink-model';
+import { resolveHyperlink } from './hyperlink-model';
+import { convertOle } from './ole-element-convert';
 import { dataUrlToPicture } from './raster-utils';
 import { resolveFill, resolveLine } from './shape-style-to-fill-line';
 import { sptForPreset } from './shape-type-map';
@@ -34,10 +37,13 @@ import type {
 /** Reports a compatibility warning during conversion. */
 export type WarningReporter = (warning: PptxCompatibilityWarning) => void;
 
-interface ConvertContext {
+/** Shared conversion state, threaded through every `convert*` helper (including `ole-element-convert.ts`'s). */
+export interface ConvertContext {
 	pictures: WPictureData[];
 	slideId: string;
 	report: WarningReporter;
+	/** Resolves shape/run click actions (`a:hlinkClick`) to a `WHyperlinkKind`. */
+	hyperlinkCtx: HyperlinkResolveContext;
 }
 
 const PLACEHOLDER_TYPES = new Set(['title', 'body', 'ctrTitle', 'subTitle']);
@@ -47,7 +53,11 @@ function toPlaceholderType(value: string | undefined): WShape['placeholderType']
 }
 
 /** Build the text body for a text-bearing element, or undefined when empty. */
-function buildTextBody(element: PptxElement, textType: number): WTextBody | undefined {
+function buildTextBody(
+	element: PptxElement,
+	textType: number,
+	hyperlinkCtx: HyperlinkResolveContext,
+): WTextBody | undefined {
 	if (!('textSegments' in element) && !('text' in element)) {
 		return undefined;
 	}
@@ -60,12 +70,13 @@ function buildTextBody(element: PptxElement, textType: number): WTextBody | unde
 	const paragraphs = textSegmentsToParagraphs(el.textSegments ?? [], el.paragraphIndents, {
 		text: el.text,
 		style: el.textStyle,
+		hyperlinkCtx,
 	});
 	return paragraphs.length > 0 ? { textType, paragraphs } : undefined;
 }
 
 /** Convert a text/shape/connector element into a `WShape`. */
-function convertShapeLike(element: PptxElement): WShape {
+function convertShapeLike(element: PptxElement, ctx: ConvertContext): WShape {
 	const isText = element.type === 'text';
 	const el = element as PptxElement & {
 		shapeType?: string;
@@ -87,8 +98,10 @@ function convertShapeLike(element: PptxElement): WShape {
 		text: buildTextBody(
 			element,
 			placeholderType === 'title' || placeholderType === 'ctrTitle' ? 0 : 1,
+			ctx.hyperlinkCtx,
 		),
 		placeholderType,
+		hyperlink: resolveHyperlink(element.actionClick, ctx.hyperlinkCtx),
 	};
 }
 
@@ -106,6 +119,7 @@ function convertPicture(element: PptxElement, ctx: ConvertContext): WAnyShape {
 			rotationDeg: element.rotation,
 			flipH: element.flipHorizontal,
 			flipV: element.flipVertical,
+			hyperlink: resolveHyperlink(element.actionClick, ctx.hyperlinkCtx),
 		};
 	}
 	ctx.report({
@@ -139,7 +153,11 @@ function placeholderShape(element: PptxElement, label: string): WShape {
 }
 
 /** Convert an element with no binary-`.ppt` equivalent to a preview picture or placeholder. */
-function degradeElement(element: PptxElement, ctx: ConvertContext, label: string): WAnyShape {
+export function degradeElement(
+	element: PptxElement,
+	ctx: ConvertContext,
+	label: string,
+): WAnyShape {
 	const preview =
 		(element as { previewImageData?: string; posterImage?: string }).previewImageData ??
 		(element as { posterImage?: string }).posterImage;
@@ -179,6 +197,7 @@ function convertGroup(element: GroupPptxElement, ctx: ConvertContext): WGroup {
 		flipH: element.flipHorizontal,
 		flipV: element.flipVertical,
 		children: element.children.map((child) => convertElement(child, ctx)),
+		hyperlink: resolveHyperlink(element.actionClick, ctx.hyperlinkCtx),
 	};
 }
 
@@ -188,7 +207,7 @@ export function convertElement(element: PptxElement, ctx: ConvertContext): WAnyS
 		case 'text':
 		case 'shape':
 		case 'connector':
-			return convertShapeLike(element);
+			return convertShapeLike(element, ctx);
 		case 'image':
 		case 'picture':
 			return convertPicture(element, ctx);
@@ -205,7 +224,7 @@ export function convertElement(element: PptxElement, ctx: ConvertContext): WAnyS
 		case 'smartArt':
 			return degradeElement(element, ctx, '[SmartArt]');
 		case 'ole':
-			return degradeElement(element, ctx, element.fileName ?? '[Embedded Object]');
+			return convertOle(element, ctx);
 		case 'media':
 			return degradeElement(element, ctx, `[${element.mediaType === 'audio' ? 'Audio' : 'Video'}]`);
 		case 'model3d':
@@ -224,9 +243,15 @@ export function convertElement(element: PptxElement, ctx: ConvertContext): WAnyS
 function convertSlide(slide: PptxSlide, ctx: ConvertContext): WSlide {
 	const notesParagraphs =
 		slide.notesSegments && slide.notesSegments.length > 0
-			? textSegmentsToParagraphs(slide.notesSegments, undefined, { text: slide.notes })
+			? textSegmentsToParagraphs(slide.notesSegments, undefined, {
+					text: slide.notes,
+					hyperlinkCtx: ctx.hyperlinkCtx,
+				})
 			: slide.notes
-				? textSegmentsToParagraphs([], undefined, { text: slide.notes })
+				? textSegmentsToParagraphs([], undefined, {
+						text: slide.notes,
+						hyperlinkCtx: ctx.hyperlinkCtx,
+					})
 				: undefined;
 	return {
 		backgroundRgb: slide.backgroundColor?.replace(/^#/u, ''),
@@ -242,16 +267,21 @@ function convertSlide(slide: PptxSlide, ctx: ConvertContext): WSlide {
  * @param widthEmu - Presentation slide width in EMU.
  * @param heightEmu - Presentation slide height in EMU.
  * @param report - Sink for compatibility warnings raised for degraded elements.
+ * @param customShows - The deck's named custom shows (`p:custShowLst`), used
+ *   to resolve a `customShow` click-action target. Omit when the caller has
+ *   none available; custom-show actions then degrade to no hyperlink.
  */
 export function convertDeckToWriteModel(
 	slides: PptxSlide[],
 	widthEmu: number,
 	heightEmu: number,
 	report: WarningReporter,
+	customShows?: PptxCustomShow[],
 ): WDeck {
 	const pictures: WPictureData[] = [];
+	const hyperlinkCtx: HyperlinkResolveContext = { slides, customShows };
 	const wSlides = slides.map((slide) =>
-		convertSlide(slide, { pictures, slideId: slide.id, report }),
+		convertSlide(slide, { pictures, slideId: slide.id, report, hyperlinkCtx }),
 	);
 	return { widthEmu, heightEmu, slides: wSlides, pictures };
 }

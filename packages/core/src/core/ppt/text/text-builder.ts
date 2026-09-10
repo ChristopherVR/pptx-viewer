@@ -7,6 +7,7 @@
  * @module ppt/text/text-builder
  */
 
+import type { TextHyperlinkRange } from '../hyperlink-parser';
 import type { PptParagraph, PptRun, PptTextBody } from '../ppt-model';
 import { masterToEmu } from '../record-types';
 import type { PptCharProps, PptParagraphProps } from './style-props';
@@ -58,8 +59,64 @@ function sliceCharRuns(
 	return segments;
 }
 
-function makeRun(text: string, props: PptCharProps | undefined, fonts: string[]): PptRun {
+/**
+ * Further split `[start, end)` char-property segments at any hyperlink-range
+ * boundary they cross, tagging each resulting piece with the hyperlink
+ * target covering it (if any). The inverse of
+ * `text-atom-writer.ts#buildRunHyperlinks`'s per-run range emission.
+ */
+function splitByHyperlinks(
+	segments: Array<{ start: number; end: number; props: PptCharProps | undefined }>,
+	hyperlinkRanges: TextHyperlinkRange[],
+): Array<{
+	start: number;
+	end: number;
+	props: PptCharProps | undefined;
+	hyperlink?: TextHyperlinkRange['target'];
+}> {
+	if (hyperlinkRanges.length === 0) {
+		return segments;
+	}
+	const out: Array<{
+		start: number;
+		end: number;
+		props: PptCharProps | undefined;
+		hyperlink?: TextHyperlinkRange['target'];
+	}> = [];
+	const rangeCovering = (pos: number): TextHyperlinkRange | undefined =>
+		hyperlinkRanges.find((r) => r.begin <= pos && pos < r.end);
+	const nextRangeStart = (pos: number): number => {
+		let min = Number.POSITIVE_INFINITY;
+		for (const r of hyperlinkRanges) {
+			if (r.begin > pos && r.begin < min) {
+				min = r.begin;
+			}
+		}
+		return min;
+	};
+	for (const seg of segments) {
+		let cursor = seg.start;
+		while (cursor < seg.end) {
+			const covering = rangeCovering(cursor);
+			const nextBoundary = covering ? covering.end : nextRangeStart(cursor);
+			const boundary = Math.min(seg.end, nextBoundary);
+			out.push({ start: cursor, end: boundary, props: seg.props, hyperlink: covering?.target });
+			cursor = boundary;
+		}
+	}
+	return out;
+}
+
+function makeRun(
+	text: string,
+	props: PptCharProps | undefined,
+	fonts: string[],
+	hyperlink: TextHyperlinkRange['target'] | undefined,
+): PptRun {
 	const run: PptRun = { text };
+	if (hyperlink) {
+		run.hyperlink = hyperlink;
+	}
 	if (!props) {
 		return run;
 	}
@@ -121,8 +178,14 @@ function applyParagraphProps(
  *
  * @param raw - Raw text (with \r paragraph marks) plus style runs.
  * @param fonts - Document font collection for FontIndexRef resolution.
+ * @param hyperlinkRanges - Run-level hyperlinks (see `hyperlink-parser.ts`),
+ *   anchored to 0-based character offsets in `raw.text`'s own space.
  */
-export function buildTextBody(raw: PptRawText, fonts: string[]): PptTextBody {
+export function buildTextBody(
+	raw: PptRawText,
+	fonts: string[],
+	hyperlinkRanges: TextHyperlinkRange[] = [],
+): PptTextBody {
 	// Normalize: treat lone \n as paragraph marks too.
 	const text = raw.text.replace(/\r\n/g, '\r').replace(/\n/g, '\r');
 	const paragraphTexts = text.split('\r');
@@ -135,10 +198,11 @@ export function buildTextBody(raw: PptRawText, fonts: string[]): PptTextBody {
 		const paragraph: PptParagraph = { indentLevel: 0, runs: [] };
 		applyParagraphProps(paragraph, runAt(paragraphRuns, offset), fonts);
 
-		for (const seg of sliceCharRuns(charRuns, offset, offset + paragraphText.length)) {
+		const rawSegments = sliceCharRuns(charRuns, offset, offset + paragraphText.length);
+		for (const seg of splitByHyperlinks(rawSegments, hyperlinkRanges)) {
 			const segText = paragraphText.slice(seg.start - offset, seg.end - offset);
 			if (segText.length > 0) {
-				paragraph.runs.push(makeRun(segText, seg.props, fonts));
+				paragraph.runs.push(makeRun(segText, seg.props, fonts, seg.hyperlink));
 			}
 		}
 		if (paragraph.runs.length === 0 && paragraphText.length > 0) {

@@ -20,6 +20,31 @@ export interface WRect {
 	h: number;
 }
 
+/**
+ * A hyperlink / click-action target, the write-side equivalent of
+ * `ElementActionType` (see `hyperlink-model.ts`, which derives one of these
+ * from a `PptxAction`). `slideIndex` and `firstSlideIndex` are 0-based
+ * indices into `WDeck['slides']`.
+ */
+export type WHyperlinkKind =
+	| { kind: 'url'; url: string }
+	| { kind: 'slide'; slideIndex: number }
+	| { kind: 'firstSlide' }
+	| { kind: 'lastSlide' }
+	| { kind: 'prevSlide' }
+	| { kind: 'nextSlide' }
+	| { kind: 'endShow' }
+	| { kind: 'lastViewed' }
+	| { kind: 'customShow'; name: string; firstSlideIndex: number; returnAfter?: boolean }
+	| { kind: 'openFile'; path: string }
+	| { kind: 'openPresentation'; path: string };
+
+/** A resolved mouse-click hyperlink/action, attachable to a shape or a text run. */
+export interface WHyperlink {
+	target: WHyperlinkKind;
+	tooltip?: string;
+}
+
 /** A resolved text run. */
 export interface WRun {
 	text: string;
@@ -29,6 +54,8 @@ export interface WRun {
 	sizePt?: number;
 	colorRgb?: string;
 	fontName?: string;
+	/** Run-level (`a:rPr/a:hlinkClick`) mouse-click hyperlink. */
+	hyperlink?: WHyperlink;
 }
 
 /** A resolved paragraph (one or more runs, terminated implicitly). */
@@ -74,6 +101,8 @@ export interface WShapeBase {
 	rotationDeg?: number;
 	flipH?: boolean;
 	flipV?: boolean;
+	/** Shape-level (`p:cNvPr/a:hlinkClick`) mouse-click hyperlink/action. */
+	hyperlink?: WHyperlink;
 }
 
 /** A geometric shape, text box, or connector. */
@@ -88,10 +117,22 @@ export interface WShape extends WShapeBase {
 	placeholderType?: 'title' | 'body' | 'ctrTitle' | 'subTitle';
 }
 
+/**
+ * An embedded OLE object's payload, wrapped as a classic "OLE Package"
+ * object (see `ole-writer.ts`): `data` is the raw embedded file bytes
+ * (`OlePptxElement.oleEmbeddedData`, decoded), `label` its display name.
+ */
+export interface WOleEmbed {
+	data: Uint8Array;
+	label: string;
+}
+
 /** A picture shape referencing an entry in the deck's picture list. */
 export interface WPicture extends WShapeBase {
 	kind: 'picture';
 	pictureIndex: number;
+	/** Set when this picture is really an OLE object's icon/preview. */
+	ole?: WOleEmbed;
 }
 
 /** A group of shapes. */

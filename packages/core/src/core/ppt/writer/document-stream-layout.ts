@@ -15,7 +15,10 @@ import {
 	buildSlidePersistAtom,
 	MASTER_SLIDE_ID_SENTINEL,
 } from './document-writer';
+import { buildExObjList } from './ex-obj-list-writer';
+import { HyperlinkCollector } from './hyperlink-writer';
 import { buildNotesContainer } from './notes-writer';
+import { buildExOleObjStg, OleCollector } from './ole-writer';
 import { buildMainMasterContainer, buildSlideContainer } from './slide-writer';
 import type { WDeck } from './write-model';
 
@@ -92,8 +95,25 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 	const fonts = collectFonts(deck);
 	const { dggContainer, picturesStream } = buildPictureStore(deck.pictures, shapesPerDrawing);
 
+	// Document-wide: every hyperlink/click-action target AND every OLE embed
+	// anywhere in the deck (shape and text-run level, across every slide,
+	// notes page and the master) shares these two collectors, matching real
+	// PowerPoint's single document-level ExObjListContainer (see
+	// `ex-obj-list-writer.ts`).
+	const hyperlinks = new HyperlinkCollector();
+	const oleEmbeds = new OleCollector(hyperlinks);
+
 	const slideContainers = deck.slides.map((slide, i) =>
-		buildSlideContainer(slide, slideRect, MASTER_ID, notesIds[i]!, fonts, slideDrawingIds[i]!),
+		buildSlideContainer(
+			slide,
+			slideRect,
+			MASTER_ID,
+			notesIds[i]!,
+			fonts,
+			slideDrawingIds[i]!,
+			hyperlinks,
+			oleEmbeds,
+		),
 	);
 	const notesContainers = deck.slides
 		.map((slide, i) =>
@@ -104,16 +124,39 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 						slideIds[i]!,
 						fonts,
 						notesDrawingIds[i]!,
+						hyperlinks,
+						oleEmbeds,
 					)
 				: undefined,
 		)
 		.filter((c): c is Uint8Array => c !== undefined);
 
-	const masterContainer = buildMainMasterContainer(slideRect, masterDrawingId);
+	const masterContainer = buildMainMasterContainer(
+		slideRect,
+		masterDrawingId,
+		hyperlinks,
+		oleEmbeds,
+	);
 	const masterPersistAtom = buildSlidePersistAtom(MASTER_ID, MASTER_SLIDE_ID_SENTINEL);
 	// flags=4: real (COM-written) files set this bit on a SLIDE's own
 	// SlidePersistAtom (never on a master's); see buildSlidePersistAtom's doc.
 	const slidePersistAtoms = slideIds.map((id, i) => buildSlidePersistAtom(id, 256 + i, 4));
+
+	// Every OLE embed's ExOleObjStg is its own persist object (referenced by
+	// ExOleObjAtom.persistIdRef), allocated AFTER every slide/notes/master
+	// container above so every embed anywhere in the deck has already been
+	// registered. One entry per embed, appended to the same id sequence notes
+	// used.
+	const oleStgIds = oleEmbeds.all.map(() => nextId++);
+	oleEmbeds.all.forEach((entry, i) => {
+		entry.persistIdRef = oleStgIds[i];
+	});
+	const oleStgRecords = oleEmbeds.all.map((entry) => buildExOleObjStg(entry.storage));
+
+	// Built AFTER every slide/notes/master container above so every
+	// hyperlink/OLE target referenced anywhere in the deck has already been
+	// registered.
+	const exObjList = buildExObjList(hyperlinks, oleEmbeds);
 
 	const documentInput = {
 		widthEmu: deck.widthEmu,
@@ -122,13 +165,15 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		masterPersistAtom,
 		slidePersistAtoms,
 		dggContainer,
+		exObjList,
 	};
 	const maxPersistId = nextId - 1;
 	const contentSizeWithoutPadding =
 		buildDocumentContainer(documentInput).length +
 		masterContainer.length +
 		slideContainers.reduce((sum, c) => sum + c.length, 0) +
-		notesContainers.reduce((sum, c) => sum + c.length, 0);
+		notesContainers.reduce((sum, c) => sum + c.length, 0) +
+		oleStgRecords.reduce((sum, c) => sum + c.length, 0);
 	const paddingBytes = ensureMinimumDocumentStreamSize(contentSizeWithoutPadding, maxPersistId);
 	const documentContainer = buildDocumentContainer({ ...documentInput, paddingBytes });
 
@@ -147,6 +192,7 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 			place(id, notesContainers[notesCursor++]!);
 		}
 	});
+	oleStgIds.forEach((id, i) => place(id, oleStgRecords[i]!));
 
 	return { bytes: layout, offsets, docId: DOC_ID, maxPersistId, picturesStream };
 }

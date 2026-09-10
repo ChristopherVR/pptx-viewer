@@ -206,5 +206,208 @@ for (const job of jobs) {
 }
 
 console.log(`\n${jobs.length} case(s), ${failures} failure(s).`);
+
+/**
+ * Hyperlink/click-action acceptance: builds a deck purely through the SDK
+ * (`PptxHandler`, `addShape`, then setting the resulting element's own
+ * public `actionClick` field, exactly as the editor's Action Settings UI
+ * does), saves it as `.ppt`, and asserts real PowerPoint's own
+ * `ActionSettings(ppMouseClick)` reads back the same action for every kind
+ * this writer supports: URL, a specific-slide jump, every relative jump
+ * (next/previous/first/last/end show), mailto, and a run-level (text
+ * selection) hyperlink. See `ppt-com-hyperlinks.ps1` for the reader.
+ */
+async function runHyperlinkCase() {
+	const { handler, data, createSlide } = await PptxHandler.create({ initialSlideCount: 0 });
+	const slideBuilder = createSlide('Blank');
+	const addRect = (y, text) =>
+		slideBuilder.addShape('rect', {
+			x: 20,
+			y,
+			width: 200,
+			height: 40,
+			fill: { type: 'solid', color: '#4472C4' },
+			text,
+		});
+	addRect(10, 'url-link');
+	addRect(60, 'slide-link');
+	addRect(110, 'next-link');
+	addRect(160, 'prev-link');
+	addRect(210, 'first-link');
+	addRect(260, 'last-link');
+	addRect(310, 'end-link');
+	addRect(360, 'mailto-link');
+	addRect(410, 'this has a linked word inside');
+
+	const slide1 = slideBuilder.build();
+	data.slides.push(slide1);
+	data.slides.push(createSlide('Blank').build());
+	data.slides.push(createSlide('Blank').build());
+
+	const [urlSh, slideSh, nextSh, prevSh, firstSh, lastSh, endSh, mailtoSh, runSh] = slide1.elements;
+	urlSh.actionClick = { url: 'https://example.com/path?q=1' };
+	slideSh.actionClick = { action: 'ppaction://hlinksldjump', targetSlideIndex: 2 };
+	nextSh.actionClick = { action: 'ppaction://hlinkshowjump?jump=nextslide' };
+	prevSh.actionClick = { action: 'ppaction://hlinkshowjump?jump=previousslide' };
+	firstSh.actionClick = { action: 'ppaction://hlinkshowjump?jump=firstslide' };
+	lastSh.actionClick = { action: 'ppaction://hlinkshowjump?jump=lastslide' };
+	endSh.actionClick = { action: 'ppaction://hlinkshowjump?jump=endshow' };
+	mailtoSh.actionClick = { url: 'mailto:test@example.com' };
+	for (const seg of runSh.textSegments ?? []) {
+		if (seg.text.includes('linked')) {
+			seg.style = { ...seg.style, hyperlink: 'https://run-level.example.com/' };
+		}
+	}
+
+	const bytes = await handler.save(data.slides, { outputFormat: 'ppt' });
+	const filePath = path.join(scratch, 'hyperlinks.ppt');
+	writeFileSync(filePath, Buffer.from(bytes));
+
+	const script = path.join(HERE, 'ppt-com-hyperlinks.ps1');
+	const result = spawnSync(
+		'pwsh',
+		['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-Path', filePath],
+		{ encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+	);
+	const stdout = result.stdout ?? '';
+	if (stdout.startsWith('FATAL')) {
+		console.error(stdout.trim());
+		return 2;
+	}
+
+	// PpActionType: ppActionHyperlink=7, ppActionNextSlide=1,
+	// ppActionPreviousSlide=2, ppActionFirstSlide=3, ppActionLastSlide=4,
+	// ppActionEndShow=6.
+	const expectations = [
+		{
+			re: /^SHAPE \d+ .*?\s+action=7 address=https:\/\/example\.com\/path\?q=1/m,
+			label: 'url shape',
+		},
+		{ re: /^SHAPE \d+ .*?\s+action=7 address= subaddress=258,3,/m, label: 'slide-jump shape' },
+		{ re: /^SHAPE \d+ .*?\s+action=1 /m, label: 'next-slide shape' },
+		{ re: /^SHAPE \d+ .*?\s+action=2 /m, label: 'previous-slide shape' },
+		{ re: /^SHAPE \d+ .*?\s+action=3 /m, label: 'first-slide shape' },
+		{ re: /^SHAPE \d+ .*?\s+action=4 /m, label: 'last-slide shape' },
+		{ re: /^SHAPE \d+ .*?\s+action=6 /m, label: 'end-show shape' },
+		{
+			re: /^SHAPE \d+ .*?\s+action=7 address=mailto:test@example\.com/m,
+			label: 'mailto shape',
+		},
+		{
+			re: /^RUN \d+ .*linked.*\s+action=7 address=https:\/\/run-level\.example\.com\//m,
+			label: 'run-level hyperlink',
+		},
+	];
+
+	console.log(`\n${'hyperlink case'.padEnd(28)}verdict`);
+	console.log('-'.repeat(90));
+	let hyperlinkFailures = 0;
+	for (const exp of expectations) {
+		const ok = exp.re.test(stdout);
+		console.log(`${exp.label.padEnd(28)}${ok ? 'OK' : 'FAIL'}`);
+		if (!ok) {
+			hyperlinkFailures++;
+		}
+	}
+	if (hyperlinkFailures > 0) {
+		console.error(`\nFull COM output:\n${stdout}`);
+	}
+	console.log(`\n${expectations.length} hyperlink assertion(s), ${hyperlinkFailures} failure(s).`);
+	return hyperlinkFailures > 0 ? 1 : 0;
+}
+
+const hyperlinkExit = await runHyperlinkCase();
+failures += hyperlinkExit === 1 ? 1 : 0;
+if (hyperlinkExit === 2) {
+	rmSync(scratch, { recursive: true, force: true });
+	process.exit(2);
+}
+
+/**
+ * Picture + OLE-embed acceptance: a plain picture (MsoShapeType 13 =
+ * msoPicture) proves the picture-frame FOPT fix alone (this shape kind had
+ * never been COM-tested before: `com-acceptance-ppt.mjs`'s other cases only
+ * ever used `addShape`), and an OLE embed (MsoShapeType 7 =
+ * msoEmbeddedOLEObject, `OLEFormat.ProgID` = `"Package"`) proves the whole
+ * `ExOleEmbedContainer`/`ExOleObjStg`/`fOleShape` chain. See
+ * `packages/core/src/core/ppt/writer/ole-writer.ts`'s doc comment for what
+ * each of the three fixes downstream of the ground-truth fixture were.
+ */
+async function runOleCase() {
+	const PNG_1X1 =
+		'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+	const { handler, data, createSlide } = await PptxHandler.create({ initialSlideCount: 0 });
+	const slideBuilder = createSlide('Blank').addImage(PNG_1X1, {
+		x: 20,
+		y: 20,
+		width: 100,
+		height: 80,
+	});
+	const slide1 = slideBuilder.build();
+
+	const textBytes = new TextEncoder().encode('Hello embedded object from the .ppt writer');
+	const oleDataUrl = `data:text/plain;base64,${Buffer.from(textBytes).toString('base64')}`;
+	slide1.elements.push({
+		type: 'ole',
+		id: 'ole1',
+		x: 150,
+		y: 20,
+		width: 200,
+		height: 150,
+		fileName: 'notes.txt',
+		oleEmbeddedFileName: 'notes.txt',
+		oleEmbeddedData: oleDataUrl,
+		previewImageData: PNG_1X1,
+	});
+	data.slides.push(slide1);
+
+	const bytes = await handler.save(data.slides, { outputFormat: 'ppt' });
+	const filePath = path.join(scratch, 'ole.ppt');
+	writeFileSync(filePath, Buffer.from(bytes));
+
+	const script = path.join(HERE, 'ppt-com-ole.ps1');
+	const result = spawnSync(
+		'pwsh',
+		['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-Path', filePath],
+		{ encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+	);
+	const stdout = result.stdout ?? '';
+	if (stdout.startsWith('FATAL')) {
+		console.error(stdout.trim());
+		return 2;
+	}
+	if (/^FAIL/mu.test(stdout)) {
+		console.error(`\nOLE case: file failed to open. Full COM output:\n${stdout}`);
+		return 1;
+	}
+
+	const expectations = [
+		{ re: /^SHAPE 1 type=13 /m, label: 'plain picture (msoPicture)' },
+		{ re: /^SHAPE 2 type=7 progid=Package/m, label: 'OLE embed (ProgID=Package)' },
+	];
+	console.log(`\n${'ole case'.padEnd(28)}verdict`);
+	console.log('-'.repeat(90));
+	let oleFailures = 0;
+	for (const exp of expectations) {
+		const ok = exp.re.test(stdout);
+		console.log(`${exp.label.padEnd(28)}${ok ? 'OK' : 'FAIL'}`);
+		if (!ok) {
+			oleFailures++;
+		}
+	}
+	if (oleFailures > 0) {
+		console.error(`\nFull COM output:\n${stdout}`);
+	}
+	console.log(`\n${expectations.length} OLE assertion(s), ${oleFailures} failure(s).`);
+	return oleFailures > 0 ? 1 : 0;
+}
+
+const oleExit = await runOleCase();
+failures += oleExit === 1 ? 1 : 0;
+if (oleExit === 2) {
+	rmSync(scratch, { recursive: true, force: true });
+	process.exit(2);
+}
+
 rmSync(scratch, { recursive: true, force: true });
 process.exit(failures > 0 ? 1 : 0);

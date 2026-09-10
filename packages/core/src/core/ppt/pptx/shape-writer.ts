@@ -4,7 +4,10 @@
  * @module ppt/pptx/shape-writer
  */
 
+import type { PptHyperlinkTarget } from '../hyperlink-target';
 import type { EmuRect, PptAnyShape, PptGroup, PptPicture, PptShape } from '../ppt-model';
+import { hyperlinkClickXml } from './hyperlink-xml';
+import type { HyperlinkRelAllocator } from './hyperlink-xml';
 import { txBodyXml } from './txbody-writer';
 import { emu, esc, solidFill } from './xml-utils';
 
@@ -20,6 +23,23 @@ export interface ShapeWriterContext {
 	nextId(): number;
 	/** Resolve a picture index to a relationship id, or undefined. */
 	mediaRel(pictureIndex: number): MediaRef | undefined;
+	/** Relationship allocator for `a:hlinkClick` targets; see `hyperlink-xml.ts`. */
+	hyperlinkRels: HyperlinkRelAllocator;
+	/** Total slide count, for validating a `slide` hyperlink target's index. */
+	slideCount: number;
+}
+
+/** Build a `<p:cNvPr>` element, embedding a shape-level `a:hlinkClick` when present. */
+function cNvPrXml(
+	id: number,
+	name: string,
+	actionClick: PptHyperlinkTarget | undefined,
+	ctx: ShapeWriterContext,
+): string {
+	const hlink = hyperlinkClickXml(actionClick, ctx.hyperlinkRels, ctx.slideCount);
+	return hlink.length > 0
+		? `<p:cNvPr id="${id}" name="${name}">${hlink}</p:cNvPr>`
+		: `<p:cNvPr id="${id}" name="${name}"/>`;
 }
 
 function xfrmXml(
@@ -80,7 +100,7 @@ function spXml(shape: PptShape, ctx: ShapeWriterContext): string {
 	const name = esc(shape.name ?? `Shape ${id}`);
 	const ph = shape.placeholderType ? `<p:ph type="${shape.placeholderType}"/>` : '';
 	const nv =
-		`<p:nvSpPr><p:cNvPr id="${id}" name="${name}"/>` +
+		`<p:nvSpPr>${cNvPrXml(id, name, shape.actionClick, ctx)}` +
 		`<p:cNvSpPr${shape.text && !shape.placeholderType ? ' txBox="1"' : ''}/>` +
 		`<p:nvPr>${ph}</p:nvPr></p:nvSpPr>`;
 	const spPr = `<p:spPr>${xfrmXml(
@@ -89,7 +109,7 @@ function spXml(shape: PptShape, ctx: ShapeWriterContext): string {
 		shape,
 	)}</p:spPr>`;
 	const body = shape.text
-		? txBodyXml(shape.text)
+		? txBodyXml(shape.text, ctx)
 		: '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="en-US"/></a:p></p:txBody>';
 	return `<p:sp>${nv}${spPr}${body}</p:sp>`;
 }
@@ -97,7 +117,7 @@ function spXml(shape: PptShape, ctx: ShapeWriterContext): string {
 function cxnXml(shape: PptShape, ctx: ShapeWriterContext): string {
 	const id = ctx.nextId();
 	const name = esc(shape.name ?? `Connector ${id}`);
-	const nv = `<p:nvCxnSpPr><p:cNvPr id="${id}" name="${name}"/><p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr>`;
+	const nv = `<p:nvCxnSpPr>${cNvPrXml(id, name, shape.actionClick, ctx)}<p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr>`;
 	const spPr = `<p:spPr>${xfrmXml(
 		shape,
 	)}<a:prstGeom prst="${shape.preset}"><a:avLst/></a:prstGeom>${fillXml(shape)}${lineXml(
@@ -115,7 +135,7 @@ function picXml(picture: PptPicture, ctx: ShapeWriterContext): string {
 	const name = esc(picture.name ?? `Picture ${id}`);
 	return (
 		`<p:pic>` +
-		`<p:nvPicPr><p:cNvPr id="${id}" name="${name}"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
+		`<p:nvPicPr>${cNvPrXml(id, name, picture.actionClick, ctx)}<p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
 		`<p:blipFill><a:blip r:embed="${media.relId}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>` +
 		`<p:spPr>${xfrmXml(picture)}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
 		`</p:spPr>` +
@@ -132,7 +152,7 @@ function grpXml(group: PptGroup, ctx: ShapeWriterContext): string {
 		`<a:chExt cx="${Math.max(0, emu(child.w))}" cy="${Math.max(0, emu(child.h))}"/>`;
 	return (
 		`<p:grpSp>` +
-		`<p:nvGrpSpPr><p:cNvPr id="${id}" name="Group ${id}"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>` +
+		`<p:nvGrpSpPr>${cNvPrXml(id, `Group ${id}`, group.actionClick, ctx)}<p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>` +
 		`<p:grpSpPr>${xfrmXml({ ...group, anchor }, inner)}</p:grpSpPr>${group.children
 			.map((c) => shapeXml(c, ctx))
 			.join('')}</p:grpSp>`

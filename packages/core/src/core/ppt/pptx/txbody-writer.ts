@@ -6,9 +6,11 @@
 
 import type { PptParagraph, PptRun, PptTextBody } from '../ppt-model';
 import { TEXT_TYPE } from '../record-types';
+import { hyperlinkClickXml } from './hyperlink-xml';
+import type { ShapeWriterContext } from './shape-writer';
 import { emu, esc, solidFill } from './xml-utils';
 
-function runPropsXml(run: PptRun): string {
+function runPropsXml(run: PptRun, ctx: ShapeWriterContext): string {
 	const attrs: string[] = ['lang="en-US"'];
 	if (run.sizePt !== undefined) {
 		attrs.push(`sz="${Math.round(run.sizePt * 100)}"`);
@@ -31,15 +33,18 @@ function runPropsXml(run: PptRun): string {
 	if (run.fontName !== undefined) {
 		children += `<a:latin typeface="${esc(run.fontName)}"/>`;
 	}
+	// Run-level hyperlink (`a:rPr/a:hlinkClick`), the inverse of
+	// `text-atom-writer.ts#buildRunHyperlinks`.
+	children += hyperlinkClickXml(run.hyperlink, ctx.hyperlinkRels, ctx.slideCount);
 	return children.length > 0
 		? `<a:rPr ${attrs.join(' ')}>${children}</a:rPr>`
 		: `<a:rPr ${attrs.join(' ')}/>`;
 }
 
-function runXml(run: PptRun): string {
+function runXml(run: PptRun, ctx: ShapeWriterContext): string {
 	// Vertical tab (0x0B) marks a soft line break inside the paragraph.
 	const segments = run.text.split(String.fromCharCode(0x0b));
-	const rPr = runPropsXml(run);
+	const rPr = runPropsXml(run, ctx);
 	return segments.map((segment) => `<a:r>${rPr}<a:t>${esc(segment)}</a:t></a:r>`).join('<a:br/>');
 }
 
@@ -78,10 +83,10 @@ function paragraphPropsXml(paragraph: PptParagraph): string {
 	return bullet.length > 0 ? `<a:pPr${attrText}>${bullet}</a:pPr>` : `<a:pPr${attrText}/>`;
 }
 
-function paragraphXml(paragraph: PptParagraph): string {
+function paragraphXml(paragraph: PptParagraph, ctx: ShapeWriterContext): string {
 	const parts: string[] = [paragraphPropsXml(paragraph)];
 	for (const run of paragraph.runs) {
-		parts.push(runXml(run));
+		parts.push(runXml(run, ctx));
 	}
 	if (paragraph.runs.length === 0) {
 		parts.push('<a:endParaRPr lang="en-US"/>');
@@ -95,11 +100,11 @@ function paragraphXml(paragraph: PptParagraph): string {
  * Title-like text types get centered anchoring; everything else keeps the
  * PowerPoint defaults.
  */
-export function txBodyXml(text: PptTextBody): string {
+export function txBodyXml(text: PptTextBody, ctx: ShapeWriterContext): string {
 	const isTitleLike = text.textType === TEXT_TYPE.title || text.textType === TEXT_TYPE.centerTitle;
 	const bodyPr = isTitleLike
 		? '<a:bodyPr wrap="square" anchor="ctr"><a:normAutofit/></a:bodyPr>'
 		: '<a:bodyPr wrap="square"><a:normAutofit/></a:bodyPr>';
-	const paragraphs = text.paragraphs.map(paragraphXml).join('');
+	const paragraphs = text.paragraphs.map((p) => paragraphXml(p, ctx)).join('');
 	return `<p:txBody>${bodyPr}<a:lstStyle/>${paragraphs}</p:txBody>`;
 }

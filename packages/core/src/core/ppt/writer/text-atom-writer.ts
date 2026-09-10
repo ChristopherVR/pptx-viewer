@@ -14,6 +14,8 @@
 import { RT } from '../record-types';
 import { ByteWriter, record } from './byte-writer';
 import { encodeColorIndex } from './colors';
+import { buildInteractiveInfo, buildTextInteractiveInfoAtom } from './hyperlink-writer';
+import type { HyperlinkCollector } from './hyperlink-writer';
 import type { WParagraph, WRun, WTextBody } from './write-model';
 
 const ALIGN_CODE: Record<NonNullable<WParagraph['align']>, number> = {
@@ -155,13 +157,53 @@ function buildStyleTextPropAtom(
 }
 
 /**
- * Build the (TextHeaderAtom, TextCharsAtom, StyleTextPropAtom) sequence for
- * a text body, ready to embed directly inside an OfficeArtClientTextbox.
+ * Build the `(MouseClickInteractiveInfoContainer,
+ * MouseClickTextInteractiveInfoAtom)` pair for every run carrying a
+ * run-level hyperlink, anchored to that run's 0-based character range
+ * within the flattened text `joinParagraphText` produces (paragraphs joined
+ * by `'\r'`, one character each, matching `buildStyleTextPropAtom`'s own
+ * `total = textLength + 1` convention). These trail the text atoms directly
+ * inside the same `OfficeArtClientTextbox`, per
+ * `MouseClickTextInteractiveInfoAtom`'s own spec ("anchors the preceding
+ * MouseClickInteractiveInfoContainer record in the containing
+ * OfficeArtClientTextbox"), confirmed against a COM-authored ground-truth
+ * fixture (see `hyperlink-writer.ts`).
+ */
+function buildRunHyperlinks(body: WTextBody, hyperlinks: HyperlinkCollector): Uint8Array {
+	const w = new ByteWriter();
+	let offset = 0;
+	body.paragraphs.forEach((para, paraIndex) => {
+		for (const run of para.runs) {
+			if (run.hyperlink) {
+				const begin = offset;
+				const end = offset + run.text.length;
+				w.bytes(buildInteractiveInfo(run.hyperlink, hyperlinks));
+				w.bytes(buildTextInteractiveInfoAtom(begin, end));
+			}
+			offset += run.text.length;
+		}
+		if (paraIndex < body.paragraphs.length - 1) {
+			offset += 1; // '\r' paragraph separator: one character, no run of its own
+		}
+	});
+	return w.toBytes();
+}
+
+/**
+ * Build the (TextHeaderAtom, TextCharsAtom, StyleTextPropAtom, [run
+ * hyperlinks]) sequence for a text body, ready to embed directly inside an
+ * OfficeArtClientTextbox.
  *
  * @param fonts - The deck's font collection (see `font-collection-writer.ts`);
  *   used to resolve each run's `fontName` to a `FontEntityAtom` index.
+ * @param hyperlinks - Document-wide hyperlink target collector (see
+ *   `hyperlink-writer.ts`); registers any run-level hyperlink target found.
  */
-export function buildTextAtoms(body: WTextBody, fonts: string[]): Uint8Array {
+export function buildTextAtoms(
+	body: WTextBody,
+	fonts: string[],
+	hyperlinks: HyperlinkCollector,
+): Uint8Array {
 	const text = joinParagraphText(body);
 	const fontIndex = (name?: string): number | undefined => {
 		if (!name) {
@@ -174,5 +216,6 @@ export function buildTextAtoms(body: WTextBody, fonts: string[]): Uint8Array {
 		.bytes(buildTextHeaderAtom(body.textType))
 		.bytes(buildTextCharsAtom(text))
 		.bytes(buildStyleTextPropAtom(body, fontIndex))
+		.bytes(buildRunHyperlinks(body, hyperlinks))
 		.toBytes();
 }
