@@ -1,0 +1,76 @@
+<!-- The seven multi-fragment cinematic transitions (vortex, honeycomb,
+     glitter, shred, fracture, curtains, airplane) replace whichever
+     layer(s) 'getFragmentedTransitionDescriptor' names with N clipped
+     copies of the slide instead of one animated block. Morph never sets
+     'fragmented' (it is its own transition type), so the two never race. -->
+@if (fragmentedIncoming(); as fragIncoming) {
+	<pptx-fragmented-transition-layer
+		[layer]="fragIncoming"
+		[slide]="incomingFragmentSlide()!"
+		[canvasSize]="canvasSize()"
+		[mediaDataUrls]="mediaDataUrls()"
+		[zoom]="zoom()"
+		layerName="incoming"
+		[zIndex]="fragmentedIncomingZIndex()"
+	/>
+} @else if (incomingLayerSlide(); as incoming) {
+	<div
+		class="pptx-ng-transition-layer"
+		data-pptx-transition-layer="incoming"
+		[ngStyle]="incomingLayerStyle()"
+	>
+		<div [ngStyle]="slideBoxStyle()">
+			<pptx-slide-canvas
+				[slide]="incoming"
+				[canvasSize]="canvasSize()"
+				[mediaDataUrls]="mediaDataUrls()"
+				[zoom]="zoom()"
+				[autoFit]="false"
+				[interactive]="false"
+			/>
+		</div>
+	</div>
+}
+
+@if (fragmentedOutgoing(); as fragOutgoing) {
+	<pptx-fragmented-transition-layer
+		[layer]="fragOutgoing"
+		[slide]="layerSlide()"
+		[canvasSize]="canvasSize()"
+		[mediaDataUrls]="mediaDataUrls()"
+		[zoom]="zoom()"
+		layerName="outgoing"
+		[zIndex]="fragmentedOutgoingZIndex()"
+	/>
+} @else {
+	<div
+		class="pptx-ng-transition-layer"
+		data-pptx-transition-layer="outgoing"
+		[attr.data-pptx-morph-outgoing]="morphPlan() ? 'true' : null"
+		[ngStyle]="layerStyle()"
+	>
+		<div [ngStyle]="slideBoxStyle()">
+			<pptx-slide-canvas
+				[slide]="layerSlide()"
+				[canvasSize]="canvasSize()"
+				[mediaDataUrls]="mediaDataUrls()"
+				[zoom]="zoom()"
+				[autoFit]="false"
+				[interactive]="false"
+				[transparentBackground]="isMorph()"
+			/>
+		</div>
+	</div>
+}
+
+<!-- The two morph-only extra layers (arriving-above-departing "lifted"
+     shapes, and same-pair crossfade groups) - see
+     `MorphExtraLayersComponent`. -->
+<pptx-morph-extra-layers
+	[liftedSlide]="liftedSlide()"
+	[crossfadeGroups]="crossfadeGroups()"
+	[canvasSize]="canvasSize()"
+	[mediaDataUrls]="mediaDataUrls()"
+	[zoom]="zoom()"
+	[slideBoxStyle]="slideBoxStyle()"
+/>

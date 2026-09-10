@@ -404,4 +404,52 @@ describe('presentationTransitionOverlay', () => {
 		);
 		expect(html).toContain('width:960px;height:540px;flex-shrink:0;transform:scale(1)');
 	});
+
+	describe('multi-fragment cinematic transitions', () => {
+		const FRAGMENT_TYPES = [
+			'vortex',
+			'honeycomb',
+			'glitter',
+			'shred',
+			'fracture',
+			'curtains',
+			'airplane',
+		] as const;
+
+		it.each(FRAGMENT_TYPES)('renders N clipped fragments (not a single layer) for %s', (type) => {
+			const transition: PptxSlideTransition = { type, durationMs: 900 };
+			const html = renderToStaticMarkup(
+				<PresentationTransitionOverlay
+					outgoingSlide={makeSlide()}
+					incomingSlide={makeSlide()}
+					templateElements={[]}
+					canvasSize={{ width: 960, height: 540 }}
+					transition={transition}
+					durationMs={900}
+					onComplete={vi.fn()}
+				/>,
+			);
+			const fragmentCount = (html.match(/data-pptx-transition-fragment=/gu) ?? []).length;
+			expect(fragmentCount).toBeGreaterThan(1);
+			expect(html).toContain('clip-path:polygon(');
+			// Every fragment is transform/opacity-only and GPU-hinted, never
+			// per-frame JS: `will-change` is the smoking gun for the technique.
+			expect(html).toContain('will-change:transform, opacity');
+		});
+
+		it('a non-fragment type (fade) never emits fragment markers', () => {
+			const html = renderToStaticMarkup(
+				<PresentationTransitionOverlay
+					outgoingSlide={makeSlide()}
+					incomingSlide={makeSlide()}
+					templateElements={[]}
+					canvasSize={{ width: 960, height: 540 }}
+					transition={fade}
+					durationMs={600}
+					onComplete={vi.fn()}
+				/>,
+			);
+			expect(html).not.toContain('data-pptx-transition-fragment=');
+		});
+	});
 });

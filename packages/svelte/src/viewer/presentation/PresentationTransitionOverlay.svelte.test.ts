@@ -380,3 +380,30 @@ describe('presentationTransitionOverlay sound (p:sndAc/p:stSnd, p:endSnd)', () =
 		expect(stopAnimationSound).not.toHaveBeenCalled();
 	});
 });
+
+describe('multi-fragment cinematic transitions', () => {
+	const FRAGMENT_TYPES = [
+		'vortex',
+		'honeycomb',
+		'glitter',
+		'shred',
+		'fracture',
+		'curtains',
+		'airplane',
+	] as const;
+
+	it.each(FRAGMENT_TYPES)('renders N clipped fragments (not a single layer) for %s', (type) => {
+		const target = mountOverlay({ type, durationMs: 900 } as PptxSlideTransition);
+		const fragments = target.querySelectorAll('[data-pptx-transition-fragment]');
+		expect(fragments.length).toBeGreaterThan(1);
+		const clipPaths = [...fragments].map((el) => (el as HTMLElement).style.clipPath);
+		expect(clipPaths.some((clipPath) => clipPath.startsWith('polygon('))).toBeTruthy();
+		const willChange = [...fragments].map((el) => (el as HTMLElement).style.willChange);
+		expect(willChange.every((value) => value.includes('transform'))).toBeTruthy();
+	});
+
+	it('a non-fragment type (fade) never emits fragment markers', () => {
+		const target = mountOverlay({ type: 'fade', durationMs: 300 } as PptxSlideTransition);
+		expect(target.querySelectorAll('[data-pptx-transition-fragment]')).toHaveLength(0);
+	});
+});

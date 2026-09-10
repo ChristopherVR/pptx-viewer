@@ -41,6 +41,27 @@ const IMAGE_RENDERER_SOURCE = readFileSync(
 	path.join(__dirname, 'image-renderer.component.ts'),
 	'utf8',
 );
+/**
+ * The overlay's template moved to an external `templateUrl` (and the two
+ * morph-only extra layers - lifted + crossfade groups - into their own
+ * `MorphExtraLayersComponent`) to keep `presentation-transition-overlay.
+ * component.ts` under the project's per-file LOC budget; the markup itself
+ * is unchanged, so template-content assertions read these instead of
+ * `OVERLAY_SOURCE`.
+ */
+const TEMPLATE_SOURCE = readFileSync(
+	path.join(__dirname, 'presentation-transition-overlay.component.html'),
+	'utf8',
+);
+const MORPH_EXTRA_LAYERS_SOURCE = readFileSync(
+	path.join(__dirname, 'morph-extra-layers.component.ts'),
+	'utf8',
+);
+/** The pure morph helpers moved to their own module; see the same note above. */
+const MORPH_HELPERS_SOURCE = readFileSync(
+	path.join(__dirname, 'presentation-transition-overlay-morph.ts'),
+	'utf8',
+);
 
 /** A full-slide picture whose frame never moves and whose source crop does. */
 function rescaledPicture(slideId: string, crop: Record<string, number>): PptxSlide {
@@ -281,9 +302,9 @@ describe('classicIncomingLayerSlide', () => {
 	});
 
 	it('binds the layer and its animation in the template', () => {
-		expect(OVERLAY_SOURCE).toContain('data-pptx-transition-layer="incoming"');
-		expect(OVERLAY_SOURCE).toContain('[ngStyle]="incomingLayerStyle()"');
-		expect(OVERLAY_SOURCE).toContain('incomingLayerSlide()');
+		expect(TEMPLATE_SOURCE).toContain('data-pptx-transition-layer="incoming"');
+		expect(TEMPLATE_SOURCE).toContain('[ngStyle]="incomingLayerStyle()"');
+		expect(TEMPLATE_SOURCE).toContain('incomingLayerSlide()');
 	});
 });
 
@@ -325,11 +346,14 @@ describe('morphCrossfadeGroupSlides', () => {
 	it('binds the group and its two halves in the template', () => {
 		// No TestBed in this package, so the template is asserted as source: the
 		// group is worthless unless both halves are actually bound to the styles
-		// carrying `plus-lighter` and the dissolve.
-		expect(OVERLAY_SOURCE).toContain('[attr.data-pptx-morph-crossfade]="group.key"');
-		expect(OVERLAY_SOURCE).toContain(`'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE`);
-		expect(OVERLAY_SOURCE).toContain('[ngStyle]="group.outgoingStyle"');
-		expect(OVERLAY_SOURCE).toContain('[ngStyle]="group.incomingStyle"');
+		// carrying `plus-lighter` and the dissolve. The crossfade markup lives in
+		// `MorphExtraLayersComponent`'s own inline template now; the style literal
+		// itself is built in `morphCrossfadeGroupSlides` (`presentation-transition-
+		// overlay-morph.ts`).
+		expect(MORPH_EXTRA_LAYERS_SOURCE).toContain('[attr.data-pptx-morph-crossfade]="group.key"');
+		expect(MORPH_HELPERS_SOURCE).toContain(`'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE`);
+		expect(MORPH_EXTRA_LAYERS_SOURCE).toContain('[ngStyle]="group.outgoingStyle"');
+		expect(MORPH_EXTRA_LAYERS_SOURCE).toContain('[ngStyle]="group.incomingStyle"');
 	});
 });
 

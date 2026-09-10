@@ -3,7 +3,6 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	DestroyRef,
-	computed,
 	effect,
 	inject,
 	input,
@@ -11,142 +10,24 @@ import {
 } from '@angular/core';
 import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
-import type { CanvasSize, MorphTransitionPlan } from '../internal/shared';
-import {
-	applySlideTransitionSound,
-	buildMorphScopedCss,
-	buildMorphTransitionPlan,
-	MORPH_CROSSFADE_GROUP_STYLE,
-	MORPH_CROSSFADE_HALF_BLEND_MODE,
-	morphOptionToMode,
-	visibleTemplateElements as filterVisibleTemplateElements,
-} from '../internal/shared';
+import type { CanvasSize } from '../internal/shared';
+import { applySlideTransitionSound, buildMorphScopedCss } from '../internal/shared';
 import { playAnimationSound, stopAnimationSound } from './animation-sound';
-import type { StyleMap } from './element-style';
+import { FragmentedTransitionLayerComponent } from './fragmented-transition-layer.component';
+import { MorphExtraLayersComponent } from './morph-extra-layers.component';
+import { createTransitionOverlayState } from './presentation-transition-overlay-state';
 import { SlideCanvasComponent } from './slide-canvas.component';
-import {
-	getSlideTransitionAnimations,
-	resolveOverlayDurationMs,
-	transitionSlideBoxSize,
-} from './transition-helpers';
-import type { SlideTransitionAnimations } from './transition-helpers';
 import { ensureTransitionKeyframes } from './transition-keyframes';
+
+export {
+	classicIncomingLayerSlide,
+	morphCrossfadeGroupSlides,
+	morphLiftedSlide,
+} from './presentation-transition-overlay-morph';
+export type { MorphCrossfadeGroupSlides } from './presentation-transition-overlay-morph';
 
 /** Safety margin (ms) added to the animation duration before firing complete. */
 const COMPLETE_MARGIN_MS = 50;
-
-/**
- * The slide the incoming (arriving) layer paints for a CLASSIC transition, or
- * `undefined` when no such layer may exist.
- *
- * Without this layer the overlay painted only the outgoing slide: a wipe
- * (whose outgoing half is `none`) sat opaque for the whole duration and the
- * arriving slide - only ever the live stage beneath - popped in the instant
- * the overlay tore down ("takes the time, then instantly replaced"). Types
- * whose incoming half is `none` (the uncover family) deliberately reveal the
- * live stage and get no layer, and a morph paints its own halves.
- *
- * Exported and pure so it can be unit-tested: this package renders no component
- * under test (see `action-settings-panel.component.test.ts`).
- */
-export function classicIncomingLayerSlide(
-	isMorph: boolean,
-	incomingAnimation: string,
-	incomingSlide: PptxSlide | undefined,
-	templateElements: readonly PptxElement[],
-): PptxSlide | undefined {
-	if (isMorph || incomingAnimation === 'none' || !incomingSlide) {
-		return undefined;
-	}
-	const visible = filterVisibleTemplateElements(incomingSlide, templateElements);
-	if (visible.length === 0) {
-		return incomingSlide;
-	}
-	return { ...incomingSlide, elements: [...visible, ...incomingSlide.elements] };
-}
-
-/**
- * The slide the overlay paints ABOVE its ghosts, or `undefined` when a morph
- * has nothing to lift.
- *
- * A shape arriving inside a shape that persists is drawn on the live stage,
- * UNDER this overlay, so the persisting shape's opaque ghost hides it for the
- * whole transition (issue #146). `buildMorphTransitionPlan` names those few and
- * holds their stage copy invisible; this wraps them as a slide the component's
- * own `pptx-slide-canvas` can render.
- *
- * Exported and pure so it can be unit-tested: this package renders no component
- * under test (see `action-settings-panel.component.test.ts`).
- */
-export function morphLiftedSlide(
-	plan: MorphTransitionPlan | undefined,
-	incomingSlide: PptxSlide | undefined,
-): PptxSlide | undefined {
-	if (!plan || !incomingSlide || plan.overlayIncomingElements.length === 0) {
-		return undefined;
-	}
-	return { ...incomingSlide, elements: [...plan.overlayIncomingElements] };
-}
-
-/** One cross-dissolving pair, as the two single-element slides that paint it. */
-export interface MorphCrossfadeGroupSlides {
-	key: string;
-	style: StyleMap;
-	/**
-	 * The departing half's layer style, carrying the dissolve itself.
-	 *
-	 * A pair dissolving in place never moves, and an animation on the small
-	 * element box gives it a compositing layer whose raster snaps to whole device
-	 * pixels - the wording is then painted a fraction of a pixel off the live
-	 * stage and twitches as the overlay comes and goes (issue #161).
-	 */
-	outgoingStyle: StyleMap;
-	/** The arriving half's layer style. @see MorphCrossfadeGroupSlides.outgoingStyle */
-	incomingStyle: StyleMap;
-	outgoing: PptxSlide;
-	incoming: PptxSlide;
-}
-
-/**
- * The pairs the overlay paints BOTH halves of, as one isolated group each.
- *
- * Stacking the halves composites them source-over, which leaves the ink they
- * share at 0.75 of full strength halfway through instead of summing it, biting
- * chunks out of glyphs that cross during a text dissolve. PowerPoint's own
- * render holds the two blend coefficients at a sum of 1.0 for every frame
- * (issue #161), which `isolation: isolate` plus `mix-blend-mode: plus-lighter`
- * on the two halves reproduces.
- *
- * Exported and pure so it can be unit-tested: this package renders no component
- * under test (see `action-settings-panel.component.test.ts`).
- */
-export function morphCrossfadeGroupSlides(
-	plan: MorphTransitionPlan | undefined,
-	outgoingSlide: PptxSlide | undefined,
-	incomingSlide: PptxSlide | undefined,
-): MorphCrossfadeGroupSlides[] {
-	if (!plan || !outgoingSlide || !incomingSlide) {
-		return [];
-	}
-	const half = (animation: string | undefined): StyleMap => ({
-		'mix-blend-mode': MORPH_CROSSFADE_HALF_BLEND_MODE,
-		...(animation === undefined ? {} : { animation }),
-	});
-	return plan.crossfadeGroups.map((group, index) => ({
-		key: group.incoming.id,
-		style: {
-			...MORPH_CROSSFADE_GROUP_STYLE,
-			// `isolation` makes the group a stacking context, so it carries a
-			// z-index of its own to stay above the ghost layer (40) and the lifted
-			// layer (41) its halves came from.
-			'z-index': String(42 + index),
-		},
-		outgoingStyle: half(group.outgoingAnimation),
-		incomingStyle: half(group.incomingAnimation),
-		outgoing: { ...outgoingSlide, elements: [group.outgoing] },
-		incoming: { ...incomingSlide, elements: [group.incoming] },
-	}));
-}
 
 /**
  * PresentationTransitionOverlayComponent: plays a PowerPoint slide transition
@@ -183,130 +64,14 @@ export function morphCrossfadeGroupSlides(
 	host: { 'data-pptx-transition-overlay': '' },
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent],
-	styles: `
-		:host {
-			display: block;
-			position: absolute;
-			inset: 0;
-			overflow: hidden;
-			pointer-events: none;
-		}
-
-		.pptx-ng-transition-layer {
-			position: absolute;
-			inset: 0;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-	`,
-	template: `
-		@if (incomingLayerSlide(); as incoming) {
-			<div
-				class="pptx-ng-transition-layer"
-				data-pptx-transition-layer="incoming"
-				[ngStyle]="incomingLayerStyle()"
-			>
-				<div [ngStyle]="slideBoxStyle()">
-					<pptx-slide-canvas
-						[slide]="incoming"
-						[canvasSize]="canvasSize()"
-						[mediaDataUrls]="mediaDataUrls()"
-						[zoom]="zoom()"
-						[autoFit]="false"
-						[interactive]="false"
-					/>
-				</div>
-			</div>
-		}
-
-		<div
-			class="pptx-ng-transition-layer"
-			data-pptx-transition-layer="outgoing"
-			[attr.data-pptx-morph-outgoing]="morphPlan() ? 'true' : null"
-			[ngStyle]="layerStyle()"
-		>
-			<div [ngStyle]="slideBoxStyle()">
-				<pptx-slide-canvas
-					[slide]="layerSlide()"
-					[canvasSize]="canvasSize()"
-					[mediaDataUrls]="mediaDataUrls()"
-					[zoom]="zoom()"
-					[autoFit]="false"
-					[interactive]="false"
-					[transparentBackground]="isMorph()"
-				/>
-			</div>
-		</div>
-
-		<!-- The arriving shapes that dissolve in ABOVE a departing one. They are on
-		     the live stage below this overlay, where the departing layer hides them
-		     for the whole morph, so they are painted again here. -->
-		@if (liftedSlide(); as lifted) {
-			<div
-				class="pptx-ng-transition-layer"
-				data-pptx-transition-layer="lifted"
-				data-pptx-morph-lifted="true"
-				[ngStyle]="{ 'z-index': '41' }"
-			>
-				<div [ngStyle]="slideBoxStyle()">
-					<pptx-slide-canvas
-						[slide]="lifted"
-						[canvasSize]="canvasSize()"
-						[mediaDataUrls]="mediaDataUrls()"
-						[zoom]="zoom()"
-						[autoFit]="false"
-						[interactive]="false"
-						[transparentBackground]="true"
-					/>
-				</div>
-			</div>
-		}
-
-		<!-- A pair dissolving in place, painted as ONE isolated group whose two
-		     halves sum instead of stacking (issue #161). -->
-		@for (group of crossfadeGroups(); track group.key) {
-			<div [attr.data-pptx-morph-crossfade]="group.key" [ngStyle]="group.style">
-				<div
-					class="pptx-ng-transition-layer"
-					data-pptx-transition-layer="outgoing"
-					data-pptx-morph-outgoing="true"
-					[ngStyle]="group.outgoingStyle"
-				>
-					<div [ngStyle]="slideBoxStyle()">
-						<pptx-slide-canvas
-							[slide]="group.outgoing"
-							[canvasSize]="canvasSize()"
-							[mediaDataUrls]="mediaDataUrls()"
-							[zoom]="zoom()"
-							[autoFit]="false"
-							[interactive]="false"
-							[transparentBackground]="true"
-						/>
-					</div>
-				</div>
-				<div
-					class="pptx-ng-transition-layer"
-					data-pptx-transition-layer="lifted"
-					data-pptx-morph-lifted="true"
-					[ngStyle]="group.incomingStyle"
-				>
-					<div [ngStyle]="slideBoxStyle()">
-						<pptx-slide-canvas
-							[slide]="group.incoming"
-							[canvasSize]="canvasSize()"
-							[mediaDataUrls]="mediaDataUrls()"
-							[zoom]="zoom()"
-							[autoFit]="false"
-							[interactive]="false"
-							[transparentBackground]="true"
-						/>
-					</div>
-				</div>
-			</div>
-		}
-	`,
+	imports: [
+		NgStyle,
+		SlideCanvasComponent,
+		FragmentedTransitionLayerComponent,
+		MorphExtraLayersComponent,
+	],
+	styleUrl: './presentation-transition-overlay.component.css',
+	templateUrl: './presentation-transition-overlay.component.html',
 })
 export class PresentationTransitionOverlayComponent {
 	// ------------------------------------------------------------------
@@ -406,140 +171,36 @@ export class PresentationTransitionOverlayComponent {
 	}
 
 	// ------------------------------------------------------------------
-	// Derived state
+	// Derived state (see `presentation-transition-overlay-state.ts`)
 	// ------------------------------------------------------------------
 
-	/** Effective transition duration (ms), floored/defaulted. */
-	protected readonly resolvedDurationMs = computed<number>(() =>
-		resolveOverlayDurationMs(this.durationMs(), this.transition()),
-	);
-
-	/** Resolved CSS animation descriptors for the outgoing/incoming layers. */
-	protected readonly animations = computed<SlideTransitionAnimations>(() => {
-		const tr = this.transition();
-		return getSlideTransitionAnimations(
-			tr.type,
-			this.resolvedDurationMs(),
-			tr.direction,
-			tr.orient,
-			tr.spokes,
-			tr.pattern,
-		);
+	private readonly state = createTransitionOverlayState({
+		outgoingSlide: this.outgoingSlide,
+		incomingSlide: this.incomingSlide,
+		canvasSize: this.canvasSize,
+		transition: this.transition,
+		templateElements: this.templateElements,
+		durationMs: this.durationMs,
+		zoom: this.zoom,
 	});
 
-	/**
-	 * Active Morph plan, or `undefined` for every other transition.
-	 *
-	 * Morph travels individual shapes between the two slides rather than wiping
-	 * the surface, so it changes what this overlay paints: a per-shape copy of
-	 * the outgoing slide, each one gliding onto its counterpart (dissolving into
-	 * it when its appearance changed) or fading out in place when it has none.
-	 * The incoming halves are animated on the live stage by document-level rules
-	 * (see `morphStyleEffect`).
-	 */
-	protected readonly morphPlan = computed(() =>
-		this.transition().type === 'morph'
-			? buildMorphTransitionPlan(
-					this.outgoingSlide(),
-					this.incomingSlide(),
-					this.resolvedDurationMs(),
-					morphOptionToMode(this.transition().morphOption),
-				)
-			: undefined,
-	);
-
-	/**
-	 * Whether this overlay is playing a morph.
-	 *
-	 * A morph layer paints only the departing slide's paired shapes over the live
-	 * incoming stage, so its stage background must be dropped
-	 * (`transparentBackground`). Every other transition animates a whole slide
-	 * surface out and keeps its own background.
-	 */
-	protected readonly isMorph = computed<boolean>(() => this.morphPlan() !== undefined);
-
-	/** The slide rendered in the animated layer (outgoing + its template). */
-	protected readonly layerSlide = computed<PptxSlide>(() => {
-		const slide = this.outgoingSlide();
-		const plan = this.morphPlan();
-		if (plan) {
-			return { ...slide, elements: [...plan.outgoingElements] };
-		}
-		const template = filterVisibleTemplateElements(slide, this.templateElements());
-		if (template.length === 0) {
-			return slide;
-		}
-		return { ...slide, elements: [...template, ...slide.elements] };
-	});
-
-	/**
-	 * The arriving shapes the morph has to paint over its own ghosts, or
-	 * `undefined` when there are none (issue #146). They sit on the live stage
-	 * below this overlay, where the departing layer would hide them for the whole
-	 * transition; the plan holds that copy invisible and hands them here instead.
-	 */
-	protected readonly liftedSlide = computed<PptxSlide | undefined>(() =>
-		morphLiftedSlide(this.morphPlan(), this.incomingSlide()),
-	);
-
-	/**
-	 * The cross-dissolving pairs this overlay paints both halves of, each in its
-	 * own isolated group so the halves are summed rather than stacked.
-	 */
-	protected readonly crossfadeGroups = computed<MorphCrossfadeGroupSlides[]>(() =>
-		morphCrossfadeGroupSlides(this.morphPlan(), this.outgoingSlide(), this.incomingSlide()),
-	);
-
-	/** Layer container style: animation + stacking relative to the stage. */
-	protected readonly layerStyle = computed<StyleMap>(() => {
-		const anims = this.animations();
-		const plan = this.morphPlan();
-		const style: StyleMap = {
-			'z-index': plan ? '40' : anims.outgoingOnTop ? '40' : '20',
-		};
-		// A layer-wide animation would drag every shape as one block and cancel
-		// the morph, so during a morph the layer itself stays still.
-		if (!plan && anims.outgoing !== 'none') {
-			style['animation'] = anims.outgoing;
-		}
-		return style;
-	});
-
-	/**
-	 * The arriving slide rendered ABOVE the outgoing layer for a classic
-	 * transition, carrying the incoming animation (wipe/cover/fade/push), or
-	 * `undefined` for morphs and the uncover family (which reveal the live
-	 * stage instead).
-	 */
-	protected readonly incomingLayerSlide = computed<PptxSlide | undefined>(() =>
-		classicIncomingLayerSlide(
-			this.isMorph(),
-			this.animations().incoming,
-			this.incomingSlide(),
-			this.templateElements(),
-		),
-	);
-
-	/** Style for that arriving layer: the incoming animation + its stacking. */
-	protected readonly incomingLayerStyle = computed<StyleMap>(() => ({
-		'z-index': this.animations().outgoingOnTop ? '30' : '25',
-		animation: this.animations().incoming,
-	}));
-
-	/**
-	 * Slide box sized to the ZOOMED slide footprint, matching the stage's own
-	 * `pptx-slide-canvas`. The inner canvas renders at the same `zoom` with
-	 * `autoFit` off, so the outgoing slide is pixel-for-pixel the size of the
-	 * incoming one for the whole animation.
-	 */
-	protected readonly slideBoxStyle = computed<StyleMap>(() => {
-		const box = transitionSlideBoxSize(this.canvasSize(), this.zoom());
-		return {
-			width: `${box.width}px`,
-			height: `${box.height}px`,
-			'transform-origin': 'center',
-		};
-	});
+	protected readonly resolvedDurationMs = this.state.resolvedDurationMs;
+	protected readonly animations = this.state.animations;
+	protected readonly fragmented = this.state.fragmented;
+	protected readonly fragmentedOutgoing = this.state.fragmentedOutgoing;
+	protected readonly fragmentedIncoming = this.state.fragmentedIncoming;
+	protected readonly fragmentedOutgoingZIndex = this.state.fragmentedOutgoingZIndex;
+	protected readonly fragmentedIncomingZIndex = this.state.fragmentedIncomingZIndex;
+	protected readonly incomingFragmentSlide = this.state.incomingFragmentSlide;
+	protected readonly morphPlan = this.state.morphPlan;
+	protected readonly isMorph = this.state.isMorph;
+	protected readonly layerSlide = this.state.layerSlide;
+	protected readonly liftedSlide = this.state.liftedSlide;
+	protected readonly crossfadeGroups = this.state.crossfadeGroups;
+	protected readonly layerStyle = this.state.layerStyle;
+	protected readonly incomingLayerSlide = this.state.incomingLayerSlide;
+	protected readonly incomingLayerStyle = this.state.incomingLayerStyle;
+	protected readonly slideBoxStyle = this.state.slideBoxStyle;
 
 	// ------------------------------------------------------------------
 	// Completion timing + sound

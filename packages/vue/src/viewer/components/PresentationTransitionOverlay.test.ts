@@ -378,6 +378,41 @@ describe('presentationTransitionOverlay', () => {
 		expect(wrapper.html().match(/Open Integration/gu)).toHaveLength(1);
 		wrapper.unmount();
 	});
+
+	// Mirrors React's `PresentationTransitionOverlay.test.tsx` coverage for the
+	// seven cinematic transitions COM `CreateVideo` measurement showed
+	// rendering as many independent fragments/tiles/particles in real
+	// PowerPoint, not a single animated layer (`slide-transition-fragments.ts`
+	// in `pptx-viewer-shared`).
+	describe('multi-fragment cinematic transitions', () => {
+		const FRAGMENT_TYPES = [
+			'vortex',
+			'honeycomb',
+			'glitter',
+			'shred',
+			'fracture',
+			'curtains',
+			'airplane',
+		] as const;
+
+		it.each(FRAGMENT_TYPES)('renders N clipped fragments (not a single layer) for %s', (type) => {
+			const wrapper = mountOverlay({ type, durationMs: 900 } as PptxSlideTransition);
+			const fragments = wrapper.findAll('[data-pptx-transition-fragment]');
+			expect(fragments.length).toBeGreaterThan(1);
+			// At least one fragment carries a real clip-path, not empty/none.
+			const hasClipPath = fragments.some((fragment) =>
+				/clip-path:\s*polygon\(/u.test(fragment.attributes('style') ?? ''),
+			);
+			expect(hasClipPath).toBeTruthy();
+			wrapper.unmount();
+		});
+
+		it('a non-fragment type (fade) never emits fragment markers', () => {
+			const wrapper = mountOverlay({ type: 'fade', durationMs: 300 });
+			expect(wrapper.findAll('[data-pptx-transition-fragment]')).toHaveLength(0);
+			wrapper.unmount();
+		});
+	});
 });
 
 describe('presentationTransitionOverlay sound (p:sndAc/p:stSnd, p:endSnd)', () => {

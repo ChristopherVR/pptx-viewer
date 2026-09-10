@@ -17,11 +17,7 @@
 	import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 	import {
 		applySlideTransitionSound,
-		buildMorphScopedCss,
-		buildMorphTransitionPlan,
-		MORPH_CROSSFADE_GROUP_CSS_TEXT,
-		MORPH_CROSSFADE_HALF_BLEND_MODE,
-		morphOptionToMode,
+		getFragmentedTransitionDescriptor,
 		resolveSlideTransition,
 		resolveTransitionDurationMs,
 	} from 'pptx-viewer-shared';
@@ -29,6 +25,9 @@
 	import { onDestroy, onMount } from 'svelte';
 
 	import { playAnimationSound, stopAnimationSound } from './animation-sound';
+	import FragmentedTransitionLayer from './FragmentedTransitionLayer.svelte';
+	import MorphExtraLayers from './MorphExtraLayers.svelte';
+	import { useMorphTransitionOverlay } from './use-morph-transition-overlay.svelte';
 	import SlideStage from '../components/SlideStage.svelte';
 	import { styleToString } from '../style';
 
@@ -54,6 +53,23 @@
 	/** Effective duration (ms); `0` for instant (none/cut). */
 	const durationMs = $derived(resolveTransitionDurationMs(transition));
 
+	/**
+	 * Multi-fragment descriptor for the seven cinematic transitions measured
+	 * as many independent fragments/particles/panels (vortex, honeycomb,
+	 * glitter, shred, fracture, curtains, airplane). `undefined` for every
+	 * other type, in which case `animations` above (the single-layer
+	 * resolver) drives both layers exactly as before.
+	 */
+	const fragmented = $derived(
+		getFragmentedTransitionDescriptor(
+			transition?.type ?? 'none',
+			durationMs,
+			transition?.direction,
+			transition?.spokes,
+			transition?.pattern,
+		),
+	);
+
 	function layerStyle(animation: string, zIndex: number): CssStyleMap {
 		const style: CssStyleMap = { zIndex };
 		if (animation !== 'none') {
@@ -68,85 +84,29 @@
 	 * keyframes (scoped by `data-pptx-morph-incoming`) and the outgoing layer
 	 * animates each of its own shapes: gliding onto its counterpart (dissolving
 	 * into it when its appearance changed) or fading out in place without one.
+	 * See `use-morph-transition-overlay.svelte.ts`.
 	 */
-	const morphPlan = $derived(
-		transition?.type === 'morph'
-			? buildMorphTransitionPlan(
-					outgoingSlide,
-					incomingSlide,
-					durationMs,
-					morphOptionToMode(transition.morphOption),
-				)
-			: undefined,
-	);
-
-	const morphOutgoingSlide = $derived(
-		morphPlan && outgoingSlide ? { ...outgoingSlide, elements: morphPlan.outgoingElements } : undefined,
-	);
-
-	/**
-	 * The arriving shapes a ghost above them would otherwise hide for the whole
-	 * morph, painted in their own layer over the departing one (issue #146).
-	 * Their copy on the incoming layer is held invisible by the plan, so the two
-	 * never composite with each other.
-	 */
-	const morphLiftedSlide = $derived(
-		morphPlan && incomingSlide && morphPlan.overlayIncomingElements.length > 0
-			? { ...incomingSlide, elements: morphPlan.overlayIncomingElements }
-			: undefined,
-	);
-
-	/** One half of a grouped pair: blends additively, and carries the dissolve. */
-	function halfStyle(animation: string | undefined): string {
-		return `mix-blend-mode: ${MORPH_CROSSFADE_HALF_BLEND_MODE};${
-			animation === undefined ? '' : ` animation: ${animation};`
-		}`;
-	}
-
-	/**
-	 * The pairs the overlay paints BOTH halves of, each as one isolated group so
-	 * the halves are summed rather than stacked: two source-over fades leave the
-	 * ink they share at 0.75 of full strength mid-transition, biting chunks out
-	 * of glyphs that cross during a text dissolve, where PowerPoint's own blend
-	 * keeps the two coefficients summing to 1.0 (issue #161).
-	 */
-	const morphCrossfadeGroups = $derived(
-		morphPlan && outgoingSlide && incomingSlide
-			? morphPlan.crossfadeGroups.map((group, index) => ({
-					key: group.incoming.id,
-					// `isolation` makes the group a stacking context, so it carries its
-					// own z-index to stay above the ghosts its halves came from.
-					style: `${MORPH_CROSSFADE_GROUP_CSS_TEXT} z-index: ${4 + index};`,
-					// The dissolve rides these WRAPPERS, not the elements: a pair
-					// dissolving in place never moves, and an animation on the small
-					// element box gives it a compositing layer whose raster snaps to whole
-					// device pixels, painting the wording a fraction of a pixel off the
-					// live stage (issue #161).
-					outgoingStyle: halfStyle(group.outgoingAnimation),
-					incomingStyle: halfStyle(group.incomingAnimation),
-					outgoing: { ...outgoingSlide, elements: [group.outgoing] },
-					incoming: { ...incomingSlide, elements: [group.incoming] },
-				}))
-			: [],
-	);
-
-	const morphCss = $derived(
-		morphPlan
-			? [
-					buildMorphScopedCss(morphPlan, 'data-pptx-morph-incoming', 'incoming'),
-					buildMorphScopedCss(morphPlan, 'data-pptx-morph-outgoing', 'outgoing'),
-					buildMorphScopedCss(morphPlan, 'data-pptx-morph-lifted', 'lifted'),
-				].join('\n')
-			: '',
-	);
+	const morph = useMorphTransitionOverlay({
+		transition: () => transition,
+		outgoingSlide: () => outgoingSlide,
+		incomingSlide: () => incomingSlide,
+		durationMs: () => durationMs,
+	});
+	const morphPlan = $derived(morph.morphPlan);
+	const morphOutgoingSlide = $derived(morph.morphOutgoingSlide);
+	const morphLiftedSlide = $derived(morph.morphLiftedSlide);
+	const morphCrossfadeGroups = $derived(morph.morphCrossfadeGroups);
+	const morphCss = $derived(morph.morphCss);
 
 	// A layer-wide animation would drag every shape as one block and cancel the
 	// morph, so the layers stay unanimated while a plan is active.
+	const outgoingZIndex = $derived(morphPlan ? 2 : animations.outgoingOnTop ? 2 : 1);
+	const incomingZIndex = $derived(morphPlan ? 1 : animations.outgoingOnTop ? 1 : 2);
 	const outgoingStyle = $derived(
-		styleToString(layerStyle(morphPlan ? 'none' : animations.outgoing, morphPlan ? 2 : animations.outgoingOnTop ? 2 : 1)),
+		styleToString(layerStyle(morphPlan ? 'none' : animations.outgoing, outgoingZIndex)),
 	);
 	const incomingStyle = $derived(
-		styleToString(layerStyle(morphPlan ? 'none' : animations.incoming, morphPlan ? 1 : animations.outgoingOnTop ? 1 : 2)),
+		styleToString(layerStyle(morphPlan ? 'none' : animations.incoming, incomingZIndex)),
 	);
 	const liftedStyle = styleToString(layerStyle('none', 3));
 
@@ -198,67 +158,66 @@
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated keyframes, no user input -->
 		{@html `<style>${morphCss}</style>`}
 	{/if}
-	<div
-		class="pptx-svelte-transition-layer"
-		data-pptx-transition-layer="outgoing"
-		data-pptx-morph-outgoing={morphPlan ? 'true' : undefined}
-		style={outgoingStyle}
-	>
-		<!-- transparentBackground during a morph: this layer sits ABOVE the
-		     incoming slide and only carries the departing shapes, so painting the
-		     outgoing slide's own (always opaque) background here would cover the
-		     whole morph with a flat slab for its entire duration. -->
-		<SlideStage
-			slide={morphPlan ? morphOutgoingSlide : outgoingSlide}
+	{#if !morphPlan && fragmented?.outgoing}
+		<FragmentedTransitionLayer
+			layer={fragmented.outgoing}
+			slide={outgoingSlide}
 			{canvasSize}
 			{mediaDataUrls}
 			{scale}
-			transparentBackground={Boolean(morphPlan)}
+			zIndex={outgoingZIndex}
+			layerName="outgoing"
 		/>
-	</div>
-	<div
-		class="pptx-svelte-transition-layer"
-		data-pptx-transition-layer="incoming"
-		data-pptx-morph-incoming={morphPlan ? 'true' : undefined}
-		style={incomingStyle}
-	>
-		<SlideStage slide={incomingSlide} {canvasSize} {mediaDataUrls} {scale} />
-	</div>
-	{#if morphLiftedSlide}
-		<!-- The arriving shapes that dissolve in ABOVE a departing one. They live
-		     on the incoming slide, so the layer below draws them under the
-		     departing layer, where nobody would see them. -->
+	{:else}
 		<div
 			class="pptx-svelte-transition-layer"
-			data-pptx-transition-layer="lifted"
-			data-pptx-morph-lifted="true"
-			style={liftedStyle}
+			data-pptx-transition-layer="outgoing"
+			data-pptx-morph-outgoing={morphPlan ? 'true' : undefined}
+			style={outgoingStyle}
 		>
-			<SlideStage slide={morphLiftedSlide} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
+			<!-- transparentBackground during a morph: this layer sits ABOVE the
+			     incoming slide and only carries the departing shapes, so painting the
+			     outgoing slide's own (always opaque) background here would cover the
+			     whole morph with a flat slab for its entire duration. -->
+			<SlideStage
+				slide={morphPlan ? morphOutgoingSlide : outgoingSlide}
+				{canvasSize}
+				{mediaDataUrls}
+				{scale}
+				transparentBackground={Boolean(morphPlan)}
+			/>
 		</div>
 	{/if}
-	<!-- A pair dissolving in place, painted as ONE isolated group whose two
-	     halves sum instead of stacking (issue #161). -->
-	{#each morphCrossfadeGroups as group (group.key)}
-		<div data-pptx-morph-crossfade={group.key} style={group.style}>
-			<div
-				class="pptx-svelte-transition-layer"
-				data-pptx-transition-layer="outgoing"
-				data-pptx-morph-outgoing="true"
-				style={group.outgoingStyle}
-			>
-				<SlideStage slide={group.outgoing} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
-			</div>
-			<div
-				class="pptx-svelte-transition-layer"
-				data-pptx-transition-layer="lifted"
-				data-pptx-morph-lifted="true"
-				style={group.incomingStyle}
-			>
-				<SlideStage slide={group.incoming} {canvasSize} {mediaDataUrls} {scale} transparentBackground />
-			</div>
+	{#if !morphPlan && fragmented?.incoming}
+		<FragmentedTransitionLayer
+			layer={fragmented.incoming}
+			slide={incomingSlide}
+			{canvasSize}
+			{mediaDataUrls}
+			{scale}
+			zIndex={incomingZIndex}
+			layerName="incoming"
+		/>
+	{:else}
+		<div
+			class="pptx-svelte-transition-layer"
+			data-pptx-transition-layer="incoming"
+			data-pptx-morph-incoming={morphPlan ? 'true' : undefined}
+			style={incomingStyle}
+		>
+			<SlideStage slide={incomingSlide} {canvasSize} {mediaDataUrls} {scale} />
 		</div>
-	{/each}
+	{/if}
+	<!-- The two morph-only extra layers (arriving-above-departing "lifted"
+	     shapes, and same-pair crossfade groups) - see `MorphExtraLayers.svelte`. -->
+	<MorphExtraLayers
+		liftedSlide={morphLiftedSlide}
+		{liftedStyle}
+		crossfadeGroups={morphCrossfadeGroups}
+		{canvasSize}
+		{mediaDataUrls}
+		{scale}
+	/>
 </div>
 
 <style>
