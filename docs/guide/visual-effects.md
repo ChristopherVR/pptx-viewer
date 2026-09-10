@@ -42,6 +42,22 @@ Every SMIL filter family `p:animEffect/@filter` can name resolves to a real reve
 
 The renderer's default therefore resolves `pixelate` to the same `cutIn`/`cutOut` keyframes the `p:animEffect/@filter="cut"` family uses (a genuine instant swap, confirmed live: `e2e/animation-pixelate-filter.spec.ts` asserts the entrance plays `pptx-cutIn`, not a gradual reveal), matching PowerPoint's own behaviour rather than animating something PowerPoint never shows. A blocky, content-preserving mosaic reveal (`packages/shared/src/render/animation-pixelate-filter.ts`: self-contained SVG `<filter>` data-URIs stepped through discrete `@keyframes` stops, each visible cell showing the element's own real content) remains available as an explicit, off-by-default option - `pixelateMosaicAnimation` (File > Options > Advanced > Slide Show > "Show a mosaic effect for Pixelate transitions") - for a viewer that would rather show something animating than PowerPoint's own instant swap. Implemented once as a shared decision function (`resolveFilterEffect` in `packages/shared/src/render/animation-filter-effects.ts`, threaded through `PresentationAnimationController.fromSlide`'s `pixelateMosaic` option), consumed identically by all five bindings.
 
+## Cinematic transitions (`cube`, `box`, `flip`, `rotate`, `pageCurl`, `origami`, ...)
+
+This family animates via CSS keyframes (perspective / rotate / curl) on 2-D slide layers rather than a true volumetric 3-D render. That is the deliberate design: every preset in the family gets its own keyframe set tuned to reproduce PowerPoint's own on-screen motion shape, not a generic 3-D scene.
+
+**COM-measured** against PowerPoint 2016 `CreateVideo` frames:
+
+- `cube` / `rotate` share one screen-flush hinge (`cube` bare, `rotate` via `isContent="1"` on the same `<p14:prism>`).
+- `box` / `orbit` share a depth-receding hinge that opens a gap and foreshortens both axes (`box` via `isInverted="1"`, `orbit` via `isContent="1" isInverted="1"`).
+- `doors` / `window` `horz` opens top/bottom.
+- `fallOver` topples the outgoing slide off a top hinge (not the incoming one).
+- `reveal` holds a genuine dark gap through the first half before the incoming slide fades in.
+- `warp` is a radial zoom-blur burst, not a skew.
+- `crush` crumples toward the centre rather than a flat vertical squash.
+- `flythrough`, `gallery`, `ferris`, `conveyor`, `switch`, `pageCurl` (single/double), `peelOff`, `drape`, `ripple`, `flash`, `zoom` and `origami` were likewise COM-measured and match the keyframes' motion shape.
+- `vortex`, `honeycomb`, `glitter`, `shred`, `fracture`, `curtains` and `airplane` are COM-confirmed to render as many independent fragments, tiles or particles in real PowerPoint (or, for `airplane`, an actual paper-plane silhouette fold); each now renders as a capped set of independently clip-path'd, transform/opacity-animated fragments built from the same measurement (`getFragmentedTransitionDescriptor` in `packages/shared/src/render/slide-transition-fragments.ts`), not a single flat layer.
+
 ## Related reading
 
 - [Limitations](/guide/limitations) - what is still an open, unresolved gap.

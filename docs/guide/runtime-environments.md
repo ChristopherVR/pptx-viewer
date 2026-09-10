@@ -31,6 +31,10 @@ Instead, clicking a Run-Program shape during a running show shows a non-blocking
 
 Two real bugs surfaced and were fixed while building this: React initially rendered the notice as a sibling of the element the running show calls `requestFullscreen()` on, and a real OS-level fullscreen element's top layer paints above everything outside it regardless of CSS `z-index`, so the Copy button was visible but not clickable; it now renders through the show stage's own overlay slot, alongside the other show-only chrome. Separately, a target string that is not URI-shaped (a typed path like `notepad.exe C:\temp\notes.txt`) was not being recognised as an external relationship target on save, so the written package failed `TargetMode="External"` validation for `ppaction://program`, `hlinkfile`, and `hlinkpres` alike; the save path now forces `External` for all three.
 
+### Media playback
+
+Audio and video playback depends on the browser's own codec support: WMV and other legacy codecs may not play, and DRM-protected media will not play. This is a platform fact, not a missing feature: `pptx-viewer` hands playback to the browser's native media element, and a browser only decodes what it ships a codec for.
+
 ## Related reading
 
 - [Limitations](/guide/limitations) - open, unresolved gaps.
