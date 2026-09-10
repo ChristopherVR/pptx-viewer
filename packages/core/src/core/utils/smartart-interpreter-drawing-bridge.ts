@@ -99,11 +99,31 @@ export function interpretedLayoutToElements(
 	for (const rendered of result.nodes) {
 		const node = rendered.nodeId ? nodeById.get(rendered.nodeId) : undefined;
 		const fontSize = rendered.fontSize;
-		const fallbackStyle = { fontSize: fontSize * (96 / 72) };
+		// Round 26: `rendered.fontSize`/`.descendantFontSize` (`RenderedNode`,
+		// the interpreter's own internal unit throughout this whole module
+		// family - `ceilingPx`/`itemW`/`itemH`/every font-fit call) is ALREADY
+		// in PIXELS, matching `common.fontSize` below (assigned VERBATIM, no
+		// conversion). A stray `* (96 / 72)` here re-applied a pt->px
+		// conversion to an already-px value, INFLATING every per-segment
+		// style (`textSegments[].style.fontSize`, used whenever a node folds
+		// a descendant's text as extra paragraphs) by exactly that factor -
+		// silent because the gate (`smartart-gallery-ground-truth.test.ts`)
+		// only ever asserts the TOP-LEVEL `textStyle.fontSize` (this same
+		// `fontSize` var, correctly unconverted), never a segment's own
+		// style. Measured, directly: a synthetic `w`-ruled SDK diagram whose
+		// live-rendered `textStyle.fontSize` is 48px also fed a `textSegments`
+		// array carrying `style.fontSize: 64` (48 * 96/72) into the fabricated
+		// `dsp:sp`'s cached `a:rPr/@sz` - `sz="4800"` (48pt) baked into the
+		// saved file instead of the live value's own `sz="3600"` (36pt),
+		// exactly the "live vs fabricated disagree" gap this round's own
+		// directive named. Fixed at the source: use the SAME raw px value
+		// `common.fontSize` already uses, for both the item's own text and
+		// any folded descendant's (independently-shrunk) size.
+		const fallbackStyle = { fontSize };
 		const descendantFallbackStyle =
 			rendered.descendantFontSize === undefined
 				? fallbackStyle
-				: { fontSize: rendered.descendantFontSize * (96 / 72) };
+				: { fontSize: rendered.descendantFontSize };
 		// A pre-resolved role (`foldedNodeIds` set, even to an empty array by
 		// the item-roles expansion) owns exactly that content; only a node
 		// with NO pre-resolution falls back to inferring folded descendants

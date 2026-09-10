@@ -37,11 +37,12 @@ import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
 import { resolveCompositeChildGeometry } from './smartart-hierarchy-composite-child';
+import { DEFAULT_ASPECT_RATIO, resolveAspectRatio } from './smartart-hierarchy-constraint-lookup';
 import { resolveGenerationGapRatio } from './smartart-hierarchy-generation-gap';
 import { tailedHierarchyDeclaresChAlign } from './smartart-hierarchy-tailed-transpose';
 
-/** COM-verified "Hierarchy" fallback (`h:w`, absent any declared aspect - see `resolveAspectRatio`). */
-const DEFAULT_ASPECT_RATIO = 0.667;
+export { findByReference } from './smartart-hierarchy-constraint-lookup';
+
 /** `sibSp` fallback when a layout declares none (matches "Hierarchy" itself). */
 const DEFAULT_SIB_SP_RATIO = 0.1;
 /**
@@ -105,38 +106,6 @@ export interface HierarchyOrientation {
 	cardOffsetXRatio: number;
 }
 
-/** A constraint search that only cares about `type`/`referenceType`/`factor` - broader than `findConstraint` (which cannot filter by `referenceType`). Exported for `smartart-hierarchy-generation-gap.ts` (split out of this module - file-size budget). */
-export function findByReference(
-	constraints: PptxSmartArtLayoutNode['constraints'],
-	type: string,
-	referenceType: string,
-): number | undefined {
-	const match = (constraints ?? []).find(
-		(c) => c.type === type && c.referenceType === referenceType && typeof c.factor === 'number',
-	);
-	return match?.factor;
-}
-
-/**
- * The item's own `h:w` (non-transposed) ratio, read directly from whichever
- * of the two equivalent declarations is present: `h` referencing `w` (a
- * fact IS the ratio - "Hierarchy"'s own shape) or `w` referencing `h` (a
- * fact is the ratio's RECIPROCAL - "Horizontal Hierarchy"'s shape, e.g.
- * `w=2*h` means `h:w=0.5`). Falls back to `DEFAULT_ASPECT_RATIO` when
- * neither is declared (matches every layout examined that omits it).
- */
-function resolveAspectRatio(constraints: PptxSmartArtLayoutNode['constraints']): number {
-	const hRefW = findByReference(constraints, 'h', 'w');
-	if (hRefW !== undefined && hRefW > 0) {
-		return hRefW;
-	}
-	const wRefH = findByReference(constraints, 'w', 'h');
-	if (wRefH !== undefined && wRefH > 0) {
-		return 1 / wRefH;
-	}
-	return DEFAULT_ASPECT_RATIO;
-}
-
 /**
  * Resolve whether `algorithmNode` is a transposed (horizontal-fan) hierarchy
  * and every ratio `fitItemBox` needs, all read from its own declared
@@ -147,6 +116,7 @@ export function resolveHierarchyOrientation(
 	algorithmNode: PptxSmartArtLayoutNode | undefined,
 	index: ConstraintIndex,
 	mode: 'std' | 'tailed' | 'hanging' = 'std',
+	itemShapeName?: string,
 ): HierarchyOrientation {
 	const constraints = algorithmNode?.allConstraints ?? algorithmNode?.constraints;
 	// `sibSp` referencing `h` is the fan-axis-is-vertical signal (see the
@@ -224,13 +194,16 @@ export function resolveHierarchyOrientation(
 	// against `hierarchy--flat3/hier5/hier8.pptx`. `undefined` for a
 	// layoutDef with no such wrapper - falls back to the existing
 	// `resolveAspectRatio` reading unchanged.
-	const compositeChild = resolveCompositeChildGeometry(algorithmNode);
 	// The WRAPPING `composite` node's own top-level `h:w` (e.g. `0.667` for
 	// plain "Hierarchy") - distinct from `aspectRatio` below (the RENDERED
 	// item's own, smaller, `compositeChild`-corrected aspect when a wrapper
 	// exists). Needed as `resolveGenerationGapRatio`'s own `compositeAspect`
-	// parameter (see that module's doc comment for the full derivation).
+	// parameter (see that module's doc comment), and, since SESSION 21, as
+	// `resolveCompositeChildGeometry`'s own `wrapperAspect` for the
+	// "parent-relative" child-height shape (`circle-picture-hierarchy`) -
+	// computed BEFORE that call for this reason.
 	const compositeAspect = resolveAspectRatio(constraints);
+	const compositeChild = resolveCompositeChildGeometry(algorithmNode, compositeAspect);
 	const aspectRatio = compositeChild?.aspectRatio ?? compositeAspect;
 	// A `tailed` (org-chart-family) hierarchy needs NO outer margin either -
 	// COM-verified against `organization-chart--flat3.pptx`/`--hier5.pptx`/
@@ -255,7 +228,7 @@ export function resolveHierarchyOrientation(
 		// composite-correction here instead REGRESSES all three (7.32%/9.38%/
 		// 8.26%). The correction belongs on `compositeGenerationGapRatio` below
 		// (POSITIONING's own consumer), not here.
-		generationGapRatio: resolveGenerationGapRatio(constraints, 'h', aspectRatio),
+		generationGapRatio: resolveGenerationGapRatio(constraints, 'h', compositeAspect),
 		// The composite-cell-relative gap `computeHierarchyAxisPitches` uses to
 		// POSITION rows (see this field's own doc comment on
 		// `HierarchyOrientation`) - WITH the `compositeChild`/`compositeAspect`
@@ -271,6 +244,8 @@ export function resolveHierarchyOrientation(
 			aspectRatio,
 			compositeChild,
 			compositeAspect,
+			index,
+			itemShapeName,
 		),
 		marginXRatio: tailedMargin ? 0 : OUTER_MARGIN_X_RATIO,
 		marginYRatio: tailedMargin ? 0 : OUTER_MARGIN_Y_RATIO,

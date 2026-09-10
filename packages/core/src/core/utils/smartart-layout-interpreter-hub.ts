@@ -97,8 +97,14 @@ export function buildHubRenderedNode(
 		// A hub-bearing ring never ALSO nests a hub of its own, so `ctrShpMap`
 		// never applies recursively here - `satelliteCount` is already the
 		// ring's own node count.
-		const { minGapRatio, heightOverWidth, absoluteGapPx, hubRatio, hubGapRatio } =
-			resolveCycleRingParams(arranger, index, satelliteCount);
+		const {
+			minGapRatio,
+			heightOverWidth,
+			absoluteGapPx,
+			hubRatio,
+			hubGapRatio,
+			sibTransBulgeRatio,
+		} = resolveCycleRingParams(arranger, index, satelliteCount);
 		// Same `hubGeometry` `r0` correction `arrangeCycle` applies to the
 		// satellites themselves (see `computeCycleRingLayout`'s own doc
 		// comment) - without it here too, the hub's own centre/scale would be
@@ -118,6 +124,8 @@ export function buildHubRenderedNode(
 			box,
 			absoluteGapPx,
 			hubGeometry,
+			undefined,
+			sibTransBulgeRatio,
 		);
 		let width = Math.max(1, ring.hubHalfWidth * 2);
 		let height = Math.max(1, ring.hubHalfHeight * 2);

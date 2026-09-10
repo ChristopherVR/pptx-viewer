@@ -55,9 +55,16 @@
  * related but distinct "hub + satellites" detection.
  */
 
-import type { PptxSmartArtConnection, PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
+import type {
+	PptxSmartArtConnection,
+	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
+	PptxSmartArtPresLayoutVars,
+} from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
+import type { ItemRoleLayoutScope } from './smartart-layout-interpreter-item-role-orientation';
+import { resolveItemRoleLayoutScope } from './smartart-layout-interpreter-item-role-orientation';
 import {
 	descendantTextById,
 	hasAmbiguousTopLevelRoles,
@@ -188,6 +195,7 @@ export function expandItemRoles(
 	childrenOf: Map<string, PptxSmartArtNode[]>,
 	index: ConstraintIndex,
 	connections?: PptxSmartArtConnection[],
+	layoutScope?: ItemRoleLayoutScope,
 ): RenderedNode[] | undefined {
 	const content = resolveItemRoleContent(roles, node, childrenOf, connections);
 	return stackRoleContent(
@@ -196,6 +204,7 @@ export function expandItemRoles(
 		original,
 		index,
 		descendantTextById(node, childrenOf),
+		layoutScope,
 	);
 }
 
@@ -235,6 +244,7 @@ export function expandResultItemRoles(
 	childrenOf: Map<string, PptxSmartArtNode[]>,
 	index: ConstraintIndex,
 	connections?: PptxSmartArtConnection[],
+	presLayoutVars?: PptxSmartArtPresLayoutVars,
 ): SmartArtLayoutResult {
 	const arrangerRole = roleOf(arranger);
 	if (hasRecursiveItemTemplate(arranger)) {
@@ -254,7 +264,23 @@ export function expandResultItemRoles(
 	if (!roles) {
 		return result;
 	}
+	const layoutScope = resolveItemRoleLayoutScope(
+		arranger,
+		arrangerRole,
+		roles,
+		nodes.length,
+		presLayoutVars,
+	);
 	return expandEveryPoint(result, nodes, (rendered, node) =>
-		expandItemRoles(roles, arrangerRole, rendered, node, childrenOf, index, connections),
+		expandItemRoles(
+			roles,
+			arrangerRole,
+			rendered,
+			node,
+			childrenOf,
+			index,
+			connections,
+			layoutScope,
+		),
 	);
 }

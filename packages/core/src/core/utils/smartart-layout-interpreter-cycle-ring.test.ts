@@ -43,4 +43,50 @@ describe('computeCycleRingLayout', () => {
 		expect(Math.min(...ys) - ring.nodeHeight / 2).toBeGreaterThanOrEqual(-1e-6);
 		expect(Math.max(...ys) + ring.nodeHeight / 2).toBeLessThanOrEqual(BOX.height + 1e-6);
 	});
+
+	it('session 21: a sibTrans curve-connector bulge shrinks the scale to match cached geometry (radial-cycle--hier5.pptx: n=3, hub factor=0.7, hubGapRatio=0.3, sibTransBulgeRatio=0.24 - cached item 141px, hub 202px; without the bulge this over-scales to 163px/233px, a measured 9% regression this test pins against)', () => {
+		const withoutBulge = computeCycleRingLayout(
+			3,
+			0,
+			360,
+			0.5,
+			1,
+			BOX,
+			undefined,
+			{ factor: 0.7, gapRatio: 0.3 },
+			undefined,
+			undefined,
+		);
+		expect(withoutBulge.nodeWidth).toBeCloseTo(163, 0);
+		const withBulge = computeCycleRingLayout(
+			3,
+			0,
+			360,
+			0.5,
+			1,
+			BOX,
+			undefined,
+			{ factor: 0.7, gapRatio: 0.3 },
+			undefined,
+			0.24,
+		);
+		expect(withBulge.nodeWidth).toBeCloseTo(142, 0); // cached 141px, 0.7% off.
+	});
+
+	it('session 21: the sibTrans bulge shrinks scale WITHOUT shifting the flush-axis satellite off the box edge (radial-cycle--hier5.pptx: the lone top satellite sits flush at y=0 either way)', () => {
+		const ring = computeCycleRingLayout(
+			3,
+			0,
+			360,
+			0.5,
+			1,
+			BOX,
+			undefined,
+			{ factor: 0.7, gapRatio: 0.3 },
+			undefined,
+			0.24,
+		);
+		const topSatelliteY = Math.min(...ring.centers.map((p) => p.y)) - ring.nodeHeight / 2;
+		expect(topSatelliteY).toBeCloseTo(0, 0);
+	});
 });

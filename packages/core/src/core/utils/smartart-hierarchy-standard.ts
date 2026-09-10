@@ -24,7 +24,7 @@
 
 import type { TreeNode } from './smartart-helpers';
 import { placeFannedRow, planFan } from './smartart-hierarchy-fan';
-import { effectiveWidth, partitionChildren } from './smartart-hierarchy-orgchart-tree';
+import { partitionChildren } from './smartart-hierarchy-orgchart-tree';
 import {
 	elbowConnector,
 	HANG_HEIGHT_RATIO,
@@ -32,6 +32,7 @@ import {
 	pushNode,
 } from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
+import { spanOf } from './smartart-hierarchy-standard-options';
 import type { StandardOptions } from './smartart-hierarchy-standard-options';
 import {
 	placeAssistantRow,
@@ -142,11 +143,12 @@ function placeAt(
 		// `t` is a SOLO CHAIN LINK (no real siblings of its own - `siblingCxs`
 		// is absent, or a length-1 array, i.e. `t` was the only entry in
 		// whatever row placed it) whose OWN pre-computed fan-axis allocation
-		// (`spanW`, from `effectiveWidth` - a STRUCTURAL sum of leaf-columns
-		// computed before any fan/hang decision is made, treating every
-		// generation as if it might fan) exactly matches its ordinary child
-		// count: every child is itself effectiveWidth 1 (a leaf, or a chain of
-		// single children), so the outer fan-axis pitch (`cellW`) already
+		// (`spanW`, from `spanOf` - fan-aware in `tailed` mode, see
+		// `StandardOptions.resolveSpan`'s doc comment; plain `effectiveWidth`
+		// otherwise) exactly matches its ordinary child count: every child's own
+		// span is itself 1 (a leaf, or a chain of single children, neither of
+		// which the fan/hang distinction changes), so the outer fan-axis pitch
+		// (`cellW`) already
 		// reserved exactly enough room, UNSHARED with any sibling, for `t`'s
 		// children to fan evenly across `t`'s own span the SAME way a plain
 		// `std` row would. COM-verified against `organization-chart--hier8.pptx`:
@@ -228,7 +230,10 @@ function placeAt(
 
 /**
  * Place a whole standard-branch tree rooted at `t`, whose own slot spans
- * `[xOffset, xOffset + effectiveWidth(t))` cells at `level`.
+ * `[xOffset, xOffset + spanOf(t, options))` cells at `level` - `spanOf`
+ * honours `options.resolveSpan` (`tailed` mode's fan-aware width) when set,
+ * plain `effectiveWidth` otherwise. See `StandardOptions.resolveSpan`'s doc
+ * comment.
  */
 export function placeStandardTree(
 	hc: HierContext,
@@ -239,7 +244,7 @@ export function placeStandardTree(
 	cellH: number,
 	options: StandardOptions,
 ): void {
-	const spanW = effectiveWidth(t, options.orgChart);
+	const spanW = spanOf(t, options);
 	const cx = (xOffset + spanW / 2) * cellW;
 	const cy = level * cellH + cellH / 2;
 	placeAt(hc, t, cx, cy, xOffset, spanW, level, cellW, cellH, options);

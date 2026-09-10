@@ -11,9 +11,9 @@
  */
 
 import type { TreeNode } from './smartart-helpers';
-import { effectiveWidth } from './smartart-hierarchy-orgchart-tree';
 import { elbowConnector, pushNode, stubConnector } from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
+import { spanOf } from './smartart-hierarchy-standard-options';
 import type { StandardOptions } from './smartart-hierarchy-standard-options';
 
 const ASSISTANT_GAP = 4;
@@ -78,14 +78,14 @@ export function placeFlatChildren(
 	{
 		let offset = xOffset;
 		for (const child of normal) {
-			const childW = effectiveWidth(child, options.orgChart);
+			const childW = spanOf(child, options);
 			siblingCxs.push((offset + childW / 2) * cellW);
 			offset += childW;
 		}
 	}
 	let childOffset = xOffset;
 	for (const child of normal) {
-		const childW = effectiveWidth(child, options.orgChart);
+		const childW = spanOf(child, options);
 		const childCx = (childOffset + childW / 2) * cellW;
 		const childCy = (level + 1) * cellH + cellH / 2;
 		elbowConnector(

@@ -19,11 +19,18 @@ import { readSlots } from './smartart-layout-interpreter-composite-slots';
 import type { Slot } from './smartart-layout-interpreter-composite-slots';
 import type { BoundingBox } from './smartart-layout-types';
 
-/** One resolved choose-aware slot: its final rect and the node(s) it renders
- * (the first is primary, the rest fold in as extra paragraphs). */
+/** One resolved choose-aware slot: its final rect, the node(s) it renders
+ * (the first is primary, the rest fold in as extra paragraphs), and the
+ * WINNING candidate's own layoutNode (round 28: for `findCompositeItemShape`
+ * to resolve the slot's real declared preset from, instead of the caller's
+ * own hardcoded family default - `arrangeByChooseAwareSlots` never had
+ * access to this before, so every slot silently fell through to the same
+ * generic `roundRect`/`rect` fallback regardless of what the layout actually
+ * declared). */
 export interface ChooseAwareSlot {
 	rect: Slot;
 	content: PptxSmartArtNode[];
+	node: PptxSmartArtLayoutNode;
 }
 
 /** A choose-live, `presOf`-bearing candidate found by `collectRawCandidates` (`smartart-layout-interpreter-composite-choose.ts`), not yet resolved to a rect. */
@@ -100,7 +107,7 @@ export function resolveGroupedSlots(
 					candidate.iteration,
 					candidate.iterationCount,
 				);
-				out.push({ rect, content: candidate.content });
+				out.push({ rect, content: candidate.content, node: candidate.node });
 				break;
 			}
 		}

@@ -53,8 +53,9 @@ import type {
 	RawSlotCandidate,
 } from './smartart-layout-interpreter-composite-group-slots';
 import { resolveGroupedSlots } from './smartart-layout-interpreter-composite-group-slots';
-import { rectNode } from './smartart-layout-interpreter-render';
+import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { evaluateWhen } from './smartart-layout-interpreter-when';
+import { findCompositeItemShape } from './smartart-layout-shape-preset';
 import type { BoundingBox, RenderedNode, RenderedRectNode } from './smartart-layout-types';
 
 /** 1-based position + sibling count for a `func="pos"`/`"revPos"`/`"posEven"`/`"posOdd"` condition in a `chooseGuard` chain, when the CANDIDATE being tested is one iteration of a multi-anchor `forEachOrigin` split (see {@link collectRawCandidates}) - `undefined` for a bare wrapper or a single-anchor node, where no per-iteration position exists. */
@@ -221,10 +222,10 @@ export function arrangeByChooseAwareSlots(
 	if (slots.length === 0) {
 		return undefined;
 	}
-	return slots.map(({ rect, content }, i) => {
+	return slots.map(({ rect, content, node: layoutNode }, i) => {
 		const first = content[0];
 		const rendered: RenderedRectNode = {
-			...rectNode({
+			...(presetBoxNode({
 				key: `${ctx.elementId}-comp-choose-${first.id}-${i}`,
 				x: rect.x,
 				y: rect.y,
@@ -236,7 +237,9 @@ export function arrangeByChooseAwareSlots(
 				palette: ctx.palette,
 				style: ctx.style,
 				ctx: ctx.ctx,
-			}),
+				shape: findCompositeItemShape(layoutNode),
+				fallbackKind: 'rect',
+			}) as RenderedRectNode),
 			foldedNodeIds: content.slice(1).map((entry) => entry.id),
 		};
 		return rendered;

@@ -8,11 +8,63 @@
  */
 
 import type { PptxSmartArtLayoutNode } from '../types';
+import type { ConstraintIndex } from './smartart-constraint-solver';
 import type { CompositeChildGeometry } from './smartart-hierarchy-composite-child';
 import { findByReference } from './smartart-hierarchy-orientation';
 
 /** COM-verified "Hierarchy" fallback generation-to-generation gap (see `resolveGenerationGapRatio`). */
 const DEFAULT_GENERATION_GAP_RATIO = 0.25;
+
+/**
+ * A generation-axis `sp` declared on an ANCESTOR of the `hierChild`
+ * algorithm node itself, not reachable via that node's own (`allConstraints`
+ * already includes descendants, never ancestors) local search - SESSION 24
+ * finding (`labeled-hierarchy--hier5.pptx`, the "hierarchy6" layout): its
+ * own `mainComposite` wrapper (the TOP-LEVEL `composite`-alg node, itself an
+ * ancestor of `hierChild1` two levels up via the intervening `hierFlow`
+ * `lin` node) declares `sp for="des" refType="h" refFor="des"
+ * refForName="level1Shape" fact="0.4"` in ITS OWN constrLst - a broad
+ * `for="des"` declaration with NO `forName` of its own, so `buildConstraint
+ * Index` indexes it under the DECLARING node's own role ("mainComposite"),
+ * not under `hierChild1`'s. Local-coordinate analysis of this fixture's own
+ * cached row centres (`120`/`317`/`513`, i.e. ~196.5px generation-to-
+ * generation) confirmed `0.4` (not the `0.25` default that search miss
+ * silently fell back to) reproduces the real spacing almost exactly, so
+ * this searches the WHOLE index (every role, not just `hierChild1`'s own)
+ * for ANY `sp` constraint that references the ITEM TEMPLATE's own name
+ * (`itemShapeName`, e.g. `level1Shape`) on `stackingAxis` - a general
+ * mechanism (find "the generation gap declared relative to my own item's
+ * size, wherever in the tree it was written"), not a `labeled-hierarchy`
+ * special case: any hierarchy-family layout whose OWN generation gap lives
+ * on an ancestor `composite`/`choose` wrapper rather than on `hierChild`
+ * itself benefits identically. Tried ONLY after the existing local
+ * (`hierChild`-scoped) search comes up empty, so every fixture that already
+ * resolves its own gap locally (plain "Hierarchy", "Organization Chart") is
+ * completely unaffected - confirmed via a full corpus baseline regen.
+ */
+function resolveGenerationGapFromIndex(
+	index: ConstraintIndex | undefined,
+	itemShapeName: string | undefined,
+	stackingAxis: 'w' | 'h',
+): number | undefined {
+	if (!index || !itemShapeName) {
+		return undefined;
+	}
+	for (const entries of index.entries.values()) {
+		for (const entry of entries) {
+			const c = entry.constraint;
+			if (
+				c.type === 'sp' &&
+				c.referenceType === stackingAxis &&
+				c.referenceForName === itemShapeName &&
+				typeof c.factor === 'number'
+			) {
+				return c.factor;
+			}
+		}
+	}
+	return undefined;
+}
 
 /**
  * Generation-to-generation gap, as a fraction of the item's STACKING-axis
@@ -67,6 +119,8 @@ export function resolveGenerationGapRatio(
 	aspectRatio: number,
 	compositeChild?: CompositeChildGeometry,
 	compositeAspect?: number,
+	index?: ConstraintIndex,
+	itemShapeName?: string,
 ): number {
 	const onStackingAxis = findByReference(constraints, 'sp', stackingAxis);
 	if (onStackingAxis !== undefined) {
@@ -88,6 +142,10 @@ export function resolveGenerationGapRatio(
 	const onCrossAxis = findByReference(constraints, 'sp', crossAxis);
 	if (onCrossAxis !== undefined && aspectRatio > 0) {
 		return stackingAxis === 'h' ? onCrossAxis / aspectRatio : onCrossAxis * aspectRatio;
+	}
+	const fromAncestor = resolveGenerationGapFromIndex(index, itemShapeName, stackingAxis);
+	if (fromAncestor !== undefined) {
+		return fromAncestor;
 	}
 	return DEFAULT_GENERATION_GAP_RATIO;
 }

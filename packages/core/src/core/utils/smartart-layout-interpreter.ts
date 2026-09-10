@@ -222,6 +222,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 				childrenOf,
 				constraintIndex,
 				input.connections,
+				presLayoutVars,
 			)
 		: withNamedRule;
 	// `pyraAcctRatio`'s own band-split geometry (see `repositionPyramidBands`'s

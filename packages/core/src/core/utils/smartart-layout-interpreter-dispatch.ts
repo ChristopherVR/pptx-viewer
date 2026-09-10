@@ -51,6 +51,7 @@ export function dispatchArrangement(
 				index,
 				childrenOf,
 				fontName,
+				presLayoutVars,
 			);
 		}
 		case 'snake':

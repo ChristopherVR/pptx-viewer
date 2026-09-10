@@ -46,19 +46,37 @@
  * - this test asserts the rendered font size is whatever the REAL
  * text-measured fit produces, never the rule's literal `val`.
  *
- * **The fabricated `dsp:` drawing (save path, `core/runtime/smartart-
- * fabrication-*.ts`) does NOT consult `ruleLst` at all** - confirmed
- * directly (a probe script comparing the fabricated drawing WITH and
- * WITHOUT the same `ruleLst` present on the layout definition produces
- * BYTE-IDENTICAL `sz`/width output either way). This is a distinct,
- * unowned-by-any-SmartArt-interpreter-track subsystem (`core/runtime/`, not
- * `core/utils/`) used only to fabricate a plausible cached drawing for a
- * newly-created/edited deck with no real PowerPoint-authored cache to
- * preserve - it was never wired to the interpreter's named-rule machinery,
- * on EITHER the old (unconditional-override) or the new (bound) reading, so
- * there is no regression here to fix; the second test below asserts this
- * rule-agnostic behaviour honestly rather than a number that happened to
- * look like the rule's own literal value by coincidence.
+ * **Round 26 correction of a round-25 mistake**: an earlier version of this
+ * comment claimed the fabricated `dsp:` drawing (save path, `core/runtime/
+ * smartart-fabrication-*.ts`) "does not consult `ruleLst` at all". That was
+ * never true, and was itself an artifact of a bug in the PROBE SCRIPT that
+ * produced the claim (it called `.save()` on a different `PptxHandler`
+ * instance than the one that `.load()`ed the data, so the SmartArt save
+ * step silently bailed and the file's STALE, pre-rule drawing was left
+ * untouched - unrelated to `ruleLst` handling at all). In reality,
+ * `core/runtime/PptxHandlerRuntimeSaveSmartArtFabrication.ts` (a brand-new
+ * SmartArt element) and `core/runtime/PptxHandlerRuntimeSaveDocumentParts
+ * .ts`'s `drawingDirty` block (an edited, already-saved one) BOTH call
+ * `decomposeSmartArt`, which falls through to `computeSmartArtElementsWithoutCache`
+ * - the SAME interpreter entry the live viewer uses - whenever no cached
+ * `drawingShapes` exist. Fabrication has ALWAYS gone through the same
+ * `ruleLst`-aware interpreter as the live render.
+ *
+ * What WAS real: a unit-conversion bug in the ONE shared bridge from the
+ * interpreter's own output to `PptxElement[]`
+ * (`smartart-interpreter-drawing-bridge.ts`'s `interpretedLayoutToElements`)
+ * re-applied a pt->px conversion to an ALREADY-px `RenderedNode.fontSize`
+ * when building each shape's PER-SEGMENT style (`textSegments[].style
+ * .fontSize`, used for a node with folded/multi-run text) - a stray
+ * `* (96 / 72)`. The shape's TOP-LEVEL `textStyle.fontSize` (what the live
+ * viewer and this whole gate/test suite have always asserted) was
+ * unaffected, so this was invisible everywhere EXCEPT `core/runtime/
+ * smartart-fabrication-text.ts`'s `drawingTextBodyXml`, which prefers the
+ * (wrongly inflated) per-segment style over the top-level one whenever
+ * `textSegments` is present - baking a font 96/72 = 1.333x too large into
+ * the SAVED file specifically. Fixed at the source (the bridge no longer
+ * re-converts); the second test below now asserts live and fabricated
+ * agree, bit for bit, instead of documenting a divergence.
  */
 
 import JSZip from 'jszip';
@@ -193,60 +211,72 @@ describe('smartArt layout rule round-trip: forName-scoped rule overrides', () =>
 		}
 	});
 
-	it('the fabricated cached dsp: drawing on save is rule-agnostic (a separate subsystem, never wired to ruleLst either way) and round-trips consistently', async () => {
-		// `core/runtime/smartart-fabrication-drawing.ts` (a wholly separate
-		// subsystem from the SmartArt interpreter's `core/utils/` - it fabricates
-		// a plausible cached drawing for a newly-created/edited deck with no
-		// real PowerPoint-authored cache to preserve) never consults `ruleLst`
-		// at all: confirmed directly below by diffing its OWN output WITH and
-		// WITHOUT the identical `ruleLst` present on the same layout definition.
-		// There is no "same override" to bake (the module doc comment's older
-		// framing was never true of this architecture) - this test asserts the
-		// honest, current behaviour instead, and still exercises the save/reload
-		// round-trip this test module is named for.
-		async function fabricatedSzValues(definition: PptxSmartArtLayoutDefinition): Promise<string[]> {
-			const initial = await presentationWithThreeNodeSmartArt();
-			const handler = new PptxHandler();
-			const loaded = await handler.load(initial.buffer as ArrayBuffer);
-			const element = smartArt(loaded.slides);
-			element.smartArtData!.layoutDefinition = definition;
-			element.smartArtData!.drawingShapes = undefined;
-			element.smartArtData!.drawingDirty = true;
-			const saved = await handler.save(loaded.slides);
-			const savedZip = await JSZip.loadAsync(saved);
-			const drawing = await savedZip.file('ppt/diagrams/drawing1.xml')!.async('string');
-			return [...drawing.matchAll(/sz="(\d+)"/gu)].map((match) => match[1]!);
-		}
-
-		const withRules = await fabricatedSzValues(NAMED_RULE_DEFINITION);
-		const withoutRules = await fabricatedSzValues(NO_RULE_DEFINITION);
-		expect(withRules).toHaveLength(3);
-		// Byte-identical regardless of the ruleLst's presence - proving
-		// fabrication never reads it (neither as an override nor as a bound),
-		// not merely that the two happen to agree on THIS one field.
-		expect(withRules).toStrictEqual(withoutRules);
-		// Never the rule's own literal 28pt value (`sz="2800"`) - whatever
-		// fabrication's own heuristic produces, it is not coincidentally the
-		// unapplied rule's value either.
-		expect(withRules).not.toContain('2800');
-
+	it('bakes the SAME `w`-rule-bound override into the fabricated cached dsp: drawing that the live-preview render model computes', async () => {
+		// `core/runtime/smartart-fabrication-drawing.ts`/`-text.ts` fabricate a
+		// plausible cached drawing for a newly-created/edited deck with no real
+		// PowerPoint-authored cache to preserve, by calling `decomposeSmartArt`
+		// -> `computeSmartArtElementsWithoutCache` - the SAME interpreter entry
+		// the live-preview test above calls directly. This test proves that
+		// identity empirically rather than assuming it: it computes the LIVE
+		// render model first, then saves (forcing regeneration via
+		// `drawingDirty`), then asserts the SAVED file's own `a:rPr/@sz` and
+		// `a:xfrm` geometry agree with the live values bit for bit - width AND
+		// font, both governed by `ruleLst` (the `w` rule as a bound, `primFontSz`
+		// never as a literal override - same semantics as the live-preview test).
 		const initial = await presentationWithThreeNodeSmartArt();
 		const handler = new PptxHandler();
 		const loaded = await handler.load(initial.buffer as ArrayBuffer);
 		const element = smartArt(loaded.slides);
+		const bounds = { x: element.x, y: element.y, width: element.width, height: element.height };
+
 		element.smartArtData!.layoutDefinition = NAMED_RULE_DEFINITION;
+		const live = computeSmartArtElementsWithoutCache(element.smartArtData!, bounds)!;
+		expect(live).toHaveLength(3);
+		const liveShape = live[0];
+		expect(liveShape?.type).toBe('shape');
+		const liveWidth = liveShape?.type === 'shape' ? liveShape.width : undefined;
+		const liveFontSizePx = liveShape?.type === 'shape' ? liveShape.textStyle?.fontSize : undefined;
+		expect(liveWidth).toBeDefined();
+		expect(liveFontSizePx).toBeDefined();
+		// Sanity: this is genuinely the bound-`w`/never-literal-`primFontSz`
+		// case the live-preview test above already establishes, not some other
+		// unrelated value.
+		expect(liveWidth).toBeCloseTo(0.35 * 600);
+		expect(liveFontSizePx).not.toBeCloseTo(28 * (96 / 72));
+
 		element.smartArtData!.drawingShapes = undefined;
 		element.smartArtData!.drawingDirty = true;
 		const saved = await handler.save(loaded.slides);
+		const savedZip = await JSZip.loadAsync(saved);
+		const drawing = await savedZip.file('ppt/diagrams/drawing1.xml')!.async('string');
+
+		// `a:rPr/@sz` is in hundredths of a point; the live model's own
+		// `textStyle.fontSize` is in CSS px (this codebase's renderer-unit
+		// convention throughout the interpreter) - convert once, the same way
+		// `core/runtime/smartart-fabrication-text.ts`'s `runProperties` does,
+		// and require EXACT agreement (not merely "close"), since both paths
+		// now compute from the identical interpreter output.
+		const expectedSz = String(Math.round(liveFontSizePx! * (72 / 96) * 100));
+		const szValues = [...drawing.matchAll(/sz="(\d+)"/gu)].map((match) => match[1]!);
+		expect(szValues).toHaveLength(3);
+		expect(szValues).toStrictEqual([expectedSz, expectedSz, expectedSz]);
+
+		const widthValues = [...drawing.matchAll(/<a:ext cx="(\d+)"/gu)].map(
+			(match) => Number(match[1]) / (914400 / 96),
+		);
+		for (const widthPx of widthValues) {
+			expect(widthPx).toBeCloseTo(liveWidth!, 0);
+		}
+
+		// Round-trip through a reload too: the cached model the NEXT load sees
+		// must agree with what was actually written, and therefore with the
+		// live render that produced it.
 		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
 		const cached = smartArt(reloaded.slides).smartArtData!.drawingShapes;
 		expect(cached?.length).toBe(3);
-		const savedSzPt = Number(withRules[0]) / 100;
 		for (const shape of cached ?? []) {
-			// The cached model exposes renderer units even though OOXML stores
-			// points - the reloaded model must agree with what was actually
-			// written to `drawing1.xml`, whatever that value is.
-			expect(shape.fontSize).toBeCloseTo(savedSzPt * (96 / 72));
+			expect(shape.fontSize).toBeCloseTo(liveFontSizePx!, 0);
+			expect(shape.width).toBeCloseTo(liveWidth!, 0);
 		}
 	});
 

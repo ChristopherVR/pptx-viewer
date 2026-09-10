@@ -9,8 +9,7 @@
  * import path changes.
  */
 
-import type { PptxSmartArtNode, SmartArtStyle } from '../types';
-import { resolveConstraintDeclaredBy } from './smartart-constraint-declared-by';
+import type { PptxSmartArtNode, PptxSmartArtPresLayoutVars, SmartArtStyle } from '../types';
 import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 import {
 	isDesRootedFontRole,
@@ -23,6 +22,7 @@ import {
 	isMainAxisContentSized,
 	resolveContentSizedExtents,
 } from './smartart-layout-interpreter-linear-content-size';
+import { itemAspect, ordered } from './smartart-layout-interpreter-linear-item-aspect';
 import { resolveMainAxisLayout } from './smartart-layout-interpreter-linear-main-axis';
 import { INSET } from './smartart-layout-interpreter-linear-shared';
 import type { ArrangementPlan, FlowDirection } from './smartart-layout-interpreter-model';
@@ -42,56 +42,6 @@ import { SMARTART_LINE_SPACING_FACTOR } from './smartart-text-wrap-fit';
 
 export { arrangeSnake } from './smartart-layout-interpreter-snake';
 
-/**
- * Item aspect (height / width), resolved ONLY from the ARRANGER's own
- * `constrLst` (`for="ch" forName="<item role>"` / `ptType="<item ptType>"`),
- * via {@link resolveConstraintDeclaredBy} - the item's OWN self-scoped
- * `h`/`w` is a SEPARATE fallback the caller applies itself (`naturalAspect`
- * below), not considered here.
- *
- * Round 25: a same-axis "inherit the arranger's own dimension" declaration
- * (`<dgm:constr type="h" for="ch" forName="linNode" refType="h"/>`, no
- * cross-axis reference or literal factor of its own - "Vertical Bracket
- * List"'s `linNode`) resolves to a spurious 1:1 "aspect" via this same
- * code path (both axes bottom out at the root's own implicit `w=h=1`) and
- * squashes a genuinely WIDE item template into a narrow square. A dedicated
- * fix EXCLUDING that pattern was implemented, measured against the full
- * 227-fixture corpus, and found to REGRESS WIDELY (dozens of OTHER
- * fixtures' FONT/GEOM values moved measurably further from cached - e.g.
- * `alternating-flow--hier5.pptx` 44.0px->74.7px against a 37.3px cached
- * target, `bullet-timeline--hier5.pptx`'s `maxGeomDelta` 34%->88% - the
- * SAME degenerate 1:1 resolution this fix targeted is, empirically,
- * load-bearing for many OTHER fixtures' correct box shape, not merely
- * "coincidentally correct" for them). REVERTED - see the round-25 successor
- * doc's own section for the measured regression numbers and the
- * `smartart-layout-interpreter-linear-item-aspect.ts` file this attempt
- * added (deleted along with this revert). `vertical-bracket-list`'s own
- * squashed-box symptom is real and unfixed; whoever continues needs a
- * NARROWER trigger than "same-axis inherit resolves to 1" - possibly
- * conditioned on the item template's own nested arranger being a
- * DIFFERENT-orientation `lin` (a horizontal `linNode` inside a vertical
- * outer arranger), not a blanket exemption.
- */
-function itemAspect(plan: ArrangementPlan, index: ConstraintIndex): number | undefined {
-	const item = itemNode(plan.node);
-	if (!item) {
-		return undefined;
-	}
-	const role = roleOf(item);
-	const arrangerRole = roleOf(plan.node);
-	const height = resolveConstraintDeclaredBy(index, role, 'h', arrangerRole);
-	const width = resolveConstraintDeclaredBy(index, role, 'w', arrangerRole);
-	if (typeof height === 'number' && typeof width === 'number' && height > 0 && width > 0) {
-		return height / width;
-	}
-	return undefined;
-}
-
-/** Order the data nodes for the resolved flow direction. */
-function ordered(nodes: PptxSmartArtNode[], flow: FlowDirection): PptxSmartArtNode[] {
-	return flow.reverse ? [...nodes].reverse() : nodes;
-}
-
 /** Execute the `lin` algorithm: a single row/column honouring constraints. */
 export function arrangeLinear(
 	plan: ArrangementPlan,
@@ -104,6 +54,7 @@ export function arrangeLinear(
 	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
 	childrenOf?: Map<string, PptxSmartArtNode[]>,
 	fontName?: string,
+	presLayoutVars?: PptxSmartArtPresLayoutVars,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
@@ -120,7 +71,7 @@ export function arrangeLinear(
 	const clampRatio = (value: number): number => Math.min(Math.max(value, 0), 3);
 	const begPad = clampRatio(resolveRatioConstraint(constraints, index, role, ['begPad'], 0));
 	const endPad = clampRatio(resolveRatioConstraint(constraints, index, role, ['endPad'], 0));
-	const aspect = itemAspect(plan, index);
+	const aspect = itemAspect(plan, index, nodes.length, presLayoutVars);
 	const flow2 = ordered(nodes, flow);
 	const n = flow2.length;
 	const horizontal = flow.orientation === 'horizontal';

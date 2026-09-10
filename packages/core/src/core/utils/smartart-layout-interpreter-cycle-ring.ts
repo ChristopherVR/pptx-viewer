@@ -16,6 +16,7 @@
  * Pure geometry; no framework code.
  */
 
+import { computeRingBulgeBounds } from './smartart-layout-interpreter-cycle-ring-bulge';
 import { resolveRingAxisOffset } from './smartart-layout-interpreter-cycle-ring-offset';
 import type { BoundingBox } from './smartart-layout-types';
 
@@ -135,21 +136,12 @@ function ringLayoutForGapFactor(
 	const halfH = Math.max(0.01, heightOverWidth) / 2;
 	const xs = natural.map((p) => p.x);
 	const ys = natural.map((p) => p.y);
-	// A `sibTrans` curve connector (see `smartart-layout-interpreter-cycle-
-	// sibtrans.ts`'s own module doc comment) bulges past the chord between
-	// two adjacent satellite centres by up to its own declared "height", in
-	// EITHER direction depending on where each pair of satellites sits
-	// relative to the ring's own centre - applied here as a uniform
-	// isotropic expansion of the satellites' own bounding extremes on all 4
-	// sides, the simplest model that does not need each connector pair's own
-	// exact bulge direction resolved individually.
-	const bulge = Math.max(0, sibTransBulgeRatio ?? 0);
-	const minX = Math.min(...xs) - halfW - bulge;
-	const maxX = Math.max(...xs) + halfW + bulge;
-	const minY = Math.min(...ys) - halfH - bulge;
-	const maxY = Math.max(...ys) + halfH + bulge;
-	const naturalBoundW = Math.max(1e-6, maxX - minX);
-	const naturalBoundH = Math.max(1e-6, maxY - minY);
+	// See `computeRingBulgeBounds`'s own doc comment: a `sibTrans` curve
+	// connector's bulge shrinks the SCALE divisor only, never the
+	// satellite-only bound `centers`/`resolveRingAxisOffset` use below - a
+	// measured regression (`radial-cycle--hier5.pptx`) if it does.
+	const { minX, minY, naturalBoundW, naturalBoundH, scaleBoundW, scaleBoundH } =
+		computeRingBulgeBounds(xs, ys, halfW, halfH, sibTransBulgeRatio);
 	// A SINGLE isotropic scale (never independent per-axis stretching, see
 	// the module doc comment for the live-COM correction): the tighter of the
 	// two per-axis "fill" candidates wins. The slack this leaves on the OTHER
@@ -166,7 +158,7 @@ function ringLayoutForGapFactor(
 	// 4-satellite content bounding box is centred on both axes in the cached
 	// drawing, measured margins ~141.6px horizontal, ~2.0px vertical,
 	// symmetric on both sides each) without any special-casing.
-	const scale = Math.min(box.width / naturalBoundW, box.height / naturalBoundH);
+	const scale = Math.min(box.width / scaleBoundW, box.height / scaleBoundH);
 	const scaleX = scale;
 	const scaleY = scale;
 	const offsetX = resolveRingAxisOffset(box.width, naturalBoundW, scaleX, xs);
@@ -237,6 +229,7 @@ export function computeCycleRingLayout(
 	absoluteGapPx?: number,
 	hubGeometry?: HubRingGeometry,
 	absoluteHubGapPx?: number,
+	sibTransBulgeRatio?: number,
 ): CycleRingLayout {
 	const degenerate = degenerateRingLayout(n, heightOverWidth, box);
 	if (degenerate) {
@@ -254,6 +247,7 @@ export function computeCycleRingLayout(
 			heightOverWidth,
 			box,
 			hubGeometry,
+			sibTransBulgeRatio,
 		);
 	}
 	let gapFactor = minGapRatio;
@@ -267,6 +261,7 @@ export function computeCycleRingLayout(
 			heightOverWidth,
 			box,
 			hub,
+			sibTransBulgeRatio,
 		);
 		const nextGapFactor =
 			needsGapIteration && candidate.nodeWidth > 1e-6
@@ -287,5 +282,14 @@ export function computeCycleRingLayout(
 			break;
 		}
 	}
-	return ringLayoutForGapFactor(n, stAngDeg, spanDeg, gapFactor, heightOverWidth, box, hub);
+	return ringLayoutForGapFactor(
+		n,
+		stAngDeg,
+		spanDeg,
+		gapFactor,
+		heightOverWidth,
+		box,
+		hub,
+		sibTransBulgeRatio,
+	);
 }

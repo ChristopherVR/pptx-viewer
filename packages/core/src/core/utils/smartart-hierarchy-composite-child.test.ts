@@ -107,4 +107,62 @@ describe('resolveCompositeChildGeometry', () => {
 	it('returns undefined for undefined input', () => {
 		expect(resolveCompositeChildGeometry(undefined)).toBeUndefined();
 	});
+
+	it('session 21: converts a "parent-relative" child height (circle-picture-hierarchy--hier5.pptx own shape: `h refType="h"`, relative to the WRAPPING composite, not self-referential) via `childAspect = heightFactor * wrapperAspect / widthFactor` - 0.8*0.5/0.6=0.6667, matching that fixture\'s own cached 144/216 exactly', () => {
+		const circlePictureLike: PptxSmartArtLayoutNode = {
+			name: 'hierChild1',
+			children: [
+				{
+					name: 'composite',
+					algorithm: { type: 'composite' },
+					constraints: [
+						{ type: 'w', for: 'ch', forName: 'text', referenceType: 'w', factor: 0.6 },
+						{ type: 'h', for: 'ch', forName: 'text', referenceType: 'h', factor: 0.8 },
+						{ type: 'l', for: 'ch', forName: 'text', referenceType: 'w', factor: 0.4 },
+					],
+					children: [{ name: 'text', presentationOf: { axis: ['self'] } }],
+				},
+			],
+		};
+		const geometry = resolveCompositeChildGeometry(circlePictureLike, 0.5);
+		expect(geometry?.aspectRatio).toBeCloseTo(0.6667, 4);
+		expect(geometry?.widthFactor).toBe(0.6);
+		expect(geometry?.offsetXRatio).toBe(0.4);
+	});
+
+	it('session 23: an OMITTED `fact` on the width constraint is NOT matched (kept STRICT deliberately) - half-circle-organization-chart--hier5.pptx\'s own shape (`w for="ch" forName="rootText1" refType="w"`, no `fact` at all) resolves the item\'s own SIZE exactly when relaxed (0.64*0.5/1=0.32, matching that fixture\'s own cached 89/278=0.3201 essentially exactly - COM-verified), but exposes a SEPARATE, pre-existing POSITION bug (`smartart-track-r-successor.md` SESSION 23 has the full local-coordinate derivation) that regresses the fixture\'s own `maxDeltaFraction` when landed alone - left dormant (returns `undefined`, falling back to the wrapper aspect) until a successor lands the companion position fix', () => {
+		const halfCircleLike: PptxSmartArtLayoutNode = {
+			name: 'hierChild1',
+			children: [
+				{
+					name: 'composite',
+					algorithm: { type: 'composite' },
+					constraints: [
+						{ type: 'w', for: 'ch', forName: 'rootText1', referenceType: 'w' },
+						{ type: 'h', for: 'ch', forName: 'rootText1', referenceType: 'h', factor: 0.64 },
+					],
+					children: [{ name: 'rootText1', presentationOf: { axis: ['self'] } }],
+				},
+			],
+		};
+		expect(resolveCompositeChildGeometry(halfCircleLike, 0.5)).toBeUndefined();
+	});
+
+	it('session 21: the "parent-relative" shape needs a `wrapperAspect` - without one, returns undefined rather than guessing', () => {
+		const circlePictureLike: PptxSmartArtLayoutNode = {
+			name: 'hierChild1',
+			children: [
+				{
+					name: 'composite',
+					algorithm: { type: 'composite' },
+					constraints: [
+						{ type: 'w', for: 'ch', forName: 'text', referenceType: 'w', factor: 0.6 },
+						{ type: 'h', for: 'ch', forName: 'text', referenceType: 'h', factor: 0.8 },
+					],
+					children: [{ name: 'text', presentationOf: { axis: ['self'] } }],
+				},
+			],
+		};
+		expect(resolveCompositeChildGeometry(circlePictureLike)).toBeUndefined();
+	});
 });

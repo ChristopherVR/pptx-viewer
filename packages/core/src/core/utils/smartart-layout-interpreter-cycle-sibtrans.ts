@@ -65,15 +65,22 @@ function findCurveSiblingConnector(
 export function resolveSibTransBulgeRatio(
 	constraintNode: PptxSmartArtLayoutNode,
 	arrangerConstraints: PptxSmartArtLayoutNode['constraints'],
-	itemName: string | undefined,
 ): number | undefined {
-	if (!itemName) {
-		return undefined;
-	}
 	const connector = findCurveSiblingConnector(constraintNode);
 	if (!connector?.name) {
 		return undefined;
 	}
+	// Deliberately NOT filtered by `c.referenceForName === itemName`: the
+	// composite's own `dgm:choose` (`cnt<=1` vs the real `n>1` branch) is
+	// choose-BLIND flattened onto `constraintNode.children`/`arrangerConstraints`
+	// (see `smartart-layout-interpreter-cycle-constraints.ts`'s own doc
+	// comment on `resolveCycleConstraintNode`'s sibling flattening), and
+	// `resolveRingItemNode` picks up the `cnt<=1` branch's OWN item name
+	// (`"oneComp"`, not the real ring item `"node"`) for a genuine multi-
+	// satellite fixture - a pre-existing mismatch this function must not
+	// inherit. `connector.name` (`"sibTrans"`, found structurally, not by
+	// name) already uniquely identifies the right `h` constraint without
+	// needing to also match the (possibly wrong) `itemName`.
 	const match = (arrangerConstraints ?? []).find(
 		(c) =>
 			c.type === 'h' &&
@@ -81,7 +88,7 @@ export function resolveSibTransBulgeRatio(
 			c.forName === connector.name &&
 			c.referenceType === 'w' &&
 			c.referenceFor === 'ch' &&
-			c.referenceForName === itemName &&
+			typeof c.referenceForName === 'string' &&
 			typeof c.factor === 'number' &&
 			c.factor > 0,
 	);

@@ -35,22 +35,43 @@ import type { RenderedConnector, RenderedNode } from './smartart-layout-types';
  * arranger's item template declares no shape anywhere (falls back to
  * `presetBoxNode`'s own family default).
  */
-export function findHierarchyItemShape(
+function findHierarchyItemNode(
 	node: PptxSmartArtLayoutNode | undefined,
-): PptxSmartArtLayoutNodeShape | undefined {
+): PptxSmartArtLayoutNode | undefined {
 	if (!node) {
 		return undefined;
 	}
 	if (node.algorithm?.type === 'tx' && node.shape) {
-		return node.shape;
+		return node;
 	}
 	for (const child of node.children ?? []) {
-		const found = findHierarchyItemShape(child);
+		const found = findHierarchyItemNode(child);
 		if (found) {
 			return found;
 		}
 	}
 	return undefined;
+}
+
+export function findHierarchyItemShape(
+	node: PptxSmartArtLayoutNode | undefined,
+): PptxSmartArtLayoutNodeShape | undefined {
+	return findHierarchyItemNode(node)?.shape;
+}
+
+/**
+ * The item template's own layoutNode NAME (e.g. `level1Shape`, `rootText1`)
+ * - the SAME node `findHierarchyItemShape` finds, but its `name` rather than
+ * its `shape`. SESSION 24: used to search a `ConstraintIndex` for a
+ * generation-gap `sp` constraint declared on an ANCESTOR of `hierChild`
+ * (see `resolveGenerationGapFromIndex`'s own doc comment in `smartart-
+ * hierarchy-generation-gap.ts`) that references this exact name - a
+ * constraint reachable only by name, not by tree position.
+ */
+export function findHierarchyItemName(
+	node: PptxSmartArtLayoutNode | undefined,
+): string | undefined {
+	return findHierarchyItemNode(node)?.name;
 }
 
 /**

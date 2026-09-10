@@ -21,7 +21,16 @@ import { smartArtDescendantsWithText } from './smartart-node-tree-axis';
 export interface SelfDesPair {
 	node: PptxSmartArtNode;
 	selfRect: Slot;
-	desSlot: { rect: Slot; content: PptxSmartArtNode[] } | undefined;
+	/**
+	 * The `self` slot's OWN layoutNode (round 28: for `findCompositeItemShape`
+	 * to resolve its real declared preset from - `renderAnchoredPair` never
+	 * had access to this before, so every self-anchored box silently fell
+	 * through to the caller's own hardcoded family default).
+	 */
+	selfLayoutNode: PptxSmartArtLayoutNode;
+	desSlot:
+		| { rect: Slot; content: PptxSmartArtNode[]; layoutNode: PptxSmartArtLayoutNode }
+		| undefined;
 }
 
 /** Resolve every `self`/`des` pair `arrangeByPresentationOf` will render, in point order. */
@@ -45,15 +54,17 @@ export function collectSelfDesPairs(
 			? {
 					rect: resolveSlot(desSlotted.dims, box, absX, absY),
 					content: smartArtDescendantsWithText(node, childrenOf),
+					layoutNode: desSlotted.node,
 				}
 			: undefined;
-		if (!desSlot && findRingDesSibling(allChildren, selfSlots[i].node)) {
+		const ringDesSibling = findRingDesSibling(allChildren, selfSlots[i].node);
+		if (!desSlot && ringDesSibling) {
 			const content = smartArtDescendantsWithText(node, childrenOf);
 			if (content.length > 0) {
-				desSlot = { rect: ringFoldRect(selfRect), content };
+				desSlot = { rect: ringFoldRect(selfRect), content, layoutNode: ringDesSibling };
 			}
 		}
-		pairs.push({ node, selfRect, desSlot });
+		pairs.push({ node, selfRect, selfLayoutNode: selfSlots[i].node, desSlot });
 	}
 	return pairs;
 }

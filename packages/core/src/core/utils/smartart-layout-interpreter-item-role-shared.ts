@@ -231,3 +231,20 @@ export function heightWeight(
 	const resolved = resolveConstraintDeclaredBy(index, roleOf(role), 'h', arrangerRole);
 	return typeof resolved === 'number' && Number.isFinite(resolved) && resolved > 0 ? resolved : 1;
 }
+
+/**
+ * Main-axis weight for splitting the item cell across roles SIDE BY SIDE
+ * (round 27's column role split, `smartart-layout-interpreter-item-role-
+ * stack-columns.ts`): the role's OWN declared `w` constraint, mirroring
+ * {@link heightWeight} exactly but for the cross axis a horizontally-nested
+ * item template ("Vertical Bracket List"'s `linNode`, `linDir="fromL"`)
+ * actually stacks its roles along.
+ */
+export function widthWeight(
+	index: ConstraintIndex,
+	declaringRole: string,
+	role: PptxSmartArtLayoutNode,
+): number {
+	const resolved = resolveConstraintDeclaredBy(index, roleOf(role), 'w', declaringRole);
+	return typeof resolved === 'number' && Number.isFinite(resolved) && resolved > 0 ? resolved : 1;
+}

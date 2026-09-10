@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PptxSmartArtNode, PptxSmartArtLayoutNode } from '../types';
+import type {
+	PptxSmartArtLayoutDefinition,
+	PptxSmartArtNode,
+	PptxSmartArtLayoutNode,
+} from '../types';
+import { buildConstraintIndex } from './smartart-constraint-solver';
 import {
 	descendantTextById,
 	hasAmbiguousTopLevelRoles,
+	widthWeight,
 } from './smartart-layout-interpreter-item-role-shared';
 
 describe('hasAmbiguousTopLevelRoles', () => {
@@ -97,5 +103,31 @@ describe('descendantTextById', () => {
 		const childrenOf = new Map<string, PptxSmartArtNode[]>();
 		const leaf: PptxSmartArtNode = { id: 'leaf', text: 'Node One' };
 		expect(descendantTextById(leaf, childrenOf).size).toBe(0);
+	});
+});
+
+describe('widthWeight', () => {
+	it("reads the role's own arranger-declared `w` constraint (round 27's column-split mirror of `heightWeight`) - \"Vertical Bracket List\"'s own `parTx`/`desTx` shares", () => {
+		const parTx: PptxSmartArtLayoutNode = { name: 'parTx' };
+		const desTx: PptxSmartArtLayoutNode = { name: 'desTx' };
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'linNode',
+				children: [parTx, desTx],
+				constraints: [
+					{ type: 'w', for: 'ch', forName: 'parTx', referenceType: 'w', factor: 0.25 },
+					{ type: 'w', for: 'ch', forName: 'desTx', referenceType: 'w', factor: 0.68 },
+				],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		expect(widthWeight(index, 'linNode', parTx)).toBeCloseTo(0.25);
+		expect(widthWeight(index, 'linNode', desTx)).toBeCloseTo(0.68);
+	});
+
+	it('defaults to an equal share (1) when no `w` constraint resolves at all', () => {
+		const bare: PptxSmartArtLayoutNode = { name: 'bare' };
+		const index = buildConstraintIndex({ rootNode: { name: 'root', children: [bare] } });
+		expect(widthWeight(index, 'root', bare)).toBe(1);
 	});
 });

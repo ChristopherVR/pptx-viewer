@@ -46,7 +46,9 @@ import type { SlotStyleContext } from './smartart-layout-interpreter-composite-r
 import { axisAbsMax, readSlots, resolveSlot } from './smartart-layout-interpreter-composite-slots';
 import type { Slot, SlottedDims } from './smartart-layout-interpreter-composite-slots';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { rectNode, styleContext } from './smartart-layout-interpreter-render';
+import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
+import { styleContext } from './smartart-layout-interpreter-render';
+import { findCompositeItemShape } from './smartart-layout-shape-preset';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
 
 export type { SlotStyleContext } from './smartart-layout-interpreter-composite-render';
@@ -112,8 +114,10 @@ function arrangeByPresentationOf(
 	const fontFit = resolveFontFitFromPairs(fontCtx, selfSlots[0]?.node, pairs);
 	const rendered: RenderedNode[] = [];
 	for (let i = 0; i < count; i++) {
-		const { node, selfRect, desSlot } = pairs[i];
-		rendered.push(...renderAnchoredPair(node, i, count, selfRect, desSlot, ctx, fontFit));
+		const { node, selfRect, selfLayoutNode, desSlot } = pairs[i];
+		rendered.push(
+			...renderAnchoredPair(node, i, count, selfRect, selfLayoutNode, desSlot, ctx, fontFit),
+		);
 		for (const wrapperSlot of childRepeaterSlots) {
 			rendered.push(
 				...renderChildRepeaterSlot(wrapperSlot, node, i, box, absX, absY, childrenOf, ctx),
@@ -163,7 +167,7 @@ function arrangeByOrder(
 	for (let i = 0; i < count; i++) {
 		const slot = slots[i];
 		rendered.push(
-			rectNode({
+			presetBoxNode({
 				key: `${ctx.elementId}-comp-${nodes[i].id}-${i}`,
 				x: slot.x,
 				y: slot.y,
@@ -177,6 +181,8 @@ function arrangeByOrder(
 				fontSizeOverride: fontFit?.rootSizePx,
 				descendantFontSize: fontFit?.descendantSizePx,
 				ctx: ctx.ctx,
+				shape: findCompositeItemShape(slotted[i].node),
+				fallbackKind: 'rect',
 			}),
 		);
 	}

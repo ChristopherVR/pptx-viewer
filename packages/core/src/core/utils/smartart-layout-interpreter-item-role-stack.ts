@@ -11,6 +11,8 @@
  */
 
 import type { ConstraintIndex } from './smartart-constraint-solver';
+import type { ItemRoleLayoutScope } from './smartart-layout-interpreter-item-role-orientation';
+import { stackAsColumns } from './smartart-layout-interpreter-item-role-stack-columns';
 import {
 	boundingBoxOf,
 	splitEntryFields,
@@ -62,6 +64,7 @@ export function stackRoleContent(
 	original: RenderedNode,
 	index: ConstraintIndex,
 	nodeTextById?: Map<string, string>,
+	layoutScope?: ItemRoleLayoutScope,
 ): RenderedNode[] | undefined {
 	// A LONE resolved role (a leaf point with no child, when the template
 	// declares 2+ roles but this specific point's own content only fills
@@ -72,11 +75,51 @@ export function stackRoleContent(
 	// regressed their shape COUNT, not just geometry - the single-role path
 	// is not as safe a generalisation as the 2+-role split below turned out
 	// to be. Left as a follow-up: see the round-3 Track S/R handoff notes.
+	//
+	// Round 27's own COLUMN case is the one exception: a leaf point in a
+	// column-oriented item template ("Vertical Bracket List"'s "Node Three",
+	// no child - only `parTx` resolves) is cached at `parTx`'s OWN narrow
+	// column width/position, never the full merged box width a `cycle`
+	// hub/satellite's single role correctly keeps - so a lone COLUMN role
+	// still routes through `stackAsColumns` (which degrades gracefully to a
+	// single, correctly-sized/positioned column) rather than falling into
+	// this generic bypass.
 	if (content.length <= 1) {
-		return undefined;
+		return content.length === 1 && layoutScope?.orientation === 'column'
+			? stackAsColumns(
+					content,
+					layoutScope.declaringRole,
+					original,
+					boundingBoxOf(original),
+					index,
+					nodeTextById,
+				)
+			: undefined;
 	}
+	// Round 27: a role-split item template nested inside its own EXPLICIT
+	// horizontal `lin` sub-arranger ("Vertical Bracket List"'s `linNode`,
+	// `smartart-layout-interpreter-item-role-orientation.ts`'s
+	// `resolveItemRoleLayoutScope`) stacks its roles SIDE BY SIDE, not
+	// top-to-bottom - `layoutScope` omitted (every pre-existing caller not yet
+	// updated for this) keeps the exact previous row-stack behaviour.
 	const asRect = (): RenderedRectNode[] =>
-		stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index, nodeTextById);
+		layoutScope?.orientation === 'column'
+			? stackAsColumns(
+					content,
+					layoutScope.declaringRole,
+					original,
+					boundingBoxOf(original),
+					index,
+					nodeTextById,
+				)
+			: stackAsRect(
+					content,
+					layoutScope?.declaringRole ?? arrangerRole,
+					original,
+					boundingBoxOf(original),
+					index,
+					nodeTextById,
+				);
 	// EXPLICIT declaration only: a role with NO `dgm:shape` of its own
 	// (`rolePreset`'s "default to rect" fallback) must NOT count as "wants
 	// rect" here - a hub+satellite `cycle` family's own roles commonly

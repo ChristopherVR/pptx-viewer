@@ -6,11 +6,12 @@
  * per-file line budget).
  */
 
-import type { PptxSmartArtNode, SmartArtStyle } from '../types';
+import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '../types';
 import type { SharedFontFit } from './smartart-layout-interpreter-composite-fontfit';
 import type { Slot } from './smartart-layout-interpreter-composite-slots';
+import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import type { StyleContext } from './smartart-layout-interpreter-render';
-import { rectNode } from './smartart-layout-interpreter-render';
+import { findCompositeItemShape } from './smartart-layout-shape-preset';
 import type { RenderedNode, RenderedRectNode } from './smartart-layout-types';
 
 /** Shared per-arranger style/palette context, threaded through every slot
@@ -29,12 +30,15 @@ export function renderAnchoredPair(
 	index: number,
 	total: number,
 	selfSlot: Slot,
-	desSlot: { rect: Slot; content: PptxSmartArtNode[] } | undefined,
+	selfLayoutNode: PptxSmartArtLayoutNode,
+	desSlot:
+		| { rect: Slot; content: PptxSmartArtNode[]; layoutNode: PptxSmartArtLayoutNode }
+		| undefined,
 	ctx: SlotStyleContext,
 	fontFit: SharedFontFit | undefined,
 ): RenderedNode[] {
 	const out: RenderedNode[] = [
-		rectNode({
+		presetBoxNode({
 			key: `${ctx.elementId}-comp-${node.id}-${index}`,
 			x: selfSlot.x,
 			y: selfSlot.y,
@@ -48,12 +52,14 @@ export function renderAnchoredPair(
 			ctx: ctx.ctx,
 			fontSizeOverride: fontFit?.rootSizePx,
 			descendantFontSize: fontFit?.descendantSizePx,
+			shape: findCompositeItemShape(selfLayoutNode),
+			fallbackKind: 'rect',
 		}),
 	];
 	if (desSlot && desSlot.content.length > 0) {
 		const first = desSlot.content[0];
 		const rendered: RenderedRectNode = {
-			...rectNode({
+			...(presetBoxNode({
 				key: `${ctx.elementId}-comp-des-${first.id}-${index}`,
 				x: desSlot.rect.x,
 				y: desSlot.rect.y,
@@ -67,7 +73,9 @@ export function renderAnchoredPair(
 				ctx: ctx.ctx,
 				fontSizeOverride: fontFit?.rootSizePx,
 				descendantFontSize: fontFit?.descendantSizePx,
-			}),
+				shape: findCompositeItemShape(desSlot.layoutNode),
+				fallbackKind: 'rect',
+			}) as RenderedRectNode),
 			foldedNodeIds: desSlot.content.slice(1).map((entry) => entry.id),
 		};
 		out.push(rendered);

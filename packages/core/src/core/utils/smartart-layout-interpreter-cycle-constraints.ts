@@ -211,11 +211,7 @@ export function resolveCycleRingParams(
 	// comment for the full derivation - `radial-cycle`'s own `sibTrans`
 	// curve connector bulges past the satellites' own edges, needing extra
 	// room in the ring's natural bounding box (`computeCycleRingLayout`).
-	const sibTransBulgeRatio = resolveSibTransBulgeRatio(
-		constraintNode,
-		arrangerConstraints,
-		item?.name,
-	);
+	const sibTransBulgeRatio = resolveSibTransBulgeRatio(constraintNode, arrangerConstraints);
 	// An ABSOLUTE `sp` (no `fact` at all, e.g. `radial-list--hier5.pptx`'s own
 	// `<dgm:constr type="sp" val="20"/>`) is a hub-to-satellite gap too, but
 	// `resolveHubGapRatio` only ever resolves a RATIO-form `sp` (a declared

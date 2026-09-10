@@ -2,13 +2,35 @@
  * SmartArt DiagramML interpreter - hierarchy item-box sizing.
  *
  * Split out of `smartart-hierarchy-orientation.ts` (the file-size budget):
- * `fitItemBox` itself, kept alongside `HANG_HEIGHT_RATIO`/
- * `HIER_TAIL_OFFSET_RATIO`, the two ratios its own `maxHangDepth` term
- * consumes. Pure geometry; no framework code, no DOM.
+ * `fitItemBox` itself, kept alongside `HIER_TAIL_OFFSET_RATIO` (its own
+ * `maxHangDepth` WIDTH term) and `HANG_HEIGHT_RATIO` (its own `maxHangRows`
+ * HEIGHT term). Pure geometry; no framework code, no DOM.
  */
 
 import { HANG_HEIGHT_RATIO, HIER_TAIL_OFFSET_RATIO } from './smartart-hierarchy-shared';
 import type { BoundingBox } from './smartart-layout-types';
+
+/**
+ * WIDTH-axis extra reservation, active ONLY when `HierarchyHangShape
+ * .allChildrenHang` is true (every one of the root's own direct children
+ * hangs, none a leaf, none continuing to fan) - see that field's own doc
+ * comment in `smartart-hierarchy-hang-depth.ts` for the structural
+ * definition and why partial-hang shapes (2 of 3 branches, etc.) do not
+ * need it. COM-verified (SESSION 23) against `half-circle-organization-
+ * chart--hier5.pptx` (the SAME `organization-chart--hier5.pptx` tree shape,
+ * n=2, BOTH children hang 1 leaf each - the first fixture where the item's
+ * OWN aspect correction flips this axis to WIDTH-bound, exposing `widthFit`'s
+ * own residual directly instead of it staying masked by the height-bound
+ * clamp): reproduces the cached `278px` item width from `867px` box width
+ * within 0.3% (`867/(2+1*0.21+1*0.25+0.6587)=277.9`) - a MEASURED constant
+ * (matching this module's own existing `HIER_TAIL_OFFSET_RATIO`/
+ * `HANG_HEIGHT_RATIO` precedent, neither of which traces to a declared XML
+ * fact either), NOT yet verified to scale correctly for `n>=3` (no clean COM
+ * sample exists where every one of 3+ branches hangs with none a leaf) -
+ * see `smartart-track-r-successor.md` SESSION 23 for the derivation and
+ * this open question.
+ */
+export const ALL_CHILDREN_HANG_EXTRA_RATIO = 0.6587;
 
 /**
  * Fit one item box's width/height for the `std`/`tailed` branch modes: the
@@ -35,18 +57,26 @@ import type { BoundingBox } from './smartart-layout-types';
  * `maxHangDepth` (default `0`, every existing `std`-mode caller unaffected):
  * the deepest hanging-tail chain past `levels`' own fanned generations (see
  * `smartart-hierarchy-hang-depth.ts`'s `computeHangShape`) - a `tailed`
- * hierarchy's hanging portion consumes EXTRA room on both axes that a plain
- * `columns`/`levels` count never captures (`HIER_TAIL_OFFSET_RATIO`'s own
- * per-hop horizontal indent, `HANG_HEIGHT_RATIO`'s own per-hop vertical
- * gap - the SAME two constants `placeAt`/`placeHangingTree` actually use to
- * POSITION the hanging tail, reused here so the item is SIZED consistently
- * with where it will actually be placed). COM-verified against
- * `organization-chart--flat3.pptx` (`maxHangDepth=0`, unaffected) /
- * `--hier5.pptx` (`maxHangDepth=1`) / `--hier8.pptx` (`maxHangDepth=1`,
- * `levels` itself already larger via `computeHangShape`'s own fan-boundary
- * detection): reproduces the cached item box within ~1% on both axes for all
- * three, without needing a margin (`marginXRatio`/`marginYRatio` are `0` for
- * `tailed` mode - see `resolveHierarchyOrientation`'s own doc comment).
+ * hierarchy's hanging portion consumes EXTRA room on the WIDTH axis a plain
+ * `columns` count never captures (`HIER_TAIL_OFFSET_RATIO`'s own per-hop
+ * horizontal indent, the SAME constant `placeAt` uses to POSITION the
+ * hanging tail, reused here so the item is SIZED consistently with where it
+ * will actually be placed). COM-verified against `organization-chart--
+ * flat3.pptx` (`maxHangDepth=0`, unaffected) / `--hier5.pptx`/`--hier8.pptx`
+ * (`maxHangDepth=1`, `levels` itself already larger via `computeHangShape`'s
+ * own fan-boundary detection): reproduces the cached item box within ~1% on
+ * both axes for all three, without needing a margin (`marginXRatio`/
+ * `marginYRatio` are `0` for `tailed` mode - see `resolveHierarchyOrientation`'s
+ * own doc comment).
+ *
+ * `maxHangRows` (default `maxHangDepth`, so a caller that only ever measured
+ * `maxHangDepth` - a pure hanging chain, at most 1 ordinary child per hung
+ * node - is unaffected): the SEPARATE HEIGHT-axis term, the tallest hanging
+ * branch's own row count (`HierarchyHangShape.maxHangRows`'s doc comment in
+ * `smartart-hierarchy-hang-depth.ts` has the full derivation and the COM
+ * sweep that found it diverges from `maxHangDepth` whenever a hung node has
+ * more than one ordinary child - `placeHangingTree` stacks every one of
+ * THOSE in the SAME shared column, one row each, not one row per hop).
  */
 export function fitItemBox(
 	box: BoundingBox,
@@ -59,19 +89,23 @@ export function fitItemBox(
 	marginYRatio: number,
 	maxHangDepth = 0,
 	clampToNaturalAspect = true,
+	maxHangRows = maxHangDepth,
+	allChildrenHang = false,
 ): { boxW: number; boxH: number } {
 	const n = Math.max(1, columns);
 	const usableW = box.width - 2 * box.width * marginXRatio;
+	const allHangExtra = allChildrenHang ? ALL_CHILDREN_HANG_EXTRA_RATIO : 0;
 	const widthFit =
-		usableW / (n + Math.max(0, n - 1) * sibSpRatio + maxHangDepth * HIER_TAIL_OFFSET_RATIO);
+		usableW /
+		(n + Math.max(0, n - 1) * sibSpRatio + maxHangDepth * HIER_TAIL_OFFSET_RATIO + allHangExtra);
 	const generations = Math.max(1, levels);
 	const usableH = box.height - 2 * box.height * marginYRatio;
 	const heightFit =
 		usableH /
 		(generations +
-			maxHangDepth +
+			maxHangRows +
 			Math.max(0, generations - 1) * generationGapRatio +
-			maxHangDepth * HANG_HEIGHT_RATIO);
+			maxHangRows * HANG_HEIGHT_RATIO);
 	// `clampToNaturalAspect` (default `true`, every existing `std`-mode caller
 	// unaffected): "Hierarchy" itself always wants the SMALLER of its own
 	// declared `h:w` natural aspect and whatever the generation axis actually

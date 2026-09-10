@@ -110,13 +110,18 @@ export function arrangeCycle(
 	// `dgm:rule` override): only trustworthy when the hub was ALREADY pulled
 	// out of `nodes` upstream (`hubAlreadyStripped`) - the common case for
 	// every hub+ring family (`basic-radial`/`diverging-radial`/`converging-
-	// radial`), where `nodes.length` already IS the satellite count. When
-	// NOT already stripped, this function's own `ctrShpMap="fNode"` fallback
-	// below may still peel off `nodes[0]` as a hub - passing `nodes.length`
-	// unadjusted there would overcount by one, so `undefined` (no override
-	// possible) is safer than a guess.
-	const { minGapRatio, heightOverWidth, absoluteGapPx, hubRatio, hubGapRatio, absoluteHubGapPx } =
-		resolveCycleRingParams(plan.node, index, hubAlreadyStripped ? nodes.length : undefined);
+	// radial`), where `nodes.length` already IS the satellite count. When NOT
+	// already stripped, the `ctrShpMap="fNode"` fallback below may still peel
+	// off `nodes[0]` as a hub, so `undefined` (no override) is safer than a guess.
+	const {
+		minGapRatio,
+		heightOverWidth,
+		absoluteGapPx,
+		hubRatio,
+		hubGapRatio,
+		absoluteHubGapPx,
+		sibTransBulgeRatio,
+	} = resolveCycleRingParams(plan.node, index, hubAlreadyStripped ? nodes.length : undefined);
 	// `ctrShpMap="fNode"` pulls the first data point into a hub at the ring's
 	// own natural centre; every other value (including absent, the common
 	// case) puts every point on the ring, matching the pre-existing
@@ -197,6 +202,7 @@ export function arrangeCycle(
 		absoluteGapPx,
 		hubGeometry,
 		absoluteHubGapPx,
+		sibTransBulgeRatio,
 	);
 
 	const full = Math.abs(spanDeg) >= 360;

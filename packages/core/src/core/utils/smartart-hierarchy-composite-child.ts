@@ -32,6 +32,25 @@
  * simply returns `undefined` for it and every caller falls back to the
  * EXISTING (already-correct) `resolveAspectRatio` path unchanged.
  *
+ * SESSION 21: a SECOND composite-child shape exists (`circle-picture-
+ * hierarchy--hier5.pptx`'s own `text`, alongside a non-text `pic`/label
+ * sibling occupying the REST of the composite's width): `w for="ch"
+ * forName="text" refType="w" fact="0.6"` (self-referential, same SHAPE as
+ * the classic family's `fact="0.9"`) but `h for="ch" forName="text"
+ * refType="h" fact="0.8"` - `refType="h"`, NOT `"w"`, with no `refFor`/
+ * `refForName` at all: relative to the composite's own HEIGHT, not
+ * self-referential. This is the SAME "parent-relative" shape SESSION
+ * 18/19 found (and left unlanded, paired with a THEN-unresolved
+ * `fitItemBox` size regression) for `half-circle-organization-chart`'s own
+ * `rootText` - landed HERE because `circle-picture-hierarchy` is `std` mode
+ * (plain "Hierarchy" family, not `tailed` org-chart), so `fitItemBox`'s
+ * `clampToNaturalAspect` stays unconditionally `true` and the org-chart-only
+ * regression does not apply. Conversion: `childAspect = heightFactor *
+ * wrapperAspect / widthFactor` (`wrapperAspect` = the WRAPPING composite's
+ * own top-level `h:w`, `0.5` here) - `0.8 * 0.5 / 0.6 = 0.6667`, matching
+ * `circle-picture-hierarchy--hier5.pptx`'s own cached `144/216 = 0.6667`
+ * EXACTLY.
+ *
  * `text`'s own `l`/`t` constraints (ALSO declared in `composite`'s own local
  * `constrLst`, `fact="0.1"`/`fact="0.095"`, both relative to `composite`'s
  * own `w`) are the "3D card" visual offset between `background` (flush at
@@ -102,6 +121,7 @@ function findTextBearingChild(
  */
 export function resolveCompositeChildGeometry(
 	algorithmNode: PptxSmartArtLayoutNode | undefined,
+	wrapperAspect?: number,
 ): CompositeChildGeometry | undefined {
 	const compositeNode = findCompositeDescendant(algorithmNode);
 	if (!compositeNode) {
@@ -112,6 +132,36 @@ export function resolveCompositeChildGeometry(
 		return undefined;
 	}
 	const constraints = compositeNode.allConstraints ?? compositeNode.constraints ?? [];
+	// SESSION 23: `half-circle-organization-chart--hier5.pptx`'s own `w
+	// for="ch" forName="rootText1" refType="w"` declares NO `fact` at all
+	// (ECMA-376's own "omitted fact = 1" convention, used throughout this
+	// codebase elsewhere - the child would fill the composite's FULL width).
+	// Relaxing this match to accept that shape (and the paired `allChildrenHang`
+	// WIDTH-axis term, `smartart-hierarchy-fit-item-box.ts`) DOES land an exact
+	// item SIZE for `half-circle`/`name-and-title` (0% width/height delta,
+	// COM-verified) - but EXPOSES a SEPARATE, pre-existing POSITION bug this
+	// session did not solve: local-coordinate analysis (this fixture's own
+	// cached shape positions, box-relative) shows root/children/hang-tail at
+	// (204,25)/(36,222)/(419) local y - a cascading, roughly EVEN 3-step
+	// vertical spread across almost the FULL box height, NOT the shared
+	// `computeAxisPitch`/hanging-tail 2-row-plus-indent model `arrangeHierarchy`
+	// applies uniformly to every `tailed` layout. `half-circle-organization-
+	// chart` (and presumably `name-and-title`) is very likely its OWN DISTINCT
+	// DiagramML layout definition with its own cascading position algorithm,
+	// not a decorative reskin of plain `hierChild`'s fan+hang - reusing the
+	// SAME data-model parent/child relationships as `organization-chart--
+	// hier5.pptx` (confirmed: same node names/roles) but rendering them via a
+	// different alg chain PowerPoint itself declares for this layout. Landing
+	// the SIZE fix alone regressed the fixture's own `maxDeltaFraction`
+	// (0.0844 -> 0.1351) because the OLD, wrong size happened to partially
+	// compensate for the ALWAYS-wrong position - see `smartart-track-r-
+	// successor.md` SESSION 23 for the full derivation. Kept STRICT (requiring
+	// an explicit numeric `fact`) so this relaxation stays dormant until a
+	// successor lands the companion position fix (read `half-circle`'s OWN
+	// `layout1.xml` cascading alg chain directly, do not assume it is another
+	// `hierChild` parameter) - re-enable by dropping the `typeof c.factor ===
+	// 'number'` requirement below (already derived, see the git history / this
+	// comment's own predecessor) once that is landed alongside it.
 	const widthConstr = constraints.find(
 		(c) =>
 			c.type === 'w' &&
@@ -121,7 +171,11 @@ export function resolveCompositeChildGeometry(
 			c.referenceForName === undefined &&
 			typeof c.factor === 'number',
 	);
-	const heightConstr = constraints.find(
+	if (!widthConstr || widthConstr.factor === undefined || widthConstr.factor <= 0) {
+		return undefined;
+	}
+	const widthFactor = widthConstr.factor;
+	const selfHeightConstr = constraints.find(
 		(c) =>
 			c.type === 'h' &&
 			c.for === 'ch' &&
@@ -140,17 +194,40 @@ export function resolveCompositeChildGeometry(
 			c.referenceForName === undefined &&
 			typeof c.factor === 'number',
 	);
-	if (
-		!widthConstr ||
-		!heightConstr ||
-		widthConstr.factor === undefined ||
-		widthConstr.factor <= 0
-	) {
-		return undefined;
+	const offsetXRatio = (leftConstr?.factor as number | undefined) ?? 0;
+	if (selfHeightConstr) {
+		return {
+			aspectRatio: selfHeightConstr.factor as number,
+			widthFactor,
+			offsetXRatio,
+		};
 	}
-	return {
-		aspectRatio: heightConstr.factor as number,
-		widthFactor: widthConstr.factor,
-		offsetXRatio: (leftConstr?.factor as number | undefined) ?? 0,
-	};
+	// SESSION 21: the "parent-relative" shape (`h` refType="h", relative to
+	// the WRAPPING composite's own height, not self-referential to the
+	// child's own width) - see the module doc comment for the derivation.
+	// Only usable when the caller supplies the composite's own top-level
+	// aspect to convert with.
+	const parentRelativeHeightConstr = constraints.find(
+		(c) =>
+			c.type === 'h' &&
+			c.for === 'ch' &&
+			c.forName === child.name &&
+			c.referenceType === 'h' &&
+			c.referenceFor === undefined &&
+			c.referenceForName === undefined &&
+			typeof c.factor === 'number',
+	);
+	if (
+		parentRelativeHeightConstr &&
+		typeof wrapperAspect === 'number' &&
+		wrapperAspect > 0 &&
+		typeof parentRelativeHeightConstr.factor === 'number'
+	) {
+		return {
+			aspectRatio: (parentRelativeHeightConstr.factor * wrapperAspect) / widthFactor,
+			widthFactor,
+			offsetXRatio,
+		};
+	}
+	return undefined;
 }

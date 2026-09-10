@@ -76,7 +76,21 @@ function readFixture(fileName: string): ArrayBuffer {
 
 type ShapeEl = Extract<PptxElement, { type: 'shape' }>;
 
-/** Node-bearing shapes only: non-empty text, keyed by that text. */
+/**
+ * Node-bearing shapes only: non-empty text, keyed by that text. When two+
+ * shapes share the SAME text (round 27: `numbered-linear-arrow-process--
+ * hier5.pptx`'s cached drawing lists a tiny, connector-sized `chevron`
+ * accent BEFORE the real, substantially-sized `roundRect` label for the
+ * identical combined text - both genuinely carry the same `presOf`-declared
+ * string, but only one is the shape a human viewer actually reads), prefer
+ * the shape with the LARGER rendered AREA (`width * height`) over a plain
+ * first-occurrence-wins scan - a decorative accent that merely mirrors a
+ * point's text to size itself is reliably much smaller than the real label
+ * box, so area is a robust, general tie-breaker without hand-listing
+ * construct names. Applied identically to BOTH the cached and interpreted
+ * sides, so a fixture where interpreted has no such duplicate at all (the
+ * common case) is unaffected either way.
+ */
 function textKeyedShapes(elements: PptxElement[]): Map<string, ShapeEl> {
 	const map = new Map<string, ShapeEl>();
 	for (const el of elements) {
@@ -84,10 +98,13 @@ function textKeyedShapes(elements: PptxElement[]): Map<string, ShapeEl> {
 			continue;
 		}
 		const text = (el.text ?? el.textSegments?.map((s) => s.text).join('') ?? '').trim();
-		if (text.length === 0 || map.has(text)) {
+		if (text.length === 0) {
 			continue;
 		}
-		map.set(text, el);
+		const existing = map.get(text);
+		if (!existing || el.width * el.height > existing.width * existing.height) {
+			map.set(text, el);
+		}
 	}
 	return map;
 }

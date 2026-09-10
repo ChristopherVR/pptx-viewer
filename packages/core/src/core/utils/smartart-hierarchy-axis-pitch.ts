@@ -47,7 +47,10 @@ export interface HierarchyAxisPitches {
  * the fanned count double-reserves that space as one giant inter-row gap
  * (COM-verified regression: `organization-chart--hier5.pptx`'s own
  * generation-1 row rendered ~200px too far down) - scoped to just the
- * FAN-share instead.
+ * FAN-share instead. `fanHeight` reserves `maxHangRows` rows (the tallest
+ * hanging branch's own ROW count, not `maxHangDepth`'s hop count - see
+ * `HierarchyHangShape.maxHangRows`'s doc comment in `smartart-hierarchy-
+ * hang-depth.ts`), matching `fitItemBox`'s own height-axis term.
  *
  * The FAN axis is CENTRED (`compositeFanPitch`), not a leading-margin/
  * trailing-flush pack (`compositeWidthFactor` is `undefined` for
@@ -82,7 +85,7 @@ export function computeHierarchyAxisPitches(
 		? effectiveBox.width - hangShape.maxHangDepth * HIER_TAIL_OFFSET_RATIO * boxW
 		: effectiveBox.width;
 	const fanHeight = tailedPitch
-		? effectiveBox.height - hangShape.maxHangDepth * (1 + HANG_HEIGHT_RATIO) * boxH
+		? effectiveBox.height - hangShape.maxHangRows * (1 + HANG_HEIGHT_RATIO) * boxH
 		: effectiveBox.height;
 	const xPitch = compositeFanPitch(
 		fanWidth,

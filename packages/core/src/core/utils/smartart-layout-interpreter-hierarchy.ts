@@ -52,6 +52,7 @@ import type {
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
 import { buildTree, treeDepth } from './smartart-helpers';
+import type { TreeNode } from './smartart-helpers';
 import { computeHierarchyAxisPitches } from './smartart-hierarchy-axis-pitch';
 import {
 	branchMode,
@@ -59,10 +60,11 @@ import {
 	resolveRowSize,
 	tailDirection,
 } from './smartart-hierarchy-branch-mode';
+import { buildFanAwareWidthMap, resolveSpanWidth } from './smartart-hierarchy-fan-aware-width';
 import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
 import { computeHangShape } from './smartart-hierarchy-hang-depth';
 import { placeHangingForest } from './smartart-hierarchy-hanging';
-import { effectiveWidth, flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
+import { flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
 import {
 	applyChildOrder,
 	fitItemBox,
@@ -72,6 +74,7 @@ import {
 import { translateResult } from './smartart-hierarchy-pitch';
 import {
 	baseContext,
+	findHierarchyItemName,
 	findHierarchyItemShape,
 	HIER_TAIL_OFFSET_RATIO,
 } from './smartart-hierarchy-shared';
@@ -152,12 +155,17 @@ export function arrangeHierarchy(
 	// is always "X"/`cellW`/`boxW`'s own width and the generation axis always
 	// "Y" from `placeStandardTree`'s own point of view, whichever real screen
 	// axis that maps to.
-	const orientation = resolveHierarchyOrientation(algorithmNode, index, mode);
+	const orientation = resolveHierarchyOrientation(
+		algorithmNode,
+		index,
+		mode,
+		findHierarchyItemName(algorithmNode),
+	);
 	const effectiveBox: BoundingBox = orientation.transposed
 		? { width: h, height: w }
 		: { width: w, height: h };
-	const totalLeaves = roots.reduce((sum, r) => sum + effectiveWidth(r, orgChart), 0);
 	const rawDepth = roots.length > 0 ? Math.max(...roots.map((r) => treeDepth(r))) : 1;
+	const rowSize = resolveRowSize(presLayoutVars);
 	// `tailed` mode: only the fanned generations (root's own children row,
 	// plus any solo-chain-link continuation - see `computeHangShape`'s own
 	// doc comment) pack via `cellH`/`generationGapRatio`; everything past that
@@ -170,46 +178,31 @@ export function arrangeHierarchy(
 	// `depth`/`maxHangDepth` stay exactly as before).
 	const hangShape =
 		mode === 'tailed'
-			? computeHangShape(roots, orgChart, resolveRowSize(presLayoutVars))
-			: { fannedGenerations: rawDepth, maxHangDepth: 0 };
+			? computeHangShape(roots, orgChart, rowSize)
+			: { fannedGenerations: rawDepth, maxHangDepth: 0, maxHangRows: 0, allChildrenHang: false };
 	const depth = hangShape.fannedGenerations;
-	// `fitItemBox`'s own `clampToNaturalAspect` parameter (default `true`,
-	// left unset here) was added by a concurrent change to that file but is
-	// NOT wired to `false` for `tailed` mode here: measured directly (full
-	// gallery baseline, this session) that doing so REGRESSES the whole
-	// org-chart family rather than improving it -
-	// `organization-chart--{flat3,hier5,hier8}.pptx` moved from their
-	// existing `maxDeltaFraction` (5.6%/10.6%/13.5% observed with
-	// `clampToNaturalAspect=false`, all WORSE). Left at the default (`true`,
-	// i.e. `boxH`/`boxW` stay aspect-clamped). NOTE for whoever revisits
-	// `half-circle`/`name-and-title-organization-chart`'s own item-size
-	// residual (SESSION 18/19): `widthFit` itself is NOT provably wrong for
-	// `organization-chart--hier5.pptx` (352px) - that fixture is
-	// HEIGHT-bound (`boxH=heightFit`, `boxW=heightFit/aspectRatio`, `widthFit`
-	// never actually used), so its own good 1.27% match says nothing about
-	// `widthFit`'s correctness. `half-circle`'s smaller, more-correct aspect
-	// (0.32 vs the wrapper's 0.5 - see `smartart-hierarchy-composite-
-	// child.ts`) flips the SAME box to WIDTH-bound instead, exposing whatever
-	// `widthFit` actually is - which is why fixing the aspect ALONE regressed
-	// SESSION 18's own attempt.
-	//
-	// SESSION 20: 5 precise `widthFit` samples now exist (2 built via live
-	// COM specifically for this, `smartart-track-r-successor.md` has the
-	// full derivation) - `organization-chart--flat3.pptx` (n=2, no hang,
-	// extra~0), `--hier5.pptx` (n=2, BOTH branches hang 1 leaf each,
-	// extra~0.909), `--hier8.pptx` (n=5, ONE branch hangs 1 leaf,
-	// extra~0.018), a COM sample (n=3, ONE branch hangs 1 leaf, extra~0.007),
-	// and a COM sample (n=3, ONE branch hangs 2 leaves side by side,
-	// extra~0.851) - `extra` being how much `widthFit`'s own denominator
-	// must grow past `n + (n-1)*sibSpRatio` to reproduce the cached item
-	// width. A minority branch hanging exactly 1 leaf needs ~0 extra
-	// (`hier8`, the n=3/1-leaf sample); a branch hanging 2+ leaves, OR every
-	// fanned branch hanging at once, needs a LARGE extra of the SAME rough
-	// magnitude (~0.85-0.91) - two seemingly different triggers landing on
-	// similar magnitudes, not yet unified into one closed-form rule with
-	// only 5 samples. NOT landed this session - needs a proper automated
-	// COM sweep (vary branch count and hang-count independently) before
-	// trying another formula, not another one-off guess.
+	// `tailed` mode's own hang/fan decision (`fanAwareWidthMap`, see
+	// `buildFanAwareWidthMap`'s doc comment in `smartart-hierarchy-hang-
+	// depth.ts`): a branch that HANGS collapses its entire subtree to exactly
+	// ONE column, unlike plain `effectiveWidth`'s structural leaf-count sum
+	// (which over-allocates a hanging branch's own row-share whenever it has
+	// more than one descendant leaf - `placeHangingTree` stacks every one of
+	// a hung node's children in a SINGLE shared column, never side by side).
+	// `std` mode has no hang concept and keeps `spanOfRoot` at plain
+	// `effectiveWidth` (the map is `undefined`, `resolveSpanWidth` falls
+	// back). Threaded into BOTH sizing (`totalLeaves` below, `fitItemBox`'s
+	// own `columns` param) and positioning (`standardOptions.resolveSpan`
+	// below, consumed by `placeStandardTree`/`placeFlatChildren`) from this
+	// ONE map, so the two can never disagree on a branch's own column count.
+	const fanAwareWidthMap =
+		mode === 'tailed' ? buildFanAwareWidthMap(roots, orgChart, rowSize) : undefined;
+	const spanOfRoot = (r: TreeNode): number => resolveSpanWidth(fanAwareWidthMap, r, orgChart);
+	const totalLeaves = roots.reduce((sum, r) => sum + spanOfRoot(r), 0);
+	// `fitItemBox`'s own `clampToNaturalAspect` (default `true`, left unset):
+	// `false` for `tailed` mode REGRESSES the whole org-chart family (full
+	// baseline, measured) - stays aspect-clamped. `half-circle`/`name-and-
+	// title`'s own paired aspect+position problem is still open - see
+	// `smartart-track-r-successor.md` (SESSION 18-23) for the full history.
 	const { boxW, boxH } = fitItemBox(
 		effectiveBox,
 		totalLeaves,
@@ -220,6 +213,9 @@ export function arrangeHierarchy(
 		orientation.marginXRatio,
 		orientation.marginYRatio,
 		hangShape.maxHangDepth,
+		undefined,
+		hangShape.maxHangRows,
+		hangShape.allChildrenHang,
 	);
 	// See `computeHierarchyAxisPitches`'s own doc comment (`smartart-
 	// hierarchy-axis-pitch.ts`) for why the fan and generation axes use
@@ -252,8 +248,11 @@ export function arrangeHierarchy(
 
 	const standardOptions: StandardOptions = {
 		orgChart,
-		perRow: resolveRowSize(presLayoutVars),
+		perRow: rowSize,
 		foldDeeperGenerations: algorithmNode ? hierarchyLeafFoldsDescendants(algorithmNode) : false,
+		resolveSpan: fanAwareWidthMap
+			? (t) => resolveSpanWidth(fanAwareWidthMap, t, orgChart)
+			: undefined,
 	};
 	if (mode === 'tailed') {
 		// Measured ratio (`HIER_TAIL_OFFSET_RATIO`), not the unrelated 0.35 used
@@ -276,7 +275,7 @@ export function arrangeHierarchy(
 	let offset = 0;
 	for (const root of roots) {
 		placeStandardTree(hc, root, offset, 0, cellW, cellH, standardOptions);
-		offset += effectiveWidth(root, orgChart);
+		offset += spanOfRoot(root);
 	}
 	const result = translateResult(
 		finish(hc.nodes, hc.connectors, hc.ctx.shadow, effectiveBox.width, effectiveBox.height),

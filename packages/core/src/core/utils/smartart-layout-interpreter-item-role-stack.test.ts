@@ -310,3 +310,66 @@ describe('stackRoleContent splits a mixed-preset item template even when the ori
 		expect(rows).toBeUndefined();
 	});
 });
+
+describe("stackRoleContent dispatches to stackAsColumns for a `layoutScope.orientation === 'column'` (round 27)", () => {
+	function bracketColumnsIndex() {
+		const parTx: PptxSmartArtLayoutNode = { name: 'parTx' };
+		const desTx: PptxSmartArtLayoutNode = { name: 'desTx' };
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'linNode',
+				children: [parTx, desTx],
+				constraints: [
+					{ type: 'w', for: 'ch', forName: 'parTx', referenceType: 'w', factor: 0.3 },
+					{ type: 'w', for: 'ch', forName: 'desTx', referenceType: 'w', factor: 0.7 },
+				],
+			},
+		};
+		return { parTx, desTx, index: buildConstraintIndex(definition) };
+	}
+
+	it('lays two roles out side by side, left to right, instead of stacking them vertically', () => {
+		const { parTx, desTx, index } = bracketColumnsIndex();
+		const original: RenderedRectNode = { ...ORIGINAL, width: 1000, height: 150, x: 50, y: 100 };
+		const content: ItemRoleContent[] = [
+			{ role: parTx, nodeIds: ['self'] },
+			{ role: desTx, nodeIds: ['child'] },
+		];
+		const rows = stackRoleContent(content, 'Name0', original, index, undefined, {
+			declaringRole: 'linNode',
+			orientation: 'column',
+		});
+		expect(rows).toHaveLength(2);
+		const [left, right] = rows as RenderedRectNode[];
+		// Both share the FULL row height (never split vertically).
+		expect(left.height).toBeCloseTo(150, 0);
+		expect(right.height).toBeCloseTo(150, 0);
+		expect(left.y).toBeCloseTo(100, 0);
+		expect(right.y).toBeCloseTo(100, 0);
+		// Widths split 0.3/0.7, left to right.
+		expect(left.x).toBeCloseTo(50, 0);
+		expect(left.width).toBeCloseTo(300, 0);
+		expect(right.x).toBeCloseTo(350, 0);
+		expect(right.width).toBeCloseTo(700, 0);
+	});
+
+	it('still routes a LEAF point (a single resolved role) through stackAsColumns, unlike the generic single-role bypass every other construct uses', () => {
+		const { parTx, index } = bracketColumnsIndex();
+		const original: RenderedRectNode = { ...ORIGINAL, width: 1000, height: 150, x: 50, y: 100 };
+		const content: ItemRoleContent[] = [{ role: parTx, nodeIds: ['self'] }];
+		const rows = stackRoleContent(content, 'Name0', original, index, undefined, {
+			declaringRole: 'linNode',
+			orientation: 'column',
+		});
+		expect(rows).toHaveLength(1);
+		const [onlyCol] = rows as RenderedRectNode[];
+		expect(onlyCol.width).toBeCloseTo(300, 0); // parTx's own 0.3 share, not the full 1000
+	});
+
+	it('a single resolved role WITHOUT a column layoutScope still declines entirely (the pre-existing hub/satellite-safe default, unaffected)', () => {
+		const { parTx, index } = bracketColumnsIndex();
+		const original: RenderedRectNode = { ...ORIGINAL, width: 1000, height: 150 };
+		const content: ItemRoleContent[] = [{ role: parTx, nodeIds: ['self'] }];
+		expect(stackRoleContent(content, 'Name0', original, index)).toBeUndefined();
+	});
+});

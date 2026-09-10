@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ConstraintIndex } from './smartart-constraint-solver';
 import { resolveGenerationGapRatio } from './smartart-hierarchy-generation-gap';
 
 describe('resolveGenerationGapRatio', () => {
@@ -36,6 +37,91 @@ describe('resolveGenerationGapRatio', () => {
 		const constraints = [{ type: 'sp', referenceType: 'h', factor: 0.25 }];
 		const compositeChild = { aspectRatio: 0.635, widthFactor: 0, offsetXRatio: 0.1 };
 		expect(resolveGenerationGapRatio(constraints, 'h', 0.635, compositeChild, 0.667)).toBeCloseTo(
+			0.25,
+			6,
+		);
+	});
+
+	it('session 24: falls back to a WHOLE-index search for an ancestor-declared `sp` (labeled-hierarchy--hier5.pptx\'s own shape: `mainComposite`\'s own constrLst declares `sp for="des" refType="h" refFor="des" refForName="level1Shape" fact="0.4"`, unreachable from `hierChild1`\'s own local constraints) - only tried when the local search finds nothing, matches by the ITEM\'s own name, not by which node declared it', () => {
+		const index: ConstraintIndex = {
+			entries: new Map([
+				[
+					'mainComposite::sp',
+					[
+						{
+							constraint: {
+								type: 'sp',
+								referenceType: 'h',
+								referenceForName: 'level1Shape',
+								factor: 0.4,
+							},
+							declaringRole: 'mainComposite',
+						},
+					],
+				],
+			]),
+			rootRole: 'doc',
+		};
+		expect(
+			resolveGenerationGapRatio([], 'h', 0.667, undefined, undefined, index, 'level1Shape'),
+		).toBe(0.4);
+	});
+
+	it('session 24: the index fallback is NEVER consulted when the local search already found something (pre-existing, unconverted callers stay byte-identical)', () => {
+		const constraints = [{ type: 'sp', referenceType: 'h', factor: 0.25 }];
+		const index: ConstraintIndex = {
+			entries: new Map([
+				[
+					'mainComposite::sp',
+					[
+						{
+							constraint: {
+								type: 'sp',
+								referenceType: 'h',
+								referenceForName: 'level1Shape',
+								factor: 0.4,
+							},
+							declaringRole: 'mainComposite',
+						},
+					],
+				],
+			]),
+			rootRole: 'doc',
+		};
+		expect(
+			resolveGenerationGapRatio(
+				constraints,
+				'h',
+				0.667,
+				undefined,
+				undefined,
+				index,
+				'level1Shape',
+			),
+		).toBeCloseTo(0.25, 6);
+	});
+
+	it('session 24: the index fallback is skipped without an `itemShapeName` (no way to match by name, stays at the default)', () => {
+		const index: ConstraintIndex = {
+			entries: new Map([
+				[
+					'mainComposite::sp',
+					[
+						{
+							constraint: {
+								type: 'sp',
+								referenceType: 'h',
+								referenceForName: 'level1Shape',
+								factor: 0.4,
+							},
+							declaringRole: 'mainComposite',
+						},
+					],
+				],
+			]),
+			rootRole: 'doc',
+		};
+		expect(resolveGenerationGapRatio([], 'h', 0.667, undefined, undefined, index)).toBeCloseTo(
 			0.25,
 			6,
 		);

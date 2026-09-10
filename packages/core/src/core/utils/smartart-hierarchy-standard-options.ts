@@ -7,6 +7,7 @@
  */
 
 import type { TreeNode } from './smartart-helpers';
+import { effectiveWidth } from './smartart-hierarchy-orgchart-tree';
 import type { HierContext } from './smartart-hierarchy-shared';
 
 /** Resolved options for one standard-branch arrangement pass. */
@@ -14,6 +15,18 @@ export interface StandardOptions {
 	orgChart: boolean;
 	/** Resolved `chPref`/`chMax` row size; `Infinity` when unbounded. */
 	perRow: number;
+	/**
+	 * Fan-aware column-span override (`tailed` mode only - see
+	 * `buildFanAwareWidthMap`'s doc comment in `smartart-hierarchy-fan-aware-width.ts`):
+	 * when present, every span/offset computation in this module and
+	 * `smartart-hierarchy-standard-rows.ts` consults THIS instead of plain
+	 * `effectiveWidth` (via `spanOf` below) - a node that is about to HANG (not
+	 * fan) collapses its entire subtree to exactly one column regardless of its
+	 * own descendant count, matching `placeHangingTree`'s own single
+	 * shared-column behaviour. `std` mode (no `hangingPlacer`) never sets this
+	 * and keeps using plain `effectiveWidth` everywhere, unaffected.
+	 */
+	resolveSpan?: (t: TreeNode) => number;
 	/**
 	 * Present for `hierBranch` `init`/`hang`/`l`/`r`: places every generation
 	 * past the root's direct children as a hanging column instead of
@@ -41,4 +54,9 @@ export interface StandardOptions {
 	 * per data depth) leaves this `false` and is unaffected.
 	 */
 	foldDeeperGenerations?: boolean;
+}
+
+/** `t`'s own column span, honouring `options.resolveSpan` when set (see its doc comment). */
+export function spanOf(t: TreeNode, options: StandardOptions): number {
+	return options.resolveSpan ? options.resolveSpan(t) : effectiveWidth(t, options.orgChart);
 }

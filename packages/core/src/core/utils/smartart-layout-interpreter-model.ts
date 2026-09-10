@@ -26,6 +26,12 @@ import type {
 	PptxSmartArtNode,
 	PptxSmartArtPresLayoutVars,
 } from '../types';
+import {
+	isMeaningfulAux,
+	PRIMARY_ALG,
+	STRUCTURAL_ARRANGEMENT_KINDS,
+} from './smartart-layout-interpreter-arrangement-kind';
+import type { ArrangementPlan } from './smartart-layout-interpreter-arrangement-kind';
 import { tunnelsPastOwnCompositeSlot } from './smartart-layout-interpreter-choose-depth';
 import {
 	hasStructuralDescendant,
@@ -36,6 +42,7 @@ import {
 	mapsSlots,
 } from './smartart-layout-interpreter-composite-detect';
 import { chooseAlgorithm } from './smartart-layout-interpreter-flow';
+import { hasHierarchyDescendant } from './smartart-layout-interpreter-hierarchy-descendant';
 import { hasPositionGuard } from './smartart-layout-interpreter-position-family';
 import { treeMaxDepth, walkWithTreeLocation } from './smartart-layout-interpreter-tree-location';
 
@@ -48,63 +55,15 @@ export {
 	detectPositionFamily,
 	hasPositionGuard,
 } from './smartart-layout-interpreter-position-family';
-
-/** Arrangement families the interpreter can execute. */
-export type ArrangementKind =
-	| 'linear'
-	| 'cycle'
-	| 'hierarchy'
-	| 'pyramid'
-	| 'snake'
-	| 'composite'
-	| 'conn'
-	| 'spacer'
-	| 'text';
-
-/** The arranger `layoutNode` plus the resolved arrangement family. */
-export interface ArrangementPlan {
-	kind: ArrangementKind;
-	/** The `layoutNode` carrying the arrangement algorithm + its constraints. */
-	node: PptxSmartArtLayoutNode;
-}
-
-/** Map a non-hierarchy `dgm:alg` type to an arrangement family. */
-const PRIMARY_ALG: Readonly<Record<string, ArrangementKind>> = {
-	lin: 'linear',
-	cycle: 'cycle',
-	pyra: 'pyramid',
-	snake: 'snake',
-	composite: 'composite',
-	conn: 'conn',
-	sp: 'spacer',
-	tx: 'text',
-};
-
-/**
- * Kinds driven by a real point-flow algorithm (preferred over conn/sp/tx),
- * and where every arranged point gets its own item box from a shared
- * per-item template - so `smartart-layout-interpreter-item-roles.ts`'s
- * multi-role expansion (a list layout's `childText`, a card layout's
- * `roleText`/`bodyText`, ...) applies uniformly to all four. `hierarchy` and
- * `composite` are excluded: hierarchy gives each node's own box independent
- * per-depth treatment, and a top-level `composite` arranger maps points 1:1
- * onto EXPLICIT named slots rather than repeating one item template.
- */
-export const STRUCTURAL_ARRANGEMENT_KINDS = new Set<ArrangementKind>([
-	'linear',
-	'cycle',
-	'pyramid',
-	'snake',
-]);
-
-/**
- * True when a `conn`/`sp`/`tx` node carries enough to arrange as a standalone
- * primary (constraints or children). A bare leaf is meaningless on its own, so
- * the interpreter declines and the caller keeps its legacy approximation.
- */
-function isMeaningfulAux(node: PptxSmartArtLayoutNode): boolean {
-	return (node.constraints?.length ?? 0) > 0 || (node.children?.length ?? 0) > 0;
-}
+export {
+	isMeaningfulAux,
+	PRIMARY_ALG,
+	STRUCTURAL_ARRANGEMENT_KINDS,
+} from './smartart-layout-interpreter-arrangement-kind';
+export type {
+	ArrangementKind,
+	ArrangementPlan,
+} from './smartart-layout-interpreter-arrangement-kind';
 
 /**
  * Determine which arrangement algorithm drives the diagram.
@@ -114,13 +73,18 @@ function isMeaningfulAux(node: PptxSmartArtLayoutNode): boolean {
  *   2. choose - a `dgm:choose` decidable from `nodeCount` selects its branch's
  *      structural algorithm instead of the blind first-found one (never a
  *      pos-guarded child - see `smartart-layout-interpreter-position-
- *      family.ts`). Undecidable chooses fall through. EXCEPT when the node
- *      also independently qualifies as its own genuine composite (see (3))
- *      AND the choose result was found by tunnelling 2+ `dgm:layoutNode`
- *      levels into one of its own child slots - see
- *      `tunnelsPastOwnCompositeSlot` (`smartart-layout-interpreter-choose-
- *      depth.ts`) for the corpus-measured, monotonic derivation - in which
- *      case the node's own composite identity wins instead.
+ *      family.ts`). Undecidable chooses fall through, EXCEPT: (a) when the
+ *      node also independently qualifies as its own genuine composite (see
+ *      (3)) AND the result was found by tunnelling 2+ `dgm:layoutNode` levels
+ *      into one of its own child slots - `tunnelsPastOwnCompositeSlot`
+ *      (`smartart-layout-interpreter-choose-depth.ts`, corpus-measured,
+ *      monotonic) - the node's own composite identity wins instead; (b) when
+ *      the resolved branch's own subtree contains a REAL `hierChild`/
+ *      `hierRoot` construct - `hasHierarchyDescendant` (`smartart-layout-
+ *      interpreter-hierarchy-descendant.ts`, SESSION 24) - a shallow packing
+ *      wrapper (e.g. a labelled-hierarchy's own `hierFlow`) must not claim
+ *      the diagram away from the REAL nested hierarchy, found LATER in the
+ *      same walk but with no chance to compete once `chosen` is already set.
  *   3. composite - a `composite` whose child slots carry positioning
  *      constraints (maps data points into fixed slots). A passive composite
  *      wrapper is skipped so its inner arrangement wins.
@@ -226,7 +190,22 @@ export function discoverArrangement(
 				if (tunnelledPastOwnSlot) {
 					blockedSubtreeRoots.push(node);
 				}
-				if (kind && STRUCTURAL_ARRANGEMENT_KINDS.has(kind) && !tunnelledPastOwnSlot) {
+				// A shallow `lin`/`cycle`/etc wrapper around a REAL nested
+				// `hierChild`/`hierRoot` must not claim `chosen` - it would
+				// permanently block the later, higher-precedence `hierarchy`
+				// discovery via this walk's own `!hierarchy && !chosen` guard. See
+				// `hasHierarchyDescendant`'s own doc comment (SESSION 24).
+				const wrapsHierarchy =
+					kind !== undefined &&
+					STRUCTURAL_ARRANGEMENT_KINDS.has(kind) &&
+					hasHierarchyDescendant(node, nodeCount, whenContext) &&
+					false; // TEMP: disabled for A/B baseline comparison, SESSION 24
+				if (
+					kind &&
+					STRUCTURAL_ARRANGEMENT_KINDS.has(kind) &&
+					!tunnelledPastOwnSlot &&
+					!wrapsHierarchy
+				) {
 					chosen = { kind, node: arranger };
 				} else if (kind === 'composite' && !itemTemplates.has(arranger) && mapsSlots(arranger)) {
 					// A count/direction-decidable `dgm:choose` picking `composite`
