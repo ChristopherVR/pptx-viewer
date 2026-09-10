@@ -108,8 +108,8 @@ describe('pptxTableDataParser — table structure', () => {
 
 		expect(result).toBeDefined();
 		expect(result!.rows).toHaveLength(1);
-		// 370840 / 9525 ≈ 38.93 → Math.round = 39
-		expect(result!.rows[0].height).toBe(Math.round(370840 / EMU_PER_PX));
+		// Preserve fractional pixels so save can recover the original EMU.
+		expect(result!.rows[0].height).toBe(370840 / EMU_PER_PX);
 	});
 
 	it('extracts cell text from a:txBody > a:p > a:r > a:t', () => {
