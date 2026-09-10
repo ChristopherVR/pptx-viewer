@@ -31,9 +31,11 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	DestroyRef,
 	ElementRef,
 	computed,
 	effect,
+	inject,
 	input,
 	output,
 	signal,
@@ -161,7 +163,21 @@ export class OleEditorDialogComponent {
 	protected readonly loading = signal(false);
 	protected readonly saveError = signal(false);
 
+	/** Whether this component has been destroyed, so a late-resolving edit/save promise below can skip its write. */
+	private destroyed = false;
+
+	/** Run `fn` unless a post-await resolution arrived after this component was destroyed. */
+	private ifAlive(fn: () => void): void {
+		if (!this.destroyed) {
+			fn();
+		}
+	}
+
 	constructor() {
+		inject(DestroyRef).onDestroy(() => {
+			this.destroyed = true;
+		});
+
 		// Re-fetch whenever the dialog opens or the element identity changes,
 		// for whichever content tab the descriptor selects.
 		effect((onCleanup) => {
@@ -222,9 +238,10 @@ export class OleEditorDialogComponent {
 		try {
 			const updated = await applyOleSheetCellEdit(this.element(), edit);
 			this.commit(updated);
-			this.grid.set(await getOleSheetGrid(updated));
+			const refreshed = await getOleSheetGrid(updated);
+			this.ifAlive(() => this.grid.set(refreshed));
 		} catch {
-			this.saveError.set(true);
+			this.ifAlive(() => this.saveError.set(true));
 		}
 	}
 
@@ -232,9 +249,10 @@ export class OleEditorDialogComponent {
 		try {
 			const updated = await applyOleDocumentParagraphEdit(this.element(), edit.index, edit.text);
 			this.commit(updated);
-			this.paragraphs.set(await getOleDocumentParagraphs(updated));
+			const refreshed = await getOleDocumentParagraphs(updated);
+			this.ifAlive(() => this.paragraphs.set(refreshed));
 		} catch {
-			this.saveError.set(true);
+			this.ifAlive(() => this.saveError.set(true));
 		}
 	}
 
@@ -247,9 +265,10 @@ export class OleEditorDialogComponent {
 				edit.text,
 			);
 			this.commit(updated);
-			this.deckSlides.set(await getOleNestedDeckDetail(updated));
+			const refreshed = await getOleNestedDeckDetail(updated);
+			this.ifAlive(() => this.deckSlides.set(refreshed));
 		} catch {
-			this.saveError.set(true);
+			this.ifAlive(() => this.saveError.set(true));
 		}
 	}
 
@@ -265,9 +284,9 @@ export class OleEditorDialogComponent {
 			const bytes = new Uint8Array(await file.arrayBuffer());
 			const updated = await replaceOleFile(this.element(), bytes, file.name);
 			this.commit(updated);
-			this.close.emit();
+			this.ifAlive(() => this.close.emit());
 		} catch {
-			this.saveError.set(true);
+			this.ifAlive(() => this.saveError.set(true));
 		}
 	}
 

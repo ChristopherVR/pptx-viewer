@@ -26,7 +26,7 @@ import {
 	replaceOleFile,
 } from 'pptx-viewer-core';
 import { buildOleContentUpdatePatch, buildOleEditDialogDescriptor } from 'pptx-viewer-shared';
-import { computed, ref, useTemplateRef, watch } from 'vue';
+import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
@@ -56,6 +56,15 @@ const deckSlides = ref<OleNestedDeckSlideDetail[] | undefined>(undefined);
 const loading = ref(false);
 const saveError = ref(false);
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput');
+
+// The edit handlers below settle after their own awaits (a re-encode or a
+// full deck save/load round-trip), which can outlive the component if it is
+// unmounted first. Guard every post-await write with this so a late
+// resolution never touches state of a component that is gone.
+let active = true;
+onUnmounted(() => {
+	active = false;
+});
 
 function close(): void {
 	emit('close');
@@ -94,9 +103,14 @@ async function handleCellEdit(row: number, col: number, value: string): Promise<
 	try {
 		const updated = await applyOleSheetCellEdit(props.element, { row, col, value });
 		commit(updated);
-		grid.value = await getOleSheetGrid(updated);
+		const refreshed = await getOleSheetGrid(updated);
+		if (active) {
+			grid.value = refreshed;
+		}
 	} catch {
-		saveError.value = true;
+		if (active) {
+			saveError.value = true;
+		}
 	}
 }
 
@@ -104,9 +118,14 @@ async function handleParagraphEdit(index: number, text: string): Promise<void> {
 	try {
 		const updated = await applyOleDocumentParagraphEdit(props.element, index, text);
 		commit(updated);
-		paragraphs.value = await getOleDocumentParagraphs(updated);
+		const refreshed = await getOleDocumentParagraphs(updated);
+		if (active) {
+			paragraphs.value = refreshed;
+		}
 	} catch {
-		saveError.value = true;
+		if (active) {
+			saveError.value = true;
+		}
 	}
 }
 
@@ -123,9 +142,14 @@ async function handleDeckElementEdit(
 			text,
 		);
 		commit(updated);
-		deckSlides.value = await getOleNestedDeckDetail(updated);
+		const refreshed = await getOleNestedDeckDetail(updated);
+		if (active) {
+			deckSlides.value = refreshed;
+		}
 	} catch {
-		saveError.value = true;
+		if (active) {
+			saveError.value = true;
+		}
 	}
 }
 
@@ -134,9 +158,13 @@ async function handleReplaceFile(file: File): Promise<void> {
 		const bytes = new Uint8Array(await file.arrayBuffer());
 		const updated = await replaceOleFile(props.element, bytes, file.name);
 		commit(updated);
-		close();
+		if (active) {
+			close();
+		}
 	} catch {
-		saveError.value = true;
+		if (active) {
+			saveError.value = true;
+		}
 	}
 }
 

@@ -56,6 +56,18 @@ export function OleEditorDialog({
 	const [loading, setLoading] = useState(false);
 	const [saveError, setSaveError] = useState(false);
 
+	// Async edit/save handlers below settle after their own awaits, which can
+	// outlive the component (dialog closed, or unmounted entirely) if the OLE
+	// round-trip is slow. Guard every post-await setState with this so a late
+	// resolution never dispatches into an unmounted tree.
+	const mountedRef = useRef(true);
+	useEffect(
+		() => () => {
+			mountedRef.current = false;
+		},
+		[],
+	);
+
 	useEffect(() => {
 		if (!isOpen || !descriptor.contentTab) {
 			return;
@@ -107,9 +119,13 @@ export function OleEditorDialog({
 				const updated = await applyOleSheetCellEdit(element, { row, col, value });
 				commit(updated);
 				const refreshed = await getOleSheetGrid(updated);
-				setGrid(refreshed);
+				if (mountedRef.current) {
+					setGrid(refreshed);
+				}
 			} catch {
-				setSaveError(true);
+				if (mountedRef.current) {
+					setSaveError(true);
+				}
 			}
 		},
 		[element, commit],
@@ -121,9 +137,13 @@ export function OleEditorDialog({
 				const updated = await applyOleDocumentParagraphEdit(element, index, text);
 				commit(updated);
 				const refreshed = await getOleDocumentParagraphs(updated);
-				setParagraphs(refreshed);
+				if (mountedRef.current) {
+					setParagraphs(refreshed);
+				}
 			} catch {
-				setSaveError(true);
+				if (mountedRef.current) {
+					setSaveError(true);
+				}
 			}
 		},
 		[element, commit],
@@ -140,9 +160,13 @@ export function OleEditorDialog({
 				);
 				commit(updated);
 				const refreshed = await getOleNestedDeckDetail(updated);
-				setDeckSlides(refreshed);
+				if (mountedRef.current) {
+					setDeckSlides(refreshed);
+				}
 			} catch {
-				setSaveError(true);
+				if (mountedRef.current) {
+					setSaveError(true);
+				}
 			}
 		},
 		[element, commit],
@@ -154,9 +178,13 @@ export function OleEditorDialog({
 				const bytes = new Uint8Array(await file.arrayBuffer());
 				const updated = await replaceOleFile(element, bytes, file.name);
 				commit(updated);
-				onClose();
+				if (mountedRef.current) {
+					onClose();
+				}
 			} catch {
-				setSaveError(true);
+				if (mountedRef.current) {
+					setSaveError(true);
+				}
 			}
 		},
 		[element, commit, onClose],

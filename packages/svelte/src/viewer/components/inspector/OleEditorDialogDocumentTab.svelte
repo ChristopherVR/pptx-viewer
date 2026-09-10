@@ -9,6 +9,7 @@
 	import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 	import { applyOleDocumentParagraphEdit, getOleDocumentParagraphs } from 'pptx-viewer-core';
 	import { buildOleContentUpdatePatch } from 'pptx-viewer-shared';
+	import { onDestroy } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -26,6 +27,15 @@
 
 	let paragraphs = $state<string[] | undefined>(undefined);
 	let loading = $state(true);
+
+	// `handleParagraphBlur` below settles after its own re-encode await, which
+	// can outlive the component if it is destroyed first. Guard the
+	// post-await state writes with this so a late resolution never writes
+	// into a destroyed component.
+	let alive = true;
+	onDestroy(() => {
+		alive = false;
+	});
 
 	$effect(() => {
 		let cancelled = false;
@@ -51,9 +61,14 @@
 			if (updated.oleContentDirty) {
 				editor.applyElementPatch(el.id, buildOleContentUpdatePatch(updated) as Partial<PptxElement>);
 			}
-			paragraphs = await getOleDocumentParagraphs(updated);
+			const refreshed = await getOleDocumentParagraphs(updated);
+			if (alive) {
+				paragraphs = refreshed;
+			}
 		} catch {
-			onerror();
+			if (alive) {
+				onerror();
+			}
 		}
 	}
 </script>

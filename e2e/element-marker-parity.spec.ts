@@ -95,7 +95,12 @@ test.describe('cross-binding element marker', () => {
 			const perSlide: MarkerCount[] = [];
 			for (const slide of SLIDES) {
 				if (slide > 1) {
-					await thumbnail(page, slide).click();
+					// The default 10s action timeout raced the thumbnail rail settling
+					// after the previous slide's marker count (every element on a large
+					// fixture like this one) under CI load; match the 15s this loop
+					// already gives the post-navigation "N of M" and marker-count waits
+					// below, rather than a plain `.click()`.
+					await thumbnail(page, slide).click({ timeout: 15_000 });
 					await slideStage(page).waitFor();
 					// The "N of M" indicator is the only neutral navigation-done signal;
 					// polling on marker counts alone captured the PREVIOUS slide's DOM in

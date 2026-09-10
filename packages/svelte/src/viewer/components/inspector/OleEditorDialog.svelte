@@ -19,6 +19,7 @@
 	import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 	import { replaceOleFile } from 'pptx-viewer-core';
 	import { buildOleContentUpdatePatch, buildOleEditDialogDescriptor } from 'pptx-viewer-shared';
+	import { onDestroy } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -42,6 +43,15 @@
 	let fileInputEl = $state<HTMLInputElement | null>(null);
 	let saveError = $state(false);
 
+	// `handleReplaceFile` below settles after its own await, which can outlive
+	// the component if it is destroyed first. Guard the post-await state
+	// writes with this so a late resolution never writes into a destroyed
+	// component.
+	let alive = true;
+	onDestroy(() => {
+		alive = false;
+	});
+
 	const descriptor = $derived(buildOleEditDialogDescriptor(el));
 
 	function commit(updated: OlePptxElement): void {
@@ -56,9 +66,13 @@
 			const bytes = new Uint8Array(await file.arrayBuffer());
 			const updated = await replaceOleFile(el, bytes, file.name);
 			commit(updated);
-			onclose();
+			if (alive) {
+				onclose();
+			}
 		} catch {
-			saveError = true;
+			if (alive) {
+				saveError = true;
+			}
 		}
 	}
 

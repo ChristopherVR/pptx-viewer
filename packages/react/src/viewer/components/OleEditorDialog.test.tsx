@@ -194,6 +194,12 @@ describe('oleEditorDialog', () => {
 		// flush rounds was not always enough under CI load, so poll like the
 		// nested-deck case below does.
 		await waitUntil(() => onUpdateElement.mock.calls.length > 0);
+		// `onUpdateElement` fires mid-handler, before the trailing
+		// `getOleSheetGrid` re-fetch that follows it settles. Give that
+		// trailing await room to resolve before this test (and its `afterEach`
+		// unmount) returns, so no save promise is still in flight once the
+		// component is gone.
+		await flush(20);
 
 		expect(onUpdateElement).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -244,6 +250,11 @@ describe('oleEditorDialog', () => {
 			bodyInput.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
 		});
 		await waitUntil(() => onUpdateElement.mock.calls.length > 0);
+		// As above: `onUpdateElement` fires before the trailing
+		// `getOleNestedDeckDetail` re-fetch (a full save/load round-trip) has
+		// settled. Let it finish before this test returns and unmounts, rather
+		// than leaving it to resolve after teardown.
+		await flush(20);
 
 		expect(onUpdateElement).toHaveBeenCalledWith(
 			expect.objectContaining({ oleContentDirty: true }),

@@ -68,18 +68,31 @@ export function openOleEditorDialog(
 	const content = createEl(doc, 'div', 'pptxv-ole-edit-content');
 	shell.body.append(loading, error, content);
 
+	// The per-cell/paragraph/element handlers below settle after their own
+	// awaits (a re-encode or a full deck save/load round-trip), which can
+	// outlive the dialog if it is closed first. Guard every post-await DOM
+	// write with this so a late resolution never repopulates a dialog that is
+	// no longer attached to the document.
+	const isOpen = (): boolean => shell.dialog.isConnected;
+
 	const showError = (): void => {
-		error.hidden = false;
+		if (isOpen()) {
+			error.hidden = false;
+		}
 	};
 
 	const renderSheet = (grid: OleSheetGrid | undefined): void => {
+		if (!isOpen()) {
+			return;
+		}
 		content.replaceChildren(
 			renderOleSheetGrid(doc, t, grid, (row, col, value) => {
 				void (async () => {
 					try {
 						const updated = await applyOleSheetCellEdit(current, { row, col, value });
 						commit(updated);
-						renderSheet(await getOleSheetGrid(updated));
+						const refreshed = await getOleSheetGrid(updated);
+						renderSheet(refreshed);
 					} catch {
 						showError();
 					}
@@ -89,13 +102,17 @@ export function openOleEditorDialog(
 	};
 
 	const renderDocument = (paragraphs: string[] | undefined): void => {
+		if (!isOpen()) {
+			return;
+		}
 		content.replaceChildren(
 			renderOleDocumentEditor(doc, t, paragraphs, (index, text) => {
 				void (async () => {
 					try {
 						const updated = await applyOleDocumentParagraphEdit(current, index, text);
 						commit(updated);
-						renderDocument(await getOleDocumentParagraphs(updated));
+						const refreshed = await getOleDocumentParagraphs(updated);
+						renderDocument(refreshed);
 					} catch {
 						showError();
 					}
@@ -105,6 +122,9 @@ export function openOleEditorDialog(
 	};
 
 	const renderDeck = (slides: OleNestedDeckSlideDetail[] | undefined): void => {
+		if (!isOpen()) {
+			return;
+		}
 		content.replaceChildren(
 			renderOleDeckEditor(doc, t, slides, (slideIndex, elementId, text) => {
 				void (async () => {
@@ -116,7 +136,8 @@ export function openOleEditorDialog(
 							text,
 						);
 						commit(updated);
-						renderDeck(await getOleNestedDeckDetail(updated));
+						const refreshed = await getOleNestedDeckDetail(updated);
+						renderDeck(refreshed);
 					} catch {
 						showError();
 					}

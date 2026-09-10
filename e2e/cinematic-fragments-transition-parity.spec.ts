@@ -138,6 +138,19 @@ async function sampleFragments(
 	await advance(page);
 	await expect(overlay).toBeVisible();
 
+	// The fragment layer(s) mount as part of the same render as the overlay
+	// itself, but under CI load a binding's change detection (Angular's
+	// `computed()`/`@if` chain in particular) can take a few extra ticks to
+	// flush after the overlay's own host element exists. Wait for at least
+	// one fragment to actually be in the DOM before sampling, rather than
+	// assuming a fixed `MID_TRANSITION_SAMPLE_MS` since `advance()` was
+	// always enough: sampling too early read as "0 fragments" under load
+	// (every preset in `PRESETS` is one of the seven fragmented transitions,
+	// so this never waits out a preset that legitimately has none).
+	await overlay
+		.locator('[data-pptx-transition-fragment]')
+		.first()
+		.waitFor({ timeout: TRANSITION_SETTLE_TIMEOUT_MS });
 	await page.waitForTimeout(MID_TRANSITION_SAMPLE_MS);
 	const layers = overlay.locator('[data-pptx-transition-fragments]');
 	const keyframesNames = await layers.evaluateAll((els) =>

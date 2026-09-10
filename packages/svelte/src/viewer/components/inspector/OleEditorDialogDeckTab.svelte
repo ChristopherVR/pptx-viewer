@@ -11,6 +11,7 @@
 	import type { OleNestedDeckSlideDetail, OlePptxElement, PptxElement } from 'pptx-viewer-core';
 	import { applyOleNestedDeckElementTextEdit, getOleNestedDeckDetail } from 'pptx-viewer-core';
 	import { buildOleContentUpdatePatch } from 'pptx-viewer-shared';
+	import { onDestroy } from 'svelte';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
@@ -28,6 +29,15 @@
 
 	let slides = $state<OleNestedDeckSlideDetail[] | undefined>(undefined);
 	let loading = $state(true);
+
+	// `handleElementBlur` below settles after its own full deck save/load
+	// round-trip await, which can outlive the component if it is destroyed
+	// first. Guard the post-await state writes with this so a late
+	// resolution never writes into a destroyed component.
+	let alive = true;
+	onDestroy(() => {
+		alive = false;
+	});
 
 	$effect(() => {
 		let cancelled = false;
@@ -58,9 +68,14 @@
 			if (updated.oleContentDirty) {
 				editor.applyElementPatch(el.id, buildOleContentUpdatePatch(updated) as Partial<PptxElement>);
 			}
-			slides = await getOleNestedDeckDetail(updated);
+			const refreshed = await getOleNestedDeckDetail(updated);
+			if (alive) {
+				slides = refreshed;
+			}
 		} catch {
-			onerror();
+			if (alive) {
+				onerror();
+			}
 		}
 	}
 </script>

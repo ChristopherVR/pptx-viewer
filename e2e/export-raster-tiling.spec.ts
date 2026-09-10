@@ -397,6 +397,14 @@ test.describe('GIF/video export do not corrupt a frame under the same stubbed ca
 	test('every binding produces a valid, aspect-correct GIF and video recording canvas', async ({
 		browser,
 	}, testInfo) => {
+		// The file-wide 90s default (above) fits the single-binding tiling tests,
+		// but this one runs a GIF capture *and* a real-time video recording for
+		// all five bindings sequentially (`concurrency: 'sequential'` below): at
+		// this file's own single-binding numbers (~7s GIF, ~19s video) that is
+		// already ~130s in the best case, before per-binding page-load/backstage
+		// overhead. Match the budget the other multi-download export specs use
+		// (export-fidelity-pixel-diff.spec.ts, export-raster-fidelity.spec.ts).
+		test.setTimeout(240_000);
 		const results = await acrossFrameworks(
 			browser,
 			testInfo,
@@ -417,6 +425,14 @@ test.describe('GIF/video export do not corrupt a frame under the same stubbed ca
 				const gifBytes = await downloadBytes(gifDownload);
 				const gifDims = gifDimensions(gifBytes);
 
+				// Clicking any export card closes the whole File backstage
+				// (`FileSection`'s `run()` calls `onClose()` right after invoking the
+				// card's handler, same as every other binding's equivalent close-on-
+				// action wiring), so the dialog from the GIF download above is gone
+				// by now. Every other spec that downloads more than once in a test
+				// (export-fidelity-pixel-diff.spec.ts, export-raster-fidelity.spec.ts)
+				// re-opens it before each card click; do the same here.
+				await openBackstageExport(page);
 				const videoDownload = await downloadViaCard(page, VIDEO_CARD, 90_000);
 				const videoBytes = await downloadBytes(videoDownload);
 				const recordedCanvas = await lastCapturedCanvasSize(page);
