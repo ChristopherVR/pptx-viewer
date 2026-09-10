@@ -188,12 +188,51 @@ export function computeHierarchyAxisPitches(
 	const fanHeight = tailedPitch
 		? effectiveBox.height - hangShape.maxHangRows * (1 + hangHeightRatio) * boxH
 		: effectiveBox.height;
+	// SESSION 41: a `transposed`+`tailed` hang (e.g. "Horizontal Organization
+	// Chart") needs a SECOND hang reservation on the fan axis, additional to
+	// `fanWidth`'s own shift-only one above: the GAP between two fanned
+	// siblings that each hang their own tail, not just the row's overall
+	// centring. `horizontal-organization-chart--hier5.pptx` (root + 2 direct
+	// children, EACH hanging exactly 1 grandchild, `hangShape.hangingColumns
+	// ===totalLeaves===2`): cached local row centres for the 2 fanned
+	// children are `173`/`283` (110px apart, measured from the fixture's own
+	// `dsp:sp` offsets), but the plain `sibSpRatio`-only pitch
+	// (`boxW*(1+0.125)=87.5`) reproduces only `87.5px` - `HIER_TAIL_OFFSET_
+	// RATIO` (the SAME per-hop indent `fitItemBox`'s own width-fit divisor
+	// and `fanWidth`'s shift reservation above already use) scaled by the
+	// SAME `hangingColumns/totalLeaves` share `fitItemBox` uses (SESSION 34)
+	// closes most of the gap: `87.5 + 1*0.25*(2/2)*boxW = 106.9px`, within
+	// 3px (0.6% of the 533px diagram height) of the cached 110px - the
+	// residual is within this constant's own measured tolerance elsewhere in
+	// this file (see `HIER_TAIL_OFFSET_RATIO`'s own doc comment), not a
+	// separate construct. `maxDeltaFraction` for this fixture: `0.0394` ->
+	// `0.0225` (full corpus regen: 228 other fixtures byte-identical, 0
+	// regressions). Scoped to `tailedPitch && orientation.transposed`
+	// (`tailedHierarchyDeclaresChAlign`'s own signal - see `smartart-
+	// hierarchy-orientation.ts`'s module doc comment): the classic
+	// (non-transposed) org-chart family's own hang tail nudges DIAGONALLY
+	// per hop instead (`placeAt`'s own `HIER_TAIL_OFFSET_RATIO` use, a
+	// different mechanism this fan-pitch addition must not double up with),
+	// so `orientation.transposed` staying `false` there leaves `sibSpRatio`
+	// byte-identical to before for every other hierarchy-family fixture. A
+	// second, structurally different COM sample (3 branches, uneven hang
+	// depth) attempted this session did not isolate the SAME construct
+	// cleanly (a demote-order artifact reshaped the tree), so this remains
+	// pinned by one real fixture; a future session with budget should
+	// re-attempt triangulation before tightening the residual further.
+	const fanSibSpRatio =
+		tailedPitch && orientation.transposed
+			? orientation.sibSpRatio +
+				hangShape.maxHangDepth *
+					HIER_TAIL_OFFSET_RATIO *
+					(totalLeaves > 0 ? hangShape.hangingColumns / totalLeaves : 0)
+			: orientation.sibSpRatio;
 	const xPitch = compositeFanPitch(
 		fanWidth,
 		boxW,
 		orientation.compositeWidthFactor,
 		orientation.cardOffsetXRatio,
-		orientation.sibSpRatio,
+		fanSibSpRatio,
 		totalLeaves,
 	);
 	const fixedGenerationGapRatio = orientation.transposed

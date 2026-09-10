@@ -26,7 +26,13 @@ const orientation: HierarchyOrientation = {
 	hangHeightRatio: 0.2,
 	cardOffsetXRatio: 0,
 };
-const hangShape = { fannedGenerations: 2, maxHangDepth: 1, maxHangRows: 1, allChildrenHang: true };
+const hangShape = {
+	fannedGenerations: 2,
+	maxHangDepth: 1,
+	maxHangRows: 1,
+	allChildrenHang: true,
+	hangingColumns: 2,
+};
 
 describe('computeHierarchyAxisPitches', () => {
 	it('a transposed tailed hang shifts the fanned generation using generationGapRatio, not the fixed HANG_HEIGHT_RATIO=0.55 (horizontal-organization-chart--hier5.pptx shape)', () => {
@@ -48,6 +54,40 @@ describe('computeHierarchyAxisPitches', () => {
 		// value that landed "Node Two"/"Node Three" at the cached x=359
 		// exactly (measured via the real fixture's own per-shape diagnostic).
 		expect(yPitch.shift).toBeCloseTo(-25.5, 1);
+	});
+
+	it('session 41: a transposed tailed hang ALSO reserves room on the fan axis between two hanging siblings, past sibSpRatio alone (horizontal-organization-chart--hier5.pptx shape: cached local fan-row centres 110px apart, plain sibSpRatio-only pitch gives only 87.5px)', () => {
+		const { xPitch } = computeHierarchyAxisPitches(
+			{ width: 533, height: 867 },
+			orientation,
+			77.775,
+			255.0,
+			2,
+			2,
+			hangShape,
+			true,
+		);
+		// pitch = boxW*(1+sibSpRatio) + maxHangDepth*HIER_TAIL_OFFSET_RATIO*
+		// (hangingColumns/totalLeaves)*boxW = 77.775*1.125 + 1*0.25*1*77.775
+		// = 87.497+19.444 = 106.94 - within 0.6% of the fixture's own cached
+		// 110px (see `computeHierarchyAxisPitches`'s own SESSION 41 doc comment
+		// for the full derivation and the corpus regen result).
+		expect(xPitch.pitch).toBeCloseTo(106.94, 1);
+	});
+
+	it('session 41: the fan-axis hang reservation only applies to a transposed tailed hang - a non-transposed tailed hang (plain organization-chart family) keeps the old sibSpRatio-only pitch unchanged', () => {
+		const nonTransposed: HierarchyOrientation = { ...orientation, transposed: false };
+		const { xPitch } = computeHierarchyAxisPitches(
+			{ width: 867, height: 533 },
+			nonTransposed,
+			278,
+			139,
+			2,
+			2,
+			hangShape,
+			true,
+		);
+		expect(xPitch.pitch).toBeCloseTo(278 * (1 + nonTransposed.sibSpRatio), 6);
 	});
 
 	it('session 32: when `orientation.hangHeightRatio` is `undefined` (the compound-text-role shape, `name-and-title-organization-chart--hier5.pptx`), falls back to the fixed HANG_HEIGHT_RATIO=0.55 - `generationGapRatio` alone is NOT used as a stand-in', () => {
