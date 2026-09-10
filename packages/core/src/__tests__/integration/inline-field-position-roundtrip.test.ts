@@ -218,6 +218,82 @@ function fieldSegments(segments: TextSegment[] | undefined): Array<[string, stri
 }
 
 describe('inline field position round-trip', () => {
+	it.each(['text', 'table'] as const)(
+		'loads soft line breaks in %s content through the runtime parser',
+		async (kind) => {
+			const cases = [
+				{ content: '<a:br/>', expected: ['<br>'] },
+				{ content: '<a:br/><a:r><a:t>After</a:t></a:r>', expected: ['<br>', 'After'] },
+				{
+					content: '<a:r><a:t>Before</a:t></a:r><a:br/><a:r><a:t>After</a:t></a:r>',
+					expected: ['Before', '<br>', 'After'],
+				},
+				{ content: '<a:r><a:t>Before</a:t></a:r><a:br/>', expected: ['Before', '<br>'] },
+				{
+					content: '<a:r><a:t>Before</a:t></a:r><a:br/><a:br/><a:r><a:t>After</a:t></a:r>',
+					expected: ['Before', '<br>', '<br>', 'After'],
+				},
+				{
+					content:
+						'<a:r><a:t>Before</a:t></a:r><a:br><a:rPr lang="en-US"/></a:br><a:r><a:t>After</a:t></a:r>',
+					expected: ['Before', '<br>', 'After'],
+				},
+				{
+					content: '<a:r><a:t>Before</a:t></a:r><a:r><a:t>After</a:t></a:r>',
+					expected: ['Before', 'After'],
+				},
+			];
+			for (const { content, expected } of cases) {
+				const {
+					handler: creator,
+					data,
+					createSlide,
+				} = await PptxHandler.createBlank({
+					initialSlideCount: 0,
+				});
+				const slide = createSlide('Blank');
+				const bounds = { x: 60, y: 60, width: 500, height: 160 };
+				if (kind === 'table') {
+					slide.addTable({ rows: [{ cells: [{ text: MARKER }] }] }, bounds);
+				} else {
+					slide.addText(MARKER, bounds);
+				}
+				data.slides.push(slide.build());
+				const reader = new PptxHandler();
+				try {
+					const zip = await JSZip.loadAsync(await creator.save(data.slides));
+					const path = 'ppt/slides/slide1.xml';
+					const xml = await zip.file(path)!.async('string');
+					const markerRun = new RegExp(
+						`<a:r>(?:(?!</a:r>).)*${MARKER}(?:(?!</a:r>).)*</a:r>`,
+						'su',
+					);
+					expect(xml).toMatch(markerRun);
+					zip.file(path, xml.replace(markerRun, content));
+					const bytes = await zip.generateAsync({ type: 'uint8array' });
+					const loaded = await reader.load(bytes.buffer as ArrayBuffer);
+					const element = loaded.slides[0].elements.find((candidate) =>
+						kind === 'table'
+							? candidate.type === 'table'
+							: candidate.type === 'text' || candidate.type === 'shape',
+					)!;
+					const runs =
+						element.type === 'table'
+							? element.tableData!.rows[0].cells[0].textRuns
+							: element.textSegments;
+					expect(
+						runs
+							?.filter((run) => !run.isParagraphBreak)
+							.map((run) => (run.isLineBreak ? '<br>' : run.text)),
+					).toStrictEqual(expected);
+				} finally {
+					creator.dispose();
+					reader.dispose();
+				}
+			}
+		},
+	);
+
 	it('loads and saves an inline a:fld at its authored position', async () => {
 		const bytes = await buildDeckWithInlineFields();
 		const handler = new PptxHandler();

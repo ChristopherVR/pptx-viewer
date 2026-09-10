@@ -183,13 +183,14 @@ export interface ParagraphContentEntries {
 export function paragraphContentEntries(
 	paragraph: XmlObject,
 	contentTags: ReadonlySet<string>,
-	ensureArray: (value: unknown) => unknown[],
 ): ParagraphContentEntries {
+	// An empty <a:br/> is parsed as '', but it is still a line break.
+	// Preserve present XML children rather than normalizing them as objects.
 	const order = childOrder.get(paragraph);
 	if (!order) {
 		const entries = Object.keys(paragraph).flatMap((key) =>
 			contentTags.has(key)
-				? ensureArray(paragraph[key]).map((item) => [key, item] as [string, unknown])
+				? ensureItems(paragraph[key]).map((item) => [key, item] as [string, unknown])
 				: [],
 		);
 		return { entries, authored: false };
@@ -203,7 +204,7 @@ export function paragraphContentEntries(
 		if (!contentTags.has(tag)) {
 			continue;
 		}
-		const item = ensureArray(paragraph[tag])[index];
+		const item = ensureItems(paragraph[tag])[index];
 		if (item !== undefined) {
 			entries.push([tag, item]);
 		}

@@ -100,17 +100,16 @@ export function extractTableCellTextRuns(
 	}
 
 	const runs: PptxTableCellTextRun[] = [];
-	let textRunCount = 0;
+	let contentRunCount = 0;
 	paragraphs.forEach((paragraph, paragraphIndex) => {
 		if (paragraphIndex > 0) {
 			runs.push({ text: '', isParagraphBreak: true });
 		}
-		const { entries } = paragraphContentEntries(paragraph, CELL_CONTENT_TAGS, (value) =>
-			context.ensureArray(value),
-		);
+		const { entries } = paragraphContentEntries(paragraph, CELL_CONTENT_TAGS);
 		for (const [tag, item] of entries) {
 			if (tag === 'a:br') {
 				runs.push({ text: '', isLineBreak: true });
+				contentRunCount++;
 				continue;
 			}
 			const node = item as XmlObject | undefined;
@@ -120,9 +119,9 @@ export function extractTableCellTextRuns(
 			}
 			applyRunProperties(run, node?.['a:rPr'] as XmlObject | undefined, context);
 			runs.push(run);
-			textRunCount++;
+			contentRunCount++;
 		}
 	});
 
-	return textRunCount > 0 ? runs : undefined;
+	return contentRunCount > 0 ? runs : undefined;
 }
