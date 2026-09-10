@@ -7,6 +7,43 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.13.0) - 2026-09-10
+
+### Features
+
+- **core:** Fit SmartArt text and structure from the corpus rules (by @ChristopherVR) ([c29d1d1](https://github.com/ChristopherVR/pptx-viewer/commit/c29d1d153ae0b0b420aa0da3312a4399a68ec3bb))
+- **shared:** Load a metric-compatible web font when a deck's font is missing (by @ChristopherVR) ([75a1874](https://github.com/ChristopherVR/pptx-viewer/commit/75a1874a63d89716b109b94b29b23b951cf2bd1a))
+- **shared:** Light 3D bevels with SVG lighting filters and derive explicit camera overrides (by @ChristopherVR) ([a36c635](https://github.com/ChristopherVR/pptx-viewer/commit/a36c635acb78a7eab7e85293e6a01116ad56a642))
+- **core:** Decode a picture fill's first pixel and a media file's duration without the DOM (by @ChristopherVR) ([a9136fa](https://github.com/ChristopherVR/pptx-viewer/commit/a9136fa1468f026cb56d21c78824a7d8646a231c))
+- **core:** Write hyperlinks, click actions and OLE embeds into legacy .ppt (by @ChristopherVR) ([b8a46fa](https://github.com/ChristopherVR/pptx-viewer/commit/b8a46faef3ac906ea8ab87a0fa145c3aeb527ee9))
+- **shared:** Render fragment-based cinematic transitions in every binding (by @ChristopherVR) ([4aee13e](https://github.com/ChristopherVR/pptx-viewer/commit/4aee13eb6a8eb7e83f13e42e74e5242427aaad2c))
+- **core:** Fourth SmartArt interpreter snapshot against the COM corpus (by @ChristopherVR) ([7b29670](https://github.com/ChristopherVR/pptx-viewer/commit/7b29670ef2f9fb141d30b992a72c2af7476065d8))
+- **shared:** Match PowerPoint on soft edges, pixelate and run-program actions (by @ChristopherVR) ([d4339c2](https://github.com/ChristopherVR/pptx-viewer/commit/d4339c28a939350887f536c1d8053fb00ddc55a2))
+- **core:** Embed real WAV audio in legacy .ppt output (by @ChristopherVR) ([dfebe92](https://github.com/ChristopherVR/pptx-viewer/commit/dfebe92645b500228f6bf37a0ef34699e290df45))
+- **core:** SmartArt composite shape dispatch, per-role font fit and hang ratio (by @ChristopherVR) ([b2d985f](https://github.com/ChristopherVR/pptx-viewer/commit/b2d985f0d5c593c4cca231655d02fed828b548ce))
+- **shared:** Route every raster export through the foreignObject tiled pipeline (by @ChristopherVR) ([1ad1993](https://github.com/ChristopherVR/pptx-viewer/commit/1ad19930714668dba87af52e38872d64e7ad4f9d))
+- **shared:** Sample a bar3D picture fill's first pixel on the first paint (by @ChristopherVR) ([8bdb1bc](https://github.com/ChristopherVR/pptx-viewer/commit/8bdb1bc995e92390f6e622f146e9c5abd623d047))
+- **core:** SmartArt repeated-template slots, table hierarchies and cascades (by @ChristopherVR) ([725033d](https://github.com/ChristopherVR/pptx-viewer/commit/725033db29d984d1d9078224a68cb0ccf590fbba))
+
+### Bug Fixes
+
+- **core:** Resize a rotated shape or group child axis by axis, as PowerPoint does (by @ChristopherVR) ([012929e](https://github.com/ChristopherVR/pptx-viewer/commit/012929ed75310ef664da306082314fe9cd0a7ac8))
+- **core:** Re-enable the hierarchy-descendant dispatch guard (by @ChristopherVR) ([8d3d462](https://github.com/ChristopherVR/pptx-viewer/commit/8d3d462f9424092ec9bf9be60cc5d7860a7acb33))
+- **shared:** Export the fragment transition descriptor and keyframes (by @ChristopherVR) ([306c8ff](https://github.com/ChristopherVR/pptx-viewer/commit/306c8ffdab542dd260ba4a0c4558765cf57869ba))
+- **core:** Export readCnvPrId and track the two generated fixtures CI needs (by @ChristopherVR) ([13bff65](https://github.com/ChristopherVR/pptx-viewer/commit/13bff654b33fc1fbec20384dcd52ad5a86c6b65d))
+- **react,angular:** Skip unchanged autofit commits ([#222](https://github.com/ChristopherVR/pptx-viewer/issues/222)) (by @Sudhansh6) ([fb93aab](https://github.com/ChristopherVR/pptx-viewer/commit/fb93aab5a1b9721b921470b8c94f13d232ce6446))
+- **core:** Preserve fractional table row heights ([#224](https://github.com/ChristopherVR/pptx-viewer/issues/224)) (by @Sudhansh6) ([aaa621f](https://github.com/ChristopherVR/pptx-viewer/commit/aaa621f9f3838a84a13b2422c1888454e592a18f))
+- **angular,core:** Land the transition-split component and media-duration wiring (by @ChristopherVR) ([3d0c8c7](https://github.com/ChristopherVR/pptx-viewer/commit/3d0c8c7b6a68c94f6f9a1258342dd43b6f524503))
+
+### Documentation
+
+- State the measured SmartArt interpreter status in the limitations row (by @ChristopherVR) ([de5c891](https://github.com/ChristopherVR/pptx-viewer/commit/de5c8911ebd90c0a2c859715d982481515c54c1d))
+
+### Testing
+
+- **core:** Declare the two generated fixtures the decoding stream added (by @ChristopherVR) ([acda9bf](https://github.com/ChristopherVR/pptx-viewer/commit/acda9bfac0cf98a9ddd1fc692b4301e10b268b7f))
+- **react,svelte,angular,shared:** Update assertions to the camera-matrix and webfont contracts (by @ChristopherVR) ([f2edef8](https://github.com/ChristopherVR/pptx-viewer/commit/f2edef846a5ffb607fb15985512a1142bb47e570))
+
 ## [3.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.12.0) - 2026-09-10
 
 ### Features

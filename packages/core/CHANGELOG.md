@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.11.0) - 2026-09-10
+
+### Features
+
+- **core:** SmartArt composite shape dispatch, per-role font fit and hang ratio (by @ChristopherVR) ([b2d985f](https://github.com/ChristopherVR/pptx-viewer/commit/b2d985f0d5c593c4cca231655d02fed828b548ce))
+- **shared:** Route every raster export through the foreignObject tiled pipeline (by @ChristopherVR) ([1ad1993](https://github.com/ChristopherVR/pptx-viewer/commit/1ad19930714668dba87af52e38872d64e7ad4f9d))
+- **core:** SmartArt repeated-template slots, table hierarchies and cascades (by @ChristopherVR) ([725033d](https://github.com/ChristopherVR/pptx-viewer/commit/725033db29d984d1d9078224a68cb0ccf590fbba))
+
+### Bug Fixes
+
+- **core:** Preserve fractional table row heights ([#224](https://github.com/ChristopherVR/pptx-viewer/issues/224)) (by @Sudhansh6) ([aaa621f](https://github.com/ChristopherVR/pptx-viewer/commit/aaa621f9f3838a84a13b2422c1888454e592a18f))
+- **angular,core:** Land the transition-split component and media-duration wiring (by @ChristopherVR) ([3d0c8c7](https://github.com/ChristopherVR/pptx-viewer/commit/3d0c8c7b6a68c94f6f9a1258342dd43b6f524503))
+
 ## [3.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.10.0) - 2026-09-10
 
 ### Features

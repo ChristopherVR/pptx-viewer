@@ -10,6 +10,33 @@ dated sections beneath it are generated from
 
 ## 2026-09-10
 
+_Releases: pptx-viewer-core@3.11.0, pptx-react-viewer@3.13.0, pptx-vue-viewer@3.13.0, pptx-angular-viewer@3.13.0, pptx-vanilla-viewer@2.13.0, pptx-svelte-viewer@3.14.0, @christophervr/pptx-viewer@2.12.0_
+
+### Features
+
+- **core:** SmartArt composite shape dispatch, per-role font fit and hang ratio (by @ChristopherVR) ([b2d985f](https://github.com/ChristopherVR/pptx-viewer/commit/b2d985f0d5c593c4cca231655d02fed828b548ce))
+- **shared:** Route every raster export through the foreignObject tiled pipeline (by @ChristopherVR) ([1ad1993](https://github.com/ChristopherVR/pptx-viewer/commit/1ad19930714668dba87af52e38872d64e7ad4f9d))
+- **shared:** Sample a bar3D picture fill's first pixel on the first paint (by @ChristopherVR) ([8bdb1bc](https://github.com/ChristopherVR/pptx-viewer/commit/8bdb1bc995e92390f6e622f146e9c5abd623d047))
+- **core:** SmartArt repeated-template slots, table hierarchies and cascades (by @ChristopherVR) ([725033d](https://github.com/ChristopherVR/pptx-viewer/commit/725033db29d984d1d9078224a68cb0ccf590fbba))
+
+### Bug Fixes
+
+- **core:** Preserve fractional table row heights ([#224](https://github.com/ChristopherVR/pptx-viewer/issues/224)) (by @Sudhansh6) ([aaa621f](https://github.com/ChristopherVR/pptx-viewer/commit/aaa621f9f3838a84a13b2422c1888454e592a18f))
+- **angular,core:** Land the transition-split component and media-duration wiring (by @ChristopherVR) ([3d0c8c7](https://github.com/ChristopherVR/pptx-viewer/commit/3d0c8c7b6a68c94f6f9a1258342dd43b6f524503))
+- **vanilla:** Mount the fragmented transition layer in the overlay (by @ChristopherVR) ([2e9525c](https://github.com/ChristopherVR/pptx-viewer/commit/2e9525c8362a347182cbe31b60d06b26f807518d))
+
+### Documentation
+
+- Close the wave 7 limitation rows in every locale (by @ChristopherVR) ([34eff4e](https://github.com/ChristopherVR/pptx-viewer/commit/34eff4e5aabb650c2fffde9cfc90acc8a41d358b))
+
+### Testing
+
+- **e2e:** Track the media-trigger-mismatched fixture generator (by @ChristopherVR) ([361a6d8](https://github.com/ChristopherVR/pptx-viewer/commit/361a6d81c7cdbeae644e965ff9f36c939f9cfa2e))
+- **react,svelte,angular,shared:** Update assertions to the camera-matrix and webfont contracts (by @ChristopherVR) ([f2edef8](https://github.com/ChristopherVR/pptx-viewer/commit/f2edef846a5ffb607fb15985512a1142bb47e570))
+- **e2e:** Generate the matte bevel block in the shape-3d fixture script (by @ChristopherVR) ([6748324](https://github.com/ChristopherVR/pptx-viewer/commit/6748324eeb277d4ee623ca0075938025562efccd))
+
+## 2026-09-10
+
 _Releases: pptx-viewer-core@3.10.0, pptx-react-viewer@3.12.0, pptx-vue-viewer@3.12.0, pptx-vanilla-viewer@2.12.0, pptx-svelte-viewer@3.13.0, @christophervr/pptx-viewer@2.11.0_
 
 ### Features

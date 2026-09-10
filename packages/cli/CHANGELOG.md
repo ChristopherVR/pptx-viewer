@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.12.0) - 2026-09-10
+
+### Features
+
+- **shared:** Route every raster export through the foreignObject tiled pipeline (by @ChristopherVR) ([1ad1993](https://github.com/ChristopherVR/pptx-viewer/commit/1ad19930714668dba87af52e38872d64e7ad4f9d))
+
+### Testing
+
+- **react,svelte,angular,shared:** Update assertions to the camera-matrix and webfont contracts (by @ChristopherVR) ([f2edef8](https://github.com/ChristopherVR/pptx-viewer/commit/f2edef846a5ffb607fb15985512a1142bb47e570))
+
 ## [2.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.11.0) - 2026-09-10
 
 ### Features
