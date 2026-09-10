@@ -374,6 +374,209 @@ describe('smartArt hierarchy arranger: linDir fallback (no presLayoutVars.hierBr
 	});
 });
 
+/**
+ * `square-accent-list--hier5.pptx`'s own shape, transcribed from its real
+ * `ppt/diagrams/layout1.xml`: a FOREST (the outer `hierChild` fans one
+ * `hierRoot` instance per top-level data node, `linDir="fromL"`), each
+ * `hierRoot` nesting its OWN `hierChild` (`linDir="fromT"`, `chAlign="r"`)
+ * hanging its own descendants - see `smartart-hierarchy-fanned-hang.ts`'s
+ * own module doc comment. `Parent`/`Child` are `tx`+shape descendants
+ * declared entirely inside a `dir="norm"/"rev"` `dgm:choose` (real
+ * PowerPoint content, mirroring text alignment), exercising the
+ * choose-wrapped-tx detection fix end to end, not just the direct-alg shape
+ * `cornerAlgorithmNode` above already covers.
+ */
+function squareAccentListAlgorithmNode(): {
+	algorithmNode: PptxSmartArtLayoutNode;
+	index: ConstraintIndex;
+} {
+	const txChoose = (side: 'l' | 'r') => [
+		{
+			when: [
+				{
+					function: 'var' as const,
+					operator: 'equ' as const,
+					value: 'norm',
+					argument: 'dir',
+					rawXml: {
+						'dgm:alg': {
+							'@_type': 'tx',
+							'dgm:param': [{ '@_type': 'parTxLTRAlign', '@_val': side }],
+						},
+					},
+				},
+			],
+			otherwise: { rawXml: { 'dgm:alg': { '@_type': 'tx' } } },
+		},
+	];
+	const algorithmNode: PptxSmartArtLayoutNode = {
+		name: 'layout',
+		algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: 'fromL' }] },
+		constraints: [
+			{
+				type: 'w',
+				for: 'des',
+				forName: 'rootComposite',
+				referenceType: 'h',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite',
+				factor: 3.0396,
+			},
+			{ type: 'h', for: 'des', forName: 'rootComposite', referenceType: 'h' },
+			{
+				type: 'w',
+				for: 'des',
+				forName: 'childComposite',
+				referenceType: 'w',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite',
+			},
+			{
+				type: 'h',
+				for: 'des',
+				forName: 'childComposite',
+				referenceType: 'h',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite',
+				factor: 0.5205,
+			},
+			{
+				type: 'sibSp',
+				referenceType: 'w',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite',
+				factor: 0.05,
+			},
+		],
+		children: [
+			{
+				name: 'root',
+				algorithm: { type: 'hierRoot', parameters: [{ type: 'hierAlign', value: 'tL' }] },
+				children: [
+					{
+						name: 'rootComposite',
+						algorithm: { type: 'composite' },
+						constraints: [
+							{ type: 'w', for: 'ch', forName: 'Parent', referenceType: 'w' },
+							{ type: 'h', for: 'ch', forName: 'Parent', referenceType: 'h', factor: 0.6424 },
+						],
+						children: [
+							{ name: 'Parent', choose: txChoose('l'), shape: { presetGeometry: 'rect' } },
+						],
+					},
+					{
+						name: 'childShape',
+						algorithm: {
+							type: 'hierChild',
+							parameters: [
+								{ type: 'chAlign', value: 'r' },
+								{ type: 'linDir', value: 'fromT' },
+							],
+						},
+						children: [
+							{
+								name: 'childComposite',
+								algorithm: { type: 'composite' },
+								constraints: [
+									{ type: 'w', for: 'ch', forName: 'Child', referenceType: 'w', factor: 0.93 },
+									{ type: 'h', for: 'ch', forName: 'Child', referenceType: 'h' },
+								],
+								children: [
+									{ name: 'Child', choose: txChoose('l'), shape: { presetGeometry: 'rect' } },
+								],
+							},
+						],
+					},
+				],
+			},
+		],
+	};
+	return { algorithmNode, index: buildConstraintIndex({ rootNode: algorithmNode }) };
+}
+
+describe('smartArt hierarchy arranger: fanned root row with per-branch hanging columns (square-accent-list)', () => {
+	// Matches square-accent-list--hier8.pptx's own real data1.xml: 3
+	// independent top-level roots (a FOREST, `roots.length > 1`), branches A
+	// and B each hang two descendants, branch C hangs one.
+	const FOREST: PptxSmartArtNode[] = [
+		{ id: 'a', text: 'Branch A Root' },
+		{ id: 'a1', text: 'Branch A Child', parentId: 'a' },
+		{ id: 'a2', text: 'Branch A Grandchild', parentId: 'a1' },
+		{ id: 'b', text: 'Branch B Root' },
+		{ id: 'b1', text: 'Branch B Child', parentId: 'b' },
+		{ id: 'b2', text: 'Branch B Grandchild', parentId: 'b1' },
+		{ id: 'c', text: 'Branch C Root' },
+		{ id: 'c1', text: 'Branch C Child', parentId: 'c' },
+	];
+	const forestBox: BoundingBox = { width: 867, height: 533 };
+
+	function runForest(nodes: PptxSmartArtNode[]): SmartArtLayoutResult {
+		const { algorithmNode, index } = squareAccentListAlgorithmNode();
+		// `direction: 'norm'` matches what real parsed content always supplies
+		// (`dgm:dir`'s own resolved default) - needed so `Parent`/`Child`'s
+		// own `dir="norm"/"rev"`-mirroring `dgm:choose` is decidable at all
+		// (see `smartart-hierarchy-generation-templates.test.ts`'s own
+		// `squareAccentListLikeDefinition` for the same requirement).
+		return arrangeHierarchy(
+			nodes,
+			forestBox,
+			palette,
+			'flat',
+			'hier-forest',
+			{ direction: 'norm' },
+			undefined,
+			algorithmNode,
+			index,
+		);
+	}
+
+	it('fans every root across the row at the SAME y, in increasing x order', () => {
+		const result = runForest(FOREST);
+		const a = byId(result, 'a');
+		const b = byId(result, 'b');
+		const c = byId(result, 'c');
+		expect(a.y).toBeCloseTo(b.y, 0);
+		expect(b.y).toBeCloseTo(c.y, 0);
+		expect(a.x).toBeLessThan(b.x);
+		expect(b.x).toBeLessThan(c.x);
+	});
+
+	it("hangs each branch's own descendants below ITS OWN root, not stacked with another branch", () => {
+		const result = runForest(FOREST);
+		const a = byId(result, 'a');
+		const a1 = byId(result, 'a1');
+		const a2 = byId(result, 'a2');
+		const b1 = byId(result, 'b1');
+		// a1/a2 stack in ONE column below branch A's own root - same x, a2 below a1.
+		expect(a1.x).toBeCloseTo(a2.x, 0);
+		expect(a2.y).toBeGreaterThan(a1.y);
+		expect(a1.y).toBeGreaterThan(a.y + a.height);
+		// Branch A's own descendants never land at branch B's column.
+		expect(a1.x).not.toBeCloseTo(b1.x, 0);
+	});
+
+	it('the root row spans the full box width edge to edge (no fixture-specific margin)', () => {
+		const result = runForest(FOREST);
+		const a = byId(result, 'a');
+		const c = byId(result, 'c');
+		expect(a.x).toBeCloseTo(0, 0);
+		expect(c.x + c.width).toBeCloseTo(forestBox.width, 0);
+	});
+
+	it('a single-root tree (roots.length <= 1) under the SAME construct still takes the pre-existing single-column path unchanged', () => {
+		const singleRoot: PptxSmartArtNode[] = [
+			{ id: 'a', text: 'Branch A Root' },
+			{ id: 'a1', text: 'Branch A Child', parentId: 'a' },
+		];
+		const result = runForest(singleRoot);
+		const a = byId(result, 'a');
+		const a1 = byId(result, 'a1');
+		// `arrangeFullyHangingTree`'s own single-column model: descendant hangs
+		// below the root, offset sideways by `indent` (see that module).
+		expect(a1.y).toBeGreaterThan(a.y);
+	});
+});
+
 describe('smartArt hierarchy arranger: orgChart assistants', () => {
 	const withAssistant: PptxSmartArtNode[] = [
 		{ id: 'm', text: 'Manager' },

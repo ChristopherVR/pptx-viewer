@@ -93,6 +93,7 @@ function branchAlg(
 	raw: XmlObject | undefined,
 	nodeCount: number,
 	context: WhenContext,
+	allowedTypes: ReadonlySet<string> = CHOOSE_ALG_TYPES,
 ): FoundBranchAlg | undefined {
 	if (!raw) {
 		return undefined;
@@ -120,7 +121,7 @@ function branchAlg(
 						candidate && typeof candidate === 'object'
 							? String((candidate as XmlObject)['@_type'] ?? '')
 							: '';
-					if (CHOOSE_ALG_TYPES.has(type)) {
+					if (allowedTypes.has(type)) {
 						found = { type, raw: candidate as XmlObject };
 						return;
 					}
@@ -245,6 +246,46 @@ export function chooseAlgorithm(
 	// only once every branch's own structural search above has found nothing.
 	for (const choose of node.choose) {
 		const found = boundedCompositeAlg(activeBranch(choose, nodeCount, context), nodeCount, context);
+		if (found) {
+			const parameters = parseBranchAlgParams(found.raw);
+			return { type: found.type, ...(parameters ? { parameters } : {}) };
+		}
+	}
+	return undefined;
+}
+
+/**
+ * Resolve a decidable `dgm:choose` to a WINNING branch algorithm whose type
+ * belongs to `allowedTypes` - a generalisation of {@link chooseAlgType}/
+ * {@link chooseAlgorithm} for a caller that needs a type OUTSIDE their own
+ * `CHOOSE_ALG_TYPES` whitelist (e.g. `tx`, for hierarchy generation-template
+ * detection - `smartart-hierarchy-generation-templates.ts`).
+ *
+ * Deliberately kept SEPARATE from `chooseAlgType`/`chooseAlgorithm`'s own
+ * default whitelist rather than widening `CHOOSE_ALG_TYPES` itself: that
+ * whitelist also gates `discoverArrangement`'s own ARRANGEMENT dispatch
+ * (`smartart-layout-interpreter-model.ts`), and widening it there for an
+ * unrelated type has previously regressed unrelated fixtures - see
+ * `CHOOSE_ALG_TYPES`'s own doc comment for the measured `composite`
+ * regression. A narrow caller asking for a specific, non-structural type via
+ * this entry point cannot affect that dispatch at all.
+ */
+export function chooseAlgorithmOfType(
+	node: PptxSmartArtLayoutNode,
+	nodeCount: number,
+	allowedTypes: ReadonlySet<string>,
+	context: WhenContext = {},
+): PptxSmartArtLayoutAlgorithm | undefined {
+	if (!node.choose || node.choose.length === 0) {
+		return undefined;
+	}
+	for (const choose of node.choose) {
+		const found = branchAlg(
+			activeBranch(choose, nodeCount, context),
+			nodeCount,
+			context,
+			allowedTypes,
+		);
 		if (found) {
 			const parameters = parseBranchAlgParams(found.raw);
 			return { type: found.type, ...(parameters ? { parameters } : {}) };

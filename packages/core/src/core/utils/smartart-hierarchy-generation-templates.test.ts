@@ -148,11 +148,130 @@ function compoundTextRoleNode(): PptxSmartArtLayoutNode {
 	};
 }
 
+/**
+ * `square-accent-list--hier5.pptx`'s own shape (trimmed to what this module
+ * reads): `Parent`/`Child` are `tx`+shape descendants whose OWN `dgm:alg` is
+ * declared entirely inside a `dir="norm"/"rev"` `dgm:choose` (real PowerPoint
+ * content, mirroring text alignment), not as a direct child - `.algorithm`
+ * stays `undefined` for both, unlike `hierarchyListLikeDefinition`'s own
+ * direct `rootText`/`childText`. Sizes mirror the genuine COM-measured
+ * unit-space values (`resolveConstraint(index, 'Parent', 'w')` -> `3.0396`,
+ * `'h'` -> `0.6424`; `'Child'` -> `0.93`/`0.5205`) - see
+ * `smartart-hierarchy-fanned-hang.ts`'s own module doc comment for the full
+ * derivation.
+ */
+function squareAccentListLikeDefinition(): PptxSmartArtLayoutDefinition {
+	const txChoose = (side: 'l' | 'r') => [
+		{
+			when: [
+				{
+					function: 'var' as const,
+					operator: 'equ' as const,
+					value: 'norm',
+					argument: 'dir',
+					rawXml: {
+						'dgm:alg': {
+							'@_type': 'tx',
+							'@_param': [{ '@_type': 'parTxLTRAlign', '@_val': side }],
+						},
+					},
+				},
+			],
+			otherwise: {
+				rawXml: { 'dgm:alg': { '@_type': 'tx' } },
+			},
+		},
+	];
+	return {
+		rootNode: {
+			name: 'layout',
+			algorithm: { type: 'hierChild' },
+			constraints: [
+				constr({
+					type: 'w',
+					for: 'des',
+					forName: 'rootComposite',
+					referenceType: 'h',
+					referenceFor: 'des',
+					referenceForName: 'rootComposite',
+					factor: 3.0396,
+				}),
+				constr({ type: 'h', for: 'des', forName: 'rootComposite', referenceType: 'h' }),
+				constr({
+					type: 'w',
+					for: 'des',
+					forName: 'childComposite',
+					referenceType: 'w',
+					referenceFor: 'des',
+					referenceForName: 'rootComposite',
+				}),
+				constr({
+					type: 'h',
+					for: 'des',
+					forName: 'childComposite',
+					referenceType: 'h',
+					referenceFor: 'des',
+					referenceForName: 'rootComposite',
+					factor: 0.5205,
+				}),
+			],
+			children: [
+				{
+					name: 'root',
+					algorithm: { type: 'hierRoot' },
+					children: [
+						{
+							name: 'rootComposite',
+							algorithm: { type: 'composite' },
+							constraints: [
+								constr({ type: 'w', for: 'ch', forName: 'Parent', referenceType: 'w' }),
+								constr({
+									type: 'h',
+									for: 'ch',
+									forName: 'Parent',
+									referenceType: 'h',
+									factor: 0.6424,
+								}),
+							],
+							children: [
+								{ name: 'Parent', choose: txChoose('l'), shape: { presetGeometry: 'rect' } },
+							],
+						},
+						{
+							name: 'childShape',
+							algorithm: { type: 'hierChild' },
+							children: [
+								{
+									name: 'childComposite',
+									algorithm: { type: 'composite' },
+									constraints: [
+										constr({
+											type: 'w',
+											for: 'ch',
+											forName: 'Child',
+											referenceType: 'w',
+											factor: 0.93,
+										}),
+										constr({ type: 'h', for: 'ch', forName: 'Child', referenceType: 'h' }),
+									],
+									children: [
+										{ name: 'Child', choose: txChoose('l'), shape: { presetGeometry: 'rect' } },
+									],
+								},
+							],
+						},
+					],
+				},
+			],
+		},
+	};
+}
+
 describe('resolveHierarchyGenerationTemplates', () => {
 	it('splits root (rootText) from descendant (childText) with the declared size factors - hierarchy-list--hier5.pptx', () => {
 		const definition = hierarchyListLikeDefinition();
 		const index = buildConstraintIndex(definition);
-		const templates = resolveHierarchyGenerationTemplates(definition.rootNode, index);
+		const templates = resolveHierarchyGenerationTemplates(definition.rootNode, index, 5, undefined);
 		expect(templates?.descendant.name).toBe('childText');
 		expect(templates?.root?.name).toBe('rootText');
 		// Cached ground truth: childText 179x112, rootText/rootComposite 224x112 -
@@ -165,6 +284,8 @@ describe('resolveHierarchyGenerationTemplates', () => {
 		const templates = resolveHierarchyGenerationTemplates(
 			singleTemplateNode(),
 			EMPTY_CONSTRAINT_INDEX,
+			5,
+			undefined,
 		);
 		expect(templates?.descendant.name).toBe('text');
 		expect(templates?.root).toBeUndefined();
@@ -174,6 +295,8 @@ describe('resolveHierarchyGenerationTemplates', () => {
 		const templates = resolveHierarchyGenerationTemplates(
 			compoundTextRoleNode(),
 			EMPTY_CONSTRAINT_INDEX,
+			5,
+			undefined,
 		);
 		expect(templates?.descendant.name).toBe('rootText1');
 		expect(templates?.root).toBeUndefined();
@@ -184,7 +307,22 @@ describe('resolveHierarchyGenerationTemplates', () => {
 			resolveHierarchyGenerationTemplates(
 				{ name: 'hierChild1', algorithm: { type: 'hierChild' } },
 				EMPTY_CONSTRAINT_INDEX,
+				5,
+				undefined,
 			),
 		).toBeUndefined();
+	});
+
+	it('sees a choose-wrapped tx candidate and splits root (Parent) from descendant (Child) - square-accent-list--hier5.pptx', () => {
+		const definition = squareAccentListLikeDefinition();
+		const index = buildConstraintIndex(definition);
+		const templates = resolveHierarchyGenerationTemplates(definition.rootNode, index, 5, {
+			direction: 'norm',
+		});
+		expect(templates?.descendant.name).toBe('Child');
+		expect(templates?.root?.name).toBe('Parent');
+		// Genuine COM-measured unit-space values (see this test's own fixture doc comment).
+		expect(templates?.root?.widthFactor).toBeCloseTo(3.0396 / 0.93, 2);
+		expect(templates?.root?.heightFactor).toBeCloseTo(0.6424 / 0.5205, 2);
 	});
 });

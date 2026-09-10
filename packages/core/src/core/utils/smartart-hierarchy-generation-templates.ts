@@ -15,6 +15,21 @@
  * differently-sized root box (`smartart-hierarchy-hanging-box.ts`) has the
  * real declared numbers instead of forcing every row to the same size.
  *
+ * ## Choose-wrapped `tx` candidates
+ *
+ * A candidate's own `dgm:alg type="tx"` is sometimes declared entirely
+ * inside a `dgm:choose` (mirroring `dir="norm"/"rev"` text alignment, e.g.
+ * `square-accent-list`'s own `Parent`/`Child` nodes) rather than as a direct
+ * child - `node.algorithm` stays `undefined` for those, so a plain
+ * `node.algorithm?.type === 'tx'` read (as `collectTxShapeNodes` in
+ * `smartart-hierarchy-item-template.ts` still does) silently finds ZERO
+ * candidates for them, and this module's own root/descendant split never
+ * fires. `collectScoped` resolves a choose-wrapped candidate's type via
+ * `chooseAlgorithmOfType` (a `tx`-only search, deliberately separate from
+ * `chooseAlgType`/`chooseAlgorithm`'s own structural whitelist - see that
+ * function's own doc comment for why arrangement DISPATCH must not be
+ * widened the same way) before falling back to `undefined`.
+ *
  * ## Structural signal
  *
  * A candidate template is "root scope" when it is reached from
@@ -64,10 +79,14 @@
  * Pure geometry/constraint reading; no framework code.
  */
 
-import type { PptxSmartArtLayoutNode } from '../types';
+import type { PptxSmartArtLayoutNode, PptxSmartArtPresLayoutVars } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { resolveConstraint } from './smartart-constraint-solver';
 import { resolveHierarchyItemNode } from './smartart-hierarchy-item-template';
+import { chooseAlgorithmOfType } from './smartart-layout-interpreter-choose-algorithm';
+
+/** Types `collectScoped` treats as a `tx`+shape item candidate - see the module doc comment's "choose-wrapped tx" note. */
+const TX_ALG_TYPES = new Set(['tx']);
 
 export interface HierarchyGenerationTemplate {
 	node: PptxSmartArtLayoutNode;
@@ -98,16 +117,30 @@ function collectScoped(
 	node: PptxSmartArtLayoutNode | undefined,
 	crossedHierChild: boolean,
 	out: { node: PptxSmartArtLayoutNode; descendantScope: boolean }[],
+	nodeCount: number,
+	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
 ): void {
 	if (!node) {
 		return;
 	}
-	if (node.algorithm?.type === 'tx' && node.shape) {
+	// `node.algorithm` stays `undefined` for a `tx` alg declared entirely
+	// inside a `dgm:choose` (mirroring `dir="norm"/"rev"` text alignment, e.g.
+	// `square-accent-list`'s own `Parent`/`Child` nodes) - see the module doc
+	// comment's "choose-wrapped tx" note. `chooseAlgorithmOfType` resolves it
+	// without touching `chooseAlgType`/`chooseAlgorithm`'s own structural
+	// whitelist (that one gates arrangement DISPATCH elsewhere, unrelated to
+	// this item-template scan).
+	const effectiveType =
+		node.algorithm?.type ??
+		(node.choose
+			? chooseAlgorithmOfType(node, nodeCount, TX_ALG_TYPES, { presLayoutVars })?.type
+			: undefined);
+	if (effectiveType === 'tx' && node.shape) {
 		out.push({ node, descendantScope: crossedHierChild });
 	}
 	const nextCrossed = crossedHierChild || node.algorithm?.type === 'hierChild';
 	for (const child of node.children ?? []) {
-		collectScoped(child, nextCrossed, out);
+		collectScoped(child, nextCrossed, out, nodeCount, presLayoutVars);
 	}
 }
 
@@ -129,6 +162,8 @@ function resolvedSize(index: ConstraintIndex, name: string): { w: number; h: num
 export function resolveHierarchyGenerationTemplates(
 	algorithmNode: PptxSmartArtLayoutNode | undefined,
 	index: ConstraintIndex,
+	nodeCount: number,
+	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
 ): HierarchyGenerationTemplates | undefined {
 	if (!algorithmNode) {
 		return undefined;
@@ -136,7 +171,7 @@ export function resolveHierarchyGenerationTemplates(
 	const fallbackNode = resolveHierarchyItemNode(algorithmNode);
 	const scoped: { node: PptxSmartArtLayoutNode; descendantScope: boolean }[] = [];
 	for (const child of algorithmNode.children ?? []) {
-		collectScoped(child, false, scoped);
+		collectScoped(child, false, scoped, nodeCount, presLayoutVars);
 	}
 	const rootScoped = scoped.filter((c) => !c.descendantScope);
 	const descendantScoped = scoped.filter((c) => c.descendantScope);

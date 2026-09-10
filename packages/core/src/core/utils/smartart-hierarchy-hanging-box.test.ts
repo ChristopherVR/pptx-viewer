@@ -97,7 +97,7 @@ describe('fitHangingBox', () => {
 	it("reproduces hierarchy-list--hier5.pptx's own cached row sizes (867x533 box, 4 rows: matches its post-fold shape count)", () => {
 		const definition = hierarchyListLikeDefinition();
 		const index = buildConstraintIndex(definition);
-		const fit = fitHangingBox(definition.rootNode, index, 867, 533, 4);
+		const fit = fitHangingBox(definition.rootNode, index, 867, 533, 4, 5, undefined);
 		// Cached: childText (descendant) 179x112, rootText/rootComposite (root)
 		// 224x112 - `toBeCloseTo(..., -1)` allows a tolerance of 5px either way
 		// (the row-fit denominator is exact against the DECLARED ratios; the
@@ -114,13 +114,13 @@ describe('fitHangingBox', () => {
 	it('degrades to a taller box (more rows, same box height) - the row-fit denominator scales with rows', () => {
 		const definition = hierarchyListLikeDefinition();
 		const index = buildConstraintIndex(definition);
-		const fourRows = fitHangingBox(definition.rootNode, index, 867, 533, 4);
-		const eightRows = fitHangingBox(definition.rootNode, index, 867, 533, 8);
+		const fourRows = fitHangingBox(definition.rootNode, index, 867, 533, 4, 5, undefined);
+		const eightRows = fitHangingBox(definition.rootNode, index, 867, 533, 8, 5, undefined);
 		expect(eightRows.boxH).toBeLessThan(fourRows.boxH);
 	});
 
 	it('falls back to the legacy ad-hoc ratios when no algorithmNode is given', () => {
-		const fit = fitHangingBox(undefined, EMPTY_CONSTRAINT_INDEX, 1000, 500, 3);
+		const fit = fitHangingBox(undefined, EMPTY_CONSTRAINT_INDEX, 1000, 500, 3, 0, undefined);
 		expect(fit.boxW).toBeCloseTo(Math.min(1000 * 0.42, 160), 5);
 		expect(fit.boxH).toBeCloseTo(Math.min(500 * 0.16, 30), 5);
 		expect(fit.rootBoxW).toBeUndefined();
@@ -141,7 +141,7 @@ describe('fitHangingBox', () => {
 				},
 			],
 		};
-		const fit = fitHangingBox(bareNode, EMPTY_CONSTRAINT_INDEX, 1000, 500, 3);
+		const fit = fitHangingBox(bareNode, EMPTY_CONSTRAINT_INDEX, 1000, 500, 3, 0, undefined);
 		expect(fit.boxW).toBeCloseTo(Math.min(1000 * 0.42, 160), 5);
 		expect(fit.boxH).toBeCloseTo(Math.min(500 * 0.16, 30), 5);
 	});
@@ -149,7 +149,7 @@ describe('fitHangingBox', () => {
 	it('falls back to the legacy ad-hoc ratios for rows < 1', () => {
 		const definition = hierarchyListLikeDefinition();
 		const index = buildConstraintIndex(definition);
-		const fit = fitHangingBox(definition.rootNode, index, 867, 533, 0);
+		const fit = fitHangingBox(definition.rootNode, index, 867, 533, 0, 5, undefined);
 		expect(fit.boxW).toBeCloseTo(Math.min(867 * 0.42, 160), 5);
 	});
 });

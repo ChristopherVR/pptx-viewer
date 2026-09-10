@@ -12,6 +12,7 @@ import type {
 	PptxSmartArtLayoutNode,
 	PptxSmartArtLayoutNodeShape,
 	PptxSmartArtNode,
+	PptxSmartArtPresLayoutVars,
 	SmartArtStyle,
 } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
@@ -45,6 +46,7 @@ export function arrangeFullyHangingTree(
 	fontName: string | undefined,
 	linDir: string | undefined,
 	orgChart: boolean,
+	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
 	/**
 	 * See `HangingOptions.columnAlign`'s own doc comment
 	 * (`smartart-hierarchy-hanging.ts`) - `undefined` for every fixture but
@@ -71,7 +73,7 @@ export function arrangeFullyHangingTree(
 	// - one per data node only when nothing folds; with `foldDeeperGenerations`
 	// set, a folded descendant contributes no row of its own.
 	const rows = countHangingRows(roots, orgChart, foldDeeperGenerations);
-	const fit = fitHangingBox(algorithmNode, index, w, h, rows);
+	const fit = fitHangingBox(algorithmNode, index, w, h, rows, nodes.length, presLayoutVars);
 	const { boxW, boxH, vGap } = fit;
 	const indent = boxW * 0.35;
 	const hc = baseContext(

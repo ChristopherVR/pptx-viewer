@@ -57,7 +57,7 @@ import { resolveCornerHangPlan } from './smartart-hierarchy-corner-plan';
 import { buildFanAwareWidthMap, resolveSpanWidth } from './smartart-hierarchy-fan-aware-width';
 import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
 import { computeHangShape } from './smartart-hierarchy-hang-depth';
-import { arrangeFullyHangingTree } from './smartart-hierarchy-hanging-arrange';
+import { dispatchHangingMode } from './smartart-hierarchy-hang-dispatch';
 import { flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
 import { applyChildOrder, fitItemBox, transposeResult } from './smartart-hierarchy-orientation';
 import { resolveHierarchyEffectiveOrientation } from './smartart-hierarchy-orientation-resolve';
@@ -108,8 +108,10 @@ export function arrangeHierarchy(
 	// `alg="tx"`) - see `findHierarchyItemShape`'s doc comment.
 	const itemShape = algorithmNode ? findHierarchyItemShape(algorithmNode) : undefined;
 
+	// See `smartart-hierarchy-hang-dispatch.ts`'s own module doc comment for
+	// the two renderers `mode==='hanging'` can reach.
 	if (mode === 'hanging') {
-		return arrangeFullyHangingTree(
+		return dispatchHangingMode(
 			nodes,
 			box,
 			palette,
@@ -121,9 +123,9 @@ export function arrangeHierarchy(
 			algorithmNode,
 			index,
 			fontName,
-			cornerPlan?.linDir,
+			presLayoutVars,
 			orgChart,
-			cornerPlan?.side,
+			cornerPlan,
 		);
 	}
 

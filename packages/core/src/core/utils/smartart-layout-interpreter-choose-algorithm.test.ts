@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PptxSmartArtLayoutNode } from '../types';
-import { chooseAlgorithm, chooseAlgType } from './smartart-layout-interpreter-choose-algorithm';
+import {
+	chooseAlgorithm,
+	chooseAlgorithmOfType,
+	chooseAlgType,
+} from './smartart-layout-interpreter-choose-algorithm';
 
 /** The exact shape "Basic Block List"'s `diagram` root declares (layout1.xml). */
 function basicBlockListDiagramNode(): PptxSmartArtLayoutNode {
@@ -210,5 +214,75 @@ describe('chooseAlgorithm', () => {
 		};
 		const resolved = chooseAlgorithm(node, 3, { presLayoutVars: { direction: 'norm' } });
 		expect(resolved).toBeUndefined();
+	});
+});
+
+describe('chooseAlgorithmOfType', () => {
+	/** `square-accent-list--hier5.pptx`'s own `Parent`/`Child` shape: a `tx` alg declared entirely inside a `dir="norm"/"rev"` choose. */
+	function chooseWrappedTxNode(): PptxSmartArtLayoutNode {
+		return {
+			choose: [
+				{
+					when: [
+						{
+							function: 'var',
+							operator: 'equ',
+							value: 'norm',
+							argument: 'dir',
+							rawXml: {
+								'dgm:alg': {
+									'@_type': 'tx',
+									'dgm:param': [{ '@_type': 'parTxLTRAlign', '@_val': 'l' }],
+								},
+							},
+						},
+					],
+					otherwise: {
+						rawXml: {
+							'dgm:alg': {
+								'@_type': 'tx',
+								'dgm:param': [{ '@_type': 'parTxLTRAlign', '@_val': 'r' }],
+							},
+						},
+					},
+				},
+			],
+			rawXml: {},
+		};
+	}
+
+	it('resolves a choose-wrapped `tx` algorithm when `tx` is in the caller-supplied allowed set', () => {
+		const node = chooseWrappedTxNode();
+		const resolved = chooseAlgorithmOfType(node, 5, new Set(['tx']), {
+			presLayoutVars: { direction: 'norm' },
+		});
+		expect(resolved?.type).toBe('tx');
+		expect(resolved?.parameters).toStrictEqual([{ type: 'parTxLTRAlign', value: 'l' }]);
+	});
+
+	it('resolves the OTHER branch when the decision flips', () => {
+		const node = chooseWrappedTxNode();
+		const resolved = chooseAlgorithmOfType(node, 5, new Set(['tx']), {
+			presLayoutVars: { direction: 'rev' },
+		});
+		expect(resolved?.parameters).toStrictEqual([{ type: 'parTxLTRAlign', value: 'r' }]);
+	});
+
+	it('is undefined when `tx` is not in the caller-supplied allowed set', () => {
+		const node = chooseWrappedTxNode();
+		const resolved = chooseAlgorithmOfType(node, 5, new Set(['lin']), {
+			presLayoutVars: { direction: 'norm' },
+		});
+		expect(resolved).toBeUndefined();
+	});
+
+	it("does NOT widen `chooseAlgType`/`chooseAlgorithm`'s own default structural whitelist - `tx` stays invisible to them", () => {
+		const node = chooseWrappedTxNode();
+		expect(chooseAlgType(node, 5, { presLayoutVars: { direction: 'norm' } })).toBeUndefined();
+		expect(chooseAlgorithm(node, 5, { presLayoutVars: { direction: 'norm' } })).toBeUndefined();
+	});
+
+	it('is undefined for a node with no choose at all', () => {
+		expect(chooseAlgorithmOfType({ rawXml: {} }, 3, new Set(['tx']))).toBeUndefined();
 	});
 });
