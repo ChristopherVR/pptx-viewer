@@ -139,6 +139,41 @@ export const MATERIAL_LIGHTING: Record<MaterialPresetType, MaterialLighting> = {
 	// see `getBevelLightingFilterMarkup`'s `LEGACY_BEVEL_ROUTING` doc comment
 	// for why) and is routed to the legacy `box-shadow` model instead of
 	// shipping a regression.
+	//
+	// A SEPARATE, more severe issue was found (2026-09, while attempting an
+	// ambient/wrap-term fix for the `circle` routing above) that this
+	// calibration was never tested against: `specularConstant: 0.9` combined
+	// with `specularExponent: 24` was tuned against `threePt` at its OLD
+	// (pre-COM-calibration) `elevationDeg` of 45. `LIGHT_RIG_LIGHTING`'s real
+	// per-rig COM campaign now measures `threePt` at `elevationDeg: 74`, and
+	// several other rigs (`contrasting`, the `flat`/`legacyFlat*` family) sit
+	// at 90. `feSpecularLighting`'s hot-spot brightness at a FLAT height-map
+	// region (i.e. the shape's plain, non-bevelled interior, not just the
+	// bevel band: N = (0,0,1) there regardless of `a:bevelT/@prst`, so this
+	// is independent of bevel PROFILE) is `specularConstant *
+	// max(0, N.H)^specularExponent`; solving that formula directly (not
+	// rendered, the closed form) gives 0.135 at elevation 45 (small, as the
+	// original calibration assumed) but 0.71 at elevation 74 and 0.9 (the
+	// full `specularConstant`, N.H=1 exactly) at elevation 90 - confirmed by
+	// actually rendering the real filter chain (a pure-SVG render matching
+	// `resolveLayer`'s output byte-for-byte): a `metal`/`circle` square under
+	// `threePt` now samples FULLY SATURATED (255,255,255) at its edge bands
+	// AND its flat center alike, not just a shadow-side clamp. This means the
+	// `circle`-only routing above no longer isolates the real defect for
+	// these rigs: the whole shape washes out, so an ambient/wrap term on the
+	// diffuse layer (which only helps the shadow-clamp problem) would not by
+	// itself bring metal back under the box-shadow baseline. This is a
+	// STRUCTURAL gap (this filter drives diffuse falloff and the specular
+	// hot-spot from the SAME `feDistantLight` elevation, but a coupling this
+	// codebase's simplified model never validated), not specific to `circle`
+	// or to this pass's elevation recalibration (`flat`'s elevationDeg was
+	// already ~90 before this campaign, so the same saturation already
+	// existed for `metal` under the `flat` rig family; the campaign only
+	// widened which rigs trigger it, by correcting `threePt`/`contrasting`
+	// toward their real measured values). Re-tuning `specularConstant`/
+	// `specularExponent` (or decoupling a separate specular elevation from
+	// the diffuse one) needs its own COM campaign and was NOT done here; see
+	// `docs/guide/limitations.md`.
 	metal: {
 		diffuseConstant: 0.75,
 		specularConstant: 0.9,

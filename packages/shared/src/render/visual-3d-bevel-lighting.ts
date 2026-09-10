@@ -74,14 +74,9 @@
 import type { Pptx3DScene, Pptx3DShape, PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
-import { getBevelHighlightDirection, isBevelProfileInverted } from './visual-3d-bevel-light';
+import type { BevelFilterLayer } from './visual-3d-bevel-lighting-layer';
+import { resolveLayer } from './visual-3d-bevel-lighting-layer';
 import { isRoutedToLegacyBevelShadow } from './visual-3d-bevel-lighting-routing';
-import {
-	getBevelProfileHeightMap,
-	getLightRigLighting,
-	getMaterialLighting,
-} from './visual-3d-bevel-lighting-tables';
-import { EMU_PER_PX } from './visual-3d-constants';
 import type { SvgFilterDefinition } from './visual-effects';
 import { escapeSvgAttr } from './visual-effects';
 
@@ -102,70 +97,11 @@ export interface BevelLightingSceneParams {
 	lightRigDirection?: string;
 }
 
-const normalizeDeg = (deg: number): number => ((deg % 360) + 360) % 360;
-
-/** Resolve the SVG `feDistantLight` azimuth (degrees) for one bevel side. */
-function resolveAzimuthDeg(
-	bevelType: string,
-	lightRigDirection: string | undefined,
-	isBottom: boolean,
-): number {
-	const vector = getBevelHighlightDirection(lightRigDirection);
-	const inverted = isBevelProfileInverted(bevelType);
-	const dx = (inverted ? -1 : 1) * (isBottom ? -1 : 1) * vector.dx;
-	const dy = (inverted ? -1 : 1) * (isBottom ? -1 : 1) * vector.dy;
-	return normalizeDeg((Math.atan2(dy, dx) * 180) / Math.PI);
-}
-
-/** One bevel side's resolved filter-primitive parameters. */
-interface BevelFilterLayer {
-	index: number;
-	blurStdDev: number;
-	morphologyRadius?: number;
-	surfaceScale: number;
-	azimuthDeg: number;
-	elevationDeg: number;
-	diffuseConstant: number;
-	specularConstant: number;
-	specularExponent: number;
-	lightingColor: string;
-}
-
-function resolveLayer(
-	index: number,
-	bevelType: string,
-	widthEmu: number | undefined,
-	heightEmu: number | undefined,
-	isBottom: boolean,
-	scene: BevelLightingSceneParams | undefined,
-	material: string | undefined,
-): BevelFilterLayer {
-	const bWpx = widthEmu ? Math.max(1, Math.round(widthEmu / EMU_PER_PX)) : 3;
-	const bHpx = heightEmu ? Math.max(1, Math.round(heightEmu / EMU_PER_PX)) : 3;
-	const avgDim = (bWpx + bHpx) / 2;
-	const heightMap = getBevelProfileHeightMap(bevelType);
-	const rig = getLightRigLighting(scene?.lightRigType);
-	const mat = getMaterialLighting(material);
-
-	return {
-		index,
-		blurStdDev: Math.max(0.5, avgDim * heightMap.blurFactor),
-		morphologyRadius:
-			heightMap.morphologyFactor !== undefined
-				? Math.max(0.3, avgDim * heightMap.morphologyFactor)
-				: undefined,
-		surfaceScale: Math.max(
-			0.5,
-			avgDim * heightMap.surfaceScaleFactor * (isBottom ? 0.8 : 1) * mat.surfaceScaleMultiplier,
-		),
-		azimuthDeg: resolveAzimuthDeg(bevelType, scene?.lightRigDirection, isBottom),
-		elevationDeg: rig.elevationDeg,
-		diffuseConstant: mat.diffuseConstant,
-		specularConstant: Math.min(1.2, mat.specularConstant * Math.sqrt(rig.specularSharpness)),
-		specularExponent: Math.max(1, Math.round(mat.specularExponent * rig.specularSharpness)),
-		lightingColor: mat.lightingColor,
-	};
-}
+/**
+ * Per-side filter-parameter resolution (azimuth/elevation/blur/material)
+ * lives in `visual-3d-bevel-lighting-layer.ts`; this module turns a resolved
+ * `BevelFilterLayer` into `<fe*>` markup and exposes the public API.
+ */
 
 /** Emit the `<fe*>` primitive chain for one bevel side. `graphicIn` is the accumulated input so far. */
 function renderLayerPrimitives(

@@ -121,6 +121,44 @@ describe('getBevelLightingFilterMarkup', () => {
 	// `circle` (not used here) is `metal|circle`-routed to the legacy
 	// box-shadow model (see `visual-3d-bevel-lighting-routing.ts`), so this
 	// uses `angle`, which is not routed.
+	it('flips azimuth 180deg for a COM-measured invertedDirection rig (morning), matching a plain circle at the opposite dir', () => {
+		// `morning` is COM-measured `invertedDirection: true` (see
+		// visual-3d-bevel-lighting-tables.ts): its highlight under dir="t"
+		// lands where a non-inverted rig's highlight would land under dir="b".
+		const azimuthOf = (markup: string | undefined): number =>
+			Number(/azimuth="([\d.]+)"/u.exec(markup ?? '')?.[1] ?? Number.NaN);
+		const morningTop = getBevelLightingFilterMarkup(
+			'el1',
+			{ bevelTopType: 'circle' },
+			{ lightRigType: 'morning', lightRigDirection: 't' },
+		);
+		const threePtBottom = getBevelLightingFilterMarkup(
+			'el1',
+			{ bevelTopType: 'circle' },
+			{ lightRigType: 'threePt', lightRigDirection: 'b' },
+		);
+		expect(azimuthOf(morningTop?.filterMarkup)).toBeCloseTo(
+			azimuthOf(threePtBottom?.filterMarkup),
+			5,
+		);
+	});
+
+	it('does not flip azimuth for a non-inverted rig (threePt)', () => {
+		const azimuthOf = (markup: string | undefined): number =>
+			Number(/azimuth="([\d.]+)"/u.exec(markup ?? '')?.[1] ?? Number.NaN);
+		const noRig = getBevelLightingFilterMarkup(
+			'el1',
+			{ bevelTopType: 'circle' },
+			{ lightRigDirection: 't' },
+		);
+		const threePt = getBevelLightingFilterMarkup(
+			'el1',
+			{ bevelTopType: 'circle' },
+			{ lightRigType: 'threePt', lightRigDirection: 't' },
+		);
+		expect(azimuthOf(threePt?.filterMarkup)).toBeCloseTo(azimuthOf(noRig?.filterMarkup), 5);
+	});
+
 	it('gives metal a sharper specularExponent than matte for the same profile/direction', () => {
 		const matte = getBevelLightingFilterMarkup(
 			'el1',
