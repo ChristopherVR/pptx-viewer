@@ -6,7 +6,7 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	rasterizeElement,
-	rasterizeElementClampedToCanvas,
+	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 } from 'pptx-viewer-shared';
 import { mount, unmount } from 'svelte';
@@ -192,19 +192,19 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 	}
 
 	/**
-	 * Mount slide `index` and rasterise it to a single canvas, reducing scale
-	 * (never tiling) if the requested resolution would exceed the browser's
-	 * canvas cap. For every caller that can only consume one image
-	 * (PDF/GIF/video/print, all of which composite or re-encode a canvas per
-	 * frame): fidelity is preserved via the same `foreignObject` pipeline,
-	 * only the resolution is capped in the rare case a real slide's natural
-	 * size already exceeds it at the requested scale.
+	 * Mount slide `index` and rasterise it to a single full-resolution canvas,
+	 * tiling and stitching transparently (never reducing scale) if the
+	 * requested resolution would exceed the browser's canvas cap. For every
+	 * caller that can only consume one image (notes-PDF/GIF/video/print, all
+	 * of which composite or re-encode a canvas per frame): fidelity and
+	 * resolution are both preserved via the same `foreignObject` pipeline that
+	 * PNG/PDF export use.
 	 */
 	async function rasterizeSlide(index: number, scaleMultiplier = 1): Promise<HTMLCanvasElement> {
 		const { stageEl, canvasSize } = await mountStage(index);
 		const scale = 2 * deps.getImageResolutionScale() * scaleMultiplier;
 
-		const result = await rasterizeElementClampedToCanvas(
+		const result = await rasterizeElementTiledToCanvas(
 			stageEl,
 			canvasSize.width,
 			canvasSize.height,

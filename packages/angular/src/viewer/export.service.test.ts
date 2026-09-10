@@ -21,7 +21,7 @@ vi.mock(import('jspdf'), () => {
 	return { jsPDF: MockJsPDF } as unknown as typeof import('jspdf');
 });
 
-// `rasterizeElement`/`rasterizeElementTiles`/`rasterizeElementClampedToCanvas`
+// `rasterizeElement`/`rasterizeElementTiles`/`rasterizeElementTiledToCanvas`
 // (the shared foreignObject -> vector-SVG -> html2canvas orchestrators) are
 // mocked at this boundary rather than exercised for real: jsdom has no real
 // `Image`/SVG decoding, so the foreignObject attempt they would otherwise
@@ -31,7 +31,7 @@ vi.mock(import('../internal/shared'), async (importOriginal) => ({
 	...(await importOriginal()),
 	rasterizeElement: vi.fn(),
 	rasterizeElementTiles: vi.fn(),
-	rasterizeElementClampedToCanvas: vi.fn(),
+	rasterizeElementTiledToCanvas: vi.fn(),
 }));
 
 describe('copyElementAsPng', () => {
@@ -137,23 +137,22 @@ describe('savePresentation', () => {
 });
 
 describe('renderElement', () => {
-	it('rasterises via the clamped foreignObject-fidelity path, not raw html2canvas', async () => {
-		const { rasterizeElementClampedToCanvas } = await import('../internal/shared');
+	it('rasterises via the tiled foreignObject-fidelity path, not raw html2canvas', async () => {
+		const { rasterizeElementTiledToCanvas } = await import('../internal/shared');
 		const canvas = document.createElement('canvas');
-		vi.mocked(rasterizeElementClampedToCanvas).mockResolvedValue({
+		vi.mocked(rasterizeElementTiledToCanvas).mockResolvedValue({
 			kind: 'canvas',
 			canvas,
 			strategy: 'foreignObject',
 			width: 1920,
 			height: 1080,
-			clamped: false,
-			effectiveScale: 2,
+			tiled: false,
 		});
 
 		const result = await new ExportService().renderElement(document.createElement('div'), 2);
 
 		expect(result).toBe(canvas);
-		expect(rasterizeElementClampedToCanvas).toHaveBeenCalledWith(
+		expect(rasterizeElementTiledToCanvas).toHaveBeenCalledWith(
 			expect.any(HTMLElement),
 			expect.any(Number),
 			expect.any(Number),

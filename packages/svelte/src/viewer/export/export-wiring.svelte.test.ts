@@ -1,7 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	rasterizeElement,
-	rasterizeElementClampedToCanvas,
+	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +16,8 @@ import { createExportingApi } from './exporting-api';
  * (falls back to `document.body` before the viewer root mounts), that
  * `createExportingApi` binds through to the live controller, and that the
  * wiring forwards all three capture variants of `rasterize-slide.ts` into the
- * controller (PNG -> full raster, PDF -> tiles, never the clamped fallback).
+ * controller (PNG -> full raster, PDF -> tiles, never the single-canvas
+ * fallback).
  */
 
 const { renderToCanvas, addImage, addPage, save } = vi.hoisted(() => ({
@@ -85,7 +86,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 				};
 			},
 		),
-		rasterizeElementClampedToCanvas: vi.fn(
+		rasterizeElementTiledToCanvas: vi.fn(
 			async (
 				_element: HTMLElement,
 				naturalWidth: number,
@@ -100,8 +101,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 					strategy: 'html2canvas' as const,
 					width: canvas.width,
 					height: canvas.height,
-					clamped: false,
-					effectiveScale: options.scale ?? 1,
+					tiled: false,
 				};
 			},
 		),
@@ -204,9 +204,10 @@ describe('createExportWiring', () => {
 	it('forwards the full-raster and tiled capture variants into the controller', async () => {
 		// Regression guard for the two forwarding lines in `createExportWiring`:
 		// without `rasterizeSlideToRaster`/`rasterizeSlideToTiles` the controller
-		// silently falls back to wrapping the clamped single-canvas capture, so
-		// PNG export could no longer tile beyond the canvas cap and PDF export
-		// would embed one downscaled image per page. Assert the shared entry
+		// silently falls back to wrapping the tiled/stitched single-canvas
+		// capture, so PNG export could no longer produce pre-encoded PNG bytes
+		// for a tiled export and PDF export would embed one stitched image per
+		// page instead of several small tile images. Assert the shared entry
 		// point each path reaches, not just that something was rasterised.
 		renderToCanvas.mockResolvedValue(fakeCanvas());
 		const wiring = createExportWiring({
@@ -228,7 +229,7 @@ describe('createExportWiring', () => {
 		await wiring.controller.exportSlidePng(0);
 		expect(rasterizeElement).toHaveBeenCalledOnce();
 		expect(rasterizeElementTiles).not.toHaveBeenCalled();
-		expect(rasterizeElementClampedToCanvas).not.toHaveBeenCalled();
+		expect(rasterizeElementTiledToCanvas).not.toHaveBeenCalled();
 
 		vi.clearAllMocks();
 		renderToCanvas.mockResolvedValue(fakeCanvas());
@@ -236,7 +237,7 @@ describe('createExportWiring', () => {
 		await wiring.controller.exportPdf();
 		expect(rasterizeElementTiles).toHaveBeenCalledOnce();
 		expect(rasterizeElement).not.toHaveBeenCalled();
-		expect(rasterizeElementClampedToCanvas).not.toHaveBeenCalled();
+		expect(rasterizeElementTiledToCanvas).not.toHaveBeenCalled();
 		expect(addImage).toHaveBeenCalledOnce();
 		expect(save).toHaveBeenCalledOnce();
 

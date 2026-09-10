@@ -11,15 +11,15 @@ import {
 	downloadBlob,
 	downloadDataUrl,
 	rasterizeElement,
-	rasterizeElementClampedToCanvas,
+	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 	rasterResultToPngBlob,
 	rasterResultToPngDataUrl,
 } from 'pptx-viewer-shared';
 import type {
-	RasterizeElementClampedResult,
 	RasterizeElementOptions,
 	RasterizeElementResult,
+	RasterizeElementTiledCanvasResult,
 	RasterizeElementTilesResult,
 } from 'pptx-viewer-shared';
 
@@ -145,7 +145,7 @@ function buildRasterOptions(
  * (`pptx-viewer-shared`'s `rasterizeElement`), tiling transparently when the
  * requested scale would exceed the browser's canvas-dimension cap.
  *
- * Prefer this (or {@link renderElementToClampedCanvas} /
+ * Prefer this (or {@link renderElementToTiledCanvas} /
  * {@link renderElementToTiles}) over calling `html2canvas-pro` directly: it
  * preserves `backdrop-filter`, CSS custom properties and 3D transforms that
  * html2canvas cannot, and produces pre-encoded PNG bytes instead of failing
@@ -197,21 +197,22 @@ export async function renderElementToTiles(
 }
 
 /**
- * Render an HTML element to a single canvas via the shared `foreignObject`
- * fidelity pipeline, reducing the requested scale (preserving aspect ratio)
- * rather than tiling if the requested resolution would exceed the browser's
- * canvas cap. For a caller that cannot consume tiled output: JPEG/GIF/video
- * frames have no way to concatenate tiles, and the notes-PDF layout draws
- * exactly one image per page alongside wrapped notes text, not a tile grid.
+ * Render an HTML element to a single, full-resolution canvas via the shared
+ * `foreignObject` fidelity pipeline, tiling and stitching transparently
+ * (`putImageData`, never downscaling) when the requested resolution would
+ * exceed the browser's canvas cap. For a caller that needs one `<canvas>`
+ * rather than tiled output: GIF frames (`getImageData`), a `captureStream()`
+ * recording canvas (`drawImage`), and the notes-PDF / print-capture layouts,
+ * which each draw exactly one image per page, not a tile grid.
  */
-export async function renderElementToClampedCanvas(
+export async function renderElementToTiledCanvas(
 	element: HTMLElement,
 	scale: number = 2,
 	backgroundColor?: string,
 	mode: RasterMode = 'auto',
-): Promise<RasterizeElementClampedResult> {
+): Promise<RasterizeElementTiledCanvasResult> {
 	const { width, height } = measureNaturalSize(element);
-	return rasterizeElementClampedToCanvas(
+	return rasterizeElementTiledToCanvas(
 		element,
 		width,
 		height,

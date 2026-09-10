@@ -129,3 +129,18 @@ export async function rasterizeElementTiles(
 
 	return { fullWidth: plan.fullWidth, fullHeight: plan.fullHeight, tiled: plan.tiled, tiles };
 }
+
+/**
+ * Group `tiles` (row-major, as returned by {@link rasterizeElementTiles}) into
+ * a 2D array indexed `[row][col]`. Shared by every caller that stitches tiles
+ * row-by-row (`rasterize-element.ts`'s PNG stitch, `rasterize-element-tiled-canvas.ts`'s
+ * canvas stitch) so the row/col grouping is written once.
+ */
+export function groupTilesByRow(tiles: readonly RasterizedTile[]): RasterizedTile[][] {
+	const rowCount = tiles.reduce((max, t) => Math.max(max, t.row), 0) + 1;
+	const rows: RasterizedTile[][] = Array.from({ length: rowCount }, () => []);
+	for (const tile of tiles) {
+		rows[tile.row][tile.col] = tile;
+	}
+	return rows;
+}

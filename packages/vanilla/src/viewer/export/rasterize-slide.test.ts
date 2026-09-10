@@ -1,7 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
 	rasterizeElement,
-	rasterizeElementClampedToCanvas,
+	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +16,7 @@ const { renderToCanvas } = vi.hoisted(() => ({ renderToCanvas: vi.fn() }));
 vi.mock(import('./render-to-canvas'), () => ({ renderToCanvas }));
 
 // `rasterizeSlide`/`rasterizeSlideToRaster`/`rasterizeSlideToTiles` now
-// delegate to the shared `rasterizeElement`/`rasterizeElementClampedToCanvas`/
+// delegate to the shared `rasterizeElement`/`rasterizeElementTiledToCanvas`/
 // `rasterizeElementTiles`, whose real `foreignObject` strategy loads an
 // `Image` from a `blob:` URL - unimplemented in jsdom, so `img.onload`/
 // `onerror` never fire and the real functions hang forever in this
@@ -68,7 +68,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 				};
 			},
 		),
-		rasterizeElementClampedToCanvas: vi.fn(
+		rasterizeElementTiledToCanvas: vi.fn(
 			async (
 				_element: HTMLElement,
 				naturalWidth: number,
@@ -83,8 +83,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 					strategy: 'html2canvas' as const,
 					width: canvas.width,
 					height: canvas.height,
-					clamped: false,
-					effectiveScale: options.scale ?? 1,
+					tiled: false,
 				};
 			},
 		),
@@ -364,7 +363,7 @@ describe('createRasterizeSlide', () => {
 		const result = await ctl.rasterizeSlideToRaster(0);
 		expect(result.kind).toBe('canvas');
 		expect(vi.mocked(rasterizeElement)).toHaveBeenCalledOnce();
-		expect(vi.mocked(rasterizeElementClampedToCanvas)).not.toHaveBeenCalled();
+		expect(vi.mocked(rasterizeElementTiledToCanvas)).not.toHaveBeenCalled();
 		expect(vi.mocked(rasterizeElementTiles)).not.toHaveBeenCalled();
 		const [, naturalWidth, naturalHeight, , options] = vi.mocked(rasterizeElement).mock.calls[0];
 		expect(naturalWidth).toBe(960);
@@ -400,12 +399,12 @@ describe('createRasterizeSlide', () => {
 		expect(result.tiles).toHaveLength(1);
 		expect(vi.mocked(rasterizeElementTiles)).toHaveBeenCalledOnce();
 		expect(vi.mocked(rasterizeElement)).not.toHaveBeenCalled();
-		expect(vi.mocked(rasterizeElementClampedToCanvas)).not.toHaveBeenCalled();
+		expect(vi.mocked(rasterizeElementTiledToCanvas)).not.toHaveBeenCalled();
 
 		ctl.destroy();
 	});
 
-	it('rasterizeSlide (single-canvas) delegates to the shared rasterizeElementClampedToCanvas', async () => {
+	it('rasterizeSlide (single-canvas) delegates to the shared rasterizeElementTiledToCanvas', async () => {
 		renderToCanvas.mockResolvedValue(fakeCanvas());
 		const container = makeContainer();
 		const store = createStore(createInitialViewerState());
@@ -428,7 +427,7 @@ describe('createRasterizeSlide', () => {
 		});
 
 		await ctl.rasterizeSlide(0);
-		expect(vi.mocked(rasterizeElementClampedToCanvas)).toHaveBeenCalledOnce();
+		expect(vi.mocked(rasterizeElementTiledToCanvas)).toHaveBeenCalledOnce();
 		expect(vi.mocked(rasterizeElement)).not.toHaveBeenCalled();
 		expect(vi.mocked(rasterizeElementTiles)).not.toHaveBeenCalled();
 
@@ -458,9 +457,9 @@ describe('createRasterizeSlide', () => {
 		});
 
 		await ctl.rasterizeSlide(0, 2);
-		const [, , , , clampedOptions] = vi.mocked(rasterizeElementClampedToCanvas).mock.calls[0];
+		const [, , , , tiledOptions] = vi.mocked(rasterizeElementTiledToCanvas).mock.calls[0];
 		// 2 (baseline) * 1.5 (image-resolution-scale) * 2 (scaleMultiplier) = 6
-		expect(clampedOptions).toMatchObject({ scale: 6 });
+		expect(tiledOptions).toMatchObject({ scale: 6 });
 
 		ctl.destroy();
 	});

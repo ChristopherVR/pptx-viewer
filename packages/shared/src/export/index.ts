@@ -89,9 +89,15 @@ export * from './tile-row-stitch';
 // images per page instead of one full-page image.
 export * from './pdf-tile-placement';
 // `rasterizeElement()` with the scale clamped so the result is always a
-// single canvas - for a caller that cannot consume tiled output (JPEG,
-// notes-PDF's fixed single-image-per-page layout).
+// single canvas without stitching - for the rare case a slide's natural size
+// alone (before any export scale) already exceeds the cap, which stitching
+// cannot help since there would be nothing to tile in the first place.
 export * from './rasterize-element-clamped';
+// `rasterizeElement()`'s tiled case, stitched into one full-resolution canvas
+// (`putImageData`, not pre-encoded PNG bytes) - for GIF frames, a
+// `captureStream()` recording canvas, and any other caller that needs an
+// actual `<canvas>` at full requested resolution instead of downscaling.
+export * from './rasterize-element-tiled-canvas';
 // Converts a `RasterizeElementResult` to a PNG Blob/data URL, handling the
 // tiled `png-bytes` branch identically for every binding's PNG-export /
 // "copy slide as image" handler.

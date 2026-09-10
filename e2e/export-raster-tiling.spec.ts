@@ -1,7 +1,37 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * Does PNG export actually tile once the export resolution exceeds the
- * browser's canvas cap, instead of clamping or silently truncating?
+ * Does PNG/PDF/GIF/video export actually tile once the export resolution
+ * exceeds the browser's canvas cap, instead of clamping or silently
+ * truncating?
+ *
+ * PDF places several small tile images per page instead of stitching
+ * (`placeTileOnPage` in `pptx-viewer-shared`) and has been tile-aware since
+ * before this file existed; the tests below just close the coverage gap.
+ * GIF and video used to hard-clamp (downscale, never tile) through
+ * `rasterizeElementClampedToCanvas`; they now go through
+ * `rasterizeElementTiledToCanvas` (stitched via `putImageData`, same as PNG's
+ * `putImageData`-free row-band stitch) in every binding's single-canvas
+ * capture path, which also serves notes-PDF/print for free.
+ *
+ * GIF and video do NOT get PNG/PDF's hard "must exceed the stubbed cap"
+ * assertion below, for a reason independent of tiling: each binding captures
+ * GIF/video frames at its own, pre-existing fixed scale policy (React: 0.5x
+ * for GIF, 1x for video, neither reading File > Options > Advanced >
+ * "Default resolution"; Angular: a fixed 2x, same gap; Vue/Svelte/Vanilla:
+ * the same Options-aware 2x baseline PNG/PDF use). That policy spread means
+ * the *requested* resolution for GIF/video already differs by binding before
+ * tiling is even in the picture, so "did this binding's GIF/video clear
+ * 2048px on this fixture" is not a tiling signal, it is a restatement of that
+ * pre-existing, separate scale-policy gap. Asserting it here would either
+ * force widening every binding's GIF/video scale policy (out of this
+ * change's scope, and a real behaviour/file-size change deserving its own
+ * review) or produce a spec that is red on React/Angular for a reason that
+ * has nothing to do with tiling. The GIF/video tests below instead assert
+ * what tiling failing would actually break: a corrupted, degenerate, or
+ * wrong-aspect-ratio frame - proven under the exact same stubbed-cap
+ * conditions that force PNG/PDF to tile, so any binding whose scale policy
+ * does clear the cap on this fixture (Vue/Svelte/Vanilla do) is still
+ * exercising the real tiled/stitched path, not just the untiled one.
  *
  * The real per-browser cap (commonly 16,384px) is too large to reach through
  * the live UI on a normal-sized demo deck: even the highest "Image Size and
@@ -39,10 +69,19 @@ import {
 	downloadBytes,
 	downloadViaCard,
 	EXPORT_DECK,
+	EXPORT_DECK_SLIDE_COUNT,
+	GIF_CARD,
+	gifDimensions,
+	isGif,
+	isPdf,
+	isPng,
 	openBackstageExport,
+	PDF_CARD,
+	pdfImageXObjectCount,
+	pdfPageCount,
 	PNG_CARD,
 	pngDimensions,
-	isPng,
+	VIDEO_CARD,
 } from './support/exports';
 import { byBinding } from './support/menu-report';
 import { acrossFrameworks } from './support/parity';
@@ -109,6 +148,43 @@ async function stubLowCanvasCap(page: Page): Promise<void> {
 			return ctx;
 		};
 	}, PROBE_CANDIDATES);
+}
+
+/**
+ * Record the pixel size of every `<canvas>` that `captureStream()` is called
+ * on. Video export feeds MediaRecorder from a recording canvas
+ * (`recordingCanvas.captureStream(fps)` in every binding's video driver),
+ * which is the one place video's actual output resolution is observable
+ * without decoding the recorded WebM container: spying here is far more
+ * robust than parsing VP8/VP9 WebM/EBML bytes for `PixelWidth`/`PixelHeight`.
+ */
+async function spyRecordingCanvasSize(page: Page): Promise<void> {
+	await page.addInitScript(() => {
+		(
+			window as unknown as { __capturedCanvasSizes: { width: number; height: number }[] }
+		).__capturedCanvasSizes = [];
+		const native = HTMLCanvasElement.prototype.captureStream;
+		HTMLCanvasElement.prototype.captureStream = function (
+			this: HTMLCanvasElement,
+			...args: Parameters<typeof native>
+		) {
+			(
+				window as unknown as { __capturedCanvasSizes: { width: number; height: number }[] }
+			).__capturedCanvasSizes.push({ width: this.width, height: this.height });
+			return native.apply(this, args);
+		};
+	});
+}
+
+/** The last (and normally only) canvas size `spyRecordingCanvasSize` observed. */
+async function lastCapturedCanvasSize(
+	page: Page,
+): Promise<{ width: number; height: number } | undefined> {
+	return page.evaluate(() =>
+		(
+			window as unknown as { __capturedCanvasSizes: { width: number; height: number }[] }
+		).__capturedCanvasSizes.at(-1),
+	);
 }
 
 test.describe('PNG export tiles beyond the browser canvas cap', () => {
@@ -180,6 +256,210 @@ test.describe('PNG export tiles beyond the browser canvas cap', () => {
 			if (Math.abs(value.aspect - value.stageAspect) > 0.1) {
 				issues.push(
 					`${name}: exported aspect ratio ${value.aspect.toFixed(3)} does not match the on-screen stage ${value.stageAspect.toFixed(3)}`,
+				);
+			}
+			return issues;
+		});
+
+		expect(problems.join('\n')).toBe('');
+	});
+});
+
+test.describe('PDF export tiles beyond the browser canvas cap', () => {
+	test('a single binding embeds several tile images per page, not one clamped image', async ({
+		page,
+	}) => {
+		await maximizeExportResolution(page);
+		await stubLowCanvasCap(page);
+		await loadDeck(page, EXPORT_DECK);
+		await openBackstageExport(page);
+
+		const download = await downloadViaCard(page, PDF_CARD, 60_000);
+		const bytes = await downloadBytes(download);
+		expect(isPdf(bytes), 'payload must start with %PDF-').toBe(true);
+
+		const pageCount = pdfPageCount(bytes);
+		expect(pageCount, 'the PDF must have one page per slide').toBe(EXPORT_DECK_SLIDE_COUNT);
+		expect(
+			pdfImageXObjectCount(bytes),
+			'each tiled page must embed several tile images (placeTileOnPage), not one clamped image per page',
+		).toBeGreaterThan(pageCount);
+	});
+
+	test('every binding tiles PDF pages without error and agrees on page count', async ({
+		browser,
+	}, testInfo) => {
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			async (page, origin) => {
+				await maximizeExportResolution(page);
+				await stubLowCanvasCap(page);
+				await loadDeckAt(page, origin, EXPORT_DECK);
+				await openBackstageExport(page);
+
+				const download = await downloadViaCard(page, PDF_CARD, 60_000);
+				const bytes = await downloadBytes(download);
+				const pageCount = pdfPageCount(bytes);
+
+				return {
+					isPdf: isPdf(bytes),
+					pageCount,
+					imagesPerPage: pageCount > 0 ? pdfImageXObjectCount(bytes) / pageCount : 0,
+				};
+			},
+			{ viewport: VIEWPORT },
+		);
+
+		const problems = byBinding(results).flatMap(({ name, value }) => {
+			const issues: string[] = [];
+			if (!value.isPdf) {
+				issues.push(`${name}: export did not produce a valid PDF`);
+			}
+			if (value.pageCount !== EXPORT_DECK_SLIDE_COUNT) {
+				issues.push(
+					`${name}: PDF has ${value.pageCount} pages, expected ${EXPORT_DECK_SLIDE_COUNT}`,
+				);
+			}
+			if (value.imagesPerPage <= 1) {
+				issues.push(
+					`${name}: averages ${value.imagesPerPage.toFixed(1)} image(s) per page, expected several tile images (tiling did not engage)`,
+				);
+			}
+			return issues;
+		});
+
+		expect(problems.join('\n')).toBe('');
+	});
+});
+
+test.describe('GIF/video export do not corrupt a frame under the same stubbed cap', () => {
+	test('GIF export produces a valid, correctly-proportioned animated GIF', async ({ page }) => {
+		// No `maximizeExportResolution()` here (unlike PNG/PDF/video above): the
+		// pure-JS median-cut quantiser + LZW encoder that GIF export shares
+		// across all five bindings is CPU-bound on frame pixel count, and
+		// Vue/React (which do not call the shared `clampGifDimensions` the way
+		// Angular/Svelte/Vanilla do) would encode a multi-megapixel frame at the
+		// resolution boost's ~6.8x scale, which genuinely exceeds any sane test
+		// timeout. The default (unboosted) capture scale is exactly what a real
+		// GIF export uses, so this still exercises the real pipeline end to end.
+		await stubLowCanvasCap(page);
+		await loadDeck(page, EXPORT_DECK);
+		await openBackstageExport(page);
+
+		const stageBox = await page.locator('[aria-roledescription="slide"]').first().boundingBox();
+		expect(stageBox).not.toBeNull();
+		const stageAspect = stageBox!.width / stageBox!.height;
+
+		const download = await downloadViaCard(page, GIF_CARD, 60_000);
+		const bytes = await downloadBytes(download);
+		expect(isGif(bytes), 'payload must start with GIF87a/GIF89a').toBe(true);
+
+		const { width, height } = gifDimensions(bytes);
+		expect(width, 'exported width must be a real, non-degenerate size').toBeGreaterThan(0);
+		expect(height, 'exported height must be a real, non-degenerate size').toBeGreaterThan(0);
+		expect(
+			width / height,
+			'the (possibly tiled/stitched) frame must preserve the slide aspect ratio',
+		).toBeCloseTo(stageAspect, 1);
+	});
+
+	test('video export records at the stage aspect ratio without a corrupted frame', async ({
+		page,
+	}) => {
+		await maximizeExportResolution(page);
+		await stubLowCanvasCap(page);
+		await spyRecordingCanvasSize(page);
+		await loadDeck(page, EXPORT_DECK);
+		await openBackstageExport(page);
+
+		const stageBox = await page.locator('[aria-roledescription="slide"]').first().boundingBox();
+		expect(stageBox).not.toBeNull();
+		const stageAspect = stageBox!.width / stageBox!.height;
+
+		const download = await downloadViaCard(page, VIDEO_CARD, 90_000);
+		const bytes = await downloadBytes(download);
+		expect(bytes.byteLength, 'a recorded video must not be an empty file').toBeGreaterThan(0);
+
+		const recorded = await lastCapturedCanvasSize(page);
+		expect(
+			recorded,
+			'video export must have called captureStream() on a recording canvas',
+		).not.toBe(undefined);
+		expect(recorded!.width, 'recording canvas width must be non-degenerate').toBeGreaterThan(0);
+		expect(recorded!.height, 'recording canvas height must be non-degenerate').toBeGreaterThan(0);
+		expect(
+			recorded!.width / recorded!.height,
+			'the recording canvas must preserve the slide aspect ratio (proves the tiled/stitched frame was not distorted before being drawn into it)',
+		).toBeCloseTo(stageAspect, 1);
+	});
+
+	test('every binding produces a valid, aspect-correct GIF and video recording canvas', async ({
+		browser,
+	}, testInfo) => {
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			async (page, origin) => {
+				// No `maximizeExportResolution()`: see the comment on the
+				// single-binding GIF test above - it would make the shared pure-JS
+				// GIF encoder pathologically slow on any binding that does not
+				// clamp its GIF frame size (Vue/React do not).
+				await stubLowCanvasCap(page);
+				await spyRecordingCanvasSize(page);
+				await loadDeckAt(page, origin, EXPORT_DECK);
+				await openBackstageExport(page);
+
+				const stageBox = await page.locator('[aria-roledescription="slide"]').first().boundingBox();
+				const stageAspect = stageBox ? stageBox.width / stageBox.height : 0;
+
+				const gifDownload = await downloadViaCard(page, GIF_CARD, 60_000);
+				const gifBytes = await downloadBytes(gifDownload);
+				const gifDims = gifDimensions(gifBytes);
+
+				const videoDownload = await downloadViaCard(page, VIDEO_CARD, 90_000);
+				const videoBytes = await downloadBytes(videoDownload);
+				const recordedCanvas = await lastCapturedCanvasSize(page);
+
+				return {
+					isGif: isGif(gifBytes),
+					gifAspect: gifDims.width / gifDims.height,
+					gifNonDegenerate: gifDims.width > 0 && gifDims.height > 0,
+					videoNonEmpty: videoBytes.byteLength > 0,
+					videoAspect: recordedCanvas ? recordedCanvas.width / recordedCanvas.height : 0,
+					videoCanvasSeen: recordedCanvas !== undefined,
+					stageAspect,
+				};
+			},
+			// Video recording is real-time (slideDurationMs per slide) and
+			// CPU/GPU-heavy on top of the GIF capture in the same scenario; five
+			// pages recording at once is exactly the contention
+			// `AcrossFrameworksOptions.concurrency` warns about, so run one at a
+			// time like the other CPU-heavy parity specs do.
+			{ viewport: VIEWPORT, concurrency: 'sequential' },
+		);
+
+		const problems = byBinding(results).flatMap(({ name, value }) => {
+			const issues: string[] = [];
+			if (!value.isGif) {
+				issues.push(`${name}: GIF export did not produce a valid GIF`);
+			}
+			if (!value.gifNonDegenerate) {
+				issues.push(`${name}: GIF export produced a degenerate (zero-size) frame`);
+			}
+			if (Math.abs(value.gifAspect - value.stageAspect) > 0.1) {
+				issues.push(
+					`${name}: GIF aspect ratio ${value.gifAspect.toFixed(3)} does not match the on-screen stage ${value.stageAspect.toFixed(3)}`,
+				);
+			}
+			if (!value.videoNonEmpty) {
+				issues.push(`${name}: video export produced an empty file`);
+			}
+			if (!value.videoCanvasSeen) {
+				issues.push(`${name}: video export never called captureStream() on a recording canvas`);
+			} else if (Math.abs(value.videoAspect - value.stageAspect) > 0.1) {
+				issues.push(
+					`${name}: video recording canvas aspect ratio ${value.videoAspect.toFixed(3)} does not match the on-screen stage ${value.stageAspect.toFixed(3)}`,
 				);
 			}
 			return issues;

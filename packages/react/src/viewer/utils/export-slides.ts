@@ -9,7 +9,7 @@ import React from 'react';
 import type { PngExportOptions, SlideCaptureOptions } from './export-helpers';
 import {
 	downloadBlob,
-	renderElementToClampedCanvas,
+	renderElementToTiledCanvas,
 	renderElementToRaster,
 	rasterResultToPngBlob,
 	waitForRender,
@@ -76,11 +76,12 @@ export async function copySlideToClipboard(
  *
  * Reuses the same slide-switching and render wait strategy as PDF export so
  * callers can build custom print layouts (handouts, notes pages, etc.). Goes
- * through the clamped-to-cap shared raster path (`renderElementToClampedCanvas`)
+ * through the shared single-canvas raster path (`renderElementToTiledCanvas`,
+ * tiled and stitched past the browser canvas cap rather than downscaled)
  * rather than calling `html2canvas-pro` directly: a print layout draws one
- * image per slide, so it cannot consume tiled output, and this preserves the
- * same `backdrop-filter`/custom-property/3D-transform fidelity every other
- * export format now gets.
+ * image per slide, so it needs one canvas, and this preserves the same
+ * `backdrop-filter`/custom-property/3D-transform fidelity every other export
+ * format gets, at full resolution.
  */
 export async function captureAllSlidesAsPngDataUrls(
 	slideStageRef: React.RefObject<HTMLElement | null>,
@@ -103,7 +104,7 @@ export async function captureAllSlidesAsPngDataUrls(
 			continue;
 		}
 
-		const { canvas } = await renderElementToClampedCanvas(stageEl, scale);
+		const { canvas } = await renderElementToTiledCanvas(stageEl, scale);
 		// Extract data URL immediately so the canvas can be GC'd
 		dataUrls.push(canvas.toDataURL('image/png'));
 	}

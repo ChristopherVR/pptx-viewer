@@ -4,8 +4,8 @@ import { renderToCanvas } from '../lib/canvas-export';
 import {
 	buildTiledPdf,
 	html2canvasFallbackFor,
-	renderElementClamped,
 	renderElementPngBlob,
+	renderElementTiled,
 	renderElementTilesRaster,
 } from './export-raster-tiles';
 
@@ -27,7 +27,7 @@ vi.mock(import('jspdf'), () => {
 	return { jsPDF: MockJsPDF } as unknown as typeof import('jspdf');
 });
 
-// `rasterizeElement`/`rasterizeElementClampedToCanvas`/`rasterizeElementTiles` (the shared
+// `rasterizeElement`/`rasterizeElementTiledToCanvas`/`rasterizeElementTiles` (the shared
 // foreignObject -> vector-SVG -> html2canvas orchestrators) are mocked at
 // this boundary rather than exercised for real: jsdom has no real
 // `Image`/SVG decoding, so the foreignObject attempt they would otherwise
@@ -36,7 +36,7 @@ vi.mock(import('jspdf'), () => {
 vi.mock(import('../internal/shared'), async (importOriginal) => ({
 	...(await importOriginal()),
 	rasterizeElement: vi.fn(),
-	rasterizeElementClampedToCanvas: vi.fn(),
+	rasterizeElementTiledToCanvas: vi.fn(),
 	rasterizeElementTiles: vi.fn(),
 }));
 
@@ -121,24 +121,23 @@ describe('renderElementPngBlob', () => {
 	});
 });
 
-describe('renderElementClamped', () => {
-	it('rasterises via the clamped shared pipeline and returns its canvas', async () => {
-		const { rasterizeElementClampedToCanvas } = await import('../internal/shared');
+describe('renderElementTiled', () => {
+	it('rasterises via the tiled shared pipeline and returns its canvas', async () => {
+		const { rasterizeElementTiledToCanvas } = await import('../internal/shared');
 		const canvas = document.createElement('canvas');
-		vi.mocked(rasterizeElementClampedToCanvas).mockResolvedValue({
+		vi.mocked(rasterizeElementTiledToCanvas).mockResolvedValue({
 			kind: 'canvas',
 			canvas,
 			strategy: 'foreignObject',
 			width: 1920,
 			height: 1080,
-			clamped: false,
-			effectiveScale: 3,
+			tiled: false,
 		});
 
-		const result = await renderElementClamped(document.createElement('div'), 3);
+		const result = await renderElementTiled(document.createElement('div'), 3);
 
 		expect(result).toBe(canvas);
-		expect(rasterizeElementClampedToCanvas).toHaveBeenCalledWith(
+		expect(rasterizeElementTiledToCanvas).toHaveBeenCalledWith(
 			expect.any(HTMLElement),
 			expect.any(Number),
 			expect.any(Number),

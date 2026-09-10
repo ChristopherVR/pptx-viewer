@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import {
 	downloadDataUrl,
-	renderElementToClampedCanvas,
+	renderElementToTiledCanvas,
 	renderElementToTiles,
 } from './export-helpers';
 import { exportAllSlidesAsPdf, exportAllSlidesAsNotesPdf, exportSlideAsPdf } from './export-pdf';
@@ -39,15 +39,14 @@ vi.mock<typeof import('./export-helpers')>(import('./export-helpers'), () => ({
 	downloadDataUrl: vi.fn<() => void>(),
 	renderElementToRaster: vi.fn<() => void>(),
 	renderElementToTiles: vi.fn(() => Promise.resolve(makeMockTilesResult())),
-	renderElementToClampedCanvas: vi.fn(() =>
+	renderElementToTiledCanvas: vi.fn(() =>
 		Promise.resolve({
 			kind: 'canvas' as const,
 			canvas: makeMockCanvas(),
 			strategy: 'foreignObject' as const,
 			width: 1920,
 			height: 1080,
-			clamped: false,
-			effectiveScale: 2,
+			tiled: false,
 		}),
 	),
 	rasterResultToPngBlob: vi.fn<() => void>(),
@@ -160,8 +159,9 @@ describe('exportAllSlidesAsNotesPdf', () => {
 		await exportAllSlidesAsNotesPdf(ref, 3, vi.fn<() => void>(), 0, notes);
 
 		// Notes-PDF draws one image per page alongside wrapped notes text, so
-		// it goes through the clamped-to-cap raster path, not tiling.
-		expect(renderElementToClampedCanvas).toHaveBeenCalledTimes(3);
+		// it goes through the single-canvas raster path (tiled and stitched
+		// internally, not several tile images placed on the page).
+		expect(renderElementToTiledCanvas).toHaveBeenCalledTimes(3);
 		expect(buildNotesPdf).toHaveBeenCalledOnce();
 		const pages = vi.mocked(buildNotesPdf).mock.calls[0][0];
 		expect(pages).toHaveLength(3);
@@ -298,15 +298,15 @@ describe('exportAllSlidesAsPdf (tiled)', () => {
 		expect(buildPdfFromTiledImageData).not.toHaveBeenCalled();
 	});
 
-	it('notes-PDF hands the clamped canvas itself to buildNotesPdf', async () => {
+	it('notes-PDF hands the rasterised canvas itself to buildNotesPdf', async () => {
 		const ref = { current: makeMockElement() } as React.RefObject<HTMLElement | null>;
 
 		await exportAllSlidesAsNotesPdf(ref, 1, vi.fn<() => void>(), 0, ['n'], 'n.pdf', { scale: 1.5 });
 
-		expect(renderElementToClampedCanvas).toHaveBeenCalledWith(ref.current, 1.5);
-		const clamped = await vi.mocked(renderElementToClampedCanvas).mock.results[0].value;
+		expect(renderElementToTiledCanvas).toHaveBeenCalledWith(ref.current, 1.5);
+		const rasterised = await vi.mocked(renderElementToTiledCanvas).mock.results[0].value;
 		const pages = vi.mocked(buildNotesPdf).mock.calls[0][0];
-		expect(pages[0].canvas).toBe(clamped.canvas);
+		expect(pages[0].canvas).toBe(rasterised.canvas);
 		expect(renderElementToTiles).not.toHaveBeenCalled();
 	});
 });

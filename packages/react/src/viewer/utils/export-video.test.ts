@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { renderElementToClampedCanvas } from './export-helpers';
+import { renderElementToTiledCanvas } from './export-helpers';
 import { exportAllSlidesAsVideo } from './export-video';
 
 vi.mock<typeof import('./export-helpers')>(import('./export-helpers'), () => ({
@@ -9,15 +9,14 @@ vi.mock<typeof import('./export-helpers')>(import('./export-helpers'), () => ({
 	downloadDataUrl: vi.fn(),
 	renderElementToRaster: vi.fn(),
 	renderElementToTiles: vi.fn(),
-	renderElementToClampedCanvas: vi.fn(() =>
+	renderElementToTiledCanvas: vi.fn(() =>
 		Promise.resolve({
 			kind: 'canvas' as const,
 			canvas: { width: 8, height: 6 } as unknown as HTMLCanvasElement,
 			strategy: 'foreignObject' as const,
 			width: 8,
 			height: 6,
-			clamped: false,
-			effectiveScale: 1,
+			tiled: false,
 		}),
 	),
 	rasterResultToPngBlob: vi.fn(),
@@ -28,7 +27,7 @@ vi.mock<typeof import('./export-helpers')>(import('./export-helpers'), () => ({
 /**
  * Mirrors the vanilla/svelte binding's `MockMediaRecorder` pattern (see
  * `packages/vanilla/src/viewer/export/export-video.test.ts`): the capture
- * layer (`renderElementToClampedCanvas`), the recording canvas, and
+ * layer (`renderElementToTiledCanvas`), the recording canvas, and
  * `MediaRecorder` are all mocked; the shared `video-plan` maths (segments,
  * fps, MIME selection) runs for real.
  */
@@ -88,7 +87,7 @@ describe('exportAllSlidesAsVideo', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('captures every slide via the clamped foreignObject-fidelity path, not raw html2canvas', async () => {
+	it('captures every slide via the tiled foreignObject-fidelity path, not raw html2canvas', async () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
 
@@ -96,8 +95,8 @@ describe('exportAllSlidesAsVideo', () => {
 			slideDurationMs: 10,
 		});
 
-		expect(renderElementToClampedCanvas).toHaveBeenCalledTimes(2);
-		expect(renderElementToClampedCanvas).toHaveBeenCalledWith(stageEl, 1);
+		expect(renderElementToTiledCanvas).toHaveBeenCalledTimes(2);
+		expect(renderElementToTiledCanvas).toHaveBeenCalledWith(stageEl, 1);
 		expect(blob.type).toBe('video/webm');
 		expect(drawImage).toHaveBeenCalledWith({ width: 8, height: 6 }, 0, 0);
 	});
@@ -111,14 +110,14 @@ describe('exportAllSlidesAsVideo', () => {
 	});
 
 	it('rejects with AbortError before capturing anything when already cancelled', async () => {
-		vi.mocked(renderElementToClampedCanvas).mockClear();
+		vi.mocked(renderElementToTiledCanvas).mockClear();
 		const ref = { current: makeMockElement() } as React.RefObject<HTMLElement | null>;
 
 		await expect(
 			exportAllSlidesAsVideo(ref, 2, vi.fn(), 0, { signal: AbortSignal.abort() }),
 		).rejects.toMatchObject({ name: 'AbortError' });
 
-		expect(renderElementToClampedCanvas).not.toHaveBeenCalled();
+		expect(renderElementToTiledCanvas).not.toHaveBeenCalled();
 		expect(MockMediaRecorder.instances).toHaveLength(0);
 	});
 });

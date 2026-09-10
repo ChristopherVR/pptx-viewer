@@ -5,7 +5,7 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	rasterizeElement,
-	rasterizeElementClampedToCanvas,
+	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 } from 'pptx-viewer-shared';
 import { nextTick } from 'vue';
@@ -133,17 +133,17 @@ export function useExportRasterize(input: UseExportRasterizeInput): UseExportRas
 	}
 
 	/**
-	 * Mount slide `index` and rasterise it to a single canvas via the shared
-	 * `foreignObject` fidelity pipeline, reducing the requested scale
-	 * (preserving aspect ratio) rather than tiling if the requested
-	 * resolution would exceed the browser's canvas cap. For every caller
-	 * that needs exactly one canvas and cannot consume tiled output
-	 * (GIF/video/notes-PDF/print, all of which composite or re-encode a
-	 * canvas per frame, not a tile grid).
+	 * Mount slide `index` and rasterise it to a single full-resolution canvas
+	 * via the shared `foreignObject` fidelity pipeline, tiling and stitching
+	 * transparently (never reducing the requested scale) if the requested
+	 * resolution would exceed the browser's canvas cap. For every caller that
+	 * needs exactly one canvas rather than tiled output (GIF/video/notes-PDF/
+	 * print, all of which composite or re-encode a canvas per frame, not a
+	 * tile grid).
 	 */
 	async function rasterizeSlide(index: number, scaleMultiplier = 1): Promise<HTMLCanvasElement> {
 		const stageEl = await mountStage(index);
-		const result = await rasterizeElementClampedToCanvas(
+		const result = await rasterizeElementTiledToCanvas(
 			stageEl,
 			canvasSize.value.width,
 			canvasSize.value.height,

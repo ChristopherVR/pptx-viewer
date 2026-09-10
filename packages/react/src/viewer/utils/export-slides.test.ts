@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import {
 	downloadBlob,
-	renderElementToClampedCanvas,
+	renderElementToTiledCanvas,
 	renderElementToRaster,
 	rasterResultToPngBlob,
 } from './export-helpers';
@@ -22,15 +22,14 @@ vi.mock<typeof import('./export-helpers')>(import('./export-helpers'), () => ({
 	downloadDataUrl: vi.fn<() => void>(),
 	renderElementToRaster: vi.fn<() => void>(),
 	renderElementToTiles: vi.fn<() => void>(),
-	renderElementToClampedCanvas: vi.fn(() =>
+	renderElementToTiledCanvas: vi.fn(() =>
 		Promise.resolve({
 			kind: 'canvas' as const,
 			canvas: makeMockCanvas(),
 			strategy: 'foreignObject' as const,
 			width: 1920,
 			height: 1080,
-			clamped: false,
-			effectiveScale: 2,
+			tiled: false,
 		}),
 	),
 	rasterResultToPngBlob: vi.fn<() => void>(),
@@ -59,16 +58,15 @@ function makeMockElement(): HTMLElement {
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	// Default: renderElementToClampedCanvas returns a mock canvas (the path
+	// Default: renderElementToTiledCanvas returns a mock canvas (the path
 	// captureAllSlidesAsPngDataUrls now uses, instead of raw html2canvas).
-	vi.mocked(renderElementToClampedCanvas).mockResolvedValue({
+	vi.mocked(renderElementToTiledCanvas).mockResolvedValue({
 		kind: 'canvas',
 		canvas: makeMockCanvas(),
 		strategy: 'foreignObject',
 		width: 1920,
 		height: 1080,
-		clamped: false,
-		effectiveScale: 2,
+		tiled: false,
 	});
 	// Default: renderElementToRaster resolves the common (untiled) canvas case,
 	// and rasterResultToPngBlob converts it to a PNG Blob, mirroring the real
@@ -163,14 +161,14 @@ describe('captureAllSlidesAsPngDataUrls', () => {
 		}
 	});
 
-	it('captures via the clamped foreignObject-fidelity path, not raw html2canvas', async () => {
+	it('captures via the tiled foreignObject-fidelity path, not raw html2canvas', async () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
 
 		await captureAllSlidesAsPngDataUrls(ref, 2, vi.fn<() => void>(), 0, { scale: 3 });
 
-		expect(renderElementToClampedCanvas).toHaveBeenCalledTimes(2);
-		expect(renderElementToClampedCanvas).toHaveBeenCalledWith(stageEl, 3);
+		expect(renderElementToTiledCanvas).toHaveBeenCalledTimes(2);
+		expect(renderElementToTiledCanvas).toHaveBeenCalledWith(stageEl, 3);
 	});
 
 	it('calls setActiveSlide for each slide and restores original', async () => {

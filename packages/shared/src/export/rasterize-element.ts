@@ -19,7 +19,7 @@ import type { RasterStrategy, RasterStrategyOptions } from './rasterize-element-
  * canvas-size limit to escape in the first place.
  */
 import type { RasterizedTile } from './rasterize-element-tiles';
-import { rasterizeElementTiles } from './rasterize-element-tiles';
+import { groupTilesByRow, rasterizeElementTiles } from './rasterize-element-tiles';
 import { encodePngFromRowBands } from './streaming-png-encoder';
 import { combineTileRowPixels } from './tile-row-stitch';
 
@@ -63,15 +63,6 @@ export interface RasterizeElementPngBytesResult {
 }
 
 export type RasterizeElementResult = RasterizeElementCanvasResult | RasterizeElementPngBytesResult;
-
-function groupTilesByRow(tiles: readonly RasterizedTile[]): RasterizedTile[][] {
-	const rowCount = tiles.reduce((max, t) => Math.max(max, t.row), 0) + 1;
-	const rows: RasterizedTile[][] = Array.from({ length: rowCount }, () => []);
-	for (const tile of tiles) {
-		rows[tile.row][tile.col] = tile;
-	}
-	return rows;
-}
 
 async function stitchTilesToPng(
 	fullWidth: number,

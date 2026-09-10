@@ -3,7 +3,7 @@
  *
  * Rasterisation goes through the shared `foreignObject` fidelity pipeline
  * (`pptx-viewer-shared`'s `rasterizeElement`/`rasterizeElementTiles`/
- * `rasterizeElementClampedToCanvas`, see `export-raster-tiles.ts`), which
+ * `rasterizeElementTiledToCanvas`, see `export-raster-tiles.ts`), which
  * preserves `backdrop-filter`, CSS custom properties and 3D transforms that
  * `renderToCanvas` (an html2canvas-pro wrapper from `../lib/canvas-export`)
  * cannot; html2canvas-pro is kept only as the documented fallback driver.
@@ -21,8 +21,8 @@ import { downloadBlob } from '../internal/shared';
 import type { RasterizeElementTilesResult } from '../internal/shared';
 import {
 	buildTiledPdf,
-	renderElementClamped,
 	renderElementPngBlob,
+	renderElementTiled,
 	renderElementTilesRaster,
 } from './export-raster-tiles';
 import { exportAllSlidesToSvg, exportSlideToSvg, exportSlideToSvgBlob } from './export-svg';
@@ -120,8 +120,9 @@ export class ExportService {
 	}
 
 	/**
-	 * Rasterize a single element to a canvas via the shared `foreignObject`
-	 * fidelity pipeline, clamped (scale reduced, never tiled) so the result is
+	 * Rasterize a single element to a single full-resolution canvas via the
+	 * shared `foreignObject` fidelity pipeline, tiling and stitching
+	 * transparently (never reducing the requested scale) so the result is
 	 * always one canvas - for GIF/video/print, which can only consume one
 	 * image per frame/page. `html2canvas-pro` is kept only as the documented
 	 * fallback driver. Capture each slide's canvas *while that slide is the
@@ -130,7 +131,7 @@ export class ExportService {
 	 * `export-raster-tiles.ts` (kept this file under the size budget).
 	 */
 	async renderElement(el: HTMLElement, scale: number = 2): Promise<HTMLCanvasElement> {
-		return renderElementClamped(el, scale);
+		return renderElementTiled(el, scale);
 	}
 
 	/**

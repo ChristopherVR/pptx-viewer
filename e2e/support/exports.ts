@@ -113,6 +113,31 @@ export function isGif(bytes: Uint8Array): boolean {
 }
 
 /**
+ * Read a GIF's logical screen dimensions from its header (6-byte signature,
+ * then a little-endian width/height pair - GSpec 89a section 18). Every
+ * frame shares this canvas size, so it is the right place to prove a tiled
+ * capture reached full resolution instead of being clamped down.
+ */
+export function gifDimensions(bytes: Uint8Array): { width: number; height: number } {
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	return { width: view.getUint16(6, true), height: view.getUint16(8, true) };
+}
+
+/**
+ * Count of PDF image XObjects (`/Subtype /Image`) across the whole document.
+ * An untiled export embeds exactly one image per page; a tiled export embeds
+ * several small tile images per page (`placeTileOnPage` in
+ * `pptx-viewer-shared`), so `imageCount > pdfPageCount(bytes)` is the
+ * byte-level signature of tiling having engaged. Same uncompressed-byte-scan
+ * approach as `pdfPageCount` (jsPDF/the hand-rolled PDF encoder both write
+ * these tags uncompressed).
+ */
+export function pdfImageXObjectCount(bytes: Uint8Array): number {
+	const text = new TextDecoder('latin1').decode(bytes);
+	return (text.match(/\/Subtype\s*\/Image/gu) ?? []).length;
+}
+
+/**
  * Page count of a PDF, from its page objects (`/Type /Page`, excluding the
  * `/Pages` tree node). jsPDF writes these uncompressed, so a plain scan of the
  * byte stream is reliable for the files these viewers emit.

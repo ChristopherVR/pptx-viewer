@@ -20,14 +20,14 @@ function fakeCanvas(): HTMLCanvasElement {
 }
 
 // `rasterizeSlide`/`rasterizeSlideToRaster`/`rasterizeSlideToTiles` delegate to
-// the shared `rasterizeElement`/`rasterizeElementClampedToCanvas`/
+// the shared `rasterizeElement`/`rasterizeElementTiledToCanvas`/
 // `rasterizeElementTiles`, whose real `foreignObject` strategy loads an
 // `Image` from a `blob:` URL, unimplemented in happy-dom. These tests assert
 // which shared function each `rasterizeSlide*` entry point calls (the whole
 // point of this composable), not the raster strategy itself (covered next to
 // each function in `pptx-viewer-shared`), so every mock short-circuits
 // straight to the injected `html2canvasFallback`.
-const { rasterizeElement, rasterizeElementClampedToCanvas, rasterizeElementTiles } = vi.hoisted(
+const { rasterizeElement, rasterizeElementTiledToCanvas, rasterizeElementTiles } = vi.hoisted(
 	() => ({
 		rasterizeElement: vi.fn(
 			async (
@@ -53,7 +53,7 @@ const { rasterizeElement, rasterizeElementClampedToCanvas, rasterizeElementTiles
 				};
 			},
 		),
-		rasterizeElementClampedToCanvas: vi.fn(
+		rasterizeElementTiledToCanvas: vi.fn(
 			async (
 				_element: HTMLElement,
 				naturalWidth: number,
@@ -74,8 +74,7 @@ const { rasterizeElement, rasterizeElementClampedToCanvas, rasterizeElementTiles
 					strategy: 'html2canvas' as const,
 					width: canvas.width,
 					height: canvas.height,
-					clamped: false,
-					effectiveScale: options.scale ?? 1,
+					tiled: false,
 				};
 			},
 		),
@@ -118,7 +117,7 @@ const { rasterizeElement, rasterizeElementClampedToCanvas, rasterizeElementTiles
 
 vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 	const actual = await importOriginal();
-	return { ...actual, rasterizeElement, rasterizeElementClampedToCanvas, rasterizeElementTiles };
+	return { ...actual, rasterizeElement, rasterizeElementTiledToCanvas, rasterizeElementTiles };
 });
 
 const { renderToCanvas } = vi.hoisted(() => ({ renderToCanvas: vi.fn() }));
@@ -149,17 +148,17 @@ describe('useExportRasterize', () => {
 		vi.clearAllMocks();
 	});
 
-	it('rasterizeSlide (used by GIF/video/notes-PDF/print) calls the shared clamped single-canvas fidelity path, not the tiled or stitched paths', async () => {
+	it('rasterizeSlide (used by GIF/video/notes-PDF/print) calls the shared single-canvas tiled/stitched fidelity path, not the per-tile or PNG-stitch paths', async () => {
 		renderToCanvas.mockResolvedValue(fakeCanvas());
 		const { rasterizeSlide } = setup(),
 			canvas = await rasterizeSlide(0);
 
 		expect(canvas).toBeInstanceOf(HTMLCanvasElement);
-		expect(rasterizeElementClampedToCanvas).toHaveBeenCalledOnce();
+		expect(rasterizeElementTiledToCanvas).toHaveBeenCalledOnce();
 		expect(rasterizeElement).not.toHaveBeenCalled();
 		expect(rasterizeElementTiles).not.toHaveBeenCalled();
 
-		const [, naturalWidth, naturalHeight, , options] = rasterizeElementClampedToCanvas.mock
+		const [, naturalWidth, naturalHeight, , options] = rasterizeElementTiledToCanvas.mock
 			.calls[0] as [HTMLElement, number, number, Document, { scale?: number }];
 		expect(naturalWidth).toBe(960);
 		expect(naturalHeight).toBe(540);
@@ -172,7 +171,7 @@ describe('useExportRasterize', () => {
 		await rasterizeSlideToRaster(0);
 
 		expect(rasterizeElement).toHaveBeenCalledOnce();
-		expect(rasterizeElementClampedToCanvas).not.toHaveBeenCalled();
+		expect(rasterizeElementTiledToCanvas).not.toHaveBeenCalled();
 		expect(rasterizeElementTiles).not.toHaveBeenCalled();
 	});
 
@@ -183,7 +182,7 @@ describe('useExportRasterize', () => {
 
 		expect(rasterizeElementTiles).toHaveBeenCalledOnce();
 		expect(rasterizeElement).not.toHaveBeenCalled();
-		expect(rasterizeElementClampedToCanvas).not.toHaveBeenCalled();
+		expect(rasterizeElementTiledToCanvas).not.toHaveBeenCalled();
 	});
 
 	it('applies imageExportScale and an explicit scaleMultiplier on top of the 2x baseline', async () => {
@@ -200,7 +199,7 @@ describe('useExportRasterize', () => {
 
 		await rasterizeSlide(0, 2);
 
-		const [, , , , options] = rasterizeElementClampedToCanvas.mock.calls.at(-1) as [
+		const [, , , , options] = rasterizeElementTiledToCanvas.mock.calls.at(-1) as [
 			HTMLElement,
 			number,
 			number,

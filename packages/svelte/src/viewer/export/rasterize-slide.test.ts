@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { rasterizeElementClampedToCanvas, rasterizeElementTiles } from 'pptx-viewer-shared';
+import { rasterizeElementTiledToCanvas, rasterizeElementTiles } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../i18n/translator';
@@ -9,11 +9,11 @@ const { renderToCanvas } = vi.hoisted(() => ({ renderToCanvas: vi.fn() }));
 vi.mock(import('./render-to-canvas'), () => ({ renderToCanvas }));
 
 // `rasterizeSlide`/`rasterizeSlideToRaster`/`rasterizeSlideToTiles` now
-// delegate to the shared `rasterizeElement`/`rasterizeElementClampedToCanvas`/
+// delegate to the shared `rasterizeElement`/`rasterizeElementTiledToCanvas`/
 // `rasterizeElementTiles`, whose real `foreignObject` strategy loads an
 // `Image` from a `blob:` URL - unimplemented in jsdom, so `img.onload`/
 // `onerror` never fire and the real functions hang forever in this
-// environment. `rasterizeElementClampedToCanvas`/`rasterizeElementTiles`
+// environment. `rasterizeElementTiledToCanvas`/`rasterizeElementTiles`
 // call `rasterizeElement` internally *within the already-built shared
 // package*, invisible to mocking only `rasterizeElement` at this module
 // boundary, so all three are mocked directly here. These tests are about the
@@ -69,7 +69,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 				};
 			},
 		),
-		rasterizeElementClampedToCanvas: vi.fn(
+		rasterizeElementTiledToCanvas: vi.fn(
 			async (
 				_element: HTMLElement,
 				naturalWidth: number,
@@ -89,8 +89,7 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 					strategy: 'html2canvas' as const,
 					width: canvas.width,
 					height: canvas.height,
-					clamped: false,
-					effectiveScale: options.scale ?? 1,
+					tiled: false,
 				};
 			},
 		),
@@ -203,9 +202,9 @@ describe('createRasterizeSlide', () => {
 		expect(canvas).toBeInstanceOf(HTMLCanvasElement);
 		expect(renderToCanvas).toHaveBeenCalledOnce();
 		// `rasterizeSlide` (used by GIF/video/notes-PDF/print) must always go
-		// through the clamped shared `foreignObject` pipeline - never fall back
-		// to a raw, unclamped `renderToCanvas` capture directly.
-		expect(rasterizeElementClampedToCanvas).toHaveBeenCalledOnce();
+		// through the tiled/stitched shared `foreignObject` pipeline - never
+		// fall back to a raw `renderToCanvas` capture directly.
+		expect(rasterizeElementTiledToCanvas).toHaveBeenCalledOnce();
 		expect(rasterizeElementTiles).not.toHaveBeenCalled();
 
 		const [stageEl, options] = renderToCanvas.mock.calls[0] as [
@@ -303,7 +302,7 @@ describe('createRasterizeSlide', () => {
 		expect(result.tiles).toHaveLength(1);
 		expect(result.tiles[0].canvas).toBeInstanceOf(HTMLCanvasElement);
 		expect(rasterizeElementTiles).toHaveBeenCalledOnce();
-		expect(rasterizeElementClampedToCanvas).not.toHaveBeenCalled();
+		expect(rasterizeElementTiledToCanvas).not.toHaveBeenCalled();
 
 		ctl.destroy();
 	});

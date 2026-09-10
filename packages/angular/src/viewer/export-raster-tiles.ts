@@ -4,7 +4,7 @@
  *
  * Every raster entry point here goes through the shared `foreignObject`
  * fidelity pipeline (`pptx-viewer-shared`'s `rasterizeElement` /
- * `rasterizeElementClampedToCanvas` / `rasterizeElementTiles`), with
+ * `rasterizeElementTiledToCanvas` / `rasterizeElementTiles`), with
  * `html2canvas-pro` kept only as the documented fallback driver. This is the
  * one place in the Angular binding that touches that driver directly.
  */
@@ -14,7 +14,7 @@ import {
 	canvasToJpegData,
 	placeTileOnPage,
 	rasterizeElement,
-	rasterizeElementClampedToCanvas,
+	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 	rasterResultToPngBlob,
 	sanitizeDownloadFilename,
@@ -68,19 +68,20 @@ export async function renderElementPngBlob(el: HTMLElement, scale: number = 2): 
 }
 
 /**
- * Rasterize a single element to a canvas via the shared `foreignObject`
- * fidelity pipeline, clamped (scale reduced, never tiled) so the result is
- * always one canvas - for GIF/video/print, which can only consume one image
- * per frame/page. Capture each slide's canvas *while that slide is the live
+ * Rasterize a single element to a single full-resolution canvas via the
+ * shared `foreignObject` fidelity pipeline, tiling and stitching
+ * transparently (never reducing the requested scale) so the result is always
+ * one canvas - for GIF/video/print, which can only consume one image per
+ * frame/page. Capture each slide's canvas *while that slide is the live
  * DOM*: the viewer reuses one stage node, so a deferred capture would yield
  * the same (last) slide for every page.
  */
-export async function renderElementClamped(
+export async function renderElementTiled(
 	el: HTMLElement,
 	scale: number = 2,
 ): Promise<HTMLCanvasElement> {
 	const { width, height } = naturalSizeOf(el);
-	const result = await rasterizeElementClampedToCanvas(el, width, height, el.ownerDocument, {
+	const result = await rasterizeElementTiledToCanvas(el, width, height, el.ownerDocument, {
 		scale,
 		html2canvasFallback: html2canvasFallbackFor(el),
 	});

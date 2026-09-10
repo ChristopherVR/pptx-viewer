@@ -1,6 +1,6 @@
 import {
 	rasterizeElement,
-	rasterizeElementClampedToCanvas,
+	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 } from 'pptx-viewer-shared';
 import { describe, it, expect, expectTypeOf, vi, beforeEach } from 'vitest';
@@ -9,7 +9,7 @@ import { renderToCanvas } from '../../lib/canvas-export';
 import {
 	ignoreExportOverlayElements,
 	rasterResultToPngBlob,
-	renderElementToClampedCanvas,
+	renderElementToTiledCanvas,
 	renderElementToRaster,
 	renderElementToTiles,
 } from './export-helpers';
@@ -143,7 +143,7 @@ vi.mock<typeof import('pptx-viewer-shared')>(
 			...actual,
 			rasterizeElement: vi.fn(),
 			rasterizeElementTiles: vi.fn(),
-			rasterizeElementClampedToCanvas: vi.fn(),
+			rasterizeElementTiledToCanvas: vi.fn(),
 		};
 	},
 );
@@ -212,12 +212,12 @@ describe('shared raster driver wiring', () => {
 		expect(rasterizeElement).not.toHaveBeenCalled();
 	});
 
-	it('renderElementToClampedCanvas routes to rasterizeElementClampedToCanvas', async () => {
+	it('renderElementToTiledCanvas routes to rasterizeElementTiledToCanvas', async () => {
 		const el = makeElement({ width: 960, height: 540 });
 
-		await renderElementToClampedCanvas(el, 0.5);
+		await renderElementToTiledCanvas(el, 0.5);
 
-		expect(rasterizeElementClampedToCanvas).toHaveBeenCalledWith(
+		expect(rasterizeElementTiledToCanvas).toHaveBeenCalledWith(
 			el,
 			960,
 			540,

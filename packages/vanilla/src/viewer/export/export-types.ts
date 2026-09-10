@@ -26,7 +26,8 @@ export type RasterizeSlide = (
  * `RasterizeElementResult` (tiled `png-bytes` included) instead of a plain
  * canvas. Used by the PNG-export and "copy slide as image" paths so a
  * request whose full resolution exceeds the browser's canvas cap is tiled
- * and stitched instead of clamped.
+ * and stitched into pre-encoded PNG bytes instead of a canvas
+ * `toBlob`/`toDataURL` call.
  */
 export type RasterizeSlideToRaster = (
 	index: number,
@@ -36,8 +37,8 @@ export type RasterizeSlideToRaster = (
 /**
  * Same capture, but returns the raw per-tile canvases (no PNG stitching).
  * Used by PDF export so a page whose resolution exceeds the browser canvas
- * cap is composed of several small tile images instead of one oversized
- * canvas or a downscaled single image.
+ * cap is composed of several small tile images instead of one oversized or
+ * stitched canvas.
  */
 export type RasterizeSlideToTiles = (
 	index: number,

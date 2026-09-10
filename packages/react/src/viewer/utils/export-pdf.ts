@@ -17,7 +17,7 @@ import React from 'react';
 import type { NotesPdfExportOptions, PdfExportOptions, PngExportOptions } from './export-helpers';
 import {
 	downloadDataUrl,
-	renderElementToClampedCanvas,
+	renderElementToTiledCanvas,
 	renderElementToTiles,
 	waitForRender,
 } from './export-helpers';
@@ -165,11 +165,11 @@ export async function exportAllSlidesAsNotesPdf(
 
 		// The notes-page layout draws exactly one image per primary page
 		// (alongside wrapped notes text), so this goes through the
-		// clamped-to-cap raster path (fidelity preserved, resolution capped
-		// only in the - implausible for a real slide - case the natural size
-		// itself would exceed the cap at this scale) rather than the tiled
-		// path the main "PDF" export uses.
-		const { canvas } = await renderElementToClampedCanvas(stageEl, scale);
+		// single-canvas raster path (tiled and stitched transparently past the
+		// browser canvas cap, same full resolution as the main "PDF" export's
+		// per-tile-placement path) rather than placing several tile images on
+		// the page itself.
+		const { canvas } = await renderElementToTiledCanvas(stageEl, scale);
 		pages.push({
 			canvas,
 			notes: slideNotes[i],
