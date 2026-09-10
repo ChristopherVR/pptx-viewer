@@ -86,7 +86,12 @@
  * element state - matching this SDK's own editor, where every interactive
  * change converts through whatever scale is CURRENTLY rendering, so there
  * is only ever one live state to save, never two COM-style snapshots:
- * "order A" is what this architecture actually produces.
+ * "order A" is what this architecture actually produces. Quantified by a
+ * fresh 8-angle x 3-edit-combo COM sweep (`group-tight-rewrap-own-box.ts`'s
+ * module doc, `group-tight-rewrap.test.ts`'s `grp1st` sweep): "order A" vs
+ * "order B" diverge by up to ~71,000 EMU (visibly, not a rounding
+ * difference), confirming this is a real architectural boundary rather than
+ * an unresolved formula gap.
  *
  * @module group-tight-rewrap
  */

@@ -239,6 +239,41 @@ describe('resolveRotatedResizeOffset', () => {
 		}
 	});
 
+	// ── Fresh 8-angle COM sweep: plain rotated shape, Width AND Height ──────
+	// together in one edit (COM: `Shape.Width *= 1.5` then `Shape.Height *=
+	// 1.2` as two separate property sets, one `SaveAs`). Base shape
+	// off/ext=(1270000,1270000)/(1270000,762000); new ext=(1905000,914400)
+	// on every angle. This is exactly the scenario `resolveRotatedResizeOffset`'s
+	// sequential (width-then-height) decomposition targets - see the module
+	// doc - and it is byte-exact in all 8 cases, settling the sequential
+	// composition as the general rule rather than a per-angle fix.
+	it.each([
+		{ angle: 25, offXEmu: 1208049, offYEmu: 1397042 },
+		{ angle: 37, offXEmu: 1160209, offYEmu: 1445732 },
+		{ angle: -40, offXEmu: 1244699, offYEmu: 1048088 },
+		{ angle: 61, offXEmu: 1039781, offYEmu: 1508434 },
+		{ angle: 113, offXEmu: 758301, offYEmu: 1456286 },
+		{ angle: 155, offXEmu: 632543, offYEmu: 1258920 },
+		{ angle: 200, offXEmu: 680210, offYEmu: 1013604 },
+		{ angle: 290, offXEmu: 1132696, offYEmu: 921510 },
+	])(
+		'matches COM exactly at $angle degrees, plain shape, Width and Height together (fresh 8-angle sweep)',
+		({ angle, offXEmu, offYEmu }) => {
+			const result = resolveRotatedResizeOffset({
+				rotationDeg: angle,
+				oldOffXEmu: 1270000,
+				oldOffYEmu: 1270000,
+				oldExtWidthEmu: 1270000,
+				oldExtHeightEmu: 762000,
+				newExtWidthEmu: 1905000,
+				newExtHeightEmu: 914400,
+				naiveOffXEmu: 1270000,
+				naiveOffYEmu: 1270000,
+			});
+			expect(result).toStrictEqual({ offXEmu, offYEmu });
+		},
+	);
+
 	it('reduces to the naive per-axis result at rotation 0 (no regression for unrotated resize)', () => {
 		// At rot=0 the correction must be a no-op vs. whatever naive resolve produced.
 		const result = resolveRotatedResizeOffset({

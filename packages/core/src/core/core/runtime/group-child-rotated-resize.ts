@@ -43,15 +43,15 @@
  * rotate one child (25 or 90 degrees, no move - rotating alone has no
  * effect per `rotated-resize-anchor.ts`), then resize it via
  * `GroupItems(1).Width`/`Height` (two SEPARATE COM property sets), one
- * `SaveAs`. Byte-exact at 90 degrees. At 25 degrees the SINGLE-SHOT formula
- * this module implements (matching how this SDK's own editor applies one
- * resize as one final state, not two COM-style sequential live-refits - the
- * same "order A" precedent documented in `group-tight-rewrap.ts` for the
- * combined group-resize-plus-child-edit case) is exact for EITHER axis
- * resized alone, and 1 EMU off on EACH axis when COM's ground truth was
- * produced by two sequential property sets rather than one combined edit
- * (verified: feeding the Width-only result back in as the "old" box for a
- * second, Height-only pass reproduces COM's number exactly) - see
+ * `SaveAs`. Byte-exact at 90 degrees, and byte-exact at 25 degrees too:
+ * `resolveRotatedResizeOffset` (`rotated-resize-anchor.ts`) itself now
+ * decomposes a both-axes resize into two sequential single-axis passes
+ * (width, then height against the width-corrected intermediate box) instead
+ * of one simultaneous rotation, which is exactly what reproduces COM's
+ * number here - feeding the Width-only result back in as the "old" box for
+ * a second, Height-only pass. Re-verified by a fresh 8-angle COM sweep (25,
+ * 37, -40, 61, 113, 155, 200, 290) resizing a rotated group child on both
+ * axes in one edit: byte-exact in every case - see
  * `group-child-rotated-resize.test.ts`.
  *
  * @module group-child-rotated-resize

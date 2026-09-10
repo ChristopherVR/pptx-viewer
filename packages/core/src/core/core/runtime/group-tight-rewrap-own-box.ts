@@ -18,15 +18,86 @@
  * `rotated-resize-anchor.ts` - "as if only the group's own resize had
  * happened, no child touched") to get an intermediate box, THEN re-wraps
  * around THAT intermediate box's centre. Composing the two is byte-exact at
- * 90 degrees and within 1 EMU at 25 degrees (an amount far below anything
- * visible; almost certainly PowerPoint's own trig rounding at irrational
- * angles differing from `Math.cos`/`Math.sin`, not a formula error - see
- * `group-tight-rewrap-own-box.test.ts`). `resolveRotatedResizeOffset` itself
- * no-ops (returns `undefined`) when the group is unrotated or neither
- * extent axis actually changed, so it is always safe to try: an unrotated
- * group's combined resize+child-edit, or a rotated group with a child edit
- * but no self-resize, both fall through to the pre-existing behaviour
- * unchanged.
+ * 90 degrees; at 25 degrees it lands `off.x` and `ext.cy` 1 EMU off (`off.y`
+ * and `ext.cx` exact) - see `group-tight-rewrap.test.ts`'s
+ * `s1-combined-25`/`s1-combined-90` cases.
+ *
+ * ## Order matters, and only ONE order is reachable from this architecture
+ *
+ * A fresh COM sweep (8 angles x {child moved, child resized, child moved+
+ * resized}, each built two ways: `Group.Width`/`Height` set FIRST then the
+ * child's `Left`/`Top`/`Width`/`Height` ("grp1st"), and the reverse
+ * ("chd1st")) shows the two orders are NOT sub-EMU-close: they diverge by up
+ * to ~71,000 EMU (about 0.08 inch, plainly visible), because COM live-refits
+ * the group's bounding box the INSTANT a child moves or resizes, so whichever
+ * property is set LAST composes against an already-refit intermediate box.
+ * This is `group-tight-rewrap.ts`'s own documented "combined-order-b" case
+ * ("A group resized and a child edited via TWO SEPARATE interactive steps
+ * that each triggered PowerPoint's LIVE bounding-box refresh... is also not
+ * reproduced... this module computes the rewrap once, from the FINAL element
+ * state... 'order A' is what this architecture actually produces") - this
+ * sweep is its first exhaustive, multi-angle confirmation, not a new gap: a
+ * save path driven by one final element tree (this SDK's own architecture)
+ * cannot recover which order a user's two separate actions happened in, so
+ * "chd1st" is not a target this formula can chase. "grp1st" - the group's own
+ * resize committing before the child edit's tight-rewrap runs - is exactly
+ * what {@link rewrapGroupOwnBox} already implements (`selfResizeAnchor`
+ * first, then the tight-rewrap against ITS result), and is the only order a
+ * single-final-state save can faithfully replay.
+ *
+ * ## The residual, precisely characterized
+ *
+ * Restricted to the reachable "grp1st" order, the same sweep (24 cases: 8
+ * angles x 3 child-edit combos) is BYTE-EXACT in 9/24 cases; the rest are 1-2
+ * EMU (<=2/914400 inch) off on one or more of `off.x`/`off.y`/`ext.cx`/
+ * `ext.cy`, with no consistent sign or axis - see
+ * `group-tight-rewrap.test.ts`'s `grp1st` sweep for the full table (COM value
+ * pinned in a comment on every row). This was investigated further while
+ * closing the SAME "1 EMU" class of gap in
+ * `rotated-resize-anchor.ts`/`group-child-rotated-resize.ts` (both closed - a
+ * both-axes resize needs a SEQUENTIAL, not simultaneous, per-axis
+ * composition; see `rotated-resize-anchor.ts`'s module doc). Findings here
+ * specifically, all against the full 24-case sweep unless noted:
+ *
+ *  - `resolveRotatedResizeOffset` now performs that sequential composition
+ *    internally, so the `selfResizeAnchor` call below already benefits from
+ *    it - but it does NOT change any of the 24 numbers at all (verified
+ *    identical before/after). The sequential fix closes a "both axes changed
+ *    in ONE `resolveRotatedResizeOffset` call" gap; this residual survives a
+ *    SECOND, separate rotation composition afterward (the tight-rewrap step
+ *    below), so it is not the same bug.
+ *  - Decomposing the tight-rewrap step ITSELF into two further sequential
+ *    single-axis corrections (mirroring the self-resize fix, one more level
+ *    up) was tried, in all 4 orderings of {self-resize width/height} x
+ *    {tight-rewrap x/y} - all 4 give IDENTICAL results (this part IS
+ *    order-independent) but only 6/24 exact: WORSE than the bespoke
+ *    "translate then rotate the naive center around the pivot" derivation
+ *    below. Rejected.
+ *  - An "unrounded pivot" variant (carry every intermediate center as a
+ *    float through the whole chain, rounding only once at the very end) was
+ *    also tried and was WORSE (5/24) - it reproduces `combined-order-a.pptx`'s
+ *    UNROTATED exact value WRONG (`4318000` vs the byte-exact `4318001`)
+ *    while still not fixing the rotated cases. Rejected; the existing
+ *    corner-anchored, rounded-pivot derivation below is correct.
+ *  - float32 (single-precision) trig for every `cos`/`sin` in the pipeline
+ *    was also tried: no change at all (still 9/24 on the reachable order).
+ *    Rejected as a hypothesis.
+ *
+ * `ext.cy` being off by 1-2 EMU in several cases (not just `off.x`/`off.y`)
+ * is notable: `ext.cy` is a pure `chExt * scale` multiply with no rotation
+ * term in this implementation at all, yet only drifts when the group is ALSO
+ * rotated - which points at PowerPoint computing this specific combined case
+ * via some rotated-frame intermediate (e.g. refitting an axis-aligned box in
+ * on-screen/rotated space, then converting back) rather than the
+ * unrotated-local-box-plus-pivot model this module implements, not at a
+ * simple rounding-order fix in EMU reachable from black-box outputs alone.
+ * This is not re-derived here: it remains the one documented residual (see
+ * `docs/guide/limitations.md`). `resolveRotatedResizeOffset` itself no-ops
+ * (returns `undefined`) when the group is unrotated or neither extent axis
+ * actually changed, so it is always safe to try: an unrotated group's
+ * combined resize+child-edit, or a rotated group with a child edit but no
+ * self-resize, both fall through to the pre-existing behaviour unchanged
+ * (and both are byte-exact).
  *
  * @module group-tight-rewrap-own-box
  */
