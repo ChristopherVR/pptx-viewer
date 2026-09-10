@@ -68,6 +68,62 @@
  * against). All scripts used are scratch tooling (not committed, not wired
  * into CI, same as `com-acceptance.mjs`); full tables are in the task report.
  *
+ * ## Re-run against the CURRENT `threePt` elevationDeg (2026-09, post-lightRig-recalibration)
+ *
+ * The 32-condition table above predates `LIGHT_RIG_LIGHTING`'s COM
+ * recalibration (`threePt` moved from an assumed 45deg to a measured 74deg);
+ * re-running the SAME 32 conditions (fresh COM ground truth, which matched
+ * the historical per-condition numbers above exactly, confirming both
+ * campaigns sample the same real PowerPoint behaviour) against the CURRENT
+ * elevationDeg found the change is a genuine regression for BOTH materials,
+ * not just `metal`: `matte`'s mean absolute error rose from the 34.8 above to
+ * ~47.4 (`hardEdge` alone: ~90, COM 133/133 vs a render of ~73/14), even
+ * though `matte`'s `specularConstant` is negligible (0.02) - this is a
+ * DIFFUSE-side regression, `elevationDeg` itself reshaping the diffuse
+ * contrast band at 74deg differently than it did at 45deg, independent of
+ * the specular-saturation issue below.
+ *
+ * A SEPARATE COM campaign (mid-grey `#808080` square, `circle` bevel,
+ * sampled at the shape's exact CENTER, i.e. the flat, non-bevelled interior,
+ * not the edge band) measured `metal`/`matte`/`plastic` PIXEL-IDENTICAL at
+ * every rig tested (`flat`/`contrasting`/`threePt`/`legacyHarsh1-4`/`harsh`/
+ * `balanced`/`soft`/`twoPt`/`sunrise`/`morning`/`flood`/`glow`/`brightRoom`,
+ * elevations 54-90deg): e.g. `flat` reads `rgb(127,127,127)` (the raw fill,
+ * unlit) for all three materials, `morning` reads `rgb(112,108,98)` for all
+ * three. Real PowerPoint's material response is therefore zero on a flat
+ * normal at every elevation, not just small - confirming the "whole shape
+ * washes out under `threePt`" defect this module's material doc comment
+ * describes is real and elevation-independent in its WRONGNESS, even though
+ * this filter's own flat-region specular term is highly elevation-dependent
+ * (0 at low elevation, the full `specularConstant` at 90).
+ *
+ * An attempted fix (2026-09) gave `feSpecularLighting` its OWN
+ * `<feDistantLight>` elevation, decoupled from the rig's diffuse elevation
+ * and fixed low enough that the flat-region term is negligible by
+ * closed-form calculation (verified: at 20deg, under 2/255 brightness units
+ * for `metal`'s worst-case `specularConstant`/`specularExponent`). Render-vs-
+ * COM re-measurement of the SAME 32 band conditions at this decoupled
+ * elevation found the fix is NOT clean: it is not simply "lower is safer" -
+ * `hardEdge` (already low-relief, steep-eroded) improved or stayed flat, but
+ * `angle` and `softRound` got MUCH worse at both 20deg (`metal`/`angle` hi
+ * COM 141 vs rendered 154-214, `metal`/`softRound` sh COM 141 vs rendered
+ * 155) and 45deg (`metal`/`angle` hi rendered 225-234, `metal`/`softRound` sh
+ * rendered 234, i.e. saturating). The likely cause: for a profile whose
+ * height-map gradient is steep (the `erode`-heavy faceted family), a LOWER
+ * light elevation can align the half-vector `H` more closely with a TILTED
+ * band normal than a high elevation does with the FLAT normal, so
+ * suppressing the flat-region term this way can amplify the band's own
+ * specular peak instead, in a profile-specific, non-monotonic way. This
+ * decoupling attempt was NOT landed (reverted after measurement). A working
+ * fix likely needs the specular layer's contribution MASKED to the actual
+ * curved band (e.g. the difference between the original and eroded/blurred
+ * alpha, rather than the whole `SourceAlpha`) so a flat interior gets zero
+ * specular by construction regardless of elevation, or a full joint
+ * numerical re-fit of `elevationDeg`/`specularElevationDeg`/
+ * `specularConstant`/`specularExponent`/`surfaceScaleMultiplier` per
+ * material against this same COM ground truth. Neither was completed in
+ * this pass; see `docs/guide/limitations.md`.
+ *
  * @module render/visual-3d-bevel-lighting
  */
 
