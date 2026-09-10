@@ -80,6 +80,11 @@ const CHROME_CSS = `
 	color: var(--pptx-foreground);
 	font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 	font-size: 14px;
+	/* Text autosizing: the viewer scales the whole slide as one unit, so a
+	 * mobile browser must not inflate the glyphs alone (it changes wrapping
+	 * and clips text). Mirrors the React theme.css rule. */
+	-webkit-text-size-adjust: none;
+	text-size-adjust: none;
 }
 .pptxv *, .pptxv *::before, .pptxv *::after { box-sizing: border-box; }
 .pptxv:focus { outline: none; }
