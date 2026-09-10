@@ -650,7 +650,12 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'(2026-09 full-preset wave) adds oblique*/legacyOblique*/legacyPerspective* extrusion-panel ' +
 			'coverage, the one family neither the bevelled isometricTopUp block nor Heroic Left ' +
 			"Facing exercised; that same wave also reclassified the bevelled block's isometricTopUp " +
-			'panel from bottom to right (edge-fit corner measurement corrected a prior mislabel).',
+			'panel from bottom to right (edge-fit corner measurement corrected a prior mislabel). A ' +
+			'new "Matte Bevel Block" shape (2026-09 bevel-lighting-routing wave) adds a circle+matte ' +
+			'bevel that is NOT routed to the legacy box-shadow model, so shape-3d-bevel-lighting-' +
+			'parity.spec.ts can assert the real SVG lighting filter path end to end; the original ' +
+			'"Bevel Block" (circle+metal) is exactly the pair that routes to the legacy model, so it ' +
+			'now covers that fallback path instead.',
 	},
 	{
 		file: 'solution-explorer.pptx',

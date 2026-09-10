@@ -47,8 +47,15 @@ const NV_CONTAINERS = [
 	'p:nvGrpSpPr',
 ] as const;
 
-/** Read the `p:cNvPr/@id` from an element's raw shape XML, if present. */
-function readCnvPrId(rawXml: XmlObject | undefined): string | undefined {
+/**
+ * Read the `p:cNvPr/@id` from an element's raw shape XML, if present.
+ * Exported for `native-animation-media-duration.ts`, which needs the SAME
+ * raw (pre-reconciliation) id space this module reads from, to match a
+ * `kind: 'media'` animation's `targetId` (also still raw at that point)
+ * against its element before this module's `reconcileAnimationTargets`
+ * rewrites it to a positional `element.id`.
+ */
+export function readCnvPrId(rawXml: XmlObject | undefined): string | undefined {
 	if (!rawXml) {
 		return undefined;
 	}
