@@ -29,8 +29,8 @@ export interface UseSlideOperationsInput {
 }
 
 export interface UseSlideOperationsResult {
-	/** Insert a blank slide directly after the active slide. */
-	addSlide: () => void;
+	/** Insert after the given index, or after the active slide when omitted. */
+	addSlide: (afterIndex?: number) => void;
 	/** Remove the slide at `index` (no-op when only one slide remains). */
 	deleteSlide: (index: number) => void;
 	/** Deep-clone the slide at `index` and insert the copy right after it. */
@@ -42,10 +42,10 @@ export interface UseSlideOperationsResult {
 export function useSlideOperations(input: UseSlideOperationsInput): UseSlideOperationsResult {
 	const { slides, activeSlideIndex, pushHistory } = input;
 
-	const addSlide = (): void => {
+	const addSlide = (afterIndex = activeSlideIndex.value): void => {
 		pushHistory();
 		const next = [...slides.value];
-		const insertAt = Math.max(0, Math.min(activeSlideIndex.value + 1, next.length));
+		const insertAt = Math.max(0, Math.min(afterIndex + 1, next.length));
 		next.splice(insertAt, 0, createBlankSlide(next.length + 1));
 		slides.value = next;
 		activeSlideIndex.value = insertAt;

@@ -41,7 +41,7 @@ export interface UseViewerApiOptions {
 		canRedo: ComputedRef<boolean> | Ref<boolean>;
 	};
 	slideOps: {
-		addSlide: () => void;
+		addSlide: (afterIndex?: number) => void;
 		deleteSlide: (index: number) => void;
 		duplicateSlide: (index: number) => void;
 		moveSlide: (from: number, to: number) => void;
@@ -109,7 +109,7 @@ export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpo
 		getSlide: (index: number) => slides.value[index],
 		getActiveSlide: () => activeSlide.value,
 		// -- Slide manipulation --
-		addSlide: () => slideOps.addSlide(),
+		addSlide: (afterIndex?: number) => slideOps.addSlide(afterIndex),
 		deleteSlides: (indexes: number[]) => {
 			// Descending, so each removal cannot shift the index of one still pending.
 			for (const i of [...indexes].sort((a, b) => b - a)) {

@@ -54,9 +54,9 @@ const { PptxHandler } = await import('pptx-viewer-core');
 const { PowerPointViewer } = await import('../../index');
 type ViewerHandle = import('../../index').PowerPointViewerHandle;
 
-/** A real one-slide package, so the viewer mounts its editor chrome. */
-async function sampleDeck(): Promise<Uint8Array> {
-	const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+/** A real package, so the viewer mounts its editor chrome. */
+async function sampleDeck(initialSlideCount = 1): Promise<Uint8Array> {
+	const { handler, data } = await PptxHandler.create({ initialSlideCount });
 	try {
 		return await handler.save(data.slides);
 	} finally {
@@ -126,6 +126,74 @@ async function flushUntilLoaded(ref: React.RefObject<ViewerHandle | null>): Prom
 }
 
 describe('an ordinary edit marks the document dirty', () => {
+	it.each([
+		{ afterIndex: -1, active: 2, inserted: 0 },
+		{ afterIndex: 0, active: 2, inserted: 1 },
+		{ afterIndex: 1, active: 0, inserted: 2 },
+		{ afterIndex: 2, active: 0, inserted: 3 },
+		{ afterIndex: 99, active: 0, inserted: 3 },
+		{ afterIndex: undefined, active: 0, inserted: 1 },
+		{ afterIndex: 'sidebar click' as const, active: 0, inserted: 1 },
+	])(
+		'addSlide($afterIndex) inserts at $inserted with slide $active active',
+		async ({ afterIndex, active, inserted }) => {
+			const content = await sampleDeck(3);
+			const ref = createRef<ViewerHandle>();
+			await act(async () => {
+				root.render(
+					<PowerPointViewer ref={ref} content={content} filePath='slide-order.pptx' canEdit />,
+				);
+			});
+			await flushUntilLoaded(ref);
+			await act(async () => {
+				handleOf(ref).goTo(active);
+				if (afterIndex === 'sidebar click') {
+					handleOf(ref).setMode('edit');
+				}
+			});
+			const original = handleOf(ref)
+				.getSlides()
+				.map((slide) => slide.id);
+			await act(async () => {
+				if (afterIndex === 'sidebar click') {
+					const button = [...container.querySelectorAll('aside button')].find(
+						(element) => element.textContent?.trim() === 'Add Slide',
+					) as HTMLButtonElement;
+					expect(button).toBeDefined();
+					button.click();
+				} else {
+					handleOf(ref).addSlide(afterIndex);
+				}
+			});
+			const slides = handleOf(ref).getSlides();
+			expect(slides).toHaveLength(4);
+			expect(original).not.toContain(slides[inserted].id);
+			expect(
+				slides.filter((_, index) => index !== inserted).map((slide) => slide.id),
+			).toStrictEqual(original);
+			expect(handleOf(ref).getActiveSlideIndex()).toBe(inserted);
+			expect(handleOf(ref).isDirty()).toBeTruthy();
+			expect(handleOf(ref).canUndo()).toBeTruthy();
+			const addedIds = slides.map((slide) => slide.id);
+			await act(async () => {
+				handleOf(ref).undo();
+			});
+			expect(
+				handleOf(ref)
+					.getSlides()
+					.map((slide) => slide.id),
+			).toStrictEqual(original);
+			await act(async () => {
+				handleOf(ref).redo();
+			});
+			expect(
+				handleOf(ref)
+					.getSlides()
+					.map((slide) => slide.id),
+			).toStrictEqual(addedIds);
+		},
+	);
+
 	it('raises the dirty flag useAutosave gates on, and reports it to the host', async () => {
 		const content = await sampleDeck();
 		const ref = createRef<ViewerHandle>();

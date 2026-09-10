@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ComparePanel from './components/ComparePanel.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import PowerPointViewer from './PowerPointViewer.vue';
+import type { PowerPointViewerExpose } from './types';
 
 /**
  * Smoke test for the editing wiring. With no `content`, `useLoadContent` settles
@@ -12,6 +13,51 @@ import PowerPointViewer from './PowerPointViewer.vue';
  * content only appears in edit/master mode, so it gates on `canEdit`.
  */
 describe('powerPointViewer editing wiring', () => {
+	it.each([
+		{ afterIndex: -1, active: 2, inserted: 0 },
+		{ afterIndex: 0, active: 2, inserted: 1 },
+		{ afterIndex: 1, active: 0, inserted: 2 },
+		{ afterIndex: 2, active: 0, inserted: 3 },
+		{ afterIndex: 99, active: 0, inserted: 3 },
+		{ afterIndex: undefined, active: 0, inserted: 1 },
+	])(
+		'addSlide($afterIndex) inserts at $inserted with slide $active active',
+		async ({ afterIndex, active, inserted }) => {
+			const wrapper = mount(PowerPointViewer, { props: { canEdit: true } });
+			try {
+				await flushPromises();
+				const viewer = wrapper.vm as unknown as PowerPointViewerExpose;
+				for (let index = 0; index < 3; index++) {
+					viewer.addSlide();
+					await flushPromises();
+				}
+				viewer.goTo(active);
+				await flushPromises();
+				const original = viewer.getSlides().map((slide) => slide.id);
+				viewer.addSlide(afterIndex);
+				await flushPromises();
+				const slides = viewer.getSlides();
+				expect(slides).toHaveLength(4);
+				expect(original).not.toContain(slides[inserted].id);
+				expect(
+					slides.filter((_, index) => index !== inserted).map((slide) => slide.id),
+				).toStrictEqual(original);
+				expect(viewer.getActiveSlideIndex()).toBe(inserted);
+				expect(viewer.isDirty()).toBeTruthy();
+				expect(viewer.canUndo()).toBeTruthy();
+				const addedIds = slides.map((slide) => slide.id);
+				viewer.undo();
+				await flushPromises();
+				expect(viewer.getSlides().map((slide) => slide.id)).toStrictEqual(original);
+				viewer.redo();
+				await flushPromises();
+				expect(viewer.getSlides().map((slide) => slide.id)).toStrictEqual(addedIds);
+			} finally {
+				wrapper.unmount();
+			}
+		},
+	);
+
 	it('hides the ribbon tab content when not editable', async () => {
 		const wrapper = mount(PowerPointViewer, { props: { canEdit: false } });
 		await flushPromises();
