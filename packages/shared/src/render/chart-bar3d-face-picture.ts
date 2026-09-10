@@ -14,10 +14,7 @@
  *
  * @module chart-bar3d-face-picture
  */
-import {
-	ensureBarFacePicturePixelSampled,
-	getCachedBarFacePicturePixelColor,
-} from './chart-bar3d-face-picture-sample';
+import { resolveBarFacePicturePixelColor } from './chart-bar3d-face-picture-sample';
 import type { ChartSeriesLike } from './chart-datapoint-style';
 import {
 	resolveActiveDataPointPicture,
@@ -59,13 +56,15 @@ export interface BarFacePictureContext {
  * both untargeted faces, and a 16x16 mostly-red fill with a single green
  * pixel at (0,0) painted those faces solid GREEN, not the majority red -
  * i.e. PowerPoint samples the picture's pixel at (0,0), not an average or
- * the centre. {@link resolveExtrusionFaceFill} now reproduces that: it reads
- * `chart-bar3d-face-picture-sample.ts`'s async first-pixel cache and, once a
+ * the centre. {@link resolveExtrusionFaceFill} now reproduces that: it calls
+ * `chart-bar3d-face-picture-sample.ts`'s `resolveBarFacePicturePixelColor`
+ * (a synchronous, DOM-free decode first, an async `Image`/`<canvas>` decode
+ * as the fallback for formats the sync decoder does not cover) and, once a
  * sample has landed, tints/shades THAT colour instead of the resolved
- * point/series one. Before the async decode resolves (or when it fails, e.g.
- * no DOM), this resolved point/series colour is still the fallback used
- * here, which is why this function keeps taking a plain colour rather than
- * an image URL.
+ * point/series one. Before a sample resolves (or when neither decode path
+ * can handle the format), this resolved point/series colour is still the
+ * fallback used here, which is why this function keeps taking a plain colour
+ * rather than an image URL.
  */
 export function resolveUntargetedBarFaceFill(face: 'side' | 'end', baseColor: string): string {
 	return face === 'end' ? tint(baseColor, 0.22) : shade(baseColor, 0.25);
@@ -77,13 +76,14 @@ export function resolveUntargetedBarFaceFill(face: 'side' | 'end', baseColor: st
  * (`c:applyToSides`/`c:applyToEnd`); otherwise this face is untargeted, and
  * PowerPoint paints it a flat colour sampled from the picture itself when one
  * is configured at all (see {@link resolveUntargetedBarFaceFill}'s doc
- * comment). When that picture's first pixel has already been decoded
- * (`chart-bar3d-face-picture-sample.ts`), this tints/shades the SAMPLED
- * colour; otherwise it kicks off the async decode (fire-and-forget - the
- * caller re-renders once it resolves) and falls back to tinting/shading
- * `resolvedColor` (the resolved point/series colour) for this render, same
- * as before sampling existed. A point with no picture fill at all always
- * uses `resolvedColor`. Pushes the pattern def onto `defs` when one is built.
+ * comment). This tints/shades the SAMPLED colour whenever one resolves -
+ * synchronously, on this very render, for a format the DOM-free decoder
+ * covers (PNG/GIF/BMP/baseline JPEG); otherwise the async `Image`/`<canvas>`
+ * decode is kicked off (fire-and-forget - the caller re-renders once it
+ * resolves) and this falls back to tinting/shading `resolvedColor` (the
+ * resolved point/series colour) for this render, same as before sampling
+ * existed. A point with no picture fill at all always uses `resolvedColor`.
+ * Pushes the pattern def onto `defs` when one is built.
  */
 export function resolveExtrusionFaceFill(
 	facePoints: string,
@@ -124,10 +124,9 @@ export function resolveExtrusionFaceFill(
 	if (!activePicture?.imageUrl) {
 		return fallback;
 	}
-	const sampled = getCachedBarFacePicturePixelColor(activePicture.imageUrl);
+	const sampled = resolveBarFacePicturePixelColor(activePicture.imageUrl);
 	if (sampled !== undefined) {
 		return resolveUntargetedBarFaceFill(face, sampled);
 	}
-	ensureBarFacePicturePixelSampled(activePicture.imageUrl);
 	return fallback;
 }
