@@ -6,6 +6,7 @@ import { generateChartFixture } from './fixtures/generate-chart-fixture';
 import { generateChartUserShapeGroupFixture } from './fixtures/generate-chart-user-shape-group-fixture';
 import { generateFixture as generateCinematicFragmentsFixture } from './fixtures/generate-cinematic-fragments-fixture';
 import { generateFixture as generateEffectSoundGalleryFixture } from './fixtures/generate-effect-sound-gallery-fixture';
+import { generateFixture as generateFidelityShowcaseFixture } from './fixtures/generate-fidelity-showcase-fixture';
 import { generateFieldSubstitutionFixture } from './fixtures/generate-field-substitution-fixture';
 import { generateFixture } from './fixtures/generate-format-painter-fixture';
 import { generateLineFillFidelityFixture } from './fixtures/generate-line-fill-fidelity-fixture';
@@ -67,4 +68,5 @@ export default async function globalSetup() {
 	await generateThemeColorPickerFixture();
 	await generateRectPathGradientFixture();
 	await generateRunProgramFixture();
+	await generateFidelityShowcaseFixture();
 }

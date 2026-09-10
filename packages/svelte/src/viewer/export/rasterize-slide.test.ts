@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { rasterizeElementClampedToCanvas, rasterizeElementTiles } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../i18n/translator';
@@ -6,6 +7,128 @@ import { createRasterizeSlide } from './rasterize-slide';
 
 const { renderToCanvas } = vi.hoisted(() => ({ renderToCanvas: vi.fn() }));
 vi.mock(import('./render-to-canvas'), () => ({ renderToCanvas }));
+
+// `rasterizeSlide`/`rasterizeSlideToRaster`/`rasterizeSlideToTiles` now
+// delegate to the shared `rasterizeElement`/`rasterizeElementClampedToCanvas`/
+// `rasterizeElementTiles`, whose real `foreignObject` strategy loads an
+// `Image` from a `blob:` URL - unimplemented in jsdom, so `img.onload`/
+// `onerror` never fire and the real functions hang forever in this
+// environment. `rasterizeElementClampedToCanvas`/`rasterizeElementTiles`
+// call `rasterizeElement` internally *within the already-built shared
+// package*, invisible to mocking only `rasterizeElement` at this module
+// boundary, so all three are mocked directly here. These tests are about the
+// off-screen stage mount/wait logic, not raster-strategy selection (that is
+// covered by `rasterize-element.test.ts` in `pptx-viewer-shared`), so each
+// short-circuits straight to the same `html2canvasFallback` callback
+// `rasterize-slide.ts` passes in, exercising the exact same `renderToCanvas`
+// call the pre-existing assertions check.
+type FallbackSourceRect = { x: number; y: number; width: number; height: number };
+type FallbackOutputSize = { width: number; height: number };
+type Html2CanvasFallback = (
+	sourceRect: FallbackSourceRect,
+	outputSize: FallbackOutputSize,
+) => Promise<HTMLCanvasElement>;
+
+async function callFallback(
+	naturalWidth: number,
+	naturalHeight: number,
+	scale: number | undefined,
+	html2canvasFallback: Html2CanvasFallback,
+): Promise<HTMLCanvasElement> {
+	const s = scale ?? 1;
+	return html2canvasFallback(
+		{ x: 0, y: 0, width: naturalWidth, height: naturalHeight },
+		{ width: naturalWidth * s, height: naturalHeight * s },
+	);
+}
+
+vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		rasterizeElement: vi.fn(
+			async (
+				_element: HTMLElement,
+				naturalWidth: number,
+				naturalHeight: number,
+				_doc: Document,
+				options: { scale?: number; html2canvasFallback: Html2CanvasFallback },
+			) => {
+				const canvas = await callFallback(
+					naturalWidth,
+					naturalHeight,
+					options.scale,
+					options.html2canvasFallback,
+				);
+				return {
+					kind: 'canvas' as const,
+					canvas,
+					strategy: 'html2canvas' as const,
+					width: canvas.width,
+					height: canvas.height,
+				};
+			},
+		),
+		rasterizeElementClampedToCanvas: vi.fn(
+			async (
+				_element: HTMLElement,
+				naturalWidth: number,
+				naturalHeight: number,
+				_doc: Document,
+				options: { scale?: number; html2canvasFallback: Html2CanvasFallback },
+			) => {
+				const canvas = await callFallback(
+					naturalWidth,
+					naturalHeight,
+					options.scale,
+					options.html2canvasFallback,
+				);
+				return {
+					kind: 'canvas' as const,
+					canvas,
+					strategy: 'html2canvas' as const,
+					width: canvas.width,
+					height: canvas.height,
+					clamped: false,
+					effectiveScale: options.scale ?? 1,
+				};
+			},
+		),
+		rasterizeElementTiles: vi.fn(
+			async (
+				_element: HTMLElement,
+				naturalWidth: number,
+				naturalHeight: number,
+				_doc: Document,
+				options: { scale?: number; html2canvasFallback: Html2CanvasFallback },
+			) => {
+				const canvas = await callFallback(
+					naturalWidth,
+					naturalHeight,
+					options.scale,
+					options.html2canvasFallback,
+				);
+				return {
+					fullWidth: canvas.width,
+					fullHeight: canvas.height,
+					tiled: false,
+					tiles: [
+						{
+							col: 0,
+							row: 0,
+							x: 0,
+							y: 0,
+							width: canvas.width,
+							height: canvas.height,
+							canvas,
+							strategy: 'html2canvas' as const,
+						},
+					],
+				};
+			},
+		),
+	};
+});
 
 function fakeCanvas(): HTMLCanvasElement {
 	return document.createElement('canvas');
@@ -79,6 +202,11 @@ describe('createRasterizeSlide', () => {
 		const canvas = await ctl.rasterizeSlide(0);
 		expect(canvas).toBeInstanceOf(HTMLCanvasElement);
 		expect(renderToCanvas).toHaveBeenCalledOnce();
+		// `rasterizeSlide` (used by GIF/video/notes-PDF/print) must always go
+		// through the clamped shared `foreignObject` pipeline - never fall back
+		// to a raw, unclamped `renderToCanvas` capture directly.
+		expect(rasterizeElementClampedToCanvas).toHaveBeenCalledOnce();
+		expect(rasterizeElementTiles).not.toHaveBeenCalled();
 
 		const [stageEl, options] = renderToCanvas.mock.calls[0] as [
 			HTMLElement,
@@ -146,6 +274,37 @@ describe('createRasterizeSlide', () => {
 
 		const host = container.querySelector('.pptx-svelte-export-stage');
 		expect(host?.children).toHaveLength(1);
+		ctl.destroy();
+	});
+
+	it('rasterizeSlideToTiles returns the tile-shaped result (single tile for a normal-size slide)', async () => {
+		renderToCanvas.mockResolvedValue(fakeCanvas());
+		const container = makeContainer();
+
+		const ctl = createRasterizeSlide({
+			doc: document,
+			container,
+			getSlides: () => [slide('s1')],
+			getCanvasSize: () => ({ width: 960, height: 540 }),
+			getMediaDataUrls: () => new Map(),
+			getTranslator: () => createTranslator(() => 'en'),
+			smartArt3D: false,
+			surfaceChart3D: false,
+			barChart3D: false,
+			lineChart3D: false,
+			areaChart3D: false,
+			pieChart3D: false,
+			getImageResolutionScale: () => 1,
+			waitForFrame: () => Promise.resolve(),
+		});
+
+		const result = await ctl.rasterizeSlideToTiles(0);
+		expect(result.tiled).toBeFalsy();
+		expect(result.tiles).toHaveLength(1);
+		expect(result.tiles[0].canvas).toBeInstanceOf(HTMLCanvasElement);
+		expect(rasterizeElementTiles).toHaveBeenCalledOnce();
+		expect(rasterizeElementClampedToCanvas).not.toHaveBeenCalled();
+
 		ctl.destroy();
 	});
 

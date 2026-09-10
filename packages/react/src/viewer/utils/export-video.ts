@@ -11,7 +11,7 @@ import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import type { ExportProgressCallback } from './export-helpers';
-import { renderElementToCanvas, waitForRender } from './export-helpers';
+import { renderElementToClampedCanvas, waitForRender } from './export-helpers';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -46,9 +46,12 @@ export interface VideoExportOptions {
 /**
  * Export all slides as a WebM video blob.
  *
- * Strategy: Render each slide to a canvas via html2canvas, then draw
- * each frame onto a recording canvas using captureStream() + MediaRecorder.
- * Each slide is held for its configured duration.
+ * Strategy: render each slide to a canvas via the shared `foreignObject`
+ * fidelity pipeline (clamped to the browser canvas cap;
+ * `renderElementToClampedCanvas`, `html2canvas-pro` only as the documented
+ * fallback), then draw each frame onto a recording canvas using
+ * captureStream() + MediaRecorder. Each slide is held for its configured
+ * duration.
  */
 export async function exportAllSlidesAsVideo(
 	slideStageRef: React.RefObject<HTMLElement | null>,
@@ -84,7 +87,7 @@ export async function exportAllSlidesAsVideo(
 			continue;
 		}
 
-		const canvas = await renderElementToCanvas(stageEl, scale);
+		const { canvas } = await renderElementToClampedCanvas(stageEl, scale);
 		slideCanvases.push(canvas);
 	}
 

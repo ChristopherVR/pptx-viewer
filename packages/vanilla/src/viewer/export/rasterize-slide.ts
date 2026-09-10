@@ -1,4 +1,14 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import type {
+	RasterizeElementClampedResult,
+	RasterizeElementResult,
+	RasterizeElementTilesResult,
+} from 'pptx-viewer-shared';
+import {
+	rasterizeElement,
+	rasterizeElementClampedToCanvas,
+	rasterizeElementTiles,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import type { ElementRendererRegistry } from '../render';
@@ -68,22 +78,44 @@ export interface RasterizeSlideDeps {
 
 export interface RasterizeSlideController {
 	/**
-	 * Render slide `index` off-screen at scale 1 and capture it with
-	 * html2canvas-pro. `scaleMultiplier` (default 1) is an extra factor on top
+	 * Render slide `index` off-screen at scale 1 and capture it to a single
+	 * canvas via the shared `rasterizeElementClampedToCanvas` (foreignObject ->
+	 * vector-SVG -> html2canvas-pro fallback chain), reducing scale (never
+	 * tiling) if the requested resolution would exceed the browser's canvas
+	 * cap. `scaleMultiplier` (default 1) is an extra factor on top
 	 * of the baseline 2x * Options > Advanced > Image Size/Quality scale; the
 	 * Print dialog's notes/handouts raster path passes a higher value when
 	 * Options > Advanced > "High quality" is on, without changing plain
 	 * PNG/PDF export.
 	 */
 	rasterizeSlide(index: number, scaleMultiplier?: number): Promise<HTMLCanvasElement>;
+	/**
+	 * Same capture as {@link rasterizeSlide}, but returns the full
+	 * `RasterizeElementResult` instead of unwrapping/falling back to a single
+	 * canvas. Used by the PNG-export and "copy slide as image" paths so a
+	 * request whose full resolution exceeds the browser's canvas cap is
+	 * tiled and stitched (`kind: 'png-bytes'`) rather than clamped to the
+	 * best single-canvas html2canvas capture.
+	 */
+	rasterizeSlideToRaster(index: number, scaleMultiplier?: number): Promise<RasterizeElementResult>;
+	/**
+	 * Same capture, but returns the raw per-tile canvases (no PNG stitching).
+	 * Used by PDF export so a page whose resolution exceeds the browser
+	 * canvas cap is composed of several small tile images instead of one
+	 * oversized canvas or a downscaled single image.
+	 */
+	rasterizeSlideToTiles(
+		index: number,
+		scaleMultiplier?: number,
+	): Promise<RasterizeElementTilesResult>;
 	/** Remove the off-screen capture stage from the DOM. */
 	destroy(): void;
 }
 
 /**
  * Two animation frames: lets the browser lay out and paint the freshly
- * mounted stage (images, fonts, backgrounds) before html2canvas-pro captures
- * it, matching Vue's `nextTick()` + `requestAnimationFrame` in
+ * mounted stage (images, fonts, backgrounds) before the shared rasteriser
+ * captures it, matching Vue's `nextTick()` + `requestAnimationFrame` in
  * `useExportWiring.rasterizeSlide`.
  */
 function nextFrame(): Promise<void> {
@@ -95,8 +127,11 @@ function nextFrame(): Promise<void> {
 /**
  * Build the off-screen capture stage used by PNG/PDF export: a hidden host
  * (fixed off-canvas, `aria-hidden`) that renders one slide at a time at scale
- * 1 via the shared `renderSlideStage`, then rasterises it with
- * `renderToCanvas`. Vanilla port of Vue's `useExportWiring.rasterizeSlide`
+ * 1 via the shared `renderSlideStage`, then rasterises it through the shared
+ * `rasterizeElement` / `rasterizeElementTiles` /
+ * `rasterizeElementClampedToCanvas` entry points; `renderToCanvas`
+ * (html2canvas-pro) is only ever the last-resort `html2canvasFallback` driver
+ * handed to them. Vanilla port of Vue's `useExportWiring.rasterizeSlide`
  * (`packages/vue/src/viewer/composables/useExportWiring.ts`): Vue re-renders
  * an off-screen `<SlideStage>` behind a template ref; the vanilla binding
  * owns the DOM directly, so this builds and re-populates one host element for
@@ -114,7 +149,25 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 	deps.container.appendChild(host);
 	const waitForFrame = deps.waitForFrame ?? nextFrame;
 
-	async function rasterizeSlide(index: number, scaleMultiplier = 1): Promise<HTMLCanvasElement> {
+	/**
+	 * Mount slide `index` on the off-screen stage and return everything the
+	 * three rasterise variants below need: the mounted stage element, its
+	 * natural (unscaled) size, the resolved export scale, and an
+	 * `html2canvasFallback` closed over that stage.
+	 */
+	async function mountStage(
+		index: number,
+		scaleMultiplier: number,
+	): Promise<{
+		stage: HTMLElement;
+		naturalWidth: number;
+		naturalHeight: number;
+		scale: number;
+		html2canvasFallback: (
+			sourceRect: { x: number; y: number; width: number; height: number },
+			outputSize: { width: number; height: number },
+		) => Promise<HTMLCanvasElement>;
+	}> {
 		const state = deps.store.get();
 		const slide: PptxSlide | undefined = state.slides[index];
 		if (!slide) {
@@ -144,17 +197,100 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 		});
 		host.appendChild(stage);
 		await waitForFrame();
-		return renderToCanvas(stage, {
+		const scale = 2 * deps.getImageResolutionScale() * scaleMultiplier;
+
+		return {
+			stage,
+			naturalWidth: state.canvasSize.width,
+			naturalHeight: state.canvasSize.height,
+			scale,
+			html2canvasFallback: (sourceRect, outputSize) =>
+				renderToCanvas(stage, {
+					backgroundColor: '#ffffff',
+					scale: outputSize.width / (sourceRect.width || 1),
+					x: sourceRect.x,
+					y: sourceRect.y,
+					width: sourceRect.width,
+					height: sourceRect.height,
+					logging: false,
+				}),
+		};
+	}
+
+	/**
+	 * Rasterise slide `index` via the shared `foreignObject` -> vector-SVG ->
+	 * html2canvas fallback chain, returning the full `RasterizeElementResult`
+	 * (tiled `png-bytes` included). Used by PNG export and "copy slide as
+	 * image" so a request whose full resolution exceeds the browser's canvas
+	 * cap is tiled and stitched rather than clamped/downscaled.
+	 */
+	async function rasterizeSlideToRaster(
+		index: number,
+		scaleMultiplier = 1,
+	): Promise<RasterizeElementResult> {
+		const { stage, naturalWidth, naturalHeight, scale, html2canvasFallback } = await mountStage(
+			index,
+			scaleMultiplier,
+		);
+		return rasterizeElement(stage, naturalWidth, naturalHeight, deps.doc, {
+			scale,
 			backgroundColor: '#ffffff',
-			scale: 2 * deps.getImageResolutionScale() * scaleMultiplier,
-			width: state.canvasSize.width,
-			height: state.canvasSize.height,
-			logging: false,
+			html2canvasFallback,
 		});
+	}
+
+	/**
+	 * Rasterise slide `index` into its raw per-tile canvases (no PNG
+	 * stitching). Used by PDF export so a page whose resolution exceeds the
+	 * browser canvas cap is composed of several small tile images instead of
+	 * one oversized canvas or a downscaled single image.
+	 */
+	async function rasterizeSlideToTiles(
+		index: number,
+		scaleMultiplier = 1,
+	): Promise<RasterizeElementTilesResult> {
+		const { stage, naturalWidth, naturalHeight, scale, html2canvasFallback } = await mountStage(
+			index,
+			scaleMultiplier,
+		);
+		return rasterizeElementTiles(stage, naturalWidth, naturalHeight, deps.doc, {
+			scale,
+			backgroundColor: '#ffffff',
+			html2canvasFallback,
+		});
+	}
+
+	/**
+	 * Rasterise slide `index` to a single canvas, for every caller that needs
+	 * exactly one (GIF/video/print, all of which composite or re-encode a
+	 * single image per frame/page; this binding has no JPEG or notes-PDF
+	 * export). A request whose full
+	 * resolution would need tiling (beyond the browser's canvas cap) is
+	 * downscaled (preserving aspect ratio, fidelity kept) rather than tiled,
+	 * since those callers have no way to consume tiled or pre-encoded PNG
+	 * bytes. `exportSlidePng`/`copySlideAsImage` use
+	 * {@link rasterizeSlideToRaster} directly instead, and PDF export uses
+	 * {@link rasterizeSlideToTiles}, so neither loses resolution this way.
+	 */
+	async function rasterizeSlide(index: number, scaleMultiplier = 1): Promise<HTMLCanvasElement> {
+		const { stage, naturalWidth, naturalHeight, scale, html2canvasFallback } = await mountStage(
+			index,
+			scaleMultiplier,
+		);
+		const result: RasterizeElementClampedResult = await rasterizeElementClampedToCanvas(
+			stage,
+			naturalWidth,
+			naturalHeight,
+			deps.doc,
+			{ scale, backgroundColor: '#ffffff', html2canvasFallback },
+		);
+		return result.canvas;
 	}
 
 	return {
 		rasterizeSlide,
+		rasterizeSlideToRaster,
+		rasterizeSlideToTiles,
 		destroy() {
 			host.remove();
 		},

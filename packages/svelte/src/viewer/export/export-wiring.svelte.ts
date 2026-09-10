@@ -94,6 +94,8 @@ export function createExportWiring(deps: ExportWiringDeps): ExportWiring {
 		getCanvasSize: deps.getCanvasSize,
 		getSlides: deps.getSlides,
 		rasterizeSlide: (index) => getRasterizer().rasterizeSlide(index),
+		rasterizeSlideToRaster: (index) => getRasterizer().rasterizeSlideToRaster(index),
+		rasterizeSlideToTiles: (index) => getRasterizer().rasterizeSlideToTiles(index),
 		getDeckData: () => deps.getDeckData?.(),
 		getFileName: () => deps.getFileName?.(),
 		getIncludeHiddenSlides: () => deps.getIncludeHiddenSlides?.() ?? false,

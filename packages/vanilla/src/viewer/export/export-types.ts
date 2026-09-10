@@ -1,3 +1,5 @@
+import type { RasterizeElementResult, RasterizeElementTilesResult } from 'pptx-viewer-shared';
+
 import type { Translator } from '../i18n';
 import type { Store, ViewerState } from '../state';
 
@@ -19,6 +21,29 @@ export type RasterizeSlide = (
 	scaleMultiplier?: number,
 ) => Promise<HTMLCanvasElement>;
 
+/**
+ * Same capture as {@link RasterizeSlide}, but returns the full
+ * `RasterizeElementResult` (tiled `png-bytes` included) instead of a plain
+ * canvas. Used by the PNG-export and "copy slide as image" paths so a
+ * request whose full resolution exceeds the browser's canvas cap is tiled
+ * and stitched instead of clamped.
+ */
+export type RasterizeSlideToRaster = (
+	index: number,
+	scaleMultiplier?: number,
+) => Promise<RasterizeElementResult>;
+
+/**
+ * Same capture, but returns the raw per-tile canvases (no PNG stitching).
+ * Used by PDF export so a page whose resolution exceeds the browser canvas
+ * cap is composed of several small tile images instead of one oversized
+ * canvas or a downscaled single image.
+ */
+export type RasterizeSlideToTiles = (
+	index: number,
+	scaleMultiplier?: number,
+) => Promise<RasterizeElementTilesResult>;
+
 /** Per-slide progress callback: `(currentSlideIndex, totalSlides)`. */
 export type ExportProgress = (current: number, total: number) => void;
 
@@ -26,6 +51,20 @@ export type ExportProgress = (current: number, total: number) => void;
 export interface ExportCaptureDeps {
 	store: Store<ViewerState>;
 	rasterizeSlide: RasterizeSlide;
+	/**
+	 * PNG-export / "copy slide as image" only; see {@link RasterizeSlideToRaster}.
+	 * Optional: existing test fixtures that only exercise PDF/GIF/video/print
+	 * (none of which touch this path) do not need to supply it.
+	 * `exportSlidePng`/`copySlideAsImage` fall back to wrapping
+	 * `rasterizeSlide`'s plain canvas when this is omitted.
+	 */
+	rasterizeSlideToRaster?: RasterizeSlideToRaster;
+	/**
+	 * PDF export only; see {@link RasterizeSlideToTiles}. Optional for the
+	 * same reason `rasterizeSlideToRaster` is: `exportPdf` falls back to
+	 * `rasterizeSlide`'s single canvas per page when this is omitted.
+	 */
+	rasterizeSlideToTiles?: RasterizeSlideToTiles;
 	/** Resolved base file name (no extension) for downloads. */
 	baseName: string;
 	/**

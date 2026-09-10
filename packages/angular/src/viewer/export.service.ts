@@ -1,42 +1,34 @@
 /**
- * ExportService: PNG and PDF export for the Angular viewer.
+ * ExportService: PNG, PDF, GIF and video export for the Angular viewer.
  *
- * Rasterisation is delegated to `renderToCanvas` (an html2canvas-pro wrapper
- * from `../lib/canvas-export`).  PDF assembly uses jsPDF.  Pure logic
- * (orientation, page-size maths, file-name helpers) lives in
- * `./export-helpers` and is tested independently.
+ * Rasterisation goes through the shared `foreignObject` fidelity pipeline
+ * (`pptx-viewer-shared`'s `rasterizeElement`/`rasterizeElementTiles`/
+ * `rasterizeElementClampedToCanvas`, see `export-raster-tiles.ts`), which
+ * preserves `backdrop-filter`, CSS custom properties and 3D transforms that
+ * `renderToCanvas` (an html2canvas-pro wrapper from `../lib/canvas-export`)
+ * cannot; html2canvas-pro is kept only as the documented fallback driver.
+ * PDF assembly uses jsPDF. Pure logic (orientation, page-size maths,
+ * file-name helpers) lives in `./export-helpers` and is tested independently.
  *
  * Provide at the component level so its lifetime tracks the host viewer:
  * `@Component({ providers: [ExportService] })`.
  */
 
 import { Injectable } from '@angular/core';
-import { jsPDF } from 'jspdf';
 import type { PptxData, PptxSaveFormat, PptxSlide, SvgExportOptions } from 'pptx-viewer-core';
 
-import { canvasToJpegData, downloadBlob, sanitizeDownloadFilename } from '../internal/shared';
-import { renderToCanvas } from '../lib/canvas-export';
-import { pdfPageSize } from './export-helpers';
+import { downloadBlob } from '../internal/shared';
+import type { RasterizeElementTilesResult } from '../internal/shared';
+import {
+	buildTiledPdf,
+	renderElementClamped,
+	renderElementPngBlob,
+	renderElementTilesRaster,
+} from './export-raster-tiles';
 import { exportAllSlidesToSvg, exportSlideToSvg, exportSlideToSvgBlob } from './export-svg';
 import { encodeGif, planGifFrames } from './gif-export-helpers';
 import type { GifFrame } from './gif-export-helpers';
 import { recordWebm } from './video-export-helpers';
-
-/* ------------------------------------------------------------------ */
-/*  Internal helpers (DOM only, not exported)                          */
-/* ------------------------------------------------------------------ */
-
-/**
- * Convert an HTMLCanvasElement to a JPEG `Uint8Array` immediately, then let
- * the canvas be GC'd.  This keeps peak memory manageable for multi-slide PDFs.
- * Delegates to the shared `canvasToJpegData` and takes its `bytes`.
- *
- * @param canvas  - The rendered slide canvas.
- * @param quality - JPEG quality 0-1 (default 0.92).
- */
-function canvasToJpegBytes(canvas: HTMLCanvasElement, quality: number = 0.92): Uint8Array {
-	return canvasToJpegData(canvas, quality).bytes;
-}
 
 /* ------------------------------------------------------------------ */
 /*  ExportService                                                       */
@@ -102,18 +94,7 @@ export class ExportService {
 	 * @param scale    - Device-pixel ratio multiplier (default 2 for sharp output).
 	 */
 	async exportElementToPng(el: HTMLElement, fileName: string, scale: number = 2): Promise<void> {
-		const canvas = await renderToCanvas(el, { scale });
-
-		const blob = await new Promise<Blob>((resolve, reject) => {
-			canvas.toBlob((b) => {
-				if (b) {
-					resolve(b);
-				} else {
-					reject(new Error('[ExportService] canvas.toBlob returned null'));
-				}
-			}, 'image/png');
-		});
-
+		const blob = await this.rasterizeElementToPngBlob(el, scale);
 		downloadBlob(blob, fileName);
 	}
 
@@ -123,69 +104,68 @@ export class ExportService {
 			throw new Error('[ExportService] Image clipboard is unavailable');
 		}
 
-		const canvas = await renderToCanvas(el, { scale });
-		const blob = await new Promise<Blob>((resolve, reject) => {
-			canvas.toBlob((value) => {
-				if (value) {
-					resolve(value);
-				} else {
-					reject(new Error('[ExportService] canvas.toBlob returned null'));
-				}
-			}, 'image/png');
-		});
-
+		const blob = await this.rasterizeElementToPngBlob(el, scale);
 		await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 	}
 
 	/**
-	 * Rasterize a single element to a canvas (passthrough to html2canvas-pro).
-	 * Capture each slide's canvas *while that slide is the live DOM*: the
-	 * viewer reuses one stage node, so a deferred capture would yield the same
-	 * (last) slide for every page.
+	 * Rasterize `el` to a PNG `Blob` via the shared `foreignObject` -> vector-SVG
+	 * -> html2canvas fallback chain (preserves backdrop-filter, CSS custom
+	 * properties and 3D transforms html2canvas cannot), tiling transparently
+	 * for a resolution beyond the browser's canvas cap. Implementation in
+	 * `export-raster-tiles.ts`, next to the other shared-driver entry points.
 	 */
-	async renderElement(el: HTMLElement, scale: number = 2): Promise<HTMLCanvasElement> {
-		return renderToCanvas(el, { scale });
+	private rasterizeElementToPngBlob(el: HTMLElement, scale: number): Promise<Blob> {
+		return renderElementPngBlob(el, scale);
 	}
 
 	/**
-	 * Assemble a multi-page PDF from pre-rendered slide canvases (one page per
-	 * canvas, sized to the slide aspect ratio in pt) and trigger a download.
+	 * Rasterize a single element to a canvas via the shared `foreignObject`
+	 * fidelity pipeline, clamped (scale reduced, never tiled) so the result is
+	 * always one canvas - for GIF/video/print, which can only consume one
+	 * image per frame/page. `html2canvas-pro` is kept only as the documented
+	 * fallback driver. Capture each slide's canvas *while that slide is the
+	 * live DOM*: the viewer reuses one stage node, so a deferred capture would
+	 * yield the same (last) slide for every page. Implementation in
+	 * `export-raster-tiles.ts` (kept this file under the size budget).
+	 */
+	async renderElement(el: HTMLElement, scale: number = 2): Promise<HTMLCanvasElement> {
+		return renderElementClamped(el, scale);
+	}
+
+	/**
+	 * Rasterize a single element to its raw per-tile canvases via the shared
+	 * `foreignObject` fidelity pipeline, tiling transparently when the
+	 * requested resolution exceeds the browser's canvas cap - for PDF pages,
+	 * which have no canvas-size limit of their own and so can place several
+	 * small tile images instead of needing one oversized canvas.
+	 */
+	async renderElementToTiles(
+		el: HTMLElement,
+		scale: number = 2,
+	): Promise<RasterizeElementTilesResult> {
+		return renderElementTilesRaster(el, scale);
+	}
+
+	/**
+	 * Assemble a multi-page PDF from pre-rendered per-slide tile sets (one page
+	 * per entry) and trigger a download. See `buildTiledPdf` in
+	 * `export-raster-tiles.ts` for the full behaviour (placement, degrade to
+	 * one-image-per-page for a single-tile slide, cap-escaping rationale).
 	 *
-	 * @param canvases     - One canvas per slide, in order, each captured while
-	 *                       its slide was the live stage.
+	 * @param pages        - One entry per slide, in order, each captured while
+	 *                       its slide was the live stage (`renderElementToTiles`).
 	 * @param canvasWidth  - Slide canvas width in pixels (for aspect ratio).
 	 * @param canvasHeight - Slide canvas height in pixels (for aspect ratio).
 	 * @param fileName     - Suggested download file name (unsafe chars stripped).
 	 */
-	exportCanvasesToPdf(
-		canvases: HTMLCanvasElement[],
+	exportTiledPagesToPdf(
+		pages: RasterizeElementTilesResult[],
 		canvasWidth: number,
 		canvasHeight: number,
 		fileName: string,
 	): void {
-		if (canvases.length === 0) {
-			throw new Error('[ExportService] No slide canvases provided for PDF export');
-		}
-
-		const { width: pageW, height: pageH, orientation } = pdfPageSize(canvasWidth, canvasHeight);
-		const doc = new jsPDF({ orientation, unit: 'pt', format: [pageW, pageH] });
-
-		for (let i = 0; i < canvases.length; i++) {
-			const jpegBytes = canvasToJpegBytes(canvases[i]);
-			const imgProps = doc.getImageProperties(jpegBytes);
-			const scale = Math.min(pageW / imgProps.width, pageH / imgProps.height);
-			const dw = imgProps.width * scale;
-			const dh = imgProps.height * scale;
-			const dx = (pageW - dw) / 2;
-			const dy = (pageH - dh) / 2;
-
-			if (i > 0) {
-				doc.addPage([pageW, pageH], orientation);
-			}
-			doc.addImage(jpegBytes, 'JPEG', dx, dy, dw, dh);
-		}
-
-		doc.save(sanitizeDownloadFilename(fileName));
+		buildTiledPdf(pages, canvasWidth, canvasHeight, fileName);
 	}
 
 	/**

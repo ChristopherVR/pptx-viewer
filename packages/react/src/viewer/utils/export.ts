@@ -3,7 +3,8 @@
  *
  * Barrel re-export. Implementation split into:
  *   - export-helpers.ts   (types + shared helpers)
- *   - export-slides.ts    (PNG + PDF export)
+ *   - export-slides.ts    (PNG export)
+ *   - export-pdf.ts       (PDF + notes-PDF export)
  *   - export-svg.ts       (SVG vector export)
  *   - export-video.ts     (WebM video export)
  *   - export-gif.ts       (animated GIF export)
@@ -20,11 +21,10 @@ export {
 	exportSlideToPngBlob,
 	exportSlideAsPng,
 	copySlideToClipboard,
-	exportAllSlidesAsPdf,
-	exportAllSlidesAsNotesPdf,
 	captureAllSlidesAsPngDataUrls,
-	exportSlideAsPdf,
 } from './export-slides';
+
+export { exportAllSlidesAsPdf, exportAllSlidesAsNotesPdf, exportSlideAsPdf } from './export-pdf';
 
 export type { NotesPdfExportOptions } from './export-helpers';
 

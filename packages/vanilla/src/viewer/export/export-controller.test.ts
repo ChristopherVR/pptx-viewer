@@ -115,6 +115,73 @@ describe('createExportController', () => {
 		expect(write).toHaveBeenCalledOnce();
 	});
 
+	it('exports via rasterizeSlideToRaster (tiled png-bytes) when the host supplies it, bypassing rasterizeSlide entirely', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			bytes = new Uint8Array([1, 2, 3, 4]),
+			rasterizeSlideToRaster = vi.fn().mockResolvedValue({
+				kind: 'png-bytes',
+				bytes,
+				width: 20000,
+				height: 11250,
+				strategies: ['foreignObject', 'foreignObject'],
+			}),
+			click = vi.fn(),
+			orig = document.createElement.bind(document),
+			spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+				const el = orig(tag) as HTMLElement;
+				if (tag === 'a') {
+					(el as HTMLAnchorElement).click = click;
+				}
+				return el;
+			}),
+			{ exportSlidePng } = createExportController({
+				store: makeStore(3),
+				rasterizeSlide,
+				rasterizeSlideToRaster,
+			});
+
+		await exportSlidePng(1);
+
+		expect(rasterizeSlideToRaster).toHaveBeenCalledWith(1);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		expect(click).toHaveBeenCalledOnce();
+		spy.mockRestore();
+	});
+
+	it('copies the tiled png-bytes result to the clipboard without touching rasterizeSlide', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			rasterizeSlideToRaster = vi.fn().mockResolvedValue({
+				kind: 'png-bytes',
+				bytes: new Uint8Array([9, 9, 9]),
+				width: 20000,
+				height: 11250,
+				strategies: ['foreignObject'],
+			}),
+			write = vi.fn(),
+			clipboardItem = vi.fn(function (this: { data: Record<string, Blob> }, data) {
+				this.data = data;
+			});
+		Object.defineProperty(globalThis, 'ClipboardItem', {
+			configurable: true,
+			value: clipboardItem,
+		});
+		Object.defineProperty(navigator, 'clipboard', {
+			configurable: true,
+			value: { write },
+		});
+
+		const { copySlideAsImage } = createExportController({
+			store: makeStore(3, 2),
+			rasterizeSlide,
+			rasterizeSlideToRaster,
+		});
+		await copySlideAsImage();
+
+		expect(rasterizeSlideToRaster).toHaveBeenCalledWith(2);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		expect(write).toHaveBeenCalledOnce();
+	});
+
 	it('ignores an out-of-range slide index', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
 			{ exportSlidePng } = createExportController({
@@ -134,6 +201,55 @@ describe('createExportController', () => {
 		expect(addImage).toHaveBeenCalledTimes(3);
 		expect(addPage).toHaveBeenCalledTimes(2); // pages 2 and 3
 		expect(save).toHaveBeenCalledOnce();
+	});
+
+	it('uses rasterizeSlideToTiles when supplied: one addImage per page for a single-tile slide', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			rasterizeSlideToTiles = vi.fn().mockResolvedValue({
+				fullWidth: 960,
+				fullHeight: 540,
+				tiled: false,
+				tiles: [{ col: 0, row: 0, x: 0, y: 0, width: 960, height: 540, canvas: fakeCanvas() }],
+			}),
+			{ exportPdf } = createExportController({
+				store: makeStore(2),
+				rasterizeSlide,
+				rasterizeSlideToTiles,
+			});
+		await exportPdf();
+
+		expect(rasterizeSlideToTiles).toHaveBeenCalledTimes(2);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		expect(addImage).toHaveBeenCalledTimes(2);
+		// A single covering tile places at the full native page rect (0,0,960,540).
+		expect(addImage).toHaveBeenCalledWith(expect.any(String), 'PNG', 0, 0, 960, 540);
+	});
+
+	it('uses rasterizeSlideToTiles: multiple addImage calls per page for a tiled slide, at their placements', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			rasterizeSlideToTiles = vi.fn().mockResolvedValue({
+				fullWidth: 1920,
+				fullHeight: 540,
+				tiled: true,
+				tiles: [
+					{ col: 0, row: 0, x: 0, y: 0, width: 960, height: 540, canvas: fakeCanvas() },
+					{ col: 1, row: 0, x: 960, y: 0, width: 960, height: 540, canvas: fakeCanvas() },
+				],
+			}),
+			{ exportPdf } = createExportController({
+				store: makeStore(1),
+				rasterizeSlide,
+				rasterizeSlideToTiles,
+			});
+		await exportPdf();
+
+		// Native page is 960x540 (makeStore's canvasSize); the 1920x540 full
+		// raster is fitted+centered into it (fitScale = min(960/1920, 540/540)
+		// = 0.5, so a 960x270 fitted rect centered top/bottom -> y offset 135),
+		// so the two tiles land side by side at native x=0 and x=480.
+		expect(addImage).toHaveBeenCalledTimes(2);
+		expect(addImage).toHaveBeenNthCalledWith(1, expect.any(String), 'PNG', 0, 135, 480, 270);
+		expect(addImage).toHaveBeenNthCalledWith(2, expect.any(String), 'PNG', 480, 135, 480, 270);
 	});
 
 	it('does nothing when there are no slides', async () => {

@@ -4,6 +4,8 @@ export type {
 	ExportPdfOptions,
 	ExportProgress,
 	RasterizeSlide,
+	RasterizeSlideToRaster,
+	RasterizeSlideToTiles,
 } from './export-controller';
 export { createExportController } from './export-controller';
 export type { ExportGifOptions } from './export-gif';

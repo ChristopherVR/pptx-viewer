@@ -9,7 +9,12 @@
  * @module pdf-builder-slides
  */
 
-import { buildSlidesPdfBytes, canvasToJpegData } from 'pptx-viewer-shared';
+import {
+	buildSlidesPdfBytes,
+	buildTiledSlidesPdfBytes,
+	canvasToJpegData,
+} from 'pptx-viewer-shared';
+import type { PdfTiledPageImage } from 'pptx-viewer-shared';
 
 import type { PdfImageData } from './pdf-builder-types';
 
@@ -35,6 +40,22 @@ export { canvasToJpegData };
  */
 export function buildPdfFromImageData(images: PdfImageData[]): string {
 	const bytes = buildSlidesPdfBytes(images);
+	const blob = new Blob([bytes], { type: 'application/pdf' });
+	return URL.createObjectURL(blob);
+}
+
+/**
+ * Build a PDF byte stream where each page may be composed of several tile
+ * images instead of one full-page image (`buildTiledSlidesPdfBytes` in
+ * `pptx-viewer-shared`) - what lets a PDF export escape the browser canvas
+ * cap, since every tile is individually small but a PDF page has no
+ * canvas-size limit of its own.
+ *
+ * @param pages - One entry per page: that page's tile images + placements.
+ * @returns Object URL pointing to the generated PDF blob.
+ */
+export function buildPdfFromTiledImageData(pages: PdfTiledPageImage[][]): string {
+	const bytes = buildTiledSlidesPdfBytes(pages);
 	const blob = new Blob([bytes], { type: 'application/pdf' });
 	return URL.createObjectURL(blob);
 }

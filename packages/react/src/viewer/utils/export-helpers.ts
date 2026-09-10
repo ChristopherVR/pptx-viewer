@@ -7,11 +7,26 @@
  * sanitize the filename (callers pass a known-safe name): the sanitizing variant
  * lives in `dom-helpers`.
  */
-import { downloadBlob, downloadDataUrl } from 'pptx-viewer-shared';
+import {
+	downloadBlob,
+	downloadDataUrl,
+	rasterizeElement,
+	rasterizeElementClampedToCanvas,
+	rasterizeElementTiles,
+	rasterResultToPngBlob,
+	rasterResultToPngDataUrl,
+} from 'pptx-viewer-shared';
+import type {
+	RasterizeElementClampedResult,
+	RasterizeElementOptions,
+	RasterizeElementResult,
+	RasterizeElementTilesResult,
+} from 'pptx-viewer-shared';
 
 import { renderToCanvas } from '../../lib/canvas-export';
 
-export { downloadBlob, downloadDataUrl };
+export { downloadBlob, downloadDataUrl, rasterResultToPngBlob, rasterResultToPngDataUrl };
+export type { RasterizeElementResult, RasterizeElementTilesResult } from 'pptx-viewer-shared';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -60,39 +75,149 @@ export interface SlideCaptureOptions {
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 
+/** Raster mode: `'auto'` runs the full fallback chain; `'html2canvas'` skips straight to the legacy driver. */
+export type RasterMode = NonNullable<RasterizeElementOptions['mode']>;
+
 /**
- * Render an HTML element to a canvas using html2canvas.
- * Returns the resulting HTMLCanvasElement.
+ * The `ignoreElements` predicate every `html2canvas-pro` call site here needs:
+ * skip selection overlays / snap lines so they never leak into an export.
  */
-export async function renderElementToCanvas(
+export function ignoreExportOverlayElements(el: Element): boolean {
+	const htmlEl = el as HTMLElement;
+	if (htmlEl.dataset?.exportIgnore === 'true') {
+		return true;
+	}
+	return Boolean(
+		htmlEl.classList?.contains('pointer-events-none') &&
+		(htmlEl.classList.contains('z-50') || htmlEl.classList.contains('z-[60]')),
+	);
+}
+
+/**
+ * The element's natural (1x) CSS-pixel size the shared driver rasterises at.
+ * `offsetWidth`/`offsetHeight` cover an element whose client rect is empty
+ * (e.g. detached or `display: contents` wrappers in tests).
+ */
+function measureNaturalSize(element: HTMLElement): { width: number; height: number } {
+	const rect = element.getBoundingClientRect();
+	return {
+		width: rect.width || element.offsetWidth,
+		height: rect.height || element.offsetHeight,
+	};
+}
+
+/**
+ * The one place React maps its `html2canvas-pro` driver (`renderToCanvas`)
+ * onto the shared driver's option shape. The shared pipeline asks for one
+ * *window* at a time (`sourceRect` in CSS px, `outputSize` in device px), so
+ * the html2canvas scale is derived per call rather than from the export
+ * scale, which is what makes a tiled fallback render the right sub-rect.
+ */
+function buildRasterOptions(
+	element: HTMLElement,
+	scale: number,
+	backgroundColor: string | undefined,
+	mode: RasterMode,
+): RasterizeElementOptions {
+	return {
+		scale,
+		backgroundColor,
+		mode,
+		html2canvasFallback: (sourceRect, outputSize) =>
+			renderToCanvas(element, {
+				scale: outputSize.width / (sourceRect.width || 1),
+				x: sourceRect.x,
+				y: sourceRect.y,
+				width: sourceRect.width,
+				height: sourceRect.height,
+				useCORS: true,
+				allowTaint: true,
+				backgroundColor: backgroundColor ?? null,
+				logging: false,
+				ignoreElements: ignoreExportOverlayElements,
+			}),
+	};
+}
+
+/**
+ * Render an HTML element to a raster image via the shared
+ * `foreignObject` -> vector-SVG -> html2canvas fallback chain
+ * (`pptx-viewer-shared`'s `rasterizeElement`), tiling transparently when the
+ * requested scale would exceed the browser's canvas-dimension cap.
+ *
+ * Prefer this (or {@link renderElementToClampedCanvas} /
+ * {@link renderElementToTiles}) over calling `html2canvas-pro` directly: it
+ * preserves `backdrop-filter`, CSS custom properties and 3D transforms that
+ * html2canvas cannot, and produces pre-encoded PNG bytes instead of failing
+ * or silently clipping once the requested resolution exceeds what any single
+ * `<canvas>` can hold. `html2canvas-pro` is kept only as the documented
+ * last-resort driver (`mode: 'html2canvas'` skips straight to it).
+ */
+export async function renderElementToRaster(
 	element: HTMLElement,
 	scale: number = 2,
 	backgroundColor?: string,
-): Promise<HTMLCanvasElement> {
-	const canvas = await renderToCanvas(element, {
-		scale,
-		useCORS: true,
-		allowTaint: true,
-		backgroundColor: backgroundColor ?? null,
-		logging: false,
-		// Ignore elements that interfere with export (selection overlays, snap lines, etc.)
-		ignoreElements: (el: Element) => {
-			const htmlEl = el as HTMLElement;
-			// Skip elements with data-export-ignore attribute
-			if (htmlEl.dataset?.exportIgnore === 'true') {
-				return true;
-			}
-			// Skip pointer-events-none overlays that are purely interactive guides
-			if (
-				htmlEl.classList?.contains('pointer-events-none') &&
-				(htmlEl.classList.contains('z-50') || htmlEl.classList.contains('z-[60]'))
-			) {
-				return true;
-			}
-			return false;
-		},
-	});
-	return canvas;
+	mode: RasterMode = 'auto',
+): Promise<RasterizeElementResult> {
+	const { width, height } = measureNaturalSize(element);
+	return rasterizeElement(
+		element,
+		width,
+		height,
+		element.ownerDocument,
+		buildRasterOptions(element, scale, backgroundColor, mode),
+	);
+}
+
+/**
+ * Render an HTML element to its raw per-tile canvases via the shared
+ * `foreignObject` -> vector-SVG -> html2canvas fallback chain
+ * (`pptx-viewer-shared`'s `rasterizeElementTiles`), tiling transparently when
+ * the requested scale would exceed the browser's canvas-dimension cap.
+ *
+ * Prefer this over {@link renderElementToRaster} for a caller that can place
+ * several images itself (PDF pages, which have no canvas-size limit of their
+ * own): each tile stays individually small (within the probed cap), so a PDF
+ * export escapes the cap without ever stitching a PNG.
+ */
+export async function renderElementToTiles(
+	element: HTMLElement,
+	scale: number = 2,
+	backgroundColor?: string,
+	mode: RasterMode = 'auto',
+): Promise<RasterizeElementTilesResult> {
+	const { width, height } = measureNaturalSize(element);
+	return rasterizeElementTiles(
+		element,
+		width,
+		height,
+		element.ownerDocument,
+		buildRasterOptions(element, scale, backgroundColor, mode),
+	);
+}
+
+/**
+ * Render an HTML element to a single canvas via the shared `foreignObject`
+ * fidelity pipeline, reducing the requested scale (preserving aspect ratio)
+ * rather than tiling if the requested resolution would exceed the browser's
+ * canvas cap. For a caller that cannot consume tiled output: JPEG/GIF/video
+ * frames have no way to concatenate tiles, and the notes-PDF layout draws
+ * exactly one image per page alongside wrapped notes text, not a tile grid.
+ */
+export async function renderElementToClampedCanvas(
+	element: HTMLElement,
+	scale: number = 2,
+	backgroundColor?: string,
+	mode: RasterMode = 'auto',
+): Promise<RasterizeElementClampedResult> {
+	const { width, height } = measureNaturalSize(element);
+	return rasterizeElementClampedToCanvas(
+		element,
+		width,
+		height,
+		element.ownerDocument,
+		buildRasterOptions(element, scale, backgroundColor, mode),
+	);
 }
 
 /**

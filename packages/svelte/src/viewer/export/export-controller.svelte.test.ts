@@ -156,6 +156,64 @@ describe('exportController', () => {
 		expect(write).toHaveBeenCalledOnce();
 	});
 
+	it('exports via rasterizeSlideToRaster (tiled png-bytes) when the host supplies it, bypassing rasterizeSlide entirely', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			rasterizeSlideToRaster = vi.fn().mockResolvedValue({
+				kind: 'png-bytes',
+				bytes: new Uint8Array([1, 2, 3, 4]),
+				width: 20000,
+				height: 11250,
+				strategies: ['foreignObject', 'foreignObject'],
+			}),
+			click = vi.fn(),
+			orig = document.createElement.bind(document),
+			spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+				const el = orig(tag) as HTMLElement;
+				if (tag === 'a') {
+					(el as HTMLAnchorElement).click = click;
+				}
+				return el;
+			}),
+			controller = make({ rasterizeSlide, rasterizeSlideToRaster });
+
+		await controller.exportSlidePng(1);
+
+		expect(rasterizeSlideToRaster).toHaveBeenCalledWith(1);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		expect(click).toHaveBeenCalledOnce();
+		spy.mockRestore();
+	});
+
+	it('copies the tiled png-bytes result to the clipboard without touching rasterizeSlide', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			rasterizeSlideToRaster = vi.fn().mockResolvedValue({
+				kind: 'png-bytes',
+				bytes: new Uint8Array([9, 9, 9]),
+				width: 20000,
+				height: 11250,
+				strategies: ['foreignObject'],
+			}),
+			write = vi.fn(),
+			clipboardItem = vi.fn(function (this: { data: Record<string, Blob> }, data) {
+				this.data = data;
+			});
+		Object.defineProperty(globalThis, 'ClipboardItem', {
+			configurable: true,
+			value: clipboardItem,
+		});
+		Object.defineProperty(navigator, 'clipboard', {
+			configurable: true,
+			value: { write },
+		});
+
+		const controller = make({ rasterizeSlide, rasterizeSlideToRaster, getCurrent: () => 2 });
+		await controller.copySlideAsImage();
+
+		expect(rasterizeSlideToRaster).toHaveBeenCalledWith(2);
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		expect(write).toHaveBeenCalledOnce();
+	});
+
 	it('ignores an out-of-range slide index', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
 			controller = make({ rasterizeSlide, getSlideCount: () => 2 });
@@ -197,6 +255,46 @@ describe('exportController', () => {
 		await controller.exportPdf();
 		expect(rasterizeSlide).not.toHaveBeenCalled();
 		expect(save).not.toHaveBeenCalled();
+	});
+
+	it('places one addImage per tile when rasterizeSlideToTiles is supplied, bypassing rasterizeSlide', async () => {
+		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas()),
+			rasterizeSlideToTiles = vi.fn().mockResolvedValue({
+				fullWidth: 1920,
+				fullHeight: 1080,
+				tiled: true,
+				tiles: [
+					{ col: 0, row: 0, x: 0, y: 0, width: 960, height: 1080, canvas: fakeCanvas() },
+					{ col: 1, row: 0, x: 960, y: 0, width: 960, height: 1080, canvas: fakeCanvas() },
+				],
+			}),
+			controller = make({ rasterizeSlide, rasterizeSlideToTiles, getSlideCount: () => 1 });
+
+		await controller.exportPdf();
+
+		expect(rasterizeSlideToTiles).toHaveBeenCalledOnce();
+		expect(rasterizeSlide).not.toHaveBeenCalled();
+		// Two tiles on the one page.
+		expect(addImage).toHaveBeenCalledTimes(2);
+		expect(save).toHaveBeenCalledOnce();
+	});
+
+	it('degrades to one addImage per page for a single-tile rasterizeSlideToTiles result', async () => {
+		const rasterizeSlideToTiles = vi.fn().mockResolvedValue({
+				fullWidth: 960,
+				fullHeight: 540,
+				tiled: false,
+				tiles: [{ col: 0, row: 0, x: 0, y: 0, width: 960, height: 540, canvas: fakeCanvas() }],
+			}),
+			controller = make({
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeCanvas()),
+				rasterizeSlideToTiles,
+			});
+
+		await controller.exportPdf();
+
+		expect(rasterizeSlideToTiles).toHaveBeenCalledTimes(3);
+		expect(addImage).toHaveBeenCalledTimes(3);
 	});
 
 	it('reports per-slide progress during a PDF export', async () => {

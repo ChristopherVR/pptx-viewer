@@ -58,3 +58,41 @@ export * from './print-window';
 // Pure WebM video planning: frame-segment timing, fps maths, MediaRecorder MIME
 // selection. The MediaRecorder/canvas capture driver stays in each binding.
 export * from './video-plan';
+// Pure PNG byte framing (CRC-32, chunk assembly, filter-type-0 scanlines) plus
+// the `CompressionStream('deflate')`-driven streaming encoder that turns
+// row-bands into a full PNG without ever holding the whole image in memory.
+export * from './png-crc32';
+export * from './png-chunk-builder';
+export * from './png-row-filter';
+export * from './streaming-png-encoder';
+// SVG `foreignObject` raster export: draws an already-assembled self-contained
+// SVG string (see `render/foreign-object-svg-document.ts`) onto a canvas via
+// an `Image`, verifying the draw actually produced readable (untainted)
+// pixels so the caller can fall back when it did not.
+export * from './rasterize-foreign-object';
+// Per-window/per-tile strategy selection (foreignObject -> vector-SVG ->
+// html2canvas) and the public single-shot / tiled raster-export entry point.
+// `probeMaxCanvasDimension` re-exports the cached probe from
+// `render/canvas-size-probe.ts` under this directory's own import convention.
+export * from './canvas-size-probe';
+export * from './rasterize-element-strategy';
+// The raw per-tile canvases (no PNG stitching), for a caller that can place
+// several images itself - PDF/notes-PDF pages, which have no canvas-size
+// limit of their own.
+export * from './rasterize-element-tiles';
+export * from './rasterize-element';
+// Pure pixel-index math combining one tile-row's per-tile RGBA buffers into a
+// full-width row-band, consumed by `rasterize-element.ts`'s PNG-stitch path.
+export * from './tile-row-stitch';
+// Pure geometry placing one export tile onto a PDF page (native-size or
+// fixed-aspect/letterboxed), so PDF/notes-PDF can embed several small tile
+// images per page instead of one full-page image.
+export * from './pdf-tile-placement';
+// `rasterizeElement()` with the scale clamped so the result is always a
+// single canvas - for a caller that cannot consume tiled output (JPEG,
+// notes-PDF's fixed single-image-per-page layout).
+export * from './rasterize-element-clamped';
+// Converts a `RasterizeElementResult` to a PNG Blob/data URL, handling the
+// tiled `png-bytes` branch identically for every binding's PNG-export /
+// "copy slide as image" handler.
+export * from './raster-result-to-blob';

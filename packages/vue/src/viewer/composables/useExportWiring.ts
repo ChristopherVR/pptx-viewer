@@ -1,20 +1,26 @@
 import type { PptxData, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize, ViewerOptions } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	RasterizeElementResult,
+	RasterizeElementTilesResult,
+	ViewerOptions,
+} from 'pptx-viewer-shared';
 import {
 	deleteAutosaveSnapshot,
 	downloadBlob,
 	exportDeckJson,
 	playFeedbackSound,
+	rasterResultToPngBlob,
 	shouldDiscardAutosaveOnSuccessfulSave,
 } from 'pptx-viewer-shared';
-import { computed, nextTick, ref } from 'vue';
+import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
-import { renderToCanvas } from '../../lib/canvas-export';
 import { useExport } from './useExport';
 import type { UseExportResult } from './useExport';
 import { useExportProgress } from './useExportProgress';
 import type { UseExportProgressResult } from './useExportProgress';
+import { useExportRasterize } from './useExportRasterize';
 import { useMediaExport } from './useMediaExport';
 import type { UseMediaExportResult } from './useMediaExport';
 
@@ -53,6 +59,14 @@ export interface UseExportWiringResult {
 	exportStageRef: Ref<HTMLElement | null>;
 	exportSlide: ComputedRef<PptxSlide | undefined>;
 	rasterizeSlide: (index: number, scaleMultiplier?: number) => Promise<HTMLCanvasElement>;
+	rasterizeSlideToRaster: (
+		index: number,
+		scaleMultiplier?: number,
+	) => Promise<RasterizeElementResult>;
+	rasterizeSlideToTiles: (
+		index: number,
+		scaleMultiplier?: number,
+	) => Promise<RasterizeElementTilesResult>;
 	exporter: UseExportResult;
 	mediaExport: UseMediaExportResult;
 	exportProgressCtl: UseExportProgressResult;
@@ -91,36 +105,20 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 	// the on-screen presentation and the saved file.
 	const exportSlide = computed(() => mergedSlides.value[exportIndex.value]);
 
-	/**
-	 * `scaleMultiplier` (default 1) is an extra factor on top of the baseline
-	 * 2x * Options > Advanced > Image Size/Quality scale below; the Print
-	 * dialog's notes/handouts raster path passes a higher value when Options >
-	 * Advanced > "High quality" is on, without changing plain PNG/PDF export.
-	 */
-	async function rasterizeSlide(index: number, scaleMultiplier = 1): Promise<HTMLCanvasElement> {
-		exportIndex.value = index;
-		await nextTick();
-		await new Promise<void>((resolve) => {
-			requestAnimationFrame(() => resolve());
-		});
-		const stageEl = exportStageRef.value?.querySelector('.pptx-vue-stage') as HTMLElement | null;
-		if (!stageEl) {
-			throw new Error('Export stage not ready');
-		}
-		return renderToCanvas(stageEl, {
-			backgroundColor: '#ffffff',
-			// Multiplied against the pre-existing 2x baseline (not used outright) so
-			// the default "High fidelity" preset (raw multiplier 1) keeps today's
-			// export quality instead of silently downgrading it. Mirrors the
-			// vanilla/angular/svelte bindings.
-			scale: 2 * (imageExportScale?.() ?? 1) * scaleMultiplier,
-			width: canvasSize.value.width,
-			height: canvasSize.value.height,
-			logging: false,
-		});
-	}
+	const { rasterizeSlide, rasterizeSlideToRaster, rasterizeSlideToTiles } = useExportRasterize({
+		exportStageRef,
+		exportIndex,
+		canvasSize,
+		imageExportScale,
+	});
 
-	const exporter = useExport({ slides, canvasSize, rasterizeSlide });
+	const exporter = useExport({
+		slides,
+		canvasSize,
+		rasterizeSlide,
+		rasterizeSlideToRaster,
+		rasterizeSlideToTiles,
+	});
 	const mediaExport = useMediaExport({ slideCount, rasterizeSlide });
 	const exportProgressCtl = useExportProgress({ exporter, mediaExport });
 	const isExporting = computed(() => exporter.exporting.value || mediaExport.exporting.value);
@@ -178,11 +176,9 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 	/** Copy the active slide to the clipboard as a PNG image (File menu). */
 	async function onCopySlideAsImage(): Promise<void> {
 		try {
-			const canvas = await rasterizeSlide(activeSlideIndex.value);
-			const blob = await new Promise<Blob | null>((resolve) => {
-				canvas.toBlob((b) => resolve(b), 'image/png');
-			});
-			if (blob && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+			const result = await rasterizeSlideToRaster(activeSlideIndex.value);
+			const blob = await rasterResultToPngBlob(result);
+			if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
 				await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 			}
 		} catch (err) {
@@ -194,6 +190,8 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 		exportStageRef,
 		exportSlide,
 		rasterizeSlide,
+		rasterizeSlideToRaster,
+		rasterizeSlideToTiles,
 		exporter,
 		mediaExport,
 		exportProgressCtl,

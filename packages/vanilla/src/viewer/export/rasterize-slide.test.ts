@@ -1,4 +1,9 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import {
+	rasterizeElement,
+	rasterizeElementClampedToCanvas,
+	rasterizeElementTiles,
+} from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
@@ -9,6 +14,110 @@ import { createRasterizeSlide } from './rasterize-slide';
 
 const { renderToCanvas } = vi.hoisted(() => ({ renderToCanvas: vi.fn() }));
 vi.mock(import('./render-to-canvas'), () => ({ renderToCanvas }));
+
+// `rasterizeSlide`/`rasterizeSlideToRaster`/`rasterizeSlideToTiles` now
+// delegate to the shared `rasterizeElement`/`rasterizeElementClampedToCanvas`/
+// `rasterizeElementTiles`, whose real `foreignObject` strategy loads an
+// `Image` from a `blob:` URL - unimplemented in jsdom, so `img.onload`/
+// `onerror` never fire and the real functions hang forever in this
+// environment. These tests are about the off-screen stage mount/wait logic,
+// not raster-strategy selection (that is covered by the `*.test.ts` files
+// next to each function in `pptx-viewer-shared`), so all three short-circuit
+// straight to the same `html2canvasFallback` callback `rasterize-slide.ts`
+// passes in, exercising the exact same `renderToCanvas` call the pre-existing
+// assertions check.
+interface FakeHtml2CanvasFallbackOptions {
+	scale?: number;
+	html2canvasFallback: (
+		sourceRect: { x: number; y: number; width: number; height: number },
+		outputSize: { width: number; height: number },
+	) => Promise<HTMLCanvasElement>;
+}
+
+async function viaHtml2CanvasFallback(
+	naturalWidth: number,
+	naturalHeight: number,
+	options: FakeHtml2CanvasFallbackOptions,
+): Promise<HTMLCanvasElement> {
+	const scale = options.scale ?? 1;
+	return options.html2canvasFallback(
+		{ x: 0, y: 0, width: naturalWidth, height: naturalHeight },
+		{ width: naturalWidth * scale, height: naturalHeight * scale },
+	);
+}
+
+vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		rasterizeElement: vi.fn(
+			async (
+				_element: HTMLElement,
+				naturalWidth: number,
+				naturalHeight: number,
+				_doc: Document,
+				options: FakeHtml2CanvasFallbackOptions,
+			) => {
+				const canvas = await viaHtml2CanvasFallback(naturalWidth, naturalHeight, options);
+				return {
+					kind: 'canvas' as const,
+					canvas,
+					strategy: 'html2canvas' as const,
+					width: canvas.width,
+					height: canvas.height,
+				};
+			},
+		),
+		rasterizeElementClampedToCanvas: vi.fn(
+			async (
+				_element: HTMLElement,
+				naturalWidth: number,
+				naturalHeight: number,
+				_doc: Document,
+				options: FakeHtml2CanvasFallbackOptions,
+			) => {
+				const canvas = await viaHtml2CanvasFallback(naturalWidth, naturalHeight, options);
+				return {
+					kind: 'canvas' as const,
+					canvas,
+					strategy: 'html2canvas' as const,
+					width: canvas.width,
+					height: canvas.height,
+					clamped: false,
+					effectiveScale: options.scale ?? 1,
+				};
+			},
+		),
+		rasterizeElementTiles: vi.fn(
+			async (
+				_element: HTMLElement,
+				naturalWidth: number,
+				naturalHeight: number,
+				_doc: Document,
+				options: FakeHtml2CanvasFallbackOptions,
+			) => {
+				const canvas = await viaHtml2CanvasFallback(naturalWidth, naturalHeight, options);
+				return {
+					fullWidth: canvas.width,
+					fullHeight: canvas.height,
+					tiled: false,
+					tiles: [
+						{
+							col: 0,
+							row: 0,
+							x: 0,
+							y: 0,
+							width: canvas.width,
+							height: canvas.height,
+							canvas,
+							strategy: 'html2canvas' as const,
+						},
+					],
+				};
+			},
+		),
+	};
+});
 
 function fakeCanvas(): HTMLCanvasElement {
 	return document.createElement('canvas');
@@ -227,6 +336,132 @@ describe('createRasterizeSlide', () => {
 
 		const host = container.querySelector('.pptxv-export-stage');
 		expect(host?.children).toHaveLength(1);
+		ctl.destroy();
+	});
+
+	it('rasterizeSlideToRaster delegates to the shared rasterizeElement', async () => {
+		renderToCanvas.mockResolvedValue(fakeCanvas());
+		const container = makeContainer();
+		const store = createStore(createInitialViewerState());
+		store.set({ slides: [slide()], canvasSize: { width: 960, height: 540 } });
+
+		const ctl = createRasterizeSlide({
+			doc: document,
+			container,
+			store,
+			registry: createElementRendererRegistry(),
+			getTranslator: () => createTranslator(),
+			getSmartArt3D: () => false,
+			getSurfaceChart3D: () => false,
+			getBarChart3D: () => false,
+			getLineChart3D: () => false,
+			getAreaChart3D: () => false,
+			getPieChart3D: () => false,
+			getImageResolutionScale: () => 1,
+			waitForFrame: () => Promise.resolve(),
+		});
+
+		const result = await ctl.rasterizeSlideToRaster(0);
+		expect(result.kind).toBe('canvas');
+		expect(vi.mocked(rasterizeElement)).toHaveBeenCalledOnce();
+		expect(vi.mocked(rasterizeElementClampedToCanvas)).not.toHaveBeenCalled();
+		expect(vi.mocked(rasterizeElementTiles)).not.toHaveBeenCalled();
+		const [, naturalWidth, naturalHeight, , options] = vi.mocked(rasterizeElement).mock.calls[0];
+		expect(naturalWidth).toBe(960);
+		expect(naturalHeight).toBe(540);
+		expect(options).toMatchObject({ scale: 2, backgroundColor: '#ffffff' });
+
+		ctl.destroy();
+	});
+
+	it('rasterizeSlideToTiles delegates to the shared rasterizeElementTiles', async () => {
+		renderToCanvas.mockResolvedValue(fakeCanvas());
+		const container = makeContainer();
+		const store = createStore(createInitialViewerState());
+		store.set({ slides: [slide()], canvasSize: { width: 960, height: 540 } });
+
+		const ctl = createRasterizeSlide({
+			doc: document,
+			container,
+			store,
+			registry: createElementRendererRegistry(),
+			getTranslator: () => createTranslator(),
+			getSmartArt3D: () => false,
+			getSurfaceChart3D: () => false,
+			getBarChart3D: () => false,
+			getLineChart3D: () => false,
+			getAreaChart3D: () => false,
+			getPieChart3D: () => false,
+			getImageResolutionScale: () => 1,
+			waitForFrame: () => Promise.resolve(),
+		});
+
+		const result = await ctl.rasterizeSlideToTiles(0);
+		expect(result.tiles).toHaveLength(1);
+		expect(vi.mocked(rasterizeElementTiles)).toHaveBeenCalledOnce();
+		expect(vi.mocked(rasterizeElement)).not.toHaveBeenCalled();
+		expect(vi.mocked(rasterizeElementClampedToCanvas)).not.toHaveBeenCalled();
+
+		ctl.destroy();
+	});
+
+	it('rasterizeSlide (single-canvas) delegates to the shared rasterizeElementClampedToCanvas', async () => {
+		renderToCanvas.mockResolvedValue(fakeCanvas());
+		const container = makeContainer();
+		const store = createStore(createInitialViewerState());
+		store.set({ slides: [slide()], canvasSize: { width: 960, height: 540 } });
+
+		const ctl = createRasterizeSlide({
+			doc: document,
+			container,
+			store,
+			registry: createElementRendererRegistry(),
+			getTranslator: () => createTranslator(),
+			getSmartArt3D: () => false,
+			getSurfaceChart3D: () => false,
+			getBarChart3D: () => false,
+			getLineChart3D: () => false,
+			getAreaChart3D: () => false,
+			getPieChart3D: () => false,
+			getImageResolutionScale: () => 1,
+			waitForFrame: () => Promise.resolve(),
+		});
+
+		await ctl.rasterizeSlide(0);
+		expect(vi.mocked(rasterizeElementClampedToCanvas)).toHaveBeenCalledOnce();
+		expect(vi.mocked(rasterizeElement)).not.toHaveBeenCalled();
+		expect(vi.mocked(rasterizeElementTiles)).not.toHaveBeenCalled();
+
+		ctl.destroy();
+	});
+
+	it('applies scaleMultiplier on top of the baseline 2x * image-resolution-scale for every capture variant', async () => {
+		renderToCanvas.mockResolvedValue(fakeCanvas());
+		const container = makeContainer();
+		const store = createStore(createInitialViewerState());
+		store.set({ slides: [slide()], canvasSize: { width: 960, height: 540 } });
+
+		const ctl = createRasterizeSlide({
+			doc: document,
+			container,
+			store,
+			registry: createElementRendererRegistry(),
+			getTranslator: () => createTranslator(),
+			getSmartArt3D: () => false,
+			getSurfaceChart3D: () => false,
+			getBarChart3D: () => false,
+			getLineChart3D: () => false,
+			getAreaChart3D: () => false,
+			getPieChart3D: () => false,
+			getImageResolutionScale: () => 1.5,
+			waitForFrame: () => Promise.resolve(),
+		});
+
+		await ctl.rasterizeSlide(0, 2);
+		const [, , , , clampedOptions] = vi.mocked(rasterizeElementClampedToCanvas).mock.calls[0];
+		// 2 (baseline) * 1.5 (image-resolution-scale) * 2 (scaleMultiplier) = 6
+		expect(clampedOptions).toMatchObject({ scale: 6 });
+
 		ctl.destroy();
 	});
 });

@@ -3,6 +3,9 @@ import {
 	downloadDataUrl,
 	exportAbortError,
 	exportDeckJson,
+	placeTileOnPage,
+	rasterResultToPngBlob,
+	rasterResultToPngDataUrl,
 	resolveExportBaseName,
 } from 'pptx-viewer-shared';
 
@@ -11,13 +14,24 @@ import type { ExportGifOptions } from './export-gif';
 import { runGifExport } from './export-gif';
 import type { PrintOptions } from './export-print';
 import { runPrint } from './export-print';
-import type { ExportCaptureDeps, ExportProgress, RasterizeSlide } from './export-types';
+import type {
+	ExportCaptureDeps,
+	ExportProgress,
+	RasterizeSlide,
+	RasterizeSlideToRaster,
+	RasterizeSlideToTiles,
+} from './export-types';
 import type { ExportVideoOptions } from './export-video';
 import { runVideoExport } from './export-video';
 
 // Re-exported so existing `./export-controller` importers keep working after
 // the type moved to `./export-types` (shared with the per-format runners).
-export type { ExportProgress, RasterizeSlide } from './export-types';
+export type {
+	ExportProgress,
+	RasterizeSlide,
+	RasterizeSlideToRaster,
+	RasterizeSlideToTiles,
+} from './export-types';
 
 /** Options for the multi-slide PDF export (progress + cooperative cancel). */
 export interface ExportPdfOptions {
@@ -30,6 +44,10 @@ export interface ExportPdfOptions {
 export interface ExportControllerDeps {
 	store: Store<ViewerState>;
 	rasterizeSlide: RasterizeSlide;
+	/** PNG-export / "copy slide as image" only; see {@link RasterizeSlideToRaster}. */
+	rasterizeSlideToRaster?: RasterizeSlideToRaster;
+	/** PDF export only; see {@link RasterizeSlideToTiles}. */
+	rasterizeSlideToTiles?: RasterizeSlideToTiles;
 	/** Base file name (without extension) for downloads. Defaults to `presentation`. */
 	fileName?: string;
 	/** Live translator (host-supplied), for the print path's own UI text. */
@@ -115,6 +133,7 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 	const capture: ExportCaptureDeps = {
 		store: deps.store,
 		rasterizeSlide: deps.rasterizeSlide,
+		rasterizeSlideToRaster: deps.rasterizeSlideToRaster,
 		baseName: resolveExportBaseName(deps.fileName),
 		getTranslator: deps.getTranslator,
 		getIncludeHiddenSlides: deps.getIncludeHiddenSlides,
@@ -134,6 +153,26 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 		}
 	}
 
+	/**
+	 * `deps.rasterizeSlideToRaster` when the host supplied one (the real
+	 * viewer always does; see `export-lifecycle.ts`), else `rasterizeSlide`'s
+	 * plain canvas wrapped as a `RasterizeElementResult` so PNG-export/copy
+	 * fixtures that only ever configured `rasterizeSlide` keep working.
+	 */
+	async function captureRaster(index: number) {
+		if (deps.rasterizeSlideToRaster) {
+			return deps.rasterizeSlideToRaster(index);
+		}
+		const canvas = await deps.rasterizeSlide(index);
+		return {
+			kind: 'canvas' as const,
+			canvas,
+			strategy: 'html2canvas' as const,
+			width: canvas.width,
+			height: canvas.height,
+		};
+	}
+
 	async function exportSlidePng(index?: number): Promise<void> {
 		const state = deps.store.get(),
 			targetIndex = index ?? state.currentSlide;
@@ -141,9 +180,9 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 			return;
 		}
 		return guarded(undefined, async () => {
-			const canvas = await deps.rasterizeSlide(targetIndex);
+			const result = await captureRaster(targetIndex);
 			downloadDataUrl(
-				canvas.toDataURL('image/png'),
+				await rasterResultToPngDataUrl(result),
 				`${capture.baseName}-slide-${targetIndex + 1}.png`,
 			);
 		});
@@ -161,13 +200,9 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 			return;
 		}
 		return guarded(undefined, async () => {
-			const canvas = await deps.rasterizeSlide(targetIndex),
-				blob = await new Promise<Blob | null>((resolve) => {
-					canvas.toBlob(resolve, 'image/png');
-				});
-			if (blob) {
-				await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-			}
+			const result = await captureRaster(targetIndex),
+				blob = await rasterResultToPngBlob(result);
+			await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 		});
 	}
 
@@ -189,11 +224,36 @@ export function createExportController(deps: ExportControllerDeps): ExportContro
 					throw exportAbortError();
 				}
 				onProgress?.(i, total);
-				const canvas = await deps.rasterizeSlide(i);
 				if (i > 0) {
 					pdf.addPage([width, height], orientation);
 				}
-				pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
+				if (deps.rasterizeSlideToTiles) {
+					// One `addImage` per tile, placed at its proportional position
+					// on the native-size page: escapes the browser canvas cap for
+					// a page whose export resolution would otherwise exceed it. A
+					// single-tile slide degrades to exactly one full-page image.
+					const tilesResult = await deps.rasterizeSlideToTiles(i);
+					for (const tile of tilesResult.tiles) {
+						const placement = placeTileOnPage(
+							tile,
+							tilesResult.fullWidth,
+							tilesResult.fullHeight,
+							width,
+							height,
+						);
+						pdf.addImage(
+							tile.canvas.toDataURL('image/png'),
+							'PNG',
+							placement.x,
+							placement.y,
+							placement.width,
+							placement.height,
+						);
+					}
+				} else {
+					const canvas = await deps.rasterizeSlide(i);
+					pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
+				}
 			}
 			pdf.save(`${capture.baseName}.pdf`);
 		});

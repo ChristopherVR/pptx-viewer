@@ -1,10 +1,16 @@
 import type { PptxData, PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type {
+	CanvasSize,
+	RasterizeElementResult,
+	RasterizeElementTilesResult,
+} from 'pptx-viewer-shared';
 import {
 	downloadBlob,
 	downloadDataUrl,
 	exportAbortError,
 	exportDeckJson,
+	rasterResultToPngBlob,
+	rasterResultToPngDataUrl,
 	resolveExportBaseName,
 } from 'pptx-viewer-shared';
 
@@ -14,6 +20,7 @@ import type { OpenPrintWindow, PrintOptions } from './export-print';
 import { printSlides } from './export-print';
 import type { ExportVideoOptions } from './export-video';
 import { exportSlidesToWebmBlob } from './export-video';
+import { addTiledPageImages } from './pdf-tile-page';
 
 /** Rasterise the slide at `index` to an `HTMLCanvasElement`. Injected so the
  * controller stays DOM-capture-free and unit-testable. */
@@ -43,6 +50,27 @@ export interface ExportControllerDeps {
 	/** Live slide list (print needs slide notes/titles, not just the count). */
 	getSlides(): PptxSlide[];
 	rasterizeSlide: RasterizeSlide;
+	/**
+	 * PNG-export / "copy slide as image" only: returns the full
+	 * `RasterizeElementResult` (tiled `png-bytes` included) instead of a
+	 * plain canvas. Optional so existing test fixtures that only configure
+	 * `rasterizeSlide` keep working; `exportSlidePng`/`copySlideAsImage` fall
+	 * back to wrapping `rasterizeSlide`'s canvas when omitted.
+	 */
+	rasterizeSlideToRaster?: (
+		index: number,
+		scaleMultiplier?: number,
+	) => Promise<RasterizeElementResult>;
+	/**
+	 * PDF export only: returns the raw per-tile canvases (no PNG stitching)
+	 * instead of a plain canvas. Optional so existing test fixtures that only
+	 * configure `rasterizeSlide` keep working; `exportPdf` falls back to
+	 * placing a single full-page image (today's behaviour) when omitted.
+	 */
+	rasterizeSlideToTiles?: (
+		index: number,
+		scaleMultiplier?: number,
+	) => Promise<RasterizeElementTilesResult>;
 	/** Print-surface opener override; see `export-print.ts` for the default. */
 	openPrintWindow?: OpenPrintWindow;
 	/** Base file name (without extension) for downloads. Defaults to `presentation`. */
@@ -82,6 +110,21 @@ export class ExportController {
 		this.#deps = deps;
 	}
 
+	/** `rasterizeSlideToRaster` when supplied, else `rasterizeSlide`'s canvas wrapped as a result. */
+	async #captureRaster(index: number): Promise<RasterizeElementResult> {
+		if (this.#deps.rasterizeSlideToRaster) {
+			return this.#deps.rasterizeSlideToRaster(index);
+		}
+		const canvas = await this.#deps.rasterizeSlide(index);
+		return {
+			kind: 'canvas',
+			canvas,
+			strategy: 'html2canvas',
+			width: canvas.width,
+			height: canvas.height,
+		};
+	}
+
 	/** Export a single slide as a PNG download. Defaults to the current slide. */
 	async exportSlidePng(index?: number): Promise<void> {
 		const targetIndex = index ?? this.#deps.getCurrent();
@@ -90,9 +133,9 @@ export class ExportController {
 		}
 		this.exporting = true;
 		try {
-			const canvas = await this.#deps.rasterizeSlide(targetIndex);
+			const result = await this.#captureRaster(targetIndex);
 			downloadDataUrl(
-				canvas.toDataURL('image/png'),
+				await rasterResultToPngDataUrl(result),
 				`${resolveExportBaseName(this.#deps.fileName)}-slide-${targetIndex + 1}.png`,
 			);
 		} finally {
@@ -114,13 +157,9 @@ export class ExportController {
 		}
 		this.exporting = true;
 		try {
-			const canvas = await this.#deps.rasterizeSlide(targetIndex),
-				blob = await new Promise<Blob | null>((resolve) => {
-					canvas.toBlob(resolve, 'image/png');
-				});
-			if (blob) {
-				await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-			}
+			const result = await this.#captureRaster(targetIndex),
+				blob = await rasterResultToPngBlob(result);
+			await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 		} finally {
 			this.exporting = false;
 		}
@@ -152,17 +191,24 @@ export class ExportController {
 			const { jsPDF } = await import('jspdf'),
 				{ width, height } = this.#deps.getCanvasSize(),
 				orientation = width >= height ? 'landscape' : 'portrait',
-				pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true });
+				pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true }),
+				rasterizeSlideToTiles = this.#deps.rasterizeSlideToTiles;
 			for (let i = 0; i < total; i++) {
 				if (signal?.aborted) {
 					throw exportAbortError();
 				}
 				onProgress?.(i, total);
-				const canvas = await this.#deps.rasterizeSlide(i);
 				if (i > 0) {
 					pdf.addPage([width, height], orientation);
 				}
-				pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
+				if (rasterizeSlideToTiles) {
+					// Escapes the browser canvas cap the same way PNG export does,
+					// since a PDF page has no canvas-size limit of its own.
+					addTiledPageImages(pdf, await rasterizeSlideToTiles(i), width, height);
+				} else {
+					const canvas = await this.#deps.rasterizeSlide(i);
+					pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
+				}
 			}
 			pdf.save(`${resolveExportBaseName(this.#deps.fileName)}.pdf`);
 		} finally {

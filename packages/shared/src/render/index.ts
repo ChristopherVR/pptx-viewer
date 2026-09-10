@@ -1551,3 +1551,18 @@ export * from './table-style-map-edits';
 // W4-D: chart title rich-text per-run render spans + the flat-text-edit
 // collapse rule every binding's title inspector field uses.
 export * from './chart-title-runs';
+
+// Raster-export beyond html2canvas/the browser canvas cap: pure tile-plan
+// maths. The probed canvas-dimension cap lives in
+// `pptx-viewer-shared/export` (`canvas-size-probe.ts`) alongside the rest of
+// the DOM-bound raster-export driver; the `foreignObject` SVG-document
+// assembly below (computed-style inlining, font-face reuse, image
+// self-containment) lets the browser's own engine rasterise
+// `backdrop-filter`/custom-property/3D-transform content html2canvas cannot.
+// See `pptx-viewer-shared/export` (`rasterize-element`) for the driver that
+// consumes these.
+export * from './export-tile-plan';
+export * from './foreign-object-style-inline';
+export * from './foreign-object-font-embed';
+export * from './foreign-object-image-embed';
+export * from './foreign-object-svg-document';

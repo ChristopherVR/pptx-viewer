@@ -15,16 +15,13 @@
  */
 
 import { inject, Injectable, signal } from '@angular/core';
-import type { WritableSignal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import type { PptxSlide } from 'pptx-viewer-core';
 
 import {
 	EXPORT_ASSEMBLING_PERCENT,
 	EXPORT_DONE_PERCENT,
 	isExportAbortError,
 	recordProgressPercent,
-	slideProgressPercent,
 	slideStatusLabel,
 } from '../internal/shared';
 import { slideFileName } from './export-helpers';
@@ -32,26 +29,14 @@ import { ExportService } from './export.service';
 import { LoadContentService } from './load-content.service';
 import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
+import {
+	captureSlideCanvases,
+	captureSlideDataUrl,
+	captureSlideTiles,
+} from './viewer-export-capture';
+import type { ExportHost } from './viewer-export-capture';
 
-/** Live accessors the export loop needs from the host component. */
-interface ExportHost {
-	/** The component's active-slide index (read + written to flip the live stage). */
-	readonly activeSlideIndex: WritableSignal<number>;
-	/** Current slide count of the displayed deck. */
-	readonly slideCount: () => number;
-	/** The full deck (templates merged back) for the print job. */
-	readonly mergedSlides: () => readonly PptxSlide[];
-	/** Resolve the live slide-stage element, or `undefined` when not mounted. */
-	readonly resolveStage: () => HTMLElement | undefined;
-	/**
-	 * File > Options > Advanced > "Image Size and Quality"
-	 * (`resolveImageResolutionScale`), read fresh for every PNG/PDF capture.
-	 * Not applied to GIF/video (those intentionally stay at their own fixed
-	 * capture resolution). Defaults to 2 (the pre-existing hardcoded value)
-	 * when omitted.
-	 */
-	readonly imageExportScale?: () => number;
-}
+export type { ExportHost } from './viewer-export-capture';
 
 @Injectable()
 export class ViewerExportService {
@@ -133,15 +118,18 @@ export class ViewerExportService {
 		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportPdf'));
 		const { width, height } = this.loader.canvasSize();
 		try {
-			const canvases = await this.captureSlideCanvases(
+			const pages = await captureSlideTiles(
+				this.exportSvc,
+				host,
+				this.progressSinks,
 				controller.signal,
 				this.translate.instant('pptx.export.rendering'),
 				90,
-				this.requireHost().imageExportScale?.() ?? 2,
+				host.imageExportScale?.() ?? 2,
 			);
 			this.progress.set(EXPORT_ASSEMBLING_PERCENT);
 			this.statusMessage.set(this.translate.instant('pptx.export.buildingPdf'));
-			this.exportSvc.exportCanvasesToPdf(canvases, width, height, 'presentation.pdf');
+			this.exportSvc.exportTiledPagesToPdf(pages, width, height, 'presentation.pdf');
 			this.progress.set(EXPORT_DONE_PERCENT);
 		} catch (err) {
 			if (!isExportAbortError(err)) {
@@ -160,7 +148,10 @@ export class ViewerExportService {
 		}
 		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportGif'));
 		try {
-			const canvases = await this.captureSlideCanvases(
+			const canvases = await captureSlideCanvases(
+				this.exportSvc,
+				host,
+				this.progressSinks,
 				controller.signal,
 				this.translate.instant('pptx.export.encoding'),
 				90,
@@ -186,7 +177,10 @@ export class ViewerExportService {
 		}
 		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportVideo'));
 		try {
-			const canvases = await this.captureSlideCanvases(
+			const canvases = await captureSlideCanvases(
+				this.exportSvc,
+				host,
+				this.progressSinks,
 				controller.signal,
 				this.translate.instant('pptx.export.capturing'),
 				45,
@@ -234,7 +228,7 @@ export class ViewerExportService {
 				settings,
 				[...host.mergedSlides()],
 				original,
-				(index) => this.captureSlideDataUrl(index, printScale),
+				(index) => captureSlideDataUrl(this.exportSvc, host, index, printScale),
 				this.loader.canvasSize(),
 				includeHiddenSlides,
 				this.loader.handoutMaster(),
@@ -273,58 +267,13 @@ export class ViewerExportService {
 	}
 
 	/**
-	 * Render every slide to a canvas (each made the live stage in turn), reporting
-	 * per-slide progress and bailing out cooperatively when `abortSignal.aborted`.
+	 * Progress-reporting sink handed to the extracted capture-loop functions
+	 * in `viewer-export-capture.ts`, called directly at each export call site
+	 * (`captureSlideCanvases`/`captureSlideTiles`/`captureSlideDataUrl`) rather
+	 * than via a same-named private wrapper per method.
 	 */
-	private async captureSlideCanvases(
-		abortSignal: AbortSignal,
-		verb: string,
-		span: number,
-		scale: number = 2,
-	): Promise<HTMLCanvasElement[]> {
-		const host = this.requireHost();
-		const total = host.slideCount();
-		const original = host.activeSlideIndex();
-		const canvases: HTMLCanvasElement[] = [];
-		try {
-			for (let i = 0; i < total; i++) {
-				if (abortSignal.aborted) {
-					throw new DOMException('Export cancelled', 'AbortError');
-				}
-				this.progress.set(slideProgressPercent(i, total, span));
-				this.statusMessage.set(slideStatusLabel(verb, i, total));
-				host.activeSlideIndex.set(i);
-				await new Promise<void>((resolve) => {
-					setTimeout(resolve, 150);
-				});
-				const el = host.resolveStage();
-				if (el) {
-					canvases.push(await this.exportSvc.renderElement(el, scale));
-				}
-			}
-		} finally {
-			host.activeSlideIndex.set(original);
-		}
-		return canvases;
-	}
-
-	/**
-	 * Flip the live stage to `index`, let it settle, and capture it to a PNG
-	 * data URL. `scale` defaults to the host's own Image Size/Quality scale
-	 * (matching PNG/PDF export); the print notes/handouts path passes a higher
-	 * value when Options > Advanced > "High quality" is on.
-	 */
-	private async captureSlideDataUrl(index: number, scale?: number): Promise<string | null> {
-		const host = this.requireHost();
-		host.activeSlideIndex.set(index);
-		await new Promise<void>((resolve) => {
-			setTimeout(resolve, 150);
-		});
-		const el = host.resolveStage();
-		if (!el) {
-			return null;
-		}
-		const canvas = await this.exportSvc.renderElement(el, scale ?? host.imageExportScale?.() ?? 2);
-		return canvas.toDataURL('image/png');
-	}
+	private readonly progressSinks = {
+		setProgress: (value: number) => this.progress.set(value),
+		setStatusMessage: (value: string) => this.statusMessage.set(value),
+	};
 }

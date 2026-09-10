@@ -73,6 +73,17 @@ export const INSPECTOR_PANELS_CSS = `
 .pptxv-anim-bar-seg.is-exit { background: rgb(239 68 68 / 0.6); }
 .pptxv-anim-bar-seg.is-none { background: color-mix(in srgb, var(--pptx-muted-foreground) 40%, transparent); }
 .pptxv-anim-bar-seg.is-selected { outline: 1px solid var(--pptx-ring); }
+/* Below this width, matches isDensePanelCompact()/MOBILE_BREAKPOINT (768) in
+   pptx-viewer-shared: getDensePanelTouchTargetPx(width) returns
+   MIN_TOUCH_TARGET_PX (44) instead of DEFAULT_DENSE_BUTTON_PX (28), so the
+   direction picker and the Preview button clear a touch-sized hit area. The
+   panel is already single-column at every width. */
+@media (max-width: 767px) {
+	.pptxv-anim-direction-btn, .pptxv-anim-preview-btn {
+		min-width: 44px !important;
+		min-height: 44px !important;
+	}
+}
 
 /* ── Comments tab: threads, replies, edit-in-place ───────────────────── */
 .pptxv-inspector-comment-badge {
@@ -148,4 +159,19 @@ export const INSPECTOR_PANELS_CSS = `
 	color: var(--pptx-foreground);
 }
 .pptxv-action-return-row[hidden] { display: none; }
+
+/* ── Table style editor: touch target only ────────────────────────────
+   .pptxv-tse*/.pptxv-tsef* (table-style-editor.ts /
+   table-style-editor-fields.ts) otherwise carry no CSS at all in this
+   binding (unstyled/browser-default buttons) - out of scope to redesign
+   here, but the Bold/Italic/Underline toggles and the editor's own action
+   buttons still need to clear the WCAG touch target below the mobile
+   breakpoint (768, MOBILE_BREAKPOINT / MIN_TOUCH_TARGET_PX in
+   pptx-viewer-shared) since they are real, single-letter/narrow buttons. */
+@media (max-width: 767px) {
+	.pptxv-tsef-toggle, .pptxv-tse-btn, .pptxv-tse-parts button, .pptxv-tse-actions button, .pptxv-tse-header button {
+		min-width: 44px !important;
+		min-height: 44px !important;
+	}
+}
 `;

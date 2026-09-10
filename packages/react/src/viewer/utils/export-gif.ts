@@ -1,13 +1,16 @@
 /**
- * Animated GIF export -- captures slides and encodes them via the
- * pure-JS GIF89a encoder in export-gif-encoder.ts.
+ * Animated GIF export -- captures slides via the shared `foreignObject`
+ * fidelity pipeline (clamped to the browser canvas cap; see
+ * `renderElementToClampedCanvas`, `html2canvas-pro` only as the documented
+ * fallback) and encodes them via the pure-JS GIF89a encoder in
+ * export-gif-encoder.ts.
  */
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { encodeGif } from './export-gif-encoder';
 import type { ExportProgressCallback } from './export-helpers';
-import { renderElementToCanvas, waitForRender } from './export-helpers';
+import { renderElementToClampedCanvas, waitForRender } from './export-helpers';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -60,7 +63,7 @@ export async function exportAllSlidesAsGif(
 			continue;
 		}
 
-		const canvas = await renderElementToCanvas(stageEl, scale);
+		const { canvas } = await renderElementToClampedCanvas(stageEl, scale);
 		const ctx = canvas.getContext('2d');
 		if (!ctx) {
 			continue;

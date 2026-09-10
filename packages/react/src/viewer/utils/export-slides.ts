@@ -1,23 +1,19 @@
 /**
- * PNG and PDF slide export utilities.
+ * PNG slide export utilities.
+ *
+ * PDF and notes-PDF export live in `export-pdf.ts` (split out once this file
+ * grew past the 300-LOC limit with every PDF variant included).
  */
-import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
-import type {
-	PngExportOptions,
-	PdfExportOptions,
-	NotesPdfExportOptions,
-	SlideCaptureOptions,
-} from './export-helpers';
+import type { PngExportOptions, SlideCaptureOptions } from './export-helpers';
 import {
 	downloadBlob,
-	downloadDataUrl,
-	renderElementToCanvas,
+	renderElementToClampedCanvas,
+	renderElementToRaster,
+	rasterResultToPngBlob,
 	waitForRender,
 } from './export-helpers';
-import { buildPdfFromImageData, buildNotesPdf, canvasToJpegData } from './pdf-builder';
-import type { NotesPageInput, PdfImageData } from './pdf-builder';
 
 /* ------------------------------------------------------------------ */
 /*  PNG Export                                                        */
@@ -37,17 +33,8 @@ export async function exportSlideToPngBlob(
 ): Promise<Blob> {
 	const { scale = 2, backgroundColor } = options;
 
-	const canvas = await renderElementToCanvas(slideElement, scale, backgroundColor);
-
-	return new Promise<Blob>((resolve, reject) => {
-		canvas.toBlob((blob) => {
-			if (blob) {
-				resolve(blob);
-			} else {
-				reject(new Error('Canvas toBlob returned null'));
-			}
-		}, 'image/png');
-	});
+	const result = await renderElementToRaster(slideElement, scale, backgroundColor);
+	return rasterResultToPngBlob(result);
 }
 
 /**
@@ -84,79 +71,16 @@ export async function copySlideToClipboard(
 	await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 }
 
-/* ------------------------------------------------------------------ */
-/*  PDF Export                                                        */
-/* ------------------------------------------------------------------ */
-
-/**
- * Export all slides as a multi-page PDF and trigger a browser download.
- *
- * Because each slide must be rendered in the DOM to be captured, the caller
- * provides a `setActiveSlide` callback that switches the viewer to a given
- * slide index and waits for the DOM to settle.
- *
- * @param slideStageRef    - React ref whose `.current` points to the slide
- *                           stage element. Re-read after each slide switch.
- * @param totalSlides      - Total number of slides in the presentation.
- * @param setActiveSlide   - Async callback to switch the viewer to slide `i`.
- *                           Should call the state setter and await the next paint.
- * @param currentSlideIndex - The slide index the user was viewing before export
- *                            (restored after export completes).
- * @param filename         - Downloaded filename (default: "presentation.pdf").
- * @param options          - Scale and progress callback.
- */
-export async function exportAllSlidesAsPdf(
-	slideStageRef: React.RefObject<HTMLElement | null>,
-	totalSlides: number,
-	setActiveSlide: (index: number) => void,
-	currentSlideIndex: number,
-	filename: string = 'presentation.pdf',
-	options: PdfExportOptions = {},
-): Promise<void> {
-	const { scale = 2, onProgress, signal } = options;
-	// Convert each canvas to compact JPEG bytes immediately after rendering,
-	// then discard the canvas.  This reduces peak memory from
-	// ~33 MB/slide (raw pixel buffer) to ~300 KB/slide (JPEG).
-	const images: PdfImageData[] = [];
-
-	for (let i = 0; i < totalSlides; i++) {
-		if (signal?.aborted) {
-			throw new DOMException('Export cancelled', 'AbortError');
-		}
-		onProgress?.(i, totalSlides);
-
-		setActiveSlide(i);
-		await waitForRender(150);
-
-		const stageEl = slideStageRef.current;
-		if (!stageEl) {
-			console.warn(`[export] Could not find slide stage element for slide ${i}`);
-			continue;
-		}
-
-		const canvas = await renderElementToCanvas(stageEl, scale);
-		images.push(canvasToJpegData(canvas));
-		// Canvas is now unreferenced and eligible for GC
-	}
-
-	onProgress?.(totalSlides, totalSlides);
-
-	// Restore the user's original slide
-	setActiveSlide(currentSlideIndex);
-
-	if (images.length === 0) {
-		throw new Error(translationsEn['pptx.export.errorNoSlidesPdf']);
-	}
-
-	const pdfBlobUrl = buildPdfFromImageData(images);
-	downloadDataUrl(pdfBlobUrl, filename);
-}
-
 /**
  * Capture all slides as PNG data URLs.
  *
  * Reuses the same slide-switching and render wait strategy as PDF export so
- * callers can build custom print layouts (handouts, notes pages, etc.).
+ * callers can build custom print layouts (handouts, notes pages, etc.). Goes
+ * through the clamped-to-cap shared raster path (`renderElementToClampedCanvas`)
+ * rather than calling `html2canvas-pro` directly: a print layout draws one
+ * image per slide, so it cannot consume tiled output, and this preserves the
+ * same `backdrop-filter`/custom-property/3D-transform fidelity every other
+ * export format now gets.
  */
 export async function captureAllSlidesAsPngDataUrls(
 	slideStageRef: React.RefObject<HTMLElement | null>,
@@ -179,7 +103,7 @@ export async function captureAllSlidesAsPngDataUrls(
 			continue;
 		}
 
-		const canvas = await renderElementToCanvas(stageEl, scale);
+		const { canvas } = await renderElementToClampedCanvas(stageEl, scale);
 		// Extract data URL immediately so the canvas can be GC'd
 		dataUrls.push(canvas.toDataURL('image/png'));
 	}
@@ -187,92 +111,4 @@ export async function captureAllSlidesAsPngDataUrls(
 	onProgress?.(totalSlides, totalSlides);
 	setActiveSlide(currentSlideIndex);
 	return dataUrls;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Notes PDF Export                                                   */
-/* ------------------------------------------------------------------ */
-
-/**
- * Export all slides as a notes-page PDF: each page contains the slide image
- * in the upper 2/3 and speaker notes text in the lower 1/3.
- *
- * Uses portrait US Letter layout (8.5" x 11") matching PowerPoint's
- * "Notes Pages" print layout.
- *
- * @param slideStageRef     - React ref to the slide stage element.
- * @param totalSlides       - Total number of slides.
- * @param setActiveSlide    - Callback to switch the viewer to slide `i`.
- * @param currentSlideIndex - The slide index to restore after export.
- * @param slideNotes        - Array of plain-text notes, one per slide (index-aligned).
- * @param filename          - Downloaded filename (default: "presentation-notes.pdf").
- * @param options           - Scale and progress callback.
- */
-export async function exportAllSlidesAsNotesPdf(
-	slideStageRef: React.RefObject<HTMLElement | null>,
-	totalSlides: number,
-	setActiveSlide: (index: number) => void,
-	currentSlideIndex: number,
-	slideNotes: (string | undefined)[],
-	filename: string = 'presentation-notes.pdf',
-	options: NotesPdfExportOptions = {},
-): Promise<void> {
-	const { scale = 2, onProgress, signal } = options;
-	const pages: NotesPageInput[] = [];
-
-	for (let i = 0; i < totalSlides; i++) {
-		if (signal?.aborted) {
-			throw new DOMException('Export cancelled', 'AbortError');
-		}
-		onProgress?.(i, totalSlides);
-
-		setActiveSlide(i);
-		await waitForRender(150);
-
-		const stageEl = slideStageRef.current;
-		if (!stageEl) {
-			console.warn(`[export] Could not find slide stage element for slide ${i}`);
-			continue;
-		}
-
-		// Convert canvas to JPEG immediately to free the pixel buffer.
-		// buildNotesPdf still expects NotesPageInput with canvas, so we
-		// create a minimal stand-in that holds only JPEG data.
-		const canvas = await renderElementToCanvas(stageEl, scale);
-		pages.push({
-			canvas,
-			notes: slideNotes[i],
-			slideNumber: i + 1,
-		});
-	}
-
-	onProgress?.(totalSlides, totalSlides);
-
-	// Restore the user's original slide
-	setActiveSlide(currentSlideIndex);
-
-	if (pages.length === 0) {
-		throw new Error(translationsEn['pptx.export.errorNoSlidesNotesPdf']);
-	}
-
-	const pdfDataUrl = buildNotesPdf(pages);
-	downloadDataUrl(pdfDataUrl, filename);
-}
-
-/**
- * Export the current slide as a single-page PDF and trigger a browser download.
- *
- * @param slideElement - The slide stage DOM element.
- * @param slideIndex   - Zero-based slide index (used in filename).
- * @param options      - Scale options.
- */
-export async function exportSlideAsPdf(
-	slideElement: HTMLElement,
-	slideIndex: number,
-	options: PngExportOptions = {},
-): Promise<void> {
-	const { scale = 2, backgroundColor } = options;
-	const canvas = await renderElementToCanvas(slideElement, scale, backgroundColor);
-	const pdfDataUrl = buildPdfFromImageData([canvasToJpegData(canvas)]);
-	downloadDataUrl(pdfDataUrl, `slide-${slideIndex + 1}.pdf`);
 }

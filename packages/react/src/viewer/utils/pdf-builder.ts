@@ -35,5 +35,6 @@ export {
 export {
 	canvasToJpegData,
 	buildPdfFromImageData,
+	buildPdfFromTiledImageData,
 	buildPdfFromCanvases,
 } from './pdf-builder-slides';

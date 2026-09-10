@@ -90,6 +90,18 @@ export function isPng(bytes: Uint8Array): boolean {
 	return PNG_SIGNATURE.every((byte, index) => bytes[index] === byte);
 }
 
+/**
+ * Read a PNG's pixel dimensions from its `IHDR` chunk (always the first chunk,
+ * at a fixed offset: 8-byte signature + 4-byte length + 4-byte `IHDR` type,
+ * then a big-endian width/height pair). Works for both a browser-canvas
+ * `toBlob()` PNG and the tiled export's own pure-JS-encoded PNG
+ * (`streaming-png-encoder.ts`), since both are standard PNG byte streams.
+ */
+export function pngDimensions(bytes: Uint8Array): { width: number; height: number } {
+	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+	return { width: view.getUint32(16, false), height: view.getUint32(20, false) };
+}
+
 /** `%PDF-` */
 export function isPdf(bytes: Uint8Array): boolean {
 	return latin1(bytes, 0, 5) === '%PDF-';

@@ -1,5 +1,12 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { downloadDataUrl, exportAbortError, resolveExportBaseName } from 'pptx-viewer-shared';
+import type { RasterizeElementResult, RasterizeElementTilesResult } from 'pptx-viewer-shared';
+import {
+	downloadDataUrl,
+	exportAbortError,
+	placeTileOnPage,
+	rasterResultToPngDataUrl,
+	resolveExportBaseName,
+} from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 
@@ -16,6 +23,22 @@ export interface UseExportOptions {
 	slides: Ref<PptxSlide[]>;
 	canvasSize: Ref<CanvasSize>;
 	rasterizeSlide: RasterizeSlide;
+	/**
+	 * PNG-export only: returns the full `RasterizeElementResult` (tiled
+	 * `png-bytes` included) instead of a plain canvas. Optional so existing
+	 * test fixtures that only configure `rasterizeSlide` keep working;
+	 * `exportSlidePng` falls back to wrapping `rasterizeSlide`'s canvas when
+	 * omitted.
+	 */
+	rasterizeSlideToRaster?: (index: number) => Promise<RasterizeElementResult>;
+	/**
+	 * PDF export only: returns the slide's raw per-tile canvases (never
+	 * stitched) instead of a plain canvas. Optional so existing test fixtures
+	 * that only configure `rasterizeSlide` keep working; `exportPdf` falls
+	 * back to `rasterizeSlide`'s single canvas (unchanged, one `addImage`
+	 * per page) when omitted.
+	 */
+	rasterizeSlideToTiles?: (index: number) => Promise<RasterizeElementTilesResult>;
 	/** Base file name (without extension) for downloads. Defaults to `presentation`. */
 	fileName?: Ref<string> | string;
 }
@@ -64,11 +87,10 @@ export function useExport(options: UseExportOptions): UseExportResult {
 		}
 		exporting.value = true;
 		try {
-			const canvas = await rasterizeSlide(index);
-			downloadDataUrl(
-				canvas.toDataURL('image/png'),
-				`${resolveBaseName(options.fileName)}-slide-${index + 1}.png`,
-			);
+			const dataUrl = options.rasterizeSlideToRaster
+				? await rasterResultToPngDataUrl(await options.rasterizeSlideToRaster(index))
+				: (await rasterizeSlide(index)).toDataURL('image/png');
+			downloadDataUrl(dataUrl, `${resolveBaseName(options.fileName)}-slide-${index + 1}.png`);
 		} finally {
 			exporting.value = false;
 		}
@@ -91,11 +113,37 @@ export function useExport(options: UseExportOptions): UseExportResult {
 					throw exportAbortError();
 				}
 				onProgress?.(i, total);
-				const canvas = await rasterizeSlide(i);
 				if (i > 0) {
 					pdf.addPage([width, height], orientation);
 				}
-				pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
+				if (options.rasterizeSlideToTiles) {
+					// Each tile stays individually within the browser canvas cap (it
+					// came from one), so a page whose full resolution would exceed
+					// the cap is composed of several small tile images instead of
+					// one oversized canvas. A single-tile slide (the overwhelming
+					// majority) degrades to exactly one `addImage` call, unchanged.
+					const tilesResult = await options.rasterizeSlideToTiles(i);
+					for (const tile of tilesResult.tiles) {
+						const placement = placeTileOnPage(
+							tile,
+							tilesResult.fullWidth,
+							tilesResult.fullHeight,
+							width,
+							height,
+						);
+						pdf.addImage(
+							tile.canvas.toDataURL('image/png'),
+							'PNG',
+							placement.x,
+							placement.y,
+							placement.width,
+							placement.height,
+						);
+					}
+				} else {
+					const canvas = await rasterizeSlide(i);
+					pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
+				}
 			}
 			pdf.save(`${resolveBaseName(options.fileName)}.pdf`);
 		} finally {

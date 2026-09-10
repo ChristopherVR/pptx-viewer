@@ -127,7 +127,12 @@ export function createExportLifecycle(deps: ExportLifecycleDeps): ExportLifecycl
 	const rasterizer = createRasterizeSlide(deps);
 	const controller: ExportController = createExportController({
 		store: deps.store,
-		rasterizeSlide: (index) => rasterizer.rasterizeSlide(index),
+		// Forwarded directly (not re-wrapped in a single-arg arrow) so a caller's
+		// `scaleMultiplier` (the print path's Options > Advanced > "High
+		// quality" doubling) survives the trip through `ExportControllerDeps`.
+		rasterizeSlide: rasterizer.rasterizeSlide,
+		rasterizeSlideToRaster: rasterizer.rasterizeSlideToRaster,
+		rasterizeSlideToTiles: rasterizer.rasterizeSlideToTiles,
 		fileName: deps.fileName,
 		getTranslator: deps.getTranslator,
 		getIncludeHiddenSlides: deps.getIncludeHiddenSlides,
