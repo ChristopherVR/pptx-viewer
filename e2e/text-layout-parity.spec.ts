@@ -118,6 +118,10 @@ test.describe('cross-binding text layout', () => {
 		await target.dblclick();
 		const editor = page.locator('[data-inline-editor]');
 		await editor.waitFor();
+		const editingText = await editor.evaluate((node) =>
+			node instanceof HTMLTextAreaElement ? node.value : (node as HTMLElement).innerText,
+		);
+		expect(editingText).toContain('Alpha Beta');
 		const stageBox = (await slideStage(page).boundingBox())!;
 		await page.mouse.click(stageBox.x + stageBox.width * 0.95, stageBox.y + stageBox.height * 0.95);
 		await expect(editor).toBeHidden();
