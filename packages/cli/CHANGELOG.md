@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.13.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.1) - 2026-09-10
+
+### Bug Fixes
+
+- **react,vue:** Honor explicit slide insertion indexes ([#225](https://github.com/ChristopherVR/pptx-viewer/issues/225)) (by @Sudhansh6) ([23931e0](https://github.com/ChristopherVR/pptx-viewer/commit/23931e028b442abe5fe3a4d613a2f2037322a30b))
+
 ## [2.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.0) - 2026-09-10
 
 ### Features
