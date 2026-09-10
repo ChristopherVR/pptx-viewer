@@ -64,12 +64,12 @@ The **File > Info** page offers:
 
 ## Fidelity and size notes
 
-::: warning Raster exports are an approximation
-PNG, PDF, GIF, and video exports rasterize the on-screen slide using `html2canvas`. Most content captures faithfully, but a few CSS effects are approximated during capture, so minor visual differences are possible. See [Limitations](/guide/limitations) for the complete list.
+::: tip Raster exports match the screen closely
+PNG, PDF, GIF, and video exports capture the on-screen slide as a self-contained SVG document and let your browser's own rendering engine draw it, so effects like blurred/transparent backgrounds, custom colors, and 3D bevels come through instead of being approximated. `html2canvas` is only used as a fallback, for the rare resource (an uncredentialed cross-origin image, or a font that fails to load) that cannot be captured this way. See [Limitations](/guide/limitations) for the small set of remaining CSS approximations.
 :::
 
 ::: info Very large slides
-Raster exports are bounded by your browser's maximum canvas size. Extremely large slides exported at high scale may hit this limit.
+An export whose resolution would exceed your browser's maximum canvas size is automatically split into tiles and reassembled into the final file, so an extremely large slide exported at a high scale still produces a complete, correctly-sized PNG, PDF, GIF, or video rather than being capped or cut off. No setting to change; this happens transparently.
 :::
 
 ## Next
