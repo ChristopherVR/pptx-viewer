@@ -193,7 +193,14 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	surface.dataset.inlineEditor = '';
 	surface.setAttribute('role', 'textbox');
 	surface.setAttribute('aria-multiline', 'true');
+	let textContainer = surface;
 	if (withText?.textSegments?.length) {
+		// The text-block style makes the surface a flex column so vertical
+		// alignment applies to paragraphs. Keep rich-text runs inside one flex
+		// item; direct flex children are blockified onto separate rows.
+		const textFlow = doc.createElement('div');
+		textFlow.dataset.pptxTextFlow = '';
+		textContainer = textFlow;
 		const segments = withText.textSegments;
 		segments.forEach((segment, index) => {
 			const span = doc.createElement('span');
@@ -216,8 +223,9 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 			} else {
 				span.textContent = segment.text;
 			}
-			surface.appendChild(span);
+			textFlow.appendChild(span);
 		});
+		surface.appendChild(textFlow);
 	} else {
 		surface.textContent = initialText;
 	}
@@ -273,7 +281,7 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	surface.focus();
 	// Caret at the END of the seeded text so typing appends (the contract the
 	// other bindings follow; focus alone leaves the caret at the start).
-	placeCaretAtEnd(surface);
+	placeCaretAtEnd(textContainer);
 
 	return {
 		el: surface,

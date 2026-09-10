@@ -985,17 +985,17 @@ export class SlideCanvasComponent implements SlideContext {
 			return;
 		}
 		const editor = event.target as HTMLTextAreaElement;
+		const text = this.viewerOpts ? this.viewerOpts.autoCorrect(editor.value) : editor.value;
 		// `a:spAutoFit` ("Resize shape to fit text"): grow/shrink the shape to
-		// the text's natural content height, the way PowerPoint does. `editor`
-		// is the live, still-mounted textarea (this handler runs off its own
-		// `blur`), so no separate DOM lookup is needed here.
-		const height = resolveCommitTextAutoFitHeight(this.allElements(), id, editor);
+		// the text's natural content height after a real edit. `editor` is the
+		// live, still-mounted textarea (this handler runs off its own `blur`), so
+		// no separate DOM lookup is needed here.
+		const height = resolveCommitTextAutoFitHeight(this.allElements(), id, text, editor);
 		// `a:normAutofit` ("Shrink text on overflow"): recompute the font
 		// scale/line-spacing reduction so the (possibly now longer or shorter)
 		// text still fits the shape. Mutually exclusive with the `spAutoFit`
 		// resize above (both read `autoFitMode`, only one mode is ever set).
-		const shrink = resolveCommitTextNormAutofitShrink(this.allElements(), id, editor);
-		const text = this.viewerOpts ? this.viewerOpts.autoCorrect(editor.value) : editor.value;
+		const shrink = resolveCommitTextNormAutofitShrink(this.allElements(), id, text, editor);
 		this.textCommit.emit({
 			id,
 			text,

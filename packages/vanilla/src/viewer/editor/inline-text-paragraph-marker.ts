@@ -30,8 +30,9 @@ export function markInsertedParagraph(doc: Document, surface: HTMLElement): void
 		return;
 	}
 	const block = insertedRun.closest<HTMLElement>('div, p');
+	const isTextFlow = block?.hasAttribute('data-pptx-text-flow');
 	const caretParagraph =
-		block && block !== surface && surface.contains(block) ? block : insertedRun;
+		block && block !== surface && !isTextFlow && surface.contains(block) ? block : insertedRun;
 	const previous = caretParagraph.previousElementSibling;
 	const paragraph =
 		previous instanceof HTMLElement &&

@@ -43,14 +43,10 @@ describe('openInlineEditor caret placement', () => {
 		expect(sel!.rangeCount).toBe(1);
 		const range = sel!.getRangeAt(0);
 		expect(range.collapsed).toBeTruthy();
-		// End position: after the last child (segment span) of the surface, or at
-		// the end of its trailing text node.
-		const endsAtEnd =
-			(range.endContainer === session.el && range.endOffset === session.el.childNodes.length) ||
-			(range.endContainer.nodeType === Node.TEXT_NODE &&
-				range.endContainer.textContent === 'TARGET' &&
-				range.endOffset === 'TARGET'.length);
-		expect(endsAtEnd).toBeTruthy();
+		const beforeCaret = document.createRange();
+		beforeCaret.selectNodeContents(session.el);
+		beforeCaret.setEnd(range.endContainer, range.endOffset);
+		expect(beforeCaret.toString()).toBe('TARGET');
 
 		session.cancel();
 		overlayRoot.remove();
@@ -118,9 +114,10 @@ describe('openInlineEditor caret placement', () => {
 				onSelectionChange,
 				onClose: () => {},
 			});
+			const segmentSpans = session.el.querySelectorAll('[data-seg-idx]');
 			const range = document.createRange();
-			range.setStart(session.el.childNodes[startChild].firstChild!, startOffset);
-			range.setEnd(session.el.childNodes[endChild].firstChild!, endOffset);
+			range.setStart(segmentSpans[startChild].firstChild!, startOffset);
+			range.setEnd(segmentSpans[endChild].firstChild!, endOffset);
 			const selection = window.getSelection()!;
 			selection.removeAllRanges();
 			selection.addRange(range);
@@ -137,6 +134,40 @@ describe('openInlineEditor caret placement', () => {
 			overlayRoot.remove();
 		},
 	);
+
+	it('keeps adjacent rich-text runs in one flex item', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: {
+				...textElement(),
+				text: 'Alpha Beta',
+				textSegments: [
+					{ text: 'Alpha ', style: { bold: true } },
+					{ text: 'Beta', style: { italic: true } },
+				],
+			} as PptxElement,
+			onCommit: () => {},
+			onClose: () => {},
+		});
+
+		expect(session.el.style.flexDirection).toBe('column');
+		expect(session.el.children).toHaveLength(1);
+		const flow = session.el.querySelector('[data-pptx-text-flow]');
+		expect(flow?.parentElement).toBe(session.el);
+		expect(flow?.tagName).toBe('DIV');
+		expect(
+			Array.from(flow?.querySelectorAll('[data-seg-idx]') ?? []).map((span) => span.textContent),
+		).toStrictEqual(['Alpha ', 'Beta']);
+		expect(readEditableText(session.el)).toBe('Alpha Beta');
+
+		session.cancel();
+		overlayRoot.remove();
+	});
 });
 
 describe('openInlineEditor input handling', () => {
@@ -255,7 +286,8 @@ describe('openInlineEditor input handling', () => {
 		const inserted = document.createElement('span');
 		inserted.dataset.segIdx = '0';
 		inserted.appendChild(document.createElement('br'));
-		session.el.appendChild(inserted);
+		const textFlow = session.el.querySelector<HTMLElement>('[data-pptx-text-flow]')!;
+		textFlow.appendChild(inserted);
 		const range = document.createRange();
 		range.setStart(inserted, 0);
 		range.collapse(true);
@@ -278,7 +310,7 @@ describe('openInlineEditor input handling', () => {
 		nestedRun.dataset.segIdx = '0';
 		nestedRun.appendChild(document.createElement('br'));
 		insertedBlock.appendChild(nestedRun);
-		session.el.appendChild(insertedBlock);
+		textFlow.appendChild(insertedBlock);
 		range.setStart(nestedRun, 0);
 		range.collapse(true);
 		selection.removeAllRanges();
@@ -313,10 +345,11 @@ describe('openInlineEditor input handling', () => {
 		});
 
 		const originalRun = session.el.querySelector<HTMLElement>('[data-seg-idx="0"]')!;
+		const textFlow = originalRun.parentElement!;
 		const leading = document.createElement('span');
 		leading.dataset.segIdx = '0';
 		leading.appendChild(document.createElement('br'));
-		session.el.insertBefore(leading, originalRun);
+		textFlow.insertBefore(leading, originalRun);
 		const range = document.createRange();
 		range.setStart(originalRun.firstChild!, 0);
 		range.collapse(true);
@@ -351,9 +384,10 @@ describe('openInlineEditor input handling', () => {
 		});
 
 		const originalRun = session.el.querySelector<HTMLElement>('[data-seg-idx="0"]')!;
+		const textFlow = originalRun.parentElement!;
 		originalRun.dataset.segIdx = '1';
 		const originalBlock = document.createElement('div');
-		session.el.insertBefore(originalBlock, originalRun);
+		textFlow.insertBefore(originalBlock, originalRun);
 		originalBlock.appendChild(originalRun);
 		const leadingBlock = document.createElement('div');
 		const marker = document.createElement('span');
@@ -364,7 +398,7 @@ describe('openInlineEditor input handling', () => {
 		leadingRun.dataset.segIdx = '1';
 		leadingRun.appendChild(document.createElement('br'));
 		leadingBlock.append(marker, leadingRun);
-		session.el.insertBefore(leadingBlock, originalBlock);
+		textFlow.insertBefore(leadingBlock, originalBlock);
 		const range = document.createRange();
 		range.setStart(originalRun.firstChild!, 0);
 		range.collapse(true);

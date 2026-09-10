@@ -53,6 +53,8 @@ const SAMPLE = fixture('sample-deck.pptx');
 const CJK = fixture('Japanese_10_Slides_1_8_MB_bbd4090b55.pptx');
 /** Real-world deck with authored blank paragraphs and hanging bullets. */
 const BLANK_PARAGRAPHS = fixture('solution-explorer.pptx');
+/** PowerPoint-authored title whose body uses a:spAutoFit. */
+const SHAPE_AUTOFIT = fixture('animation-builds-color.pptx');
 
 /** Load `deck`, show slide `slideNumber`, and measure every run on it. */
 async function runsOfSlide(
@@ -116,6 +118,10 @@ test.describe('cross-binding text layout', () => {
 		await target.dblclick();
 		const editor = page.locator('[data-inline-editor]');
 		await editor.waitFor();
+		const editingText = await editor.evaluate((node) =>
+			node instanceof HTMLTextAreaElement ? node.value : (node as HTMLElement).innerText,
+		);
+		expect(editingText).toContain('Alpha Beta');
 		const stageBox = (await slideStage(page).boundingBox())!;
 		await page.mouse.click(stageBox.x + stageBox.width * 0.95, stageBox.y + stageBox.height * 0.95);
 		await expect(editor).toBeHidden();
@@ -124,6 +130,38 @@ test.describe('cross-binding text layout', () => {
 		expect(after, 'found the rich-text element after editing').toBeDefined();
 		expect(diffTextRuns([before!], [after!]).join('\n')).toBe('');
 		await expect(undo).toBeDisabled();
+	});
+
+	test('an unchanged spAutoFit edit preserves the authored height and clean history', async ({
+		page,
+	}) => {
+		await loadDeck(page, SHAPE_AUTOFIT);
+		await slideStage(page).waitFor();
+		await page.waitForTimeout(400);
+		const undo = page.getByRole('button', { name: /^undo/iu }).first();
+		await expect(undo).toBeDisabled();
+		await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
+
+		const target = page
+			.locator('[data-pptx-viewport] [data-element-id]')
+			.filter({ hasText: 'Chart Build Slide' })
+			.first();
+		await target.waitFor();
+		const before = await target.boundingBox();
+		expect(before, 'found the authored spAutoFit title before editing').not.toBeNull();
+
+		await target.dblclick();
+		const editor = page.locator('[data-inline-editor]');
+		await editor.waitFor();
+		const stageBox = (await slideStage(page).boundingBox())!;
+		await page.mouse.click(stageBox.x + stageBox.width * 0.95, stageBox.y + stageBox.height * 0.95);
+		await expect(editor).toBeHidden();
+
+		const after = await target.boundingBox();
+		expect(after, 'found the authored spAutoFit title after editing').not.toBeNull();
+		expect(after!.height).toBeCloseTo(before!.height, 1);
+		await expect(undo).toBeDisabled();
+		await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
 	});
 
 	test('autofit, wrap="none", default fonts and run splitting agree run for run', async ({
