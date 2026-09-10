@@ -13,9 +13,16 @@ import { SCHEME } from '../color-scheme';
 import type { PptDeck, PptSlideModel } from '../ppt-model';
 import type { HyperlinkRelAllocator } from './hyperlink-xml';
 import { slideLayoutXml, slideMasterXml, themeXml } from './master-writer';
+import {
+	addSlideOleRelationships,
+	computeOleFileNumbers,
+	writeOleEmbeddings,
+} from './package-writer-ole';
+import { contentTypesXml, presentationRelsXml, presentationXml } from './package-writer-parts';
+import type { MediaUsage } from './package-writer-parts';
 import { shapeXml } from './shape-writer';
 import type { ShapeWriterContext } from './shape-writer';
-import { solidFill } from './xml-utils';
+import { PML_XMLNS, solidFill } from './xml-utils';
 
 const HYPERLINK_REL_TYPE =
 	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink';
@@ -40,31 +47,11 @@ function makeHyperlinkRelAllocator(
 	};
 }
 
-const CONTENT_TYPE_BY_EXT: Record<string, string> = {
-	png: 'image/png',
-	jpg: 'image/jpeg',
-	bmp: 'image/bmp',
-	gif: 'image/gif',
-	tiff: 'image/tiff',
-	emf: 'image/x-emf',
-	wmf: 'image/x-wmf',
-	pict: 'image/x-pict',
-};
-
-const XMLNS =
-	'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
-	'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
-	'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
-
-interface MediaUsage {
-	/** pictureIndex -> media file number (1-based). */
-	fileNumbers: Map<number, number>;
-}
-
 function slideXml(
 	deck: PptDeck,
 	slide: PptSlideModel,
 	relIdByPicture: Map<number, string>,
+	relIdByOle: Map<number, string>,
 	relsOut: string[],
 	relCounterStart: { n: number },
 ): string {
@@ -74,6 +61,14 @@ function slideXml(
 		mediaRel: (pictureIndex) => {
 			const relId = relIdByPicture.get(pictureIndex);
 			return relId ? { relId } : undefined;
+		},
+		oleRel: (exObjId) => {
+			const relId = relIdByOle.get(exObjId);
+			if (!relId) {
+				return undefined;
+			}
+			const embed = deck.oleEmbeds.get(exObjId);
+			return { relId, progId: embed?.progId, clsId: embed?.clsId };
 		},
 		hyperlinkRels: makeHyperlinkRelAllocator(relsOut, relCounterStart),
 		slideCount: deck.slides.length,
@@ -87,7 +82,7 @@ function slideXml(
 		: '';
 	const showMaster = slide.followMasterObjects ? '' : ' showMasterSp="0"';
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sld ${XMLNS}${showMaster}>
+<p:sld ${PML_XMLNS}${showMaster}>
   <p:cSld>
     ${bg}
     <p:spTree>
@@ -104,7 +99,7 @@ function collectPictureIndexes(slide: PptSlideModel): number[] {
 	const indexes: number[] = [];
 	const visit = (shapes: PptSlideModel['shapes']): void => {
 		for (const shape of shapes) {
-			if (shape.kind === 'picture') {
+			if (shape.kind === 'picture' || shape.kind === 'ole') {
 				indexes.push(shape.pictureIndex);
 			} else if (shape.kind === 'group') {
 				visit(shape.children);
@@ -113,69 +108,6 @@ function collectPictureIndexes(slide: PptSlideModel): number[] {
 	};
 	visit(slide.shapes);
 	return indexes;
-}
-
-function contentTypesXml(deck: PptDeck, usage: MediaUsage): string {
-	const extensions = new Set<string>();
-	for (const [pictureIndex] of usage.fileNumbers) {
-		const picture = deck.pictures[pictureIndex];
-		if (picture) {
-			extensions.add(picture.extension);
-		}
-	}
-	const defaults = [...extensions]
-		.map(
-			(ext) =>
-				`  <Default Extension="${ext}" ContentType="${CONTENT_TYPE_BY_EXT[ext] ?? 'application/octet-stream'}"/>`,
-		)
-		.join('\n');
-	const slideOverrides = deck.slides
-		.map(
-			(_slide, i) =>
-				`  <Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`,
-		)
-		.join('\n');
-	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-${defaults}
-  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
-  <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
-  <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
-${slideOverrides}
-  <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
-  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
-</Types>`;
-}
-
-function presentationXml(deck: PptDeck): string {
-	const slideIds = deck.slides
-		.map((_slide, i) => `    <p:sldId id="${256 + i}" r:id="rId${3 + i}"/>`)
-		.join('\n');
-	const sldIdLst = deck.slides.length > 0 ? `  <p:sldIdLst>\n${slideIds}\n  </p:sldIdLst>\n` : '';
-	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:presentation ${XMLNS}>
-  <p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>
-${sldIdLst}  <p:sldSz cx="${deck.widthEmu}" cy="${deck.heightEmu}"/>
-  <p:notesSz cx="${deck.heightEmu}" cy="${deck.widthEmu}"/>
-</p:presentation>`;
-}
-
-function presentationRelsXml(deck: PptDeck): string {
-	const slideRels = deck.slides
-		.map(
-			(_slide, i) =>
-				`  <Relationship Id="rId${3 + i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${i + 1}.xml"/>`,
-		)
-		.join('\n');
-	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
-${slideRels}
-</Relationships>`;
 }
 
 /**
@@ -201,7 +133,12 @@ export async function buildPptxPackage(deck: PptDeck): Promise<ArrayBuffer> {
 		zip.file(`ppt/media/image${fileNumber}.${picture.extension}`, picture.bytes);
 	}
 
-	zip.file('[Content_Types].xml', contentTypesXml(deck, usage));
+	// Assign embedding file numbers to every used OLE embed that resolved to
+	// non-empty storage bytes, and write those parts.
+	const oleFileNumbers = computeOleFileNumbers(deck);
+	writeOleEmbeddings(zip, deck, oleFileNumbers);
+
+	zip.file('[Content_Types].xml', contentTypesXml(deck, usage, oleFileNumbers.size > 0));
 	zip.file(
 		'_rels/.rels',
 		`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -220,6 +157,7 @@ export async function buildPptxPackage(deck: PptDeck): Promise<ArrayBuffer> {
 	const masterCtx: ShapeWriterContext = {
 		nextId: () => masterShapeId++,
 		mediaRel: () => undefined,
+		oleRel: () => undefined,
 		hyperlinkRels: makeHyperlinkRelAllocator(masterRels, { n: 2 }),
 		slideCount: deck.slides.length,
 	};
@@ -261,7 +199,8 @@ ${masterRels.join('\n')}
 			);
 		}
 		const relCounterState = { n: relCounter };
-		const slideBody = slideXml(deck, slide, relIdByPicture, mediaRels, relCounterState);
+		const relIdByOle = addSlideOleRelationships(slide, oleFileNumbers, relCounterState, mediaRels);
+		const slideBody = slideXml(deck, slide, relIdByPicture, relIdByOle, mediaRels, relCounterState);
 		zip.file(`ppt/slides/slide${i + 1}.xml`, slideBody);
 		zip.file(
 			`ppt/slides/_rels/slide${i + 1}.xml.rels`,

@@ -88,3 +88,9 @@ export function solidFill(rgb: string): string {
 export function emu(value: number): number {
 	return Math.round(value);
 }
+
+/** The `a:`/`r:`/`p:` namespace declarations every top-level presentation part needs. */
+export const PML_XMLNS =
+	'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+	'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+	'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';

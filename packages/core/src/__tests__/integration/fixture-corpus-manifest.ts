@@ -553,6 +553,21 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'e2e/ole-edit-content.spec.ts.',
 	},
 	{
+		file: 'ole-embed-excel.ppt',
+		dir: 'e2e',
+		provenance: 'powerpoint',
+		status: 'legacy-ppt',
+		note:
+			'scripts/make-ole-embed-excel-fixture.ps1: real PowerPoint COM ' +
+			'(Shapes.AddOLEObject(ClassName:="Excel.Sheet.8"), no source file), Sheet1!A1="Hello ' +
+			'from Excel", B1=42, saved via Presentations.SaveAs(..., 1) (ppSaveAsPresentation, the ' +
+			'97-2003 binary format). Measured: OLEFormat.ProgID="Excel.Sheet.8", Shape.Type=7 ' +
+			"(msoEmbeddedOLEObject). Ground truth for the legacy .ppt reader's OLE read-back " +
+			"(ole-embed-parser.ts): a NATIVE embedded OLE storage, unlike this project's own " +
+			'"Package"-wrapped writer output (see ppt-writer-roundtrip.test.ts\'s OLE case). Drives ' +
+			'ole-embed-excel-fixture.test.ts.',
+	},
+	{
 		file: 'parity-wave4.pptx',
 		dir: 'e2e',
 		provenance: 'synthetic',

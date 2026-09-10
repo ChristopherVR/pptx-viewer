@@ -12,10 +12,11 @@ import { DEFAULT_SCHEME, findSchemeColors } from './color-scheme';
 import type { PptColorScheme } from './color-scheme';
 import { EncryptedPptError } from './current-user';
 import { parseHyperlinkStrings } from './hyperlink-parser';
+import { collectOleExObjIds, parseOleEmbedRefs, resolveOleEmbedStorage } from './ole-embed-parser';
 import { buildPersistDirectory } from './persist-directory';
 import type { PersistDirectory } from './persist-directory';
 import { parsePictures } from './pictures';
-import type { PptDeck, PptSlideModel } from './ppt-model';
+import type { PptDeck, PptOleEmbedData, PptSlideModel } from './ppt-model';
 import {
 	PptParseError,
 	findChild,
@@ -153,6 +154,8 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 
 	const fonts = parseFonts(view, docContainer);
 	const hyperlinkStrings = parseHyperlinkStrings(view, docContainer);
+	const oleEmbedRefs = parseOleEmbedRefs(view, docContainer);
+	const oleExObjIds = new Set(oleEmbedRefs.keys());
 
 	// Main master: first entry of the MasterListWithText (instance 1).
 	let masterPersistId: number | undefined;
@@ -182,6 +185,7 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 				docScheme,
 				masterRec,
 				hyperlinkStrings,
+				oleExObjIds,
 			);
 			if (master.scheme) {
 				scheme = master.scheme;
@@ -215,6 +219,7 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 					masterScheme: scheme,
 					outlineText: outline.get(persistId),
 					hyperlinkStrings,
+					oleExObjIds,
 				},
 				rec,
 			),
@@ -228,6 +233,26 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 		bstoreRec ? { view, rec: bstoreRec } : undefined,
 	);
 
+	// OLE embeds: resolved only for exObjIds an actual 'ole' shape ended up
+	// referencing (decompression is async, so this happens after every shape
+	// has been parsed; see `ole-embed-parser.ts`'s doc comment).
+	const usedExObjIds = new Set<number>();
+	collectOleExObjIds(masterShapes, usedExObjIds);
+	for (const s of slides) {
+		collectOleExObjIds(s.shapes, usedExObjIds);
+	}
+	const oleEmbeds = new Map<number, PptOleEmbedData>();
+	for (const exObjId of usedExObjIds) {
+		const ref = oleEmbedRefs.get(exObjId);
+		if (!ref) {
+			continue;
+		}
+		const resolved = await resolveOleEmbedStorage(view, data, directory, ref);
+		if (resolved) {
+			oleEmbeds.set(exObjId, resolved);
+		}
+	}
+
 	return {
 		widthEmu,
 		heightEmu,
@@ -239,5 +264,6 @@ export async function parseDeck(streams: PptStreams): Promise<PptDeck> {
 		titleStyles,
 		bodyStyles,
 		pictures: pictures.map((p) => p ?? { extension: 'png', bytes: new Uint8Array(0) }),
+		oleEmbeds,
 	};
 }

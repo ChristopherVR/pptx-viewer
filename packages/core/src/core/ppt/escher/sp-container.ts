@@ -8,15 +8,14 @@
 
 import type { PptColorScheme } from '../color-scheme';
 import { resolveEscherColor } from '../color-scheme';
-import { collectTextHyperlinkRanges, resolveShapeInteractiveInfo } from '../hyperlink-parser';
+import { resolveShapeInteractiveInfo } from '../hyperlink-parser';
 import type { RawHyperlinkStrings } from '../hyperlink-parser';
-import type { PptAnyShape, PptShape, PptTextBody } from '../ppt-model';
+import type { PptAnyShape, PptShape } from '../ppt-model';
 import { findChild, isContainer, iterateChildren } from '../record-stream';
 import type { PptRecord } from '../record-stream';
-import { OA, RT } from '../record-types';
-import { collectTextBodies, findOutlineTextRef } from '../text/text-atoms';
+import { OA } from '../record-types';
 import type { PptRawText } from '../text/text-atoms';
-import { buildTextBody } from '../text/text-builder';
+import { extractExObjId, extractPlaceholder, extractText } from './client-data-extract';
 import { CONNECTOR_TYPES, presetForShapeType } from './geometry-map';
 import { OPT, decodeComplexString, parseProperties, rotationToDegrees } from './properties';
 import type { EscherProperties } from './properties';
@@ -32,6 +31,14 @@ export interface DrawingContext {
 	rawOutlineText: PptRawText[] | undefined;
 	/** Document-wide hyperlink string lookup (see `hyperlink-parser.ts`). */
 	hyperlinkStrings: Map<number, RawHyperlinkStrings>;
+	/**
+	 * `exObjId`s known to be OLE embeds (see `ole-embed-parser.ts`'s
+	 * `parseOleEmbedRefs`), so a picture-frame shape whose `ExObjRefAtom`
+	 * points at one of these is read as a `PptOleObject` instead of a plain
+	 * `PptPicture`. The actual embedded bytes are resolved separately
+	 * (async), after every shape is parsed; see `document-parser.ts`.
+	 */
+	oleExObjIds: Set<number>;
 }
 
 /** Result of parsing a drawing container. */
@@ -46,42 +53,6 @@ const FSP_FLAG_DELETED = 0x0008;
 const FSP_FLAG_FLIPH = 0x0040;
 const FSP_FLAG_FLIPV = 0x0080;
 const FSP_FLAG_BACKGROUND = 0x0400;
-
-const PLACEHOLDER_TYPE_MAP: Record<number, string> = {
-	13: 'title',
-	14: 'body',
-	15: 'ctrTitle',
-	16: 'subTitle',
-};
-
-/** Extract the text body (including any run-level hyperlinks) from a client textbox record. */
-function extractText(ctx: DrawingContext, clientTextbox: PptRecord): PptTextBody | undefined {
-	const start = clientTextbox.dataOffset;
-	const end = clientTextbox.dataOffset + clientTextbox.recLen;
-	const hyperlinkRanges = collectTextHyperlinkRanges(ctx.view, start, end, ctx.hyperlinkStrings);
-	const outlineRef = findOutlineTextRef(ctx.view, start, end);
-	if (outlineRef !== undefined && ctx.rawOutlineText) {
-		const raw = ctx.rawOutlineText[outlineRef];
-		if (raw) {
-			return buildTextBody(raw, ctx.fonts, hyperlinkRanges);
-		}
-	}
-	const bodies = collectTextBodies(ctx.view, start, end, ctx.scheme);
-	if (bodies.length === 0) {
-		return undefined;
-	}
-	return buildTextBody(bodies[0], ctx.fonts, hyperlinkRanges);
-}
-
-/** Read the placeholder type from the client data, when present. */
-function extractPlaceholder(ctx: DrawingContext, clientData: PptRecord): string | undefined {
-	const placeholder = findChild(ctx.view, clientData, RT.OEPlaceholderAtom);
-	if (!placeholder || placeholder.recLen < 5) {
-		return undefined;
-	}
-	const placeholderId = ctx.view.getUint8(placeholder.dataOffset + 4);
-	return PLACEHOLDER_TYPE_MAP[placeholderId];
-}
 
 /** Parse a single (non-group) OfficeArtSpContainer. */
 function parseShape(ctx: DrawingContext, container: PptRecord): PptAnyShape | undefined {
@@ -120,9 +91,25 @@ function parseShape(ctx: DrawingContext, container: PptRecord): PptAnyShape | un
 		? resolveShapeInteractiveInfo(ctx.view, clientData, ctx.hyperlinkStrings)
 		: undefined;
 
-	// Picture shape: pib references the picture collection (1-based).
+	// Picture shape: pib references the picture collection (1-based). One
+	// carrying an ExObjRefAtom into a known OLE embed is read as an OLE
+	// object instead of a plain picture (the pib is still its preview).
 	const pib = props.values.get(OPT.pib);
 	if (pib !== undefined && pib > 0) {
+		const exObjId = clientData ? extractExObjId(ctx, clientData) : undefined;
+		if (exObjId !== undefined && ctx.oleExObjIds.has(exObjId)) {
+			return {
+				kind: 'ole',
+				pictureIndex: pib - 1,
+				exObjId,
+				name,
+				anchor,
+				rotationDeg,
+				flipH,
+				flipV,
+				actionClick,
+			};
+		}
 		return {
 			kind: 'picture',
 			pictureIndex: pib - 1,

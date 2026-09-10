@@ -96,6 +96,23 @@ export interface PptPicture extends PptShapeBase {
 	pictureIndex: number;
 }
 
+/**
+ * A picture-frame shape whose `OfficeArtClientData` carries an `ExObjRefAtom`
+ * pointing at a document-level OLE embed (`ExOleEmbedContainer` /
+ * `ExOleObjStg`), the inverse of `writer/ole-writer.ts`. Keeps both the
+ * picture-frame preview (same `pictureIndex` a plain `PptPicture` would use)
+ * and a reference to the recovered embedded payload, resolved separately
+ * into `PptDeck.oleEmbeds` (see `ole-embed-parser.ts`) since resolving it
+ * needs async decompression while shape parsing itself stays synchronous.
+ */
+export interface PptOleObject extends PptShapeBase {
+	kind: 'ole';
+	/** Zero-based index into PptDeck.pictures (the picture-frame preview). */
+	pictureIndex: number;
+	/** `ExOleEmbedContainer`'s `exObjId`; keys `PptDeck.oleEmbeds`. */
+	exObjId: number;
+}
+
 /** A group of shapes. */
 export interface PptGroup extends PptShapeBase {
 	kind: 'group';
@@ -105,7 +122,31 @@ export interface PptGroup extends PptShapeBase {
 }
 
 /** Any drawable element. */
-export type PptAnyShape = PptShape | PptPicture | PptGroup;
+export type PptAnyShape = PptShape | PptPicture | PptOleObject | PptGroup;
+
+/**
+ * One resolved OLE embed's recovered storage, keyed by `exObjId` in
+ * `PptDeck.oleEmbeds`.
+ */
+export interface PptOleEmbedData {
+	/**
+	 * Raw bytes recovered from the embed's `ExOleObjStg` (decompressed when
+	 * the storage was compressed): the nested OLE2 compound file this
+	 * project's own writer produces for every embed (see
+	 * `writer/ole-writer.ts#buildPackageStorage`), or whatever a real
+	 * PowerPoint-authored `.ppt` wrote there (e.g. a native `Excel.Sheet.8`
+	 * storage). Written verbatim as the synthesized PPTX's OLE embedding
+	 * part so the existing OOXML load pipeline
+	 * (`PptxHandlerRuntimeLoadSession.ts`'s `unwrapOleEmbedding` call) does
+	 * the actual "Package" unwrap once, in one place, instead of a second
+	 * copy of that logic living here.
+	 */
+	data: Uint8Array;
+	/** `ExOleEmbedContainer`'s `ProgIDAtom` string, when present. */
+	progId?: string;
+	/** The nested storage's root CLSID, formatted `XXXXXXXX-XXXX-...`, when recoverable. */
+	clsId?: string;
+}
 
 /** A parsed slide. */
 export interface PptSlideModel {
@@ -157,6 +198,8 @@ export interface PptDeck {
 	/** Body style levels (index = indent level). */
 	bodyStyles: PptMasterTextLevel[];
 	pictures: PptPictureData[];
+	/** Resolved OLE embeds, keyed by `exObjId` (see `PptOleObject`). */
+	oleEmbeds: Map<number, PptOleEmbedData>;
 }
 
 /** Raw outline/textbox text with unresolved style runs. */

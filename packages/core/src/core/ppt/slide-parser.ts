@@ -29,6 +29,8 @@ export interface SlideParseInputs {
 	outlineText: PptRawText[] | undefined;
 	/** Document-wide hyperlink string lookup (see `hyperlink-parser.ts`). */
 	hyperlinkStrings: Map<number, RawHyperlinkStrings>;
+	/** `exObjId`s known to be OLE embeds (see `ole-embed-parser.ts`). */
+	oleExObjIds: Set<number>;
 }
 
 /**
@@ -65,6 +67,7 @@ export function parseSlideContainer(inputs: SlideParseInputs, container: PptReco
 				fonts,
 				rawOutlineText: inputs.outlineText,
 				hyperlinkStrings: inputs.hyperlinkStrings,
+				oleExObjIds: inputs.oleExObjIds,
 			};
 			const parsed = parseDrawing(ctx, dgContainer);
 			slide.shapes = parsed.shapes;
@@ -97,6 +100,7 @@ export function parseMasterContainer(
 	fallbackScheme: PptColorScheme,
 	container: PptRecord,
 	hyperlinkStrings: Map<number, RawHyperlinkStrings>,
+	oleExObjIds: Set<number>,
 ): ParsedMaster {
 	const scheme = findSchemeColors(view, container);
 	const active = scheme ?? fallbackScheme;
@@ -114,6 +118,7 @@ export function parseMasterContainer(
 				fonts,
 				rawOutlineText: undefined,
 				hyperlinkStrings,
+				oleExObjIds,
 			};
 			const parsed = parseDrawing(ctx, dgContainer);
 			backgroundRgb = parsed.backgroundRgb;

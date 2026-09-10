@@ -8,8 +8,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { PptxHandler } from '../../PptxHandler';
-import type { PptxElement, PptxSlide } from '../../types';
+import type { OlePptxElement, PptxElement, PptxSlide } from '../../types';
 import { IncorrectPasswordError } from '../../utils';
+import { parseDataUrlToBytes } from '../../utils/data-url-utils';
 
 const PNG_1X1 =
 	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
@@ -349,9 +350,18 @@ describe('legacy .ppt writer: OLE embeds', () => {
 		const reloaded = await reloadHandler.load(bytes.buffer as ArrayBuffer);
 		expect(reloaded.slides).toHaveLength(1);
 		expect(reloaded.slides[0]!.elements.length).toBeGreaterThan(0);
-		expect(
-			reloaded.slides[0]!.elements.some((el) => el.type === 'picture' || el.type === 'image'),
-		).toBeTruthy();
+
+		// The .ppt reader now parses ExOleEmbedContainer/ExOleObjStg back into
+		// an editable 'ole' element (not just its picture-frame preview): the
+		// recovered embedded payload round-trips byte-identical to the
+		// original text.
+		const reloadedOle = reloaded.slides[0]!.elements.find(
+			(el): el is OlePptxElement => el.type === 'ole',
+		);
+		expect(reloadedOle).toBeDefined();
+		expect(reloadedOle?.oleEmbeddedData).toBeTruthy();
+		const recovered = parseDataUrlToBytes(reloadedOle!.oleEmbeddedData!);
+		expect(new TextDecoder().decode(recovered.bytes)).toBe('Hello embedded object');
 	});
 
 	it('degrades to a placeholder with a warning when no embedded payload is available', async () => {

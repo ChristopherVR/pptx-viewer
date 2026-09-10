@@ -13,6 +13,7 @@
  * @module ppt/pictures
  */
 
+import { inflateZlib } from './deflate-utils';
 import type { PptPictureData } from './ppt-model';
 import { iterateRecords, readRecord } from './record-stream';
 import type { PptRecord } from './record-stream';
@@ -35,22 +36,6 @@ const BLIP_TYPES: ReadonlyMap<number, BlipInfo> = new Map([
 	[OA.BlipTiff, { extension: 'tiff', isMetafile: false, singleUidInstance: 0x6e4 }],
 	[OA.BlipJpegCmyk, { extension: 'jpg', isMetafile: false, singleUidInstance: 0x6e2 }],
 ]);
-
-/** Inflate zlib-wrapped data via the standard DecompressionStream. */
-async function inflate(data: Uint8Array): Promise<Uint8Array | undefined> {
-	if (typeof DecompressionStream === 'undefined') {
-		return undefined;
-	}
-	try {
-		const stream = new Blob([data.slice().buffer as ArrayBuffer])
-			.stream()
-			.pipeThrough(new DecompressionStream('deflate'));
-		const out = new Uint8Array(await new Response(stream).arrayBuffer());
-		return out;
-	} catch {
-		return undefined;
-	}
-}
 
 /** Wrap a raw DIB (BITMAPINFOHEADER + data) into a BMP file. */
 function dibToBmp(dib: Uint8Array): Uint8Array {
@@ -103,7 +88,7 @@ async function decodeBlip(
 		const compression = view.getUint8(cursor + 32);
 		const payload = data.subarray(cursor + 34, end);
 		if (compression === 0) {
-			const inflated = await inflate(payload);
+			const inflated = await inflateZlib(payload);
 			if (!inflated) {
 				return undefined; // cannot decompress in this runtime
 			}
