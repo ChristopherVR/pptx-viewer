@@ -133,6 +133,38 @@ describe('arrangeCycle ctrShpMap', () => {
 		expect(result.nodes).toHaveLength(3);
 		expect(result.nodes.map((n) => n.nodeId).sort()).toStrictEqual(['n0', 'n1', 'n2']);
 	});
+
+	// ROUND 46: `radial-cluster--hier5.pptx`'s own nested `cycle_3` - a
+	// `hubRatio` resolved ONLY via a `userS` diagram-wide fact (never a direct
+	// local cross-role reference like the test above) carries no "this
+	// composite already names its own hub" meaning, so it must NOT suppress
+	// the `ctrShpMap="fNode"` peel the way a direct reference does.
+	it('a hubRatio resolved via userS indirection alone still strips ctrShpMap="fNode"\'s first point into a hub (unlike a direct cross-reference)', () => {
+		const plan = planFor({
+			name: 'cycle_3',
+			algorithm: { type: 'cycle', parameters: [{ type: 'ctrShpMap', value: 'fNode' }] },
+			constraints: [
+				{ type: 'userS', referenceType: 'w', referenceForName: 'textCenter', factor: 0.67 },
+			],
+			children: [
+				{
+					name: 'text3',
+					constraints: [
+						{ type: 'w', referenceType: 'userS' },
+						{ type: 'h', referenceType: 'w' },
+					],
+				},
+			],
+		});
+		const twoNodes = nodes(2); // n0 = hub ("Four"), n1 = satellite ("Five").
+		const result = arrangeCycle(plan, twoNodes, { width: 200, height: 200 }, ['#fff'], 'flat', 'e');
+		// n0 pulled out as the hub; only n1 remains on the ring.
+		expect(result.nodes).toHaveLength(2);
+		const hub = result.nodes.find((r) => r.nodeId === 'n0');
+		const satellite = result.nodes.find((r) => r.nodeId === 'n1');
+		expect(hub).toBeDefined();
+		expect(satellite).toBeDefined();
+	});
 });
 
 // Live-COM-verified against genuine PowerPoint output (round 11/SESSION 8

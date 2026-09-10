@@ -11,8 +11,11 @@
 import type { PptxSmartArtLayoutNode, PptxSmartArtWhen } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { resolveConstraint } from './smartart-constraint-solver';
+import type { HubToNodeRatio } from './smartart-layout-interpreter-cycle-hub-ratio-usersize';
 import { resolveHubToNodeRatioViaUserSize } from './smartart-layout-interpreter-cycle-hub-ratio-usersize';
 import { evaluateWhen } from './smartart-layout-interpreter-when';
+
+export type { HubToNodeRatio } from './smartart-layout-interpreter-cycle-hub-ratio-usersize';
 
 /**
  * `node.w = fact * <hubName>.w` (`radial-cycle`'s `w for="ch" forName="node"
@@ -76,7 +79,7 @@ export function resolveHubToNodeRatio(
 	arrangerRuleCandidates?: PptxSmartArtLayoutNode['ruleCandidates'],
 	satelliteCount?: number,
 	declaringRoleChain?: readonly string[],
-): { hubName: string; factor: number } | undefined {
+): HubToNodeRatio | undefined {
 	if (!ringItem?.name) {
 		return undefined;
 	}
@@ -195,27 +198,36 @@ function resolveRuleCountOverride(
  * `converging-radial` reference the HUB instead (`sp refForName="centerShape"`)
  * - converted to ring-item units via `hubFactor` (the hub's own natural width
  * is `1/hubFactor` in this unit space, same conversion `resolveHubToNodeRatio`
- * itself uses). Returns `undefined` when `sp` references neither name (a
- * plain ring's own `sp`, e.g. `basic-cycle`'s referencing `composite` itself,
- * or when no hub is present at all) so the caller keeps the existing,
- * COM-verified chord-only `r0` for every fixture this does not apply to.
+ * itself uses). A BARE `sp` (no `refForName` at all - `radial-cluster--
+ * hier5.pptx`'s own nested `cycle_3`: `<dgm:constr type="sp" refType="w"
+ * fact="0.1"/>`, no cross-role reference of any kind) is treated the SAME as
+ * an explicit self-reference to the ring item (`sp.factor` used directly,
+ * ECMA-376's own default-target convention for an unqualified reference) -
+ * round 45 measured this alone does not reproduce `cycle_3`'s own cached
+ * hub-to-satellite distance exactly (a further, still-unidentified factor
+ * remains - see `smartart-layout-interpreter-cycle.ts`'s own `n===1` hub
+ * doc comment), but it is the general, spec-consistent reading and a real
+ * improvement over the previous behaviour (`undefined`, no hub gap applied
+ * at all). Returns `undefined` when `sp` references some OTHER name (neither
+ * the item nor the hub) or no hub is present at all, so the caller keeps the
+ * existing, COM-verified chord-only `r0` for every fixture this does not
+ * apply to.
  */
 export function resolveHubGapRatio(
 	itemName: string | undefined,
-	hubRatio: { hubName: string; factor: number } | undefined,
+	hubRatio: HubToNodeRatio | undefined,
 	arrangerConstraints: PptxSmartArtLayoutNode['constraints'],
 ): number | undefined {
 	if (!hubRatio) {
 		return undefined;
 	}
 	const sp = (arrangerConstraints ?? []).find(
-		(c) =>
-			c.type === 'sp' && typeof c.factor === 'number' && typeof c.referenceForName === 'string',
+		(c) => c.type === 'sp' && typeof c.factor === 'number',
 	);
 	if (!sp || typeof sp.factor !== 'number') {
 		return undefined;
 	}
-	if (sp.referenceForName === itemName) {
+	if (sp.referenceForName === undefined || sp.referenceForName === itemName) {
 		return sp.factor;
 	}
 	if (sp.referenceForName === hubRatio.hubName) {

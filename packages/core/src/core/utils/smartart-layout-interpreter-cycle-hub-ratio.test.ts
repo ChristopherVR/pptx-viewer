@@ -285,6 +285,13 @@ describe('resolveHubGapRatio', () => {
 		expect(resolveHubGapRatio('node', hubRatio, [])).toBeUndefined();
 		expect(resolveHubGapRatio('node', hubRatio, undefined)).toBeUndefined();
 	});
+
+	it('round 46: treats a BARE `sp` (no referenceForName at all) the same as an explicit self-reference to the ring item ("radial-cluster"\'s own nested `cycle_3`: `<dgm:constr type="sp" refType="w" fact="0.1"/>`)', () => {
+		const gap = resolveHubGapRatio('node', { hubName: 'textCenter', factor: 1 }, [
+			{ type: 'sp', referenceType: 'w', factor: 0.1 },
+		]);
+		expect(gap).toBeCloseTo(0.1, 5);
+	});
 });
 
 // SESSION 14: `radial-cluster--hier5.pptx`'s own `singleCycle`/`text0` shape -
@@ -310,7 +317,7 @@ describe('resolveHubToNodeRatio (via userS indirection)', () => {
 				factor: 0.67,
 			},
 		]);
-		expect(ratio).toStrictEqual({ hubName: 'singleCenter', factor: 0.67 });
+		expect(ratio).toStrictEqual({ hubName: 'singleCenter', factor: 0.67, viaUserSize: true });
 	});
 
 	it('reads allConstraints over constraints, same convention as every other constraint lookup in this module', () => {
@@ -318,7 +325,7 @@ describe('resolveHubToNodeRatio (via userS indirection)', () => {
 			{ name: 'text0', allConstraints: bareUserSizeRef, constraints: [] },
 			[{ type: 'userS', referenceType: 'w', referenceForName: 'hub', factor: 0.5 }],
 		);
-		expect(ratio).toStrictEqual({ hubName: 'hub', factor: 0.5 });
+		expect(ratio).toStrictEqual({ hubName: 'hub', factor: 0.5, viaUserSize: true });
 	});
 
 	it('does not fire when the ring item declares no bare userS self-reference at all (a plain, non-userS ring item)', () => {

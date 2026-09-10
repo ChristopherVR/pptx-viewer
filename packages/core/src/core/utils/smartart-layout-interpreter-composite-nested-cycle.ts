@@ -89,6 +89,7 @@ export function arrangeNestedCycleSlot(
 	elementId: string,
 	fontName: string | undefined,
 	declaringRoleChain?: readonly string[],
+	sizeBox?: BoundingBox,
 ): RenderedNode[] | undefined {
 	const wrapper = wrapperSlot.node;
 	const nestedAnchor = resolveNestedCycleAnchor(wrapper, anchor, childrenOf);
@@ -118,6 +119,7 @@ export function arrangeNestedCycleSlot(
 		childrenOf,
 		fontName,
 		declaringRoleChain,
+		sizeBox,
 	);
 	return translateResult(result, rect.x, rect.y).nodes;
 }
@@ -161,6 +163,7 @@ export function renderChildRepeaterOrNestedCycle(
 		ctx.elementId,
 		fontName,
 		declaringRoleChain,
+		sizeBox,
 	);
 	if (nested) {
 		return nested;

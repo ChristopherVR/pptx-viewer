@@ -7,16 +7,16 @@
  * centred" model (round 11/SESSION 8: live PowerPoint COM proved cached
  * SmartArt geometry is placed at its OWN constraint-derived size, centred in
  * the frame when smaller than it, never independently stretched per axis -
- * see ECMA-376 21.4.7; a prior "anisotropic fill-to-box" model in this file
- * was measured against a reader bug that has since been fixed and reproduced
- * NO real PowerPoint output, see the parent module's own doc comment for the
- * full correction history); this file is purely the numeric machinery (no
- * constraint reading).
+ * see ECMA-376 21.4.7; a prior "anisotropic fill-to-box" model here was
+ * measured against a NOW-FIXED reader bug and reproduced NO real PowerPoint
+ * output, see the parent module's doc comment for the full history); this
+ * file is purely the numeric machinery (no constraint reading).
  *
  * Pure geometry; no framework code.
  */
 
 import { computeRingBulgeBounds } from './smartart-layout-interpreter-cycle-ring-bulge';
+import { nestedHubSatelliteRingLayout } from './smartart-layout-interpreter-cycle-ring-nested-hub';
 import { resolveRingAxisOffset } from './smartart-layout-interpreter-cycle-ring-offset';
 import type { BoundingBox } from './smartart-layout-types';
 
@@ -100,7 +100,17 @@ function ringLayoutForGapFactor(
 	box: BoundingBox,
 	hubGeometry?: HubRingGeometry,
 	sibTransBulgeRatio?: number,
+	knownNodeWidthPx?: number,
 ): CycleRingLayout {
+	if (n === 1 && hubGeometry && knownNodeWidthPx !== undefined && knownNodeWidthPx > 0) {
+		return nestedHubSatelliteRingLayout(
+			stAngDeg,
+			heightOverWidth,
+			box,
+			hubGeometry,
+			knownNodeWidthPx,
+		);
+	}
 	const degenerate = degenerateRingLayout(n, heightOverWidth, box);
 	if (degenerate) {
 		return degenerate;
@@ -193,31 +203,20 @@ function ringLayoutForGapFactor(
  * comment for the derivation and what it does and does not reproduce
  * exactly.
  *
- * `absoluteGapPx`, when given (an ABSOLUTE `sibSp` `val`, already converted
- * points -> pixels - see `resolveCycleRingParams`), OVERRIDES `minGapRatio`:
- * the gap is a fixed pixel quantity, but this function's own geometry is
- * solved in a "natural" unit space where the node's own width is 1 and only
- * scaled to real pixels at the very end (`nodeWidth === scaleX`), so an
- * absolute pixel gap has to be expressed as `gapFactor = absoluteGapPx /
- * nodeWidthPx` - which itself depends on `nodeWidth`, the very thing being
- * solved for. Resolved by fixed-point iteration (typically converges in a
- * handful of steps for the box sizes real diagrams use): guess a
- * `gapFactor`, compute the resulting `nodeWidth`, refine the guess from
- * `absoluteGapPx / nodeWidth`, repeat. COM-verified against
- * `continuous-cycle--flat3.pptx` (`sibSp val="15"`, i.e. 15pt = 20px): this
- * converges to `gapFactor ~= 0.0472`, `nodeWidth ~= 423.5` vs the cached
- * 420 (0.8%).
+ * `absoluteGapPx`, when given (an ABSOLUTE `sibSp` `val`, points -> pixels -
+ * see `resolveCycleRingParams`), OVERRIDES `minGapRatio`: geometry is solved
+ * in a "natural" unit space (node width = 1), so an absolute pixel gap needs
+ * `gapFactor = absoluteGapPx / nodeWidthPx`, which itself depends on
+ * `nodeWidth` - resolved by fixed-point iteration (guess `gapFactor`, refine
+ * from the resulting `nodeWidth`, repeat). COM-verified against
+ * `continuous-cycle--flat3.pptx` (`sibSp val="15"` = 20px): converges to
+ * `gapFactor ~= 0.0472`, `nodeWidth ~= 423.5` vs the cached 420 (0.8%).
  *
  * `absoluteHubGapPx`, when given (an ABSOLUTE `sp val`, e.g. `radial-list
- * --hier5.pptx`'s own `<dgm:constr type="sp" val="20"/>` - see
- * `resolveCycleRingParams`'s own doc comment): the SAME fixed-point idea,
- * but refining `hubGeometry.gapRatio` (the hub-to-satellite gap, natural
- * units) toward `absoluteHubGapPx / nodeWidthPx` instead of `sibSp`'s own
- * `gapFactor` - `resolveHubGapRatio` only ever resolves a RATIO-form `sp`
- * (a declared `fact`), so an absolute `sp val` (no `fact` at all) needs this
- * SEPARATE iteration; both can run in the SAME loop when a layout declares
- * both an absolute `sibSp` AND an absolute `sp` (not observed in the
- * built-in gallery, but not assumed impossible either).
+ * --hier5.pptx`'s own `<dgm:constr type="sp" val="20"/>`): the SAME
+ * fixed-point idea, refining `hubGeometry.gapRatio` toward
+ * `absoluteHubGapPx / nodeWidthPx` instead - both can run in the SAME loop
+ * when a layout declares both.
  */
 export function computeCycleRingLayout(
 	n: number,
@@ -230,10 +229,15 @@ export function computeCycleRingLayout(
 	hubGeometry?: HubRingGeometry,
 	absoluteHubGapPx?: number,
 	sibTransBulgeRatio?: number,
+	knownNodeWidthPx?: number,
 ): CycleRingLayout {
-	const degenerate = degenerateRingLayout(n, heightOverWidth, box);
-	if (degenerate) {
-		return degenerate;
+	const nestedHubSatellite =
+		n === 1 && hubGeometry && knownNodeWidthPx !== undefined && knownNodeWidthPx > 0;
+	if (!nestedHubSatellite) {
+		const degenerate = degenerateRingLayout(n, heightOverWidth, box);
+		if (degenerate) {
+			return degenerate;
+		}
 	}
 	const needsGapIteration = absoluteGapPx !== undefined && absoluteGapPx > 0;
 	const needsHubGapIteration =
@@ -248,6 +252,7 @@ export function computeCycleRingLayout(
 			box,
 			hubGeometry,
 			sibTransBulgeRatio,
+			knownNodeWidthPx,
 		);
 	}
 	let gapFactor = minGapRatio;

@@ -14,20 +14,20 @@
  * PowerPoint COM output.)
  *
  * Live COM (three independent methods: `SmartArt.AllNodes` shape geometry,
- * "Convert to Shapes" + `GroupItems`, and a pixel-bounding-box PNG scan -
- * see `smartart-decompose.test.ts`'s "matches live PowerPoint COM geometry")
- * proved PowerPoint does NOT independently stretch cached content to fill
- * its frame: a cached shape's real geometry is `graphicFrame.origin +
- * dsp:sp`'s own `a:xfrm` offset, size UNCHANGED, sized directly from the
- * DiagramML constraint graph (ECMA-376 21.4.7); when smaller than the frame
- * on an axis, it is CENTRED there (verified on `basic-cycle--flat3.pptx`,
- * hub-less, and `basic-radial--hier5.pptx`, hub+ring - symmetric margins,
- * never one-sided).
+ * "Convert to Shapes" + `GroupItems`, and a pixel-bounding-box PNG scan - see
+ * `smartart-decompose.test.ts`'s "matches live PowerPoint COM geometry")
+ * proved PowerPoint does NOT independently stretch cached content to fill its
+ * frame: a cached shape's real geometry is `graphicFrame.origin + dsp:sp`'s
+ * own `a:xfrm` offset, size UNCHANGED, sized directly from the DiagramML
+ * constraint graph (ECMA-376 21.4.7); when smaller than the frame on an
+ * axis, it is CENTRED there (verified on `basic-cycle--flat3.pptx`, hub-less,
+ * and `basic-radial--hier5.pptx`, hub+ring - symmetric margins, never
+ * one-sided).
  *
  * MS's "Cycle Algorithm" reference (Office 2007 SDK) gives only schema
- * defaults (`w`/`h`=100, `diam`=0, `sibSp`=0), not the packing formula, so
- * the RING RADIUS (`R0`) was reverse-engineered against real cached `dsp:sp`
- * geometry (unchanged by round 11 - only the FINAL box-fit step was wrong):
+ * defaults (`w`/`h`=100, `diam`=0, `sibSp`=0), not the packing formula, so the
+ * RING RADIUS (`R0`) was reverse-engineered against real cached `dsp:sp`
+ * geometry (only the FINAL box-fit step was wrong):
  *
  *   1. In a unit space where the node's own width is 1: place `n` points on
  *      a circle of radius `R0`, spaced by `spanAng/n` (full) or `/(n-1)`
@@ -71,9 +71,10 @@ import {
 	hasMaxDepthGuard,
 } from './smartart-layout-interpreter-cycle-extension';
 import { resolveCycleFontFit } from './smartart-layout-interpreter-cycle-fontfit';
+import { resolveHubExpansion } from './smartart-layout-interpreter-cycle-hub-detect';
 import { computeCycleRingLayout } from './smartart-layout-interpreter-cycle-ring';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { algorithmParam, numericParam } from './smartart-layout-interpreter-model';
+import { numericParam } from './smartart-layout-interpreter-model';
 import { styleContext } from './smartart-layout-interpreter-render';
 import { findCompositeItemShape, roundRectCornerInsetPx } from './smartart-layout-shape-preset';
 import type {
@@ -103,6 +104,7 @@ export function arrangeCycle(
 	childrenOf?: Map<string, PptxSmartArtNode[]>,
 	fontName?: string,
 	declaringRoleChain?: readonly string[],
+	sizeBox?: BoundingBox,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
@@ -126,72 +128,23 @@ export function arrangeCycle(
 		hubAlreadyStripped ? nodes.length : undefined,
 		declaringRoleChain,
 	);
-	// `ctrShpMap="fNode"` pulls the first data point into a hub at the ring's
-	// own natural centre; every other value (including absent, the common
-	// case) puts every point on the ring, matching the pre-existing
-	// behaviour. Real gallery hub layouts (`radial-cycle`, `basic-radial`,
-	// `diverging-radial`, `converging-radial`, `radial-venn`, ...) ARE already
-	// stripped of their hub point upstream by `smartart-layout-interpreter.ts`'s
-	// `runArrangement` (`detectHubExpansion` + `buildHubRenderedNode`, called
-	// once per diagram, BEFORE this function ever runs) - `hubAlreadyStripped`
-	// (set by that caller) is essential, not a fallback nicety: `ctrShpMap`
-	// stays `'fNode'` on `plan.node.algorithm` regardless of whether the hub
-	// was already pulled out, so without this flag `arrangeCycle` re-detects a
-	// SECOND, PHANTOM hub from the first SATELLITE in its own already-hub-free
-	// `nodes` array, corrupting every hub-bearing fixture (COM-verified
-	// regression: `radial-cycle--flat3.pptx`'s 2 satellites rendered as a
-	// bogus box-sized "hub" + a degenerate leftover ring node). Defaults
-	// `false` so a caller that hands the hub point straight through unstripped
-	// (a unit test, or a pattern `detectHubExpansion` does not recognise)
-	// keeps the old internal-detection behaviour.
-	//
-	// `!hubRatio`: `radial-list--hier5.pptx`'s own shape - THREE top-level
-	// "node" data points (no separate top-level hub point), plus a SEPARATE,
-	// always-present `centerShape` layoutNode (a decorative image, invisible
-	// to text comparison) - the composite's own `w for=ch forName=node ...
-	// refForName="centerShape"` constraint (`resolveHubToNodeRatio`, surfaced
-	// here as `hubRatio`) is the SAME declarative signal `resolveRingItemNode`
-	// uses to recognise "this composite structurally names its own hub".
-	// `detectHubExpansion` never strips this shape (it requires EXACTLY ONE
-	// top-level point, radial-list has three), so `hubAlreadyStripped` stays
-	// `false` and this function's OWN `ctrShpMap="fNode"` fallback fired
-	// instead - wrongly, since `centerShape` already fully accounts for the
-	// hub: PowerPoint's cached drawing renders all 3 "node" points as
-	// EQUAL-SIZED satellites with no distinguishable 4th hub shape. Firing the
-	// fallback anyway silently dropped a real satellite to a degenerate
-	// 2-node ring (COM-verified regression: `n` collapsed 3 -> 2, and the
-	// `cnt=3` choose branch's own `stAng`/`spanAng` produced a collinear
-	// degenerate pair on the smaller `n=2`). Never fires when
-	// `hubAlreadyStripped` is already `true` (`basic-radial`/`diverging-
-	// radial`/`converging-radial` ALSO resolve `hubRatio` but are already
-	// correctly stripped upstream, so this clause is a no-op for them).
-	const hasHub =
-		!hubAlreadyStripped &&
-		!hubRatio &&
-		algorithmParam(plan.node, 'ctrShpMap') === 'fNode' &&
-		nodes.length > 0;
-	const hubNode = hasHub ? nodes[0] : undefined;
-	const ringNodes = hasHub ? nodes.slice(1) : nodes;
+	// See `resolveHubExpansion`'s own doc comment for the full `ctrShpMap`/
+	// `hubRatio`/`viaUserSize` derivation (round 46: routed through a shared
+	// helper to keep this file under the repo's per-file line budget).
+	const { hubNode, ringNodes, hubGeometry, knownNodeWidthPx } = resolveHubExpansion(
+		nodes,
+		plan,
+		hubAlreadyStripped,
+		hubRatio,
+		hubGapRatio,
+		absoluteHubGapPx,
+		index,
+		box,
+		sizeBox,
+	);
 	const n = ringNodes.length;
 	const startDeg = numericParam(plan.node, 'stAng', 0);
 	const spanDeg = numericParam(plan.node, 'spanAng', 360);
-	// A hub+ring composite's own centre-to-satellite `r0` is governed by
-	// `hubGapRatio` (the `sp` space between the hub's edge and each
-	// satellite's), not the adjacent-satellite chord `sibSp` solves for a
-	// plain ring - see `computeCycleRingLayout`'s own doc comment. Applies
-	// whenever this composite structurally HAS a hub (`hubRatio` resolved),
-	// independent of `hubAlreadyStripped`: the satellites still ring AROUND
-	// the hub even when it was already pulled out and rendered separately.
-	// `hubGapRatio === undefined` but `absoluteHubGapPx` present (an ABSOLUTE
-	// `sp val`, e.g. `radial-list--hier5.pptx`'s own `sp val="20"`, which
-	// `resolveHubGapRatio` cannot express as a ratio at all): still build a
-	// `hubGeometry` (starting `gapRatio` guess `0`) so `computeCycleRingLayout`'s
-	// own fixed-point iteration refines it from the absolute pixel value - see
-	// that function's own `absoluteHubGapPx` doc comment.
-	const hubGeometry =
-		hubRatio && (hubGapRatio !== undefined || absoluteHubGapPx !== undefined)
-			? { factor: hubRatio.factor, gapRatio: hubGapRatio ?? 0 }
-			: undefined;
 	const ring = computeCycleRingLayout(
 		n,
 		startDeg,
@@ -203,6 +156,7 @@ export function arrangeCycle(
 		hubGeometry,
 		absoluteHubGapPx,
 		sibTransBulgeRatio,
+		knownNodeWidthPx,
 	);
 
 	const full = Math.abs(spanDeg) >= 360;

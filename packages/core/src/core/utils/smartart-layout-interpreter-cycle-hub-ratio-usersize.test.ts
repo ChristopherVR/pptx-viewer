@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import type { PptxSmartArtLayoutDefinition, PptxSmartArtLayoutNode } from '../types';
 import { buildConstraintIndex } from './smartart-constraint-solver';
-import { resolveHubToNodeRatioViaUserSize } from './smartart-layout-interpreter-cycle-hub-ratio-usersize';
+import {
+	resolveHubToNodeRatioViaUserSize,
+	resolveViaUserSizeNodeWidthPx,
+} from './smartart-layout-interpreter-cycle-hub-ratio-usersize';
 
 const bareUserSizeRingItem: PptxSmartArtLayoutNode = {
 	name: 'text3',
@@ -14,7 +17,7 @@ describe('resolveHubToNodeRatioViaUserSize', () => {
 		const ratio = resolveHubToNodeRatioViaUserSize(bareUserSizeRingItem, [
 			{ type: 'userS', referenceType: 'w', referenceForName: 'hub', factor: 0.5 },
 		]);
-		expect(ratio).toStrictEqual({ hubName: 'hub', factor: 0.5 });
+		expect(ratio).toStrictEqual({ hubName: 'hub', factor: 0.5, viaUserSize: true });
 	});
 
 	it('returns undefined without index/declaringRoleChain when no local userS declaration exists (no regression: omitting the new params keeps the old behaviour)', () => {
@@ -52,7 +55,7 @@ describe('resolveHubToNodeRatioViaUserSize', () => {
 			index,
 			['cycle_3', 'Name0'],
 		);
-		expect(ratio).toStrictEqual({ hubName: 'textCenter', factor: 0.67 });
+		expect(ratio).toStrictEqual({ hubName: 'textCenter', factor: 0.67, viaUserSize: true });
 	});
 
 	it("disambiguates by declaring role: an unrelated sibling branch's own userS (singleCycle) never wins over the true ancestor's", () => {
@@ -94,7 +97,7 @@ describe('resolveHubToNodeRatioViaUserSize', () => {
 			'cycle_3',
 			'Name0',
 		]);
-		expect(ratio).toStrictEqual({ hubName: 'textCenter', factor: 0.67 });
+		expect(ratio).toStrictEqual({ hubName: 'textCenter', factor: 0.67, viaUserSize: true });
 	});
 
 	it('returns undefined when the index has no userS declared by any role in the chain', () => {
@@ -117,5 +120,70 @@ describe('resolveHubToNodeRatioViaUserSize', () => {
 		};
 		const index = buildConstraintIndex(definition);
 		expect(resolveHubToNodeRatioViaUserSize(plainItem, [], index, ['Name0'])).toBeUndefined();
+	});
+});
+
+// ROUND 46: a nested single-satellite ring (`arrangeCycle`'s own `n===1`
+// case) has no independent box-fit to derive its node width from at all -
+// `resolveViaUserSizeNodeWidthPx` gives it the SAME absolute pixel size
+// `resolveUserSizeItemBoxPx` already computes for a flat repeater slot.
+describe('resolveViaUserSizeNodeWidthPx', () => {
+	it("resolves via the ar-fit sizeBox when the hub role IS userS-referenced (radial-cluster's textCenter: 0.67 * 0.21 * 533 = 75.04px)", () => {
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'Name0',
+				constraints: [
+					{ type: 'w', for: 'ch', forName: 'textCenter', referenceType: 'w', factor: 0.21 },
+					{
+						type: 'userS',
+						for: 'des',
+						pointType: 'node',
+						referenceType: 'w',
+						referenceFor: 'ch',
+						referenceForName: 'textCenter',
+						factor: 0.67,
+					},
+				],
+				children: [{ name: 'textCenter' }, { name: 'cycle_3' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		const width = resolveViaUserSizeNodeWidthPx(
+			{ hubName: 'textCenter', factor: 0.67, viaUserSize: true },
+			index,
+			{ width: 867, height: 533 },
+			{ width: 533, height: 533 },
+		);
+		expect(width).toBeCloseTo(75.04, 1);
+	});
+
+	it('resolves via the raw box when the hub role is NOT userS-referenced (no ar-fit scoping to apply)', () => {
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'Name0',
+				constraints: [{ type: 'w', for: 'ch', forName: 'hub', referenceType: 'w', factor: 0.4 }],
+				children: [{ name: 'hub' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		const width = resolveViaUserSizeNodeWidthPx(
+			{ hubName: 'hub', factor: 0.5, viaUserSize: true },
+			index,
+			{ width: 200, height: 100 },
+			{ width: 100, height: 100 },
+		);
+		expect(width).toBeCloseTo(40, 6);
+	});
+
+	it("returns undefined when the hub's own w does not resolve", () => {
+		const definition: PptxSmartArtLayoutDefinition = { rootNode: { name: 'Name0' } };
+		const index = buildConstraintIndex(definition);
+		const width = resolveViaUserSizeNodeWidthPx(
+			{ hubName: 'missingHub', factor: 0.5, viaUserSize: true },
+			index,
+			{ width: 200, height: 100 },
+			{ width: 100, height: 100 },
+		);
+		expect(width).toBeUndefined();
 	});
 });

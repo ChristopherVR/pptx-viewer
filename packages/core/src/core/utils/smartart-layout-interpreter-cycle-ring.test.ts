@@ -89,4 +89,58 @@ describe('computeCycleRingLayout', () => {
 		const topSatelliteY = Math.min(...ring.centers.map((p) => p.y)) - ring.nodeHeight / 2;
 		expect(topSatelliteY).toBeCloseTo(0, 0);
 	});
+
+	describe('round 46: n===1 with a hub + a known absolute node width', () => {
+		it("sizes BOTH the hub and its one satellite at the known width, not stretched to fill the box (radial-cluster--hier5.pptx's nested cycle_3: hub 'Four'/satellite 'Five', both cached at a uniform 75x75)", () => {
+			const ring = computeCycleRingLayout(
+				1,
+				240,
+				360,
+				0.5,
+				1,
+				BOX,
+				undefined,
+				{ factor: 1, gapRatio: 0.1 },
+				undefined,
+				undefined,
+				75,
+			);
+			expect(ring.nodeWidth).toBeCloseTo(75, 6);
+			expect(ring.nodeHeight).toBeCloseTo(75, 6);
+			expect(ring.hubHalfWidth * 2).toBeCloseTo(75, 6);
+			expect(ring.hubHalfHeight * 2).toBeCloseTo(75, 6);
+		});
+
+		it('places the hub at the box centre and the satellite at r0 = (hub half + gap + item half) node-widths along stAng, not stretched to the box edge', () => {
+			const ring = computeCycleRingLayout(
+				1,
+				240,
+				360,
+				0.5,
+				1,
+				BOX,
+				undefined,
+				{ factor: 1, gapRatio: 0.1 },
+				undefined,
+				undefined,
+				75,
+			);
+			expect(ring.hubCenter).toStrictEqual({ x: BOX.width / 2, y: BOX.height / 2 });
+			const [satellite] = ring.centers;
+			const dx = satellite.x - ring.hubCenter.x;
+			const dy = satellite.y - ring.hubCenter.y;
+			const r0 = Math.sqrt(dx * dx + dy * dy);
+			// r0Nat = hubHalfWidthNat(0.5/1) + gapRatio(0.1) + itemHalfWidthNat(0.5) = 1.1
+			expect(r0).toBeCloseTo(1.1 * 75, 4);
+		});
+
+		it('falls back to the plain stretch-to-box degenerate case when no known node width is given (no regression for a hub-less or non-userS n===1 ring)', () => {
+			const ring = computeCycleRingLayout(1, 240, 360, 0.5, 1, BOX, undefined, {
+				factor: 1,
+				gapRatio: 0.1,
+			});
+			expect(ring.nodeWidth).toBeCloseTo(BOX.width, 6);
+			expect(ring.hubHalfWidth).toBe(0);
+		});
+	});
 });

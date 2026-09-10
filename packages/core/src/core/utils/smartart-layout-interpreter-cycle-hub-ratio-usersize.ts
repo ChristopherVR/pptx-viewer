@@ -12,9 +12,31 @@
 import type { PptxSmartArtLayoutNode } from '../types';
 import { resolveByAncestorChain } from './smartart-constraint-declared-by';
 import type { ConstraintIndex } from './smartart-constraint-solver';
+import { resolveConstraint } from './smartart-constraint-solver';
+import { isUserSizeHubRole } from './smartart-layout-interpreter-composite-aspect';
+import type { BoundingBox } from './smartart-layout-types';
 
 function finiteFactor(value: unknown): value is number {
 	return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * `resolveHubToNodeRatio`'s resolved ring-item:hub ratio, tagged with WHERE
+ * it was found - `viaUserSize` (round 46) marks a ratio resolved through
+ * {@link resolveHubToNodeRatioViaUserSize} (a `userS` diagram-wide fact, e.g.
+ * `radial-cluster--hier5.pptx`'s `textCenter`-anchored `fact="0.67"`) rather
+ * than a DIRECT local cross-role reference (`radial-list`'s own `centerShape`
+ * reference). The two carry different structural meaning for a caller
+ * deciding whether this composite already names its own hub: a direct
+ * reference genuinely means "this ring already has a structurally-named hub,
+ * do not also peel `nodes[0]`"; a `userS`-ancestor-chain resolution carries no
+ * such meaning at all (it is just "some diagram-wide ratio happens to
+ * exist") - see `arrangeCycle`'s own `hasHub` gate.
+ */
+export interface HubToNodeRatio {
+	hubName: string;
+	factor: number;
+	viaUserSize?: boolean;
 }
 
 /**
@@ -57,7 +79,7 @@ export function resolveHubToNodeRatioViaUserSize(
 	arrangerConstraints: PptxSmartArtLayoutNode['constraints'],
 	index?: ConstraintIndex,
 	declaringRoleChain?: readonly string[],
-): { hubName: string; factor: number } | undefined {
+): HubToNodeRatio | undefined {
 	const itemConstraints = ringItem.allConstraints ?? ringItem.constraints ?? [];
 	const bareUserSizeRef = itemConstraints.some(
 		(c) =>
@@ -77,6 +99,7 @@ export function resolveHubToNodeRatioViaUserSize(
 		return {
 			hubName: userSizeDecl.referenceForName as string,
 			factor: userSizeDecl.factor as number,
+			viaUserSize: true,
 		};
 	}
 	if (index && declaringRoleChain && declaringRoleChain.length > 0) {
@@ -90,8 +113,36 @@ export function resolveHubToNodeRatioViaUserSize(
 			return {
 				hubName: ancestorDecl.constraint.referenceForName as string,
 				factor: ancestorDecl.constraint.factor as number,
+				viaUserSize: true,
 			};
 		}
 	}
 	return undefined;
+}
+
+/**
+ * The absolute pixel width (and, by construction, height - {@link
+ * HubToNodeRatio} only ever tags a SQUARE `userS` item, see
+ * `resolveUserSizeItemBoxPx`'s own `isSquareHeightConstraint` gate) a
+ * `viaUserSize`-tagged hub ratio's ring item resolves to - the SAME
+ * computation `resolveUserSizeItemBoxPx` (`smartart-layout-interpreter-
+ * composite-children.ts`) already performs for a flat repeater slot, reused
+ * here for a genuinely NESTED ring's degenerate single-satellite case
+ * (`arrangeCycle`'s own `n===1` branch), which has no independent box-fit to
+ * derive a node width from at all. `undefined` when the hub's own `w` does
+ * not resolve (defensive; not expected once `ratio.viaUserSize` is true).
+ */
+export function resolveViaUserSizeNodeWidthPx(
+	ratio: HubToNodeRatio,
+	index: ConstraintIndex,
+	box: BoundingBox,
+	sizeBox: BoundingBox,
+): number | undefined {
+	const hubW = resolveConstraint(index, ratio.hubName, 'w');
+	if (hubW === undefined) {
+		return undefined;
+	}
+	const hubExtent = isUserSizeHubRole(ratio.hubName, index) ? sizeBox.width : box.width;
+	const side = ratio.factor * hubW * hubExtent;
+	return side > 0 ? side : undefined;
 }

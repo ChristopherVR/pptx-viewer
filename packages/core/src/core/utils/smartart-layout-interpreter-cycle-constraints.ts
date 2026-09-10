@@ -15,6 +15,7 @@ import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
 import { findConstraint, ratioConstraint } from './smartart-layout-interpreter-constraints';
+import type { HubToNodeRatio } from './smartart-layout-interpreter-cycle-hub-ratio';
 import {
 	resolveHubGapRatio,
 	resolveHubToNodeRatio,
@@ -156,7 +157,7 @@ export function resolveCycleRingParams(
 	minGapRatio: number;
 	heightOverWidth: number;
 	absoluteGapPx?: number;
-	hubRatio?: { hubName: string; factor: number };
+	hubRatio?: HubToNodeRatio;
 	hubGapRatio?: number;
 	absoluteHubGapPx?: number;
 	contentLayout?: CompositeContentLayout;
