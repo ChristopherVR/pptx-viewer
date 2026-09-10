@@ -390,8 +390,12 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 				return slides[activeSlideIndex];
 			},
 			// -- Slide manipulation --
-			addSlide(_afterIndex?: number) {
-				editorOps.slideOps.handleAddSlide();
+			addSlide(afterIndex?: number) {
+				if (afterIndex === undefined) {
+					editorOps.slideOps.handleAddSlide();
+				} else {
+					editorOps.slideOps.handleAddSlideAfter(afterIndex);
+				}
 			},
 			deleteSlides(indexes: number[]) {
 				editorOps.slideOps.handleDeleteSlides(indexes);

@@ -32,6 +32,7 @@ export interface UseSlideManagementInput {
 
 export interface SlideManagementHandlers {
 	handleAddSlide: () => void;
+	handleAddSlideAfter: (afterIndex: number) => void;
 	handleMoveSlide: (fromIndex: number, toIndex: number) => void;
 	handleSlideContextMenu: (e: React.MouseEvent, index: number) => void;
 	handleDeleteSlides: (indexes: number[]) => void;
@@ -69,16 +70,18 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 		theme,
 	} = input;
 
-	const handleAddSlide = () => {
+	const handleAddSlideAfter = (afterIndex: number) => {
+		const insertAt = Math.max(0, Math.min(afterIndex + 1, slides.length));
 		const newSlide = createBlankSlide(slides.length + 1);
 		ops.updateSlides((prev) => {
 			const next = [...prev];
-			next.splice(activeSlideIndex + 1, 0, newSlide);
+			next.splice(insertAt, 0, newSlide);
 			return next;
 		});
-		setActiveSlideIndex(activeSlideIndex + 1);
+		setActiveSlideIndex(insertAt);
 		history.markDirty();
 	};
+	const handleAddSlide = () => handleAddSlideAfter(activeSlideIndex);
 
 	const handleMoveSlide = (fromIndex: number, toIndex: number) => {
 		if (fromIndex === toIndex) {
@@ -224,6 +227,7 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 
 	return {
 		handleAddSlide,
+		handleAddSlideAfter,
 		handleMoveSlide,
 		handleSlideContextMenu,
 		handleDeleteSlides,
