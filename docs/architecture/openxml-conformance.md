@@ -263,6 +263,87 @@ would require hand-editing the timing tree directly, and PowerPoint's
 package (see `scripts/pptx-com-open.ps1`), which would make any observed
 "template ignored" result unreliable evidence either way.
 
+## Group re-wrap and edit order
+
+Positions and sizes are exposed as whole pixels (9,525 EMU per pixel), with the
+exact source EMU kept alongside (`xEmu`/`yEmu`/`widthEmu`/`heightEmu`). An
+unmoved element, and an unmodified group at any nesting depth (its own
+placement, `a:chOff`/`a:chExt`, and every child), re-emit their source
+`a:off`/`a:ext`/`a:chOff`/`a:chExt` byte-for-byte on save, whatever child-space
+convention the file used. Resizing a group directly keeps its child space and
+every child byte-identical, matching PowerPoint (COM-verified).
+
+Moving or resizing a child keeps the group's original child space (untouched
+siblings stay byte-identical) and, like PowerPoint's own bounding-box
+auto-fit, tightly re-wraps the group's own `a:chOff`/`a:chExt` and
+`a:off`/`a:ext` around the new set of children, propagating up through every
+enclosing ancestor whose own box changed as a result. This is COM-verified
+byte-exact for: a plain move; a rotated child (rotation alone has no effect,
+matching PowerPoint); a rotated group (the fixed rotation pivot is
+reproduced); nested-group propagation; an unrotated group resized directly
+AND having a child edited in the same save; a ROTATED group resized directly
+AND having a child moved+resized in the same save; and a rotated shape that
+is itself a direct child of a group, resized (not moved), including when
+width and height are BOTH resized together in one edit, COM-verified
+byte-exact across 25 / 37 / -40 / 61 / 113 / 155 / 200 / 290 degrees.
+Matching PowerPoint here requires composing the rotation-aware resize as two
+sequential per-axis corrections, width then height, each re-anchored against
+the previous step's result, not one simultaneous rotation.
+
+A directly resized ROTATED group (no child touched) is byte-exact too: COM
+ground truth across 25 / 90 / 180 / -40 degrees, `Shape.Width`/`Height`
+(together or separately), and `ScaleWidth` from the top-left or from the
+middle, all match one rule: the resize keeps a single anchor point (the
+untouched edge, or the exact centre for a middle-anchored scale) fixed on
+screen once rotated, which the save path reproduces by moving `a:off`
+accordingly. The same fix and COM verification cover a plain (non-group)
+rotated shape resized directly, including both axes together in one edit
+(same sequential-correction fix, same 8-angle sweep).
+
+The one remaining non-right-angle gap is a ROTATED group resized directly AND
+having a child moved and/or resized in the SAME save. A COM sweep settled two
+things: first, the group's own resize committing BEFORE the child's edit and
+its tight re-wrap (matching this SDK's single-final-state save path) is the
+only order reachable at all; the reverse order diverges from it by up to
+71,000 EMU (about 0.08 inch, visibly, not a rounding difference), because
+PowerPoint live-refits the group's box the instant a child changes, so
+whichever edit happens second composes against an already-refit intermediate
+box. A save built from one final element tree cannot recover which of a
+user's two separate actions happened first, so that reverse order is not a
+target this fix chases. Within the reachable order, an 8-angle x 3-edit-combo
+(child moved, resized, moved+resized: 24 cases) sweep is byte-exact in 9 of
+24 cases; the rest land up to 2 EMU (2/914400 inch) off COM ground truth on
+one or more of `a:off`'s x/y or `a:ext`'s width/height, with no consistent
+sign or axis. This residual is distinct from the sequential-correction fix
+above: applying that fix to this case's own self-resize step changes none of
+the 24 numbers (verified); further decomposing the tight re-wrap step itself
+the same way makes it worse (6/24); carrying the intermediate centre as an
+unrounded float through the whole chain scores 5/24 (and breaks an
+already-exact unrotated case); single-precision trig throughout changes
+nothing at all. `a:ext`'s height drifting in several cases, a value with no
+rotation term in this formula at all, pointed at PowerPoint computing this
+specific combination through a different internal path rather than a
+rounding-order fix reachable from black-box outputs.
+
+A follow-up COM experiment (commit `dc6692eba`) proved this rather than
+merely suspecting it: holding a child's FINAL position/size fixed and varying
+only the ORDER `GroupItems(1).Left`/`Top`/`Width`/`Height` are assigned (same
+four target values, one COM session, one save) changes the group's own saved
+`a:ext` by up to 589,402 EMU (0.64 inch) at 200 degrees, and by 115,531 EMU
+on `cy` alone at 25 degrees (`1029931` vs `914400`); both orderings are
+individually byte-reproducible, and neither one is "more correct" than the
+other. PowerPoint refits the group's bounding box after EACH property
+assignment, not once per logical edit, so this specific combined case has no
+single correct answer to converge on: it has as many byte-exact answers as
+there are orderings a user could have entered the four numbers in, and a save
+built from one final element tree has no order to replay. The 9/24-exact,
+<=2 EMU sweep above (pinned against one such ordering's ground truth) is
+therefore already about as tight as a single-final-state save architecture
+can get; closing it to 0 for that one ordering would not generalise to any
+other equally valid one. See `group-tight-rewrap-own-box.ts` for the full
+investigation and proof, and `group-tight-rewrap.test.ts`'s `grp1st` sweep
+and order-sensitivity case for the COM-pinned numbers.
+
 ## Related reading
 
 - [Limitations](/guide/limitations) - the current honest gap list.
