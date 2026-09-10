@@ -43,26 +43,49 @@ export function parseChartUniqueId(
 	return typeof val === 'string' && val.length > 0 ? val : undefined;
 }
 
-function randomHex(length: number): string {
-	let out = '';
-	for (let i = 0; i < length; i++) {
-		out += Math.floor(Math.random() * 16).toString(16);
+/**
+ * Fill `length` bytes of randomness. Prefers the Web Crypto CSPRNG
+ * (`crypto.getRandomValues`, available in every browser and server runtime
+ * this project targets, including runtimes too old for `crypto.randomUUID`);
+ * `Math.random` is used only as a last resort when `crypto` itself is
+ * entirely absent, so `generateChartUniqueId` can keep its documented
+ * guarantee of never throwing.
+ */
+function randomBytes(length: number): Uint8Array {
+	const cryptoObj = typeof crypto === 'undefined' ? undefined : crypto;
+	if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+		return cryptoObj.getRandomValues(new Uint8Array(length));
 	}
-	return out;
+	const bytes = new Uint8Array(length);
+	for (let i = 0; i < length; i++) {
+		bytes[i] = Math.floor(Math.random() * 256);
+	}
+	return bytes;
+}
+
+function randomHex(length: number): string {
+	const bytes = randomBytes(Math.ceil(length / 2));
+	let out = '';
+	for (const b of bytes) {
+		out += b.toString(16).padStart(2, '0');
+	}
+	return out.slice(0, length);
 }
 
 /**
  * Generate a fresh GUID in the `{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}` form
  * `c16:uniqueId/@val` uses. Prefers `crypto.randomUUID` (available in every
- * runtime this package targets); falls back to a manual v4-shaped generator
- * so this never throws in an environment without `crypto`.
+ * runtime this package targets); falls back to a `randomBytes`-backed manual
+ * v4-shaped generator so this never throws in an environment without
+ * `crypto.randomUUID`.
  */
 export function generateChartUniqueId(): string {
 	const cryptoObj = typeof crypto === 'undefined' ? undefined : crypto;
+	const variantNibble = (8 + (randomBytes(1)[0] % 4)).toString(16);
 	const uuid =
 		cryptoObj && typeof cryptoObj.randomUUID === 'function'
 			? cryptoObj.randomUUID()
-			: `${randomHex(8)}-${randomHex(4)}-4${randomHex(3)}-${(8 + Math.floor(Math.random() * 4)).toString(16)}${randomHex(3)}-${randomHex(12)}`;
+			: `${randomHex(8)}-${randomHex(4)}-4${randomHex(3)}-${variantNibble}${randomHex(3)}-${randomHex(12)}`;
 	return `{${uuid.toUpperCase()}}`;
 }
 

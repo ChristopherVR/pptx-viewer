@@ -156,8 +156,17 @@ export function computeShadeToTitleFillToRect(
 	};
 }
 
-/** Matches one `<colour> <position>%` gradient stop token (see {@link parseGradientCssStops}). */
-const GRADIENT_STOP_TOKEN = /(rgba?\([^)]*\)|#[0-9a-fA-F]{3,8})\s+(-?[\d.]+)%/gu;
+/**
+ * Matches one `<colour> <position>%` gradient stop token (see
+ * {@link parseGradientCssStops}). The `rgba?(...)` alternative excludes `(`
+ * from its content class (`[^()]*` rather than `[^)]*`): otherwise, on a
+ * string with many repeated unclosed `rgb(` prefixes, each occurrence lets
+ * the content group re-swallow every later `rgb(` before failing to find a
+ * closing `)`, which is `js/polynomial-redos` (quadratic in the number of
+ * repeats). Real `rgba?()` content never contains `(`, so this does not
+ * change what valid input matches.
+ */
+const GRADIENT_STOP_TOKEN = /(rgba?\([^()]*\)|#[0-9a-fA-F]{3,8})\s+(-?[\d.]+)%/gu;
 
 function toHexChannel(value: number): string {
 	return Math.min(255, Math.max(0, Math.round(value)))

@@ -79,8 +79,20 @@ async function fetchTextIfCrossOriginSafe(url: string): Promise<string | null> {
 	}
 }
 
-/** Every distinct `url(...)` reference inside a `@font-face` CSS block's `src` list. */
-const FONT_FACE_URL_PATTERN = /url\(\s*["']?([^"')]+)["']?\s*\)/gu;
+/**
+ * Every distinct `url(...)` reference inside a `@font-face` CSS block's `src`
+ * list, as a double-quoted, single-quoted, or bare token. The three forms are
+ * separate alternatives (rather than one `["']?...["']?` wrapped around a
+ * single content group) so the surrounding `\s*` never shares characters with
+ * the content group: a naive `\s*["']?([^"')]+)["']?\s*` lets whitespace be
+ * split between the leading `\s*` and the content group in exponentially many
+ * equivalent ways, which is polynomial-time (`js/polynomial-redos`) on an
+ * unclosed `url(` followed by many tabs/spaces (this stylesheet text can come
+ * from a fetched cross-origin `@font-face` CSS file, see
+ * `fetchTextIfCrossOriginSafe`). Each alternative here has a fixed,
+ * non-overlapping character class, so there is only one way to match.
+ */
+const FONT_FACE_URL_PATTERN = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^"')\s]+))\s*\)/gu;
 
 /** {@link inlineFontFaceUrls}'s result: the (partially) inlined CSS, plus whether every `url(...)` inlined cleanly. */
 interface InlinedFontFaceCss {
@@ -102,8 +114,8 @@ async function inlineFontFaceUrls(
 ): Promise<InlinedFontFaceCss> {
 	const urls = new Set<string>();
 	for (const match of css.matchAll(FONT_FACE_URL_PATTERN)) {
-		const raw = match[1];
-		if (raw.startsWith('http:') || raw.startsWith('https:')) {
+		const raw = match[1] ?? match[2] ?? match[3];
+		if (raw && (raw.startsWith('http:') || raw.startsWith('https:'))) {
 			urls.add(raw);
 		}
 	}

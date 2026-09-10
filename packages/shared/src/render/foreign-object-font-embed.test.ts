@@ -166,4 +166,28 @@ describe('collectExternalFontFaceCss', () => {
 		expect(result.css).toContain('font-family:A');
 		expect(result.css).toContain('font-family:B');
 	});
+
+	it('does not exhibit polynomial blow-up on a stylesheet with many unclosed url( repetitions', async () => {
+		// Regression test for the same CodeQL js/polynomial-redos shape as
+		// `foreign-object-image-embed.test.ts`'s extractCssUrl test: a naive
+		// `\s*["']?([^"')]+)["']?\s*` around the url() content lets whitespace
+		// split between the leading `\s*` and the content group in exponentially
+		// many equivalent ways. This should stay fast even for a large,
+		// pathological (attacker-fetchable) stylesheet.
+		const link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = 'https://fonts.googleapis.com/css2?family=Evil';
+		document.head.appendChild(link);
+
+		const pathological = `@font-face{font-family:Evil;src:url(${'\t'.repeat(50000)}}`;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => ({ ok: true, text: async () => pathological })),
+		);
+
+		const start = performance.now();
+		const result = await collectExternalFontFaceCss(document, async () => null);
+		expect(performance.now() - start).toBeLessThan(1000);
+		expect(result.css).toBe(pathological);
+	});
 });

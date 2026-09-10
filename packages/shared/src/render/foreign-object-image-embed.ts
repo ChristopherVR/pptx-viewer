@@ -55,10 +55,26 @@ export async function fetchAsDataUrl(url: string): Promise<string | null> {
 	}
 }
 
+/**
+ * Matches one `url(...)` reference, as a double-quoted, single-quoted, or bare
+ * token. The three forms are matched as separate alternatives (rather than one
+ * `["']?...["']?` wrapped around a single content group) so the surrounding
+ * `\s*` never shares characters with the content group: a naive
+ * `\s*["']?([^"')]+)["']?\s*` lets whitespace be split between the leading
+ * `\s*` and the content group in exponentially many equivalent ways, which is
+ * polynomial-time (`js/polynomial-redos`) on an unclosed `url(` followed by
+ * many tabs/spaces. Each alternative here has a fixed, non-overlapping
+ * character class, so there is only one way to match.
+ */
+const CSS_URL_PATTERN = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^"')\s]+))\s*\)/u;
+
 /** Extract a `url(...)` reference from a CSS value; returns `null` when none is present. */
-function extractCssUrl(value: string): string | null {
-	const match = /url\(\s*["']?([^"')]+)["']?\s*\)/u.exec(value);
-	return match ? match[1] : null;
+export function extractCssUrl(value: string): string | null {
+	const match = CSS_URL_PATTERN.exec(value);
+	if (!match) {
+		return null;
+	}
+	return match[1] ?? match[2] ?? match[3] ?? null;
 }
 
 function needsEmbedding(url: string): boolean {

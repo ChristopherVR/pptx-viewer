@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { XmlObject } from '../types';
 import {
@@ -82,6 +82,40 @@ describe('generateChartUniqueId', () => {
 		const a = generateChartUniqueId();
 		const b = generateChartUniqueId();
 		expect(a).not.toBe(b);
+	});
+
+	describe('without crypto.randomUUID', () => {
+		afterEach(() => {
+			vi.unstubAllGlobals();
+		});
+
+		it('falls back to crypto.getRandomValues (not Math.random) and still produces a valid GUID', () => {
+			// Regression test for the CodeQL js/insecure-randomness finding: the
+			// fallback path must source its bytes from the Web Crypto CSPRNG
+			// whenever it is available, even when `randomUUID` specifically is not.
+			const getRandomValues = vi.fn((array: Uint8Array) => {
+				for (let i = 0; i < array.length; i++) {
+					array[i] = i % 256;
+				}
+				return array;
+			});
+			vi.stubGlobal('crypto', { getRandomValues });
+
+			const id = generateChartUniqueId();
+
+			expect(getRandomValues).toHaveBeenCalledWith(expect.any(Uint8Array));
+			expect(id).toMatch(GUID_RE);
+			// The variant nibble (`{XXXXXXXX-XXXX-4XXX-VXXX-XXXXXXXXXXXX}`, index
+			// 20 once wrapped in braces) must stay in the RFC 4122 `10xx` range,
+			// i.e. one of 8/9/A/B.
+			expect(id[20]).toMatch(/[89AB]/);
+		});
+
+		it('still produces a valid GUID with no crypto object at all', () => {
+			vi.stubGlobal('crypto', undefined);
+			const id = generateChartUniqueId();
+			expect(id).toMatch(GUID_RE);
+		});
 	});
 });
 

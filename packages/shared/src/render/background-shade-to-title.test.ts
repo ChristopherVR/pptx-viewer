@@ -111,6 +111,17 @@ describe('parseGradientCssStops', () => {
 	it('returns an empty array for a gradient with no stop tokens', () => {
 		expect(parseGradientCssStops('none')).toStrictEqual([]);
 	});
+
+	it('does not exhibit polynomial blow-up on many unclosed rgb( repetitions', () => {
+		// Regression test for the CodeQL js/polynomial-redos finding: a naive
+		// `rgba?\([^)]*\)` lets the content group re-swallow every later `rgb(`
+		// before failing, which is quadratic in the repeat count. This should
+		// stay fast even for a large input.
+		const pathological = 'rgb('.repeat(50000);
+		const start = performance.now();
+		expect(parseGradientCssStops(pathological)).toStrictEqual([]);
+		expect(performance.now() - start).toBeLessThan(1000);
+	});
 });
 
 describe('resolveShadeToTitleBackgroundImage', () => {

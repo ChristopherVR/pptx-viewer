@@ -121,8 +121,15 @@ export async function writeOleDocumentParagraphEdit(
 
 		// Rebuild the paragraph, keeping `w:pPr` (if present) first and
 		// discarding the old runs, per CT_P's `pPr?, (run content)` sequence.
+		// `paragraph` was parsed from the untrusted .docx bytes: skip the
+		// prototype-chain keys defensively so a maliciously crafted tag name
+		// (e.g. an element the parser exposed as an own `__proto__`/`constructor`
+		// property) is never handed to a dynamic `delete`.
 		const pPr = xmlChild(paragraph, 'w:pPr');
 		for (const key of Object.keys(paragraph)) {
+			if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+				continue;
+			}
 			delete paragraph[key];
 		}
 		if (pPr) {

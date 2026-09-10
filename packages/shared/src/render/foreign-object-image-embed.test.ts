@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { embedImagesOnClone } from './foreign-object-image-embed';
+import { embedImagesOnClone, extractCssUrl } from './foreign-object-image-embed';
 
 function mockFetchOk(dataUrl: string): void {
 	vi.stubGlobal(
@@ -98,5 +98,40 @@ describe('embedImagesOnClone', () => {
 
 		expect(result.allEmbedded).toBeTruthy();
 		expect(svgImg.getAttribute('href')).toBe('data:image/png;base64,c3Zn');
+	});
+});
+
+describe('extractCssUrl', () => {
+	it('extracts a double-quoted url()', () => {
+		expect(extractCssUrl('url("https://example.com/bg.jpg")')).toBe('https://example.com/bg.jpg');
+	});
+
+	it('extracts a single-quoted url()', () => {
+		expect(extractCssUrl("url('https://example.com/bg.jpg')")).toBe('https://example.com/bg.jpg');
+	});
+
+	it('extracts an unquoted url()', () => {
+		expect(extractCssUrl('url(https://example.com/bg.jpg)')).toBe('https://example.com/bg.jpg');
+	});
+
+	it('tolerates surrounding whitespace inside the parens', () => {
+		expect(extractCssUrl('url(  "https://example.com/bg.jpg"  )')).toBe(
+			'https://example.com/bg.jpg',
+		);
+	});
+
+	it('returns null when there is no url()', () => {
+		expect(extractCssUrl('none')).toBeNull();
+	});
+
+	it('does not exhibit polynomial blow-up on many tab repetitions after an unclosed url(', () => {
+		// Regression test for the CodeQL js/polynomial-redos finding: the
+		// original `\s*["']?([^"')]+)["']?\s*` let whitespace split between the
+		// leading `\s*` and the content group in exponentially many equivalent
+		// ways. This should stay fast even for a large pathological input.
+		const pathological = `url(${'\t'.repeat(50000)}`;
+		const start = performance.now();
+		expect(extractCssUrl(pathological)).toBeNull();
+		expect(performance.now() - start).toBeLessThan(1000);
 	});
 });
