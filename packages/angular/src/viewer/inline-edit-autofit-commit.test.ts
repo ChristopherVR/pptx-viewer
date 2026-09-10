@@ -55,35 +55,49 @@ describe('resolveCommitTextAutoFitHeight', () => {
 	it('grows the shape to the measured content height for spAutoFit', () => {
 		stubScrollHeight(250);
 		const editor = document.createElement('textarea');
-		const result = resolveCommitTextAutoFitHeight([makeTextElement()], 'tx_1', editor);
+		const result = resolveCommitTextAutoFitHeight([makeTextElement()], 'tx_1', 'Changed', editor);
 		expect(result).toBe(250);
+	});
+
+	it('does not resize an unchanged spAutoFit shape', () => {
+		stubScrollHeight(42);
+		const editor = document.createElement('textarea');
+		const result = resolveCommitTextAutoFitHeight(
+			[makeTextElement({ height: 162 })],
+			'tx_1',
+			'Hello',
+			editor,
+		);
+		expect(result).toBeUndefined();
 	});
 
 	it('never resizes for normAutofit (font-shrink mode)', () => {
 		stubScrollHeight(250);
 		const editor = document.createElement('textarea');
 		const el = makeTextElement({ textStyle: { autoFitMode: 'normal' } });
-		expect(resolveCommitTextAutoFitHeight([el], 'tx_1', editor)).toBeUndefined();
+		expect(resolveCommitTextAutoFitHeight([el], 'tx_1', 'Changed', editor)).toBeUndefined();
 	});
 
 	it('never resizes a shape with no autofit at all', () => {
 		stubScrollHeight(250);
 		const editor = document.createElement('textarea');
 		const el = makeTextElement({ textStyle: {} });
-		expect(resolveCommitTextAutoFitHeight([el], 'tx_1', editor)).toBeUndefined();
+		expect(resolveCommitTextAutoFitHeight([el], 'tx_1', 'Changed', editor)).toBeUndefined();
 	});
 
 	it('returns undefined when the element cannot be found (e.g. deleted mid-edit)', () => {
 		stubScrollHeight(250);
 		const editor = document.createElement('textarea');
-		expect(resolveCommitTextAutoFitHeight([makeTextElement()], 'missing', editor)).toBeUndefined();
+		expect(
+			resolveCommitTextAutoFitHeight([makeTextElement()], 'missing', 'Changed', editor),
+		).toBeUndefined();
 	});
 
 	it('returns undefined for an element with no text properties (e.g. a table)', () => {
 		stubScrollHeight(250);
 		const editor = document.createElement('textarea');
 		const el = { id: 'tbl_1', type: 'table', x: 0, y: 0, width: 100, height: 40 } as PptxElement;
-		expect(resolveCommitTextAutoFitHeight([el], 'tbl_1', editor)).toBeUndefined();
+		expect(resolveCommitTextAutoFitHeight([el], 'tbl_1', 'Changed', editor)).toBeUndefined();
 	});
 });
 
@@ -101,16 +115,23 @@ describe('resolveCommitTextNormAutofitShrink', () => {
 		stubScrollHeight(400);
 		const editor = document.createElement('textarea');
 		const el = makeTextElement({ textStyle: { autoFitMode: 'normal' } });
-		expect(resolveCommitTextNormAutofitShrink([el], 'tx_1', editor)).toStrictEqual({
+		expect(resolveCommitTextNormAutofitShrink([el], 'tx_1', 'Changed', editor)).toStrictEqual({
 			fontScale: 0.25,
 			lnSpcReduction: 0.2,
 		});
 	});
 
+	it('does not recompute an unchanged normAutofit shape', () => {
+		stubScrollHeight(400);
+		const editor = document.createElement('textarea');
+		const el = makeTextElement({ textStyle: { autoFitMode: 'normal' } });
+		expect(resolveCommitTextNormAutofitShrink([el], 'tx_1', 'Hello', editor)).toBe('unchanged');
+	});
+
 	it('never shrinks for spAutoFit (shape-resize mode)', () => {
 		stubScrollHeight(400);
 		const editor = document.createElement('textarea');
-		expect(resolveCommitTextNormAutofitShrink([makeTextElement()], 'tx_1', editor)).toBe(
+		expect(resolveCommitTextNormAutofitShrink([makeTextElement()], 'tx_1', 'Changed', editor)).toBe(
 			'unchanged',
 		);
 	});
@@ -118,8 +139,8 @@ describe('resolveCommitTextNormAutofitShrink', () => {
 	it('returns unchanged when the element cannot be found (e.g. deleted mid-edit)', () => {
 		stubScrollHeight(400);
 		const editor = document.createElement('textarea');
-		expect(resolveCommitTextNormAutofitShrink([makeTextElement()], 'missing', editor)).toBe(
-			'unchanged',
-		);
+		expect(
+			resolveCommitTextNormAutofitShrink([makeTextElement()], 'missing', 'Changed', editor),
+		).toBe('unchanged');
 	});
 });

@@ -2,6 +2,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import {
 	beginShapeAdjustment,
+	buildInlineTextCommitPatch,
 	canInteractWithElement,
 	filterInteractableIds,
 	resolveInlineEditAutoFitHeight,
@@ -20,7 +21,6 @@ import type {
 	ElementContextMenuState,
 } from '../types';
 import type { ViewerMode } from '../types-core';
-import { remapTextToSegments } from '../utils/remap-text';
 import type { CanvasInteractionHandlers } from './canvas-interaction-types';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
@@ -143,7 +143,12 @@ export function useCanvasInteractions(
 			const committedText = transformCommittedText
 				? transformCommittedText(inlineEditingText)
 				: inlineEditingText;
-			const newSegments = remapTextToSegments(committedText, el.textSegments, el.textStyle);
+			const textPatch = buildInlineTextCommitPatch(el, committedText);
+			if (!textPatch) {
+				setInlineEditingElementId(null);
+				setInlineEditingText('');
+				return;
+			}
 			// `a:spAutoFit` ("Resize shape to fit text"): grow/shrink the shape to
 			// the text's natural content height, the way PowerPoint does. The
 			// editor's DOM node is still mounted here (the state update below is
@@ -159,8 +164,7 @@ export function useCanvasInteractions(
 			// `autoFitMode`, only one of the two modes is ever set).
 			const shrink = resolveInlineEditNormAutofitShrink(el.textStyle, el.height, editorEl);
 			ops.updateElementById(editId, {
-				text: committedText,
-				textSegments: newSegments,
+				...textPatch,
 				...(newHeight !== undefined ? { height: newHeight } : {}),
 				...(shrink !== 'unchanged'
 					? {
