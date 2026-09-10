@@ -13,6 +13,18 @@
  * 3. **PANOSE weight mapping** — maps PANOSE weight digits to CSS
  *    font-weight-aware alternatives for better visual fidelity.
  *
+ * For the common Office fonts (Calibri/Cambria/Arial/Times New Roman/Courier
+ * New/Georgia), the first fallback in the chain is chosen for being a
+ * METRIC-COMPATIBLE clone, not merely a visually similar font: Carlito,
+ * Caladea, Arimo, Tinos, Cousine and Gelasio were each built by copying the
+ * original's per-glyph advance widths (hmtx table), so substituting one for
+ * the other reflows text with the same line breaks PowerPoint itself would
+ * produce. `pptx-viewer-shared`'s `google-webfonts.ts` uses this same chain to
+ * decide which Google-Fonts-hosted family to actually download when the deck
+ * font is unavailable, so the metric match holds even on a machine that has
+ * neither the original font nor the Liberation family installed.
+ *
+
  * PANOSE byte layout (ISO/IEC 14496-22, OpenType §5.2.8.1):
  * ```
  * [0] bFamilyType      — 0=Any, 2=Latin Text, 3=Latin Hand Written, 4=Latin Decorative, 5=Latin Symbol
@@ -56,18 +68,47 @@ export const FONT_SUBSTITUTION_MAP: Record<string, readonly string[]> = {
 	Cambria: ['Caladea', 'Liberation Serif', 'Times New Roman', 'serif'],
 	'Cambria Math': ['STIX Two Math', 'Latin Modern Math', 'Times New Roman', 'serif'],
 	Consolas: ['Liberation Mono', 'Courier New', 'monospace'],
-	'Segoe UI': ['Liberation Sans', 'Helvetica Neue', 'Arial', 'sans-serif'],
-	'Segoe UI Light': ['Liberation Sans', 'Helvetica Neue', 'Arial', 'sans-serif'],
-	'Segoe UI Semibold': ['Liberation Sans', 'Helvetica Neue', 'Arial', 'sans-serif'],
+	// Selawik is Microsoft's own metric-compatible open substitute for Segoe
+	// UI (github.com/microsoft/Selawik); it is not on Google Fonts, so the
+	// webfont loader (google-webfonts.ts) cannot fetch it automatically, but
+	// listing it first still wins for a reader who has it installed or a
+	// deployment that self-hosts it.
+	'Segoe UI': ['Selawik', 'Liberation Sans', 'Arimo', 'Helvetica Neue', 'Arial', 'sans-serif'],
+	'Segoe UI Light': [
+		'Selawik Light',
+		'Liberation Sans',
+		'Arimo',
+		'Helvetica Neue',
+		'Arial',
+		'sans-serif',
+	],
+	'Segoe UI Semibold': [
+		'Selawik Semibold',
+		'Liberation Sans',
+		'Arimo',
+		'Helvetica Neue',
+		'Arial',
+		'sans-serif',
+	],
 
-	// Classic Windows fonts → cross-platform equivalents
-	'Times New Roman': ['Liberation Serif', 'Times', 'serif'],
-	Arial: ['Liberation Sans', 'Helvetica', 'sans-serif'],
-	'Arial Black': ['Liberation Sans', 'Helvetica', 'sans-serif'],
-	'Arial Narrow': ['Liberation Sans Narrow', 'Helvetica Neue', 'sans-serif'],
-	'Courier New': ['Liberation Mono', 'Courier', 'monospace'],
+	// Classic Windows fonts → cross-platform equivalents. Arimo/Tinos/Cousine
+	// are Google's metric-compatible clones of Arial/Times New Roman/Courier
+	// New (the same project that produced Carlito/Caladea) and, unlike
+	// Liberation Sans/Serif/Mono, are served by Google Fonts, so listing them
+	// is what lets the webfont loader actually fetch a matching face when the
+	// reader's system has neither the original nor the Liberation family.
+	'Times New Roman': ['Liberation Serif', 'Tinos', 'Times', 'serif'],
+	Arial: ['Liberation Sans', 'Arimo', 'Helvetica', 'sans-serif'],
+	'Arial Black': ['Liberation Sans', 'Arimo', 'Helvetica', 'sans-serif'],
+	'Arial Narrow': ['Liberation Sans Narrow', 'Arimo', 'Helvetica Neue', 'sans-serif'],
+	Helvetica: ['Liberation Sans', 'Arimo', 'Arial', 'sans-serif'],
+	'Helvetica Neue': ['Liberation Sans', 'Arimo', 'Arial', 'sans-serif'],
+	'Courier New': ['Liberation Mono', 'Cousine', 'Courier', 'monospace'],
 	Verdana: ['DejaVu Sans', 'Bitstream Vera Sans', 'sans-serif'],
-	Georgia: ['Liberation Serif', 'Times New Roman', 'serif'],
+	// Gelasio is Google's metric-compatible clone of Georgia (built the same
+	// way as Carlito/Caladea from Georgia's own hmtx table); Liberation Serif
+	// is not metrically close to Georgia and stays only as a further fallback.
+	Georgia: ['Gelasio', 'Liberation Serif', 'Times New Roman', 'serif'],
 	Tahoma: ['DejaVu Sans', 'Liberation Sans', 'sans-serif'],
 	Trebuchet: ['Liberation Sans', 'sans-serif'],
 	'Trebuchet MS': ['Liberation Sans', 'sans-serif'],

@@ -24,12 +24,33 @@
  * built, so an installed face is used as-is. Everything here is pure; the DOM
  * side effect (injecting / updating / removing the managed `<link>` element)
  * stays in each binding, and the element id is binding-specific.
+ *
+ * A referenced family that the API does not serve under its OWN name (e.g.
+ * "Calibri", which Microsoft never published to Google Fonts) is not simply
+ * dropped: `findMetricCompatibleGoogleFontsFamily` looks it up in a small,
+ * curated map of VERIFIED metric-compatible clones (the same names
+ * `pptx-viewer-core`'s `font-substitution.ts` already puts second in the CSS
+ * `font-family` list, e.g. Calibri -> Carlito) and requests that clone
+ * instead when the catalogue serves it. Because that family is already
+ * second in the CSS chain, once its stylesheet loads the browser measures
+ * text with matching advance widths without any binding-specific wiring: the
+ * fix lives once, here, and every binding's existing
+ * `resolveGoogleWebfontHref` call picks it up. Some metric-compatible fonts
+ * (Segoe UI's, Selawik) are not on Google Fonts at all; for those
+ * `googleFontsBaseUrl` can be pointed at a self-hosted mirror of the CSS2 API
+ * (see {@link resolveGoogleWebfontHref}), otherwise nothing is fetched and
+ * the CSS chain falls through to its next, non-metric-matched entry as it
+ * already did.
  */
 
 import type { PptxElement, PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import { GOOGLE_FONTS_FAMILIES } from './google-fonts-catalogue';
+import { findGoogleFontsFamily } from './google-fonts-lookup';
+import { findMetricCompatibleGoogleFontsFamily } from './google-webfonts-metric-clones';
+
+export { findGoogleFontsFamily } from './google-fonts-lookup';
+export { findMetricCompatibleGoogleFontsFamily } from './google-webfonts-metric-clones';
 
 /** Base URL of the Google Fonts CSS2 API. */
 export const GOOGLE_FONTS_CSS2_BASE = 'https://fonts.googleapis.com/css2';
@@ -155,32 +176,21 @@ export function buildGoogleFontsFragment(family: string): string {
 /**
  * Build the Google Fonts CSS2 `<link>` href for the supplied (already
  * verified) fragments, or `null` when there is nothing to load.
+ *
+ * @param baseUrl - Overrides {@link GOOGLE_FONTS_CSS2_BASE}, for a deployment
+ *   that mirrors the CSS2 API on its own origin (offline / air-gapped use).
+ *   Nothing is bundled or fetched by default; passing this is the only way
+ *   requests stop going to `fonts.googleapis.com`.
  */
-export function buildGoogleFontsHref(fragments: readonly string[]): string | null {
+export function buildGoogleFontsHref(
+	fragments: readonly string[],
+	baseUrl: string = GOOGLE_FONTS_CSS2_BASE,
+): string | null {
 	if (fragments.length === 0) {
 		return null;
 	}
 	const query = fragments.map((fragment) => `family=${encodeURIComponent(fragment)}`).join('&');
-	return `${GOOGLE_FONTS_CSS2_BASE}?${query}&${DISPLAY_PARAM}`;
-}
-
-/** Lower-cased catalogue name -> canonical Google Fonts spelling (lazy). */
-let catalogueIndex: Map<string, string> | undefined;
-
-/**
- * Canonical Google Fonts spelling for `family`, or `null` when the CSS2 API
- * does not serve it. Matching is case-insensitive and whitespace-normalised
- * because PowerPoint stores the name as the author typed it.
- */
-export function findGoogleFontsFamily(family: string): string | null {
-	if (!catalogueIndex) {
-		catalogueIndex = new Map(GOOGLE_FONTS_FAMILIES.map((name) => [normaliseFamily(name), name]));
-	}
-	return catalogueIndex.get(normaliseFamily(family)) ?? null;
-}
-
-function normaliseFamily(family: string): string {
-	return family.trim().replace(/\s+/gu, ' ').toLowerCase();
+	return `${baseUrl}?${query}&${DISPLAY_PARAM}`;
 }
 
 /**
@@ -200,15 +210,27 @@ export function resetGoogleWebfontSessionCache(): void {
 
 /**
  * The query fragments for the candidate families the catalogue knows,
- * requested under their canonical spelling. Unknown families are dropped
- * without any network request.
+ * requested under their canonical spelling. A family the catalogue does not
+ * serve under its own name falls through to
+ * {@link findMetricCompatibleGoogleFontsFamily}: its metric-compatible
+ * substitute is requested instead, so the deck still gets a matching-metrics
+ * face even though the exact one is unavailable. Families that resolve to
+ * the same canonical/substitute family (e.g. "Aptos" and "Calibri" both
+ * resolving to "Carlito") only produce one fragment. Unmatched families are
+ * dropped without any network request.
  */
 export function matchGoogleWebfontFragments(families: readonly string[]): string[] {
 	const fragments: string[] = [];
+	const requested = new Set<string>();
 	for (const family of families) {
-		const canonical = findGoogleFontsFamily(family);
-		if (canonical !== null) {
-			resolvedFamilies.add(family);
+		const canonical =
+			findGoogleFontsFamily(family) ?? findMetricCompatibleGoogleFontsFamily(family);
+		if (canonical === null) {
+			continue;
+		}
+		resolvedFamilies.add(family);
+		if (!requested.has(canonical)) {
+			requested.add(canonical);
 			fragments.push(buildGoogleFontsFragment(canonical));
 		}
 	}
@@ -224,11 +246,15 @@ export function matchGoogleWebfontFragments(families: readonly string[]): string
  *
  * Async only so the bindings' `.then` wiring is the same whether resolution
  * is a lookup or, one day, something slower.
+ *
+ * @param googleFontsBaseUrl - Passed through to {@link buildGoogleFontsHref};
+ *   overrides `fonts.googleapis.com` for a self-hosted CSS2 API mirror.
  */
 export async function resolveGoogleWebfontHref(
 	slides: readonly PptxSlide[],
 	embeddedFonts: readonly PptxEmbeddedFont[],
 	isLocallyInstalled: (family: string) => boolean = isFontFamilyInstalledLocally,
+	googleFontsBaseUrl?: string,
 ): Promise<string | null> {
 	const referenced = collectReferencedFontFamilies(slides);
 	const candidates = selectGoogleWebfontFamilies(
@@ -236,5 +262,5 @@ export async function resolveGoogleWebfontHref(
 		embeddedFonts.map((font) => font.name),
 		(family) => !resolvedFamilies.has(family) && isLocallyInstalled(family),
 	);
-	return buildGoogleFontsHref(matchGoogleWebfontFragments(candidates));
+	return buildGoogleFontsHref(matchGoogleWebfontFragments(candidates), googleFontsBaseUrl);
 }

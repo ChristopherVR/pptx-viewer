@@ -201,6 +201,19 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'well-formed (two words, exercising the %20 encoding).',
 	},
 	{
+		file: 'calibri-metric-webfont.pptx',
+		dir: 'e2e',
+		provenance: 'synthetic',
+		status: 'roundtrip',
+		note:
+			'adlam-webfont.pptx with every "ADLaM Display" typeface replaced by "Calibri" (same XML ' +
+			'skeleton, produced by string-replacing the family name inside the zip so the OOXML stays ' +
+			'valid). Calibri is not itself served by Google Fonts, so this drives the ' +
+			"google-webfonts e2e spec's metric-compatible-substitution case: the binding must request " +
+			'"Carlito" (Calibri\'s verified metric clone) instead of the unservable original, while the ' +
+			'rendered font-family stack still lists "Calibri" first.',
+	},
+	{
 		file: 'anatidae-animation.pptx',
 		dir: 'e2e',
 		provenance: 'powerpoint',

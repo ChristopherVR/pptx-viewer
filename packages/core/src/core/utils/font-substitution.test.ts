@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
+import { TABLE as APTOS_TABLE } from './font-advance-widths-aptos.generated';
+import { TABLE as ARIAL_TABLE } from './font-advance-widths-arial.generated';
+import { TABLE as CALIBRI_LIGHT_TABLE } from './font-advance-widths-calibri-light.generated';
+import { TABLE as CALIBRI_TABLE } from './font-advance-widths-calibri.generated';
+import { TABLE as SEGOE_UI_TABLE } from './font-advance-widths-segoe-ui.generated';
+import { TABLE as TIMES_NEW_ROMAN_TABLE } from './font-advance-widths-times-new-roman.generated';
+import type { FontAdvanceTable } from './font-advance-widths.generated';
 import {
 	FONT_SUBSTITUTION_MAP,
 	PANOSE_FAMILY_MAP,
@@ -529,5 +536,119 @@ describe('style-suffixed full names in the chain', () => {
 		// "Arial Black" IS a family with its own map entry; the full name must
 		// stay first so the installed face keeps winning.
 		expect(getSubstituteFontFamily('Arial Black').startsWith('"Arial Black"')).toBeTruthy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Aptos metric-compatible match
+//
+// Aptos is not installed on a typical reader's machine and has no metric
+// clone of its own on Google Fonts, so its CSS chain (and the webfont loader
+// in `pptx-viewer-shared/render/google-webfonts.ts`) fall back through
+// Calibri -> Carlito. This suite verifies that choice numerically against
+// the REAL, COM-measured Aptos advance table in
+// `font-advance-widths-aptos.generated.ts`, comparing it to every other font
+// this repo has a real measured table for (Carlito/Arimo/Tinos/Cousine/
+// Caladea/Gelasio have none; Carlito is Calibri's own metric clone by
+// construction, so "closest measured table" and "closest loadable webfont"
+// coincide here).
+// ---------------------------------------------------------------------------
+
+describe('aptos metric-compatible match', () => {
+	/**
+	 * Frequency-weighted average absolute per-glyph advance-width error
+	 * (per-1000-em) between two advance tables, weighted by each letter's
+	 * share of running English body text (space ~17.5%, then standard
+	 * letter frequencies for a-z). A frequency weighting is used, rather
+	 * than a flat average over all measured code points or the width of one
+	 * arbitrary test string, because rare punctuation should not count as
+	 * much as common letters, and a single string's over/under estimates
+	 * can cancel out and misleadingly understate the real error.
+	 */
+	function weightedAdvanceError(a: FontAdvanceTable, b: FontAdvanceTable): number {
+		const LETTER_FREQUENCY_PCT: Record<string, number> = {
+			e: 12.7,
+			t: 9.1,
+			a: 8.2,
+			o: 7.5,
+			i: 7.0,
+			n: 6.7,
+			s: 6.3,
+			h: 6.1,
+			r: 6.0,
+			d: 4.3,
+			l: 4.0,
+			c: 2.8,
+			u: 2.8,
+			m: 2.4,
+			w: 2.4,
+			f: 2.2,
+			g: 2.0,
+			y: 2.0,
+			p: 1.9,
+			b: 1.5,
+			v: 1.0,
+			k: 0.8,
+			j: 0.15,
+			x: 0.15,
+			q: 0.1,
+			z: 0.07,
+		};
+		const SPACE_SHARE_PCT = 17.5;
+		const letterTotal = Object.values(LETTER_FREQUENCY_PCT).reduce((sum, pct) => sum + pct, 0);
+		const scale = (100 - SPACE_SHARE_PCT) / letterTotal;
+		const weights = new Map<number, number>([[32, SPACE_SHARE_PCT]]);
+		for (const [letter, pct] of Object.entries(LETTER_FREQUENCY_PCT)) {
+			weights.set(letter.codePointAt(0)!, pct * scale);
+		}
+
+		let weightedSum = 0;
+		let weightTotal = 0;
+		for (const [code, weight] of weights) {
+			const aAdvance = a.advances[code];
+			const bAdvance = b.advances[code];
+			if (aAdvance === undefined || bAdvance === undefined) {
+				continue;
+			}
+			weightedSum += weight * Math.abs(aAdvance - bAdvance);
+			weightTotal += weight;
+		}
+		return weightedSum / weightTotal;
+	}
+
+	const candidates: Record<string, FontAdvanceTable> = {
+		Calibri: CALIBRI_TABLE,
+		'Calibri Light': CALIBRI_LIGHT_TABLE,
+		Arial: ARIAL_TABLE,
+		'Segoe UI': SEGOE_UI_TABLE,
+		'Times New Roman': TIMES_NEW_ROMAN_TABLE,
+	};
+
+	it('calibri has the smallest frequency-weighted advance-width error of the measured candidates', () => {
+		const errors = Object.fromEntries(
+			Object.entries(candidates).map(([name, table]) => [
+				name,
+				weightedAdvanceError(APTOS_TABLE, table),
+			]),
+		);
+		const smallest = Object.entries(errors).sort(([, a], [, b]) => a - b)[0];
+		expect(smallest?.[0]).toBe('Calibri');
+		// Regression guard on the actual measured magnitude, not just the
+		// ranking: per-1000-em error should stay under 3.5% (35 units) of the
+		// em square for the winning candidate, matching the real measurement.
+		expect(errors.Calibri).toBeLessThan(35);
+	});
+
+	it("calibri's chain leads to Carlito, which is Calibri's own metric clone", () => {
+		// Carlito was built by copying Calibri's hmtx (advance width) table
+		// directly (an established, documented fact about the Carlito/Calibri
+		// metric-compatible font project), so it carries the same measured
+		// closeness to Aptos verified above without this repo needing its own
+		// Carlito advance table.
+		expect(getSubstituteFonts('Aptos')).toContain('Calibri');
+		expect(getSubstituteFonts('Aptos')).toContain('Carlito');
+		expect(getSubstituteFonts('Aptos').indexOf('Carlito')).toBeGreaterThan(
+			getSubstituteFonts('Aptos').indexOf('Calibri'),
+		);
 	});
 });

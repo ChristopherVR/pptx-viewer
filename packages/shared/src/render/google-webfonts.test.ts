@@ -8,6 +8,7 @@ import {
 	collectReferencedFontFamilies,
 	isFontFamilyInstalledLocally,
 	findGoogleFontsFamily,
+	findMetricCompatibleGoogleFontsFamily,
 	matchGoogleWebfontFragments,
 	resetGoogleWebfontSessionCache,
 	resolveGoogleWebfontHref,
@@ -107,6 +108,14 @@ describe('buildGoogleFontsHref', () => {
 	it('returns null when nothing was verified', () => {
 		expect(buildGoogleFontsHref([])).toBeNull();
 	});
+
+	it('accepts a self-hosted base URL override', () => {
+		const href = buildGoogleFontsHref(
+			[buildGoogleFontsFragment('Carlito')],
+			'https://fonts.example.com/css2',
+		);
+		expect(href).toMatch(/^https:\/\/fonts\.example\.com\/css2\?family=Carlito/u);
+	});
 });
 
 describe('google-fonts-catalogue', () => {
@@ -134,6 +143,31 @@ describe('findGoogleFontsFamily', () => {
 	});
 });
 
+describe('findMetricCompatibleGoogleFontsFamily', () => {
+	it('resolves an unserved Office font to its metric-compatible clone', () => {
+		expect(findMetricCompatibleGoogleFontsFamily('Calibri')).toBe('Carlito');
+		expect(findMetricCompatibleGoogleFontsFamily('Cambria')).toBe('Caladea');
+		expect(findMetricCompatibleGoogleFontsFamily('Arial')).toBe('Arimo');
+		expect(findMetricCompatibleGoogleFontsFamily('Times New Roman')).toBe('Tinos');
+		expect(findMetricCompatibleGoogleFontsFamily('Courier New')).toBe('Cousine');
+		expect(findMetricCompatibleGoogleFontsFamily('Georgia')).toBe('Gelasio');
+	});
+
+	it('chains through Aptos to the same Calibri clone', () => {
+		expect(findMetricCompatibleGoogleFontsFamily('Aptos')).toBe('Carlito');
+	});
+
+	it('returns null when the family is already servable under its own name', () => {
+		expect(findMetricCompatibleGoogleFontsFamily('Roboto')).toBeNull();
+	});
+
+	it('returns null when no fallback in the chain is on the catalogue', () => {
+		// Segoe UI's metric-compatible match (Selawik) is not on Google Fonts.
+		expect(findMetricCompatibleGoogleFontsFamily('Segoe UI')).toBeNull();
+		expect(findMetricCompatibleGoogleFontsFamily('Totally Unknown Face')).toBeNull();
+	});
+});
+
 describe('matchGoogleWebfontFragments', () => {
 	it('keeps catalogue families (canonically spelled) and drops unknown ones', () => {
 		const fragments = matchGoogleWebfontFragments(['adlam display', 'Roboto', 'Totally Unknown']);
@@ -149,6 +183,20 @@ describe('matchGoogleWebfontFragments', () => {
 		matchGoogleWebfontFragments(['ADLaM Display', 'Totally Unknown']);
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
+
+	it('substitutes an unmatched Office font with its metric-compatible clone', () => {
+		expect(matchGoogleWebfontFragments(['Calibri'])).toStrictEqual([
+			buildGoogleFontsFragment('Carlito'),
+		]);
+	});
+
+	it('dedupes two families that resolve to the same clone into one fragment', () => {
+		// Aptos and Calibri both resolve to Carlito; the request should not
+		// ask Google Fonts for the same family twice.
+		expect(matchGoogleWebfontFragments(['Aptos', 'Calibri'])).toStrictEqual([
+			buildGoogleFontsFragment('Carlito'),
+		]);
+	});
 });
 
 describe('resolveGoogleWebfontHref', () => {
@@ -157,11 +205,34 @@ describe('resolveGoogleWebfontHref', () => {
 		expect(href).toContain('family=ADLaM%20Display%3Aital');
 	});
 
-	it('returns null when the family is embedded or not served', async () => {
+	it('returns null when the family is embedded or truly unmatched', async () => {
 		await expect(
 			resolveGoogleWebfontHref([slide(textEl('ADLaM Display'))], [{ name: 'ADLaM Display' }]),
 		).resolves.toBeNull();
-		await expect(resolveGoogleWebfontHref([slide(textEl('Calibri'))], [])).resolves.toBeNull();
+		await expect(
+			resolveGoogleWebfontHref([slide(textEl('Totally Unknown Face'))], []),
+		).resolves.toBeNull();
+	});
+
+	it('resolves an unembedded Office font to its metric-compatible clone', async () => {
+		const href = await resolveGoogleWebfontHref([slide(textEl('Calibri'))], []);
+		expect(href).toContain('family=Carlito%3Aital');
+	});
+
+	it('an embedded Office font is NOT redirected to its clone', async () => {
+		await expect(
+			resolveGoogleWebfontHref([slide(textEl('Calibri'))], [{ name: 'Calibri' }]),
+		).resolves.toBeNull();
+	});
+
+	it('accepts a self-hosted CSS2 API mirror base URL', async () => {
+		const href = await resolveGoogleWebfontHref(
+			[slide(textEl('Calibri'))],
+			[],
+			undefined,
+			'https://fonts.example.com/css2',
+		);
+		expect(href).toMatch(/^https:\/\/fonts\.example\.com\/css2\?family=Carlito/u);
 	});
 
 	it('never loads a family the runtime reports as installed', async () => {
