@@ -97,6 +97,7 @@ import {
 	serializeCellMergeAttributes,
 	serializeTablePropertyFlags,
 } from './save-table-merge-helpers';
+import { recordTableParagraphOrder } from './table-paragraph-save-order';
 import { rebuildTableXmlFromData } from './table-structural-ops';
 import { writeTablePropertiesOwnFillAndEffects } from './table-tblpr-save';
 
@@ -212,6 +213,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// don't yet have typed equivalents on the cell-style
 					// shape but must be preserved across save cycles.
 					serializeCellExtraAttributes(xmlCell, cell.extraAttributes);
+					recordTableParagraphOrder(xmlCell, cell.textRuns);
 				}
 			}
 		} catch (e) {

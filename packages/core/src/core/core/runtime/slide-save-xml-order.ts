@@ -34,6 +34,7 @@ import type { XmlObject } from '../../types';
 import { SHAPE_TREE_ELEMENT_TAGS } from '../../utils';
 import { assignOrderedXmlChildren, setOwnXmlProperty } from './ordered-xml-children';
 import type { SlideShapeCollectors } from './PptxHandlerRuntimeSaveElementWriter';
+import { withOrderedTableParagraphs } from './table-paragraph-save-order';
 
 const ALTERNATE_CONTENT_TAG = 'mc:AlternateContent';
 const UNRANKED = Number.MAX_SAFE_INTEGER;
@@ -267,5 +268,5 @@ export function buildOrderedSlideXml(options: {
 		}
 	}
 	nextSlide = orderSlideRootChildren(nextSlide, getLocalName);
-	return { ...xmlObj, 'p:sld': nextSlide };
+	return withOrderedTableParagraphs({ ...xmlObj, 'p:sld': nextSlide });
 }

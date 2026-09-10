@@ -44,6 +44,7 @@ import { setOwnXmlProperty } from './ordered-xml-children';
 import { orderShapeTreeChildren } from './slide-save-xml-order';
 import { scanSpTreeDocumentOrder } from './sp-tree-document-order-scan';
 import type { SpTreeChildPlan } from './sp-tree-document-order-scan';
+import { withOrderedTableParagraphs } from './table-paragraph-save-order';
 
 const ALTERNATE_CONTENT_TAG = 'mc:AlternateContent';
 
@@ -208,10 +209,10 @@ export function orderedTemplatePartXml(options: {
 		? orderShapeTreeChildren(rewrapped, (node) => rebuilt.get(node), getLocalName)
 		: orderContainer(rewrapped, sourceXml ? scanSpTreeDocumentOrder(sourceXml) : [], getLocalName);
 	if (ordered === spTree) {
-		return xmlObj;
+		return withOrderedTableParagraphs(xmlObj);
 	}
 	const nextRoot: XmlObject = { ...root, 'p:cSld': { ...commonSlideData, 'p:spTree': ordered } };
 	const nextPart: XmlObject = { ...xmlObj };
 	setOwnXmlProperty(nextPart, rootTag, nextRoot);
-	return nextPart;
+	return withOrderedTableParagraphs(nextPart);
 }

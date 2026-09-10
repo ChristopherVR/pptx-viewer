@@ -43,6 +43,7 @@ import {
 	resolveSmartArtSaveLayout,
 } from './smartart-save-geometry';
 import { mergeSmartArtPointXml, mergeSmartArtConnectionXml } from './smartart-xml-builders';
+import { withOrderedTableParagraphs } from './table-paragraph-save-order';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/** Pending SmartArt data updates to process during save. */
@@ -405,7 +406,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			root['p:cSld'] = cSld;
 			data['p:notesMaster'] = root;
-			this.zip.file(notesMaster.path, this.builder.build(data));
+			this.zip.file(notesMaster.path, this.builder.build(withOrderedTableParagraphs(data)));
 		} catch (e) {
 			console.warn('Failed to save notes master changes:', e);
 		}
@@ -446,7 +447,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			root['p:cSld'] = cSld;
 			data['p:handoutMaster'] = root;
-			this.zip.file(handoutMaster.path, this.builder.build(data));
+			this.zip.file(handoutMaster.path, this.builder.build(withOrderedTableParagraphs(data)));
 		} catch (e) {
 			console.warn('Failed to save handout master changes:', e);
 		}
