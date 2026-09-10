@@ -155,7 +155,7 @@ export function withOrderedTableParagraphs<T>(value: T, insideTable = false): T 
 		// Untouched template tables may be flushed from a separately parsed
 		// cached part without visiting the element writer. That actual parsed
 		// paragraph already carries its source order, unlike a rawXml clone.
-		const { entries, authored } = paragraphContentEntries(value, CONTENT_TAGS, ensureItems);
+		const { entries, authored } = paragraphContentEntries(value, CONTENT_TAGS);
 		const sourceTags = entries.map(([tag]) => tag);
 		if (authored && supportsOrder(value, sourceTags)) {
 			tags = sourceTags;
