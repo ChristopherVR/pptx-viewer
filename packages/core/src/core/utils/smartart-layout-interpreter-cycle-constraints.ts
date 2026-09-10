@@ -151,6 +151,7 @@ export function resolveCycleRingParams(
 	arrangerNode: PptxSmartArtLayoutNode,
 	index: ConstraintIndex,
 	satelliteCount?: number,
+	declaringRoleChain?: readonly string[],
 ): {
 	minGapRatio: number;
 	heightOverWidth: number;
@@ -205,6 +206,7 @@ export function resolveCycleRingParams(
 		index,
 		constraintNode.ruleCandidates,
 		satelliteCount,
+		declaringRoleChain,
 	);
 	const hubGapRatio = resolveHubGapRatio(item?.name, hubRatio, arrangerConstraints);
 	// See `smartart-layout-interpreter-cycle-sibtrans.ts`'s own module doc

@@ -11,6 +11,7 @@
 import type { PptxSmartArtLayoutNode, PptxSmartArtWhen } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { resolveConstraint } from './smartart-constraint-solver';
+import { resolveHubToNodeRatioViaUserSize } from './smartart-layout-interpreter-cycle-hub-ratio-usersize';
 import { evaluateWhen } from './smartart-layout-interpreter-when';
 
 /**
@@ -74,6 +75,7 @@ export function resolveHubToNodeRatio(
 	index?: ConstraintIndex,
 	arrangerRuleCandidates?: PptxSmartArtLayoutNode['ruleCandidates'],
 	satelliteCount?: number,
+	declaringRoleChain?: readonly string[],
 ): { hubName: string; factor: number } | undefined {
 	if (!ringItem?.name) {
 		return undefined;
@@ -104,7 +106,7 @@ export function resolveHubToNodeRatio(
 		}
 		return { hubName, factor: match.factor ?? 1 };
 	}
-	return resolveHubToNodeRatioViaUserSize(ringItem, arrangerConstraints);
+	return resolveHubToNodeRatioViaUserSize(ringItem, arrangerConstraints, index, declaringRoleChain);
 }
 
 /**
@@ -164,52 +166,11 @@ function resolveRuleCountOverride(
 	return match ? (match.rule.factor as number) : undefined;
 }
 
-/**
- * `node.w = fact * <hubName>.w`, declared INDIRECTLY through `userS` ("user
- * specified size") - `radial-cluster`'s own `singleCycle`/`text0`: `text0`'s
- * own `w` constraint is a BARE `refType="userS"` self-reference (no hub
- * mentioned at all in THIS constraint), and the actual hub-relative factor
- * lives on a SEPARATE constraint declared on the ARRANGER itself (`userS
- * for="ch" ptType="node" refType="w" refFor="ch" refForName="singleCenter"
- * fact="0.67"` - targeted by `ptType`, the DiagramML convention for "every
- * child node point", not by `forName`, since `userS` is declared once for
- * the whole repeated item template rather than by its specific layoutNode
- * name). COM-verified the `0.67` fact is IDENTICAL across every live
- * `dgm:choose` branch this construct's own `cnt`-gated `constrLst` declares
- * (`cnt=1`/`cnt>=2` both declare the SAME `userS ... fact="0.67"` - only the
- * HUB's own size differs per branch, never this ratio), so reading it
- * without evaluating the choose's own `cnt` condition (`buildConstraintIndex`
- * does not model `dgm:choose` scoping at all - see its own doc comment) is
- * not a guess: whichever live branch's copy this finds, the fact is the
- * same.
- */
-function resolveHubToNodeRatioViaUserSize(
-	ringItem: PptxSmartArtLayoutNode,
-	arrangerConstraints: PptxSmartArtLayoutNode['constraints'],
-): { hubName: string; factor: number } | undefined {
-	const itemConstraints = ringItem.allConstraints ?? ringItem.constraints ?? [];
-	const bareUserSizeRef = itemConstraints.some(
-		(c) =>
-			c.type === 'w' &&
-			c.referenceType === 'userS' &&
-			c.referenceFor === undefined &&
-			c.referenceForName === undefined &&
-			c.referencePointType === undefined,
-	);
-	if (!bareUserSizeRef) {
-		return undefined;
-	}
-	const userSizeDecl = (arrangerConstraints ?? []).find(
-		(c) => c.type === 'userS' && typeof c.referenceForName === 'string' && finiteFactor(c.factor),
-	);
-	return userSizeDecl
-		? { hubName: userSizeDecl.referenceForName as string, factor: userSizeDecl.factor as number }
-		: undefined;
-}
-
-function finiteFactor(value: unknown): value is number {
-	return typeof value === 'number' && Number.isFinite(value) && value > 0;
-}
+// `resolveHubToNodeRatioViaUserSize` (the `resolveHubToNodeRatio` fallback
+// for a ring item that declares its size INDIRECTLY through `userS`,
+// possibly at a distant ancestor's own `constrLst`) lives in
+// `smartart-layout-interpreter-cycle-hub-ratio-usersize.ts` (the repo's
+// per-file line budget) - see that module's own doc comment.
 
 /**
  * The natural (ring-item-width-unit) gap between the hub and each ring node,

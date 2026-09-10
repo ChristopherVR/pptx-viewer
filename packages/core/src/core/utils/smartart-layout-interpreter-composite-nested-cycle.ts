@@ -87,6 +87,7 @@ export function arrangeNestedCycleSlot(
 	style: SmartArtStyle,
 	elementId: string,
 	fontName: string | undefined,
+	declaringRoleChain?: readonly string[],
 ): RenderedNode[] | undefined {
 	const wrapper = wrapperSlot.node;
 	const nestedAnchor = resolveNestedCycleAnchor(wrapper, anchor, childrenOf);
@@ -115,6 +116,7 @@ export function arrangeNestedCycleSlot(
 		false,
 		childrenOf,
 		fontName,
+		declaringRoleChain,
 	);
 	return translateResult(result, rect.x, rect.y).nodes;
 }
@@ -139,6 +141,7 @@ export function renderChildRepeaterOrNestedCycle(
 	index: ConstraintIndex,
 	ctx: SlotStyleContext,
 	fontName: string | undefined,
+	declaringRoleChain?: readonly string[],
 ): RenderedNode[] {
 	const nested = arrangeNestedCycleSlot(
 		wrapperSlot,
@@ -155,6 +158,7 @@ export function renderChildRepeaterOrNestedCycle(
 		ctx.style,
 		ctx.elementId,
 		fontName,
+		declaringRoleChain,
 	);
 	return (
 		nested ??

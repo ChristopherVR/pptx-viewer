@@ -34,27 +34,26 @@ import type {
 } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX, roleOf } from './smartart-constraint-solver';
+import {
+	fitAspectRatioBox,
+	readAlgorithmAspectRatio,
+} from './smartart-layout-interpreter-composite-aspect';
 import { arrangeByChooseAwareSlots } from './smartart-layout-interpreter-composite-choose';
 import type { FontFitContext } from './smartart-layout-interpreter-composite-fontfit';
-import {
-	resolveFontFitFromPairs,
-	resolveSharedFontFit,
-} from './smartart-layout-interpreter-composite-fontfit';
+import { resolveFontFitFromPairs } from './smartart-layout-interpreter-composite-fontfit';
 import {
 	forEachBoundSlots,
 	renderForEachBoundSlots,
 } from './smartart-layout-interpreter-composite-foreach';
 import { renderChildRepeaterOrNestedCycle } from './smartart-layout-interpreter-composite-nested-cycle';
-import { representativeSlotsPerPoint } from './smartart-layout-interpreter-composite-order';
+import { arrangeByOrder } from './smartart-layout-interpreter-composite-order-fallback';
 import { collectSelfDesPairs } from './smartart-layout-interpreter-composite-pairs';
 import { renderAnchoredPair } from './smartart-layout-interpreter-composite-render';
 import type { SlotStyleContext } from './smartart-layout-interpreter-composite-render';
-import { axisAbsMax, readSlots, resolveSlot } from './smartart-layout-interpreter-composite-slots';
-import type { Slot, SlottedDims } from './smartart-layout-interpreter-composite-slots';
+import { axisAbsMax, readSlots } from './smartart-layout-interpreter-composite-slots';
+import type { SlottedDims } from './smartart-layout-interpreter-composite-slots';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { styleContext } from './smartart-layout-interpreter-render';
-import { findCompositeItemShape } from './smartart-layout-shape-preset';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
 
 export type { SlotStyleContext } from './smartart-layout-interpreter-composite-render';
@@ -62,10 +61,6 @@ export type { SlotStyleContext } from './smartart-layout-interpreter-composite-r
 /** `slotted` entries whose layoutNode's own `presOf` primary axis is `axis`. */
 function slotsWithAxis(slotted: SlottedDims[], axis: string): SlottedDims[] {
 	return slotted.filter((slot) => slot.node.presentationOf?.axis?.[0] === axis);
-}
-
-function slotRect(slot: SlottedDims, box: BoundingBox, absX: number, absY: number): Slot {
-	return resolveSlot(slot.dims, box, absX, absY);
 }
 
 /**
@@ -95,6 +90,7 @@ function arrangeByPresentationOf(
 	fontCtx: FontFitContext | undefined,
 	index: ConstraintIndex,
 	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
+	declaringRoleChain: readonly string[],
 ): RenderedNode[] | undefined {
 	const selfSlots = slotsWithAxis(slotted, 'self');
 	if (selfSlots.length === 0) {
@@ -144,6 +140,7 @@ function arrangeByPresentationOf(
 					index,
 					ctx,
 					fontCtx?.fontName,
+					declaringRoleChain,
 				),
 			);
 		}
@@ -163,63 +160,9 @@ function arrangeByPresentationOf(
 	return rendered;
 }
 
-/**
- * Pre-existing behaviour: one arranged point per positioned slot, in
- * document order. `representativeSlotsPerPoint` (round 40) collapses a
- * repeated per-point template's multiple positioned roles (text + accent +
- * picture + picture-accent, `hexagon-cluster`-family composites) down to one
- * slot per point FIRST, so this still zips 1:1 against `nodes` - see that
- * function's own doc comment.
- */
-function arrangeByOrder(
-	slotted: SlottedDims[],
-	nodes: PptxSmartArtNode[],
-	box: BoundingBox,
-	absX: number,
-	absY: number,
-	ctx: SlotStyleContext,
-	fontCtx: FontFitContext | undefined,
-): RenderedNode[] {
-	const perPoint = representativeSlotsPerPoint(slotted, nodes.length);
-	const count = Math.min(perPoint.length, nodes.length);
-	const slots = perPoint.slice(0, count).map((entry) => slotRect(entry, box, absX, absY));
-	const fontFit = fontCtx
-		? resolveSharedFontFit(
-				fontCtx,
-				perPoint[0]?.node,
-				slots.map((slot, i) => ({
-					rootText: nodes[i].text,
-					descendantTexts: [],
-					width: slot.width,
-					height: slot.height,
-				})),
-			)
-		: undefined;
-	const rendered: RenderedNode[] = [];
-	for (let i = 0; i < count; i++) {
-		const slot = slots[i];
-		rendered.push(
-			presetBoxNode({
-				key: `${ctx.elementId}-comp-${nodes[i].id}-${i}`,
-				x: slot.x,
-				y: slot.y,
-				width: slot.width,
-				height: slot.height,
-				node: nodes[i],
-				index: i,
-				total: count,
-				palette: ctx.palette,
-				style: ctx.style,
-				fontSizeOverride: fontFit?.rootSizePx,
-				descendantFontSize: fontFit?.descendantSizePx,
-				ctx: ctx.ctx,
-				shape: findCompositeItemShape(perPoint[i].node),
-				fallbackKind: 'rect',
-			}),
-		);
-	}
-	return rendered;
-}
+// `arrangeByOrder` (the pre-existing "no `presOf` anywhere" LAST-resort
+// mapping) lives in `smartart-layout-interpreter-composite-order-fallback.ts`
+// (the repo's per-file line budget) - see that module's own doc comment.
 
 /**
  * Execute the `composite` algorithm: map data points into the fixed child slots.
@@ -259,7 +202,12 @@ export function arrangeComposite(
 		return undefined;
 	}
 	const declaringRole = roleOf(plan.node);
-	const slotted = readSlots(children, box, index, declaringRole);
+	// `w`/`h` slot facts are read against the `ar`-fit working rectangle when
+	// the composite declares one (`radial-cluster`'s own hub sizing) - see
+	// `smartart-layout-interpreter-composite-aspect.ts`. A composite with no
+	// `ar` param gets `sizeBox === box` back, unchanged.
+	const sizeBox = fitAspectRatioBox(box, readAlgorithmAspectRatio(plan.node));
+	const slotted = readSlots(children, box, index, declaringRole, sizeBox);
 	if (slotted.length === 0) {
 		return undefined;
 	}
@@ -286,6 +234,7 @@ export function arrangeComposite(
 			fontCtx,
 			index,
 			presLayoutVars,
+			[declaringRole],
 		) ??
 		arrangeByChooseAwareSlots(plan.node, flat, box, index, ctx, fontCtx) ??
 		arrangeByOrder(slotted, nodes, box, absX, absY, ctx, fontCtx);

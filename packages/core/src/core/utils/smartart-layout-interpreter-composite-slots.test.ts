@@ -72,3 +72,67 @@ describe('readSlots declaringRole chain (round 32)', () => {
 		expect(readSlots([parTx], box, EMPTY_CONSTRAINT_INDEX, ['linV', 'linH'])).toStrictEqual([]);
 	});
 });
+
+/**
+ * Round 44: a `userS`-declared hub role (`radial-cluster--hier5.pptx`'s
+ * `textCenter`) reads its own `w`/`h` facts against `sizeBox` (the
+ * composite's `ar`-fit working rectangle) instead of the raw `box` a plain
+ * slot uses - see `smartart-layout-interpreter-composite-aspect.ts`'s
+ * `isUserSizeHubRole`/`fitAspectRatioBox`.
+ */
+describe('readSlots hub-scoped sizeBox (round 44)', () => {
+	it("reads a userS-referenced hub role's w/h against sizeBox, not box", () => {
+		const textCenter: PptxSmartArtLayoutNode = { name: 'textCenter' };
+		const name0: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'textCenter', referenceType: 'w', factor: 0.21 },
+				{
+					type: 'userS',
+					for: 'des',
+					pointType: 'node',
+					referenceType: 'w',
+					referenceFor: 'ch',
+					referenceForName: 'textCenter',
+					factor: 0.67,
+				},
+			],
+			children: [textCenter],
+		};
+		const index = buildConstraintIndex({ rootNode: name0 } as PptxSmartArtLayoutDefinition);
+		const sizeBox = { width: 533, height: 533 };
+		const [slotted] = readSlots([textCenter], box, index, 'Name0', sizeBox);
+		// 0.21 * 533 (sizeBox), NOT 0.21 * 800 (box).
+		expect(slotted.dims.w).toStrictEqual({ px: 0.21 * sizeBox.width });
+	});
+
+	it('a plain (non-hub) slot keeps reading w/h against box even when a sizeBox is given', () => {
+		const plainSlot: PptxSmartArtLayoutNode = { name: 'plainSlot' };
+		const name0: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'plainSlot', referenceType: 'w', factor: 0.5 },
+			],
+			children: [plainSlot],
+		};
+		const index = buildConstraintIndex({ rootNode: name0 } as PptxSmartArtLayoutDefinition);
+		const sizeBox = { width: 533, height: 533 };
+		const [slotted] = readSlots([plainSlot], box, index, 'Name0', sizeBox);
+		expect(slotted.dims.w).toStrictEqual({ px: 0.5 * box.width });
+	});
+
+	it('omitting sizeBox defaults it to box (no regression for every pre-existing caller)', () => {
+		const textCenter: PptxSmartArtLayoutNode = { name: 'textCenter' };
+		const name0: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'textCenter', referenceType: 'w', factor: 0.21 },
+				{ type: 'userS', referenceType: 'w', referenceForName: 'textCenter', factor: 0.67 },
+			],
+			children: [textCenter],
+		};
+		const index = buildConstraintIndex({ rootNode: name0 } as PptxSmartArtLayoutDefinition);
+		const [slotted] = readSlots([textCenter], box, index, 'Name0');
+		expect(slotted.dims.w).toStrictEqual({ px: 0.21 * box.width });
+	});
+});

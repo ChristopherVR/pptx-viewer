@@ -72,3 +72,45 @@ export function firstConstraintDeclaredBy(
 	const candidates = index.entries.get(entryKey(role, type));
 	return candidates?.find((candidate) => candidate.declaringRole === declaringRole)?.constraint;
 }
+
+/**
+ * Find a `type`-typed constraint declared by one of `declaringRoleChain`
+ * (nearest ancestor first), scanning the WHOLE index rather than one known
+ * `(role, type)` key - for a lookup whose target role is not known in
+ * advance (a `ptType`-targeted `userS` declaration keyed by a generic role
+ * like `node`, not by the specific item's own `forName`; see
+ * `smartart-layout-interpreter-cycle-hub-ratio.ts`'s `resolveHubToNodeRatioViaUserSize`).
+ *
+ * Disambiguates the SAME way `resolveConstraintDeclaredBy` already does for
+ * a known role key: when multiple declarations of `type` exist across the
+ * whole layout definition (e.g. `radial-cluster--hier5.pptx`'s own
+ * `userS` declared BOTH at the diagram root `Name0` for its `dir=norm`/
+ * `dir=rev` branches AND, unrelated, at the `singleCycle` alternative
+ * branch for its OWN `n=1` structure), only a declaration made by a TRUE
+ * ancestor of the current arranger should win - picking whichever candidate
+ * merely sits first in document order is exactly the ambiguity this guards
+ * against. `optionalMatch`, when given, further restricts which constraint
+ * of `type` counts (e.g. "carries a `referenceForName`"). Returns the
+ * nearest ancestor's own match first; `undefined` when no candidate's
+ * `declaringRole` is anywhere in the chain.
+ */
+export function resolveByAncestorChain(
+	index: ConstraintIndex,
+	type: string,
+	declaringRoleChain: readonly string[],
+	optionalMatch?: (constraint: PptxSmartArtConstraint) => boolean,
+): IndexedConstraint | undefined {
+	for (const declaringRole of declaringRoleChain) {
+		for (const entries of index.entries.values()) {
+			for (const entry of entries) {
+				if (entry.declaringRole !== declaringRole || entry.constraint.type !== type) {
+					continue;
+				}
+				if (!optionalMatch || optionalMatch(entry.constraint)) {
+					return entry;
+				}
+			}
+		}
+	}
+	return undefined;
+}

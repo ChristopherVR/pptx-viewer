@@ -15,6 +15,7 @@
 import type { PptxSmartArtLayoutNode } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
+import { isUserSizeHubRole } from './smartart-layout-interpreter-composite-aspect';
 import type { Dim } from './smartart-layout-interpreter-composite-slot-dim';
 import { dimOf } from './smartart-layout-interpreter-composite-slot-dim';
 import type { BoundingBox } from './smartart-layout-types';
@@ -68,22 +69,30 @@ function isPositioned(dims: SlotDims): boolean {
  *   omitted (every existing call site already has it to hand as `children`'s
  *   parent). A CHAIN of roles (nearest ancestor first, round 32) tries each
  *   in turn per dimension `type` - see `dimDeclaredBy`'s own doc comment.
+ * @param sizeBox The extent a `userS`-declared hub role's own `w`/`h` facts
+ *   are read against instead of `box` - see `smartart-layout-interpreter-
+ *   composite-aspect.ts`'s `isUserSizeHubRole`/`fitAspectRatioBox` for why
+ *   this is scoped to exactly that one role, not every child. Defaults to
+ *   `box` (every pre-existing caller, and every composite with no `userS`
+ *   hub role): unchanged behaviour.
  */
 export function readSlots(
 	children: PptxSmartArtLayoutNode[],
 	box: BoundingBox,
 	index: ConstraintIndex,
 	declaringRole: string | readonly string[],
+	sizeBox: BoundingBox = box,
 ): SlottedDims[] {
 	const slots: SlottedDims[] = [];
 	for (const child of children) {
 		const c = child.constraints;
 		const role = roleOf(child);
+		const hubSizeBox = isUserSizeHubRole(role, index) ? sizeBox : box;
 		const dims: SlotDims = {
 			l: dimOf(c, 'l', box, index, role, declaringRole),
 			t: dimOf(c, 't', box, index, role, declaringRole),
-			w: dimOf(c, 'w', box, index, role, declaringRole),
-			h: dimOf(c, 'h', box, index, role, declaringRole),
+			w: dimOf(c, 'w', hubSizeBox, index, role, declaringRole),
+			h: dimOf(c, 'h', hubSizeBox, index, role, declaringRole),
 			ctrX: dimOf(c, 'ctrX', box, index, role, declaringRole),
 			ctrY: dimOf(c, 'ctrY', box, index, role, declaringRole),
 		};

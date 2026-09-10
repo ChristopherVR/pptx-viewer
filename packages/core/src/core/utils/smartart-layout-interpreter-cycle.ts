@@ -42,10 +42,9 @@
  *      numeric derivation). Final width = final height / (item h:w fact) -
  *      `heightOverWidth===1` is ALWAYS a true circle/square.
  *
- * Verified against the full 227-fixture gallery: `basic-cycle`/
- * `multidirectional-cycle`/`continuous-cycle`/`basic-radial--hier5`/
- * `radial-cycle--flat3` all PASS (<=1% `maxDeltaFraction`) - a general fix.
- * See `smartart-track-r-successor.md` SESSION 8 for named residuals.
+ * Verified against the full gallery: `basic-cycle`/`multidirectional-cycle`/
+ * `continuous-cycle`/`basic-radial--hier5`/`radial-cycle--flat3` all PASS
+ * (<=1% `maxDeltaFraction`) - a general fix.
  *
  * `ctrShpMap="fNode"` hub sizing reuses the SAME `R0`/scale computation
  * (`computeCycleRingLayout`'s `hubCenter`/`naturalHubRadius`): centred at
@@ -103,16 +102,16 @@ export function arrangeCycle(
 	hubAlreadyStripped = false,
 	childrenOf?: Map<string, PptxSmartArtNode[]>,
 	fontName?: string,
+	declaringRoleChain?: readonly string[],
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
-	// `satelliteCount` (SESSION 17, `resolveHubToNodeRatio`'s own count-gated
-	// `dgm:rule` override): only trustworthy when the hub was ALREADY pulled
-	// out of `nodes` upstream (`hubAlreadyStripped`) - the common case for
-	// every hub+ring family (`basic-radial`/`diverging-radial`/`converging-
-	// radial`), where `nodes.length` already IS the satellite count. When NOT
-	// already stripped, the `ctrShpMap="fNode"` fallback below may still peel
-	// off `nodes[0]` as a hub, so `undefined` (no override) is safer than a guess.
+	// `satelliteCount` (`resolveHubToNodeRatio`'s own count-gated `dgm:rule`
+	// override): only trustworthy when the hub was ALREADY pulled out of
+	// `nodes` upstream (`hubAlreadyStripped`) - the common case for every
+	// hub+ring family, where `nodes.length` already IS the satellite count.
+	// When NOT already stripped, the `ctrShpMap="fNode"` fallback below may
+	// still peel off `nodes[0]` as a hub, so `undefined` is safer than a guess.
 	const {
 		minGapRatio,
 		heightOverWidth,
@@ -121,7 +120,12 @@ export function arrangeCycle(
 		hubGapRatio,
 		absoluteHubGapPx,
 		sibTransBulgeRatio,
-	} = resolveCycleRingParams(plan.node, index, hubAlreadyStripped ? nodes.length : undefined);
+	} = resolveCycleRingParams(
+		plan.node,
+		index,
+		hubAlreadyStripped ? nodes.length : undefined,
+		declaringRoleChain,
+	);
 	// `ctrShpMap="fNode"` pulls the first data point into a hub at the ring's
 	// own natural centre; every other value (including absent, the common
 	// case) puts every point on the ring, matching the pre-existing
@@ -142,29 +146,25 @@ export function arrangeCycle(
 	// keeps the old internal-detection behaviour.
 	//
 	// `!hubRatio`: `radial-list--hier5.pptx`'s own shape - THREE top-level
-	// "node" data points (no separate top-level hub point at all), plus a
-	// SEPARATE, always-present `centerShape` layoutNode (gated by its own
-	// `dgm:choose`, rendering a decorative image, invisible to text-based
-	// comparison) - the composite's own `w for=ch forName=node ... refForName
-	// ="centerShape"` constraint (`resolveHubToNodeRatio`, surfaced here as
-	// `hubRatio`) is the SAME declarative signal `resolveRingItemNode` already
+	// "node" data points (no separate top-level hub point), plus a SEPARATE,
+	// always-present `centerShape` layoutNode (a decorative image, invisible
+	// to text comparison) - the composite's own `w for=ch forName=node ...
+	// refForName="centerShape"` constraint (`resolveHubToNodeRatio`, surfaced
+	// here as `hubRatio`) is the SAME declarative signal `resolveRingItemNode`
 	// uses to recognise "this composite structurally names its own hub".
-	// `detectHubExpansion` never strips anything for this shape (it requires
-	// EXACTLY ONE top-level point, radial-list has three), so
-	// `hubAlreadyStripped` stays `false` and this function's OWN
-	// `ctrShpMap="fNode"` fallback fired instead - wrongly, since `centerShape`
-	// already fully accounts for the hub concept: PowerPoint's own cached
-	// drawing renders all 3 "node" points as EQUAL-SIZED satellites with no
-	// distinguishable 4th hub shape. Firing the fallback anyway silently
-	// dropped a real satellite to a degenerate 2-node ring (COM-verified
-	// regression, `radial-list--hier5.pptx`: `n` collapsed 3 -> 2, and the
-	// `cnt=3` choose branch's own `stAng`/`spanAng` - calibrated for exactly 3
-	// ring points - produced a collinear degenerate pair on the SMALLER `n=2`,
-	// tripping the ring math's own defensive isotropic fallback). Never fires
-	// when `hubAlreadyStripped` is already `true` (the common case,
-	// `basic-radial`/`diverging-radial`/`converging-radial` ALSO resolve
-	// `hubRatio` but are already correctly stripped upstream, so this clause
-	// is a no-op for them - verified via the full gallery sweep).
+	// `detectHubExpansion` never strips this shape (it requires EXACTLY ONE
+	// top-level point, radial-list has three), so `hubAlreadyStripped` stays
+	// `false` and this function's OWN `ctrShpMap="fNode"` fallback fired
+	// instead - wrongly, since `centerShape` already fully accounts for the
+	// hub: PowerPoint's cached drawing renders all 3 "node" points as
+	// EQUAL-SIZED satellites with no distinguishable 4th hub shape. Firing the
+	// fallback anyway silently dropped a real satellite to a degenerate
+	// 2-node ring (COM-verified regression: `n` collapsed 3 -> 2, and the
+	// `cnt=3` choose branch's own `stAng`/`spanAng` produced a collinear
+	// degenerate pair on the smaller `n=2`). Never fires when
+	// `hubAlreadyStripped` is already `true` (`basic-radial`/`diverging-
+	// radial`/`converging-radial` ALSO resolve `hubRatio` but are already
+	// correctly stripped upstream, so this clause is a no-op for them).
 	const hasHub =
 		!hubAlreadyStripped &&
 		!hubRatio &&
