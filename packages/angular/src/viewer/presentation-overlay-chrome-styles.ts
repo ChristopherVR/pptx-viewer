@@ -10,7 +10,7 @@
  * state, so they live here instead of taking up a third of
  * {@link PresentationOverlayComponent}.
  */
-import { runProgramNoticeStackStyle } from 'pptx-viewer-shared';
+import { runProgramNoticeStackStyle } from '../internal/shared';
 
 /** Inline style record as Angular's `[ngStyle]` consumes it. */
 export type OverlayStyle = Record<string, string>;

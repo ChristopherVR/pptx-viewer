@@ -35,7 +35,7 @@ describe('segmentStyleToCss', () => {
 			// Substituted, not bare: the metric-compatible fallbacks are what keep a
 			// binding matching the React reference on a machine without the authored
 			// font. See the note in `text-run-style.ts`.
-			fontFamily: '"Arial", "Liberation Sans", "Helvetica", sans-serif',
+			fontFamily: '"Arial", "Liberation Sans", "Arimo", "Helvetica", sans-serif',
 			fontSize: '18px',
 			color: '#123456',
 			fontWeight: 'bold',
@@ -70,7 +70,7 @@ describe('buildParagraphs autofit + bullet typeface', () => {
 			]),
 		);
 		expect(paras[0].bulletStyle.fontFamily).toBe(
-			'"Arial", "Liberation Sans", "Helvetica", sans-serif',
+			'"Arial", "Liberation Sans", "Arimo", "Helvetica", sans-serif',
 		);
 	});
 

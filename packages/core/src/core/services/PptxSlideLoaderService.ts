@@ -18,6 +18,7 @@ import { mergeNativeBuildTemplatesIntoEditorAnimations } from './animation-build
 import { mergeNativeSoundIntoEditorAnimations } from './animation-sound-merge';
 import { reconcileAnimationTargets } from './animation-target-reconcile';
 import { computeAnimationTimelineOrder } from './animation-timeline-anchors';
+import { attachRealMediaDurations } from './native-animation-media-duration';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
 import { readCommonSlideDataName } from './slide-name';
 
@@ -311,6 +312,25 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				animations = timeline.animations;
 				animationTimelineAnchors = timeline.anchors.length > 0 ? timeline.anchors : undefined;
 			}
+			// Decode each audio/video part's REAL duration from its own bytes and
+			// patch it onto its `kind: 'media'` animation entry plus every
+			// `onStopAudio` condition elsewhere that depends on it, so the headless
+			// (no real <audio>/<video> element) playback fallback uses the actual
+			// clip length instead of PowerPoint's own authored estimate. MUST run
+			// before reconcileAnimationTargets below: it matches on the raw
+			// p:cNvPr id space that pass is about to rewrite.
+			await attachRealMediaDurations(elements, nativeAnimations, async (mediaPath) => {
+				const file = params.zip.file(mediaPath);
+				if (!file) {
+					return undefined;
+				}
+				try {
+					return await file.async('uint8array');
+				} catch {
+					return undefined;
+				}
+			});
+
 			// Reconcile animation shape references (native cNvPr ids in
 			// `p:spTgt/@spid`) against the positional `element.id`s assigned on
 			// load, and stamp each element's `shapeId`. Without this the animation
