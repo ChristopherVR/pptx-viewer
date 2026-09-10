@@ -5,6 +5,8 @@ import type {
 	PptxSmartArtNode,
 	PptxSmartArtPresLayoutVars,
 } from '../types';
+import { buildConstraintIndex } from './smartart-constraint-solver';
+import type { ConstraintIndex } from './smartart-constraint-solver';
 import { arrangeHierarchy } from './smartart-layout-interpreter-hierarchy';
 import type { BoundingBox, RenderedRectNode, SmartArtLayoutResult } from './smartart-layout-types';
 
@@ -49,6 +51,118 @@ const FOUR_GENERATION_CHAIN_WITH_TWO_LEAVES: PptxSmartArtNode[] = [
 	{ id: 'gg1', text: 'Great-grandchild One', parentId: 'g1' },
 	{ id: 'gg2', text: 'Great-grandchild Two', parentId: 'g1' },
 ];
+
+/** Root + 3 direct children, one of which has its own child - matches `hierarchy-list--hier5.pptx`'s own real `data1.xml` exactly. */
+const HIERARCHY_LIST_TREE: PptxSmartArtNode[] = [
+	{ id: 'n1', text: 'Node One' },
+	{ id: 'n2', text: 'Node Two has a longer label', parentId: 'n1' },
+	{ id: 'n3', text: 'Node Three', parentId: 'n1' },
+	{ id: 'n4', text: 'Node Four', parentId: 'n1' },
+	{ id: 'n5', text: 'Node Five', parentId: 'n4' },
+];
+
+/**
+ * The declared "corner-anchored hierarchy" construct
+ * (`smartart-hierarchy-corner-plan.ts`), transcribed from `hierarchy-list--
+ * hier5.pptx`'s own real `ppt/diagrams/layout1.xml`: `root(hierRoot,
+ * hierAlign) -> [rootComposite -> [rootText, rootConnector], childShape
+ * (hierChild, linDir=fromT, chAlign) -> [Name13 (conn), childText]]`, with
+ * `childText`'s own `presOf axis="self desOrSelf" ... cnt="1 0"` (the
+ * unbounded-descendant-hop shape `hierarchyLeafFoldsDescendants` looks for)
+ * and the SAME `w`/`h` constraints (`rootComposite` `w=1,h=0.5`; `childText`
+ * `w=0.8*rootComposite.w,h=rootComposite.h`) that give `resolveHierarchy
+ * GenerationTemplates` a genuine root-vs-descendant size split (COM-verified
+ * against the real fixture's own cached drawing - see that module's doc
+ * comment). Builds a real `ConstraintIndex` (`buildConstraintIndex`, not the
+ * `EMPTY_CONSTRAINT_INDEX` `arrangeHierarchy`'s own default param falls back
+ * to) so `resolveCornerHangPlan`'s gate genuinely engages, not just the
+ * count-preserving `foldDeeperGenerations` mechanism `std`/`tailed` mode
+ * already has on its own.
+ */
+function cornerAlgorithmNode(
+	hierAlign: string,
+	chAlign: string,
+): { algorithmNode: PptxSmartArtLayoutNode; index: ConstraintIndex } {
+	const algorithmNode: PptxSmartArtLayoutNode = {
+		name: 'diagram',
+		algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: 'fromL' }] },
+		constraints: [
+			{ type: 'w', for: 'des', forName: 'rootComposite', referenceType: 'w' },
+			{ type: 'h', for: 'des', forName: 'rootComposite', referenceType: 'w', factor: 0.5 },
+			{
+				type: 'w',
+				for: 'des',
+				forName: 'childText',
+				referenceType: 'w',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite',
+				factor: 0.8,
+			},
+			{
+				type: 'h',
+				for: 'des',
+				forName: 'childText',
+				referenceType: 'h',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite',
+			},
+		],
+		children: [
+			{
+				name: 'root',
+				algorithm: { type: 'hierRoot', parameters: [{ type: 'hierAlign', value: hierAlign }] },
+				children: [
+					{
+						name: 'rootComposite',
+						algorithm: { type: 'composite' },
+						// `rootText` fills its wrapping composite exactly (the real
+						// fixture's own shape: `l`/`t` default to 0, `w`/`h` chain back
+						// to `rootComposite`'s own declared `w`/`h` above) - this is
+						// what actually gives `rootText` a resolvable size at all, not
+						// the outer `diagram`-level constraints alone.
+						constraints: [
+							{ type: 'w', for: 'ch', forName: 'rootText', referenceType: 'w' },
+							{ type: 'h', for: 'ch', forName: 'rootText', referenceType: 'h' },
+						],
+						children: [
+							{
+								name: 'rootText',
+								algorithm: { type: 'tx' },
+								shape: { presetGeometry: 'roundRect' },
+							},
+							{ name: 'rootConnector', algorithm: { type: 'sp' } },
+						],
+					},
+					{
+						name: 'childShape',
+						algorithm: {
+							type: 'hierChild',
+							parameters: [
+								{ type: 'chAlign', value: chAlign },
+								{ type: 'linDir', value: 'fromT' },
+							],
+						},
+						children: [
+							{ name: 'Name13', algorithm: { type: 'conn' } },
+							{
+								name: 'childText',
+								algorithm: { type: 'tx' },
+								shape: { presetGeometry: 'roundRect' },
+								presentationOf: {
+									axis: ['self', 'desOrSelf'],
+									pointTypes: ['node', 'node'],
+									start: [1, 1],
+									count: [1, 0],
+								},
+							},
+						],
+					},
+				],
+			},
+		],
+	};
+	return { algorithmNode, index: buildConstraintIndex({ rootNode: algorithmNode }) };
+}
 
 function run(
 	nodes: PptxSmartArtNode[],
@@ -186,16 +300,27 @@ describe('smartArt hierarchy arranger: hierBranch', () => {
 	});
 });
 
-// G7: a hand-authored layoutDef expressing orientation only via the
-// algorithm's own `linDir` (no `presLayoutVars.hierBranch`) should still
-// produce a hanging tree, not fall back to the top-down standard branch.
+// G7 (corrected, SESSION 37 - see `smartart-hierarchy-corner-plan.ts`'s own
+// module doc comment): a BARE outermost `linDir` with no `hierAlign`-bearing
+// nested `hierRoot` does NOT select a hanging tree - full-227-fixture corpus
+// verification (`hierarchy--hier5/flat3/hier8.pptx`, `circle-picture-
+// hierarchy--hier5.pptx`, `labeled-hierarchy--hier5.pptx`) shows this exact
+// shape (a `hierChild1` choose wrapping ONLY a `dir=norm/rev` left/right
+// mirror, no nested `hierChild` under its own `hierRoot`) is the REAL,
+// common "plain fanning" construct, not a hand-authored hanging one - see
+// that module's doc comment for the full derivation. The genuine hanging
+// fallback needs the full declared construct: `hierAlign="tL"/"tR"` on a
+// nested `hierRoot`, THAT node's own nested `hierChild` declaring a VERTICAL
+// `linDir` (`fromT`/`fromB`), and a genuinely distinct root-vs-descendant
+// item size (`resolveHierarchyGenerationTemplates`'s own `root` entry) -
+// `hierarchy-list--hier5.pptx`'s own real shape, transcribed here.
 describe('smartArt hierarchy arranger: linDir fallback (no presLayoutVars.hierBranch)', () => {
-	function algNode(linDir: string): PptxSmartArtLayoutNode {
+	function bareLinDirAlgNode(linDir: string): PptxSmartArtLayoutNode {
 		return { algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: linDir }] } };
 	}
 
-	it('linDir=fromR hangs the tree leftward, same direction as hierBranch="l"', () => {
-		const viaLinDir = arrangeHierarchy(
+	it('a bare outermost linDir with no hierAlign-bearing hierRoot does NOT hang (falls back to std, matching the plain fanning family)', () => {
+		const result = arrangeHierarchy(
 			DEPTH_THREE_TREE,
 			box,
 			palette,
@@ -203,28 +328,12 @@ describe('smartArt hierarchy arranger: linDir fallback (no presLayoutVars.hierBr
 			'hier-test',
 			undefined,
 			undefined,
-			algNode('fromR'),
+			bareLinDirAlgNode('fromL'),
 		);
-		const viaHierBranch = run(DEPTH_THREE_TREE, { hierarchyBranch: 'l' });
-		const linDirDelta = byId(viaLinDir, 'c1').x - byId(viaLinDir, 'm').x;
-		const hierBranchDelta = byId(viaHierBranch, 'c1').x - byId(viaHierBranch, 'm').x;
-		expect(linDirDelta).toBeLessThan(0);
-		expect(Math.sign(linDirDelta)).toBe(Math.sign(hierBranchDelta));
-	});
-
-	it('linDir=fromL hangs the tree rightward, same direction as hierBranch="r"', () => {
-		const viaLinDir = arrangeHierarchy(
-			DEPTH_THREE_TREE,
-			box,
-			palette,
-			'flat',
-			'hier-test',
-			undefined,
-			undefined,
-			algNode('fromL'),
-		);
-		const delta = byId(viaLinDir, 'c1').x - byId(viaLinDir, 'm').x;
-		expect(delta).toBeGreaterThan(0);
+		const std = run(DEPTH_THREE_TREE, undefined);
+		// Same top-down fan-out as the plain std branch: children share the
+		// root's own fan row, not a hanging column indented sideways.
+		expect(byId(result, 'c1').y).toBeCloseTo(byId(std, 'c1').y, 0);
 	});
 
 	it('an explicit presLayoutVars.hierBranch always wins over linDir', () => {
@@ -236,12 +345,32 @@ describe('smartArt hierarchy arranger: linDir fallback (no presLayoutVars.hierBr
 			'hier-test',
 			{ hierarchyBranch: 'std' },
 			undefined,
-			algNode('fromR'),
+			bareLinDirAlgNode('fromR'),
 		);
 		const std = run(DEPTH_THREE_TREE, { hierarchyBranch: 'std' });
-		// Still the standard top-down fan-out: children share the root's row 1
-		// vertical band, not a hanging column beside it.
 		expect(byId(result, 'c1').y).toBeCloseTo(byId(std, 'c1').y, 0);
+	});
+
+	it('chAlign="r" mirrors the corner-anchored column to the LEFT edge instead of the right (hierAlign="tL"/"tR" + a genuine root-vs-descendant size split)', () => {
+		const { algorithmNode, index } = cornerAlgorithmNode('tL', 'r');
+		const result = arrangeHierarchy(
+			HIERARCHY_LIST_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-corner-mirror',
+			undefined,
+			undefined,
+			algorithmNode,
+			index,
+		);
+		const root = byId(result, 'n1');
+		const child = byId(result, 'n2');
+		// Mirrored (`side: 'left'`): every row shares the column's LEFT edge -
+		// `chAlign="l"` (the real hierarchy-list--hier5.pptx shape, its own
+		// forced-mode describe block below) shares the RIGHT edge instead.
+		expect(root.x).toBeCloseTo(child.x, 0);
+		expect(root.width).toBeGreaterThan(child.width); // the distinctly-templated, wider root
 	});
 });
 
@@ -292,14 +421,12 @@ describe('smartArt hierarchy arranger: orgChart assistants', () => {
 		expect(byId(right, 'a1').y).toBeCloseTo(byId(hang, 'a1').y, 0);
 	});
 
-	it('renders an assistant at the same x as its manager in the full linDir-hanging fallback', () => {
-		// Only reached when `presLayoutVars.hierBranch` is absent entirely and
-		// the algorithm's own `linDir` param requests a hanging tree (a
-		// hand-authored, non-Office layoutDef) - see the module doc comment on
-		// smartart-layout-interpreter-hierarchy.ts.
-		const algNode: PptxSmartArtLayoutNode = {
-			algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: 'fromL' }] },
-		};
+	it('renders an assistant at the same x as its manager in the declared corner-anchored construct', () => {
+		// Only reached for the declared corner-anchored construct
+		// (`smartart-hierarchy-corner-plan.ts`) - a bare `linDir` with no
+		// `hierAlign`-bearing `hierRoot` no longer hangs at all, see the
+		// `linDir fallback` describe block above.
+		const { algorithmNode, index } = cornerAlgorithmNode('tL', 'l');
 		const result = arrangeHierarchy(
 			withAssistant,
 			box,
@@ -308,7 +435,8 @@ describe('smartArt hierarchy arranger: orgChart assistants', () => {
 			'hier-test',
 			{ orgChart: true },
 			undefined,
-			algNode,
+			algorithmNode,
+			index,
 		);
 		const manager = byId(result, 'm');
 		const assistant = byId(result, 'a1');
@@ -456,6 +584,61 @@ describe('smartArt hierarchy arranger: item box sizing (fitItemBox)', () => {
 		// since this test's box has no x/y offset) - not offset by a leading
 		// margin the way the non-transposed axis's positioning still is.
 		expect(node.x).toBeCloseTo(0, 0);
+	});
+
+	// SESSION 36/37: a SCOPED `sibSp` (`for`/`forName` set - a generation-2+
+	// hanging row's own vertical gap, e.g. `hierarchy-list`/`horizontal-
+	// labeled-hierarchy`/`titled-picture-accent-list`'s own `childShape`-
+	// scoped `sibSp refType="h"`) is NOT the whole-diagram transposition
+	// signal; only an UNSCOPED one (the genuine "Horizontal Hierarchy" shape,
+	// pinned above) is - see `smartart-hierarchy-orientation.ts`'s own
+	// `sibSpReferencesHeight` doc comment.
+	it('a SCOPED sibSp referencing height does NOT transpose the hierarchy (unlike the unscoped case above)', () => {
+		const scopedSibSpAlg: PptxSmartArtLayoutNode = {
+			algorithm: { type: 'hierChild' },
+			constraints: [
+				{
+					type: 'sibSp',
+					for: 'des',
+					forName: 'childShape',
+					referenceType: 'h',
+					referenceFor: 'des',
+					referenceForName: 'rootComposite',
+					factor: 0.25,
+				},
+			],
+		};
+		const twoChildren: PptxSmartArtNode[] = [
+			{ id: 'm', text: 'Alpha' },
+			{ id: 'c1', text: 'Beta', parentId: 'm' },
+			{ id: 'c2', text: 'Gamma', parentId: 'm' },
+		];
+		const result = arrangeHierarchy(
+			twoChildren,
+			GALLERY_BOX,
+			palette,
+			'flat',
+			'hier-scoped-sibsp',
+			undefined,
+			undefined,
+			scopedSibSpAlg,
+		);
+		const std = arrangeHierarchy(
+			twoChildren,
+			GALLERY_BOX,
+			palette,
+			'flat',
+			'hier-scoped-sibsp-std',
+			undefined,
+			undefined,
+			{ algorithm: { type: 'hierChild' } },
+		);
+		// Non-transposed: children fan along the SAME axis as the plain std
+		// case (root above, children below at a shared y), not the
+		// transposed shape's own "root flush left, children stacked beside
+		// it" layout.
+		expect(byId(result, 'c1').y).toBeCloseTo(byId(std, 'c1').y, -1);
+		expect(byId(result, 'c1').y).toBeCloseTo(byId(result, 'c2').y, 6);
 	});
 });
 
@@ -625,63 +808,31 @@ describe('smartArt hierarchy arranger: fold-depth (layout definition caps genera
 // own diagnostic (`s35-verify-hanging-box.ts`) forced it, since the
 // choose-branch dispatch bug is out of this lane.
 describe('smartArt hierarchy arranger: mode===hanging honours foldDeeperGenerations (hierarchy-list--hier5.pptx real layout definition, forced onto the hanging path)', () => {
-	const realAlgorithmNode: PptxSmartArtLayoutNode = {
-		name: 'diagram',
-		algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: 'fromL' }] },
-		children: [
-			{
-				name: 'root',
-				algorithm: { type: 'hierRoot', parameters: [{ type: 'hierAlign', value: 'tL' }] },
-				children: [
-					{
-						name: 'rootComposite',
-						algorithm: { type: 'composite' },
-						children: [
-							{
-								name: 'rootText',
-								algorithm: { type: 'tx' },
-								shape: { presetGeometry: 'roundRect' },
-							},
-							{ name: 'rootConnector', algorithm: { type: 'sp' } },
-						],
-					},
-					{
-						name: 'childShape',
-						algorithm: {
-							type: 'hierChild',
-							parameters: [
-								{ type: 'chAlign', value: 'l' },
-								{ type: 'linDir', value: 'fromT' },
-							],
-						},
-						children: [
-							{ name: 'Name13', algorithm: { type: 'conn' } },
-							{
-								name: 'childText',
-								algorithm: { type: 'tx' },
-								shape: { presetGeometry: 'roundRect' },
-								presentationOf: {
-									axis: ['self', 'desOrSelf'],
-									pointTypes: ['node', 'node'],
-									start: [1, 1],
-									count: [1, 0],
-								},
-							},
-						],
-					},
-				],
-			},
-		],
-	};
+	const { algorithmNode: realAlgorithmNode, index: realIndex } = cornerAlgorithmNode('tL', 'l');
 
-	/** Root + 3 direct children, one of which has its own child - matches the real fixture's data1.xml exactly. */
-	const HIERARCHY_LIST_TREE: PptxSmartArtNode[] = [
-		{ id: 'n1', text: 'Node One' },
-		{ id: 'n2', text: 'Node Two has a longer label', parentId: 'n1' },
-		{ id: 'n3', text: 'Node Three', parentId: 'n1' },
-		{ id: 'n4', text: 'Node Four', parentId: 'n1' },
-		{ id: 'n5', text: 'Node Five', parentId: 'n4' },
-	];
+	it('genuinely engages the corner-anchored mode (root wider than descendants, sharing the RIGHT column edge - chAlign="l")', () => {
+		const result = arrangeHierarchy(
+			HIERARCHY_LIST_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-list-corner-shape',
+			undefined,
+			undefined,
+			realAlgorithmNode,
+			realIndex,
+		);
+		const root = byId(result, 'n1');
+		const child = byId(result, 'n2');
+		// COM-verified against `hierarchy-list--hier5.pptx`'s own cached
+		// drawing: root and every descendant row share the SAME right edge,
+		// root simply extending further left (its own distinct, wider
+		// template) - see `smartart-hierarchy-hanging.ts`'s `HangingOptions
+		// .columnAlign` doc comment.
+		expect(root.width).toBeGreaterThan(child.width);
+		expect(root.x + root.width).toBeCloseTo(child.x + child.width, 0);
+		expect(root.x).toBeLessThan(child.x);
+	});
 
 	it('does not give "Node Five" its own box on the hanging path (count matches cached: root + 3 direct children only)', () => {
 		const result = arrangeHierarchy(
@@ -693,6 +844,7 @@ describe('smartArt hierarchy arranger: mode===hanging honours foldDeeperGenerati
 			undefined,
 			undefined,
 			realAlgorithmNode,
+			realIndex,
 		);
 		// Cached ground truth (hierarchy-list--hier5.pptx): 4 text-bearing
 		// shapes. "Node Five" folds into "Node Four"'s own box instead (the
@@ -737,6 +889,7 @@ describe('smartArt hierarchy arranger: mode===hanging honours foldDeeperGenerati
 			undefined,
 			undefined,
 			plainAlgorithmNode,
+			buildConstraintIndex({ rootNode: plainAlgorithmNode }),
 		);
 		expect(rects(result)).toHaveLength(5);
 	});

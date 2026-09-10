@@ -27,9 +27,22 @@ import type { HangDirection } from './smartart-hierarchy-hanging';
  */
 export type BranchMode = 'std' | 'tailed' | 'hanging';
 
-/** `linDir` values that select a hanging tree when `hierBranch` is absent. */
+/**
+ * `linDir` values that select a hanging tree when `hierBranch` is absent.
+ * `linDir` here is the "children of root" `hierChild`'s OWN param (see
+ * `smartart-hierarchy-dispatch-lindir.ts`'s `resolveHierarchyDispatchLinDir`,
+ * `arrangeHierarchy`'s sole source for this value), not the outermost
+ * wrapper's: `fromT`/`fromB` genuinely mean "this generation runs top-to-
+ * bottom/bottom-to-top", i.e. a single VERTICAL column - `hierarchy-list--
+ * hier5.pptx`'s own `childShape` (`linDir="fromT"`), COM-verified. `fromL`/
+ * `fromR` at this SAME nested position mean an ordinary horizontal fan (the
+ * plain "Hierarchy" family's `hierRoot1 -> composite` template declares no
+ * nested `hierChild` at all, so this function is never even reached for it -
+ * see that resolver's own module doc comment for why the OUTERMOST
+ * wrapper's `linDir` is deliberately never read here).
+ */
 function isHangingLinDir(linDir: string | undefined): boolean {
-	return linDir === 'fromL' || linDir === 'fromR';
+	return linDir === 'fromT' || linDir === 'fromB';
 }
 
 export function branchMode(

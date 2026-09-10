@@ -99,8 +99,24 @@ export function resolveHierarchyOrientation(
 	// `sibSp` referencing `h` is the fan-axis-is-vertical signal (see the
 	// module doc comment); referencing `w`, or unresolvable, is the classic
 	// (non-transposed) orientation.
+	// Requires `for`/`forName` BOTH absent: a SCOPED `sibSp` (`for="des"
+	// forName="childShape" refType="h" ...`, a generation-2+ hanging row's own
+	// vertical gap - `hierarchy-list`/`horizontal-labeled-hierarchy`/`titled-
+	// picture-accent-list` all declare one) is not the whole-diagram
+	// transposition signal; only an UNSCOPED `sibSp refType="h"` (the genuine
+	// "Horizontal Hierarchy" shape) is. See `smartart-track-r-successor.md`'s
+	// SESSION 36 section for the corpus derivation - landing this alone
+	// regressed `hierarchy-list`/`horizontal-labeled-hierarchy` when they had
+	// no correct arranger to route to instead; `hierarchy-list` now takes the
+	// dedicated corner-anchored `mode==='hanging'` path (`smartart-hierarchy-
+	// corner-plan.ts`) BEFORE this function is ever called, so that
+	// interaction no longer applies to it.
 	const sibSpReferencesHeight = (constraints ?? []).some(
-		(c) => c.type === 'sibSp' && c.referenceType === 'h',
+		(c) =>
+			c.type === 'sibSp' &&
+			c.referenceType === 'h' &&
+			c.for === undefined &&
+			c.forName === undefined,
 	);
 	// The `tailed` (org-chart) family's own transposition signal is DIFFERENT
 	// from the `std` "Hierarchy" family's `sibSp`-referencing-`h` one: every

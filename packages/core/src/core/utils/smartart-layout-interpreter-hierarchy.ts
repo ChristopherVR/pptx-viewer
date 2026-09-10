@@ -26,19 +26,16 @@
  *     branch only; a hanging column has no "row" to group). See
  *     `smartart-hierarchy-standard.ts`'s `placeWrappedChildren`.
  *
- * When `presLayoutVars.hierBranch` is ABSENT (a hand-authored/non-Office
- * layoutDef that never sets it, and never sets `orgChart` either), orientation
- * falls back to the algorithm's OWN `linDir` param
- * (`dgm:alg[@type=hierChild]/dgm:param[@type=linDir]`), per base ECMA-376:
- * `fromL`/`fromR` select a FULL hanging tree (root's own children down),
- * matching `hierBranch="r"`/`"l"`'s pre-measurement behaviour, since there is
- * no org-chart-family structure here to say otherwise. `fromT` (the default)
- * needs no fallback - it already IS the standard branch's own layout.
- * `fromB`/`secLinDir`/`chAlign` are not modelled (Office-authored layouts
- * always set `presLayoutVars`, so this only affects non-Office content). See
+ * When `presLayoutVars.hierBranch` is ABSENT, a THIRD mode (`mode==='hanging'`,
+ * the WHOLE tree in one hanging column) is reachable, but ONLY for the
+ * declared "corner-anchored" construct (`hierAlign="tL"/"tR"` on a genuinely
+ * root-vs-descendant-templated hierarchy) - see `smartart-hierarchy-corner-
+ * plan.ts`'s own module doc comment for the full gate and why the plain
+ * fanning family and the centred-on-children "Horizontal Hierarchy" family
+ * both correctly stay on the `std`/`tailed` path below instead. See
  * `smartart-hierarchy-orientation.ts` for the SEPARATE fan/generation axis
- * transposition (`sibSp` referencing `h`, e.g. "Horizontal Hierarchy") this
- * `linDir` fallback does not cover.
+ * transposition (`sibSp` referencing `h`, e.g. "Horizontal Hierarchy") that
+ * `std`/`tailed` path applies.
  *
  * Pure geometry; no framework code, no DOM.
  */
@@ -56,10 +53,11 @@ import type { TreeNode } from './smartart-helpers';
 import { computeHierarchyAxisPitches } from './smartart-hierarchy-axis-pitch';
 import { branchMode, resolveRowSize } from './smartart-hierarchy-branch-mode';
 import { resolveCascadePlan } from './smartart-hierarchy-cascade';
+import { resolveCornerHangPlan } from './smartart-hierarchy-corner-plan';
 import { buildFanAwareWidthMap, resolveSpanWidth } from './smartart-hierarchy-fan-aware-width';
 import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
 import { computeHangShape } from './smartart-hierarchy-hang-depth';
-import { arrangeFullyHangingTree } from './smartart-hierarchy-hanging';
+import { arrangeFullyHangingTree } from './smartart-hierarchy-hanging-arrange';
 import { flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
 import {
 	applyChildOrder,
@@ -77,7 +75,6 @@ import { placeStandardTree } from './smartart-hierarchy-standard';
 import type { StandardOptions } from './smartart-hierarchy-standard';
 import { configureTailedHangingPlacer } from './smartart-hierarchy-tailed-placer';
 import { resolveHierarchyItemFontSizePx } from './smartart-layout-interpreter-hierarchy-fontfit';
-import { algorithmParam } from './smartart-layout-interpreter-model';
 import type {
 	BoundingBox,
 	RenderedConnector,
@@ -108,10 +105,12 @@ export function arrangeHierarchy(
 	// ordinary reports one level under invisible, untyped, empty "group"
 	// content points rather than attaching them to the manager directly.
 	const roots = buildTree(flattenOrgChartGroupWrappers(orderedNodes, orgChart));
-	// Only consulted when `presLayoutVars.hierBranch` is absent - see the module
-	// doc comment and `branchMode`/`hangDirection`.
-	const linDir = algorithmNode ? algorithmParam(algorithmNode, 'linDir') : undefined;
-	const mode = branchMode(presLayoutVars, linDir);
+	// The declared "corner-anchored" construct is the ONLY way this arranger
+	// reaches `mode==='hanging'` - see `smartart-hierarchy-corner-plan.ts`'s
+	// own module doc comment for the gate and why a plain, un-gated outermost
+	// `linDir` read mis-fires on two other hierarchy families instead.
+	const cornerPlan = resolveCornerHangPlan(algorithmNode, nodes.length, presLayoutVars, index);
+	const mode = branchMode(presLayoutVars, cornerPlan?.linDir);
 	// The item template's real preset (e.g. `rect`) nests two levels under the
 	// arranger, inside a per-node `composite` (`rootComposite` -> `rootText`
 	// `alg="tx"`) - see `findHierarchyItemShape`'s doc comment.
@@ -130,8 +129,9 @@ export function arrangeHierarchy(
 			algorithmNode,
 			index,
 			fontName,
-			linDir,
+			cornerPlan?.linDir,
 			orgChart,
+			cornerPlan?.side,
 		);
 	}
 
