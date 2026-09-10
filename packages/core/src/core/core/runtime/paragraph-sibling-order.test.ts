@@ -24,13 +24,6 @@ const CONTENT_TAGS: ReadonlySet<string> = new Set([
 	'a:br',
 ]);
 
-function ensureArray(value: unknown): unknown[] {
-	if (value === undefined || value === null) {
-		return [];
-	}
-	return Array.isArray(value) ? value : [value];
-}
-
 /** Parse a slide fragment through the runtime parser (annotators included). */
 function parseParagraph(paragraphXml: string): XmlObject {
 	const parsed = factory.createParser().parse(`<p:sp><p:txBody>${paragraphXml}</p:txBody></p:sp>`);
@@ -40,7 +33,7 @@ function parseParagraph(paragraphXml: string): XmlObject {
 /** The `[tag, text]` sequence a paragraph's content children resolve to. */
 function contentSequence(txBody: XmlObject): Array<[string, string]> {
 	const paragraph = txBody['a:p'] as XmlObject;
-	const { entries } = paragraphContentEntries(paragraph, CONTENT_TAGS, ensureArray);
+	const { entries } = paragraphContentEntries(paragraph, CONTENT_TAGS);
 	return entries.map(([tag, item]) => [tag, String((item as XmlObject)?.['a:t'] ?? '')]);
 }
 
@@ -71,7 +64,7 @@ describe('paragraph sibling order', () => {
 	it('reports a grouped paragraph as unauthored so callers keep their fallback', () => {
 		const txBody = parseParagraph(`<a:p>${RUN('a')}${RUN('b')}${FLD('slidenum', '#')}</a:p>`);
 		const paragraph = txBody['a:p'] as XmlObject;
-		const { entries, authored } = paragraphContentEntries(paragraph, CONTENT_TAGS, ensureArray);
+		const { entries, authored } = paragraphContentEntries(paragraph, CONTENT_TAGS);
 		// Grouped by tag already: key iteration is correct, nothing recorded.
 		expect(authored).toBeFalsy();
 		expect(entries.map(([tag]) => tag)).toStrictEqual(['a:r', 'a:r', 'a:fld']);
@@ -84,7 +77,7 @@ describe('paragraph sibling order', () => {
 		);
 		const paragraphs = txBody['a:p'] as unknown as XmlObject[];
 		const sequence = (paragraph: XmlObject): string[] =>
-			paragraphContentEntries(paragraph, CONTENT_TAGS, ensureArray).entries.map(([tag]) => tag);
+			paragraphContentEntries(paragraph, CONTENT_TAGS).entries.map(([tag]) => tag);
 		// The first is grouped (field then run) and needs no correction; the
 		// second is interleaved and must not inherit the first one's order.
 		expect(sequence(paragraphs[0]!)).toStrictEqual(['a:fld', 'a:r']);
@@ -98,7 +91,7 @@ describe('paragraph sibling order', () => {
 			'a:r': [{ 'a:t': 'a' }, { 'a:t': 'b' }],
 			'a:fld': { 'a:t': '#' },
 		};
-		const { entries, authored } = paragraphContentEntries(paragraph, CONTENT_TAGS, ensureArray);
+		const { entries, authored } = paragraphContentEntries(paragraph, CONTENT_TAGS);
 		expect(authored).toBeFalsy();
 		expect(entries).toHaveLength(3);
 	});

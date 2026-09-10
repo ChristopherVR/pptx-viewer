@@ -38,6 +38,13 @@ function parseCell(xml: string): XmlObject {
 }
 
 describe('extractTableCellTextRuns', () => {
+	it('preserves a paragraph containing only a soft break', () => {
+		const cell = parseCell('<a:tc><a:txBody><a:bodyPr/><a:p><a:br/></a:p></a:txBody></a:tc>');
+		expect(extractTableCellTextRuns(cell, context)).toStrictEqual([
+			{ text: '', isLineBreak: true },
+		]);
+	});
+
 	it('returns undefined for a cell with no runs', () => {
 		const cell = parseCell('<a:tc><a:txBody><a:bodyPr/><a:p/></a:txBody></a:tc>');
 		expect(extractTableCellTextRuns(cell, context)).toBeUndefined();

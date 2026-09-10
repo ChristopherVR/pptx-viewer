@@ -292,9 +292,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// its paragraph. `paragraphContentEntries` replays the order recovered
 		// from the raw XML at parse time, and reports `authored: false` when
 		// there was nothing to recover (already grouped, or SDK-built).
-		const { entries, authored } = paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS, (value) =>
-			this.ensureArray(value),
-		);
+		const { entries, authored } = paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS);
 		const runCount = this.ensureArray(p['a:r']).length;
 		const breakCount = this.ensureArray(p['a:br']).length;
 		// Legacy repair, kept for the grouped case only: with the true order
