@@ -39,7 +39,7 @@ import { AiHistoryService } from './ai-history.service';
 			<button
 				type="button"
 				(click)="history.toggleMenu()"
-				class="inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent"
+				class="pptx-ng-ai-chats-btn inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent"
 			>
 				<svg lucideHistory class="h-3.5 w-3.5"></svg>
 				{{ 'pptx.ai.chats' | translate }}
@@ -50,7 +50,7 @@ import { AiHistoryService } from './ai-history.service';
 					(click)="history.newChat()"
 					[title]="'pptx.ai.newChat' | translate"
 					[attr.aria-label]="'pptx.ai.newChat' | translate"
-					class="rounded-sm p-1 text-muted-foreground hover:bg-accent"
+					class="pptx-ng-ai-history-icon-btn rounded-sm p-1 text-muted-foreground hover:bg-accent"
 				>
 					<svg lucideMessageSquarePlus class="h-3.5 w-3.5"></svg>
 				</button>
@@ -60,7 +60,7 @@ import { AiHistoryService } from './ai-history.service';
 					[title]="'pptx.ai.clearChat' | translate"
 					[attr.aria-label]="'pptx.ai.clearChat' | translate"
 					[disabled]="!canClear()"
-					class="rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40"
+					class="pptx-ng-ai-history-icon-btn rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40"
 				>
 					<svg lucideTrash2 class="h-3.5 w-3.5"></svg>
 				</button>
@@ -78,7 +78,7 @@ import { AiHistoryService } from './ai-history.service';
 					<button
 						type="button"
 						(click)="history.newChat(); history.menuOpen.set(false)"
-						class="inline-flex items-center gap-1 rounded-sm bg-primary/90 px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary"
+						class="pptx-ng-ai-history-new inline-flex items-center gap-1 rounded-sm bg-primary/90 px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary"
 					>
 						<svg lucidePlus class="h-3 w-3"></svg>
 						{{ 'pptx.ai.newChat' | translate }}
@@ -119,7 +119,7 @@ import { AiHistoryService } from './ai-history.service';
 									(click)="deleteChat(chat.id)"
 									[title]="'pptx.ai.deleteChat' | translate"
 									[attr.aria-label]="'pptx.ai.deleteChat' | translate"
-									class="shrink-0 rounded-sm p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+									class="pptx-ng-ai-history-delete shrink-0 rounded-sm p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
 								>
 									<svg lucideTrash2 class="h-3.5 w-3.5"></svg>
 								</button>
@@ -134,6 +134,27 @@ import { AiHistoryService } from './ai-history.service';
 			</div>
 		}
 	`,
+	styles: [
+		`
+			/*
+			 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+			 * pptx-viewer-shared's render/responsive module. Component-scoped
+			 * rules (not Tailwind utilities) so they are not subject to
+			 * Tailwind's \`@layer utilities\` losing to the global, unlayered
+			 * \`:where(button)\` base rule in theme.css (see AiChatPanelComponent's
+			 * own \`.pptx-ng-ai-close\` fix for the same reasoning).
+			 */
+			@media (pointer: coarse), (max-width: 767px) {
+				.pptx-ng-ai-chats-btn,
+				.pptx-ng-ai-history-icon-btn,
+				.pptx-ng-ai-history-new,
+				.pptx-ng-ai-history-delete {
+					min-width: 44px;
+					min-height: 44px;
+				}
+			}
+		`,
+	],
 })
 export class AiHistoryMenuComponent {
 	/** Whether the clear-chat action is enabled (transcript non-empty). */

@@ -133,4 +133,9 @@ export const AI_HISTORY_CSS = `
 	font-size: 0.625rem;
 	color: var(--pptx-muted-foreground);
 }
+/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+   render/responsive module, below MOBILE_BREAKPOINT (768). */
+@media (max-width: 767px) {
+	.pptxv-ai-chats, .pptxv-ai-history-new, .pptxv-ai-history-delete { min-width: 44px !important; min-height: 44px !important; }
+}
 `;

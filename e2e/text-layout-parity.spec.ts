@@ -67,7 +67,10 @@ async function runsOfSlide(
 	await slideStage(page).waitFor();
 	const target = thumbnail(page, slideNumber);
 	await target.waitFor();
-	await target.click();
+	// The default 10s action timeout races the thumbnail rail settling under
+	// CI load (same class as element-marker-parity.spec.ts's identical fix):
+	// give it the 15s this file's other post-navigation waits already assume.
+	await target.click({ timeout: 15_000 });
 	// Angular and Svelte stamp the accessibility attributes in a microtask after
 	// the nodes exist, and the demos animate the slide change; measuring before
 	// that settles reads half a slide.
@@ -313,8 +316,23 @@ test.describe('cross-binding text layout', () => {
 		// paragraphs and hanging bullets in one text body, i.e. every input that
 		// can add or drop a run.
 		test.setTimeout(180_000);
-		const results = await acrossFrameworks(browser, testInfo, async (page, origin) =>
-			runsOfSlide(page, origin, BLANK_PARAGRAPHS, 13),
+		// BLANK_PARAGRAPHS is the 5 MB solution-explorer.pptx fixture (embedded
+		// video); the reference project drives all FIVE bindings against it
+		// (`comparisonSet` returns the full list only there), and the default
+		// parallel concurrency means up to five real Chrome instances parsing
+		// and rendering that same heavy deck at once on the CI runner's limited
+		// CPU. That is the same self-inflicted contention `chart-svg-parity.spec.ts`
+		// and `export-raster-tiling.spec.ts` root-caused for their own
+		// heavy-deck sweeps (see their `concurrency: 'sequential'` comments):
+		// it starves whichever binding's page is mid-render when the thumbnail
+		// click's actionability check runs, so the click never sees the rail
+		// stabilise within its timeout. Sequential execution removes that
+		// contention without changing what gets compared.
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			async (page, origin) => runsOfSlide(page, origin, BLANK_PARAGRAPHS, 13),
+			{ concurrency: 'sequential' },
 		);
 		expectRunParity(results);
 	});

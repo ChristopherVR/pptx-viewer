@@ -60,8 +60,17 @@ const LOAD_TIMEOUT_MS = 60_000;
  * exposes an accessible "Go to slide N" control in the slide rail.
  */
 async function gotoSlide(page: Page, slideNumber: number): Promise<void> {
-	await page.locator(`[aria-label="Go to slide ${slideNumber}"]`).first().click();
-	await page.waitForTimeout(600);
+	// This deck is the same 5 MB/embedded-video fixture `loadDeck` gives extra
+	// parse room for (LOAD_TIMEOUT_MS); under CI worker contention the plain
+	// 600ms other (lighter-deck) specs use for a slide-switch settle has been
+	// observed too short here (`gotoSlide(page, SLIDE.bullets)` sometimes
+	// measured before slide 14's runs painted), so this heavy-deck helper gets
+	// the same 900ms headroom other heavy-content waits in the suite use.
+	await page
+		.locator(`[aria-label="Go to slide ${slideNumber}"]`)
+		.first()
+		.click({ timeout: 15_000 });
+	await page.waitForTimeout(900);
 }
 
 async function loadDeck(page: Page): Promise<void> {
