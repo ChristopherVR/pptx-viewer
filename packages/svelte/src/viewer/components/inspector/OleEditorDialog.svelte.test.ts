@@ -166,7 +166,11 @@ describe('oleEditorDialog', () => {
 			cellInput.value = '250';
 			cellInput.dispatchEvent(new Event('blur', { bubbles: true }));
 		}
-		await flush();
+		// The commit re-encodes the workbook asynchronously; a fixed number of
+		// flush rounds timed out under CI load, so poll like the nested-deck case.
+		await waitUntil(
+			() => (editor.applyElementPatch as ReturnType<typeof vi.fn>).mock.calls.length > 0,
+		);
 
 		expect(editor.applyElementPatch).toHaveBeenCalledWith(
 			'ole1',
