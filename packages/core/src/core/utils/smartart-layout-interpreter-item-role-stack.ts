@@ -11,62 +11,14 @@
  */
 
 import type { ConstraintIndex } from './smartart-constraint-solver';
-import { heightWeight } from './smartart-layout-interpreter-item-role-shared';
 import {
 	boundingBoxOf,
 	splitEntryFields,
 } from './smartart-layout-interpreter-item-role-stack-fields';
+import { stackAsRect } from './smartart-layout-interpreter-item-role-stack-rect';
 import type { ItemRoleContent } from './smartart-layout-interpreter-item-role-transition';
-import { resolveRoleFontSize } from './smartart-layout-item-font-size';
 import { resolvePresetRenderKind } from './smartart-layout-shape-preset';
 import type { RenderedNode, RenderedRectNode } from './smartart-layout-types';
-
-/** Split `content` vertically within `box`, each row weighted by {@link heightWeight}. */
-function stackAsRect(
-	content: ItemRoleContent[],
-	arrangerRole: string,
-	original: RenderedNode,
-	box: { x: number; y: number; width: number; height: number },
-	index: ConstraintIndex,
-): RenderedRectNode[] {
-	const weights = content.map((entry) => heightWeight(index, arrangerRole, entry.role));
-	const totalWeight = weights.reduce((sum, weight) => sum + weight, 0) || content.length;
-	let cursor = box.y;
-	return content.map((entry, i) => {
-		const rowHeight = (weights[i] / totalWeight) * box.height;
-		// Each role's OWN `primFontSz`, not the arranger's single shared size -
-		// see `resolveRoleFontSize`'s doc comment ("Numbered Card List"'s
-		// numbered-badge role declares an INDEPENDENT, much larger ceiling than
-		// its body-text sibling). `entry.literalText ?? original.text` is the
-		// same text `splitEntryFields` below bakes into this row's own
-		// `.text` field, so the size is fit against exactly what renders.
-		const fontSize = resolveRoleFontSize(entry.role, index, [
-			{ text: entry.literalText ?? original.text, width: box.width, height: rowHeight },
-		]);
-		const rect: RenderedRectNode = {
-			kind: 'rect',
-			fontColor: original.fontColor,
-			fontWeight: original.fontWeight,
-			fontStyle: original.fontStyle,
-			x: box.x,
-			y: cursor,
-			width: box.width,
-			height: rowHeight,
-			rx: original.kind === 'rect' ? original.rx : 0,
-			fill: original.fill,
-			stroke: original.stroke,
-			strokeWidth: original.strokeWidth,
-			opacity: original.opacity,
-			fontSize,
-			textX: box.x + box.width / 2,
-			textY: cursor + rowHeight / 2,
-			rotation: original.rotation,
-			...splitEntryFields(entry, `${original.key}-role${i}`, original),
-		};
-		cursor += rowHeight;
-		return rect;
-	});
-}
 
 /**
  * Stack already-resolved role `content` within `original`'s box. Returns
@@ -109,6 +61,7 @@ export function stackRoleContent(
 	arrangerRole: string,
 	original: RenderedNode,
 	index: ConstraintIndex,
+	nodeTextById?: Map<string, string>,
 ): RenderedNode[] | undefined {
 	// A LONE resolved role (a leaf point with no child, when the template
 	// declares 2+ roles but this specific point's own content only fills
@@ -122,6 +75,8 @@ export function stackRoleContent(
 	if (content.length <= 1) {
 		return undefined;
 	}
+	const asRect = (): RenderedRectNode[] =>
+		stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index, nodeTextById);
 	// EXPLICIT declaration only: a role with NO `dgm:shape` of its own
 	// (`rolePreset`'s "default to rect" fallback) must NOT count as "wants
 	// rect" here - a hub+satellite `cycle` family's own roles commonly
@@ -168,7 +123,7 @@ export function stackRoleContent(
 	// x/y/w/h geometry style stays rect-based, which is fine - the bridge
 	// reads the preset STRING from `presetOverride`, not from `kind`).
 	if (original.kind === 'rect') {
-		return stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index);
+		return asRect();
 	}
 	// The arranger's merged shape is NOT a rect. Recover a rect split when
 	// EVERY role EXPLICITLY declares a rect-family shape of its own (see
@@ -176,7 +131,7 @@ export function stackRoleContent(
 	// pair, merged shape `circle`) - `stackAsRect` still gives each row its
 	// OWN `presetOverride`.
 	if (everyRoleIsRect) {
-		return stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index);
+		return asRect();
 	}
 	// `polygon` (a pyramid row's `levelTx`(rect)/`acctTx`
 	// (`nonIsoscelesTrapezoid`) pair, COM-verified against `basic-pyramid
@@ -192,7 +147,7 @@ export function stackRoleContent(
 	// geometry cannot split by height at all), so this is unaffected by
 	// `hasMixedExplicitKinds` either way.
 	if (original.kind === 'polygon') {
-		return splitAsUnchangedCopy(content, original);
+		return splitAsUnchangedCopy(content, original, nodeTextById);
 	}
 	// `circle` (`radial-list`'s own `parentNode`(ellipse)/`childNode`(rect)
 	// ring-item pair, COM-verified against `radial-list--hier5.pptx`: cached
@@ -208,7 +163,9 @@ export function stackRoleContent(
 	// `smartart-layout-interpreter-cycle-ring-item.ts`) gets the "unchanged
 	// copy" treatment.
 	if (original.kind === 'circle') {
-		return hasMixedExplicitKinds ? splitAsUnchangedCopy(content, original) : undefined;
+		return hasMixedExplicitKinds
+			? splitAsUnchangedCopy(content, original, nodeTextById)
+			: undefined;
 	}
 	// Any OTHER merged kind with a mixed explicit-kind set keeps the
 	// pre-existing `stackAsRect` behaviour (still gives each role its own
@@ -216,7 +173,7 @@ export function stackRoleContent(
 	// to) - no fixture in the built-in gallery is known to reach this, but it
 	// preserves the behaviour this function already had before this round.
 	if (hasMixedExplicitKinds) {
-		return stackAsRect(content, arrangerRole, original, boundingBoxOf(original), index);
+		return asRect();
 	}
 	// Any other merged kind, no mixed roles at all: nothing to do.
 	return undefined;
@@ -229,9 +186,13 @@ export function stackRoleContent(
  * arranger-specific geometry pass (`repositionPyramidBands`,
  * `repositionCycleRingContent`) reposition/resize it afterward.
  */
-function splitAsUnchangedCopy(content: ItemRoleContent[], original: RenderedNode): RenderedNode[] {
+function splitAsUnchangedCopy(
+	content: ItemRoleContent[],
+	original: RenderedNode,
+	nodeTextById: Map<string, string> | undefined,
+): RenderedNode[] {
 	return content.map((entry, i) => {
-		const fields = splitEntryFields(entry, `${original.key}-role${i}`, original);
+		const fields = splitEntryFields(entry, `${original.key}-role${i}`, original, nodeTextById);
 		// `polygon` ONLY: a `self`-axis role (`levelTx` in `basic-pyramid
 		// --hier5.pptx`: the point's OWN text, re-presented alongside its
 		// child's) is not a SEPARATE shape at all - it IS the original

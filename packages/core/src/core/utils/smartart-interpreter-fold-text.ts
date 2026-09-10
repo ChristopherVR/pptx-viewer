@@ -26,14 +26,29 @@ import { projectSmartArtNodeText } from './smartart-node-text-projection';
  * additional paragraph in its nearest rendered ancestor's box, matching
  * PowerPoint's own cached drawing (see `smartart-gallery-ground-truth.test.ts`).
  *
- * A structural GROUP-WRAPPER content point (real genuine org charts insert
- * these between a manager and its reports - see `fixtures/corpus/README.md`'s
- * `rootComposite1`/`rootComposite`/`rootComposite3` note) has empty text and
- * is itself never separately rendered, but its own children usually ARE
- * (hierarchy gives every real node its own box). Folding the wrapper's OWN
- * empty text in would corrupt its ancestor's text with a spurious blank
- * paragraph, so an empty-text unrendered node is walked through (its
- * children are still checked) but never added to the fold list itself.
+ * Trims a LEADING/TRAILING run of empty-text (unrendered) descendants but
+ * keeps an INTERIOR one as a blank-paragraph placeholder - the SAME rule
+ * `smartArtDescendantsWithText` (`smartart-node-tree-axis.ts`) uses for the
+ * composite/item-role "des"-axis fold, unified here after a corpus-wide
+ * check (every text-bearing cached shape across all 227 gallery fixtures
+ * whose text contains an interior blank paragraph - 5, across `bubble-
+ * picture-list--hier5`/`meet-the-team--hier8`/`small-dots-horizontal--
+ * hier8`/`text-card-short-line--hier8.pptx` - wants that blank PRESERVED;
+ * none wants it dropped). This module's own PRIOR design deliberately
+ * dropped every empty-text unrendered descendant unconditionally, reasoning
+ * that a structural GROUP-WRAPPER content point (real genuine org charts
+ * insert these between a manager and its reports) would otherwise corrupt
+ * its ancestor's text with a spurious blank paragraph - a real, principled
+ * concern, but one with NO corpus fixture currently measuring it either way
+ * (zero of the 227 fixtures' cached text disagrees with preserving an
+ * interior blank here); the empirical, corpus-wide signal favours ONE
+ * unified rule over two conflicting ones, so this now matches
+ * `smartArtDescendantsWithText` exactly. A GROUP-WRAPPER's own children are
+ * typically ALREADY separately rendered (hierarchy gives every real node
+ * its own box), so they are excluded via `renderedIds` before this trim
+ * ever runs - the wrapper itself only survives the trim when it sits
+ * BETWEEN two other real, unrendered fold entries, which is precisely the
+ * shape PowerPoint's own cached drawing renders as a blank line.
  */
 export function collectFoldedDescendants(
 	node: PptxSmartArtNode,
@@ -46,14 +61,20 @@ export function collectFoldedDescendants(
 			if (renderedIds.has(child.id)) {
 				continue;
 			}
-			if (child.text.trim().length > 0) {
-				out.push(child);
-			}
+			out.push(child);
 			walk(child);
 		}
 	};
 	walk(node);
-	return out;
+	let start = 0;
+	while (start < out.length && out[start].text.trim().length === 0) {
+		start++;
+	}
+	let end = out.length - 1;
+	while (end >= start && out[end].text.trim().length === 0) {
+		end--;
+	}
+	return out.slice(start, end + 1);
 }
 
 /**

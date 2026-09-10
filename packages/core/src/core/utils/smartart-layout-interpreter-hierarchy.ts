@@ -52,6 +52,7 @@ import type {
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
 import { buildTree, treeDepth } from './smartart-helpers';
+import { computeHierarchyAxisPitches } from './smartart-hierarchy-axis-pitch';
 import {
 	branchMode,
 	linDirHangDirection,
@@ -68,20 +69,15 @@ import {
 	resolveHierarchyOrientation,
 	transposeResult,
 } from './smartart-hierarchy-orientation';
-import {
-	compositeFanPitch,
-	computeAxisPitch,
-	GENERATION_MARGIN_RATIO,
-	translateResult,
-} from './smartart-hierarchy-pitch';
+import { translateResult } from './smartart-hierarchy-pitch';
 import {
 	baseContext,
 	findHierarchyItemShape,
-	HANG_HEIGHT_RATIO,
 	HIER_TAIL_OFFSET_RATIO,
 } from './smartart-hierarchy-shared';
 import { placeStandardTree } from './smartart-hierarchy-standard';
 import type { StandardOptions } from './smartart-hierarchy-standard';
+import { resolveHierarchyItemFontSizePx } from './smartart-layout-interpreter-hierarchy-fontfit';
 import { algorithmParam } from './smartart-layout-interpreter-model';
 import type {
 	BoundingBox,
@@ -104,6 +100,7 @@ export function arrangeHierarchy(
 	algorithmNode?: PptxSmartArtLayoutNode,
 	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
 	childOrder?: Map<string, number>,
+	fontName?: string,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const orgChart = presLayoutVars?.orgChart === true;
@@ -137,6 +134,7 @@ export function arrangeHierarchy(
 			boxH,
 			connectorLabels,
 			itemShape,
+			resolveHierarchyItemFontSizePx(nodes, algorithmNode, index, boxW, boxH, fontName),
 		);
 		placeHangingForest(hc, roots, INSET + indent, INSET, {
 			orgChart,
@@ -175,6 +173,43 @@ export function arrangeHierarchy(
 			? computeHangShape(roots, orgChart, resolveRowSize(presLayoutVars))
 			: { fannedGenerations: rawDepth, maxHangDepth: 0 };
 	const depth = hangShape.fannedGenerations;
+	// `fitItemBox`'s own `clampToNaturalAspect` parameter (default `true`,
+	// left unset here) was added by a concurrent change to that file but is
+	// NOT wired to `false` for `tailed` mode here: measured directly (full
+	// gallery baseline, this session) that doing so REGRESSES the whole
+	// org-chart family rather than improving it -
+	// `organization-chart--{flat3,hier5,hier8}.pptx` moved from their
+	// existing `maxDeltaFraction` (5.6%/10.6%/13.5% observed with
+	// `clampToNaturalAspect=false`, all WORSE). Left at the default (`true`,
+	// i.e. `boxH`/`boxW` stay aspect-clamped). NOTE for whoever revisits
+	// `half-circle`/`name-and-title-organization-chart`'s own item-size
+	// residual (SESSION 18/19): `widthFit` itself is NOT provably wrong for
+	// `organization-chart--hier5.pptx` (352px) - that fixture is
+	// HEIGHT-bound (`boxH=heightFit`, `boxW=heightFit/aspectRatio`, `widthFit`
+	// never actually used), so its own good 1.27% match says nothing about
+	// `widthFit`'s correctness. `half-circle`'s smaller, more-correct aspect
+	// (0.32 vs the wrapper's 0.5 - see `smartart-hierarchy-composite-
+	// child.ts`) flips the SAME box to WIDTH-bound instead, exposing whatever
+	// `widthFit` actually is - which is why fixing the aspect ALONE regressed
+	// SESSION 18's own attempt.
+	//
+	// SESSION 20: 5 precise `widthFit` samples now exist (2 built via live
+	// COM specifically for this, `smartart-track-r-successor.md` has the
+	// full derivation) - `organization-chart--flat3.pptx` (n=2, no hang,
+	// extra~0), `--hier5.pptx` (n=2, BOTH branches hang 1 leaf each,
+	// extra~0.909), `--hier8.pptx` (n=5, ONE branch hangs 1 leaf,
+	// extra~0.018), a COM sample (n=3, ONE branch hangs 1 leaf, extra~0.007),
+	// and a COM sample (n=3, ONE branch hangs 2 leaves side by side,
+	// extra~0.851) - `extra` being how much `widthFit`'s own denominator
+	// must grow past `n + (n-1)*sibSpRatio` to reproduce the cached item
+	// width. A minority branch hanging exactly 1 leaf needs ~0 extra
+	// (`hier8`, the n=3/1-leaf sample); a branch hanging 2+ leaves, OR every
+	// fanned branch hanging at once, needs a LARGE extra of the SAME rough
+	// magnitude (~0.85-0.91) - two seemingly different triggers landing on
+	// similar magnitudes, not yet unified into one closed-form rule with
+	// only 5 samples. NOT landed this session - needs a proper automated
+	// COM sweep (vary branch count and hang-count independently) before
+	// trying another formula, not another one-off guess.
 	const { boxW, boxH } = fitItemBox(
 		effectiveBox,
 		totalLeaves,
@@ -185,59 +220,22 @@ export function arrangeHierarchy(
 		orientation.marginXRatio,
 		orientation.marginYRatio,
 		hangShape.maxHangDepth,
-		mode !== 'tailed',
 	);
-	// `cellW`/`cellH` as a naive `dimension/count` split distributes leftover
-	// space EQUALLY on both ends ("space-around"); real PowerPoint treats the
-	// two axes DIFFERENTLY instead - generation axis: fixed leading margin
-	// (top), trailing edge flush against the far box edge; fan axis: CENTRED
-	// (no margin, a fixed `sibSp` gap, slack split evenly) - see
-	// `smartart-hierarchy-pitch.ts`'s module doc comment for the full
-	// derivation and its round-11/SESSION-8 correction. `pitch` plugs in as
-	// `cellW`/`cellH`; `shift` corrects the position afterwards via
-	// `translateResult`. A TRANSPOSED hierarchy needs no GENERATION-axis
-	// leading margin (its item size already fills the box edge-to-edge, so a
-	// nonzero margin double-counts space that was never there - measured
-	// regression: `horizontal-hierarchy--flat3.pptx`'s root rendered 61px off
-	// the box's left edge instead of flush).
-	// `tailed` mode: a pitch fill against the WHOLE `effectiveBox` assumes
-	// `totalLeaves`/`depth` items genuinely span it - true for `std` (every
-	// generation fans), false here (only `fannedGenerations` rows fan; the
-	// REST is reserved for the hanging tail via its own separate `vGap`/
-	// indent mechanism, already sized via `fitItemBox`'s own `maxHangDepth`
-	// term). Filling the WHOLE box using only the fanned count double-
-	// reserves that space as one giant inter-row gap (COM-verified
-	// regression: `organization-chart--hier5.pptx`'s own generation-1 row
-	// rendered ~200px too far down) - scoped to just the FAN-share instead.
+	// See `computeHierarchyAxisPitches`'s own doc comment (`smartart-
+	// hierarchy-axis-pitch.ts`) for why the fan and generation axes use
+	// genuinely different pitch models, and its own history for the SESSION
+	// 9/10 corrections.
 	const tailedPitch = mode === 'tailed';
-	const generationMargin =
-		orientation.transposed || tailedPitch ? 0 : boxH * GENERATION_MARGIN_RATIO;
-	const fanWidth = tailedPitch
-		? effectiveBox.width - hangShape.maxHangDepth * HIER_TAIL_OFFSET_RATIO * boxW
-		: effectiveBox.width;
-	const fanHeight = tailedPitch
-		? effectiveBox.height - hangShape.maxHangDepth * (1 + HANG_HEIGHT_RATIO) * boxH
-		: effectiveBox.height;
-	// The FAN axis is CENTRED (`compositeFanPitch`), not a leading-margin/
-	// trailing-flush pack - see that function's own doc comment for the
-	// round-11/SESSION-8/9 COM correction (`compositeWidthFactor` is
-	// `undefined` for `tailedPitch` mode: org-chart's own `rootText1` is
-	// never shrunk relative to its own composite wrapper - see `smartart-
-	// hierarchy-composite-child.ts`). Used UNCONDITIONALLY for `tailedPitch`
-	// too: empirically byte-identical to the OLD `computeAxisPitch(fanWidth,
-	// 0, boxW, totalLeaves)` fill-exactly formula across all 7 org-chart-
-	// family fixtures - a real equivalence, not a guess; the remaining
-	// org-chart residual is therefore NOT a fan-axis bug, see `smartart-
-	// track-r-successor.md`'s own SESSION 9.
-	const xPitch = compositeFanPitch(
-		fanWidth,
+	const { xPitch, yPitch } = computeHierarchyAxisPitches(
+		effectiveBox,
+		orientation,
 		boxW,
-		orientation.compositeWidthFactor,
-		orientation.cardOffsetXRatio,
-		orientation.sibSpRatio,
+		boxH,
 		totalLeaves,
+		depth,
+		hangShape,
+		tailedPitch,
 	);
-	const yPitch = computeAxisPitch(fanHeight, generationMargin, boxH, depth);
 	const cellW = xPitch.pitch;
 	const cellH = yPitch.pitch;
 	const hc = baseContext(
@@ -249,6 +247,7 @@ export function arrangeHierarchy(
 		boxH,
 		connectorLabels,
 		itemShape,
+		resolveHierarchyItemFontSizePx(nodes, algorithmNode, index, boxW, boxH, fontName),
 	);
 
 	const standardOptions: StandardOptions = {

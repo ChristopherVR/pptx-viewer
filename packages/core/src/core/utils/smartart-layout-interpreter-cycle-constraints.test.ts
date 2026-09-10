@@ -178,4 +178,74 @@ describe('resolveCycleRingParams: composite hub+ring item resolution', () => {
 		// declared 0.6.
 		expect(params.heightOverWidth).toBeCloseTo(0.6, 5);
 	});
+
+	it('session 10: a composite self+child ring item (radial-list "node" shape) converts minGapRatio by contentLayout.selfWidthFactor and SKIPS the DEFAULT_MIN_GAP_RATIO floor, instead of flooring a plain-item-derived value that was never measured against this shape', () => {
+		const arranger: PptxSmartArtLayoutNode = {
+			name: 'cycle',
+			algorithm: { type: 'cycle' },
+			constraints: [
+				{
+					type: 'sibSp',
+					referenceType: 'w',
+					referenceFor: 'des',
+					referenceForName: 'composite',
+					factor: 0.12,
+				},
+			],
+			children: [
+				{
+					name: 'node',
+					algorithm: { type: 'composite' },
+					constraints: [
+						{ type: 'w', for: 'ch', forName: 'parentNode', factor: 0.4 },
+						{
+							type: 'h',
+							for: 'ch',
+							forName: 'parentNode',
+							referenceType: 'w',
+							referenceFor: 'ch',
+							referenceForName: 'parentNode',
+						},
+						{
+							type: 'l',
+							for: 'ch',
+							forName: 'childNode',
+							referenceType: 'w',
+							referenceFor: 'ch',
+							referenceForName: 'parentNode',
+							factor: 1.1,
+						},
+						{ type: 'w', for: 'ch', forName: 'childNode', factor: 0.6 },
+					],
+				},
+				{ name: 'sibTrans' },
+			],
+		};
+		const params = resolveCycleRingParams(arranger, EMPTY_CONSTRAINT_INDEX);
+		expect(params.contentLayout?.selfWidthFactor).toBeCloseTo(0.4, 6);
+		// 0.12 / 0.4 = 0.3 - BELOW DEFAULT_MIN_GAP_RATIO (0.5), so a naive
+		// `Math.max(0.5, 0.3)` floor (the pre-session-10 behaviour) would have
+		// discarded it and returned 0.5 instead.
+		expect(params.minGapRatio).toBeCloseTo(0.3, 6);
+	});
+
+	it('session 10: a PLAIN (non-composite) ring item still floors at DEFAULT_MIN_GAP_RATIO - the floor-skip is scoped to composite items only, no regression', () => {
+		const plainCycle: PptxSmartArtLayoutNode = {
+			name: 'cycle',
+			algorithm: { type: 'cycle' },
+			constraints: [
+				{
+					type: 'sibSp',
+					referenceType: 'w',
+					referenceFor: 'des',
+					referenceForName: 'composite',
+					factor: 0.15,
+				},
+			],
+			children: [{ name: 'node', constraints: [] }, { name: 'sibTrans' }],
+		};
+		const params = resolveCycleRingParams(plainCycle, EMPTY_CONSTRAINT_INDEX);
+		expect(params.contentLayout).toBeUndefined();
+		expect(params.minGapRatio).toBeCloseTo(0.5, 6); // floored, unchanged.
+	});
 });

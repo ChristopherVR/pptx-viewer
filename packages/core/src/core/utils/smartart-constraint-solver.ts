@@ -216,6 +216,23 @@ export function resolveEntry(
 	if (!hasReference(constraint)) {
 		return literalValue(constraint);
 	}
+	// Arranger-declared (`for="ch" forName="X"`), no EXPLICIT refFor/refForName/
+	// refPointType, but its OWN fact/val: an axis-scale hint, not a cross-role
+	// reference (`balance--hier5.pptx`'s `left_40_1`, `refType="w" fact="0.365"`
+	// = "0.365 * box width", never "childrenComposite's own w" - usually
+	// undeclared, so the walk below silently dropped every `balance` slot).
+	// `literal !== undefined` matters: `outerBox` (`refType="w"`, no fact/val,
+	// `nested-target--hier5.pptx`) means "inherit the arranger's own w" -
+	// nothing to degrade to, so it still falls through to the walk.
+	const hasExplicitRefTarget =
+		constraint.referenceFor !== undefined ||
+		constraint.referenceForName !== undefined ||
+		constraint.referencePointType !== undefined;
+	const literal = literalValue(constraint);
+	const isArrangerDeclared = targetRole(constraint, declaringRole) !== declaringRole;
+	if (isArrangerDeclared && !hasExplicitRefTarget && literal !== undefined) {
+		return literal;
+	}
 	const refType = constraint.referenceType ?? constraint.type;
 	const refRole = targetRole(
 		{

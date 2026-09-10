@@ -208,3 +208,86 @@ describe('computeCycleRingLayout (live-COM-verified)', () => {
 		expect(tinyHub.nodeWidth).toBeCloseTo(chordOnly.nodeWidth, 0);
 	});
 });
+
+// G20: `radial-cluster--hier5.pptx`'s own construct - a ring point whose data
+// node has children continues outward as further ring points (recursively) -
+// see `smartart-layout-interpreter-cycle-extension.ts`'s module doc comment
+// (`hasMaxDepthGuard`) for the two-condition gate this describe block pins.
+describe('arrangeCycle ring point extension', () => {
+	// `radial-cluster`'s own resolved arranger (`singleCycle`) is reached
+	// through exactly one enclosing `dgm:if func="maxDepth"` - see
+	// `hasMaxDepthGuard`'s own doc comment for the corpus-wide derivation.
+	function maxDepthGuardedPlan(): ArrangementPlan {
+		return planFor({
+			algorithm: { type: 'cycle' },
+			chooseGuard: [{ function: 'maxDepth', operator: 'lte', value: '1' }],
+		});
+	}
+
+	it("renders a ring point's own children as further points, continuing outward from the ring centre, when the arranger is BOTH hub-stripped AND maxDepth-guarded (radial-cluster's own shape)", () => {
+		const childrenOf = new Map<string, PptxSmartArtNode[]>([['n1', [{ id: 'gc', text: 'GC' }]]]);
+		const result = arrangeCycle(
+			maxDepthGuardedPlan(),
+			nodes(3),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+			undefined,
+			true,
+			childrenOf,
+		);
+		expect(result.nodes.map((n) => n.nodeId)).toContain('gc');
+		expect(result.nodes).toHaveLength(4);
+	});
+
+	it("does NOT extend a PLAIN (non-hub) ring even when maxDepth-guarded and a ring point's data node happens to have children - COM-verified regression: several hier5/hier8 corpus fixtures (basic-cycle, continuous-cycle, ...) give a plain ring point unrelated extra children the cached drawing folds/drops, not renders as new points", () => {
+		const childrenOf = new Map<string, PptxSmartArtNode[]>([['n1', [{ id: 'gc', text: 'GC' }]]]);
+		const result = arrangeCycle(
+			maxDepthGuardedPlan(),
+			nodes(3),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+			undefined,
+			false,
+			childrenOf,
+		);
+		expect(result.nodes.map((n) => n.nodeId)).not.toContain('gc');
+		expect(result.nodes).toHaveLength(3);
+	});
+
+	it("does NOT extend a hub-stripped ring that is NOT maxDepth-guarded, even when a satellite's data node has children - COM-verified regression: radial-cycle--hier5.pptx is ALSO hub-stripped with the IDENTICAL 'one satellite has one child' data shape radial-cluster--hier5.pptx uses, but its cached drawing FOLDS the child's text into the satellite's own box instead of rendering it separately (its layoutDef declares zero func=\"maxDepth\" conditions anywhere)", () => {
+		const plan = planFor({ algorithm: { type: 'cycle' } }); // no chooseGuard at all
+		const childrenOf = new Map<string, PptxSmartArtNode[]>([['n1', [{ id: 'gc', text: 'GC' }]]]);
+		const result = arrangeCycle(
+			plan,
+			nodes(3),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+			undefined,
+			true,
+			childrenOf,
+		);
+		expect(result.nodes.map((n) => n.nodeId)).not.toContain('gc');
+		expect(result.nodes).toHaveLength(3);
+	});
+
+	it('is a no-op when no ring point has children, even when hub-stripped and maxDepth-guarded', () => {
+		const result = arrangeCycle(
+			maxDepthGuardedPlan(),
+			nodes(3),
+			{ width: 200, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+			undefined,
+			true,
+			new Map(),
+		);
+		expect(result.nodes).toHaveLength(3);
+	});
+});

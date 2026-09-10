@@ -133,6 +133,34 @@ function descendantIds(
 	return smartArtDescendantsWithText(node, childrenOf).map((descendant) => descendant.id);
 }
 
+/**
+ * `id -> text` for every one of `node`'s descendants (any depth) - the SAME
+ * set {@link contentIds}'s `ch`/`des`/`desOrSelf` branches resolve ids from.
+ *
+ * Round 20: a `ch`/`des`-axis role (`childText` in "Vertical Bullet List":
+ * `presOf axis="des"`, the point's own CHILD's text, folded into a
+ * companion box beside the point's own `parentText`) resolved the right
+ * `nodeIds` all along, but `smartart-layout-interpreter-item-role-stack-
+ * fields.ts`'s `splitEntryFields` had no way to turn an id back into text -
+ * its `text: entry.literalText ?? original.text` fallback silently
+ * DUPLICATED the point's OWN text into the child's box instead (COM-
+ * verified against `vertical-bullet-list--hier8.pptx`: "Branch A Root"
+ * rendered under BOTH `parentText` AND `childText`, the second one wrong -
+ * the real child, "Branch A Child", never appeared at all). This map lets
+ * the stack/fields modules resolve the REAL text for any `nodeIds` a role
+ * carries, not just the transition-role `literalText` case.
+ */
+export function descendantTextById(
+	node: PptxSmartArtNode,
+	childrenOf: Map<string, PptxSmartArtNode[]>,
+): Map<string, string> {
+	const map = new Map<string, string>();
+	for (const descendant of smartArtDescendantsWithText(node, childrenOf)) {
+		map.set(descendant.id, descendant.text);
+	}
+	return map;
+}
+
 /** The data-node id(s) a role's `presOf` axis resolves to for one point. */
 export function contentIds(
 	role: PptxSmartArtLayoutNode,

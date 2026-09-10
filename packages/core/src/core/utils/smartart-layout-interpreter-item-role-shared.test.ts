@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PptxSmartArtLayoutNode } from '../types';
-import { hasAmbiguousTopLevelRoles } from './smartart-layout-interpreter-item-role-shared';
+import type { PptxSmartArtNode, PptxSmartArtLayoutNode } from '../types';
+import {
+	descendantTextById,
+	hasAmbiguousTopLevelRoles,
+} from './smartart-layout-interpreter-item-role-shared';
 
 describe('hasAmbiguousTopLevelRoles', () => {
 	it('declines a `self` role paired with a FLAT `desOrSelf` role (Converging Radial)', () => {
@@ -67,5 +70,32 @@ describe('hasAmbiguousTopLevelRoles', () => {
 			presentationOf: { axis: ['des'] },
 		};
 		expect(hasAmbiguousTopLevelRoles([parentNode, childNode])).toBeFalsy();
+	});
+});
+
+// Round 20: `vertical-bullet-list--hier8.pptx`'s "Branch A Root" rendered
+// "Branch A Child"'s own `childText` box with "Branch A Root" DUPLICATED
+// into it (COM-verified wrong) - `splitEntryFields` had no way to turn a
+// `des`-axis role's resolved `nodeIds` back into real text, only
+// `literalText` (transition roles) or `original.text` (the point's OWN
+// text, wrong for a genuine descendant). `descendantTextById` is the fix's
+// data source.
+describe('descendantTextById', () => {
+	it("maps every descendant's own id to its own text, not the ancestor's", () => {
+		const childrenOf = new Map<string, PptxSmartArtNode[]>([
+			['root', [{ id: 'child', text: 'Branch A Child', parentId: 'root' }]],
+			['child', [{ id: 'grandchild', text: 'Branch A Grandchild', parentId: 'child' }]],
+		]);
+		const root: PptxSmartArtNode = { id: 'root', text: 'Branch A Root' };
+		const map = descendantTextById(root, childrenOf);
+		expect(map.get('child')).toBe('Branch A Child');
+		expect(map.get('grandchild')).toBe('Branch A Grandchild');
+		expect(map.has('root')).toBeFalsy(); // the point's OWN id is never its own descendant
+	});
+
+	it('is empty for a genuine leaf (no children at all)', () => {
+		const childrenOf = new Map<string, PptxSmartArtNode[]>();
+		const leaf: PptxSmartArtNode = { id: 'leaf', text: 'Node One' };
+		expect(descendantTextById(leaf, childrenOf).size).toBe(0);
 	});
 });

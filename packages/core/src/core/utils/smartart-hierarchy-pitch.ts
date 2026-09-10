@@ -11,17 +11,17 @@
  * `smartart-layout-interpreter-hierarchy.ts`'s own module doc comment for the
  * full correction history):
  *
- *   - The GENERATION (stacking) axis is a genuine leading-margin/
- *     trailing-flush pack (`computeAxisPitch`, unchanged by the round-11
- *     correction): a margin on the LEADING edge only (top), and the tree's
- *     TRAILING edge (bottom generation) sits flush against the far box edge
- *     with zero trailing margin - solving `margin + n*itemSize + (n-1)*gap =
- *     boxDimension`. The margin is a fraction of the ITEM's OWN height, not
- *     the box's: `hierarchy--flat3.pptx` (2 generations, `boxH=203`) measures
- *     `margin=34px` (`34/203=0.1675`); `hierarchy--hier5.pptx` (3
- *     generations, a SMALLER height-clipped `boxH=131`) measures
- *     `margin=22px` (`22/131=0.168`) - the SAME ratio despite a different
- *     depth, confirming it scales with the item, not the container or depth.
+ *   - The GENERATION (stacking) axis is CENTRED (`computeAxisPitch`, SESSION
+ *     16 correction), with a small constant top bias: slack (`dimension -
+ *     n*itemSize - (n-1)*gap`) splits evenly between the leading and trailing
+ *     edge, and `margin` (a fraction of the ITEM's OWN height, NOT the box's -
+ *     see `GENERATION_MARGIN_RATIO`'s own doc comment) shifts HALF of itself
+ *     from the trailing edge to the leading edge on top of that centring, not
+ *     an absolute leading-only margin against a trailing-flush pack (the
+ *     PRE-SESSION-16 model - see `computeAxisPitch`'s own doc comment for why
+ *     that was only ever a coincidental match for a 2-3 generation tree that
+ *     happens to nearly fill `dimension`, and the 4-sample COM measurement
+ *     that overturned it for anything taller).
  *   - The FAN (sibling) axis is CENTRED instead (`centeredAxisPitch`, NEW in
  *     round 11/SESSION 8): a FIXED gap ratio (the layout's own declared
  *     `sibSp`), with whatever slack remains split EVENLY on both sides -
@@ -74,36 +74,84 @@ export interface AxisPitch {
  * against live COM this round - see `smartart-layout-interpreter-
  * hierarchy.ts`'s own call site comment). `dimension`: the axis's own box
  * size (already orientation-swapped by the caller when transposed).
+ *
+ * `fixedGapRatio` (optional, every existing caller that omits it is
+ * byte-identical - see this function's own regression tests): when given,
+ * the gap is `itemSize * fixedGapRatio` directly instead of SOLVED to fill
+ * `dimension` exactly. The solved gap is only a correct model for a tree
+ * that genuinely spans every generation with a real fan at each one - for
+ * `hierarchy--hier8.pptx` (a `sibSp`/`sp`-declaring composite-wrapped
+ * layout whose deepest generation is a lone descendant past the main fan,
+ * not itself fanned), the solved gap (forcing the row stack to fill the
+ * whole box) measures 49.86px against the fixture's own real, independently
+ * measured (raw `dsp:sp` offsets) 41.98px - `hierarchy--flat3.pptx`/
+ * `--hier5.pptx` (2/3 generations, no such lone tail) show the SOLVED gap
+ * coincidentally equals `itemSize * 0.4580` almost exactly, which is why
+ * this bug was invisible until a 4-generation, unevenly-fanned sample
+ * existed to distinguish the two models - see
+ * `resolveGenerationGapRatio`'s own doc comment in `smartart-hierarchy-
+ * orientation.ts` for the declarative derivation of this ratio. Passing it
+ * does NOT by itself fix `hierarchy--hier8.pptx`'s own leading margin
+ * (`GENERATION_MARGIN_RATIO` remains unvalidated past 3 generations - see
+ * `smartart-track-r-successor.md`'s own SESSION 10) - it only corrects the
+ * GAP between rows to the genuine, multi-sample-confirmed constant, turning
+ * a deviation that GREW with generation depth into a constant one.
  */
 export function computeAxisPitch(
 	dimension: number,
 	margin: number,
 	itemSize: number,
 	count: number,
+	fixedGapRatio?: number,
 ): AxisPitch {
 	const n = Math.max(1, count);
-	const gap = n > 1 ? Math.max(0, (dimension - margin - n * itemSize) / (n - 1)) : 0;
+	const gap =
+		n <= 1
+			? 0
+			: fixedGapRatio !== undefined
+				? itemSize * Math.max(0, fixedGapRatio)
+				: Math.max(0, (dimension - margin - n * itemSize) / (n - 1));
 	const pitch = itemSize + gap;
-	const rawShift = margin - gap / 2;
-	// The tree's own trailing edge (last item's right/bottom edge, after the
-	// leading `margin` and inter-item `gap`s) must never sit past the box's
-	// own far edge - COM-verified: it sits flush against it, never past it
-	// (see the module doc comment). `rightEdge(shift) = shift + n*itemSize +
-	// gap*(n-0.5)` (derived from `placeStandardTree`'s own `cx=(offset+0.5)*
-	// pitch` placement); solving `rightEdge<=dimension` for `shift` gives the
-	// bound below. For `n>1` with an unfloored `gap`, `rawShift` already
-	// satisfies this EXACTLY by `gap`'s own defining equation - the clamp is
-	// then a byte-identical no-op (verified against every currently-passing
-	// multi-column `hierarchy`/`organization-chart` fixture). It only
-	// actually engages for the `count===1` degenerate case (`gap` is
-	// hard-coded `0`, so there is no gap term left to reconcile `fitItemBox`'s
-	// own independently-calibrated margin with this function's own
-	// LEADING-only margin) and the latent `n>1`-but-already-overflowing case
-	// (`gap` floored to `0` because the un-gapped items alone already exceed
-	// `dimension`), neither of which any built-in gallery
-	// fixture exercises today.
+	// SESSION 16: the generation axis is CENTRED (slack split evenly, like the
+	// fan axis's own `centeredAxisPitch`), not a leading-margin/trailing-flush
+	// pack - that was only ever a coincidental match for a tree whose fanned
+	// generations happen to nearly fill `dimension` already (every sample this
+	// module's OWN doc comment cites - `hierarchy--flat3`/`--hier5` - is 2-3
+	// generations tall against a box tuned to roughly fit that many rows).
+	// COM-verified via 4 purpose-built trees (0/1/2/3 "leading singleton
+	// generations before the first 5-wide fan", same fan width, `Demote()`
+	// depth 2..5): measured top/bottom margin around a fixed-`n*itemSize+
+	// (n-1)*gap`-tall content block is symmetric to within rounding at EVERY
+	// depth (e.g. `n=4`: top 28px vs bottom 12px predicted-vs-measured; the
+	// ~16px difference between them is CONSTANT across all 4 depths and
+	// matches `margin` - i.e. `GENERATION_MARGIN_RATIO*itemSize` - almost
+	// exactly, confirming `margin` is a SHIFT split between the two edges
+	// (`+margin/2` top, `-margin/2` bottom), not an absolute leading gap).
+	// Solving `finalTop(row 0) = gap/2 + shift = (dimension-span)/2 +
+	// margin/2` for `shift` (`span = n*itemSize+(n-1)*gap = n*pitch-gap`)
+	// gives the formula below. It is an EXACT generalisation of the old
+	// `margin-gap/2` leading-margin formula: whenever `gap` is SOLVED (not
+	// `fixedGapRatio`) to fill `dimension` exactly - the only regime the old
+	// formula was ever validated against - `span===dimension-margin` by that
+	// solve's own defining equation, which reduces this SAME formula to
+	// `margin-gap/2` byte-for-byte (verified algebraically and against every
+	// previously-passing fixture's own numbers below). It only differs - and
+	// only then matches the cached geometry - when `fixedGapRatio` is used and
+	// the fanned content is genuinely shorter than `dimension` (`hierarchy--
+	// hier8.pptx` and the org-chart family's own fanned-row placement).
+	const centeredShift = (dimension - n * pitch + margin) / 2;
+	// Degenerate overflow (the item, or the un-gapped items alone, already
+	// exceed `dimension`) still needs the OLD "never past the far edge" floor:
+	// centring an oversized block would let it hang off BOTH edges, worse than
+	// the old formula's own flush-trailing-edge fallback for this case (kept
+	// as an explicit regression: `count===1`/floored-gap `count>1`, neither
+	// exercised by any built-in gallery fixture, both covered by this
+	// module's own colocated tests). Same `maxShift` derivation as before
+	// (`rightEdge(shift)=shift+n*itemSize+gap*(n-0.5)<=dimension`); it is a
+	// no-op whenever `centeredShift` already satisfies it, which is every
+	// currently-measured non-degenerate case above.
 	const maxShift = dimension - n * itemSize - gap * (n - 0.5);
-	return { pitch, shift: Math.min(rawShift, maxShift) };
+	return { pitch, shift: Math.min(centeredShift, maxShift) };
 }
 
 /**

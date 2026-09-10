@@ -59,7 +59,7 @@ try {
   "FATAL PowerPoint COM is unavailable: $($_.Exception.Message)"
   exit 2
 }
-$app.Visible = $true
+$app.Visible = -1 # msoTrue (integer, not $true: this COM interop session rejects a raw PS boolean here)
 
 $pres = $null
 try {
@@ -124,32 +124,43 @@ try {
     # Line height: force EXACTLY two lines by wrapping "<M-run> <M-run>" (a
     # single interior space, so word-wrap cannot break mid-run) at a width
     # between one and two run-widths, using this font's own just-measured 'M'
-    # (77) advance to size the run. `(Shape.Height - MarginTop - MarginBottom)
-    # / 2 / REF_SIZE` is then the font's real line-height-to-font-size ratio,
-    # read back from PowerPoint's OWN wrapped layout rather than assumed.
+    # (77) advance to size the run. `TextRange.BoundHeight / 2 / REF_SIZE` is
+    # then the font's real line-height-to-font-size ratio, read back from
+    # PowerPoint's OWN wrapped layout rather than assumed.
     #
-    # The `MarginTop`/`MarginBottom` subtraction is NOT optional: `Shape.
-    # Height` is the OUTER shape height, which includes the text frame's own
-    # fixed top+bottom insets (3.6pt each by PowerPoint's own plain-textbox
-    # default, already captured above as `$marginTopPt`/`$marginBottomPt`) on
-    # top of the two lines' own content height. Omitting the subtraction
-    # inflates the derived ratio by `(marginTopPt + marginBottomPt) / (2 *
-    # REF_SIZE)` - roughly +0.036 at REF_SIZE=100 with the default 3.6pt/3.6pt
-    # margins - the SAME amount regardless of font, which is exactly why an
-    # earlier, buggy version of this script (no subtraction) produced an
-    # IDENTICAL 1.248 for both Calibri and Aptos despite their genuinely
-    # different real ratios (COM-verified via a direct, independent
-    # single-line measurement: `(Shape.Height - MarginTop - MarginBottom) /
-    # REF_SIZE` at two different font sizes for a one-line "Node One" agreed
-    # with THIS two-line method's corrected value to within 0.002, both
-    # landing at ~1.212-1.215 for Aptos, not 1.248). This single un-derived
-    # constant fed into `smartart-text-wrap-fit.ts`'s wrapped-line-height
-    # formula for EVERY `lin`/`snake` gallery fixture, silently
-    # over-estimating how much vertical space each line needs and forcing
-    # extra, unnecessary shrinkage - masked for Calibri because its own
-    # (also inflated the same way) ratio happened to still clear the
-    # gallery's specific fixtures' thresholds, exposed once Aptos's
-    # genuinely wider glyphs stacked on top of the SAME inflated ratio.
+    # Round 18 (`smartart-track-l-successor.md`): this used to read
+    # `(Shape.Height - MarginTop - MarginBottom) / 2 / REF_SIZE` instead -
+    # COM-verified DIRECTLY (a fresh, isolated textbox, both quantities read
+    # at the SAME moment) that `Shape.Height - margins` and `TextRange.
+    # BoundHeight` are NOT the same quantity: `Shape.Height` is the outer,
+    # AutoFit-driven shape height, which carries a small extra ~1.24pt of
+    # its own internal padding beyond the content's real `BoundHeight` (for
+    # Aptos at REF_SIZE=100: `Shape.Height - margins` gives 1.212, `BoundHeight`
+    # directly gives 1.2 EXACTLY, both measured off the identical rendered
+    # line) - PowerPoint's real `TextFrame2.AutoFit` shape-sizing is not a
+    # pure content measurement. This codebase's own text-fit model
+    # (`smartart-text-wrap-fit.ts`/`smartart-layout-item-font-tier-fit.ts`)
+    # compares against `TextRange.BoundHeight`-equivalent quantities
+    # throughout (matching how EVERY other COM ground-truth measurement in
+    # this project's history - round 13's own fit-criterion derivation
+    # included - reads PowerPoint), so `BoundHeight` is the metric this
+    # table needs to match, not `Shape.Height`. Re-deriving Aptos's ratio
+    # this way (1.2, not 1.212) resolves a round-13-to-17 saga where a
+    # "folded root" (spcAft-inclusive) cluster measured a clean 10/9=1.1111
+    # while a "standalone" (no spcAft) cluster measured a noisier ~1.08-1.10,
+    # which round 17 mis-attributed to the vertical text ANCHOR needing a
+    # separate line-height constant: with `lineHeightRatio=1.2` (this fix)
+    # and the EXISTING, unconditional `SMARTART_LINE_SPACING_FACTOR=0.9`,
+    # the ALREADY-shipped additive `spcAft` model alone reproduces BOTH
+    # clusters exactly (`1.2*(0.9+0.35)=1.5` for the spcAft-inclusive case,
+    # matching round 13's 12-point zero-deviation measurement precisely;
+    # `1.2*0.9=1.08` for the no-spcAft case, matching `basic-block-list--
+    # flat3.pptx`'s own `Lines().Count`-confirmed measurement to within
+    # 0.2%) - no anchor-conditioned split was ever needed; the anchor was a
+    # confound, not the real variable. `smartart-layout-item-tx-anchor.ts`
+    # itself is UNRELATED (a real, separately-useful `dgm:alg type="tx"`
+    # parameter resolver) and is not affected by this correction; only its
+    # round-17 use for selecting a line-height factor is reverted.
     $mAdvancePer1000 = $advances['77']
     $mRunWidthPt = ($mAdvancePer1000 / 1000.0) * $REF_SIZE * 10
     $shape.TextFrame.WordWrap = -1 # msoTrue
@@ -157,9 +168,9 @@ try {
     $shape.TextFrame.TextRange.Text = ("M" * 10) + ' ' + ("M" * 10)
     $shape.TextFrame.TextRange.Font.Name = $font
     $shape.TextFrame.TextRange.Font.Size = $REF_SIZE
-    $twoLineHeightPt = [double]$shape.Height
+    $twoLineBoundHeightPt = [double]$shape.TextFrame.TextRange.BoundHeight
     $lineHeightRatio = [Math]::Round(
-      (($twoLineHeightPt - $marginTopPt - $marginBottomPt) / 2.0 / $REF_SIZE),
+      ($twoLineBoundHeightPt / 2.0 / $REF_SIZE),
       3
     )
     $shape.TextFrame.WordWrap = $msoFalse

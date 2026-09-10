@@ -93,9 +93,11 @@ import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '..
 import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX, roleOf } from './smartart-constraint-solver';
+import { foldedDescendantTexts } from './smartart-interpreter-drawing-bridge';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
 import { algorithmParam } from './smartart-layout-interpreter-model';
 import { polygonNode, styleContext } from './smartart-layout-interpreter-render';
+import { resolveTieredItemFontSize } from './smartart-layout-item-font-tier';
 import type { BoundingBox, RenderedNode, SmartArtLayoutResult } from './smartart-layout-types';
 
 // COM-verified against "Basic Pyramid" (`basic-pyramid--flat3.pptx`, no
@@ -135,6 +137,8 @@ export function arrangePyramid(
 	style: SmartArtStyle,
 	elementId: string,
 	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
+	childrenOf?: Map<string, PptxSmartArtNode[]>,
+	fontName?: string,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
@@ -174,7 +178,12 @@ export function arrangePyramid(
 	// the genuine ECMA declarative signal, not a per-fixture-name guess.
 	const inverted = algorithmParam(plan.node, 'linDir') === 'fromT';
 
-	const renderedNodes: RenderedNode[] = nodes.map((node, i) => {
+	// Two passes (round 18): resolve every band's own geometry first, then the
+	// SHARED font-fit across all of them (`polygonNode`'s own `fontSizeOverride
+	// ?? fitFontSize(...)` fallback - the same crude, un-derived heuristic
+	// `smartart-layout-interpreter-cycle-fontfit.ts`'s doc comment names - was
+	// what every pyramid item fell through before this).
+	const bands = nodes.map((node, i) => {
 		const slotTop = DEFAULT_INSET + i * (bandH + gap);
 		const slotBot = slotTop + bandH;
 		const slotMidY = (slotTop + slotBot) / 2;
@@ -186,6 +195,26 @@ export function arrangePyramid(
 		const fBot = (effectiveI + 1) / n;
 		const halfTop = ((bandW * fTop) / 2) * lvlWidthRatio;
 		const halfBot = ((bandW * fBot) / 2) * lvlWidthRatio;
+		return { node, yTop, yBot, halfTop, halfBot };
+	});
+	const renderedIds = new Set(nodes.map((node) => node.id));
+	const descendantTextsFor = (node: PptxSmartArtNode): readonly string[] =>
+		childrenOf ? foldedDescendantTexts(node, renderedIds, childrenOf) : [];
+	const { rootSizePx: fontSizeOverride, descendantSizePx } = resolveTieredItemFontSize(
+		plan,
+		index,
+		bands.map((band) => ({
+			rootText: band.node.text,
+			descendantTexts: descendantTextsFor(band.node),
+			width: Math.max(20, band.halfBot * 1.4),
+			height: bandH,
+		})),
+		fontName,
+		undefined,
+		0,
+		lvlNode,
+	);
+	const renderedNodes: RenderedNode[] = bands.map(({ node, yTop, yBot, halfTop, halfBot }, i) => {
 		const points = [
 			`${bandCx - halfTop},${yTop}`,
 			`${bandCx + halfTop},${yTop}`,
@@ -205,6 +234,8 @@ export function arrangePyramid(
 			palette,
 			style,
 			ctx,
+			fontSizeOverride,
+			descendantFontSize: descendantSizePx,
 		});
 	});
 

@@ -70,21 +70,25 @@ describe('fitWrappedFontSize', () => {
 		expect(size).toBe(48);
 	});
 
-	it("aptos' generated lineHeightRatio is the margin-corrected COM value (1.212), not the margin-contaminated one (1.248) `make-font-advance-table.ps1` produced before its own top+bottom-margin subtraction was fixed", () => {
-		// COM-verified directly: a single-line 'Node One' Aptos run measured at
-		// TWO different sizes (20pt and 48pt) via `Shape.Height -
-		// TextFrame.MarginTop - TextFrame.MarginBottom`, divided by the font
-		// size, agreed at 1.215 and 1.213 respectively - and a from-scratch
-		// re-derivation using the SAME two-line-forced-wrap technique the
-		// generator script uses, this time correctly subtracting margins,
-		// landed at 1.2121. All three independent measurements agree to
-		// within 0.003; none is anywhere near the old, margin-contaminated
-		// 1.248 every font in this table shared (the SAME default 3.6pt/3.6pt
-		// margin contamination, `(marginTop + marginBottom) / (2 * REF_SIZE)`
-		// at the script's REF_SIZE=100, regardless of font - which is also
-		// why Calibri and Aptos previously reported an IDENTICAL 1.248 despite
-		// being different fonts).
-		expect(FONT_ADVANCE_TABLES['Aptos']?.lineHeightRatio).toBeCloseTo(1.212, 3);
+	it("aptos' generated lineHeightRatio is the BoundHeight-measured COM value (1.2), not Shape.Height-measured (1.212) or margin-contaminated (1.248)", () => {
+		// Round 18 (`smartart-track-l-successor.md`): `Shape.Height - margins`
+		// and `TextRange.BoundHeight` are NOT the same quantity - COM-verified
+		// directly, a fresh isolated textbox, both read at the SAME moment for
+		// the identical rendered two-line Aptos text at size 100:
+		// `Shape.Height - margins` gives 1.212 (matching this table's OLD
+		// value, and the earlier "margin-corrected" test this superseded);
+		// `TextRange.BoundHeight` gives 1.2 EXACTLY. `PowerPoint's `AutoFit`
+		// shape sizing carries a small ~1.24pt-at-size-100 padding beyond the
+		// real content bound - this codebase's own fit model compares against
+		// `BoundHeight`-equivalent quantities throughout (every COM
+		// ground-truth derivation in this project's history does), so
+		// `BoundHeight` is the metric this table needs, not `Shape.Height`.
+		// `make-font-advance-table.ps1` was fixed to measure via `BoundHeight`
+		// directly and every font's table regenerated on that basis - all 7
+		// fonts moved 1.212 -> 1.2 uniformly (the padding artifact is
+		// PowerPoint-wide, not font-specific), confirming this is not an
+		// Aptos-specific quirk.
+		expect(FONT_ADVANCE_TABLES['Aptos']?.lineHeightRatio).toBeCloseTo(1.2, 3);
 	});
 
 	it('fits basic-process--flat3.pptx\'s binding item ("Beta has a noticeably longer label than the others") to its cached 19pt using the REAL Aptos table and the item\'s own self-scoped 0.6 h/w aspect as the font-fit height cap (lineSpacingFactor=1)', () => {

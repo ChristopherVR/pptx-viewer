@@ -174,6 +174,7 @@ export function findCompositeItemShape(
 		return item.shape;
 	}
 	let textRoleShape: PptxSmartArtLayoutNodeShape | undefined;
+	let hiddenTextRoleShape: PptxSmartArtLayoutNodeShape | undefined;
 	let decorativeShape: PptxSmartArtLayoutNodeShape | undefined;
 	let anyShape: PptxSmartArtLayoutNodeShape | undefined;
 	const walk = (node: PptxSmartArtLayoutNode): void => {
@@ -185,6 +186,12 @@ export function findCompositeItemShape(
 				if (node.algorithm?.type === 'sp' && !decorativeShape) {
 					decorativeShape = node.shape;
 				}
+			} else if (isTextRoleNode(node)) {
+				// Round 20: a `hideGeom` text role's OWN declared type still wins
+				// over a genuinely SEPARATE decorative accent - see this
+				// function's doc comment (below the existing 3 tiers) for the
+				// `small-dots-horizontal--flat3.pptx` case this closes.
+				hiddenTextRoleShape ??= node.shape;
 			}
 			anyShape ??= node.shape;
 		}
@@ -195,7 +202,7 @@ export function findCompositeItemShape(
 	for (const child of item.children ?? []) {
 		walk(child);
 	}
-	return textRoleShape ?? decorativeShape ?? anyShape;
+	return textRoleShape ?? hiddenTextRoleShape ?? decorativeShape ?? anyShape;
 }
 
 /**

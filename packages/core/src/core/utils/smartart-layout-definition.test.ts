@@ -190,6 +190,86 @@ describe('diagramML layout-definition metadata', () => {
 		]);
 	});
 
+	/**
+	 * `balance--hier5.pptx`'s exact shape: a `dgm:choose` with 2+ `dgm:if`
+	 * siblings - `chooseGroups` must tag each with the SAME group id and an
+	 * increasing ordinal (0-based, document order), so a consumer
+	 * (`smartart-layout-interpreter-composite-choose-groups.ts`'s
+	 * `selectFirstMatchChildren`) can recover real `dgm:choose` first-match-
+	 * wins semantics from the flattened `.children` array.
+	 */
+	it('tags every dgm:if/dgm:else sibling with the SAME chooseGroups id and an increasing ordinal', () => {
+		const nested: XmlObject = {
+			'x:layoutNode': {
+				'@_name': 'root',
+				'x:choose': {
+					'x:if': [
+						{
+							'@_func': 'cnt',
+							'@_op': 'equ',
+							'@_val': '1',
+							'x:layoutNode': { '@_name': 'first' },
+						},
+						{
+							'@_func': 'cnt',
+							'@_op': 'equ',
+							'@_val': '2',
+							'x:layoutNode': { '@_name': 'second' },
+						},
+					],
+					'x:else': { 'x:layoutNode': { '@_name': 'third' } },
+				},
+			},
+		};
+		const parsed = parseSmartArtLayoutDefinition(nested, localName)!;
+		const [first, second, third] = parsed.rootNode.children!;
+		expect(first.chooseGroups).toStrictEqual([
+			{ id: expect.any(String), ordinal: 0, guard: expect.objectContaining({ value: '1' }) },
+		]);
+		expect(second.chooseGroups).toStrictEqual([
+			{ id: first.chooseGroups![0].id, ordinal: 1, guard: expect.objectContaining({ value: '2' }) },
+		]);
+		// dgm:else has no condition of its own (matches chooseGuard's own
+		// convention) - its own chooseGroups entry carries no `guard`.
+		expect(third.chooseGroups).toStrictEqual([{ id: first.chooseGroups![0].id, ordinal: 2 }]);
+	});
+
+	it('gives TWO nested dgm:choose instances DIFFERENT group ids, chained outermost first', () => {
+		const nested: XmlObject = {
+			'x:layoutNode': {
+				'@_name': 'root',
+				'x:choose': {
+					'x:if': {
+						'@_func': 'pos',
+						'@_op': 'equ',
+						'@_val': '1',
+						'x:choose': {
+							'x:if': {
+								'@_func': 'cnt',
+								'@_op': 'gte',
+								'@_val': '1',
+								'x:layoutNode': { '@_name': 'deep' },
+							},
+						},
+					},
+				},
+			},
+		};
+		const parsed = parseSmartArtLayoutDefinition(nested, localName)!;
+		const [deep] = parsed.rootNode.children!;
+		expect(deep.chooseGroups).toHaveLength(2);
+		expect(deep.chooseGroups![0].id).not.toBe(deep.chooseGroups![1].id);
+		expect(deep.chooseGroups![0].ordinal).toBe(0);
+		expect(deep.chooseGroups![1].ordinal).toBe(0);
+	});
+
+	it('a direct (non-choose) child has no chooseGroups at all', () => {
+		const parsed = parseSmartArtLayoutDefinition(fixture(), localName)!;
+		const [, child] = parsed.rootNode.children!;
+		expect(child.name).toBe('child');
+		expect(child.chooseGroups).toBeUndefined();
+	});
+
 	it('surgically edits typed fields and preserves algorithms, unknown data, and extLst', () => {
 		const xml = fixture();
 		const value = parseSmartArtLayoutDefinition(xml, localName)!;

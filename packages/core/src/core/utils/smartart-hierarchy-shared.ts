@@ -116,6 +116,16 @@ export interface HierContext {
 	connectorLabels?: Map<string, string>;
 	/** The item template's own preset override; see {@link findHierarchyItemShape}. */
 	itemShape?: PptxSmartArtLayoutNodeShape;
+	/**
+	 * ONE shared font size (pixels), pre-fit across every node's text at the
+	 * uniform `boxW`/`boxH` this run places every item at - see
+	 * `smartart-layout-interpreter-hierarchy.ts`'s `resolveHierarchyItemFontSizePx`
+	 * doc comment for why this must be resolved BEFORE any node is pushed.
+	 * `undefined` (no `algorithmNode`, or nothing fits) keeps `pushNode`'s
+	 * previous behaviour: `presetBoxNode`'s own crude per-node char-width
+	 * fallback.
+	 */
+	itemFontSizePx?: number;
 }
 
 export function baseContext(
@@ -127,6 +137,7 @@ export function baseContext(
 	boxH: number,
 	connectorLabels?: Map<string, string>,
 	itemShape?: PptxSmartArtLayoutNodeShape,
+	itemFontSizePx?: number,
 ): HierContext {
 	return {
 		elementId,
@@ -141,6 +152,7 @@ export function baseContext(
 		counter: { value: 0 },
 		connectorLabels,
 		itemShape,
+		itemFontSizePx,
 	};
 }
 
@@ -168,6 +180,7 @@ export function pushNode(
 			ctx: hc.ctx,
 			shape: hc.itemShape,
 			fallbackKind: 'rect',
+			fontSizeOverride: hc.itemFontSizePx,
 		}),
 	);
 	return index;

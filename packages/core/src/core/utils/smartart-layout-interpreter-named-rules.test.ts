@@ -72,6 +72,11 @@ describe('resolveNamedRuleOverride', () => {
 		expect(resolveNamedRuleOverride(rules, 'node')).toBeUndefined();
 	});
 
+	it('resolves a trivial val="0" w/h rule to a literal 0 ratio (round 24: "Horizontal Bullet List"/"Accent Process"\'s real `<dgm:rule type="w" for="ch" forName="composite" val="0"/>` - a FLOOR, not a value to assign; the clamp itself lives in `applyNamedRuleOverride`, tested below)', () => {
+		const rules = [{ type: 'w', forName: 'composite', value: 0 }];
+		expect(resolveNamedRuleOverride(rules, 'composite')).toStrictEqual({ width: 0 });
+	});
+
 	// Supersedes the former "G11" case (`secFontSz` mirrors `primFontSz`): a
 	// PowerPoint-authored `primFontSz`/`secFontSz` rule is a shrink-search
 	// bound (measured against "Vertical Bullet List" - see the module doc
@@ -93,6 +98,15 @@ describe('applyNamedRuleOverride', () => {
 	// `resolveNamedRuleOverride`'s tests above), but `NamedRuleOverride` keeps
 	// the field and `applyToNode` still honours it when a caller supplies one
 	// directly, so this still documents that behaviour in isolation.
+	//
+	// Round 24: `width`/`height` is a FLOOR clamp (`Math.max`), not a hard
+	// replace - this fixture's own override (0.35 * 600 = 210) is chosen
+	// LARGER than the node's own starting width (100), so the floor genuinely
+	// binds and this test's assertions are unchanged; see the two new cases
+	// below for the case where the floor does NOT bind (the actual round-24
+	// bug: `horizontal-bullet-list--hier5.pptx`/`accent-process--hier5.pptx`'s
+	// own `val="0"` rule, always smaller than the real constraint-resolved
+	// width, previously forced it down to literally 0 anyway).
 	it('resizes and recentres rect nodes, but only changes font size on other kinds', () => {
 		const box = { width: 600, height: 300 };
 		const result = {
@@ -158,6 +172,76 @@ describe('applyNamedRuleOverride', () => {
 			family: 'list' as const,
 		};
 		expect(applyNamedRuleOverride(result, undefined, { width: 1, height: 1 })).toBe(result);
+	});
+
+	it('round 24: a trivial val="0" width floor leaves an already-larger width untouched (the horizontal-bullet-list--hier5.pptx/accent-process--hier5.pptx regression - the PREVIOUS unconditional-replace behaviour forced every rendered item to literally 0 width)', () => {
+		const box = { width: 867, height: 533 };
+		const node = {
+			kind: 'rect' as const,
+			key: 'r',
+			x: 123.86,
+			y: 142.64,
+			width: 247.71,
+			height: 247.71,
+			rx: 6,
+			fill: '#fff',
+			stroke: 'none',
+			strokeWidth: 0,
+			opacity: 1,
+			text: 'Node One',
+			fontSize: 40,
+			textX: 200,
+			textY: 200,
+		};
+		const result = {
+			nodes: [node],
+			connectors: [],
+			shadowFilter: undefined,
+			viewBox: '0 0 867 533',
+			family: 'list' as const,
+		};
+		const applied = applyNamedRuleOverride(result, { width: 0 }, box);
+		const appledNode = applied.nodes[0];
+		expect(appledNode.kind).toBe('rect');
+		if (appledNode.kind === 'rect') {
+			expect(appledNode.width).toBe(node.width);
+			expect(appledNode.x).toBe(node.x);
+		}
+	});
+
+	it("round 24: a genuinely larger floor (bigger than the node's own current width) still grows it - a real bound, not a no-op", () => {
+		const box = { width: 867, height: 533 };
+		const node = {
+			kind: 'rect' as const,
+			key: 'r',
+			x: 100,
+			y: 0,
+			width: 200,
+			height: 200,
+			rx: 0,
+			fill: '#fff',
+			stroke: 'none',
+			strokeWidth: 0,
+			opacity: 1,
+			text: 'Node One',
+			fontSize: 40,
+			textX: 200,
+			textY: 100,
+		};
+		const result = {
+			nodes: [node],
+			connectors: [],
+			shadowFilter: undefined,
+			viewBox: '0 0 867 533',
+			family: 'list' as const,
+		};
+		const applied = applyNamedRuleOverride(result, { width: 0.5 }, box);
+		const appliedNode = applied.nodes[0];
+		expect(appliedNode.kind).toBe('rect');
+		if (appliedNode.kind === 'rect') {
+			expect(appliedNode.width).toBe(0.5 * box.width);
+			expect(appliedNode.width).toBeGreaterThan(node.width);
+		}
 	});
 });
 

@@ -94,7 +94,15 @@ export function parseConstraint(node: XmlObject, localName: LocalName): PptxSmar
 	};
 }
 
-function parseRule(node: XmlObject, localName: LocalName): PptxSmartArtNumericRule {
+/**
+ * Parse one `dgm:rule` element. Exposed for `smartart-layout-definition.ts`,
+ * which reuses it to parse rule entries reachable through a `dgm:choose`/
+ * `dgm:if`/`dgm:else` wrapping this SAME layoutNode's `ruleLst` (a genuinely
+ * conditional, count-branched rule set - see `smartart-layout-definition-
+ * constraints.ts`'s `ruleCandidates`), not just the node's own direct one
+ * this module's `parseSmartArtConstraintRules` reads.
+ */
+export function parseRule(node: XmlObject, localName: LocalName): PptxSmartArtNumericRule {
 	return {
 		type: attr(node, 'type', localName) ?? '',
 		...parseTarget(node, localName),

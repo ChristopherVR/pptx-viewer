@@ -24,7 +24,8 @@ import {
 	resolveGraphAspectRatio,
 } from './smartart-layout-interpreter-cycle-item-aspect';
 import type { CompositeContentLayout } from './smartart-layout-interpreter-cycle-item-aspect';
-import { itemNode } from './smartart-layout-interpreter-model';
+import { resolveRingItemNode } from './smartart-layout-interpreter-cycle-item-node';
+import { resolveSibTransBulgeRatio } from './smartart-layout-interpreter-cycle-sibtrans';
 
 export { resolveHubToNodeRatio } from './smartart-layout-interpreter-cycle-hub-ratio';
 
@@ -47,6 +48,19 @@ export const POINTS_TO_PIXELS = 96 / 72;
  * below this figure, i.e. the real engine enforces its own aesthetic
  * minimum regardless of a smaller declared `sibSp`. COM-verified exact for
  * the two layouts that declare >= 0.5; see the module doc comment.
+ *
+ * SESSION 10: does NOT generalise to a composite self+child ring item
+ * (`resolveCycleRingParams`'s own `contentLayout`, e.g.
+ * `radial-list--hier5.pptx`'s `node` ellipse+rect): its declared `sibSp`
+ * (`~0.1333` once resolved) is relative to the COMPOSITE's own width, but
+ * the ring's natural unit-width is the narrower SELF sub-shape
+ * (`contentLayout.selfWidthFactor=0.4` - see `smartart-layout-interpreter-
+ * cycle-item-aspect.ts`). Converting (`declaredRatio / selfWidthFactor =
+ * 0.333`) and skipping this floor for a composite item reproduces the
+ * fixture's own cached ring-item size (161px vs cached 154px, 4.5% off) far
+ * closer than either the floored-at-0.5 reading (137px, 11% off) or the raw
+ * unconverted `0.1333` (167px, 8.4% off) - the remaining ~4.5% was not
+ * chased further this session, no 4th independent sample to re-derive it.
  */
 export const DEFAULT_MIN_GAP_RATIO = 0.5;
 
@@ -115,60 +129,6 @@ export function resolveCycleConstraintNode(
 }
 
 /**
- * The ring's real per-point item template, when it is NOT simply
- * `constraintNode.children[0]` (`itemNode`'s own naive assumption).
- *
- * A hub+satellite composite ring (`radial-cycle`, `basic-radial`,
- * `diverging-radial`, `converging-radial`) declares its own `constrLst`
- * directly on the composite's TOP node (`centerShape`/`node`/`dummy`/
- * `sibTrans`/`oneComp`/... all as SIBLING children, not nested inside a
- * `"cycle"`-named descendant `resolveCycleConstraintNode` would find), so
- * `itemNode()` picks up whichever child happens to be FIRST in document
- * order - `centerShape` (the hub) for every sample checked, never the actual
- * repeating ring item (`node`). `sibSp` ("minimum distance between SIBLING
- * shapes") only has meaning between the REPEATING ring item, so whichever
- * name its own `referenceForName` points to - when that name matches one of
- * `constraintNode`'s actual children - is a genuine declarative signal for
- * "this is the ring's real per-point template", not a per-layout-name guess.
- * `basic-cycle`/`multidirectional-cycle` decline this path (their own
- * `sibSp` references `composite`/`w`, not one of their own children's
- * literal names) and keep `itemNode()`'s original children[0] behaviour,
- * which was already COM-verified exact for them.
- *
- * The name match alone is not sufficient, though: `radial-list--hier5.pptx`
- * ("Radial List") declares its `sibSp` as a fraction of the HUB's own width
- * (`sibSp refType="w" refFor="ch" refForName="centerShape" fact="0.08"`, the
- * per-satellite GAP sized off the hub, not the ring item) - the name match
- * picks `centerShape` itself, a SINGULAR node reached only through a
- * `dgm:choose` gate (never repeats per point), feeding the ring math the
- * hub's own near-square aspect instead of the true, much wider
- * ellipse+gap+rect ring-item aspect and corrupting every non-full-circle arc.
- * A genuine repeating ring item is reached through an ENCLOSING `dgm:forEach`
- * (`forEachOrigin` set - see that field's own doc comment on
- * `PptxSmartArtLayoutNode`; `centerShape` has none, `node` does, reached via
- * `forEach axis="ch"` then `forEach axis="self" ptType="node"`), so the name
- * match is only trusted when it also carries one; otherwise this falls back
- * to the first child that genuinely repeats, before `itemNode()`'s original
- * children[0] guess.
- */
-function resolveRingItemNode(
-	constraintNode: PptxSmartArtLayoutNode,
-	arrangerConstraints: PptxSmartArtLayoutNode['constraints'],
-): PptxSmartArtLayoutNode | undefined {
-	const sibSpName = (arrangerConstraints ?? []).find(
-		(c) => c.type === 'sibSp' && typeof c.referenceForName === 'string',
-	)?.referenceForName;
-	const named = sibSpName
-		? (constraintNode.children ?? []).find((child) => child.name === sibSpName)
-		: undefined;
-	if (named?.forEachOrigin) {
-		return named;
-	}
-	const repeating = (constraintNode.children ?? []).find((child) => child.forEachOrigin);
-	return repeating ?? named ?? itemNode(constraintNode);
-}
-
-/**
  * Resolve the ring's `sibSp` (either a dimensionless `minGapRatio`, floored
  * at `DEFAULT_MIN_GAP_RATIO` when it is a genuine ratio - see that constant's
  * doc comment - or an absolute `absoluteGapPx`, converted points -> pixels,
@@ -180,10 +140,17 @@ function resolveRingItemNode(
  * constraints. Takes the raw arranger `PptxSmartArtLayoutNode` (not an
  * `ArrangementPlan`) so `smartart-layout-interpreter-hub.ts` can call it for
  * a hub's ring without constructing a synthetic plan.
+ *
+ * `satelliteCount` (SESSION 17, optional): the ring's own satellite count
+ * (hub excluded), fed straight through to `resolveHubToNodeRatio`'s own
+ * count-gated `dgm:rule` override - see that function's own doc comment.
+ * `undefined` from a caller with no count yet (the ratio still resolves via
+ * `constrLst` alone then, exactly as before this session).
  */
 export function resolveCycleRingParams(
 	arrangerNode: PptxSmartArtLayoutNode,
 	index: ConstraintIndex,
+	satelliteCount?: number,
 ): {
 	minGapRatio: number;
 	heightOverWidth: number;
@@ -192,6 +159,7 @@ export function resolveCycleRingParams(
 	hubGapRatio?: number;
 	absoluteHubGapPx?: number;
 	contentLayout?: CompositeContentLayout;
+	sibTransBulgeRatio?: number;
 } {
 	const constraintNode = resolveCycleConstraintNode(arrangerNode);
 	// A `dgm:choose`/`dgm:if`/`dgm:else`-wrapped `constrLst` (every "cycle"
@@ -231,8 +199,23 @@ export function resolveCycleRingParams(
 		? literalHeightOverWidth
 		: (resolveGraphAspectRatio(item, index) ??
 			resolveRatioConstraint(itemConstraints, index, roleOf(item), ['h'], 1, item?.rules));
-	const hubRatio = resolveHubToNodeRatio(item, arrangerConstraints);
+	const hubRatio = resolveHubToNodeRatio(
+		item,
+		arrangerConstraints,
+		index,
+		constraintNode.ruleCandidates,
+		satelliteCount,
+	);
 	const hubGapRatio = resolveHubGapRatio(item?.name, hubRatio, arrangerConstraints);
+	// See `smartart-layout-interpreter-cycle-sibtrans.ts`'s own module doc
+	// comment for the full derivation - `radial-cycle`'s own `sibTrans`
+	// curve connector bulges past the satellites' own edges, needing extra
+	// room in the ring's natural bounding box (`computeCycleRingLayout`).
+	const sibTransBulgeRatio = resolveSibTransBulgeRatio(
+		constraintNode,
+		arrangerConstraints,
+		item?.name,
+	);
 	// An ABSOLUTE `sp` (no `fact` at all, e.g. `radial-list--hier5.pptx`'s own
 	// `<dgm:constr type="sp" val="20"/>`) is a hub-to-satellite gap too, but
 	// `resolveHubGapRatio` only ever resolves a RATIO-form `sp` (a declared
@@ -259,6 +242,7 @@ export function resolveCycleRingParams(
 			absoluteHubGapPx:
 				absoluteHubGap !== undefined ? absoluteHubGap * POINTS_TO_PIXELS : undefined,
 			contentLayout,
+			sibTransBulgeRatio,
 		};
 	}
 	const minGapRatio = resolveRatioConstraint(
@@ -269,12 +253,18 @@ export function resolveCycleRingParams(
 		DEFAULT_MIN_GAP_RATIO,
 		constraintNode.rules,
 	);
+	const selfRelativeGapRatio = contentLayout
+		? minGapRatio / contentLayout.selfWidthFactor
+		: minGapRatio;
 	return {
-		minGapRatio: Math.max(DEFAULT_MIN_GAP_RATIO, minGapRatio),
+		minGapRatio: contentLayout
+			? selfRelativeGapRatio
+			: Math.max(DEFAULT_MIN_GAP_RATIO, selfRelativeGapRatio),
 		heightOverWidth,
 		hubRatio,
 		absoluteHubGapPx: absoluteHubGap !== undefined ? absoluteHubGap * POINTS_TO_PIXELS : undefined,
 		contentLayout,
 		hubGapRatio,
+		sibTransBulgeRatio,
 	};
 }

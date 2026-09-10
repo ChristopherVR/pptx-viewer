@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PptxSmartArtLayoutNode } from '../types';
-import { resolveItemSelfAspect } from './smartart-layout-item-font-role';
+import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
+import { nodeFontBounds, resolveItemSelfAspect } from './smartart-layout-item-font-role';
 
 describe('resolveItemSelfAspect', () => {
 	it('returns undefined when the item declares no self-scoped h/w aspect', () => {
@@ -60,5 +61,26 @@ describe('resolveItemSelfAspect', () => {
 				constraints: [{ type: 'w', referenceType: 'h', factor: -1 }],
 			}),
 		).toBeUndefined();
+	});
+});
+
+describe('nodeFontBounds', () => {
+	// Round 19: `DEFAULT_CEILING_PX` used to be 12 (9pt) - a tiny, effectively
+	// zero-headroom ceiling that the shared fitter's binary search returns
+	// IMMEDIATELY on the first `fitsAt(ceilingPx)` check (9pt trivially fits
+	// almost anything), never exploring any larger candidate at all. Every
+	// `cycle`/`hierarchy`/`pyramid`/`composite` role with NO literal
+	// `primFontSz` declared anywhere in its layoutDef (common: many built-in
+	// layouts express `primFontSz` only as an unresolvable `op="equ"` tying
+	// two roles together, e.g. "Basic Pyramid"'s `levelTx`/`acctTx`) hit this
+	// exact trap - confirmed via the round-19 corpus font-bucket scan, a flat
+	// 9pt floor on dozens of fixtures regardless of their real cached size.
+	// The fallback must be generously large so the REAL limiter is the
+	// caller's own box-fit search, not this default.
+	it('falls back to a generous ceiling (not a near-zero one) when nothing declares a primFontSz', () => {
+		const role: PptxSmartArtLayoutNode = { name: 'node', presentationOf: { axis: ['self'] } };
+		const bounds = nodeFontBounds(role, role, EMPTY_CONSTRAINT_INDEX);
+		expect(bounds.ceilingPx).toBeGreaterThan(100);
+		expect(bounds.floorPx).toBeLessThan(bounds.ceilingPx);
 	});
 });

@@ -119,6 +119,35 @@ describe('detectHubExpansion', () => {
 		const expansion = detectHubExpansion(genuineHub, [hub], childrenOf);
 		expect(expansion?.hubNode.id).toBe('hub');
 	});
+
+	it('detects a hub whose OWN driving forEach directly repeats via a nested axis="self" ptType="node" forEach (Radial Cluster)', () => {
+		// `radial-cluster--hier5.pptx`'s `singleCycle`: its ONE direct forEach
+		// child (`Name54 axis="ch" cnt="21"`) IS the satellite iterator itself
+		// - there is no SEPARATE outer `cnt="1"` selector forEach for the
+		// original `hasNestedChildForEach` search to find (that selection
+		// lives one level up, in `forEachOrigin`, never captured in
+		// `arranger.forEach`). Its own raw body nests `axis="self"
+		// ptType="node"` (bind the current iteration as the point, then
+		// render its template) directly - the real DiagramML idiom this
+		// shape uses instead of a second `axis="ch"` nesting.
+		const ownChildForEach: Record<string, unknown> = {
+			'@_axis': 'ch',
+			'@_cnt': '21',
+			'dgm:forEach': [
+				{ '@_axis': 'self', '@_ptType': 'parTrans', 'dgm:layoutNode': { '@_name': 'conn' } },
+				{ '@_axis': 'self', '@_ptType': 'node', 'dgm:layoutNode': { '@_name': 'text0' } },
+			],
+		};
+		const radialClusterArranger: PptxSmartArtLayoutNode = {
+			name: 'singleCycle',
+			algorithm: { type: 'cycle', parameters: [{ type: 'ctrShpMap', value: 'fNode' }] },
+			children: [{ name: 'singleCenter', algorithm: { type: 'tx' } }],
+			forEach: [{ axis: ['ch'], pointTypes: ['node'], rawXml: ownChildForEach }],
+		};
+		const expansion = detectHubExpansion(radialClusterArranger, [hub], childrenOf);
+		expect(expansion?.hubNode.id).toBe('hub');
+		expect(expansion?.satellites.map((n) => n.id)).toStrictEqual(['s1', 's2']);
+	});
 });
 
 describe('buildHubRenderedNode', () => {

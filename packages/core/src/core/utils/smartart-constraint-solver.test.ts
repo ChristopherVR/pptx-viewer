@@ -255,6 +255,55 @@ describe('smartArt relative constraint solver', () => {
 		expect(resolveConstraint(index, 'clamped', 'w')).toBeCloseTo(0.1);
 	});
 
+	it('an arranger-declared refType with its own fact is an axis-scale hint, not a self-reference to an UNDECLARED nested arranger w (balance--hier5.pptx, cached=5)', () => {
+		// `balance--hier5.pptx`'s `childrenComposite` positions `left_40_1` via
+		// `for="ch" forName="left_40_1" refType="w" fact="0.365"` - `childrenComposite`
+		// itself (the DECLARING role) has NO `w` of its own here (only its
+		// parent `outerComposite` does), so the pre-fix "self-reference via
+		// declaringRole" reading silently resolved to `undefined` and dropped
+		// every one of `balance`'s real slots. This must resolve the literal
+		// 0.365 directly, ignoring `childrenComposite`'s own (undeclared) w.
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'outerComposite',
+				children: [
+					{
+						name: 'childrenComposite',
+						constraints: [
+							constr({
+								type: 'w',
+								for: 'ch',
+								forName: 'left_40_1',
+								referenceType: 'w',
+								factor: 0.365,
+							}),
+						],
+						children: [{ name: 'left_40_1' }],
+					},
+				],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		expect(resolveConstraint(index, 'left_40_1', 'w')).toBeCloseTo(0.365);
+	});
+
+	it('an arranger-declared bare refType with NO fact still inherits the declaring role (nested-target--hier5.pptx, cached=4)', () => {
+		// `nested-target--hier5.pptx`'s `Name0` positions `outerBox` via
+		// `for="ch" forName="outerBox" refType="w"` with NO `fact`/`val` at all -
+		// genuinely means "inherit `Name0`'s own resolved w" (fill the parent).
+		// Nothing to degrade to, so this must still walk the self-reference,
+		// unlike the `fact`-bearing axis-hint case above.
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'Name0',
+				constraints: [constr({ type: 'w', for: 'ch', forName: 'outerBox', referenceType: 'w' })],
+				children: [{ name: 'outerBox' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		expect(resolveConstraint(index, 'outerBox', 'w')).toBe(1);
+	});
+
 	it('resolveRatioConstraint prefers an existing literal match over the graph', () => {
 		const definition: PptxSmartArtLayoutDefinition = {
 			rootNode: { name: 'diagram', children: [{ name: 'node' }] },

@@ -40,11 +40,46 @@ export function roleRenderPreset(entry: ItemRoleContent, original: RenderedNode)
 }
 
 /**
+ * `entry.nodeIds`' own text, joined `\n`-separated when there is more than
+ * one (matching the fold convention `smartart-interpreter-drawing-
+ * bridge.ts`'s `collectFoldedDescendants` already uses elsewhere) -
+ * `undefined` when `nodeTextById` is not supplied (a caller that has not
+ * been updated yet) or none of `nodeIds` resolves (a `self`-axis role: its
+ * OWN id is the point itself, never a descendant, so it is never IN
+ * `nodeTextById` - `original.text` is already correct for it).
+ */
+export function textFromNodeIds(
+	nodeIds: string[],
+	nodeTextById: Map<string, string> | undefined,
+): string | undefined {
+	if (!nodeTextById) {
+		return undefined;
+	}
+	const texts = nodeIds
+		.map((id) => nodeTextById.get(id))
+		.filter((text): text is string => text !== undefined);
+	return texts.length > 0 ? texts.join('\n') : undefined;
+}
+
+/**
  * Fields every split entry shares, regardless of `original.kind`: the role's
  * own node id(s), preset, and text - see `stackRoleContent`'s doc comment
  * for `itemRoleName`.
+ *
+ * @param nodeTextById - Round 20: `id -> text` for the point's own
+ *   descendants ({@link descendantTextById}), so a `ch`/`des`-axis role
+ *   (`childText`, "the point's own child's text") renders ITS real content
+ *   instead of silently duplicating `original.text` (the point's OWN text) -
+ *   see {@link descendantTextById}'s doc comment for the concrete bug this
+ *   closes. Omit to keep the pre-existing (duplicating) fallback, for a
+ *   caller not yet updated to supply it.
  */
-export function splitEntryFields(entry: ItemRoleContent, key: string, original: RenderedNode) {
+export function splitEntryFields(
+	entry: ItemRoleContent,
+	key: string,
+	original: RenderedNode,
+	nodeTextById?: Map<string, string>,
+) {
 	return {
 		key,
 		nodeId: entry.nodeIds[0],
@@ -58,8 +93,12 @@ export function splitEntryFields(entry: ItemRoleContent, key: string, original: 
 		// Also update the live-preview `.text` field (normally the arranger's
 		// own top-level text, inherited unchanged by every split entry
 		// otherwise): a transition-bound role has no node id to join back to,
-		// so its OWN text would render blank without this.
-		text: entry.literalText ?? original.text,
+		// so its OWN text would render blank without `literalText`; a
+		// `ch`/`des`-axis role's OWN resolved descendant(s) need
+		// `textFromNodeIds` for the same reason (round 20) - only a bare
+		// `self`-axis role (nothing in `nodeTextById`) falls all the way
+		// through to `original.text`, correctly.
+		text: entry.literalText ?? textFromNodeIds(entry.nodeIds, nodeTextById) ?? original.text,
 	};
 }
 

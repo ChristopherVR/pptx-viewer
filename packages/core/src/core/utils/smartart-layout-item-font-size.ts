@@ -107,28 +107,42 @@ export function itemMarginsPx(
 }
 
 /**
+ * Round 18: PowerPoint's own default margin, per side, when a role's
+ * `constrLst` declares NO `lMarg`/`rMarg`/`tMarg`/`bMarg` constraint at all
+ * - proven by live COM on `repeating-bending-process--hier5.pptx`'s "node"
+ * role (declares only `h refType="w" fact="0.6"`, no margin constraint of
+ * ANY kind): `TextFrame2.Margin{Left,Right,Top,Bottom}` all read 21.28pt at
+ * the cached `Font.Size=38`, matching the cached `a:bodyPr lIns="270256"`
+ * EMU exactly = `0.56 * 38`. NOT the same as a LITERAL (non-`primFontSz`-
+ * proportional) margin constraint (`lMarg val="1"` etc) - that pattern
+ * resolves to a DIFFERENT, inconsistent ratio across 6 other fixtures
+ * (round 10/12's own finding, 0.05x-0.56x, no clean single constant) and is
+ * NOT covered by this default; applies ONLY when the role declares no
+ * margin constraint object at all, proportional or literal.
+ */
+const DEFAULT_NO_CONSTRAINT_MARGIN_FACTOR = 0.56;
+
+/**
  * Per-axis margin fraction of a CANDIDATE font size, when the layoutDef
  * declares `lMarg`/`rMarg`/`tMarg`/`bMarg` as a fraction of `primFontSz`
  * (`<dgm:constr type="lMarg" refType="primFontSz" fact="0.3"/>`, the pattern
  * "Basic Process"/"Basic Block List"/"Vertical Bullet List" ALL use).
- *
- * `itemMarginsPx` resolves this ONCE against the declared CEILING (the
- * constraint solver has no notion of "the font size after shrinking"), which
- * systematically UNDER-estimates the real available text space once the fit
- * actually shrinks below that ceiling: real margins shrink WITH the font,
- * they are not pinned to the ceiling's own margin. Measured across all three
- * fixtures above, using the fixed ceiling-based margin throughout the search
- * consistently underestimates the cached `a:rPr/@sz` by 10-16% - `undefined`
- * per axis when that axis's margin is not `primFontSz`-proportional (a
- * literal point value, or not declared at all), so the caller keeps
- * `itemMarginsPx`'s fixed default for that axis.
+ * `itemMarginsPx` resolves this ONCE against the declared CEILING (no
+ * notion of "the font size after shrinking"), UNDER-estimating real
+ * available text space once the fit shrinks below that ceiling - real
+ * margins shrink WITH the font. `undefined` per axis when that axis's
+ * margin is not `primFontSz`-proportional and not entirely absent (a
+ * literal point value), so the caller keeps `itemMarginsPx`'s fixed
+ * default for that axis.
  */
+
 export function proportionalMarginFraction(
 	index: ConstraintIndex,
 	role: string,
 ): { horizontal: number; vertical: number } | undefined {
+	const constraintFor = (type: string) => index.entries.get(entryKey(role, type))?.[0]?.constraint;
 	const factorIfProportional = (type: string): number | undefined => {
-		const constraint = index.entries.get(entryKey(role, type))?.[0]?.constraint;
+		const constraint = constraintFor(type);
 		return constraint?.referenceType === 'primFontSz' && typeof constraint.factor === 'number'
 			? constraint.factor
 			: undefined;
@@ -138,6 +152,13 @@ export function proportionalMarginFraction(
 	const top = factorIfProportional('tMarg');
 	const bottom = factorIfProportional('bMarg');
 	if (left === undefined && right === undefined && top === undefined && bottom === undefined) {
+		const declaresNone = (['lMarg', 'rMarg', 'tMarg', 'bMarg'] as const).every(
+			(type) => constraintFor(type) === undefined,
+		);
+		if (declaresNone) {
+			const both = DEFAULT_NO_CONSTRAINT_MARGIN_FACTOR * 2;
+			return { horizontal: both, vertical: both };
+		}
 		return undefined;
 	}
 	return { horizontal: (left ?? 0) + (right ?? 0), vertical: (top ?? 0) + (bottom ?? 0) };

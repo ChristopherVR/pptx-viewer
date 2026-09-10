@@ -59,6 +59,7 @@ import type { PptxSmartArtConnection, PptxSmartArtLayoutNode, PptxSmartArtNode }
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
 import {
+	descendantTextById,
 	hasAmbiguousTopLevelRoles,
 	isTextRole,
 } from './smartart-layout-interpreter-item-role-shared';
@@ -189,7 +190,13 @@ export function expandItemRoles(
 	connections?: PptxSmartArtConnection[],
 ): RenderedNode[] | undefined {
 	const content = resolveItemRoleContent(roles, node, childrenOf, connections);
-	return stackRoleContent(content, arrangerRole, original, index);
+	return stackRoleContent(
+		content,
+		arrangerRole,
+		original,
+		index,
+		descendantTextById(node, childrenOf),
+	);
 }
 
 /** Expand every rendered point using `split`, keeping the original box when it declines. */

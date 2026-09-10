@@ -607,3 +607,61 @@ describe('smartArt hierarchy arranger: fold-depth (layout definition caps genera
 		expect(rects(result)).toHaveLength(5);
 	});
 });
+
+// Round 19: `smartart-hierarchy-shared.ts`'s `pushNode` called `presetBoxNode`
+// with no `fontSizeOverride` at all, so EVERY hierarchy item in the gallery
+// fell through to `rectNode`'s crude, un-derived `fitFontSize(..., 12)`
+// fallback (a flat ~9pt floor) - see `smartart-layout-interpreter-hierarchy-
+// fontfit.ts`'s doc comment. Fixed by resolving ONE shared font size up
+// front (via `resolveTieredItemFontSize`) and threading it through
+// `HierContext.itemFontSizePx`.
+describe('smartArt hierarchy arranger: font-fit wiring (round 19)', () => {
+	const textRoleAlgorithmNode: PptxSmartArtLayoutNode = {
+		name: 'diagram',
+		algorithm: { type: 'hierChild' },
+		children: [
+			{
+				name: 'root',
+				children: [
+					{
+						name: 'childShape',
+						algorithm: { type: 'hierChild' },
+						children: [
+							{
+								name: 'childText',
+								algorithm: { type: 'tx' },
+								presentationOf: { axis: ['self'] },
+							},
+						],
+					},
+				],
+			},
+		],
+	};
+
+	it('keeps the pre-existing crude per-node fallback (pinned at exactly 12, the old flat floor) when no algorithmNode is given', () => {
+		const result = arrangeHierarchy(DEPTH_THREE_TREE, box, palette, 'flat', 'hier-nofit');
+		for (const rect of rects(result)) {
+			expect(rect.fontSize).toBe(12);
+		}
+	});
+
+	it('gives every node the SAME shared, fitted font size - well above the old 12 floor - when an algorithmNode is provided', () => {
+		const result = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-fit',
+			undefined,
+			undefined,
+			textRoleAlgorithmNode,
+		);
+		const sizes = rects(result).map((n) => n.fontSize);
+		expect(sizes).toHaveLength(5);
+		for (const size of sizes) {
+			expect(size).toBeGreaterThan(12); // never the old ~9pt DEFAULT_CEILING_PX floor
+		}
+		expect(new Set(sizes).size).toBe(1); // one shared size across every node
+	});
+});

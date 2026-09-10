@@ -28,6 +28,7 @@
 import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
+import { foldedDescendantTexts } from './smartart-interpreter-drawing-bridge';
 import type {
 	ConnArrowStyle,
 	ConnDimension,
@@ -38,6 +39,7 @@ import { arrangeLinear } from './smartart-layout-interpreter-linear';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
 import { algorithmParam, resolveFlowDirection } from './smartart-layout-interpreter-model';
 import { rectNode, styleContext } from './smartart-layout-interpreter-render';
+import { resolveTieredItemFontSize } from './smartart-layout-item-font-tier';
 import type {
 	BoundingBox,
 	RenderedConnector,
@@ -143,12 +145,15 @@ export function arrangeSpacer(
  * one region). Returns `undefined` when there is no point to render.
  */
 export function arrangeText(
-	_plan: ArrangementPlan,
+	plan: ArrangementPlan,
 	nodes: PptxSmartArtNode[],
 	box: BoundingBox,
 	palette: string[],
 	style: SmartArtStyle,
 	elementId: string,
+	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
+	childrenOf?: Map<string, PptxSmartArtNode[]>,
+	fontName?: string,
 ): SmartArtLayoutResult | undefined {
 	const node = nodes[0];
 	if (!node) {
@@ -156,18 +161,42 @@ export function arrangeText(
 	}
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
+	const itemW = Math.max(0, w - INSET * 2);
+	const itemH = Math.max(0, h - INSET * 2);
+	// Round 18: `plan.node` here is the ONE point's own `tx`-alg layoutNode
+	// (unlike `lin`/`snake`/`cycle`, whose `plan.node` is the ARRANGER, one
+	// level up) - `itemFontBoundsPx`'s `itemNode(plan.node)` first-child
+	// heuristic would look one level too deep, so this passes `plan.node`
+	// itself as the explicit `fontRoleNode` override (see `smartart-layout-
+	// item-font-tier.ts`'s doc comment). Previously never called the shared
+	// fitter at all - see `smartart-layout-interpreter-cycle-fontfit.ts`'s
+	// doc comment for the general `fitFontSize`-fallback bug this closes.
+	const descendantTexts = childrenOf
+		? foldedDescendantTexts(node, new Set([node.id]), childrenOf)
+		: [];
+	const { rootSizePx: fontSizeOverride, descendantSizePx } = resolveTieredItemFontSize(
+		plan,
+		index,
+		[{ rootText: node.text, descendantTexts, width: itemW, height: itemH }],
+		fontName,
+		undefined,
+		0,
+		plan.node,
+	);
 	const rect = rectNode({
 		key: `${elementId}-tx-${node.id}`,
 		x: INSET,
 		y: INSET,
-		width: Math.max(0, w - INSET * 2),
-		height: Math.max(0, h - INSET * 2),
+		width: itemW,
+		height: itemH,
 		node,
 		index: 0,
 		total: 1,
 		palette,
 		style,
 		ctx,
+		fontSizeOverride,
+		descendantFontSize: descendantSizePx,
 	});
 	return {
 		nodes: [rect],

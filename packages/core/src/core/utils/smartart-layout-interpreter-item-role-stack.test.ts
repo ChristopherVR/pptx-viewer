@@ -84,6 +84,112 @@ describe('stackRoleContent font sizing', () => {
 });
 
 /**
+ * "Vertical Bullet List"'s exact shape (round 20): `parentText`/`childText`
+ * both declare `h refType="primFontSz" refFor="ch" refForName="parentText"`
+ * (0.52/0.46), and a THIRD, non-text `spacer` sibling declares the SAME kind
+ * of `h` (0.08) but never resolves into `content` at all (it carries no
+ * `presOf`, so `resolveRoleContent` never returns an entry for it).
+ */
+function verticalBulletListRoles(): {
+	parentText: PptxSmartArtLayoutNode;
+	childText: PptxSmartArtLayoutNode;
+	index: ReturnType<typeof buildConstraintIndex>;
+} {
+	const parentText: PptxSmartArtLayoutNode = {
+		name: 'parentText',
+		shape: { presetGeometry: 'roundRect' },
+	};
+	const childText: PptxSmartArtLayoutNode = {
+		name: 'childText',
+		shape: { presetGeometry: 'rect' },
+	};
+	const definition: PptxSmartArtLayoutDefinition = {
+		rootNode: {
+			name: 'linear',
+			algorithm: { type: 'lin' },
+			children: [parentText, childText, { name: 'spacer' }],
+			// Matches the real "Vertical Bullet List" layoutDef exactly: the
+			// ARRANGER ("linear") declares all 4 constraints, not the roles
+			// themselves.
+			constraints: [
+				{ type: 'primFontSz', for: 'ch', forName: 'parentText', operator: 'equ', value: 65 },
+				{
+					type: 'h',
+					for: 'ch',
+					forName: 'parentText',
+					referenceType: 'primFontSz',
+					referenceFor: 'ch',
+					referenceForName: 'parentText',
+					factor: 0.52,
+				},
+				{
+					type: 'h',
+					for: 'ch',
+					forName: 'childText',
+					referenceType: 'primFontSz',
+					referenceFor: 'ch',
+					referenceForName: 'parentText',
+					factor: 0.46,
+				},
+				{
+					type: 'h',
+					for: 'ch',
+					forName: 'spacer',
+					referenceType: 'primFontSz',
+					referenceFor: 'ch',
+					referenceForName: 'parentText',
+					factor: 0.08,
+				},
+			],
+		},
+	};
+	return { parentText, childText, index: buildConstraintIndex(definition) };
+}
+
+describe("stackRoleContent honours a declared, non-text sibling's own h-weight (round 20)", () => {
+	it("does not let parentText/childText silently absorb spacer's own reserved 0.08 share of box.height", () => {
+		const { parentText, childText, index } = verticalBulletListRoles();
+		const content: ItemRoleContent[] = [
+			{ role: parentText, nodeIds: ['root'] },
+			{ role: childText, nodeIds: ['child'] },
+		];
+		const tallOriginal: RenderedRectNode = { ...ORIGINAL, height: 1000 };
+		const [parentRow, childRow] = stackRoleContent(content, 'linear', tallOriginal, index)!;
+		if (parentRow.kind !== 'rect' || childRow.kind !== 'rect') {
+			throw new Error('expected rect rows');
+		}
+		// Weights 0.52/0.46/0.08 (spacer included): parentText's own fraction
+		// is 0.52/1.06 ~= 0.4906 of box.height, NOT 0.52/0.98 (spacer excluded).
+		const totalWithSpacer = 0.52 + 0.46 + 0.08;
+		expect(parentRow.height).toBeCloseTo((0.52 / totalWithSpacer) * 1000, 1);
+		expect(childRow.height).toBeCloseTo((0.46 / totalWithSpacer) * 1000, 1);
+	});
+
+	it("resolves each role's OWN descendant text via nodeTextById, not a duplicate of the point's own text", () => {
+		const { parentText, childText, index } = verticalBulletListRoles();
+		const content: ItemRoleContent[] = [
+			{ role: parentText, nodeIds: ['root'] },
+			{ role: childText, nodeIds: ['child'] },
+		];
+		const nodeTextById = new Map([['child', 'Real Child Text']]);
+		const [parentRow, childRow] = stackRoleContent(
+			content,
+			'linear',
+			{ ...ORIGINAL, text: 'Root Text' },
+			index,
+			nodeTextById,
+		)!;
+		if (parentRow.kind !== 'rect' || childRow.kind !== 'rect') {
+			throw new Error('expected rect rows');
+		}
+		// parentText's own id ("root") is not in nodeTextById (only
+		// descendants are), so it correctly falls through to original.text.
+		expect(parentRow.text).toBe('Root Text');
+		expect(childRow.text).toBe('Real Child Text');
+	});
+});
+
+/**
  * `radial-list--hier5.pptx` (gallery corpus): a `cycle` arranger's per-point
  * `node` composite declares TWO roles that EACH explicitly declare a
  * DIFFERENT shape kind - `parentNode` (`presOf axis="self"`, `ellipse`) and

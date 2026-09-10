@@ -121,10 +121,13 @@ export interface NamedRuleOverride {
 
 /**
  * `primFontSz`/`secFontSz` are deliberately NOT keys here - see the module
- * doc comment's "NEITHER... is actually wired in" note. A `w`/`h` rule stays
- * wired as a direct override: unlike a font-size shrink bound, no OTHER part
- * of this interpreter already resolves an item's own `w`/`h` rule clamp, so
- * this remains its one consumer.
+ * doc comment's "NEITHER... is actually wired in" note. A `w`/`h` rule IS
+ * wired, but (round 24, the SAME correction `primFontSz` already got) as a
+ * shrink-search FLOOR/CEILING BOUND on the constraint-resolved size, never a
+ * literal value to assign outright - see `applyToNode`'s own doc comment for
+ * the measured proof (`horizontal-bullet-list`/`accent-process`'s `<dgm:rule
+ * type="w" for="ch" forName="composite" val="0"/>` forcing every rendered
+ * item's width to literally zero).
  */
 const OVERRIDE_KEY: Readonly<Record<string, keyof NamedRuleOverride>> = {
 	w: 'width',
@@ -160,7 +163,25 @@ export function resolveNamedRuleOverride(
 	return Object.keys(override).length > 0 ? override : undefined;
 }
 
-/** Apply a resolved override to one rendered node's size/font, kind-aware. */
+/**
+ * Apply a resolved override to one rendered node's size/font, kind-aware.
+ *
+ * Round 24: `override.width`/`.height` is a shrink-search FLOOR (the
+ * SMALLEST the constraint-resolved box is allowed to become), never a value
+ * to assign outright - the SAME correction this module already applies to
+ * `primFontSz` (see the module doc comment's own "PREVIOUS version... hard-
+ * setting every rendered node's font to a literal 5" story). Measured proof:
+ * `horizontal-bullet-list--hier5.pptx`/`accent-process--hier5.pptx` both
+ * declare `<dgm:rule type="w" for="ch" forName="composite" val="0"/>` - a
+ * trivial (always-satisfied) floor per ECMA-376's own `CT_Rule` semantics -
+ * but the PREVIOUS unconditional-replace behaviour forced every rendered
+ * item's width to literally 0 (and, via the width/height-vs-x/y recentring
+ * below, its x position off by exactly half the item's own real width),
+ * confirmed via a direct stack trace from the exact degenerate output back
+ * to this function. Clamping to a FLOOR instead makes this fixture's own
+ * trivial `val="0"` rule a correct no-op, while still honouring a genuinely
+ * binding floor on any OTHER fixture that declares a real minimum.
+ */
 function applyToNode(
 	node: RenderedNode,
 	override: NamedRuleOverride,
@@ -172,8 +193,12 @@ function applyToNode(
 		// desync it from its neighbours, so only the font size is honoured.
 		return override.fontSize === undefined ? node : { ...node, fontSize: override.fontSize };
 	}
-	const width = override.width !== undefined ? override.width * box.width : node.width;
-	const height = override.height !== undefined ? override.height * box.height : node.height;
+	const width =
+		override.width !== undefined ? Math.max(node.width, override.width * box.width) : node.width;
+	const height =
+		override.height !== undefined
+			? Math.max(node.height, override.height * box.height)
+			: node.height;
 	const x = node.x + (node.width - width) / 2;
 	const y = node.y + (node.height - height) / 2;
 	return {

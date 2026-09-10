@@ -549,7 +549,16 @@ describe('arrangeLinear/arrangeSnake shared item font size', () => {
 		expect(new Set(sizes).size).toBe(1);
 	});
 
-	it('falls back to the pre-existing 12pt/6pt heuristic bounds when the layoutDef declares no primFontSz', () => {
+	// Round 19: `DEFAULT_CEILING_PX` (`smartart-layout-item-font-role.ts`) used
+	// to be 12 (9pt) - a near-zero ceiling the shared fitter's binary search
+	// returns on its very first `fitsAt(ceilingPx)` check, never exploring any
+	// LARGER candidate even when the box has room to spare. This test used to
+	// pin that old, wrong behaviour; now it pins the corrected one: a single
+	// short item filling a generous 400x400 box, with no declared `primFontSz`
+	// anywhere, grows to fill the box (bounded by the REAL box-fit search, not
+	// an arbitrary tiny constant) - see `smartart-layout-item-font-role.test
+	// .ts`'s `nodeFontBounds` test for the unit-level fix.
+	it('grows well past the old 12pt/6pt heuristic floor when the layoutDef declares no primFontSz (bounded by the real box-fit search instead)', () => {
 		const plan: ArrangementPlan = { kind: 'linear', node: { algorithm: { type: 'lin' } } };
 		const result = arrangeLinear(
 			plan,
@@ -564,7 +573,7 @@ describe('arrangeLinear/arrangeSnake shared item font size', () => {
 		if (rendered.kind !== 'rect') {
 			throw new Error('expected rect node');
 		}
-		expect(rendered.fontSize).toBeLessThanOrEqual(12);
+		expect(rendered.fontSize).toBeGreaterThan(12);
 		expect(rendered.fontSize).toBeGreaterThanOrEqual(6);
 	});
 });
@@ -674,7 +683,7 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 		expect(rootSizePx / PT_TO_PX).toBeCloseTo(19, 0);
 	});
 
-	it("without the corner inset (cornerInsetPx=0), resolves to 26pt (round 13: the margin-only budget, now applied unconditionally, is generous enough that only the round-down-if-the-rounded-candidate-does-not-fit correction still bounds it - was 24pt before round 13's unconditional-margin/line-spacing rewrite)", () => {
+	it("without the corner inset (cornerInsetPx=0), resolves to 27pt (round 13: the margin-only budget, now applied unconditionally, is generous enough that only the round-down-if-the-rounded-candidate-does-not-fit correction still bounds it - was 24pt before round 13's unconditional-margin/line-spacing rewrite; round 18: 26pt -> 27pt, lineHeightRatio corrected 1.212 -> 1.2, see smartart-layout-item-font-tier.ts's module doc comment)", () => {
 		const { plan, index } = basicProcessBounds();
 		const { rootSizePx } = resolveTieredItemFontSize(
 			plan,
@@ -703,6 +712,6 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 			0.6,
 			// no cornerInsetPx argument: defaults to 0.
 		);
-		expect(rootSizePx / PT_TO_PX).toBeCloseTo(26, 0);
+		expect(rootSizePx / PT_TO_PX).toBeCloseTo(27, 0);
 	});
 });

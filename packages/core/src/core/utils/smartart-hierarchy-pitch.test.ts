@@ -61,6 +61,71 @@ describe('computeAxisPitch', () => {
 		const { shift } = computeAxisPitch(100, 10, 60, 2);
 		expect(shift).toBeCloseTo(100 - 2 * 60, 6); // -20: trailing edge exactly at dimension.
 	});
+
+	it("session 10: `fixedGapRatio`, when given, uses `itemSize * fixedGapRatio` directly instead of solving to fill `dimension` - `hierarchy--hier8.pptx`'s own 4-generation, unevenly-fanned tree (a lone descendant past the main fan) needs this: the solved gap (49.86px) overshoots the fixture's own real, measured row-to-row gap (41.98px, `itemSize * 0.4580`)", () => {
+		const dimension = 533;
+		const margin = 15.36;
+		const itemSize = 91.66;
+		const { pitch, shift } = computeAxisPitch(dimension, margin, itemSize, 4, 0.458);
+		expect(pitch).toBeCloseTo(itemSize * 1.458, 4);
+		// SESSION 16: `shift` is the CENTRED formula now (`(dimension - n*pitch
+		// + margin) / 2`, see the module's own doc comment), not `margin -
+		// gap/2` - this test's own real numbers (this IS `hierarchy--
+		// hier8.pptx`'s own generation axis) are exactly what a 4-tree live-COM
+		// resize experiment used to prove the OLD leading-margin/trailing-flush
+		// model under-placed row 1 by ~13px (2.4% of `dimension`) for this
+		// construct: cached top margin measured 28px against the old formula's
+		// own 15.4px prediction. The corrected value below reproduces the
+		// fixture's own cached geometry to within 1px (`hierarchy--
+		// hier8.pptx`'s own gate comparison moved from ~2.4% to <=0.2% deltaY
+		// after this fix landed).
+		const gap = itemSize * 0.458;
+		const n = 4;
+		const pitchValue = itemSize + gap;
+		expect(shift).toBeCloseTo((dimension - n * pitchValue + margin) / 2, 6);
+		expect(shift).toBeCloseTo(6.89944, 4);
+	});
+
+	it('session 10: omitting `fixedGapRatio` (every existing caller) is BYTE-IDENTICAL to the pre-existing solve-to-fill behaviour - regression guard for the new optional parameter', () => {
+		const dimension = 867;
+		const itemSize = 372;
+		const margin = 41.5;
+		const withoutFixed = computeAxisPitch(dimension, margin, itemSize, 2);
+		const withUndefinedFixed = computeAxisPitch(dimension, margin, itemSize, 2, undefined);
+		expect(withUndefinedFixed).toStrictEqual(withoutFixed);
+	});
+
+	it("session 10: a negative `fixedGapRatio` is clamped to 0, matching `centeredAxisPitch`'s own convention", () => {
+		const { pitch } = computeAxisPitch(1000, 10, 150, 3, -0.5);
+		expect(pitch).toBeCloseTo(150, 6); // gap floored to 0, not negative.
+	});
+
+	it("session 10: `fixedGapRatio` is ignored for count===1 (no sibling to gap against), matching the solve-to-fill path's own n===1 convention", () => {
+		const { pitch } = computeAxisPitch(400, 40, 200, 1, 0.5);
+		expect(pitch).toBeCloseTo(200, 6); // no gap term for a lone item.
+	});
+
+	it('session 16: the generation axis is CENTRED with `margin` split as a +/-margin/2 bias, not a leading-only margin against a trailing-flush pack - pins the 4-tree live-COM measurement (0/1/2/3 leading singleton generations before a 5-wide fan, same box, same fixedGapRatio) that overturned the old model: top margin minus bottom margin is CONSTANT (=`margin`) at every depth, not the whole margin sitting on top alone', () => {
+		const dimension = 500;
+		const itemSize = 60; // small enough that n up to 5 never overflows dimension.
+		const margin = itemSize * 0.1675; // GENERATION_MARGIN_RATIO
+		const fixedGapRatio = 0.458;
+		for (const n of [2, 3, 4, 5]) {
+			const { pitch, shift } = computeAxisPitch(dimension, margin, itemSize, n, fixedGapRatio);
+			const gap = itemSize * fixedGapRatio;
+			const span = n * itemSize + (n - 1) * gap;
+			const topMargin = shift + gap / 2; // row 0's own top edge, pre-shift it sits at gap/2 (see placeStandardTree's cy=level*pitch+pitch/2).
+			const bottomMargin = dimension - span - topMargin;
+			// Centred: slack (dimension-span) splits evenly, biased by margin/2
+			// toward the top - never the whole `margin` sitting on the leading
+			// edge alone (the pre-SESSION-16 model), and never the naive
+			// half-slack-only "space-around" `centeredAxisPitch` uses for the fan
+			// axis either (this axis keeps its own small, measured top bias).
+			expect(topMargin - bottomMargin).toBeCloseTo(margin, 6);
+			expect(topMargin).toBeCloseTo((dimension - span) / 2 + margin / 2, 6);
+			expect(pitch).toBeCloseTo(itemSize + gap, 6);
+		}
+	});
 });
 
 describe('centeredAxisPitch (round 11/SESSION 8: the FAN axis is centred, not a leading-margin/trailing-flush pack - see the module doc comment)', () => {

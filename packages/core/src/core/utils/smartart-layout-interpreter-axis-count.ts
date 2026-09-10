@@ -93,13 +93,23 @@ function applyPointTypeAndRange(
  * - `context` supplied: hop 0 navigates from that explicit ANCHOR point set
  *   via {@link navigateAxisHop}, accepting every single-hop axis token the
  *   spec defines (`self`/`ch`/`des`/`desOrSelf`/`par`/`ancst`/`ancstOrSelf`/
- *   `followSib`/`precedSib`/`follow`/`preced`/`root`/`none`) - needed for a
+ *   `followSib`/`precedSib`/`follow`/`preced`/`none`) - needed for a
  *   `presOf`/`dgm:if` reached through a `dgm:forEach` (a node's own
  *   {@link PptxSmartArtLayoutNode.forEachOrigin}), where content is scoped
  *   to ONE specific point, not the whole diagram (`Phased Process`'s
  *   `circ1Tx`, `presOf axis="desOrSelf"`, is anchored one hop up by its
  *   `forEachOrigin`'s `axis="ch ch" st="2 1" cnt="1 1"` - "point 2's first
  *   child" - so `desOrSelf` there must resolve relative to THAT point).
+ *   EXCEPT `root`: an explicit `root` hop 0 always opts OUT of anchor-
+ *   relative navigation and resolves exactly as the `context`-omitted case
+ *   below does, `context` or not - `navigateAxisHop` has no relative
+ *   reading for `root` at all (it is only ever meaningful root-relatively),
+ *   and a node CAN legitimately have both its own `forEachOrigin` (for its
+ *   OWN box's identity/position) and a `root`-starting presOf (for content
+ *   explicitly scoped to the whole diagram, not that anchor) - `funnel--
+ *   flat3.pptx`'s `item1..3`, each reached through its own single-point
+ *   `forEachOrigin` (`axis="ch" st="2"/"3"/"4" cnt="1"`) but with presOf
+ *   `axis="root ch desOrSelf"`.
  * - `context` omitted (the pre-existing default, used by every caller before
  *   this parameter existed): hop 0 is root-relative, and `ch`/`self`/`root`
  *   are decidable there - every other token returns `undefined`
@@ -175,7 +185,15 @@ export function resolveAxisNodes(
 	if (rootRelative && axis[0] !== 'ch' && axis[0] !== 'self' && axis[0] !== 'root') {
 		return undefined;
 	}
-	if (rootRelative && axis[0] === 'root' && axis.length > 1 && axis[1] !== 'ch') {
+	// An explicit `root` hop 0 ALWAYS means "ignore any anchor, start fresh
+	// from the document root" - true whether or not `context` was supplied
+	// (`navigateAxisHop` does not implement `root` as a context-relative hop
+	// token at all, so a `context`-anchored node whose own axis happens to
+	// start with `root` previously fell through to an empty result here,
+	// silently - corpus-verified corpus-unique to `funnel--flat3.pptx`'s
+	// `item1..3`, `D:/tmp/root-axis-scan.ts`, 3 hits total, all this one
+	// fixture).
+	if (axis[0] === 'root' && axis.length > 1 && axis[1] !== 'ch') {
 		return undefined;
 	}
 	const byId = new Map(nodes.map((n) => [n.id, n] as const));
@@ -195,16 +213,24 @@ export function resolveAxisNodes(
 	}
 	const roots = nodes.filter((n) => !n.parentId || !byId.has(n.parentId));
 
-	// Hop 0 (and, for a root-relative `root`+`ch` compound, hop 1 too - see
-	// the doc comment) is resolved OUTSIDE the general per-hop loop below: a
-	// `context`-anchored hop 0 uses `navigateAxisHop` like every later hop
-	// does, a bare `ch`/`self` is the pre-existing `roots` shortcut, and a
-	// bare `root` (alone or `root`+`ch`) absorbs the document-node hop into
-	// that same `roots` shortcut, applying whichever hop's OWN `@ptType`/
-	// `@st`/`@cnt` is the real, meaningful one (hop 1's, when `ch` follows).
+	// Hop 0 (and, for a `root`+`ch` compound, hop 1 too - see the doc comment)
+	// is resolved OUTSIDE the general per-hop loop below: an explicit `root`
+	// hop 0 (alone or `root`+`ch`) ALWAYS absorbs the document-node hop into
+	// the `roots` shortcut, applying whichever hop's OWN `@ptType`/`@st`/
+	// `@cnt` is the real, meaningful one (hop 1's, when `ch` follows) - this
+	// takes precedence over `context` (see the guard above: `root` opts out
+	// of anchor-relative navigation regardless). Otherwise a `context`-
+	// anchored hop 0 uses `navigateAxisHop` like every later hop does, and a
+	// bare (non-`root`) `ch`/`self` is the pre-existing `roots` shortcut.
 	let current: PptxSmartArtNode[];
 	let nextHop: number;
-	if (context !== undefined) {
+	if (axis[0] === 'root' && axis.length > 1) {
+		current = applyPointTypeAndRange(roots, pointTypes?.[1], start?.[1], count?.[1]);
+		nextHop = 2;
+	} else if (axis[0] === 'root') {
+		current = applyPointTypeAndRange(roots, pointTypes?.[0], start?.[0], count?.[0]);
+		nextHop = 1;
+	} else if (context !== undefined) {
 		current = applyPointTypeAndRange(
 			navigateAxisHop(context, axis[0], nodes, childrenOf, parentOf, roots),
 			pointTypes?.[0],
@@ -212,9 +238,6 @@ export function resolveAxisNodes(
 			count?.[0],
 		);
 		nextHop = 1;
-	} else if (axis[0] === 'root' && axis.length > 1) {
-		current = applyPointTypeAndRange(roots, pointTypes?.[1], start?.[1], count?.[1]);
-		nextHop = 2;
 	} else {
 		current = applyPointTypeAndRange(roots, pointTypes?.[0], start?.[0], count?.[0]);
 		nextHop = 1;

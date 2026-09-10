@@ -186,5 +186,5 @@ export const DEFAULT_FONT_ADVANCE_TABLE: FontAdvanceTable = {
 	marginRightPt: 7.2,
 	marginTopPt: 3.6,
 	marginBottomPt: 3.6,
-	lineHeightRatio: 1.212,
+	lineHeightRatio: 1.2,
 };

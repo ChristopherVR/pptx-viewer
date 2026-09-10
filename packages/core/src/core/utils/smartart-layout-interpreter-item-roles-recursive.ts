@@ -49,6 +49,7 @@
 import type { PptxSmartArtConnection, PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import {
+	descendantTextById,
 	hasAmbiguousTopLevelRoles,
 	isTextRole,
 	TRANSITION_ROLE_NAMES,
@@ -198,5 +199,11 @@ export function expandRecursiveItemRoles(
 	connections?: PptxSmartArtConnection[],
 ): RenderedNode[] | undefined {
 	const content = resolveRecursiveItemRoleContent(arranger, node, childrenOf, connections);
-	return stackRoleContent(content, arrangerRole, original, index);
+	return stackRoleContent(
+		content,
+		arrangerRole,
+		original,
+		index,
+		descendantTextById(node, childrenOf),
+	);
 }

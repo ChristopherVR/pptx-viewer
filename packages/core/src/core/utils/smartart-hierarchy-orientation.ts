@@ -36,13 +36,12 @@ import type { PptxSmartArtLayoutNode } from '../types';
 import { resolveRatioConstraint } from './smartart-constraint-ratio-fallback';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
-import type { CompositeChildGeometry } from './smartart-hierarchy-composite-child';
 import { resolveCompositeChildGeometry } from './smartart-hierarchy-composite-child';
+import { resolveGenerationGapRatio } from './smartart-hierarchy-generation-gap';
+import { tailedHierarchyDeclaresChAlign } from './smartart-hierarchy-tailed-transpose';
 
 /** COM-verified "Hierarchy" fallback (`h:w`, absent any declared aspect - see `resolveAspectRatio`). */
 const DEFAULT_ASPECT_RATIO = 0.667;
-/** COM-verified "Hierarchy" fallback generation-to-generation gap (see `resolveGenerationGapRatio`). */
-const DEFAULT_GENERATION_GAP_RATIO = 0.25;
 /** `sibSp` fallback when a layout declares none (matches "Hierarchy" itself). */
 const DEFAULT_SIB_SP_RATIO = 0.1;
 /**
@@ -80,7 +79,10 @@ export interface HierarchyOrientation {
 	sibSpRatio: number;
 	/** `h:w` when `!transposed`; the axes are swapped inside `arrangeHierarchy` when `transposed`, so this is always the ratio to apply to the FAN-axis size to get the CROSS-axis size in "logical" (post-swap) space. */
 	aspectRatio: number;
+	/** Generation-to-generation gap the DECLARED `sp` fact, no `composite`-cell correction applied - see `smartart-hierarchy-generation-gap.ts`. Used by `fitItemBox` to SIZE the item; that solve already matched cached geometry with this raw value, see the call site's own comment. */
 	generationGapRatio: number;
+	/** The SAME gap, `composite`-cell-corrected (mirrors `compositeWidthFactor`'s own cell-vs-item split on the fan axis) - used by `computeHierarchyAxisPitches` to POSITION composite cells, the ones actually centred/pitched. Identical to `generationGapRatio` whenever no `composite` wrapper is declared (every `tailed`/`transposed` layout checked). */
+	compositeGenerationGapRatio: number;
 	/** Outer margin (fraction of the effective box) on the FAN axis - see `OUTER_MARGIN_X_RATIO`'s doc comment: 0 when `transposed`. */
 	marginXRatio: number;
 	/** Outer margin (fraction of the effective box) on the GENERATION axis - see `OUTER_MARGIN_X_RATIO`'s doc comment: 0 when `transposed`. */
@@ -103,8 +105,8 @@ export interface HierarchyOrientation {
 	cardOffsetXRatio: number;
 }
 
-/** A constraint search that only cares about `type`/`referenceType`/`factor` - broader than `findConstraint` (which cannot filter by `referenceType`). */
-function findByReference(
+/** A constraint search that only cares about `type`/`referenceType`/`factor` - broader than `findConstraint` (which cannot filter by `referenceType`). Exported for `smartart-hierarchy-generation-gap.ts` (split out of this module - file-size budget). */
+export function findByReference(
 	constraints: PptxSmartArtLayoutNode['constraints'],
 	type: string,
 	referenceType: string,
@@ -136,83 +138,6 @@ function resolveAspectRatio(constraints: PptxSmartArtLayoutNode['constraints']):
 }
 
 /**
- * Generation-to-generation gap, as a fraction of the item's STACKING-axis
- * size (`h` vertical, `w` transposed - see the module doc comment); falls
- * back to `DEFAULT_GENERATION_GAP_RATIO` when undeclared.
- *
- * `sp` is not always declared relative to the stacking axis: "Hierarchy"
- * itself declares it relative to `h` (the stacking axis), but "Organization
- * Chart" declares it relative to `w` (`sp for=des forName=hierRoot1
- * refType=w refFor=des refForName=rootComposite1 fact=0.21`) - a CROSS-axis
- * reference. COM-verified against `organization-chart--flat3.pptx`: the raw
- * `0.21` fed directly into the stacking-axis formula (the old bug: this
- * function only ever checked `stackingAxis`, silently missing org-chart's
- * own declaration and quietly falling back to the "Hierarchy" default of
- * `0.25`) reproduces the WRONG generation pitch; converting via
- * `aspectRatio` (the item's own `h:w`, already resolved by the caller) -
- * `gap_stacking = declaredFact / aspectRatio` when declared on the cross
- * axis, since a quantity expressed as a fraction of `w` needs multiplying by
- * `w/h = 1/aspectRatio` to become a fraction of `h` - reproduces the cached
- * generation pitch to within rounding on all three "Organization Chart"
- * datasets (`flat3`/`hier5`/`hier8`).
- *
- * A SEPARATE correction applies when the layout declares a `composite`
- * wrapper (`compositeChild` defined - see `smartart-hierarchy-composite-
- * child.ts`): "Hierarchy"'s own `sp` (declared ON the stacking axis, `h`,
- * `fact="0.25"`) references `composite`'s own `h`, not the RENDERED item's
- * `h` - the SAME composite-vs-rendered-item mismatch `resolveAspectRatio`'s
- * caller already corrects for the aspect ratio itself (`smartart-hierarchy-
- * composite-child.ts`'s own module doc comment). Reading it unconverted (the
- * pre-existing "same axis, no conversion needed" assumption) silently
- * assumes `composite.h === renderedItem.h`, which is false whenever
- * `compositeChild.widthFactor !== 1` (`composite` is WIDER than the
- * rendered item, per its own `w` shrink). Converting: `composite.h =
- * compositeAspect * composite.w = compositeAspect * (renderedItem.w /
- * widthFactor)`, and `renderedItem.h = renderedAspect * renderedItem.w`, so
- * `declaredFact * composite.h / renderedItem.h = declaredFact *
- * compositeAspect / (widthFactor * renderedAspect^2)`. COM-verified against
- * THREE independent depths of `hierarchy--{flat3,hier5,hier8}.pptx` (2/3/4
- * generations): the row-to-row gap, measured directly from each fixture's
- * own raw `dsp:sp` offsets (NOT the "solve to fill the box" quantity
- * `computeAxisPitch` used to derive, which only coincidentally matches this
- * for a fully-fanned tree - see that function's own doc comment), is
- * `0.4580 * renderedItem.h` on ALL THREE samples exactly; this formula
- * (`0.25 * 0.667 / (0.9 * 0.635^2)`) gives `0.4596` - within 0.35% of every
- * sample, i.e. within the same rounding band every other ratio in this
- * derivation chain shows, not a separate discrepancy.
- */
-function resolveGenerationGapRatio(
-	constraints: PptxSmartArtLayoutNode['constraints'],
-	stackingAxis: 'w' | 'h',
-	aspectRatio: number,
-	compositeChild?: CompositeChildGeometry,
-	compositeAspect?: number,
-): number {
-	const onStackingAxis = findByReference(constraints, 'sp', stackingAxis);
-	if (onStackingAxis !== undefined) {
-		if (
-			compositeChild &&
-			compositeAspect !== undefined &&
-			compositeAspect > 0 &&
-			compositeChild.widthFactor > 0 &&
-			aspectRatio > 0
-		) {
-			return (
-				(onStackingAxis * compositeAspect) /
-				(compositeChild.widthFactor * aspectRatio * aspectRatio)
-			);
-		}
-		return onStackingAxis;
-	}
-	const crossAxis = stackingAxis === 'h' ? 'w' : 'h';
-	const onCrossAxis = findByReference(constraints, 'sp', crossAxis);
-	if (onCrossAxis !== undefined && aspectRatio > 0) {
-		return stackingAxis === 'h' ? onCrossAxis / aspectRatio : onCrossAxis * aspectRatio;
-	}
-	return DEFAULT_GENERATION_GAP_RATIO;
-}
-
-/**
  * Resolve whether `algorithmNode` is a transposed (horizontal-fan) hierarchy
  * and every ratio `fitItemBox` needs, all read from its own declared
  * constraints where possible (see the module doc comment for the exact
@@ -230,6 +155,31 @@ export function resolveHierarchyOrientation(
 	const sibSpReferencesHeight = (constraints ?? []).some(
 		(c) => c.type === 'sibSp' && c.referenceType === 'h',
 	);
+	// The `tailed` (org-chart) family's own transposition signal is DIFFERENT
+	// from the `std` "Hierarchy" family's `sibSp`-referencing-`h` one: every
+	// `tailed` variant checked (plain "Organization Chart", "Half Circle
+	// Organization Chart", "Name and Title Organization Chart", "Horizontal
+	// Organization Chart") declares `sibSp refType="w"` identically, so that
+	// signal never fires for this family at all. The REAL declarative
+	// difference is on `algorithmNode`'s own TOP-LEVEL `hierChild` algorithm
+	// (governing the ROOT's own direct-children fan, always live regardless of
+	// `hierBranch`/`dir`): classic vertical variants declare ONLY a `linDir`
+	// `fromL`/`fromR` mirror pair (RTL, unrelated to orientation) with NO
+	// `chAlign` at that level; "Horizontal Organization Chart" ADDITIONALLY
+	// declares `chAlign` `l`/`r` there (children aligned LEFT/RIGHT of a
+	// vertical connecting stem, i.e. stacked in a column beside the parent,
+	// not fanned in a row below it) alongside `linDir fromT`. Verified
+	// directly against all four `tailed` fixtures' own cached `layout1.xml`
+	// (`half-circle`/`name-and-title`/plain `organization-chart` all omit
+	// `chAlign` here; `horizontal-organization-chart` alone declares it) - a
+	// structural signal, not a per-layout-name guess. Needs
+	// `tailedHierarchyDeclaresChAlign`, not `algorithmParam`:
+	// `discoverArrangement` deliberately keeps `algorithmNode` as the
+	// ORIGINAL, choose-wrapped node (see that function's own comment), so
+	// `algorithmNode.algorithm` is `undefined` for every real org-chart
+	// fixture and `chAlign` has to be read out of the raw `dgm:choose`
+	// directly - see that module's own doc comment for the full derivation.
+	const tailedTransposed = mode === 'tailed' && tailedHierarchyDeclaresChAlign(algorithmNode);
 	const sibSpRatio = resolveRatioConstraint(
 		constraints,
 		index,
@@ -238,7 +188,7 @@ export function resolveHierarchyOrientation(
 		DEFAULT_SIB_SP_RATIO,
 		algorithmNode?.rules,
 	);
-	if (sibSpReferencesHeight) {
+	if (sibSpReferencesHeight || tailedTransposed) {
 		// Transposed: the fan axis's own size is `h`; the stacking axis is `w`,
 		// and the item's cross-axis (logical "cross") size comes from `w:h`
 		// resolved as a ratio TO h (i.e. `w = aspectRatio * h`), which the
@@ -250,6 +200,12 @@ export function resolveHierarchyOrientation(
 			sibSpRatio,
 			aspectRatio: hToW > 0 ? 1 / hToW : 1 / DEFAULT_ASPECT_RATIO,
 			generationGapRatio: resolveGenerationGapRatio(constraints, 'w', hToW),
+			// A transposed hierarchy declares no `composite` wrapper (see below),
+			// so there is no cell-vs-item distinction to make: identical to
+			// `generationGapRatio` above. `computeHierarchyAxisPitches` never
+			// actually reads this field when `transposed` (see its own doc
+			// comment), so the exact value here is inert either way.
+			compositeGenerationGapRatio: resolveGenerationGapRatio(constraints, 'w', hToW),
 			// See `OUTER_MARGIN_X_RATIO`'s doc comment: a transposed hierarchy
 			// needs no outer margin at all on either axis, COM-verified.
 			marginXRatio: 0,
@@ -269,7 +225,13 @@ export function resolveHierarchyOrientation(
 	// layoutDef with no such wrapper - falls back to the existing
 	// `resolveAspectRatio` reading unchanged.
 	const compositeChild = resolveCompositeChildGeometry(algorithmNode);
-	const aspectRatio = compositeChild?.aspectRatio ?? resolveAspectRatio(constraints);
+	// The WRAPPING `composite` node's own top-level `h:w` (e.g. `0.667` for
+	// plain "Hierarchy") - distinct from `aspectRatio` below (the RENDERED
+	// item's own, smaller, `compositeChild`-corrected aspect when a wrapper
+	// exists). Needed as `resolveGenerationGapRatio`'s own `compositeAspect`
+	// parameter (see that module's doc comment for the full derivation).
+	const compositeAspect = resolveAspectRatio(constraints);
+	const aspectRatio = compositeChild?.aspectRatio ?? compositeAspect;
 	// A `tailed` (org-chart-family) hierarchy needs NO outer margin either -
 	// COM-verified against `organization-chart--flat3.pptx`/`--hier5.pptx`/
 	// `--hier8.pptx`: plugging the layout's own declared `sibSp` directly into
@@ -285,7 +247,31 @@ export function resolveHierarchyOrientation(
 		transposed: false,
 		sibSpRatio,
 		aspectRatio,
+		// Deliberately UNCORRECTED (no `compositeChild`/`compositeAspect` args):
+		// `fitItemBox`'s own SIZING solve, the only consumer of this field, was
+		// already matching cached geometry closely with the raw declared value
+		// (`hierarchy--{flat3,hier5,hier8}.pptx` all <=2.44% before this field
+		// existed) - measured directly THIS session that passing the
+		// composite-correction here instead REGRESSES all three (7.32%/9.38%/
+		// 8.26%). The correction belongs on `compositeGenerationGapRatio` below
+		// (POSITIONING's own consumer), not here.
 		generationGapRatio: resolveGenerationGapRatio(constraints, 'h', aspectRatio),
+		// The composite-cell-relative gap `computeHierarchyAxisPitches` uses to
+		// POSITION rows (see this field's own doc comment on
+		// `HierarchyOrientation`) - WITH the `compositeChild`/`compositeAspect`
+		// correction, since positioning centres composite CELLS, not the
+		// smaller rendered item (mirrors `compositeWidthFactor`'s own
+		// cell-vs-item distinction on the fan axis). Identical to the
+		// uncorrected `generationGapRatio` above whenever `compositeChild` is
+		// `undefined` (every `tailed` org-chart-family layout: none declares a
+		// `composite` wrapper with a smaller rendered child).
+		compositeGenerationGapRatio: resolveGenerationGapRatio(
+			constraints,
+			'h',
+			aspectRatio,
+			compositeChild,
+			compositeAspect,
+		),
 		marginXRatio: tailedMargin ? 0 : OUTER_MARGIN_X_RATIO,
 		marginYRatio: tailedMargin ? 0 : OUTER_MARGIN_Y_RATIO,
 		compositeWidthFactor: compositeChild?.widthFactor,

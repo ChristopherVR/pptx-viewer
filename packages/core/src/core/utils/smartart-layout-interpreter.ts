@@ -139,6 +139,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 			plan.node,
 			buildConstraintIndex(layoutDefinition),
 			buildChildOrder(input.connections),
+			input.fontName,
 		);
 	}
 	// A top-level `composite` arranger (`gear`, `balance`) maps its NAMED

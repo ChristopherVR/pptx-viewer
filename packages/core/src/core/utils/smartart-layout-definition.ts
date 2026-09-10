@@ -8,6 +8,7 @@ import type {
 import {
 	applySmartArtConstraintRules,
 	parseConstraint,
+	parseRule,
 	parseSmartArtConstraintRules,
 	validateSmartArtConstraintRules,
 } from './smartart-constraint-rules';
@@ -22,7 +23,12 @@ import {
 	parseSmartArtControlFlow,
 	validateSmartArtControlFlow,
 } from './smartart-layout-control-flow';
-import { choosePresentationOf, nestedConstraints } from './smartart-layout-definition-constraints';
+import {
+	choosePresentationOf,
+	nestedConstraints,
+	presentationOfCandidates,
+	ruleCandidates,
+} from './smartart-layout-definition-constraints';
 import { nestedLayoutNodes } from './smartart-layout-definition-nesting';
 import {
 	applySmartArtLayoutNodeShape,
@@ -73,6 +79,7 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		...parseNode(entry.xml, localName),
 		forEachOrigin: entry.origin,
 		chooseGuard: entry.guard.length > 0 ? entry.guard : undefined,
+		chooseGroups: entry.groups.length > 0 ? entry.groups : undefined,
 	}));
 	const childOrder = optionalString(node['@_chOrder']);
 	const presOf = choosePresentationOf(node, localName);
@@ -80,6 +87,14 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 	const allConstraints = nestedConstraints(node, localName).map((entry) =>
 		parseConstraint(entry, localName),
 	);
+	const presOfCandidates = presentationOfCandidates(node, localName)?.map((entry) => ({
+		guard: entry.guard,
+		presentationOf: parseIterator(entry.presOf),
+	}));
+	const ruleCandidateList = ruleCandidates(node, localName)?.map((entry) => ({
+		guard: entry.guard,
+		rule: parseRule(entry.rule, localName),
+	}));
 	return {
 		name: optionalString(node['@_name']),
 		styleLabel: optionalString(node['@_styleLbl']),
@@ -91,7 +106,9 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		shape: parseSmartArtLayoutNodeShape(node, localName),
 		presentationOf:
 			presentationOf && (presentationOf.axis?.length ?? 0) > 0 ? presentationOf : undefined,
+		presentationOfCandidates: presOfCandidates,
 		allConstraints: allConstraints.length > 0 ? allConstraints : undefined,
+		ruleCandidates: ruleCandidateList,
 		children: nested.length > 0 ? nested : undefined,
 	};
 }

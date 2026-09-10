@@ -148,13 +148,18 @@ export function itemFits(
 		return false;
 	}
 	const rootLines = wrappedLineCount(item.rootText, availWidthPx, rootPx, table);
+	// Round 23: a role-split item template's "descendant" (e.g. "Vertical
+	// Bullet List"'s `childText`) is a SEPARATE rendered box, not a second
+	// paragraph physically stacked below the root's own - the root never
+	// gets a trailing `spcAft` for it (see `TieredFontFitItem.
+	// separateDescendantBox`'s doc comment).
 	let totalPx = paragraphBlockPx(
 		rootLines,
 		rootPx,
 		table.lineHeightRatio,
 		lineSpacingFactor,
 		ROOT_SPCAFT_FACTOR,
-		!hasDescendants,
+		!hasDescendants || item.separateDescendantBox === true,
 	);
 	const descendantIndentPx = descendantIndentPt(descendantPx / PX_PER_PT) * PX_PER_PT;
 	const descendantWidthPx = Math.max(1, availWidthPx - descendantIndentPx);

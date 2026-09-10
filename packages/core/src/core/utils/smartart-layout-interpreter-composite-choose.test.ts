@@ -300,3 +300,66 @@ describe('collectChooseAwareSlots (multi-anchor forEachOrigin per-iteration spli
 		expect(slots[0].content.map((n) => n.id)).toStrictEqual(['two']);
 	});
 });
+
+/**
+ * `balance--hier5.pptx`'s own shape, at small scale: a `dgm:choose` with 2+
+ * `dgm:if` alternatives, EACH independently `chooseGuard`-decidable-true
+ * (unlike the real fixture, whose guards mostly need anchor context this
+ * module does not yet resolve - see `smartart-layout-interpreter-
+ * composite-choose-groups.ts`'s own doc comment) - `collectChooseAwareSlots`
+ * must keep only the FIRST (lowest-ordinal) live member, not both.
+ */
+describe('collectChooseAwareSlots first-match-wins (chooseGroups)', () => {
+	const flat: PptxSmartArtNode[] = [
+		{ id: 'one', text: 'One' },
+		{ id: 'two', text: 'Two' },
+	];
+
+	// `axis: ['ch'], start: [N]` picks the Nth top-level point specifically
+	// (the `quadrant1..4` pattern used elsewhere in this file) - unlike a
+	// bare `axis: ['self']` with no anchor (which resolves to the WHOLE
+	// point list, not one specific point), this lets each group member
+	// resolve to a DIFFERENT, individually verifiable node, so a test can
+	// tell "the loser's content leaked through" apart from "both groups
+	// happen to resolve identically anyway".
+	function group(
+		id: string,
+		ordinal: number,
+		value: string,
+		name: string,
+		pointPosition: number,
+	): PptxSmartArtLayoutNode {
+		return {
+			name,
+			chooseGuard: [{ function: 'cnt', operator: 'equ', value }],
+			chooseGroups: [{ id, ordinal, guard: { function: 'cnt', operator: 'equ', value } }],
+			presentationOf: { axis: ['ch'], pointTypes: ['node'], start: [pointPosition], count: [1] },
+			constraints: positioned({ l: 0, t: 0, w: 0.5, h: 0.5 }),
+		};
+	}
+
+	it('keeps only the lowest-ordinal live sibling when BOTH independently pass their own chooseGuard', () => {
+		// Both guards are individually decidable-true against a 2-node diagram
+		// (cnt==2), which the OLD "every guard-true node independently"
+		// reading would have kept BOTH as separate slots ("one" AND "two").
+		// `first` resolves to point 1 ("one"), `second` to point 2 ("two") -
+		// only `first` (ordinal 0) should survive.
+		const root: PptxSmartArtLayoutNode = {
+			name: 'root',
+			children: [group('g0', 0, '2', 'first', 1), group('g0', 1, '2', 'second', 2)],
+		};
+		const slots = collectChooseAwareSlots(root, flat, box, EMPTY_CONSTRAINT_INDEX, 'root');
+		expect(slots).toHaveLength(1);
+		expect(slots[0].content.map((n) => n.id)).toStrictEqual(['one']);
+	});
+
+	it('falls through to the next ordinal when the lowest one is decidably false', () => {
+		const root: PptxSmartArtLayoutNode = {
+			name: 'root',
+			children: [group('g0', 0, '99', 'first', 1), group('g0', 1, '2', 'second', 2)],
+		};
+		const slots = collectChooseAwareSlots(root, flat, box, EMPTY_CONSTRAINT_INDEX, 'root');
+		expect(slots).toHaveLength(1);
+		expect(slots[0].content.map((n) => n.id)).toStrictEqual(['two']);
+	});
+});

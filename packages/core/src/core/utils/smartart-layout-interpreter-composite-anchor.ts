@@ -36,6 +36,7 @@
 
 import type { PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
 import { resolveAxisNodes } from './smartart-layout-interpreter-axis-count';
+import { resolvePresentationOf } from './smartart-layout-interpreter-when';
 
 /** `node`'s own `forEachOrigin`, resolved root-relatively (a `dgm:forEach` always describes "which points, starting from the diagram") - `[]` when there is none, or it matches nothing. */
 function resolveOrigin(node: PptxSmartArtLayoutNode, flat: PptxSmartArtNode[]): PptxSmartArtNode[] {
@@ -63,7 +64,7 @@ export function resolveAnchoredContent(
 	node: PptxSmartArtLayoutNode,
 	flat: PptxSmartArtNode[],
 ): PptxSmartArtNode[] {
-	const presOf = node.presentationOf;
+	const presOf = resolvePresentationOf(node, flat);
 	if (!presOf?.axis || presOf.axis.length === 0) {
 		return [];
 	}
@@ -95,7 +96,7 @@ export function resolveAnchoredContentPerAnchor(
 	node: PptxSmartArtLayoutNode,
 	flat: PptxSmartArtNode[],
 ): PptxSmartArtNode[][] {
-	const presOf = node.presentationOf;
+	const presOf = resolvePresentationOf(node, flat);
 	if (!presOf?.axis || presOf.axis.length === 0) {
 		return [];
 	}

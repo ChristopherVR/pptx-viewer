@@ -199,6 +199,83 @@ export interface PptxSmartArtLayoutNode {
 	 * interpreter-when.ts`'s `evaluateWhen`, once per entry, ANDed.
 	 */
 	chooseGuard?: PptxSmartArtWhen[];
+	/**
+	 * The chain of every enclosing `dgm:choose`'s own GROUP identity + this
+	 * node's ordinal position within it + THAT branch's own condition,
+	 * outermost first - identifies WHICH `dgm:choose` instance and WHERE
+	 * within its own `dgm:if`/`dgm:else` list this node's branch sits, unlike
+	 * {@link chooseGuard} (a flat AND-chain of every condition with no group/
+	 * position identity, and no entry at all for a `dgm:else` branch, which
+	 * has no condition of its own - see that field's doc comment). `id` is a
+	 * synthetic, process-unique identifier assigned per `dgm:choose` instance
+	 * during flattening (`smartart-layout-definition-nesting.ts`'s
+	 * `nestedLayoutNodes`, a monotonic counter - NOT round-tripped, NOT the
+	 * choose's own `@_name`, which is not guaranteed unique across a whole
+	 * layoutDef); `ordinal` is 0-based document order within that ONE choose
+	 * (every `dgm:if` in order, then `dgm:else` last, if present); `guard` is
+	 * that branch's OWN condition (`undefined` for a `dgm:else` entry, which
+	 * has none - deliberately kept PER-ENTRY rather than cross-referenced by
+	 * index against {@link chooseGuard}, whose own length can diverge from
+	 * this chain's whenever an ancestor `dgm:else` contributed a group
+	 * position but no guard).
+	 *
+	 * Lets a consumer recover ECMA-376's real `dgm:choose` semantics - "the
+	 * FIRST branch whose condition holds wins, siblings never coexist" -
+	 * from the flattened `.children` array, where that grouping would
+	 * otherwise be lost: `balance--hier5.pptx`'s `balance_NN`/`left_NN_M`/
+	 * `right_NN_M` family (127 members across ~30 NESTED `dgm:choose`
+	 * instances, not one flat 127-branch choose) needs first-match-wins
+	 * WITHIN each individual choose to resolve to the single genuinely-live
+	 * arrangement, not the "every guard-true node is an independent
+	 * candidate" reading `smartart-layout-interpreter-composite-choose.ts`'s
+	 * `collectRawCandidates` used before this field existed - see that
+	 * module's own consumer of this field for the actual selection rule.
+	 * `undefined` (or an empty array) for a node reached without any
+	 * enclosing choose (a direct child, or a `dgm:forEach`-only path) -
+	 * every PRE-EXISTING caller that does not consult this field is
+	 * unaffected by its mere presence.
+	 */
+	chooseGroups?: { id: string; ordinal: number; guard?: PptxSmartArtWhen }[];
+	/**
+	 * Every `dgm:presOf` candidate reachable through a `dgm:choose`/`dgm:if`/
+	 * `dgm:else` wrapping THIS node's OWN presOf (as opposed to
+	 * {@link chooseGuard}, which gates the layoutNode's own EXISTENCE), each
+	 * tagged with the FULL chain of enclosing `dgm:if` conditions that select
+	 * it (`guard`, empty for an unconditional or `dgm:else`-reached
+	 * candidate), in document order (every `dgm:if` then `dgm:else` last).
+	 * `undefined` when this node's presOf is not choose-guarded at all (the
+	 * overwhelmingly common case) - {@link presentationOf} already carries
+	 * the one-and-only value then. Exists for a genuinely conditional presOf
+	 * where TWO OR MORE branches each declare a real, DIFFERENT axis
+	 * (`funnel--flat3.pptx`'s `item1`/`item2`/`item3`, one literal axis per
+	 * data-point count): `smartart-layout-definition-constraints.ts`'s
+	 * `choosePresentationOf` (feeding {@link presentationOf}) can only ever
+	 * guess ONE branch statically, at parse time, with no diagram to
+	 * evaluate against; this field lets an interpret-time caller with the
+	 * actual diagram (`smartart-layout-interpreter-when.ts`'s
+	 * `resolvePresentationOf`, the one consumer) pick the branch PowerPoint's
+	 * own runtime would, first-match-wins.
+	 */
+	presentationOfCandidates?: {
+		guard: PptxSmartArtWhen[];
+		presentationOf: PptxSmartArtIteratorAttributes;
+	}[];
+	/**
+	 * SESSION 17: every `dgm:rule` reachable through a `dgm:choose`/`dgm:if`/
+	 * `dgm:else` wrapping THIS node's `ruleLst` (a genuinely count-gated rule
+	 * set, e.g. `diverging-radial`'s own `w for="ch" forName="node"` ceiling:
+	 * 6 `dgm:if cnt<=N` branches, each its own `fact`), tagged with its guard
+	 * chain - the SAME shape {@link presentationOfCandidates} uses for
+	 * choose-guarded `presOf`, applied to `dgm:rule`. `undefined` when not
+	 * choose-guarded (`rules` above then carries the one set, the common
+	 * case). See `smartart-layout-interpreter-cycle-hub-ratio.ts`'s
+	 * `resolveHubToNodeRatio` (COM-verified live mechanism, not a guess) for
+	 * how the guard is evaluated against the real satellite count.
+	 */
+	ruleCandidates?: {
+		guard: PptxSmartArtWhen[];
+		rule: PptxSmartArtNumericRule;
+	}[];
 }
 
 /** Metadata and root node from DiagramML CT_DiagramDefinition. */

@@ -86,6 +86,50 @@ describe('resolveAxisNodes', () => {
 		).toBeUndefined();
 	});
 
+	/**
+	 * `funnel--flat3.pptx`'s exact shape: `item1..3` each carry their OWN
+	 * single-point `forEachOrigin` (used for the SLOT's own box identity) AND
+	 * a presOf axis explicitly starting with `root` (used for the slot's
+	 * TEXT content, scoped to the whole diagram - NOT the forEachOrigin
+	 * anchor). Before this fix, `root` at hop 0 was only special-cased when
+	 * `context` was OMITTED; with `context` supplied, `navigateAxisHop` was
+	 * asked to treat `'root'` as a context-relative hop token, which it does
+	 * not implement, silently returning an empty result for every such node
+	 * (corpus-verified corpus-unique to this one fixture, `D:/tmp/root-
+	 * axis-scan.ts`, 3 hits, all `item1..3`).
+	 */
+	it('an explicit "root" hop 0 ignores a supplied context (opts out of anchor-relative navigation)', () => {
+		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
+		const two: PptxSmartArtNode = { id: 'two', text: 'Two' };
+		const anchor: PptxSmartArtNode = { id: 'anchor', text: 'Anchor' };
+		const nodes = [one, two];
+		// `context` (the forEachOrigin's own resolved anchor) is a DIFFERENT
+		// node entirely from `nodes` - if it were consulted at all for a
+		// `root` hop, the result would differ from the root-relative case.
+		const result = resolveAxisNodes(nodes, ['root'], ['node'], undefined, undefined, [anchor]);
+		expect(result?.map((n) => n.id)).toStrictEqual(['one', 'two']);
+	});
+
+	it('"root ch" with context still absorbs the ch hop into the root read, ignoring context', () => {
+		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
+		const child: PptxSmartArtNode = { id: 'child', text: 'Child', parentId: 'one' };
+		const two: PptxSmartArtNode = { id: 'two', text: 'Two' };
+		const anchor: PptxSmartArtNode = { id: 'anchor', text: 'Anchor' };
+		const nodes = [one, child, two];
+		const result = resolveAxisNodes(nodes, ['root', 'ch'], ['all', 'node'], undefined, undefined, [
+			anchor,
+		]);
+		expect(result?.map((n) => n.id)).toStrictEqual(['one', 'two']);
+	});
+
+	it('"root des" with context stays undecidable, same as without one', () => {
+		const nodes: PptxSmartArtNode[] = [{ id: 'a', text: 'A' }];
+		const anchor: PptxSmartArtNode = { id: 'anchor', text: 'Anchor' };
+		expect(
+			resolveAxisNodes(nodes, ['root', 'des'], undefined, undefined, undefined, [anchor]),
+		).toBeUndefined();
+	});
+
 	it('bare "ch" resolves to the diagram\'s own top-level points', () => {
 		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
 		const two: PptxSmartArtNode = { id: 'two', text: 'Two', parentId: 'one' };

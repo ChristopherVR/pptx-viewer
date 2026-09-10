@@ -19,7 +19,7 @@ import type { ArrangementPlan } from './smartart-layout-interpreter-model';
 const POINTS_TO_PIXELS = 96 / 72;
 
 /** Legacy per-node heuristic bounds (pixels), kept as the fallback when a layoutDef declares no `primFontSz`. */
-const DEFAULT_CEILING_PX = 12;
+const DEFAULT_CEILING_PX = 300;
 const DEFAULT_FLOOR_PX = 6;
 
 /**

@@ -84,4 +84,34 @@ describe('itemFits', () => {
 		const item = { rootText: 'Node Three', descendantTexts: [], width: 0, height: 0 };
 		expect(itemFits(item, 300, 200, 24, 19, table, 0.9)).toBeTruthy();
 	});
+
+	it("separateDescendantBox: true skips the root paragraph's own trailing spcAft, letting a candidate that only just overflows WITH it fit (round 23, \"Vertical Bullet List\"'s parentText/childText - childText is a SEPARATE rendered box, never a paragraph physically stacked below parentText's own)", () => {
+		const item = {
+			rootText: 'Node One',
+			descendantTexts: ['Node Two has a longer label'],
+			width: 0,
+			height: 0,
+		};
+		const rootPx = 61.33; // 46pt, "Vertical Bullet List"--hier5.pptx's own cached parentText size
+		const descendantPx = 48; // 36pt, cached childText size
+		const availWidthPx = 800;
+		// Chosen so the WITHOUT-spcAft root block plus the descendant block just
+		// fits, but the WITH-spcAft version (root's own extra 35% term) does not
+		// - the exact boundary this flag moves.
+		const availHeightPx = 120;
+		expect(
+			itemFits(item, availWidthPx, availHeightPx, rootPx, descendantPx, table, 0.9),
+		).toBeFalsy();
+		expect(
+			itemFits(
+				{ ...item, separateDescendantBox: true },
+				availWidthPx,
+				availHeightPx,
+				rootPx,
+				descendantPx,
+				table,
+				0.9,
+			),
+		).toBeTruthy();
+	});
 });

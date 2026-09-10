@@ -9,95 +9,74 @@
  * Cycle" family layouts use this for a hub node the ring nodes surround.
  *
  * ## Node sizing (live-PowerPoint-COM-verified derivation, corrected round
- * 11/SESSION 8 - read this before trusting any older doc comment or
- * successor-file note that cites an "anisotropic fill-to-box" model or a
- * `w=347 h=232`-shaped figure for `basic-cycle--flat3.pptx`: those were
- * measured against a NOW-FIXED cached-reader bug that silently rescaled
- * `dsp:drawing` geometry to the frame, and do not match anything real
- * PowerPoint COM produces)
+ * 11/SESSION 8 - ignore any older note citing an "anisotropic fill-to-box"
+ * model: measured against a NOW-FIXED cached-reader bug, does not match real
+ * PowerPoint COM output.)
  *
- * Live COM (three independent measurement methods: `SmartArt.AllNodes`
- * shape geometry, "Convert to Shapes" + `GroupItems` walk, and a
- * pixel-bounding-box scan of an exported PNG cross-checked against the
- * slide's own aspect ratio - see `smartart-decompose.test.ts`'s "matches
- * live PowerPoint COM geometry" describe block) proved PowerPoint does NOT
- * independently stretch cached SmartArt content to fill its frame: a cached
- * shape's real geometry is `graphicFrame.origin + dsp:sp`'s own `a:xfrm`
- * offset, size UNCHANGED - i.e. content is sized directly from the
- * DiagramML constraint graph (ECMA-376 21.4.7), and when the result is
- * smaller than the frame on an axis, it is CENTRED there (measured on both
- * `basic-cycle--flat3.pptx`, hub-less, and `basic-radial--hier5.pptx`,
- * hub+ring: both show symmetric leading/trailing margins on every axis with
- * slack, to within rounding - never a one-sided "flush" margin, never an
- * independent per-axis stretch).
+ * Live COM (three independent methods: `SmartArt.AllNodes` shape geometry,
+ * "Convert to Shapes" + `GroupItems`, and a pixel-bounding-box PNG scan -
+ * see `smartart-decompose.test.ts`'s "matches live PowerPoint COM geometry")
+ * proved PowerPoint does NOT independently stretch cached content to fill
+ * its frame: a cached shape's real geometry is `graphicFrame.origin +
+ * dsp:sp`'s own `a:xfrm` offset, size UNCHANGED, sized directly from the
+ * DiagramML constraint graph (ECMA-376 21.4.7); when smaller than the frame
+ * on an axis, it is CENTRED there (verified on `basic-cycle--flat3.pptx`,
+ * hub-less, and `basic-radial--hier5.pptx`, hub+ring - symmetric margins,
+ * never one-sided).
  *
- * MS's own "Cycle Algorithm" reference (Office 2007 SDK docs) declares the
- * relevant constraints and their SCHEMA defaults: `w`/`h` (node bounding box,
- * default 100), `diam` (ring diameter, default 0 = unset), `sibSp` ("minimum
- * distance between sibling shapes", default 0). Nothing in that reference (or
- * in any real gallery layoutDef examined) exposes the actual numeric packing
- * formula, so the RING RADIUS (`R0`) piece was reverse-engineered against the
- * cached `dsp:sp` geometry of genuine PowerPoint output (this part is
- * UNCHANGED by the round-11 correction - only the FINAL box-fit step was
- * wrong):
+ * MS's "Cycle Algorithm" reference (Office 2007 SDK) gives only schema
+ * defaults (`w`/`h`=100, `diam`=0, `sibSp`=0), not the packing formula, so
+ * the RING RADIUS (`R0`) was reverse-engineered against real cached `dsp:sp`
+ * geometry (unchanged by round 11 - only the FINAL box-fit step was wrong):
  *
- *   1. In a "natural" unit space where the node's own width is 1: place `n`
- *      points on a circle of radius `R0`, equally spaced by `spanAng/n` (full
- *      circle) or `/(n-1)` (arc), starting at `stAng` (same angle convention
- *      as the pre-existing `pointAngle`).
- *   2. `R0` is solved so the chord between any two ADJACENT points (the
- *      constant angular step above) equals `(1 + minGap) * 1`, i.e. the
- *      node's own width plus the required minimum gap: `2*R0*sin(step/2) = 1
- *      + minGap`.
+ *   1. In a unit space where the node's own width is 1: place `n` points on
+ *      a circle of radius `R0`, spaced by `spanAng/n` (full) or `/(n-1)`
+ *      (arc), starting at `stAng`.
+ *   2. `R0` solves the adjacent-point chord to `(1 + minGap) * 1`:
+ *      `2*R0*sin(step/2) = 1 + minGap`.
  *   3. Compute the natural bounding box of all `n` unit-width (height = the
- *      item node's own declared `h:w` fact) node footprints centred at those
- *      points.
- *   4. Scale that bounding box by a SINGLE isotropic factor (`Math.min` of
- *      the two per-axis "fill" candidates - a "contain" fit, not a
- *      "cover"/stretch fit) and CENTRE the slack this leaves on whichever
- *      axis has it (`smartart-layout-interpreter-cycle-ring.ts`'s own module
- *      doc comment has the numeric derivation). Final node width = final
- *      node height / (item h:w fact) - i.e. a `heightOverWidth===1` item is
- *      ALWAYS a true circle/square, regardless of the box's own aspect.
+ *      item's own `h:w` fact) footprints centred at those points.
+ *   4. Scale that box by a SINGLE isotropic factor (`Math.min` of the two
+ *      per-axis "fill" candidates, a "contain" not "cover" fit) and CENTRE
+ *      the slack (`smartart-layout-interpreter-cycle-ring.ts` has the
+ *      numeric derivation). Final width = final height / (item h:w fact) -
+ *      `heightOverWidth===1` is ALWAYS a true circle/square.
  *
- * Verified against the full 227-fixture gallery corpus after landing this
- * correction: `basic-cycle`/`multidirectional-cycle`/`continuous-cycle`/
- * `basic-radial--hier5`/`radial-cycle--flat3` now all PASS (<=1%
- * `maxDeltaFraction`) - a real, general fix, not a per-fixture tune. See
- * `smartart-track-r-successor.md`'s own SESSION 8 for the full per-fixture
- * numbers and named residuals (`nondirectional-cycle`/`block-cycle`'s own
- * `spNode`-filler interaction, `diverging-radial`/`radial-list`/
- * `tabbed-arc`'s smaller residuals, and several fixtures with an unrelated
- * `shapeType` preset mismatch layered on top of the geometry).
+ * Verified against the full 227-fixture gallery: `basic-cycle`/
+ * `multidirectional-cycle`/`continuous-cycle`/`basic-radial--hier5`/
+ * `radial-cycle--flat3` all PASS (<=1% `maxDeltaFraction`) - a general fix.
+ * See `smartart-track-r-successor.md` SESSION 8 for named residuals.
  *
  * `ctrShpMap="fNode"` hub sizing reuses the SAME `R0`/scale computation
- * (`computeCycleRingLayout`'s `hubCenter`/`naturalHubRadius`): the hub is
- * centred at the ring's own natural centre (mapped through the same
- * isotropic scale as every ring node) and sized to the largest ellipse that
- * fits the remaining space between that centre and the nearest ring node,
- * which `smartart-layout-interpreter-hub.ts`'s `buildHubRenderedNode`
- * consumes.
+ * (`computeCycleRingLayout`'s `hubCenter`/`naturalHubRadius`): centred at
+ * the ring's natural centre, sized to the largest ellipse fitting the space
+ * to the nearest ring node - `smartart-layout-interpreter-hub.ts`'s
+ * `buildHubRenderedNode` consumes it.
  *
- * The ring's numeric fixed-point solve lives in `smartart-layout-
- * interpreter-cycle-ring.ts` and constraint reading (`sibSp`, item `h:w`, the
- * choose-branch-flattening workaround) in `smartart-layout-interpreter-cycle-
- * constraints.ts`; both re-exported here for existing callers. Pure
- * geometry; no framework code.
+ * The ring's fixed-point solve lives in `smartart-layout-interpreter-cycle-
+ * ring.ts`, constraint reading in `smartart-layout-interpreter-cycle-
+ * constraints.ts`; both re-exported here. Pure geometry; no framework code.
  */
 
 import type { PptxSmartArtNode, SmartArtStyle } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
+import { buildCycleHubBox, buildCycleRingBoxes } from './smartart-layout-interpreter-cycle-boxes';
+import { buildCycleRingConnectors } from './smartart-layout-interpreter-cycle-connectors';
 import {
 	resolveCycleConstraintNode,
 	resolveCycleRingParams,
 } from './smartart-layout-interpreter-cycle-constraints';
+import {
+	applyCycleRingExtensions,
+	hasMaxDepthGuard,
+} from './smartart-layout-interpreter-cycle-extension';
+import { resolveCycleFontFit } from './smartart-layout-interpreter-cycle-fontfit';
 import { computeCycleRingLayout } from './smartart-layout-interpreter-cycle-ring';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
 import { algorithmParam, numericParam } from './smartart-layout-interpreter-model';
-import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { styleContext } from './smartart-layout-interpreter-render';
-import { findCompositeItemShape } from './smartart-layout-shape-preset';
+import { findCompositeItemShape, roundRectCornerInsetPx } from './smartart-layout-shape-preset';
 import type {
 	BoundingBox,
 	RenderedConnector,
@@ -122,11 +101,22 @@ export function arrangeCycle(
 	elementId: string,
 	index: ConstraintIndex = EMPTY_CONSTRAINT_INDEX,
 	hubAlreadyStripped = false,
+	childrenOf?: Map<string, PptxSmartArtNode[]>,
+	fontName?: string,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
+	// `satelliteCount` (SESSION 17, `resolveHubToNodeRatio`'s own count-gated
+	// `dgm:rule` override): only trustworthy when the hub was ALREADY pulled
+	// out of `nodes` upstream (`hubAlreadyStripped`) - the common case for
+	// every hub+ring family (`basic-radial`/`diverging-radial`/`converging-
+	// radial`), where `nodes.length` already IS the satellite count. When
+	// NOT already stripped, this function's own `ctrShpMap="fNode"` fallback
+	// below may still peel off `nodes[0]` as a hub - passing `nodes.length`
+	// unadjusted there would overcount by one, so `undefined` (no override
+	// possible) is safer than a guess.
 	const { minGapRatio, heightOverWidth, absoluteGapPx, hubRatio, hubGapRatio, absoluteHubGapPx } =
-		resolveCycleRingParams(plan.node, index);
+		resolveCycleRingParams(plan.node, index, hubAlreadyStripped ? nodes.length : undefined);
 	// `ctrShpMap="fNode"` pulls the first data point into a hub at the ring's
 	// own natural centre; every other value (including absent, the common
 	// case) puts every point on the ring, matching the pre-existing
@@ -211,22 +201,20 @@ export function arrangeCycle(
 
 	const full = Math.abs(spanDeg) >= 360;
 	const connectorCount = n > 0 ? (full ? n : Math.max(0, n - 1)) : 0;
+	// Same per-slot angular width `computeCycleRingLayout` itself solves the
+	// ring with (`ringLayoutForGapFactor`'s own `step`) - reused as the
+	// default fan span for a ring point's own recursive extension (see
+	// `smartart-layout-interpreter-cycle-extension.ts`), so a multi-child
+	// fan cannot spill into a neighbouring branch's own angular slot.
+	const ringStepDeg = n > 0 ? (full ? spanDeg / n : spanDeg / Math.max(1, n - 1)) : 0;
 	const ringCentre = ring.hubCenter;
-	const connectors: RenderedConnector[] = Array.from({ length: connectorCount }, (_, i) => {
-		const from = ring.centers[i];
-		const to = ring.centers[(i + 1) % n];
-		const midX = (from.x + to.x) / 2;
-		const midY = (from.y + to.y) / 2;
-		const pullRadius = Math.max(ring.nodeWidth, ring.nodeHeight) / 2;
-		const pull =
-			1 + (pullRadius * 0.15) / Math.max(1, Math.hypot(midX - ringCentre.x, midY - ringCentre.y));
-		const controlX = ringCentre.x + (midX - ringCentre.x) * pull;
-		const controlY = ringCentre.y + (midY - ringCentre.y) * pull;
-		return {
-			key: `${elementId}-cycle-conn-${i}`,
-			d: `M${from.x},${from.y} Q${controlX},${controlY} ${to.x},${to.y}`,
-		};
-	});
+	const connectors: RenderedConnector[] = buildCycleRingConnectors(
+		ring,
+		n,
+		connectorCount,
+		ringCentre,
+		elementId,
+	);
 
 	// `findCompositeItemShape`, not `itemNode(...)?.shape`: the cycle
 	// arranger's own first child is not always the shape-bearing item
@@ -240,46 +228,59 @@ export function arrangeCycle(
 	// descendants) for the first genuinely declared preset instead of
 	// assuming the item template is always the first one.
 	const itemShape = findCompositeItemShape(resolveCycleConstraintNode(plan.node));
-	const renderedNodes: RenderedNode[] = ringNodes.map((node, i) => {
-		const { x, y } = ring.centers[i];
-		return presetBoxNode({
-			key: `${elementId}-cycle-${node.id}-${i}`,
-			x: x - ring.nodeWidth / 2,
-			y: y - ring.nodeHeight / 2,
-			width: ring.nodeWidth,
-			height: ring.nodeHeight,
-			node,
-			index: i,
-			total: n,
-			palette,
-			style,
-			ctx,
-			shape: itemShape,
-			fallbackKind: 'circle',
-			preserveEllipseAspect: true,
-		});
-	});
+	// Shared font size for every ring/hub item (round 18): see
+	// `smartart-layout-interpreter-cycle-fontfit.ts`'s module doc comment.
+	const cornerInset = roundRectCornerInsetPx(itemShape, ring.nodeWidth, ring.nodeHeight);
+	const { fontSizeOverride, descendantSizePx } = resolveCycleFontFit(
+		plan,
+		index,
+		ringNodes,
+		hubNode,
+		ring.nodeWidth,
+		ring.nodeHeight,
+		Math.max(1, ring.hubHalfWidth * 2),
+		Math.max(1, ring.hubHalfHeight * 2),
+		cornerInset,
+		childrenOf,
+		fontName,
+	);
+	const boxInputs = {
+		palette,
+		style,
+		ctx,
+		shape: itemShape,
+		elementId,
+		fontSizeOverride,
+		descendantFontSize: descendantSizePx,
+	};
+	const renderedNodes: RenderedNode[] = buildCycleRingBoxes(ringNodes, ring, boxInputs);
 	if (hubNode) {
-		const hubW = Math.max(1, ring.hubHalfWidth * 2);
-		const hubH = Math.max(1, ring.hubHalfHeight * 2);
-		renderedNodes.push(
-			presetBoxNode({
-				key: `${elementId}-cycle-hub-${hubNode.id}`,
-				x: ring.hubCenter.x - hubW / 2,
-				y: ring.hubCenter.y - hubH / 2,
-				width: hubW,
-				height: hubH,
-				node: hubNode,
-				index: 0,
-				total: nodes.length,
-				palette,
-				style,
-				ctx,
-				shape: itemShape,
-				fallbackKind: 'circle',
-				preserveEllipseAspect: true,
-			}),
-		);
+		renderedNodes.push(buildCycleHubBox(hubNode, ring, nodes.length, boxInputs));
+	}
+
+	// A ring point whose OWN data node has children (`radial-cluster`'s
+	// construct) is not a leaf - see `smartart-layout-interpreter-cycle-
+	// extension.ts`'s module doc comment for the COM-verified derivation.
+	// Gated on TWO conditions, BOTH proven necessary (neither alone is
+	// sufficient - see that module's own `hasMaxDepthGuard` doc comment for
+	// the full derivation, including the `radial-cycle--hier5.pptx`
+	// regression this second condition fixes): `hubAlreadyStripped` (this is
+	// a genuinely hub-shaped diagram, not a plain ring whose data merely
+	// happens to nest deeper) AND `hasMaxDepthGuard` (THIS SPECIFIC
+	// layoutDef's own author branches on tree depth at all - the one
+	// structural, non-per-layout-name signal separating `radial-cluster`
+	// from every other hub-bearing cycle fixture in the corpus).
+	if (childrenOf && hubAlreadyStripped && hasMaxDepthGuard(plan.node)) {
+		const extension = applyCycleRingExtensions(ringNodes, ring, {
+			...boxInputs,
+			ringCentre,
+			minGapRatio,
+			absoluteGapPx,
+			ringStepDeg,
+			childrenOf,
+		});
+		renderedNodes.push(...extension.nodes);
+		connectors.push(...extension.connectors);
 	}
 
 	return {

@@ -16,6 +16,7 @@
  * Pure geometry; no framework code.
  */
 
+import { resolveRingAxisOffset } from './smartart-layout-interpreter-cycle-ring-offset';
 import type { BoundingBox } from './smartart-layout-types';
 
 const DEG_TO_RAD = Math.PI / 180;
@@ -97,6 +98,7 @@ function ringLayoutForGapFactor(
 	heightOverWidth: number,
 	box: BoundingBox,
 	hubGeometry?: HubRingGeometry,
+	sibTransBulgeRatio?: number,
 ): CycleRingLayout {
 	const degenerate = degenerateRingLayout(n, heightOverWidth, box);
 	if (degenerate) {
@@ -133,30 +135,42 @@ function ringLayoutForGapFactor(
 	const halfH = Math.max(0.01, heightOverWidth) / 2;
 	const xs = natural.map((p) => p.x);
 	const ys = natural.map((p) => p.y);
-	const minX = Math.min(...xs) - halfW;
-	const maxX = Math.max(...xs) + halfW;
-	const minY = Math.min(...ys) - halfH;
-	const maxY = Math.max(...ys) + halfH;
+	// A `sibTrans` curve connector (see `smartart-layout-interpreter-cycle-
+	// sibtrans.ts`'s own module doc comment) bulges past the chord between
+	// two adjacent satellite centres by up to its own declared "height", in
+	// EITHER direction depending on where each pair of satellites sits
+	// relative to the ring's own centre - applied here as a uniform
+	// isotropic expansion of the satellites' own bounding extremes on all 4
+	// sides, the simplest model that does not need each connector pair's own
+	// exact bulge direction resolved individually.
+	const bulge = Math.max(0, sibTransBulgeRatio ?? 0);
+	const minX = Math.min(...xs) - halfW - bulge;
+	const maxX = Math.max(...xs) + halfW + bulge;
+	const minY = Math.min(...ys) - halfH - bulge;
+	const maxY = Math.max(...ys) + halfH + bulge;
 	const naturalBoundW = Math.max(1e-6, maxX - minX);
 	const naturalBoundH = Math.max(1e-6, maxY - minY);
 	// A SINGLE isotropic scale (never independent per-axis stretching, see
 	// the module doc comment for the live-COM correction): the tighter of the
-	// two per-axis "fill" candidates wins, and the slack this leaves on the
-	// OTHER axis is centred, never left flush against one edge. COM-verified
-	// against `basic-cycle--flat3.pptx` (a full-circle, hub-less 3-point
-	// ring): this reproduces the cached 231.90x231.90 EXACT CIRCLE (231.98
-	// computed, 0.03% off) and its own measured centring (natural diagram
-	// width 579.95px computed vs 579.86px cached, centred with ~143.4px
-	// margin on both sides - matches to within rounding); and against
-	// `basic-radial--hier5.pptx` (a hub+ring family): its own 4-satellite
-	// content bounding box is ALSO centred on both axes in the cached
-	// drawing (measured margins ~141.6px horizontal, ~2.0px vertical,
-	// symmetric on both sides each), not flush or independently stretched.
+	// two per-axis "fill" candidates wins. The slack this leaves on the OTHER
+	// axis is centred WHEN that axis's own two extremes are reached by an
+	// EQUAL count of satellites, but FLUSH against whichever edge is reached
+	// by FEWER satellites otherwise - see `resolveRingAxisOffset`'s own doc
+	// comment for the live-COM measurement (`radial-cycle--hier5.pptx`) that
+	// established this, and why it reduces to plain centring for
+	// `basic-cycle--flat3.pptx` (this reproduces the cached 231.90x231.90
+	// EXACT CIRCLE, 231.98 computed, 0.03% off, centred with ~143.4px margin
+	// on the non-binding axis - matches to within rounding) and
+	// `basic-radial--hier5.pptx` (a hub+ring family, n=4: a point sits at
+	// BOTH poles, so both axes are genuinely 1-vs-1 tied - its own
+	// 4-satellite content bounding box is centred on both axes in the cached
+	// drawing, measured margins ~141.6px horizontal, ~2.0px vertical,
+	// symmetric on both sides each) without any special-casing.
 	const scale = Math.min(box.width / naturalBoundW, box.height / naturalBoundH);
 	const scaleX = scale;
 	const scaleY = scale;
-	const offsetX = (box.width - naturalBoundW * scale) / 2;
-	const offsetY = (box.height - naturalBoundH * scale) / 2;
+	const offsetX = resolveRingAxisOffset(box.width, naturalBoundW, scaleX, xs);
+	const offsetY = resolveRingAxisOffset(box.height, naturalBoundH, scaleY, ys);
 
 	const centers = natural.map((p) => ({
 		x: (p.x - minX) * scaleX + offsetX,

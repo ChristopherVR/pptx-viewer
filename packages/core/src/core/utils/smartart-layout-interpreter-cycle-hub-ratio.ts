@@ -8,7 +8,10 @@
  * no framework code.
  */
 
-import type { PptxSmartArtLayoutNode } from '../types';
+import type { PptxSmartArtLayoutNode, PptxSmartArtWhen } from '../types';
+import type { ConstraintIndex } from './smartart-constraint-solver';
+import { resolveConstraint } from './smartart-constraint-solver';
+import { evaluateWhen } from './smartart-layout-interpreter-when';
 
 /**
  * `node.w = fact * <hubName>.w` (`radial-cycle`'s `w for="ch" forName="node"
@@ -26,10 +29,51 @@ import type { PptxSmartArtLayoutNode } from '../types';
  * returned too so a caller can sanity-check it against the actual hub
  * node's own name when one is known, though every composite ring layout
  * examined names it `centerShape`.
+ *
+ * SESSION 12: `resolveHubToNodeRatio` now graph-resolves `node.w` and
+ * `hubName.w` independently (`resolveConstraint`, `smartart-constraint-
+ * solver.ts`'s own reference-walking machinery, which already honours
+ * `op="equ"/"gte"/"lte"`) and returns their RATIO instead of reading this
+ * ONE constraint's own raw `fact` in isolation, when `index` is given -
+ * falling back to the raw-fact reading unchanged whenever `index` is
+ * omitted or either side fails to resolve, so every existing caller is
+ * BYTE-IDENTICAL (verified: `basic-radial--hier5.pptx` stays exact).
+ *
+ * SESSION 17: `diverging-radial--hier5.pptx`'s own hub:satellite size-ratio
+ * bug (SESSION 12's own negative result, kept below as history) is NOT a
+ * resolution-depth problem after all - it is a count-gated `dgm:rule`
+ * (`w for="ch" forName="node"`, six `dgm:choose`/`dgm:if cnt<=N` branches,
+ * `fact="1"` for `cnt<=6`, `fact="0.9"` for `cnt<=8`, down to `fact="0.5"`
+ * else) that REPLACES the `constrLst`'s own declared ratio (`1.25`) rather
+ * than multiplying on top of it, missed entirely because it lives inside a
+ * `dgm:choose` (the SAME "rules aren't choose-aware" gap `smartart-layout-
+ * interpreter-named-rules.ts` documents for `primFontSz`/`secFontSz`, here
+ * hitting `w` instead). COM-verified with TWO independent samples: `n=3`
+ * (falls in `cnt<=6`, `fact=1`) renders hub:item at the cached `172:172 =
+ * 1:1`, matching `1/1` exactly; a purpose-built `n=8` sample (`cnt<=8`,
+ * `fact=0.9`) renders `1281782:1153604 = 1.1111`, matching `1/0.9` exactly -
+ * the SAME ratio-inversion relationship (`hub's natural width = 1/fact`)
+ * this function already uses for the `constrLst`-only case, just with the
+ * RULE's `fact` in place of the constraint's. `resolveRuleCountOverride`
+ * below resolves the live branch via `evaluateWhen` given the real
+ * satellite count, first-match-wins in document order (matching
+ * `dgm:choose` semantics), and its result - when present - REPLACES the
+ * constraint-derived factor entirely, not just when no constraint matched.
+ *
+ * **SESSION 12's own negative result, kept as history**: graph-resolving
+ * `node.w`/`hubName.w` independently and dividing (below, unchanged) is
+ * provably a mathematical identity with the raw `constrLst` `factor` alone -
+ * it can never explain a DIFFERENT final ratio than the declared one, since
+ * both sides cascade through the SAME reference chain. The real override
+ * was never reachable through `constrLst` resolution at all; it needed the
+ * count-gated `ruleLst` this session adds.
  */
 export function resolveHubToNodeRatio(
 	ringItem: PptxSmartArtLayoutNode | undefined,
 	arrangerConstraints: PptxSmartArtLayoutNode['constraints'],
+	index?: ConstraintIndex,
+	arrangerRuleCandidates?: PptxSmartArtLayoutNode['ruleCandidates'],
+	satelliteCount?: number,
 ): { hubName: string; factor: number } | undefined {
 	if (!ringItem?.name) {
 		return undefined;
@@ -42,10 +86,129 @@ export function resolveHubToNodeRatio(
 			(c.factor === undefined || (typeof c.factor === 'number' && c.factor > 0)) &&
 			typeof c.referenceForName === 'string',
 	);
-	if (!match) {
+	if (match) {
+		const hubName = match.referenceForName as string;
+		const ruleOverride =
+			satelliteCount !== undefined && arrangerRuleCandidates
+				? resolveRuleCountOverride(arrangerRuleCandidates, ringItem.name, satelliteCount)
+				: undefined;
+		if (ruleOverride !== undefined) {
+			return { hubName, factor: ruleOverride };
+		}
+		if (index) {
+			const resolvedNodeW = resolveConstraint(index, ringItem.name, 'w');
+			const resolvedHubW = resolveConstraint(index, hubName, 'w');
+			if (resolvedNodeW !== undefined && resolvedHubW !== undefined && resolvedHubW > 0) {
+				return { hubName, factor: resolvedNodeW / resolvedHubW };
+			}
+		}
+		return { hubName, factor: match.factor ?? 1 };
+	}
+	return resolveHubToNodeRatioViaUserSize(ringItem, arrangerConstraints);
+}
+
+/**
+ * Resolve a count-gated `w`-type `dgm:rule` override for `itemName` (the
+ * ring item's own layoutNode name, e.g. `node`) against the real satellite
+ * count - see `resolveHubToNodeRatio`'s own SESSION 17 doc comment for the
+ * COM measurement that established this mechanism. Matches a rule with a
+ * BARE `factor` (no `value`/`max` - the shape this specific override always
+ * takes; a rule that DOES carry a literal `value` is a different construct,
+ * e.g. `primFontSz`'s own shrink-search floor, and stays out of scope here)
+ * whose EXPLICIT (non-empty) guard chain evaluates true (`!== false`, the
+ * same "undecidable passes" convention `resolvePresentationOf` already
+ * uses) against `satelliteCount` with no tree context (`evaluateWhen`
+ * falls back to a flat count comparison when `context.nodes` is omitted,
+ * exactly the comparison this compound-axis `cnt` condition needs - see
+ * that function's own `cnt` case). First match wins in document order.
+ *
+ * Deliberately does NOT fall through to an `else`-only rule the way
+ * `dgm:choose` itself would (a genuinely conditional gap, not an oversight):
+ * `nestedRuleCandidates` is choose-BLIND per-candidate (the SAME convention
+ * `nestedConstraints`/`nestedPresOfCandidates` already use, see their own
+ * doc comments), so an `else` branch's own EMPTY guard chain cannot be told
+ * apart from "genuinely unconditional" - it is only true "everywhere its
+ * sibling `if`s are false", which this function has no way to verify
+ * without re-deriving the WHOLE sibling `dgm:choose`'s own condition set.
+ * COM-verified this restriction is necessary, not just cautious:
+ * `converging-radial--hier5.pptx` declares `w forName="node" fact="0.7"`
+ * ONLY inside a `cnt<=5`/`else` choose's `else` branch (its OWN `cnt<=5` `if`
+ * branch, the one n=3 actually falls in, has NO `node` rule at all - only a
+ * `centerShape` one) - trusting the else's empty guard as "always true"
+ * fired this rule for n=3 anyway, growing the hub from a already-close
+ * 234px (10.51% max delta) to a wildly wrong 338px (19.51%), a measured
+ * regression caught and reverted by adding this restriction.
+ */
+function resolveRuleCountOverride(
+	candidates: NonNullable<PptxSmartArtLayoutNode['ruleCandidates']>,
+	itemName: string,
+	satelliteCount: number,
+): number | undefined {
+	const match = candidates.find(
+		(entry) =>
+			entry.guard.length > 0 &&
+			entry.rule.type === 'w' &&
+			entry.rule.forName === itemName &&
+			typeof entry.rule.factor === 'number' &&
+			entry.rule.factor > 0 &&
+			// `val="NaN"` (ECMA-376's own "not applicable" convention for this
+			// field - see this module's own doc comment) parses to `Number.NaN`,
+			// NOT `undefined` (`xsdDouble` in `smartart-constraint-rules.ts`
+			// handles the literal string `"NaN"` explicitly) - `!finiteRuleValue`
+			// catches both that and a genuinely absent `@_val` attribute.
+			!Number.isFinite(entry.rule.value) &&
+			entry.guard.every(
+				(guard: PptxSmartArtWhen) => evaluateWhen(guard, satelliteCount, {}) !== false,
+			),
+	);
+	return match ? (match.rule.factor as number) : undefined;
+}
+
+/**
+ * `node.w = fact * <hubName>.w`, declared INDIRECTLY through `userS` ("user
+ * specified size") - `radial-cluster`'s own `singleCycle`/`text0`: `text0`'s
+ * own `w` constraint is a BARE `refType="userS"` self-reference (no hub
+ * mentioned at all in THIS constraint), and the actual hub-relative factor
+ * lives on a SEPARATE constraint declared on the ARRANGER itself (`userS
+ * for="ch" ptType="node" refType="w" refFor="ch" refForName="singleCenter"
+ * fact="0.67"` - targeted by `ptType`, the DiagramML convention for "every
+ * child node point", not by `forName`, since `userS` is declared once for
+ * the whole repeated item template rather than by its specific layoutNode
+ * name). COM-verified the `0.67` fact is IDENTICAL across every live
+ * `dgm:choose` branch this construct's own `cnt`-gated `constrLst` declares
+ * (`cnt=1`/`cnt>=2` both declare the SAME `userS ... fact="0.67"` - only the
+ * HUB's own size differs per branch, never this ratio), so reading it
+ * without evaluating the choose's own `cnt` condition (`buildConstraintIndex`
+ * does not model `dgm:choose` scoping at all - see its own doc comment) is
+ * not a guess: whichever live branch's copy this finds, the fact is the
+ * same.
+ */
+function resolveHubToNodeRatioViaUserSize(
+	ringItem: PptxSmartArtLayoutNode,
+	arrangerConstraints: PptxSmartArtLayoutNode['constraints'],
+): { hubName: string; factor: number } | undefined {
+	const itemConstraints = ringItem.allConstraints ?? ringItem.constraints ?? [];
+	const bareUserSizeRef = itemConstraints.some(
+		(c) =>
+			c.type === 'w' &&
+			c.referenceType === 'userS' &&
+			c.referenceFor === undefined &&
+			c.referenceForName === undefined &&
+			c.referencePointType === undefined,
+	);
+	if (!bareUserSizeRef) {
 		return undefined;
 	}
-	return { hubName: match.referenceForName as string, factor: match.factor ?? 1 };
+	const userSizeDecl = (arrangerConstraints ?? []).find(
+		(c) => c.type === 'userS' && typeof c.referenceForName === 'string' && finiteFactor(c.factor),
+	);
+	return userSizeDecl
+		? { hubName: userSizeDecl.referenceForName as string, factor: userSizeDecl.factor as number }
+		: undefined;
+}
+
+function finiteFactor(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
 /**

@@ -27,49 +27,34 @@ describe('fitItemBox', () => {
 	// organization-chart--flat3.pptx's own shape: totalLeaves=2,
 	// fannedGenerations=2, sibSp=0.21, aspect=0.5, genGap=0.42 (the
 	// axis-converted `sp`), zero margin, maxHangDepth=0 (no hanging tail at
-	// all), clampToNaturalAspect=false. Cached: 392x220.
-	it('tailed mode with no hanging tail and no natural-aspect clamp (organization-chart--flat3.pptx shape)', () => {
-		const { boxW, boxH } = fitItemBox(
-			{ width: 867, height: 533 },
-			2,
-			2,
-			0.21,
-			0.5,
-			0.42,
-			0,
-			0,
-			0,
-			false,
-		);
+	// all). SESSION 10: the item is ALWAYS aspect-clamped now (see the
+	// module's own doc comment history) - re-measured directly against this
+	// fixture's own raw `dsp:sp` offsets: real cached is `392x196`, an EXACT
+	// `0.5` aspect match, NOT the `392x220` a prior session's own measurement
+	// (made against a since-fixed cached-reader bug) mistook for ground
+	// truth.
+	it('tailed mode with no hanging tail, aspect-clamped (organization-chart--flat3.pptx shape)', () => {
+		const { boxW, boxH } = fitItemBox({ width: 867, height: 533 }, 2, 2, 0.21, 0.5, 0.42, 0, 0, 0);
 		expect(boxW).toBeCloseTo(392.3, 0);
-		expect(boxH).toBeCloseTo(220.2, 0);
+		expect(boxH).toBeCloseTo(196.15, 0);
+		expect(boxH / boxW).toBeCloseTo(0.5, 6); // aspect-locked, matching the real cached shape exactly.
 	});
 
 	// organization-chart--hier5.pptx's own shape: same ratios, but
 	// fannedGenerations=2 with maxHangDepth=1 (one hanging generation below
-	// the fanned row). Cached: 353x139.
-	it('tailed mode reserves EXTRA room on both axes for a hanging tail (organization-chart--hier5.pptx shape)', () => {
-		const { boxW, boxH } = fitItemBox(
-			{ width: 867, height: 533 },
-			2,
-			2,
-			0.21,
-			0.5,
-			0.42,
-			0,
-			0,
-			1,
-			false,
-		);
-		expect(boxW).toBeCloseTo(352.4, 0);
+	// the fanned row). SESSION 10: real cached is `278x139` (0.5 aspect
+	// again), not the `353x139` a prior session's own measurement recorded.
+	it('tailed mode reserves EXTRA room on both axes for a hanging tail, aspect-clamped (organization-chart--hier5.pptx shape)', () => {
+		const { boxW, boxH } = fitItemBox({ width: 867, height: 533 }, 2, 2, 0.21, 0.5, 0.42, 0, 0, 1);
+		expect(boxW).toBeCloseTo(268.5, 0);
 		expect(boxH).toBeCloseTo(134.3, 0);
+		expect(boxH / boxW).toBeCloseTo(0.5, 6);
 	});
 
-	it('clampToNaturalAspect=true still clamps to the smaller of natural aspect and heightFit (default, unchanged)', () => {
-		// A tall, narrow box where heightFit has far more room than the
-		// natural (width-derived) aspect needs.
-		const clamped = fitItemBox({ width: 100, height: 800 }, 2, 2, 0, 1, 0, 0, 0, 0, true);
-		const unclamped = fitItemBox({ width: 100, height: 800 }, 2, 2, 0, 1, 0, 0, 0, 0, false);
-		expect(clamped.boxH).toBeLessThan(unclamped.boxH);
+	it('session 10: clamps to the smaller of natural aspect and heightFit even when heightFit has far more room (a tall, narrow box) - the `clampToNaturalAspect` parameter this replaced is gone, every caller needs this behaviour now', () => {
+		const { boxH, boxW } = fitItemBox({ width: 100, height: 800 }, 2, 2, 0, 1, 0, 0, 0, 0);
+		const naturalHeight = boxW; // aspectRatio=1 here, so naturalHeight===boxW.
+		expect(boxH).toBeLessThan(800); // never the un-clamped heightFit.
+		expect(boxH).toBeCloseTo(naturalHeight, 6); // width axis binds, aspect exact.
 	});
 });

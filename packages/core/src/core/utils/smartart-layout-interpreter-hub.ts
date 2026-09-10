@@ -24,77 +24,11 @@ import {
 	computeCycleRingLayout,
 	resolveCycleRingParams,
 } from './smartart-layout-interpreter-cycle';
+import { arrangerRepeatsChildTemplate } from './smartart-layout-interpreter-hub-detect';
 import { itemNode, numericParam } from './smartart-layout-interpreter-model';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { styleContext } from './smartart-layout-interpreter-render';
 import type { BoundingBox, RenderedNode } from './smartart-layout-types';
-
-/**
- * True when a raw `dgm:forEach` targets `axis="ch"` node points (not
- * `sibTrans`/`parTrans`, a transition/spacer iterator) starting from the
- * FIRST point (`st` absent or `"1"`). Excludes a CONTINUATION iterator
- * (`st > 1`, mirroring `smartart-layout-interpreter-composite-detect.ts`'s
- * `isContinuationForEach` for the already-parsed model - this is the raw-XML
- * equivalent, since `arrangerRepeatsChildTemplate` searches `rawXml`
- * directly, not the typed `.forEach`) - `Table List`'s `pillars` nests
- * exactly this shape (`pillar1` via a compound `presOf` handling child #1
- * specially, THEN `dgm:forEach st="2"` for the rest): it "repeats a child
- * template" in the raw sense `hasNestedChildForEach` originally checked for,
- * but is a LIST CONTINUATION, not a genuine hub whose children ALL become
- * satellites uniformly (`Converging Text`'s per-count-branch satellite
- * `dgm:forEach`s each start at `st="1"`/`"2"`/... for a DIFFERENT total
- * count, so the FIRST one found in document order is always `st="1"`).
- */
-function isChildNodeForEach(entry: unknown): boolean {
-	const raw = Array.isArray(entry) ? entry[0] : entry;
-	if (!raw || typeof raw !== 'object') {
-		return false;
-	}
-	const attrs = raw as Record<string, unknown>;
-	const ptType = attrs['@_ptType'];
-	const start = Number(attrs['@_st'] ?? '1');
-	return (
-		attrs['@_axis'] === 'ch' &&
-		(ptType === undefined || String(ptType).includes('node')) &&
-		(!Number.isFinite(start) || start <= 1)
-	);
-}
-
-/**
- * True when `raw` (a `dgm:forEach`'s raw XML body) declares, anywhere within
- * it (through `dgm:layoutNode`/`dgm:choose`/`dgm:if`/`dgm:else` wrapping), a
- * NESTED `dgm:forEach axis="ch"` targeting node points.
- */
-function hasNestedChildForEach(value: unknown): boolean {
-	if (!value || typeof value !== 'object') {
-		return false;
-	}
-	if (Array.isArray(value)) {
-		return value.some(hasNestedChildForEach);
-	}
-	for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-		if (key.startsWith('@_')) {
-			continue;
-		}
-		if (key.split(':').pop() === 'forEach' && isChildNodeForEach(entry)) {
-			return true;
-		}
-		if (hasNestedChildForEach(entry)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-/**
- * True when `arranger`'s driving `dgm:forEach` (`arranger.forEach[0]`)
- * declares a nested `dgm:forEach axis="ch"` in its raw body - see the
- * module doc comment.
- */
-function arrangerRepeatsChildTemplate(arranger: PptxSmartArtLayoutNode): boolean {
-	const raw = arranger.forEach?.[0]?.rawXml;
-	return raw !== undefined && hasNestedChildForEach(raw);
-}
 
 /** The hub point plus the satellites its nested `axis="ch"` forEach actually arranges. */
 export interface HubExpansion {
@@ -164,7 +98,7 @@ export function buildHubRenderedNode(
 		// never applies recursively here - `satelliteCount` is already the
 		// ring's own node count.
 		const { minGapRatio, heightOverWidth, absoluteGapPx, hubRatio, hubGapRatio } =
-			resolveCycleRingParams(arranger, index);
+			resolveCycleRingParams(arranger, index, satelliteCount);
 		// Same `hubGeometry` `r0` correction `arrangeCycle` applies to the
 		// satellites themselves (see `computeCycleRingLayout`'s own doc
 		// comment) - without it here too, the hub's own centre/scale would be

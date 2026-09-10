@@ -47,6 +47,7 @@ import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
 import type { SlotStyleContext } from './smartart-layout-interpreter-composite';
 import { resolveAnchoredContentPerAnchor } from './smartart-layout-interpreter-composite-anchor';
+import { selectFirstMatchChildren } from './smartart-layout-interpreter-composite-choose-groups';
 import type {
 	ChooseAwareSlot,
 	RawSlotCandidate,
@@ -137,8 +138,15 @@ function collectRawCandidates(
 	declaringRole: string,
 	out: RawSlotCandidate[] = [],
 ): RawSlotCandidate[] {
-	const axis = node.presentationOf?.axis;
-	if (axis && axis.length > 0) {
+	// A node with `presentationOfCandidates` may resolve to a real axis
+	// choose-aware even when its STATIC `presentationOf` guess (`choosePresentationOf`'s
+	// single, parse-time pick) happens to be bare - see `resolvePresentationOf`
+	// (`smartart-layout-interpreter-when.ts`), which `resolveAnchoredContentPerAnchor`
+	// itself now consults; this gate only decides whether it is worth calling.
+	const hasPresOf =
+		(node.presentationOf?.axis?.length ?? 0) > 0 ||
+		(node.presentationOfCandidates?.length ?? 0) > 0;
+	if (hasPresOf) {
 		const groups = resolveAnchoredContentPerAnchor(node, flat);
 		const iterationPosition = (iteration: number): IterationPosition | undefined =>
 			groups.length > 1 ? { position: iteration + 1, total: groups.length } : undefined;
@@ -154,7 +162,13 @@ function collectRawCandidates(
 		return out;
 	}
 	const nextRole = roleOf(node);
-	for (const child of node.children ?? []) {
+	// First-match-wins among `node`'s own children before recursing into any
+	// of them, recovering real `dgm:choose` semantics from `chooseGroups` -
+	// see `smartart-layout-interpreter-composite-choose-groups.ts`'s own doc
+	// comment (`balance--hier5.pptx`'s 127-member mutually-exclusive family,
+	// the one shape this changes; every other fixture's `children` carries no
+	// `chooseGroups` at all, so this is a no-op elsewhere).
+	for (const child of selectFirstMatchChildren(node.children ?? [], flat)) {
 		collectRawCandidates(child, flat, nextRole, out);
 	}
 	return out;

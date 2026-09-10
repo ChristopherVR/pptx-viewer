@@ -72,9 +72,30 @@ export function dispatchArrangement(
 			// SATELLITE in that case (`ctrShpMap` stays `'fNode'` on the
 			// algorithm regardless of whether the hub was already removed) - see
 			// `arrangeCycle`'s own doc comment on `hubAlreadyStripped`.
-			return arrangeCycle(plan, arranged, box, palette, style, elementId, index, hubStripped);
+			return arrangeCycle(
+				plan,
+				arranged,
+				box,
+				palette,
+				style,
+				elementId,
+				index,
+				hubStripped,
+				childrenOf,
+				fontName,
+			);
 		case 'pyramid':
-			return arrangePyramid(plan, arranged, box, palette, style, elementId, index);
+			return arrangePyramid(
+				plan,
+				arranged,
+				box,
+				palette,
+				style,
+				elementId,
+				index,
+				childrenOf,
+				fontName,
+			);
 		case 'composite':
 			return arrangeComposite(
 				plan,
@@ -86,6 +107,7 @@ export function dispatchArrangement(
 				index,
 				childrenOf,
 				flat,
+				fontName,
 			);
 		case 'conn':
 			return arrangeConn(plan, arranged, box, palette, style, elementId, index);
@@ -102,6 +124,16 @@ export function dispatchArrangement(
 			if (arranged.length > 1) {
 				return undefined;
 			}
-			return arrangeText(plan, arranged, box, palette, style, elementId);
+			return arrangeText(
+				plan,
+				arranged,
+				box,
+				palette,
+				style,
+				elementId,
+				index,
+				childrenOf,
+				fontName,
+			);
 	}
 }

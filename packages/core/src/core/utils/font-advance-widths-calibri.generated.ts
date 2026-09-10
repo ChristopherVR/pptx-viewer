@@ -112,5 +112,5 @@ export const TABLE: FontAdvanceTable = {
 	marginRightPt: 7.19999980926514,
 	marginTopPt: 3.59999990463257,
 	marginBottomPt: 3.59999990463257,
-	lineHeightRatio: 1.212,
+	lineHeightRatio: 1.2,
 };

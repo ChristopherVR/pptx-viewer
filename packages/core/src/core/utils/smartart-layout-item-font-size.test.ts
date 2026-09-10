@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PptxSmartArtLayoutDefinition, PptxSmartArtLayoutNode } from '../types';
-import { buildConstraintIndex } from './smartart-constraint-solver';
+import { buildConstraintIndex, roleOf } from './smartart-constraint-solver';
 import type { ArrangementPlan } from './smartart-layout-interpreter-model';
-import { resolveSharedItemFontSize, snapToWholePoint } from './smartart-layout-item-font-size';
+import {
+	proportionalMarginFraction,
+	resolveSharedItemFontSize,
+	snapToWholePoint,
+} from './smartart-layout-item-font-size';
 
 /** Points per CSS pixel at PowerPoint's 96 DPI convention (matches the source module). */
 const PT_TO_PX = 96 / 72;
@@ -123,6 +127,68 @@ describe('resolveSharedItemFontSize', () => {
 			'Some Obscure Font Nobody Measured',
 		);
 		expect(size).toBeGreaterThan(0);
+	});
+});
+
+describe('proportionalMarginFraction', () => {
+	it("defaults to 0.56 per side (1.12 per axis) when a role declares NO lMarg/rMarg/tMarg/bMarg constraint at all - COM-verified against repeating-bending-process--hier5.pptx's real 'node' role (TextFrame2.Margin{Left,Right,Top,Bottom} all 21.28pt at cached Font.Size=38, exactly 0.56*38; cached a:bodyPr lIns=270256 EMU confirms it)", () => {
+		const itemNode: PptxSmartArtLayoutNode = {
+			name: 'node',
+			// Only a non-margin constraint declared, matching the real fixture.
+			constraints: [{ type: 'h', referenceType: 'w', factor: 0.6 }],
+		};
+		const rootNode: PptxSmartArtLayoutNode = {
+			algorithm: { type: 'lin' },
+			constraints: [],
+			children: [itemNode],
+		};
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		const index = buildConstraintIndex(definition);
+		const result = proportionalMarginFraction(index, roleOf(itemNode));
+		expect(result?.horizontal).toBeCloseTo(1.12, 5);
+		expect(result?.vertical).toBeCloseTo(1.12, 5);
+	});
+
+	it('does NOT apply the no-constraint default when a margin constraint is declared but not primFontSz-proportional (a literal val, e.g. the round 10/12 connectorText pattern) - the caller keeps its own fixed fallback for that axis instead', () => {
+		const itemNode: PptxSmartArtLayoutNode = {
+			name: 'connectorText',
+			constraints: [
+				{ type: 'lMarg', value: 1 },
+				{ type: 'rMarg', value: 1 },
+				{ type: 'tMarg', value: 1 },
+				{ type: 'bMarg', value: 1 },
+			],
+		};
+		const rootNode: PptxSmartArtLayoutNode = {
+			algorithm: { type: 'lin' },
+			constraints: [],
+			children: [itemNode],
+		};
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		const index = buildConstraintIndex(definition);
+		expect(proportionalMarginFraction(index, roleOf(itemNode))).toBeUndefined();
+	});
+
+	it('still resolves an explicitly declared primFontSz-proportional margin exactly as before (unaffected by the new default)', () => {
+		const itemNode: PptxSmartArtLayoutNode = {
+			name: 'node',
+			constraints: [
+				{ type: 'lMarg', referenceType: 'primFontSz', factor: 0.3 },
+				{ type: 'rMarg', referenceType: 'primFontSz', factor: 0.3 },
+				{ type: 'tMarg', referenceType: 'primFontSz', factor: 0.3 },
+				{ type: 'bMarg', referenceType: 'primFontSz', factor: 0.3 },
+			],
+		};
+		const rootNode: PptxSmartArtLayoutNode = {
+			algorithm: { type: 'lin' },
+			constraints: [],
+			children: [itemNode],
+		};
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		const index = buildConstraintIndex(definition);
+		const result = proportionalMarginFraction(index, roleOf(itemNode));
+		expect(result?.horizontal).toBeCloseTo(0.6, 5);
+		expect(result?.vertical).toBeCloseTo(0.6, 5);
 	});
 });
 
