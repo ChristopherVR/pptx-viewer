@@ -186,10 +186,22 @@ export function getShapeVisualStyle(
 	// explicit extrusion colour is set, and the element's own rendered size so
 	// the camera's field of view is projected onto it rather than a fixed
 	// reference size (see shared `getCameraTransform`).
-	apply3dEffects(base, ss?.scene3d, ss?.shape3d, ss?.fillColor ?? fillColor, {
-		width: element.width,
-		height: element.height,
-	});
+	// `element.id` switches the bevel from a `box-shadow` approximation to the
+	// real SVG lighting filter (see shared `apply3dEffects`'s doc comment);
+	// `ShapeEffectOverlay` independently injects the matching `<defs>` markup
+	// via `getBevelLightingSvgFilter(element)`, the same two-step pattern the
+	// soft-edge filter already uses.
+	apply3dEffects(
+		base,
+		ss?.scene3d,
+		ss?.shape3d,
+		ss?.fillColor ?? fillColor,
+		{
+			width: element.width,
+			height: element.height,
+		},
+		element.id,
+	);
 
 	// The SVG `<path>` owns the fill/stroke for freeform geometry; keep effects
 	// (shadow, glow, opacity, blend) on the container but drop the rectangular

@@ -615,6 +615,20 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 		note: 'Built by scripts/make-sample-deck.mjs; the default deck the demos open.',
 	},
 	{
+		file: 'shape-3d-camera-override.pptx',
+		dir: 'e2e',
+		provenance: 'synthetic',
+		status: 'roundtrip',
+		note:
+			'Built by scripts/make-camera-override-fixture.mjs; four shapes with an explicit ' +
+			'a:camera/a:rot (lat/lon/rev) override on top of a required orthographicFront prst ' +
+			'(2026-09 explicit-camera-override wave: real PowerPoint schema-rejects an a:camera with ' +
+			"no @prst at all, contrary to what this repo's own conditional writer implied). Drives " +
+			'shape-3d-camera-override-parity.spec.ts, which checks the five bindings agree on the ' +
+			'matrix3d homography visual-3d-camera-parametric.ts now builds for this case, replacing ' +
+			'the old rotateX/rotateY + centred perspective() approximation.',
+	},
+	{
 		file: 'shape-3d-compound.pptx',
 		dir: 'e2e',
 		provenance: 'synthetic',

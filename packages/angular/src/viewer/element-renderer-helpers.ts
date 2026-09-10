@@ -5,6 +5,24 @@ import type { StyleMap } from './element-style';
 import { showsTemplateAffordance } from './template-mode';
 
 /**
+ * Element kinds dispatched to `ElementRendererGraphicsComponent` by
+ * `ElementRendererComponent.isGraphicsElement`. Kept here (rather than inline
+ * in that component) so the component file, which touches the ~300 LOC
+ * guideline, stays under it.
+ */
+export const GRAPHICS_ELEMENT_TYPES = new Set<PptxElement['type']>([
+	'ink',
+	'contentPart',
+	'zoom',
+	'model3d',
+	'smartArt',
+	'ole',
+	'chart',
+	'table',
+	'media',
+]);
+
+/**
  * Outline ring + slight transparency applied to inherited template
  * (master/layout) elements while editTemplateMode is on. Empty otherwise, so
  * normal rendering is never altered.

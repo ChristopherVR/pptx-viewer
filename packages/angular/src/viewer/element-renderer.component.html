@@ -162,6 +162,24 @@
 	</svg>
 }
 
+<!--
+	Bevel lighting <filter> def (a:sp3d top/bottom bevel), referenced via
+	filter: url(#bevel-light-<id>) (set by getComputed3dStyle/merge3dStyleMap
+	on shapeContainerStyle()). Unlike the soft-edge/duotone defs above, this
+	one's markup is injected verbatim (sanitized SafeHtml) rather than
+	hand-authored from typed fields: the primitive chain is a variable-length
+	1-or-2-layer sequence, see getBevelLightingFilterDef's doc.
+-->
+@if (bevelLightingFilter(); as blf) {
+	<svg
+		width="0"
+		height="0"
+		aria-hidden="true"
+		style="position: absolute; width: 0; height: 0; overflow: hidden"
+		[innerHTML]="blf.markup"
+	></svg>
+}
+
 <!-- Duotone image-effect <filter> def, referenced via filter: url(#id). -->
 @if (duotoneFilter(); as df) {
 	<svg

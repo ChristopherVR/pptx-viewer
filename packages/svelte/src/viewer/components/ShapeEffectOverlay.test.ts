@@ -66,6 +66,22 @@ describe('shapeEffectOverlay', () => {
 		expect(target.querySelector('feGaussianBlur')).not.toBeNull();
 	});
 
+	it('injects the bevel-lighting filter markup with the element-scoped id', () => {
+		// `a:sp3d/a:bevelT`: the shape's CSS `filter` (set by `element-style.ts`
+		// via shared `getComputed3dStyle`/`merge3dStyle`) already carries
+		// `url(#bevel-light-el-bevel)`; this asserts the matching `<filter>` is
+		// actually injected so that reference resolves to something.
+		const target = render(
+			shape('el-bevel', {
+				shape3d: { bevelTopType: 'circle', bevelTopWidth: 76200, bevelTopHeight: 76200 },
+			}),
+		);
+		const filter = target.querySelector('svg defs filter');
+		expect(filter?.getAttribute('id')).toBe('bevel-light-el-bevel');
+		expect(target.querySelector('feDiffuseLighting')).not.toBeNull();
+		expect(target.querySelector('feSpecularLighting')).not.toBeNull();
+	});
+
 	it('renders nothing when the shape has no overlay or soft edge', () => {
 		const target = render(shape('el-plain', { fillColor: '#00ff00' }));
 		expect(target.querySelector('.pptx-svelte-fill-overlay')).toBeNull();

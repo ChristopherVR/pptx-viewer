@@ -66,6 +66,7 @@ import {
 	homographyToMatrix3d,
 	isIdentityHomography,
 } from './visual-3d-camera-homography';
+import { resolveExplicitOverrideCameraTransform } from './visual-3d-camera-override';
 import { CAMERA_PRESET_MAP, DEFAULT_CUSTOM_REF_PX } from './visual-3d-camera-presets';
 import { resolvePanelSides } from './visual-3d-panel-sides';
 import type { PanelVisibility } from './visual-3d-panel-sides';
@@ -87,6 +88,11 @@ export {
 	OBLIQUE_DIRECTION_PANEL_SIDES,
 } from './visual-3d-panel-sides';
 export type { PanelVisibility } from './visual-3d-panel-sides';
+export {
+	computeParametricCameraHomography,
+	sixtyThousandthsDegToRad,
+} from './visual-3d-camera-parametric';
+export type { ParametricCameraParams } from './visual-3d-camera-parametric';
 
 /**
  * Structural subset of `Pptx3DScene` consumed by the camera mapping. Declared
@@ -243,6 +249,21 @@ export function getCameraTransform(
 				panelSides,
 			};
 		}
+	} else {
+		// An explicit `a:camera/a:rot`/`@fov`/`@zoom` override: build the SAME
+		// kind of exact homography via `visual-3d-camera-parametric`'s general
+		// camera function instead of the legacy rotateX/rotateY + centred
+		// `perspective()` approximation below (see `visual-3d-camera-override`
+		// and `visual-3d-camera-parametric`'s doc comments for the COM
+		// validation: sub-pixel for identity/single-axis, a documented larger
+		// residual for a genuinely combined multi-axis pose).
+		return resolveExplicitOverrideCameraTransform(
+			scene3d,
+			preset,
+			elementSize,
+			panelHintRotateX,
+			panelHintRotateY,
+		);
 	}
 
 	let rotateX = preset?.rotateX ?? 0;

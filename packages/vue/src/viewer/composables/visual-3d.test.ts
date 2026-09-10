@@ -50,14 +50,18 @@ describe('get3dTransformCss', () => {
 		expect(result?.transform).toContain('matrix3d(');
 	});
 
-	it('honours explicit camera rotation overrides (1/60000 deg)', () => {
-		// 1800000 / 60000 = 30; X is negated, Y kept positive
+	it('honours explicit camera rotation overrides (1/60000 deg) as an exact matrix3d', () => {
+		// Pre-existing (unrelated to this change) drift from shared's own
+		// off-axis-camera homography wave: `get3dTransformCss` now always emits a
+		// COM-measured `matrix3d(...)` rather than separate `rotateX`/`rotateY`
+		// functions; see `packages/shared/src/render/visual-3d.test.ts`'s matching
+		// (already-updated) assertion for the same scenario.
 		const result = get3dTransformCss(
 			{ cameraPreset: 'perspectiveFront', cameraRotX: 1800000, cameraRotY: 2700000 },
 			undefined,
 		);
-		expect(result?.transform).toContain('rotateX(-30deg)');
-		expect(result?.transform).toContain('rotateY(45deg)');
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.transform).not.toContain('rotateX');
 	});
 
 	it('appends translateZ when extrusion present', () => {
@@ -207,14 +211,24 @@ describe('getComputed3dStyle', () => {
 		expect(result?.boxShadow ?? '').not.toContain('#4472C4');
 	});
 
-	it('folds bevel inset shadow into boxShadow', () => {
+	it('resolves a bevel to a real SVG lighting filter, not an inset boxShadow', () => {
+		// The box-shadow bevel approximation (`getBevelStyle`) is superseded by a
+		// real SVG lighting filter whenever a bevel is present (see shared
+		// `visual-3d-bevel-lighting`'s module doc comment); `getComputed3dStyle`
+		// only falls back to `getBevelStyle` when `getBevelLightingFilterMarkup`
+		// returns `undefined` (no bevel at all), so a present bevel never folds
+		// an inset shadow into `boxShadow` any more.
 		const el = shape3dEl(undefined, {
 			bevelTopType: 'circle',
 			bevelTopWidth: 28575,
 			bevelTopHeight: 28575,
 		});
 		const result = getComputed3dStyle(el);
-		expect(result?.boxShadow).toContain('inset');
+		expect(result?.bevelLightingFilter).toBeDefined();
+		expect(result?.bevelLightingFilter?.id).toBe('bevel-light-s1');
+		expect(result?.bevelLightingFilter?.filterMarkup).toContain('feDiffuseLighting');
+		expect(result?.filter).toContain('url(#bevel-light-s1)');
+		expect(result?.boxShadow ?? '').not.toContain('inset');
 	});
 
 	it('does not synthesize a ground shadow from a bare backdrop (COM-measured: no visible effect)', () => {
@@ -261,7 +275,7 @@ describe('merge3dStyle', () => {
 		expect(base.boxShadow).toBe('0 1px 2px #000');
 	});
 
-	it('comma-joins extrusion + folded shadows with an existing effect shadow', () => {
+	it('comma-joins extrusion + folded shadows with an existing effect shadow, and space-joins the bevel filter reference', () => {
 		const base: CSSProperties = { boxShadow: '2px 2px 4px rgba(0,0,0,0.3)' };
 		const el = shape3dEl(undefined, {
 			extrusionHeight: 47625,
@@ -270,10 +284,13 @@ describe('merge3dStyle', () => {
 		});
 		merge3dStyle(base, getComputed3dStyle(el));
 		const shadow = String(base.boxShadow);
-		// Original effect shadow preserved, plus extrusion, plus bevel inset.
+		// Original effect shadow preserved, plus extrusion. The bevel no longer
+		// folds an inset shadow in: it resolves to a `url(#bevel-light-<id>)`
+		// filter reference (merged into `base.filter`, not `base.boxShadow`).
 		expect(shadow).toContain('2px 2px 4px rgba(0,0,0,0.3)');
 		expect(shadow).toContain('#4472C4');
-		expect(shadow).toContain('inset');
+		expect(shadow).not.toContain('inset');
+		expect(String(base.filter)).toContain('url(#bevel-light-s1)');
 	});
 
 	it('appends 3D transform after an existing transform', () => {

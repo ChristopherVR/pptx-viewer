@@ -1,5 +1,6 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxTableData, ShapeStyle } from 'pptx-viewer-core';
 
@@ -11,12 +12,18 @@ import {
 } from '../internal/shared';
 import type { ElementAnimationState, FieldSubstitutionContext } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
+import { resolveBevelLightingFilter } from './bevel-lighting-filter';
+import type { BevelLightingFilterDef } from './bevel-lighting-filter';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
 import { getReflectionOverlay, getSoftEdgeFilterDef } from './element-effect-defs';
 import type { ReflectionOverlay, SoftEdgeFilterDef } from './element-effect-defs';
 import { ElementRendererGraphicsComponent } from './element-renderer-graphics.component';
-import { buildElementContainerStyle, buildShapeContainerStyle } from './element-renderer-helpers';
+import {
+	buildElementContainerStyle,
+	buildShapeContainerStyle,
+	GRAPHICS_ELEMENT_TYPES,
+} from './element-renderer-helpers';
 import { ElementRendererShapeComponent } from './element-renderer-shape.component';
 import { getDuotoneFilterDef } from './element-style';
 import type { StyleMap } from './element-style';
@@ -26,19 +33,6 @@ import { SmartArt3DService } from './smart-art-3d.service';
 import type { TableCellCommit } from './table-renderer.component';
 
 export { shouldPreventHyperlinkNavigation } from './hyperlink-confirm';
-
-/** Element kinds dispatched to `ElementRendererGraphicsComponent`. */
-const GRAPHICS_ELEMENT_TYPES = new Set<PptxElement['type']>([
-	'ink',
-	'contentPart',
-	'zoom',
-	'model3d',
-	'smartArt',
-	'ole',
-	'chart',
-	'table',
-	'media',
-]);
 
 /**
  * ElementRendererComponent: Angular port of the React `ElementRenderer.tsx`
@@ -80,6 +74,8 @@ export class ElementRendererComponent {
 	 */
 	private readonly playback = inject(AnimationPlaybackService, { optional: true });
 	private readonly translate = inject(TranslateService);
+	/** For {@link bevelLightingFilter}'s injected `<filter>` markup. */
+	private readonly sanitizer = inject(DomSanitizer);
 	readonly smartArt3D = computed(() => this.smartArt3DService?.enabled() ?? false);
 	/** Whether the Selection Pane has hidden this element; see the empty first `@case`. */
 	readonly isHidden = computed(() => isElementHidden(this.element()));
@@ -207,6 +203,11 @@ export class ElementRendererComponent {
 	 */
 	readonly softEdgeFilter = computed<SoftEdgeFilterDef | undefined>(() =>
 		getSoftEdgeFilterDef(this.element()),
+	);
+
+	/** `a:sp3d` bevel lighting `<filter>` descriptor; see `bevel-lighting-filter.ts`. */
+	readonly bevelLightingFilter = computed<BevelLightingFilterDef | undefined>(() =>
+		resolveBevelLightingFilter(this.element(), this.sanitizer),
 	);
 
 	/**

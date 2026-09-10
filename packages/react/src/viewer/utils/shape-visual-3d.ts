@@ -92,6 +92,11 @@ export function get3DTransformStyle(
  * `elementSize`, when passed, re-projects the camera's field of view onto the
  * element's actual rendered size instead of a fixed reference size (see shared
  * `getCameraTransform`).
+ *
+ * `elementId`, when passed, switches a bevel to the real SVG lighting filter
+ * (see shared `apply3dEffects`'s doc comment); the caller must separately
+ * render the matching `<defs>` markup (`getBevelLightingSvgFilter`), which
+ * `ShapeEffectOverlay` does.
  */
 export function apply3dEffects(
 	base: React.CSSProperties,
@@ -99,10 +104,18 @@ export function apply3dEffects(
 	shape3d: Shape3dParams | undefined,
 	fillColorFallback?: string,
 	elementSize?: ElementSizePx,
+	elementId?: string,
 ): void {
 	// React's `CSSProperties` allows `string | number` for several fields whereas
 	// shared's neutral `MutableCss` narrows them to string; the mutator only ever
 	// writes string values, so the cast is sound. `fillColorFallback` lets the
 	// extrusion/contour default to the shape's resolved fill colour.
-	sharedApply3dEffects(base as MutableCss, scene3d, shape3d, fillColorFallback, elementSize);
+	sharedApply3dEffects(
+		base as MutableCss,
+		scene3d,
+		shape3d,
+		fillColorFallback,
+		elementSize,
+		elementId,
+	);
 }

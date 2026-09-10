@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DuotoneFilterDef } from './duotone-filter';
 import {
+	getBevelLightingFilterDef,
 	getEffectFillOverlay,
 	getReflectionOverlay,
 	getSoftEdgeFilterDef,
@@ -50,6 +51,64 @@ describe('getSoftEdgeFilterDef', () => {
 			groupEffectStyle: { softEdgeRadius: 6 },
 		} as unknown as PptxElement;
 		expect(getSoftEdgeFilterDef(group)).toStrictEqual({ id: 'soft-edge-grp-soft', radius: 6 });
+	});
+});
+
+describe('getBevelLightingFilterDef', () => {
+	it('returns undefined for a shape with no bevel', () => {
+		expect(getBevelLightingFilterDef(shape({}))).toBeUndefined();
+		expect(getBevelLightingFilterDef(shape({ shape3d: {} } as ShapeStyle))).toBeUndefined();
+	});
+
+	it('returns undefined when both bevel types are explicitly "none"', () => {
+		const def = getBevelLightingFilterDef(
+			shape({ shape3d: { bevelTopType: 'none', bevelBottomType: 'none' } } as ShapeStyle),
+		);
+		expect(def).toBeUndefined();
+	});
+
+	it('returns a real lighting <filter> (feDiffuseLighting + feSpecularLighting) for a top bevel', () => {
+		const def = getBevelLightingFilterDef(
+			shape(
+				{
+					shape3d: {
+						bevelTopType: 'circle',
+						bevelTopWidth: 6 * 12700,
+						bevelTopHeight: 6 * 12700,
+						presetMaterial: 'matte',
+					},
+				} as ShapeStyle,
+				'bevel1',
+			),
+		);
+		expect(def).toBeDefined();
+		expect(def!.id).toBe('bevel-light-bevel1');
+		expect(def!.cssReference).toBe('url(#bevel-light-bevel1)');
+		expect(def!.filterMarkup).toContain('<filter id="bevel-light-bevel1"');
+		expect(def!.filterMarkup).toContain('feDiffuseLighting');
+		expect(def!.filterMarkup).toContain('feSpecularLighting');
+		expect(def!.filterMarkup).toContain('feDistantLight');
+	});
+
+	it('emits two layers (top and bottom) when both bevels are set', () => {
+		const def = getBevelLightingFilterDef(
+			shape({
+				shape3d: {
+					bevelTopType: 'circle',
+					bevelTopWidth: 6 * 12700,
+					bevelTopHeight: 6 * 12700,
+					bevelBottomType: 'angle',
+					bevelBottomWidth: 4 * 12700,
+					bevelBottomHeight: 4 * 12700,
+				},
+			} as ShapeStyle),
+		);
+		expect(def).toBeDefined();
+		// Match opening tags only: each primitive's own closing tag repeats its
+		// name too (`<feDiffuseLighting …>…</feDiffuseLighting>`), so a naive
+		// substring count would double-count every layer.
+		expect(def!.filterMarkup.match(/<feDiffuseLighting\b/gu)).toHaveLength(2);
+		expect(def!.filterMarkup.match(/<feSpecularLighting\b/gu)).toHaveLength(2);
 	});
 });
 

@@ -73,14 +73,19 @@ describe('get3dTransformCss', () => {
 		expect(result?.perspectiveOrigin).toBeUndefined();
 	});
 
-	it('honours explicit camera rotation overrides (1/60000 deg)', () => {
-		// 1800000 / 60000 = 30; X is negated, Y kept positive
+	// An explicit `a:camera/a:rot` override now builds an exact `matrix3d(...)`
+	// homography via `visual-3d-camera-parametric` (COM-validated for
+	// identity/single-axis; see that module's doc comment), replacing the
+	// legacy `rotateX`/`rotateY` + centred `perspective()` approximation this
+	// test used to assert on.
+	it('honours explicit camera rotation overrides (1/60000 deg) as an exact matrix3d', () => {
 		const result = get3dTransformCss(
 			{ cameraPreset: 'perspectiveFront', cameraRotX: 1800000, cameraRotY: 2700000 },
 			undefined,
 		);
-		expect(result?.transform).toContain('rotateX(-30deg)');
-		expect(result?.transform).toContain('rotateY(45deg)');
+		expect(result?.transform).toContain('matrix3d(');
+		expect(result?.transform).not.toContain('rotateX');
+		expect(result?.transformOrigin).toBe('0 0');
 	});
 
 	it('appends translateZ when extrusion present', () => {
@@ -255,14 +260,23 @@ describe('getComputed3dStyle', () => {
 		expect(result?.boxShadow ?? '').not.toContain('#4472C4');
 	});
 
-	it('folds bevel inset shadow into boxShadow', () => {
+	// A bevel now renders as a real SVG lighting filter (see
+	// `visual-3d-bevel-lighting`'s module doc comment), which supersedes the
+	// old `box-shadow` approximation this test used to assert on: `filter`
+	// carries the `url(#bevel-light-<id>)` reference and
+	// `bevelLightingFilter` carries the matching `<filter>` markup for the
+	// caller to inject, instead of an inset `boxShadow`.
+	it('renders a bevel as a real SVG lighting filter, not a boxShadow', () => {
 		const el = shape3dEl(undefined, {
 			bevelTopType: 'circle',
 			bevelTopWidth: 28575,
 			bevelTopHeight: 28575,
 		});
 		const result = getComputed3dStyle(el);
-		expect(result?.boxShadow).toContain('inset');
+		expect(result?.bevelLightingFilter).toBeDefined();
+		expect(result?.filter).toContain(`url(#${result?.bevelLightingFilter?.id})`);
+		expect(result?.bevelLightingFilter?.filterMarkup).toContain('feDiffuseLighting');
+		expect(result?.boxShadow ?? '').not.toContain('inset');
 	});
 
 	it('does not synthesize a ground shadow from a bare backdrop (COM-measured: no visible effect)', () => {
@@ -322,7 +336,7 @@ describe('getCameraTransform', () => {
 		expect(result.rotateX).toBe(20);
 	});
 
-	it('explicit rotation angles override preset defaults', () => {
+	it('explicit rotation angles override preset defaults, as the panel-visibility hint AND the real matrix3d', () => {
 		const result = getCameraTransform({
 			cameraPreset: 'perspectiveFront',
 			cameraRotX: 1800000,
@@ -330,11 +344,13 @@ describe('getCameraTransform', () => {
 		});
 		expect(result.rotateX).toBe(-30);
 		expect(result.rotateY).toBe(45);
+		expect(result.matrix3d).toBeDefined();
 	});
 
-	it('applies default 800px perspective for explicit rotations without preset', () => {
+	it('builds an exact matrix3d (not a legacy 800px perspective) for explicit rotation without a preset', () => {
 		const result = getCameraTransform({ cameraRotX: 600000 });
-		expect(result.perspective).toBe('800px');
+		expect(result.matrix3d).toBeDefined();
+		expect(result.transformOrigin).toBe('0 0');
 		expect(result.rotateX).toBe(-10);
 	});
 
@@ -539,11 +555,13 @@ describe('apply3dEffects', () => {
 		expect(base.perspective).toBeUndefined();
 	});
 
-	it('applies perspective + rotateX for a camera X rotation', () => {
+	it('applies an exact matrix3d (not legacy rotateX/perspective) for a camera X rotation', () => {
 		const base: MutableCss = {};
 		apply3dEffects(base, { cameraRotX: 1800000 }, undefined);
-		expect(base.perspective).toBe('800px');
-		expect(base.transform).toContain('rotateX(-30deg)');
+		expect(base.transform).toContain('matrix3d(');
+		expect(base.transform).not.toContain('rotateX');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transformOrigin).toBe('0 0');
 	});
 
 	it('adds extrusion depth as stacked box-shadows', () => {

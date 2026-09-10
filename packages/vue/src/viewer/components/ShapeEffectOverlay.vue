@@ -19,6 +19,12 @@
  *     `getEffectFilterCss`); this injects the matching `<filter>` markup into a
  *     hidden, zero-size `<svg><defs>` so that reference resolves. Mirrors how
  *     {@link DuotoneFilterDefs} injects the duotone filter.
+ *  3b. The `a:sp3d` bevel LIGHTING `<filter>`: same pattern as the soft edge -
+ *     `getComputed3dStyle`'s `filter` (folded in by `element-style.ts`'s
+ *     `merge3dStyle`) already carries a `url(#bevel-light-<id>)` reference
+ *     whenever the shape has a top/bottom bevel; this injects the matching
+ *     `<filter>` (real `feDiffuseLighting`/`feSpecularLighting`, not a
+ *     box-shadow approximation) so that reference resolves.
  *  4. A per-sub-path FILL overlay, for a multi-sub-path preset (`smileyFace`'s
  *     open eyes, `actionButtonBlank`'s darkened bevel well) whose sub-paths
  *     cannot share one CSS `background-color`: `element-style.ts` drops the
@@ -45,6 +51,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import {
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
+	getBevelLightingSvgFilter,
 	getComputedEffectStyle,
 	getEffectStyleSource,
 	getSoftEdgeSvgFilter,
@@ -112,6 +119,15 @@ const softEdge = computed(() => {
 });
 
 /**
+ * The bevel-lighting `<filter>` definition for this element's `a:sp3d` bevel,
+ * or `undefined` when the shape has no top/bottom bevel. Mirrors {@link
+ * softEdge}'s injection pattern exactly: the shape's own CSS `filter` (set by
+ * `element-style.ts` via `getComputed3dStyle`/`merge3dStyle`) already carries
+ * the matching `url(#bevel-light-<id>)` reference.
+ */
+const bevelLightingFilter = computed(() => getBevelLightingSvgFilter(props.element));
+
+/**
  * Stroked SVG outline for a gradient `a:ln` or a stroke-only preset, or
  * `undefined` when the CSS border is correct (a closed shape, solid line).
  */
@@ -164,6 +180,15 @@ const reflection = computed<CSSProperties | undefined>(() =>
 		style="position: absolute; width: 0; height: 0; overflow: hidden"
 	>
 		<defs v-html="softEdge.filterMarkup" />
+	</svg>
+	<svg
+		v-if="bevelLightingFilter"
+		width="0"
+		height="0"
+		aria-hidden="true"
+		style="position: absolute; width: 0; height: 0; overflow: hidden"
+	>
+		<defs v-html="bevelLightingFilter.filterMarkup" />
 	</svg>
 	<div
 		v-if="fillOverlayStyle"

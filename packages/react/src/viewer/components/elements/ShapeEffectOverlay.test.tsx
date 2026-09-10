@@ -57,6 +57,23 @@ describe('shapeEffectOverlay', () => {
 		expect(html).not.toContain('pptx-react-fill-overlay');
 	});
 
+	it('injects a bevel lighting <filter> so filter: url(#bevel-light-<id>) resolves', () => {
+		const html = render(
+			shape({
+				shape3d: { bevelTopType: 'circle', bevelTopWidth: 28575, bevelTopHeight: 28575 },
+			}),
+		);
+		expect(html).toContain('<svg');
+		expect(html).toContain('id="bevel-light-sp1"');
+		expect(html).toContain('feDiffuseLighting');
+		expect(html).toContain('feSpecularLighting');
+	});
+
+	it('renders nothing extra for a shape with no bevel', () => {
+		const html = render(shape({ fillColor: '#ffffff', shape3d: { presetMaterial: 'metal' } }));
+		expect(html).not.toContain('bevel-light');
+	});
+
 	describe('reflection', () => {
 		it('renders a mirrored sibling with no -webkit-box-reflect', () => {
 			const html = render(

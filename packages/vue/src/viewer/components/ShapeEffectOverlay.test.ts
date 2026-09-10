@@ -46,6 +46,27 @@ describe('shapeEffectOverlay', () => {
 		expect(wrapper.html()).toContain('id="soft-edge-sp1"');
 	});
 
+	it('injects a bevel-lighting <filter> so filter: url(#bevel-light-<id>) resolves', () => {
+		const wrapper = mount(ShapeEffectOverlay, {
+			props: {
+				element: shape({
+					fillColor: '#ffffff',
+					shape3d: { bevelTopType: 'circle', bevelTopWidth: 50000, bevelTopHeight: 50000 },
+				}),
+			},
+		});
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		expect(wrapper.html()).toContain('id="bevel-light-sp1"');
+		expect(wrapper.html()).toContain('feDiffuseLighting');
+	});
+
+	it('emits no bevel-lighting filter for a shape with no bevel', () => {
+		const wrapper = mount(ShapeEffectOverlay, {
+			props: { element: shape({ fillColor: '#ffffff' }) },
+		});
+		expect(wrapper.html()).not.toContain('bevel-light');
+	});
+
 	it('strokes a stroke-only ("open") preset instead of leaving a box border', () => {
 		// `<a:prstGeom prst="line"/>` has no region to fill and no box to outline;
 		// a CSS border drew a rectangle where PowerPoint draws the line itself.

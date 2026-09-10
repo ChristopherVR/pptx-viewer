@@ -31,14 +31,26 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 
 import { getBevelHighlightDirection, isBevelProfileInverted } from './visual-3d-bevel-light';
 import type { BevelLightVector } from './visual-3d-bevel-light';
+import { getBevelLightingFilterMarkup } from './visual-3d-bevel-lighting';
 import { getCameraTransform } from './visual-3d-camera';
 import type { ElementSizePx, Scene3dParams } from './visual-3d-camera';
 import { darkenColor } from './visual-3d-color';
 import { EMU_PER_PX, MAX_EXTRUSION_LAYERS } from './visual-3d-constants';
 import { getMaterialCssOverrides } from './visual-3d-materials';
+import type { SvgFilterDefinition } from './visual-effects';
 
 export { getCameraTransform } from './visual-3d-camera';
 export type { ElementSizePx, Scene3dParams, CameraTransform } from './visual-3d-camera';
+export {
+	getBevelLightingFilterMarkup,
+	getBevelLightingSvgFilter,
+	getBevelLightingFilterId,
+} from './visual-3d-bevel-lighting';
+export type {
+	BevelLightingShapeParams,
+	BevelLightingSceneParams,
+} from './visual-3d-bevel-lighting';
+export { isRoutedToLegacyBevelShadow } from './visual-3d-bevel-lighting-routing';
 export {
 	getMaterialCssOverrides,
 	getMaterialGradientOverlay,
@@ -893,6 +905,18 @@ export type MutableCss = {
  *
  * `elementSize`, when passed, re-projects the camera's field of view onto the
  * element's actual rendered size (see {@link getCameraTransform}).
+ *
+ * `elementId`, when passed, switches a bevel from the legacy `box-shadow`
+ * approximation to the real SVG lighting filter (see
+ * `visual-3d-bevel-lighting`): `base.filter` gains a `url(#bevel-light-<id>)`
+ * reference and the old bevel `box-shadow` layers (and the material's flat
+ * `filter`, now superseded by the SAME light driving the bevel) are skipped.
+ * The caller MUST separately fetch the matching markup via
+ * {@link getBevelLightingSvgFilter} (or `getBevelLightingFilterMarkup` with
+ * the same `elementId`/`shape3d`/`scene3d`) and inject it into a `<defs>`,
+ * the same two-step pattern `getSoftEdgeSvgFilter` already uses. Omitting
+ * `elementId` (every pre-existing caller) keeps the legacy box-shadow bevel
+ * exactly as before.
  */
 export function apply3dEffects(
 	base: MutableCss,
@@ -900,6 +924,7 @@ export function apply3dEffects(
 	shape3d: Shape3dParams | undefined,
 	fillColorFallback?: string,
 	elementSize?: ElementSizePx,
+	elementId?: string,
 ): void {
 	if (!scene3d && !shape3d) {
 		return;
@@ -984,9 +1009,21 @@ export function apply3dEffects(
 	}
 
 	// ── Bevel highlights/shadows ──
-	const bevelShadow = get3DBevelShadow(shape3d, scene3d?.lightRigDirection);
-	if (bevelShadow) {
-		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${bevelShadow}` : bevelShadow;
+	// A real SVG lighting filter (see the module doc comment) supersedes the
+	// box-shadow approximation whenever the caller identifies the element;
+	// otherwise fall back unchanged.
+	const bevelFilter = elementId
+		? getBevelLightingFilterMarkup(elementId, shape3d, scene3d)
+		: undefined;
+	if (bevelFilter) {
+		base.filter = base.filter
+			? `${base.filter} ${bevelFilter.cssReference}`
+			: bevelFilter.cssReference;
+	} else {
+		const bevelShadow = get3DBevelShadow(shape3d, scene3d?.lightRigDirection);
+		if (bevelShadow) {
+			base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${bevelShadow}` : bevelShadow;
+		}
 	}
 
 	// `a:backdrop` renders no synthetic shadow of its own; see the module doc
@@ -995,7 +1032,13 @@ export function apply3dEffects(
 	// ── Material preset → CSS filter/opacity/gradient ──
 	if (shape3d?.presetMaterial) {
 		const matOverrides = getMaterialCssOverrides(shape3d.presetMaterial as MaterialPresetType);
-		if (matOverrides.filter) {
+		// The bevel lighting filter already reads `presetMaterial` into the SAME
+		// light's diffuse/specular response (see `visual-3d-bevel-lighting-tables`),
+		// so the flat brightness/contrast/saturate approximation would double up
+		// with it; skip only the `filter` piece, not opacity/boxShadow/gradient
+		// (a shape with a material but no bevel has no lighting filter at all and
+		// keeps every piece, unchanged).
+		if (matOverrides.filter && !bevelFilter) {
 			base.filter = base.filter ? `${base.filter} ${matOverrides.filter}` : matOverrides.filter;
 		}
 		if (matOverrides.opacity !== undefined) {
@@ -1051,6 +1094,15 @@ export interface Computed3dStyle {
 	backgroundImage?: string;
 	filter?: string;
 	opacity?: number;
+	/**
+	 * The real SVG lighting `<filter>` for this element's bevel (see
+	 * `visual-3d-bevel-lighting`), when it carries one. `filter` above already
+	 * includes its `url(#id)` reference; the caller must separately inject
+	 * `bevelLightingFilter.filterMarkup` into a `<defs>` (mirroring how a soft
+	 * edge's `getSoftEdgeSvgFilter` markup is injected) for that reference to
+	 * resolve to anything.
+	 */
+	bevelLightingFilter?: SvgFilterDefinition;
 }
 
 /**
@@ -1117,24 +1169,38 @@ export function getComputed3dStyle(el: PptxElement): Computed3dStyle | undefined
 	// `a:backdrop` renders no synthetic shadow of its own; see the module doc
 	// comment above `getBevelStyle`'s declaration for the COM measurement.
 	const shadowParts: string[] = [];
+	const filterParts: string[] = [];
+	const bgParts: string[] = [];
 	const contour = getContourBoxShadow(shape3d, strokeColor ?? fillColor);
 	if (contour) {
 		shadowParts.push(contour);
 	}
-	const bevel = getBevelStyle(shape3d, scene3d?.lightRigDirection);
-	if (bevel) {
-		shadowParts.push(bevel.boxShadow);
-		if (bevel.background) {
-			result.background = bevel.background;
+	// A real SVG lighting filter (see the module doc comment on
+	// `apply3dEffects`) supersedes the box-shadow approximation; `el.id` is
+	// always available here (unlike `apply3dEffects`'s optional `elementId`),
+	// so every `getComputed3dStyle` caller (Vue/Angular/Svelte/Vanilla) gets it
+	// unconditionally.
+	const bevelFilter = getBevelLightingFilterMarkup(el.id, shape3d, scene3d);
+	if (bevelFilter) {
+		result.bevelLightingFilter = bevelFilter;
+		filterParts.push(bevelFilter.cssReference);
+	} else {
+		const bevel = getBevelStyle(shape3d, scene3d?.lightRigDirection);
+		if (bevel) {
+			shadowParts.push(bevel.boxShadow);
+			if (bevel.background) {
+				result.background = bevel.background;
+			}
 		}
 	}
 
 	// ── Material preset ──
-	const filterParts: string[] = [];
-	const bgParts: string[] = [];
 	if (shape3d?.presetMaterial) {
 		const mat = getMaterialCssOverrides(shape3d.presetMaterial as MaterialPresetType);
-		if (mat.filter) {
+		// See `apply3dEffects`'s matching comment: the bevel lighting filter
+		// already folds `presetMaterial` into the same light, so skip only the
+		// flat filter piece when one is active.
+		if (mat.filter && !bevelFilter) {
 			filterParts.push(mat.filter);
 		}
 		if (mat.opacity !== undefined) {

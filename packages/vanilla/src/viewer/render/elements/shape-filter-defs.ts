@@ -4,6 +4,7 @@ import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
+	getBevelLightingSvgFilter,
 	getComputedEffectStyle,
 	getDuotoneSvgFilter,
 	getEffectStyleSource,
@@ -18,10 +19,12 @@ import { buildReflectionMirrorContent } from './reflection-mirror-content';
 
 /**
  * Hidden SVG definitions referenced by shape-level effect filters: the DAG
- * duotone recolour (`filter: url(#dag-duotone-<id>)`) and the soft-edge feather
- * (`filter: url(#soft-edge-<id>)`, emitted by shared `getEffectFilterCss`). Both
- * `filter` CSS references already ride on the shape `<div>`; this injects the
- * matching `<filter>` markup so those references resolve.
+ * duotone recolour (`filter: url(#dag-duotone-<id>)`), the soft-edge feather
+ * (`filter: url(#soft-edge-<id>)`, emitted by shared `getEffectFilterCss`), and
+ * the `a:sp3d` bevel lighting model (`filter: url(#bevel-light-<id>)`, emitted
+ * by shared `getComputed3dStyle`). All three `filter` CSS references already
+ * ride on the shape `<div>`; this injects the matching `<filter>` markup so
+ * those references resolve.
  */
 export function renderShapeFilterDefs(doc: Document, element: PptxElement): SVGSVGElement | null {
 	// `getEffectStyleSource` resolves a shape/image's own `shapeStyle` OR a
@@ -41,6 +44,13 @@ export function renderShapeFilterDefs(doc: Document, element: PptxElement): SVGS
 	const softEdge = getSoftEdgeSvgFilter(style, element.id);
 	if (softEdge) {
 		markups.push(softEdge.filterMarkup);
+	}
+	// `getBevelLightingSvgFilter` derives `shape3d`/`scene3d` from the element's
+	// own `shapeStyle` internally (a group never carries a bevel, same as
+	// duotone), so it is called on `element`, not the resolved `style` source.
+	const bevelLighting = getBevelLightingSvgFilter(element);
+	if (bevelLighting) {
+		markups.push(bevelLighting.filterMarkup);
 	}
 	if (markups.length === 0) {
 		return null;

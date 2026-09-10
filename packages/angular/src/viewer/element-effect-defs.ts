@@ -11,6 +11,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import {
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
+	getBevelLightingSvgFilter,
 	getComputedEffectStyle,
 	getEffectStyleSource,
 	getSoftEdgeSvgFilter,
@@ -20,6 +21,7 @@ import type {
 	ReflectionWrapperStyle,
 	StrokeOutline,
 	SubpathFillOverlay,
+	SvgFilterDefinition,
 } from '../internal/shared';
 import type { DuotoneFilterDef } from './duotone-filter';
 
@@ -47,6 +49,34 @@ export function getSoftEdgeFilterDef(el: PptxElement): SoftEdgeFilterDef | undef
 		return undefined;
 	}
 	return { id: def.id, radius: Math.round(ss.softEdgeRadius) };
+}
+
+/**
+ * Bevel lighting `<filter>` descriptor for a shape's `a:sp3d` top/bottom
+ * bevel(s), or `undefined` when it carries neither.
+ *
+ * Unlike {@link getSoftEdgeFilterDef} (a FIXED 2-primitive chain the template
+ * hand-authors from `id`/`radius`), the bevel lighting chain is a
+ * VARIABLE-LENGTH sequence (1 or 2 layers, ~7 `<fe*>` primitives each,
+ * computed by `visual-3d-bevel-lighting.ts` from the bevel profile, light rig
+ * and material) that is too structurally variable to reproduce by hand in the
+ * template without risking silent drift from the shared logic. So the
+ * renderer instead injects `filterMarkup` verbatim (via a sanitized
+ * `[innerHTML]` binding, see `ElementRendererComponent.bevelLightingFilter`):
+ * the same trust decision React's `dangerouslySetInnerHTML`, Vue's `v-html`
+ * and Svelte's `{@html}` already make for this exact markup, and the same
+ * decision `ImageRendererComponent.safeFilters` already makes for the
+ * equally shared-generated image-effect filters (duotone, alpha, artistic).
+ * `filterMarkup` here is the FULL `<filter id="…">…</filter>` element
+ * (unlike `ImageSvgFilterDefinition.markup`, which is inner primitives only).
+ *
+ * `getComputed3dStyle`'s own `filter` CSS piece (merged in by
+ * `merge3dStyleMap`) already carries the matching `url(#bevel-light-<id>)`
+ * reference, so no `element-style.ts` change is needed; this only supplies
+ * the DOM node that reference resolves against.
+ */
+export function getBevelLightingFilterDef(el: PptxElement): SvgFilterDefinition | undefined {
+	return getBevelLightingSvgFilter(el);
 }
 
 /**

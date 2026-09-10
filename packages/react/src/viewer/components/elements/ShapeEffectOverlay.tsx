@@ -4,6 +4,7 @@ import {
 	buildHollowHitOutline,
 	buildStrokeOutline,
 	buildSubpathFillOverlay,
+	getBevelLightingSvgFilter,
 	getComputedEffectStyle,
 	getEffectStyleSource,
 	getSoftEdgeSvgFilter,
@@ -132,13 +133,28 @@ export function ShapeEffectOverlay({
 	const overlay = fx.fillOverlay;
 	const reflection = suppressReflection ? undefined : fx.reflection;
 	const softEdge = getSoftEdgeSvgFilter(getEffectStyleSource(element), element.id);
+	// The real SVG lighting filter for a `a:sp3d` bevel (see shared
+	// `apply3dEffects`'s doc comment): the container's own `filter` already
+	// carries the matching `url(#bevel-light-<id>)` reference (set by
+	// `getShapeVisualStyle`/`apply3dEffects`, which passes the SAME
+	// `element.id`); this injects the `<filter>` markup that reference
+	// resolves to, the same two-step pattern as `softEdge` above.
+	const bevelLightingFilter = getBevelLightingSvgFilter(element);
 	const strokeOutline = buildStrokeOutline(element);
 	// An unfilled, textless shape is a FRAME: its container is pointer-events:none
 	// so clicks fall through to what it is drawn over, and this transparent band
 	// opts its OUTLINE back into hit testing (same trick as connector-hit-target).
 	const hollowHit = buildHollowHitOutline(element);
 	const subpathFill = buildSubpathFillOverlay(element);
-	if (!overlay && !softEdge && !strokeOutline && !hollowHit && !subpathFill && !reflection) {
+	if (
+		!overlay &&
+		!softEdge &&
+		!bevelLightingFilter &&
+		!strokeOutline &&
+		!hollowHit &&
+		!subpathFill &&
+		!reflection
+	) {
 		return null;
 	}
 
@@ -191,6 +207,21 @@ export function ShapeEffectOverlay({
 					}}
 				>
 					<defs dangerouslySetInnerHTML={{ __html: softEdge.filterMarkup }} />
+				</svg>
+			) : null}
+			{bevelLightingFilter ? (
+				<svg
+					width={0}
+					height={0}
+					aria-hidden='true'
+					style={{
+						position: 'absolute',
+						width: 0,
+						height: 0,
+						overflow: 'hidden',
+					}}
+				>
+					<defs dangerouslySetInnerHTML={{ __html: bevelLightingFilter.filterMarkup }} />
 				</svg>
 			) : null}
 			{fillOverlayStyle ? (

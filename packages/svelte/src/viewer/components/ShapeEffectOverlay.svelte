@@ -17,6 +17,11 @@
 	 *     `getEffectFilterCss`); this injects the matching `<filter>` markup into a
 	 *     hidden, zero-size `<svg><defs>` so that reference resolves, mirroring how
 	 *     `DuotoneFilterDefs` injects the duotone filter.
+	 *  3b. The `a:sp3d` bevel lighting `<filter>` (`visual-3d-bevel-lighting`):
+	 *     the same two-step treatment as the soft edge above. The shape's CSS
+	 *     `filter` (folded in by `element-style.ts`'s `merge3dStyle`, via shared
+	 *     `getComputed3dStyle`) already carries a `url(#bevel-light-<id>)`
+	 *     reference; this injects the matching `<filter>` markup so it resolves.
 	 *  4. A per-sub-path FILL overlay, for a multi-sub-path preset (`smileyFace`'s
 	 *     open eyes, `actionButtonBlank`'s darkened bevel well) whose sub-paths
 	 *     cannot share one CSS `background-color`: `element-style.ts` drops the
@@ -41,6 +46,7 @@
 	import {
 		buildStrokeOutline,
 		buildSubpathFillOverlay,
+		getBevelLightingSvgFilter,
 		getComputedEffectStyle,
 		getEffectStyleSource,
 		getSoftEdgeSvgFilter,
@@ -89,6 +95,15 @@
 
 	/** Soft-edge `<filter>` definition for this element, when a soft edge applies. */
 	const softEdge = $derived(getSoftEdgeSvgFilter(getEffectStyleSource(element), element.id));
+
+	/**
+	 * `a:sp3d` bevel lighting `<filter>` definition for this element, when it
+	 * carries a top/bottom bevel. `element-style.ts` already folds this
+	 * filter's `url(#bevel-light-<id>)` reference into the shape's CSS
+	 * `filter` (via shared `getComputed3dStyle`/`merge3dStyle`); this injects
+	 * the matching `<filter>` markup so that reference resolves to something.
+	 */
+	const bevelLightingFilter = $derived(getBevelLightingSvgFilter(element));
 
 	/**
 	 * Stroked SVG outline, for the two cases a CSS border cannot paint: a
@@ -141,6 +156,11 @@
 {#if softEdge}
 	<svg width="0" height="0" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
 		<defs>{@html softEdge.filterMarkup}</defs>
+	</svg>
+{/if}
+{#if bevelLightingFilter}
+	<svg width="0" height="0" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+		<defs>{@html bevelLightingFilter.filterMarkup}</defs>
 	</svg>
 {/if}
 
