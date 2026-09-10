@@ -90,6 +90,18 @@
 		"dataset": "hier5"
 	},
 	{
+		"file": "square-accent-list--flat3.pptx",
+		"layoutName": "Square Accent List",
+		"category": "list",
+		"dataset": "flat3"
+	},
+	{
+		"file": "square-accent-list--hier8.pptx",
+		"layoutName": "Square Accent List",
+		"category": "list",
+		"dataset": "hier8"
+	},
+	{
 		"file": "picture-accent-list--hier5.pptx",
 		"layoutName": "Picture Accent List",
 		"category": "list",

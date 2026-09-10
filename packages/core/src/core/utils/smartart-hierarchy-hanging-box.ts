@@ -61,7 +61,7 @@
  * Pure geometry/constraint reading; no framework code.
  */
 
-import type { PptxSmartArtLayoutNode, PptxSmartArtPresLayoutVars } from '../types';
+import type { PptxSmartArtLayoutNode } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { resolveConstraint } from './smartart-constraint-solver';
 import { resolveHierarchyGenerationTemplates } from './smartart-hierarchy-generation-templates';
@@ -120,8 +120,6 @@ export function fitHangingBox(
 	w: number,
 	h: number,
 	rows: number,
-	nodeCount = 0,
-	presLayoutVars?: PptxSmartArtPresLayoutVars,
 ): HangingBoxFit {
 	const fallbackBoxH = Math.min(h * FALLBACK_BOX_H_RATIO, FALLBACK_BOX_H_MAX);
 	const fallback: HangingBoxFit = {
@@ -132,12 +130,7 @@ export function fitHangingBox(
 	if (!algorithmNode || rows < 1) {
 		return fallback;
 	}
-	const templates = resolveHierarchyGenerationTemplates(
-		algorithmNode,
-		index,
-		nodeCount,
-		presLayoutVars,
-	);
+	const templates = resolveHierarchyGenerationTemplates(algorithmNode, index);
 	if (!templates) {
 		return fallback;
 	}

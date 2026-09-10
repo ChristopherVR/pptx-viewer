@@ -73,12 +73,7 @@ export function resolveCornerHangPlan(
 	if (!linDir || !VERTICAL_LIN_DIR.has(linDir)) {
 		return undefined;
 	}
-	const templates = resolveHierarchyGenerationTemplates(
-		algorithmNode,
-		index,
-		nodeCount,
-		presLayoutVars,
-	);
+	const templates = resolveHierarchyGenerationTemplates(algorithmNode, index);
 	if (!templates?.root) {
 		return undefined;
 	}
