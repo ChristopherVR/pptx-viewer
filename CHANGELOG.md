@@ -8,6 +8,24 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-10
+
+_Releases: pptx-viewer-core@3.9.0, pptx-react-viewer@3.11.0, pptx-vue-viewer@3.11.0, pptx-angular-viewer@3.12.0, pptx-vanilla-viewer@2.11.0, pptx-svelte-viewer@3.12.0_
+
+### Features
+
+- **core:** Fit SmartArt layouts to PowerPoint's measured geometry (by @ChristopherVR) ([4f689ef](https://github.com/ChristopherVR/pptx-viewer/commit/4f689eff63edce2fa584929c54224142e3a20faf))
+
+### Testing
+
+- **react:** Poll for the asynchronous OLE workbook commit (by @ChristopherVR) ([cffd4b8](https://github.com/ChristopherVR/pptx-viewer/commit/cffd4b8bcabcb302426e4a4eaf329c575a842a83))
+- **vanilla,svelte:** Poll for the asynchronous OLE workbook commit (by @ChristopherVR) ([17842d4](https://github.com/ChristopherVR/pptx-viewer/commit/17842d4116a8b0693866f4fa66832b8be416d2e6))
+- **e2e:** Probe 3D chart marks centre-out and reuse the React demo's root under HMR (by @ChristopherVR) ([2d668e4](https://github.com/ChristopherVR/pptx-viewer/commit/2d668e414f87d4c46b96d613d730640288394ccd))
+
+### Build & CI
+
+- Split the e2e matrix into four shards per binding (by @ChristopherVR) ([1b1aec3](https://github.com/ChristopherVR/pptx-viewer/commit/1b1aec3ae30920cd659efa98076d68ed7fb527c8))
+
 ## 2026-09-09
 
 _Releases: pptx-viewer-core@3.8.0, pptx-react-viewer@3.10.0, pptx-vue-viewer@3.10.0, pptx-angular-viewer@3.11.0, pptx-vanilla-viewer@2.10.0, pptx-svelte-viewer@3.11.0, pptx-viewer-mcp@2.5.0, @christophervr/pptx-viewer@2.10.0_

@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.11.0) - 2026-09-10
+
+### Features
+
+- **core:** Fit SmartArt layouts to PowerPoint's measured geometry (by @ChristopherVR) ([4f689ef](https://github.com/ChristopherVR/pptx-viewer/commit/4f689eff63edce2fa584929c54224142e3a20faf))
+
+### Testing
+
+- **react:** Poll for the asynchronous OLE workbook commit (by @ChristopherVR) ([cffd4b8](https://github.com/ChristopherVR/pptx-viewer/commit/cffd4b8bcabcb302426e4a4eaf329c575a842a83))
+
 ## [3.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.10.0) - 2026-09-09
 
 ### Features

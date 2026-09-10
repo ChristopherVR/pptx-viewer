@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.11.0) - 2026-09-10
+
+### Features
+
+- **core:** Fit SmartArt layouts to PowerPoint's measured geometry (by @ChristopherVR) ([4f689ef](https://github.com/ChristopherVR/pptx-viewer/commit/4f689eff63edce2fa584929c54224142e3a20faf))
+
+### Testing
+
+- **vanilla,svelte:** Poll for the asynchronous OLE workbook commit (by @ChristopherVR) ([17842d4](https://github.com/ChristopherVR/pptx-viewer/commit/17842d4116a8b0693866f4fa66832b8be416d2e6))
+
 ## [2.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.10.0) - 2026-09-09
 
 ### Features
