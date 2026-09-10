@@ -68,6 +68,14 @@
 	}
 }
 
+/* Text autosizing: the viewer scales the whole slide as one unit, so a mobile
+ * browser must not inflate the glyphs alone (it changes wrapping and clips
+ * text). Mirrors the React `theme.css` rule. */
+.pptx-vue-viewer {
+	-webkit-text-size-adjust: none;
+	text-size-adjust: none;
+}
+
 .pptx-vue-viewer.pptx-vue-reduced-motion *,
 .pptx-vue-viewer.pptx-vue-reduced-motion *::before,
 .pptx-vue-viewer.pptx-vue-reduced-motion *::after,
