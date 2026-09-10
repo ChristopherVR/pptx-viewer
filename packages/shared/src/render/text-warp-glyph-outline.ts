@@ -21,6 +21,33 @@
  * file, e.g. a signature font on the reader's OS with no webfont match),
  * `text-warp-envelope-layout.ts` falls back to the existing per-glyph affine
  * / piecewise-affine-slice transform, unchanged.
+ *
+ * COM-verified 2026-09-11 (an 8-shape Arimo Bold fixture, `textCanUp`/
+ * `textCanDown`/`textInflate`/`textDeflate` at default and extreme `adj`): an
+ * outline-vs-PowerPoint ink-scan comparison found a large interior-column
+ * mismatch (~30-40% of box height, max 58-80%) that traced NOT to this
+ * module's point-mapping (verified correct: the affine fallback, driven by
+ * the identical inputs, showed the same error to within measurement noise),
+ * but to `text-warp-envelope-layout.ts`'s `nomTop`/`nomBottom` - the
+ * "undeformed" reference band both this module and the affine path map a
+ * glyph's points FROM - being a fixed fraction of box height regardless of
+ * the actual text's real (font-metric) size. See
+ * `measureLineAscent`'s doc comment there for the fix and the re-measured
+ * numbers. A separate, larger, NOT-yet-fixed gap the same investigation
+ * found: real PowerPoint spaces envelope-warped glyphs to fill the box's own
+ * width edge-to-edge (`textCanUp`/`textCanDown` additionally non-uniformly,
+ * cylinder-projection-like) rather than centring the text at its natural
+ * advance width the way `measureGlyphAdvances`/`startX` do today - out of
+ * scope for that fix, left as an open, separately-scoped issue.
+ *
+ * Open question, not root-caused: the same investigation's COM fixture had
+ * to be rendered from a deck that embeds no font at all (`warp-outline-
+ * noembed-clean.pptx`, Arimo installed as a Windows user font instead) -
+ * PowerPoint refused to open an earlier variant of the SAME fixture that
+ * embedded Arimo Bold as a `ppt/fonts/{guid}.fntdata` part (obfuscated per
+ * ECMA-376 14.2.1, wired via `p:embeddedFontLst`/`embedTrueTypeFonts="1"`)
+ * with error `0x808D1001`. Left as an open note for whoever next touches
+ * embedded-font packaging or generates a COM fixture that needs one.
  */
 import { edgeBandAt } from './text-warp-glyph-matrix';
 

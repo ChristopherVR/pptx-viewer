@@ -10,8 +10,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	buildGlyphEnvelope,
 	measureGlyphAdvances,
+	measureLineAscent,
 	resetGlyphEnvelopeMeasureCache,
 } from './text-warp-envelope-layout';
+import { edgeBandAt } from './text-warp-glyph-matrix';
 
 const FONT = { fontFamily: 'Arial', fontSizePx: 20 };
 
@@ -396,5 +398,144 @@ describe('buildGlyphEnvelope', () => {
 			// affine transform rather than a broken empty `outlinePath`.
 			expect(placements[0].outlinePath).toBeUndefined();
 		});
+	});
+});
+
+/** Stub `measureText` to also report a fixed `actualBoundingBoxAscent`. */
+function stubAscent(widthPerChar: number, actualBoundingBoxAscent: number | undefined): void {
+	vi.spyOn(document, 'createElement').mockReturnValue({
+		getContext: () => ({
+			font: '',
+			measureText(text: string) {
+				return { width: [...text].length * widthPerChar, actualBoundingBoxAscent };
+			},
+		}),
+	} as unknown as HTMLElement);
+}
+
+describe('measureLineAscent', () => {
+	it('is undefined with no DOM canvas context', () => {
+		vi.spyOn(document, 'createElement').mockReturnValue({
+			getContext: () => null,
+		} as unknown as HTMLElement);
+		expect(measureLineAscent([{ text: 'W', font: FONT, segmentIndex: 0 }])).toBeUndefined();
+	});
+
+	it('is undefined when measureText reports no actualBoundingBoxAscent', () => {
+		// jsdom's own `measureText` stub (and any environment without real
+		// glyph-ink measurement) omits this field entirely.
+		stubFixedAdvance(10);
+		expect(measureLineAscent([{ text: 'W', font: FONT, segmentIndex: 0 }])).toBeUndefined();
+	});
+
+	it('skips empty segments and ignores a non-finite ascent', () => {
+		stubAscent(10, Number.NaN);
+		expect(
+			measureLineAscent([
+				{ text: '', font: FONT, segmentIndex: 0 },
+				{ text: 'W', font: FONT, segmentIndex: 1 },
+			]),
+		).toBeUndefined();
+	});
+
+	it('is the tallest actualBoundingBoxAscent across every segment on the line', () => {
+		vi.spyOn(document, 'createElement').mockReturnValue({
+			getContext: () => ({
+				font: '',
+				measureText(text: string) {
+					return { width: 10, actualBoundingBoxAscent: text === 'tall' ? 40 : 12 };
+				},
+			}),
+		} as unknown as HTMLElement);
+		const ascent = measureLineAscent([
+			{ text: 'short', font: FONT, segmentIndex: 0 },
+			{ text: 'tall', font: FONT, segmentIndex: 1 },
+		]);
+		expect(ascent).toBe(40);
+	});
+});
+
+describe('nomTop derived from real text ascent (COM-measured regression)', () => {
+	// COM-measured 2026-09-11 (see `measureLineAscent`'s doc comment): mapping
+	// a glyph's nominal band from a FIXED fraction of box height, instead of
+	// the line's own real ink ascent, undershot PowerPoint's real envelope by
+	// ~30-40% of box height on interior columns for an Arimo Bold 44pt caption
+	// in a 100pt-tall box (real cap height reaches only t~0.57 of the fixed
+	// 0.15..0.85 band). These pin the fix's arithmetic directly against the
+	// public `edgeBandAt`/`glyphEnvelopeMatrix` building blocks, independent
+	// of any specific preset table's own numbers.
+	const HEIGHT = 100;
+	const PRESET = 'textInflate';
+
+	it('narrows the nominal band to the real ascent when it is smaller than the fixed band', () => {
+		// One glyph spanning the WHOLE line (u0=0, u1=1) so `d` is driven
+		// entirely by the box-relative nominal span, matching
+		// `glyphEnvelopeMatrix`'s own closed form.
+		stubAscent(100, 40);
+		const adj = 66667;
+		const placements = buildGlyphEnvelope(
+			PRESET,
+			[{ text: 'M', font: FONT, segmentIndex: 0 }],
+			100,
+			HEIGHT,
+			'center',
+			adj,
+		);
+		expect(placements).toHaveLength(1);
+		const { d } = parseGlyphMatrix(placements[0].transform);
+
+		const edge0 = edgeBandAt(PRESET, 0, adj, undefined, HEIGHT, 0, 1);
+		const edge1 = edgeBandAt(PRESET, 1, adj, undefined, HEIGHT, 0, 1);
+		const nomBottom = HEIGHT * 0.85;
+		const expectedNomTop = Math.max(HEIGHT * 0.15, nomBottom - 40); // = 45
+		const expectedNominalSpan = nomBottom - expectedNomTop; // = 40
+		const expectedD =
+			(edge0.bottom - edge0.top + (edge1.bottom - edge1.top)) / (2 * expectedNominalSpan);
+		expect(d).toBeCloseTo(expectedD, 6);
+
+		// Must differ from the OLD fixed-band scale (nominalSpan = 70) - a test
+		// that only checked `d` against a value both formulas share would pass
+		// vacuously even without the fix.
+		const oldNominalSpan = HEIGHT * (0.85 - 0.15);
+		const oldD = (edge0.bottom - edge0.top + (edge1.bottom - edge1.top)) / (2 * oldNominalSpan);
+		expect(d).not.toBeCloseTo(oldD, 3);
+	});
+
+	it('leaves the fixed band unchanged when the real ascent already fills (or exceeds) it', () => {
+		stubAscent(100, 90); // 90 > the fixed band's 70px nominal span
+		const placements = buildGlyphEnvelope(
+			PRESET,
+			[{ text: 'M', font: FONT, segmentIndex: 0 }],
+			100,
+			HEIGHT,
+			'center',
+		);
+		const { d } = parseGlyphMatrix(placements[0].transform);
+		const edge0 = edgeBandAt(PRESET, 0, undefined, undefined, HEIGHT, 0, 1);
+		const edge1 = edgeBandAt(PRESET, 1, undefined, undefined, HEIGHT, 0, 1);
+		const oldNominalSpan = HEIGHT * (0.85 - 0.15);
+		const expectedD =
+			(edge0.bottom - edge0.top + (edge1.bottom - edge1.top)) / (2 * oldNominalSpan);
+		expect(d).toBeCloseTo(expectedD, 6);
+	});
+
+	it('leaves the fixed band unchanged when measureText reports no ascent at all', () => {
+		// The stub used throughout this file's other tests (and jsdom's own
+		// `measureText`): a `width` with no `actualBoundingBoxAscent` field.
+		stubFixedAdvance(100);
+		const placements = buildGlyphEnvelope(
+			PRESET,
+			[{ text: 'M', font: FONT, segmentIndex: 0 }],
+			100,
+			HEIGHT,
+			'center',
+		);
+		const { d } = parseGlyphMatrix(placements[0].transform);
+		const edge0 = edgeBandAt(PRESET, 0, undefined, undefined, HEIGHT, 0, 1);
+		const edge1 = edgeBandAt(PRESET, 1, undefined, undefined, HEIGHT, 0, 1);
+		const oldNominalSpan = HEIGHT * (0.85 - 0.15);
+		const expectedD =
+			(edge0.bottom - edge0.top + (edge1.bottom - edge1.top)) / (2 * oldNominalSpan);
+		expect(d).toBeCloseTo(expectedD, 6);
 	});
 });

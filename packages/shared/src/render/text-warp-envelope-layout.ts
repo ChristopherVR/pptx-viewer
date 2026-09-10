@@ -84,6 +84,66 @@ export function measureGlyphAdvances(text: string, font: EnvelopeFontSpec): numb
 	return advances;
 }
 
+/**
+ * The real (ink-measured) ascent of `segments`' text at their own font
+ * sizes, as the tallest `actualBoundingBoxAscent` across every segment on
+ * the line (not a per-character average - one tall glyph anywhere on the
+ * line sets the reference the whole line warps against, matching how a
+ * single baseline/cap-height pair governs a real text run).
+ *
+ * `buildGlyphEnvelope` used to map every glyph's nominal band from a FIXED
+ * `NOMINAL_ENVELOPE_BAND` fraction of the box height (0.15..0.85), assuming
+ * a glyph's own cap height fills that whole span. COM-measured (2026-09-11,
+ * `text-warp-glyph-outline.ts`'s doc comment): for an 8-shape WordArt
+ * fixture (Arimo Bold 44pt captions in 100pt-tall boxes, the `textCanUp` /
+ * `textCanDown` / `textInflate` / `textDeflate` presets at both default and
+ * extreme `adj`), real cap height reaches only about `t = 0.57` of that
+ * nominal span, not `t = 0`, so every glyph's mapped top undershot the
+ * curve's own top edge by the same amount - an outline-vs-COM interior-
+ * column ink-scan comparison measured ~30-40% of box height mean error (max
+ * 58-80%) on BOTH the outline path and the affine fallback alike (both use
+ * this same nominal band, so both shared the bug identically: the residual
+ * lived here, not in the outline point-mapping math). Anchoring `nomTop` to
+ * the line's REAL measured ascent instead - clamped to never exceed the
+ * historical fixed band, so a line whose font genuinely fills (or exceeds)
+ * the nominal span keeps the old, already-validated behaviour unchanged -
+ * dropped the `textInflate`/`textDeflate` interior mean error to ~2.6-2.9%
+ * (max ~9-10%), in the range `text-warp-glyph-slicing.ts`'s doc comment
+ * already documents as the residual once this band mismatch is not also
+ * present. The `textCanUp`/`textCanDown` cases still show an elevated
+ * residual (their interior mean measured ~6-20% even after this fix) that
+ * further investigation traced to a SEPARATE, larger issue: real PowerPoint
+ * spaces envelope-warped glyphs to fill the box's own width edge-to-edge
+ * (measured ink spanning ~99.9% of box width) rather than centering the
+ * text at its natural (unstretched) advance width the way `startX`/
+ * `measureGlyphAdvances` do today, with `textCanUp`/`textCanDown` additionally
+ * showing non-uniform (cylinder-projection-like) horizontal spacing this fix
+ * does not address - both are horizontal-layout gaps, out of scope for this
+ * (purely vertical) band fix and left as an open, separately-scoped issue.
+ *
+ * Returns `undefined` with no DOM (SSR, or a test environment without a 2D
+ * canvas context), so a caller falls back to the previous fixed-fraction
+ * band unchanged, exactly like {@link measureGlyphAdvances}'s own fallback.
+ */
+export function measureLineAscent(segments: EnvelopeSegmentInput[]): number | undefined {
+	const ctx = getMeasureCtx();
+	if (!ctx) {
+		return undefined;
+	}
+	let maxAscent = 0;
+	for (const segment of segments) {
+		if (!segment.text) {
+			continue;
+		}
+		ctx.font = toCanvasFont(segment.font);
+		const ascent = ctx.measureText(segment.text).actualBoundingBoxAscent;
+		if (Number.isFinite(ascent) && ascent > maxAscent) {
+			maxAscent = ascent;
+		}
+	}
+	return maxAscent > 0 ? maxAscent : undefined;
+}
+
 function startX(align: EnvelopeAlign, width: number, lineWidth: number): number {
 	if (align === 'right') {
 		return width - lineWidth;
@@ -140,12 +200,19 @@ export function buildGlyphEnvelope(
 		0,
 	);
 
-	const { top: nomTop, bottom: nomBottom } = sliceBand(
+	const { top: fixedBandTop, bottom: nomBottom } = sliceBand(
 		height * NOMINAL_ENVELOPE_BAND.top,
 		height * NOMINAL_ENVELOPE_BAND.bottom,
 		safeLineIndex,
 		safeLineCount,
 	);
+	// Prefer the line's own real ink ascent over the fixed-fraction band (see
+	// `measureLineAscent`'s doc comment for why): never LOWER than the fixed
+	// band's top, so a line whose font already fills (or exceeds) the nominal
+	// span keeps today's behaviour unchanged.
+	const realAscent = measureLineAscent(segments);
+	const nomTop =
+		realAscent !== undefined ? Math.max(fixedBandTop, nomBottom - realAscent) : fixedBandTop;
 
 	const placements: EnvelopeGlyphPlacement[] = [];
 	let x = startX(align, width, lineWidth);
