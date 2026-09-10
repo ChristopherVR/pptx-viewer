@@ -1,8 +1,10 @@
 import { assertDistFreshness } from './dist-freshness';
 import { generateBar3DHorizontalFixture } from './fixtures/generate-bar3d-horizontal-fixture';
+import { generateBar3DPictureFillFixture } from './fixtures/generate-bar3d-picture-fill-fixture';
 import { generateFixture as generateBoxCubeTransitionFixture } from './fixtures/generate-box-cube-transition-fixture';
 import { generateChartFixture } from './fixtures/generate-chart-fixture';
 import { generateChartUserShapeGroupFixture } from './fixtures/generate-chart-user-shape-group-fixture';
+import { generateFixture as generateCinematicFragmentsFixture } from './fixtures/generate-cinematic-fragments-fixture';
 import { generateFixture as generateEffectSoundGalleryFixture } from './fixtures/generate-effect-sound-gallery-fixture';
 import { generateFieldSubstitutionFixture } from './fixtures/generate-field-substitution-fixture';
 import { generateFixture } from './fixtures/generate-format-painter-fixture';
@@ -15,6 +17,7 @@ import { generateParityWave4Fixture } from './fixtures/generate-parity-wave4-fix
 import { generatePie3DFixture } from './fixtures/generate-pie3d-fixture';
 import { generatePresetTextInsetsFixture } from './fixtures/generate-preset-text-insets-fixture';
 import { generateRectPathGradientFixture } from './fixtures/generate-rectpath-gradient-fixture';
+import { generateRunProgramFixture } from './fixtures/generate-run-program-fixture';
 import { generateSmartArtBuildFixture } from './fixtures/generate-smartart-build-fixture';
 import { generateFixture as generateTemplateEditingFixture } from './fixtures/generate-template-editing-fixture';
 import {
@@ -37,11 +40,13 @@ export default async function globalSetup() {
 	await generateChartFixture();
 	await generateChartUserShapeGroupFixture();
 	await generateBar3DHorizontalFixture();
+	await generateBar3DPictureFillFixture();
 	await generatePie3DFixture();
 	await generateFieldSubstitutionFixture();
 	await generateTransitionsAnimationsFixture();
 	await generateEffectSoundGalleryFixture();
 	await generateBoxCubeTransitionFixture();
+	await generateCinematicFragmentsFixture();
 	await generateTemplateEditingFixture();
 	await generateTemplateGroupFixture();
 	await generateTemplateMceFixture();
@@ -61,4 +66,5 @@ export default async function globalSetup() {
 	await generateSmartArtBuildFixture();
 	await generateThemeColorPickerFixture();
 	await generateRectPathGradientFixture();
+	await generateRunProgramFixture();
 }

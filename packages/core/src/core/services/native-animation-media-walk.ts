@@ -55,11 +55,20 @@ function collectMediaNodes(node: XmlObject | undefined, animations: PptxNativeAn
 				cTn && cTn['@_dur'] !== undefined && String(cTn['@_dur']) !== 'indefinite'
 					? Number.parseInt(String(cTn['@_dur']), 10)
 					: undefined;
+			// `p:cTn/@id`: this media node's OWN timing-tree node id, the same id
+			// space an `onStopAudio` condition's `@_tn` names via
+			// `targetTimeNodeId`. Without this, `resolveMediaTimeNodeElementIds`
+			// (render/animation-media-end-gating) can never match a `@tn`-named
+			// dependency back to this media node, and neither can the real-duration
+			// patch in `native-animation-media-duration.ts`.
+			const nodeIdRaw = cTn?.['@_id'];
+			const nodeId = nodeIdRaw !== undefined ? Number.parseInt(String(nodeIdRaw), 10) : undefined;
 
 			animations.push({
 				kind: 'media',
 				mediaType: tag === 'p:audio' ? 'audio' : 'video',
 				targetId,
+				nodeId: nodeId !== undefined && !Number.isNaN(nodeId) ? nodeId : undefined,
 				durationMs: durationMs !== undefined && !Number.isNaN(durationMs) ? durationMs : undefined,
 				cTnAttributes: roundTripAttrs,
 				afterEffect: afterEffectFlag,

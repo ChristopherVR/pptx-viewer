@@ -372,7 +372,16 @@ export function extractStartConditionDelayMs(cTn: XmlObject): number | undefined
 	return smallest;
 }
 
-/** Behaviour elements whose `p:cBhvr/p:cTn/@dur` gives an effect its duration. */
+/**
+ * Behaviour elements whose `p:cBhvr/p:cTn/@dur` gives an effect its duration.
+ * `p:cmd` (a `<p:cmd type="call" cmd="playFrom(0.0)">` media-play command,
+ * PowerPoint's "mediacall" clickEffect preset) is included so its own
+ * `p:cBhvr/p:cTn/@dur` - PowerPoint's ESTIMATE of the clip it plays, in the
+ * same units and role as every other behaviour's duration here - reaches
+ * `durationMs` instead of being silently dropped; `native-animation-media-
+ * duration-plain-delay.ts` needs that captured estimate as the anchor value
+ * for correcting a later click-group's bare `p:cond/@delay` copied from it.
+ */
 const BEHAVIOUR_TAGS = [
 	'p:animEffect',
 	'p:anim',
@@ -381,6 +390,7 @@ const BEHAVIOUR_TAGS = [
 	'p:animRot',
 	'p:animScale',
 	'p:set',
+	'p:cmd',
 ] as const;
 
 /**

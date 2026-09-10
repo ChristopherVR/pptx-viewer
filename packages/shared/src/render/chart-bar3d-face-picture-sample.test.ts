@@ -1,3 +1,4 @@
+import { encodePng } from 'pptx-viewer-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -5,8 +6,14 @@ import {
 	ensureBarFacePicturePixelSampled,
 	getCachedBarFacePicturePixelColor,
 	resetBarFacePicturePixelCacheForTests,
+	resolveBarFacePicturePixelColor,
 	subscribeBarFacePicturePixelSamples,
 } from './chart-bar3d-face-picture-sample';
+
+function pngDataUrl(rgba: [number, number, number, number]): string {
+	const png = encodePng(1, 1, new Uint8Array(rgba));
+	return `data:image/png;base64,${Buffer.from(png).toString('base64')}`;
+}
 
 describe('chart-bar3d-face-picture-sample', () => {
 	beforeEach(() => {
@@ -66,5 +73,46 @@ describe('chart-bar3d-face-picture-sample', () => {
 
 	it('decodeFirstPixelColor resolves to undefined outside a DOM (headless)', async () => {
 		await expect(decodeFirstPixelColor('data:image/png;e')).resolves.toBeUndefined();
+	});
+});
+
+describe('resolveBarFacePicturePixelColor (synchronous, DOM-free first)', () => {
+	beforeEach(() => {
+		resetBarFacePicturePixelCacheForTests();
+	});
+
+	it('resolves a PNG data URL synchronously on the very first call (no flash)', () => {
+		const url = pngDataUrl([10, 20, 30, 255]);
+		expect(resolveBarFacePicturePixelColor(url)).toBe('#0a141e');
+		// Cached for next time, via the same read path as the async path.
+		expect(getCachedBarFacePicturePixelColor(url)).toBe('#0a141e');
+	});
+
+	it('works with no DOM at all (headless/SSR/Node), unlike the async decode', () => {
+		// This test file runs under vitest's default (non-jsdom) environment for
+		// this describe block's purposes: Image/document are irrelevant to the
+		// synchronous path, which never touches them.
+		const url = pngDataUrl([1, 2, 3, 255]);
+		expect(globalThis.Image).not.toBeTypeOf('function');
+		expect(resolveBarFacePicturePixelColor(url)).toBe('#010203');
+	});
+
+	it('falls back to the async decode path for a URL the sync decoder cannot handle', () => {
+		const url = 'data:image/webp;base64,AAAA'; // sync decoder has no WebP support
+		expect(resolveBarFacePicturePixelColor(url)).toBeUndefined();
+		// The async fallback was kicked off (in-flight), matching the pre-existing contract.
+		expect(getCachedBarFacePicturePixelColor(url)).toBeUndefined();
+	});
+
+	it('does not re-attempt a sync decode once cached as undecodable', () => {
+		const url = 'data:image/webp;base64,AAAA';
+		resolveBarFacePicturePixelColor(url); // kicks off async fallback, now in-flight
+		// A second call while in-flight must not re-run the sync decoder or
+		// double-start the async one; still undefined for this render.
+		expect(resolveBarFacePicturePixelColor(url)).toBeUndefined();
+	});
+
+	it('returns undefined for a non-data: URL without throwing', () => {
+		expect(resolveBarFacePicturePixelColor('https://example.com/pic.png')).toBeUndefined();
 	});
 });

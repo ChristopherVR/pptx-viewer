@@ -3,9 +3,15 @@ import { convertEmfToDataUrl, convertWmfToDataUrl } from 'emf-converter';
 import { resolveNativeAnimationThemeColors } from '../../services/native-animation-theme-colors';
 import { XmlObject, PptxElement } from '../../types';
 import type { PptxNativeAnimation } from '../../types';
+import { blobUrlToDataUrl } from './blob-url-to-data-url';
 import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
 import { requiresBase64DataUrl } from './PptxHandlerRuntimeMediaParsingUtils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMediaTimingParsing';
+import { decodeTiffToPngBlob } from './tiff-to-png';
+
+// Re-exported for backward compatibility: existing callers/tests import this
+// from here rather than from `tiff-to-png.ts` directly.
+export { decodeTiffToPngBlob } from './tiff-to-png';
 
 /**
  * Whether the current environment supports Blob URLs.
@@ -13,50 +19,6 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
  */
 const CAN_USE_BLOB_URLS =
 	typeof globalThis.URL?.createObjectURL === 'function' && typeof globalThis.Blob !== 'undefined';
-
-/**
- * Decode the first page of a TIFF into a browser-renderable PNG.
- *
- * Chromium, Firefox, and most WebKit builds do not decode TIFF files in an
- * `<img>`, while PowerPoint presentations can legally embed `.tif` / `.tiff`
- * picture parts. Keep the decoder browser-only so Node consumers without a
- * canvas implementation retain the existing raw-data fallback.
- */
-export async function decodeTiffToPngBlob(bytes: ArrayBuffer): Promise<Blob | undefined> {
-	if (typeof document === 'undefined') {
-		return undefined;
-	}
-
-	const imported = await import('utif');
-	const decoder = ('default' in imported ? imported.default : imported) as typeof import('utif');
-	const page = decoder.decode(bytes)[0];
-	if (!page) {
-		return undefined;
-	}
-	decoder.decodeImage(bytes, page);
-
-	const width = Number(page.width);
-	const height = Number(page.height);
-	if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
-		return undefined;
-	}
-
-	const rgba = new Uint8ClampedArray(decoder.toRGBA8(page));
-	const canvas = document.createElement('canvas');
-	canvas.width = width;
-	canvas.height = height;
-	const context = canvas.getContext('2d');
-	if (!context) {
-		return undefined;
-	}
-	const imageData = context.createImageData(width, height);
-	imageData.data.set(rgba);
-	context.putImageData(imageData, 0, 0);
-
-	return await new Promise<Blob | undefined>((resolve) => {
-		canvas.toBlob((blob) => resolve(blob ?? undefined), 'image/png');
-	});
-}
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/** Forward declaration implemented later in the runtime inheritance chain. */
@@ -176,6 +138,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			console.warn(`[pptx] Failed to load image: ${imagePath}`, err);
 			return undefined;
 		}
+	}
+
+	/**
+	 * Same resolution as {@link getImageData}, but guarantees a `data:` URL
+	 * even in a browser (where `getImageData` normally mints a `blob:` URL to
+	 * avoid the base64 overhead). Used by chart picture-fill resolution
+	 * (`chart-datapoint-picture-resolver.ts`): `pptx-viewer-shared`'s
+	 * `resolveBarFacePicturePixelColor` needs to decode an untargeted `bar3D`
+	 * face's picture pixel SYNCHRONOUSLY (`parseDataUrlToBytes`), which only a
+	 * `data:` URL supports; ordinary slide/background pictures are unaffected
+	 * and keep using blob URLs via `getImageData`. See `blob-url-to-data-url.ts`
+	 * for the re-fetch+re-encode fallback this only pays on the `blob:` branch.
+	 */
+	async getImageDataAsDataUrl(imagePath: string): Promise<string | undefined> {
+		const resolved = await this.getImageData(imagePath);
+		if (!resolved || !resolved.startsWith('blob:')) {
+			return resolved;
+		}
+		return blobUrlToDataUrl(resolved, this.getImageMimeType(imagePath));
 	}
 
 	/**

@@ -362,7 +362,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					this.xmlLookupService,
 					this.readChartRels.bind(this),
 					this.resolveImagePath.bind(this),
-					this.getImageData.bind(this),
+					// `getImageDataAsDataUrl`, not `getImageData`: the shared renderer
+					// needs to decode this picture's pixel (0,0) SYNCHRONOUSLY (no DOM),
+					// which only a `data:` URL supports - a browser's normal `blob:` URL
+					// resolution cannot be read synchronously. See that method's doc
+					// comment.
+					this.getImageDataAsDataUrl.bind(this),
 					plotArea,
 					chartContainerKeys,
 					finalSeries,

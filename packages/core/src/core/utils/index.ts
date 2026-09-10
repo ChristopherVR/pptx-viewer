@@ -653,6 +653,9 @@ export { extractStyleReferenceColorXml, withThemePlaceholderColor } from './them
 
 export { deriveSlideTitle, deriveSlideTitles } from './slide-title';
 
+export { sampleFirstPixelColorFromBytes } from './image-first-pixel';
+export { estimateMediaDurationMs } from './media-duration';
+
 export {
 	cropShapeForPresetGeometry,
 	presetGeometryForCropShape,

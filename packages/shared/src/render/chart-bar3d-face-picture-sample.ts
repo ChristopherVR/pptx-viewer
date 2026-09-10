@@ -1,5 +1,5 @@
 /**
- * chart-bar3d-face-picture-sample.ts: async first-pixel colour sampling for a
+ * chart-bar3d-face-picture-sample.ts: first-pixel colour sampling for a
  * `bar3D` chart's untargeted extrusion face picture fallback (C2-G9
  * face-targeting gap, see `chart-bar3d-face-picture.ts`'s module doc for the
  * COM-verified ground truth this exists to reproduce).
@@ -8,23 +8,35 @@
  * but `c:applyToSides`/`c:applyToEnd` do not target it) with a FLAT colour
  * sampled from the picture's own top-left pixel (COM-verified: two
  * independent `Series.ApplyPictToFront/Sides/End` test decks both matched the
- * image's pixel at (0,0), not an average or the centre pixel). The shared SVG
- * view-model builder that decides this fill is synchronous and never has
- * decoded pixel data, so this module decodes the picture ASYNCHRONOUSLY,
- * caches the sampled colour by image URL (a `c:pictureOptions` data URL is
- * content-addressed: identical pictures share one decode), and exposes a
- * subscribe hook so a binding can re-render once a sample lands.
+ * image's pixel at (0,0), not an average or the centre pixel).
  *
- * Usage from a binding: call {@link getCachedBarFacePicturePixelColor}
+ * {@link resolveBarFacePicturePixelColor} is the entry point a binding (via
+ * `resolveExtrusionFaceFill`) should call: it tries a SYNCHRONOUS, DOM-free
+ * decode first (`pptx-viewer-core`'s `sampleFirstPixelColorFromBytes`, which
+ * covers PNG/GIF/BMP/baseline-JPEG), which resolves on the very first render
+ * with no flash and works in a DOM-less render path (SSR, headless export, a
+ * Node MCP tool) where the async path never resolves at all. Only when the
+ * sync decoder cannot handle the format (progressive JPEG, WebP, EMF/WMF)
+ * does this fall back to the pre-existing ASYNC decode (`Image` + `<canvas>`,
+ * DOM-only), which caches the sampled colour by image URL (a
+ * `c:pictureOptions` data URL is content-addressed: identical pictures share
+ * one decode) and exposes a subscribe hook so a binding can re-render once a
+ * sample lands.
+ *
+ * Usage from a binding: call {@link resolveBarFacePicturePixelColor}
  * synchronously while building the view model (used internally by
  * `resolveExtrusionFaceFill`); subscribe once per mounted chart view via
  * {@link subscribeBarFacePicturePixelSamples} and rebuild the view model
  * (or otherwise force a re-render) whenever it fires, mirroring how
  * `ColorChangedImage`/`use-color-change-image.ts` already re-render once
- * `applyColorChange` (`image-color-change.ts`) resolves.
+ * `applyColorChange` (`image-color-change.ts`) resolves. That subscription
+ * only ever fires for the async fallback path now; a synchronously-resolved
+ * sample needs no re-render since it lands before the current render even
+ * finishes.
  *
  * @module chart-bar3d-face-picture-sample
  */
+import { parseDataUrlToBytes, sampleFirstPixelColorFromBytes } from 'pptx-viewer-core';
 
 /** Decodes an image URL (typically a `data:` URL) and resolves its sampled colour, or `undefined` when it cannot be decoded. */
 export type BarFacePictureSampler = (imageUrl: string) => Promise<string | undefined>;
@@ -159,6 +171,50 @@ export function ensureBarFacePicturePixelSampled(
 			notifyBarFacePicturePixelListeners();
 		});
 	inFlight.set(imageUrl, pending);
+}
+
+/**
+ * Attempt a synchronous, DOM-free decode of `imageUrl`'s pixel (0,0) via
+ * `pptx-viewer-core`. Returns `undefined` for a non-`data:` URL, a format the
+ * sync decoder does not cover (progressive JPEG, WebP, EMF/WMF), or a decode
+ * failure - never throws.
+ */
+function trySampleFirstPixelColorSync(imageUrl: string): string | undefined {
+	const parsed = parseDataUrlToBytes(imageUrl);
+	if (!parsed) {
+		return undefined;
+	}
+	try {
+		return sampleFirstPixelColorFromBytes(parsed.bytes);
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Resolve `imageUrl`'s sampled first-pixel colour for use THIS render: an
+ * already-cached/synchronously-decoded result is returned immediately (no
+ * flash); otherwise this tries the synchronous decoder once, caching and
+ * returning its result if it succeeds, and only falls back to kicking off
+ * the async `Image`/`<canvas>` decode (returning `undefined` for this
+ * render, resolved later via {@link subscribeBarFacePicturePixelSamples})
+ * when the sync decoder cannot handle the format.
+ */
+export function resolveBarFacePicturePixelColor(imageUrl: string): string | undefined {
+	const cached = getCachedBarFacePicturePixelColor(imageUrl);
+	if (cached !== undefined) {
+		return cached;
+	}
+	if (sampleCache.has(imageUrl) || inFlight.has(imageUrl)) {
+		return undefined; // already resolved to "undecodable", or an async decode is already running
+	}
+	const sync = trySampleFirstPixelColorSync(imageUrl);
+	if (sync !== undefined) {
+		sampleCache.set(imageUrl, sync);
+		return sync;
+	}
+	ensureBarFacePicturePixelSampled(imageUrl);
+	return undefined;
 }
 
 /** Test-only: reset every module-level cache/subscription between specs. */
