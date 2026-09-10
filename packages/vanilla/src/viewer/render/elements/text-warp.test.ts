@@ -60,6 +60,21 @@ function matrixScaleY(transform: string): number {
 	return Number(terms[3]);
 }
 
+/**
+ * One DOM element per LOGICAL glyph, in glyph order: a bare `svg > text` for
+ * an unsliced glyph, or its whole `svg > g[data-glyph-slices]` group for a
+ * glyph `chooseGlyphSliceCount` (`pptx-viewer-shared`) split into several
+ * clipped pieces. A plain descendant `text` selector (as this file's tests
+ * used to use) OVERcounts a sliced glyph's several inner `<text>` pieces as
+ * separate glyphs once the box-fill horizontal-placement fix
+ * (`text-warp-envelope-layout.ts`'s `stretch`) makes an ordinary caption span
+ * the box's own curve extremes, where slicing now legitimately kicks in more
+ * often than the old natural-width-centred layout ever reached.
+ */
+function logicalGlyphElements(root: ParentNode): Element[] {
+	return [...root.querySelectorAll('svg > text, svg > g[data-glyph-slices]')];
+}
+
 function buildContext(): ElementRenderContext {
 	const registry = createElementRendererRegistry();
 	// eslint-disable-next-line one-var -- context self-references via renderElement
@@ -109,7 +124,7 @@ describe('renderWarpedText: envelope/former-simple presets render as true SVG te
 			// its own transform), not a shared-baseline `<textPath>`.
 			expect(node?.querySelector('textPath')).toBeNull();
 			expect(node?.classList.contains('pptxv-wordart')).toBeTruthy();
-			expect(node?.querySelectorAll('text')).toHaveLength('Hello'.length);
+			expect(node ? logicalGlyphElements(node) : []).toHaveLength('Hello'.length);
 		},
 	);
 
@@ -198,7 +213,7 @@ describe('renderWarpedText: envelope/former-simple presets render as true SVG te
 		const node = renderWarpedText(element, buildContext()) as SVGSVGElement | null;
 		expect(node?.querySelector('textPath')).toBeNull();
 		// 'Top' (3) + 'Bottom' (6) = 9 glyphs total.
-		expect(node?.querySelectorAll('text')).toHaveLength(9);
+		expect(node ? logicalGlyphElements(node) : []).toHaveLength(9);
 	});
 
 	it('renders warped <path> outlines (not <text>) once the font is registered in the outline cache', () => {

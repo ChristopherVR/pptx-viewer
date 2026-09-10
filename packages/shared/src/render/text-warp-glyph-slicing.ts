@@ -248,17 +248,12 @@ export function buildGlyphSlices(
 		const sliceX1 = x0 + ((x1 - x0) * (i + 1)) / n;
 		const sliceU0 = u0 + ((u1 - u0) * i) / n;
 		const sliceU1 = u0 + ((u1 - u0) * (i + 1)) / n;
+		const e0 = edgeAt(sliceU0);
+		const e1 = edgeAt(sliceU1);
 		slices.push({
 			clipX0: sliceX0 - (i === 0 ? 0 : SEAM_OVERLAP_PX),
 			clipX1: sliceX1 + (i === n - 1 ? 0 : SEAM_OVERLAP_PX),
-			transform: glyphEnvelopeMatrix(
-				sliceX0,
-				sliceX1,
-				edgeAt(sliceU0),
-				edgeAt(sliceU1),
-				nomTop,
-				nomBottom,
-			),
+			transform: glyphEnvelopeMatrix(sliceX0, sliceX1, e0, e1, nomTop, nomBottom),
 		});
 	}
 	return slices;

@@ -45,6 +45,26 @@ function matrixScaleY(transform: string): number {
 	return Number(terms[3]);
 }
 
+/**
+ * One DOM element per LOGICAL glyph, in glyph order: a bare `svg > text` for
+ * an unsliced glyph, or its whole `svg > g[data-glyph-slices]` group for a
+ * glyph `chooseGlyphSliceCount` (`pptx-viewer-shared`) split into several
+ * clipped pieces. A plain descendant `text` selector (as this file's tests
+ * used to use) OVERcounts a sliced glyph's several inner `<text>` pieces as
+ * separate glyphs once the box-fill horizontal-placement fix
+ * (`text-warp-envelope-layout.ts`'s `stretch`) makes an ordinary caption span
+ * the box's own curve extremes, where slicing now legitimately kicks in more
+ * often than the old natural-width-centred layout ever reached.
+ */
+function logicalGlyphElements(root: ParentNode): Element[] {
+	return [...root.querySelectorAll('svg > text, svg > g[data-glyph-slices]')];
+}
+
+/** The representative `<text>` element for one logical glyph node (see {@link logicalGlyphElements}). */
+function representativeTextEl(node: Element): Element {
+	return node.tagName.toLowerCase() === 'g' ? (node.querySelector('text') ?? node) : node;
+}
+
 function warpedText(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
 		type: 'text',
@@ -97,9 +117,9 @@ describe('wordArtText (Svelte)', () => {
 		);
 		expect(svg).not.toBeNull();
 		expect(svg?.querySelector('textPath')).toBeNull();
-		const glyphTexts = svg?.querySelectorAll('text') ?? [];
+		const glyphTexts = (svg ? logicalGlyphElements(svg) : []).map(representativeTextEl);
 		expect(glyphTexts).toHaveLength('Hello'.length);
-		expect([...glyphTexts].map((t) => t.textContent).join('')).toBe('Hello');
+		expect(glyphTexts.map((t) => t.textContent).join('')).toBe('Hello');
 		expect(glyphTexts[0].getAttribute('transform')).toContain('matrix(1');
 	});
 
@@ -127,7 +147,7 @@ describe('wordArtText (Svelte)', () => {
 		);
 		expect(svg?.querySelector('textPath')).toBeNull();
 		// 'Top' (3) + 'Bottom' (6) = 9 glyphs total.
-		expect(svg?.querySelectorAll('text')).toHaveLength(9);
+		expect(svg ? logicalGlyphElements(svg) : []).toHaveLength(9);
 	});
 
 	it('a short caption of very wide glyphs on a steep can-up curve renders sliced glyphs, clipped and seamed', () => {

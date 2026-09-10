@@ -1,5 +1,5 @@
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 import type { EnvelopeSegmentInput, WarpParagraph } from 'pptx-viewer-shared';
 import {
 	buildGlyphEnvelope,
@@ -74,12 +74,25 @@ export function renderWarpedText(
 	return renderPathWarp(element, paragraphs, context);
 }
 
-/** Resolve one segment's plain (measurement-ready) font, falling back to the element's. */
+/**
+ * Resolve one segment's plain (measurement-ready) font, falling back to the
+ * element's. Runs the referenced family through `getSubstituteFontFamily`
+ * (the same PANOSE-aware fallback CHAIN react/vue/svelte/angular's own warp
+ * renderers already apply here - see `resolveSegmentFont` in
+ * `packages/react/src/viewer/utils/warp-text-renderer.tsx`), rather than
+ * passing the raw deck-authored name straight to `measureGlyphAdvances`'s
+ * canvas `ctx.font`: an unresolvable family with no CSS generic fallback in
+ * the string can measure against a DIFFERENT browser default font than the
+ * other four bindings' substituted `'<family>, ..., sans-serif'` chain does,
+ * producing a genuinely different natural line width (and so a different
+ * `stretch`/slice count) for the exact same deck on vanilla alone - a real
+ * binding divergence, not a measurement race (COM/e2e review, 2026-09-11).
+ */
 function segmentFont(segment: TextSegment, elementStyle: TextStyle): EnvelopeSegmentInput['font'] {
 	const s = segment.style ?? {};
-	const family = s.fontFamily || elementStyle.fontFamily || DEFAULT_FONT_FAMILY;
+	const family = s.fontFamily || elementStyle.fontFamily;
 	return {
-		fontFamily: family,
+		fontFamily: family ? getSubstituteFontFamily(family) : DEFAULT_FONT_FAMILY,
 		fontSizePx: s.fontSize ?? elementStyle.fontSize ?? 18,
 		bold: s.bold ?? elementStyle.bold,
 		italic: s.italic ?? elementStyle.italic,
@@ -124,9 +137,12 @@ function renderGlyphWarp(
 		glyphs.forEach((g, glyphIndex) => {
 			const s = segments[g.segmentIndex]?.style ?? {};
 			const fill = s.color ?? style.color ?? '#000000';
+			const renderedFamily = s.fontFamily || style.fontFamily;
 			const textAttrs = {
 				fill,
-				'font-family': s.fontFamily ?? style.fontFamily ?? DEFAULT_FONT_FAMILY,
+				'font-family': renderedFamily
+					? getSubstituteFontFamily(renderedFamily)
+					: DEFAULT_FONT_FAMILY,
 				'font-size': s.fontSize ?? style.fontSize ?? 18,
 				'font-weight': (s.bold ?? style.bold) ? 'bold' : undefined,
 				'font-style': (s.italic ?? style.italic) ? 'italic' : undefined,
@@ -224,7 +240,9 @@ function renderPathWarp(
 		);
 		const text = createSvgEl(context.document, 'text', {
 			fill: style.color ?? '#000000',
-			'font-family': style.fontFamily ?? DEFAULT_FONT_FAMILY,
+			'font-family': style.fontFamily
+				? getSubstituteFontFamily(style.fontFamily)
+				: DEFAULT_FONT_FAMILY,
 			'font-size': style.fontSize ?? 18,
 			'font-weight': style.bold ? 'bold' : undefined,
 			'font-style': style.italic ? 'italic' : undefined,

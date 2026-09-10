@@ -43,6 +43,29 @@ function matrixScaleY(transform: string): number {
 	return Number(terms[3]);
 }
 
+/**
+ * One DOM element per LOGICAL glyph, in glyph order: a bare `svg > text` for
+ * an unsliced glyph, or its whole `svg > g[data-glyph-slices]` group for a
+ * glyph `chooseGlyphSliceCount` (`pptx-viewer-shared`) split into several
+ * clipped pieces. Counting `svg > text` alone (as this file's tests used to)
+ * undercounts once the box-fill horizontal-placement fix
+ * (`text-warp-envelope-layout.ts`'s `stretch`) makes an ordinary caption span
+ * the box's own curve extremes, where slicing now legitimately kicks in more
+ * often than the old natural-width-centred layout ever reached - no glyph is
+ * actually dropped, it just renders as a `<g>` of pieces instead of one bare
+ * `<text>`. Reads the raw DOM (`wrapper.element`) rather than
+ * `@vue/test-utils`'s own `findAll`, which has no single selector spanning
+ * both node shapes.
+ */
+function logicalGlyphElements(root: Element): Element[] {
+	return [...root.querySelectorAll('svg > text, svg > g[data-glyph-slices]')];
+}
+
+/** The representative `<text>` element for one logical glyph node (see {@link logicalGlyphElements}). */
+function representativeTextEl(node: Element): Element {
+	return node.tagName.toLowerCase() === 'g' ? (node.querySelector('text') ?? node) : node;
+}
+
 function warpedText(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
 		type: 'text',
@@ -170,11 +193,11 @@ describe('wordArtText', () => {
 		expect(wrapper.find('svg.pptx-vue-wordart').exists()).toBeTruthy();
 		expect(wrapper.find('textPath').exists()).toBeFalsy();
 		expect(wrapper.find('.pptx-vue-wordart-css').exists()).toBeFalsy();
-		const glyphTexts = wrapper.findAll('svg > text');
+		const glyphTexts = logicalGlyphElements(wrapper.element).map(representativeTextEl);
 		expect(glyphTexts).toHaveLength('Hello'.length);
-		expect(glyphTexts.map((t) => t.text()).join('')).toBe('Hello');
-		expect(glyphTexts[0].attributes('fill')).toBe('#00ff00');
-		expect(glyphTexts[0].attributes('transform')).toContain('matrix(1');
+		expect(glyphTexts.map((t) => t.textContent).join('')).toBe('Hello');
+		expect(glyphTexts[0].getAttribute('fill')).toBe('#00ff00');
+		expect(glyphTexts[0].getAttribute('transform')).toContain('matrix(1');
 	});
 
 	it('varies scaleY across an inflate line (the fixed residual: glyph height between curves)', () => {
@@ -210,7 +233,7 @@ describe('wordArtText', () => {
 		});
 		expect(wrapper.find('textPath').exists()).toBeFalsy();
 		// 'Top' (3) + 'Bottom' (6) = 9 glyphs total.
-		expect(wrapper.findAll('svg > text')).toHaveLength(9);
+		expect(logicalGlyphElements(wrapper.element)).toHaveLength(9);
 	});
 
 	it('a short caption of very wide glyphs on a steep can-up curve renders sliced glyphs, clipped and seamed', () => {

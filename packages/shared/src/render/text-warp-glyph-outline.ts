@@ -52,6 +52,58 @@
 import { edgeBandAt } from './text-warp-glyph-matrix';
 
 /**
+ * Horizontally scale a glyph's outline commands around `originX` (its own
+ * left edge, matching where {@link buildWarpedGlyphOutlinePathD}'s caller
+ * positioned it): `newX = originX + (x - originX) * scale`. `scale === 1` is
+ * a no-op that returns `commands` unchanged (no new array allocated).
+ *
+ * Used by `text-warp-envelope-layout.ts` to widen a glyph's actual outline
+ * for the `inflate`/`deflate` envelope family, which PowerPoint stretches as
+ * a literal 2D distortion (both glyph spacing AND glyph shape widen together
+ * to fill the box). The `can` family does NOT get this: COM-measured
+ * 2026-09-11 (an 8-shape Arimo Bold fixture), a `can` glyph's own ink width
+ * matches its NATURAL (unstretched) width closely (interior span
+ * ~15.6%-15.8% of box width measured vs. ~15.6% predicted unstretched,
+ * vs. ~16.6% predicted if the glyph itself were widened too) - `can`'s
+ * cylindrical metaphor spreads glyphs apart (wider gaps) without literally
+ * stretching each glyph's own shape, unlike `inflate`/`deflate`'s rubber-
+ * sheet distortion. See `text-warp-envelope-layout.ts`'s `buildGlyphEnvelope`
+ * for where the two families' `shapeScale` diverge.
+ */
+export function scaleOutlineCommandsX(
+	commands: readonly GlyphOutlineCommand[],
+	originX: number,
+	scale: number,
+): readonly GlyphOutlineCommand[] {
+	if (scale === 1) {
+		return commands;
+	}
+	const sx = (x: number): number => originX + (x - originX) * scale;
+	return commands.map((cmd): GlyphOutlineCommand => {
+		switch (cmd.type) {
+			case 'M':
+			case 'L':
+				return { type: cmd.type, x: sx(cmd.x), y: cmd.y };
+			case 'Q':
+				return { type: 'Q', x1: sx(cmd.x1), y1: cmd.y1, x: sx(cmd.x), y: cmd.y };
+			case 'C':
+				return {
+					type: 'C',
+					x1: sx(cmd.x1),
+					y1: cmd.y1,
+					x2: sx(cmd.x2),
+					y2: cmd.y2,
+					x: sx(cmd.x),
+					y: cmd.y,
+				};
+			case 'Z':
+			default:
+				return cmd;
+		}
+	});
+}
+
+/**
  * One drawing command of a glyph outline, in the SAME absolute coordinate
  * space as the (unwarped) glyph would be drawn: `x` is the line-relative
  * horizontal position (matching {@link EnvelopeGlyphPlacement.x}), `y` is the

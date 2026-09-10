@@ -5,6 +5,7 @@ import type { GlyphOutlineCommand } from './text-warp-glyph-outline';
 import {
 	buildWarpedGlyphOutlinePathD,
 	mapYThroughEnvelopeBand,
+	scaleOutlineCommandsX,
 	warpEnvelopeOutlinePoint,
 } from './text-warp-glyph-outline';
 
@@ -291,5 +292,58 @@ describe('buildWarpedGlyphOutlinePathD', () => {
 		// missed this if the glyph spanned even wider, which is exactly the
 		// residual this module closes.
 		expect(my).not.toBeCloseTo(ly, 1);
+	});
+});
+
+describe('scaleOutlineCommandsX', () => {
+	const COMMANDS: readonly GlyphOutlineCommand[] = [
+		{ type: 'M', x: 10, y: 5 },
+		{ type: 'L', x: 20, y: 15 },
+		{ type: 'Q', x1: 25, y1: 8, x: 30, y: 12 },
+		{ type: 'C', x1: 32, y1: 1, x2: 34, y2: 2, x: 40, y: 20 },
+		{ type: 'Z' },
+	];
+
+	it('is a no-op (returns the same array) when scale is 1', () => {
+		const result = scaleOutlineCommandsX(COMMANDS, 10, 1);
+		expect(result).toBe(COMMANDS);
+	});
+
+	it('leaves the origin point unchanged and scales every other x around it', () => {
+		// origin = 10 (the glyph's own left edge), scale = 2: a point at x=20
+		// is 10 past the origin, so it lands at 10 + (20-10)*2 = 30.
+		const result = scaleOutlineCommandsX(COMMANDS, 10, 2);
+		expect(result[0]).toStrictEqual({ type: 'M', x: 10, y: 5 }); // x === origin: unchanged
+		expect(result[1]).toStrictEqual({ type: 'L', x: 30, y: 15 });
+		expect(result[2]).toStrictEqual({ type: 'Q', x1: 40, y1: 8, x: 50, y: 12 });
+		expect(result[3]).toStrictEqual({
+			type: 'C',
+			x1: 54,
+			y1: 1,
+			x2: 58,
+			y2: 2,
+			x: 70,
+			y: 20,
+		});
+		expect(result[4]).toStrictEqual({ type: 'Z' });
+	});
+
+	it('never touches any y coordinate', () => {
+		const result = scaleOutlineCommandsX(COMMANDS, 0, 3);
+		expect(result.map((c) => ('y' in c ? c.y : undefined))).toStrictEqual([
+			5,
+			15,
+			12,
+			20,
+			undefined,
+		]);
+		expect((result[2] as { y1: number }).y1).toBe(8);
+		expect((result[3] as { y1: number; y2: number }).y1).toBe(1);
+		expect((result[3] as { y1: number; y2: number }).y2).toBe(2);
+	});
+
+	it('shrinks around the origin for scale < 1', () => {
+		const result = scaleOutlineCommandsX([{ type: 'L', x: 20, y: 0 }], 0, 0.5);
+		expect(result[0]).toStrictEqual({ type: 'L', x: 10, y: 0 });
 	});
 });

@@ -20,7 +20,70 @@ export function sliceBand(
 	};
 }
 
-/** The envelope band (absolute height units, already line-sliced) at one horizontal position. */
+/** A preset's deformed top/bottom band (absolute height units) at horizontal position `u`. */
+function deformedBandAt(
+	preset: string,
+	u: number,
+	adj: number | undefined,
+	adj2: number | undefined,
+	height: number,
+): EnvelopeCurveFractions {
+	const curve = envelopeCurveAt(preset, u, adj, adj2);
+	return {
+		top: (curve?.top ?? NOMINAL_ENVELOPE_BAND.top) * height,
+		bottom: (curve?.bottom ?? NOMINAL_ENVELOPE_BAND.bottom) * height,
+	};
+}
+
+/**
+ * Horizontal position used to compute the FIXED boundary shared by two
+ * adjacent paragraph rows (see {@link edgeBandAt}'s doc comment): the box's
+ * own centre, matching where `NOMINAL_ENVELOPE_BAND` and every other
+ * u-independent reference in this module already anchor.
+ */
+const ROW_BOUNDARY_REFERENCE_U = 0.5;
+
+/**
+ * The envelope band (absolute height units, already line-sliced) at one
+ * horizontal position.
+ *
+ * For a single-line element (`lineCount <= 1`) this is exactly the deformed
+ * band at `u` - unchanged from before per-paragraph slicing existed.
+ *
+ * For a multi-paragraph element, naively slicing the band AFTER deforming it
+ * AT `u` (dividing `[bandTop(u), bandBottom(u)]` into `lineCount` equal
+ * fractions) lets the boundary between row `i` and row `i+1` drift with `u`.
+ * Since each row's OWN glyphs are laid out independently (see
+ * `text-warp-envelope-layout.ts`'s `buildGlyphEnvelope`, called once per
+ * paragraph) and can span very different horizontal ranges - a short
+ * paragraph stretched hard to fill the box samples very different `u` than a
+ * longer one in the SAME box - two rows can end up comparing their own
+ * boundary at two DIFFERENT `u` values where the curve's amplitude differs
+ * enough that row `i`'s computed bottom sits BELOW row `i+1`'s computed top:
+ * an inverted, overlapping pair, even though each row's own boundary is
+ * "correct" in isolation. COM review 2026-09-11 found this pre-existing (not
+ * introduced by the box-fill horizontal-placement fix, though a paragraph's
+ * `stretch` factor can widen how differently two rows sample the curve and
+ * so widen the effect): an 8-shape fixture's two-paragraph `textInflate`
+ * block (`"Top"` over `"Bottom"`) measured its `"Top"` row's own bottom edge
+ * at `y=138.1` while its `"Bottom"` row's top edge measured `y=79.4` - rows
+ * swapped order.
+ *
+ * The fix: the boundary BETWEEN two rows must be the SAME value regardless
+ * of which row (or which glyph's own `u`) is asking, so it is computed from
+ * the band deformed at a FIXED reference position
+ * ({@link ROW_BOUNDARY_REFERENCE_U}, the box's own horizontal centre) rather
+ * than each row's own actual `u`. Only a row's OUTER edge - the one facing
+ * the box's own top (row 0's top) or bottom (the last row's bottom), never
+ * shared with a neighbour - still bends with the curve at the glyph's real
+ * `u`, preserving genuine per-glyph height variation there (the property
+ * `text-warp-envelope-layout.test.ts`'s "places line 0 of 2 strictly above
+ * line 1 of 2" and the scaleY-variation tests already pin). An interior row
+ * (`lineCount > 2`, both edges shared with neighbours) gets a fixed band on
+ * both sides; no fixture in this repo yet exercises three or more WordArt
+ * paragraph rows, so this is the untested-but-consistent extension of the
+ * same rule, not a separately-measured case.
+ */
 export function edgeBandAt(
 	preset: string,
 	u: number,
@@ -30,10 +93,42 @@ export function edgeBandAt(
 	lineIndex: number,
 	lineCount: number,
 ): EnvelopeCurveFractions {
-	const curve = envelopeCurveAt(preset, u, adj, adj2);
-	const bandTop = (curve?.top ?? NOMINAL_ENVELOPE_BAND.top) * height;
-	const bandBottom = (curve?.bottom ?? NOMINAL_ENVELOPE_BAND.bottom) * height;
-	return sliceBand(bandTop, bandBottom, lineIndex, lineCount);
+	const actual = deformedBandAt(preset, u, adj, adj2, height);
+	if (lineCount <= 1) {
+		return sliceBand(actual.top, actual.bottom, 0, 1);
+	}
+	const reference = deformedBandAt(preset, ROW_BOUNDARY_REFERENCE_U, adj, adj2, height);
+	const fixedSlice = sliceBand(reference.top, reference.bottom, lineIndex, lineCount);
+	const isFirstRow = lineIndex <= 0;
+	const isLastRow = lineIndex >= lineCount - 1;
+	// An outer edge bending by its FULL deviation from the flat (undeformed)
+	// band gives a row roughly `lineCount` TIMES the vertical scale its own
+	// (`1/lineCount`-narrowed) nominal source band (`buildGlyphEnvelope`'s
+	// `sliceBand(..., safeLineIndex, safeLineCount)` of
+	// `NOMINAL_ENVELOPE_BAND`) was sized for, because the row's target band
+	// still deforms by the WHOLE box's curve amplitude, not its own narrower
+	// share of it (COM review 2026-09-11: a two-row `textInflate` fixture
+	// measured a `d` vertical-scale term of ~3.27 for its first row at a
+	// bulging u, stretching a 3-glyph "Top" caption's descender far enough to
+	// invade the second row's territory even after the shared-boundary fix
+	// alone; even scaled by `1/lineCount` here, a deep enough descender/
+	// ascender can still extrapolate past the shared boundary - a
+	// COM-unverified residual left open below). Damping the OUTER edge's OWN
+	// deviation from the flat band by `1/lineCount` keeps a row's bend
+	// proportional to its own narrowed share of the box, matching how its
+	// nominal band was narrowed the same way - a multi-row block still
+	// visibly bends (the deviation is not zeroed, just scaled), without a
+	// `lineCount`-fold excess.
+	const flatTop = NOMINAL_ENVELOPE_BAND.top * height;
+	const flatBottom = NOMINAL_ENVELOPE_BAND.bottom * height;
+	const dampedOuterTop = flatTop + (actual.top - flatTop) / lineCount;
+	const dampedOuterBottom = flatBottom + (actual.bottom - flatBottom) / lineCount;
+	// A first/last row's own OUTER edge bends (damped, see above); only the
+	// shared INNER boundary ever comes from `fixedSlice`.
+	return {
+		top: isFirstRow ? dampedOuterTop : fixedSlice.top,
+		bottom: isLastRow ? dampedOuterBottom : fixedSlice.bottom,
+	};
 }
 
 /**

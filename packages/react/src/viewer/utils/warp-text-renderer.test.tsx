@@ -66,6 +66,27 @@ function matrixScaleY(transform: string): number {
 	return Number(terms[3]);
 }
 
+/**
+ * One DOM node per LOGICAL glyph, in glyph order: a bare `svg > text` for an
+ * unsliced glyph, or the whole `svg > g[data-glyph-slices]` group for a
+ * glyph `chooseGlyphSliceCount` (`pptx-viewer-shared`) split into several
+ * clipped pieces. Counting `svg > text` alone (as this file's tests used to)
+ * undercounts once the box-fill horizontal-placement fix
+ * (`text-warp-envelope-layout.ts`'s `stretch`) makes an ordinary caption span
+ * the box's own curve extremes, where slicing now legitimately kicks in more
+ * often than the old natural-width-centred layout ever reached - no glyph is
+ * actually dropped, it just renders as a `<g>` of pieces instead of one bare
+ * `<text>`.
+ */
+function logicalGlyphNodes(scope: ParentNode): Element[] {
+	return [...scope.querySelectorAll('svg > text, svg > g[data-glyph-slices]')];
+}
+
+/** The representative `<text>` for one logical glyph node (see {@link logicalGlyphNodes}). */
+function representativeText(node: Element): Element {
+	return node.tagName.toLowerCase() === 'g' ? (node.querySelector('text') ?? node) : node;
+}
+
 afterEach(() => {
 	if (root) {
 		act(() => root!.unmount());
@@ -128,9 +149,11 @@ describe('warpedText: envelope/former-simple presets render as true SVG textPath
 			const el = renderWarped(preset);
 			expect(el.querySelector('svg')).not.toBeNull();
 			// The envelope family now renders one `<text>` per glyph (each with
-			// its own transform), not a shared-baseline `<textPath>`.
+			// its own transform, or a `<g data-glyph-slices>` for a wide glyph
+			// that needed slicing - see `logicalGlyphNodes`), not a shared-
+			// baseline `<textPath>`.
 			expect(el.querySelector('textPath')).toBeNull();
-			expect(el.querySelectorAll('svg > text')).toHaveLength('Hello'.length);
+			expect(logicalGlyphNodes(el)).toHaveLength('Hello'.length);
 		},
 	);
 
@@ -160,7 +183,7 @@ describe('warpedText: envelope/former-simple presets render as true SVG textPath
 		const el = renderWarpedElement(multiParagraphWarpedElement('textInflate'), 150);
 		// 'Top' (3) + 'Bottom' (6) = 9 glyphs total, never a shared <textPath>.
 		expect(el.querySelector('textPath')).toBeNull();
-		expect(el.querySelectorAll('svg > text')).toHaveLength(9);
+		expect(logicalGlyphNodes(el)).toHaveLength(9);
 	});
 
 	it('a short caption of very wide glyphs on a steep can-up curve renders sliced glyphs, clipped and seamed', () => {
@@ -241,7 +264,11 @@ describe('warpedText: envelope/former-simple presets render as true SVG textPath
 
 	it('a multi-paragraph inflate element bends line 0 above line 1 (band slicing)', () => {
 		const el = renderWarpedElement(multiParagraphWarpedElement('textInflate'), 150);
-		const texts = [...el.querySelectorAll('svg > text')];
+		// One representative `<text>` per LOGICAL glyph (see `logicalGlyphNodes`):
+		// a naive `svg > text` read here would both undercount a sliced glyph
+		// AND misalign the "first 3 = Top, rest = Bottom" split below once any
+		// earlier glyph is missing from the flat list.
+		const texts = logicalGlyphNodes(el).map(representativeText);
 		const yOf = (t: Element): number => {
 			const transform = t.getAttribute('transform') ?? '';
 			const tMatch = /translate\(\s*[-\d.]+\s+(-?[\d.]+)\s*\)/u.exec(transform);

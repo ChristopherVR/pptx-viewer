@@ -22,7 +22,7 @@ import type {
 	GlyphOutlineLookup,
 } from './text-warp-envelope-types';
 import { edgeBandAt, glyphEnvelopeMatrix, sliceBand } from './text-warp-glyph-matrix';
-import { buildWarpedGlyphOutlinePathD } from './text-warp-glyph-outline';
+import { buildWarpedGlyphOutlinePathD, scaleOutlineCommandsX } from './text-warp-glyph-outline';
 import { buildGlyphSlices, chooseGlyphSliceCount } from './text-warp-glyph-slicing';
 
 export type {
@@ -214,16 +214,52 @@ export function buildGlyphEnvelope(
 	const nomTop =
 		realAscent !== undefined ? Math.max(fixedBandTop, nomBottom - realAscent) : fixedBandTop;
 
+	// PowerPoint spaces envelope-warped glyphs edge to edge across the box's
+	// own width, rather than centring the line at its natural (unstretched)
+	// advance width the way `startX`/`measureGlyphAdvances` did before this
+	// fix (COM-measured 2026-09-11, an 8-shape Arimo Bold fixture: measured
+	// ink spans ~99.9% of box width for BOTH the `can` and `inflate`/
+	// `deflate` families). `stretch` is the uniform factor (box width /
+	// natural line width) that reproduces the measured glyph PITCH closely
+	// (interior boundary positions within ~1-3% of box width of COM ground
+	// truth) for every glyph-envelope preset tested; every glyph's advance is
+	// scaled by it, so the line always spans exactly `[0, width]`.
+	//
+	// Whether the glyph's own SHAPE also widens by `stretch` differs by
+	// family though: `shapeScale` is `stretch` for `inflate`/`deflate` (and
+	// the rest of the non-`can` envelope family) - COM-measured, their
+	// per-glyph ink WIDTH scales with the stretch factor, matching a literal
+	// rubber-sheet distortion where letters get visibly fatter. It is `1` for
+	// `textCanUp`/`textCanDown` - their per-glyph ink width stays at its
+	// NATURAL (unstretched) value; only the gaps between glyphs widen,
+	// matching the "wrap around a cylinder" metaphor (letters keep their own
+	// proportions, spaced further apart) rather than 2D stretching. Only
+	// `shapeScale` reaches the OUTLINE render path (`scaleOutlineCommandsX`
+	// below): the affine-fallback `transform`/`slices` path has no
+	// horizontal-scale term by design (see `glyphEnvelopeMatrix`'s `a=1, c=0,
+	// e=0` doc note), so it always fits the glyph's own NATURAL (unscaled)
+	// width regardless of family - an accepted simplification for the
+	// secondary (no-outline-available) path.
+	const isCanFamily = preset === 'textCanUp' || preset === 'textCanDown';
+	const stretch = width > 0 && lineWidth > 0 ? width / lineWidth : 1;
+	const shapeScale = isCanFamily ? 1 : stretch;
+
 	const placements: EnvelopeGlyphPlacement[] = [];
-	let x = startX(align, width, lineWidth);
+	let x = lineWidth > 0 ? 0 : startX(align, width, lineWidth);
 
 	segments.forEach((segment, segIdx) => {
 		const chars = [...segment.text];
 		const advances = perSegmentAdvances[segIdx];
 		chars.forEach((char, i) => {
-			const glyphWidth = advances[i] ?? 0;
+			const naturalGlyphWidth = advances[i] ?? 0;
+			const pitch = naturalGlyphWidth * stretch;
 			const x0 = x;
-			const x1 = x + glyphWidth;
+			// The affine-fit extent always uses the NATURAL (unscaled) width:
+			// the affine/slice path can only ever render a glyph at its own
+			// natural on-screen width (no horizontal-scale term available), so
+			// fitting the curve across a wider span than what actually renders
+			// would reintroduce the very mismatch this fix closes.
+			const x1 = x0 + naturalGlyphWidth;
 			const u0 = width > 0 ? x0 / width : 0.5;
 			const u1 = width > 0 ? x1 / width : 0.5;
 			const edge0 = edgeBandAt(preset, u0, adj, adj2, height, safeLineIndex, safeLineCount);
@@ -232,7 +268,10 @@ export function buildGlyphEnvelope(
 			// Outline warping takes priority when the caller can supply the
 			// glyph's real outline: it is exact, so the affine fit (and its
 			// piecewise-slice fallback) is only worth computing when it can't.
-			const outlineCommands = getGlyphOutline?.(char, segment.font, x, nomBottom);
+			const rawOutline = getGlyphOutline?.(char, segment.font, x0, nomBottom);
+			const outlineCommands = rawOutline
+				? scaleOutlineCommandsX(rawOutline, x0, shapeScale)
+				: undefined;
 			const outlinePath = outlineCommands
 				? buildWarpedGlyphOutlinePathD(
 						outlineCommands,
@@ -254,7 +293,7 @@ export function buildGlyphEnvelope(
 			placements.push({
 				char,
 				segmentIndex: segment.segmentIndex,
-				x,
+				x: x0,
 				y: nomBottom,
 				transform: glyphEnvelopeMatrix(x0, x1, edge0, edge1, nomTop, nomBottom),
 				slices:
@@ -277,7 +316,7 @@ export function buildGlyphEnvelope(
 						: undefined,
 				outlinePath,
 			});
-			x += glyphWidth;
+			x += pitch;
 		});
 	});
 

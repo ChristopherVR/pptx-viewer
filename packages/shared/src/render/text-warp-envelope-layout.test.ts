@@ -105,7 +105,11 @@ describe('buildGlyphEnvelope', () => {
 		}
 	});
 
-	it('centres the line: the first glyph is inset by half the leftover width', () => {
+	it('spans the box edge to edge instead of centring at the natural width', () => {
+		// COM-measured 2026-09-11 (see `buildGlyphEnvelope`'s `stretch` doc
+		// comment): PowerPoint spaces envelope glyphs edge to edge across the
+		// box's own width rather than centring the line at its natural
+		// (unstretched) advance width - `align` no longer inset the line.
 		stubFixedAdvance(10);
 		const placements = buildGlyphEnvelope(
 			'textInflate',
@@ -114,8 +118,26 @@ describe('buildGlyphEnvelope', () => {
 			50,
 			'center',
 		);
-		// line width = 20px in a 100px box -> 40px inset on each side.
-		expect(placements[0].x).toBeCloseTo(40, 5);
+		// line width = 20px (natural) stretched to fill the 100px box: the
+		// first glyph starts at the box's own left edge, and the second
+		// glyph's pitch is the natural 10px advance scaled by the stretch
+		// factor (100 / 20 = 5), not the unstretched 10px.
+		expect(placements[0].x).toBeCloseTo(0, 5);
+		expect(placements[1].x).toBeCloseTo(50, 5);
+	});
+
+	it('keeps the natural centred placement when the line has no measurable width', () => {
+		// Degenerate case (nothing to stretch): falls back to the pre-fix
+		// `startX`/`align` placement rather than dividing by zero.
+		stubFixedAdvance(0);
+		const placements = buildGlyphEnvelope(
+			'textInflate',
+			[{ text: 'AB', font: FONT, segmentIndex: 0 }],
+			100,
+			50,
+			'center',
+		);
+		expect(placements[0].x).toBeCloseTo(50, 5);
 	});
 
 	it('varies scaleY across the line for an inflate preset (the fixed residual)', () => {
@@ -247,18 +269,29 @@ describe('buildGlyphEnvelope', () => {
 	});
 
 	describe('per-glyph slicing (short, wide-glyph captions)', () => {
-		it('leaves `slices` undefined for an ordinary caption (no extra cost)', () => {
+		it('leaves at least some glyphs unsliced for an ordinary caption (targeted, not blanket, cost)', () => {
+			// Since the box-fill fix (see `buildGlyphEnvelope`'s `stretch` doc
+			// comment) makes every glyph-envelope line span the box's own
+			// width edge to edge, more of an ordinary caption's glyphs now
+			// legitimately sit where a default-adj `textInflate` curve bends
+			// fastest (its extremes and its centre-line inflection) and need
+			// slicing - correctly: a single affine per glyph misses that
+			// curvature. Some glyphs, away from those positions, still need
+			// none: slicing stays a targeted cost keyed to local curvature,
+			// not an unconditional one applied to every glyph regardless of
+			// position.
 			stubFixedAdvance(10);
 			const placements = buildGlyphEnvelope(
 				'textInflate',
-				[{ text: 'Warped', font: FONT, segmentIndex: 0 }],
-				300,
+				[{ text: 'A Warped Caption Here', font: FONT, segmentIndex: 0 }],
+				230,
 				80,
 				'center',
 			);
-			for (const p of placements) {
-				expect(p.slices).toBeUndefined();
-			}
+			const unsliced = placements.filter((p) => (p.slices?.length ?? 1) <= 1);
+			const sliced = placements.filter((p) => (p.slices?.length ?? 1) > 1);
+			expect(unsliced.length).toBeGreaterThan(0);
+			expect(sliced.length).toBeGreaterThan(0);
 		});
 
 		it('adds slices for a short caption of very wide glyphs on a steep curve', () => {
