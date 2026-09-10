@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.11.0) - 2026-09-10
+
+### Features
+
+- **shared:** Light 3D bevels with SVG lighting filters and derive explicit camera overrides (by @ChristopherVR) ([a36c635](https://github.com/ChristopherVR/pptx-viewer/commit/a36c635acb78a7eab7e85293e6a01116ad56a642))
+- **shared:** Render fragment-based cinematic transitions in every binding (by @ChristopherVR) ([4aee13e](https://github.com/ChristopherVR/pptx-viewer/commit/4aee13eb6a8eb7e83f13e42e74e5242427aaad2c))
+- **shared:** Match PowerPoint on soft edges, pixelate and run-program actions (by @ChristopherVR) ([d4339c2](https://github.com/ChristopherVR/pptx-viewer/commit/d4339c28a939350887f536c1d8053fb00ddc55a2))
+
+### Bug Fixes
+
+- **react,angular:** Skip unchanged autofit commits ([#222](https://github.com/ChristopherVR/pptx-viewer/issues/222)) (by @Sudhansh6) ([fb93aab](https://github.com/ChristopherVR/pptx-viewer/commit/fb93aab5a1b9721b921470b8c94f13d232ce6446))
+
+### Testing
+
+- **react:** Poll for the asynchronous OLE workbook commit (by @ChristopherVR) ([cffd4b8](https://github.com/ChristopherVR/pptx-viewer/commit/cffd4b8bcabcb302426e4a4eaf329c575a842a83))
+
 ## [2.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.10.0) - 2026-09-09
 
 ### Features
