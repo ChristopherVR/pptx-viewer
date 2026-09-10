@@ -54,7 +54,11 @@ describe('resolveWebfontHref', () => {
 	});
 
 	it('returns null when no referenced family is in the catalogue', async () => {
-		await expect(resolveWebfontHref([slide(textEl('Calibri'))], [])).resolves.toBeNull();
+		// 'Segoe UI' has no verified metric-compatible clone on the catalogue
+		// (its closest match, Selawik, is not on Google Fonts), unlike
+		// 'Calibri' which now resolves to Carlito (see
+		// `google-webfonts-metric-clones.ts` in pptx-viewer-shared).
+		await expect(resolveWebfontHref([slide(textEl('Segoe UI'))], [])).resolves.toBeNull();
 		expect(fetch).not.toHaveBeenCalled();
 	});
 });

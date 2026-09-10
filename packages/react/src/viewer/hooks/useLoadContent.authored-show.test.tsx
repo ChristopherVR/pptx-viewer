@@ -25,6 +25,7 @@ import type {
 	PptxHandoutMaster,
 	PptxHeaderFooter,
 	PptxModernCommentAuthor,
+	PptxModifyVerifier,
 	PptxNotesMaster,
 	PptxPresentationProperties,
 	PptxSection,
@@ -36,7 +37,11 @@ import type {
 	PptxViewProperties,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
-import type { SlideSizeEmu } from 'pptx-viewer-shared';
+import type {
+	CompatibilityWarningToast,
+	ReadOnlyRecommendation,
+	SlideSizeEmu,
+} from 'pptx-viewer-shared';
 import React, { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -134,6 +139,9 @@ function Harness({ content }: { content: ArrayBuffer }): null {
 		setError: noopDispatch<string | null>(),
 		setIsDirty: noopDispatch<boolean>(),
 		setIsEncrypted: noopDispatch<boolean>(),
+		setReadOnlyRecommendation: noopDispatch<ReadOnlyRecommendation>(),
+		setModifyVerifier: noopDispatch<PptxModifyVerifier | undefined>(),
+		setCompatToasts: noopDispatch<CompatibilityWarningToast[]>(),
 		onContentApplied: () => setLoaded(true),
 	});
 

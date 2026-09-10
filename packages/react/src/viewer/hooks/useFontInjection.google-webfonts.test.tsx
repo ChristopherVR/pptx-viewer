@@ -107,7 +107,11 @@ describe('useFontInjection google webfonts fallback', () => {
 
 	it('injects no link when no referenced family is in the catalogue', async () => {
 		stubNetwork();
-		render([slide(textEl('Some Local Font'), textEl('Calibri'))], []);
+		// 'Segoe UI' has no verified metric-compatible clone on the catalogue
+		// (its closest match, Selawik, is not on Google Fonts; see
+		// `google-webfonts-metric-clones.ts`), unlike 'Calibri' which now
+		// resolves to Carlito.
+		render([slide(textEl('Some Local Font'), textEl('Segoe UI'))], []);
 		await act(async () => {
 			await Promise.resolve();
 		});

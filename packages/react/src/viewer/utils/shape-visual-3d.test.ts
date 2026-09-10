@@ -82,19 +82,26 @@ describe('getCameraTransform', () => {
 	});
 
 	it('explicit rotation angles override preset defaults', () => {
+		// An explicit `a:camera/a:rot` override resolves to a COM-measured exact
+		// `matrix3d(...)` homography (see `visual-3d-camera-override.ts`), not a
+		// separate `perspective` + `rotateX`/`rotateY` pair; `rotateX`/`rotateY`
+		// remain on the result only as panel-visibility hints reflecting the
+		// override's own angle.
 		const result = getCameraTransform({
 			cameraPreset: 'perspectiveFront',
 			cameraRotX: 1800000, // 30deg
 			cameraRotY: 2700000, // 45deg
 		});
-		expect(result.perspective).toBe('1000px');
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toMatch(/^matrix3d\(/);
 		expect(result.rotateX).toBe(-30);
 		expect(result.rotateY).toBe(45);
 	});
 
-	it('applies default 800px perspective for explicit rotations without preset', () => {
+	it('applies an exact matrix3d for explicit rotations without preset', () => {
 		const result = getCameraTransform({ cameraRotX: 600000 }); // 10deg
-		expect(result.perspective).toBe('800px');
+		expect(result.perspective).toBeUndefined();
+		expect(result.matrix3d).toMatch(/^matrix3d\(/);
 		expect(result.rotateX).toBe(-10);
 	});
 
@@ -402,29 +409,30 @@ describe('apply3dEffects', () => {
 		expect(base.transform).toBeUndefined();
 	});
 
-	it('should apply perspective and rotateX for camera X rotation', () => {
+	it('should apply an exact matrix3d for camera X rotation, no separate perspective', () => {
 		const base: React.CSSProperties = {};
 		apply3dEffects(base, { cameraRotX: 1800000 }, undefined);
-		expect(base.perspective).toBe('800px');
-		// 1800000 / 60000 = 30 degrees (negated)
-		expect(base.transform).toContain('rotateX(-30deg)');
+		// An explicit `a:camera/a:rot` override resolves to a matrix3d
+		// homography rather than `perspective()` + `rotateX()`.
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
 	});
 
-	it('should apply rotateY for camera Y rotation', () => {
+	it('should apply an exact matrix3d for camera Y rotation', () => {
 		const base: React.CSSProperties = {};
 		apply3dEffects(base, { cameraRotY: 2700000 }, undefined);
-		// 2700000 / 60000 = 45 degrees
-		expect(base.transform).toContain('rotateY(45deg)');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
 	});
 
-	it('should apply rotateZ for camera Z rotation', () => {
+	it('should apply an exact matrix3d for camera Z rotation', () => {
 		const base: React.CSSProperties = {};
 		apply3dEffects(base, { cameraRotZ: 5400000 }, undefined);
-		// 5400000 / 60000 = 90 degrees
-		expect(base.transform).toContain('rotateZ(90deg)');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
 	});
 
-	it('should combine multiple rotation axes', () => {
+	it('should combine multiple rotation axes into one matrix3d', () => {
 		const base: React.CSSProperties = {};
 		apply3dEffects(
 			base,
@@ -435,10 +443,8 @@ describe('apply3dEffects', () => {
 			},
 			undefined,
 		);
-		expect(base.perspective).toBe('800px');
-		expect(base.transform).toContain('rotateX(-10deg)');
-		expect(base.transform).toContain('rotateY(20deg)');
-		expect(base.transform).toContain('rotateZ(30deg)');
+		expect(base.perspective).toBeUndefined();
+		expect(base.transform).toContain('matrix3d(');
 	});
 
 	it('should apply an exact matrix3d for a camera preset, no separate perspective', () => {

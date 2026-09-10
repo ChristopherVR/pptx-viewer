@@ -61,7 +61,7 @@ describe('angular picture bullet projection', () => {
 			textElement([segment, { text: 'Item', style: { fontFamily: 'Arial', fontSize: 18 } }]),
 		);
 		expect(para.bulletStyle['fontFamily']).toBe(
-			'"Arial", "Liberation Sans", "Helvetica", sans-serif',
+			'"Arial", "Liberation Sans", "Arimo", "Helvetica", sans-serif',
 		);
 	});
 

@@ -200,11 +200,14 @@ describe('computeCameraTransform', () => {
 	});
 
 	it('uses explicit lat/lon overrides', () => {
-		// 1800000 = 30deg in 60000ths
+		// 1800000 = 30deg in 60000ths. An explicit `a:camera/a:rot` override
+		// resolves to a COM-measured exact `matrix3d(...)` homography (see
+		// `visual-3d-camera-override.ts`), not `perspective()` + `rotateX/Y()`.
 		const result = computeCameraTransform('perspectiveFront', 1800000, 2700000);
-		expect(result).toContain('perspective(1000px)');
-		expect(result).toContain('rotateX(-30deg)');
-		expect(result).toContain('rotateY(45deg)');
+		expect(result).toMatch(/^matrix3d\(/);
+		expect(result).not.toContain('perspective(');
+		expect(result).not.toContain('rotateX(');
+		expect(result).not.toContain('rotateY(');
 	});
 
 	it('returns empty string when no preset and no rotations', () => {
@@ -216,10 +219,14 @@ describe('computeCameraTransform', () => {
 		expect(computeCameraTransform('orthographicFront')).toBe('');
 	});
 
-	it('applies default perspective for explicit rotations without preset', () => {
+	it('applies an exact matrix3d for explicit rotations without preset', () => {
+		// An explicit `a:camera/a:rot` override resolves to a matrix3d
+		// homography rather than the legacy `perspective()` + `rotateX()` pair,
+		// even with no preset present.
 		const result = computeCameraTransform(undefined, 600000); // 10deg
-		expect(result).toContain('perspective(800px)');
-		expect(result).toContain('rotateX(-10deg)');
+		expect(result).toMatch(/^matrix3d\(/);
+		expect(result).not.toContain('perspective(');
+		expect(result).not.toContain('rotateX(');
 	});
 
 	it('produces an exact affine matrix3d for isometric presets (no perspective divide)', () => {

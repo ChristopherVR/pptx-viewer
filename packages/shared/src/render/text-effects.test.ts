@@ -78,8 +78,14 @@ describe('3d text effects', () => {
 		const out = buildTextBody3DSceneStyle({
 			textBodyScene3d: { cameraRotY: 600000 },
 		} as TextStyle);
-		expect(out).toMatchObject({ perspective: '800px', transformStyle: 'preserve-3d' });
-		expect(String(out!.transform)).toContain('rotateY(10deg)');
+		// An explicit `a:camera/a:rot` override resolves to a COM-measured exact
+		// `matrix3d(...)` homography (see `visual-3d-camera-override.ts`), not the
+		// legacy `perspective()` + `rotateY()` approximation: no `perspective` is
+		// emitted, and the rotation is baked into the matrix rather than a
+		// separate `rotateY(10deg)` transform function.
+		expect(out).toMatchObject({ transformOrigin: '0 0', transformStyle: 'preserve-3d' });
+		expect(out).not.toHaveProperty('perspective');
+		expect(String(out!.transform)).toMatch(/^matrix3d\(/);
 	});
 
 	it('returns undefined without a scene', () => {
