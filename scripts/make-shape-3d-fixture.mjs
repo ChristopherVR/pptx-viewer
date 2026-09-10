@@ -219,11 +219,15 @@ const obliqueBlock = shape({
 
 /**
  * 2026-09 bevel-lighting material-routing wave: `bevelled` above (`circle` +
- * `metal`) is exactly the `metal`/`circle` pair `visual-3d-bevel-lighting
- * -routing.ts` routes to the legacy `box-shadow` model (calibration could
- * not beat that baseline for this specific combination - see that module's
- * doc comment), so it no longer exercises the real SVG lighting `<filter>`
- * path at all. This shape (`circle` + `matte`, NOT routed) is what
+ * `metal`) was for a time exactly the `metal`/`circle` pair
+ * `visual-3d-bevel-lighting-routing.ts` routed to the legacy `box-shadow`
+ * model, so it exercised the fallback path instead of the real SVG lighting
+ * `<filter>`. SUPERSEDED 2026-09 (bevel-profile cross-section campaign): a
+ * data-driven refit of `circle`'s own `BEVEL_PROFILE_HEIGHT_MAP` entry
+ * (unrelated to material tuning) brought `metal`/`circle` under the
+ * box-shadow baseline with no routing needed, so `LEGACY_BEVEL_ROUTING` is
+ * currently empty and `bevelled` now gets the real filter too - see that
+ * module's doc comment. This shape (`circle` + `matte`) is what
  * `shape-3d-bevel-lighting-parity.spec.ts` uses to assert the actual
  * `feDiffuseLighting`/`feSpecularLighting` filter renders end to end.
  */

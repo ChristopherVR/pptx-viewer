@@ -23,11 +23,15 @@
  * renders as a silently MISSING bevel, worse than the old box-shadow
  * fallback it replaced - fails here instead of only in a screenshot.
  *
- * A `material`/profile combination calibration could not beat the legacy
- * box-shadow baseline for (currently just `metal`/`circle`) ROUTES to that
- * legacy model instead (`visual-3d-bevel-lighting-routing.ts`); this spec
- * checks both paths: the non-routed `matte`/`circle` shape gets the real
- * filter, and the routed `metal`/`circle` shape does NOT.
+ * A `material`/profile combination whose calibration cannot beat the legacy
+ * box-shadow baseline ROUTES to that legacy model instead
+ * (`visual-3d-bevel-lighting-routing.ts`); the routing set is currently
+ * EMPTY (the 2026-09 bevel-profile cross-section campaign fixed the one
+ * pair that used to route, `metal`/`circle`, by refitting the profile
+ * table rather than the material constants - see that module's doc
+ * comment), so this spec checks that BOTH the `matte`/`circle` and
+ * `metal`/`circle` shapes get the real filter, confirming the fixed pair
+ * did not silently regress back to routed.
  *
  * Run: bunx playwright test shape-3d-bevel-lighting-parity
  */
@@ -106,9 +110,9 @@ async function bevelFilterStateOf(page: Page, idSuffix: string): Promise<BevelFi
 }
 
 test.describe('bevel lighting SVG filter', () => {
-	// `shape-9` ("Matte Bevel Block", circle + matte, NOT routed - see
+	// `shape-9` ("Matte Bevel Block", circle + matte - see
 	// scripts/make-shape-3d-fixture.mjs) gets the real SVG lighting filter.
-	test('a non-routed bevelled shape gets a real lighting <filter>, referenced by its own CSS filter', async ({
+	test('a matte bevelled shape gets a real lighting <filter>, referenced by its own CSS filter', async ({
 		page,
 	}) => {
 		await loadDeck(page);
@@ -122,19 +126,22 @@ test.describe('bevel lighting SVG filter', () => {
 	});
 
 	// `shape-0` ("Bevel Block") carries a wide circle bevel + metal material:
-	// exactly the `metal`/`circle` pair `visual-3d-bevel-lighting-routing.ts`
-	// routes to the legacy `box-shadow` model (calibration could not beat that
-	// baseline for this combination - see that module's doc comment), so it
-	// must NOT get the SVG lighting filter.
-	test('a routed (metal + circle) bevelled shape falls back to the legacy box-shadow, not the SVG filter', async ({
+	// the ONE pair `visual-3d-bevel-lighting-routing.ts` used to route to the
+	// legacy `box-shadow` model, until the 2026-09 bevel-profile cross-section
+	// refit fixed it without touching material calibration (see that module's
+	// doc comment). It now gets the real SVG lighting filter too, same as any
+	// other bevelled shape - this regression-guards that fix staying landed.
+	test('the formerly-routed (metal + circle) bevelled shape now also gets the real SVG filter, not the legacy box-shadow', async ({
 		page,
 	}) => {
 		await loadDeck(page);
 
 		const state = await bevelFilterStateOf(page, 'shape-0');
 		expect(state).not.toBeNull();
-		expect(state!.filterCss).not.toMatch(/bevel-light/u);
-		expect(state!.defFound).toBe(false);
+		expect(state!.filterCss).toContain('url(');
+		expect(state!.filterCss).toMatch(/bevel-light/u);
+		expect(state!.defFound).toBe(true);
+		expect(state!.hasLightingPrimitives).toBe(true);
 	});
 
 	// `shape-1` ("Flat Block") has no `a:sp3d` at all: no bevel filter of any
