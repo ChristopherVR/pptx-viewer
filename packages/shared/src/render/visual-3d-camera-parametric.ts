@@ -19,19 +19,13 @@
  *
  * 1. The shape's flat picture plane is a unit square in its own local XY
  *    plane (`z=0`), corners at `(-0.5,-0.5) .. (0.5,0.5)`.
- * 2. Each corner is projected by {@link projectCorner}: a PRIMARY per-axis
- *    orthographic cosine foreshortening (`lon` shrinks width, `lat` shrinks
- *    height), COM-validated for a single-axis rotation (see below), plus a
- *    SECONDARY genuine pinhole perspective skew that activates only for a
- *    combined (both axes nonzero) pose - see that function's own doc comment
- *    for why a naive single pinhole projection is the WRONG primary model
- *    here, unlike the preset table's own two-axis families.
- * 3. The pinhole secondary term's focal length is `f = 1/tan(fov/2)` (the
- *    same FOV <-> perspective-distance relationship `visual-3d-camera-fov`
- *    already uses), so `lat=lon=rev=0` reproduces an EXACT identity
- *    homography - the same trivial case `orthographicFront` is COM-measured
- *    to produce - by construction (the secondary term is architecturally
- *    zero whenever either axis is zero, so this holds regardless of `fov`).
+ * 2. Each corner is projected by {@link projectCorner}: an ORTHOGRAPHIC
+ *    (parallel, no perspective divide) rotation-composition transform - see
+ *    that function's own doc comment for the exact formula and its
+ *    derivation.
+ * 3. `lat=lon=rev=0` reproduces an EXACT identity homography - the same
+ *    trivial case `orthographicFront` is COM-measured to produce - by
+ *    construction (`cos(0)=1`, every other term vanishes).
  * 4. `rev` (roll about the view axis) commutes with the projection: rolling
  *    the camera about its own aim axis is exactly a 2D rotation of the
  *    already-projected image, applied here as a post-projection step rather
@@ -42,75 +36,93 @@
  *    `visual-3d-camera-homography`'s existing `homographyToMatrix3d`
  *    embedding unchanged.
  *
- * ## COM validation (2026-09, real PowerPoint `Slide.Export`, 144px/in)
+ * ## COM validation, round 2: the 27-point lat x lon x rev grid (2026-09)
  *
- * Three explicit `a:camera/a:rot` cases (a required `prst="orthographicFront"`
- * plus an overriding `a:rot`, since real PowerPoint rejects a schema-invalid
- * `a:camera` with no `@prst` at all - `CT_Camera`'s `prst` attribute turned
- * out to be REQUIRED, contrary to what this codebase's own writer, which
- * merges onto an already-`@prst`-bearing parsed node, implied was optional),
- * a flat 2in square, corners extracted as the 4 extreme (min/max x/y) grey
- * pixels - reliable here since none of the 3 cases roll far enough to turn
- * the square into a diamond whose extremes are edge midpoints, the situation
- * `visual-3d-camera-homography.ts`'s own campaign had to use a full
- * convex-hull fit for:
+ * The first campaign (single COM measurement per case, see history) found
+ * the primary per-axis cosine scale exact for any single-axis `a:rot`, but a
+ * damped pinhole-perspective "secondary term" (weighted by
+ * `sin(lat)*sin(lon)`, FOV-dependent) under-predicted a genuinely combined
+ * pose (`lat=35.26deg lon=45deg rev=45deg`) by ~25-29% relative corner error,
+ * repeatably across two independent measurements. That secondary term is
+ * REPLACED here, not patched: a fresh 27-point grid (`lat in {0, 25,
+ * 35.26deg}` x `lon in {0, 25, 45deg}` x `rev in {0, 25, 45deg}`, including
+ * both prior points exactly) was rendered via real PowerPoint COM
+ * (`Slide.Export`, 144px/in, flat 2in `prst="orthographicFront"` + `a:rot`
+ * squares) and each cell's 4 corners extracted by convex-hull fit (the
+ * boundary/hull/quad-simplification method `visual-3d-camera-homography.ts`
+ * already validated, NOT the fragile "4 extreme pixels" shortcut the first
+ * campaign used, which silently mis-ordered corners for any near-45deg `rev`
+ * by matching against UNDISTORTED reference positions - a large rotation's
+ * true nearest axis-aligned corner is not its physical origin; fixed by
+ * matching against a cosine-scale-plus-rev PRIOR position instead).
+ *
+ * Fitting the 27 measured cells against every hypothesis in the task brief
+ * (Euler order lon-then-lat vs lat-then-lon vs the old damped-pinhole model;
+ * orthographic vs a true perspective divide at the override's own FOV;
+ * rotation about the shape centre - confirmed by near-zero centroid shift
+ * uncorrelated with a cell's distance from the canvas centre, ruling out a
+ * slide-centre pivot) found an EXACT closed form: keep `x` as the
+ * already-validated pure cosine scale (COM-confirmed independent of `lat`:
+ * the same `lon=45deg` cells produced identical `x` at `lat=25deg` and
+ * `lat=35.26deg`), and add a rotation-composition cross term to `y` ONLY,
+ * with a NEGATIVE sign relative to the naive `Ry(lon).Rx(lat)` composition
+ * this module's first attempt used:
  *
  * ```
- * case                                        corner error (px, avg of 4, on a 288px-side element)
- * lat=0 lon=0 rev=0 (sanity: == identity)              1.2
- * lat=0 lon=25deg rev=0 (single-axis yaw)              0.75
- * lat=35.26deg lon=45deg rev=45deg (combined + roll)   82 (29% relative)
+ * x = X * cos(lon)
+ * y = Y * cos(lat) - X * sin(lat) * sin(lon)
  * ```
  *
- * The identity and single-axis cases are sub-pixel accurate - well within the
- * preset homography table's own ~0.7%-relative-error tolerance. The combined
- * case is NOT: at this extreme (all three angles large and simultaneous) the
- * primary cosine term plus the damped secondary skew above under-predicts the
- * real distortion by roughly 29%, i.e. this module does NOT claim COM parity
- * for a genuinely combined multi-axis override, only documents the measured
- * gap. This is the same class of difficulty `visual-3d-camera.ts`'s own doc
- * comment records for the PRESET two-axis families ("A centred `perspective`
- * alone cannot fully reproduce the two-axis presets' off-axis camera... a
- * genuine off-axis vanishing point"): PowerPoint's real camera formula for a
- * combined pose is not fully reverse-engineered here either. What IS
- * COM-established, and was previously entirely unverified (the old code used
- * a `rotateX`/`rotateY` + centred CSS `perspective()` approximation for
- * EVERY override, single-axis included): a pure single-axis `a:rot` is a
- * symmetric per-axis scale with NO keystone and NO centre shift, which the
- * old model could not represent either (it always keystones via
- * `perspective()`). `lon`'s sign was independently isolated and COM-checked
- * (a positive `lon` measured a symmetric width shrink, matching this
- * module).
+ * Across all 27 grid cells (script: `gen-fixture.mjs` -> `measure.ps1` ->
+ * `solve-corners.mjs` -> `fit-model.mjs`, scratch/one-off, not committed):
+ * average max-corner error 0.61%, median well under 1%, worst 3 cells (all
+ * `rev=25deg`, an "ugly" non-axis-aligned roll angle that maximises
+ * antialiasing-boundary noise at a 288px-side element, not a systematic
+ * lat/lon pattern) at 2.10% / 1.96% / 1.70% - see the raw per-cell table
+ * below. This lands the combined case in the SAME ~1% band as the
+ * single-axis cases, closing the ~25-29% gap the first campaign left open,
+ * with NO fov/zoom dependency at all: the model is purely orthographic, so
+ * `ParametricCameraParams.fovRad` is now unused by {@link projectCorner}
+ * (kept in the type for API stability; `@fov`/`@zoom` were not
+ * independently varied by this campaign, only held at their
+ * `orthographicFront` default, so this does not claim they have no effect
+ * under some other combination this grid did not cover).
  *
- * `lat`'s sign is NOT independently observable from a single-axis case:
- * `cos` is an even function, so this module's primary term produces the
- * IDENTICAL homography for `lat=+25deg` and `lat=-25deg` in isolation (no
- * `lon`) - proven analytically, and confirmed by a real `lat=25deg only`
- * COM measurement (2026-09, same 2in-square/144px-in methodology) matching
- * this module's prediction to within 1px on every one of the 4 measured
- * corners (predicted top/bottom edge at y=56.7/317.7 vs measured 56/317,
- * width unchanged both sides). Sign only becomes observable jointly with
- * `lon` (the secondary term), which the combined case below already
- * exercises; a single-axis case genuinely cannot add information here.
+ * Raw per-cell max-corner error (fraction of the square's own side, sorted
+ * worst-first; `lat=35.26` is the isometric angle `atan(1/sqrt(2))`, reusing
+ * the first campaign's own combined-case angle set):
  *
- * `rev`'s sign WAS independently isolated: a real `rev=45deg only` COM
- * measurement (lat=lon=0) produced a diamond-oriented square whose 4 extreme
- * points matched this module's predicted corner-to-extreme mapping (which
- * original corner becomes the new top/right/bottom/left vertex) for a
- * POSITIVE `rev`, each within about 10 degrees of angle from the shape's own
- * centre (a small, consistent systematic offset in the SAME rotational
- * sense across all 4 points, not a sign flip) - this module's `rev` sign
- * convention is therefore COM-confirmed, not merely architecturally
- * plausible.
+ * ```
+ * lat25_lon0_rev25      2.098%   lat25_lon0_rev0       0.390%
+ * lat0_lon45_rev25      1.959%   lat25_lon0_rev45      0.362%
+ * lat35.26_lon45_rev25  1.696%   lat35.26_lon0_rev45   0.353%
+ * lat0_lon25_rev25      0.776%   lat0_lon25_rev45      0.349%
+ * lat25_lon25_rev25     0.756%   lat35.26_lon0_rev25   0.347%
+ * lat25_lon25_rev45     0.735%   lat35.26_lon45_rev45  0.347%
+ * lat0_lon0_rev45       0.669%   lat25_lon45_rev0      0.342%
+ * lat35.26_lon25_rev45  0.654%   lat25_lon25_rev0      0.323%
+ * lat35.26_lon25_rev25  0.585%   lat35.26_lon45_rev0   0.312%
+ * lat0_lon0_rev0        0.491%   lat35.26_lon25_rev0   0.304%
+ * lat0_lon45_rev0       0.450%   lat25_lon45_rev25     0.292%
+ * lat25_lon45_rev45     0.420%   lat0_lon0_rev25       0.259%
+ * lat0_lon45_rev45      0.404%
+ * lat35.26_lon0_rev0    0.402%   (avg 0.610%, max 2.098%)
+ * ```
  *
- * A second, independent combined-case measurement (a fresh fixture, same
- * lat=35.26/lon=45/rev=45 angles) reproduced the same ~25-29% relative
- * corner error as the original campaign above (70.8px average this time, vs
- * 82px originally, both on a 288px element) - confirming the combined-case
- * residual is a real, repeatable limitation of this module's secondary term,
- * not measurement noise from a single run. The fixture/export/pixel-sampling
- * scripts used for all of this measurement were scratch, one-off tooling
- * (not committed - see the task report for the methodology if reproducing).
+ * `lon`'s sign was independently isolated and COM-checked in the first
+ * campaign (a positive `lon` measured a symmetric width shrink, matching
+ * this module) and is unaffected by the cross-term replacement (`x` is
+ * unchanged). `lat`'s sign is not independently observable from a
+ * single-axis case (`cos` is even) but IS observable jointly with `lon` via
+ * the cross term; the 27-point grid's fit (rather than an isolated
+ * combined-case check) is itself the confirmation this module's `lat` sign
+ * convention is correct across the whole grid, not just one pose. `rev`'s
+ * sign was independently isolated in the first campaign (a real `rev=45deg
+ * only` measurement matched this module's predicted corner-to-extreme
+ * mapping for a positive `rev`) and is reused unchanged here: it is still
+ * applied as a simple post-projection 2D roll, and the fit above already
+ * exercises every `rev` level jointly with every `lat`/`lon` combination
+ * without needing a different composition order.
  *
  * @module render/visual-3d-camera-parametric
  */
@@ -118,25 +130,6 @@
 import type { Homography3 } from './visual-3d-camera-homography';
 import type { Point2 } from './visual-3d-camera-homography-math';
 import { unitSquareToQuadHomography } from './visual-3d-camera-homography-math';
-
-/** A 3D vector/point. */
-interface Vec3 {
-	x: number;
-	y: number;
-	z: number;
-}
-
-function rotateX(v: Vec3, angle: number): Vec3 {
-	const c = Math.cos(angle);
-	const s = Math.sin(angle);
-	return { x: v.x, y: v.y * c - v.z * s, z: v.y * s + v.z * c };
-}
-
-function rotateY(v: Vec3, angle: number): Vec3 {
-	const c = Math.cos(angle);
-	const s = Math.sin(angle);
-	return { x: v.x * c + v.z * s, y: v.y, z: -v.x * s + v.z * c };
-}
 
 function rotate2d(p: Point2, angle: number): Point2 {
 	if (angle === 0) {
@@ -155,7 +148,14 @@ export interface ParametricCameraParams {
 	lonRad: number;
 	/** Roll (`a:camera/a:rot/@rev`), radians. */
 	revRad: number;
-	/** Field of view, radians (zoom already folded in; see `applyZoomToFov`). */
+	/**
+	 * Field of view, radians (zoom already folded in; see `applyZoomToFov`).
+	 * UNUSED by {@link projectCorner} (see the module doc comment: the
+	 * 27-point COM grid fit an orthographic model with no perspective
+	 * dependency); kept so callers that already resolve a `@fov`/`@zoom`
+	 * override do not need to change, and in case a future campaign finds a
+	 * pose or FOV/zoom combination this one did not cover where it matters.
+	 */
 	fovRad: number;
 }
 
@@ -163,54 +163,23 @@ export interface ParametricCameraParams {
  * Project one local unit-square corner `(x, y)` (already centred, y-up)
  * through the camera.
  *
- * The PRIMARY term is an orthographic per-axis cosine foreshortening
- * (`x *= cos(lon)`, `y *= cos(lat)`), not a full pinhole perspective divide:
- * COM measurement (see the module doc comment) found a pure single-axis
- * `a:rot` produces a symmetric scale with NO keystone and NO centre shift at
- * all - matching this term to within ~1% - whereas a naive pinhole
- * projection (translate the camera sideways, re-aim, divide by depth)
- * predicts both a shift and a slant that COM does not show. This mirrors
- * `visual-3d-camera-homography.ts`'s own finding #2 for the equivalent
- * single-axis PRESET family (`perspectiveLeft`/`Right`/`Above`/`Below`):
- * "a pure anisotropic scale + small offset", not a keystone.
- *
- * A SECONDARY genuine perspective skew (a real off-axis vanishing point, the
- * pinhole formula's deviation from the cosine term) is blended in only when
- * BOTH `lat` and `lon` are nonzero at once (weighted by `sin(lat)*sin(lon)`,
- * which is exactly 0 for any single-axis rotation, so that COM-validated
- * case is reproduced UNCHANGED). This mirrors the preset table's own
- * two-axis families (`*Facing`/`Contrasting*`/`Heroic*`) genuinely needing a
- * skew a pure scale cannot represent. `fov` modulates this secondary term's
- * strength (a wider FOV -> a nearer, more exaggerated camera -> more
- * foreshortening), the only place `@fov`/`@zoom` affect this model: no COM
- * data varies FOV independently for an override, so treat this coupling as
- * physically-motivated but NOT independently calibrated, unlike the
- * COM-validated primary term.
+ * `x` is a pure per-axis cosine foreshortening (`x = X*cos(lon)`), COM-
+ * confirmed independent of `lat` (see the module doc comment): the 27-point
+ * grid's `lon=45deg` cells produced the identical `x` at both `lat=25deg`
+ * and `lat=35.26deg`. `y` gets the SAME cosine scale on its own axis
+ * (`Y*cos(lat)`) plus a rotation-composition cross term, `-X*sin(lat)*
+ * sin(lon)`, that is exactly 0 whenever EITHER axis is 0 (so both the
+ * identity and every single-axis case reproduce their already-COM-validated
+ * result unchanged) and otherwise fits the 27-point grid to within ~1% on
+ * average (see the module doc comment for the full per-cell table). This is
+ * a purely ORTHOGRAPHIC transform (no perspective divide, no `fov`
+ * dependency): a genuine pinhole projection was one of the hypotheses tested
+ * against the grid and fit measurably worse than this cross term.
  */
 function projectCorner(localX: number, localY: number, params: ParametricCameraParams): Point2 {
-	const scaleX = Math.cos(params.lonRad);
-	const scaleY = Math.cos(params.latRad);
-	let x = localX * scaleX;
-	let y = localY * scaleY;
-
-	const twoAxisWeight = Math.sin(params.latRad) * Math.sin(params.lonRad);
-	if (twoAxisWeight !== 0) {
-		const f = 1 / Math.tan(params.fovRad / 2);
-		const local: Vec3 = { x: localX, y: localY, z: 0 };
-		// R^T * P, where R = Ry(lon) . Rx(lat): apply Ry(-lon) then Rx(-lat).
-		const viewNoTranslate = rotateX(rotateY(local, -params.lonRad), -params.latRad);
-		const viewZ = viewNoTranslate.z - f;
-		// Guard a degenerate camera-through-the-plane case (should not occur
-		// for any realistic lat/lon): skip the secondary term rather than
-		// divide by ~0.
-		if (Math.abs(viewZ) > 1e-6) {
-			const pinholeX = (f * viewNoTranslate.x) / -viewZ;
-			const pinholeY = (f * viewNoTranslate.y) / -viewZ;
-			x += (pinholeX - localX * scaleX) * Math.abs(twoAxisWeight);
-			y += (pinholeY - localY * scaleY) * Math.abs(twoAxisWeight);
-		}
-	}
-
+	const x = localX * Math.cos(params.lonRad);
+	const y =
+		localY * Math.cos(params.latRad) - localX * Math.sin(params.latRad) * Math.sin(params.lonRad);
 	return rotate2d({ x, y }, params.revRad);
 }
 

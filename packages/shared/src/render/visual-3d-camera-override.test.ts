@@ -40,12 +40,14 @@ describe('resolveExplicitOverrideCameraTransform', () => {
 		expect(result.rotateY).toBe(-999);
 	});
 
-	// FOV only feeds the SECONDARY two-axis skew term (see
-	// `visual-3d-camera-parametric.ts`'s `projectCorner` doc comment): a pure
-	// single-axis override is FOV-INDEPENDENT by design (matches the
-	// COM-measured pure-scale behaviour regardless of lens), so this must use
-	// a combined (lat AND lon) override to actually exercise the FOV coupling.
-	it('prefers an explicit @fov over the preset perspectiveRefPx hint for a combined override', () => {
+	// The 27-point lat x lon x rev COM grid (see `visual-3d-camera-
+	// parametric.ts`'s `projectCorner` doc comment) found the override
+	// projection purely ORTHOGRAPHIC, even for a combined (lat AND lon)
+	// pose: no fov/zoom dependency at all. `@fov` vs the preset's
+	// `perspectiveRefPx` hint therefore now produce the IDENTICAL matrix3d
+	// for the same rotation (this replaced an earlier, pre-27-point-grid
+	// assumption that a combined override's skew scaled with fov).
+	it('is unaffected by @fov vs the preset perspectiveRefPx hint for a combined override (COM-confirmed orthographic)', () => {
 		const withPresetFov = resolveExplicitOverrideCameraTransform(
 			{ cameraRotX: 600000, cameraRotY: 600000 },
 			{ perspectiveRefPx: 400 },
@@ -60,9 +62,7 @@ describe('resolveExplicitOverrideCameraTransform', () => {
 			0,
 			0,
 		);
-		// Different FOV sources should change the projected homography's
-		// magnitude (both are matrix3d, but not byte-identical).
-		expect(withPresetFov.matrix3d).not.toBe(withExplicitFov.matrix3d);
+		expect(withPresetFov.matrix3d).toBe(withExplicitFov.matrix3d);
 	});
 
 	it('resolves panelSides from the computed homography', () => {
