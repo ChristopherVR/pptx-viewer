@@ -251,6 +251,32 @@ describe('tableCommandOp', () => {
 		expect(rawRows(element)).toHaveLength(3);
 	});
 
+	it('commits cleared absorbed runs from a cursor merge', () => {
+		const element = makeTable();
+		const anchorRuns = [{ text: 'r0c0', bold: true }];
+		element.tableData!.rows[0].cells[0].textRuns = anchorRuns;
+		element.tableData!.rows[0].cells[1].textRuns = [{ text: 'r0c1', italic: true }];
+		const updateElement = vi.fn();
+		const harness = {
+			tableCtx: () => ({ element, sel: selectionAt(0, 0) }),
+			slideIndex: () => 4,
+			editor: { updateElement },
+		};
+		const applyTable = (
+			EditorContextMenuComponent.prototype as unknown as {
+				applyTable(op: TableCommandOp): void;
+			}
+		).applyTable;
+
+		applyTable.call(harness, tableCommandOp('table-merge-right')!);
+
+		expect(updateElement).toHaveBeenCalledOnce();
+		const [, , patch] = updateElement.mock.calls[0] as [number, string, TablePptxElement];
+		expect(patch.tableData?.rows[0].cells[0].textRuns).toBe(anchorRuns);
+		expect(patch.tableData?.rows[0].cells[1]).toMatchObject({ text: '', hMerge: true });
+		expect(patch.tableData?.rows[0].cells[1].textRuns).toBeUndefined();
+	});
+
 	it.each(['table-delete-row', 'table-delete-col'] as const)(
 		'does not commit %s when the table has only one cell',
 		(id) => {
