@@ -15,13 +15,16 @@
  * The faithful Office 2010 (`p14`) keyframes are appended (via
  * {@link P14_TRANSITION_KEYFRAMES_ALL}) so the exotic / 3-D transitions routed
  * through `getP14TransitionAnimations` animate wherever this block is injected,
- * with no per-binding wiring.
+ * with no per-binding wiring. {@link FRAGMENT_TRANSITION_KEYFRAMES} is appended
+ * last, backing the seven multi-fragment cinematic presets resolved by
+ * `getFragmentedTransitionDescriptor` (`slide-transition-fragments.ts`).
  *
  * @module render/slide-transition-keyframes
  */
 
 import { P14_TRANSITION_KEYFRAMES_ALL } from './p14-transition-keyframes';
 import { CINEMATIC_TRANSITION_KEYFRAMES } from './slide-transition-cinematic';
+import { FRAGMENT_TRANSITION_KEYFRAMES } from './slide-transition-fragments';
 import { WHEEL_MASK_KEYFRAMES } from './slide-transition-wheel-keyframes';
 import { WIPE_MASK_KEYFRAMES } from './slide-transition-wipe-keyframes';
 
@@ -287,7 +290,7 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
  * faithful Office 2010 (`p14`) keyframes, so both the classic and exotic / 3-D
  * transitions animate wherever this single string is injected.
  */
-export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${WIPE_MASK_KEYFRAMES}\n${WHEEL_MASK_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}`;
+export const SLIDE_TRANSITION_KEYFRAMES = `${CORE_SLIDE_TRANSITION_KEYFRAMES}\n${WIPE_MASK_KEYFRAMES}\n${WHEEL_MASK_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_ALL}\n${CINEMATIC_TRANSITION_KEYFRAMES}\n${FRAGMENT_TRANSITION_KEYFRAMES}`;
 
 /**
  * Alias of {@link SLIDE_TRANSITION_KEYFRAMES} under the `_CSS` name the Vue

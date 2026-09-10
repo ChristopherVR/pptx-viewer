@@ -813,6 +813,9 @@ export * from './morph-z-order';
 export * from './slide-transition-types';
 export * from './slide-transition-keyframes';
 export * from './slide-transition-css';
+// Multi-fragment descriptor for the seven cinematic transitions COM-measured
+// as many independent fragments/particles/panels rather than one layer.
+export * from './slide-transition-fragments';
 // Inspector-side option catalogues for the transition section: the type list,
 // the orientation-vs-direction rule, and the arrow-grid tables.
 export * from './slide-transition-options';
