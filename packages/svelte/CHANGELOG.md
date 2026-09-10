@@ -7,6 +7,27 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.16.0) - 2026-09-10
+
+### Features
+
+- **shared:** Fit the combined a:camera/a:rot override to PowerPoint's orthographic model (by @ChristopherVR) ([4379b7f](https://github.com/ChristopherVR/pptx-viewer/commit/4379b7ff4951598a0d796450b60c264ddcfacebb))
+- **core:** SmartArt corner-anchored hierarchies and the layout-definition type split (by @ChristopherVR) ([b3c9506](https://github.com/ChristopherVR/pptx-viewer/commit/b3c9506b5ca7858eb4e3ec6e28be987c3cacdcad))
+- **shared:** Fit the twelve a:bevelT profiles to COM cross-sections and drop the metal/circle routing (by @ChristopherVR) ([f5519eb](https://github.com/ChristopherVR/pptx-viewer/commit/f5519eb61eddbae104ccc2aa0b130504f2e9c8a5))
+- **core:** SmartArt anchor-aware predicates, nested cycles and centred-fan hierarchies (by @ChristopherVR) ([eee2c98](https://github.com/ChristopherVR/pptx-viewer/commit/eee2c98e43d24ea7dabeda8e627c025828f1cb39))
+- **core:** Wire the hierarchy arranger to the resolved-orientation module (by @ChristopherVR) ([ab035ea](https://github.com/ChristopherVR/pptx-viewer/commit/ab035ea9c4e1c64f3a3d7ef7fd5aabe130dfa45f))
+- **core:** SmartArt hub aspect fitting and ancestor userS resolution (by @ChristopherVR) ([9f9b534](https://github.com/ChristopherVR/pptx-viewer/commit/9f9b53469e3c59ee07968405acb408cce7d0522b))
+
+### Bug Fixes
+
+- **core:** Terminate .ppt shape names so PowerPoint opens named shapes (by @ChristopherVR) ([7d8f842](https://github.com/ChristopherVR/pptx-viewer/commit/7d8f8423c95d4fe5fc88ad0a77d2281369b001ac))
+- **shared:** Size the WordArt envelope band from the line's real ascent (by @ChristopherVR) ([9d6267b](https://github.com/ChristopherVR/pptx-viewer/commit/9d6267b32a4602e4717a2cfa8734374875d50c05))
+- **core:** Restore the generation-template call sites swept into eee2c98e4 (by @ChristopherVR) ([ffee234](https://github.com/ChristopherVR/pptx-viewer/commit/ffee2341f16c225a065e3886cc23a4b58a3ccdf4))
+
+### Testing
+
+- **core:** Make the SmartArt gallery gate opt-in and give the .ppt password test its PBKDF2 budget (by @ChristopherVR) ([0ff5e2b](https://github.com/ChristopherVR/pptx-viewer/commit/0ff5e2bc5a51513bf1d975148cda96407e03ba53))
+
 ## [3.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.15.0) - 2026-09-10
 
 ### Features
