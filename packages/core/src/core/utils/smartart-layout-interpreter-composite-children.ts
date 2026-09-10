@@ -73,8 +73,14 @@ interface ChildRepeaterItem {
  * for `anchor`'s own children, across ALL of the wrapper's item templates
  * (`pillar1` AND `pillarX`), sorted into child order. Empty when the wrapper
  * has no such template (a purely decorative slot, e.g. `base`).
+ *
+ * Exported (ROUND 42) for `smartart-layout-interpreter-composite-nested-
+ * cycle.ts`'s `resolveNestedCycleAnchor`, which reuses this exact resolution
+ * to detect a genuine 2-level nested hub-and-satellite ring
+ * (`radial-cluster--hier5.pptx`'s `cycle_3`) rather than a flat per-child
+ * repeat.
  */
-function collectChildRepeaterItems(
+export function collectChildRepeaterItems(
 	wrapper: PptxSmartArtLayoutNode,
 	anchorChildren: PptxSmartArtNode[],
 ): ChildRepeaterItem[] {

@@ -11,12 +11,8 @@
 import type { PptxSmartArtNode, PptxSmartArtPresLayoutVars, PptxSmartArtWhen } from '../types';
 import { resolveAxisCount } from './smartart-layout-interpreter-axis-count';
 import { resolveAxisMaxDepth } from './smartart-layout-interpreter-axis-depth';
-
-/** Parse a numeric branch threshold, or `undefined` when non-numeric. */
-function toNumber(value: string): number | undefined {
-	const parsed = Number(value);
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
+import { compareNumeric, toNumber } from './smartart-layout-interpreter-when-numeric';
+import { evaluateVar } from './smartart-layout-interpreter-when-var';
 
 /**
  * Extra evaluation context beyond the node count, letting {@link evaluateWhen}
@@ -65,89 +61,6 @@ export interface WhenContext {
 	 * this - no existing caller populates this field yet).
 	 */
 	anchor?: PptxSmartArtNode[];
-}
-
-/** Apply `when.operator` to compare `actual` against a numeric `threshold`. */
-function compareNumeric(actual: number, operator: string, threshold: number): boolean | undefined {
-	switch (operator) {
-		case 'equ':
-			return actual === threshold;
-		case 'neq':
-			return actual !== threshold;
-		case 'gt':
-			return actual > threshold;
-		case 'lt':
-			return actual < threshold;
-		case 'gte':
-			return actual >= threshold;
-		case 'lte':
-			return actual <= threshold;
-		default:
-			return undefined;
-	}
-}
-
-/** `dgm:if/@arg` variable name -> the `presLayoutVars` field it names (`dgm:varLst` tag names). */
-const VAR_LOOKUP: Readonly<
-	Record<string, (vars: PptxSmartArtPresLayoutVars) => string | number | boolean | undefined>
-> = {
-	dir: (v) => v.direction,
-	hierBranch: (v) => v.hierarchyBranch,
-	orgChart: (v) => v.orgChart,
-	chMax: (v) => v.childMax,
-	chPref: (v) => v.childPreferred,
-	bulletEnabled: (v) => v.bulletEnabled,
-	animLvl: (v) => v.animationLevel,
-	animOne: (v) => v.animateOne,
-	resizeHandles: (v) => v.resizeHandles,
-};
-
-/**
- * ECMA-376 `CT_DirectionVarSet`/etc. default a `dgm:varLst` variable NOT
- * written to the file, rather than leaving it "unknown": most built-in
- * layoutDefs (every `lin`/`snake`/`cycle`/`pyra` family, at minimum) gate
- * their primary arrangement algorithm behind
- * `<dgm:if func="var" arg="dir" op="equ" val="norm">` and never write an
- * explicit `dgm:dir` unless the diagram is actually reversed - so treating
- * "absent" as undecidable (rather than "norm", the spec default) meant this
- * choose was NEVER decided for the common case, and `discoverArrangement`
- * fell through to the legacy family approximation for the majority of the
- * built-in gallery (measured via `smartart-gallery-ground-truth.test.ts`:
- * "Basic Process" and most List/Process/Cycle/Pyramid layouts). Only `dir`
- * is defaulted here; the other `dgm:varLst` variables (`hierBranch`,
- * `chMax`/`chPref`, ...) are resolved with their own defaults already
- * applied at parse time (`smartart-pres-layout-vars.ts`), so they reach here
- * with a concrete value or a deliberate "genuinely absent" `undefined`.
- */
-const VAR_DEFAULT: Readonly<Partial<Record<string, string>>> = { dir: 'norm' };
-
-/** Evaluate `func="var"`: compare `presLayoutVars[@arg]` against `when.value`. */
-function evaluateVar(
-	when: PptxSmartArtWhen,
-	presLayoutVars: PptxSmartArtPresLayoutVars,
-): boolean | undefined {
-	if (!when.argument) {
-		return undefined;
-	}
-	const resolved = VAR_LOOKUP[when.argument]?.(presLayoutVars);
-	const actual = resolved ?? VAR_DEFAULT[when.argument];
-	if (actual === undefined) {
-		return undefined;
-	}
-	if (typeof actual === 'number') {
-		const threshold = toNumber(when.value);
-		return threshold === undefined ? undefined : compareNumeric(actual, when.operator, threshold);
-	}
-	// Boolean/string variables (`orgChart`, `dir`, `hierBranch`, ...) only support
-	// equality: ECMA-376 doesn't define an ordering for them.
-	const actualStr = String(actual);
-	if (when.operator === 'equ') {
-		return actualStr === when.value;
-	}
-	if (when.operator === 'neq') {
-		return actualStr !== when.value;
-	}
-	return undefined;
 }
 
 /** Evaluate `func="posEven"`/`"posOdd"` as a 1/0 numeric compare against `when.value` (default 1). */
@@ -201,6 +114,21 @@ export function evaluateWhen(
 			// `resolveAxisCount` itself declines (an axis hop it doesn't
 			// recognise) - never a silent behaviour change for a caller with no
 			// tree to navigate.
+			// `context.anchor`, when supplied, is threaded through to
+			// `resolveAxisCount` exactly as `maxDepth` already threads it to
+			// `resolveAxisMaxDepth` below: hop 0 then navigates from that
+			// explicit anchor point set rather than the diagram's own top level.
+			// Needed for a `dgm:choose` living INSIDE a nested composite slot,
+			// whose `axis="ch"`/`"ch ch"` etc. means "MY anchor's own children",
+			// not "the diagram root's children" - for a diagram whose data model
+			// is a single root with everything else nested underneath (one
+			// `topLevelSmartArtNodes` entry), the anchor-less reading can never
+			// distinguish `cnt` thresholds a nested choose needs
+			// (`radial-cluster--hier5.pptx`'s `cycle_3` own `stAng`/`spanAng`
+			// choose, resolved via a `WhenContext.anchor` a composite call site
+			// supplies). No existing caller populates `context.anchor` for a
+			// `cnt` predicate yet, so this is pure additive plumbing: a full
+			// 227-fixture regen shows zero deltas from this change alone.
 			const axis = when.axis;
 			if (axis !== undefined && context.nodes) {
 				const resolved = resolveAxisCount(
@@ -209,6 +137,7 @@ export function evaluateWhen(
 					when.pointTypes,
 					when.start,
 					when.count,
+					context.anchor,
 				);
 				if (resolved !== undefined) {
 					return compareNumeric(resolved, when.operator, threshold);

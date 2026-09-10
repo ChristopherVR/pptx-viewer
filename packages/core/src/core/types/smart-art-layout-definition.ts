@@ -153,6 +153,30 @@ export interface PptxSmartArtLayoutNode {
 	 */
 	chooseGuard?: PptxSmartArtWhen[];
 	/**
+	 * ROUND 42: the forEach iterator active WHEN EACH ENTRY of {@link
+	 * chooseGuard} was declared (index-parallel with it, `undefined` per
+	 * entry when no forEach was active at that point) - NOT the same as
+	 * {@link forEachOrigin}, which is always this NODE's own single nearest
+	 * enclosing forEach, however deep. A `dgm:if` declared ABOVE a `dgm:forEach`
+	 * that this node's own branch happens to descend through afterwards needs
+	 * ITS OWN, SHALLOWER anchor for a `func="cnt"`/`"maxDepth"`-family
+	 * `@axis` condition, not this node's deeper one - `funnel--flat3.pptx`'s
+	 * `item1`/`item2`/`item3` (`chooseGuard: [Name5's axis="ch" func="cnt"
+	 * op="gte" val="1"]`, declared directly under the composite root, BEFORE
+	 * each item's own per-item `dgm:forEach axis="ch" st="2"/"3"/"4" cnt="1"`)
+	 * is exactly this shape: evaluating Name5's condition anchored to item1's
+	 * OWN forEach binding (one specific data point, with no children of its
+	 * own in a flat dataset) wrongly resolves its `axis="ch"` child count to
+	 * 0 instead of the diagram's real top-level count, dropping the item
+	 * entirely - `chooseGuardOrigins[i]` for that entry is `undefined`
+	 * (Name5 sits above ANY forEach), so the guard correctly stays
+	 * root-relative. See `smartart-layout-interpreter-composite-
+	 * candidates.ts`'s `guardAllows`, the one production consumer.
+	 * `undefined` whenever {@link chooseGuard} itself is (no enclosing
+	 * choose at all).
+	 */
+	chooseGuardOrigins?: (PptxSmartArtIteratorAttributes | undefined)[];
+	/**
 	 * The chain of every enclosing `dgm:choose`'s own GROUP identity + this
 	 * node's ordinal position within it + THAT branch's own condition,
 	 * outermost first - identifies WHICH `dgm:choose` instance and WHERE
@@ -187,8 +211,21 @@ export interface PptxSmartArtLayoutNode {
 	 * enclosing choose (a direct child, or a `dgm:forEach`-only path) -
 	 * every PRE-EXISTING caller that does not consult this field is
 	 * unaffected by its mere presence.
+	 *
+	 * ROUND 42: `origin` is the forEach iterator active when THIS branch's
+	 * own `dgm:if`/`dgm:else` was declared (the SAME "declaration time, not
+	 * whatever descendant ends up carrying it" concept {@link
+	 * chooseGuardOrigins} exists for) - the anchor a `func="cnt"`/`"maxDepth"`
+	 * -family condition in `guard` needs, NOT a representative member's own
+	 * (possibly deeper) `forEachOrigin`. See `smartart-layout-interpreter-
+	 * composite-choose-groups.ts`'s `winningOrdinalFor`, the one consumer.
 	 */
-	chooseGroups?: { id: string; ordinal: number; guard?: PptxSmartArtWhen }[];
+	chooseGroups?: {
+		id: string;
+		ordinal: number;
+		guard?: PptxSmartArtWhen;
+		origin?: PptxSmartArtIteratorAttributes;
+	}[];
 	/**
 	 * Every `dgm:presOf` candidate reachable through a `dgm:choose`/`dgm:if`/
 	 * `dgm:else` wrapping THIS node's OWN presOf (as opposed to

@@ -116,3 +116,64 @@ describe('collectRawCandidates inherited-origin threading (round 32)', () => {
 		expect(titleCandidates.every((c) => c.declaringRoleChain === undefined)).toBeTruthy();
 	});
 });
+
+/**
+ * `funnel--flat3.pptx`'s exact shape (ROUND 42): `item`'s own `chooseGuard`
+ * (`axis="ch" func="cnt" op="gte" val="1"`) was declared directly under the
+ * composite root, BEFORE `item`'s own per-item `dgm:forEach` - so it must
+ * stay anchored root-relatively (`chooseGuardOrigins[0] === undefined`),
+ * never to `item`'s own, deeper `forEachOrigin` (a single, childless data
+ * point in a flat dataset), which would wrongly resolve the guard's `axis=
+ * "ch"` child count to 0 and drop the item entirely.
+ */
+describe('guardAllows anchor provenance (round 42)', () => {
+	function onePointNoChildren(): PptxSmartArtNode[] {
+		return [node('p1', 'P1')];
+	}
+
+	function buildItem(chooseGuardOrigins: PptxSmartArtLayoutNode['chooseGuardOrigins']) {
+		const item: PptxSmartArtLayoutNode = {
+			name: 'item',
+			presentationOf: { axis: ['self'], pointTypes: ['node'] },
+			// item's OWN forEach binding: p1 itself, which has no children -
+			// deeper than (and different from) where the guard below was
+			// actually declared.
+			forEachOrigin: { axis: ['ch'], start: [1], count: [1] },
+			chooseGuard: [{ function: 'cnt', operator: 'gte', value: '1', axis: ['ch'] }],
+			chooseGuardOrigins,
+		};
+		return {
+			name: 'Name0',
+			algorithm: { type: 'composite' },
+			children: [item],
+		} as PptxSmartArtLayoutNode;
+	}
+
+	it('a guard declared ABOVE any forEach (chooseGuardOrigins[0] undefined) resolves root-relatively, not anchored to a deeper forEachOrigin', () => {
+		const flat = onePointNoChildren();
+		const candidates = collectRawCandidates(buildItem([undefined]), flat, 'Name0');
+		// Root-relative "ch" is the roots shortcut ([p1], count 1): "gte 1" holds.
+		expect(candidates.map((c) => c.node.name)).toStrictEqual(['item']);
+	});
+
+	it('falls back to forEachOrigin when chooseGuardOrigins is absent entirely (a node built without round-42 provenance, e.g. a hand-built fixture)', () => {
+		const flat = onePointNoChildren();
+		const item: PptxSmartArtLayoutNode = {
+			name: 'item',
+			presentationOf: { axis: ['self'], pointTypes: ['node'] },
+			forEachOrigin: { axis: ['ch'], start: [1], count: [1] },
+			chooseGuard: [{ function: 'cnt', operator: 'gte', value: '1', axis: ['ch'] }],
+			// no chooseGuardOrigins at all
+		};
+		const root: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			algorithm: { type: 'composite' },
+			children: [item],
+		};
+		const candidates = collectRawCandidates(root, flat, 'Name0');
+		// Anchored to item's own forEachOrigin (p1, childless): "gte 1" is
+		// false, so item is dropped - the pre-round-42 behaviour, preserved for
+		// a caller with no provenance to offer.
+		expect(candidates.map((c) => c.node.name)).not.toContain('item');
+	});
+});

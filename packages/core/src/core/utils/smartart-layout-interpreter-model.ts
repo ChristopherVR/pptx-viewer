@@ -32,20 +32,17 @@ import {
 	STRUCTURAL_ARRANGEMENT_KINDS,
 } from './smartart-layout-interpreter-arrangement-kind';
 import type { ArrangementPlan } from './smartart-layout-interpreter-arrangement-kind';
-import { tunnelsPastOwnCompositeSlot } from './smartart-layout-interpreter-choose-depth';
+import { resolveNonHierarchyChoose } from './smartart-layout-interpreter-choose-resolve';
 import {
 	distinctMappedSlotCount,
 	hasRepeatedTemplateStructuralDescendant,
 	hasStructuralDescendant,
 	isContinuationForEach,
 	isLayoutNodeOrDescendantOf,
-	isTransitionOnlyChild,
 	itemTemplateNodes,
 	mapsSlots,
 } from './smartart-layout-interpreter-composite-detect';
 import { chooseAlgorithm } from './smartart-layout-interpreter-flow';
-import { hasHierarchyDescendant } from './smartart-layout-interpreter-hierarchy-descendant';
-import { hasPositionGuard } from './smartart-layout-interpreter-position-family';
 import { treeMaxDepth, walkWithTreeLocation } from './smartart-layout-interpreter-tree-location';
 
 export {
@@ -101,16 +98,17 @@ export type {
  * family approximation.
  *
  * `presLayoutVars`, when supplied, lets a `func="var"` `dgm:if` decide its
- * branch (see `smartart-layout-interpreter-flow.ts`'s `WhenContext`). Every
- * `dgm:choose` visited is also given its declaring node's sibling position
- * (1-based), sibling count, depth, and the tree's max depth, so `"pos"`/
- * `"revPos"`/`"posEven"`/`"posOdd"`/`"depth"`/`"maxDepth"` are decidable here
- * too, not just `"cnt"`/`"var"`.
+ * branch. Every `dgm:choose` visited also gets its declaring node's sibling
+ * position/count/depth/tree-max-depth, so `"pos"`/`"revPos"`/`"posEven"`/
+ * `"posOdd"`/`"depth"`/`"maxDepth"` are decidable here too, not just `"cnt"`/
+ * `"var"`. `flatNodes`, when supplied, additionally lets a `func="cnt"`
+ * `dgm:if` whose `@axis` needs real compound navigation decide too (ECMA-376
+ * 21.4.7.5 - see `smartart-layout-interpreter-when.ts`'s `resolveAxisCount`).
+ * Each omitted parameter keeps the coarser pre-existing fallback.
  *
- * `flatNodes`, when supplied, additionally lets a `func="cnt"` `dgm:if` whose
- * `@axis` needs real compound navigation decide too (ECMA-376 21.4.7.5 - see
- * `smartart-layout-interpreter-when.ts`'s `resolveAxisCount` doc comment).
- * Omitted keeps every such `cnt` on the coarser `nodeCount`-only comparison.
+ * ROUND 42: a `dgm:choose`-flattened branch reached through one of an
+ * ALREADY-resolved `compositeSlot`'s own named `dgm:forEach` children never
+ * sets `chosen` - see `isMappedSlotAlternative`'s own doc comment.
  */
 export function discoverArrangement(
 	definition: PptxSmartArtLayoutDefinition,
@@ -161,65 +159,21 @@ export function discoverArrangement(
 			if (type === 'hierRoot' || type === 'hierChild') {
 				hierarchy = node.children?.find((child) => child.algorithm?.type === type) ?? node;
 			} else {
-				const withResolvedAlg = resolvedAlg ? { ...node, algorithm: resolvedAlg } : node;
-				const kind = type ? PRIMARY_ALG[type] : undefined;
-				const rawArranger = node.children?.find(
-					(child) =>
-						child.algorithm?.type === type &&
-						!isTransitionOnlyChild(child) &&
-						!isContinuationForEach(child),
-				);
-				// A pos-guarded child describes ONE position's own hand-duplicated
-				// branch, never a shared template for every point - disqualified
-				// here like a transition-only/continuation-only child already is;
-				// see `smartart-layout-interpreter-position-family.ts`'s own doc
-				// comment (`hasPositionGuard`) for the corpus-measured derivation.
-				const arranger =
-					rawArranger && !hasPositionGuard(rawArranger) ? rawArranger : withResolvedAlg;
-				// A STRUCTURAL choose result found by tunnelling 2+ `dgm:layoutNode`
-				// levels into one of `node`'s OWN child slots (only when `node`
-				// ALSO independently qualifies as its own genuine top-level
-				// composite) describes that slot's small internal item arrangement,
-				// not a competing whole-diagram algorithm - corpus-measured,
-				// monotonic threshold; see `smartart-layout-interpreter-choose-
-				// depth.ts`'s own doc comment.
-				const tunnelledPastOwnSlot = tunnelsPastOwnCompositeSlot(
+				// See `resolveNonHierarchyChoose`'s own doc comment (split out for
+				// the file-size budget) for the full precedence this implements.
+				const resolution = resolveNonHierarchyChoose(
 					node,
+					resolvedAlg,
 					nodeCount,
 					whenContext,
 					itemTemplates,
+					compositeSlot,
 				);
-				if (tunnelledPastOwnSlot) {
+				if (resolution.blockSubtree) {
 					blockedSubtreeRoots.push(node);
 				}
-				// A shallow `lin`/`cycle`/etc wrapper around a REAL nested
-				// `hierChild`/`hierRoot` must not claim `chosen` - it would
-				// permanently block the later, higher-precedence `hierarchy`
-				// discovery via this walk's own `!hierarchy && !chosen` guard. See
-				// `hasHierarchyDescendant`'s own doc comment (SESSION 24).
-				const wrapsHierarchy =
-					kind !== undefined &&
-					STRUCTURAL_ARRANGEMENT_KINDS.has(kind) &&
-					hasHierarchyDescendant(node, nodeCount, whenContext);
-				if (
-					kind &&
-					STRUCTURAL_ARRANGEMENT_KINDS.has(kind) &&
-					!tunnelledPastOwnSlot &&
-					!wrapsHierarchy
-				) {
-					chosen = { kind, node: arranger };
-				} else if (kind === 'composite' && !itemTemplates.has(arranger) && mapsSlots(arranger)) {
-					// A count/direction-decidable `dgm:choose` picking `composite`
-					// for one branch (a fixed grid, `cycleMatrixDiagram`'s small-N
-					// layout) and something else for another must win with the SAME
-					// priority as a chosen STRUCTURAL kind - otherwise the blind
-					// alg walk below (`compositeSlot`) can commit to whichever
-					// alternative's `dgm:alg` happens to appear FIRST in the raw
-					// XML, ignoring the choose's actual data-driven decision (a
-					// regression `target-list`/`captioned-pictures`/`vertical-
-					// accent-list` measured once `mapsSlots` started recognising
-					// arranger-declared slot constraints).
-					chosen = { kind, node: arranger };
+				if (resolution.chosen) {
+					chosen = resolution.chosen;
 				}
 			}
 		}

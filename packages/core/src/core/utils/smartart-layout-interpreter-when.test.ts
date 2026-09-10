@@ -235,6 +235,29 @@ describe('evaluateWhen', () => {
 			expect(evaluateWhen(compoundCnt('lte', '1'), 2, ctx)).toBeTruthy();
 		});
 
+		it('with `context.anchor` set, a bare `axis="ch"` counts the ANCHOR\'s own children, not the diagram\'s top-level points', () => {
+			// `radial-cluster--hier5.pptx`'s real data-model shape: ONE root
+			// ("Node One") with everything else nested underneath -
+			// `topLevelSmartArtNodes` returns length 1, so a root-relative
+			// `axis="ch"` (no anchor) can never distinguish how many children a
+			// DEEPER node (a nested composite slot's own anchor) has.
+			const nodes = radialHubNodes();
+			const bareCh: PptxSmartArtWhen = {
+				function: 'cnt',
+				operator: 'equ',
+				value: '3',
+				axis: ['ch'],
+			};
+			// Root-relative (no anchor): `ch` at hop 0 is the `roots` shortcut -
+			// "Node One" alone, count 1, so `equ 3` is FALSE.
+			expect(evaluateWhen(bareCh, 5, { nodes })).toBeFalsy();
+			// Anchored on "Node One" itself: `ch` navigates to ITS children
+			// (Two/Three/Four), count 3, so `equ 3` is TRUE.
+			const one = nodes.find((n) => n.id === 'one');
+			expect(one).toBeDefined();
+			expect(evaluateWhen(bareCh, 5, { nodes, anchor: one ? [one] : [] })).toBeTruthy();
+		});
+
 		it('falls back to the plain nodeCount when no `nodes` context is supplied (no regression for an existing caller)', () => {
 			// Same compound condition, but the caller has no data-model tree to
 			// offer (e.g. a bare `chooseAlgType` unit test) - must keep comparing

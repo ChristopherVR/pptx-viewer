@@ -24,23 +24,48 @@ import type { RawSlotCandidate } from './smartart-layout-interpreter-composite-g
 import { evaluateWhen } from './smartart-layout-interpreter-when';
 
 /**
- * `node`'s own `forEachOrigin`, resolved root-relatively - the forEach-bound
- * point set a `func="maxDepth"`/`"cnt"`-family `dgm:if` in `node`'s own
- * `chooseGuard` can navigate `@axis` from (`radial-cluster--hier5.pptx`'s
- * `singleCycle`/`textCenter` choose, both anchored to `Name38`'s `axis="ch"
- * cnt="1"` binding to the diagram's first top-level point) - see
- * `evaluateWhen`'s `maxDepth` case (`smartart-layout-interpreter-when.ts`).
- * `undefined` when `node` has no `forEachOrigin`, or it resolves to nothing.
+ * Resolve a forEach iterator's own anchor point set, root-relatively -
+ * shared by every `guardAllows` guard-index lookup below. `undefined` when
+ * `origin` itself is absent, or has no `@axis` at all.
  */
-function resolveOwnAnchor(
-	node: PptxSmartArtLayoutNode,
+function resolveAnchorFrom(
+	origin: PptxSmartArtIteratorAttributes | undefined,
 	flat: PptxSmartArtNode[],
 ): PptxSmartArtNode[] | undefined {
-	const origin = node.forEachOrigin;
 	if (!origin?.axis || origin.axis.length === 0) {
 		return undefined;
 	}
 	return resolveAxisNodes(flat, origin.axis, origin.pointTypes, origin.start, origin.count);
+}
+
+/**
+ * The anchor a `func="maxDepth"`/`"cnt"`-family `dgm:if` at `node.chooseGuard[index]`
+ * can navigate `@axis` from - `node.chooseGuardOrigins[index]` (ROUND 42: the
+ * forEach iterator active when THAT SPECIFIC guard entry was declared, NOT
+ * necessarily `node`'s own, possibly deeper, `forEachOrigin` - see
+ * `PptxSmartArtLayoutNode.chooseGuardOrigins`'s own doc comment for why these
+ * differ: `funnel--flat3.pptx`'s `item1`/`item2`/`item3`, each reached
+ * through their OWN per-item `dgm:forEach`, share a `chooseGuard` entry
+ * (`axis="ch" func="cnt" op="gte" val="1"`) declared ABOVE any forEach, which
+ * must stay root-relative, not item1's own one-point anchor - anchoring it
+ * there wrongly resolves the count to that ONE point's own (zero, in a flat
+ * dataset) children instead of the diagram's real top level, dropping every
+ * item). Falls back to `node.forEachOrigin` (the pre-round-42 behaviour) only
+ * when `chooseGuardOrigins` itself is absent - a node built directly (not
+ * through the parser, e.g. a hand-built unit-test fixture) that predates this
+ * field, never a regression for a parsed layoutDef, which always carries it
+ * alongside a non-empty `chooseGuard`.
+ * `radial-cluster--hier5.pptx`'s `singleCycle`/`textCenter` choose (round 13)
+ * still resolves identically: both are declared and reached through the SAME
+ * single forEach, so `chooseGuardOrigins[index]` and `forEachOrigin` agree.
+ */
+function resolveGuardAnchor(
+	node: PptxSmartArtLayoutNode,
+	index: number,
+	flat: PptxSmartArtNode[],
+): PptxSmartArtNode[] | undefined {
+	const origin = node.chooseGuardOrigins ? node.chooseGuardOrigins[index] : node.forEachOrigin;
+	return resolveAnchorFrom(origin, flat);
 }
 
 /** 1-based position + sibling count for a `func="pos"`/`"revPos"`/`"posEven"`/`"posOdd"` condition in a `chooseGuard` chain, when the CANDIDATE being tested is one iteration of a multi-anchor `forEachOrigin` split (see {@link collectRawCandidates}) - `undefined` for a bare wrapper or a single-anchor node, where no per-iteration position exists. */
@@ -74,12 +99,11 @@ function guardAllows(
 	if (!node.chooseGuard) {
 		return true;
 	}
-	const anchor = resolveOwnAnchor(node, flat);
 	return node.chooseGuard.every(
-		(guard) =>
+		(guard, index) =>
 			evaluateWhen(guard, flat.length, {
 				nodes: flat,
-				anchor,
+				anchor: resolveGuardAnchor(node, index, flat),
 				position: iterationPosition?.position,
 				total: iterationPosition?.total,
 			}) !== false,

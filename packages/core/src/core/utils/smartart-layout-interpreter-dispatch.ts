@@ -109,6 +109,7 @@ export function dispatchArrangement(
 				childrenOf,
 				flat,
 				fontName,
+				presLayoutVars,
 			);
 		case 'conn':
 			return arrangeConn(plan, arranged, box, palette, style, elementId, index);

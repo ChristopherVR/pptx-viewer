@@ -223,15 +223,29 @@ describe('diagramML layout-definition metadata', () => {
 		};
 		const parsed = parseSmartArtLayoutDefinition(nested, localName)!;
 		const [first, second, third] = parsed.rootNode.children!;
+		// `origin` is `undefined` throughout: this fixture has no enclosing
+		// `dgm:forEach` at all (see `chooseGroups`'s own doc comment, ROUND 42).
 		expect(first.chooseGroups).toStrictEqual([
-			{ id: expect.any(String), ordinal: 0, guard: expect.objectContaining({ value: '1' }) },
+			{
+				id: expect.any(String),
+				ordinal: 0,
+				guard: expect.objectContaining({ value: '1' }),
+				origin: undefined,
+			},
 		]);
 		expect(second.chooseGroups).toStrictEqual([
-			{ id: first.chooseGroups![0].id, ordinal: 1, guard: expect.objectContaining({ value: '2' }) },
+			{
+				id: first.chooseGroups![0].id,
+				ordinal: 1,
+				guard: expect.objectContaining({ value: '2' }),
+				origin: undefined,
+			},
 		]);
 		// dgm:else has no condition of its own (matches chooseGuard's own
 		// convention) - its own chooseGroups entry carries no `guard`.
-		expect(third.chooseGroups).toStrictEqual([{ id: first.chooseGroups![0].id, ordinal: 2 }]);
+		expect(third.chooseGroups).toStrictEqual([
+			{ id: first.chooseGroups![0].id, ordinal: 2, origin: undefined },
+		]);
 	});
 
 	it('gives TWO nested dgm:choose instances DIFFERENT group ids, chained outermost first', () => {

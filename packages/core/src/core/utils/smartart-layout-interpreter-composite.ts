@@ -26,10 +26,14 @@
  * code.
  */
 
-import type { PptxSmartArtLayoutNode, PptxSmartArtNode, SmartArtStyle } from '../types';
+import type {
+	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
+	PptxSmartArtPresLayoutVars,
+	SmartArtStyle,
+} from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { EMPTY_CONSTRAINT_INDEX, roleOf } from './smartart-constraint-solver';
-import { renderChildRepeaterSlot } from './smartart-layout-interpreter-composite-children';
 import { arrangeByChooseAwareSlots } from './smartart-layout-interpreter-composite-choose';
 import type { FontFitContext } from './smartart-layout-interpreter-composite-fontfit';
 import {
@@ -40,6 +44,7 @@ import {
 	forEachBoundSlots,
 	renderForEachBoundSlots,
 } from './smartart-layout-interpreter-composite-foreach';
+import { renderChildRepeaterOrNestedCycle } from './smartart-layout-interpreter-composite-nested-cycle';
 import { representativeSlotsPerPoint } from './smartart-layout-interpreter-composite-order';
 import { collectSelfDesPairs } from './smartart-layout-interpreter-composite-pairs';
 import { renderAnchoredPair } from './smartart-layout-interpreter-composite-render';
@@ -70,7 +75,7 @@ function slotRect(slot: SlottedDims, box: BoundingBox, absX: number, absY: numbe
  * self rect - see `smartart-layout-interpreter-composite-pairs.ts`'s
  * `collectSelfDesPairs`), and any BARE-`presOf` sibling wrapper slot
  * resolves child-repeater items against the SAME ordinal anchor (`Table
- * List`'s `pillars`, {@link renderChildRepeaterSlot}). `undefined` when no
+ * List`'s `pillars`, `renderChildRepeaterSlot`). `undefined` when no
  * slot carries a `self`/`des` `presOf` at all (caller falls back to
  * order-based mapping). A slot reached through its OWN COMPOUND
  * `forEachOrigin` (`hexagon-radial`'s `Child1..6`, each bound to "point 1's
@@ -88,6 +93,8 @@ function arrangeByPresentationOf(
 	childrenOf: Map<string, PptxSmartArtNode[]>,
 	ctx: SlotStyleContext,
 	fontCtx: FontFitContext | undefined,
+	index: ConstraintIndex,
+	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
 ): RenderedNode[] | undefined {
 	const selfSlots = slotsWithAxis(slotted, 'self');
 	if (selfSlots.length === 0) {
@@ -120,8 +127,24 @@ function arrangeByPresentationOf(
 			...renderAnchoredPair(node, i, count, selfRect, selfLayoutNode, desSlot, ctx, fontFit),
 		);
 		for (const wrapperSlot of childRepeaterSlots) {
+			// ROUND 42: a bare-`presOf` slot whose own `dgm:alg` is ITSELF a
+			// `cycle` is a nested ring, not a flat repeat - see
+			// `renderChildRepeaterOrNestedCycle` (`radial-cluster`'s `cycle_3`).
 			rendered.push(
-				...renderChildRepeaterSlot(wrapperSlot, node, i, box, absX, absY, childrenOf, ctx),
+				...renderChildRepeaterOrNestedCycle(
+					wrapperSlot,
+					node,
+					i,
+					box,
+					absX,
+					absY,
+					childrenOf,
+					flat,
+					presLayoutVars,
+					index,
+					ctx,
+					fontCtx?.fontName,
+				),
 			);
 		}
 	}
@@ -214,6 +237,9 @@ function arrangeByOrder(
  *   {@link arrangeByChooseAwareSlots}). Omit (defaults to `nodes`) when the
  *   caller has no fuller list to offer - a composite that never needs
  *   root-relative resolution is unaffected either way.
+ * @param presLayoutVars ROUND 42: threaded to `renderChildRepeaterOrNestedCycle`
+ *   so a choose-wrapped nested-cycle slot's `func="var"` can decide. Omit
+ *   when absent - a composite with no such slot is unaffected either way.
  */
 export function arrangeComposite(
 	plan: ArrangementPlan,
@@ -226,6 +252,7 @@ export function arrangeComposite(
 	childrenOf: Map<string, PptxSmartArtNode[]> = new Map(),
 	flat: PptxSmartArtNode[] = nodes,
 	fontName?: string,
+	presLayoutVars?: PptxSmartArtPresLayoutVars,
 ): SmartArtLayoutResult | undefined {
 	const children = plan.node.children;
 	if (!children || children.length === 0 || nodes.length === 0) {
@@ -257,6 +284,8 @@ export function arrangeComposite(
 			childrenOf,
 			ctx,
 			fontCtx,
+			index,
+			presLayoutVars,
 		) ??
 		arrangeByChooseAwareSlots(plan.node, flat, box, index, ctx, fontCtx) ??
 		arrangeByOrder(slotted, nodes, box, absX, absY, ctx, fontCtx);

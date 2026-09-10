@@ -16,12 +16,17 @@ type LocalName = (key: string) => string;
 
 /** One `dgm:choose` instance's own group identity, this node's 0-based
  * ordinal within it (every `dgm:if` in document order, then `dgm:else`
- * last), and that branch's own condition (`undefined` for `dgm:else`) - see
- * `PptxSmartArtLayoutNode.chooseGroups`'s doc comment. */
+ * last), that branch's own condition (`undefined` for `dgm:else`), and the
+ * forEach iterator that was ACTIVE at the point this branch's `dgm:if`/
+ * `dgm:else` was encountered (`undefined` when none was) - see
+ * `PptxSmartArtLayoutNode.chooseGroups`'s doc comment, and `origin`'s own
+ * doc comment below for why this must be captured at declaration time
+ * rather than reused from whatever descendant ends up carrying it. */
 interface ChooseGroupEntry {
 	id: string;
 	ordinal: number;
 	guard?: PptxSmartArtWhen;
+	origin?: PptxSmartArtIteratorAttributes;
 }
 
 /** A `layoutNode` found while walking through forEach/choose wrappers, plus the
@@ -32,7 +37,14 @@ interface ChooseGroupEntry {
  * (empty for a direct child, a `dgm:forEach`-only path, or a `dgm:else`
  * branch contributing nothing of its own - see
  * `PptxSmartArtLayoutNode.chooseGuard`'s doc comment for why this is a
- * chain, not a single "nearest one" condition), and the chain of enclosing
+ * chain, not a single "nearest one" condition), the INDEX-PARALLEL chain of
+ * the forEach iterator active WHEN EACH of those conditions was encountered
+ * (`undefined` per entry when none was active then - see
+ * `PptxSmartArtLayoutNode.chooseGuardOrigins`'s doc comment: this is
+ * DELIBERATELY not always `origin` above, since a `dgm:if` declared BEFORE a
+ * `dgm:forEach` that this walk later descends through still needs its OWN,
+ * shallower anchor, not the deeper one `origin` ends up holding once the
+ * walk reaches the actual `layoutNode`), and the chain of enclosing
  * `dgm:choose` group identities (see
  * `PptxSmartArtLayoutNode.chooseGroups`'s doc comment - NOT index-parallel
  * with `guard`, since a `dgm:else` contributes a group entry but not a
@@ -41,6 +53,7 @@ export interface FoundLayoutNode {
 	xml: XmlObject;
 	origin: PptxSmartArtIteratorAttributes | undefined;
 	guard: PptxSmartArtWhen[];
+	guardOrigins: (PptxSmartArtIteratorAttributes | undefined)[];
 	groups: ChooseGroupEntry[];
 }
 
@@ -59,13 +72,14 @@ export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundL
 		value: unknown,
 		origin: PptxSmartArtIteratorAttributes | undefined,
 		guard: PptxSmartArtWhen[],
+		guardOrigins: (PptxSmartArtIteratorAttributes | undefined)[],
 		groups: ChooseGroupEntry[],
 	): void => {
 		if (!value || typeof value !== 'object') {
 			return;
 		}
 		if (Array.isArray(value)) {
-			value.forEach((entry) => visit(entry, origin, guard, groups));
+			value.forEach((entry) => visit(entry, origin, guard, guardOrigins, groups));
 			return;
 		}
 		for (const [key, entry] of Object.entries(value as XmlObject)) {
@@ -76,13 +90,19 @@ export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundL
 			if (name === 'layoutNode') {
 				for (const layoutNode of Array.isArray(entry) ? entry : [entry]) {
 					if (layoutNode && typeof layoutNode === 'object') {
-						found.push({ xml: layoutNode as XmlObject, origin, guard, groups });
+						found.push({ xml: layoutNode as XmlObject, origin, guard, guardOrigins, groups });
 					}
 				}
 			} else if (name === 'forEach') {
 				for (const forEach of Array.isArray(entry) ? entry : [entry]) {
 					if (forEach && typeof forEach === 'object') {
-						visit(forEach, parseIterator(forEach as XmlObject), guard, groups);
+						// Only `origin` (the NEAREST enclosing forEach) changes here -
+						// `guardOrigins` is NOT rewritten to this new, deeper forEach:
+						// every guard already accumulated was declared BEFORE this
+						// forEach was entered, so its own anchor stays whatever was
+						// active at ITS OWN declaration point (see `guardOrigins`'s own
+						// doc comment above).
+						visit(forEach, parseIterator(forEach as XmlObject), guard, guardOrigins, groups);
 					}
 				}
 			} else if (name === 'choose') {
@@ -109,23 +129,34 @@ export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundL
 							for (const ifNode of Array.isArray(chooseEntry) ? chooseEntry : [chooseEntry]) {
 								if (ifNode && typeof ifNode === 'object') {
 									const when = parseWhen(ifNode as XmlObject);
-									visit(ifNode, origin, when ? [...guard, when] : guard, [
-										...groups,
-										{ id: groupId, ordinal: ordinal++, guard: when },
-									]);
+									// `origin` here is whatever forEach is ACTIVE at this
+									// exact point in the walk - i.e. the anchor this `dgm:if`
+									// was genuinely declared under, captured once, per-entry,
+									// rather than left to be overwritten by a deeper forEach
+									// this branch may still descend through below.
+									visit(
+										ifNode,
+										origin,
+										when ? [...guard, when] : guard,
+										when ? [...guardOrigins, origin] : guardOrigins,
+										[...groups, { id: groupId, ordinal: ordinal++, guard: when, origin }],
+									);
 								}
 							}
 						} else if (chooseChildName === 'else') {
 							for (const elseNode of Array.isArray(chooseEntry) ? chooseEntry : [chooseEntry]) {
 								if (elseNode && typeof elseNode === 'object') {
-									visit(elseNode, origin, guard, [...groups, { id: groupId, ordinal: ordinal++ }]);
+									visit(elseNode, origin, guard, guardOrigins, [
+										...groups,
+										{ id: groupId, ordinal: ordinal++, origin },
+									]);
 								}
 							}
 						} else {
 							// CT_Choose only contains `if`/`else` per ECMA-376, but visit
 							// anything else defensively (no group entry: it is not an
 							// if/else branch of this choose) rather than silently drop it.
-							visit(chooseEntry, origin, guard, groups);
+							visit(chooseEntry, origin, guard, guardOrigins, groups);
 						}
 					}
 				}
@@ -141,7 +172,13 @@ export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundL
 				for (const ifNode of Array.isArray(entry) ? entry : [entry]) {
 					if (ifNode && typeof ifNode === 'object') {
 						const when = parseWhen(ifNode as XmlObject);
-						visit(ifNode, origin, when ? [...guard, when] : guard, groups);
+						visit(
+							ifNode,
+							origin,
+							when ? [...guard, when] : guard,
+							when ? [...guardOrigins, origin] : guardOrigins,
+							groups,
+						);
 					}
 				}
 			} else if (name === 'else') {
@@ -153,17 +190,17 @@ export function nestedLayoutNodes(node: XmlObject, localName: LocalName): FoundL
 				// fallback only - see the `choose` case above.)
 				for (const elseNode of Array.isArray(entry) ? entry : [entry]) {
 					if (elseNode && typeof elseNode === 'object') {
-						visit(elseNode, origin, guard, groups);
+						visit(elseNode, origin, guard, guardOrigins, groups);
 					}
 				}
 			} else {
-				visit(entry, origin, guard, groups);
+				visit(entry, origin, guard, guardOrigins, groups);
 			}
 		}
 	};
 	for (const [key, value] of Object.entries(node)) {
 		if (!key.startsWith('@_') && localName(key) !== 'extLst') {
-			visit({ [key]: value }, undefined, [], []);
+			visit({ [key]: value }, undefined, [], [], []);
 		}
 	}
 	return found;

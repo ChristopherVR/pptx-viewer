@@ -257,6 +257,19 @@ export function resolveAxisNodes(
  * `resolveAxisCount`'s own callers (`dgm:if/@func="cnt"` evaluation) only
  * need the resolved COUNT - see {@link resolveAxisNodes} for the full
  * derivation, shared verbatim.
+ *
+ * `context` is the same anchor-point-set parameter `resolveAxisNodes` (and,
+ * since round 13, `resolveAxisMaxDepth`) already accepts: when supplied, hop
+ * 0 navigates from that explicit anchor rather than the diagram root. A
+ * `dgm:choose` living INSIDE a nested composite slot (reached through its own
+ * `forEachOrigin`, not the diagram's top level) needs this to answer its own
+ * `cnt` predicates against ITS anchor's children, not the diagram's few (or
+ * one) top-level points - see `evaluateWhen`'s `cnt` case
+ * (`smartart-layout-interpreter-when.ts`) for the call site and the fixture
+ * (`radial-cluster--hier5.pptx`) that needs it. Omitted (the pre-existing
+ * default, every caller before this parameter existed) keeps the exact prior
+ * root-relative behaviour - no regression for a caller with no anchor to
+ * offer.
  */
 export function resolveAxisCount(
 	nodes: PptxSmartArtNode[],
@@ -264,6 +277,7 @@ export function resolveAxisCount(
 	pointTypes: string[] | undefined,
 	start: number[] | undefined,
 	count: number[] | undefined,
+	context?: PptxSmartArtNode[],
 ): number | undefined {
-	return resolveAxisNodes(nodes, axis, pointTypes, start, count)?.length;
+	return resolveAxisNodes(nodes, axis, pointTypes, start, count, context)?.length;
 }

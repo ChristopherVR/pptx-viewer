@@ -42,10 +42,10 @@ import type {
 import { resolveAxisNodes } from './smartart-layout-interpreter-axis-count';
 import { evaluateWhen } from './smartart-layout-interpreter-when';
 
-/** One `chooseGroups` ordinal's own guard, plus the `forEachOrigin` of the layoutNode it was collected from - the anchor a `func="maxDepth"`/`"cnt"`-family `@axis` condition in that guard needs (see {@link winningOrdinalFor}). */
+/** One `chooseGroups` ordinal's own guard, plus the forEach iterator active WHEN THAT BRANCH was declared (`chooseGroups[].origin`, ROUND 42 - NOT a representative member's own, possibly deeper, `forEachOrigin`: see that field's doc comment) - the anchor a `func="maxDepth"`/`"cnt"`-family `@axis` condition in that guard needs (see {@link winningOrdinalFor}). */
 interface OrdinalEntry {
 	guard: PptxSmartArtWhen | undefined;
-	forEachOrigin: PptxSmartArtIteratorAttributes | undefined;
+	origin: PptxSmartArtIteratorAttributes | undefined;
 }
 
 /**
@@ -61,11 +61,13 @@ interface OrdinalEntry {
  * the pre-existing "undecidable defaults to allow" philosophy rather than
  * dropping content this cannot confidently resolve.
  *
- * Each ordinal's OWN `forEachOrigin` (round 13) resolves the anchor a
- * `func="maxDepth"`-family condition's `@axis` navigates from
- * (`radial-cluster--hier5.pptx`'s `singleCycle`/`textCenter` choose, both
- * anchored to `Name38`'s `axis="ch" cnt="1"` binding) - see
- * `evaluateWhen`'s `maxDepth` case.
+ * Each ordinal's OWN declaration-time `origin` (round 13's mechanism,
+ * ROUND 42: now the branch's OWN captured iterator, not a representative
+ * member's possibly-deeper `forEachOrigin` - see {@link OrdinalEntry}'s doc
+ * comment) resolves the anchor a `func="maxDepth"`/`"cnt"`-family
+ * condition's `@axis` navigates from (`radial-cluster--hier5.pptx`'s
+ * `singleCycle`/`textCenter` choose, both anchored to `Name38`'s `axis="ch"
+ * cnt="1"` binding) - see `evaluateWhen`'s `maxDepth`/`cnt` cases.
  */
 function winningOrdinalFor(
 	guardsByOrdinal: Map<number, OrdinalEntry>,
@@ -75,7 +77,7 @@ function winningOrdinalFor(
 	const ordinals = [...guardsByOrdinal.keys()].sort((a, b) => a - b);
 	for (const ordinal of ordinals) {
 		const entry = guardsByOrdinal.get(ordinal);
-		const origin = entry?.forEachOrigin;
+		const origin = entry?.origin;
 		const anchor =
 			origin?.axis && origin.axis.length > 0
 				? resolveAxisNodes(flat, origin.axis, origin.pointTypes, origin.start, origin.count)
@@ -112,7 +114,7 @@ export function selectFirstMatchChildren(
 				guardsByGroup.set(entry.id, byOrdinal);
 			}
 			if (!byOrdinal.has(entry.ordinal)) {
-				byOrdinal.set(entry.ordinal, { guard: entry.guard, forEachOrigin: child.forEachOrigin });
+				byOrdinal.set(entry.ordinal, { guard: entry.guard, origin: entry.origin });
 			}
 		}
 	}

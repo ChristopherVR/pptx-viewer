@@ -92,8 +92,16 @@ export interface CompositeChildGeometry {
 	heightFactor?: number;
 }
 
-/** Depth-first search for a descendant `dgm:layoutNode` whose own algorithm is `composite` (the structural signal, not a name convention). */
-function findCompositeDescendant(
+/**
+ * Depth-first search for a descendant `dgm:layoutNode` whose own algorithm is
+ * `composite` (the structural signal, not a name convention). Exported for
+ * `smartart-hierarchy-constraint-lookup.ts`'s `resolveIndexedAspectRatio`
+ * (SESSION 38): the SAME "wrapping composite reached from root scope" node
+ * this module already resolves the rendered child's geometry from also names
+ * the role an indirect (`w`/`h` declared as two independent references, no
+ * direct cross-ratio) aspect fallback should resolve against.
+ */
+export function findCompositeDescendant(
 	node: PptxSmartArtLayoutNode | undefined,
 ): PptxSmartArtLayoutNode | undefined {
 	if (!node) {

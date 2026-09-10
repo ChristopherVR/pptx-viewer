@@ -80,6 +80,7 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		...parseNode(entry.xml, localName),
 		forEachOrigin: entry.origin,
 		chooseGuard: entry.guard.length > 0 ? entry.guard : undefined,
+		chooseGuardOrigins: entry.guard.length > 0 ? entry.guardOrigins : undefined,
 		chooseGroups: entry.groups.length > 0 ? entry.groups : undefined,
 	}));
 	const childOrder = optionalString(node['@_chOrder']);

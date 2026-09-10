@@ -207,4 +207,15 @@ describe('resolveAxisCount', () => {
 		const nodes = [one, two];
 		expect(resolveAxisCount(nodes, ['ch'], ['node'], undefined, undefined)).toBe(2);
 	});
+
+	it("forwards an optional anchor context to resolveAxisNodes (round 13's maxDepth mechanism, extended to cnt)", () => {
+		const a: PptxSmartArtNode = { id: 'a', text: 'A' };
+		const b: PptxSmartArtNode = { id: 'b', text: 'B', parentId: 'a' };
+		const c: PptxSmartArtNode = { id: 'c', text: 'C', parentId: 'a' };
+		const nodes = [a, b, c];
+		// Root-relative (no anchor): `ch` at hop 0 is the `roots` shortcut - `a` alone.
+		expect(resolveAxisCount(nodes, ['ch'], undefined, undefined, undefined)).toBe(1);
+		// Anchored on `a`: `ch` navigates to its own children, B and C.
+		expect(resolveAxisCount(nodes, ['ch'], undefined, undefined, undefined, [a])).toBe(2);
+	});
 });

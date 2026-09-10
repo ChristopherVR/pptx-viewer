@@ -98,6 +98,37 @@ describe('selectFirstMatchChildren', () => {
 		},
 	);
 
+	it("round 42: resolves a group's own cnt guard from ITS declaration-time origin, not a representative child's own (possibly deeper) forEachOrigin", () => {
+		// `funnel--flat3.pptx`'s real shape: one top-level point with no
+		// children of its own (a flat 3-node dataset collapses to length 1
+		// here to isolate the mechanism), and a representative child whose OWN
+		// forEach binds to that SAME single point - a deeper anchor than
+		// where the group's guard was actually declared (above any forEach).
+		const flat: PptxSmartArtNode[] = [{ id: 'p1', text: 'P1' }];
+		const deepOrigin = { axis: ['ch'], start: [1], count: [1] };
+		const children = [
+			{
+				name: 'item',
+				forEachOrigin: deepOrigin,
+				chooseGroups: [
+					{
+						id: 'g0',
+						ordinal: 0,
+						guard: { function: 'cnt', operator: 'gte', value: '1', axis: ['ch'] },
+						origin: undefined,
+					},
+				],
+			},
+		];
+		// Anchored WRONGLY to `item`'s own forEachOrigin (p1, a leaf with no
+		// children), `axis="ch"` would count p1's OWN children (0), failing
+		// "gte 1" and dropping the item. Anchored CORRECTLY to the group's own
+		// declaration-time `origin` (`undefined` - no enclosing forEach when
+		// this `dgm:if` was written), `axis="ch"` root-relative is the `roots`
+		// shortcut (`[p1]`, count 1), so "gte 1" holds and the item survives.
+		expect(selectFirstMatchChildren(children, flat).map((c) => c.name)).toStrictEqual(['item']);
+	});
+
 	it('a group with no decidable winner is permissive (keeps every member, matching the pre-existing "undecidable defaults to allow" convention)', () => {
 		const flat: PptxSmartArtNode[] = [{ id: '1', text: 'A' }];
 		const children = [

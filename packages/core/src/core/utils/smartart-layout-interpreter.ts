@@ -33,7 +33,7 @@ import type {
 	SmartArtStyle,
 } from '../types';
 import { buildConstraintIndex } from './smartart-constraint-solver';
-import { applyChildOrder } from './smartart-hierarchy-child-order';
+import { selectArrangedPoints } from './smartart-layout-interpreter-arranged-selection';
 import {
 	buildChildOrder,
 	buildConnectorLabels,
@@ -42,9 +42,8 @@ import { applyCustomLayoutOverrides } from './smartart-layout-interpreter-custom
 import { resolveCycleRingParams } from './smartart-layout-interpreter-cycle-constraints';
 import { repositionCycleRingContent } from './smartart-layout-interpreter-cycle-ring-item';
 import { dispatchArrangement } from './smartart-layout-interpreter-dispatch';
-import { selectArrangedNodes } from './smartart-layout-interpreter-flow';
 import { arrangeHierarchy } from './smartart-layout-interpreter-hierarchy';
-import { buildHubRenderedNode, detectHubExpansion } from './smartart-layout-interpreter-hub';
+import { buildHubRenderedNode } from './smartart-layout-interpreter-hub';
 import { expandResultItemRoles } from './smartart-layout-interpreter-item-roles';
 import { isRecursiveTableItemTemplate } from './smartart-layout-interpreter-linear-table';
 import {
@@ -62,7 +61,6 @@ import { repositionPyramidBands } from './smartart-layout-interpreter-pyramid-ba
 import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
 import { applySmartArtRoleColors } from './smartart-node-role-colors';
 import type { SmartArtColorRoleMap } from './smartart-node-role-colors';
-import { smartArtChildrenOf, topLevelSmartArtNodes } from './smartart-node-tree-axis';
 
 /**
  * Arrangement kinds where one item layoutNode template covers every rendered
@@ -141,43 +139,11 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 			input.fontName,
 		);
 	}
-	// A top-level `composite` arranger (`gear`, `balance`) maps its NAMED
-	// slots onto the top-level points directly via each slot's OWN `presOf`
-	// (see `arrangeComposite`'s module doc comment); it typically declares
-	// several SEPARATE single-point `forEach`s (one per slot, e.g. `gear2`'s
-	// own `st="2" cnt="1"`), which `selectArrangedNodes`'s single "driving
-	// iterator" model was never built to combine, so it is bypassed here in
-	// favour of the plain top-level point list every slot's ordinal position
-	// already indexes into. Known gap: a composite with SEVEN independent
-	// single-point `forEach`s, one per named "ring" slot (`target-list`'s
-	// concentric rings) still needs a real multi-forEach walk - see the
-	// Track S/R handoff notes for the exact diagnosis.
-	const roots = topLevelSmartArtNodes(nodes);
-	const childrenOf = smartArtChildrenOf(nodes, input.connections);
-	// "hub + satellites" (`radial-cycle`'s center, `balance`'s pivot): a
-	// container point whose OWN children a NESTED forEach arranges - see
-	// `smartart-layout-interpreter-hub.ts`.
-	const preArranged =
-		plan.kind === 'composite'
-			? roots.length > 0
-				? roots
-				: flat
-			: selectArrangedNodes(plan.node, flat, roots);
-	const hub = detectHubExpansion(plan.node, preArranged, childrenOf);
-	// `hub.satellites` (`smartArtChildrenOf`, built from flat `parentId`
-	// pointers) is in `dgm:ptLst` declaration order, which is NOT necessarily
-	// true ring order - the SAME class of bug `buildChildOrder`/
-	// `applyChildOrder` already fixes for `arrangeHierarchy` (see their doc
-	// comments), reused verbatim here: every satellite shares the SAME
-	// parent (the hub), so `applyChildOrder`'s same-parent-only scoping is
-	// trivially satisfied and this is a plain, safe sort by `dgm:cxn`'s own
-	// `srcOrd`. COM-verified regression against `basic-radial--hier5.pptx`/
-	// `diverging-radial--hier5.pptx`: without this, satellites landed at the
-	// wrong ring position (rotated relative to the cached drawing) even
-	// though their SIZE already matched after `resolveHubToNodeRatio`.
-	const arranged = hub
-		? applyChildOrder(hub.satellites, buildChildOrder(input.connections))
-		: preArranged;
+	// Which points get arranged, plus the "hub + satellites" nested-forEach
+	// expansion (if any) - see `selectArrangedPoints`'s own doc comment
+	// (`smartart-layout-interpreter-arranged-selection.ts`, split out for the
+	// file-size budget).
+	const { childrenOf, hub, arranged } = selectArrangedPoints(plan, nodes, flat, input.connections);
 	if (arranged.length === 0) {
 		return undefined;
 	}
