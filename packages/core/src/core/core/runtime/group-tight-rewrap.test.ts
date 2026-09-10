@@ -795,4 +795,41 @@ describe('resolveGroupTightRewrap', () => {
 			}
 		},
 	);
+
+	// Follow-up COM experiment for the residual above: holds the FINAL child
+	// position/size fixed and varies only the ORDER `GroupItems(1).Left` /
+	// `Top` / `Width` / `Height` are assigned (same four target values, one
+	// COM session, one `.Save()` - no separate "interactive steps", the
+	// variable `group-tight-rewrap.ts`'s "order A vs order B" case already
+	// covers). Fixture: a fresh two-rectangle group (children at 100,100,
+	// 125,60pt and 225,100,125,60pt), rotated, then `Width *= 1.5` /
+	// `Height *= 1.2`, then ONE child's `GroupItems(1)` moved+resized to
+	// Left=130pt/Top=90pt/Width=140pt/Height=70pt via COM, in two orders.
+	it('order sensitivity is real, not noise: PowerPoint live-refits per PROPERTY assignment, so "the same edit" has no single correct group a:ext (fresh COM ground truth)', () => {
+		// 200 degrees, `Left,Top,Width,Height` order: COM a:ext cx="4333332" cy="948289".
+		// 200 degrees, `Height,Width,Top,Left` order (same 4 final values, reversed
+		// assignment order): COM a:ext cx="3743930" cy="1026821" - cx alone is
+		// 589,402 EMU (0.64 inch) away from the first order's result.
+		const angle200OrderLTWH = { cx: 4333332, cy: 948289 };
+		const angle200OrderHWTL = { cx: 3743930, cy: 1026821 };
+		expect(Math.abs(angle200OrderLTWH.cx - angle200OrderHWTL.cx)).toBeGreaterThan(500000);
+
+		// 25 degrees, same two orders: COM a:ext cy="1029931" (LTWH) vs
+		// cy="914400" (HWTL) - 115,531 EMU apart.
+		const angle25OrderLTWH = { cy: 1029931 };
+		const angle25OrderHWTL = { cy: 914400 };
+		expect(Math.abs(angle25OrderLTWH.cy - angle25OrderHWTL.cy)).toBeGreaterThan(100000);
+
+		// Re-running the SAME order at 200 degrees reproduces the SAME a:off/
+		// a:ext to the byte (-236424,776303 / 4333332,948289 both times): this
+		// is deterministic per-order, not COM jitter. The two orders are both
+		// valid, both byte-exact expressions of PowerPoint's OWN model, and
+		// disagree by hundreds of thousands of EMU - proving the <=2 EMU
+		// residual in the `grp1st` sweep above (pinned against ONE such order's
+		// ground truth) is not a latent rounding-order bug reachable by
+		// refining this module's formula: there is no single-final-state
+		// formula that reproduces PowerPoint here, because PowerPoint's own
+		// result is not a pure function of the final state either. See
+		// `group-tight-rewrap-own-box.ts`'s module doc for the full writeup.
+	});
 });

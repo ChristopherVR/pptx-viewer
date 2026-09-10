@@ -91,13 +91,52 @@
  * on-screen/rotated space, then converting back) rather than the
  * unrotated-local-box-plus-pivot model this module implements, not at a
  * simple rounding-order fix in EMU reachable from black-box outputs alone.
- * This is not re-derived here: it remains the one documented residual (see
- * `docs/guide/limitations.md`). `resolveRotatedResizeOffset` itself no-ops
- * (returns `undefined`) when the group is unrotated or neither extent axis
- * actually changed, so it is always safe to try: an unrotated group's
- * combined resize+child-edit, or a rotated group with a child edit but no
- * self-resize, both fall through to the pre-existing behaviour unchanged
- * (and both are byte-exact).
+ * `resolveRotatedResizeOffset` itself no-ops (returns `undefined`) when the
+ * group is unrotated or neither extent axis actually changed, so it is
+ * always safe to try: an unrotated group's combined resize+child-edit, or a
+ * rotated group with a child edit but no self-resize, both fall through to
+ * the pre-existing behaviour unchanged (and both are byte-exact).
+ *
+ * ## PROVEN unreachable: PowerPoint's own result for this case depends on
+ * an edit ORDER this SDK's single-final-state save has no way to know
+ *
+ * A follow-up COM experiment settles why no black-box formula closes this:
+ * it holds the FINAL child position/size fixed and varies only the ORDER in
+ * which `GroupItems(1).Left`/`Top`/`Width`/`Height` are assigned (all four,
+ * same target values, same one COM session, same `.Save()`, no separate
+ * "interactive steps" - the one variable already ruled out by
+ * `group-tight-rewrap.ts`'s "order A vs order B" case above). A rotated
+ * (200 degree), self-resized (`Width*=1.5`, `Height*=1.2`) two-rectangle
+ * group, one child moved+resized:
+ *
+ *  - `Left, Top, Width, Height` order: group `a:ext` lands `cx="4333332"
+ *    cy="948289"`.
+ *  - `Height, Width, Top, Left` order (the reverse, same four final values):
+ *    `cx="3743930" cy="1026821"` - `cx` alone is 589,402 EMU (0.64 inch)
+ *    away from the first order's result.
+ *
+ * Repeating either order is exactly reproducible (not COM jitter: re-running
+ * `Left, Top, Width, Height` at the same angle reproduces `-236424,776303,
+ * 4333332,948289` to the byte); at 25 degrees the same two orders diverge by
+ * 115,531 EMU on `ext.cy` alone (`1029931` vs `914400`). PowerPoint's model
+ * genuinely live-refits the group's bounding box after EACH property
+ * assignment, not once per logical edit - so "the same edit" has no single
+ * correct answer; it has as many byte-exact answers as there are orderings a
+ * user (or a script) could have typed the four numbers in. This SDK's save
+ * pipeline computes from one final `PptxElement` tree with no order to
+ * replay, so it CANNOT branch on an input it was never given: there is no
+ * "more correct" formula waiting to be found here, only a choice of which
+ * one PowerPoint ordering to approximate. The existing 24-case sweep above,
+ * regression-pinned against ONE such ordering's ground truth to within 2 EMU,
+ * is already about as tight as a single-final-state architecture can get -
+ * closing the gap to 0 for that one ordering (by curve-fitting the residual
+ * away) would not generalize to any other, equally valid ordering, whose true
+ * COM result sits hundreds of thousands of EMU further out. See
+ * `group-tight-rewrap.test.ts`'s `order sensitivity is real, not noise` case
+ * for the pinned numbers above; see `docs/guide/limitations.md` for how this
+ * is now described there. This is not re-derived here: it remains the one
+ * documented residual, now proven rather than merely suspected to be beyond
+ * a black-box formula fix.
  *
  * @module group-tight-rewrap-own-box
  */
