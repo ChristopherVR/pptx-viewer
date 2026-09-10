@@ -83,6 +83,12 @@ export const INSPECTOR_PANELS_CSS = `
 		min-width: 44px !important;
 		min-height: 44px !important;
 	}
+	/* animation-panel-fields.ts's animSelect/animNumber (Entrance/Emphasis/Exit
+	   effect pickers, ...) carry no class of their own on the control. */
+	.pptxv-inspector-animation select,
+	.pptxv-inspector-animation input {
+		min-height: 44px;
+	}
 }
 
 /* ── Comments tab: threads, replies, edit-in-place ───────────────────── */
@@ -161,7 +167,7 @@ export const INSPECTOR_PANELS_CSS = `
 .pptxv-action-return-row[hidden] { display: none; }
 
 /* ── Table style editor: touch target only ────────────────────────────
-   .pptxv-tse*/.pptxv-tsef* (table-style-editor.ts /
+   .pptxv-tse and .pptxv-tsef classes (table-style-editor.ts /
    table-style-editor-fields.ts) otherwise carry no CSS at all in this
    binding (unstyled/browser-default buttons) - out of scope to redesign
    here, but the Bold/Italic/Underline toggles and the editor's own action
@@ -171,6 +177,13 @@ export const INSPECTOR_PANELS_CSS = `
 @media (max-width: 767px) {
 	.pptxv-tsef-toggle, .pptxv-tse-btn, .pptxv-tse-parts button, .pptxv-tse-actions button, .pptxv-tse-header button {
 		min-width: 44px !important;
+		min-height: 44px !important;
+	}
+	/* Action Settings section (action-section.ts): the trigger-type and
+	   custom-show <select>s carry no class of their own, so target them
+	   through the fieldset wrapper. !important is load-bearing (see
+	   css.ts's baseline .pptxv :is(button, [role='button'])... note above). */
+	.pptxv-action-fieldset select {
 		min-height: 44px !important;
 	}
 }

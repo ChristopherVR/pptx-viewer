@@ -53,6 +53,16 @@ export function toggleElementFlip(
 			border-color: var(--pptx-primary, #2563eb);
 			background: color-mix(in srgb, var(--pptx-primary, #2563eb) 25%, transparent);
 		}
+
+		/*
+		 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+		 * pptx-viewer-shared's render/responsive module.
+		 */
+		@media (max-width: 767px) {
+			button {
+				min-height: 44px;
+			}
+		}
 	`,
 })
 export class ElementFlipControlsComponent {

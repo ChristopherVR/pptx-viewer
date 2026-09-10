@@ -9,7 +9,12 @@ import { useRecentColors } from './RecentColorsContext';
 // Shared CSS
 // ---------------------------------------------------------------------------
 
-const SEL = 'bg-muted border border-border rounded px-2 py-1 text-[11px] w-full';
+// `max-md:min-h-[44px]!` matches MIN_TOUCH_TARGET_PX (44) from
+// pptx-viewer-shared's render/responsive module; `!` is load-bearing (see
+// FillStrokeHelpers.tsx's shared `SEL` for why: theme.css's unlayered
+// baseline button/select reset out-specificities a plain Tailwind utility).
+const SEL =
+	'bg-muted border border-border rounded px-2 py-1 text-[11px] w-full max-md:min-h-[44px]!';
 const NUM = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full text-[11px]';
 const LBL = 'text-muted-foreground text-[11px]';
 

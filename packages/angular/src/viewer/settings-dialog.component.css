@@ -139,3 +139,67 @@
 	color: white;
 	font-weight: 500;
 }
+
+/*
+ * Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+ * render/responsive module. The header close (x) button was sized for a
+ * mouse (4px/8px padding around a text glyph); below the mobile breakpoint
+ * it needs a full 44px hit area like the other dialogs' own close buttons.
+ */
+@media (pointer: coarse), (max-width: 767px) {
+	.pptx-ng-options-x {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+	}
+}
+
+/*
+ * Dense-panel layout below pptx-viewer-shared's MOBILE_BREAKPOINT (768):
+ * this dialog hand-rolls its own modal shell (it does not go through
+ * ModalDialogComponent's mobile bottom-sheet), so it needs its own
+ * responsive treatment here, matching React's SettingsDialog.tsx /
+ * Vue's SettingsDialog.vue `max-md:` classes (getSectionLayoutPlan's
+ * `stacked` mode: the category rail can never fit beside the content pane
+ * in 360px, so it becomes a horizontal-scrolling row above a full-width
+ * content pane instead of a fixed 176px column).
+ */
+@media (max-width: 767px) {
+	.pptx-ng-options-modal {
+		position: fixed;
+		top: auto;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		max-height: 88dvh;
+		transform: none;
+		border-left: 0;
+		border-right: 0;
+		border-bottom: 0;
+		border-radius: 12px 12px 0 0;
+		padding-bottom: max(env(safe-area-inset-bottom), 0px);
+	}
+	.pptx-ng-options-layout {
+		flex-direction: column;
+	}
+	.pptx-ng-options-layout nav {
+		flex-direction: row;
+		align-items: center;
+		gap: 4px;
+		width: 100%;
+		overflow-x: auto;
+		border-right: 0;
+		border-bottom: 1px solid var(--pptx-border);
+	}
+	.pptx-ng-options-layout nav button {
+		flex-shrink: 0;
+		white-space: nowrap;
+		min-height: 44px;
+	}
+	.pptx-ng-options-footer button {
+		min-height: 44px;
+	}
+}

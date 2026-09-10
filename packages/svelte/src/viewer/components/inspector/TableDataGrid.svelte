@@ -31,9 +31,16 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import { useWindowViewport } from '../../state/window-viewport.svelte';
+	import { computeTableDataGridResponsive } from './table-data-grid-responsive';
 
 	const { editor, el }: { editor: EditorState; el: PptxElement } = $props();
 	const t = useTranslator();
+	const viewport = useWindowViewport();
+	// Dense-panel responsive values (sticky gutter, touch targets, column
+	// width) are computed in a companion module to keep this file thin; see
+	// `table-data-grid-responsive.ts` for the shared decision functions used.
+	const responsive = $derived(computeTableDataGridResponsive(viewport.width));
 
 	const tableElement = $derived(el.type === 'table' ? (el as TablePptxElement) : undefined);
 	const grid = $derived(tableElement ? buildTableDataGrid(tableElement) : undefined);
@@ -69,6 +76,7 @@
 				<div class="pptx-svelte-table-grid-actions">
 					<button
 						type="button"
+						style={responsive.touchStyle}
 						title={t('pptx.tableDataEditor.addRowTitle')}
 						onclick={() => commit(appendTableElementRow(tableElement))}
 					>
@@ -76,6 +84,7 @@
 					</button>
 					<button
 						type="button"
+						style={responsive.touchStyle}
 						disabled={!grid.canRemoveRow}
 						title={t('pptx.tableDataEditor.removeRowTitle')}
 						onclick={() => commit(removeLastTableElementRow(tableElement))}
@@ -84,6 +93,7 @@
 					</button>
 					<button
 						type="button"
+						style={responsive.touchStyle}
 						title={t('pptx.tableDataEditor.addColumnTitle')}
 						onclick={() => commit(appendTableElementColumn(tableElement))}
 					>
@@ -91,6 +101,7 @@
 					</button>
 					<button
 						type="button"
+						style={responsive.touchStyle}
 						disabled={!grid.canRemoveColumn}
 						title={t('pptx.tableDataEditor.removeColumnTitle')}
 						onclick={() => commit(removeLastTableElementColumn(tableElement))}
@@ -110,14 +121,23 @@
 		<div class="pptx-svelte-table-grid-scroll">
 			<div class="pptx-svelte-table-grid-body" role="grid">
 				<div class="pptx-svelte-table-grid-row" role="row">
-					<div class="pptx-svelte-table-grid-header pptx-svelte-table-grid-corner" role="columnheader"></div>
+					<div
+						class="pptx-svelte-table-grid-header pptx-svelte-table-grid-corner {responsive.gutterClass}"
+						style={responsive.cornerStyle}
+						role="columnheader"
+					></div>
 					{#each grid.colIndices as colIndex (colIndex)}
-						<div class="pptx-svelte-table-grid-header" role="columnheader">
+						<div
+							class="pptx-svelte-table-grid-header"
+							style={responsive.cellMinWidthStyle}
+							role="columnheader"
+						>
 							<span>{colIndex + 1}</span>
 							{#if canEdit && grid.canRemoveColumn}
 								<button
 									type="button"
 									class="pptx-svelte-table-grid-remove"
+									style={responsive.touchStyle}
 									aria-label={t('pptx.tableDataEditor.removeColumnN', { number: colIndex + 1 })}
 									title={t('pptx.tableDataEditor.removeColumnN', { number: colIndex + 1 })}
 									onclick={() => commit(removeTableElementColumn(tableElement, colIndex))}
@@ -132,7 +152,8 @@
 				{#each grid.rows as row (row.rowIndex)}
 					<div class="pptx-svelte-table-grid-row" role="row">
 						<div
-							class="pptx-svelte-table-grid-header pptx-svelte-table-grid-corner"
+							class="pptx-svelte-table-grid-header pptx-svelte-table-grid-corner {responsive.gutterClass}"
+							style={responsive.cornerStyle}
 							role="rowheader"
 						>
 							<span>{row.rowIndex + 1}</span>
@@ -140,6 +161,7 @@
 								<button
 									type="button"
 									class="pptx-svelte-table-grid-remove"
+									style={responsive.touchStyle}
 									aria-label={t('pptx.tableDataEditor.removeRowN', { number: row.rowIndex + 1 })}
 									title={t('pptx.tableDataEditor.removeRowN', { number: row.rowIndex + 1 })}
 									onclick={() => commit(removeTableElementRow(tableElement, row.rowIndex))}
@@ -149,7 +171,11 @@
 							{/if}
 						</div>
 						{#each row.cells as cell (cell.colIndex)}
-							<div class="pptx-svelte-table-grid-cell" role="gridcell">
+							<div
+								class="pptx-svelte-table-grid-cell"
+								style={responsive.cellMinWidthStyle}
+								role="gridcell"
+							>
 								<input
 									type="text"
 									disabled={!canEdit}
@@ -255,6 +281,15 @@
 	.pptx-svelte-table-grid-corner {
 		flex: none;
 		width: 40px;
+	}
+
+	/* Pinned row/column-number gutter below the dense-panel breakpoint (see
+	   `getDenseGridLayoutPlan`): scrolling the value columns must not lose
+	   which row/column a cell belongs to. */
+	.pptx-svelte-table-grid-sticky {
+		position: sticky;
+		left: 0;
+		z-index: 1;
 	}
 
 	.pptx-svelte-table-grid-cell {

@@ -161,7 +161,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 				}}</span>
 				<select
 					:aria-label="t('pptx.textPanel.font')"
-					class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
+					class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:value="fontFamily"
 					@change="onFontFamily"
 				>
@@ -182,7 +182,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 					}}</span>
 					<input
 						type="number"
-						class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
+						class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 						min="1"
 						step="any"
 						:value="fontSize"
@@ -222,7 +222,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 						v-for="tg in TOGGLES"
 						:key="tg.key"
 						type="button"
-						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors"
+						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors max-md:min-h-[44px] max-md:min-w-[44px]"
 						:class="
 							isActive(tg.key)
 								? 'pptx-vue-text-toggle-active bg-primary text-white font-semibold'
@@ -246,7 +246,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 						v-for="opt in ALIGN_OPTIONS"
 						:key="opt.value"
 						type="button"
-						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors"
+						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors max-md:min-h-[44px] max-md:min-w-[44px]"
 						:class="
 							align === opt.value
 								? 'pptx-vue-text-toggle-active bg-primary text-white font-semibold'
@@ -270,7 +270,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 						v-for="opt in VALIGN_OPTIONS"
 						:key="opt.value"
 						type="button"
-						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors"
+						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors max-md:min-h-[44px] max-md:min-w-[44px]"
 						:class="
 							vAlign === opt.value
 								? 'pptx-vue-text-toggle-active bg-primary text-white font-semibold'

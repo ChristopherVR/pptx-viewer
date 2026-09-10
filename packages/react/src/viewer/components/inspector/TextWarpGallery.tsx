@@ -29,7 +29,7 @@ export function TextWarpGallery({
 		<div className='mt-2 rounded border border-border bg-card p-2 space-y-2'>
 			<button
 				type='button'
-				className='flex w-full items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground'
+				className='flex w-full items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground max-md:min-h-[44px]!'
 				onClick={() => setExpanded(!expanded)}
 			>
 				<span>{t('pptx.textWarp.title')}</span>

@@ -99,5 +99,21 @@ label.pptxv-options-row { cursor: pointer; }
    opacity/pointer-events on mousemove; !important here is required to win
    over that inline style regardless of the JS auto-show timer. */
 .pptxv.pptxv-no-show-popup .pptxv-present-toolbar-wrap { opacity: 0 !important; pointer-events: none !important; }
-@media (max-width: 767px) { .pptxv-options-body { flex-direction: column; } .pptxv-options-nav { flex-direction: row; width: 100%; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--pptx-border); } }
+@media (max-width: 767px) {
+	.pptxv-options-body { flex-direction: column; }
+	.pptxv-options-nav { flex-direction: row; width: 100%; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--pptx-border); }
+	/* Matches isDensePanelCompact()/MOBILE_BREAKPOINT (768) in
+	   pptx-viewer-shared: getDensePanelTouchTargetPx(width) returns
+	   MIN_TOUCH_TARGET_PX (44). Every schema-driven control row (toggle /
+	   select / number / text, across every tab) gets a touch-sized hit area:
+	   the row itself (a <label> for a toggle, so enlarging it is enough there)
+	   and each select/text/number control. */
+	.pptxv-options-row { min-height: 44px; }
+	.pptxv-options-row select, .pptxv-options-row input[type='text'], .pptxv-options-row input[type='number'] { min-height: 44px; }
+	/* The category rail's own tab buttons are discrete one-per-row controls
+	   too, so they get the same touch target as everything else in this
+	   dialog below the breakpoint - CLAUDE.md Rule 1 (React's SettingsDialog
+	   navBtnStyle already covers its own nav for the same reason). */
+	.pptxv-options-nav button { min-height: 44px; }
+}
 `;

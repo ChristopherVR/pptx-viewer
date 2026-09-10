@@ -1059,6 +1059,12 @@ export * from './mobile-keyboard';
 // binding; the thresholds and DOM probes are shared so all three switch chrome
 // identically.
 export * from './mobile-viewport';
+// Dense-panel responsive layout: pure decision functions (touch-target sizing,
+// section stacking/accordion, data-grid scroll behaviour, sticky action rows)
+// for how the chart/table editors, animation panel, inspector sub-panels, AI
+// panel, comments, and options/print/share dialogs reflow at widths as narrow
+// as 360px, reusing `MOBILE_BREAKPOINT` above as the single threshold.
+export * from './responsive';
 // Format helpers: framework-agnostic date / timestamp display formatters for
 // the document-properties and version-history panels.
 export * from './format-helpers';

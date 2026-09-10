@@ -62,7 +62,7 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 					(click)="closed.emit()"
 					[title]="'pptx.ai.close' | translate"
 					[attr.aria-label]="'pptx.ai.close' | translate"
-					class="ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent"
+					class="pptx-ng-ai-close ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent"
 				>
 					<svg lucideX class="h-4 w-4"></svg>
 				</button>
@@ -163,6 +163,26 @@ import { AiProposalCardComponent } from './ai-proposal-card.component';
 			}
 		</div>
 	`,
+	styles: [
+		`
+			/*
+			 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+			 * pptx-viewer-shared's render/responsive module. A component-scoped
+			 * rule (not a Tailwind utility) so it is not subject to Tailwind's
+			 * \`@layer utilities\` losing to the global, unlayered
+			 * \`:where(button)\` base rule in theme.css.
+			 */
+			@media (pointer: coarse), (max-width: 767px) {
+				.pptx-ng-ai-close {
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					min-width: 44px;
+					min-height: 44px;
+				}
+			}
+		`,
+	],
 })
 export class AiChatPanelComponent {
 	readonly bridge = input.required<PptxAiBridge>();

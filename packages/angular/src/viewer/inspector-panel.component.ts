@@ -756,7 +756,7 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__input {
 			flex: 1 1 auto;
-			min-height: 40px;
+			min-height: 44px;
 			font-size: 16px; /* prevents iOS auto-zoom on focus */
 			padding: 6px 8px;
 		}
@@ -768,19 +768,20 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__color {
 			width: 44px;
-			height: 40px;
+			height: 44px;
 		}
 
 		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__toggle {
 			min-width: 44px;
 			width: auto;
 			flex: 1 1 auto;
-			height: 40px;
+			height: 44px;
 			font-size: 15px;
 		}
 
 		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__btn {
-			min-height: 40px;
+			min-width: 44px;
+			min-height: 44px;
 			padding: 8px 10px;
 			font-size: 13px;
 		}
@@ -804,7 +805,7 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 			.pptx-ng-inspector__input {
 				flex: 1 1 auto;
-				min-height: 40px;
+				min-height: 44px;
 				font-size: 16px; /* prevents iOS auto-zoom on focus */
 				padding: 6px 8px;
 			}
@@ -816,19 +817,20 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 			.pptx-ng-inspector__color {
 				width: 44px;
-				height: 40px;
+				height: 44px;
 			}
 
 			.pptx-ng-inspector__toggle {
 				min-width: 44px;
 				width: auto;
 				flex: 1 1 auto;
-				height: 40px;
+				height: 44px;
 				font-size: 15px;
 			}
 
 			.pptx-ng-inspector__btn {
-				min-height: 40px;
+				min-width: 44px;
+				min-height: 44px;
 				padding: 8px 10px;
 				font-size: 13px;
 			}

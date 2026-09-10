@@ -86,4 +86,21 @@ export const INSPECTOR_CARD_STYLES = `
 		grid-template-columns: 1fr 1fr;
 		gap: 6px;
 	}
+
+	/*
+	 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+	 * pptx-viewer-shared's render/responsive module. Every no-selection
+	 * inspector card (Presentation settings, Slide size, Theme, ...) shares
+	 * these tokens, so fixing it once here reaches all of them.
+	 */
+	@media (max-width: 767px) {
+		.icard__input,
+		.icard__select {
+			min-height: 44px;
+		}
+		.icard__btn {
+			min-width: 44px;
+			min-height: 44px;
+		}
+	}
 `;

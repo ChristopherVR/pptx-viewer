@@ -25,6 +25,13 @@ export const INSPECTOR_FORMAT_CSS = `
 }
 .pptxv-quick-style:hover:not(:disabled) { outline: 2px solid var(--pptx-primary); outline-offset: -1px; }
 .pptxv-quick-style:disabled { opacity: 0.5; cursor: default; }
+/* Each preset is a discrete, individually-named action button (not a colour
+   swatch), so it gets the shared WCAG touch target below the mobile
+   breakpoint (768px, MOBILE_BREAKPOINT / getDensePanelTouchTargetPx in
+   pptx-viewer-shared) rather than an exemption - CLAUDE.md Rule 2. */
+@media (max-width: 767px) {
+	.pptxv-quick-style { height: 44px !important; min-width: 44px !important; }
+}
 
 /* ── 3D text ─────────────────────────────────────────────────────────── */
 .pptxv-text3d-options { display: grid; gap: 6px; }
@@ -54,7 +61,7 @@ export const INSPECTOR_FORMAT_CSS = `
 }
 .pptxv-chart-grid-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv-chart-grid-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-.pptxv-chart-grid-table th, .pptxv-chart-grid-table td { padding: 1px; }
+.pptxv-chart-grid-table th, .pptxv-chart-grid-table td { padding: 1px; min-width: 72px; }
 .pptxv-chart-grid-table th { font-weight: 400; }
 .pptxv-chart-grid-table :is(th, td) { display: table-cell; white-space: nowrap; }
 .pptxv-chart-grid-cell {
@@ -82,6 +89,23 @@ export const INSPECTOR_FORMAT_CSS = `
 	cursor: pointer;
 }
 .pptxv-chart-grid-remove:hover { color: var(--pptx-destructive); }
+/* Below this width, matches isDensePanelCompact()/MOBILE_BREAKPOINT (768) in
+   pptx-viewer-shared: getDenseGridLayoutPlan(width) returns
+   stickyFirstColumn: true, minCellWidthPx: 64, and
+   getDensePanelTouchTargetPx(width) returns MIN_TOUCH_TARGET_PX (44). Pins
+   the category-label column so a value scrolled into view still reads
+   against its row, and gives the add/remove controls a touch-sized hit area. */
+@media (max-width: 767px) {
+	.pptxv-chart-grid-table th, .pptxv-chart-grid-table td { min-width: 64px; }
+	.pptxv-chart-grid-table th:first-child, .pptxv-chart-grid-table td:first-child {
+		position: sticky;
+		left: 0;
+		z-index: 1;
+		background: var(--pptx-background);
+	}
+	.pptxv-chart-grid-table thead th:first-child { z-index: 2; }
+	.pptxv-chart-grid-btn, .pptxv-chart-grid-remove { min-width: 44px !important; min-height: 44px !important; }
+}
 
 /* ── Table data grid ─────────────────────────────────────────────────── */
 .pptxv-table-grid-header { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
@@ -108,7 +132,7 @@ export const INSPECTOR_FORMAT_CSS = `
 	align-items: center;
 	justify-content: center;
 	gap: 2px;
-	min-width: 0;
+	min-width: 72px;
 	margin: -1px 0 0 -1px;
 	padding: 1px 3px;
 	border: 1px solid var(--pptx-border);
@@ -116,11 +140,11 @@ export const INSPECTOR_FORMAT_CSS = `
 	color: var(--pptx-muted-foreground);
 	white-space: nowrap;
 }
-.pptxv-table-grid-gutter { flex: 0 0 38px; }
+.pptxv-table-grid-gutter { flex: 0 0 38px; min-width: 38px; }
 .pptxv-table-grid-cell {
 	display: flex;
 	flex: 1 1 56px;
-	min-width: 0;
+	min-width: 72px;
 	margin: -1px 0 0 -1px;
 	padding: 1px;
 	border: 1px solid var(--pptx-border);
@@ -149,6 +173,24 @@ export const INSPECTOR_FORMAT_CSS = `
 }
 .pptxv-table-grid-remove[hidden] { display: none; }
 .pptxv-table-grid-remove:hover { color: var(--pptx-destructive); }
+/* Below this width, matches isDensePanelCompact()/MOBILE_BREAKPOINT (768) in
+   pptx-viewer-shared: getDenseGridLayoutPlan(width) returns
+   stickyFirstColumn: true, minCellWidthPx: 64, and
+   getDensePanelTouchTargetPx(width) returns MIN_TOUCH_TARGET_PX (44). Pins
+   the row-number gutter so a cell scrolled into view still reads against its
+   row, and gives the add/remove controls a touch-sized hit area. */
+@media (max-width: 767px) {
+	.pptxv-table-grid-head:not(.pptxv-table-grid-gutter), .pptxv-table-grid-cell { min-width: 64px; }
+	.pptxv-table-grid-gutter {
+		min-width: 38px;
+		position: sticky;
+		left: 0;
+		z-index: 1;
+		background: var(--pptx-muted);
+	}
+	.pptxv-table-grid-btn { min-width: 44px !important; min-height: 44px !important; }
+	.pptxv-table-grid-remove { min-width: 44px !important; min-height: 44px !important; }
+}
 
 /* ── Media trim timeline ─────────────────────────────────────────────── */
 .pptxv-media-timeline { display: grid; gap: 2px; margin: 6px 0; }
@@ -340,4 +382,41 @@ export const INSPECTOR_FORMAT_CSS = `
 	resize: vertical;
 }
 .pptxv-image-alt-input:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -1px; }
+
+/* chart-exhaustive-controls.ts's field()/tokenSelect() factory backs dozens
+   of chart/table controls (Chart type, Grouping, Alignment, ...) and carried
+   no class of its own, so a touch-target fix here reaches all of them. */
+@media (max-width: 767px) {
+	.pptxv-exhaustive-field-control { min-height: 44px; min-width: 44px; }
+	/* text-effects-controls.ts's own local field() helper (Transform warp
+	   select, ...) carries no class of its own either; target it through its
+	   section container. */
+	.pptxv-inspector-text-effects select,
+	.pptxv-inspector-text-effects input {
+		min-height: 44px;
+	}
+	/* Several other inspector sub-panels' own local field() helpers
+	   (chart-filtered-series-section.ts, connector-arrow-controls.ts,
+	   table-cell-formatting.ts, shape-effects-controls.ts) carry no class of
+	   their own on the control either; same fix, through each section's own
+	   container class. Buttons get !important (css.ts's baseline, see the
+	   .pptxv-quick-style rule above); selects/inputs do not need it. */
+	.pptxv-chart-filters select, .pptxv-chart-filters input,
+	.pptxv-inspector-connector-arrows select, .pptxv-inspector-connector-arrows input,
+	.pptxv-inspector-table-cell select, .pptxv-inspector-table-cell input,
+	.pptxv-inspector-table-cell-fill select, .pptxv-inspector-table-cell-fill input,
+	.pptxv-inspector-shape-effects select, .pptxv-inspector-shape-effects input {
+		min-height: 44px;
+	}
+	.pptxv-chart-filters button,
+	.pptxv-inspector-connector-arrows button,
+	.pptxv-inspector-table-cell button,
+	.pptxv-inspector-table-cell-fill button,
+	.pptxv-inspector-table-structure button,
+	.pptxv-chart-usershapes button,
+	.pptxv-inspector-shape-effects button {
+		min-width: 44px !important;
+		min-height: 44px !important;
+	}
+}
 `;

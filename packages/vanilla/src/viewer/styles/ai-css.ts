@@ -304,5 +304,8 @@ export const AI_CSS = `
 		box-shadow: 0 -12px 36px rgb(0 0 0 / 0.35);
 	}
 	.pptxv.pptxv-presenting .pptxv-ai-panel { display: none; }
+	/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+	   render/responsive module. */
+	.pptxv-ai-close { min-width: 44px !important; min-height: 44px !important; }
 }
 `;

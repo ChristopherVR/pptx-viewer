@@ -1,5 +1,8 @@
+import { getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 import { LuWifiOff } from 'react-icons/lu';
+
+import { useIsMobile } from '../hooks/useIsMobile';
 
 /** Form for configuring a new collaboration session. */
 export function StartSessionForm({
@@ -34,6 +37,8 @@ export function StartSessionForm({
 	onRetry?: () => void;
 }) {
 	const { t } = useTranslation();
+	const { viewportWidth } = useIsMobile();
+	const tabBtnStyle = { minHeight: getDensePanelTouchTargetPx(viewportWidth) };
 	const inputReadOnlyClass = preconfigured ? ' opacity-70 cursor-not-allowed' : '';
 
 	return (
@@ -46,6 +51,7 @@ export function StartSessionForm({
 						role='tab'
 						aria-selected={mode === candidate}
 						onClick={() => onModeChange(candidate)}
+						style={tabBtnStyle}
 						className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${mode === candidate ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
 					>
 						{t(candidate === 'create' ? 'pptx.share.createSession' : 'pptx.share.joinSession')}
@@ -99,6 +105,7 @@ export function StartSessionForm({
 						onChange={(event) => onInvitationChange(event.target.value)}
 						placeholder={t('pptx.share.invitationPlaceholder')}
 						className='w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
+						style={tabBtnStyle}
 					/>
 					<p className='text-[11px] text-muted-foreground'>{t('pptx.share.invitationHint')}</p>
 				</div>
@@ -116,6 +123,7 @@ export function StartSessionForm({
 						readOnly={preconfigured}
 						placeholder={t('pptx.share.sessionPlaceholder')}
 						className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
+						style={tabBtnStyle}
 					/>
 					<p className='text-[11px] text-muted-foreground'>{t('pptx.share.sessionHint')}</p>
 				</div>
@@ -135,6 +143,7 @@ export function StartSessionForm({
 					readOnly={preconfigured}
 					placeholder={t('pptx.share.namePlaceholder')}
 					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
+					style={tabBtnStyle}
 				/>
 			</div>
 
@@ -152,6 +161,7 @@ export function StartSessionForm({
 					readOnly={preconfigured}
 					placeholder={t('pptx.share.serverPlaceholder')}
 					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
+					style={tabBtnStyle}
 				/>
 			</div>
 

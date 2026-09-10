@@ -268,3 +268,36 @@ function relay(patch: Partial<PptxElement>): void {
 		</div>
 	</aside>
 </template>
+
+<style scoped>
+/*
+ * Touch target below MOBILE_BREAKPOINT (768, matches pptx-viewer-shared's
+ * isDensePanelCompact/MIN_TOUCH_TARGET_PX): this inspector hosts dozens of
+ * independently-styled sub-panel SFCs (FillPanel, ActionSettingsPanel,
+ * ChartPanel option rows, ...), each sizing its own <select>/<button> for a
+ * mouse. Rather than hand-patching every one (CLAUDE.md Rule 2: fix the
+ * cross-cutting concern once), `:deep()` reaches through each child's own
+ * scoping boundary from this shared host so every nested control clears the
+ * WCAG target from a single place.
+ *
+ * `min-width` is NOT optional here even though a sub-panel might only set
+ * its own `max-md:min-h-[...]`: `theme.css`'s baseline button rule
+ * (`:where(.pptx-vue-viewer) :where(button, [role='button'])... { min-width:
+ * 24px; min-height: 24px; }`) is UNLAYERED CSS, and an unlayered rule always
+ * wins over a Tailwind utility class (which lives inside `@layer utilities`)
+ * regardless of specificity, unless that utility carries `!`. A narrow
+ * single-letter button (Bold "B", vertical-align "T"/"M"/"B", ...) that only
+ * relies on a plain `max-md:min-w-[44px]` Tailwind class therefore silently
+ * stays at the 24px baseline width even though its OWN min-height utility
+ * (no competing unlayered rule) applies fine - this scoped rule's higher
+ * specificity beats the `:where()` baseline on both axes at once, which is
+ * why it must set both properties, not just the one sub-panels forget.
+ */
+@media (max-width: 767px) {
+	.pptx-vue-inspector :deep(select),
+	.pptx-vue-inspector :deep(button) {
+		min-height: 44px;
+		min-width: 44px;
+	}
+}
+</style>

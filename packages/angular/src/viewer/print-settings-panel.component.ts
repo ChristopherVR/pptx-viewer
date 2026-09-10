@@ -329,6 +329,19 @@ import type {
 				font-size: 0.8125rem;
 				cursor: pointer;
 			}
+
+			/*
+			 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+			 * pptx-viewer-shared's render/responsive module. Print What renders
+			 * as real <button> "cards" (not native radios), so it needs the same
+			 * WCAG target as any other discrete control below the mobile
+			 * breakpoint.
+			 */
+			@media (max-width: 767px) {
+				.pptx-ng-print-settings__card {
+					min-height: 44px;
+				}
+			}
 		`,
 	],
 })

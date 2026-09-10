@@ -19,13 +19,18 @@ import type {
 	ViewerOptionsGroupId,
 	ViewerOptionsTabId,
 } from 'pptx-viewer-shared';
-import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+import {
+	DEFAULT_QUICK_ACCESS_COMMAND_IDS,
+	getDensePanelTouchTargetPx,
+	VIEWER_OPTIONS_TABS,
+} from 'pptx-viewer-shared';
 import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { LocaleCatalogEntry } from '../../i18n';
 import type { ThemeCatalogEntry } from '../../theme';
+import { useIsMobile } from '../composables/useIsMobile';
 import OptionsAddInsPane from './settings/OptionsAddInsPane.vue';
 import OptionsPane from './settings/OptionsPane.vue';
 import OptionsQuickAccessPane from './settings/OptionsQuickAccessPane.vue';
@@ -85,6 +90,20 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { viewportWidth } = useIsMobile();
+const closeBtnStyle = computed(() => {
+	const size = getDensePanelTouchTargetPx(viewportWidth.value);
+	return { minWidth: `${size}px`, minHeight: `${size}px` };
+});
+// The category rail's own tabs are discrete one-per-row controls too, so they
+// get the same touch target as the close button below the mobile breakpoint
+// (React's SettingsDialog.tsx `navBtnStyle` does the same for its own nav -
+// CLAUDE.md Rule 1, this binding had imported the shared function but never
+// applied it to the nav buttons).
+const navBtnStyle = computed(() => {
+	const size = getDensePanelTouchTargetPx(viewportWidth.value);
+	return { minHeight: `${size}px`, minWidth: `${size}px` };
+});
 
 const activeTabId = ref<ViewerOptionsTabId | typeof AI_TAB_ID>('general');
 const activeTab = computed(
@@ -157,7 +176,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 						</div>
 						<button
 							type="button"
-							class="rounded p-1 transition-colors hover:bg-accent"
+							class="flex items-center justify-center rounded p-1 transition-colors hover:bg-accent"
+							:style="closeBtnStyle"
 							:aria-label="t('pptx.settings.close')"
 							@click="close"
 						>
@@ -182,6 +202,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 										? 'bg-primary/10 font-medium text-primary'
 										: 'text-foreground hover:bg-accent'
 								"
+								:style="navBtnStyle"
 								@click="activeTabId = tab.id"
 							>
 								{{ t(tab.labelKey) }}
@@ -196,6 +217,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 										? 'bg-primary/10 font-medium text-primary'
 										: 'text-foreground hover:bg-accent'
 								"
+								:style="navBtnStyle"
 								@click="activeTabId = AI_TAB_ID"
 							>
 								{{ t('pptx.ai.settingsSectionTitle') }}
@@ -297,7 +319,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 					>
 						<button
 							type="button"
-							class="rounded border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							class="rounded border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground max-md:min-h-[44px]!"
 							@click="onResetOptions()"
 						>
 							{{ t('pptx.options.resetAll') }}
@@ -305,14 +327,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 						<div class="flex items-center gap-2">
 							<button
 								type="button"
-								class="rounded border border-border px-4 py-1.5 text-xs text-foreground transition-colors hover:bg-accent"
+								class="rounded border border-border px-4 py-1.5 text-xs text-foreground transition-colors hover:bg-accent max-md:min-h-[44px]!"
 								@click="cancel"
 							>
 								{{ t('pptx.common.cancel') }}
 							</button>
 							<button
 								type="button"
-								class="rounded bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+								class="rounded bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 max-md:min-h-[44px]!"
 								@click="close"
 							>
 								{{ t('pptx.common.ok') }}

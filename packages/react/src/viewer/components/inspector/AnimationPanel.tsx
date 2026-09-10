@@ -1,8 +1,10 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlay } from 'react-icons/lu';
 
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { cn, getElementLabel } from '../../utils';
 import { AfterAnimationRow } from './AfterAnimationRow';
 import {
@@ -65,6 +67,12 @@ export function AnimationPanel({
 	onUpdateSlide,
 }: AnimationPanelProps): React.ReactElement {
 	const { t } = useTranslation();
+	const { viewportWidth } = useIsMobile();
+	const directionBtnPx = Math.max(28, getDensePanelTouchTargetPx(viewportWidth));
+	// Standalone (non-grid) form fields: unlike the chart/table data grids'
+	// densely repeating cell inputs, these are discrete one-per-row controls,
+	// so WCAG's dense-repeating-control exception does not apply to them.
+	const fieldStyle = { minHeight: getDensePanelTouchTargetPx(viewportWidth) };
 	const handlers = useAnimationHandlers({
 		selectedElement,
 		activeSlide,
@@ -105,6 +113,7 @@ export function AnimationPanel({
 				{hasAnimation && (
 					<button
 						type='button'
+						style={{ minHeight: getDensePanelTouchTargetPx(viewportWidth) }}
 						className='flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors'
 						onClick={handlePreviewClick}
 						title={t('pptx.animation.preview')}
@@ -124,6 +133,7 @@ export function AnimationPanel({
 					onChange={handleEntranceChange}
 					disabled={!canEdit}
 					className={SELECT_CLS}
+					style={fieldStyle}
 				>
 					<option value='none'>{t('pptx.animation.none')}</option>
 					{ENTRANCE_PRESETS.map((o) => (
@@ -143,6 +153,7 @@ export function AnimationPanel({
 					onChange={handleEmphasisChange}
 					disabled={!canEdit}
 					className={SELECT_CLS}
+					style={fieldStyle}
 				>
 					<option value='none'>{t('pptx.animation.none')}</option>
 					{EMPHASIS_PRESETS.map((o) => (
@@ -162,6 +173,7 @@ export function AnimationPanel({
 					onChange={handleExitChange}
 					disabled={!canEdit}
 					className={SELECT_CLS}
+					style={fieldStyle}
 				>
 					<option value='none'>{t('pptx.animation.none')}</option>
 					{EXIT_PRESETS.map((o) => (
@@ -197,8 +209,9 @@ export function AnimationPanel({
 											key={opt.value}
 											type='button'
 											disabled={!canEdit}
+											style={{ minWidth: directionBtnPx, minHeight: directionBtnPx }}
 											className={cn(
-												'flex items-center justify-center w-7 h-7 rounded border transition-colors',
+												'flex items-center justify-center rounded border transition-colors',
 												isActive
 													? 'border-primary bg-primary/20 text-primary'
 													: 'border-border bg-muted text-muted-foreground hover:bg-accent',
@@ -225,6 +238,7 @@ export function AnimationPanel({
 							onChange={handleSequenceChange}
 							disabled={!canEdit}
 							className={SELECT_CLS}
+							style={fieldStyle}
 						>
 							{SEQUENCE_OPTIONS.map((o) => (
 								<option key={o.value} value={o.value}>
@@ -264,6 +278,7 @@ export function AnimationPanel({
 							onChange={handleTriggerChange}
 							disabled={!canEdit}
 							className={SELECT_CLS}
+							style={fieldStyle}
 						>
 							{TRIGGER_OPTIONS.map((o) => (
 								<option key={o.value} value={o.value}>
@@ -285,6 +300,7 @@ export function AnimationPanel({
 								onChange={handleTriggerShapeChange}
 								disabled={!canEdit}
 								className={SELECT_CLS}
+								style={fieldStyle}
 							>
 								<option value=''>{t('pptx.animation.trigger.selectShape')}</option>
 								{activeSlide.elements
@@ -312,6 +328,7 @@ export function AnimationPanel({
 							value={selectedElementAnimation?.durationMs ?? 450}
 							onChange={handleDurationChange}
 							className={INPUT_CLS}
+							style={fieldStyle}
 						/>
 					</label>
 					<label className='flex flex-col gap-1'>
@@ -325,6 +342,7 @@ export function AnimationPanel({
 							value={selectedElementAnimation?.delayMs ?? 0}
 							onChange={handleDelayChange}
 							className={INPUT_CLS}
+							style={fieldStyle}
 						/>
 					</label>
 					<label className='flex flex-col gap-1'>
@@ -337,6 +355,7 @@ export function AnimationPanel({
 							onChange={handleTimingCurveChange}
 							disabled={!canEdit}
 							className={SELECT_CLS}
+							style={fieldStyle}
 						>
 							{TIMING_CURVE_OPTIONS.map((o) => (
 								<option key={o.value} value={o.value}>
@@ -358,6 +377,7 @@ export function AnimationPanel({
 							value={selectedElementAnimation?.repeatCount ?? 1}
 							onChange={handleRepeatCountChange}
 							className={INPUT_CLS}
+							style={fieldStyle}
 						/>
 					</label>
 					<label className='flex flex-col gap-1'>
@@ -370,6 +390,7 @@ export function AnimationPanel({
 							onChange={handleRepeatModeChange}
 							disabled={!canEdit}
 							className={SELECT_CLS}
+							style={fieldStyle}
 						>
 							{REPEAT_MODE_OPTIONS.map((o) => (
 								<option key={o.value} value={o.value}>

@@ -137,6 +137,15 @@ export const EDITOR_CSS = `
 }
 .pptxv-inspector-tab:hover { color: var(--pptx-foreground); background: var(--pptx-accent); }
 .pptxv-inspector-tab.is-active { background: var(--pptx-primary); color: var(--pptx-primary-foreground, #fff); }
+/* Below this width, matches isDensePanelCompact()/MOBILE_BREAKPOINT (768) in
+   pptx-viewer-shared: getDensePanelTouchTargetPx(width) returns
+   MIN_TOUCH_TARGET_PX (44), so the Elements/Properties/Comments tab buttons
+   clear a touch-sized hit area. This binding's inspector pane has no inline
+   close button (its visibility is toggled elsewhere), so there is nothing
+   else to size here. */
+@media (max-width: 767px) {
+	.pptxv-inspector-tab { min-height: 44px; }
+}
 /* Elements tab: layer-order rows. */
 .pptxv-inspector-layer-list { display: flex; flex-direction: column; gap: 2px; }
 .pptxv-inspector-layer-row {
@@ -515,5 +524,27 @@ export const EDITOR_CSS = `
 	background: #ffffff;
 	color: #0f172a;
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+   render/responsive module, below MOBILE_BREAKPOINT (768). The \`!important\`
+   is load-bearing: this button lives inside \`.pptxv\`, so it is also matched
+   by css.ts's baseline \`.pptxv :is(button, [role='button'])... { min-width:
+   24px; min-height: 24px; }\`, whose chained :not() pseudo-classes give it
+   higher specificity than a plain class selector. */
+@media (max-width: 767px) {
+	.pptxv-inspector-deck-btn { min-height: 44px !important; }
+	.pptxv-inspector-tab { min-height: 44px !important; }
+	.pptxv-inspector-lock-btn { min-width: 44px !important; min-height: 44px !important; }
+	/* \`.pptxv-field-select-input\` (controls-extra.ts's shared \`makeSelectField\`
+	   factory) backs many inspector <select> rows (Shape Type, ...), so fixing
+	   it once here reaches all of them. A <select>, not a <button>, so css.ts's
+	   button-only baseline does not apply and no \`!important\` is needed. */
+	.pptxv-field-select-input { min-height: 44px; }
+	/* Table style presets (table-section.ts): a 3-column gallery of named,
+	   individually-labelled preview tiles ("Medium 1", ...) - plenty of room
+	   per column to grow past its 40px desktop height, unlike a dense colour
+	   swatch grid, so it gets the WCAG target rather than an exemption. */
+	.pptxv-table-preset-swatch { height: 44px !important; }
 }
 `;

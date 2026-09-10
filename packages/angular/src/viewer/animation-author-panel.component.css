@@ -39,6 +39,7 @@
 	color: var(--pptx-primary, #4c9ffe);
 	cursor: pointer;
 	font-size: 10px;
+	min-height: 28px; /* DEFAULT_DENSE_BUTTON_PX (pptx-viewer-shared) */
 }
 
 .pptx-ng-anim__subheading {
@@ -158,6 +159,13 @@
 }
 
 /* ── Touch / mobile ──────────────────────────────────────────────────── */
+/* Values mirror pptx-viewer-shared's render/responsive module
+   (MIN_TOUCH_TARGET_PX = 44): every discrete control (select, order button,
+   direction-picker icon button, Preview button) clears 44px at compact
+   widths (as narrow as 360px) - `.pptx-ng-anim__input` is the one exception,
+   a free-text/number field the WCAG dense-grid reasoning does not apply to
+   at all (it is not a repeating gallery), but is still sized generously
+   enough (40px + 16px font) to stay comfortably tappable. */
 @media (pointer: coarse), (max-width: 640px) {
 	.pptx-ng-anim {
 		width: 100%;
@@ -166,7 +174,12 @@
 		font-size: 14px;
 	}
 
-	.pptx-ng-anim__select,
+	.pptx-ng-anim__select {
+		min-height: 44px;
+		font-size: 16px; /* prevents iOS auto-zoom */
+		padding: 6px 8px;
+	}
+
 	.pptx-ng-anim__input {
 		min-height: 40px;
 		font-size: 16px; /* prevents iOS auto-zoom */
@@ -174,12 +187,19 @@
 	}
 
 	.pptx-ng-anim__dir-btn {
-		width: 40px;
-		height: 40px;
+		width: 44px;
+		height: 44px;
 	}
 
 	.pptx-ng-anim__order-btn {
-		min-height: 40px;
+		min-height: 44px;
 		font-size: 13px;
+	}
+
+	.pptx-ng-anim__preview-btn {
+		min-height: 44px;
+		min-width: 44px;
+		padding: 6px 10px;
+		font-size: 12px;
 	}
 }

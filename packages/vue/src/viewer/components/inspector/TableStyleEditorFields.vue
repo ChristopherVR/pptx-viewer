@@ -100,7 +100,7 @@ function borderSide(descriptor: TableStyleEditorDescriptor, side: TableStyleBord
 						:key="flag"
 						type="button"
 						:disabled="!canEdit"
-						class="rounded px-2 py-1 text-[11px] transition-colors"
+						class="rounded px-2 py-1 text-[11px] transition-colors max-md:min-w-[44px] max-md:min-h-[44px]"
 						:class="descriptor.text[flag] ? 'bg-accent' : 'bg-muted hover:bg-accent'"
 						@click="emit('edit', textFlagEdit(flag, !descriptor.text[flag]))"
 					>

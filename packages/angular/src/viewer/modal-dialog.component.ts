@@ -247,6 +247,19 @@ export function modalPanelClass(isMobile: boolean): string {
 					border-bottom-right-radius: 0;
 					padding-bottom: max(env(safe-area-inset-bottom), 0px);
 				}
+
+				/*
+				 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+				 * pptx-viewer-shared's render/responsive module. Every Angular
+				 * modal (Share, Hyperlink, Options, Print, ...) composes this
+				 * shell, so fixing the close button once here reaches all of
+				 * them instead of each dialog re-implementing its own header.
+				 */
+				.pptx-ng-modal-close {
+					width: 44px;
+					height: 44px;
+					font-size: 22px;
+				}
 			}
 		`,
 	],

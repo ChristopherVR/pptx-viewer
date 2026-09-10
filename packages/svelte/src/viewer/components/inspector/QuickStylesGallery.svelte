@@ -71,6 +71,18 @@
 		cursor: pointer;
 	}
 
+	/* Each preset is a discrete, individually-named action button (not a
+	   colour swatch), so it gets the shared WCAG touch target below the
+	   mobile breakpoint (768px, `MOBILE_BREAKPOINT` /
+	   `getDensePanelTouchTargetPx` in pptx-viewer-shared) rather than an
+	   exemption - CLAUDE.md Rule 2: the threshold/size are the shared
+	   decision, this media query only applies it. */
+	@media (max-width: 767px) {
+		.pptx-svelte-quick-styles-grid button {
+			height: 44px;
+		}
+	}
+
 	.pptx-svelte-quick-styles-grid button:hover:not(:disabled) {
 		outline: 1px solid var(--pptx-primary, #6366f1);
 	}

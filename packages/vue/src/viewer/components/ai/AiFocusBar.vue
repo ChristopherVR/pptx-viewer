@@ -88,7 +88,7 @@ function sendMerge(): void {
 					:aria-pressed="pickMode"
 					:class="
 						cn(
-							'rounded-sm p-1',
+							'rounded-sm p-1 flex items-center justify-center max-md:min-w-[44px]! max-md:min-h-[44px]!',
 							pickMode
 								? 'bg-primary text-primary-foreground'
 								: 'text-muted-foreground hover:bg-accent',
@@ -103,7 +103,7 @@ function sendMerge(): void {
 					type="button"
 					:title="t('pptx.ai.pickClear')"
 					:aria-label="t('pptx.ai.pickClear')"
-					class="rounded-sm p-1 text-muted-foreground hover:bg-accent"
+					class="rounded-sm p-1 text-muted-foreground hover:bg-accent flex items-center justify-center max-md:min-w-[44px]! max-md:min-h-[44px]!"
 					@click="emit('clear-picks')"
 				>
 					<X class="w-3.5 h-3.5" />
@@ -113,7 +113,7 @@ function sendMerge(): void {
 					type="button"
 					:title="isPinned ? t('pptx.ai.clearFocus') : t('pptx.ai.pinFocus')"
 					:aria-label="isPinned ? t('pptx.ai.clearFocus') : t('pptx.ai.pinFocus')"
-					class="rounded-sm p-1 text-muted-foreground hover:bg-accent"
+					class="rounded-sm p-1 text-muted-foreground hover:bg-accent flex items-center justify-center max-md:min-w-[44px]! max-md:min-h-[44px]!"
 					@click="isPinned ? emit('clear-pin') : emit('pin')"
 				>
 					<PinOff v-if="isPinned" class="w-3.5 h-3.5" />

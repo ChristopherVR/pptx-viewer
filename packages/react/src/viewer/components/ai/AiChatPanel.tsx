@@ -61,7 +61,7 @@ export default function AiChatPanel({
 					onClick={onClose}
 					title={t('pptx.ai.close')}
 					aria-label={t('pptx.ai.close')}
-					className='ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent'
+					className='ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent max-md:min-w-[44px]! max-md:min-h-[44px]! flex items-center justify-center'
 				>
 					<LuX className='w-4 h-4' />
 				</button>

@@ -161,7 +161,7 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 				{{ t(trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover') }}
 			</label>
 			<select
-				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px]"
+				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px] max-md:min-h-[44px]"
 				:aria-label="t(trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover')"
 				:disabled="!canEdit"
 				:value="typeFor(trigger)"
@@ -183,7 +183,7 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 					typeFor(trigger) === 'runProgram'
 				"
 				:type="typeFor(trigger) === 'url' ? 'url' : 'text'"
-				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px]"
+				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px] max-md:min-h-[44px]"
 				:aria-label="
 					t(
 						typeFor(trigger) === 'url'
@@ -203,7 +203,7 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 			<input
 				v-if="typeFor(trigger) === 'slide'"
 				type="number"
-				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px]"
+				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px] max-md:min-h-[44px]"
 				:aria-label="t('pptx.action.gotoSlide')"
 				:disabled="!canEdit"
 				:min="1"
@@ -214,7 +214,7 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 			<template v-if="typeFor(trigger) === 'customShow'">
 				<select
 					data-testid="pptx-action-custom-show"
-					class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px]"
+					class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px] max-md:min-h-[44px]"
 					:aria-label="t('pptx.hyperlink.customShowLabel')"
 					:disabled="!canEdit"
 					:value="actionFor(trigger)?.customShowId ?? ''"

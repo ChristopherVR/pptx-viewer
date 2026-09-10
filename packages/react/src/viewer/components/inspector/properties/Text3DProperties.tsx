@@ -12,7 +12,11 @@ import { useTranslation } from 'react-i18next';
 import { normalizeHexColor } from '../../../utils';
 import { useRecentColors } from '../RecentColorsContext';
 
-const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1';
+// `max-md:min-h-[44px]!` matches MIN_TOUCH_TARGET_PX (44) from
+// pptx-viewer-shared's render/responsive module; `!` is load-bearing (see
+// FillStrokeHelpers.tsx's `SEL` for why: theme.css's unlayered baseline
+// button/select reset out-specificities a plain Tailwind utility).
+const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]!';
 const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 
 interface Text3DPropertiesProps {

@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1';
+const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]';
 
 function onType(event: Event): void {
 	emit('typeChange', (event.target as HTMLSelectElement).value as BevelPresetType);

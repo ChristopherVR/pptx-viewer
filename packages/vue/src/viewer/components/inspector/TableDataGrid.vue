@@ -4,6 +4,8 @@ import {
 	appendTableElementColumn,
 	appendTableElementRow,
 	buildTableDataGrid,
+	getDenseGridLayoutPlan,
+	getDensePanelTouchTargetPx,
 	removeLastTableElementColumn,
 	removeLastTableElementRow,
 	removeTableElementColumn,
@@ -12,6 +14,8 @@ import {
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { useIsMobile } from '../../composables/useIsMobile';
 
 /**
  * TableDataGrid: inspector-resident spreadsheet editor for table cell TEXT.
@@ -92,9 +96,24 @@ const HEADER_CELL =
 	'flex items-center justify-center gap-0.5 bg-muted text-muted-foreground border border-border -m-px px-1 py-0.5 whitespace-nowrap';
 const CELL_INPUT =
 	'w-full box-border bg-muted px-1 py-0.5 text-[11px] border-0 outline-none focus:bg-accent disabled:opacity-60';
-const REMOVE_BTN = 'px-0.5 leading-none text-destructive hover:opacity-80';
+const REMOVE_BTN =
+	'px-0.5 leading-none text-destructive hover:opacity-80 inline-flex items-center justify-center';
 const BTN =
-	'rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50';
+	'inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50';
+
+// ── Dense-panel responsive layout: sticky row/column gutter + touch targets
+// below 768px, from the shared decision functions every binding uses (never
+// hand-duplicate the thresholds/pixel values here - see CLAUDE.md Rule 2). ──
+const { viewportWidth } = useIsMobile();
+const gridPlan = computed(() => getDenseGridLayoutPlan(viewportWidth.value));
+const touchTargetPx = computed(() => getDensePanelTouchTargetPx(viewportWidth.value));
+const stickyGutterClass = computed(() =>
+	gridPlan.value.stickyFirstColumn ? 'sticky left-0 z-10' : '',
+);
+const touchBtnStyle = computed(() => ({
+	minWidth: `${touchTargetPx.value}px`,
+	minHeight: `${touchTargetPx.value}px`,
+}));
 </script>
 
 <template>
@@ -111,6 +130,7 @@ const BTN =
 					<button
 						type="button"
 						:class="BTN"
+						:style="touchBtnStyle"
 						:title="t('pptx.tableDataEditor.addRowTitle')"
 						@click="apply(appendTableElementRow)"
 					>
@@ -119,6 +139,7 @@ const BTN =
 					<button
 						type="button"
 						:class="BTN"
+						:style="touchBtnStyle"
 						:disabled="!grid.canRemoveRow"
 						:title="t('pptx.tableDataEditor.removeRowTitle')"
 						@click="apply(removeLastTableElementRow)"
@@ -128,6 +149,7 @@ const BTN =
 					<button
 						type="button"
 						:class="BTN"
+						:style="touchBtnStyle"
 						:title="t('pptx.tableDataEditor.addColumnTitle')"
 						@click="apply(appendTableElementColumn)"
 					>
@@ -136,6 +158,7 @@ const BTN =
 					<button
 						type="button"
 						:class="BTN"
+						:style="touchBtnStyle"
 						:disabled="!grid.canRemoveColumn"
 						:title="t('pptx.tableDataEditor.removeColumnTitle')"
 						@click="apply(removeLastTableElementColumn)"
@@ -153,7 +176,10 @@ const BTN =
 			<div class="overflow-x-auto">
 				<div class="flex flex-col text-[11px] w-max min-w-full" role="grid">
 					<div class="flex" role="row">
-						<div :class="`${HEADER_CELL} flex-none w-10`" role="columnheader"></div>
+						<div
+							:class="`${HEADER_CELL} flex-none w-10 ${stickyGutterClass}`"
+							role="columnheader"
+						></div>
 						<div
 							v-for="colIndex in grid.colIndices"
 							:key="colIndex"
@@ -165,6 +191,7 @@ const BTN =
 								v-if="props.canEdit && grid.canRemoveColumn"
 								type="button"
 								:class="REMOVE_BTN"
+								:style="touchBtnStyle"
 								:aria-label="t('pptx.tableDataEditor.removeColumnN', { number: colIndex + 1 })"
 								:title="t('pptx.tableDataEditor.removeColumnN', { number: colIndex + 1 })"
 								@click="apply((el) => removeTableElementColumn(el, colIndex))"
@@ -175,12 +202,13 @@ const BTN =
 					</div>
 
 					<div v-for="row in grid.rows" :key="row.rowIndex" class="flex" role="row">
-						<div :class="`${HEADER_CELL} flex-none w-10`" role="rowheader">
+						<div :class="`${HEADER_CELL} flex-none w-10 ${stickyGutterClass}`" role="rowheader">
 							<span>{{ row.rowIndex + 1 }}</span>
 							<button
 								v-if="props.canEdit && grid.canRemoveRow"
 								type="button"
 								:class="REMOVE_BTN"
+								:style="touchBtnStyle"
 								:aria-label="t('pptx.tableDataEditor.removeRowN', { number: row.rowIndex + 1 })"
 								:title="t('pptx.tableDataEditor.removeRowN', { number: row.rowIndex + 1 })"
 								@click="apply((el) => removeTableElementRow(el, row.rowIndex))"

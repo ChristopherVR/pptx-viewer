@@ -108,7 +108,7 @@ export function ChartDataPointOptions({
 									type='button'
 									disabled={!canEdit}
 									title={t('pptx.chart.pointFillClear')}
-									className='text-muted-foreground hover:text-foreground'
+									className='text-muted-foreground hover:text-foreground max-md:min-w-[44px]! max-md:min-h-[44px]! inline-flex items-center justify-center'
 									onClick={() => onSetPointFill(seriesIndex, idx, null)}
 								>
 									&times;

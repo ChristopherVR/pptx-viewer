@@ -1,7 +1,7 @@
 /* oxlint-disable eslint/one-var -- this module predates the rule and combining
    every sibling const in a function into one comma-list would hurt
    readability, not help it (see chart-view-model.ts for the same rationale). */
-import { clampOptionNumber } from 'pptx-viewer-shared';
+import { clampOptionNumber, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import type {
 	ViewerOptions,
 	ViewerOptionsControl,
@@ -12,6 +12,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuInfo } from 'react-icons/lu';
 
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { cn } from '../../utils';
 
 export type OptionChangeHandler = (
@@ -59,14 +60,21 @@ function ControlRow({
 	onOptionChange: OptionChangeHandler;
 }): React.ReactElement | null {
 	const { t } = useTranslation();
+	const { viewportWidth } = useIsMobile();
+	// One-per-row fields (not a dense repeating grid), so every field/toggle
+	// in every Options tab gets the WCAG touch target below the mobile
+	// breakpoint from this single shared control-row renderer, per CLAUDE.md
+	// Rule 2 - never re-derive this per tab.
+	const fieldMinHeight = getDensePanelTouchTargetPx(viewportWidth);
 	const value = readValue(options, control);
 	const label = t(control.labelKey);
 	const info = control.infoKey ? <InfoTip text={t(control.infoKey)} /> : null;
 	const rowClass = cn('flex items-center justify-between gap-3 py-1.5', control.indent && 'pl-6');
+	const rowStyle = { minHeight: fieldMinHeight };
 
 	if (control.kind === 'toggle') {
 		return (
-			<label className={cn(rowClass, 'cursor-pointer select-none')}>
+			<label className={cn(rowClass, 'cursor-pointer select-none')} style={rowStyle}>
 				<span className='text-sm text-foreground'>
 					{label}
 					{info}
@@ -83,13 +91,14 @@ function ControlRow({
 
 	if (control.kind === 'select') {
 		return (
-			<div className={rowClass}>
+			<div className={rowClass} style={rowStyle}>
 				<span className='text-sm text-foreground'>
 					{label}
 					{info}
 				</span>
 				<select
 					aria-label={label}
+					style={{ minHeight: fieldMinHeight }}
 					className='max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground'
 					value={typeof value === 'string' ? value : ''}
 					onChange={(event) => onOptionChange(control.group, control.key, event.target.value)}
@@ -106,7 +115,7 @@ function ControlRow({
 
 	if (control.kind === 'number') {
 		return (
-			<div className={rowClass}>
+			<div className={rowClass} style={rowStyle}>
 				<span className='text-sm text-foreground'>
 					{label}
 					{info}
@@ -115,6 +124,7 @@ function ControlRow({
 					<input
 						type='number'
 						aria-label={label}
+						style={{ minHeight: fieldMinHeight }}
 						className='w-20 rounded border border-border bg-background px-2 py-1 text-right text-xs text-foreground'
 						min={control.min}
 						max={control.max}
@@ -136,7 +146,7 @@ function ControlRow({
 	}
 
 	return (
-		<div className={rowClass}>
+		<div className={rowClass} style={rowStyle}>
 			<span className='text-sm text-foreground'>
 				{label}
 				{info}
@@ -144,6 +154,7 @@ function ControlRow({
 			<input
 				type='text'
 				aria-label={label}
+				style={{ minHeight: fieldMinHeight }}
 				className='w-48 max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground'
 				maxLength={control.maxLength}
 				value={typeof value === 'string' ? value : ''}

@@ -118,4 +118,17 @@
 	.remove {
 		color: #f87171;
 	}
+
+	/*
+	 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+	 * render/responsive module. `!important` is load-bearing: see
+	 * ViewerGlobalStyles.svelte's document-level baseline reset note
+	 * elsewhere in this codebase (out-specificities a plain tag selector).
+	 */
+	@media (max-width: 767px) {
+		button {
+			min-width: 44px !important;
+			min-height: 44px !important;
+		}
+	}
 </style>

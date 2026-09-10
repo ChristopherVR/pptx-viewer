@@ -84,7 +84,7 @@ function addStop(): void {
 			<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.fillMode') }}</span>
 			<select
 				:aria-label="t('pptx.table.fillMode')"
-				class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
+				class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px] max-md:min-h-[44px]"
 				:disabled="!canEdit"
 				:value="fillMode"
 				@change="onFillModeChange"
@@ -102,7 +102,7 @@ function addStop(): void {
 					<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.gradientType') }}</span>
 					<select
 						:aria-label="t('pptx.table.gradientType')"
-						class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
+						class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px] max-md:min-h-[44px]"
 						:disabled="!canEdit"
 						:value="gradientType"
 						@change="
@@ -171,7 +171,7 @@ function addStop(): void {
 				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.patternPreset') }}</span>
 				<select
 					:aria-label="t('pptx.table.patternPreset')"
-					class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
+					class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px] max-md:min-h-[44px]"
 					:disabled="!canEdit"
 					:value="cellStyle.patternFillPreset ?? 'ltDnDiag'"
 					@change="

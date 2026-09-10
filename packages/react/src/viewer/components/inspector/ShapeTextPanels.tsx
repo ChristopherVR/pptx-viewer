@@ -230,7 +230,7 @@ function TextFormatToggle({
 			type='button'
 			disabled={disabled}
 			className={cn(
-				'px-2 py-1 rounded text-[11px] transition-colors',
+				'px-2 py-1 rounded text-[11px] transition-colors max-md:min-w-[44px]! max-md:min-h-[44px]!',
 				italic && 'italic',
 				underline && 'underline',
 				active ? 'bg-primary text-white' : 'bg-muted hover:bg-accent',

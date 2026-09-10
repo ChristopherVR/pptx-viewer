@@ -79,6 +79,17 @@ export interface UseIsMobileResult {
 	isVirtualKeyboardOpen: Readonly<Ref<boolean>>;
 	/** The measured container (or viewport) width in pixels. */
 	containerWidth: Readonly<Ref<number>>;
+	/**
+	 * Raw BROWSER viewport width (px), always `window.innerWidth` regardless of
+	 * any `container` source. Dense-panel layout decisions
+	 * (`pptx-viewer-shared`'s `render/responsive/*`, e.g.
+	 * `getDensePanelTouchTargetPx`) must key off the real viewport per that
+	 * module's own contract, not an embedding container's box, so this is kept
+	 * separate from `containerWidth`.
+	 */
+	viewportWidth: Readonly<Ref<number>>;
+	/** Raw BROWSER viewport height (px), always `window.innerHeight`. */
+	viewportHeight: Readonly<Ref<number>>;
 }
 
 function resolveContainer(source: ContainerSource | undefined): HTMLElement | null {
@@ -97,6 +108,9 @@ export function useIsMobile(breakpoint = 768, container?: ContainerSource): UseI
 	const orientation = ref<DeviceOrientation>(detectOrientation());
 	const isVirtualKeyboardOpen = ref(false);
 	const containerWidth = ref(typeof window !== 'undefined' ? window.innerWidth : TABLET_BREAKPOINT);
+	const hasWindowForViewport = typeof window !== 'undefined';
+	const viewportWidth = ref(hasWindowForViewport ? window.innerWidth : TABLET_BREAKPOINT);
+	const viewportHeight = ref(hasWindowForViewport ? window.innerHeight : 800);
 
 	const result: UseIsMobileResult = {
 		isMobile: readonly(isMobile),
@@ -106,7 +120,22 @@ export function useIsMobile(breakpoint = 768, container?: ContainerSource): UseI
 		orientation: readonly(orientation),
 		isVirtualKeyboardOpen: readonly(isVirtualKeyboardOpen),
 		containerWidth: readonly(containerWidth),
+		viewportWidth: readonly(viewportWidth),
+		viewportHeight: readonly(viewportHeight),
 	};
+
+	// Always track the true browser viewport, independent of the container/
+	// matchMedia paths below (which may drive `containerWidth`/`isMobile` from
+	// a host container's box instead). Dense-panel layout decisions need the
+	// real viewport unconditionally - see the interface doc comment above.
+	if (hasWindowForViewport) {
+		const onViewportSizeChange = (): void => {
+			viewportWidth.value = window.innerWidth;
+			viewportHeight.value = window.innerHeight;
+		};
+		window.addEventListener('resize', onViewportSizeChange);
+		onScopeDispose(() => window.removeEventListener('resize', onViewportSizeChange));
+	}
 
 	const applyDimensions = (width: number, height: number): void => {
 		containerWidth.value = width;

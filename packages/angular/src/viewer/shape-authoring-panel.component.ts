@@ -132,6 +132,19 @@ export function shapeTypePatch(element: PptxElement, shapeType: string): Partial
 			border-radius: 3px;
 			cursor: pointer;
 		}
+		/* Each preset is a discrete, individually-named action button (not a
+		   colour swatch), so it gets the shared WCAG touch target below the
+		   mobile breakpoint (768px, MOBILE_BREAKPOINT /
+		   getDensePanelTouchTargetPx in pptx-viewer-shared) rather than an
+		   exemption - CLAUDE.md Rule 2. */
+		@media (max-width: 767px) {
+			.gallery button {
+				height: 44px;
+			}
+			select {
+				min-height: 44px;
+			}
+		}
 	`,
 })
 export class ShapeAuthoringPanelComponent {

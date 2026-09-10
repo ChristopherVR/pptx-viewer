@@ -74,6 +74,11 @@ export const AI_FOCUS_CSS = `
 	cursor: pointer;
 }
 .pptxv-ai-focus-merge svg { width: 12px; height: 12px; }
+/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+   render/responsive module, below MOBILE_BREAKPOINT (768). */
+@media (max-width: 767px) {
+	.pptxv-ai-focus-btn, .pptxv-ai-focus-merge, .pptxv-ai-focus-pick-done { min-width: 44px !important; min-height: 44px !important; }
+}
 
 /* ── Pick-mode banner ─────────────────────────────────────────────────── */
 .pptxv-ai-focus-pick {

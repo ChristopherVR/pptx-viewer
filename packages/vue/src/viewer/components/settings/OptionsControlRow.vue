@@ -6,10 +6,12 @@
  * `OptionsPane.tsx`, split into its own SFC to keep `OptionsPane.vue` small.
  */
 import { Info } from 'lucide-vue-next';
-import { clampOptionNumber } from 'pptx-viewer-shared';
+import { clampOptionNumber, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import type { ViewerOptions, ViewerOptionsControl, ViewerOptionsGroupId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { useIsMobile } from '../../composables/useIsMobile';
 
 const props = defineProps<{
 	control: ViewerOptionsControl;
@@ -43,6 +45,15 @@ function emitChange(next: boolean | number | string): void {
 	props.onOptionChange(props.control.group, props.control.key, next);
 }
 
+// One-per-row fields (not a dense repeating grid), so every field/toggle in
+// every Options tab gets the WCAG touch target below the mobile breakpoint
+// from this single shared control-row renderer, per CLAUDE.md Rule 2 - never
+// re-derive this per tab.
+const { viewportWidth } = useIsMobile();
+const fieldMinHeight = computed(() => `${getDensePanelTouchTargetPx(viewportWidth.value)}px`);
+const rowStyle = computed(() => ({ minHeight: fieldMinHeight.value }));
+const fieldStyle = computed(() => ({ minHeight: fieldMinHeight.value }));
+
 function onNumberInput(event: Event): void {
 	if (props.control.kind !== 'number') {
 		return;
@@ -63,6 +74,7 @@ function onNumberInput(event: Event): void {
 		v-if="control.kind === 'toggle'"
 		class="pptx-vue-options-row flex cursor-pointer select-none items-center justify-between gap-3 py-1.5"
 		:class="{ 'pl-6': control.indent }"
+		:style="rowStyle"
 	>
 		<span class="text-sm text-foreground">
 			{{ label }}
@@ -82,6 +94,7 @@ function onNumberInput(event: Event): void {
 		v-else
 		class="pptx-vue-options-row flex items-center justify-between gap-3 py-1.5"
 		:class="{ 'pl-6': control.indent }"
+		:style="rowStyle"
 	>
 		<span class="text-sm text-foreground">
 			{{ label }}
@@ -93,6 +106,7 @@ function onNumberInput(event: Event): void {
 		<select
 			v-if="control.kind === 'select'"
 			:aria-label="label"
+			:style="fieldStyle"
 			class="max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
 			:value="typeof value === 'string' ? value : ''"
 			@change="emitChange(($event.target as HTMLSelectElement).value)"
@@ -106,6 +120,7 @@ function onNumberInput(event: Event): void {
 			<input
 				type="number"
 				:aria-label="label"
+				:style="fieldStyle"
 				class="w-20 rounded border border-border bg-background px-2 py-1 text-right text-xs text-foreground"
 				:min="control.min"
 				:max="control.max"
@@ -122,6 +137,7 @@ function onNumberInput(event: Event): void {
 			v-else
 			type="text"
 			:aria-label="label"
+			:style="fieldStyle"
 			class="w-48 max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
 			:maxlength="control.kind === 'text' ? control.maxLength : undefined"
 			:value="typeof value === 'string' ? value : ''"

@@ -6,6 +6,7 @@ import {
 	TABLET_BREAKPOINT,
 	detectOrientation,
 	detectTouchDevice,
+	MIN_TOUCH_TARGET_PX,
 } from 'pptx-viewer-shared';
 import type { DeviceOrientation } from 'pptx-viewer-shared';
 /**
@@ -45,8 +46,13 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 export { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, MOBILE_LANDSCAPE_MAX_HEIGHT, isMobileViewport };
 export type { DeviceOrientation };
 
-/** Minimum touch target size (px) per WCAG accessibility guidelines. */
-export const MIN_TOUCH_TARGET = 44;
+/**
+ * Minimum touch target size (px) per WCAG accessibility guidelines. Re-exported
+ * from `pptx-viewer-shared`'s `MIN_TOUCH_TARGET_PX` (the single source of truth
+ * every binding's dense-panel controls size against) under this module's
+ * existing name, for API stability.
+ */
+export const MIN_TOUCH_TARGET = MIN_TOUCH_TARGET_PX;
 
 // ---------------------------------------------------------------------------
 // Touch capability detection
@@ -80,6 +86,10 @@ export interface UseIsMobileResult {
 	orientation: DeviceOrientation;
 	/** True when the virtual keyboard is likely visible (viewport height shrank significantly). */
 	isVirtualKeyboardOpen: boolean;
+	/** Raw browser viewport width (px), for decision functions that need more than a tier flag. */
+	viewportWidth: number;
+	/** Raw browser viewport height (px). */
+	viewportHeight: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,5 +200,7 @@ export function useIsMobile(): UseIsMobileResult {
 		isTouchDevice,
 		orientation,
 		isVirtualKeyboardOpen,
+		viewportWidth,
+		viewportHeight,
 	};
 }

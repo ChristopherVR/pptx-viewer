@@ -150,7 +150,7 @@ function split(): void {
 				v-for="[key, label] in TOGGLES"
 				:key="key"
 				type="button"
-				class="rounded px-2 py-1 text-[11px] transition-colors disabled:opacity-50"
+				class="rounded px-2 py-1 text-[11px] transition-colors disabled:opacity-50 max-md:min-w-[44px] max-md:min-h-[44px]"
 				:class="cs[key] ? 'bg-primary text-white' : 'bg-muted hover:bg-accent'"
 				:disabled="!canEdit"
 				@click="updateCellStyle({ [key]: !cs[key] })"
@@ -164,7 +164,7 @@ function split(): void {
 				v-for="[val, label] in H_ALIGN"
 				:key="val"
 				type="button"
-				class="rounded px-2 py-1 text-[11px] transition-colors disabled:opacity-50"
+				class="rounded px-2 py-1 text-[11px] transition-colors disabled:opacity-50 max-md:min-w-[44px] max-md:min-h-[44px]"
 				:class="cs.align === val ? 'bg-primary text-white' : 'bg-muted hover:bg-accent'"
 				:disabled="!canEdit"
 				@click="updateCellStyle({ align: val })"
@@ -178,7 +178,7 @@ function split(): void {
 				v-for="[val, label] in V_ALIGN"
 				:key="val"
 				type="button"
-				class="rounded px-2 py-1 text-[11px] transition-colors disabled:opacity-50"
+				class="rounded px-2 py-1 text-[11px] transition-colors disabled:opacity-50 max-md:min-w-[44px] max-md:min-h-[44px]"
 				:class="cs.vAlign === val ? 'bg-primary text-white' : 'bg-muted hover:bg-accent'"
 				:disabled="!canEdit"
 				@click="updateCellStyle({ vAlign: val })"
@@ -222,7 +222,7 @@ function split(): void {
 		<div class="grid grid-cols-3 gap-1">
 			<button
 				type="button"
-				class="rounded border border-border bg-muted px-2 py-1 text-center text-[11px] hover:bg-accent disabled:opacity-50"
+				class="rounded border border-border bg-muted px-2 py-1 text-center text-[11px] hover:bg-accent disabled:opacity-50 max-md:min-h-[44px]"
 				:disabled="!canEdit"
 				@click="mergeRight"
 			>
@@ -230,7 +230,7 @@ function split(): void {
 			</button>
 			<button
 				type="button"
-				class="rounded border border-border bg-muted px-2 py-1 text-center text-[11px] hover:bg-accent disabled:opacity-50"
+				class="rounded border border-border bg-muted px-2 py-1 text-center text-[11px] hover:bg-accent disabled:opacity-50 max-md:min-h-[44px]"
 				:disabled="!canEdit"
 				@click="mergeDown"
 			>
@@ -238,7 +238,7 @@ function split(): void {
 			</button>
 			<button
 				type="button"
-				class="rounded border border-border bg-muted px-2 py-1 text-center text-[11px] hover:bg-accent disabled:opacity-50"
+				class="rounded border border-border bg-muted px-2 py-1 text-center text-[11px] hover:bg-accent disabled:opacity-50 max-md:min-h-[44px]"
 				:disabled="!canEdit"
 				@click="split"
 			>

@@ -186,9 +186,18 @@
 	.actions { display: flex; gap: 8px; }
 	button.ghost { border: 1px solid var(--pptx-border, #3f3f52); border-radius: 6px; padding: 6px 14px; background: transparent; color: var(--pptx-foreground, #e2e8f0); font-size: 12px; cursor: pointer; }
 	button.primary { border: 0; border-radius: 6px; padding: 6px 16px; background: var(--pptx-primary, #c43b32); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
-	@media (max-width: 600px) {
+	/* 767px, not an ad hoc 600px: matches MOBILE_BREAKPOINT (768) from
+	   pptx-viewer-shared's render/responsive module, the single threshold
+	   every binding's dense-panel layout is measured against (CLAUDE.md
+	   Rule 2 - two breakpoints drifting apart is the exact failure mode this
+	   module exists to prevent). */
+	@media (max-width: 767px) {
 		section[role='dialog'] { position: fixed; inset: auto 0 0; width: 100%; max-height: 88dvh; border-radius: 16px 16px 0 0; }
 		.layout { flex-direction: column; }
 		nav { flex-direction: row; width: 100%; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--pptx-border, #3f3f52); }
+		/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's render/responsive module. */
+		header > button { min-width: 44px !important; min-height: 44px !important; }
+		nav button { min-width: 44px !important; min-height: 44px !important; }
+		footer button { min-height: 44px !important; }
 	}
 </style>

@@ -115,7 +115,7 @@ function onDash(event: Event): void {
 				}}</span>
 				<input
 					type="number"
-					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1"
+					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					min="0"
 					step="0.5"
 					:value="strokeWidth"
@@ -127,7 +127,7 @@ function onDash(event: Event): void {
 				<span class="pptx-vue-stroke-label text-muted-foreground">{{ t('pptx.stroke.dash') }}</span>
 				<select
 					:aria-label="t('pptx.stroke.dash')"
-					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1"
+					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:value="strokeDash"
 					@change="onDash"
 				>

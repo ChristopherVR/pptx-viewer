@@ -10,7 +10,7 @@ import {
 	LINE_CAP_OPTIONS,
 	getCompoundLinePreviewStyle,
 } from './fill-stroke-options';
-import { NUM, RNG, DIS, LBL, COL2, safeNum, EFFECT_CONFIGS } from './FillStrokeHelpers';
+import { NUM, RNG, DIS, LBL, COL2, SEL, safeNum, EFFECT_CONFIGS } from './FillStrokeHelpers';
 import { SelectRow, ColorPickerRow, EffectField } from './FillStrokeSubComponents';
 
 // ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ export function StrokeEffectsSection({
 							strokeDash: e.target.value as StrokeDashType,
 						})
 					}
-					className='bg-muted border border-border rounded px-2 py-1'
+					className={SEL}
 				>
 					{STROKE_DASH_OPTIONS.map((o) => (
 						<option key={o.value} value={o.value}>
@@ -124,7 +124,7 @@ export function StrokeEffectsSection({
 							type='button'
 							title={t(opt.i18nKey)}
 							aria-label={t(opt.i18nKey)}
-							className={`h-10 px-2 rounded border transition-all ${
+							className={`h-10 max-md:h-11 px-2 rounded border transition-all ${
 								(style?.compoundLine || 'sng') === opt.value
 									? 'border-primary bg-accent'
 									: 'border-border hover:border-primary/50'

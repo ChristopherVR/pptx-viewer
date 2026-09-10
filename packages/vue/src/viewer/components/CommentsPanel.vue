@@ -167,7 +167,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 				<div class="pptx-comments-panel__actions flex gap-2">
 					<button
 						type="button"
-						class="pptx-comments-panel__action cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground hover:bg-muted"
+						class="pptx-comments-panel__action cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground hover:bg-muted max-md:min-h-[44px]!"
 						:data-comment-id="comment.id"
 						:aria-pressed="comment.resolved ? 'true' : 'false'"
 						@click="emit('resolve', comment.id)"
@@ -176,7 +176,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 					</button>
 					<button
 						type="button"
-						class="pptx-comments-panel__action cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground hover:bg-muted"
+						class="pptx-comments-panel__action cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground hover:bg-muted max-md:min-h-[44px]!"
 						:data-comment-id="comment.id"
 						@click="startReply(comment.id)"
 					>
@@ -184,7 +184,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 					</button>
 					<button
 						type="button"
-						class="pptx-comments-panel__action pptx-comments-panel__action--danger cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-red-400 hover:bg-muted"
+						class="pptx-comments-panel__action pptx-comments-panel__action--danger cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-red-400 hover:bg-muted max-md:min-h-[44px]!"
 						:data-comment-id="comment.id"
 						:aria-label="t('pptx.comments.removeComment')"
 						@click="emit('remove', comment.id)"
@@ -257,7 +257,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 			/>
 			<button
 				type="submit"
-				class="pptx-comments-panel__submit cursor-pointer self-end rounded-md border-none bg-primary px-3.5 py-1.5 text-[13px] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+				class="pptx-comments-panel__submit cursor-pointer self-end rounded-md border-none bg-primary px-3.5 py-1.5 text-[13px] text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 max-md:min-h-[44px]!"
 				:disabled="!canAdd"
 				data-testid="add-comment"
 			>

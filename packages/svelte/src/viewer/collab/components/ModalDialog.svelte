@@ -147,4 +147,43 @@
 		padding: 12px 16px;
 		border-top: 1px solid var(--pptx-border, #33334d);
 	}
+
+	/*
+	 * Dense-panel responsive treatment (see `pptx-viewer-shared`'s
+	 * `render/responsive/*`), applied via CSS since this shell has no
+	 * reactive script state of its own:
+	 *  - `isDensePanelCompact` / `MOBILE_BREAKPOINT` = 768px -> `max-width: 767px`.
+	 *  - `MIN_TOUCH_TARGET_PX` = 44 -> the close button's min box below that width.
+	 * Below the breakpoint the panel becomes a bottom sheet (matching React's
+	 * `max-md:` classes on `ShareDialog.tsx`) instead of a centered card, since
+	 * a fixed-width modal is easy to mis-tap at 360px and wastes vertical room
+	 * a sheet reclaims from the bottom safe area.
+	 */
+	@media (max-width: 767px) {
+		.pptx-svelte-modal-backdrop {
+			align-items: flex-end;
+		}
+
+		.pptx-svelte-modal-panel {
+			width: 100%;
+			max-width: none;
+			max-height: 88dvh;
+			border-radius: calc(var(--pptx-radius, 6px) + 6px) calc(var(--pptx-radius, 6px) + 6px) 0 0;
+			border-right: 0;
+			border-bottom: 0;
+			border-left: 0;
+			padding-bottom: max(env(safe-area-inset-bottom), 0px);
+		}
+
+		/*
+		 * `!important` is load-bearing: ViewerGlobalStyles.svelte's
+		 * document-level
+		 * `:global(.pptx-svelte-viewer :is(button, [role='button']):not(...):not(...))`
+		 * baseline reset out-specificities a plain scoped class selector.
+		 */
+		.pptx-svelte-modal-close {
+			min-width: 44px !important;
+			min-height: 44px !important;
+		}
+	}
 </style>

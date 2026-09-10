@@ -5,9 +5,12 @@
  * active-tab styling, `react-icons/lu` glyphs mapped to `lucide-vue-next`).
  */
 import { Layers, MessageSquare, Settings2, X } from 'lucide-vue-next';
+import { getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { useIsMobile } from '../../composables/useIsMobile';
 import type { InspectorTab } from './inspector-cards';
 
 defineProps<{ activeTab: InspectorTab }>();
@@ -18,6 +21,15 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+// Dense-panel touch-target sizing (shared decision function; see CLAUDE.md
+// Rule 2) for the tab-strip buttons and the pane's close button, both of
+// which were fixed at well under 44px.
+const { viewportWidth } = useIsMobile();
+const touchBtnStyle = computed(() => {
+	const size = `${getDensePanelTouchTargetPx(viewportWidth.value)}px`;
+	return { minWidth: size, minHeight: size };
+});
 
 const TABS = [
 	{ key: 'elements', labelKey: 'pptx.documentProperties.statistics.elements', icon: Layers },
@@ -34,9 +46,10 @@ const TABS = [
 				:key="tab.key"
 				type="button"
 				:title="t(tab.labelKey)"
+				:style="touchBtnStyle"
 				:class="
 					cn(
-						'flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors',
+						'flex items-center justify-center gap-1 px-2 py-1 rounded text-[11px] transition-colors',
 						activeTab === tab.key
 							? 'bg-primary text-white'
 							: 'text-muted-foreground hover:text-foreground hover:bg-accent',
@@ -51,7 +64,8 @@ const TABS = [
 		<button
 			type="button"
 			:title="t('pptx.common.close')"
-			class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+			:style="touchBtnStyle"
+			class="flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
 			@click="emit('close')"
 		>
 			<X class="w-4 h-4" />

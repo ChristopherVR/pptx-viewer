@@ -12,7 +12,7 @@
  * Visibility is owned by the parent (`v-if="isMobile && open"`); the body is
  * scrollable and sized via dvh so it survives the mobile address-bar collapse.
  */
-import { activateModalFocus } from 'pptx-viewer-shared';
+import { activateModalFocus, MIN_TOUCH_TARGET_PX } from 'pptx-viewer-shared';
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -88,7 +88,8 @@ onBeforeUnmount(() => releaseFocus?.());
 					<span class="truncate text-sm font-semibold text-foreground">{{ title }}</span>
 					<button
 						type="button"
-						class="inline-flex h-8 w-8 items-center justify-center rounded text-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+						class="inline-flex items-center justify-center rounded text-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+						:style="{ minWidth: `${MIN_TOUCH_TARGET_PX}px`, minHeight: `${MIN_TOUCH_TARGET_PX}px` }"
 						:aria-label="t('pptx.settings.close')"
 						@pointerdown.stop
 						@click="emit('close')"

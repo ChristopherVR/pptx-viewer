@@ -119,6 +119,16 @@ import { LoadContentService } from './load-content.service';
 				grid-template-columns: 1fr 1fr auto;
 				gap: 4px;
 			}
+
+			/*
+			 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+			 * pptx-viewer-shared's render/responsive module.
+			 */
+			@media (max-width: 767px) {
+				.tags__toggle {
+					min-height: 44px;
+				}
+			}
 		`,
 		INSPECTOR_CARD_STYLES,
 	],

@@ -18,6 +18,8 @@
 	import {
 		addChartCategory,
 		addChartSeries,
+		getDenseGridLayoutPlan,
+		getDensePanelTouchTargetPx,
 		removeChartCategory,
 		removeChartSeries,
 		setChartCategoryLabel,
@@ -26,8 +28,19 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import { useViewerOptions } from '../../state/viewer-options-context';
+	import { useWindowViewport } from '../../state/window-viewport.svelte';
 
 	const optionsState = useViewerOptions();
+	const viewport = useWindowViewport();
+	// See `pptx-viewer-shared`'s `render/responsive/dense-grid-layout`: pins the
+	// row-label column and shrinks the minimum cell width below 768px so the
+	// grid scrolls sideways without losing which row a value cell belongs to.
+	const gridPlan = $derived(getDenseGridLayoutPlan(viewport.width));
+	const touchPx = $derived(getDensePanelTouchTargetPx(viewport.width));
+	const touchStyle = $derived(`min-width: ${touchPx}px; min-height: ${touchPx}px;`);
+	const rowHeaderClass = $derived(
+		gridPlan.stickyFirstColumn ? 'pptx-svelte-chart-grid-sticky-col' : '',
+	);
 	// File > Options > Advanced > "Properties follow chart data point for
 	// current workbook": whether per-point manual formatting re-indexes with
 	// the underlying data (default) or stays pinned to its old position.
@@ -61,6 +74,7 @@
 			<div class="pptx-svelte-chart-grid-actions">
 				<button
 					type="button"
+					style={touchStyle}
 					title={t('pptx.chart.addCategory')}
 					aria-label={t('pptx.chart.addCategory')}
 					onclick={() => apply(addChartCategory(data))}
@@ -69,6 +83,7 @@
 				</button>
 				<button
 					type="button"
+					style={touchStyle}
 					title={t('pptx.chart.addSeries')}
 					aria-label={t('pptx.chart.addSeries')}
 					onclick={() => apply(addChartSeries(data))}
@@ -83,9 +98,13 @@
 		<table>
 			<thead>
 				<tr>
-					<th aria-label={t('pptx.chart.categories')}></th>
+					<th
+						class={rowHeaderClass}
+						style={`min-width: ${gridPlan.minCellWidthPx}px`}
+						aria-label={t('pptx.chart.categories')}
+					></th>
 					{#each data.series as series, seriesIndex (seriesIndex)}
-						<th>
+						<th style={`min-width: ${gridPlan.minCellWidthPx}px`}>
 							<div class="pptx-svelte-chart-grid-cell">
 								<input
 									type="text"
@@ -98,6 +117,7 @@
 									<button
 										type="button"
 										class="pptx-svelte-chart-grid-remove"
+										style={touchStyle}
 										title={t('pptx.chart.removeSeries')}
 										aria-label={t('pptx.chart.removeSeries')}
 										onclick={() => apply(removeChartSeries(data, seriesIndex))}
@@ -113,7 +133,7 @@
 			<tbody>
 				{#each data.categories as category, categoryIndex (categoryIndex)}
 					<tr>
-						<td>
+						<td class={rowHeaderClass}>
 							<div class="pptx-svelte-chart-grid-cell">
 								<input
 									type="text"
@@ -127,6 +147,7 @@
 									<button
 										type="button"
 										class="pptx-svelte-chart-grid-remove"
+										style={touchStyle}
 										title={t('pptx.chart.removeCategory')}
 										aria-label={t('pptx.chart.removeCategory')}
 										onclick={() => apply(removeChartCategory(data, categoryIndex, followDataPoint))}
@@ -216,8 +237,14 @@
 		text-align: left;
 	}
 
-	th {
-		min-width: 76px;
+	/* Pinned row-label column below the dense-panel breakpoint (see
+	   `getDenseGridLayoutPlan`): scrolling the value columns must not lose
+	   which category/series row a cell belongs to. */
+	.pptx-svelte-chart-grid-sticky-col {
+		position: sticky;
+		left: 0;
+		z-index: 1;
+		background: var(--pptx-card, #1e1e2e);
 	}
 
 	.pptx-svelte-chart-grid-cell {

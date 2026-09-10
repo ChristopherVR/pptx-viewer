@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { ShapeStyle } from 'pptx-viewer-core';
-import { SHAPE_QUICK_STYLES } from 'pptx-viewer-shared';
+import { getDensePanelTouchTargetPx, SHAPE_QUICK_STYLES } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { useIsMobile } from '../../composables/useIsMobile';
 
 /**
  * QuickStylesGallery: a 6-column swatch grid over the shared
@@ -17,6 +20,12 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+// Each preset is a dense-gallery swatch but, unlike a colour swatch, a
+// discrete individually-named action button, so it gets the shared WCAG
+// touch-target decision below the mobile breakpoint rather than an
+// exemption (CLAUDE.md Rule 2: never hand-duplicate the threshold here).
+const { viewportWidth } = useIsMobile();
+const swatchMinHeight = computed(() => `${getDensePanelTouchTargetPx(viewportWidth.value)}px`);
 
 function swatchBackground(style: Partial<ShapeStyle>): string {
 	return style.fillGradient || style.fillColor || 'transparent';
@@ -51,11 +60,13 @@ function swatchBorder(style: Partial<ShapeStyle>): string | undefined {
 				:key="idx"
 				type="button"
 				:title="qs.name"
-				class="pptx-vue-quickstyles-swatch h-7 w-full rounded border border-border hover:border-primary transition-colors"
+				:aria-label="qs.name"
+				class="pptx-vue-quickstyles-swatch w-full rounded border border-border hover:border-primary transition-colors"
 				:style="{
 					background: swatchBackground(qs.style),
 					boxShadow: swatchBoxShadow(qs.style),
 					border: swatchBorder(qs.style),
+					minHeight: swatchMinHeight,
 				}"
 				@click="$emit('select', qs.style)"
 			/>

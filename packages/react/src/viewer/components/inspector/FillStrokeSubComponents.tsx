@@ -113,8 +113,13 @@ export function ColorPickerRow({
 				<button
 					type='button'
 					disabled={disabled}
-					className='h-8 w-8 flex items-center justify-center rounded border border-border bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+					// `max-md:h-11 max-md:w-11` (44px) matches MIN_TOUCH_TARGET_PX from
+					// pptx-viewer-shared's render/responsive module at Tailwind's `md`
+					// (768px) breakpoint; the desktop-mouse `h-8 w-8` (32px) is
+					// otherwise correct and left alone above that width.
+					className='h-8 w-8 max-md:h-11 max-md:w-11 flex items-center justify-center rounded border border-border bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
 					title={t('pptx.fillStroke.eyedropperTooltip')}
+					aria-label={t('pptx.fillStroke.eyedropperTooltip')}
 					onClick={(e) => {
 						e.preventDefault();
 						void handleEyedropper();

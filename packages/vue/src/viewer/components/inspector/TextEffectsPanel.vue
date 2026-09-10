@@ -67,7 +67,7 @@ function toggleReflection(checked: boolean): void {
 	apply(checked ? { ...DEFAULT_TEXT_REFLECTION } : { ...CLEAR_TEXT_REFLECTION });
 }
 
-const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1';
+const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]';
 const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 </script>
 

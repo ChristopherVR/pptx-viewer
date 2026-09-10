@@ -64,7 +64,7 @@ const panel = computed<AiPanelController>(() => props.aiPanel ?? fallbackPanel);
 				type="button"
 				:title="t('pptx.ai.close')"
 				:aria-label="t('pptx.ai.close')"
-				class="ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent"
+				class="ml-auto flex items-center justify-center rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent max-md:min-w-[44px]! max-md:min-h-[44px]!"
 				@click="emit('close')"
 			>
 				<X class="w-4 h-4" />

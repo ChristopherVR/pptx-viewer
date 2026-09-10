@@ -125,7 +125,7 @@ function onAcceptAll(): void {
 		<div class="flex items-center gap-1 border-b border-border px-2 py-1">
 			<button
 				type="button"
-				class="inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent"
+				class="inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent max-md:min-h-[44px]!"
 				@click="historyOpen = !historyOpen"
 			>
 				<History class="w-3.5 h-3.5" />
@@ -136,7 +136,7 @@ function onAcceptAll(): void {
 					type="button"
 					:title="t('pptx.ai.newChat')"
 					:aria-label="t('pptx.ai.newChat')"
-					class="rounded-sm p-1 text-muted-foreground hover:bg-accent"
+					class="rounded-sm p-1 text-muted-foreground hover:bg-accent flex items-center justify-center max-md:min-w-[44px]! max-md:min-h-[44px]!"
 					@click="history.newChat()"
 				>
 					<MessageSquarePlus class="w-3.5 h-3.5" />
@@ -146,7 +146,7 @@ function onAcceptAll(): void {
 					:title="t('pptx.ai.clearChat')"
 					:aria-label="t('pptx.ai.clearChat')"
 					:disabled="messages.length === 0"
-					class="rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40"
+					class="rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40 flex items-center justify-center max-md:min-w-[44px]! max-md:min-h-[44px]!"
 					@click="history.clearCurrent()"
 				>
 					<Trash2 class="w-3.5 h-3.5" />

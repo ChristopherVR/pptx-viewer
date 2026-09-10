@@ -258,4 +258,16 @@
 			opacity: 0.4;
 		}
 	}
+
+	/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+	   render/responsive module, below MOBILE_BREAKPOINT (768). */
+	@media (max-width: 767px) {
+		.pptx-svelte-ai-focus-btn,
+		.pptx-svelte-ai-focus-merge,
+		.pptx-svelte-ai-focus-done {
+			min-width: 44px !important;
+			min-height: 44px !important;
+			justify-content: center;
+		}
+	}
 </style>

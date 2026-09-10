@@ -20,13 +20,14 @@
 	 */
 	import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 	import type { PptxHandler, PptxTheme } from 'pptx-viewer-core';
-	import { shouldShowAccessibilitySection } from 'pptx-viewer-shared';
+	import { getDensePanelTouchTargetPx, shouldShowAccessibilitySection } from 'pptx-viewer-shared';
 	import type { CanvasSize } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
 	import type { ChromeUiState, InspectorTabId } from '../../state/chrome-ui.svelte';
 	import { useInspectorDeck } from '../../state/inspector-deck';
+	import { useWindowViewport } from '../../state/window-viewport.svelte';
 	import ReviewCommentsPanel from '../ribbon/review/ReviewCommentsPanel.svelte';
 	import ActionSettingsPanel from './ActionSettingsPanel.svelte';
 	import AltTextSection from './AltTextSection.svelte';
@@ -47,6 +48,11 @@
 
 	const { editor, handler, presentationTheme, onthemechange, mediaDataUrls = new Map(), ui, canvasSize }: { editor: EditorState; handler?: PptxHandler | null; presentationTheme?: PptxTheme; onthemechange?: (theme: PptxTheme) => void; mediaDataUrls?: Map<string, string>; ui?: ChromeUiState; canvasSize?: CanvasSize } = $props();
 	const t = useTranslator();
+	const viewport = useWindowViewport();
+	// The tab-strip buttons are sized for a mouse (3px/8px padding); below the
+	// dense-panel breakpoint they must clear the 44px WCAG touch target.
+	const tabTouchPx = $derived(getDensePanelTouchTargetPx(viewport.width));
+	const tabTouchStyle = $derived(`min-width: ${tabTouchPx}px; min-height: ${tabTouchPx}px;`);
 	// Deck-level state/mutations for the no-selection Properties tab, provided
 	// by `PowerPointViewer` (undefined in standalone mounts, e.g. tests).
 	const deck = useInspectorDeck();
@@ -102,6 +108,7 @@
 				<button
 					type="button"
 					role="tab"
+					style={tabTouchStyle}
 					aria-selected={activeTab === tab.id}
 					class:pptx-svelte-inspector-tab-active={activeTab === tab.id}
 					onclick={() => setTab(tab.id)}
@@ -305,5 +312,35 @@
 	.pptx-svelte-inspector-empty {
 		margin: 12px 0 0;
 		color: var(--pptx-muted-foreground, #94a3b8);
+	}
+
+	/*
+	 * Touch target below MOBILE_BREAKPOINT (768, matches
+	 * pptx-viewer-shared's isDensePanelCompact/MIN_TOUCH_TARGET_PX): every
+	 * sub-panel this inspector hosts (Fill/Stroke, Text, Animation, Chart,
+	 * Table, ...) is its own Svelte component with its own scoped
+	 * `select,button{height:26px}`-style desktop-mouse sizing (ShapeSection,
+	 * FillStrokeSection, TextSection, etc.). Rather than hand-editing every
+	 * one of those sub-panels' scoped styles (CLAUDE.md Rule 2: fix the
+	 * cross-cutting concern once), `:global()` reaches through the scoping
+	 * boundary from this shared host so every nested control clears the WCAG
+	 * target from a single place.
+	 *
+	 * `!important` on the button rule is load-bearing:
+	 * `ViewerGlobalStyles.svelte`'s document-level
+	 * `:global(.pptx-svelte-viewer :is(button, [role='button']):not(...):not(...))`
+	 * baseline reset out-specificities this rule's `[attr][hash] button`
+	 * (0,2,1) with its own chained :not() pseudo-classes (0,4,0), regardless
+	 * of source order. `select` is not matched by that button-only baseline,
+	 * so it does not need `!important`.
+	 */
+	@media (max-width: 767px) {
+		[data-pptx-inspector] :global(button) {
+			min-width: 44px !important;
+			min-height: 44px !important;
+		}
+		[data-pptx-inspector] :global(select) {
+			min-height: 44px;
+		}
 	}
 </style>

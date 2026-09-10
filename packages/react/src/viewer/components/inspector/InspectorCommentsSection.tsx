@@ -153,7 +153,7 @@ export function InspectorCommentsSection({
 						onClick={onAddComment}
 						disabled={!commentDraft.trim()}
 						className={cn(
-							'w-full inline-flex items-center justify-center gap-1 rounded px-2 py-1 text-[11px] font-medium transition-colors',
+							'w-full inline-flex items-center justify-center gap-1 rounded px-2 py-1 text-[11px] font-medium transition-colors max-md:min-h-[44px]!',
 							commentDraft.trim()
 								? 'bg-primary hover:bg-primary/80 text-white'
 								: 'bg-muted text-muted-foreground cursor-not-allowed',

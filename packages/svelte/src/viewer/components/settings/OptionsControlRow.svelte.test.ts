@@ -72,4 +72,27 @@ describe('optionsControlRow numeric commit', () => {
 		setNumberValue(target, '1e400');
 		expect(onchange).not.toHaveBeenCalled();
 	});
+
+	it('grows the row and its control to a touch target below the dense-panel breakpoint', () => {
+		const originalWidth = window.innerWidth;
+		Object.defineProperty(window, 'innerWidth', {
+			writable: true,
+			configurable: true,
+			value: 360,
+		});
+		try {
+			const target = mountRow(vi.fn());
+
+			const row = target.querySelector<HTMLElement>('.row');
+			const input = target.querySelector<HTMLInputElement>('input[type="number"]');
+			expect(row?.style.minHeight).toBe('44px');
+			expect(input?.style.minHeight).toBe('44px');
+		} finally {
+			Object.defineProperty(window, 'innerWidth', {
+				writable: true,
+				configurable: true,
+				value: originalWidth,
+			});
+		}
+	});
 });

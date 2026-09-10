@@ -13,12 +13,15 @@ import {
 	buildCollaborationShareUrl,
 	buildCreateCollaborationConfig,
 	buildJoinCollaborationConfig,
+	getDensePanelTouchTargetPx,
+	shouldStickyActionRow,
 } from 'pptx-viewer-shared';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useModalDismissDrag } from '../hooks';
 import type { CollaborationConfig } from '../hooks/collaboration/types';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { useCollaboration } from './collaboration';
 import { ActiveSessionView } from './ShareDialogActiveView';
@@ -100,6 +103,12 @@ export function ShareDialog({
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 	useModalFocus(open, dialogRef, onClose);
+	const { viewportWidth, viewportHeight } = useIsMobile();
+	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
+	const touchBtnStyle = { minWidth: touchTargetPx, minHeight: touchTargetPx };
+	const stickyFooterClass = shouldStickyActionRow(viewportWidth, viewportHeight)
+		? 'sticky bottom-0 bg-popover'
+		: '';
 
 	// Sync from active config if provided
 	useEffect(() => {
@@ -175,7 +184,8 @@ export function ShareDialog({
 						<button
 							type='button'
 							onClick={onClose}
-							className='text-muted-foreground hover:text-foreground text-lg leading-none'
+							style={touchBtnStyle}
+							className='text-muted-foreground hover:text-foreground text-lg leading-none inline-flex items-center justify-center'
 							aria-label={t('pptx.share.close')}
 						>
 							&times;
@@ -212,11 +222,14 @@ export function ShareDialog({
 					</div>
 
 					{/* Footer */}
-					<div className='flex justify-end gap-2 px-5 py-3 border-t border-border'>
+					<div
+						className={`flex justify-end gap-2 px-5 py-3 border-t border-border ${stickyFooterClass}`}
+					>
 						<button
 							type='button'
 							onClick={onClose}
-							className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
+							style={touchBtnStyle}
+							className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors inline-flex items-center justify-center'
 						>
 							{isActive ? t('pptx.share.close') : t('pptx.share.cancel')}
 						</button>
@@ -225,7 +238,8 @@ export function ShareDialog({
 								type='button'
 								disabled={!canStart}
 								onClick={handleStartSharing}
-								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+								style={touchBtnStyle}
+								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center'
 							>
 								{t(mode === 'join' ? 'pptx.share.joinSession' : 'pptx.share.startSharing')}
 							</button>

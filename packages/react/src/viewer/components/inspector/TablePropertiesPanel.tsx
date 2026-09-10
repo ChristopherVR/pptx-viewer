@@ -150,7 +150,7 @@ export function TablePropertiesPanel({
 							disabled={!canEdit}
 							title={preset.label}
 							aria-label={preset.label}
-							className='rounded border border-border hover:border-primary overflow-hidden h-10 transition-colors'
+							className='rounded border border-border hover:border-primary overflow-hidden h-10 max-md:h-11 transition-colors'
 							onClick={() => {
 								updateTableData({ rows: applyTableStylePreset(td, preset) });
 							}}

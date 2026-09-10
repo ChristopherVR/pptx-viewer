@@ -90,8 +90,9 @@ function onFlipVertical(checked: boolean): void {
 				type="button"
 				:disabled="!props.canEdit"
 				:title="isLocked ? t('pptx.arrange.unlockElement') : t('pptx.arrange.lockElement')"
+				:aria-label="isLocked ? t('pptx.arrange.unlockElement') : t('pptx.arrange.lockElement')"
 				:aria-pressed="isLocked"
-				class="p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+				class="p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center max-md:min-w-[44px]! max-md:min-h-[44px]!"
 				@click="toggleLock"
 			>
 				<Lock v-if="isLocked" class="w-3.5 h-3.5 text-amber-400" />
@@ -103,7 +104,7 @@ function onFlipVertical(checked: boolean): void {
 				<span class="pptx-vue-arrange-label text-muted-foreground">{{ t('pptx.arrange.x') }}</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:value="x"
 					@input="onPos('x', ($event.target as HTMLInputElement).value)"
 				/>
@@ -112,7 +113,7 @@ function onFlipVertical(checked: boolean): void {
 				<span class="pptx-vue-arrange-label text-muted-foreground">{{ t('pptx.arrange.y') }}</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:value="y"
 					@input="onPos('y', ($event.target as HTMLInputElement).value)"
 				/>
@@ -123,7 +124,7 @@ function onFlipVertical(checked: boolean): void {
 				}}</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:min="MIN_SIZE"
 					:value="width"
 					@input="onSize('width', ($event.target as HTMLInputElement).value)"
@@ -135,7 +136,7 @@ function onFlipVertical(checked: boolean): void {
 				}}</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:min="MIN_SIZE"
 					:value="height"
 					@input="onSize('height', ($event.target as HTMLInputElement).value)"
@@ -149,7 +150,7 @@ function onFlipVertical(checked: boolean): void {
 			}}</span>
 			<input
 				type="number"
-				class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
+				class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 				:value="rotation"
 				@input="onRotation(($event.target as HTMLInputElement).value)"
 			/>

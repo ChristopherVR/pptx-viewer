@@ -49,12 +49,18 @@
 
 .pptx-ng-share-input {
 	width: 100%;
+	/* A readonly share-link input sitting in a flex row (.pptx-ng-share-link-row)
+	   otherwise refuses to shrink below its intrinsic content width and
+	   overflows the 360px dialog; min-width: 0 lets it participate in the
+	   flex layout like any other item. */
+	min-width: 0;
 	padding: 0.375rem 0.75rem;
 	border-radius: 0.375rem;
 	border: 1px solid var(--pptx-border, #2a2a2a);
 	background: var(--pptx-background, #111);
 	color: var(--pptx-foreground, #e5e5e5);
 	font-size: 0.8125rem;
+	box-sizing: border-box;
 }
 
 .pptx-ng-share-input:focus {
@@ -142,7 +148,8 @@
 .pptx-ng-share-details-row {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
+	flex-wrap: wrap;
+	gap: 0.375rem 0.75rem;
 	font-size: 0.6875rem;
 	color: var(--pptx-muted-foreground, #9a9a9a);
 }
@@ -203,4 +210,32 @@
 	margin-left: auto;
 	color: var(--pptx-muted-foreground, #9a9a9a);
 	font-size: 0.625rem;
+}
+
+/*
+ * Dense-panel responsive treatment at narrow widths (as narrow as 360px).
+ * The dialog shell itself already becomes a full-width bottom sheet below
+ * pptx-viewer-shared's MOBILE_BREAKPOINT (768) via ModalDialogComponent's
+ * own IsMobileService-driven layout, so only this dialog's own controls
+ * need touch-target sizing here. 44px matches MIN_TOUCH_TARGET_PX.
+ */
+@media (max-width: 767px), (pointer: coarse) {
+	.pptx-ng-share-btn {
+		min-height: 44px;
+		padding: 0.5rem 0.875rem;
+		font-size: 0.8125rem;
+	}
+
+	.pptx-ng-share-stop {
+		min-height: 44px;
+	}
+
+	.pptx-ng-share-tabs button {
+		min-height: 44px;
+	}
+
+	.pptx-ng-share-input {
+		min-height: 44px;
+		font-size: 16px; /* prevents iOS auto-zoom on focus */
+	}
 }

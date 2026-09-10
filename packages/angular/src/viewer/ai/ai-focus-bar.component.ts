@@ -67,8 +67,8 @@ import { AiPanelStore } from './ai-panel-store';
 						[attr.aria-pressed]="store.pickMode()"
 						[class]="
 							store.pickMode()
-								? 'rounded-sm p-1 bg-primary text-primary-foreground'
-								: 'rounded-sm p-1 text-muted-foreground hover:bg-accent'
+								? 'pptx-ng-ai-focus-btn rounded-sm p-1 bg-primary text-primary-foreground'
+								: 'pptx-ng-ai-focus-btn rounded-sm p-1 text-muted-foreground hover:bg-accent'
 						"
 					>
 						<svg lucideCrosshair class="h-3.5 w-3.5"></svg>
@@ -79,7 +79,7 @@ import { AiPanelStore } from './ai-panel-store';
 							(click)="store.clearPicks()"
 							[title]="'pptx.ai.pickClear' | translate"
 							[attr.aria-label]="'pptx.ai.pickClear' | translate"
-							class="rounded-sm p-1 text-muted-foreground hover:bg-accent"
+							class="pptx-ng-ai-focus-btn rounded-sm p-1 text-muted-foreground hover:bg-accent"
 						>
 							<svg lucideX class="h-3.5 w-3.5"></svg>
 						</button>
@@ -91,7 +91,7 @@ import { AiPanelStore } from './ai-panel-store';
 							[attr.aria-label]="
 								(store.isPinned() ? 'pptx.ai.clearFocus' : 'pptx.ai.pinFocus') | translate
 							"
-							class="rounded-sm p-1 text-muted-foreground hover:bg-accent"
+							class="pptx-ng-ai-focus-btn rounded-sm p-1 text-muted-foreground hover:bg-accent"
 						>
 							@if (store.isPinned()) {
 								<svg lucidePinOff class="h-3.5 w-3.5"></svg>
@@ -119,6 +119,27 @@ import { AiPanelStore } from './ai-panel-store';
 			}
 		</div>
 	`,
+	styles: [
+		`
+			/*
+			 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+			 * pptx-viewer-shared's render/responsive module. A component-scoped
+			 * rule (not a Tailwind utility) so it is not subject to Tailwind's
+			 * \`@layer utilities\` losing to the global, unlayered
+			 * \`:where(button)\` base rule in theme.css (see AiChatPanelComponent's
+			 * own \`.pptx-ng-ai-close\` fix for the same reasoning).
+			 */
+			@media (pointer: coarse), (max-width: 767px) {
+				.pptx-ng-ai-focus-btn {
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					min-width: 44px;
+					min-height: 44px;
+				}
+			}
+		`,
+	],
 })
 export class AiFocusBarComponent {
 	/** Live deck, for resolving element chip labels + the two-table detection. */

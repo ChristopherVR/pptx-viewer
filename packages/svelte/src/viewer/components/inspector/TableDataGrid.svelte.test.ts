@@ -182,6 +182,32 @@ describe('tableDataGrid', () => {
 		expect(target.querySelectorAll('input')).toHaveLength(0);
 	});
 
+	it('pins the row/column gutter and grows touch targets below the dense-panel breakpoint', () => {
+		const originalWidth = window.innerWidth;
+		Object.defineProperty(window, 'innerWidth', {
+			writable: true,
+			configurable: true,
+			value: 360,
+		});
+		try {
+			const editor = makeEditor(tableEl());
+			const { target } = mountGrid(editor, currentEl(editor));
+
+			expect(target.querySelector('.pptx-svelte-table-grid-sticky')).not.toBeNull();
+			const addRowBtn = target.querySelector<HTMLButtonElement>(
+				'button[title="Add row below last"]',
+			);
+			expect(addRowBtn?.style.minWidth).toBe('44px');
+			expect(addRowBtn?.style.minHeight).toBe('44px');
+		} finally {
+			Object.defineProperty(window, 'innerWidth', {
+				writable: true,
+				configurable: true,
+				value: originalWidth,
+			});
+		}
+	});
+
 	it('hides the edit controls and disables every input in a read-only viewer', () => {
 		const editor = makeEditor(tableEl());
 		editor.editable = false;

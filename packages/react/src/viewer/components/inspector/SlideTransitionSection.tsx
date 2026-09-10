@@ -89,7 +89,7 @@ export function SlideTransitionSection({
 							type: e.target.value as NonNullable<PptxSlideTransition['type']>,
 						})
 					}
-					className='bg-muted border border-border rounded px-2 py-1'
+					className='bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]!'
 				>
 					{SLIDE_TRANSITION_OPTIONS.map((option) => (
 						<option key={option.value} value={option.value}>
@@ -175,7 +175,7 @@ export function SlideTransitionSection({
 							onTransitionChange({ durationMs });
 						}
 					}}
-					className='bg-muted border border-border rounded px-2 py-1'
+					className='bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]!'
 				/>
 			</label>
 
@@ -191,7 +191,7 @@ export function SlideTransitionSection({
 							speed: e.target.value as NonNullable<PptxSlideTransition['speed']>,
 						})
 					}
-					className='bg-muted border border-border rounded px-2 py-1'
+					className='bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]!'
 				>
 					{TRANSITION_SPEED_OPTIONS.map((option) => (
 						<option key={option.value} value={option.value}>
@@ -214,7 +214,7 @@ export function SlideTransitionSection({
 								morphOption: e.target.value as NonNullable<PptxSlideTransition['morphOption']>,
 							})
 						}
-						className='bg-muted border border-border rounded px-2 py-1'
+						className='bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]!'
 					>
 						{TRANSITION_MORPH_OPTIONS.map((option) => (
 							<option key={option.value} value={option.value}>

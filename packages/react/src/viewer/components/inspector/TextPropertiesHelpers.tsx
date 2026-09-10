@@ -33,7 +33,11 @@ export interface TextPropertiesProps {
 	onSetTextAlignment: (align: string) => void;
 }
 
-export const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1';
+// `max-md:min-h-[44px]!` matches MIN_TOUCH_TARGET_PX (44) from
+// pptx-viewer-shared's render/responsive module; `!` is load-bearing (see
+// FillStrokeHelpers.tsx's `SEL` for why: theme.css's unlayered baseline
+// button/select reset out-specificities a plain Tailwind utility).
+export const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]!';
 export const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 
 export const STYLE_TOGGLES = [

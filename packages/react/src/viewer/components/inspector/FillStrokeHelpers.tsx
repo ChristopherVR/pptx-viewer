@@ -29,7 +29,19 @@ export interface FillStrokePropertiesProps {
 // Shared CSS classes & helpers
 // ---------------------------------------------------------------------------
 
-export const SEL = 'bg-muted border border-border rounded px-2 py-1';
+// `max-md:min-h-[44px]!` matches MIN_TOUCH_TARGET_PX (44) from
+// pptx-viewer-shared's render/responsive module at Tailwind's `md` (768px)
+// breakpoint, the same MOBILE_BREAKPOINT every dense-panel decision function
+// is measured against. The trailing `!` is load-bearing: `theme.css`'s
+// baseline `:where(button, [role='button'])... { min-width: 24px; min-height:
+// 24px; }` is UNLAYERED CSS, and an unlayered rule beats a Tailwind utility
+// (which lives inside `@layer utilities`) regardless of specificity unless
+// the utility is `!important` (see inspector-pane-constants.ts's `BTN`/`INPUT`
+// for the same fix). `SEL` backs every <select>/<input> row across the
+// Fill/Stroke/Effect inspector sub-panels (FillStrokeSubComponents,
+// FillAdvancedControls, EffectField, table cell fill controls), so fixing it
+// once here reaches all of them instead of each row sizing itself.
+export const SEL = 'bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]!';
 export const NUM = SEL;
 export const RNG = 'accent-primary';
 export const SWATCH = 'h-4 w-4 rounded border border-border';

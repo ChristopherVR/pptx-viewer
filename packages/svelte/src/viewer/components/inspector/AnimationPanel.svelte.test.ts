@@ -149,6 +149,36 @@ describe('animationPanel', () => {
 		expect(editor.slides[0].animations?.[0].direction).toBe('fromLeft');
 	});
 
+	it('grows the direction-picker and preview buttons to a touch target below the dense-panel breakpoint', () => {
+		const originalWidth = window.innerWidth;
+		Object.defineProperty(window, 'innerWidth', {
+			writable: true,
+			configurable: true,
+			value: 360,
+		});
+		try {
+			const editor = makeEditor(
+				[shapeEl('a')],
+				[{ elementId: 'a', entrance: 'flyIn', durationMs: 500, order: 0, trigger: 'onClick' }],
+			);
+			editor.select('a');
+			const { target } = mountPanel(editor);
+
+			const directionButton = target.querySelector<HTMLButtonElement>(
+				'.pptx-svelte-animp-direction-row button',
+			);
+			expect(directionButton?.style.minWidth).toBe('44px');
+			const previewButton = target.querySelector<HTMLButtonElement>('.pptx-svelte-animp-preview');
+			expect(previewButton?.style.minHeight).toBe('44px');
+		} finally {
+			Object.defineProperty(window, 'innerWidth', {
+				writable: true,
+				configurable: true,
+				value: originalWidth,
+			});
+		}
+	});
+
 	it('removes the entry when the only effect is set back to none', () => {
 		const editor = makeEditor(
 			[shapeEl('a')],

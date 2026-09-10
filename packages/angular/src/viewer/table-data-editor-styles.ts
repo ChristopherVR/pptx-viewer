@@ -144,4 +144,34 @@ export const TABLE_DATA_EDITOR_STYLES = `
 		.pptx-tbl-editor__input:disabled {
 			opacity: 0.6;
 		}
+
+		/*
+		 * Dense-panel responsive treatment at narrow widths (as narrow as
+		 * 360px). Values mirror pptx-viewer-shared's render/responsive module
+		 * (MOBILE_BREAKPOINT = 768, MIN_TOUCH_TARGET_PX = 44,
+		 * getDenseGridLayoutPlan(width).stickyFirstColumn).
+		 */
+		@media (pointer: coarse), (max-width: 767px) {
+			/* Keep the row-number gutter and row headers visible while the
+			   columns scroll horizontally. */
+			.pptx-tbl-editor__corner,
+			.pptx-tbl-editor__row-header {
+				position: sticky;
+				left: 0;
+				z-index: 2;
+			}
+
+			.pptx-tbl-editor__btn {
+				min-width: 44px;
+				min-height: 44px;
+				padding: 6px 8px;
+				font-size: 12px;
+			}
+
+			.pptx-tbl-editor__remove-btn {
+				min-width: 44px;
+				min-height: 44px;
+				font-size: 16px;
+			}
+		}
 `;

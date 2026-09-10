@@ -55,6 +55,7 @@ function actionEditor(
 	handlers: InspectorHandlers,
 ) {
 	const el = doc.createElement('fieldset');
+	el.className = 'pptxv-action-fieldset';
 	const legend = doc.createElement('legend');
 	legend.textContent = t(trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover');
 	const type = doc.createElement('select');

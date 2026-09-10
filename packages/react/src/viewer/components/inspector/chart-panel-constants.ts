@@ -7,8 +7,18 @@ import { CHART_TYPE_OPTIONS } from 'pptx-viewer-shared';
 
 export const HEADING = 'text-[11px] uppercase tracking-wide text-muted-foreground';
 export const CARD = 'rounded border border-border bg-card p-2 space-y-2';
-export const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full';
-export const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-colors';
+// `max-md:min-h-[44px]!` (Tailwind's `md` breakpoint is 768px, the same
+// `MOBILE_BREAKPOINT` `pptx-viewer-shared`'s dense-panel responsive module uses)
+// gives every discrete, one-per-row control that reuses this token a WCAG
+// touch target below the mobile breakpoint. `CELL_INPUT`, below, is
+// deliberately EXCLUDED: it backs the chart data grid's per-cell value/name
+// inputs, a densely repeating data-entry grid where WCAG's own
+// dense-repeating-control exception applies (forcing every cell to 44px would
+// make a modest chart grid taller than the viewport for no accessibility gain).
+export const INPUT =
+	'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full max-md:min-h-[44px]!';
+export const BTN =
+	'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-colors max-md:min-h-[44px]!';
 export const CELL_INPUT =
 	'bg-muted border border-border rounded px-1 py-0.5 text-[11px] w-full text-center';
 

@@ -265,4 +265,21 @@
 		font-size: 10px;
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
+
+	/*
+	 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+	 * render/responsive module, below MOBILE_BREAKPOINT (768). `!important`
+	 * is load-bearing: ViewerGlobalStyles.svelte's document-level
+	 * `:global(.pptx-svelte-viewer :is(button, [role='button']):not(...):not(...))`
+	 * baseline reset out-specificities a plain scoped class selector.
+	 */
+	@media (max-width: 767px) {
+		.pptx-svelte-ai-chats-btn,
+		.pptx-svelte-ai-history-icon-btn,
+		.pptx-svelte-ai-history-new,
+		.pptx-svelte-ai-history-delete {
+			min-width: 44px !important;
+			min-height: 44px !important;
+		}
+	}
 </style>

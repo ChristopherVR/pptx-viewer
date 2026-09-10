@@ -291,6 +291,31 @@ describe('inspectorPanel', () => {
 		flushSync();
 		expect(editor.selectedElementId).toBe(el.id);
 	});
+
+	it('grows the tab-strip buttons to a touch target below the dense-panel breakpoint', () => {
+		const originalWidth = window.innerWidth;
+		Object.defineProperty(window, 'innerWidth', {
+			writable: true,
+			configurable: true,
+			value: 360,
+		});
+		try {
+			const editor = makeEditor([shapeEl()]);
+			const { target } = mountInspector(editor);
+
+			const tabButton = target.querySelector<HTMLButtonElement>(
+				'.pptx-svelte-inspector-tabs [role="tab"]',
+			);
+			expect(tabButton?.style.minWidth).toBe('44px');
+			expect(tabButton?.style.minHeight).toBe('44px');
+		} finally {
+			Object.defineProperty(window, 'innerWidth', {
+				writable: true,
+				configurable: true,
+				value: originalWidth,
+			});
+		}
+	});
 });
 
 describe('inspectorPanel deck properties (no selection)', () => {

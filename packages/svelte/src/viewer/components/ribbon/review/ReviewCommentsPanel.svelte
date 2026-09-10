@@ -278,4 +278,20 @@
 	.pptx-svelte-comment-reply-cancel { padding: 3px 7px; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 10.5px; }
 	.pptx-svelte-comment-reply-submit { padding: 3px 8px; border: 0; border-radius: var(--pptx-radius, 6px); background: var(--pptx-primary, #6366f1); color: var(--pptx-primary-foreground, white); cursor: pointer; font: inherit; font-size: 10.5px; font-weight: 600; }
 	.pptx-svelte-comment-reply-submit:disabled { cursor: default; opacity: .45; }
+
+	/*
+	 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+	 * render/responsive module. `!important` is load-bearing: see
+	 * ViewerGlobalStyles.svelte's document-level baseline reset note
+	 * elsewhere in this codebase (out-specificities a plain scoped selector).
+	 */
+	@media (max-width: 767px) {
+		.pptx-svelte-comments-compose button,
+		.pptx-svelte-comment-actions button,
+		.pptx-svelte-comment-reply-cancel,
+		.pptx-svelte-comment-reply-submit {
+			min-width: 44px !important;
+			min-height: 44px !important;
+		}
+	}
 </style>

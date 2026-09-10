@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Plus, Trash2 } from 'lucide-vue-next';
 import type { PptxChartSeries } from 'pptx-viewer-core';
+import { getDenseGridLayoutPlan, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { useIsMobile } from '../../composables/useIsMobile';
 
 /**
  * ChartDataGrid: an editable spreadsheet-style grid of the chart's underlying
@@ -56,7 +59,24 @@ function onValue(event: Event, seriesIndex: number, catIndex: number): void {
 const CELL_INPUT =
 	'pptx-vue-chart-cell w-full bg-muted border border-border rounded px-1 py-0.5 text-[11px]';
 const BTN =
-	'pptx-vue-chart-grid-btn px-1.5 py-0.5 rounded border border-border bg-muted hover:bg-accent text-[11px]';
+	'pptx-vue-chart-grid-btn inline-flex items-center justify-center px-1.5 py-0.5 rounded border border-border bg-muted hover:bg-accent text-[11px]';
+const REMOVE_ICON_BTN =
+	'text-muted-foreground hover:text-red-400 shrink-0 inline-flex items-center justify-center';
+
+// ── Dense-panel responsive layout: sticky row-label column + touch targets
+// below 768px, from the shared decision functions every binding uses (never
+// hand-duplicate the thresholds/pixel values here - see CLAUDE.md Rule 2). ──
+const { viewportWidth } = useIsMobile();
+const gridPlan = computed(() => getDenseGridLayoutPlan(viewportWidth.value));
+const touchTargetPx = computed(() => getDensePanelTouchTargetPx(viewportWidth.value));
+const rowHeaderClass = computed(() =>
+	gridPlan.value.stickyFirstColumn ? 'sticky left-0 z-10 bg-card' : '',
+);
+const cellMinWidthStyle = computed(() => ({ minWidth: `${gridPlan.value.minCellWidthPx}px` }));
+const iconBtnStyle = computed(() => ({
+	minWidth: `${touchTargetPx.value}px`,
+	minHeight: `${touchTargetPx.value}px`,
+}));
 
 // ── On-canvas part selection highlight ────────────────────────────
 const HIGHLIGHT_CLASS = 'pptx-vue-chart-cell-highlight ring-1 ring-primary';
@@ -100,6 +120,7 @@ watch(
 				<button
 					type="button"
 					:class="BTN"
+					:style="iconBtnStyle"
 					data-testid="chart-add-category"
 					:title="t('pptx.chart.addCategory')"
 					@click="emit('addCategory')"
@@ -109,6 +130,7 @@ watch(
 				<button
 					type="button"
 					:class="BTN"
+					:style="iconBtnStyle"
 					data-testid="chart-add-series"
 					:title="t('pptx.chart.addSeries')"
 					@click="emit('addSeries')"
@@ -129,11 +151,15 @@ watch(
 			<table class="w-full text-[11px] border-collapse">
 				<thead>
 					<tr>
-						<th class="text-muted-foreground p-0.5 text-left min-w-[60px]"></th>
+						<th
+							:class="`text-muted-foreground p-0.5 text-left ${rowHeaderClass}`"
+							:style="cellMinWidthStyle"
+						></th>
 						<th
 							v-for="(s, si) in props.series"
 							:key="`h-${s.name}-${si}`"
-							class="p-0.5 font-normal min-w-[72px]"
+							class="p-0.5 font-normal"
+							:style="cellMinWidthStyle"
 						>
 							<div class="flex items-center gap-0.5">
 								<input
@@ -146,7 +172,8 @@ watch(
 								<button
 									v-if="props.series.length > 1"
 									type="button"
-									class="text-muted-foreground hover:text-red-400 shrink-0"
+									:class="REMOVE_ICON_BTN"
+									:style="iconBtnStyle"
 									data-testid="chart-remove-series"
 									:title="t('pptx.chart.removeSeries')"
 									@click="emit('removeSeries', si)"
@@ -159,7 +186,7 @@ watch(
 				</thead>
 				<tbody>
 					<tr v-for="(cat, ci) in props.categories" :key="`r-${cat}-${ci}`">
-						<td class="p-0.5">
+						<td :class="`p-0.5 ${rowHeaderClass}`">
 							<div class="flex items-center gap-0.5">
 								<input
 									type="text"
@@ -171,7 +198,8 @@ watch(
 								<button
 									v-if="props.categories.length > 1"
 									type="button"
-									class="text-muted-foreground hover:text-red-400 shrink-0"
+									:class="REMOVE_ICON_BTN"
+									:style="iconBtnStyle"
 									data-testid="chart-remove-category"
 									:title="t('pptx.chart.removeCategory')"
 									@click="emit('removeCategory', ci)"

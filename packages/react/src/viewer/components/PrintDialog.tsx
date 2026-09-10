@@ -4,12 +4,13 @@
  * Options: print what (slides/handouts/notes/outline), slides per page,
  * orientation, colour mode, frame slides, slide range.
  */
-import { resolveDefaultPrintSettings } from 'pptx-viewer-shared';
+import { getDensePanelTouchTargetPx, resolveDefaultPrintSettings } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPrinter, LuX } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { PrintPreview, NotesPagePreview } from './print';
 import type {
 	PrintWhat,
@@ -38,6 +39,10 @@ export function PrintDialog({
 }: PrintDialogProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
+	const { viewportWidth } = useIsMobile();
+	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
+	const closeBtnStyle = { minWidth: touchTargetPx, minHeight: touchTargetPx };
+	const footerBtnStyle = { minHeight: touchTargetPx };
 
 	// File > Options > Advanced > Print. `undefined` (Options > "Use the most
 	// recently used print settings") keeps this dialog's own sticky in-session
@@ -153,6 +158,9 @@ export function PrintDialog({
 		>
 			<div
 				style={panelStyle}
+				role='dialog'
+				aria-modal='true'
+				aria-label={t('pptx.print.title')}
 				className='w-[780px] max-h-[90vh] rounded-xl border border-border bg-background shadow-2xl flex flex-col max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
 			>
 				{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
@@ -167,14 +175,15 @@ export function PrintDialog({
 					<button
 						type='button'
 						onClick={onClose}
-						className='p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors'
+						style={closeBtnStyle}
+						className='p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors inline-flex items-center justify-center'
 					>
 						<LuX className='w-4 h-4' />
 					</button>
 				</div>
 
 				{/* Body */}
-				<div className='flex-1 overflow-y-auto px-5 py-4 flex gap-5'>
+				<div className='flex-1 overflow-y-auto px-5 py-4 flex gap-5 max-md:flex-col'>
 					{/* Left: Settings */}
 					<PrintSettingsPanel
 						printWhat={printWhat}
@@ -199,7 +208,7 @@ export function PrintDialog({
 
 					{/* Right: Preview */}
 					{printWhat === 'handouts' && (
-						<div className='w-[230px] shrink-0 border-l border-border pl-4 overflow-y-auto'>
+						<div className='w-[230px] shrink-0 border-l border-border pl-4 overflow-y-auto max-md:w-full max-md:border-l-0 max-md:border-t max-md:pl-0 max-md:pt-3'>
 							<PrintPreview
 								slideIndices={previewSlideIndices}
 								slidesPerPage={slidesPerPage}
@@ -209,7 +218,7 @@ export function PrintDialog({
 						</div>
 					)}
 					{printWhat === 'notes' && (
-						<div className='w-[230px] shrink-0 border-l border-border pl-4 overflow-y-auto'>
+						<div className='w-[230px] shrink-0 border-l border-border pl-4 overflow-y-auto max-md:w-full max-md:border-l-0 max-md:border-t max-md:pl-0 max-md:pt-3'>
 							<NotesPagePreview
 								slideIndices={previewSlideIndices}
 								slides={slides}
@@ -231,6 +240,7 @@ export function PrintDialog({
 						<button
 							type='button'
 							onClick={onClose}
+							style={footerBtnStyle}
 							className='px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors'
 						>
 							{t('pptx.common.cancel')}
@@ -238,6 +248,7 @@ export function PrintDialog({
 						<button
 							type='button'
 							onClick={handlePrint}
+							style={footerBtnStyle}
 							className='px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-1.5'
 						>
 							<LuPrinter className='w-3.5 h-3.5' />

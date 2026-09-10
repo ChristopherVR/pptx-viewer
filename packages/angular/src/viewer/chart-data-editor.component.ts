@@ -434,6 +434,43 @@ import { ViewerOptionsService } from './viewer-options.service';
 			color: var(--pptx-inspector-muted, #888);
 			margin: 0.25rem 0;
 		}
+
+		/*
+		 * Dense-panel responsive treatment at narrow widths (as narrow as
+		 * 360px). Values mirror pptx-viewer-shared's render/responsive module
+		 * (MOBILE_BREAKPOINT = 768, MIN_TOUCH_TARGET_PX = 44,
+		 * getDenseGridLayoutPlan(width).stickyFirstColumn); this component
+		 * applies them via a CSS media query rather than a JS-bound width
+		 * signal to avoid growing an already 300+ LOC file with new logic.
+		 */
+		@media (pointer: coarse), (max-width: 767px) {
+			/* Keep the category-label gutter visible while the value columns
+			   scroll horizontally. */
+			.pptx-chart-editor__corner {
+				position: sticky;
+				left: 0;
+				z-index: 2;
+			}
+
+			.pptx-chart-editor__cat-cell {
+				position: sticky;
+				left: 0;
+				z-index: 1;
+			}
+
+			.pptx-chart-editor__btn {
+				min-width: 44px;
+				min-height: 44px;
+				padding: 6px 8px;
+				font-size: 12px;
+			}
+
+			.pptx-chart-editor__remove-btn {
+				min-width: 44px;
+				min-height: 44px;
+				font-size: 16px;
+			}
+		}
 	`,
 })
 export class ChartDataEditorComponent {

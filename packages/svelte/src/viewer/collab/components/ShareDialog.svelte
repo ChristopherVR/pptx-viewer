@@ -405,7 +405,8 @@
 	.pptx-svelte-share-details-row {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		flex-wrap: wrap;
+		gap: 4px 12px;
 		font-size: 11px;
 		color: var(--pptx-muted-foreground, #94a3b8);
 	}
@@ -513,5 +514,36 @@
 	.pptx-svelte-share-btn-primary:disabled {
 		cursor: not-allowed;
 		opacity: 0.4;
+	}
+
+	/*
+	 * Touch target below the dense-panel breakpoint (`getDensePanelTouchTargetPx`
+	 * / `MIN_TOUCH_TARGET_PX` = 44, gated on `MOBILE_BREAKPOINT` = 768 same as
+	 * `ModalDialog`'s `max-width: 767px`): the Cancel/Start/Close footer buttons
+	 * were sized for a mouse (6px vertical padding), comfortably under the
+	 * 44px WCAG 2.5.5 target this dialog's form/footer controls need at 360px.
+	 */
+	@media (max-width: 767px) {
+		/*
+		 * `!important` is load-bearing on the button rules:
+		 * ViewerGlobalStyles.svelte's document-level
+		 * `:global(.pptx-svelte-viewer :is(button, [role='button']):not(...):not(...))`
+		 * baseline reset out-specificities a plain scoped class selector.
+		 */
+		.pptx-svelte-share-btn {
+			min-width: 44px !important;
+			min-height: 44px !important;
+		}
+
+		/* The Create/Join mode toggle and the standalone room/name/server/
+		   invitation fields are one control per row, so the same 44px floor
+		   applies directly (no sticky-column or grid-plan concerns here). */
+		.pptx-svelte-share-tabs button {
+			min-height: 44px !important;
+		}
+
+		.pptx-svelte-share-field input {
+			min-height: 44px;
+		}
 	}
 </style>

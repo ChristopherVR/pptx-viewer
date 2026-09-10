@@ -211,6 +211,17 @@
 			border-top-left-radius: 12px;
 			border-top-right-radius: 12px;
 		}
+		/*
+		 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+		 * pptx-viewer-shared's render/responsive module. `!important` is
+		 * load-bearing: ViewerGlobalStyles.svelte's document-level
+		 * `:global(.pptx-svelte-viewer :is(button, [role='button']):not(...):not(...))`
+		 * baseline reset out-specificities a plain scoped class selector.
+		 */
+		.pptx-svelte-ai-close {
+			min-width: 44px !important;
+			min-height: 44px !important;
+		}
 	}
 
 	.pptx-svelte-ai-header {

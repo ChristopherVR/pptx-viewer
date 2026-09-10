@@ -1,3 +1,4 @@
+import { MIN_TOUCH_TARGET_PX } from 'pptx-viewer-shared';
 import React, { useRef } from 'react';
 
 import { useModalFocus } from '../../hooks/useModalFocus';
@@ -105,7 +106,8 @@ export function MobileSheet({
 								aria-label='Close'
 								onPointerDown={(event) => event.stopPropagation()}
 								onClick={onClose}
-								className='inline-flex h-8 w-8 items-center justify-center rounded text-xl text-muted-foreground hover:bg-accent hover:text-foreground'
+								style={{ minWidth: MIN_TOUCH_TARGET_PX, minHeight: MIN_TOUCH_TARGET_PX }}
+								className='inline-flex items-center justify-center rounded text-xl text-muted-foreground hover:bg-accent hover:text-foreground'
 							>
 								&times;
 							</button>

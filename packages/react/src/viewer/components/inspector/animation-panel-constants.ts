@@ -15,8 +15,15 @@ import { ANIMATION_PRESET_OPTIONS } from '../../constants';
 // CSS classes
 // ==========================================================================
 
-export const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1 w-full text-[11px]';
-export const SELECT_CLS = 'bg-muted border border-border rounded px-2 py-1 w-full text-[11px]';
+// `max-md:min-h-[44px]!` (Tailwind's `md` breakpoint = 768px = `MOBILE_BREAKPOINT`
+// in `pptx-viewer-shared`'s dense-panel responsive module) gives every
+// discrete, one-per-row field that reuses these tokens a WCAG touch target
+// below the mobile breakpoint, without every consumer wiring viewport width
+// itself.
+export const INPUT_CLS =
+	'bg-muted border border-border rounded px-2 py-1 w-full text-[11px] max-md:min-h-[44px]!';
+export const SELECT_CLS =
+	'bg-muted border border-border rounded px-2 py-1 w-full text-[11px] max-md:min-h-[44px]!';
 
 // ==========================================================================
 // Preset groups

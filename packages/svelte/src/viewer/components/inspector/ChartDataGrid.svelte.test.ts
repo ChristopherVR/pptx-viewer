@@ -117,6 +117,29 @@ describe('chartDataGrid', () => {
 		expect(target.querySelector('.pptx-svelte-chart-grid-remove')).toBeNull();
 	});
 
+	it('pins the row-label column and grows touch targets below the dense-panel breakpoint', () => {
+		const originalWidth = window.innerWidth;
+		Object.defineProperty(window, 'innerWidth', {
+			writable: true,
+			configurable: true,
+			value: 360,
+		});
+		try {
+			const { target } = mountGrid();
+
+			expect(target.querySelector('td.pptx-svelte-chart-grid-sticky-col')).not.toBeNull();
+			const addCategoryBtn = target.querySelector<HTMLButtonElement>('[aria-label="Add category"]');
+			expect(addCategoryBtn?.style.minWidth).toBe('44px');
+			expect(addCategoryBtn?.style.minHeight).toBe('44px');
+		} finally {
+			Object.defineProperty(window, 'innerWidth', {
+				writable: true,
+				configurable: true,
+				value: originalWidth,
+			});
+		}
+	});
+
 	it('hides add/remove and disables every input in a read-only viewer', () => {
 		const { target } = mountGrid(false);
 

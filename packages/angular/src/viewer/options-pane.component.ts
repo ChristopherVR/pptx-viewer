@@ -57,69 +57,86 @@ export function readOptionValue(
 						<p class="pptx-ng-options-note">{{ descriptionKey | translate }}</p>
 					}
 					@for (control of section.controls; track control.group + '.' + control.key) {
-						<div class="pptx-ng-options-row" [class.is-indented]="control.indent">
-							<span class="pptx-ng-options-label">
-								{{ control.labelKey | translate }}
-								@if (control.infoKey; as infoKey) {
-									<span
-										class="pptx-ng-options-info"
-										[title]="infoKey | translate"
-										aria-hidden="true"
-										>&#9432;</span
-									>
-								}
-							</span>
-							@switch (control.kind) {
-								@case ('toggle') {
-									<input
-										type="checkbox"
-										class="pptx-ng-options-check"
-										[checked]="value(control) === true"
-										[attr.aria-label]="control.labelKey | translate"
-										(change)="emitToggle(control, $event)"
-									/>
-								}
-								@case ('select') {
-									<select
-										class="pptx-ng-options-select"
-										[value]="value(control)"
-										[attr.aria-label]="control.labelKey | translate"
-										(change)="emitSelect(control, $event)"
-									>
-										@for (choice of selectChoices(control); track choice.value) {
-											<option [value]="choice.value" [selected]="choice.value === value(control)">
-												{{ choice.labelKey | translate }}
-											</option>
-										}
-									</select>
-								}
-								@case ('number') {
-									<span class="pptx-ng-options-number">
-										<input
-											type="number"
-											[min]="numberMin(control)"
-											[max]="numberMax(control)"
+						@if (control.kind === 'toggle') {
+							<!-- The whole row is the label so the 44px touch target
+							     (see the compact media query below) isn't limited to the
+							     22px checkbox glyph itself. -->
+							<label class="pptx-ng-options-row" [class.is-indented]="control.indent">
+								<span class="pptx-ng-options-label">
+									{{ control.labelKey | translate }}
+									@if (control.infoKey; as infoKey) {
+										<span
+											class="pptx-ng-options-info"
+											[title]="infoKey | translate"
+											aria-hidden="true"
+											>&#9432;</span
+										>
+									}
+								</span>
+								<input
+									type="checkbox"
+									class="pptx-ng-options-check"
+									[checked]="value(control) === true"
+									[attr.aria-label]="control.labelKey | translate"
+									(change)="emitToggle(control, $event)"
+								/>
+							</label>
+						} @else {
+							<div class="pptx-ng-options-row" [class.is-indented]="control.indent">
+								<span class="pptx-ng-options-label">
+									{{ control.labelKey | translate }}
+									@if (control.infoKey; as infoKey) {
+										<span
+											class="pptx-ng-options-info"
+											[title]="infoKey | translate"
+											aria-hidden="true"
+											>&#9432;</span
+										>
+									}
+								</span>
+								@switch (control.kind) {
+									@case ('select') {
+										<select
+											class="pptx-ng-options-select"
 											[value]="value(control)"
 											[attr.aria-label]="control.labelKey | translate"
-											(change)="emitNumber(control, $event)"
+											(change)="emitSelect(control, $event)"
+										>
+											@for (choice of selectChoices(control); track choice.value) {
+												<option [value]="choice.value" [selected]="choice.value === value(control)">
+													{{ choice.labelKey | translate }}
+												</option>
+											}
+										</select>
+									}
+									@case ('number') {
+										<span class="pptx-ng-options-number">
+											<input
+												type="number"
+												[min]="numberMin(control)"
+												[max]="numberMax(control)"
+												[value]="value(control)"
+												[attr.aria-label]="control.labelKey | translate"
+												(change)="emitNumber(control, $event)"
+											/>
+											@if (numberUnitKey(control); as unitKey) {
+												<span class="pptx-ng-options-note">{{ unitKey | translate }}</span>
+											}
+										</span>
+									}
+									@default {
+										<input
+											type="text"
+											class="pptx-ng-options-text"
+											maxlength="64"
+											[value]="value(control) ?? ''"
+											[attr.aria-label]="control.labelKey | translate"
+											(change)="emitText(control, $event)"
 										/>
-										@if (numberUnitKey(control); as unitKey) {
-											<span class="pptx-ng-options-note">{{ unitKey | translate }}</span>
-										}
-									</span>
+									}
 								}
-								@default {
-									<input
-										type="text"
-										class="pptx-ng-options-text"
-										maxlength="64"
-										[value]="value(control) ?? ''"
-										[attr.aria-label]="control.labelKey | translate"
-										(change)="emitText(control, $event)"
-									/>
-								}
-							}
-						</div>
+							</div>
+						}
 					}
 					@if (section.special === 'themePicker') {
 						<ng-content select="[themePicker]" />
@@ -176,6 +193,11 @@ export function readOptionValue(
 			.pptx-ng-options-row.is-indented {
 				padding-left: 22px;
 			}
+			/* Toggle rows render as a <label> (see the template) so the whole
+			   row, not just the checkbox glyph, is the click/touch target. */
+			label.pptx-ng-options-row {
+				cursor: pointer;
+			}
 			.pptx-ng-options-info {
 				margin-left: 4px;
 				color: var(--pptx-primary);
@@ -221,6 +243,38 @@ export function readOptionValue(
 			}
 			.pptx-ng-options-btn:hover {
 				background: var(--pptx-accent);
+			}
+
+			/*
+			 * Touch target at narrow widths (as narrow as 360px), matching
+			 * MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+			 * render/responsive module. This is the generic schema-driven
+			 * control renderer for every File > Options tab (per CLAUDE.md Rule
+			 * 2, fixed once here rather than per tab).
+			 */
+			@media (pointer: coarse), (max-width: 767px) {
+				.pptx-ng-options-row {
+					min-height: 44px;
+					flex-wrap: wrap;
+				}
+
+				.pptx-ng-options-select,
+				.pptx-ng-options-text,
+				.pptx-ng-options-number input {
+					min-height: 44px;
+					font-size: 16px; /* prevents iOS auto-zoom on focus */
+					max-width: 100%;
+				}
+
+				.pptx-ng-options-check {
+					width: 22px;
+					height: 22px;
+				}
+
+				.pptx-ng-options-btn {
+					min-height: 44px;
+					padding: 8px 14px;
+				}
 			}
 		`,
 	],

@@ -6,7 +6,12 @@ import type {
 	ViewerOptionsGroupId,
 	ViewerOptionsTabId,
 } from 'pptx-viewer-shared';
-import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+import {
+	DEFAULT_QUICK_ACCESS_COMMAND_IDS,
+	VIEWER_OPTIONS_TABS,
+	getDensePanelTouchTargetPx,
+	shouldStickyActionRow,
+} from 'pptx-viewer-shared';
 import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { LuSettings, LuX } from 'react-icons/lu';
 
 import { useModalDismissDrag } from '../hooks';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { cn } from '../utils';
 import { OptionsAddInsPane } from './settings/OptionsAddInsPane';
 import { OptionsPane } from './settings/OptionsPane';
@@ -110,6 +116,14 @@ export function SettingsDialog({
 	const [activeTabId, setActiveTabId] = useState<SettingsTabId>('general');
 	const { t } = useTranslation();
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
+	const { viewportWidth, viewportHeight } = useIsMobile();
+	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
+	const navBtnStyle = { minHeight: touchTargetPx, minWidth: touchTargetPx };
+	const closeBtnStyle = { minWidth: touchTargetPx, minHeight: touchTargetPx };
+	const footerBtnStyle = { minHeight: touchTargetPx };
+	const stickyFooterClass = shouldStickyActionRow(viewportWidth, viewportHeight)
+		? 'sticky bottom-0 bg-popover'
+		: '';
 	const snapshotRef = useRef<ViewerOptions | null>(null);
 	const wasOpenRef = useRef(false);
 
@@ -189,7 +203,8 @@ export function SettingsDialog({
 						<button
 							type='button'
 							onClick={onClose}
-							className='rounded p-1 transition-colors hover:bg-accent'
+							style={closeBtnStyle}
+							className='rounded p-1 transition-colors hover:bg-accent inline-flex items-center justify-center'
 							aria-label={t('pptx.settings.close')}
 						>
 							<LuX className='h-4 w-4 text-muted-foreground' />
@@ -208,8 +223,9 @@ export function SettingsDialog({
 									type='button'
 									onClick={() => setActiveTabId(tab.id)}
 									aria-current={activeTabId === tab.id}
+									style={navBtnStyle}
 									className={cn(
-										'block w-full whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
+										'flex w-full items-center whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
 										activeTabId === tab.id
 											? 'bg-primary/10 font-medium text-primary'
 											: 'text-foreground hover:bg-accent',
@@ -223,8 +239,9 @@ export function SettingsDialog({
 									type='button'
 									onClick={() => setActiveTabId(AI_TAB_ID)}
 									aria-current={activeTabId === AI_TAB_ID}
+									style={navBtnStyle}
 									className={cn(
-										'block w-full whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
+										'flex w-full items-center whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
 										activeTabId === AI_TAB_ID
 											? 'bg-primary/10 font-medium text-primary'
 											: 'text-foreground hover:bg-accent',
@@ -340,10 +357,13 @@ export function SettingsDialog({
 					</div>
 
 					{/* Footer */}
-					<div className='flex items-center justify-between gap-2 border-t border-border/60 px-5 py-3'>
+					<div
+						className={`flex items-center justify-between gap-2 border-t border-border/60 px-5 py-3 ${stickyFooterClass}`}
+					>
 						<button
 							type='button'
 							onClick={() => onResetOptions()}
+							style={footerBtnStyle}
 							className='rounded border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
 						>
 							{t('pptx.options.resetAll')}
@@ -352,6 +372,7 @@ export function SettingsDialog({
 							<button
 								type='button'
 								onClick={handleCancel}
+								style={footerBtnStyle}
 								className='rounded border border-border px-4 py-1.5 text-xs text-foreground transition-colors hover:bg-accent'
 							>
 								{t('pptx.common.cancel')}
@@ -359,6 +380,7 @@ export function SettingsDialog({
 							<button
 								type='button'
 								onClick={onClose}
+								style={footerBtnStyle}
 								className='rounded bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90'
 							>
 								{t('pptx.common.ok')}

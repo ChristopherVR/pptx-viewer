@@ -53,7 +53,19 @@ export const PARITY_DIALOG_CSS = `
 .pptxv-sorter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; overflow: auto; padding: 18px; } .pptxv-sorter-card { overflow: hidden; border: 2px solid var(--pptx-border); border-radius: 7px; background: var(--pptx-card); } .pptxv-sorter-card.is-current { border-color: var(--pptx-primary); } .pptxv-sorter-card.is-hidden { opacity: .5; } .pptxv-sorter-card > button { display: grid; width: 100%; min-height: 90px; place-items: center; border: 0; background: var(--pptx-muted); color: inherit; font-size: 22px; cursor: pointer; } .pptxv-sorter-card div { display: flex; gap: 3px; padding: 5px; } .pptxv-sorter-card div button { flex: 1; padding: 4px; border: 0; background: transparent; color: inherit; font-size: 9px; cursor: pointer; }
 .pptxv-custom-shows-active { display: flex; align-items: center; gap: 8px; } .pptxv-custom-shows-active select { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; }
 .pptxv-custom-shows article { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; padding: 8px; border: 1px solid var(--pptx-border); border-radius: 6px; } .pptxv-custom-shows article > div { grid-column: 1 / -1; max-height: 140px; overflow: auto; }
-@media (max-width: 767px) { .pptxv-parity-dialog { top: auto; bottom: 0; width: 100%; max-height: 88dvh; transform: translateX(-50%); border-radius: 16px 16px 0 0; } }
+@media (max-width: 767px) {
+	.pptxv-parity-dialog { top: auto; bottom: 0; width: 100%; max-height: 88dvh; transform: translateX(-50%); border-radius: 16px 16px 0 0; }
+	.pptxv-parity-header button { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+	/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+	   render/responsive module. The Print/Share/Sorter/etc "parity" dialogs
+	   share this shell (parity-dialog-shell.ts); the header close button was
+	   already sized, but the footer action buttons (Cancel/OK/Print) and any
+	   select dropdown were left at their mouse-sized padding. */
+	.pptxv-parity-footer button { min-width: 44px; min-height: 44px; }
+	.pptxv-parity-select select, .pptxv-custom-shows-active select { min-height: 44px; }
+	.pptxv-parity-check, .pptxv-parity-range { min-height: 44px; }
+	.pptxv-parity-tabs button { min-height: 44px; }
+}
 .pptxv-ole-edit-dialog { width: min(600px, calc(100vw - 32px)); }
 .pptxv-ole-edit-loading, .pptxv-ole-edit-empty { color: var(--pptx-muted-foreground); }
 .pptxv-ole-edit-error { color: var(--pptx-destructive); }
@@ -66,4 +78,13 @@ export const PARITY_DIALOG_CSS = `
 .pptxv-ole-edit-paragraphs textarea { padding: 6px 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: inherit; resize: vertical; }
 .pptxv-ole-edit-deck-row { display: flex; flex-direction: column; gap: 4px; color: var(--pptx-muted-foreground); }
 .pptxv-ole-edit-deck-row input { padding: 6px 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: var(--pptx-foreground); }
+/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+   render/responsive module, below MOBILE_BREAKPOINT (768). The workspace
+   Comments pane's "Add Comment" button (comments-panel.ts) carries no class
+   of its own; \`!important\` beats css.ts's baseline
+   \`.pptxv :is(button, [role='button'])... { min-height: 24px; }\`, whose
+   chained :not() pseudo-classes out-specificity a plain class selector. */
+@media (max-width: 767px) {
+	.pptxv-workspace-list button, .pptxv-workspace-pane header button { min-height: 44px !important; }
+}
 `;

@@ -74,6 +74,7 @@ function checkedValue(event: Event): boolean {
 						<div class="pptx-tse-fields__row">
 							<button
 								type="button"
+								class="pptx-tse-fields__flag-btn"
 								[disabled]="!canEdit()"
 								[class.pptx-tse-fields__active]="d.text.bold"
 								(click)="edit.emit({ kind: 'textBold', value: !d.text.bold })"
@@ -82,6 +83,7 @@ function checkedValue(event: Event): boolean {
 							</button>
 							<button
 								type="button"
+								class="pptx-tse-fields__flag-btn"
 								[disabled]="!canEdit()"
 								[class.pptx-tse-fields__active]="d.text.italic"
 								(click)="edit.emit({ kind: 'textItalic', value: !d.text.italic })"
@@ -90,6 +92,7 @@ function checkedValue(event: Event): boolean {
 							</button>
 							<button
 								type="button"
+								class="pptx-tse-fields__flag-btn"
 								[disabled]="!canEdit()"
 								[class.pptx-tse-fields__active]="d.text.underline"
 								(click)="edit.emit({ kind: 'textUnderline', value: !d.text.underline })"
@@ -241,6 +244,19 @@ function checkedValue(event: Event): boolean {
 		}
 		.pptx-tse-fields__active {
 			background: var(--pptx-inspector-active, #3a3a3a);
+		}
+
+		/*
+		 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+		 * pptx-viewer-shared's render/responsive module. Bold/Italic/Underline
+		 * are single-letter labels, so a height-only floor still leaves them
+		 * narrow (a WCAG miss on the smaller side); both dimensions need it.
+		 */
+		@media (max-width: 767px) {
+			.pptx-tse-fields__flag-btn {
+				min-width: 44px;
+				min-height: 44px;
+			}
 		}
 	`,
 })

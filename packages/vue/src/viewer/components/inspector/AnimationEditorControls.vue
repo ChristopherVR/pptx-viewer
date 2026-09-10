@@ -36,6 +36,14 @@ import EffectSoundRow from './EffectSoundRow.vue';
 const props = defineProps<{
 	animation: PptxElementAnimation;
 	elements: readonly PptxElement[];
+	/**
+	 * Minimum hit-area size (px) for this row's preview/remove buttons, from
+	 * the shared `getDensePanelTouchTargetPx` decision (see CLAUDE.md Rule 2 -
+	 * never hand-duplicate the threshold here). The parent `AnimationPanel`
+	 * computes it once from the viewport and forwards it, since every row
+	 * shares the same value.
+	 */
+	touchTargetPx?: number;
 }>();
 const emit = defineEmits<{
 	patch: [patch: Partial<PptxElementAnimation>];
@@ -64,6 +72,11 @@ const directions: readonly PptxAnimationDirection[] = [
 ];
 const sequences: readonly PptxAnimationSequence[] = ['asOne', 'byParagraph', 'byWord', 'byLetter'];
 const curves: readonly PptxAnimationTimingCurve[] = ['ease', 'ease-in', 'ease-out', 'linear'];
+
+const rowBtnStyle = computed(() => {
+	const size = props.touchTargetPx;
+	return size ? { minWidth: `${size}px`, minHeight: `${size}px` } : {};
+});
 
 function value(event: Event): string {
 	return (event.target as HTMLInputElement | HTMLSelectElement).value;
@@ -173,12 +186,18 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 	>
 		<div class="flex items-center gap-1">
 			<strong class="flex-1 truncate">{{ presetLabel(animation) }}</strong>
-			<button type="button" class="text-primary" @click="emit('preview')">
+			<button
+				type="button"
+				class="inline-flex items-center justify-center text-primary"
+				:style="rowBtnStyle"
+				@click="emit('preview')"
+			>
 				{{ t('pptx.animation.preview') }}
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-anim-remove"
+				class="pptx-vue-anim-remove inline-flex items-center justify-center"
+				:style="rowBtnStyle"
 				:aria-label="t('pptx.animation.remove')"
 				@click="emit('remove')"
 			>
@@ -347,5 +366,16 @@ button {
 	color: inherit;
 	cursor: pointer;
 	font-size: 10px;
+}
+/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+   render/responsive module, below MOBILE_BREAKPOINT (768). `input` excluded:
+   this file's `button`s are discrete controls, but the paired `select` above
+   already shares `input`'s rule for width/padding, so size only what the
+   WCAG check actually holds to 44px. */
+@media (max-width: 767px) {
+	select,
+	button {
+		min-height: 44px;
+	}
 }
 </style>

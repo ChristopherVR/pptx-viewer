@@ -94,7 +94,7 @@ export function AiConversation({
 				<button
 					type='button'
 					onClick={() => setHistoryOpen((p) => !p)}
-					className='inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent'
+					className='inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[12px] text-muted-foreground hover:bg-accent max-md:min-h-[44px]!'
 				>
 					<LuHistory className='w-3.5 h-3.5' />
 					{t('pptx.ai.chats')}
@@ -105,7 +105,7 @@ export function AiConversation({
 						onClick={history.newChat}
 						title={t('pptx.ai.newChat')}
 						aria-label={t('pptx.ai.newChat')}
-						className='rounded-sm p-1 text-muted-foreground hover:bg-accent'
+						className='rounded-sm p-1 text-muted-foreground hover:bg-accent max-md:min-w-[44px]! max-md:min-h-[44px]! flex items-center justify-center'
 					>
 						<LuMessageSquarePlus className='w-3.5 h-3.5' />
 					</button>
@@ -115,7 +115,7 @@ export function AiConversation({
 						title={t('pptx.ai.clearChat')}
 						aria-label={t('pptx.ai.clearChat')}
 						disabled={chat.messages.length === 0}
-						className='rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40'
+						className='rounded-sm p-1 text-muted-foreground hover:bg-accent disabled:opacity-40 max-md:min-w-[44px]! max-md:min-h-[44px]! flex items-center justify-center'
 					>
 						<LuTrash2 className='w-3.5 h-3.5' />
 					</button>

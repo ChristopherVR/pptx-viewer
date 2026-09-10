@@ -244,14 +244,14 @@ function confirmPrint(): void {
 			</span>
 			<button
 				type="button"
-				class="pptx-vue-print-btn pptx-vue-print-btn--secondary rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				class="pptx-vue-print-btn pptx-vue-print-btn--secondary rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground max-md:min-h-[44px]!"
 				@click="close"
 			>
 				{{ t('pptx.share.cancel') }}
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-print-btn pptx-vue-print-btn--primary rounded-lg bg-primary px-4 py-2 text-sm text-white transition-colors hover:bg-primary/90"
+				class="pptx-vue-print-btn pptx-vue-print-btn--primary rounded-lg bg-primary px-4 py-2 text-sm text-white transition-colors hover:bg-primary/90 max-md:min-h-[44px]!"
 				@click="confirmPrint"
 			>
 				{{ t('pptx.print.printButton') }}

@@ -11,8 +11,10 @@ import { schemaLabel } from 'pptx-viewer-shared';
  */
 export function field<T extends HTMLElement>(doc: Document, text: string, control: T) {
 	const label = doc.createElement('label');
+	label.className = 'pptxv-exhaustive-field';
 	label.textContent = text;
 	control.setAttribute('aria-label', text);
+	control.classList.add('pptxv-exhaustive-field-control');
 	label.appendChild(control);
 	return { label, control };
 }

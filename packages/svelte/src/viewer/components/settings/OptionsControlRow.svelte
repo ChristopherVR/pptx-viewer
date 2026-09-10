@@ -6,9 +6,10 @@
 	 * model via the control's `group` + `key`.
 	 */
 	import Info from '@lucide/svelte/icons/info';
-	import { clampOptionNumber } from 'pptx-viewer-shared';
+	import { clampOptionNumber, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 	import type { ViewerOptions, ViewerOptionsControl, ViewerOptionsGroupId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
+	import { useWindowViewport } from '../../state/window-viewport.svelte';
 
 	const {
 		control,
@@ -21,6 +22,12 @@
 	} = $props();
 	// oxlint-disable-next-line eslint/one-var -- distinct concern from the `$props()` destructure above, forcing one statement hurts readability
 	const t = useTranslator();
+	const viewport = useWindowViewport();
+	// One-per-row fields (not a dense repeating grid), so every field/toggle in
+	// every Options tab gets the WCAG touch target below the mobile breakpoint
+	// from this single shared control-row renderer, per CLAUDE.md Rule 2 -
+	// never re-derive this per tab.
+	const touchStyle = $derived(`min-height: ${getDensePanelTouchTargetPx(viewport.width)}px`);
 
 	// oxlint-disable-next-line eslint/one-var -- distinct concern from `t` above, forcing one statement hurts readability
 	const value = $derived.by((): boolean | number | string | undefined => {
@@ -45,25 +52,25 @@
 	}
 </script>
 
-<div class="row" class:indent={control.indent}>
+<div class="row" style={touchStyle} class:indent={control.indent}>
 	{#if control.kind === 'toggle'}
-		<label class="toggle">
+		<label class="toggle" style={touchStyle}>
 			<span class="label">{t(control.labelKey)}{#if control.infoKey}<i title={t(control.infoKey)} aria-label={t(control.infoKey)}><Info size={14} aria-hidden="true" /></i>{/if}</span>
 			<input type="checkbox" checked={value === true} onchange={(event) => onchange(control.group, control.key, event.currentTarget.checked)} />
 		</label>
 	{:else}
 		<span class="label">{t(control.labelKey)}{#if control.infoKey}<i title={t(control.infoKey)} aria-label={t(control.infoKey)}><Info size={14} aria-hidden="true" /></i>{/if}</span>
 		{#if control.kind === 'select'}
-			<select aria-label={t(control.labelKey)} value={typeof value === 'string' ? value : ''} onchange={(event) => onchange(control.group, control.key, event.currentTarget.value)}>
+			<select style={touchStyle} aria-label={t(control.labelKey)} value={typeof value === 'string' ? value : ''} onchange={(event) => onchange(control.group, control.key, event.currentTarget.value)}>
 				{#each control.choices as choice (choice.value)}<option value={choice.value}>{t(choice.labelKey)}</option>{/each}
 			</select>
 		{:else if control.kind === 'number'}
 			<span class="number">
-				<input type="number" aria-label={t(control.labelKey)} min={control.min} max={control.max} step={control.step ?? 1} value={typeof value === 'number' ? value : control.min} onchange={commitNumber} />
+				<input type="number" style={touchStyle} aria-label={t(control.labelKey)} min={control.min} max={control.max} step={control.step ?? 1} value={typeof value === 'number' ? value : control.min} onchange={commitNumber} />
 				{#if control.unitKey}<small>{t(control.unitKey)}</small>{/if}
 			</span>
 		{:else}
-			<input class="text" type="text" aria-label={t(control.labelKey)} maxlength={control.maxLength} value={typeof value === 'string' ? value : ''} onchange={(event) => onchange(control.group, control.key, event.currentTarget.value)} />
+			<input class="text" type="text" style={touchStyle} aria-label={t(control.labelKey)} maxlength={control.maxLength} value={typeof value === 'string' ? value : ''} onchange={(event) => onchange(control.group, control.key, event.currentTarget.value)} />
 		{/if}
 	{/if}
 </div>

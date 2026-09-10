@@ -61,7 +61,7 @@ function onMaterial(event: Event): void {
 	update3d({ presetMaterial: v ? (v as MaterialPresetType) : undefined });
 }
 
-const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1';
+const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]';
 const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 </script>
 

@@ -195,3 +195,15 @@
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+/*
+ * Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+ * render/responsive module.
+ */
+@media (max-width: 767px) {
+	.pptx-ng-comments__submit,
+	.pptx-ng-comments__reply-submit,
+	.pptx-ng-comments__action {
+		min-height: 44px;
+	}
+}

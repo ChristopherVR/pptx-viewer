@@ -87,7 +87,7 @@ export function AiFocusBar({
 									),
 								)
 							}
-							className='inline-flex items-center gap-1 rounded-sm bg-primary/90 px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary'
+							className='inline-flex items-center gap-1 rounded-sm bg-primary/90 px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary max-md:min-h-[44px]!'
 						>
 							<LuGitMerge className='w-3 h-3' />
 							{t('pptx.ai.mergeSelectedTables')}
@@ -100,7 +100,7 @@ export function AiFocusBar({
 						aria-label={t('pptx.ai.pickAria')}
 						aria-pressed={pickMode}
 						className={cn(
-							'rounded-sm p-1',
+							'rounded-sm p-1 max-md:min-w-[44px]! max-md:min-h-[44px]! flex items-center justify-center',
 							pickMode
 								? 'bg-primary text-primary-foreground'
 								: 'text-muted-foreground hover:bg-accent',
@@ -114,7 +114,7 @@ export function AiFocusBar({
 							onClick={onClearPicks}
 							title={t('pptx.ai.pickClear')}
 							aria-label={t('pptx.ai.pickClear')}
-							className='rounded-sm p-1 text-muted-foreground hover:bg-accent'
+							className='rounded-sm p-1 text-muted-foreground hover:bg-accent max-md:min-w-[44px]! max-md:min-h-[44px]! flex items-center justify-center'
 						>
 							<LuX className='w-3.5 h-3.5' />
 						</button>
@@ -125,7 +125,7 @@ export function AiFocusBar({
 							onClick={isPinned ? onClearPin : onPin}
 							title={isPinned ? t('pptx.ai.clearFocus') : t('pptx.ai.pinFocus')}
 							aria-label={isPinned ? t('pptx.ai.clearFocus') : t('pptx.ai.pinFocus')}
-							className='rounded-sm p-1 text-muted-foreground hover:bg-accent'
+							className='rounded-sm p-1 text-muted-foreground hover:bg-accent max-md:min-w-[44px]! max-md:min-h-[44px]! flex items-center justify-center'
 						>
 							{isPinned ? <LuPinOff className='w-3.5 h-3.5' /> : <LuPin className='w-3.5 h-3.5' />}
 						</button>

@@ -5,12 +5,14 @@ import {
 	buildCollaborationShareUrl,
 	buildCreateCollaborationConfig,
 	buildJoinCollaborationConfig,
+	getDensePanelTouchTargetPx,
 	resolveTransportForServerUrl,
 } from 'pptx-viewer-shared';
 import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { UseCollaborationResult } from '../composables/useCollaboration';
+import { useIsMobile } from '../composables/useIsMobile';
 import { ViewerOptionsKey } from '../composables/useViewerOptionsStore';
 import ModalDialog from './ModalDialog.vue';
 
@@ -148,6 +150,23 @@ function handleStart(): void {
 function handleStop(): void {
 	emit('stop');
 }
+
+// The header close (x) button and the outer dialog's bottom-sheet stacking at
+// <768px are already handled by `ModalDialog.vue` (its close button is
+// `max-md:h-11 max-md:w-11` = 44px, and the footer already sits outside the
+// scrollable body in the panel's flex column, so it needs no separate sticky
+// treatment). The one gap is these footer action buttons themselves, which
+// have no minimum hit area below the breakpoint.
+const { viewportWidth } = useIsMobile();
+const touchTargetPx = computed(() => getDensePanelTouchTargetPx(viewportWidth.value));
+const touchBtnStyle = computed(() => {
+	const size = `${touchTargetPx.value}px`;
+	return { minWidth: size, minHeight: size };
+});
+// The create/join mode tabs and the form's text inputs are already full-width
+// rows, so only the minimum height needs raising (mirrors React's
+// `ShareDialogViews` `tabBtnStyle`, which does the same for the same reason).
+const minHeightStyle = computed(() => ({ minHeight: `${touchTargetPx.value}px` }));
 </script>
 
 <template>
@@ -273,6 +292,7 @@ function handleStop(): void {
 					type="button"
 					role="tab"
 					:aria-selected="mode === candidate"
+					:style="minHeightStyle"
 					class="rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors"
 					:class="
 						mode === candidate ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
@@ -294,6 +314,7 @@ function handleStop(): void {
 					id="pptx-vue-share-invitation"
 					v-model="invitation"
 					type="text"
+					:style="minHeightStyle"
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					:placeholder="t('pptx.share.invitationPlaceholder')"
 				/>
@@ -311,6 +332,7 @@ function handleStop(): void {
 					id="pptx-vue-share-room"
 					v-model="roomId"
 					type="text"
+					:style="minHeightStyle"
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					:placeholder="t('pptx.share.roomIdPlaceholder')"
 				/>
@@ -327,6 +349,7 @@ function handleStop(): void {
 					id="pptx-vue-share-name"
 					v-model="userName"
 					type="text"
+					:style="minHeightStyle"
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					:placeholder="t('pptx.share.yourNamePlaceholder')"
 				/>
@@ -343,6 +366,7 @@ function handleStop(): void {
 					id="pptx-vue-share-server"
 					v-model="serverUrl"
 					type="text"
+					:style="minHeightStyle"
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					:placeholder="t('pptx.share.serverPlaceholder')"
 				/>
@@ -355,7 +379,8 @@ function handleStop(): void {
 		<template #footer>
 			<button
 				type="button"
-				class="pptx-vue-share-btn rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
+				class="pptx-vue-share-btn inline-flex items-center justify-center rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
+				:style="touchBtnStyle"
 				@click="emit('close')"
 			>
 				{{ active ? t('pptx.share.close') : t('pptx.share.cancel') }}
@@ -363,7 +388,8 @@ function handleStop(): void {
 			<button
 				v-if="!active"
 				type="button"
-				class="pptx-vue-share-btn pptx-vue-share-btn-primary rounded bg-primary px-3 py-1.5 text-[12px] text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+				class="pptx-vue-share-btn pptx-vue-share-btn-primary inline-flex items-center justify-center rounded bg-primary px-3 py-1.5 text-[12px] text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+				:style="touchBtnStyle"
 				:disabled="!canStart"
 				@click="handleStart"
 			>

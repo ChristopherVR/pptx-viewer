@@ -1,9 +1,11 @@
 import type { PptxChartSeries } from 'pptx-viewer-core';
+import { getDenseGridLayoutPlan, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import type { Ref } from 'react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlus, LuTrash2 } from 'react-icons/lu';
 
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { CELL_INPUT, BTN, HEADING, CARD } from './chart-panel-constants';
 
 // ---------------------------------------------------------------------------
@@ -48,6 +50,11 @@ export function ChartDataGrid({
 }: ChartDataGridProps) {
 	const { t } = useTranslation();
 	const highlightRef = useRef<HTMLElement | null>(null);
+	const { viewportWidth } = useIsMobile();
+	const gridPlan = getDenseGridLayoutPlan(viewportWidth);
+	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
+	const rowHeaderClass = gridPlan.stickyFirstColumn ? 'sticky left-0 z-10 bg-card' : '';
+	const iconBtnStyle = { minWidth: touchTargetPx, minHeight: touchTargetPx };
 
 	// Bring the canvas-selected cell into view when the selection changes. The
 	// dep values aren't read in the body; they're re-run triggers, since the
@@ -71,7 +78,8 @@ export function ChartDataGrid({
 					<div className='flex gap-1'>
 						<button
 							type='button'
-							className={BTN}
+							className={`${BTN} inline-flex items-center justify-center`}
+							style={iconBtnStyle}
 							title={t('pptx.chart.addCategory')}
 							onClick={onAddCategory}
 						>
@@ -80,7 +88,8 @@ export function ChartDataGrid({
 						</button>
 						<button
 							type='button'
-							className={BTN}
+							className={`${BTN} inline-flex items-center justify-center`}
+							style={iconBtnStyle}
 							title={t('pptx.chart.addSeries')}
 							onClick={onAddSeries}
 						>
@@ -97,10 +106,15 @@ export function ChartDataGrid({
 						<tr>
 							<th
 								aria-label={t('pptx.chart.categories')}
-								className='text-muted-foreground p-0.5 text-left min-w-[60px]'
+								className={`text-muted-foreground p-0.5 text-left ${rowHeaderClass}`}
+								style={{ minWidth: gridPlan.minCellWidthPx }}
 							/>
 							{series.map((s, si) => (
-								<th key={si} className='p-0.5 font-normal min-w-[72px]'>
+								<th
+									key={si}
+									className='p-0.5 font-normal'
+									style={{ minWidth: gridPlan.minCellWidthPx }}
+								>
 									<div className='flex items-center gap-0.5'>
 										<input
 											type='text'
@@ -113,7 +127,8 @@ export function ChartDataGrid({
 										{canEdit && series.length > 1 && (
 											<button
 												type='button'
-												className='text-muted-foreground hover:text-red-400 shrink-0'
+												className='text-muted-foreground hover:text-red-400 shrink-0 inline-flex items-center justify-center'
+												style={iconBtnStyle}
 												title={t('pptx.chart.removeSeries')}
 												onClick={() => onRemoveSeries(si)}
 											>
@@ -128,7 +143,7 @@ export function ChartDataGrid({
 					<tbody>
 						{categories.map((cat, ci) => (
 							<tr key={ci}>
-								<td className='p-0.5'>
+								<td className={`p-0.5 ${rowHeaderClass}`}>
 									<div className='flex items-center gap-0.5'>
 										<input
 											type='text'
@@ -140,7 +155,8 @@ export function ChartDataGrid({
 										{canEdit && categories.length > 1 && (
 											<button
 												type='button'
-												className='text-muted-foreground hover:text-red-400 shrink-0'
+												className='text-muted-foreground hover:text-red-400 shrink-0 inline-flex items-center justify-center'
+												style={iconBtnStyle}
 												title={t('pptx.chart.removeCategory')}
 												onClick={() => onRemoveCategory(ci)}
 											>

@@ -279,6 +279,22 @@ export function printDialogClass(isMobile: boolean): string {
 					border-bottom-right-radius: 0;
 					padding-bottom: max(env(safe-area-inset-bottom), 0px);
 				}
+
+				/*
+				 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+				 * pptx-viewer-shared's render/responsive module. The Print What /
+				 * Slide Range / Orientation / Color Mode groups are native radios
+				 * (not matched by the discrete-control WCAG check), so only the
+				 * footer's own Cancel/Print buttons need sizing here.
+				 */
+				.pptx-ng-print-dialog__btn {
+					min-height: 44px;
+				}
+
+				.pptx-ng-print-dialog__icon-btn {
+					min-width: 44px;
+					min-height: 44px;
+				}
 			}
 		`,
 	],

@@ -117,6 +117,25 @@ export type SlideInspectorTab = 'elements' | 'properties' | 'comments';
 		.hdr__tab:not(.is-active):hover {
 			color: inherit;
 		}
+
+		/*
+		 * Touch target at narrow widths (as narrow as 360px). Matches
+		 * MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+		 * render/responsive module.
+		 */
+		@media (pointer: coarse), (max-width: 767px) {
+			.hdr__tab {
+				min-width: 44px;
+				min-height: 44px;
+				padding: 6px 8px;
+				font-size: 12px;
+			}
+
+			.hdr__close {
+				min-width: 44px;
+				min-height: 44px;
+			}
+		}
 	`,
 })
 export class InspectorPaneHeaderComponent {

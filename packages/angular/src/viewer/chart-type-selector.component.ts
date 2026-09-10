@@ -122,6 +122,16 @@ export function applyChartTypeSelectorPatch(
 			flex: 1 1 auto;
 			min-width: 0;
 		}
+
+		/*
+		 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+		 * pptx-viewer-shared's render/responsive module.
+		 */
+		@media (max-width: 767px) {
+			.pptx-cts__input {
+				min-height: 44px;
+			}
+		}
 	`,
 })
 export class ChartTypeSelectorComponent {

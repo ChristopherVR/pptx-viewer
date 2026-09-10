@@ -129,7 +129,7 @@ function onGroupingChange(event: Event): void {
 const FIELD = 'pptx-vue-chart-field flex flex-col gap-1';
 const LABEL = 'pptx-vue-chart-label font-semibold text-muted-foreground';
 const CONTROL =
-	'w-full bg-muted border border-border rounded px-2 py-1 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+	'w-full bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px] focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 </script>
 
 <template>

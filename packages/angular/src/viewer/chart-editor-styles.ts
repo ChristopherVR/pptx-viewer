@@ -139,4 +139,26 @@ export const CHART_EDITOR_STYLES = `
 		-webkit-appearance: none;
 		margin: 0;
 	}
+
+	/*
+	 * Touch target: matches MIN_TOUCH_TARGET_PX (44) from
+	 * pptx-viewer-shared's render/responsive module. This stylesheet backs
+	 * every chart editor card (Display, Axis, Data Labels, Markers,
+	 * Trendline, Error Bars, ...), so fixing it once here reaches all of
+	 * them instead of each card sizing its own controls.
+	 */
+	@media (max-width: 767px) {
+		.pptx-chart-card__input {
+			min-height: 44px;
+		}
+		.pptx-chart-card__clear {
+			min-width: 44px;
+			min-height: 44px;
+		}
+		/* chart-user-shape-options.component.html's "Add text box" button
+		   carries no class of its own. */
+		[data-testid='chart-user-shape-add'] {
+			min-height: 44px;
+		}
+	}
 `;

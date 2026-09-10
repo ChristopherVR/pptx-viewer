@@ -26,6 +26,7 @@
 		animationFor,
 		applyMotionPathPreset,
 		clearMotionPath,
+		getDensePanelTouchTargetPx,
 		getEffectSoundState,
 		hasAnimation,
 		setAfterAnimation,
@@ -42,6 +43,7 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import { useWindowViewport } from '../../state/window-viewport.svelte';
 	import AfterAnimationRow from './AfterAnimationRow.svelte';
 	import { commitSlideAnimations } from './animation-panel-helpers';
 	import {
@@ -59,6 +61,12 @@
 
 	const { editor }: { editor: EditorState } = $props();
 	const t = useTranslator();
+	const viewport = useWindowViewport();
+	// The direction-picker icon buttons and the Preview button are 28px by
+	// design; below the dense-panel breakpoint they must still clear the 44px
+	// touch target, so this only ever grows them, never shrinks below 28.
+	const touchPx = $derived(Math.max(28, getDensePanelTouchTargetPx(viewport.width)));
+	const touchStyle = $derived(`min-width: ${touchPx}px; min-height: ${touchPx}px;`);
 
 	const slide = $derived(editor.slides[editor.currentSlideIndex]);
 	const el = $derived(editor.selectedElement);
@@ -146,7 +154,13 @@
 		<div class="pptx-svelte-animp-header">
 			<span class="pptx-svelte-animp-title">{t('pptx.animation.title')}</span>
 			{#if hasAnim}
-				<button type="button" class="pptx-svelte-animp-preview" title={t('pptx.animation.preview')} onclick={onPreview}>
+				<button
+					type="button"
+					class="pptx-svelte-animp-preview"
+					style={touchStyle}
+					title={t('pptx.animation.preview')}
+					onclick={onPreview}
+				>
 					<Play size={12} aria-hidden="true" /> {t('pptx.animation.preview')}
 				</button>
 			{/if}
@@ -188,6 +202,7 @@
 							<button
 								type="button"
 								disabled={!canEdit}
+								style={touchStyle}
 								class:is-active={anim?.direction === option.value}
 								title={t(option.labelKey)}
 								aria-label={t(option.labelKey)}

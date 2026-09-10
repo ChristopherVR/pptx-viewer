@@ -19,6 +19,8 @@ import {
 	appendTableElementColumn,
 	appendTableElementRow,
 	buildTableDataGrid,
+	getDenseGridLayoutPlan,
+	getDensePanelTouchTargetPx,
 	removeLastTableElementColumn,
 	removeLastTableElementRow,
 	removeTableElementColumn,
@@ -28,6 +30,7 @@ import {
 import type React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { BTN, CARD, HEADING } from './inspector-pane-constants';
 
 // ---------------------------------------------------------------------------
@@ -67,6 +70,11 @@ export function TableDataGrid({
 }: TableDataGridProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	const grid = buildTableDataGrid(tableElement);
+	const { viewportWidth } = useIsMobile();
+	const gridPlan = getDenseGridLayoutPlan(viewportWidth);
+	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
+	const stickyGutterClass = gridPlan.stickyFirstColumn ? 'sticky left-0 z-10' : '';
+	const touchBtnStyle = { minWidth: touchTargetPx, minHeight: touchTargetPx };
 
 	if (grid.rowCount === 0 || grid.colCount === 0) {
 		return null;
@@ -97,7 +105,8 @@ export function TableDataGrid({
 						<div className='flex flex-wrap gap-0.5'>
 							<button
 								type='button'
-								className={BTN}
+								className={`${BTN} inline-flex items-center justify-center`}
+								style={touchBtnStyle}
 								title={t('pptx.tableDataEditor.addRowTitle')}
 								onClick={() => commit(appendTableElementRow(tableElement))}
 							>
@@ -105,7 +114,8 @@ export function TableDataGrid({
 							</button>
 							<button
 								type='button'
-								className={BTN}
+								className={`${BTN} inline-flex items-center justify-center`}
+								style={touchBtnStyle}
 								disabled={!grid.canRemoveRow}
 								title={t('pptx.tableDataEditor.removeRowTitle')}
 								onClick={() => commit(removeLastTableElementRow(tableElement))}
@@ -114,7 +124,8 @@ export function TableDataGrid({
 							</button>
 							<button
 								type='button'
-								className={BTN}
+								className={`${BTN} inline-flex items-center justify-center`}
+								style={touchBtnStyle}
 								title={t('pptx.tableDataEditor.addColumnTitle')}
 								onClick={() => commit(appendTableElementColumn(tableElement))}
 							>
@@ -122,7 +133,8 @@ export function TableDataGrid({
 							</button>
 							<button
 								type='button'
-								className={BTN}
+								className={`${BTN} inline-flex items-center justify-center`}
+								style={touchBtnStyle}
 								disabled={!grid.canRemoveColumn}
 								title={t('pptx.tableDataEditor.removeColumnTitle')}
 								onClick={() => commit(removeLastTableElementColumn(tableElement))}
@@ -146,7 +158,10 @@ export function TableDataGrid({
 							 * and is hidden from assistive tech: it is a purely visual filler,
 							 * and an empty columnheader would announce a nameless header.
 							 */}
-							<div className={`${HEADER_CELL} flex-none w-10`} aria-hidden='true' />
+							<div
+								className={`${HEADER_CELL} flex-none w-10 ${stickyGutterClass}`}
+								aria-hidden='true'
+							/>
 							{grid.colIndices.map((colIndex) => (
 								<div
 									key={colIndex}
@@ -157,7 +172,8 @@ export function TableDataGrid({
 									{canEdit && grid.canRemoveColumn && (
 										<button
 											type='button'
-											className={REMOVE_BTN}
+											className={`${REMOVE_BTN} inline-flex items-center justify-center`}
+											style={touchBtnStyle}
 											aria-label={t('pptx.tableDataEditor.removeColumnN', {
 												number: colIndex + 1,
 											})}
@@ -173,12 +189,16 @@ export function TableDataGrid({
 
 						{grid.rows.map((row) => (
 							<div key={row.rowIndex} className='flex' role='row'>
-								<div className={`${HEADER_CELL} flex-none w-10`} role='rowheader'>
+								<div
+									className={`${HEADER_CELL} flex-none w-10 ${stickyGutterClass}`}
+									role='rowheader'
+								>
 									<span>{row.rowIndex + 1}</span>
 									{canEdit && grid.canRemoveRow && (
 										<button
 											type='button'
-											className={REMOVE_BTN}
+											className={`${REMOVE_BTN} inline-flex items-center justify-center`}
+											style={touchBtnStyle}
 											aria-label={t('pptx.tableDataEditor.removeRowN', {
 												number: row.rowIndex + 1,
 											})}

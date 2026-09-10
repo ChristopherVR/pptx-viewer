@@ -40,7 +40,7 @@ function swatchColor(entry: ThemeCatalogEntry): string {
 			v-for="entry in entries"
 			:key="entry.key"
 			type="button"
-			class="pptx-vue-settings-theme-swatch flex items-center gap-3 rounded border px-3 py-2 text-left text-[13px] transition-colors"
+			class="pptx-vue-settings-theme-swatch flex items-center gap-3 rounded border px-3 py-2 text-left text-[13px] transition-colors max-md:min-h-[44px]!"
 			:class="
 				themeKey === entry.key
 					? 'pptx-vue-settings-theme-swatch--active border-primary bg-accent text-foreground'

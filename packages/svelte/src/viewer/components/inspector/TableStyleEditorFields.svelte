@@ -82,4 +82,11 @@
 	input[type='number'] { width: 48px; }
 	button { border: 1px solid var(--pptx-border); border-radius: 4px; padding: 3px 6px; background: var(--pptx-muted); color: inherit; }
 	button.active { background: var(--pptx-primary, #c43b32); color: #fff; }
+	/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+	   render/responsive module. Bold/Italic/Underline are single-letter
+	   labels, so both dimensions need the floor, not just height. */
+	@media (max-width: 767px) {
+		.row button, select, input[type='number'] { min-height: 44px; }
+		.row button { min-width: 44px; }
+	}
 </style>

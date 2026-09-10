@@ -16,11 +16,13 @@ import {
 	animationCatalogPresetLabelKey,
 	applyMotionPathPreset,
 	clearMotionPath,
+	getDensePanelTouchTargetPx,
 	motionPathFor,
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useIsMobile } from '../../composables/useIsMobile';
 import type { AnimationCategory } from './animation-panel-model';
 import { createElementAnimation, patchElementAnimation } from './animation-panel-model';
 import { previewVueAnimation } from './animation-preview-player';
@@ -50,6 +52,17 @@ const emit = defineEmits<{
 	updateSlideAnimations: [animations: PptxElementAnimation[]];
 }>();
 const { t } = useI18n();
+
+// Dense-panel touch-target sizing (shared decision function; see CLAUDE.md
+// Rule 2) for this panel's own small buttons, and forwarded to
+// `AnimationEditorControls` for its per-row preview/remove buttons.
+const { viewportWidth } = useIsMobile();
+const touchTargetPx = computed(() => getDensePanelTouchTargetPx(viewportWidth.value));
+const touchBtnStyle = computed(() => ({
+	minWidth: `${touchTargetPx.value}px`,
+	minHeight: `${touchTargetPx.value}px`,
+}));
+
 const currentAnimations = computed(() => props.element.animations ?? []);
 const category = ref<AnimationCategory>('entrance');
 const presetId = ref(ENTRANCE_PRESETS[0]?.presetId ?? '');
@@ -144,6 +157,7 @@ function changeMotionPath(pathPresetId: string): void {
 				:key="`${animation.elementId}-${index}`"
 				:animation="animation"
 				:elements="slideElements"
+				:touch-target-px="touchTargetPx"
 				@patch="patchAnimation(index, $event)"
 				@remove="removeAnimation(index)"
 				@preview="previewVueAnimation(animation)"
@@ -192,7 +206,8 @@ function changeMotionPath(pathPresetId: string): void {
 			</label>
 			<button
 				type="button"
-				class="pptx-vue-anim-add-btn rounded bg-primary px-2 py-1.5 text-white disabled:opacity-50"
+				class="pptx-vue-anim-add-btn inline-flex items-center justify-center rounded bg-primary px-2 py-1.5 text-white disabled:opacity-50"
+				:style="touchBtnStyle"
 				:disabled="!presetId"
 				@click="addAnimation"
 			>
@@ -216,5 +231,12 @@ select {
 	background: var(--muted);
 	color: inherit;
 	padding: 4px 6px;
+}
+/* Touch target: matches MIN_TOUCH_TARGET_PX (44) from pptx-viewer-shared's
+   render/responsive module, below MOBILE_BREAKPOINT (768). */
+@media (max-width: 767px) {
+	select {
+		min-height: 44px;
+	}
 }
 </style>

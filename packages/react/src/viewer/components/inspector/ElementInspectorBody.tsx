@@ -129,7 +129,7 @@ export function ElementInspectorBody({
 						onClick={handleToggleLock}
 						disabled={!canEdit}
 						title={isLocked ? t('pptx.inspector.unlock') : t('pptx.inspector.lock')}
-						className='p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+						className='p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors max-md:min-w-[44px]! max-md:min-h-[44px]! flex items-center justify-center'
 						aria-pressed={isLocked}
 					>
 						{isLocked ? (

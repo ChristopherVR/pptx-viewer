@@ -115,6 +115,21 @@ export const COLLAB_CSS = `
 	cursor: pointer;
 }
 .pptxv-modal-danger-btn:hover { background: rgb(239 68 68 / 0.2); }
+/* Below this width, matches isDensePanelCompact()/MOBILE_BREAKPOINT (768) in
+   pptx-viewer-shared: getDensePanelTouchTargetPx(width) returns
+   MIN_TOUCH_TARGET_PX (44), so the header close button, the footer/danger
+   buttons, the text inputs and the Create/Join mode-toggle tabs of every
+   modal built on this shell (Share, Broadcast) clear a touch-sized hit area.
+   The footer itself is already outside the panel's own scroll region (only
+   .pptxv-modal-body scrolls, see above), so it stays visible without needing
+   shouldStickyActionRow's position: sticky. */
+@media (max-width: 767px) {
+	.pptxv-modal-close { width: 44px; height: 44px; }
+	.pptxv-modal-btn { min-height: 44px; }
+	.pptxv-modal-danger-btn { min-height: 44px; }
+	.pptxv-modal-input { min-height: 44px; }
+	.pptxv-share-tabs button { min-height: 44px; }
+}
 
 /* ── Share dialog: active-session status/details/connected-users ───────── */
 .pptxv-share-status-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
