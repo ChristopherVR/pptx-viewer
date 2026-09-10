@@ -6,9 +6,10 @@
  * eating the next click (live-verified with the "comment" entry, suspected for
  * ai-ask/ai-fix and the z-order commands).
  */
+import type { TablePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { contextMenuHandlers } from './context-menu-dispatch';
+import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch';
 import type { ContextMenuProps } from './context-menu-types';
 
 function makeProps(): ContextMenuProps & { onClose: ReturnType<typeof vi.fn> } {
@@ -69,5 +70,50 @@ describe('contextMenuHandlers', () => {
 		const handlers = contextMenuHandlers(props);
 		expect(handlers['ai-ask']).toBeUndefined();
 		expect(handlers['ai-fix']).toBeUndefined();
+	});
+});
+
+describe('merged table cell menu context', () => {
+	it('does not count a hidden merge continuation as a second selected cell', () => {
+		const props = makeProps();
+		props.selectedElement = {
+			id: 'table',
+			type: 'table',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 50,
+			tableData: {
+				columnWidths: [0.3, 0.3, 0.4],
+				rows: [
+					{
+						cells: [
+							{ text: 'Merged', gridSpan: 2 },
+							{ text: '', hMerge: true },
+							{ text: 'Neighbor' },
+						],
+					},
+				],
+			},
+		} satisfies TablePptxElement;
+		props.tableEditorState = {
+			rowIndex: 0,
+			columnIndex: 0,
+			selectedCells: [
+				{ row: 0, col: 0 },
+				{ row: 0, col: 1 },
+			],
+		};
+
+		expect(contextMenuContext(props).table).toStrictEqual({
+			hasMultiCellSelection: false,
+			isMergedCell: true,
+		});
+
+		props.tableEditorState.selectedCells.push({ row: 0, col: 2 });
+		expect(contextMenuContext(props).table).toStrictEqual({
+			hasMultiCellSelection: true,
+			isMergedCell: true,
+		});
 	});
 });

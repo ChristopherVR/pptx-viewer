@@ -14,6 +14,7 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ContextMenuCommandId, ContextMenuTableContext } from 'pptx-viewer-shared';
+import { hasMultipleSelectedTableCells } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../editor';
 import type { TableCellPosition } from '../editor/table-editor-mutations';
@@ -73,7 +74,10 @@ export function resolveTableTarget(
 	return {
 		cell,
 		context: {
-			hasMultiCellSelection: state.selectedTableCells.length > 1,
+			hasMultiCellSelection: hasMultipleSelectedTableCells(
+				state.selectedTableCells.map(({ row, column }) => ({ row, col: column })),
+				element.tableData,
+			),
 			isMergedCell: (anchor?.gridSpan ?? 1) > 1 || (anchor?.rowSpan ?? 1) > 1,
 		},
 	};

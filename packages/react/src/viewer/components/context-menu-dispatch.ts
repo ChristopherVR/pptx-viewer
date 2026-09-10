@@ -1,5 +1,6 @@
 import type { TablePptxElement } from 'pptx-viewer-core';
 import type { ContextMenuCommandId, ContextMenuContext } from 'pptx-viewer-shared';
+import { hasMultipleSelectedTableCells } from 'pptx-viewer-shared';
 
 import type { ContextMenuProps } from './context-menu-types';
 
@@ -21,11 +22,10 @@ function tableCell(props: ContextMenuProps): ContextMenuContext['table'] {
 	if (selectedElement?.type !== 'table' || tableEditorState === null) {
 		return null;
 	}
-	const rows = (selectedElement as TablePptxElement).tableData?.rows;
-	const cell = rows?.[tableEditorState.rowIndex]?.cells[tableEditorState.columnIndex];
+	const tableData = (selectedElement as TablePptxElement).tableData;
+	const cell = tableData?.rows[tableEditorState.rowIndex]?.cells[tableEditorState.columnIndex];
 	return {
-		hasMultiCellSelection:
-			Array.isArray(tableEditorState.selectedCells) && tableEditorState.selectedCells.length >= 2,
+		hasMultiCellSelection: hasMultipleSelectedTableCells(tableEditorState.selectedCells, tableData),
 		isMergedCell: Boolean(cell && ((cell.gridSpan ?? 1) > 1 || (cell.rowSpan ?? 1) > 1)),
 	};
 }

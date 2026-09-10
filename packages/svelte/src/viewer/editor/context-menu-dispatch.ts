@@ -7,6 +7,7 @@ import {
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
+	hasMultipleSelectedTableCells,
 	insertTableElementColumn,
 	insertTableElementRow,
 	mergeCells,
@@ -113,7 +114,7 @@ export function buildEditorContextMenuEntries(deps: ContextMenuDispatchDeps): Co
 		table:
 			tableData && cell
 				? {
-						hasMultiCellSelection: selectedCells.length > 1,
+						hasMultiCellSelection: hasMultipleSelectedTableCells(selectedCells, tableData),
 						isMergedCell: isMergedCell(tableData, cell),
 					}
 				: null,

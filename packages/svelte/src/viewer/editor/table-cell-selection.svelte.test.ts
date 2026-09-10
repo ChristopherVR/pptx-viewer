@@ -81,6 +81,26 @@ function modelOf(editor: EditorState): PptxTableData {
 	return (element as { tableData: PptxTableData }).tableData;
 }
 
+type ExistingMerge = 'horizontal' | 'vertical' | 'rectangle';
+
+/** A valid pre-existing merge anchored at (0, 0), plus visible neighbours. */
+function tableWithMerge(kind: ExistingMerge): PptxTableData {
+	const data = tableData();
+	const anchor = data.rows[0].cells[0];
+	if (kind === 'horizontal' || kind === 'rectangle') {
+		anchor.gridSpan = 2;
+		data.rows[0].cells[1] = { text: '', hMerge: true };
+	}
+	if (kind === 'vertical' || kind === 'rectangle') {
+		anchor.rowSpan = 2;
+		data.rows[1].cells[0] = { text: '', vMerge: true };
+	}
+	if (kind === 'rectangle') {
+		data.rows[1].cells[1] = { text: '', hMerge: true, vMerge: true };
+	}
+	return data;
+}
+
 describe('table cell range', () => {
 	it('a plain click anchors a single cell', () => {
 		const editor = makeEditor();
@@ -124,6 +144,41 @@ describe('table cell range', () => {
 });
 
 describe('block merge through the context menu', () => {
+	it.each<ExistingMerge>(['horizontal', 'vertical', 'rectangle'])(
+		'plain-clicking one %s merged cell offers Split Cell, not Merge Selected Cells',
+		(kind) => {
+			const editor = makeEditor(tableElement(tableWithMerge(kind)));
+			const cell = { rowIndex: 0, columnIndex: 0 };
+
+			applyTableCellPointer(editor, 'tbl', cellNode(0, 0), false);
+
+			// The merge-aware rectangle must still cover the anchor's full span so
+			// highlighting and a later Shift-click cannot select half a merge.
+			expect(editor.tableCells.cellsFor('tbl').length).toBeGreaterThan(1);
+			const entries = buildEditorContextMenuEntries({ editor, cell }).map((entry) => entry.id);
+			expect(entries).toContain('table-split');
+			expect(entries).not.toContain('table-merge-selected');
+		},
+	);
+
+	it('still offers Merge Selected Cells for a merged cell plus a visible neighbour', () => {
+		const editor = makeEditor(tableElement(tableWithMerge('horizontal')));
+		const cell = { rowIndex: 0, columnIndex: 0 };
+
+		applyTableCellPointer(editor, 'tbl', cellNode(0, 0), false);
+		const consumed = applyTableCellPointer(editor, 'tbl', cellNode(0, 2), true);
+
+		expect(consumed).toBeTruthy();
+		expect(editor.tableCells.cellsFor('tbl')).toStrictEqual([
+			{ row: 0, col: 0 },
+			{ row: 0, col: 1 },
+			{ row: 0, col: 2 },
+		]);
+		const entries = buildEditorContextMenuEntries({ editor, cell }).map((entry) => entry.id);
+		expect(entries).toContain('table-merge-selected');
+		expect(entries).not.toContain('table-split');
+	});
+
 	it('offers table-merge-selected only once the range covers a block', () => {
 		const editor = makeEditor();
 		const cell = { rowIndex: 0, columnIndex: 0 };

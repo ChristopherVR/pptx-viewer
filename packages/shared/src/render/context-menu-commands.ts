@@ -20,6 +20,32 @@
  *
  * @module render/context-menu-commands
  */
+import type { PptxTableData } from 'pptx-viewer-core';
+
+import type { CellCoord } from './table-merge';
+
+/**
+ * A merge-aware range includes hidden continuation cells. Count visible
+ * anchors, not those logical slots, when choosing between Merge and Split.
+ * Raw-only tables retain coordinate-based selection when no model is available.
+ */
+export function hasMultipleSelectedTableCells(
+	cells: readonly CellCoord[] | undefined,
+	tableData?: PptxTableData,
+): boolean {
+	const selected = new Set<string>();
+	for (const { row, col } of cells ?? []) {
+		const cell = tableData?.rows[row]?.cells[col];
+		if (tableData && (!cell || cell.hMerge || cell.vMerge)) {
+			continue;
+		}
+		selected.add(`${row},${col}`);
+		if (selected.size > 1) {
+			return true;
+		}
+	}
+	return false;
+}
 
 /** Every command a canvas context menu can offer, in no particular order. */
 export type ContextMenuCommandId =
@@ -64,7 +90,7 @@ export interface ContextMenuEntry {
 
 /** The table cell the menu was opened on, when it was opened on one. */
 export interface ContextMenuTableContext {
-	/** Two or more cells are selected, so the merge is a block merge. */
+	/** Two or more visible cells are selected, so the merge is a block merge. */
 	hasMultiCellSelection: boolean;
 	/** The cell already spans, so it can be split but not merged again. */
 	isMergedCell: boolean;

@@ -15,6 +15,7 @@
 import type { TablePptxElement } from 'pptx-viewer-core';
 
 import type { ContextMenuTableContext } from '../internal/shared';
+import { hasMultipleSelectedTableCells } from '../internal/shared';
 import type { TableCellSelection } from './table-selection.service';
 
 /**
@@ -35,7 +36,10 @@ export function tableMenuContext(
 	selection: TableCellSelection,
 ): ContextMenuTableContext {
 	return {
-		hasMultiCellSelection: (selection.selectedCells?.length ?? 0) >= 2,
+		hasMultiCellSelection: hasMultipleSelectedTableCells(
+			selection.selectedCells,
+			element.tableData,
+		),
 		isMergedCell: isMergedTableCell(element, selection.rowIndex, selection.columnIndex),
 	};
 }
