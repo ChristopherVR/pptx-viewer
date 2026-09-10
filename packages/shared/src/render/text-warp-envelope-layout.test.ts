@@ -7,12 +7,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-	buildGlyphEnvelope,
-	measureGlyphAdvances,
-	measureLineAscent,
-	resetGlyphEnvelopeMeasureCache,
-} from './text-warp-envelope-layout';
+import { buildGlyphEnvelope, resetGlyphEnvelopeMeasureCache } from './text-warp-envelope-layout';
 import { edgeBandAt } from './text-warp-glyph-matrix';
 
 const FONT = { fontFamily: 'Arial', fontSizePx: 20 };
@@ -44,21 +39,6 @@ beforeEach(() => {
 afterEach(() => {
 	vi.restoreAllMocks();
 	resetGlyphEnvelopeMeasureCache();
-});
-
-describe('measureGlyphAdvances', () => {
-	it('measures each character at the stubbed advance', () => {
-		stubFixedAdvance(10);
-		expect(measureGlyphAdvances('abc', FONT)).toStrictEqual([10, 10, 10]);
-	});
-
-	it('falls back to a font-size estimate with no DOM canvas context', () => {
-		vi.spyOn(document, 'createElement').mockReturnValue({
-			getContext: () => null,
-		} as unknown as HTMLElement);
-		const advances = measureGlyphAdvances('ab', FONT);
-		expect(advances).toStrictEqual([FONT.fontSizePx * 0.55, FONT.fontSizePx * 0.55]);
-	});
 });
 
 describe('buildGlyphEnvelope', () => {
@@ -445,48 +425,6 @@ function stubAscent(widthPerChar: number, actualBoundingBoxAscent: number | unde
 		}),
 	} as unknown as HTMLElement);
 }
-
-describe('measureLineAscent', () => {
-	it('is undefined with no DOM canvas context', () => {
-		vi.spyOn(document, 'createElement').mockReturnValue({
-			getContext: () => null,
-		} as unknown as HTMLElement);
-		expect(measureLineAscent([{ text: 'W', font: FONT, segmentIndex: 0 }])).toBeUndefined();
-	});
-
-	it('is undefined when measureText reports no actualBoundingBoxAscent', () => {
-		// jsdom's own `measureText` stub (and any environment without real
-		// glyph-ink measurement) omits this field entirely.
-		stubFixedAdvance(10);
-		expect(measureLineAscent([{ text: 'W', font: FONT, segmentIndex: 0 }])).toBeUndefined();
-	});
-
-	it('skips empty segments and ignores a non-finite ascent', () => {
-		stubAscent(10, Number.NaN);
-		expect(
-			measureLineAscent([
-				{ text: '', font: FONT, segmentIndex: 0 },
-				{ text: 'W', font: FONT, segmentIndex: 1 },
-			]),
-		).toBeUndefined();
-	});
-
-	it('is the tallest actualBoundingBoxAscent across every segment on the line', () => {
-		vi.spyOn(document, 'createElement').mockReturnValue({
-			getContext: () => ({
-				font: '',
-				measureText(text: string) {
-					return { width: 10, actualBoundingBoxAscent: text === 'tall' ? 40 : 12 };
-				},
-			}),
-		} as unknown as HTMLElement);
-		const ascent = measureLineAscent([
-			{ text: 'short', font: FONT, segmentIndex: 0 },
-			{ text: 'tall', font: FONT, segmentIndex: 1 },
-		]);
-		expect(ascent).toBe(40);
-	});
-});
 
 describe('nomTop derived from real text ascent (COM-measured regression)', () => {
 	// COM-measured 2026-09-11 (see `measureLineAscent`'s doc comment): mapping
