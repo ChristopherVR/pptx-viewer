@@ -18,6 +18,7 @@ import type { PptxCompatibilityWarning } from '../../types/metadata';
 import { elementRectEmu } from './element-rect';
 import type { HyperlinkResolveContext } from './hyperlink-model';
 import { resolveHyperlink } from './hyperlink-model';
+import { convertMedia } from './media-element-convert';
 import { convertOle } from './ole-element-convert';
 import { dataUrlToPicture } from './raster-utils';
 import { resolveFill, resolveLine } from './shape-style-to-fill-line';
@@ -44,6 +45,14 @@ export interface ConvertContext {
 	report: WarningReporter;
 	/** Resolves shape/run click actions (`a:hlinkClick`) to a `WHyperlinkKind`. */
 	hyperlinkCtx: HyperlinkResolveContext;
+	/**
+	 * WAV bytes for `media` elements loaded from a real `.pptx` (which carry
+	 * only a lazy `mediaPath`, never `mediaData`), keyed by `mediaPath` and
+	 * pre-resolved from the live zip by `PptxHandlerRuntimeSaveLegacyPpt.ts`
+	 * before conversion so `media-element-convert.ts` can embed real audio
+	 * without mutating the live element tree.
+	 */
+	resolvedMedia?: Map<string, Uint8Array>;
 }
 
 const PLACEHOLDER_TYPES = new Set(['title', 'body', 'ctrTitle', 'subTitle']);
@@ -226,7 +235,7 @@ export function convertElement(element: PptxElement, ctx: ConvertContext): WAnyS
 		case 'ole':
 			return convertOle(element, ctx);
 		case 'media':
-			return degradeElement(element, ctx, `[${element.mediaType === 'audio' ? 'Audio' : 'Video'}]`);
+			return convertMedia(element, ctx);
 		case 'model3d':
 			return degradeElement(element, ctx, '[3D Model]');
 		case 'ink':
@@ -270,6 +279,7 @@ function convertSlide(slide: PptxSlide, ctx: ConvertContext): WSlide {
  * @param customShows - The deck's named custom shows (`p:custShowLst`), used
  *   to resolve a `customShow` click-action target. Omit when the caller has
  *   none available; custom-show actions then degrade to no hyperlink.
+ * @param resolvedMedia - See `ConvertContext.resolvedMedia`'s doc.
  */
 export function convertDeckToWriteModel(
 	slides: PptxSlide[],
@@ -277,11 +287,12 @@ export function convertDeckToWriteModel(
 	heightEmu: number,
 	report: WarningReporter,
 	customShows?: PptxCustomShow[],
+	resolvedMedia?: Map<string, Uint8Array>,
 ): WDeck {
 	const pictures: WPictureData[] = [];
 	const hyperlinkCtx: HyperlinkResolveContext = { slides, customShows };
 	const wSlides = slides.map((slide) =>
-		convertSlide(slide, { pictures, slideId: slide.id, report, hyperlinkCtx }),
+		convertSlide(slide, { pictures, slideId: slide.id, report, hyperlinkCtx, resolvedMedia }),
 	);
 	return { widthEmu, heightEmu, slides: wSlides, pictures };
 }

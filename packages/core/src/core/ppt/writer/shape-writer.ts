@@ -11,12 +11,13 @@ import { ByteWriter, record } from './byte-writer';
 import { buildFopt } from './fopt-writer';
 import { buildInteractiveInfo } from './hyperlink-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
+import type { MediaCollector } from './media-writer';
 import { buildExObjRefAtom } from './ole-writer';
 import type { OleCollector } from './ole-writer';
 import type { ShapeIdAllocator } from './shape-id-allocator';
 import { buildShapeFoptProps } from './shape-props-writer';
 import { buildTextAtoms } from './text-atom-writer';
-import type { WHyperlink, WPicture, WShape } from './write-model';
+import type { WHyperlink, WMedia, WPicture, WShape } from './write-model';
 
 const FSP_FLAG_FLIPH = 0x0040;
 const FSP_FLAG_FLIPV = 0x0080;
@@ -162,5 +163,36 @@ export function buildPictureContainer(
 	if (picture.hyperlink || exObjId !== undefined) {
 		w.bytes(buildClientData(undefined, picture.hyperlink, hyperlinks, exObjId));
 	}
+	return record(OA.SpContainer, w.toBytes(), 0, true);
+}
+
+/**
+ * Build a framed OfficeArtSpContainer for an embedded-audio shape. MSOSPT
+ * 75 ("Picture Frame") is the same shape type real PowerPoint gives an
+ * inserted audio object's shape (confirmed against the ground-truth
+ * fixture), even with no `pib` picture property: unlike `buildPictureContainer`
+ * this shape carries no blip, only the `ExObjRefAtom` linking it to its
+ * `ExMediaAtom` (see `media-writer.ts`).
+ */
+export function buildMediaShapeContainer(
+	media: WMedia,
+	allocator: ShapeIdAllocator,
+	hyperlinks: HyperlinkCollector,
+	mediaEmbeds: MediaCollector,
+): Uint8Array {
+	let flags = 0;
+	if (media.flipH) {
+		flags |= FSP_FLAG_FLIPH;
+	}
+	if (media.flipV) {
+		flags |= FSP_FLAG_FLIPV;
+	}
+	const props = buildShapeFoptProps({ name: media.name, rotationDeg: media.rotationDeg });
+	const exObjId = mediaEmbeds.registerAudio(media.wavBytes, media.soundName);
+	const w = new ByteWriter()
+		.bytes(buildFsp(allocator.next(), 75, flags))
+		.bytes(buildFopt(props.simple, props.complex))
+		.bytes(buildClientAnchor(media.anchor))
+		.bytes(buildClientData(undefined, media.hyperlink, hyperlinks, exObjId));
 	return record(OA.SpContainer, w.toBytes(), 0, true);
 }

@@ -29,7 +29,9 @@ export const RT = {
 	List: 0x07d0,
 	FontCollection: 0x07d5,
 	SoundCollection: 0x07e4,
+	SoundCollectionAtom: 0x07e5,
 	Sound: 0x07e6,
+	SoundDataBlob: 0x07e7,
 	ColorSchemeAtom: 0x07f0,
 	ExternalObjectRefAtom: 0x0bc1,
 	OEPlaceholderAtom: 0x0bc3,
@@ -49,6 +51,19 @@ export const RT = {
 	ExternalHyperlinkAtom: 0x0fd3,
 	ExternalHyperlink: 0x0fd7,
 	ExternalOleObjectStg: 0x1011,
+	/** [MS-PPT] 2.10.6: information about external audio/video data (exObjId + loop/rewind/narration flags). */
+	ExternalMediaAtom: 0x1004,
+	/** [MS-PPT] 2.10.5: wraps an ExMediaAtom + optional UncOrLocalPathAtom for a linked video file. */
+	ExternalVideo: 0x1005,
+	/** [MS-PPT] 2.10.4: wraps an ExVideoContainer for a linked AVI movie. */
+	ExternalAviMovie: 0x1006,
+	/** [MS-PPT] 2.10.3: wraps an ExVideoContainer for a linked (generic/MCI-played) movie; what real
+	 * PowerPoint 16.0 writes for a linked non-AVI video file (COM-verified). */
+	ExternalMciMovie: 0x1007,
+	/** [MS-PPT] 2.10.8: wraps an ExMediaAtom + ExWAVAudioEmbeddedAtom referencing a SoundCollection entry. */
+	ExternalWavAudioEmbedded: 0x100f,
+	/** [MS-PPT] 2.10.9: soundIdRef (into SoundCollectionContainer) + soundLength (ms). recVer/recInstance = 0x1/0x001. */
+	ExternalWavAudioEmbeddedAtom: 0x1013,
 	TextInteractiveInfoAtom: 0x0fdf,
 	SlideListWithText: 0x0ff0,
 	InteractiveInfo: 0x0ff2,

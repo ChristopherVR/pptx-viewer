@@ -13,6 +13,7 @@ import { RT } from '../record-types';
 import { ByteWriter, record } from './byte-writer';
 import { buildDrawing } from './drawing-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
+import type { MediaCollector } from './media-writer';
 import type { OleCollector } from './ole-writer';
 import type { WParagraph, WRect, WShape } from './write-model';
 
@@ -30,6 +31,7 @@ export function buildNotesContainer(
 	drawingId: number,
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
+	mediaEmbeds: MediaCollector,
 ): Uint8Array {
 	const bodyShape: WShape = {
 		kind: 'shape',
@@ -41,7 +43,18 @@ export function buildNotesContainer(
 	};
 	const data = new ByteWriter()
 		.bytes(buildNotesAtom(slidePersistIdRef))
-		.bytes(buildDrawing(notesRect, [bodyShape], undefined, fonts, drawingId, hyperlinks, oleEmbeds))
+		.bytes(
+			buildDrawing(
+				notesRect,
+				[bodyShape],
+				undefined,
+				fonts,
+				drawingId,
+				hyperlinks,
+				oleEmbeds,
+				mediaEmbeds,
+			),
+		)
 		.toBytes();
 	return record(RT.Notes, data, 0, true);
 }

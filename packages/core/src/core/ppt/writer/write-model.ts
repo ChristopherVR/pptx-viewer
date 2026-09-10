@@ -141,7 +141,23 @@ export interface WGroup extends WShapeBase {
 	children: WAnyShape[];
 }
 
-export type WAnyShape = WShape | WPicture | WGroup;
+/**
+ * An embedded audio shape. `wavBytes` is the complete WAV file (RIFF header
+ * included) written verbatim as the `SoundDataBlob` record (see
+ * `media-writer.ts`'s doc comment): real PowerPoint's own 97-2003 SaveAs
+ * never populates this record (COM-verified: `Shape.MediaFormat.Length`
+ * reads back 0 even from a freshly-launched `PowerPoint.Application`), so
+ * this writer exceeds PowerPoint's own exporter rather than matching its
+ * (broken) output.
+ */
+export interface WMedia extends WShapeBase {
+	kind: 'media';
+	wavBytes: Uint8Array;
+	/** Display name (`SoundNameAtom`); PowerPoint shows this in the sound picker. */
+	soundName: string;
+}
+
+export type WAnyShape = WShape | WPicture | WGroup | WMedia;
 
 /** A picture stored in the deck's Pictures stream / BStore. */
 export interface WPictureData {

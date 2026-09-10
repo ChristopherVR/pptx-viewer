@@ -14,9 +14,15 @@ import { OA } from '../record-types';
 import { buildChildAnchorData, buildClientAnchor } from './anchor-writer';
 import { ByteWriter, record } from './byte-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
+import type { MediaCollector } from './media-writer';
 import type { OleCollector } from './ole-writer';
 import type { ShapeIdAllocator } from './shape-id-allocator';
-import { buildClientData, buildPictureContainer, buildShapeContainer } from './shape-writer';
+import {
+	buildClientData,
+	buildMediaShapeContainer,
+	buildPictureContainer,
+	buildShapeContainer,
+} from './shape-writer';
 import type { WAnyShape, WGroup, WRect } from './write-model';
 
 const FSP_FLAG_GROUP = 0x0001;
@@ -66,13 +72,14 @@ function buildNestedGroupPatriarch(
 	return record(OA.SpContainer, data.toBytes(), 0, true);
 }
 
-/** Dispatch a single shape/picture/group to its framed OfficeArt container. */
+/** Dispatch a single shape/picture/group/media to its framed OfficeArt container. */
 export function buildAnyShapeContainer(
 	shape: WAnyShape,
 	fonts: string[],
 	allocator: ShapeIdAllocator,
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
+	mediaEmbeds: MediaCollector,
 ): Uint8Array {
 	if (shape.kind === 'shape') {
 		return buildShapeContainer(shape, fonts, allocator, hyperlinks);
@@ -80,7 +87,10 @@ export function buildAnyShapeContainer(
 	if (shape.kind === 'picture') {
 		return buildPictureContainer(shape, allocator, hyperlinks, oleEmbeds);
 	}
-	return buildGroupContainer(shape, fonts, allocator, hyperlinks, oleEmbeds);
+	if (shape.kind === 'media') {
+		return buildMediaShapeContainer(shape, allocator, hyperlinks, mediaEmbeds);
+	}
+	return buildGroupContainer(shape, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds);
 }
 
 /** Build a framed OfficeArtSpgrContainer for a nested group. */
@@ -90,10 +100,11 @@ export function buildGroupContainer(
 	allocator: ShapeIdAllocator,
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
+	mediaEmbeds: MediaCollector,
 ): Uint8Array {
 	const data = new ByteWriter().bytes(buildNestedGroupPatriarch(group, allocator, hyperlinks));
 	for (const child of group.children) {
-		data.bytes(buildAnyShapeContainer(child, fonts, allocator, hyperlinks, oleEmbeds));
+		data.bytes(buildAnyShapeContainer(child, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds));
 	}
 	return record(OA.SpgrContainer, data.toBytes(), 0, true);
 }

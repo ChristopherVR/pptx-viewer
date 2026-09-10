@@ -131,7 +131,12 @@ function buildPaddingTag(size: number): Uint8Array {
  *   was written anywhere in the deck. Placed immediately after
  *   `DocumentAtom`, matching a COM-authored ground-truth fixture's own
  *   `DocumentContainer` child order (`DocumentAtom`, `ExObjListContainer`,
- *   `DocumentTextInfoContainer`/Environment, `DrawingGroupContainer`, ...).
+ *   `DocumentTextInfoContainer`/Environment, `SoundCollectionContainer`,
+ *   `DrawingGroupContainer`, ...).
+ * @param soundCollection - The document-wide `SoundCollectionContainer` (see
+ *   `media-writer.ts#buildSoundCollection`), when any audio was embedded
+ *   anywhere in the deck. Placed right after Environment, matching the same
+ *   ground-truth fixture's child order.
  */
 export function buildDocumentContainer(input: {
 	widthEmu: number;
@@ -142,6 +147,7 @@ export function buildDocumentContainer(input: {
 	dggContainer: Uint8Array;
 	paddingBytes?: number;
 	exObjList?: Uint8Array;
+	soundCollection?: Uint8Array;
 }): Uint8Array {
 	const drawingGroup = record(RT.DrawingGroup, input.dggContainer, 0, true);
 	// A real (COM-written) DocumentContainer's LAST child is always a
@@ -153,9 +159,11 @@ export function buildDocumentContainer(input: {
 	if (input.exObjList) {
 		w.bytes(input.exObjList);
 	}
-	w.bytes(buildEnvironment(input.fonts))
-		.bytes(drawingGroup)
-		.bytes(buildSlideListWithText([input.masterPersistAtom], 1));
+	w.bytes(buildEnvironment(input.fonts));
+	if (input.soundCollection) {
+		w.bytes(input.soundCollection);
+	}
+	w.bytes(drawingGroup).bytes(buildSlideListWithText([input.masterPersistAtom], 1));
 	if (input.paddingBytes) {
 		w.bytes(buildPaddingTag(input.paddingBytes));
 	}

@@ -13,26 +13,37 @@ import { RT } from '../record-types';
 import { ByteWriter, record } from './byte-writer';
 import { buildExHyperlinkContainer } from './hyperlink-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
+import { buildMediaExObjEntries } from './media-writer';
+import type { MediaCollector } from './media-writer';
 import { buildExOleEmbedContainer } from './ole-writer';
 import type { OleCollector } from './ole-writer';
 
 /**
  * Build the document-level `ExObjListContainer`, or `undefined` when
- * nothing was registered in either collector.
+ * nothing was registered in any collector.
  *
  * @param ole - Every entry MUST already have `persistIdRef` set (assigned
  *   by `document-stream-layout.ts` once every embed's `ExOleObjStg` has
  *   been laid out and given a persist id).
+ * @param media - Embedded-audio entries (see `media-writer.ts`); these need
+ *   no persist id, unlike `ole`.
  */
 export function buildExObjList(
 	hyperlinks: HyperlinkCollector,
 	ole: OleCollector | undefined,
+	media: MediaCollector | undefined,
 ): Uint8Array | undefined {
 	const oleEntries = ole?.all ?? [];
-	if (hyperlinks.isEmpty && oleEntries.length === 0) {
+	const mediaEntries = media?.all ?? [];
+	if (hyperlinks.isEmpty && oleEntries.length === 0 && mediaEntries.length === 0) {
 		return undefined;
 	}
-	const seed = Math.max(hyperlinks.peekNextId(), ...oleEntries.map((e) => e.exObjId + 1), 1);
+	const seed = Math.max(
+		hyperlinks.peekNextId(),
+		...oleEntries.map((e) => e.exObjId + 1),
+		...mediaEntries.map((e) => e.exObjId + 1),
+		1,
+	);
 	const atomData = new ByteWriter().i32(seed).toBytes();
 	const w = new ByteWriter().bytes(record(RT.ExternalObjectListAtom, atomData, 0, false, 0));
 	for (const entry of hyperlinks.all) {
@@ -45,6 +56,11 @@ export function buildExObjList(
 			);
 		}
 		w.bytes(buildExOleEmbedContainer(entry.exObjId, entry.persistIdRef));
+	}
+	if (media) {
+		for (const entryBytes of buildMediaExObjEntries(media)) {
+			w.bytes(entryBytes);
+		}
 	}
 	return record(RT.ExternalObjectList, w.toBytes(), 0, true);
 }

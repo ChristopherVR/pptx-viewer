@@ -108,3 +108,40 @@ test('Save As .ppt preserves a shape-level hyperlink (a:hlinkClick)', async ({ p
 	expect(shape).toBeDefined();
 	expect(shape?.actionClick?.url).toBe(HYPERLINK_TARGET_URL);
 });
+
+test('Save As .ppt embeds real audio bytes for a loaded media element', async ({ page }) => {
+	// audio-embed.pptx (generate-audio-embed-fixture.ts) has one slide, one
+	// p:pic with a real a:audioFile r:embed WAV relationship. The loaded
+	// element carries `mediaPath` (no `mediaData`): a real imported deck's
+	// shape, not an SDK-authored one (see `PptxHandlerRuntimeSaveLegacyPpt.ts`'s
+	// `resolveAudioMediaBytes`). `pptx-viewer-core`'s public API does not parse
+	// `SoundCollection` back into a `media` element yet (see
+	// `packages/core/src/core/ppt/writer/media-writer.ts`'s module doc and
+	// `docs/guide/limitations.md`), so this proves what the public API CAN
+	// prove: the save succeeds, produces a real CFB file, and that file
+	// reloads with the same slide/shape count, in every binding.
+	await loadDeck(page, fixture('audio-embed.pptx'));
+
+	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+	await toolbar.getByRole('tab', { name: 'File', exact: true }).click();
+
+	const backstage = page.getByRole('dialog', { name: 'File' });
+	await backstage.waitFor();
+	await backstage.getByRole('button', { name: 'Save As', exact: true }).click();
+
+	const downloadPromise = page.waitForEvent('download');
+	await backstage.getByRole('button', { name: /^PowerPoint 97-2003 Presentation/u }).click();
+	const download = await downloadPromise;
+
+	const path = await download.path();
+	expect(path).toBeTruthy();
+	const bytes = await readFile(path!);
+	expect(Array.from(bytes.subarray(0, 8))).toStrictEqual(CFB_SIGNATURE);
+
+	const handler = new PptxHandler();
+	const data = await handler.load(
+		bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+	);
+	expect(data.slides.length).toBe(1);
+	expect(data.slides[0]!.elements.length).toBeGreaterThan(0);
+});

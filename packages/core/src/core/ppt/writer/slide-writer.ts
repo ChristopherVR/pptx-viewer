@@ -10,6 +10,7 @@ import { buildColorSchemeAtom } from './color-scheme-writer';
 import { buildDrawing } from './drawing-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
 import { buildMasterTextStyles } from './master-text-styles-writer';
+import type { MediaCollector } from './media-writer';
 import type { OleCollector } from './ole-writer';
 import type { WRect, WSlide } from './write-model';
 
@@ -83,6 +84,7 @@ export function buildSlideContainer(
 	drawingId: number,
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
+	mediaEmbeds: MediaCollector,
 ): Uint8Array {
 	const data = new ByteWriter()
 		.bytes(buildSlideAtom(SLIDE_MASTER_ID_SENTINEL, notesIdRef, Boolean(slide.backgroundRgb)))
@@ -95,6 +97,7 @@ export function buildSlideContainer(
 				drawingId,
 				hyperlinks,
 				oleEmbeds,
+				mediaEmbeds,
 			),
 		)
 		.bytes(buildColorSchemeAtom())
@@ -143,12 +146,15 @@ export function buildMainMasterContainer(
 	drawingId: number,
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
+	mediaEmbeds: MediaCollector,
 ): Uint8Array {
 	const data = new ByteWriter()
 		.bytes(buildMasterSlideAtom())
 		.bytes(buildColorSchemeAtom(MASTER_FIRST_COLOR_SCHEME_INSTANCE))
 		.bytes(buildMasterTextStyles())
-		.bytes(buildDrawing(slideRect, [], undefined, [], drawingId, hyperlinks, oleEmbeds))
+		.bytes(
+			buildDrawing(slideRect, [], undefined, [], drawingId, hyperlinks, oleEmbeds, mediaEmbeds),
+		)
 		.bytes(buildColorSchemeAtom())
 		.toBytes();
 	return record(RT.MainMaster, data, 0, true);

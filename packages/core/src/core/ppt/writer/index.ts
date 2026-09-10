@@ -15,5 +15,6 @@ export type {
 	WShape,
 	WPicture,
 	WGroup,
+	WMedia,
 	WPictureData,
 } from './write-model';

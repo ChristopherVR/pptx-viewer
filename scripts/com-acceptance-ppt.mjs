@@ -49,10 +49,12 @@
  * `.ppt`-open regression is fixed.
  */
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import JSZip from 'jszip';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '..');
@@ -405,6 +407,124 @@ async function runOleCase() {
 const oleExit = await runOleCase();
 failures += oleExit === 1 ? 1 : 0;
 if (oleExit === 2) {
+	rmSync(scratch, { recursive: true, force: true });
+	process.exit(2);
+}
+
+/**
+ * Embedded-audio acceptance. See `ppt-com-media.ps1`'s doc comment for why
+ * `MediaFormat.Length` is not the assertion: this writes a real WAV
+ * (RIFF/WAVE, not silence-only, so a truncated/garbled SoundDataBlob would
+ * produce audibly wrong output even though this check only compares bytes),
+ * saves as `.ppt`, opens it via a FRESH `PowerPoint.Application` (never the
+ * one that wrote it, ruling out any in-process cache), asserts
+ * `Shape.Type`/`MediaType`, then has PowerPoint itself `SaveAs` to `.pptx`
+ * and asserts the re-exported `ppt/media/*` part is byte-identical to the
+ * WAV this test embedded: proof PowerPoint's own importer read the
+ * `SoundDataBlob` this writer's exporter never emits on its own (see
+ * `packages/core/src/core/ppt/writer/media-writer.ts`'s module doc).
+ */
+function buildTestWav() {
+	const sampleRate = 8000;
+	const numSamples = 400; // 50ms
+	const dataSize = numSamples * 2;
+	const buf = Buffer.alloc(44 + dataSize);
+	buf.write('RIFF', 0);
+	buf.writeUInt32LE(36 + dataSize, 4);
+	buf.write('WAVE', 8);
+	buf.write('fmt ', 12);
+	buf.writeUInt32LE(16, 16);
+	buf.writeUInt16LE(1, 20);
+	buf.writeUInt16LE(1, 22);
+	buf.writeUInt32LE(sampleRate, 24);
+	buf.writeUInt32LE(sampleRate * 2, 28);
+	buf.writeUInt16LE(2, 32);
+	buf.writeUInt16LE(16, 34);
+	buf.write('data', 36);
+	buf.writeUInt32LE(dataSize, 40);
+	for (let i = 0; i < numSamples; i++) {
+		const v = Math.round(Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 8000);
+		buf.writeInt16LE(v, 44 + i * 2);
+	}
+	return buf;
+}
+
+async function runMediaCase() {
+	const wav = buildTestWav();
+	const dataUrl = `data:audio/wav;base64,${wav.toString('base64')}`;
+	const { handler, data, createSlide } = await PptxHandler.create({ initialSlideCount: 0 });
+	const slideBuilder = createSlide('Blank').addMedia('audio', dataUrl, {
+		x: 50,
+		y: 50,
+		width: 200,
+		height: 50,
+		name: 'TestSound',
+	});
+	data.slides.push(slideBuilder.build());
+
+	const bytes = await handler.save(data.slides, { outputFormat: 'ppt' });
+	const filePath = path.join(scratch, 'media.ppt');
+	writeFileSync(filePath, Buffer.from(bytes));
+
+	const script = path.join(HERE, 'ppt-com-media.ps1');
+	const result = spawnSync(
+		'pwsh',
+		['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-Path', filePath],
+		{ encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+	);
+	const stdout = result.stdout ?? '';
+	if (stdout.startsWith('FATAL')) {
+		console.error(stdout.trim());
+		return 2;
+	}
+	if (/^FAIL/mu.test(stdout)) {
+		console.error(`\nmedia case: file failed to open. Full COM output:\n${stdout}`);
+		return 1;
+	}
+
+	console.log(`\n${'media case'.padEnd(28)}verdict`);
+	console.log('-'.repeat(90));
+	const checks = [];
+
+	const shapeOk = /^SHAPE \d+ type=16 mediatype=2/mu.test(stdout);
+	checks.push(['audio shape (msoMedia, ppMediaTypeSound)', shapeOk]);
+
+	const resavedMatch = /^RESAVED (.+)$/mu.exec(stdout);
+	let byteMatchOk = false;
+	if (resavedMatch) {
+		try {
+			const zip = await JSZip.loadAsync(readFileSync(resavedMatch[1].trim()));
+			const mediaFiles = Object.keys(zip.files).filter((n) => /^ppt\/media\//u.test(n));
+			for (const name of mediaFiles) {
+				const reExported = await zip.files[name].async('nodebuffer');
+				if (reExported.equals(wav)) {
+					byteMatchOk = true;
+					break;
+				}
+			}
+		} catch (err) {
+			console.error(`  ! could not read resaved .pptx: ${err.message}`);
+		}
+	}
+	checks.push(['re-exported WAV byte-identical', byteMatchOk]);
+
+	let mediaFailures = 0;
+	for (const [label, ok] of checks) {
+		console.log(`${label.padEnd(40)}${ok ? 'OK' : 'FAIL'}`);
+		if (!ok) {
+			mediaFailures++;
+		}
+	}
+	if (mediaFailures > 0) {
+		console.error(`\nFull COM output:\n${stdout}`);
+	}
+	console.log(`\n${checks.length} media assertion(s), ${mediaFailures} failure(s).`);
+	return mediaFailures > 0 ? 1 : 0;
+}
+
+const mediaExit = await runMediaCase();
+failures += mediaExit === 1 ? 1 : 0;
+if (mediaExit === 2) {
 	rmSync(scratch, { recursive: true, force: true });
 	process.exit(2);
 }

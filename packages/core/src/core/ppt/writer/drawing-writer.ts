@@ -11,6 +11,7 @@ import { encodeColorRef } from './colors';
 import { buildFopt, OPT } from './fopt-writer';
 import { buildAnyShapeContainer, buildCanvasPatriarch } from './group-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
+import type { MediaCollector } from './media-writer';
 import type { OleCollector } from './ole-writer';
 import { ShapeIdAllocator } from './shape-id-allocator';
 import type { WAnyShape, WRect } from './write-model';
@@ -58,6 +59,7 @@ export function buildDrawing(
 	drawingId: number,
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
+	mediaEmbeds: MediaCollector,
 ): Uint8Array {
 	const allocator = new ShapeIdAllocator(drawingId, SHAPE_ID_CLUSTER_SIZE);
 	const spgrData = new ByteWriter().bytes(buildCanvasPatriarch(allocator));
@@ -65,7 +67,9 @@ export function buildDrawing(
 		spgrData.bytes(buildBackgroundShape(backgroundRgb, allocator));
 	}
 	for (const shape of shapes) {
-		spgrData.bytes(buildAnyShapeContainer(shape, fonts, allocator, hyperlinks, oleEmbeds));
+		spgrData.bytes(
+			buildAnyShapeContainer(shape, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds),
+		);
 	}
 	const spgrContainer = record(OA.SpgrContainer, spgrData.toBytes(), 0, true);
 

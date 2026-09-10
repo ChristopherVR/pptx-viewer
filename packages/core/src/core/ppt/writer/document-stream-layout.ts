@@ -17,6 +17,7 @@ import {
 } from './document-writer';
 import { buildExObjList } from './ex-obj-list-writer';
 import { HyperlinkCollector } from './hyperlink-writer';
+import { buildSoundCollection, MediaCollector } from './media-writer';
 import { buildNotesContainer } from './notes-writer';
 import { buildExOleObjStg, OleCollector } from './ole-writer';
 import { buildMainMasterContainer, buildSlideContainer } from './slide-writer';
@@ -43,7 +44,7 @@ function collectFonts(deck: WDeck): string[] {
 		if (shape.kind === 'group') {
 			return shape.children.flatMap(collect);
 		}
-		if (shape.kind === 'picture' || !shape.text) {
+		if (shape.kind !== 'shape' || !shape.text) {
 			return [];
 		}
 		return shape.text.paragraphs.flatMap((p) =>
@@ -95,13 +96,15 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 	const fonts = collectFonts(deck);
 	const { dggContainer, picturesStream } = buildPictureStore(deck.pictures, shapesPerDrawing);
 
-	// Document-wide: every hyperlink/click-action target AND every OLE embed
-	// anywhere in the deck (shape and text-run level, across every slide,
-	// notes page and the master) shares these two collectors, matching real
-	// PowerPoint's single document-level ExObjListContainer (see
-	// `ex-obj-list-writer.ts`).
+	// Document-wide: every hyperlink/click-action target, every OLE embed, and
+	// every embedded audio shape anywhere in the deck (shape and text-run
+	// level, across every slide, notes page and the master) shares these
+	// three collectors, matching real PowerPoint's single document-level
+	// ExObjListContainer (see `ex-obj-list-writer.ts`) and (for audio) single
+	// document-level SoundCollectionContainer (see `media-writer.ts`).
 	const hyperlinks = new HyperlinkCollector();
 	const oleEmbeds = new OleCollector(hyperlinks);
+	const mediaEmbeds = new MediaCollector(hyperlinks);
 
 	const slideContainers = deck.slides.map((slide, i) =>
 		buildSlideContainer(
@@ -113,6 +116,7 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 			slideDrawingIds[i]!,
 			hyperlinks,
 			oleEmbeds,
+			mediaEmbeds,
 		),
 	);
 	const notesContainers = deck.slides
@@ -126,6 +130,7 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 						notesDrawingIds[i]!,
 						hyperlinks,
 						oleEmbeds,
+						mediaEmbeds,
 					)
 				: undefined,
 		)
@@ -136,6 +141,7 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		masterDrawingId,
 		hyperlinks,
 		oleEmbeds,
+		mediaEmbeds,
 	);
 	const masterPersistAtom = buildSlidePersistAtom(MASTER_ID, MASTER_SLIDE_ID_SENTINEL);
 	// flags=4: real (COM-written) files set this bit on a SLIDE's own
@@ -154,9 +160,10 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 	const oleStgRecords = oleEmbeds.all.map((entry) => buildExOleObjStg(entry.storage));
 
 	// Built AFTER every slide/notes/master container above so every
-	// hyperlink/OLE target referenced anywhere in the deck has already been
-	// registered.
-	const exObjList = buildExObjList(hyperlinks, oleEmbeds);
+	// hyperlink/OLE/media target referenced anywhere in the deck has already
+	// been registered.
+	const exObjList = buildExObjList(hyperlinks, oleEmbeds, mediaEmbeds);
+	const soundCollection = buildSoundCollection(mediaEmbeds);
 
 	const documentInput = {
 		widthEmu: deck.widthEmu,
@@ -166,6 +173,7 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		slidePersistAtoms,
 		dggContainer,
 		exObjList,
+		soundCollection,
 	};
 	const maxPersistId = nextId - 1;
 	const contentSizeWithoutPadding =
