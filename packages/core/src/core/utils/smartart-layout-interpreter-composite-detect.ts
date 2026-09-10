@@ -28,7 +28,14 @@ const SLOT_CONSTRAINTS = new Set(['l', 't', 'w', 'h', 'ctrX', 'ctrY']);
  * by - `gear`'s blocker).
  */
 /** `dgm:alg` types that are a genuine structural arranger, never a plain content leaf. */
-const STRUCTURAL_ALG_TYPES = new Set(['lin', 'cycle', 'pyra', 'snake', 'hierRoot', 'hierChild']);
+export const STRUCTURAL_ALG_TYPES = new Set([
+	'lin',
+	'cycle',
+	'pyra',
+	'snake',
+	'hierRoot',
+	'hierChild',
+]);
 
 /**
  * True when `node` was reached through an ENCLOSING `dgm:forEach` that only
@@ -141,6 +148,67 @@ export function hasStructuralDescendant(node: PptxSmartArtLayoutNode): boolean {
 			(STRUCTURAL_ALG_TYPES.has(child.algorithm?.type ?? '') && !isContinuationForEach(child)) ||
 			hasStructuralDescendant(child),
 	);
+}
+
+/**
+ * True when `node` has a structural descendant (as {@link
+ * hasStructuralDescendant}) that is ALSO reached through a genuine
+ * "repeated per-point item template" `forEachOrigin` (`axis="ch"
+ * ptType="node"` - the same narrow signal `smartart-layout-interpreter-
+ * composite-candidates.ts`'s `collectRawCandidates` uses to establish an
+ * inheritable anchor, round 32). This is the signal the round 31/32 multi-
+ * slot `compositeSlot` exception (`smartart-layout-interpreter-model.ts`)
+ * needs: `continuous-arrow-process--hier5.pptx`'s `linV` matches (reached
+ * via `linH`'s own `dgm:forEach`), so its outer `Name0` composite correctly
+ * gets a chance to resolve `linV`'s per-point content through the slot
+ * resolver. `NumberedDotsVertical`'s `itemsFlow` does NOT match (it owns
+ * its OWN `dgm:forEach` directly - `node.forEach`, not `forEachOrigin` - as
+ * a plain top-level-shaped structural arranger, not something reached
+ * through an enclosing one), so `root` stays excluded exactly as {@link
+ * hasStructuralDescendant}'s own doc comment describes: `structural` (the
+ * EXISTING `linear`/`itemsFlow` pick, already correctly expanded by
+ * `smartart-layout-interpreter-item-roles.ts`) must keep winning for that
+ * shape, not the composite slot resolver, which does not yet handle a
+ * nested COMPOSITE item template (`item`, `alg="composite"`, excluded from
+ * `STRUCTURAL_ALG_TYPES` on purpose - only `lin`/`cycle`/`pyra`/`snake`
+ * item templates are handled today).
+ */
+export function hasRepeatedTemplateStructuralDescendant(node: PptxSmartArtLayoutNode): boolean {
+	return (node.children ?? []).some((child) => {
+		if (
+			STRUCTURAL_ALG_TYPES.has(child.algorithm?.type ?? '') &&
+			!isContinuationForEach(child) &&
+			child.forEachOrigin?.axis?.includes('ch') &&
+			child.forEachOrigin?.pointTypes?.includes('node')
+		) {
+			return true;
+		}
+		return hasRepeatedTemplateStructuralDescendant(child);
+	});
+}
+
+/**
+ * Count of DISTINCT slot names `node` positions via its own `for="ch"
+ * forName="<slot>"` constraints (`node.allConstraints`) - round 31/32's
+ * signal for telling a composite with exactly ONE convenience-wrapped
+ * structural child (`NumberedDotsVertical`'s `root`/`itemsFlow` shell,
+ * `hasStructuralDescendant`'s own doc comment) apart from one with SEVERAL
+ * independent slots, one of which happens to also have a structural
+ * descendant (`continuous-arrow-process--hier5.pptx`'s `Name0`: `dummy` +
+ * `linH`, TWO distinct slots, `radial-cluster--hier5.pptx`'s `Name0`:
+ * `textCenter` + `cycle_1..7`, EIGHT). A shell names exactly one slot; a
+ * genuine multi-slot composite whose slots happen to include a structural
+ * arranger still needs `compositeSlot` to win so the slot resolver (not a
+ * blind "first structural descendant wins" walk) decides what renders.
+ */
+export function distinctMappedSlotCount(node: PptxSmartArtLayoutNode): number {
+	const names = new Set<string>();
+	for (const constraint of node.allConstraints ?? node.constraints ?? []) {
+		if (constraint.for === 'ch' && constraint.forName) {
+			names.add(constraint.forName);
+		}
+	}
+	return names.size;
 }
 
 export function mapsSlots(node: PptxSmartArtLayoutNode): boolean {

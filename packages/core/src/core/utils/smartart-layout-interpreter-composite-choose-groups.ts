@@ -33,8 +33,20 @@
  * Pure TypeScript - no framework code, no DOM.
  */
 
-import type { PptxSmartArtLayoutNode, PptxSmartArtNode, PptxSmartArtWhen } from '../types';
+import type {
+	PptxSmartArtIteratorAttributes,
+	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
+	PptxSmartArtWhen,
+} from '../types';
+import { resolveAxisNodes } from './smartart-layout-interpreter-axis-count';
 import { evaluateWhen } from './smartart-layout-interpreter-when';
+
+/** One `chooseGroups` ordinal's own guard, plus the `forEachOrigin` of the layoutNode it was collected from - the anchor a `func="maxDepth"`/`"cnt"`-family `@axis` condition in that guard needs (see {@link winningOrdinalFor}). */
+interface OrdinalEntry {
+	guard: PptxSmartArtWhen | undefined;
+	forEachOrigin: PptxSmartArtIteratorAttributes | undefined;
+}
 
 /**
  * The winning ordinal for one `dgm:choose` GROUP: the lowest ordinal among
@@ -48,16 +60,28 @@ import { evaluateWhen } from './smartart-layout-interpreter-when';
  * treat this permissively (see {@link selectFirstMatchChildren}), matching
  * the pre-existing "undecidable defaults to allow" philosophy rather than
  * dropping content this cannot confidently resolve.
+ *
+ * Each ordinal's OWN `forEachOrigin` (round 13) resolves the anchor a
+ * `func="maxDepth"`-family condition's `@axis` navigates from
+ * (`radial-cluster--hier5.pptx`'s `singleCycle`/`textCenter` choose, both
+ * anchored to `Name38`'s `axis="ch" cnt="1"` binding) - see
+ * `evaluateWhen`'s `maxDepth` case.
  */
 function winningOrdinalFor(
-	guardsByOrdinal: Map<number, PptxSmartArtWhen | undefined>,
+	guardsByOrdinal: Map<number, OrdinalEntry>,
 	nodeCount: number,
 	flat: PptxSmartArtNode[],
 ): number | undefined {
 	const ordinals = [...guardsByOrdinal.keys()].sort((a, b) => a - b);
 	for (const ordinal of ordinals) {
-		const guard = guardsByOrdinal.get(ordinal);
-		const allows = !guard || evaluateWhen(guard, nodeCount, { nodes: flat }) !== false;
+		const entry = guardsByOrdinal.get(ordinal);
+		const origin = entry?.forEachOrigin;
+		const anchor =
+			origin?.axis && origin.axis.length > 0
+				? resolveAxisNodes(flat, origin.axis, origin.pointTypes, origin.start, origin.count)
+				: undefined;
+		const allows =
+			!entry?.guard || evaluateWhen(entry.guard, nodeCount, { nodes: flat, anchor }) !== false;
 		if (allows) {
 			return ordinal;
 		}
@@ -79,7 +103,7 @@ export function selectFirstMatchChildren(
 	if (children.every((child) => (child.chooseGroups?.length ?? 0) === 0)) {
 		return children;
 	}
-	const guardsByGroup = new Map<string, Map<number, PptxSmartArtWhen | undefined>>();
+	const guardsByGroup = new Map<string, Map<number, OrdinalEntry>>();
 	for (const child of children) {
 		for (const entry of child.chooseGroups ?? []) {
 			let byOrdinal = guardsByGroup.get(entry.id);
@@ -88,7 +112,7 @@ export function selectFirstMatchChildren(
 				guardsByGroup.set(entry.id, byOrdinal);
 			}
 			if (!byOrdinal.has(entry.ordinal)) {
-				byOrdinal.set(entry.ordinal, entry.guard);
+				byOrdinal.set(entry.ordinal, { guard: entry.guard, forEachOrigin: child.forEachOrigin });
 			}
 		}
 	}

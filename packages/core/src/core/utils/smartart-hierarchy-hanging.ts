@@ -26,10 +26,20 @@
  * children. Pure geometry; no framework code, no DOM.
  */
 
+import type {
+	PptxSmartArtLayoutNode,
+	PptxSmartArtLayoutNodeShape,
+	PptxSmartArtNode,
+	SmartArtStyle,
+} from '../types';
+import type { ConstraintIndex } from './smartart-constraint-solver';
 import type { TreeNode } from './smartart-helpers';
+import { linDirHangDirection } from './smartart-hierarchy-branch-mode';
 import { partitionChildren } from './smartart-hierarchy-orgchart-tree';
-import { elbowConnector, pushNode, stubConnector } from './smartart-hierarchy-shared';
+import { baseContext, elbowConnector, pushNode, stubConnector } from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
+import { resolveHierarchyItemFontSizePx } from './smartart-layout-interpreter-hierarchy-fontfit';
+import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
 
 /** Indent direction for one hanging-branch arrangement pass. */
 export type HangDirection = 'left' | 'right';
@@ -124,4 +134,59 @@ export function placeHangingForest(
 	for (const root of roots) {
 		placeHangingTree(hc, root, startX, options, cursor);
 	}
+}
+
+const HANGING_MODE_INSET = 6;
+
+/**
+ * Full entry point for the `linDir`-only fallback `mode === 'hanging'`
+ * branch (no `presLayoutVars.hierBranch` at all, the WHOLE tree hangs - see
+ * `smartart-layout-interpreter-hierarchy.ts`'s own module doc comment). Split
+ * out of that module (the file-size budget): the box-sizing/context/result
+ * wiring around `placeHangingForest`, unchanged, just relocated.
+ */
+export function arrangeFullyHangingTree(
+	nodes: PptxSmartArtNode[],
+	box: BoundingBox,
+	palette: string[],
+	style: SmartArtStyle,
+	elementId: string,
+	roots: TreeNode[],
+	itemShape: PptxSmartArtLayoutNodeShape | undefined,
+	connectorLabels: Map<string, string> | undefined,
+	algorithmNode: PptxSmartArtLayoutNode | undefined,
+	index: ConstraintIndex,
+	fontName: string | undefined,
+	linDir: string | undefined,
+	orgChart: boolean,
+): SmartArtLayoutResult {
+	const { width: w, height: h } = box;
+	const boxW = Math.min(w * 0.42, 160);
+	const boxH = Math.min(h * 0.16, 30);
+	const indent = boxW * 0.35;
+	const vGap = boxH * 0.55;
+	const hc = baseContext(
+		nodes.length,
+		elementId,
+		palette,
+		style,
+		boxW,
+		boxH,
+		connectorLabels,
+		itemShape,
+		resolveHierarchyItemFontSizePx(nodes, algorithmNode, index, boxW, boxH, fontName),
+	);
+	placeHangingForest(hc, roots, HANGING_MODE_INSET + indent, HANGING_MODE_INSET, {
+		orgChart,
+		direction: linDirHangDirection(linDir),
+		indent,
+		vGap,
+	});
+	return {
+		nodes: hc.nodes,
+		connectors: hc.connectors,
+		shadowFilter: hc.ctx.shadow,
+		viewBox: `0 0 ${w} ${h}`,
+		family: 'hierarchy',
+	};
 }

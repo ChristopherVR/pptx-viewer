@@ -65,6 +65,26 @@ export interface StandardOptions {
 	 * per data depth) leaves this `false` and is unaffected.
 	 */
 	foldDeeperGenerations?: boolean;
+	/**
+	 * SESSION 28: the declared cascade construct's own directional nudge
+	 * (`cascadeAllGenerations`, `smartart-layout-interpreter-hierarchy.ts`) -
+	 * every node at `level >= fromLevel` shifts by a FIXED `offsetPx` on the
+	 * fan axis, on top of its own otherwise-normal fanned/centred position.
+	 * `half-circle-organization-chart--hier5.pptx`'s own `layout1.xml`
+	 * declares `dgm:constr type="alignOff" val="0.65"` on every `hierRoot`
+	 * branch past the root itself - local-coordinate analysis of the
+	 * fixture's own cached geometry confirms each row-past-the-fan node sits
+	 * exactly `0.65 * compositeW` to the right of its own immediate parent
+	 * (`181px` measured against a `278px` composite, `0.65*278=180.7`),
+	 * REGARDLESS of which branch (left/right) that parent took - not a
+	 * mirrored hang-tail indent (`HIER_TAIL_OFFSET_RATIO`'s own existing
+	 * per-branch-direction model), a single constant direction. Since every
+	 * node this cascade places past the fan is a SOLO child of its own parent
+	 * (`spanW===1`), its otherwise-default fan-centred `cx` already equals
+	 * its parent's own `cx` - adding this constant reproduces the declared
+	 * offset exactly without needing to thread parent position separately.
+	 */
+	cascadeOffsetX?: { fromLevel: number; offsetPx: number };
 }
 
 /** `t`'s own column span, honouring `options.resolveSpan` when set (see its doc comment). */

@@ -99,6 +99,15 @@ export interface HierarchyOrientation {
 	 */
 	compositeWidthFactor?: number;
 	/**
+	 * The generation-axis mirror of `compositeWidthFactor` - the rendered
+	 * item's own height as a fraction of the WRAPPING `composite` cell's own
+	 * height, when the layout's own "parent-relative" shape declares one
+	 * (`smartart-hierarchy-composite-child.ts`'s own `heightFactor`, SESSION
+	 * 28) - `undefined` otherwise (including the self-referential composite
+	 * shape, where no caller has yet needed the distinction).
+	 */
+	compositeHeightFactor?: number;
+	/**
 	 * The rendered item's own constant "3D card" offset from its `composite`
 	 * cell's own leading edge, as a fraction of the `composite` cell's width
 	 * - 0 when no `composite` wrapper is declared (nothing to offset from).
@@ -164,7 +173,7 @@ export function resolveHierarchyOrientation(
 		// resolved as a ratio TO h (i.e. `w = aspectRatio * h`), which the
 		// `resolveAspectRatio` helper already gives as `h:w` - invert it here so
 		// callers always multiply the fan-axis size to get the cross size.
-		const hToW = resolveAspectRatio(constraints);
+		const hToW = resolveAspectRatio(constraints, itemShapeName);
 		return {
 			transposed: true,
 			sibSpRatio,
@@ -202,8 +211,12 @@ export function resolveHierarchyOrientation(
 	// `resolveCompositeChildGeometry`'s own `wrapperAspect` for the
 	// "parent-relative" child-height shape (`circle-picture-hierarchy`) -
 	// computed BEFORE that call for this reason.
-	const compositeAspect = resolveAspectRatio(constraints);
-	const compositeChild = resolveCompositeChildGeometry(algorithmNode, compositeAspect);
+	const compositeAspect = resolveAspectRatio(constraints, itemShapeName);
+	const compositeChild = resolveCompositeChildGeometry(
+		algorithmNode,
+		compositeAspect,
+		mode === 'tailed',
+	);
 	const aspectRatio = compositeChild?.aspectRatio ?? compositeAspect;
 	// A `tailed` (org-chart-family) hierarchy needs NO outer margin either -
 	// COM-verified against `organization-chart--flat3.pptx`/`--hier5.pptx`/
@@ -250,6 +263,7 @@ export function resolveHierarchyOrientation(
 		marginXRatio: tailedMargin ? 0 : OUTER_MARGIN_X_RATIO,
 		marginYRatio: tailedMargin ? 0 : OUTER_MARGIN_Y_RATIO,
 		compositeWidthFactor: compositeChild?.widthFactor,
+		compositeHeightFactor: compositeChild?.heightFactor,
 		cardOffsetXRatio: compositeChild?.offsetXRatio ?? 0,
 	};
 }

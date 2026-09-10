@@ -4,6 +4,7 @@ import type { PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
 import {
 	resolveAnchoredContent,
 	resolveAnchoredContentPerAnchor,
+	resolveAnchoredContentPerAnchorFrom,
 } from './smartart-layout-interpreter-composite-anchor';
 
 function node(id: string, text: string, parentId?: string): PptxSmartArtNode {
@@ -113,5 +114,73 @@ describe('resolveAnchoredContentPerAnchor', () => {
 		};
 		const groups = resolveAnchoredContentPerAnchor(layoutNode, flat);
 		expect(groups.map((g) => g.map((n) => n.id))).toStrictEqual([['grandchild']]);
+	});
+});
+
+describe('resolveAnchoredContentPerAnchorFrom', () => {
+	/**
+	 * `continuous-arrow-process--hier5.pptx`'s `parTx`/`desTx` shape: a
+	 * `presOf`-bearing node with NO `forEachOrigin` of its own, nested inside a
+	 * per-point item template (`linV`) that supplies the origin instead - see
+	 * `smartart-layout-interpreter-composite-candidates.ts`'s `collectRawCandidates`.
+	 */
+	it('resolves a presOf leaf with no forEachOrigin of its own against a supplied origin, one group per anchor', () => {
+		const one = node('one', 'Node One');
+		const three = node('three', 'Node Three');
+		const four = node('four', 'Node Four');
+		const flat = [one, three, four];
+		const parTx: PptxSmartArtLayoutNode = {
+			name: 'parTx',
+			presentationOf: { axis: ['self'], pointTypes: ['node'] },
+		};
+		const groups = resolveAnchoredContentPerAnchorFrom(parTx, flat, {
+			axis: ['ch'],
+			pointTypes: ['node'],
+		});
+		expect(groups).toStrictEqual([
+			{ content: [one], anchorIndex: 0, anchorCount: 3 },
+			{ content: [three], anchorIndex: 1, anchorCount: 3 },
+			{ content: [four], anchorIndex: 2, anchorCount: 3 },
+		]);
+	});
+
+	it('keeps anchorIndex/anchorCount aligned to the FULL anchor list, dropping only an anchor whose own content resolves empty - not renumbering the survivors', () => {
+		const one = node('one', 'Node One');
+		const two = node('two', 'Node Two', 'one');
+		const three = node('three', 'Node Three'); // no children
+		const four = node('four', 'Node Four');
+		const five = node('five', 'Node Five', 'four');
+		const flat = [one, two, three, four, five];
+		const desTx: PptxSmartArtLayoutNode = {
+			name: 'desTx',
+			presentationOf: { axis: ['des'], pointTypes: ['node'] },
+		};
+		const groups = resolveAnchoredContentPerAnchorFrom(desTx, flat, {
+			axis: ['ch'],
+			pointTypes: ['node'],
+		});
+		// "three" (anchorIndex 1 of 3) has no children, so its own group is
+		// dropped - but "four"'s surviving group stays at anchorIndex 2 (NOT
+		// renumbered to 1), so a sibling role sharing the SAME 3-anchor list
+		// (parTx) still slices the SAME shared container into 3 columns.
+		expect(groups).toStrictEqual([
+			{ content: [two], anchorIndex: 0, anchorCount: 3 },
+			{ content: [five], anchorIndex: 2, anchorCount: 3 },
+		]);
+	});
+
+	it('returns [] when the supplied origin has no axis', () => {
+		const parTx: PptxSmartArtLayoutNode = {
+			name: 'parTx',
+			presentationOf: { axis: ['self'], pointTypes: ['node'] },
+		};
+		expect(resolveAnchoredContentPerAnchorFrom(parTx, [], {})).toStrictEqual([]);
+	});
+
+	it('returns [] for a node with no presOf', () => {
+		const layoutNode: PptxSmartArtLayoutNode = { name: 'bare' };
+		expect(
+			resolveAnchoredContentPerAnchorFrom(layoutNode, [], { axis: ['ch'], pointTypes: ['node'] }),
+		).toStrictEqual([]);
 	});
 });

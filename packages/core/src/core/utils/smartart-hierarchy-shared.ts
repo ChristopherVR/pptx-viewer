@@ -15,6 +15,7 @@ import type {
 	PptxSmartArtNode,
 	SmartArtStyle,
 } from '../types';
+import { resolveHierarchyItemNode } from './smartart-hierarchy-item-template';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
 import { styleContext } from './smartart-layout-interpreter-render';
 import type { StyleContext } from './smartart-layout-interpreter-render';
@@ -31,32 +32,18 @@ import type { RenderedConnector, RenderedNode } from './smartart-layout-types';
  * (`smartart-interpreter-drawing-bridge.ts`) is the `tx`-algorithm
  * descendant's own shape, not the wrapping `composite` node's (which never
  * declares a `@type`, only `hierRoot`/`hierChild`'s first child directly).
- * Depth-first, first `tx` node with a shape wins; `undefined` when the
- * arranger's item template declares no shape anywhere (falls back to
- * `presetBoxNode`'s own family default).
+ * Depth-first, first `tx` node with a shape wins - UNLESS a second `tx`+shape
+ * template exists that cross-references the first one's own dimension by
+ * name, in which case the cross-referencing (majority-generation) template
+ * wins instead - see `resolveHierarchyItemNode`'s own module doc comment in
+ * `smartart-hierarchy-item-template.ts`. `undefined` when the arranger's item
+ * template declares no shape anywhere (falls back to `presetBoxNode`'s own
+ * family default).
  */
-function findHierarchyItemNode(
-	node: PptxSmartArtLayoutNode | undefined,
-): PptxSmartArtLayoutNode | undefined {
-	if (!node) {
-		return undefined;
-	}
-	if (node.algorithm?.type === 'tx' && node.shape) {
-		return node;
-	}
-	for (const child of node.children ?? []) {
-		const found = findHierarchyItemNode(child);
-		if (found) {
-			return found;
-		}
-	}
-	return undefined;
-}
-
 export function findHierarchyItemShape(
 	node: PptxSmartArtLayoutNode | undefined,
 ): PptxSmartArtLayoutNodeShape | undefined {
-	return findHierarchyItemNode(node)?.shape;
+	return resolveHierarchyItemNode(node)?.shape;
 }
 
 /**
@@ -71,7 +58,7 @@ export function findHierarchyItemShape(
 export function findHierarchyItemName(
 	node: PptxSmartArtLayoutNode | undefined,
 ): string | undefined {
-	return findHierarchyItemNode(node)?.name;
+	return resolveHierarchyItemNode(node)?.name;
 }
 
 /**

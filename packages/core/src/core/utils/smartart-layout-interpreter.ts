@@ -46,6 +46,7 @@ import { selectArrangedNodes } from './smartart-layout-interpreter-flow';
 import { arrangeHierarchy } from './smartart-layout-interpreter-hierarchy';
 import { buildHubRenderedNode, detectHubExpansion } from './smartart-layout-interpreter-hub';
 import { expandResultItemRoles } from './smartart-layout-interpreter-item-roles';
+import { isRecursiveTableItemTemplate } from './smartart-layout-interpreter-linear-table';
 import {
 	discoverArrangement,
 	itemNode,
@@ -211,20 +212,23 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 				box,
 			)
 		: result;
-	// Split each arranged point's box into its per-item text roles (a list
-	// layout's `childText`, a badge's ordinal text via `connections`) - see
-	// `smartart-layout-interpreter-item-roles.ts`.
-	const withItemRoles = STRUCTURAL_ARRANGEMENT_KINDS.has(plan.kind)
-		? expandResultItemRoles(
-				plan.node,
-				withNamedRule,
-				nodes,
-				childrenOf,
-				constraintIndex,
-				input.connections,
-				presLayoutVars,
-			)
-		: withNamedRule;
+	// Split each arranged point's box into its per-item text roles - see
+	// `smartart-layout-interpreter-item-roles.ts`. Skipped for the recursive
+	// table item template (`-linear-table.ts`), which already gave every
+	// generation its own final box.
+	const isTableTemplate = isRecursiveTableItemTemplate(plan.node, presLayoutVars);
+	const withItemRoles =
+		STRUCTURAL_ARRANGEMENT_KINDS.has(plan.kind) && !isTableTemplate
+			? expandResultItemRoles(
+					plan.node,
+					withNamedRule,
+					nodes,
+					childrenOf,
+					constraintIndex,
+					input.connections,
+					presLayoutVars,
+				)
+			: withNamedRule;
 	// `pyraAcctRatio`'s own band-split geometry (see `repositionPyramidBands`'s
 	// doc comment) - a post-pass keyed by `nodeId`/row, not folded into
 	// `arrangePyramid` itself, so it never double-splits a row `stackRoleContent`

@@ -43,6 +43,16 @@ export interface ChooseAwareSlot {
 export interface RawSlotCandidate {
 	node: PptxSmartArtLayoutNode;
 	declaringRole: string;
+	/**
+	 * Round 32: every ancestor role (nearest first, `declaringRole` itself
+	 * included) between `node` and the composite root, for a `node` reached
+	 * through a bare pass-through wrapper that has no `constrLst` of its own
+	 * (`linV` inside `linH` - see `smartart-layout-interpreter-composite-
+	 * slots.ts`'s `dimDeclaredBy`). `undefined` for every pre-existing
+	 * candidate path (unaffected) - `readSlots` falls back to `declaringRole`
+	 * alone in that case.
+	 */
+	declaringRoleChain?: readonly string[];
 	content: PptxSmartArtNode[];
 	/** This candidate's 0-based position among every candidate `resolveAnchoredContentPerAnchor` produced for the SAME `node` (0/1 for a single-anchor or root-relative slot, unchanged from before per-iteration splitting existed). */
 	iteration: number;
@@ -105,7 +115,12 @@ export function resolveGroupedSlots(
 			return aIsSp - bIsSp;
 		});
 		for (const candidate of ordered) {
-			const [slotted] = readSlots([candidate.node], box, index, candidate.declaringRole);
+			const [slotted] = readSlots(
+				[candidate.node],
+				box,
+				index,
+				candidate.declaringRoleChain ?? candidate.declaringRole,
+			);
 			if (slotted) {
 				const rect = resolveIterationRect(
 					slotted.dims,

@@ -60,6 +60,67 @@ describe('evaluateWhen', () => {
 		expect(evaluateWhen(when('maxDepth', 'equ', '3'), 0, {})).toBeUndefined();
 	});
 
+	/**
+	 * `radial-cluster--hier5.pptx`'s own `Name40` (`<dgm:if axis="des"
+	 * func="maxDepth" op="lte" val="1">`, nested inside a `dgm:forEach
+	 * axis="ch" cnt="1"` binding the diagram's sole top-level point as
+	 * anchor): "Node One" -> [Two, Three, Four], Four -> [Five]. Measured
+	 * against the fixture's own cached drawing (see the round 13 successor
+	 * doc), the correct answer is `maxDepth=2` (Five sits two hops below
+	 * Node One via Four), so this `lte 1` guard must resolve `false` - the
+	 * bug this pins: `context.maxDepth` alone (the OLD, only source) has no
+	 * way to know this, so a caller supplying just the coarse field stays
+	 * wrong or undecidable regardless of the real tree.
+	 */
+	it('maxDepth: axis-aware and anchor-relative when both are supplied', () => {
+		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
+		const two: PptxSmartArtNode = { id: 'two', text: 'Two', parentId: 'one' };
+		const three: PptxSmartArtNode = { id: 'three', text: 'Three', parentId: 'one' };
+		const four: PptxSmartArtNode = { id: 'four', text: 'Four', parentId: 'one' };
+		const five: PptxSmartArtNode = { id: 'five', text: 'Five', parentId: 'four' };
+		const nodes = [one, two, three, four, five];
+		const guard: PptxSmartArtWhen = {
+			axis: ['des'],
+			function: 'maxDepth',
+			operator: 'lte',
+			value: '1',
+		};
+		expect(evaluateWhen(guard, nodes.length, { nodes, anchor: [one] })).toBeFalsy();
+		expect(
+			evaluateWhen({ ...guard, operator: 'gte', value: '2' }, nodes.length, {
+				nodes,
+				anchor: [one],
+			}),
+		).toBeTruthy();
+	});
+
+	it('maxDepth: a childless anchor resolves to a real, decidable 0', () => {
+		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
+		const guard: PptxSmartArtWhen = {
+			axis: ['des'],
+			function: 'maxDepth',
+			operator: 'equ',
+			value: '0',
+		};
+		expect(evaluateWhen(guard, 1, { nodes: [one], anchor: [one] })).toBeTruthy();
+	});
+
+	it('maxDepth: falls back to context.maxDepth when axis or anchor is missing (no regression)', () => {
+		const one: PptxSmartArtNode = { id: 'one', text: 'One' };
+		const guard: PptxSmartArtWhen = {
+			axis: ['des'],
+			function: 'maxDepth',
+			operator: 'equ',
+			value: '3',
+		};
+		// No `nodes`/`anchor` at all: falls back to the coarse field.
+		expect(evaluateWhen(guard, 1, { maxDepth: 3 })).toBeTruthy();
+		// `nodes` without `anchor`: same fallback, not undecidable.
+		expect(evaluateWhen(guard, 1, { nodes: [one], maxDepth: 3 })).toBeTruthy();
+		// Neither: undecidable, exactly as before this mechanism existed.
+		expect(evaluateWhen(guard, 1, {})).toBeUndefined();
+	});
+
 	it('var: compares a string presLayoutVars field by equality', () => {
 		const ctx: WhenContext = { presLayoutVars: { direction: 'rev' } };
 		expect(evaluateWhen(when('var', 'equ', 'rev', 'dir'), 0, ctx)).toBeTruthy();

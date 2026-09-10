@@ -46,140 +46,19 @@ import type { PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
 import type { SlotStyleContext } from './smartart-layout-interpreter-composite';
-import { resolveAnchoredContentPerAnchor } from './smartart-layout-interpreter-composite-anchor';
-import { selectFirstMatchChildren } from './smartart-layout-interpreter-composite-choose-groups';
+import { collectRawCandidates } from './smartart-layout-interpreter-composite-candidates';
 import type { FontFitContext } from './smartart-layout-interpreter-composite-fontfit';
 import { resolveFitByDeclaringRole } from './smartart-layout-interpreter-composite-fontfit';
-import type {
-	ChooseAwareSlot,
-	RawSlotCandidate,
-} from './smartart-layout-interpreter-composite-group-slots';
+import type { ChooseAwareSlot } from './smartart-layout-interpreter-composite-group-slots';
 import { resolveGroupedSlots } from './smartart-layout-interpreter-composite-group-slots';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
-import { evaluateWhen } from './smartart-layout-interpreter-when';
 import { findCompositeItemShape } from './smartart-layout-shape-preset';
 import type { BoundingBox, RenderedNode, RenderedRectNode } from './smartart-layout-types';
 
-/** 1-based position + sibling count for a `func="pos"`/`"revPos"`/`"posEven"`/`"posOdd"` condition in a `chooseGuard` chain, when the CANDIDATE being tested is one iteration of a multi-anchor `forEachOrigin` split (see {@link collectRawCandidates}) - `undefined` for a bare wrapper or a single-anchor node, where no per-iteration position exists. */
-interface IterationPosition {
-	position: number;
-	total: number;
-}
-
-/**
- * `true` when EVERY condition in `node`'s own `chooseGuard` CHAIN (if any -
- * `sub-step-process--hier5.pptx`'s `chLin1..7`, each nested inside BOTH an
- * outer `pos`-discriminating `dgm:if` and an inner, nearly-vacuous one, need
- * BOTH to hold) allows it to render, evaluated against the diagram's full
- * flat node list, with `iterationPosition` (when supplied) letting a
- * `func="pos"`-family condition decide against WHICH forEach iteration this
- * specific candidate is - `discoverArrangement`'s own tree-location `pos`
- * (the layoutNode's static position in the layoutDef) is a DIFFERENT
- * concept, never applicable here (this module never receives it). An
- * UNDECIDABLE condition anywhere in the chain defaults that ONE condition
- * to "allow" (not the whole chain) - dropping content this cannot
- * confidently evaluate would be a NEW regression, whereas over-including at
- * worst matches the pre-existing "flatten every branch" behaviour; a chain
- * where every OTHER condition is still decidable and false still correctly
- * excludes the branch.
- */
-function guardAllows(
-	node: PptxSmartArtLayoutNode,
-	flat: PptxSmartArtNode[],
-	iterationPosition: IterationPosition | undefined,
-): boolean {
-	if (!node.chooseGuard) {
-		return true;
-	}
-	return node.chooseGuard.every(
-		(guard) =>
-			evaluateWhen(guard, flat.length, {
-				nodes: flat,
-				position: iterationPosition?.position,
-				total: iterationPosition?.total,
-			}) !== false,
-	);
-}
-
-/**
- * Recursively walk `node`'s subtree collecting every choose-live,
- * `presOf`-bearing, POSITIONED descendant as RAW candidates (content
- * resolved, geometry not yet attempted) - see {@link collectChooseAwareSlots}
- * for why this is a separate pass. A branch whose OWN `chooseGuard`
- * evaluates false is dropped entirely, IT AND EVERYTHING NESTED INSIDE IT
- * (`child2group`..`child4group` here, `fallback-n2` has only 1 top-level
- * point). A bare wrapper (no `presOf` of its own - `children`, `child1group`,
- * `circle`) is never itself a candidate; its children are resolved using ITS
- * OWN role as the next `declaringRole`, since a nested composite re-scopes
- * `for="ch" forName="X"` positioning to its own children (`child1group`'s
- * own constrLst positions `child1`/`child1Text`, not `children`'s).
- *
- * A `presOf`-bearing node reached through a MULTI-anchor `forEachOrigin`
- * (`nested-target--hier5.pptx`'s `oChild`: a genuine `dgm:forEach axis="ch
- * ch" st="1 1" cnt="1 0"`, an UNBOUNDED second hop - "every child of point
- * 1", not a fixed position) produces ONE candidate PER anchor
- * (`resolveAnchoredContentPerAnchor`), not one candidate with every anchor's
- * content folded together - the genuine "one item template, N forEach
- * iterations" ECMA-376 21.4.2.13 describes, the same mechanism
- * `sub-step-process--hier5.pptx`'s hand-duplicated `chLin1..7` templates
- * need. Each anchor's OWN `guardAllows` check is deferred until its content
- * is resolved (rather than checked once, up front, the way a bare wrapper's
- * is) specifically so a `func="pos"`-family condition in `node`'s own
- * `chooseGuard` chain can decide against THAT SPECIFIC iteration's own
- * 1-based position - `sub-step-process`'s own `chLinN` templates each carry
- * a `pos==N` guard this way (though `chLinN` itself is a STRUCTURAL
- * arranger, not a presOf-bearing content leaf, so this mechanism alone does
- * not yet reach it - see this module's own doc comment on remaining gaps).
- * A single-anchor forEach (or none at all) still produces exactly ONE
- * candidate, `iteration=0, iterationCount=1`, with `iterationPosition`
- * `undefined` (no per-iteration position exists) - behaviour-identical to
- * before this split existed.
- */
-function collectRawCandidates(
-	node: PptxSmartArtLayoutNode,
-	flat: PptxSmartArtNode[],
-	declaringRole: string,
-	out: RawSlotCandidate[] = [],
-): RawSlotCandidate[] {
-	// A node with `presentationOfCandidates` may resolve to a real axis
-	// choose-aware even when its STATIC `presentationOf` guess (`choosePresentationOf`'s
-	// single, parse-time pick) happens to be bare - see `resolvePresentationOf`
-	// (`smartart-layout-interpreter-when.ts`), which `resolveAnchoredContentPerAnchor`
-	// itself now consults; this gate only decides whether it is worth calling.
-	const hasPresOf =
-		(node.presentationOf?.axis?.length ?? 0) > 0 ||
-		(node.presentationOfCandidates?.length ?? 0) > 0;
-	if (hasPresOf) {
-		const groups = resolveAnchoredContentPerAnchor(node, flat);
-		const iterationPosition = (iteration: number): IterationPosition | undefined =>
-			groups.length > 1 ? { position: iteration + 1, total: groups.length } : undefined;
-		groups.forEach((content, iteration) => {
-			if (!guardAllows(node, flat, iterationPosition(iteration))) {
-				return;
-			}
-			out.push({ node, declaringRole, content, iteration, iterationCount: groups.length });
-		});
-		return out;
-	}
-	if (!guardAllows(node, flat, undefined)) {
-		return out;
-	}
-	const nextRole = roleOf(node);
-	// First-match-wins among `node`'s own children before recursing into any
-	// of them, recovering real `dgm:choose` semantics from `chooseGroups` -
-	// see `smartart-layout-interpreter-composite-choose-groups.ts`'s own doc
-	// comment (`balance--hier5.pptx`'s 127-member mutually-exclusive family,
-	// the one shape this changes; every other fixture's `children` carries no
-	// `chooseGroups` at all, so this is a no-op elsewhere).
-	for (const child of selectFirstMatchChildren(node.children ?? [], flat)) {
-		collectRawCandidates(child, flat, nextRole, out);
-	}
-	return out;
-}
-
 /**
  * Collect every choose-live content slot in `node`'s subtree (see
- * {@link collectRawCandidates} for the recursive walk this wraps), merging
+ * {@link collectRawCandidates}, `smartart-layout-interpreter-composite-
+ * candidates.ts`, for the recursive walk this wraps), merging
  * candidates that resolve to the SAME point set into ONE slot rather than
  * one per layoutNode.
  *

@@ -34,6 +34,8 @@ import {
 import type { ArrangementPlan } from './smartart-layout-interpreter-arrangement-kind';
 import { tunnelsPastOwnCompositeSlot } from './smartart-layout-interpreter-choose-depth';
 import {
+	distinctMappedSlotCount,
+	hasRepeatedTemplateStructuralDescendant,
 	hasStructuralDescendant,
 	isContinuationForEach,
 	isLayoutNodeOrDescendantOf,
@@ -234,13 +236,31 @@ export function discoverArrangement(
 			return;
 		}
 		if (kind === 'composite') {
+			// Round 31/32: exactly ONE structural descendant is usually a
+			// passive shell (`hasStructuralDescendant`'s doc comment) - EXCEPT
+			// a composite naming 2+ distinct slots (`distinctMappedSlotCount`)
+			// whose descendant is a genuine repeated-per-point item template
+			// (`hasRepeatedTemplateStructuralDescendant` - see both doc
+			// comments in `smartart-layout-interpreter-composite-detect.ts`
+			// for the `continuous-arrow-process`/`NumberedDotsVertical`
+			// derivation and the 5-shapes-to-1 regression this scoping avoids).
+			const multiSlot = distinctMappedSlotCount(node) >= 2;
+			const repeatedTemplateDescendant = hasRepeatedTemplateStructuralDescendant(node);
 			if (
 				!compositeSlot &&
 				!itemTemplates.has(node) &&
-				!hasStructuralDescendant(node) &&
+				(!hasStructuralDescendant(node) || (multiSlot && repeatedTemplateDescendant)) &&
 				mapsSlots(node)
 			) {
 				compositeSlot = node;
+				// A multi-slot descendant can independently hijack `chosen` (which
+				// outranks `compositeSlot` below) via its OWN `.choose` at the TOP
+				// block - block that subtree, ONLY for this NEW exception path
+				// (round 31 item 1 measured a 24-fixture regression blocking the
+				// pre-existing shell case unconditionally).
+				if (multiSlot && repeatedTemplateDescendant) {
+					blockedSubtreeRoots.push(node);
+				}
 			}
 			return;
 		}
@@ -266,9 +286,9 @@ export function discoverArrangement(
 	return structural ?? aux;
 }
 
-// Arranger `dgm:param` readers + linear flow-direction resolution moved to
-// `smartart-layout-interpreter-flow-direction.ts` (the per-file line
-// budget); re-exported here so every existing import site is unaffected.
+// Arranger `dgm:param` readers + flow-direction resolution: moved to
+// `smartart-layout-interpreter-flow-direction.ts` (line budget), re-exported
+// so every existing import site is unaffected.
 export {
 	algorithmParam,
 	type FlowDirection,

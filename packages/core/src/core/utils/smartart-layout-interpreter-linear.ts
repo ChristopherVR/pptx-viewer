@@ -25,6 +25,10 @@ import {
 import { itemAspect, ordered } from './smartart-layout-interpreter-linear-item-aspect';
 import { resolveMainAxisLayout } from './smartart-layout-interpreter-linear-main-axis';
 import { INSET } from './smartart-layout-interpreter-linear-shared';
+import {
+	arrangeRecursiveTable,
+	isRecursiveTableItemTemplate,
+} from './smartart-layout-interpreter-linear-table';
 import type { ArrangementPlan, FlowDirection } from './smartart-layout-interpreter-model';
 import { itemNode } from './smartart-layout-interpreter-model';
 import { presetBoxNode } from './smartart-layout-interpreter-preset-node';
@@ -56,6 +60,26 @@ export function arrangeLinear(
 	fontName?: string,
 	presLayoutVars?: PptxSmartArtPresLayoutVars,
 ): SmartArtLayoutResult {
+	// The recursive `lin`-in-`lin` "table" item template ("Table Hierarchy"/
+	// "Architecture Layout"): `plan.node` resolves directly to the per-point
+	// item template, not a wrapping top-level arranger, so `nodes` here is
+	// the WHOLE flattened tree (every generation). The standard single-row
+	// body below cannot render that shape at all - see `smartart-layout-
+	// interpreter-linear-table.ts`'s own module doc comment.
+	if (childrenOf && isRecursiveTableItemTemplate(plan.node, presLayoutVars)) {
+		return arrangeRecursiveTable(
+			plan,
+			nodes,
+			box,
+			palette,
+			style,
+			elementId,
+			index,
+			childrenOf,
+			fontName,
+			presLayoutVars,
+		);
+	}
 	const { width: w, height: h } = box;
 	const ctx = styleContext(style);
 	const constraints = plan.node.constraints;

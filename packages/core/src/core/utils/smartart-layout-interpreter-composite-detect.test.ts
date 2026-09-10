@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { PptxSmartArtLayoutNode } from '../types';
 import {
+	distinctMappedSlotCount,
+	hasRepeatedTemplateStructuralDescendant,
 	hasStructuralDescendant,
 	isContinuationForEach,
 	isLayoutNodeOrDescendantOf,
@@ -152,5 +154,93 @@ describe('isLayoutNodeOrDescendantOf', () => {
 
 	it('is false for an unrelated node', () => {
 		expect(isLayoutNodeOrDescendantOf(outerBox, { name: 'unrelated' })).toBeFalsy();
+	});
+});
+
+describe('distinctMappedSlotCount', () => {
+	it('counts DISTINCT for="ch" forName slots (continuous-arrow-process\'s Name0: dummy + linH)', () => {
+		const name0: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			allConstraints: [
+				{ type: 'w', for: 'ch', forName: 'dummy' },
+				{ type: 'h', for: 'ch', forName: 'dummy' },
+				{ type: 'w', for: 'ch', forName: 'linH' },
+				{ type: 'h', for: 'ch', forName: 'linH' },
+			],
+		};
+		expect(distinctMappedSlotCount(name0)).toBe(2);
+	});
+
+	it('is 1 for a shell composite with exactly one named slot (NumberedDotsVertical root/itemsFlow)', () => {
+		const root: PptxSmartArtLayoutNode = {
+			name: 'root',
+			allConstraints: [
+				{ type: 'l', for: 'ch', forName: 'itemsFlow' },
+				{ type: 'w', for: 'ch', forName: 'itemsFlow' },
+			],
+		};
+		expect(distinctMappedSlotCount(root)).toBe(1);
+	});
+
+	it('is 0 with no for="ch" forName constraints at all', () => {
+		expect(distinctMappedSlotCount({ name: 'bare' })).toBe(0);
+	});
+
+	it('falls back to `constraints` when `allConstraints` is absent', () => {
+		const node: PptxSmartArtLayoutNode = {
+			name: 'n',
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'a' },
+				{ type: 'w', for: 'ch', forName: 'b' },
+			],
+		};
+		expect(distinctMappedSlotCount(node)).toBe(2);
+	});
+});
+
+/**
+ * Round 32: `continuous-arrow-process--hier5.pptx`'s `linV` (reached through
+ * `linH`'s own `dgm:forEach axis="ch" ptType="node"`) is the shape this
+ * signal exists to find - a structural descendant that is ALSO a genuine
+ * repeated per-point item template, so the composite slot resolver
+ * (`smartart-layout-interpreter-composite-candidates.ts`) has a real chance
+ * of rendering it. `NumberedDotsVertical`'s `itemsFlow` (owns its OWN
+ * `dgm:forEach` directly, not reached through one) must NOT match - see
+ * `smartart-layout-interpreter-model.ts`'s own use of this signal for why.
+ */
+describe('hasRepeatedTemplateStructuralDescendant', () => {
+	it('is true for a structural child reached through an axis="ch" ptType="node" forEachOrigin (continuous-arrow-process\'s linV)', () => {
+		const linV: PptxSmartArtLayoutNode = {
+			name: 'linV',
+			algorithm: { type: 'lin' },
+			forEachOrigin: { axis: ['ch'], pointTypes: ['node'] },
+		};
+		const linH: PptxSmartArtLayoutNode = { name: 'linH', children: [linV] };
+		const name0: PptxSmartArtLayoutNode = { name: 'Name0', children: [linH] };
+		expect(hasRepeatedTemplateStructuralDescendant(name0)).toBeTruthy();
+	});
+
+	it("is false for a structural child that owns its OWN forEach directly (NumberedDotsVertical's itemsFlow)", () => {
+		const itemsFlow: PptxSmartArtLayoutNode = {
+			name: 'itemsFlow',
+			algorithm: { type: 'lin' },
+			forEach: [{ axis: ['ch'], pointTypes: ['node'] }],
+		};
+		const root: PptxSmartArtLayoutNode = { name: 'root', children: [itemsFlow] };
+		expect(hasRepeatedTemplateStructuralDescendant(root)).toBeFalsy();
+	});
+
+	it('is false when the forEachOrigin axis is not "ch" (e.g. a self-anchored decoration)', () => {
+		const decoration: PptxSmartArtLayoutNode = {
+			name: 'decoration',
+			algorithm: { type: 'lin' },
+			forEachOrigin: { axis: ['self'], pointTypes: ['node'] },
+		};
+		const root: PptxSmartArtLayoutNode = { name: 'root', children: [decoration] };
+		expect(hasRepeatedTemplateStructuralDescendant(root)).toBeFalsy();
+	});
+
+	it('is false with no structural descendant at all', () => {
+		expect(hasRepeatedTemplateStructuralDescendant({ name: 'leaf' })).toBeFalsy();
 	});
 });

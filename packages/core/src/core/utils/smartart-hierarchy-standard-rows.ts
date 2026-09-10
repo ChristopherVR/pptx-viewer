@@ -83,10 +83,17 @@ export function placeFlatChildren(
 			offset += childW;
 		}
 	}
+	// See `StandardOptions.cascadeOffsetX`'s own doc comment (SESSION 28): a
+	// fixed fan-axis nudge for every node at `level >= fromLevel`, applied on
+	// top of the normal fanned/centred `childCx` below.
+	const cascadeShift =
+		options.cascadeOffsetX && level + 1 >= options.cascadeOffsetX.fromLevel
+			? options.cascadeOffsetX.offsetPx
+			: 0;
 	let childOffset = xOffset;
 	for (const child of normal) {
 		const childW = spanOf(child, options);
-		const childCx = (childOffset + childW / 2) * cellW;
+		const childCx = (childOffset + childW / 2) * cellW + cascadeShift;
 		const childCy = (level + 1) * cellH + cellH / 2;
 		elbowConnector(
 			hc,

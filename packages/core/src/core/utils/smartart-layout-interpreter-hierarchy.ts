@@ -54,16 +54,12 @@ import { EMPTY_CONSTRAINT_INDEX } from './smartart-constraint-solver';
 import { buildTree, treeDepth } from './smartart-helpers';
 import type { TreeNode } from './smartart-helpers';
 import { computeHierarchyAxisPitches } from './smartart-hierarchy-axis-pitch';
-import {
-	branchMode,
-	linDirHangDirection,
-	resolveRowSize,
-	tailDirection,
-} from './smartart-hierarchy-branch-mode';
+import { branchMode, resolveRowSize, tailDirection } from './smartart-hierarchy-branch-mode';
+import { resolveCascadePlan } from './smartart-hierarchy-cascade';
 import { buildFanAwareWidthMap, resolveSpanWidth } from './smartart-hierarchy-fan-aware-width';
 import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
 import { computeHangShape } from './smartart-hierarchy-hang-depth';
-import { placeHangingForest } from './smartart-hierarchy-hanging';
+import { arrangeFullyHangingTree, placeHangingForest } from './smartart-hierarchy-hanging';
 import { flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
 import {
 	applyChildOrder,
@@ -88,8 +84,6 @@ import type {
 	RenderedNode,
 	SmartArtLayoutResult,
 } from './smartart-layout-types';
-
-const INSET = 6;
 
 /** Execute the hierarchy algorithm over the data-model node tree. */
 export function arrangeHierarchy(
@@ -124,28 +118,21 @@ export function arrangeHierarchy(
 	const itemShape = algorithmNode ? findHierarchyItemShape(algorithmNode) : undefined;
 
 	if (mode === 'hanging') {
-		const boxW = Math.min(w * 0.42, 160);
-		const boxH = Math.min(h * 0.16, 30);
-		const indent = boxW * 0.35;
-		const vGap = boxH * 0.55;
-		const hc = baseContext(
-			nodes.length,
-			elementId,
+		return arrangeFullyHangingTree(
+			nodes,
+			box,
 			palette,
 			style,
-			boxW,
-			boxH,
-			connectorLabels,
+			elementId,
+			roots,
 			itemShape,
-			resolveHierarchyItemFontSizePx(nodes, algorithmNode, index, boxW, boxH, fontName),
-		);
-		placeHangingForest(hc, roots, INSET + indent, INSET, {
+			connectorLabels,
+			algorithmNode,
+			index,
+			fontName,
+			linDir,
 			orgChart,
-			direction: linDirHangDirection(linDir),
-			indent,
-			vGap,
-		});
-		return finish(hc.nodes, hc.connectors, hc.ctx.shadow, w, h);
+		);
 	}
 
 	// `orientation.transposed` ("Horizontal Hierarchy" and its siblings - see
@@ -219,6 +206,10 @@ export function arrangeHierarchy(
 		hangShape.allChildrenHang,
 		orientation.transposed ? orientation.generationGapRatio : undefined,
 	);
+	// See `smartart-hierarchy-cascade.ts`'s own module doc comment for the
+	// declared construct this resolves (`half-circle-organization-chart`'s
+	// own composite-relative generation gap + `alignOff` nudge).
+	const cascadePlan = resolveCascadePlan(mode, orientation, depth, hangShape, boxW);
 	// See `computeHierarchyAxisPitches`'s own doc comment (`smartart-
 	// hierarchy-axis-pitch.ts`) for why the fan and generation axes use
 	// genuinely different pitch models, and its own history for the SESSION
@@ -230,8 +221,8 @@ export function arrangeHierarchy(
 		boxW,
 		boxH,
 		totalLeaves,
-		depth,
-		hangShape,
+		cascadePlan.pitchDepth,
+		cascadePlan.pitchHangShape,
 		tailedPitch,
 	);
 	const cellW = xPitch.pitch;
@@ -256,8 +247,15 @@ export function arrangeHierarchy(
 			? (t) => resolveSpanWidth(fanAwareWidthMap, t, orgChart)
 			: undefined,
 		hangHeightRatio: orientation.transposed ? orientation.generationGapRatio : undefined,
+		cascadeOffsetX: cascadePlan.cascadeOffsetX,
 	};
-	if (mode === 'tailed') {
+	// SESSION 28: the cascade construct (`smartart-hierarchy-cascade.ts`)
+	// reuses the SAME fanned-row placement for every generation, so `placeAt`
+	// must fall through its own default `placeFlatChildren`/
+	// `placeWrappedChildren` branch at every level instead of routing the row
+	// past the fan through `hangingPlacer`'s independent (and, for this
+	// construct, wrong) `HANG_HEIGHT_RATIO` gap.
+	if (mode === 'tailed' && !cascadePlan.active) {
 		// Measured ratio (`HIER_TAIL_OFFSET_RATIO`), not the unrelated 0.35 used
 		// by the `linDir`-only `hanging` mode above: this is the org-chart-family
 		// `hierAlign`/`alignOff` root-box offset, and genuine PowerPoint output

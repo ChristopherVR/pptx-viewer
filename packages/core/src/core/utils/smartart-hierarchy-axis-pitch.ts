@@ -80,6 +80,24 @@ export function computeHierarchyAxisPitches(
 	hangShape: HierarchyHangShape,
 	tailedPitch: boolean,
 ): HierarchyAxisPitches {
+	// SESSION 28: the generation-axis mirror of `compositeFanPitch`'s own
+	// `compositeW` substitution - when the layout's own "parent-relative"
+	// composite shape means the WRAPPING cell's own height genuinely differs
+	// from the rendered item's height (`compositeHeightFactor` defined, e.g.
+	// `half-circle-organization-chart`), the `tailed`-mode row-to-row PITCH
+	// must use the composite cell's own (larger) height, not the smaller
+	// rendered item's - `undefined`/non-`tailed` leaves this identical to
+	// `boxH` (byte-for-byte unchanged): `std` mode already has its OWN,
+	// different composite correction for this same distinction
+	// (`resolveGenerationGapRatio`'s own `compositeChild`-aware branch) -
+	// applying BOTH double-corrects (measured regression:
+	// `circle-picture-hierarchy--hier5.pptx`, `std` mode, `heightFactor`
+	// defined via the SAME "parent-relative" shape, 3.38% -> 18.57%). See
+	// `smartart-hierarchy-composite-child.ts`'s own `heightFactor` doc comment.
+	const generationItemSize =
+		tailedPitch && orientation.compositeHeightFactor
+			? boxH / orientation.compositeHeightFactor
+			: boxH;
 	const generationMargin = orientation.transposed ? 0 : boxH * GENERATION_MARGIN_RATIO;
 	const fanWidth = tailedPitch
 		? effectiveBox.width - hangShape.maxHangDepth * HIER_TAIL_OFFSET_RATIO * boxW
@@ -113,7 +131,7 @@ export function computeHierarchyAxisPitches(
 	const yPitch = computeAxisPitch(
 		fanHeight,
 		generationMargin,
-		boxH,
+		generationItemSize,
 		depth,
 		fixedGenerationGapRatio,
 	);

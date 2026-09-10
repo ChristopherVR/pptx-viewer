@@ -246,7 +246,11 @@ export function placeStandardTree(
 	options: StandardOptions,
 ): void {
 	const spanW = spanOf(t, options);
-	const cx = (xOffset + spanW / 2) * cellW;
+	const cascadeShift =
+		options.cascadeOffsetX && level >= options.cascadeOffsetX.fromLevel
+			? options.cascadeOffsetX.offsetPx
+			: 0;
+	const cx = (xOffset + spanW / 2) * cellW + cascadeShift;
 	const cy = level * cellH + cellH / 2;
 	placeAt(hc, t, cx, cy, xOffset, spanW, level, cellW, cellH, options);
 }

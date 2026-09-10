@@ -78,6 +78,18 @@ export interface CompositeChildGeometry {
 	widthFactor: number;
 	/** The rendered child's own leading-edge (`l`) offset from `composite`'s own left edge, as a fraction of `composite`'s width - the fan-axis "3D card" offset. */
 	offsetXRatio: number;
+	/**
+	 * The rendered child's own height, as a fraction of the WRAPPING
+	 * `composite` node's own height - the generation-axis mirror of
+	 * `widthFactor`. Only populated for the "parent-relative" shape (SESSION
+	 * 21: `h refType="h"`, e.g. `half-circle-organization-chart`), where the
+	 * composite's own height genuinely differs from the rendered item's own
+	 * height (`compositeAspect !== aspectRatio`) - `undefined` for the
+	 * self-referential shape (plain "Hierarchy"), where no caller has yet
+	 * needed this distinction (see `smartart-hierarchy-axis-pitch.ts`'s own
+	 * SESSION 28 use, gated on this field so `std`-mode callers are unaffected).
+	 */
+	heightFactor?: number;
 }
 
 /** Depth-first search for a descendant `dgm:layoutNode` whose own algorithm is `composite` (the structural signal, not a name convention). */
@@ -122,6 +134,7 @@ function findTextBearingChild(
 export function resolveCompositeChildGeometry(
 	algorithmNode: PptxSmartArtLayoutNode | undefined,
 	wrapperAspect?: number,
+	allowOmittedWidthFactor = false,
 ): CompositeChildGeometry | undefined {
 	const compositeNode = findCompositeDescendant(algorithmNode);
 	if (!compositeNode) {
@@ -132,36 +145,26 @@ export function resolveCompositeChildGeometry(
 		return undefined;
 	}
 	const constraints = compositeNode.allConstraints ?? compositeNode.constraints ?? [];
-	// SESSION 23: `half-circle-organization-chart--hier5.pptx`'s own `w
-	// for="ch" forName="rootText1" refType="w"` declares NO `fact` at all
-	// (ECMA-376's own "omitted fact = 1" convention, used throughout this
-	// codebase elsewhere - the child would fill the composite's FULL width).
-	// Relaxing this match to accept that shape (and the paired `allChildrenHang`
-	// WIDTH-axis term, `smartart-hierarchy-fit-item-box.ts`) DOES land an exact
-	// item SIZE for `half-circle`/`name-and-title` (0% width/height delta,
-	// COM-verified) - but EXPOSES a SEPARATE, pre-existing POSITION bug this
-	// session did not solve: local-coordinate analysis (this fixture's own
-	// cached shape positions, box-relative) shows root/children/hang-tail at
-	// (204,25)/(36,222)/(419) local y - a cascading, roughly EVEN 3-step
-	// vertical spread across almost the FULL box height, NOT the shared
-	// `computeAxisPitch`/hanging-tail 2-row-plus-indent model `arrangeHierarchy`
-	// applies uniformly to every `tailed` layout. `half-circle-organization-
-	// chart` (and presumably `name-and-title`) is very likely its OWN DISTINCT
-	// DiagramML layout definition with its own cascading position algorithm,
-	// not a decorative reskin of plain `hierChild`'s fan+hang - reusing the
-	// SAME data-model parent/child relationships as `organization-chart--
-	// hier5.pptx` (confirmed: same node names/roles) but rendering them via a
-	// different alg chain PowerPoint itself declares for this layout. Landing
-	// the SIZE fix alone regressed the fixture's own `maxDeltaFraction`
-	// (0.0844 -> 0.1351) because the OLD, wrong size happened to partially
-	// compensate for the ALWAYS-wrong position - see `smartart-track-r-
-	// successor.md` SESSION 23 for the full derivation. Kept STRICT (requiring
-	// an explicit numeric `fact`) so this relaxation stays dormant until a
-	// successor lands the companion position fix (read `half-circle`'s OWN
-	// `layout1.xml` cascading alg chain directly, do not assume it is another
-	// `hierChild` parameter) - re-enable by dropping the `typeof c.factor ===
-	// 'number'` requirement below (already derived, see the git history / this
-	// comment's own predecessor) once that is landed alongside it.
+	// SESSION 23/28: `half-circle-organization-chart--hier5.pptx`'s (and
+	// `name-and-title-organization-chart--hier5.pptx`'s) own `w for="ch"
+	// forName="rootText1" refType="w"` declares NO `fact` at all (ECMA-376's
+	// own "omitted fact = 1" convention, used throughout this codebase
+	// elsewhere - the child fills the composite's FULL width). SESSION 23
+	// found relaxing this match landed an exact item SIZE for these two
+	// fixtures but, alone, EXPOSED a separate, then-unsolved cascading
+	// POSITION bug that regressed both (see `smartart-layout-interpreter-
+	// hierarchy.ts`'s own `cascadeAllGenerations` doc comment for that fix,
+	// landed SESSION 28 alongside this). `allowOmittedWidthFactor` (`true`
+	// only for `tailed`-mode callers, i.e. the org-chart family - see
+	// `resolveHierarchyOrientation`'s own call site) keeps this relaxation
+	// SCOPED to that family: applying it unconditionally regressed TWO
+	// unrelated `std`-mode fixtures whose own widthConstr also happens to
+	// omit `fact` for a different reason (`circle-picture-hierarchy--
+	// hier5.pptx` 3.38% -> 18.57%, `square-accent-list--hier5.pptx` 33.58% ->
+	// 41.46%, both measured via a full corpus regen) - `std` mode never
+	// declares the `sp`-relative-to-composite-width generation gap this
+	// relaxation's own companion fix (`cascadeAllGenerations`) depends on, so
+	// there is no known-correct SIZE model to relax INTO for that mode yet.
 	const widthConstr = constraints.find(
 		(c) =>
 			c.type === 'w' &&
@@ -169,12 +172,15 @@ export function resolveCompositeChildGeometry(
 			c.forName === child.name &&
 			c.referenceType === 'w' &&
 			c.referenceForName === undefined &&
-			typeof c.factor === 'number',
+			(typeof c.factor === 'number' || (allowOmittedWidthFactor && c.factor === undefined)),
 	);
-	if (!widthConstr || widthConstr.factor === undefined || widthConstr.factor <= 0) {
+	if (!widthConstr) {
 		return undefined;
 	}
-	const widthFactor = widthConstr.factor;
+	const widthFactor = widthConstr.factor ?? 1;
+	if (widthFactor <= 0) {
+		return undefined;
+	}
 	const selfHeightConstr = constraints.find(
 		(c) =>
 			c.type === 'h' &&
@@ -217,8 +223,25 @@ export function resolveCompositeChildGeometry(
 			c.referenceForName === undefined &&
 			typeof c.factor === 'number',
 	);
+	// SESSION 28: `name-and-title-organization-chart--hier5.pptx`'s own
+	// `rootComposite1` declares a SECOND role's font size relative to
+	// `rootText1`'s (`primFontSz for="des" forName="titleText1" refType=
+	// "primFontSz" refFor="des" refForName="rootText1"`, absent for
+	// `half-circle-organization-chart--hier5.pptx`'s own composite, measured)
+	// - a structural signal that `child` is a COMPOUND, multi-role text box
+	// (name + title, two stacked rows) whose real height this single `fact`
+	// does not determine alone (COM-verified regression: applying the
+	// formula below anyway gives `aspectRatio=0.45` against this fixture's
+	// own cached `125/241=0.5187`, a real mismatch, not rounding). Bail to
+	// `undefined` for this shape rather than resolve a wrong aspect - a
+	// successor with budget to derive the compound formula can drop this
+	// guard once it lands.
+	const hasCompoundTextRole = constraints.some(
+		(c) => c.type === 'primFontSz' && c.referenceForName === child.name,
+	);
 	if (
 		parentRelativeHeightConstr &&
+		!hasCompoundTextRole &&
 		typeof wrapperAspect === 'number' &&
 		wrapperAspect > 0 &&
 		typeof parentRelativeHeightConstr.factor === 'number'
@@ -227,6 +250,7 @@ export function resolveCompositeChildGeometry(
 			aspectRatio: (parentRelativeHeightConstr.factor * wrapperAspect) / widthFactor,
 			widthFactor,
 			offsetXRatio,
+			heightFactor: parentRelativeHeightConstr.factor,
 		};
 	}
 	return undefined;

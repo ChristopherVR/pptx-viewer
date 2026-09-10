@@ -130,7 +130,7 @@ describe('resolveCompositeChildGeometry', () => {
 		expect(geometry?.offsetXRatio).toBe(0.4);
 	});
 
-	it('session 23: an OMITTED `fact` on the width constraint is NOT matched (kept STRICT deliberately) - half-circle-organization-chart--hier5.pptx\'s own shape (`w for="ch" forName="rootText1" refType="w"`, no `fact` at all) resolves the item\'s own SIZE exactly when relaxed (0.64*0.5/1=0.32, matching that fixture\'s own cached 89/278=0.3201 essentially exactly - COM-verified), but exposes a SEPARATE, pre-existing POSITION bug (`smartart-track-r-successor.md` SESSION 23 has the full local-coordinate derivation) that regresses the fixture\'s own `maxDeltaFraction` when landed alone - left dormant (returns `undefined`, falling back to the wrapper aspect) until a successor lands the companion position fix', () => {
+	it('session 23: an OMITTED `fact` on the width constraint is NOT matched by default (`allowOmittedWidthFactor` unset) - half-circle-organization-chart--hier5.pptx\'s own shape (`w for="ch" forName="rootText1" refType="w"`, no `fact` at all) stays STRICT for `std`-mode callers, which never pass `allowOmittedWidthFactor` (see `resolveHierarchyOrientation`\'s own `mode === "tailed"` gate)', () => {
 		const halfCircleLike: PptxSmartArtLayoutNode = {
 			name: 'hierChild1',
 			children: [
@@ -146,6 +146,53 @@ describe('resolveCompositeChildGeometry', () => {
 			],
 		};
 		expect(resolveCompositeChildGeometry(halfCircleLike, 0.5)).toBeUndefined();
+	});
+
+	it("session 28: `allowOmittedWidthFactor=true` (passed for `tailed`-mode callers) resolves the OMITTED-fact width as 1 (ECMA \"omitted fact = 1\"), landing half-circle-organization-chart--hier5.pptx's own exact item SIZE (0.64*0.5/1=0.32, matching that fixture's own cached 89/278=0.3201 essentially exactly - COM-verified) once paired with the companion cascading-position fix (`smartart-layout-interpreter-hierarchy.ts`'s own `cascadeAllGenerations`)", () => {
+		const halfCircleLike: PptxSmartArtLayoutNode = {
+			name: 'hierChild1',
+			children: [
+				{
+					name: 'composite',
+					algorithm: { type: 'composite' },
+					constraints: [
+						{ type: 'w', for: 'ch', forName: 'rootText1', referenceType: 'w' },
+						{ type: 'h', for: 'ch', forName: 'rootText1', referenceType: 'h', factor: 0.64 },
+					],
+					children: [{ name: 'rootText1', presentationOf: { axis: ['self'] } }],
+				},
+			],
+		};
+		const geometry = resolveCompositeChildGeometry(halfCircleLike, 0.5, true);
+		expect(geometry?.aspectRatio).toBeCloseTo(0.32, 6);
+		expect(geometry?.widthFactor).toBe(1);
+		expect(geometry?.heightFactor).toBe(0.64);
+	});
+
+	it('session 28: a SECOND role\'s `primFontSz` declared relative to the text child (`name-and-title-organization-chart--hier5.pptx`\'s own `rootComposite1`: `primFontSz for="des" forName="titleText1" refType="primFontSz" refFor="des" refForName="rootText1"`, absent for half-circle-organization-chart--hier5.pptx\'s own composite, measured) signals a COMPOUND, multi-role text box the single-`fact` parent-relative formula does not model - bails to `undefined` even with `allowOmittedWidthFactor=true`, rather than resolve a wrong aspect (COM-verified regression when not guarded: 0.45 vs that fixture\'s own cached 125/241=0.5187)', () => {
+		const nameAndTitleLike: PptxSmartArtLayoutNode = {
+			name: 'hierChild1',
+			children: [
+				{
+					name: 'composite',
+					algorithm: { type: 'composite' },
+					constraints: [
+						{ type: 'w', for: 'ch', forName: 'rootText1', referenceType: 'w' },
+						{ type: 'h', for: 'ch', forName: 'rootText1', referenceType: 'h', factor: 0.9 },
+						{
+							type: 'primFontSz',
+							for: 'des',
+							forName: 'titleText1',
+							referenceType: 'primFontSz',
+							referenceFor: 'des',
+							referenceForName: 'rootText1',
+						},
+					],
+					children: [{ name: 'rootText1', presentationOf: { axis: ['self'] } }],
+				},
+			],
+		};
+		expect(resolveCompositeChildGeometry(nameAndTitleLike, 0.5, true)).toBeUndefined();
 	});
 
 	it('session 21: the "parent-relative" shape needs a `wrapperAspect` - without one, returns undefined rather than guessing', () => {

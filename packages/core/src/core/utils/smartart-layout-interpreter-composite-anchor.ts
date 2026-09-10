@@ -34,7 +34,11 @@
  * Pure geometry; no framework code.
  */
 
-import type { PptxSmartArtLayoutNode, PptxSmartArtNode } from '../types';
+import type {
+	PptxSmartArtIteratorAttributes,
+	PptxSmartArtLayoutNode,
+	PptxSmartArtNode,
+} from '../types';
 import { resolveAxisNodes } from './smartart-layout-interpreter-axis-count';
 import { resolvePresentationOf } from './smartart-layout-interpreter-when';
 
@@ -115,5 +119,62 @@ export function resolveAnchoredContentPerAnchor(
 			groups.push(content);
 		}
 	}
+	return groups;
+}
+
+/** One anchor's resolved content, plus its position among EVERY anchor (not
+ * just the non-empty ones) - see {@link resolveAnchoredContentPerAnchorFrom}. */
+export interface AnchoredContentGroup {
+	content: PptxSmartArtNode[];
+	/** 0-based position of this group's anchor among every anchor `origin` resolved (not just the non-empty ones). */
+	anchorIndex: number;
+	/** Total anchor count `origin` resolved (including empty ones) - the divisor a sibling role's OWN per-anchor slicing must stay aligned to. */
+	anchorCount: number;
+}
+
+/**
+ * Like {@link resolveAnchoredContentPerAnchor}, but for a `presOf`-bearing
+ * `node` that has NO `forEachOrigin` of its OWN - `origin` is supplied by an
+ * ANCESTOR bare (non-`presOf`) layoutNode's own `forEachOrigin` instead
+ * (`continuous-arrow-process--hier5.pptx`'s `parTx`/`desTx`: both sit two
+ * `dgm:layoutNode` levels inside `linV`, the actual per-point item template
+ * that carries the real `axis="ch" ptType="node"` origin - see
+ * `smartart-layout-interpreter-composite-choose.ts`'s `collectRawCandidates`,
+ * the one caller that threads an ancestor's origin down this way).
+ *
+ * Keeps EVERY anchor's `anchorIndex`/`anchorCount` aligned to the FULL
+ * anchor list, dropping only the individual groups whose own content
+ * resolves empty (`Node Three` has no child, so `desTx`'s own per-anchor
+ * resolution for it is empty) - unlike {@link resolveAnchoredContentPerAnchor},
+ * which renumbers around the gaps. Renumbering would misalign a `des`-axis
+ * sibling role (`desTx`, 2 non-empty anchors) against a `self`-axis one
+ * (`parTx`, 3 non-empty anchors) that shares the SAME anchor list: both need
+ * `resolveIterationRect` (`smartart-layout-interpreter-composite-
+ * iteration.ts`) to slice the SAME shared container into the SAME 3 columns,
+ * so `Node Four`'s own `desTx` must stay at `anchorIndex=2` of `3`, not
+ * shift to `1` of `2` just because `Node Three`'s own group was empty.
+ */
+export function resolveAnchoredContentPerAnchorFrom(
+	node: PptxSmartArtLayoutNode,
+	flat: PptxSmartArtNode[],
+	origin: PptxSmartArtIteratorAttributes,
+): AnchoredContentGroup[] {
+	const presOf = resolvePresentationOf(node, flat);
+	if (!presOf?.axis || presOf.axis.length === 0 || !origin.axis || origin.axis.length === 0) {
+		return [];
+	}
+	const anchors =
+		resolveAxisNodes(flat, origin.axis, origin.pointTypes, origin.start, origin.count) ?? [];
+	const anchorCount = anchors.length;
+	const presOfAxis = presOf.axis;
+	const groups: AnchoredContentGroup[] = [];
+	anchors.forEach((anchor, anchorIndex) => {
+		const content =
+			resolveAxisNodes(flat, presOfAxis, presOf.pointTypes, presOf.start, presOf.count, [anchor]) ??
+			[];
+		if (content.length > 0) {
+			groups.push({ content, anchorIndex, anchorCount });
+		}
+	});
 	return groups;
 }

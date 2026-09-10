@@ -665,3 +665,154 @@ describe('smartArt hierarchy arranger: font-fit wiring (round 19)', () => {
 		expect(new Set(sizes).size).toBe(1); // one shared size across every node
 	});
 });
+
+// SESSION 28: `half-circle-organization-chart--hier5.pptx`'s own declared
+// shape (`Name0`'s own `h for="des" forName="rootComposite1" refType="w"
+// refFor="des" refForName="rootComposite1" fact="0.5"` composite aspect, `sp
+// for="des" forName="hierRoot1" refType="w" refFor="des"
+// refForName="rootComposite1" fact="0.21"` generation gap, `rootText1`'s own
+// `h refType="h" fact="0.64"` parent-relative height, `alignOff val="0.65"`
+// on every `hierRoot` past the root) - see `smartart-layout-interpreter-
+// hierarchy.ts`'s own `cascadeAllGenerations` doc comment for the full
+// derivation against the fixture's own cached geometry.
+describe('smartArt hierarchy arranger: cascadeAllGenerations (declared composite cascade)', () => {
+	const cascadeAlgorithmNode: PptxSmartArtLayoutNode = {
+		name: 'Name0',
+		algorithm: { type: 'hierChild' },
+		constraints: [
+			{ type: 'w', for: 'des', forName: 'rootComposite1', referenceType: 'w', factor: 10 },
+			{
+				type: 'h',
+				for: 'des',
+				forName: 'rootComposite1',
+				referenceType: 'w',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite1',
+				factor: 0.5,
+			},
+			{
+				type: 'sp',
+				for: 'des',
+				forName: 'hierRoot1',
+				referenceType: 'w',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite1',
+				factor: 0.21,
+			},
+			{
+				type: 'sibSp',
+				referenceType: 'w',
+				referenceFor: 'des',
+				referenceForName: 'rootComposite1',
+				factor: 0.21,
+			},
+		],
+		children: [
+			{
+				name: 'hierRoot1',
+				algorithm: { type: 'hierRoot' },
+				children: [
+					{
+						name: 'rootComposite1',
+						algorithm: { type: 'composite' },
+						constraints: [
+							{ type: 'w', for: 'ch', forName: 'rootText1', referenceType: 'w' },
+							{
+								type: 'h',
+								for: 'ch',
+								forName: 'rootText1',
+								referenceType: 'h',
+								factor: 0.64,
+							},
+						],
+						children: [
+							{ name: 'rootText1', algorithm: { type: 'tx' }, presentationOf: { axis: ['self'] } },
+						],
+					},
+				],
+			},
+		],
+	};
+
+	it('places every generation (root, fanned children, and the row past them) on the SAME uniform pitch, not a smaller independent hang gap', () => {
+		// m -> {c1, c2}, c1 -> g1, c2 -> g2: half-circle's own real tree shape.
+		const result = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-cascade',
+			{ hierarchyBranch: 'init' },
+			undefined,
+			cascadeAlgorithmNode,
+		);
+		const m = byId(result, 'm');
+		const c1 = byId(result, 'c1');
+		const c2 = byId(result, 'c2');
+		const g1 = byId(result, 'g1');
+		const g2 = byId(result, 'g2');
+		// The fanned row sits ONE pitch below the root, and the row past the
+		// fan sits ANOTHER full pitch below that - not a smaller HANG_HEIGHT_
+		// RATIO-sized gap the pre-SESSION-28 model would give here.
+		const rootToFan = c1.y - m.y;
+		const fanToHang = g1.y - c1.y;
+		expect(rootToFan).toBeGreaterThan(0);
+		expect(fanToHang).toBeCloseTo(rootToFan, 0);
+		expect(c1.y).toBeCloseTo(c2.y, 6); // same fanned row
+		expect(g1.y).toBeCloseTo(g2.y, 6); // same row past the fan
+	});
+
+	it('shifts the row past the fan by a FIXED rightward offset from its own immediate parent, regardless of branch side', () => {
+		const result = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-cascade-x',
+			{ hierarchyBranch: 'init' },
+			undefined,
+			cascadeAlgorithmNode,
+		);
+		const c1 = byId(result, 'c1');
+		const c2 = byId(result, 'c2');
+		const g1 = byId(result, 'g1');
+		const g2 = byId(result, 'g2');
+		const shiftUnderC1 = g1.x - c1.x;
+		const shiftUnderC2 = g2.x - c2.x;
+		expect(shiftUnderC1).toBeGreaterThan(0); // a real rightward nudge, not 0
+		expect(shiftUnderC1).toBeCloseTo(shiftUnderC2, 6); // same absolute shift both branches
+	});
+
+	it('does NOT engage for a layoutDef with no declared composite (the ordinary tailed org-chart family stays on the pre-existing fan+hang model)', () => {
+		const plainAlgorithmNode: PptxSmartArtLayoutNode = {
+			name: 'Name0',
+			algorithm: { type: 'hierChild' },
+			children: [
+				{
+					name: 'hierRoot1',
+					algorithm: { type: 'hierRoot' },
+					children: [
+						{ name: 'rootText1', algorithm: { type: 'tx' }, presentationOf: { axis: ['self'] } },
+					],
+				},
+			],
+		};
+		const result = arrangeHierarchy(
+			DEPTH_THREE_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-plain',
+			{ hierarchyBranch: 'init' },
+			undefined,
+			plainAlgorithmNode,
+		);
+		const c1 = byId(result, 'c1');
+		const g1 = byId(result, 'g1');
+		// The old hanging-tail model indents the tail sideways from the SAME x,
+		// never the cascade's own directional shift - g1 stays close to c1's own
+		// x (the tail's first hop anchors directly under its parent, see
+		// FOUR_GENERATION_CHAIN's own module doc comment above).
+		expect(Math.abs(g1.x - c1.x)).toBeLessThan(box.width * 0.1);
+	});
+});

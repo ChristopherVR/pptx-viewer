@@ -4,30 +4,22 @@
  * Split out of `smartart-layout-interpreter-composite.ts` to keep that file
  * under the repo's per-file line budget: this half reads each composite
  * child `layoutNode`'s `l`/`t`/`w`/`h`/`ctrX`/`ctrY` constraints into
- * box-relative pixels (or an absolute raw, normalised later), including a
- * TRUE cross-role reference ("this slot's `w` is 0.8x THAT sibling role's
- * `h`", resolved via `smartart-constraint-solver.ts`); the other half maps
- * the resolved slots onto data-model points. Pure geometry; no framework
- * code.
+ * box-relative pixels (or an absolute raw, normalised later) - per-dimension
+ * resolution itself (including a TRUE cross-role reference, resolved via
+ * `smartart-constraint-solver.ts`) lives in `smartart-layout-interpreter-
+ * composite-slot-dim.ts` (a further split for the SAME line budget); the
+ * other half maps the resolved slots onto data-model points. Pure geometry;
+ * no framework code.
  */
 
-import type { PptxSmartArtConstraint, PptxSmartArtLayoutNode } from '../types';
-import {
-	firstConstraintDeclaredBy,
-	resolveConstraintDeclaredBy,
-} from './smartart-constraint-declared-by';
+import type { PptxSmartArtLayoutNode } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
-import { resolveConstraint, roleOf } from './smartart-constraint-solver';
-import { findConstraint } from './smartart-layout-interpreter-model';
+import { roleOf } from './smartart-constraint-solver';
+import type { Dim } from './smartart-layout-interpreter-composite-slot-dim';
+import { dimOf } from './smartart-layout-interpreter-composite-slot-dim';
 import type { BoundingBox } from './smartart-layout-types';
 
-/** A single resolved dimension, either box-relative pixels or an absolute raw. */
-export interface Dim {
-	/** Resolved pixels (from a `fact`, or a sub-1 `val` treated as a fraction). */
-	px?: number;
-	/** Raw absolute `val` (> 1); normalised later against the other slots. */
-	abs?: number;
-}
+export type { Dim } from './smartart-layout-interpreter-composite-slot-dim';
 
 /** The raw dimensions read off one composite child slot. */
 export interface SlotDims {
@@ -54,116 +46,6 @@ export interface SlottedDims {
 	dims: SlotDims;
 }
 
-/** Pick the extent a constraint's `factor` multiplies, honouring `referenceType`. */
-function axisExtent(referenceType: string | undefined, box: BoundingBox, fallback: number): number {
-	if (referenceType === 'w') {
-		return box.width;
-	}
-	if (referenceType === 'h') {
-		return box.height;
-	}
-	return fallback;
-}
-
-/** Default axis extent for a constraint type when no `referenceType` is given. */
-function defaultExtent(type: string, box: BoundingBox): number {
-	return type === 'h' || type === 't' || type === 'ctrY' || type === 'b' ? box.height : box.width;
-}
-
-/**
- * True cross-role reference: `refFor`/`refForName` name ANOTHER layoutNode
- * (as opposed to omitted/`self`, which the existing `referenceType`-vs-box-axis
- * handling below already covers).
- */
-function isCrossRoleReference(constraint: PptxSmartArtConstraint): boolean {
-	return (
-		(constraint.referenceFor === 'ch' || constraint.referenceFor === 'des') &&
-		Boolean(constraint.referenceForName)
-	);
-}
-
-/**
- * A slot's `type` dimension as declared by the ARRANGER (the composite
- * node's own `for="ch" forName="<slot role>"` constraint), for when the
- * slot's OWN constrLst says nothing - real built-ins (`gear`, `balance`,
- * `stacked-venn`, Meet the Team's `compNode`) position slots this way almost
- * exclusively, self-declared slot geometry being the rarer case. Mirrors the
- * self-declared branch's fraction/absolute-raw split: `resolveConstraintDeclaredBy`
- * already walks the reference chain (so a slot positioned relative to a
- * SIBLING slot, e.g. `t` = sibling's resolved `b`, resolves here too), this
- * only adds the axis (`w`/`h`) the resulting dimensionless number scales
- * against, from the declaring constraint's own `refType`.
- */
-function dimDeclaredBy(
-	role: string,
-	type: string,
-	declaringRole: string,
-	box: BoundingBox,
-	index: ConstraintIndex,
-): Dim | undefined {
-	const declared = firstConstraintDeclaredBy(index, role, type, declaringRole);
-	if (!declared) {
-		return undefined;
-	}
-	const resolved = resolveConstraintDeclaredBy(index, role, type, declaringRole);
-	if (typeof resolved !== 'number' || !Number.isFinite(resolved)) {
-		return undefined;
-	}
-	const extent = axisExtent(declared.referenceType, box, defaultExtent(type, box));
-	if (resolved >= 0 && resolved <= 1) {
-		return { px: resolved * extent };
-	}
-	if (resolved > 1) {
-		return { abs: resolved };
-	}
-	return undefined;
-}
-
-/** Resolve one constraint to pixels (factor / sub-1 value) or an absolute raw. */
-function dimOf(
-	constraints: PptxSmartArtConstraint[] | undefined,
-	type: string,
-	box: BoundingBox,
-	index: ConstraintIndex,
-	role: string,
-	declaringRole: string,
-): Dim | undefined {
-	const constraint = findConstraint(constraints, type);
-	if (!constraint) {
-		return dimDeclaredBy(role, type, declaringRole, box, index);
-	}
-	if (isCrossRoleReference(constraint)) {
-		// "This slot's <type> is a factor of THAT sibling role's resolved
-		// <refType>" - e.g. a caption slot sized relative to its picture
-		// sibling. Walk the whole-definition constraint graph for the answer
-		// (see `smartart-constraint-solver.ts`); fall through to the box-axis
-		// approximation below only when it cannot be resolved.
-		const refType = constraint.referenceType ?? constraint.type;
-		const resolved = resolveConstraint(index, constraint.referenceForName!, refType);
-		if (resolved !== undefined) {
-			const factor =
-				typeof constraint.factor === 'number' && Number.isFinite(constraint.factor)
-					? constraint.factor
-					: 1;
-			const extent = axisExtent(constraint.referenceType, box, defaultExtent(type, box));
-			return { px: resolved * factor * extent };
-		}
-	}
-	const extent = axisExtent(constraint.referenceType, box, defaultExtent(type, box));
-	if (typeof constraint.factor === 'number' && Number.isFinite(constraint.factor)) {
-		return { px: constraint.factor * extent };
-	}
-	if (typeof constraint.value === 'number' && Number.isFinite(constraint.value)) {
-		if (constraint.value >= 0 && constraint.value <= 1) {
-			return { px: constraint.value * extent };
-		}
-		if (constraint.value > 1) {
-			return { abs: constraint.value };
-		}
-	}
-	return undefined;
-}
-
 /** True when the slot carries at least one positioning constraint. */
 function isPositioned(dims: SlotDims): boolean {
 	return (
@@ -184,13 +66,14 @@ function isPositioned(dims: SlotDims): boolean {
  *   forName="<slot>"` constraint instead of the slot's own (see
  *   `dimDeclaredBy`). Defaults to the composite `layoutNode`'s own name when
  *   omitted (every existing call site already has it to hand as `children`'s
- *   parent).
+ *   parent). A CHAIN of roles (nearest ancestor first, round 32) tries each
+ *   in turn per dimension `type` - see `dimDeclaredBy`'s own doc comment.
  */
 export function readSlots(
 	children: PptxSmartArtLayoutNode[],
 	box: BoundingBox,
 	index: ConstraintIndex,
-	declaringRole: string,
+	declaringRole: string | readonly string[],
 ): SlottedDims[] {
 	const slots: SlottedDims[] = [];
 	for (const child of children) {

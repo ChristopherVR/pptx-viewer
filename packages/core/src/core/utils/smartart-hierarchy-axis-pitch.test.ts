@@ -80,4 +80,49 @@ describe('computeHierarchyAxisPitches', () => {
 		);
 		expect(yPitch.shift).toBeCloseTo(reference.shift, 6);
 	});
+
+	it("session 28: `compositeHeightFactor` (half-circle-organization-chart--hier5.pptx's own declared shape) substitutes the composite cell's own (larger) height for the pitch's `itemSize`, not the smaller rendered item's `boxH` - reproduces the fixture's own cached ~197px row-to-row step (boxH=89, compositeHeightFactor=0.64 -> compositeH=139.0625, gap=139.0625*0.42=58.4, pitch=197.46)", () => {
+		const cascadeOrientation: HierarchyOrientation = {
+			...orientation,
+			transposed: false,
+			generationGapRatio: 0.42,
+			compositeWidthFactor: 1,
+			compositeHeightFactor: 0.64,
+		};
+		const { yPitch } = computeHierarchyAxisPitches(
+			{ width: 867, height: 533 },
+			cascadeOrientation,
+			278,
+			89,
+			2,
+			3,
+			{ fannedGenerations: 2, maxHangDepth: 0, maxHangRows: 0, allChildrenHang: true },
+			true,
+		);
+		expect(yPitch.pitch).toBeCloseTo(197.46, 1);
+	});
+
+	it('session 28: `compositeHeightFactor` is NOT applied for `std` mode (`tailedPitch=false`) - `std` mode has its OWN, different composite correction on `compositeGenerationGapRatio` already; substituting `itemSize` too double-corrects (measured regression: circle-picture-hierarchy--hier5.pptx 3.38% -> 18.57%)', () => {
+		const stdCascadeOrientation: HierarchyOrientation = {
+			...orientation,
+			transposed: false,
+			generationGapRatio: 0.42,
+			compositeGenerationGapRatio: 0.42,
+			compositeWidthFactor: 1,
+			compositeHeightFactor: 0.64,
+		};
+		const { yPitch } = computeHierarchyAxisPitches(
+			{ width: 867, height: 533 },
+			stdCascadeOrientation,
+			278,
+			89,
+			2,
+			3,
+			{ fannedGenerations: 2, maxHangDepth: 0, maxHangRows: 0, allChildrenHang: true },
+			false,
+		);
+		// itemSize stays `boxH` (89): pitch = 89 + 89*0.42 = 126.38, NOT the
+		// composite-height-based 197.46 the `tailedPitch=true` test above pins.
+		expect(yPitch.pitch).toBeCloseTo(126.38, 1);
+	});
 });
