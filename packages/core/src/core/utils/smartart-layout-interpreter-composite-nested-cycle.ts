@@ -30,6 +30,7 @@ import {
 	collectChildRepeaterItems,
 	renderChildRepeaterSlot,
 } from './smartart-layout-interpreter-composite-children';
+import type { RepeaterSizingContext } from './smartart-layout-interpreter-composite-children';
 import type { SlotStyleContext } from './smartart-layout-interpreter-composite-render';
 import { resolveSlot } from './smartart-layout-interpreter-composite-slots';
 import type { SlottedDims } from './smartart-layout-interpreter-composite-slots';
@@ -142,6 +143,7 @@ export function renderChildRepeaterOrNestedCycle(
 	ctx: SlotStyleContext,
 	fontName: string | undefined,
 	declaringRoleChain?: readonly string[],
+	sizeBox?: BoundingBox,
 ): RenderedNode[] {
 	const nested = arrangeNestedCycleSlot(
 		wrapperSlot,
@@ -160,8 +162,25 @@ export function renderChildRepeaterOrNestedCycle(
 		fontName,
 		declaringRoleChain,
 	);
-	return (
-		nested ??
-		renderChildRepeaterSlot(wrapperSlot, anchor, anchorIndex, box, absX, absY, childrenOf, ctx)
+	if (nested) {
+		return nested;
+	}
+	// ROUND 45: a childless satellite (never a nested ring - see
+	// `arrangeNestedCycleSlot`'s own doc comment) still honours a `userS`
+	// ancestor-chain size instead of stretching to fill its own slot rect -
+	// see `resolveUserSizeItemBoxPx` (`radial-cluster--hier5.pptx`'s
+	// `cycle_1`/`cycle_2`, "Node Two"/"Node Three").
+	const sizingCtx: RepeaterSizingContext | undefined =
+		declaringRoleChain && sizeBox ? { index, sizeBox, declaringRoleChain } : undefined;
+	return renderChildRepeaterSlot(
+		wrapperSlot,
+		anchor,
+		anchorIndex,
+		box,
+		absX,
+		absY,
+		childrenOf,
+		ctx,
+		sizingCtx,
 	);
 }

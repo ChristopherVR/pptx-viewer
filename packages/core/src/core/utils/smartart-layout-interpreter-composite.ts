@@ -91,6 +91,7 @@ function arrangeByPresentationOf(
 	index: ConstraintIndex,
 	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
 	declaringRoleChain: readonly string[],
+	sizeBox: BoundingBox,
 ): RenderedNode[] | undefined {
 	const selfSlots = slotsWithAxis(slotted, 'self');
 	if (selfSlots.length === 0) {
@@ -141,6 +142,7 @@ function arrangeByPresentationOf(
 					ctx,
 					fontCtx?.fontName,
 					declaringRoleChain,
+					sizeBox,
 				),
 			);
 		}
@@ -235,6 +237,7 @@ export function arrangeComposite(
 			index,
 			presLayoutVars,
 			[declaringRole],
+			sizeBox,
 		) ??
 		arrangeByChooseAwareSlots(plan.node, flat, box, index, ctx, fontCtx) ??
 		arrangeByOrder(slotted, nodes, box, absX, absY, ctx, fontCtx);
