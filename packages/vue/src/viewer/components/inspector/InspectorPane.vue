@@ -21,6 +21,7 @@ import EffectsPanel from './EffectsPanel.vue';
 import FillPanel from './FillPanel.vue';
 import GroupInfoPanel from './GroupInfoPanel.vue';
 import ImagePanel from './ImagePanel.vue';
+import InspectorSectionCard from './InspectorSectionCard.vue';
 import MediaPropertiesPanel from './MediaPropertiesPanel.vue';
 import OlePropertiesPanel from './OlePropertiesPanel.vue';
 import SmartArtPropertiesPanel from './SmartArtPropertiesPanel.vue';
@@ -99,34 +100,19 @@ function relay(patch: Partial<PptxElement>): void {
 		:class="mobile ? 'w-full pt-1' : 'w-72 flex-[0_0_18rem] border-l border-border pt-2'"
 		:aria-label="t('pptx.inspector.properties')"
 	>
-		<div class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.arrange') }}
-			</h3>
+		<InspectorSectionCard :title="t('pptx.inspector.arrange')">
 			<ArrangePanel :element="element" :can-edit="props.canEdit" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isGroup" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.elementType.group') }}
-			</h3>
+		<InspectorSectionCard v-if="isGroup" :title="t('pptx.elementType.group')">
 			<GroupInfoPanel :element="element" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isOle" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.ole.title') }}
-			</h3>
+		<InspectorSectionCard v-if="isOle" :title="t('pptx.ole.title')">
 			<OlePropertiesPanel :element="element" :can-edit="props.canEdit" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div class="pptx-vue-inspector-section py-2 border-b border-border">
+		<InspectorSectionCard>
 			<ActionSettingsPanel
 				:element="element"
 				:slide-count="props.slideCount"
@@ -134,32 +120,17 @@ function relay(patch: Partial<PptxElement>): void {
 				:custom-shows="props.customShows"
 				@update="relay"
 			/>
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isText" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.text') }}
-			</h3>
+		<InspectorSectionCard v-if="isText" :title="t('pptx.inspector.text')">
 			<TextPanel :element="element" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isImage" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.image') }}
-			</h3>
+		<InspectorSectionCard v-if="isImage" :title="t('pptx.inspector.image')">
 			<ImagePanel :element="element" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isTable" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.table') }}
-			</h3>
+		<InspectorSectionCard v-if="isTable" :title="t('pptx.inspector.table')">
 			<TableDataGrid :element="element" :can-edit="props.canEdit" @update="relay" />
 			<TablePanel
 				:element="element"
@@ -168,37 +139,22 @@ function relay(patch: Partial<PptxElement>): void {
 				@table-style-map-change="emit('tableStyleMapChange', $event)"
 				@delete-table-style="emit('deleteTableStyle', $event)"
 			/>
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isChart" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.chart') }}
-			</h3>
+		<InspectorSectionCard v-if="isChart" :title="t('pptx.inspector.chart')">
 			<ChartPanel :element="element" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isMedia" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.media') }}
-			</h3>
+		<InspectorSectionCard v-if="isMedia" :title="t('pptx.inspector.media')">
 			<MediaPropertiesPanel
 				:element="element"
 				:can-edit="props.canEdit"
 				:media-data-urls="props.mediaDataUrls"
 				@update="relay"
 			/>
-		</div>
+		</InspectorSectionCard>
 
-		<div class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.animations') }}
-			</h3>
+		<InspectorSectionCard :title="t('pptx.inspector.animations')">
 			<AnimationPanel
 				:element="element"
 				:can-edit="props.canEdit"
@@ -208,64 +164,31 @@ function relay(patch: Partial<PptxElement>): void {
 				@update="relay"
 				@update-slide-animations="emit('updateSlideAnimations', $event)"
 			/>
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isSmartArt" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.smartArt') }}
-			</h3>
+		<InspectorSectionCard v-if="isSmartArt" :title="t('pptx.inspector.smartArt')">
 			<SmartArtPropertiesPanel :element="element" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.fill') }}
-			</h3>
+		<InspectorSectionCard v-if="isShape" :title="t('pptx.inspector.fill')">
 			<FillPanel :element="element" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.line') }}
-			</h3>
+		<InspectorSectionCard v-if="isShape" :title="t('pptx.inspector.line')">
 			<StrokePanel :element="element" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isConnector" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.elementType.connector') }}
-			</h3>
+		<InspectorSectionCard v-if="isConnector" :title="t('pptx.elementType.connector')">
 			<ConnectorArrowsPanel :element="element" :can-edit="props.canEdit" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.inspector.effects') }}
-			</h3>
+		<InspectorSectionCard v-if="isShape" :title="t('pptx.inspector.effects')">
 			<EffectsPanel :element="element" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 
-		<div
-			v-if="showAccessibilitySection"
-			class="pptx-vue-inspector-section py-2 border-b border-border"
-		>
-			<h3
-				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				{{ t('pptx.accessibility.heading') }}
-			</h3>
+		<InspectorSectionCard v-if="showAccessibilitySection" :title="t('pptx.accessibility.heading')">
 			<AccessibilityPanel :element="element" :can-edit="props.canEdit" @update="relay" />
-		</div>
+		</InspectorSectionCard>
 	</aside>
 </template>
 
