@@ -31,6 +31,12 @@
  * table - it is not consulted by this test, which fails on any real
  * divergence from the cached drawing, not on regression from a prior run.
  *
+ * Interpreter snapshots against this corpus land as feat(core) commits; the
+ * third one (choose-aware presentation-of, position-guarded template families,
+ * the recursive cycle-of-cycles ring, hierarchy items from the composite's local
+ * constraints, the 9pt font-ceiling fix and the fitter wired into every
+ * arranger) was recorded under de5c8911e.
+ *
  * Table-driven via `describe.each`, so a specific layout's pass/fail and its
  * measured deviation are visible individually in the test list.
  */
