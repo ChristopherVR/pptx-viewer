@@ -129,7 +129,7 @@ describe('legacy .ppt writer round-trip', () => {
 		await expect(
 			reloadHandler.load(bytes.buffer as ArrayBuffer, { password: 'wrong-password' }),
 		).rejects.toThrow(IncorrectPasswordError);
-	});
+	}, 120_000); // PBKDF2 verifier: load-sensitive, see modify-password-check.test.ts
 
 	it('writes an unencrypted .ppt when no password is given, even if requested', async () => {
 		const { handler, slides } = await buildTestDeck();
