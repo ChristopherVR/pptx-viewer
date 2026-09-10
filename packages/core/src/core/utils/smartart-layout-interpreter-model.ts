@@ -198,8 +198,7 @@ export function discoverArrangement(
 				const wrapsHierarchy =
 					kind !== undefined &&
 					STRUCTURAL_ARRANGEMENT_KINDS.has(kind) &&
-					hasHierarchyDescendant(node, nodeCount, whenContext) &&
-					false; // TEMP: disabled for A/B baseline comparison, SESSION 24
+					hasHierarchyDescendant(node, nodeCount, whenContext);
 				if (
 					kind &&
 					STRUCTURAL_ARRANGEMENT_KINDS.has(kind) &&
