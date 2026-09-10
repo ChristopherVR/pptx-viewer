@@ -100,14 +100,18 @@ function Harness({
 	element,
 	inlineEditingText,
 	updateElementById,
+	markDirty,
+	transformCommittedText,
 }: {
 	element: PptxElement;
 	inlineEditingText: string;
 	updateElementById: (elementId: string, updates: Partial<PptxElement>) => void;
+	markDirty?: () => void;
+	transformCommittedText?: (text: string) => string;
 }) {
 	const elementLookup = new Map([[element.id, element]]);
 	const ops = { updateElementById } as unknown as ElementOperations;
-	const history = { markDirty: () => {} } as unknown as EditorHistoryResult;
+	const history = { markDirty: markDirty ?? (() => {}) } as unknown as EditorHistoryResult;
 	const input: UseCanvasInteractionsInput = {
 		mode: 'edit',
 		canEdit: true,
@@ -136,6 +140,7 @@ function Harness({
 		inlineEditingText,
 		ops,
 		history,
+		transformCommittedText,
 		presentationHandleAction: () => {},
 		setEditingEquationOmml: () => {},
 		setIsEquationDialogOpen: () => {},
@@ -156,6 +161,8 @@ function mount(props: {
 	element: PptxElement;
 	inlineEditingText: string;
 	updateElementById: (elementId: string, updates: Partial<PptxElement>) => void;
+	markDirty?: () => void;
+	transformCommittedText?: (text: string) => string;
 }): void {
 	act(() => {
 		root.render(<Harness {...props} />);
@@ -188,6 +195,45 @@ describe('useCanvasInteractions - spAutoFit editor resize', () => {
 		const [elementId, updates] = updateElementById.mock.calls[0];
 		expect(elementId).toBe('tx_1');
 		expect(updates.height).toBe(250);
+	});
+
+	it('does not resize or dirty an unchanged spAutoFit shape on blur', () => {
+		stubScrollHeight(42);
+		const updateElementById = vi.fn<(elementId: string, updates: Partial<PptxElement>) => void>();
+		const markDirty = vi.fn<() => void>();
+		mount({
+			element: makeTextElement({ height: 162 }),
+			inlineEditingText: 'Hello',
+			updateElementById,
+			markDirty,
+		});
+
+		act(() => {
+			getInlineEditor().dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+		});
+
+		expect(updateElementById).not.toHaveBeenCalled();
+		expect(markDirty).not.toHaveBeenCalled();
+	});
+
+	it('resizes when autocorrect changes otherwise unchanged text', () => {
+		stubScrollHeight(55);
+		const updateElementById = vi.fn<(elementId: string, updates: Partial<PptxElement>) => void>();
+		mount({
+			element: makeTextElement(),
+			inlineEditingText: 'Hello',
+			updateElementById,
+			transformCommittedText: () => '“Hello”',
+		});
+
+		act(() => {
+			getInlineEditor().dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+		});
+
+		expect(updateElementById).toHaveBeenCalledWith(
+			'tx_1',
+			expect.objectContaining({ text: '“Hello”', height: 55 }),
+		);
 	});
 
 	it('does not touch height for normAutofit (font-shrink mode)', () => {

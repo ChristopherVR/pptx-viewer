@@ -3,6 +3,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { NormAutofitShrinkResult } from '../internal/shared';
 import {
+	buildInlineTextCommitPatch,
 	resolveInlineEditAutoFitHeight,
 	resolveInlineEditNormAutofitShrink,
 } from '../internal/shared';
@@ -22,10 +23,11 @@ import {
 export function resolveCommitTextAutoFitHeight(
 	elements: readonly PptxElement[],
 	id: string,
+	text: string,
 	editor: HTMLTextAreaElement,
 ): number | undefined {
 	const el = elements.find((e) => e.id === id);
-	if (!el || !hasTextProperties(el)) {
+	if (!el || !hasTextProperties(el) || !buildInlineTextCommitPatch(el, text)) {
 		return undefined;
 	}
 	return resolveInlineEditAutoFitHeight(el.textStyle, el.height, editor);
@@ -41,10 +43,11 @@ export function resolveCommitTextAutoFitHeight(
 export function resolveCommitTextNormAutofitShrink(
 	elements: readonly PptxElement[],
 	id: string,
+	text: string,
 	editor: HTMLTextAreaElement,
 ): NormAutofitShrinkResult {
 	const el = elements.find((e) => e.id === id);
-	if (!el || !hasTextProperties(el)) {
+	if (!el || !hasTextProperties(el) || !buildInlineTextCommitPatch(el, text)) {
 		return 'unchanged';
 	}
 	return resolveInlineEditNormAutofitShrink(el.textStyle, el.height, editor);
