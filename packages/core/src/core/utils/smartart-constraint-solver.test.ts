@@ -342,4 +342,63 @@ describe('smartArt relative constraint solver', () => {
 		const emptyIndex = buildConstraintIndex(empty);
 		expect(resolveRatioConstraint(undefined, emptyIndex, 'diagram', ['sp'], 0.25)).toBe(0.25);
 	});
+
+	/**
+	 * Round 39: `basic-target--flat3.pptx`'s exact shape - a composite
+	 * declares `<dgm:constr type="t" for="ch" forName="text1"/>` (no `val`/
+	 * `fact`/`ref*` at all) for the FIRST item in a vertically-stacked label
+	 * column, then chains every later item's own `t` off the previous one's
+	 * `b` (`refType="b" refFor="ch" refForName="text1"`) - `b` is never
+	 * declared directly anywhere. `resolveConstraint` must anchor the first
+	 * bare `t` at 0 and derive `b` as `t + h` for the chain to resolve at
+	 * all; before this, EVERY item in the column resolved to `undefined` and
+	 * fell back to the SAME vertically-centred default, collapsing all three
+	 * onto one identical box (COM-verified regression: the cached drawing
+	 * has three DISTINCT, stacked boxes, `y = 120/237/353`).
+	 */
+	it('anchors a content-free t/l constraint at 0 and derives b/r as t+h / l+w when never declared directly', () => {
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'composite',
+				constraints: [
+					constr({ type: 't', for: 'ch', forName: 'text1' }),
+					constr({ type: 'h', for: 'ch', forName: 'text1', factor: 0.2 }),
+					constr({
+						type: 't',
+						for: 'ch',
+						forName: 'text2',
+						referenceType: 'b',
+						referenceFor: 'ch',
+						referenceForName: 'text1',
+					}),
+					constr({ type: 'h', for: 'ch', forName: 'text2', factor: 0.2 }),
+					constr({
+						type: 't',
+						for: 'ch',
+						forName: 'text3',
+						referenceType: 'b',
+						referenceFor: 'ch',
+						referenceForName: 'text2',
+					}),
+				],
+				children: [{ name: 'text1' }, { name: 'text2' }, { name: 'text3' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		expect(resolveConstraint(index, 'text1', 't')).toBe(0);
+		expect(resolveConstraint(index, 'text2', 't')).toBeCloseTo(0.2);
+		expect(resolveConstraint(index, 'text3', 't')).toBeCloseTo(0.4);
+	});
+
+	it('does NOT default a content-free w/h to 0 (only t/l are anchor edges)', () => {
+		const definition: PptxSmartArtLayoutDefinition = {
+			rootNode: {
+				name: 'diagram',
+				constraints: [constr({ type: 'w', for: 'ch', forName: 'line1' })],
+				children: [{ name: 'line1' }],
+			},
+		};
+		const index = buildConstraintIndex(definition);
+		expect(resolveConstraint(index, 'line1', 'w')).toBeUndefined();
+	});
 });

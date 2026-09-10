@@ -93,6 +93,20 @@ export const ALL_CHILDREN_HANG_EXTRA_RATIO = 0.6587;
  * under-sizes the item box by the SAME ~10% on BOTH axes (`boxW`/`boxH`
  * share one aspect ratio here); substituting `generationGapRatio=0.2` gives
  * `2+1+0.2+1*0.2=3.4`, matching the cached item box within 0.4%.
+ *
+ * `hangingColumns` (default `columns`, so every existing caller that never
+ * measured it stays byte-identical): out of `columns` total leaf columns, how
+ * many actually pass through a hang (`HierarchyHangShape.hangingColumns`'s
+ * own doc comment in `smartart-hierarchy-hang-depth.ts` has the full
+ * derivation). SESSION 34: `maxHangDepth * HIER_TAIL_OFFSET_RATIO` reserves
+ * width as if EVERY column needed the hang indent, calibrated against
+ * `organization-chart--hier5.pptx` where that is true (`n=2`, both hang) -
+ * `organization-chart--hier8.pptx` (`n=5`, only 1 column hangs) showed
+ * applying the full reservation to all 5 columns' shared item size
+ * over-shrinks every item by ~4%. Scaling by `hangingColumns / n` fixes it
+ * (`hier8.pptx`: 867/(5+4*0.21+1*0.25*(1/5))=147.2 vs cached 148) while
+ * leaving every `hangingColumns === columns` caller (every fixture measured
+ * before SESSION 34) at fraction `1`, unchanged.
  */
 export function fitItemBox(
 	box: BoundingBox,
@@ -109,13 +123,18 @@ export function fitItemBox(
 	allChildrenHang = false,
 	hangHeightRatio = HANG_HEIGHT_RATIO,
 	compositeChainHeightRatio?: number,
+	hangingColumns = columns,
 ): { boxW: number; boxH: number } {
 	const n = Math.max(1, columns);
 	const usableW = box.width - 2 * box.width * marginXRatio;
 	const allHangExtra = allChildrenHang ? ALL_CHILDREN_HANG_EXTRA_RATIO : 0;
+	const hangColumnFraction = n > 0 ? Math.min(1, Math.max(0, hangingColumns) / n) : 0;
 	const widthFit =
 		usableW /
-		(n + Math.max(0, n - 1) * sibSpRatio + maxHangDepth * HIER_TAIL_OFFSET_RATIO + allHangExtra);
+		(n +
+			Math.max(0, n - 1) * sibSpRatio +
+			maxHangDepth * HIER_TAIL_OFFSET_RATIO * hangColumnFraction +
+			allHangExtra);
 	const generations = Math.max(1, levels);
 	const usableH = box.height - 2 * box.height * marginYRatio;
 	const heightFit =

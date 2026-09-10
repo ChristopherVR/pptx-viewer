@@ -91,6 +91,21 @@ export interface HierarchyHangShape {
 	 * flagging this for a successor rather than silently extrapolating.
 	 */
 	allChildrenHang: boolean;
+	/**
+	 * Count of leaf columns (out of `totalLeaves`) whose path passes through a
+	 * hang - one per `walk` call that returns via the HANG branch, summed (not
+	 * maxed) across the forest. SESSION 34 (`organization-chart--hier8.pptx`,
+	 * 8/8 matched but a uniform ~4% item under-size): `fitItemBox`'s WIDTH-axis
+	 * `maxHangDepth * HIER_TAIL_OFFSET_RATIO` reservation was calibrated
+	 * against `organization-chart--hier5.pptx` (`n=2`, BOTH columns hang - see
+	 * `allChildrenHang`) and applied unscoped to every `tailed` fixture;
+	 * `hier8.pptx` has `n=5` columns but only ONE passes through a hang, so the
+	 * SAME absolute reservation over-shrinks all 5 items, not just that one.
+	 * `fitItemBox` scales the reservation by `hangingColumns / columns`:
+	 * `hier5.pptx` (`hangingColumns === columns === 2`) is unchanged (fraction
+	 * `1`); `hier8.pptx` (`1/5`) lands within 0.6% of cached.
+	 */
+	hangingColumns: number;
 }
 
 /**
@@ -143,6 +158,8 @@ interface WalkResult {
 	deepestFanLevel: number;
 	maxHangDepth: number;
 	maxHangRows: number;
+	/** See `HierarchyHangShape.hangingColumns`'s own doc comment: summed, not maxed. */
+	hangingColumns: number;
 }
 
 function walk(
@@ -154,7 +171,7 @@ function walk(
 ): WalkResult {
 	const { normal } = partitionChildren(t, orgChart);
 	if (normal.length === 0) {
-		return { deepestFanLevel: level, maxHangDepth: 0, maxHangRows: 0 };
+		return { deepestFanLevel: level, maxHangDepth: 0, maxHangRows: 0, hangingColumns: 0 };
 	}
 	if (level === 0) {
 		// `placeAt`'s own `level >= 1` gate excludes the root: its own children
@@ -162,13 +179,20 @@ function walk(
 		let deepestFan = level;
 		let maxHang = 0;
 		let maxRows = 0;
+		let hangingColumns = 0;
 		for (const child of normal) {
 			const r = walk(child, level + 1, perRow, orgChart, normal.length);
 			deepestFan = Math.max(deepestFan, r.deepestFanLevel);
 			maxHang = Math.max(maxHang, r.maxHangDepth);
 			maxRows = Math.max(maxRows, r.maxHangRows);
+			hangingColumns += r.hangingColumns;
 		}
-		return { deepestFanLevel: deepestFan, maxHangDepth: maxHang, maxHangRows: maxRows };
+		return {
+			deepestFanLevel: deepestFan,
+			maxHangDepth: maxHang,
+			maxHangRows: maxRows,
+			hangingColumns,
+		};
 	}
 	// `planFan`'s own "chPref-reached fan" (finite `perRow`, `t` one of exactly
 	// `perRow` siblings, `t`'s own child count >= `perRow`) is intentionally
@@ -182,6 +206,7 @@ function walk(
 		let deepestFan = level + 1;
 		let maxHang = 0;
 		let maxRows = 0;
+		let hangingColumns = 0;
 		for (const child of normal) {
 			// `placeFannedRow` never threads `siblingCxs` through to a fanned
 			// child's own recursive `placeAt` call - see this function's own doc
@@ -191,8 +216,14 @@ function walk(
 			deepestFan = Math.max(deepestFan, r.deepestFanLevel);
 			maxHang = Math.max(maxHang, r.maxHangDepth);
 			maxRows = Math.max(maxRows, r.maxHangRows);
+			hangingColumns += r.hangingColumns;
 		}
-		return { deepestFanLevel: deepestFan, maxHangDepth: maxHang, maxHangRows: maxRows };
+		return {
+			deepestFanLevel: deepestFan,
+			maxHangDepth: maxHang,
+			maxHangRows: maxRows,
+			hangingColumns,
+		};
 	}
 	// Hangs: `placeHangingTree` is a pure DFS recursion with no fan re-entry
 	// (see its own doc comment), so every node below `t` (t included) forms
@@ -201,11 +232,15 @@ function walk(
 	// is the SEPARATE row count that same subtree consumes vertically
 	// (HEIGHT axis) - see `HierarchyHangShape.maxHangRows`'s doc comment for
 	// why these two numbers are not the same whenever `t` has more than one
-	// ordinary child.
+	// ordinary child. `t` itself is exactly ONE hanging column (its whole
+	// subtree collapses into one shared column - see `HierarchyHangShape
+	// .hangingColumns`'s own doc comment), never summed further: nothing below
+	// a hang re-enters the fan/hang decision.
 	return {
 		deepestFanLevel: level,
 		maxHangDepth: treeDepth(t) - 1,
 		maxHangRows: countDescendants(t, orgChart),
+		hangingColumns: 1,
 	};
 }
 
@@ -251,12 +286,14 @@ export function computeHangShape(
 	let maxHangDepth = 0;
 	let maxHangRows = 0;
 	let allChildrenHang = false;
+	let hangingColumns = 0;
 	for (const root of roots) {
 		const r = walk(root, 0, perRow, orgChart, undefined);
 		fannedGenerations = Math.max(fannedGenerations, r.deepestFanLevel + 1);
 		maxHangDepth = Math.max(maxHangDepth, r.maxHangDepth);
 		maxHangRows = Math.max(maxHangRows, r.maxHangRows);
 		allChildrenHang ||= allChildrenHangForRoot(root, orgChart, perRow);
+		hangingColumns += r.hangingColumns;
 	}
-	return { fannedGenerations, maxHangDepth, maxHangRows, allChildrenHang };
+	return { fannedGenerations, maxHangDepth, maxHangRows, allChildrenHang, hangingColumns };
 }

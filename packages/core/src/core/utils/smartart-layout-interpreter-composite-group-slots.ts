@@ -71,26 +71,36 @@ function contentSignature(content: PptxSmartArtNode[]): string {
 /**
  * Group `candidates` by their resolved content (several layoutNodes can
  * anchor to the EXACT same point set - `Basic Venn`'s `circ1` (`dgm:alg
- * type="sp"`, decorative) and `circ1Tx` (`alg="tx"`, the real text) share
- * the exact SAME `forEachOrigin` anchor, so both resolve to the SAME
- * content - without merging, that content would be folded in TWICE),
- * then resolve ONE rect per group: try each member's OWN `readSlots` in
- * turn, preferring a NON-`sp` member first (the real text carrier usually
- * declares its own margin-only `constrLst`, but a `dgm:alg type="sp"`
- * sibling more often carries the group's actual position/size constraint -
- * `Staggered Process`'s `ThreeNodes_3_text` has no positioned slot of its
- * own at all; only its decorative `ThreeNodes_3` sibling does), falling
- * back to an `sp` member's slot when no other member has one. Merging also
- * RECOVERS geometry a text-only member lacks (`ThreeNodes_3_text`,
- * `hideGeom`, has no `readSlots`-resolvable constraint of its own at all) -
- * dropping `sp` candidates outright (an earlier, simpler version of this
- * fix) lost that geometry along with the duplicate, silently dropping the
- * whole slot instead of just de-duplicating it. A group with NO positioned
- * member anywhere is dropped (matches the pre-existing "no slot resolves ->
- * no content" behaviour). A group born from a multi-anchor forEach split
- * (see `collectRawCandidates`) is sliced within its shared container via
- * {@link resolveIterationRect} instead of resolved at the container's own
- * full size.
+ * type="sp"`, the real, PAINTED ellipse) and `circ1Tx` (`alg="tx"`, `dgm:shape
+ * type="rect" hideGeom="1"`, a text-only sizing box) share the exact SAME
+ * `forEachOrigin` anchor, so both resolve to the SAME content - without
+ * merging, that content would be folded in TWICE), then resolve ONE rect per
+ * group: try each member's OWN `readSlots` in turn, preferring a VISIBLE
+ * (non-`hideGeom`) shape first - PowerPoint's own cached drawing renders the
+ * data point's text INSIDE the painted shape's own box (`dsp:sp`'s `a:xfrm`),
+ * using a `hideGeom` sibling's box only to size/wrap the TEXT internally
+ * (`dsp:txXfrm`, a separate field this interpreter does not model), never as
+ * a second shape - `Basic Venn`'s cached `circ1` ellipse carries "Alpha"
+ * directly; there is no separate `circ1Tx` shape in the cache at all. Both
+ * `circ1` and `circ1Tx` resolve a REAL slot here (the arranger's own
+ * `dgm:choose` declares `for="ch" forName="circ1"` AND `forName="circ1Tx"`
+ * geometry), so ordering purely by algorithm type (the pre-existing rule)
+ * picked the `hideGeom` text box's small inset rect instead of the visible
+ * shape's own box - wrong preset (`rect` instead of `ellipse`) and wrong
+ * geometry. Falls back to a `hideGeom` member's slot when no visible member
+ * has one - `Staggered Process`'s `ThreeNodes_3_text` (`hideGeom`) has no
+ * `readSlots`-resolvable constraint of its own at all; only its visible `sp`
+ * sibling `ThreeNodes_3` does, so visibility ordering reaches the same
+ * member this rule already preferred. Among members that tie on visibility,
+ * keep the pre-existing non-`sp`-first tiebreak. Merging also RECOVERS
+ * geometry a text-only member lacks - dropping `sp` candidates outright (an
+ * earlier, simpler version of this fix) lost that geometry along with the
+ * duplicate, silently dropping the whole slot instead of just de-duplicating
+ * it. A group with NO positioned member anywhere is dropped (matches the
+ * pre-existing "no slot resolves -> no content" behaviour). A group born
+ * from a multi-anchor forEach split (see `collectRawCandidates`) is sliced
+ * within its shared container via {@link resolveIterationRect} instead of
+ * resolved at the container's own full size.
  */
 export function resolveGroupedSlots(
 	candidates: RawSlotCandidate[],
@@ -110,6 +120,11 @@ export function resolveGroupedSlots(
 	const out: ChooseAwareSlot[] = [];
 	for (const group of groups.values()) {
 		const ordered = [...group].sort((a, b) => {
+			const aHidden = a.node.shape?.hideGeometry ? 1 : 0;
+			const bHidden = b.node.shape?.hideGeometry ? 1 : 0;
+			if (aHidden !== bHidden) {
+				return aHidden - bHidden;
+			}
 			const aIsSp = a.node.algorithm?.type === 'sp' ? 1 : 0;
 			const bIsSp = b.node.algorithm?.type === 'sp' ? 1 : 0;
 			return aIsSp - bIsSp;

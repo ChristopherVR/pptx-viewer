@@ -59,10 +59,7 @@ import { resolveCascadePlan } from './smartart-hierarchy-cascade';
 import { buildFanAwareWidthMap, resolveSpanWidth } from './smartart-hierarchy-fan-aware-width';
 import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
 import { computeHangShape } from './smartart-hierarchy-hang-depth';
-import {
-	arrangeFullyHangingTree,
-	configureTailedHangingPlacer,
-} from './smartart-hierarchy-hanging';
+import { arrangeFullyHangingTree } from './smartart-hierarchy-hanging';
 import { flattenOrgChartGroupWrappers } from './smartart-hierarchy-orgchart-tree';
 import {
 	applyChildOrder,
@@ -78,6 +75,7 @@ import {
 } from './smartart-hierarchy-shared';
 import { placeStandardTree } from './smartart-hierarchy-standard';
 import type { StandardOptions } from './smartart-hierarchy-standard';
+import { configureTailedHangingPlacer } from './smartart-hierarchy-tailed-placer';
 import { resolveHierarchyItemFontSizePx } from './smartart-layout-interpreter-hierarchy-fontfit';
 import { algorithmParam } from './smartart-layout-interpreter-model';
 import type {
@@ -165,10 +163,11 @@ export function arrangeHierarchy(
 	// for generations that were never actually going to sit in a `cellH`-tall
 	// row (`std` mode is unaffected: `computeHangShape` is not even called,
 	// `depth`/`maxHangDepth` stay exactly as before).
+	const noHang = { maxHangDepth: 0, maxHangRows: 0, allChildrenHang: false, hangingColumns: 0 };
 	const hangShape =
 		mode === 'tailed'
 			? computeHangShape(roots, orgChart, rowSize)
-			: { fannedGenerations: rawDepth, maxHangDepth: 0, maxHangRows: 0, allChildrenHang: false };
+			: { fannedGenerations: rawDepth, ...noHang };
 	const depth = hangShape.fannedGenerations;
 	// `tailed` mode's own hang/fan decision (`fanAwareWidthMap`, see
 	// `buildFanAwareWidthMap`'s doc comment in `smartart-hierarchy-hang-
@@ -195,6 +194,7 @@ export function arrangeHierarchy(
 	// `hangHeightRatio`: see `HierarchyOrientation.hangHeightRatio`'s own doc
 	// comment (SESSION 25/32) - `fitItemBox`'s own default (`HANG_HEIGHT_RATIO`)
 	// applies only when this is `undefined` (the compound-text-role shape).
+	// `hangShape.hangingColumns`: see `fitItemBox`'s own doc comment (SESSION 34).
 	const { boxW, boxH } = fitItemBox(
 		effectiveBox,
 		totalLeaves,
@@ -210,6 +210,7 @@ export function arrangeHierarchy(
 		hangShape.allChildrenHang,
 		orientation.hangHeightRatio,
 		orientation.compositeChainHeightRatio,
+		hangShape.hangingColumns,
 	);
 	// See `smartart-hierarchy-cascade.ts`'s own module doc comment for the
 	// declared construct this resolves (`half-circle-organization-chart`'s

@@ -66,6 +66,8 @@ import type {
 	PptxSmartArtLayoutDefinition,
 	PptxSmartArtLayoutNode,
 } from '../types';
+import { selectConstraints } from './smartart-constraint-branch-index';
+import type { WhenContext } from './smartart-layout-interpreter-when';
 
 /** Sentinel role for an unnamed layoutNode (most commonly the root arranger). */
 const ROOT_ROLE = '\u0000root';
@@ -83,10 +85,6 @@ export interface IndexedConstraint {
 export interface ConstraintIndex {
 	entries: Map<string, IndexedConstraint[]>;
 	rootRole: string;
-}
-
-function finite(value: number | undefined): value is number {
-	return typeof value === 'number' && Number.isFinite(value);
 }
 
 /**
@@ -111,7 +109,9 @@ function finite(value: number | undefined): value is number {
  * what `roleOf(itemNode(arranger))` reads at the call site - so this need not
  * invent a synthetic key the rest of the interpreter would never look up.
  */
-function targetRole(
+/** Exposed for `smartart-constraint-resolve.ts` (reference-role targeting
+ * uses the SAME logic as forward targeting). */
+export function targetRole(
 	target: { for?: string; forName?: string; pointType?: string },
 	declaringRole: string,
 ): string {
@@ -152,8 +152,22 @@ export function roleOf(node: PptxSmartArtLayoutNode | undefined): string {
  */
 export const EMPTY_CONSTRAINT_INDEX: ConstraintIndex = { entries: new Map(), rootRole: '' };
 
-/** Build a resolvable index of every `dgm:constr` in the whole layout tree. */
-export function buildConstraintIndex(definition: PptxSmartArtLayoutDefinition): ConstraintIndex {
+/**
+ * Build a resolvable index of every `dgm:constr` in the whole layout tree.
+ *
+ * `nodeCount`/`context` (round 39) enable choose-AWARE selection for a node
+ * whose `constrLst` is genuinely branched (`node.constraintCandidates`, see
+ * `smartart-constraint-branch-index.ts`'s `selectConstraints`): when the
+ * live branch decides, only ITS constraints are indexed for that node,
+ * instead of blindly unioning every branch. Omit both (every pre-existing
+ * caller) to keep the old blind-union behaviour exactly as before - a
+ * caller with no diagram to evaluate against cannot decide a branch anyway.
+ */
+export function buildConstraintIndex(
+	definition: PptxSmartArtLayoutDefinition,
+	nodeCount?: number,
+	context?: WhenContext,
+): ConstraintIndex {
 	const entries = new Map<string, IndexedConstraint[]>();
 
 	const walk = (node: PptxSmartArtLayoutNode): void => {
@@ -161,8 +175,12 @@ export function buildConstraintIndex(definition: PptxSmartArtLayoutDefinition): 
 		// `allConstraints` (when present) is a superset of `constraints` that
 		// also includes ones declared inside a `dgm:choose`/`dgm:if`/`dgm:else`
 		// wrapping THIS node's own constrLst (see its doc comment - `gear`'s
-		// composite positions its slots this way exclusively).
-		for (const constraint of node.allConstraints ?? node.constraints ?? []) {
+		// composite positions its slots this way exclusively). Prefer the
+		// choose-aware branch selection when it decides; fall back to the blind
+		// union otherwise.
+		const constraints =
+			selectConstraints(node, nodeCount, context) ?? node.allConstraints ?? node.constraints ?? [];
+		for (const constraint of constraints) {
 			const role = targetRole(constraint, declaringRole);
 			const list = entries.get(entryKey(role, constraint.type));
 			const entry: IndexedConstraint = { constraint, declaringRole };
@@ -181,120 +199,8 @@ export function buildConstraintIndex(definition: PptxSmartArtLayoutDefinition): 
 	return { entries, rootRole: roleOf(definition.rootNode) };
 }
 
-/** A constraint's own literal `val`/`fact` (no reference involved). */
-function literalValue(constraint: PptxSmartArtConstraint): number | undefined {
-	if (finite(constraint.factor)) {
-		return constraint.factor;
-	}
-	if (finite(constraint.value)) {
-		return constraint.value;
-	}
-	return undefined;
-}
-
-/** Apply a resolved reference's factor, then any `gte`/`lte` bound against `val`. */
-function combine(constraint: PptxSmartArtConstraint, referenced: number): number {
-	const factor = finite(constraint.factor) ? constraint.factor : 1;
-	let result = referenced * factor;
-	if (finite(constraint.value)) {
-		if (constraint.operator === 'gte') {
-			result = Math.max(result, constraint.value);
-		} else if (constraint.operator === 'lte') {
-			result = Math.min(result, constraint.value);
-		}
-	}
-	return result;
-}
-
-/** Exposed for `smartart-constraint-declared-by.ts` (see {@link IndexedConstraint}). */
-export function resolveEntry(
-	index: ConstraintIndex,
-	entry: IndexedConstraint,
-	visiting: Set<string>,
-): number | undefined {
-	const { constraint, declaringRole } = entry;
-	if (!hasReference(constraint)) {
-		return literalValue(constraint);
-	}
-	// Arranger-declared (`for="ch" forName="X"`), no EXPLICIT refFor/refForName/
-	// refPointType, but its OWN fact/val: an axis-scale hint, not a cross-role
-	// reference (`balance--hier5.pptx`'s `left_40_1`, `refType="w" fact="0.365"`
-	// = "0.365 * box width", never "childrenComposite's own w" - usually
-	// undeclared, so the walk below silently dropped every `balance` slot).
-	// `literal !== undefined` matters: `outerBox` (`refType="w"`, no fact/val,
-	// `nested-target--hier5.pptx`) means "inherit the arranger's own w" -
-	// nothing to degrade to, so it still falls through to the walk.
-	const hasExplicitRefTarget =
-		constraint.referenceFor !== undefined ||
-		constraint.referenceForName !== undefined ||
-		constraint.referencePointType !== undefined;
-	const literal = literalValue(constraint);
-	const isArrangerDeclared = targetRole(constraint, declaringRole) !== declaringRole;
-	if (isArrangerDeclared && !hasExplicitRefTarget && literal !== undefined) {
-		return literal;
-	}
-	const refType = constraint.referenceType ?? constraint.type;
-	const refRole = targetRole(
-		{
-			for: constraint.referenceFor,
-			forName: constraint.referenceForName,
-			pointType: constraint.referencePointType,
-		},
-		declaringRole,
-	);
-	const referenced = resolveInternal(index, refRole, refType, visiting);
-	if (referenced === undefined) {
-		// Unresolvable reference: degrade to this entry's own literal `val` (a
-		// bound alongside an unresolved ref) when it carries one, else give up.
-		return finite(constraint.value) ? constraint.value : undefined;
-	}
-	return combine(constraint, referenced);
-}
-
-function resolveInternal(
-	index: ConstraintIndex,
-	role: string,
-	type: string,
-	visiting: Set<string>,
-): number | undefined {
-	const k = entryKey(role, type);
-	if (visiting.has(k)) {
-		return undefined; // Cycle: degrade rather than recurse forever.
-	}
-	const candidates = index.entries.get(k);
-	if (!candidates || candidates.length === 0) {
-		// The root layoutNode's own w/h is the implicit whole-diagram unit that
-		// every scalar `fact` is ultimately expressed against, and it is never
-		// itself declared as a constraint.
-		if (role === index.rootRole && (type === 'w' || type === 'h')) {
-			return 1;
-		}
-		return undefined;
-	}
-	visiting.add(k);
-	try {
-		for (const candidate of candidates) {
-			const value = resolveEntry(index, candidate, visiting);
-			if (value !== undefined) {
-				return value;
-			}
-		}
-		return undefined;
-	} finally {
-		visiting.delete(k);
-	}
-}
-
-/**
- * Resolve the value a role's constraint of `type` ultimately carries, walking
- * any `refType`/`refFor`/`refForName` chain. Returns `undefined` when nothing
- * declares it, a reference cannot be resolved, or resolution would cycle - the
- * caller is expected to fall back to its own default in every such case.
- */
-export function resolveConstraint(
-	index: ConstraintIndex,
-	role: string,
-	type: string,
-): number | undefined {
-	return resolveInternal(index, role, type, new Set());
-}
+// Reference-chain resolution (`resolveEntry`/`resolveConstraint`) lives in
+// `smartart-constraint-resolve.ts` (split out to keep this file under the
+// repo's per-file line budget); re-exported here so every pre-existing
+// import path (`from './smartart-constraint-solver'`) keeps working.
+export { resolveConstraint, resolveEntry } from './smartart-constraint-resolve';

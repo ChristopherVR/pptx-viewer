@@ -176,4 +176,76 @@ describe('fitItemBox', () => {
 		expect(boxH).toBeCloseTo(148.93, 1); // widthFit(372.32) * compositeChainHeightRatio(0.4) - within 0.9% of cached 144.
 		expect(boxW).toBeCloseTo(223.4, 0); // boxH/aspectRatio - within 3.4% of cached 216 (the pre-existing widthFit overshoot, not this fix's own residual).
 	});
+
+	// SESSION 34: organization-chart--hier8.pptx's own shape - totalLeaves=5
+	// (a solo-chain root fans a SECOND generation into a 5-wide row), but only
+	// ONE of those 5 columns actually passes through a hang (`hangingColumns=1`,
+	// see `smartart-hierarchy-hang-depth.ts`'s own SESSION 34 test case). The
+	// pre-SESSION-34 formula applied `maxHangDepth*HIER_TAIL_OFFSET_RATIO`
+	// (calibrated against `organization-chart--hier5.pptx`, where ALL n=2
+	// columns hang) to the WHOLE n=5 row, under-sizing every item by ~4%
+	// (cached is 148x74). Passing the true `hangingColumns=1` scales the
+	// reservation to 1/5 and lands within 0.6% of cached.
+	it('scales the WIDTH-axis hang reservation by hangingColumns/columns instead of applying it to every column (organization-chart--hier8.pptx shape)', () => {
+		const unscoped = fitItemBox(
+			{ width: 867, height: 533 },
+			5,
+			3,
+			0.21,
+			0.5,
+			0.42,
+			0,
+			0,
+			1,
+			undefined,
+			1,
+			false,
+			0.42,
+		);
+		expect(unscoped.boxW).toBeCloseTo(142.36, 1); // the pre-SESSION-34 under-sized value.
+		const { boxW, boxH } = fitItemBox(
+			{ width: 867, height: 533 },
+			5,
+			3,
+			0.21,
+			0.5,
+			0.42,
+			0,
+			0,
+			1,
+			undefined,
+			1,
+			false,
+			0.42,
+			undefined,
+			1,
+		);
+		expect(boxW).toBeCloseTo(147.2, 1); // within 0.6% of cached 148.
+		expect(boxH / boxW).toBeCloseTo(0.5, 6); // aspect-locked, same as every other tailed-mode item.
+	});
+
+	// SESSION 34: `hangingColumns === columns` (the default, and every fixture
+	// measured before this session) must stay byte-identical to the unscoped
+	// formula - re-confirms the hier5 case above is unaffected by the new param.
+	it('hangingColumns === columns leaves the result unchanged (organization-chart--hier5.pptx shape, no regression)', () => {
+		const { boxW, boxH } = fitItemBox(
+			{ width: 867, height: 533 },
+			2,
+			2,
+			0.21,
+			0.5,
+			0.42,
+			0,
+			0,
+			1,
+			undefined,
+			1,
+			true,
+			0.42,
+			undefined,
+			2,
+		);
+		expect(boxH).toBeCloseTo(138.8, 1);
+		expect(boxW).toBeCloseTo(277.6, 1);
+	});
 });

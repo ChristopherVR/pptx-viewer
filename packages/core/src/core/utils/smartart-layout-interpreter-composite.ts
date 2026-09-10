@@ -40,6 +40,7 @@ import {
 	forEachBoundSlots,
 	renderForEachBoundSlots,
 } from './smartart-layout-interpreter-composite-foreach';
+import { representativeSlotsPerPoint } from './smartart-layout-interpreter-composite-order';
 import { collectSelfDesPairs } from './smartart-layout-interpreter-composite-pairs';
 import { renderAnchoredPair } from './smartart-layout-interpreter-composite-render';
 import type { SlotStyleContext } from './smartart-layout-interpreter-composite-render';
@@ -139,7 +140,14 @@ function arrangeByPresentationOf(
 	return rendered;
 }
 
-/** Pre-existing behaviour: one arranged point per positioned slot, in document order. */
+/**
+ * Pre-existing behaviour: one arranged point per positioned slot, in
+ * document order. `representativeSlotsPerPoint` (round 40) collapses a
+ * repeated per-point template's multiple positioned roles (text + accent +
+ * picture + picture-accent, `hexagon-cluster`-family composites) down to one
+ * slot per point FIRST, so this still zips 1:1 against `nodes` - see that
+ * function's own doc comment.
+ */
 function arrangeByOrder(
 	slotted: SlottedDims[],
 	nodes: PptxSmartArtNode[],
@@ -149,12 +157,13 @@ function arrangeByOrder(
 	ctx: SlotStyleContext,
 	fontCtx: FontFitContext | undefined,
 ): RenderedNode[] {
-	const count = Math.min(slotted.length, nodes.length);
-	const slots = slotted.slice(0, count).map((entry) => slotRect(entry, box, absX, absY));
+	const perPoint = representativeSlotsPerPoint(slotted, nodes.length);
+	const count = Math.min(perPoint.length, nodes.length);
+	const slots = perPoint.slice(0, count).map((entry) => slotRect(entry, box, absX, absY));
 	const fontFit = fontCtx
 		? resolveSharedFontFit(
 				fontCtx,
-				slotted[0]?.node,
+				perPoint[0]?.node,
 				slots.map((slot, i) => ({
 					rootText: nodes[i].text,
 					descendantTexts: [],
@@ -181,7 +190,7 @@ function arrangeByOrder(
 				fontSizeOverride: fontFit?.rootSizePx,
 				descendantFontSize: fontFit?.descendantSizePx,
 				ctx: ctx.ctx,
-				shape: findCompositeItemShape(slotted[i].node),
+				shape: findCompositeItemShape(perPoint[i].node),
 				fallbackKind: 'rect',
 			}),
 		);

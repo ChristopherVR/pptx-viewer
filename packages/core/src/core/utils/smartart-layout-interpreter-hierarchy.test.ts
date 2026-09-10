@@ -608,6 +608,140 @@ describe('smartArt hierarchy arranger: fold-depth (layout definition caps genera
 	});
 });
 
+// `hierarchy-list--hier5.pptx`'s OWN `mode==='hanging'` path
+// (`arrangeFullyHangingTree`, SESSION 35's `smartart-hierarchy-hanging-box.ts`)
+// did not consult `foldDeeperGenerations` at all (SESSION 34/35): once
+// `discoverArrangement`'s own direct-children-only choose-branch lookup is
+// fixed (Track S/L, NOT this file), this real layout's linDir=fromL routes
+// through `arrangeFullyHangingTree` instead of `placeStandardTree`, and would
+// place a 5th box for "Node Five" (a grandchild the cached drawing folds into
+// "Node Four"'s own box) without this fix. `realAlgorithmNode` below is
+// transcribed directly from `hierarchy-list--hier5.pptx`'s own
+// `ppt/diagrams/layout1.xml` (`root` -> [`rootComposite` -> [`rootText`,
+// `rootConnector`], `childShape` -> [`Name13` (conn), `childText`]], with
+// `childText`'s own `presOf axis="self desOrSelf" ... cnt="1 0"` - the exact
+// unbounded-descendant-hop shape `hierarchyLeafFoldsDescendants` looks for),
+// with `linDir` forced onto the top-level algorithm the same way SESSION 35's
+// own diagnostic (`s35-verify-hanging-box.ts`) forced it, since the
+// choose-branch dispatch bug is out of this lane.
+describe('smartArt hierarchy arranger: mode===hanging honours foldDeeperGenerations (hierarchy-list--hier5.pptx real layout definition, forced onto the hanging path)', () => {
+	const realAlgorithmNode: PptxSmartArtLayoutNode = {
+		name: 'diagram',
+		algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: 'fromL' }] },
+		children: [
+			{
+				name: 'root',
+				algorithm: { type: 'hierRoot', parameters: [{ type: 'hierAlign', value: 'tL' }] },
+				children: [
+					{
+						name: 'rootComposite',
+						algorithm: { type: 'composite' },
+						children: [
+							{
+								name: 'rootText',
+								algorithm: { type: 'tx' },
+								shape: { presetGeometry: 'roundRect' },
+							},
+							{ name: 'rootConnector', algorithm: { type: 'sp' } },
+						],
+					},
+					{
+						name: 'childShape',
+						algorithm: {
+							type: 'hierChild',
+							parameters: [
+								{ type: 'chAlign', value: 'l' },
+								{ type: 'linDir', value: 'fromT' },
+							],
+						},
+						children: [
+							{ name: 'Name13', algorithm: { type: 'conn' } },
+							{
+								name: 'childText',
+								algorithm: { type: 'tx' },
+								shape: { presetGeometry: 'roundRect' },
+								presentationOf: {
+									axis: ['self', 'desOrSelf'],
+									pointTypes: ['node', 'node'],
+									start: [1, 1],
+									count: [1, 0],
+								},
+							},
+						],
+					},
+				],
+			},
+		],
+	};
+
+	/** Root + 3 direct children, one of which has its own child - matches the real fixture's data1.xml exactly. */
+	const HIERARCHY_LIST_TREE: PptxSmartArtNode[] = [
+		{ id: 'n1', text: 'Node One' },
+		{ id: 'n2', text: 'Node Two has a longer label', parentId: 'n1' },
+		{ id: 'n3', text: 'Node Three', parentId: 'n1' },
+		{ id: 'n4', text: 'Node Four', parentId: 'n1' },
+		{ id: 'n5', text: 'Node Five', parentId: 'n4' },
+	];
+
+	it('does not give "Node Five" its own box on the hanging path (count matches cached: root + 3 direct children only)', () => {
+		const result = arrangeHierarchy(
+			HIERARCHY_LIST_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-list-fold-hanging',
+			undefined,
+			undefined,
+			realAlgorithmNode,
+		);
+		// Cached ground truth (hierarchy-list--hier5.pptx): 4 text-bearing
+		// shapes. "Node Five" folds into "Node Four"'s own box instead (the
+		// drawing bridge's `collectFoldedDescendants`, exercised at a higher
+		// layer than this arranger - this test pins the box COUNT
+		// `arrangeHierarchy` itself produces, mirroring the existing std/tailed
+		// fold-depth tests above).
+		expect(rects(result)).toHaveLength(4);
+		expect(rects(result).some((n) => n.nodeId === 'n5')).toBeFalsy();
+	});
+
+	it('gives every generation its own box on the hanging path with no fold signal (plain "self" presOf childText, no regression)', () => {
+		const plainAlgorithmNode: PptxSmartArtLayoutNode = {
+			...realAlgorithmNode,
+			children: [
+				{
+					...realAlgorithmNode.children![0],
+					children: [
+						realAlgorithmNode.children![0].children![0],
+						{
+							name: 'childShape',
+							algorithm: { type: 'hierChild', parameters: [{ type: 'linDir', value: 'fromT' }] },
+							children: [
+								{
+									name: 'childText',
+									algorithm: { type: 'tx' },
+									shape: { presetGeometry: 'roundRect' },
+									presentationOf: { axis: ['self'] },
+								},
+							],
+						},
+					],
+				},
+			],
+		};
+		const result = arrangeHierarchy(
+			HIERARCHY_LIST_TREE,
+			box,
+			palette,
+			'flat',
+			'hier-list-nofold-hanging',
+			undefined,
+			undefined,
+			plainAlgorithmNode,
+		);
+		expect(rects(result)).toHaveLength(5);
+	});
+});
+
 // Round 19: `smartart-hierarchy-shared.ts`'s `pushNode` called `presetBoxNode`
 // with no `fontSizeOverride` at all, so EVERY hierarchy item in the gallery
 // fell through to `rectNode`'s crude, un-derived `fitFontSize(..., 12)`

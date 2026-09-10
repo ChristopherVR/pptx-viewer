@@ -23,6 +23,7 @@ import {
 	parseSmartArtControlFlow,
 	validateSmartArtControlFlow,
 } from './smartart-layout-control-flow';
+import { constraintCandidates } from './smartart-layout-definition-constraint-candidates';
 import {
 	choosePresentationOf,
 	nestedConstraints,
@@ -95,6 +96,10 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		guard: entry.guard,
 		rule: parseRule(entry.rule, localName),
 	}));
+	const constraintCandidateList = constraintCandidates(node, localName)?.map((entry) => ({
+		guard: entry.guard,
+		constraint: parseConstraint(entry.constr, localName),
+	}));
 	return {
 		name: optionalString(node['@_name']),
 		styleLabel: optionalString(node['@_styleLbl']),
@@ -109,6 +114,7 @@ function parseNode(node: XmlObject, localName: LocalName): PptxSmartArtLayoutNod
 		presentationOfCandidates: presOfCandidates,
 		allConstraints: allConstraints.length > 0 ? allConstraints : undefined,
 		ruleCandidates: ruleCandidateList,
+		constraintCandidates: constraintCandidateList,
 		children: nested.length > 0 ? nested : undefined,
 	};
 }

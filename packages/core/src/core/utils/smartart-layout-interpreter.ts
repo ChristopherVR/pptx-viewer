@@ -121,7 +121,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 	if (!plan) {
 		return undefined;
 	}
-
+	const whenContext = { presLayoutVars, nodes: flat };
 	// Hierarchy consumes the nested tree directly; every other family arranges the
 	// flat points after applying the arranger's forEach selection (st/cnt/step +
 	// hideLastTrans). When the selection empties the set, decline so the caller
@@ -136,7 +136,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 			presLayoutVars,
 			buildConnectorLabels(input.connections),
 			plan.node,
-			buildConstraintIndex(layoutDefinition),
+			buildConstraintIndex(layoutDefinition, flat.length, whenContext),
 			buildChildOrder(input.connections),
 			input.fontName,
 		);
@@ -182,7 +182,7 @@ function runArrangement(input: InterpretLayoutInput): SmartArtLayoutResult | und
 		return undefined;
 	}
 
-	const constraintIndex = buildConstraintIndex(layoutDefinition);
+	const constraintIndex = buildConstraintIndex(layoutDefinition, flat.length, whenContext);
 	const result = dispatchArrangement(
 		plan,
 		arranged,

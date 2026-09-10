@@ -542,4 +542,75 @@ describe('forEachOrigin: the enclosing dgm:forEach a layoutNode was reached thro
 			count: [1],
 		});
 	});
+
+	/**
+	 * Round 39: `basic-venn--flat3.pptx`'s exact shape - a composite's
+	 * `constrLst` declares a DIFFERENT `ctrX` fact for the SAME role
+	 * (`circ1`) per data-point-count branch. `constraintCandidates` must
+	 * capture EVERY branch, each tagged with its own guard chain, so a
+	 * choose-aware caller (`smartart-constraint-branch-index.ts`) can pick
+	 * the one genuinely live for the current diagram instead of
+	 * `allConstraints`'s pre-existing blind union of all of them.
+	 */
+	it('tags every choose-guarded dgm:constr with its own guard chain (constraintCandidates)', () => {
+		const nested: XmlObject = {
+			'x:layoutNode': {
+				'@_name': 'composite',
+				'x:choose': {
+					'x:if': {
+						'@_func': 'cnt',
+						'@_axis': 'ch',
+						'@_op': 'equ',
+						'@_val': '2',
+						'x:constrLst': {
+							'x:constr': {
+								'@_type': 'ctrX',
+								'@_for': 'ch',
+								'@_forName': 'circ1',
+								'@_fact': '0.3',
+							},
+						},
+					},
+					'x:else': {
+						'x:constrLst': {
+							'x:constr': {
+								'@_type': 'ctrX',
+								'@_for': 'ch',
+								'@_forName': 'circ1',
+								'@_fact': '0.5',
+							},
+						},
+					},
+				},
+			},
+		};
+		const parsed = parseSmartArtLayoutDefinition(nested, localName)!;
+		const candidates = parsed.rootNode.constraintCandidates!;
+		expect(candidates).toHaveLength(2);
+		expect(candidates[0].guard).toStrictEqual([
+			expect.objectContaining({ function: 'cnt', operator: 'equ', value: '2' }),
+		]);
+		expect(candidates[0].constraint).toMatchObject({ type: 'ctrX', forName: 'circ1', factor: 0.3 });
+		// The else branch keeps no condition of its own (matches `chooseGuard`'s
+		// own convention).
+		expect(candidates[1].guard).toStrictEqual([]);
+		expect(candidates[1].constraint).toMatchObject({ type: 'ctrX', forName: 'circ1', factor: 0.5 });
+		// `allConstraints` still carries BOTH branches blindly unioned - the
+		// pre-existing consumer is unaffected by this new field's presence.
+		expect(parsed.rootNode.allConstraints).toHaveLength(2);
+	});
+
+	it('leaves constraintCandidates undefined for a plain, unwrapped constrLst (nothing to choose between)', () => {
+		const plain: XmlObject = {
+			'x:layoutNode': {
+				'@_name': 'root',
+				'x:constrLst': {
+					'x:constr': { '@_type': 'w', '@_for': 'ch', '@_forName': 'node', '@_fact': '1' },
+				},
+			},
+		};
+		const parsed = parseSmartArtLayoutDefinition(plain, localName)!;
+		expect(parsed.rootNode.constraintCandidates).toBeUndefined();
+		expect(parsed.rootNode.allConstraints).toHaveLength(1);
+	});
 });

@@ -276,6 +276,24 @@ export interface PptxSmartArtLayoutNode {
 		guard: PptxSmartArtWhen[];
 		rule: PptxSmartArtNumericRule;
 	}[];
+	/**
+	 * ROUND 39: every `dgm:constr` reachable through a `dgm:choose`/`dgm:if`/
+	 * `dgm:else` wrapping THIS node's `constrLst` (a genuinely count/position
+	 * -branched constraint set, e.g. `basic-venn--flat3.pptx`'s composite
+	 * `Name9` choose, one `ctrX`/`ctrY`/`w`/`h` per data-point-count branch
+	 * for `circ1`/`circ1Tx`/...), each tagged with its guard chain - the SAME
+	 * shape {@link presentationOfCandidates}/{@link ruleCandidates} use,
+	 * applied to `dgm:constr`. `undefined` when not choose-guarded
+	 * (`allConstraints`/`constraints` above then carry the one set, the
+	 * common case). See `smartart-constraint-branch-index.ts`'s
+	 * `selectConstraints` for how the guard is evaluated against the real
+	 * diagram, and that module's own doc comment for why `allConstraints`'s
+	 * pre-existing blind union of every branch is not enough on its own.
+	 */
+	constraintCandidates?: {
+		guard: PptxSmartArtWhen[];
+		constraint: PptxSmartArtConstraint;
+	}[];
 }
 
 /** Metadata and root node from DiagramML CT_DiagramDefinition. */

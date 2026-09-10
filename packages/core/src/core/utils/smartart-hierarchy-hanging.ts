@@ -30,23 +30,17 @@ import type {
 	PptxSmartArtLayoutNode,
 	PptxSmartArtLayoutNodeShape,
 	PptxSmartArtNode,
-	PptxSmartArtPresLayoutVars,
 	SmartArtStyle,
 } from '../types';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import type { TreeNode } from './smartart-helpers';
-import { linDirHangDirection, tailDirection } from './smartart-hierarchy-branch-mode';
-import type { CascadePlan } from './smartart-hierarchy-cascade';
+import { linDirHangDirection } from './smartart-hierarchy-branch-mode';
+import { hierarchyLeafFoldsDescendants } from './smartart-hierarchy-fold-depth';
+import { fitHangingBox } from './smartart-hierarchy-hanging-box';
+import { countHangingRows } from './smartart-hierarchy-hanging-fold';
 import { partitionChildren } from './smartart-hierarchy-orgchart-tree';
-import {
-	baseContext,
-	elbowConnector,
-	HIER_TAIL_OFFSET_RATIO,
-	pushNode,
-	stubConnector,
-} from './smartart-hierarchy-shared';
+import { baseContext, elbowConnector, pushNode, stubConnector } from './smartart-hierarchy-shared';
 import type { HierContext } from './smartart-hierarchy-shared';
-import type { StandardOptions } from './smartart-hierarchy-standard';
 import { resolveHierarchyItemFontSizePx } from './smartart-layout-interpreter-hierarchy-fontfit';
 import type { BoundingBox, SmartArtLayoutResult } from './smartart-layout-types';
 
@@ -58,6 +52,15 @@ export interface HangingOptions {
 	direction: HangDirection;
 	indent: number;
 	vGap: number;
+	/**
+	 * See `smartart-hierarchy-hanging-fold.ts`'s own module doc comment: stops
+	 * `placeHangingTree` recursing past a node's own direct children when set.
+	 * `undefined`/`false` for every existing caller (the `tailed` family's own
+	 * hanging tail via `smartart-hierarchy-tailed-placer.ts`'s
+	 * `configureTailedHangingPlacer` never sets this) - behaviour-preserving
+	 * there.
+	 */
+	foldDeeperGenerations?: boolean;
 }
 
 /** Running vertical write position, shared across an entire DFS pass. */
@@ -94,6 +97,23 @@ function placeAssistants(
  * ordinary children hangs them in one shared column even under `hierBranch`
  * "hang" ("Both Hanging"), the value whose name most suggests per-child
  * alternation - see the module doc comment.
+ *
+ * `size` (optional): an explicit box size for THIS call only, used by
+ * `placeHangingForest`'s own top-level (forest-root) call when the layout
+ * declares a distinctly-sized root template (`smartart-hierarchy-generation-
+ * templates.ts` / `smartart-hierarchy-hanging-box.ts`) - `undefined` for
+ * every recursive descendant call, which keeps using `hc.boxW`/`hc.boxH` as
+ * before.
+ *
+ * `level` (default `0`, the forest root): mirrors `smartart-hierarchy-
+ * standard.ts`'s `placeAt` - once `options.foldDeeperGenerations` is set,
+ * a node reached at `level >= 1` still gets its own row, but its ordinary
+ * children do not; `smartart-interpreter-drawing-bridge.ts`'s own
+ * `collectFoldedDescendants` folds them into this node's text instead, the
+ * SAME mechanism the `std`/`tailed` branches already rely on. See
+ * `smartart-hierarchy-hanging-fold.ts` for the matching row-COUNT function
+ * `fitHangingBox`'s caller uses to size these rows before this function
+ * places them.
  */
 export function placeHangingTree(
 	hc: HierContext,
@@ -101,15 +121,22 @@ export function placeHangingTree(
 	x: number,
 	options: HangingOptions,
 	cursor: HangingCursor,
+	size?: { w: number; h: number },
+	level = 0,
 ): void {
 	const y = cursor.y;
-	cursor.y += hc.boxH + options.vGap;
-	pushNode(hc, t.node, x, y);
+	const boxW = size?.w ?? hc.boxW;
+	const boxH = size?.h ?? hc.boxH;
+	cursor.y += boxH + options.vGap;
+	pushNode(hc, t.node, x, y, boxW, boxH);
 
 	const { assistants, normal } = partitionChildren(t, options.orgChart);
-	placeAssistants(hc, x, y + hc.boxH, assistants, options, cursor);
+	placeAssistants(hc, x, y + boxH, assistants, options, cursor);
 
 	if (normal.length === 0) {
+		return;
+	}
+	if (options.foldDeeperGenerations && level >= 1) {
 		return;
 	}
 	const childX = options.direction === 'left' ? x - options.indent : x + options.indent;
@@ -118,19 +145,23 @@ export function placeHangingTree(
 		elbowConnector(
 			hc,
 			t.node.id,
-			x + hc.boxH / 2,
-			y + hc.boxH,
+			x + boxH / 2,
+			y + boxH,
 			childX + hc.boxH / 2,
 			childY,
 			child.node.id,
 		);
-		placeHangingTree(hc, child, childX, options, cursor);
+		placeHangingTree(hc, child, childX, options, cursor, undefined, level + 1);
 	}
 }
 
 /**
  * Entry point for a full `hang`/`l`/`r` branch pass over a forest, starting
  * the running cursor at `startY` (an inset from the top of the box).
+ *
+ * `rootSize` (optional): passed through to EVERY top-level root's own
+ * `placeHangingTree` call (not to any recursive child call) - see that
+ * function's own doc comment.
  */
 export function placeHangingForest(
 	hc: HierContext,
@@ -138,10 +169,11 @@ export function placeHangingForest(
 	startX: number,
 	startY: number,
 	options: HangingOptions,
+	rootSize?: { w: number; h: number },
 ): void {
 	const cursor: HangingCursor = { y: startY };
 	for (const root of roots) {
-		placeHangingTree(hc, root, startX, options, cursor);
+		placeHangingTree(hc, root, startX, options, cursor, rootSize);
 	}
 }
 
@@ -170,10 +202,26 @@ export function arrangeFullyHangingTree(
 	orgChart: boolean,
 ): SmartArtLayoutResult {
 	const { width: w, height: h } = box;
-	const boxW = Math.min(w * 0.42, 160);
-	const boxH = Math.min(h * 0.16, 30);
+	// See `smartart-hierarchy-fold-depth.ts`'s own module doc comment: a
+	// layoutDef with no per-generation item template past the root's direct
+	// children folds every deeper descendant into its nearest rendered
+	// ancestor's text, the SAME signal the `std`/`tailed` branches already
+	// consult (`smartart-layout-interpreter-hierarchy.ts`'s own
+	// `standardOptions.foldDeeperGenerations`).
+	const foldDeeperGenerations = algorithmNode
+		? hierarchyLeafFoldsDescendants(algorithmNode)
+		: false;
+	// See `smartart-hierarchy-hanging-box.ts`'s own doc comment: `boxW`/`boxH`
+	// (the descendant row's own size) and `vGap` (the declared row gap) are
+	// fit to `box` from the layout's own declared constraints where possible,
+	// falling back to the pre-existing ad-hoc ratios otherwise. `rows`: the
+	// ACTUAL rendered row count (`countHangingRows`, see its own doc comment)
+	// - one per data node only when nothing folds; with `foldDeeperGenerations`
+	// set, a folded descendant contributes no row of its own.
+	const rows = countHangingRows(roots, orgChart, foldDeeperGenerations);
+	const fit = fitHangingBox(algorithmNode, index, w, h, rows);
+	const { boxW, boxH, vGap } = fit;
 	const indent = boxW * 0.35;
-	const vGap = boxH * 0.55;
 	const hc = baseContext(
 		nodes.length,
 		elementId,
@@ -185,55 +233,29 @@ export function arrangeFullyHangingTree(
 		itemShape,
 		resolveHierarchyItemFontSizePx(nodes, algorithmNode, index, boxW, boxH, fontName),
 	);
-	placeHangingForest(hc, roots, HANGING_MODE_INSET + indent, HANGING_MODE_INSET, {
-		orgChart,
-		direction: linDirHangDirection(linDir),
-		indent,
-		vGap,
-	});
+	const rootSize =
+		fit.rootBoxW !== undefined && fit.rootBoxH !== undefined
+			? { w: fit.rootBoxW, h: fit.rootBoxH }
+			: undefined;
+	placeHangingForest(
+		hc,
+		roots,
+		HANGING_MODE_INSET + indent,
+		HANGING_MODE_INSET,
+		{
+			orgChart,
+			direction: linDirHangDirection(linDir),
+			indent,
+			vGap,
+			foldDeeperGenerations,
+		},
+		rootSize,
+	);
 	return {
 		nodes: hc.nodes,
 		connectors: hc.connectors,
 		shadowFilter: hc.ctx.shadow,
 		viewBox: `0 0 ${w} ${h}`,
 		family: 'hierarchy',
-	};
-}
-
-/**
- * Wire `standardOptions.hangingPlacer` for the `tailed` (org-chart) family's
- * own hanging tail - split out of `smartart-layout-interpreter-hierarchy.ts`
- * (the file-size budget): the setup block itself, unchanged, just relocated.
- * A no-op (leaves `standardOptions.hangingPlacer` unset) for `std`/`hanging`
- * mode and for the SESSION 28 cascade construct (`cascadePlan.active`): see
- * that field's own call-site doc comment history for why the cascade shape
- * needs `placeAt`'s DEFAULT fanned-row branch instead of this placer.
- */
-export function configureTailedHangingPlacer(
-	standardOptions: StandardOptions,
-	mode: 'std' | 'tailed' | 'hanging',
-	cascadePlan: Pick<CascadePlan, 'active'>,
-	boxW: number,
-	boxH: number,
-	presLayoutVars: PptxSmartArtPresLayoutVars | undefined,
-	orgChart: boolean,
-): void {
-	if (mode !== 'tailed' || cascadePlan.active) {
-		return;
-	}
-	// Measured ratio (`HIER_TAIL_OFFSET_RATIO`), not the unrelated 0.35 used by
-	// the `linDir`-only `hanging` mode above: this is the org-chart-family
-	// `hierAlign`/`alignOff` root-box offset, and genuine PowerPoint output
-	// pins it at exactly 0.25x the box width - see the constant's doc comment.
-	const indent = boxW * HIER_TAIL_OFFSET_RATIO;
-	const vGap = boxH * 0.55;
-	const direction = tailDirection(presLayoutVars);
-	standardOptions.hangingPlacer = (childHc, subtrees, anchorX, anchorY) => {
-		placeHangingForest(childHc, subtrees, anchorX, anchorY, {
-			orgChart,
-			direction,
-			indent,
-			vGap,
-		});
 	};
 }

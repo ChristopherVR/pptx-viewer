@@ -11,6 +11,7 @@ describe('computeHangShape', () => {
 			maxHangDepth: 0,
 			maxHangRows: 0,
 			allChildrenHang: false,
+			hangingColumns: 0,
 		});
 	});
 
@@ -28,6 +29,7 @@ describe('computeHangShape', () => {
 			maxHangDepth: 0,
 			maxHangRows: 0,
 			allChildrenHang: false,
+			hangingColumns: 0,
 		});
 	});
 
@@ -58,6 +60,10 @@ describe('computeHangShape', () => {
 			// `ALL_CHILDREN_HANG_EXTRA_RATIO`'s doc comment in `smartart-
 			// hierarchy-fit-item-box.ts`).
 			allChildrenHang: true,
+			// SESSION 34: both `c1`/`c2` hang - `fitItemBox`'s WIDTH-axis hang
+			// reservation therefore applies at full fraction (2/2) here, byte
+			// identical to the pre-SESSION-34 unscoped formula.
+			hangingColumns: 2,
 		});
 	});
 
@@ -89,6 +95,12 @@ describe('computeHangShape', () => {
 			// so it does not "hang" at all - `allChildrenHang` requires a real
 			// hang, not a fan continuation.
 			allChildrenHang: false,
+			// SESSION 34: only ONE of the 5 fanned columns (`g4`/"Branch B
+			// Grandchild" -> `gg1`/"Branch C Root") actually hangs; the other 4
+			// are plain fan-terminal leaves - this is the exact shape that
+			// exposed `fitItemBox`'s unscoped hang reservation over-shrinking
+			// every column, not just the one that needs it.
+			hangingColumns: 1,
 		});
 	});
 
@@ -119,6 +131,9 @@ describe('computeHangShape', () => {
 			// requires EVERY child to hang, so one leaf sibling disqualifies it
 			// even though `r1` itself hangs 2 children.
 			allChildrenHang: false,
+			// Only `r1` passes through a hang (`r2` is a leaf) - 1 hanging
+			// column, regardless of `r1`'s own 2-row height.
+			hangingColumns: 1,
 		});
 	});
 
@@ -143,6 +158,8 @@ describe('computeHangShape', () => {
 			maxHangRows: 3,
 			// `Child1`/`Child2` are plain leaves - disqualifies `allChildrenHang`.
 			allChildrenHang: false,
+			// Only `c1` hangs - 1 column, even though it hangs 3 rows.
+			hangingColumns: 1,
 		});
 	});
 
@@ -159,6 +176,7 @@ describe('computeHangShape', () => {
 			maxHangDepth: 0,
 			maxHangRows: 0,
 			allChildrenHang: false,
+			hangingColumns: 0,
 		});
 	});
 });
