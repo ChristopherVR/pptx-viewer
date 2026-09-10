@@ -118,9 +118,6 @@ describe('getBevelLightingFilterMarkup', () => {
 		expect(Math.abs(normalizedDiff - 180)).toBeLessThan(0.01);
 	});
 
-	// `circle` (not used here) is `metal|circle`-routed to the legacy
-	// box-shadow model (see `visual-3d-bevel-lighting-routing.ts`), so this
-	// uses `angle`, which is not routed.
 	it('flips azimuth 180deg for a COM-measured invertedDirection rig (morning), matching a plain circle at the opposite dir', () => {
 		// `morning` is COM-measured `invertedDirection: true` (see
 		// visual-3d-bevel-lighting-tables.ts): its highlight under dir="t"
@@ -175,16 +172,16 @@ describe('getBevelLightingFilterMarkup', () => {
 		expect(exponentOf(metal?.filterMarkup)).toBeGreaterThan(exponentOf(matte?.filterMarkup));
 	});
 
-	it('routes metal|circle to the legacy box-shadow model (undefined filter markup)', () => {
-		const routed = getBevelLightingFilterMarkup(
+	it('gives metal|circle the real SVG filter, not the legacy box-shadow (the 2026-09 profile refit fixed the routing; see visual-3d-bevel-lighting-routing.ts)', () => {
+		const notRouted = getBevelLightingFilterMarkup(
 			'el1',
 			{ bevelTopType: 'circle', presetMaterial: 'metal' },
 			{ lightRigDirection: 't' },
 		);
-		expect(routed).toBeUndefined();
+		expect(notRouted).toBeDefined();
 	});
 
-	it('does not route matte|circle (only metal|circle is routed)', () => {
+	it('does not route matte|circle either', () => {
 		const notRouted = getBevelLightingFilterMarkup(
 			'el1',
 			{ bevelTopType: 'circle', presetMaterial: 'matte' },
@@ -193,15 +190,19 @@ describe('getBevelLightingFilterMarkup', () => {
 		expect(notRouted).toBeDefined();
 	});
 
-	it('keeps the two COM-measured "no clean directional signal" profiles physically low-relief', () => {
-		// slope/hardEdge get a reduced surfaceScale + heavy erode (see
-		// visual-3d-bevel-lighting-tables), reproducing their measured
-		// near-uniform brightness rather than guessing a highlight side.
+	it('gives slope/hardEdge a heavy erode, matching their COM cross-section (a crisp facet, not a smooth ramp)', () => {
+		// slope/hardEdge get a heavier morphologyFactor than circle's pure-blur
+		// ramp (see visual-3d-bevel-lighting-tables's 2026-09 cross-section
+		// campaign): the erode step's crisper inner edge better matches their
+		// measured single-facet self-shadowed seam. Unlike the profile's
+		// RELIEF AMPLITUDE (surfaceScale, no longer assumed "low" -- see that
+		// same test file's `BEVEL_PROFILE_HEIGHT_MAP` pin, this narrows only
+		// the ramp's morphology/crispness, which the 2026-09 campaign did not
+		// overturn.
 		const slope = getBevelLightingFilterMarkup('el1', { bevelTopType: 'slope' }, undefined);
 		const circle = getBevelLightingFilterMarkup('el1', { bevelTopType: 'circle' }, undefined);
-		const scaleOf = (markup: string | undefined): number =>
-			Number(/surfaceScale="([\d.]+)"/u.exec(markup ?? '')?.[1] ?? 0);
-		expect(scaleOf(slope?.filterMarkup)).toBeLessThan(scaleOf(circle?.filterMarkup));
+		expect(slope?.filterMarkup).toContain('feMorphology');
+		expect(circle?.filterMarkup).not.toContain('feMorphology');
 	});
 });
 

@@ -61,12 +61,12 @@
  * `metal`/`circle` below its baseline in any direction (the two targets pull
  * in opposite directions as `surfaceScale` changes - see
  * `visual-3d-bevel-lighting-routing.ts`'s `isRoutedToLegacyBevelShadow` doc
- * comment), so `metal`/`circle` ROUTES to the legacy `box-shadow` model. The
- * "before" numbers are themselves large because this campaign scores
- * absolute brightness match, not just highlight/shadow SIGN agreement (which
- * is all `getBevelShadow`'s box-shadow output was previously verified
- * against). All scripts used are scratch tooling (not committed, not wired
- * into CI, same as `com-acceptance.mjs`); full tables are in the task report.
+ * comment), so `metal`/`circle` ROUTED to the legacy `box-shadow` model at
+ * the time (SUPERSEDED 2026-09 below; it no longer routes). The "before"
+ * numbers are large because this campaign scores absolute brightness match,
+ * not just highlight/shadow SIGN agreement (all `getBevelShadow`'s
+ * box-shadow output was previously verified against). Scripts: scratch
+ * tooling, same convention as `com-acceptance.mjs`.
  *
  * ## Re-run against the CURRENT `threePt` elevationDeg (2026-09, post-lightRig-recalibration)
  *
@@ -123,6 +123,16 @@
  * `specularConstant`/`specularExponent`/`surfaceScaleMultiplier` per
  * material against this same COM ground truth. Neither was completed in
  * this pass; see `docs/guide/limitations.md`.
+ *
+ * ## 2026-09 bevel-profile cross-section + specular-masking follow-up
+ *
+ * Kept in the files they most directly touch (LOC budget): the 12
+ * `a:bevelT/@prst` height-map SHAPES were fit against real COM cross-section
+ * curves for the first time (`visual-3d-bevel-lighting-tables.ts`'s doc +
+ * pinned table in its `.test.ts`), changing `circle`'s `surfaceScaleFactor`
+ * enough that `metal`/`circle` now beats baseline unrouted; a follow-up
+ * specular-band-masking attempt at the saturation defect above was measured
+ * and made things WORSE (`visual-3d-bevel-lighting-routing.ts`'s doc).
  *
  * @module render/visual-3d-bevel-lighting
  */

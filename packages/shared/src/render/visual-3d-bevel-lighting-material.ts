@@ -53,12 +53,26 @@ const white = '#ffffff';
  * .ts`'s module doc table) found this module's `metal` numbers give a mixed
  * result: `matte` improved clearly over the old box-shadow approach (56.3 ->
  * 34.8 mean error) while `metal` did not (61.2 -> 59.7, and `metal`/`circle`
- * specifically got WORSE, 54.9 -> 80.1) - the constants below are therefore
- * flagged as UNVALIDATED for `metal` specifically, not just "less precisely
- * calibrated" than `matte`. The other materials are positioned between/
- * around the `matte`/`metal` anchors by category (glossy plastics near
- * `metal` but softer, matte/powder variants near `matte`), not independently
- * COM-measured at all.
+ * specifically got WORSE, 54.9 -> 80.1) - the constants below were therefore
+ * flagged UNVALIDATED for `metal`, and `metal`/`circle` was ROUTED to the
+ * legacy box-shadow model (`visual-3d-bevel-lighting-routing.ts`). The other
+ * materials are positioned between/around the `matte`/`metal` anchors by
+ * category (glossy plastics near `metal` but softer, matte/powder variants
+ * near `matte`), not independently COM-measured at all.
+ *
+ * RESOLVED for `metal`/`circle` (2026-09, the bevel-profile cross-section
+ * campaign, `visual-3d-bevel-lighting-tables.ts`'s `BEVEL_PROFILE_HEIGHT_MAP`
+ * doc comment): re-fitting `circle`'s profile-table entry against real COM
+ * cross-section data (unrelated to material tuning) changed
+ * `surfaceScaleFactor` from 1 to 0.65, and with these SAME `metal` constants
+ * (unchanged from the paragraph above) that alone brought `metal`/`circle`'s
+ * mean error to 39.5 against the SAME 54.9 baseline - confirmed against
+ * fresh COM ground truth AND an actual headless-Chromium rasterisation of
+ * the real filter chain (not just the closed-form model this module's own
+ * campaigns otherwise used), so `metal`/`circle` no longer routes; see
+ * `visual-3d-bevel-lighting-routing.ts`'s doc comment for the numbers and a
+ * separate, NOT-landed attempt at fixing the flat-interior specular
+ * saturation defect below.
  */
 export const MATERIAL_LIGHTING: Record<MaterialPresetType, MaterialLighting> = {
 	matte: {
@@ -135,10 +149,14 @@ export const MATERIAL_LIGHTING: Record<MaterialPresetType, MaterialLighting> = {
 	// (`angle`: baseline ~70, now ~19-27; `hardEdge`: baseline ~69.5, now 44;
 	// `softRound`: baseline ~50, now 6.5-19). `circle` alone could NOT be
 	// brought below baseline with any tested combination of these four
-	// parameters (tried down to `surfaceScaleMultiplier` 0.15 and up to 2.5;
-	// see `getBevelLightingFilterMarkup`'s `LEGACY_BEVEL_ROUTING` doc comment
-	// for why) and is routed to the legacy `box-shadow` model instead of
-	// shipping a regression.
+	// MATERIAL parameters (tried down to `surfaceScaleMultiplier` 0.15 and up
+	// to 2.5) against the then-current (ECMA-376-reasoned) profile table, and
+	// was routed to the legacy `box-shadow` model instead of shipping a
+	// regression. SUPERSEDED 2026-09: re-fitting the PROFILE table's own
+	// `circle` entry against real COM data (a change orthogonal to these
+	// material constants) resolved it without touching the numbers below; see
+	// this file's module doc comment and `visual-3d-bevel-lighting-routing
+	// .ts`.
 	//
 	// A SEPARATE, more severe issue was found (2026-09, while attempting an
 	// ambient/wrap-term fix for the `circle` routing above) that this

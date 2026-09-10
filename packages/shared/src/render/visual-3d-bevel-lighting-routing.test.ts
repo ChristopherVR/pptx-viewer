@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { isRoutedToLegacyBevelShadow } from './visual-3d-bevel-lighting-routing';
 
 describe('isRoutedToLegacyBevelShadow', () => {
-	it('routes metal|circle (calibration could not beat the box-shadow baseline)', () => {
-		expect(isRoutedToLegacyBevelShadow('metal', 'circle')).toBeTruthy();
+	it('does not route metal|circle any more (the 2026-09 profile cross-section refit fixed it; see the module doc comment)', () => {
+		expect(isRoutedToLegacyBevelShadow('metal', 'circle')).toBeFalsy();
 	});
 
-	it('does not route metal for other calibrated profiles', () => {
+	it('does not route metal for any profile', () => {
 		expect(isRoutedToLegacyBevelShadow('metal', 'angle')).toBeFalsy();
 		expect(isRoutedToLegacyBevelShadow('metal', 'hardEdge')).toBeFalsy();
 		expect(isRoutedToLegacyBevelShadow('metal', 'softRound')).toBeFalsy();

@@ -4,9 +4,12 @@
  * Split out of `visual-3d-bevel-lighting.ts` to keep that module under the
  * repo's ~300 LOC guideline. Three independent axes feed the filter this
  * module's data drives: bevel PROFILE shape (`a:bevelT/@prst`, ECMA-376
- * 20.1.10.9 `ST_BevelPresetType`), light rig ELEVATION/specular character
- * (`a:lightRig/@rig`, ECMA-376 20.1.10.36 `ST_LightRigType`), and MATERIAL
- * response (`a:sp3d/@prstMaterial`, ECMA-376 20.1.10.50 `ST_PresetMaterialType`).
+ * 20.1.10.9 `ST_BevelPresetType`, re-exported here but defined in
+ * `visual-3d-bevel-lighting-profile.ts`, itself split out for the same LOC
+ * reason), light rig ELEVATION/specular character (`a:lightRig/@rig`,
+ * ECMA-376 20.1.10.36 `ST_LightRigType`, defined below), and MATERIAL
+ * response (`a:sp3d/@prstMaterial`, ECMA-376 20.1.10.50 `ST_PresetMaterialType`,
+ * re-exported from `visual-3d-bevel-lighting-material.ts`).
  * The highlight/shadow DIRECTION (azimuth) itself is mostly resolved
  * elsewhere: `visual-3d-bevel-light`'s already COM-measured cardinal-snap
  * vector supplies the base azimuth from `a:lightRig/@dir`, and this module's
@@ -32,105 +35,11 @@
  * @module render/visual-3d-bevel-lighting-tables
  */
 
-/** How wide/sharp a bevel profile's SVG height-map ramp is, and how strongly it carries a directional signal. */
-export interface BevelProfileHeightMap {
-	/** `feGaussianBlur` `stdDeviation` factor, multiplied by the bevel's own (width+height)/2 in px. */
-	blurFactor: number;
-	/** `feMorphology` `radius` factor (erode), or `undefined` for a pure-blur (smooth, curved) profile. */
-	morphologyFactor?: number;
-	/** Relief height (`surfaceScale`) factor: 1 = full, less for a shallow/steep-walled profile. */
-	surfaceScaleFactor: number;
-	/**
-	 * `true` for the two profiles (`slope`, `hardEdge`) COM-measured (see
-	 * `visual-3d-bevel-light`) to show NO clean directional brightness signal
-	 * at any sampled depth, only a crisp, near-uniform self-shadowed seam. This
-	 * module's narrow-blur + high-erode + reduced-surfaceScale combination is
-	 * chosen SPECIFICALLY because it reproduces that same low-direction-
-	 * dependence physically (a steep, narrow facet has a near-vertical normal,
-	 * so `feDiffuseLighting`/`feSpecularLighting`'s `N.L` term barely changes
-	 * with azimuth) rather than encoding a guessed direction the way the
-	 * pre-existing box-shadow approach had to. Kept as a flag so callers/tests
-	 * can assert on it rather than re-deriving it from the two factors above.
-	 */
-	measuredUniform: boolean;
-}
-
-/**
- * `a:bevelT/@prst` (and `bevelB`, which shares the same profile vocabulary)
- * -> height-map shape. ECMA-376 20.1.10.9 describes each profile's silhouette
- * (a "circular", "flat sloped", "crossed", "art-deco stepped" etc. cross-
- * section); this table groups the 12 values by that description into 3
- * physically-motivated buckets rather than 12 independent hand-tuned entries:
- *
- * - **Curved** (`circle`, `convex`, `softRound`, `relaxedInset`, `divot`):
- *   a smooth, rounded cross-section -> wide Gaussian-only ramp, full relief.
- * - **Faceted** (`angle`, `cross`, `coolSlant`, `riblet`, `artDeco`): a flat
- *   angled facet with a visible crease -> a medium blur PLUS a light erode so
- *   the ramp gets a crisper inner edge (the crease), full relief.
- * - **Steep/narrow** (`slope`, `hardEdge`): COM-measured to show no clean
- *   directional signal (see {@link BevelProfileHeightMap.measuredUniform});
- *   a narrow, heavily-eroded ramp with reduced relief reproduces that
- *   physically instead of guessing a highlight side.
- */
-export const BEVEL_PROFILE_HEIGHT_MAP: Record<string, BevelProfileHeightMap> = {
-	circle: { blurFactor: 0.55, surfaceScaleFactor: 1, measuredUniform: false },
-	convex: { blurFactor: 0.6, surfaceScaleFactor: 1.05, measuredUniform: false },
-	softRound: { blurFactor: 0.5, surfaceScaleFactor: 0.9, measuredUniform: false },
-	relaxedInset: { blurFactor: 0.45, surfaceScaleFactor: 0.85, measuredUniform: false },
-	divot: { blurFactor: 0.4, surfaceScaleFactor: 0.8, measuredUniform: false },
-	angle: {
-		blurFactor: 0.32,
-		morphologyFactor: 0.12,
-		surfaceScaleFactor: 1,
-		measuredUniform: false,
-	},
-	cross: {
-		blurFactor: 0.3,
-		morphologyFactor: 0.15,
-		surfaceScaleFactor: 0.95,
-		measuredUniform: false,
-	},
-	coolSlant: {
-		blurFactor: 0.28,
-		morphologyFactor: 0.14,
-		surfaceScaleFactor: 0.95,
-		measuredUniform: false,
-	},
-	riblet: {
-		blurFactor: 0.26,
-		morphologyFactor: 0.18,
-		surfaceScaleFactor: 0.9,
-		measuredUniform: false,
-	},
-	artDeco: {
-		blurFactor: 0.24,
-		morphologyFactor: 0.2,
-		surfaceScaleFactor: 1,
-		measuredUniform: false,
-	},
-	slope: {
-		blurFactor: 0.12,
-		morphologyFactor: 0.35,
-		surfaceScaleFactor: 0.4,
-		measuredUniform: true,
-	},
-	hardEdge: {
-		blurFactor: 0.1,
-		morphologyFactor: 0.4,
-		surfaceScaleFactor: 0.35,
-		measuredUniform: true,
-	},
-};
-
-const DEFAULT_HEIGHT_MAP: BevelProfileHeightMap = {
-	blurFactor: 0.4,
-	surfaceScaleFactor: 0.8,
-	measuredUniform: false,
-};
-
-export function getBevelProfileHeightMap(bevelType: string): BevelProfileHeightMap {
-	return BEVEL_PROFILE_HEIGHT_MAP[bevelType] ?? DEFAULT_HEIGHT_MAP;
-}
+export {
+	BEVEL_PROFILE_HEIGHT_MAP,
+	getBevelProfileHeightMap,
+} from './visual-3d-bevel-lighting-profile';
+export type { BevelProfileHeightMap } from './visual-3d-bevel-lighting-profile';
 
 /** Light elevation (degrees, 0 = grazing, 90 = straight-on) and specular sharpness bucket for a light rig. */
 export interface LightRigLighting {
