@@ -217,6 +217,33 @@ const obliqueBlock = shape({
       <a:sp3d extrusionH="457200"><a:extrusionClr><a:srgbClr val="112255"/></a:extrusionClr></a:sp3d>`,
 });
 
+/**
+ * 2026-09 bevel-lighting material-routing wave: `bevelled` above (`circle` +
+ * `metal`) is exactly the `metal`/`circle` pair `visual-3d-bevel-lighting
+ * -routing.ts` routes to the legacy `box-shadow` model (calibration could
+ * not beat that baseline for this specific combination - see that module's
+ * doc comment), so it no longer exercises the real SVG lighting `<filter>`
+ * path at all. This shape (`circle` + `matte`, NOT routed) is what
+ * `shape-3d-bevel-lighting-parity.spec.ts` uses to assert the actual
+ * `feDiffuseLighting`/`feSpecularLighting` filter renders end to end.
+ */
+const matteBevel = shape({
+	id: 11,
+	name: 'Matte Bevel Block',
+	x: 860,
+	y: 490,
+	w: 200,
+	h: 140,
+	fill: '999999',
+	extra: `<a:scene3d>
+        <a:camera prst="orthographicFront"/>
+        <a:lightRig rig="threePt" dir="t"/>
+      </a:scene3d>
+      <a:sp3d prstMaterial="matte">
+        <a:bevelT w="76200" h="76200" prst="circle"/>
+      </a:sp3d>`,
+});
+
 const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
   <p:cSld>
@@ -232,6 +259,7 @@ const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       ${heroic}
       ${contrasting}
       ${obliqueBlock}
+      ${matteBevel}
     </p:spTree>
   </p:cSld>
   <p:clrMapOvr><a:overrideClrMapping bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/></p:clrMapOvr>
