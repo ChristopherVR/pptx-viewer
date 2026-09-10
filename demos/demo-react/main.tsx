@@ -1080,5 +1080,25 @@ function App() {
 
 const rootEl = document.getElementById('app-root');
 if (rootEl) {
-	createRoot(rootEl).render(<App />);
+	// HMR guard: this module mixes the `App` component with this top-level
+	// mount call, so `@vitejs/plugin-react`'s Fast Refresh can never treat it
+	// as a clean self-accepting boundary (any edit to this file, or a chain of
+	// edits elsewhere that cannot Fast Refresh cleanly and propagates all the
+	// way up, is logged as "Could not Fast Refresh" for this module). When
+	// that happens Vite re-executes this module's top level before falling
+	// back to a full reload, which used to call `createRoot()` again on the
+	// SAME persisted `#app-root` node without ever unmounting the previous
+	// root ("You are calling ReactDOMClient.createRoot() on a container that
+	// has already been passed to createRoot() before"), leaving a stale,
+	// orphaned copy of the whole app tree mounted alongside the fresh one.
+	// Stashing the root on `import.meta.hot.data` survives module
+	// re-execution, so a re-run reuses it via `render()` instead. `hot` is
+	// `undefined` in a production build, where this line only ever runs once.
+	const hot = import.meta.hot;
+	const existingRoot = hot?.data.root as ReturnType<typeof createRoot> | undefined;
+	const root = existingRoot ?? createRoot(rootEl);
+	if (hot) {
+		hot.data.root = root;
+	}
+	root.render(<App />);
 }

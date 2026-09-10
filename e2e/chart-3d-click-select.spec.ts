@@ -193,29 +193,54 @@ interface MarkHit {
 }
 
 /**
+ * Every fractional grid coordinate `findMark` probes, ordered nearest-center
+ * first. A mark's camera-projected screen position cannot be computed
+ * analytically (see `findMark`'s own doc), but in every scene this spec
+ * exercises the isometric/perspective camera keeps its subject centred, so a
+ * spiral-by-distance order finds the first real hit in a handful of probes
+ * instead of `findMark`'s previous raster (top-left-first) order, which could
+ * walk most of a 15x15 grid before reaching a centred mark. Same coverage,
+ * same eventual "nothing hoverable" failure if none hit - only the order (and
+ * therefore the typical wall-clock cost) changes, which matters because this
+ * spec runs the SAME probe across up to five sequential framework pages per
+ * test (see `acrossFrameworks`'s `concurrency: 'sequential'` below) and
+ * trims real seconds off every one of them.
+ */
+const PROBE_POINTS: ReadonlyArray<{ fx: number; fy: number }> = (() => {
+	const points: Array<{ fx: number; fy: number }> = [];
+	for (let fx = 0.15; fx <= 0.85; fx += 0.05) {
+		for (let fy = 0.15; fy <= 0.85; fy += 0.05) {
+			points.push({ fx, fy });
+		}
+	}
+	const distanceFromCenter = (p: { fx: number; fy: number }): number =>
+		(p.fx - 0.5) ** 2 + (p.fy - 0.5) ** 2;
+	return [...points].sort((a, b) => distanceFromCenter(a) - distanceFromCenter(b));
+})();
+
+/**
  * Probe a grid of points inside `canvas`'s own bounding box for the first one
  * whose hover triggers a non-empty `title` attribute (a real box-mesh hit).
  * The WebGL scene's camera/box layout cannot be computed analytically from
  * its authored data alone (camera placement, box geometry and screen
  * projection all live inside the mounted three.js scene), so this probes the
  * real, rendered page instead - the same approach `smartart-3d.spec.ts` and
- * its sibling 3D specs already use.
+ * its sibling 3D specs already use. See {@link PROBE_POINTS} for the probe
+ * order.
  */
 async function findMark(page: Page, canvas: Locator): Promise<MarkHit> {
 	const box = await canvas.boundingBox();
 	if (!box) {
 		throw new Error('the 3D chart canvas has no layout box to probe');
 	}
-	for (let fx = 0.15; fx <= 0.85; fx += 0.05) {
-		for (let fy = 0.15; fy <= 0.85; fy += 0.05) {
-			const x = box.x + box.width * fx;
-			const y = box.y + box.height * fy;
-			await page.mouse.move(x, y);
-			await page.waitForTimeout(20);
-			const title = await canvas.getAttribute('title');
-			if (title) {
-				return { x, y, title };
-			}
+	for (const { fx, fy } of PROBE_POINTS) {
+		const x = box.x + box.width * fx;
+		const y = box.y + box.height * fy;
+		await page.mouse.move(x, y);
+		await page.waitForTimeout(20);
+		const title = await canvas.getAttribute('title');
+		if (title) {
+			return { x, y, title };
 		}
 	}
 	throw new Error('no hoverable 3D chart mark was found while probing the canvas');
