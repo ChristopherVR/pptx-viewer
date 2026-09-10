@@ -24,6 +24,9 @@ export * from './deck-json';
 // Canvas -> JPEG byte extraction for PDF embedding.
 export * from './canvas-jpeg';
 export * from './gif-encoder';
+// Pure GIF/video slide-capture decision (scale + post-capture cap) derived
+// from Options > Advanced > Default Resolution; see `resolveExportCaptureDecision`.
+export * from './export-capture-decision';
 export * from './handout-layout';
 // Handout master "chrome": background/header/footer/date/page-number/slide-rect
 // resolution (`handout-master-chrome`) and its HTML markup (`handout-chrome-html`)

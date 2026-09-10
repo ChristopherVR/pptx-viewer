@@ -59,6 +59,7 @@ export type {
 	MediaExportProgress,
 	UseMediaExportOptions,
 	MediaExportOptions,
+	GifExportOptions,
 	WebmExportOptions,
 	UseMediaExportResult,
 } from './viewer/composables/useMediaExport';

@@ -26,7 +26,12 @@ import {
 	renderElementTilesRaster,
 } from './export-raster-tiles';
 import { exportAllSlidesToSvg, exportSlideToSvg, exportSlideToSvgBlob } from './export-svg';
-import { encodeGif, planGifFrames } from './gif-export-helpers';
+import {
+	clampGifDimensions,
+	encodeGif,
+	GIF_POST_CAPTURE_MAX_SIDE,
+	planGifFrames,
+} from './gif-export-helpers';
 import type { GifFrame } from './gif-export-helpers';
 import { recordWebm } from './video-export-helpers';
 
@@ -170,18 +175,51 @@ export class ExportService {
 	}
 
 	/**
+	 * Downscale a captured slide canvas to `maxSide` (via the shared
+	 * `clampGifDimensions`) and extract its RGBA pixels. GIF encoding cost
+	 * grows with pixel count (every pixel is matched against a 256-colour
+	 * palette per frame), so every binding bounds its capture before
+	 * quantising; see `resolveExportCaptureDecision`'s `postCaptureMaxSide`.
+	 */
+	private static frameFromCanvas(canvas: HTMLCanvasElement, maxSide: number): GifFrame {
+		const { width, height } = clampGifDimensions(canvas.width, canvas.height, maxSide);
+		let source = canvas;
+		if (width !== canvas.width || height !== canvas.height) {
+			const scaled = document.createElement('canvas');
+			scaled.width = width;
+			scaled.height = height;
+			const scaledCtx = scaled.getContext('2d');
+			if (!scaledCtx) {
+				throw new Error('[ExportService] 2D context unavailable for GIF frame');
+			}
+			scaledCtx.drawImage(canvas, 0, 0, width, height);
+			source = scaled;
+		}
+		const ctx = source.getContext('2d');
+		if (!ctx) {
+			throw new Error('[ExportService] 2D context unavailable for GIF frame');
+		}
+		return { imageData: ctx.getImageData(0, 0, width, height), width, height };
+	}
+
+	/**
 	 * Assemble an animated GIF from pre-rendered slide canvases (one frame per
 	 * slide) and trigger a download. Frame delay is derived from
-	 * `slideDurationMs` via the pure {@link planGifFrames} planner.
+	 * `slideDurationMs` via the pure {@link planGifFrames} planner. Each
+	 * canvas is downscaled to `maxSide` first (see
+	 * `resolveExportCaptureDecision`'s `postCaptureMaxSide` for `'gif'`).
 	 *
 	 * @param canvases        - One canvas per slide, in order.
 	 * @param slideDurationMs - Display time per slide in milliseconds.
 	 * @param fileName        - Suggested download file name.
+	 * @param maxSide         - Longest allowed frame side in pixels after
+	 *                          capture. Defaults to `GIF_POST_CAPTURE_MAX_SIDE`.
 	 */
 	exportCanvasesToGif(
 		canvases: HTMLCanvasElement[],
 		slideDurationMs: number,
 		fileName: string,
+		maxSide: number = GIF_POST_CAPTURE_MAX_SIDE,
 	): void {
 		if (canvases.length === 0) {
 			throw new Error('[ExportService] No slide canvases provided for GIF export');
@@ -189,17 +227,7 @@ export class ExportService {
 		const plans = planGifFrames({ totalSlides: canvases.length, slideDurationMs });
 		const delayCs = plans[0]?.delayCs ?? 200;
 
-		const frames: GifFrame[] = canvases.map((c) => {
-			const ctx = c.getContext('2d');
-			if (!ctx) {
-				throw new Error('[ExportService] 2D context unavailable for GIF frame');
-			}
-			return {
-				imageData: ctx.getImageData(0, 0, c.width, c.height),
-				width: c.width,
-				height: c.height,
-			};
-		});
+		const frames: GifFrame[] = canvases.map((c) => ExportService.frameFromCanvas(c, maxSide));
 
 		const bytes = encodeGif(frames, { delayCs });
 		const buffer = new ArrayBuffer(bytes.byteLength);

@@ -84,6 +84,12 @@ export interface UseViewerIntegrationInput {
 	 * copy-slide-as-image so the option actually controls output resolution.
 	 */
 	imageExportScale?: number;
+	/**
+	 * The raw `resolveImageResolutionScale(viewerOptions)` multiplier, fed into
+	 * GIF/video export's shared `resolveExportCaptureDecision`. See the
+	 * matching field on `UseExportHandlersInput`.
+	 */
+	imageResolutionScale?: number;
 	mode: ViewerState['mode'];
 	slides: PptxSlide[];
 	activeSlide: PptxSlide | undefined;
@@ -159,6 +165,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		canEdit,
 		promptKeepInkAnnotations,
 		imageExportScale,
+		imageResolutionScale,
 		mode,
 		slides,
 		activeSlide,
@@ -251,6 +258,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		setContent,
 		onContentChange,
 		imageExportScale,
+		imageResolutionScale,
 	});
 
 	// ── Mode switching with annotation awareness ──────────────────

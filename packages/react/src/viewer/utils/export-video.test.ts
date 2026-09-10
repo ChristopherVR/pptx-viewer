@@ -101,6 +101,15 @@ describe('exportAllSlidesAsVideo', () => {
 		expect(drawImage).toHaveBeenCalledWith({ width: 8, height: 6 }, 0, 0);
 	});
 
+	it('honors an explicit capture scale (e.g. from resolveExportCaptureDecision)', async () => {
+		const stageEl = makeMockElement();
+		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
+
+		await exportAllSlidesAsVideo(ref, 1, vi.fn(), 0, { slideDurationMs: 10, scale: 3.3 });
+
+		expect(renderElementToTiledCanvas).toHaveBeenCalledWith(stageEl, 3.3);
+	});
+
 	it('throws when no slide stage was ever found', async () => {
 		const ref = { current: null } as React.RefObject<HTMLElement | null>;
 

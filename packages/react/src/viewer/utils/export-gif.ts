@@ -2,9 +2,12 @@
  * Animated GIF export -- captures slides via the shared `foreignObject`
  * fidelity pipeline, tiling and stitching transparently past the browser
  * canvas cap instead of downscaling (see `renderElementToTiledCanvas`,
- * `html2canvas-pro` only as the documented fallback) and encodes them via the
- * pure-JS GIF89a encoder in export-gif-encoder.ts.
+ * `html2canvas-pro` only as the documented fallback), downscales each
+ * captured frame to the shared post-capture cap (`clampGifDimensions`, see
+ * `resolveExportCaptureDecision` in `pptx-viewer-shared`), and encodes them
+ * via the pure-JS GIF89a encoder in export-gif-encoder.ts.
  */
+import { clampGifDimensions, GIF_POST_CAPTURE_MAX_SIDE } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -22,6 +25,14 @@ export interface GifExportOptions {
 	scale?: number;
 	/** Duration in milliseconds each slide is displayed (default 2000). */
 	slideDurationMs?: number;
+	/**
+	 * Longest allowed frame side in pixels after capture; a captured canvas
+	 * larger than this is downscaled before quantisation (GIF encoding cost
+	 * grows with pixel count). Defaults to the shared
+	 * `GIF_POST_CAPTURE_MAX_SIDE` (see `resolveExportCaptureDecision`'s
+	 * `postCaptureMaxSide` for the `'gif'` format).
+	 */
+	maxSide?: number;
 	/** Progress callback: (currentSlide, totalSlides). */
 	onProgress?: ExportProgressCallback;
 	/** AbortSignal to cancel the export. */
@@ -31,6 +42,36 @@ export interface GifExportOptions {
 /* ------------------------------------------------------------------ */
 /*  GIF Export                                                        */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Downscale a captured slide canvas to `maxSide` (via `clampGifDimensions`)
+ * and extract its RGBA pixels. Mirrors the vanilla/Svelte bindings' own
+ * frame-extraction helpers: the DOM canvas-draw + `getImageData` glue stays
+ * per-binding, only the dimension math (`clampGifDimensions`) is shared.
+ */
+function frameFromCanvas(
+	canvas: HTMLCanvasElement,
+	maxSide: number,
+): { imageData: ImageData; width: number; height: number } | undefined {
+	const { width, height } = clampGifDimensions(canvas.width, canvas.height, maxSide);
+	let source = canvas;
+	if (width !== canvas.width || height !== canvas.height) {
+		const scaled = canvas.ownerDocument.createElement('canvas');
+		scaled.width = width;
+		scaled.height = height;
+		const scaledCtx = scaled.getContext('2d');
+		if (!scaledCtx) {
+			return undefined;
+		}
+		scaledCtx.drawImage(canvas, 0, 0, width, height);
+		source = scaled;
+	}
+	const ctx = source.getContext('2d');
+	if (!ctx) {
+		return undefined;
+	}
+	return { imageData: ctx.getImageData(0, 0, width, height), width, height };
+}
 
 /**
  * Export all slides as an animated GIF blob.
@@ -44,7 +85,13 @@ export async function exportAllSlidesAsGif(
 	currentSlideIndex: number,
 	options: GifExportOptions = {},
 ): Promise<Blob> {
-	const { scale = 0.5, slideDurationMs = 2000, onProgress, signal } = options;
+	const {
+		scale = 0.5,
+		slideDurationMs = 2000,
+		maxSide = GIF_POST_CAPTURE_MAX_SIDE,
+		onProgress,
+		signal,
+	} = options;
 
 	// Step 1: Capture all slides as ImageData
 	const frames: { imageData: ImageData; width: number; height: number }[] = [];
@@ -64,17 +111,11 @@ export async function exportAllSlidesAsGif(
 		}
 
 		const { canvas } = await renderElementToTiledCanvas(stageEl, scale);
-		const ctx = canvas.getContext('2d');
-		if (!ctx) {
+		const frame = frameFromCanvas(canvas, maxSide);
+		if (!frame) {
 			continue;
 		}
-
-		const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-		frames.push({
-			imageData,
-			width: canvas.width,
-			height: canvas.height,
-		});
+		frames.push(frame);
 	}
 
 	setActiveSlide(currentSlideIndex);

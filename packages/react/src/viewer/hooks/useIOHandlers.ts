@@ -50,6 +50,12 @@ export interface UseIOHandlersInput {
 	onContentChange: ((content: Uint8Array) => void) | undefined;
 	/** File > Options > Advanced > "Image Size and Quality" raster-scale multiplier. */
 	imageExportScale?: number;
+	/**
+	 * The raw `resolveImageResolutionScale(viewerOptions)` multiplier, fed into
+	 * GIF/video export's shared `resolveExportCaptureDecision`. See the
+	 * matching field on `UseExportHandlersInput`.
+	 */
+	imageResolutionScale?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +89,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		setContent,
 		onContentChange,
 		imageExportScale,
+		imageResolutionScale,
 	} = input;
 
 	const exportHandlers = useExportHandlers({
@@ -108,6 +115,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		canvasSize,
 		slideSizeEmu: state.slideSizeEmu,
 		imageExportScale,
+		imageResolutionScale,
 	});
 
 	const printHandlers = usePrintHandlers({

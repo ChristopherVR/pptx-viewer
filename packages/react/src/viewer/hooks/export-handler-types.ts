@@ -61,6 +61,17 @@ export interface UseExportHandlersInput {
 	 * behavior) when omitted.
 	 */
 	imageExportScale?: number;
+	/**
+	 * The raw `resolveImageResolutionScale(viewerOptions)` multiplier (1 at the
+	 * default "High fidelity" preset), fed into the shared
+	 * `resolveExportCaptureDecision` for GIF/video capture scale. Distinct from
+	 * `imageExportScale` (which already has the PNG/PDF 2x baseline folded in):
+	 * GIF/video derive their own baseline from this via the shared decision
+	 * function instead of reusing `imageExportScale` outright, so a future
+	 * GIF/video-specific baseline change only touches that one function.
+	 * Defaults to 1 when omitted.
+	 */
+	imageResolutionScale?: number;
 }
 
 export interface ExportHandlersResult {

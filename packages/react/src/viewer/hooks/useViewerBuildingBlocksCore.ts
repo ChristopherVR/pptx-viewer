@@ -56,6 +56,12 @@ export interface ViewerBuildingBlocksCore {
 	gridSpacingPx: number;
 	/** File > Options > Advanced > "Image Size and Quality" raster-scale multiplier. */
 	imageExportScale: number;
+	/**
+	 * The raw `resolveImageResolutionScale(viewerOptions)` multiplier (1 at the
+	 * default "High fidelity" preset), fed into GIF/video export's shared
+	 * `resolveExportCaptureDecision`.
+	 */
+	imageResolutionScale: number;
 	/** Full File > Options snapshot, for Trust Center gates in the canvas mapping. */
 	viewerOptions: ViewerOptions;
 }
@@ -213,6 +219,7 @@ export function useViewerBuildingBlocksCore(
 		// Multiplied against the pre-existing 2x baseline; see the matching
 		// comment in `PowerPointViewer.tsx`.
 		imageExportScale: 2 * resolveImageResolutionScale(viewerOptions),
+		imageResolutionScale: resolveImageResolutionScale(viewerOptions),
 		viewerOptions,
 	};
 }

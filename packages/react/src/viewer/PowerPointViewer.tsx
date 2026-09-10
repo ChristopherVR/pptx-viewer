@@ -892,6 +892,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			// instead of silently downgrading it; the explicit ppi presets still
 			// scale proportionally from that baseline. Mirrors the other bindings.
 			imageExportScale: 2 * resolveImageResolutionScale(viewerOptions),
+			// GIF/video export's shared `resolveExportCaptureDecision` derives its
+			// own baseline from this raw multiplier instead of reusing
+			// `imageExportScale` outright; see `useExportMediaHandlers.ts`.
+			imageResolutionScale: resolveImageResolutionScale(viewerOptions),
 			mode,
 			slides,
 			activeSlide,

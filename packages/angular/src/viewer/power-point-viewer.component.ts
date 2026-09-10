@@ -2260,6 +2260,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			mergedSlides: () => this.mergedSlides(),
 			resolveStage: () => this.stageElement(),
 			imageExportScale: () => this.viewerOpts.imageExportScale(),
+			imageResolutionScale: () => this.viewerOpts.imageResolutionScale(),
 		});
 
 		// Hand the find/replace controller a slide-navigation callback so a match

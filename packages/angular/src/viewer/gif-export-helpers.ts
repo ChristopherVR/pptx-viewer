@@ -11,5 +11,11 @@
  * The caller (ExportService) still owns rasterisation: rendering slides to
  * canvases and extracting `ImageData` via `ctx.getImageData()`.
  */
-export { planGifFrames, msToFrameDelayCs, clampGifDimensions, encodeGif } from '../internal/shared';
+export {
+	planGifFrames,
+	msToFrameDelayCs,
+	clampGifDimensions,
+	encodeGif,
+	GIF_POST_CAPTURE_MAX_SIDE,
+} from '../internal/shared';
 export type { GifFramePlan, GifPlanOptions, GifFrame, EncodeGifOptions } from '../internal/shared';

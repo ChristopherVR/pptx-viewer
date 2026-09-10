@@ -104,6 +104,7 @@ export function useViewerBuildingBlocksState(
 		actionSoundHandlerRef,
 		gridSpacingPx,
 		imageExportScale,
+		imageResolutionScale,
 		setExitModeHandler,
 		viewerOptions,
 	} = core;
@@ -210,6 +211,7 @@ export function useViewerBuildingBlocksState(
 		canEdit,
 		promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
 		imageExportScale,
+		imageResolutionScale,
 		mode,
 		slides,
 		activeSlide,

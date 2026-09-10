@@ -4,6 +4,7 @@ import {
 	downloadBlob,
 	encodeGif,
 	exportAbortError,
+	GIF_POST_CAPTURE_MAX_SIDE,
 	planGifFrames,
 } from 'pptx-viewer-shared';
 
@@ -32,7 +33,9 @@ export interface ExportGifOptions {
 	 */
 	slideTimingsMs?: number[];
 	/**
-	 * Cap on the longer side of the encoded frames, in pixels (default 1920).
+	 * Cap on the longer side of the encoded frames, in pixels. Defaults to the
+	 * shared `GIF_POST_CAPTURE_MAX_SIDE` (1920px; see
+	 * `resolveExportCaptureDecision`'s `postCaptureMaxSide` for `'gif'`).
 	 * Captured canvases larger than this are downscaled before quantisation,
 	 * keeping encode time and file size manageable.
 	 */
@@ -82,7 +85,7 @@ export async function runGifExport(
 	const {
 		slideDurationMs = 2000,
 		slideTimingsMs,
-		maxDimension = 1920,
+		maxDimension = GIF_POST_CAPTURE_MAX_SIDE,
 		onProgress,
 		signal,
 	} = options;

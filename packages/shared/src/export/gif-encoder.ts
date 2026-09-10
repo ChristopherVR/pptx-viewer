@@ -67,6 +67,16 @@ export function msToFrameDelayCs(ms: number): number {
 }
 
 /**
+ * Longest allowed GIF frame side in pixels after capture (GIF encoding cost
+ * grows with pixel count: every pixel is matched against a 256-colour
+ * palette per frame). The default {@link clampGifDimensions} cap, and the
+ * `maxSide` every binding's GIF export should use via
+ * `resolveExportCaptureDecision` (`export-capture-decision.ts`) so the value
+ * is fixed once instead of drifting per binding.
+ */
+export const GIF_POST_CAPTURE_MAX_SIDE = 1920;
+
+/**
  * Clamp canvas/image dimensions so neither side exceeds `maxSide` pixels while
  * preserving the aspect ratio. When both dimensions are already within the
  * limit the original values are returned unchanged.
@@ -74,7 +84,7 @@ export function msToFrameDelayCs(ms: number): number {
 export function clampGifDimensions(
 	width: number,
 	height: number,
-	maxSide: number = 1920,
+	maxSide: number = GIF_POST_CAPTURE_MAX_SIDE,
 ): { width: number; height: number } {
 	if (width <= maxSide && height <= maxSide) {
 		return { width, height };

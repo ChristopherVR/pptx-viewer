@@ -29,11 +29,16 @@ export interface ExportHost {
 	/**
 	 * File > Options > Advanced > "Image Size and Quality"
 	 * (`resolveImageResolutionScale`), read fresh for every PNG/PDF capture.
-	 * Not applied to GIF/video (those intentionally stay at their own fixed
-	 * capture resolution). Defaults to 2 (the pre-existing hardcoded value)
-	 * when omitted.
+	 * Defaults to 2 (the pre-existing hardcoded value) when omitted.
 	 */
 	readonly imageExportScale?: () => number;
+	/**
+	 * The raw `resolveImageResolutionScale` multiplier (without the PNG/PDF 2x
+	 * baseline folded in), read fresh for every GIF/video capture and fed into
+	 * the shared `resolveExportCaptureDecision`. Defaults to 1 (the "High
+	 * fidelity" preset) when omitted.
+	 */
+	readonly imageResolutionScale?: () => number;
 }
 
 /** Progress-reporting sinks the capture loops write to. */

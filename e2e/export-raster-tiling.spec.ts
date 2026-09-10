@@ -13,25 +13,31 @@
  * `putImageData`-free row-band stitch) in every binding's single-canvas
  * capture path, which also serves notes-PDF/print for free.
  *
- * GIF and video do NOT get PNG/PDF's hard "must exceed the stubbed cap"
- * assertion below, for a reason independent of tiling: each binding captures
- * GIF/video frames at its own, pre-existing fixed scale policy (React: 0.5x
- * for GIF, 1x for video, neither reading File > Options > Advanced >
- * "Default resolution"; Angular: a fixed 2x, same gap; Vue/Svelte/Vanilla:
- * the same Options-aware 2x baseline PNG/PDF use). That policy spread means
- * the *requested* resolution for GIF/video already differs by binding before
- * tiling is even in the picture, so "did this binding's GIF/video clear
- * 2048px on this fixture" is not a tiling signal, it is a restatement of that
- * pre-existing, separate scale-policy gap. Asserting it here would either
- * force widening every binding's GIF/video scale policy (out of this
- * change's scope, and a real behaviour/file-size change deserving its own
- * review) or produce a spec that is red on React/Angular for a reason that
- * has nothing to do with tiling. The GIF/video tests below instead assert
- * what tiling failing would actually break: a corrupted, degenerate, or
- * wrong-aspect-ratio frame - proven under the exact same stubbed-cap
- * conditions that force PNG/PDF to tile, so any binding whose scale policy
- * does clear the cap on this fixture (Vue/Svelte/Vanilla do) is still
- * exercising the real tiled/stitched path, not just the untiled one.
+ * GIF and video capture scale is now uniform across all five bindings: every
+ * binding's GIF/video export derives its capture scale from the shared
+ * `resolveExportCaptureDecision` (`pptx-viewer-shared`), which is
+ * `2 * resolveImageResolutionScale(options)`, the same Options-aware baseline
+ * PNG/PDF use (before this existed, React captured GIF/video at a fixed
+ * 0.5x/1x and Angular at a fixed 2x, both ignoring File > Options > Advanced
+ * > "Default resolution" entirely).
+ *
+ * GIF still does NOT get PNG/PDF's hard "must exceed the stubbed cap"
+ * assertion below, but for a reason independent of tiling: GIF has its own
+ * post-capture size cap (`resolveExportCaptureDecision`'s
+ * `postCaptureMaxSide`, `GIF_POST_CAPTURE_MAX_SIDE` = 1920px, applied via
+ * `clampGifDimensions` in every binding), which sits below this file's
+ * stubbed 2048px probe cap - so an oversized GIF capture is downscaled back
+ * under the stubbed cap before encoding, and tiling need not engage at all.
+ * (See the dedicated "Default Resolution" describe block below for the
+ * cross-binding assertion that this cap - and the capture scale below it -
+ * behaves identically across bindings.) Video has no such cap, so once every
+ * binding shares the same capture-scale policy, whether it tiles here is a
+ * real tiling signal like PNG/PDF; the video test below still only asserts
+ * against a corrupted/wrong-aspect-ratio frame, since proving "did it tile"
+ * on top of that is not what this describe block is for. The GIF/video tests
+ * below assert what tiling failing would actually break: a corrupted,
+ * degenerate, or wrong-aspect-ratio frame - proven under the exact same
+ * stubbed-cap conditions that force PNG/PDF to tile.
  *
  * The real per-browser cap (commonly 16,384px) is too large to reach through
  * the live UI on a normal-sized demo deck: even the highest "Image Size and
@@ -70,6 +76,7 @@ import {
 	downloadViaCard,
 	EXPORT_DECK,
 	EXPORT_DECK_SLIDE_COUNT,
+	EXPORT_DOWNLOAD_TIMEOUT_MS,
 	GIF_CARD,
 	gifDimensions,
 	isGif,
@@ -335,14 +342,16 @@ test.describe('PDF export tiles beyond the browser canvas cap', () => {
 
 test.describe('GIF/video export do not corrupt a frame under the same stubbed cap', () => {
 	test('GIF export produces a valid, correctly-proportioned animated GIF', async ({ page }) => {
-		// No `maximizeExportResolution()` here (unlike PNG/PDF/video above): the
-		// pure-JS median-cut quantiser + LZW encoder that GIF export shares
-		// across all five bindings is CPU-bound on frame pixel count, and
-		// Vue/React (which do not call the shared `clampGifDimensions` the way
-		// Angular/Svelte/Vanilla do) would encode a multi-megapixel frame at the
-		// resolution boost's ~6.8x scale, which genuinely exceeds any sane test
-		// timeout. The default (unboosted) capture scale is exactly what a real
-		// GIF export uses, so this still exercises the real pipeline end to end.
+		// No `maximizeExportResolution()` here (unlike PNG/PDF/video above): this
+		// test is about basic pipeline validity (valid bytes, non-degenerate,
+		// correct aspect ratio), not the Default Resolution option, so it runs at
+		// the default (unboosted) capture scale - exactly what a real GIF export
+		// most commonly uses. Every binding now downscales an oversized capture
+		// to the shared `GIF_POST_CAPTURE_MAX_SIDE` (1920px, via
+		// `clampGifDimensions`) before encoding, so boosting the option no longer
+		// risks a pathologically slow encode the way it used to when Vue/React
+		// skipped that cap; see the "Default Resolution" describe block below for
+		// the boosted-resolution, cross-binding assertion.
 		await stubLowCanvasCap(page);
 		await loadDeck(page, EXPORT_DECK);
 		await openBackstageExport(page);
@@ -409,10 +418,9 @@ test.describe('GIF/video export do not corrupt a frame under the same stubbed ca
 			browser,
 			testInfo,
 			async (page, origin) => {
-				// No `maximizeExportResolution()`: see the comment on the
-				// single-binding GIF test above - it would make the shared pure-JS
-				// GIF encoder pathologically slow on any binding that does not
-				// clamp its GIF frame size (Vue/React do not).
+				// No `maximizeExportResolution()`: this test is about basic pipeline
+				// validity at the default capture scale, not the Default Resolution
+				// option; see the "Default Resolution" describe block below for that.
 				await stubLowCanvasCap(page);
 				await spyRecordingCanvasSize(page);
 				await loadDeckAt(page, origin, EXPORT_DECK);
@@ -480,6 +488,125 @@ test.describe('GIF/video export do not corrupt a frame under the same stubbed ca
 			}
 			return issues;
 		});
+
+		expect(problems.join('\n')).toBe('');
+	});
+});
+
+test.describe('GIF export honors Default Resolution identically across bindings', () => {
+	/**
+	 * Capture one GIF export's frame dimensions on a freshly-loaded page,
+	 * optionally boosting Default Resolution first. Two SEPARATE
+	 * `acrossFrameworks` sweeps (one default, one boosted) rather than one
+	 * scenario that reloads mid-session: a mid-session `page.evaluate` +
+	 * second `loadDeckAt` navigation on the same page proved flaky (the
+	 * second, "cold" capture after reload intermittently never fired a
+	 * download at all), where two independent fresh page loads - the same
+	 * shape `maximizeExportResolution` already uses successfully elsewhere in
+	 * this file - did not.
+	 */
+	async function captureGifDims(
+		page: Page,
+		origin: string,
+		boosted: boolean,
+	): Promise<{ width: number; height: number }> {
+		if (boosted) {
+			await maximizeExportResolution(page);
+		}
+		await loadDeckAt(page, origin, EXPORT_DECK);
+		await openBackstageExport(page);
+		const download = await downloadViaCard(page, GIF_CARD, EXPORT_DOWNLOAD_TIMEOUT_MS);
+		return gifDimensions(await downloadBytes(download));
+	}
+
+	test('boosting File > Options > Advanced > Default Resolution changes the GIF frame size the same way on all five bindings', async ({
+		browser,
+	}, testInfo) => {
+		// Two full sweeps (default, then boosted) of one GIF capture per
+		// binding; each capture gets the same generous per-download budget the
+		// single-binding GIF/video tests above use for a cold page.
+		test.setTimeout(240_000);
+		const sweepOptions = { viewport: VIEWPORT, concurrency: 'sequential' as const };
+		const defaultResults = await acrossFrameworks(
+			browser,
+			testInfo,
+			(page, origin) => captureGifDims(page, origin, false),
+			sweepOptions,
+		);
+		const boostedResults = await acrossFrameworks(
+			browser,
+			testInfo,
+			(page, origin) => captureGifDims(page, origin, true),
+			sweepOptions,
+		);
+
+		const defaultRows = byBinding(defaultResults);
+		const boostedByName = new Map(byBinding(boostedResults).map((row) => [row.name, row.value]));
+
+		const problems = defaultRows.flatMap(({ name, value: defaultDims }) => {
+			const boostedDims = boostedByName.get(name);
+			const issues: string[] = [];
+			if (defaultDims.width <= 0 || defaultDims.height <= 0) {
+				issues.push(`${name}: default-resolution GIF frame was degenerate (zero-size)`);
+			}
+			if (!boostedDims) {
+				issues.push(`${name}: no boosted-resolution result was recorded`);
+				return issues;
+			}
+			if (boostedDims.width <= 0 || boostedDims.height <= 0) {
+				issues.push(`${name}: boosted-resolution GIF frame was degenerate (zero-size)`);
+			}
+			// The shared `resolveExportCaptureDecision` scales GIF capture with the
+			// option and then downscales via the shared `GIF_POST_CAPTURE_MAX_SIDE`
+			// (1920px) cap, so boosting the option must never shrink the frame by
+			// more than a rounding pixel - it either grows it or (once the cap is
+			// hit, which the default 2x baseline already reaches on this deck at
+			// this viewport) leaves the longer side at the cap. A couple of px of
+			// slack absorbs `clampGifDimensions`' proportional-rounding jitter
+			// between two different pre-clamp scales that land on the same capped
+			// side (measured: 1920x1080 at default, 1920x1079 at boosted on the
+			// same binding).
+			const SHRINK_TOLERANCE_PX = 3;
+			if (
+				boostedDims.width < defaultDims.width - SHRINK_TOLERANCE_PX ||
+				boostedDims.height < defaultDims.height - SHRINK_TOLERANCE_PX
+			) {
+				issues.push(
+					`${name}: boosting Default Resolution shrank the GIF frame (default ${defaultDims.width}x${defaultDims.height}, boosted ${boostedDims.width}x${boostedDims.height})`,
+				);
+			}
+			return issues;
+		});
+
+		// Cross-binding parity: every binding computes its capture scale and cap
+		// from the same shared `resolveExportCaptureDecision`, so for the same
+		// deck and the same option value every binding's frame size should agree
+		// (a few px of tolerance for per-binding DOM/layout rounding).
+		const DIMENSION_TOLERANCE_PX = 4;
+		const reference = defaultRows[0];
+		const referenceBoosted = reference ? boostedByName.get(reference.name) : undefined;
+		if (reference && referenceBoosted) {
+			for (const { name, value: defaultDims } of defaultRows.slice(1)) {
+				const boostedDims = boostedByName.get(name);
+				const pairs: Array<[string, number, number]> = [
+					['default width', defaultDims.width, reference.value.width],
+					['default height', defaultDims.height, reference.value.height],
+				];
+				if (boostedDims) {
+					pairs.push(
+						['boosted width', boostedDims.width, referenceBoosted.width],
+						['boosted height', boostedDims.height, referenceBoosted.height],
+					);
+				}
+				for (const [label, a, b] of pairs) {
+					if (Math.abs(a - b) > DIMENSION_TOLERANCE_PX) {
+						problems.push(
+							`${name}: ${label} ${a} disagrees with ${reference.name}'s ${b} (tolerance ${DIMENSION_TOLERANCE_PX}px)`,
+						);
+					}
+				}
+			}
+		}
 
 		expect(problems.join('\n')).toBe('');
 	});

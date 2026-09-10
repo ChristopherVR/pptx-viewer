@@ -9,22 +9,19 @@ import {
 	EXPORT_ASSEMBLING_PERCENT,
 	EXPORT_DONE_PERCENT,
 	isExportAbortError,
-	recordProgressPercent,
 	slideProgressPercent,
 	slideStatusLabel,
 } from 'pptx-viewer-shared';
 import { useState, useRef, useCallback } from 'react';
 
-import { downloadBlob } from '../utils/dom-helpers';
 import {
 	exportSlideAsPng,
 	exportAllSlidesAsPdf,
 	exportAllSlidesAsNotesPdf,
 	copySlideToClipboard,
-	exportAllSlidesAsVideo,
-	exportAllSlidesAsGif,
 } from '../utils/export';
 import type { UseExportHandlersInput, ExportHandlersResult } from './export-handler-types';
+import { useExportMediaHandlers } from './useExportMediaHandlers';
 import { useExportSaveAs } from './useExportSaveAs';
 
 export type { UseExportHandlersInput, ExportHandlersResult } from './export-handler-types';
@@ -55,6 +52,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		canvasSize,
 		slideSizeEmu,
 		imageExportScale,
+		imageResolutionScale,
 	} = input;
 
 	const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -62,6 +60,19 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 	const [exportProgress, setExportProgress] = useState(0);
 	const [exportStatusMessage, setExportStatusMessage] = useState('');
 	const exportAbortRef = useRef<AbortController | null>(null);
+
+	const { handleExportVideo, handleExportGif } = useExportMediaHandlers({
+		slides,
+		activeSlideIndex,
+		canvasStageRef,
+		setActiveSlideIndex,
+		imageResolutionScale,
+		exportAbortRef,
+		setExportModalOpen,
+		setExportModalTitle,
+		setExportProgress,
+		setExportStatusMessage,
+	});
 
 	const {
 		handleExportJson,
@@ -207,90 +218,6 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			console.error('[PowerPointViewer] Copy slide as image failed:', err);
 		}
 	}, [canvasStageRef, activeSlide?.backgroundColor, imageExportScale]);
-
-	const handleExportVideo = useCallback(async () => {
-		if (!canvasStageRef.current) {
-			return;
-		}
-		const abortCtrl = new AbortController();
-		exportAbortRef.current = abortCtrl;
-		setExportModalTitle('Export as Video');
-		setExportStatusMessage('Capturing slides...');
-		setExportProgress(0);
-		setExportModalOpen(true);
-		try {
-			const blob = await exportAllSlidesAsVideo(
-				canvasStageRef,
-				slides.length,
-				setActiveSlideIndex,
-				activeSlideIndex,
-				{
-					scale: 1,
-					slideDurationMs: 3000,
-					onProgress: (current, total) => {
-						setExportProgress(slideProgressPercent(current, total, 45));
-						setExportStatusMessage(slideStatusLabel('Capturing', current, total));
-					},
-					onRecordProgress: (current, total) => {
-						setExportProgress(recordProgressPercent(current, total));
-						setExportStatusMessage(slideStatusLabel('Recording', current, total));
-					},
-					signal: abortCtrl.signal,
-				},
-			);
-			setExportProgress(EXPORT_ASSEMBLING_PERCENT);
-			setExportStatusMessage('Saving file...');
-			downloadBlob(blob, 'presentation.webm');
-			setExportProgress(EXPORT_DONE_PERCENT);
-		} catch (err) {
-			if (!isExportAbortError(err)) {
-				console.error('[PowerPointViewer] Video export failed:', err);
-			}
-		} finally {
-			exportAbortRef.current = null;
-			setExportModalOpen(false);
-		}
-	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex]);
-
-	const handleExportGif = useCallback(async () => {
-		if (!canvasStageRef.current) {
-			return;
-		}
-		const abortCtrl = new AbortController();
-		exportAbortRef.current = abortCtrl;
-		setExportModalTitle('Export as GIF');
-		setExportStatusMessage('Capturing slides...');
-		setExportProgress(0);
-		setExportModalOpen(true);
-		try {
-			const blob = await exportAllSlidesAsGif(
-				canvasStageRef,
-				slides.length,
-				setActiveSlideIndex,
-				activeSlideIndex,
-				{
-					scale: 0.5,
-					slideDurationMs: 2000,
-					onProgress: (current, total) => {
-						setExportProgress(slideProgressPercent(current, total));
-						setExportStatusMessage(slideStatusLabel('Encoding', current, total));
-					},
-					signal: abortCtrl.signal,
-				},
-			);
-			setExportProgress(EXPORT_ASSEMBLING_PERCENT);
-			setExportStatusMessage('Saving file...');
-			downloadBlob(blob, 'presentation.gif');
-			setExportProgress(EXPORT_DONE_PERCENT);
-		} catch (err) {
-			if (!isExportAbortError(err)) {
-				console.error('[PowerPointViewer] GIF export failed:', err);
-			}
-		} finally {
-			exportAbortRef.current = null;
-			setExportModalOpen(false);
-		}
-	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex]);
 
 	const handleCancelExport = useCallback(() => {
 		exportAbortRef.current?.abort();

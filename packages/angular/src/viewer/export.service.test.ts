@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderToCanvas } from '../lib/canvas-export';
 import { ExportService } from './export.service';
@@ -284,5 +284,81 @@ describe('exportTiledPagesToPdf', () => {
 		new ExportService().exportTiledPagesToPdf(pages, 1920, 1080, 'deck.pdf');
 
 		expect(addImage).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('exportCanvasesToGif', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	/** A minimal canvas stand-in: only `width`/`height`/`getContext` matter. */
+	function fakeCanvas(width: number, height: number): HTMLCanvasElement {
+		const imageData = { data: new Uint8ClampedArray(width * height * 4), width, height };
+		return {
+			width,
+			height,
+			getContext: () => ({ getImageData: () => imageData, drawImage: vi.fn() }),
+		} as unknown as HTMLCanvasElement;
+	}
+
+	it('throws when no canvases are provided', () => {
+		expect(() => new ExportService().exportCanvasesToGif([], 2000, 'deck.gif')).toThrow(
+			'No slide canvases provided for GIF export',
+		);
+	});
+
+	it('does not downscale a frame already within the default 1920px cap', () => {
+		const canvases = [fakeCanvas(800, 600)];
+		const createElement = vi.spyOn(document, 'createElement');
+
+		new ExportService().exportCanvasesToGif(canvases, 2000, 'deck.gif');
+
+		expect(createElement).not.toHaveBeenCalledWith('canvas');
+	});
+
+	it('downscales a frame larger than the requested maxSide before encoding', () => {
+		const canvases = [fakeCanvas(4000, 2000)];
+		const scaledDrawImage = vi.fn();
+		const scaledCanvas = {
+			width: 0,
+			height: 0,
+			getContext: () => ({
+				drawImage: scaledDrawImage,
+				getImageData: () => ({ data: new Uint8ClampedArray(4), width: 1, height: 1 }),
+			}),
+		} as unknown as HTMLCanvasElement;
+		const orig = document.createElement.bind(document);
+		vi.spyOn(document, 'createElement').mockImplementation((tag: string) =>
+			tag === 'canvas' ? scaledCanvas : orig(tag),
+		);
+
+		new ExportService().exportCanvasesToGif(canvases, 2000, 'deck.gif', 1000);
+
+		// 4000x2000 clamped to maxSide 1000 on the longer side -> 1000x500.
+		expect(scaledCanvas.width).toBe(1000);
+		expect(scaledCanvas.height).toBe(500);
+		expect(scaledDrawImage).toHaveBeenCalledWith(canvases[0], 0, 0, 1000, 500);
+	});
+
+	it('defaults the cap to the shared GIF_POST_CAPTURE_MAX_SIDE (1920px)', () => {
+		const canvases = [fakeCanvas(3840, 2160)];
+		const scaledCanvas = {
+			width: 0,
+			height: 0,
+			getContext: () => ({
+				drawImage: vi.fn(),
+				getImageData: () => ({ data: new Uint8ClampedArray(4), width: 1, height: 1 }),
+			}),
+		} as unknown as HTMLCanvasElement;
+		const orig = document.createElement.bind(document);
+		vi.spyOn(document, 'createElement').mockImplementation((tag: string) =>
+			tag === 'canvas' ? scaledCanvas : orig(tag),
+		);
+
+		new ExportService().exportCanvasesToGif(canvases, 2000, 'deck.gif');
+
+		expect(scaledCanvas.width).toBe(1920);
+		expect(scaledCanvas.height).toBe(1080);
 	});
 });

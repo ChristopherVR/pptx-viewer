@@ -22,6 +22,7 @@ import {
 	EXPORT_DONE_PERCENT,
 	isExportAbortError,
 	recordProgressPercent,
+	resolveExportCaptureDecision,
 	slideStatusLabel,
 } from '../internal/shared';
 import { slideFileName } from './export-helpers';
@@ -148,6 +149,10 @@ export class ViewerExportService {
 		}
 		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportGif'));
 		try {
+			const { scale, postCaptureMaxSide } = resolveExportCaptureDecision(
+				host.imageResolutionScale?.() ?? 1,
+				'gif',
+			);
 			const canvases = await captureSlideCanvases(
 				this.exportSvc,
 				host,
@@ -155,10 +160,11 @@ export class ViewerExportService {
 				controller.signal,
 				this.translate.instant('pptx.export.encoding'),
 				90,
+				scale,
 			);
 			this.progress.set(EXPORT_ASSEMBLING_PERCENT);
 			this.statusMessage.set(this.translate.instant('pptx.export.savingFile'));
-			this.exportSvc.exportCanvasesToGif(canvases, 2000, 'presentation.gif');
+			this.exportSvc.exportCanvasesToGif(canvases, 2000, 'presentation.gif', postCaptureMaxSide);
 			this.progress.set(EXPORT_DONE_PERCENT);
 		} catch (err) {
 			if (!isExportAbortError(err)) {
@@ -177,6 +183,7 @@ export class ViewerExportService {
 		}
 		const controller = this.beginExport(this.translate.instant('pptx.mobileMenu.exportVideo'));
 		try {
+			const { scale } = resolveExportCaptureDecision(host.imageResolutionScale?.() ?? 1, 'video');
 			const canvases = await captureSlideCanvases(
 				this.exportSvc,
 				host,
@@ -184,6 +191,7 @@ export class ViewerExportService {
 				controller.signal,
 				this.translate.instant('pptx.export.capturing'),
 				45,
+				scale,
 			);
 			this.progress.set(EXPORT_ASSEMBLING_PERCENT);
 			this.statusMessage.set(this.translate.instant('pptx.export.recordingVideo'));

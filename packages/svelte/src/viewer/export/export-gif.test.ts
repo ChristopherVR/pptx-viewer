@@ -93,7 +93,7 @@ describe('exportSlidesToGifBlob', () => {
 		expect(delays).toStrictEqual([50, 200, 300]);
 	});
 
-	it('clamps oversized captures to maxDimension preserving aspect ratio', async () => {
+	it('clamps oversized captures to the default maxDimension (shared 1920px cap) preserving aspect ratio', async () => {
 		const factory = fakeCanvasFactory();
 		const deps = make(
 			{
@@ -103,6 +103,20 @@ describe('exportSlidesToGifBlob', () => {
 			factory,
 		);
 		await exportSlidesToGifBlob(deps);
+		expect(factory.created[0]).toStrictEqual({ width: 1920, height: 960 });
+		expect(factory.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1920, 960);
+	});
+
+	it('clamps to an explicit maxDimension preserving aspect ratio', async () => {
+		const factory = fakeCanvasFactory();
+		const deps = make(
+			{
+				getSlideCount: () => 1,
+				rasterizeSlide: vi.fn().mockResolvedValue(fakeSourceCanvas(4000, 2000)),
+			},
+			factory,
+		);
+		await exportSlidesToGifBlob(deps, { maxDimension: 960 });
 		expect(factory.created[0]).toStrictEqual({ width: 960, height: 480 });
 		expect(factory.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 960, 480);
 	});

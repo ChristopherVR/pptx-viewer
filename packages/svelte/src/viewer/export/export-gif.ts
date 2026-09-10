@@ -1,5 +1,11 @@
 import type { GifFrame } from 'pptx-viewer-shared';
-import { clampGifDimensions, encodeGif, exportAbortError, planGifFrames } from 'pptx-viewer-shared';
+import {
+	clampGifDimensions,
+	encodeGif,
+	exportAbortError,
+	GIF_POST_CAPTURE_MAX_SIDE,
+	planGifFrames,
+} from 'pptx-viewer-shared';
 
 import type { ExportProgress, RasterizeSlide } from './export-controller.svelte';
 
@@ -22,8 +28,11 @@ export interface ExportGifOptions {
 	slideTimingsMs?: number[];
 	/**
 	 * Longest allowed output side in pixels; frames are scaled down
-	 * proportionally. Default 960 (GIF encoding cost grows with pixel count:
-	 * every pixel is matched against a 256-colour palette per frame).
+	 * proportionally. Defaults to the shared `GIF_POST_CAPTURE_MAX_SIDE`
+	 * (1920px; see `resolveExportCaptureDecision`'s `postCaptureMaxSide` for
+	 * `'gif'`), matching every other binding. GIF encoding cost grows with
+	 * pixel count: every pixel is matched against a 256-colour palette per
+	 * frame.
 	 */
 	maxDimension?: number;
 	/** Capture-phase progress callback: `(currentSlide, totalSlides)`. */
@@ -80,7 +89,7 @@ export async function exportSlidesToGifBlob(
 	const {
 		slideDurationMs = 2000,
 		slideTimingsMs,
-		maxDimension = 960,
+		maxDimension = GIF_POST_CAPTURE_MAX_SIDE,
 		onProgress,
 		signal,
 	} = options;

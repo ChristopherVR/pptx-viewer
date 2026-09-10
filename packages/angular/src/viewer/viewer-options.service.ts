@@ -126,6 +126,16 @@ export class ViewerOptionsService {
 		return 2 * resolveImageResolutionScale(this.options());
 	}
 
+	/**
+	 * The raw `resolveImageResolutionScale` multiplier (1 at the default "High
+	 * fidelity" preset), without the PNG/PDF-specific 2x baseline folded in.
+	 * Fed into GIF/video export's shared `resolveExportCaptureDecision`, which
+	 * applies its own baseline.
+	 */
+	imageResolutionScale(): number {
+		return resolveImageResolutionScale(this.options());
+	}
+
 	/** Print-dialog seed; `undefined` keeps the dialog's own recents. */
 	printDefaults(): Partial<PrintSettings> | undefined {
 		return resolveDefaultPrintSettings(this.options());
