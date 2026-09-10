@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.13.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.2) - 2026-09-10
+
+### Bug Fixes
+
+- **shared,vanilla:** Space WordArt envelope glyphs across the box and keep paragraph bands apart (by @ChristopherVR) ([e165d72](https://github.com/ChristopherVR/pptx-viewer/commit/e165d7210ba360a79a384206c5459a7630db19a8))
+- Preserve rich table cells during row and column edits (by @Sudhansh6) ([e83c2eb](https://github.com/ChristopherVR/pptx-viewer/commit/e83c2ebe92b78a7d32ed1d90ebe6765573a2c148))
+
+### Documentation
+
+- **cli:** Rewrite the scoped package README for npm visibility (by @ChristopherVR) ([c9b575a](https://github.com/ChristopherVR/pptx-viewer/commit/c9b575af7bc55ff89629351e499abc979cec7a85))
+
 ## [2.13.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.1) - 2026-09-10
 
 ### Bug Fixes

@@ -10,6 +10,41 @@ dated sections beneath it are generated from
 
 ## 2026-09-10
 
+_Releases: pptx-viewer-core@3.14.0, pptx-react-viewer@3.16.0, pptx-vue-viewer@3.16.0, pptx-angular-viewer@3.16.0, pptx-vanilla-viewer@2.16.0, pptx-svelte-viewer@3.17.0, pptx-viewer-mcp@2.5.1, @christophervr/pptx-viewer@2.13.2_
+
+### Features
+
+- **core:** SmartArt fanned-root hanging forests and choose-wrapped text templates (by @ChristopherVR) ([f303bbb](https://github.com/ChristopherVR/pptx-viewer/commit/f303bbbcc535052a3d5fbc4ba5e1898e3e300781))
+- **core:** Size repeater-rendered SmartArt satellites from the diagram-wide userS (by @ChristopherVR) ([fc5e931](https://github.com/ChristopherVR/pptx-viewer/commit/fc5e9313d1876daec8c64632c3579a7bddf8a02a))
+- **core:** Reserve the fan-axis hang gap in transposed tailed hierarchies (by @ChristopherVR) ([0a367d5](https://github.com/ChristopherVR/pptx-viewer/commit/0a367d519e49cd538da2c0a4cf4408a4d94b3a94))
+- **core:** Size nested SmartArt hub-and-satellite rings from the diagram-wide userS (by @ChristopherVR) ([228d624](https://github.com/ChristopherVR/pptx-viewer/commit/228d6242cc07f1946cc82efcffea5d06cf3cbf4e))
+
+### Bug Fixes
+
+- **shared,vanilla:** Space WordArt envelope glyphs across the box and keep paragraph bands apart (by @ChristopherVR) ([e165d72](https://github.com/ChristopherVR/pptx-viewer/commit/e165d7210ba360a79a384206c5459a7630db19a8))
+- **core:** Preserve table inline content order on save (by @Sudhansh6) ([4f38ac3](https://github.com/ChristopherVR/pptx-viewer/commit/4f38ac34fbe7bb92d365159c7951e14cce48ae7d))
+- **vanilla:** Give the AI composer send button its 44px touch target (by @ChristopherVR) ([b9bbe73](https://github.com/ChristopherVR/pptx-viewer/commit/b9bbe73f188d76594e127e02018f145d7cef81e1))
+- **shared,core:** Resolve the open code-scanning alerts (by @ChristopherVR) ([e66f068](https://github.com/ChristopherVR/pptx-viewer/commit/e66f06864f472dcd7d94b31435bb8bd1f7054be5))
+- **core:** Preserve empty soft line breaks on load (by @Sudhansh6) ([be9f5f5](https://github.com/ChristopherVR/pptx-viewer/commit/be9f5f59849434f76cc074ea1d49024460ad9164))
+- **core:** Drop the removed ensureItems argument after the soft-break fix (by @ChristopherVR) ([83f9b37](https://github.com/ChristopherVR/pptx-viewer/commit/83f9b37cf590952abeba2e3e7138e4ed7fab81ca))
+- Preserve rich table cells during row and column edits (by @Sudhansh6) ([e83c2eb](https://github.com/ChristopherVR/pptx-viewer/commit/e83c2ebe92b78a7d32ed1d90ebe6765573a2c148))
+
+### Refactor
+
+- **shared:** Move the WordArt canvas measurement helpers to their own module (by @ChristopherVR) ([ed9f400](https://github.com/ChristopherVR/pptx-viewer/commit/ed9f4009b523985c28ea5740404191d3118a03a4))
+
+### Documentation
+
+- State each limitation as the gap and its reason, move provenance to the reference pages (by @ChristopherVR) ([721c0c5](https://github.com/ChristopherVR/pptx-viewer/commit/721c0c5104ac994ee28f25d2ccc2ccecd714ddc7))
+- Reduce the remaining limitation rows to a status and two sentences (by @ChristopherVR) ([390dbeb](https://github.com/ChristopherVR/pptx-viewer/commit/390dbebde9c0a6cbe047c7c94a6187b2e1bfc46e))
+- **cli:** Rewrite the scoped package README for npm visibility (by @ChristopherVR) ([c9b575a](https://github.com/ChristopherVR/pptx-viewer/commit/c9b575af7bc55ff89629351e499abc979cec7a85))
+
+### Testing
+
+- **e2e:** Pin the measured foreignObject gap on large CSS 3-D transforms (by @ChristopherVR) ([7f257e2](https://github.com/ChristopherVR/pptx-viewer/commit/7f257e2aafb8bd267151770349ff2b65c327942d))
+
+## 2026-09-10
+
 _Releases: pptx-viewer-core@3.13.0, pptx-react-viewer@3.15.0, pptx-vue-viewer@3.15.0, pptx-angular-viewer@3.15.0, pptx-vanilla-viewer@2.15.0, pptx-svelte-viewer@3.16.0, @christophervr/pptx-viewer@2.13.1_
 
 ### Features

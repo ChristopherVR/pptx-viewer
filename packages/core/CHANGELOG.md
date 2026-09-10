@@ -7,6 +7,23 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.14.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.0) - 2026-09-10
+
+### Features
+
+- **core:** SmartArt fanned-root hanging forests and choose-wrapped text templates (by @ChristopherVR) ([f303bbb](https://github.com/ChristopherVR/pptx-viewer/commit/f303bbbcc535052a3d5fbc4ba5e1898e3e300781))
+- **core:** Size repeater-rendered SmartArt satellites from the diagram-wide userS (by @ChristopherVR) ([fc5e931](https://github.com/ChristopherVR/pptx-viewer/commit/fc5e9313d1876daec8c64632c3579a7bddf8a02a))
+- **core:** Reserve the fan-axis hang gap in transposed tailed hierarchies (by @ChristopherVR) ([0a367d5](https://github.com/ChristopherVR/pptx-viewer/commit/0a367d519e49cd538da2c0a4cf4408a4d94b3a94))
+- **core:** Size nested SmartArt hub-and-satellite rings from the diagram-wide userS (by @ChristopherVR) ([228d624](https://github.com/ChristopherVR/pptx-viewer/commit/228d6242cc07f1946cc82efcffea5d06cf3cbf4e))
+
+### Bug Fixes
+
+- **core:** Preserve table inline content order on save (by @Sudhansh6) ([4f38ac3](https://github.com/ChristopherVR/pptx-viewer/commit/4f38ac34fbe7bb92d365159c7951e14cce48ae7d))
+- **shared,core:** Resolve the open code-scanning alerts (by @ChristopherVR) ([e66f068](https://github.com/ChristopherVR/pptx-viewer/commit/e66f06864f472dcd7d94b31435bb8bd1f7054be5))
+- **core:** Preserve empty soft line breaks on load (by @Sudhansh6) ([be9f5f5](https://github.com/ChristopherVR/pptx-viewer/commit/be9f5f59849434f76cc074ea1d49024460ad9164))
+- **core:** Drop the removed ensureItems argument after the soft-break fix (by @ChristopherVR) ([83f9b37](https://github.com/ChristopherVR/pptx-viewer/commit/83f9b37cf590952abeba2e3e7138e4ed7fab81ca))
+- Preserve rich table cells during row and column edits (by @Sudhansh6) ([e83c2eb](https://github.com/ChristopherVR/pptx-viewer/commit/e83c2ebe92b78a7d32ed1d90ebe6765573a2c148))
+
 ## [3.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.13.0) - 2026-09-10
 
 ### Features
