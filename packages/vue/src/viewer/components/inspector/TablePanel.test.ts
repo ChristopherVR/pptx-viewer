@@ -28,6 +28,31 @@ function makeTableElement(rows: number, cols: number): TablePptxElement {
 	};
 }
 
+function makeRawTableElement(rows: number, cols: number): TablePptxElement {
+	const element = makeTableElement(rows, cols);
+	return {
+		...element,
+		rawXml: {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': {
+							'a:gridCol': Array.from({ length: cols }, () => ({ '@_w': '1000' })),
+						},
+						'a:tr': element.tableData!.rows.map((row) => ({
+							'@_h': '370840',
+							'a:tc': row.cells.map((cell) => ({
+								'a:txBody': { 'a:p': { 'a:r': { 'a:t': cell.text } } },
+								'a:tcPr': {},
+							})),
+						})),
+					},
+				},
+			},
+		},
+	};
+}
+
 function makeSelectionContext(initial: TableSelectionState | null): TableSelectionContext {
 	const selection = ref<TableSelectionState | null>(initial);
 	return {
@@ -47,11 +72,16 @@ function mountPanel(element: PptxElement, selection: TableSelectionState | null 
 	});
 }
 
-/** Extract the tableData from the most recent `update` emit. */
-function lastEmittedTableData(wrapper: ReturnType<typeof mountPanel>): PptxTableData {
+/** Extract the most recent `update` patch. */
+function lastEmittedPatch(wrapper: ReturnType<typeof mountPanel>): Partial<PptxElement> {
 	const events = wrapper.emitted('update');
 	expect(events).toBeTruthy();
-	const last = events![events!.length - 1][0] as Partial<PptxElement>;
+	return events![events!.length - 1][0] as Partial<PptxElement>;
+}
+
+/** Extract the tableData from the most recent `update` emit. */
+function lastEmittedTableData(wrapper: ReturnType<typeof mountPanel>): PptxTableData {
+	const last = lastEmittedPatch(wrapper);
 	const td = (last as { tableData?: PptxTableData }).tableData;
 	expect(td).toBeTruthy();
 	return td as PptxTableData;
@@ -98,7 +128,7 @@ describe('tablePanel', () => {
 	});
 
 	it('insert row below inserts after the selected row', () => {
-		const wrapper = mountPanel(makeTableElement(2, 2), {
+		const wrapper = mountPanel(makeRawTableElement(2, 2), {
 			elementId: 'tbl1',
 			rowIndex: 0,
 			columnIndex: 0,
@@ -107,6 +137,7 @@ describe('tablePanel', () => {
 		const td = lastEmittedTableData(wrapper);
 		expect(td.rows).toHaveLength(3);
 		expect(td.rows[1].cells.every((c) => c.text === '')).toBeTruthy();
+		expect(lastEmittedPatch(wrapper).rawXml).toBeDefined();
 	});
 
 	it('delete row removes the selected row', () => {

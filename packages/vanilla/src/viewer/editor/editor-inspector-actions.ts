@@ -278,11 +278,13 @@ export function createInspectorActions(applyToSelected: ApplyToSelected): Inspec
 					: {},
 			),
 		mutateTableStructure: (cell, action) =>
-			applyToSelected((el) =>
-				el.type === 'table' && el.tableData
-					? { tableData: mutateTableStructure(el.tableData, cell, action) }
-					: {},
-			),
+			applyToSelected((el) => {
+				if (el.type !== 'table' || !el.tableData) {
+					return {};
+				}
+				const next = mutateTableStructure(el, cell, action);
+				return next === el ? {} : { tableData: next.tableData, rawXml: next.rawXml };
+			}),
 		setTableColumnWidth: (column, percent) =>
 			applyToSelected((el) =>
 				el.type === 'table' && el.tableData

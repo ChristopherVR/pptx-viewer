@@ -50,6 +50,53 @@ describe('insertTableRow', () => {
 });
 
 describe('deleteTableRow', () => {
+	it.each(['row', 'column'] as const)('keeps rich text with the promoted %s anchor', (axis) => {
+		const table = makeTable(2, 2);
+		const source = table.rows[0].cells[0];
+		const target = axis === 'row' ? table.rows[1].cells[0] : table.rows[0].cells[1];
+		source.text = 'Rich text';
+		source.textRuns = [
+			{ text: 'Rich ', bold: true },
+			{ text: 'text', italic: true },
+		];
+		if (axis === 'row') {
+			source.rowSpan = 2;
+			target.vMerge = true;
+		} else {
+			source.gridSpan = 2;
+			target.hMerge = true;
+		}
+		target.textRuns = [{ text: '', underline: true }];
+		target.style = { fontSize: 24 };
+		const result = axis === 'row' ? deleteTableRow(table, 0) : deleteTableColumn(table, 0);
+		expect(result.rows[0].cells[0].text).toBe(source.text);
+		expect(result.rows[0].cells[0].textRuns).toStrictEqual(source.textRuns);
+		expect(result.rows[0].cells[0].style).toStrictEqual(target.style);
+		expect(target.textRuns).toStrictEqual([{ text: '', underline: true }]);
+	});
+
+	it.each(['row', 'column'] as const)(
+		'retains fallback rich text for an empty %s anchor',
+		(axis) => {
+			const table = makeTable(2, 2);
+			const source = table.rows[0].cells[0];
+			const target = axis === 'row' ? table.rows[1].cells[0] : table.rows[0].cells[1];
+			source.textRuns = [{ text: '', bold: true }];
+			target.text = 'Fallback';
+			target.textRuns = [{ text: 'Fallback', italic: true }];
+			if (axis === 'row') {
+				source.rowSpan = 2;
+				target.vMerge = true;
+			} else {
+				source.gridSpan = 2;
+				target.hMerge = true;
+			}
+			const result = axis === 'row' ? deleteTableRow(table, 0) : deleteTableColumn(table, 0);
+			expect(result.rows[0].cells[0].text).toBe(target.text);
+			expect(result.rows[0].cells[0].textRuns).toStrictEqual(target.textRuns);
+		},
+	);
+
 	it('should remove the row at the index', () => {
 		const table = makeTable(3, 2);
 		const result = deleteTableRow(table, 1);

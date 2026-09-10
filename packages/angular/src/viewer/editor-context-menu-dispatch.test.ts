@@ -14,14 +14,15 @@
  * @module angular-viewer/editor-context-menu-dispatch.test
  */
 
-import type { TablePptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type { TablePptxElement, XmlObject } from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ContextMenuCommandId } from '../internal/shared';
 import { buildContextMenuEntries } from '../internal/shared';
 import { isMergedTableCell, tableMenuContext } from './editor-context-menu-context';
 import type { ContextMenuActions, TableCommandOp } from './editor-context-menu-dispatch';
 import { runContextMenuCommand, tableCommandOp } from './editor-context-menu-dispatch';
+import { EditorContextMenuComponent } from './editor-context-menu.component';
 import type { TableCellSelection } from './table-selection.service';
 
 // ---------------------------------------------------------------------------
@@ -79,6 +80,37 @@ function makeTable(): TablePptxElement {
 
 function selectionAt(rowIndex: number, columnIndex: number): TableCellSelection {
 	return { elementId: 'tbl-1', rowIndex, columnIndex };
+}
+
+function withRawXml(element: TablePptxElement): TablePptxElement {
+	return {
+		...element,
+		rawXml: {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': {
+							'a:gridCol': element.tableData!.columnWidths.map(() => ({ '@_w': '1000' })),
+						},
+						'a:tr': element.tableData!.rows.map((row) => ({
+							'@_h': '370840',
+							'a:tc': row.cells.map((cell) => ({
+								'a:txBody': { 'a:p': { 'a:r': { 'a:t': cell.text ?? '' } } },
+								'a:tcPr': {},
+							})),
+						})),
+					},
+				},
+			},
+		},
+	};
+}
+
+function rawRows(element: TablePptxElement): XmlObject[] {
+	const graphic = element.rawXml?.['a:graphic'] as XmlObject;
+	const graphicData = graphic['a:graphicData'] as XmlObject;
+	const table = graphicData['a:tbl'] as XmlObject;
+	return table['a:tr'] as XmlObject[];
 }
 
 /** The non-table commands, paired with the action each must reach. */
@@ -193,6 +225,56 @@ describe('tableCommandOp', () => {
 		const table = makeTable();
 		expect(op?.(table, selectionAt(0, 0))).toBe(table);
 	});
+
+	it('commits the rebuilt raw XML from a structural context-menu operation', () => {
+		const element = withRawXml(makeTable());
+		const updateElement = vi.fn();
+		const harness = {
+			tableCtx: () => ({ element, sel: selectionAt(0, 0) }),
+			slideIndex: () => 4,
+			editor: { updateElement },
+		};
+		const applyTable = (
+			EditorContextMenuComponent.prototype as unknown as {
+				applyTable(op: TableCommandOp): void;
+			}
+		).applyTable;
+		const op = tableCommandOp('table-insert-row-below');
+
+		applyTable.call(harness, op!);
+
+		expect(updateElement).toHaveBeenCalledOnce();
+		const [, , patch] = updateElement.mock.calls[0] as [number, string, TablePptxElement];
+		expect(patch.tableData?.rows).toHaveLength(4);
+		expect(rawRows(patch)).toHaveLength(4);
+		expect(patch.rawXml).not.toBe(element.rawXml);
+		expect(rawRows(element)).toHaveLength(3);
+	});
+
+	it.each(['table-delete-row', 'table-delete-col'] as const)(
+		'does not commit %s when the table has only one cell',
+		(id) => {
+			const element = withRawXml({
+				...makeTable(),
+				tableData: { columnWidths: [1], rows: [{ cells: [{ text: 'only' }] }] },
+			});
+			const updateElement = vi.fn();
+			const harness = {
+				tableCtx: () => ({ element, sel: selectionAt(0, 0) }),
+				slideIndex: () => 4,
+				editor: { updateElement },
+			};
+			const applyTable = (
+				EditorContextMenuComponent.prototype as unknown as {
+					applyTable(op: TableCommandOp): void;
+				}
+			).applyTable;
+
+			applyTable.call(harness, tableCommandOp(id)!);
+
+			expect(updateElement).not.toHaveBeenCalled();
+		},
+	);
 });
 
 // ---------------------------------------------------------------------------

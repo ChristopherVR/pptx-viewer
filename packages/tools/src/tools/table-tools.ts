@@ -1,4 +1,5 @@
-import type { TablePptxElement } from 'pptx-viewer-core';
+import { rebuildTableStructureInRawXml } from 'pptx-viewer-core';
+import type { TablePptxElement, TableStructureEdit } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
 import { validateSlideIndex } from './helpers.js';
@@ -92,6 +93,8 @@ export function manageTableStructure(
 	}
 
 	const { rows, columnWidths } = tbl.tableData;
+	const source = { ...tbl, tableData: structuredClone(tbl.tableData) };
+	let edit: TableStructureEdit;
 	const colCount = columnWidths.length;
 	const rowCount = rows.length;
 
@@ -106,6 +109,7 @@ export function manageTableStructure(
 				})),
 			};
 			rows.splice(pos, 0, newRow);
+			edit = { axis: 'row', action: 'insert', index: pos };
 			break;
 		}
 
@@ -118,6 +122,7 @@ export function manageTableStructure(
 				throw new Error(`Row index ${ref} out of range (0–${rowCount - 1}).`);
 			}
 			rows.splice(ref, 1);
+			edit = { axis: 'row', action: 'delete', index: ref };
 			break;
 		}
 
@@ -131,6 +136,7 @@ export function manageTableStructure(
 				columnWidths[i] *= scaleFactor;
 			}
 			columnWidths.splice(pos, 0, newWidth);
+			edit = { axis: 'column', action: 'insert', index: pos };
 			// insert cell in each row
 			for (let r = 0; r < rows.length; r++) {
 				rows[r].cells.splice(pos, 0, {
@@ -151,6 +157,7 @@ export function manageTableStructure(
 			// redistribute widths
 			const removedWidth = columnWidths[ref];
 			columnWidths.splice(ref, 1);
+			edit = { axis: 'column', action: 'delete', index: ref };
 			const remaining = columnWidths.length;
 			if (remaining > 0) {
 				const extra = removedWidth / remaining;
@@ -170,6 +177,10 @@ export function manageTableStructure(
 		}
 	}
 
+	const rawXml = rebuildTableStructureInRawXml(source, tbl.tableData, edit);
+	if (rawXml) {
+		tbl.rawXml = rawXml;
+	}
 	return {
 		pptxData: ctx.pptxData,
 		dirty: true,

@@ -168,6 +168,7 @@ export function deleteTableRow(tableData: PptxTableData, rowIdx: number): PptxTa
 							return {
 								...cc,
 								text: cell.text || cc.text,
+								textRuns: cell.text ? cell.textRuns : cc.textRuns,
 								style: cc.style || cell.style,
 								rowSpan: newRs > 1 ? newRs : undefined,
 								vMerge: undefined,
@@ -315,6 +316,7 @@ export function deleteTableColumn(tableData: PptxTableData, colIdx: number): Ppt
 						adjustedCells[nextColIdx] = {
 							...nextCell,
 							text: cell.text || nextCell.text,
+							textRuns: cell.text ? cell.textRuns : nextCell.textRuns,
 							style: nextCell.style || cell.style,
 							gridSpan: gs - 1 > 1 ? gs - 1 : undefined,
 							hMerge: undefined,

@@ -45,7 +45,7 @@ import type { Locator, Page } from '@playwright/test';
 import JSZip from 'jszip';
 
 import { savePptxViaBackstage } from './save-pptx';
-import { centreOf, openMenuOn } from './support/context-menu';
+import { centreOf, chooseCommand, openMenuOn, selectTableCell } from './support/context-menu';
 import { resetTabSession } from './support/deck';
 
 const fixturePath = resolve(
@@ -220,6 +220,58 @@ async function fractionalTableDeck(): Promise<DeckPayload> {
 		mimeType: PPTX_MIME,
 		buffer: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
 	};
+}
+
+interface RawTableRun {
+	text: string;
+	xml: string;
+}
+
+interface RawTableCell {
+	text: string;
+	runs: RawTableRun[];
+}
+
+/** Read slide 4's authored table cells from a saved browser download. */
+async function savedSlideFourTable(page: Page): Promise<RawTableCell[][]> {
+	const download = await savePptxViaBackstage(page);
+	const savedPath = await download.path();
+	expect(savedPath, 'the browser should retain the downloaded PPTX').not.toBeNull();
+	const zip = await JSZip.loadAsync(await readFile(savedPath!));
+	const slide = zip.file('ppt/slides/slide4.xml');
+	expect(slide, 'the saved package should contain slide 4').not.toBeNull();
+	const xml = await slide!.async('string');
+	const table = xml.match(/<a:tbl>.*?<\/a:tbl>/su)?.[0];
+	expect(table, 'slide 4 should retain its table XML').toBeTruthy();
+	return [...table!.matchAll(/<a:tr\b.*?<\/a:tr>/gsu)].map((row) =>
+		[...row[0].matchAll(/<a:tc>.*?<\/a:tc>/gsu)].map((cell) => ({
+			text: [...cell[0].matchAll(/<a:t>(.*?)<\/a:t>/gsu)].map((match) => match[1]).join(''),
+			runs: [...cell[0].matchAll(/<a:r>(.*?)<\/a:r>/gsu)].map((run) => ({
+				text: [...run[1].matchAll(/<a:t>(.*?)<\/a:t>/gsu)].map((match) => match[1]).join(''),
+				xml: run[0],
+			})),
+		})),
+	);
+}
+
+/** Drive one table-cell context-menu command through the neutral UI contract. */
+async function chooseTableCommand(page: Page, cell: Locator, label: string): Promise<void> {
+	await selectTableCell(page, cell);
+	const menu = await openMenuOn(page, cell);
+	expect(menu.labels).toContain(label.toLowerCase());
+	await chooseCommand(page, label);
+}
+
+function expectMixedRevenueRuns(cell: RawTableCell): void {
+	expect(cell.text).toBe('Revenue grew 42%');
+	expect(cell.runs.map((run) => run.text)).toEqual(['Revenue ', 'grew 42%']);
+	expect(cell.runs[0]?.xml).toContain('sz="1200"');
+	expect(cell.runs[0]?.xml).toContain('b="0"');
+	expect(cell.runs[0]?.xml).toContain('typeface="Arial"');
+	expect(cell.runs[1]?.xml).toContain('sz="2400"');
+	expect(cell.runs[1]?.xml).toContain('b="1"');
+	expect(cell.runs[1]?.xml).toContain('val="C00000"');
+	expect(cell.runs[1]?.xml).toContain('typeface="Georgia"');
 }
 
 async function gotoSlide(page: Page, slideNumber: number): Promise<void> {
@@ -420,6 +472,36 @@ test.describe('table styling', () => {
 		const reloadedCell = reloaded.cells.find((candidate) => candidate.text === 'Fractional cell');
 		expect(reloadedCell, 'the saved edit should survive reloading').toBeTruthy();
 		expect(reloadedCell!.fontSize).toBeCloseTo(14, 2);
+	});
+
+	test('keeps rich cell runs aligned after inserting a middle row', async ({ page }) => {
+		await gotoSlide(page, 4);
+		await chooseTableCommand(page, canvasCell(page, 'R1C1'), 'Insert Row Below');
+
+		const live = await measureTable(page);
+		const liveMixed = cellAt(live, 2, 1);
+		expect(liveMixed.text).toBe('Revenue grew 42%');
+		expect(liveMixed.runs.map((run) => run.text)).toEqual(['Revenue ', 'grew 42%']);
+
+		const rows = await savedSlideFourTable(page);
+		expect(rows).toHaveLength(5);
+		expect(rows[1]?.map((cell) => cell.text)).toEqual(['', '', '', '']);
+		expectMixedRevenueRuns(rows[2]![1]!);
+	});
+
+	test('keeps rich cell runs aligned after deleting the first column', async ({ page }) => {
+		await gotoSlide(page, 4);
+		await chooseTableCommand(page, canvasCell(page, 'R1C1'), 'Delete Column');
+
+		const live = await measureTable(page);
+		const liveMixed = cellAt(live, 1, 0);
+		expect(liveMixed.text).toBe('Revenue grew 42%');
+		expect(liveMixed.runs.map((run) => run.text)).toEqual(['Revenue ', 'grew 42%']);
+
+		const rows = await savedSlideFourTable(page);
+		expect(rows).toHaveLength(4);
+		expect(rows.every((row) => row.length === 3)).toBe(true);
+		expectMixedRevenueRuns(rows[1]![0]!);
 	});
 
 	test('resolves a built-in style GUID the deck does not define', async ({ page }) => {

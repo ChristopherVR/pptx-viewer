@@ -9,7 +9,7 @@
  * @module angular-viewer/table-data-helpers.test
  */
 
-import type { PptxTableCell, TablePptxElement } from 'pptx-viewer-core';
+import type { PptxTableCell, TablePptxElement, XmlObject } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -50,6 +50,10 @@ function makeTable(rows: string[][], widths?: number[]): TablePptxElement {
 /** Convenience: read a cell from a table element. */
 function cellAt(el: TablePptxElement, r: number, c: number): PptxTableCell | undefined {
 	return el.tableData?.rows[r]?.cells[c];
+}
+
+function rawRows(el: TablePptxElement): XmlObject[] {
+	return el.rawXml!['a:graphic']['a:graphicData']['a:tbl']['a:tr'] as XmlObject[];
 }
 
 // ---------------------------------------------------------------------------
@@ -120,6 +124,55 @@ describe('insertRow', () => {
 		// The anchor's rowSpan grows to 3 rather than the merge being destroyed.
 		expect(cellAt(result, 0, 0)?.rowSpan).toBe(3);
 		expect(cellAt(result, 1, 0)?.vMerge).toBeTruthy();
+	});
+
+	it('keeps a shifted rich raw cell aligned with its tableData row', () => {
+		const el = makeTable([
+			['A', 'B'],
+			['Rich text', 'D'],
+		]);
+		el.rawXml = {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': { 'a:gridCol': [{ '@_w': '1000' }, { '@_w': '1000' }] },
+						'a:tr': [
+							{
+								'@_h': '370840',
+								'a:tc': [
+									{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'A' } } }, 'a:tcPr': {} },
+									{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'B' } } }, 'a:tcPr': {} },
+								],
+							},
+							{
+								'@_h': '370840',
+								'a:tc': [
+									{
+										'a:txBody': {
+											'a:p': {
+												'a:r': [
+													{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Rich ' },
+													{ 'a:rPr': { '@_i': '1' }, 'a:t': 'text' },
+												],
+											},
+										},
+										'a:tcPr': { 'x:opaque': { '@_marker': 'survivor' } },
+									},
+									{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'D' } } }, 'a:tcPr': {} },
+								],
+							},
+						],
+					},
+				},
+			},
+		};
+		const richCell = structuredClone(rawRows(el)[1]['a:tc'][0]);
+
+		const result = insertRow(el, 0, 'below');
+
+		expect(cellAt(result, 2, 0)?.text).toBe('Rich text');
+		expect(rawRows(result)[2]['a:tc'][0]).toStrictEqual(richCell);
+		expect(rawRows(el)).toHaveLength(2);
 	});
 });
 

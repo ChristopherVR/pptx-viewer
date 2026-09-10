@@ -9,8 +9,12 @@
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import { describe, expect, it } from 'vitest';
 
-import type { PptxElement, XmlObject } from '../../types';
-import { updateCellTextInRawXml, updateCellTextStyleInRawXml } from './table-cell-rawxml-ops';
+import type { PptxElement, PptxTableData, TablePptxElement, XmlObject } from '../../types';
+import {
+	rebuildTableStructureInRawXml,
+	updateCellTextInRawXml,
+	updateCellTextStyleInRawXml,
+} from './table-cell-rawxml-ops';
 import { ensureArray } from './table-structural-helpers';
 
 const parser = new XMLParser({
@@ -49,6 +53,245 @@ function cellOf(rawXml: XmlObject): XmlObject {
 function paragraphsOf(rawXml: XmlObject): XmlObject[] {
 	const txBody = cellOf(rawXml)['a:txBody'] as XmlObject;
 	return ensureArray(txBody['a:p'] as XmlObject | XmlObject[] | undefined);
+}
+
+function rawTableOf(rawXml: XmlObject): XmlObject {
+	const graphic = rawXml['a:graphic'] as XmlObject;
+	const data = graphic['a:graphicData'] as XmlObject;
+	return data['a:tbl'] as XmlObject;
+}
+
+function rawRowsOf(rawXml: XmlObject): XmlObject[] {
+	return ensureArray(rawTableOf(rawXml)['a:tr'] as XmlObject | XmlObject[] | undefined);
+}
+
+function rawGridColumnsOf(rawXml: XmlObject): XmlObject[] {
+	const grid = rawTableOf(rawXml)['a:tblGrid'] as XmlObject;
+	return ensureArray(grid['a:gridCol'] as XmlObject | XmlObject[] | undefined);
+}
+
+function rawCellsOf(row: XmlObject): XmlObject[] {
+	return ensureArray(row['a:tc'] as XmlObject | XmlObject[] | undefined);
+}
+
+function richStructureCellXml(id: string, text = id): XmlObject {
+	return {
+		'@_id': id,
+		'a:txBody': {
+			'a:bodyPr': { '@_anchor': 'ctr' },
+			'a:p': {
+				'a:r': [
+					{ 'a:rPr': { '@_b': '1', '@_lang': 'en-US' }, 'a:t': text.slice(0, 1) },
+					{ 'a:rPr': { '@_i': '1', '@_lang': 'en-US' }, 'a:t': text.slice(1) },
+				],
+			},
+		},
+		'a:tcPr': {
+			'@_marL': '91440',
+			'a:extLst': { 'a:ext': { '@_uri': `urn:${id}`, 'x:opaque': { '@_id': id } } },
+		},
+	};
+}
+
+function structureTableElement(): TablePptxElement {
+	const rows = Array.from({ length: 3 }, (_, row) => ({
+		height: (row + 1) * 10,
+		cells: Array.from({ length: 3 }, (_cell, column) => ({
+			text: `r${row}c${column}`,
+		})),
+	}));
+	return {
+		id: 'structure-table',
+		type: 'table',
+		x: 0,
+		y: 0,
+		width: 300,
+		height: 60,
+		tableData: {
+			columnWidths: [0.2, 0.3, 0.5],
+			rows,
+		},
+		rawXml: {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': {
+							'a:gridCol': [
+								{ '@_w': '200', '@_id': 'g0', 'x:opaque': { '@_id': 'grid-0' } },
+								{ '@_w': '300', '@_id': 'g1', 'x:opaque': { '@_id': 'grid-1' } },
+								{ '@_w': '500', '@_id': 'g2', 'x:opaque': { '@_id': 'grid-2' } },
+							],
+						},
+						'a:tr': rows.map((row, rowIndex) => ({
+							'@_h': String(row.height! * 9525),
+							'@_id': `r${rowIndex}`,
+							'x:opaque': { '@_id': `row-${rowIndex}` },
+							'a:tc': row.cells.map((_, columnIndex) =>
+								richStructureCellXml(`r${rowIndex}c${columnIndex}`),
+							),
+						})),
+					},
+				},
+			},
+		},
+	} as TablePptxElement;
+}
+
+function insertDataRow(data: PptxTableData, index: number): PptxTableData {
+	const rows = [...data.rows];
+	rows.splice(index, 0, {
+		height: 40,
+		cells: data.columnWidths.map(() => ({ text: '', style: {} })),
+	});
+	return { ...data, rows };
+}
+
+function deleteDataRow(data: PptxTableData, index: number): PptxTableData {
+	return { ...data, rows: data.rows.filter((_, rowIndex) => rowIndex !== index) };
+}
+
+function insertDataColumn(data: PptxTableData, index: number): PptxTableData {
+	const columnWidths = [...data.columnWidths];
+	const sourceIndex = index < columnWidths.length ? index : columnWidths.length - 1;
+	const halfWidth = (columnWidths[sourceIndex] ?? 0) / 2;
+	columnWidths[sourceIndex] = halfWidth;
+	columnWidths.splice(index, 0, halfWidth);
+	return {
+		...data,
+		columnWidths,
+		rows: data.rows.map((row) => {
+			const cells = [...row.cells];
+			cells.splice(index, 0, { text: '', style: {} });
+			return { ...row, cells };
+		}),
+	};
+}
+
+function deleteDataColumn(data: PptxTableData, index: number): PptxTableData {
+	const remainingWidths = data.columnWidths.filter((_, columnIndex) => columnIndex !== index);
+	const total = remainingWidths.reduce((sum, width) => sum + width, 0);
+	return {
+		...data,
+		columnWidths: remainingWidths.map((width) => width / total),
+		rows: data.rows.map((row) => ({
+			...row,
+			cells: row.cells.filter((_, columnIndex) => columnIndex !== index),
+		})),
+	};
+}
+
+function rebuild(
+	element: TablePptxElement,
+	next: PptxTableData,
+	edit: Parameters<typeof rebuildTableStructureInRawXml>[2],
+): XmlObject {
+	const rawXml = rebuildTableStructureInRawXml(element, next, edit);
+	expect(rawXml).toBeDefined();
+	return rawXml!;
+}
+
+type MergeAxis = 'row' | 'column';
+
+function mergedTableElement(
+	axis: MergeAxis,
+	anchorText = 'Anchor',
+	targetText = 'Target',
+): TablePptxElement {
+	const anchor = {
+		text: anchorText,
+		textRuns: [{ text: anchorText, bold: true }],
+		style: { fontFamily: 'Anchor Font' },
+		...(axis === 'row' ? { rowSpan: 2 } : { gridSpan: 2 }),
+	};
+	const target = {
+		text: targetText,
+		textRuns: [{ text: targetText, italic: true }],
+		style: { fontFamily: 'Target Font' },
+		...(axis === 'row' ? { vMerge: true } : { hMerge: true }),
+	};
+	const anchorXml = richStructureCellXml('anchor', anchorText);
+	const targetXml = richStructureCellXml('target', targetText);
+	anchorXml[axis === 'row' ? '@_rowSpan' : '@_gridSpan'] = '2';
+	targetXml[axis === 'row' ? '@_vMerge' : '@_hMerge'] = '1';
+
+	const tableData: PptxTableData =
+		axis === 'row'
+			? {
+					columnWidths: [1],
+					rows: [
+						{ height: 10, cells: [anchor] },
+						{ height: 20, cells: [target] },
+					],
+				}
+			: {
+					columnWidths: [0.5, 0.5],
+					rows: [{ height: 10, cells: [anchor, target] }],
+				};
+	const rawRows: XmlObject[] =
+		axis === 'row'
+			? [
+					{ '@_h': '95250', '@_id': 'anchor-row', 'a:tc': anchorXml },
+					{ '@_h': '190500', '@_id': 'target-row', 'a:tc': targetXml },
+				]
+			: [{ '@_h': '95250', '@_id': 'merge-row', 'a:tc': [anchorXml, targetXml] }];
+
+	return {
+		id: `merged-${axis}`,
+		type: 'table',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 40,
+		tableData,
+		rawXml: {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': {
+							'a:gridCol': Array.from({ length: axis === 'row' ? 1 : 2 }, (_, index) => ({
+								'@_w': axis === 'row' ? '1000' : '500',
+								'@_id': `g${index}`,
+							})),
+						},
+						'a:tr': rawRows.length === 1 ? rawRows[0] : rawRows,
+					},
+				},
+			},
+		},
+	} as TablePptxElement;
+}
+
+function dataAfterDeletingMergeAnchor(element: TablePptxElement, axis: MergeAxis): PptxTableData {
+	const source = element.tableData!;
+	const anchor = source.rows[0].cells[0];
+	const target = axis === 'row' ? source.rows[1].cells[0] : source.rows[0].cells[1];
+	const promoted = {
+		...target,
+		text: anchor.text || target.text,
+		textRuns: anchor.text ? anchor.textRuns : target.textRuns,
+		style: target.style || anchor.style,
+		...(axis === 'row'
+			? { rowSpan: undefined, vMerge: undefined, gridSpan: anchor.gridSpan }
+			: { gridSpan: undefined, hMerge: undefined, rowSpan: anchor.rowSpan }),
+	};
+	return axis === 'row'
+		? { ...source, rows: [{ ...source.rows[1], cells: [promoted] }] }
+		: { ...source, columnWidths: [1], rows: [{ ...source.rows[0], cells: [promoted] }] };
+}
+
+function dataAfterDeletingMergeContinuation(
+	element: TablePptxElement,
+	axis: MergeAxis,
+): PptxTableData {
+	const source = element.tableData!;
+	const anchor = source.rows[0].cells[0];
+	const unmergedAnchor = {
+		...anchor,
+		...(axis === 'row' ? { rowSpan: undefined } : { gridSpan: undefined }),
+	};
+	return axis === 'row'
+		? { ...source, rows: [{ ...source.rows[0], cells: [unmergedAnchor] }] }
+		: { ...source, columnWidths: [1], rows: [{ ...source.rows[0], cells: [unmergedAnchor] }] };
 }
 
 describe('updateCellTextStyleInRawXml with bare properties elements', () => {
@@ -152,6 +395,245 @@ describe('updateCellTextInRawXml emits CT_TextBody in schema order', () => {
 		const run = paragraphsOf(result)[0]['a:r'] as XmlObject;
 		expect(Object.keys(run)).toStrictEqual(['a:rPr', 'a:t']);
 	});
+});
+
+describe('rebuildTableStructureInRawXml structural edit descriptors', () => {
+	it('inserts one blank row while retaining every surviving row and cell node', () => {
+		const source = structureTableElement();
+		const originalRawXml = structuredClone(source.rawXml);
+		const next = insertDataRow(source.tableData!, 1);
+		const result = rebuild(source, next, { axis: 'row', action: 'insert', index: 1 });
+		const rows = rawRowsOf(result);
+
+		expect(rows.map((row) => row['@_id'])).toStrictEqual(['r0', undefined, 'r1', 'r2']);
+		expect(rows.map((row) => row['@_h'])).toStrictEqual(['95250', '381000', '190500', '285750']);
+		expect(rows[0]['x:opaque']).toStrictEqual({ '@_id': 'row-0' });
+		expect(rows[2]['x:opaque']).toStrictEqual({ '@_id': 'row-1' });
+		expect(rows[3]['x:opaque']).toStrictEqual({ '@_id': 'row-2' });
+		expect(rawCellsOf(rows[1]).map((cell) => cell['@_id'])).toStrictEqual([
+			undefined,
+			undefined,
+			undefined,
+		]);
+		rawCellsOf(rows[1]).forEach((cell) => {
+			expect(cell['a:tcPr']).toStrictEqual({});
+			expect(cell['a:txBody']).toStrictEqual({
+				'a:bodyPr': {},
+				'a:lstStyle': {},
+				'a:p': { 'a:endParaRPr': { '@_lang': 'en-US', '@_dirty': '0' } },
+			});
+		});
+		expect(rawCellsOf(rows[2])[0]).toStrictEqual(rawCellsOf(rawRowsOf(originalRawXml!)[1])[0]);
+		expect(rawGridColumnsOf(result)).toStrictEqual(rawGridColumnsOf(originalRawXml!));
+		expect(source.rawXml).toStrictEqual(originalRawXml);
+	});
+
+	it('inserts one blank cell per row while retaining grid, row, and cell provenance', () => {
+		const source = structureTableElement();
+		const originalRows = rawRowsOf(source.rawXml!);
+		const next = insertDataColumn(source.tableData!, 1);
+		const result = rebuild(source, next, { axis: 'column', action: 'insert', index: 1 });
+		const rows = rawRowsOf(result);
+		const columns = rawGridColumnsOf(result);
+
+		expect(columns.map((column) => column['@_id'])).toStrictEqual(['g0', undefined, 'g1', 'g2']);
+		expect(columns.map((column) => column['@_w'])).toStrictEqual(['200', '150', '150', '500']);
+		expect(columns.reduce((sum, column) => sum + Number(column['@_w']), 0)).toBe(1000);
+		expect(columns[0]['x:opaque']).toStrictEqual({ '@_id': 'grid-0' });
+		expect(columns[2]['x:opaque']).toStrictEqual({ '@_id': 'grid-1' });
+		expect(columns[3]['x:opaque']).toStrictEqual({ '@_id': 'grid-2' });
+		expect(rows.map((row) => row['@_id'])).toStrictEqual(['r0', 'r1', 'r2']);
+		expect(rows.map((row) => row['@_h'])).toStrictEqual(['95250', '190500', '285750']);
+		rows.forEach((row, rowIndex) => {
+			const cells = rawCellsOf(row);
+			expect(cells.map((cell) => cell['@_id'])).toStrictEqual([
+				`r${rowIndex}c0`,
+				undefined,
+				`r${rowIndex}c1`,
+				`r${rowIndex}c2`,
+			]);
+			expect(cells[1]['a:tcPr']).toStrictEqual({});
+			expect(cells[2]['a:tcPr']).toStrictEqual(rawCellsOf(originalRows[rowIndex])[1]['a:tcPr']);
+		});
+	});
+
+	it('deletes only the described row and keeps surviving metadata aligned', () => {
+		const source = structureTableElement();
+		const next = deleteDataRow(source.tableData!, 1);
+		const result = rebuild(source, next, { axis: 'row', action: 'delete', index: 1 });
+		const rows = rawRowsOf(result);
+
+		expect(rows.map((row) => row['@_id'])).toStrictEqual(['r0', 'r2']);
+		expect(rows.map((row) => row['@_h'])).toStrictEqual(['95250', '285750']);
+		expect(rows[1]['x:opaque']).toStrictEqual({ '@_id': 'row-2' });
+		expect(rawCellsOf(rows[1]).map((cell) => cell['@_id'])).toStrictEqual(['r2c0', 'r2c1', 'r2c2']);
+		expect(rawGridColumnsOf(result).map((column) => column['@_id'])).toStrictEqual([
+			'g0',
+			'g1',
+			'g2',
+		]);
+	});
+
+	it('deletes only the described column and redistributes its width without losing metadata', () => {
+		const source = structureTableElement();
+		const next = deleteDataColumn(source.tableData!, 1);
+		const result = rebuild(source, next, { axis: 'column', action: 'delete', index: 1 });
+		const rows = rawRowsOf(result);
+		const columns = rawGridColumnsOf(result);
+
+		expect(columns.map((column) => column['@_id'])).toStrictEqual(['g0', 'g2']);
+		expect(columns.map((column) => column['@_w'])).toStrictEqual(['286', '714']);
+		expect(columns.reduce((sum, column) => sum + Number(column['@_w']), 0)).toBe(1000);
+		expect(columns[1]['x:opaque']).toStrictEqual({ '@_id': 'grid-2' });
+		rows.forEach((row, rowIndex) => {
+			expect(row['x:opaque']).toStrictEqual({ '@_id': `row-${rowIndex}` });
+			expect(rawCellsOf(row).map((cell) => cell['@_id'])).toStrictEqual([
+				`r${rowIndex}c0`,
+				`r${rowIndex}c2`,
+			]);
+			expect(rawCellsOf(row)[1]['a:tcPr']).toStrictEqual({
+				'@_marL': '91440',
+				'a:extLst': {
+					'a:ext': {
+						'@_uri': `urn:r${rowIndex}c2`,
+						'x:opaque': { '@_id': `r${rowIndex}c2` },
+					},
+				},
+			});
+		});
+	});
+
+	it('uses the current XML as provenance across repeated row and column insertions', () => {
+		let element = structureTableElement();
+		let data = insertDataRow(element.tableData!, 1);
+		let rawXml = rebuild(element, data, { axis: 'row', action: 'insert', index: 1 });
+		element = { ...element, tableData: data, rawXml };
+		data = insertDataRow(data, 3);
+		rawXml = rebuild(element, data, { axis: 'row', action: 'insert', index: 3 });
+
+		expect(rawRowsOf(rawXml).map((row) => row['@_id'])).toStrictEqual([
+			'r0',
+			undefined,
+			'r1',
+			undefined,
+			'r2',
+		]);
+
+		element = { ...element, tableData: data, rawXml };
+		data = insertDataColumn(data, 1);
+		rawXml = rebuild(element, data, { axis: 'column', action: 'insert', index: 1 });
+		element = { ...element, tableData: data, rawXml };
+		data = insertDataColumn(data, 3);
+		rawXml = rebuild(element, data, { axis: 'column', action: 'insert', index: 3 });
+
+		const columns = rawGridColumnsOf(rawXml);
+		expect(columns.map((column) => column['@_id'])).toStrictEqual([
+			'g0',
+			undefined,
+			'g1',
+			undefined,
+			'g2',
+		]);
+		expect(columns.reduce((sum, column) => sum + Number(column['@_w']), 0)).toBe(1000);
+		expect(rawCellsOf(rawRowsOf(rawXml)[0]).map((cell) => cell['@_id'])).toStrictEqual([
+			'r0c0',
+			undefined,
+			'r0c1',
+			undefined,
+			'r0c2',
+		]);
+	});
+
+	it.each([
+		{
+			name: 'an out-of-range insertion index',
+			edit: { axis: 'row', action: 'insert', index: 99 } as const,
+		},
+		{
+			name: 'a descriptor whose axis does not match the new dimensions',
+			edit: { axis: 'column', action: 'insert', index: 1 } as const,
+		},
+	])('falls back without a partial splice for $name', ({ edit }) => {
+		const source = structureTableElement();
+		const next = insertDataRow(source.tableData!, 3);
+		const result = rebuild(source, next, edit);
+		const rows = rawRowsOf(result);
+
+		// A rejected descriptor deliberately takes the legacy arbitrary-model
+		// rebuild. It must not leave behind part of the requested splice.
+		expect(rows.map((row) => row['@_id'])).toStrictEqual([
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+		]);
+		expect(rawGridColumnsOf(result).map((column) => column['@_id'])).toStrictEqual([
+			undefined,
+			undefined,
+			undefined,
+		]);
+		expect(rawCellsOf(rows[0]).map((cell) => cell['@_id'])).toStrictEqual(['r0c0', 'r0c1', 'r0c2']);
+		expect(rawCellsOf(rows[3]).map((cell) => cell['@_id'])).toStrictEqual([
+			undefined,
+			undefined,
+			undefined,
+		]);
+	});
+});
+
+describe('rebuildTableStructureInRawXml merged-anchor promotion', () => {
+	it.each<MergeAxis>(['row', 'column'])(
+		'promotes a non-empty %s anchor body but keeps the surviving cell identity and properties',
+		(axis) => {
+			const source = mergedTableElement(axis);
+			const sourceRows = rawRowsOf(source.rawXml!);
+			const anchorXml = rawCellsOf(sourceRows[0])[0];
+			const targetXml =
+				axis === 'row' ? rawCellsOf(sourceRows[1])[0] : rawCellsOf(sourceRows[0])[1];
+			const next = dataAfterDeletingMergeAnchor(source, axis);
+			const result = rebuild(source, next, { axis, action: 'delete', index: 0 });
+			const survivor = rawCellsOf(rawRowsOf(result)[0])[0];
+
+			expect(survivor['@_id']).toBe('target');
+			expect(survivor['a:txBody']).toStrictEqual(anchorXml['a:txBody']);
+			expect(survivor['a:tcPr']).toStrictEqual(targetXml['a:tcPr']);
+			expect(survivor[axis === 'row' ? '@_vMerge' : '@_hMerge']).toBeUndefined();
+			expect(survivor[axis === 'row' ? '@_rowSpan' : '@_gridSpan']).toBeUndefined();
+		},
+	);
+
+	it.each<MergeAxis>(['row', 'column'])(
+		'does not replace the %s anchor body when deleting a continuation',
+		(axis) => {
+			const source = mergedTableElement(axis);
+			const anchorXml = rawCellsOf(rawRowsOf(source.rawXml!)[0])[0];
+			const next = dataAfterDeletingMergeContinuation(source, axis);
+			const result = rebuild(source, next, { axis, action: 'delete', index: 1 });
+			const survivor = rawCellsOf(rawRowsOf(result)[0])[0];
+
+			expect(survivor['@_id']).toBe('anchor');
+			expect(survivor['a:txBody']).toStrictEqual(anchorXml['a:txBody']);
+			expect(survivor['a:tcPr']).toStrictEqual(anchorXml['a:tcPr']);
+			expect(survivor[axis === 'row' ? '@_rowSpan' : '@_gridSpan']).toBeUndefined();
+		},
+	);
+
+	it.each<MergeAxis>(['row', 'column'])(
+		'keeps the target rich body and properties when the removed %s anchor is empty',
+		(axis) => {
+			const source = mergedTableElement(axis, '', 'Target');
+			const sourceRows = rawRowsOf(source.rawXml!);
+			const targetXml =
+				axis === 'row' ? rawCellsOf(sourceRows[1])[0] : rawCellsOf(sourceRows[0])[1];
+			const next = dataAfterDeletingMergeAnchor(source, axis);
+			const result = rebuild(source, next, { axis, action: 'delete', index: 0 });
+			const survivor = rawCellsOf(rawRowsOf(result)[0])[0];
+
+			expect(survivor['@_id']).toBe('target');
+			expect(survivor['a:txBody']).toStrictEqual(targetXml['a:txBody']);
+			expect(survivor['a:tcPr']).toStrictEqual(targetXml['a:tcPr']);
+		},
+	);
 });
 
 describe('ensureArray', () => {

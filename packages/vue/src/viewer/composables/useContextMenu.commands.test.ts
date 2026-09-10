@@ -1,6 +1,6 @@
 // oxlint-disable react-hooks/rules-of-hooks
 import { mount } from '@vue/test-utils';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 import { computed, defineComponent, h, ref } from 'vue';
 
@@ -39,6 +39,38 @@ const GROUP = {
 	height: 40,
 	children: [],
 } as unknown as PptxElement;
+
+const TABLE = {
+	id: 'table-1',
+	type: 'table',
+	x: 0,
+	y: 0,
+	width: 200,
+	height: 100,
+	tableData: {
+		rows: [{ cells: [{ text: 'A' }] }, { cells: [{ text: 'B' }] }],
+		columnWidths: [1],
+	},
+	rawXml: {
+		'a:graphic': {
+			'a:graphicData': {
+				'a:tbl': {
+					'a:tblGrid': { 'a:gridCol': { '@_w': '1000' } },
+					'a:tr': [
+						{
+							'@_h': '370840',
+							'a:tc': { 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'A' } } }, 'a:tcPr': {} },
+						},
+						{
+							'@_h': '370840',
+							'a:tc': { 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'B' } } }, 'a:tcPr': {} },
+						},
+					],
+				},
+			},
+		},
+	},
+} as TablePptxElement;
 
 /**
  * `<div data-element-id="group-1"><div data-element-id="child-1"><span/></div></div>`,
@@ -160,6 +192,25 @@ describe('useContextMenu command set', () => {
 		const onAddComment = vi.fn();
 		setup({ onAddComment }).onContextSelect('comment');
 		expect(onAddComment).toHaveBeenCalledOnce();
+	});
+
+	it('commits rawXml with tableData for a structural table command', () => {
+		const updateElement = vi.fn();
+		const menu = setup({
+			findActiveElement: (id) => (id === TABLE.id ? TABLE : undefined),
+			tableSelection: ref({ elementId: TABLE.id, rowIndex: 0, columnIndex: 0 }),
+			selectedElementIds: ref<string[]>([TABLE.id]),
+			ops: { updateElement } as unknown as EditorOperations,
+		});
+		menu.contextMenu.value = { open: true, x: 0, y: 0, elementId: TABLE.id };
+
+		menu.onContextSelect('table-insert-row-below');
+
+		expect(updateElement).toHaveBeenCalledOnce();
+		expect(updateElement.mock.calls[0]?.[1]).toMatchObject({
+			tableData: { rows: expect.any(Array) },
+			rawXml: expect.any(Object),
+		});
 	});
 });
 

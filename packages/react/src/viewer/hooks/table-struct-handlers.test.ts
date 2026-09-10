@@ -7,7 +7,6 @@ import { createTableStructHandlers } from './table-struct-handlers';
 // Mock the table-parse utilities so we don't depend on XML parsing
 vi.mock<typeof import('../utils/table-parse')>(import('../utils/table-parse'), () => ({
 	updateCellTextInRawXml: vi.fn(() => '<new-xml/>'),
-	rebuildTableStructureInRawXml: vi.fn(() => '<rebuilt-xml/>'),
 }));
 
 function createTableElement(tableData: PptxTableData, id = 'table-1'): TablePptxElement {
@@ -58,6 +57,43 @@ function createMockInput(
 }
 
 describe('createTableStructHandlers', () => {
+	it('commits aligned raw XML together with the inserted row data', () => {
+		const element = createTableElement(createSimpleTableData(2, 2));
+		element.tableData!.rows[1].cells[0] = {
+			text: 'Rich',
+			textRuns: [{ text: 'Rich', bold: true }],
+		};
+		const richCell = {
+			'a:txBody': { 'a:p': { 'a:r': { 'a:rPr': { '@_b': '1' }, 'a:t': 'Rich' } } },
+			'a:tcPr': {},
+		};
+		const blankCell = { 'a:txBody': { 'a:p': {} }, 'a:tcPr': {} };
+		element.rawXml = {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': { 'a:gridCol': [{ '@_w': '1000' }, { '@_w': '1000' }] },
+						'a:tr': [
+							{ '@_h': '381000', 'a:tc': [blankCell, blankCell] },
+							{ '@_h': '381000', 'a:tc': [richCell, blankCell] },
+						],
+					},
+				},
+			},
+		};
+		const input = createMockInput({
+			selectedElement: element,
+			tableEditorState: { rowIndex: 0, columnIndex: 0 },
+		});
+		createTableStructHandlers(input).handleInsertTableRow('below');
+		const update = vi.mocked(input.ops.updateSelectedElement).mock.calls[0][0] as TablePptxElement;
+		expect(update.tableData!.rows[1].cells[0].text).toBe('');
+		expect(update.tableData!.rows[2].cells[0].text).toBe('Rich');
+		expect(
+			update.rawXml!['a:graphic']['a:graphicData']['a:tbl']['a:tr'][2]['a:tc'][0],
+		).toStrictEqual(richCell);
+	});
+
 	// ── handleCommitCellEdit ──────────────────────────────────────────────
 
 	describe('handleCommitCellEdit', () => {
@@ -213,7 +249,7 @@ describe('createTableStructHandlers', () => {
 			const handlers = createTableStructHandlers(input);
 			handlers.handleInsertTableRow('below');
 			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
-				expect.objectContaining({ rawXml: '<rebuilt-xml/>' }),
+				expect.objectContaining({ rawXml: undefined }),
 			);
 			const call = (input.ops.updateSelectedElement as ReturnType<typeof vi.fn>).mock.calls[0][0];
 			const td = call.tableData as PptxTableData;
@@ -225,7 +261,7 @@ describe('createTableStructHandlers', () => {
 			const handlers = createTableStructHandlers(input);
 			handlers.handleInsertTableRow('above');
 			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
-				expect.objectContaining({ rawXml: '<rebuilt-xml/>' }),
+				expect.objectContaining({ rawXml: undefined }),
 			);
 			const call = (input.ops.updateSelectedElement as ReturnType<typeof vi.fn>).mock.calls[0][0];
 			const td = call.tableData as PptxTableData;

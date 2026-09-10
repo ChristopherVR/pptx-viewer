@@ -1,14 +1,14 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (independent short-lived `const`s per operation); merging them isn't a
    style choice here. */
-import type { PptxTableCellStyle, PptxTableData } from 'pptx-viewer-core';
+import type { PptxTableCellStyle, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import {
 	canMergeCells,
 	computeSplitCell,
-	deleteTableColumn,
-	deleteTableRow,
-	insertTableColumn,
-	insertTableRow,
+	removeTableElementColumn,
+	removeTableElementRow,
+	insertTableElementColumn,
+	insertTableElementRow,
 	mergeCells,
 	redistributeColumnWidth,
 } from 'pptx-viewer-shared';
@@ -46,23 +46,23 @@ export function patchTableCells(
 }
 
 export function mutateTableStructure(
-	data: PptxTableData,
+	element: TablePptxElement,
 	cell: TableCellPosition,
 	action: TableStructureAction,
-): PptxTableData {
+): TablePptxElement {
 	switch (action) {
 		case 'insertRowAbove':
-			return insertTableRow(data, cell.row, 'above');
+			return insertTableElementRow(element, cell.row, 'above');
 		case 'insertRowBelow':
-			return insertTableRow(data, cell.row, 'below');
+			return insertTableElementRow(element, cell.row, 'below');
 		case 'deleteRow':
-			return deleteTableRow(data, cell.row);
+			return removeTableElementRow(element, cell.row);
 		case 'insertColumnLeft':
-			return insertTableColumn(data, cell.column, 'left');
+			return insertTableElementColumn(element, cell.column, 'left');
 		case 'insertColumnRight':
-			return insertTableColumn(data, cell.column, 'right');
+			return insertTableElementColumn(element, cell.column, 'right');
 		case 'deleteColumn':
-			return deleteTableColumn(data, cell.column);
+			return removeTableElementColumn(element, cell.column);
 	}
 }
 

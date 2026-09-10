@@ -53,9 +53,10 @@ const { t } = useI18n();
 
 const isTable = computed(() => props.element.type === 'table');
 
-const tableData = computed<PptxTableData | undefined>(() =>
-	props.element.type === 'table' ? (props.element as TablePptxElement).tableData : undefined,
+const tableElement = computed<TablePptxElement | undefined>(() =>
+	props.element.type === 'table' ? (props.element as TablePptxElement) : undefined,
 );
+const tableData = computed<PptxTableData | undefined>(() => tableElement.value?.tableData);
 
 const rowCount = computed(() => tableData.value?.rows.length ?? 0);
 const colCount = computed(() => tableData.value?.columnWidths.length ?? 0);
@@ -91,39 +92,47 @@ function emitTableData(next: PptxTableData): void {
 	emit('update', { tableData: next } as Partial<PptxElement>);
 }
 
+/** Emit both table representations produced by an element-level structural operation. */
+function emitTableElement(next: TablePptxElement): void {
+	if (next === tableElement.value) {
+		return;
+	}
+	emit('update', { tableData: next.tableData, rawXml: next.rawXml } as Partial<PptxElement>);
+}
+
 function insertRow(position: 'above' | 'below'): void {
-	const td = tableData.value;
-	if (td) {
-		emitTableData(applyInsertRow(td, activeRow.value, position));
+	const element = tableElement.value;
+	if (element) {
+		emitTableElement(applyInsertRow(element, activeRow.value, position));
 	}
 }
 
 function deleteRow(): void {
-	const td = tableData.value;
-	if (!td) {
+	const element = tableElement.value;
+	if (!element) {
 		return;
 	}
-	const next = applyDeleteRow(td, activeRow.value);
+	const next = applyDeleteRow(element, activeRow.value);
 	if (next) {
-		emitTableData(next);
+		emitTableElement(next);
 	}
 }
 
 function insertColumn(position: 'left' | 'right'): void {
-	const td = tableData.value;
-	if (td) {
-		emitTableData(applyInsertColumn(td, activeColumn.value, position));
+	const element = tableElement.value;
+	if (element) {
+		emitTableElement(applyInsertColumn(element, activeColumn.value, position));
 	}
 }
 
 function deleteColumn(): void {
-	const td = tableData.value;
-	if (!td) {
+	const element = tableElement.value;
+	if (!element) {
 		return;
 	}
-	const next = applyDeleteColumn(td, activeColumn.value);
+	const next = applyDeleteColumn(element, activeColumn.value);
 	if (next) {
-		emitTableData(next);
+		emitTableElement(next);
 	}
 }
 

@@ -1,53 +1,62 @@
-import type { PptxTableData } from 'pptx-viewer-core';
+import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import type { CellCoord } from 'pptx-viewer-shared';
 import {
 	canMergeCells,
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
-	deleteTableColumn,
-	deleteTableRow,
-	insertTableColumn,
-	insertTableRow,
+	insertTableElementColumn,
+	insertTableElementRow,
 	mergeCells,
+	removeTableElementColumn,
+	removeTableElementRow,
 } from 'pptx-viewer-shared';
+import { toRaw } from 'vue';
 
 /**
  * table-mutations: thin, pure wrappers over the framework-agnostic table
- * transforms in `pptx-viewer-shared`, returning a new `PptxTableData` (or `null`
- * for a no-op) so both the inspector `TablePanel` (emits an element patch) and
+ * transforms in `pptx-viewer-shared`, returning a new table element (or `null`
+ * for a structural no-op) so both the inspector `TablePanel` and
  * the canvas context menu (applies via `useEditorOperations`) drive edits from
  * one merge-aware implementation. Mirrors React's table operation handlers.
  */
 
 /** Insert a blank row above/below `rowIndex` (merge span aware). */
 export function applyInsertRow(
-	td: PptxTableData,
+	element: TablePptxElement,
 	rowIndex: number,
 	position: 'above' | 'below',
-): PptxTableData {
-	return insertTableRow(td, rowIndex, position);
+): TablePptxElement {
+	return insertTableElementRow(toRaw(element), rowIndex, position);
 }
 
 /** Delete the row at `rowIndex`; returns `null` when the delete is a no-op. */
-export function applyDeleteRow(td: PptxTableData, rowIndex: number): PptxTableData | null {
-	const next = deleteTableRow(td, rowIndex);
-	return next === td ? null : next;
+export function applyDeleteRow(
+	element: TablePptxElement,
+	rowIndex: number,
+): TablePptxElement | null {
+	const source = toRaw(element);
+	const next = removeTableElementRow(source, rowIndex);
+	return next === source ? null : next;
 }
 
 /** Insert a blank column left/right of `colIndex` (merge span aware). */
 export function applyInsertColumn(
-	td: PptxTableData,
+	element: TablePptxElement,
 	colIndex: number,
 	position: 'left' | 'right',
-): PptxTableData {
-	return insertTableColumn(td, colIndex, position);
+): TablePptxElement {
+	return insertTableElementColumn(toRaw(element), colIndex, position);
 }
 
 /** Delete the column at `colIndex`; returns `null` when the delete is a no-op. */
-export function applyDeleteColumn(td: PptxTableData, colIndex: number): PptxTableData | null {
-	const next = deleteTableColumn(td, colIndex);
-	return next === td ? null : next;
+export function applyDeleteColumn(
+	element: TablePptxElement,
+	colIndex: number,
+): TablePptxElement | null {
+	const source = toRaw(element);
+	const next = removeTableElementColumn(source, colIndex);
+	return next === source ? null : next;
 }
 
 /** Merge the cursor cell with its right neighbour; `null` when not mergeable. */

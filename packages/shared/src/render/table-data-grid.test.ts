@@ -1,4 +1,4 @@
-import type { TablePptxElement } from 'pptx-viewer-core';
+import type { PptxTableCell, TablePptxElement, XmlObject } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildTableDataGrid } from './table-data-grid';
@@ -191,6 +191,162 @@ function xmlRows(element: TablePptxElement): unknown[] {
 	return Array.isArray(rows) ? rows : [rows];
 }
 
+function asArray<T>(value: T | T[] | undefined): T[] {
+	return value === undefined ? [] : Array.isArray(value) ? value : [value];
+}
+
+/**
+ * A real-deck-shaped table whose cells deliberately all have the same text.
+ * Their rich text and opaque extension markers differ, so an implementation
+ * cannot guess cell provenance by matching the displayed string.
+ */
+function makeRichXmlTable(rowCount = 3, columnCount = 3): TablePptxElement {
+	const rowData = Array.from({ length: rowCount }, (_, row) =>
+		Array.from({ length: columnCount }, (_cell, column) => {
+			const marker = `r${row}c${column}`;
+			const cell: PptxTableCell = {
+				text: 'Same',
+				style: { fontFamily: marker },
+				textRuns: [
+					{ text: 'Sa', bold: true, fontFamily: marker },
+					{ text: 'me', italic: true },
+				],
+			};
+			const xml: XmlObject = {
+				'a:txBody': {
+					'a:bodyPr': {},
+					'a:p': {
+						'a:r': [
+							{
+								'a:rPr': {
+									'@_b': '1',
+									'a:latin': { '@_typeface': marker },
+								},
+								'a:t': 'Sa',
+							},
+							{ 'a:rPr': { '@_i': '1' }, 'a:t': 'me' },
+						],
+					},
+				},
+				'a:tcPr': {
+					'a:extLst': {
+						'a:ext': { '@_uri': `urn:${marker}`, 'x:opaque': { '@_marker': marker } },
+					},
+				},
+			};
+			return { cell, xml };
+		}),
+	);
+	return {
+		id: 'rich-table',
+		type: 'table',
+		x: 0,
+		y: 0,
+		width: 300,
+		height: 180,
+		tableData: {
+			columnWidths: Array.from({ length: columnCount }, () => 1 / columnCount),
+			rows: rowData.map((row) => ({ cells: row.map(({ cell }) => cell) })),
+		},
+		rawXml: {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': {
+							'a:gridCol': Array.from({ length: columnCount }, () => ({ '@_w': '1000' })),
+						},
+						'a:tr': rowData.map((row) => ({
+							'@_h': '370840',
+							'a:tc': row.map(({ xml }) => xml),
+						})),
+					},
+				},
+			},
+		},
+	};
+}
+
+function xmlCells(element: TablePptxElement): XmlObject[][] {
+	return (xmlRows(element) as XmlObject[]).map((row) =>
+		asArray(row['a:tc'] as XmlObject | XmlObject[] | undefined),
+	);
+}
+
+function rawCellText(cell: XmlObject): string {
+	const body = cell['a:txBody'] as XmlObject | undefined;
+	return asArray(body?.['a:p'] as XmlObject | XmlObject[] | undefined)
+		.map((paragraph) =>
+			['a:r', 'a:fld']
+				.flatMap((tag) => asArray(paragraph[tag] as XmlObject | XmlObject[] | undefined))
+				.map((run) => String(run['a:t'] ?? ''))
+				.join(''),
+		)
+		.join('\n');
+}
+
+function rawCellMarker(cell: XmlObject): string | undefined {
+	const properties = cell['a:tcPr'] as XmlObject | undefined;
+	const extensions = properties?.['a:extLst'] as XmlObject | undefined;
+	const extension = extensions?.['a:ext'] as XmlObject | undefined;
+	const opaque = extension?.['x:opaque'] as XmlObject | undefined;
+	return typeof opaque?.['@_marker'] === 'string' ? opaque['@_marker'] : undefined;
+}
+
+function expectRawXmlAlignedAndPreserved(source: TablePptxElement, result: TablePptxElement): void {
+	const sourceByMarker = new Map(
+		xmlCells(source)
+			.flat()
+			.map((cell) => [rawCellMarker(cell), cell] as const),
+	);
+	const resultCells = xmlCells(result);
+	const rows = result.tableData!.rows;
+	expect(resultCells).toHaveLength(rows.length);
+	rows.forEach((row, rowIndex) => {
+		expect(resultCells[rowIndex]).toHaveLength(result.tableData!.columnWidths.length);
+		row.cells.forEach((cell, columnIndex) => {
+			const rawCell = resultCells[rowIndex]![columnIndex]!;
+			const marker = cell.style?.fontFamily;
+			expect(rawCellText(rawCell)).toBe(cell.text);
+			expect(rawCellMarker(rawCell)).toBe(marker);
+			if (marker) {
+				expect(rawCell).toStrictEqual(sourceByMarker.get(marker));
+			}
+		});
+	});
+}
+
+type StructureCase = {
+	name: string;
+	mutate: (element: TablePptxElement) => TablePptxElement;
+};
+
+const ROW_STRUCTURE_CASES: StructureCase[] = [
+	{ name: 'inserts the first row', mutate: (table) => insertTableElementRow(table, 0, 'above') },
+	{ name: 'inserts a middle row', mutate: (table) => insertTableElementRow(table, 0, 'below') },
+	{ name: 'inserts the final row', mutate: (table) => insertTableElementRow(table, 2, 'below') },
+	{ name: 'removes the first row', mutate: (table) => removeTableElementRow(table, 0) },
+	{ name: 'removes a middle row', mutate: (table) => removeTableElementRow(table, 1) },
+	{ name: 'removes the final row', mutate: (table) => removeTableElementRow(table, 2) },
+];
+
+const COLUMN_STRUCTURE_CASES: StructureCase[] = [
+	{
+		name: 'inserts the first column',
+		mutate: (table) => insertTableElementColumn(table, 0, 'left'),
+	},
+	{
+		name: 'inserts a middle column',
+		mutate: (table) => insertTableElementColumn(table, 0, 'right'),
+	},
+	{
+		name: 'inserts the final column',
+		mutate: (table) => insertTableElementColumn(table, 2, 'right'),
+	},
+	{ name: 'removes the first column', mutate: (table) => removeTableElementColumn(table, 0) },
+	{ name: 'removes a middle column', mutate: (table) => removeTableElementColumn(table, 1) },
+	{ name: 'removes the final column', mutate: (table) => removeTableElementColumn(table, 2) },
+];
+
 describe('rawXml synchronisation', () => {
 	// A tableData-only patch is invisible: both the renderers and the save
 	// writer read rawXml in preference, so without this the panel would appear
@@ -230,5 +386,27 @@ describe('rawXml synchronisation', () => {
 
 		expect(next.tableData?.rows[0].cells[0].text).toBe('Z');
 		expect(next.rawXml).toBeUndefined();
+	});
+
+	it.each(ROW_STRUCTURE_CASES)(
+		'$name without moving or flattening surviving rich cells',
+		(test) => {
+			const source = makeRichXmlTable();
+			expectRawXmlAlignedAndPreserved(source, test.mutate(source));
+		},
+	);
+
+	it.each(COLUMN_STRUCTURE_CASES)(
+		'$name without moving or flattening surviving rich cells',
+		(test) => {
+			const source = makeRichXmlTable();
+			expectRawXmlAlignedAndPreserved(source, test.mutate(source));
+		},
+	);
+
+	it('does not touch rich raw XML when the last row or column cannot be removed', () => {
+		const source = makeRichXmlTable(1, 1);
+		expect(removeTableElementRow(source, 0)).toBe(source);
+		expect(removeTableElementColumn(source, 0)).toBe(source);
 	});
 });
