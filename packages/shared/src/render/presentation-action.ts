@@ -89,6 +89,17 @@ export type PresentationActionIntent =
 	| { kind: 'playMedia'; elementId?: string }
 	/** `ppaction://ole?verb=<n>`: run a numbered OLE verb on the acting element's embedded object. */
 	| { kind: 'oleVerb'; verb: number; elementId?: string }
+	/**
+	 * `ppaction://program`: PowerPoint's "Run program" action. `target` is the
+	 * free-text "Program to run:" string the author typed (path and arguments
+	 * are ONE opaque string; OOXML has no separate arguments field), resolved
+	 * by core at parse time exactly like {@link PresentationActionRunner.openFile}'s
+	 * target. A browser cannot launch a local executable, so a binding's
+	 * {@link PresentationActionRunner.runProgram} callback is expected to show
+	 * the presenter a non-blocking notice naming the command rather than
+	 * attempting to run it.
+	 */
+	| { kind: 'runProgram'; target: string }
 	| { kind: 'none' };
 
 /** A resolved action: what to navigate, plus any sound to play alongside. */
@@ -224,6 +235,11 @@ export function resolvePresentationAction(
 		};
 	}
 
+	if (verb.includes('ppaction://program')) {
+		const target = (action.url ?? '').trim();
+		return { intent: target ? { kind: 'runProgram', target } : { kind: 'none' }, soundPath };
+	}
+
 	// An unresolved slide jump (no relationship, or a broken r:id) navigates
 	// nowhere rather than being mistaken for an external link.
 	if (verb.includes('hlinksldjump')) {
@@ -356,6 +372,16 @@ export interface PresentationActionRunner {
 	 * it can do, open the embedded payload.
 	 */
 	oleVerb?: (verb: number, elementId: string | undefined) => void;
+	/**
+	 * `ppaction://program`: PowerPoint's "Run program" action. `target` is the
+	 * exact resolved command string (path plus whatever arguments the author
+	 * typed, as one opaque string). A browser cannot launch a local
+	 * executable, so a binding is expected to show a non-blocking notice
+	 * naming the command (see `buildRunProgramNotice` in
+	 * `pptx-viewer-shared`) rather than attempting to run it. Omitted: the
+	 * click is still spent (see below), just with no notice shown.
+	 */
+	runProgram?: (target: string) => void;
 }
 
 /**
@@ -413,6 +439,9 @@ export function runPresentationAction(
 			return true;
 		case 'oleVerb':
 			runner.oleVerb?.(intent.verb, intent.elementId);
+			return true;
+		case 'runProgram':
+			runner.runProgram?.(intent.target);
 			return true;
 		default:
 			return false;

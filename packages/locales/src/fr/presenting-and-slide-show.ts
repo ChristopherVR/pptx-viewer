@@ -10,6 +10,9 @@ export const translations = {
 	'pptx.presentation.laserPointer': 'Pointeur laser',
 	'pptx.presentation.endOfSlideShow': 'Fin du diaporama, cliquez pour quitter.',
 	'pptx.presentation.pointerTools': 'Options du pointeur',
+	'pptx.presentation.runProgramNotice':
+		'Cette présentation souhaite exécuter un programme, qui ne peut pas être lancé depuis le navigateur : {{target}}',
+	'pptx.presentation.runProgramCopy': 'Copier',
 	'pptx.customShows.title': 'Diaporamas personnalisés',
 	'pptx.customShows.closeDialog': 'Fermer la boîte de dialogue des diaporamas personnalisés',
 	'pptx.customShows.savedShows': 'Diaporamas enregistrés',

@@ -472,6 +472,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presentation.laserPointer': 'Laser Pointer',
 	'pptx.presentation.endOfSlideShow': 'End of slide show, click to exit.',
 	'pptx.presentation.pointerTools': 'Pointer Options',
+	'pptx.presentation.runProgramNotice':
+		'This presentation wants to run a program, which cannot be launched from the browser: {{target}}',
+	'pptx.presentation.runProgramCopy': 'Copy',
 
 	// Selection pane
 	'pptx.selectionPane.title': 'Selection Pane',
@@ -3190,6 +3193,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.options.advanced.showPopupToolbar': 'Show popup toolbar',
 	'pptx.options.advanced.promptKeepInk': 'Prompt to keep ink annotations when exiting',
 	'pptx.options.advanced.endWithBlackSlide': 'End with black slide',
+	'pptx.options.advanced.pixelateMosaicAnimation': 'Show a mosaic effect for Pixelate transitions',
+	'pptx.options.advanced.pixelateMosaicAnimationInfo':
+		"PowerPoint itself does not animate the Pixelate transition filter; the element simply appears at the end. This is off by default to match PowerPoint. Turn it on to see a blocky mosaic reveal instead of PowerPoint's instant swap.",
 	'pptx.options.advanced.print': 'Print',
 	'pptx.options.advanced.printInBackground': 'Print in background',
 	'pptx.options.advanced.printHighQuality': 'High quality',
@@ -3792,6 +3798,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.hyperlink.actionOpenPresentation': 'Open presentation',
 	'pptx.hyperlink.actionPlayMedia': 'Play media',
 	'pptx.hyperlink.actionOleVerb': 'Object action',
+	'pptx.hyperlink.actionRunProgram': 'Run program',
 
 	// Table style (a:tblStyleLst) definition editor.
 	'pptx.tableStyleEditor.editButton': 'Edit style...',

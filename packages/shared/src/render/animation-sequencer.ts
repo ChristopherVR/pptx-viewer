@@ -29,9 +29,18 @@ export class AnimationSequencer {
 	private readonly slide: PptxSlide;
 	private readonly elementMap: Map<string, PptxElement>;
 	private readonly dynamicKeyframeBlocks: string[] = [];
+	private readonly pixelateMosaic: boolean | undefined;
 
-	public constructor(slide: PptxSlide) {
+	/**
+	 * @param pixelateMosaic - Opt-in override for `p:animEffect/@filter="pixelate"`:
+	 *   `true` plays the blocky mosaic reveal; omitted or `false` (the
+	 *   default, matching PowerPoint's own behaviour) snaps the element to
+	 *   its end state. See `resolveFilterEffect`'s doc in
+	 *   `animation-filter-effects.ts` and `docs/guide/visual-effects.md`.
+	 */
+	public constructor(slide: PptxSlide, pixelateMosaic?: boolean) {
 		this.slide = slide;
+		this.pixelateMosaic = pixelateMosaic;
 		this.elementMap = new Map<string, PptxElement>();
 		for (const el of slide.elements) {
 			this.elementMap.set(el.id, el);
@@ -52,7 +61,7 @@ export class AnimationSequencer {
 		if (!entrance) {
 			return {};
 		}
-		const effect = resolveEffect(entrance);
+		const effect = resolveEffect(entrance, this.pixelateMosaic);
 		if (!effect) {
 			return {};
 		}
@@ -76,7 +85,7 @@ export class AnimationSequencer {
 		let dynamicUid = 0;
 
 		for (const anim of animations) {
-			const effect = resolveEffect(anim);
+			const effect = resolveEffect(anim, this.pixelateMosaic);
 			const dynamic = effect ? undefined : buildDynamicKeyframes(anim, dynamicUid++);
 			if (!effect && !dynamic) {
 				continue;
@@ -178,7 +187,7 @@ export class AnimationSequencer {
 
 		const needed = new Set<EffectName>();
 		for (const anim of animations) {
-			const effect = resolveEffect(anim);
+			const effect = resolveEffect(anim, this.pixelateMosaic);
 			if (effect) {
 				needed.add(effect);
 			}

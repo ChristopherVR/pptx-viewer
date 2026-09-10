@@ -51,8 +51,15 @@ import { buildTransformKeyframes } from './animation-transform-keyframes';
  * effect instead of falling straight to the neutral safety net. `path`-class
  * animations (motion path) never consult the filter: `p:animEffect` filters
  * describe reveal/conceal transitions, not motion.
+ *
+ * @param pixelateMosaic - Forwarded to {@link resolveFilterEffect} unchanged;
+ *   see its doc for the `pixelate` filter family default (snap to end state,
+ *   matching PowerPoint) versus this opt-in mosaic override.
  */
-export function resolveEffect(anim: PptxNativeAnimation): EffectName | undefined {
+export function resolveEffect(
+	anim: PptxNativeAnimation,
+	pixelateMosaic?: boolean,
+): EffectName | undefined {
 	const cls = anim.presetClass;
 	const id = anim.presetId;
 	if (cls !== undefined && id !== undefined) {
@@ -76,7 +83,7 @@ export function resolveEffect(anim: PptxNativeAnimation): EffectName | undefined
 			return undefined;
 		}
 	}
-	return resolveFilterEffect(anim);
+	return resolveFilterEffect(anim, pixelateMosaic);
 }
 
 /**

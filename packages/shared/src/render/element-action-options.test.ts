@@ -30,6 +30,7 @@ describe('eLEMENT_ACTION_TYPE_OPTIONS', () => {
 			'openPresentation',
 			'playMedia',
 			'oleVerb',
+			'runProgram',
 		]);
 		for (const option of ELEMENT_ACTION_TYPE_OPTIONS) {
 			expect(option.labelKey).toMatch(/^pptx\./);
@@ -54,6 +55,7 @@ describe('actionTypeNeedsTarget', () => {
 			'openPresentation',
 			'playMedia',
 			'oleVerb',
+			'runProgram',
 		]) {
 			expect(actionTypeNeedsTarget(type as 'none')).toBeFalsy();
 		}
@@ -91,6 +93,7 @@ describe('canCommitActionType', () => {
 		expect(canCommitActionType('openPresentation', {})).toBeTruthy();
 		expect(canCommitActionType('playMedia', {})).toBeTruthy();
 		expect(canCommitActionType('oleVerb', {})).toBeTruthy();
+		expect(canCommitActionType('runProgram', {})).toBeTruthy();
 	});
 
 	it('holds back a target-less custom show', () => {

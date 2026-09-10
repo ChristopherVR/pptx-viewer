@@ -18,7 +18,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		cNvPr: XmlObject,
 		nodeName: string,
 		action: PptxAction | undefined,
-		resolveHyperlinkRelationshipId: (target: string) => string | undefined,
+		resolveHyperlinkRelationshipId: (target: string, forceExternal?: boolean) => string | undefined,
 	): void {
 		if (!action) {
 			delete cNvPr[nodeName];
@@ -27,7 +27,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const node: XmlObject = {};
 		let rId = action.rId;
 		if (!rId && action.url) {
-			rId = resolveHyperlinkRelationshipId(action.url) ?? undefined;
+			// `ppaction://program` / `ppaction://hlinkfile` / `ppaction://hlinkpres`
+			// are ALWAYS an external destination (a run-program command, an
+			// external file, or another presentation), never a same-package
+			// reference, so the relationship needs `TargetMode="External"` even
+			// when the target string does not parse as a URI scheme (e.g. a raw
+			// Windows command or path). See the doc comment on
+			// `PptxSlideRelationshipRegistry#resolveHyperlinkRelationshipId`.
+			const forceExternal = /^ppaction:\/\/(program|hlinkfile|hlinkpres)\b/iu.test(
+				action.action ?? '',
+			);
+			rId = resolveHyperlinkRelationshipId(action.url, forceExternal) ?? undefined;
 		}
 		if (rId) {
 			node['@_r:id'] = rId;
@@ -118,7 +128,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected serializeElementActions(
 		shape: XmlObject,
 		el: PptxElement,
-		resolveHyperlinkRelationshipId: (target: string) => string | undefined,
+		resolveHyperlinkRelationshipId: (target: string, forceExternal?: boolean) => string | undefined,
 	): void {
 		const key = this.getTreeBucketKeyForElementType(el.type);
 		const cNvPr = this.getCnvPrNode(shape, key);

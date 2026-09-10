@@ -84,6 +84,14 @@ export interface RenderControllerDeps {
 	 * `getSmartArt3D`.
 	 */
 	getPieChart3D(): boolean;
+	/**
+	 * `viewerOptions.advanced.pixelateMosaicAnimation`. `true` plays the
+	 * blocky mosaic reveal for `p:animEffect/@filter="pixelate"`; `false`
+	 * (the default, matching PowerPoint's own behaviour) snaps the element
+	 * to its end state. See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	getPixelateMosaicAnimation(): boolean;
 	/** History-integrated handout master layout mutation. */
 	onHandoutSlidesPerPageChange(count: number): void;
 	onMasterBackgroundColorChange(color: string): void;
@@ -399,6 +407,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 				// a scheme-colour ramp stop instead of falling back.
 				canvasSize: state.canvasSize,
 				themeColorMap: state.colorScheme ? buildThemeColorMap(state.colorScheme) : undefined,
+				pixelateMosaicAnimation: deps.getPixelateMosaicAnimation(),
 			});
 		} else {
 			presentationStageNode = null;

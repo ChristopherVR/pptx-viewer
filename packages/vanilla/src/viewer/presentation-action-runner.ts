@@ -1,12 +1,13 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import {
+	buildRunProgramNotice,
 	downloadDataUrl,
 	openUrlInNewTab,
 	resolveOleVerbTarget,
 	safeOpenUrl,
 	toggleStageElementMedia,
 } from 'pptx-viewer-shared';
-import type { PresentationActionRunner } from 'pptx-viewer-shared';
+import type { PresentationActionRunner, RunProgramNotice } from 'pptx-viewer-shared';
 
 import type { CustomShowRunner } from './presenter/presentation-custom-show-runner';
 
@@ -33,6 +34,8 @@ export interface PresentationActionRunnerDeps {
 	/** The slide on stage, for `oleVerb`'s embedded-object lookup. */
 	getCurrentSlide(): PptxSlide | undefined;
 	customShowRunner: CustomShowRunner;
+	/** `ppaction://program`: append a notice naming the command to the running show's toast stack. */
+	addRunProgramNotice(notice: RunProgramNotice): void;
 }
 
 export function buildPresentationActionRunner(
@@ -81,6 +84,14 @@ export function buildPresentationActionRunner(
 			} else {
 				openUrlInNewTab(target.url);
 			}
+		},
+		// A browser cannot launch a local executable: show a non-blocking notice
+		// naming the exact command PowerPoint would have run instead of doing
+		// nothing (silently) or blocking the show with a native dialog. The click
+		// still counts as "spent" regardless (`runPresentationAction` always
+		// returns true for this case).
+		runProgram: (target) => {
+			deps.addRunProgramNotice(buildRunProgramNotice(target));
 		},
 	};
 }

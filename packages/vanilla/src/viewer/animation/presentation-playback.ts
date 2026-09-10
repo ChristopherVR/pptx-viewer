@@ -58,6 +58,14 @@ export interface SyncStageParams {
 	canvasSize?: { width: number; height: number };
 	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
 	themeColorMap?: Readonly<Record<string, string>>;
+	/**
+	 * `viewerOptions.advanced.pixelateMosaicAnimation`. `true` plays the
+	 * blocky mosaic reveal for `p:animEffect/@filter="pixelate"`; omitted or
+	 * `false` (the default, matching PowerPoint's own behaviour) snaps the
+	 * element to its end state. See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	pixelateMosaicAnimation?: boolean;
 }
 
 /**
@@ -126,6 +134,7 @@ export function createPresentationPlayback(): PresentationPlayback {
 	 */
 	let lastCanvasSize: { width: number; height: number } | undefined;
 	let lastThemeColorMap: Readonly<Record<string, string>> | undefined;
+	let lastPixelateMosaicAnimation: boolean | undefined;
 
 	const interactiveIds = (): ReadonlySet<string> =>
 		controller?.interactiveTriggerShapeIds ?? new Set();
@@ -222,6 +231,7 @@ export function createPresentationPlayback(): PresentationPlayback {
 			slideHeightPx: lastCanvasSize?.height,
 			slideWidthPx: lastCanvasSize?.width,
 			themeColorMap: lastThemeColorMap,
+			pixelateMosaic: lastPixelateMosaicAnimation,
 		});
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.
@@ -312,6 +322,7 @@ export function createPresentationPlayback(): PresentationPlayback {
 			currentStage = params.stage;
 			lastCanvasSize = params.canvasSize;
 			lastThemeColorMap = params.themeColorMap;
+			lastPixelateMosaicAnimation = params.pixelateMosaicAnimation;
 
 			const entering = !wasPresenting;
 			const slideChanged = params.slideIndex !== lastIndex;

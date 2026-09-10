@@ -10,6 +10,9 @@ export const translations = {
 	'pptx.presentation.laserPointer': 'Puntero láser',
 	'pptx.presentation.endOfSlideShow': 'Fin de la presentación, haga clic para salir.',
 	'pptx.presentation.pointerTools': 'Opciones de puntero',
+	'pptx.presentation.runProgramNotice':
+		'Esta presentación quiere ejecutar un programa, que no se puede iniciar desde el navegador: {{target}}',
+	'pptx.presentation.runProgramCopy': 'Copiar',
 	'pptx.customShows.title': 'Presentaciones personalizadas',
 	'pptx.customShows.closeDialog': 'Cerrar el cuadro de diálogo de presentaciones personalizadas',
 	'pptx.customShows.savedShows': 'Presentaciones guardadas',

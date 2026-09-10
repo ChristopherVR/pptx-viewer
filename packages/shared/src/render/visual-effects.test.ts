@@ -603,12 +603,19 @@ describe('getSoftEdgeSvgFilter', () => {
 		expect(getSoftEdgeSvgFilter({ softEdgeRadius: 0 }, 'el-1')).toBeUndefined();
 	});
 
-	it('feathers only the alpha edge (SourceAlpha blur composited into SourceGraphic)', () => {
+	it('feathers only the alpha edge (erode SourceAlpha, blur, composite into SourceGraphic)', () => {
 		const def = getSoftEdgeSvgFilter({ softEdgeRadius: 5 }, 'el-1');
 		expect(def?.id).toBe('soft-edge-el-1');
 		expect(def?.cssReference).toBe('url(#soft-edge-el-1)');
 		expect(def?.filterMarkup).toContain('<filter id="soft-edge-el-1"');
-		expect(def?.filterMarkup).toContain('feGaussianBlur in="SourceAlpha" stdDeviation="5"');
+		// COM-measured (see the module's SOFT_EDGE_ERODE_FACTOR/SOFT_EDGE_BLUR_FACTOR
+		// doc comment): PowerPoint's own soft edge is near-transparent AT the
+		// authored boundary, not 50% opaque, so the alpha is eroded inward by
+		// 0.9x the radius before a narrower blur (0.3x the radius) feathers it.
+		expect(def?.filterMarkup).toContain(
+			'feMorphology in="SourceAlpha" operator="erode" radius="4.50"',
+		);
+		expect(def?.filterMarkup).toContain('feGaussianBlur in="softEdgeEroded" stdDeviation="1.50"');
 		expect(def?.filterMarkup).toContain(
 			'feComposite in="SourceGraphic" in2="softEdgeAlpha" operator="in"',
 		);

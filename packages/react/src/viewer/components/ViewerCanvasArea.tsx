@@ -71,6 +71,12 @@ export interface ViewerCanvasAreaProps {
 	tableOps: TableOperationHandlers;
 	annotations: UsePresentationAnnotationsResult;
 	presentation: UsePresentationModeResult;
+	/**
+	 * Extra show chrome to mount on the running stage, inside the fullscreen
+	 * element (see `screenOverlay` below): anything rendered outside it is not
+	 * painted while a real fullscreen show runs.
+	 */
+	presentationOverlay?: React.ReactNode;
 	/** Called when the user clicks the "end presentation" button on the toolbar. */
 	onEndPresentation?: () => void;
 	findReplace: {
@@ -132,6 +138,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		tableOps,
 		annotations,
 		presentation,
+		presentationOverlay,
 		onEndPresentation,
 		findReplace,
 		hiddenActions,
@@ -408,11 +415,15 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					tableStyleContext={tableStyleContext}
 					onStageClick={handleStageClick}
 					screenOverlay={
-						// Blackout/whiteout, audience ink, laser and captions. Rendered on
-						// the stage rather than beside the viewer, because the fullscreen
-						// element is the viewer's inner container: anything mounted outside
-						// it simply is not painted while a real fullscreen show is running.
-						<PresentationAudienceEffects snapshot={presentation.presenterSnapshot} />
+						// Blackout/whiteout, audience ink, laser and captions, plus any
+						// caller-supplied show chrome. Rendered on the stage rather than
+						// beside the viewer, because the fullscreen element is the viewer's
+						// inner container: anything mounted outside it simply is not
+						// painted while a real fullscreen show is running.
+						<>
+							<PresentationAudienceEffects snapshot={presentation.presenterSnapshot} />
+							{presentationOverlay}
+						</>
 					}
 				>
 					{(stageScale) => (

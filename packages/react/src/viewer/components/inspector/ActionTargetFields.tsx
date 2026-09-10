@@ -31,6 +31,7 @@ const URL_LABEL_KEY: Partial<Record<ElementActionType, string>> = {
 	url: 'pptx.action.gotoUrl',
 	openFile: 'pptx.hyperlink.actionOpenFile',
 	openPresentation: 'pptx.hyperlink.actionOpenPresentation',
+	runProgram: 'pptx.hyperlink.actionRunProgram',
 };
 
 export function ActionTargetFields({

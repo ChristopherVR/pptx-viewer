@@ -52,7 +52,7 @@ export interface IPptxSlideRelationshipRegistry {
 		relationshipTarget: string,
 		targetMode?: string,
 	): void;
-	resolveHyperlinkRelationshipId(target: string): string | undefined;
+	resolveHyperlinkRelationshipId(target: string, forceExternal?: boolean): string | undefined;
 	removeCommentRelationships(commentRelationshipType: string): PptxSlideCommentRelationshipInfo;
 	removeRelationshipsByType(relationshipType: string): PptxSlideCommentRelationshipInfo;
 	findFirstByTypeOrTargetIncludes(
@@ -125,7 +125,19 @@ export class PptxSlideRelationshipRegistry implements IPptxSlideRelationshipRegi
 		this.relationships.push(relationship);
 	}
 
-	public resolveHyperlinkRelationshipId(target: string): string | undefined {
+	/**
+	 * @param forceExternal - Set for a target that is ALWAYS an external
+	 * destination regardless of its shape (a "Run program" command, an
+	 * external file path, or another presentation's path: `ppaction://program`
+	 * / `ppaction://hlinkfile` / `ppaction://hlinkpres`). {@link isExternalTarget}'s
+	 * URI-scheme heuristic exists for the generic, user-typed `url` field,
+	 * where a bare string COULD be a genuine relative package reference; it
+	 * has no such ambiguity for these three verbs, and a raw OS command or
+	 * path (e.g. `notepad.exe C:\temp\notes.txt`) does not parse as a URI
+	 * scheme, which would otherwise leave the relationship looking like an
+	 * (invalid) internal package reference.
+	 */
+	public resolveHyperlinkRelationshipId(target: string, forceExternal = false): string | undefined {
 		const normalizedTarget = String(target || '').trim();
 		if (normalizedTarget.length === 0) {
 			return undefined;
@@ -150,7 +162,7 @@ export class PptxSlideRelationshipRegistry implements IPptxSlideRelationshipRegi
 		}
 
 		const relationshipId = this.nextRelationshipId();
-		const targetMode = isExternalTarget(normalizedTarget) ? 'External' : undefined;
+		const targetMode = forceExternal || isExternalTarget(normalizedTarget) ? 'External' : undefined;
 		this.upsertRelationship(
 			relationshipId,
 			this.hyperlinkRelationshipType,

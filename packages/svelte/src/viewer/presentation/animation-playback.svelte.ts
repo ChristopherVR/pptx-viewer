@@ -53,6 +53,14 @@ export interface AnimationPlaybackDeps {
 	getCanvasSize?(): { width: number; height: number } | undefined;
 	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
 	getThemeColorMap?(): Readonly<Record<string, string>> | undefined;
+	/**
+	 * `viewerOptions.advanced.pixelateMosaicAnimation`. `true` plays the
+	 * blocky mosaic reveal for `p:animEffect/@filter="pixelate"`; omitted or
+	 * `false` (the default, matching PowerPoint's own behaviour) snaps the
+	 * element to its end state. See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	getPixelateMosaicAnimation?(): boolean | undefined;
 }
 
 export class AnimationPlayback {
@@ -172,6 +180,7 @@ export class AnimationPlayback {
 			slideHeightPx: canvasSize?.height,
 			slideWidthPx: canvasSize?.width,
 			themeColorMap: this.#deps.getThemeColorMap?.(),
+			pixelateMosaic: this.#deps.getPixelateMosaicAnimation?.(),
 		});
 		this.#controller = controller;
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media

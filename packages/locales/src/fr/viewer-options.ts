@@ -149,6 +149,10 @@ export const translations = {
 	'pptx.options.advanced.promptKeepInk':
 		'Demander de conserver les annotations manuscrites en quittant',
 	'pptx.options.advanced.endWithBlackSlide': 'Terminer par un écran noir',
+	'pptx.options.advanced.pixelateMosaicAnimation':
+		'Afficher un effet de mosaïque pour les transitions Pixéliser',
+	'pptx.options.advanced.pixelateMosaicAnimationInfo':
+		"PowerPoint lui-même n'anime pas le filtre de transition Pixéliser ; l'élément apparaît simplement à la fin. Désactivé par défaut pour correspondre à PowerPoint. Activez cette option pour voir un effet de mosaïque par blocs au lieu du changement instantané de PowerPoint.",
 	'pptx.options.advanced.print': 'Impression',
 	'pptx.options.advanced.printInBackground': 'Imprimer en arrière-plan',
 	'pptx.options.advanced.printHighQuality': 'Qualité élevée',

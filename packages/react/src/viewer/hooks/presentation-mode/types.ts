@@ -3,6 +3,7 @@ import type {
 	MorphTransitionPlan,
 	PresentationPointerTool,
 	PresentationSnapshot,
+	RunProgramNotice,
 } from 'pptx-viewer-shared';
 
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
@@ -64,6 +65,14 @@ export interface UsePresentationModeInput {
 	canvasSize?: { width: number; height: number };
 	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
 	themeColorMap?: Readonly<Record<string, string>>;
+	/**
+	 * `viewerOptions.advanced.pixelateMosaicAnimation`. `true` plays the
+	 * blocky mosaic reveal for `p:animEffect/@filter="pixelate"`; omitted or
+	 * `false` (the default, matching PowerPoint's own behaviour) snaps the
+	 * element to its end state. See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	pixelateMosaicAnimation?: boolean;
 	activeSlideIndex: number;
 	containerRef: React.RefObject<HTMLElement | null>;
 	/** Raw PPTX bytes: forwarded to audience window for content sharing. */
@@ -114,6 +123,13 @@ export interface UsePresentationModeInput {
 	activeCustomShowId?: string | null;
 	/** Switch the active custom show (does not itself navigate). */
 	onSetActiveCustomShowId?: (id: string | null) => void;
+	/**
+	 * Push a `ppaction://program` ("Run program") notice onto the running
+	 * show's toast stack, naming the command PowerPoint would have run since
+	 * a browser cannot launch it. Fire-and-forget: the click still counts as
+	 * handled regardless of whether this is wired up.
+	 */
+	onAddRunProgramNotice?: (notice: RunProgramNotice) => void;
 }
 
 export interface UsePresentationModeResult {

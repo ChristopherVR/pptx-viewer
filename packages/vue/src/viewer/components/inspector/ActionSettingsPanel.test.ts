@@ -184,4 +184,18 @@ describe('action settings panel: openFile / openPresentation', () => {
 			actionClick: { action: expect.stringContaining('hlinkpres'), url: 'other-deck.pptx' },
 		});
 	});
+
+	it('reuses the url target field for runProgram', async () => {
+		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
+		await wrapper.findAll('select')[0].setValue('runProgram');
+		const target = wrapper.find('input[type="text"]');
+		expect(target.exists()).toBeTruthy();
+		await target.setValue('notepad.exe C:\\temp\\notes.txt');
+		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
+			actionClick: {
+				action: expect.stringContaining('program'),
+				url: 'notepad.exe C:\\temp\\notes.txt',
+			},
+		});
+	});
 });

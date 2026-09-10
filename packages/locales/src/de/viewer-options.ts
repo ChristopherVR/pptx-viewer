@@ -134,6 +134,9 @@ export const translations = {
 	'pptx.options.advanced.promptKeepInk':
 		'Beim Beenden das Beibehalten von Freihandanmerkungen bestätigen',
 	'pptx.options.advanced.endWithBlackSlide': 'Mit schwarzer Folie beenden',
+	'pptx.options.advanced.pixelateMosaicAnimation': 'Mosaikeffekt für Verpixeln-Übergänge anzeigen',
+	'pptx.options.advanced.pixelateMosaicAnimationInfo':
+		'PowerPoint selbst animiert den Übergangsfilter "Verpixeln" nicht; das Element erscheint einfach am Ende. Standardmäßig deaktiviert, um PowerPoint zu entsprechen. Aktivieren Sie dies, um stattdessen eine blockige Mosaikauflösung statt PowerPoints sofortigem Wechsel zu sehen.',
 	'pptx.options.advanced.print': 'Drucken',
 	'pptx.options.advanced.printInBackground': 'Im Hintergrund drucken',
 	'pptx.options.advanced.printHighQuality': 'Hohe Qualität',

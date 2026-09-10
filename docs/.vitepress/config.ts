@@ -279,6 +279,8 @@ export default defineConfig({
 						{ text: 'Localization (i18n)', link: '/guide/localization' },
 						{ text: 'AI Assistant', link: '/guide/ai-assistant' },
 						{ text: 'Account & Sign-in', link: '/guide/account' },
+						{ text: 'Visual Effect Fidelity', link: '/guide/visual-effects' },
+						{ text: 'Runtime Environments', link: '/guide/runtime-environments' },
 						{ text: 'Limitations', link: '/guide/limitations' },
 					],
 				},

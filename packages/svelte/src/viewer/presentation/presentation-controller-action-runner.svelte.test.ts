@@ -141,6 +141,78 @@ describe('presentationController action runner: openFile / openPresentation', ()
 	});
 });
 
+describe('presentationController action runner: runProgram', () => {
+	it('raises a dismissible notice naming the resolved command and spends the click', () => {
+		const deck = new Deck();
+		deck.slides = [
+			slide('s1', {
+				elements: [
+					actionElement('e1', {
+						action: 'ppaction://program',
+						url: 'notepad.exe C:\\temp\\notes.txt',
+					}),
+				],
+			}),
+		];
+		const navigate = vi.fn();
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate,
+		});
+		controller.start();
+
+		controller.handleStageClick(clickTargetFor('e1'));
+		expect(navigate).not.toHaveBeenCalled();
+		expect(controller.runProgramNotices).toHaveLength(1);
+		expect(controller.runProgramNotices[0]?.target).toBe('notepad.exe C:\\temp\\notes.txt');
+
+		const id = controller.runProgramNotices[0]!.id;
+		controller.dismissRunProgramNotice(id);
+		expect(controller.runProgramNotices).toHaveLength(0);
+	});
+
+	it('appends a fresh notice per click rather than replacing the last one', () => {
+		const deck = new Deck();
+		deck.slides = [
+			slide('s1', {
+				elements: [actionElement('e1', { action: 'ppaction://program', url: 'calc.exe' })],
+			}),
+		];
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate: vi.fn(),
+		});
+		controller.start();
+
+		controller.handleStageClick(clickTargetFor('e1'));
+		controller.handleStageClick(clickTargetFor('e1'));
+		expect(controller.runProgramNotices).toHaveLength(2);
+		expect(controller.runProgramNotices[0]!.id).not.toBe(controller.runProgramNotices[1]!.id);
+	});
+
+	it('clears any pending notices when the show stops', () => {
+		const deck = new Deck();
+		deck.slides = [
+			slide('s1', {
+				elements: [actionElement('e1', { action: 'ppaction://program', url: 'calc.exe' })],
+			}),
+		];
+		const controller = new PresentationController({
+			getSlides: () => deck.slides,
+			getCurrentIndex: () => deck.index,
+			navigate: vi.fn(),
+		});
+		controller.start();
+		controller.handleStageClick(clickTargetFor('e1'));
+		expect(controller.runProgramNotices).toHaveLength(1);
+
+		controller.stop();
+		expect(controller.runProgramNotices).toHaveLength(0);
+	});
+});
+
 describe('presentationController action runner: oleVerb', () => {
 	function oleDeck(oleEmbeddedData: string | undefined): Deck {
 		const deck = new Deck();

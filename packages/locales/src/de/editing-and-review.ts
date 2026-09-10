@@ -225,6 +225,7 @@ export const translations = {
 	'pptx.hyperlink.actionOpenPresentation': 'Präsentation öffnen',
 	'pptx.hyperlink.actionPlayMedia': 'Medien wiedergeben',
 	'pptx.hyperlink.actionOleVerb': 'Objektaktion',
+	'pptx.hyperlink.actionRunProgram': 'Programm ausführen',
 	'pptx.colorPicker.recentColors': 'Zuletzt verwendete Farben',
 	'pptx.colorPicker.customColors': 'Benutzerdefinierte Farben',
 	'pptx.comments.mentionPlaceholder': 'Tippe @, um jemanden zu erwähnen',

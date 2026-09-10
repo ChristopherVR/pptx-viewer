@@ -25,6 +25,8 @@ export interface PresentationActionDeps {
 	onPlayMedia?: (elementId: string | undefined) => void;
 	/** `ppaction://ole?verb=<n>`: open the acting element's recovered embedding. */
 	onOleVerb?: (verb: number, elementId: string | undefined) => void;
+	/** `ppaction://program`: show a non-blocking notice naming the command PowerPoint would have run. */
+	onRunProgram?: (target: string) => void;
 	/**
 	 * The element the action was clicked on, when known. `playMedia` and
 	 * `oleVerb` act on THAT element rather than a navigation target, so
@@ -68,6 +70,7 @@ export function handlePresentationActionImpl(
 			openPresentation: deps.onOpenPresentation,
 			playMedia: deps.onPlayMedia,
 			oleVerb: deps.onOleVerb,
+			runProgram: deps.onRunProgram,
 		},
 	);
 }

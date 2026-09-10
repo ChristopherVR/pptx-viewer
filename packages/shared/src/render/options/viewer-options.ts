@@ -111,6 +111,17 @@ export interface ViewerAdvancedOptions {
 	 * for their machine. See `resolve3DRenderingFlags`.
 	 */
 	disable3DRendering: boolean;
+	/**
+	 * `p:animEffect/@filter="pixelate"` defaults to snapping the element to
+	 * its end state (`cutIn`/`cutOut`), matching PowerPoint's own behaviour
+	 * (COM `CreateVideo` frame-diffing shows PowerPoint performs no animation
+	 * at all for this filter value). This turns on the blocky mosaic reveal
+	 * this renderer can build instead, for a viewer that would rather show
+	 * something animating than PowerPoint's own instant swap. See
+	 * `resolveFilterEffect` in `animation-filter-effects.ts` and
+	 * `docs/guide/visual-effects.md`.
+	 */
+	pixelateMosaicAnimation: boolean;
 	openDocumentsView: OpenDocumentsView;
 	slideShowShowMenuOnRightClick: boolean;
 	slideShowShowPopupToolbar: boolean;
@@ -217,6 +228,7 @@ export const DEFAULT_VIEWER_OPTIONS: ViewerOptions = {
 		snapToGrid: false,
 		disableHardwareAcceleration: false,
 		disable3DRendering: false,
+		pixelateMosaicAnimation: false,
 		openDocumentsView: 'savedView',
 		slideShowShowMenuOnRightClick: true,
 		slideShowShowPopupToolbar: true,

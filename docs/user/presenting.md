@@ -60,6 +60,8 @@ Slides with saved timings advance automatically when **Use Timings** is enabled 
 
 ::: warning Fidelity notes
 Transitions and animations are approximations of PowerPoint's behaviour. Morph interpolates position, size, opacity, rotation, and colour of matching elements, but does not morph between different shape geometries. See [Limitations](/guide/limitations) for details.
+
+**Unmatched elements crossfade, matching PowerPoint.** Elements are paired across the two slides by explicit `!!` naming, `a16:creationId` / native shape-id identity, and same-type proximity; a plain Selection Pane name with no `!!` prefix is not a pairing signal PowerPoint's own Morph honours either, so renaming two shapes to the same name does not make them morph. An element with no counterpart on the next slide crossfades out instead of morphing. Confirmed against real PowerPoint 2016 (COM `CreateVideo`, 30 fps, a two-slide deck with an unmatched element on slide 1 only): the element holds at full opacity through the last frame of slide 1's dwell time, then fades smoothly to the background over 10 frames (roughly 0.45s of the 2s authored transition), landing fully transparent, rather than cutting out in a single frame.
 :::
 
 ## Presenter view

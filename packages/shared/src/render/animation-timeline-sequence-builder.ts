@@ -58,6 +58,9 @@ export function buildSequenceGroups(
 	dynamicBlocks: string[],
 	startUid: number,
 	renderContext?: AnimationRenderContext,
+	// Opt-in override for `p:animEffect/@filter="pixelate"`; see
+	// `resolveFilterEffect`'s doc. Off by default, matching PowerPoint.
+	pixelateMosaic?: boolean,
 ): Map<string, TimelineClickGroup[]> {
 	const sequences = new Map<string, TimelineClickGroup[]>();
 	let dynamicUid = startUid;
@@ -73,7 +76,7 @@ export function buildSequenceGroups(
 			// Same authored-tavLst-over-canned-default preference, and the same
 			// (deliberately preserved) absence of the directional-keyframe
 			// substitution, as the historical interactive/hover loop.
-			const resolved = resolveStepEffect(anim, renderContext, dynamicUid, false);
+			const resolved = resolveStepEffect(anim, renderContext, dynamicUid, false, pixelateMosaic);
 			dynamicUid = resolved.nextDynamicUid;
 			if (resolved.skip) {
 				continue;
@@ -227,6 +230,9 @@ export function buildHoverSequences(
 	dynamicBlocks: string[],
 	startUid: number,
 	renderContext?: AnimationRenderContext,
+	// Opt-in override for `p:animEffect/@filter="pixelate"`; see
+	// `resolveFilterEffect`'s doc. Off by default, matching PowerPoint.
+	pixelateMosaic?: boolean,
 ): { hoverSequences: Map<string, TimelineClickGroup[]>; nextUid: number } {
 	// Group hover anims by trigger shape (targetId used as hover trigger)
 	const hoverByTarget = new Map<string, PptxNativeAnimation[]>();
@@ -247,6 +253,7 @@ export function buildHoverSequences(
 		dynamicBlocks,
 		startUid,
 		renderContext,
+		pixelateMosaic,
 	);
 
 	let nextUid = startUid;

@@ -7,6 +7,7 @@
  *   sub-show ends (the "end of show" hook, not just `useCustomShowRunner` in
  *   isolation - this pins the wiring between the two).
  */
+import type { RunProgramNotice } from 'pptx-viewer-shared';
 import React, { act, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -31,7 +32,13 @@ afterEach(() => {
 
 interface HarnessHandle extends UsePresentationActionExtensionsResult {}
 
-function Harness({ onReady }: { onReady: (handle: HarnessHandle) => void }): React.ReactElement {
+function Harness({
+	onReady,
+	onAddRunProgramNotice,
+}: {
+	onReady: (handle: HarnessHandle) => void;
+	onAddRunProgramNotice?: (notice: RunProgramNotice) => void;
+}): React.ReactElement {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const result = usePresentationActionExtensions({
 		slides: [],
@@ -43,6 +50,7 @@ function Harness({ onReady }: { onReady: (handle: HarnessHandle) => void }): Rea
 		endWithBlackSlide: true,
 		onSetMode: () => {},
 		setEndOfShowVisible: () => {},
+		onAddRunProgramNotice,
 	});
 	onReady(result);
 	return <div ref={containerRef} />;
@@ -79,5 +87,37 @@ describe('usePresentationActionExtensions', () => {
 			'noopener,noreferrer',
 		);
 		openSpy.mockRestore();
+	});
+
+	it('runProgram builds a notice and hands it to onAddRunProgramNotice, fire-and-forget', () => {
+		let handle: HarnessHandle | null = null;
+		const onAddRunProgramNotice = vi.fn<(notice: RunProgramNotice) => void>();
+		act(() => {
+			root.render(
+				<Harness onReady={(h) => (handle = h)} onAddRunProgramNotice={onAddRunProgramNotice} />,
+			);
+		});
+		act(() => {
+			handle!.onRunProgram('notepad.exe C:\\temp\\notes.txt');
+		});
+		expect(onAddRunProgramNotice).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({
+				target: 'notepad.exe C:\\temp\\notes.txt',
+				messageKey: 'pptx.presentation.runProgramNotice',
+				copyLabelKey: 'pptx.presentation.runProgramCopy',
+			}),
+		);
+	});
+
+	it('runProgram does not throw when onAddRunProgramNotice is not wired', () => {
+		let handle: HarnessHandle | null = null;
+		act(() => {
+			root.render(<Harness onReady={(h) => (handle = h)} />);
+		});
+		expect(() => {
+			act(() => {
+				handle!.onRunProgram('notepad.exe C:\\temp\\notes.txt');
+			});
+		}).not.toThrow();
 	});
 });

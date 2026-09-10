@@ -221,6 +221,29 @@ describe('handlePresentationActionImpl', () => {
 		expect(deps.movePresentationSlide).not.toHaveBeenCalled();
 	});
 
+	// -- Run program --------------------------------------------------------
+
+	it('should hand the resolved command to onRunProgram for ppaction://program', () => {
+		deps = createMockDeps({ onRunProgram: vi.fn<() => void>() });
+		handlePresentationActionImpl(
+			{ action: 'ppaction://program', url: 'notepad.exe C:\\temp\\notes.txt' },
+			deps,
+		);
+		expect(deps.onRunProgram).toHaveBeenCalledWith('notepad.exe C:\\temp\\notes.txt');
+		expect(deps.movePresentationSlide).not.toHaveBeenCalled();
+		expect(deps.navigateToSlide).not.toHaveBeenCalled();
+	});
+
+	it('should still count the click as handled when onRunProgram is undefined', () => {
+		deps = createMockDeps({ onRunProgram: undefined });
+		expect(() =>
+			handlePresentationActionImpl(
+				{ action: 'ppaction://program', url: 'notepad.exe C:\\temp\\notes.txt' },
+				deps,
+			),
+		).not.toThrow();
+	});
+
 	// -- Empty / no-op action ---------------------------------------------------
 
 	it('should not throw for empty action', () => {

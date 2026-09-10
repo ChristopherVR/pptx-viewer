@@ -2028,6 +2028,7 @@ defineExpose<PowerPointViewerExpose>(
 			:prompt-keep-ink-annotations="viewerOptions.advanced.slideShowPromptKeepInkAnnotations"
 			:show-menu-on-right-click="viewerOptions.advanced.slideShowShowMenuOnRightClick"
 			:show-popup-toolbar="viewerOptions.advanced.slideShowShowPopupToolbar"
+			:pixelate-mosaic-animation="viewerOptions.advanced.pixelateMosaicAnimation"
 			:duplicate-slide="slideOps.duplicateSlide"
 			:delete-slide="slideOps.deleteSlide"
 			:toggle-slide-hidden="toggleSlideHidden"

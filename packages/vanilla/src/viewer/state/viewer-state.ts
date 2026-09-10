@@ -32,6 +32,7 @@ import type {
 	ModifyPasswordCheckResult,
 	ReadOnlyRecommendation,
 	RemoteCursor,
+	RunProgramNotice,
 	SanitizedPresence,
 	SlideSizeEmu,
 } from 'pptx-viewer-shared';
@@ -310,6 +311,15 @@ export interface ViewerState {
 	 * toast (or all of them) removes it from this list.
 	 */
 	compatToasts: CompatibilityWarningToast[];
+	/**
+	 * Non-blocking notices for a running show's `ppaction://program` ("Run
+	 * program") action clicks (see `buildRunProgramNotice`, `pptx-viewer-shared`).
+	 * A browser cannot launch a local executable, so each click appends one
+	 * notice naming the resolved command instead of doing nothing or blocking
+	 * the show with a native dialog. Unlike {@link compatToasts} (seeded once
+	 * per load), this grows per click and is cleared only by dismissal.
+	 */
+	runProgramNotices: RunProgramNotice[];
 }
 
 export function createInitialViewerState(): ViewerState {
@@ -396,6 +406,7 @@ export function createInitialViewerState(): ViewerState {
 		readOnlyPasswordError: null,
 		readOnlyCheckingPassword: false,
 		compatToasts: [],
+		runProgramNotices: [],
 	};
 }
 

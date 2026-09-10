@@ -66,7 +66,7 @@ import type { ElementAction, ElementActionType, PptxCustomShow } from 'pptx-view
 				{{ 'pptx.hyperlink.customShowReturn' | translate }}
 			</label>
 		}
-		@if (type() === 'openFile' || type() === 'openPresentation') {
+		@if (type() === 'openFile' || type() === 'openPresentation' || type() === 'runProgram') {
 			<input
 				type="text"
 				class="pptx-ng-action__input"

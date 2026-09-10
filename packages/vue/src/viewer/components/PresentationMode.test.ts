@@ -553,3 +553,53 @@ describe('presentationMode @highlightClick flash', () => {
 		wrapper.unmount();
 	});
 });
+
+describe('presentationMode "Run program" action', () => {
+	function slideWithRunProgramShape(): PptxSlide {
+		return {
+			id: 's1',
+			backgroundColor: '#ffffff',
+			elements: [
+				{
+					id: 'shape-1',
+					type: 'shape',
+					x: 10,
+					y: 10,
+					width: 100,
+					height: 50,
+					shapeType: 'rect',
+					actionClick: {
+						action: 'ppaction://program',
+						url: 'notepad.exe C:\\temp\\notes.txt',
+					},
+				},
+			],
+		} as unknown as PptxSlide;
+	}
+
+	it('shows a non-blocking notice naming the resolved command instead of doing nothing', async () => {
+		const wrapper = mountMode([slideWithRunProgramShape()]);
+		await nextTick();
+		const shape = document.querySelector<HTMLElement>('[data-element-id="shape-1"]');
+		expect(shape).not.toBeNull();
+		shape!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		await nextTick();
+		// The notice stack is rendered inside the `<Teleport to="body">` overlay,
+		// outside `wrapper.element`, so it has to be queried via the document
+		// rather than `wrapper.find` (mirrors every other query in this file).
+		const notice = document.querySelector('[data-testid="pptx-run-program-notice"]');
+		expect(notice).not.toBeNull();
+		expect(notice!.textContent).toContain('notepad.exe C:\\temp\\notes.txt');
+		wrapper.unmount();
+	});
+
+	it('the click still counts as spent: it does not also advance the slide', async () => {
+		const wrapper = mountMode([slideWithRunProgramShape(), makeSlide('s2')]);
+		await nextTick();
+		const shape = document.querySelector<HTMLElement>('[data-element-id="shape-1"]');
+		shape!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		await nextTick();
+		expect(wrapper.emitted('slide-change')).toBeUndefined();
+		wrapper.unmount();
+	});
+});

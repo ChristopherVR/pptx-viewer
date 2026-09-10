@@ -16,6 +16,7 @@ function harness(overrides: Partial<PresentationActionRunnerDeps> = {}) {
 		getPreviousPresentedSlide: () => null,
 		getCurrentSlide: () => undefined,
 		customShowRunner: { customShow: vi.fn(), dispose: vi.fn() },
+		addRunProgramNotice: vi.fn(),
 		...overrides,
 	};
 	return { runner: buildPresentationActionRunner(deps), deps, stageRoot };
@@ -117,5 +118,15 @@ describe('vanilla presentation action runner (B7)', () => {
 		expect(() => runner.oleVerb?.(-1, undefined)).not.toThrow();
 		runner.oleVerb?.(-1, 'ole1');
 		expect(openSpy).not.toHaveBeenCalled();
+	});
+
+	it('runProgram appends a notice naming the resolved command instead of launching anything', () => {
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+		const { runner, deps } = harness();
+		runner.runProgram?.('notepad.exe C:\\temp\\notes.txt');
+		expect(openSpy).not.toHaveBeenCalled();
+		expect(deps.addRunProgramNotice).toHaveBeenCalledWith(
+			expect.objectContaining({ target: 'notepad.exe C:\\temp\\notes.txt' }),
+		);
 	});
 });

@@ -113,11 +113,20 @@ export function processRegularAnimation(
 	state: RegularBuildState,
 	anim: PptxNativeAnimation,
 	renderContext: AnimationRenderContext | undefined,
+	// Opt-in override for `p:animEffect/@filter="pixelate"`; see
+	// `resolveFilterEffect`'s doc. Off by default, matching PowerPoint.
+	pixelateMosaic?: boolean,
 ): void {
 	const expandedSteps = expandIterateAnimation(anim);
 
 	for (const singleAnim of expandedSteps) {
-		const resolved = resolveStepEffect(singleAnim, renderContext, state.dynamicUid);
+		const resolved = resolveStepEffect(
+			singleAnim,
+			renderContext,
+			state.dynamicUid,
+			true,
+			pixelateMosaic,
+		);
 		state.dynamicUid = resolved.nextDynamicUid;
 		if (resolved.skip) {
 			continue;

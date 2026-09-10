@@ -4,6 +4,9 @@ import {
 	COMPAT_TOAST_METRICS,
 	compatToastStackStyle,
 	compatToastStackStyleAttr,
+	RUN_PROGRAM_NOTICE_METRICS,
+	runProgramNoticeStackStyle,
+	runProgramNoticeStackStyleAttr,
 	STATUS_BAR_CLASSES,
 	STATUS_BAR_METRICS,
 	TITLE_BAR_METRICS,
@@ -113,6 +116,34 @@ describe('compatToastStackStyle', () => {
 		expect(attr).toContain('flex-direction:column');
 		expect(attr).toContain('z-index:40');
 		expect(attr.split(';')).toHaveLength(Object.keys(compatToastStackStyle()).length);
+	});
+});
+
+describe('runProgramNoticeStackStyle', () => {
+	// A notice positioned with `compatToastStackStyle` (absolute, above the
+	// editing chrome's status bar) sat UNDER React's running-show stage, which
+	// intercepted every click on the Copy button. The show stack is therefore
+	// viewport-fixed and stacked above all show chrome.
+	it('is viewport-fixed, safe-area aware and above the show chrome', () => {
+		const style = runProgramNoticeStackStyle();
+		expect(style.position).toBe('fixed');
+		expect(style.bottom).toContain('safe-area-inset-bottom');
+		expect(style.right).toContain('safe-area-inset-right');
+		expect(style.width).toBe(`${String(RUN_PROGRAM_NOTICE_METRICS.width)}px`);
+		expect(Number(style.zIndex)).toBeGreaterThan(COMPAT_TOAST_METRICS.zIndex);
+		expect(Number(style.zIndex)).toBe(RUN_PROGRAM_NOTICE_METRICS.zIndex);
+	});
+
+	it('lets clicks through the empty stack to the show beneath', () => {
+		expect(runProgramNoticeStackStyle().pointerEvents).toBe('none');
+	});
+
+	it('flattens to a kebab-cased inline style attribute', () => {
+		const attr = runProgramNoticeStackStyleAttr();
+		expect(attr).toContain('position:fixed');
+		expect(attr).toContain('flex-direction:column');
+		expect(attr).toContain(`z-index:${String(RUN_PROGRAM_NOTICE_METRICS.zIndex)}`);
+		expect(attr.split(';')).toHaveLength(Object.keys(runProgramNoticeStackStyle()).length);
 	});
 });
 

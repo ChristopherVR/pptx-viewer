@@ -10,6 +10,9 @@ export const translations = {
 	'pptx.presentation.laserPointer': 'Laserpointer',
 	'pptx.presentation.endOfSlideShow': 'Ende der Bildschirmpräsentation, zum Beenden klicken.',
 	'pptx.presentation.pointerTools': 'Zeigeroptionen',
+	'pptx.presentation.runProgramNotice':
+		'Diese Präsentation möchte ein Programm ausführen, das nicht über den Browser gestartet werden kann: {{target}}',
+	'pptx.presentation.runProgramCopy': 'Kopieren',
 	'pptx.customShows.title': 'Benutzerdefinierte Bildschirmpräsentationen',
 	'pptx.customShows.closeDialog': 'Schließen Sie das Dialogfeld „Benutzerdefinierte Shows“.',
 	'pptx.customShows.savedShows': 'Gespeicherte Bildschirmpräsentationen',

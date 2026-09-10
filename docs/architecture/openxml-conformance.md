@@ -204,6 +204,65 @@ composition. Real-file dirty-save tests prove interoperability. Schema
 validation proves structural conformance. No single evidence class is accepted
 as proof of parity by itself.
 
+## Extension-namespace and schema-edge attributes
+
+Two constructs look like gaps until you check what the base schema actually
+declares:
+
+**Transition duration is legitimately extension-namespace, not missing.**
+`CT_SlideTransition` (S19.3.1.50, transitional schema) declares only `spd`,
+`advClick`, and `advTm` attributes; there is no `dur` attribute for a slide
+transition's duration in milliseconds anywhere in the base PresentationML
+schema. PowerPoint itself needs that value, so it writes it in the Office 2010
+extension namespace instead, as `p14:dur`. COM-verified (PowerPoint 2016,
+`Slide.SlideShowTransition.Duration = 2.5` via `Presentations.Add` +
+`SaveAs(ppSaveAsOpenXMLPresentation)`): PowerPoint wraps the whole
+`p:transition` element in `mc:AlternateContent`, writing
+`<mc:Choice Requires="p14"><p:transition spd="slow" p14:dur="2500" .../></mc:Choice><mc:Fallback><p:transition spd="slow" .../></mc:Fallback>`.
+PowerPoint does not merely tolerate a bare `dur` attribute, it silently
+ignores it: a package with only `dur="2000"` reopens at PowerPoint's 0.5s
+default (COM-verified). `pptx-viewer` writes `p14:dur` too
+(`packages/core/src/core/core/runtime/slide-transition-duration-ns.ts`), but
+declares it via a simpler `mc:Ignorable="p14"` on the slide root rather than
+wrapping every transition in `mc:AlternateContent`; PowerPoint accepts both
+forms and honours the duration either way (COM-verified). A reader that
+understands neither form falls back to the `spd` speed keyword, which is why
+`spd` is still written alongside `p14:dur` in both PowerPoint's own output and
+`pptx-viewer`'s.
+
+**`p:animEffect/@filter="image"` names a filter with no backing payload.**
+`ST_TLAnimateEffectFilter` (19.5.5) enumerates the SMIL-style filter families
+`p:animEffect`'s `@filter` attribute can name, and `image` is one of them, but
+`CT_TLAnimateEffectBehavior` (19.5.3) gives the element no child or attribute
+that could carry a second, separately authored image reference. A filter
+value of `image` names an image-based wipe/mask transition with no schema
+slot, anywhere in the timing tree or its relationships, for which image to
+use, so no conforming reader (PowerPoint included) can recover the intended
+filter. `pptx-viewer` treats it the same as the other filter families it has
+no bespoke render for: a neutral fade fallback.
+
+**`p:bldP/p:tmplLst` is an authoring-time template, not a playback input.**
+`CT_TLTemplateList` (19.5.84) and its `p:tmpl` entries (`CT_TLTemplate`,
+19.5.85) let a text build declare a per-outline-level timing default. Per
+`packages/core/src/core/services/animation-timing-templates.ts` (which parses
+and round-trips these typed but deliberately does not feed them into
+playback), the semantics are that PowerPoint clones a template's `p:tnLst`
+only to seed timing for an outline level that does not yet have its own
+instantiated node, i.e. while a user is actively adding a new bullet in the
+Animation Pane. Any paragraph actually present and visible in a saved file
+already has its own explicit node under `p:timing/p:tnLst` for whatever level
+it authors at (PowerPoint materialises one per currently-used level before
+save), so there is no level in a legitimately saved deck that only the
+template covers. This is corroborated by the real-PowerPoint-authored corpus
+(`anatidae-animation.pptx`, exercised by
+`animation-build-templates-surgical-roundtrip.test.ts`) and the full-rebuild
+round-trip test, but was not re-verified with a fresh COM `CreateVideo`
+capture: constructing a file where a currently-used level lacks its own node
+would require hand-editing the timing tree directly, and PowerPoint's
+`DisplayAlerts`-suppressed loader is known to silently repair a malformed
+package (see `scripts/pptx-com-open.ps1`), which would make any observed
+"template ignored" result unreliable evidence either way.
+
 ## Related reading
 
 - [Limitations](/guide/limitations) - the current honest gap list.

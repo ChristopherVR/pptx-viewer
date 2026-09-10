@@ -20,6 +20,7 @@
 	import PresentationTouchControls from './PresentationTouchControls.svelte';
 	import PresenterSlideNavigator from './PresenterSlideNavigator.svelte';
 	import PresenterView from './PresenterView.svelte';
+	import RunProgramNotices from './RunProgramNotices.svelte';
 
 	const { vm }: { vm: ViewerStateBag } = $props();
 
@@ -159,6 +160,12 @@
 {/if}
 {#if viewer.isFullscreen && presentation.endOfShowVisible}
 	<PresentationEndScreen onexit={() => presentation.advance()} />
+{/if}
+{#if viewer.isFullscreen}
+	<RunProgramNotices
+		notices={presentation.runProgramNotices}
+		ondismiss={(id) => presentation.dismissRunProgramNotice(id)}
+	/>
 {/if}
 {#if viewer.isFullscreen && parityUi.presentationContextMenu}
 	<PresentationContextMenu

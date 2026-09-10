@@ -837,11 +837,42 @@ export function getSoftEdgeFilterId(elementId: string): string {
 }
 
 /**
+ * Fraction of the authored `a:softEdge/@rad` (already resolved to CSS px in
+ * {@link ShapeStyle.softEdgeRadius}) that PowerPoint erodes the shape's alpha
+ * inward before feathering it. A naive `feGaussianBlur(stdDeviation = radius)`
+ * composited `in` `SourceGraphic` puts 50% opacity AT the authored boundary
+ * (a Gaussian blur of a step edge is 50% at the step itself) and does not
+ * reach full opacity until roughly 3 radii inward - COM-measured (PowerPoint
+ * 2016, `Slide.Export` PNG, a 1280x720 slide, a 400x300px rectangle with
+ * `a:softEdge rad="190500"` = 20px) to be wrong on both counts: the real
+ * transition is close to 0% AT the boundary, not 50%, and reaches visual
+ * saturation at roughly 1.75-1.8x the authored radius, not 3x. A second
+ * measurement at radius 40px (rad="381000") confirmed the relationship
+ * scales linearly (0% at the boundary, ~50% at ~0.88-0.9x radius inward,
+ * ~100% at ~1.75-1.8x radius inward for both 20px and 40px), ruling out a
+ * fixed-offset explanation.
+ *
+ * Modelled as erode-then-blur (`feMorphology` then `feGaussianBlur`, both
+ * standard SVG filter primitives) rather than a single blur: eroding the
+ * alpha inward by {@link SOFT_EDGE_ERODE_FACTOR} * radius first shifts the
+ * blur's own 50% crossing to sit at that eroded edge instead of at the
+ * original boundary, and a narrower blur ({@link SOFT_EDGE_BLUR_FACTOR} *
+ * radius, so 3 sigma ~= 0.85x radius) reaches saturation close to the
+ * measured erode-edge-plus-spread distance. Fit against both measurements:
+ * predicted 50%/100% points are within ~1px of measured at both radii.
+ */
+const SOFT_EDGE_ERODE_FACTOR = 0.9;
+/** See {@link SOFT_EDGE_ERODE_FACTOR}. */
+const SOFT_EDGE_BLUR_FACTOR = 0.3;
+
+/**
  * Build the soft-edge `<filter>` markup that feathers only the shape's alpha
- * edge, leaving the interior fill/text sharp. It blurs `SourceAlpha` and
- * composites the original `SourceGraphic` back *into* that blurred alpha
- * (`operator="in"`), so the boundary fades inward (matching PowerPoint soft
- * edges) while interior pixels keep full opacity and no blur.
+ * edge, leaving the interior fill/text sharp. It erodes `SourceAlpha` inward
+ * (matching PowerPoint's own soft-edge distance, see
+ * {@link SOFT_EDGE_ERODE_FACTOR}), blurs that eroded alpha, and composites
+ * the original `SourceGraphic` back *into* the result (`operator="in"`), so
+ * the boundary fades from transparent (at the authored edge) to opaque
+ * (further inward) while interior pixels keep full opacity and no blur.
  *
  * Inject `filterMarkup` once into an SVG `<defs>` (or a hidden `<svg>`) and
  * apply `cssReference` (already emitted by {@link getEffectFilterCss} when an
@@ -855,10 +886,13 @@ export function getSoftEdgeSvgFilter(
 		return undefined;
 	}
 	const id = getSoftEdgeFilterId(elementId);
-	const radius = Math.round(style.softEdgeRadius);
+	const radius = style.softEdgeRadius;
+	const erode = (radius * SOFT_EDGE_ERODE_FACTOR).toFixed(2);
+	const blur = (radius * SOFT_EDGE_BLUR_FACTOR).toFixed(2);
 	const filterMarkup = [
 		`<filter id="${escapeSvgAttr(id)}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">`,
-		`<feGaussianBlur in="SourceAlpha" stdDeviation="${radius}" result="softEdgeAlpha"/>`,
+		`<feMorphology in="SourceAlpha" operator="erode" radius="${erode}" result="softEdgeEroded"/>`,
+		`<feGaussianBlur in="softEdgeEroded" stdDeviation="${blur}" result="softEdgeAlpha"/>`,
 		`<feComposite in="SourceGraphic" in2="softEdgeAlpha" operator="in"/>`,
 		`</filter>`,
 	].join('');

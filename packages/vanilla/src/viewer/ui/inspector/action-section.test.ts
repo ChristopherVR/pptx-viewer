@@ -38,6 +38,7 @@ describe('action settings section', () => {
 			'Open presentation',
 			'Play media',
 			'Object action',
+			'Run program',
 		]);
 	});
 
@@ -212,6 +213,30 @@ describe('action settings section', () => {
 		expect(setElementAction).toHaveBeenLastCalledWith(
 			'click',
 			expect.objectContaining({ type: 'openFile', url: 'C:/deck.pptx' }),
+		);
+	});
+
+	// runProgram reuses the same text target field as openFile / openPresentation.
+	it('shows the target input for runProgram and writes into url', () => {
+		const { section, setElementAction } = build();
+		section.update({ hasSelection: true } as InspectorState);
+
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		type.value = 'runProgram';
+		type.dispatchEvent(new Event('change'));
+
+		expect(setElementAction).toHaveBeenCalledWith(
+			'click',
+			expect.objectContaining({ type: 'runProgram', url: '' }),
+		);
+		const target = section.el.querySelector<HTMLInputElement>('input')!;
+		expect(target.hidden).toBeFalsy();
+
+		target.value = 'C:/tools/launcher.exe --arg';
+		target.dispatchEvent(new Event('change'));
+		expect(setElementAction).toHaveBeenLastCalledWith(
+			'click',
+			expect.objectContaining({ type: 'runProgram', url: 'C:/tools/launcher.exe --arg' }),
 		);
 	});
 });

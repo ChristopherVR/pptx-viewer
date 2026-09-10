@@ -113,6 +113,12 @@ export const ADVANCED_TAB: ViewerOptionsTabDefinition = {
 					'pptx.options.advanced.promptKeepInk',
 				),
 				toggle('advanced', 'slideShowEndWithBlackSlide', 'pptx.options.advanced.endWithBlackSlide'),
+				toggle(
+					'advanced',
+					'pixelateMosaicAnimation',
+					'pptx.options.advanced.pixelateMosaicAnimation',
+					{ infoKey: 'pptx.options.advanced.pixelateMosaicAnimationInfo' },
+				),
 			],
 		},
 		{

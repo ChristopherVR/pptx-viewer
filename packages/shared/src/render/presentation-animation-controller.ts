@@ -80,6 +80,16 @@ export interface PresentationAnimationControllerOptions {
 	slideHeightPx?: number;
 	/** The deck's resolved theme colour map (`PptxData.themeColorMap`). */
 	themeColorMap?: Readonly<Record<string, string>>;
+	/**
+	 * Opt-in override for `p:animEffect/@filter="pixelate"`: `true` plays the
+	 * blocky mosaic reveal this renderer can build; omitted or `false` (the
+	 * default, matching PowerPoint's own behaviour) snaps the element to its
+	 * end state instead. Mirrors `ViewerAdvancedOptions.pixelateMosaicAnimation`
+	 * (`packages/shared/src/render/options/viewer-options.ts`) - a binding
+	 * reads that store and passes its value straight through here. See
+	 * `resolveFilterEffect`'s doc in `animation-filter-effects.ts`.
+	 */
+	pixelateMosaic?: boolean;
 }
 
 /**
@@ -166,7 +176,11 @@ export class PresentationAnimationController {
 				: undefined,
 			options?.themeColorMap,
 		);
-		const engine = TimelineEngine.fromAnimations(expandedAnims, renderContext);
+		const engine = TimelineEngine.fromAnimations(
+			expandedAnims,
+			renderContext,
+			options?.pixelateMosaic,
+		);
 
 		// Animations may target a shape nested inside a group (`p:grpSp`), so
 		// track every descendant id, not just the top-level elements.

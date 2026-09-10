@@ -44,6 +44,12 @@ defineProps<{
 	promptKeepInkAnnotations: boolean;
 	showMenuOnRightClick: boolean;
 	showPopupToolbar: boolean;
+	/**
+	 * File > Options > Advanced > "Show a mosaic effect for Pixelate
+	 * transitions" (default false, matching PowerPoint's own instant-swap
+	 * behaviour for `p:animEffect/@filter="pixelate"`).
+	 */
+	pixelateMosaicAnimation: boolean;
 	duplicateSlide: (index: number) => void;
 	deleteSlide: (index: number) => void;
 	toggleSlideHidden: (index: number) => void;
@@ -109,6 +115,7 @@ defineProps<{
 		:prompt-keep-ink-annotations="promptKeepInkAnnotations"
 		:show-menu-on-right-click="showMenuOnRightClick"
 		:show-popup-toolbar="showPopupToolbar"
+		:pixelate-mosaic-animation="pixelateMosaicAnimation"
 		@close="presentation.closePresentation"
 		@slide-change="presentation.handlePresentSlideChange"
 	/>

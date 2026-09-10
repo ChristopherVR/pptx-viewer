@@ -1498,6 +1498,11 @@ export * from './read-only-recommendation';
 export * from './modify-password-check';
 // getCompatibilityWarnings() -> toast descriptors, deduped by code.
 export * from './compatibility-warning-toasts';
+// `ppaction://program` ("Run program" action): turns the resolved command
+// string into a non-blocking notice descriptor (message + Copy button i18n
+// keys), since a browser cannot launch a local executable. Consumed by every
+// binding's `PresentationActionRunner.runProgram` callback.
+export * from './run-program-notice';
 // Picture "Crop to Shape" clip-path (reuses the shared shape-geometry cascade).
 export * from './crop-shape-clip';
 // ActiveX control overlay geometry/label/fallback-image.

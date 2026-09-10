@@ -106,6 +106,32 @@ describe('presentationInputController show-runner verbs', () => {
 		expect(runCustomShow).toHaveBeenCalledWith('3', true);
 	});
 
+	it('runProgram calls the runProgram callback with the resolved command string', () => {
+		const slide = slideWithAction({
+			action: 'ppaction://program',
+			url: 'notepad.exe C:\\temp\\notes.txt',
+		});
+		const runProgram = vi.fn();
+		const { controller } = makeController(slide, { runProgram });
+		controller.handleBodyClick({
+			button: 0,
+			target: stageClickTarget('el-1'),
+		} as unknown as MouseEvent);
+		expect(runProgram).toHaveBeenCalledWith('notepad.exe C:\\temp\\notes.txt');
+	});
+
+	it('runProgram with no callback still consumes the click without throwing', () => {
+		const slide = slideWithAction({ action: 'ppaction://program', url: 'notepad.exe' });
+		const { controller, deps } = makeController(slide);
+		expect(() =>
+			controller.handleBodyClick({
+				button: 0,
+				target: stageClickTarget('el-1'),
+			} as unknown as MouseEvent),
+		).not.toThrow();
+		expect(deps.navigator.navigate).not.toHaveBeenCalled();
+	});
+
 	it('openFile opens a safe target in a new tab', () => {
 		const slide = slideWithAction({ action: 'ppaction://hlinkfile', url: 'file:///report.pdf' });
 		const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);

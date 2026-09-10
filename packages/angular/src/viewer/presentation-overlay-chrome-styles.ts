@@ -10,9 +10,25 @@
  * state, so they live here instead of taking up a third of
  * {@link PresentationOverlayComponent}.
  */
+import { runProgramNoticeStackStyle } from 'pptx-viewer-shared';
 
 /** Inline style record as Angular's `[ngStyle]` consumes it. */
 export type OverlayStyle = Record<string, string>;
+
+/**
+ * `[ngStyle]` wants kebab-case property names; every shared style-descriptor
+ * function in `pptx-viewer-shared` returns camelCase (the CSS-in-JS
+ * convention every other binding consumes directly). This is the one
+ * adaptation Angular needs to consume a shared descriptor as-is rather than
+ * re-declaring its values locally.
+ */
+function toKebabCaseStyle(record: Record<string, string>): OverlayStyle {
+	const kebab: OverlayStyle = {};
+	for (const [name, value] of Object.entries(record)) {
+		kebab[name.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)] = value;
+	}
+	return kebab;
+}
 
 /**
  * Always-visible close button, fixed at the top-right and offset by the device
@@ -75,6 +91,25 @@ export const OVERLAY_NEXT_BUTTON_STYLE: OverlayStyle = {
 	...NAV_BUTTON_BASE,
 	right: 'calc(env(safe-area-inset-right, 0px) + 0.5rem)',
 };
+
+/**
+ * "Run program" notice stack: bottom-right, safe-area aware, above every
+ * other overlay chrome (z-index 10003, one above the close button) so a
+ * notice can never be hidden behind the toolbar or the edge-navigation
+ * buttons. Does NOT reuse shared's `compatToastStackStyle` (the editing
+ * chrome's bottom-right toast stack): that stack is positioned `absolute`
+ * relative to the viewer root and insets above the status bar, neither of
+ * which exists inside this `position: fixed` full-viewport overlay.
+ *
+ * Sourced from shared's `runProgramNoticeStackStyle()` (see
+ * `packages/shared/src/render/chrome-metrics.ts`'s `RUN_PROGRAM_NOTICE_METRICS`)
+ * rather than re-declared here, so the metrics (inset, width, gap, z-index)
+ * are fixed once for every binding; only the camelCase -> kebab-case key
+ * conversion `[ngStyle]` needs is local.
+ */
+export const RUN_PROGRAM_NOTICE_STACK_STYLE: OverlayStyle = toKebabCaseStyle(
+	runProgramNoticeStackStyle(),
+);
 
 export const OVERLAY_COUNTER_STYLE: OverlayStyle = {
 	position: 'fixed',

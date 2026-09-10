@@ -1,4 +1,5 @@
 import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type { RunProgramNotice } from 'pptx-viewer-shared';
 /**
  * usePresentationSetup: Wires up `usePresentationAnnotations` and
  * `usePresentationMode` together with the annotation-aware mode-switching
@@ -60,6 +61,13 @@ export interface UsePresentationSetupInput {
 	/** Options > Advanced > "End with black slide" (default true). */
 	endWithBlackSlide?: boolean;
 	/**
+	 * Options > Advanced > "Show a mosaic effect for Pixelate transitions"
+	 * (default false, matching PowerPoint's own instant-swap behaviour for
+	 * `p:animEffect/@filter="pixelate"`). See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	pixelateMosaicAnimation?: boolean;
+	/**
 	 * Options > Advanced > "Prompt to keep ink annotations when exiting"
 	 * (default true). When false, exits skip the keep/discard dialog.
 	 */
@@ -72,6 +80,8 @@ export interface UsePresentationSetupInput {
 	 * without this callback the key is mapped and then lands nowhere.
 	 */
 	onToggleSubtitles?: () => void;
+	/** `ppaction://program`: push a non-blocking "cannot launch this" notice. */
+	onAddRunProgramNotice?: (notice: RunProgramNotice) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,12 +126,14 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		setSlides,
 		history,
 		endWithBlackSlide = true,
+		pixelateMosaicAnimation = false,
 		promptKeepInkAnnotations = true,
 		popupToolbarEnabled = true,
 		onToggleSubtitles,
 		customShows = [],
 		activeCustomShowId = null,
 		onSetActiveCustomShowId,
+		onAddRunProgramNotice,
 	} = input;
 
 	const actionSoundHandlerRef = useRef<PptxHandler | null>(null);
@@ -144,6 +156,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		visibleSlideIndexes,
 		canvasSize,
 		themeColorMap,
+		pixelateMosaicAnimation,
 		activeSlideIndex,
 		containerRef,
 		content,
@@ -245,6 +258,7 @@ export function usePresentationSetup(input: UsePresentationSetupInput): Presenta
 		customShows,
 		activeCustomShowId,
 		onSetActiveCustomShowId,
+		onAddRunProgramNotice,
 	});
 
 	return {

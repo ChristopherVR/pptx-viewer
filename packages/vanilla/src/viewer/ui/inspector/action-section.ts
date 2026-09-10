@@ -69,12 +69,17 @@ function actionEditor(
 		type.appendChild(node);
 	}
 	const target = doc.createElement('input');
-	// `openFile` / `openPresentation` reuse `ElementAction.url`, the same field
-	// `url` writes to, and share this text input; they are not in
-	// `actionTypeNeedsTarget` (an empty target does not round-trip them back to
-	// "none"), so only their visibility rides on the action type, not the
+	// `openFile` / `openPresentation` / `runProgram` reuse `ElementAction.url`,
+	// the same field `url` writes to, and share this text input; they are not
+	// in `actionTypeNeedsTarget` (an empty target does not round-trip them back
+	// to "none"), so only their visibility rides on the action type, not the
 	// commit-gating below.
-	const textTargetTypes = new Set<ElementActionType>(['url', 'openFile', 'openPresentation']);
+	const textTargetTypes = new Set<ElementActionType>([
+		'url',
+		'openFile',
+		'openPresentation',
+		'runProgram',
+	]);
 
 	const customShowSelect = doc.createElement('select');
 	customShowSelect.dataset.testid = 'pptx-action-custom-show';

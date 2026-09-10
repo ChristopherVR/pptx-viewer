@@ -4,6 +4,7 @@
  * picker (`data-testid="pptx-action-custom-show"` / `-return`).
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { pptxActionToElementAction, elementActionToPptxAction } from 'pptx-viewer-core';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -81,5 +82,79 @@ describe('actionSettingsPanel custom show target (wave-4 B7)', () => {
 				actionClick: expect.objectContaining({ action: expect.stringContaining('showA') }),
 			}),
 		);
+	});
+});
+
+describe('actionSettingsPanel run program target', () => {
+	it('shows the target input for runProgram and writes typed text into url', () => {
+		const onUpdateElement = vi.fn();
+		act(() => {
+			root.render(
+				<ActionSettingsPanel
+					selectedElement={shapeElement()}
+					slides={[]}
+					canEdit
+					customShows={[]}
+					onUpdateElement={onUpdateElement}
+				/>,
+			);
+		});
+
+		const clickSelect = container.querySelector(
+			'[data-pptx-action-trigger="click"] select',
+		) as HTMLSelectElement;
+		act(() => {
+			clickSelect.value = 'runProgram';
+			clickSelect.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+
+		// runProgram commits immediately (like openFile/openPresentation), so
+		// picking the type alone already writes an action.
+		expect(onUpdateElement).toHaveBeenCalledWith(
+			expect.objectContaining({
+				actionClick: expect.objectContaining({ action: expect.stringContaining('program') }),
+			}),
+		);
+
+		// Selected by type (not aria-label text) so the test does not depend on
+		// the exact i18n string: `ActionTargetFields` renders exactly one text
+		// input once a URL_LABEL_KEY type (url/openFile/openPresentation/
+		// runProgram) is picked.
+		const targetInput = container.querySelector(
+			'[data-pptx-action-trigger="click"] input[type="text"]',
+		) as HTMLInputElement;
+		expect(targetInput).not.toBeNull();
+
+		// A React-controlled input's own value setter is patched with a value
+		// tracker; assigning `.value` directly and dispatching `change` leaves
+		// the tracker already matching, so React never fires `onChange`. Going
+		// through the native setter (as `ChartFilteredSeriesOptions.test.tsx`
+		// does for the same reason) plus an `input` event is what the
+		// component's `onChange={(e) => onChange({ url: e.target.value })}`
+		// actually observes.
+		const nativeValueSetter = Object.getOwnPropertyDescriptor(
+			HTMLInputElement.prototype,
+			'value',
+		)?.set;
+		act(() => {
+			nativeValueSetter!.call(targetInput, 'notepad.exe C:\\temp\\notes.txt');
+			targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		expect(onUpdateElement).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				actionClick: expect.objectContaining({ url: 'notepad.exe C:\\temp\\notes.txt' }),
+			}),
+		);
+	});
+
+	it('round-trips runProgram losslessly through pptxActionToElementAction/elementActionToPptxAction', () => {
+		const target = 'notepad.exe C:\\temp\\notes.txt';
+		const pptxAction = elementActionToPptxAction({
+			trigger: 'click',
+			type: 'runProgram',
+			url: target,
+		});
+		const elementAction = pptxActionToElementAction(pptxAction, 'click');
+		expect(elementAction).toStrictEqual({ trigger: 'click', type: 'runProgram', url: target });
 	});
 });

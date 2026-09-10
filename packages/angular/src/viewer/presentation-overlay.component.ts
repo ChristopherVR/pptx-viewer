@@ -71,6 +71,8 @@ import { PresentationToolbarComponent } from './presentation-toolbar.component';
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 import { PresenterSlideNavigatorComponent } from './presenter-slide-navigator.component';
 import { PresenterWindowService } from './presenter-window.service';
+import { RunProgramNoticeStore } from './run-program-notice-store';
+import { RunProgramNoticesComponent } from './run-program-notices.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { ViewerOptionsService } from './viewer-options.service';
 import { ZoomNavigationService } from './zoom-navigation.service';
@@ -109,6 +111,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 		PresentationToolbarComponent,
 		PresentationContextMenuComponent,
 		PresenterSlideNavigatorComponent,
+		RunProgramNoticesComponent,
 		TranslatePipe,
 		LucideX,
 		LucideChevronLeft,
@@ -179,6 +182,12 @@ export class PresentationOverlayComponent implements OnInit {
 	 * once instead of sitting on the last slide swallowing every advance.
 	 */
 	readonly endWithBlackSlide = input<boolean>(true);
+	/**
+	 * File > Options > Advanced > "Show a mosaic effect for Pixelate
+	 * transitions" (default false, matching PowerPoint's own instant-swap
+	 * behaviour for `p:animEffect/@filter="pixelate"`).
+	 */
+	readonly pixelateMosaicAnimation = input<boolean>(false);
 	/** Whether presenter view is up (tints the toolbar's presenter-view toggle). */
 	readonly presenterMode = input<boolean>(false);
 	/**
@@ -237,6 +246,13 @@ export class PresentationOverlayComponent implements OnInit {
 	protected readonly annotations = inject(PresentationAnnotationsService);
 
 	/**
+	 * `ppaction://program` ("Run program") notices: a browser cannot launch the
+	 * command, so the click surfaces a dismissible notice naming it instead.
+	 * See `run-program-notice-store.ts`.
+	 */
+	protected readonly runProgramNotices = new RunProgramNoticeStore();
+
+	/**
 	 * The show's navigation state machine (index, end-of-show screen, slide
 	 * transition, timed auto-advance). See `presentation-show-navigator.ts`.
 	 */
@@ -254,6 +270,7 @@ export class PresentationOverlayComponent implements OnInit {
 		requestClose: () => this.emitClosed(),
 		endWithBlackSlide: () => this.endWithBlackSlide(),
 		loopContinuously: () => this.loopContinuously(),
+		pixelateMosaicAnimation: () => this.pixelateMosaicAnimation(),
 	});
 
 	/**
@@ -289,6 +306,7 @@ export class PresentationOverlayComponent implements OnInit {
 		confirmExternalHyperlink: (href) => this.viewerOpts?.confirmExternalHyperlink(href) ?? true,
 		runCustomShow: (customShowId, returnAfter) =>
 			this.customShowRequest.emit({ customShowId, returnAfter }),
+		runProgram: (target) => this.runProgramNotices.add(target),
 	});
 
 	/** Whether PowerPoint's "See All Slides" navigator is up (Ctrl+S). */
@@ -469,6 +487,7 @@ export class PresentationOverlayComponent implements OnInit {
 				slideHeightPx: size.height,
 				slideWidthPx: size.width,
 				themeColorMap: this.loadContent?.themeColorMap(),
+				pixelateMosaic: this.pixelateMosaicAnimation(),
 			});
 			this.slideKeyframes.set(this.playback.keyframesCss());
 		});

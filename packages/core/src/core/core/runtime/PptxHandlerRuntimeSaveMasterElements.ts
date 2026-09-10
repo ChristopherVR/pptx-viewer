@@ -131,8 +131,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			slide,
 			slideRelationships: relationships,
 			slideRelationshipRegistry: relationshipRegistry,
-			resolveHyperlinkRelationshipId: (target) =>
-				relationshipRegistry.resolveHyperlinkRelationshipId(target),
+			resolveHyperlinkRelationshipId: (target, forceExternal) =>
+				relationshipRegistry.resolveHyperlinkRelationshipId(target, forceExternal),
 			getSlideRelationshipMap: () => relationshipRegistry.toRelationshipMap(),
 			resolvedMediaBytes: new Map(),
 			saveSession,

@@ -93,6 +93,7 @@ import { RecentColorsProvider } from './components/inspector/RecentColorsContext
 import { ThemeColorMapProvider } from './components/inspector/ThemeColorMapContext';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { ReadOnlyBanner } from './components/ReadOnlyBanner';
+import { RunProgramNotices } from './components/RunProgramNotices';
 import { SettingsDialog } from './components/SettingsDialog';
 import { AccountAuthContext } from './components/toolbar/account-auth-context';
 import { ViewerOptionsContext } from './components/viewer-options-context';
@@ -121,6 +122,7 @@ import { useReadOnlyRecommendationState } from './hooks/useReadOnlyRecommendatio
 import { useRecentColorsSync } from './hooks/useRecentColorsSync';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useResizablePanels } from './hooks/useResizablePanels';
+import { useRunProgramNoticesState } from './hooks/useRunProgramNoticesState';
 import { useTouchGestures } from './hooks/useTouchGestures';
 import { useViewerDialogs } from './hooks/useViewerDialogs';
 import { useViewerIntegration } from './hooks/useViewerIntegration';
@@ -361,6 +363,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 		// ── Compatibility-warning toasts ────────────────────────────
 		const compatToastsState = useCompatibilityToastsState();
+
+		// ── Run-program notices (`ppaction://program`, running show only) ──
+		const runProgramNoticesState = useRunProgramNoticesState();
 
 		const canEdit = hostCanEdit && !isProtectedView && !readOnlyRec.locked;
 
@@ -688,6 +693,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
 				// File > Options > Advanced > "Show popup toolbar" while presenting.
 				popupToolbarEnabled: viewerOptions.advanced.slideShowShowPopupToolbar,
+				// File > Options > Advanced > "Show a mosaic effect for Pixelate
+				// transitions". Off (the default) matches PowerPoint's own
+				// instant-swap behaviour for `p:animEffect/@filter="pixelate"`.
+				pixelateMosaicAnimation: viewerOptions.advanced.pixelateMosaicAnimation,
 				activeSlideIndex,
 				containerRef,
 				content,
@@ -707,6 +716,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				customShows: state.customShows,
 				activeCustomShowId: state.activeCustomShowId,
 				onSetActiveCustomShowId: state.setActiveCustomShowId,
+				onAddRunProgramNotice: runProgramNoticesState.addNotice,
 			});
 
 		// ── Touch gestures: pinch-to-zoom on canvas viewport ──────
@@ -1176,6 +1186,19 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									canEdit={canEdit}
 									slides={slides}
 									activeSlide={activeSlide}
+									presentationOverlay={
+										// `ppaction://program` ("Run program") notices. Rendered INSIDE
+										// the show stage, not beside the viewer: the fullscreen element
+										// is the viewer's inner container (the top layer), so anything
+										// mounted outside it is neither painted nor hit-testable while
+										// a real fullscreen show runs, whatever its z-index. Caught by
+										// e2e/run-program-notice.spec.ts (the Copy button was visible
+										// yet every click reached the stage).
+										<RunProgramNotices
+											notices={runProgramNoticesState.notices}
+											onDismiss={runProgramNoticesState.dismiss}
+										/>
+									}
 									masterPseudoSlide={masterPseudoSlide}
 									activeSlideIndex={activeSlideIndex}
 									canvasSize={canvasSize}

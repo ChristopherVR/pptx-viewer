@@ -1,6 +1,7 @@
 import type { PptxCustomShow, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
 	applyHighlightClickStyle,
+	buildRunProgramNotice,
 	findHighlightClickTarget,
 	firstShowSlideIndex,
 	handlePresentationStageClick,
@@ -14,7 +15,11 @@ import {
 	resolveShowSlideIndexes,
 	stopAllPersistentAudio,
 } from 'pptx-viewer-shared';
-import type { AuthoredSlideRange, ElementAnimationState } from 'pptx-viewer-shared';
+import type {
+	AuthoredSlideRange,
+	ElementAnimationState,
+	RunProgramNotice,
+} from 'pptx-viewer-shared';
 
 import type { CustomShowReturnState } from './action-runner-callbacks';
 import { buildWaveFourActionCallbacks } from './action-runner-callbacks';
@@ -80,6 +85,14 @@ export interface PresentationControllerDeps {
 	/** `p:showPr` "end with black slide"; defaults to on, like PowerPoint. */
 	getEndWithBlackSlide?(): boolean | undefined;
 	/**
+	 * `viewerOptions.advanced.pixelateMosaicAnimation`. `true` plays the
+	 * blocky mosaic reveal for `p:animEffect/@filter="pixelate"`; omitted or
+	 * `false` (the default, matching PowerPoint's own behaviour) snaps the
+	 * element to its end state. See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	getPixelateMosaicAnimation?(): boolean | undefined;
+	/**
 	 * Slide Show > Set Up Show > "Loop continuously until 'Esc'"
 	 * (`p:presentationPr/@loopContinuously`), or the implicit loop of a kiosk
 	 * (`showType === 'kiosk'`) show. When true, advancing past the last slide
@@ -130,6 +143,13 @@ export class PresentationController {
 	 */
 	#endOfShow = $state(false);
 	/**
+	 * `ppaction://program` ("Run program") notices raised during this show:
+	 * a browser cannot launch the author's command, so each click appends a
+	 * non-blocking, dismissible notice naming it instead. Ordered oldest
+	 * first; a binding renders the list and calls {@link dismissRunProgramNotice}.
+	 */
+	#runProgramNotices = $state<RunProgramNotice[]>([]);
+	/**
 	 * Set while a `ppaction://customshow?...&return=true` sub-show is running
 	 * (wave-4 B7): when that show runs off its end, {@link advance} restores
 	 * the previous active show and returns to the origin slide instead of
@@ -149,6 +169,7 @@ export class PresentationController {
 			frameRoot: deps.getFrameRoot,
 			getCanvasSize: deps.getCanvasSize,
 			getThemeColorMap: deps.getThemeColorMap,
+			getPixelateMosaicAnimation: deps.getPixelateMosaicAnimation,
 		});
 	}
 
@@ -234,6 +255,16 @@ export class PresentationController {
 		return this.#transition;
 	}
 
+	/** The `ppaction://program` notices currently up, oldest first. */
+	get runProgramNotices(): readonly RunProgramNotice[] {
+		return this.#runProgramNotices;
+	}
+
+	/** Dismiss one run-program notice by id. */
+	dismissRunProgramNotice(id: string): void {
+		this.#runProgramNotices = this.#runProgramNotices.filter((notice) => notice.id !== id);
+	}
+
 	/** Reactive per-element native-animation state (visibility, build, colour). */
 	get elementStates(): Map<string, ElementAnimationState> {
 		return this.playback.elementStates;
@@ -296,6 +327,13 @@ export class PresentationController {
 				endShow: () => this.#deps.exit?.(),
 				playSound: this.#deps.onPlayActionSound,
 				confirmUrl: this.#deps.confirmUrl,
+				// `ppaction://program` ("Run program"): a browser cannot launch the
+				// author's command, so raise a non-blocking notice naming it instead.
+				// The click still counts as spent either way (shared
+				// `runPresentationAction`), so this only ever adds UI, never gates it.
+				runProgram: (command) => {
+					this.#runProgramNotices = [...this.#runProgramNotices, buildRunProgramNotice(command)];
+				},
 				// Wave-4 B7: the six action verbs added alongside the Action
 				// Settings panel's new option list; built in a sibling module to
 				// keep this file under the repo's file-size budget.
@@ -450,6 +488,7 @@ export class PresentationController {
 		this.playback.reset();
 		this.#transition = null;
 		this.#endOfShow = false;
+		this.#runProgramNotices = [];
 	}
 
 	/** Leaving presentation: clear timers, reset builds, drop any overlay. */
@@ -458,6 +497,7 @@ export class PresentationController {
 		this.playback.reset();
 		this.#transition = null;
 		this.#endOfShow = false;
+		this.#runProgramNotices = [];
 		// Presentation EXIT (never a slide change, which goes through
 		// `onSlideChange`): cross-slide "play across slides" audio ends with the
 		// show it belongs to, and so does a transition sound flagged "Loop Until

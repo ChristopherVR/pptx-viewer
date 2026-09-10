@@ -48,11 +48,12 @@ interface RegularClickGroupsResult {
 function buildRegularClickGroups(
 	regularAnims: readonly PptxNativeAnimation[],
 	renderContext: AnimationRenderContext | undefined,
+	pixelateMosaic: boolean | undefined,
 ): RegularClickGroupsResult {
 	const state: RegularBuildState = createRegularBuildState();
 
 	for (const anim of regularAnims) {
-		processRegularAnimation(state, anim, renderContext);
+		processRegularAnimation(state, anim, renderContext, pixelateMosaic);
 	}
 
 	// Flush last group
@@ -112,6 +113,12 @@ function buildRegularClickGroups(
 export function buildTimeline(
 	nativeAnimations: ReadonlyArray<PptxNativeAnimation>,
 	renderContext?: AnimationRenderContext,
+	// Opt-in override for `p:animEffect/@filter="pixelate"`: `true` plays the
+	// blocky mosaic reveal; omitted or `false` (the default, matching
+	// PowerPoint's own behaviour) snaps the element to its end state. See
+	// `resolveFilterEffect`'s doc in `animation-filter-effects.ts` and
+	// `docs/guide/visual-effects.md`.
+	pixelateMosaic?: boolean,
 ): AnimationTimeline {
 	if (nativeAnimations.length === 0) {
 		return {
@@ -149,7 +156,7 @@ export function buildTimeline(
 	}
 
 	const { clickGroups, entranceIds, neededKeyframes, dynamicBlocks, dynamicUid } =
-		buildRegularClickGroups(regularAnims, renderContext);
+		buildRegularClickGroups(regularAnims, renderContext, pixelateMosaic);
 
 	// Build interactive sequence click-groups
 	const interactiveSequences = buildSequenceGroups(
@@ -159,6 +166,7 @@ export function buildTimeline(
 		dynamicBlocks,
 		dynamicUid,
 		renderContext,
+		pixelateMosaic,
 	);
 
 	// Build hover sequence click-groups
@@ -169,6 +177,7 @@ export function buildTimeline(
 		dynamicBlocks,
 		dynamicUid + countDynamicUids(interactiveAnims),
 		renderContext,
+		pixelateMosaic,
 	);
 	// Update dynamicUid for any downstream use
 	void nextUid;

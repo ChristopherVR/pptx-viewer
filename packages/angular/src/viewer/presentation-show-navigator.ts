@@ -65,6 +65,14 @@ export interface ShowNavigatorDeps {
 	canvasSize?: () => { width: number; height: number };
 	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
 	themeColorMap?: () => Readonly<Record<string, string>> | undefined;
+	/**
+	 * `viewerOptions.advanced.pixelateMosaicAnimation`. `true` plays the
+	 * blocky mosaic reveal for `p:animEffect/@filter="pixelate"`; omitted or
+	 * `false` (the default, matching PowerPoint's own behaviour) snaps the
+	 * element to its end state. See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	pixelateMosaicAnimation?: () => boolean | undefined;
 	playback: AnimationPlaybackService;
 	annotations: PresentationAnnotationsService;
 	/** Publish a committed index change to the host's `indexChange` output. */
@@ -210,6 +218,7 @@ export class PresentationShowNavigator {
 					slideHeightPx: size?.height,
 					slideWidthPx: size?.width,
 					themeColorMap: this.deps.themeColorMap?.(),
+					pixelateMosaic: this.deps.pixelateMosaicAnimation?.(),
 				});
 				return;
 			}

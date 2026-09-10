@@ -4,6 +4,7 @@ import type {
 	PresentationPointerState,
 	PresentationPointerTool,
 	PresentationSnapshot,
+	RunProgramNotice,
 	ViewerQuickAccessOptions,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
@@ -118,6 +119,10 @@ export interface MountChromeDeps extends ChromeCallbackDeps {
 	dismissCompatToast(id: string): void;
 	/** The compatibility toast stack's "Dismiss all" button. */
 	dismissAllCompatToasts(): void;
+	/** `ppaction://program`: append a notice naming the command to the running show's toast stack. */
+	addRunProgramNotice(notice: RunProgramNotice): void;
+	/** One run-program notice's own dismiss button. */
+	dismissRunProgramNotice(id: string): void;
 	/**
 	 * Trust Center > "Confirm before opening external hyperlinks": shows the
 	 * confirm prompt when the option applies to `url` and reports whether the
@@ -201,6 +206,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		onCancelReadOnlyPasswordPrompt: () => deps.cancelReadOnlyPasswordPrompt(),
 		onDismissCompatToast: (id) => deps.dismissCompatToast(id),
 		onDismissAllCompatToasts: () => deps.dismissAllCompatToasts(),
+		onDismissRunProgramNotice: (id) => deps.dismissRunProgramNotice(id),
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
@@ -220,6 +226,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		},
 	);
 	chrome.setCompatToasts(store.get().compatToasts);
+	chrome.setRunProgramNotices(store.get().runProgramNotices);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {
 		next: deps.next,
@@ -366,6 +373,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			return state.slides[state.currentSlide];
 		},
 		customShowRunner,
+		addRunProgramNotice: (notice) => deps.addRunProgramNotice(notice),
 	});
 
 	const onPresentationClick = (event: MouseEvent): void => {
@@ -580,6 +588,10 @@ export interface ChromeHost {
 	dismissCompatToast(id: string): void;
 	/** The compatibility toast stack's "Dismiss all" button. */
 	dismissAllCompatToasts(): void;
+	/** `ppaction://program`: append a notice naming the command to the running show's toast stack. */
+	addRunProgramNotice(notice: RunProgramNotice): void;
+	/** One run-program notice's own dismiss button. */
+	dismissRunProgramNotice(id: string): void;
 	/** Trust Center > "Confirm before opening external hyperlinks" gate + prompt. */
 	confirmExternalHyperlink(url: string): boolean;
 	toggleAutosave(): boolean;
@@ -843,6 +855,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		cancelReadOnlyPasswordPrompt: () => host.cancelReadOnlyPasswordPrompt(),
 		dismissCompatToast: (id) => host.dismissCompatToast(id),
 		dismissAllCompatToasts: () => host.dismissAllCompatToasts(),
+		addRunProgramNotice: (notice) => host.addRunProgramNotice(notice),
+		dismissRunProgramNotice: (id) => host.dismissRunProgramNotice(id),
 		confirmExternalHyperlink: (url) => host.confirmExternalHyperlink(url),
 	};
 }

@@ -215,6 +215,20 @@ describe('actionSettingsPanel', () => {
 		expect(updated.actionClick?.action).toBe('ppaction://hlinkfile');
 	});
 
+	it('runProgram reuses the same text target field as url', () => {
+		const el = shapeEl();
+		const { target, editor } = mountPanel(el);
+
+		setValue(selects(target)[0], 'runProgram');
+		const urlInput = target.querySelector<HTMLInputElement>('input[type="text"]');
+		expect(urlInput).not.toBeNull();
+		setValue(urlInput!, 'notepad.exe C:/temp/notes.txt');
+
+		const updated = editor.slides[0]?.elements?.[0] as PptxElement;
+		expect(updated.actionClick?.url).toBe('notepad.exe C:/temp/notes.txt');
+		expect(updated.actionClick?.action).toBe('ppaction://program');
+	});
+
 	it('disables both triggers in a read-only viewer', () => {
 		const el = shapeEl();
 		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });

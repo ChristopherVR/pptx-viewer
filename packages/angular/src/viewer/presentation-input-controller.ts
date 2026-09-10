@@ -77,6 +77,14 @@ export interface PresentationInputDeps {
 	 * restores the origin show + slide once the sub-show runs off its end.
 	 */
 	runCustomShow?: (customShowId: string, returnAfter: boolean) => void;
+	/**
+	 * `ppaction://program`: PowerPoint's "Run program" action. A browser cannot
+	 * launch a local executable, so the host is expected to surface a
+	 * non-blocking notice naming the resolved command (see
+	 * `buildRunProgramNotice` in `pptx-viewer-shared`) rather than doing
+	 * nothing. Omitted means the click is still consumed, just silently.
+	 */
+	runProgram?: (target: string) => void;
 }
 
 export class PresentationInputController {
@@ -268,6 +276,10 @@ export class PresentationInputController {
 				safeOpenUrl(presentationTarget);
 			},
 			playMedia: (elementId) => toggleStageElementMedia(this.deps.root(), elementId),
+			// A browser cannot launch a local executable: hand the resolved
+			// command off to the host, which is expected to surface a
+			// non-blocking notice (see `PresentationInputDeps.runProgram`).
+			runProgram: (commandTarget) => this.deps.runProgram?.(commandTarget),
 			// A browser cannot run the verb in the owning application: classify it
 			// (see `resolveOleVerbTarget`) and open the recovered embedding
 			// accordingly. A running show never offers in-place editing, so

@@ -160,6 +160,9 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 		if (state.compatToasts !== previous.compatToasts) {
 			chrome.setCompatToasts(state.compatToasts);
 		}
+		if (state.runProgramNotices !== previous.runProgramNotices) {
+			chrome.setRunProgramNotices(state.runProgramNotices);
+		}
 		if (state.notesExpanded !== previous.notesExpanded) {
 			chrome.notes.setExpanded(state.notesExpanded);
 			chrome.ribbon?.setNotesExpanded(state.notesExpanded);

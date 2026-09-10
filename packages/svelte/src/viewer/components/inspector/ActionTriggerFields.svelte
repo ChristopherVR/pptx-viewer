@@ -21,8 +21,9 @@
 	 * actually reveal its input.
 	 *
 	 * Wave-4 B7: `customShow` gets a show picker + "Resume last slide viewed"
-	 * checkbox; `url` / `openFile` / `openPresentation` all share the same text
-	 * target field (core's `ElementAction.url` already carries all three).
+	 * checkbox; `url` / `openFile` / `openPresentation` / `runProgram` all
+	 * share the same text target field (core's `ElementAction.url` already
+	 * carries all four).
 	 */
 	import type { ElementAction, ElementActionType, PptxCustomShow } from 'pptx-viewer-core';
 	import { ELEMENT_ACTION_TYPE_OPTIONS, resolveActionType, toSlideIndex } from 'pptx-viewer-shared';
@@ -60,16 +61,21 @@
 	// eslint-disable-next-line prefer-const
 	let pendingType = $state<ElementActionType | undefined>(undefined);
 	const effectiveType = $derived(resolveActionType(pendingType, activeType));
-	/** A text-target field (URL / external file / external presentation). */
+	/** A text-target field (URL / external file / external presentation / run program). */
 	const showsUrlField = $derived(
-		effectiveType === 'url' || effectiveType === 'openFile' || effectiveType === 'openPresentation',
+		effectiveType === 'url' ||
+			effectiveType === 'openFile' ||
+			effectiveType === 'openPresentation' ||
+			effectiveType === 'runProgram',
 	);
 	const urlLabelKey = $derived(
 		effectiveType === 'openFile'
 			? 'pptx.hyperlink.actionOpenFile'
 			: effectiveType === 'openPresentation'
 				? 'pptx.hyperlink.actionOpenPresentation'
-				: 'pptx.action.gotoUrl',
+				: effectiveType === 'runProgram'
+					? 'pptx.hyperlink.actionRunProgram'
+					: 'pptx.action.gotoUrl',
 	);
 
 	function chooseType(type: ElementActionType): void {

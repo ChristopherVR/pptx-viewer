@@ -121,7 +121,7 @@ function onType(event: Event, trigger: Trigger): void {
 	}
 }
 
-/** `url`, `openFile` and `openPresentation` all commit through the shared `url` target field. */
+/** `url`, `openFile`, `openPresentation` and `runProgram` all commit through the shared `url` target field. */
 function onUrl(event: Event, trigger: Trigger): void {
 	update(trigger, typeFor(trigger), (event.target as HTMLInputElement).value);
 }
@@ -179,7 +179,8 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 				v-if="
 					typeFor(trigger) === 'url' ||
 					typeFor(trigger) === 'openFile' ||
-					typeFor(trigger) === 'openPresentation'
+					typeFor(trigger) === 'openPresentation' ||
+					typeFor(trigger) === 'runProgram'
 				"
 				:type="typeFor(trigger) === 'url' ? 'url' : 'text'"
 				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px]"
@@ -189,7 +190,9 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 							? 'pptx.action.gotoUrl'
 							: typeFor(trigger) === 'openFile'
 								? 'pptx.hyperlink.actionOpenFile'
-								: 'pptx.hyperlink.actionOpenPresentation',
+								: typeFor(trigger) === 'openPresentation'
+									? 'pptx.hyperlink.actionOpenPresentation'
+									: 'pptx.hyperlink.actionRunProgram',
 					)
 				"
 				:disabled="!canEdit"

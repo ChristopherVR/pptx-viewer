@@ -179,6 +179,33 @@ describe('resolvePresentationAction', () => {
 			).intent,
 		).toStrictEqual({ kind: 'oleVerb', verb: 0, elementId: 'ole1' });
 	});
+
+	it('maps ppaction://program to runProgram with the resolved command string', () => {
+		expect(
+			resolvePresentationAction(
+				{ action: 'ppaction://program', url: 'notepad.exe C:\\temp\\notes.txt' },
+				{ slideCount: 3 },
+			).intent,
+		).toStrictEqual({ kind: 'runProgram', target: 'notepad.exe C:\\temp\\notes.txt' });
+	});
+
+	it('navigates nowhere for ppaction://program with no resolved command', () => {
+		expect(
+			resolvePresentationAction({ action: 'ppaction://program' }, { slideCount: 3 }).intent.kind,
+		).toBe('none');
+	});
+
+	it('does not fall through to openUrl for a run-program action', () => {
+		// A run-program command is not a URL PowerPoint would ever open in a
+		// browser tab, so it must resolve via the dedicated branch rather than
+		// the generic openUrl fallback at the bottom of the function.
+		const intent = resolvePresentationAction(
+			{ action: 'ppaction://program', url: 'notepad.exe myfile.txt' },
+			{ slideCount: 3 },
+		).intent;
+		expect(intent.kind).toBe('runProgram');
+		expect(intent.kind).not.toBe('openUrl');
+	});
 });
 
 describe('runPresentationAction: wave-4 verbs', () => {
@@ -194,6 +221,7 @@ describe('runPresentationAction: wave-4 verbs', () => {
 			openPresentation: (target) => calls.push(`openPresentation:${target}`),
 			playMedia: (elementId) => calls.push(`playMedia:${elementId}`),
 			oleVerb: (verb, elementId) => calls.push(`oleVerb:${verb}:${elementId}`),
+			runProgram: (target) => calls.push(`runProgram:${target}`),
 		};
 		return { runner, calls };
 	}
@@ -249,6 +277,33 @@ describe('runPresentationAction: wave-4 verbs', () => {
 			runner,
 		);
 		expect(calls).toStrictEqual(['oleVerb:-1:ole1']);
+	});
+
+	it('calls runProgram with the resolved command and reports the click as spent', () => {
+		const { runner, calls } = runnerSpy();
+		expect(
+			runPresentationAction(
+				{ action: 'ppaction://program', url: 'notepad.exe myfile.txt' },
+				{ slideCount: 3 },
+				runner,
+			),
+		).toBeTruthy();
+		expect(calls).toStrictEqual(['runProgram:notepad.exe myfile.txt']);
+	});
+
+	it('still reports the click as spent for runProgram when the callback is missing', () => {
+		const emptyRunner: PresentationActionRunner = {
+			goToSlide: () => undefined,
+			move: () => undefined,
+			endShow: () => undefined,
+		};
+		expect(
+			runPresentationAction(
+				{ action: 'ppaction://program', url: 'notepad.exe myfile.txt' },
+				{ slideCount: 3 },
+				emptyRunner,
+			),
+		).toBeTruthy();
 	});
 });
 

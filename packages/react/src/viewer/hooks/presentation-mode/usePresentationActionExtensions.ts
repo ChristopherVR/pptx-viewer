@@ -1,5 +1,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import type { RunProgramNotice } from 'pptx-viewer-shared';
 import {
+	buildRunProgramNotice,
 	downloadDataUrl,
 	openUrlInNewTab,
 	resolveOleVerbTarget,
@@ -15,8 +17,9 @@ import { useCustomShowRunner } from './useCustomShowRunner';
 /**
  * usePresentationActionExtensions: the wave-4 `PresentationActionRunner`
  * callbacks (`lastViewed`, `customShow`, `openFile`, `openPresentation`,
- * `playMedia`) plus the "end of show" hook that lets a `returnAfter` custom
- * show resume its origin instead of ending the presentation.
+ * `playMedia`, `runProgram`) plus the "end of show" hook that lets a
+ * `returnAfter` custom show resume its origin instead of ending the
+ * presentation.
  *
  * Split out of `usePresentationMode` (extraction trigger: new logic that
  * hook did not need to own directly) to keep that orchestrator from growing
@@ -40,6 +43,14 @@ export interface UsePresentationActionExtensionsInput {
 	endWithBlackSlide: boolean;
 	onSetMode: (mode: ViewerMode) => void;
 	setEndOfShowVisible: (visible: boolean) => void;
+	/**
+	 * Hand off a `ppaction://program` ("Run program") notice for the running
+	 * show's toast stack. Fire-and-forget: `onRunProgram` never blocks the
+	 * click from being treated as spent. Absent means the notice is dropped
+	 * (the click still counts as handled), matching how `onOpenFile` et al.
+	 * degrade to a no-op when the host does not wire the callback.
+	 */
+	onAddRunProgramNotice?: (notice: RunProgramNotice) => void;
 }
 
 export interface UsePresentationActionExtensionsResult {
@@ -50,6 +61,8 @@ export interface UsePresentationActionExtensionsResult {
 	onPlayMedia: (elementId: string | undefined) => void;
 	/** `ppaction://ole?verb=<n>`: open the clicked element's recovered embedding. */
 	onOleVerb: (verb: number, elementId: string | undefined) => void;
+	/** `ppaction://program`: push a non-blocking "cannot launch this" notice. */
+	onRunProgram: (target: string) => void;
 	/**
 	 * Advancing past the last slide either restores a pending `returnAfter`
 	 * custom-show origin, shows the black end-of-show screen, or exits
@@ -73,6 +86,7 @@ export function usePresentationActionExtensions(
 		endWithBlackSlide,
 		onSetMode,
 		setEndOfShowVisible,
+		onAddRunProgramNotice,
 	} = input;
 
 	const navigateToSlideRef = useRef<((index: number) => void) | null>(null);
@@ -119,6 +133,16 @@ export function usePresentationActionExtensions(
 	const onOpenPresentation = useCallback((target: string) => {
 		safeOpenUrl(target);
 	}, []);
+
+	// A browser cannot launch a local executable: show a non-blocking notice
+	// naming the exact command PowerPoint would have run, rather than doing
+	// nothing silently or blocking the show with a modal.
+	const onRunProgram = useCallback(
+		(target: string) => {
+			onAddRunProgramNotice?.(buildRunProgramNotice(target));
+		},
+		[onAddRunProgramNotice],
+	);
 
 	// `ppaction://media`: toggle the acting element's own <video>/<audio>, the
 	// same DOM node a direct click on it plays/pauses.
@@ -172,6 +196,7 @@ export function usePresentationActionExtensions(
 		onOpenPresentation,
 		onPlayMedia,
 		onOleVerb,
+		onRunProgram,
 		handleAdvancePastLastSlide,
 		bindNavigateToSlide,
 	};

@@ -145,6 +145,10 @@ export const translations = {
 	'pptx.options.advanced.promptKeepInk':
 		'Preguntar si se mantienen las anotaciones de lápiz al salir',
 	'pptx.options.advanced.endWithBlackSlide': 'Finalizar con diapositiva en negro',
+	'pptx.options.advanced.pixelateMosaicAnimation':
+		'Mostrar un efecto de mosaico para las transiciones de Pixelar',
+	'pptx.options.advanced.pixelateMosaicAnimationInfo':
+		'PowerPoint no anima el filtro de transición Pixelar; el elemento simplemente aparece al final. Desactivado de forma predeterminada para coincidir con PowerPoint. Actívelo para ver un mosaico en bloques en lugar del cambio instantáneo de PowerPoint.',
 	'pptx.options.advanced.print': 'Imprimir',
 	'pptx.options.advanced.printInBackground': 'Imprimir en segundo plano',
 	'pptx.options.advanced.printHighQuality': 'Alta calidad',

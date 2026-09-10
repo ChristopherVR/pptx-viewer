@@ -55,6 +55,7 @@ import { usePresentationShowOrder } from '../composables/usePresentationShowOrde
 import { usePresentationViewport } from '../composables/usePresentationViewport';
 import { usePresentationVisibilityPause } from '../composables/usePresentationVisibilityPause';
 import { usePresenterSession } from '../composables/usePresenterSession';
+import { useRunProgramNotices } from '../composables/useRunProgramNotices';
 import { useSlideAutoAdvance } from '../composables/useSlideAutoAdvance';
 import { useToolbarAutoHide } from '../composables/useToolbarAutoHide';
 import { useTouchGestures } from '../composables/useTouchGestures';
@@ -73,6 +74,7 @@ import PresentationToolbar from './PresentationToolbar.vue';
 import PresentationTouchControls from './PresentationTouchControls.vue';
 import PresentationTransitionOverlay from './PresentationTransitionOverlay.vue';
 import PresenterView from './PresenterView.vue';
+import RunProgramNotices from './RunProgramNotices.vue';
 import SlideStage from './SlideStage.vue';
 
 const props = withDefaults(
@@ -100,6 +102,12 @@ const props = withDefaults(
 		promptKeepInkAnnotations?: boolean;
 		showMenuOnRightClick?: boolean;
 		showPopupToolbar?: boolean;
+		/**
+		 * File > Options > Advanced > "Show a mosaic effect for Pixelate
+		 * transitions" (default false, matching PowerPoint's own instant-swap
+		 * behaviour for `p:animEffect/@filter="pixelate"`).
+		 */
+		pixelateMosaicAnimation?: boolean;
 	}>(),
 	{
 		startIndex: 0,
@@ -108,6 +116,7 @@ const props = withDefaults(
 		promptKeepInkAnnotations: true,
 		showMenuOnRightClick: true,
 		showPopupToolbar: true,
+		pixelateMosaicAnimation: false,
 	},
 );
 
@@ -207,6 +216,7 @@ const playback = useAnimationPlayback({
 	// ramp stop instead of falling back.
 	canvasSize: () => props.canvasSize,
 	themeColorMap: injectThemeColorMap(),
+	pixelateMosaicAnimation: () => props.pixelateMosaicAnimation,
 });
 // Publish the per-element state map so the chart / SmartArt / connector / shape
 // renderers can reveal staged builds and relinquish animated fill / stroke.
@@ -484,6 +494,11 @@ function onContextMenuSelect(id: string): void {
 	}
 }
 
+// PowerPoint's "Run program" (`ppaction://program`) action: a browser cannot
+// launch a local executable, so the runner callback below shows a
+// non-blocking notice naming the resolved command instead.
+const runProgramNotices = useRunProgramNotices();
+
 /**
  * How an on-slide Action Setting (`a:hlinkClick`) navigates this show.
  * `goTo` is deliberately the unfiltered jump: an action names its target slide
@@ -521,6 +536,7 @@ const actionRunner = {
 	openPresentation: (target: string) => actionExtras?.openPresentation(target),
 	playMedia: (elementId: string | undefined) => actionExtras?.playMedia(elementId),
 	oleVerb: (verb: number, elementId: string | undefined) => actionExtras?.oleVerb(verb, elementId),
+	runProgram: (target: string) => runProgramNotices.notify(target),
 };
 
 /**
@@ -818,6 +834,15 @@ useTouchGestures({
 					@toggle-blackboard="onToggleBlackboard"
 				/>
 			</div>
+
+			<!-- "Run program" notices: a browser cannot launch the local executable
+			     PowerPoint's Action Settings named, so this names the resolved
+			     command instead of silently doing nothing. -->
+			<RunProgramNotices
+				:notices="runProgramNotices.notices.value"
+				@click.stop
+				@dismiss="runProgramNotices.dismiss"
+			/>
 
 			<!-- Slide-show right-click menu. -->
 			<ContextMenu

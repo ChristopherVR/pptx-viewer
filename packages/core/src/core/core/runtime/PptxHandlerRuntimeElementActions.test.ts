@@ -22,13 +22,13 @@ interface RuntimeWithProtected {
 	serializeElementActions(
 		shape: XmlObject,
 		el: PptxElement,
-		resolveHyperlinkRelationshipId: (target: string) => string | undefined,
+		resolveHyperlinkRelationshipId: (target: string, forceExternal?: boolean) => string | undefined,
 	): void;
 	serializeSingleAction(
 		cNvPr: XmlObject,
 		nodeName: string,
 		action: PptxAction | undefined,
-		resolveHyperlinkRelationshipId: (target: string) => string | undefined,
+		resolveHyperlinkRelationshipId: (target: string, forceExternal?: boolean) => string | undefined,
 	): void;
 }
 
@@ -486,6 +486,52 @@ describe('serializeSingleAction', () => {
 		expect((cNvPr['a:hlinkClick'] as XmlObject)['@_endSnd']).toBeUndefined();
 		serializeSingleAction(cNvPr, 'a:hlinkClick', { rId: 'rId1' }, noopResolver);
 		expect((cNvPr['a:hlinkClick'] as XmlObject)['@_endSnd']).toBeUndefined();
+	});
+
+	// A "Run program" command (and hlinkfile/hlinkpres) is ALWAYS an external
+	// destination, never a same-package reference, but a raw OS command like
+	// "notepad.exe C:\temp\notes.txt" does not parse as a URI scheme. Without
+	// `forceExternal`, `resolveHyperlinkRelationshipId` would write the
+	// relationship with no `TargetMode="External"`, which OPC validation then
+	// flags as an invalid internal target (see
+	// `PptxSlideRelationshipRegistry#resolveHyperlinkRelationshipId`).
+	it('resolves a ppaction://program target with forceExternal, not a bare non-URI string', () => {
+		const cNvPr: XmlObject = {};
+		const calls: Array<[string, boolean | undefined]> = [];
+		const resolver = (target: string, forceExternal?: boolean) => {
+			calls.push([target, forceExternal]);
+			return 'rId2';
+		};
+		const action: PptxAction = {
+			action: 'ppaction://program',
+			url: 'notepad.exe C:\\temp\\notes.txt',
+		};
+		serializeSingleAction(cNvPr, 'a:hlinkClick', action, resolver);
+		expect(calls).toStrictEqual([['notepad.exe C:\\temp\\notes.txt', true]]);
+	});
+
+	it('resolves ppaction://hlinkfile and ppaction://hlinkpres targets with forceExternal too', () => {
+		for (const verb of ['ppaction://hlinkfile', 'ppaction://hlinkpres']) {
+			const cNvPr: XmlObject = {};
+			let forceExternalSeen: boolean | undefined;
+			const resolver = (_target: string, forceExternal?: boolean) => {
+				forceExternalSeen = forceExternal;
+				return 'rId2';
+			};
+			serializeSingleAction(cNvPr, 'a:hlinkClick', { action: verb, url: 'report.docx' }, resolver);
+			expect(forceExternalSeen).toBeTruthy();
+		}
+	});
+
+	it('does not force external for a plain url action (the generic, ambiguous case)', () => {
+		const cNvPr: XmlObject = {};
+		let forceExternalSeen: boolean | undefined;
+		const resolver = (_target: string, forceExternal?: boolean) => {
+			forceExternalSeen = forceExternal;
+			return 'rId2';
+		};
+		serializeSingleAction(cNvPr, 'a:hlinkClick', { url: 'https://example.com' }, resolver);
+		expect(forceExternalSeen).toBeFalsy();
 	});
 });
 

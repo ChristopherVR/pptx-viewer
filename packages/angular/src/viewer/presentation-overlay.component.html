@@ -183,4 +183,10 @@
 			(closed)="contextMenuState.set(null)"
 		/>
 	}
+
+	<!-- `ppaction://program` ("Run program") notices: see run-program-notices.component.ts. -->
+	<pptx-run-program-notices
+		[notices]="runProgramNotices.notices()"
+		(dismiss)="runProgramNotices.dismiss($event)"
+	/>
 </div>

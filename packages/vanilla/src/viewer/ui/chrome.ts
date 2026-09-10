@@ -3,6 +3,7 @@ import type {
 	AccountAuthConfig,
 	CompatibilityWarningToast,
 	ReadOnlyRecommendation,
+	RunProgramNotice,
 	ToolbarActionId,
 } from 'pptx-viewer-shared';
 
@@ -32,6 +33,8 @@ import { createReadOnlyBanner } from './read-only-banner';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
+import type { RunProgramNoticeStack } from './run-program-notices';
+import { createRunProgramNoticeStack } from './run-program-notices';
 import type { ShortcutPanel } from './shortcut-panel';
 import { createShortcutPanel } from './shortcut-panel';
 import type { StatusBar } from './status-bar';
@@ -92,6 +95,8 @@ export interface ChromeOptions {
 	onDismissCompatToast(id: string): void;
 	/** The compatibility toast stack's "Dismiss all" button. */
 	onDismissAllCompatToasts(): void;
+	/** One run-program notice's own dismiss button. */
+	onDismissRunProgramNotice(id: string): void;
 }
 
 /** The viewer's static DOM skeleton plus the mutable overlay controls. */
@@ -151,6 +156,8 @@ export interface ViewerChrome {
 	): void;
 	/** Replace the compatibility-warning toast stack. */
 	setCompatToasts(toasts: readonly CompatibilityWarningToast[]): void;
+	/** Replace the running-show "Run program" notice stack. */
+	setRunProgramNotices(notices: readonly RunProgramNotice[]): void;
 }
 
 /**
@@ -359,6 +366,14 @@ export function buildViewerChrome(
 	);
 	root.appendChild(compatToasts.el);
 
+	// "Run program" notices for a running show; same anchor as the compat
+	// toasts (the two never compete for the same screen: compat toasts are
+	// load diagnostics, these only appear while presenting).
+	const runProgramNotices: RunProgramNoticeStack = createRunProgramNoticeStack(doc, t, (id) =>
+		options.onDismissRunProgramNotice(id),
+	);
+	root.appendChild(runProgramNotices.el);
+
 	const loadingOverlay = createEl(doc, 'div', 'pptxv-overlay pptxv-loading');
 	loadingOverlay.textContent = t('pptx.common.loading');
 	loadingOverlay.setAttribute('role', 'status');
@@ -436,6 +451,9 @@ export function buildViewerChrome(
 		},
 		setCompatToasts(toasts) {
 			compatToasts.update(toasts);
+		},
+		setRunProgramNotices(notices) {
+			runProgramNotices.update(notices);
 		},
 	};
 }

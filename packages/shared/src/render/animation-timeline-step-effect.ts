@@ -63,11 +63,14 @@ export function resolveStepEffect(
 	// as an opt-out flag so this resolver serves both call sites identically to
 	// how they behaved before being unified.
 	includeDirectional: boolean = true,
+	// Opt-in override for `p:animEffect/@filter="pixelate"`; see
+	// `resolveFilterEffect`'s doc. Off by default, matching PowerPoint.
+	pixelateMosaic?: boolean,
 ): StepEffectResolution {
 	let dynamicUid = dynamicUidStart;
 	const box = boxForAnimation(singleAnim, renderContext);
 	const authoredTransform = hasAuthoredTransform(singleAnim, box);
-	const staticEffect = resolveEffect(singleAnim);
+	const staticEffect = resolveEffect(singleAnim, pixelateMosaic);
 	// A directional Fly In/Out's authored `ppt_x`/`ppt_y` sibling formula
 	// (e.g. `from="(-#ppt_w/2)"` `to="(#ppt_x)"` for a left entrance) is
 	// PowerPoint's bare encoding of the SAME edge-to-rest motion the static

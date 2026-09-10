@@ -884,6 +884,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					[endWithBlackSlide]="viewerOpts.options().advanced.slideShowEndWithBlackSlide"
 					[showMenuOnRightClick]="viewerOpts.options().advanced.slideShowShowMenuOnRightClick"
 					[showPopupToolbar]="viewerOpts.options().advanced.slideShowShowPopupToolbar"
+					[pixelateMosaicAnimation]="viewerOpts.options().advanced.pixelateMosaicAnimation"
 					[presenterMode]="presentationMode.presentingPresenter()"
 					(presenterViewToggle)="presentationMode.togglePresenterView()"
 					(subtitlesChange)="presentationMode.subtitlesVisible.set($event)"

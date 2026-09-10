@@ -78,6 +78,8 @@ export interface UseSlideNavigationInput {
 	onPlayMedia?: (elementId: string | undefined) => void;
 	/** `ppaction://ole?verb=<n>`. */
 	onOleVerb?: (verb: number, elementId: string | undefined) => void;
+	/** `ppaction://program`. */
+	onRunProgram?: (target: string) => void;
 }
 
 export interface UseSlideNavigationResult {
@@ -121,6 +123,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		onOpenPresentation,
 		onPlayMedia,
 		onOleVerb,
+		onRunProgram,
 	} = input;
 
 	const movePresentationSlideRef = useRef<(direction: 1 | -1) => void>(() => {});
@@ -342,6 +345,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				onOpenPresentation,
 				onPlayMedia,
 				onOleVerb,
+				onRunProgram,
 			});
 		},
 		[
@@ -356,6 +360,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			onOpenPresentation,
 			onPlayMedia,
 			onOleVerb,
+			onRunProgram,
 		],
 	);
 

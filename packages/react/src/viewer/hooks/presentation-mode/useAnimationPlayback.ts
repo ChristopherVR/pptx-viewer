@@ -37,6 +37,14 @@ export interface UseAnimationPlaybackInput {
 	canvasSize?: { width: number; height: number };
 	/** The deck's resolved theme colour map, for a scheme-colour (`a:schemeClr`) animation stop. */
 	themeColorMap?: Readonly<Record<string, string>>;
+	/**
+	 * `viewerOptions.advanced.pixelateMosaicAnimation`. `true` plays the
+	 * blocky mosaic reveal for `p:animEffect/@filter="pixelate"`; omitted or
+	 * `false` (the default, matching PowerPoint's own behaviour) snaps the
+	 * element to its end state. See `resolveFilterEffect`'s doc in
+	 * `pptx-viewer-shared`'s `animation-filter-effects.ts`.
+	 */
+	pixelateMosaicAnimation?: boolean;
 }
 
 /** How a slide's animation timeline should be seeded when it becomes active. */
@@ -95,7 +103,14 @@ export interface UseAnimationPlaybackResult {
 // ---------------------------------------------------------------------------
 
 export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnimationPlaybackResult {
-	const { slides, onPlayActionSound, showWithAnimation, canvasSize, themeColorMap } = input;
+	const {
+		slides,
+		onPlayActionSound,
+		showWithAnimation,
+		canvasSize,
+		themeColorMap,
+		pixelateMosaicAnimation,
+	} = input;
 	const animationsEnabled = showWithAnimation !== false;
 
 	// State
@@ -204,6 +219,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 				slideHeightPx: canvasSize?.height,
 				slideWidthPx: canvasSize?.width,
 				themeColorMap,
+				pixelateMosaic: pixelateMosaicAnimation,
 			});
 			controllerRef.current = controller;
 			mediaTimeNodeElementIdsRef.current = resolveMediaTimeNodeElementIds(
@@ -217,7 +233,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 
 			setPresentationElementStates(controller.computeStates());
 		},
-		[slides, canvasSize, themeColorMap],
+		[slides, canvasSize, themeColorMap, pixelateMosaicAnimation],
 	);
 
 	// -----------------------------------------------------------------------

@@ -35,6 +35,7 @@ export const ELEMENT_ACTION_TYPE_OPTIONS: readonly ElementActionOption[] = [
 	{ value: 'openPresentation', labelKey: 'pptx.hyperlink.actionOpenPresentation' },
 	{ value: 'playMedia', labelKey: 'pptx.hyperlink.actionPlayMedia' },
 	{ value: 'oleVerb', labelKey: 'pptx.hyperlink.actionOleVerb' },
+	{ value: 'runProgram', labelKey: 'pptx.hyperlink.actionRunProgram' },
 ];
 
 /**

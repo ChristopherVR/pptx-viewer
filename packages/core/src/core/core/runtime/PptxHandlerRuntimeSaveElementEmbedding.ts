@@ -30,7 +30,10 @@ export interface SaveSlideContext {
 	readonly slide: PptxSlide;
 	readonly slideRelationships: XmlObject[];
 	readonly slideRelationshipRegistry: IPptxSlideRelationshipRegistry;
-	readonly resolveHyperlinkRelationshipId: (target: string) => string | undefined;
+	readonly resolveHyperlinkRelationshipId: (
+		target: string,
+		forceExternal?: boolean,
+	) => string | undefined;
 	readonly getSlideRelationshipMap: () => Map<string, string>;
 	readonly resolvedMediaBytes: Map<string, { bytes: Uint8Array; extension: string }>;
 	readonly saveSession: PptxSaveState;

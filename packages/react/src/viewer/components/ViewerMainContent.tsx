@@ -7,6 +7,7 @@ import { setMasterViewBackgroundColor } from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { useMemo } from 'react';
+import type { ReactNode } from 'react';
 
 import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu } from '.';
 import type { AiPanelController } from '../hooks/ai/useAiPanelController';
@@ -50,6 +51,8 @@ export interface ViewerMainContentProps {
 	editorOps: EditorOperationsResult;
 	dialogs: ViewerDialogsResult;
 	presentation: UsePresentationModeResult;
+	/** Show chrome mounted inside the fullscreen stage; see `ViewerCanvasArea`. */
+	presentationOverlay?: ReactNode;
 	annotations: UsePresentationAnnotationsResult;
 	propertyHandlers: PropertyHandlersResult;
 	themeHandlers: ThemeHandlersResult;
@@ -104,6 +107,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		editorOps,
 		dialogs,
 		presentation,
+		presentationOverlay,
 		annotations,
 		propertyHandlers,
 		themeHandlers,
@@ -273,6 +277,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 					tableOps={tableOps}
 					annotations={annotations}
 					presentation={presentation}
+					presentationOverlay={presentationOverlay}
 					onEndPresentation={onEndPresentation}
 					findReplace={findReplace}
 					hiddenActions={hiddenActions}

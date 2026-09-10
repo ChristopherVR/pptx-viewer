@@ -166,8 +166,13 @@ export class TimelineEngine {
 	public static fromAnimations(
 		nativeAnimations: ReadonlyArray<PptxNativeAnimation>,
 		renderContext?: AnimationRenderContext,
+		// Opt-in override for `p:animEffect/@filter="pixelate"`: `true` plays
+		// the blocky mosaic reveal; omitted or `false` (the default, matching
+		// PowerPoint's own behaviour) snaps the element to its end state. See
+		// `resolveFilterEffect`'s doc in `animation-filter-effects.ts`.
+		pixelateMosaic?: boolean,
 	): TimelineEngine {
-		return new TimelineEngine(buildTimeline(nativeAnimations, renderContext));
+		return new TimelineEngine(buildTimeline(nativeAnimations, renderContext, pixelateMosaic));
 	}
 
 	/** The underlying timeline data. */

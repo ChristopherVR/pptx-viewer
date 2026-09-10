@@ -75,6 +75,10 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		// File > Options > Advanced > "End with black slide". Off means the show
 		// exits straight to the editor instead of raising the black end screen.
 		getEndWithBlackSlide: () => optionsState.options.advanced.slideShowEndWithBlackSlide,
+		// File > Options > Advanced > "Show a mosaic effect for Pixelate
+		// transitions". Off (the default) matches PowerPoint's own
+		// instant-swap behaviour for `p:animEffect/@filter="pixelate"`.
+		getPixelateMosaicAnimation: () => optionsState.options.advanced.pixelateMosaicAnimation,
 		// Slide Show > Custom Shows: restrict playback to the selected show's
 		// members. Resolved fresh on every read so a show edited (or deleted) mid
 		// session is honoured without re-creating the controller.

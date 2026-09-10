@@ -123,7 +123,60 @@ export function compatToastStackStyle(): Record<string, string> {
 
 /** {@link compatToastStackStyle} flattened into an inline `style` attribute value. */
 export function compatToastStackStyleAttr(): string {
-	return Object.entries(compatToastStackStyle())
+	return styleRecordToAttr(compatToastStackStyle());
+}
+
+/**
+ * The `ppaction://program` ("Run program") notice stack shown during a
+ * RUNNING show.
+ *
+ * Deliberately not {@link compatToastStackStyle}: that stack is positioned
+ * `absolute` relative to the viewer root and inset above the status bar,
+ * neither of which exists once the show's full-viewport stage is up, so a
+ * notice placed with it rendered UNDER the stage in React (the Copy button
+ * was visible but the stage intercepted every click). This one is `fixed`,
+ * bottom-right, safe-area aware, and stacks above every piece of show chrome
+ * (edge-navigation buttons, close button, subtitle bar) so the presenter can
+ * always reach Copy. `pointerEvents: none` on the stack itself keeps its
+ * empty margins from swallowing click-to-advance; each notice re-enables
+ * pointer events on its own card.
+ */
+export const RUN_PROGRAM_NOTICE_METRICS = {
+	/** Clearance from the viewport's safe-area edges. */
+	inset: '0.5rem',
+	/** Card width, matching the compatibility-toast stack. */
+	width: 320,
+	/** Vertical gap between stacked notices. */
+	gap: '0.5rem',
+	/** Above the show's own overlay chrome (whose highest control sits at 10002). */
+	zIndex: 10003,
+} as const;
+
+/** Inline style for the run-program notice stack (see {@link RUN_PROGRAM_NOTICE_METRICS}). */
+export function runProgramNoticeStackStyle(): Record<string, string> {
+	const m = RUN_PROGRAM_NOTICE_METRICS;
+	return {
+		position: 'fixed',
+		bottom: `calc(env(safe-area-inset-bottom, 0px) + ${m.inset})`,
+		right: `calc(env(safe-area-inset-right, 0px) + ${m.inset})`,
+		width: `${String(m.width)}px`,
+		maxWidth: 'calc(100vw - 1rem)',
+		zIndex: String(m.zIndex),
+		display: 'flex',
+		flexDirection: 'column',
+		gap: m.gap,
+		pointerEvents: 'none',
+	};
+}
+
+/** {@link runProgramNoticeStackStyle} flattened into an inline `style` attribute value. */
+export function runProgramNoticeStackStyleAttr(): string {
+	return styleRecordToAttr(runProgramNoticeStackStyle());
+}
+
+/** camelCase style record -> `name:value;name:value` inline attribute value. */
+function styleRecordToAttr(record: Record<string, string>): string {
+	return Object.entries(record)
 		.map(
 			([name, value]) =>
 				`${name.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)}:${value}`,

@@ -18,6 +18,7 @@ import type {
 import type {
 	PresentationSnapshot,
 	Rendering3DFlags,
+	RunProgramNotice,
 	ThemeCatalogEntry,
 	ViewerMode,
 	ViewerQuickAccessOptions,
@@ -245,6 +246,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getLineChart3D: () => this.effective3DFlags().lineChart3D,
 			getAreaChart3D: () => this.effective3DFlags().areaChart3D,
 			getPieChart3D: () => this.effective3DFlags().pieChart3D,
+			// Read lazily: the options controller is constructed further down.
+			getPixelateMosaicAnimation: () =>
+				this.optionsController?.getOptions().advanced.pixelateMosaicAnimation ?? false,
 			onHandoutSlidesPerPageChange: (count) => this.editor?.setHandoutSlidesPerPage(count),
 			onMasterBackgroundColorChange: (color) =>
 				this.editor?.getEditActions().setSlideBackgroundColor(color),
@@ -1508,6 +1512,24 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** The compatibility toast stack's "Dismiss all" button. */
 	dismissAllCompatToasts(): void {
 		this.store.set({ compatToasts: [] });
+	}
+
+	/**
+	 * `ppaction://program` ("Run program"): a running show cannot launch a
+	 * local executable, so `presentation-action-runner.ts`'s `runProgram`
+	 * callback appends one of these instead, non-blocking, for the toast stack.
+	 */
+	addRunProgramNotice(notice: RunProgramNotice): void {
+		this.store.set({
+			runProgramNotices: [...this.store.get().runProgramNotices, notice],
+		});
+	}
+
+	/** One run-program notice's own dismiss button. */
+	dismissRunProgramNotice(id: string): void {
+		this.store.set({
+			runProgramNotices: this.store.get().runProgramNotices.filter((notice) => notice.id !== id),
+		});
 	}
 
 	/**

@@ -48,12 +48,19 @@
  *    that jump the element to its end state almost immediately rather than
  *    animating gradually over the effect's duration, matching a SMIL `cut`
  *    filter's "instant swap" semantics.
- *  - `pixelate` maps onto `pixelateIn`/`pixelateOut`, a genuinely blocky
- *    mosaic grid built from a small fixed set of self-contained SVG
- *    `<filter>` data-URIs stepped through discrete `@keyframes` stops (see
- *    `animation-pixelate-filter`): each visible cell shows the element's own
- *    real content at that position, not a canvas rasterisation, so it still
- *    fits this engine's "one static `@keyframes` block per effect" shape.
+ *  - `pixelate` defaults to the SAME `cutIn`/`cutOut` snap-to-end-state
+ *    keyframes `cut` uses (see {@link PIXELATE_SNAP_EFFECT}): COM
+ *    `CreateVideo` frame-diffing shows PowerPoint 2016 performs no animation
+ *    at all for this filter value, so matching PowerPoint's default means
+ *    matching `cut`'s instant swap, not animating something PowerPoint
+ *    itself does not. A genuinely blocky mosaic grid, built from a small
+ *    fixed set of self-contained SVG `<filter>` data-URIs stepped through
+ *    discrete `@keyframes` stops (see `animation-pixelate-filter`; each
+ *    visible cell shows the element's own real content at that position, not
+ *    a canvas rasterisation), remains available as an explicit opt-in via
+ *    {@link resolveFilterEffect}'s `pixelateMosaic` parameter, for a viewer
+ *    that would rather show something animating than PowerPoint's own
+ *    (rather anticlimactic) instant swap.
  *  - `stretch` carries the same `fromLeft`/`fromRight`/`fromTop`/`fromBottom`
  *    direction tokens as `slide` (SMIL 2.0 Transition Effects), so it reuses
  *    {@link SLIDE_TOKEN_TO_SUFFIX} for the edge lookup (see
@@ -136,8 +143,24 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	wedge: { entr: 'wedgeIn', exit: 'fadeOut' },
 	cut: { entr: 'cutIn', exit: 'cutOut' },
 	newsflash: { entr: 'newsflashIn', exit: 'newsflashOut' },
-	pixelate: { entr: 'pixelateIn', exit: 'pixelateOut' },
 };
+
+/**
+ * `pixelate`'s default resolution, separate from {@link FILTER_FAMILY_EFFECT}:
+ * COM `CreateVideo` frame-diffing (PowerPoint 2016, the same deck the module
+ * doc above already cites) shows PowerPoint performs no animation at all for
+ * this filter value - the element is simply absent until the transition's
+ * final frame, then present, matching `cut`'s instant-swap semantics exactly.
+ * Parity therefore means defaulting HERE to the same `cutIn`/`cutOut`
+ * keyframes `cut` itself uses, not to a bespoke mosaic PowerPoint never
+ * shows. The mosaic this repo used to default to remains available as a
+ * deliberate, opt-in approximation (see {@link resolveFilterEffect}'s
+ * `pixelateMosaic` parameter and `docs/guide/visual-effects.md`): a genuine
+ * discrete-mosaic reveal is a reasonable stand-in for viewers who WANT to see
+ * something animate, it is just not PowerPoint's own default behaviour.
+ */
+const PIXELATE_SNAP_EFFECT: FilterEffectPair = { entr: 'cutIn', exit: 'cutOut' };
+const PIXELATE_MOSAIC_EFFECT: FilterEffectPair = { entr: 'pixelateIn', exit: 'pixelateOut' };
 
 /**
  * Recognised ECMA-376 filter families with no bespoke mapping here. Each one
@@ -223,8 +246,17 @@ const STRIPS_TOKEN_TO_WIPE_TOKEN: Readonly<Record<string, string>> = {
  * Resolve the fallback {@link EffectName} for a native animation's parsed
  * `@filter`, or `undefined` when the family is unrecognised/unmapped (the
  * caller's own generic fade safety net takes over in that case).
+ *
+ * @param pixelateMosaic - Opt-in override for the `pixelate` family only:
+ *   `true` plays the blocky mosaic reveal this renderer can build; omitted or
+ *   `false` (the default, matching PowerPoint's own behaviour) snaps the
+ *   element to its end state instead, via the same `cutIn`/`cutOut` keyframes
+ *   the `cut` filter family uses. See {@link PIXELATE_SNAP_EFFECT}.
  */
-export function resolveFilterEffect(anim: PptxNativeAnimation): EffectName | undefined {
+export function resolveFilterEffect(
+	anim: PptxNativeAnimation,
+	pixelateMosaic?: boolean,
+): EffectName | undefined {
 	const filter = anim.effectFilter;
 	if (!filter) {
 		return undefined;
@@ -238,6 +270,10 @@ export function resolveFilterEffect(anim: PptxNativeAnimation): EffectName | und
 	}
 	if (DIRECTIONAL_SLIDE_FAMILIES.has(filter.family)) {
 		return resolveSlideEffect(filter.subtype, isExit);
+	}
+	if (filter.family === 'pixelate') {
+		const mapping = pixelateMosaic === true ? PIXELATE_MOSAIC_EFFECT : PIXELATE_SNAP_EFFECT;
+		return isExit ? mapping.exit : mapping.entr;
 	}
 	const mapping = FILTER_FAMILY_EFFECT[filter.family];
 	if (!mapping) {

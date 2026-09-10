@@ -46,7 +46,6 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'wedge', entr: 'wedgeIn', exit: 'fadeOut' },
 	{ family: 'cut', entr: 'cutIn', exit: 'cutOut' },
 	{ family: 'newsflash', entr: 'newsflashIn', exit: 'newsflashOut' },
-	{ family: 'pixelate', entr: 'pixelateIn', exit: 'pixelateOut' },
 ];
 
 describe('resolveFilterEffect', () => {
@@ -185,6 +184,38 @@ describe('resolveFilterEffect', () => {
 			expect(resolveFilterEffect(filterAnim(family, undefined, 'exit'))).toBeUndefined();
 		},
 	);
+
+	// `pixelate` is deliberately NOT in IMPLEMENTED_FAMILIES above: COM
+	// CreateVideo frame-diffing (PowerPoint 2016) shows PowerPoint performs no
+	// animation at all for this filter value - the element is simply absent
+	// until the transition's final frame, then present. Matching PowerPoint's
+	// default therefore means matching `cut`'s snap-to-end-state keyframes,
+	// not the mosaic. The mosaic remains available as an explicit opt-in.
+	describe('pixelate: defaults to snap-to-end-state (matches PowerPoint), mosaic is opt-in', () => {
+		it('defaults (no pixelateMosaic argument) to cutIn/cutOut', () => {
+			expect(resolveFilterEffect(filterAnim('pixelate', undefined, 'entr'))).toBe('cutIn');
+			expect(resolveFilterEffect(filterAnim('pixelate', undefined, 'exit'))).toBe('cutOut');
+		});
+
+		it('explicit pixelateMosaic: false also resolves to cutIn/cutOut', () => {
+			expect(resolveFilterEffect(filterAnim('pixelate', undefined, 'entr'), false)).toBe('cutIn');
+			expect(resolveFilterEffect(filterAnim('pixelate', undefined, 'exit'), false)).toBe('cutOut');
+		});
+
+		it('pixelateMosaic: true opts into the blocky mosaic reveal', () => {
+			expect(resolveFilterEffect(filterAnim('pixelate', undefined, 'entr'), true)).toBe(
+				'pixelateIn',
+			);
+			expect(resolveFilterEffect(filterAnim('pixelate', undefined, 'exit'), true)).toBe(
+				'pixelateOut',
+			);
+		});
+
+		it('the pixelateMosaic argument does not leak into other filter families', () => {
+			expect(resolveFilterEffect(filterAnim('fade', undefined, 'entr'), true)).toBe('fadeIn');
+			expect(resolveFilterEffect(filterAnim('cut', undefined, 'entr'), true)).toBe('cutIn');
+		});
+	});
 });
 
 describe('resolveFilterPresetSubtype', () => {
@@ -286,5 +317,40 @@ describe('resolveEffect: filter fallback integration', () => {
 		]);
 		const step = timeline.clickGroups[0].steps[0];
 		expect(step.keyframeName).toBe('pptx-fadeOut');
+	});
+
+	// End-to-end regression for the pixelateMosaic plumbing: buildTimeline's
+	// third argument has to reach resolveFilterEffect through
+	// processRegularAnimation -> resolveStepEffect -> resolveEffect.
+	it('buildTimeline defaults a pixelate filter animation to cutIn (matches PowerPoint)', () => {
+		const timeline = buildTimeline([
+			{
+				targetId: 'shape1',
+				presetClass: 'entr',
+				trigger: 'onClick',
+				durationMs: 400,
+				effectFilter: { family: 'pixelate', raw: 'pixelate' },
+			} as PptxNativeAnimation,
+		]);
+		const step = timeline.clickGroups[0].steps[0];
+		expect(step.keyframeName).toBe('pptx-cutIn');
+	});
+
+	it('buildTimeline(..., renderContext, true) opts a pixelate filter animation into the mosaic', () => {
+		const timeline = buildTimeline(
+			[
+				{
+					targetId: 'shape1',
+					presetClass: 'entr',
+					trigger: 'onClick',
+					durationMs: 400,
+					effectFilter: { family: 'pixelate', raw: 'pixelate' },
+				} as PptxNativeAnimation,
+			],
+			undefined,
+			true,
+		);
+		const step = timeline.clickGroups[0].steps[0];
+		expect(step.keyframeName).toBe('pptx-pixelateIn');
 	});
 });

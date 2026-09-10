@@ -76,19 +76,22 @@ describe('wave-4 action types (customShow / openFile / openPresentation)', () =>
 		expect(canCommitActionType('customShow', { customShowId: '3' })).toBeTruthy();
 	});
 
-	it('openFile / openPresentation commit immediately (their target is filled in afterwards)', () => {
+	it('openFile / openPresentation / runProgram commit immediately (their target is filled in afterwards)', () => {
 		expect(canCommitActionType('openFile', {})).toBeTruthy();
 		expect(canCommitActionType('openPresentation', {})).toBeTruthy();
+		expect(canCommitActionType('runProgram', {})).toBeTruthy();
 	});
 
-	it('renders the custom-show target select, return-after checkbox, and file/presentation target input', () => {
+	it('renders the custom-show target select, return-after checkbox, and file/presentation/run-program target input', () => {
 		// The per-trigger target controls live in the sub-component
 		// `ActionTargetFieldsComponent`, split out to keep this file under the
 		// repo's 300-LOC cap.
 		const source = readFileSync(path.join(__dirname, 'action-target-fields.component.ts'), 'utf8');
 		expect(source).toContain('data-testid="pptx-action-custom-show"');
 		expect(source).toContain('data-testid="pptx-action-custom-show-return"');
-		expect(source).toContain("type() === 'openFile' || type() === 'openPresentation'");
+		expect(source).toContain(
+			"type() === 'openFile' || type() === 'openPresentation' || type() === 'runProgram'",
+		);
 		expect(source).toContain('@for (show of customShows(); track show.id)');
 	});
 

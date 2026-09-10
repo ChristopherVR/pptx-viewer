@@ -40,6 +40,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		visibleSlideIndexes,
 		canvasSize,
 		themeColorMap,
+		pixelateMosaicAnimation,
 		activeSlideIndex,
 		containerRef,
 		content,
@@ -60,6 +61,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		customShows = [],
 		activeCustomShowId = null,
 		onSetActiveCustomShowId,
+		onAddRunProgramNotice,
 	} = input;
 
 	// -----------------------------------------------------------------------
@@ -112,6 +114,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		showWithAnimation,
 		canvasSize,
 		themeColorMap,
+		pixelateMosaicAnimation,
 	});
 
 	const {
@@ -159,6 +162,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		endWithBlackSlide,
 		onSetMode,
 		setEndOfShowVisible,
+		onAddRunProgramNotice,
 	});
 
 	const {
@@ -194,6 +198,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onOpenPresentation: actionExtensions.onOpenPresentation,
 		onPlayMedia: actionExtensions.onPlayMedia,
 		onOleVerb: actionExtensions.onOleVerb,
+		onRunProgram: actionExtensions.onRunProgram,
 	});
 
 	actionExtensions.bindNavigateToSlide(navigateToSlide);
