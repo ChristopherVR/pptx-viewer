@@ -14,6 +14,7 @@
  */
 import type { PptxChartTitleRun, XmlObject } from '../types';
 import { parseDefRPrTextStyle } from './chart-def-rpr-style';
+import { xmlText } from './xml-access';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -26,13 +27,15 @@ interface ColorParserLike {
 }
 
 /**
- * Read one run's text (`a:t`). `a:t` is a plain OOXML text element with no
- * attributes, so fast-xml-parser hands back a bare string/number rather than
- * an object node - `getChildByLocalName` would (correctly, per its own
- * contract) return `undefined` for it, so this needs the scalar accessor.
+ * Read one run's text (`a:t`), whether it is a scalar leaf or an object
+ * carrying attributes such as `xml:space` alongside its `#text` value.
  */
 function readRunText(run: XmlObject, xmlLookup: XmlLookupLike): string {
-	return xmlLookup.getScalarChildByLocalName(run, 't') ?? '';
+	return (
+		xmlText(xmlLookup.getChildByLocalName(run, 't')) ??
+		xmlLookup.getScalarChildByLocalName(run, 't') ??
+		''
+	);
 }
 
 /**

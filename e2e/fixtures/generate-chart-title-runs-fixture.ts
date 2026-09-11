@@ -69,7 +69,7 @@ const CHART_INPUT: ChartXmlInput = {
 function twoRunTitleXml(): string {
 	return (
 		`<c:title><c:tx><c:rich><a:bodyPr/><a:p>` +
-		`<a:r><a:rPr lang="en-US" b="1"/><a:t>${CHART_TITLE_RUN_1}</a:t></a:r>` +
+		`<a:r><a:rPr lang="en-US" b="1"/><a:t xml:space="preserve">${CHART_TITLE_RUN_1}</a:t></a:r>` +
 		`<a:r><a:rPr lang="en-US" i="1"><a:solidFill><a:srgbClr val="${CHART_TITLE_RUN_2_HEX}"/></a:solidFill></a:rPr><a:t>${CHART_TITLE_RUN_2}</a:t></a:r>` +
 		`</a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/>`
 	);

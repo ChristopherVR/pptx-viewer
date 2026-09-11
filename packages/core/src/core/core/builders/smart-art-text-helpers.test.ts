@@ -138,6 +138,43 @@ describe('collectLocalTextValues', () => {
 		expect(out).toStrictEqual(['North ', 'America']);
 	});
 
+	it('collects attributed, prefixed, empty, and numeric text leaves in order', () => {
+		const obj: XmlObject = {
+			'c:title': {
+				'a:p': {
+					'a:r': [
+						{ 'a:t': { '#text': ' Sales ', '@_xml:space': 'preserve' } },
+						{ 'alt:t': { '#text': 'Overview', '@_xml:space': 'preserve' } },
+						{ 'a:t': { '#text': '', '@_xml:space': 'preserve' } },
+						{ 'a:t': 42 },
+						{ 'a:t': { '@_xml:space': 'preserve' } },
+					],
+				},
+			},
+		};
+		const out: string[] = [];
+
+		collectLocalTextValues(obj, 't', out);
+
+		expect(out).toStrictEqual([' Sales ', 'Overview', '', '42', '']);
+	});
+
+	it('keeps walking a matching container instead of treating it as a leaf', () => {
+		const obj: XmlObject = {
+			'dgm:t': {
+				'#text': 'Container prefix ',
+				'a:p': {
+					'a:r': { 'a:t': { '#text': 'nested leaf', '@_xml:space': 'preserve' } },
+				},
+			},
+		};
+		const out: string[] = [];
+
+		collectLocalTextValues(obj, 't', out);
+
+		expect(out).toStrictEqual(['nested leaf']);
+	});
+
 	it('does nothing for undefined input', () => {
 		const out: string[] = [];
 		collectLocalTextValues(undefined, 't', out);

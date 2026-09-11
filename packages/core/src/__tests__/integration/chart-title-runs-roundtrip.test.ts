@@ -23,6 +23,48 @@ function findChart(data: PptxData): ChartPptxElement {
 	return el;
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+async function readChartXml(bytes: ArrayBuffer | Uint8Array): Promise<string> {
+	const zip = await JSZip.loadAsync(bytes);
+	const part = zip.file('ppt/charts/chart1.xml');
+	if (!part) {
+		throw new Error('chart part not found');
+	}
+	return part.async('string');
+}
+
+const ATTRIBUTED_TITLE_XML =
+	'<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p>' +
+	'<a:r><a:rPr lang="en-GB" b="1" sz="1800"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill><a:latin typeface="Aptos"/></a:rPr>' +
+	'<a:t xml:space="preserve">Sales </a:t></a:r>' +
+	'<a:r><a:rPr lang="fr-FR" i="1" sz="1400"><a:solidFill><a:srgbClr val="0000FF"/></a:solidFill></a:rPr>' +
+	'<a:t>Overview</a:t></a:r>' +
+	'</a:p></c:rich></c:tx><c:layout/><c:overlay val="0"/></c:title>';
+
+const EMPTY_ATTRIBUTED_FIRST_RUN_TITLE_XML =
+	'<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p>' +
+	'<a:r><a:rPr b="1"/><a:t xml:space="preserve"></a:t></a:r>' +
+	'<a:r><a:rPr i="1"/><a:t>Fallback</a:t></a:r>' +
+	'</a:p></c:rich></c:tx><c:layout/><c:overlay val="0"/></c:title>';
+
+async function buildAttributedTitleSeed(titleXml = ATTRIBUTED_TITLE_XML): Promise<ArrayBuffer> {
+	const zip = await JSZip.loadAsync(await buildSeed());
+	const part = zip.file('ppt/charts/chart1.xml');
+	if (!part) {
+		throw new Error('chart part not found');
+	}
+	const original = await part.async('string');
+	const replaced = original.replace(/<c:title>[\s\S]*?<\/c:title>/u, titleXml);
+	if (replaced === original) {
+		throw new Error('generated chart title was not found');
+	}
+	zip.file('ppt/charts/chart1.xml', replaced);
+	return toArrayBuffer(await zip.generateAsync({ type: 'uint8array' }));
+}
+
 async function buildSeed(): Promise<ArrayBuffer> {
 	const { handler, data, createSlide } = await PresentationBuilder.create({ initialSlideCount: 0 });
 	const slide = createSlide('Blank')
@@ -59,6 +101,78 @@ async function buildStyledSingleRunSeed(): Promise<ArrayBuffer> {
 }
 
 describe('chart title rich text (titleRuns): load -> edit -> save -> re-parse', () => {
+	it('keeps an attributed empty first leaf as the flat compatibility title', async () => {
+		const data = await new PptxHandler().load(
+			await buildAttributedTitleSeed(EMPTY_ATTRIBUTED_FIRST_RUN_TITLE_XML),
+		);
+		const chart = findChart(data);
+		expect(chart.chartData?.title).toBe('');
+		expect(chart.chartData?.titleRuns).toStrictEqual([
+			{ text: '', bold: true },
+			{ text: 'Fallback', italic: true },
+		]);
+	});
+
+	it('preserves an attributed first run through dirty and repeated saves', async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildAttributedTitleSeed());
+		const chart = findChart(data);
+		expect(chart.chartData?.title).toBe('Sales ');
+		expect(chart.chartData?.titleRuns).toStrictEqual([
+			{ text: 'Sales ', bold: true, color: '#FF0000', fontSize: 18 },
+			{ text: 'Overview', italic: true, color: '#0000FF', fontSize: 14 },
+		]);
+
+		// Force an unrelated slide-tree edit so the chart passes through the save
+		// path without changing its title model.
+		chart.x += 1;
+		const firstSaved = await handler.save(data.slides);
+		const firstXml = await readChartXml(firstSaved);
+		expect(firstXml).toContain('<a:t xml:space="preserve">Sales </a:t>');
+		expect(firstXml).toContain('lang="en-GB"');
+		expect(firstXml).toContain('<a:latin typeface="Aptos"');
+
+		const secondSaved = await handler.save(data.slides);
+		const secondXml = await readChartXml(secondSaved);
+		expect(secondXml).toContain('<a:t xml:space="preserve">Sales </a:t>');
+		expect(secondXml).toContain('lang="en-GB"');
+		expect(secondXml).toContain('<a:latin typeface="Aptos"');
+
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(toArrayBuffer(firstSaved));
+		const reloadedChart = findChart(reloaded);
+		expect(reloadedChart.chartData?.title).toBe('Sales ');
+		expect(reloadedChart.chartData?.titleRuns).toStrictEqual([
+			{ text: 'Sales ', bold: true, color: '#FF0000', fontSize: 18 },
+			{ text: 'Overview', italic: true, color: '#0000FF', fontSize: 14 },
+		]);
+
+		const resaved = await reloader.save(reloaded.slides);
+		await expect(readChartXml(resaved)).resolves.toContain(
+			'<a:t xml:space="preserve">Sales </a:t>',
+		);
+	});
+
+	it('keeps the existing flat-title replacement policy for an attributed title', async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildAttributedTitleSeed());
+		const chart = findChart(data);
+		chart.chartData!.title = 'Annual Summary';
+
+		const saved = await handler.save(data.slides);
+		const xml = await readChartXml(saved);
+		expect(xml).toContain('<a:t>Annual Summary</a:t>');
+		expect(xml).not.toContain('Sales ');
+		expect(xml).not.toContain('Overview');
+
+		const reparsed = await new PptxHandler().load(toArrayBuffer(saved));
+		const finalChart = findChart(reparsed);
+		expect(finalChart.chartData?.title).toBe('Annual Summary');
+		expect(finalChart.chartData?.titleRuns).toStrictEqual([
+			{ text: 'Annual Summary', bold: true, color: '#FF0000', fontSize: 18 },
+		]);
+	});
+
 	it('parses a single-run authored title into a matching one-entry titleRuns', async () => {
 		const handler = new PptxHandler();
 		const data = await handler.load(await buildSeed());
