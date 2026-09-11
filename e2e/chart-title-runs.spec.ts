@@ -22,20 +22,40 @@
  *
  * Run: bunx playwright test chart-title-runs
  */
+import { readFile } from 'node:fs/promises';
+
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
+import JSZip from 'jszip';
 
 import {
 	CHART_TITLE_RUN_1,
 	CHART_TITLE_RUN_2,
 	EDITED_TITLE,
 } from './fixtures/generate-chart-title-runs-fixture';
-import { fixture, inspector, loadDeck, selectElement } from './support/deck';
+import { savePptxViaBackstage } from './save-pptx';
+import {
+	fixture,
+	inspector,
+	loadDeck,
+	resetTabSession,
+	selectElement,
+	slideStage,
+	thumbnail,
+} from './support/deck';
 
 const CHART_FIXTURE = fixture('chart-title-runs.pptx');
 const ENTERED_TITLE = 'Committed with Enter';
 const CANCELLED_TITLE = 'Must not commit';
 const BLURRED_TITLE = 'Committed on blur';
+const CHART_GALLERY_FIXTURE = fixture('chart-gallery.pptx');
+const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
+interface DeckPayload {
+	name: string;
+	mimeType: string;
+	buffer: Buffer;
+}
 
 interface TitleTspan {
 	text: string;
@@ -112,6 +132,97 @@ function collectRuntimeErrors(page: Page): string[] {
 		}
 	});
 	return errors;
+}
+
+const classicAxisTitle =
+	'<c:title><c:tx><c:rich><a:bodyPr/><a:p><a:r><a:t xml:space="preserve">Quarter Axis</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>';
+const chartExAxisTitle =
+	'<cx:title><cx:tx><cx:rich><a:bodyPr/><a:p><a:r><a:t xml:space="preserve">Histogram Axis</a:t></a:r></a:p></cx:rich></cx:tx></cx:title>';
+
+/** Add schema-valid attributed classic and ChartEx axis titles to the public gallery in memory. */
+async function attributedAxisDeck(): Promise<DeckPayload> {
+	const zip = await JSZip.loadAsync(await readFile(CHART_GALLERY_FIXTURE));
+	const classicPart = zip.file('ppt/charts/chart1.xml');
+	const chartExPart = zip.file('ppt/charts/chart13.xml');
+	if (!classicPart || !chartExPart) {
+		throw new Error('the chart gallery is missing its classic or ChartEx part');
+	}
+
+	const classicXml = await classicPart.async('string');
+	const classicAnchor = '<c:axPos val="b"/>';
+	if (!classicXml.includes(classicAnchor)) {
+		throw new Error('the classic category-axis insertion point is missing');
+	}
+	zip.file(
+		'ppt/charts/chart1.xml',
+		classicXml.replace(classicAnchor, `${classicAnchor}${classicAxisTitle}`),
+	);
+
+	const chartExXml = await chartExPart.async('string');
+	const dataId = '<cx:dataId val="0"/>';
+	const plotRegionEnd = '</cx:plotAreaRegion>';
+	if (!chartExXml.includes(dataId) || !chartExXml.includes(plotRegionEnd)) {
+		throw new Error('the ChartEx axis insertion points are missing');
+	}
+	const withAxisReferences = chartExXml.replace(
+		dataId,
+		`${dataId}<cx:axisId>71001</cx:axisId><cx:axisId>71002</cx:axisId>`,
+	);
+	const axes = `<cx:axis id="71001"><cx:catScaling/>${chartExAxisTitle}<cx:tickLabels/></cx:axis><cx:axis id="71002"><cx:valScaling/><cx:tickLabels/></cx:axis>`;
+	zip.file(
+		'ppt/charts/chart13.xml',
+		withAxisReferences.replace(plotRegionEnd, `${plotRegionEnd}${axes}`),
+	);
+
+	return {
+		name: 'chart-attributed-axis-titles.pptx',
+		mimeType: PPTX_MIME,
+		buffer: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
+	};
+}
+
+async function loadAxisDeck(page: Page, deck: DeckPayload | string): Promise<void> {
+	await resetTabSession(page);
+	await page.goto('/');
+	await page.locator('#file-input').setInputFiles(deck);
+	await slideStage(page).waitFor();
+	await page.locator('[data-pptx-viewport] [data-element-id]').first().waitFor();
+}
+
+async function axisChart(page: Page, slideNumber: number): Promise<Locator> {
+	await thumbnail(page, slideNumber).click();
+	const chart = slideStage(page).locator('[aria-roledescription="chart"]').first();
+	await chart.waitFor();
+	await selectElement(page, chart);
+	await expect(inspector(page)).toBeVisible();
+	return chart;
+}
+
+async function visibleInputValues(page: Page): Promise<string[]> {
+	return inspector(page)
+		.locator('input:visible')
+		.evaluateAll((inputs) => inputs.map((input) => input.value));
+}
+
+async function visibleInputWithValue(page: Page, value: string): Promise<Locator> {
+	const inputs = inspector(page).locator('input:visible');
+	for (let index = 0; index < (await inputs.count()); index += 1) {
+		const input = inputs.nth(index);
+		if ((await input.inputValue()) === value) {
+			return input;
+		}
+	}
+	throw new Error(`no visible input has value ${JSON.stringify(value)}`);
+}
+
+async function svgTextCount(chart: Locator, value: string): Promise<number> {
+	const texts = await chart.locator('svg text').allTextContents();
+	return texts.filter((text) => text.trim() === value).length;
+}
+
+async function savedChartXml(path: string, part: string): Promise<string> {
+	const zip = await JSZip.loadAsync(await readFile(path));
+	return (await zip.file(part)?.async('string')) ?? '';
 }
 
 test.describe('chart title rich text (multi-run titles)', () => {
@@ -242,5 +353,66 @@ test.describe('chart title rich text (multi-run titles)', () => {
 			.poll(() => normalizedTitleText(target))
 			.toBe(`${CHART_TITLE_RUN_1}${CHART_TITLE_RUN_2}`);
 		expect(runtimeErrors).toStrictEqual([]);
+	});
+});
+
+test.describe('attributed chart-axis titles', () => {
+	test('renders, inspects, and safely saves attributed axis text', async ({ page }) => {
+		const deck = await attributedAxisDeck();
+		await loadAxisDeck(page, deck);
+
+		let classicChart = await axisChart(page, 1);
+		await expect.poll(() => svgTextCount(classicChart, 'Quarter Axis')).toBe(1);
+		await expect.poll(() => visibleInputValues(page)).toContain('Quarter Axis');
+
+		// ChartEx histogram currently exposes axis titles in the inspector but does
+		// not paint them on the chart surface, so the inspector is the UI contract.
+		await axisChart(page, 13);
+		await expect.poll(() => visibleInputValues(page)).toContain('Histogram Axis');
+
+		const noOpDownload = await savePptxViaBackstage(page);
+		const noOpPath = await noOpDownload.path();
+		expect(noOpPath, 'the browser should retain the no-op PPTX').not.toBeNull();
+		const noOpClassicXml = await savedChartXml(noOpPath!, 'ppt/charts/chart1.xml');
+		const noOpChartExXml = await savedChartXml(noOpPath!, 'ppt/charts/chart13.xml');
+		expect(noOpClassicXml).toContain('<a:t xml:space="preserve">Quarter Axis</a:t>');
+		expect(noOpChartExXml).toContain('<a:t xml:space="preserve">Histogram Axis</a:t>');
+		expect(noOpClassicXml).not.toContain('[object Object]');
+		expect(noOpChartExXml).not.toContain('[object Object]');
+
+		await loadAxisDeck(page, noOpPath!);
+		classicChart = await axisChart(page, 1);
+		await expect.poll(() => svgTextCount(classicChart, 'Quarter Axis')).toBe(1);
+		await expect.poll(() => visibleInputValues(page)).toContain('Quarter Axis');
+		await axisChart(page, 13);
+		await expect.poll(() => visibleInputValues(page)).toContain('Histogram Axis');
+
+		// Exercise the classic axis title's real edit and history path before
+		// saving the dirty chart and reloading the result.
+		classicChart = await axisChart(page, 1);
+		const axisTitle = await visibleInputWithValue(page, 'Quarter Axis');
+		await axisTitle.fill('Edited Axis');
+		await axisTitle.press('Tab');
+		await expect.poll(() => svgTextCount(classicChart, 'Edited Axis')).toBe(1);
+		const undo = page.getByRole('button', { name: 'Undo' });
+		const redo = page.getByRole('button', { name: 'Redo' });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expect.poll(() => svgTextCount(classicChart, 'Quarter Axis')).toBe(1);
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await expect.poll(() => svgTextCount(classicChart, 'Edited Axis')).toBe(1);
+
+		const dirtyDownload = await savePptxViaBackstage(page);
+		const dirtyPath = await dirtyDownload.path();
+		expect(dirtyPath, 'the browser should retain the dirty PPTX').not.toBeNull();
+		const dirtyClassicXml = await savedChartXml(dirtyPath!, 'ppt/charts/chart1.xml');
+		expect(dirtyClassicXml).toContain('>Edited Axis</a:t>');
+		expect(dirtyClassicXml).not.toContain('[object Object]');
+
+		await loadAxisDeck(page, dirtyPath!);
+		classicChart = await axisChart(page, 1);
+		await expect.poll(() => svgTextCount(classicChart, 'Edited Axis')).toBe(1);
+		await expect.poll(() => visibleInputValues(page)).toContain('Edited Axis');
 	});
 });

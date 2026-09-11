@@ -4,6 +4,7 @@ import { parseChartAxisLabelFormatting } from './chart-axis-label-formatting';
 import { parseChartAxisScaling } from './chart-axis-scaling';
 import { parseChartDateAxisUnits } from './chart-date-axis';
 import { parseShapeProps } from './chart-series-detail-parser';
+import { collectAllText } from './chart-title-xml-ops';
 
 export { upsertChartAxisChild } from './chart-axis-scaling';
 
@@ -83,7 +84,6 @@ function parseSingleAxis(
 		}
 	}
 
-	// Number format
 	const numFmtNode = xmlLookup.getChildByLocalName(axisNode, 'numFmt');
 	if (numFmtNode) {
 		const formatCode = String(numFmtNode['@_formatCode'] || '').trim();
@@ -95,11 +95,10 @@ function parseSingleAxis(
 		}
 	}
 
-	// Axis title
 	const titleNode = xmlLookup.getChildByLocalName(axisNode, 'title');
 	if (titleNode) {
 		const texts: string[] = [];
-		collectAxisTextValues(titleNode, texts);
+		collectAllText(titleNode, getLocalName, texts);
 		if (texts.length > 0) {
 			result.titleText = texts.join('');
 		}
@@ -298,26 +297,4 @@ export function parseChart3DSurfaces(
 	}
 
 	return result;
-}
-
-/** Recursively collect text values from axis title nodes. */
-function collectAxisTextValues(node: XmlObject, results: string[]): void {
-	if (node['a:t'] !== undefined) {
-		results.push(String(node['a:t']));
-	}
-	for (const key of Object.keys(node)) {
-		if (key.startsWith('@_')) {
-			continue;
-		}
-		const child = node[key];
-		if (Array.isArray(child)) {
-			for (const item of child) {
-				if (item && typeof item === 'object') {
-					collectAxisTextValues(item as XmlObject, results);
-				}
-			}
-		} else if (child && typeof child === 'object') {
-			collectAxisTextValues(child as XmlObject, results);
-		}
-	}
 }

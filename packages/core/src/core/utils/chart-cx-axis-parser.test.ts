@@ -56,6 +56,27 @@ const xmlLookup = {
 };
 
 describe('parseCxAxes (C2-G7)', () => {
+	it('reads attributed axis and display-unit titles through the same title resolver', () => {
+		const rich = (text: string): XmlObject => ({
+			'cx:tx': {
+				'cx:rich': { 'a:p': { 'a:r': { 'a:t': { '#text': text, '@_xml:space': 'preserve' } } } },
+			},
+		});
+		const [axis] = parseCxAxes(
+			{
+				'cx:axis': {
+					'@_id': '1',
+					'cx:valScaling': {},
+					'cx:title': rich(' Units '),
+					'cx:units': { '@_unit': '1000', 'cx:unitsLabel': rich(' Thousands ') },
+				},
+			},
+			xmlLookup,
+		)!;
+		expect(axis.titleText).toBe(' Units ');
+		expect(axis.displayUnitsLabel?.text).toBe(' Thousands ');
+	});
+
 	it('returns undefined when the plotArea has no cx:axis siblings', () => {
 		expect(parseCxAxes({ 'cx:plotAreaRegion': {} }, xmlLookup)).toBeUndefined();
 	});
@@ -185,6 +206,39 @@ describe('parseCxAxes (C2-G7)', () => {
 });
 
 describe('resolveCxTitleText', () => {
+	it('reads attributed text while retaining the existing paragraph join policy', () => {
+		const title: XmlObject = {
+			'cx:tx': {
+				'cx:rich': {
+					'a:p': [
+						{ 'a:r': { 'a:t': { '#text': ' Units ', '@_xml:space': 'preserve' } } },
+						{ 'a:fld': { 'a:t': { '#text': ' field ', '@_xml:space': 'preserve' } } },
+						{ 'a:r': { 'a:t': 'suffix' } },
+					],
+				},
+			},
+		};
+		const before = structuredClone(title);
+		expect(resolveCxTitleText(title, xmlLookup)).toBe(' Units  field suffix');
+		expect(title).toStrictEqual(before);
+	});
+
+	it.each([
+		[{ '@_xml:space': 'preserve' }, ''],
+		[{ '#text': '  ', '@_xml:space': 'preserve' }, '  '],
+		[0, '0'],
+		[false, 'false'],
+		['', ''],
+	] as const)('prefers present rich text over a cached fallback', (value, expected) => {
+		const title = {
+			'cx:tx': {
+				'cx:rich': { 'a:p': { 'a:r': { 'a:t': value } } },
+				'cx:txData': { 'cx:v': 'Cached title' },
+			},
+		};
+		expect(resolveCxTitleText(title, xmlLookup)).toBe(expected);
+	});
+
 	it('returns undefined for a missing title node', () => {
 		expect(resolveCxTitleText(undefined, xmlLookup)).toBeUndefined();
 	});
