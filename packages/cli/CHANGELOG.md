@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.13.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.4) - 2026-09-11
+
+### Bug Fixes
+
+- Read attributed table text without object coercion (by @Sudhansh6) ([a847293](https://github.com/ChristopherVR/pptx-viewer/commit/a8472933af6347df60b7068121ce15fd0d9b70c4))
+- **shared:** Clear absorbed table cell runs during cursor merge (by @Sudhansh6) ([bee91d7](https://github.com/ChristopherVR/pptx-viewer/commit/bee91d785183586be06dedf72da0660f119e3392))
+- **shared:** Render edited single-run chart titles (by @Sudhansh6) ([64d6712](https://github.com/ChristopherVR/pptx-viewer/commit/64d67121dc61c48da0eecb3dca26a7012dbd487e))
+
 ## [2.13.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.3) - 2026-09-11
 
 ### Bug Fixes

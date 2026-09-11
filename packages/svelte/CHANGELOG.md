@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.17.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.17.2) - 2026-09-11
+
+### Bug Fixes
+
+- Read attributed table text without object coercion (by @Sudhansh6) ([a847293](https://github.com/ChristopherVR/pptx-viewer/commit/a8472933af6347df60b7068121ce15fd0d9b70c4))
+- **shared:** Clear absorbed table cell runs during cursor merge (by @Sudhansh6) ([bee91d7](https://github.com/ChristopherVR/pptx-viewer/commit/bee91d785183586be06dedf72da0660f119e3392))
+- **svelte:** Focus the SmartArt node editor on entry (by @Sudhansh6) ([fcb0b45](https://github.com/ChristopherVR/pptx-viewer/commit/fcb0b451b1a07de05196fb14c0e884733d8a8eb0))
+- **core:** Read attributed chart axis titles (by @Sudhansh6) ([4aa3aa1](https://github.com/ChristopherVR/pptx-viewer/commit/4aa3aa1dfbaa21d087ce66f2ac2b15c4d86ea67f))
+- **shared:** Render edited single-run chart titles (by @Sudhansh6) ([64d6712](https://github.com/ChristopherVR/pptx-viewer/commit/64d67121dc61c48da0eecb3dca26a7012dbd487e))
+- **core:** Read attributed chart title text (by @Sudhansh6) ([1f47f85](https://github.com/ChristopherVR/pptx-viewer/commit/1f47f85417ce3cca33278cc17c6ef4d5cba5fe90))
+
 ## [3.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.17.1) - 2026-09-11
 
 ### Bug Fixes
