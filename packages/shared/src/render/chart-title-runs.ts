@@ -52,7 +52,8 @@ export interface ChartTitleRunSpan {
  * run still resolves to a one-element array: this lets a per-run override
  * (e.g. italic on the title's only run) render even when
  * `resolveChartTitleTextStyle`'s coarser `chartData.style.titleFont*` cascade
- * does not carry it.
+ * does not carry it. Its text follows the flat title so single-run edits
+ * render immediately while core retains the original run for lossless save.
  */
 export function resolveChartTitleRunSpans(
 	chartData: PptxChartData | undefined,
@@ -63,7 +64,7 @@ export function resolveChartTitleRunSpans(
 	}
 	const base = resolveChartTitleTextStyle(chartData);
 	return runs.map((run) => ({
-		text: run.text,
+		text: runs.length === 1 ? (chartData?.title ?? run.text) : run.text,
 		fontSize: run.fontSize !== undefined ? chartFontPx(run.fontSize) : base.fontSize,
 		fontWeight: run.bold !== undefined ? (run.bold ? 700 : 400) : base.fontWeight,
 		...(run.italic ? { fontStyle: 'italic' as const } : {}),

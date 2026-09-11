@@ -7,6 +7,7 @@
  * round-trips, and that the flat `title` path still works when `titleRuns`
  * is absent.
  */
+import JSZip from 'jszip';
 import { describe, it, expect, beforeAll } from 'vitest';
 
 import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
@@ -40,6 +41,23 @@ async function buildSeed(): Promise<ArrayBuffer> {
 	return seed.buffer.slice(seed.byteOffset, seed.byteOffset + seed.byteLength) as ArrayBuffer;
 }
 
+async function buildStyledSingleRunSeed(): Promise<ArrayBuffer> {
+	const zip = await JSZip.loadAsync(await buildSeed());
+	const path = 'ppt/charts/chart1.xml';
+	const part = zip.file(path);
+	if (!part) {
+		throw new Error(`missing part ${path}`);
+	}
+	const xml = await part.async('string');
+	const plainRun = '<a:r><a:t>Q4 Sales</a:t></a:r>';
+	const styledRun =
+		'<a:r><a:rPr lang="en-AU" altLang="fr-FR" dirty="0"><a:solidFill><a:schemeClr val="accent2"><a:lumMod val="75000"/></a:schemeClr></a:solidFill><a:latin typeface="+mj-lt"/></a:rPr><a:t>Q4 Sales</a:t></a:r>';
+	expect(xml, 'styled-title fixture precondition').toContain(plainRun);
+	zip.file(path, xml.replace(plainRun, styledRun));
+	const bytes = await zip.generateAsync({ type: 'uint8array' });
+	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
 describe('chart title rich text (titleRuns): load -> edit -> save -> re-parse', () => {
 	it('parses a single-run authored title into a matching one-entry titleRuns', async () => {
 		const handler = new PptxHandler();
@@ -47,6 +65,35 @@ describe('chart title rich text (titleRuns): load -> edit -> save -> re-parse', 
 		const chart = findChart(data);
 		expect(chart.chartData?.title).toBe('Q4 Sales');
 		expect(chart.chartData?.titleRuns).toStrictEqual([{ text: 'Q4 Sales' }]);
+	});
+
+	it('keeps unmodeled single-run formatting when only the flat title is edited', async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildStyledSingleRunSeed());
+		const chart = findChart(data);
+		expect(chart.chartData?.title).toBe('Q4 Sales');
+		expect(chart.chartData?.titleRuns?.map((run) => run.text)).toStrictEqual(['Q4 Sales']);
+
+		chart.chartData!.title = 'Annual Summary';
+		expect(chart.chartData!.titleRuns?.[0]?.text).toBe('Q4 Sales');
+		data.slides[0]!.isDirty = true;
+		const saved = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const xml = await zip.file('ppt/charts/chart1.xml')!.async('string');
+		expect(xml).toContain('lang="en-AU"');
+		expect(xml).toContain('altLang="fr-FR"');
+		expect(xml).toContain('dirty="0"');
+		expect(xml).toContain('<a:schemeClr val="accent2"><a:lumMod val="75000">');
+		expect(xml).toContain('<a:latin typeface="+mj-lt">');
+		expect(xml).toContain('<a:t>Annual Summary</a:t>');
+		expect(xml).not.toContain('<a:t>Q4 Sales</a:t>');
+
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedChart = findChart(reloaded);
+		expect(reloadedChart.chartData?.title).toBe('Annual Summary');
+		expect(reloadedChart.chartData?.titleRuns?.map((run) => run.text)).toStrictEqual([
+			'Annual Summary',
+		]);
 	});
 
 	describe('editing titleRuns to two differently-styled runs', () => {

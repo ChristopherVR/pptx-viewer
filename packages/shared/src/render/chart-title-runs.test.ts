@@ -1,4 +1,5 @@
-import type { PptxChartData } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
+import { setChartTitle } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { translationsEn } from '../i18n/translations-en';
@@ -46,6 +47,69 @@ describe('resolveChartTitleRunSpans', () => {
 		const spans = resolveChartTitleRunSpans(data);
 		expect(spans).toHaveLength(1);
 		expect(spans![0]).toMatchObject({ text: 'Sales Q1', fontStyle: 'italic' });
+	});
+
+	it('renders a title-only edit with the single run styling without mutating its saved metadata', () => {
+		const data = chart({
+			titleRuns: [{ text: 'Sales Q1', bold: true, italic: true, fontSize: 20, color: '#FF0000' }],
+			style: { titleFontFamily: 'Georgia' },
+		});
+		const original = structuredClone(data);
+		const edited = { ...data, ...collapseChartTitleRunsForEdit(data, 'Updated sales') };
+		expect(resolveChartTitleRunSpans(edited)).toStrictEqual([
+			{
+				text: 'Updated sales',
+				fontSize: 20 * (4 / 3),
+				fontWeight: 700,
+				fontStyle: 'italic',
+				fill: '#FF0000',
+				fontFamily: 'Georgia',
+			},
+		]);
+		expect(data).toStrictEqual(original);
+		expect(edited.titleRuns).toBe(data.titleRuns);
+	});
+
+	it.each([
+		['API title', 'API title'],
+		['', ''],
+		[undefined, 'Sales Q1'],
+	])('resolves a single run with flat title %s', (title, expected) => {
+		const data = chart({ title, titleRuns: [{ text: 'Sales Q1', italic: true }] });
+		expect(resolveChartTitleRunSpans(data)?.[0]).toMatchObject({
+			text: expected,
+			fontStyle: 'italic',
+		});
+	});
+
+	it('does not replace individual multi-run text with the flat first-run title', () => {
+		const data = chart({
+			title: 'Sales ',
+			titleRuns: [
+				{ text: 'Sales ', bold: true },
+				{ text: 'Q1', italic: true },
+			],
+		});
+		expect(resolveChartTitleRunSpans(data)?.map((run) => run.text)).toStrictEqual(['Sales ', 'Q1']);
+		expect(resolveChartTitleRunSpans(chart({ titleRuns: [] }))).toBeUndefined();
+	});
+
+	it('renders a public SDK title-only update without rewriting the single run', () => {
+		const element: ChartPptxElement = {
+			id: 'chart',
+			type: 'chart',
+			x: 0,
+			y: 0,
+			width: 500,
+			height: 300,
+			chartData: chart({ titleRuns: [{ text: 'Sales Q1', bold: true }] }),
+		};
+		setChartTitle(element, 'Annual sales');
+		expect(resolveChartTitleRunSpans(element.chartData)?.[0]).toMatchObject({
+			text: 'Annual sales',
+			fontWeight: 700,
+		});
+		expect(element.chartData?.titleRuns?.[0]?.text).toBe('Sales Q1');
 	});
 });
 

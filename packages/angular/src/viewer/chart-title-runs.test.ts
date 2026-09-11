@@ -47,6 +47,26 @@ describe('chartRendererComponent data source: chart title rich text (titleRunSpa
 		]);
 	});
 
+	it('uses an edited flat title as the text of its existing single styled run', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			title: 'Annual Summary',
+			categories: ['Q1'],
+			series: [{ name: 'Revenue', values: [10] }],
+			style: { hasTitle: true },
+			titleRuns: [{ text: 'Old title', italic: true }],
+		});
+		expect(buildChartViewModel(element).titleRunSpans).toStrictEqual([
+			{
+				text: 'Annual Summary',
+				fontSize: 12,
+				fontWeight: 600,
+				fontStyle: 'italic',
+				fill: '#1e293b',
+			},
+		]);
+	});
+
 	it('leaves vm.titleRunSpans undefined when the title has no typed runs', () => {
 		const element = chartElement({
 			chartType: 'bar',
