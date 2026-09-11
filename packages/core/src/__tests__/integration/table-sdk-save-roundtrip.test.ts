@@ -40,6 +40,33 @@ async function buildDeckWithRichTableCell(): Promise<Uint8Array> {
 	return zip.generateAsync({ type: 'uint8array' });
 }
 
+const ATTRIBUTED_CELL_BODY =
+	'<a:txBody><a:bodyPr/><a:lstStyle/><a:p>' +
+	'<a:r><a:rPr lang="en-US" b="1"/><a:t xml:space="preserve"> Lead </a:t></a:r>' +
+	'<a:fld id="{AAAA0000-0000-4000-A000-000000000001}" type="slidenum"><a:rPr/><a:t xml:space="preserve"> Field </a:t></a:fld>' +
+	'<a:r><a:rPr lang="en-US" i="1"/><a:t xml:space="preserve"> Tail </a:t></a:r>' +
+	'<a:endParaRPr lang="en-US"/></a:p></a:txBody>';
+
+async function buildDeckWithAttributedTableCell(): Promise<Uint8Array> {
+	const { handler, data, createSlide } = await PresentationBuilder.create();
+	data.slides.push(
+		createSlide('Blank')
+			.addTable(
+				{ rows: [{ cells: [{ text: 'AttributedFixture' }] }] },
+				{ x: 20, y: 20, width: 400, height: 80 },
+			)
+			.build(),
+	);
+	const zip = await JSZip.loadAsync(await handler.save(data.slides));
+	const path = 'ppt/slides/slide1.xml';
+	const xml = await zip.file(path)!.async('string');
+	const fixtureBody =
+		/<a:txBody>(?:(?!<\/a:txBody>)[\s\S])*?<a:t>AttributedFixture<\/a:t>(?:(?!<\/a:txBody>)[\s\S])*?<\/a:txBody>/;
+	expect(xml, 'fixture precondition: attributed-cell marker body').toMatch(fixtureBody);
+	zip.file(path, xml.replace(fixtureBody, ATTRIBUTED_CELL_BODY));
+	return zip.generateAsync({ type: 'uint8array' });
+}
+
 /**
  * Regression test for SDK-created tables being silently dropped on save.
  *
@@ -50,6 +77,77 @@ async function buildDeckWithRichTableCell(): Promise<Uint8Array> {
  * `SAVE_ELEMENT_SKIPPED` warning. The saved slide had an empty `p:spTree`.
  */
 describe('sDK-created table survives save round-trip', () => {
+	it('preserves attributed rich text after a non-text table edit', async () => {
+		let handler = new PptxHandler();
+		let loaded = await handler.load(
+			(await buildDeckWithAttributedTableCell()).buffer as ArrayBuffer,
+		);
+		let table = loaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		const cell = table.tableData!.rows[0].cells[0];
+
+		// Keep the established flat-cell policy (runs first, then fields), while
+		// the rich run model retains the authored run/field/run order.
+		expect(cell.text).toBe(' Lead  Tail  Field ');
+		expect(cell.textRuns).toStrictEqual([
+			{ text: ' Lead ', bold: true },
+			{ text: ' Field ', isField: true },
+			{ text: ' Tail ', italic: true },
+		]);
+
+		table.x += 1;
+		const saved = await handler.save(loaded.slides);
+		const zip = await JSZip.loadAsync(saved);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		const lead = slideXml.indexOf('<a:t xml:space="preserve"> Lead </a:t>');
+		const field = slideXml.indexOf('<a:t xml:space="preserve"> Field </a:t>');
+		const tail = slideXml.indexOf('<a:t xml:space="preserve"> Tail </a:t>');
+		expect(lead).toBeGreaterThan(-1);
+		expect(field).toBeGreaterThan(lead);
+		expect(tail).toBeGreaterThan(field);
+
+		handler = new PptxHandler();
+		loaded = await handler.load(saved.buffer as ArrayBuffer);
+		table = loaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		expect(table.tableData!.rows[0].cells[0]).toMatchObject({
+			text: ' Lead  Tail  Field ',
+			textRuns: [
+				{ text: ' Lead ', bold: true },
+				{ text: ' Field ', isField: true },
+				{ text: ' Tail ', italic: true },
+			],
+		});
+	});
+
+	it('still replaces attributed rich text after a genuine cell edit', async () => {
+		const handler = new PptxHandler();
+		const loaded = await handler.load(
+			(await buildDeckWithAttributedTableCell()).buffer as ArrayBuffer,
+		);
+		const table = loaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		const cell = table.tableData!.rows[0].cells[0];
+		cell.text = 'Edited table text';
+		delete cell.textRuns;
+
+		const saved = await handler.save(loaded.slides);
+		const reloaded = await new PptxHandler().load(saved.buffer as ArrayBuffer);
+		const reloadedTable = reloaded.slides[0].elements.find(
+			(element) => element.type === 'table',
+		) as TablePptxElement;
+		expect(reloadedTable.tableData!.rows[0].cells[0].text).toBe('Edited table text');
+		const zip = await JSZip.loadAsync(saved);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(slideXml).toContain('<a:t>Edited table text</a:t>');
+		expect(slideXml).not.toContain(' Lead ');
+		expect(slideXml).not.toContain(' Field ');
+		expect(slideXml).not.toContain(' Tail ');
+	});
+
 	it.each(
 		(['row', 'column'] as const).flatMap((axis) =>
 			(['insert', 'delete'] as const).flatMap((action) =>

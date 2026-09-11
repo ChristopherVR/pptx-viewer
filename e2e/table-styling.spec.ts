@@ -51,6 +51,7 @@ import {
 	menuIsOpen,
 	openMenuAt,
 	openMenuOn,
+	selectTableCell,
 } from './support/context-menu';
 import { resetTabSession } from './support/deck';
 
@@ -248,6 +249,27 @@ async function verticallyMergedTableDeck(): Promise<DeckPayload> {
 	zip.file(slidePath, xml.replace(first, patchedFirst).replace(second, patchedSecond));
 	return {
 		name: 'table-vertical-merge.pptx',
+		mimeType: PPTX_MIME,
+		buffer: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
+	};
+}
+
+/** Add the whitespace attribute that makes fast-xml-parser expose `a:t` as an object. */
+async function attributedTableTextDeck(): Promise<DeckPayload> {
+	const zip = await JSZip.loadAsync(await readFile(fixturePath));
+	const slidePath = 'ppt/slides/slide4.xml';
+	const slide = zip.file(slidePath);
+	if (!slide) {
+		throw new Error(`${slidePath} is missing from the table styling fixture`);
+	}
+	const xml = await slide.async('string');
+	const authoredRun = '<a:t>Revenue </a:t>';
+	if (!xml.includes(authoredRun)) {
+		throw new Error('the expected Revenue run is missing from slide 4');
+	}
+	zip.file(slidePath, xml.replace(authoredRun, '<a:t xml:space="preserve">Revenue </a:t>'));
+	return {
+		name: 'table-attributed-text.pptx',
 		mimeType: PPTX_MIME,
 		buffer: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
 	};
@@ -628,6 +650,69 @@ test.describe('table styling', () => {
 		const reloadedCell = reloaded.cells.find((candidate) => candidate.text === 'Fractional cell');
 		expect(reloadedCell, 'the saved edit should survive reloading').toBeTruthy();
 		expect(reloadedCell!.fontSize).toBeCloseTo(14, 2);
+	});
+
+	test('renders attributed table text and preserves it through save', async ({ page }) => {
+		await loadDeck(page, await attributedTableTextDeck());
+		await gotoSlide(page, 4);
+		let cell = canvasCell(page, 'Revenue grew 42%');
+		await expect(cell).toBeVisible();
+		expect(await cell.locator('span').allTextContents()).toEqual(['Revenue ', 'grew 42%']);
+
+		const cellBox = await cell.boundingBox();
+		expect(cellBox, 'the attributed table cell should have a layout box').not.toBeNull();
+		await page.mouse.dblclick(cellBox!.x + cellBox!.width / 2, cellBox!.y + cellBox!.height / 2);
+		const input = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('td input')
+			.first();
+		await expect(input).toHaveValue('Revenue grew 42%');
+		await input.press('Escape');
+
+		const noOpDownload = await savePptxViaBackstage(page);
+		const noOpPath = await noOpDownload.path();
+		expect(noOpPath, 'the browser should retain the downloaded PPTX').not.toBeNull();
+		const noOpZip = await JSZip.loadAsync(await readFile(noOpPath!));
+		const noOpXml = await noOpZip.file('ppt/slides/slide4.xml')?.async('string');
+		expect(noOpXml).toContain('<a:t xml:space="preserve">Revenue </a:t>');
+
+		await loadDeck(page, noOpPath!);
+		await gotoSlide(page, 4);
+		cell = canvasCell(page, 'Revenue grew 42%');
+		await expect(cell).toBeVisible();
+		expect(await cell.locator('span').allTextContents()).toEqual(['Revenue ', 'grew 42%']);
+
+		const reloadedBox = await cell.boundingBox();
+		expect(reloadedBox, 'the reloaded table cell should have a layout box').not.toBeNull();
+		await page.mouse.dblclick(
+			reloadedBox!.x + reloadedBox!.width / 2,
+			reloadedBox!.y + reloadedBox!.height / 2,
+		);
+		const reloadedInput = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('td input')
+			.first();
+		await expect(reloadedInput).toHaveValue('Revenue grew 42%');
+		await reloadedInput.fill('Edited attributed cell');
+		await reloadedInput.press('Enter');
+		await expect(canvasCell(page, 'Edited attributed cell')).toBeVisible();
+		const undo = page.getByRole('button', { name: 'Undo' });
+		const redo = page.getByRole('button', { name: 'Redo' });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expect(canvasCell(page, 'Revenue grew 42%')).toBeVisible();
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await expect(canvasCell(page, 'Edited attributed cell')).toBeVisible();
+
+		const editDownload = await savePptxViaBackstage(page);
+		const editPath = await editDownload.path();
+		expect(editPath, 'the browser should retain the edited PPTX').not.toBeNull();
+		await loadDeck(page, editPath!);
+		await gotoSlide(page, 4);
+		await expect(canvasCell(page, 'Edited attributed cell')).toBeVisible();
 	});
 
 	test('keeps rich cell runs aligned after inserting a middle row', async ({ page }) => {

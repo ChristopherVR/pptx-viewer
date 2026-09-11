@@ -28,6 +28,24 @@ function fixture() {
 }
 
 describe('table paragraph save order', () => {
+	it('matches attributed text on cloned XML and preserves its nodes and order', () => {
+		const { cell, paragraph } = fixture();
+		for (const node of [...(paragraph['a:r'] as XmlObject[]), paragraph['a:fld'] as XmlObject]) {
+			node['a:t'] = { '#text': node['a:t'], '@_xml:space': 'preserve' };
+		}
+		const cloned = structuredClone(cell);
+		const before = structuredClone(cloned);
+		recordTableParagraphOrder(cloned, runs);
+		const ordered = withOrderedTableParagraphs(cloned);
+		expect(ordered).not.toBe(cloned);
+		expect(cloned).toStrictEqual(before);
+		const xml = new PptxRuntimeDependencyFactory().createBuilder().build(ordered);
+		expect(xml.match(/xml:space="preserve"/g)).toHaveLength(3);
+		expect(xml.indexOf('Page ')).toBeLessThan(xml.indexOf('slidenum'));
+		expect(xml.indexOf('slidenum')).toBeLessThan(xml.indexOf('<a:br'));
+		expect(xml.indexOf('<a:br')).toBeLessThan(xml.indexOf('of 10'));
+	});
+
 	it('uses the actual cached parse for untouched tables, without changing other paragraphs', () => {
 		const factory = new PptxRuntimeDependencyFactory();
 		const xml =

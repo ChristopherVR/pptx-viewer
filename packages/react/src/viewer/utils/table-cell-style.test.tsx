@@ -75,6 +75,29 @@ describe('extractCellText', () => {
 		expect(extractCellText(cellXml)).toBe('Text 123');
 	});
 
+	it('extracts attributed run and field text with boundary spaces', () => {
+		const cellXml = {
+			'a:txBody': {
+				'a:p': {
+					'a:r': { 'a:t': { '#text': ' Run ', '@_xml:space': 'preserve' } },
+					'a:fld': { 'a:t': { '#text': ' Field ', '@_xml:space': 'preserve' } },
+				},
+			},
+		};
+		expect(extractCellText(cellXml)).toBe(' Run  Field ');
+	});
+
+	it('treats an attributed text node without #text as empty', () => {
+		const cellXml = {
+			'a:txBody': {
+				'a:p': {
+					'a:r': { 'a:t': { '@_xml:space': 'preserve' } },
+				},
+			},
+		};
+		expect(extractCellText(cellXml)).toBe('');
+	});
+
 	it('converts non-string text values to string', () => {
 		const cellXml = {
 			'a:txBody': {

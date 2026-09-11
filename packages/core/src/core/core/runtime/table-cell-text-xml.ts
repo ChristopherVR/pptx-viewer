@@ -1,4 +1,5 @@
 import type { XmlObject } from '../../types';
+import { xmlText } from '../../utils';
 import { ensureArray as toArray } from './table-structural-helpers';
 
 type EnsureArray = (value: unknown) => XmlObject[];
@@ -26,10 +27,10 @@ export function flattenCellTxBodyText(
 		const fields = ensureArray((paragraph as XmlObject)?.['a:fld']);
 		let lineText = '';
 		for (const run of runs) {
-			lineText += String((run as XmlObject)?.['a:t'] ?? '');
+			lineText += xmlText((run as XmlObject)?.['a:t']) ?? '';
 		}
 		for (const field of fields) {
-			lineText += String((field as XmlObject)?.['a:t'] ?? '');
+			lineText += xmlText((field as XmlObject)?.['a:t']) ?? '';
 		}
 		lines.push(lineText);
 	}

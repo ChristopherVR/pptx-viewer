@@ -5,6 +5,7 @@ import type {
 	PptxTableRow,
 	XmlObject,
 } from '../../types';
+import { xmlText } from '../../utils';
 import { parseTableEffectChain } from '../runtime/table-style-effect-parse';
 import { parseTablePropertiesFill } from '../runtime/table-style-fill-parse';
 import { applyCell3DStyle } from './table-cell-3d-helpers';
@@ -251,10 +252,10 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 			let lineText = '';
 
 			for (const run of runs) {
-				lineText += String(run?.['a:t'] ?? '');
+				lineText += xmlText(run?.['a:t']) ?? '';
 			}
 			for (const field of fields) {
-				lineText += String(field?.['a:t'] ?? '');
+				lineText += xmlText(field?.['a:t']) ?? '';
 			}
 			lines.push(lineText);
 		}

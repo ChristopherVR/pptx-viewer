@@ -21,6 +21,7 @@
  * @module table-cell-runs
  */
 import type { PptxTableCellTextRun, XmlObject } from '../../types';
+import { xmlText } from '../../utils';
 import { paragraphContentEntries } from '../runtime/paragraph-sibling-order';
 
 /** Content children of an `a:p` that contribute to a cell's rendered text. */
@@ -113,7 +114,7 @@ export function extractTableCellTextRuns(
 				continue;
 			}
 			const node = item as XmlObject | undefined;
-			const run: PptxTableCellTextRun = { text: String(node?.['a:t'] ?? '') };
+			const run: PptxTableCellTextRun = { text: xmlText(node?.['a:t']) ?? '' };
 			if (tag === 'a:fld') {
 				run.isField = true;
 			}
