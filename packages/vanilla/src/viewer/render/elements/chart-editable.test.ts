@@ -275,6 +275,18 @@ describe('vanilla chart title double-click rename', () => {
 		target.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
 	}
 
+	/** Model the browser's synchronous blur when a focused editor is removed. */
+	function blurDuringRemove(input: HTMLInputElement) {
+		const nativeRemove = input.remove.bind(input);
+		const remove = vi.spyOn(input, 'remove').mockImplementation(() => {
+			if (remove.mock.calls.length === 1) {
+				input.dispatchEvent(new FocusEvent('blur'));
+			}
+			nativeRemove();
+		});
+		return remove;
+	}
+
 	it('opens an input pre-filled with the current title on double-click', () => {
 		const onChartPointChange = vi.fn();
 		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
@@ -306,6 +318,25 @@ describe('vanilla chart title double-click rename', () => {
 		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
 	});
 
+	it('commits once when removing the editor synchronously fires blur during Enter', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const titleNode = container?.querySelector('[data-chart-part="title"]') as SVGElement;
+
+		dblclick(titleNode);
+		const input = container?.querySelector('.pptxv-chart-title-input') as HTMLInputElement;
+		input.value = 'Quarterly Sales';
+		const remove = blurDuringRemove(input);
+
+		expect(() =>
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })),
+		).not.toThrow();
+		expect(remove).toHaveBeenCalledOnce();
+		expect(onChartPointChange).toHaveBeenCalledOnce();
+		expect(onChartPointChange.mock.calls[0][1].title).toBe('Quarterly Sales');
+	});
+
 	it('cancels on Escape without committing', () => {
 		const onChartPointChange = vi.fn();
 		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
@@ -318,6 +349,54 @@ describe('vanilla chart title double-click rename', () => {
 		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
 		expect(onChartPointChange).not.toHaveBeenCalled();
+		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
+	});
+
+	it('does not commit when removing the editor synchronously fires blur during Escape', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const titleNode = container?.querySelector('[data-chart-part="title"]') as SVGElement;
+
+		dblclick(titleNode);
+		const input = container?.querySelector('.pptxv-chart-title-input') as HTMLInputElement;
+		input.value = 'Discarded';
+		const remove = blurDuringRemove(input);
+
+		expect(() =>
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+		).not.toThrow();
+		expect(remove).toHaveBeenCalledOnce();
+		expect(onChartPointChange).not.toHaveBeenCalled();
+	});
+
+	it('cleans up an old editor without committing and ignores its stale events after reopening', () => {
+		const onChartPointChange = vi.fn();
+		const container = renderChartElement(titled, 1, makeContext({ onChartPointChange }));
+		document.body.appendChild(container as HTMLElement);
+		const titleNode = container?.querySelector('[data-chart-part="title"]') as SVGElement;
+
+		dblclick(titleNode);
+		const oldInput = container?.querySelector('.pptxv-chart-title-input') as HTMLInputElement;
+		oldInput.value = 'Stale title';
+		const oldRemove = blurDuringRemove(oldInput);
+		dblclick(titleNode);
+		const currentInput = container?.querySelector('.pptxv-chart-title-input') as HTMLInputElement;
+
+		expect(currentInput).not.toBe(oldInput);
+		expect(oldRemove).toHaveBeenCalledOnce();
+		expect(onChartPointChange).not.toHaveBeenCalled();
+		oldInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(onChartPointChange).not.toHaveBeenCalled();
+		expect(container?.querySelector('.pptxv-chart-title-input')).toBe(currentInput);
+		oldInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		expect(onChartPointChange).not.toHaveBeenCalled();
+		expect(container?.querySelector('.pptxv-chart-title-input')).toBe(currentInput);
+
+		currentInput.value = 'Current title';
+		currentInput.dispatchEvent(new FocusEvent('blur'));
+		expect(onChartPointChange).toHaveBeenCalledOnce();
+		expect(onChartPointChange.mock.calls[0][1].title).toBe('Current title');
 		expect(container?.querySelector('.pptxv-chart-title-input')).toBeNull();
 	});
 

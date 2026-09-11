@@ -20,6 +20,7 @@ import {
 import type { ChartMarkDragState, ChartPartRef, ChartValueDragState } from 'pptx-viewer-shared';
 
 import type { ElementRenderContext } from '../types';
+import { createChartTitleEditor } from './chart-title-editor';
 
 /**
  * chart-editable: direct on-canvas chart editing for the vanilla binding, the
@@ -89,7 +90,6 @@ export function attachChartEditing(
 	let selected: ChartPartRef | null =
 		context.chartPartSelection?.elementId === element.id ? context.chartPartSelection.part : null;
 	let badge: HTMLElement | null = null;
-	let titleInput: HTMLInputElement | null = null;
 	applyChartPartHighlight(container, selected);
 
 	const showBadge = (text: string): void => {
@@ -184,52 +184,11 @@ export function attachChartEditing(
 		}
 	}
 
-	const closeTitleEditor = (): void => {
-		titleInput?.remove();
-		titleInput = null;
-	};
-
-	/**
-	 * Open an inline `<input>` over the chart title, the vanilla port of React's
-	 * / Vue's title editor overlay. Committed on Enter/blur, cancelled on
-	 * Escape; the commit routes through the SAME `onChartPointChange` path a
-	 * dragged data point uses, since both are just a `chartData` patch.
-	 */
-	const openTitleEditor = (): void => {
-		closeTitleEditor();
-		if (!chart.chartData) {
-			return;
-		}
-		const doc = container.ownerDocument;
-		titleInput = doc.createElement('input');
-		titleInput.type = 'text';
-		titleInput.className = 'pptxv-chart-title-input';
-		titleInput.value = chart.chartData.title ?? '';
-		const commitTitle = (): void => {
-			const value = titleInput?.value ?? '';
-			closeTitleEditor();
-			if (!chart.chartData) {
-				return;
-			}
+	const openTitleEditor = createChartTitleEditor(container, (value) => {
+		if (chart.chartData) {
 			context.onChartPointChange?.(element, withChartTitle(chart.chartData, value));
-		};
-		titleInput.addEventListener('blur', commitTitle, { once: true });
-		titleInput.addEventListener('keydown', (keyEvent) => {
-			if (keyEvent.key === 'Enter') {
-				keyEvent.preventDefault();
-				commitTitle();
-			} else if (keyEvent.key === 'Escape') {
-				keyEvent.preventDefault();
-				closeTitleEditor();
-			}
-			keyEvent.stopPropagation();
-		});
-		titleInput.addEventListener('pointerdown', (pointerEvent) => pointerEvent.stopPropagation());
-		titleInput.addEventListener('dblclick', (dblEvent) => dblEvent.stopPropagation());
-		container.appendChild(titleInput);
-		titleInput.focus();
-		titleInput.select();
-	};
+		}
+	});
 
 	container.addEventListener('dblclick', (event: MouseEvent) => {
 		const target = event.target;
@@ -238,7 +197,9 @@ export function attachChartEditing(
 		}
 		if (target.closest("[data-chart-part='title']")) {
 			event.stopPropagation();
-			openTitleEditor();
+			if (chart.chartData) {
+				openTitleEditor(chart.chartData.title ?? '');
+			}
 			return;
 		}
 		if (findChartPartTarget(event.target)) {
