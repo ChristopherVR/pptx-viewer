@@ -23,7 +23,7 @@
  * Run: bunx playwright test chart-title-runs
  */
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import {
 	CHART_TITLE_RUN_1,
@@ -33,6 +33,9 @@ import {
 import { fixture, inspector, loadDeck, selectElement } from './support/deck';
 
 const CHART_FIXTURE = fixture('chart-title-runs.pptx');
+const ENTERED_TITLE = 'Committed with Enter';
+const CANCELLED_TITLE = 'Must not commit';
+const BLURRED_TITLE = 'Committed on blur';
 
 interface TitleTspan {
 	text: string;
@@ -70,6 +73,45 @@ async function openChart(page: Page): Promise<void> {
 		.first()
 		.waitFor();
 	await page.waitForTimeout(300);
+}
+
+function chartLocator(page: Page): Locator {
+	return page
+		.locator('[aria-roledescription="slide"]')
+		.first()
+		.locator('[aria-roledescription="chart"]')
+		.first();
+}
+
+async function openTitleEditor(target: Locator): Promise<Locator> {
+	const title = target.locator('[data-chart-part="title"]');
+	const box = await title.boundingBox();
+	if (!box) {
+		throw new Error('chart title has no browser hit target');
+	}
+	await title.dblclick({
+		position: { x: Math.max(1, box.width / 8), y: box.height / 2 },
+	});
+	const input = target.locator('input:visible').first();
+	await expect(input).toBeVisible();
+	return input;
+}
+
+async function normalizedTitleText(target: Locator): Promise<string> {
+	return ((await target.locator('[data-chart-part="title"]').textContent()) ?? '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function collectRuntimeErrors(page: Page): string[] {
+	const errors: string[] = [];
+	page.on('pageerror', (error) => errors.push(`${error.name}: ${error.message}`));
+	page.on('console', (message) => {
+		if (message.type() === 'error' && /NotFoundError|closeTitleEditor/.test(message.text())) {
+			errors.push(message.text());
+		}
+	});
+	return errors;
 }
 
 test.describe('chart title rich text (multi-run titles)', () => {
@@ -124,5 +166,81 @@ test.describe('chart title rich text (multi-run titles)', () => {
 
 		const tspans = await titleTspans(page);
 		expect(tspans.length, 'a collapsed multi-run title must render as a single run').toBe(1);
+	});
+
+	test('commits an on-canvas title edit once on Enter and can reopen it', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await openChart(page);
+		const target = chartLocator(page);
+		await selectElement(page, target);
+
+		const input = await openTitleEditor(target);
+		await input.fill(ENTERED_TITLE);
+		await input.press('Enter');
+		await expect(target.locator('input:visible')).toHaveCount(0);
+		await expect.poll(() => normalizedTitleText(target)).toBe(ENTERED_TITLE);
+
+		const reopened = await openTitleEditor(target);
+		await expect(reopened).toHaveValue(ENTERED_TITLE);
+		await reopened.press('Escape');
+		await expect(target.locator('input:visible')).toHaveCount(0);
+
+		const undo = page.getByRole('button', { name: 'Undo' });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expect
+			.poll(() => normalizedTitleText(target))
+			.toBe(`${CHART_TITLE_RUN_1}${CHART_TITLE_RUN_2}`);
+		expect(runtimeErrors).toStrictEqual([]);
+	});
+
+	test('cancels an on-canvas title edit on Escape and can reopen it', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await openChart(page);
+		const target = chartLocator(page);
+		await selectElement(page, target);
+
+		const input = await openTitleEditor(target);
+		await input.fill(CANCELLED_TITLE);
+		await input.press('Escape');
+		await expect(target.locator('input:visible')).toHaveCount(0);
+		await expect
+			.poll(() => normalizedTitleText(target))
+			.toBe(`${CHART_TITLE_RUN_1}${CHART_TITLE_RUN_2}`);
+
+		const reopened = await openTitleEditor(target);
+		await expect(reopened).toHaveValue(CHART_TITLE_RUN_1);
+		await reopened.press('Escape');
+		await expect(target.locator('input:visible')).toHaveCount(0);
+		expect(runtimeErrors).toStrictEqual([]);
+	});
+
+	test('commits an on-canvas title edit once on blur and can reopen it', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await openChart(page);
+		const target = chartLocator(page);
+		await selectElement(page, target);
+
+		const input = await openTitleEditor(target);
+		await input.fill(BLURRED_TITLE);
+		await page
+			.getByRole('toolbar', { name: 'Presentation toolbar' })
+			.getByRole('tab', { name: 'Home', exact: true })
+			.click();
+		await expect(target.locator('input:visible')).toHaveCount(0);
+		await expect.poll(() => normalizedTitleText(target)).toBe(BLURRED_TITLE);
+
+		const reopened = await openTitleEditor(target);
+		await expect(reopened).toHaveValue(BLURRED_TITLE);
+		await reopened.press('Escape');
+		await expect(target.locator('input:visible')).toHaveCount(0);
+
+		const undo = page.getByRole('button', { name: 'Undo' });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expect
+			.poll(() => normalizedTitleText(target))
+			.toBe(`${CHART_TITLE_RUN_1}${CHART_TITLE_RUN_2}`);
+		expect(runtimeErrors).toStrictEqual([]);
 	});
 });
