@@ -1,6 +1,8 @@
 import type { PptxChartData, PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import type { ElementAnimationState, RenderParagraph } from 'pptx-viewer-shared';
 
+import type { SmartArtView } from '../render';
+
 /**
  * Prop contracts for the element-level renderers (the per-`PptxElement` views
  * and the shared text block). Split out of `props.ts` to keep every source
@@ -121,6 +123,14 @@ export interface ElementRendererProps {
 	ontableresizecolumns?: (elementId: string, widths: number[]) => void;
 	/** Commit one row's new pixel height after a row-boundary drag. */
 	ontableresizerow?: (elementId: string, rowIndex: number, height: number) => void;
+}
+
+/** Stateless cached drawing branch of the SmartArt renderer. */
+export interface SmartArtDrawingViewProps {
+	view: Extract<SmartArtView, { kind: 'drawing' }>;
+	canEditNodeText: boolean;
+	onopeneditor: (event: MouseEvent, nodeId: string | undefined) => void;
+	onshowstyle: (event: MouseEvent, nodeId: string | undefined) => void;
 }
 
 export interface TextBlockProps {

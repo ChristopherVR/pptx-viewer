@@ -14,9 +14,10 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
-import { resetTabSession } from './support/deck';
+import { savePptxViaBackstage } from './save-pptx';
+import { loadDeck as loadDeckFile, resetTabSession } from './support/deck';
 
 const fixturePath = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)));
 
@@ -81,6 +82,139 @@ async function openInspector(page: Page): Promise<void> {
 		await page.waitForTimeout(200);
 	}
 	await expect(inspector).toBeVisible();
+}
+
+function currentSmartArt(page: Page): Locator {
+	return page.locator('[data-pptx-viewport] [data-testid^="smartart-"]').first();
+}
+
+function firstSmartArtNode(smartArt: Locator): Locator {
+	return smartArt.locator('[data-smartart-node-id]').first();
+}
+
+async function renderedNodeText(smartArt: Locator): Promise<string> {
+	const labels = await firstSmartArtNode(smartArt).locator('text').allTextContents();
+	return labels.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+async function unobstructedNodePoint(node: Locator): Promise<{ x: number; y: number }> {
+	const point = await node.evaluate((element) => {
+		const box = element.getBoundingClientRect();
+		for (const yFraction of [0.8, 0.65, 0.5, 0.35, 0.2]) {
+			for (const xFraction of [0.25, 0.5, 0.75, 0.1, 0.9]) {
+				const x = box.left + box.width * xFraction;
+				const y = box.top + box.height * yFraction;
+				if (document.elementFromPoint(x, y)?.closest('[data-smartart-node-id]') === element) {
+					return { x, y };
+				}
+			}
+		}
+		return null;
+	});
+	if (!point) {
+		throw new Error('SmartArt node has no unobstructed browser hit target');
+	}
+	return point;
+}
+
+async function openFocusedNodeEditor(
+	page: Page,
+	smartArt: Locator,
+): Promise<{
+	editor: Locator;
+	diagramBox: NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>;
+}> {
+	const point = await unobstructedNodePoint(firstSmartArtNode(smartArt));
+	const diagramBox = await smartArt.boundingBox();
+	expect(diagramBox, 'SmartArt diagram should have a rendered box').not.toBeNull();
+	await page.mouse.dblclick(point.x, point.y);
+
+	const editor = page.locator('[data-pptx-viewport] textarea:visible');
+	await expect(editor).toHaveCount(1);
+	await expect(editor).toBeFocused();
+	return { editor, diagramBox: diagramBox! };
+}
+
+async function expectCaretClickDoesNotMoveDiagram(
+	editor: Locator,
+	smartArt: Locator,
+	diagramBox: NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>,
+): Promise<void> {
+	const editorBox = await editor.boundingBox();
+	expect(editorBox, 'SmartArt editor should have a rendered box').not.toBeNull();
+	await editor.click({
+		position: { x: Math.max(1, editorBox!.width * 0.75), y: editorBox!.height / 2 },
+	});
+	await expect(editor).toBeFocused();
+	await expect
+		.poll(async () => {
+			const current = await smartArt.boundingBox();
+			return current
+				? {
+						x: Math.round(current.x),
+						y: Math.round(current.y),
+						width: Math.round(current.width),
+						height: Math.round(current.height),
+					}
+				: null;
+		})
+		.toStrictEqual({
+			x: Math.round(diagramBox.x),
+			y: Math.round(diagramBox.y),
+			width: Math.round(diagramBox.width),
+			height: Math.round(diagramBox.height),
+		});
+}
+
+async function blurNodeEditor(page: Page): Promise<void> {
+	await page
+		.getByRole('toolbar', { name: 'Presentation toolbar' })
+		.getByRole('tab', { name: 'Home', exact: true })
+		.click();
+	await expect(page.locator('[data-pptx-viewport] textarea:visible')).toHaveCount(0);
+}
+
+async function clickHistory(page: Page, name: 'Undo' | 'Redo'): Promise<void> {
+	const button = page.getByRole('button', { name, exact: true });
+	await expect(button).toBeEnabled();
+	await button.click();
+}
+
+function collectRuntimeErrors(page: Page): string[] {
+	const errors: string[] = [];
+	page.on('pageerror', (error) => errors.push(`${error.name}: ${error.message}`));
+	page.on('console', (message) => {
+		if (message.type() === 'error') {
+			errors.push(message.text());
+		}
+	});
+	return errors;
+}
+
+async function exerciseDirectKeyboardNodeEdit(
+	page: Page,
+	smartArt: Locator,
+	editedText: string,
+): Promise<void> {
+	const authoredText = await renderedNodeText(smartArt);
+	expect(authoredText).not.toBe('');
+	const { editor, diagramBox } = await openFocusedNodeEditor(page, smartArt);
+	await page.keyboard.type(editedText);
+	await expect(editor).toHaveValue(editedText);
+	await expectCaretClickDoesNotMoveDiagram(editor, smartArt, diagramBox);
+	await blurNodeEditor(page);
+	await expect.poll(() => renderedNodeText(smartArt)).toBe(editedText);
+
+	await clickHistory(page, 'Undo');
+	await expect.poll(() => renderedNodeText(smartArt)).toBe(authoredText);
+	await clickHistory(page, 'Redo');
+	await expect.poll(() => renderedNodeText(smartArt)).toBe(editedText);
+
+	const download = await savePptxViaBackstage(page);
+	const savedPath = await download.path();
+	expect(savedPath, 'the browser should retain the saved SmartArt deck').not.toBeNull();
+	await loadDeckFile(page, savedPath!);
+	await expect.poll(() => renderedNodeText(currentSmartArt(page))).toBe(editedText);
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -239,5 +373,16 @@ test.describe('smartart insert and edit', () => {
 		const changed =
 			fillsBefore.some((f, i) => fillsAfter[i] !== f) || fillsBefore.length !== fillsAfter.length;
 		expect(changed).toBe(true);
+	});
+
+	test('focuses an inserted fallback node for immediate keyboard editing', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await loadDeck(page);
+		await switchToInsertTab(page);
+		await insertSmartArtPreset(page);
+		const smartArt = currentSmartArt(page);
+		await expect(smartArt).toBeVisible();
+		await exerciseDirectKeyboardNodeEdit(page, smartArt, 'Edited fallback node');
+		expect(runtimeErrors).toStrictEqual([]);
 	});
 });

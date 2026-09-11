@@ -66,6 +66,34 @@ function drawingShapesElement(): PptxElement {
 	};
 }
 
+function fallbackLayoutElement(): PptxElement {
+	return {
+		type: 'smartArt',
+		id: 'sa-layout',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 240,
+		smartArtData: {
+			nodes: [{ id: 'n1', text: 'Alpha' }],
+		},
+	};
+}
+
+function openNodeEditorNow(target: HTMLElement): HTMLTextAreaElement {
+	const group = target.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+	group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+	flushSync();
+	return target.querySelector<HTMLTextAreaElement>('.pptx-svelte-smartart-editor')!;
+}
+
+async function openNodeEditor(target: HTMLElement): Promise<HTMLTextAreaElement> {
+	const editor = openNodeEditorNow(target);
+	await Promise.resolve();
+	flushSync();
+	return editor;
+}
+
 describe('smartArtView', () => {
 	it('renders pre-computed drawing shapes as SVG rect/ellipse with labels', () => {
 		const target = mountEl(drawingShapesElement());
@@ -181,6 +209,106 @@ describe('smartArtView', () => {
 		editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		flushSync();
 		expect(onsmartartnodecommit).toHaveBeenCalledWith('sa-1', 'n1', 'Changed');
+	});
+
+	it.each([
+		['drawing-shapes', drawingShapesElement],
+		['fallback-layout', fallbackLayoutElement],
+	] as const)('focuses and selects the %s node editor when it opens', async (_name, element) => {
+		const target = mountEl(element(), 3, {
+			interactive: true,
+			onsmartartnodecommit: vi.fn(),
+		});
+		const editor = await openNodeEditor(target);
+
+		expect(document.activeElement).toBe(editor);
+		expect(editor.value).toBe('Alpha');
+		expect(editor.selectionStart).toBe(0);
+		expect(editor.selectionEnd).toBe(editor.value.length);
+	});
+
+	it('isolates editor pointerdown without preventing native caret behavior or reselecting after input', async () => {
+		const target = mountEl(drawingShapesElement(), 3, {
+			interactive: true,
+			onsmartartnodecommit: vi.fn(),
+		});
+		const parentPointerDown = vi.fn();
+		const onParentPointerDown = (event: PointerEvent): void => {
+			parentPointerDown();
+			event.preventDefault();
+		};
+		document.body.addEventListener('pointerdown', onParentPointerDown);
+		const editor = await openNodeEditor(target);
+		const pointerDown = new PointerEvent('pointerdown', { bubbles: true, cancelable: true });
+
+		editor.dispatchEvent(pointerDown);
+		document.body.removeEventListener('pointerdown', onParentPointerDown);
+		expect(parentPointerDown).not.toHaveBeenCalled();
+		expect(pointerDown.defaultPrevented).toBeFalsy();
+
+		editor.value = 'AlXpha';
+		editor.setSelectionRange(3, 3);
+		editor.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		await Promise.resolve();
+		expect(target.querySelector('.pptx-svelte-smartart-editor')).toBe(editor);
+		expect(editor.selectionStart).toBe(3);
+		expect(editor.selectionEnd).toBe(3);
+	});
+
+	it('does not focus a stale editor after it is unmounted before the queued action runs', async () => {
+		const target = mountEl(drawingShapesElement(), 3, {
+			interactive: true,
+			onsmartartnodecommit: vi.fn(),
+		});
+		const editor = openNodeEditorNow(target);
+		const focus = vi.spyOn(editor, 'focus');
+		const select = vi.spyOn(editor, 'select');
+		const dispose = cleanup;
+		cleanup = undefined;
+		dispose?.();
+
+		await Promise.resolve();
+		expect(editor.isConnected).toBeFalsy();
+		expect(focus).not.toHaveBeenCalled();
+		expect(select).not.toHaveBeenCalled();
+	});
+
+	it('cancels without committing and focuses the editor again when reopened', async () => {
+		const onsmartartnodecommit = vi.fn();
+		const target = mountEl(drawingShapesElement(), 3, {
+			interactive: true,
+			onsmartartnodecommit,
+		});
+		const editor = await openNodeEditor(target);
+		editor.value = 'Discarded';
+		editor.dispatchEvent(new Event('input', { bubbles: true }));
+		const escape = new KeyboardEvent('keydown', {
+			key: 'Escape',
+			bubbles: true,
+			cancelable: true,
+		});
+		editor.dispatchEvent(escape);
+		flushSync();
+		await Promise.resolve();
+		expect(escape.defaultPrevented).toBeTruthy();
+		expect(onsmartartnodecommit).not.toHaveBeenCalled();
+		expect(target.querySelector('.pptx-svelte-smartart-editor')).toBeNull();
+
+		const reopened = await openNodeEditor(target);
+		expect(document.activeElement).toBe(reopened);
+		expect(reopened.value).toBe('Alpha');
+		expect(reopened.selectionStart).toBe(0);
+		expect(reopened.selectionEnd).toBe(reopened.value.length);
+	});
+
+	it('does not expose the node editor without an editing callback', () => {
+		const target = mountEl(drawingShapesElement(), 3, { interactive: true });
+		const group = target.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+
+		group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		flushSync();
+		expect(target.querySelector('.pptx-svelte-smartart-editor')).toBeNull();
 	});
 
 	// G8 (OpenXML parity audit, D3): a:graphicFrameLocks/@noDrilldown was
