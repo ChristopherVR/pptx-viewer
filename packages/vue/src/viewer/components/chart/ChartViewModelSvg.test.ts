@@ -264,6 +264,22 @@ describe('chartViewModelSvg: chart title rich text (titleRunSpans)', () => {
 		expect(tspans[1].attributes('font-style')).toBe('italic');
 	});
 
+	it('renders an edited flat title through its existing single styled run', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			title: 'Annual Summary',
+			categories: ['Q1'],
+			series: [{ name: 'Revenue', values: [10] }],
+			style: { hasTitle: true },
+			titleRuns: [{ text: 'Old title', italic: true }],
+		});
+		const wrapper = mountVm(buildChartViewModel(element));
+		const tspans = wrapper.findAll('tspan');
+		expect(tspans).toHaveLength(1);
+		expect(tspans[0].text()).toBe('Annual Summary');
+		expect(tspans[0].attributes('font-style')).toBe('italic');
+	});
+
 	it('falls back to a flat text node when the title has no typed runs', () => {
 		const element = chartElement({
 			chartType: 'bar',

@@ -295,6 +295,25 @@ describe('renderChartViewModel: chart title rich text (titleRunSpans)', () => {
 		expect(html).toContain('font-style="italic"');
 	});
 
+	it('renders an edited flat title through its existing single styled run', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			title: 'Annual Summary',
+			categories: ['Q1'],
+			series: [{ name: 'Revenue', values: [10] }],
+			style: { hasTitle: true },
+			titleRuns: [{ text: 'Old title', italic: true }],
+		});
+		const vm = buildChartViewModel(element);
+		expect(vm.titleRunSpans?.[0]).toMatchObject({
+			text: 'Annual Summary',
+			fontStyle: 'italic',
+		});
+		const html = renderToStaticMarkup(renderChartViewModel('c1', vm));
+		expect(html).toContain('>Annual Summary</tspan>');
+		expect(html).not.toContain('>Old title</tspan>');
+	});
+
 	it('falls back to a flat text node when the title has no typed runs', () => {
 		const element = chartElement({
 			chartType: 'bar',

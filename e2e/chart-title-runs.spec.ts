@@ -22,10 +22,10 @@
  *
  * Run: bunx playwright test chart-title-runs
  */
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 import { test, expect } from '@playwright/test';
-import type { Locator, Page } from '@playwright/test';
+import type { Locator, Page, TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
 
 import {
@@ -49,6 +49,13 @@ const ENTERED_TITLE = 'Committed with Enter';
 const CANCELLED_TITLE = 'Must not commit';
 const BLURRED_TITLE = 'Committed on blur';
 const CHART_GALLERY_FIXTURE = fixture('chart-gallery.pptx');
+const SINGLE_RUN_TITLE = 'Clustered Bar';
+const EDITED_SINGLE_RUN_TITLE = 'Edited Chart Title';
+const ON_CANVAS_TITLE = 'On-canvas Chart Title';
+const TITLE_RUN_XML = '<a:r><a:t>Clustered Bar</a:t></a:r>';
+const STYLED_TITLE_RUN_XML =
+	'<a:r><a:rPr lang="fr-FR" sz="1800" b="1"><a:solidFill><a:schemeClr val="accent5"/></a:solidFill><a:latin typeface="+mj-lt"/></a:rPr><a:t>Clustered Bar</a:t></a:r>';
+
 const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
 interface DeckPayload {
@@ -61,6 +68,8 @@ interface TitleTspan {
 	text: string;
 	fontWeight: string;
 	fontStyle: string;
+	fontSize: string;
+	fontFamily: string;
 	fill: string;
 }
 
@@ -78,6 +87,8 @@ async function titleTspans(page: Page): Promise<TitleTspan[]> {
 				text: (node.textContent ?? '').trim(),
 				fontWeight: style.fontWeight,
 				fontStyle: style.fontStyle,
+				fontSize: style.fontSize,
+				fontFamily: style.fontFamily,
 				fill: style.fill,
 			};
 		});
@@ -132,6 +143,26 @@ function collectRuntimeErrors(page: Page): string[] {
 		}
 	});
 	return errors;
+}
+
+async function styledSingleRunDeck(testInfo: TestInfo): Promise<string> {
+	const zip = await JSZip.loadAsync(await readFile(CHART_GALLERY_FIXTURE));
+	const chartPart = zip.file('ppt/charts/chart1.xml');
+	if (!chartPart) {
+		throw new Error('the chart gallery is missing chart1.xml');
+	}
+	const chartXml = await chartPart.async('string');
+	if (!chartXml.includes(TITLE_RUN_XML)) {
+		throw new Error('the chart gallery single-run title changed');
+	}
+	zip.file('ppt/charts/chart1.xml', chartXml.replace(TITLE_RUN_XML, STYLED_TITLE_RUN_XML));
+	const outputPath = testInfo.outputPath('styled-single-run-title.pptx');
+	await writeFile(outputPath, await zip.generateAsync({ type: 'uint8array' }));
+	return outputPath;
+}
+
+function chartTitleInput(page: Page) {
+	return inspector(page).getByLabel('Title', { exact: true }).locator('visible=true').first();
 }
 
 const classicAxisTitle =
@@ -220,7 +251,7 @@ async function svgTextCount(chart: Locator, value: string): Promise<number> {
 	return texts.filter((text) => text.trim() === value).length;
 }
 
-async function savedChartXml(path: string, part: string): Promise<string> {
+async function savedChartXml(path: string, part = 'ppt/charts/chart1.xml'): Promise<string> {
 	const zip = await JSZip.loadAsync(await readFile(path));
 	return (await zip.file(part)?.async('string')) ?? '';
 }
@@ -353,6 +384,145 @@ test.describe('chart title rich text (multi-run titles)', () => {
 			.poll(() => normalizedTitleText(target))
 			.toBe(`${CHART_TITLE_RUN_1}${CHART_TITLE_RUN_2}`);
 		expect(runtimeErrors).toStrictEqual([]);
+	});
+
+	test('editing a styled single-run title refreshes without rebuilding its run', async ({
+		page,
+	}, testInfo) => {
+		const deck = await styledSingleRunDeck(testInfo);
+		await loadDeck(page, deck);
+		const chart = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('[aria-roledescription="chart"]')
+			.first();
+		await chart.waitFor();
+		await selectElement(page, chart);
+		await expect(inspector(page)).toBeVisible();
+
+		const titleInput = chartTitleInput(page);
+		await expect(titleInput).toHaveValue(SINGLE_RUN_TITLE);
+		const [initialSpan] = await titleTspans(page);
+		expect(initialSpan.text).toBe(SINGLE_RUN_TITLE);
+		expect(Number(initialSpan.fontWeight)).toBeGreaterThanOrEqual(700);
+
+		await titleInput.fill(EDITED_SINGLE_RUN_TITLE);
+		await titleInput.press('Tab');
+		await expect(titleInput).toHaveValue(EDITED_SINGLE_RUN_TITLE);
+		await expect
+			.poll(async () => await titleTspans(page))
+			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+
+		const download = await savePptxViaBackstage(page);
+		const downloadPath = await download.path();
+		expect(downloadPath, 'the browser should retain the edited PPTX').not.toBeNull();
+		const chartXml = await savedChartXml(downloadPath!);
+		expect(chartXml).toContain(`<a:t>${EDITED_SINGLE_RUN_TITLE}</a:t>`);
+		expect(chartXml).toContain('lang="fr-FR"');
+		expect(chartXml).toContain('sz="1800"');
+		expect(chartXml).toContain('b="1"');
+		expect(chartXml).toMatch(/<a:schemeClr\b[^>]*\bval="accent5"/u);
+		expect(chartXml).toMatch(/<a:latin\b[^>]*\btypeface="\+mj-lt"/u);
+
+		await loadDeck(page, downloadPath!);
+		const reloadedChart = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('[aria-roledescription="chart"]')
+			.first();
+		await reloadedChart.waitFor();
+		await selectElement(page, reloadedChart);
+		await expect(chartTitleInput(page)).toHaveValue(EDITED_SINGLE_RUN_TITLE);
+		await expect
+			.poll(async () => await titleTspans(page))
+			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+	});
+
+	test('single-run title edits stay in sync through undo, redo, save, and reload', async ({
+		page,
+	}) => {
+		await loadDeck(page, CHART_GALLERY_FIXTURE);
+		const chart = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('[aria-roledescription="chart"]')
+			.first();
+		await chart.waitFor();
+		await selectElement(page, chart);
+		await expect(inspector(page)).toBeVisible();
+
+		const titleInput = chartTitleInput(page);
+		await expect(titleInput).toHaveValue(SINGLE_RUN_TITLE);
+		const [initialSpan] = await titleTspans(page);
+		expect(initialSpan.text).toBe(SINGLE_RUN_TITLE);
+
+		await titleInput.fill(EDITED_SINGLE_RUN_TITLE);
+		await titleInput.press('Tab');
+		await expect(titleInput).toHaveValue(EDITED_SINGLE_RUN_TITLE);
+		await expect
+			.poll(async () => await titleTspans(page))
+			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+
+		const undo = page.getByRole('button', { name: 'Undo' });
+		const redo = page.getByRole('button', { name: 'Redo' });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await selectElement(page, chart);
+		await expect(chartTitleInput(page)).toHaveValue(SINGLE_RUN_TITLE);
+		await expect.poll(async () => await titleTspans(page)).toStrictEqual([initialSpan]);
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await selectElement(page, chart);
+		await expect(chartTitleInput(page)).toHaveValue(EDITED_SINGLE_RUN_TITLE);
+		await expect
+			.poll(async () => await titleTspans(page))
+			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+
+		const download = await savePptxViaBackstage(page);
+		const downloadPath = await download.path();
+		expect(downloadPath, 'the browser should retain the edited PPTX').not.toBeNull();
+		expect(await savedChartXml(downloadPath!)).toContain(`<a:t>${EDITED_SINGLE_RUN_TITLE}</a:t>`);
+
+		await loadDeck(page, downloadPath!);
+		const reloadedChart = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('[aria-roledescription="chart"]')
+			.first();
+		await reloadedChart.waitFor();
+		await selectElement(page, reloadedChart);
+		await expect(chartTitleInput(page)).toHaveValue(EDITED_SINGLE_RUN_TITLE);
+		await expect
+			.poll(async () => await titleTspans(page))
+			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+	});
+
+	test('editing a single-run title directly on the canvas refreshes immediately', async ({
+		page,
+	}) => {
+		await loadDeck(page, CHART_GALLERY_FIXTURE);
+		const chart = page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('[aria-roledescription="chart"]')
+			.first();
+		await chart.waitFor();
+		await selectElement(page, chart);
+		const title = chart.locator('[data-chart-part="title"]');
+		const titleBox = await title.boundingBox();
+		expect(titleBox, 'the rendered title should have a hit target').not.toBeNull();
+		await title.dblclick({
+			position: { x: Math.max(1, titleBox!.width / 8), y: titleBox!.height / 2 },
+		});
+
+		const inlineTitle = chart.locator('input:visible').first();
+		await expect(inlineTitle).toBeVisible();
+		await expect(inlineTitle).toHaveValue(SINGLE_RUN_TITLE);
+		await inlineTitle.fill(ON_CANVAS_TITLE);
+		await inlineTitle.press('Enter');
+		await expect
+			.poll(async () => (await titleTspans(page)).map((span) => span.text))
+			.toStrictEqual([ON_CANVAS_TITLE]);
 	});
 });
 
