@@ -8,6 +8,16 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-11
+
+_Releases: pptx-viewer-core@3.14.1, pptx-react-viewer@3.16.1, pptx-vue-viewer@3.16.1, pptx-angular-viewer@3.16.1, pptx-vanilla-viewer@2.16.1, pptx-svelte-viewer@3.17.1, @christophervr/pptx-viewer@2.13.3_
+
+### Bug Fixes
+
+- Preserve unchanged table text during merge and split (by @Sudhansh6) ([22df796](https://github.com/ChristopherVR/pptx-viewer/commit/22df7968570c89f03b72766b10473401cc179e9c))
+- Keep split available for a single merged table cell (by @Sudhansh6) ([38727de](https://github.com/ChristopherVR/pptx-viewer/commit/38727de2d0bd2105d4e263c12bc6fdbe7b013cb8))
+- **vanilla:** Close the chart title editor only once (by @Sudhansh6) ([7c32006](https://github.com/ChristopherVR/pptx-viewer/commit/7c32006798112af8ef54e7d54911d8b50264b29b))
+
 ## 2026-09-10
 
 _Releases: pptx-viewer-core@3.14.0, pptx-react-viewer@3.16.0, pptx-vue-viewer@3.16.0, pptx-angular-viewer@3.16.0, pptx-vanilla-viewer@2.16.0, pptx-svelte-viewer@3.17.0, pptx-viewer-mcp@2.5.1, @christophervr/pptx-viewer@2.13.2_

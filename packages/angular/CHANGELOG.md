@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.16.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.16.1) - 2026-09-11
+
+### Bug Fixes
+
+- Preserve unchanged table text during merge and split (by @Sudhansh6) ([22df796](https://github.com/ChristopherVR/pptx-viewer/commit/22df7968570c89f03b72766b10473401cc179e9c))
+- Keep split available for a single merged table cell (by @Sudhansh6) ([38727de](https://github.com/ChristopherVR/pptx-viewer/commit/38727de2d0bd2105d4e263c12bc6fdbe7b013cb8))
+
 ## [3.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.16.0) - 2026-09-10
 
 ### Features
