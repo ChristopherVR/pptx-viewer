@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.16.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.16.3) - 2026-09-11
+
+### Bug Fixes
+
+- Preserve the current deck when an older load finishes ([668cfa9](https://github.com/ChristopherVR/pptx-viewer/commit/668cfa9f97014453498b6cccdeb0734adf7bca5a))
+
 ## [2.16.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.16.2) - 2026-09-11
 
 ### Bug Fixes

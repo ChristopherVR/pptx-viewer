@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-09-11
 
+_Releases: pptx-react-viewer@3.16.3, pptx-vue-viewer@3.16.3, pptx-angular-viewer@3.16.3, pptx-vanilla-viewer@2.16.3, pptx-svelte-viewer@3.17.3, @christophervr/pptx-viewer@2.13.5_
+
+### Bug Fixes
+
+- Preserve the current deck when an older load finishes ([668cfa9](https://github.com/ChristopherVR/pptx-viewer/commit/668cfa9f97014453498b6cccdeb0734adf7bca5a))
+
+## 2026-09-11
+
 _Releases: pptx-viewer-core@3.14.2, pptx-react-viewer@3.16.2, pptx-vue-viewer@3.16.2, pptx-angular-viewer@3.16.2, pptx-vanilla-viewer@2.16.2, pptx-svelte-viewer@3.17.2, @christophervr/pptx-viewer@2.13.4_
 
 ### Bug Fixes
