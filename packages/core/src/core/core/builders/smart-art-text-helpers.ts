@@ -1,4 +1,5 @@
 import type { XmlObject } from '../../types';
+import { xmlText } from '../../utils';
 
 /**
  * Maximum number of SmartArt content nodes parsed from a single diagram.
@@ -37,6 +38,16 @@ export function collectLocalTextValues(obj: unknown, targetName: string, out: st
 			if (typeof current.value === 'string' || typeof current.value === 'number') {
 				out.push(String(current.value));
 				continue;
+			}
+			if (current.value && typeof current.value === 'object' && !Array.isArray(current.value)) {
+				const text = xmlText(current.value);
+				const isLeaf = Object.keys(current.value).every(
+					(key) => key === '#text' || key.startsWith('@_'),
+				);
+				if (isLeaf) {
+					out.push(text ?? '');
+					continue;
+				}
 			}
 		}
 		if (Array.isArray(current.value)) {

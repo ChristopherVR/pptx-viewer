@@ -25,7 +25,7 @@
 import { readFile } from 'node:fs/promises';
 
 import { test, expect } from '@playwright/test';
-import type { Locator, Page } from '@playwright/test';
+import type { Locator, Page, TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
 
 import {
@@ -59,6 +59,7 @@ interface DeckPayload {
 
 interface TitleTspan {
 	text: string;
+	rawText: string;
 	fontWeight: string;
 	fontStyle: string;
 	fill: string;
@@ -74,8 +75,10 @@ async function titleTspans(page: Page): Promise<TitleTspan[]> {
 		}
 		return [...titleText.querySelectorAll('tspan')].map((node) => {
 			const style = getComputedStyle(node);
+			const rawText = node.textContent ?? '';
 			return {
-				text: (node.textContent ?? '').trim(),
+				text: rawText.trim(),
+				rawText,
 				fontWeight: style.fontWeight,
 				fontStyle: style.fontStyle,
 				fill: style.fill,
@@ -84,8 +87,8 @@ async function titleTspans(page: Page): Promise<TitleTspan[]> {
 	});
 }
 
-async function openChart(page: Page): Promise<void> {
-	await loadDeck(page, CHART_FIXTURE);
+async function openChart(page: Page, deck: string = CHART_FIXTURE): Promise<void> {
+	await loadDeck(page, deck);
 	await page
 		.locator('[aria-roledescription="slide"]')
 		.first()
@@ -93,6 +96,23 @@ async function openChart(page: Page): Promise<void> {
 		.first()
 		.waitFor();
 	await page.waitForTimeout(300);
+}
+
+async function expectAuthoredTitle(page: Page): Promise<void> {
+	await expect
+		.poll(async () => await titleTspans(page))
+		.toStrictEqual([
+			expect.objectContaining({ text: CHART_TITLE_RUN_1.trim() }),
+			expect.objectContaining({
+				text: CHART_TITLE_RUN_2,
+				fontStyle: 'italic',
+				fill: 'rgb(255, 0, 0)',
+			}),
+		]);
+	const [first] = await titleTspans(page);
+	expect(first.rawText).toContain(CHART_TITLE_RUN_1);
+	expect(Number(first.fontWeight)).toBeGreaterThanOrEqual(700);
+	await expect.poll(() => normalizedTitleText(chartLocator(page))).toBe('Sales Overview');
 }
 
 function chartLocator(page: Page): Locator {
@@ -226,22 +246,36 @@ async function savedChartXml(path: string, part: string): Promise<string> {
 }
 
 test.describe('chart title rich text (multi-run titles)', () => {
-	test('renders one tspan per authored run, with its own bold/italic/colour', async ({ page }) => {
+	test('renders one tspan per authored run, with its own bold/italic/colour', async ({
+		page,
+	}, testInfo: TestInfo) => {
+		const runtimeErrors = collectRuntimeErrors(page);
 		await openChart(page);
+		await expectAuthoredTitle(page);
+		await page.screenshot({
+			path: testInfo.outputPath('attributed-main-title-fixed.png'),
+			fullPage: true,
+		});
 
-		const tspans = await titleTspans(page);
-		expect(tspans.length, `expected 2 title tspans, got ${JSON.stringify(tspans)}`).toBe(2);
-
-		const [first, second] = tspans;
-		expect(first.text).toBe(CHART_TITLE_RUN_1.trim());
-		expect(Number(first.fontWeight)).toBeGreaterThanOrEqual(700);
-
-		expect(second.text).toBe(CHART_TITLE_RUN_2);
-		expect(second.fontStyle).toBe('italic');
-		expect(second.fill).toBe('rgb(255, 0, 0)');
+		const download = await savePptxViaBackstage(page);
+		const saved = await download.path();
+		expect(saved, 'the browser should retain the unchanged PPTX').not.toBeNull();
+		await openChart(page, saved!);
+		await expectAuthoredTitle(page);
+		const reloadedChart = chartLocator(page);
+		await selectElement(page, reloadedChart);
+		await expect(
+			inspector(page).getByLabel('Title', { exact: true }).locator('visible=true').first(),
+		).toHaveValue(CHART_TITLE_RUN_1);
+		const inline = await openTitleEditor(reloadedChart);
+		await expect(inline).toHaveValue(CHART_TITLE_RUN_1);
+		await inline.press('Escape');
+		await expect(reloadedChart.locator('input:visible')).toHaveCount(0);
+		expect(runtimeErrors).toStrictEqual([]);
 	});
 
 	test('editing the flat title through the inspector collapses to one run', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
 		await openChart(page);
 
 		// Selected via the shared accessibility contract, not `data-pptx-element`:
@@ -277,6 +311,30 @@ test.describe('chart title rich text (multi-run titles)', () => {
 
 		const tspans = await titleTspans(page);
 		expect(tspans.length, 'a collapsed multi-run title must render as a single run').toBe(1);
+
+		const undo = page.getByRole('button', { name: 'Undo' });
+		const redo = page.getByRole('button', { name: 'Redo' });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expectAuthoredTitle(page);
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await expect
+			.poll(async () => (await titleTspans(page)).map((run) => run.text))
+			.toStrictEqual([EDITED_TITLE]);
+
+		const download = await savePptxViaBackstage(page);
+		const saved = await download.path();
+		expect(saved, 'the browser should retain the edited PPTX').not.toBeNull();
+		await openChart(page, saved!);
+		await expect
+			.poll(async () => (await titleTspans(page)).map((run) => run.text))
+			.toStrictEqual([EDITED_TITLE]);
+		await selectElement(page, chartLocator(page));
+		await expect(
+			inspector(page).getByLabel('Title', { exact: true }).locator('visible=true').first(),
+		).toHaveValue(EDITED_TITLE);
+		expect(runtimeErrors).toStrictEqual([]);
 	});
 
 	test('commits an on-canvas title edit once on Enter and can reopen it', async ({ page }) => {
@@ -310,6 +368,9 @@ test.describe('chart title rich text (multi-run titles)', () => {
 		await openChart(page);
 		const target = chartLocator(page);
 		await selectElement(page, target);
+		await expect(
+			inspector(page).getByLabel('Title', { exact: true }).locator('visible=true').first(),
+		).toHaveValue(CHART_TITLE_RUN_1);
 
 		const input = await openTitleEditor(target);
 		await input.fill(CANCELLED_TITLE);
