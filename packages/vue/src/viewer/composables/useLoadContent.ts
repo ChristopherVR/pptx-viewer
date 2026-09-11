@@ -36,6 +36,7 @@ import {
 } from 'pptx-viewer-core';
 import type { DeckSaveIntent, DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
 import {
+	createPresentationLoadResources,
 	applyImagePathPatches,
 	buildDeckSaveOptions,
 	resolveSlideSizeSelection,
@@ -355,7 +356,9 @@ export function useLoadContent(
 
 	const load = async (raw: Uint8Array | ArrayBuffer) => {
 		const token = ++renderToken;
-		const loadBlobUrls: string[] = [];
+		const newHandler = new PptxHandler();
+		const resources = createPresentationLoadResources(newHandler);
+		const loadBlobUrls = resources.blobUrls;
 
 		try {
 			loading.value = true;
@@ -382,17 +385,11 @@ export function useLoadContent(
 			// in-flight Blob URLs aren't yanked mid-paint.
 			const previousHandler = handler.value;
 
-			const newHandler = new PptxHandler();
 			const parsed = await newHandler.load(buffer as ArrayBuffer, {
 				allowExternalImages: options?.getAllowExternalImages?.(),
 			});
 			if (token !== renderToken) {
-				newHandler.dispose();
 				return;
-			}
-
-			if (previousHandler) {
-				previousHandler.dispose();
 			}
 
 			// ── Resolve media Blob URLs (audio/video + poster frames) ──
@@ -400,7 +397,6 @@ export function useLoadContent(
 			for (const slide of parsed.slides) {
 				collectMediaElements(slide.elements, mediaElements);
 			}
-			revokeBlobUrls(Array.from(mediaDataUrls.value.values()));
 			const nextMediaUrls = new Map<string, string>();
 			// Shared with the other four bindings (G17): a LINKED media
 			// element's `mediaPath` is already the verbatim external URL by the
@@ -476,13 +472,24 @@ export function useLoadContent(
 				newHandler.getImageData(path),
 			);
 
+			const nextSignatures =
+				parsed.hasDigitalSignatures && signatureBuffer instanceof ArrayBuffer
+					? await parseSignaturesFromBuffer(signatureBuffer)
+					: [];
+			if (token !== renderToken) {
+				return;
+			}
+
 			// Pull master/layout (template) elements out of each slide into their own
 			// store so the editor can gate / route / merge them back independently.
 			const partitioned = partitionTemplateElements(nextSlides);
 
 			// Commit reactive state.
+			previousHandler?.dispose();
+			revokeBlobUrls(Array.from(mediaDataUrls.value.values()));
 			revokeBlobUrls(activeBlobUrls);
 			activeBlobUrls = loadBlobUrls;
+			resources.commit();
 			handler.value = newHandler;
 			slides.value = partitioned.slides;
 			templateElementsBySlideId.value = partitioned.templateElementsBySlideId;
@@ -539,10 +546,7 @@ export function useLoadContent(
 							height: Math.round(parsed.notesHeightEmu / 9525),
 						}
 					: undefined;
-			signatures.value =
-				parsed.hasDigitalSignatures && signatureBuffer instanceof ArrayBuffer
-					? await parseSignaturesFromBuffer(signatureBuffer)
-					: [];
+			signatures.value = nextSignatures;
 			options?.onContentApplied?.();
 		} catch (err) {
 			if (token === renderToken) {
@@ -553,6 +557,7 @@ export function useLoadContent(
 				}
 			}
 		} finally {
+			resources.releaseIfUncommitted();
 			if (token === renderToken) {
 				loading.value = false;
 			}

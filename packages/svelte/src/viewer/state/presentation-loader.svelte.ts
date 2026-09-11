@@ -25,7 +25,11 @@ import type {
 } from 'pptx-viewer-core';
 import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
 import type { CanvasSize, CollabLoadOrigin, SlideSizeEmu } from 'pptx-viewer-shared';
-import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from 'pptx-viewer-shared';
+import {
+	DEFAULT_CANVAS_HEIGHT,
+	DEFAULT_CANVAS_WIDTH,
+	createPresentationLoadResources,
+} from 'pptx-viewer-shared';
 
 import { glyphOutlineFontCache } from './glyph-outline-cache.svelte';
 import {
@@ -159,7 +163,9 @@ export class PresentationLoader {
 	async load(raw: Uint8Array | ArrayBuffer, origin: CollabLoadOrigin = 'user'): Promise<void> {
 		this.loadOrigin = origin;
 		const token = ++this.#renderToken;
-		const loadBlobUrls: string[] = [];
+		const newHandler = new PptxHandler();
+		const resources = createPresentationLoadResources(newHandler);
+		const loadBlobUrls = resources.blobUrls;
 
 		try {
 			this.loading = true;
@@ -175,16 +181,12 @@ export class PresentationLoader {
 			// in-flight Blob URLs are not yanked mid-paint.
 			const previousHandler = this.handler;
 
-			const newHandler = new PptxHandler();
 			const parsed = await newHandler.load(buffer as ArrayBuffer, this.getLoadOptions());
 			if (token !== this.#renderToken) {
-				newHandler.dispose();
 				return;
 			}
-			previousHandler?.dispose();
 
 			// Audio/video Blob URLs + poster frames, then lazy picture URLs.
-			revokeBlobUrls(this.mediaDataUrls.values());
 			const media = await resolveMediaUrls(newHandler, parsed.slides);
 			loadBlobUrls.push(...media.blobUrls);
 			const imageResolvedSlides = await resolveLazyImages(newHandler, parsed.slides);
@@ -192,8 +194,14 @@ export class PresentationLoader {
 			const nextTableStyleMap = await resolveLazyTableStyleImages(newHandler, parsed.tableStyleMap);
 
 			// Commit reactive state.
+			if (token !== this.#renderToken) {
+				return;
+			}
+			previousHandler?.dispose();
+			revokeBlobUrls(this.mediaDataUrls.values());
 			revokeBlobUrls(this.#activeBlobUrls);
 			this.#activeBlobUrls = loadBlobUrls;
+			resources.commit();
 			this.handler = newHandler;
 			this.slides = nextSlides;
 			this.slideMasters = parsed.slideMasters ?? [];
@@ -264,6 +272,7 @@ export class PresentationLoader {
 				}
 			}
 		} finally {
+			resources.releaseIfUncommitted();
 			if (token === this.#renderToken) {
 				this.loading = false;
 			}

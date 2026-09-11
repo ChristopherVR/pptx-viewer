@@ -1,4 +1,5 @@
 export type { GuideEntry, ImagePathElement, TableCellImageRef } from './load-content-helpers';
+export { createPresentationLoadResources } from './presentation-load-resources';
 export {
 	collectMediaElements,
 	collectAnimationSoundPaths,

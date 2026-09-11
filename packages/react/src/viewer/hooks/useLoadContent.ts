@@ -30,6 +30,7 @@ import type {
 import {
 	applyImagePathPatches,
 	compatibilityWarningToasts,
+	createPresentationLoadResources,
 	readOnlyRecommendation,
 	resolveAuthoredCustomShowId,
 	resolveTableCellImageUrls,
@@ -203,7 +204,9 @@ export function useLoadContent({
 
 		// Track Blob URLs created in this load cycle so they can be revoked
 		// on unmount or when a new file is loaded.
-		const loadBlobUrls: string[] = [];
+		const handler = new PptxHandler();
+		const resources = createPresentationLoadResources(handler);
+		const loadBlobUrls = resources.blobUrls;
 
 		(async () => {
 			try {
@@ -230,34 +233,20 @@ export function useLoadContent({
 				// of broken images while the new file loads.
 				const previousHandler = handlerRef.current;
 
-				const handler = new PptxHandler();
 				// Trust Center > "Allow external content" (default off, matching
 				// core's own SSRF/privacy-safe default): only pass `true` through
 				// when the option is explicitly on.
 				const parsed = await handler.load(buffer as ArrayBuffer, { allowExternalImages });
 				if (cancelled || token !== renderTokenRef.current) {
-					handler.dispose();
 					return;
 				}
-
-				// New load succeeded: now safe to dispose the previous handler.
-				if (previousHandler) {
-					previousHandler.dispose();
-				}
-				handlerRef.current = null;
 
 				// ── Resolve media Blob URLs (audio/video) ───────────────────
 				const mediaElements: MediaPptxElement[] = [];
 				for (const slide of parsed.slides) {
 					collectMediaElements(slide.elements, mediaElements);
 				}
-				// Revoke old media Blob URLs before replacing
-				for (const url of mediaDataUrls.values()) {
-					if (url.startsWith('blob:')) {
-						URL.revokeObjectURL(url);
-					}
-				}
-				mediaDataUrls.clear();
+				const nextMediaUrls = new Map<string, string>();
 				// Shared with the other four bindings (G17): a LINKED media
 				// element's `mediaPath` is already the verbatim external URL by
 				// the time it reaches here, and `resolveMediaElementSource` hands
@@ -270,7 +259,7 @@ export function useLoadContent({
 							mediaElement.mediaMissing = true;
 							return;
 						}
-						mediaDataUrls.set(resolved.mediaPath, resolved.url);
+						nextMediaUrls.set(resolved.mediaPath, resolved.url);
 						if (resolved.isBlobUrl) {
 							loadBlobUrls.push(resolved.url);
 						}
@@ -323,6 +312,21 @@ export function useLoadContent({
 					handler.getImageData(path),
 				);
 
+				// Content can change while media, pictures or table fills are resolving.
+				if (cancelled || token !== renderTokenRef.current) {
+					return;
+				}
+				previousHandler?.dispose();
+				for (const url of mediaDataUrls.values()) {
+					if (url.startsWith('blob:')) {
+						URL.revokeObjectURL(url);
+					}
+				}
+				mediaDataUrls.clear();
+				for (const [path, url] of nextMediaUrls) {
+					mediaDataUrls.set(path, url);
+				}
+				resources.commit();
 				handlerRef.current = handler;
 				// Separate the inherited master/layout (template) elements that the
 				// core loader merged into `slide.elements` into their own per-slide
@@ -432,6 +436,7 @@ export function useLoadContent({
 					}
 				}
 			} finally {
+				resources.releaseIfUncommitted();
 				if (!cancelled && token === renderTokenRef.current) {
 					setLoading(false);
 				}

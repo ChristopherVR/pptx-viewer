@@ -41,6 +41,7 @@ import {
 	collectAnimationSoundPaths,
 	collectImagePaths,
 	collectMediaElements,
+	createPresentationLoadResources,
 	describeFontEmbedding,
 	resolveMediaElementSource,
 	resolveSlideSizeSelection,
@@ -320,7 +321,9 @@ export class LoadContentService {
 			return;
 		}
 		const token = ++this.renderToken;
-		const loadBlobUrls: string[] = [];
+		const newHandler = new PptxHandler();
+		const resources = createPresentationLoadResources(newHandler);
+		const loadBlobUrls = resources.blobUrls;
 
 		try {
 			this.loading.set(true);
@@ -345,7 +348,6 @@ export class LoadContentService {
 			const sigBuffer = (buffer as ArrayBuffer).slice(0);
 
 			const previousHandler = this.handler;
-			const newHandler = new PptxHandler();
 			// Trust Center > "Allow external content": gates linked (non-embedded)
 			// http(s) image URLs. Defaults to blocked when the options service is
 			// unreachable (e.g. constructed outside DI in a unit test).
@@ -362,17 +364,14 @@ export class LoadContentService {
 			);
 			const parsed = await newHandler.load(buffer as ArrayBuffer, { allowExternalImages });
 			if (token !== this.renderToken) {
-				newHandler.dispose();
 				return;
 			}
-			previousHandler?.dispose();
 
 			// ── Resolve media Blob URLs (audio/video + poster frames) ──
 			const mediaElements: MediaPptxElement[] = [];
 			for (const slide of parsed.slides) {
 				collectMediaElements(slide.elements, mediaElements);
 			}
-			this.revokeBlobUrls(Array.from(this.mediaDataUrls().values()));
 			const nextMediaUrls = new Map<string, string>();
 			// Shared with the other four bindings (G17): a LINKED media
 			// element's `mediaPath` is already the verbatim external URL by the
@@ -449,8 +448,14 @@ export class LoadContentService {
 			);
 
 			// Commit reactive state.
+			if (token !== this.renderToken) {
+				return;
+			}
+			previousHandler?.dispose();
+			this.revokeBlobUrls(Array.from(this.mediaDataUrls().values()));
 			this.revokeBlobUrls(this.activeBlobUrls);
 			this.activeBlobUrls = loadBlobUrls;
+			resources.commit();
 			this.handler = newHandler;
 			this.slides.set(nextSlides);
 			this.parsedData.set({ ...parsed, slides: nextSlides, tableStyleMap: nextTableStyleMap });
@@ -539,6 +544,7 @@ export class LoadContentService {
 				}
 			}
 		} finally {
+			resources.releaseIfUncommitted();
 			if (token === this.renderToken) {
 				this.loading.set(false);
 			}
