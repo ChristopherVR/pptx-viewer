@@ -239,6 +239,31 @@ describe('block merge through the context menu', () => {
 });
 
 describe('structural table commands through the context menu', () => {
+	it('keeps the anchor runs and does not revive absorbed runs after merge-right then split', () => {
+		const data = tableData(2, 2);
+		const anchorRuns = [{ text: 'r0c0', bold: true }];
+		data.rows[0].cells[0].textRuns = anchorRuns;
+		data.rows[0].cells[1].textRuns = [{ text: 'r0c1', italic: true }];
+		const editor = makeEditor(tableElement(data));
+
+		runContextMenuCommand('table-merge-right', {
+			editor,
+			cell: { rowIndex: 0, columnIndex: 0 },
+		});
+		const merged = modelOf(editor);
+		expect(merged.rows[0].cells[0].textRuns).toStrictEqual(anchorRuns);
+		expect(merged.rows[0].cells[1].textRuns).toBeUndefined();
+
+		runContextMenuCommand('table-split', {
+			editor,
+			cell: { rowIndex: 0, columnIndex: 0 },
+		});
+		const split = modelOf(editor);
+		expect(split.rows[0].cells[0].textRuns).toStrictEqual(anchorRuns);
+		expect(split.rows[0].cells[1]).toMatchObject({ text: '' });
+		expect(split.rows[0].cells[1].textRuns).toBeUndefined();
+	});
+
 	it('commits rawXml with tableData', () => {
 		const source = tableElement(tableData(2, 2), true);
 		const editor = makeEditor(source);

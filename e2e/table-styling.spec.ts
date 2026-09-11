@@ -495,6 +495,17 @@ function expectRenderedRevenueRuns(table: TablePaint): void {
 	expect(distance(emphasis!.color, { r: 192, g: 0, b: 0 })).toBeLessThan(30);
 }
 
+async function expectRenderedRowCellCount(page: Page, row: number, count: number): Promise<void> {
+	await expect(
+		page
+			.locator('[aria-roledescription="slide"]')
+			.first()
+			.locator('table tr')
+			.nth(row)
+			.locator('td'),
+	).toHaveCount(count);
+}
+
 test.describe('table styling', () => {
 	test.beforeEach(async ({ page }) => {
 		await loadDeck(page);
@@ -882,6 +893,50 @@ test.describe('table styling', () => {
 		await gotoSlide(page, 4);
 		expectRenderedRevenueRuns(await measureTable(page));
 	});
+
+	for (const merge of [
+		{ name: 'right', command: 'Merge Right', row: 1, column: 0 },
+		{ name: 'down', command: 'Merge Down', row: 0, column: 1 },
+	] as const) {
+		test(`keeps the absorbed rich cell empty after merge ${merge.name} and split`, async ({
+			page,
+		}) => {
+			await gotoSlide(page, 4);
+			await chooseTableCommand(page, canvasCellAt(page, merge.row, merge.column), merge.command);
+			await expectRenderedRowCellCount(page, 1, 3);
+
+			const undo = page.getByRole('button', { name: 'Undo', exact: true });
+			const redo = page.getByRole('button', { name: 'Redo', exact: true });
+			await expect(undo).toBeEnabled();
+			await undo.click();
+			await expectRenderedRowCellCount(page, 1, 4);
+			await expect(canvasCellAt(page, 1, 1)).toContainText('Revenue grew 42%');
+			await expect(redo).toBeEnabled();
+			await redo.click();
+			await expectRenderedRowCellCount(page, 1, 3);
+
+			const splitMenu = await openMenuOn(page, canvasCellAt(page, merge.row, merge.column));
+			expect(splitMenu.labels).toContain('split cell');
+			await chooseCommand(page, 'Split Cell');
+			await expectRenderedRowCellCount(page, 1, 4);
+			await expect(canvasCellAt(page, 1, 1)).toHaveText('');
+
+			await expect(undo).toBeEnabled();
+			await undo.click();
+			await expectRenderedRowCellCount(page, 1, 3);
+			await expect(redo).toBeEnabled();
+			await redo.click();
+			await expectRenderedRowCellCount(page, 1, 4);
+			await expect(canvasCellAt(page, 1, 1)).toHaveText('');
+
+			const download = await savePptxViaBackstage(page);
+			const savedPath = await download.path();
+			expect(savedPath, 'the browser should retain the split PPTX').not.toBeNull();
+			await loadDeck(page, savedPath!);
+			await gotoSlide(page, 4);
+			await expect(canvasCellAt(page, 1, 1)).toHaveText('');
+		});
+	}
 
 	/**
 	 * Shift-click has to build a real cell RANGE, or block merge is unreachable.

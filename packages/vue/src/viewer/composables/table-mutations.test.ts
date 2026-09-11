@@ -85,6 +85,22 @@ describe('table-mutations', () => {
 		expect(split!.rows[0].cells[1].hMerge).toBeUndefined();
 	});
 
+	it('keeps the anchor runs and clears absorbed runs through merge-down then split', () => {
+		const table = makeTableData(2, 2);
+		const anchorRuns = [{ text: 'r0c0', bold: true }];
+		table.rows[0].cells[0].textRuns = anchorRuns;
+		table.rows[1].cells[0].textRuns = [{ text: 'r1c0', italic: true }];
+
+		const merged = applyMergeDown(table, 0, 0)!;
+		expect(merged.rows[0].cells[0].textRuns).toBe(anchorRuns);
+		expect(merged.rows[1].cells[0].textRuns).toBeUndefined();
+
+		const split = applySplitCell(merged, 0, 0)!;
+		expect(split.rows[0].cells[0].textRuns).toBe(anchorRuns);
+		expect(split.rows[1].cells[0]).toMatchObject({ text: '' });
+		expect(split.rows[1].cells[0].textRuns).toBeUndefined();
+	});
+
 	it('returns null when splitting an unmerged cell', () => {
 		expect(applySplitCell(makeTableData(2, 2), 0, 0)).toBeNull();
 	});

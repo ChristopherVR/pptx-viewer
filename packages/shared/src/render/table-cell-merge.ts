@@ -15,6 +15,8 @@
  */
 import type { PptxTableData } from 'pptx-viewer-core';
 
+import { withCellText } from './table-cell-edit';
+
 /**
  * Merge the cell at `(rowIndex, columnIndex)` with the next cell to its right.
  * Returns the new `rows` array, or `null` when there is no mergeable neighbour.
@@ -45,7 +47,7 @@ export function computeMergeCellRight(
 				return { ...c, gridSpan: currentSpan + nextSpan };
 			}
 			if (ci >= nextColumnIndex && ci < nextColumnIndex + nextSpan) {
-				return { ...c, hMerge: true, text: '' };
+				return { ...withCellText(c, ''), hMerge: true };
 			}
 			return c;
 		});
@@ -93,7 +95,9 @@ export function computeMergeCellDown(
 		if (ri === targetNextRowIndex) {
 			return {
 				...r,
-				cells: r.cells.map((c, ci) => (ci === columnIndex ? { ...c, vMerge: true, text: '' } : c)),
+				cells: r.cells.map((c, ci) =>
+					ci === columnIndex ? { ...withCellText(c, ''), vMerge: true } : c,
+				),
 			};
 		}
 		return r;

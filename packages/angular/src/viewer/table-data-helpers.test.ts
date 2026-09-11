@@ -15,12 +15,14 @@ import { describe, expect, it } from 'vitest';
 import {
 	insertColumn,
 	insertRow,
+	mergeDown,
 	mergeRight,
 	mergeSelection,
 	patchTableData,
 	removeColumn,
 	removeRow,
 	setCellText,
+	splitCursorCell,
 	splitMergedCell,
 } from './table-data-helpers';
 
@@ -270,6 +272,25 @@ describe('mergeSelection / splitMergedCell', () => {
 		const result = mergeRight(el, 0, 0);
 		expect(cellAt(result, 0, 0)?.gridSpan).toBe(2);
 		expect(cellAt(result, 0, 1)?.hMerge).toBeTruthy();
+	});
+
+	it('keeps the anchor runs and clears absorbed runs through merge-down then split', () => {
+		const el = makeTable([
+			['A', 'B'],
+			['C', 'D'],
+		]);
+		const anchorRuns = [{ text: 'A', bold: true }];
+		el.tableData!.rows[0].cells[0].textRuns = anchorRuns;
+		el.tableData!.rows[1].cells[0].textRuns = [{ text: 'C', italic: true }];
+
+		const merged = mergeDown(el, 0, 0);
+		expect(cellAt(merged, 0, 0)?.textRuns).toBe(anchorRuns);
+		expect(cellAt(merged, 1, 0)?.textRuns).toBeUndefined();
+
+		const split = splitCursorCell(merged, 0, 0);
+		expect(cellAt(split, 0, 0)?.textRuns).toBe(anchorRuns);
+		expect(cellAt(split, 1, 0)).toMatchObject({ text: '' });
+		expect(cellAt(split, 1, 0)?.textRuns).toBeUndefined();
 	});
 });
 

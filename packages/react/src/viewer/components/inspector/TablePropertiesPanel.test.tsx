@@ -48,13 +48,18 @@ afterEach(() => {
 	host.remove();
 });
 
-function render(element: TablePptxElement, onUpdateElement: (u: Partial<PptxElement>) => void) {
+function render(
+	element: TablePptxElement,
+	onUpdateElement: (u: Partial<PptxElement>) => void,
+	tableEditorState?: { rowIndex: number; columnIndex: number },
+) {
 	act(() => {
 		root.render(
 			React.createElement(TablePropertiesPanel, {
 				tableElement: element,
 				canEdit: true,
 				onUpdateElement,
+				tableEditorState,
 			}),
 		);
 	});
@@ -130,6 +135,36 @@ describe('tablePropertiesPanel', () => {
 		const rows = (onUpdate.mock.calls[0][0] as Partial<TablePptxElement>).tableData?.rows;
 		expect(rows?.[0].cells[0].style?.backgroundColor).toBe('#4472C4');
 		expect(rows?.[0].cells[0].style?.bold).toBeTruthy();
+	});
+
+	it('keeps anchor runs and clears absorbed runs through merge-right then split', () => {
+		const el = table();
+		const anchorRuns = [{ text: 'a', bold: true }];
+		el.tableData!.rows[0].cells[0].textRuns = anchorRuns;
+		el.tableData!.rows[0].cells[1].textRuns = [{ text: 'b', italic: true }];
+		const onUpdate = vi.fn();
+		render(el, onUpdate, { rowIndex: 0, columnIndex: 0 });
+
+		const mergeRight = [...host.querySelectorAll('button')].find(
+			(button) => button.textContent === 'pptx.table.mergeRight',
+		);
+		act(() => mergeRight?.click());
+
+		const merged = (onUpdate.mock.calls[0][0] as Partial<TablePptxElement>).tableData!;
+		expect(merged.rows[0].cells[0].textRuns).toBe(anchorRuns);
+		expect(merged.rows[0].cells[1].textRuns).toBeUndefined();
+
+		const mergedElement = { ...el, tableData: merged };
+		render(mergedElement, onUpdate, { rowIndex: 0, columnIndex: 0 });
+		const split = [...host.querySelectorAll('button')].find(
+			(button) => button.textContent === 'pptx.table.split',
+		);
+		act(() => split?.click());
+
+		const splitData = (onUpdate.mock.calls[1][0] as Partial<TablePptxElement>).tableData!;
+		expect(splitData.rows[0].cells[0].textRuns).toBe(anchorRuns);
+		expect(splitData.rows[0].cells[1]).toMatchObject({ text: '' });
+		expect(splitData.rows[0].cells[1].textRuns).toBeUndefined();
 	});
 
 	it('enables "Edit style..." with no tableStyleId, and assigns a created style to the table', () => {
