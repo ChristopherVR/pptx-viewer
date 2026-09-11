@@ -14,6 +14,7 @@ import {
 	rebuildTableStructureInRawXml,
 	updateCellTextInRawXml,
 	updateCellTextStyleInRawXml,
+	updateMergeAttrsInRawXml,
 } from './table-cell-rawxml-ops';
 import { ensureArray } from './table-structural-helpers';
 
@@ -22,13 +23,14 @@ const parser = new XMLParser({
 	attributeNamePrefix: '@_',
 	parseAttributeValue: false,
 	parseTagValue: false,
+	trimValues: false,
 });
 const builder = new XMLBuilder({ ignoreAttributes: false, attributeNamePrefix: '@_' });
 
 /** Wrap cell markup in the graphic-frame envelope `getTblFromRawXml` walks. */
-function tableElement(cellsXml: string): PptxElement {
+function tableElement(cellsXml: string, columnCount = 1): PptxElement {
 	const parsed = parser.parse(
-		`<f><a:graphic><a:graphicData><a:tbl><a:tblPr/><a:tblGrid><a:gridCol w="100"/></a:tblGrid>` +
+		`<f><a:graphic><a:graphicData><a:tbl><a:tblPr/><a:tblGrid>${'<a:gridCol w="100"/>'.repeat(columnCount)}</a:tblGrid>` +
 			`<a:tr h="100">${cellsXml}</a:tr></a:tbl></a:graphicData></a:graphic></f>`,
 	) as Record<string, XmlObject>;
 	return {
@@ -43,11 +45,11 @@ function tableElement(cellsXml: string): PptxElement {
 }
 
 function cellOf(rawXml: XmlObject): XmlObject {
-	const graphic = rawXml['a:graphic'] as XmlObject;
-	const data = graphic['a:graphicData'] as XmlObject;
-	const table = data['a:tbl'] as XmlObject;
-	const row = table['a:tr'] as XmlObject;
-	return row['a:tc'] as XmlObject;
+	return cellsOf(rawXml)[0];
+}
+
+function cellsOf(rawXml: XmlObject, rowIndex = 0): XmlObject[] {
+	return rawCellsOf(rawRowsOf(rawXml)[rowIndex]);
 }
 
 function paragraphsOf(rawXml: XmlObject): XmlObject[] {
@@ -646,4 +648,109 @@ describe('ensureArray', () => {
 		expect(ensureArray(undefined)).toStrictEqual([]);
 		expect(ensureArray(null)).toStrictEqual([]);
 	});
+});
+
+describe('updateMergeAttrsInRawXml preserves unchanged text bodies', () => {
+	const richCell =
+		'<a:tc><a:txBody><a:bodyPr wrap="square"/><a:lstStyle/>' +
+		'<a:p><a:pPr marL="91440"><a:spcBef><a:spcPts val="600"/></a:spcBef></a:pPr>' +
+		'<a:r><a:rPr b="1"><a:hlinkClick r:id="rIdLink"/></a:rPr><a:t>Rich </a:t></a:r>' +
+		'<a:br/><a:r><a:rPr i="1"/><a:t>text</a:t></a:r>' +
+		'<a:fld id="field-1" type="slidenum"><a:rPr/><a:t>7</a:t></a:fld><a:endParaRPr lang="en-US"/></a:p>' +
+		'<a:p><a:pPr algn="r"/><a:r><a:t>tail</a:t></a:r><a:endParaRPr sz="1800"/></a:p>' +
+		'</a:txBody><a:tcPr marL="91440"/></a:tc>';
+	// Match the existing load/save comparison: runs, then fields per paragraph.
+	const richText = 'Rich text7\ntail';
+	const plainCell = (text: string, attrs = '') =>
+		`<a:tc${attrs}><a:txBody><a:bodyPr/><a:p><a:r><a:rPr/><a:t>${text}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>`;
+	const data = (texts: string[]): PptxTableData => ({
+		columnWidths: texts.map(() => 1 / texts.length),
+		rows: [{ cells: texts.map((text) => ({ text })) }],
+	});
+
+	it('keeps unrelated runs, fields, breaks, hyperlinks and paragraph properties during merge', () => {
+		const element = tableElement(plainCell('A') + plainCell('B') + richCell, 3);
+		const original = structuredClone(element.rawXml);
+		const next = data(['A B', '', richText]);
+		next.rows[0].cells[0].gridSpan = 2;
+		next.rows[0].cells[1].hMerge = true;
+		const result = updateMergeAttrsInRawXml(element, next)!;
+		const cells = cellsOf(result);
+		expect(cells[2]).toStrictEqual(cellsOf(original!)[2]);
+		expect(cells[0]['@_gridSpan']).toBe('2');
+		expect(cells[1]['@_hMerge']).toBe('1');
+		expect(cells[0]['a:txBody']['a:p']['a:r']['a:t']).toBe('A B');
+		expect(cells[1]['a:txBody']['a:p']['a:r']['a:t']).toBe('');
+		expect(element.rawXml).toStrictEqual(original);
+	});
+
+	it('removes merge flags without rewriting text bodies during split', () => {
+		const element = tableElement(
+			plainCell('Combined', ' gridSpan="2"') + plainCell('', ' hMerge="1"') + richCell,
+			3,
+		);
+		const original = structuredClone(element.rawXml);
+		const result = updateMergeAttrsInRawXml(element, data(['Combined', '', richText]))!;
+		const cells = cellsOf(result);
+		expect(cells[0]['@_gridSpan']).toBeUndefined();
+		expect(cells[1]['@_hMerge']).toBeUndefined();
+		expect(cells.map((cell) => cell['a:txBody'])).toStrictEqual(
+			cellsOf(original!).map((cell) => cell['a:txBody']),
+		);
+		expect(element.rawXml).toStrictEqual(original);
+	});
+
+	it('still rebuilds text that actually changed', () => {
+		const element = tableElement(richCell);
+		const result = updateMergeAttrsInRawXml(element, data(['Edited']))!;
+		expect(paragraphsOf(result)).toHaveLength(1);
+		expect(paragraphsOf(result)[0]['a:r']['a:t']).toBe('Edited');
+		expect(paragraphsOf(result)[0]['a:r']['a:rPr']['@_b']).toBe('1');
+	});
+
+	it('preserves a rich anchor when merging it with an empty neighbor', () => {
+		const element = tableElement(richCell + plainCell(''), 2);
+		const next = data([richText, '']);
+		next.rows[0].cells[0].gridSpan = 2;
+		next.rows[0].cells[1].hMerge = true;
+		const result = updateMergeAttrsInRawXml(element, next)!;
+		expect(cellsOf(result)[0]['a:txBody']).toStrictEqual(cellsOf(element.rawXml!)[0]['a:txBody']);
+		expect(cellsOf(result)[0]['@_gridSpan']).toBe('2');
+		expect(cellsOf(result)[1]['@_hMerge']).toBe('1');
+	});
+
+	it('clears absorbed rich text while retaining unchanged vertical merge anchors', () => {
+		const element = tableElement(richCell);
+		const table = rawTableOf(element.rawXml!);
+		table['a:tr'] = [table['a:tr'], structuredClone(table['a:tr'])];
+		const next: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: richText }] }, { cells: [{ text: '' }] }],
+		};
+		next.rows[0].cells[0].rowSpan = 2;
+		next.rows[1].cells[0].vMerge = true;
+		const result = updateMergeAttrsInRawXml(element, next)!;
+		expect(cellsOf(result)[0]['a:txBody']).toStrictEqual(cellsOf(element.rawXml!)[0]['a:txBody']);
+		expect(cellsOf(result)[0]['@_rowSpan']).toBe('2');
+		expect(cellsOf(result, 1)[0]['@_vMerge']).toBe('1');
+		const clearedBody = cellsOf(result, 1)[0]['a:txBody'] as XmlObject;
+		expect(clearedBody['a:p']['a:r']['a:t']).toBe('');
+		expect(clearedBody['a:p']['a:fld']).toBeUndefined();
+		expect(clearedBody['a:p']['a:br']).toBeUndefined();
+	});
+
+	it('retains an unchanged bare empty paragraph', () => {
+		const element = tableElement('<a:tc><a:txBody><a:bodyPr/><a:p/></a:txBody><a:tcPr/></a:tc>');
+		const result = updateMergeAttrsInRawXml(element, data(['']))!;
+		expect(cellOf(result)['a:txBody']).toStrictEqual(cellOf(element.rawXml!)['a:txBody']);
+	});
+
+	it.each(['<a:tc><a:tcPr/></a:tc>', '<a:tc><a:txBody><a:bodyPr/></a:txBody></a:tc>'])(
+		'creates a paragraph when the input text body is missing one: %s',
+		(cell) => {
+			const result = updateMergeAttrsInRawXml(tableElement(cell), data(['']))!;
+			expect(paragraphsOf(result)).toHaveLength(1);
+			expect(paragraphsOf(result)[0]['a:r']['a:t']).toBe('');
+		},
+	);
 });

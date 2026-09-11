@@ -211,6 +211,61 @@ describe('mergeCells', () => {
 		// Immutable: the source keeps its runs.
 		expect(table.rows[0].cells[0].textRuns).toHaveLength(1);
 	});
+
+	it.each(['', ' \t '])(
+		'preserves rich anchor runs when neighbour %j leaves its text unchanged',
+		(neighbour) => {
+			const table = makeTable(1, 2, [['Page 7', neighbour]]);
+			const anchorRuns = [
+				{ text: 'Page ', bold: true },
+				{ text: '7', isField: true },
+				{ text: '', isLineBreak: true },
+			];
+			table.rows[0].cells[0].textRuns = anchorRuns;
+			table.rows[0].cells[1].textRuns = [{ text: 'stale' }];
+
+			const result = mergeCells(
+				[
+					{ row: 0, col: 0 },
+					{ row: 0, col: 1 },
+				],
+				table,
+			);
+
+			expect(result.rows[0].cells[0].text).toBe('Page 7');
+			expect(result.rows[0].cells[0].textRuns).toBe(anchorRuns);
+			expect(result.rows[0].cells[1].text).toBe('');
+			expect(result.rows[0].cells[1].textRuns).toBeUndefined();
+			// Immutable: the absorbed source cell keeps its original run model.
+			expect(table.rows[0].cells[1].textRuns).toStrictEqual([{ text: 'stale' }]);
+		},
+	);
+
+	it.each([
+		['Page 7', 'of 10', 'Page 7 of 10'],
+		[' Page 7 ', '', 'Page 7'],
+	])(
+		'drops rich anchor runs when merging %j and %j changes the text',
+		(anchor, neighbour, expected) => {
+			const table = makeTable(1, 2, [[anchor, neighbour]]);
+			table.rows[0].cells[0].textRuns = [
+				{ text: anchor.slice(0, 4), bold: true },
+				{ text: anchor.slice(4), italic: true },
+			];
+
+			const result = mergeCells(
+				[
+					{ row: 0, col: 0 },
+					{ row: 0, col: 1 },
+				],
+				table,
+			);
+
+			expect(result.rows[0].cells[0].text).toBe(expected);
+			expect(result.rows[0].cells[0].textRuns).toBeUndefined();
+			expect(table.rows[0].cells[0].textRuns).toHaveLength(2);
+		},
+	);
 });
 
 describe('splitCell', () => {

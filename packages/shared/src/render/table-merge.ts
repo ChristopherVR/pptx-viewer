@@ -267,16 +267,16 @@ export function mergeCells(cells: CellCoord[], tableData: PptxTableData): PptxTa
 				return cell;
 			}
 
-			// Every branch below re-texts the cell, so each goes through
-			// `withCellText`: the anchor takes the CONCATENATION of the group and
-			// the absorbed cells are emptied, and a cell that kept the `textRuns`
-			// describing its old content would paint that content instead (the
-			// renderers prefer the run model over the flat string).
+			// A cell whose text changes goes through `withCellText`: keeping runs
+			// that describe its OLD content would make the renderer paint those
+			// runs instead. When an empty selection neighbour leaves the anchor's
+			// text unchanged, however, its existing rich runs still describe the
+			// result and must remain available for rendering and save ordering.
 
 			// Top-left anchor cell
 			if (ri === rect.startRow && ci === rect.startCol) {
 				return {
-					...withCellText(cell, combinedText),
+					...(cell.text === combinedText ? cell : withCellText(cell, combinedText)),
 					gridSpan: colCount > 1 ? colCount : undefined,
 					rowSpan: rowCount > 1 ? rowCount : undefined,
 					hMerge: undefined,
