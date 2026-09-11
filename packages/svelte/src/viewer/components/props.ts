@@ -8,7 +8,11 @@
  * single file exceeds the repo's size budget.
  */
 
-export type { ElementRendererProps, TextBlockProps } from './props-elements';
+export type {
+	ElementRendererProps,
+	SmartArtDrawingViewProps,
+	TextBlockProps,
+} from './props-elements';
 export type { SlideCanvasProps, SlideStageProps } from './props-stage';
 export type { NotesPanelProps, ThumbnailRailProps, ViewerToolbarProps } from './props-chrome';
 export type {
