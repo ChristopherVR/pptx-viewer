@@ -643,4 +643,28 @@ describe('parseCxChartSeries chartData (axes/title) wiring', () => {
 			'Q3 Sales',
 		);
 	});
+
+	it('reads an attributed chart title when a chartRoot is supplied', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': { 'cx:data': { 'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ 'cx:v': '1' }] } } } },
+			},
+		};
+		const chartRoot: XmlObject = {
+			'cx:title': {
+				'cx:tx': {
+					'cx:rich': {
+						'a:p': {
+							'a:r': {
+								'a:t': { '#text': ' Q3 Sales ', '@_xml:space': 'preserve' },
+							},
+						},
+					},
+				},
+			},
+		};
+		expect(parseCxChartSeries(plotArea, xmlLookup, undefined, chartRoot)?.chartData?.title).toBe(
+			' Q3 Sales ',
+		);
+	});
 });

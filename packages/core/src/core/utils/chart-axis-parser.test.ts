@@ -50,6 +50,46 @@ const getLocalName = (key: string): string => {
 };
 
 describe('parseChartAxes', () => {
+	it.each(['catAx', 'valAx', 'dateAx', 'serAx'])(
+		'reads attributed title runs and fields on %s without changing whitespace',
+		(axisType) => {
+			const plotArea: XmlObject = {
+				[`c:${axisType}`]: {
+					'c:title': {
+						'c:tx': {
+							'c:rich': {
+								'a:p': [
+									{ 'a:r': { 'a:t': { '#text': ' Units ', '@_xml:space': 'preserve' } } },
+									{ 'a:fld': { 'a:t': { '#text': ' field ', '@_xml:space': 'preserve' } } },
+									{ 'a:r': { 'a:t': 'suffix' } },
+								],
+							},
+						},
+					},
+				},
+			};
+			const before = structuredClone(plotArea);
+			const [axis] = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+			expect(axis.titleText).toBe(' Units  field suffix');
+			expect(plotArea).toStrictEqual(before);
+		},
+	);
+
+	it.each([
+		[{ '@_xml:space': 'preserve' }, ''],
+		[{ '#text': '  ', '@_xml:space': 'preserve' }, '  '],
+		[0, '0'],
+		[false, 'false'],
+		['Plain', 'Plain'],
+	] as const)('reads an axis title leaf without object coercion', (value, expected) => {
+		const plotArea = {
+			'c:valAx': { 'c:title': { 'c:tx': { 'c:rich': { 'a:p': { 'a:r': { 'a:t': value } } } } } },
+		};
+		expect(parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName)[0].titleText).toBe(
+			expected,
+		);
+	});
+
 	it('should parse category and value axes', () => {
 		const plotArea: XmlObject = {
 			'c:catAx': {

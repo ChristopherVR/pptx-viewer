@@ -18,6 +18,7 @@
 import type { PptxChartAxisFormatting, PptxChartDisplayUnitsLabel, XmlObject } from '../types';
 import type { ColorParserLike, XmlLookupLike } from './chart-cx-parser';
 import { parseShapeProps } from './chart-series-detail-parser';
+import { collectAllText } from './chart-title-xml-ops';
 
 /** The subset of font fields a `cx:txPr`/`cx:unitsLabel` run reads onto. */
 interface CxFontTarget {
@@ -34,25 +35,6 @@ function safeInt(val: unknown): number | undefined {
 	return Number.isFinite(n) ? n : undefined;
 }
 
-/** Recursively collect `a:t` run text (mirrors the walker other cx: text readers use). */
-function collectRunText(node: XmlObject, out: string[]): void {
-	for (const [key, child] of Object.entries(node)) {
-		if (key.startsWith('@_')) {
-			continue;
-		}
-		if (key === 'a:t' || key.endsWith(':t')) {
-			out.push(String(child));
-			continue;
-		}
-		const items = Array.isArray(child) ? child : [child];
-		for (const item of items) {
-			if (item && typeof item === 'object') {
-				collectRunText(item as XmlObject, out);
-			}
-		}
-	}
-}
-
 /**
  * Resolve `cx:title` text: rich run text (`cx:tx/cx:rich`, `a:t` runs) when
  * present, otherwise the linked-cell cached string (`cx:tx/cx:txData/cx:v`),
@@ -66,7 +48,7 @@ export function resolveCxTitleText(
 		return undefined;
 	}
 	const texts: string[] = [];
-	collectRunText(titleNode, texts);
+	collectAllText(titleNode, (key) => key.split(':').at(-1) ?? key, texts);
 	if (texts.length > 0) {
 		return texts.join('');
 	}
