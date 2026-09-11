@@ -257,14 +257,12 @@ export function xmlAttrBool(node: unknown, name: string): boolean | undefined {
 
 /**
  * Read the text content of an element (`#text` key) or the element itself if
- * fast-xml-parser collapsed it to a bare string.
+ * fast-xml-parser collapsed it to a bare value. Alternate parser configurations
+ * may produce numbers or booleans, which use the same coercion as attributes.
  */
 export function xmlText(node: unknown): string | undefined {
-	if (typeof node === 'string') {
-		return node;
-	}
 	if (!isXmlObject(node)) {
-		return undefined;
+		return coerceString(node);
 	}
 	return coerceString(node[TEXT_KEY]);
 }

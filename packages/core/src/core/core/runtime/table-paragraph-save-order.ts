@@ -1,4 +1,5 @@
 import type { PptxTableCellTextRun, XmlObject } from '../../types';
+import { xmlText } from '../../utils';
 import { assignOrderedXmlChildren, setOwnXmlProperty } from './ordered-xml-children';
 import { paragraphContentEntries } from './paragraph-sibling-order';
 import { ensureItems, isGroupedByTag, isXmlObject } from './xml-child-scan';
@@ -41,7 +42,7 @@ function matchesParagraph(paragraph: XmlObject, runs: readonly PptxTableCellText
 		if (node === undefined) {
 			return false;
 		}
-		if (tag !== 'a:br' && (!isXmlObject(node) || String(node['a:t'] ?? '') !== run.text)) {
+		if (tag !== 'a:br' && (!isXmlObject(node) || (xmlText(node['a:t']) ?? '') !== run.text)) {
 			return false;
 		}
 		consumed.set(tag, index + 1);

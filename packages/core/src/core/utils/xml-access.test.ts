@@ -140,6 +140,21 @@ describe('xml-access', () => {
 			expect(xmlText({ '#text': 16 })).toBe('16');
 		});
 
+		it.each([0, 42, false, true])('coerces primitive text %s consistently', (value) => {
+			expect(xmlText(value)).toBe(String(value));
+			expect(xmlText({ '#text': value })).toBe(String(value));
+		});
+
+		it('preserves exact text independently of attributes', () => {
+			expect(xmlText({ '#text': ' Rich ', '@_xml:space': 'preserve' })).toBe(' Rich ');
+			expect(xmlText({ '#text': '  ', '@_xml:space': 'preserve' })).toBe('  ');
+		});
+
+		it.each([null, [], Symbol('text'), 1n, { '@_xml:space': 'preserve' }, { '#text': {} }])(
+			'does not stringify unsupported text nodes',
+			(value) => expect(xmlText(value)).toBeUndefined(),
+		);
+
 		it('returns undefined when missing', () => {
 			expect(xmlText({})).toBeUndefined();
 			expect(xmlText(undefined)).toBeUndefined();

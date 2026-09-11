@@ -38,6 +38,26 @@ function parseCell(xml: string): XmlObject {
 }
 
 describe('extractTableCellTextRuns', () => {
+	it('reads attributed runs and fields without losing whitespace or inline order', () => {
+		const cell = parseCell(
+			'<a:tc><a:txBody><a:p>' +
+				'<a:r><a:t xml:space="preserve"> Rich </a:t></a:r>' +
+				'<a:fld><a:t xml:space="preserve"> 1 </a:t></a:fld><a:br/>' +
+				'<a:r><a:t xml:space="preserve">  </a:t></a:r>' +
+				'<a:r><a:t xml:space="preserve"/></a:r>' +
+				'</a:p></a:txBody></a:tc>',
+		);
+		const before = structuredClone(cell);
+		expect(extractTableCellTextRuns(cell, context)).toStrictEqual([
+			{ text: ' Rich ' },
+			{ text: ' 1 ', isField: true },
+			{ text: '', isLineBreak: true },
+			{ text: '  ' },
+			{ text: '' },
+		]);
+		expect(cell).toStrictEqual(before);
+	});
+
 	it('preserves a paragraph containing only a soft break', () => {
 		const cell = parseCell('<a:tc><a:txBody><a:bodyPr/><a:p><a:br/></a:p></a:txBody></a:tc>');
 		expect(extractTableCellTextRuns(cell, context)).toStrictEqual([

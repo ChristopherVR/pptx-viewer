@@ -1,4 +1,5 @@
 import type { XmlObject } from 'pptx-viewer-core';
+import { xmlText } from 'pptx-viewer-core';
 import React from 'react';
 
 import { colorWithOpacity } from './color';
@@ -25,22 +26,12 @@ export function extractCellText(cellXml: XmlObject | undefined): string {
 		const textParts: string[] = [];
 		const runs = ensureArrayValue(paragraph['a:r'] as XmlObject | XmlObject[] | undefined);
 		runs.forEach((run) => {
-			const value = run['a:t'];
-			if (typeof value === 'string') {
-				textParts.push(value);
-			} else if (value !== undefined) {
-				textParts.push(String(value));
-			}
+			textParts.push(xmlText(run['a:t']) ?? '');
 		});
 
 		const fields = ensureArrayValue(paragraph['a:fld'] as XmlObject | XmlObject[] | undefined);
 		fields.forEach((field) => {
-			const value = field['a:t'];
-			if (typeof value === 'string') {
-				textParts.push(value);
-			} else if (value !== undefined) {
-				textParts.push(String(value));
-			}
+			textParts.push(xmlText(field['a:t']) ?? '');
 		});
 
 		paragraphTexts.push(textParts.join(''));
