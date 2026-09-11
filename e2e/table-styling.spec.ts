@@ -228,6 +228,31 @@ async function fractionalTableDeck(): Promise<DeckPayload> {
 	};
 }
 
+/** Derive a vertical two-cell merge from PowerPoint's public table fixture. */
+async function verticallyMergedTableDeck(): Promise<DeckPayload> {
+	const zip = await JSZip.loadAsync(await readFile(fixturePath));
+	const slidePath = 'ppt/slides/slide4.xml';
+	const slide = zip.file(slidePath);
+	if (!slide) {
+		throw new Error(`${slidePath} is missing from the table styling fixture`);
+	}
+	const xml = await slide.async('string');
+	const rows = [...xml.matchAll(/<a:tr\b[^>]*>.*?<\/a:tr>/gsu)].map((match) => match[0]);
+	const first = rows[0];
+	const second = rows[1];
+	if (!first?.includes('<a:tc>') || !second?.includes('<a:tc>')) {
+		throw new Error('slide 4 is missing the expected first two table rows');
+	}
+	const patchedFirst = first.replace('<a:tc>', '<a:tc rowSpan="2">');
+	const patchedSecond = second.replace('<a:tc>', '<a:tc vMerge="1">');
+	zip.file(slidePath, xml.replace(first, patchedFirst).replace(second, patchedSecond));
+	return {
+		name: 'table-vertical-merge.pptx',
+		mimeType: PPTX_MIME,
+		buffer: Buffer.from(await zip.generateAsync({ type: 'uint8array' })),
+	};
+}
+
 interface RawTableRun {
 	text: string;
 	xml: string;
@@ -805,5 +830,55 @@ test.describe('table styling', () => {
 		await page.waitForTimeout(400);
 
 		expect(await menuLabelsOn(page, far)).toContain('merge selected cells');
+	});
+
+	test('keeps Split Cell available when one merged cell is selected', async ({ page }) => {
+		const deck = await verticallyMergedTableDeck();
+		await loadDeck(page, deck);
+		await gotoSlide(page, 4);
+		const anchor = canvasCell(page, 'R1C1');
+
+		// Selecting the same visible cell, including a Shift-click on it, must not
+		// turn its hidden merge continuation into a second user-selected cell.
+		await selectTableCell(page, anchor);
+		await anchor.click({ modifiers: ['Shift'] });
+		const selectedMenu = await openMenuOn(page, anchor);
+		expect(selectedMenu.labels).toContain('split cell');
+		expect(selectedMenu.labels).not.toContain('merge selected cells');
+
+		await chooseCommand(page, 'Split Cell');
+		await expect(anchor).not.toHaveAttribute('rowspan', '2');
+		await expect(canvasCell(page, 'R2C1')).toHaveCount(1);
+
+		const undo = page.getByRole('button', { name: /^undo/iu }).first();
+		const redo = page.getByRole('button', { name: /^redo/iu }).first();
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expect(canvasCell(page, 'R1C1')).toHaveAttribute('rowspan', '2');
+		await expect(canvasCell(page, 'R2C1')).toHaveCount(0);
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await expect(canvasCell(page, 'R1C1')).not.toHaveAttribute('rowspan', '2');
+		await expect(canvasCell(page, 'R2C1')).toHaveCount(1);
+
+		const download = await savePptxViaBackstage(page);
+		const savedPath = await download.path();
+		expect(savedPath, 'the browser should retain the downloaded PPTX').not.toBeNull();
+		await loadDeck(page, savedPath!);
+		await gotoSlide(page, 4);
+		await expect(canvasCell(page, 'R1C1')).not.toHaveAttribute('rowspan', '2');
+		await expect(canvasCell(page, 'R2C1')).toHaveCount(1);
+	});
+
+	test('still treats a merged cell plus a visible neighbour as a block', async ({ page }) => {
+		await loadDeck(page, await verticallyMergedTableDeck());
+		await gotoSlide(page, 4);
+		const anchor = canvasCell(page, 'R1C1');
+		const neighbour = canvasCell(page, 'R1C2');
+		await selectTableCell(page, anchor);
+		await neighbour.click({ modifiers: ['Shift'] });
+		const menu = await openMenuOn(page, neighbour);
+		expect(menu.labels).toContain('merge selected cells');
+		expect(menu.labels).not.toContain('split cell');
 	});
 });

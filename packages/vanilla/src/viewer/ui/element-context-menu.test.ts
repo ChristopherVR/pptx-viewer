@@ -310,6 +310,43 @@ describe('mountElementContextMenu', () => {
 		context.destroy();
 	});
 
+	it('offers Split Cell when the selected range contains only one visible merged cell', () => {
+		const slide = tableSlide();
+		const element = slide.elements[0];
+		if (element.type !== 'table' || !element.tableData) {
+			throw new Error('expected the table fixture');
+		}
+		element.tableData.rows[0].cells[0].gridSpan = 2;
+		element.tableData.rows[0].cells[1] = { text: '', hMerge: true };
+		const context = harness(slide, {
+			state: {
+				selectedElementId: element.id,
+				selectedElementIds: [element.id],
+				selectedTableCell: { row: 0, column: 0 },
+				selectedTableCells: [
+					{ row: 0, column: 0 },
+					{ row: 0, column: 1 },
+				],
+			},
+			decorate(node) {
+				const table = document.createElement('table');
+				const cell = table.insertRow().insertCell();
+				cell.dataset.rowIndex = '0';
+				cell.dataset.cellIndex = '0';
+				cell.colSpan = 2;
+				node.appendChild(table);
+				return cell;
+			},
+		});
+
+		rightClick(context.target);
+		expect(labels()).toContain('Split Cell');
+		expect(labels().map((label) => label.toLowerCase())).not.toContain('merge selected cells');
+		clickCommand('Split Cell');
+		expect(context.actions.splitTableCell).toHaveBeenCalledWith({ row: 0, column: 0 });
+		context.destroy();
+	});
+
 	it('folds the AI entries in only when the host configured ai', () => {
 		const askAboutSelection = vi.fn();
 		const context = harness(shapeSlide(), {

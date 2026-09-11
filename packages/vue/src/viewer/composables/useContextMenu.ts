@@ -1,6 +1,7 @@
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import {
 	buildContextMenuEntries,
+	hasMultipleSelectedTableCells,
 	resolveContextMenuElementId,
 	resolveTopLevelElementId,
 } from 'pptx-viewer-shared';
@@ -113,11 +114,6 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		y: 0,
 		elementId: null,
 	});
-	/**
-	 * The table element under the context menu, when it is a table whose selected
-	 * cell is known: gates the row/column/merge entries. Mirrors React's ContextMenu
-	 * `isTable` / `hasMultiCellSelection` / `isMergedCell` derivation.
-	 */
 	/** The element the menu was opened on, whatever its type. */
 	const contextElement = computed(() => {
 		const id = contextMenu.value.elementId;
@@ -137,7 +133,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		}
 		const cell = el.tableData.rows[sel.rowIndex]?.cells[sel.columnIndex];
 		const isMerged = Boolean(cell && ((cell.gridSpan ?? 1) > 1 || (cell.rowSpan ?? 1) > 1));
-		const hasMulti = Array.isArray(sel.selectedCells) && sel.selectedCells.length >= 2;
+		const hasMulti = hasMultipleSelectedTableCells(sel.selectedCells, el.tableData);
 		return { el, sel, isMerged, hasMulti };
 	});
 

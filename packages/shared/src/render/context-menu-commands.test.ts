@@ -1,11 +1,138 @@
+import type { PptxTableData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import type { ContextMenuCommandId } from './context-menu-commands';
-import { buildContextMenuEntries, contextMenuLabelKey } from './context-menu-commands';
+import {
+	buildContextMenuEntries,
+	contextMenuLabelKey,
+	hasMultipleSelectedTableCells,
+} from './context-menu-commands';
 
 function ids(...args: Parameters<typeof buildContextMenuEntries>): ContextMenuCommandId[] {
 	return buildContextMenuEntries(...args).map((item) => item.id);
 }
+
+describe('hasMultipleSelectedTableCells', () => {
+	const table: PptxTableData = {
+		columnWidths: [1 / 3, 1 / 3, 1 / 3],
+		rows: [
+			{
+				cells: [
+					{ text: 'Merged', gridSpan: 2, rowSpan: 2 },
+					{ text: '', hMerge: true },
+					{ text: 'Neighbor' },
+				],
+			},
+			{
+				cells: [
+					{ text: '', vMerge: true },
+					{ text: '', hMerge: true, vMerge: true },
+					{ text: 'Other' },
+				],
+			},
+			{
+				cells: [
+					{ text: 'Second merge', gridSpan: 2 },
+					{ text: '', hMerge: true },
+					{ text: 'Last' },
+				],
+			},
+		],
+	};
+
+	it('counts a whole merged region as one visible selected cell without changing the range', () => {
+		const cells = [
+			{ row: 0, col: 0 },
+			{ row: 0, col: 1 },
+			{ row: 1, col: 0 },
+			{ row: 1, col: 1 },
+		];
+		const original = structuredClone({ table, cells });
+		expect(hasMultipleSelectedTableCells(cells, table)).toBeFalsy();
+		expect({ table, cells }).toStrictEqual(original);
+	});
+
+	it('recognizes a merged anchor plus a visible neighbor and two distinct merged anchors', () => {
+		expect(
+			hasMultipleSelectedTableCells(
+				[
+					{ row: 0, col: 0 },
+					{ row: 0, col: 1 },
+					{ row: 0, col: 2 },
+				],
+				table,
+			),
+		).toBeTruthy();
+		expect(
+			hasMultipleSelectedTableCells(
+				[
+					{ row: 0, col: 0 },
+					{ row: 2, col: 0 },
+				],
+				table,
+			),
+		).toBeTruthy();
+		expect(
+			hasMultipleSelectedTableCells(
+				[
+					{ row: 0, col: 2 },
+					{ row: 1, col: 2 },
+				],
+				table,
+			),
+		).toBeTruthy();
+	});
+
+	it('ignores duplicate coordinates, missing cells and hidden continuations', () => {
+		expect(
+			hasMultipleSelectedTableCells(
+				[
+					{ row: 0, col: 0 },
+					{ row: 0, col: 0 },
+				],
+				table,
+			),
+		).toBeFalsy();
+		expect(
+			hasMultipleSelectedTableCells(
+				[
+					{ row: 0, col: 0 },
+					{ row: 9, col: 9 },
+					{ row: 0, col: 1 },
+				],
+				table,
+			),
+		).toBeFalsy();
+		expect(
+			hasMultipleSelectedTableCells(
+				[
+					{ row: 0, col: 1 },
+					{ row: 1, col: 0 },
+					{ row: 1, col: 1 },
+				],
+				table,
+			),
+		).toBeFalsy();
+		expect(hasMultipleSelectedTableCells([], table)).toBeFalsy();
+		expect(hasMultipleSelectedTableCells(undefined, table)).toBeFalsy();
+	});
+
+	it('retains coordinate-based selection when no table model is available', () => {
+		expect(
+			hasMultipleSelectedTableCells([
+				{ row: 0, col: 0 },
+				{ row: 0, col: 1 },
+			]),
+		).toBeTruthy();
+		expect(
+			hasMultipleSelectedTableCells([
+				{ row: 0, col: 0 },
+				{ row: 0, col: 0 },
+			]),
+		).toBeFalsy();
+		expect(hasMultipleSelectedTableCells(undefined)).toBeFalsy();
+	});
+});
 
 describe('buildContextMenuEntries', () => {
 	/**

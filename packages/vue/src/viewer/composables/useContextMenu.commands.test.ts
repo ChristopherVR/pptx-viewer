@@ -72,6 +72,24 @@ const TABLE = {
 	},
 } as TablePptxElement;
 
+function tableWithHorizontalMerge(): TablePptxElement {
+	return {
+		...TABLE,
+		tableData: {
+			columnWidths: [1 / 3, 1 / 3, 1 / 3],
+			rows: [
+				{
+					cells: [
+						{ text: 'merged', gridSpan: 2 },
+						{ text: '', hMerge: true },
+						{ text: 'neighbour' },
+					],
+				},
+			],
+		},
+	};
+}
+
 /**
  * `<div data-element-id="group-1"><div data-element-id="child-1"><span/></div></div>`,
  * which is how every binding renders a `p:grpSp`: the child's element node is a
@@ -211,6 +229,36 @@ describe('useContextMenu command set', () => {
 			tableData: { rows: expect.any(Array) },
 			rawXml: expect.any(Object),
 		});
+	});
+
+	it('distinguishes one merged cell from a merged cell plus a visible neighbour', () => {
+		const table = tableWithHorizontalMerge();
+		const selectedCells = [
+			{ row: 0, col: 0 },
+			{ row: 0, col: 1 },
+		];
+		const tableSelection = ref({
+			elementId: table.id,
+			rowIndex: 0,
+			columnIndex: 0,
+			selectedCells,
+		});
+		const menu = setup({
+			findActiveElement: (id) => (id === table.id ? table : undefined),
+			tableSelection,
+			selectedElementIds: ref<string[]>([table.id]),
+		});
+		menu.contextMenu.value = { open: true, x: 0, y: 0, elementId: table.id };
+
+		expect(commandIds(menu)).toContain('table-split');
+		expect(commandIds(menu)).not.toContain('table-merge-selected');
+
+		tableSelection.value = {
+			...tableSelection.value,
+			selectedCells: [...selectedCells, { row: 0, col: 2 }],
+		};
+		expect(commandIds(menu)).toContain('table-merge-selected');
+		expect(commandIds(menu)).not.toContain('table-split');
 	});
 });
 

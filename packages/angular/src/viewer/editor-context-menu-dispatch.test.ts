@@ -309,6 +309,30 @@ describe('tableMenuContext', () => {
 		expect(tableMenuContext(makeTable(), selection).hasMultiCellSelection).toBeTruthy();
 	});
 
+	it('does not count a merged anchor and its hidden continuation as two visible cells', () => {
+		const table = makeTable();
+		table.tableData!.rows[0].cells[0] = { text: 'merged', gridSpan: 2 };
+		table.tableData!.rows[0].cells[1] = { text: '', hMerge: true };
+		const oneVisibleCell: TableCellSelection = {
+			...selectionAt(0, 0),
+			selectedCells: [
+				{ row: 0, col: 0 },
+				{ row: 0, col: 1 },
+			],
+		};
+
+		expect(tableMenuContext(table, oneVisibleCell)).toStrictEqual({
+			hasMultiCellSelection: false,
+			isMergedCell: true,
+		});
+
+		const withVisibleNeighbour: TableCellSelection = {
+			...oneVisibleCell,
+			selectedCells: [...oneVisibleCell.selectedCells!, { row: 0, col: 2 }],
+		};
+		expect(tableMenuContext(table, withVisibleNeighbour).hasMultiCellSelection).toBeTruthy();
+	});
+
 	it('treats a missing cell as unmerged rather than throwing', () => {
 		expect(isMergedTableCell(makeTable(), 9, 9)).toBeFalsy();
 	});
