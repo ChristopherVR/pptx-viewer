@@ -1,6 +1,7 @@
 /* oxlint-disable eslint/one-var -- independent, unrelated locals; merging them
    into one statement would hurt readability. */
 import type { ParsedTableStyleMap, PptxElement, TablePptxElement } from 'pptx-viewer-core';
+import { updateMergeAttrsInRawXml } from 'pptx-viewer-core';
 import {
 	applyTableStylePreset,
 	evenColumnWidths,
@@ -64,6 +65,15 @@ export function TablePropertiesPanel({
 		onUpdateElement({
 			tableData: { ...td, ...patch },
 		} as Partial<PptxElement>);
+	};
+	const updateMergeRows = (rows: typeof td.rows) => {
+		const tableData = { ...td, rows };
+		const updates: Partial<TablePptxElement> = { tableData };
+		const rawXml = updateMergeAttrsInRawXml(tableElement, tableData);
+		if (rawXml) {
+			updates.rawXml = rawXml;
+		}
+		onUpdateElement(updates);
 	};
 
 	return (
@@ -272,6 +282,7 @@ export function TablePropertiesPanel({
 					tableEditorState={tableEditorState}
 					canEdit={canEdit}
 					onUpdateTableData={updateTableData}
+					onUpdateMergeRows={updateMergeRows}
 				/>
 			)}
 		</>

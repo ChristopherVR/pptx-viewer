@@ -21,6 +21,7 @@ import {
 	buildSmartArtA11y,
 	measureSvgViewportRect,
 	computeSmartArtElementLayout,
+	findSmartArtNodeText,
 	flattenNodes,
 	rebuildDrawingShapesIfCleared,
 	resolveRevealedDrawingShapeNodeIds,
@@ -48,6 +49,7 @@ import {
 } from './smart-art-drawing';
 import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
 import {
+	beginDrawingNodeEdit,
 	beginNodeEdit,
 	canEditSmartArtNodes,
 	commitNodeText,
@@ -347,6 +349,12 @@ export class SmartArtRendererComponent {
 		return this.a11yLabelById().get(nodeId) ?? null;
 	}
 
+	/** Cached drawings use the revealed shape mapping, not fallback node order. */
+	drawingNodeAriaLabel(index: number): string | null {
+		const nodeId = this.drawingShapeNodeIds()[index];
+		return nodeId ? (this.a11yLabelById().get(nodeId) ?? null) : null;
+	}
+
 	/**
 	 * Polite live-region message announcing the most recent node-text commit.
 	 * Empty between commits so assistive tech only speaks on change.
@@ -362,6 +370,49 @@ export class SmartArtRendererComponent {
 	protected readonly asRect = narrowToRect;
 
 	// ── Inline node-text editing ───────────────────────────────────────────
+
+	onDrawingNodeDblClick(event: Event, index: number): void {
+		this.enterDrawingEdit(event, index);
+	}
+
+	onDrawingNodeKeydown(event: KeyboardEvent, index: number): void {
+		if ((event.key === 'Enter' || event.key === 'F2') && this.enterDrawingEdit(event, index)) {
+			event.preventDefault();
+		}
+	}
+
+	private enterDrawingEdit(event: Event, index: number): boolean {
+		const nodeId = this.drawingShapeNodeIds()[index];
+		const data = this.smartArtData();
+		const group = event.currentTarget;
+		const container = this.smartartContainer()?.nativeElement as HTMLElement | undefined;
+		if (
+			!this.canEditNodes() ||
+			!nodeId ||
+			!data ||
+			!container ||
+			!(group instanceof SVGGraphicsElement)
+		) {
+			return false;
+		}
+		// SVG-local boxes avoid applying the stage's zoom/rotation a second time.
+		const textBox = group.querySelector('text')?.getBBox();
+		const box = textBox && textBox.width > 0 && textBox.height > 0 ? textBox : group.getBBox();
+		const seed = beginDrawingNodeEdit(
+			nodeId,
+			findSmartArtNodeText(data, nodeId),
+			box,
+			this.viewBox(),
+			{ width: container.clientWidth, height: container.clientHeight },
+		);
+		if (!seed) {
+			return false;
+		}
+		event.stopPropagation();
+		this.editSettled = false;
+		this.editState.set(seed);
+		return true;
+	}
 
 	/** Double-click a node enters inline edit mode (when editable). */
 	onNodeDblClick(event: Event, node: RenderedNode, index: number): void {

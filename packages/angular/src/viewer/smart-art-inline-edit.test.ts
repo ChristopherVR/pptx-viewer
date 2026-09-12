@@ -16,6 +16,7 @@ import { computeSmartArtLayout } from '../internal/shared';
 import type { RenderedNode } from '../internal/shared';
 import { DEFAULT_PALETTE } from './smart-art-drawing';
 import {
+	beginDrawingNodeEdit,
 	beginNodeEdit,
 	canEditSmartArtNodes,
 	commitNodeText,
@@ -180,6 +181,53 @@ describe('beginNodeEdit', () => {
 			textY: 5,
 		};
 		expect(beginNodeEdit(fake, ELEMENT_ID)).toBeNull();
+	});
+});
+
+describe('beginDrawingNodeEdit', () => {
+	it('projects the local drawing box and applies the editor padding', () => {
+		const box = { x: 50, y: 30, width: 100, height: 60 };
+		const viewBox = { width: 400, height: 300 };
+		const viewport = { width: 800, height: 600 };
+		const boxBefore = { ...box };
+		const viewBoxBefore = { ...viewBox };
+		const viewportBefore = { ...viewport };
+
+		expect(beginDrawingNodeEdit('n1', 'Alpha', box, viewBox, viewport)).toStrictEqual({
+			nodeId: 'n1',
+			text: 'Alpha',
+			box: { x: 96, y: 56, width: 208, height: 128 },
+		});
+		expect(box).toStrictEqual(boxBefore);
+		expect(viewBox).toStrictEqual(viewBoxBefore);
+		expect(viewport).toStrictEqual(viewportBefore);
+	});
+
+	it('accepts empty authored text and enforces the minimum editor size', () => {
+		expect(
+			beginDrawingNodeEdit(
+				'n1',
+				'',
+				{ x: 10, y: 10, width: 5, height: 5 },
+				{ width: 100, height: 100 },
+				{ width: 100, height: 100 },
+			),
+		).toStrictEqual({
+			nodeId: 'n1',
+			text: '',
+			box: { x: 6, y: 6, width: 48, height: 30 },
+		});
+	});
+
+	it('rejects missing ids, missing text, and invalid projection dimensions', () => {
+		const box = { x: 10, y: 10, width: 20, height: 10 };
+		const viewBox = { width: 100, height: 100 };
+		const viewport = { width: 100, height: 100 };
+		expect(beginDrawingNodeEdit(undefined, 'Alpha', box, viewBox, viewport)).toBeNull();
+		expect(beginDrawingNodeEdit('n1', undefined, box, viewBox, viewport)).toBeNull();
+		expect(
+			beginDrawingNodeEdit('n1', 'Alpha', box, { width: 0, height: 100 }, viewport),
+		).toBeNull();
 	});
 });
 

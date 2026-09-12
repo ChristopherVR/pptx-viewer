@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.16.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.16.5) - 2026-09-12
+
+### Bug Fixes
+
+- **angular:** Edit cached SmartArt drawing nodes (by @Sudhansh6) ([7fe9b37](https://github.com/ChristopherVR/pptx-viewer/commit/7fe9b373078ddad027964b88212960455e0cb808))
+- **react:** Sync inspector table merge and split XML (by @Sudhansh6) ([71d8187](https://github.com/ChristopherVR/pptx-viewer/commit/71d8187e3391dfea09011fa3601dbbfea6aa8b9c))
+
 ## [3.16.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.16.4) - 2026-09-12
 
 ### Bug Fixes
