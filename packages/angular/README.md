@@ -210,6 +210,19 @@ actually need instead of the full `POWER_POINT_VIEWER_PROVIDERS` list, as long
 as you cover whatever `inject()` calls those pieces make (`EditorStateService`
 and `LoadContentService` are the two nearly everything depends on).
 
+### Viewport fit options
+
+```html
+<pptx-viewer [content]="content()" [fitPadding]="0" [maxFitScale]="null" />
+```
+
+`fitPadding` is a per-side CSS-pixel number or `{ horizontal, vertical }`;
+`maxFitScale` is a positive fit-factor ceiling or `null` for unlimited enlargement.
+Omission preserves 8 px horizontal / 16 px vertical padding and a ceiling of 1.
+The same inputs are available on `SlideCanvasComponent`; `[autoFit]="false"`
+continues to bypass automatic fitting. These options do not change document
+geometry or user zoom. See the [cross-binding defaults](../../README.md#fitting-a-slide-into-a-custom-host).
+
 ## API
 
 ### Inputs
