@@ -1,4 +1,5 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import { remapTextToSegments } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -48,6 +49,27 @@ function shapeEl(over: Record<string, unknown> = {}): PptxElement {
 }
 
 describe('text format patches', () => {
+	it('honors explicit formatting before typing into a runless paragraph', () => {
+		let element = textEl({
+			text: '',
+			textStyle: { bold: true },
+			textSegments: [
+				{
+					text: '',
+					style: {},
+					paragraphInsertionStyle: { bold: true, color: '#007000', fontSize: 40 },
+				},
+			],
+		});
+		element = { ...element, ...toggleTextFlagPatch(element, 'bold') } as PptxElement;
+		element = { ...element, ...setTextColorPatch(element, '#000000') } as PptxElement;
+		element = { ...element, ...setFontSizePatch(element, 18) } as PptxElement;
+		expect(
+			remapTextToSegments('Typed', (element as { textSegments: TextSegment[] }).textSegments, {})[0]
+				.style,
+		).toMatchObject({ bold: false, color: '#000000', fontSize: 24 });
+	});
+
 	it('toggles bold on/off preserving other text-style fields', () => {
 		const on = toggleTextFlagPatch(textEl(), 'bold');
 		expect(on.textStyle).toMatchObject({ bold: true, fontSize: 18, color: '#111111' });

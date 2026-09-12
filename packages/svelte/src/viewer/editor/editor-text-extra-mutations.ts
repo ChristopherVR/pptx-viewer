@@ -5,6 +5,7 @@ import {
 	applyCaseTransformToSegments,
 	readEditableText,
 	remapTextToSegments,
+	textStylePatch,
 } from 'pptx-viewer-shared';
 
 /**
@@ -22,17 +23,17 @@ function textStyleBase(el: PptxElement): TextStyle {
 /** Toggle the strikethrough flag. */
 export function toggleStrikethroughPatch(el: PptxElement): Partial<PptxElement> {
 	const base = textStyleBase(el);
-	return { textStyle: { ...base, strikethrough: !base.strikethrough } } as Partial<PptxElement>;
+	return textStylePatch(el, { strikethrough: !base.strikethrough });
 }
 
 /** Set the font family, preserving other text-style fields. */
 export function setFontFamilyPatch(el: PptxElement, fontFamily: string): Partial<PptxElement> {
-	return { textStyle: { ...textStyleBase(el), fontFamily } } as Partial<PptxElement>;
+	return textStylePatch(el, { fontFamily });
 }
 
 /** Set the character spacing (1/100 pt, OOXML `spc` units). */
 export function setCharacterSpacingPatch(el: PptxElement, spacing: number): Partial<PptxElement> {
-	return { textStyle: { ...textStyleBase(el), characterSpacing: spacing } } as Partial<PptxElement>;
+	return textStylePatch(el, { characterSpacing: spacing });
 }
 
 /**
@@ -72,14 +73,11 @@ export function changeCasePatch(el: PptxElement, mode: ChangeCaseMode): Partial<
 
 /** Reset bold/italic/underline/strikethrough/highlight to their defaults. */
 export function clearFormattingPatch(el: PptxElement): Partial<PptxElement> {
-	return {
-		textStyle: {
-			...textStyleBase(el),
-			bold: false,
-			italic: false,
-			underline: false,
-			strikethrough: false,
-			highlightColor: undefined,
-		},
-	} as Partial<PptxElement>;
+	return textStylePatch(el, {
+		bold: false,
+		italic: false,
+		underline: false,
+		strikethrough: false,
+		highlightColor: undefined,
+	});
 }
