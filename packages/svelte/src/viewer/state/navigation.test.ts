@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { LayoutState } from './layout-state.svelte';
 import {
 	clampSlideIndex,
 	fitScale,
@@ -9,6 +10,26 @@ import {
 	zoomInPercent,
 	zoomOutPercent,
 } from './navigation';
+
+describe('viewport fit options', () => {
+	it('keeps positional fit padding compatible and allows an explicit ceiling', () => {
+		expect(fitScale(1920, 1080, 960, 540, 0)).toBe(2);
+		expect(fitScale(1920, 1080, 960, 540, 0, 1.25)).toBe(1.25);
+	});
+
+	it('keeps the legacy LayoutState manual zoom interpretation', () => {
+		const layout = new LayoutState({
+			getCanvasSize: () => ({ width: 960, height: 540 }),
+			isFullscreen: () => false,
+			getZoomPercent: () => 150,
+			getFitPadding: () => 0,
+			getMaxFitScale: () => null,
+		});
+		layout.setViewport(1920, 1080);
+		expect(layout.fittedScale).toBe(2);
+		expect(layout.scale).toBe(1.5);
+	});
+});
 
 describe('clampSlideIndex', () => {
 	it('clamps into range', () => {

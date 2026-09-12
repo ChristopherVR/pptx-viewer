@@ -6,6 +6,7 @@
  * system (types, defaults, CSS-variable helpers, Vermilion presets).
  */
 export { PowerPointViewer } from './viewer/component';
+export type { ViewportFitOptions, ViewportFitPadding } from 'pptx-viewer-shared';
 export type {
 	ExportGifOptions,
 	ExportPdfOptions,
