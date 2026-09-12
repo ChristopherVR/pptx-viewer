@@ -206,6 +206,10 @@ describe('renderSmartArtElement', () => {
 		) as HTMLElement;
 		document.body.appendChild(node);
 		const group = node.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+		Object.assign(group, {
+			getBBox: () => ({ x: 10, y: 20, width: 80, height: 30 }),
+			getCTM: () => ({ a: 2, b: 0, c: 0, d: 2, e: 5, f: 10 }),
+		});
 
 		group.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 		const swatch = node.querySelector<HTMLButtonElement>('.pptxv-smartart-node-swatches button');
@@ -215,6 +219,10 @@ describe('renderSmartArtElement', () => {
 
 		group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 		const editor = node.querySelector<HTMLTextAreaElement>('.pptxv-smartart-node-editor')!;
+		expect(editor.style.left).toBe('21px');
+		expect(editor.style.top).toBe('46px');
+		expect(editor.style.width).toBe('168px');
+		expect(editor.style.height).toBe('68px');
 		expect(editor.value).toBe('Alpha');
 		editor.value = 'Changed';
 		editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));

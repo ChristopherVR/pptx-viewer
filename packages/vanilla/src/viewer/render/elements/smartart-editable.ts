@@ -1,7 +1,7 @@
 import type { SmartArtPptxElement } from 'pptx-viewer-core';
 import {
 	canDrillDown,
-	computeInlineEditorRect,
+	measureSvgViewportRect,
 	findSmartArtNodeText,
 	resolvePalette,
 } from 'pptx-viewer-shared';
@@ -47,13 +47,15 @@ export function enableSmartArtEditing(
 			return;
 		}
 		event.stopPropagation();
-		closeEditor();
-		swatches?.remove();
 
 		const textNode = target.querySelector('text');
-		const textRect = textNode?.getBoundingClientRect();
-		const source = textRect && textRect.width > 0 ? textRect : target.getBoundingClientRect();
-		const rect = computeInlineEditorRect(source, chrome.getBoundingClientRect());
+		const textRect = textNode ? measureSvgViewportRect(textNode) : null;
+		const rect = textRect && textRect.width > 0 ? textRect : measureSvgViewportRect(target);
+		if (!rect) {
+			return;
+		}
+		closeEditor();
+		swatches?.remove();
 		editor = createEl(chrome.ownerDocument, 'textarea', 'pptxv-smartart-node-editor', {
 			position: 'absolute',
 			left: `${rect.left - 4}px`,
@@ -102,10 +104,10 @@ export function enableSmartArtEditing(
 			return;
 		}
 		swatches?.remove();
-		const rect = computeInlineEditorRect(
-			target.getBoundingClientRect(),
-			chrome.getBoundingClientRect(),
-		);
+		const rect = measureSvgViewportRect(target);
+		if (!rect) {
+			return;
+		}
 		swatches = createEl(chrome.ownerDocument, 'div', 'pptxv-smartart-node-swatches', {
 			position: 'absolute',
 			left: `${Math.max(0, rect.left)}px`,

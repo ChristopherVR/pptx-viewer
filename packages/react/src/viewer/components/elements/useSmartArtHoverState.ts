@@ -18,6 +18,15 @@ import React from 'react';
 /** Attribute carried by each rendered node group so pointer events map back to a node. */
 export const NODE_ID_ATTR = 'data-smartart-node-id';
 
+export type SmartArtNodeMeasurement = (
+	node: Element,
+	container: HTMLElement,
+) => InlineEditRect | null;
+
+/** Preserve the existing measurement for consumers without a shared SVG origin. */
+export const measureScreenNodeRect: SmartArtNodeMeasurement = (node, container) =>
+	computeInlineEditorRect(node.getBoundingClientRect(), container.getBoundingClientRect());
+
 // ── Shared helper ─────────────────────────────────────────────────────────────
 
 /** Walk up from an event target to the nearest element bearing a node id. */
@@ -65,6 +74,7 @@ export interface SmartArtHoverState {
  */
 export function useSmartArtHoverState(
 	containerRef: React.RefObject<HTMLDivElement | null>,
+	measureNodeRect: SmartArtNodeMeasurement = measureScreenNodeRect,
 ): SmartArtHoverState {
 	const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
 	const [hoveredNodeRect, setHoveredNodeRect] = React.useState<InlineEditRect | null>(null);
@@ -90,12 +100,7 @@ export function useSmartArtHoverState(
 			if (nodeEl && container) {
 				cancelPendingHide();
 				setHoveredNodeId(nodeEl.getAttribute(NODE_ID_ATTR));
-				setHoveredNodeRect(
-					computeInlineEditorRect(
-						nodeEl.getBoundingClientRect(),
-						container.getBoundingClientRect(),
-					),
-				);
+				setHoveredNodeRect(measureNodeRect(nodeEl, container));
 				return;
 			}
 			// Pointer is over a popover anchored to the currently-hovered node
@@ -112,7 +117,7 @@ export function useSmartArtHoverState(
 				hideTimeoutRef.current = null;
 			}, 150);
 		},
-		[containerRef, cancelPendingHide],
+		[containerRef, cancelPendingHide, measureNodeRect],
 	);
 
 	const clearHover = React.useCallback((): void => {

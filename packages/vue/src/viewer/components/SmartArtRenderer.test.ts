@@ -28,6 +28,12 @@ function mountEditable(
 		attachTo: document.body,
 		global: { provide: { [SmartArtNodeEditKey as symbol]: ctx } },
 	});
+	for (const group of wrapper.findAll('g[data-node-id]')) {
+		Object.assign(group.element, {
+			getBBox: () => ({ x: 10, y: 20, width: 80, height: 30 }),
+			getCTM: () => ({ a: 2, b: 0, c: 0, d: 2, e: 5, f: 10 }),
+		});
+	}
 	return { wrapper, commit };
 }
 
@@ -60,6 +66,17 @@ function node(id: string, text: string): PptxSmartArtNode {
 }
 
 describe('smartArtRenderer', () => {
+	it('uses local SVG bounds for the editor', async () => {
+		const { wrapper } = mountEditable({ nodes: [node('n1', 'Alpha')] });
+		await wrapper.findAll('g[data-node-id]')[0]?.trigger('dblclick');
+		const editor = wrapper.find('textarea').element as HTMLTextAreaElement;
+		expect(editor.style.left).toBe('25px');
+		expect(editor.style.top).toBe('50px');
+		expect(editor.style.width).toBe('160px');
+		expect(editor.style.height).toBe('60px');
+		wrapper.unmount();
+	});
+
 	it('renders one <g> shape group per decomposed drawing shape', () => {
 		const shapes: PptxSmartArtDrawingShape[] = [
 			shape({ id: 's1', x: 0, y: 0 }),

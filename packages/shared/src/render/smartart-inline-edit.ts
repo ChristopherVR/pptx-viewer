@@ -8,9 +8,8 @@
  * - `findSmartArtNodeText`: look up a node's current text by id.
  * - `shouldCommitSmartArtNodeText`: decide whether a new value differs from the
  *   current one (so a no-op blur does not push a history entry).
- * - `computeInlineEditorRect`: project a node's on-screen bounding box into
- *   coordinates relative to the SmartArt container so an HTML editor overlay can
- *   be positioned exactly over the node.
+ * - `measureSvgViewportRect`: measure SVG geometry in local coordinates so an
+ *   HTML overlay inherits the diagram's outer transform exactly once.
  *
  * @module smartart-inline-edit
  */
@@ -120,14 +119,11 @@ export function resolveDrawingShapeNodeId(
 }
 
 /**
- * Project a node's on-screen bounding box (`nodeRect`, viewport coordinates)
- * into coordinates relative to the SmartArt container box (`containerRect`,
- * viewport coordinates) so an absolutely-positioned editor can sit exactly over
- * the node.
+ * Subtract a container origin from a node rectangle in the same coordinate space.
  *
- * Both rectangles are expected in the same coordinate space (e.g. both from
- * `getBoundingClientRect()`), so the result is unaffected by canvas zoom: the
- * editor inherits the rendered size of the node.
+ * Both rectangles must already use the overlay's local coordinate space.
+ * Screen rectangles are unsuitable when the overlay inherits a transform;
+ * use `measureSvgViewportRect` for the SVG-backed SmartArt overlays.
  */
 export function computeInlineEditorRect(
 	nodeRect: InlineEditRect,
@@ -139,6 +135,72 @@ export function computeInlineEditorRect(
 		width: nodeRect.width,
 		height: nodeRect.height,
 	};
+}
+
+/**
+ * Measure an SVG graphic in its outermost SVG viewport's local CSS pixels.
+ *
+ * The viewport and the HTML overlay must share an origin. This accounts for
+ * SVG viewBox/letterboxing and internal transforms, but deliberately excludes
+ * outer HTML transforms that the overlay will inherit itself.
+ */
+export function measureSvgViewportRect(source: Element): InlineEditRect | null {
+	const graphic = source as SVGGraphicsElement;
+	if (typeof graphic.getBBox !== 'function' || typeof graphic.getCTM !== 'function') {
+		return null;
+	}
+	try {
+		let viewport = graphic.ownerSVGElement;
+		if (!viewport) {
+			return null;
+		}
+		let matrix = graphic.getCTM();
+		if (viewport.ownerSVGElement) {
+			// getCTM targets the nearest SVG viewport. Cross nested viewports
+			// through screen matrices, then remove the outer HTML transform.
+			while (viewport.ownerSVGElement) {
+				viewport = viewport.ownerSVGElement;
+			}
+			const viewportMatrix = viewport.getCTM();
+			const viewportScreen = viewport.getScreenCTM();
+			const graphicScreen = graphic.getScreenCTM();
+			if (!viewportMatrix || !viewportScreen || !graphicScreen) {
+				return null;
+			}
+			matrix = viewportMatrix.multiply(viewportScreen.inverse()).multiply(graphicScreen);
+		}
+		if (!matrix) {
+			return null;
+		}
+		const box = graphic.getBBox();
+		const points = [
+			[box.x, box.y],
+			[box.x + box.width, box.y],
+			[box.x, box.y + box.height],
+			[box.x + box.width, box.y + box.height],
+		].map(([x, y]) => ({
+			x: matrix.a * x + matrix.c * y + matrix.e,
+			y: matrix.b * x + matrix.d * y + matrix.f,
+		}));
+		if (
+			box.width < 0 ||
+			box.height < 0 ||
+			points.some(({ x, y }) => !Number.isFinite(x) || !Number.isFinite(y))
+		) {
+			return null;
+		}
+		const left = Math.min(...points.map(({ x }) => x));
+		const top = Math.min(...points.map(({ y }) => y));
+		return {
+			left,
+			top,
+			width: Math.max(...points.map(({ x }) => x)) - left,
+			height: Math.max(...points.map(({ y }) => y)) - top,
+		};
+	} catch {
+		// Detached/unrenderable SVGs and singular nested matrices have no box.
+		return null;
+	}
 }
 
 /**

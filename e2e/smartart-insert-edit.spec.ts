@@ -182,6 +182,69 @@ async function clickHistory(page: Page, name: 'Undo' | 'Redo'): Promise<void> {
 	await expect(button).toBeEnabled();
 	await button.click();
 }
+
+/** Bindings intentionally use either tight label bounds or the whole node. */
+async function expectLocalNodeEditor(node: Locator, editor: Locator): Promise<void> {
+	const candidates = await node.evaluate((element) => {
+		const boxes = [element, element.querySelector('text')].flatMap((source) => {
+			if (!(source instanceof SVGGraphicsElement)) {
+				return [];
+			}
+			const box = source.getBBox();
+			const matrix = source.getCTM();
+			if (!matrix) {
+				return [];
+			}
+			const points = [
+				[box.x, box.y],
+				[box.x + box.width, box.y],
+				[box.x, box.y + box.height],
+				[box.x + box.width, box.y + box.height],
+			].map(([x, y]) => ({
+				x: matrix.a * x + matrix.c * y + matrix.e,
+				y: matrix.b * x + matrix.d * y + matrix.f,
+			}));
+			const left = Math.min(...points.map(({ x }) => x));
+			const top = Math.min(...points.map(({ y }) => y));
+			return [
+				{
+					left,
+					top,
+					width: Math.max(...points.map(({ x }) => x)) - left,
+					height: Math.max(...points.map(({ y }) => y)) - top,
+				},
+			];
+		});
+		return boxes.flatMap((box) => [
+			box,
+			{ left: box.left - 4, top: box.top - 4, width: box.width + 8, height: box.height + 8 },
+			{
+				left: box.left - 4,
+				top: box.top - 4,
+				width: Math.max(48, box.width + 8),
+				height: Math.max(30, box.height + 8),
+			},
+		]);
+	});
+	const actual = await editor.evaluate((element) => {
+		const style = getComputedStyle(element);
+		return {
+			left: parseFloat(style.left),
+			top: parseFloat(style.top),
+			width: parseFloat(style.width),
+			height: parseFloat(style.height),
+		};
+	});
+	expect(
+		candidates.some((box) =>
+			(['left', 'top', 'width', 'height'] as const).every(
+				(key) => Math.abs(box[key] - actual[key]) < 1,
+			),
+		),
+		JSON.stringify({ actual, candidates }),
+	).toBeTruthy();
+}
+
 function collectRuntimeErrors(page: Page): string[] {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(`${error.name}: ${error.message}`));
@@ -223,6 +286,42 @@ async function exerciseDirectKeyboardNodeEdit(
 
 test.describe('smartart insert and edit', () => {
 	test.use({ viewport: { width: 1440, height: 900 } });
+
+	test('keeps the node editor in local coordinates at fitted and enlarged zoom', async ({
+		page,
+	}) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await loadDeck(page);
+		await switchToInsertTab(page);
+		await insertSmartArtPreset(page);
+		const smartArt = currentSmartArt(page);
+		for (const enlarge of [false, true]) {
+			if (enlarge) {
+				await page.getByRole('button', { name: /Zoom in/iu }).click();
+				await page.getByRole('button', { name: /Zoom in/iu }).click();
+			}
+			const labelBox = await firstSmartArtNode(smartArt).locator('text').first().boundingBox();
+			expect(labelBox, 'The label must be visibly rendered before editing').not.toBeNull();
+			const { editor } = await openFocusedNodeEditor(page, smartArt);
+			await expectLocalNodeEditor(firstSmartArtNode(smartArt), editor);
+			const editorBox = await editor.boundingBox();
+			expect(editorBox).not.toBeNull();
+			// Also check screen overlap independently of the local-coordinate calculation.
+			for (const [position, size] of [
+				['x', 'width'],
+				['y', 'height'],
+			] as const) {
+				expect(labelBox![size]).toBeGreaterThan(0);
+				expect(editorBox![size]).toBeGreaterThan(0);
+				const overlap =
+					Math.min(labelBox![position] + labelBox![size], editorBox![position] + editorBox![size]) -
+					Math.max(labelBox![position], editorBox![position]);
+				expect(overlap).toBeGreaterThanOrEqual(Math.min(labelBox![size], editorBox![size]) * 0.9);
+			}
+			await blurNodeEditor(page);
+		}
+		expect(runtimeErrors).toStrictEqual([]);
+	});
 
 	test('inserts SmartArt via dialog and verifies it renders on the slide', async ({ page }) => {
 		await loadDeck(page);

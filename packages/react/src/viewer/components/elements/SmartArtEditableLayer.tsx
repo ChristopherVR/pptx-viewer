@@ -1,11 +1,17 @@
 import type { PptxSmartArtData } from 'pptx-viewer-core';
-import { computeInlineEditorRect, findSmartArtNodeText } from 'pptx-viewer-shared';
+import { findSmartArtNodeText } from 'pptx-viewer-shared';
 import type { InlineEditRect } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { SmartArtInlineNodeEditor } from './SmartArtInlineNodeEditor';
 import { SmartArtNodeStyleBar } from './SmartArtNodeStyleBar';
-import { NODE_ID_ATTR, findNodeIdFromEvent, useSmartArtHoverState } from './useSmartArtHoverState';
+import {
+	NODE_ID_ATTR,
+	findNodeIdFromEvent,
+	measureScreenNodeRect,
+	useSmartArtHoverState,
+} from './useSmartArtHoverState';
+import type { SmartArtNodeMeasurement } from './useSmartArtHoverState';
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -30,6 +36,8 @@ interface SmartArtEditableLayerProps {
 	palette?: string[];
 	/** Commit a per-node fill colour change. */
 	onChangeNodeStyle?: (nodeId: string, fill: string) => void;
+	/** The 2D renderer supplies SVG-local geometry; other consumers keep their existing policy. */
+	measureNodeRect?: SmartArtNodeMeasurement;
 	/** The rendered SmartArt SVG content (node groups tagged with data attrs). */
 	children: React.ReactNode;
 }
@@ -60,6 +68,7 @@ export function SmartArtEditableLayer({
 	onCommitNodeText,
 	palette,
 	onChangeNodeStyle,
+	measureNodeRect = measureScreenNodeRect,
 	children,
 }: SmartArtEditableLayerProps): React.ReactNode {
 	const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -73,8 +82,10 @@ export function SmartArtEditableLayer({
 		fontSize?: number;
 	} | null>(null);
 
-	const { hoveredNodeId, hoveredNodeRect, handleMouseMove, clearHover } =
-		useSmartArtHoverState(containerRef);
+	const { hoveredNodeId, hoveredNodeRect, handleMouseMove, clearHover } = useSmartArtHoverState(
+		containerRef,
+		measureNodeRect,
+	);
 
 	const openEditor = React.useCallback(
 		(target: EventTarget | null): void => {
@@ -94,17 +105,19 @@ export function SmartArtEditableLayer({
 			// itself is drawn. Falls back to the group box when there's no text
 			// node yet (e.g. an empty node being given its first label).
 			const textEl = nodeEl.querySelector('text');
-			const textRect = textEl?.getBoundingClientRect();
-			const hasTextRect = textRect !== undefined && textRect.width > 0 && textRect.height > 0;
-			const sourceRect = hasTextRect ? textRect : nodeEl.getBoundingClientRect();
-			const rect = computeInlineEditorRect(sourceRect, container.getBoundingClientRect());
+			const textRect = textEl ? measureNodeRect(textEl, container) : null;
+			const hasTextRect = textRect !== null && textRect.width > 0 && textRect.height > 0;
+			const rect = hasTextRect ? textRect : measureNodeRect(nodeEl, container);
+			if (!rect) {
+				return;
+			}
 			const paddedRect: InlineEditRect = {
 				left: rect.left - EDITOR_PADDING,
 				top: rect.top - EDITOR_PADDING,
 				width: rect.width + EDITOR_PADDING * 2,
 				height: rect.height + EDITOR_PADDING * 2,
 			};
-			// Approximate the on-screen font size from the measured text box so
+			// Approximate font size in the caller's coordinate space so
 			// the overlay's typography doesn't visibly jump relative to the
 			// rendered text underneath (each layout picks its own per-node size).
 			const lineCount = Math.max(1, textEl?.querySelectorAll('tspan').length ?? 1);
@@ -114,7 +127,7 @@ export function SmartArtEditableLayer({
 			clearHover();
 			setEdit({ nodeId, rect: paddedRect, fontSize });
 		},
-		[clearHover],
+		[clearHover, measureNodeRect],
 	);
 
 	if (!canEdit) {

@@ -22,7 +22,7 @@
 	} from '../render';
 	import {
 		canDrillDown,
-		computeInlineEditorRect,
+		measureSvgViewportRect,
 		findSmartArtNodeText,
 		resolvePalette,
 		smartArtConnectorPaint,
@@ -51,8 +51,8 @@
 	function nodeRect(target: SVGGElement) {
 		if (!chromeEl) {return null;}
 		const text = target.querySelector('text');
-		const source = text && text.getBoundingClientRect().width > 0 ? text : target;
-		return computeInlineEditorRect(source.getBoundingClientRect(), chromeEl.getBoundingClientRect());
+		const textRect = text ? measureSvgViewportRect(text) : null;
+		return textRect && textRect.width > 0 ? textRect : measureSvgViewportRect(target);
 	}
 
 	function openEditor(event: MouseEvent, nodeId: string | undefined): void {
