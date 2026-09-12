@@ -18,7 +18,7 @@
  *
  * The model here is one thing:
  *  - `zoom` is the USER's factor, where 1 means "whatever fits".
- *  - `fitScale` is the viewport measurement the binding feeds in (<= 1).
+ *  - `fitScale` is the positive viewport measurement the binding feeds in.
  *  - `manual` records whether the user has taken control, which is what
  *    separates "reset to 100%" from "fit to viewport" without needing a
  *    sentinel value smuggled into the number.
@@ -33,7 +33,7 @@ import { clampZoomScale, zoomInScale, zoomOutScale } from './zoom-step';
 export interface ViewerZoomState {
 	/** The user's zoom factor. 1 means "fit to viewport", not "100% of natural size". */
 	zoom: number;
-	/** Fit-to-viewport factor measured by the binding's canvas (<= 1). */
+	/** Positive fit-to-viewport factor measured by the binding's canvas. */
 	fitScale: number;
 	/** True once the user has zoomed explicitly, false while following the viewport. */
 	manual: boolean;
