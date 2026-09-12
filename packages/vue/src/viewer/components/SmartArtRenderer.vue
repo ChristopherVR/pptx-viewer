@@ -12,6 +12,7 @@ import {
 	buildSmartArtA11y,
 	canDrillDown,
 	computeDrawingViewBox,
+	measureSvgViewportRect,
 	projectDrawingShapes,
 	resolveRevealedDrawingShapeNodeIds,
 	resolvePalette,
@@ -34,7 +35,6 @@ import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle } from '../composables/element-style';
 import {
-	inlineEditorRect,
 	nodeIdsInRenderOrder,
 	useSmartArtInlineEditState,
 } from '../composables/smartart-inline-edit';
@@ -335,9 +335,8 @@ const styleBarStyle = computed<CSSProperties | undefined>(() => {
 });
 
 /**
- * Enter edit mode for a node. Projects the double-clicked SVG node's on-screen
- * rect into container-relative pixels (shared `computeInlineEditorRect`) so the
- * overlay textarea sits exactly over the node, independent of canvas zoom.
+ * Enter edit mode using local SVG geometry. The textarea inherits the same
+ * outer canvas transform, so its coordinates must not include zoom twice.
  */
 function beginEdit(nodeId: string | undefined, text: string, event: Event): void {
 	if (!editable.value || !nodeId) {
@@ -348,7 +347,10 @@ function beginEdit(nodeId: string | undefined, text: string, event: Event): void
 	if (!target || !host) {
 		return;
 	}
-	const rect = inlineEditorRect(target.getBoundingClientRect(), host.getBoundingClientRect());
+	const rect = measureSvgViewportRect(target);
+	if (!rect) {
+		return;
+	}
 	edit.begin(nodeId, text, rect);
 	void nextTick(() => {
 		editorEl.value?.focus();

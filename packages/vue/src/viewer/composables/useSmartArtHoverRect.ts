@@ -1,4 +1,4 @@
-import { computeInlineEditorRect } from 'pptx-viewer-shared';
+import { measureSvgViewportRect } from 'pptx-viewer-shared';
 import type { InlineEditRect } from 'pptx-viewer-shared';
 import { onUnmounted, ref } from 'vue';
 import type { Ref } from 'vue';
@@ -46,12 +46,7 @@ export function useSmartArtHoverRect(containerRef: Ref<HTMLElement | null>) {
 			const id = nodeEl.getAttribute(NODE_ID_ATTR);
 			if (id !== hoveredNodeId.value) {
 				hoveredNodeId.value = id;
-				hoveredNodeRect.value = id
-					? computeInlineEditorRect(
-							nodeEl.getBoundingClientRect(),
-							container.getBoundingClientRect(),
-						)
-					: null;
+				hoveredNodeRect.value = id ? measureSvgViewportRect(nodeEl) : null;
 			}
 			return;
 		}
