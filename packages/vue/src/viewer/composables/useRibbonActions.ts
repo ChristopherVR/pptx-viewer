@@ -7,7 +7,12 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge, ChangeCaseMode } from 'pptx-viewer-shared';
-import { readEditableText, remapTextToSegments, transformTextCase } from 'pptx-viewer-shared';
+import {
+	readEditableText,
+	remapTextToSegments,
+	transformTextCase,
+	updateTextSegmentStyle,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -135,7 +140,7 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 		const textStyle = { ...el.textStyle, ...updates };
 		const segments =
 			el.textSegments && el.textSegments.length > 0
-				? el.textSegments.map((s) => ({ ...s, style: { ...s.style, ...updates } }))
+				? el.textSegments.map((s) => updateTextSegmentStyle(s, updates))
 				: undefined;
 		ops.updateElement(
 			id,

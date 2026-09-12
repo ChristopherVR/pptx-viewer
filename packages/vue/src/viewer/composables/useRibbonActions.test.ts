@@ -1,4 +1,5 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import { remapTextToSegments } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { computed, ref } from 'vue';
 
@@ -52,6 +53,25 @@ function useHarness(element: PptxElement) {
 }
 
 describe('ribbonUpdateTextCase', () => {
+	it('honors explicit formatting before typing into a runless paragraph', () => {
+		const initial = {
+			...textElement(),
+			text: '',
+			textSegments: [
+				{
+					text: '',
+					style: {},
+					paragraphInsertionStyle: { bold: true, color: '#007000', fontSize: 40 },
+				},
+			],
+		} as PptxElement;
+		const harness = useHarness(initial);
+		const updates = { bold: false, color: '#000000', fontSize: 24 };
+		harness.actions.ribbonUpdateTextStyle(updates);
+		const element = harness.element() as PptxElement & { textSegments: TextSegment[] };
+		expect(remapTextToSegments('Typed', element.textSegments, {})[0].style).toMatchObject(updates);
+	});
+
 	it('rewrites run text per a change-case mode', () => {
 		const { actions, element } = useHarness(textElement());
 		actions.ribbonUpdateTextCase('upper');
