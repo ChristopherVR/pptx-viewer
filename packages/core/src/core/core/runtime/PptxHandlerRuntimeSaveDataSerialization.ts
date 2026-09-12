@@ -97,6 +97,7 @@ import {
 	serializeCellMergeAttributes,
 	serializeTablePropertyFlags,
 } from './save-table-merge-helpers';
+import { writeTableColumnWidths } from './table-column-width-save';
 import { recordTableParagraphOrder } from './table-paragraph-save-order';
 import { rebuildTableXmlFromData } from './table-structural-ops';
 import { writeTablePropertiesOwnFillAndEffects } from './table-tblpr-save';
@@ -181,6 +182,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// ── No structural change: update cells in place ──
+			writeTableColumnWidths(tbl as XmlObject, tableData.columnWidths);
 			for (let rIdx = 0; rIdx < Math.min(tableData.rows.length, xmlRows.length); rIdx++) {
 				const dataRow = tableData.rows[rIdx];
 				const xmlRow = xmlRows[rIdx] as XmlObject;

@@ -7,6 +7,86 @@ import {
 	replaceFirstTextValueInTree,
 	buildChartPoints,
 } from './save-table-merge-helpers';
+import { writeTableColumnWidths } from './table-column-width-save';
+
+describe('writeTableColumnWidths', () => {
+	it('updates only widths while retaining column identities, extensions and cells', () => {
+		const columns = [
+			{ '@_w': '100', 'a:extLst': { 'a:ext': { 'a16:colId': { '@_val': '7' } } } },
+			{ '@_w': '100', 'a:extLst': { 'a:ext': { '@_uri': 'custom', 'custom:data': 'keep' } } },
+		];
+		const tbl: XmlObject = {
+			'a:tblGrid': { 'a:gridCol': columns },
+			'a:tr': { 'a:tc': 'untouched' },
+		};
+		const expected = structuredClone(tbl);
+		expected['a:tblGrid']['a:gridCol'][0]['@_w'] = '50';
+		expected['a:tblGrid']['a:gridCol'][1]['@_w'] = '150';
+		const proportions = [0.25, 0.75];
+		writeTableColumnWidths(tbl, proportions);
+		expect(tbl).toStrictEqual(expected);
+		expect(tbl['a:tblGrid']['a:gridCol']).toBe(columns);
+		expect(proportions).toStrictEqual([0.25, 0.75]);
+	});
+
+	it('retains the integer grid total through fractional edits and repeated writes', () => {
+		const columns = [3, 3, 4].map((width) => ({ '@_w': String(width) }));
+		const tbl: XmlObject = { 'a:tblGrid': { 'a:gridCol': columns } };
+		for (let save = 0; save < 3; save++) {
+			writeTableColumnWidths(tbl, [1 / 3, 1 / 3, 1 / 3]);
+			expect(columns.map((column) => Number(column['@_w']))).toStrictEqual([3, 4, 3]);
+		}
+		writeTableColumnWidths(tbl, [0, 0.5, 0.5]);
+		expect(columns.map((column) => column['@_w'])).toStrictEqual(['0', '5', '5']);
+	});
+
+	it('keeps a singleton column and unchanged authored widths byte-stable', () => {
+		const tbl: XmlObject = { 'a:tblGrid': { 'a:gridCol': { '@_w': '00100', 'a:extLst': '' } } };
+		const original = structuredClone(tbl);
+		writeTableColumnWidths(tbl, [1]);
+		expect(tbl).toStrictEqual(original);
+	});
+
+	it('keeps unchanged uneven multi-column EMUs and lexical widths', () => {
+		const widths = ['00101', '203', '0307'];
+		const tbl: XmlObject = {
+			'a:tblGrid': { 'a:gridCol': widths.map((width) => ({ '@_w': width })) },
+		};
+		const original = structuredClone(tbl);
+		writeTableColumnWidths(tbl, [101 / 611, 203 / 611, 307 / 611]);
+		expect(tbl).toStrictEqual(original);
+	});
+
+	it('does not make a trailing zero width negative from floating-point sum error', () => {
+		const columns = [Number.MAX_SAFE_INTEGER, 0].map((width) => ({ '@_w': String(width) }));
+		const tbl: XmlObject = { 'a:tblGrid': { 'a:gridCol': columns } };
+		const original = structuredClone(tbl);
+		writeTableColumnWidths(tbl, [1 + Number.EPSILON, 0]);
+		expect(tbl).toStrictEqual(original);
+	});
+
+	it.each([
+		{ source: ['100', '100'], ratios: [NaN, 0.5] },
+		{ source: ['100', '100'], ratios: [Infinity, 0] },
+		{ source: ['100', '100'], ratios: [-0.25, 1.25] },
+		{ source: ['100', '100'], ratios: [0, 0] },
+		{ source: ['100', '100'], ratios: [1, 3] },
+		{ source: ['100', '100'], ratios: [1] },
+		{ source: ['bad', '100'], ratios: [0.25, 0.75] },
+		{ source: ['', '100'], ratios: [0.25, 0.75] },
+		{ source: ['Infinity', '100'], ratios: [0.25, 0.75] },
+		{ source: ['-1', '100'], ratios: [0.25, 0.75] },
+		{ source: ['0', '0'], ratios: [0.25, 0.75] },
+		{ source: [], ratios: [] },
+	])('leaves an invalid grid or proportions unchanged: $source / $ratios', ({ source, ratios }) => {
+		const tbl: XmlObject = {
+			'a:tblGrid': { 'a:gridCol': source.map((width) => ({ '@_w': width })) },
+		};
+		const original = structuredClone(tbl);
+		writeTableColumnWidths(tbl, ratios);
+		expect(tbl).toStrictEqual(original);
+	});
+});
 
 describe('serializeCellMergeAttributes', () => {
 	it('should set gridSpan when > 1', () => {
