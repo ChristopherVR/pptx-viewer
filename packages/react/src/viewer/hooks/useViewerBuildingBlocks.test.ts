@@ -26,6 +26,7 @@ import type { ViewerBuildingBlocksResult } from './useViewerBuildingBlocks';
 let fixtureBytes: Uint8Array;
 let twoSlideFixtureBytes: Uint8Array;
 let embeddedFixtureBytes: Uint8Array;
+let textEditingFixtureBytes: Uint8Array;
 
 const { autosaveInputs } = vi.hoisted(() => ({ autosaveInputs: [] as UseAutosaveInput[] }));
 
@@ -52,6 +53,18 @@ beforeAll(async () => {
 	embeddedFixtureBytes = await oneSlide.handler.save(oneSlide.data.slides, {
 		embeddedFonts: [{ name: 'Sample Font', dataUrl: '', rawFontData, format: 'truetype' }],
 	});
+	oneSlide.data.slides[0].elements = ['First body', 'Second body'].map((text, index) => ({
+		id: `text-${index}`,
+		type: 'text',
+		text,
+		x: 20,
+		y: 20 + index * 100,
+		width: 250,
+		height: 80,
+		textStyle: { fontSize: 24 },
+	}));
+	oneSlide.data.slides[0].isDirty = true;
+	textEditingFixtureBytes = await oneSlide.handler.save(oneSlide.data.slides);
 	oneSlide.handler.dispose();
 
 	const twoSlides = await PptxHandler.create({
@@ -173,6 +186,131 @@ describe('useViewerBuildingBlocks', () => {
 			}
 		}
 	}, 30_000);
+
+	it.each(['click-away', 'explicit-commit', 'click-away-after-undo'] as const)(
+		'records an inline text change after %s without needing another document edit',
+		async (commit) => {
+			const handle = createRef<PowerPointViewerHandle>();
+			await act(async () =>
+				root.render(React.createElement(Harness, { content: textEditingFixtureBytes, handle })),
+			);
+			await flushUntil(() => latest?.loading === false);
+			expect(latest?.loading).toBeFalsy();
+			const [first, second] = handle.current!.getElements();
+			expect(handle.current!.canUndo()).toBeFalsy();
+			if (commit === 'click-away-after-undo') {
+				await act(async () => {
+					handle.current!.updateElement(first.id, { x: first.x + 10 });
+				});
+				expect(handle.current!.canUndo()).toBeTruthy();
+				await act(async () => {
+					handle.current!.undo();
+				});
+				await flush();
+				expect(handle.current!.canRedo()).toBeTruthy();
+			}
+			await act(async () =>
+				latest!.canvasProps.onDoubleClick(
+					first.id,
+					new MouseEvent('dblclick') as unknown as React.MouseEvent,
+				),
+			);
+			await act(async () => latest!.canvasProps.onInlineEditChange('First body edited'));
+			if (commit !== 'explicit-commit') {
+				await act(async () =>
+					latest!.canvasProps.onMouseDown(
+						second.id,
+						new MouseEvent('mousedown', {
+							button: 0,
+							clientX: 30,
+							clientY: 130,
+						}) as unknown as React.MouseEvent,
+					),
+				);
+				// Pointerup is a separate native event: allow the history effect to
+				// observe the pending selection drag first. No pointermove occurs.
+				await act(async () => {
+					document.dispatchEvent(new Event('pointerup'));
+				});
+			} else {
+				await act(async () => latest!.canvasProps.onInlineEditCommit());
+			}
+			await flush();
+			const edited = handle.current!.getElementById(first.id);
+			expect(edited?.type === 'text' && edited.text).toBe('First body edited');
+			expect(latest!.canvasProps.inlineEditingElementId).toBeNull();
+			expect(handle.current!.canRedo()).toBeFalsy();
+			expect(handle.current!.canUndo()).toBeTruthy();
+			await act(async () => handle.current!.undo());
+			const restored = handle.current!.getElementById(first.id);
+			expect(restored?.type === 'text' && restored.text).toBe('First body');
+		},
+	);
+
+	it('does not dirty the document or create history for selection or unrelated pointerup', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: textEditingFixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		expect(latest?.loading).toBeFalsy();
+		const [first] = handle.current!.getElements();
+		await act(async () => {
+			latest!.canvasProps.onMouseDown(
+				first.id,
+				new MouseEvent('mousedown', { button: 0 }) as unknown as React.MouseEvent,
+			);
+		});
+		await act(async () => {
+			document.dispatchEvent(new Event('pointerup'));
+		});
+		await act(async () => {
+			document.dispatchEvent(new Event('pointerup'));
+		});
+		expect(handle.current!.getElementById(first.id)).toStrictEqual(first);
+		expect(handle.current!.isDirty()).toBeFalsy();
+		expect(handle.current!.canUndo()).toBeFalsy();
+		expect(handle.current!.canRedo()).toBeFalsy();
+	});
+
+	it('coalesces multiple real drag frames into one undo step on pointerup', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: textEditingFixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		expect(latest?.loading).toBeFalsy();
+		const [first] = handle.current!.getElements();
+		await act(async () => {
+			latest!.canvasProps.onMouseDown(
+				first.id,
+				new MouseEvent('mousedown', {
+					button: 0,
+					clientX: 20,
+					clientY: 20,
+				}) as unknown as React.MouseEvent,
+			);
+		});
+		for (const x of [50, 90]) {
+			await act(async () => {
+				document.dispatchEvent(new MouseEvent('pointermove', { clientX: x, clientY: 50 }));
+				await new Promise<void>((resolve) => {
+					requestAnimationFrame(() => resolve());
+				});
+			});
+			expect(handle.current!.canUndo()).toBeFalsy();
+		}
+		await act(async () => {
+			document.dispatchEvent(new Event('pointerup'));
+		});
+		expect(handle.current!.getElementById(first.id)?.x).not.toBe(first.x);
+		expect(handle.current!.canUndo()).toBeTruthy();
+		await act(async () => {
+			handle.current!.undo();
+		});
+		expect(handle.current!.getElementById(first.id)).toStrictEqual(first);
+		expect(handle.current!.canUndo()).toBeFalsy();
+	});
 
 	it('loads a real PPTX buffer and produces working toolbar/canvas props', async () => {
 		await act(async () => {
