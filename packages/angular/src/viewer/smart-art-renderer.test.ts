@@ -240,6 +240,14 @@ describe('smartArtRenderer template bindings', () => {
 		join(dirname(fileURLToPath(import.meta.url)), 'smart-art-renderer.component.html'),
 		'utf8',
 	);
+	const drawingBranch = template.slice(
+		template.indexOf('@else if (hasDrawingShapes())'),
+		template.indexOf('@else if (hasLayout())'),
+	);
+	const fallbackBranch = template.slice(
+		template.indexOf('@else if (hasLayout())'),
+		template.lastIndexOf('@else {'),
+	);
 
 	it('binds the shared label descriptor instead of a hardcoded white fill', () => {
 		expect(template).toContain('[attr.fill]="layoutLabels()[ni]!.fill"');
@@ -251,5 +259,26 @@ describe('smartArtRenderer template bindings', () => {
 	it('binds the shared connector paint instead of a hardcoded grey stroke', () => {
 		expect(template).toContain('[attr.stroke]="layoutConnectors()[ci]!.stroke"');
 		expect(template).not.toContain('stroke="#94a3b8"');
+	});
+
+	it('routes cached drawing nodes through their mapped inline-edit entry path', () => {
+		expect(drawingBranch).toContain(
+			'[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"',
+		);
+		expect(drawingBranch).toContain('(dblclick)="onDrawingNodeDblClick($event, i)"');
+		expect(drawingBranch).toContain('(keydown)="onDrawingNodeKeydown($event, i)"');
+		expect(drawingBranch).toContain('drawingNodeAriaLabel(i)');
+		expect(drawingBranch).toContain(
+			'[attr.tabindex]="canEditNodes() && drawingShapeNodeIds()[i] ? 0 : null"',
+		);
+		expect(drawingBranch).toContain(
+			`[attr.role]="drawingShapeNodeIds()[i] ? (canEditNodes() ? 'button' : 'img') : null"`,
+		);
+	});
+
+	it('keeps the existing fallback-node edit path intact', () => {
+		expect(fallbackBranch).toContain('(dblclick)="onNodeDblClick($event, node, ni)"');
+		expect(fallbackBranch).toContain('(keydown)="onNodeKeydown($event, node, ni)"');
+		expect(fallbackBranch).toContain('[attr.data-smartart-node-id]="nodeIdAt(ni)"');
 	});
 });

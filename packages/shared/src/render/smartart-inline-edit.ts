@@ -140,3 +140,42 @@ export function computeInlineEditorRect(
 		height: nodeRect.height,
 	};
 }
+
+/**
+ * Project a zero-origin SVG viewBox rectangle into an untransformed CSS viewport
+ * using `xMidYMid meet`. The editor and SVG can then inherit the same outer
+ * zoom, rotation and flip without applying those transforms twice.
+ */
+export function projectSmartArtViewBoxRect(
+	nodeRect: InlineEditRect,
+	viewBox: { width: number; height: number },
+	viewport: { width: number; height: number },
+): InlineEditRect | null {
+	if (
+		![
+			nodeRect.left,
+			nodeRect.top,
+			nodeRect.width,
+			nodeRect.height,
+			viewBox.width,
+			viewBox.height,
+			viewport.width,
+			viewport.height,
+		].every(Number.isFinite) ||
+		viewBox.width <= 0 ||
+		viewBox.height <= 0 ||
+		viewport.width <= 0 ||
+		viewport.height <= 0 ||
+		nodeRect.width < 0 ||
+		nodeRect.height < 0
+	) {
+		return null;
+	}
+	const scale = Math.min(viewport.width / viewBox.width, viewport.height / viewBox.height);
+	return {
+		left: (viewport.width - viewBox.width * scale) / 2 + nodeRect.left * scale,
+		top: (viewport.height - viewBox.height * scale) / 2 + nodeRect.top * scale,
+		width: nodeRect.width * scale,
+		height: nodeRect.height * scale,
+	};
+}

@@ -23,6 +23,11 @@
 					[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
 					[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
 					[class.pptx-ng-smartart-node--editable]="canEditNodes() && !!drawingShapeNodeIds()[i]"
+					[attr.tabindex]="canEditNodes() && drawingShapeNodeIds()[i] ? 0 : null"
+					[attr.role]="drawingShapeNodeIds()[i] ? (canEditNodes() ? 'button' : 'img') : null"
+					[attr.aria-label]="drawingNodeAriaLabel(i)"
+					(dblclick)="onDrawingNodeDblClick($event, i)"
+					(keydown)="onDrawingNodeKeydown($event, i)"
 				>
 					@if (shape.gradient) {
 						<defs>

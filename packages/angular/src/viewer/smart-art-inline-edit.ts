@@ -21,7 +21,7 @@
 import type { PptxElement, PptxSlide, PptxSmartArtData } from 'pptx-viewer-core';
 
 import type { RenderedNode } from '../internal/shared';
-import { canDrillDown, isTemplateElementId } from '../internal/shared';
+import { canDrillDown, isTemplateElementId, projectSmartArtViewBoxRect } from '../internal/shared';
 import { updateSmartArtNodeText } from './editor-insert';
 
 /**
@@ -171,6 +171,36 @@ export function beginNodeEdit(
 		box: nodeEditBox(node),
 		text: rawText ?? node.text,
 	};
+}
+
+/** Seed a cached-drawing edit from model text and its local SVG bounding box. */
+export function beginDrawingNodeEdit(
+	nodeId: string | undefined,
+	rawText: string | undefined,
+	box: NodeEditBox,
+	viewBox: { width: number; height: number },
+	viewport: { width: number; height: number },
+): InlineEditState | null {
+	if (!nodeId || rawText === undefined) {
+		return null;
+	}
+	const rect = projectSmartArtViewBoxRect(
+		{ left: box.x, top: box.y, width: box.width, height: box.height },
+		viewBox,
+		viewport,
+	);
+	return rect
+		? {
+				nodeId,
+				text: rawText,
+				box: {
+					x: rect.left - 4,
+					y: rect.top - 4,
+					width: Math.max(48, rect.width + 8),
+					height: Math.max(30, rect.height + 8),
+				},
+			}
+		: null;
 }
 
 /**

@@ -20,6 +20,7 @@ import {
 	computeSingleSelected,
 	resolveInteractiveElementId,
 } from './selection-geometry';
+import { SlideCanvasComponent } from './slide-canvas.component';
 import { isElementInteractive } from './template-mode';
 
 // ---------------------------------------------------------------------------
@@ -111,11 +112,10 @@ describe('noRotation', () => {
 // noMove / noTextEdit: gated in the component's pointer paths
 //
 // The canvas component needs a TestBed to drive real pointer events (this
-// package has none: see `vitest.config.ts`), so its two remaining gates are
-// pinned against the component SOURCE, exactly as
-// `slide-canvas-handle-labels.test.ts` pins the accessible names. Both
-// assertions fail on the pre-change file, which armed the move drag and opened
-// the inline editor with no lock check at all.
+// package has none: see `vitest.config.ts`). Source checks pin pointer wiring,
+// as `slide-canvas-handle-labels.test.ts` pins accessible names. The generic
+// text-editor eligibility method can be exercised directly on the prototype
+// without constructing the component or its injected services.
 // ---------------------------------------------------------------------------
 
 const component = readFileSync(join(__dirname, 'slide-canvas.component.ts'), 'utf8');
@@ -126,9 +126,24 @@ describe('slide-canvas pointer gates', () => {
 	});
 
 	it('gates inline text editing on noTextEdit', () => {
-		expect(component).toContain(`'textEdit',`);
 		expect(component).toContain('this.canTextEdit(id)');
+		const canvas = {
+			allElements: () => [shape('free'), shape('locked', { noTextEdit: true })],
+		} as unknown as SlideCanvasComponent;
+		expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'free')).toBeTruthy();
+		expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'locked')).toBeFalsy();
 	});
+
+	it.each(['smartArt', 'chart', 'table', 'image', 'group'] as const)(
+		'does not open the generic text editor for %s or a missing element',
+		(type) => {
+			const canvas = {
+				allElements: () => [{ ...shape('non-text'), type } as PptxElement],
+			} as unknown as SlideCanvasComponent;
+			expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'non-text')).toBeFalsy();
+			expect(SlideCanvasComponent.prototype['canTextEdit'].call(canvas, 'missing')).toBeFalsy();
+		},
+	);
 
 	it('guards the resize and rotate handle pointer-downs, not just their rendering', () => {
 		expect(component).toContain(`!canInteractWithElement(this.singleSelectedElement(), 'resize')`);
