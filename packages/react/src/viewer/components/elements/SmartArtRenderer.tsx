@@ -5,6 +5,7 @@ import {
 	canDrillDown,
 	computeSmartArtElementLayout,
 	flattenNodes,
+	measureSvgViewportRect,
 	resolveRevealedDrawingShapes,
 	resolveRevealedSmartArtNodes,
 	shouldCommitSmartArtNodeText,
@@ -220,6 +221,7 @@ function SmartArtRendererImpl({
 			onCommitNodeText={handleCommitNodeText}
 			palette={palette}
 			onChangeNodeStyle={handleChangeNodeStyle}
+			measureNodeRect={measureSvgViewportRect}
 		>
 			{content}
 		</SmartArtEditableLayer>
