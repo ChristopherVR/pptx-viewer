@@ -6,10 +6,16 @@
  * for the binding's element-update path. Shared across React, Vue, and Angular.
  */
 
-import type { PlaceholderDefaults, PptxElement, PptxThemeColorRef } from 'pptx-viewer-core';
+import type {
+	PlaceholderDefaults,
+	PptxElement,
+	PptxThemeColorRef,
+	TextStyle,
+} from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import { textFontSizePxToPt } from './text-format-presets';
+import { updateTextSegmentStyle } from './update-text-segment-style';
 
 const DEFAULT_FILL = '#ffffff';
 const DEFAULT_STROKE = '#000000';
@@ -144,9 +150,16 @@ export interface TextStyleChanges {
  * Builds a Partial<PptxElement> patch that merges the given changes into the
  * element's existing textStyle without dropping any other textStyle fields.
  */
-export function textStylePatch(el: PptxElement, changes: TextStyleChanges): Partial<PptxElement> {
+export function textStylePatch(el: PptxElement, changes: Partial<TextStyle>): Partial<PptxElement> {
 	const base = hasTextProperties(el) ? (el.textStyle ?? {}) : {};
 	return {
+		...(hasTextProperties(el) && el.textSegments?.some((segment) => segment.paragraphInsertionStyle)
+			? {
+					textSegments: el.textSegments.map((segment) =>
+						updateTextSegmentStyle(segment, changes, { updateBodyStyle: false }),
+					),
+				}
+			: {}),
 		textStyle: {
 			...base,
 			...changes,
@@ -162,9 +175,6 @@ export function textFontSizePatch(el: PptxElement, fontSize: number): Partial<Pp
 	}
 	return {
 		...patch,
-		textSegments: el.textSegments.map((segment) => ({
-			...segment,
-			style: { ...segment.style, fontSize },
-		})),
+		textSegments: el.textSegments.map((segment) => updateTextSegmentStyle(segment, { fontSize })),
 	} as Partial<PptxElement>;
 }

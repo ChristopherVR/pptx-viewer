@@ -17,6 +17,7 @@ import {
 	toggleElementBullets,
 	toggleParagraphBullet,
 } from './bullet-toggle';
+import { remapTextToSegments } from './remap-text';
 import { buildParagraphs } from './text-paragraphs';
 
 const seg = (text: string, extra: Partial<TextSegment> = {}): TextSegment => ({
@@ -47,6 +48,27 @@ const textElement = (segments: TextSegment[], listType?: 'bullet' | 'none'): Ppt
 	}) as unknown as PptxElement;
 
 describe('bulletInfoForKind', () => {
+	it('keeps runless insertion formatting through list off/on without adding a body run', () => {
+		const insertion = { fontFamily: 'Calibri', fontSize: 40, color: '#000000' };
+		const original = [
+			seg('◆ ', {
+				style: { fontFamily: 'Wingdings', color: '#FF0000' },
+				bulletInfo: { char: '◆' },
+				paragraphInsertionStyle: insertion,
+			}),
+		];
+		const off = toggleParagraphBullet(original, 'none');
+		expect(off).toHaveLength(1);
+		expect(off[0].text).toBe('');
+		expect(off[0].paragraphInsertionStyle).toBe(insertion);
+		const on = toggleParagraphBullet(off, 'numbered');
+		expect(on).toHaveLength(1);
+		expect(on[0].paragraphInsertionStyle).toBe(insertion);
+		const typed = remapTextToSegments('Typed', on, {});
+		expect(typed.at(-1)?.style).toStrictEqual(insertion);
+		expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+	});
+
 	it('authors the three OOXML bullet forms', () => {
 		expect(bulletInfoForKind('bullet')).toStrictEqual({ char: '•' });
 		expect(bulletInfoForKind('numbered', 2)).toStrictEqual({

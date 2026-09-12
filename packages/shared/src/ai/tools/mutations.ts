@@ -10,6 +10,7 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxElementWithText, TextStyle } from 'pptx-viewer-core';
 
+import { updateTextSegmentStyle } from '../../render/update-text-segment-style';
 import type { PptxAiElementUpdate } from '../bridge';
 
 interface MutableShapeStyle {
@@ -102,10 +103,7 @@ export function applyTextUpdate(el: PptxElement, u: PptxAiElementUpdate): void {
 	// visibly restyles instead of only the (unused) element-level fallback.
 	textEl.textStyle = { ...textEl.textStyle, ...textStyle };
 	if (textEl.textSegments) {
-		textEl.textSegments = textEl.textSegments.map((seg) => ({
-			...seg,
-			style: { ...seg.style, ...textStyle },
-		}));
+		textEl.textSegments = textEl.textSegments.map((seg) => updateTextSegmentStyle(seg, textStyle));
 	}
 }
 

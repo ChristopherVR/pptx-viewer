@@ -6,6 +6,7 @@
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { isBulletMarkerSegment } from './bullet-toggle';
+import { remapEmptyParagraph } from './remap-empty-paragraph';
 import { continueAutoNumberedParagraph, withoutRenderedBulletPrefix } from './remap-text-bullets';
 
 /**
@@ -79,6 +80,9 @@ function restoreParagraphMetadata(
 	delete restored.paragraphLevel;
 	delete restored.paragraphProperties;
 	delete restored.endParaRunProperties;
+	if (!from) {
+		delete restored.paragraphInsertionStyle;
+	}
 	if (from?.paragraphLevel !== undefined) {
 		restored.paragraphLevel = from.paragraphLevel;
 	}
@@ -259,14 +263,21 @@ export function remapTextToSegments(
 			const breakStyle = precedingOrigPara[0]?.style
 				? { ...precedingOrigPara[0].style }
 				: { ...baseFallbackStyle };
-			output.push({ text: '\n', style: breakStyle, isParagraphBreak: true });
+			const terminator = originalParagraphs[pi - 1]?.terminator;
+			output.push(
+				terminator?.paragraphInsertionStyle && newParagraphTexts[pi - 1] === ''
+					? { ...terminator, text: '\n', isParagraphBreak: true }
+					: { text: '\n', style: breakStyle, isParagraphBreak: true },
+			);
 		}
 
 		const originalParagraph = originalParagraphs[pi];
 		const origPara = originalParagraph?.segments ?? lastOrigPara ?? [];
 		let paraSegments = restoreParagraphMetadata(
 			originalParagraph?.segments[0] ?? originalParagraph?.terminator,
-			remapParagraph(newParagraphTexts[pi], origPara),
+			(originalParagraph &&
+				remapEmptyParagraph(newParagraphTexts[pi], origPara, originalParagraph.terminator)) ??
+				remapParagraph(newParagraphTexts[pi], origPara),
 		);
 		if (!originalParagraph) {
 			paraSegments = continueAutoNumberedParagraph(

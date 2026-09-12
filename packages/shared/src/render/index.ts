@@ -1012,6 +1012,7 @@ export type { EstimatedWrapOptions } from './text-wrap-estimate';
 // Inspector panel: shapeStyle/textStyle value readers + shallow-merge patch
 // builders (fill/stroke/colour/font-size/bold/italic/underline).
 export * from './inspector-helpers';
+export * from './update-text-segment-style';
 // Effects panel: shadow/inner-shadow/glow/reflection/soft-edge state readers +
 // enable/disable/update shapeStyle merge patch builders.
 export * from './effects-helpers';

@@ -97,7 +97,7 @@ function withoutListType(style: TextStyle | undefined): TextStyle {
  */
 type ParagraphMeta = Pick<
 	TextSegment,
-	'paragraphLevel' | 'paragraphProperties' | 'endParaRunProperties'
+	'paragraphLevel' | 'paragraphProperties' | 'endParaRunProperties' | 'paragraphInsertionStyle'
 >;
 
 function paragraphMeta(segment: TextSegment | undefined): ParagraphMeta {
@@ -110,6 +110,9 @@ function paragraphMeta(segment: TextSegment | undefined): ParagraphMeta {
 	}
 	if (segment?.endParaRunProperties !== undefined) {
 		meta.endParaRunProperties = segment.endParaRunProperties;
+	}
+	if (segment?.paragraphInsertionStyle !== undefined) {
+		meta.paragraphInsertionStyle = segment.paragraphInsertionStyle;
 	}
 	return meta;
 }
@@ -144,6 +147,22 @@ export function toggleParagraphBullet(
 	kind: ParagraphBulletKind,
 	ordinal: number = 0,
 ): TextSegment[] {
+	const source = paragraph[0];
+	if (
+		paragraph.length === 1 &&
+		source.paragraphInsertionStyle &&
+		(source.text === '' || isBulletMarkerSegment(source))
+	) {
+		const info = bulletInfoForKind(kind, ordinal);
+		return [
+			{
+				...source,
+				text: kind === 'none' ? '' : markerText(info),
+				style: withoutListType(source.style),
+				bulletInfo: info,
+			},
+		];
+	}
 	const content = paragraph.filter((segment) => !isBulletMarkerSegment(segment));
 	const first = content[0];
 	if (!first) {
@@ -163,6 +182,7 @@ export function toggleParagraphBullet(
 	};
 	const body: TextSegment = { ...first, style: withoutListType(first.style) };
 	delete body.bulletInfo;
+	delete body.paragraphInsertionStyle;
 	return [marker, body, ...rest];
 }
 
