@@ -161,6 +161,19 @@ async function save() {
 }
 ```
 
+### Viewport fit options
+
+```vue
+<PowerPointViewer :content="content" :fit-padding="0" :max-fit-scale="null" />
+```
+
+`fitPadding` is a per-side CSS-pixel number or `{ horizontal, vertical }`;
+`maxFitScale` is a positive fit-factor ceiling or `null` for unlimited enlargement.
+Omission preserves 8 px horizontal / 16 px vertical padding and a ceiling of 1.
+The same props are available on `SlideCanvas`. Rulers reserve their existing
+space separately. These options do not change document geometry or user zoom.
+See the [cross-binding defaults](../../README.md#fitting-a-slide-into-a-custom-host).
+
 ## API
 
 ### Props

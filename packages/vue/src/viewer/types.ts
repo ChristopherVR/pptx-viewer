@@ -6,6 +6,8 @@ import type {
 	PowerPointViewerAPI,
 	ToolbarActionId,
 	ViewerFontSource,
+	ViewportFitOptions,
+	ViewportFitPadding,
 } from 'pptx-viewer-shared';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 
@@ -30,15 +32,20 @@ import type { ThemeCatalogEntry, ViewerTheme } from '../theme';
  * `CollaborationRole` types now live in `pptx-viewer-shared` and are
  * re-exported below for API stability.
  */
-export type { CanvasSize, CollaborationConfig, CollaborationRole };
+export type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	ViewportFitOptions,
+	ViewportFitPadding,
+};
 
-/**
- * Props for `<PowerPointViewer>`.
- *
- * Mirrors the React `PowerPointViewerProps`, minus the function callbacks
- * (which become emits).
- */
+/** Public viewer props: React callbacks become Vue emits. */
 export interface PowerPointViewerProps {
+	/** Per-side fit allowance in CSS pixels; omission retains the existing default. */
+	fitPadding?: ViewportFitPadding;
+	/** Positive fit-factor ceiling; null allows enlargement without a ceiling. */
+	maxFitScale?: number | null;
 	/** PowerPoint content as Uint8Array (or ArrayBuffer). */
 	content: Uint8Array | ArrayBuffer;
 	/** Licensed font sources supplied by the host application. */
