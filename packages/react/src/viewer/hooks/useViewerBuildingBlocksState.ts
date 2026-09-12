@@ -143,6 +143,7 @@ export function useViewerBuildingBlocksState(
 		hasDigitalSignatures: state.hasDigitalSignatures,
 		isDirty: state.isDirty,
 		history,
+		embeddedFontFamilies: state.embeddedFonts.map((font) => font.name),
 	});
 
 	// Load-diagnostic state PowerPointViewer also seeds on every load. This
