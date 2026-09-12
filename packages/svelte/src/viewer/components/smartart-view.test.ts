@@ -82,6 +82,10 @@ function fallbackLayoutElement(): PptxElement {
 
 function openNodeEditorNow(target: HTMLElement): HTMLTextAreaElement {
 	const group = target.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+	Object.assign(group, {
+		getBBox: () => ({ x: 10, y: 20, width: 80, height: 30 }),
+		getCTM: () => ({ a: 2, b: 0, c: 0, d: 2, e: 5, f: 10 }),
+	});
 	group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 	flushSync();
 	return target.querySelector<HTMLTextAreaElement>('.pptx-svelte-smartart-editor')!;
@@ -95,6 +99,15 @@ async function openNodeEditor(target: HTMLElement): Promise<HTMLTextAreaElement>
 }
 
 describe('smartArtView', () => {
+	it('positions the inline editor using local SVG coordinates', async () => {
+		const target = mountEl(drawingShapesElement(), 3, { onsmartartnodecommit: vi.fn() });
+		const editor = await openNodeEditor(target);
+		expect(editor.style.left).toBe('21px');
+		expect(editor.style.top).toBe('46px');
+		expect(editor.style.width).toBe('168px');
+		expect(editor.style.height).toBe('68px');
+	});
+
 	it('renders pre-computed drawing shapes as SVG rect/ellipse with labels', () => {
 		const target = mountEl(drawingShapesElement());
 		const node = target.querySelector<HTMLElement>('[data-element-id="sa-1"]');
