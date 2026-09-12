@@ -17,14 +17,73 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { PptxSmartArtNode, SmartArtLayoutType } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { computeSmartArtElementLayout, computeSmartArtLayout } from '../internal/shared';
 import type { RenderedNode, SmartArtLayoutResult } from '../internal/shared';
 import { DEFAULT_PALETTE } from './smart-art-drawing';
 import { layoutConnectorPaints, layoutNodeLabels } from './smart-art-renderer-helpers';
+import { SmartArtRendererComponent } from './smart-art-renderer.component';
 
 const BOX = { width: 400, height: 300 };
+
+describe('smartArtRenderer hover coordinates', () => {
+	const onMouseMove = (
+		SmartArtRendererComponent.prototype as unknown as {
+			onMouseMove(event: MouseEvent): void;
+		}
+	).onMouseMove;
+
+	function hoverHarness(editable = true) {
+		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		const nodeEl = document.createElementNS(svg.namespaceURI, 'g');
+		nodeEl.setAttribute('data-smartart-node-id', 'alpha');
+		svg.appendChild(nodeEl);
+		Object.assign(nodeEl, {
+			getBBox: () => ({ x: 10, y: 20, width: 80, height: 30 }),
+			getCTM: () => ({ a: 2, b: 0, c: 0, d: 2, e: 5, f: 10 }),
+		});
+		return {
+			nodeEl,
+			harness: {
+				canEditNodes: () => editable,
+				findNodeEl: () => nodeEl,
+				smartartContainer: () => ({ nativeElement: document.createElement('div') }),
+				cancelPendingHide: vi.fn(),
+				hoveredNodeId: { set: vi.fn() },
+				hoveredNodeRect: { set: vi.fn() },
+			},
+		};
+	}
+
+	it('anchors hover controls in SVG-local coordinates, not scaled screen rectangles', () => {
+		const { nodeEl, harness } = hoverHarness();
+		const screenRect = vi.spyOn(nodeEl, 'getBoundingClientRect');
+		onMouseMove.call(harness, new MouseEvent('mousemove'));
+		expect(harness.hoveredNodeId.set).toHaveBeenCalledWith('alpha');
+		expect(harness.hoveredNodeRect.set).toHaveBeenCalledWith({
+			left: 25,
+			top: 50,
+			width: 160,
+			height: 60,
+		});
+		expect(screenRect).not.toHaveBeenCalled();
+	});
+
+	it('hides the hover rectangle when SVG geometry is unavailable', () => {
+		const { nodeEl, harness } = hoverHarness();
+		Object.assign(nodeEl, { getCTM: () => null });
+		onMouseMove.call(harness, new MouseEvent('mousemove'));
+		expect(harness.hoveredNodeRect.set).toHaveBeenCalledWith(null);
+	});
+
+	it('does not show controls when node editing is disabled', () => {
+		const { harness } = hoverHarness(false);
+		onMouseMove.call(harness, new MouseEvent('mousemove'));
+		expect(harness.hoveredNodeId.set).not.toHaveBeenCalled();
+		expect(harness.hoveredNodeRect.set).not.toHaveBeenCalled();
+	});
+});
 
 function node(id: string, text: string, over: Partial<PptxSmartArtNode> = {}): PptxSmartArtNode {
 	return { id, text, ...over };

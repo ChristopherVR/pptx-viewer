@@ -19,7 +19,7 @@ import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 
 import {
 	buildSmartArtA11y,
-	computeInlineEditorRect,
+	measureSvgViewportRect,
 	computeSmartArtElementLayout,
 	flattenNodes,
 	rebuildDrawingShapesIfCleared,
@@ -498,11 +498,7 @@ export class SmartArtRendererComponent {
 			this.cancelPendingHide();
 			const id = nodeEl.getAttribute('data-smartart-node-id');
 			this.hoveredNodeId.set(id);
-			this.hoveredNodeRect.set(
-				id
-					? computeInlineEditorRect(nodeEl.getBoundingClientRect(), cnt.getBoundingClientRect())
-					: null,
-			);
+			this.hoveredNodeRect.set(id ? measureSvgViewportRect(nodeEl) : null);
 			return;
 		}
 		// Pointer may be over the style-bar popover anchored to the currently
