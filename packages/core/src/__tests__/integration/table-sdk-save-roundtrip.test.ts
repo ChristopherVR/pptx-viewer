@@ -77,6 +77,69 @@ async function buildDeckWithAttributedTableCell(): Promise<Uint8Array> {
  * `SAVE_ELEMENT_SKIPPED` warning. The saved slide had an empty `p:spTree`.
  */
 describe('sDK-created table survives save round-trip', () => {
+	it.each([false, true])(
+		'preserves edited column widths and rich cells (frame resized: %s)',
+		async (resizeFrame) => {
+			const fixture = await buildDeckWithRichTableCell();
+			const fixtureZip = await JSZip.loadAsync(fixture);
+			const fixtureXml = await fixtureZip.file('ppt/slides/slide1.xml')!.async('string');
+			const originalGridTotal = [...fixtureXml.matchAll(/<a:gridCol\b[^>]*\bw="(\d+)"/g)].reduce(
+				(total, match) => total + Number(match[1]),
+				0,
+			);
+			const handler = new PptxHandler();
+			const loaded = await handler.load(fixture.buffer as ArrayBuffer);
+			const table = loaded.slides[0].elements.find(
+				(element) => element.type === 'table',
+			) as TablePptxElement;
+			expect(table.tableData!.columnWidths).toStrictEqual([0.5, 0.5]);
+			expect(originalGridTotal).toBeGreaterThan(0);
+			if (resizeFrame) {
+				// Resizing the frame must not change the authored grid's total extent.
+				table.width *= 2;
+				expect(originalGridTotal).not.toBe(Math.round(table.width * 9525));
+			}
+			const richRuns = structuredClone(table.tableData!.rows[1].cells[0].textRuns);
+			expect(richRuns).toStrictEqual([
+				{ text: 'Rich', bold: true },
+				{ text: '1', isField: true },
+				{ text: 'Text', italic: true },
+			]);
+			table.tableData!.columnWidths = [0.25, 0.75];
+
+			const saved = await handler.save(loaded.slides);
+			const zip = await JSZip.loadAsync(saved);
+			const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+			expect
+				.soft([...xml.matchAll(/<a:gridCol\b[^>]*\bw="(\d+)"/g)].map((match) => Number(match[1])))
+				.toStrictEqual([0.25, 0.75].map((ratio) => Math.round(originalGridTotal * ratio)));
+			expect(xml).toContain('<a:fld id="{AAAA0000-0000-4000-A000-000000000001}" type="slidenum">');
+
+			const reloader = new PptxHandler();
+			const reloaded = await reloader.load(saved.buffer as ArrayBuffer);
+			const reloadedTable = reloaded.slides[0].elements.find(
+				(element) => element.type === 'table',
+			) as TablePptxElement;
+			expect(reloadedTable.tableData!.rows[1].cells[0].textRuns).toStrictEqual(richRuns);
+			expect(reloadedTable.tableData!.columnWidths).toStrictEqual([0.25, 0.75]);
+
+			// A subsequent unrelated edit must not round or rescale these widths again.
+			reloadedTable.x += 1;
+			const savedAgain = await reloader.save(reloaded.slides);
+			const secondZip = await JSZip.loadAsync(savedAgain);
+			const secondXml = await secondZip.file('ppt/slides/slide1.xml')!.async('string');
+			expect(
+				[...secondXml.matchAll(/<a:gridCol\b[^>]*\bw="(\d+)"/g)].map((match) => Number(match[1])),
+			).toStrictEqual([0.25, 0.75].map((ratio) => Math.round(originalGridTotal * ratio)));
+			const secondReload = await new PptxHandler().load(savedAgain.buffer as ArrayBuffer);
+			const secondTable = secondReload.slides[0].elements.find(
+				(element) => element.type === 'table',
+			)!;
+			expect(secondTable.tableData!.columnWidths).toStrictEqual([0.25, 0.75]);
+			expect(secondTable.tableData!.rows[1].cells[0].textRuns).toStrictEqual(richRuns);
+		},
+	);
+
 	it('preserves attributed rich text after a non-text table edit', async () => {
 		let handler = new PptxHandler();
 		let loaded = await handler.load(
