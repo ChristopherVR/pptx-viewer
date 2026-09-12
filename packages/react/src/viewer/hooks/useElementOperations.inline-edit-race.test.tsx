@@ -17,7 +17,8 @@
  * style/case change made while `inlineEditingElementId` is set reflects the
  * LIVE `inlineEditingText`, not the stale model segments.
  */
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import { remapTextToSegments } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -65,9 +66,13 @@ interface Harness {
  * in-progress edit session where the user has typed past what `textSegments`
  * on the model still reflects.
  */
-function mount(inlineEditingElementId: string | null, inlineEditingText: string): Harness {
+function mount(
+	inlineEditingElementId: string | null,
+	inlineEditingText: string,
+	initialElement = textElement(),
+): Harness {
 	let slides: PptxSlide[] = [
-		{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [textElement()] },
+		{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [initialElement] },
 	];
 	let latest: ElementOperations | undefined;
 
@@ -104,6 +109,27 @@ function mount(inlineEditingElementId: string | null, inlineEditingText: string)
 }
 
 describe('updateSelectedTextStyle mid-edit race', () => {
+	it('honors explicit formatting before typing into a runless paragraph', () => {
+		const initial = {
+			...textElement(),
+			text: '',
+			textSegments: [
+				{
+					text: '',
+					style: {},
+					paragraphInsertionStyle: { bold: true, color: '#007000', fontSize: 40 },
+				},
+			],
+		} as PptxElement;
+		const harness = mount(null, '', initial);
+		const updates = { bold: false, color: '#000000', fontSize: 24 };
+		act(() => harness.ops().updateSelectedTextStyle(updates));
+		const element = harness.slides()[0].elements[0] as PptxElement & {
+			textSegments: TextSegment[];
+		};
+		expect(remapTextToSegments('Typed', element.textSegments, {})[0].style).toMatchObject(updates);
+	});
+
 	it('applies to the live typed text, not the stale model segments, while inline-editing', () => {
 		const harness = mount('shape-1', 'Hello there, world');
 		act(() => {

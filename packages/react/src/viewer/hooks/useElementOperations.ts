@@ -15,6 +15,7 @@ import {
 	replaceMasterViewElements,
 	updateElement as updateSlideElement,
 	updateMasterViewElement,
+	updateTextSegmentStyle,
 } from 'pptx-viewer-shared';
 import type { MasterViewTarget, MasterViewWrite } from 'pptx-viewer-shared';
 /**
@@ -292,10 +293,7 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 
 			// No inline selection: apply to the entire element (existing behavior)
 			const newTextStyle = { ...selectedElement.textStyle, ...updates };
-			const newSegments = currentSegments?.map((seg: { style: TextStyle }) => ({
-				...seg,
-				style: { ...seg.style, ...updates },
-			}));
+			const newSegments = currentSegments?.map((seg) => updateTextSegmentStyle(seg, updates));
 			updateSelectedElement({
 				textStyle: newTextStyle,
 				textSegments: newSegments,
