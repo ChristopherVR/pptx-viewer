@@ -1,5 +1,9 @@
+import type { PptxElement } from 'pptx-viewer-core';
+import { buildParagraphs } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
+import { readTextFormatState } from '../../../editor/editor-format-mutations';
+import { toggleListType } from '../../../editor/editor-paragraph-mutations';
 import { createTranslator } from '../../../i18n';
 import { createEditingGroup } from './editing-group';
 import { createParagraphGroup } from './paragraph-group';
@@ -30,6 +34,46 @@ function trigger(el: HTMLElement, label: string): HTMLButtonElement {
 const formattable = { canFormat: true, editable: true, text: {} as never };
 
 describe('createParagraphGroup', () => {
+	it('reads loaded bullets and updates real markers and pressed state on clicks', () => {
+		let element = {
+			type: 'text',
+			id: 't',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+			text: 'Body',
+			textSegments: [
+				{ text: '» ', style: {}, bulletInfo: { char: '»' } },
+				{ text: 'Body', style: {} },
+			],
+		} as PptxElement;
+		const t = createTranslator();
+		const group = createParagraphGroup(document, t, {
+			...paragraphHandlers(),
+			toggleBulletList: () => {
+				element = { ...element, ...toggleListType(element, 'bullet') } as PptxElement;
+				group.update({ ...formattable, text: readTextFormatState(element) });
+			},
+		});
+		group.update({ ...formattable, text: readTextFormatState(element) });
+		const button = trigger(group.el, t('pptx.text.bulletList'));
+		expect(button.getAttribute('aria-pressed')).toBe('true');
+		button.click();
+		expect(button.getAttribute('aria-pressed')).toBe('false');
+		expect(buildParagraphs(element)[0].bulletMarker).toBeUndefined();
+		button.click();
+		expect(button.getAttribute('aria-pressed')).toBe('true');
+		expect(buildParagraphs(element)[0].bulletMarker).toBe('»');
+		expect(
+			buildParagraphs(element)[0]
+				.runs.map((run) => run.text)
+				.join(''),
+		).toBe('Body');
+		group.update({ ...formattable, editable: false, text: readTextFormatState(element) });
+		expect(button.disabled).toBeTruthy();
+	});
+
 	it('offers the Text Direction and Columns menus React puts in this group', () => {
 		const t = createTranslator();
 		const group = createParagraphGroup(document, t, paragraphHandlers());
