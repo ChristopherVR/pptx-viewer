@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.14.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.4) - 2026-09-12
+
+### Bug Fixes
+
+- **core:** Preserve edited table column widths on save (by @Sudhansh6) ([fe4539f](https://github.com/ChristopherVR/pptx-viewer/commit/fe4539f0aead4ea773ef1aa4426debba40c39f16))
+
 ## [3.14.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.3) - 2026-09-12
 
 ### Bug Fixes

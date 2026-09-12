@@ -10,6 +10,29 @@ dated sections beneath it are generated from
 
 ## 2026-09-12
 
+_Releases: pptx-viewer-core@3.14.4, pptx-react-viewer@3.16.6, pptx-vue-viewer@3.16.6, pptx-angular-viewer@3.16.6, pptx-vanilla-viewer@2.16.6, pptx-svelte-viewer@3.17.6, @christophervr/pptx-viewer@2.13.7_
+
+### Bug Fixes
+
+- **shared:** Measure SmartArt overlays in local SVG coordinates (by @Sudhansh6) ([e79f3b5](https://github.com/ChristopherVR/pptx-viewer/commit/e79f3b5c5f0ac99835e3206f6262c005e576454f))
+- **react:** Align 2D SmartArt editors and hover controls (by @Sudhansh6) ([529fba0](https://github.com/ChristopherVR/pptx-viewer/commit/529fba07dad45f543cc6e9c04d987bb4836112dd))
+- **vue:** Keep SmartArt overlay transforms local (by @Sudhansh6) ([79acb9b](https://github.com/ChristopherVR/pptx-viewer/commit/79acb9bd03e55b58f71e6430814aa5c1de4b739c))
+- **angular:** Use local coordinates for SmartArt hover controls (by @Sudhansh6) ([f22a9cf](https://github.com/ChristopherVR/pptx-viewer/commit/f22a9cf85fb9bc8493b4768f5606f1e8399f8a46))
+- **svelte:** Position SmartArt editors in local coordinates (by @Sudhansh6) ([36c8359](https://github.com/ChristopherVR/pptx-viewer/commit/36c8359196c3c922468d88939d3babe7d1ddda84))
+- **vanilla:** Position SmartArt editors and swatches locally (by @Sudhansh6) ([0120103](https://github.com/ChristopherVR/pptx-viewer/commit/0120103b9b1ea6980cccea43f911b67b68844e5d))
+- **core:** Preserve edited table column widths on save (by @Sudhansh6) ([fe4539f](https://github.com/ChristopherVR/pptx-viewer/commit/fe4539f0aead4ea773ef1aa4426debba40c39f16))
+- **react:** Repaint edited table column widths (by @Sudhansh6) ([c427374](https://github.com/ChristopherVR/pptx-viewer/commit/c427374c7a0f0ff1f177f3952db6bbe3e3d62a23))
+
+### Testing
+
+- **e2e:** Cover SmartArt overlay position across zoom levels (by @Sudhansh6) ([1d6c914](https://github.com/ChristopherVR/pptx-viewer/commit/1d6c9147ae70aed2c6a1d6f04de127427e4d87c4))
+
+### Chores
+
+- Merge main and preserve SmartArt editing coverage (by @Sudhansh6) ([f3c32b4](https://github.com/ChristopherVR/pptx-viewer/commit/f3c32b473e9677b61590dbd8503ba64cdc34bd86))
+
+## 2026-09-12
+
 _Releases: pptx-react-viewer@3.16.5, pptx-vue-viewer@3.16.5, pptx-angular-viewer@3.16.5, pptx-vanilla-viewer@2.16.5, pptx-svelte-viewer@3.17.5, @christophervr/pptx-viewer@2.13.6_
 
 ### Bug Fixes

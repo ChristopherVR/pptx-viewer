@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.13.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.7) - 2026-09-12
+
+### Bug Fixes
+
+- **react:** Align 2D SmartArt editors and hover controls (by @Sudhansh6) ([529fba0](https://github.com/ChristopherVR/pptx-viewer/commit/529fba07dad45f543cc6e9c04d987bb4836112dd))
+- **react:** Repaint edited table column widths (by @Sudhansh6) ([c427374](https://github.com/ChristopherVR/pptx-viewer/commit/c427374c7a0f0ff1f177f3952db6bbe3e3d62a23))
+
+### Chores
+
+- Merge main and preserve SmartArt editing coverage (by @Sudhansh6) ([f3c32b4](https://github.com/ChristopherVR/pptx-viewer/commit/f3c32b473e9677b61590dbd8503ba64cdc34bd86))
+
 ## [2.13.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.6) - 2026-09-12
 
 ### Bug Fixes
