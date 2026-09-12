@@ -10,7 +10,11 @@
 import type { PptxSmartArtDrawingShape, PptxSmartArtNode } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { resolveRevealedDrawingShapes, resolveRevealedSmartArtNodes } from '../internal/shared';
+import {
+	resolveRevealedDrawingShapeNodeIds,
+	resolveRevealedDrawingShapes,
+	resolveRevealedSmartArtNodes,
+} from '../internal/shared';
 
 function node(id: string, text: string): PptxSmartArtNode {
 	return { id, text };
@@ -60,5 +64,6 @@ describe('smartArtRendererComponent cached drawing-shape reveal', () => {
 			},
 		});
 		expect(result.map((s) => s.id)).toStrictEqual(['s3']);
+		expect(resolveRevealedDrawingShapeNodeIds(shapes, result, nodes)).toStrictEqual(['n3']);
 	});
 });

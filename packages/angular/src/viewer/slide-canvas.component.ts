@@ -891,9 +891,11 @@ export class SlideCanvasComponent implements SlideContext {
 	 * bindings enforced it: a locked caption opened an editable textarea here.
 	 */
 	private canTextEdit(id: string): boolean {
-		return canInteractWithElement(
-			this.allElements().find((el) => el.id === id),
-			'textEdit',
+		const element = this.allElements().find((el) => el.id === id);
+		return (
+			element !== undefined &&
+			hasTextProperties(element) &&
+			canInteractWithElement(element, 'textEdit')
 		);
 	}
 
