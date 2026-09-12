@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-12
+
+_Releases: pptx-viewer-core@3.14.3, pptx-react-viewer@3.16.4, pptx-vue-viewer@3.16.4, pptx-angular-viewer@3.16.4, pptx-vanilla-viewer@2.16.4, pptx-svelte-viewer@3.17.4_
+
+### Bug Fixes
+
+- **core:** Avoid duplicating rich axis titles on save (by @Sudhansh6) ([0a06dce](https://github.com/ChristopherVR/pptx-viewer/commit/0a06dcea06f8376d10924f373a1e005e24575beb))
+
 ## 2026-09-11
 
 _Releases: pptx-react-viewer@3.16.3, pptx-vue-viewer@3.16.3, pptx-angular-viewer@3.16.3, pptx-vanilla-viewer@2.16.3, pptx-svelte-viewer@3.17.3, @christophervr/pptx-viewer@2.13.5_

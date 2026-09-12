@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.14.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.3) - 2026-09-12
+
+### Bug Fixes
+
+- **core:** Avoid duplicating rich axis titles on save (by @Sudhansh6) ([0a06dce](https://github.com/ChristopherVR/pptx-viewer/commit/0a06dcea06f8376d10924f373a1e005e24575beb))
+
 ## [3.14.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.2) - 2026-09-11
 
 ### Bug Fixes
