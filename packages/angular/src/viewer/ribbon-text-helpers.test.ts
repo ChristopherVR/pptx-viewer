@@ -1,8 +1,9 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { remapTextToSegments } from '../internal/shared-src/render/remap-text';
 import { EditorStateService } from './editor-state.service';
-import { transformSelectedTextCase } from './ribbon-text-helpers';
+import { patchTextStyle, transformSelectedTextCase } from './ribbon-text-helpers';
 
 function textElement(): PptxElement {
 	return {
@@ -29,6 +30,25 @@ function service(el: PptxElement): EditorStateService {
 }
 
 describe('transformSelectedTextCase', () => {
+	it('honors explicit formatting before typing into a runless paragraph', () => {
+		const initial = {
+			...textElement(),
+			text: '',
+			textSegments: [
+				{
+					text: '',
+					style: {},
+					paragraphInsertionStyle: { bold: true, color: '#007000', fontSize: 40 },
+				},
+			],
+		} as PptxElement;
+		const svc = service(initial);
+		const updates = { bold: false, color: '#000000', fontSize: 24 };
+		patchTextStyle(svc, 0, initial, updates);
+		const element = svc.slides()[0].elements[0] as PptxElement & { textSegments: TextSegment[] };
+		expect(remapTextToSegments('Typed', element.textSegments, {})[0].style).toMatchObject(updates);
+	});
+
 	it('rewrites run text per a change-case mode', () => {
 		const svc = service(textElement());
 		transformSelectedTextCase(svc, 0, svc.slides()[0].elements[0], 'upper');

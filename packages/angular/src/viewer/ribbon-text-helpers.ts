@@ -8,6 +8,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
 import { INLINE_EDITOR_SELECTOR } from '../internal/shared-src/render/context-menu-target';
+import { textStylePatch } from '../internal/shared-src/render/inspector-helpers';
 import { remapTextToSegments } from '../internal/shared-src/render/remap-text';
 import type { ChangeCaseMode } from '../internal/shared-src/render/text-case-transform';
 import { transformTextCase } from '../internal/shared-src/render/text-case-transform';
@@ -49,9 +50,7 @@ export function patchTextStyle(
 	if (!el || !hasTextProperties(el)) {
 		return;
 	}
-	editor.updateElement(slideIndex, el.id, {
-		textStyle: { ...el.textStyle, ...patch } as TextStyle,
-	} as Partial<PptxElement>);
+	editor.updateElement(slideIndex, el.id, textStylePatch(el, patch));
 }
 
 /**
