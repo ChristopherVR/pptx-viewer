@@ -23,6 +23,7 @@ interface TableCellFormattingPanelProps {
 	tableEditorState: TableCellEditorState;
 	canEdit: boolean;
 	onUpdateTableData: (patch: Partial<PptxTableData>) => void;
+	onUpdateMergeRows: (rows: PptxTableData['rows']) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,6 +35,7 @@ export function TableCellFormattingPanel({
 	tableEditorState,
 	canEdit,
 	onUpdateTableData,
+	onUpdateMergeRows,
 }: TableCellFormattingPanelProps): React.ReactElement | null {
 	const { t } = useTranslation();
 	const { rowIndex, columnIndex } = tableEditorState;
@@ -232,7 +234,7 @@ export function TableCellFormattingPanel({
 						onClick={() => {
 							const newRows = computeMergeCellRight(td, rowIndex, columnIndex);
 							if (newRows) {
-								onUpdateTableData({ rows: newRows });
+								onUpdateMergeRows(newRows);
 							}
 						}}
 					>
@@ -245,7 +247,7 @@ export function TableCellFormattingPanel({
 						onClick={() => {
 							const newRows = computeMergeCellDown(td, rowIndex, columnIndex);
 							if (newRows) {
-								onUpdateTableData({ rows: newRows });
+								onUpdateMergeRows(newRows);
 							}
 						}}
 					>
@@ -258,7 +260,7 @@ export function TableCellFormattingPanel({
 						onClick={() => {
 							const newRows = computeSplitCell(td, rowIndex, columnIndex);
 							if (newRows) {
-								onUpdateTableData({ rows: newRows });
+								onUpdateMergeRows(newRows);
 							}
 						}}
 					>

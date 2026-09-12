@@ -1,12 +1,19 @@
 // @vitest-environment happy-dom
 /* oxlint-disable eslint/one-var -- many independent it() blocks, each with
    its own short arrange/act/assert consts. */
-import type { ParsedTableStyleMap, PptxElement, TablePptxElement } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	TablePptxElement,
+	XmlObject,
+} from 'pptx-viewer-core';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { renderTableElement } from '../../utils/table-render';
 import { TablePropertiesPanel } from './TablePropertiesPanel';
 
 vi.mock(import('react-i18next'), () => ({
@@ -32,6 +39,54 @@ function table(): TablePptxElement {
 			],
 		},
 	} as unknown as TablePptxElement;
+}
+
+function loadedTable(): TablePptxElement {
+	const element = table();
+	element.rawXml = {
+		'a:graphic': {
+			'a:graphicData': {
+				'a:tbl': {
+					'a:tblGrid': { 'a:gridCol': [20, 30, 50].map((w) => ({ '@_w': w * 9525 })) },
+					'a:tr': element.tableData!.rows.map((row) => ({
+						'@_h': row.height! * 9525,
+						'a:tc': row.cells.map((cell) => ({
+							'a:txBody': {
+								'a:bodyPr': { '@_anchor': 'ctr' },
+								'a:p': {
+									'a:pPr': { '@_marL': '12700' },
+									'a:r': { 'a:rPr': { '@_b': '1' }, 'a:t': cell.text },
+								},
+							},
+							'a:tcPr': { '@_marL': '91440' },
+						})),
+					})),
+				},
+			},
+		},
+	};
+	return element;
+}
+
+function xmlCells(element: TablePptxElement, row: number): XmlObject[] {
+	const graphic = element.rawXml!['a:graphic'] as XmlObject;
+	const data = graphic['a:graphicData'] as XmlObject;
+	const tbl = data['a:tbl'] as XmlObject;
+	return (tbl['a:tr'] as XmlObject[])[row]['a:tc'] as XmlObject[];
+}
+
+function clickTableButton(key: string) {
+	const button = [...host.querySelectorAll('button')].find(
+		(item) => item.textContent === `pptx.table.${key}`,
+	);
+	expect(button).toBeDefined();
+	act(() => button!.click());
+}
+
+function renderedCells(element: TablePptxElement): HTMLTableCellElement[] {
+	const container = document.createElement('div');
+	container.innerHTML = renderToStaticMarkup(renderTableElement(element, {}));
+	return [...container.querySelectorAll<HTMLTableCellElement>('td')];
 }
 
 let host: HTMLDivElement;
@@ -66,6 +121,100 @@ function render(
 }
 
 describe('tablePropertiesPanel', () => {
+	it.each([
+		{
+			command: 'mergeRight',
+			span: 'gridSpan',
+			xmlSpan: '@_gridSpan',
+			htmlSpan: 'colspan',
+			row: 0,
+			col: 1,
+		},
+		{
+			command: 'mergeDown',
+			span: 'rowSpan',
+			xmlSpan: '@_rowSpan',
+			htmlSpan: 'rowspan',
+			row: 1,
+			col: 0,
+		},
+	] as const)(
+		'repaints loaded-table $command and split with one immutable update each',
+		({ command, span, xmlSpan, htmlSpan, row, col }) => {
+			const element = loadedTable();
+			const original = structuredClone(element);
+			const onUpdate = vi.fn();
+			render(element, onUpdate, { rowIndex: 0, columnIndex: 0 });
+			clickTableButton(command);
+
+			expect(onUpdate).toHaveBeenCalledOnce();
+			const patch = onUpdate.mock.calls[0][0] as Partial<TablePptxElement>;
+			const merged = { ...element, ...patch };
+			expect(merged.tableData!.rows[0].cells[0][span]).toBe(2);
+			expect(xmlCells(merged, 0)[0][xmlSpan]).toBe('2');
+			expect(merged.tableData!.rows[row].cells[col].text).toBe('');
+			const cells = renderedCells(merged);
+			expect(cells).toHaveLength(5);
+			expect(cells[0].getAttribute(htmlSpan)).toBe('2');
+			expect(cells.map((cell) => cell.textContent)).not.toContain(
+				original.tableData!.rows[row].cells[col].text,
+			);
+			// The synchronizer preserves the anchor and untouched rich XML, not just plain text.
+			expect(xmlCells(merged, 0)[0]['a:txBody']).toStrictEqual(
+				xmlCells(original, 0)[0]['a:txBody'],
+			);
+			expect(xmlCells(merged, 0)[2]).toStrictEqual(xmlCells(original, 0)[2]);
+			expect(element).toStrictEqual(original);
+
+			render(merged, onUpdate, { rowIndex: 0, columnIndex: 0 });
+			clickTableButton('split');
+			expect(onUpdate).toHaveBeenCalledTimes(2);
+			const split = { ...merged, ...onUpdate.mock.calls[1][0] } as TablePptxElement;
+			expect(xmlCells(split, 0)[0][xmlSpan]).toBeUndefined();
+			const splitCells = renderedCells(split);
+			expect(splitCells).toHaveLength(6);
+			expect(splitCells[row * 3 + col].textContent?.trim()).toBe('');
+			expect(xmlCells(split, 0)[0]['a:txBody']).toStrictEqual(xmlCells(original, 0)[0]['a:txBody']);
+			expect(merged.tableData!.rows[0].cells[0][span]).toBe(2);
+			expect(xmlCells(merged, 0)[0][xmlSpan]).toBe('2');
+		},
+	);
+
+	it.each([
+		{ command: 'mergeRight', rowIndex: 0, columnIndex: 2 },
+		{ command: 'mergeDown', rowIndex: 1, columnIndex: 0 },
+		{ command: 'split', rowIndex: 0, columnIndex: 0 },
+	])('does not emit updates for invalid $command', ({ command, rowIndex, columnIndex }) => {
+		const onUpdate = vi.fn();
+		render(loadedTable(), onUpdate, { rowIndex, columnIndex });
+		clickTableButton(command);
+		expect(onUpdate).not.toHaveBeenCalled();
+	});
+
+	it('keeps programmatic merges on the data-only renderer without adding rawXml', () => {
+		const element = table();
+		const onUpdate = vi.fn();
+		render(element, onUpdate, { rowIndex: 0, columnIndex: 0 });
+		clickTableButton('mergeRight');
+		const patch = onUpdate.mock.calls[0][0] as Partial<TablePptxElement>;
+		expect(patch).not.toHaveProperty('rawXml');
+		expect(renderedCells({ ...element, ...patch })[0].colSpan).toBe(2);
+	});
+
+	it('keeps ordinary cell styling on the generic data-only update path', () => {
+		const element = loadedTable();
+		const original = structuredClone(element);
+		const onUpdate = vi.fn();
+		render(element, onUpdate, { rowIndex: 0, columnIndex: 0 });
+		const bold = host.querySelector<HTMLButtonElement>('button.font-bold');
+		expect(bold).not.toBeNull();
+		act(() => bold!.click());
+		expect(onUpdate).toHaveBeenCalledOnce();
+		expect(onUpdate.mock.calls[0][0]).not.toHaveProperty('rawXml');
+		expect(onUpdate.mock.calls[0][0].tableData.rows[0].cells[0].style.bold).toBeTruthy();
+		expect(element).toStrictEqual(original);
+	});
+
 	it('sets a column to the exact requested width via the shared redistribution formula', () => {
 		const onUpdate = vi.fn();
 		render(table(), onUpdate);
