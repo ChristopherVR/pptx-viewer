@@ -1,176 +1,179 @@
 /**
- * Bullet / numbered-list toggling for the ribbon's paragraph buttons.
- *
- * The renderer (`resolveParagraphBullet`) and the save writer
- * (`applyBulletProperties`) both read a paragraph's list state from the
- * `bulletInfo` of its FIRST segment; `TextStyle.listType` is consulted for
- * nothing but the `'none'` suppression. Every binding's Bullets / Numbering
- * button used to write `listType: 'bullet' | 'numbered'` onto the element's
- * `textStyle`, a field nothing downstream reads, so the buttons were dead.
- *
- * These helpers author the real thing: a `BulletInfo` on each paragraph's
- * first segment (`a:buChar` / `a:buAutoNum` / `a:buNone` on save), with the
- * inert `listType` cleared so a stale `'none'` cannot suppress the new marker.
- *
- * On load core prefixes a display-only marker segment (text "• " / "1.") to a
- * listed paragraph; the renderer drops it when its text matches the marker it
- * would draw, and the save writer drops it because the paragraph properties
- * already express it. Switching a bullet to a number (or off) would leave the
- * old glyph behind as literal text, so the previous marker is removed and a
- * fresh one authored in the same shape core uses.
+ * List commands author first-segment bulletInfo, which render and save consume.
+ * Bindings apply these patches through their existing update/history operations.
  */
-
 import type { BulletInfo, PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import {
+	breakAutoNumberRun,
+	createAutoNumberSequence,
+	hasTextProperties,
+	nextAutoNumber,
+} from 'pptx-viewer-core';
 
 import { formatAutoNumber } from './bullet-autonum';
 import { resolveParagraphBullet } from './bullet-list';
+import { isParagraphSeparatorSegment } from './text-segment-paragraph-break';
 
-/** The list state of a paragraph as the ribbon buttons see it. */
 export type ParagraphBulletKind = 'bullet' | 'numbered' | 'none';
-
-/** The default character bullet PowerPoint inserts (`a:buChar char="•"`). */
 export const DEFAULT_BULLET_CHAR = '•';
-
-/** The default numbering scheme PowerPoint inserts (`a:buAutoNum type="arabicPeriod"`). */
 export const DEFAULT_AUTONUM_TYPE = 'arabicPeriod';
 
-/**
- * The `BulletInfo` that authors `kind`.
- *
- * @param ordinal - Zero-based position of the paragraph within its numbered
- *   run, published as `paragraphIndex` so the renderer counts "1. 2. 3." (see
- *   `BulletInfo.paragraphIndex`). Ignored for the other kinds.
- */
-export function bulletInfoForKind(kind: ParagraphBulletKind, ordinal: number = 0): BulletInfo {
-	switch (kind) {
-		case 'bullet':
-			return { char: DEFAULT_BULLET_CHAR };
-		case 'numbered':
-			return { autoNumType: DEFAULT_AUTONUM_TYPE, autoNumStartAt: 1, paragraphIndex: ordinal };
-		case 'none':
-			return { none: true };
+export function bulletInfoForKind(kind: ParagraphBulletKind, ordinal = 0): BulletInfo {
+	if (kind === 'none') {
+		return { none: true };
 	}
+	if (kind === 'bullet') {
+		return { char: DEFAULT_BULLET_CHAR };
+	}
+	return { autoNumType: DEFAULT_AUTONUM_TYPE, autoNumStartAt: 1, paragraphIndex: ordinal };
 }
 
-/**
- * Whether a segment is the display-only marker core inserts on load (mirrors
- * the save writer's `isRenderedBulletMarker`): it carries `bulletInfo` and its
- * text is exactly the glyph the renderer would draw for that info.
- */
+/** Matches core's synthetic prefix, including picture and suppressed markers. */
 export function isBulletMarkerSegment(segment: TextSegment): boolean {
-	const bullet = segment.bulletInfo;
-	if (!bullet || bullet.none) {
+	const info = segment.bulletInfo;
+	if (!info || info.none || segment.fieldType || segment.isLineBreak) {
 		return false;
 	}
-	const resolved = resolveParagraphBullet(segment);
-	if (!resolved) {
+	if (
+		!info.char &&
+		!info.autoNumType &&
+		!info.imageRelId &&
+		!info.imageDataUrl &&
+		!info.imageBlipFillXml
+	) {
 		return false;
 	}
-	return segment.text.trim() === resolved.marker.trim() && segment.text.trim().length > 0;
+	if (info.autoNumType) {
+		// Without this runtime field, a literal "1." is authored content (PR 204).
+		if (info.paragraphIndex === undefined) {
+			return false;
+		}
+		const marker = markerText(info);
+		return segment.text === marker || segment.text === `${marker} `;
+	}
+	return segment.text === markerText(info);
 }
 
-/**
- * The current list state of one paragraph (its segments, separators excluded),
- * derived from the resolved bullet of its first segment so an inherited
- * (master / layout) bullet that core resolved on load counts as `'bullet'`.
- */
 export function paragraphBulletKind(paragraph: readonly TextSegment[]): ParagraphBulletKind {
 	const resolved = resolveParagraphBullet(paragraph[0]);
-	if (!resolved) {
-		return 'none';
-	}
-	return resolved.isNumbered ? 'numbered' : 'bullet';
+	return resolved ? (resolved.isNumbered ? 'numbered' : 'bullet') : 'none';
 }
 
-/** Copy of `style` without the inert `listType` flag. */
 function withoutListType(style: TextStyle | undefined): TextStyle {
-	const next: TextStyle = { ...(style ?? {}) };
+	const next = { ...style };
 	delete next.listType;
 	return next;
 }
 
-/**
- * The paragraph-level fields that ride a paragraph's FIRST segment (the save
- * writer captures them from that segment only), so they must move with
- * whichever segment ends up first.
- */
-type ParagraphMeta = Pick<
-	TextSegment,
-	'paragraphLevel' | 'paragraphProperties' | 'endParaRunProperties'
->;
-
-function paragraphMeta(segment: TextSegment | undefined): ParagraphMeta {
-	const meta: ParagraphMeta = {};
-	if (segment?.paragraphLevel !== undefined) {
-		meta.paragraphLevel = segment.paragraphLevel;
-	}
-	if (segment?.paragraphProperties !== undefined) {
-		meta.paragraphProperties = segment.paragraphProperties;
-	}
-	if (segment?.endParaRunProperties !== undefined) {
-		meta.endParaRunProperties = segment.endParaRunProperties;
-	}
-	return meta;
-}
-
-/** The display text of the marker segment for a bullet / numbered `info`. */
 function markerText(info: BulletInfo): string {
-	if (info.char) {
-		return `${info.char} `;
+	if (info.imageRelId || info.imageDataUrl || info.imageBlipFillXml) {
+		return '📎 ';
 	}
-	const ordinal = (info.autoNumStartAt ?? 1) + (info.paragraphIndex ?? 0);
-	return formatAutoNumber(info.autoNumType ?? DEFAULT_AUTONUM_TYPE, ordinal);
+	if (info.autoNumType) {
+		return formatAutoNumber(
+			info.autoNumType,
+			Math.max(1, (info.autoNumStartAt ?? 1) + (info.paragraphIndex ?? 0)),
+		);
+	}
+	return `${info.char ?? DEFAULT_BULLET_CHAR} `;
 }
 
-/**
- * Set one paragraph's list state to `kind`, returning the paragraph's new
- * segments.
- *
- * The result uses the same shape core produces on load, so the renderer and
- * the save writer treat an authored list exactly like a parsed one: for
- * `'bullet'` / `'numbered'` a display-only marker segment carrying the new
- * `bulletInfo` (and the paragraph-level fields) is placed first, followed by
- * the content runs with any previous marker removed; for `'none'` the marker
- * is dropped and the first content segment carries `{ none: true }`. The
- * inert `style.listType` is cleared on the touched segments. An empty
- * paragraph is returned unchanged since there is no run to carry the state.
- *
- * @param ordinal - Zero-based position within a numbered run; see
- *   {@link bulletInfoForKind}.
- */
+function infoForParagraph(
+	previous: BulletInfo | undefined,
+	kind: ParagraphBulletKind,
+	ordinal?: number,
+): BulletInfo {
+	if (kind === 'none') {
+		return { ...previous, none: true };
+	}
+	const sameKind =
+		previous &&
+		(kind === 'numbered'
+			? Boolean(previous.autoNumType)
+			: Boolean(
+					previous.char ||
+					previous.imageRelId ||
+					previous.imageDataUrl ||
+					previous.imageBlipFillXml,
+				) && !previous.autoNumType);
+	const info = sameKind ? { ...previous } : bulletInfoForKind(kind, ordinal);
+	delete info.none;
+	if (kind === 'numbered' && ordinal !== undefined) {
+		info.paragraphIndex = ordinal;
+	}
+	return info;
+}
+
+/** Explicit set, despite the historical name. Only the leading marker is removed. */
 export function toggleParagraphBullet(
 	paragraph: readonly TextSegment[],
 	kind: ParagraphBulletKind,
-	ordinal: number = 0,
+	ordinal?: number,
 ): TextSegment[] {
-	const content = paragraph.filter((segment) => !isBulletMarkerSegment(segment));
-	const first = content[0];
-	if (!first) {
-		return [...paragraph];
+	const source = paragraph[0];
+	if (!source) {
+		return [];
 	}
-	const meta = paragraphMeta(paragraph[0]);
-	const info = bulletInfoForKind(kind, ordinal);
-	const rest = content.slice(1);
-	if (kind === 'none') {
-		return [{ ...first, ...meta, style: withoutListType(first.style), bulletInfo: info }, ...rest];
-	}
-	const marker: TextSegment = {
-		text: markerText(info),
-		style: withoutListType(first.style),
-		...meta,
-		bulletInfo: info,
+	const content = isBulletMarkerSegment(source) ? paragraph.slice(1) : [...paragraph];
+	const first = content[0] ?? { text: '', style: source.style };
+	const meta = {
+		...(source.paragraphLevel !== undefined ? { paragraphLevel: source.paragraphLevel } : {}),
+		...(source.paragraphProperties ? { paragraphProperties: source.paragraphProperties } : {}),
+		...(source.endParaRunProperties ? { endParaRunProperties: source.endParaRunProperties } : {}),
 	};
-	const body: TextSegment = { ...first, style: withoutListType(first.style) };
+	const info = infoForParagraph(source.bulletInfo, kind, ordinal);
+	const body = { ...first, ...meta, style: withoutListType(first.style) };
+	const rest = content.slice(1).map((segment) => {
+		if (!segment.bulletInfo) {
+			return segment;
+		}
+		const run = { ...segment };
+		delete run.bulletInfo;
+		return run;
+	});
+	// Picture markers render separately; never insert their textual fallback as body.
+	if (kind === 'none' || info.imageRelId || info.imageDataUrl || info.imageBlipFillXml) {
+		return [{ ...body, bulletInfo: info }, ...rest];
+	}
 	delete body.bulletInfo;
-	return [marker, body, ...rest];
+	const markerStyle =
+		isBulletMarkerSegment(source) && paragraphBulletKind([source]) === kind
+			? source.style
+			: first.style;
+	return [
+		{ text: markerText(info), style: withoutListType(markerStyle), ...meta, bulletInfo: info },
+		body,
+		...rest,
+	];
 }
 
-function isParagraphSeparator(segment: TextSegment): boolean {
-	return Boolean(segment.isParagraphBreak) || (segment.text === '\n' && !segment.isLineBreak);
+/** Inclusive paragraph indices; omitted means the entire text element. */
+export interface BulletParagraphRange {
+	startParagraph: number;
+	endParagraph: number;
 }
 
-/** Split a segment list into paragraphs, keeping each paragraph's terminator. */
+/** Only text properties change; unsupported elements return an empty patch. */
+export interface ElementBulletPatch {
+	textSegments?: TextSegment[];
+	textStyle?: TextStyle;
+}
+
+function elementSegments(element: PptxElement): TextSegment[] {
+	if (!hasTextProperties(element)) {
+		return [];
+	}
+	if (element.textSegments?.length) {
+		return element.textSegments;
+	}
+	return (element.text ?? '')
+		.split('\n')
+		.flatMap((text, index) => [
+			...(index ? [{ text: '\n', style: { ...element.textStyle }, isParagraphBreak: true }] : []),
+			{ text, style: { ...element.textStyle } },
+		]);
+}
+
 function splitParagraphs(
 	segments: readonly TextSegment[],
 ): Array<{ segments: TextSegment[]; terminator?: TextSegment }> {
@@ -178,42 +181,20 @@ function splitParagraphs(
 		{ segments: [] },
 	];
 	for (const segment of segments) {
-		if (isParagraphSeparator(segment)) {
+		if (isParagraphSeparatorSegment(segment)) {
 			paragraphs[paragraphs.length - 1].terminator = segment;
 			paragraphs.push({ segments: [] });
-			continue;
+		} else {
+			paragraphs[paragraphs.length - 1].segments.push(segment);
 		}
-		paragraphs[paragraphs.length - 1].segments.push(segment);
 	}
 	return paragraphs;
 }
 
-/** The element's segments, synthesised from `text` when it carries none. */
-function elementSegments(element: PptxElement): TextSegment[] {
-	if (!hasTextProperties(element)) {
-		return [];
-	}
-	if (element.textSegments && element.textSegments.length > 0) {
-		return element.textSegments;
-	}
-	const style: TextStyle = { ...(element.textStyle ?? {}) };
-	const segments: TextSegment[] = [];
-	for (const [index, line] of (element.text ?? '').split('\n').entries()) {
-		if (index > 0) {
-			segments.push({ text: '\n', style: { ...style }, isParagraphBreak: true });
-		}
-		segments.push({ text: line, style: { ...style } });
-	}
-	return segments;
-}
-
-/**
- * The list state an element's ribbon buttons should show: the kind of its
- * first non-empty paragraph, since that is what a toggle would act on.
- */
+/** Existing element-wide toggle convention: use its first nonempty paragraph. */
 export function elementBulletKind(element: PptxElement): ParagraphBulletKind {
 	for (const paragraph of splitParagraphs(elementSegments(element))) {
-		if (paragraph.segments.length > 0) {
+		if (paragraph.segments.length) {
 			return paragraphBulletKind(paragraph.segments);
 		}
 	}
@@ -221,39 +202,75 @@ export function elementBulletKind(element: PptxElement): ParagraphBulletKind {
 }
 
 /**
- * Set every paragraph of an element to `kind`, returning the element patch
- * (`textSegments` rewritten; `textStyle.listType` cleared so the element-level
- * flag can no longer suppress or lie about the state). Numbered paragraphs are
- * counted consecutively so the renderer shows "1. 2. 3.".
+ * Explicitly set the touched paragraphs. Existing same-kind definitions survive;
+ * defaults are only for new lists. Retained buNone metadata supports live off/on,
+ * not restoration of a deleted definition after a save/reload.
  */
 export function setElementBullets(
 	element: PptxElement,
 	kind: ParagraphBulletKind,
-): Partial<PptxElement> {
-	const textStyle = withoutListType(hasTextProperties(element) ? element.textStyle : undefined);
+	range?: BulletParagraphRange,
+): ElementBulletPatch {
+	if (!hasTextProperties(element)) {
+		return {};
+	}
+	if (
+		range &&
+		(!Number.isInteger(range.startParagraph) ||
+			!Number.isInteger(range.endParagraph) ||
+			range.startParagraph < 0 ||
+			range.endParagraph < range.startParagraph)
+	) {
+		return {};
+	}
+	const paragraphs = splitParagraphs(elementSegments(element));
+	if (range && range.startParagraph >= paragraphs.length) {
+		return {};
+	}
 	const next: TextSegment[] = [];
-	let ordinal = 0;
-	for (const paragraph of splitParagraphs(elementSegments(element))) {
-		if (paragraph.segments.length > 0) {
-			next.push(...toggleParagraphBullet(paragraph.segments, kind, ordinal));
-			ordinal += 1;
+	const sequence = createAutoNumberSequence();
+	for (const [index, paragraph] of paragraphs.entries()) {
+		const selected = !range || (index >= range.startParagraph && index <= range.endParagraph);
+		let segments = paragraph.segments;
+		if (selected) {
+			const empty = {
+				...paragraph.terminator,
+				text: '',
+				style: { ...paragraph.terminator?.style },
+			};
+			delete empty.isParagraphBreak;
+			delete empty.isLineBreak;
+			segments = toggleParagraphBullet(segments.length ? segments : [empty], kind);
 		}
+		const first = segments[0] ?? paragraph.terminator;
+		const info = first?.bulletInfo;
+		const level = first?.paragraphLevel ?? 0;
+		if (info?.autoNumType && paragraphBulletKind(segments) === 'numbered') {
+			const startAt = info.autoNumStartAt ?? 1;
+			const ordinal = nextAutoNumber(sequence, level, info.autoNumType, startAt) - startAt;
+			// List membership changes also renumber following items. Only this
+			// derived ordinal changes outside the selected paragraphs.
+			if (info.paragraphIndex !== ordinal) {
+				segments = toggleParagraphBullet(segments, 'numbered', ordinal);
+			}
+		} else {
+			breakAutoNumberRun(sequence, level);
+		}
+		next.push(...segments);
 		if (paragraph.terminator) {
 			next.push(paragraph.terminator);
 		}
 	}
-	return { textSegments: next, textStyle } as Partial<PptxElement>;
+	return {
+		textSegments: next,
+		textStyle: withoutListType(element.textStyle),
+	};
 }
 
-/**
- * The ribbon button behaviour: pressing Bullets (or Numbering) on an element
- * already in that state turns its lists off, otherwise it applies that kind
- * to every paragraph. Returns the element patch to apply through the
- * binding's update-element operation.
- */
+/** Button intent, unlike the explicit style setter above. */
 export function toggleElementBullets(
 	element: PptxElement,
 	kind: Exclude<ParagraphBulletKind, 'none'>,
-): Partial<PptxElement> {
+): ElementBulletPatch {
 	return setElementBullets(element, elementBulletKind(element) === kind ? 'none' : kind);
 }
