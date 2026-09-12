@@ -71,6 +71,24 @@ viewer.destroy();
 
 The container should have a size (the viewer fills it: `width/height: 100%`).
 
+### Viewport fit options
+
+```ts
+const viewer = createPptxViewer(container, {
+	source,
+	fitPadding: 0,
+	maxFitScale: null,
+});
+```
+
+`fitPadding` is a per-side CSS-pixel number or `{ horizontal, vertical }`;
+`maxFitScale` is a positive fit-factor ceiling or `null` for unlimited enlargement.
+Omission preserves the existing 16 px fit allowance on each side, unlimited
+enlargement, and mobile CSS padding. Explicit padding also sets the viewport's
+physical CSS padding. Configure these options when creating the viewer; they
+do not change document geometry, user zoom, or presentation-mode fitting.
+See the [cross-binding defaults](../../README.md#fitting-a-slide-into-a-custom-host).
+
 ## Options
 
 All options are optional except the container element itself. Beyond the ones

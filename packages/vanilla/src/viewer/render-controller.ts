@@ -7,6 +7,7 @@ import type {
 	ChartPartRef,
 	MasterViewCrudAction,
 	MasterViewCrudActionId,
+	ViewportFitOptions,
 } from 'pptx-viewer-shared';
 import {
 	computeGridSpacingPx,
@@ -27,15 +28,13 @@ import { appendCommentMarkers } from './render/comment-markers';
 import type { Store, ViewerState } from './state';
 import type { ViewerChrome } from './ui';
 import { renderHandoutMasterCanvas, renderNotesMasterCanvas } from './ui/master-canvases';
+import { fitViewerViewport } from './viewport-fit';
 
 /** The sidebar's action list for the current master-view target, or `[]` when there is none. */
 function currentMasterViewCrudActions(state: ViewerState): MasterViewCrudAction[] {
 	const target = fullTarget(state);
 	return target ? masterViewCrudActions(toPptxData(state), target) : [];
 }
-
-/** Fit-mode breathing room around the stage (viewport padding), in px. */
-const FIT_PADDING_PX = 32;
 
 export interface RenderControllerDeps {
 	doc: Document;
@@ -47,6 +46,7 @@ export interface RenderControllerDeps {
 	 */
 	getChrome(): ViewerChrome;
 	getTranslator(): Translator;
+	getFitOptions?(): ViewportFitOptions;
 	/**
 	 * Opt-in WebGL SmartArt renderer flag; see `PptxViewerOptions.smartArt3D`.
 	 * Already ANDed with Options > Advanced > "Disable 3D rendering" by the
@@ -247,12 +247,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 	const fitScaleFor = (canvasSize: { width: number; height: number }): number => {
 		const state = store.get();
 		const viewport = deps.getChrome().viewport;
-		const padding = state.presenting ? 0 : FIT_PADDING_PX;
-		const scale = Math.min(
-			(viewport.clientWidth - padding) / Math.max(canvasSize.width, 1),
-			(viewport.clientHeight - padding) / Math.max(canvasSize.height, 1),
-		);
-		return Number.isFinite(scale) && scale > 0 ? scale : 1;
+		return fitViewerViewport(viewport, canvasSize, deps.getFitOptions?.() ?? {}, state.presenting);
 	};
 	const effectiveScaleFor = (canvasSize: { width: number; height: number }): number => {
 		const state = store.get();
