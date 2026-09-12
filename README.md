@@ -66,6 +66,37 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 | **Headless** parse / edit / convert (Node or web) | `npm i pptx-viewer-core`    | [pptx-viewer-core](https://www.npmjs.com/package/pptx-viewer-core)       |
 | **CLI / MCP / AI** tooling                        | `npm i pptx-viewer-mcp`     | [pptx-viewer-mcp](https://www.npmjs.com/package/pptx-viewer-mcp)         |
 
+### Fitting a slide into a custom host
+
+All five UI bindings accept optional `fitPadding` and `maxFitScale` host options.
+Use `fitPadding: 0` and `maxFitScale: null` to fit the slide into the available
+canvas viewport without decorative padding or an enlargement ceiling.
+
+`fitPadding` is an unscaled CSS-pixel allowance **on each side**: `8` reserves
+16 pixels in each axis; `{ horizontal: 4, vertical: 16 }` reserves 8 pixels
+horizontally and 32 vertically. `maxFitScale` is a positive fit-factor ceiling;
+`null` means unlimited. Invalid values fall back to the binding's defaults.
+Omitting the options preserves the existing fit policy:
+
+| Binding | Per-side horizontal / vertical padding | Maximum fit scale |
+| ------- | -------------------------------------- | ----------------- |
+| React   | 4 / 16 px                              | 1                 |
+| Vue     | 8 / 16 px                              | 1                 |
+| Angular | 8 / 16 px                              | 1                 |
+| Svelte  | 24 / 24 px                             | Unlimited         |
+| Vanilla | 16 / 16 px                             | Unlimited         |
+
+These options affect ordinary viewer fitting, not authored slide dimensions,
+saved content, thumbnails, export, presentation mode, or the separate user zoom
+setting. Existing ruler layout is preserved; disable rulers when the host needs
+the slide aligned directly with the canvas viewport edges. Vanilla also preserves its
+existing mobile CSS padding when `fitPadding` is omitted. Give the host a real
+width and height; zero fit padding cannot recover space used by host chrome.
+Each UI package exports the `ViewportFitOptions` and `ViewportFitPadding` types.
+
+See the package README for the framework-specific syntax and React's
+[custom-shell example](packages/react/README.md#composing-a-custom-viewer-shell).
+
 ## What it does
 
 1. **Parse** `.pptx` (and `.ppsx` / `.pptm` / `.potx`, plus legacy binary `.ppt` from PowerPoint 97-2003) from a raw `ArrayBuffer` into a structured `PptxData` model
