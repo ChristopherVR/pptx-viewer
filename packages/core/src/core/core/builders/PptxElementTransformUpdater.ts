@@ -1,8 +1,10 @@
 import type { PptxElement, XmlObject } from '../../types';
 import { resolveRotatedResizeOffset } from '../../utils/rotated-resize-anchor';
 import { resolveXfrmEmu } from '../../utils/xfrm-emu-resolution';
+import { xmlChild, xmlHasChild } from '../../utils/xml-access';
 import { resolveGroupChildBoxEmu } from '../runtime/group-tight-rewrap';
 import type { GroupChildSpaceOwner } from '../runtime/group-xfrm-preservation';
+import { materializeInheritedShapeTransform } from './inherited-shape-transform';
 
 export interface IPptxElementTransformUpdater {
 	applyTransform(
@@ -21,7 +23,11 @@ export class PptxElementTransformUpdater implements IPptxElementTransformUpdater
 		enclosingGroupChildSpace?: GroupChildSpaceOwner,
 	): void {
 		const transform = ((shape['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] ||
-			shape['p:xfrm']) as XmlObject | undefined;
+			shape['p:xfrm'] ||
+			// A group's child geometry uses a different frame from the load-time baseline.
+			(!enclosingGroupChildSpace && materializeInheritedShapeTransform(shape, element))) as
+			| XmlObject
+			| undefined;
 		if (!transform) {
 			return;
 		}
@@ -76,8 +82,13 @@ export class PptxElementTransformUpdater implements IPptxElementTransformUpdater
 			// changed, this is a no-op and the naive result stands untouched.
 			const naiveOffX = resolveXfrmEmu(element.x, element.xEmu, emuPerPx);
 			const naiveOffY = resolveXfrmEmu(element.y, element.yEmu, emuPerPx);
+			// The old box cannot anchor a resize at a newly edited rotation. Keep
+			// this load-time comparison across saves, just like the original EMUs.
+			const rotationChanged =
+				element.inheritedTransform !== undefined &&
+				(element.inheritedTransform.rotation ?? 0) !== (element.rotation ?? 0);
 			const rotatedResize = resolveRotatedResizeOffset({
-				rotationDeg: element.rotation,
+				rotationDeg: rotationChanged ? undefined : element.rotation,
 				oldOffXEmu: element.xEmu,
 				oldOffYEmu: element.yEmu,
 				oldExtWidthEmu: element.widthEmu,
@@ -105,14 +116,26 @@ export class PptxElementTransformUpdater implements IPptxElementTransformUpdater
 		if (element.skewY !== undefined) {
 			transform['@_skewY'] = String(Math.round(element.skewY * 60000));
 		}
+		const nonVisual = xmlChild(shape, 'p:nvSpPr') ?? xmlChild(shape, 'p:nvPicPr');
+		const isPlaceholder = xmlHasChild(xmlChild(nonVisual, 'p:nvPr'), 'p:ph');
 		if (element.flipHorizontal) {
 			transform['@_flipH'] = '1';
-		} else {
+		} else if (
+			element.inheritedTransform?.flipHorizontal ||
+			(isPlaceholder && transform['@_flipH'] !== undefined && transform['@_flipH'] !== 'false')
+		) {
+			transform['@_flipH'] = '0';
+		} else if (transform['@_flipH'] !== '0' && transform['@_flipH'] !== 'false') {
 			delete transform['@_flipH'];
 		}
 		if (element.flipVertical) {
 			transform['@_flipV'] = '1';
-		} else {
+		} else if (
+			element.inheritedTransform?.flipVertical ||
+			(isPlaceholder && transform['@_flipV'] !== undefined && transform['@_flipV'] !== 'false')
+		) {
+			transform['@_flipV'] = '0';
+		} else if (transform['@_flipV'] !== '0' && transform['@_flipV'] !== 'false') {
 			delete transform['@_flipV'];
 		}
 	}

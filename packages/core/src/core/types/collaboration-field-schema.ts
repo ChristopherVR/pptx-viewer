@@ -62,6 +62,7 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	hidden: 'scalar',
 	opacity: 'scalar',
 	rawXml: 'complex',
+	inheritedTransform: 'complex',
 	actionClick: 'complex',
 	actionHover: 'complex',
 	locks: 'complex',

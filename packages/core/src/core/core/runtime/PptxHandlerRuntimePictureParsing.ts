@@ -80,6 +80,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const skewX = xfrm['@_skewX'] ? parseEmuInt(xfrm['@_skewX']) / 60000 : undefined;
 			const skewY = xfrm['@_skewY'] ? parseEmuInt(xfrm['@_skewY']) / 60000 : undefined;
 			const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
+			const inheritedTransform =
+				!spPr?.['a:xfrm'] && off && ext
+					? { x, y, width, height, rotation, skewX, skewY, flipHorizontal, flipVertical }
+					: undefined;
 
 			// ── Check if this picture is actually a video/audio placeholder ──
 			const nvPr = (pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:nvPr'] as
@@ -168,6 +172,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return {
 					id,
 					type: 'media',
+					inheritedTransform,
 					x,
 					y,
 					width,
@@ -427,6 +432,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				id,
 				name: picElementName || undefined,
 				type: 'picture',
+				inheritedTransform,
 				x,
 				y,
 				width,
