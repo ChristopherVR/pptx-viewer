@@ -1,11 +1,12 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import { readEditableText, remapTextToSegments, toggleElementBullets } from 'pptx-viewer-shared';
 
 /**
- * Pure paragraph-level patch builders for the Home tab's Paragraph group:
- * bullet/numbered list, indent, alignment, and line spacing. Formatting is
- * applied at the element `textStyle` level (the base every run/paragraph
- * inherits from), matching the convention in `editor-format-mutations.ts`.
+ * Paragraph-level patch builders for the Home tab's Paragraph group:
+ * bullet/numbered list, indent, alignment, and line spacing.
+ * Lists author semantic paragraph bullets; other formatting uses the element
+ * `textStyle` base, matching `editor-format-mutations.ts`.
  */
 
 /** Indent step (px) applied per increase/decrease-indent click. */
@@ -20,9 +21,26 @@ export function toggleListTypePatch(
 	el: PptxElement,
 	kind: 'bullet' | 'numbered',
 ): Partial<PptxElement> {
-	const base = textStyleBase(el);
-	const next = base.listType === kind ? 'none' : kind;
-	return { textStyle: { ...base, listType: next } } as Partial<PptxElement>;
+	if (!hasTextProperties(el)) {
+		return {};
+	}
+	const surface =
+		typeof document === 'undefined'
+			? null
+			: document.querySelector<HTMLElement>('[data-inline-editor]');
+	const liveText = surface ? readEditableText(surface) : undefined;
+	const current =
+		liveText === undefined
+			? el
+			: {
+					...el,
+					text: liveText,
+					textSegments: remapTextToSegments(liveText, el.textSegments, el.textStyle),
+				};
+	return {
+		...(liveText === undefined ? {} : { text: liveText }),
+		...toggleElementBullets(current, kind),
+	};
 }
 
 /** Increase or decrease the paragraph left margin by one indent step. */

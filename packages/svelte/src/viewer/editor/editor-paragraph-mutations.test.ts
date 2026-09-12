@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { buildParagraphs, elementBulletKind } from 'pptx-viewer-shared';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
 	adjustIndentPatch,
@@ -23,19 +24,58 @@ function textEl(textStyle: PptxElement['textStyle'] = {}): PptxElement {
 }
 
 describe('editor-paragraph-mutations toggleListTypePatch', () => {
-	it('turns bullet on from none', () => {
-		const patch = toggleListTypePatch(textEl(), 'bullet');
-		expect(patch.textStyle?.listType).toBe('bullet');
+	afterEach(() => {
+		document.body.innerHTML = '';
 	});
 
-	it('turns the same list type back off', () => {
-		const patch = toggleListTypePatch(textEl({ listType: 'bullet' }), 'bullet');
-		expect(patch.textStyle?.listType).toBe('none');
+	it('renders a bullet on, off, and on without changing the body', () => {
+		let el = textEl();
+		for (const marker of ['•', undefined, '•']) {
+			el = { ...el, ...toggleListTypePatch(el, 'bullet') } as PptxElement;
+			const paragraphs = buildParagraphs(el);
+			expect(paragraphs[0].bulletMarker).toBe(marker);
+			expect(paragraphs[0].runs.map((run) => run.text).join('')).toBe('hi');
+			expect(elementBulletKind(el)).toBe(marker ? 'bullet' : 'none');
+		}
 	});
 
-	it('switches from bullet to numbered', () => {
-		const patch = toggleListTypePatch(textEl({ listType: 'bullet' }), 'numbered');
-		expect(patch.textStyle?.listType).toBe('numbered');
+	it('switches a loaded semantic bullet to rendered numbering', () => {
+		const el = {
+			...textEl(),
+			textSegments: [
+				{ text: '» ', style: {}, bulletInfo: { char: '»' } },
+				{ text: 'hi', style: { bold: true } },
+			],
+		} as PptxElement;
+		const next = { ...el, ...toggleListTypePatch(el, 'numbered') } as PptxElement;
+		expect(buildParagraphs(next)[0].bulletMarker).toBe('1.');
+		expect(
+			buildParagraphs(next)[0]
+				.runs.map((run) => run.text)
+				.join(''),
+		).toBe('hi');
+		expect(elementBulletKind(next)).toBe('numbered');
+	});
+
+	it('reconciles pending inline text before adding semantic bullets', () => {
+		const surface = document.createElement('div');
+		surface.dataset.inlineEditor = '';
+		surface.textContent = 'pending body';
+		document.body.append(surface);
+		const el = textEl();
+		const next = { ...el, ...toggleListTypePatch(el, 'bullet') } as PptxElement;
+		expect('text' in next && next.text).toBe('pending body');
+		expect(
+			buildParagraphs(next)[0]
+				.runs.map((run) => run.text)
+				.join(''),
+		).toBe('pending body');
+		expect(buildParagraphs(next)[0].bulletMarker).toBe('•');
+	});
+
+	it('does not add text to unsupported elements', () => {
+		const table = { type: 'table', id: 't', x: 0, y: 0, width: 1, height: 1 } as PptxElement;
+		expect(toggleListTypePatch(table, 'bullet')).toStrictEqual({});
 	});
 });
 
