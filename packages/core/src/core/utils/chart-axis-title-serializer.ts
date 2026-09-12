@@ -14,6 +14,7 @@
 import type { XmlObject } from '../types';
 import type { ResolveChartColor } from './chart-color-choice';
 import { writeChartColorChoice } from './chart-color-choice';
+import { collectAllText, findKey, insertAt } from './chart-title-xml-ops';
 
 type GetLocalName = (key: string) => string;
 
@@ -42,35 +43,79 @@ const AFTER_TITLE = new Set([
 	'minorTimeUnit',
 ]);
 
-function findKey(obj: XmlObject, local: string, getLocalName: GetLocalName): string | undefined {
-	return Object.keys(obj).find((k) => getLocalName(k) === local);
+/** The first direct literal run or field carrying text in a paragraph. */
+function firstTextRun(
+	paragraph: XmlObject,
+	getLocalName: GetLocalName,
+): [string, XmlObject] | undefined {
+	for (const [key, value] of Object.entries(paragraph)) {
+		if (!['r', 'fld'].includes(getLocalName(key))) {
+			continue;
+		}
+		for (const run of Array.isArray(value) ? value : [value]) {
+			if (
+				run &&
+				typeof run === 'object' &&
+				!Array.isArray(run) &&
+				findKey(run, 't', getLocalName)
+			) {
+				return [key, run];
+			}
+		}
+	}
+	return undefined;
 }
 
-/** Set the first descendant text run (`a:t`) to `text`. Returns whether one was found. */
-function setFirstText(node: unknown, text: string, getLocalName: GetLocalName): boolean {
-	if (!node || typeof node !== 'object') {
-		return false;
+/** Preserve unchanged rich text; a flat edit replaces content, not authored formatting. */
+function setTitleText(title: XmlObject, text: string, getLocalName: GetLocalName): void {
+	const txKey = findKey(title, 'tx', getLocalName) ?? 'c:tx';
+	const tx = title[txKey] as XmlObject | undefined;
+	const texts: string[] = [];
+	if (tx && typeof tx === 'object') {
+		collectAllText(tx, getLocalName, texts);
 	}
-	const obj = node as XmlObject;
-	for (const key of Object.keys(obj)) {
-		if (getLocalName(key) === 't') {
-			const value = obj[key];
-			if (value && typeof value === 'object' && !Array.isArray(value)) {
-				(value as XmlObject)['#text'] = text;
-			} else {
-				obj[key] = text;
-			}
-			return true;
-		}
-		const child = obj[key];
-		const children = Array.isArray(child) ? child : [child];
-		for (const c of children) {
-			if (setFirstText(c, text, getLocalName)) {
-				return true;
-			}
-		}
+	if (texts.join('') === text) {
+		return;
 	}
-	return false;
+	const richKey = tx && typeof tx === 'object' ? findKey(tx, 'rich', getLocalName) : undefined;
+	const rich = richKey ? (tx![richKey] as XmlObject) : undefined;
+	if (!rich || typeof rich !== 'object' || Array.isArray(rich)) {
+		const textNode = buildTitle(text)['c:tx'];
+		if (txKey in title) {
+			title[txKey] = textNode;
+		} else {
+			insertAt(title, 0, txKey, textNode);
+		}
+		return;
+	}
+	const pKey = findKey(rich, 'p', getLocalName) ?? 'a:p';
+	const value = rich[pKey];
+	const paragraphs = (Array.isArray(value) ? value : [value]).filter(
+		(entry): entry is XmlObject =>
+			Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry),
+	);
+	const paragraph = paragraphs.find((p) => firstTextRun(p, getLocalName)) ?? paragraphs[0] ?? {};
+	const carrier = firstTextRun(paragraph, getLocalName);
+	const original = carrier?.[1] ?? {};
+	const runKey = carrier ? carrier[0].replace(/[^:]+$/u, 'r') : 'a:r';
+	const rPrKey = findKey(original, 'rPr', getLocalName);
+	const run =
+		carrier && getLocalName(carrier[0]) === 'r'
+			? { ...original }
+			: rPrKey
+				? { [rPrKey]: original[rPrKey] }
+				: {};
+	const textKey = findKey(original, 't', getLocalName) ?? 'a:t';
+	const oldText = original[textKey];
+	const attributes =
+		oldText && typeof oldText === 'object' && !Array.isArray(oldText) ? oldText : undefined;
+	run[textKey] = attributes ? { ...attributes, '#text': text } : text;
+	const entries = Object.entries(paragraph);
+	rich[pKey] = Object.fromEntries([
+		...entries.filter(([key]) => key.startsWith('@_') || getLocalName(key) === 'pPr'),
+		[runKey, run],
+		...entries.filter(([key]) => getLocalName(key) === 'endParaRPr'),
+	]);
 }
 
 /** Build a minimal `c:title` carrying a single text run. */
@@ -134,8 +179,10 @@ export function applyChartAxisTitleToXml(
 	}
 
 	if (titleKey) {
-		const updated = setFirstText(axisNode[titleKey], titleText, getLocalName);
-		if (!updated) {
+		const title = axisNode[titleKey];
+		if (title && typeof title === 'object' && !Array.isArray(title)) {
+			setTitleText(title, titleText, getLocalName);
+		} else {
 			axisNode[titleKey] = buildTitle(titleText);
 		}
 		return;

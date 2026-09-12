@@ -56,6 +56,11 @@ const TITLE_RUN_XML = '<a:r><a:t>Clustered Bar</a:t></a:r>';
 const STYLED_TITLE_RUN_XML =
 	'<a:r><a:rPr lang="fr-FR" sz="1800" b="1"><a:solidFill><a:schemeClr val="accent5"/></a:solidFill><a:latin typeface="+mj-lt"/></a:rPr><a:t>Clustered Bar</a:t></a:r>';
 
+const AXIS_TITLE = 'Quarterly Axis';
+const EDITED_AXIS_TITLE = 'Edited Axis';
+const AXIS_TITLE_XML =
+	'<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="fr-FR" sz="1600" b="1"><a:solidFill><a:schemeClr val="accent3"/></a:solidFill><a:latin typeface="+mj-lt"/></a:rPr><a:t>Quarter</a:t></a:r><a:r><a:rPr lang="de-DE" sz="1400" i="1"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t>ly Axis</a:t></a:r><a:endParaRPr lang="en-US"/></a:p></c:rich></c:tx><c:layout/><c:overlay val="0"/></c:title>';
+
 const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
 interface DeckPayload {
@@ -126,6 +131,26 @@ async function expectAuthoredTitle(page: Page): Promise<void> {
 	await expect.poll(() => normalizedTitleText(chartLocator(page))).toBe('Sales Overview');
 }
 
+async function twoRunAxisDeck(testInfo: TestInfo): Promise<string> {
+	const zip = await JSZip.loadAsync(await readFile(CHART_GALLERY_FIXTURE));
+	const part = zip.file('ppt/charts/chart1.xml');
+	if (!part) {
+		throw new Error('the public chart gallery is missing chart1.xml');
+	}
+	const chartXml = await part.async('string');
+	const axisPosition = '<c:axPos val="b"/>';
+	if (!chartXml.includes(axisPosition)) {
+		throw new Error('the chart gallery category-axis insertion point changed');
+	}
+	zip.file(
+		'ppt/charts/chart1.xml',
+		chartXml.replace(axisPosition, `${axisPosition}${AXIS_TITLE_XML}`),
+	);
+	const outputPath = testInfo.outputPath('two-run-axis-title.pptx');
+	await writeFile(outputPath, await zip.generateAsync({ type: 'uint8array' }));
+	return outputPath;
+}
+
 function chartLocator(page: Page): Locator {
 	return page
 		.locator('[aria-roledescription="slide"]')
@@ -183,6 +208,45 @@ async function styledSingleRunDeck(testInfo: TestInfo): Promise<string> {
 
 function chartTitleInput(page: Page) {
 	return inspector(page).getByLabel('Title', { exact: true }).locator('visible=true').first();
+}
+
+async function openAxisDeck(page: Page, path: string): Promise<Locator> {
+	await loadDeck(page, path);
+	const chart = chartLocator(page);
+	await chart.waitFor();
+	await selectElement(page, chart);
+	await expect(inspector(page)).toBeVisible();
+	return chart;
+}
+
+async function renderedTextCount(chart: Locator, value: string): Promise<number> {
+	const values = await chart.locator('svg text').allTextContents();
+	return values.filter((text) => text.trim() === value).length;
+}
+
+function axisTitleSnapshot(xml: string) {
+	const categoryAxis = /<c:catAx>[\s\S]*?<\/c:catAx>/u.exec(xml)?.[0] ?? '';
+	const title = /<c:title>[\s\S]*?<\/c:title>/u.exec(categoryAxis)?.[0] ?? '';
+	return {
+		texts: [...title.matchAll(/<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/gu)].map((match) => match[1]),
+		firstLang: title.includes('lang="fr-FR"'),
+		firstSize: title.includes('sz="1600"'),
+		firstBold: title.includes('b="1"'),
+		firstScheme: /<a:schemeClr\b[^>]*\bval="accent3"/u.test(title),
+		firstTypeface: /<a:latin\b[^>]*\btypeface="\+mj-lt"/u.test(title),
+		secondLang: title.includes('lang="de-DE"'),
+		secondItalic: title.includes('i="1"'),
+		secondRed: /<a:srgbClr\b[^>]*\bval="FF0000"/u.test(title),
+		paragraphDefaults: title.includes('<a:pPr algn="ctr"'),
+		endProperties: title.includes('<a:endParaRPr lang="en-US"'),
+	};
+}
+
+async function savePath(page: Page): Promise<string> {
+	const download = await savePptxViaBackstage(page);
+	const path = await download.path();
+	expect(path, 'the browser should retain the saved PPTX').not.toBeNull();
+	return path!;
 }
 
 const classicAxisTitle =
@@ -472,7 +536,13 @@ test.describe('chart title rich text (multi-run titles)', () => {
 		await expect(titleInput).toHaveValue(EDITED_SINGLE_RUN_TITLE);
 		await expect
 			.poll(async () => await titleTspans(page))
-			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+			.toStrictEqual([
+				{
+					...initialSpan,
+					text: EDITED_SINGLE_RUN_TITLE,
+					rawText: initialSpan.rawText.replace(SINGLE_RUN_TITLE, EDITED_SINGLE_RUN_TITLE),
+				},
+			]);
 
 		const download = await savePptxViaBackstage(page);
 		const downloadPath = await download.path();
@@ -496,7 +566,13 @@ test.describe('chart title rich text (multi-run titles)', () => {
 		await expect(chartTitleInput(page)).toHaveValue(EDITED_SINGLE_RUN_TITLE);
 		await expect
 			.poll(async () => await titleTspans(page))
-			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+			.toStrictEqual([
+				{
+					...initialSpan,
+					text: EDITED_SINGLE_RUN_TITLE,
+					rawText: initialSpan.rawText.replace(SINGLE_RUN_TITLE, EDITED_SINGLE_RUN_TITLE),
+				},
+			]);
 	});
 
 	test('single-run title edits stay in sync through undo, redo, save, and reload', async ({
@@ -522,7 +598,13 @@ test.describe('chart title rich text (multi-run titles)', () => {
 		await expect(titleInput).toHaveValue(EDITED_SINGLE_RUN_TITLE);
 		await expect
 			.poll(async () => await titleTspans(page))
-			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+			.toStrictEqual([
+				{
+					...initialSpan,
+					text: EDITED_SINGLE_RUN_TITLE,
+					rawText: initialSpan.rawText.replace(SINGLE_RUN_TITLE, EDITED_SINGLE_RUN_TITLE),
+				},
+			]);
 
 		const undo = page.getByRole('button', { name: 'Undo' });
 		const redo = page.getByRole('button', { name: 'Redo' });
@@ -537,7 +619,13 @@ test.describe('chart title rich text (multi-run titles)', () => {
 		await expect(chartTitleInput(page)).toHaveValue(EDITED_SINGLE_RUN_TITLE);
 		await expect
 			.poll(async () => await titleTspans(page))
-			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+			.toStrictEqual([
+				{
+					...initialSpan,
+					text: EDITED_SINGLE_RUN_TITLE,
+					rawText: initialSpan.rawText.replace(SINGLE_RUN_TITLE, EDITED_SINGLE_RUN_TITLE),
+				},
+			]);
 
 		const download = await savePptxViaBackstage(page);
 		const downloadPath = await download.path();
@@ -555,7 +643,13 @@ test.describe('chart title rich text (multi-run titles)', () => {
 		await expect(chartTitleInput(page)).toHaveValue(EDITED_SINGLE_RUN_TITLE);
 		await expect
 			.poll(async () => await titleTspans(page))
-			.toStrictEqual([{ ...initialSpan, text: EDITED_SINGLE_RUN_TITLE }]);
+			.toStrictEqual([
+				{
+					...initialSpan,
+					text: EDITED_SINGLE_RUN_TITLE,
+					rawText: initialSpan.rawText.replace(SINGLE_RUN_TITLE, EDITED_SINGLE_RUN_TITLE),
+				},
+			]);
 	});
 
 	test('editing a single-run title directly on the canvas refreshes immediately', async ({
@@ -584,6 +678,89 @@ test.describe('chart title rich text (multi-run titles)', () => {
 		await expect
 			.poll(async () => (await titleTspans(page)).map((span) => span.text))
 			.toStrictEqual([ON_CANVAS_TITLE]);
+	});
+	test('an unrelated chart edit preserves an untouched two-run axis title', async ({
+		page,
+	}, testInfo) => {
+		const deck = await twoRunAxisDeck(testInfo);
+		let chart = await openAxisDeck(page, deck);
+		await expect.poll(() => renderedTextCount(chart, AXIS_TITLE)).toBe(1);
+		await expect(await visibleInputWithValue(page, AXIS_TITLE)).toBeVisible();
+
+		const x = inspector(page).getByRole('spinbutton', { name: 'X', exact: true });
+		const previousX = Number(await x.inputValue());
+		await x.fill(String(previousX + 1));
+		await x.press('Tab');
+		await expect(x).toHaveValue(String(previousX + 1));
+
+		const saved = await savePath(page);
+		expect(axisTitleSnapshot(await savedChartXml(saved))).toStrictEqual({
+			texts: ['Quarter', 'ly Axis'],
+			firstLang: true,
+			firstSize: true,
+			firstBold: true,
+			firstScheme: true,
+			firstTypeface: true,
+			secondLang: true,
+			secondItalic: true,
+			secondRed: true,
+			paragraphDefaults: true,
+			endProperties: true,
+		});
+
+		chart = await openAxisDeck(page, saved);
+		await expect.poll(() => renderedTextCount(chart, AXIS_TITLE)).toBe(1);
+		await expect(await visibleInputWithValue(page, AXIS_TITLE)).toBeVisible();
+
+		const repeated = await savePath(page);
+		expect(axisTitleSnapshot(await savedChartXml(repeated)).texts).toStrictEqual([
+			'Quarter',
+			'ly Axis',
+		]);
+	});
+
+	test('editing a two-run axis title removes its stale tail and preserves its first style', async ({
+		page,
+	}, testInfo) => {
+		const deck = await twoRunAxisDeck(testInfo);
+		let chart = await openAxisDeck(page, deck);
+		const axisTitle = await visibleInputWithValue(page, AXIS_TITLE);
+		await axisTitle.fill(EDITED_AXIS_TITLE);
+		await axisTitle.press('Tab');
+		await expect.poll(() => renderedTextCount(chart, EDITED_AXIS_TITLE)).toBe(1);
+
+		const undo = page.getByRole('button', { name: 'Undo' });
+		const redo = page.getByRole('button', { name: 'Redo' });
+		await expect(undo).toBeEnabled();
+		await undo.click();
+		await expect.poll(() => renderedTextCount(chart, AXIS_TITLE)).toBe(1);
+		await expect(redo).toBeEnabled();
+		await redo.click();
+		await expect.poll(() => renderedTextCount(chart, EDITED_AXIS_TITLE)).toBe(1);
+
+		const saved = await savePath(page);
+		expect(axisTitleSnapshot(await savedChartXml(saved))).toStrictEqual({
+			texts: [EDITED_AXIS_TITLE],
+			firstLang: true,
+			firstSize: true,
+			firstBold: true,
+			firstScheme: true,
+			firstTypeface: true,
+			secondLang: false,
+			secondItalic: false,
+			secondRed: false,
+			paragraphDefaults: true,
+			endProperties: true,
+		});
+
+		chart = await openAxisDeck(page, saved);
+		await expect.poll(() => renderedTextCount(chart, EDITED_AXIS_TITLE)).toBe(1);
+		await expect(await visibleInputWithValue(page, EDITED_AXIS_TITLE)).toBeVisible();
+
+		const repeated = await savePath(page);
+		expect(axisTitleSnapshot(await savedChartXml(repeated)).texts).toStrictEqual([
+			EDITED_AXIS_TITLE,
+		]);
 	});
 });
 
