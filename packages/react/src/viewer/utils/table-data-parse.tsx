@@ -42,8 +42,20 @@ export function parseTableElementData(
 		return Number.isFinite(width) && width > 0 ? width : 0;
 	});
 	const totalColumnWidth = columnWidths.reduce((sum, width) => sum + width, 0);
-	const columnPercentages =
+	let columnPercentages =
 		totalColumnWidth > 0 ? columnWidths.map((width) => (width / totalColumnWidth) * 100) : [];
+	// Width edits live in tableData before save updates raw XML. Both the table
+	// columns and resize handles must use those current proportions together.
+	const modelWidths = element.type === 'table' ? element.tableData?.columnWidths : undefined;
+	if (
+		modelWidths?.length &&
+		modelWidths.length === gridColumns.length &&
+		modelWidths.every((width) => Number.isFinite(width) && width >= 0) &&
+		Math.abs(modelWidths.reduce((sum, width) => sum + width, 0) - 1) <=
+			Number.EPSILON * modelWidths.length * 4
+	) {
+		columnPercentages = modelWidths.map((width) => width * 100);
+	}
 
 	const cells: ParsedTableCell[] = [];
 	rows.forEach((row, rowIndex) => {

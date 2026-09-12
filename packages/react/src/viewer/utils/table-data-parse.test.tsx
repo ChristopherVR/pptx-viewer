@@ -1,4 +1,5 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 
 import {
@@ -6,6 +7,89 @@ import {
 	getTableXmlFromElement,
 	parseTableElementData,
 } from './table-data-parse';
+import { renderTableElement } from './table-render';
+
+function loadedTable(columnWidths?: number[]): TablePptxElement {
+	return {
+		id: 'width-table',
+		type: 'table',
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 80,
+		...(columnWidths
+			? { tableData: { columnWidths, rows: [{ cells: [{ text: 'A' }, { text: 'B' }] }] } }
+			: {}),
+		rawXml: {
+			'a:graphic': {
+				'a:graphicData': {
+					'a:tbl': {
+						'a:tblGrid': { 'a:gridCol': [{ '@_w': '3000' }, { '@_w': '7000' }] },
+						'a:tr': {
+							'a:tc': [
+								{ 'a:txBody': { 'a:p': { 'a:r': { 'a:rPr': { '@_b': '1' }, 'a:t': 'A' } } } },
+								{ 'a:txBody': { 'a:p': { 'a:r': { 'a:t': 'B' } } } },
+							],
+						},
+					},
+				},
+			},
+		},
+	} as TablePptxElement;
+}
+
+describe('loaded-table width edits', () => {
+	it.each([
+		[0.25, 0.75],
+		[0, 1],
+		[1 / 3, 2 / 3],
+	])('prefers valid model widths %s', (...widths) => {
+		const element = loadedTable(widths);
+		const original = structuredClone(element);
+		const before = parseTableElementData(loadedTable(), {})!;
+		const parsed = parseTableElementData(element, {})!;
+		expect(parsed.columnPercentages).toStrictEqual(widths.map((width) => width * 100));
+		expect(parsed.cells).toStrictEqual(before.cells);
+		expect(parsed.rows).toStrictEqual(before.rows);
+		expect(element).toStrictEqual(original);
+	});
+
+	it('repaints column widths and resize handles from each current history snapshot', () => {
+		const original = loadedTable([0.3, 0.7]);
+		const edited = { ...original, tableData: { ...original.tableData!, columnWidths: [0.4, 0.6] } };
+		for (const [element, width] of [
+			[original, 30],
+			[edited, 40],
+			[original, 30],
+			[edited, 40],
+		] as const) {
+			const markup = renderToStaticMarkup(renderTableElement(element, {}, { editable: true }));
+			expect(markup).toContain(`<col style="width:${width.toFixed(2)}%"`);
+			expect(markup).toContain(`<col style="width:${(100 - width).toFixed(2)}%"`);
+			expect(markup).toContain(`left:calc(${width}% - 3px)`);
+		}
+		expect(edited.rawXml).toBe(original.rawXml);
+		expect(parseTableElementData(loadedTable(), {})!.columnPercentages).toStrictEqual([30, 70]);
+	});
+
+	it.each([[], [1], [0.2, 0.3, 0.5], [NaN, 0.5], [Infinity, 0], [-0.2, 1.2], [0, 0], [1, 3]])(
+		'falls back to authored widths for invalid model widths %s',
+		(...widths) => {
+			expect(parseTableElementData(loadedTable(widths), {})!.columnPercentages).toStrictEqual([
+				30, 70,
+			]);
+		},
+	);
+
+	it('retains the data-only renderer for tables without raw XML', () => {
+		const element = loadedTable([0.4, 0.6]);
+		delete element.rawXml;
+		expect(parseTableElementData(element, {})).toBeNull();
+		const markup = renderToStaticMarkup(renderTableElement(element, {}, { editable: true }));
+		expect(markup).toContain('width:40.00%');
+		expect(markup).toContain('left:calc(40% - 3px)');
+	});
+});
 
 // ── getGraphicDataFromElement ─────────────────────────────────────────
 
