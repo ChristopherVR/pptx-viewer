@@ -12,6 +12,7 @@ import type {
 	ThemeCatalogEntry,
 	ToolbarActionId,
 	ViewerFontSource,
+	ViewportFitOptions,
 } from 'pptx-viewer-shared';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
@@ -244,7 +245,7 @@ export interface AnimationPresetOption {
 // Public component props & handle
 // ---------------------------------------------------------------------------
 
-export interface PowerPointViewerProps {
+export interface PowerPointViewerProps extends ViewportFitOptions {
 	/** PowerPoint content as Uint8Array */
 	content: Uint8Array;
 	/** Licensed fonts supplied by the host application. No fonts are bundled. */

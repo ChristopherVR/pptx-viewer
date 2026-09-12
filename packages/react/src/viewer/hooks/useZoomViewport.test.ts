@@ -1,10 +1,15 @@
+import { calculateViewportFit } from 'pptx-viewer-shared';
+// @vitest-environment happy-dom
 /**
  * Tests for pure computation logic extracted from useZoomViewport.
  *
  * We test the math functions (fitScale, zoom clamp, zoom-to-selection
  * bounding-box computation) without mounting React or needing DOM refs.
  */
-import { describe, it, expect } from 'vitest';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import {
 	MIN_ZOOM_SCALE,
@@ -12,6 +17,125 @@ import {
 	MIN_ELEMENT_SIZE,
 	ZOOM_TO_SELECTION_PADDING,
 } from '../constants';
+import { useZoomViewport } from './useZoomViewport';
+import type { UseZoomViewportResult } from './useZoomViewport';
+
+describe('useZoomViewport measured fit', () => {
+	let root: Root;
+	let host: HTMLDivElement;
+	let zoom: UseZoomViewportResult;
+	let width: number;
+	let height: number;
+	let resized: () => void;
+	let frames: Map<number, FrameRequestCallback>;
+	let nextFrame: number;
+	const canvasSize = { width: 960, height: 540 };
+
+	function Harness(props: { mounted?: boolean; fitPadding?: number; maxFitScale?: number | null }) {
+		zoom = useZoomViewport({ canvasSize, selectedElements: [], ...props });
+		return props.mounted === false
+			? null
+			: createElement('div', {
+					ref: (node: HTMLDivElement | null) => {
+						zoom.canvasViewportRef.current = node;
+						if (node) {
+							Object.defineProperty(node, 'clientWidth', { configurable: true, get: () => width });
+							Object.defineProperty(node, 'clientHeight', {
+								configurable: true,
+								get: () => height,
+							});
+						}
+					},
+				});
+	}
+
+	beforeEach(() => {
+		width = 960;
+		height = 540;
+		frames = new Map();
+		nextFrame = 0;
+		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+		vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+			frames.set(++nextFrame, callback);
+			return nextFrame;
+		});
+		vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				constructor(callback: () => void) {
+					resized = callback;
+				}
+				observe() {}
+				disconnect() {}
+			},
+		);
+		host = document.createElement('div');
+		document.body.append(host);
+		root = createRoot(host);
+	});
+
+	afterEach(() => {
+		act(() => root.unmount());
+		host.remove();
+		vi.unstubAllGlobals();
+	});
+
+	it('preserves default fit, then reacts to explicit zero padding and unlimited enlargement', () => {
+		act(() => root.render(createElement(Harness)));
+		expect(zoom.fitScale).toBeCloseTo(508 / 540);
+		expect(zoom.editorDimensions).toStrictEqual({ width: 952, height: 508 });
+		act(() => root.render(createElement(Harness, { fitPadding: 0, maxFitScale: null })));
+		expect(zoom.fitScale).toBe(1);
+		width = 1920;
+		height = 1080;
+		act(() => resized());
+		expect(zoom.fitScale).toBe(2);
+		act(() => zoom.setScale(1.5));
+		expect(zoom.editorScale).toBe(3);
+		expect(zoom.renderScaleRef.current).toBe(3);
+		const stage = document.createElement('div');
+		stage.getBoundingClientRect = () => new DOMRect(100, 200, 2880, 1620);
+		zoom.canvasStageRef.current = stage;
+		expect(zoom.getCanvasPointFromClient(400, 500)).toStrictEqual({ x: 100, y: 100 });
+		act(() => root.render(createElement(Harness, { fitPadding: 0, maxFitScale: 1.25 })));
+		expect(zoom.scale).toBe(1.5);
+		expect(zoom.editorScale).toBe(1.875);
+		expect(zoom.renderScaleRef.current).toBe(1.875);
+		act(() => root.render(createElement(Harness)));
+		expect(zoom.fitScale).toBe(1);
+		expect(zoom.scale).toBe(1.5);
+	});
+
+	it('retains the last valid measurement through a temporarily hidden viewport', () => {
+		act(() => root.render(createElement(Harness)));
+		const previous = zoom.editorDimensions;
+		width = 0;
+		height = 0;
+		act(() => resized());
+		expect(zoom.editorDimensions).toBe(previous);
+		expect(zoom.fitScale).toBeCloseTo(508 / 540);
+	});
+
+	it('measures a viewport mounted after the initial hook render', () => {
+		act(() =>
+			root.render(createElement(Harness, { mounted: false, fitPadding: 0, maxFitScale: null })),
+		);
+		expect(zoom.editorDimensions).toBeNull();
+		width = 480;
+		height = 270;
+		act(() =>
+			root.render(createElement(Harness, { mounted: true, fitPadding: 0, maxFitScale: null })),
+		);
+		act(() => {
+			const pending = [...frames.values()];
+			frames.clear();
+			pending.forEach((callback) => callback(0));
+		});
+		expect(zoom.fitScale).toBe(0.5);
+		expect(zoom.renderScaleRef.current).toBe(0.5);
+	});
+});
 
 // ---------------------------------------------------------------------------
 // Extracted pure helpers: mirrors the logic inside the hook
@@ -24,12 +148,13 @@ function computeFitScale(
 	canvasWidth: number,
 	canvasHeight: number,
 ): number {
-	if (!editorWidth || !editorHeight) {
-		return 1;
-	}
-	const widthScale = editorWidth / canvasWidth;
-	const heightScale = editorHeight / canvasHeight;
-	return Math.min(widthScale, heightScale, 1);
+	return calculateViewportFit({
+		viewportWidth: editorWidth,
+		viewportHeight: editorHeight,
+		canvasWidth,
+		canvasHeight,
+		maxFitScale: 1,
+	}).scale;
 }
 
 /** Clamp a zoom value into [MIN_ZOOM_SCALE, MAX_ZOOM_SCALE]. */
