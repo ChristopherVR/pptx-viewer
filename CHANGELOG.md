@@ -10,6 +10,19 @@ dated sections beneath it are generated from
 
 ## 2026-09-12
 
+_Releases: pptx-react-viewer@3.16.5, pptx-vue-viewer@3.16.5, pptx-angular-viewer@3.16.5, pptx-vanilla-viewer@2.16.5, pptx-svelte-viewer@3.17.5, @christophervr/pptx-viewer@2.13.6_
+
+### Bug Fixes
+
+- **angular:** Edit cached SmartArt drawing nodes (by @Sudhansh6) ([7fe9b37](https://github.com/ChristopherVR/pptx-viewer/commit/7fe9b373078ddad027964b88212960455e0cb808))
+- **react:** Sync inspector table merge and split XML (by @Sudhansh6) ([71d8187](https://github.com/ChristopherVR/pptx-viewer/commit/71d8187e3391dfea09011fa3601dbbfea6aa8b9c))
+
+### Testing
+
+- **e2e:** Cover inspector table merges with autosave disabled (by @Sudhansh6) ([382bb56](https://github.com/ChristopherVR/pptx-viewer/commit/382bb56e54142d3c133fc698c703e76946770654))
+
+## 2026-09-12
+
 _Releases: pptx-viewer-core@3.14.3, pptx-react-viewer@3.16.4, pptx-vue-viewer@3.16.4, pptx-angular-viewer@3.16.4, pptx-vanilla-viewer@2.16.4, pptx-svelte-viewer@3.17.4_
 
 ### Bug Fixes

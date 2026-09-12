@@ -506,10 +506,84 @@ async function expectRenderedRowCellCount(page: Page, row: number, count: number
 	).toHaveCount(count);
 }
 
+/** Use the inspector's pairwise command, or its public selected-cell equivalent. */
+async function mergeFromInspector(page: Page, direction: 'right' | 'down'): Promise<void> {
+	await selectTableCell(page, canvasCellAt(page, 0, 0));
+	// Some inspectors choose the formatting cursor independently of canvas selection.
+	for (const name of ['Row', 'Column']) {
+		const cursor = page.getByRole('combobox', { name, exact: true });
+		if (await cursor.isVisible()) {
+			await cursor.selectOption('0');
+		}
+	}
+	const pairwise = page.getByRole('button', { name: `Merge ${direction}`, exact: true });
+	if (await pairwise.isVisible()) {
+		await pairwise.click();
+	} else {
+		// An inspector with only "Merge selected" is a geometry/history control,
+		// not coverage of the pairwise cursor command or its text-aggregation policy.
+		await canvasCellAt(page, direction === 'down' ? 1 : 0, direction === 'right' ? 1 : 0).click({
+			modifiers: ['Shift'],
+		});
+		await page.getByRole('button', { name: 'Merge selected', exact: true }).click();
+	}
+}
+
 test.describe('table styling', () => {
 	test.beforeEach(async ({ page }) => {
 		await loadDeck(page);
 	});
+
+	for (const merge of [
+		{ direction: 'right', attribute: 'colspan', absorbedRow: 0, absorbedColumn: 1 },
+		{ direction: 'down', attribute: 'rowspan', absorbedRow: 1, absorbedColumn: 0 },
+	] as const) {
+		test(`repaints inspector merge ${merge.direction} and split without auto-save`, async ({
+			page,
+		}) => {
+			// Saving can synchronize raw XML as a side effect. Turn it off before any
+			// edit so polling cannot hide a stale loaded-table renderer behind auto-save.
+			const autoSave = page.getByRole('switch', { name: 'Toggle AutoSave', exact: true });
+			if ((await autoSave.getAttribute('aria-checked')) === 'true') {
+				await autoSave.click();
+			}
+			await expect(autoSave).toHaveAttribute('aria-checked', 'false');
+			await mergeFromInspector(page, merge.direction);
+			const anchor = canvasCellAt(page, 0, 0);
+			await expect(anchor).toHaveAttribute(merge.attribute, '2');
+			await expectRenderedRowCellCount(page, merge.absorbedRow, 3);
+
+			await selectTableCell(page, anchor);
+			await page.getByRole('button', { name: 'Split', exact: true }).click();
+			await expectRenderedRowCellCount(page, merge.absorbedRow, 4);
+			await expect(anchor).not.toHaveAttribute(merge.attribute, '2');
+			await expect(canvasCellAt(page, merge.absorbedRow, merge.absorbedColumn)).toHaveText('');
+
+			const undo = page.getByRole('button', { name: 'Undo', exact: true });
+			const redo = page.getByRole('button', { name: 'Redo', exact: true });
+			await undo.click();
+			await expect(anchor).toHaveAttribute(merge.attribute, '2');
+			await expectRenderedRowCellCount(page, merge.absorbedRow, 3);
+			await undo.click();
+			await expectRenderedRowCellCount(page, merge.absorbedRow, 4);
+			await expect(anchor).not.toHaveAttribute(merge.attribute, '2');
+			await expect(undo).toBeDisabled();
+			await redo.click();
+			await expect(anchor).toHaveAttribute(merge.attribute, '2');
+			await expectRenderedRowCellCount(page, merge.absorbedRow, 3);
+			await redo.click();
+			await expectRenderedRowCellCount(page, merge.absorbedRow, 4);
+			await expect(anchor).not.toHaveAttribute(merge.attribute, '2');
+			await expect(canvasCellAt(page, merge.absorbedRow, merge.absorbedColumn)).toHaveText('');
+
+			const download = await savePptxViaBackstage(page);
+			const savedPath = await download.path();
+			expect(savedPath, 'the browser should retain the split PPTX').not.toBeNull();
+			await loadDeck(page, savedPath!);
+			await expectRenderedRowCellCount(page, merge.absorbedRow, 4);
+			await expect(canvasCellAt(page, merge.absorbedRow, merge.absorbedColumn)).toHaveText('');
+		});
+	}
 
 	test('paints the header row and banded rows from the table style', async ({ page }) => {
 		await gotoSlide(page, 1);

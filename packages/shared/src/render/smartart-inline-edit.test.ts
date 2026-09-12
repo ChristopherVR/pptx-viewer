@@ -11,6 +11,7 @@ import {
 	resolveDrawingShapeNodeId,
 	computeInlineEditorRect,
 	measureSvgViewportRect,
+	projectSmartArtViewBoxRect,
 } from './smartart-inline-edit';
 
 function node(id: string, text: string): PptxSmartArtNode {
@@ -225,5 +226,72 @@ describe('measureSvgViewportRect', () => {
 				},
 			} as unknown as Element),
 		).toBeNull();
+	});
+});
+
+describe('projectSmartArtViewBoxRect', () => {
+	it('projects at the exact viewport scale', () => {
+		expect(
+			projectSmartArtViewBoxRect(
+				{ left: 50, top: 30, width: 100, height: 60 },
+				{ width: 400, height: 300 },
+				{ width: 800, height: 600 },
+			),
+		).toStrictEqual({ left: 100, top: 60, width: 200, height: 120 });
+	});
+
+	it('centres horizontal letterboxing with xMidYMid meet', () => {
+		expect(
+			projectSmartArtViewBoxRect(
+				{ left: 50, top: 100, width: 100, height: 50 },
+				{ width: 400, height: 400 },
+				{ width: 800, height: 400 },
+			),
+		).toStrictEqual({ left: 250, top: 100, width: 100, height: 50 });
+	});
+
+	it('centres vertical letterboxing with xMidYMid meet', () => {
+		expect(
+			projectSmartArtViewBoxRect(
+				{ left: 50, top: 20, width: 100, height: 40 },
+				{ width: 400, height: 200 },
+				{ width: 400, height: 400 },
+			),
+		).toStrictEqual({ left: 50, top: 120, width: 100, height: 40 });
+	});
+
+	it('rejects invalid source geometry or non-positive viewBox and viewport dimensions', () => {
+		const nodeRect = { left: 0, top: 0, width: 10, height: 10 };
+		const validViewBox = { width: 100, height: 100 };
+		const validViewport = { width: 200, height: 200 };
+		expect(
+			projectSmartArtViewBoxRect(
+				{ ...nodeRect, left: Number.POSITIVE_INFINITY },
+				validViewBox,
+				validViewport,
+			),
+		).toBeNull();
+		expect(
+			projectSmartArtViewBoxRect({ ...nodeRect, width: -1 }, validViewBox, validViewport),
+		).toBeNull();
+		expect(
+			projectSmartArtViewBoxRect(nodeRect, { width: 0, height: 100 }, validViewport),
+		).toBeNull();
+		expect(
+			projectSmartArtViewBoxRect(nodeRect, validViewBox, { width: 200, height: 0 }),
+		).toBeNull();
+		expect(
+			projectSmartArtViewBoxRect(nodeRect, validViewBox, { width: Number.NaN, height: 200 }),
+		).toBeNull();
+	});
+
+	it('preserves valid negative node coordinates', () => {
+		expect(
+			projectSmartArtViewBoxRect(
+				{ left: -10, top: -5, width: 20, height: 10 },
+				{ width: 400, height: 300 },
+				{ width: 800, height: 600 },
+			),
+		).toStrictEqual({ left: -20, top: -10, width: 40, height: 20 });
 	});
 });

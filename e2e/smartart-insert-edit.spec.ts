@@ -20,6 +20,9 @@ import { savePptxViaBackstage } from './save-pptx';
 import { loadDeck as loadDeckFile, resetTabSession } from './support/deck';
 
 const fixturePath = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)));
+const drawingFixturePath = resolve(
+	fileURLToPath(new URL('./fixtures/smartart-build-reveal.pptx', import.meta.url)),
+);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -561,6 +564,73 @@ test.describe('smartart insert and edit', () => {
 			.toBe('LineoneLinetwo');
 		await clickHistory(page, 'Undo');
 		await expect.poll(() => renderedNodeText(smartArt)).toBe(original);
+		expect(runtimeErrors).toStrictEqual([]);
+	});
+
+	test('edits a loaded drawing node through the SmartArt editor', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await loadDeckFile(page, drawingFixturePath);
+		const smartArt = currentSmartArt(page);
+		await expect(smartArt).toBeVisible();
+		const authoredText = await renderedNodeText(smartArt);
+		expect(authoredText).toBe('Alpha');
+		const diagramBox = await smartArt.boundingBox();
+		expect(diagramBox, 'SmartArt diagram should have a rendered box').not.toBeNull();
+
+		const point = await unobstructedNodePoint(firstSmartArtNode(smartArt));
+		await page.mouse.dblclick(point.x, point.y);
+		const editor = page.locator('[data-pptx-viewport] textarea:visible');
+		await expect(editor).toHaveCount(1);
+		// The generic element editor also mounts a textarea for this graphic frame,
+		// but it is empty. Requiring the authored node text proves this is the real
+		// SmartArt node editor before focus and typing assertions can pass.
+		await expect(editor).toHaveValue(authoredText);
+		await expect(editor).toBeFocused();
+		await page.keyboard.type('Edited drawing node');
+		await expect(editor).toHaveValue('Edited drawing node');
+
+		const editorBox = await editor.boundingBox();
+		expect(editorBox, 'SmartArt editor should have a rendered box').not.toBeNull();
+		await editor.click({
+			position: { x: Math.max(1, editorBox!.width * 0.75), y: editorBox!.height / 2 },
+		});
+		await expect(editor).toBeFocused();
+		await expect
+			.poll(async () => {
+				const current = await smartArt.boundingBox();
+				return current
+					? {
+							x: Math.round(current.x),
+							y: Math.round(current.y),
+							width: Math.round(current.width),
+							height: Math.round(current.height),
+						}
+					: null;
+			})
+			.toStrictEqual({
+				x: Math.round(diagramBox!.x),
+				y: Math.round(diagramBox!.y),
+				width: Math.round(diagramBox!.width),
+				height: Math.round(diagramBox!.height),
+			});
+
+		await page
+			.getByRole('toolbar', { name: 'Presentation toolbar' })
+			.getByRole('tab', { name: 'Home', exact: true })
+			.click();
+		await expect(editor).toHaveCount(0);
+		await expect.poll(() => renderedNodeText(smartArt)).toBe('Edited drawing node');
+
+		await clickHistory(page, 'Undo');
+		await expect.poll(() => renderedNodeText(smartArt)).toBe(authoredText);
+		await clickHistory(page, 'Redo');
+		await expect.poll(() => renderedNodeText(smartArt)).toBe('Edited drawing node');
+
+		const download = await savePptxViaBackstage(page);
+		const savedPath = await download.path();
+		expect(savedPath, 'the browser should retain the saved SmartArt deck').not.toBeNull();
+		await loadDeckFile(page, savedPath!);
+		await expect.poll(() => renderedNodeText(currentSmartArt(page))).toBe('Edited drawing node');
 		expect(runtimeErrors).toStrictEqual([]);
 	});
 });

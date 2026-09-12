@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.13.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.6) - 2026-09-12
+
+### Bug Fixes
+
+- **react:** Sync inspector table merge and split XML (by @Sudhansh6) ([71d8187](https://github.com/ChristopherVR/pptx-viewer/commit/71d8187e3391dfea09011fa3601dbbfea6aa8b9c))
+
 ## [2.13.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.5) - 2026-09-11
 
 ### Bug Fixes
