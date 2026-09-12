@@ -439,6 +439,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					...(endParaRPrRaw as Record<string, unknown>),
 				};
 			}
+			if (entries.length === 0) {
+				segments[firstSegmentIndex].paragraphInsertionStyle = withAuthoredSplit(
+					endParaRPrRaw && typeof endParaRPrRaw === 'object'
+						? this.extractTextRunStyle(
+								endParaRPrRaw as XmlObject,
+								paraAlign,
+								ctx.slideRelationshipMap,
+							)
+						: {},
+				);
+			}
 			// #69: capture this paragraph's own pPr geometry so per-paragraph
 			// alignment / spacing / margins / indent / tabs round-trip instead
 			// of being flattened to one shape-level pPr on save.

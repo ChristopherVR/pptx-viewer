@@ -50,7 +50,7 @@ const LEVEL_PPR_CHILD_ORDER = [
 ] as const;
 
 /** CT_TextCharacterProperties child order (only the fill-choice group needs mutual exclusion here). */
-const DEF_RPR_CHILD_ORDER = [
+export const DEF_RPR_CHILD_ORDER = [
 	'a:ln',
 	'a:noFill',
 	'a:solidFill',

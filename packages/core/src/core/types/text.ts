@@ -820,6 +820,12 @@ export interface TextSegment {
 	 */
 	endParaRunProperties?: Record<string, unknown>;
 	/**
+	 * Resolved body defaults and optional `a:endParaRPr` of a runless paragraph.
+	 * Carried on its first segment (or terminator), separately from marker
+	 * styling. Absent when the source contains an authored run or field.
+	 */
+	paragraphInsertionStyle?: TextStyle;
+	/**
 	 * Per-paragraph properties (alignment, spacing, margins, indent, tab stops,
 	 * rtl) authored on this paragraph's own `a:pPr` (#69). Only meaningful on
 	 * the first segment of a paragraph. When present, the writer emits these

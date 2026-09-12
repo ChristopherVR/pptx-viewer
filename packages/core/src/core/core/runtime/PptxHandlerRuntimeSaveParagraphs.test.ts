@@ -54,6 +54,105 @@ describe('createParagraphsFromTextContent: paragraph direction is not flattened 
 	const segment = (text: string, style?: TextStyle): TextSegment =>
 		({ text, style }) as TextSegment;
 
+	it('retains an empty trailing metadata carrier without authoring a body run', () => {
+		const paragraphs = runtime.build('Before\n', undefined, [
+			segment('Before'),
+			segment('\n'),
+			{
+				text: '',
+				style: {},
+				paragraphInsertionStyle: { fontSize: 40 },
+				endParaRunProperties: { '@_sz': '3000' },
+			},
+		]);
+		expect(paragraphs).toHaveLength(2);
+		expect(paragraphs[1]['a:r']).toBeUndefined();
+		expect(paragraphs[1]['a:endParaRPr']).toStrictEqual({ '@_sz': '3000' });
+	});
+
+	it('keeps a flagged empty-text paragraph break after collaboration decoding', () => {
+		const paragraphs = runtime.build('Before\n\nAfter', undefined, [
+			segment('Before'),
+			{ text: '', style: {}, isParagraphBreak: true },
+			{
+				text: '',
+				style: {},
+				isParagraphBreak: true,
+				paragraphInsertionStyle: { fontSize: 40 },
+				endParaRunProperties: { '@_sz': '3000' },
+			},
+			segment('After'),
+		]);
+		expect(paragraphs).toHaveLength(3);
+		expect(paragraphs[1]['a:r']).toBeUndefined();
+		expect(paragraphs[1]['a:endParaRPr']).toStrictEqual({ '@_sz': '3000' });
+	});
+
+	it('never discards nonempty body text with an accidentally retained insertion hint', () => {
+		const [paragraph] = runtime.build('Body', undefined, [
+			{ text: 'Body', style: {}, paragraphInsertionStyle: { fontSize: 40 } },
+		]);
+		expect(JSON.stringify(paragraph)).toContain('Body');
+	});
+
+	it('merges only changed insertion properties and preserves unknown end children', () => {
+		const raw: XmlObject = {
+			'@_sz': '3000',
+			'@_b': '1',
+			'@_kern': '1200',
+			'a:gradFill': { 'a:gsLst': {} },
+			'a:latin': { '@_typeface': '+mj-lt' },
+			'a:extLst': { 'a:ext': { '@_uri': 'preserved' } },
+		};
+		const inherited = { fontFamily: 'Calibri', color: '#000000', bold: true };
+		const authored = { fontSize: 40, fontFamily: 'Calibri' };
+		const hint = {
+			...inherited,
+			...authored,
+			authoredRunStyle: authored,
+			inheritedRunStyle: inherited,
+		};
+		const carrier: TextSegment = {
+			text: '',
+			style: {},
+			endParaRunProperties: raw,
+			paragraphInsertionStyle: hint,
+		};
+		expect(runtime.build('', undefined, [carrier])[0]['a:endParaRPr']).toStrictEqual(raw);
+		const [paragraph] = runtime.build('', undefined, [
+			{
+				...carrier,
+				paragraphInsertionStyle: { ...hint, fontSize: 24, bold: false, color: '#FF0000' },
+			},
+		]);
+		const end = paragraph['a:endParaRPr'] as XmlObject;
+		expect(end['@_sz']).toBe('1800');
+		expect(end['@_b']).toBe('0');
+		expect(end['@_kern']).toBe('1200');
+		expect(end['a:latin']).toStrictEqual(raw['a:latin']);
+		expect(end['a:extLst']).toStrictEqual(raw['a:extLst']);
+		expect(end['a:gradFill']).toBeUndefined();
+		expect(Object.keys(end).indexOf('a:solidFill')).toBeLessThan(
+			Object.keys(end).indexOf('a:latin'),
+		);
+	});
+
+	it('does not suppress an empty field with a stale insertion hint', () => {
+		const [paragraph] = runtime.build('', undefined, [
+			{ text: '', style: {}, fieldType: 'slidenum', paragraphInsertionStyle: { fontSize: 40 } },
+		]);
+		expect(JSON.stringify(paragraph)).toContain('slidenum');
+	});
+
+	it('omits an empty picture marker but retains an authored empty picture-list body run', () => {
+		const [paragraph] = runtime.build('', undefined, [
+			{ text: '', style: { fontSize: 18 }, bulletInfo: { imageRelId: 'rId7' } },
+			{ text: '', style: { fontSize: 22 } },
+		]);
+		expect(runProperties(paragraph)).toHaveLength(1);
+		expect(runProperties(paragraph)[0]['@_sz']).toBe('1650');
+	});
+
 	it('writes an element-level rtl as a:pPr/@rtl only', () => {
 		const [paragraph] = runtime.build('مرحبا', { rtl: true } as TextStyle, [segment('مرحبا')]);
 		expect((paragraph['a:pPr'] as XmlObject)['@_rtl']).toBe('1');
