@@ -1,5 +1,10 @@
 // @vitest-environment happy-dom
-import type { TextSegment, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import {
+	applyListStyleUpdate,
+	buildParagraphs,
+	selectedParagraphBulletKind,
+} from 'pptx-viewer-shared';
 import { describe, it, expect } from 'vitest';
 
 import { applyStyleToSelectedSegments, getInlineEditorSelection } from './inline-selection-utils';
@@ -12,6 +17,137 @@ function seg(text: string, style: Partial<TextStyle> = {}): TextSegment {
 function paraBrk(style: Partial<TextStyle> = {}): TextSegment {
 	return { text: '\n', style: style as TextStyle, isParagraphBreak: true };
 }
+
+describe('paragraph lists with an inline character selection', () => {
+	const element = (textSegments: TextSegment[]): PptxElement => ({
+		type: 'text',
+		id: 'list',
+		x: 0,
+		y: 0,
+		width: 200,
+		height: 100,
+		textSegments,
+		textStyle: { fontSize: 18 },
+	});
+
+	it('changes only the selected paragraph and keeps its selected characters', () => {
+		const source = element([seg('AAA'), paraBrk(), seg('BBB'), paraBrk(), seg('CCC')]);
+		const result = applyListStyleUpdate(
+			source,
+			{ listType: 'bullet' },
+			{
+				startSegIdx: 2,
+				startOffset: 1,
+				endSegIdx: 2,
+				endOffset: 2,
+			},
+		);
+		const next = { ...source, ...result.patch } as PptxElement;
+		expect(buildParagraphs(next).map((paragraph) => paragraph.bulletMarker)).toStrictEqual([
+			undefined,
+			'•',
+			undefined,
+		]);
+		expect(result.selection).toStrictEqual({
+			startSegIdx: 3,
+			startOffset: 1,
+			endSegIdx: 3,
+			endOffset: 2,
+		});
+		expect(selectedParagraphBulletKind(next, result.selection)).toBe('bullet');
+		const off = applyListStyleUpdate(next, { listType: 'none' }, result.selection);
+		expect(off.selection).toStrictEqual({
+			startSegIdx: 2,
+			startOffset: 1,
+			endSegIdx: 2,
+			endOffset: 2,
+		});
+	});
+
+	it('does not include the next paragraph when selection ends at its start', () => {
+		const source = element([seg('AAA'), paraBrk(), seg('BBB'), paraBrk(), seg('CCC')]);
+		const result = applyListStyleUpdate(
+			source,
+			{ listType: 'numbered' },
+			{
+				startSegIdx: 0,
+				startOffset: 1,
+				endSegIdx: 4,
+				endOffset: 0,
+			},
+		);
+		expect(
+			buildParagraphs({ ...source, ...result.patch } as PptxElement).map(
+				(paragraph) => paragraph.bulletMarker,
+			),
+		).toStrictEqual(['1.', '2.', undefined]);
+	});
+
+	it('includes a selected separator-only blank paragraph before the end boundary', () => {
+		const source = element([seg('A'), paraBrk(), paraBrk(), seg('C')]);
+		const result = applyListStyleUpdate(
+			source,
+			{ listType: 'bullet' },
+			{
+				startSegIdx: 0,
+				startOffset: 0,
+				endSegIdx: 3,
+				endOffset: 0,
+			},
+		);
+		const segments = result.patch.textSegments as TextSegment[];
+		const paragraphs: TextSegment[][] = [[]];
+		for (const segment of segments) {
+			if (segment.isParagraphBreak) {
+				paragraphs.push([]);
+			} else {
+				paragraphs[paragraphs.length - 1].push(segment);
+			}
+		}
+		expect(paragraphs.map((paragraph) => paragraph[0]?.bulletInfo?.char)).toStrictEqual([
+			'•',
+			'•',
+			undefined,
+		]);
+	});
+
+	it('retains paragraph spacing while accompanying bold affects only selected characters', () => {
+		const source = element([
+			{
+				...seg('Hello'),
+				paragraphProperties: { paragraphSpacingBefore: 6, paragraphSpacingAfter: 12 },
+				paragraphLevel: 1,
+			},
+		]);
+		const result = applyListStyleUpdate(
+			source,
+			{ listType: 'bullet', bold: true },
+			{
+				startSegIdx: 0,
+				startOffset: 1,
+				endSegIdx: 0,
+				endOffset: 4,
+			},
+		);
+		const segments = (result.patch as { textSegments: TextSegment[] }).textSegments;
+		expect(segments[0].paragraphProperties).toStrictEqual({
+			paragraphSpacingBefore: 6,
+			paragraphSpacingAfter: 12,
+		});
+		expect(segments[0].paragraphLevel).toBe(1);
+		expect(segments.slice(1).map((run) => [run.text, Boolean(run.style.bold)])).toStrictEqual([
+			['H', false],
+			['ell', true],
+			['o', false],
+		]);
+		expect(result.selection).toStrictEqual({
+			startSegIdx: 2,
+			startOffset: 0,
+			endSegIdx: 2,
+			endOffset: 3,
+		});
+	});
+});
 
 describe('applyStyleToSelectedSegments', () => {
 	it('should apply style to a single fully-selected segment', () => {
