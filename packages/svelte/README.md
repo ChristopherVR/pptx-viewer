@@ -95,7 +95,7 @@ import 'pptx-svelte-viewer/styles';
 Omission preserves 24 px padding on each side and unlimited fit enlargement.
 Custom state hosts can supply live `getFitPadding` / `getMaxFitScale` getters to
 `createViewerState`. These options do not change document geometry, user zoom,
-or fullscreen fitting. See the [cross-binding defaults](../../README.md#fitting-a-slide-into-a-custom-host).
+or fullscreen fitting. See the [cross-binding defaults](../../docs/guide/viewport-fit.md).
 
 ## Props
 

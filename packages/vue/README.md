@@ -172,7 +172,7 @@ async function save() {
 Omission preserves 8 px horizontal / 16 px vertical padding and a ceiling of 1.
 The same props are available on `SlideCanvas`. Rulers reserve their existing
 space separately. These options do not change document geometry or user zoom.
-See the [cross-binding defaults](../../README.md#fitting-a-slide-into-a-custom-host).
+See the [cross-binding defaults](../../docs/guide/viewport-fit.md).
 
 ## API
 

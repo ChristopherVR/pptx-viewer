@@ -178,7 +178,7 @@ const canvas = await renderToCanvas(element, options); // => HTMLCanvasElement
 `maxFitScale` accepts a positive ceiling or `null` for unlimited enlargement.
 Omission preserves React's 4 px horizontal / 16 px vertical padding and fit
 ceiling of 1. These host options do not change the document or user zoom; ruler
-space and surrounding chrome remain separate. See the [cross-binding defaults](../../README.md#fitting-a-slide-into-a-custom-host).
+space and surrounding chrome remain separate. See the [cross-binding defaults](../../docs/guide/viewport-fit.md).
 
 ### Composing a custom viewer shell
 

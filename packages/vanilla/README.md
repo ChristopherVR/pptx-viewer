@@ -87,7 +87,7 @@ Omission preserves the existing 16 px fit allowance on each side, unlimited
 enlargement, and mobile CSS padding. Explicit padding also sets the viewport's
 physical CSS padding. Configure these options when creating the viewer; they
 do not change document geometry, user zoom, or presentation-mode fitting.
-See the [cross-binding defaults](../../README.md#fitting-a-slide-into-a-custom-host).
+See the [cross-binding defaults](../../docs/guide/viewport-fit.md).
 
 ## Options
 
