@@ -10,6 +10,56 @@ dated sections beneath it are generated from
 
 ## 2026-09-13
 
+_Releases: pptx-viewer-core@3.14.6, pptx-react-viewer@3.17.0, pptx-vue-viewer@3.17.0, pptx-angular-viewer@3.17.0, pptx-vanilla-viewer@2.17.0, pptx-svelte-viewer@3.18.0, @christophervr/pptx-viewer@2.14.0_
+
+### Features
+
+- **shared:** Add configurable viewport fit options (by @Sudhansh6) ([93e3218](https://github.com/ChristopherVR/pptx-viewer/commit/93e3218de54ce8d153761e2fba83f3558fc3051b))
+- **react:** Add configurable viewport fit options (by @Sudhansh6) ([358a18e](https://github.com/ChristopherVR/pptx-viewer/commit/358a18ea3bddc36dcc51d3224049a1ad434bbcaf))
+- **vue:** Add configurable viewport fit options (by @Sudhansh6) ([5b3bdac](https://github.com/ChristopherVR/pptx-viewer/commit/5b3bdace56a56b10bf0175179f28fb2c3f9ee9d8))
+- **angular:** Add configurable viewport fit options (by @Sudhansh6) ([0125890](https://github.com/ChristopherVR/pptx-viewer/commit/0125890e03830e291b7c00978c2989ad31218f52))
+- **svelte:** Add configurable viewport fit options (by @Sudhansh6) ([ca86364](https://github.com/ChristopherVR/pptx-viewer/commit/ca86364ea1e047eed2880b14f46f1cfc7a1a2e42))
+- **vanilla:** Add configurable viewport fit options (by @Sudhansh6) ([b29ca1a](https://github.com/ChristopherVR/pptx-viewer/commit/b29ca1a8c4fe5a3d55dbf17225002c9735c112f9))
+- **shared:** Expose public element insertion across viewers (by @Sudhansh6) ([2701047](https://github.com/ChristopherVR/pptx-viewer/commit/2701047d5011b5d7ce8408009addc1dc31f6e3f7))
+
+### Bug Fixes
+
+- **core:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([121f6bf](https://github.com/ChristopherVR/pptx-viewer/commit/121f6bf9f64a29ab07e07b5d4f042a4b075d7876))
+- **shared:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([b34d0f5](https://github.com/ChristopherVR/pptx-viewer/commit/b34d0f5ab9879e02f1de85c0e50b15f3947735c3))
+- **react:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([2539f01](https://github.com/ChristopherVR/pptx-viewer/commit/2539f015beb19d2fc71c302216fc184a9452f60b))
+- **vue:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([4a82f35](https://github.com/ChristopherVR/pptx-viewer/commit/4a82f35e14e66cb0e48c7780f3355fa8aca4b4c2))
+- **angular:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([28e4eb2](https://github.com/ChristopherVR/pptx-viewer/commit/28e4eb234641113fd82088c2c3cf9f9a34f03cdb))
+- **svelte:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([256a707](https://github.com/ChristopherVR/pptx-viewer/commit/256a707679d9d583ac64cd51f76f4247e36cb010))
+- **vanilla:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([9fea926](https://github.com/ChristopherVR/pptx-viewer/commit/9fea926b0a36a08692cedee6708f1c7add012406))
+- **vue,angular:** Honor public edit and preview mode switches (by @Sudhansh6) ([97b1e7b](https://github.com/ChristopherVR/pptx-viewer/commit/97b1e7b494d793fae1069583a7db1aa385550329))
+- **svelte:** Preserve unsaved state when notifying content changes (by @Sudhansh6) ([23dfbc7](https://github.com/ChristopherVR/pptx-viewer/commit/23dfbc707b40add5fed17efab2fe4441e837523d))
+- **vanilla:** Preserve split paragraph boundaries through native undo (by @Sudhansh6) ([9d7ba3d](https://github.com/ChristopherVR/pptx-viewer/commit/9d7ba3de8347180ab26d73ca86a5f0a48353a803))
+- **shared:** Continue inserted paragraphs from the local list (by @Sudhansh6) ([78b8226](https://github.com/ChristopherVR/pptx-viewer/commit/78b82261a320b93052627ec9e6e460c4845f6f32))
+- **shared:** Leave empty clipboard paste shortcuts unclaimed (by @Sudhansh6) ([aec446f](https://github.com/ChristopherVR/pptx-viewer/commit/aec446f7f36371ad2f9c1cf3e68b7aaeb4f2cc28))
+
+### Other
+
+- Retain empty paragraph styles with source alignment (by @Sudhansh6) ([d979cd2](https://github.com/ChristopherVR/pptx-viewer/commit/d979cd25b7c05cef0fc4d4501c39d2bb11e572e0))
+- Integrate semantic list commands with empty paragraph formatting (by @Sudhansh6) ([c5d9a6f](https://github.com/ChristopherVR/pptx-viewer/commit/c5d9a6f4f52c44180111c1f5fca0f10299dce47a))
+- Sync main font and SmartArt fixes (by @Sudhansh6) ([f2066eb](https://github.com/ChristopherVR/pptx-viewer/commit/f2066eb87b62884cadd77593e8b36426398c3312))
+- Sync main paragraph and history fixes (by @Sudhansh6) ([a18a2d7](https://github.com/ChristopherVR/pptx-viewer/commit/a18a2d7fe2bccf7d8c49b72d7a80087d423d1da0))
+- Sync viewport fit changes from main (by @Sudhansh6) ([3c3c0bd](https://github.com/ChristopherVR/pptx-viewer/commit/3c3c0bdb2f88648dd20ffac9b6fd5a691741253d))
+- Sync public insertion with viewport fit API (by @Sudhansh6) ([47df3db](https://github.com/ChristopherVR/pptx-viewer/commit/47df3db6bb7bb6bbee06e36c9ff9565b2fc61252))
+- Sync public insertion with empty paragraph formatting (by @Sudhansh6) ([d1ad9c9](https://github.com/ChristopherVR/pptx-viewer/commit/d1ad9c9562313085cab62f3b9f9fa0abc6d0fa1f))
+- Integrate preview and save-state fixes into insertion (by @Sudhansh6) ([1c33fb5](https://github.com/ChristopherVR/pptx-viewer/commit/1c33fb571634306e6dd989291185313e3cdafb49))
+
+### Documentation
+
+- Explain cross-binding viewport fit defaults (by @Sudhansh6) ([6b3c0d4](https://github.com/ChristopherVR/pptx-viewer/commit/6b3c0d4fe04d26981d38e3da3a048229639d1cf6))
+- Move viewport fitting into developer guides (by @Sudhansh6) ([60707eb](https://github.com/ChristopherVR/pptx-viewer/commit/60707ebf8f261779b2ebfa41ff0741267a672bd3))
+
+### Testing
+
+- **e2e:** Preserve slide geometry when the host resizes (by @Sudhansh6) ([c3c31fb](https://github.com/ChristopherVR/pptx-viewer/commit/c3c31fbb13d8c45e1da09ed58d489c880f129345))
+- **shared:** Cover middle list insertion across viewers (by @Sudhansh6) ([628f0de](https://github.com/ChristopherVR/pptx-viewer/commit/628f0dec3e4778f5485ea8a100a09fcabdbbcf8b))
+
+## 2026-09-13
+
 _Releases: pptx-viewer-core@3.14.5, pptx-react-viewer@3.16.7, pptx-vue-viewer@3.16.7, pptx-angular-viewer@3.16.7, pptx-vanilla-viewer@2.16.7, pptx-svelte-viewer@3.17.7, @christophervr/pptx-viewer@2.13.8_
 
 ### Bug Fixes

@@ -7,6 +7,20 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.14.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.6) - 2026-09-13
+
+### Bug Fixes
+
+- **core:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([121f6bf](https://github.com/ChristopherVR/pptx-viewer/commit/121f6bf9f64a29ab07e07b5d4f042a4b075d7876))
+
+### Other
+
+- Retain empty paragraph styles with source alignment (by @Sudhansh6) ([d979cd2](https://github.com/ChristopherVR/pptx-viewer/commit/d979cd25b7c05cef0fc4d4501c39d2bb11e572e0))
+- Integrate semantic list commands with empty paragraph formatting (by @Sudhansh6) ([c5d9a6f](https://github.com/ChristopherVR/pptx-viewer/commit/c5d9a6f4f52c44180111c1f5fca0f10299dce47a))
+- Sync main font and SmartArt fixes (by @Sudhansh6) ([f2066eb](https://github.com/ChristopherVR/pptx-viewer/commit/f2066eb87b62884cadd77593e8b36426398c3312))
+- Sync main paragraph and history fixes (by @Sudhansh6) ([a18a2d7](https://github.com/ChristopherVR/pptx-viewer/commit/a18a2d7fe2bccf7d8c49b72d7a80087d423d1da0))
+- Sync public insertion with empty paragraph formatting (by @Sudhansh6) ([d1ad9c9](https://github.com/ChristopherVR/pptx-viewer/commit/d1ad9c9562313085cab62f3b9f9fa0abc6d0fa1f))
+
 ## [3.14.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.5) - 2026-09-13
 
 ### Bug Fixes

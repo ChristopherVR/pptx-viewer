@@ -7,6 +7,32 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.14.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.14.0) - 2026-09-13
+
+### Features
+
+- **react:** Add configurable viewport fit options (by @Sudhansh6) ([358a18e](https://github.com/ChristopherVR/pptx-viewer/commit/358a18ea3bddc36dcc51d3224049a1ad434bbcaf))
+- **shared:** Expose public element insertion across viewers (by @Sudhansh6) ([2701047](https://github.com/ChristopherVR/pptx-viewer/commit/2701047d5011b5d7ce8408009addc1dc31f6e3f7))
+
+### Bug Fixes
+
+- **react:** Preserve empty paragraph insertion formatting (by @Sudhansh6) ([2539f01](https://github.com/ChristopherVR/pptx-viewer/commit/2539f015beb19d2fc71c302216fc184a9452f60b))
+- **shared:** Leave empty clipboard paste shortcuts unclaimed (by @Sudhansh6) ([aec446f](https://github.com/ChristopherVR/pptx-viewer/commit/aec446f7f36371ad2f9c1cf3e68b7aaeb4f2cc28))
+
+### Other
+
+- Retain empty paragraph styles with source alignment (by @Sudhansh6) ([d979cd2](https://github.com/ChristopherVR/pptx-viewer/commit/d979cd25b7c05cef0fc4d4501c39d2bb11e572e0))
+- Integrate semantic list commands with empty paragraph formatting (by @Sudhansh6) ([c5d9a6f](https://github.com/ChristopherVR/pptx-viewer/commit/c5d9a6f4f52c44180111c1f5fca0f10299dce47a))
+- Sync main font and SmartArt fixes (by @Sudhansh6) ([f2066eb](https://github.com/ChristopherVR/pptx-viewer/commit/f2066eb87b62884cadd77593e8b36426398c3312))
+- Sync main paragraph and history fixes (by @Sudhansh6) ([a18a2d7](https://github.com/ChristopherVR/pptx-viewer/commit/a18a2d7fe2bccf7d8c49b72d7a80087d423d1da0))
+- Sync viewport fit changes from main (by @Sudhansh6) ([3c3c0bd](https://github.com/ChristopherVR/pptx-viewer/commit/3c3c0bdb2f88648dd20ffac9b6fd5a691741253d))
+- Sync public insertion with viewport fit API (by @Sudhansh6) ([47df3db](https://github.com/ChristopherVR/pptx-viewer/commit/47df3db6bb7bb6bbee06e36c9ff9565b2fc61252))
+- Sync public insertion with empty paragraph formatting (by @Sudhansh6) ([d1ad9c9](https://github.com/ChristopherVR/pptx-viewer/commit/d1ad9c9562313085cab62f3b9f9fa0abc6d0fa1f))
+
+### Documentation
+
+- Move viewport fitting into developer guides (by @Sudhansh6) ([60707eb](https://github.com/ChristopherVR/pptx-viewer/commit/60707ebf8f261779b2ebfa41ff0741267a672bd3))
+
 ## [2.13.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.8) - 2026-09-13
 
 ### Bug Fixes
