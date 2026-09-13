@@ -1489,6 +1489,8 @@ export * from './editor-gestures';
 export * from './inline-text-extract';
 // No-op detection plus rich-run preservation for committed inline text.
 export * from './inline-text-commit';
+export * from './inline-list-save';
+export * from './inline-list-style';
 
 // inspector option lists (wave 2)
 // Stroke/dash pattern picker: the 12 ST_PresetLineDashVal values.
@@ -1580,3 +1582,34 @@ export * from './foreign-object-font-embed';
 export * from './foreign-object-image-embed';
 export * from './foreign-object-svg-document';
 export * from './viewport-fit';
+export type {
+	InlineTextEditSnapshot,
+	InlineListSeed,
+	InlineListParagraph,
+	InlineListRun,
+	InlineListReadResult,
+	InlineListParagraphFormat,
+} from './inline-list-types';
+export {
+	createInlineListSeed,
+	bindInlineListParagraph,
+	bindInlineListRun,
+	registerInlineListParagraphFormat,
+	registerInlineListRunStyle,
+} from './inline-list-seed';
+export { readInlineListSnapshot } from './inline-list-snapshot';
+export { reconcileInlineListSnapshot } from './inline-list-reconcile';
+export { attachInlineListController } from './inline-list-controller';
+export { getActiveInlineListSelection } from './inline-list-controller';
+export { applyActiveInlineListFormatting } from './inline-list-controller';
+export { inlineListBodyText } from './inline-list-body';
+export { readListActivationSelection } from './inline-list-activation';
+export { withInlineListDecorationDefaults } from './inline-list-decoration';
+export { createInlineListModelObserver } from './inline-list-model';
+export type { InlineListModelChange } from './inline-list-model';
+export { transformInlineListCase } from './inline-list-case';
+export { initializeInlineListDom } from './inline-list-dom';
+export type { InlineListController, InlineListControllerOptions } from './inline-list-controller';
+export { readInlineListSelection, restoreInlineListBodySelection } from './inline-list-selection';
+export type { InlineListSelectionResult } from './inline-list-selection';
+export { reconcileInlineListFormatting } from './inline-list-format';

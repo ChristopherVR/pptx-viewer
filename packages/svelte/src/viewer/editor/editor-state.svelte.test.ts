@@ -1,12 +1,18 @@
+import JSZip from 'jszip';
 import type {
 	PptxElement,
 	PptxHandoutMaster,
-	PptxHandler,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
-import { buildParagraphs } from 'pptx-viewer-shared';
+import { createTextElement, PptxHandler } from 'pptx-viewer-core';
+import {
+	attachInlineListController,
+	createInlineListSeed,
+	initializeInlineListDom,
+	buildParagraphs,
+} from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -57,6 +63,53 @@ function make(
 }
 
 describe('editorState selection + geometry', () => {
+	it('uses the current list snapshot for formatting and cancels it before a body rewrite', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+		editor.select('e1');
+		const snapshot = {
+			elementId: 'e1',
+			text: 'Typed',
+			textSegments: [{ text: 'Typed', style: { bold: true }, bulletInfo: { char: '◆' } }],
+		};
+		const read = { kind: 'supported' as const, snapshot, paragraphs: [] };
+		const format = vi.fn(() => read);
+		editor.inlineListController = {
+			read: () => read,
+			format,
+		} as unknown as import('pptx-viewer-shared').InlineListController;
+		const cancel = vi.fn();
+		editor.cancelInlineListEdit = cancel;
+		editor.patchSelected((current) => {
+			expect('text' in current && current.text).toBe('Typed');
+			return { textStyle: { fontSize: 32 } };
+		});
+		expect(format).toHaveBeenCalledWith(
+			expect.objectContaining({
+				text: 'Typed',
+				textSegments: [
+					expect.objectContaining({ style: expect.objectContaining({ bold: true, fontSize: 32 }) }),
+				],
+			}),
+		);
+		editor.patchSelected({ textSegments: [{ text: 'TYPED', style: {} }] });
+		expect(editor.cancelInlineListEdit).toHaveBeenCalledOnce();
+		expect('text' in editor.selectedElement! && editor.selectedElement.text).toBe('TYPED');
+	});
+
+	it('rejects unsupported list formatting without running the builder or recording history', () => {
+		const { editor } = make();
+		editor.setSlides([slide('a', [shape('e1')])]);
+		editor.select('e1');
+		editor.inlineListController = {
+			read: () => ({ kind: 'unsupported', text: 'draft', reason: 'composition' }),
+		} as unknown as import('pptx-viewer-shared').InlineListController;
+		const build = vi.fn(() => ({ textStyle: { bold: true } }));
+		editor.patchSelected(build);
+		expect(build).not.toHaveBeenCalled();
+		expect(editor.canUndo).toBeFalsy();
+	});
+
 	it('exposes element insertion on the public deck API', () => {
 		expect(createDeckApi({} as DeckApiDeps).addElement).toBeTypeOf('function');
 	});
@@ -501,6 +554,43 @@ describe('editorState format / insert / z-order operations', () => {
 });
 
 describe('editorState save', () => {
+	it('saves a current pending rich list snapshot without committing model text or history', async () => {
+		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+		const element = createTextElement('First');
+		element.textSegments = [{ text: 'First', style: { bold: true }, bulletInfo: { char: '◆' } }];
+		data.slides[0].elements = [element];
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => handler });
+		editor.setSlides(data.slides);
+		const root = document.createElement('div');
+		document.body.append(root);
+		const seed = createInlineListSeed(element)!;
+		initializeInlineListDom(root, seed);
+		const controller = attachInlineListController(root, seed);
+		try {
+			const next = root.firstElementChild!.cloneNode(true) as HTMLElement;
+			next.firstElementChild!.textContent = 'Draft';
+			root.append(next);
+			editor.readPendingInlineTextEdit = () => {
+				const read = controller.read();
+				return read.kind === 'supported'
+					? { target: { slideId: data.slides[0].id }, snapshot: read.snapshot }
+					: undefined;
+			};
+			const zip = await JSZip.loadAsync(await editor.save());
+			const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+			expect(xml).toContain('<a:t>Draft</a:t>');
+			expect(xml).toContain('char="◆"');
+			expect(xml).not.toContain('<a:t>◆');
+			expect(editor.slides[0].elements[0]).toStrictEqual(element);
+			expect(root.children).toHaveLength(2);
+			expect(editor.canUndo).toBeFalsy();
+		} finally {
+			controller.dispose();
+			root.remove();
+			handler.dispose();
+		}
+	});
+
 	it('serializes the current slides via the handler and clears dirty', async () => {
 		const { editor, save } = make();
 		editor.setSlides([slide('a', [shape('e1')])]);

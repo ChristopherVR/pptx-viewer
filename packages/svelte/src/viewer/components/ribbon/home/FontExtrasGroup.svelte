@@ -6,7 +6,6 @@
 	 * spacing, and swatch-grid font-colour / highlight-colour pickers. Split
 	 * out so no single file needs to own every font control (300-LOC budget).
 	 */
-	import type { PptxElement } from 'pptx-viewer-core';
 	import { hasTextProperties } from 'pptx-viewer-core';
 	import {
 		buildFontCatalog,
@@ -14,6 +13,7 @@
 		CHARACTER_SPACING_OPTIONS,
 		resolveDefaultFontFamily,
 		textColorOf,
+		transformInlineListCase,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
@@ -87,7 +87,7 @@
 	);
 	const highlight = $derived(el ? highlightColorOf(el) || '#ffff00' : '#ffff00');
 
-	function apply(patch: Partial<PptxElement>): void {
+	function apply(patch: Parameters<EditorState['patchSelected']>[0]): void {
 		editor.patchSelected(patch);
 	}
 </script>
@@ -101,7 +101,7 @@
 		aria-label={t('pptx.ribbon.fontFamily')}
 		title={t('pptx.ribbon.fontFamily')}
 		value={fontFamily}
-		onchange={(e) => el && apply(setFontFamilyPatch(el, e.currentTarget.value))}
+		onchange={(e) => el && apply((current) => setFontFamilyPatch(current, e.currentTarget.value))}
 	>
 		{#each fontGroups as group (group.id)}
 			<optgroup label={t(group.labelKey)}>
@@ -124,7 +124,7 @@
 		aria-pressed={strikethrough}
 		aria-label={t('pptx.textPanel.strikethrough')}
 		title={t('pptx.textPanel.strikethrough')}
-		onclick={() => el && apply(toggleStrikethroughPatch(el))}
+		onclick={() => el && apply((current) => toggleStrikethroughPatch(current))}
 	>
 		<span style="text-decoration: line-through">S</span>
 	</button>
@@ -135,7 +135,7 @@
 		disabled={!active}
 		aria-label={t('pptx.text.clearFormatting')}
 		title={t('pptx.text.clearFormatting')}
-		onclick={() => el && apply(clearFormattingPatch(el))}
+		onclick={() => el && apply((current) => clearFormattingPatch(current))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h7l3 3-7 7-3-3z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><path d="M3 13h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
@@ -162,7 +162,11 @@
 						role="menuitem"
 						onclick={() => {
 							if (el) {
-								apply(changeCasePatch(el, option.value));
+								apply((current, snapshot) => {
+									if (!snapshot) return changeCasePatch(current, option.value);
+									const { text, textSegments } = transformInlineListCase(snapshot, null, option.value);
+									return { text, textSegments };
+								});
 							}
 							openMenu = null;
 						}}
@@ -194,7 +198,7 @@
 						role="menuitem"
 						onclick={() => {
 							if (el) {
-								apply(setCharacterSpacingPatch(el, Number(option.value)));
+								apply((current) => setCharacterSpacingPatch(current, Number(option.value)));
 							}
 							openMenu = null;
 						}}
@@ -215,13 +219,13 @@
 		currentRef={textColorRef}
 		onselect={(hex) => {
 			if (el) {
-				apply(setTextColorPatch(el, hex));
+				apply((current) => setTextColorPatch(current, hex));
 			}
 			editor.recordRecentColor(hex);
 		}}
 		onselectTheme={(commit) => {
 			if (el) {
-				apply(setTextColorPatch(el, commit.hex, commit.ref));
+				apply((current) => setTextColorPatch(current, commit.hex, commit.ref));
 			}
 			editor.recordRecentColor(commit.hex);
 		}}
@@ -234,7 +238,7 @@
 		swatches={['#ffff00', '#00ff00', '#00ffff', '#ff00ff', '#0000ff', '#ff0000', '#000080', '#008080', '#008000', '#800080']}
 		onselect={(hex) => {
 			if (el) {
-				apply(setHighlightColorPatch(el, hex));
+				apply((current) => setHighlightColorPatch(current, hex));
 			}
 			editor.recordRecentColor(hex);
 		}}

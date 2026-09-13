@@ -6,10 +6,13 @@ import type {
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
+	TextStyle,
 } from 'pptx-viewer-core';
 
 import type {
 	CanvasSize,
+	InlineListController,
+	InlineTextEditSnapshot,
 	MasterViewDocument,
 	MasterViewTarget,
 	MasterViewWrite,
@@ -21,6 +24,8 @@ import {
 	masterViewPseudoSlide,
 	updateMasterViewElement,
 } from '../internal/shared';
+import { InlineListSession } from './inline-list-session';
+import { formatInlineListStyle } from './ribbon-text-helpers';
 import { SlideCanvasComponent } from './slide-canvas.component';
 
 /** Editable Angular canvas for slide, notes, and handout master parts. */
@@ -51,6 +56,9 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 					(rotateUpdate)="updateTransform({ id: $event.id, box: { rotation: $event.rotation } })"
 					(textEditStart)="editingId.set($event.id)"
 					(textCommit)="commitText($event)"
+					(textInput)="receiveInlineSnapshot($event)"
+					(listSession)="receiveListSession($event)"
+					(textFormat)="formatText($event)"
 					(textCancel)="editingId.set(null)"
 				/>
 			} @else {
@@ -100,6 +108,56 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 	],
 })
 export class MasterViewCanvasComponent {
+	private inlineSnapshot?: InlineTextEditSnapshot;
+	private readonly listSession = new InlineListSession(
+		() => this.pseudoSlide()?.elements.find((element) => element.id === this.editingId()),
+		() => {
+			this.inlineSnapshot = undefined;
+			this.editingId.set(null);
+		},
+	);
+	protected receiveListSession(event: { controller: InlineListController; active: boolean }): void {
+		this.listSession.register(event);
+	}
+	protected formatText(event: { id: string; updates: Partial<TextStyle> }): void {
+		const element = this.pseudoSlide()?.elements.find((candidate) => candidate.id === event.id);
+		const snapshot = this.readInlineSnapshot();
+		if (!this.editable() || !element || !snapshot) {
+			return;
+		}
+		const patch = formatInlineListStyle(element, event.updates, snapshot, (next) =>
+			this.listSession.format(next),
+		);
+		if (patch) {
+			this.updateMasterElement(event.id, patch);
+		}
+	}
+	readInlineSnapshot(): InlineTextEditSnapshot | undefined {
+		const current = this.listSession.read();
+		if (current && this.editingId()) {
+			return current;
+		}
+		return this.inlineSnapshot?.elementId === this.editingId() ? this.inlineSnapshot : undefined;
+	}
+	protected receiveInlineSnapshot(event: {
+		id: string;
+		text: string;
+		snapshot?: InlineTextEditSnapshot;
+	}): void {
+		const current = this.listSession.read();
+		if (event.id !== this.editingId()) {
+			return;
+		}
+		if (current) {
+			event = { id: event.id, text: current.text, snapshot: current };
+		}
+		this.inlineSnapshot =
+			event.id === this.editingId() &&
+			event.snapshot?.elementId === event.id &&
+			event.snapshot.text === event.text
+				? event.snapshot
+				: undefined;
+	}
 	readonly tab = input.required<MasterViewTab>();
 	readonly slideMasters = input.required<readonly PptxSlideMaster[]>();
 	readonly activeMasterIndex = input(0);
@@ -166,9 +224,14 @@ export class MasterViewCanvasComponent {
 		this.updateMasterElement(event.id, event.box);
 	}
 
-	protected commitText(event: { id: string; text: string; height?: number }): void {
+	protected commitText(event: {
+		id: string;
+		text: string;
+		height?: number;
+		snapshot?: InlineTextEditSnapshot;
+	}): void {
 		const element = this.pseudoSlide()?.elements.find((candidate) => candidate.id === event.id);
-		const textPatch = buildInlineTextCommitPatch(element, event.text);
+		const textPatch = buildInlineTextCommitPatch(element, event.text, event.snapshot);
 		if (!textPatch && event.height === undefined) {
 			this.editingId.set(null);
 			return;
@@ -181,14 +244,7 @@ export class MasterViewCanvasComponent {
 		this.editingId.set(null);
 	}
 
-	/**
-	 * Route one element edit back to the part that owns it.
-	 *
-	 * This used to bail outright on the Slides tab, so every drag, rotate and
-	 * text commit made on a slide master or layout was silently discarded.
-	 * The routing decision now lives in `pptx-viewer-shared`, which also knows
-	 * that a layout canvas paints its master's artwork too.
-	 */
+	/** Route edits to the owning part, including a master's artwork painted on a layout. */
 	private updateMasterElement(id: string, patch: Partial<PptxElement>): void {
 		this.emitWrite(
 			updateMasterViewElement(this.masterViewDocument(), this.masterViewTarget(), id, patch),

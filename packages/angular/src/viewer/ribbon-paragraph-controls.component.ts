@@ -22,6 +22,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { elementBulletKind } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
+import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 
 /** Line spacing multiplier presets. */
 const LINE_SPACING_OPTIONS = [1.0, 1.15, 1.5, 2.0, 2.5, 3.0];
@@ -64,6 +65,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="listKind() === 'bullet' ? 'bg-accent' : ''"
 				[attr.aria-pressed]="listKind() === 'bullet'"
 				[title]="'pptx.ribbon.bulletList' | translate"
+				(mousedown)="$event.preventDefault()"
 				(click)="toggleList('bullet')"
 			>
 				<svg lucideList class="h-4 w-4"></svg>
@@ -75,6 +77,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="listKind() === 'numbered' ? 'bg-accent' : ''"
 				[attr.aria-pressed]="listKind() === 'numbered'"
 				[title]="'pptx.notes.numberedList' | translate"
+				(mousedown)="$event.preventDefault()"
 				(click)="toggleList('numbered')"
 			>
 				<svg lucideListOrdered class="h-4 w-4"></svg>
@@ -183,6 +186,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 })
 export class RibbonParagraphControlsComponent {
 	private readonly editor = inject(EditorStateService);
+	private readonly inlineEditing = inject(ViewerCanvasEditingService, { optional: true });
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
@@ -242,6 +246,13 @@ export class RibbonParagraphControlsComponent {
 	}
 
 	private patch(patch: Parameters<typeof patchTextStyle>[3]): void {
-		patchTextStyle(this.editor, this.slideIndex(), this.selectedElement(), patch);
+		patchTextStyle(
+			this.editor,
+			this.slideIndex(),
+			this.selectedElement(),
+			patch,
+			this.inlineEditing?.readInlineSnapshot(),
+			(next) => this.inlineEditing?.formatInlineSnapshot(next) ?? false,
+		);
 	}
 }

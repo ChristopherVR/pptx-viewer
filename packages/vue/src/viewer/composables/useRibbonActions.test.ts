@@ -1,9 +1,12 @@
+import { mount } from '@vue/test-utils';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { elementBulletKind, remapTextToSegments } from 'pptx-viewer-shared';
+import type { InlineListController, InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { computed, ref } from 'vue';
 
+import InlineTextEditor from '../components/InlineTextEditor.vue';
 import type { EditorOperations } from './useEditorOperations';
 import { useRibbonActions } from './useRibbonActions';
 
@@ -25,7 +28,13 @@ function slideWith(element: PptxElement): PptxSlide {
 	return { id: 's1', rId: 's1', slideNumber: 1, elements: [element] };
 }
 
-function useHarness(element: PptxElement, canEdit = true) {
+function useHarness(
+	element: PptxElement,
+	canEdit = true,
+	readInlineSnapshot?: () => InlineTextEditSnapshot | undefined,
+	formatInlineSnapshot?: (snapshot: InlineTextEditSnapshot) => boolean,
+	endInlineListSession?: () => void,
+) {
 	const currentSlide = ref(slideWith(element));
 	const updateElement = vi.fn((elementId: string, updates: Partial<PptxElement>) => {
 		currentSlide.value = {
@@ -37,6 +46,9 @@ function useHarness(element: PptxElement, canEdit = true) {
 	});
 
 	const actions = useRibbonActions({
+		readInlineSnapshot,
+		formatInlineSnapshot,
+		endInlineListSession,
 		canEdit: () => canEdit,
 		presenting: ref(false),
 		showMasterView: ref(false),
@@ -56,6 +68,70 @@ function useHarness(element: PptxElement, canEdit = true) {
 }
 
 describe('ribbonUpdateTextStyle list commands', () => {
+	it('formats the mounted live body and refuses model-only changes during composition', async () => {
+		const source = textElement();
+		Object.assign(source, {
+			text: '◆ Original',
+			textSegments: [
+				{ text: '◆ ', style: {}, bulletInfo: { char: '◆' }, paragraphLevel: 1 },
+				{ text: 'Original', style: { italic: true } },
+			],
+		});
+		let snapshot: InlineTextEditSnapshot | undefined;
+		let controller: InlineListController | undefined;
+		const wrapper = mount(InlineTextEditor, {
+			attachTo: document.body,
+			props: {
+				element: source,
+				onChange: (_text: string, current?: InlineTextEditSnapshot) => {
+					snapshot = current;
+				},
+				onListSession: (event: { controller: InlineListController; active: boolean }) => {
+					controller = event.active ? event.controller : undefined;
+				},
+			},
+		});
+		try {
+			const surface = wrapper.get('[data-inline-editor]');
+			const run = surface.element.querySelector('span')!;
+			run.textContent = 'Current';
+			await surface.trigger('input');
+			const { actions, element, updateElement } = useHarness(
+				source,
+				true,
+				() => snapshot,
+				(next) => controller?.format(next).kind === 'supported',
+			);
+			actions.ribbonUpdateTextStyle({ bold: true });
+			expect(run.style.fontWeight).toBe('bold');
+			expect(element()).toMatchObject({ text: 'Current' });
+			const validSnapshot = snapshot;
+			await surface.trigger('compositionstart');
+			snapshot = validSnapshot; // Even a stale host payload cannot bypass the controller's composition guard.
+			actions.ribbonUpdateTextStyle({ italic: false });
+			expect(updateElement).toHaveBeenCalledOnce();
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
+	it('formats the current rich draft without rebuilding it from the old body', () => {
+		const source = textElement();
+		const snapshot = {
+			elementId: source.id,
+			text: 'Current body',
+			textSegments: [{ text: 'Current body', style: { italic: true }, paragraphLevel: 1 }],
+		};
+		const { actions, element } = useHarness(source, true, () => snapshot);
+		actions.ribbonUpdateTextStyle({ bold: true });
+		expect(element()).toMatchObject({
+			text: 'Current body',
+			textSegments: [
+				{ text: 'Current body', style: { italic: true, bold: true }, paragraphLevel: 1 },
+			],
+		});
+	});
+
 	it('creates markers for plain multiline text without segments', () => {
 		const source = textElement();
 		if (!hasTextProperties(source)) {
@@ -160,6 +236,37 @@ describe('ribbonUpdateTextStyle list commands', () => {
 });
 
 describe('ribbonUpdateTextCase', () => {
+	it('ends the native list session before changing its body and leaves marker text intact', () => {
+		const source = textElement();
+		const snapshot = {
+			elementId: source.id,
+			text: 'lower',
+			textSegments: [
+				{
+					text: 'iii. ',
+					style: {},
+					bulletInfo: { autoNumType: 'romanLcPeriod', autoNumStartAt: 3, paragraphIndex: 0 },
+				},
+				{ text: 'lower', style: { italic: true } },
+			],
+		};
+		const end = vi.fn();
+		const { actions, element, updateElement } = useHarness(
+			source,
+			true,
+			() => snapshot,
+			undefined,
+			end,
+		);
+		actions.ribbonUpdateTextCase('upper');
+		expect(end).toHaveBeenCalledOnce();
+		expect(end.mock.invocationCallOrder[0]).toBeLessThan(updateElement.mock.invocationCallOrder[0]);
+		expect(element()).toMatchObject({
+			text: 'LOWER',
+			textSegments: [{ text: 'iii. ' }, { text: 'LOWER', style: { italic: true } }],
+		});
+	});
+
 	it.each([false, true])(
 		'honors explicit formatting before runless typing (with list=%s)',
 		(withList) => {

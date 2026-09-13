@@ -8,17 +8,12 @@
  * which is handed over whole as `state` rather than being unpacked into a
  * dozen individual props.
  */
-import type {
-	PptxElement,
-	PptxHandoutMaster,
-	PptxNotesMaster,
-	PptxSlideMaster,
-} from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import type { PptxHandoutMaster, PptxNotesMaster, PptxSlideMaster } from 'pptx-viewer-core';
 import { masterViewOwnerElementId } from 'pptx-viewer-shared';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useMasterInlineEditing } from '../composables/useMasterInlineEditing';
 import type { UseMasterViewCrudResult } from '../composables/useMasterViewCrud';
 import type { UseMasterViewWiringResult } from '../composables/useMasterViewWiring';
 import type { CanvasSize } from '../types';
@@ -60,15 +55,22 @@ const MASTER_STAGE_SCALE = 0.75;
  */
 const selectedIds = ref<string[]>([]);
 
-/** The shape whose text is being typed into, and the text so far. */
-const editingId = ref<string | null>(null);
-const editingText = ref('');
-
-const editingElement = computed<PptxElement | undefined>(() =>
-	editingId.value
-		? props.state.activeMasterViewElements.value.find((element) => element.id === editingId.value)
-		: undefined,
+const {
+	editingId,
+	editingText,
+	editingElement,
+	listSession,
+	formatText,
+	updateEditingText,
+	beginInlineEdit,
+	commitInlineEdit,
+	cancelInlineEdit,
+	readInlineSnapshot,
+} = useMasterInlineEditing(
+	() => props.state,
+	() => Boolean(props.canEdit),
 );
+defineExpose({ readInlineSnapshot });
 
 /**
  * The master-view element under a pointer event, or null when the click landed
@@ -95,46 +97,8 @@ function onStagePointerDown(event: PointerEvent): void {
 	selectedIds.value = id ? [id] : [];
 }
 
-/**
- * Open the inline text editor on one master/layout shape.
- *
- * Reached by double-clicking the shape, the same gesture the ordinary canvas
- * uses and the one svelte, vanilla and angular already offer here, and by the
- * selection overlay's tap-an-already-selected request.
- */
-function beginInlineEdit(id: string | null): void {
-	if (!props.canEdit || !id) {
-		return;
-	}
-	const element = props.state.activeMasterViewElements.value.find(
-		(candidate) => candidate.id === id,
-	);
-	if (!element || !hasTextProperties(element)) {
-		return;
-	}
-	// An equation's text is the literal "[Equation]" placeholder, so committing
-	// it would remap the runs from that and drop the OMML for good.
-	if (element.textSegments?.some((segment) => segment.equationXml)) {
-		return;
-	}
-	editingId.value = element.id;
-	editingText.value = (element as { text?: string }).text ?? '';
-}
-
 function onStageDoubleClick(event: MouseEvent): void {
 	beginInlineEdit(elementIdAt(event));
-}
-
-function commitInlineEdit(): void {
-	const id = editingId.value;
-	editingId.value = null;
-	if (id) {
-		props.state.onMasterViewTextCommit(id, editingText.value);
-	}
-}
-
-function cancelInlineEdit(): void {
-	editingId.value = null;
 }
 
 /**
@@ -258,8 +222,11 @@ function canvasLabel(): string {
 					/>
 					<InlineTextEditor
 						v-if="canEdit && editingElement"
+						:key="editingElement.id"
 						:element="editingElement"
-						@change="editingText = $event"
+						@change="updateEditingText"
+						@list-session="listSession.register"
+						@format="formatText"
 						@commit="commitInlineEdit"
 						@cancel="cancelInlineEdit"
 					/>

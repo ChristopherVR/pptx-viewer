@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 // @vitest-environment jsdom
 /**
  * Regression: opening the inline editor must place the caret at the END of the
@@ -6,8 +7,11 @@
  * parity bug this pins.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { createTextElement, PptxHandler } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createInitialViewerState, createStore } from '../state';
+import { createEditorOps } from './editor-operations';
 import { openInlineEditor, readEditableText } from './inline-text-editor';
 import { markInsertedParagraph } from './inline-text-paragraph-marker';
 
@@ -25,6 +29,56 @@ function textElement(): PptxElement {
 }
 
 describe('openInlineEditor caret placement', () => {
+	it('serializes the current rich draft without committing or removing its native editor', async () => {
+		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+		const element = createTextElement('First');
+		element.textSegments = [{ text: 'First', style: { bold: true }, bulletInfo: { char: '◆' } }];
+		data.slides[0].elements = [element];
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: data.slides,
+			editable: true,
+		});
+		const overlayRoot = document.createElement('div');
+		document.body.append(overlayRoot);
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 100, rotation: 0 },
+			scale: 1,
+			element,
+			onCommit: vi.fn(),
+			onClose: vi.fn(),
+		});
+		try {
+			const first = session.el.querySelector('[data-pptx-list-paragraph]')!;
+			const next = first.cloneNode(true) as HTMLElement;
+			next.firstElementChild!.textContent = 'Draft';
+			first.after(next);
+			const ops = createEditorOps({
+				store,
+				getHandler: () => handler,
+				onHistoryChange: vi.fn(),
+				getPendingInlineTextEdit: () => ({
+					target: { slideId: data.slides[0].id },
+					snapshot: session.readSnapshot()!,
+				}),
+			});
+			const zip = await JSZip.loadAsync(await ops.save());
+			const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+			expect(xml).toContain('<a:t>Draft</a:t>');
+			expect(xml).toContain('char="◆"');
+			expect(xml).not.toContain('<a:t>◆');
+			expect(store.get().slides[0].elements[0]).toStrictEqual(element);
+			expect(session.el.isConnected).toBeTruthy();
+			expect(ops.canUndo()).toBeFalsy();
+		} finally {
+			session.cancel();
+			overlayRoot.remove();
+			handler.dispose();
+		}
+	});
+
 	it.each([
 		{
 			html: '<div data-pptx-text-flow id="boundary"><span data-pptx-bullet-marker>1.</span><span data-seg-idx="0"><br></span></div><div data-pptx-text-flow><span data-seg-idx="0" id="caret">TARGET</span></div>',
@@ -113,6 +167,44 @@ describe('openInlineEditor caret placement', () => {
 		expect(onInput).toHaveBeenLastCalledWith('TARGET\nINSERTED\nNEXT');
 		session.commit();
 		expect(onCommit).toHaveBeenCalledExactlyOnceWith('TARGET\nINSERTED\nNEXT');
+		overlayRoot.remove();
+	});
+
+	it('commits current native list segments without flattening new run style', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.append(overlayRoot);
+		const element = textElement();
+		if (element.type !== 'text') {
+			throw new Error('text fixture');
+		}
+		element.textSegments = [
+			{ text: 'First', style: { bold: true, color: '#CC00AA' }, bulletInfo: { char: '◆' } },
+		];
+		const onCommit = vi.fn();
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element,
+			onCommit,
+			onClose: () => {},
+		});
+		const block = session.el.querySelector<HTMLElement>('[data-pptx-list-paragraph]')!;
+		expect(block).not.toBeNull();
+		const inserted = block.cloneNode(true) as HTMLElement;
+		inserted.firstElementChild!.textContent = 'New';
+		block.parentElement!.append(inserted);
+		session.el.dispatchEvent(new Event('input'));
+		session.commit();
+		expect(onCommit).toHaveBeenCalledWith(
+			'First\nNew',
+			expect.objectContaining({
+				textSegments: expect.arrayContaining([
+					expect.objectContaining({ text: 'New', style: expect.objectContaining({ bold: true }) }),
+				]),
+			}),
+		);
 		overlayRoot.remove();
 	});
 
@@ -206,10 +298,17 @@ describe('openInlineEditor caret placement', () => {
 				onSelectionChange,
 				onClose: () => {},
 			});
+			const listRuns = session.el.querySelectorAll('[data-pptx-list-run]');
 			const segmentSpans = session.el.querySelectorAll('[data-seg-idx]');
 			const range = document.createRange();
-			range.setStart(segmentSpans[startChild].firstChild!, startOffset);
-			range.setEnd(segmentSpans[endChild].firstChild!, endOffset);
+			range.setStart(
+				listRuns.length ? listRuns[0].firstChild! : segmentSpans[startChild].firstChild!,
+				listRuns.length ? 0 : startOffset,
+			);
+			range.setEnd(
+				listRuns.length ? listRuns[0].firstChild! : segmentSpans[endChild].firstChild!,
+				endOffset,
+			);
 			const selection = window.getSelection()!;
 			selection.removeAllRanges();
 			selection.addRange(range);
@@ -263,7 +362,7 @@ describe('openInlineEditor caret placement', () => {
 });
 
 describe('openInlineEditor input handling', () => {
-	it('marks generated list markers as display-only editor content', () => {
+	it('projects generated list markers outside editable content', () => {
 		const overlayRoot = document.createElement('div');
 		document.body.appendChild(overlayRoot);
 		const onCommit = vi.fn();
@@ -288,9 +387,10 @@ describe('openInlineEditor input handling', () => {
 			onClose: () => {},
 		});
 
-		const marker = session.el.querySelector<HTMLElement>('[data-seg-idx="0"]');
-		expect(marker?.hasAttribute('data-pptx-bullet-marker')).toBeTruthy();
-		expect(marker?.contentEditable).toBe('false');
+		expect(session.el.querySelector('[data-pptx-bullet-marker]')).toBeNull();
+		expect(
+			document.head.querySelector('style[data-pptx-list-presentation]')?.textContent,
+		).toContain('1.');
 		expect(readEditableText(session.el)).toBe('Item');
 
 		session.commit();
@@ -323,10 +423,8 @@ describe('openInlineEditor input handling', () => {
 			onClose: () => {},
 		});
 
-		expect(session.el.querySelector('[data-pptx-empty-run]')?.firstElementChild?.tagName).toBe(
-			'BR',
-		);
-		expect(readEditableText(session.el)).toBe('');
+		expect(session.el.querySelector('[data-pptx-list-run]')?.firstElementChild?.tagName).toBe('BR');
+		expect(session.readSnapshot()?.text).toBe('');
 		session.commit();
 		expect(onCommit).not.toHaveBeenCalled();
 

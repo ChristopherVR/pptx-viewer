@@ -1,4 +1,5 @@
 import type { PptxAction, PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 
 import type { ShapeAdjustmentHandleDescriptor, TableCellEditorState } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -77,7 +78,7 @@ export interface ElementRendererProps {
 	) => void;
 	/** Commit a new rotation (degrees) when the on-canvas rotate handle is dragged. */
 	onRotate?: (elementId: string, rotationDeg: number) => void;
-	onInlineEditChange: (text: string) => void;
+	onInlineEditChange: (text: string, snapshot?: InlineTextEditSnapshot) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;
 	onTableCellSelect?: (cell: TableCellEditorState | null, elementId: string) => void;

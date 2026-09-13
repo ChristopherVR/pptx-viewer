@@ -1,7 +1,31 @@
 import type { TextSegment } from 'pptx-viewer-core';
 
 import { isBulletMarkerSegment } from './bullet-toggle';
+import { getActiveInlineListSelection } from './inline-list-controller';
+import type { InlineTextEditSnapshot } from './inline-list-types';
 import type { InlineTextSelection } from './inline-selection-utils';
+
+export type InlineEditorSelectionResult =
+	| { kind: 'supported'; selection: InlineTextSelection | null; snapshot?: InlineTextEditSnapshot }
+	| { kind: 'unsupported'; reason: string };
+
+/** A rich editor's unsupported selection must not mean format the whole element. */
+export function getInlineEditorSelectionResult(
+	segments: TextSegment[] | undefined,
+): InlineEditorSelectionResult {
+	const active = getActiveInlineListSelection();
+	if (
+		active?.kind === 'supported' &&
+		active.bodyRange &&
+		active.bodyRange.start === active.bodyRange.end
+	) {
+		return { ...active, selection: null };
+	}
+	if (active) {
+		return active;
+	}
+	return { kind: 'supported', selection: getInlineEditorSelection(segments) };
+}
 
 interface SegmentPosition {
 	segIdx: number;

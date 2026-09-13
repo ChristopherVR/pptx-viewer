@@ -70,6 +70,48 @@ function selectedEl(store: Store<ViewerState>): PptxElement {
 }
 
 describe('createInspectorActions text', () => {
+	it('formats the current list draft and cancels it before an explicit body rewrite', () => {
+		const { store, ops } = buildActions(textElement());
+		const snapshot = {
+			elementId: 't1',
+			text: 'Typed',
+			textSegments: [{ text: 'Typed', style: { bold: true }, bulletInfo: { char: '◆' } }],
+		};
+		ops.readInlineList = () => ({ kind: 'supported', snapshot, paragraphs: [] });
+		const format = vi.fn(() => true);
+		const cancel = vi.fn();
+		ops.formatInlineList = format;
+		ops.cancelInlineList = cancel;
+		const apply = createApplyToSelected(store, ops);
+		apply((current) => {
+			expect('text' in current && current.text).toBe('Typed');
+			return { textStyle: { fontSize: 32 } };
+		});
+		expect(ops.formatInlineList).toHaveBeenCalledWith(
+			expect.objectContaining({
+				text: 'Typed',
+				textSegments: [
+					expect.objectContaining({ style: expect.objectContaining({ bold: true, fontSize: 32 }) }),
+				],
+			}),
+		);
+		const formatted = selectedEl(store);
+		expect('text' in formatted && formatted.text).toBe('Typed');
+		apply(() => ({ textSegments: [{ text: 'TYPED', style: {} }] }));
+		expect(ops.cancelInlineList).toHaveBeenCalledOnce();
+		const rewritten = selectedEl(store);
+		expect('text' in rewritten && rewritten.text).toBe('TYPED');
+	});
+
+	it('does not run a format builder or write history for an unsupported list draft', () => {
+		const { store, ops } = buildActions(textElement());
+		ops.readInlineList = () => ({ kind: 'unsupported', text: 'current', reason: 'composition' });
+		const build = vi.fn(() => ({ textStyle: { bold: true } }));
+		createApplyToSelected(store, ops)(build);
+		expect(build).not.toHaveBeenCalled();
+		expect(ops.canUndo()).toBeFalsy();
+	});
+
 	it('sets vertical align, wrap, and autofit mode, each undoable', () => {
 		const { store, ops, actions } = buildActions(textElement());
 

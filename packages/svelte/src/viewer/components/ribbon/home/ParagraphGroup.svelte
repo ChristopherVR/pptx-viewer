@@ -4,9 +4,9 @@
 	 * spacing for the Home tab's Paragraph group. List state comes from semantic
 	 * paragraph bullets; other formatting uses the element's base text style.
 	 */
-	import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+	import type { TextStyle } from 'pptx-viewer-core';
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { elementBulletKind, LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
+	import { elementBulletKind, LINE_SPACING_OPTIONS, toggleElementBullets } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -25,7 +25,7 @@
 	const style = $derived<TextStyle>(el && hasTextProperties(el) ? (el.textStyle ?? {}) : {});
 	const listKind = $derived(el && hasTextProperties(el) ? elementBulletKind(el) : 'none');
 
-	function apply(patch: Partial<PptxElement>): void {
+	function apply(patch: Parameters<EditorState['patchSelected']>[0]): void {
 		editor.patchSelected(patch);
 	}
 
@@ -46,7 +46,8 @@
 		aria-pressed={listKind === 'bullet'}
 		aria-label={t('pptx.text.bulletList')}
 		title={t('pptx.text.bulletList')}
-		onclick={() => el && apply(toggleListTypePatch(el, 'bullet'))}
+		onmousedown={(event) => event.preventDefault()}
+	onclick={() => el && apply((current, snapshot) => snapshot ? toggleElementBullets(current, 'bullet') : toggleListTypePatch(current, 'bullet'))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1" fill="currentColor" /><circle cx="3" cy="8" r="1" fill="currentColor" /><circle cx="3" cy="12" r="1" fill="currentColor" /><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
@@ -58,7 +59,8 @@
 		aria-pressed={listKind === 'numbered'}
 		aria-label={t('pptx.text.numberedList')}
 		title={t('pptx.text.numberedList')}
-		onclick={() => el && apply(toggleListTypePatch(el, 'numbered'))}
+		onmousedown={(event) => event.preventDefault()}
+	onclick={() => el && apply((current, snapshot) => snapshot ? toggleElementBullets(current, 'numbered') : toggleListTypePatch(current, 'numbered'))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><text x="1" y="5.5" font-size="4" fill="currentColor">1</text><text x="1" y="9.5" font-size="4" fill="currentColor">2</text><text x="1" y="13.5" font-size="4" fill="currentColor">3</text><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
@@ -71,7 +73,7 @@
 		disabled={!active}
 		aria-label={t('pptx.text.decreaseIndent')}
 		title={t('pptx.text.decreaseIndent')}
-		onclick={() => el && apply(adjustIndentPatch(el, -1))}
+		onclick={() => el && apply((current) => adjustIndentPatch(current, -1))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4h8M6 12h8M6 8h8M2 8l2.5-2.5M2 8l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
 	</button>
@@ -81,7 +83,7 @@
 		disabled={!active}
 		aria-label={t('pptx.text.increaseIndent')}
 		title={t('pptx.text.increaseIndent')}
-		onclick={() => el && apply(adjustIndentPatch(el, 1))}
+		onclick={() => el && apply((current) => adjustIndentPatch(current, 1))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4h8M6 12h8M6 8h8M4.5 5.5 2 8l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
 	</button>
@@ -97,7 +99,7 @@
 			aria-pressed={style.align === btn.value}
 			aria-label={t(btn.key)}
 			title={t(btn.key)}
-			onclick={() => el && apply(setAlignPatch(el, btn.value as TextStyle['align']))}
+			onclick={() => el && apply((current) => setAlignPatch(current, btn.value as TextStyle['align']))}
 		>
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d={btn.d} stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 		</button>
@@ -110,7 +112,7 @@
 		title={t('pptx.paragraph.lineSpacing')}
 		onchange={(e) => {
 			if (el && e.currentTarget.value) {
-				apply(setLineSpacingPatch(el, Number(e.currentTarget.value)));
+				apply((current) => setLineSpacingPatch(current, Number(e.currentTarget.value)));
 			}
 		}}
 	>

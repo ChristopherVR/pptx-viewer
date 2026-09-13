@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import type { NormAutofitShrinkResult } from '../internal/shared';
+import type { InlineTextEditSnapshot, NormAutofitShrinkResult } from '../internal/shared';
 import {
 	buildInlineTextCommitPatch,
 	resolveInlineEditAutoFitHeight,
@@ -24,10 +24,11 @@ export function resolveCommitTextAutoFitHeight(
 	elements: readonly PptxElement[],
 	id: string,
 	text: string,
-	editor: HTMLTextAreaElement,
+	editor: HTMLElement,
+	snapshot?: InlineTextEditSnapshot,
 ): number | undefined {
 	const el = elements.find((e) => e.id === id);
-	if (!el || !hasTextProperties(el) || !buildInlineTextCommitPatch(el, text)) {
+	if (!el || !hasTextProperties(el) || !buildInlineTextCommitPatch(el, text, snapshot)) {
 		return undefined;
 	}
 	return resolveInlineEditAutoFitHeight(el.textStyle, el.height, editor);
@@ -44,10 +45,11 @@ export function resolveCommitTextNormAutofitShrink(
 	elements: readonly PptxElement[],
 	id: string,
 	text: string,
-	editor: HTMLTextAreaElement,
+	editor: HTMLElement,
+	snapshot?: InlineTextEditSnapshot,
 ): NormAutofitShrinkResult {
 	const el = elements.find((e) => e.id === id);
-	if (!el || !hasTextProperties(el) || !buildInlineTextCommitPatch(el, text)) {
+	if (!el || !hasTextProperties(el) || !buildInlineTextCommitPatch(el, text, snapshot)) {
 		return 'unchanged';
 	}
 	return resolveInlineEditNormAutofitShrink(el.textStyle, el.height, editor);

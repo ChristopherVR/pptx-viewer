@@ -20,6 +20,75 @@ function textElement(overrides: Partial<PptxElement> = {}): PptxElement {
 }
 
 describe('buildInlineTextCommitPatch', () => {
+	it('commits current semantic runs instead of redistributing onto the original runs', () => {
+		const element = textElement({ textSegments: [{ text: 'Hello', style: { fontSize: 20 } }] });
+		const snapshot = {
+			elementId: element.id,
+			text: 'Hello\nNew item',
+			textSegments: [
+				{ text: 'Hello', style: { fontSize: 20 } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: 'New item', style: { fontSize: 28 }, paragraphLevel: 1 },
+			],
+		};
+		expect(
+			buildInlineTextCommitPatch(element, snapshot.text, snapshot)?.textSegments,
+		).toStrictEqual(snapshot.textSegments);
+	});
+
+	it('records semantic changes even when the authored text is unchanged', () => {
+		const element = textElement({
+			textSegments: [{ text: 'Hello', style: {}, bulletInfo: { char: '•' } }],
+		});
+		const snapshot = {
+			elementId: element.id,
+			text: 'Hello',
+			textSegments: [{ text: 'Hello', style: {}, bulletInfo: { none: true } }],
+		};
+		expect(buildInlineTextCommitPatch(element, 'Hello', snapshot)?.textSegments).toStrictEqual(
+			snapshot.textSegments,
+		);
+	});
+
+	it('keeps an untouched list snapshot a no-op without serializing display markers as body', () => {
+		const textSegments: TextSegment[] = [
+			{ text: '• ', style: {}, bulletInfo: { char: '•' } },
+			{ text: 'Hello', style: { fontSize: 24 } },
+		];
+		const element = textElement({ text: '• Hello', textSegments });
+		expect(
+			buildInlineTextCommitPatch(element, 'Hello', {
+				elementId: element.id,
+				text: 'Hello',
+				textSegments: structuredClone(textSegments),
+			}),
+		).toBeUndefined();
+	});
+
+	it('rejects a snapshot belonging to another element', () => {
+		const element = textElement({ textSegments: [{ text: 'Hello', style: { fontSize: 20 } }] });
+		const snapshot = {
+			elementId: 'other',
+			text: 'Edited',
+			textSegments: [{ text: 'Edited', style: { fontSize: 99 } }],
+		};
+		expect(buildInlineTextCommitPatch(element, 'Edited', snapshot)).toStrictEqual(
+			buildInlineTextCommitPatch(element, 'Edited'),
+		);
+	});
+
+	it('applies AutoCorrect to current snapshot styles rather than the original element', () => {
+		const element = textElement({ textSegments: [{ text: 'Old', style: { fontSize: 20 } }] });
+		const snapshot = {
+			elementId: element.id,
+			text: 'hello',
+			textSegments: [{ text: 'hello', style: { fontSize: 28 } }],
+		};
+		expect(buildInlineTextCommitPatch(element, 'Hello', snapshot)?.textSegments).toStrictEqual([
+			{ text: 'Hello', style: { fontSize: 28 } },
+		]);
+	});
+
 	it('preserves exact middle paragraphs when default AutoCorrect also changes the final body', () => {
 		const bodies = ['Roman parent third', 'Nested third', 'Nested fourth', '1. literal body'];
 		const levels = [0, 1, 1, 0];

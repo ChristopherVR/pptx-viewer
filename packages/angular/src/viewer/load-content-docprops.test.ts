@@ -19,6 +19,7 @@ import type { PptxCustomProperty } from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import type { PendingInlineTextEdit } from '../internal/shared';
 import { LoadContentService } from './load-content.service';
 
 /** Build the service in a throwaway injection context with a DestroyRef stub. */
@@ -50,6 +51,67 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 }
 
 describe('loadContentService document-property persistence', () => {
+	it('serializes a list draft without committing the editor model', async () => {
+		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+		data.slides[0].elements = [
+			{
+				id: 'draft-list',
+				type: 'text',
+				x: 30,
+				y: 30,
+				width: 200,
+				height: 100,
+				text: 'Original',
+				textSegments: [{ text: 'Original', style: {} }],
+			},
+		];
+		const sourceBytes = await handler.save(data.slides);
+		handler.dispose();
+		const { svc, destroy } = createService();
+		const reader = new PptxHandler();
+		try {
+			await svc.load(toArrayBuffer(sourceBytes));
+			expect(svc.error()).toBeNull();
+			const slides = svc.slides();
+			const source = slides[0].elements[0];
+			expect(source.rawXml).toBeDefined();
+			let pending: PendingInlineTextEdit | undefined = {
+				target: { slideId: slides[0].id },
+				snapshot: {
+					elementId: source.id,
+					text: 'Current body',
+					textSegments: [
+						{
+							text: 'Current body',
+							style: { fontSize: 30 },
+							paragraphLevel: 1,
+							bulletInfo: { char: '◆' },
+						},
+					],
+				},
+			};
+			svc.bindPendingInlineEdit(() => pending);
+			const result = await reader.load(toArrayBuffer(await svc.saveSlides(slides)));
+			expect(result.slides[0].elements[0].text).toContain('Current body');
+			expect(result.slides[0].elements[0].textSegments).toStrictEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						paragraphLevel: 1,
+						bulletInfo: expect.objectContaining({ char: '◆' }),
+					}),
+				]),
+			);
+			expect(slides[0].elements[0]).toBe(source);
+			expect(source.text).toBe('Original');
+			pending = undefined;
+			const unchanged = await reader.load(toArrayBuffer(await svc.saveSlides(slides)));
+			expect(unchanged.slides[0].elements[0].text).toBe('Original');
+		} finally {
+			reader.dispose();
+			destroy();
+		}
+	});
+
 	it('persists DOCUMENT-card edits (core/app/custom properties) through save + reparse', async () => {
 		// Generate a minimal valid .pptx (includes docProps/core.xml + app.xml).
 		const { handler: sourceHandler, data } = await PptxHandler.create({

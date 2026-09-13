@@ -54,13 +54,16 @@
 {/if}
 
 {#if editingElement && editingBox && controller.editingId}
+	{#key controller.editingId}
 	<InlineTextEditor
 		element={editingElement}
 		box={editingBox}
 		{scale}
 		{spellCheck}
 		oninput={(text) => controller.previewInline(controller.editingId ?? '', text)}
-		oncommit={(text) => controller.commitInline(controller.editingId ?? '', text)}
+		oncommit={(text, snapshot) => controller.commitInline(controller.editingId ?? '', text, snapshot)}
+		onregister={(reader, cancel) => controller.registerInlineReader(editingElement.id, reader, cancel)}
 		onclose={() => controller.closeInline()}
 	/>
+	{/key}
 {/if}

@@ -32,9 +32,9 @@ function textShape(id: string): PptxElement {
 	} as PptxElement;
 }
 
-function mountOverlay(canEdit = true) {
+function mountOverlay(canEdit = true, shape = textShape(SHAPE_ID)) {
 	const slideMasters = shallowRef<PptxSlideMaster[]>([
-		{ path: MASTER_PATH, backgroundColor: '#111111', elements: [textShape(SHAPE_ID)] },
+		{ path: MASTER_PATH, backgroundColor: '#111111', elements: [shape] },
 	]);
 	const notesMaster = shallowRef(undefined);
 	const handoutMaster = shallowRef(undefined);
@@ -70,6 +70,69 @@ function shapeNode(wrapper: ReturnType<typeof mountOverlay>['wrapper']) {
 }
 
 describe('masterViewOverlay editing', () => {
+	it('captures the current rich master draft before closing its synchronous session', async () => {
+		const shape = {
+			...textShape(SHAPE_ID),
+			text: 'Original',
+			textSegments: [{ text: 'Original', style: { italic: true }, bulletInfo: { char: '◆' } }],
+		};
+		const { wrapper, slideMasters } = mountOverlay(true, shape);
+		try {
+			await shapeNode(wrapper).trigger('dblclick');
+			const editor = wrapper.get('[data-inline-editor]');
+			const run = editor.element.querySelector<HTMLElement>('[data-pptx-list-run]')!;
+			run.textContent = 'Current master';
+			run.style.fontWeight = 'bold';
+			await editor.trigger('input');
+			expect(slideMasters.value[0].elements?.[0]).toStrictEqual(shape);
+			await editor.trigger('blur');
+			expect(slideMasters.value[0].elements?.[0]).toMatchObject({
+				text: 'Current master',
+				textSegments: expect.arrayContaining([
+					expect.objectContaining({
+						text: 'Current master',
+						style: expect.objectContaining({ bold: true, italic: true }),
+					}),
+				]),
+			});
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
+	it('applies a list keyboard format to the mounted master editor and owning part', async () => {
+		const shape = {
+			...textShape(SHAPE_ID),
+			text: '◆ Original',
+			textSegments: [
+				{ text: '◆ ', style: {}, bulletInfo: { char: '◆' } },
+				{ text: 'Original', style: { italic: true } },
+			],
+		};
+		const { wrapper, slideMasters } = mountOverlay(true, shape);
+		try {
+			await shapeNode(wrapper).trigger('dblclick');
+			const editor = wrapper.get('[data-inline-editor]');
+			const run = editor.element.querySelector('span')!;
+			run.textContent = 'Current master';
+			await editor.trigger('input');
+			await editor.trigger('keydown', { key: 'b', ctrlKey: true });
+			expect(run.style.fontWeight).toBe('bold');
+			expect(slideMasters.value[0].elements?.[0]).toMatchObject({ text: 'Current master' });
+			await editor.trigger('blur');
+			expect(slideMasters.value[0].elements?.[0]).toMatchObject({
+				textSegments: expect.arrayContaining([
+					expect.objectContaining({
+						text: 'Current master',
+						style: expect.objectContaining({ bold: true, italic: true }),
+					}),
+				]),
+			});
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
 	it('renders the master shape with its id marker so gestures can resolve it', () => {
 		const { wrapper } = mountOverlay();
 		expect(shapeNode(wrapper).exists()).toBeTruthy();

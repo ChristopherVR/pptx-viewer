@@ -117,11 +117,13 @@ describe('the Embed Fonts toggle reaches the save call', () => {
 				appProperties: undefined,
 				customProperties: [],
 				tagCollections: [],
+				slideMasters: [],
 				notesMaster: undefined,
 				handoutMaster: undefined,
 				handlerRef,
 				inlineEditingElementIdRef: { current: null },
 				inlineEditingTextRef: { current: '' },
+				inlineEditingSnapshotRef: { current: undefined },
 			});
 			return null;
 		}

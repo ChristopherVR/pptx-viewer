@@ -27,6 +27,7 @@ import { ShieldAlert } from 'lucide-vue-next';
 import { hasShapeProperties, PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, PptxTheme, ShapeStyle } from 'pptx-viewer-core';
 import {
+	applyAutoCorrect,
 	buildDeckSaveOptions,
 	buildFieldSubstitutionContext,
 	buildUserFontFaceStyles,
@@ -218,6 +219,32 @@ const password = usePasswordProtection();
 const { optionsStore, viewerOptions } = useViewerOptionsStore();
 
 const deck = useLoadContent(() => activeContent.value, {
+	getPendingInlineEdit: () => {
+		if (!canEditEffective.value) {
+			return undefined;
+		}
+		const masterSnapshot = masterInlineEditor.value?.readInlineSnapshot();
+		if (masterView.showMasterView.value && masterSnapshot) {
+			return {
+				snapshot: masterSnapshot,
+				target: {
+					masterView: {
+						tab: masterView.masterViewTab.value,
+						masterIndex: masterView.activeMasterIndex.value,
+						layoutIndex: masterView.activeLayoutIndex.value,
+					},
+				},
+			};
+		}
+		const snapshot = inlineEdit.readInlineSnapshot();
+		return snapshot && activeSlide.value
+			? {
+					snapshot,
+					text: applyAutoCorrect(snapshot.text, viewerOptions.value.proofing),
+					target: { slideId: activeSlide.value.id },
+				}
+			: undefined;
+	},
 	onContentApplied: () => {
 		loadVersion.value += 1;
 	},
@@ -510,6 +537,7 @@ const inlineEdit = useInlineEditing({
 	// down; the accessor is only invoked from user input, long after setup.
 	proofing: () => viewerOptions.value.proofing,
 });
+const masterInlineEditor = ref<InstanceType<typeof MasterViewOverlay> | null>(null);
 
 // Declared before the pointer wiring below so `requestElementEdit` (the
 // tap/double-click route into element editing) can consult it.
@@ -1338,6 +1366,9 @@ const aiBridge = useAiBridge({
 });
 
 const ribbonActions = useRibbonActions({
+	readInlineSnapshot: inlineEdit.readInlineSnapshot,
+	formatInlineSnapshot: inlineEdit.formatInlineSnapshot,
+	endInlineListSession: inlineEdit.endInlineListSession,
 	canEdit: () => canEditEffective.value,
 	presenting: presentation.presenting,
 	showMasterView: masterView.showMasterView,
@@ -1935,6 +1966,7 @@ defineExpose<PowerPointViewerExpose>(
 
 			<!-- Master views (slide / notes / handout) -->
 			<MasterViewOverlay
+				ref="masterInlineEditor"
 				v-if="masterView.showMasterView.value"
 				:state="masterView"
 				:crud="masterViewCrud"

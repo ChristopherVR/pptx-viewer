@@ -23,22 +23,17 @@ import type {
 /**
  * useViewerCoreState: Core state declarations for PowerPointViewer.
  *
- * This hook owns every piece of "document-level" React state: slides,
- * elements, selection, canvas dimensions, presentation metadata
- * (masters, theme, sections, custom shows, etc.), and the mutable refs
- * used by pointer-interaction handlers.
+ * Owns document state and pointer refs; live text state is delegated.
  *
  * Derived values (activeSlide, elementLookup, selectedElement, master view
  * elements) are computed by {@link useDerivedElementState} and spread into
  * the return value. Type definitions live in `viewer-core-state-types.ts`.
  * UI panel state lives in {@link useViewerUIState}.
  *
- * @module useViewerCoreState
  */
 import { createCollaborationLivePatcher, publishLiveInlineText } from 'pptx-viewer-shared';
 import type { SlideSizeEmu } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type React from 'react';
 
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type {
@@ -52,13 +47,10 @@ import type {
 } from '../types';
 import type { ViewerMode } from '../types-core';
 import { useDerivedElementState } from './useDerivedElementState';
+import { useInlineEditingState } from './useInlineEditingState';
 import type { UseViewerCoreStateInput, ViewerCoreState } from './viewer-core-state-types';
 
 export type { UseViewerCoreStateInput, ViewerCoreState } from './viewer-core-state-types';
-
-/* ------------------------------------------------------------------ */
-/*  Hook                                                              */
-/* ------------------------------------------------------------------ */
 
 /**
  * Initializes and returns the core viewer state (refs, useState values,
@@ -122,40 +114,19 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 	const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
 	const [isDirty, setIsDirty] = useState(false);
-	// Refs that mirror inline-editing state synchronously so serializeSlides can
-	// read the live values without waiting for a React re-render (e.g. Ctrl+S
-	// while a text box is still being edited and hasn't blurred yet).
-	const inlineEditingElementIdRef = useRef<string | null>(null);
-	const inlineEditingTextRef = useRef('');
-	// eslint-disable-next-line react/hook-use-state -- wrapped below to also mirror into a ref
-	const [inlineEditingElementId, setInlineEditingElementIdBase] = useState<string | null>(null);
-	// eslint-disable-next-line react/hook-use-state -- wrapped below to also mirror into a ref
-	const [inlineEditingText, setInlineEditingTextBase] = useState('');
-	const setInlineEditingElementId: React.Dispatch<React.SetStateAction<string | null>> =
-		useCallback((value) => {
-			const resolved =
-				typeof value === 'function' ? value(inlineEditingElementIdRef.current) : value;
-			inlineEditingElementIdRef.current = resolved;
-			setInlineEditingElementIdBase(value);
-		}, []);
-	const setInlineEditingText: React.Dispatch<React.SetStateAction<string>> = useCallback(
-		(value) => {
-			const resolved = typeof value === 'function' ? value(inlineEditingTextRef.current) : value;
-			inlineEditingTextRef.current = resolved;
-			setInlineEditingTextBase(value);
-			// Live preview for peers: the typed text only reaches `slides` (and
-			// therefore the Y.Doc reconcile) when the editor commits, so publish
-			// the interim string straight into the element's Y.Text. No-ops when
-			// collaboration is off.
+	const publishInlineText = useCallback(
+		(elementId: string | null, text: string) => {
+			// Preserve the existing authored-text preview for collaboration peers.
 			publishLiveInlineText(
 				livePatcher,
 				slidesRef.current[activeSlideIndexRef.current],
-				inlineEditingElementIdRef.current,
-				resolved,
+				elementId,
+				text,
 			);
 		},
 		[livePatcher],
 	);
+	const inlineEditing = useInlineEditingState(publishInlineText);
 	const [editTemplateMode, setEditTemplateMode] = useState(false);
 	const [newShapeType, setNewShapeType] = useState<SupportedShapeType>('rect');
 	const [clipboardPayload, setClipboardPayload] = useState<ElementClipboardPayload | null>(null);
@@ -220,8 +191,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		imageInputRef,
 		mediaInputRef,
 		activeSlideIndexRef,
-		inlineEditingElementIdRef,
-		inlineEditingTextRef,
+		...inlineEditing,
 		dragStateRef,
 		resizeStateRef,
 		shapeAdjustmentDragStateRef,
@@ -251,10 +221,6 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		setSelectedElementIds,
 		isDirty,
 		setIsDirty,
-		inlineEditingElementId,
-		setInlineEditingElementId,
-		inlineEditingText,
-		setInlineEditingText,
 		editTemplateMode,
 		setEditTemplateMode,
 		newShapeType,

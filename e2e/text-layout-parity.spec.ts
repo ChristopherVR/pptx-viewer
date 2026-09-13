@@ -39,6 +39,7 @@ import JSZip from 'jszip';
 
 import { savePptxViaBackstage } from './save-pptx';
 import { fixture, loadDeck, loadDeckAt, slideStage, thumbnail } from './support/deck';
+import { insertInlineParagraph } from './support/keyboard';
 import { acrossFrameworks, splitReference } from './support/parity';
 import { diffTextRuns } from './support/text-run-diff';
 import { measureTextRuns } from './support/text-runs';
@@ -209,7 +210,7 @@ test.describe('cross-binding text layout', () => {
 
 	test('an appended numbered-list paragraph continues through save and reload', async ({
 		page,
-	}) => {
+	}, testInfo) => {
 		const appendedText = 'Browser appended item';
 		await loadDeck(page, CJK);
 		await thumbnail(page, 5).click();
@@ -223,9 +224,7 @@ test.describe('cross-binding text layout', () => {
 		const editor = page.locator('[data-inline-editor]');
 		await editor.waitFor();
 
-		// Shift+Enter is the same multiline insertion gesture in all five
-		// bindings; Angular deliberately reserves plain Enter for commit.
-		await editor.press('Shift+Enter');
+		await insertInlineParagraph(editor, testInfo);
 		await page.keyboard.type(appendedText);
 		const stageBox = (await slideStage(page).boundingBox())!;
 		await page.mouse.click(stageBox.x + stageBox.width * 0.97, stageBox.y + stageBox.height * 0.97);
@@ -251,9 +250,9 @@ test.describe('cross-binding text layout', () => {
 		expect(afterReload).toContain(`5.${appendedText.replace(/\s+/gu, '')}`);
 	});
 
-	test('an inserted middle list item keeps its nesting through save and reload', async ({
+	test('a live middle list item keeps markers, spacing and native history through save and reload', async ({
 		page,
-	}) => {
+	}, testInfo) => {
 		await loadDeck(page, NESTED_LIST);
 		const autoSave = page.getByRole('switch', { name: 'Toggle AutoSave', exact: true });
 		if ((await autoSave.getAttribute('aria-checked')) === 'true') {
@@ -288,9 +287,37 @@ test.describe('cross-binding text layout', () => {
 			return range.toString();
 		});
 		expect(beforeCaret.replace(/\s+/gu, '')).toMatch(/Nestedmiddle$/u);
-		// Same insertion gesture in all bindings; Angular's plain Enter commits.
-		await editor.press('Shift+Enter');
+		await insertInlineParagraph(editor, testInfo);
+		const paragraphs = editor.locator(':scope > :is(div,p)');
+		const markers = async (): Promise<string[]> =>
+			paragraphs.evaluateAll((nodes) =>
+				nodes.map((node) =>
+					getComputedStyle(node, '::before').content.replace(/^"|"$/gu, '').trim(),
+				),
+			);
+		await expect(paragraphs).toHaveCount(6);
+		await expect.poll(markers).toStrictEqual(['III.', 'III.', 'IV.', 'V.', 'IV.', 'V.']);
+		await expect(paragraphs.nth(2)).toHaveCSS('margin-bottom', '12px');
+		await expect(paragraphs.nth(3)).toHaveCSS('margin-bottom', '22px');
 		await page.keyboard.type('Browser inserted item');
+		await expect
+			.poll(async () => (await paragraphs.nth(2).innerText()).trim())
+			.toBe('Browser inserted item');
+		await editor.press('ControlOrMeta+z');
+		await expect.poll(async () => (await paragraphs.nth(2).innerText()).trim()).toBe('');
+		await expect(paragraphs).toHaveCount(6);
+		await editor.press('ControlOrMeta+z');
+		await expect(paragraphs).toHaveCount(5);
+		await expect.poll(markers).toStrictEqual(['III.', 'III.', 'IV.', 'IV.', 'V.']);
+		await editor.press('ControlOrMeta+Shift+z');
+		await expect(paragraphs).toHaveCount(6);
+		await editor.press('ControlOrMeta+Shift+z');
+		await expect
+			.poll(async () => (await paragraphs.nth(2).innerText()).trim())
+			.toBe('Browser inserted item');
+		await expect.poll(markers).toStrictEqual(['III.', 'III.', 'IV.', 'V.', 'IV.', 'V.']);
+		// Backstage moves focus and commits. Pending-save-without-blur is covered
+		// by the public API's binding tests; this demo exposes no active-save ref.
 		const stageBox = (await slideStage(page).boundingBox())!;
 		await page.mouse.click(stageBox.x + stageBox.width * 0.97, stageBox.y + stageBox.height * 0.97);
 		await expect(editor).toBeHidden();
@@ -318,7 +345,7 @@ test.describe('cross-binding text layout', () => {
 		).toStrictEqual([0, 1, 1, 1, 0, 0]);
 		expect(
 			properties.map((props) => props.match(/<a:spcAft><a:spcPts val="(\d+)"/u)?.[1]),
-		).toStrictEqual(['450', '900', undefined, '1650', '600', '375']);
+		).toStrictEqual(['450', '900', '900', '1650', '600', '375']);
 		await loadDeck(page, savedPath!);
 		await expect
 			.poll(async () => (await list.innerText()).replace(/\s+/gu, ''))

@@ -63,7 +63,10 @@ function restorePoint(
 }
 
 /** Keep paragraph metadata on the first run when character styling splits it. */
-function restoreParagraphMetadata(original: TextSegment[], updated: TextSegment[]): TextSegment[] {
+export function restoreParagraphMetadata(
+	original: TextSegment[],
+	updated: TextSegment[],
+): TextSegment[] {
 	const firstRuns = original.filter(
 		(_, index) => index === 0 || isParagraphBreak(original[index - 1]),
 	);

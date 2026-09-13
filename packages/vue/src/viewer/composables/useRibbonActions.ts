@@ -6,12 +6,15 @@ import type {
 	TablePptxElement,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { AlignEdge, ChangeCaseMode } from 'pptx-viewer-shared';
+import type { AlignEdge, ChangeCaseMode, InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import {
 	readEditableText,
+	buildInlineListStylePatch,
+	getInlineEditorSelectionResult,
 	remapTextToSegments,
 	setElementBullets,
 	transformTextCase,
+	transformInlineListCase,
 	updateTextSegmentStyle,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
@@ -27,6 +30,9 @@ import type { TableSelectionState } from './table-selection';
 import type { EditorOperations } from './useEditorOperations';
 
 export interface UseRibbonActionsInput {
+	readInlineSnapshot?: () => InlineTextEditSnapshot | undefined;
+	formatInlineSnapshot?: (snapshot: InlineTextEditSnapshot) => boolean;
+	endInlineListSession?: () => void;
 	canEdit: () => boolean;
 	presenting: Ref<boolean>;
 	showMasterView: Ref<boolean>;
@@ -55,11 +61,6 @@ export function toShapePreset(t: SupportedShapeType): ShapePreset {
 	return t === 'ellipse' || t === 'roundRect' || t === 'triangle' ? t : 'rect';
 }
 
-/**
- * useRibbonActions: the derived ribbon mode plus the ribbon-only editing helpers
- * (cell/text-style application, flip, front/back z-order). Extracted verbatim
- * from `PowerPointViewer.vue`; the big `ribbonProps` adapter stays in the SFC.
- */
 /**
  * The ribbon-facing action surface. Inferred from the implementation so the two
  * cannot drift; `useViewerRibbonProps` refers to this rather than restating it.
@@ -146,17 +147,42 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 			listType !== undefined && typeof document !== 'undefined'
 				? document.querySelector<HTMLElement>('[data-inline-editor]')
 				: null;
-		const liveText = liveEditor ? readEditableText(liveEditor) : undefined;
+		const candidate = input.readInlineSnapshot?.();
+		const snapshot = candidate?.elementId === el.id ? candidate : undefined;
+		if (snapshot && input.formatInlineSnapshot && !snapshot.textSegments) {
+			return;
+		}
+		const liveText = snapshot?.text ?? (liveEditor ? readEditableText(liveEditor) : undefined);
 		const base =
 			liveText === undefined
 				? el
 				: {
 						...el,
 						text: liveText,
-						textSegments: el.textSegments
-							? remapTextToSegments(liveText, el.textSegments, el.textStyle)
-							: undefined,
+						textSegments:
+							snapshot?.textSegments ??
+							(el.textSegments
+								? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+								: undefined),
 					};
+		if (snapshot?.textSegments && input.formatInlineSnapshot) {
+			const selected = getInlineEditorSelectionResult(snapshot.textSegments);
+			if (selected.kind === 'unsupported') {
+				return;
+			}
+			const patch = buildInlineListStylePatch(base, updates, selected.selection);
+			const formatted = { ...base, ...patch };
+			if (
+				!patch ||
+				!hasTextProperties(formatted) ||
+				!formatted.textSegments ||
+				!input.formatInlineSnapshot({ ...snapshot, textSegments: formatted.textSegments })
+			) {
+				return;
+			}
+			ops.updateElement(id, { text: snapshot.text, ...patch });
+			return;
+		}
 		const listed =
 			listType === undefined ? base : { ...base, ...setElementBullets(base, listType) };
 		if (!hasTextProperties(listed)) {
@@ -189,21 +215,32 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 		if (!el || !hasTextProperties(el)) {
 			return;
 		}
-		// `InlineTextEditor.vue`'s contenteditable is uncontrolled: it only emits
-		// plain text on input/blur, never writing back to `el.textSegments`/`.text`
-		// until commit. Reconcile against its live DOM text first (same remap the
-		// commit path uses), or case-transforming a stale snapshot leaves
-		// whatever the user typed since untransformed once the session commits.
+		// Reconcile the uncontrolled editor's current draft before transforming case.
 		const liveEditor =
 			typeof document === 'undefined'
 				? null
 				: document.querySelector<HTMLElement>('[data-inline-editor]');
-		const liveText = liveEditor ? readEditableText(liveEditor) : undefined;
+		const candidate = input.readInlineSnapshot?.();
+		const snapshot = candidate?.elementId === el.id ? candidate : undefined;
+		const liveText = snapshot?.text ?? (liveEditor ? readEditableText(liveEditor) : undefined);
 		const baseSegments =
-			liveText !== undefined && el.textSegments
+			snapshot?.textSegments ??
+			(liveText !== undefined && el.textSegments
 				? remapTextToSegments(liveText, el.textSegments, el.textStyle)
-				: el.textSegments;
+				: el.textSegments);
 		const baseText = liveText ?? el.text;
+		if (snapshot && input.endInlineListSession) {
+			if (!snapshot.textSegments) {
+				return;
+			}
+			const next = transformInlineListCase(snapshot, null, mode);
+			if (next === snapshot) {
+				return;
+			}
+			input.endInlineListSession();
+			ops.updateElement(id, { text: next.text, textSegments: next.textSegments });
+			return;
+		}
 
 		const updates: Partial<PptxElement> = {};
 		if (baseSegments && baseSegments.length > 0) {

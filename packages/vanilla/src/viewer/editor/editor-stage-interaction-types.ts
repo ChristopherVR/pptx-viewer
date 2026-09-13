@@ -25,6 +25,9 @@ export interface StageInteractionsDeps {
 }
 
 export interface StageInteractions {
+	readPendingInlineTextEdit?(): import('pptx-viewer-shared').PendingInlineTextEdit | undefined;
+	readInlineList?(): import('pptx-viewer-shared').InlineListReadResult | undefined;
+	formatInlineList?(snapshot: import('pptx-viewer-shared').InlineTextEditSnapshot): boolean;
 	onStagePointerDown(event: PointerEvent): void;
 	onStagePointerMove(event: PointerEvent): void;
 	onStageDblClick(event: MouseEvent): void;

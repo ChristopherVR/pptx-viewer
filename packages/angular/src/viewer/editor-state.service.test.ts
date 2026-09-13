@@ -1,8 +1,13 @@
+import { Injector, runInInjectionContext } from '@angular/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildInlineTextCommitPatch, SLIDE_TEMPLATES } from '../internal/shared';
+import { CollaborationService } from './collaboration.service';
 import { EditorStateService } from './editor-state.service';
+import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
+import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerFormatPainterService } from './viewer-format-painter.service';
 
 function element(id: string, x = 0, y = 0): PptxElement {
 	return { type: 'shape', id, name: '', x, y, width: 100, height: 50 } as PptxElement;
@@ -32,6 +37,44 @@ function service(): EditorStateService {
 }
 
 describe('editorStateService', () => {
+	it('commits a current rich snapshot through the canvas controller and history', () => {
+		const svc = new EditorStateService();
+		const source = {
+			...element('a'),
+			text: 'Same',
+			textSegments: [{ text: 'Same', style: {} }],
+		} as PptxElement;
+		svc.setSlides([slide('s1', [source])]);
+		const flush = vi.fn();
+		const injector = Injector.create({
+			providers: [
+				{ provide: EditorStateService, useValue: svc },
+				{ provide: ViewerDialogsService, useValue: {} },
+				{ provide: ViewerFormatPainterService, useValue: {} },
+				{ provide: CollaborationService, useValue: { livePatcher: { flush } } },
+			],
+		});
+		const controller = runInInjectionContext(injector, () => new ViewerCanvasEditingService());
+		controller.bind({
+			canEdit: () => true,
+			activeSlide: () => svc.slides()[0],
+			activeSlideIndex: () => 0,
+			activeTemplateElements: () => [],
+		});
+		const textSegments = [{ text: 'Same', style: { bold: true }, paragraphLevel: 1 }];
+		controller.onTextCommit({
+			id: 'a',
+			text: 'Same',
+			snapshot: { elementId: 'a', text: 'Same', textSegments },
+		});
+		expect(svc.slides()[0].elements[0]).toMatchObject({ textSegments });
+		expect(flush).toHaveBeenCalledOnce();
+		svc.undo();
+		expect(svc.slides()[0].elements[0]).toStrictEqual(source);
+		svc.redo();
+		expect(svc.slides()[0].elements[0]).toMatchObject({ textSegments });
+	});
+
 	it.each(['First\nInserted\nLast', 'Last'])(
 		'keeps suffix spacing through the inline commit/history composition for %s',
 		(text) => {

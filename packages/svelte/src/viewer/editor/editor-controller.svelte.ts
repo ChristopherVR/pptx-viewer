@@ -5,11 +5,14 @@ import type {
 	ResizeHandleId,
 	ShapeAdjustmentHandleDescriptor,
 	SnapLine,
+	InlineTextEditSnapshot,
+	InlineListController,
 } from 'pptx-viewer-shared';
 import {
 	armEditorKeyboard,
 	collectConnectorSiteCandidates,
 	findConnectorSiteNear,
+	inlineListBodyText,
 	publishLiveInlineText,
 	resolveConnectorEndpointUpdate,
 	resolveContextMenuElementId,
@@ -472,20 +475,75 @@ export class EditorController {
 	}
 
 	/** Commit the inline editor's text onto the element and close it. */
-	commitInline(id: string, text: string): void {
+	commitInline(id: string, text: string, snapshot?: InlineTextEditSnapshot): void {
 		// Flush any queued interim frame first so it cannot land after the
 		// committed (AutoCorrected) text and revert it.
 		this.#deps.getLivePatcher?.()?.flush();
-		this.#editor.commitInlineText(id, this.#deps.transformCommittedText?.(text) ?? text);
+		this.#editor.commitInlineText(id, this.#deps.transformCommittedText?.(text) ?? text, snapshot);
+	}
+
+	/** Register a live reader with this viewer's document and editing session. */
+	registerInlineReader(id: string, controller?: InlineListController, cancel?: () => void): void {
+		const editor = this.#editor;
+		editor.inlineListController = controller;
+		editor.cancelInlineListEdit = cancel;
+		if (!controller) {
+			editor.readPendingInlineTextEdit = undefined;
+			return;
+		}
+		const nonce = editor.seedNonce;
+		const body = () => {
+			const element = editor.activeElements.find((candidate) => candidate.id === id);
+			return element && 'textSegments' in element
+				? inlineListBodyText(element.textSegments)
+				: undefined;
+		};
+		let lastBody = body();
+		const target = editor.masterViewTarget
+			? { masterView: editor.masterViewTarget }
+			: { slideId: editor.slides[editor.currentSlideIndex]?.id };
+		editor.readPendingInlineTextEdit = () => {
+			if (this.editingId !== id || editor.seedNonce !== nonce || !editor.editable) {
+				return undefined;
+			}
+			if (
+				'slideId' in target
+					? editor.masterViewTarget ||
+						editor.slides[editor.currentSlideIndex]?.id !== target.slideId
+					: JSON.stringify(editor.masterViewTarget) !== JSON.stringify(target.masterView)
+			) {
+				cancel?.();
+				return undefined;
+			}
+			const result = controller.read();
+			const snapshot = result.kind === 'supported' ? result.snapshot : undefined;
+			const currentBody = body();
+			if (currentBody !== lastBody && currentBody !== snapshot?.text) {
+				cancel?.();
+				return undefined;
+			}
+			lastBody = currentBody;
+			if (!snapshot || snapshot.elementId !== id || ('slideId' in target && !target.slideId)) {
+				return undefined;
+			}
+			return { snapshot, target, text: editor.transformCommittedText(snapshot.text) };
+		};
 	}
 
 	/** Close the inline editor without further mutation. */
 	closeInline(): void {
+		this.#editor.inlineListController = undefined;
+		this.#editor.cancelInlineListEdit = undefined;
+		this.#editor.readPendingInlineTextEdit = undefined;
 		this.editingId = null;
 	}
 
 	/** Tear down window listeners (component destroy). */
 	destroy(): void {
+		this.#editor.cancelInlineListEdit?.();
+		this.#editor.cancelInlineListEdit = undefined;
+		this.#editor.inlineListController = undefined;
+		this.#editor.readPendingInlineTextEdit = undefined;
 		this.#gestures.dispose();
 		this.#selectionGestures.dispose();
 		this.#ink.dispose();

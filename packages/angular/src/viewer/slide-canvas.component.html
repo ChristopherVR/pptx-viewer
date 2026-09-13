@@ -196,21 +196,37 @@
 				></button>
 			}
 			@if (editingBox(); as eb) {
-				<textarea
-					#textEditor
-					data-inline-editor
-					class="pptx-ng-text-editor"
-					aria-label="Edit slide text"
-					[spellcheck]="spellCheck()"
-					[style.left.px]="eb.x"
-					[style.top.px]="eb.y"
-					[style.width.px]="eb.width"
-					[style.height.px]="eb.height"
-					(pointerdown)="$event.stopPropagation()"
-					(input)="onTextInput($event, eb.id)"
-					(blur)="commitText($event, eb.id)"
-					(keydown)="onEditorKeydown($event)"
-				></textarea>
+				@if (inlineListSeed(); as seed) {
+					@for (session of [seed]; track session) {
+						<pptx-inline-list-editor
+							[element]="eb.element"
+							[seed]="session"
+							[activationSelection]="listActivationSelection()"
+							[spellCheck]="spellCheck()"
+							(textInput)="textInput.emit($event)"
+							(textCommit)="textCommit.emit($event)"
+							(textCancel)="textCancel.emit()"
+							(textFormat)="textFormat.emit($event)"
+							(listSession)="listSession.emit($event)"
+						/>
+					}
+				} @else {
+					<textarea
+						#textEditor
+						data-inline-editor
+						class="pptx-ng-text-editor"
+						aria-label="Edit slide text"
+						[spellcheck]="spellCheck()"
+						[style.left.px]="eb.x"
+						[style.top.px]="eb.y"
+						[style.width.px]="eb.width"
+						[style.height.px]="eb.height"
+						(pointerdown)="$event.stopPropagation()"
+						(input)="onTextInput($event, eb.id)"
+						(blur)="commitText($event, eb.id)"
+						(keydown)="onEditorKeydown($event)"
+					></textarea>
+				}
 			}
 
 			<!--
