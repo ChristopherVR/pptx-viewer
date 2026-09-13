@@ -6,6 +6,8 @@
 import type { PptxElement, ShapeStyle, TextStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
+import { textStylePatch } from './inspector-helpers';
+
 export interface CopiedFormat {
 	shapeStyle?: Partial<ShapeStyle>;
 	textStyle?: Partial<TextStyle>;
@@ -94,10 +96,7 @@ export function applyFormatToElement(element: PptxElement, format: CopiedFormat)
 	if (format.textStyle && hasTextProperties(updated)) {
 		updated = {
 			...updated,
-			textStyle: {
-				...updated.textStyle,
-				...definedEntries(format.textStyle),
-			},
+			...textStylePatch(updated, definedEntries(format.textStyle)),
 		} as PptxElement;
 	}
 

@@ -6,7 +6,8 @@
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { isBulletMarkerSegment } from './bullet-toggle';
-import { alignParagraphSources } from './remap-paragraph-sources';
+import { remapEmptyParagraph } from './remap-empty-paragraph';
+import { alignParagraphSources, restoreParagraphMetadata } from './remap-paragraph-sources';
 import {
 	continueAutoNumberedParagraph,
 	renumberRemappedParagraphs,
@@ -62,38 +63,6 @@ function copySegmentMetadata(from: TextSegment, to: TextSegment): TextSegment {
 		to.fieldParagraphPropertiesXml = from.fieldParagraphPropertiesXml;
 	}
 	return to;
-}
-
-/**
- * Restore paragraph-scoped metadata on the first remapped run. Core and the
- * save writer deliberately carry these values on that run only; remapping the
- * characters must not turn an authored paragraph back into a default one.
- */
-function restoreParagraphMetadata(
-	from: TextSegment | undefined,
-	segments: TextSegment[],
-): TextSegment[] {
-	if (segments.length === 0) {
-		return segments;
-	}
-	const [first, ...rest] = segments;
-	const restored = { ...first };
-	// `remapParagraph` may itself return a donor segment. Clear its paragraph
-	// fields first so an extra paragraph cannot accidentally inherit metadata
-	// merely because it reused the final paragraph for run styling.
-	delete restored.paragraphLevel;
-	delete restored.paragraphProperties;
-	delete restored.endParaRunProperties;
-	if (from?.paragraphLevel !== undefined) {
-		restored.paragraphLevel = from.paragraphLevel;
-	}
-	if (from?.paragraphProperties !== undefined) {
-		restored.paragraphProperties = from.paragraphProperties;
-	}
-	if (from?.endParaRunProperties !== undefined) {
-		restored.endParaRunProperties = from.endParaRunProperties;
-	}
-	return [restored, ...rest];
 }
 
 /**
@@ -272,14 +241,21 @@ export function remapTextToSegments(
 			const breakStyle = precedingOrigPara[0]?.style
 				? { ...precedingOrigPara[0].style }
 				: { ...baseFallbackStyle };
-			output.push({ text: '\n', style: breakStyle, isParagraphBreak: true });
+			const terminator = originalParagraphs[paragraphSources[pi - 1] ?? -1]?.terminator;
+			output.push(
+				terminator?.paragraphInsertionStyle && newParagraphTexts[pi - 1] === ''
+					? { ...terminator, text: '\n', isParagraphBreak: true }
+					: { text: '\n', style: breakStyle, isParagraphBreak: true },
+			);
 		}
 
 		const originalParagraph = originalParagraphs[paragraphSources[pi] ?? -1];
 		const origPara = originalParagraph?.segments ?? lastOrigPara ?? [];
 		let paraSegments = restoreParagraphMetadata(
 			originalParagraph?.segments[0] ?? originalParagraph?.terminator,
-			remapParagraph(newParagraphTexts[pi], origPara),
+			(originalParagraph &&
+				remapEmptyParagraph(newParagraphTexts[pi], origPara, originalParagraph.terminator)) ??
+				remapParagraph(newParagraphTexts[pi], origPara),
 		);
 		// Only true tail appends use the historical numbering continuation rule.
 		// An unmatched middle paragraph has no donor paragraph metadata.

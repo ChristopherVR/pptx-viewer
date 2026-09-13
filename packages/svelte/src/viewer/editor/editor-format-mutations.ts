@@ -75,8 +75,7 @@ export function highlightColorOf(el: PptxElement): string {
 
 /** Set the text highlight colour, preserving other text-style fields. */
 export function setHighlightColorPatch(el: PptxElement, color: string): Partial<PptxElement> {
-	const base = hasTextProperties(el) ? (el.textStyle ?? {}) : {};
-	return { textStyle: { ...base, highlightColor: color } } as Partial<PptxElement>;
+	return textStylePatch(el, { highlightColor: color });
 }
 
 /** Set the shape fill colour. */

@@ -6,6 +6,9 @@
  */
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
+import { isBulletMarkerSegment } from './bullet-toggle';
+import { updateTextSegmentStyle } from './update-text-segment-style';
+
 export { getInlineEditorSelection } from './inline-editor-selection';
 
 /** Describes which segments (and offsets within them) are selected. */
@@ -52,7 +55,10 @@ export function applyStyleToSelectedSegments(
 	let newEndOffset = 0;
 
 	for (let i = 0; i < segments.length; i++) {
-		const seg = segments[i];
+		const seg =
+			i >= startSegIdx && i <= endSegIdx
+				? updateTextSegmentStyle(segments[i], updates, { updateBodyStyle: false })
+				: segments[i];
 
 		// Paragraph-break segments always pass through.
 		if (seg.isParagraphBreak || seg.text === '\n') {
@@ -73,6 +79,13 @@ export function applyStyleToSelectedSegments(
 		}
 
 		// Single-segment selection (start and end in the same segment).
+		if (seg.paragraphInsertionStyle && (seg.text === '' || isBulletMarkerSegment(seg))) {
+			newStartSegIdx = newStartSegIdx < 0 ? result.length : newStartSegIdx;
+			newEndSegIdx = result.length;
+			result.push(seg);
+			continue;
+		}
+
 		if (i === startSegIdx && i === endSegIdx) {
 			splitSingle(seg, startOffset, endOffset, updates, result);
 			// Track the new selection: the selected part is at `result.length - 1`

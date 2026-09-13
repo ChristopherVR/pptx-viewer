@@ -12,6 +12,7 @@ import {
 	remapTextToSegments,
 	setElementBullets,
 	transformTextCase,
+	updateTextSegmentStyle,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
@@ -164,7 +165,7 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 		const textStyle = { ...listed.textStyle, ...styleUpdates };
 		const segments =
 			listed.textSegments && listed.textSegments.length > 0
-				? listed.textSegments.map((s) => ({ ...s, style: { ...s.style, ...styleUpdates } }))
+				? listed.textSegments.map((s) => updateTextSegmentStyle(s, styleUpdates))
 				: undefined;
 		ops.updateElement(id, {
 			...(liveText !== undefined ? { text: liveText } : {}),

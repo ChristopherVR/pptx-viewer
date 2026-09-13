@@ -11,6 +11,7 @@ import type { ParagraphBulletKind } from './bullet-toggle';
 import { applyStyleToSelectedSegments } from './inline-selection-utils';
 import type { InlineTextSelection } from './inline-selection-utils';
 import { isParagraphSeparatorSegment as isParagraphBreak } from './text-segment-paragraph-break';
+import { updateTextSegmentStyle } from './update-text-segment-style';
 
 /** Body offsets ignore only the leading display marker of each paragraph. */
 function positions(segments: readonly TextSegment[]): Array<{
@@ -123,10 +124,7 @@ export function applyListStyleUpdate(
 			segments = restoreParagraphMetadata(segments, styled.newSegments);
 			workingSelection = styled.newSelection;
 		} else {
-			segments = segments.map((segment) => ({
-				...segment,
-				style: { ...segment.style, ...characterStyle },
-			}));
+			segments = segments.map((segment) => updateTextSegmentStyle(segment, characterStyle));
 		}
 	}
 	const working = {

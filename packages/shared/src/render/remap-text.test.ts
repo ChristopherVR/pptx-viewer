@@ -3,6 +3,8 @@ import { hasTextProperties, PptxHandler, PresentationBuilder } from 'pptx-viewer
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
+import { decodeDelta, encodeSegmentsToDelta } from './collaboration-text-codec';
+import { textStylePatch } from './inspector-helpers';
 import { remapTextToSegments } from './remap-text';
 import { buildParagraphs } from './text-paragraphs';
 
@@ -107,6 +109,235 @@ function breakSeg(style: TextStyle = {}): TextSegment {
 }
 
 describe('remapTextToSegments', () => {
+	it('moves a runless blank terminator with its aligned source and consumes its style on later typing', () => {
+		const hint = { fontFamily: 'Courier New', fontSize: 40 };
+		const original = [
+			seg('First'),
+			breakSeg(),
+			{ ...breakSeg(), paragraphInsertionStyle: hint },
+			seg('Last'),
+		];
+		const moved = remapTextToSegments('Inserted\nFirst\n\nLast', original, {});
+		expect(moved[4]).toMatchObject({ text: '\n', paragraphInsertionStyle: hint });
+		expect(moved.filter((segment) => segment.paragraphInsertionStyle)).toHaveLength(1);
+		const typed = remapTextToSegments('Inserted\nFirst\nTyped\nLast', moved, {});
+		expect(typed.find((segment) => segment.text === 'Typed')?.style).toStrictEqual(hint);
+		expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+	});
+
+	describe('empty paragraph insertion formatting', () => {
+		const insertion: TextStyle = {
+			fontFamily: 'Courier New',
+			fontSize: 40,
+			color: '#007000',
+			bold: true,
+			authoredRunStyle: { fontFamily: 'Courier New', fontSize: 40, color: '#007000', bold: true },
+			inheritedRunStyle: { fontFamily: 'Calibri', fontSize: 24 },
+		};
+
+		it('ignores stale insertion hints on a nonempty body run', () => {
+			const result = remapTextToSegments(
+				'Edited',
+				[{ text: 'Body', style: { fontSize: 18 }, paragraphInsertionStyle: insertion }],
+				{},
+			);
+			expect(result).toHaveLength(1);
+			expect(result[0].style.fontSize).toBe(18);
+		});
+
+		it.each([
+			['plain', undefined, ''],
+			['character', { char: '◆' }, '◆ '],
+			['numbered', { autoNumType: 'romanUcPeriod', paragraphIndex: 0 }, 'I.'],
+			['picture', { imageRelId: 'rId7' }, ''],
+		] as const)(
+			'uses end formatting for typed %s body, leaving marker styling intact',
+			(_name, bulletInfo, marker) => {
+				const source: TextSegment = {
+					text: marker,
+					style: { fontSize: 18, fontFamily: 'Symbol' },
+					...(bulletInfo ? { bulletInfo } : {}),
+					paragraphInsertionStyle: insertion,
+					endParaRunProperties: { '@_sz': '3000' },
+					paragraphProperties: { paragraphSpacingAfter: 10 },
+				};
+				const original = [source];
+				const result = remapTextToSegments('Typed', original, {});
+				expect(result.at(-1)).toMatchObject({ text: 'Typed', style: insertion });
+				expect(result.at(-1)?.paragraphInsertionStyle).toBeUndefined();
+				expect(result[0].endParaRunProperties).toStrictEqual(source.endParaRunProperties);
+				if (bulletInfo) {
+					expect(result[0].style).toStrictEqual(source.style);
+				}
+				expect(remapTextToSegments('', original, {})).toStrictEqual(original);
+				expect(source.paragraphInsertionStyle).toBe(insertion);
+				const restyled = result.map((segment) =>
+					segment.text === 'Typed'
+						? { ...segment, style: { ...segment.style, fontSize: 52 } }
+						: segment,
+				);
+				expect(remapTextToSegments('Typed again', restyled, {}).at(-1)?.style.fontSize).toBe(52);
+				const appended = remapTextToSegments('\nNew', original, {});
+				expect(appended.at(-1)?.style.fontFamily).not.toBe('Courier New');
+				expect(appended.at(-1)?.paragraphInsertionStyle).toBeUndefined();
+			},
+		);
+
+		it('keeps an unchanged runless middle paragraph on its terminator', () => {
+			const terminator: TextSegment = {
+				...breakSeg(),
+				paragraphInsertionStyle: insertion,
+				endParaRunProperties: { '@_sz': '3000' },
+			};
+			const original = [seg('Before'), breakSeg(), terminator, seg('After')];
+			const unchanged = remapTextToSegments('Changed\n\nAfter', original, {});
+			expect(unchanged.filter((segment) => segment.text === '')).toHaveLength(0);
+			expect(unchanged[2]).toStrictEqual(terminator);
+			const typed = remapTextToSegments('Before\nTyped\nAfter', original, {});
+			expect(typed.find((segment) => segment.text === 'Typed')?.style).toStrictEqual(insertion);
+			expect(typed.find((segment) => segment.text === 'Typed')?.endParaRunProperties).toStrictEqual(
+				terminator.endParaRunProperties,
+			);
+		});
+	});
+
+	describe('empty paragraph native save/reload', () => {
+		it.each(
+			[
+				['plain', ''],
+				['character', '<a:buChar char="◆"/>'],
+				['numbered', '<a:buAutoNum type="romanUcPeriod"/>'],
+				['picture', '<a:buBlip><a:blip r:embed="rIdEmptyBullet"/></a:buBlip>'],
+			].flatMap(([kind, bulletXml]) =>
+				[false, true].map((trailing) => ({ kind, bulletXml, trailing })),
+			),
+		)(
+			'preserves $kind end formatting through a no-op and first typed body (trailing=$trailing)',
+			async ({ bulletXml, trailing }) => {
+				const {
+					handler: seedHandler,
+					data: seed,
+					createSlide,
+				} = await PresentationBuilder.create();
+				const suffix = trailing ? '' : '\nAfter';
+				seed.slides.push(
+					createSlide('Blank')
+						.addText(`Before\nPlaceholder${suffix}`, { x: 40, y: 40, width: 300, height: 160 })
+						.build(),
+				);
+				const zip = await JSZip.loadAsync(await seedHandler.save(seed.slides));
+				zip.file(
+					'ppt/media/empty-bullet.png',
+					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jN1sAAAAASUVORK5CYII=',
+					{ base64: true },
+				);
+				const rels = 'ppt/slides/_rels/slide1.xml.rels';
+				zip.file(
+					rels,
+					(await zip.file(rels)!.async('string')).replace(
+						'</Relationships>',
+						'<Relationship Id="rIdEmptyBullet" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/empty-bullet.png"/></Relationships>',
+					),
+				);
+				zip.file(
+					'[Content_Types].xml',
+					(await zip.file('[Content_Types].xml')!.async('string')).replace(
+						'</Types>',
+						'<Default Extension="png" ContentType="image/png"/></Types>',
+					),
+				);
+				const part = 'ppt/slides/slide1.xml';
+				const initialXml = await zip.file(part)!.async('string');
+				const end =
+					'<a:endParaRPr sz="3000" b="1"><a:solidFill><a:srgbClr val="007000"/></a:solidFill><a:latin typeface="Courier New"/></a:endParaRPr>';
+				zip.file(
+					part,
+					initialXml.replace(/<a:p>[\s\S]*?<\/a:p>/gu, (paragraph) =>
+						paragraph.includes('Placeholder')
+							? `<a:p><a:pPr>${bulletXml}</a:pPr>${end}</a:p>`
+							: paragraph,
+					),
+				);
+				const input = await zip.generateAsync({ type: 'arraybuffer' });
+				for (const mode of ['blank', 'typed', 'formatted-blank', 'formatted-typed']) {
+					const typed = mode.endsWith('typed');
+					const formatted = mode.startsWith('formatted');
+					const updates = { fontFamily: 'Arial', fontSize: 24, bold: false, color: '#000000' };
+					const handler = new PptxHandler();
+					const loaded = await handler.load(input);
+					const target = loaded.slides[0].elements[0];
+					if (!hasTextProperties(target)) {
+						throw new Error('expected text');
+					}
+					if (formatted) {
+						Object.assign(target, textStylePatch(target, updates));
+					}
+					target.text = typed ? `Before\nTyped${suffix}` : `Changed\n${suffix}`;
+					target.textSegments = remapTextToSegments(
+						target.text,
+						target.textSegments,
+						target.textStyle,
+					);
+					loaded.slides[0].isDirty = true;
+					target.textSegments = decodeDelta(
+						encodeSegmentsToDelta(target.textSegments),
+					) as unknown as TextSegment[];
+					const saved = await handler.save(loaded.slides);
+					const savedZip = await JSZip.loadAsync(saved);
+					const xml = await savedZip.file(part)!.async('string');
+					const middle = [...xml.matchAll(/<a:p>[\s\S]*?<\/a:p>/gu)][1][0];
+					if (!formatted) {
+						expect(middle).toContain(end.replace(/<([\w:]+)([^>]*)\/>/gu, '<$1$2></$1>'));
+					}
+					if (!typed) {
+						expect(middle).not.toContain('<a:r>');
+						if (formatted) {
+							const roundtrip = await new PptxHandler().load(
+								saved.buffer.slice(
+									saved.byteOffset,
+									saved.byteOffset + saved.byteLength,
+								) as ArrayBuffer,
+							);
+							const blank = roundtrip.slides[0].elements[0];
+							if (!hasTextProperties(blank)) {
+								throw new Error('expected text');
+							}
+							const afterReopen = remapTextToSegments(
+								`Before\nTyped${suffix}`,
+								blank.textSegments,
+								blank.textStyle,
+							);
+							expect(afterReopen.find((segment) => segment.text === 'Typed')?.style).toMatchObject(
+								updates,
+							);
+						}
+					} else {
+						const reloaded = await new PptxHandler().load(
+							saved.buffer.slice(
+								saved.byteOffset,
+								saved.byteOffset + saved.byteLength,
+							) as ArrayBuffer,
+						);
+						const element = reloaded.slides[0].elements[0];
+						expect(
+							hasTextProperties(element) &&
+								element.textSegments?.find((segment) => segment.text === 'Typed')?.style,
+						).toMatchObject(
+							formatted
+								? updates
+								: {
+										fontSize: 40,
+										fontFamily: 'Courier New',
+										bold: true,
+										color: '#007000',
+									},
+						);
+					}
+				}
+			},
+		);
+	});
+
 	describe('unchanged paragraph provenance', () => {
 		it('bounds interior alignment work and retains positional fallback for oversized ambiguous ranges', () => {
 			const source: TextSegment[] = Array.from({ length: 102 }, (_, index) => ({
