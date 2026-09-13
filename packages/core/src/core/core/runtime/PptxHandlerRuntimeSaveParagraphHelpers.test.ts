@@ -675,6 +675,61 @@ describe('assembleParagraphXml', () => {
 // computeUniformSegmentOverrides
 // ---------------------------------------------------------------------------
 describe('computeUniformSegmentOverrides', () => {
+	it.each([
+		['fontFamily', 'Calibri', 'Arial', 'Courier New'],
+		['fontSize', 24, 22, 32],
+		['bold', false, true, true],
+		['italic', false, true, true],
+		['underline', false, true, true],
+		['strikethrough', false, true, true],
+		['rtl', false, true, true],
+		[
+			'hyperlink',
+			'https://example.com/original',
+			'https://example.com/run',
+			'https://example.com/edited',
+		],
+		['color', '#000000', '#123456', '#FF0000'],
+		['align', 'left', 'center', 'right'],
+	] as const)(
+		'distinguishes inherited %s from a real element-level edit',
+		(key, inherited, run, edited) => {
+			const baseline = { [key]: inherited } as TextStyle;
+			const style = { ...baseline, inheritedRunStyle: baseline, authoredRunStyle: {} } as TextStyle;
+			const segments: TextSegment[] = [{ text: 'Edited body', style: { [key]: run } as TextStyle }];
+			expect(computeUniformSegmentOverrides(style, segments)[key]).toBeUndefined();
+			expect(computeUniformSegmentOverrides({ ...style, [key]: edited }, segments)[key]).toBe(
+				edited,
+			);
+		},
+	);
+
+	it('also recognizes an unchanged authored element value over its inherited baseline', () => {
+		const style: TextStyle = {
+			fontSize: 20,
+			inheritedRunStyle: { fontSize: 24 },
+			authoredRunStyle: { fontSize: 20 },
+		};
+		const segments: TextSegment[] = [{ text: 'Body', style: { fontSize: 18 } }];
+		expect(computeUniformSegmentOverrides(style, segments)).toStrictEqual({});
+		expect(computeUniformSegmentOverrides({ ...style, fontSize: 32 }, segments)).toStrictEqual({
+			fontSize: 32,
+		});
+	});
+
+	it('still preserves mixed runs after an actual parsed element-level edit', () => {
+		const style: TextStyle = {
+			fontSize: 32,
+			inheritedRunStyle: { fontSize: 24 },
+			authoredRunStyle: {},
+		};
+		const segments: TextSegment[] = [
+			{ text: 'A', style: { fontSize: 18 } },
+			{ text: 'B', style: { fontSize: 20 } },
+		];
+		expect(computeUniformSegmentOverrides(style, segments)).toStrictEqual({});
+	});
+
 	it('should return empty object when textStyle is undefined', () => {
 		const segments: TextSegment[] = [
 			{ text: 'a', style: { bold: true } },
