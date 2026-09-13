@@ -26,6 +26,8 @@ export interface UseViewerApiOptions {
 	presenting: Ref<boolean>;
 	showMasterView: Ref<boolean>;
 	mode: Ref<ViewerMode> | ComputedRef<ViewerMode>;
+	setEditingRequested: (editable: boolean) => void;
+	commitPendingText: () => void;
 	getContent: () => Promise<Uint8Array>;
 	goTo: (index: number) => void;
 	goPrev: () => void;
@@ -91,6 +93,15 @@ export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpo
 		zoomReset: options.zoomReset,
 		getMode: () => options.mode.value,
 		setMode: (newMode) => {
+			if (
+				newMode === 'preview' &&
+				(options.mode.value === 'edit' || options.mode.value === 'master')
+			) {
+				options.commitPendingText();
+			}
+			if (newMode !== 'present') {
+				options.setEditingRequested(newMode !== 'preview');
+			}
 			if (newMode === 'present') {
 				options.startPresenting();
 			} else if (newMode === 'master') {
