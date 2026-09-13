@@ -14,6 +14,7 @@ import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
 import { provideTranslator } from '../../i18n/context';
 import { createDeckApi } from '../editor/deck-api';
 import { createEditingApi } from '../editor/editing-api';
+import { serializeEditorState } from '../editor/editor-document-lifecycle';
 import { EditorState } from '../editor/editor-state.svelte';
 import { createExportingApi } from '../export/exporting-api';
 import { provideAreaChart3D } from './area-chart-3d-context';
@@ -137,7 +138,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 			}),
 		onChange: () => {
 			options.onchange?.();
-			void editor.save().then((bytes) => options.oncontentchange?.(bytes));
+			const oncontentchange = options.oncontentchange;
+			if (oncontentchange) {
+				void serializeEditorState(editor).then(oncontentchange, (error: unknown) =>
+					options.onerror?.(error instanceof Error ? error.message : String(error)),
+				);
+			}
 		},
 	});
 	// Deck-level inspector actions (Properties tab, no selection), via context.
