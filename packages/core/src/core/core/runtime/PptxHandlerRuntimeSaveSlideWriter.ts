@@ -1,4 +1,4 @@
-import { remapEditorAnimationsToShapeIds } from '../../services';
+import { remapEditorAnimationsToShapeIds, resolveConnectorShapeIds } from '../../services';
 import { writeCommonSlideDataName } from '../../services/slide-name';
 import { XmlObject, PptxComment, PptxSlide } from '../../types';
 import type { MediaPptxElement, PptxElementAnimation } from '../../types';
@@ -406,6 +406,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 
 		const ctx: SaveSlideContext = {
+			connectorShapeIds: resolveConnectorShapeIds(slide.elements, this.maxCnvPrId(spTree)),
 			slide,
 			slideRelationships,
 			slideRelationshipRegistry,

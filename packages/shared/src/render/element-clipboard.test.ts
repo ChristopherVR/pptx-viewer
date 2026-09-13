@@ -1,5 +1,7 @@
+import JSZip from 'jszip';
 import type { ChartPptxElement, PptxElement } from 'pptx-viewer-core';
 import {
+	PptxHandler,
 	makeStoreAwareId,
 	reassignDescendantIds as coreReassignDescendantIds,
 } from 'pptx-viewer-core';
@@ -65,6 +67,214 @@ function collectIds(element: PptxElement): string[] {
 	}
 	return ids;
 }
+
+function connectedGroup(): PptxElement {
+	return {
+		type: 'group',
+		id: 'group',
+		shapeId: '10',
+		name: 'Connected group',
+		x: 60,
+		y: 80,
+		width: 400,
+		height: 100,
+		children: [
+			{
+				type: 'shape',
+				id: 'left',
+				shapeId: '11',
+				name: 'Left',
+				shapeType: 'rect',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 100,
+			},
+			{
+				type: 'shape',
+				id: 'right',
+				shapeId: '12',
+				name: 'Right',
+				shapeType: 'rect',
+				x: 300,
+				y: 0,
+				width: 100,
+				height: 100,
+			},
+			{
+				type: 'connector',
+				id: 'line',
+				shapeId: '13',
+				name: 'Connection',
+				shapeType: 'straightConnector1',
+				x: 100,
+				y: 50,
+				width: 200,
+				height: 0,
+				shapeStyle: {
+					connectorStartConnection: { shapeId: 'left', connectionSiteIndex: 3 },
+					connectorEndConnection: { shapeId: 'right', connectionSiteIndex: 1 },
+				},
+			},
+		],
+	};
+}
+
+describe('cloned connected groups', () => {
+	it('points typed connector references at the cloned children', () => {
+		const source = connectedGroup();
+		const clone = cloneElementForPaste(source);
+		if (clone.type !== 'group') {
+			throw new Error('expected cloned group');
+		}
+		const connector = clone.children.find((element) => element.type === 'connector');
+		expect(connector?.shapeStyle?.connectorStartConnection?.shapeId).toBe(clone.children[0].id);
+		expect(connector?.shapeStyle?.connectorEndConnection?.shapeId).toBe(clone.children[1].id);
+	});
+
+	it('handles connector-before-target nesting, native references, and external references', () => {
+		const source = connectedGroup();
+		if (source.type !== 'group') {
+			throw new Error('expected group');
+		}
+		const [left, right, connector] = source.children;
+		if (connector.type !== 'connector' || !connector.shapeStyle) {
+			throw new Error('expected connector');
+		}
+		connector.shapeStyle.connectorStartConnection = { shapeId: '11', connectionSiteIndex: 3 };
+		connector.shapeStyle.connectorEndConnection = { shapeId: 'outside', connectionSiteIndex: 7 };
+		source.children = [
+			connector,
+			{ type: 'group', id: 'nested', x: 0, y: 0, width: 400, height: 100, children: [left, right] },
+		];
+		const original = structuredClone(source);
+		const clone = cloneElementForPaste(source, { intoTemplate: true });
+		if (
+			clone.type !== 'group' ||
+			clone.children[0].type !== 'connector' ||
+			clone.children[1].type !== 'group'
+		) {
+			throw new Error('expected nested connected group');
+		}
+		expect(clone.children[0].shapeStyle?.connectorStartConnection).toStrictEqual({
+			shapeId: clone.children[1].children[0].id,
+			connectionSiteIndex: 3,
+		});
+		expect(clone.children[0].shapeStyle?.connectorEndConnection).toStrictEqual({
+			shapeId: 'outside',
+			connectionSiteIndex: 7,
+		});
+		expect(clone.children[1].children[0].shapeId).toBeUndefined();
+		expect(collectIds(clone).every((id) => id.startsWith('layout-el-'))).toBeTruthy();
+		expect(source).toStrictEqual(original);
+	});
+
+	it.each([false, true])(
+		'keeps loaded cloned bindings on save with pasted-first=%s',
+		async (pastedFirst) => {
+			const created = await PptxHandler.create({ initialSlideCount: 1 });
+			const source = connectedGroup();
+			if (source.type !== 'group') {
+				throw new Error('expected group');
+			}
+			const connector = source.children.find((element) => element.type === 'connector');
+			if (!connector?.shapeStyle) {
+				throw new Error('expected connector style');
+			}
+			connector.shapeStyle.connectorStartConnection = { shapeId: '11', connectionSiteIndex: 3 };
+			connector.shapeStyle.connectorEndConnection = { shapeId: '12', connectionSiteIndex: 1 };
+			created.data.slides[0].elements = [source];
+			const original = await created.handler.save(created.data.slides);
+			const handler = new PptxHandler();
+			const reloader = new PptxHandler();
+			try {
+				const loaded = await handler.load(
+					original.buffer.slice(
+						original.byteOffset,
+						original.byteOffset + original.byteLength,
+					) as ArrayBuffer,
+				);
+				const originalGroup = loaded.slides[0].elements.find((element) => element.type === 'group');
+				if (!originalGroup) {
+					throw new Error('expected loaded group');
+				}
+				const originalConnector = originalGroup.children.find(
+					(element) => element.type === 'connector',
+				);
+				expect(originalConnector?.shapeStyle?.connectorStartConnection?.shapeId).toBe(
+					originalGroup.children[0].shapeId,
+				);
+				const unchanged = await handler.save(loaded.slides);
+				await expect(
+					(await JSZip.loadAsync(unchanged)).file('ppt/slides/slide1.xml')?.async('string'),
+				).resolves.toBe(
+					await (await JSZip.loadAsync(original)).file('ppt/slides/slide1.xml')?.async('string'),
+				);
+				const clone = cloneElementForPaste(originalGroup);
+				clone.name = 'Pasted group';
+				loaded.slides[0].elements.push({
+					type: 'connector',
+					id: 'outside',
+					name: 'Outside connection',
+					x: 0,
+					y: 0,
+					width: 60,
+					height: 80,
+					shapeStyle: {
+						connectorEndConnection: { shapeId: originalGroup.id, connectionSiteIndex: 0 },
+					},
+				});
+				if (pastedFirst) {
+					loaded.slides[0].elements.unshift(clone);
+				} else {
+					loaded.slides[0].elements.push(clone);
+				}
+				const saved = await handler.save(loaded.slides);
+				const reloaded = await reloader.load(
+					saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+				);
+				const pasted = reloaded.slides[0].elements.find(
+					(element) => element.name === 'Pasted group',
+				);
+				if (pasted?.type !== 'group') {
+					throw new Error('expected saved pasted group');
+				}
+				const pastedConnector = pasted.children.find((element) => element.type === 'connector');
+				expect(pastedConnector?.shapeStyle?.connectorStartConnection?.shapeId).toBe(
+					pasted.children[0].shapeId,
+				);
+				expect(pastedConnector?.shapeStyle?.connectorEndConnection?.shapeId).toBe(
+					pasted.children[1].shapeId,
+				);
+				const kept = reloaded.slides[0].elements.find(
+					(element) => element.name === 'Connected group',
+				);
+				if (kept?.type !== 'group') {
+					throw new Error('expected original group');
+				}
+				expect(kept.children[0].shapeId).toBe(originalGroup.children[0].shapeId);
+				expect(kept.shapeId).toBe(originalGroup.shapeId);
+				const outside = reloaded.slides[0].elements.find(
+					(element) => element.name === 'Outside connection',
+				);
+				expect(
+					outside?.type === 'connector' && outside.shapeStyle?.connectorEndConnection?.shapeId,
+				).toBe(kept.shapeId);
+				expect(pasted.children[0].shapeId).not.toBe(kept.children[0].shapeId);
+				const repeated = await handler.save(loaded.slides);
+				await expect(
+					(await JSZip.loadAsync(repeated)).file('ppt/slides/slide1.xml')?.async('string'),
+				).resolves.toBe(
+					await (await JSZip.loadAsync(saved)).file('ppt/slides/slide1.xml')?.async('string'),
+				);
+			} finally {
+				created.handler.dispose();
+				handler.dispose();
+				reloader.dispose();
+			}
+		},
+	);
+});
 
 // The clipboard used to carry its own copies of these two, so a paste and a
 // duplicate/ungroup could drift apart in how they mint ids. Core owns them now;

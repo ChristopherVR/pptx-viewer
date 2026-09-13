@@ -27,6 +27,7 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 
 /** Context passed to per-element save processing. */
 export interface SaveSlideContext {
+	readonly connectorShapeIds?: ReadonlyMap<string, string>;
 	readonly slide: PptxSlide;
 	readonly slideRelationships: XmlObject[];
 	readonly slideRelationshipRegistry: IPptxSlideRelationshipRegistry;
