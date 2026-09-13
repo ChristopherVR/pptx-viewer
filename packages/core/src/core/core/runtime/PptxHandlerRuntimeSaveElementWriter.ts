@@ -1,3 +1,4 @@
+import { applyConnectorShapeIds } from '../../services';
 import { hasShapeProperties, hasTextProperties } from '../../types';
 import type {
 	XmlObject,
@@ -711,6 +712,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.applyDataSerialization(shape, el, ctx.slide.id);
 
 		// Actions and locks
+		if (ctx.connectorShapeIds) {
+			applyConnectorShapeIds(shape, el, ctx.connectorShapeIds);
+		}
 		this.serializeElementActions(shape, el, ctx.resolveHyperlinkRelationshipId);
 		this.serializeShapeLocks(shape, el);
 

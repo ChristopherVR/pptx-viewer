@@ -8,6 +8,58 @@ import type { PptxHandoutMaster } from '../../core/types';
 const HANDOUT_PATH = 'ppt/handoutMasters/handoutMaster1.xml';
 
 describe('authored handout master package round-trip', () => {
+	it.each(['notesMaster', 'handoutMaster'] as const)(
+		'preserves %s native identities through no-op and edited saves',
+		async (kind) => {
+			const created = await PresentationBuilder.create({ initialSlideCount: 1 });
+			created.data.slides[0].notes = 'Notes master fixture';
+			const seed = await created.handler.save(created.data.slides, {
+				handoutMaster: { path: HANDOUT_PATH },
+			});
+			const zip = await JSZip.loadAsync(seed);
+			const partPath = kind === 'notesMaster' ? 'ppt/notesMasters/notesMaster1.xml' : HANDOUT_PATH;
+			const part = await zip.file(partPath)!.async('string');
+			const transform =
+				'<a:xfrm><a:off x="95250" y="95250"/><a:ext cx="952500" cy="952500"/></a:xfrm>';
+			const shape = `<p:sp><p:nvSpPr><p:cNvPr id="41" name="Native target"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${
+				transform
+			}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:sp>`;
+			const connector = `<p:cxnSp><p:nvCxnSpPr><p:cNvPr id="42" name="Native connection"/><p:cNvCxnSpPr><a:stCxn id="41" idx="1"/></p:cNvCxnSpPr><p:nvPr/></p:nvCxnSpPr><p:spPr>${
+				transform
+			}<a:prstGeom prst="straightConnector1"><a:avLst/></a:prstGeom></p:spPr></p:cxnSp>`;
+			zip.file(partPath, part.replace('</p:spTree>', `${shape + connector}</p:spTree>`));
+			const bytes = await zip.generateAsync({ type: 'uint8array' });
+			const handler = new PptxHandler();
+			const data = await handler.load(
+				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+			);
+			const master = data[kind]!;
+			const target = master.elements?.find((element) => element.name === 'Native target');
+			expect(target?.shapeId).toBe('41');
+			const options = { [kind]: master };
+			const untouched = await handler.save(data.slides, options);
+			const untouchedNative = await (
+				await JSZip.loadAsync(untouched)
+			)
+				.file(partPath)!
+				.async('string');
+			expect(untouchedNative).toContain('id="41" name="Native target"');
+			expect(untouchedNative).toContain('id="42" name="Native connection"');
+			expect(untouchedNative).toContain('<a:stCxn id="41" idx="1"');
+			if (!target) {
+				throw new Error('expected native target');
+			}
+			target.x += 10;
+			const edited = await handler.save(data.slides, options);
+			const native = await (await JSZip.loadAsync(edited)).file(partPath)!.async('string');
+			expect(native).toContain('id="41" name="Native target"');
+			expect(native).toContain('id="42" name="Native connection"');
+			expect(native).toContain('<a:stCxn id="41" idx="1"');
+			handler.dispose();
+			created.handler.dispose();
+		},
+	);
+
 	it('creates and preserves the complete handout master OPC graph', async () => {
 		const { handler, data, createSlide } = await PresentationBuilder.create();
 		data.slides.push(createSlide('Blank').build());

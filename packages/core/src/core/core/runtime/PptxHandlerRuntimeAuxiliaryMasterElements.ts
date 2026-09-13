@@ -1,3 +1,4 @@
+import { reconcileAnimationTargets } from '../../services';
 /**
  * @fileoverview Shape-tree parsing for the four "template" parts whose
  * artwork the Slide Master view renders and edits: `p:notesMaster`,
@@ -119,6 +120,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		} finally {
 			this.currentSlideClrMapOverride = previousClrMapOverride;
 		}
+		// Keep native identities just as the slide loader does, before editing can clone them.
+		reconcileAnimationTargets(part.elements, undefined, undefined);
 		rememberMasterPartElementSignature(this, partPath, part.elements);
 		this.rememberUnparsedMasterNodes(partPath, spTree, part.elements);
 	}

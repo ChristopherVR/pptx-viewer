@@ -151,17 +151,21 @@ export function buildGroupNonVisualXml(
 	rawGroupXml: XmlObject | undefined,
 	modelName: string | undefined,
 	fallbackName: string,
+	modelShapeId?: string,
 ): XmlObject {
 	const rawNv = rawGroupXml?.['p:nvGrpSpPr'] as XmlObject | undefined;
 	if (!rawNv) {
 		return {
-			'p:cNvPr': { '@_id': '0', '@_name': modelName ?? fallbackName },
+			'p:cNvPr': { '@_id': modelShapeId ?? '0', '@_name': modelName ?? fallbackName },
 			'p:cNvGrpSpPr': {},
 			'p:nvPr': {},
 		};
 	}
 	const nv = cloneXmlNode(rawNv);
 	const cNvPr = (nv['p:cNvPr'] as XmlObject | undefined) ?? {};
+	if (modelShapeId !== undefined) {
+		cNvPr['@_id'] = modelShapeId;
+	}
 	if (typeof cNvPr['@_id'] !== 'string' || cNvPr['@_id'].length === 0) {
 		cNvPr['@_id'] = '0';
 	}

@@ -126,7 +126,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	): XmlObject | null {
 		// If the group still has rawXml and children haven't changed, reuse it
 		if (group.rawXml && group.children.length === 0) {
-			return group.rawXml;
+			return {
+				...group.rawXml,
+				'p:nvGrpSpPr': buildGroupNonVisualXml(group.rawXml, group.name, group.id, group.shapeId),
+			};
 		}
 
 		const EMU = PptxHandlerRuntime.EMU_PER_PX;
@@ -145,7 +148,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const childSpace: GroupChildSpaceOwner = group;
 
 		const grpXml: XmlObject = {
-			'p:nvGrpSpPr': buildGroupNonVisualXml(rawGroupXml, group.name, group.id),
+			'p:nvGrpSpPr': buildGroupNonVisualXml(rawGroupXml, group.name, group.id, group.shapeId),
 			'p:grpSpPr': buildGroupPropertiesXml(rawGroupXml, xfrm),
 		};
 		const rawExtLst = rawGroupXml?.['p:extLst'];

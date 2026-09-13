@@ -37,6 +37,7 @@ export {
 } from './PptxEditorAnimationService';
 export { reconcileAnimationTargets } from './animation-target-reconcile';
 export { remapEditorAnimationsToShapeIds } from './animation-shape-id-assign';
+export { resolveConnectorShapeIds, applyConnectorShapeIds } from './connector-shape-id-assign';
 export { mergeNativeSoundIntoEditorAnimations } from './animation-sound-merge';
 export {
 	PptxNativeAnimationService,
