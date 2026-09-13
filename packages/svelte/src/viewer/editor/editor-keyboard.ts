@@ -24,6 +24,8 @@ export interface EditorKeyboardDeps {
 	copySelected(): void;
 	cutSelected(): void;
 	paste(): void;
+	/** Omitted preserves custom callers that own their paste command. */
+	canPaste?(): boolean;
 	/** Select every interactive element on the active slide (Ctrl+A). */
 	selectAll(): void;
 	/** Group the multi-selection into one group element (Ctrl+G). */
@@ -52,6 +54,7 @@ export function createEditorKeydownHandler(
 			return;
 		}
 		const { action, dx, dy } = mapEditorKey(event, {
+			canPaste: deps.canPaste?.(),
 			hasSelection: deps.getSelectedId() !== null,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
 		});

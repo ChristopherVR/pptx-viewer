@@ -128,6 +128,8 @@ export interface UseKeyboardShortcutsOptions {
 
 	/** Whether at least one element is selected. */
 	hasSelection?: MaybeRefOrGetter<boolean>;
+	/** False leaves native paste unclaimed; omitted preserves custom callbacks. */
+	canPaste?: MaybeRefOrGetter<boolean>;
 	/** Id of the element being inline-edited, or `null`. Suppresses shortcuts. */
 	inlineEditingElementId?: MaybeRefOrGetter<string | null>;
 	/** Whether a table cell is actively being edited. Suppresses shortcuts. */
@@ -330,6 +332,7 @@ export function groupShortcutCatalog(
 /** Resolved guard state: the plain (de-reffed) snapshot the matcher reads. */
 export interface ShortcutGuardState {
 	canEdit: boolean;
+	canPaste?: boolean;
 	isPresenting: boolean;
 	hasSelection: boolean;
 	inlineEditingElementId: string | null;
@@ -357,6 +360,7 @@ export function resolveShortcutAction(
 		{ key, ctrlKey: mod, shiftKey },
 		{
 			canEdit: guard.canEdit,
+			canPaste: guard.canPaste,
 			isPresenting: guard.isPresenting,
 			hasSelection: guard.hasSelection,
 			isEditingText: Boolean(guard.inlineEditingElementId || guard.tableEditorIsEditing),
@@ -384,6 +388,7 @@ export function useKeyboardShortcuts(
 	function readGuard(event: KeyboardEvent): ShortcutGuardState {
 		return {
 			canEdit: resolveFlag(options.canEdit, true),
+			canPaste: resolveFlag(options.canPaste, true),
 			isPresenting: resolveFlag(options.isPresenting, false),
 			hasSelection: resolveFlag(options.hasSelection, false),
 			inlineEditingElementId: resolveFlag(options.inlineEditingElementId, null),

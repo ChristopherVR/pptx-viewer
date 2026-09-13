@@ -31,6 +31,24 @@ function keydown(key: string, opts: Partial<KeyboardEventInit> = {}): KeyboardEv
 }
 
 describe('createEditorKeydownHandler clipboard shortcuts', () => {
+	it.each([{ ctrlKey: true }, { metaKey: true }])(
+		'does not prevent unavailable paste: %j',
+		(modifiers) => {
+			let available = false;
+			const deps = makeDeps({ canPaste: () => available, getSelectedId: () => null });
+			const handler = createEditorKeydownHandler(deps);
+			const empty = new KeyboardEvent('keydown', { key: 'v', ...modifiers, cancelable: true });
+			handler(empty);
+			expect(empty.defaultPrevented).toBeFalsy();
+			expect(deps.paste).not.toHaveBeenCalled();
+			available = true;
+			const populated = new KeyboardEvent('keydown', { key: 'v', ...modifiers, cancelable: true });
+			handler(populated);
+			expect(populated.defaultPrevented).toBeTruthy();
+			expect(deps.paste).toHaveBeenCalledOnce();
+		},
+	);
+
 	it('fires copySelected on Ctrl+C when something is selected', () => {
 		const deps = makeDeps();
 		const handler = createEditorKeydownHandler(deps);

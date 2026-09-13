@@ -63,6 +63,7 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 		mode,
 		canEdit,
 		inlineEditingElementId: state.inlineEditingElementId,
+		canPaste: Boolean(state.clipboardPayload && activeSlide),
 		tableEditorState: state.tableEditorState,
 		activeTool: state.activeTool,
 		hasSelection: state.effectiveSelectedIds.length > 0,

@@ -45,6 +45,23 @@ function defaultGuard(overrides: Partial<ShortcutGuardState> = {}): ShortcutGuar
 }
 
 describe('resolveShortcutAction - pure dispatch logic', () => {
+	it.each([{ ctrlKey: true }, { metaKey: true }])(
+		'does not prevent unavailable paste: %j',
+		(modifiers) => {
+			const canPaste = ref(false);
+			const paste = vi.fn();
+			const keys = useKeyboardShortcuts({ canPaste, hasSelection: false, actions: { paste } });
+			const empty = new KeyboardEvent('keydown', { key: 'v', ...modifiers, cancelable: true });
+			keys.handleKeyDown(empty);
+			expect(empty.defaultPrevented).toBeFalsy();
+			expect(paste).not.toHaveBeenCalled();
+			canPaste.value = true;
+			const populated = new KeyboardEvent('keydown', { key: 'v', ...modifiers, cancelable: true });
+			keys.handleKeyDown(populated);
+			expect(populated.defaultPrevented).toBeTruthy();
+			expect(paste).toHaveBeenCalledOnce();
+		},
+	);
 	describe('guard conditions', () => {
 		it('returns null in present mode', () => {
 			expect(

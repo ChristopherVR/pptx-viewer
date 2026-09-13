@@ -86,6 +86,7 @@ export class ViewerKeyboardService {
 
 		const { action, dx, dy } = mapEditorKey(event, {
 			canEdit: host.canEdit(),
+			canPaste: this.editor.hasClipboard(),
 			isPresenting: host.presenting(),
 			hasSelection: this.editor.hasSelection(),
 			isDrawing: host.isDrawing?.() ?? false,

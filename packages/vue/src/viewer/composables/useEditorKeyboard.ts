@@ -12,6 +12,7 @@ import type { UseKeyboardShortcutsResult } from './useKeyboardShortcuts';
 
 export interface UseEditorKeyboardInput {
 	canEdit: () => boolean;
+	canPaste?: () => boolean;
 	hasSelection: ComputedRef<boolean>;
 	/** A slide show (or rehearsal) is actually running, not merely previewing. */
 	presenting: Ref<boolean>;
@@ -176,6 +177,7 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 	}
 
 	const shortcuts = useKeyboardShortcuts({
+		canPaste: input.canPaste,
 		actions: {
 			undo,
 			redo,

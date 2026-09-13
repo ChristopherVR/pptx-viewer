@@ -89,6 +89,8 @@ export interface EditorKeyGuard {
 	isPresenting: boolean;
 	/** At least one element is selected. */
 	hasSelection: boolean;
+	/** False leaves paste to the browser/host when no internal paste is available. */
+	canPaste?: boolean;
 	/** An inline text or table-cell editor is open. */
 	isEditingText: boolean;
 	/** A drawing tool other than the selection arrow is armed. */
@@ -102,6 +104,7 @@ const GUARD_DEFAULTS: EditorKeyGuard = {
 	canEdit: true,
 	isPresenting: false,
 	hasSelection: false,
+	canPaste: true,
 	isEditingText: false,
 	isDrawing: false,
 	isTextInputTarget: false,
@@ -222,6 +225,9 @@ export function mapEditorKey(
 	if (mod && !alt) {
 		const chord = resolveChord(key, Boolean(input.shiftKey), state.hasSelection);
 		if (chord) {
+			if (chord.action === 'paste' && state.canPaste === false) {
+				return NO_ACTION;
+			}
 			return chord;
 		}
 	}

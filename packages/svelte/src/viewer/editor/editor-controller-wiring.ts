@@ -175,6 +175,7 @@ export function createEditorKeydown(host: EditorControllerHost): (event: Keyboar
 		copySelected: () => editor.clipboardOps.copySelected(),
 		cutSelected: () => editor.clipboardOps.cutSelected(),
 		paste: () => void editor.clipboardOps.pasteClipboard(),
+		canPaste: () => editor.hasClipboard,
 		selectAll: () => {
 			// Template-owned elements are only selectable while edit-template mode
 			// is on, so the same interactivity rule the pointer uses applies here.
