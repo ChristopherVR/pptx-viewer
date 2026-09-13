@@ -50,6 +50,32 @@ function useHarness(element: PptxElement): Harness {
 }
 
 describe('commitInlineEdit', () => {
+	it.each(['First\nInserted\nLast', 'Last'])(
+		'records one changed commit preserving suffix spacing for %s',
+		(text) => {
+			const last = {
+				text: 'Last',
+				style: { color: '#006600' },
+				paragraphProperties: { paragraphSpacingAfter: 10 },
+			};
+			const element = makeElement({
+				text: 'First\nLast',
+				textSegments: [
+					{ text: 'First', style: {}, paragraphProperties: { paragraphSpacingAfter: 20 } },
+					{ text: '\n', style: {}, isParagraphBreak: true },
+					last,
+				],
+			} as Partial<PptxElement>);
+			const { editing, updateElement } = useHarness(element);
+			editing.enterInlineEdit(element.id);
+			editing.updateInlineText(text);
+			editing.commitInlineEdit();
+			expect(updateElement).toHaveBeenCalledOnce();
+			expect(updateElement.mock.calls[0][1]).toMatchObject({ text });
+			expect(updateElement.mock.calls[0][1].textSegments.at(-1)).toStrictEqual(last);
+		},
+	);
+
 	it('records nothing when the text was not changed', () => {
 		const element = makeElement();
 		const { editing, updateElement } = useHarness(element);

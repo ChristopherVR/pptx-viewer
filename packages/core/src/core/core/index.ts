@@ -38,6 +38,13 @@ export {
 } from './runtime/table-structural-ops';
 export { DEFAULT_POWERPOINT_TABLE_STYLE_ID } from './runtime/table-style-defaults';
 
+// Use the same list ordinals when authoring in a viewer as when parsing a deck.
+export {
+	createAutoNumberSequence,
+	nextAutoNumber,
+	breakAutoNumberRun,
+} from './runtime/auto-number-sequence';
+
 // Table-STYLE (ppt/tableStyles.xml) editing: create/delete a style entry on
 // a ParsedTableStyleMap, and the section-name vocabulary + GUID normaliser
 // needed to target one of the 13 CT_TableStyle parts (W3-E). Save-time

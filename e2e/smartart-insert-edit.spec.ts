@@ -487,6 +487,86 @@ test.describe('smartart insert and edit', () => {
 		expect(runtimeErrors).toStrictEqual([]);
 	});
 
+	for (const trigger of ['Enter', 'blur'] as const) {
+		test(`commits an on-canvas node edit once on ${trigger} and can reopen it`, async ({
+			page,
+		}) => {
+			const runtimeErrors = collectRuntimeErrors(page);
+			await loadDeck(page);
+			await switchToInsertTab(page);
+			await insertSmartArtPreset(page);
+			const smartArt = currentSmartArt(page);
+			const original = await renderedNodeText(smartArt);
+			const { editor } = await openFocusedNodeEditor(page, smartArt);
+			await expect(editor).toHaveValue(original);
+			await editor.fill('Committed node text');
+			if (trigger === 'Enter') {
+				await editor.press('Enter');
+			} else {
+				await blurNodeEditor(page);
+			}
+			await expect(editor).toHaveCount(0);
+			await expect.poll(() => renderedNodeText(smartArt)).toBe('Committed node text');
+
+			const { editor: reopened } = await openFocusedNodeEditor(page, smartArt);
+			await expect(reopened).toHaveValue('Committed node text');
+			await reopened.press('Escape');
+			await expect(reopened).toHaveCount(0);
+			await clickHistory(page, 'Undo');
+			await expect.poll(() => renderedNodeText(smartArt)).toBe(original);
+			await clickHistory(page, 'Redo');
+			await expect.poll(() => renderedNodeText(smartArt)).toBe('Committed node text');
+
+			const download = await savePptxViaBackstage(page);
+			const savedPath = await download.path();
+			expect(savedPath).not.toBeNull();
+			await loadDeckFile(page, savedPath!);
+			await expect.poll(() => renderedNodeText(currentSmartArt(page))).toBe('Committed node text');
+			expect(runtimeErrors).toStrictEqual([]);
+		});
+	}
+
+	test('cancels an on-canvas node edit on Escape and can reopen it', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await loadDeck(page);
+		await switchToInsertTab(page);
+		await insertSmartArtPreset(page);
+		const smartArt = currentSmartArt(page);
+		const original = await renderedNodeText(smartArt);
+		const { editor } = await openFocusedNodeEditor(page, smartArt);
+		await editor.fill('This edit must be cancelled');
+		await editor.press('Escape');
+		await expect(editor).toHaveCount(0);
+		await expect.poll(() => renderedNodeText(smartArt)).toBe(original);
+		const { editor: reopened } = await openFocusedNodeEditor(page, smartArt);
+		await expect(reopened).toHaveValue(original);
+		await reopened.press('Escape');
+		await expect(reopened).toHaveCount(0);
+		expect(runtimeErrors).toStrictEqual([]);
+	});
+
+	test('keeps Shift+Enter as a multiline edit and commits it on blur', async ({ page }) => {
+		const runtimeErrors = collectRuntimeErrors(page);
+		await loadDeck(page);
+		await switchToInsertTab(page);
+		await insertSmartArtPreset(page);
+		const smartArt = currentSmartArt(page);
+		const original = await renderedNodeText(smartArt);
+		const { editor } = await openFocusedNodeEditor(page, smartArt);
+		await editor.fill('Line one');
+		await editor.press('Shift+Enter');
+		await page.keyboard.type('Line two');
+		await expect(editor).toHaveValue('Line one\nLine two');
+		await expect(editor).toBeFocused();
+		await blurNodeEditor(page);
+		await expect
+			.poll(() => renderedNodeText(smartArt).then((text) => text.replace(/\s+/g, '')))
+			.toBe('LineoneLinetwo');
+		await clickHistory(page, 'Undo');
+		await expect.poll(() => renderedNodeText(smartArt)).toBe(original);
+		expect(runtimeErrors).toStrictEqual([]);
+	});
+
 	test('edits a loaded drawing node through the SmartArt editor', async ({ page }) => {
 		const runtimeErrors = collectRuntimeErrors(page);
 		await loadDeckFile(page, drawingFixturePath);

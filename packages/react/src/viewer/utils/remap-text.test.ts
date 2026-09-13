@@ -26,6 +26,25 @@ function breakSeg(style: TextStyle = {}): TextSegment {
 // ---------------------------------------------------------------------------
 
 describe('remapTextToSegments', () => {
+	it.each(['First\nInserted\nLast', 'Last'])('keeps suffix metadata when committing %s', (text) => {
+		const last: TextSegment = {
+			text: 'Last',
+			style: { color: '#006600' },
+			bulletInfo: { char: '◆' },
+			paragraphProperties: { paragraphSpacingAfter: 10 },
+		};
+		const result = remapTextToSegments(
+			text,
+			[
+				{ text: 'First', style: {}, paragraphProperties: { paragraphSpacingAfter: 20 } },
+				breakSeg(),
+				last,
+			],
+			{},
+		);
+		expect(result.at(-1)).toStrictEqual(last);
+		expect(result.map((item) => item.text).join('')).toBe(text);
+	});
 	describe('fallback behaviour', () => {
 		it('should return single segment with fallback style when no original segments', () => {
 			const result = remapTextToSegments('Hello', undefined, { bold: true });

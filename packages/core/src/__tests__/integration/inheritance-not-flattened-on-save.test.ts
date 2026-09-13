@@ -24,6 +24,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 import { PptxHandler } from '../../core/PptxHandler';
 import type { PptxElement } from '../../core/types';
+import { hasTextProperties } from '../../core/types';
 import { readCorpusFixture } from './real-world-corpus-helpers';
 
 const FIXTURE = 'animations-transitions-multislide.pptx';
@@ -278,6 +279,89 @@ describe('edited inherited placeholder transforms', () => {
 			if (editText) {
 				expect(title).toContain('Changed title text');
 			}
+		},
+	);
+});
+
+describe('text-only commits do not become element-level style edits', () => {
+	it.each([{}, { fontSize: 32 }, { color: '#FF0000' }, { bold: true }])(
+		'preserves native run formatting while honoring explicit edit %j',
+		async (styleEdit) => {
+			const {
+				handler: seedHandler,
+				data: seed,
+				createSlide,
+			} = await PptxHandler.createBlank({ initialSlideCount: 0 });
+			seed.slides.push(
+				createSlide('Blank')
+					.addText('Placeholder', { x: 40, y: 40, width: 300, height: 120 })
+					.build(),
+			);
+			const zip = await JSZip.loadAsync(await seedHandler.save(seed.slides));
+			const part = 'ppt/slides/slide1.xml';
+			const xml = await zip.file(part)!.async('string');
+			const paragraphs = ['First', 'Second']
+				.map(
+					(body) =>
+						'<a:p><a:pPr><a:buAutoNum type="romanUcPeriod" startAt="3"/></a:pPr>' +
+						'<a:r><a:rPr sz="1650"><a:solidFill><a:srgbClr val="123456"/></a:solidFill>' +
+						`<a:latin typeface="Arial"/></a:rPr><a:t>${body}</a:t></a:r><a:endParaRPr lang="en-US"/></a:p>`,
+				)
+				.join('');
+			zip.file(
+				part,
+				xml.replace(
+					/<p:txBody>[\s\S]*?<\/p:txBody>/u,
+					'<p:txBody><a:bodyPr/><a:lstStyle><a:lvl1pPr><a:defRPr>' +
+						'<a:solidFill><a:srgbClr val="123456"/></a:solidFill>' +
+						`</a:defRPr></a:lvl1pPr></a:lstStyle>${paragraphs}</p:txBody>`,
+				),
+			);
+			const source = await zip.generateAsync({ type: 'arraybuffer' });
+			const handler = new PptxHandler();
+			const data = await handler.load(source);
+			const element = data.slides[0].elements[0];
+			if (!hasTextProperties(element)) {
+				throw new Error('expected text element');
+			}
+			expect(element.textStyle?.fontSize).toBe(24);
+			// A plain-text commit preserves body run sizes and copies the previous
+			// paragraph's run size onto separators. This can make all segments
+			// uniform without editing the inherited element-level default at all.
+			const textSegments = element.textSegments!.map((segment) => ({
+				...segment,
+				text: segment.text === 'First' ? 'First edited' : segment.text,
+				style: { ...segment.style, fontSize: 22 },
+			}));
+			const edited = {
+				...element,
+				text: 'First edited\nSecond',
+				textSegments,
+				textStyle: { ...element.textStyle, ...styleEdit },
+			};
+			const saved = await handler.save([{ ...data.slides[0], isDirty: true, elements: [edited] }]);
+			const reloaded = await new PptxHandler().load(
+				saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+			);
+			const result = reloaded.slides[0].elements[0];
+			if (!hasTextProperties(result)) {
+				throw new Error('expected reloaded text');
+			}
+			const bodies = result.textSegments!.filter(
+				(segment) => segment.text === 'First edited' || segment.text === 'Second',
+			);
+			expect(bodies.map((segment) => segment.text)).toStrictEqual(['First edited', 'Second']);
+			for (const body of bodies) {
+				expect(body.style).toMatchObject({
+					fontSize: 22,
+					fontFamily: 'Arial',
+					color: '#123456',
+					...styleEdit,
+				});
+			}
+			const savedXml = await partOf(saved, part);
+			expect(savedXml).toContain('First edited');
+			expect(savedXml).toContain(`sz="${'fontSize' in styleEdit ? '2400' : '1650'}"`);
 		},
 	);
 });

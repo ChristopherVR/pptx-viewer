@@ -129,17 +129,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			} else {
 				bulletText = '• ';
 			}
-			// With no `a:buSzPct` / `a:buSzPts`, PowerPoint draws the bullet at
-			// 100% of the FIRST TEXT RUN's size, not at the text body's default.
-			// Using `mergedDefaultRunStyle` alone made a bullet on an 8pt run
-			// render at the 18pt body default - a ~2.2x oversized glyph, and
-			// visibly inconsistent between paragraphs (one that happened to carry
-			// an `a:endParaRPr sz` picked the right size up by accident).
+			// Unsized bullets and `a:buSzPct` use the FIRST TEXT RUN's size as
+			// their base, not the text body's default. The renderer applies the
+			// percentage; `a:buSzPts` is absolute and does not use this base.
 			const bulletStyle = { ...mergedDefaultRunStyle } as TextStyle;
-			if (
-				paragraphBulletInfo.sizePercent === undefined &&
-				paragraphBulletInfo.sizePts === undefined
-			) {
+			if (paragraphBulletInfo.sizePts === undefined) {
 				const firstRunSize = this.resolveFirstRunFontSize(p, paraAlign, ctx);
 				if (firstRunSize !== undefined) {
 					bulletStyle.fontSize = firstRunSize;
@@ -468,31 +462,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	/**
 	 * Font size (px) of the first text run in a paragraph, or `undefined` when
-	 * the paragraph has no run that declares one.
+	 * that first run inherits its size.
 	 *
-	 * Used to size an unsized bullet the way PowerPoint does: `a:buChar` /
-	 * `a:buAutoNum` with no `a:buSzPct`/`a:buSzPts` inherits the first run's
-	 * size. Only `a:r` and `a:fld` carry renderable text; `a:br` does not.
+	 * Used as the base for unsized and percentage-sized bullets. Only `a:r`
+	 * and `a:fld` carry renderable text; `a:br` does not.
 	 */
 	protected resolveFirstRunFontSize(
 		p: XmlObject,
 		paraAlign: TextStyle['align'],
 		ctx: ShapeTextParsingContext,
 	): number | undefined {
-		for (const key of ['a:r', 'a:fld'] as const) {
-			const node = p[key];
-			if (!node) {
+		for (const [tag, node] of paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS).entries) {
+			if (tag !== 'a:r' && tag !== 'a:fld') {
 				continue;
 			}
-			const first = (this.ensureArray(node) as XmlObject[])[0];
-			const runProps = first?.['a:rPr'] as XmlObject | undefined;
+			const runProps = (node as XmlObject | undefined)?.['a:rPr'] as XmlObject | undefined;
 			if (!runProps) {
-				continue;
+				return undefined;
 			}
 			const style = this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap);
-			if (typeof style.fontSize === 'number') {
-				return style.fontSize;
-			}
+			return typeof style.fontSize === 'number' ? style.fontSize : undefined;
 		}
 		return undefined;
 	}

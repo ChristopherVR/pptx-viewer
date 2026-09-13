@@ -1,7 +1,102 @@
+import JSZip from 'jszip';
+import { hasTextProperties, PptxHandler, PresentationBuilder } from 'pptx-viewer-core';
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import { remapTextToSegments } from './remap-text';
+import { buildParagraphs } from './text-paragraphs';
+
+const asBuffer = (bytes: Uint8Array): ArrayBuffer =>
+	bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+
+async function paragraphXml(bytes: Uint8Array, body: string): Promise<string> {
+	const zip = await JSZip.loadAsync(bytes);
+	const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+	const paragraph = [...xml.matchAll(/<a:p>[\s\S]*?<\/a:p>/gu)].find((match) =>
+		match[0].includes(`>${body}<`),
+	);
+	expect(paragraph, `missing native paragraph ${body}`).toBeDefined();
+	return paragraph![0].match(/<a:pPr\b[\s\S]*?<\/a:pPr>/u)?.[0] ?? '';
+}
+
+describe('remapped paragraph provenance save/reload', () => {
+	it.each([
+		['First\nInserted\nLast', false],
+		['Last', false],
+		['First\nInserted\nLast', true],
+		['Last', true],
+	] as const)(
+		'preserves surviving paragraph XML after %s (numbered=%s)',
+		async (text, numbered) => {
+			const { handler: seedHandler, data: seed, createSlide } = await PresentationBuilder.create();
+			const slide = createSlide('Blank')
+				.addText('First\nLast', { x: 40, y: 40, width: 300, height: 160 })
+				.build();
+			const element = slide.elements[0];
+			if (!hasTextProperties(element)) {
+				throw new Error('expected text');
+			}
+			const paragraph = (body: string, after: number): TextSegment => ({
+				text: body,
+				style: { fontSize: 20, fontFamily: 'Arial', color: '#CC6600' },
+				bulletInfo: {
+					...(numbered ? { autoNumType: 'romanUcPeriod', autoNumStartAt: 4 } : { char: '◆' }),
+					fontFamily: 'Arial',
+					color: '#CC6600',
+				},
+				paragraphLevel: 1,
+				paragraphProperties: {
+					paragraphSpacingBefore: 10,
+					paragraphSpacingAfter: after,
+					lineSpacing: 1.25,
+				},
+				endParaRunProperties: { '@_sz': '2000' },
+			});
+			element.textSegments = [
+				paragraph('First', 14),
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				paragraph('Last', 5),
+			];
+			seed.slides.push(slide);
+			const initial = await seedHandler.save(seed.slides);
+			const handler = new PptxHandler();
+			const loaded = await handler.load(asBuffer(initial));
+			const source = loaded.slides[0].elements[0];
+			if (!hasTextProperties(source)) {
+				throw new Error('expected loaded text');
+			}
+			const sourceLast = source.textSegments?.find((segment) => segment.text === 'Last');
+			const edited = {
+				...source,
+				text,
+				textSegments: remapTextToSegments(text, source.textSegments, source.textStyle),
+			};
+			const saved = await handler.save([
+				{ ...loaded.slides[0], isDirty: true, elements: [edited] },
+			]);
+			const originalProperties = await paragraphXml(initial, 'Last');
+			expect(originalProperties).toContain('a:spcAft');
+			expect(originalProperties).toContain(numbered ? 'a:buAutoNum' : 'a:buChar');
+			await expect(paragraphXml(saved, 'Last')).resolves.toBe(originalProperties);
+			const reloaded = await new PptxHandler().load(asBuffer(saved));
+			const result = reloaded.slides[0].elements[0];
+			if (!hasTextProperties(result)) {
+				throw new Error('expected reloaded text');
+			}
+			expect(result.textSegments?.find((segment) => segment.text === 'Last')?.style).toStrictEqual(
+				sourceLast?.style,
+			);
+			const bodies = result.textSegments
+				?.filter((segment) => !segment.bulletInfo && segment.text !== '\n')
+				.map((segment) => segment.text);
+			expect(bodies).toStrictEqual(text.split('\n'));
+			expect(buildParagraphs(result).map((item) => item.bulletMarker)).toStrictEqual(
+				buildParagraphs(edited).map((item) => item.bulletMarker),
+			);
+		},
+		30_000,
+	);
+});
 
 function seg(text: string, style: TextStyle = {}): TextSegment {
 	return { text, style };
@@ -12,6 +107,237 @@ function breakSeg(style: TextStyle = {}): TextSegment {
 }
 
 describe('remapTextToSegments', () => {
+	describe('unchanged paragraph provenance', () => {
+		it('bounds interior alignment work and retains positional fallback for oversized ambiguous ranges', () => {
+			const source: TextSegment[] = Array.from({ length: 102 }, (_, index) => ({
+				text: `Body ${index}`,
+				style: {},
+				paragraphProperties: { paragraphSpacingAfter: index },
+			}));
+			const original = source.flatMap((item, index) => (index ? [breakSeg(), item] : [item]));
+			const edited = [
+				'Body 0',
+				'Inserted',
+				...source.slice(1, -1).map((item) => item.text),
+				'Changed end',
+			];
+			const result = remapTextToSegments(edited.join('\n'), original, {}).filter(
+				(item) => !item.isParagraphBreak,
+			);
+			expect(result.map((item) => item.text)).toStrictEqual(edited);
+			expect(result[0]).toStrictEqual(source[0]);
+			expect(result[1].paragraphProperties).toStrictEqual(source[1].paragraphProperties);
+			expect(result.at(-1)?.paragraphProperties).toBeUndefined();
+		});
+
+		const paragraph = (text: string, index: number): TextSegment =>
+			Object.freeze({
+				text,
+				style: Object.freeze({
+					fontSize: 18 + index,
+					color: index ? '#009900' : '#cc3300',
+					bold: Boolean(index),
+				}),
+				bulletInfo: Object.freeze({ char: index ? '◆' : '»', fontFamily: 'Arial' }),
+				paragraphLevel: index,
+				paragraphProperties: Object.freeze({
+					paragraphSpacingBefore: 6 + index,
+					paragraphSpacingAfter: 14 - index,
+					lineSpacing: 1.25,
+				}),
+				endParaRunProperties: Object.freeze({ '@_sz': String(1800 + index * 100) }),
+			});
+		const group = (segments: TextSegment[]) => {
+			const paragraphs: TextSegment[][] = [[]];
+			for (const segment of segments) {
+				if (segment.isParagraphBreak || segment.text === '\n') {
+					paragraphs.push([]);
+				} else {
+					paragraphs.at(-1)!.push(segment);
+				}
+			}
+			return paragraphs;
+		};
+
+		it('keeps an unchanged suffix after a middle insertion without donating its paragraph metadata', () => {
+			const first = paragraph('First', 0),
+				last = paragraph('Last', 1);
+			const result = group(
+				remapTextToSegments('First\nInserted\nLast', [first, breakSeg(), last], {}),
+			);
+			expect(result[0][0]).toStrictEqual(first);
+			expect(result[2][0]).toStrictEqual(last);
+			expect(result[1][0].paragraphProperties).toBeUndefined();
+			expect(result[1][0].endParaRunProperties).toBeUndefined();
+			expect(result[1][0].paragraphLevel).toBeUndefined();
+		});
+
+		it('keeps surviving rich paragraphs after deleting the first paragraph', () => {
+			const first = paragraph('First', 0),
+				last = paragraph('Last', 1);
+			expect(remapTextToSegments('Last', [first, breakSeg(), last], {})).toStrictEqual([last]);
+		});
+
+		it.each(['Fir\nst\nLast', 'Joined\nLast'])(
+			'keeps the suffix for split/join text %s',
+			(text) => {
+				const last = paragraph('Last', 2);
+				const source = text.startsWith('Joined')
+					? [paragraph('First', 0), breakSeg(), paragraph('Second', 1), breakSeg(), last]
+					: [paragraph('First', 0), breakSeg(), last];
+				expect(group(remapTextToSegments(text, source, {})).at(-1)![0]).toStrictEqual(last);
+			},
+		);
+
+		it('matches duplicate body text from the corresponding ends, not the first global match', () => {
+			const first = paragraph('Same', 0),
+				last = paragraph('Same', 1);
+			const result = group(
+				remapTextToSegments('Same\nInserted\nSame', [first, breakSeg(), last], {}),
+			);
+			expect(result[0][0]).toStrictEqual(first);
+			expect(result[2][0]).toStrictEqual(last);
+			// Deleting an indistinguishable duplicate retains the first prefix deterministically.
+			expect(remapTextToSegments('Same', [first, breakSeg(), last], {})).toStrictEqual([first]);
+		});
+
+		it('preserves a shifted empty paragraph whose metadata rides its terminator', () => {
+			const empty = { ...paragraph('\n', 2), isParagraphBreak: true };
+			const last = paragraph('Last', 1);
+			const source = [paragraph('First', 0), breakSeg(), empty, last];
+			const result = group(remapTextToSegments('First\nInserted\n\nLast', source, {}));
+			expect(result[2][0].paragraphProperties).toBe(empty.paragraphProperties);
+			expect(result[2][0].paragraphLevel).toBe(2);
+			expect(result[3][0]).toStrictEqual(last);
+		});
+
+		it('matches body text while retaining a proven dedicated display marker', () => {
+			const first = paragraph('First', 0),
+				last = paragraph('Last', 1);
+			const marker = { ...last, text: '◆ ' };
+			const body = { text: 'Last', style: { italic: true } };
+			const result = group(
+				remapTextToSegments('First\nInserted\nLast', [first, breakSeg(), marker, body], {}),
+			);
+			expect(result[2]).toStrictEqual([marker, body]);
+		});
+
+		it('keeps no-op and append-only noninheritance controls', () => {
+			const first = paragraph('First', 0),
+				last = paragraph('Last', 1);
+			const source = [first, breakSeg(first.style), last];
+			expect(remapTextToSegments('First\nLast', source, {})).toStrictEqual(source);
+			const appended = group(remapTextToSegments('First\nLast\nAppended', source, {}));
+			expect(appended[1][0]).toStrictEqual(last);
+			expect(appended[2][0].paragraphProperties).toBeUndefined();
+			expect(appended[2][0].endParaRunProperties).toBeUndefined();
+		});
+
+		it('keeps leading and trailing blank paragraph provenance', () => {
+			const leading = { ...paragraph('\n', 0), isParagraphBreak: true };
+			const trailing = paragraph('', 2);
+			const result = group(
+				remapTextToSegments('First\n', [leading, paragraph('First', 1), breakSeg(), trailing], {}),
+			);
+			expect(result[0][0]).toStrictEqual(paragraph('First', 1));
+			expect(result[1][0]).toStrictEqual(trailing);
+			const inserted = group(
+				remapTextToSegments('First\nInserted\n', [paragraph('First', 1), breakSeg(), trailing], {}),
+			);
+			expect(inserted[2][0]).toStrictEqual(trailing);
+		});
+
+		it('retains literal marker-like body text without a proven display-marker index', () => {
+			const literal = { ...paragraph('1.', 1), bulletInfo: { autoNumType: 'arabicPeriod' } };
+			const result = group(
+				remapTextToSegments(
+					'First\nInserted\n1.',
+					[paragraph('First', 0), breakSeg(), literal],
+					{},
+				),
+			);
+			expect(result[2][0]).toStrictEqual(literal);
+		});
+
+		it('does not treat a long middle insertion as an appended numbered continuation', () => {
+			const marker: TextSegment = {
+				text: 'IV.',
+				style: {},
+				paragraphLevel: 2,
+				bulletInfo: { autoNumType: 'romanUcPeriod', autoNumStartAt: 4, paragraphIndex: 0 },
+				paragraphProperties: { paragraphSpacingAfter: 12 },
+			};
+			const source = [paragraph('First', 0), breakSeg(), marker, seg('Last')];
+			const result = group(remapTextToSegments('First\nA\nB\nC\nLast', source, {}));
+			expect(result[4][0]).toStrictEqual(marker);
+			for (const [index, inserted] of result.slice(1, 4).entries()) {
+				expect(inserted[0].paragraphLevel).toBeUndefined();
+				expect(inserted[0].paragraphProperties).toBeUndefined();
+				expect(inserted[0].bulletInfo?.paragraphIndex).toBe(index);
+			}
+		});
+
+		it('renumbers a shifted suffix without changing its authored numbering or run metadata', () => {
+			const first: TextSegment = {
+				text: 'IV.',
+				style: { fontSize: 24 },
+				bulletInfo: { autoNumType: 'romanUcPeriod', autoNumStartAt: 4, paragraphIndex: 0 },
+			};
+			const last: TextSegment = {
+				...paragraph('V.', 0),
+				bulletInfo: { autoNumType: 'romanUcPeriod', autoNumStartAt: 4, paragraphIndex: 1 },
+			};
+			const source = [first, seg('First'), breakSeg(), last, seg('Last')];
+			const deleted = remapTextToSegments('Last', source, {});
+			expect(deleted[0]).toStrictEqual({
+				...last,
+				text: 'IV.',
+				bulletInfo: { ...last.bulletInfo, paragraphIndex: 0 },
+			});
+			const inserted = group(remapTextToSegments('First\nInserted\nLast', source, {}));
+			expect(inserted[2][0]).toStrictEqual({
+				...last,
+				text: 'VI.',
+				bulletInfo: { ...last.bulletInfo, paragraphIndex: 2 },
+			});
+			expect(source[3]).toBe(last);
+		});
+
+		it('does not count suppressed paragraphs in a surviving numbered sequence', () => {
+			const hidden: TextSegment = {
+				text: 'Suppressed',
+				style: { listType: 'none' },
+				bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 },
+			};
+			const marker: TextSegment = {
+				text: '2.',
+				style: {},
+				bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 1 },
+			};
+			const result = remapTextToSegments(
+				'Suppressed\nLast',
+				[seg('Heading'), breakSeg(), hidden, breakSeg(), marker, seg('Last')],
+				{},
+			);
+			expect(group(result)[1][0]).toStrictEqual({
+				...marker,
+				text: '1.',
+				bulletInfo: { ...marker.bulletInfo, paragraphIndex: 0 },
+			});
+			expect(result[0]).toStrictEqual(hidden);
+		});
+
+		it('keeps positional fallback in a wholly replaced ambiguous region', () => {
+			const first = paragraph('First', 0),
+				last = paragraph('Last', 1);
+			const result = group(
+				remapTextToSegments('New first\nNew last', [first, breakSeg(), last], {}),
+			);
+			expect(result[0][0]).toStrictEqual({ ...first, text: 'New first' });
+			expect(result[1][0]).toStrictEqual({ ...last, text: 'New last' });
+		});
+	});
+
 	describe('fallback behaviour', () => {
 		it('returns single segment with fallback style when no original segments', () => {
 			const result = remapTextToSegments('Hello', undefined, { bold: true });
