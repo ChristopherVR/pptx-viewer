@@ -80,6 +80,39 @@ afterEach(() => {
 });
 
 describe('commitInlineText - spAutoFit editor resize', () => {
+	it.each(['First\nInserted\nLast', 'Last'])(
+		'preserves suffix spacing and history for %s',
+		(text) => {
+			const last = {
+				text: 'Last',
+				style: { color: '#006600' },
+				paragraphProperties: { paragraphSpacingAfter: 10 },
+			};
+			const editor = make();
+			editor.setSlides([
+				slide('a', [
+					shape('e1', {
+						text: 'First\nLast',
+						textStyle: {},
+						textSegments: [
+							{ text: 'First', style: {}, paragraphProperties: { paragraphSpacingAfter: 20 } },
+							{ text: '\n', style: {}, isParagraphBreak: true },
+							last,
+						],
+					}),
+				]),
+			]);
+			editor.commitInlineText('e1', text);
+			expect(editor.slides[0].elements[0]).toMatchObject({ text });
+			expect(editor.slides[0].elements[0].textSegments?.at(-1)).toStrictEqual(last);
+			editor.undo();
+			expect(editor.slides[0].elements[0]).toMatchObject({ text: 'First\nLast' });
+			editor.redo();
+			expect(editor.slides[0].elements[0]).toMatchObject({ text });
+			expect(editor.slides[0].elements[0].textSegments?.at(-1)).toStrictEqual(last);
+		},
+	);
+
 	it('grows the shape to the measured content height on commit', () => {
 		mountEditorNode();
 		stubScrollHeight(250);
