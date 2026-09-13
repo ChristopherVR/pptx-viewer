@@ -1,6 +1,12 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
 import type { ElementBoxPatch } from 'pptx-viewer-shared';
-import { cloneElementForPaste, updateSlideNotes } from 'pptx-viewer-shared';
+import {
+	cloneElementForPaste,
+	inlineListBodyText,
+	updateSlideNotes,
+	updateTextSegmentStyle,
+} from 'pptx-viewer-shared';
 
 import { appendElement, newElementId } from './editor-insert';
 import type { EditorState } from './editor-state.svelte';
@@ -77,11 +83,57 @@ export class EditorElementController {
 		this.#editor.commitChange();
 	}
 
-	patchSelected(patch: Partial<PptxElement>): void {
+	patchSelected(
+		build:
+			| Partial<PptxElement>
+			| ((
+					element: PptxElement,
+					snapshot?: import('pptx-viewer-shared').InlineTextEditSnapshot,
+			  ) => Partial<PptxElement>),
+	): void {
 		const id = this.#editor.selectedElementId;
-		if (id) {
-			this.applyElementPatch(id, patch);
+		const element = this.#editor.selectedElement;
+		if (!id || !element || !this.#editor.editable) {
+			return;
 		}
+		const controller = this.#editor.inlineListController;
+		const read = controller?.read();
+		if (read?.kind === 'unsupported') {
+			return;
+		}
+		const snapshot =
+			read?.kind === 'supported' && read.snapshot.elementId === id ? read.snapshot : undefined;
+		const current = snapshot
+			? ({ ...element, text: snapshot.text, textSegments: snapshot.textSegments } as PptxElement)
+			: element;
+		let patch = typeof build === 'function' ? build(current, snapshot) : build;
+		if (!Object.keys(patch).length) {
+			return;
+		}
+		if (
+			snapshot &&
+			hasTextProperties(current) &&
+			('textStyle' in patch || 'textSegments' in patch)
+		) {
+			const changes = Object.fromEntries(
+				Object.entries(patch.textStyle ?? {}).filter(
+					([key, value]) => value !== current.textStyle?.[key as keyof TextStyle],
+				),
+			);
+			const segments = ('textSegments' in patch ? patch.textSegments : snapshot.textSegments)?.map(
+				(segment) => updateTextSegmentStyle(segment, changes),
+			);
+			const text = inlineListBodyText(segments);
+			if (text !== snapshot.text) {
+				this.#editor.cancelInlineListEdit?.();
+			} else if (
+				controller?.format({ elementId: id, text, textSegments: segments }).kind !== 'supported'
+			) {
+				return;
+			}
+			patch = { ...patch, text, textSegments: segments } as Partial<PptxElement>;
+		}
+		this.applyElementPatch(id, patch);
 	}
 
 	insertElement(element: PptxElement): string | null {
@@ -131,7 +183,11 @@ export class EditorElementController {
 		this.#editor.commitChange();
 	}
 
-	commitInlineText(id: string, rawText: string): void {
+	commitInlineText(
+		id: string,
+		rawText: string,
+		snapshot?: import('pptx-viewer-shared').InlineTextEditSnapshot,
+	): void {
 		const target = this.#editor.activeElements.find((element) => element.id === id);
 		if (!target) {
 			return;
@@ -156,7 +212,7 @@ export class EditorElementController {
 				element.id === id
 					? ({
 							...element,
-							...remapInlineText(target, text),
+							...remapInlineText(target, text, snapshot),
 							...(newHeight !== undefined ? { height: newHeight } : {}),
 							...(shrink !== 'unchanged'
 								? {

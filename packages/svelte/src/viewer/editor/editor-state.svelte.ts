@@ -29,6 +29,9 @@ import type {
 	FontEmbeddingDescriptor,
 	TableStyleSaveOptions,
 	TemplateElementMap,
+	InlineTextEditSnapshot,
+	PendingInlineTextEdit,
+	InlineListController,
 } from 'pptx-viewer-shared';
 import {
 	canInteractWithElement,
@@ -99,6 +102,10 @@ export interface EditorStateDeps {
 }
 
 export class EditorState {
+	/** Mounted UI reader only; not persisted or included in editor history. */
+	readPendingInlineTextEdit?: () => PendingInlineTextEdit | undefined;
+	inlineListController?: InlineListController;
+	cancelInlineListEdit?: () => void;
 	/**
 	 * Options > Proofing > AutoCorrect, applied to committed inline-edit text.
 	 * Identity until `useViewerOptionsWiring` installs the real transform (the
@@ -476,12 +483,17 @@ export class EditorState {
 	duplicateSelected = (): string | null => this.elementOps.duplicateSelected();
 	applyElementPatch = (id: string, patch: Partial<PptxElement>): void =>
 		this.elementOps.applyElementPatch(id, patch);
-	patchSelected = (patch: Partial<PptxElement>): void => this.elementOps.patchSelected(patch);
+	patchSelected = (
+		patch:
+			| Partial<PptxElement>
+			| ((element: PptxElement, snapshot?: InlineTextEditSnapshot) => Partial<PptxElement>),
+	): void => this.elementOps.patchSelected(patch);
 	insertElement = (element: PptxElement): string | null => this.elementOps.insertElement(element);
 	reorderSelected = (direction: ZOrderDirection): void =>
 		this.elementOps.reorderSelected(direction);
 	nudgeSelected = (dx: number, dy: number): void => this.elementOps.nudgeSelected(dx, dy);
-	commitInlineText = (id: string, text: string): void => this.elementOps.commitInlineText(id, text);
+	commitInlineText = (id: string, text: string, snapshot?: InlineTextEditSnapshot): void =>
+		this.elementOps.commitInlineText(id, text, snapshot);
 	commitNotes = (notes: string, notesSegments?: TextSegment[]): void =>
 		this.elementOps.commitNotes(notes, notesSegments);
 

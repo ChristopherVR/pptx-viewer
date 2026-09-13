@@ -52,7 +52,7 @@
 		}
 	}
 
-	function apply(patch: Partial<PptxElement>): void {
+	function apply(patch: (element: PptxElement) => Partial<PptxElement>): void {
 		editor.patchSelected(patch);
 		openMenu = null;
 	}
@@ -76,7 +76,7 @@
 				<button
 					type="button"
 					role="menuitem"
-					onclick={() => el && apply(setTextDirectionPatch(el, option.value))}
+					onclick={() => el && apply((current) => setTextDirectionPatch(current, option.value))}
 				>{option.label}</button>
 			{/each}
 		</div>
@@ -100,7 +100,7 @@
 				<button
 					type="button"
 					role="menuitem"
-					onclick={() => el && apply(setColumnCountPatch(el, option.value))}
+					onclick={() => el && apply((current) => setColumnCountPatch(current, option.value))}
 				>{option.label}</button>
 			{/each}
 		</div>
