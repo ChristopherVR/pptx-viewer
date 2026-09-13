@@ -80,6 +80,40 @@ afterEach(() => {
 });
 
 describe('createEditorOps commitInlineText - spAutoFit editor resize', () => {
+	it.each(['First\nInserted\nLast', 'Last'])(
+		'preserves suffix spacing and history for %s',
+		(text) => {
+			const last = {
+				text: 'Last',
+				style: { color: '#006600' },
+				paragraphProperties: { paragraphSpacingAfter: 10 },
+			};
+			const { store, ops } = makeOps([
+				shape('e1', {
+					text: 'First\nLast',
+					textStyle: {},
+					textSegments: [
+						{ text: 'First', style: {}, paragraphProperties: { paragraphSpacingAfter: 20 } },
+						{ text: '\n', style: {}, isParagraphBreak: true },
+						last,
+					],
+				} as Partial<PptxElement>),
+			]);
+			ops.commitInlineText('e1', text);
+			expect(store.get().slides[0].elements[0]).toMatchObject({ text });
+			expect(store.get().slides[0].elements[0]).toMatchObject({
+				textSegments: expect.arrayContaining([last]),
+			});
+			ops.undo();
+			expect(store.get().slides[0].elements[0]).toMatchObject({ text: 'First\nLast' });
+			ops.redo();
+			expect(store.get().slides[0].elements[0]).toMatchObject({ text });
+			expect(store.get().slides[0].elements[0]).toMatchObject({
+				textSegments: expect.arrayContaining([last]),
+			});
+		},
+	);
+
 	it('grows the shape to the measured content height on commit', () => {
 		mountEditorNode();
 		stubScrollHeight(250);
