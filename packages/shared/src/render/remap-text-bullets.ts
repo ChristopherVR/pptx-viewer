@@ -72,26 +72,27 @@ export function withoutRenderedBulletPrefix(
 }
 
 /**
- * Advance an appended paragraph from the final authored auto-numbered item.
+ * Continue an inserted paragraph from the immediately preceding list item.
  * Core stores the list-relative ordinal as `paragraphIndex`; copying the final
  * item unchanged would render every paragraph added with Enter as the same
  * number. The literal marker is refreshed only when core supplied a dedicated
  * display-marker segment. The donor's list level is retained because core
  * sequences each level independently when the deck is reloaded. Other bullet
- * kinds and auto-numbers without a known runtime index remain unchanged.
+ * kinds retain their definition and level; unknown auto-number indices stay unknown.
  */
-export function continueAutoNumberedParagraph(
+export function continueListParagraph(
 	segments: TextSegment[],
 	donorSegments: readonly TextSegment[],
-	offset: number,
 ): TextSegment[] {
 	const donor = donorSegments[0];
 	const paragraphIndex = donor?.bulletInfo?.paragraphIndex;
+	const bullet = resolveParagraphBullet(donor);
+	if (segments.length === 0 || !bullet) {
+		return segments;
+	}
 	if (
-		segments.length === 0 ||
-		!donor?.bulletInfo?.autoNumType ||
-		typeof paragraphIndex !== 'number' ||
-		!Number.isFinite(paragraphIndex)
+		bullet.isNumbered &&
+		(typeof paragraphIndex !== 'number' || !Number.isFinite(paragraphIndex))
 	) {
 		return segments;
 	}
@@ -101,14 +102,21 @@ export function continueAutoNumberedParagraph(
 		...first,
 		bulletInfo: {
 			...donor.bulletInfo,
-			paragraphIndex: paragraphIndex + offset,
+			...(bullet.isNumbered && typeof paragraphIndex === 'number' && Number.isFinite(paragraphIndex)
+				? { paragraphIndex: paragraphIndex + 1 }
+				: {}),
 		},
 	};
 	if (donor.paragraphLevel !== undefined) {
 		continued.paragraphLevel = donor.paragraphLevel;
 	}
 
-	if (isBulletMarkerSegment(donor)) {
+	if (
+		bullet.isNumbered &&
+		typeof paragraphIndex === 'number' &&
+		Number.isFinite(paragraphIndex) &&
+		isBulletMarkerSegment(donor)
+	) {
 		const resolved = resolveParagraphBullet(continued);
 		if (resolved) {
 			const trailingWhitespace = donor.text.match(/\s+$/u)?.[0] ?? '';

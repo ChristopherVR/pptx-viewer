@@ -46,13 +46,11 @@ describe('buildInlineTextCommitPatch', () => {
 		const patch = buildInlineTextCommitPatch(element, text)!;
 		const result = { ...element, ...patch };
 		const segments = result.textSegments!.filter((segment) => !segment.isParagraphBreak);
-		expect(segments.map((segment) => segment.paragraphLevel)).toStrictEqual([
-			0,
-			undefined,
-			1,
-			1,
-			0,
-		]);
+		expect(segments.map((segment) => segment.paragraphLevel)).toStrictEqual([0, 0, 1, 1, 0]);
+		expect(segments[1].bulletInfo).toStrictEqual({ ...original[0].bulletInfo, paragraphIndex: 1 });
+		expect(segments[1].paragraphProperties).toBeUndefined();
+		expect(segments[1].endParaRunProperties).toBeUndefined();
+		expect(segments[1].paragraphInsertionStyle).toBeUndefined();
 		expect(segments[2]).toStrictEqual(original[2]);
 		expect(segments[3]).toStrictEqual(original[4]);
 		expect(segments[4].paragraphProperties).toStrictEqual(original[6].paragraphProperties);

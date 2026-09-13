@@ -3,6 +3,7 @@ import { hasTextProperties, PptxHandler, PresentationBuilder } from 'pptx-viewer
 import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
+import { resolveParagraphBullet } from './bullet-list';
 import { decodeDelta, encodeSegmentsToDelta } from './collaboration-text-codec';
 import { textStylePatch } from './inspector-helpers';
 import { remapTextToSegments } from './remap-text';
@@ -22,6 +23,131 @@ async function paragraphXml(bytes: Uint8Array, body: string): Promise<string> {
 }
 
 describe('remapped paragraph provenance save/reload', () => {
+	it.each([
+		[
+			{ autoNumType: 'romanUcPeriod', autoNumStartAt: 3 },
+			['III.', 'III.', 'IV.', 'V.', 'IV.'],
+			'a:buAutoNum',
+		],
+		[
+			{ char: '◆', fontFamily: 'Arial', color: '#D14A24', sizePercent: 75 },
+			['◆', '◆', '◆', '◆', '◆'],
+			'a:buChar',
+		],
+		[
+			{
+				imageRelId: 'rIdBullet',
+				imageDataUrl:
+					'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0eoAAAAASUVORK5CYII=',
+			},
+			['•', '•', '•', '•', '•'],
+			'a:buBlip',
+		],
+	] as const)(
+		'continues the preceding nested list when inserting into a loaded list (%j)',
+		async (bulletInfo, markers, nativeBullet) => {
+			const { handler: seedHandler, data: seed, createSlide } = await PresentationBuilder.create();
+			const slide = createSlide('Blank')
+				.addText('Parent\nNested\nNext nested\nLast parent')
+				.build();
+			const element = slide.elements[0];
+			if (!hasTextProperties(element)) {
+				throw new Error('expected text');
+			}
+			const bodies = ['Parent', 'Nested', 'Next nested', 'Last parent'];
+			element.textSegments = bodies.flatMap((text, index): TextSegment[] => [
+				...(index ? [breakSeg()] : []),
+				{
+					text,
+					style: { fontSize: 22, fontFamily: 'Arial' },
+					bulletInfo,
+					paragraphLevel: index === 1 || index === 2 ? 1 : 0,
+					paragraphProperties: { paragraphSpacingAfter: 6 + index * 4, lineSpacing: 1.2 },
+					endParaRunProperties: { '@_sz': '1650' },
+				},
+			]);
+			seed.slides.push(slide);
+			let initial = await seedHandler.save(seed.slides);
+			if ('imageDataUrl' in bulletInfo) {
+				const zip = await JSZip.loadAsync(initial);
+				const relPath = 'ppt/slides/_rels/slide1.xml.rels';
+				const relationships = await zip.file(relPath)!.async('string');
+				zip.file(
+					relPath,
+					relationships.replace(
+						'</Relationships>',
+						'<Relationship Id="rIdBullet" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/bullet.png"/></Relationships>',
+					),
+				);
+				zip.file('ppt/media/bullet.png', bulletInfo.imageDataUrl.split(',')[1], { base64: true });
+				const contentTypes = await zip.file('[Content_Types].xml')!.async('string');
+				if (!contentTypes.includes('Extension="png"')) {
+					zip.file(
+						'[Content_Types].xml',
+						contentTypes.replace(
+							'</Types>',
+							'<Default Extension="png" ContentType="image/png"/></Types>',
+						),
+					);
+				}
+				initial = await zip.generateAsync({ type: 'uint8array' });
+			}
+			const handler = new PptxHandler();
+			const loaded = await handler.load(asBuffer(initial));
+			const source = loaded.slides[0].elements[0];
+			if (!hasTextProperties(source)) {
+				throw new Error('expected loaded text');
+			}
+			const text = 'Parent\nNested\nNew middle\nNext nested\nLast parent';
+			const edited = {
+				...source,
+				text,
+				textSegments: remapTextToSegments(text, source.textSegments, source.textStyle),
+			};
+			const saved = await handler.save([
+				{ ...loaded.slides[0], isDirty: true, elements: [edited] },
+			]);
+			const reloaded = await new PptxHandler().load(asBuffer(saved));
+			const result = reloaded.slides[0].elements[0];
+			if (!hasTextProperties(result)) {
+				throw new Error('expected reloaded text');
+			}
+			expect(
+				buildParagraphs(edited).map(
+					(item) => item.bulletPicture?.fallbackMarker ?? item.bulletMarker,
+				),
+			).toStrictEqual(markers);
+			expect(
+				buildParagraphs(result).map(
+					(item) => item.bulletPicture?.fallbackMarker ?? item.bulletMarker,
+				),
+			).toStrictEqual(markers);
+			if (nativeBullet === 'a:buBlip') {
+				const originalPicture = buildParagraphs(source)[1].bulletPicture;
+				expect(originalPicture?.imageRelId).toBe('rIdBullet');
+				expect(buildParagraphs(result)[2].bulletPicture?.imageRelId).toBe(
+					originalPicture?.imageRelId,
+				);
+				const savedZip = await JSZip.loadAsync(saved);
+				const originalZip = await JSZip.loadAsync(initial);
+				await expect(savedZip.file('ppt/media/bullet.png')!.async('base64')).resolves.toBe(
+					await originalZip.file('ppt/media/bullet.png')!.async('base64'),
+				);
+				await expect(
+					savedZip.file('ppt/slides/_rels/slide1.xml.rels')!.async('string'),
+				).resolves.toContain('Id="rIdBullet"');
+			}
+			const insertedProperties = await paragraphXml(saved, 'New middle');
+			expect(insertedProperties).toContain('lvl="1"');
+			expect(insertedProperties).toContain(nativeBullet);
+			expect(insertedProperties).not.toContain('a:spcAft');
+			for (const body of bodies) {
+				await expect(paragraphXml(saved, body)).resolves.toBe(await paragraphXml(initial, body));
+			}
+		},
+		30_000,
+	);
+
 	it.each([
 		['First\nInserted\nLast', false],
 		['Last', false],
@@ -109,6 +235,207 @@ function breakSeg(style: TextStyle = {}): TextSegment {
 }
 
 describe('remapTextToSegments', () => {
+	describe('inserted paragraph list context', () => {
+		const groups = (segments: TextSegment[]) => {
+			const result: TextSegment[][] = [[]];
+			for (const segment of segments) {
+				if (segment.isParagraphBreak || segment.text === '\n') {
+					result.push([]);
+				} else {
+					result.at(-1)!.push(segment);
+				}
+			}
+			return result;
+		};
+
+		it.each([
+			{ fieldType: 'slidenum', fieldGuid: '{field-id}' },
+			{ equationXml: { 'm:oMath': {} }, equationNumber: '1' },
+		])('does not turn newly inserted body text into a donor field or equation (%j)', (metadata) => {
+			const source: TextSegment[] = [
+				{ text: '◆ ', style: {}, bulletInfo: { char: '◆' }, paragraphLevel: 1 },
+				{ text: '3', style: { bold: true }, ...metadata },
+				breakSeg(),
+				seg('Suffix'),
+			];
+			const result = groups(remapTextToSegments('3\nNew text\nSuffix', source, {}));
+			expect(result[0]).toStrictEqual(source.slice(0, 2));
+			expect(
+				result[1]
+					.slice(1)
+					.map((segment) => segment.text)
+					.join(''),
+			).toBe('New text');
+			for (const segment of result[1]) {
+				expect(segment.fieldType).toBeUndefined();
+				expect(segment.fieldGuid).toBeUndefined();
+				expect(segment.equationXml).toBeUndefined();
+				expect(segment.equationNumber).toBeUndefined();
+			}
+		});
+
+		it('keeps a literal marker-like prefix in newly inserted list content', () => {
+			const source: TextSegment[] = [
+				{
+					text: 'III.',
+					style: {},
+					bulletInfo: { autoNumType: 'romanUcPeriod', autoNumStartAt: 3, paragraphIndex: 0 },
+					paragraphLevel: 1,
+				},
+				seg('Nested'),
+				breakSeg(),
+				seg('Unrelated'),
+			];
+			const result = groups(
+				remapTextToSegments('Nested\nIII. Literal body\nUnrelated', source, {}),
+			);
+			expect(result[1].map((segment) => segment.text)).toStrictEqual(['IV.', 'III. Literal body']);
+		});
+
+		it('does not invent a runtime ordinal from an unknown-index preceding paragraph', () => {
+			const bulletInfo = { autoNumType: 'arabicPeriod', autoNumStartAt: 1 };
+			const source: TextSegment[] = [
+				{ text: '1.', style: {}, bulletInfo, paragraphLevel: 2 },
+				breakSeg(),
+				seg('Suffix'),
+			];
+			const result = groups(remapTextToSegments('1.\n1. Literal\nSuffix', source, {}));
+			expect(result[0][0]).toStrictEqual(source[0]);
+			expect(result[1].map((segment) => segment.text)).toStrictEqual(['1. Literal']);
+			expect(result[1][0].bulletInfo).toStrictEqual(bulletInfo);
+			expect(result[1][0].paragraphLevel).toBeUndefined();
+		});
+
+		it.each([
+			[
+				'Parent\nNested\nNew one\nNew two\nNext\nLast',
+				[0, 1, 1, 1, 1, 0],
+				['III.', 'III.', 'IV.', 'V.', 'VI.', 'IV.'],
+			],
+			['Parent\nNes\nted\nNext\nLast', [0, 1, 1, 1, 0], ['III.', 'III.', 'IV.', 'V.', 'IV.']],
+			['Parent\nNested\nNext\nNew\nLast', [0, 1, 1, 1, 0], ['III.', 'III.', 'IV.', 'V.', 'IV.']],
+			['Parent\nNested\nNext\nLast\nNew', [0, 1, 1, 0, 0], ['III.', 'III.', 'IV.', 'IV.', 'V.']],
+		] as const)(
+			'continues local nesting for insertion, multiline paste, split and append (%s)',
+			(text, levels, markers) => {
+				const source = ['Parent', 'Nested', 'Next', 'Last'].flatMap(
+					(body, index): TextSegment[] => [
+						...(index ? [breakSeg()] : []),
+						{
+							text: index < 2 ? 'III.' : 'IV.',
+							style: {},
+							paragraphLevel: index === 1 || index === 2 ? 1 : 0,
+							bulletInfo: {
+								autoNumType: 'romanUcPeriod',
+								autoNumStartAt: 3,
+								paragraphIndex: index < 2 ? 0 : 1,
+							},
+						},
+						seg(body),
+					],
+				);
+				const result = groups(remapTextToSegments(text, source, {}));
+				expect(result.map((paragraph) => paragraph[0].paragraphLevel)).toStrictEqual(levels);
+				expect(
+					result.map((paragraph) => resolveParagraphBullet(paragraph[0])?.marker),
+				).toStrictEqual(markers);
+				expect(
+					result.map((paragraph) =>
+						paragraph
+							.slice(1)
+							.map((segment) => segment.text)
+							.join(''),
+					),
+				).toStrictEqual(text.split('\n'));
+			},
+		);
+
+		it('does not borrow a following numbering restart or change its authored definition', () => {
+			const first: TextSegment = {
+				text: 'III.',
+				style: {},
+				paragraphLevel: 1,
+				bulletInfo: { autoNumType: 'romanUcPeriod', autoNumStartAt: 3, paragraphIndex: 0 },
+			};
+			const last: TextSegment = {
+				text: 'g)',
+				style: {},
+				paragraphLevel: 1,
+				bulletInfo: { autoNumType: 'alphaLcParenR', autoNumStartAt: 7, paragraphIndex: 0 },
+				paragraphProperties: { paragraphSpacingAfter: 20 },
+			};
+			const result = groups(
+				remapTextToSegments(
+					'First\nNew\nRestart',
+					[first, seg('First'), breakSeg(), last, seg('Restart')],
+					{},
+				),
+			);
+			expect(result.map((paragraph) => resolveParagraphBullet(paragraph[0])?.marker)).toStrictEqual(
+				['III.', 'IV.', 'g)'],
+			);
+			expect(result[2][0]).toStrictEqual(last);
+		});
+
+		it.each([
+			{ char: '◆', fontFamily: 'Arial', color: '#D14A24', sizePercent: 75 },
+			{ imageRelId: 'rIdBullet', imageDataUrl: 'data:image/png;base64,AQ==' },
+		])(
+			'continues the preceding bullet definition and level without paragraph metadata (%j)',
+			(bulletInfo) => {
+				const source: TextSegment[] = [
+					{
+						text: 'Nested',
+						style: { fontSize: 22 },
+						bulletInfo,
+						paragraphLevel: 2,
+						paragraphProperties: { paragraphSpacingAfter: 12 },
+						endParaRunProperties: { '@_sz': '2200' },
+					},
+					breakSeg(),
+					{ text: 'Unrelated', style: {}, bulletInfo: { char: '»' }, paragraphLevel: 0 },
+				];
+				const snapshot = structuredClone(source);
+				const result = groups(
+					remapTextToSegments('Nested\nNew one\nNew two\nUnrelated', source, {}),
+				);
+				for (const index of [1, 2]) {
+					expect(result[index][0].bulletInfo).toStrictEqual(bulletInfo);
+					expect(result[index][0].paragraphLevel).toBe(2);
+					expect(result[index][0].paragraphProperties).toBeUndefined();
+					expect(result[index][0].endParaRunProperties).toBeUndefined();
+					expect(result[index][0].paragraphInsertionStyle).toBeUndefined();
+				}
+				expect(source).toStrictEqual(snapshot);
+			},
+		);
+
+		it.each([
+			{ bulletInfo: undefined, style: {} },
+			{ bulletInfo: { none: true }, style: {} },
+			{
+				bulletInfo: { autoNumType: 'romanUcPeriod', paragraphIndex: 0 },
+				style: { listType: 'none' as const },
+			},
+		])('does not invent a list after plain or suppressed text (%j)', ({ bulletInfo, style }) => {
+			const source: TextSegment[] = [
+				{ text: 'Plain', style, bulletInfo },
+				breakSeg(),
+				{
+					text: 'Numbered suffix',
+					style: {},
+					bulletInfo: { autoNumType: 'romanUcPeriod', paragraphIndex: 0 },
+				},
+			];
+			const result = groups(
+				remapTextToSegments('Plain\n1. Literal new body\nNumbered suffix', source, {}),
+			);
+			expect(result[1].map((segment) => segment.text).join('')).toBe('1. Literal new body');
+			expect(resolveParagraphBullet(result[1][0])).toBeUndefined();
+			expect(result[1][0].paragraphLevel).toBeUndefined();
+		});
+	});
+
 	it('moves a runless blank terminator with its aligned source and consumes its style on later typing', () => {
 		const hint = { fontFamily: 'Courier New', fontSize: 40 };
 		const original = [
@@ -400,7 +727,8 @@ describe('remapTextToSegments', () => {
 			expect(result[2][0]).toStrictEqual(last);
 			expect(result[1][0].paragraphProperties).toBeUndefined();
 			expect(result[1][0].endParaRunProperties).toBeUndefined();
-			expect(result[1][0].paragraphLevel).toBeUndefined();
+			expect(result[1][0].paragraphLevel).toBe(0);
+			expect(result[1][0].bulletInfo).toStrictEqual(first.bulletInfo);
 		});
 
 		it('keeps surviving rich paragraphs after deleting the first paragraph', () => {
@@ -501,10 +829,10 @@ describe('remapTextToSegments', () => {
 			const source = [paragraph('First', 0), breakSeg(), marker, seg('Last')];
 			const result = group(remapTextToSegments('First\nA\nB\nC\nLast', source, {}));
 			expect(result[4][0]).toStrictEqual(marker);
-			for (const [index, inserted] of result.slice(1, 4).entries()) {
-				expect(inserted[0].paragraphLevel).toBeUndefined();
+			for (const inserted of result.slice(1, 4)) {
+				expect(inserted[0].paragraphLevel).toBe(0);
 				expect(inserted[0].paragraphProperties).toBeUndefined();
-				expect(inserted[0].bulletInfo?.paragraphIndex).toBe(index);
+				expect(inserted[0].bulletInfo).toStrictEqual(source[0].bulletInfo);
 			}
 		});
 
