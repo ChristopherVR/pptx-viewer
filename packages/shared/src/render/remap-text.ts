@@ -7,7 +7,12 @@ import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { isBulletMarkerSegment } from './bullet-toggle';
 import { remapEmptyParagraph } from './remap-empty-paragraph';
-import { continueAutoNumberedParagraph, withoutRenderedBulletPrefix } from './remap-text-bullets';
+import { alignParagraphSources, restoreParagraphMetadata } from './remap-paragraph-sources';
+import {
+	continueAutoNumberedParagraph,
+	renumberRemappedParagraphs,
+	withoutRenderedBulletPrefix,
+} from './remap-text-bullets';
 
 /**
  * Whether an original segment is ATOMIC: its rendered text is not what is
@@ -61,41 +66,6 @@ function copySegmentMetadata(from: TextSegment, to: TextSegment): TextSegment {
 }
 
 /**
- * Restore paragraph-scoped metadata on the first remapped run. Core and the
- * save writer deliberately carry these values on that run only; remapping the
- * characters must not turn an authored paragraph back into a default one.
- */
-function restoreParagraphMetadata(
-	from: TextSegment | undefined,
-	segments: TextSegment[],
-): TextSegment[] {
-	if (segments.length === 0) {
-		return segments;
-	}
-	const [first, ...rest] = segments;
-	const restored = { ...first };
-	// `remapParagraph` may itself return a donor segment. Clear its paragraph
-	// fields first so an extra paragraph cannot accidentally inherit metadata
-	// merely because it reused the final paragraph for run styling.
-	delete restored.paragraphLevel;
-	delete restored.paragraphProperties;
-	delete restored.endParaRunProperties;
-	if (!from) {
-		delete restored.paragraphInsertionStyle;
-	}
-	if (from?.paragraphLevel !== undefined) {
-		restored.paragraphLevel = from.paragraphLevel;
-	}
-	if (from?.paragraphProperties !== undefined) {
-		restored.paragraphProperties = from.paragraphProperties;
-	}
-	if (from?.endParaRunProperties !== undefined) {
-		restored.endParaRunProperties = from.endParaRunProperties;
-	}
-	return [restored, ...rest];
-}
-
-/**
  * Strategy:
  * 1. Split both original segments and new text into paragraphs by "\n".
  * 2. Distribute new characters proportionally across segments.
@@ -129,6 +99,7 @@ export function remapTextToSegments(
 	}
 
 	const newParagraphTexts = newText.split('\n');
+	const paragraphSources = alignParagraphSources(newParagraphTexts, originalParagraphs);
 
 	const firstContentSeg = originalParagraphs
 		.flatMap((paragraph) => paragraph.segments)
@@ -256,14 +227,21 @@ export function remapTextToSegments(
 
 	const output: TextSegment[] = [];
 	const lastOrigPara = originalParagraphs[originalParagraphs.length - 1]?.segments;
+	const lastSourceOffset = [...paragraphSources]
+		.reverse()
+		.findIndex((source) => source !== undefined);
+	const appendStart = Math.max(
+		originalParagraphs.length,
+		lastSourceOffset < 0 ? 0 : paragraphSources.length - lastSourceOffset,
+	);
 
 	for (let pi = 0; pi < newParagraphTexts.length; pi++) {
 		if (pi > 0) {
-			const precedingOrigPara = originalParagraphs[pi - 1]?.segments ?? [];
+			const precedingOrigPara = originalParagraphs[paragraphSources[pi - 1] ?? -1]?.segments ?? [];
 			const breakStyle = precedingOrigPara[0]?.style
 				? { ...precedingOrigPara[0].style }
 				: { ...baseFallbackStyle };
-			const terminator = originalParagraphs[pi - 1]?.terminator;
+			const terminator = originalParagraphs[paragraphSources[pi - 1] ?? -1]?.terminator;
 			output.push(
 				terminator?.paragraphInsertionStyle && newParagraphTexts[pi - 1] === ''
 					? { ...terminator, text: '\n', isParagraphBreak: true }
@@ -271,7 +249,7 @@ export function remapTextToSegments(
 			);
 		}
 
-		const originalParagraph = originalParagraphs[pi];
+		const originalParagraph = originalParagraphs[paragraphSources[pi] ?? -1];
 		const origPara = originalParagraph?.segments ?? lastOrigPara ?? [];
 		let paraSegments = restoreParagraphMetadata(
 			originalParagraph?.segments[0] ?? originalParagraph?.terminator,
@@ -279,7 +257,9 @@ export function remapTextToSegments(
 				remapEmptyParagraph(newParagraphTexts[pi], origPara, originalParagraph.terminator)) ??
 				remapParagraph(newParagraphTexts[pi], origPara),
 		);
-		if (!originalParagraph) {
+		// Only true tail appends use the historical numbering continuation rule.
+		// An unmatched middle paragraph has no donor paragraph metadata.
+		if (!originalParagraph && pi >= appendStart) {
 			paraSegments = continueAutoNumberedParagraph(
 				paraSegments,
 				lastOrigPara ?? [],
@@ -289,5 +269,8 @@ export function remapTextToSegments(
 		output.push(...paraSegments);
 	}
 
+	if (paragraphSources.some((source, index) => source !== undefined && source !== index)) {
+		return renumberRemappedParagraphs(output);
+	}
 	return output.length > 0 ? output : [{ text: '', style: { ...baseFallbackStyle } }];
 }

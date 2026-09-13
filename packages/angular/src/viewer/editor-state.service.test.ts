@@ -1,7 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { SLIDE_TEMPLATES } from '../internal/shared';
+import { buildInlineTextCommitPatch, SLIDE_TEMPLATES } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 
 function element(id: string, x = 0, y = 0): PptxElement {
@@ -32,6 +32,41 @@ function service(): EditorStateService {
 }
 
 describe('editorStateService', () => {
+	it.each(['First\nInserted\nLast', 'Last'])(
+		'keeps suffix spacing through the inline commit/history composition for %s',
+		(text) => {
+			const last = {
+				text: 'Last',
+				style: { color: '#006600' },
+				paragraphProperties: { paragraphSpacingAfter: 10 },
+			};
+			const target = {
+				...element('a'),
+				text: 'First\nLast',
+				textSegments: [
+					{ text: 'First', style: {}, paragraphProperties: { paragraphSpacingAfter: 20 } },
+					{ text: '\n', style: {}, isParagraphBreak: true },
+					last,
+				],
+			} as PptxElement;
+			const svc = new EditorStateService();
+			svc.setSlides([slide('s1', [target])]);
+			// The canvas controller composes this shared patch with updateElement.
+			svc.updateElement(0, 'a', buildInlineTextCommitPatch(target, text)!);
+			expect(svc.slides()[0].elements[0]).toMatchObject({
+				text,
+				textSegments: expect.arrayContaining([last]),
+			});
+			svc.undo();
+			expect(svc.slides()[0].elements[0]).toMatchObject({ text: 'First\nLast' });
+			svc.redo();
+			expect(svc.slides()[0].elements[0]).toMatchObject({
+				text,
+				textSegments: expect.arrayContaining([last]),
+			});
+		},
+	);
+
 	it('manages sections as undoable editor state', () => {
 		const svc = new EditorStateService();
 		svc.setSlides([slide('s1', []), slide('s2', []), slide('s3', [])]);

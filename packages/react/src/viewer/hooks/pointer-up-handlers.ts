@@ -136,6 +136,11 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 
 	if (wasMoved) {
 		markDirty();
+	}
+	// Pointer-down can commit text before arming a selection drag or marquee.
+	// Wake history after clearing that interaction even when the pointer stayed
+	// still; its document comparison rejects clicks that changed nothing.
+	if (drag || rs || adj || marquee) {
 		setPointerCommitNonce((n) => n + 1);
 	}
 }

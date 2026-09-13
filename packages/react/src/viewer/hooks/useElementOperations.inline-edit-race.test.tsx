@@ -130,6 +130,29 @@ describe('updateSelectedTextStyle mid-edit race', () => {
 		expect(remapTextToSegments('Typed', element.textSegments, {})[0].style).toMatchObject(updates);
 	});
 
+	it('preserves an unchanged suffix when Bold reconciles a pending paragraph insertion', () => {
+		const last = {
+			text: 'Last',
+			style: { color: '#006600' },
+			paragraphProperties: { paragraphSpacingAfter: 10 },
+		};
+		const element = {
+			...textElement(),
+			text: 'First\nLast',
+			textSegments: [
+				{ text: 'First', style: {}, paragraphProperties: { paragraphSpacingAfter: 20 } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				last,
+			],
+		} as PptxElement;
+		const harness = mount('shape-1', 'First\nInserted\nLast', element);
+		act(() => harness.ops().updateSelectedTextStyle({ bold: true }));
+		expect(harness.slides()[0].elements[0]).toMatchObject({
+			text: 'First\nInserted\nLast',
+			textSegments: expect.arrayContaining([{ ...last, style: { ...last.style, bold: true } }]),
+		});
+	});
+
 	it('applies to the live typed text, not the stale model segments, while inline-editing', () => {
 		const harness = mount('shape-1', 'Hello there, world');
 		act(() => {

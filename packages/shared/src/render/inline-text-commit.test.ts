@@ -1,7 +1,10 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildInlineTextCommitPatch } from './inline-text-commit';
+import { applyAutoCorrect } from './options/autocorrect';
+import { DEFAULT_VIEWER_OPTIONS } from './options/viewer-options';
+import { buildParagraphs } from './text-paragraphs';
 
 function textElement(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -17,6 +20,51 @@ function textElement(overrides: Partial<PptxElement> = {}): PptxElement {
 }
 
 describe('buildInlineTextCommitPatch', () => {
+	it('preserves exact middle paragraphs when default AutoCorrect also changes the final body', () => {
+		const bodies = ['Roman parent third', 'Nested third', 'Nested fourth', '1. literal body'];
+		const levels = [0, 1, 1, 0];
+		const original: TextSegment[] = bodies.flatMap((body, index) => [
+			...(index ? [{ text: '\n', style: {}, isParagraphBreak: true }] : []),
+			{
+				text: body,
+				style: { fontSize: 22 },
+				paragraphLevel: levels[index],
+				bulletInfo: {
+					autoNumType: 'romanUcPeriod',
+					autoNumStartAt: 3,
+					paragraphIndex: index > 1 ? 1 : 0,
+				},
+				paragraphProperties: { paragraphSpacingAfter: 10 + index },
+			},
+		]);
+		const element = textElement({ text: bodies.join('\n'), textSegments: original });
+		const text = applyAutoCorrect(
+			[bodies[0], 'Inserted parent', ...bodies.slice(1)].join('\n'),
+			DEFAULT_VIEWER_OPTIONS.proofing,
+		);
+		expect(text).toContain('1. Literal body');
+		const patch = buildInlineTextCommitPatch(element, text)!;
+		const result = { ...element, ...patch };
+		const segments = result.textSegments!.filter((segment) => !segment.isParagraphBreak);
+		expect(segments.map((segment) => segment.paragraphLevel)).toStrictEqual([
+			0,
+			undefined,
+			1,
+			1,
+			0,
+		]);
+		expect(segments[2]).toStrictEqual(original[2]);
+		expect(segments[3]).toStrictEqual(original[4]);
+		expect(segments[4].paragraphProperties).toStrictEqual(original[6].paragraphProperties);
+		expect(buildParagraphs(result).map((paragraph) => paragraph.bulletMarker)).toStrictEqual([
+			'III.',
+			'IV.',
+			'III.',
+			'IV.',
+			'V.',
+		]);
+	});
+
 	it('skips an unchanged rich-text commit', () => {
 		const element = textElement({
 			text: 'Alpha Beta\nBulleted item',

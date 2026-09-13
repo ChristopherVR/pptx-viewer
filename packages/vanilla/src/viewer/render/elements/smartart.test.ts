@@ -96,6 +96,28 @@ function nodesOnlyElement(): PptxElement {
 	};
 }
 
+function openSmartArtNodeEditor(node: HTMLElement): HTMLTextAreaElement {
+	const group = node.querySelector<SVGGElement>('[data-smartart-node-id="n1"]')!;
+	Object.assign(group, {
+		getBBox: () => ({ x: 10, y: 20, width: 80, height: 30 }),
+		getCTM: () => ({ a: 2, b: 0, c: 0, d: 2, e: 5, f: 10 }),
+	});
+	group.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+	return node.querySelector<HTMLTextAreaElement>('.pptxv-smartart-node-editor')!;
+}
+
+/** Model the browser's synchronous blur when a focused editor is removed. */
+function blurDuringRemove(editor: HTMLTextAreaElement) {
+	const nativeRemove = editor.remove.bind(editor);
+	const remove = vi.spyOn(editor, 'remove').mockImplementation(() => {
+		if (remove.mock.calls.length === 1) {
+			editor.dispatchEvent(new FocusEvent('blur'));
+		}
+		nativeRemove();
+	});
+	return remove;
+}
+
 /**
  * Flush the mount promise chain: the dynamic `import('pptx-viewer-shared/
  * smartart-3d')` resolves asynchronously (real module graph load, even though
@@ -228,6 +250,166 @@ describe('renderSmartArtElement', () => {
 		editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		expect(onSmartArtNodeTextChange).toHaveBeenCalledWith(element, 'n1', 'Changed');
 		expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
+		node.remove();
+	});
+
+	it('commits once on Enter when the host synchronously blurs and rerenders', () => {
+		const element = drawingShapesElement();
+		let node: HTMLElement;
+		const onSmartArtNodeTextChange = vi.fn(() => {
+			if (onSmartArtNodeTextChange.mock.calls.length === 1) {
+				editor.dispatchEvent(new FocusEvent('blur'));
+				const replacement = renderSmartArtElement(
+					element,
+					0,
+					makeContext(false, { onSmartArtNodeTextChange }),
+				) as HTMLElement;
+				node.replaceWith(replacement);
+				node = replacement;
+			}
+		});
+		node = renderSmartArtElement(
+			element,
+			0,
+			makeContext(false, { onSmartArtNodeTextChange }),
+		) as HTMLElement;
+		document.body.appendChild(node);
+		const editor = openSmartArtNodeEditor(node);
+		editor.value = 'Committed once';
+
+		expect(() =>
+			editor.dispatchEvent(
+				new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+			),
+		).not.toThrow();
+		expect(onSmartArtNodeTextChange).toHaveBeenCalledExactlyOnceWith(
+			element,
+			'n1',
+			'Committed once',
+		);
+		expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
+		node.remove();
+	});
+
+	it.each([
+		['drawing-shape', drawingShapesElement],
+		['fallback-layout', nodesOnlyElement],
+	])(
+		'cancels on Escape for the %s renderer when removal synchronously fires blur',
+		(_, makeElement) => {
+			const onSmartArtNodeTextChange = vi.fn();
+			const element = makeElement();
+			const node = renderSmartArtElement(
+				element,
+				0,
+				makeContext(false, { onSmartArtNodeTextChange }),
+			) as HTMLElement;
+			document.body.appendChild(node);
+			const editor = openSmartArtNodeEditor(node);
+			editor.value = 'Discarded';
+			const remove = blurDuringRemove(editor);
+
+			expect(() =>
+				editor.dispatchEvent(
+					new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+				),
+			).not.toThrow();
+			expect(remove).toHaveBeenCalledOnce();
+			expect(onSmartArtNodeTextChange).not.toHaveBeenCalled();
+			expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
+			node.remove();
+		},
+	);
+
+	it('commits once on natural blur', () => {
+		const onSmartArtNodeTextChange = vi.fn();
+		const element = drawingShapesElement();
+		const node = renderSmartArtElement(
+			element,
+			0,
+			makeContext(false, { onSmartArtNodeTextChange }),
+		) as HTMLElement;
+		document.body.appendChild(node);
+		const editor = openSmartArtNodeEditor(node);
+		editor.value = 'Blurred value';
+
+		editor.dispatchEvent(new FocusEvent('blur'));
+
+		expect(onSmartArtNodeTextChange).toHaveBeenCalledExactlyOnceWith(
+			element,
+			'n1',
+			'Blurred value',
+		);
+		expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
+		node.remove();
+	});
+
+	it('ignores stale editor events after reopening and keeps the current editor active', () => {
+		const onSmartArtNodeTextChange = vi.fn();
+		const element = drawingShapesElement();
+		const node = renderSmartArtElement(
+			element,
+			0,
+			makeContext(false, { onSmartArtNodeTextChange }),
+		) as HTMLElement;
+		document.body.appendChild(node);
+		const oldEditor = openSmartArtNodeEditor(node);
+		oldEditor.value = 'Stale value';
+		const oldRemove = blurDuringRemove(oldEditor);
+
+		const currentEditor = openSmartArtNodeEditor(node);
+
+		expect(currentEditor).not.toBe(oldEditor);
+		expect(oldRemove).toHaveBeenCalledOnce();
+		expect(onSmartArtNodeTextChange).not.toHaveBeenCalled();
+		oldEditor.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+		);
+		oldEditor.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+		);
+		oldEditor.dispatchEvent(new FocusEvent('blur'));
+		expect(onSmartArtNodeTextChange).not.toHaveBeenCalled();
+		expect(node.querySelector('.pptxv-smartart-node-editor')).toBe(currentEditor);
+
+		currentEditor.value = 'Current value';
+		currentEditor.dispatchEvent(new FocusEvent('blur'));
+		expect(onSmartArtNodeTextChange).toHaveBeenCalledExactlyOnceWith(
+			element,
+			'n1',
+			'Current value',
+		);
+		expect(node.querySelector('.pptxv-smartart-node-editor')).toBeNull();
+		node.remove();
+	});
+
+	it('keeps Shift+Enter as a multiline edit and commits the full value on Enter', () => {
+		const onSmartArtNodeTextChange = vi.fn();
+		const element = drawingShapesElement();
+		const node = renderSmartArtElement(
+			element,
+			0,
+			makeContext(false, { onSmartArtNodeTextChange }),
+		) as HTMLElement;
+		document.body.appendChild(node);
+		const editor = openSmartArtNodeEditor(node);
+		const shiftEnter = new KeyboardEvent('keydown', {
+			key: 'Enter',
+			shiftKey: true,
+			bubbles: true,
+			cancelable: true,
+		});
+
+		editor.dispatchEvent(shiftEnter);
+
+		expect(shiftEnter.defaultPrevented).toBeFalsy();
+		expect(onSmartArtNodeTextChange).not.toHaveBeenCalled();
+		expect(node.querySelector('.pptxv-smartart-node-editor')).toBe(editor);
+		editor.value = 'First line\nSecond line';
+		editor.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+		);
+		expect(onSmartArtNodeTextChange).toHaveBeenCalledWith(element, 'n1', 'First line\nSecond line');
 		node.remove();
 	});
 
