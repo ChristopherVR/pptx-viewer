@@ -31,8 +31,16 @@ export function markInsertedParagraph(doc: Document, surface: HTMLElement): void
 	}
 	const block = insertedRun.closest<HTMLElement>('div, p');
 	const isTextFlow = block?.hasAttribute('data-pptx-text-flow');
+	// A split flow owns its boundary. Marking a surviving authored run would
+	// leave an extra break after native undo rejoins it into the original flow.
+	const isSplitTextFlow =
+		isTextFlow &&
+		block?.previousElementSibling?.hasAttribute('data-pptx-text-flow') &&
+		block.querySelector('[data-seg-idx]:not([data-pptx-bullet-marker])') === insertedRun;
 	const caretParagraph =
-		block && block !== surface && !isTextFlow && surface.contains(block) ? block : insertedRun;
+		block && block !== surface && (!isTextFlow || isSplitTextFlow) && surface.contains(block)
+			? block
+			: insertedRun;
 	const previous = caretParagraph.previousElementSibling;
 	const paragraph =
 		previous instanceof HTMLElement &&

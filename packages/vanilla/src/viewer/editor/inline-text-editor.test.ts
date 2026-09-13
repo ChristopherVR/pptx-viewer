@@ -9,6 +9,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { openInlineEditor, readEditableText } from './inline-text-editor';
+import { markInsertedParagraph } from './inline-text-paragraph-marker';
 
 function textElement(): PptxElement {
 	return {
@@ -24,6 +25,97 @@ function textElement(): PptxElement {
 }
 
 describe('openInlineEditor caret placement', () => {
+	it.each([
+		{
+			html: '<div data-pptx-text-flow id="boundary"><span data-pptx-bullet-marker>1.</span><span data-seg-idx="0"><br></span></div><div data-pptx-text-flow><span data-seg-idx="0" id="caret">TARGET</span></div>',
+			text: '\nTARGET',
+		},
+		{
+			html: '<div data-pptx-text-flow>TARGET</div><div data-pptx-text-flow data-pptx-paragraph-start><span data-seg-idx="0">SECOND</span><span data-seg-idx="0" id="boundary"><span id="caret"><br></span></span></div>',
+			text: 'TARGET\nSECOND\n',
+		},
+	])('preserves an intentional empty paragraph: $text', ({ html, text }) => {
+		const surface = document.createElement('div');
+		surface.innerHTML = html;
+		document.body.append(surface);
+		const range = document.createRange();
+		range.setStart(surface.querySelector('#caret')!, 0);
+		range.collapse(true);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(range);
+		markInsertedParagraph(document, surface);
+		expect(
+			surface.querySelector('#boundary')!.hasAttribute('data-pptx-paragraph-start'),
+		).toBeTruthy();
+		expect(readEditableText(surface)).toBe(text);
+		surface.remove();
+	});
+
+	it('marks a native split text-flow block without leaving a run annotation after undo', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onInput = vi.fn();
+		const onCommit = vi.fn();
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onInput,
+			onCommit,
+			onClose: () => {},
+		});
+		// Recorded Chromium structure after splitting a rich text-flow wrapper.
+		const secondFlow = document.createElement('div');
+		secondFlow.dataset.pptxTextFlow = '';
+		const marker = document.createElement('span');
+		marker.dataset.pptxBulletMarker = '';
+		marker.textContent = '1. ';
+		secondFlow.append(marker);
+		const inserted = document.createElement('span');
+		inserted.dataset.segIdx = '1';
+		inserted.textContent = '\n';
+		const suffix = document.createElement('span');
+		suffix.textContent = 'NEXT';
+		secondFlow.append(inserted, suffix);
+		session.el.append(secondFlow);
+		const range = document.createRange();
+		range.setStart(inserted.firstChild!, 0);
+		range.collapse(true);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(range);
+		session.el.dispatchEvent(
+			new InputEvent('input', { bubbles: true, inputType: 'insertParagraph' }),
+		);
+		expect(secondFlow.hasAttribute('data-pptx-paragraph-start')).toBeTruthy();
+		expect(inserted.hasAttribute('data-pptx-paragraph-start')).toBeFalsy();
+		inserted.textContent = 'INSERTED\n';
+		session.el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+		expect(onInput).toHaveBeenLastCalledWith('TARGET\nINSERTED\nNEXT');
+		// Native history restores the delimiter, then rejoins the original runs.
+		inserted.textContent = '\n';
+		session.el.dispatchEvent(new InputEvent('input', { inputType: 'historyUndo' }));
+		expect(onInput).toHaveBeenLastCalledWith('TARGET\n\nNEXT');
+		const originalFlow = session.el.querySelector<HTMLElement>('[data-pptx-text-flow]')!;
+		originalFlow.append(inserted, suffix);
+		secondFlow.remove();
+		session.el.dispatchEvent(new InputEvent('input', { inputType: 'historyUndo' }));
+		expect(onInput).toHaveBeenLastCalledWith('TARGET\nNEXT');
+		secondFlow.append(inserted, suffix);
+		session.el.append(secondFlow);
+		session.el.dispatchEvent(new InputEvent('input', { inputType: 'historyRedo' }));
+		expect(onInput).toHaveBeenLastCalledWith('TARGET\n\nNEXT');
+		inserted.textContent = 'INSERTED\n';
+		session.el.dispatchEvent(new InputEvent('input', { inputType: 'historyRedo' }));
+		expect(onInput).toHaveBeenLastCalledWith('TARGET\nINSERTED\nNEXT');
+		session.commit();
+		expect(onCommit).toHaveBeenCalledExactlyOnceWith('TARGET\nINSERTED\nNEXT');
+		overlayRoot.remove();
+	});
+
 	it('collapses the selection to the end of the seeded text', () => {
 		const overlayRoot = document.createElement('div');
 		document.body.appendChild(overlayRoot);
