@@ -1078,6 +1078,7 @@ const mobileChrome = useMobileChrome({
 const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElements } =
 	useEditorKeyboard({
 		canEdit: () => canEditEffective.value,
+		canPaste: () => clipboard.hasClipboard.value && Boolean(activeSlide.value),
 		hasSelection: selection.hasSelection,
 		presenting: presentation.presenting,
 		findOpen,

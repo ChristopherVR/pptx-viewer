@@ -299,6 +299,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		copySelected: () => editActions.copy(),
 		cutSelected: () => editActions.cut(),
 		paste: () => editActions.paste(),
+		canPaste: () => {
+			const state = store.get();
+			return Boolean(state.clipboardPayload && state.slides[state.currentSlide]);
+		},
 		selectAll: () => editActions.selectAll(),
 		groupSelected: () => editActions.groupSelected(),
 		ungroupSelected: () => editActions.ungroupSelected(),

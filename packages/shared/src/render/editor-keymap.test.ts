@@ -55,6 +55,16 @@ describe('mapEditorKey guards', () => {
 });
 
 describe('mapEditorKey clipboard and history', () => {
+	it.each([{ ctrlKey: true }, { metaKey: true }])(
+		'leaves paste unclaimed when unavailable: %j',
+		(modifiers) => {
+			expect(mapEditorKey(press('v', modifiers), { canPaste: false }).action).toBeNull();
+			expect(
+				mapEditorKey(press('v', modifiers), { canPaste: true, hasSelection: false }).action,
+			).toBe('paste');
+		},
+	);
+
 	it('resolves the Ctrl chords', () => {
 		expect(mapEditorKey(press('c', { ctrlKey: true }), SELECTED).action).toBe('copy');
 		expect(mapEditorKey(press('x', { metaKey: true }), SELECTED).action).toBe('cut');

@@ -2,7 +2,11 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EditorControllerDeps } from './editor-controller-deps';
-import { createTransformGestures, rerouteConnectorsAfterGesture } from './editor-controller-wiring';
+import {
+	createEditorKeydown,
+	createTransformGestures,
+	rerouteConnectorsAfterGesture,
+} from './editor-controller-wiring';
 import type { EditorControllerHost } from './editor-controller-wiring';
 import { EditorState } from './editor-state.svelte';
 
@@ -77,6 +81,26 @@ function connectorOf(editor: EditorState, id: string): PptxElement {
 }
 
 describe('rerouteConnectorsAfterGesture', () => {
+	it('reads the real clipboard for native handoff and still pastes copied elements', () => {
+		const { host, editor } = makeHost([shape('box', 0, 0)]);
+		const handler = createEditorKeydown(host);
+		const empty = new KeyboardEvent('keydown', { key: 'v', metaKey: true, cancelable: true });
+		handler(empty);
+		expect(empty.defaultPrevented).toBeFalsy();
+		expect(editor.activeElements).toHaveLength(1);
+		editor.select('box');
+		editor.clipboardOps.copySelected();
+		editor.select(null);
+		const populated = new KeyboardEvent('keydown', { key: 'v', metaKey: true, cancelable: true });
+		handler(populated);
+		expect(populated.defaultPrevented).toBeTruthy();
+		expect(editor.activeElements).toHaveLength(2);
+		editor.undo();
+		expect(editor.activeElements).toHaveLength(1);
+		editor.redo();
+		expect(editor.activeElements).toHaveLength(2);
+	});
+
 	it('re-lays a connector whose bound shape moved', () => {
 		const { host, editor } = makeHost([
 			shape('box-a', 0, 0),

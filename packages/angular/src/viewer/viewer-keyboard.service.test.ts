@@ -26,6 +26,7 @@ import { ViewerPresentationModeService } from './viewer-presentation-mode.servic
 function editorStub(hasSelection: boolean) {
 	return {
 		hasSelection: () => hasSelection,
+		hasClipboard: signal(true),
 		undo: vi.fn(),
 		redo: vi.fn(),
 		duplicateSelected: vi.fn(),
@@ -133,6 +134,19 @@ function harness(
 }
 
 describe('viewerKeyboardService: the shortcut cheat sheet', () => {
+	it.each([{ ctrlKey: true }, { metaKey: true }])(
+		'does not prevent unavailable paste: %j',
+		(modifiers) => {
+			const h = harness({ hasSelection: false });
+			h.editor.hasClipboard.set(false);
+			expect(h.press('v', modifiers).defaultPrevented).toBeFalsy();
+			expect(h.editor.paste).not.toHaveBeenCalled();
+			h.editor.hasClipboard.set(true);
+			expect(h.press('v', modifiers).defaultPrevented).toBeTruthy();
+			expect(h.editor.paste).toHaveBeenCalledOnce();
+		},
+	);
+
 	it('opens on "?"', () => {
 		const h = harness();
 		h.press('?', { shiftKey: true });

@@ -79,6 +79,34 @@ afterEach(() => {
 });
 
 describe('useKeyboardShortcuts listener registration', () => {
+	it.each([{ ctrlKey: true }, { metaKey: true }])(
+		'does not prevent unavailable paste: %j',
+		(modifiers) => {
+			const onPaste = vi.fn();
+			const input = inputWith(container, { canPaste: false, hasSelection: false, onPaste });
+			mount(input);
+			const empty = new KeyboardEvent('keydown', {
+				key: 'v',
+				...modifiers,
+				bubbles: true,
+				cancelable: true,
+			});
+			container.dispatchEvent(empty);
+			expect(empty.defaultPrevented).toBeFalsy();
+			expect(onPaste).not.toHaveBeenCalled();
+			input.canPaste = true;
+			const populated = new KeyboardEvent('keydown', {
+				key: 'v',
+				...modifiers,
+				bubbles: true,
+				cancelable: true,
+			});
+			container.dispatchEvent(populated);
+			expect(populated.defaultPrevented).toBeTruthy();
+			expect(onPaste).toHaveBeenCalledOnce();
+		},
+	);
+
 	it('registers keydown once, on window, and never on the container', () => {
 		const containerAdd = vi.spyOn(container, 'addEventListener');
 		const windowAdd = vi.spyOn(window, 'addEventListener');

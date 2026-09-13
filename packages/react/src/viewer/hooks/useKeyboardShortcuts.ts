@@ -36,6 +36,8 @@ export interface UseKeyboardShortcutsInput {
 
 	mode: ViewerMode;
 	canEdit: boolean;
+	/** Omitted preserves custom callers; false leaves native paste unclaimed. */
+	canPaste?: boolean;
 
 	/** Whether any element is currently being inline-edited (text box). */
 	inlineEditingElementId: string | null;
@@ -114,6 +116,7 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 
 		const { action, dx, dy } = mapEditorKey(e, {
 			canEdit: current.canEdit,
+			canPaste: current.canPaste,
 			// The Slide Master view is an editing surface, not a viewing one.
 			// Gating on `mode !== 'edit'` alone made `mapEditorKey` return
 			// NO_ACTION there, so Delete, the arrow-key nudges and the clipboard

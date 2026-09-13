@@ -56,6 +56,20 @@ function setup(overrides: Partial<UseEditorKeyboardInput> = {}) {
 }
 
 describe('useEditorKeyboard - F5 / Shift+F5 start-show keys', () => {
+	it('forwards live paste readiness without consuming an empty clipboard chord', () => {
+		const available = ref(false);
+		const { onEditorKeydown, input } = setup({ canPaste: () => available.value });
+		const empty = new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, cancelable: true });
+		onEditorKeydown(empty);
+		expect(empty.defaultPrevented).toBeFalsy();
+		expect(input.pasteElement).not.toHaveBeenCalled();
+		available.value = true;
+		const populated = new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, cancelable: true });
+		onEditorKeydown(populated);
+		expect(populated.defaultPrevented).toBeTruthy();
+		expect(input.pasteElement).toHaveBeenCalledOnce();
+	});
+
 	it('f5 calls presentFromBeginning and prevents default', () => {
 		const { onEditorKeydown, presentFromBeginning, startPresenting } = setup();
 		const event = makeKeyEvent({ key: 'F5' });

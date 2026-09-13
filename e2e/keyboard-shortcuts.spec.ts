@@ -114,6 +114,33 @@ test.describe('editor keyboard shortcuts', () => {
 		await expect(slideElements(page), 'one copy pasted onto a two-shape slide').toHaveCount(3);
 	});
 
+	test('paste yields an empty clipboard shortcut and claims a populated internal clipboard', async ({
+		page,
+	}) => {
+		await openWithSelection(page);
+		await page.evaluate(() => {
+			document.addEventListener(
+				'keydown',
+				(event) => {
+					if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
+						queueMicrotask(() => {
+							document.body.dataset.pasteKeyPrevented = String(event.defaultPrevented);
+						});
+					}
+				},
+				true,
+			);
+		});
+		await pressShortcut(page, 'ControlOrMeta+v', 300);
+		await expect(page.locator('body')).toHaveAttribute('data-paste-key-prevented', 'false');
+		await expect(slideElements(page)).toHaveCount(2);
+
+		await pressShortcut(page, 'ControlOrMeta+c', 300);
+		await pressShortcut(page, 'ControlOrMeta+v', 800);
+		await expect(page.locator('body')).toHaveAttribute('data-paste-key-prevented', 'true');
+		await expect(slideElements(page)).toHaveCount(3);
+	});
+
 	test('Ctrl+X removes the selected element and Ctrl+V puts it back', async ({ page }) => {
 		await openWithSelection(page);
 		await pressShortcut(page, 'ControlOrMeta+x', 700);
