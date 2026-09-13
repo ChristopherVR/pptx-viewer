@@ -10,6 +10,7 @@
 	 * assert on it right after `mount()` returns.
 	 */
 	import { onDestroy } from 'svelte';
+	import type { ViewportFitOptions } from 'pptx-viewer-shared';
 
 	import { createViewerState } from './create-viewer-state.svelte';
 	import type { ViewerStateBag } from './create-viewer-state-types';
@@ -21,6 +22,8 @@
 		filePath,
 		editable = false,
 		onautosavetoggle,
+		viewport,
+		fitOptions,
 	}: {
 		onready: (state: ViewerStateBag) => void;
 		/** Optional deck bytes, so a test can exercise the real load pipeline. */
@@ -33,6 +36,8 @@
 		filePath?: string;
 		editable?: boolean;
 		onautosavetoggle?: (enabled: boolean) => void;
+		viewport?: { width: number; height: number };
+		fitOptions?: ViewportFitOptions;
 	} = $props();
 
 	const state = createViewerState({
@@ -51,8 +56,10 @@
 		onautosavetoggle: (enabled) => onautosavetoggle?.(enabled),
 		getStageHolderEl: () => undefined,
 		getRootEl: () => undefined,
-		getViewportWidth: () => 0,
-		getViewportHeight: () => 0,
+		getViewportWidth: () => viewport?.width ?? 0,
+		getViewportHeight: () => viewport?.height ?? 0,
+		getFitPadding: () => fitOptions?.fitPadding,
+		getMaxFitScale: () => fitOptions?.maxFitScale,
 		getMasterScale: () => 1,
 	});
 

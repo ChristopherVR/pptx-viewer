@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { getSlideBackgroundStyle } from 'pptx-viewer-shared';
+import { calculateViewportFit, getSlideBackgroundStyle } from 'pptx-viewer-shared';
+import type { ViewportFitPadding } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -21,8 +22,8 @@ import SlideStage from './SlideStage.vue';
  *
  * Responsive sizing: the slide has a fixed authored pixel size (e.g. 1280×720),
  * which overflows small/mobile viewports. We measure the scroll viewport and
- * emit a `fitScale` (how much the slide must shrink to fit, capped at 1, never
- * upscaling) so the parent can fold it into the effective zoom, mirroring the
+ * emit a `fitScale` (capped at 1 unless the host opts into enlargement)
+ * so the parent can fold it into the effective zoom, mirroring the
  * React viewer's `fitScale * scale` model where "100%" means "fit to viewport".
  */
 const props = defineProps<{
@@ -31,6 +32,10 @@ const props = defineProps<{
 	mediaDataUrls: Map<string, string>;
 	/** Effective scale (fitScale × user zoom) supplied by the parent. */
 	zoom?: number;
+	/** Unscaled decorative padding per side; omission preserves existing fit. */
+	fitPadding?: ViewportFitPadding;
+	/** Fit-factor ceiling, separate from user zoom; null permits enlargement. */
+	maxFitScale?: number | null;
 	/** Show the horizontal/vertical rulers along the slide edges (View ▸ Rulers). */
 	showRulers?: boolean;
 	/** Unit system for the ruler labels; defaults to inches, as PowerPoint does. */
@@ -90,9 +95,8 @@ const wrapperStyle = computed<CSSProperties>(() => ({
 const viewportRef = ref<HTMLElement | null>(null);
 
 /**
- * Compute and emit the largest scale (≤ 1) at which the whole slide fits inside
- * the available viewport. Leaves a small margin so the drop shadow / `1rem`
- * gutter is not clipped. Emits 1 when the viewport is unmeasured.
+ * Compute and emit fit using the host policy, retaining existing ruler gutters.
+ * Emits 1 when the viewport is unmeasured.
  */
 function recomputeFit(): void {
 	const el = viewportRef.value;
@@ -111,14 +115,20 @@ function recomputeFit(): void {
 	// thickness horizontally, because `margin: auto` splits the slack evenly
 	// and only the left half is the gutter the strip needs.
 	const gutter = props.showRulers ? RULER_THICKNESS : 0;
-	const availW = Math.max(el.clientWidth - 16 - gutter * 2, 0);
-	const availH = Math.max(el.clientHeight - 32 - gutter, 0);
-	if (!availW || !availH) {
-		emit('update:fitScale', 1);
-		return;
-	}
-	const fit = Math.min(availW / width, availH / height, 1);
-	emit('update:fitScale', fit > 0 ? fit : 1);
+	const fit = calculateViewportFit(
+		{
+			viewportWidth: el.clientWidth,
+			viewportHeight: el.clientHeight,
+			canvasWidth: width,
+			canvasHeight: height,
+			fitPadding: props.fitPadding,
+			maxFitScale: props.maxFitScale,
+			horizontalGutter: gutter * 2,
+			verticalGutter: gutter,
+		},
+		{ fitPadding: { horizontal: 8, vertical: 16 }, maxFitScale: 1 },
+	);
+	emit('update:fitScale', fit.scale);
 }
 
 let observer: ResizeObserver | null = null;
@@ -138,7 +148,17 @@ onBeforeUnmount(() => {
 
 // Re-fit when the authored slide size changes (e.g. switching decks), and when
 // the rulers appear/disappear, since they change the space available to fit in.
-watch(() => [props.canvasSize.width, props.canvasSize.height, props.showRulers], recomputeFit);
+watch(
+	() => [
+		props.canvasSize.width,
+		props.canvasSize.height,
+		props.showRulers,
+		props.fitPadding,
+		props.maxFitScale,
+	],
+	recomputeFit,
+	{ deep: true },
+);
 </script>
 
 <template>

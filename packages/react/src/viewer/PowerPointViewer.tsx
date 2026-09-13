@@ -641,6 +641,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const zoom = useZoomViewport({
 			canvasSize,
 			selectedElements: state.selectedElements,
+			fitPadding: props.fitPadding,
+			maxFitScale: props.maxFitScale,
 		});
 
 		// Every local edit commit funnels through the history hook, so this is the

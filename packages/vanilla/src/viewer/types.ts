@@ -13,6 +13,7 @@ import type {
 	ToolbarActionId,
 	ViewerFontSource,
 	ViewerTheme,
+	ViewportFitOptions,
 } from 'pptx-viewer-shared';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
@@ -78,7 +79,7 @@ export interface PptxViewerCallbacks {
 	onCollaborationStatus?: (status: ConnectionStatus) => void;
 }
 
-export interface PptxViewerOptions extends PptxViewerCallbacks {
+export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptions {
 	/**
 	 * The presentation to open: raw `.pptx` bytes (ArrayBuffer / Uint8Array),
 	 * a Blob/File, or a URL string to fetch. Omit to start empty and call

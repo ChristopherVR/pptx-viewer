@@ -5,6 +5,9 @@ description: Complete reference for PptxViewerOptions and PptxViewerCallbacks - 
 
 # Options & Callbacks
 
+For custom host sizing, see [Viewport fitting](/guide/viewport-fit) for
+`fitPadding`, `maxFitScale`, framework-specific examples, and default values.
+
 `createPptxViewer(container, options)` takes the `PptxViewerOptions` interface below. Every option
 is optional, including `source` (omit it to start empty and call
 [`loadFile` / `loadUrl`](/vanilla/api#loading) later). This reference is taken directly from

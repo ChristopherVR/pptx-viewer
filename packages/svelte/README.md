@@ -84,6 +84,19 @@ import 'pptx-svelte-viewer/styles';
 </div>
 ```
 
+### Viewport fit options
+
+```svelte
+<PowerPointViewer {source} fitPadding={0} maxFitScale={null} />
+```
+
+`fitPadding` is a per-side CSS-pixel number or `{ horizontal, vertical }`;
+`maxFitScale` is a positive fit-factor ceiling or `null` for unlimited enlargement.
+Omission preserves 24 px padding on each side and unlimited fit enlargement.
+Custom state hosts can supply live `getFitPadding` / `getMaxFitScale` getters to
+`createViewerState`. These options do not change document geometry, user zoom,
+or fullscreen fitting. See the [cross-binding defaults](../../docs/guide/viewport-fit.md).
+
 ## Props
 
 | Prop                 | Type                                 | Default | Description                                                                                                            |

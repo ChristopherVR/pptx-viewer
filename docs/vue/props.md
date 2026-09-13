@@ -5,6 +5,9 @@ description: Complete reference for PowerPointViewerProps and PowerPointViewerEm
 
 # Component Props
 
+For custom host sizing, see [Viewport fitting](/guide/viewport-fit) for
+`fitPadding`, `maxFitScale`, framework-specific examples, and default values.
+
 `<PowerPointViewer>` accepts the `PowerPointViewerProps` interface below and emits the events in
 `PowerPointViewerEmits`. Only `content` is required; everything else is optional. This reference is
 taken directly from `packages/vue/src/viewer/types.ts`.

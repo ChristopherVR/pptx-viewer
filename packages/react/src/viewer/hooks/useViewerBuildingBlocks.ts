@@ -1,5 +1,5 @@
 import { openPptxFile, readBackstageRecentFile } from 'pptx-viewer-shared';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
+import type { ToolbarActionId, ViewportFitOptions } from 'pptx-viewer-shared';
 /**
  * useViewerBuildingBlocks: Composes the same state + hooks `PowerPointViewer`
  * wires internally, and maps them into flat prop objects for the standalone
@@ -46,7 +46,7 @@ import { useViewerBuildingBlocksState } from './useViewerBuildingBlocksState';
 // Input
 // ---------------------------------------------------------------------------
 
-export interface UseViewerBuildingBlocksInput {
+export interface UseViewerBuildingBlocksInput extends ViewportFitOptions {
 	/** PPTX content as ArrayBuffer/Uint8Array, or null/undefined while no file is loaded. */
 	content: ArrayBuffer | Uint8Array | null | undefined;
 	/** Whether editing actions are enabled. Defaults to false (view-only). */
@@ -151,7 +151,12 @@ export function useViewerBuildingBlocks(
 		})();
 	}, []);
 
-	const core = useViewerBuildingBlocksCore({ content, canEdit });
+	const core = useViewerBuildingBlocksCore({
+		content,
+		canEdit,
+		fitPadding: input.fitPadding,
+		maxFitScale: input.maxFitScale,
+	});
 	const {
 		state,
 		mode,

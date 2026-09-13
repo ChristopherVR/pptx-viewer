@@ -90,15 +90,41 @@ function Harness({
 	handle,
 	onDirtyChange,
 	canEdit = true,
+	fitPadding,
+	maxFitScale,
+	measuredViewport,
 }: {
 	content: Uint8Array;
 	handle?: React.RefObject<PowerPointViewerHandle | null>;
 	onDirtyChange?: (dirty: boolean) => void;
 	canEdit?: boolean;
+	fitPadding?: number;
+	maxFitScale?: number | null;
+	measuredViewport?: { width: number; height: number };
 }): React.ReactElement {
-	const result = useViewerBuildingBlocks({ content, canEdit, handle, onDirtyChange });
+	const result = useViewerBuildingBlocks({
+		content,
+		canEdit,
+		handle,
+		onDirtyChange,
+		fitPadding,
+		maxFitScale,
+	});
 	latest = result;
-	return React.createElement('div', { 'data-testid': 'harness' });
+	return React.createElement('div', {
+		'data-testid': 'harness',
+		ref: (node: HTMLDivElement | null) => {
+			if (measuredViewport) {
+				result.canvasProps.zoom.canvasViewportRef.current = node;
+				if (node) {
+					Object.defineProperties(node, {
+						clientWidth: { configurable: true, value: measuredViewport.width },
+						clientHeight: { configurable: true, value: measuredViewport.height },
+					});
+				}
+			}
+		},
+	});
 }
 
 /** Flush one macrotask tick inside `act` so pending promise chains settle. */
@@ -145,9 +171,44 @@ afterEach(() => {
 		root.unmount();
 	});
 	container.remove();
+	vi.unstubAllGlobals();
 });
 
 describe('useViewerBuildingBlocks', () => {
+	it('forwards opt-in viewport fit without marking the loaded deck dirty', async () => {
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				observe() {}
+				disconnect() {}
+			},
+		);
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(
+				React.createElement(Harness, {
+					content: fixtureBytes,
+					handle,
+					fitPadding: 0,
+					maxFitScale: null,
+					measuredViewport: { width: 1920, height: 1080 },
+				}),
+			);
+		});
+		await flushUntil(() => latest?.loading === false);
+		expect(latest).toMatchObject({ loading: false });
+		expect(latest?.error).toBeNull();
+		const { canvasProps } = latest as ViewerBuildingBlocksResult;
+		const expected = Math.min(
+			1920 / canvasProps.canvasSize.width,
+			1080 / canvasProps.canvasSize.height,
+		);
+		expect(expected).toBeGreaterThan(1);
+		expect(canvasProps.zoom.editorScale).toBeCloseTo(expected);
+		expect(handle.current?.isDirty()).toBeFalsy();
+		expect(latestAutosaveDirty()).toBeFalsy();
+	}, 15_000);
+
 	it('preserves embedded fonts through getContent after switching decks', async () => {
 		const embeddedBytes = embeddedFixtureBytes;
 		const loader = new PptxHandler();

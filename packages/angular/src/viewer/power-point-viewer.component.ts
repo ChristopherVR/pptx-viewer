@@ -71,6 +71,7 @@ import type {
 	ViewerQuickAccessOptions,
 	ViewerSettings,
 	ViewerTheme,
+	ViewportFitPadding,
 } from '../internal/shared';
 import type { PptxAiBridge, PptxAiConfig } from '../internal/shared-ai';
 import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
@@ -518,6 +519,8 @@ import { ZoomTargetService } from './zoom-target.service';
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
 							[zoom]="zoomSvc.zoom()"
+							[fitPadding]="fitPadding()"
+							[maxFitScale]="maxFitScale()"
 							[editable]="canEdit()"
 							[selectedIds]="editor.selectedIds()"
 							[showGrid]="showGrid()"
@@ -1276,6 +1279,10 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * Mirrors React's `fileName` prop.
 	 */
 	readonly fileName = input<string | undefined>(undefined);
+	/** Unscaled decorative viewport padding per side; omission preserves defaults. */
+	readonly fitPadding = input<ViewportFitPadding | undefined>(undefined);
+	/** Fit-factor ceiling, independent of user zoom; null permits enlargement. */
+	readonly maxFitScale = input<number | null | undefined>(undefined);
 	/**
 	 * Recovery autosave: after an edit the deck is re-serialised (always as a
 	 * plain, unencrypted package, because recovery has no password) and stashed
