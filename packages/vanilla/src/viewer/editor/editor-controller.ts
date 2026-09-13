@@ -150,6 +150,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		onChange: deps.onChange,
 		onHistoryChange: () => updateToolbar(),
 		transformCommittedText: deps.transformCommittedText,
+		getPendingInlineTextEdit: () => interactions.readPendingInlineTextEdit?.(),
+		readInlineList: () => interactions.readInlineList?.(),
+		formatInlineList: (snapshot) => interactions.formatInlineList?.(snapshot) ?? false,
+		cancelInlineList: () => interactions.closeInline(false),
 	});
 
 	const editActions = createEditActions({
@@ -362,6 +366,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	// -- Store subscription: keep selection/overlay/toolbar consistent -------------
 
 	const unsubscribe = store.subscribe((state, previous) => {
+		interactions.readInlineList?.();
+		if (state.loading && !previous.loading) {
+			interactions.closeInline(false);
+		}
 		if (state.currentSlide !== previous.currentSlide) {
 			interactions.closeInline(true);
 			if (state.selectedElementId) {

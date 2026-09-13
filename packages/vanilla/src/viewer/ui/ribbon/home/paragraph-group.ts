@@ -81,6 +81,11 @@ export function createParagraphGroup(
 		icon: 'numbered-list',
 		onClick: handlers.toggleNumberedList,
 	});
+	// Keep the active editor/caret: focusing a list button would commit on blur
+	// before its formatting command runs. Keyboard activation is unchanged.
+	for (const { btn } of [bullets, numbered]) {
+		btn.addEventListener('mousedown', (event) => event.preventDefault());
+	}
 	const indentDec = makeButton(doc, {
 		label: t('pptx.text.decreaseIndent'),
 		icon: 'indent-decrease',

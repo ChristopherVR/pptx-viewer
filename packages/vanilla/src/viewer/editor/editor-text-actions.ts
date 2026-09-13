@@ -1,5 +1,6 @@
 import type { PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
+import { toggleElementBullets, transformInlineListCase } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ApplyToSelected } from './editor-apply-to-selected';
@@ -78,10 +79,23 @@ export function createTextActions(
 			applyToSelected((el) => setHighlightColor(el, color));
 		},
 		setCharacterSpacing: (value) => applyToSelected((el) => setCharacterSpacing(el, value)),
-		changeCase: (mode) => applyToSelected((el) => changeTextCase(el, mode)),
+		changeCase: (mode) =>
+			applyToSelected((el, snapshot) => {
+				if (!snapshot) {
+					return changeTextCase(el, mode);
+				}
+				const { text, textSegments } = transformInlineListCase(snapshot, null, mode);
+				return { text, textSegments };
+			}),
 		clearFormatting: () => applyToSelected((el) => clearFormatting(el)),
-		toggleBulletList: () => applyToSelected((el) => toggleListType(el, 'bullet')),
-		toggleNumberedList: () => applyToSelected((el) => toggleListType(el, 'numbered')),
+		toggleBulletList: () =>
+			applyToSelected((el, snapshot) =>
+				snapshot ? toggleElementBullets(el, 'bullet') : toggleListType(el, 'bullet'),
+			),
+		toggleNumberedList: () =>
+			applyToSelected((el, snapshot) =>
+				snapshot ? toggleElementBullets(el, 'numbered') : toggleListType(el, 'numbered'),
+			),
 		increaseIndent: () => applyToSelected((el) => adjustIndent(el, 1)),
 		decreaseIndent: () => applyToSelected((el) => adjustIndent(el, -1)),
 		setTextAlign: (align) => applyToSelected((el) => setTextAlign(el, align)),

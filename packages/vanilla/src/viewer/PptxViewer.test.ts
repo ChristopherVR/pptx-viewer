@@ -28,9 +28,104 @@ afterEach(() => {
 });
 
 describe('createPptxViewer', () => {
+	it('keeps the native list surface connected throughout a toolbar model repaint', () => {
+		const { viewer, container } = mount({ editable: true });
+		const concrete = viewer as PptxViewer;
+		concrete.store.set({
+			slides: [
+				{
+					id: 's1',
+					rId: 'r1',
+					slideNumber: 1,
+					elements: [
+						{
+							id: 'list',
+							type: 'text',
+							x: 10,
+							y: 20,
+							width: 200,
+							height: 100,
+							text: 'Body',
+							textSegments: [{ text: 'Body', style: {}, bulletInfo: { char: '◆' } }],
+						},
+					],
+				},
+			],
+		});
+		viewer.selectElements(['list']);
+		container
+			.querySelector('[data-pptx-viewport] [data-element-id="list"]')!
+			.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		const surface = container.querySelector<HTMLElement>('[data-inline-editor]')!;
+		expect(surface).not.toBeNull();
+		const records = new MutationObserver(() => {});
+		records.observe(container, { subtree: true, childList: true });
+		const button = container.querySelector<HTMLButtonElement>('button[aria-label="Bullet List"]')!;
+		button.click();
+		button.click();
+		const removals = records.takeRecords().flatMap((record) => [...record.removedNodes]);
+		records.disconnect();
+		// Being reattached at the end is insufficient: detach loses native focus/history.
+		expect(removals.some((node) => node === surface || node.contains(surface))).toBeFalsy();
+		expect(container.querySelector('[data-inline-editor]')).toBe(surface);
+		expect(document.activeElement).toBe(surface);
+		viewer.updateElement('list', {
+			text: 'Replaced',
+			textSegments: [{ text: 'Replaced', style: {} }],
+		});
+		expect(container.querySelector('[data-inline-editor]')).toBeNull();
+	});
+
 	it('exposes element insertion on the public viewer instance', () => {
 		expect(mount().viewer.addElement).toBeTypeOf('function');
 	});
+
+	it.each(['slide', 'master', 'template', 'readonly', 'loading', 'present'] as const)(
+		'retires the retained list overlay on %s changes',
+		(change) => {
+			const { viewer, container } = mount({ editable: true });
+			const concrete = viewer as PptxViewer;
+			const element: PptxElement = {
+				id: 'list',
+				type: 'text',
+				x: 10,
+				y: 20,
+				width: 200,
+				height: 100,
+				text: 'Body',
+				textSegments: [{ text: 'Body', style: {}, bulletInfo: { char: '◆' } }],
+			};
+			concrete.store.set({
+				slideMasters: [{ path: 'master1', name: 'Master', layouts: [], elements: [element] }],
+				templateElementsBySlideId: { s1: [element] },
+				slides: ['s1', 's2'].map((id, index) => ({
+					id,
+					rId: id,
+					slideNumber: index + 1,
+					elements: [element],
+				})),
+			});
+			viewer.selectElements(['list']);
+			container
+				.querySelector('[data-pptx-viewport] [data-element-id="list"]')!
+				.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+			expect(container.querySelector('[data-inline-editor]')).not.toBeNull();
+			if (change === 'slide') {
+				concrete.store.set({ currentSlide: 1 });
+			} else if (change === 'master') {
+				concrete.store.set({ masterViewTarget: { masterIndex: 0, layoutIndex: null } });
+			} else if (change === 'template') {
+				concrete.store.set({ editTemplateMode: true });
+			} else if (change === 'readonly') {
+				concrete.store.set({ editable: false });
+			} else if (change === 'loading') {
+				concrete.store.set({ loading: true });
+			} else {
+				concrete.store.set({ presenting: true });
+			}
+			expect(container.querySelector('[data-inline-editor]')).toBeNull();
+		},
+	);
 
 	it('uses explicit viewport padding for both measured fit and physical layout', () => {
 		const { viewer, container } = mount({ fitPadding: 0, maxFitScale: null });
