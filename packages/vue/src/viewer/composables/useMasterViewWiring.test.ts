@@ -96,6 +96,19 @@ describe('useMasterViewWiring master-part editing', () => {
  * moved but never reworded, and a stray master shape could never be removed.
  */
 describe('useMasterViewWiring text commit', () => {
+	it('retains a rich list snapshot on the owning layout part', () => {
+		const { slideMasters, state } = useWiring();
+		state.onSelectLayout(0, 0);
+		const id = 'slide-layout-slideLayout1-shape-0';
+		const textSegments = [{ text: 'Nested', style: { italic: true }, paragraphLevel: 1 }];
+		state.onMasterViewTextCommit(id, 'Nested', { elementId: id, text: 'Nested', textSegments });
+		expect(slideMasters.value[0].layouts?.[0].elements?.[0]).toMatchObject({
+			text: 'Nested',
+			textSegments,
+		});
+		expect(slideMasters.value[0].elements?.[0]).not.toHaveProperty('text');
+	});
+
 	it('writes the text and remaps the runs onto the owning part', () => {
 		const { slideMasters, markDirty, state } = useWiring();
 		state.onMasterViewTextCommit('slide-master-slideMaster1-shape-0', 'Retitled');

@@ -9,8 +9,9 @@
  * `useLoadContent.table-styles.test.ts` does, since the OPTIONS OBJECT is what
  * the bug was about.
  */
-import type { PptxHandler, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 import { PptxHandler as RealPptxHandler } from 'pptx-viewer-core';
+import type { PendingInlineTextEdit } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 
@@ -25,9 +26,12 @@ async function settle(deck: ReturnType<typeof useLoadContent>): Promise<void> {
 	}
 }
 
-async function newDeckBytes(): Promise<Uint8Array> {
+async function newDeckBytes(elements?: PptxElement[]): Promise<Uint8Array> {
 	const { handler, data } = await RealPptxHandler.create({ initialSlideCount: 1 });
 	try {
+		if (elements) {
+			data.slides[0].elements = elements;
+		}
 		return await handler.save(data.slides);
 	} finally {
 		handler.dispose();
@@ -47,6 +51,72 @@ function recordingHandler(): { handler: PptxHandler; seen: PptxHandlerSaveOption
 }
 
 describe('view properties reach the save call', () => {
+	it('serializes a current list draft without committing the live model', async () => {
+		const scope = effectScope();
+		let pending: PendingInlineTextEdit | undefined;
+		try {
+			const bytes = await newDeckBytes([
+				{
+					id: 'draft-list',
+					type: 'text',
+					x: 30,
+					y: 30,
+					width: 200,
+					height: 100,
+					text: 'Original',
+					textSegments: [{ text: 'Original', style: {} }],
+				},
+			]);
+			await scope.run(async () => {
+				const deck = useLoadContent(() => bytes, { getPendingInlineEdit: () => pending });
+				await settle(deck);
+				expect(deck.loading.value).toBeFalsy();
+				expect(deck.error.value).toBeNull();
+				const source = deck.slides.value[0].elements[0];
+				expect(source.rawXml).toBeDefined();
+				pending = {
+					target: { slideId: deck.slides.value[0].id },
+					snapshot: {
+						elementId: source.id,
+						text: 'Current body',
+						textSegments: [
+							{
+								text: 'Current body',
+								style: { fontSize: 30 },
+								paragraphLevel: 1,
+								bulletInfo: { char: '◆' },
+							},
+						],
+					},
+				};
+				const reader = new RealPptxHandler();
+				try {
+					const result = await reader.load(await deck.getContent());
+					expect(result.slides[0].elements[0]).toMatchObject({
+						text: expect.stringContaining('Current body'),
+					});
+					expect(result.slides[0].elements[0].textSegments).toStrictEqual(
+						expect.arrayContaining([
+							expect.objectContaining({
+								paragraphLevel: 1,
+								bulletInfo: expect.objectContaining({ char: '◆' }),
+							}),
+						]),
+					);
+					expect(deck.slides.value[0].elements[0]).toBe(source);
+					expect(source.text).toBe('Original');
+					pending = undefined;
+					const unchanged = await reader.load(await deck.getContent());
+					expect(unchanged.slides[0].elements[0].text).toBe('Original');
+				} finally {
+					reader.dispose();
+				}
+			});
+		} finally {
+			scope.stop();
+		}
+	});
+
 	it('forwards the session viewProperties into saveOptions', async () => {
 		const bytes = await newDeckBytes();
 		const scope = effectScope();

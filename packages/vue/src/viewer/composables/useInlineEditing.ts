@@ -1,19 +1,26 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
-import type { CollaborationLivePatcher, ViewerProofingOptions } from 'pptx-viewer-shared';
+import type {
+	CollaborationLivePatcher,
+	InlineListController,
+	InlineTextEditSnapshot,
+	ViewerProofingOptions,
+} from 'pptx-viewer-shared';
 import {
 	applyAutoCorrect,
+	buildInlineTextCommitPatch,
 	canInteractWithElement,
 	publishLiveInlineText,
 	resolveInlineEditAutoFitHeight,
 	resolveInlineEditNormAutofitShrink,
 	setCellText,
 } from 'pptx-viewer-shared';
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 import { remapTextToSegments } from './remap-text';
 import type { EditorOperations } from './useEditorOperations';
+import { useInlineListSession } from './useInlineListSession';
 
 export interface UseInlineEditingInput {
 	canEdit: () => boolean;
@@ -40,7 +47,11 @@ export interface UseInlineEditingResult {
 	inlineEditingText: Ref<string>;
 	inlineEditingElement: ComputedRef<PptxElement | undefined>;
 	/** Set the in-progress text and mirror it to collaborators. */
-	updateInlineText: (text: string) => void;
+	updateInlineText: (text: string, snapshot?: InlineTextEditSnapshot) => void;
+	readInlineSnapshot: () => InlineTextEditSnapshot | undefined;
+	onListSession: (event: { controller: InlineListController; active: boolean }) => void;
+	formatInlineSnapshot: (snapshot: InlineTextEditSnapshot) => boolean;
+	endInlineListSession: () => void;
 	enterInlineEdit: (id: string) => void;
 	commitInlineEdit: () => void;
 	cancelInlineEdit: () => void;
@@ -64,9 +75,11 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 
 	const inlineEditingElementId = ref<string | null>(null);
 	const inlineEditingText = ref('');
+	const inlineSnapshot = shallowRef<InlineTextEditSnapshot>();
 	const inlineEditingElement = computed<PptxElement | undefined>(() =>
 		inlineEditingElementId.value ? findActiveElement(inlineEditingElementId.value) : undefined,
 	);
+	const listSession = useInlineListSession(() => inlineEditingElement.value, cancelInlineEdit);
 
 	/**
 	 * Publish everything queued on the live channel right now. Called before a
@@ -77,8 +90,14 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		input.livePatcher?.()?.flush();
 	}
 
-	function updateInlineText(text: string): void {
+	function updateInlineText(text: string, snapshot?: InlineTextEditSnapshot): void {
 		inlineEditingText.value = text;
+		inlineSnapshot.value =
+			snapshot?.textSegments &&
+			snapshot.elementId === inlineEditingElementId.value &&
+			snapshot.text === text
+				? snapshot
+				: undefined;
 		publishLiveInlineText(
 			input.livePatcher?.(),
 			input.activeSlide?.(),
@@ -106,6 +125,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 			return;
 		}
 		inlineEditingElementId.value = id;
+		inlineSnapshot.value = undefined;
 		inlineEditingText.value = (el as { text?: string }).text ?? '';
 	}
 	function commitInlineEdit(): void {
@@ -118,6 +138,8 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 			| undefined;
 		flushLiveText();
 		const text = autoCorrect(inlineEditingText.value);
+		const snapshot = inlineSnapshot.value;
+		inlineSnapshot.value = undefined;
 		inlineEditingElementId.value = null;
 		if (el) {
 			// Clicking into a text box and clicking straight back out is not an
@@ -134,14 +156,21 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 			// with '', so a no-op commit remapped its runs from an empty string
 			// and erased them.
 			const currentText = (el as { text?: string }).text ?? '';
-			if (text === currentText) {
+			if (!snapshot && text === currentText) {
 				return;
 			}
-			const segments = remapTextToSegments(
-				text,
-				(el.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,
-				(el.textStyle as Parameters<typeof remapTextToSegments>[2]) ?? undefined,
-			);
+			const richPatch = snapshot ? buildInlineTextCommitPatch(el, text, snapshot) : undefined;
+			if (snapshot && !richPatch) {
+				return;
+			}
+			const segments =
+				richPatch && 'textSegments' in richPatch
+					? richPatch.textSegments
+					: remapTextToSegments(
+							text,
+							(el.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,
+							(el.textStyle as Parameters<typeof remapTextToSegments>[2]) ?? undefined,
+						);
 			// `a:spAutoFit` ("Resize shape to fit text"): grow/shrink the shape to
 			// the text's natural content height, the way PowerPoint does. Vue has
 			// not yet applied the `null` that unmounts the editor's DOM node at
@@ -184,6 +213,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 	}
 	function cancelInlineEdit(): void {
 		flushLiveText();
+		inlineSnapshot.value = undefined;
 		inlineEditingElementId.value = null;
 	}
 	/**
@@ -209,10 +239,21 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 	}
 
 	return {
+		onListSession: listSession.register,
+		formatInlineSnapshot: listSession.format,
+		endInlineListSession: listSession.end,
 		inlineEditingElementId,
 		inlineEditingText,
 		inlineEditingElement,
 		updateInlineText,
+		readInlineSnapshot: () => {
+			const current = listSession.read();
+			const id = inlineEditingElementId.value;
+			if (current && id) {
+				return current;
+			}
+			return inlineSnapshot.value?.elementId === id ? inlineSnapshot.value : undefined;
+		},
 		enterInlineEdit,
 		commitInlineEdit,
 		cancelInlineEdit,
