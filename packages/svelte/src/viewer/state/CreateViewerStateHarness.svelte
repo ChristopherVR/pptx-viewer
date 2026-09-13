@@ -22,6 +22,8 @@
 		filePath,
 		editable = false,
 		onautosavetoggle,
+		oncontentchange,
+		onerror,
 		viewport,
 		fitOptions,
 	}: {
@@ -36,6 +38,8 @@
 		filePath?: string;
 		editable?: boolean;
 		onautosavetoggle?: (enabled: boolean) => void;
+		oncontentchange?: (content: Uint8Array) => void;
+		onerror?: (message: string) => void;
 		viewport?: { width: number; height: number };
 		fitOptions?: ViewportFitOptions;
 	} = $props();
@@ -54,6 +58,12 @@
 		getPieChart3D: () => false,
 		getEditable: () => editable,
 		onautosavetoggle: (enabled) => onautosavetoggle?.(enabled),
+		get oncontentchange() {
+			return oncontentchange;
+		},
+		get onerror() {
+			return onerror;
+		},
 		getStageHolderEl: () => undefined,
 		getRootEl: () => undefined,
 		getViewportWidth: () => viewport?.width ?? 0,

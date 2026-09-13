@@ -195,11 +195,21 @@ export async function saveEditorState(
 	state: EditorState,
 	format: PptxSaveFormat = 'pptx',
 ): Promise<Uint8Array> {
+	const bytes = await serializeEditorState(state, format);
+	state.dirty = false;
+	return bytes;
+}
+
+/** Serialize a notification snapshot without acknowledging persistence. */
+export async function serializeEditorState(
+	state: EditorState,
+	format: PptxSaveFormat = 'pptx',
+): Promise<Uint8Array> {
 	const handler = state.getHandler();
 	if (!handler) {
 		throw new Error('No presentation is loaded.');
 	}
-	const bytes = await saveEditorDocument(
+	return saveEditorDocument(
 		handler,
 		{ ...state.snapshot(), slides: state.renderedSlides },
 		format,
@@ -216,6 +226,4 @@ export async function saveEditorState(
 		// `ppt/tableStyles.xml`. Outside the undo-tracked snapshot, like slide size.
 		state.getTableStyleOptions(),
 	);
-	state.dirty = false;
-	return bytes;
 }
