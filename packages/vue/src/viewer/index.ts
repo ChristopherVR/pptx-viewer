@@ -22,6 +22,8 @@ export { default as RibbonToolbar } from './components/ribbon/RibbonToolbar.vue'
 
 export type {
 	PowerPointViewerProps,
+	ViewportFitOptions,
+	ViewportFitPadding,
 	PowerPointViewerEmits,
 	PowerPointViewerExpose,
 	CollaborationConfig,

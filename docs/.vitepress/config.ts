@@ -276,6 +276,7 @@ export default defineConfig({
 						{ text: 'Architecture', link: '/guide/architecture' },
 						{ text: 'The PptxData Model', link: '/guide/data-model' },
 						{ text: 'Theming', link: '/guide/theming' },
+						{ text: 'Viewport Fitting', link: '/guide/viewport-fit' },
 						{ text: 'Localization (i18n)', link: '/guide/localization' },
 						{ text: 'AI Assistant', link: '/guide/ai-assistant' },
 						{ text: 'Account & Sign-in', link: '/guide/account' },

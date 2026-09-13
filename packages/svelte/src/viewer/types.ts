@@ -10,6 +10,7 @@ import type {
 	ToolbarActionId,
 	ViewerFontSource,
 	ViewerTheme,
+	ViewportFitOptions,
 } from 'pptx-viewer-shared';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
@@ -50,7 +51,7 @@ export interface ViewerLoadDetail {
 }
 
 /** Props for `<PowerPointViewer>`. */
-export interface PowerPointViewerProps {
+export interface PowerPointViewerProps extends ViewportFitOptions {
 	/** PowerPoint content as `Uint8Array` (or `ArrayBuffer`). */
 	source: Uint8Array | ArrayBuffer | null | undefined;
 	/** Licensed font sources supplied by the host application. */

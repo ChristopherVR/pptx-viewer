@@ -26,6 +26,53 @@ afterEach(() => {
 });
 
 describe('createPptxViewer', () => {
+	it('uses explicit viewport padding for both measured fit and physical layout', () => {
+		const { viewer, container } = mount({ fitPadding: 0, maxFitScale: null });
+		const concrete = viewer as PptxViewer;
+		const viewport = container.querySelector<HTMLElement>('.pptxv-viewport')!;
+		Object.defineProperties(viewport, {
+			clientWidth: { value: 1920 },
+			clientHeight: { value: 1080 },
+		});
+		concrete.store.set({ canvasSize: { width: 960, height: 540 } });
+		expect(concrete.renderer.fitScale()).toBe(2);
+		expect(viewport.style.padding).toBe('0px');
+		viewer.setZoom(3);
+		expect(concrete.renderer.effectiveScale()).toBe(3);
+		expect(concrete.renderer.zoomPercent()).toBe(150);
+		viewer.zoomToFit();
+		expect(concrete.renderer.effectiveScale()).toBe(2);
+	});
+
+	it('retains default CSS and ignores editor padding/caps while presenting', () => {
+		const normal = mount();
+		const normalViewport = normal.container.querySelector<HTMLElement>('.pptxv-viewport')!;
+		Object.defineProperties(normalViewport, {
+			clientWidth: { value: 960 },
+			clientHeight: { value: 540 },
+		});
+		const normalViewer = normal.viewer as PptxViewer;
+		normalViewer.store.set({ canvasSize: { width: 960, height: 540 } });
+		expect(normalViewer.renderer.fitScale()).toBeCloseTo(508 / 540);
+		expect(normalViewport.style.padding).toBe('');
+		const custom = mount({ fitPadding: { horizontal: 4, vertical: 8 }, maxFitScale: 1 });
+		const customViewer = custom.viewer as PptxViewer;
+		const customViewport = custom.container.querySelector<HTMLElement>('.pptxv-viewport')!;
+		Object.defineProperties(customViewport, {
+			clientWidth: { value: 1920 },
+			clientHeight: { value: 1080 },
+		});
+		customViewer.store.set({ canvasSize: { width: 960, height: 540 } });
+		expect(customViewer.renderer.fitScale()).toBe(1);
+		expect(customViewport.style.padding).toBe('8px 4px');
+		customViewer.store.set({ presenting: true });
+		expect(customViewer.renderer.fitScale()).toBe(2);
+		expect(customViewport.style.padding).toBe('0px');
+		customViewer.store.set({ presenting: false });
+		expect(customViewer.renderer.fitScale()).toBe(1);
+		expect(customViewport.style.padding).toBe('8px 4px');
+	});
+
 	it('builds the chrome (toolbar, thumbnails, viewport) and injects styles once', () => {
 		const { container } = mount();
 		expect(container.querySelector('.pptxv')).toBeTruthy();

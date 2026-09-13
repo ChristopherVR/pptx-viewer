@@ -5,6 +5,9 @@ description: The complete props and event-callback contract of the PowerPointVie
 
 # Component Props
 
+For custom host sizing, see [Viewport fitting](/guide/viewport-fit) for
+`fitPadding`, `maxFitScale`, framework-specific examples, and default values.
+
 `<PowerPointViewer>` follows the Vue binding's contract with two Svelte 5 conventions:
 events are **callback props** (`onload`, not `@load`), and the content prop is named
 **`source`**.

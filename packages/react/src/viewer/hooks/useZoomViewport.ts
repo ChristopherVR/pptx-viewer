@@ -5,12 +5,13 @@ import {
 	createWheelStepBuffer,
 	mapEditingWheel,
 } from 'pptx-viewer-shared';
-import type { ViewerZoomState, ViewerZoomStore } from 'pptx-viewer-shared';
-import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
+import type { ViewerZoomState, ViewerZoomStore, ViewportFitOptions } from 'pptx-viewer-shared';
+import { useRef, useCallback, useEffect } from 'react';
 
 import { MIN_ELEMENT_SIZE, ZOOM_TO_SELECTION_PADDING } from '../constants';
 import type { CanvasSize } from '../types';
 import { useViewerStore } from './useViewerStore';
+import { useViewportFit } from './useViewportFit';
 
 /** Module scope so the selector identity is stable across renders. */
 const selectZoom = (state: ViewerZoomState): number => state.zoom;
@@ -23,7 +24,7 @@ interface SelectionBounds {
 	maxY: number;
 }
 
-interface UseZoomViewportInput {
+interface UseZoomViewportInput extends ViewportFitOptions {
 	canvasSize: CanvasSize;
 	selectedElements: PptxElement[];
 }
@@ -56,6 +57,8 @@ export interface UseZoomViewportResult {
 export function useZoomViewport({
 	canvasSize,
 	selectedElements,
+	fitPadding,
+	maxFitScale,
 }: UseZoomViewportInput): UseZoomViewportResult {
 	// ── Refs ──────────────────────────────────────────────────────────────
 	const editWrapperRef = useRef<HTMLDivElement>(null);
@@ -78,22 +81,8 @@ export function useZoomViewport({
 		(next: number) => store.dispatch({ type: 'set-zoom', zoom: next }),
 		[store],
 	);
-	const [editorDimensions, setEditorDimensions] = useState<CanvasSize | null>(null);
-
-	// ── Derived ───────────────────────────────────────────────────────────
-	const effectiveEditorDimensions = editorDimensions || {
-		width: canvasSize.width,
-		height: canvasSize.height,
-	};
-
-	const fitScale = useMemo(() => {
-		if (!effectiveEditorDimensions.width || !effectiveEditorDimensions.height) {
-			return 1;
-		}
-		const widthScale = effectiveEditorDimensions.width / canvasSize.width;
-		const heightScale = effectiveEditorDimensions.height / canvasSize.height;
-		return Math.min(widthScale, heightScale, 1);
-	}, [canvasSize, effectiveEditorDimensions.height, effectiveEditorDimensions.width]);
+	const { editorDimensions, setEditorDimensions, effectiveEditorDimensions, fitScale } =
+		useViewportFit(canvasSize, canvasViewportRef, { fitPadding, maxFitScale });
 
 	const editorScale = fitScale * scale;
 
@@ -108,40 +97,6 @@ export function useZoomViewport({
 	useEffect(() => {
 		store.dispatch({ type: 'set-fit-scale', fitScale });
 	}, [store, fitScale]);
-
-	// Measure the available editor area (the scrollable canvas viewport) so
-	// `fitScale` reflects reality and the slide is fit-to-contain by default.
-	// Without this, editorDimensions stays null → fitScale is pinned at 1 and
-	// the slide renders at native size, overflowing small (esp. mobile) viewports.
-	// The slide is centred with an `my-4` margin and an optional ruler gutter, so
-	// we trim a small allowance off the measured box.
-	useEffect(() => {
-		let observer: ResizeObserver | null = null;
-		let raf = 0;
-		const VERTICAL_MARGIN = 32; // editWrapper `my-4` (top + bottom)
-		const measure = (el: HTMLElement) => {
-			const width = Math.max(0, el.clientWidth - 8);
-			const height = Math.max(0, el.clientHeight - VERTICAL_MARGIN);
-			if (width > 0 && height > 0) {
-				setEditorDimensions({ width, height });
-			}
-		};
-		const attach = () => {
-			const el = canvasViewportRef.current;
-			if (!el) {
-				raf = requestAnimationFrame(attach);
-				return;
-			}
-			observer = new ResizeObserver(() => measure(el));
-			observer.observe(el);
-			measure(el);
-		};
-		attach();
-		return () => {
-			cancelAnimationFrame(raf);
-			observer?.disconnect();
-		};
-	}, []);
 
 	// ── Actions ───────────────────────────────────────────────────────────
 

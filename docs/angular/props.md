@@ -5,6 +5,9 @@ description: Complete reference for PowerPointViewerComponent's @Input()s and @O
 
 # Component Inputs & Outputs
 
+For custom host sizing, see [Viewport fitting](/guide/viewport-fit) for
+`fitPadding`, `maxFitScale`, framework-specific examples, and default values.
+
 `PowerPointViewerComponent` (selector `pptx-viewer`) exposes its configuration through signal-based
 `input()`s and events through `output()`s. Only `content` is meaningful for a read-only viewer;
 everything else is optional. This reference is taken directly from the source component.

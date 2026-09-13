@@ -49,7 +49,8 @@ export function useViewerDerived(deps: ViewerDerivedDeps): ViewerDerived {
 			options.getViewportHeight(),
 			loader.canvasSize.width,
 			loader.canvasSize.height,
-			viewer.isFullscreen ? 0 : 24,
+			viewer.isFullscreen ? 0 : options.getFitPadding?.(),
+			viewer.isFullscreen ? null : options.getMaxFitScale?.(),
 		),
 	);
 	// React parity: the user-facing zoom percent is relative to fit-to-viewport
