@@ -283,8 +283,14 @@ const protectedViewActive = computed(
 // same way Protected View does, so its lock feeds the SAME gate rather than a
 // second mechanism.
 const readOnlyRec = useReadOnlyRecommendation({ modifyVerifier, customProperties });
+// A requested preview disables interaction without changing host permission or the live deck.
+const editingRequested = ref(true);
 const canEditEffective = computed(
-	() => props.canEdit && !protectedViewActive.value && !readOnlyRec.locked.value,
+	() =>
+		editingRequested.value &&
+		props.canEdit &&
+		!protectedViewActive.value &&
+		!readOnlyRec.locked.value,
 );
 function enableEditing(): void {
 	protectedViewDismissed.value = true;
@@ -1474,6 +1480,10 @@ defineExpose<PowerPointViewerExpose>(
 		presenting: presentation.presenting,
 		showMasterView: masterView.showMasterView,
 		mode: ribbonMode,
+		setEditingRequested: (editable) => {
+			editingRequested.value = editable;
+		},
+		commitPendingText: inlineEdit.commitInlineEdit,
 		getContent,
 		goTo,
 		goPrev,

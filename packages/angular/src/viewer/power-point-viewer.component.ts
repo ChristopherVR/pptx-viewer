@@ -1519,12 +1519,14 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * read-only recommendation (`p:modifyVerifier` / "Mark as Final"; lifted by
 	 * the read-only banner's "Edit anyway", see {@link LoadNoticesService}).
 	 */
-	protected readonly canEdit = computed(
+	protected readonly hasEditPermission = computed(
 		() =>
 			this.canEditInput() &&
 			(!this.viewerOpts.options().trust.openInProtectedView || this.protectedViewDismissed()) &&
 			!this.loadNotices.lockActive(),
 	);
+	private readonly editingRequested = signal(true);
+	protected readonly canEdit = computed(() => this.hasEditPermission() && this.editingRequested());
 
 	/** Whether the Protected View banner should show: host allows editing, the option still blocks it, and the user hasn't dismissed it yet. */
 	protected readonly protectedViewActive = computed(
@@ -1571,9 +1573,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * end-of-slide-show screen rather than falling back to the editor.
 	 */
 	protected readonly audienceSessionEnded = signal(false);
-	/** Slides to display: the editable deck when `canEdit`, else the loaded deck. */
+	/** Preview changes interaction, not which permitted live deck is displayed. */
 	protected readonly displaySlides = computed(() =>
-		this.canEdit() ? this.editor.slides() : this.loader.slides(),
+		this.hasEditPermission() ? this.editor.slides() : this.loader.slides(),
 	);
 	protected readonly slideCount = computed(() => this.displaySlides().length);
 	/**
@@ -1583,7 +1585,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * accessibility) renders this instead so template elements are not lost.
 	 */
 	protected readonly mergedSlides = computed<readonly PptxSlide[]>(() =>
-		this.canEdit()
+		this.hasEditPermission()
 			? buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId())
 			: this.loader.slides(),
 	);
@@ -1593,7 +1595,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	/** Inherited template (master/layout) elements for the active slide, when editing. */
 	protected readonly activeTemplateElements = computed<readonly PptxElement[]>(() => {
 		const slide = this.activeSlide();
-		if (!this.canEdit() || !slide) {
+		if (!this.hasEditPermission() || !slide) {
 			return [];
 		}
 		return this.editor.templateElementsBySlideId()[slide.id] ?? [];
@@ -2423,7 +2425,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// component (canEdit, the host `content` input, the File ▸ Open override,
 		// the editor's slides + template elements, and the contentChange emitter).
 		this.fileIO.bind({
-			canEdit: () => this.canEdit(),
+			canEdit: () => this.hasEditPermission(),
 			content: () => this.content(),
 			onOpenFile: () => this.onOpenFile(),
 			slides: () => this.editor.slides(),
@@ -2896,6 +2898,12 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	}
 	/** Switch the viewer mode (e.g. 'edit', 'preview', 'present'). */
 	setMode(mode: ViewerMode): void {
+		if (mode === 'preview' && this.canEdit()) {
+			this.mainEl()?.nativeElement.querySelector<HTMLElement>('[data-inline-editor]')?.blur();
+		}
+		if (mode !== 'present') {
+			this.editingRequested.set(mode !== 'preview');
+		}
 		if (mode === 'present') {
 			this.presentationMode.present();
 		} else if (mode === 'master') {
